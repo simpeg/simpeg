@@ -1,25 +1,18 @@
-# from scipy.sparse import linalg
-from numpy import *
-#from numpy.linalg import *
+import numpy as np
 from numpy.random import randn
-from utils import *
+from utils import ndgrid
 from getDiffOps import getCurlMatrix, getNodalGradient
-from sputils import *
-from meshUtils import *
 from getFaceInnerProduct import getFaceInnerProduct
 from getEdgeInnerProduct import getEdgeInnerProduct
-#from scipy.sparse.linalg import spsolve
-from scipy.sparse.linalg import *
-from pylab import *
+from scipy.sparse.linalg import dsolve
+from pylab import norm
 
-n1 = 14
-n2 = 14
-n3 = 15
+n = np.array([14, 14, 15])
 
-X, Y, Z = ndgrid(linspace(0, 1, n1), linspace(0, 1, n2), linspace(0, 1, n3))
-sigma = 1e-2*ones([n1-1, n2-1, n3-1])
-sigma[:, :, (n3-1)/2:] = 1e-6
-mu = 4*pi*1e-7*ones([n1-1, n2-1, n3-1])
+X, Y, Z = ndgrid(*[np.linspace(0, 1, x) for x in n])
+sigma = 1e-2*np.ones(n-1)
+sigma[:, :, (n[2]-1)/2:] = 1e-6
+mu = 4*np.pi*1e-7*np.ones(n-1)
 w = 10
 
 CURL = getCurlMatrix(X, Y, Z)
@@ -29,8 +22,8 @@ Me = getEdgeInnerProduct(X, Y, Z, sigma)
 
 A = CURL.T * Mf * CURL + 1j * w * Me
 
-ne = shape(A)
-b = matrix(randn(ne[0])).T
+ne = np.shape(A)
+b = np.matrix(randn(ne[0])).T
 # clean b
 DIVb = GRAD.T*b
 p = dsolve.spsolve(GRAD.T*GRAD, DIVb, use_umfpack=True).T
