@@ -1,9 +1,19 @@
 import numpy as np
 from pylab import norm
 
-def GaussNewton(x0, maxIter=20, maxIterLS=10, LSreduction=1e-4, tolJ=1e-3, tolX=1e-3, tolG=1e-3, eps=1e-16, xStop=np.empty):
+def GaussNewton(fctn, x0,maxIter=20, maxIterLS=10, LSreduction=1e-4, tolJ=1e-3, tolX=1e-3, 
+                                                    tolG=1e-3, eps=1e-16, xStop=np.empty):
     """
-        GaussNewton optimization for Rosenbrock function (has to be generalized)
+        GaussNewton Optimization
+        
+        Input:
+        ------
+            fctn - objective Function (lambda function)
+            x0   - starting guess
+            
+        Output:
+        -------
+            xOpt - numerical optimizer
     """
     # initial output
     print "%s GaussNewton %s" % ('='*22,'='*22)
@@ -13,7 +23,7 @@ def GaussNewton(x0, maxIter=20, maxIterLS=10, LSreduction=1e-4, tolJ=1e-3, tolX=
     # evaluate stopping criteria
     if xStop==np.empty:
         xStop=x0
-    Jstop = Rosenbrock(xStop)
+    Jstop = fctn(xStop)
     print "%3d\t%1.2e" % (-1, Jstop[0])
 
     # initialize
@@ -25,7 +35,7 @@ def GaussNewton(x0, maxIter=20, maxIterLS=10, LSreduction=1e-4, tolJ=1e-3, tolX=
     xOld=xc
     while 1:
         # evaluate objective function
-        Jc,dJ,H = Rosenbrock(xc)
+        Jc,dJ,H = fctn(xc)
         print "%3d\t%1.2e\t%1.2e\t%d" % (iter, Jc[0],norm(dJ),iterLS)
         
         # check stopping rules
@@ -45,7 +55,7 @@ def GaussNewton(x0, maxIter=20, maxIterLS=10, LSreduction=1e-4, tolJ=1e-3, tolX=
         LS =0; t = 1; iterLS=1
         while  (iterLS<maxIterLS):
             xt = xc + t*dx
-            Jt = Rosenbrock(xt)
+            Jt = fctn(xt)
             LS = Jt[0]<Jc[0]+t*LSreduction*descent
             if LS:
                 break
@@ -79,7 +89,8 @@ def Rosenbrock(x):
     return J,dJ,H
     
 if __name__ == '__main__':
-    x = np.array([[2.6],[3.7]])
-    xOpt = GaussNewton(x,maxIter=20)
+    x0 = np.array([[2.6],[3.7]])
+    fctn = lambda x:Rosenbrock(x)
+    xOpt = GaussNewton(fctn,x0,maxIter=20)
     print "xOpt=[%f,%f]" % (xOpt[0],xOpt[1])
    
