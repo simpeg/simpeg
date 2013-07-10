@@ -1,4 +1,5 @@
 from numpy import *
+import numpy as np
 
 
 def diff(A, d):
@@ -43,35 +44,54 @@ def ave(A, d):
         print('d must be 1,2 or 3')
 
 
-def reshapeF(sp, d):
-    return reshape(sp, d, 'F')
+def reshapeF(x, size):
+    return np.reshape(x, size, order='F')
 
 
-def mkvc(A):
-    return reshape(A, [size(A), 1], 'F').flatten()
+def mkvc(x, numDims=1):
+    """Creates a vector with the number of dimension specified
+
+    e.g.:
+
+        a = np.array(1,2,3)
+
+        mkvc(a, 1).shape
+            > (3, )
+
+        mkvc(a, 2).shape
+            > (3, 1)
+
+        mkvc(a, 3).shape
+            > (3, 1, 1)
+
+    """
+    assert type(x) == np.ndarray, "Vector must be a numpy array"
+
+    if numDims == 1:
+        return x.flatten(order='F')
+    elif numDims == 2:
+        return x.flatten(order='F')[:, np.newaxis]
+    elif numDims == 3:
+        return x.flatten(order='F')[:, np.newaxis, np.newaxis]
 
 
-def ndgrid(x, y, z):
+def ndgrid(*args):
+    """Form tensorial grid for 1, 2 and 3 dimensions. Return X1,X2,X3 arrays depending on the dimension"""
 
-    n1 = size(x)
-    n2 = size(y)
-    n3 = size(z)
-    X = zeros([n1, n2, n3])
-    Y = zeros([n1, n2, n3])
-    Z = zeros([n1, n2, n3])
-    for i in range(0, n2):
-        for j in range(0, n3):
-            X[:, i, j] = x
+    # you can either pass a list [x1, x2, x3] or each seperately
+    if type(args[0]) == list:
+        xin = args[0]
+    else:
+        xin = args
 
-    for i in range(0, n1):
-        for j in range(0, n3):
-            Y[i, :, j] = y
-
-    for i in range(0, n1):
-        for j in range(0, n2):
-            Z[i, j, :] = z
-
-    return (X, Y, Z)
+    if len(xin) == 1:
+        return xin
+    elif len(xin) == 2:
+        X2, X1 = [mkvc(x) for x in np.broadcast_arrays(mkvc(xin[1], 1), mkvc(xin[0], 2))]
+        return np.c_[X1, X2]
+    elif len(xin) == 3:
+        X3, X2, X1 = [mkvc(x) for x in np.broadcast_arrays(mkvc(xin[2], 1), mkvc(xin[1], 2), mkvc(xin[0], 3))]
+        return np.c_[X1, X2, X3]
 
 
 def ind2sub(shape, ind):
