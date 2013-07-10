@@ -2,7 +2,33 @@ import numpy as np
 
 
 class BaseMesh(object):
-    """BaseMesh does all the counting you don't want to do."""
+    """BaseMesh does all the counting you don't want to do.
+
+    x0          origin                    ndarray   (dim, )
+    n           number of cells           ndarray   (dim, )
+    dim         dimension of mesh         int       1, 2, or 3
+
+    nCx         num cells in x dir        int
+    nCy         num cells in y dir        int
+    nCz         num cells in z dir        int
+    nC          total number of cells     int
+
+    nNx         num nodes in x dir        int
+    nNy         num nodes in y dir        int
+    nNz         num nodes in z dir        int
+    nN          total number of nodes     int
+
+    nEx         num edges in x dir        ndarray   [nEx_x, nEx_y, nEx_z]
+    nEy         num edges in y dir        ndarray   [nEy_x, nEy_y, nEy_z]
+    nEz         num edges in z dir        ndarray   [nEz_x, nEz_y, nEz_z]
+    nE          total number of edges     ndarray   (dim, )
+
+    nFx         num faces in x dir        ndarray   [nFx_x, nFx_y, nFx_z]
+    nFy         num faces in y dir        ndarray   [nFy_x, nFy_y, nFy_z]
+    nFz         num faces in z dir        ndarray   [nFz_x, nFz_y, nFz_z]
+    nF          total number of faces     ndarray   (dim, )
+
+    """
     def __init__(self, n, x0=None):
 
         # Check inputs
