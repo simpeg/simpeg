@@ -75,8 +75,14 @@ def mkvc(x, numDims=1):
         return x.flatten(order='F')[:, np.newaxis, np.newaxis]
 
 
-def ndgrid(xin):
+def ndgrid(*args):
     """Form tensorial grid for 1, 2 and 3 dimensions. Return X1,X2,X3 arrays depending on the dimension"""
+
+    # you can either pass a list [x1, x2, x3] or each seperately
+    if type(args[0]) == list:
+        xin = args[0]
+    else:
+        xin = args
 
     if len(xin) == 1:
         return xin
@@ -86,14 +92,6 @@ def ndgrid(xin):
     elif len(xin) == 3:
         X3, X2, X1 = [mkvc(x) for x in np.broadcast_arrays(mkvc(xin[2], 1), mkvc(xin[1], 2), mkvc(xin[0], 3))]
         return np.c_[X1, X2, X3]
-
-
-def flattenF(x):
-    return np.flatten(x, order='F')
-
-
-def printF(x):
-    pass
 
 
 def ind2sub(shape, ind):

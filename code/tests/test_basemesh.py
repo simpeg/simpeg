@@ -5,7 +5,7 @@ from BaseMesh import BaseMesh
 import numpy as np
 
 
-class TestMeshNumbers3D(unittest.TestCase):
+class TestBaseMesh(unittest.TestCase):
 
     def setUp(self):
         self.mesh = BaseMesh([6, 2, 3])
