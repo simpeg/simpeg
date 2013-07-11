@@ -1,47 +1,4 @@
-from numpy import *
 import numpy as np
-
-
-def diff(A, d):
-    if(d == 1):
-        return A[1:, :, :] - A[:-1, :, :]
-    elif(d == 2):
-        return A[:, 1:, :] - A[:, :-1, :]
-    else:
-        return A[:, :, 1:] - A[:, :, :-1]
-    #else:
-    #    print('d must be 1,2 or 3')
-
-
-def diffp(A, d1, d2):
-    if(d1 == 1 and d2 == 2):
-        return A[1:, 1:, :] - A[:-1, :-1, :]
-    elif(d1 == 1 and d2 == 3):
-        return A[1:, :, 1:] - A[:-1, :, :-1]
-    else:
-        return A[:, 1:, 1:] - A[:, :-1, :-1]
-
-
-def diffm(A, d1, d2):
-    if(d1 == 3 and d2 == 2):
-        return A[:, :-1, 1:] - A[:, 1:, :-1]
-    elif(d1 == 1 and d2 == 3):
-        return A[1:, :, :-1] - A[:-1, :, 1:]
-    elif(d1 == 2 and d2 == 1):
-        return A[:-1, 1:, :] - A[1:, :-1, :]
-    else:
-        print('d must be 1, 2 or 3')
-
-
-def ave(A, d):
-    if(d == 1):
-        return 0.5*(A[1:, :, :] + A[:-1, :, :])
-    elif(d == 2):
-        return 0.5*(A[:, 1:, :] + A[:, :-1, :])
-    elif(d == 3):
-        return 0.5*(A[:, :, 1:] + A[:, :, :-1])
-    else:
-        print('d must be 1,2 or 3')
 
 
 def reshapeF(x, size):
@@ -53,7 +10,7 @@ def mkvc(x, numDims=1):
 
     e.g.:
 
-        a = np.array(1,2,3)
+        a = np.array([1, 2, 3])
 
         mkvc(a, 1).shape
             > (3, )
@@ -75,8 +32,45 @@ def mkvc(x, numDims=1):
         return x.flatten(order='F')[:, np.newaxis, np.newaxis]
 
 
-def ndgrid(*args):
-    """Form tensorial grid for 1, 2 and 3 dimensions. Return X1,X2,X3 arrays depending on the dimension"""
+def ndgrid(*args, **kwargs):
+    """
+    Form tensorial grid for 1, 2, or 3 dimensions.
+
+    Returns as column vectors by default.
+
+    To return as matrix input:
+
+        ndgrid(..., vector=False)
+
+    The inputs can be a list or separate arguments.
+
+    e.g.
+
+        a = np.array([1, 2, 3])
+        b = np.array([1, 2])
+
+        XY = ndgrid(a, b)
+            > [[1 1]
+               [2 1]
+               [3 1]
+               [1 2]
+               [2 2]
+               [3 2]]
+
+        X, Y = ndgrid(a, b, vector=False)
+            > X = [[1 1]
+                   [2 2]
+                   [3 3]]
+            > Y = [[1 2]
+                   [1 2]
+                   [1 2]]
+
+    """
+
+    # Read the keyword arguments, and only accept a vector=True/False
+    vector = kwargs.pop('vector', True)
+    assert type(vector) == bool, "'vector' keyword must be a bool"
+    assert len(kwargs) == 0, "Only 'vector' keyword accepted"
 
     # you can either pass a list [x1, x2, x3] or each seperately
     if type(args[0]) == list:
@@ -84,64 +78,22 @@ def ndgrid(*args):
     else:
         xin = args
 
+    # Each vector needs to be a numpy array
+    assert np.all([type(x) == np.ndarray for x in xin]), "All vectors must be numpy arrays."
+
     if len(xin) == 1:
-        return xin
+        return xin[0]
     elif len(xin) == 2:
-        X2, X1 = [mkvc(x) for x in np.broadcast_arrays(mkvc(xin[1], 1), mkvc(xin[0], 2))]
-        return np.c_[X1, X2]
+        XY = np.broadcast_arrays(mkvc(xin[1], 1), mkvc(xin[0], 2))
+        if vector:
+            X2, X1 = [mkvc(x) for x in XY]
+            return np.c_[X1, X2]
+        else:
+            return XY[1], XY[0]
     elif len(xin) == 3:
-        X3, X2, X1 = [mkvc(x) for x in np.broadcast_arrays(mkvc(xin[2], 1), mkvc(xin[1], 2), mkvc(xin[0], 3))]
-        return np.c_[X1, X2, X3]
-
-
-def ind2sub(shape, ind):
-    # From the given shape, returns the subscrips of the given index
-    revshp = []
-    revshp.extend(shape)
-    mult = [1]
-    for i in range(0, len(revshp)-1):
-        mult.extend([mult[i]*revshp[i]])
-    mult = array(mult).reshape(len(mult))
-
-    sub = []
-
-    for i in range(0, len(shape)):
-        sub.extend([math.floor(ind / mult[i])])
-        ind = ind - (math.floor(ind/mult[i]) * mult[i])
-    return sub
-
-
-def sub2ind(shape, subs):
-    # From the given shape, returns the index of the given subscript
-    revshp = list(shape)
-    mult = [1]
-    for i in range(0, len(revshp)-1):
-        mult.extend([mult[i]*revshp[i]])
-    mult = array(mult).reshape(len(mult), 1)
-
-    idx = dot((subs), (mult))
-    return idx
-
-
-def mkmat(x):
-    return reshape(matrix(x), (size(x), 1), 'F')
-
-
-def hstack3(a, b, c):
-    a = mkvc(a)
-    b = mkvc(b)
-    c = mkvc(c)
-    a = mkmat(a)
-    b = mkmat(b)
-    c = mkmat(c)
-    return hstack((hstack((a, b)), c))
-
-
-if __name__ == '__main__':
-
-    X, Y, Z = mgrid[0:4, 0:5, 0:6]
-
-    print Z
-
-    t = ave(X, 1)
-    print t
+        XYZ = np.broadcast_arrays(mkvc(xin[2], 1), mkvc(xin[1], 2), mkvc(xin[0], 3))
+        if vector:
+            X3, X2, X1 = [mkvc(x) for x in XYZ]
+            return np.c_[X1, X2, X3]
+        else:
+            return XYZ[2], XYZ[1], XYZ[0]
