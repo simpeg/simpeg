@@ -1,11 +1,10 @@
 import numpy as np
 from BaseMesh import BaseMesh
-from TensorGrid import TensorGrid
 from TensorView import TensorView
 from utils import ndgrid
 
 
-class TensorMesh(BaseMesh, TensorGrid, TensorView):
+class TensorMesh(BaseMesh, TensorView):
     """
     TensorMesh is a mesh class that deals with tensor product meshes.
 
