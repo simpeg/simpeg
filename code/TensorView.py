@@ -12,28 +12,36 @@ class TensorView(object):
     def __init__(self):
         pass
 
-    def plotImage(self, I):
+    def plotImage(self, I, imageType='CC', figNum=1):
 
-        fig = plt.figure(1)
+        assert type(I) == np.ndarray, "I must be a numpy array"
+        assert imageType in ["CC", "N"], "imageType must be 'CC' or 'N'"
+
+        if imageType == 'CC':
+            assert I.size == self.nC, "Incorrect dimensions for CC."
+        elif imageType == 'N':
+            assert I.size == self.nN, "Incorrect dimensions for N."
+
+        fig = plt.figure(figNum)
         fig.clf()
         ax = plt.subplot(111)
         if self.dim == 1:
-            if np.size(I) == self.n[0]:
-                print 'cell-centered image'
-                xx = self.gridCC
-                ax.plot(xx, I, 'ro')
-            elif np.size(I) == self.n[0]+1:
-                print 'nodal image'
-                xx = self.gridN
-                ax.plot(xx, I, 'bs')
+            if imageType == 'CC':
+                ax.plot(self.vectorCCx, I, 'ro')
+            elif imageType == 'N':
+                ax.plot(self.vectorNx, I, 'bs')
         elif self.dim == 2:
-            print "assume cell-centered image"
-            x  = self.vectorNx
-            y  = self.vectorNy
-            fh = ax.pcolormesh(x,y,I.reshape(self.n,order='F').T)
-            lx = plt.xlabel("x")
-            ly = plt.xlabel("y")
+            if imageType == 'CC':
+                C = I[:].reshape(self.n, order='F')
+            elif imageType == 'N':
+                C = I[:].reshape(self.n+1, order='F')
+                C = 0.25*(C[:-1, :-1] + C[1:, :-1] + C[:-1, 1:] + C[1:, 1:])
+
+            fh = ax.pcolormesh(self.vectorNx, self.vectorNy, C.T)
+            plt.xlabel("x")
+            plt.ylabel("y")
             fig.colorbar(fh)
+
         fig.show()
 
 

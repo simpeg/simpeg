@@ -128,7 +128,7 @@ class BaseMesh(object):
 
     def nN():
         doc = "Total number of nodes"
-        fget = lambda self: self.n + 1
+        fget = lambda self: np.prod(self.n + 1)
         return locals()
     nN = property(**nN())
 
