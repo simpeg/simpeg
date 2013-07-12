@@ -14,20 +14,28 @@ class TensorView(object):
 
     def plotImage(self, I):
 
+        fig = plt.figure(1)
+        fig.clf()
+        ax = plt.subplot(111)
         if self.dim == 1:
-            fig = plt.figure(1)
-            fig.clf()
-            ax = plt.subplot(111)
             if np.size(I) == self.n[0]:
                 print 'cell-centered image'
                 xx = self.gridCC
-                ax.plot(xx[0], I, 'ro')
+                ax.plot(xx, I, 'ro')
             elif np.size(I) == self.n[0]+1:
                 print 'nodal image'
                 xx = self.gridN
-                ax.plot(xx[0], I, 'bs')
+                ax.plot(xx, I, 'bs')
+        elif self.dim == 2:
+            print "assume cell-centered image"
+            x  = self.vectorNx
+            y  = self.vectorNy
+            fh = ax.pcolormesh(x,y,I.reshape(self.n,order='F').T)
+            lx = plt.xlabel("x")
+            ly = plt.xlabel("y")
+            fig.colorbar(fh)
+        fig.show()
 
-            fig.show()
 
     def plotGrid(self):
         """Plot the nodal, cell-centered and staggered grids for 1,2 and 3 dimensions."""
@@ -37,7 +45,6 @@ class TensorView(object):
             ax = plt.subplot(111)
             xn = self.gridN
             xc = self.gridCC
-            print xn
             ax.hold(True)
             ax.plot(xn, np.ones(np.shape(xn)), 'bs')
             ax.plot(xc, np.ones(np.shape(xc)), 'ro')
