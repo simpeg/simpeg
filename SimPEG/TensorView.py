@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
 from mpl_toolkits.mplot3d import Axes3D
 
 
@@ -12,7 +13,7 @@ class TensorView(object):
     def __init__(self):
         pass
 
-    def plotImage(self, I, imageType='CC', figNum=1):
+    def plotImage(self, I, imageType='CC', figNum=1,ax=None):
 
         assert type(I) == np.ndarray, "I must be a numpy array"
         assert imageType in ["CC", "N"], "imageType must be 'CC' or 'N'"
@@ -22,14 +23,22 @@ class TensorView(object):
         elif imageType == 'N':
             assert I.size == self.nN, "Incorrect dimensions for N."
 
-        fig = plt.figure(figNum)
-        fig.clf()
-        ax = plt.subplot(111)
+        if ax is None:
+            fig = plt.figure(figNum)
+            fig.clf()
+            ax = plt.subplot(111)
+        else:
+            assert isinstance(ax,matplotlib.axes.Axes), "ax must be an Axes!"
+            fig = ax.figure
+       
         if self.dim == 1:
             if imageType == 'CC':
-                ax.plot(self.vectorCCx, I, 'ro')
+                ph = ax.plot(self.vectorCCx, I, '-ro')
             elif imageType == 'N':
-                ax.plot(self.vectorNx, I, 'bs')
+                ph = ax.plot(self.vectorNx, I, '-bs')
+            ax.set_xticks(self.vectorNx)
+            ax.set_xlabel("x")
+            ax.axis('tight')
         elif self.dim == 2:
             if imageType == 'CC':
                 C = I[:].reshape(self.n, order='F')
@@ -37,12 +46,16 @@ class TensorView(object):
                 C = I[:].reshape(self.n+1, order='F')
                 C = 0.25*(C[:-1, :-1] + C[1:, :-1] + C[:-1, 1:] + C[1:, 1:])
 
-            fh = ax.pcolormesh(self.vectorNx, self.vectorNy, C.T)
-            plt.xlabel("x")
-            plt.ylabel("y")
-            fig.colorbar(fh)
+            ph = ax.pcolormesh(self.vectorNx, self.vectorNy, C.T)
+            ax.axis('tight')
+            ax.set_xlabel("x")
+            ax.set_ylabel("y")
+            ax.set_xticks(self.vectorNx)
+            ax.set_yticks(self.vectorNy)
+            
 
         fig.show()
+        return ph
 
 
     def plotGrid(self):
