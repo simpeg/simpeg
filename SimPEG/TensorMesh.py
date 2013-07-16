@@ -23,7 +23,7 @@ class TensorMesh(BaseMesh, TensorView):
     def __init__(self, h, x0=None):
         super(TensorMesh, self).__init__(np.array([len(x) for x in h]), x0)
 
-        assert len(h) == len(x0), "Dimension mismatch. x0 != len(h)"
+        assert len(h) == len(self.x0), "Dimension mismatch. x0 != len(h)"
 
         for i, h_i in enumerate(h):
             assert type(h_i) == np.ndarray, ("h[%i] is not a numpy array." % i)
