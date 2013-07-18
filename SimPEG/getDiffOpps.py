@@ -4,7 +4,7 @@ from utils import mkvc
 from sputils import *
 #from sputils import ddx, sdiag, speye, kron3, spzeros, appendBottom3, 
 
-def getvol(h):   
+def getVol(h):   
     
     # Cell sizes in each direction 
     h1 = h[0]
@@ -16,7 +16,7 @@ def getvol(h):
     
     return V
         
-def getarea(h):   
+def getArea(h):   
     
     # Cell sizes in each direction 
     h1 = h[0]
@@ -69,11 +69,11 @@ def getDivMatrix(h):
     n2 = np.size(h2)
     n3 = np.size(h3)  
         
-    area = getarea(h)          
+    area = getArea(h)          
     S = sdiag(area)                   
         
     # Compute cell volumes                        
-    V = getvol(h)
+    V = getVol(h)
         
     # Compute divergence operator on faces                       
     d1 = ddx(n1)
@@ -115,7 +115,7 @@ def getCurlMatrix(h):
            appendRight3(-D21,  D12,   O3))
 
 
-    area = getarea(h)          
+    area = getArea(h)          
     S = sdiag(1/area)                   
         
     # Compute edge length                       
@@ -148,3 +148,60 @@ def getNodalGradient(h):
     L = sdiag(1/lngth)
 
     return L*GRAD
+
+
+def getEdgeToCellAverge(h):
+
+    """Average from Edge to Cell center """
+
+    # Cell sizes in each direction 
+    h1 = h[0]; h2 = h[1]; h3 = h[2]
+
+    # The number of cell centers in each direction
+    n1 = np.size(h1); n2 = np.size(h2); n3 = np.size(h3) 
+    
+    a1 = av(n1); a2 = av(n2); a3 = av(n3)
+    # derivatives on x-edge variables
+    A1 = kron3(a3, a2, speye(n1))
+    A2 = kron3(a3, speye(n2), a1)
+    A3 = kron3(speye(n3), a2, a1)
+
+    return appendRight3(A1, A2, A3)
+    
+    
+def getFaceToCellAverge(h):
+
+    """Average from Edge to Cell center """
+
+    # Cell sizes in each direction 
+    h1 = h[0]; h2 = h[1]; h3 = h[2]
+
+    # The number of cell centers in each direction
+    n1 = np.size(h1); n2 = np.size(h2); n3 = np.size(h3) 
+    
+    a1 = av(n1); a2 = av(n2); a3 = av(n3)
+    # derivatives on x-edge variables
+    A1 = kron3(speye(n3), speye(n2), a1)
+    A2 = kron3(speye(n3), a2, speye(n1))
+    A3 = kron3(a3, speye(n2), speye(n1))
+
+    return appendRight3(A1, A2, A3)  
+    
+
+def getEdgeMassMatrix(h,sigma):
+    # mass matix for products of edge functions w'*M(sigma)*e
+         
+    Av    = getEdgeToCellAverge(h)
+    v     = getVol(h)
+    sigma = mkvc(sigma)
+    
+    return sdiag(Av.T*(v*sigma))
+    
+def getFaceMassMatrix(h,sigma):
+    # mass matix for products of edge functions w'*M(sigma)*e
+         
+    Av    = getFaceToCellAverge(h)
+    v     = getVol(h)
+    sigma = mkvc(sigma)
+    
+    return sdiag(Av.T*(v*sigma))    
