@@ -20,7 +20,7 @@ for i in range(4):
     #n = M.plotGrid()
 
     # Generate DIV matrix
-    CURL = M.CURL
+    CURL = M.edgeCurl
     #Test function
     fun = lambda x: np.cos(x)  # i (cos(y)) + j (cos(z)) + k (cos(x))
     sol = lambda x: np.sin(x)  # i (sin(z)) + j (sin(x)) + k (sin(y))

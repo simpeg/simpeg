@@ -10,15 +10,15 @@ class DiffOperators(object):
     def __init__(self):
         raise Exception('You should use a Mesh class.')
 
-    def DIV():
-        doc = "Construct the 3D divergence operator on Faces."
+    def faceDiv():
+        doc = "Construct the 3D Divergence operator on Faces."
 
         def fget(self):
-            if(self._DIV is None):
+            if(self._faceDiv is None):
                 # The number of cell centers in each direction
-                n = [x.size for x in self.h]
-                # Compute divergence operator on faces
-                dd = [ddx(x) for x in n]
+                n = [hk.size for hk in self.h]
+                # Compute faceDivergence operator on faces
+                dd = [ddx(k) for k in n]
                 if(self.dim == 1):
                     D = dd[0]
                 elif(self.dim == 2):
@@ -34,18 +34,18 @@ class DiffOperators(object):
                 S = self.area
                 # Compute cell volumes
                 V = self.vol
-                self._DIV = sdiag(1/V)*D*sdiag(S)
+                self._faceDiv = sdiag(1/V)*D*sdiag(S)
 
-            return self._DIV
+            return self._faceDiv
         return locals()
-    _DIV = None
-    DIV = property(**DIV())
+    _faceDiv = None
+    faceDiv = property(**faceDiv())
 
-    def GRAD():
+    def nodalGrad():
         doc = "Construct the 3D nodal gradient operator."
 
         def fget(self):
-            if(self._GRAD is None):
+            if(self._nodalGrad is None):
                 # The number of cell centers in each direction
                 n1 = np.size(self.hx)
                 n2 = np.size(self.hy)
@@ -63,17 +63,17 @@ class DiffOperators(object):
                 D3 = kron3(d3, speye(n2+1), speye(n1+1))
 
                 G = sparse.vstack((D1, D2, D3), format="csr")
-                self._GRAD = sdiag(1/L)*G
-            return self._GRAD
+                self._nodalGrad = sdiag(1/L)*G
+            return self._nodalGrad
         return locals()
-    _GRAD = None
-    GRAD = property(**GRAD())
+    _nodalGrad = None
+    nodalGrad = property(**nodalGrad())
 
-    def CURL():
+    def edgeCurl():
         doc = "Construct the 3D curl operator."
 
         def fget(self):
-            if(self._CURL is None):
+            if(self._edgeCurl is None):
                 # The number of cell centers in each direction
                 n1 = np.size(self.hx)
                 n2 = np.size(self.hy)
@@ -105,17 +105,17 @@ class DiffOperators(object):
                                    sparse.hstack((D31, O2, -D13)),
                                    sparse.hstack((-D21, D12, O3))), format="csr")
 
-                self._CURL = sdiag(1/S)*(C*sdiag(L))
-            return self._CURL
+                self._edgeCurl = sdiag(1/S)*(C*sdiag(L))
+            return self._edgeCurl
         return locals()
-    _CURL = None
-    CURL = property(**CURL())
+    _edgeCurl = None
+    edgeCurl = property(**edgeCurl())
 
-    def AVE_F():
-        doc = "Construct the 3D averaging operator on cell faces."
+    def faceAve():
+        doc = "Construct the 3D averaging operator on cell faces to cell centers."
 
         def fget(self):
-            if(self._AVE_F is None):
+            if(self._faceAve is None):
                 # The number of cell centers in each direction
                 n1 = np.size(self.hx)
                 n2 = np.size(self.hy)
@@ -125,19 +125,19 @@ class DiffOperators(object):
                 av2 = av(n2)
                 av3 = av(n3)
 
-                self._AVE_F = sparse.hstack(kron3(speye(n3), speye(n2), av1),
-                                            kron3(speye(n3), av2, speye(n3)),
-                                            kron3(av3, speye(n2), speye(n3)), format="csr")
-            return self._AVE_F
+                self._faceAve = sparse.hstack(kron3(speye(n3), speye(n2), av1),
+                                              kron3(speye(n3), av2, speye(n3)),
+                                              kron3(av3, speye(n2), speye(n3)), format="csr")
+            return self._faceAve
         return locals()
-    _AVE_F = None
-    AVE_F = property(**AVE_F())
+    _faceAve = None
+    faceAve = property(**faceAve())
 
-    def AVE_E():
+    def edgeAve():
         doc = "Construct the 3D averaging operator on cell edges."
 
         def fget(self):
-            if(self._AVE_E is None):
+            if(self._edgeAve is None):
                 # The number of cell centers in each direction
                 n1 = np.size(self.hx)
                 n2 = np.size(self.hy)
@@ -147,10 +147,10 @@ class DiffOperators(object):
                 av2 = av(n2)
                 av3 = av(n3)
 
-                self._AVE_E = sparse.hstack(kron3(av3, av2, speye(n1)),
-                                            kron3(av3, speye(n2), av1),
-                                            kron3(speye(n3), av2, av1), format="csr")
-            return self._AVE_E
+                self._edgeAve = sparse.hstack(kron3(av3, av2, speye(n1)),
+                                              kron3(av3, speye(n2), av1),
+                                              kron3(speye(n3), av2, av1), format="csr")
+            return self._edgeAve
         return locals()
-    _AVE_E = None
-    AVE_E = property(**AVE_E())
+    _edgeAve = None
+    edgeAve = property(**edgeAve())

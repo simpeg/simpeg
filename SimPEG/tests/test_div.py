@@ -20,7 +20,7 @@ for i in range(4):
     #n = M.plotGrid()
 
     # Generate DIV matrix
-    DIV = M.DIV
+    DIV = M.faceDiv
 
     #Test function
     fun = lambda x: np.sin(x)

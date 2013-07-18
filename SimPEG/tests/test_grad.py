@@ -20,7 +20,7 @@ for i in range(4):
     #n = M.plotGrid()
 
     # Generate DIV matrix
-    GRAD = M.GRAD
+    GRAD = M.nodalGrad
     #Test function
     fun = lambda x, y, z: (np.cos(x)+np.cos(y)+np.cos(z))
     sol = lambda x: -np.sin(x) # i (sin(x)) + j (sin(y)) + k (sin(z))
