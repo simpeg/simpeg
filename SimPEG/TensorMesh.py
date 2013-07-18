@@ -1,10 +1,11 @@
 import numpy as np
 from BaseMesh import BaseMesh
 from TensorView import TensorView
-from utils import ndgrid
+from DiffOperators import DiffOperators
+from utils import ndgrid, mkvc
 
 
-class TensorMesh(BaseMesh, TensorView):
+class TensorMesh(BaseMesh, TensorView, DiffOperators):
     """
     TensorMesh is a mesh class that deals with tensor product meshes.
 
@@ -185,6 +186,80 @@ class TensorMesh(BaseMesh, TensorView):
 
     def getCellNumbering(self):
         pass
+
+    # --------------- Geometries ---------------------
+    def vol():
+        doc = "Construct cell volumes of the 3D model as 1d array."
+
+        def fget(self):
+            if(self._vol is None):
+                vh = [mkvc(x, 2) for x in self.h]
+                # Compute cell volumes
+                if(self.dim == 1):
+                    self._vol = mkvc(vh[0])
+                elif(self.dim == 2):
+                    # Cell sizes in each direction
+                    self._vol = mkvc(vh[0]*vh[1].T)
+                elif(self.dim == 3):
+                    # Cell sizes in each direction
+                    v12 = vh[0]*vh[1].T
+                    self._vol = mkvc(mkvc(v12, 2)*vh[2].T)
+            return self._vol
+        return locals()
+    _vol = None
+    vol = property(**vol())
+
+    def area():
+        doc = "Construct face areas of the 3D model as 1d array."
+
+        def fget(self):
+            if(self._area is None):
+                # Ensure that we are working with column vectors
+                vh = [mkvc(x, 2) for x in self.h]
+                # The number of cell centers in each direction
+                n = [x.size for x in self.h]
+                # Compute areas of cell faces
+                if(self.dim == 1):
+                    self._area = np.ones((n[0]+1, 1))
+                elif(self.dim == 2):
+                    area1 = np.ones((n[0]+1, 1))*vh[1].T
+                    area2 = vh[0]*np.ones((n[1]+1, 1)).T
+                    self._area = np.r_[mkvc(area1), mkvc(area2)]
+                elif(self.dim == 3):
+                    area1 = np.ones((n[0]+1, 1))*mkvc(vh[1]*vh[2].T)
+                    area2 = vh[0]*mkvc(np.ones((n[1]+1, 1))*vh[2].T)
+                    area3 = vh[0]*mkvc(vh[1]*np.ones((n[2]+1, 1)).T)
+                    self._area = np.r_[mkvc(area1), mkvc(area2), mkvc(area3)]
+            return self._area
+        return locals()
+    _area = None
+    area = property(**area())
+
+    def edge():
+        doc = "Construct edge legnths of the 3D model as 1d array."
+
+        def fget(self):
+            if(self._area is None):
+                # Ensure that we are working with column vectors
+                vh = [mkvc(x, 2) for x in self.h]
+                # The number of cell centers in each direction
+                n = [x.size for x in self.h]
+                # Compute edge lengths
+                if(self.dim == 1):
+                    self._edge = mkvc(vh[0])
+                elif(self.dim == 2):
+                    l1 = vh[0]*np.ones((n[1]+1, 1)).T
+                    l2 = np.ones((n[0]+1, 1))*vh[1].T
+                    self._edge = np.r_[mkvc(l1), mkvc(l2)]
+                elif(self.dim == 3):
+                    l1 = vh[0]*mkvc(np.ones((n[1]+1, 1))*np.ones((n[2]+1, 1)).T)
+                    l2 = np.ones((n[0]+1, 1))*mkvc(vh[1]*np.ones((n[2]+1, 1)).T)
+                    l3 = np.ones((n[0]+1, 1))*mkvc(np.ones((n[1]+1, 1))*vh[2].T)
+                    self._edge = np.r_[mkvc(l1), mkvc(l2), mkvc(l3)]
+            return self._edge
+        return locals()
+    _edge = None
+    edge = property(**edge())
 
 
 if __name__ == '__main__':

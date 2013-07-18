@@ -3,7 +3,6 @@ import numpy as np
 import sys
 sys.path.append('../')
 from TensorMesh import TensorMesh
-from getDIV import getDivMatrix, getarea, getvol
 
 
 err=0.
@@ -11,7 +10,7 @@ print '>> Test face Divergence operator'
 for i in range(4):
     icount=i+1
     nc = 2**icount
-    # Define the mesh        
+    # Define the mesh
     h1 = np.ones((1,nc))/nc
     h2 = np.ones((1,nc))/nc
     h3 = np.ones((1,nc))/nc
@@ -21,28 +20,26 @@ for i in range(4):
     #n = M.plotGrid()
 
     # Generate DIV matrix
-    DIV = getDivMatrix(h)
-    
+    DIV = M.DIV
+
     #Test function
     fun = lambda x: np.sin(x)
     Fx = fun(M.gridFx[:,0])
     Fy = fun(M.gridFy[:,1])
     Fz = fun(M.gridFz[:,2])
-    
+
     F = np.concatenate((Fx,Fy,Fz))
     divF = DIV*F
     sol = lambda x, y, z: (np.cos(x)+np.cos(y)+np.cos(z))
     divF_anal = sol(M.gridCC[:,0], M.gridCC[:,1], M.gridCC[:,2])
-     
-    area = getarea(h)
-    vol = getvol(h)
+
     #err = np.linalg.norm((divF-divF_anal)*np.sqrt(vol), 2)
     err = np.linalg.norm((divF-divF_anal), np.inf)
 
     if icount == 1:
-        print 'h       |   inf norm   | error ratio'        
-        print '---------------------------------------'                
+        print 'h       |   inf norm   | error ratio'
+        print '---------------------------------------'
         print '%6.4f  |  %8.2e  |'% (h1[0,0], err)
     else:
         print '%6.4f  |  %8.2e  |  %6.4f' % (h1[0,0], err, err_old/err)
-    err_old = err    
+    err_old = err
