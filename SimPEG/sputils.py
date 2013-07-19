@@ -1,43 +1,30 @@
 import numpy as np
-from scipy import sparse
-from numpy import ones
+from scipy import sparse as sp
 
-
-def ddx(n):
-    """Define 1D derivatives"""
-    return sparse.spdiags((np.ones((n+1,1))*[-1,1]).T, [0,1], n, n+1, format="csr")
 
 def sdiag(h):
     """Sparse diagonal matrix"""
-    return sparse.spdiags(h, 0, np.size(h), np.size(h), format="csr")
+    return sp.spdiags(h, 0, np.size(h), np.size(h), format="csr")
+
 
 def speye(n):
     """Sparse identity"""
-    return sparse.identity(n, format="csr")
+    return sp.identity(n, format="csr")
+
 
 def kron3(A, B, C):
     """Two kron prods"""
-    return sparse.kron(sparse.kron(A, B), C, format="csr")
+    return sp.kron(sp.kron(A, B), C, format="csr")
+
 
 def spzeros(n1, n2):
     """spzeros"""
-    return sparse.coo_matrix((n1, n2)).tocsr()
+    return sp.coo_matrix((n1, n2)).tocsr()
 
-def av(n):
-    """Define 1D averaging operator"""
-    return sparse.spdiags((0.5*np.ones((n+1,1))*[1,1]).T, [0,1], n, n+1, format="csr")
-
-def av(n):
-    """Define 1D average"""
-    return 0.5*(sparse.spdiags(ones(n+1), 0, n, n+1) + sparse.spdiags(ones(n+1), 1, n, n+1))
-
-def spzeros(n1, n2):
-    """spzeros"""
-    return sparse.coo_matrix((n1, n2))
 
 def appendBottom(A, B):
     """append on bottom"""
-    C = sparse.vstack((A, B))
+    C = sp.vstack((A, B))
     C = C.tocsr()
     return C
 
@@ -51,7 +38,7 @@ def appendBottom3(A, B, C):
 
 def appendRight(A, B):
     """append on right"""
-    C = sparse.hstack((A, B))
+    C = sp.hstack((A, B))
     C = C.tocsr()
     return C
 
@@ -65,9 +52,9 @@ def appendRight3(A, B, C):
 
 def blkDiag(A, B):
     """blockdigonal"""
-    O12 = sparse.coo_matrix((np.shape(A)[0], np.shape(B)[1]))
-    O21 = sparse.coo_matrix((np.shape(B)[0], np.shape(A)[1]))
-    C = sparse.vstack((sparse.hstack((A, O12)), sparse.hstack((O21, B))))
+    O12 = sp.coo_matrix((np.shape(A)[0], np.shape(B)[1]))
+    O21 = sp.coo_matrix((np.shape(B)[0], np.shape(A)[1]))
+    C = sp.vstack((sp.hstack((A, O12)), sp.hstack((O21, B))))
     C = C.tocsr()
     return C
 

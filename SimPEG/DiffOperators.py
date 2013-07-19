@@ -1,6 +1,16 @@
 import numpy as np
-from scipy import sparse
-from sputils import ddx, sdiag, speye, kron3, spzeros, av
+from scipy import sparse as sp
+from sputils import sdiag, speye, kron3, spzeros
+
+
+def ddx(n):
+    """Define 1D derivatives"""
+    return sp.spdiags((np.ones((n+1, 1))*[-1, 1]).T, [0, 1], n, n+1, format="csr")
+
+
+def av(n):
+    """Define 1D averaging operator"""
+    return sp.spdiags((0.5*np.ones((n+1, 1))*[1, 1]).T, [0, 1], n, n+1, format="csr")
 
 
 class DiffOperators(object):
@@ -16,20 +26,20 @@ class DiffOperators(object):
         def fget(self):
             if(self._faceDiv is None):
                 # The number of cell centers in each direction
-                n = [hk.size for hk in self.h]
+                n = self.n
                 # Compute faceDivergence operator on faces
                 dd = [ddx(k) for k in n]
                 if(self.dim == 1):
                     D = dd[0]
                 elif(self.dim == 2):
-                    D1 = sparse.kron(speye(n[1]), dd[0])
-                    D2 = sparse.kron(dd[1], speye(n[0]))
-                    D = sparse.hstack((D1, D2), format="csr")
+                    D1 = sp.kron(speye(n[1]), dd[0])
+                    D2 = sp.kron(dd[1], speye(n[0]))
+                    D = sp.hstack((D1, D2), format="csr")
                 elif(self.dim == 3):
                     D1 = kron3(speye(n[2]), speye(n[1]), dd[0])
                     D2 = kron3(speye(n[2]), dd[1], speye(n[0]))
                     D3 = kron3(dd[2], speye(n[1]), speye(n[0]))
-                    D = sparse.hstack((D1, D2, D3), format="csr")
+                    D = sp.hstack((D1, D2, D3), format="csr")
                 # Compute areas of cell faces
                 S = self.area
                 # Compute cell volumes
@@ -62,7 +72,7 @@ class DiffOperators(object):
                 D2 = kron3(speye(n3+1), d2, speye(n1+1))
                 D3 = kron3(d3, speye(n2+1), speye(n1+1))
 
-                G = sparse.vstack((D1, D2, D3), format="csr")
+                G = sp.vstack((D1, D2, D3), format="csr")
                 self._nodalGrad = sdiag(1/L)*G
             return self._nodalGrad
         return locals()
@@ -101,9 +111,9 @@ class DiffOperators(object):
                 O2 = spzeros(np.shape(D31)[0], np.shape(D32)[1])
                 O3 = spzeros(np.shape(D21)[0], np.shape(D13)[1])
 
-                C = sparse.vstack((sparse.hstack((O1, -D32, D23)),
-                                   sparse.hstack((D31, O2, -D13)),
-                                   sparse.hstack((-D21, D12, O3))), format="csr")
+                C = sp.vstack((sp.hstack((O1, -D32, D23)),
+                               sp.hstack((D31, O2, -D13)),
+                               sp.hstack((-D21, D12, O3))), format="csr")
 
                 self._edgeCurl = sdiag(1/S)*(C*sdiag(L))
             return self._edgeCurl
@@ -116,18 +126,16 @@ class DiffOperators(object):
 
         def fget(self):
             if(self._faceAve is None):
-                # The number of cell centers in each direction
-                n1 = np.size(self.hx)
-                n2 = np.size(self.hy)
-                n3 = np.size(self.hz)
-
-                av1 = av(n1)
-                av2 = av(n2)
-                av3 = av(n3)
-
-                self._faceAve = sparse.hstack(kron3(speye(n3), speye(n2), av1),
-                                              kron3(speye(n3), av2, speye(n3)),
-                                              kron3(av3, speye(n2), speye(n3)), format="csr")
+                n = self.n
+                if(self.dim == 1):
+                    self._faceAve = av(n[0])
+                elif(self.dim == 2):
+                    self._faceAve = sp.hstack((sp.kron(speye(n[1]), av(n[0])),
+                                               sp.kron(av(n[1]), speye(n[0]))), format="csr")
+                elif(self.dim == 3):
+                    self._faceAve = sp.hstack((kron3(speye(n[2]), speye(n[1]), av(n[0])),
+                                               kron3(speye(n[2]), av(n[1]), speye(n[0])),
+                                               kron3(av(n[2]), speye(n[1]), speye(n[0]))), format="csr")
             return self._faceAve
         return locals()
     _faceAve = None
@@ -139,17 +147,16 @@ class DiffOperators(object):
         def fget(self):
             if(self._edgeAve is None):
                 # The number of cell centers in each direction
-                n1 = np.size(self.hx)
-                n2 = np.size(self.hy)
-                n3 = np.size(self.hz)
-
-                av1 = av(n1)
-                av2 = av(n2)
-                av3 = av(n3)
-
-                self._edgeAve = sparse.hstack(kron3(av3, av2, speye(n1)),
-                                              kron3(av3, speye(n2), av1),
-                                              kron3(speye(n3), av2, av1), format="csr")
+                n = self.n
+                if(self.dim == 1):
+                    raise Exception('Edge Averaging does not make sense in 1D: Use Identity?')
+                elif(self.dim == 2):
+                    self._edgeAve = sp.hstack((sp.kron(av(n[1]), speye(n[0])),
+                                               sp.kron(speye(n[1]), av(n[0]))), format="csr")
+                elif(self.dim == 3):
+                    self._edgeAve = sp.hstack((kron3(av(n[2]), av(n[1]), speye(n[0])),
+                                               kron3(av(n[2]), speye(n[1]), av(n[0])),
+                                               kron3(speye(n[2]), av(n[1]), av(n[0]))), format="csr")
             return self._edgeAve
         return locals()
     _edgeAve = None
