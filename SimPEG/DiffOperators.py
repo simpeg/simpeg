@@ -4,8 +4,38 @@ from sputils import sdiag, speye, kron3, spzeros
 
 
 def ddx(n):
-    """Define 1D derivatives"""
+    """Define 1D derivatives, inner, this means we go from n+1 to n+1"""
     return sp.spdiags((np.ones((n+1, 1))*[-1, 1]).T, [0, 1], n, n+1, format="csr")
+
+
+def checkBC(bc):
+    if(type(bc) is str):
+        bc = [bc, bc]
+    assert type(bc) is list, 'bc must be a list'
+    assert len(bc) == 2, 'bc must have two elements'
+
+    for bc_i in bc:
+        assert type(bc_i) is str, "each bc must be a string"
+        assert bc_i in ['dirichlet', 'neumann'], "each bc must be either, 'dirichlet' or 'neumann'"
+    return bc
+
+
+def ddxCellGrad(n, bc):
+    """Define 1D derivatives, outer, this means we go from n to n+1"""
+    bc = checkBC(bc)
+
+    D = sp.spdiags((np.ones((n+1, 1))*[-1, 1]).T, [-1, 0], n+1, n, format="csr")
+    # Set the first side
+    if(bc[0] == 'dirichlet'):
+        D[0, 0] = 2
+    elif(bc[0] == 'neumann'):
+        D[0, 0] = 0
+    # Set the second side
+    if(bc[1] == 'dirichlet'):
+        D[-1, -1] = -2
+    elif(bc[1] == 'neumann'):
+        D[-1, -1] = 0
+    return D
 
 
 def av(n):
@@ -28,21 +58,19 @@ class DiffOperators(object):
                 # The number of cell centers in each direction
                 n = self.n
                 # Compute faceDivergence operator on faces
-                dd = [ddx(k) for k in n]
                 if(self.dim == 1):
-                    D = dd[0]
+                    D = ddx(n[0])
                 elif(self.dim == 2):
-                    D1 = sp.kron(speye(n[1]), dd[0])
-                    D2 = sp.kron(dd[1], speye(n[0]))
+                    D1 = sp.kron(speye(n[1]), ddx(n[0]))
+                    D2 = sp.kron(ddx(n[1]), speye(n[0]))
                     D = sp.hstack((D1, D2), format="csr")
                 elif(self.dim == 3):
-                    D1 = kron3(speye(n[2]), speye(n[1]), dd[0])
-                    D2 = kron3(speye(n[2]), dd[1], speye(n[0]))
-                    D3 = kron3(dd[2], speye(n[1]), speye(n[0]))
+                    D1 = kron3(speye(n[2]), speye(n[1]), ddx(n[0]))
+                    D2 = kron3(speye(n[2]), ddx(n[1]), speye(n[0]))
+                    D3 = kron3(ddx(n[2]), speye(n[1]), speye(n[0]))
                     D = sp.hstack((D1, D2, D3), format="csr")
-                # Compute areas of cell faces
+                # Compute areas of cell faces & volumes
                 S = self.area
-                # Compute cell volumes
                 V = self.vol
                 self._faceDiv = sdiag(1/V)*D*sdiag(S)
 
@@ -57,27 +85,77 @@ class DiffOperators(object):
         def fget(self):
             if(self._nodalGrad is None):
                 # The number of cell centers in each direction
-                n1 = np.size(self.hx)
-                n2 = np.size(self.hy)
-                n3 = np.size(self.hz)
-
+                n = self.n
+                # Compute divergence operator on faces
+                if(self.dim == 1):
+                    G = ddx(n[0])
+                elif(self.dim == 2):
+                    D1 = sp.kron(speye(n[1]+1), ddx(n[0]))
+                    D2 = sp.kron(ddx(n[1]), speye(n[0]+1))
+                    G = sp.vstack((D1, D2), format="csr")
+                elif(self.dim == 3):
+                    D1 = kron3(speye(n[2]+1), speye(n[1]+1), ddx(n[0]))
+                    D2 = kron3(speye(n[2]+1), ddx(n[1]), speye(n[0]+1))
+                    D3 = kron3(ddx(n[2]), speye(n[1]+1), speye(n[0]+1))
+                    G = sp.vstack((D1, D2, D3), format="csr")
                 # Compute lengths of cell edges
                 L = self.edge
-
-                # Compute divergence operator on faces
-                d1 = ddx(n1)
-                d2 = ddx(n2)
-                d3 = ddx(n3)
-                D1 = kron3(speye(n3+1), speye(n2+1), d1)
-                D2 = kron3(speye(n3+1), d2, speye(n1+1))
-                D3 = kron3(d3, speye(n2+1), speye(n1+1))
-
-                G = sp.vstack((D1, D2, D3), format="csr")
                 self._nodalGrad = sdiag(1/L)*G
             return self._nodalGrad
         return locals()
     _nodalGrad = None
     nodalGrad = property(**nodalGrad())
+
+    def setCellGradBC(self, BC):
+        """
+        e.g.
+
+        BC = 'neumann'
+        BC = ['neumann', 'dirichlet', 'neumann']
+        BC = [['neumann', 'dirichlet'], 'dirichlet', 'neumann']
+
+        """
+        if(type(BC) is str):
+            BC = [BC for _ in self.n]  # Repeat the str self.dim times
+        elif(type(BC) is list):
+            assert len(BC) == self.dim, 'BC list must be the size of your mesh'
+        else:
+            raise Exception("BC must be a str or a list.")
+
+        for i, bc_i in enumerate(BC):
+            BC[i] = checkBC(bc_i)
+
+        self._cellGrad = None  # ensure we create a new gradient next time we call it
+        self._cellGradBC = BC
+        return BC
+    _cellGradBC = 'neumann'
+
+    def cellGrad():
+        doc = "The cell centered Gradient, takes you to cell faces."
+
+        def fget(self):
+            if(self._cellGrad is None):
+                BC = self.setCellGradBC(self._cellGradBC)
+                n = self.n
+                if(self.dim == 1):
+                    G = ddxCellGrad(n[0], BC[0])
+                elif(self.dim == 2):
+                    G1 = sp.kron(speye(n[1]), ddxCellGrad(n[0], BC[0]))
+                    G2 = sp.kron(ddxCellGrad(n[1], BC[1]), speye(n[0]))
+                    G = sp.vstack((G1, G2), format="csr")
+                elif(self.dim == 3):
+                    G1 = kron3(speye(n[2]), speye(n[1]), ddxCellGrad(n[0], BC[0]))
+                    G2 = kron3(speye(n[2]), ddxCellGrad(n[1], BC[1]), speye(n[0]))
+                    G3 = kron3(ddxCellGrad(n[2], BC[2]), speye(n[1]), speye(n[0]))
+                    G = sp.vstack((G1, G2, G3), format="csr")
+                # Compute areas of cell faces & volumes
+                S = self.area
+                V = self.vol
+                self._cellGrad = sdiag(S)*G*sdiag(1/V)
+            return self._cellGrad
+        return locals()
+    _cellGrad = None
+    cellGrad = property(**cellGrad())
 
     def edgeCurl():
         doc = "Construct the 3D curl operator."
@@ -122,7 +200,7 @@ class DiffOperators(object):
     edgeCurl = property(**edgeCurl())
 
     def faceAve():
-        doc = "Construct the 3D averaging operator on cell faces to cell centers."
+        doc = "Construct the averaging operator on cell faces to cell centers."
 
         def fget(self):
             if(self._faceAve is None):
@@ -142,7 +220,7 @@ class DiffOperators(object):
     faceAve = property(**faceAve())
 
     def edgeAve():
-        doc = "Construct the 3D averaging operator on cell edges."
+        doc = "Construct the averaging operator on cell edges to cell centers."
 
         def fget(self):
             if(self._edgeAve is None):
