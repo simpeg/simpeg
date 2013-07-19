@@ -239,3 +239,23 @@ class DiffOperators(object):
         return locals()
     _edgeAve = None
     edgeAve = property(**edgeAve())
+
+
+
+def getEdgeMassMatrix(h,sigma):
+    # mass matix for products of edge functions w'*M(sigma)*e
+         
+    Av    = getEdgeToCellAverge(h)
+    v     = getVol(h)
+    sigma = mkvc(sigma)
+    
+    return sdiag(Av.T*(v*sigma))
+    
+def getFaceMassMatrix(h,sigma):
+    # mass matix for products of edge functions w'*M(sigma)*e
+         
+    Av    = getFaceToCellAverge(h)
+    v     = getVol(h)
+    sigma = mkvc(sigma)
+    
+    return sdiag(Av.T*(v*sigma))    
