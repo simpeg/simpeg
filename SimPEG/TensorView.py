@@ -14,10 +14,26 @@ class TensorView(object):
         pass
 
     def plotImage(self, I, imageType='CC', figNum=1,ax=None,direction='z',numbering=True):
+        """
+        Mesh.plotImage(I)
 
+        Plots scalar fields on the given mesh.
+
+        Input:
+
+            I           - scalar field (np.array)
+
+        Optional Input:
+
+            imageType   - type of image ('CC','N','Fx','Fy','Fz','Ex','Ey','Ez')
+            figNum      - number of figure to plot to
+            ax          - axis to plot to
+            direction   - 3D only. slice dimensions
+            numbering   - 3D only. show numbering of slices
+        """
         assert type(I) == np.ndarray, "I must be a numpy array"
         assert type(numbering) == bool, "numbering must be a bool"
-        assert imageType in ["CC", "N"], "imageType must be 'CC' or 'N'"
+        assert imageType in ["CC", "N","Fx","Fy","Fz","Ex","Ey","Ez"], "imageType must be 'CC', 'N','Fx','Fy','Fz','Ex','Ey','Ez'"
         assert direction in ["x", "y","z"], "direction must be either x,y, or z"
 
 
@@ -25,6 +41,18 @@ class TensorView(object):
             assert I.size == self.nC, "Incorrect dimensions for CC."
         elif imageType == 'N':
             assert I.size == self.nN, "Incorrect dimensions for N."
+        elif imageType == 'Fx':
+            assert I.size == np.prod(self.nFx), "Incorrect dimensions for Fx."
+        elif imageType == 'Fy':
+            assert I.size == np.prod(self.nFy), "Incorrect dimensions for Fy."
+        elif imageType == 'Fz':
+            assert I.size == np.prod(self.nFz), "Incorrect dimensions for Fz."
+        elif imageType == 'Ex':
+            assert I.size == np.prod(self.nEx), "Incorrect dimensions for Ex."
+        elif imageType == 'Ey':
+            assert I.size == np.prod(self.nEy), "Incorrect dimensions for Ey."
+        elif imageType == 'Ez':
+            assert I.size == np.prod(self.nEz), "Incorrect dimensions for Ez."
 
         if ax is None:
             fig = plt.figure(figNum)
@@ -39,7 +67,6 @@ class TensorView(object):
                 ph = ax.plot(self.vectorCCx, I, '-ro')
             elif imageType == 'N':
                 ph = ax.plot(self.vectorNx, I, '-bs')
-            ax.set_xticks(self.vectorNx)
             ax.set_xlabel("x")
             ax.axis('tight')
         elif self.dim == 2:
@@ -48,21 +75,58 @@ class TensorView(object):
             elif imageType == 'N':
                 C = I[:].reshape(self.n+1, order='F')
                 C = 0.25*(C[:-1, :-1] + C[1:, :-1] + C[:-1, 1:] + C[1:, 1:])
+            elif imageType == 'Fx':
+                C = I[:].reshape(self.nFx, order='F')
+                C = 0.5*(C[:-1, :] + C[1:, :] )
+            elif imageType == 'Fy':
+                C = I[:].reshape(self.nFy, order='F')
+                C = 0.5*(C[:, :-1] + C[:, 1:] )
+            elif imageType == 'Ex':
+                C = I[:].reshape(self.nEx, order='F')
+                C = 0.5*(C[:,:-1] + C[:,1:] )
+            elif imageType == 'Ey':
+                C = I[:].reshape(self.nEy, order='F')
+                C = 0.5*(C[:-1,:] + C[1:,:] )
 
             ph = ax.pcolormesh(self.vectorNx, self.vectorNy, C.T)
             ax.axis('tight')
             ax.set_xlabel("x")
             ax.set_ylabel("y")
-            ax.set_xticks(self.vectorNx)
-            ax.set_yticks(self.vectorNy)
 
         elif self.dim == 3:
             if direction == 'z':
+
+                # get copy of image and average to cell-centres is necessary
+                if imageType == 'CC':
+                    Ic = I[:].reshape(self.n, order='F')
+                elif imageType == 'N':
+                    Ic = I[:].reshape(self.n+1, order='F')
+                    Ic = .125*(Ic[:-1,:-1,:-1]+Ic[1:,:-1,:-1] + Ic[:-1,1:,:-1]+ Ic[1:,1:,:-1]+ Ic[:-1,:-1,1:]+Ic[1:,:-1,1:] + Ic[:-1,1:,1:]+ Ic[1:,1:,1:] )
+                elif imageType == 'Fx':
+                    Ic = I[:].reshape(self.nFx, order='F')
+                    Ic = .5*(Ic[:-1,:,:]+Ic[1:,:,:])
+                elif imageType == 'Fy':
+                    Ic = I[:].reshape(self.nFy, order='F')
+                    Ic = .5*(Ic[:,:-1,:]+Ic[:,1:,:])
+                elif imageType == 'Fz':
+                    Ic = I[:].reshape(self.nFz, order='F')
+                    Ic = .5*(Ic[:,:,:-1]+Ic[:,:,1:])
+                elif imageType == 'Ex':
+                    Ic = I[:].reshape(self.nEx, order='F')
+                    Ic = .25*(Ic[:,:-1,:-1]+Ic[:,1:,:-1]+Ic[:,:-1,1:]+Ic[:,1:,:1])
+                elif imageType == 'Ey':
+                    Ic = I[:].reshape(self.nEy, order='F')
+                    Ic = .25*(Ic[:-1,:,:-1]+Ic[1:,:,:-1]+Ic[:-1,:,1:]+Ic[1:,:,:1])
+                elif imageType == 'Ez':
+                    Ic = I[:].reshape(self.nEz, order='F')
+                    Ic = .25*(Ic[:-1,:-1,:]+Ic[1:,:-1,:]+Ic[:-1,1:,:]+Ic[1:,:1,:])
+
+                # determine number oE slices in x and y dimension
                 nX = np.ceil(np.sqrt(self.nCz))
                 nY = np.ceil(self.nCz/nX)
-                C = np.zeros((nX*self.nCx, nY*self.nCy))
+                #  allocate space for montage
+                C = np.zeros((nX*self.nCx,nY*self.nCz))
 
-                Ic = I[:].reshape(self.n, order='F')
 
                 nCx = self.nCx
                 nCy = self.nCy
@@ -94,8 +158,9 @@ class TensorView(object):
                     for iy in range(int(nY)):
                         for ix in range(int(nX)):
                             iz = ix + iy*nX
-                            ax.text((ix+1)*self.vectorNx[-1]-pad,(iy)*self.vectorNy[-1]+pad,
-                                     '#%i'%iz,color='w',verticalalignment='bottom',horizontalalignment='right',size='x-large')
+                            if iz < self.nCz:
+                                ax.text((ix+1)*self.vectorNx[-1]-pad,(iy)*self.vectorNy[-1]+pad,
+                                         '#%i'%iz,color='w',verticalalignment='bottom',horizontalalignment='right',size='x-large')
 
         fig.show()
         return ph
