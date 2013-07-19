@@ -1,6 +1,7 @@
 import numpy as np
 from scipy import sparse as sp
 from sputils import sdiag, speye, kron3, spzeros
+from utils import mkvc
 
 
 def ddx(n):
@@ -240,22 +241,16 @@ class DiffOperators(object):
     _edgeAve = None
     edgeAve = property(**edgeAve())
 
+    def getEdgeMass(self, materialProp=None):
+        """mass matix for products of edge functions w'*M(materialProp)*e"""
+        if(materialProp is None):
+            materialProp = np.ones(self.nC)
+        Av = self.edgeAve
+        return sdiag(Av.T * (self.vol * mkvc(materialProp)))
 
-
-def getEdgeMassMatrix(h,sigma):
-    # mass matix for products of edge functions w'*M(sigma)*e
-         
-    Av    = getEdgeToCellAverge(h)
-    v     = getVol(h)
-    sigma = mkvc(sigma)
-    
-    return sdiag(Av.T*(v*sigma))
-    
-def getFaceMassMatrix(h,sigma):
-    # mass matix for products of edge functions w'*M(sigma)*e
-         
-    Av    = getFaceToCellAverge(h)
-    v     = getVol(h)
-    sigma = mkvc(sigma)
-    
-    return sdiag(Av.T*(v*sigma))    
+    def getFaceMass(self, materialProp=None):
+        """mass matix for products of edge functions w'*M(materialProp)*e"""
+        if(materialProp is None):
+            materialProp = np.ones(self.nC)
+        Av = self.faceAve
+        return sdiag(Av.T*(self.vol*mkvc(materialProp)))
