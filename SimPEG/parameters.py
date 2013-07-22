@@ -132,12 +132,12 @@ if __name__ == '__main__':
     # Define the mesh
  
     testDim = 3
-    h1 = 0.3*np.ones((1, 7))
-    h1[:, 0] = 0.5
-    h1[:, -1] = 0.6
-    h2 = .5 * np.ones((1, 4))
-    h3 = .4 * np.ones((1, 6))
-    x0 = np.zeros((3, 1))
+    h1 = 0.3*np.ones(7)
+    h1[0] = 0.5
+    h1[-1] = 0.6
+    h2 = .5 * np.ones(4)
+    h3 = .4 * np.ones(6)
+    x0 = np.zeros(3)
 
     if testDim == 1:
         h = [h1]
@@ -151,10 +151,7 @@ if __name__ == '__main__':
     M = tm.TensorMesh(h, x0)
     
     ccMesh = M.gridCC
-   
     
-    
-
     # ------------------- Test conductivities! --------------------------
     print('Testing 1 block conductivity')
     
@@ -164,7 +161,8 @@ if __name__ == '__main__':
     
     sigma = defineBlockConductivity(p0,p1,ccMesh,condVals)    
 
-    #M.plotImage(sigma)
+    # Plot sigma model
+    M.plotImage(sigma)
     print sigma
     print 'Done with block! :)'
     
@@ -175,6 +173,7 @@ if __name__ == '__main__':
     
     sigma = defineTwoLayeredConductivity(depth,ccMesh,condVals)
     
+    M.plotImage(sigma)
     print sigma
     print 'layer model!'
     
@@ -185,6 +184,8 @@ if __name__ == '__main__':
     
     sigma = scalarConductivity(ccMesh,pFunction)
     
+    # Plot sigma model
+    M.plotImage(sigma)
     print sigma
     print 'Scalar conductivity defined!'
     
