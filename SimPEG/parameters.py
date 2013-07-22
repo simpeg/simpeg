@@ -162,7 +162,7 @@ if __name__ == '__main__':
     sigma = defineBlockConductivity(p0,p1,ccMesh,condVals)    
 
     # Plot sigma model
-    M.plotImage(sigma)
+    #M.plotImage(sigma)
     print sigma
     print 'Done with block! :)'
     
@@ -173,7 +173,7 @@ if __name__ == '__main__':
     
     sigma = defineTwoLayeredConductivity(depth,ccMesh,condVals)
     
-    M.plotImage(sigma)
+    #M.plotImage(sigma)
     print sigma
     print 'layer model!'
     
