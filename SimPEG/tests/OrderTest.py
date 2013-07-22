@@ -34,15 +34,16 @@ class OrderTest(unittest.TestCase):
             if ii == 0:
                 print ''
                 print 'Testing order of:  ' + self.name
+                print '__________________________________________'
                 print '   h  |   inf norm  |  ratio   |  order'
-                print '------------------------------------------'
+                print '~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~|~~~~~~~~~~'
                 print '%4i  |  %8.2e   |' % (nc, err)
             else:
                 order.append(np.log(err/err_old)/np.log(float(nc_old)/float(nc)))
                 print '%4i  |  %8.2e   |  %6.4f  |  %6.4f' % (nc, err, err_old/err, order[-1])
             err_old = err
             nc_old = nc
-
+        print '------------------------------------------'
         self.assertTrue(len(np.where(np.array(order) > 0.9*self.expectedOrder)[0]) > np.floor(0.75*len(order)))
 
 

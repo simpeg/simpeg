@@ -1,10 +1,10 @@
 import numpy as np
 from OrderTest import OrderTest
 import unittest
+from scipy.sparse.linalg import dsolve
 
 
 class TestCurl(OrderTest):
-
     name = "Curl"
 
     def getError(self):
@@ -33,7 +33,6 @@ class TestCurl(OrderTest):
 
 
 class TestFaceDiv(OrderTest):
-
     name = "Face Divergence"
 
     def getError(self):
@@ -59,7 +58,6 @@ class TestFaceDiv(OrderTest):
 
 
 class TestNodalGrad(OrderTest):
-
     name = "Nodal Gradient"
 
     def getError(self):
@@ -83,6 +81,39 @@ class TestNodalGrad(OrderTest):
     def test_order(self):
         self.orderTest()
 
+
+class TestPoissonEqn(OrderTest):
+    name = "Poisson Equation"
+    meshSizes = [16, 20, 24]
+
+    def getError(self):
+        # Create some functions to integrate
+        fun = lambda x: np.sin(2*np.pi*x[:, 0])*np.sin(2*np.pi*x[:, 1])*np.sin(2*np.pi*x[:, 2])
+        sol = lambda x: -3.*((2*np.pi)**2)*fun(x)
+
+        self.M.setCellGradBC('dirichlet')
+
+        D = self.M.faceDiv
+        G = self.M.cellGrad
+        if self.forward:
+            sA = sol(self.M.gridCC)
+            sN = D*G*fun(self.M.gridCC)
+            err = np.linalg.norm((sA - sN), np.inf)
+        else:
+            fA = fun(self.M.gridCC)
+            fN = dsolve.spsolve(D*G, sol(self.M.gridCC))
+            err = np.linalg.norm((fA - fN), np.inf)
+        return err
+
+    def test_orderForward(self):
+        self.name = "Poisson Equation - Forward"
+        self.forward = True
+        self.orderTest()
+
+    def test_orderBackward(self):
+        self.name = "Poisson Equation - Backward"
+        self.forward = False
+        self.orderTest()
 
 if __name__ == '__main__':
     unittest.main()
