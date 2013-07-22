@@ -13,7 +13,7 @@ def speye(n):
 
 
 def kron3(A, B, C):
-    """Two kron prods"""
+    """Three kron prods"""
     return sp.kron(sp.kron(A, B), C, format="csr")
 
 

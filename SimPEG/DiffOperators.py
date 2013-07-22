@@ -10,6 +10,7 @@ def ddx(n):
 
 
 def checkBC(bc):
+    """ Checks if boundary condition 'bc' is valid. """
     if(type(bc) is str):
         bc = [bc, bc]
     assert type(bc) is list, 'bc must be a list'
@@ -22,7 +23,7 @@ def checkBC(bc):
 
 
 def ddxCellGrad(n, bc):
-    """Define 1D derivatives, outer, this means we go from n to n+1"""
+    """Create 1D derivative operator from cell-centres to nodes this means we go from n to n+1"""
     bc = checkBC(bc)
 
     D = sp.spdiags((np.ones((n+1, 1))*[-1, 1]).T, [-1, 0], n+1, n, format="csr")
@@ -40,7 +41,7 @@ def ddxCellGrad(n, bc):
 
 
 def av(n):
-    """Define 1D averaging operator"""
+    """Define 1D averaging operator from cell-centres to nodes."""
     return sp.spdiags((0.5*np.ones((n+1, 1))*[1, 1]).T, [0, 1], n, n+1, format="csr")
 
 
@@ -49,10 +50,10 @@ class DiffOperators(object):
         Class creates the differential operators that you need!
     """
     def __init__(self):
-        raise Exception('You should use a Mesh class.')
+        raise Exception('DiffOperators is a base class providing differential operators on meshes and cannot run on its own. Inherit to your favorite  Mesh class.')
 
     def faceDiv():
-        doc = "Construct the 3D Divergence operator on Faces."
+        doc = "Construct divergence operator (face-stg to cell-centres)."
 
         def fget(self):
             if(self._faceDiv is None):
@@ -81,7 +82,7 @@ class DiffOperators(object):
     faceDiv = property(**faceDiv())
 
     def nodalGrad():
-        doc = "Construct the 3D nodal gradient operator."
+        doc = "Construct gradient operator (nodes to edges)."
 
         def fget(self):
             if(self._nodalGrad is None):
@@ -109,11 +110,14 @@ class DiffOperators(object):
 
     def setCellGradBC(self, BC):
         """
-        e.g.
+        Function that sets the boundary conditions for cell-centred derivative operators.
 
-        BC = 'neumann'
-        BC = ['neumann', 'dirichlet', 'neumann']
-        BC = [['neumann', 'dirichlet'], 'dirichlet', 'neumann']
+        Examples:
+
+        BC = 'neumann'                                            # Neumann in all directions
+        BC = ['neumann', 'dirichlet', 'neumann']                  # 3D, Dirichlet in y Neumann else
+        BC = [['neumann', 'dirichlet'], 'dirichlet', 'dirichlet'] # 3D, Neumann in x on bottom of domain,
+                                                                  #     Dirichlet else
 
         """
         if(type(BC) is str):

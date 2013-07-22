@@ -6,14 +6,69 @@ import unittest
 
 
 class OrderTest(unittest.TestCase):
-    """Order test sets up the basics for testing order of decrease for a function on a mesh."""
+    """
+
+    OrderTest is a base class for testing convergence orders with respect to mesh
+    sizes of integral/differential operators.
+
+    Mathematical Problem:
+
+        Given are an operator A and its discretization A[h]. For a given test function f
+        and h --> 0  we compare:
+
+        error(h) = \| A[h](f) - A(f) \|_{\infty}
+
+        Note that you can provide any norm.
+
+        Test is passed when estimated rate order of convergence is  at least 90% of the
+        estimated rate supplied by the user.
+
+    Minimal example for a curl operator:
+
+    class TestCURL(OrderTest):
+        name = "Curl"
+
+        def getError(self):
+            # For given Mesh, generate A[h], f and A(f) and return norm of error.
+
+
+            fun  = lambda x: np.cos(x)  # i (cos(y)) + j (cos(z)) + k (cos(x))
+            sol = lambda x: np.sin(x)  # i (sin(z)) + j (sin(x)) + k (sin(y))
+
+
+            Ex = fun(self.M.gridEx[:, 1])
+            Ey = fun(self.M.gridEy[:, 2])
+            Ez = fun(self.M.gridEz[:, 0])
+            f = np.concatenate((Ex, Ey, Ez))
+
+            Fx = sol(self.M.gridFx[:, 2])
+            Fy = sol(self.M.gridFy[:, 0])
+            Fz = sol(self.M.gridFz[:, 1])
+            Af = np.concatenate((Fx, Fy, Fz))
+
+            # Generate DIV matrix
+            Ah = self.M.edgeCurl
+
+            curlE = Ah*E
+            err = np.linalg.norm((Ah*f -Af), np.inf)
+            return err
+
+        def test_order(self):
+            # runs the test
+            self.orderTest()
+
+    See also: test_operatorOrder.py
+
+    """
 
     name = "Order Test"
     expectedOrder = 2
     meshSizes = [4, 8, 16, 32]
 
     def setupMesh(self, nc):
-        # Define the mesh
+        """
+        For a given number of cells nc, generate a TensorMesh with uniform cells with edge length h=1/nc.
+        """
         h1 = np.ones(nc)/nc
         h2 = np.ones(nc)/nc
         h3 = np.ones(nc)/nc
@@ -21,10 +76,17 @@ class OrderTest(unittest.TestCase):
         self.M = TensorMesh(h)
 
     def getError(self):
-        """Overwrite this function  with the guts of the test."""
+        """For given h, generate A[h], f and A(f) and return norm of error."""
         return 1.
 
     def orderTest(self):
+        """
+        For number of cells specified in meshSizes setup mesh, call getError
+        and prints mesh size, error, ratio between current and previous error,
+        and estimated order of convergence.
+
+
+        """
         order = []
         err_old = 0.
         nc_old = 0.
@@ -34,16 +96,16 @@ class OrderTest(unittest.TestCase):
             if ii == 0:
                 print ''
                 print 'Testing order of:  ' + self.name
-                print '__________________________________________'
-                print '   h  |   inf norm  |  ratio   |  order'
-                print '~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~|~~~~~~~~~~'
+                print '_____________________________________________'
+                print '   h  |    error    | e(i-1)/e(i) |  order'
+                print '~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~'
                 print '%4i  |  %8.2e   |' % (nc, err)
             else:
                 order.append(np.log(err/err_old)/np.log(float(nc_old)/float(nc)))
-                print '%4i  |  %8.2e   |  %6.4f  |  %6.4f' % (nc, err, err_old/err, order[-1])
+                print '%4i  |  %8.2e   |   %6.4f    |  %6.4f' % (nc, err, err_old/err, order[-1])
             err_old = err
             nc_old = nc
-        print '------------------------------------------'
+        print '---------------------------------------------'
         self.assertTrue(len(np.where(np.array(order) > 0.9*self.expectedOrder)[0]) > np.floor(0.75*len(order)))
 
 
