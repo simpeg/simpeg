@@ -124,6 +124,7 @@ class TensorView(object):
                 # determine number oE slices in x and y dimension
                 nX = np.ceil(np.sqrt(self.nCz))
                 nY = np.ceil(self.nCz/nX)
+
                 #  allocate space for montage
                 C = np.zeros((nX*self.nCx,nY*self.nCz))
 
@@ -143,8 +144,8 @@ class TensorView(object):
                 yy = np.r_[0, np.cumsum(np.kron(np.ones((nY, 1)), self.hy).ravel())]
                 ph = ax.pcolormesh(xx, yy, C.T)
                 # Plot the lines
-                gx = np.r_[0, np.cumsum(np.kron(np.ones((nX, 1)), np.sum(self.hy)).ravel())]
-                gy = np.r_[0, np.cumsum(np.kron(np.ones((nY, 1)), np.sum(self.hx)).ravel())]
+                gx =  np.arange(nX+1)*self.vectorNx[-1]
+                gy =  np.arange(nY+1)*self.vectorNy[-1]
                 # Repeat and seperate with NaN
                 gxX = np.c_[gx, gx, gx+np.nan].ravel()
                 gxY = np.kron(np.ones((nX+1, 1)), np.array([0, sum(self.hy)*nY, np.nan])).ravel()
