@@ -1,10 +1,11 @@
 import numpy as np
 from BaseMesh import BaseMesh
 from TensorView import TensorView
-from utils import ndgrid
+from DiffOperators import DiffOperators
+from utils import ndgrid, mkvc
 
 
-class TensorMesh(BaseMesh, TensorView):
+class TensorMesh(BaseMesh, TensorView, DiffOperators):
     """
     TensorMesh is a mesh class that deals with tensor product meshes.
 
@@ -21,15 +22,16 @@ class TensorMesh(BaseMesh, TensorView):
 
     """
     def __init__(self, h, x0=None):
-        super(TensorMesh, self).__init__(np.array([len(x) for x in h]), x0)
+        super(TensorMesh, self).__init__(np.array([x.size for x in h]), x0)
 
         assert len(h) == len(self.x0), "Dimension mismatch. x0 != len(h)"
 
         for i, h_i in enumerate(h):
             assert type(h_i) == np.ndarray, ("h[%i] is not a numpy array." % i)
+            assert len(h_i.shape) == 1, ("h[%i] must be a 1D numpy array." % i)
 
         # Ensure h contains 1D vectors
-        self._h = [x.ravel() for x in h]
+        self._h = [mkvc(x) for x in h]
 
     def h():
         doc = "h is a list containing the cell widths of the tensor mesh in each dimension."
@@ -185,6 +187,79 @@ class TensorMesh(BaseMesh, TensorView):
 
     def getCellNumbering(self):
         pass
+
+    # --------------- Geometries ---------------------
+    def vol():
+        doc = "Construct cell volumes of the 3D model as 1d array."
+
+        def fget(self):
+            if(self._vol is None):
+                vh = self.h
+                # Compute cell volumes
+                if(self.dim == 1):
+                    self._vol = mkvc(vh[0])
+                elif(self.dim == 2):
+                    # Cell sizes in each direction
+                    self._vol = mkvc(np.outer(vh[0], vh[1]))
+                elif(self.dim == 3):
+                    # Cell sizes in each direction
+                    self._vol = mkvc(np.outer(mkvc(np.outer(vh[0], vh[1])), vh[2]))
+            return self._vol
+        return locals()
+    _vol = None
+    vol = property(**vol())
+
+    def area():
+        doc = "Construct face areas of the 3D model as 1d array."
+
+        def fget(self):
+            if(self._area is None):
+                # Ensure that we are working with column vectors
+                vh = self.h
+                # The number of cell centers in each direction
+                n = self.n
+                # Compute areas of cell faces
+                if(self.dim == 1):
+                    self._area = np.ones(n[0]+1)
+                elif(self.dim == 2):
+                    area1 = np.outer(np.ones(n[0]+1), vh[1])
+                    area2 = np.outer(vh[0], np.ones(n[1]+1))
+                    self._area = np.r_[mkvc(area1), mkvc(area2)]
+                elif(self.dim == 3):
+                    area1 = np.outer(np.ones(n[0]+1), mkvc(np.outer(vh[1], vh[2])))
+                    area2 = np.outer(vh[0], mkvc(np.outer(np.ones(n[1]+1), vh[2])))
+                    area3 = np.outer(vh[0], mkvc(np.outer(vh[1], np.ones(n[2]+1))))
+                    self._area = np.r_[mkvc(area1), mkvc(area2), mkvc(area3)]
+            return self._area
+        return locals()
+    _area = None
+    area = property(**area())
+
+    def edge():
+        doc = "Construct edge legnths of the 3D model as 1d array."
+
+        def fget(self):
+            if(self._edge is None):
+                # Ensure that we are working with column vectors
+                vh = self.h
+                # The number of cell centers in each direction
+                n = self.n
+                # Compute edge lengths
+                if(self.dim == 1):
+                    self._edge = mkvc(vh[0])
+                elif(self.dim == 2):
+                    l1 = np.outer(vh[0], np.ones(n[1]+1))
+                    l2 = np.outer(np.ones(n[0]+1), vh[1])
+                    self._edge = np.r_[mkvc(l1), mkvc(l2)]
+                elif(self.dim == 3):
+                    l1 = np.outer(vh[0], mkvc(np.outer(np.ones(n[1]+1), np.ones(n[2]+1))))
+                    l2 = np.outer(np.ones(n[0]+1), mkvc(np.outer(vh[1], np.ones(n[2]+1))))
+                    l3 = np.outer(np.ones(n[0]+1), mkvc(np.outer(np.ones(n[1]+1), vh[2])))
+                    self._edge = np.r_[mkvc(l1), mkvc(l2), mkvc(l3)]
+            return self._edge
+        return locals()
+    _edge = None
+    edge = property(**edge())
 
 
 if __name__ == '__main__':
