@@ -163,7 +163,7 @@ class TensorView(object):
                                 ax.text((ix+1)*self.vectorNx[-1]-pad,(iy)*self.vectorNy[-1]+pad,
                                          '#%i'%iz,color='w',verticalalignment='bottom',horizontalalignment='right',size='x-large')
 
-        fig.show()
+        plt.show()
         return ph
 
     def plotGrid(self):
@@ -181,7 +181,7 @@ class TensorView(object):
             ax.grid(True)
             ax.hold(False)
             ax.set_xlabel('x1')
-            fig.show()
+            plt.show()
         elif self.dim == 2:
             fig = plt.figure(2)
             fig.clf()
@@ -200,7 +200,7 @@ class TensorView(object):
             ax.hold(False)
             ax.set_xlabel('x1')
             ax.set_ylabel('x2')
-            fig.show()
+            plt.show()
         elif self.dim == 3:
             fig = plt.figure(3)
             fig.clf()
@@ -229,4 +229,4 @@ class TensorView(object):
             ax.set_xlabel('x1')
             ax.set_ylabel('x2')
             ax.set_zlabel('x3')
-            fig.show()
+            plt.show()
