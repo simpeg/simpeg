@@ -1,7 +1,7 @@
 import numpy as np
 from BaseMesh import BaseMesh
 from DiffOperators import DiffOperators
-from utils import mkvc
+from utils import mkvc, ndgrid
 
 
 class LogicallyOrthogonalMesh(BaseMesh, DiffOperators):  # , LOMGrid
@@ -17,7 +17,9 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators):  # , LOMGrid
             assert type(nodes_i) == np.ndarray, ("nodes[%i] is not a numpy array." % i)
             assert nodes_i.shape == nodes[0].shape, ("nodes[%i] is not the same shape as nodes[0]" % i)
 
-        super(LogicallyOrthogonalMesh, self).__init__(np.array(nodes[0].shape), x0)
+        assert len(nodes[0].shape) == len(nodes), "Dimension mismatch"
+
+        super(LogicallyOrthogonalMesh, self).__init__(np.array(nodes[0].shape)-1, x0)
 
         assert len(nodes[0].shape) == len(self.x0), "Dimension mismatch. x0 != len(h)"
 
@@ -31,7 +33,8 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators):  # , LOMGrid
 
         def fget(self):
             if self._gridCC is None:
-                self._gridCC = ndgrid([x for x in [self.vectorCCx, self.vectorCCy, self.vectorCCz] if not x is None])
+                ccV = (self.nodalVectorAve*mkvc(self.gridN))
+                self._gridCC = ccV.reshape((-1, self.dim), order='F')
             return self._gridCC
         return locals()
     _gridCC = None  # Store grid by default
@@ -42,7 +45,7 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators):  # , LOMGrid
 
         def fget(self):
             if self._gridN is None:
-                self._gridN = ndgrid([x for x in [self.vectorNx, self.vectorNy, self.vectorNz] if not x is None])
+                raise Exception("Someone deleted this. I blame you.")
             return self._gridN
         return locals()
     _gridN = None  # Store grid by default
@@ -113,3 +116,14 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators):  # , LOMGrid
         return locals()
     _gridEz = None  # Store grid by default
     gridEz = property(**gridEz())
+
+if __name__ == '__main__':
+    nc = 5
+    h1 = np.cumsum(np.r_[0, np.ones(nc)/(nc)])
+    h2 = np.cumsum(np.r_[0, np.ones(nc)/(nc)])
+    h3 = np.cumsum(np.r_[0, np.ones(nc)/(nc)])
+    h = [h1, h2, h3]
+    X, Y, Z = ndgrid(h1, h2, h3, vector=False)
+    M = LogicallyOrthogonalMesh([X, Y, Z])
+    print M.gridCC[:,0]
+    print M.gridN[:,0]
