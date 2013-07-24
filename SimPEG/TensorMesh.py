@@ -266,23 +266,15 @@ if __name__ == '__main__':
     print('Welcome to tensor mesh!')
 
     testDim = 1
-    h1 = 0.3*np.ones((1, 7))
-    h1[:, 0] = 0.5
-    h1[:, -1] = 0.6
-    h2 = .5 * np.ones((1, 4))
-    h3 = .4 * np.ones((1, 6))
-    x0 = np.zeros((3, 1))
+    h1 = 0.3*np.ones(7)
+    h1[0] = 0.5
+    h1[-1] = 0.6
+    h2 = .5 * np.ones(4)
+    h3 = .4 * np.ones(6)
 
-    if testDim == 1:
-        h = [h1]
-        x0 = x0[0]
-    elif testDim == 2:
-        h = [h1, h2]
-        x0 = x0[0:2]
-    else:
-        h = [h1, h2, h3]
+    h = [h1, h2, h3]
+    h = h[:testDim]
 
-    I = np.linspace(0, 1, 8)
-    M = TensorMesh(h, x0)
+    M = TensorMesh(h)
 
     xn = M.plotGrid()
