@@ -1,10 +1,6 @@
 import numpy as np
 
 
-def reshapeF(x, size):
-    return np.reshape(x, size, order='F')
-
-
 def mkvc(x, numDims=1):
     """Creates a vector with the number of dimension specified
 
