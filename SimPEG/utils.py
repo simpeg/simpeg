@@ -124,6 +124,83 @@ def volTetra(xyz, A, B, C, D):
     return V/6
 
 
+def indexCube(nodes, nN):
+    """
+   Returns the index of nodes on the mesh.
+
+
+    Input:
+       nodes  - string of which nodes to return. e.g. 'ABCD'
+       nN     - size of the nodal grid
+
+    Output:
+       index  - index in the order asked e.g. 'ABCD' --> (A,B,C,D)
+
+      TWO DIMENSIONS:
+
+      node(i,j)          node(i,j+1)
+           A -------------- B
+           |                |
+           |    cell(i,j)   |
+           |        I       |
+           |                |
+          D -------------- C
+      node(i+1,j)        node(i+1,j+1)
+
+
+      THREE DIMENSIONS:
+
+            node(i,j,k+1)       node(i,j+1,k+1)
+                E --------------- F
+               /|               / |
+              / |              /  |
+             /  |             /   |
+      node(i,j,k)         node(i,j+1,k)
+           A -------------- B     |
+           |    H ----------|---- G
+           |   /cell(i,j)   |   /
+           |  /     I       |  /
+           | /              | /
+           D -------------- C
+      node(i+1,j,k)      node(i+1,j+1,k)
+
+
+         @author Rowan Cockett
+
+         Last modified on: 2013/03/07
+    """
+
+    assert type(nodes) == str, "Nodes must be a str variable: e.g. 'ABCD'"
+    assert type(nN) == np.ndarray, "Number of nodes must be an ndarray"
+    nodes = nodes.upper()
+    # Make sure that we choose from the possible nodes.
+    possibleNodes = 'ABCD' if nN.size == 2 else 'ABCDEFGH'
+    for node in nodes:
+        assert node in possibleNodes, "Nodes must be chosen from: '%s'" % possibleNodes
+    dim = nN.size
+    nC = nN - 1
+
+    if dim == 2:
+        ij = ndgrid(np.arange(nC[0]), np.arange(nC[1]))
+        i, j = ij[:, 0], ij[:, 1]
+    elif dim == 3:
+        ijk = ndgrid(np.arange(nC[0]), np.arange(nC[1]), np.arange(nC[2]))
+        i, j, k = ijk[:, 0], ijk[:, 1], ijk[:, 2]
+    else:
+        raise Exception('Only 2 and 3 dimensions supported.')
+
+    nodeMap = {'A': [0, 0, 0], 'B': [0, 1, 0], 'C': [1, 1, 0], 'D': [1, 0, 0],
+               'E': [0, 0, 1], 'F': [0, 1, 1], 'G': [1, 1, 1], 'H': [1, 0, 1]}
+    out = ()
+    for node in nodes:
+        shift = nodeMap[node]
+        if dim == 2:
+            out += (sub2ind(nN, np.c_[i+shift[0], j+shift[1]]).flatten(), )
+        elif dim == 3:
+            out += (sub2ind(nN, np.c_[i+shift[0], j+shift[1], k+shift[2]]).flatten(), )
+
+    return out
+
 def getSubArray(A, ind):
     """subArray"""
     return A[ind[0], :, :][:, ind[1], :][:, :, ind[2]]
