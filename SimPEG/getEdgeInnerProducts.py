@@ -1,6 +1,6 @@
 from scipy import sparse as sp
 from sputils import sdiag
-from utils import sub2ind, ndgrid
+from utils import sub2ind, ndgrid, mkvc
 import numpy as np
 
 
@@ -21,7 +21,7 @@ def getEdgeInnerProduct(mesh, sigma):
 
         IND = np.r_[ind1, ind2, ind3].flatten()
 
-        return sp.coo_matrix((np.ones(3*nc), (np.linspace(0, 3*nc-1, 3*nc), IND)), shape=(3*nc, np.sum(mesh.nE))).tocsr()
+        return sp.coo_matrix((np.ones(3*nc), (range(3*nc), IND)), shape=(3*nc, np.sum(mesh.nE))).tocsr()
 
     #      node(i,j,k+1) ------ edge2(i,j,k+1) ----- node(i,j+1,k+1)
     #           /                                    /
@@ -57,15 +57,21 @@ def getEdgeInnerProduct(mesh, sigma):
     P011 = Pxxx([[0, 1, 1], [0, 0, 1], [0, 1, 0]])
     P111 = Pxxx([[0, 1, 1], [1, 0, 1], [1, 1, 0]])
 
-    # Cell volume
-    row1 = sp.hstack((sdiag(sigma[:, 0]), sdiag(sigma[:, 3]), sdiag(sigma[:, 4])))
-    row2 = sp.hstack((sdiag(sigma[:, 3]), sdiag(sigma[:, 1]), sdiag(sigma[:, 5])))
-    row3 = sp.hstack((sdiag(sigma[:, 4]), sdiag(sigma[:, 5]), sdiag(sigma[:, 2])))
-    Sigma = sp.vstack((row1, row2, row3))
+    if sigma.size == mesh.nC:  # Isotropic!
+        sigma = mkvc(sigma)
+        Sigma = sdiag(np.r_[sigma, sigma, sigma])
+    elif sigma.shape[1] == 3:  # Diagonal tensor
+        Sigma = sdiag(np.r_[sigma[:, 0], sigma[:, 1], sigma[:, 2]])
+    elif sigma.shape[1] == 6:  # Fully anisotropic
+        row1 = sp.hstack((sdiag(sigma[:, 0]), sdiag(sigma[:, 3]), sdiag(sigma[:, 4])))
+        row2 = sp.hstack((sdiag(sigma[:, 3]), sdiag(sigma[:, 1]), sdiag(sigma[:, 5])))
+        row3 = sp.hstack((sdiag(sigma[:, 4]), sdiag(sigma[:, 5]), sdiag(sigma[:, 2])))
+        Sigma = sp.vstack((row1, row2, row3))
 
+    # Cell volume
     v = np.sqrt(mesh.vol)
     v3 = np.r_[v, v, v]
-    V = sdiag(v3)*Sigma*sdiag(v3)
+    V = sdiag(v3)*Sigma*sdiag(v3)  # to keep symmetry
 
     A = P000.T*V*P000 + P001.T*V*P001 + P010.T*V*P010 + P011.T*V*P011 + P100.T*V*P100 + P101.T*V*P101 + P110.T*V*P110 + P111.T*V*P111
 
@@ -73,10 +79,8 @@ def getEdgeInnerProduct(mesh, sigma):
 
     return A
 
-
 if __name__ == '__main__':
-
-    from TensorMesh import *
+    from TensorMesh import TensorMesh
     h = [np.array([1, 2, 3, 4]), np.array([1, 2, 1, 4, 2]), np.array([1, 1, 4, 1])]
     mesh = TensorMesh(h)
     sigma = np.ones((mesh.nC, 6))
