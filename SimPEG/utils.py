@@ -1,4 +1,5 @@
 import numpy as np
+from numpy import *
 
 
 def mkvc(x, numDims=1):
@@ -119,7 +120,39 @@ def volTetra(xyz, A, B, C, D):
     BD = xyz[B, :] - xyz[D, :]
     CD = xyz[C, :] - xyz[D, :]
 
-
-
     V = (BD[:, 0]*CD[:, 1] - BD[:, 1]*CD[:, 0])*AD[:, 2] - (BD[:, 0]*CD[:, 2] - BD[:, 2]*CD[:, 0])*AD[:, 1] + (BD[:, 1]*CD[:, 2] - BD[:, 2]*CD[:, 1])*AD[:, 0]
     return V/6
+
+
+def getSubArray(A, ind):
+    """subArray"""
+    return A[ind[0], :, :][:, ind[1], :][:, :, ind[2]]
+
+
+def ind2sub(shape, ind):
+    """From the given shape, returns the subscrips of the given index"""
+    revshp = []
+    revshp.extend(shape)
+    mult = [1]
+    for i in range(0, len(revshp)-1):
+        mult.extend([mult[i]*revshp[i]])
+    mult = array(mult).reshape(len(mult))
+
+    sub = []
+
+    for i in range(0, len(shape)):
+        sub.extend([math.floor(ind / mult[i])])
+        ind = ind - (math.floor(ind/mult[i]) * mult[i])
+    return sub
+
+
+def sub2ind(shape, subs):
+    """From the given shape, returns the index of the given subscript"""
+    revshp = list(shape)
+    mult = [1]
+    for i in range(0, len(revshp)-1):
+        mult.extend([mult[i]*revshp[i]])
+    mult = array(mult).reshape(len(mult), 1)
+
+    idx = dot((subs), (mult))
+    return idx
