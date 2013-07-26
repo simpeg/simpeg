@@ -10,7 +10,6 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators):  # , LOMGrid
 
     """
     def __init__(self, nodes, x0=None):
-        # Start with some error checking:
         assert type(nodes) == list, "'nodes' variable must be a list of np.ndarray"
 
         for i, nodes_i in enumerate(nodes):
@@ -18,6 +17,7 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators):  # , LOMGrid
             assert nodes_i.shape == nodes[0].shape, ("nodes[%i] is not the same shape as nodes[0]" % i)
 
         assert len(nodes[0].shape) == len(nodes), "Dimension mismatch"
+        assert len(nodes[0].shape) > 1, "Not worth using LOM for a 1D mesh."
 
         super(LogicallyOrthogonalMesh, self).__init__(np.array(nodes[0].shape)-1, x0)
 
@@ -51,71 +51,27 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators):  # , LOMGrid
     _gridN = None  # Store grid by default
     gridN = property(**gridN())
 
-    def gridFx():
-        doc = "Face staggered grid in the x direction."
+    # --------------- Geometries ---------------------
+    def vol():
+        doc = "Construct cell volumes of the 3D model as 1d array."
 
         def fget(self):
-            if self._gridFx is None:
-                self._gridFx = ndgrid([x for x in [self.vectorNx, self.vectorCCy, self.vectorCCz] if not x is None])
-            return self._gridFx
+            if(self._vol is None):
+                vh = self.h
+                # Compute cell volumes
+                if(self.dim == 1):
+                    self._vol = mkvc(vh[0])
+                elif(self.dim == 2):
+                    # Cell sizes in each direction
+                    self._vol = mkvc(np.outer(vh[0], vh[1]))
+                elif(self.dim == 3):
+                    # Cell sizes in each direction
+                    self._vol = mkvc(np.outer(mkvc(np.outer(vh[0], vh[1])), vh[2]))
+            return self._vol
         return locals()
-    _gridFx = None  # Store grid by default
-    gridFx = property(**gridFx())
+    _vol = None
+    vol = property(**vol())
 
-    def gridFy():
-        doc = "Face staggered grid in the y direction."
-
-        def fget(self):
-            if self._gridFy is None:
-                self._gridFy = ndgrid([x for x in [self.vectorCCx, self.vectorNy, self.vectorCCz] if not x is None])
-            return self._gridFy
-        return locals()
-    _gridFy = None  # Store grid by default
-    gridFy = property(**gridFy())
-
-    def gridFz():
-        doc = "Face staggered grid in the z direction."
-
-        def fget(self):
-            if self._gridFz is None:
-                self._gridFz = ndgrid([x for x in [self.vectorCCx, self.vectorCCy, self.vectorNz] if not x is None])
-            return self._gridFz
-        return locals()
-    _gridFz = None  # Store grid by default
-    gridFz = property(**gridFz())
-
-    def gridEx():
-        doc = "Edge staggered grid in the x direction."
-
-        def fget(self):
-            if self._gridEx is None:
-                self._gridEx = ndgrid([x for x in [self.vectorCCx, self.vectorNy, self.vectorNz] if not x is None])
-            return self._gridEx
-        return locals()
-    _gridEx = None  # Store grid by default
-    gridEx = property(**gridEx())
-
-    def gridEy():
-        doc = "Edge staggered grid in the y direction."
-
-        def fget(self):
-            if self._gridEy is None:
-                self._gridEy = ndgrid([x for x in [self.vectorNx, self.vectorCCy, self.vectorNz] if not x is None])
-            return self._gridEy
-        return locals()
-    _gridEy = None  # Store grid by default
-    gridEy = property(**gridEy())
-
-    def gridEz():
-        doc = "Edge staggered grid in the z direction."
-
-        def fget(self):
-            if self._gridEz is None:
-                self._gridEz = ndgrid([x for x in [self.vectorNx, self.vectorNy, self.vectorCCz] if not x is None])
-            return self._gridEz
-        return locals()
-    _gridEz = None  # Store grid by default
-    gridEz = property(**gridEz())
 
 if __name__ == '__main__':
     nc = 5
@@ -125,5 +81,5 @@ if __name__ == '__main__':
     h = [h1, h2, h3]
     X, Y, Z = ndgrid(h1, h2, h3, vector=False)
     M = LogicallyOrthogonalMesh([X, Y, Z])
-    print M.gridCC[:,0]
-    print M.gridN[:,0]
+    print M.r(M.gridCC, format='M')
+    print M.gridN[:, 0]

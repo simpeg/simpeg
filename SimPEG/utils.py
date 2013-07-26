@@ -93,3 +93,33 @@ def ndgrid(*args, **kwargs):
             return np.c_[X1, X2, X3]
         else:
             return XYZ[2], XYZ[1], XYZ[0]
+
+
+def volTetra(xyz, A, B, C, D):
+    """
+    Returns the volume for tetrahedras volume specified by the indexes A to D.
+
+
+    Input:
+       xyz      - X,Y,Z vertex vector
+       A,B,C,D  - vert index of the tetrahedra
+
+    Output:
+       V        - volume
+
+    Algorithm:     http://en.wikipedia.org/wiki/Tetrahedron#Volume
+
+       V = 1/3 A * h
+
+       V = 1/6 | ( a - d ) o ( ( b - d ) X ( c - d ) ) |
+
+    """
+
+    AD = xyz[A, :] - xyz[D, :]
+    BD = xyz[B, :] - xyz[D, :]
+    CD = xyz[C, :] - xyz[D, :]
+
+
+
+    V = (BD[:, 0]*CD[:, 1] - BD[:, 1]*CD[:, 0])*AD[:, 2] - (BD[:, 0]*CD[:, 2] - BD[:, 2]*CD[:, 0])*AD[:, 1] + (BD[:, 1]*CD[:, 2] - BD[:, 2]*CD[:, 1])*AD[:, 0]
+    return V/6
