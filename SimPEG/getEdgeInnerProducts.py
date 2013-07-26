@@ -58,7 +58,7 @@ def getEdgeInnerProduct(mesh, sigma):
     P111 = Pxxx([[0, 1, 1], [1, 0, 1], [1, 1, 0]])
 
     if sigma.size == mesh.nC:  # Isotropic!
-        sigma = mkvc(sigma)
+        sigma = mkvc(sigma)  # ensure it is a vector.
         Sigma = sdiag(np.r_[sigma, sigma, sigma])
     elif sigma.shape[1] == 3:  # Diagonal tensor
         Sigma = sdiag(np.r_[sigma[:, 0], sigma[:, 1], sigma[:, 2]])

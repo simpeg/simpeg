@@ -1,17 +1,15 @@
 import numpy as np
 import unittest
+from OrderTest import OrderTest
 import sys
 sys.path.append('../')
-from OrderTest import OrderTest
 from getEdgeInnerProducts import *
 
 
 class TestEdgeInnerProduct(OrderTest):
-    """Integrate a function over a unit cube domain."""
+    """Integrate an edge function over a unit cube domain using edgeInnerProducts."""
 
     name = "Edge Inner Product"
-
-    meshSizes = [4, 8, 16, 32]
 
     def getError(self):
 
