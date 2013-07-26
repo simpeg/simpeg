@@ -32,7 +32,7 @@ class TestEdgeInnerProduct(OrderTest):
         Ey = call(ey, self.M.gridEy)
         Ez = call(ez, self.M.gridEz)
 
-        E = np.matrix(mkvc(np.r_[Ex, Ey, Ez], 2))
+        E = np.matrix(np.r_[Ex, Ey, Ez]).T
         Gc = self.M.gridCC
         sigma = np.c_[call(sigma1, Gc), call(sigma2, Gc), call(sigma3, Gc),
                       call(sigma4, Gc), call(sigma5, Gc), call(sigma6, Gc)]
