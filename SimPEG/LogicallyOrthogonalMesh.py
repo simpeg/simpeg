@@ -1,7 +1,7 @@
 import numpy as np
 from BaseMesh import BaseMesh
 from DiffOperators import DiffOperators
-from utils import mkvc, ndgrid
+from utils import mkvc, ndgrid, volTetra, indexCube, faceInfo
 
 
 class LogicallyOrthogonalMesh(BaseMesh, DiffOperators):  # , LOMGrid
@@ -52,21 +52,60 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators):  # , LOMGrid
     gridN = property(**gridN())
 
     # --------------- Geometries ---------------------
+    #
+    #
+    # ------------------- 2D -------------------------
+    #
+    #         node(i,j)          node(i,j+1)
+    #              A -------------- B
+    #              |                |
+    #              |    cell(i,j)   |
+    #              |        I       |
+    #              |                |
+    #             D -------------- C
+    #         node(i+1,j)        node(i+1,j+1)
+    #
+    # ------------------- 3D -------------------------
+    #
+    #
+    #             node(i,j,k+1)       node(i,j+1,k+1)
+    #                 E --------------- F
+    #                /|               / |
+    #               / |              /  |
+    #              /  |             /   |
+    #       node(i,j,k)         node(i,j+1,k)
+    #            A -------------- B     |
+    #            |    H ----------|---- G
+    #            |   /cell(i,j)   |   /
+    #            |  /     I       |  /
+    #            | /              | /
+    #            D -------------- C
+    #       node(i+1,j,k)      node(i+1,j+1,k)
     def vol():
         doc = "Construct cell volumes of the 3D model as 1d array."
 
         def fget(self):
             if(self._vol is None):
-                vh = self.h
-                # Compute cell volumes
-                if(self.dim == 1):
-                    self._vol = mkvc(vh[0])
-                elif(self.dim == 2):
-                    # Cell sizes in each direction
-                    self._vol = mkvc(np.outer(vh[0], vh[1]))
-                elif(self.dim == 3):
-                    # Cell sizes in each direction
-                    self._vol = mkvc(np.outer(mkvc(np.outer(vh[0], vh[1])), vh[2]))
+                if self.dim == 2:
+                    A, B, C, D = indexCube('ABCD', np.array([self.nNx, self.nNy]))
+                    normal, area, length = faceInfo(np.c_[self.gridN, np.zeros((self.nC, 1))], A, B, C, D)
+                    self._vol = area
+                elif self.dim == 3:
+                    # Each polyhedron can be decomposed into 5 tetrahedrons
+                    # T1 = [A B D E]; % cutted edge
+                    # T2 = [B E F G]; % cutted edge
+                    # T3 = [B D E G]; % mid
+                    # T4 = [B C D G]; % cutted edge
+                    # T5 = [D E G H]; % cutted edge
+                    A, B, C, D, E, F, G, H = indexCube('ABCDEFGH', np.array([self.nNx, self.nNy, self.nNz]))
+
+                    v1 = volTetra(self.gridN, A, B, D, E)  # cutted edge
+                    v2 = volTetra(self.gridN, B, E, F, G)  # cutted edge
+                    v3 = volTetra(self.gridN, B, D, E, G)  # mid
+                    v4 = volTetra(self.gridN, B, C, D, G)  # cutted edge
+                    v5 = volTetra(self.gridN, D, E, G, H)  # cutted edge
+
+                    self._vol = v1 + v2 + v3 + v4 + v5
             return self._vol
         return locals()
     _vol = None

@@ -126,7 +126,7 @@ def volTetra(xyz, A, B, C, D):
 
 def indexCube(nodes, nN):
     """
-   Returns the index of nodes on the mesh.
+    Returns the index of nodes on the mesh.
 
 
     Input:
@@ -167,7 +167,7 @@ def indexCube(nodes, nN):
 
          @author Rowan Cockett
 
-         Last modified on: 2013/03/07
+         Last modified on: 2013/07/26
     """
 
     assert type(nodes) == str, "Nodes must be a str variable: e.g. 'ABCD'"
@@ -200,6 +200,85 @@ def indexCube(nodes, nN):
             out += (sub2ind(nN, np.c_[i+shift[0], j+shift[1], k+shift[2]]).flatten(), )
 
     return out
+
+
+def faceInfo(xyz, A, B, C, D, average=True):
+    """
+    function [N] = faceInfo(y,A,B,C,D)
+
+       Returns the averaged normal, area, and edge lengths for a given set of faces.
+
+       If average option is FALSE then N is a cell array {nA,nB,nC,nD}
+
+
+    Input:
+       xyz          - X,Y,Z vertex vector
+       A,B,C,D      - vert index of the face (counter clockwize)
+
+    Options:
+       average      - [true]/false, toggles returning all normals or the average
+
+    Output:
+       N            - average face normal or {nA,nB,nC,nD} if average = false
+       area         - average face area
+       edgeLengths  - exact edge Lengths, 4 column vector [AB, BC, CD, DA]
+
+    see also testFaceNormal testFaceArea
+
+    @author Rowan Cockett
+
+    Last modified on: 2013/07/26
+
+    """
+
+    # compute normal that is pointing away from you.
+    #
+    #    A -------A-B------- B
+    #    |                   |
+    #    |                   |
+    #   D-A       (X)       B-C
+    #    |                   |
+    #    |                   |
+    #    D -------C-D------- C
+
+    AB = xyz[B, :] - xyz[A, :]
+    BC = xyz[C, :] - xyz[B, :]
+    CD = xyz[D, :] - xyz[C, :]
+    DA = xyz[A, :] - xyz[D, :]
+
+    def cross(X, Y):
+        return np.c_[X[1, :]*Y[2, :] - X[2, :]*Y[1, :],
+                     X[2, :]*Y[0, :] - X[0, :]*Y[2, :],
+                     X[0, :]*Y[1, :] - X[1, :]*Y[0, :]]
+
+    nA = cross(AB, DA)
+    nB = cross(BC, AB)
+    nC = cross(CD, BC)
+    nD = cross(DA, CD)
+
+    length = lambda x: (x[:, 0]**2 + x[:, 1]**2 + x[:, 2]**2)**0.5
+    normalize = lambda x: x/np.kron(np.ones((1, x.shape[1]), length(x), 1))
+    if average:
+        # average the normals at each vertex.
+        N = (nA + nB + nC + nD)/4  # this is intrinsically weighted by area
+        # normalize
+        N = normalize(N)
+    else:
+        N = [normalize(nA), normalize(nB), normalize(nC), normalize(nD)]
+
+    # Area calculation
+    #
+    # Approximate by 4 different triangles, and divide by 2.
+    # Each triangle is one half of the length of the cross product
+    #
+    # So also could be viewed as the average parallelogram.
+    area = (length(nA)+length(nB)+length(nC)+length(nD))/4
+
+    # simple edge length calculations
+    edgeLengths = [length(AB), length(BC), length(CD), length(DA)]
+
+    return N, area, edgeLengths
+
 
 def getSubArray(A, ind):
     """subArray"""
