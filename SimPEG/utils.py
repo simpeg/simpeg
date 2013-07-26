@@ -1,5 +1,5 @@
 import numpy as np
-
+from numpy import *
 
 def reshapeF(x, size):
     return np.reshape(x, size, order='F')
@@ -97,3 +97,32 @@ def ndgrid(*args, **kwargs):
             return np.c_[X1, X2, X3]
         else:
             return XYZ[2], XYZ[1], XYZ[0]
+
+
+def ind2sub(shape, ind):
+    """From the given shape, returns the subscrips of the given index"""
+    revshp = []
+    revshp.extend(shape)
+    mult = [1]
+    for i in range(0, len(revshp)-1):
+        mult.extend([mult[i]*revshp[i]])
+    mult = array(mult).reshape(len(mult))
+
+    sub = []
+
+    for i in range(0, len(shape)):
+        sub.extend([math.floor(ind / mult[i])])
+        ind = ind - (math.floor(ind/mult[i]) * mult[i])
+    return sub
+
+
+def sub2ind(shape, subs):
+    """From the given shape, returns the index of the given subscript"""
+    revshp = list(shape)
+    mult = [1]
+    for i in range(0, len(revshp)-1):
+        mult.extend([mult[i]*revshp[i]])
+    mult = array(mult).reshape(len(mult), 1)
+
+    idx = dot((subs), (mult))
+    return idx
