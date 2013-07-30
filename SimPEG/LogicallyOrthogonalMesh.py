@@ -88,7 +88,7 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators):  # , LOMGrid
             if(self._vol is None):
                 if self.dim == 2:
                     A, B, C, D = indexCube('ABCD', np.array([self.nNx, self.nNy]))
-                    normal, area, length = faceInfo(np.c_[self.gridN, np.zeros((self.nC, 1))], A, B, C, D)
+                    normal, area, length = faceInfo(np.c_[self.gridN, np.zeros((self.nN, 1))], A, B, C, D)
                     self._vol = area
                 elif self.dim == 3:
                     # Each polyhedron can be decomposed into 5 tetrahedrons
@@ -117,8 +117,14 @@ if __name__ == '__main__':
     h1 = np.cumsum(np.r_[0, np.ones(nc)/(nc)])
     h2 = np.cumsum(np.r_[0, np.ones(nc)/(nc)])
     h3 = np.cumsum(np.r_[0, np.ones(nc)/(nc)])
-    h = [h1, h2, h3]
-    X, Y, Z = ndgrid(h1, h2, h3, vector=False)
-    M = LogicallyOrthogonalMesh([X, Y, Z])
-    print M.r(M.gridCC, format='M')
-    print M.gridN[:, 0]
+    dee3 = False
+    if dee3:
+        X, Y, Z = ndgrid(h1, h2, h3, vector=False)
+        M = LogicallyOrthogonalMesh([X, Y, Z])
+    else:
+        X, Y = ndgrid(h1, h2, vector=False)
+        M = LogicallyOrthogonalMesh([X, Y])
+
+    # print M.r(M.gridCC, format='M')
+    # print M.gridN[:, 0]
+    print np.sum(M.vol)

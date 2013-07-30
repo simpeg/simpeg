@@ -247,9 +247,9 @@ def faceInfo(xyz, A, B, C, D, average=True):
     DA = xyz[A, :] - xyz[D, :]
 
     def cross(X, Y):
-        return np.c_[X[1, :]*Y[2, :] - X[2, :]*Y[1, :],
-                     X[2, :]*Y[0, :] - X[0, :]*Y[2, :],
-                     X[0, :]*Y[1, :] - X[1, :]*Y[0, :]]
+        return np.c_[X[:, 1]*Y[:, 2] - X[:, 2]*Y[:, 1],
+                     X[:, 2]*Y[:, 0] - X[:, 0]*Y[:, 2],
+                     X[:, 0]*Y[:, 1] - X[:, 1]*Y[:, 0]]
 
     nA = cross(AB, DA)
     nB = cross(BC, AB)
@@ -257,7 +257,7 @@ def faceInfo(xyz, A, B, C, D, average=True):
     nD = cross(DA, CD)
 
     length = lambda x: (x[:, 0]**2 + x[:, 1]**2 + x[:, 2]**2)**0.5
-    normalize = lambda x: x/np.kron(np.ones((1, x.shape[1]), length(x), 1))
+    normalize = lambda x: x/np.kron(np.ones((1, x.shape[1])), mkvc(length(N), 2))
     if average:
         # average the normals at each vertex.
         N = (nA + nB + nC + nD)/4  # this is intrinsically weighted by area
