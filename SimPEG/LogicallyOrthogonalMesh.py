@@ -87,7 +87,7 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators):  # , LOMGrid
         def fget(self):
             if(self._vol is None):
                 if self.dim == 2:
-                    A, B, C, D = indexCube('ABCD', np.array([self.nNx, self.nNy]))
+                    A, B, C, D = indexCube('ABCD', self.n+1)
                     normal, area, length = faceInfo(np.c_[self.gridN, np.zeros((self.nN, 1))], A, B, C, D)
                     self._vol = area
                 elif self.dim == 3:
@@ -97,7 +97,7 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators):  # , LOMGrid
                     # T3 = [B D E G]; % mid
                     # T4 = [B C D G]; % cutted edge
                     # T5 = [D E G H]; % cutted edge
-                    A, B, C, D, E, F, G, H = indexCube('ABCDEFGH', np.array([self.nNx, self.nNy, self.nNz]))
+                    A, B, C, D, E, F, G, H = indexCube('ABCDEFGH', self.n+1)
 
                     v1 = volTetra(self.gridN, A, B, D, E)  # cutted edge
                     v2 = volTetra(self.gridN, B, E, F, G)  # cutted edge
@@ -111,13 +111,46 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators):  # , LOMGrid
     _vol = None
     vol = property(**vol())
 
+    def area():
+        doc = "Face areas."
+
+        def fget(self):
+            if(self._area is None):
+                # Compute areas of cell faces
+                if(self.dim == 2):
+                    xy = self.gridN
+                    length = lambda x: (x[:, 0]**2 + x[:, 1]**2)**0.5
+
+                    A, B = indexCube('AB', self.n+1, np.array([self.nNx, self.nCy]))
+                    area1 = length(xy[B, :] - xy[A, :])
+                    A, D = indexCube('AD', self.n+1, np.array([self.nCx, self.nNy]))
+                    area2 = length(xy[D, :] - xy[A, :])
+                    self._area = np.r_[mkvc(area1), mkvc(area2)]
+                elif(self.dim == 3):
+
+                    A, E, F, B = indexCube('AEFB', self.n+1, np.array([self.nNx, self.nCy, self.nCz]))
+                    normal, area1, length = faceInfo(self.gridN, A, E, F, B)
+
+                    A, D, H, E = indexCube('ADHE', self.n+1, np.array([self.nCx, self.nNy, self.nCz]))
+                    normal, area2, length = faceInfo(self.gridN, A, D, H, E)
+
+                    A, B, C, D = indexCube('ABCD', self.n+1, np.array([self.nCx, self.nCy, self.nNz]))
+                    normal, area3, length = faceInfo(self.gridN, A, B, C, D)
+
+                    self._area = np.r_[mkvc(area1), mkvc(area2), mkvc(area3)]
+            return self._area
+        return locals()
+    _area = None
+    area = property(**area())
+
 
 if __name__ == '__main__':
     nc = 5
     h1 = np.cumsum(np.r_[0, np.ones(nc)/(nc)])
+    nc = 7
     h2 = np.cumsum(np.r_[0, np.ones(nc)/(nc)])
     h3 = np.cumsum(np.r_[0, np.ones(nc)/(nc)])
-    dee3 = False
+    dee3 = True
     if dee3:
         X, Y, Z = ndgrid(h1, h2, h3, vector=False)
         M = LogicallyOrthogonalMesh([X, Y, Z])
@@ -127,4 +160,5 @@ if __name__ == '__main__':
 
     # print M.r(M.gridCC, format='M')
     # print M.gridN[:, 0]
-    print np.sum(M.vol)
+    print M.nE
+    print M.area

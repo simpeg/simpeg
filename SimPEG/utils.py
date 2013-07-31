@@ -124,14 +124,16 @@ def volTetra(xyz, A, B, C, D):
     return V/6
 
 
-def indexCube(nodes, nN):
+def indexCube(nodes, gridSize, n=None):
     """
     Returns the index of nodes on the mesh.
 
 
     Input:
-       nodes  - string of which nodes to return. e.g. 'ABCD'
-       nN     - size of the nodal grid
+       nodes     - string of which nodes to return. e.g. 'ABCD'
+       gridSize  - size of the nodal grid
+       n         - number of nodes each i,j,k direction: [ni,nj,nk]
+
 
     Output:
        index  - index in the order asked e.g. 'ABCD' --> (A,B,C,D)
@@ -171,20 +173,21 @@ def indexCube(nodes, nN):
     """
 
     assert type(nodes) == str, "Nodes must be a str variable: e.g. 'ABCD'"
-    assert type(nN) == np.ndarray, "Number of nodes must be an ndarray"
+    assert type(gridSize) == np.ndarray, "Number of nodes must be an ndarray"
     nodes = nodes.upper()
     # Make sure that we choose from the possible nodes.
-    possibleNodes = 'ABCD' if nN.size == 2 else 'ABCDEFGH'
+    possibleNodes = 'ABCD' if gridSize.size == 2 else 'ABCDEFGH'
     for node in nodes:
         assert node in possibleNodes, "Nodes must be chosen from: '%s'" % possibleNodes
-    dim = nN.size
-    nC = nN - 1
+    dim = gridSize.size
+    if n is None:
+        n = gridSize - 1
 
     if dim == 2:
-        ij = ndgrid(np.arange(nC[0]), np.arange(nC[1]))
+        ij = ndgrid(np.arange(n[0]), np.arange(n[1]))
         i, j = ij[:, 0], ij[:, 1]
     elif dim == 3:
-        ijk = ndgrid(np.arange(nC[0]), np.arange(nC[1]), np.arange(nC[2]))
+        ijk = ndgrid(np.arange(n[0]), np.arange(n[1]), np.arange(n[2]))
         i, j, k = ijk[:, 0], ijk[:, 1], ijk[:, 2]
     else:
         raise Exception('Only 2 and 3 dimensions supported.')
@@ -195,9 +198,9 @@ def indexCube(nodes, nN):
     for node in nodes:
         shift = nodeMap[node]
         if dim == 2:
-            out += (sub2ind(nN, np.c_[i+shift[0], j+shift[1]]).flatten(), )
+            out += (sub2ind(gridSize, np.c_[i+shift[0], j+shift[1]]).flatten(), )
         elif dim == 3:
-            out += (sub2ind(nN, np.c_[i+shift[0], j+shift[1], k+shift[2]]).flatten(), )
+            out += (sub2ind(gridSize, np.c_[i+shift[0], j+shift[1], k+shift[2]]).flatten(), )
 
     return out
 
