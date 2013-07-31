@@ -259,7 +259,7 @@ def faceInfo(xyz, A, B, C, D, average=True):
     nD = cross(DA, CD)
 
     length = lambda x: (x[:, 0]**2 + x[:, 1]**2 + x[:, 2]**2)**0.5
-    normalize = lambda x: x/np.kron(np.ones((1, x.shape[1])), mkvc(length(N), 2))
+    normalize = lambda x: x/np.kron(np.ones((1, x.shape[1])), mkvc(length(x), 2))
     if average:
         # average the normals at each vertex.
         N = (nA + nB + nC + nD)/4  # this is intrinsically weighted by area

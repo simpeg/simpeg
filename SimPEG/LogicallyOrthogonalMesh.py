@@ -3,12 +3,20 @@ from BaseMesh import BaseMesh
 from DiffOperators import DiffOperators
 from utils import mkvc, ndgrid, volTetra, indexCube, faceInfo
 
+# Some helper functions.
+length2D = lambda x: (x[:, 0]**2 + x[:, 1]**2)**0.5
+length3D = lambda x: (x[:, 0]**2 + x[:, 1]**2 + x[:, 2]**2)**0.5
+normalize2D = lambda x: x/np.kron(np.ones((1, 2)), mkvc(length2D(x), 2))
+normalize3D = lambda x: x/np.kron(np.ones((1, 3)), mkvc(length3D(x), 2))
+
 
 class LogicallyOrthogonalMesh(BaseMesh, DiffOperators):  # , LOMGrid
     """
     LogicallyOrthogonalMesh is a mesh class that deals with logically orthogonal meshes.
 
     """
+    _meshType = 'LOM'
+
     def __init__(self, nodes):
         assert type(nodes) == list, "'nodes' variable must be a list of np.ndarray"
 
@@ -117,12 +125,10 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators):  # , LOMGrid
                 # Compute areas of cell faces
                 if(self.dim == 2):
                     xy = self.gridN
-                    length = lambda x: (x[:, 0]**2 + x[:, 1]**2)**0.5
-
                     A, B = indexCube('AB', self.n+1, np.array([self.nNx, self.nCy]))
-                    area1 = length(xy[B, :] - xy[A, :])
+                    area1 = length2D(xy[B, :] - xy[A, :])
                     A, D = indexCube('AD', self.n+1, np.array([self.nCx, self.nNy]))
-                    area2 = length(xy[D, :] - xy[A, :])
+                    area2 = length2D(xy[D, :] - xy[A, :])
                     self._area = np.r_[mkvc(area1), mkvc(area2)]
                 elif(self.dim == 3):
 
@@ -141,6 +147,45 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators):  # , LOMGrid
     _area = None
     area = property(**area())
 
+    def edge():
+        doc = "Edge legnths."
+
+        def fget(self):
+            if(self._edge is None or self._tangents is None):
+                if(self.dim == 2):
+                    xy = self.gridN
+                    A, D = indexCube('AD', self.n+1, np.array([self.nCx, self.nNy]))
+                    edge1 = xy[D, :] - xy[A, :]
+                    A, B = indexCube('AB', self.n+1, np.array([self.nNx, self.nCy]))
+                    edge2 = xy[B, :] - xy[A, :]
+                    self._edge = np.r_[mkvc(length2D(edge1)), mkvc(length2D(edge2))]
+                    self._tangents = np.r_[edge1, edge2]/np.c_[self._edge, self._edge]
+                elif(self.dim == 3):
+                    xyz = self.gridN
+                    A, D = indexCube('AD', self.n+1, np.array([self.nCx, self.nNy, self.nNz]))
+                    edge1 = xyz[D, :] - xyz[A, :]
+                    A, B = indexCube('AB', self.n+1, np.array([self.nNx, self.nCy, self.nNz]))
+                    edge2 = xyz[B, :] - xyz[A, :]
+                    A, E = indexCube('AE', self.n+1, np.array([self.nNx, self.nNy, self.nCz]))
+                    edge3 = xyz[E, :] - xyz[A, :]
+                    self._edge = np.r_[mkvc(length3D(edge1)), mkvc(length3D(edge2)), mkvc(length3D(edge3))]
+                    self._tangents = np.r_[edge1, edge2, edge3]/np.c_[self._edge, self._edge, self._edge]
+            return self._edge
+        return locals()
+    _edge = None
+    edge = property(**edge())
+
+    def tangents():
+        doc = "Edge tangents."
+
+        def fget(self):
+            if(self._tangents is None):
+                self.edge  # calling .edge will create the tangents
+            return self._tangents
+        return locals()
+    _tangents = None
+    tangents = property(**tangents())
+
 
 if __name__ == '__main__':
     nc = 5
@@ -148,7 +193,7 @@ if __name__ == '__main__':
     nc = 7
     h2 = np.cumsum(np.r_[0, np.ones(nc)/(nc)])
     h3 = np.cumsum(np.r_[0, np.ones(nc)/(nc)])
-    dee3 = True
+    dee3 = False
     if dee3:
         X, Y, Z = ndgrid(h1, h2, h3, vector=False)
         M = LogicallyOrthogonalMesh([X, Y, Z])
@@ -159,4 +204,4 @@ if __name__ == '__main__':
     # print M.r(M.gridCC, format='M')
     # print M.gridN[:, 0]
     print M.nE
-    print M.area
+    print M.r(M.tangents, 'E', 'Ex', 'M')
