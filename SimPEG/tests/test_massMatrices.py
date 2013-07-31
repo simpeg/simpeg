@@ -32,8 +32,6 @@ from OrderTest import OrderTest
 class TestInnerProducts(OrderTest):
     """Integrate an function over a unit cube domain using edgeInnerProducts and faceInnerProducts."""
 
-    name = "Edge Inner Product"
-
     def getError(self):
 
         call = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1], xyz[:, 2])
@@ -80,31 +78,37 @@ class TestInnerProducts(OrderTest):
         return err
 
     def test_order1_edges(self):
+        self.name = "Edge Inner Product - Isotropic"
         self.location = 'edges'
         self.sigmaTest = 1
         self.orderTest()
 
     def test_order3_edges(self):
+        self.name = "Edge Inner Product - Anisotropic"
         self.location = 'edges'
         self.sigmaTest = 3
         self.orderTest()
 
     def test_order6_edges(self):
+        self.name = "Edge Inner Product - Full Tensor"
         self.location = 'edges'
         self.sigmaTest = 6
         self.orderTest()
 
     def test_order1_faces(self):
+        self.name = "Face Inner Product - Isotropic"
         self.location = 'faces'
         self.sigmaTest = 1
         self.orderTest()
 
     def test_order3_faces(self):
+        self.name = "Face Inner Product - Anisotropic"
         self.location = 'faces'
         self.sigmaTest = 3
         self.orderTest()
 
     def test_order6_faces(self):
+        self.name = "Face Inner Product - Full Tensor"
         self.location = 'faces'
         self.sigmaTest = 6
         self.orderTest()
