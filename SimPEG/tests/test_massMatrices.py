@@ -1,9 +1,6 @@
 import numpy as np
 import unittest
 from OrderTest import OrderTest
-import sys
-sys.path.append('../')
-from getEdgeInnerProducts import *
 
 
 class TestEdgeInnerProduct(OrderTest):
@@ -35,7 +32,7 @@ class TestEdgeInnerProduct(OrderTest):
         sigma = np.c_[call(sigma1, Gc), call(sigma2, Gc), call(sigma3, Gc),
                       call(sigma4, Gc), call(sigma5, Gc), call(sigma6, Gc)]
 
-        A = getEdgeInnerProduct(self.M, sigma)
+        A = self.M.getEdgeInnerProduct(sigma)
         numeric = E.T*A*E
         analytic = 69881./21600  # Found using matlab symbolic toolbox.
         err = np.abs(numeric - analytic)

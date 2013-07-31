@@ -4,6 +4,28 @@ from utils import sub2ind, ndgrid, mkvc
 import numpy as np
 
 
+class InnerProducts(object):
+    """
+        Class creates the inner product matrices that you need!
+    """
+    def __init__(self):
+        raise Exception('InnerProducts is a base class providing inner product matrices for meshes and cannot run on its own. Inherit to your favorite Mesh class.')
+
+    def getFaceInnerProduct(self, mu):
+        if self._meshType == 'TENSOR':
+            pass
+        elif self._meshType == 'LOM':
+            pass  # todo: we should be doing something slightly different here!
+        return getFaceInnerProduct(self, mu)
+
+    def getEdgeInnerProduct(self, sigma):
+        if self._meshType == 'TENSOR':
+            pass
+        elif self._meshType == 'LOM':
+            pass  # todo: we should be doing something slightly different here!
+        return getEdgeInnerProduct(self, sigma)
+
+
 def getFaceInnerProduct(mesh, mu):
 
     m = np.array([mesh.nCx, mesh.nCy, mesh.nCz])
@@ -39,15 +61,15 @@ def getFaceInnerProduct(mesh, mu):
     #      |                                     |/
     # node(i+1,j,k) ------ edge2(i+1,j,k) ----- node(i+1,j+1,k)
 
-    # no  | node        | e1          | e2          | e3
-    # 000 | i  ,j  ,k   | i  ,j  ,k   | i  ,j  ,k   | i  ,j  ,k
-    # 100 | i+1,j  ,k   | i+1  ,j  ,k   | i,j  ,k   | i,j  ,k
-    # 010 | i  ,j+1,k   | i  ,j,k   | i  ,j+1  ,k   | i  ,j,k
-    # 110 | i+1,j+1,k   | i+1  ,j,k   | i,j+1  ,k   | i,j,k
-    # 001 | i  ,j  ,k   | i  ,j  ,k   | i  ,j  ,k   | i  ,j  ,k+1
-    # 101 | i+1,j  ,k   | i+1  ,j  ,k   | i,j  ,k   | i,j  ,k+1
-    # 011 | i  ,j+1,k   | i  ,j,k   | i  ,j+1  ,k   | i  ,j,k+1
-    # 111 | i+1,j+1,k   | i+1  ,j,k   | i,j+1  ,k   | i,j,k+1
+    # no  | node        | f1        | f2        | f3
+    # 000 | i  ,j  ,k   | i  , j, k | i, j  , k | i, j, k
+    # 100 | i+1,j  ,k   | i+1, j, k | i, j  , k | i, j, k
+    # 010 | i  ,j+1,k   | i  , j, k | i, j+1, k | i, j, k
+    # 110 | i+1,j+1,k   | i+1, j, k | i, j+1, k | i, j, k
+    # 001 | i  ,j  ,k   | i  , j, k | i, j  , k | i, j, k+1
+    # 101 | i+1,j  ,k   | i+1, j, k | i, j  , k | i, j, k+1
+    # 011 | i  ,j+1,k   | i  , j, k | i, j+1, k | i, j, k+1
+    # 111 | i+1,j+1,k   | i+1, j, k | i, j+1, k | i, j, k+1
     P000 = Pxxx([[0, 0, 0], [0, 0, 0], [0, 0, 0]])
     P100 = Pxxx([[1, 0, 0], [0, 0, 0], [0, 0, 0]])
     P010 = Pxxx([[0, 0, 0], [0, 1, 0], [0, 0, 0]])
@@ -162,4 +184,4 @@ if __name__ == '__main__':
     h = [np.array([1, 2, 3, 4]), np.array([1, 2, 1, 4, 2]), np.array([1, 1, 4, 1])]
     mesh = TensorMesh(h)
     mu = np.ones((mesh.nC, 6))
-    A = getFaceInnerProduct(mesh, mu)
+    A = mesh.getFaceInnerProduct(mu)

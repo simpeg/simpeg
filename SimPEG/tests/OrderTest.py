@@ -64,7 +64,7 @@ class OrderTest(unittest.TestCase):
     name = "Order Test"
     expectedOrder = 2
     tolerance = 0.85
-    meshSizes = [4, 8, 16, 32, 64]
+    meshSizes = [4, 8, 16, 32]
     meshType = 'uniformTensorMesh'
     meshDimension = 3
 
