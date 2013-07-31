@@ -2,10 +2,11 @@ import numpy as np
 from BaseMesh import BaseMesh
 from TensorView import TensorView
 from DiffOperators import DiffOperators
+from InnerProducts import InnerProducts
 from utils import ndgrid, mkvc
 
 
-class TensorMesh(BaseMesh, TensorView, DiffOperators):
+class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
     """
     TensorMesh is a mesh class that deals with tensor product meshes.
 
@@ -21,6 +22,8 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators):
         mesh = TensorMesh([hx, hy, hz])
 
     """
+    _meshType = 'TENSOR'
+
     def __init__(self, h, x0=None):
         super(TensorMesh, self).__init__(np.array([x.size for x in h]), x0)
 

@@ -20,7 +20,7 @@ class OrderTest(unittest.TestCase):
 
         Note that you can provide any norm.
 
-        Test is passed when estimated rate order of convergence is  at least 90% of the
+        Test is passed when estimated rate order of convergence is  at least within the specified tolerance of the
         estimated rate supplied by the user.
 
     Minimal example for a curl operator:
@@ -63,17 +63,32 @@ class OrderTest(unittest.TestCase):
 
     name = "Order Test"
     expectedOrder = 2
+    tolerance = 0.85
     meshSizes = [4, 8, 16, 32]
+    meshType = 'uniformTensorMesh'
+    meshDimension = 3
 
     def setupMesh(self, nc):
         """
         For a given number of cells nc, generate a TensorMesh with uniform cells with edge length h=1/nc.
         """
-        h1 = np.ones(nc)/nc
-        h2 = np.ones(nc)/nc
-        h3 = np.ones(nc)/nc
-        h = [h1, h2, h3]
-        self.M = TensorMesh(h)
+        if 'TensorMesh' in self.meshType:
+            if 'uniform' in self.meshType:
+                h1 = np.ones(nc)/nc
+                h2 = np.ones(nc)/nc
+                h3 = np.ones(nc)/nc
+                h = [h1, h2, h3]
+            elif 'random' in self.meshType:
+                h1 = np.random.rand(nc)
+                h2 = np.random.rand(nc)
+                h3 = np.random.rand(nc)
+                h = [hi/np.sum(hi) for hi in [h1, h2, h3]]  # normalize
+            else:
+                raise Exception('Unexpected meshType')
+
+            self.M = TensorMesh(h[:self.meshDimension])
+            max_h = max([np.max(hi) for hi in self.M.h])
+            return max_h
 
     def getError(self):
         """For given h, generate A[h], f and A(f) and return norm of error."""
@@ -89,9 +104,9 @@ class OrderTest(unittest.TestCase):
         """
         order = []
         err_old = 0.
-        nc_old = 0.
+        max_h_old = 0.
         for ii, nc in enumerate(self.meshSizes):
-            self.setupMesh(nc)
+            max_h = self.setupMesh(nc)
             err = self.getError()
             if ii == 0:
                 print ''
@@ -101,13 +116,14 @@ class OrderTest(unittest.TestCase):
                 print '~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~'
                 print '%4i  |  %8.2e   |' % (nc, err)
             else:
-                order.append(np.log(err/err_old)/np.log(float(nc_old)/float(nc)))
+                order.append(np.log(err/err_old)/np.log(max_h/max_h_old))
                 print '%4i  |  %8.2e   |   %6.4f    |  %6.4f' % (nc, err, err_old/err, order[-1])
             err_old = err
-            nc_old = nc
+            max_h_old = max_h
         print '---------------------------------------------'
-        self.assertTrue(len(np.where(np.array(order) > 0.9*self.expectedOrder)[0]) > np.floor(0.75*len(order)))
-
+        passTest = np.mean(np.array(order)) > self.tolerance*self.expectedOrder
+        # passTest = len(np.where(np.array(order) > self.tolerance*self.expectedOrder)[0]) > np.floor(0.75*len(order))
+        self.assertTrue(passTest)
 
 if __name__ == '__main__':
     unittest.main()

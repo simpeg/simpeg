@@ -1,15 +1,36 @@
 import numpy as np
 import unittest
 from OrderTest import OrderTest
-import sys
-sys.path.append('../')
-from getEdgeInnerProducts import *
 
 
-class TestEdgeInnerProduct(OrderTest):
-    """Integrate an edge function over a unit cube domain using edgeInnerProducts."""
+# MATLAB code:
 
-    name = "Edge Inner Product"
+# syms x y z
+
+# ex = x.^2+y.*z;
+# ey = (z.^2).*x+y.*z;
+# ez = y.^2+x.*z;
+
+# e = [ex;ey;ez];
+
+# sigma1 = x.*y+1;
+# sigma2 = x.*z+2;
+# sigma3 = 3+z.*y;
+# sigma4 = 0.1.*x.*y.*z;
+# sigma5 = 0.2.*x.*y;
+# sigma6 = 0.1.*z;
+
+# S1 = [sigma1,0,0;0,sigma1,0;0,0,sigma1];
+# S2 = [sigma1,0,0;0,sigma2,0;0,0,sigma3];
+# S3 = [sigma1,sigma4,sigma5;sigma4,sigma2,sigma6;sigma5,sigma6,sigma3];
+
+# i1 = int(int(int(e.'*S1*e,x,0,1),y,0,1),z,0,1);
+# i2 = int(int(int(e.'*S2*e,x,0,1),y,0,1),z,0,1);
+# i3 = int(int(int(e.'*S3*e,x,0,1),y,0,1),z,0,1);
+
+
+class TestInnerProducts(OrderTest):
+    """Integrate an function over a unit cube domain using edgeInnerProducts and faceInnerProducts."""
 
     def getError(self):
 
@@ -26,22 +47,70 @@ class TestEdgeInnerProduct(OrderTest):
         sigma5 = lambda x, y, z: 0.2*x*y
         sigma6 = lambda x, y, z: 0.1*z
 
-        Ex = call(ex, self.M.gridEx)
-        Ey = call(ey, self.M.gridEy)
-        Ez = call(ez, self.M.gridEz)
-
-        E = np.matrix(np.r_[Ex, Ey, Ez]).T
         Gc = self.M.gridCC
-        sigma = np.c_[call(sigma1, Gc), call(sigma2, Gc), call(sigma3, Gc),
-                      call(sigma4, Gc), call(sigma5, Gc), call(sigma6, Gc)]
+        if self.sigmaTest == 1:
+            sigma = np.c_[call(sigma1, Gc)]
+            analytic = 647./360  # Found using matlab symbolic toolbox.
+        elif self.sigmaTest == 3:
+            sigma = np.c_[call(sigma1, Gc), call(sigma2, Gc), call(sigma3, Gc)]
+            analytic = 37./12  # Found using matlab symbolic toolbox.
+        elif self.sigmaTest == 6:
+            sigma = np.c_[call(sigma1, Gc), call(sigma2, Gc), call(sigma3, Gc),
+                          call(sigma4, Gc), call(sigma5, Gc), call(sigma6, Gc)]
+            analytic = 69881./21600  # Found using matlab symbolic toolbox.
 
-        A = getEdgeInnerProduct(self.M, sigma)
-        numeric = E.T*A*E
-        analytic = 69881./21600  # Found using matlab symbolic toolbox.
+        if self.location == 'edges':
+            Ex = call(ex, self.M.gridEx)
+            Ey = call(ey, self.M.gridEy)
+            Ez = call(ez, self.M.gridEz)
+            E = np.matrix(np.r_[Ex, Ey, Ez]).T
+            A = self.M.getEdgeInnerProduct(sigma)
+            numeric = E.T*A*E
+        elif self.location == 'faces':
+            Fx = call(ex, self.M.gridFx)
+            Fy = call(ey, self.M.gridFy)
+            Fz = call(ez, self.M.gridFz)
+            F = np.matrix(np.r_[Fx, Fy, Fz]).T
+            A = self.M.getFaceInnerProduct(sigma)
+            numeric = F.T*A*F
+
         err = np.abs(numeric - analytic)
         return err
 
-    def test_order(self):
+    def test_order1_edges(self):
+        self.name = "Edge Inner Product - Isotropic"
+        self.location = 'edges'
+        self.sigmaTest = 1
+        self.orderTest()
+
+    def test_order3_edges(self):
+        self.name = "Edge Inner Product - Anisotropic"
+        self.location = 'edges'
+        self.sigmaTest = 3
+        self.orderTest()
+
+    def test_order6_edges(self):
+        self.name = "Edge Inner Product - Full Tensor"
+        self.location = 'edges'
+        self.sigmaTest = 6
+        self.orderTest()
+
+    def test_order1_faces(self):
+        self.name = "Face Inner Product - Isotropic"
+        self.location = 'faces'
+        self.sigmaTest = 1
+        self.orderTest()
+
+    def test_order3_faces(self):
+        self.name = "Face Inner Product - Anisotropic"
+        self.location = 'faces'
+        self.sigmaTest = 3
+        self.orderTest()
+
+    def test_order6_faces(self):
+        self.name = "Face Inner Product - Full Tensor"
+        self.location = 'faces'
+        self.sigmaTest = 6
         self.orderTest()
 
 

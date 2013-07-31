@@ -1,5 +1,4 @@
 import numpy as np
-from numpy import *
 
 
 def mkvc(x, numDims=1):
@@ -283,11 +282,6 @@ def faceInfo(xyz, A, B, C, D, average=True):
     return N, area, edgeLengths
 
 
-def getSubArray(A, ind):
-    """subArray"""
-    return A[ind[0], :, :][:, ind[1], :][:, :, ind[2]]
-
-
 def ind2sub(shape, ind):
     """From the given shape, returns the subscrips of the given index"""
     revshp = []
@@ -295,13 +289,13 @@ def ind2sub(shape, ind):
     mult = [1]
     for i in range(0, len(revshp)-1):
         mult.extend([mult[i]*revshp[i]])
-    mult = array(mult).reshape(len(mult))
+    mult = np.array(mult).reshape(len(mult))
 
     sub = []
 
     for i in range(0, len(shape)):
-        sub.extend([math.floor(ind / mult[i])])
-        ind = ind - (math.floor(ind/mult[i]) * mult[i])
+        sub.extend([np.math.floor(ind / mult[i])])
+        ind = ind - (np.math.floor(ind/mult[i]) * mult[i])
     return sub
 
 
@@ -311,7 +305,12 @@ def sub2ind(shape, subs):
     mult = [1]
     for i in range(0, len(revshp)-1):
         mult.extend([mult[i]*revshp[i]])
-    mult = array(mult).reshape(len(mult), 1)
+    mult = np.array(mult).reshape(len(mult), 1)
 
-    idx = dot((subs), (mult))
+    idx = np.dot((subs), (mult))
     return idx
+
+
+def getSubArray(A, ind):
+    """subArray"""
+    return A[ind[0], :, :][:, ind[1], :][:, :, ind[2]]

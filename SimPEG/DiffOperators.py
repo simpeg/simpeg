@@ -50,7 +50,7 @@ class DiffOperators(object):
         Class creates the differential operators that you need!
     """
     def __init__(self):
-        raise Exception('DiffOperators is a base class providing differential operators on meshes and cannot run on its own. Inherit to your favorite  Mesh class.')
+        raise Exception('DiffOperators is a base class providing differential operators on meshes and cannot run on its own. Inherit to your favorite Mesh class.')
 
     def faceDiv():
         doc = "Construct divergence operator (face-stg to cell-centres)."
