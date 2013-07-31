@@ -9,7 +9,7 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators):  # , LOMGrid
     LogicallyOrthogonalMesh is a mesh class that deals with logically orthogonal meshes.
 
     """
-    def __init__(self, nodes, x0=None):
+    def __init__(self, nodes):
         assert type(nodes) == list, "'nodes' variable must be a list of np.ndarray"
 
         for i, nodes_i in enumerate(nodes):
@@ -19,9 +19,7 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators):  # , LOMGrid
         assert len(nodes[0].shape) == len(nodes), "Dimension mismatch"
         assert len(nodes[0].shape) > 1, "Not worth using LOM for a 1D mesh."
 
-        super(LogicallyOrthogonalMesh, self).__init__(np.array(nodes[0].shape)-1, x0)
-
-        assert len(nodes[0].shape) == len(self.x0), "Dimension mismatch. x0 != len(h)"
+        super(LogicallyOrthogonalMesh, self).__init__(np.array(nodes[0].shape)-1, None)
 
         # Save nodes to private variable _gridN as vectors
         self._gridN = np.ones((nodes[0].size, self.dim))
