@@ -18,6 +18,9 @@ def mkvc(x, numDims=1):
             > (3, 1, 1)
 
     """
+    if type(x) == np.matrix:
+        x = np.array(x)
+
     assert type(x) == np.ndarray, "Vector must be a numpy array"
 
     if numDims == 1:
@@ -259,7 +262,7 @@ def faceInfo(xyz, A, B, C, D, average=True, normalizeNormals=True):
     nC = cross(CD, BC)
     nD = cross(DA, CD)
 
-    length = lambda x: (x[:, 0]**2 + x[:, 1]**2 + x[:, 2]**2)**0.5
+    length = lambda x: np.sqrt(x[:, 0]**2 + x[:, 1]**2 + x[:, 2]**2)
     normalize = lambda x: x/np.kron(np.ones((1, x.shape[1])), mkvc(length(x), 2))
     if average:
         # average the normals at each vertex.
@@ -278,6 +281,8 @@ def faceInfo(xyz, A, B, C, D, average=True, normalizeNormals=True):
     # Each triangle is one half of the length of the cross product
     #
     # So also could be viewed as the average parallelogram.
+    print nA, nB, nC, nD
+    print length(nA), length(nB), length(nC), length(nD)
     area = (length(nA)+length(nB)+length(nC)+length(nD))/4
 
     return N, area
