@@ -98,20 +98,22 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators):  # , LOMGrid
                     self._vol = area
                 elif self.dim == 3:
                     # Each polyhedron can be decomposed into 5 tetrahedrons
-                    # T1 = [A B D E]; % cutted edge
-                    # T2 = [B E F G]; % cutted edge
-                    # T3 = [B D E G]; % mid
-                    # T4 = [B C D G]; % cutted edge
-                    # T5 = [D E G H]; % cutted edge
+                    # However, this presents a choice so we may as well divide in two ways and average.
                     A, B, C, D, E, F, G, H = indexCube('ABCDEFGH', self.n+1)
 
-                    v1 = volTetra(self.gridN, A, B, D, E)  # cutted edge
-                    v2 = volTetra(self.gridN, B, E, F, G)  # cutted edge
-                    v3 = volTetra(self.gridN, B, D, E, G)  # mid
-                    v4 = volTetra(self.gridN, B, C, D, G)  # cutted edge
-                    v5 = volTetra(self.gridN, D, E, G, H)  # cutted edge
+                    vol1 = (volTetra(self.gridN, A, B, D, E) +  # cutted edge top
+                            volTetra(self.gridN, B, E, F, G) +  # cutted edge top
+                            volTetra(self.gridN, B, D, E, G) +  # middle
+                            volTetra(self.gridN, B, C, D, G) +  # cutted edge bottom
+                            volTetra(self.gridN, D, E, G, H))   # cutted edge bottom
 
-                    self._vol = v1 + v2 + v3 + v4 + v5
+                    vol2 = (volTetra(self.gridN, A, F, B, C) +  # cutted edge top
+                            volTetra(self.gridN, A, E, F, H) +  # cutted edge top
+                            volTetra(self.gridN, A, H, F, C) +  # middle
+                            volTetra(self.gridN, C, H, D, A) +  # cutted edge bottom
+                            volTetra(self.gridN, C, G, H, F))    # cutted edge bottom
+
+                    self._vol = (vol1 + vol2)/2
             return self._vol
         return locals()
     _vol = None
@@ -169,7 +171,7 @@ NyX, NyY, NyZ = M.r(M.normals, 'F', 'Fy', 'M')
 """
 
         def fget(self):
-            if(self._tangents is None):
+            if(self._normals is None):
                 self.area  # calling .area will create the face normals
             if self.dim == 2:
                 return normalize2D(np.r_[self._normals[0], self._normals[1]])
