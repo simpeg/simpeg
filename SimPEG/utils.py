@@ -204,7 +204,7 @@ def indexCube(nodes, gridSize, n=None):
     return out
 
 
-def faceInfo(xyz, A, B, C, D, average=True):
+def faceInfo(xyz, A, B, C, D, average=True, normalizeNormals=True):
     """
     function [N] = faceInfo(y,A,B,C,D)
 
@@ -232,7 +232,8 @@ def faceInfo(xyz, A, B, C, D, average=True):
     Last modified on: 2013/07/26
 
     """
-
+    assert type(average) is bool, 'average must be a boolean'
+    assert type(normalizeNormals) is bool, 'normalizeNormals must be a boolean'
     # compute normal that is pointing away from you.
     #
     #    A -------A-B------- B
@@ -266,7 +267,10 @@ def faceInfo(xyz, A, B, C, D, average=True):
         # normalize
         N = normalize(N)
     else:
-        N = [normalize(nA), normalize(nB), normalize(nC), normalize(nD)]
+        if normalizeNormals:
+            N = [normalize(nA), normalize(nB), normalize(nC), normalize(nD)]
+        else:
+            N = [nA, nB, nC, nD]
 
     # Area calculation
     #
@@ -276,10 +280,7 @@ def faceInfo(xyz, A, B, C, D, average=True):
     # So also could be viewed as the average parallelogram.
     area = (length(nA)+length(nB)+length(nC)+length(nD))/4
 
-    # simple edge length calculations
-    edgeLengths = [length(AB), length(BC), length(CD), length(DA)]
-
-    return N, area, edgeLengths
+    return N, area
 
 
 def ind2sub(shape, ind):

@@ -94,7 +94,7 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators):  # , LOMGrid
             if(self._vol is None):
                 if self.dim == 2:
                     A, B, C, D = indexCube('ABCD', self.n+1)
-                    normal, area, length = faceInfo(np.c_[self.gridN, np.zeros((self.nN, 1))], A, B, C, D)
+                    normal, area = faceInfo(np.c_[self.gridN, np.zeros((self.nN, 1))], A, B, C, D)
                     self._vol = area
                 elif self.dim == 3:
                     # Each polyhedron can be decomposed into 5 tetrahedrons
@@ -121,31 +121,66 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators):  # , LOMGrid
         doc = "Face areas."
 
         def fget(self):
-            if(self._area is None):
+            if(self._area is None or self._normals is None):
                 # Compute areas of cell faces
                 if(self.dim == 2):
                     xy = self.gridN
                     A, B = indexCube('AB', self.n+1, np.array([self.nNx, self.nCy]))
-                    area1 = length2D(xy[B, :] - xy[A, :])
+                    edge1 = xy[B, :] - xy[A, :]
+                    normal1 = np.c_[edge1[:, 1], -edge1[:, 0]]
+                    area1 = length2D(edge1)
                     A, D = indexCube('AD', self.n+1, np.array([self.nCx, self.nNy]))
-                    area2 = length2D(xy[D, :] - xy[A, :])
+                    # Note that we are doing A-D to make sure the normal points the right way.
+                    # Think about it. Look at the picture. Normal points towards C iff you do this.
+                    edge2 = xy[A, :] - xy[D, :]
+                    normal2 = np.c_[edge2[:, 1], -edge2[:, 0]]
+                    area2 = length2D(edge2)
                     self._area = np.r_[mkvc(area1), mkvc(area2)]
+                    self._normals = [normalize2D(normal1), normalize2D(normal2)]
                 elif(self.dim == 3):
 
                     A, E, F, B = indexCube('AEFB', self.n+1, np.array([self.nNx, self.nCy, self.nCz]))
-                    normal, area1, length = faceInfo(self.gridN, A, E, F, B)
+                    normal1, area1 = faceInfo(self.gridN, A, E, F, B, average=False, normalizeNormals=False)
 
                     A, D, H, E = indexCube('ADHE', self.n+1, np.array([self.nCx, self.nNy, self.nCz]))
-                    normal, area2, length = faceInfo(self.gridN, A, D, H, E)
+                    normal2, area2 = faceInfo(self.gridN, A, D, H, E, average=False, normalizeNormals=False)
 
                     A, B, C, D = indexCube('ABCD', self.n+1, np.array([self.nCx, self.nCy, self.nNz]))
-                    normal, area3, length = faceInfo(self.gridN, A, B, C, D)
+                    normal3, area3 = faceInfo(self.gridN, A, B, C, D, average=False, normalizeNormals=False)
 
                     self._area = np.r_[mkvc(area1), mkvc(area2), mkvc(area3)]
+                    self._normals = [normal1, normal2, normal3]
             return self._area
         return locals()
     _area = None
     area = property(**area())
+
+    def normals():
+        doc = """
+Face normals: calling this will average
+the computed normals so that there is one
+per face. This is especially relevant in
+3D, as there are up to 4 different normals
+for each face that will be different.
+
+To reshape the normals into a matrix and get the y component:
+
+NyX, NyY, NyZ = M.r(M.normals, 'F', 'Fy', 'M')
+"""
+
+        def fget(self):
+            if(self._tangents is None):
+                self.area  # calling .area will create the face normals
+            if self.dim == 2:
+                return normalize2D(np.r_[self._normals[0], self._normals[1]])
+            elif self.dim == 3:
+                normal1 = (self._normals[0][0] + self._normals[0][1] + self._normals[0][2] + self._normals[0][3])/4
+                normal2 = (self._normals[1][0] + self._normals[1][1] + self._normals[1][2] + self._normals[1][3])/4
+                normal3 = (self._normals[2][0] + self._normals[2][1] + self._normals[2][2] + self._normals[2][3])/4
+                return normalize3D(np.r_[normal1, normal2, normal3])
+        return locals()
+    _normals = None
+    normals = property(**normals())
 
     def edge():
         doc = "Edge legnths."
@@ -193,7 +228,7 @@ if __name__ == '__main__':
     nc = 7
     h2 = np.cumsum(np.r_[0, np.ones(nc)/(nc)])
     h3 = np.cumsum(np.r_[0, np.ones(nc)/(nc)])
-    dee3 = False
+    dee3 = True
     if dee3:
         X, Y, Z = ndgrid(h1, h2, h3, vector=False)
         M = LogicallyOrthogonalMesh([X, Y, Z])
@@ -201,7 +236,4 @@ if __name__ == '__main__':
         X, Y = ndgrid(h1, h2, vector=False)
         M = LogicallyOrthogonalMesh([X, Y])
 
-    # print M.r(M.gridCC, format='M')
-    # print M.gridN[:, 0]
-    print M.nE
-    print M.r(M.tangents, 'E', 'Ex', 'M')
+    print M.r(M.normals, 'F', 'Fx', 'V')
