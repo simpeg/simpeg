@@ -169,13 +169,15 @@ def getEdgeInnerProduct(mesh, sigma):
     # Cell volume
     v = np.sqrt(mesh.vol)
     v3 = np.r_[v, v, v]
-    V = sdiag(v3)*Sigma*sdiag(v3)  # to keep symmetry
+    #V = sdiag(v3)*Sigma*sdiag(v3)  # to keep symmetry
 
-    A = P000.T*V*P000 + P001.T*V*P001 + P010.T*V*P010 + P011.T*V*P011 + P100.T*V*P100 + P101.T*V*P101 + P110.T*V*P110 + P111.T*V*P111
+    #A = P000.T*V*P000 + P001.T*V*P001 + P010.T*V*P010 + P011.T*V*P011 + P100.T*V*P100 + P101.T*V*P101 + P110.T*V*P110 + P111.T*V*P111
 
-    A = 0.125*A
-
-    return A
+    #A = 0.125*A
+    P = sp.vstack((sdiag(v3)*P000,sdiag(v3)*P001,sdiag(v3)*P010,sdiag(v3)*P011,
+                sdiag(v3)*P100,sdiag(v3)*P101,sdiag(v3)*P110,sdiag(v3)*P111))
+    A = 0.125* (P.T*Sigma*P)
+    return A, P
 
 
 
