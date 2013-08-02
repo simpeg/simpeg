@@ -33,6 +33,57 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators):
         # Ensure h contains 1D vectors
         self._h = [mkvc(x) for x in h]
 
+    def __str__(self):
+        outStr = '  ---- {0:d}-D TensorMesh ----  '.format(self.dim)
+        def printH(hx, outStr=''):
+            i = -1
+            while True:
+                i = i + 1
+                if i > hx.size:
+                    break
+                elif i == hx.size:
+                    break
+                h = hx[i]
+                n = 1
+                for j in range(i+1, hx.size):
+                    if hx[j] == h:
+                        n = n + 1
+                        i = i + 1
+                    else:
+                        break
+
+                if n == 1:
+                    outStr = outStr + ' {0:.2f},'.format(h)
+                else:
+                    outStr = outStr + ' {0:d}*{1:.2f},'.format(n,h)
+
+            return outStr[:-1]
+        
+        if self.dim == 1:
+            outStr = outStr + '\n   x0: {0:.2f}'.format(self.x0[0])
+            outStr = outStr + '\n  nCx: {0:d}'.format(self.nCx)
+            outStr = outStr + printH(self.hx, outStr='\n   hx:')
+            pass
+        elif self.dim == 2:
+            outStr = outStr + '\n   x0: {0:.2f}'.format(self.x0[0])
+            outStr = outStr + '\n   y0: {0:.2f}'.format(self.x0[1])
+            outStr = outStr + '\n  nCx: {0:d}'.format(self.nCx)
+            outStr = outStr + '\n  nCy: {0:d}'.format(self.nCy)
+            outStr = outStr + printH(self.hx, outStr='\n   hx:')
+            outStr = outStr + printH(self.hy, outStr='\n   hy:')
+        elif self.dim == 3:
+            outStr = outStr + '\n   x0: {0:.2f}'.format(self.x0[0])
+            outStr = outStr + '\n   y0: {0:.2f}'.format(self.x0[1])
+            outStr = outStr + '\n   z0: {0:.2f}'.format(self.x0[2])
+            outStr = outStr + '\n  nCx: {0:d}'.format(self.nCx)
+            outStr = outStr + '\n  nCy: {0:d}'.format(self.nCy)
+            outStr = outStr + '\n  nCz: {0:d}'.format(self.nCz)
+            outStr = outStr + printH(self.hx, outStr='\n   hx:')
+            outStr = outStr + printH(self.hy, outStr='\n   hy:')
+            outStr = outStr + printH(self.hz, outStr='\n   hz:')
+
+        return outStr
+
     def h():
         doc = "h is a list containing the cell widths of the tensor mesh in each dimension."
         fget = lambda self: self._h
