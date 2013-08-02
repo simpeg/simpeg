@@ -54,12 +54,15 @@ if __name__ == '__main__':
 
     xyz = mesh.gridEx
     x   = xyz[:,0]; y = xyz[:,1]; z = xyz[:,2]
+    x   = list(set(x)); y = list(set(y)); z = list(set(z))
     Px  = interpmat(x,y,z,xs,ys,zs)
     xyz = mesh.gridEy
     x   = xyz[:,0]; y = xyz[:,1]; z = xyz[:,2]
+    x   = list(set(x)); y = list(set(y)); z = list(set(z))
     Py  = interpmat(x,y,z,xs,ys,zs)
     xyz = mesh.gridEz
     x   = xyz[:,0]; y = xyz[:,1]; z = xyz[:,2]
+    x   = list(set(x)); y = list(set(y)); z = list(set(z))
     Pz  = interpmat(x,y,z,xs,ys,zs)
     P   = sp.hstack((Px,Py,Pz))
 
@@ -67,7 +70,7 @@ if __name__ == '__main__':
     Q       = np.matrix(np.random.randn(ne,5))
     omega   = [1,2,3]
     forward = {'omega':omega, 'rhs':Q,'projection':P}
-    dobs    = np.ones(np.size(xs),np.shape(Q,2),np.size(omega))
+    dobs    = np.ones([np.size(xs),5,np.size(omega)])
     param   = {'dobs':dobs}
 
 
