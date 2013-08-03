@@ -1,6 +1,6 @@
 from scipy import sparse as sp
-from sputils import sdiag
-from utils import sub2ind, ndgrid, mkvc
+from sputils import sdiag, inv3X3BlockDiagonal
+from utils import sub2ind, ndgrid, mkvc, getSubArray
 import numpy as np
 
 
@@ -123,6 +123,11 @@ def getEdgeInnerProduct(mesh, sigma=None, returnP=False):
     iijjkk = ndgrid(i, j, k)
     ii, jj, kk = iijjkk[:, 0], iijjkk[:, 1], iijjkk[:, 2]
 
+    if mesh._meshType == 'LOM':
+        eT1 = mesh.r(mesh.tangents, 'E', 'Ex', 'M')
+        eT2 = mesh.r(mesh.tangents, 'E', 'Ey', 'M')
+        eT3 = mesh.r(mesh.tangents, 'E', 'Ez', 'M')
+
     def Pxxx(pos):
         ind1 = sub2ind(mesh.nEx, np.c_[ii + pos[0][0], jj + pos[0][1], kk + pos[0][2]])
         ind2 = sub2ind(mesh.nEy, np.c_[ii + pos[1][0], jj + pos[1][1], kk + pos[1][2]]) + mesh.nE[0]
@@ -130,7 +135,15 @@ def getEdgeInnerProduct(mesh, sigma=None, returnP=False):
 
         IND = np.r_[ind1, ind2, ind3].flatten()
 
-        return sp.coo_matrix((np.ones(3*nc), (range(3*nc), IND)), shape=(3*nc, np.sum(mesh.nE))).tocsr()
+        PXXX = sp.coo_matrix((np.ones(3*nc), (range(3*nc), IND)), shape=(3*nc, np.sum(mesh.nE))).tocsr()
+
+        if mesh._meshType == 'LOM':
+            I3x3 = inv3X3BlockDiagonal(getSubArray(eT1[0], [i + pos[0][0], j + pos[0][1], k + pos[0][2]]), getSubArray(eT1[1], [i + pos[0][0], j + pos[0][1], k + pos[0][2]]), getSubArray(eT1[2], [i + pos[0][0], j + pos[0][1], k + pos[0][2]]),
+                                       getSubArray(eT2[0], [i + pos[1][0], j + pos[1][1], k + pos[1][2]]), getSubArray(eT2[1], [i + pos[1][0], j + pos[1][1], k + pos[1][2]]), getSubArray(eT2[2], [i + pos[1][0], j + pos[1][1], k + pos[1][2]]),
+                                       getSubArray(eT3[0], [i + pos[2][0], j + pos[2][1], k + pos[2][2]]), getSubArray(eT3[1], [i + pos[2][0], j + pos[2][1], k + pos[2][2]]), getSubArray(eT3[2], [i + pos[2][0], j + pos[2][1], k + pos[2][2]]))
+            PXXX = I3x3 * PXXX
+
+        return PXXX
 
     # no  | node        | e1          | e2          | e3
     # 000 | i  ,j  ,k   | i  ,j  ,k   | i  ,j  ,k   | i  ,j  ,k

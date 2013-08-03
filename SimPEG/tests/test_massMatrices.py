@@ -32,6 +32,8 @@ from OrderTest import OrderTest
 class TestInnerProducts(OrderTest):
     """Integrate an function over a unit cube domain using edgeInnerProducts and faceInnerProducts."""
 
+    meshType = 'uniformLOM'
+
     def getError(self):
 
         call = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1], xyz[:, 2])

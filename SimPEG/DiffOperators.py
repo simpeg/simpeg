@@ -168,9 +168,9 @@ class DiffOperators(object):
         def fget(self):
             if(self._edgeCurl is None):
                 # The number of cell centers in each direction
-                n1 = np.size(self.hx)
-                n2 = np.size(self.hy)
-                n3 = np.size(self.hz)
+                n1 = self.nCx
+                n2 = self.nCy
+                n3 = self.nCy
 
                 # Compute lengths of cell edges
                 L = self.edge

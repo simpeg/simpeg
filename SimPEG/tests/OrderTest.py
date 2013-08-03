@@ -92,8 +92,8 @@ class OrderTest(unittest.TestCase):
 
         elif 'LOM' in self.meshType:
             if 'uniform' in self.meshType:
-                xx = np.ones(nc)/nc
-                X, Y, Z = utils.ndgrid(xx, xx, xx, vector=False)
+                xx = np.cumsum(np.r_[0, np.ones(nc)/nc])
+                X, Y, Z = utils.ndgrid([xx, xx, xx], vector=False)
             else:
                 raise Exception('Unexpected meshType')
             self.M = LogicallyOrthogonalMesh([X, Y, Z])
