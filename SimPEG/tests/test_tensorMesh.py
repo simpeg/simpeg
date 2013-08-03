@@ -57,6 +57,7 @@ class BasicTensorMeshTests(unittest.TestCase):
         t1 = np.all(self.mesh2.edge == test_edge)
         self.assertTrue(t1)
 
+
 class TestCurl(OrderTest):
     name = "Curl"
 

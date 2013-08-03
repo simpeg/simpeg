@@ -11,22 +11,45 @@ class InnerProducts(object):
     def __init__(self):
         raise Exception('InnerProducts is a base class providing inner product matrices for meshes and cannot run on its own. Inherit to your favorite Mesh class.')
 
-    def getFaceInnerProduct(self, mu):
+    def getFaceInnerProduct(self, mu=None, returnP=False):
         if self._meshType == 'TENSOR':
             pass
         elif self._meshType == 'LOM':
             pass  # todo: we should be doing something slightly different here!
-        return getFaceInnerProduct(self, mu)
+        return getFaceInnerProduct(self, mu, returnP)
 
-    def getEdgeInnerProduct(self, sigma):
+    def getEdgeInnerProduct(self, sigma=None, returnP=False):
         if self._meshType == 'TENSOR':
             pass
         elif self._meshType == 'LOM':
             pass  # todo: we should be doing something slightly different here!
-        return getEdgeInnerProduct(self, sigma)
+        return getEdgeInnerProduct(self, sigma, returnP)
 
 
-def getFaceInnerProduct(mesh, mu):
+# ------------------------ Geometries ------------------------------
+#
+#
+#         node(i,j,k+1) ------ edge2(i,j,k+1) ----- node(i,j+1,k+1)
+#              /                                    /
+#             /                                    / |
+#         edge3(i,j,k)     face1(i,j,k)        edge3(i,j+1,k)
+#           /                                    /   |
+#          /                                    /    |
+#    node(i,j,k) ------ edge2(i,j,k) ----- node(i,j+1,k)
+#         |                                     |    |
+#         |                                     |   node(i+1,j+1,k+1)
+#         |                                     |    /
+#    edge1(i,j,k)      face3(i,j,k)        edge1(i,j+1,k)
+#         |                                     |  /
+#         |                                     | /
+#         |                                     |/
+#    node(i+1,j,k) ------ edge2(i+1,j,k) ----- node(i+1,j+1,k)
+
+
+def getFaceInnerProduct(mesh, mu=None, returnP=False):
+
+    if mu is None:  # default is ones
+        mu = np.ones((mesh.nC, 1))
 
     m = np.array([mesh.nCx, mesh.nCy, mesh.nCz])
     nc = mesh.nC
@@ -45,22 +68,6 @@ def getFaceInnerProduct(mesh, mu):
 
         return sp.coo_matrix((np.ones(3*nc), (range(3*nc), IND)), shape=(3*nc, np.sum(mesh.nF))).tocsr()
 
-    #      node(i,j,k+1) ------ edge2(i,j,k+1) ----- node(i,j+1,k+1)
-    #           /                                    /
-    #          /                                    / |
-    #      edge3(i,j,k)     face1(i,j,k)        edge3(i,j+1,k)
-    #        /                                    /   |
-    #       /                                    /    |
-    # node(i,j,k) ------ edge2(i,j,k) ----- node(i,j+1,k)
-    #      |                                     |    |
-    #      |                                     |   node(i+1,j+1,k+1)
-    #      |                                     |    /
-    # edge1(i,j,k)      face3(i,j,k)        edge1(i,j+1,k)
-    #      |                                     |  /
-    #      |                                     | /
-    #      |                                     |/
-    # node(i+1,j,k) ------ edge2(i+1,j,k) ----- node(i+1,j+1,k)
-
     # no  | node        | f1        | f2        | f3
     # 000 | i  ,j  ,k   | i  , j, k | i, j  , k | i, j, k
     # 100 | i+1,j  ,k   | i+1, j, k | i, j  , k | i, j, k
@@ -70,14 +77,19 @@ def getFaceInnerProduct(mesh, mu):
     # 101 | i+1,j  ,k   | i+1, j, k | i, j  , k | i, j, k+1
     # 011 | i  ,j+1,k   | i  , j, k | i, j+1, k | i, j, k+1
     # 111 | i+1,j+1,k   | i+1, j, k | i, j+1, k | i, j, k+1
-    P000 = Pxxx([[0, 0, 0], [0, 0, 0], [0, 0, 0]])
-    P100 = Pxxx([[1, 0, 0], [0, 0, 0], [0, 0, 0]])
-    P010 = Pxxx([[0, 0, 0], [0, 1, 0], [0, 0, 0]])
-    P110 = Pxxx([[1, 0, 0], [0, 1, 0], [0, 0, 0]])
-    P001 = Pxxx([[0, 0, 0], [0, 0, 0], [0, 0, 1]])
-    P101 = Pxxx([[1, 0, 0], [0, 0, 0], [0, 0, 1]])
-    P011 = Pxxx([[0, 0, 0], [0, 1, 0], [0, 0, 1]])
-    P111 = Pxxx([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+
+    # Square root of cell volume multiplied by 1/8
+    v = np.sqrt(0.125*mesh.vol)
+    V3 = sdiag(np.r_[v, v, v])  # We will multiply on each side to keep symmetry
+
+    P000 = V3*Pxxx([[0, 0, 0], [0, 0, 0], [0, 0, 0]])
+    P100 = V3*Pxxx([[1, 0, 0], [0, 0, 0], [0, 0, 0]])
+    P010 = V3*Pxxx([[0, 0, 0], [0, 1, 0], [0, 0, 0]])
+    P110 = V3*Pxxx([[1, 0, 0], [0, 1, 0], [0, 0, 0]])
+    P001 = V3*Pxxx([[0, 0, 0], [0, 0, 0], [0, 0, 1]])
+    P101 = V3*Pxxx([[1, 0, 0], [0, 0, 0], [0, 0, 1]])
+    P011 = V3*Pxxx([[0, 0, 0], [0, 1, 0], [0, 0, 1]])
+    P111 = V3*Pxxx([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
 
     if mu.size == mesh.nC:  # Isotropic!
         mu = mkvc(mu)  # ensure it is a vector.
@@ -90,30 +102,18 @@ def getFaceInnerProduct(mesh, mu):
         row3 = sp.hstack((sdiag(mu[:, 4]), sdiag(mu[:, 5]), sdiag(mu[:, 2])))
         Mu = sp.vstack((row1, row2, row3))
 
-    # Cell volume
-    v = np.sqrt(mesh.vol)
-    v3 = (0.125)**(0.5)*np.r_[v, v, v]
-    #V = sdiag(v3)*mu*sdiag(v3)  # to keep symmetry
-    #A = P000.T*V*P000 + P001.T*V*P001 + P010.T*V*P010 + P011.T*V*P011 + P100.T*V*P100 + P101.T*V*P101 + P110.T*V*P110 + P111.T*V*P111
-    #A = 0.125*A
-    P000 = sdiag(v3)*P000; P001 = sdiag(v3)*P001; P010 = sdiag(v3)*P010; P011 = sdiag(v3)*P011
-    P100 = sdiag(v3)*P100; P101 = sdiag(v3)*P101; P110 = sdiag(v3)*P110; P111 = sdiag(v3)*P111
-
     A = P000.T*Mu*P000 + P001.T*Mu*P001 + P010.T*Mu*P010 + P011.T*Mu*P011 + P100.T*Mu*P100 + P101.T*Mu*P101 + P110.T*Mu*P110 + P111.T*Mu*P111
-
-    #P = sp.vstack((sdiag(v3)*P000,sdiag(v3)*P001,sdiag(v3)*P010,sdiag(v3)*P011,
-    #            sdiag(v3)*P100,sdiag(v3)*P101,sdiag(v3)*P110,sdiag(v3)*P111))
-
-    #A = 0.125*(P.T * sp.kron(sp.eye(8),Sigma) * P)
-    P = [P000,P001,P010,P011,P100,P101,P110,P111]
-    return A, P
+    P = [P000, P001, P010, P011, P100, P101, P110, P111]
+    if returnP:
+        return A, P
+    else:
+        return A
 
 
+def getEdgeInnerProduct(mesh, sigma=None, returnP=False):
 
-    return A
-
-
-def getEdgeInnerProduct(mesh, sigma):
+    if sigma is None:  # default is ones
+        sigma = np.ones((mesh.nC, 1))
 
     m = np.array([mesh.nCx, mesh.nCy, mesh.nCz])
     nc = mesh.nC
@@ -132,22 +132,6 @@ def getEdgeInnerProduct(mesh, sigma):
 
         return sp.coo_matrix((np.ones(3*nc), (range(3*nc), IND)), shape=(3*nc, np.sum(mesh.nE))).tocsr()
 
-    #      node(i,j,k+1) ------ edge2(i,j,k+1) ----- node(i,j+1,k+1)
-    #           /                                    /
-    #          /                                    / |
-    #      edge3(i,j,k)     face1(i,j,k)        edge3(i,j+1,k)
-    #        /                                    /   |
-    #       /                                    /    |
-    # node(i,j,k) ------ edge2(i,j,k) ----- node(i,j+1,k)
-    #      |                                     |    |
-    #      |                                     |   node(i+1,j+1,k+1)
-    #      |                                     |    /
-    # edge1(i,j,k)      face3(i,j,k)        edge1(i,j+1,k)
-    #      |                                     |  /
-    #      |                                     | /
-    #      |                                     |/
-    # node(i+1,j,k) ------ edge2(i+1,j,k) ----- node(i+1,j+1,k)
-
     # no  | node        | e1          | e2          | e3
     # 000 | i  ,j  ,k   | i  ,j  ,k   | i  ,j  ,k   | i  ,j  ,k
     # 100 | i+1,j  ,k   | i  ,j  ,k   | i+1,j  ,k   | i+1,j  ,k
@@ -157,14 +141,19 @@ def getEdgeInnerProduct(mesh, sigma):
     # 101 | i+1,j  ,k+1 | i  ,j  ,k+1 | i+1,j  ,k+1 | i+1,j  ,k
     # 011 | i  ,j+1,k+1 | i  ,j+1,k+1 | i  ,j  ,k+1 | i  ,j+1,k
     # 111 | i+1,j+1,k+1 | i  ,j+1,k+1 | i+1,j  ,k+1 | i+1,j+1,k
-    P000 = Pxxx([[0, 0, 0], [0, 0, 0], [0, 0, 0]])
-    P100 = Pxxx([[0, 0, 0], [1, 0, 0], [1, 0, 0]])
-    P010 = Pxxx([[0, 1, 0], [0, 0, 0], [0, 1, 0]])
-    P110 = Pxxx([[0, 1, 0], [1, 0, 0], [1, 1, 0]])
-    P001 = Pxxx([[0, 0, 1], [0, 0, 1], [0, 0, 0]])
-    P101 = Pxxx([[0, 0, 1], [1, 0, 1], [1, 0, 0]])
-    P011 = Pxxx([[0, 1, 1], [0, 0, 1], [0, 1, 0]])
-    P111 = Pxxx([[0, 1, 1], [1, 0, 1], [1, 1, 0]])
+
+    # Square root of cell volume multiplied by 1/8
+    v = np.sqrt(0.125*mesh.vol)
+    V3 = sdiag(np.r_[v, v, v])  # We will multiply on each side to keep symmetry
+
+    P000 = V3*Pxxx([[0, 0, 0], [0, 0, 0], [0, 0, 0]])
+    P100 = V3*Pxxx([[0, 0, 0], [1, 0, 0], [1, 0, 0]])
+    P010 = V3*Pxxx([[0, 1, 0], [0, 0, 0], [0, 1, 0]])
+    P110 = V3*Pxxx([[0, 1, 0], [1, 0, 0], [1, 1, 0]])
+    P001 = V3*Pxxx([[0, 0, 1], [0, 0, 1], [0, 0, 0]])
+    P101 = V3*Pxxx([[0, 0, 1], [1, 0, 1], [1, 0, 0]])
+    P011 = V3*Pxxx([[0, 1, 1], [0, 0, 1], [0, 1, 0]])
+    P111 = V3*Pxxx([[0, 1, 1], [1, 0, 1], [1, 1, 0]])
 
     if sigma.size == mesh.nC:  # Isotropic!
         sigma = mkvc(sigma)  # ensure it is a vector.
@@ -177,25 +166,12 @@ def getEdgeInnerProduct(mesh, sigma):
         row3 = sp.hstack((sdiag(sigma[:, 4]), sdiag(sigma[:, 5]), sdiag(sigma[:, 2])))
         Sigma = sp.vstack((row1, row2, row3))
 
-    # Cell volume
-    v = np.sqrt(mesh.vol)
-    v3 = (0.125)**(0.5)*np.r_[v, v, v]
-    
-    P000 = sdiag(v3)*P000; P001 = sdiag(v3)*P001; P010 = sdiag(v3)*P010; P011 = sdiag(v3)*P011
-    P100 = sdiag(v3)*P100; P101 = sdiag(v3)*P101; P110 = sdiag(v3)*P110; P111 = sdiag(v3)*P111
-
-
-    #V = sdiag(v3)*Sigma*sdiag(v3)  # to keep symmetry
-
     A = P000.T*Sigma*P000 + P001.T*Sigma*P001 + P010.T*Sigma*P010 + P011.T*Sigma*P011 + P100.T*Sigma*P100 + P101.T*Sigma*P101 + P110.T*Sigma*P110 + P111.T*Sigma*P111
-
-    #P = sp.vstack((sdiag(v3)*P000,sdiag(v3)*P001,sdiag(v3)*P010,sdiag(v3)*P011,
-    #            sdiag(v3)*P100,sdiag(v3)*P101,sdiag(v3)*P110,sdiag(v3)*P111))
-
-    #A = 0.125*(P.T * sp.kron(sp.eye(8),Sigma) * P)
-    P = [P000,P001,P010,P011,P100,P101,P110,P111]
-    return A, P
-
+    P = [P000, P001, P010, P011, P100, P101, P110, P111]
+    if returnP:
+        return A, P
+    else:
+        return A
 
 
 if __name__ == '__main__':
@@ -203,6 +179,5 @@ if __name__ == '__main__':
     h = [np.array([1, 2, 3, 4]), np.array([1, 2, 1, 4, 2]), np.array([1, 1, 4, 1])]
     mesh = TensorMesh(h)
     mu = np.ones((mesh.nC, 6))
-    A = getFaceInnerProduct(mesh,mu)
-    B, P = getEdgeInnerProduct(mesh,mu)
-
+    A, P = mesh.getFaceInnerProduct(mu, returnP=True)
+    B, P = mesh.getEdgeInnerProduct(mu, returnP=True)
