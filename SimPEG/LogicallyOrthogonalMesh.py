@@ -1,6 +1,7 @@
 import numpy as np
 from BaseMesh import BaseMesh
 from DiffOperators import DiffOperators
+from InnerProducts import InnerProducts
 from utils import mkvc, ndgrid, volTetra, indexCube, faceInfo
 
 # Some helper functions.
@@ -10,7 +11,7 @@ normalize2D = lambda x: x/np.kron(np.ones((1, 2)), mkvc(length2D(x), 2))
 normalize3D = lambda x: x/np.kron(np.ones((1, 3)), mkvc(length3D(x), 2))
 
 
-class LogicallyOrthogonalMesh(BaseMesh, DiffOperators):  # , LOMGrid
+class LogicallyOrthogonalMesh(BaseMesh, DiffOperators, InnerProducts):
     """
     LogicallyOrthogonalMesh is a mesh class that deals with logically orthogonal meshes.
 
@@ -56,6 +57,100 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators):  # , LOMGrid
         return locals()
     _gridN = None  # Store grid by default
     gridN = property(**gridN())
+
+    def gridFx():
+        doc = "Face staggered grid in the x direction."
+
+        def fget(self):
+            if self._gridFx is None:
+                N = self.r(self.gridN, 'N', 'N', 'M')
+                if self.dim == 2:
+                    XY = [mkvc(0.5 * (n[:, :-1] + n[:, 1:])) for n in N]
+                    self._gridFx = np.c_[XY[0], XY[1]]
+                elif self.dim == 3:
+                    XYZ = [mkvc(0.25 * (n[:, :-1, :-1] + n[:, :-1, 1:] + n[:, 1:, :-1] + n[:, 1:, 1:])) for n in N]
+                    self._gridFx = np.c_[XYZ[0], XYZ[1], XYZ[2]]
+            return self._gridFx
+        return locals()
+    _gridFx = None  # Store grid by default
+    gridFx = property(**gridFx())
+
+    def gridFy():
+        doc = "Face staggered grid in the y direction."
+
+        def fget(self):
+            if self._gridFy is None:
+                N = self.r(self.gridN, 'N', 'N', 'M')
+                if self.dim == 2:
+                    XY = [mkvc(0.5 * (n[:-1, :] + n[1:, :])) for n in N]
+                    self._gridFy = np.c_[XY[0], XY[1]]
+                elif self.dim == 3:
+                    XYZ = [mkvc(0.25 * (n[:-1, :, :-1] + n[:-1, :, 1:] + n[1:, :, :-1] + n[1:, :, 1:])) for n in N]
+                    self._gridFy = np.c_[XYZ[0], XYZ[1], XYZ[2]]
+            return self._gridFy
+        return locals()
+    _gridFy = None  # Store grid by default
+    gridFy = property(**gridFy())
+
+    def gridFz():
+        doc = "Face staggered grid in the z direction."
+
+        def fget(self):
+            if self._gridFz is None and self.dim == 3:
+                N = self.r(self.gridN, 'N', 'N', 'M')
+                XYZ = [mkvc(0.25 * (n[:-1, :-1, :] + n[:-1, 1:, :] + n[1:, :-1, :] + n[1:, 1:, :])) for n in N]
+                self._gridFz = np.c_[XYZ[0], XYZ[1], XYZ[2]]
+            return self._gridFz
+        return locals()
+    _gridFz = None  # Store grid by default
+    gridFz = property(**gridFz())
+
+    def gridEx():
+        doc = "Edge staggered grid in the x direction."
+
+        def fget(self):
+            if self._gridEx is None:
+                N = self.r(self.gridN, 'N', 'N', 'M')
+                if self.dim == 2:
+                    XY = [mkvc(0.5 * (n[:-1, :] + n[1:, :])) for n in N]
+                    self._gridEx = np.c_[XY[0], XY[1]]
+                elif self.dim == 3:
+                    XYZ = [mkvc(0.5 * (n[:-1, :, :] + n[1:, :, :])) for n in N]
+                    self._gridEx = np.c_[XYZ[0], XYZ[1], XYZ[2]]
+            return self._gridEx
+        return locals()
+    _gridEx = None  # Store grid by default
+    gridEx = property(**gridEx())
+
+    def gridEy():
+        doc = "Edge staggered grid in the y direction."
+
+        def fget(self):
+            if self._gridEy is None:
+                N = self.r(self.gridN, 'N', 'N', 'M')
+                if self.dim == 2:
+                    XY = [mkvc(0.5 * (n[:, :-1] + n[:, 1:])) for n in N]
+                    self._gridEy = np.c_[XY[0], XY[1]]
+                elif self.dim == 3:
+                    XYZ = [mkvc(0.5 * (n[:, :-1, :] + n[:, 1:, :])) for n in N]
+                    self._gridEy = np.c_[XYZ[0], XYZ[1], XYZ[2]]
+            return self._gridEy
+        return locals()
+    _gridEy = None  # Store grid by default
+    gridEy = property(**gridEy())
+
+    def gridEz():
+        doc = "Edge staggered grid in the z direction."
+
+        def fget(self):
+            if self._gridEz is None and self.dim == 3:
+                N = self.r(self.gridN, 'N', 'N', 'M')
+                XYZ = [mkvc(0.5 * (n[:, :, :-1] + n[:, :, 1:])) for n in N]
+                self._gridEz = np.c_[XYZ[0], XYZ[1], XYZ[2]]
+            return self._gridEz
+        return locals()
+    _gridEz = None  # Store grid by default
+    gridEz = property(**gridEz())
 
     # --------------- Geometries ---------------------
     #
