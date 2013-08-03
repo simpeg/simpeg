@@ -281,8 +281,8 @@ def faceInfo(xyz, A, B, C, D, average=True, normalizeNormals=True):
     # Each triangle is one half of the length of the cross product
     #
     # So also could be viewed as the average parallelogram.
-    print nA, nB, nC, nD
-    print length(nA), length(nB), length(nC), length(nD)
+    #
+    # WARNING: This does not compute correctly for concave quadrilaterals
     area = (length(nA)+length(nB)+length(nC)+length(nD))/4
 
     return N, area
