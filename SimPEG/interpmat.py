@@ -1,6 +1,7 @@
 from scipy import sparse as sp
 import numpy as np
 
+
 def interpmat(x,y,z,xr,yr,zr):
 #
 # This function does local linear interpolation
@@ -23,7 +24,8 @@ def interpmat(x,y,z,xr,yr,zr):
     ind_z = np.array([0,0])
     dx, dy, dz = np.zeros(2), np.zeros(2), np.zeros(2)
     for i in range(0, nps): 
-        im = np.amin(abs(xr[i]-x))
+        im = np.argmin(abs(xr[i]-x))
+        print i,im
         if  xr[i] - x[im] >= 0:  # Point on the left 
                  ind_x[0] = im;   ind_x[1] = im+1
         else:                    # Point on the right
@@ -33,7 +35,7 @@ def interpmat(x,y,z,xr,yr,zr):
         dx[0] = xr[i] - x[ind_x[0]]
         dx[1] = x[ind_x[1]] - xr[i]
 
-        im = np.amin(abs(yr[i] - y)) 
+        im = np.argmin(abs(yr[i] - y)) 
         if  yr[i] - y[im] >= 0:     # Point on the left
             ind_y[0] = im; ind_y[1] = im+1
         else:                       # Point on the right
@@ -43,7 +45,7 @@ def interpmat(x,y,z,xr,yr,zr):
         dy[0] = yr[i] - y[ind_y[0]]
         dy[1] = y[ind_y[1]] - yr[i];
 
-        im = np.amin(abs(zr[i] - z));
+        im = np.argmin(abs(zr[i] - z));
         if  zr[i] -z[im] >= 0:  # Point on the left
             ind_z[0] = im;  ind_z[1] = im+1
         else:                    # Point on the right
@@ -80,9 +82,9 @@ def interpmat(x,y,z,xr,yr,zr):
     
 if __name__ == '__main__':
       
-    x = np.array([1, 2, 3, 4])
-    y = np.array([1, 2, 3, 4, 5])
-    z = np.array([0, 1, 4, 6])
+    x = np.array([1.1, 2.1, 3.6, 4.9])
+    y = np.array([1.2, 2.2, 3.3, 4.9, 5.6])
+    z = np.array([0.8, 1.7, 4.9, 6.5])
   
     xr = np.array([2.5,3.2])
     yr = np.array([2.4,3.6])

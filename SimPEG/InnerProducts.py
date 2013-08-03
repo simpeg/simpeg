@@ -81,23 +81,34 @@ def getFaceInnerProduct(mesh, mu):
 
     if mu.size == mesh.nC:  # Isotropic!
         mu = mkvc(mu)  # ensure it is a vector.
-        mu = sdiag(np.r_[mu, mu, mu])
+        Mu = sdiag(np.r_[mu, mu, mu])
     elif mu.shape[1] == 3:  # Diagonal tensor
-        mu = sdiag(np.r_[mu[:, 0], mu[:, 1], mu[:, 2]])
+        Mu = sdiag(np.r_[mu[:, 0], mu[:, 1], mu[:, 2]])
     elif mu.shape[1] == 6:  # Fully anisotropic
         row1 = sp.hstack((sdiag(mu[:, 0]), sdiag(mu[:, 3]), sdiag(mu[:, 4])))
         row2 = sp.hstack((sdiag(mu[:, 3]), sdiag(mu[:, 1]), sdiag(mu[:, 5])))
         row3 = sp.hstack((sdiag(mu[:, 4]), sdiag(mu[:, 5]), sdiag(mu[:, 2])))
-        mu = sp.vstack((row1, row2, row3))
+        Mu = sp.vstack((row1, row2, row3))
 
     # Cell volume
     v = np.sqrt(mesh.vol)
-    v3 = np.r_[v, v, v]
-    V = sdiag(v3)*mu*sdiag(v3)  # to keep symmetry
+    v3 = (0.125)**(0.5)*np.r_[v, v, v]
+    #V = sdiag(v3)*mu*sdiag(v3)  # to keep symmetry
+    #A = P000.T*V*P000 + P001.T*V*P001 + P010.T*V*P010 + P011.T*V*P011 + P100.T*V*P100 + P101.T*V*P101 + P110.T*V*P110 + P111.T*V*P111
+    #A = 0.125*A
+    P000 = sdiag(v3)*P000; P001 = sdiag(v3)*P001; P010 = sdiag(v3)*P010; P011 = sdiag(v3)*P011
+    P100 = sdiag(v3)*P100; P101 = sdiag(v3)*P101; P110 = sdiag(v3)*P110; P111 = sdiag(v3)*P111
 
-    A = P000.T*V*P000 + P001.T*V*P001 + P010.T*V*P010 + P011.T*V*P011 + P100.T*V*P100 + P101.T*V*P101 + P110.T*V*P110 + P111.T*V*P111
+    A = P000.T*Mu*P000 + P001.T*Mu*P001 + P010.T*Mu*P010 + P011.T*Mu*P011 + P100.T*Mu*P100 + P101.T*Mu*P101 + P110.T*Mu*P110 + P111.T*Mu*P111
 
-    A = 0.125*A
+    #P = sp.vstack((sdiag(v3)*P000,sdiag(v3)*P001,sdiag(v3)*P010,sdiag(v3)*P011,
+    #            sdiag(v3)*P100,sdiag(v3)*P101,sdiag(v3)*P110,sdiag(v3)*P111))
+
+    #A = 0.125*(P.T * sp.kron(sp.eye(8),Sigma) * P)
+    P = [P000,P001,P010,P011,P100,P101,P110,P111]
+    return A, P
+
+
 
     return A
 
@@ -168,14 +179,22 @@ def getEdgeInnerProduct(mesh, sigma):
 
     # Cell volume
     v = np.sqrt(mesh.vol)
-    v3 = np.r_[v, v, v]
-    V = sdiag(v3)*Sigma*sdiag(v3)  # to keep symmetry
+    v3 = (0.125)**(0.5)*np.r_[v, v, v]
+    
+    P000 = sdiag(v3)*P000; P001 = sdiag(v3)*P001; P010 = sdiag(v3)*P010; P011 = sdiag(v3)*P011
+    P100 = sdiag(v3)*P100; P101 = sdiag(v3)*P101; P110 = sdiag(v3)*P110; P111 = sdiag(v3)*P111
 
-    A = P000.T*V*P000 + P001.T*V*P001 + P010.T*V*P010 + P011.T*V*P011 + P100.T*V*P100 + P101.T*V*P101 + P110.T*V*P110 + P111.T*V*P111
 
-    A = 0.125*A
+    #V = sdiag(v3)*Sigma*sdiag(v3)  # to keep symmetry
 
-    return A
+    A = P000.T*Sigma*P000 + P001.T*Sigma*P001 + P010.T*Sigma*P010 + P011.T*Sigma*P011 + P100.T*Sigma*P100 + P101.T*Sigma*P101 + P110.T*Sigma*P110 + P111.T*Sigma*P111
+
+    #P = sp.vstack((sdiag(v3)*P000,sdiag(v3)*P001,sdiag(v3)*P010,sdiag(v3)*P011,
+    #            sdiag(v3)*P100,sdiag(v3)*P101,sdiag(v3)*P110,sdiag(v3)*P111))
+
+    #A = 0.125*(P.T * sp.kron(sp.eye(8),Sigma) * P)
+    P = [P000,P001,P010,P011,P100,P101,P110,P111]
+    return A, P
 
 
 
@@ -184,4 +203,6 @@ if __name__ == '__main__':
     h = [np.array([1, 2, 3, 4]), np.array([1, 2, 1, 4, 2]), np.array([1, 1, 4, 1])]
     mesh = TensorMesh(h)
     mu = np.ones((mesh.nC, 6))
-    A = mesh.getFaceInnerProduct(mu)
+    A = getFaceInnerProduct(mesh,mu)
+    B, P = getEdgeInnerProduct(mesh,mu)
+
