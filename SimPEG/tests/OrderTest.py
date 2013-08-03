@@ -1,6 +1,6 @@
 import sys
 sys.path.append('../../')
-from SimPEG import TensorMesh
+from SimPEG import TensorMesh, utils, LogicallyOrthogonalMesh
 import numpy as np
 import unittest
 
@@ -89,6 +89,15 @@ class OrderTest(unittest.TestCase):
             self.M = TensorMesh(h[:self.meshDimension])
             max_h = max([np.max(hi) for hi in self.M.h])
             return max_h
+
+        elif 'LOM' in self.meshType:
+            if 'uniform' in self.meshType:
+                xx = np.ones(nc)/nc
+                X, Y, Z = utils.ndgrid(xx, xx, xx, vector=False)
+            else:
+                raise Exception('Unexpected meshType')
+            self.M = LogicallyOrthogonalMesh([X, Y, Z])
+            return 1./nc
 
     def getError(self):
         """For given h, generate A[h], f and A(f) and return norm of error."""
