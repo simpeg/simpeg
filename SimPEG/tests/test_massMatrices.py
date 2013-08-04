@@ -32,7 +32,9 @@ from OrderTest import OrderTest
 class TestInnerProducts(OrderTest):
     """Integrate an function over a unit cube domain using edgeInnerProducts and faceInnerProducts."""
 
-    meshType = 'uniformLOM'
+    meshType = 'rotateLOM'
+    meshDimension = 2
+    meshSizes = [16, 32, 64]
 
     def getError(self):
 

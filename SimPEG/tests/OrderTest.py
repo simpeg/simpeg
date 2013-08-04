@@ -1,6 +1,6 @@
 import sys
 sys.path.append('../../')
-from SimPEG import TensorMesh, utils, LogicallyOrthogonalMesh
+from SimPEG import TensorMesh, utils, LogicallyOrthogonalMesh, exampleLomGird
 import numpy as np
 import unittest
 
@@ -92,11 +92,17 @@ class OrderTest(unittest.TestCase):
 
         elif 'LOM' in self.meshType:
             if 'uniform' in self.meshType:
-                xx = np.cumsum(np.r_[0, np.ones(nc)/nc])
-                X, Y, Z = utils.ndgrid([xx, xx, xx], vector=False)
+                kwrd = 'rect'
+            elif 'rotate' in self.meshType:
+                kwrd = 'rotate'
             else:
                 raise Exception('Unexpected meshType')
-            self.M = LogicallyOrthogonalMesh([X, Y, Z])
+            if self.meshDimension == 2:
+                X, Y = exampleLomGird([nc, nc], kwrd)
+                self.M = LogicallyOrthogonalMesh([X, Y])
+            if self.meshDimension == 3:
+                X, Y, Z = exampleLomGird([nc, nc, nc], kwrd)
+                self.M = LogicallyOrthogonalMesh([X, Y, Z])
             return 1./nc
 
     def getError(self):
@@ -119,7 +125,7 @@ class OrderTest(unittest.TestCase):
             err = self.getError()
             if ii == 0:
                 print ''
-                print 'Testing order of:  ' + self.name
+                print 'Testing convergence on ' + self.M._meshType + ' of:  ' + self.name
                 print '_____________________________________________'
                 print '   h  |    error    | e(i-1)/e(i) |  order'
                 print '~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~'

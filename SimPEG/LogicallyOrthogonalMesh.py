@@ -2,6 +2,7 @@ import numpy as np
 from BaseMesh import BaseMesh
 from DiffOperators import DiffOperators
 from InnerProducts import InnerProducts
+from LomView import LomView
 from utils import mkvc, ndgrid, volTetra, indexCube, faceInfo
 
 # Some helper functions.
@@ -11,7 +12,7 @@ normalize2D = lambda x: x/np.kron(np.ones((1, 2)), mkvc(length2D(x), 2))
 normalize3D = lambda x: x/np.kron(np.ones((1, 3)), mkvc(length3D(x), 2))
 
 
-class LogicallyOrthogonalMesh(BaseMesh, DiffOperators, InnerProducts):
+class LogicallyOrthogonalMesh(BaseMesh, DiffOperators, InnerProducts, LomView):
     """
     LogicallyOrthogonalMesh is a mesh class that deals with logically orthogonal meshes.
 
