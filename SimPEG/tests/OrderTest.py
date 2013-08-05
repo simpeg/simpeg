@@ -140,7 +140,11 @@ class OrderTest(unittest.TestCase):
                 max_h_old = max_h
             print '---------------------------------------------'
             passTest = np.mean(np.array(order)) > self.tolerance*self.expectedOrder
-            # passTest = len(np.where(np.array(order) > self.tolerance*self.expectedOrder)[0]) > np.floor(0.75*len(order))
+            if passTest:
+                print ['The test be workin!', 'You get a gold star!', 'Yay passed!', 'Happy little convergence test!', 'That was easy!'][np.random.randint(5)]
+            else:
+                print 'Failed to pass test on ' + self._meshType + '.'
+            print ''
             self.assertTrue(passTest)
 
 if __name__ == '__main__':

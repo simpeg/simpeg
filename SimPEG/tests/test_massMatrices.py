@@ -165,23 +165,23 @@ class TestInnerProducts2D(OrderTest):
         err = np.abs(numeric - analytic)
         return err
 
-    # def test_order1_edges(self):
-    #     self.name = "2D Edge Inner Product - Isotropic"
-    #     self.location = 'edges'
-    #     self.sigmaTest = 1
-    #     self.orderTest()
+    def test_order1_edges(self):
+        self.name = "2D Edge Inner Product - Isotropic"
+        self.location = 'edges'
+        self.sigmaTest = 1
+        self.orderTest()
 
-    # def test_order3_edges(self):
-    #     self.name = "2D Edge Inner Product - Anisotropic"
-    #     self.location = 'edges'
-    #     self.sigmaTest = 2
-    #     self.orderTest()
+    def test_order3_edges(self):
+        self.name = "2D Edge Inner Product - Anisotropic"
+        self.location = 'edges'
+        self.sigmaTest = 2
+        self.orderTest()
 
-    # def test_order6_edges(self):
-    #     self.name = "2D Edge Inner Product - Full Tensor"
-    #     self.location = 'edges'
-    #     self.sigmaTest = 3
-    #     self.orderTest()
+    def test_order6_edges(self):
+        self.name = "2D Edge Inner Product - Full Tensor"
+        self.location = 'edges'
+        self.sigmaTest = 3
+        self.orderTest()
 
     def test_order1_faces(self):
         self.name = "2D Face Inner Product - Isotropic"
@@ -189,13 +189,13 @@ class TestInnerProducts2D(OrderTest):
         self.sigmaTest = 1
         self.orderTest()
 
-    def test_order3_faces(self):
+    def test_order2_faces(self):
         self.name = "2D Face Inner Product - Anisotropic"
         self.location = 'faces'
         self.sigmaTest = 2
         self.orderTest()
 
-    def test_order6_faces(self):
+    def test_order3_faces(self):
         self.name = "2D Face Inner Product - Full Tensor"
         self.location = 'faces'
         self.sigmaTest = 3

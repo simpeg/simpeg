@@ -26,8 +26,10 @@ class InnerProducts(object):
             pass
         elif self._meshType == 'LOM':
             pass  # todo: we should be doing something slightly different here!
-        return getEdgeInnerProduct(self, sigma, returnP)
-
+        if self.dim == 2:
+            return getEdgeInnerProduct2D(self, sigma, returnP)
+        elif self.dim == 3:
+            return getEdgeInnerProduct(self, sigma, returnP)
 
 # ------------------------ Geometries ------------------------------
 #
@@ -269,6 +271,71 @@ def getEdgeInnerProduct(mesh, sigma=None, returnP=False):
 
     A = P000.T*Sigma*P000 + P001.T*Sigma*P001 + P010.T*Sigma*P010 + P011.T*Sigma*P011 + P100.T*Sigma*P100 + P101.T*Sigma*P101 + P110.T*Sigma*P110 + P111.T*Sigma*P111
     P = [P000, P001, P010, P011, P100, P101, P110, P111]
+    if returnP:
+        return A, P
+    else:
+        return A
+
+
+def getEdgeInnerProduct2D(mesh, sigma=None, returnP=False):
+
+    if sigma is None:  # default is ones
+        sigma = np.ones((mesh.nC, 1))
+
+    m = np.array([mesh.nCx, mesh.nCy])
+    nc = mesh.nC
+
+    i, j = np.int64(range(m[0])), np.int64(range(m[1]))
+
+    iijj = ndgrid(i, j)
+    ii, jj = iijj[:, 0], iijj[:, 1]
+
+    if mesh._meshType == 'LOM':
+        eT1 = mesh.r(mesh.tangents, 'E', 'Ex', 'M')
+        eT2 = mesh.r(mesh.tangents, 'E', 'Ey', 'M')
+
+    def Pxx(pos):
+        ind1 = sub2ind(mesh.nEx, np.c_[ii + pos[0][0], jj + pos[0][1]])
+        ind2 = sub2ind(mesh.nEy, np.c_[ii + pos[1][0], jj + pos[1][1]]) + mesh.nE[0]
+
+        IND = np.r_[ind1, ind2].flatten()
+
+        PXX = sp.coo_matrix((np.ones(2*nc), (range(2*nc), IND)), shape=(2*nc, np.sum(mesh.nE))).tocsr()
+
+        if mesh._meshType == 'LOM':
+            I2x2 = inv2X2BlockDiagonal(getSubArray(eT1[0], [i + pos[0][0], j + pos[0][1]]), getSubArray(eT1[1], [i + pos[0][0], j + pos[0][1]]),
+                                       getSubArray(eT2[0], [i + pos[1][0], j + pos[1][1]]), getSubArray(eT2[1], [i + pos[1][0], j + pos[1][1]]))
+            PXX = I2x2 * PXX
+
+        return PXX
+
+    # no | node      | e1      | e2
+    # 00 | i  ,j     | i  ,j   | i  ,j
+    # 10 | i+1,j     | i  ,j   | i+1,j
+    # 01 | i  ,j+1   | i  ,j+1 | i  ,j
+    # 11 | i+1,j+1   | i  ,j+1 | i+1,j
+
+    # Square root of cell volume multiplied by 1/4
+    v = np.sqrt(0.25*mesh.vol)
+    V2 = sdiag(np.r_[v, v])  # We will multiply on each side to keep symmetry
+
+    P00 = V2*Pxx([[0, 0], [0, 0]])
+    P10 = V2*Pxx([[0, 0], [1, 0]])
+    P01 = V2*Pxx([[0, 1], [0, 0]])
+    P11 = V2*Pxx([[0, 1], [1, 0]])
+
+    if sigma.size == mesh.nC:  # Isotropic!
+        sigma = mkvc(sigma)  # ensure it is a vector.
+        Sigma = sdiag(np.r_[sigma, sigma])
+    elif sigma.shape[1] == 2:  # Diagonal tensor
+        Sigma = sdiag(np.r_[sigma[:, 0], sigma[:, 1]])
+    elif sigma.shape[1] == 3:  # Fully anisotropic
+        row1 = sp.hstack((sdiag(sigma[:, 0]), sdiag(sigma[:, 2])))
+        row2 = sp.hstack((sdiag(sigma[:, 2]), sdiag(sigma[:, 1])))
+        Sigma = sp.vstack((row1, row2))
+
+    A = P00.T*Sigma*P00 + P10.T*Sigma*P10 + P01.T*Sigma*P01 + P11.T*Sigma*P11
+    P = [P00, P10, P01, P11]
     if returnP:
         return A, P
     else:

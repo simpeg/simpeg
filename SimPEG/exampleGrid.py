@@ -1,5 +1,5 @@
 import numpy as np
-from utils import mkvc, ndgrid
+from utils import ndgrid
 
 
 def exampleLomGird(nC, exType):
