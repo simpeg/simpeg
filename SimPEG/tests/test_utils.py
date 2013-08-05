@@ -3,6 +3,7 @@ import unittest
 import sys
 sys.path.append('../')
 from utils import mkvc, ndgrid, indexCube
+from sputils import sdiag, inv3X3BlockDiagonal, inv2X2BlockDiagonal, sp
 
 
 class TestSequenceFunctions(unittest.TestCase):
@@ -61,6 +62,30 @@ class TestSequenceFunctions(unittest.TestCase):
         self.assertTrue(np.all(indexCube('F', nN) == np.array([12, 13, 15, 16, 21, 22, 24, 25])))
         self.assertTrue(np.all(indexCube('G', nN) == np.array([13, 14, 16, 17, 22, 23, 25, 26])))
         self.assertTrue(np.all(indexCube('H', nN) == np.array([10, 11, 13, 14, 19, 20, 22, 23])))
+
+    def test_invXXXBlockDiagonal(self):
+
+        a = [np.random.rand(5, 1) for i in range(4)]
+
+        B = inv2X2BlockDiagonal(*a)
+
+        A = sp.vstack((sp.hstack((sdiag(a[0]), sdiag(a[1]))),
+                       sp.hstack((sdiag(a[2]), sdiag(a[3])))))
+
+        Z2 = B*A - sp.eye(10, 10)
+        self.assertTrue(np.linalg.norm(Z2.todense().ravel(), 2) < 1e-12)
+
+        a = [np.random.rand(5, 1) for i in range(9)]
+        B = inv3X3BlockDiagonal(*a)
+
+        A = sp.vstack((sp.hstack((sdiag(a[0]), sdiag(a[1]),  sdiag(a[2]))),
+                       sp.hstack((sdiag(a[3]), sdiag(a[4]),  sdiag(a[5]))),
+                       sp.hstack((sdiag(a[6]), sdiag(a[7]),  sdiag(a[8])))))
+
+        Z3 = B*A - sp.eye(15, 15)
+
+        self.assertTrue(np.linalg.norm(Z3.todense().ravel(), 2) < 1e-12)
+
 
 if __name__ == '__main__':
     unittest.main()

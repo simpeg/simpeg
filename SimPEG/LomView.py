@@ -14,7 +14,7 @@ class LomView(object):
     def __init__(self):
         pass
 
-    def plotGrid(self):
+    def plotGrid(self, length=0.05):
         """Plot the nodal, cell-centered and staggered grids for 1,2 and 3 dimensions."""
         NN = self.r(self.gridN, 'N', 'N', 'M')
         if self.dim == 2:
@@ -31,6 +31,36 @@ class LomView(object):
             Y = np.r_[Y1, Y2]
 
             plt.plot(X, Y)
+
+            plt.hold(True)
+            Nx = self.r(self.normals, 'F', 'Fx', 'V')
+            Ny = self.r(self.normals, 'F', 'Fy', 'V')
+            Tx = self.r(self.tangents, 'E', 'Ex', 'V')
+            Ty = self.r(self.tangents, 'E', 'Ey', 'V')
+
+            plt.plot(self.gridN[:, 0], self.gridN[:, 1], 'bo')
+
+            nX = np.c_[self.gridFx[:, 0], self.gridFx[:, 0] + Nx[0]*length, self.gridFx[:, 0]*np.nan].flatten()
+            nY = np.c_[self.gridFx[:, 1], self.gridFx[:, 1] + Nx[1]*length, self.gridFx[:, 1]*np.nan].flatten()
+            plt.plot(self.gridFx[:, 0], self.gridFx[:, 1], 'rs')
+            plt.plot(nX, nY, 'r-')
+
+            nX = np.c_[self.gridFy[:, 0], self.gridFy[:, 0] + Ny[0]*length, self.gridFy[:, 0]*np.nan].flatten()
+            nY = np.c_[self.gridFy[:, 1], self.gridFy[:, 1] + Ny[1]*length, self.gridFy[:, 1]*np.nan].flatten()
+            #plt.plot(self.gridFy[:, 0], self.gridFy[:, 1], 'gs')
+            plt.plot(nX, nY, 'g-')
+
+            tX = np.c_[self.gridEx[:, 0], self.gridEx[:, 0] + Tx[0]*length, self.gridEx[:, 0]*np.nan].flatten()
+            tY = np.c_[self.gridEx[:, 1], self.gridEx[:, 1] + Tx[1]*length, self.gridEx[:, 1]*np.nan].flatten()
+            plt.plot(self.gridEx[:, 0], self.gridEx[:, 1], 'r^')
+            plt.plot(tX, tY, 'r-')
+
+            nX = np.c_[self.gridEy[:, 0], self.gridEy[:, 0] + Ty[0]*length, self.gridEy[:, 0]*np.nan].flatten()
+            nY = np.c_[self.gridEy[:, 1], self.gridEy[:, 1] + Ty[1]*length, self.gridEy[:, 1]*np.nan].flatten()
+            #plt.plot(self.gridEy[:, 0], self.gridEy[:, 1], 'g^')
+            plt.plot(nX, nY, 'g-')
+            plt.axis('equal')
+
         elif self.dim == 3:
             fig = plt.figure(3)
             fig.clf()

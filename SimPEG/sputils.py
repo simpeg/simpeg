@@ -4,7 +4,7 @@ from utils import mkvc
 
 def sdiag(h):
     """Sparse diagonal matrix"""
-    return sp.spdiags(h, 0, h.size, h.size, format="csr")
+    return sp.spdiags(mkvc(h), 0, h.size, h.size, format="csr")
 
 
 def speye(n):
@@ -23,6 +23,16 @@ def spzeros(n1, n2):
 
 
 def inv3X3BlockDiagonal(a11, a12, a13, a21, a22, a23, a31, a32, a33):
+    """ B = inv3X3BlockDiagonal(a11, a12, a13, a21, a22, a23, a31, a32, a33)
+
+    inverts a stack of 3x3 matrices
+
+    Input:
+     A   - a11, a12, a13, a21, a22, a23, a31, a32, a33
+
+    Output:
+     B   - inverse
+     """
 
     a11 = mkvc(a11)
     a12 = mkvc(a12)
@@ -51,5 +61,38 @@ def inv3X3BlockDiagonal(a11, a12, a13, a21, a22, a23, a31, a32, a33):
     B = sp.vstack((sp.hstack((sdiag(b11), sdiag(b12),  sdiag(b13))),
                    sp.hstack((sdiag(b21), sdiag(b22),  sdiag(b23))),
                    sp.hstack((sdiag(b31), sdiag(b32),  sdiag(b33)))))
+
+    return B
+
+
+def inv2X2BlockDiagonal(a11, a12, a21, a22):
+    """ B = inv2X2BlockDiagonal(a11, a12, a21, a22)
+
+    Inverts a stack of 2x2 matrices by using the inversion formula
+
+    inv(A) = (1/det(A)) * cof(A)^T
+
+    Input:
+    A   - a11, a12, a13, a21, a22, a23, a31, a32, a33
+
+    Output:
+    B   - inverse
+    """
+
+    a11 = mkvc(a11)
+    a12 = mkvc(a12)
+    a21 = mkvc(a21)
+    a22 = mkvc(a22)
+
+    # compute inverse of the determinant.
+    detAinv = 1./(a11*a22 - a21*a12)
+
+    b11 = +detAinv*a22
+    b12 = -detAinv*a12
+    b21 = -detAinv*a21
+    b22 = +detAinv*a11
+
+    B = sp.vstack((sp.hstack((sdiag(b11), sdiag(b12))),
+                   sp.hstack((sdiag(b21), sdiag(b22)))))
 
     return B

@@ -319,4 +319,12 @@ def sub2ind(shape, subs):
 
 def getSubArray(A, ind):
     """subArray"""
-    return A[ind[0], :, :][:, ind[1], :][:, :, ind[2]]
+    assert type(ind) == list, "ind must be a list of vectors"
+    assert len(A.shape) == len(ind), "ind must have the same length as the dimension of A"
+
+    if len(A.shape) == 2:
+        return A[ind[0], :][:, ind[1]]
+    elif len(A.shape) == 3:
+        return A[ind[0], :, :][:, ind[1], :][:, :, ind[2]]
+    else:
+        raise Exception("getSubArray does not support dimension asked.")

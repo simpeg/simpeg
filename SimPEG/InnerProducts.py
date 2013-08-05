@@ -1,5 +1,5 @@
 from scipy import sparse as sp
-from sputils import sdiag, inv3X3BlockDiagonal
+from sputils import sdiag, inv3X3BlockDiagonal, inv2X2BlockDiagonal
 from utils import sub2ind, ndgrid, mkvc, getSubArray
 import numpy as np
 
@@ -16,7 +16,10 @@ class InnerProducts(object):
             pass
         elif self._meshType == 'LOM':
             pass  # todo: we should be doing something slightly different here!
-        return getFaceInnerProduct(self, mu, returnP)
+        if self.dim == 2:
+            return getFaceInnerProduct2D(self, mu, returnP)
+        elif self.dim == 3:
+            return getFaceInnerProduct(self, mu, returnP)
 
     def getEdgeInnerProduct(self, sigma=None, returnP=False):
         if self._meshType == 'TENSOR':
@@ -59,6 +62,11 @@ def getFaceInnerProduct(mesh, mu=None, returnP=False):
     iijjkk = ndgrid(i, j, k)
     ii, jj, kk = iijjkk[:, 0], iijjkk[:, 1], iijjkk[:, 2]
 
+    if mesh._meshType == 'LOM':
+        fN1 = mesh.r(mesh.normals, 'F', 'Fx', 'M')
+        fN2 = mesh.r(mesh.normals, 'F', 'Fy', 'M')
+        fN3 = mesh.r(mesh.normals, 'F', 'Fz', 'M')
+
     def Pxxx(pos):
         ind1 = sub2ind(mesh.nFx, np.c_[ii + pos[0][0], jj + pos[0][1], kk + pos[0][2]])
         ind2 = sub2ind(mesh.nFy, np.c_[ii + pos[1][0], jj + pos[1][1], kk + pos[1][2]]) + mesh.nF[0]
@@ -66,7 +74,15 @@ def getFaceInnerProduct(mesh, mu=None, returnP=False):
 
         IND = np.r_[ind1, ind2, ind3].flatten()
 
-        return sp.coo_matrix((np.ones(3*nc), (range(3*nc), IND)), shape=(3*nc, np.sum(mesh.nF))).tocsr()
+        PXXX = sp.coo_matrix((np.ones(3*nc), (range(3*nc), IND)), shape=(3*nc, np.sum(mesh.nF))).tocsr()
+
+        if mesh._meshType == 'LOM':
+            I3x3 = inv3X3BlockDiagonal(getSubArray(fN1[0], [i + pos[0][0], j + pos[0][1], k + pos[0][2]]), getSubArray(fN1[1], [i + pos[0][0], j + pos[0][1], k + pos[0][2]]), getSubArray(fN1[2], [i + pos[0][0], j + pos[0][1], k + pos[0][2]]),
+                                       getSubArray(fN2[0], [i + pos[1][0], j + pos[1][1], k + pos[1][2]]), getSubArray(fN2[1], [i + pos[1][0], j + pos[1][1], k + pos[1][2]]), getSubArray(fN2[2], [i + pos[1][0], j + pos[1][1], k + pos[1][2]]),
+                                       getSubArray(fN3[0], [i + pos[2][0], j + pos[2][1], k + pos[2][2]]), getSubArray(fN3[1], [i + pos[2][0], j + pos[2][1], k + pos[2][2]]), getSubArray(fN3[2], [i + pos[2][0], j + pos[2][1], k + pos[2][2]]))
+            PXXX = I3x3 * PXXX
+
+        return PXXX
 
     # no  | node        | f1        | f2        | f3
     # 000 | i  ,j  ,k   | i  , j, k | i, j  , k | i, j, k
@@ -104,6 +120,78 @@ def getFaceInnerProduct(mesh, mu=None, returnP=False):
 
     A = P000.T*Mu*P000 + P001.T*Mu*P001 + P010.T*Mu*P010 + P011.T*Mu*P011 + P100.T*Mu*P100 + P101.T*Mu*P101 + P110.T*Mu*P110 + P111.T*Mu*P111
     P = [P000, P001, P010, P011, P100, P101, P110, P111]
+    if returnP:
+        return A, P
+    else:
+        return A
+
+
+def getFaceInnerProduct2D(mesh, mu=None, returnP=False):
+
+    if mu is None:  # default is ones
+        mu = np.ones((mesh.nC, 1))
+
+    m = np.array([mesh.nCx, mesh.nCy])
+    nc = mesh.nC
+
+    i, j = np.int64(range(m[0])), np.int64(range(m[1]))
+
+    iijj = ndgrid(i, j)
+    ii, jj = iijj[:, 0], iijj[:, 1]
+
+    if mesh._meshType == 'LOM':
+        fN1 = mesh.r(mesh.normals, 'F', 'Fx', 'M')
+        fN2 = mesh.r(mesh.normals, 'F', 'Fy', 'M')
+
+    def Pxx(pos):
+        ind1 = sub2ind(mesh.nFx, np.c_[ii + pos[0][0], jj + pos[0][1]])
+        ind2 = sub2ind(mesh.nFy, np.c_[ii + pos[1][0], jj + pos[1][1]]) + mesh.nF[0]
+
+        IND = np.r_[ind1, ind2].flatten()
+
+        PXX = sp.coo_matrix((np.ones(2*nc), (range(2*nc), IND)), shape=(2*nc, np.sum(mesh.nF))).tocsr()
+
+        if mesh._meshType == 'LOM':
+            # print fN1[0].shape
+            # print fN2[0].shape
+            # print np.c_[i+pos[0][0],j+pos[0][1],i+pos[1][0],j+pos[1][1]]
+            # print fN1[1].shape
+            I2x2 = inv2X2BlockDiagonal(getSubArray(fN1[0], [i + pos[0][0], j + pos[0][1]]), getSubArray(fN1[1], [i + pos[0][0], j + pos[0][1]]),
+                                       getSubArray(fN2[0], [i + pos[1][0], j + pos[1][1]]), getSubArray(fN2[1], [i + pos[1][0], j + pos[1][1]]))
+            PXX = I2x2 * PXX
+
+        # import matplotlib.pyplot as plt
+        # plt.spy(PXX)
+        # plt.show()
+        return PXX
+
+    # no | node      | f1     | f2
+    # 00 | i  ,j     | i  , j | i, j
+    # 10 | i+1,j     | i+1, j | i, j
+    # 01 | i  ,j+1   | i  , j | i, j+1
+    # 11 | i+1,j+1   | i+1, j | i, j+1
+
+    # Square root of cell volume multiplied by 1/4
+    v = np.sqrt(0.25*mesh.vol)
+    V2 = sdiag(np.r_[v, v])  # We will multiply on each side to keep symmetry
+
+    P00 = V2*Pxx([[0, 0], [0, 0]])
+    P10 = V2*Pxx([[1, 0], [0, 0]])
+    P01 = V2*Pxx([[0, 0], [0, 1]])
+    P11 = V2*Pxx([[1, 0], [0, 1]])
+
+    if mu.size == mesh.nC:  # Isotropic!
+        mu = mkvc(mu)  # ensure it is a vector.
+        Mu = sdiag(np.r_[mu, mu])
+    elif mu.shape[1] == 2:  # Diagonal tensor
+        Mu = sdiag(np.r_[mu[:, 0], mu[:, 1]])
+    elif mu.shape[1] == 3:  # Fully anisotropic
+        row1 = sp.hstack((sdiag(mu[:, 0]), sdiag(mu[:, 2])))
+        row2 = sp.hstack((sdiag(mu[:, 2]), sdiag(mu[:, 1])))
+        Mu = sp.vstack((row1, row2))
+
+    A = P00.T*Mu*P00 + P10.T*Mu*P10 + P01.T*Mu*P01 + P11.T*Mu*P11
+    P = [P00, P10, P01, P11]
     if returnP:
         return A, P
     else:
