@@ -32,7 +32,7 @@ from OrderTest import OrderTest
 class TestInnerProducts(OrderTest):
     """Integrate an function over a unit cube domain using edgeInnerProducts and faceInnerProducts."""
 
-    meshTypes = ['uniformTensorMesh', 'uniformLOM']
+    meshTypes = ['uniformTensorMesh', 'uniformLOM', 'rotateLOM']
     meshDimension = 3
     meshSizes = [16, 32]
 
@@ -64,17 +64,61 @@ class TestInnerProducts(OrderTest):
             analytic = 69881./21600  # Found using matlab symbolic toolbox.
 
         if self.location == 'edges':
-            Ex = call(ex, self.M.gridEx)
-            Ey = call(ey, self.M.gridEy)
-            Ez = call(ez, self.M.gridEz)
-            E = np.matrix(np.r_[Ex, Ey, Ez]).T
+            if self.M._meshType == 'TENSOR':
+                Ex = call(ex, self.M.gridEx)
+                Ey = call(ey, self.M.gridEy)
+                Ez = call(ez, self.M.gridEz)
+                E = np.matrix(np.r_[Ex, Ey, Ez]).T
+            elif self.M._meshType == 'LOM':
+                Tx = self.M.r(self.M.tangents, 'E', 'Ex', 'V')
+                Ty = self.M.r(self.M.tangents, 'E', 'Ey', 'V')
+                Tz = self.M.r(self.M.tangents, 'E', 'Ez', 'V')
+
+                EX_x = call(ex, self.M.gridEx)
+                EY_x = call(ey, self.M.gridEx)
+                EZ_x = call(ez, self.M.gridEx)
+                Ex = np.sum(np.c_[EX_x, EY_x, EZ_x]*np.c_[Tx[0], Tx[1], Tx[2]], 1)
+
+                EX_y = call(ex, self.M.gridEy)
+                EY_y = call(ey, self.M.gridEy)
+                EZ_y = call(ez, self.M.gridEy)
+                Ey = np.sum(np.c_[EX_y, EY_y, EZ_y]*np.c_[Ty[0], Ty[1], Ty[2]], 1)
+
+                EX_z = call(ex, self.M.gridEz)
+                EY_z = call(ey, self.M.gridEz)
+                EZ_z = call(ez, self.M.gridEz)
+                Ez = np.sum(np.c_[EX_z, EY_z, EZ_z]*np.c_[Tz[0], Tz[1], Tz[2]], 1)
+
+                E = np.matrix(np.r_[Ex, Ey, Ez]).T
             A = self.M.getEdgeInnerProduct(sigma)
             numeric = E.T*A*E
         elif self.location == 'faces':
-            Fx = call(ex, self.M.gridFx)
-            Fy = call(ey, self.M.gridFy)
-            Fz = call(ez, self.M.gridFz)
-            F = np.matrix(np.r_[Fx, Fy, Fz]).T
+            if self.M._meshType == 'TENSOR':
+                Fx = call(ex, self.M.gridFx)
+                Fy = call(ey, self.M.gridFy)
+                Fz = call(ez, self.M.gridFz)
+                F = np.matrix(np.r_[Fx, Fy, Fz]).T
+            elif self.M._meshType == 'LOM':
+                Nx = self.M.r(self.M.normals, 'F', 'Fx', 'V')
+                Ny = self.M.r(self.M.normals, 'F', 'Fy', 'V')
+                Nz = self.M.r(self.M.normals, 'F', 'Fz', 'V')
+
+                FX_x = call(ex, self.M.gridFx)
+                FY_x = call(ey, self.M.gridFx)
+                FZ_x = call(ez, self.M.gridFx)
+                Fx = np.sum(np.c_[FX_x, FY_x, FZ_x]*np.c_[Nx[0], Nx[1], Nx[2]], 1)
+
+                FX_y = call(ex, self.M.gridFy)
+                FY_y = call(ey, self.M.gridFy)
+                FZ_y = call(ez, self.M.gridFy)
+                Fy = np.sum(np.c_[FX_y, FY_y, FZ_y]*np.c_[Ny[0], Ny[1], Ny[2]], 1)
+
+                FX_z = call(ex, self.M.gridFz)
+                FY_z = call(ey, self.M.gridFz)
+                FZ_z = call(ez, self.M.gridFz)
+                Fz = np.sum(np.c_[FX_z, FY_z, FZ_z]*np.c_[Nz[0], Nz[1], Nz[2]], 1)
+
+                F = np.matrix(np.r_[Fx, Fy, Fz]).T
             A = self.M.getFaceInnerProduct(sigma)
             numeric = F.T*A*F
 
@@ -150,15 +194,43 @@ class TestInnerProducts2D(OrderTest):
             analytic = 781427./360  # Found using matlab symbolic toolbox. z=5
 
         if self.location == 'edges':
-            Ex = call(ex, self.M.gridEx)
-            Ey = call(ey, self.M.gridEy)
-            E = np.matrix(np.r_[Ex, Ey]).T
+            if self.M._meshType == 'TENSOR':
+                Ex = call(ex, self.M.gridEx)
+                Ey = call(ey, self.M.gridEy)
+                E = np.matrix(np.r_[Ex, Ey]).T
+            elif self.M._meshType == 'LOM':
+                Tx = self.M.r(self.M.tangents, 'E', 'Ex', 'V')
+                Ty = self.M.r(self.M.tangents, 'E', 'Ey', 'V')
+
+                EX_x = call(ex, self.M.gridEx)
+                EY_x = call(ey, self.M.gridEx)
+                Ex = np.sum(np.c_[EX_x, EY_x]*np.c_[Tx[0], Tx[1]], 1)
+
+                EX_y = call(ex, self.M.gridEy)
+                EY_y = call(ey, self.M.gridEy)
+                Ey = np.sum(np.c_[EX_y, EY_y]*np.c_[Ty[0], Ty[1]], 1)
+
+                E = np.matrix(np.r_[Ex, Ey]).T
             A = self.M.getEdgeInnerProduct(sigma)
             numeric = E.T*A*E
         elif self.location == 'faces':
-            Fx = call(ex, self.M.gridFx)
-            Fy = call(ey, self.M.gridFy)
-            F = np.matrix(np.r_[Fx, Fy]).T
+            if self.M._meshType == 'TENSOR':
+                Fx = call(ex, self.M.gridFx)
+                Fy = call(ey, self.M.gridFy)
+                F = np.matrix(np.r_[Fx, Fy]).T
+            elif self.M._meshType == 'LOM':
+                Nx = self.M.r(self.M.normals, 'F', 'Fx', 'V')
+                Ny = self.M.r(self.M.normals, 'F', 'Fy', 'V')
+
+                FX_x = call(ex, self.M.gridFx)
+                FY_x = call(ey, self.M.gridFx)
+                Fx = np.sum(np.c_[FX_x, FY_x]*np.c_[Nx[0], Nx[1]], 1)
+
+                FX_y = call(ex, self.M.gridFy)
+                FY_y = call(ey, self.M.gridFy)
+                Fy = np.sum(np.c_[FX_y, FY_y]*np.c_[Ny[0], Ny[1]], 1)
+
+                F = np.matrix(np.r_[Fx, Fy]).T
             A = self.M.getFaceInnerProduct(sigma)
             numeric = F.T*A*F
 
