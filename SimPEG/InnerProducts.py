@@ -12,20 +12,12 @@ class InnerProducts(object):
         raise Exception('InnerProducts is a base class providing inner product matrices for meshes and cannot run on its own. Inherit to your favorite Mesh class.')
 
     def getFaceInnerProduct(self, mu=None, returnP=False):
-        if self._meshType == 'TENSOR':
-            pass
-        elif self._meshType == 'LOM':
-            pass  # todo: we should be doing something slightly different here!
         if self.dim == 2:
             return getFaceInnerProduct2D(self, mu, returnP)
         elif self.dim == 3:
             return getFaceInnerProduct(self, mu, returnP)
 
     def getEdgeInnerProduct(self, sigma=None, returnP=False):
-        if self._meshType == 'TENSOR':
-            pass
-        elif self._meshType == 'LOM':
-            pass  # todo: we should be doing something slightly different here!
         if self.dim == 2:
             return getEdgeInnerProduct2D(self, sigma, returnP)
         elif self.dim == 3:
@@ -154,17 +146,10 @@ def getFaceInnerProduct2D(mesh, mu=None, returnP=False):
         PXX = sp.coo_matrix((np.ones(2*nc), (range(2*nc), IND)), shape=(2*nc, np.sum(mesh.nF))).tocsr()
 
         if mesh._meshType == 'LOM':
-            # print fN1[0].shape
-            # print fN2[0].shape
-            # print np.c_[i+pos[0][0],j+pos[0][1],i+pos[1][0],j+pos[1][1]]
-            # print fN1[1].shape
             I2x2 = inv2X2BlockDiagonal(getSubArray(fN1[0], [i + pos[0][0], j + pos[0][1]]), getSubArray(fN1[1], [i + pos[0][0], j + pos[0][1]]),
                                        getSubArray(fN2[0], [i + pos[1][0], j + pos[1][1]]), getSubArray(fN2[1], [i + pos[1][0], j + pos[1][1]]))
             PXX = I2x2 * PXX
 
-        # import matplotlib.pyplot as plt
-        # plt.spy(PXX)
-        # plt.show()
         return PXX
 
     # no | node      | f1     | f2
