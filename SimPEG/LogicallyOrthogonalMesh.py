@@ -319,18 +319,6 @@ NyX, NyY, NyZ = M.r(M.normals, 'F', 'Fy', 'M')
     _tangents = None
     tangents = property(**tangents())
 
-    def projectFaceVector(self, fV):
-        """Given a vector, fV, in cartesian coordinates, this will project it onto the mesh using the normals"""
-        assert type(fV) == np.ndarray, 'fV must be an ndarray'
-        assert len(fV.shape) == 2 and fV.shape[0] == np.sum(self.nF) and fV.shape[1] == self.dim, 'fV must be an ndarray of shape (nF x dim)'
-        return mkvc(np.sum(fV*self.normals, 1), 2)
-
-    def projectEdgeVector(self, eV):
-        """Given a vector, eV, in cartesian coordinates, this will project it onto the mesh using the tangents"""
-        assert type(eV) == np.ndarray, 'eV must be an ndarray'
-        assert len(eV.shape) == 2 and eV.shape[0] == np.sum(self.nE) and eV.shape[1] == self.dim, 'eV must be an ndarray of shape (nE x dim)'
-        return mkvc(np.sum(eV*self.tangents, 1), 2)
-
 if __name__ == '__main__':
     nc = 5
     h1 = np.cumsum(np.r_[0, np.ones(nc)/(nc)])

@@ -184,13 +184,6 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
     _gridEz = None  # Store grid by default
     gridEz = property(**gridEz())
 
-    def getBoundaryIndex(self, gridType):
-        """Needed for faces edges and cells"""
-        pass
-
-    def getCellNumbering(self):
-        pass
-
     # --------------- Geometries ---------------------
     def vol():
         doc = "Construct cell volumes of the 3D model as 1d array."

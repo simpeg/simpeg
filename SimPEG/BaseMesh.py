@@ -308,6 +308,51 @@ class BaseMesh(object):
         return locals()
     nF = property(**nF())
 
+    def normals():
+        doc = "Face Normals"
+
+        def fget(self):
+            if self.dim == 2:
+                nX = np.c_[np.ones(self.nF[0]), np.zeros(self.nF[0])]
+                nY = np.c_[np.zeros(self.nF[1]), np.ones(self.nF[1])]
+                return np.r_[nX, nY]
+            elif self.dim == 3:
+                nX = np.c_[np.ones(self.nF[0]), np.zeros(self.nF[0]), np.zeros(self.nF[0])]
+                nY = np.c_[np.zeros(self.nF[1]), np.ones(self.nF[1]), np.zeros(self.nF[1])]
+                nZ = np.c_[np.zeros(self.nF[2]), np.zeros(self.nF[2]), np.ones(self.nF[2])]
+                return np.r_[nX, nY, nZ]
+        return locals()
+    normals = property(**normals())
+
+    def tangents():
+        doc = "Edge Tangents"
+
+        def fget(self):
+            if self.dim == 2:
+                tX = np.c_[np.ones(self.nE[0]), np.zeros(self.nE[0])]
+                tY = np.c_[np.zeros(self.nE[1]), np.ones(self.nE[1])]
+                return np.r_[tX, tY]
+            elif self.dim == 3:
+                tX = np.c_[np.ones(self.nE[0]), np.zeros(self.nE[0]), np.zeros(self.nE[0])]
+                tY = np.c_[np.zeros(self.nE[1]), np.ones(self.nE[1]), np.zeros(self.nE[1])]
+                tZ = np.c_[np.zeros(self.nE[2]), np.zeros(self.nE[2]), np.ones(self.nE[2])]
+                return np.r_[tX, tY, tZ]
+        return locals()
+    tangents = property(**tangents())
+
+    def projectFaceVector(self, fV):
+        """Given a vector, fV, in cartesian coordinates, this will project it onto the mesh using the normals"""
+        assert type(fV) == np.ndarray, 'fV must be an ndarray'
+        assert len(fV.shape) == 2 and fV.shape[0] == np.sum(self.nF) and fV.shape[1] == self.dim, 'fV must be an ndarray of shape (nF x dim)'
+        return np.sum(fV*self.normals, 1)
+
+    def projectEdgeVector(self, eV):
+        """Given a vector, eV, in cartesian coordinates, this will project it onto the mesh using the tangents"""
+        assert type(eV) == np.ndarray, 'eV must be an ndarray'
+        assert len(eV.shape) == 2 and eV.shape[0] == np.sum(self.nE) and eV.shape[1] == self.dim, 'eV must be an ndarray of shape (nE x dim)'
+        return np.sum(eV*self.tangents, 1)
+
+
 if __name__ == '__main__':
     m = BaseMesh([3, 2, 4])
     print m.n
