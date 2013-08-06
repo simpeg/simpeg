@@ -64,33 +64,21 @@ class TestInnerProducts(OrderTest):
             analytic = 69881./21600  # Found using matlab symbolic toolbox.
 
         if self.location == 'edges':
-            if self.M._meshType == 'TENSOR':
-                Ex = call(ex, self.M.gridEx)
-                Ey = call(ey, self.M.gridEy)
-                Ez = call(ez, self.M.gridEz)
-                E = np.matrix(np.r_[Ex, Ey, Ez]).T
-            elif self.M._meshType == 'LOM':
-                cart = lambda g: np.c_[call(ex, g), call(ey, g), call(ez, g)]
-                Ec = np.vstack((cart(self.M.gridEx),
-                                cart(self.M.gridEy),
-                                cart(self.M.gridEz)))
-                E = np.matrix(self.M.projectEdgeVector(Ec))
+            cart = lambda g: np.c_[call(ex, g), call(ey, g), call(ez, g)]
+            Ec = np.vstack((cart(self.M.gridEx),
+                            cart(self.M.gridEy),
+                            cart(self.M.gridEz)))
+            E = self.M.projectEdgeVector(Ec)
             A = self.M.getEdgeInnerProduct(sigma)
-            numeric = E.T*A*E
+            numeric = E.T.dot(A.dot(E))
         elif self.location == 'faces':
-            if self.M._meshType == 'TENSOR':
-                Fx = call(ex, self.M.gridFx)
-                Fy = call(ey, self.M.gridFy)
-                Fz = call(ez, self.M.gridFz)
-                F = np.matrix(np.r_[Fx, Fy, Fz]).T
-            elif self.M._meshType == 'LOM':
-                cart = lambda g: np.c_[call(ex, g), call(ey, g), call(ez, g)]
-                Fc = np.vstack((cart(self.M.gridFx),
-                                cart(self.M.gridFy),
-                                cart(self.M.gridFz)))
-                F = np.matrix(self.M.projectFaceVector(Fc))
+            cart = lambda g: np.c_[call(ex, g), call(ey, g), call(ez, g)]
+            Fc = np.vstack((cart(self.M.gridFx),
+                            cart(self.M.gridFy),
+                            cart(self.M.gridFz)))
+            F = self.M.projectFaceVector(Fc)
             A = self.M.getFaceInnerProduct(sigma)
-            numeric = F.T*A*F
+            numeric = F.T.dot(A.dot(F))
 
         err = np.abs(numeric - analytic)
         return err
@@ -164,31 +152,19 @@ class TestInnerProducts2D(OrderTest):
             analytic = 781427./360  # Found using matlab symbolic toolbox. z=5
 
         if self.location == 'edges':
-            if self.M._meshType == 'TENSOR':
-                Ex = call(ex, self.M.gridEx)
-                Ey = call(ey, self.M.gridEy)
-                E = np.matrix(np.r_[Ex, Ey]).T
-            elif self.M._meshType == 'LOM':
-                cart = lambda g: np.c_[call(ex, g), call(ey, g)]
-                Ec = np.vstack((cart(self.M.gridEx),
-                                cart(self.M.gridEy)))
-                E = np.matrix(self.M.projectEdgeVector(Ec))
-
+            cart = lambda g: np.c_[call(ex, g), call(ey, g)]
+            Ec = np.vstack((cart(self.M.gridEx),
+                            cart(self.M.gridEy)))
+            E = self.M.projectEdgeVector(Ec)
             A = self.M.getEdgeInnerProduct(sigma)
-            numeric = E.T*A*E
+            numeric = E.T.dot(A.dot(E))
         elif self.location == 'faces':
-            if self.M._meshType == 'TENSOR':
-                Fx = call(ex, self.M.gridFx)
-                Fy = call(ey, self.M.gridFy)
-                F = np.matrix(np.r_[Fx, Fy]).T
-            elif self.M._meshType == 'LOM':
-                cart = lambda g: np.c_[call(ex, g), call(ey, g)]
-                Fc = np.vstack((cart(self.M.gridFx),
-                                cart(self.M.gridFy)))
-                F = np.matrix(self.M.projectFaceVector(Fc))
-
+            cart = lambda g: np.c_[call(ex, g), call(ey, g)]
+            Fc = np.vstack((cart(self.M.gridFx),
+                            cart(self.M.gridFy)))
+            F = self.M.projectFaceVector(Fc)
             A = self.M.getFaceInnerProduct(sigma)
-            numeric = F.T*A*F
+            numeric = F.T.dot(A.dot(F))
 
         err = np.abs(numeric - analytic)
         return err

@@ -4,7 +4,15 @@ import sys
 sys.path.append('../')
 from OrderTest import OrderTest
 
-MESHTYPES = ['uniformTensorMesh', 'uniformLOM']  # , 'rotateLOM'
+MESHTYPES = ['uniformTensorMesh', 'uniformLOM', 'rotateLOM']
+call2 = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1])
+call3 = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1], xyz[:, 2])
+cart_row2 = lambda g, xfun, yfun: np.c_[call2(xfun, g), call2(yfun, g)]
+cart_row3 = lambda g, xfun, yfun, zfun: np.c_[call3(xfun, g), call3(yfun, g), call3(zfun, g)]
+cartF2 = lambda M, fx, fy: np.vstack((cart_row2(M.gridFx, fx, fy), cart_row2(M.gridFy, fx, fy)))
+cartE2 = lambda M, ex, ey: np.vstack((cart_row2(M.gridEx, ex, ey), cart_row2(M.gridEy, ex, ey)))
+cartF3 = lambda M, fx, fy, fz: np.vstack((cart_row3(M.gridFx, fx, fy, fz), cart_row3(M.gridFy, fx, fy, fz), cart_row3(M.gridFz, fx, fy, fz)))
+cartE3 = lambda M, ex, ey, ez: np.vstack((cart_row3(M.gridEx, ex, ey, ez), cart_row3(M.gridEy, ex, ey, ez), cart_row3(M.gridEz, ex, ey, ez)))
 
 
 class TestCurl(OrderTest):
@@ -12,24 +20,26 @@ class TestCurl(OrderTest):
     meshTypes = MESHTYPES
 
     def getError(self):
-        fun = lambda x: np.cos(x)  # i (cos(y)) + j (cos(z)) + k (cos(x))
-        sol = lambda x: np.sin(x)  # i (sin(z)) + j (sin(x)) + k (sin(y))
+        # fun: i (cos(y)) + j (cos(z)) + k (cos(x))
+        # sol: i (sin(z)) + j (sin(x)) + k (sin(y))
 
-        Ex = fun(self.M.gridEx[:, 1])
-        Ey = fun(self.M.gridEy[:, 2])
-        Ez = fun(self.M.gridEz[:, 0])
-        E = np.concatenate((Ex, Ey, Ez))
+        funX = lambda x, y, z: np.cos(y)
+        funY = lambda x, y, z: np.cos(z)
+        funZ = lambda x, y, z: np.cos(x)
 
-        Fx = sol(self.M.gridFx[:, 2])
-        Fy = sol(self.M.gridFy[:, 0])
-        Fz = sol(self.M.gridFz[:, 1])
-        curlE_anal = np.concatenate((Fx, Fy, Fz))
+        solX = lambda x, y, z: np.sin(z)
+        solY = lambda x, y, z: np.sin(x)
+        solZ = lambda x, y, z: np.sin(y)
+
+        Ec = cartE3(self.M, funX, funY, funZ)
+        E = self.M.projectEdgeVector(Ec)
+
+        Fc = cartF3(self.M, solX, solY, solZ)
+        curlE_anal = self.M.projectFaceVector(Fc)
 
         # Generate DIV matrix
-        CURL = self.M.edgeCurl
-
-        curlE = CURL*E
-        err = np.linalg.norm((curlE-curlE_anal), np.inf)
+        curlE = self.M.edgeCurl.dot(E)
+        err = np.linalg.norm((curlE - curlE_anal), np.inf)
         return err
 
     def test_order(self):
@@ -41,18 +51,17 @@ class TestFaceDiv(OrderTest):
     meshTypes = MESHTYPES
 
     def getError(self):
-        DIV = self.M.faceDiv
-
         #Test function
-        fun = lambda x: np.sin(x)
-        Fx = fun(self.M.gridFx[:, 0])
-        Fy = fun(self.M.gridFy[:, 1])
-        Fz = fun(self.M.gridFz[:, 2])
-
-        F = np.concatenate((Fx, Fy, Fz))
-        divF = DIV*F
+        fx = lambda x, y, z: np.sin(x)
+        fy = lambda x, y, z: np.sin(y)
+        fz = lambda x, y, z: np.sin(z)
         sol = lambda x, y, z: (np.cos(x)+np.cos(y)+np.cos(z))
-        divF_anal = sol(self.M.gridCC[:, 0], self.M.gridCC[:, 1], self.M.gridCC[:, 2])
+
+        Fc = cartF3(self.M, fx, fy, fz)
+        F = self.M.projectFaceVector(Fc)
+
+        divF = self.M.faceDiv.dot(F)
+        divF_anal = call3(sol, self.M.gridCC)
 
         err = np.linalg.norm((divF-divF_anal), np.inf)
 
@@ -68,17 +77,16 @@ class TestFaceDiv2D(OrderTest):
     meshDimension = 2
 
     def getError(self):
-        DIV = self.M.faceDiv
-
         #Test function
-        fun = lambda x: np.sin(x)
-        Fx = fun(self.M.gridFx[:, 0])
-        Fy = fun(self.M.gridFy[:, 1])
-
-        F = np.concatenate((Fx, Fy))
-        divF = DIV*F
+        fx = lambda x, y: np.sin(x)
+        fy = lambda x, y: np.sin(y)
         sol = lambda x, y: (np.cos(x)+np.cos(y))
-        divF_anal = sol(self.M.gridCC[:, 0], self.M.gridCC[:, 1])
+
+        Fc = cartF2(self.M, fx, fy)
+        F = self.M.projectFaceVector(Fc)
+
+        divF = self.M.faceDiv.dot(F)
+        divF_anal = call2(sol, self.M.gridCC)
 
         err = np.linalg.norm((divF-divF_anal), np.inf)
 
@@ -93,19 +101,19 @@ class TestNodalGrad(OrderTest):
     meshTypes = MESHTYPES
 
     def getError(self):
-        GRAD = self.M.nodalGrad
         #Test function
         fun = lambda x, y, z: (np.cos(x)+np.cos(y)+np.cos(z))
-        sol = lambda x: -np.sin(x)  # i (sin(x)) + j (sin(y)) + k (sin(z))
+        # i (sin(x)) + j (sin(y)) + k (sin(z))
+        solX = lambda x, y, z: -np.sin(x)
+        solY = lambda x, y, z: -np.sin(y)
+        solZ = lambda x, y, z: -np.sin(z)
 
-        phi = fun(self.M.gridN[:, 0], self.M.gridN[:, 1], self.M.gridN[:, 2])
-        gradE = GRAD*phi
+        phi = call3(fun, self.M.gridN)
+        gradE = self.M.nodalGrad.dot(phi)
 
-        Ex = sol(self.M.gridEx[:, 0])
-        Ey = sol(self.M.gridEy[:, 1])
-        Ez = sol(self.M.gridEz[:, 2])
+        Ec = cartE3(self.M, solX, solY, solZ)
+        gradE_anal = self.M.projectEdgeVector(Ec)
 
-        gradE_anal = np.concatenate((Ex, Ey, Ez))
         err = np.linalg.norm((gradE-gradE_anal), np.inf)
 
         return err
@@ -120,18 +128,18 @@ class TestNodalGrad2D(OrderTest):
     meshDimension = 2
 
     def getError(self):
-        GRAD = self.M.nodalGrad
         #Test function
         fun = lambda x, y: (np.cos(x)+np.cos(y))
-        sol = lambda x: -np.sin(x)  # i (sin(x)) + j (sin(y)) + k (sin(z))
+        # i (sin(x)) + j (sin(y)) + k (sin(z))
+        solX = lambda x, y: -np.sin(x)
+        solY = lambda x, y: -np.sin(y)
 
-        phi = fun(self.M.gridN[:, 0], self.M.gridN[:, 1])
-        gradE = GRAD*phi
+        phi = call2(fun, self.M.gridN)
+        gradE = self.M.nodalGrad.dot(phi)
 
-        Ex = sol(self.M.gridEx[:, 0])
-        Ey = sol(self.M.gridEy[:, 1])
+        Ec = cartE2(self.M, solX, solY)
+        gradE_anal = self.M.projectEdgeVector(Ec)
 
-        gradE_anal = np.concatenate((Ex, Ey))
         err = np.linalg.norm((gradE-gradE_anal), np.inf)
 
         return err
