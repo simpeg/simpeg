@@ -23,13 +23,13 @@ class TestCurl(OrderTest):
         # fun: i (cos(y)) + j (cos(z)) + k (cos(x))
         # sol: i (sin(z)) + j (sin(x)) + k (sin(y))
 
-        funX = lambda x, y, z: np.cos(y)
-        funY = lambda x, y, z: np.cos(z)
-        funZ = lambda x, y, z: np.cos(x)
+        funX = lambda x, y, z: np.cos(2*np.pi*y)
+        funY = lambda x, y, z: np.cos(2*np.pi*z)
+        funZ = lambda x, y, z: np.cos(2*np.pi*x)
 
-        solX = lambda x, y, z: np.sin(z)
-        solY = lambda x, y, z: np.sin(x)
-        solZ = lambda x, y, z: np.sin(y)
+        solX = lambda x, y, z: 2*np.pi*np.sin(2*np.pi*z)
+        solY = lambda x, y, z: 2*np.pi*np.sin(2*np.pi*x)
+        solZ = lambda x, y, z: 2*np.pi*np.sin(2*np.pi*y)
 
         Ec = cartE3(self.M, funX, funY, funZ)
         E = self.M.projectEdgeVector(Ec)
@@ -37,9 +37,13 @@ class TestCurl(OrderTest):
         Fc = cartF3(self.M, solX, solY, solZ)
         curlE_anal = self.M.projectFaceVector(Fc)
 
-        # Generate DIV matrix
         curlE = self.M.edgeCurl.dot(E)
-        err = np.linalg.norm((curlE - curlE_anal), np.inf)
+        if self._meshType == 'rotateLOM':
+            # Really it is the integration we should be caring about:
+            # So, let us look at the l2 norm.
+            err = np.linalg.norm(self.M.area*(curlE - curlE_anal), 2)
+        else:
+            err = np.linalg.norm((curlE - curlE_anal), np.inf)
         return err
 
     def test_order(self):
@@ -49,13 +53,14 @@ class TestCurl(OrderTest):
 class TestFaceDiv(OrderTest):
     name = "Face Divergence"
     meshTypes = MESHTYPES
+    meshSizes = [8, 16, 32]
 
     def getError(self):
         #Test function
-        fx = lambda x, y, z: np.sin(x)
-        fy = lambda x, y, z: np.sin(y)
-        fz = lambda x, y, z: np.sin(z)
-        sol = lambda x, y, z: (np.cos(x)+np.cos(y)+np.cos(z))
+        fx = lambda x, y, z: np.sin(2*np.pi*x)
+        fy = lambda x, y, z: np.sin(2*np.pi*y)
+        fz = lambda x, y, z: np.sin(2*np.pi*z)
+        sol = lambda x, y, z: (2*np.pi*np.cos(2*np.pi*x)+2*np.pi*np.cos(2*np.pi*y)+2*np.pi*np.cos(2*np.pi*z))
 
         Fc = cartF3(self.M, fx, fy, fz)
         F = self.M.projectFaceVector(Fc)
@@ -63,8 +68,12 @@ class TestFaceDiv(OrderTest):
         divF = self.M.faceDiv.dot(F)
         divF_anal = call3(sol, self.M.gridCC)
 
-        err = np.linalg.norm((divF-divF_anal), np.inf)
-
+        if self._meshType == 'rotateLOM':
+            # Really it is the integration we should be caring about:
+            # So, let us look at the l2 norm.
+            err = np.linalg.norm(self.M.vol*(divF-divF_anal), 2)
+        else:
+            err = np.linalg.norm((divF-divF_anal), np.inf)
         return err
 
     def test_order(self):
@@ -75,12 +84,13 @@ class TestFaceDiv2D(OrderTest):
     name = "Face Divergence 2D"
     meshTypes = MESHTYPES
     meshDimension = 2
+    meshSizes = [8, 16, 32, 64]
 
     def getError(self):
         #Test function
-        fx = lambda x, y: np.sin(x)
-        fy = lambda x, y: np.sin(y)
-        sol = lambda x, y: (np.cos(x)+np.cos(y))
+        fx = lambda x, y: np.sin(2*np.pi*x)
+        fy = lambda x, y: np.sin(2*np.pi*y)
+        sol = lambda x, y: 2*np.pi*(np.cos(2*np.pi*x)+np.cos(2*np.pi*y))
 
         Fc = cartF2(self.M, fx, fy)
         F = self.M.projectFaceVector(Fc)

@@ -62,7 +62,8 @@ class OrderTest(unittest.TestCase):
     """
 
     name = "Order Test"
-    expectedOrder = 2
+    expectedOrders = 2.  # This can be a list of orders, must be the same length as meshTypes
+    _expectedOrder = 2.
     tolerance = 0.85
     meshSizes = [4, 8, 16, 32]
     meshTypes = ['uniformTensorMesh']
@@ -118,8 +119,19 @@ class OrderTest(unittest.TestCase):
 
 
         """
-        for meshType in self.meshTypes:
+        assert type(self.meshTypes) == list, 'meshTypes must be a list'
+
+        # if we just provide one expected order, repeat it for each mesh type
+        if type(self.expectedOrders) == float or type(self.expectedOrders) == int:
+            self.expectedOrders = [self.expectedOrders for i in self.meshTypes]
+
+        assert type(self.expectedOrders) == list, 'expectedOrders must be a list'
+        assert len(self.expectedOrders) == len(self.meshTypes), 'expectedOrders must have the same length as the meshTypes'
+
+        for ii_meshType, meshType in enumerate(self.meshTypes):
             self._meshType = meshType
+            self._expectedOrder = self.expectedOrders[ii_meshType]
+
             order = []
             err_old = 0.
             max_h_old = 0.
@@ -139,7 +151,7 @@ class OrderTest(unittest.TestCase):
                 err_old = err
                 max_h_old = max_h
             print '---------------------------------------------'
-            passTest = np.mean(np.array(order)) > self.tolerance*self.expectedOrder
+            passTest = np.mean(np.array(order)) > self.tolerance*self._expectedOrder
             if passTest:
                 print ['The test be workin!', 'You get a gold star!', 'Yay passed!', 'Happy little convergence test!', 'That was easy!'][np.random.randint(5)]
             else:
