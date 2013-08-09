@@ -2,10 +2,11 @@ import numpy as np
 from BaseMesh import BaseMesh
 from TensorView import TensorView
 from DiffOperators import DiffOperators
+from InnerProducts import InnerProducts
 from utils import ndgrid, mkvc
 
 
-class TensorMesh(BaseMesh, TensorView, DiffOperators):
+class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
     """
     TensorMesh is a mesh class that deals with tensor product meshes.
 
@@ -21,6 +22,8 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators):
         mesh = TensorMesh([hx, hy, hz])
 
     """
+    _meshType = 'TENSOR'
+
     def __init__(self, h, x0=None):
         super(TensorMesh, self).__init__(np.array([x.size for x in h]), x0)
 
@@ -181,7 +184,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators):
         doc = "Face staggered grid in the y direction."
 
         def fget(self):
-            if self._gridFy is None:
+            if self._gridFy is None and self.dim > 1:
                 self._gridFy = ndgrid([x for x in [self.vectorCCx, self.vectorNy, self.vectorCCz] if not x is None])
             return self._gridFy
         return locals()
@@ -192,7 +195,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators):
         doc = "Face staggered grid in the z direction."
 
         def fget(self):
-            if self._gridFz is None:
+            if self._gridFz is None and self.dim > 2:
                 self._gridFz = ndgrid([x for x in [self.vectorCCx, self.vectorCCy, self.vectorNz] if not x is None])
             return self._gridFz
         return locals()
@@ -214,7 +217,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators):
         doc = "Edge staggered grid in the y direction."
 
         def fget(self):
-            if self._gridEy is None:
+            if self._gridEy is None and self.dim > 1:
                 self._gridEy = ndgrid([x for x in [self.vectorNx, self.vectorCCy, self.vectorNz] if not x is None])
             return self._gridEy
         return locals()
@@ -225,19 +228,12 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators):
         doc = "Edge staggered grid in the z direction."
 
         def fget(self):
-            if self._gridEz is None:
+            if self._gridEz is None and self.dim > 2:
                 self._gridEz = ndgrid([x for x in [self.vectorNx, self.vectorNy, self.vectorCCz] if not x is None])
             return self._gridEz
         return locals()
     _gridEz = None  # Store grid by default
     gridEz = property(**gridEz())
-
-    def getBoundaryIndex(self, gridType):
-        """Needed for faces edges and cells"""
-        pass
-
-    def getCellNumbering(self):
-        pass
 
     # --------------- Geometries ---------------------
     def vol():

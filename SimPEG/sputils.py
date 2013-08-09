@@ -1,10 +1,10 @@
-import numpy as np
 from scipy import sparse as sp
+from utils import mkvc
 
 
 def sdiag(h):
     """Sparse diagonal matrix"""
-    return sp.spdiags(h, 0, np.size(h), np.size(h), format="csr")
+    return sp.spdiags(mkvc(h), 0, h.size, h.size, format="csr")
 
 
 def speye(n):
@@ -22,45 +22,77 @@ def spzeros(n1, n2):
     return sp.coo_matrix((n1, n2)).tocsr()
 
 
-def appendBottom(A, B):
-    """append on bottom"""
-    C = sp.vstack((A, B))
-    C = C.tocsr()
-    return C
+def inv3X3BlockDiagonal(a11, a12, a13, a21, a22, a23, a31, a32, a33):
+    """ B = inv3X3BlockDiagonal(a11, a12, a13, a21, a22, a23, a31, a32, a33)
+
+    inverts a stack of 3x3 matrices
+
+    Input:
+     A   - a11, a12, a13, a21, a22, a23, a31, a32, a33
+
+    Output:
+     B   - inverse
+     """
+
+    a11 = mkvc(a11)
+    a12 = mkvc(a12)
+    a13 = mkvc(a13)
+    a21 = mkvc(a21)
+    a22 = mkvc(a22)
+    a23 = mkvc(a23)
+    a31 = mkvc(a31)
+    a32 = mkvc(a32)
+    a33 = mkvc(a33)
+
+    detA = a31*a12*a23 - a31*a13*a22 - a21*a12*a33 + a21*a13*a32 + a11*a22*a33 - a11*a23*a32
+
+    b11 = +(a22*a33 - a23*a32)/detA
+    b12 = -(a12*a33 - a13*a32)/detA
+    b13 = +(a12*a23 - a13*a22)/detA
+
+    b21 = +(a31*a23 - a21*a33)/detA
+    b22 = -(a31*a13 - a11*a33)/detA
+    b23 = +(a21*a13 - a11*a23)/detA
+
+    b31 = -(a31*a22 - a21*a32)/detA
+    b32 = +(a31*a12 - a11*a32)/detA
+    b33 = -(a21*a12 - a11*a22)/detA
+
+    B = sp.vstack((sp.hstack((sdiag(b11), sdiag(b12),  sdiag(b13))),
+                   sp.hstack((sdiag(b21), sdiag(b22),  sdiag(b23))),
+                   sp.hstack((sdiag(b31), sdiag(b32),  sdiag(b33)))))
+
+    return B
 
 
-def appendBottom3(A, B, C):
-    """append on bottom"""
-    C = appendBottom(appendBottom(A, B), C)
-    C = C.tocsr()
-    return C
+def inv2X2BlockDiagonal(a11, a12, a21, a22):
+    """ B = inv2X2BlockDiagonal(a11, a12, a21, a22)
 
+    Inverts a stack of 2x2 matrices by using the inversion formula
 
-def appendRight(A, B):
-    """append on right"""
-    C = sp.hstack((A, B))
-    C = C.tocsr()
-    return C
+    inv(A) = (1/det(A)) * cof(A)^T
 
+    Input:
+    A   - a11, a12, a13, a21, a22, a23, a31, a32, a33
 
-def appendRight3(A, B, C):
-    """append on right"""
-    C = appendRight(appendRight(A, B), C)
-    C = C.tocsr()
-    return C
+    Output:
+    B   - inverse
+    """
 
+    a11 = mkvc(a11)
+    a12 = mkvc(a12)
+    a21 = mkvc(a21)
+    a22 = mkvc(a22)
 
-def blkDiag(A, B):
-    """blockdigonal"""
-    O12 = sp.coo_matrix((np.shape(A)[0], np.shape(B)[1]))
-    O21 = sp.coo_matrix((np.shape(B)[0], np.shape(A)[1]))
-    C = sp.vstack((sp.hstack((A, O12)), sp.hstack((O21, B))))
-    C = C.tocsr()
-    return C
+    # compute inverse of the determinant.
+    detAinv = 1./(a11*a22 - a21*a12)
 
+    b11 = +detAinv*a22
+    b12 = -detAinv*a12
+    b21 = -detAinv*a21
+    b22 = +detAinv*a11
 
-def blkDiag3(A, B, C):
-    """blockdigonal 3"""
-    ABC = blkDiag(blkDiag(A, B), C)
-    ABC = ABC.tocsr()
-    return ABC
+    B = sp.vstack((sp.hstack((sdiag(b11), sdiag(b12))),
+                   sp.hstack((sdiag(b21), sdiag(b22)))))
+
+    return B

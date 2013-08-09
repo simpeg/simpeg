@@ -50,7 +50,7 @@ class DiffOperators(object):
         Class creates the differential operators that you need!
     """
     def __init__(self):
-        raise Exception('DiffOperators is a base class providing differential operators on meshes and cannot run on its own. Inherit to your favorite  Mesh class.')
+        raise Exception('DiffOperators is a base class providing differential operators on meshes and cannot run on its own. Inherit to your favorite Mesh class.')
 
     def faceDiv():
         doc = "Construct divergence operator (face-stg to cell-centres)."
@@ -168,9 +168,9 @@ class DiffOperators(object):
         def fget(self):
             if(self._edgeCurl is None):
                 # The number of cell centers in each direction
-                n1 = np.size(self.hx)
-                n2 = np.size(self.hy)
-                n3 = np.size(self.hz)
+                n1 = self.nCx
+                n2 = self.nCy
+                n3 = self.nCy
 
                 # Compute lengths of cell edges
                 L = self.edge
@@ -244,6 +244,48 @@ class DiffOperators(object):
         return locals()
     _edgeAve = None
     edgeAve = property(**edgeAve())
+
+    def nodalAve():
+        doc = "Construct the averaging operator on cell nodes to cell centers."
+
+        def fget(self):
+            if(self._nodalAve is None):
+                # The number of cell centers in each direction
+                n = self.n
+                if(self.dim == 1):
+                    self._nodalAve = av(n[0])
+                elif(self.dim == 2):
+                    self._nodalAve = sp.hstack((sp.kron(av(n[1]), av(n[0])),
+                                                sp.kron(av(n[1]), av(n[0]))), format="csr")
+                elif(self.dim == 3):
+                    self._nodalAve = sp.hstack((kron3(av(n[2]), av(n[1]), av(n[0])),
+                                                kron3(av(n[2]), av(n[1]), av(n[0])),
+                                                kron3(av(n[2]), av(n[1]), av(n[0]))), format="csr")
+            return self._nodalAve
+        return locals()
+    _nodalAve = None
+    nodalAve = property(**nodalAve())
+
+    def nodalVectorAve():
+        doc = "Construct the averaging operator on cell nodes to cell centers, keeping each dimension seperate."
+
+        def fget(self):
+            if(self._nodalVectorAve is None):
+                # The number of cell centers in each direction
+                n = self.n
+                if(self.dim == 1):
+                    self._nodalVectorAve = av(n[0])
+                elif(self.dim == 2):
+                    self._nodalVectorAve = sp.block_diag((sp.kron(av(n[1]), av(n[0])),
+                                                          sp.kron(av(n[1]), av(n[0]))), format="csr")
+                elif(self.dim == 3):
+                    self._nodalVectorAve = sp.block_diag((kron3(av(n[2]), av(n[1]), av(n[0])),
+                                                          kron3(av(n[2]), av(n[1]), av(n[0])),
+                                                          kron3(av(n[2]), av(n[1]), av(n[0]))), format="csr")
+            return self._nodalVectorAve
+        return locals()
+    _nodalVectorAve = None
+    nodalVectorAve = property(**nodalVectorAve())
 
     def getEdgeMass(self, materialProp=None):
         """mass matix for products of edge functions w'*M(materialProp)*e"""
