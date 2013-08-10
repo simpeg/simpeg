@@ -1,7 +1,6 @@
 import numpy as np
 from scipy import sparse as sp
-from sputils import sdiag, speye, kron3, spzeros
-from utils import mkvc
+from utils import mkvc, sdiag, speye, kron3, spzeros
 
 
 def ddx(n):

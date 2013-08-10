@@ -1,6 +1,5 @@
 from scipy import sparse as sp
-from sputils import sdiag, inv3X3BlockDiagonal, inv2X2BlockDiagonal
-from utils import sub2ind, ndgrid, mkvc, getSubArray
+from utils import sub2ind, ndgrid, mkvc, getSubArray, sdiag, inv3X3BlockDiagonal, inv2X2BlockDiagonal
 import numpy as np
 
 

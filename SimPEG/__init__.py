@@ -1,4 +1,3 @@
 from TensorMesh import TensorMesh
 from LogicallyOrthogonalMesh import LogicallyOrthogonalMesh
 import utils
-from exampleGrid import exampleLomGird
