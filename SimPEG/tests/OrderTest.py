@@ -1,6 +1,6 @@
 import sys
 sys.path.append('../../')
-from SimPEG import TensorMesh, utils, LogicallyOrthogonalMesh, exampleLomGird
+from SimPEG import TensorMesh, utils, LogicallyOrthogonalMesh
 import numpy as np
 import unittest
 
@@ -100,10 +100,10 @@ class OrderTest(unittest.TestCase):
             else:
                 raise Exception('Unexpected meshType')
             if self.meshDimension == 2:
-                X, Y = exampleLomGird([nc, nc], kwrd)
+                X, Y = utils.exampleLomGird([nc, nc], kwrd)
                 self.M = LogicallyOrthogonalMesh([X, Y])
             if self.meshDimension == 3:
-                X, Y, Z = exampleLomGird([nc, nc, nc], kwrd)
+                X, Y, Z = utils.exampleLomGird([nc, nc, nc], kwrd)
                 self.M = LogicallyOrthogonalMesh([X, Y, Z])
             return 1./nc
 

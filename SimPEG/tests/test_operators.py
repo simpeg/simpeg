@@ -1,7 +1,5 @@
 import numpy as np
 import unittest
-import sys
-sys.path.append('../')
 from OrderTest import OrderTest
 
 MESHTYPES = ['uniformTensorMesh', 'uniformLOM', 'rotateLOM']
