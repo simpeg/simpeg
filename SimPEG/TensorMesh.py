@@ -2,10 +2,11 @@ import numpy as np
 from BaseMesh import BaseMesh
 from TensorView import TensorView
 from DiffOperators import DiffOperators
+from InnerProducts import InnerProducts
 from utils import ndgrid, mkvc
 
 
-class TensorMesh(BaseMesh, TensorView, DiffOperators):
+class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
     """
     TensorMesh is a mesh class that deals with tensor product meshes.
 
@@ -21,6 +22,8 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators):
         mesh = TensorMesh([hx, hy, hz])
 
     """
+    _meshType = 'TENSOR'
+
     def __init__(self, h, x0=None):
         super(TensorMesh, self).__init__(np.array([x.size for x in h]), x0)
 
@@ -32,6 +35,57 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators):
 
         # Ensure h contains 1D vectors
         self._h = [mkvc(x) for x in h]
+
+    def __str__(self):
+        outStr = '  ---- {0:d}-D TensorMesh ----  '.format(self.dim)
+        def printH(hx, outStr=''):
+            i = -1
+            while True:
+                i = i + 1
+                if i > hx.size:
+                    break
+                elif i == hx.size:
+                    break
+                h = hx[i]
+                n = 1
+                for j in range(i+1, hx.size):
+                    if hx[j] == h:
+                        n = n + 1
+                        i = i + 1
+                    else:
+                        break
+
+                if n == 1:
+                    outStr = outStr + ' {0:.2f},'.format(h)
+                else:
+                    outStr = outStr + ' {0:d}*{1:.2f},'.format(n,h)
+
+            return outStr[:-1]
+        
+        if self.dim == 1:
+            outStr = outStr + '\n   x0: {0:.2f}'.format(self.x0[0])
+            outStr = outStr + '\n  nCx: {0:d}'.format(self.nCx)
+            outStr = outStr + printH(self.hx, outStr='\n   hx:')
+            pass
+        elif self.dim == 2:
+            outStr = outStr + '\n   x0: {0:.2f}'.format(self.x0[0])
+            outStr = outStr + '\n   y0: {0:.2f}'.format(self.x0[1])
+            outStr = outStr + '\n  nCx: {0:d}'.format(self.nCx)
+            outStr = outStr + '\n  nCy: {0:d}'.format(self.nCy)
+            outStr = outStr + printH(self.hx, outStr='\n   hx:')
+            outStr = outStr + printH(self.hy, outStr='\n   hy:')
+        elif self.dim == 3:
+            outStr = outStr + '\n   x0: {0:.2f}'.format(self.x0[0])
+            outStr = outStr + '\n   y0: {0:.2f}'.format(self.x0[1])
+            outStr = outStr + '\n   z0: {0:.2f}'.format(self.x0[2])
+            outStr = outStr + '\n  nCx: {0:d}'.format(self.nCx)
+            outStr = outStr + '\n  nCy: {0:d}'.format(self.nCy)
+            outStr = outStr + '\n  nCz: {0:d}'.format(self.nCz)
+            outStr = outStr + printH(self.hx, outStr='\n   hx:')
+            outStr = outStr + printH(self.hy, outStr='\n   hy:')
+            outStr = outStr + printH(self.hz, outStr='\n   hz:')
+
+        return outStr
 
     def h():
         doc = "h is a list containing the cell widths of the tensor mesh in each dimension."
@@ -130,7 +184,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators):
         doc = "Face staggered grid in the y direction."
 
         def fget(self):
-            if self._gridFy is None:
+            if self._gridFy is None and self.dim > 1:
                 self._gridFy = ndgrid([x for x in [self.vectorCCx, self.vectorNy, self.vectorCCz] if not x is None])
             return self._gridFy
         return locals()
@@ -141,7 +195,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators):
         doc = "Face staggered grid in the z direction."
 
         def fget(self):
-            if self._gridFz is None:
+            if self._gridFz is None and self.dim > 2:
                 self._gridFz = ndgrid([x for x in [self.vectorCCx, self.vectorCCy, self.vectorNz] if not x is None])
             return self._gridFz
         return locals()
@@ -163,7 +217,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators):
         doc = "Edge staggered grid in the y direction."
 
         def fget(self):
-            if self._gridEy is None:
+            if self._gridEy is None and self.dim > 1:
                 self._gridEy = ndgrid([x for x in [self.vectorNx, self.vectorCCy, self.vectorNz] if not x is None])
             return self._gridEy
         return locals()
@@ -174,19 +228,12 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators):
         doc = "Edge staggered grid in the z direction."
 
         def fget(self):
-            if self._gridEz is None:
+            if self._gridEz is None and self.dim > 2:
                 self._gridEz = ndgrid([x for x in [self.vectorNx, self.vectorNy, self.vectorCCz] if not x is None])
             return self._gridEz
         return locals()
     _gridEz = None  # Store grid by default
     gridEz = property(**gridEz())
-
-    def getBoundaryIndex(self, gridType):
-        """Needed for faces edges and cells"""
-        pass
-
-    def getCellNumbering(self):
-        pass
 
     # --------------- Geometries ---------------------
     def vol():

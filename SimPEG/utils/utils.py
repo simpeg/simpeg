@@ -1,10 +1,6 @@
 import numpy as np
 
 
-def reshapeF(x, size):
-    return np.reshape(x, size, order='F')
-
-
 def mkvc(x, numDims=1):
     """Creates a vector with the number of dimension specified
 
@@ -22,6 +18,9 @@ def mkvc(x, numDims=1):
             > (3, 1, 1)
 
     """
+    if type(x) == np.matrix:
+        x = np.array(x)
+
     assert type(x) == np.ndarray, "Vector must be a numpy array"
 
     if numDims == 1:
@@ -97,3 +96,45 @@ def ndgrid(*args, **kwargs):
             return np.c_[X1, X2, X3]
         else:
             return XYZ[2], XYZ[1], XYZ[0]
+
+
+def ind2sub(shape, ind):
+    """From the given shape, returns the subscrips of the given index"""
+    revshp = []
+    revshp.extend(shape)
+    mult = [1]
+    for i in range(0, len(revshp)-1):
+        mult.extend([mult[i]*revshp[i]])
+    mult = np.array(mult).reshape(len(mult))
+
+    sub = []
+
+    for i in range(0, len(shape)):
+        sub.extend([np.math.floor(ind / mult[i])])
+        ind = ind - (np.math.floor(ind/mult[i]) * mult[i])
+    return sub
+
+
+def sub2ind(shape, subs):
+    """From the given shape, returns the index of the given subscript"""
+    revshp = list(shape)
+    mult = [1]
+    for i in range(0, len(revshp)-1):
+        mult.extend([mult[i]*revshp[i]])
+    mult = np.array(mult).reshape(len(mult), 1)
+
+    idx = np.dot((subs), (mult))
+    return idx
+
+
+def getSubArray(A, ind):
+    """subArray"""
+    assert type(ind) == list, "ind must be a list of vectors"
+    assert len(A.shape) == len(ind), "ind must have the same length as the dimension of A"
+
+    if len(A.shape) == 2:
+        return A[ind[0], :][:, ind[1]]
+    elif len(A.shape) == 3:
+        return A[ind[0], :, :][:, ind[1], :][:, :, ind[2]]
+    else:
+        raise Exception("getSubArray does not support dimension asked.")
