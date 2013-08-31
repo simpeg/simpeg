@@ -8,21 +8,21 @@ from utils import ndgrid, mkvc
 
 class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
     """
-TensorMesh is a mesh class that deals with tensor product meshes.
+    TensorMesh is a mesh class that deals with tensor product meshes.
 
-Any Mesh that has a constant width along the entire axis
-such that it can defined by a single width vector, called 'h'.
+    Any Mesh that has a constant width along the entire axis
+    such that it can defined by a single width vector, called 'h'.
 
-::
+    ::
 
-    hx = np.array([1,1,1])
-    hy = np.array([1,2])
-    hz = np.array([1,1,1,1])
+        hx = np.array([1,1,1])
+        hy = np.array([1,2])
+        hz = np.array([1,1,1,1])
 
-    mesh = TensorMesh([hx, hy, hz])
+        mesh = TensorMesh([hx, hy, hz])
 
-.. math::
-    x^2 = 5
+    .. math::
+        x^2 = 5
 
     """
     _meshType = 'TENSOR'

@@ -1,5 +1,5 @@
 from scipy import sparse as sp
-from utils import mkvc
+from matutils import mkvc
 
 
 def sdiag(h):
