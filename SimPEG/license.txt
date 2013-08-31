@@ -1,6 +1,6 @@
 The MIT License (MIT)
 
-Copyright (c) 2013 Eldad Haber, Rowan Cockett, Lars Ruthotto, Dave Marchant, Seogi Kang, Luz Angelica Caudillo Mata
+Copyright (c) 2013 SimPEG Developers
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
