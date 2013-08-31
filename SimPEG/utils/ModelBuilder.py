@@ -1,6 +1,4 @@
 import numpy as np
-import TensorMesh as tm
-import TensorView as tv
 
 
 def getIndecesBlock(p0,p1,ccMesh):
@@ -129,6 +127,10 @@ def scalarConductivity(ccMesh,pFunction):
 
 if __name__ == '__main__':
 
+    import sys
+    sys.path.append('../')
+    from TensorMesh import TensorMesh
+
     # Define the mesh
 
     testDim = 3
@@ -148,7 +150,7 @@ if __name__ == '__main__':
     else:
         h = [h1, h2, h3]
 
-    M = tm.TensorMesh(h, x0)
+    M = TensorMesh(h, x0)
 
     ccMesh = M.gridCC
 
