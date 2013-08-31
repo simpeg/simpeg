@@ -3,31 +3,12 @@ from utils import mkvc
 
 
 class BaseMesh(object):
-    """BaseMesh does all the counting you don't want to do.
+    """
+    BaseMesh does all the counting you don't want to do.
+    BaseMesh should be inherited by meshes with a regular structure.
 
-    x0          origin                    ndarray   (dim, )
-    n           number of cells           ndarray   (dim, )
-    dim         dimension of mesh         int       1, 2, or 3
-
-    nCx         num cells in x dir        int
-    nCy         num cells in y dir        int
-    nCz         num cells in z dir        int
-    nC          total number of cells     int
-
-    nNx         num nodes in x dir        int
-    nNy         num nodes in y dir        int
-    nNz         num nodes in z dir        int
-    nN          total number of nodes     int
-
-    nEx         num edges in x dir        ndarray   [nEx_x, nEx_y, nEx_z]
-    nEy         num edges in y dir        ndarray   [nEy_x, nEy_y, nEy_z]
-    nEz         num edges in z dir        ndarray   [nEz_x, nEz_y, nEz_z]
-    nE          total number of edges     ndarray   (dim, )
-
-    nFx         num faces in x dir        ndarray   [nFx_x, nFx_y, nFx_z]
-    nFy         num faces in y dir        ndarray   [nFy_x, nFy_y, nFy_z]
-    nFz         num faces in z dir        ndarray   [nFz_x, nFz_y, nFz_z]
-    nF          total number of faces     ndarray   (dim, )
+    :param numpy.array,list n: number of cells in each direction (dim, )
+    :param numpy.array,list x0: Origin of the mesh (dim, )
 
     """
     def __init__(self, n, x0=None):
@@ -48,7 +29,12 @@ class BaseMesh(object):
         self._dim = len(n)
 
     def x0():
-        doc = "Origin of the mesh"
+        doc = """
+        Origin of the mesh
+
+        :rtype: numpy.array (dim, )
+        :return: x0
+        """
         fget = lambda self: self._x0
         return locals()
     x0 = property(**x0())
@@ -161,25 +147,45 @@ class BaseMesh(object):
             return switchKernal(x)
 
     def n():
-        doc = "Number of Cells in each dimension (array of integers)"
+        doc = """
+        Number of Cells in each dimension (array of integers)
+
+        :rtype: numpy.array
+        :return: n
+        """
         fget = lambda self: self._n
         return locals()
     n = property(**n())
 
     def dim():
-        doc = "The dimension of the mesh (1, 2, or 3)."
+        doc = """
+        The dimension of the mesh (1, 2, or 3).
+
+        :rtype: int
+        :return: dim
+        """
         fget = lambda self: self._dim
         return locals()
     dim = property(**dim())
 
     def nCx():
-        doc = "Number oc cells in the x direction"
+        doc = """
+        Number of cells in the x direction
+
+        :rtype: int
+        :return: nCx
+        """
         fget = lambda self: self.n[0]
         return locals()
     nCx = property(**nCx())
 
     def nCy():
-        doc = "Number of cells in the y direction"
+        doc = """
+        Number of cells in the y direction
+
+        :rtype: int
+        :return: nCy or None if dim < 2
+        """
 
         def fget(self):
             if self.dim > 1:
@@ -190,7 +196,11 @@ class BaseMesh(object):
     nCy = property(**nCy())
 
     def nCz():
-        doc = "Number of cells in the z direction"
+        doc = """Number of cells in the z direction
+
+        :rtype: int
+        :return: nCz or None if dim < 3
+        """
 
         def fget(self):
             if self.dim > 2:
@@ -201,19 +211,34 @@ class BaseMesh(object):
     nCz = property(**nCz())
 
     def nC():
-        doc = "Total number of cells"
+        doc = """
+        Total number of cells in the model.
+
+        :rtype: int
+        :return: nC
+        """
         fget = lambda self: np.prod(self.n)
         return locals()
     nC = property(**nC())
 
     def nNx():
-        doc = "Number of nodes in the x-direction"
+        doc = """
+        Number of nodes in the x-direction
+
+        :rtype: int
+        :return: nNx
+        """
         fget = lambda self: self.nCx + 1
         return locals()
     nNx = property(**nNx())
 
     def nNy():
-        doc = "Number of noes in the y-direction"
+        doc = """
+        Number of noes in the y-direction
+
+        :rtype: int
+        :return: nNy or None if dim < 2
+        """
 
         def fget(self):
             if self.dim > 1:
@@ -224,7 +249,12 @@ class BaseMesh(object):
     nNy = property(**nNy())
 
     def nNz():
-        doc = "Number of nodes in the z-direction"
+        doc = """
+        Number of nodes in the z-direction
+
+        :rtype: int
+        :return: nNz or None if dim < 3
+        """
 
         def fget(self):
             if self.dim > 2:
@@ -235,19 +265,34 @@ class BaseMesh(object):
     nNz = property(**nNz())
 
     def nN():
-        doc = "Total number of nodes"
+        doc = """
+        Total number of nodes
+
+        :rtype: int
+        :return: nN
+        """
         fget = lambda self: np.prod(self.n + 1)
         return locals()
     nN = property(**nN())
 
     def nEx():
-        doc = "Number of x-edges"
+        doc = """
+        Number of x-edges in each direction
+
+        :rtype: numpy.array (dim, )
+        :return: nEx
+        """
         fget = lambda self: np.array([x for x in [self.nCx, self.nNy, self.nNz] if not x is None])
         return locals()
     nEx = property(**nEx())
 
     def nEy():
-        doc = "Number of y-edges"
+        doc = """
+        Number of y-edges in each direction
+
+        :rtype: numpy.array (dim, )
+        :return: nEy or None if dim < 2
+        """
 
         def fget(self):
             if self.dim > 1:
@@ -258,7 +303,12 @@ class BaseMesh(object):
     nEy = property(**nEy())
 
     def nEz():
-        doc = "Number of z-edges"
+        doc = """
+        Number of z-edges in each direction
+
+        :rtype: numpy.array (dim, )
+        :return: nEz or None if dim < 3
+        """
 
         def fget(self):
             if self.dim > 2:
@@ -269,19 +319,34 @@ class BaseMesh(object):
     nEz = property(**nEz())
 
     def nE():
-        doc = "Total number of edges"
+        doc = """
+        Total number of edges in each direction
+
+        :rtype: numpy.array (dim, )
+        :return: [prod(nEx), prod(nEy), prod(nEz)]
+        """
         fget = lambda self: np.array([np.prod(x) for x in [self.nEx, self.nEy, self.nEz] if not x is None])
         return locals()
     nE = property(**nE())
 
     def nFx():
-        doc = "Number of x-faces"
+        doc = """
+        Number of x-faces in each direction
+
+        :rtype: numpy.array (dim, )
+        :return: nFx
+        """
         fget = lambda self: np.array([x for x in [self.nNx, self.nCy, self.nCz] if not x is None])
         return locals()
     nFx = property(**nFx())
 
     def nFy():
-        doc = "Number of y-faces"
+        doc = """
+        Number of y-faces in each direction
+
+        :rtype: numpy.array (dim, )
+        :return: nFy or None if dim < 2
+        """
 
         def fget(self):
             if self.dim > 1:
@@ -292,7 +357,12 @@ class BaseMesh(object):
     nFy = property(**nFy())
 
     def nFz():
-        doc = "Number of z-faces"
+        doc = """
+        Number of z-faces in each direction
+
+        :rtype: numpy.array (dim, )
+        :return: nFz or None if dim < 3
+        """
 
         def fget(self):
             if self.dim > 2:
@@ -303,13 +373,23 @@ class BaseMesh(object):
     nFz = property(**nFz())
 
     def nF():
-        doc = "Total number of faces in each dimension"
+        doc = """
+        Total number of faces in each direction
+
+        :rtype: numpy.array (dim, )
+        :return: [prod(nFx), prod(nFy), prod(nFz)]
+        """
         fget = lambda self: np.array([np.prod(x) for x in [self.nFx, self.nFy, self.nFz] if not x is None])
         return locals()
     nF = property(**nF())
 
     def normals():
-        doc = "Face Normals"
+        doc = """
+        Face Normals
+
+        :rtype: numpy.array (sum(nF), dim)
+        :return: normals
+        """
 
         def fget(self):
             if self.dim == 2:
@@ -325,7 +405,12 @@ class BaseMesh(object):
     normals = property(**normals())
 
     def tangents():
-        doc = "Edge Tangents"
+        doc = """
+        Edge Tangents
+
+        :rtype: numpy.array (sum(nE), dim)
+        :return: normals
+        """
 
         def fget(self):
             if self.dim == 2:

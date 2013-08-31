@@ -24,9 +24,7 @@ Contents
 
    api_BaseMesh
    api_TensorMesh
-
-.. plot:: examples/mesh/plot_grid.py
-   :include-source:
+   api_TensorView
 
 
 Project Index & Search

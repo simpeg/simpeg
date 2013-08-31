@@ -13,7 +13,7 @@ class TensorView(object):
     def __init__(self):
         pass
 
-    def plotImage(self, I, imageType='CC', figNum=1,ax=None,direction='z',numbering=True,annotationColor='w'):
+    def plotImage(self, I, imageType='CC', figNum=1,ax=None,direction='z',numbering=True,annotationColor='w',showIt=False):
         """
         Mesh.plotImage(I)
 
@@ -164,11 +164,19 @@ class TensorView(object):
                                 ax.text((ix+1)*self.vectorNx[-1]-pad,(iy)*self.vectorNy[-1]+pad,
                                          '#%i'%iz,color=annotationColor,verticalalignment='bottom',horizontalalignment='right',size='x-large')
 
-        plt.show()
+        if showIt: plt.show()
         return ph
 
-    def plotGrid(self):
-        """Plot the nodal, cell-centered and staggered grids for 1,2 and 3 dimensions."""
+    def plotGrid(self, showIt=False):
+        """Plot the nodal, cell-centered and staggered grids for 1,2 and 3 dimensions.
+
+
+        .. plot:: examples/mesh/plot_grid_2D.py
+           :include-source:
+
+        .. plot:: examples/mesh/plot_grid_3D.py
+           :include-source:
+        """
         if self.dim == 1:
             fig = plt.figure(1)
             fig.clf()
@@ -182,7 +190,7 @@ class TensorView(object):
             ax.grid(True)
             ax.hold(False)
             ax.set_xlabel('x1')
-            plt.show()
+            if showIt: plt.show()
         elif self.dim == 2:
             fig = plt.figure(2)
             fig.clf()
@@ -201,7 +209,7 @@ class TensorView(object):
             ax.hold(False)
             ax.set_xlabel('x1')
             ax.set_ylabel('x2')
-            plt.show()
+            if showIt: plt.show()
         elif self.dim == 3:
             fig = plt.figure(3)
             fig.clf()
@@ -230,4 +238,4 @@ class TensorView(object):
             ax.set_xlabel('x1')
             ax.set_ylabel('x2')
             ax.set_zlabel('x3')
-            plt.show()
+            if showIt: plt.show()
