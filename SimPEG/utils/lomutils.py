@@ -1,6 +1,6 @@
 import numpy as np
 from scipy import sparse as sp
-from utils import mkvc, ndgrid, sub2ind
+from matutils import mkvc, ndgrid, sub2ind
 from sputils import sdiag
 
 

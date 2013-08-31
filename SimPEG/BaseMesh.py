@@ -59,22 +59,22 @@ class BaseMesh(object):
 
         For example, you have a face variable, and you want the x component of it reshaped to a 3D matrix.
 
-        Mesh.r can fulfil your dreams...
+        Mesh.r can fulfil your dreams::
 
-        mesh.r(V, 'F', 'Fx', 'M')
-               |   |     |    { How: 'M' or ['V'] for a matrix (ndgrid style) or a vector (n x dim) }
-               |   |     { What you want: ['CC'], 'N', 'F', 'Fx', 'Fy', 'Fz', 'E', 'Ex', 'Ey', or 'Ez' }
-               |   { What is it: ['CC'], 'N', 'F', 'Fx', 'Fy', 'Fz', 'E', 'Ex', 'Ey', or 'Ez' }
-               { The input: as a list or ndarray }
+            mesh.r(V, 'F', 'Fx', 'M')
+                   |   |     |    { How: 'M' or ['V'] for a matrix (ndgrid style) or a vector (n x dim) }
+                   |   |     { What you want: ['CC'], 'N', 'F', 'Fx', 'Fy', 'Fz', 'E', 'Ex', 'Ey', or 'Ez' }
+                   |   { What is it: ['CC'], 'N', 'F', 'Fx', 'Fy', 'Fz', 'E', 'Ex', 'Ey', or 'Ez' }
+                   { The input: as a list or ndarray }
 
 
-        For example:
+        For example::
 
-                Xex, Yex, Zex = r(mesh.gridEx, 'Ex', 'Ex', 'M')  # Separates each component of the Ex grid into 3 matrices
+            Xex, Yex, Zex = r(mesh.gridEx, 'Ex', 'Ex', 'M')  # Separates each component of the Ex grid into 3 matrices
 
-                XedgeVector = r(edgeVector, 'E', 'Ex', 'V')  # Given an edge vector, this will return just the part on the x edges as a vector
+            XedgeVector = r(edgeVector, 'E', 'Ex', 'V')  # Given an edge vector, this will return just the part on the x edges as a vector
 
-                eX, eY, eZ = r(edgeVector, 'E', 'E', 'V')  # Separates each component of the edgeVector into 3 vectors
+            eX, eY, eZ = r(edgeVector, 'E', 'E', 'V')  # Separates each component of the edgeVector into 3 vectors
         """
 
         assert (type(x) == list or type(x) == np.ndarray), "x must be either a list or a ndarray"
@@ -341,18 +341,25 @@ class BaseMesh(object):
     tangents = property(**tangents())
 
     def projectFaceVector(self, fV):
-        """Given a vector, fV, in cartesian coordinates, this will project it onto the mesh using the normals"""
+        """
+        Given a vector, fV, in cartesian coordinates, this will project it onto the mesh using the normals
+
+        :param numpy.array fV: face vector with shape (nF, dim)
+        :rtype: numpy.array with shape (nF, )
+        :return: projected face vector
+        """
         assert type(fV) == np.ndarray, 'fV must be an ndarray'
         assert len(fV.shape) == 2 and fV.shape[0] == np.sum(self.nF) and fV.shape[1] == self.dim, 'fV must be an ndarray of shape (nF x dim)'
         return np.sum(fV*self.normals, 1)
 
     def projectEdgeVector(self, eV):
-        """Given a vector, eV, in cartesian coordinates, this will project it onto the mesh using the tangents"""
+        """
+        Given a vector, eV, in cartesian coordinates, this will project it onto the mesh using the tangents
+
+        :param numpy.array eV: edge vector with shape (nE, dim)
+        :rtype: numpy.array with shape (nE, )
+        :return: projected edge vector
+        """
         assert type(eV) == np.ndarray, 'eV must be an ndarray'
         assert len(eV.shape) == 2 and eV.shape[0] == np.sum(self.nE) and eV.shape[1] == self.dim, 'eV must be an ndarray of shape (nE x dim)'
         return np.sum(eV*self.tangents, 1)
-
-
-if __name__ == '__main__':
-    m = BaseMesh([3, 2, 4])
-    print m.n

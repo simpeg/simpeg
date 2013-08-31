@@ -13,7 +13,7 @@ class TensorView(object):
     def __init__(self):
         pass
 
-    def plotImage(self, I, imageType='CC', figNum=1,ax=None,direction='z',numbering=True):
+    def plotImage(self, I, imageType='CC', figNum=1,ax=None,direction='z',numbering=True,annotationColor='w'):
         """
         Mesh.plotImage(I)
 
@@ -124,12 +124,13 @@ class TensorView(object):
                 # determine number oE slices in x and y dimension
                 nX = np.ceil(np.sqrt(self.nCz))
                 nY = np.ceil(self.nCz/nX)
+
                 #  allocate space for montage
-                C = np.zeros((nX*self.nCx,nY*self.nCz))
-
-
                 nCx = self.nCx
                 nCy = self.nCy
+
+                C = np.zeros((nX*nCx,nY*nCy))
+
                 for iy in range(int(nY)):
                     for ix in range(int(nX)):
                         iz = ix + iy*nX
@@ -141,17 +142,18 @@ class TensorView(object):
                 C = np.ma.masked_where(np.isnan(C), C)
                 xx = np.r_[0, np.cumsum(np.kron(np.ones((nX, 1)), self.hx).ravel())]
                 yy = np.r_[0, np.cumsum(np.kron(np.ones((nY, 1)), self.hy).ravel())]
+                # Plot the mesh
                 ph = ax.pcolormesh(xx, yy, C.T)
                 # Plot the lines
-                gx = np.r_[0, np.cumsum(np.kron(np.ones((nX, 1)), np.sum(self.hy)).ravel())]
-                gy = np.r_[0, np.cumsum(np.kron(np.ones((nY, 1)), np.sum(self.hx)).ravel())]
+                gx =  np.arange(nX+1)*self.vectorNx[-1]
+                gy =  np.arange(nY+1)*self.vectorNy[-1]
                 # Repeat and seperate with NaN
                 gxX = np.c_[gx, gx, gx+np.nan].ravel()
                 gxY = np.kron(np.ones((nX+1, 1)), np.array([0, sum(self.hy)*nY, np.nan])).ravel()
                 gyX = np.kron(np.ones((nY+1, 1)), np.array([0, sum(self.hx)*nX, np.nan])).ravel()
                 gyY = np.c_[gy, gy, gy+np.nan].ravel()
-                ax.plot(gxX, gxY, 'w-', linewidth=2)
-                ax.plot(gyX, gyY, 'w-', linewidth=2)
+                ax.plot(gxX, gxY, annotationColor+'-', linewidth=2)
+                ax.plot(gyX, gyY, annotationColor+'-', linewidth=2)
 
                 if numbering:
                     pad = np.sum(self.hx)*0.04
@@ -160,9 +162,9 @@ class TensorView(object):
                             iz = ix + iy*nX
                             if iz < self.nCz:
                                 ax.text((ix+1)*self.vectorNx[-1]-pad,(iy)*self.vectorNy[-1]+pad,
-                                         '#%i'%iz,color='w',verticalalignment='bottom',horizontalalignment='right',size='x-large')
+                                         '#%i'%iz,color=annotationColor,verticalalignment='bottom',horizontalalignment='right',size='x-large')
 
-        fig.show()
+        plt.show()
         return ph
 
     def plotGrid(self):
@@ -180,7 +182,7 @@ class TensorView(object):
             ax.grid(True)
             ax.hold(False)
             ax.set_xlabel('x1')
-            fig.show()
+            plt.show()
         elif self.dim == 2:
             fig = plt.figure(2)
             fig.clf()
@@ -199,7 +201,7 @@ class TensorView(object):
             ax.hold(False)
             ax.set_xlabel('x1')
             ax.set_ylabel('x2')
-            fig.show()
+            plt.show()
         elif self.dim == 3:
             fig = plt.figure(3)
             fig.clf()
@@ -228,4 +230,4 @@ class TensorView(object):
             ax.set_xlabel('x1')
             ax.set_ylabel('x2')
             ax.set_zlabel('x3')
-            fig.show()
+            plt.show()

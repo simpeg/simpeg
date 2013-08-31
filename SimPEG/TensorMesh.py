@@ -13,13 +13,16 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
     Any Mesh that has a constant width along the entire axis
     such that it can defined by a single width vector, called 'h'.
 
-    e.g.
+    ::
 
         hx = np.array([1,1,1])
         hy = np.array([1,2])
         hz = np.array([1,1,1,1])
 
         mesh = TensorMesh([hx, hy, hz])
+
+    .. math::
+        x^2 = 5
 
     """
     _meshType = 'TENSOR'
@@ -61,7 +64,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
                     outStr = outStr + ' {0:d}*{1:.2f},'.format(n,h)
 
             return outStr[:-1]
-        
+
         if self.dim == 1:
             outStr = outStr + '\n   x0: {0:.2f}'.format(self.x0[0])
             outStr = outStr + '\n  nCx: {0:d}'.format(self.nCx)

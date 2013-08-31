@@ -2,8 +2,7 @@ import numpy as np
 import unittest
 import sys
 sys.path.append('../')
-from utils import mkvc, ndgrid, indexCube
-from sputils import sdiag, inv3X3BlockDiagonal, inv2X2BlockDiagonal, sp
+from utils import mkvc, ndgrid, indexCube, sdiag, inv3X3BlockDiagonal, inv2X2BlockDiagonal
 
 
 class TestSequenceFunctions(unittest.TestCase):
@@ -64,6 +63,7 @@ class TestSequenceFunctions(unittest.TestCase):
         self.assertTrue(np.all(indexCube('H', nN) == np.array([10, 11, 13, 14, 19, 20, 22, 23])))
 
     def test_invXXXBlockDiagonal(self):
+        import scipy.sparse as sp
 
         a = [np.random.rand(5, 1) for i in range(4)]
 
