@@ -258,17 +258,16 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators, InnerProducts, LomView):
     area = property(**area())
 
     def normals():
-        doc = """
-Face normals: calling this will average
-the computed normals so that there is one
-per face. This is especially relevant in
-3D, as there are up to 4 different normals
-for each face that will be different.
+        doc = """Face normals: calling this will average
+        the computed normals so that there is one
+        per face. This is especially relevant in
+        3D, as there are up to 4 different normals
+        for each face that will be different.
 
-To reshape the normals into a matrix and get the y component:
+        To reshape the normals into a matrix and get the y component:
 
-NyX, NyY, NyZ = M.r(M.normals, 'F', 'Fy', 'M')
-"""
+        NyX, NyY, NyZ = M.r(M.normals, 'F', 'Fy', 'M')
+        """
 
         def fget(self):
             if(self._normals is None):
