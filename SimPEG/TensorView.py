@@ -13,7 +13,7 @@ class TensorView(object):
     def __init__(self):
         pass
 
-    def plotImage(self, I, imageType='CC', figNum=1,ax=None,direction='z',numbering=True,annotationColor='w'):
+    def plotImage(self, I, imageType='CC', figNum=1,ax=None,direction='z',numbering=True,annotationColor='w',showIt=False):
         """
         Mesh.plotImage(I)
 
@@ -21,15 +21,23 @@ class TensorView(object):
 
         Input:
 
-            I           - scalar field (np.array)
+        :param numpy.array I: scalar field
 
         Optional Input:
 
-            imageType   - type of image ('CC','N','Fx','Fy','Fz','Ex','Ey','Ez')
-            figNum      - number of figure to plot to
-            ax          - axis to plot to
-            direction   - 3D only. slice dimensions
-            numbering   - 3D only. show numbering of slices
+        :param str imageType: type of image ('CC','N','Fx','Fy','Fz','Ex','Ey','Ez')
+        :param int figNum: number of figure to plot to
+        :param matplotlib.axes.Axes ax: axis to plot to
+        :param str direction: slice dimensions, 3D only ('x', 'y', 'z')
+        :param bool numbering: show numbering of slices, 3D only
+        :param str annotationColor: color of annotation, e.g. 'w', 'k', 'b'
+        :param bool showIt: call plt.show()
+
+        .. plot:: examples/mesh/plot_image_2D.py
+           :include-source:
+
+        .. plot:: examples/mesh/plot_image_3D.py
+           :include-source:
         """
         assert type(I) == np.ndarray, "I must be a numpy array"
         assert type(numbering) == bool, "numbering must be a bool"
@@ -154,6 +162,7 @@ class TensorView(object):
                 gyY = np.c_[gy, gy, gy+np.nan].ravel()
                 ax.plot(gxX, gxY, annotationColor+'-', linewidth=2)
                 ax.plot(gyX, gyY, annotationColor+'-', linewidth=2)
+                ax.axis('tight')
 
                 if numbering:
                     pad = np.sum(self.hx)*0.04
@@ -164,11 +173,18 @@ class TensorView(object):
                                 ax.text((ix+1)*self.vectorNx[-1]-pad,(iy)*self.vectorNy[-1]+pad,
                                          '#%i'%iz,color=annotationColor,verticalalignment='bottom',horizontalalignment='right',size='x-large')
 
-        plt.show()
+        if showIt: plt.show()
         return ph
 
-    def plotGrid(self):
-        """Plot the nodal, cell-centered and staggered grids for 1,2 and 3 dimensions."""
+    def plotGrid(self, showIt=False):
+        """Plot the nodal, cell-centered and staggered grids for 1,2 and 3 dimensions.
+
+        .. plot:: examples/mesh/plot_grid_2D.py
+           :include-source:
+
+        .. plot:: examples/mesh/plot_grid_3D.py
+           :include-source:
+        """
         if self.dim == 1:
             fig = plt.figure(1)
             fig.clf()
@@ -182,7 +198,7 @@ class TensorView(object):
             ax.grid(True)
             ax.hold(False)
             ax.set_xlabel('x1')
-            plt.show()
+            if showIt: plt.show()
         elif self.dim == 2:
             fig = plt.figure(2)
             fig.clf()
@@ -201,7 +217,7 @@ class TensorView(object):
             ax.hold(False)
             ax.set_xlabel('x1')
             ax.set_ylabel('x2')
-            plt.show()
+            if showIt: plt.show()
         elif self.dim == 3:
             fig = plt.figure(3)
             fig.clf()
@@ -230,4 +246,4 @@ class TensorView(object):
             ax.set_xlabel('x1')
             ax.set_ylabel('x2')
             ax.set_zlabel('x3')
-            plt.show()
+            if showIt: plt.show()
