@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 from mpl_toolkits.mplot3d import Axes3D
+from utils import mkvc
 
 
 class TensorView(object):
@@ -213,6 +214,17 @@ class TensorView(object):
             ax.plot(xc[:, 0], xc[:, 1], 'ro')
             ax.plot(xs1[:, 0], xs1[:, 1], 'g>')
             ax.plot(xs2[:, 0], xs2[:, 1], 'g^')
+
+            # Plot the grid lines
+            NN = self.r(self.gridN, 'N', 'N', 'M')
+            X1 = np.c_[mkvc(NN[0][0, :]), mkvc(NN[0][self.nCx, :]), mkvc(NN[0][0, :])*np.nan].flatten()
+            Y1 = np.c_[mkvc(NN[1][0, :]), mkvc(NN[1][self.nCx, :]), mkvc(NN[1][0, :])*np.nan].flatten()
+            X2 = np.c_[mkvc(NN[0][:, 0]), mkvc(NN[0][:, self.nCy]), mkvc(NN[0][:, 0])*np.nan].flatten()
+            Y2 = np.c_[mkvc(NN[1][:, 0]), mkvc(NN[1][:, self.nCy]), mkvc(NN[1][:, 0])*np.nan].flatten()
+            X = np.r_[X1, X2]
+            Y = np.r_[Y1, Y2]
+            plt.plot(X, Y)
+
             ax.grid(True)
             ax.hold(False)
             ax.set_xlabel('x1')
@@ -241,6 +253,23 @@ class TensorView(object):
             ax.plot(xes1[:, 0], xes1[:, 1], 'k>', zs=xes1[:, 2])
             ax.plot(xes2[:, 0], xes2[:, 1], 'k<', zs=xes2[:, 2])
             ax.plot(xes3[:, 0], xes3[:, 1], 'k^', zs=xes3[:, 2])
+
+            # Plot the grid lines
+            NN = self.r(self.gridN, 'N', 'N', 'M')
+            X1 = np.c_[mkvc(NN[0][0, :, :]), mkvc(NN[0][self.nCx, :, :]), mkvc(NN[0][0, :, :])*np.nan].flatten()
+            Y1 = np.c_[mkvc(NN[1][0, :, :]), mkvc(NN[1][self.nCx, :, :]), mkvc(NN[1][0, :, :])*np.nan].flatten()
+            Z1 = np.c_[mkvc(NN[2][0, :, :]), mkvc(NN[2][self.nCx, :, :]), mkvc(NN[2][0, :, :])*np.nan].flatten()
+            X2 = np.c_[mkvc(NN[0][:, 0, :]), mkvc(NN[0][:, self.nCy, :]), mkvc(NN[0][:, 0, :])*np.nan].flatten()
+            Y2 = np.c_[mkvc(NN[1][:, 0, :]), mkvc(NN[1][:, self.nCy, :]), mkvc(NN[1][:, 0, :])*np.nan].flatten()
+            Z2 = np.c_[mkvc(NN[2][:, 0, :]), mkvc(NN[2][:, self.nCy, :]), mkvc(NN[2][:, 0, :])*np.nan].flatten()
+            X3 = np.c_[mkvc(NN[0][:, :, 0]), mkvc(NN[0][:, :, self.nCz]), mkvc(NN[0][:, :, 0])*np.nan].flatten()
+            Y3 = np.c_[mkvc(NN[1][:, :, 0]), mkvc(NN[1][:, :, self.nCz]), mkvc(NN[1][:, :, 0])*np.nan].flatten()
+            Z3 = np.c_[mkvc(NN[2][:, :, 0]), mkvc(NN[2][:, :, self.nCz]), mkvc(NN[2][:, :, 0])*np.nan].flatten()
+            X = np.r_[X1, X2, X3]
+            Y = np.r_[Y1, Y2, Y3]
+            Z = np.r_[Z1, Z2, Z3]
+            plt.plot(X, Y, 'b-', zs=Z)
+
             ax.grid(True)
             ax.hold(False)
             ax.set_xlabel('x1')
