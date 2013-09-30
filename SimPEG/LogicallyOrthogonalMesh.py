@@ -16,6 +16,10 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators, InnerProducts, LomView):
     """
     LogicallyOrthogonalMesh is a mesh class that deals with logically orthogonal meshes.
 
+    Example of a logically orthogonal mesh:
+
+    .. plot:: examples/mesh/plot_LogicallyOrthogonalMesh.py
+
     """
     _meshType = 'LOM'
 

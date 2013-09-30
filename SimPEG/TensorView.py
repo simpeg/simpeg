@@ -177,8 +177,15 @@ class TensorView(object):
         if showIt: plt.show()
         return ph
 
-    def plotGrid(self, showIt=False):
+    def plotGrid(self, nodes=False, faces=False, centers=False, edges=False, lines=True, showIt=False):
         """Plot the nodal, cell-centered and staggered grids for 1,2 and 3 dimensions.
+
+        :param bool nodes: plot nodes
+        :param bool faces: plot faces
+        :param bool centers: plot centers
+        :param bool edges: plot edges
+        :param bool lines: plot lines connecting nodes
+        :param bool showIt: call plt.show()
 
         .. plot:: examples/mesh/plot_grid_2D.py
            :include-source:
@@ -210,20 +217,22 @@ class TensorView(object):
             xs2 = self.gridFy
 
             ax.hold(True)
-            ax.plot(xn[:, 0], xn[:, 1], 'bs')
-            ax.plot(xc[:, 0], xc[:, 1], 'ro')
-            ax.plot(xs1[:, 0], xs1[:, 1], 'g>')
-            ax.plot(xs2[:, 0], xs2[:, 1], 'g^')
+            if nodes: ax.plot(xn[:, 0], xn[:, 1], 'bs')
+            if centers: ax.plot(xc[:, 0], xc[:, 1], 'ro')
+            if faces:
+                ax.plot(xs1[:, 0], xs1[:, 1], 'g>')
+                ax.plot(xs2[:, 0], xs2[:, 1], 'g^')
 
             # Plot the grid lines
-            NN = self.r(self.gridN, 'N', 'N', 'M')
-            X1 = np.c_[mkvc(NN[0][0, :]), mkvc(NN[0][self.nCx, :]), mkvc(NN[0][0, :])*np.nan].flatten()
-            Y1 = np.c_[mkvc(NN[1][0, :]), mkvc(NN[1][self.nCx, :]), mkvc(NN[1][0, :])*np.nan].flatten()
-            X2 = np.c_[mkvc(NN[0][:, 0]), mkvc(NN[0][:, self.nCy]), mkvc(NN[0][:, 0])*np.nan].flatten()
-            Y2 = np.c_[mkvc(NN[1][:, 0]), mkvc(NN[1][:, self.nCy]), mkvc(NN[1][:, 0])*np.nan].flatten()
-            X = np.r_[X1, X2]
-            Y = np.r_[Y1, Y2]
-            plt.plot(X, Y)
+            if lines:
+                NN = self.r(self.gridN, 'N', 'N', 'M')
+                X1 = np.c_[mkvc(NN[0][0, :]), mkvc(NN[0][self.nCx, :]), mkvc(NN[0][0, :])*np.nan].flatten()
+                Y1 = np.c_[mkvc(NN[1][0, :]), mkvc(NN[1][self.nCx, :]), mkvc(NN[1][0, :])*np.nan].flatten()
+                X2 = np.c_[mkvc(NN[0][:, 0]), mkvc(NN[0][:, self.nCy]), mkvc(NN[0][:, 0])*np.nan].flatten()
+                Y2 = np.c_[mkvc(NN[1][:, 0]), mkvc(NN[1][:, self.nCy]), mkvc(NN[1][:, 0])*np.nan].flatten()
+                X = np.r_[X1, X2]
+                Y = np.r_[Y1, Y2]
+                plt.plot(X, Y)
 
             ax.grid(True)
             ax.hold(False)
@@ -245,30 +254,33 @@ class TensorView(object):
             xes3 = self.gridEz
 
             ax.hold(True)
-            ax.plot(xn[:, 0], xn[:, 1], 'bs', zs=xn[:, 2])
-            ax.plot(xc[:, 0], xc[:, 1], 'ro', zs=xc[:, 2])
-            ax.plot(xfs1[:, 0], xfs1[:, 1], 'g>', zs=xfs1[:, 2])
-            ax.plot(xfs2[:, 0], xfs2[:, 1], 'g<', zs=xfs2[:, 2])
-            ax.plot(xfs3[:, 0], xfs3[:, 1], 'g^', zs=xfs3[:, 2])
-            ax.plot(xes1[:, 0], xes1[:, 1], 'k>', zs=xes1[:, 2])
-            ax.plot(xes2[:, 0], xes2[:, 1], 'k<', zs=xes2[:, 2])
-            ax.plot(xes3[:, 0], xes3[:, 1], 'k^', zs=xes3[:, 2])
+            if nodes: ax.plot(xn[:, 0], xn[:, 1], 'bs', zs=xn[:, 2])
+            if centers: ax.plot(xc[:, 0], xc[:, 1], 'ro', zs=xc[:, 2])
+            if faces:
+                ax.plot(xfs1[:, 0], xfs1[:, 1], 'g>', zs=xfs1[:, 2])
+                ax.plot(xfs2[:, 0], xfs2[:, 1], 'g<', zs=xfs2[:, 2])
+                ax.plot(xfs3[:, 0], xfs3[:, 1], 'g^', zs=xfs3[:, 2])
+            if edges:
+                ax.plot(xes1[:, 0], xes1[:, 1], 'k>', zs=xes1[:, 2])
+                ax.plot(xes2[:, 0], xes2[:, 1], 'k<', zs=xes2[:, 2])
+                ax.plot(xes3[:, 0], xes3[:, 1], 'k^', zs=xes3[:, 2])
 
             # Plot the grid lines
-            NN = self.r(self.gridN, 'N', 'N', 'M')
-            X1 = np.c_[mkvc(NN[0][0, :, :]), mkvc(NN[0][self.nCx, :, :]), mkvc(NN[0][0, :, :])*np.nan].flatten()
-            Y1 = np.c_[mkvc(NN[1][0, :, :]), mkvc(NN[1][self.nCx, :, :]), mkvc(NN[1][0, :, :])*np.nan].flatten()
-            Z1 = np.c_[mkvc(NN[2][0, :, :]), mkvc(NN[2][self.nCx, :, :]), mkvc(NN[2][0, :, :])*np.nan].flatten()
-            X2 = np.c_[mkvc(NN[0][:, 0, :]), mkvc(NN[0][:, self.nCy, :]), mkvc(NN[0][:, 0, :])*np.nan].flatten()
-            Y2 = np.c_[mkvc(NN[1][:, 0, :]), mkvc(NN[1][:, self.nCy, :]), mkvc(NN[1][:, 0, :])*np.nan].flatten()
-            Z2 = np.c_[mkvc(NN[2][:, 0, :]), mkvc(NN[2][:, self.nCy, :]), mkvc(NN[2][:, 0, :])*np.nan].flatten()
-            X3 = np.c_[mkvc(NN[0][:, :, 0]), mkvc(NN[0][:, :, self.nCz]), mkvc(NN[0][:, :, 0])*np.nan].flatten()
-            Y3 = np.c_[mkvc(NN[1][:, :, 0]), mkvc(NN[1][:, :, self.nCz]), mkvc(NN[1][:, :, 0])*np.nan].flatten()
-            Z3 = np.c_[mkvc(NN[2][:, :, 0]), mkvc(NN[2][:, :, self.nCz]), mkvc(NN[2][:, :, 0])*np.nan].flatten()
-            X = np.r_[X1, X2, X3]
-            Y = np.r_[Y1, Y2, Y3]
-            Z = np.r_[Z1, Z2, Z3]
-            plt.plot(X, Y, 'b-', zs=Z)
+            if lines:
+                NN = self.r(self.gridN, 'N', 'N', 'M')
+                X1 = np.c_[mkvc(NN[0][0, :, :]), mkvc(NN[0][self.nCx, :, :]), mkvc(NN[0][0, :, :])*np.nan].flatten()
+                Y1 = np.c_[mkvc(NN[1][0, :, :]), mkvc(NN[1][self.nCx, :, :]), mkvc(NN[1][0, :, :])*np.nan].flatten()
+                Z1 = np.c_[mkvc(NN[2][0, :, :]), mkvc(NN[2][self.nCx, :, :]), mkvc(NN[2][0, :, :])*np.nan].flatten()
+                X2 = np.c_[mkvc(NN[0][:, 0, :]), mkvc(NN[0][:, self.nCy, :]), mkvc(NN[0][:, 0, :])*np.nan].flatten()
+                Y2 = np.c_[mkvc(NN[1][:, 0, :]), mkvc(NN[1][:, self.nCy, :]), mkvc(NN[1][:, 0, :])*np.nan].flatten()
+                Z2 = np.c_[mkvc(NN[2][:, 0, :]), mkvc(NN[2][:, self.nCy, :]), mkvc(NN[2][:, 0, :])*np.nan].flatten()
+                X3 = np.c_[mkvc(NN[0][:, :, 0]), mkvc(NN[0][:, :, self.nCz]), mkvc(NN[0][:, :, 0])*np.nan].flatten()
+                Y3 = np.c_[mkvc(NN[1][:, :, 0]), mkvc(NN[1][:, :, self.nCz]), mkvc(NN[1][:, :, 0])*np.nan].flatten()
+                Z3 = np.c_[mkvc(NN[2][:, :, 0]), mkvc(NN[2][:, :, self.nCz]), mkvc(NN[2][:, :, 0])*np.nan].flatten()
+                X = np.r_[X1, X2, X3]
+                Y = np.r_[Y1, Y2, Y3]
+                Z = np.r_[Z1, Z2, Z3]
+                plt.plot(X, Y, 'b-', zs=Z)
 
             ax.grid(True)
             ax.hold(False)
