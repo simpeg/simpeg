@@ -16,8 +16,8 @@ The vision is to create a package for finite volume simulation with applications
 * supports 2D and 3D problems
 
 
-Contents
-========
+Meshing & Operators
+===================
 
 .. toctree::
    :maxdepth: 2
@@ -25,6 +25,25 @@ Contents
    api_BaseMesh
    api_TensorMesh
    api_TensorView
+   api_LogicallyOrthogonalMesh
+   api_LomView
+   api_DiffOperators
+   api_InnerProducts
+
+Inversion
+=========
+
+.. toctree::
+   :maxdepth: 2
+
+   api_GaussNewton
+
+Example Problems
+================
+
+.. toctree::
+   :maxdepth: 2
+
 
 
 Project Index & Search
