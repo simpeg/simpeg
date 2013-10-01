@@ -6,59 +6,11 @@ import numpy as np
 class InnerProducts(object):
     """
         Class creates the inner product matrices that you need!
-    """
-    def __init__(self):
-        raise Exception('InnerProducts is a base class providing inner product matrices for meshes and cannot run on its own. Inherit to your favorite Mesh class.')
 
-    def getFaceInnerProduct(self, mu=None, returnP=False):
-        if self.dim == 2:
-            return getFaceInnerProduct2D(self, mu, returnP)
-        elif self.dim == 3:
-            return getFaceInnerProduct(self, mu, returnP)
-
-    def getEdgeInnerProduct(self, sigma=None, returnP=False):
-        if self.dim == 2:
-            return getEdgeInnerProduct2D(self, sigma, returnP)
-        elif self.dim == 3:
-            return getEdgeInnerProduct(self, sigma, returnP)
-
-# ------------------------ Geometries ------------------------------
-#
-#
-#         node(i,j,k+1) ------ edge2(i,j,k+1) ----- node(i,j+1,k+1)
-#              /                                    /
-#             /                                    / |
-#         edge3(i,j,k)     face1(i,j,k)        edge3(i,j+1,k)
-#           /                                    /   |
-#          /                                    /    |
-#    node(i,j,k) ------ edge2(i,j,k) ----- node(i,j+1,k)
-#         |                                     |    |
-#         |                                     |   node(i+1,j+1,k+1)
-#         |                                     |    /
-#    edge1(i,j,k)      face3(i,j,k)        edge1(i,j+1,k)
-#         |                                     |  /
-#         |                                     | /
-#         |                                     |/
-#    node(i+1,j,k) ------ edge2(i+1,j,k) ----- node(i+1,j+1,k)
+        InnerProducts is a base class providing inner product matrices for meshes and cannot run on its own. Inherit to your favorite Mesh class.
 
 
-def getFaceInnerProduct(mesh, mu=None, returnP=False):
-    """
-        :param numpy.array mu: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
-        :param bool returnP: returns the projection matrices
-        :rtype: scipy.csr_matrix
-        :return: M, the inner product matrix
-
-        Depending on the number of columns (either 1, 3, or 6) of mu, the material property is interpreted as follows:
-
-        .. math::
-            \left[\\begin{matrix} \mu_{1} & 0 & 0 \\\\ 0 & \mu_{1} & 0 \\\\ 0 & 0 & \mu_{1}  \end{matrix}\\right]
-
-            \left[\\begin{matrix} \mu_{1} & 0 & 0 \\\\ 0 & \mu_{2} & 0 \\\\ 0 & 0 & \mu_{3}  \end{matrix}\\right]
-
-            \left[\\begin{matrix} \mu_{1} & \mu_{4} & \mu_{5} \\\\ \mu_{4} & \mu_{2} & \mu_{6} \\\\ \mu_{5} & \mu_{6} & \mu_{3}  \end{matrix}\\right]
-
-        Example problem for DC resistivity:
+        **Example problem for DC resistivity**
 
         .. math::
 
@@ -89,14 +41,16 @@ def getFaceInnerProduct(mesh, mu=None, returnP=False):
         .. math::
             \mathbf{J}_c = \mathbf{Q}_{(i)}\mathbf{J}_\\text{TENSOR} = \mathbf{N}_{(i)}^{-1}\mathbf{Q}_{(i)}\mathbf{J}_\\text{LOM}
 
-        Here the i index refers to where we choose to approximate this integral. We will approximate this relation at every node of the cell, there are 8 in 3D, using a projection matrix Q_i to pick the appropriate fluxes. We will then average to the cell center:
+        Here the i index refers to where we choose to approximate this integral.
+        We will approximate this relation at every node of the cell, there are 8 in 3D, using a projection matrix Q_i to pick the appropriate fluxes.
+        We will then average to the cell center. For the TENSOR mesh, this looks like:
 
         .. math::
 
             \mathbf{F}^{\\top}
                 {1\over 8}
                 \left(\sum_{i=1}^8
-                \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \Sigma^{-1} \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
+                \mathbf{Q}_{(i)}^{-\\top} \sqrt{v_{\\text{cell}}} \Sigma^{-1} \sqrt{v_{\\text{cell}}}  \mathbf{Q}_{(i)}
                 \\right)
                 \mathbf{J}
                 =
@@ -108,16 +62,92 @@ def getFaceInnerProduct(mesh, mu=None, returnP=False):
 
             \mathbf{M}(\Sigma^{-1}) = {1\over 8}
                 \left(\sum_{i=1}^8
-                \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \Sigma^{-1} \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
+                \mathbf{Q}_{(i)}^{-\\top} \sqrt{v_{\\text{cell}}} \Sigma^{-1} \sqrt{v_{\\text{cell}}}  \mathbf{Q}_{(i)}
                 \\right)
 
         The M is returned if mu is set equal  to \Sigma^{-1}.
+
+        If requested (returnP=True) the projection matricies are returned as well (ordered by nodes).
+        Here each P (3*nC, sum(nF)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
+
+        .. math::
+            \mathbf{P}_{(i)} =  \sqrt{ {1\over 8} v_{\\text{cell}}} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\\text{LOM only}} \mathbf{Q}_{(i)}
+
+        Note that this is completed for each cell in the mesh at the same time.
+    """
+    def __init__(self):
+        raise Exception('InnerProducts is a base class providing inner product matrices for meshes and cannot run on its own. Inherit to your favorite Mesh class.')
+
+    def getFaceInnerProduct(self, mu=None, returnP=False):
+        """Wrapper function,
+
+        :py:func:`SimPEG.InnerProducts.getEdgeInnerProduct`
+
+        :py:func:`SimPEG.InnerProducts.getEdgeInnerProduct2D`
+        """
+        if self.dim == 2:
+            return getFaceInnerProduct2D(self, mu, returnP)
+        elif self.dim == 3:
+            return getFaceInnerProduct(self, mu, returnP)
+
+    def getEdgeInnerProduct(self, sigma=None, returnP=False):
+        """Wrapper function,
+
+        :py:func:`SimPEG.InnerProducts.getFaceInnerProduct`
+
+        :py:func:`SimPEG.InnerProducts.getFaceInnerProduct2D`
+        """
+        if self.dim == 2:
+            return getEdgeInnerProduct2D(self, sigma, returnP)
+        elif self.dim == 3:
+            return getEdgeInnerProduct(self, sigma, returnP)
+
+# ------------------------ Geometries ------------------------------
+#
+#
+#         node(i,j,k+1) ------ edge2(i,j,k+1) ----- node(i,j+1,k+1)
+#              /                                    /
+#             /                                    / |
+#         edge3(i,j,k)     face1(i,j,k)        edge3(i,j+1,k)
+#           /                                    /   |
+#          /                                    /    |
+#    node(i,j,k) ------ edge2(i,j,k) ----- node(i,j+1,k)
+#         |                                     |    |
+#         |                                     |   node(i+1,j+1,k+1)
+#         |                                     |    /
+#    edge1(i,j,k)      face3(i,j,k)        edge1(i,j+1,k)
+#         |                                     |  /
+#         |                                     | /
+#         |                                     |/
+#    node(i+1,j,k) ------ edge2(i+1,j,k) ----- node(i+1,j+1,k)
+
+
+def getFaceInnerProduct(mesh, mu=None, returnP=False):
+    """
+        :param numpy.array mu: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+        :param bool returnP: returns the projection matrices
+        :rtype: scipy.csr_matrix
+        :return: M, the inner product matrix (sum(nF), sum(nF))
+
+        Depending on the number of columns (either 1, 3, or 6) of mu, the material property is interpreted as follows:
+
+        .. math::
+            \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & 0 & 0 \\\\ 0 & \mu_{1} & 0 \\\\ 0 & 0 & \mu_{1}  \end{matrix}\\right]
+
+            \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & 0 & 0 \\\\ 0 & \mu_{2} & 0 \\\\ 0 & 0 & \mu_{3}  \end{matrix}\\right]
+
+            \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & \mu_{4} & \mu_{5} \\\\ \mu_{4} & \mu_{2} & \mu_{6} \\\\ \mu_{5} & \mu_{6} & \mu_{3}  \end{matrix}\\right]
+
+            \mathbf{M}(\\vec{\mu}) = {1\over 8}
+                \left(\sum_{i=1}^8
+                \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \\vec{\mu} \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
+                \\right)
 
         If requested (returnP=True) the projection matricies are returned as well (ordered by nodes)::
 
             P = [P000, P001, P010, P011, P100, P101, P110, P111]
 
-        Here each P is a combination of the projection, volume, and any normalization to Cartesian coordinates:
+        Here each P (3*nC, sum(nF)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
 
         .. math::
             \mathbf{P}_{(i)} =  \sqrt{ {1\over 8} v_{\\text{cell}}} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\\text{LOM only}} \mathbf{Q}_{(i)}
@@ -206,23 +236,23 @@ def getFaceInnerProduct2D(mesh, mu=None, returnP=False):
         :param numpy.array mu: material property (tensor properties are possible) at each cell center (nC, (1, 2, or 3))
         :param bool returnP: returns the projection matrices
         :rtype: scipy.csr_matrix
-        :return: M, the inner product matrix
+        :return: M, the inner product matrix (sum(nF), sum(nF))
 
         Depending on the number of columns (either 1, 2, or 3) of mu, the material property is interpreted as follows:
 
         .. math::
-            \left[\\begin{matrix} \mu_{1} & 0 \\\\ 0 & \mu_{1} \end{matrix}\\right]
+            \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & 0 \\\\ 0 & \mu_{1} \end{matrix}\\right]
 
-            \left[\\begin{matrix} \mu_{1} & 0 \\\\ 0 & \mu_{2} \end{matrix}\\right]
+            \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & 0 \\\\ 0 & \mu_{2} \end{matrix}\\right]
 
-            \left[\\begin{matrix} \mu_{1} & \mu_{3} \\\\ \mu_{3} & \mu_{2} \end{matrix}\\right]
+            \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & \mu_{3} \\\\ \mu_{3} & \mu_{2} \end{matrix}\\right]
 
 
         .. math::
 
-            \mathbf{M}(\Sigma^{-1}) = {1\over 4}
+            \mathbf{M}(\\vec{\mu}) = {1\over 4}
                 \left(\sum_{i=1}^4
-                \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \Sigma^{-1} \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
+                \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \\vec{\mu} \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
                 \\right)
 
 
@@ -230,7 +260,7 @@ def getFaceInnerProduct2D(mesh, mu=None, returnP=False):
 
             P = [P00, P10, P01, P11]
 
-        Here each P is a combination of the projection, volume, and any normalization to Cartesian coordinates:
+        Here each P (2*nC, sum(nF)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
 
         .. math::
             \mathbf{P}_{(i)} =  \sqrt{ {1\over 4} v_{\\text{cell}}} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\\text{LOM only}} \mathbf{Q}_{(i)}
@@ -307,31 +337,31 @@ def getEdgeInnerProduct(mesh, sigma=None, returnP=False):
         :param numpy.array sigma: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
         :param bool returnP: returns the projection matrices
         :rtype: scipy.csr_matrix
-        :return: M, the inner product matrix
+        :return: M, the inner product matrix (sum(nE), sum(nE))
 
 
-        Depending on the number of columns (either 1, 3, or 6) of mu, the material property is interpreted as follows:
+        Depending on the number of columns (either 1, 3, or 6) of sigma, the material property is interpreted as follows:
 
         .. math::
-            \left[\\begin{matrix} \sigma_{1} & 0 & 0 \\\\ 0 & \sigma_{1} & 0 \\\\ 0 & 0 & \sigma_{1}  \end{matrix}\\right]
+            \Sigma = \left[\\begin{matrix} \sigma_{1} & 0 & 0 \\\\ 0 & \sigma_{1} & 0 \\\\ 0 & 0 & \sigma_{1}  \end{matrix}\\right]
 
-            \left[\\begin{matrix} \sigma_{1} & 0 & 0 \\\\ 0 & \sigma_{2} & 0 \\\\ 0 & 0 & \sigma_{3}  \end{matrix}\\right]
+            \Sigma = \left[\\begin{matrix} \sigma_{1} & 0 & 0 \\\\ 0 & \sigma_{2} & 0 \\\\ 0 & 0 & \sigma_{3}  \end{matrix}\\right]
 
-            \left[\\begin{matrix} \sigma_{1} & \sigma_{4} & \sigma_{5} \\\\ \sigma_{4} & \sigma_{2} & \sigma_{6} \\\\ \sigma_{5} & \sigma_{6} & \sigma_{3}  \end{matrix}\\right]
+            \Sigma = \left[\\begin{matrix} \sigma_{1} & \sigma_{4} & \sigma_{5} \\\\ \sigma_{4} & \sigma_{2} & \sigma_{6} \\\\ \sigma_{5} & \sigma_{6} & \sigma_{3}  \end{matrix}\\right]
 
         What is returned:
 
         .. math::
-            \mathbf{M}(\Sigma^{-1}) = {1\over 8}
+            \mathbf{M}(\Sigma) = {1\over 8}
                 \left(\sum_{i=1}^8
-                \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \Sigma^{-1} \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
+                \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \Sigma \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
                 \\right)
 
         If requested (returnP=True) the projection matricies are returned as well (ordered by nodes)::
 
             P = [P000, P001, P010, P011, P100, P101, P110, P111]
 
-        Here each P is a combination of the projection, volume, and any normalization to Cartesian coordinates:
+        Here each P (3*nC, sum(nE)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
 
         .. math::
             \mathbf{P}_{(i)} =  \sqrt{ {1\over 8} v_{\\text{cell}}} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\\text{LOM only}} \mathbf{Q}_{(i)}
@@ -419,23 +449,23 @@ def getEdgeInnerProduct2D(mesh, sigma=None, returnP=False):
         :param numpy.array sigma: material property (tensor properties are possible) at each cell center (nC, (1, 2, or 3))
         :param bool returnP: returns the projection matrices
         :rtype: scipy.csr_matrix
-        :return: M, the inner product matrix
+        :return: M, the inner product matrix (sum(nE), sum(nE))
 
         Depending on the number of columns (either 1, 2, or 3) of sigma, the material property is interpreted as follows:
 
         .. math::
-            \left[\\begin{matrix} \sigma_{1} & 0 \\\\ 0 & \sigma_{1} \end{matrix}\\right]
+            \Sigma = \left[\\begin{matrix} \sigma_{1} & 0 \\\\ 0 & \sigma_{1} \end{matrix}\\right]
 
-            \left[\\begin{matrix} \sigma_{1} & 0 \\\\ 0 & \sigma_{2} \end{matrix}\\right]
+            \Sigma = \left[\\begin{matrix} \sigma_{1} & 0 \\\\ 0 & \sigma_{2} \end{matrix}\\right]
 
-            \left[\\begin{matrix} \sigma_{1} & \sigma_{3} \\\\ \sigma_{3} & \sigma_{2} \end{matrix}\\right]
+            \Sigma = \left[\\begin{matrix} \sigma_{1} & \sigma_{3} \\\\ \sigma_{3} & \sigma_{2} \end{matrix}\\right]
 
 
         .. math::
 
-            \mathbf{M}(\Sigma^{-1}) = {1\over 4}
+            \mathbf{M}(\Sigma) = {1\over 4}
                 \left(\sum_{i=1}^4
-                \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \Sigma^{-1} \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
+                \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \Sigma \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
                 \\right)
 
 
@@ -443,7 +473,7 @@ def getEdgeInnerProduct2D(mesh, sigma=None, returnP=False):
 
             P = [P00, P10, P01, P11]
 
-        Here each P is a combination of the projection, volume, and any normalization to Cartesian coordinates:
+        Here each P (2*nC, sum(nE)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
 
         .. math::
             \mathbf{P}_{(i)} =  \sqrt{ {1\over 4} v_{\\text{cell}}} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\\text{LOM only}} \mathbf{Q}_{(i)}

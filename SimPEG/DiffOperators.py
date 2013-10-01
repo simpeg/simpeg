@@ -111,12 +111,12 @@ class DiffOperators(object):
         """
         Function that sets the boundary conditions for cell-centred derivative operators.
 
-        Examples:
+        Examples::
 
-        BC = 'neumann'                                            # Neumann in all directions
-        BC = ['neumann', 'dirichlet', 'neumann']                  # 3D, Dirichlet in y Neumann else
-        BC = [['neumann', 'dirichlet'], 'dirichlet', 'dirichlet'] # 3D, Neumann in x on bottom of domain,
-                                                                  #     Dirichlet else
+            BC = 'neumann'                                            # Neumann in all directions
+            BC = ['neumann', 'dirichlet', 'neumann']                  # 3D, Dirichlet in y Neumann else
+            BC = [['neumann', 'dirichlet'], 'dirichlet', 'dirichlet'] # 3D, Neumann in x on bottom of domain,
+                                                                      #     Dirichlet else
 
         """
         if(type(BC) is str):
@@ -266,7 +266,7 @@ class DiffOperators(object):
     nodalAve = property(**nodalAve())
 
     def nodalVectorAve():
-        doc = "Construct the averaging operator on cell nodes to cell centers, keeping each dimension seperate."
+        doc = "Construct the averaging operator on cell nodes to cell centers, keeping each dimension separate."
 
         def fget(self):
             if(self._nodalVectorAve is None):
