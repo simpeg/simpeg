@@ -21,8 +21,9 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
         mesh = TensorMesh([hx, hy, hz])
 
-    .. math::
-        x^2 = 5
+    Example of a padded tensor mesh:
+
+    .. plot:: examples/mesh/plot_TensorMesh.py
 
     """
     _meshType = 'TENSOR'

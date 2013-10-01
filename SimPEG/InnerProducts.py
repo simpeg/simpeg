@@ -6,17 +6,97 @@ import numpy as np
 class InnerProducts(object):
     """
         Class creates the inner product matrices that you need!
+
+        InnerProducts is a base class providing inner product matrices for meshes and cannot run on its own. Inherit to your favorite Mesh class.
+
+
+        **Example problem for DC resistivity**
+
+        .. math::
+
+            \sigma^{-1}\mathbf{J} = \\nabla \phi
+
+        We can define in weak form by integrating with a general face function F:
+
+        .. math::
+
+            \int_{\\text{cell}}{\sigma^{-1}\mathbf{J} \cdot \mathbf{F}} = \int_{\\text{cell}}{\\nabla \phi  \cdot \mathbf{F}}
+
+            \int_{\\text{cell}}{\sigma^{-1}\mathbf{J} \cdot \mathbf{F}} = \int_{\\text{cell}}{(\\nabla \cdot \mathbf{F}) \phi   } + \int_{\partial \\text{cell}}{ \phi  \mathbf{F} \cdot \mathbf{n}}
+
+        We can then discretize for every cell:
+
+        .. math::
+
+            v_{\\text{cell}} \sigma^{-1} (\mathbf{J}_x \mathbf{F}_x +\mathbf{J}_y \mathbf{F}_y  + \mathbf{J}_z \mathbf{F}_z ) = -\phi^{\\top} v_{\\text{cell}} (\mathbf{D}_{\\text{cell}} \mathbf{F})  + \\text{BC}
+
+        We can represent this in vector form (again this is for every cell), and will generalize for the case of anisotropic (tensor) sigma.
+
+        .. math::
+
+            \mathbf{F}_c^{\\top} (\sqrt{v_{\\text{cell}}} \Sigma^{-1} \sqrt{v_{\\text{cell}}})  \mathbf{J}_c = -\phi^{\\top} v_{\\text{cell}}( v_\\text{cell}^{-1} \mathbf{D}_{\\text{cell}} \mathbf{A} \mathbf{F})  + \\text{BC}
+
+        We multiply by volume on each side of the tensor conductivity to keep symmetry in the system. Here J_c is the Cartesian J (on the faces) and must be calculated differently depending on the mesh:
+
+        .. math::
+            \mathbf{J}_c = \mathbf{Q}_{(i)}\mathbf{J}_\\text{TENSOR} = \mathbf{N}_{(i)}^{-1}\mathbf{Q}_{(i)}\mathbf{J}_\\text{LOM}
+
+        Here the i index refers to where we choose to approximate this integral.
+        We will approximate this relation at every node of the cell, there are 8 in 3D, using a projection matrix Q_i to pick the appropriate fluxes.
+        We will then average to the cell center. For the TENSOR mesh, this looks like:
+
+        .. math::
+
+            \mathbf{F}^{\\top}
+                {1\over 8}
+                \left(\sum_{i=1}^8
+                \mathbf{Q}_{(i)}^{-\\top} \sqrt{v_{\\text{cell}}} \Sigma^{-1} \sqrt{v_{\\text{cell}}}  \mathbf{Q}_{(i)}
+                \\right)
+                \mathbf{J}
+                =
+                -\mathbf{F}^{\\top} \mathbf{A} \mathbf{D}_{\\text{cell}}^{\\top} \phi   + \\text{BC}
+
+            \mathbf{M}(\Sigma^{-1}) \mathbf{J}
+                =
+                -\mathbf{A} \mathbf{D}_{\\text{cell}}^{\\top} \phi   + \\text{BC}
+
+            \mathbf{M}(\Sigma^{-1}) = {1\over 8}
+                \left(\sum_{i=1}^8
+                \mathbf{Q}_{(i)}^{-\\top} \sqrt{v_{\\text{cell}}} \Sigma^{-1} \sqrt{v_{\\text{cell}}}  \mathbf{Q}_{(i)}
+                \\right)
+
+        The M is returned if mu is set equal  to \Sigma^{-1}.
+
+        If requested (returnP=True) the projection matricies are returned as well (ordered by nodes).
+        Here each P (3*nC, sum(nF)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
+
+        .. math::
+            \mathbf{P}_{(i)} =  \sqrt{ {1\over 8} v_{\\text{cell}}} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\\text{LOM only}} \mathbf{Q}_{(i)}
+
+        Note that this is completed for each cell in the mesh at the same time.
     """
     def __init__(self):
         raise Exception('InnerProducts is a base class providing inner product matrices for meshes and cannot run on its own. Inherit to your favorite Mesh class.')
 
     def getFaceInnerProduct(self, mu=None, returnP=False):
+        """Wrapper function,
+
+        :py:func:`SimPEG.InnerProducts.getEdgeInnerProduct`
+
+        :py:func:`SimPEG.InnerProducts.getEdgeInnerProduct2D`
+        """
         if self.dim == 2:
             return getFaceInnerProduct2D(self, mu, returnP)
         elif self.dim == 3:
             return getFaceInnerProduct(self, mu, returnP)
 
     def getEdgeInnerProduct(self, sigma=None, returnP=False):
+        """Wrapper function,
+
+        :py:func:`SimPEG.InnerProducts.getFaceInnerProduct`
+
+        :py:func:`SimPEG.InnerProducts.getFaceInnerProduct2D`
+        """
         if self.dim == 2:
             return getEdgeInnerProduct2D(self, sigma, returnP)
         elif self.dim == 3:
@@ -43,6 +123,38 @@ class InnerProducts(object):
 
 
 def getFaceInnerProduct(mesh, mu=None, returnP=False):
+    """
+        :param numpy.array mu: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+        :param bool returnP: returns the projection matrices
+        :rtype: scipy.csr_matrix
+        :return: M, the inner product matrix (sum(nF), sum(nF))
+
+        Depending on the number of columns (either 1, 3, or 6) of mu, the material property is interpreted as follows:
+
+        .. math::
+            \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & 0 & 0 \\\\ 0 & \mu_{1} & 0 \\\\ 0 & 0 & \mu_{1}  \end{matrix}\\right]
+
+            \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & 0 & 0 \\\\ 0 & \mu_{2} & 0 \\\\ 0 & 0 & \mu_{3}  \end{matrix}\\right]
+
+            \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & \mu_{4} & \mu_{5} \\\\ \mu_{4} & \mu_{2} & \mu_{6} \\\\ \mu_{5} & \mu_{6} & \mu_{3}  \end{matrix}\\right]
+
+            \mathbf{M}(\\vec{\mu}) = {1\over 8}
+                \left(\sum_{i=1}^8
+                \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \\vec{\mu} \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
+                \\right)
+
+        If requested (returnP=True) the projection matricies are returned as well (ordered by nodes)::
+
+            P = [P000, P001, P010, P011, P100, P101, P110, P111]
+
+        Here each P (3*nC, sum(nF)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
+
+        .. math::
+            \mathbf{P}_{(i)} =  \sqrt{ {1\over 8} v_{\\text{cell}}} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\\text{LOM only}} \mathbf{Q}_{(i)}
+
+        Note that this is completed for each cell in the mesh at the same time.
+
+    """
 
     if mu is None:  # default is ones
         mu = np.ones((mesh.nC, 1))
@@ -82,10 +194,10 @@ def getFaceInnerProduct(mesh, mu=None, returnP=False):
     # 100 | i+1,j  ,k   | i+1, j, k | i, j  , k | i, j, k
     # 010 | i  ,j+1,k   | i  , j, k | i, j+1, k | i, j, k
     # 110 | i+1,j+1,k   | i+1, j, k | i, j+1, k | i, j, k
-    # 001 | i  ,j  ,k   | i  , j, k | i, j  , k | i, j, k+1
-    # 101 | i+1,j  ,k   | i+1, j, k | i, j  , k | i, j, k+1
-    # 011 | i  ,j+1,k   | i  , j, k | i, j+1, k | i, j, k+1
-    # 111 | i+1,j+1,k   | i+1, j, k | i, j+1, k | i, j, k+1
+    # 001 | i  ,j  ,k+1 | i  , j, k | i, j  , k | i, j, k+1
+    # 101 | i+1,j  ,k+1 | i+1, j, k | i, j  , k | i, j, k+1
+    # 011 | i  ,j+1,k+1 | i  , j, k | i, j+1, k | i, j, k+1
+    # 111 | i+1,j+1,k+1 | i+1, j, k | i, j+1, k | i, j, k+1
 
     # Square root of cell volume multiplied by 1/8
     v = np.sqrt(0.125*mesh.vol)
@@ -120,6 +232,42 @@ def getFaceInnerProduct(mesh, mu=None, returnP=False):
 
 
 def getFaceInnerProduct2D(mesh, mu=None, returnP=False):
+    """
+        :param numpy.array mu: material property (tensor properties are possible) at each cell center (nC, (1, 2, or 3))
+        :param bool returnP: returns the projection matrices
+        :rtype: scipy.csr_matrix
+        :return: M, the inner product matrix (sum(nF), sum(nF))
+
+        Depending on the number of columns (either 1, 2, or 3) of mu, the material property is interpreted as follows:
+
+        .. math::
+            \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & 0 \\\\ 0 & \mu_{1} \end{matrix}\\right]
+
+            \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & 0 \\\\ 0 & \mu_{2} \end{matrix}\\right]
+
+            \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & \mu_{3} \\\\ \mu_{3} & \mu_{2} \end{matrix}\\right]
+
+
+        .. math::
+
+            \mathbf{M}(\\vec{\mu}) = {1\over 4}
+                \left(\sum_{i=1}^4
+                \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \\vec{\mu} \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
+                \\right)
+
+
+        If requested (returnP=True) the projection matricies are returned as well (ordered by nodes)::
+
+            P = [P00, P10, P01, P11]
+
+        Here each P (2*nC, sum(nF)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
+
+        .. math::
+            \mathbf{P}_{(i)} =  \sqrt{ {1\over 4} v_{\\text{cell}}} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\\text{LOM only}} \mathbf{Q}_{(i)}
+
+        Note that this is completed for each cell in the mesh at the same time.
+
+    """
 
     if mu is None:  # default is ones
         mu = np.ones((mesh.nC, 1))
@@ -185,6 +333,41 @@ def getFaceInnerProduct2D(mesh, mu=None, returnP=False):
 
 
 def getEdgeInnerProduct(mesh, sigma=None, returnP=False):
+    """
+        :param numpy.array sigma: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+        :param bool returnP: returns the projection matrices
+        :rtype: scipy.csr_matrix
+        :return: M, the inner product matrix (sum(nE), sum(nE))
+
+
+        Depending on the number of columns (either 1, 3, or 6) of sigma, the material property is interpreted as follows:
+
+        .. math::
+            \Sigma = \left[\\begin{matrix} \sigma_{1} & 0 & 0 \\\\ 0 & \sigma_{1} & 0 \\\\ 0 & 0 & \sigma_{1}  \end{matrix}\\right]
+
+            \Sigma = \left[\\begin{matrix} \sigma_{1} & 0 & 0 \\\\ 0 & \sigma_{2} & 0 \\\\ 0 & 0 & \sigma_{3}  \end{matrix}\\right]
+
+            \Sigma = \left[\\begin{matrix} \sigma_{1} & \sigma_{4} & \sigma_{5} \\\\ \sigma_{4} & \sigma_{2} & \sigma_{6} \\\\ \sigma_{5} & \sigma_{6} & \sigma_{3}  \end{matrix}\\right]
+
+        What is returned:
+
+        .. math::
+            \mathbf{M}(\Sigma) = {1\over 8}
+                \left(\sum_{i=1}^8
+                \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \Sigma \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
+                \\right)
+
+        If requested (returnP=True) the projection matricies are returned as well (ordered by nodes)::
+
+            P = [P000, P001, P010, P011, P100, P101, P110, P111]
+
+        Here each P (3*nC, sum(nE)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
+
+        .. math::
+            \mathbf{P}_{(i)} =  \sqrt{ {1\over 8} v_{\\text{cell}}} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\\text{LOM only}} \mathbf{Q}_{(i)}
+
+        Note that this is completed for each cell in the mesh at the same time.
+    """
 
     if sigma is None:  # default is ones
         sigma = np.ones((mesh.nC, 1))
@@ -262,6 +445,42 @@ def getEdgeInnerProduct(mesh, sigma=None, returnP=False):
 
 
 def getEdgeInnerProduct2D(mesh, sigma=None, returnP=False):
+    """
+        :param numpy.array sigma: material property (tensor properties are possible) at each cell center (nC, (1, 2, or 3))
+        :param bool returnP: returns the projection matrices
+        :rtype: scipy.csr_matrix
+        :return: M, the inner product matrix (sum(nE), sum(nE))
+
+        Depending on the number of columns (either 1, 2, or 3) of sigma, the material property is interpreted as follows:
+
+        .. math::
+            \Sigma = \left[\\begin{matrix} \sigma_{1} & 0 \\\\ 0 & \sigma_{1} \end{matrix}\\right]
+
+            \Sigma = \left[\\begin{matrix} \sigma_{1} & 0 \\\\ 0 & \sigma_{2} \end{matrix}\\right]
+
+            \Sigma = \left[\\begin{matrix} \sigma_{1} & \sigma_{3} \\\\ \sigma_{3} & \sigma_{2} \end{matrix}\\right]
+
+
+        .. math::
+
+            \mathbf{M}(\Sigma) = {1\over 4}
+                \left(\sum_{i=1}^4
+                \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \Sigma \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
+                \\right)
+
+
+        If requested (returnP=True) the projection matricies are returned as well (ordered by nodes)::
+
+            P = [P00, P10, P01, P11]
+
+        Here each P (2*nC, sum(nE)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
+
+        .. math::
+            \mathbf{P}_{(i)} =  \sqrt{ {1\over 4} v_{\\text{cell}}} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\\text{LOM only}} \mathbf{Q}_{(i)}
+
+        Note that this is completed for each cell in the mesh at the same time.
+
+    """
 
     if sigma is None:  # default is ones
         sigma = np.ones((mesh.nC, 1))

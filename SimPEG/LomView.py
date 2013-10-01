@@ -7,15 +7,19 @@ from utils import mkvc
 
 class LomView(object):
     """
-    Provides viewing functions for TensorMesh
+    Provides viewing functions for LogicallyOrthogonalMesh
 
-    This class is inherited by TensorMesh
+    This class is inherited by LogicallyOrthogonalMesh
+
     """
     def __init__(self):
         pass
 
     def plotGrid(self, length=0.05):
-        """Plot the nodal, cell-centered and staggered grids for 1,2 and 3 dimensions."""
+        """Plot the nodal, cell-centered and staggered grids for 1,2 and 3 dimensions.
+
+        .. plot:: examples/mesh/plot_LogicallyOrthogonalMesh.py
+        """
         NN = self.r(self.gridN, 'N', 'N', 'M')
         if self.dim == 2:
             fig = plt.figure(2)

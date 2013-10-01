@@ -1,8 +1,8 @@
 .. _api_LOMView:
 
 LOM View
-***********
+********
 
-.. automodule:: SimPEG.LOMView
+.. automodule:: SimPEG.LomView
     :members:
     :undoc-members:
