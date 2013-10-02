@@ -38,12 +38,13 @@ Inversion
 
    api_GaussNewton
 
-Example Problems
+Forward Problems
 ================
 
 .. toctree::
    :maxdepth: 2
 
+   api_Problem
 
 
 Project Index & Search
