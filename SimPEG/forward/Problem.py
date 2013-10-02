@@ -4,13 +4,131 @@ norm = np.linalg.norm
 
 
 class Problem(object):
-    """Problem is the base class for all geophysical forward problems in SimPEG"""
+    """
+        Problem is the base class for all geophysical forward problems in SimPEG.
+
+
+        The problem is a partial differential equation of the form:
+
+        .. math::
+            c(m, u) = 0
+
+        Here, m is the model and u is the field (or fields).
+        Given the model, m, we can calculate the fields u(m),
+        however, the data we collect is a subset of the fields,
+        and can be defined by a linear projection, P.
+
+        .. math::
+            d_\\text{pred} = Pu(m)
+
+        We are interested in how changing the model transforms the data,
+        as such we can take write the Taylor expansion:
+
+        .. math::
+            Pu(m + hv) = Pu(m) + hP\\frac{\partial u(m)}{\partial m} v + \mathcal{O}(h^2 \left\| v \\right\| )
+
+        We can linearize and define the sensitivity matrix as:
+
+        .. math::
+            J = P\\frac{\partial u}{\partial m}
+
+        The sensitivity matrix, and it's transpose will be used in the inverse problem
+        to (locally) find how model parameters change the data, and optimize!
+    """
+
     def __init__(self, mesh):
         self.mesh = mesh
+
+    @property
+    def RHS(self):
+        """
+            Source matrix.
+        """
+        return self._RHS
+    @RHS.setter
+    def RHS(self, value):
+        self._RHS = value
+
+    @property
+    def W(self):
+        """
+            Standard deviation weighting matrix.
+        """
+        return self._W
+    @W.setter
+    def W(self, value):
+        self._W = value
+
+    @property
+    def P(self):
+        """
+            Projection matrix.
+
+            .. math::
+                d_\\text{pred} = Pu(m)
+        """
+        return self._P
+    @P.setter
+    def P(self, value):
+        self._P = value
+
+
+    @property
+    def dobs(self):
+        """
+            Observed data.
+        """
+        return self._dobs
+    @dobs.setter
+    def dobs(self, value):
+        self._P = value
+
+
+    def J(self, u):
+        """
+            Working with the general PDE, c(m, u) = 0, where m is the model and u is the field,
+            the sensitivity is defined as:
+
+            .. math::
+                J = P\\frac{\partial u}{\partial m}
+
+            We can take the derivative of the PDE:
+
+            .. math::
+                \\nabla_m c(m, u) \delta m + \\nabla_u c(m, u) \delta u = 0
+
+            If the forward problem is invertible, then we can rearrange for du/dm:
+
+            .. math::
+                J = - P \left( \\nabla_u c(m, u) \\right)^{-1} \\nabla_m c(m, u)
+
+            This can often be computed given a vector (i.e. J(v)) rather than stored, as J is a large dense matrix.
+
+        """
         pass
 
-    def residual(self, m):
+    def Jt(self, v):
+        """
+            Transpose of J
+        """
         pass
+
+    def field(self, m):
+        """
+            The fields.
+        """
+        pass
+
+    def dpred(self, m, u=None):
+        """
+            Predicted data.
+
+            .. math::
+                d_\\text{pred} = Pu(m)
+        """
+        if u is None:
+            u = self.field(m)
+        return self.P*u
 
     def modelTransform(self, m):
         """
@@ -61,9 +179,10 @@ class Problem(object):
         m = np.random.rand(5)
         return checkDerivative(lambda m : [self.modelTransform(m), self.modelTransformDeriv(m)], m)
 
-    def misfit(self, field):
+    def misfit(self, m, R=None):
         """
-            :param numpy.array field: geophysical field of interest
+            :param numpy.array m: geophysical model
+            :param numpy.array R: residual, R = W o (dpred - dobs)
             :rtype: float
             :return: data misfit
 
@@ -71,41 +190,55 @@ class Problem(object):
 
             .. math::
 
-                \mu_\\text{data} = {1\over 2}\left| \mathbf{W} (\mathbf{Pu} - d_\\text{obs}) \\right|_2^2
+                \mu_\\text{data} = {1\over 2}\left| \mathbf{W} \circ (\mathbf{d}_\\text{pred} - \mathbf{d}_\\text{obs}) \\right|_2^2
 
             Where P is a projection matrix that brings the field on the full domain to the data measurement locations;
             u is the field of interest; d_obs is the observed data; and W is the weighting matrix.
         """
-        R = self.W*(self.P*field - self.dobs)
-        return 0.5*mkvc(R).inner(mkvc(R))
+        if R is None:
+            R = self.W*(self.dpred(m) - self.dobs)
 
-    def misfitDeriv(self, field):
+        R = mkvc(R)
+        return 0.5*R.inner(R)
+
+    def misfitDeriv(self, m, R=None, u=None):
         """
-            TODO: Change this documentation.
-
-            :param numpy.array field: geophysical field of interest
-            :rtype: float
+            :param numpy.array m: geophysical model
+            :rtype: numpy.array
             :return: data misfit derivative
 
             The data misfit using an l_2 norm is:
 
             .. math::
 
-                \mu_\\text{data} = {1\over 2}\left| \mathbf{W} (\mathbf{Pu} - d_\\text{obs}) \\right|_2^2
+                \mu_\\text{data} = {1\over 2}\left| \mathbf{W} \circ (\mathbf{d}_\\text{pred} - \mathbf{d}_\\text{obs}) \\right|_2^2
+
+                \mathbf{R} = \mathbf{d}_\\text{pred} - \mathbf{d}_\\text{obs}
+
+                \mu_\\text{data} = {1\over 2}\left| \mathbf{W \circ R} \\right|_2^2
 
             Where P is a projection matrix that brings the field on the full domain to the data measurement locations;
             u is the field of interest; d_obs is the observed data; and W is the weighting matrix.
+
+            The derivative of this, with respect to the model, is:
+
+            .. math::
+
+                \\frac{\partial \mu_\\text{data}}{\partial \mathbf{m}} = \mathbf{J}^\\top (\mathbf{W \circ R})
+
         """
+        if u is None:
+            u = self.field(m)
 
-        R = self.W*(self.P*field - self.dobs)
-        # TODO: make in terms of the field and call Jt, e.g. if looping over RHSs using i: self.Jt(field[:,i],self.W[:,i]*R[:,i])
-        return mkvc(R)
+        if R is None:
+            R = self.W*(self.dpred(m, u=u) - self.dobs)
 
-    def J(self, u):
-        pass
+        dmisfit = 0
+        for i in range(self.RHS.shape[1]): # Loop over each right hand side
+            dmisfit += self.Jt(u[:,i], self.W[:,i]*R[:,i])
 
-    def Jt(self, v):
-        pass
+        return dmisfit
+
 
 if __name__ == '__main__':
     from SimPEG.inverse import checkDerivative
