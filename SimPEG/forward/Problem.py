@@ -84,8 +84,15 @@ class Problem(object):
         self._P = value
 
 
-    def J(self, u):
+    def J(self, m, v, u=None, RHSii=0):
         """
+            :param numpy.array m: model
+            :param numpy.array v: vector to multiply
+            :param numpy.array u: fields
+            :param int RHSii: which RHS to calculate sensitivity too
+            :rtype: numpy.array
+            :return: Jv
+
             Working with the general PDE, c(m, u) = 0, where m is the model and u is the field,
             the sensitivity is defined as:
 
@@ -107,15 +114,26 @@ class Problem(object):
         """
         pass
 
-    def Jt(self, v):
+    def Jt(self, m, v, u=None, RHSii=0):
         """
+            :param numpy.array m: model
+            :param numpy.array v: vector to multiply
+            :param numpy.array u: fields
+            :param int RHSii: which RHS to calculate sensitivity too
+            :rtype: numpy.array
+            :return: JTv
+
             Transpose of J
         """
         pass
 
     def field(self, m):
         """
-            The fields.
+            The field given the model.
+
+            .. math::
+                u(m)
+
         """
         pass
 
@@ -179,10 +197,10 @@ class Problem(object):
         m = np.random.rand(5)
         return checkDerivative(lambda m : [self.modelTransform(m), self.modelTransformDeriv(m)], m)
 
-    def misfit(self, m, R=None):
+    def misfit(self, m, u=None):
         """
             :param numpy.array m: geophysical model
-            :param numpy.array R: residual, R = W o (dpred - dobs)
+            :param numpy.array u: fields
             :rtype: float
             :return: data misfit
 
@@ -195,15 +213,15 @@ class Problem(object):
             Where P is a projection matrix that brings the field on the full domain to the data measurement locations;
             u is the field of interest; d_obs is the observed data; and W is the weighting matrix.
         """
-        if R is None:
-            R = self.W*(self.dpred(m) - self.dobs)
 
+        R = self.W*(self.dpred(m, u=u) - self.dobs)
         R = mkvc(R)
         return 0.5*R.inner(R)
 
-    def misfitDeriv(self, m, R=None, u=None):
+    def misfitDeriv(self, m, u=None):
         """
             :param numpy.array m: geophysical model
+            :param numpy.array u: fields
             :rtype: numpy.array
             :return: data misfit derivative
 
@@ -212,6 +230,12 @@ class Problem(object):
             .. math::
 
                 \mu_\\text{data} = {1\over 2}\left| \mathbf{W} \circ (\mathbf{d}_\\text{pred} - \mathbf{d}_\\text{obs}) \\right|_2^2
+
+            If the field, u, is provided, the calculation of the data is fast:
+
+            .. math::
+
+                \mathbf{d}_\\text{pred} = \mathbf{Pu(m)}
 
                 \mathbf{R} = \mathbf{d}_\\text{pred} - \mathbf{d}_\\text{obs}
 
@@ -230,8 +254,7 @@ class Problem(object):
         if u is None:
             u = self.field(m)
 
-        if R is None:
-            R = self.W*(self.dpred(m, u=u) - self.dobs)
+        R = self.W*(self.dpred(m, u=u) - self.dobs)
 
         dmisfit = 0
         for i in range(self.RHS.shape[1]): # Loop over each right hand side
@@ -240,9 +263,40 @@ class Problem(object):
         return dmisfit
 
 
+class SyntheticProblem(object):
+    """
+        Has helpful functions when dealing with synthetic problems
+
+        To use this class, inherit to your problem::
+
+            class mySyntheticExample(Problem, SyntheticProblem):
+                pass
+    """
+    def createData(self, m, std=0.05):
+        """
+            :param numpy.array m: geophysical model
+            :param numpy.array std: standard deviation
+            :rtype: numpy.array, numpy.array
+            :return: dobs, Wd
+
+            Create synthetic data given a model, and a standard deviation.
+
+            Returns the observed data with random Gaussian noise
+            and Wd which is the same size as data, and can be used to weight the inversion.
+        """
+        dobs = self.dpred(m)
+        dobs = dobs
+        noise = std*abs(dobs)*np.random.randn(*dobs.shape)
+        dobs = dobs+noise
+        eps = np.linalg.norm(mkvc(dobs),2)*1e-5
+        Wd = 1/(abs(dobs)*std+eps)
+        return dobs, Wd
+
+
+
 if __name__ == '__main__':
     from SimPEG.inverse import checkDerivative
 
     p = Problem(None)
     m = np.random.rand(5)
-    checkDerivative(lambda m : [p.modelTransform(m), p.modelTransformDeriv(m)], m)
+    checkDerivative(lambda m : [p.modelTransform(m), p.modelTransformDeriv(m)], m, plotIt=False)

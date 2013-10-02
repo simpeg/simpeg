@@ -1,6 +1,6 @@
 import numpy as np
 from scipy import sparse as sp
-from utils import mkvc, sdiag, speye, kron3, spzeros
+from SimPEG.utils import mkvc, sdiag, speye, kron3, spzeros
 
 
 def ddx(n):
@@ -287,15 +287,19 @@ class DiffOperators(object):
     nodalVectorAve = property(**nodalVectorAve())
 
     def getEdgeMass(self, materialProp=None):
-        """mass matix for products of edge functions w'*M(materialProp)*e"""
+        """mass matrix for products of edge functions w'*M(materialProp)*e"""
         if(materialProp is None):
             materialProp = np.ones(self.nC)
         Av = self.edgeAve
         return sdiag(Av.T * (self.vol * mkvc(materialProp)))
 
     def getFaceMass(self, materialProp=None):
-        """mass matix for products of edge functions w'*M(materialProp)*e"""
+        """mass matrix for products of face functions w'*M(materialProp)*f"""
         if(materialProp is None):
             materialProp = np.ones(self.nC)
         Av = self.faceAve
-        return sdiag(Av.T*(self.vol*mkvc(materialProp)))
+        return sdiag(Av.T * (self.vol * mkvc(materialProp)))
+
+    def getFaceMassDeriv(self):
+        Av = self.faceAve
+        return Av.T * sdiag(self.vol)
