@@ -7,12 +7,29 @@ import scipy.sparse.linalg as linalg
 import DCutils
 
 class DCProblem(Problem):
-    """docstring for DCProblem"""
+    """
+        **DCProblem**
+
+        Geophysical DC resistivity problem.
+
+    """
     def __init__(self, mesh):
         super(DCProblem, self).__init__(mesh)
         self.mesh.setCellGradBC('neumann')
 
     def createMatrix(self, m):
+        """
+            Makes the matrix A(m) for the DC resistivity problem.
+
+            :param numpy.array m: model
+            :rtype: scipy.csc_matrix
+            :return: A(m)
+
+            .. math::
+                c(m,u) = A(m)u - q = G\\text{sdiag}(M(mT(m)))Du - q = 0
+
+            Where M() is the mass matrix and mT is the model transform.
+        """
         D = self.mesh.faceDiv
         G = self.mesh.cellGrad
         sigma = self.modelTransform(m)
@@ -44,7 +61,14 @@ class DCProblem(Problem):
 
                 \\nabla_u (A(m)u - q) = A(m)
 
-                \\nabla_m (A(m)u - q) = G\\text{sdiag}(Du)\\nabla_m (M(mT(m)))
+                \\nabla_m (A(m)u - q) = G\\text{sdiag}(Du)\\nabla_m(M(mT(m)))
+
+            Where M() is the mass matrix and mT is the model transform.
+
+            .. math::
+                J = - P \left( \\nabla_u c(m, u) \\right)^{-1} \\nabla_m c(m, u)
+
+                J(v) = - P ( A(m)^{-1} ( G\\text{sdiag}(Du)\\nabla_m(M(mT(m))) v ) )
         """
         P = self.P
         D = self.mesh.faceDiv
@@ -117,6 +141,9 @@ if __name__ == '__main__':
     synthetic.P = P
     synthetic.RHS = q
     dobs, Wd = synthetic.createData(mSynth, std=0.05)
+
+    u = synthetic.field(mSynth)
+    mesh.plotImage(u[:,10], showIt=True)
 
     # Now set up the problem to do some minimization
     problem = DCProblem(mesh)
