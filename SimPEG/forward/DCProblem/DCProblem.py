@@ -32,6 +32,20 @@ class DCProblem(Problem):
         return phi
 
     def J(self, m, v, u=None, solve=None):
+        """
+            :param numpy.array m: model
+            :param numpy.array v: vector to multiply
+            :param numpy.array u: fields
+            :rtype: numpy.array
+            :return: Jv
+
+            .. math::
+                c(m,u) = A(m)u - q = G\\text{sdiag}(M(mT(m)))Du - q = 0
+
+                \\nabla_u (A(m)u - q) = A(m)
+
+                \\nabla_m (A(m)u - q) = G\\text{sdiag}(Du)\\nabla_m (M(mT(m)))
+        """
         P = self.P
         D = self.mesh.faceDiv
         G = self.mesh.cellGrad
