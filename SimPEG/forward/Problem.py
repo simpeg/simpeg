@@ -81,15 +81,14 @@ class Problem(object):
         return self._dobs
     @dobs.setter
     def dobs(self, value):
-        self._P = value
+        self._dobs = value
 
 
-    def J(self, m, v, u=None, RHSii=0):
+    def J(self, m, v, u=None):
         """
             :param numpy.array m: model
             :param numpy.array v: vector to multiply
             :param numpy.array u: fields
-            :param int RHSii: which RHS to calculate sensitivity too
             :rtype: numpy.array
             :return: Jv
 
@@ -114,12 +113,11 @@ class Problem(object):
         """
         pass
 
-    def Jt(self, m, v, u=None, RHSii=0):
+    def Jt(self, m, v, u=None):
         """
             :param numpy.array m: model
             :param numpy.array v: vector to multiply
             :param numpy.array u: fields
-            :param int RHSii: which RHS to calculate sensitivity too
             :rtype: numpy.array
             :return: JTv
 
@@ -216,7 +214,7 @@ class Problem(object):
 
         R = self.W*(self.dpred(m, u=u) - self.dobs)
         R = mkvc(R)
-        return 0.5*R.inner(R)
+        return 0.5*R.dot(R)
 
     def misfitDeriv(self, m, u=None):
         """
@@ -237,9 +235,7 @@ class Problem(object):
 
                 \mathbf{d}_\\text{pred} = \mathbf{Pu(m)}
 
-                \mathbf{R} = \mathbf{d}_\\text{pred} - \mathbf{d}_\\text{obs}
-
-                \mu_\\text{data} = {1\over 2}\left| \mathbf{W \circ R} \\right|_2^2
+                \mathbf{R} = \mathbf{W} \circ (\mathbf{d}_\\text{pred} - \mathbf{d}_\\text{obs})
 
             Where P is a projection matrix that brings the field on the full domain to the data measurement locations;
             u is the field of interest; d_obs is the observed data; and W is the weighting matrix.
@@ -248,7 +244,7 @@ class Problem(object):
 
             .. math::
 
-                \\frac{\partial \mu_\\text{data}}{\partial \mathbf{m}} = \mathbf{J}^\\top (\mathbf{W \circ R})
+                \\frac{\partial \mu_\\text{data}}{\partial \mathbf{m}} = \mathbf{J}^\\top \mathbf{W \circ R}
 
         """
         if u is None:
@@ -258,7 +254,51 @@ class Problem(object):
 
         dmisfit = 0
         for i in range(self.RHS.shape[1]): # Loop over each right hand side
-            dmisfit += self.Jt(u[:,i], self.W[:,i]*R[:,i])
+            dmisfit += self.Jt(m, self.W[:,i]*R[:,i], u=u[:,i])
+
+        return dmisfit
+
+    def misfitDerivDeriv(self, m, u=None):
+        """
+            :param numpy.array m: geophysical model
+            :param numpy.array u: fields
+            :rtype: numpy.array
+            :return: data misfit derivative
+
+            The data misfit using an l_2 norm is:
+
+            .. math::
+
+                \mu_\\text{data} = {1\over 2}\left| \mathbf{W} \circ (\mathbf{d}_\\text{pred} - \mathbf{d}_\\text{obs}) \\right|_2^2
+
+            If the field, u, is provided, the calculation of the data is fast:
+
+            .. math::
+
+                \mathbf{d}_\\text{pred} = \mathbf{Pu(m)}
+
+                \mathbf{R} = \mathbf{W} \circ (\mathbf{d}_\\text{pred} - \mathbf{d}_\\text{obs})
+
+            Where P is a projection matrix that brings the field on the full domain to the data measurement locations;
+            u is the field of interest; d_obs is the observed data; and W is the weighting matrix.
+
+            The derivative of this, with respect to the model, is:
+
+            .. math::
+
+                \\frac{\partial \mu_\\text{data}}{\partial \mathbf{m}} = \mathbf{J}^\\top \mathbf{W \circ R}
+
+                \\frac{\partial^2 \mu_\\text{data}}{\partial^2 \mathbf{m}} = \mathbf{J}^\\top \mathbf{W \circ W J}
+
+        """
+        if u is None:
+            u = self.field(m)
+
+        R = self.W*(self.dpred(m, u=u) - self.dobs)
+
+        dmisfit = 0
+        for i in range(self.RHS.shape[1]): # Loop over each right hand side
+            dmisfit += self.Jt(m, self.W[:,i]*R[:,i], u=u[:,i])
 
         return dmisfit
 

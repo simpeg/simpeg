@@ -1,6 +1,7 @@
 from SimPEG import TensorMesh
 from SimPEG.forward import Problem, SyntheticProblem
-from SimPEG.utils import ModelBuilder
+from SimPEG.inverse import checkDerivative
+from SimPEG.utils import ModelBuilder, sdiag
 import numpy as np
 import scipy.sparse.linalg as linalg
 import DCutils
@@ -30,22 +31,39 @@ class DCProblem(Problem):
 
         return phi
 
-    def J(self, m, v, u=None, RHSii=0, solve=None):
+    def J(self, m, v, u=None, solve=None):
         P = self.P
         D = self.mesh.faceDiv
         G = self.mesh.cellGrad
         A = self.createMatrix(m)
         Av_dm = self.mesh.getFaceMassDeriv()
-        mT_dm = self.modelTransform(m)
+        mT_dm = self.modelTransformDeriv(m)
 
         dCdu = A
-        dCdm = - D * ( sdiag( G * u[:, RHSii] ) * ( Av_dm * ( mT_dm * v ) ) )
+        dCdm = D * ( sdiag( G * u ) * ( Av_dm * ( mT_dm * v ) ) )
 
         if solve is None:
             solve = linalg.factorized(dCdu)
 
-        return - P * solve(dCdm)
+        Jv = - P * solve(dCdm)
+        return Jv
 
+    def Jt(self, m, v, u=None, solve=None):
+        P = self.P
+        D = self.mesh.faceDiv
+        G = self.mesh.cellGrad
+        A = self.createMatrix(m)
+        Av_dm = self.mesh.getFaceMassDeriv()
+        mT_dm = self.modelTransformDeriv(m)
+
+        dCdu = A.T
+
+        if solve is None:
+            solve = linalg.factorized(dCdu.tocsc())
+        w = solve(P.T*v)
+
+        Jtv = - mT_dm.T * ( Av_dm.T * ( sdiag( G * u ) * ( D.T * w ) ) )
+        return Jtv
 
 
 if __name__ == '__main__':
@@ -75,19 +93,35 @@ if __name__ == '__main__':
     elecLocR = np.linspace(elecini, elecend, nelec)
     rxmidLoc = (elecLocR[0:nelec-1]+elecLocR[1:nelec])*0.5
     q, Q, rxmidloc = DCutils.genTxRxmat(nelec, spacelec, surfloc, elecini, mesh)
-
+    P = Q.T
 
     # Create some data
     class syntheticDCProblem(DCProblem, SyntheticProblem):
         pass
 
     synthetic = syntheticDCProblem(mesh);
-    synthetic.P = Q.T
+    synthetic.P = P
     synthetic.RHS = q
-    dobs, Wd = synthetic.createData(mSynth)
+    dobs, Wd = synthetic.createData(mSynth, std=0.05)
 
     # Now set up the problem to do some minimization
     problem = DCProblem(mesh)
+    problem.P = P
+    problem.RHS = q
+    problem.W = Wd
+    problem.dobs = dobs
+    m0 = mesh.gridCC[:,0]*0+sig1
 
+    print problem.misfit(m0)
+    print problem.misfit(mSynth)
 
+    # Check Derivative
+    derChk = lambda m: [problem.misfit(m), problem.misfitDeriv(m)]
+    checkDerivative(derChk, mSynth)
 
+    # Adjoint Test
+    u = np.random.rand(mesh.nC)
+    v = np.random.rand(mesh.nC)
+    w = np.random.rand(dobs.shape[0])
+    print w.dot(problem.J(mSynth, v, u=u))
+    print v.dot(problem.Jt(mSynth, w, u=u))
