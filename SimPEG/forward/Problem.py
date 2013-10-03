@@ -327,12 +327,3 @@ class SyntheticProblem(object):
         eps = np.linalg.norm(mkvc(dobs),2)*1e-5
         Wd = 1/(abs(dobs)*std+eps)
         return dobs, Wd
-
-
-
-if __name__ == '__main__':
-    from SimPEG.inverse import checkDerivative
-
-    p = Problem(None)
-    m = np.random.rand(5)
-    checkDerivative(lambda m : [p.modelTransform(m), p.modelTransformDeriv(m)], m, plotIt=False)
