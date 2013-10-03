@@ -191,10 +191,6 @@ class Problem(object):
         """
         return sdiag(np.exp(mkvc(m)))
 
-    def _test_modelTransformDeriv(self):
-        m = np.random.rand(5)
-        return checkDerivative(lambda m : [self.modelTransform(m), self.modelTransformDeriv(m)], m)
-
     def misfit(self, m, u=None):
         """
             :param numpy.array m: geophysical model

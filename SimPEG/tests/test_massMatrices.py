@@ -1,6 +1,6 @@
 import numpy as np
 import unittest
-from OrderTest import OrderTest
+from TestUtils import OrderTest
 
 
 # MATLAB code:

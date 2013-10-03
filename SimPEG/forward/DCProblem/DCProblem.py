@@ -1,6 +1,6 @@
 from SimPEG import TensorMesh
 from SimPEG.forward import Problem, SyntheticProblem
-from SimPEG.inverse import checkDerivative
+from SimPEG.tests import checkDerivative
 from SimPEG.utils import ModelBuilder, sdiag
 import numpy as np
 import scipy.sparse.linalg as linalg
