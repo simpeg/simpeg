@@ -3,16 +3,18 @@ import numpy as np
 
 def getIndecesBlock(p0,p1,ccMesh):
     """
-    Creates a vector containing the block indexes in the cell centerd mesh.
-    Returns a tuple
+        Creates a vector containing the block indexes in the cell centerd mesh.
+        Returns a tuple
 
-    The block is defined by the points
-    p0 : describe the position of the left  upper  front corner, and
-    p1 : describe the position of the right bottom back  corner.
+        The block is defined by the points
 
-    ccMesh represents the cell-centered mesh
+        p0, describe the position of the left  upper  front corner, and
 
-    The points p0 and p1 must live in the the same dimensional space as the mesh.
+        p1, describe the position of the right bottom back  corner.
+
+        ccMesh represents the cell-centered mesh
+
+        The points p0 and p1 must live in the the same dimensional space as the mesh.
     """
 
     # Validation: p0 and p1 live in the same dimensional space
@@ -64,9 +66,9 @@ def getIndecesBlock(p0,p1,ccMesh):
 
 def defineBlockConductivity(p0,p1,ccMesh,condVals):
     """
-    Build a block with the conductivity specified by condVal.  Returns an array.
-    condVals[0]  conductivity of the block
-    condVals[1]  conductivity of the ground
+        Build a block with the conductivity specified by condVal.  Returns an array.
+        condVals[0]  conductivity of the block
+        condVals[1]  conductivity of the ground
     """
     sigma = np.zeros(ccMesh.shape[0]) + condVals[1]
     ind   = getIndecesBlock(p0,p1,ccMesh)
@@ -80,7 +82,8 @@ def defineTwoLayeredConductivity(depth,ccMesh,condVals):
     Define a two layered model.  Depth of the first layer must be specified.
     CondVals vector with the conductivity values of the layers.  Eg:
 
-    Convention to number the layers:
+    Convention to number the layers::
+
         <----------------------------|------------------------------------>
         0                          depth                                 zf
              1st layer                       2nd layer

@@ -31,19 +31,18 @@ def volTetra(xyz, A, B, C, D):
     """
     Returns the volume for tetrahedras volume specified by the indexes A to D.
 
+    :param numpy.array xyz: X,Y,Z vertex vector
+    :param numpy.array A,B,C,D: vert index of the tetrahedra
+    :rtype: numpy.array
+    :return: V, volume of the tetrahedra
 
-    Input:
-       xyz      - X,Y,Z vertex vector
-       A,B,C,D  - vert index of the tetrahedra
+    Algorithm http://en.wikipedia.org/wiki/Tetrahedron#Volume
 
-    Output:
-       V        - volume
+    .. math::
 
-    Algorithm:     http://en.wikipedia.org/wiki/Tetrahedron#Volume
+       V = {1 \over 3} A  h
 
-       V = 1/3 A * h
-
-       V = 1/6 | ( a - d ) o ( ( b - d ) X ( c - d ) ) |
+       V = {1 \over 6} | ( a - d ) \cdot ( ( b - d )  ( c - d ) ) |
 
     """
 
@@ -69,7 +68,7 @@ def indexCube(nodes, gridSize, n=None):
     Output:
        index  - index in the order asked e.g. 'ABCD' --> (A,B,C,D)
 
-      TWO DIMENSIONS:
+    TWO DIMENSIONS::
 
       node(i,j)          node(i,j+1)
            A -------------- B
@@ -81,7 +80,7 @@ def indexCube(nodes, gridSize, n=None):
       node(i+1,j)        node(i+1,j+1)
 
 
-      THREE DIMENSIONS:
+    THREE DIMENSIONS::
 
             node(i,j,k+1)       node(i,j+1,k+1)
                 E --------------- F
@@ -97,10 +96,6 @@ def indexCube(nodes, gridSize, n=None):
            D -------------- C
       node(i+1,j,k)      node(i+1,j+1,k)
 
-
-         @author Rowan Cockett
-
-         Last modified on: 2013/07/26
     """
 
     assert type(nodes) == str, "Nodes must be a str variable: e.g. 'ABCD'"
@@ -211,7 +206,7 @@ def faceInfo(xyz, A, B, C, D, average=True, normalizeNormals=True):
     #
     # So also could be viewed as the average parallelogram.
     #
-    # WARNING: This does not compute correctly for concave quadrilaterals
+    # TODO: This does not compute correctly for concave quadrilaterals
     area = (length(nA)+length(nB)+length(nC)+length(nD))/4
 
     return N, area

@@ -55,6 +55,15 @@ Testing SimPEG
    api_Tests
 
 
+Utility Codes
+=============
+
+.. toctree::
+   :maxdepth: 2
+
+   api_Utils
+
+
 Project Index & Search
 ======================
 
