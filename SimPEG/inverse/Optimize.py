@@ -20,7 +20,9 @@ class Minimize(object):
 
     def __init__(self, problem, **kwargs):
         self.problem = problem
+        self.setKwargs(**kwargs)
 
+    def setKwargs(self, **kwargs):
         # Set the variables, throw an error if they don't exist.
         for attr in kwargs:
             if hasattr(self, attr):
@@ -130,6 +132,7 @@ class SteepestDescent(Minimize):
         return -self.g
 
 if __name__ == '__main__':
+    from SimPEG.tests import Rosenbrock, checkDerivative
     x0 = np.array([2.6, 3.7])
     checkDerivative(Rosenbrock, x0, plotIt=False)
     xOpt = GaussNewton(Rosenbrock, maxIter=20).minimize(x0)
