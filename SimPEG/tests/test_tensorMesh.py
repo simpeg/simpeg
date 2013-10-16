@@ -1,9 +1,7 @@
 import numpy as np
 import unittest
-import sys
-sys.path.append('../')
-from TensorMesh import TensorMesh
-from OrderTest import OrderTest
+from SimPEG import TensorMesh
+from TestUtils import OrderTest
 from scipy.sparse.linalg import dsolve
 
 

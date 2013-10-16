@@ -4,7 +4,7 @@ import numpy as np
 def mkvc(x, numDims=1):
     """Creates a vector with the number of dimension specified
 
-    e.g.:
+    e.g.::
 
         a = np.array([1, 2, 3])
 
@@ -43,7 +43,7 @@ def ndgrid(*args, **kwargs):
 
     The inputs can be a list or separate arguments.
 
-    e.g.
+    e.g.::
 
         a = np.array([1, 2, 3])
         b = np.array([1, 2])

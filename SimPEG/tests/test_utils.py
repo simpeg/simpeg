@@ -1,8 +1,6 @@
 import numpy as np
 import unittest
-import sys
-sys.path.append('../')
-from utils import mkvc, ndgrid, indexCube, sdiag, inv3X3BlockDiagonal, inv2X2BlockDiagonal
+from SimPEG.utils import mkvc, ndgrid, indexCube, sdiag, inv3X3BlockDiagonal, inv2X2BlockDiagonal
 
 
 class TestSequenceFunctions(unittest.TestCase):

@@ -30,20 +30,38 @@ Meshing & Operators
    api_DiffOperators
    api_InnerProducts
 
+Forward Problems
+================
+
+.. toctree::
+   :maxdepth: 2
+
+   api_Problem
+
 Inversion
 =========
 
 .. toctree::
    :maxdepth: 2
 
-   api_GaussNewton
+   api_Optimize
 
-Example Problems
-================
+Testing SimPEG
+==============
 
 .. toctree::
    :maxdepth: 2
 
+   api_Tests
+
+
+Utility Codes
+=============
+
+.. toctree::
+   :maxdepth: 2
+
+   api_Utils
 
 
 Project Index & Search

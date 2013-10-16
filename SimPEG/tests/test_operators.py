@@ -1,6 +1,6 @@
 import numpy as np
 import unittest
-from OrderTest import OrderTest
+from TestUtils import OrderTest
 
 MESHTYPES = ['uniformTensorMesh', 'uniformLOM', 'rotateLOM']
 call2 = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1])

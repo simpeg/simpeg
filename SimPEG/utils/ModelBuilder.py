@@ -3,21 +3,19 @@ import numpy as np
 
 def getIndecesBlock(p0,p1,ccMesh):
     """
-    Creates a vector containing the block indexes in the cell centerd mesh.
-    Returns a tuple
+        Creates a vector containing the block indexes in the cell centerd mesh.
+        Returns a tuple
 
-    The block is defined by the points
-    p0 : describe the position of the left  upper  front corner, and
-    p1 : describe the position of the right bottom back  corner.
+        The block is defined by the points
 
-    ccMesh represents the cell-centered mesh
+        p0, describe the position of the left  upper  front corner, and
 
-    The points p0 and p1 must live in the the same dimensional space as the mesh.
+        p1, describe the position of the right bottom back  corner.
+
+        ccMesh represents the cell-centered mesh
+
+        The points p0 and p1 must live in the the same dimensional space as the mesh.
     """
-
-    # Validation of the input
-    assert type(p0) == np.ndarray, "Vector must be a numpy array"
-    assert type(p1) == np.ndarray, "Vector must be a numpy array"
 
     # Validation: p0 and p1 live in the same dimensional space
     assert len(p0) == len(p1), "Dimension mismatch. len(p0) != len(p1)"
@@ -47,7 +45,7 @@ def getIndecesBlock(p0,p1,ccMesh):
 
         ind  = np.where(indX & indY)
 
-    else:
+    elif dimMesh == 3:
         # Define the points
         x1 = p0[0]
         y1 = p0[1]
@@ -68,9 +66,9 @@ def getIndecesBlock(p0,p1,ccMesh):
 
 def defineBlockConductivity(p0,p1,ccMesh,condVals):
     """
-    Build a block with the conductivity specified by condVal.  Returns an array.
-    condVals[0]  conductivity of the block
-    condVals[1]  conductivity of the ground
+        Build a block with the conductivity specified by condVal.  Returns an array.
+        condVals[0]  conductivity of the block
+        condVals[1]  conductivity of the ground
     """
     sigma = np.zeros(ccMesh.shape[0]) + condVals[1]
     ind   = getIndecesBlock(p0,p1,ccMesh)
@@ -84,7 +82,8 @@ def defineTwoLayeredConductivity(depth,ccMesh,condVals):
     Define a two layered model.  Depth of the first layer must be specified.
     CondVals vector with the conductivity values of the layers.  Eg:
 
-    Convention to number the layers:
+    Convention to number the layers::
+
         <----------------------------|------------------------------------>
         0                          depth                                 zf
              1st layer                       2nd layer
@@ -98,13 +97,16 @@ def defineTwoLayeredConductivity(depth,ccMesh,condVals):
 
     # Identify 1st cell centered reference point
     p0[0] = ccMesh[0,0]
-    p0[1] = ccMesh[0,1]
-    p0[2] = ccMesh[0,2]
+    if dim>1: p0[1] = ccMesh[0,1]
+    if dim>2: p0[2] = ccMesh[0,2]
 
     # Identify the last cell-centered reference point
     p1[0] = ccMesh[-1,0]
-    p1[1] = ccMesh[-1,1]
-    p1[2] = ccMesh[-1,2] - depth;
+    if dim>1: p1[1] = ccMesh[-1,1]
+    if dim>2: p1[2] = ccMesh[-1,2]
+
+    # The depth is always defined on the last one.
+    p1[len(p1)-1] -= depth
 
     ind   = getIndecesBlock(p0,p1,ccMesh)
 
@@ -117,23 +119,24 @@ def scalarConductivity(ccMesh,pFunction):
     Define the distribution conductivity in the mesh according to the
     analytical expression given in pFunction
     """
-    xCC = ccMesh[:,0]
-    yCC = ccMesh[:,1]
-    zCC = ccMesh[:,2]
+    dim = np.size(ccMesh[0,:])
+    CC = [ccMesh[:,0]]
+    if dim>1: CC.append(ccMesh[:,1])
+    if dim>2: CC.append(ccMesh[:,2])
 
-    sigma = pFunction(xCC,yCC,zCC)
+
+    sigma = pFunction(*CC)
 
     return sigma
 
 if __name__ == '__main__':
 
-    import sys
-    sys.path.append('../')
-    from TensorMesh import TensorMesh
+    from SimPEG import TensorMesh
+    from matplotlib import pyplot as plt
 
     # Define the mesh
 
-    testDim = 3
+    testDim = 2
     h1 = 0.3*np.ones(7)
     h1[0] = 0.5
     h1[-1] = 0.6
@@ -157,8 +160,8 @@ if __name__ == '__main__':
     # ------------------- Test conductivities! --------------------------
     print('Testing 1 block conductivity')
 
-    p0 = np.array([0.5,0.5,0.5])
-    p1 = np.array([1.0,1.0,1.0])
+    p0 = np.array([0.5,0.5,0.5])[:testDim]
+    p1 = np.array([1.0,1.0,1.0])[:testDim]
     condVals = np.array([100,1e-6])
 
     sigma = defineBlockConductivity(p0,p1,ccMesh,condVals)
@@ -167,6 +170,7 @@ if __name__ == '__main__':
     print sigma.shape
     M.plotImage(sigma)
     print 'Done with block! :)'
+    plt.show()
 
     # -----------------------------------------
     print('Testing the two layered model')
@@ -178,11 +182,17 @@ if __name__ == '__main__':
     M.plotImage(sigma)
     print sigma
     print 'layer model!'
+    plt.show()
 
     # -----------------------------------------
     print('Testing scalar conductivity')
 
-    pFunction = lambda x,y,z: np.exp(x+y+z)
+    if testDim == 1:
+        pFunction = lambda x: np.exp(x)
+    elif testDim == 2:
+        pFunction = lambda x,y: np.exp(x+y)
+    elif testDim == 3:
+        pFunction = lambda x,y,z: np.exp(x+y+z)
 
     sigma = scalarConductivity(ccMesh,pFunction)
 
@@ -190,5 +200,6 @@ if __name__ == '__main__':
     M.plotImage(sigma)
     print sigma
     print 'Scalar conductivity defined!'
+    plt.show()
 
     # -----------------------------------------
