@@ -83,6 +83,16 @@ class Problem(object):
     def dobs(self, value):
         self._dobs = value
 
+    def evalFunction(self, m, doDerivative=True):
+        """
+            :param numpy.array m: model
+            :param bool doDerivative: do you want to compute the derivative?
+            :rtype: numpy.array
+            :return: Jv
+        """
+        f = self.misfit(m)
+
+        return f, g, H
 
     def J(self, m, v, u=None):
         """
