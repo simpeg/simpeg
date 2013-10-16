@@ -26,7 +26,7 @@ class TensorView(object):
 
         Optional Input:
 
-        :param str imageType: type of image ('CC','N','Fx','Fy','Fz','Ex','Ey','Ez')
+        :param str imageType: type of image ('CC','N','F','Fx','Fy','Fz','E','Ex','Ey','Ez') or combinations, e.g. ExEy or FxFz
         :param int figNum: number of figure to plot to
         :param matplotlib.axes.Axes ax: axis to plot to
         :param str direction: slice dimensions, 3D only ('x', 'y', 'z')
