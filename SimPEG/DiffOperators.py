@@ -169,7 +169,7 @@ class DiffOperators(object):
                 # The number of cell centers in each direction
                 n1 = self.nCx
                 n2 = self.nCy
-                n3 = self.nCy
+                n3 = self.nCz
 
                 # Compute lengths of cell edges
                 L = self.edge
