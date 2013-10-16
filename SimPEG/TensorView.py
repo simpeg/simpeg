@@ -154,8 +154,8 @@ class TensorView(object):
                 # Plot the mesh
                 ph = ax.pcolormesh(xx, yy, C.T)
                 # Plot the lines
-                gx =  np.arange(nX+1)*self.vectorNx[-1]
-                gy =  np.arange(nY+1)*self.vectorNy[-1]
+                gx =  np.arange(nX+1)*(self.vectorNx[-1]-self.x0[0])
+                gy =  np.arange(nY+1)*(self.vectorNy[-1]-self.x0[1])
                 # Repeat and seperate with NaN
                 gxX = np.c_[gx, gx, gx+np.nan].ravel()
                 gxY = np.kron(np.ones((nX+1, 1)), np.array([0, sum(self.hy)*nY, np.nan])).ravel()
@@ -171,7 +171,7 @@ class TensorView(object):
                         for ix in range(int(nX)):
                             iz = ix + iy*nX
                             if iz < self.nCz:
-                                ax.text((ix+1)*self.vectorNx[-1]-pad,(iy)*self.vectorNy[-1]+pad,
+                                ax.text((ix+1)*(self.vectorNx[-1]-self.x0[0])-pad,(iy)*(self.vectorNy[-1]-self.x0[1])+pad,
                                          '#%i'%iz,color=annotationColor,verticalalignment='bottom',horizontalalignment='right',size='x-large')
 
         if showIt: plt.show()
