@@ -42,7 +42,6 @@ class TensorView(object):
         """
         assert type(I) == np.ndarray, "I must be a numpy array"
         assert type(numbering) == bool, "numbering must be a bool"
-        assert imageType in ["CC", "N","Fx","Fy","Fz","Ex","Ey","Ez"], "imageType must be 'CC', 'N','Fx','Fy','Fz','Ex','Ey','Ez'"
         assert direction in ["x", "y","z"], "direction must be either x,y, or z"
 
 
@@ -51,17 +50,62 @@ class TensorView(object):
         elif imageType == 'N':
             assert I.size == self.nN, "Incorrect dimensions for N."
         elif imageType == 'Fx':
-            assert I.size == np.prod(self.nFx), "Incorrect dimensions for Fx."
+            if I.size != np.prod(self.nFx): I, fy, fz = self.r(I,'F','F','M')
         elif imageType == 'Fy':
-            assert I.size == np.prod(self.nFy), "Incorrect dimensions for Fy."
+            if I.size != np.prod(self.nFy): fx, I, fz = self.r(I,'F','F','M')
         elif imageType == 'Fz':
-            assert I.size == np.prod(self.nFz), "Incorrect dimensions for Fz."
+            if I.size != np.prod(self.nFz): fx, fy, I = self.r(I,'F','F','M')
         elif imageType == 'Ex':
-            assert I.size == np.prod(self.nEx), "Incorrect dimensions for Ex."
+            if I.size != np.prod(self.nEx): I, ey, ez = self.r(I,'E','E','M')
         elif imageType == 'Ey':
-            assert I.size == np.prod(self.nEy), "Incorrect dimensions for Ey."
+            if I.size != np.prod(self.nEy): ex, I, ez = self.r(I,'E','E','M')
         elif imageType == 'Ez':
-            assert I.size == np.prod(self.nEz), "Incorrect dimensions for Ez."
+            if I.size != np.prod(self.nEz): ex, ey, I = self.r(I,'E','E','M')
+        elif imageType[0] == 'E':
+            plotAll = len(imageType) == 1
+            options = {"direction":direction,"numbering":numbering,"annotationColor":annotationColor,"showIt":showIt}
+            fig = plt.figure(figNum)
+            # Determine the subplot number: 131, 121
+            numPlots = 130 if plotAll else len(imageType)/2*10+100
+            pltNum = 1
+            ex, ey, ez = self.r(I,'E','E','M')
+            if plotAll or 'Ex' in imageType:
+                ax_x = plt.subplot(numPlots+pltNum)
+                self.plotImage(ex, imageType='Ex', ax=ax_x, **options)
+                pltNum +=1
+            if plotAll or 'Ey' in imageType:
+                ax_y = plt.subplot(numPlots+pltNum)
+                self.plotImage(ey, imageType='Ey', ax=ax_y, **options)
+                pltNum +=1
+            if plotAll or 'Ez' in imageType:
+                ax_z = plt.subplot(numPlots+pltNum)
+                self.plotImage(ez, imageType='Ez', ax=ax_z, **options)
+                pltNum +=1
+            return
+        elif imageType[0] == 'F':
+            plotAll = len(imageType) == 1
+            options = {"direction":direction,"numbering":numbering,"annotationColor":annotationColor,"showIt":showIt}
+            fig = plt.figure(figNum)
+            # Determine the subplot number: 131, 121
+            numPlots = 130 if plotAll else len(imageType)/2*10+100
+            pltNum = 1
+            fx, fy, fz = self.r(I,'F','F','M')
+            if plotAll or 'Fx' in imageType:
+                ax_x = plt.subplot(numPlots+pltNum)
+                self.plotImage(fx, imageType='Fx', ax=ax_x, **options)
+                pltNum +=1
+            if plotAll or 'Fy' in imageType:
+                ax_y = plt.subplot(numPlots+pltNum)
+                self.plotImage(fy, imageType='Fy', ax=ax_y, **options)
+                pltNum +=1
+            if plotAll or 'Fz' in imageType:
+                ax_z = plt.subplot(numPlots+pltNum)
+                self.plotImage(fz, imageType='Fz', ax=ax_z, **options)
+                pltNum +=1
+            return
+        else:
+            raise Exception("imageType must be 'CC', 'N','Fx','Fy','Fz','Ex','Ey','Ez'")
+
 
         if ax is None:
             fig = plt.figure(figNum)
@@ -174,6 +218,7 @@ class TensorView(object):
                                 ax.text((ix+1)*(self.vectorNx[-1]-self.x0[0])-pad,(iy)*(self.vectorNy[-1]-self.x0[1])+pad,
                                          '#%i'%iz,color=annotationColor,verticalalignment='bottom',horizontalalignment='right',size='x-large')
 
+        ax.set_title(imageType)
         if showIt: plt.show()
         return ph
 
