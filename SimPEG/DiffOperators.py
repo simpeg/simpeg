@@ -203,46 +203,46 @@ class DiffOperators(object):
     _edgeCurl = None
     edgeCurl = property(**edgeCurl())
 
-    def faceAve():
+    def aveF2CC():
         doc = "Construct the averaging operator on cell faces to cell centers."
 
         def fget(self):
-            if(self._faceAve is None):
+            if(self._aveF2CC is None):
                 n = self.n
                 if(self.dim == 1):
-                    self._faceAve = av(n[0])
+                    self._aveF2CC = av(n[0])
                 elif(self.dim == 2):
-                    self._faceAve = sp.hstack((sp.kron(speye(n[1]), av(n[0])),
+                    self._aveF2CC = sp.hstack((sp.kron(speye(n[1]), av(n[0])),
                                                sp.kron(av(n[1]), speye(n[0]))), format="csr")
                 elif(self.dim == 3):
-                    self._faceAve = sp.hstack((kron3(speye(n[2]), speye(n[1]), av(n[0])),
+                    self._aveF2CC = sp.hstack((kron3(speye(n[2]), speye(n[1]), av(n[0])),
                                                kron3(speye(n[2]), av(n[1]), speye(n[0])),
                                                kron3(av(n[2]), speye(n[1]), speye(n[0]))), format="csr")
-            return self._faceAve
+            return self._aveF2CC
         return locals()
-    _faceAve = None
-    faceAve = property(**faceAve())
+    _aveF2CC = None
+    aveF2CC = property(**aveF2CC())
 
-    def edgeAve():
+    def aveE2CC():
         doc = "Construct the averaging operator on cell edges to cell centers."
 
         def fget(self):
-            if(self._edgeAve is None):
+            if(self._aveE2CC is None):
                 # The number of cell centers in each direction
                 n = self.n
                 if(self.dim == 1):
                     raise Exception('Edge Averaging does not make sense in 1D: Use Identity?')
                 elif(self.dim == 2):
-                    self._edgeAve = sp.hstack((sp.kron(av(n[1]), speye(n[0])),
+                    self._aveE2CC = sp.hstack((sp.kron(av(n[1]), speye(n[0])),
                                                sp.kron(speye(n[1]), av(n[0]))), format="csr")
                 elif(self.dim == 3):
-                    self._edgeAve = sp.hstack((kron3(av(n[2]), av(n[1]), speye(n[0])),
+                    self._aveE2CC = sp.hstack((kron3(av(n[2]), av(n[1]), speye(n[0])),
                                                kron3(av(n[2]), speye(n[1]), av(n[0])),
                                                kron3(speye(n[2]), av(n[1]), av(n[0]))), format="csr")
-            return self._edgeAve
+            return self._aveE2CC
         return locals()
-    _edgeAve = None
-    edgeAve = property(**edgeAve())
+    _aveE2CC = None
+    aveE2CC = property(**aveE2CC())
 
     def nodalAve():
         doc = "Construct the averaging operator on cell nodes to cell centers."
@@ -316,9 +316,9 @@ class DiffOperators(object):
         assert materialProp.shape == (self.nC,), "materialProp incorrect shape"
 
         if loc=='e':
-            Av = self.edgeAve
+            Av = self.aveE2CC
         elif loc=='f':
-            Av = self.faceAve
+            Av = self.aveF2CC
         else:
             raise ValueError('Invalid loc')
 
@@ -338,5 +338,5 @@ class DiffOperators(object):
         return self.getMass(loc='f', materialProp=materialProp, inv=inv)
 
     def getFaceMassDeriv(self):
-        Av = self.faceAve
+        Av = self.aveF2CC
         return Av.T * sdiag(self.vol)
