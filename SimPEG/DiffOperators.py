@@ -286,7 +286,7 @@ class DiffOperators(object):
     _nodalVectorAve = None
     nodalVectorAve = property(**nodalVectorAve())
 
-    def getMass(self, loc='e', materialProp=None, inv=False):
+    def getMass(self, materialProp=None, loc='e', inv=False):
         """ Produces mass matricies.
 
         Kwargs:
