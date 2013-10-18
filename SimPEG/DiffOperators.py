@@ -329,19 +329,13 @@ class DiffOperators(object):
 
         return sdiag(diag)
 
-    def getEdgeMass(self, materialProp=None):
+    def getEdgeMass(self, materialProp=None, inv=False):
         """mass matrix for products of edge functions w'*M(materialProp)*e"""
-        if(materialProp is None):
-            materialProp = np.ones(self.nC)
-        Av = self.edgeAve
-        return sdiag(Av.T * (self.vol * mkvc(materialProp)))
+        return self.getMass(loc='e', materialProp=materialProp, inv=inv)
 
-    def getFaceMass(self, materialProp=None):
+    def getFaceMass(self, materialProp=None, inv=False):
         """mass matrix for products of face functions w'*M(materialProp)*f"""
-        if(materialProp is None):
-            materialProp = np.ones(self.nC)
-        Av = self.faceAve
-        return sdiag(Av.T * (self.vol * mkvc(materialProp)))
+        return self.getMass(loc='f', materialProp=materialProp, inv=inv)
 
     def getFaceMassDeriv(self):
         Av = self.faceAve
