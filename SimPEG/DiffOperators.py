@@ -286,6 +286,49 @@ class DiffOperators(object):
     _nodalVectorAve = None
     nodalVectorAve = property(**nodalVectorAve())
 
+    def getMass(self, loc='e', materialProp=None, inv=False):
+        """ Produces mass matricies.
+
+        Kwargs:
+            loc (str): 'e' - Average to edges
+                       'f'              faces
+            materialProp: property to be averaged (see below)
+            inv (bool): True returns matrix inverse
+
+        Returns:
+            scipy.sparse.csr.csr_matrix
+
+        materialProp can be:
+            None            -> takes materialProp = 1 (default)
+            float           -> a constant value for entire domain
+            numpy.ndarray   -> if materialProp.size == self.nC
+                                    3D property model
+                               if materialProp.size = self.nCz
+                                    1D (layered eath) property model
+        """
+        if materialProp is None:
+            materialProp = np.ones(self.nC)
+        elif type(materialProp) is float:
+            materialProp = np.ones(self.nC)*materialProp
+        elif materialProp.shape == (self.nCz,):
+            materialProp = materialProp.repeat(self.nCx*self.nCy)
+        materialProp = mkvc(materialProp)
+        assert materialProp.shape == (self.nC,), "materialProp incorrect shape"
+
+        if loc=='e':
+            Av = self.edgeAve
+        elif loc=='f':
+            Av = self.faceAve
+        else:
+            raise ValueError('Invalid loc')
+
+        diag = Av.T * (self.vol * mkvc(materialProp))
+
+        if inv:
+            diag = 1/diag
+
+        return sdiag(diag)
+
     def getEdgeMass(self, materialProp=None):
         """mass matrix for products of edge functions w'*M(materialProp)*e"""
         if(materialProp is None):
