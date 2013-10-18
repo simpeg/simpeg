@@ -244,61 +244,59 @@ class DiffOperators(object):
     _aveE2CC = None
     aveE2CC = property(**aveE2CC())
 
-    def nodalAve():
+    def aveN2CC():
         doc = "Construct the averaging operator on cell nodes to cell centers."
 
         def fget(self):
-            if(self._nodalAve is None):
+            if(self._aveN2CC is None):
                 # The number of cell centers in each direction
                 n = self.n
                 if(self.dim == 1):
-                    self._nodalAve = av(n[0])
+                    self._aveN2CC = av(n[0])
                 elif(self.dim == 2):
-                    self._nodalAve = sp.hstack((sp.kron(av(n[1]), av(n[0])),
-                                                sp.kron(av(n[1]), av(n[0]))), format="csr")
+                    self._aveN2CC = sp.hstack((sp.kron(av(n[1]), av(n[0])),
+                                               sp.kron(av(n[1]), av(n[0]))), format="csr")
                 elif(self.dim == 3):
-                    self._nodalAve = sp.hstack((kron3(av(n[2]), av(n[1]), av(n[0])),
-                                                kron3(av(n[2]), av(n[1]), av(n[0])),
-                                                kron3(av(n[2]), av(n[1]), av(n[0]))), format="csr")
-            return self._nodalAve
+                    self._aveN2CC = sp.hstack((kron3(av(n[2]), av(n[1]), av(n[0])),
+                                               kron3(av(n[2]), av(n[1]), av(n[0])),
+                                               kron3(av(n[2]), av(n[1]), av(n[0]))), format="csr")
+            return self._aveN2CC
         return locals()
-    _nodalAve = None
-    nodalAve = property(**nodalAve())
+    _aveN2CC = None
+    aveN2CC = property(**aveN2CC())
 
-    def nodalVectorAve():
+    def aveN2CCv():
         doc = "Construct the averaging operator on cell nodes to cell centers, keeping each dimension separate."
 
         def fget(self):
-            if(self._nodalVectorAve is None):
+            if(self._aveN2CCv is None):
                 # The number of cell centers in each direction
                 n = self.n
                 if(self.dim == 1):
-                    self._nodalVectorAve = av(n[0])
+                    self._aveN2CCv = av(n[0])
                 elif(self.dim == 2):
-                    self._nodalVectorAve = sp.block_diag((sp.kron(av(n[1]), av(n[0])),
-                                                          sp.kron(av(n[1]), av(n[0]))), format="csr")
+                    self._aveN2CCv = sp.block_diag((sp.kron(av(n[1]), av(n[0])),
+                                                    sp.kron(av(n[1]), av(n[0]))), format="csr")
                 elif(self.dim == 3):
-                    self._nodalVectorAve = sp.block_diag((kron3(av(n[2]), av(n[1]), av(n[0])),
-                                                          kron3(av(n[2]), av(n[1]), av(n[0])),
-                                                          kron3(av(n[2]), av(n[1]), av(n[0]))), format="csr")
-            return self._nodalVectorAve
+                    self._aveN2CCv = sp.block_diag((kron3(av(n[2]), av(n[1]), av(n[0])),
+                                                    kron3(av(n[2]), av(n[1]), av(n[0])),
+                                                    kron3(av(n[2]), av(n[1]), av(n[0]))), format="csr")
+            return self._aveN2CCv
         return locals()
-    _nodalVectorAve = None
-    nodalVectorAve = property(**nodalVectorAve())
+    _aveN2CCv = None
+    aveN2CCv = property(**aveN2CCv())
 
     def getMass(self, materialProp=None, loc='e', inv=False):
         """ Produces mass matricies.
 
-        Kwargs:
-            loc (str): 'e' - Average to edges
-                       'f'              faces
-            materialProp: property to be averaged (see below)
-            inv (bool): True returns matrix inverse
+        :param str loc: Average to location: 'e'-edges, 'f'-faces
+        :param None,float,numpy.ndarray materialProp: property to be averaged (see below)
+        :param bool inv: True returns matrix inverse
+        :rtype: scipy.sparse.csr.csr_matrix
+        :return: M, the mass matrix
 
-        Returns:
-            scipy.sparse.csr.csr_matrix
+        materialProp can be::
 
-        materialProp can be:
             None            -> takes materialProp = 1 (default)
             float           -> a constant value for entire domain
             numpy.ndarray   -> if materialProp.size == self.nC
