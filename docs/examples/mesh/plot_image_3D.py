@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from SimPEG import TensorMesh
+from SimPEG.mesh import TensorMesh
 
 n = 20
 h = np.ones(n)/n

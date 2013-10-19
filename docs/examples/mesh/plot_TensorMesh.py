@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from SimPEG import TensorMesh
+from SimPEG.mesh import TensorMesh
 
 pad = 7
 padfactor = 1.4
