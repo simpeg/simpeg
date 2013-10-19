@@ -1,5 +1,5 @@
 import numpy as np
-from utils import mkvc
+from SimPEG.utils import mkvc
 
 
 class BaseMesh(object):

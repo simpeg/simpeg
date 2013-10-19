@@ -3,6 +3,6 @@
 Differential Operators
 **********************
 
-.. automodule:: SimPEG.DiffOperators
+.. automodule:: SimPEG.mesh.DiffOperators
     :members:
     :undoc-members:

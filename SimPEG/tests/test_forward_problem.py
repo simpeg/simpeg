@@ -1,6 +1,6 @@
 import numpy as np
 import unittest
-from SimPEG import TensorMesh
+from SimPEG.mesh import TensorMesh
 from SimPEG.forward import Problem
 from TestUtils import checkDerivative
 from scipy.sparse.linalg import dsolve

@@ -3,6 +3,6 @@
 Logically Orthogonal Mesh
 *************************
 
-.. automodule:: SimPEG.LogicallyOrthogonalMesh
+.. automodule:: SimPEG.mesh.LogicallyOrthogonalMesh
     :members:
     :undoc-members:

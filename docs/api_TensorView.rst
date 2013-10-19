@@ -3,6 +3,6 @@
 Tensor View
 ***********
 
-.. automodule:: SimPEG.TensorView
+.. automodule:: SimPEG.mesh.TensorView
     :members:
     :undoc-members:

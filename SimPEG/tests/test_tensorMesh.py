@@ -1,6 +1,6 @@
 import numpy as np
 import unittest
-from SimPEG import TensorMesh
+from SimPEG.mesh import TensorMesh
 from TestUtils import OrderTest
 from scipy.sparse.linalg import dsolve
 

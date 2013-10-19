@@ -3,6 +3,6 @@
 Inner Products
 **************
 
-.. automodule:: SimPEG.InnerProducts
+.. automodule:: SimPEG.mesh.InnerProducts
     :members:
     :undoc-members:

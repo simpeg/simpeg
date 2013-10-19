@@ -3,7 +3,7 @@ from BaseMesh import BaseMesh
 from TensorView import TensorView
 from DiffOperators import DiffOperators
 from InnerProducts import InnerProducts
-from utils import ndgrid, mkvc
+from SimPEG.utils import ndgrid, mkvc
 
 
 class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):

@@ -1,4 +1,4 @@
-from SimPEG import TensorMesh
+from SimPEG.mesh import TensorMesh
 from SimPEG.forward import Problem, SyntheticProblem
 from SimPEG.tests import checkDerivative
 from SimPEG.utils import ModelBuilder, sdiag

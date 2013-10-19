@@ -1,7 +1,6 @@
 import unittest
 import sys
-sys.path.append('../')
-from BaseMesh import BaseMesh
+from SimPEG.mesh import BaseMesh
 import numpy as np
 
 

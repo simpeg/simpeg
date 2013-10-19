@@ -1,5 +1,4 @@
-from TensorMesh import TensorMesh
-from LogicallyOrthogonalMesh import LogicallyOrthogonalMesh
+import mesh
 import utils
 import inverse
 from Solver import Solver

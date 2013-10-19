@@ -2,7 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pylab import norm
 from SimPEG.utils import mkvc
-from SimPEG import TensorMesh, utils, LogicallyOrthogonalMesh
+from SimPEG import utils
+from SimPEG.mesh import TensorMesh, LogicallyOrthogonalMesh
 import numpy as np
 import unittest
 
