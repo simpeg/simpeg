@@ -286,12 +286,11 @@ class DiffOperators(object):
     _aveN2CCv = None
     aveN2CCv = property(**aveN2CCv())
 
-    def getMass(self, materialProp=None, loc='e', inv=False):
+    def getMass(self, materialProp=None, loc='e'):
         """ Produces mass matricies.
 
         :param str loc: Average to location: 'e'-edges, 'f'-faces
         :param None,float,numpy.ndarray materialProp: property to be averaged (see below)
-        :param bool inv: True returns matrix inverse
         :rtype: scipy.sparse.csr.csr_matrix
         :return: M, the mass matrix
 
@@ -322,18 +321,15 @@ class DiffOperators(object):
 
         diag = Av.T * (self.vol * mkvc(materialProp))
 
-        if inv:
-            diag = 1/diag
-
         return sdiag(diag)
 
-    def getEdgeMass(self, materialProp=None, inv=False):
+    def getEdgeMass(self, materialProp=None):
         """mass matrix for products of edge functions w'*M(materialProp)*e"""
-        return self.getMass(loc='e', materialProp=materialProp, inv=inv)
+        return self.getMass(loc='e', materialProp=materialProp)
 
-    def getFaceMass(self, materialProp=None, inv=False):
+    def getFaceMass(self, materialProp=None):
         """mass matrix for products of face functions w'*M(materialProp)*f"""
-        return self.getMass(loc='f', materialProp=materialProp, inv=inv)
+        return self.getMass(loc='f', materialProp=materialProp)
 
     def getFaceMassDeriv(self):
         Av = self.aveF2CC
