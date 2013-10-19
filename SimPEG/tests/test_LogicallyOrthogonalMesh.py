@@ -1,10 +1,7 @@
 import numpy as np
 import unittest
-import sys
-sys.path.append('../')
-from TensorMesh import TensorMesh
-from LogicallyOrthogonalMesh import LogicallyOrthogonalMesh
-from utils import ndgrid
+from SimPEG.mesh import TensorMesh, LogicallyOrthogonalMesh
+from SimPEG.utils import ndgrid
 
 
 class BasicLOMTests(unittest.TestCase):

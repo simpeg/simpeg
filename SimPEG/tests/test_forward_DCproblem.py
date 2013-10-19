@@ -1,6 +1,6 @@
 import numpy as np
 import unittest
-from SimPEG import TensorMesh
+from SimPEG.mesh import TensorMesh
 from SimPEG.utils import ModelBuilder, sdiag
 from SimPEG.forward import Problem, SyntheticProblem
 from SimPEG.forward.DCProblem import DCProblem, DCutils

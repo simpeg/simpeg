@@ -3,6 +3,6 @@
 LOM View
 ********
 
-.. automodule:: SimPEG.LomView
+.. automodule:: SimPEG.mesh.LomView
     :members:
     :undoc-members:

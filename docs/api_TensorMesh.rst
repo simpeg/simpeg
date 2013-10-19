@@ -3,6 +3,6 @@
 Tensor Mesh
 ***********
 
-.. automodule:: SimPEG.TensorMesh
+.. automodule:: SimPEG.mesh.TensorMesh
     :members:
     :undoc-members:

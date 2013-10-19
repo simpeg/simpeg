@@ -3,7 +3,7 @@ from BaseMesh import BaseMesh
 from DiffOperators import DiffOperators
 from InnerProducts import InnerProducts
 from LomView import LomView
-from utils import mkvc, ndgrid, volTetra, indexCube, faceInfo
+from SimPEG.utils import mkvc, ndgrid, volTetra, indexCube, faceInfo
 
 # Some helper functions.
 length2D = lambda x: (x[:, 0]**2 + x[:, 1]**2)**0.5

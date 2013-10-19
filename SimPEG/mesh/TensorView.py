@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 from mpl_toolkits.mplot3d import Axes3D
-from utils import mkvc
+from SimPEG.utils import mkvc
 
 
 class TensorView(object):

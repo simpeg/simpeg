@@ -26,6 +26,7 @@ Meshing & Operators
    api_TensorMesh
    api_TensorView
    api_LogicallyOrthogonalMesh
+   api_Cyl1DMesh
    api_LOMView
    api_DiffOperators
    api_InnerProducts

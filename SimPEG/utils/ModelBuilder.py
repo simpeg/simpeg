@@ -15,6 +15,7 @@ def getIndecesBlock(p0,p1,ccMesh):
         ccMesh represents the cell-centered mesh
 
         The points p0 and p1 must live in the the same dimensional space as the mesh.
+
     """
 
     # Validation: p0 and p1 live in the same dimensional space
@@ -131,7 +132,7 @@ def scalarConductivity(ccMesh,pFunction):
 
 if __name__ == '__main__':
 
-    from SimPEG import TensorMesh
+    from SimPEG.mesh import TensorMesh
     from matplotlib import pyplot as plt
 
     # Define the mesh
