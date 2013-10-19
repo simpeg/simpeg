@@ -203,103 +203,134 @@ class DiffOperators(object):
     _edgeCurl = None
     edgeCurl = property(**edgeCurl())
 
-    def faceAve():
+    def aveF2CC():
         doc = "Construct the averaging operator on cell faces to cell centers."
 
         def fget(self):
-            if(self._faceAve is None):
+            if(self._aveF2CC is None):
                 n = self.n
                 if(self.dim == 1):
-                    self._faceAve = av(n[0])
+                    self._aveF2CC = av(n[0])
                 elif(self.dim == 2):
-                    self._faceAve = sp.hstack((sp.kron(speye(n[1]), av(n[0])),
+                    self._aveF2CC = sp.hstack((sp.kron(speye(n[1]), av(n[0])),
                                                sp.kron(av(n[1]), speye(n[0]))), format="csr")
                 elif(self.dim == 3):
-                    self._faceAve = sp.hstack((kron3(speye(n[2]), speye(n[1]), av(n[0])),
+                    self._aveF2CC = sp.hstack((kron3(speye(n[2]), speye(n[1]), av(n[0])),
                                                kron3(speye(n[2]), av(n[1]), speye(n[0])),
                                                kron3(av(n[2]), speye(n[1]), speye(n[0]))), format="csr")
-            return self._faceAve
+            return self._aveF2CC
         return locals()
-    _faceAve = None
-    faceAve = property(**faceAve())
+    _aveF2CC = None
+    aveF2CC = property(**aveF2CC())
 
-    def edgeAve():
+    def aveE2CC():
         doc = "Construct the averaging operator on cell edges to cell centers."
 
         def fget(self):
-            if(self._edgeAve is None):
+            if(self._aveE2CC is None):
                 # The number of cell centers in each direction
                 n = self.n
                 if(self.dim == 1):
                     raise Exception('Edge Averaging does not make sense in 1D: Use Identity?')
                 elif(self.dim == 2):
-                    self._edgeAve = sp.hstack((sp.kron(av(n[1]), speye(n[0])),
+                    self._aveE2CC = sp.hstack((sp.kron(av(n[1]), speye(n[0])),
                                                sp.kron(speye(n[1]), av(n[0]))), format="csr")
                 elif(self.dim == 3):
-                    self._edgeAve = sp.hstack((kron3(av(n[2]), av(n[1]), speye(n[0])),
+                    self._aveE2CC = sp.hstack((kron3(av(n[2]), av(n[1]), speye(n[0])),
                                                kron3(av(n[2]), speye(n[1]), av(n[0])),
                                                kron3(speye(n[2]), av(n[1]), av(n[0]))), format="csr")
-            return self._edgeAve
+            return self._aveE2CC
         return locals()
-    _edgeAve = None
-    edgeAve = property(**edgeAve())
+    _aveE2CC = None
+    aveE2CC = property(**aveE2CC())
 
-    def nodalAve():
+    def aveN2CC():
         doc = "Construct the averaging operator on cell nodes to cell centers."
 
         def fget(self):
-            if(self._nodalAve is None):
+            if(self._aveN2CC is None):
                 # The number of cell centers in each direction
                 n = self.n
                 if(self.dim == 1):
-                    self._nodalAve = av(n[0])
+                    self._aveN2CC = av(n[0])
                 elif(self.dim == 2):
-                    self._nodalAve = sp.hstack((sp.kron(av(n[1]), av(n[0])),
-                                                sp.kron(av(n[1]), av(n[0]))), format="csr")
+                    self._aveN2CC = sp.hstack((sp.kron(av(n[1]), av(n[0])),
+                                               sp.kron(av(n[1]), av(n[0]))), format="csr")
                 elif(self.dim == 3):
-                    self._nodalAve = sp.hstack((kron3(av(n[2]), av(n[1]), av(n[0])),
-                                                kron3(av(n[2]), av(n[1]), av(n[0])),
-                                                kron3(av(n[2]), av(n[1]), av(n[0]))), format="csr")
-            return self._nodalAve
+                    self._aveN2CC = sp.hstack((kron3(av(n[2]), av(n[1]), av(n[0])),
+                                               kron3(av(n[2]), av(n[1]), av(n[0])),
+                                               kron3(av(n[2]), av(n[1]), av(n[0]))), format="csr")
+            return self._aveN2CC
         return locals()
-    _nodalAve = None
-    nodalAve = property(**nodalAve())
+    _aveN2CC = None
+    aveN2CC = property(**aveN2CC())
 
-    def nodalVectorAve():
+    def aveN2CCv():
         doc = "Construct the averaging operator on cell nodes to cell centers, keeping each dimension separate."
 
         def fget(self):
-            if(self._nodalVectorAve is None):
+            if(self._aveN2CCv is None):
                 # The number of cell centers in each direction
                 n = self.n
                 if(self.dim == 1):
-                    self._nodalVectorAve = av(n[0])
+                    self._aveN2CCv = av(n[0])
                 elif(self.dim == 2):
-                    self._nodalVectorAve = sp.block_diag((sp.kron(av(n[1]), av(n[0])),
-                                                          sp.kron(av(n[1]), av(n[0]))), format="csr")
+                    self._aveN2CCv = sp.block_diag((sp.kron(av(n[1]), av(n[0])),
+                                                    sp.kron(av(n[1]), av(n[0]))), format="csr")
                 elif(self.dim == 3):
-                    self._nodalVectorAve = sp.block_diag((kron3(av(n[2]), av(n[1]), av(n[0])),
-                                                          kron3(av(n[2]), av(n[1]), av(n[0])),
-                                                          kron3(av(n[2]), av(n[1]), av(n[0]))), format="csr")
-            return self._nodalVectorAve
+                    self._aveN2CCv = sp.block_diag((kron3(av(n[2]), av(n[1]), av(n[0])),
+                                                    kron3(av(n[2]), av(n[1]), av(n[0])),
+                                                    kron3(av(n[2]), av(n[1]), av(n[0]))), format="csr")
+            return self._aveN2CCv
         return locals()
-    _nodalVectorAve = None
-    nodalVectorAve = property(**nodalVectorAve())
+    _aveN2CCv = None
+    aveN2CCv = property(**aveN2CCv())
+
+    def getMass(self, materialProp=None, loc='e'):
+        """ Produces mass matricies.
+
+        :param str loc: Average to location: 'e'-edges, 'f'-faces
+        :param None,float,numpy.ndarray materialProp: property to be averaged (see below)
+        :rtype: scipy.sparse.csr.csr_matrix
+        :return: M, the mass matrix
+
+        materialProp can be::
+
+            None            -> takes materialProp = 1 (default)
+            float           -> a constant value for entire domain
+            numpy.ndarray   -> if materialProp.size == self.nC
+                                    3D property model
+                               if materialProp.size = self.nCz
+                                    1D (layered eath) property model
+        """
+        if materialProp is None:
+            materialProp = np.ones(self.nC)
+        elif type(materialProp) is float:
+            materialProp = np.ones(self.nC)*materialProp
+        elif materialProp.shape == (self.nCz,):
+            materialProp = materialProp.repeat(self.nCx*self.nCy)
+        materialProp = mkvc(materialProp)
+        assert materialProp.shape == (self.nC,), "materialProp incorrect shape"
+
+        if loc=='e':
+            Av = self.aveE2CC
+        elif loc=='f':
+            Av = self.aveF2CC
+        else:
+            raise ValueError('Invalid loc')
+
+        diag = Av.T * (self.vol * mkvc(materialProp))
+
+        return sdiag(diag)
 
     def getEdgeMass(self, materialProp=None):
         """mass matrix for products of edge functions w'*M(materialProp)*e"""
-        if(materialProp is None):
-            materialProp = np.ones(self.nC)
-        Av = self.edgeAve
-        return sdiag(Av.T * (self.vol * mkvc(materialProp)))
+        return self.getMass(loc='e', materialProp=materialProp)
 
     def getFaceMass(self, materialProp=None):
         """mass matrix for products of face functions w'*M(materialProp)*f"""
-        if(materialProp is None):
-            materialProp = np.ones(self.nC)
-        Av = self.faceAve
-        return sdiag(Av.T * (self.vol * mkvc(materialProp)))
+        return self.getMass(loc='f', materialProp=materialProp)
 
     def getFaceMassDeriv(self):
-        Av = self.faceAve
+        Av = self.aveF2CC
         return Av.T * sdiag(self.vol)
