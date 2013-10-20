@@ -286,8 +286,8 @@ class Cyl1DMesh(object):
     def getMass(self, materialProp=None, loc='e'):
         """ Produces mass matricies.
 
-        :param str loc: Average to location: 'e'-edges, 'f'-faces
         :param None,float,numpy.ndarray materialProp: property to be averaged (see below)
+        :param str loc: Average to location: 'e'-edges, 'f'-faces
         :rtype: scipy.sparse.csr.csr_matrix
         :return: M, the mass matrix
 
@@ -327,4 +327,99 @@ class Cyl1DMesh(object):
     def getFaceMass(self, materialProp=None):
         """mass matrix for products of face functions w'*M(materialProp)*f"""
         return self.getMass(loc='f', materialProp=materialProp)
+
+    def getInterpolationMat(self, loc, locType='fz'):
+        """ Produces intrpolation matrix
+
+        :param numpy.ndarray loc: Location of points to interpolate to
+        :param str locType: What to interpolate (see below)
+        :rtype: scipy.sparse.csr.csr_matrix
+        :return: M, the intrpolation matrix
+
+        locType can be::
+
+            'fz'    -> z-component of field defined on faces
+            'fr'    -> r-component of field defined on faces
+            'et'    -> theta-component of field defined on edges
+        """
+
+        loc = np.atleast_2d(loc)
+
+        assert np.all(loc[:,0]<=self.vectorNr.max()) & \
+               np.all(loc[:,1]>=self.vectorNz.min()) & \
+               np.all(loc[:,1]<=self.vectorNz.max()), \
+               "Points outside of mesh"
+
+        
+        if locType=='fz':
+            Q = sp.lil_matrix((loc.shape[0], self.nF), dtype=float)
+
+            for i, iloc in enumerate(loc):
+                # Point is on a z-interface
+                if np.any(np.abs(self.vectorNz-iloc[1])<0.001): 
+                    dFz = self.gridFz-iloc          #Distance to z faces
+                    dFz[dFz[:,0]>0,:] = np.inf      #Looking for next face to the left...
+                    indL = np.argmin(np.sum(dFz**2, axis=1))  #Closest one
+                    if self.gridFz[indL,0] == self.vectorCCr.max(): #Point in outer half cell (linear extrapolation)
+                        zFL = self.gridFz[indL,:] 
+                        zFLL = self.gridFz[indL-1,:] 
+                        Q[i, indL+self.nFr] = (iloc[0] - zFLL[0])/(zFL[0] - zFLL[0])
+                        Q[i, indL+self.nFr-1] = -(iloc[0] - zFL[0])/(zFL[0] - zFLL[0])
+                    else:
+                        zFL = self.gridFz[indL,:] 
+                        zFR = self.gridFz[indL+1,:]
+                        Q[i,indL+self.nFr] = (zFR[0] - iloc[0])/(zFR[0] - zFL[0])
+                        Q[i,indL+self.nFr+1] = (iloc[0] - zFL[0])/(zFR[0] - zFL[0])
+                # Point is in a cell
+                else:
+                    dFz = self.gridFz-iloc
+                    dFz[dFz>0] = np.inf
+                    dFz = np.sum(dFz**2, axis=1)
+
+                    indBL = np.argmin(dFz)         # Face below and to the left
+                    indAL = indBL + self.nCr        # Face above and to the left
+
+                    zF_BL = self.gridFz[indBL,:]
+                    zF_AL = self.gridFz[indAL,:]
+
+                    dzB = iloc[1] - zF_BL[1]         # z-distance to face below
+                    dzA = zF_AL[1] - iloc[1]         # z-distance to face above
+
+                    if self.gridFz[indBL,0] == self.vectorCCr.max(): #Point in outer half cell (linear extrapolation)
+                        zF_BLL = self.gridFz[indBL-1,:]
+                        zF_ALL = self.gridFz[indAL-1,:]
+
+                        DZ = zF_AL[1] - zF_BL[1]
+                        DR = zF_AL[0] - zF_ALL[0]
+
+                        drL = iloc[0] - zF_AL[0]
+                        drLL = iloc[0] - zF_ALL[0]
+
+                        Q[i, indBL+self.nFr-1] = -(1 - dzB/DZ)*(drL/DR)
+                        Q[i, indBL+self.nFr] = (1 - dzB/DZ)*(drLL/DR)
+                        Q[i, indAL+self.nFr-1] = -(dzB/DZ)*(drL/DR)
+                        Q[i, indAL+self.nFr] = (dzB/DZ)*(drLL/DR)
+                    else:
+                        indBR = indBL+1                 # Face below and to the right 
+                        indAR = indAL + 1               # Face above and to the right
+                        zF_BR = self.gridFz[indBR,:]
+
+                        drL = iloc[0] - zF_BL[0]         # r-distance to face on left
+                        drR = zF_BR[0] - iloc[0]         # r-distance to face on right
+
+                        drz = (drL + drR)*(dzB + dzA)
+                        Q[i,indBL+self.nFr] = drR*dzA/drz
+                        Q[i,indBR+self.nFr] = drL*dzA/drz
+                        Q[i,indAL+self.nFr] = drR*dzB/drz
+                        Q[i,indAR+self.nFr] = drL*dzB/drz
+
+        elif locType=='fr':
+            raise NotImplementedError('locType==fr')
+        elif locType=='et':
+            raise NotImplementedError('locType==et')
+        else:
+            raise ValueError('Invalid locType')
+        return Q.tocsr()
+
+
 
