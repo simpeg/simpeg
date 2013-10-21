@@ -421,5 +421,32 @@ class Cyl1DMesh(object):
             raise ValueError('Invalid locType')
         return Q.tocsr()
 
+    def getNearest(self, loc, locType):
+        """ Returns the index of the closest face or edge to a given location
 
+        :param numpy.ndarray loc: Test point
+        :param str locType: Type of location desired (see below)
+        :rtype: int
+        :return: ind:
 
+        locType can be::
+
+            'fz'    -> location of nearest z-face
+            'fr'    -> location of nearest r-face
+            'et'    -> location of nearest edge
+        """
+
+        if locType=='et':
+            dr = self.gridN[:,0] - loc[0]
+            dz = self.gridN[:,1] - loc[1]
+        elif locType=='fz':
+            dr = self.gridFz[:,0] - loc[0]
+            dz = self.gridFz[:,1] - loc[1]
+        elif locType=='fr':
+            dr = self.gridFr[:,0] - loc[0]
+            dz = self.gridFr[:,1] - loc[1]
+        else:
+            raise ValueError('Invalid locType')
+        R = np.sqrt(dr**2 + dz**2)
+        ind = np.argmin(R)
+        return ind
