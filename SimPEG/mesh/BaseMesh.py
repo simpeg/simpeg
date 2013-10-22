@@ -2,6 +2,7 @@ import numpy as np
 from SimPEG.utils import mkvc
 
 
+
 class BaseMesh(object):
     """
     BaseMesh does all the counting you don't want to do.
@@ -216,6 +217,12 @@ class BaseMesh(object):
 
         :rtype: int
         :return: nC
+
+        .. plot::
+
+            from SimPEG.mesh import TensorMesh
+            import numpy as np
+            TensorMesh([np.ones(n) for n in [2,3]]).plotGrid(centers=True,showIt=True)
         """
         fget = lambda self: np.prod(self.n)
         return locals()
@@ -270,6 +277,12 @@ class BaseMesh(object):
 
         :rtype: int
         :return: nN
+
+        .. plot::
+
+            from SimPEG.mesh import TensorMesh
+            import numpy as np
+            TensorMesh([np.ones(n) for n in [2,3]]).plotGrid(nodes=True,showIt=True)
         """
         fget = lambda self: np.prod(self.n + 1)
         return locals()
@@ -324,6 +337,12 @@ class BaseMesh(object):
 
         :rtype: numpy.array (dim, )
         :return: [prod(nEx), prod(nEy), prod(nEz)]
+
+        .. plot::
+
+            from SimPEG.mesh import TensorMesh
+            import numpy as np
+            TensorMesh([np.ones(n) for n in [2,3]]).plotGrid(edges=True,showIt=True)
         """
         fget = lambda self: np.array([np.prod(x) for x in [self.nEx, self.nEy, self.nEz] if not x is None])
         return locals()
@@ -378,6 +397,12 @@ class BaseMesh(object):
 
         :rtype: numpy.array (dim, )
         :return: [prod(nFx), prod(nFy), prod(nFz)]
+
+        .. plot::
+
+            from SimPEG.mesh import TensorMesh
+            import numpy as np
+            TensorMesh([np.ones(n) for n in [2,3]]).plotGrid(faces=True,showIt=True)
         """
         fget = lambda self: np.array([np.prod(x) for x in [self.nFx, self.nFy, self.nFz] if not x is None])
         return locals()

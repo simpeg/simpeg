@@ -267,6 +267,9 @@ class TensorView(object):
             if faces:
                 ax.plot(xs1[:, 0], xs1[:, 1], 'g>')
                 ax.plot(xs2[:, 0], xs2[:, 1], 'g^')
+            if edges:
+                ax.plot(self.gridEx[:, 0], self.gridEx[:, 1], 'c>')
+                ax.plot(self.gridEy[:, 0], self.gridEy[:, 1], 'c^')
 
             # Plot the grid lines
             if lines:
