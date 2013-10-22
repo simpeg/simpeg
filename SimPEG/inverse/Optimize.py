@@ -5,7 +5,12 @@ norm = np.linalg.norm
 
 
 class Minimize(object):
-    """docstring for Minimize"""
+    """
+
+    Minimize is a general class for derivative based optimization.
+
+
+    """
 
     name = "GeneralOptimizationAlgorithm"
 
@@ -59,12 +64,34 @@ class Minimize(object):
         self.xOld = x0
 
     def printInit(self):
-        print "%s %s %s" % ('='*22, self.name, '='*22)
-        print "iter\tJc\t\tnorm(dJ)\tLS"
-        print "%s" % '-'*57
+        """
+            printIter is called at the beginning of the optimization routine.
+
+            If the problem object has a printInit function it will be called here::
+
+                self.problem.printInit(self)
+
+        """
+        if hasattr(self.problem, 'printInit'):
+            self.problem.printInit(self)
+        else:
+            print "%s %s %s" % ('='*22, self.name, '='*22)
+            print "iter\tJc\t\tnorm(dJ)\tLS"
+            print "%s" % '-'*57
 
     def printIter(self):
-        print "%3d\t%1.2e\t%1.2e\t%d" % (self._iter, self.f, norm(self.g), self._iterLS)
+        """
+            printIter is called directly after function evaluations.
+
+            If the problem object has a printIter function it will be called here::
+
+                self.problem.printIter(self)
+
+        """
+        if hasattr(self.problem, 'printIter'):
+            self.problem.printIter(self)
+        else:
+            print "%3d\t%1.2e\t%1.2e\t%d" % (self._iter, self.f, norm(self.g), self._iterLS)
 
     def printDone(self):
         print "%s STOP! %s" % ('-'*25,'-'*25)
