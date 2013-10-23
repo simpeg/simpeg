@@ -1,2 +1,2 @@
 from Problem import *
-import DCProblem
+from DCProblem import DCProblem
