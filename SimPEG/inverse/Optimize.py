@@ -23,8 +23,9 @@ class Minimize(object):
     tolG = 1e-4
     eps = 1e-16
 
-    def __init__(self, problem, **kwargs):
-        self.problem = problem
+    printIter = [] # push to here if you want to print these on iter
+
+    def __init__(self, **kwargs):
         self.setKwargs(**kwargs)
 
     def setKwargs(self, **kwargs):
@@ -35,13 +36,20 @@ class Minimize(object):
             else:
                 raise Exception('%s attr is not recognized' % attr)
 
-    def minimize(self, x0):
+    def minimize(self, evalFunction, x0):
+        """
 
+        evalFunction is a function handle::
+
+            evalFunction(x, return_g=True, return_H=True )
+
+        """
+        self.evalFunction = evalFunction
         self.startup(x0)
         self.printInit()
 
         while True:
-            self.f, self.g, self.H = self.evalFunction(self.xc)
+            self.f, self.g, self.H = evalFunction(self.xc, return_g=True, return_H=True)
             self.printIter()
             if self.stoppingCriteria(): break
             p = self.findSearchDirection()
@@ -67,31 +75,17 @@ class Minimize(object):
         """
             printIter is called at the beginning of the optimization routine.
 
-            If the problem object has a printInit function it will be called here::
-
-                self.problem.printInit(self)
-
         """
-        if hasattr(self.problem, 'printInit'):
-            self.problem.printInit(self)
-        else:
-            print "%s %s %s" % ('='*22, self.name, '='*22)
-            print "iter\tJc\t\tnorm(dJ)\tLS"
-            print "%s" % '-'*57
+        print "%s %s %s" % ('='*22, self.name, '='*22)
+        print "iter\tJc\t\tnorm(dJ)\tLS"
+        print "%s" % '-'*57
 
     def printIter(self):
         """
             printIter is called directly after function evaluations.
 
-            If the problem object has a printIter function it will be called here::
-
-                self.problem.printIter(self)
-
         """
-        if hasattr(self.problem, 'printIter'):
-            self.problem.printIter(self)
-        else:
-            print "%3d\t%1.2e\t%1.2e\t%d" % (self._iter, self.f, norm(self.g), self._iterLS)
+        print "%3d\t%1.2e\t%1.2e\t%d" % (self._iter, self.f, norm(self.g), self._iterLS)
 
     def printDone(self):
         print "%s STOP! %s" % ('-'*25,'-'*25)
@@ -101,10 +95,6 @@ class Minimize(object):
         print "%d : |g|       = %1.4e <= 1e3*eps          = %1.4e"  % (self._STOP[3], norm(self.g), 1e3*self.eps)
         print "%d : iter      = %3d\t <= maxIter\t       = %3d"     % (self._STOP[4], self._iter, self.maxIter)
         print "%s DONE! %s\n" % ('='*25,'='*25)
-
-    def evalFunction(self, x, doDerivative=True):
-        f, g, H = self.problem(x)
-        return f, g, H
 
     def findSearchDirection(self):
         return -self.g
@@ -128,7 +118,7 @@ class Minimize(object):
         iterLS = 0
         while iterLS < self.maxIterLS:
             xt = self.xc + t*p
-            ft, temp, temp = self.evalFunction(xt, doDerivative=False)
+            ft = self.evalFunction(xt, return_g=False, return_H=False)
             if ft < self.f + t*self.LSreduction*descent:
                 break
             iterLS += 1
@@ -153,6 +143,12 @@ class GaussNewton(Minimize):
         return np.linalg.solve(self.H,-self.g)
 
 
+class InexactGaussNewton(Minimize):
+    name = 'InexactGaussNewton'
+    def findSearchDirection(self):
+        return sparse.linalg.cg(self.H, -self.g, tol=1e-05, maxiter=10)
+
+
 class SteepestDescent(Minimize):
     name = 'SteepestDescent'
     def findSearchDirection(self):
@@ -162,9 +158,9 @@ if __name__ == '__main__':
     from SimPEG.tests import Rosenbrock, checkDerivative
     x0 = np.array([2.6, 3.7])
     checkDerivative(Rosenbrock, x0, plotIt=False)
-    xOpt = GaussNewton(Rosenbrock, maxIter=20).minimize(x0)
+    xOpt = GaussNewton(maxIter=20).minimize(Rosenbrock,x0)
     print "xOpt=[%f, %f]" % (xOpt[0], xOpt[1])
-    xOpt = SteepestDescent(Rosenbrock, maxIter=20, maxIterLS=15).minimize(x0)
+    xOpt = SteepestDescent(maxIter=20, maxIterLS=15).minimize(Rosenbrock, x0)
     print "xOpt=[%f, %f]" % (xOpt[0], xOpt[1])
 
     def simplePass(x):

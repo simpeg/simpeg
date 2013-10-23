@@ -163,13 +163,19 @@ class OrderTest(unittest.TestCase):
             print ''
             self.assertTrue(passTest)
 
-def Rosenbrock(x):
+def Rosenbrock(x, return_g=True, return_H=True):
     """Rosenbrock function for testing GaussNewton scheme"""
 
     f = 100*(x[1]-x[0]**2)**2+(1-x[0])**2
     g = np.array([2*(200*x[0]**3-200*x[0]*x[1]+x[0]-1), 200*(x[1]-x[0]**2)])
     H = np.array([[-400*x[1]+1200*x[0]**2+2, -400*x[0]], [-400*x[0], 200]])
-    return f, g, H
+
+    out = (f,)
+    if return_g:
+        out += (g,)
+    if return_H:
+        out += (H,)
+    return out
 
 def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None):
     """
