@@ -5,8 +5,8 @@ from SimPEG.utils import mkvc, ndgrid, sdiag
 
 class Cyl1DMesh(object):
     """
-    Cyl1DMesh is a mesh class for cylindrically symmetric 1D problems  
-    """ 
+    Cyl1DMesh is a mesh class for cylindrically symmetric 1D problems
+    """
 
     _meshType = 'CYL1D'
 
@@ -20,7 +20,7 @@ class Cyl1DMesh(object):
             assert len(h_i.shape) == 1, ("h[%i] must be a 1D numpy array." % i)
 
         # Ensure h contains 1D vectors
-        self._h = [mkvc(x) for x in h]
+        self._h = [mkvc(x.astype(float)) for x in h]
 
         if z0 is None:
             z0 = 0
@@ -146,7 +146,7 @@ class Cyl1DMesh(object):
 
     def vectorCCz():
         doc = "Cell centered grid vector (1D) in the z direction"
-        fget = lambda self: self.hz.cumsum() - self.hz/2 + self._z0 
+        fget = lambda self: self.hz.cumsum() - self.hz/2 + self._z0
         return locals()
     vectorCCz = property(**vectorCCz())
 
@@ -177,7 +177,7 @@ class Cyl1DMesh(object):
                 self._gridFr = ndgrid([self.vectorNr, self.vectorCCz])
             return self._gridFr
         return locals()
-    _gridFr = None    
+    _gridFr = None
     gridFr = property(**gridFr())
 
     def gridFz():
@@ -187,7 +187,7 @@ class Cyl1DMesh(object):
                 self._gridFz = ndgrid([self.vectorCCr, self.vectorNz])
             return self._gridFz
         return locals()
-    _gridFz = None    
+    _gridFz = None
     gridFz = property(**gridFz())
 
     ####################################################
@@ -350,23 +350,23 @@ class Cyl1DMesh(object):
                np.all(loc[:,1]<=self.vectorNz.max()), \
                "Points outside of mesh"
 
-        
+
         if locType=='fz':
             Q = sp.lil_matrix((loc.shape[0], self.nF), dtype=float)
 
             for i, iloc in enumerate(loc):
                 # Point is on a z-interface
-                if np.any(np.abs(self.vectorNz-iloc[1])<0.001): 
+                if np.any(np.abs(self.vectorNz-iloc[1])<0.001):
                     dFz = self.gridFz-iloc          #Distance to z faces
                     dFz[dFz[:,0]>0,:] = np.inf      #Looking for next face to the left...
                     indL = np.argmin(np.sum(dFz**2, axis=1))  #Closest one
                     if self.gridFz[indL,0] == self.vectorCCr.max(): #Point in outer half cell (linear extrapolation)
-                        zFL = self.gridFz[indL,:] 
-                        zFLL = self.gridFz[indL-1,:] 
+                        zFL = self.gridFz[indL,:]
+                        zFLL = self.gridFz[indL-1,:]
                         Q[i, indL+self.nFr] = (iloc[0] - zFLL[0])/(zFL[0] - zFLL[0])
                         Q[i, indL+self.nFr-1] = -(iloc[0] - zFL[0])/(zFL[0] - zFLL[0])
                     else:
-                        zFL = self.gridFz[indL,:] 
+                        zFL = self.gridFz[indL,:]
                         zFR = self.gridFz[indL+1,:]
                         Q[i,indL+self.nFr] = (zFR[0] - iloc[0])/(zFR[0] - zFL[0])
                         Q[i,indL+self.nFr+1] = (iloc[0] - zFL[0])/(zFR[0] - zFL[0])
@@ -400,7 +400,7 @@ class Cyl1DMesh(object):
                         Q[i, indAL+self.nFr-1] = -(dzB/DZ)*(drL/DR)
                         Q[i, indAL+self.nFr] = (dzB/DZ)*(drLL/DR)
                     else:
-                        indBR = indBL+1                 # Face below and to the right 
+                        indBR = indBL+1                 # Face below and to the right
                         indAR = indAL + 1               # Face above and to the right
                         zF_BR = self.gridFz[indBR,:]
 
