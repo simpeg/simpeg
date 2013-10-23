@@ -105,6 +105,10 @@ class DCProblem(Problem):
 
 
 if __name__ == '__main__':
+
+    from SimPEG.regularization import Regularization
+    from SimPEG import inverse
+
     # Create the mesh
     h1 = np.ones(100)
     h2 = np.ones(100)
@@ -143,7 +147,7 @@ if __name__ == '__main__':
     dobs, Wd = synthetic.createData(mSynth, std=0.05)
 
     u = synthetic.field(mSynth)
-    mesh.plotImage(u[:,10], showIt=True)
+    mesh.plotImage(u[:,10], showIt=False)
 
     # Now set up the problem to do some minimization
     problem = DCProblem(mesh)
@@ -153,8 +157,15 @@ if __name__ == '__main__':
     problem.dobs = dobs
     m0 = mesh.gridCC[:,0]*0+sig1
 
-    print problem.misfit(m0)
-    print problem.misfit(mSynth)
+    # print problem.misfit(m0)
+    # print problem.misfit(mSynth)
+
+    opt = inverse.InexactGaussNewton()
+    reg = Regularization(mesh)
+
+    inv = inverse.Inversion(problem, reg, opt)
+
+    inv.run(m0)
 
     # Check Derivative
     derChk = lambda m: [problem.misfit(m), problem.misfitDeriv(m)]
@@ -166,3 +177,5 @@ if __name__ == '__main__':
     w = np.random.rand(dobs.shape[0])
     print w.dot(problem.J(mSynth, v, u=u))
     print v.dot(problem.Jt(mSynth, w, u=u))
+
+

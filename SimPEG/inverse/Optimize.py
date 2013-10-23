@@ -111,13 +111,16 @@ class Minimize(object):
         self._STOP[4] = self._iter >= self.maxIter
         return all(self._STOP[0:3]) | any(self._STOP[3:])
 
+    def projection(self, p):
+        return p
+
     def linesearch(self, p):
         # Armijo linesearch
         descent = np.inner(self.g, p)
         t = 1
         iterLS = 0
         while iterLS < self.maxIterLS:
-            xt = self.xc + t*p
+            xt = self.projection(self.xc + t*p)
             ft = self.evalFunction(xt, return_g=False, return_H=False)
             if ft < self.f + t*self.LSreduction*descent:
                 break

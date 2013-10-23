@@ -1,4 +1,5 @@
 import numpy as np
+from SimPEG.utils import sdiag
 
 class Inversion(object):
     """docstring for Inversion"""
@@ -11,20 +12,18 @@ class Inversion(object):
         self.opt = opt
 
     @property
-    def W(self):
+    def Wd(self):
         """
             Standard deviation weighting matrix.
         """
-        return self._W
-    @W.setter
-    def W(self, value):
-        self._W = value
+        return sdiag(1/self.prob.std)
 
     def run(self, m0):
+        m = m0
         self._iter = 0
         while True:
             self._beta = self.getBeta()
-            self.opt.minimize(self.evalFunction,m)
+            m = self.opt.minimize(self.evalFunction,m)
             if self.stoppingCriteria(): break
             self._iter += 1
 

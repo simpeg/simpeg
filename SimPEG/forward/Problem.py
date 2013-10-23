@@ -62,6 +62,15 @@ class Problem(object):
     def P(self, value):
         self._P = value
 
+    @property
+    def std(self):
+        """
+            Estimated Standard Deviations.
+        """
+        return self._std
+    @std.setter
+    def std(self, value):
+        self._std = value
 
     @property
     def dobs(self):
