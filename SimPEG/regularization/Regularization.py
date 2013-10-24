@@ -14,28 +14,32 @@ class Regularization(object):
         self._mref = value
 
     @property
+    def Ws(self):
+        if getattr(self,'_Ws', None) is None:
+            self._Ws = sdiag(self.mesh.vol)
+        return self._Ws
+
+    @property
     def Wx(self):
         if getattr(self, '_Wx', None) is None:
-            self._Wx = self.mesh.cellGradx
+            a = self.mesh.r(self.mesh.area,'F','Fx','V')
+            self._Wx = sdiag(a)*self.mesh.cellGradx
         return self._Wx
 
     @property
     def Wy(self):
         if getattr(self, '_Wy', None) is None:
-            self._Wy = self.mesh.cellGrady
+            a = self.mesh.r(self.mesh.area,'F','Fy','V')
+            self._Wy = sdiag(a)*self.mesh.cellGrady
         return self._Wy
 
     @property
     def Wz(self):
         if getattr(self, '_Wz', None) is None:
-            self._Wz = self.mesh.cellGradz
+            a = self.mesh.r(self.mesh.area,'F','Fz','V')
+            self._Wz = sdiag(a)*self.mesh.cellGradz
         return self._Wz
 
-    @property
-    def Ws(self):
-        if getattr(self,'_Ws', None) is None:
-            self._Ws = sdiag(self.mesh.vol)
-        return self._Ws
 
 
     def __init__(self, mesh):

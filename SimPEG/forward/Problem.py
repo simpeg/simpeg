@@ -82,6 +82,17 @@ class Problem(object):
     def dobs(self, value):
         self._dobs = value
 
+    def dpred(self, m, u=None):
+        """
+            Predicted data.
+
+            .. math::
+                d_\\text{pred} = Pu(m)
+        """
+        if u is None:
+            u = self.field(m)
+        return self.P*u
+
     def misfit(self, m, u=None):
         """
             :param numpy.array m: geophysical model
@@ -151,17 +162,6 @@ class Problem(object):
 
         """
         pass
-
-    def dpred(self, m, u=None):
-        """
-            Predicted data.
-
-            .. math::
-                d_\\text{pred} = Pu(m)
-        """
-        if u is None:
-            u = self.field(m)
-        return self.P*u
 
     def modelTransform(self, m):
         """

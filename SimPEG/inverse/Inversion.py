@@ -25,8 +25,15 @@ class Inversion(object):
 
     @property
     def phi_d_target(self):
+        """
+        target for phi_d
+
+        By default this is the number of data.
+
+        Note that we do not set the target if it is None, but we return the default value.
+        """
         if getattr(self, '_phi_d_target', None) is None:
-            return self.prob.dobs.size
+            return self.prob.dobs.size #
         return self._phi_d_target
     @phi_d_target.setter
     def phi_d_target(self, value):
@@ -43,7 +50,7 @@ class Inversion(object):
         return m
 
     def getBeta(self):
-        return 1e2
+        return 1e-2
 
     def stoppingCriteria(self):
         self._STOP = np.zeros(2,dtype=bool)

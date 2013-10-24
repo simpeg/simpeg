@@ -22,7 +22,7 @@ class Minimize(object):
     tolF = 1e-4
     tolX = 1e-4
     tolG = 1e-4
-    eps = 1e-16
+    eps = 1e-5
 
     printIter = [] # push to here if you want to print these on iter
 
