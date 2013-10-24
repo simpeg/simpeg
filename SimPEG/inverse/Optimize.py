@@ -63,6 +63,14 @@ class Minimize(object):
 
         return self.xc
 
+    @property
+    def parent(self):
+        """This is the parent of the optimization routine."""
+        return getattr(self, '_parent', None)
+    @parent.setter
+    def parent(self, value):
+        self._parent = value
+
     def startup(self, x0):
         self._iter = 0
         self._iterLS = 0
@@ -150,7 +158,7 @@ class GaussNewton(Minimize):
 class InexactGaussNewton(Minimize):
     name = 'InexactGaussNewton'
     def findSearchDirection(self):
-        p, info = sp.linalg.cg(self.H, -self.g, tol=1e-05, maxiter=10)
+        p, info = sp.linalg.cg(self.H, -self.g, tol=1e-05, maxiter=5)
         return p
 
 

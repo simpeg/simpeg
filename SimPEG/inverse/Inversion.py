@@ -11,6 +11,7 @@ class Inversion(object):
         self.prob = prob
         self.reg = reg
         self.opt = opt
+        self.opt.parent = self
 
     @property
     def Wd(self):
@@ -42,7 +43,7 @@ class Inversion(object):
         return m
 
     def getBeta(self):
-        return 1e3
+        return 1e2
 
     def stoppingCriteria(self):
         self._STOP = np.zeros(2,dtype=bool)
@@ -138,9 +139,7 @@ class Inversion(object):
 
         R = self.Wd*self.prob.misfit(m, u=u)
 
-        dmisfit = 0
-        for i in range(self.prob.RHS.shape[1]): # Loop over each right hand side
-            dmisfit += self.prob.Jt(m, self.Wd[:,i]*R[:,i], u=u[:,i])
+        dmisfit = self.prob.Jt(m, self.Wd * R, u=u)
 
         return dmisfit
 
@@ -182,8 +181,6 @@ class Inversion(object):
 
         R = self.Wd*self.prob.misfit(m, u=u)
 
-        dmisfit = 0
-        for i in range(self.prob.RHS.shape[1]): # Loop over each right hand side
-            dmisfit += self.prob.Jt(m, self.Wd[:,i] * self.Wd[:,i] * self.prob.J(m, v, u=u[:,i]), u=u[:,i])
+        dmisfit = self.prob.Jt(m, self.Wd * self.Wd * self.prob.J(m, v, u=u), u=u)
 
         return dmisfit

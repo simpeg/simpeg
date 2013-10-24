@@ -1,7 +1,8 @@
 from SimPEG.mesh import TensorMesh
 from SimPEG.forward import Problem, SyntheticProblem
 from SimPEG.tests import checkDerivative
-from SimPEG.utils import ModelBuilder, sdiag
+from SimPEG.utils import ModelBuilder, sdiag, mkvc
+from SimPEG import Solver
 import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.linalg as linalg
@@ -48,7 +49,7 @@ class DCProblem(Problem):
 
         return phi
 
-    def J(self, m, v, u=None, solve=None):
+    def J(self, m, v, u=None):
         """
             :param numpy.array m: model
             :param numpy.array v: vector to multiply
@@ -70,6 +71,9 @@ class DCProblem(Problem):
 
                 J(v) = - P ( A(m)^{-1} ( G\\text{sdiag}(Du)\\nabla_m(M(mT(m))) v ) )
         """
+        if u is None:
+            u = self.field(m)
+
         P = self.P
         D = self.mesh.faceDiv
         G = self.mesh.cellGrad
@@ -78,15 +82,19 @@ class DCProblem(Problem):
         mT_dm = self.modelTransformDeriv(m)
 
         dCdu = A
-        dCdm = D * ( sdiag( G * u ) * ( Av_dm * ( mT_dm * v ) ) )
 
-        if solve is None:
-            solve = linalg.factorized(dCdu)
+        dCdm = np.empty_like(u)
+        for i, ui in enumerate(u.T):  # loop over each column
+            dCdm[:, i] = D * ( sdiag( G * ui ) * ( Av_dm * ( mT_dm * v ) ) )
 
-        Jv = - P * solve(dCdm)
+        solve = Solver(dCdu)
+        # solve = linalg.factorized(dCdu)
+
+        Jv = - P * solve.solve(dCdm)
         return Jv
 
-    def Jt(self, m, v, u=None, solve=None):
+    def Jt(self, m, v, u=None):
+        """Takes data, turns it into a model..ish"""
         P = self.P
         D = self.mesh.faceDiv
         G = self.mesh.cellGrad
@@ -95,12 +103,15 @@ class DCProblem(Problem):
         mT_dm = self.modelTransformDeriv(m)
 
         dCdu = A.T
+        solve = Solver(dCdu)
 
-        if solve is None:
-            solve = linalg.factorized(dCdu.tocsc())
-        w = solve(P.T*v)
+        w = solve.solve(P.T*v)
 
-        Jtv = - mT_dm.T * ( Av_dm.T * ( sdiag( G * u ) * ( D.T * w ) ) )
+        Jtv = 0
+        for i, ui in enumerate(u.T):  # loop over each column
+            Jtv += sdiag( G * ui ) * ( D.T * w[:,i] )
+
+        Jtv = - mT_dm.T * ( Av_dm.T * Jtv )
         return Jtv
 
 
@@ -138,6 +149,7 @@ if __name__ == '__main__':
 
     from SimPEG.regularization import Regularization
     from SimPEG import inverse
+    import matplotlib.pyplot as plt
 
     # Create the mesh
     h1 = np.ones(100)
@@ -145,16 +157,16 @@ if __name__ == '__main__':
     mesh = TensorMesh([h1,h2])
 
     # Create some parameters for the model
-    sig1 = 1
-    sig2 = 0.01
+    sig1 = np.log(1)
+    sig2 = np.log(0.01)
 
     # Create a synthetic model from a block in a half-space
     p0 = [20, 20]
     p1 = [50, 50]
     condVals = [sig1, sig2]
     mSynth = ModelBuilder.defineBlockConductivity(p0,p1,mesh.gridCC,condVals)
-    mesh.plotImage(mSynth, showIt=False)
-
+    plt.colorbar(mesh.plotImage(mSynth))
+    # plt.show()
 
     # Set up the projection
     nelec = 50
@@ -185,30 +197,51 @@ if __name__ == '__main__':
     problem.RHS = q
     problem.dobs = dobs
     problem.std = dobs*0 + 0.05
-    m0 = mesh.gridCC[:,0]*0+sig1
+    m0 = mesh.gridCC[:,0]*0+sig2
 
-    # print problem.misfit(m0)
-    # print problem.misfit(mSynth)
 
-    opt = inverse.InexactGaussNewton(maxIterLS=20, maxIter=1)
+
+    # Adjoint Test
+    u = np.random.rand(mesh.nC, problem.RHS.shape[1])
+    v = np.random.rand(mesh.nC)
+    w = np.random.rand(*dobs.shape)
+    Jv = mkvc(problem.J(mSynth, v, u=u))
+    print mkvc(w).dot(Jv)
+    print v.dot(problem.Jt(mSynth, w, u=u))
+
+    # Check Derivative
+    dm = np.random.randn(*m0.shape)
+    for alp in np.logspace(-2,-6, 5):
+        a = problem.dpred(m0)
+        b = problem.dpred(m0 + alp*dm)
+        c = problem.J(m0, alp*dm)
+        print np.linalg.norm(a-b), np.linalg.norm(a-b+c)
+
+
+    # derChk = lambda m: [problem.dpred(m), problem.J(mSynth,m)]
+    # checkDerivative(derChk, mSynth)
+
+
+    opt = inverse.InexactGaussNewton(maxIterLS=20, maxIter=3)
     reg = Regularization(mesh)
 
     inv = inverse.Inversion(problem, reg, opt)
-
-    m = inv.run(m0)
-
-    mesh.plotImage(m,showIt=True)
 
     # Check Derivative
     derChk = lambda m: [inv.dataObj(m), inv.dataObjDeriv(m)]
     checkDerivative(derChk, mSynth)
 
-    # Adjoint Test
-    # u = np.random.rand(mesh.nC)
-    # v = np.random.rand(mesh.nC)
-    # w = np.random.rand(dobs.shape[0])
-    # print w.dot(problem.J(mSynth, v, u=u))
-    # print v.dot(problem.Jt(mSynth, w, u=u))
+
+    print inv.dataObj(m0)
+    print inv.dataObj(mSynth)
+
+    m = inv.run(m0)
+
+    plt.colorbar(mesh.plotImage(m))
+    print m
+    plt.show()
+
+
 
 
 
