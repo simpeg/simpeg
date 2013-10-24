@@ -140,8 +140,8 @@ if __name__ == '__main__':
     from SimPEG import inverse
 
     # Create the mesh
-    h1 = np.ones(10)
-    h2 = np.ones(10)
+    h1 = np.ones(100)
+    h2 = np.ones(100)
     mesh = TensorMesh([h1,h2])
 
     # Create some parameters for the model
@@ -177,7 +177,7 @@ if __name__ == '__main__':
     dobs, Wd = synthetic.createData(mSynth, std=0.05)
 
     u = synthetic.field(mSynth)
-    mesh.plotImage(u[:,10], showIt=False)
+    # mesh.plotImage(u[:,10], showIt=False)
 
     # Now set up the problem to do some minimization
     problem = DCProblem(mesh)
@@ -190,23 +190,25 @@ if __name__ == '__main__':
     # print problem.misfit(m0)
     # print problem.misfit(mSynth)
 
-    opt = inverse.InexactGaussNewton(maxIterLS=20)
+    opt = inverse.InexactGaussNewton(maxIterLS=20, maxIter=1)
     reg = Regularization(mesh)
 
     inv = inverse.Inversion(problem, reg, opt)
 
-    inv.run(m0)
+    m = inv.run(m0)
+
+    mesh.plotImage(m,showIt=True)
 
     # Check Derivative
-    derChk = lambda m: [problem.misfit(m), problem.misfitDeriv(m)]
+    derChk = lambda m: [inv.dataObj(m), inv.dataObjDeriv(m)]
     checkDerivative(derChk, mSynth)
 
     # Adjoint Test
-    u = np.random.rand(mesh.nC)
-    v = np.random.rand(mesh.nC)
-    w = np.random.rand(dobs.shape[0])
-    print w.dot(problem.J(mSynth, v, u=u))
-    print v.dot(problem.Jt(mSynth, w, u=u))
+    # u = np.random.rand(mesh.nC)
+    # v = np.random.rand(mesh.nC)
+    # w = np.random.rand(dobs.shape[0])
+    # print w.dot(problem.J(mSynth, v, u=u))
+    # print v.dot(problem.Jt(mSynth, w, u=u))
 
 
 

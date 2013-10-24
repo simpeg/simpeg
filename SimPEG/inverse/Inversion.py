@@ -22,6 +22,15 @@ class Inversion(object):
             self._Wd = 1/(abs(self.prob.dobs)*self.prob.std+eps)
         return self._Wd
 
+    @property
+    def phi_d_target(self):
+        if getattr(self, '_phi_d_target', None) is None:
+            return self.prob.dobs.size
+        return self._phi_d_target
+    @phi_d_target.setter
+    def phi_d_target(self, value):
+        self._phi_d_target = value
+
     def run(self, m0):
         m = m0
         self._iter = 0
@@ -30,13 +39,14 @@ class Inversion(object):
             m = self.opt.minimize(self.evalFunction,m)
             if self.stoppingCriteria(): break
             self._iter += 1
+        return m
 
     def getBeta(self):
-        return 1
+        return 1e3
 
     def stoppingCriteria(self):
         self._STOP = np.zeros(2,dtype=bool)
-        self._STOP[0] = self._iter >= maxIter
+        self._STOP[0] = self._iter >= self.maxIter
         self._STOP[1] = self._phi_d_last <= self.phi_d_target
         return np.any(self._STOP)
 
