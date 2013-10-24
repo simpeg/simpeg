@@ -175,13 +175,8 @@ class Problem(object):
             in log space. In this case, your model will be log(sigma) and to
             get back to sigma, you can take the exponential:
 
-            .. math::
-
-                m = \log{\sigma}
-
-                \exp{m} = \exp{\log{\sigma}} = \sigma
         """
-        return np.exp(mkvc(m))
+        return m
 
     def modelTransformDeriv(self, m):
         """
@@ -191,22 +186,8 @@ class Problem(object):
 
             The modelTransform changes the model into the physical property.
             The modelTransformDeriv provides the derivative of the modelTransform.
-
-            If the model transform is:
-
-            .. math::
-
-                m = \log{\sigma}
-
-                \exp{m} = \exp{\log{\sigma}} = \sigma
-
-            Then the derivative is:
-
-            .. math::
-
-                \\frac{\partial \exp{m}}{\partial m} = \\text{sdiag}(\exp{m})
         """
-        return sdiag(np.exp(mkvc(m)))
+        return sp.eye(m.size)
 
 
 
@@ -239,3 +220,6 @@ class SyntheticProblem(object):
         eps = np.linalg.norm(mkvc(dobs),2)*1e-5
         Wd = 1/(abs(dobs)*std+eps)
         return dobs, Wd
+
+
+

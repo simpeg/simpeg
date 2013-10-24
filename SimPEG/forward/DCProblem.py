@@ -1,5 +1,5 @@
 from SimPEG.mesh import TensorMesh
-from SimPEG.forward import Problem, SyntheticProblem
+from SimPEG.forward import Problem, SyntheticProblem, ModelTransforms
 from SimPEG.tests import checkDerivative
 from SimPEG.utils import ModelBuilder, sdiag, mkvc
 from SimPEG import Solver
@@ -7,7 +7,7 @@ import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.linalg as linalg
 
-class DCProblem(Problem):
+class DCProblem(Problem, ModelTransforms.LogModel):
     """
         **DCProblem**
 
