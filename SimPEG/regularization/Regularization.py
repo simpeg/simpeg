@@ -1,10 +1,13 @@
 from SimPEG.utils import sdiag
+import numpy as np
 
 class Regularization(object):
     """docstring for Regularization"""
 
     @property
     def mref(self):
+        if getattr(self, '_mref', None) is None:
+            self._mref = np.zeros(self.mesh.nC);
         return self._mref
     @mref.setter
     def mref(self, value):
@@ -12,25 +15,25 @@ class Regularization(object):
 
     @property
     def Wx(self):
-        if self._Wx is None:
-            self._Wx = mesh.cellGradx
+        if getattr(self, '_Wx', None) is None:
+            self._Wx = self.mesh.cellGradx
         return self._Wx
 
     @property
     def Wy(self):
-        if self._Wy is None:
-            self._Wy = mesh.cellGrady
+        if getattr(self, '_Wy', None) is None:
+            self._Wy = self.mesh.cellGrady
         return self._Wy
 
     @property
     def Wz(self):
-        if self._Wz is None:
-            self._Wz = mesh.cellGradz
+        if getattr(self, '_Wz', None) is None:
+            self._Wz = self.mesh.cellGradz
         return self._Wz
 
     @property
     def Ws(self):
-        if self._Ws is None:
+        if getattr(self,'_Ws', None) is None:
             self._Ws = sdiag(self.mesh.vol)
         return self._Ws
 
@@ -87,12 +90,12 @@ class Regularization(object):
 
         mobjDeriv = self.alpha_s * self.Ws.T * ( self.Ws * mresid)
 
-        mobjDeriv += self.alpha_x * self.Wx.T * ( self.Wx * mresid)
+        mobjDeriv = mobjDeriv + self.alpha_x * self.Wx.T * ( self.Wx * mresid)
 
         if self.mesh.dim > 1:
-            mobjDeriv += self.alpha_y * self.Wy.T * ( self.Wy * mresid)
+            mobjDeriv = mobjDeriv + self.alpha_y * self.Wy.T * ( self.Wy * mresid)
         if self.mesh.dim > 2:
-            mobjDeriv += self.alpha_z * self.Wz.T * ( self.Wz * mresid)
+            mobjDeriv = mobjDeriv + self.alpha_z * self.Wz.T * ( self.Wz * mresid)
 
         return mobjDeriv
 
@@ -102,12 +105,12 @@ class Regularization(object):
 
         mobj2Deriv = self.alpha_s * self.Ws.T * self.Ws
 
-        mobj2Deriv += self.alpha_x * self.Wx.T * self.Wx
+        mobj2Deriv = mobj2Deriv + self.alpha_x * self.Wx.T * self.Wx
 
         if self.mesh.dim > 1:
-            mobj2Deriv += self.alpha_y * self.Wy.T * self.Wy
+            mobj2Deriv = mobj2Deriv + self.alpha_y * self.Wy.T * self.Wy
         if self.mesh.dim > 2:
-            mobj2Deriv += self.alpha_z * self.Wz.T * self.Wz
+            mobj2Deriv = mobj2Deriv + self.alpha_z * self.Wz.T * self.Wz
 
         return mobj2Deriv
 

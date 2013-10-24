@@ -1,5 +1,6 @@
 import numpy as np
-from SimPEG.utils import sdiag
+import scipy.sparse as sp
+from SimPEG.utils import sdiag, mkvc
 
 class Inversion(object):
     """docstring for Inversion"""
@@ -16,7 +17,10 @@ class Inversion(object):
         """
             Standard deviation weighting matrix.
         """
-        return sdiag(1/self.prob.std)
+        if getattr(self,'_Wd',None) is None:
+            eps = np.linalg.norm(mkvc(self.prob.dobs),2)*1e-5
+            self._Wd = 1/(abs(self.prob.dobs)*self.prob.std+eps)
+        return self._Wd
 
     def run(self, m0):
         m = m0
@@ -41,7 +45,7 @@ class Inversion(object):
 
         u = self.prob.field(m)
         phi_d = self.dataObj(m, u)
-        phi_m = self.modelObj(m)
+        phi_m = self.reg.modelObj(m)
 
         self._phi_d_last = phi_d
         self._phi_m_last = phi_m
@@ -50,25 +54,22 @@ class Inversion(object):
 
         out = (f,)
         if return_g:
-            phi_dDeriv = self.dataObjDeriv(m, u)
-            phi_mDeriv = self.modelObjDeriv(m)
+            phi_dDeriv = self.dataObjDeriv(m, u=u)
+            phi_mDeriv = self.reg.modelObjDeriv(m)
 
             g = phi_dDeriv + self._beta * phi_mDeriv
             out += (g,)
 
         if return_H:
             def H_fun(v):
-                phi_d2Deriv = self.dataObj2Deriv(m, u, v)
-                phi_m2Deriv = self.modelObj2Deriv(m)*v
+                phi_d2Deriv = self.dataObj2Deriv(m, v, u=u)
+                phi_m2Deriv = self.reg.modelObj2Deriv(m)*v
 
                 return phi_d2Deriv + self._beta * phi_m2Deriv
 
-            out += (H_fun,)
+            operator = sp.linalg.LinearOperator( (m.size, m.size), H_fun, dtype=float )
+            out += (operator,)
         return out
-
-
-    def modelObj(self, m, u=None):
-        self.reg.misfit(m)
 
 
     def dataObj(self, m, u=None):
@@ -87,7 +88,7 @@ class Inversion(object):
             Where P is a projection matrix that brings the field on the full domain to the data measurement locations;
             u is the field of interest; d_obs is the observed data; and W is the weighting matrix.
         """
-        R = self.Wd*self.prob.misfit(u=u)
+        R = self.Wd*self.prob.misfit(m, u=u)
         R = mkvc(R)
         return 0.5*R.dot(R)
 
@@ -123,17 +124,17 @@ class Inversion(object):
 
         """
         if u is None:
-            u = self.field(m)
+            u = self.prob.field(m)
 
-        R = self.W*(self.dpred(m, u=u) - self.dobs)
+        R = self.Wd*self.prob.misfit(m, u=u)
 
         dmisfit = 0
-        for i in range(self.RHS.shape[1]): # Loop over each right hand side
-            dmisfit += self.Jt(m, self.W[:,i]*R[:,i], u=u[:,i])
+        for i in range(self.prob.RHS.shape[1]): # Loop over each right hand side
+            dmisfit += self.prob.Jt(m, self.Wd[:,i]*R[:,i], u=u[:,i])
 
         return dmisfit
 
-    def dataObj2Deriv(self, m, u=None):
+    def dataObj2Deriv(self, m, v, u=None):
         """
             :param numpy.array m: geophysical model
             :param numpy.array u: fields
@@ -167,12 +168,12 @@ class Inversion(object):
 
         """
         if u is None:
-            u = self.field(m)
+            u = self.prob.field(m)
 
-        R = self.W*(self.dpred(m, u=u) - self.dobs)
+        R = self.Wd*self.prob.misfit(m, u=u)
 
         dmisfit = 0
-        for i in range(self.RHS.shape[1]): # Loop over each right hand side
-            dmisfit += self.Jt(m, self.W[:,i]*R[:,i], u=u[:,i])
+        for i in range(self.prob.RHS.shape[1]): # Loop over each right hand side
+            dmisfit += self.prob.Jt(m, self.Wd[:,i] * self.Wd[:,i] * self.prob.J(m, v, u=u[:,i]), u=u[:,i])
 
         return dmisfit

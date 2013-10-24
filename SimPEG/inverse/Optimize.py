@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from SimPEG.utils import mkvc, sdiag
 norm = np.linalg.norm
+import scipy.sparse as sp
 
 
 class Minimize(object):
@@ -149,7 +150,8 @@ class GaussNewton(Minimize):
 class InexactGaussNewton(Minimize):
     name = 'InexactGaussNewton'
     def findSearchDirection(self):
-        return sparse.linalg.cg(self.H, -self.g, tol=1e-05, maxiter=10)
+        p, info = sp.linalg.cg(self.H, -self.g, tol=1e-05, maxiter=10)
+        return p
 
 
 class SteepestDescent(Minimize):

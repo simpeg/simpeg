@@ -3,7 +3,7 @@ from SimPEG.forward import Problem, SyntheticProblem
 from SimPEG.tests import checkDerivative
 from SimPEG.utils import ModelBuilder, sdiag
 import numpy as np
-import scipy as sp
+import scipy.sparse as sp
 import scipy.sparse.linalg as linalg
 
 class DCProblem(Problem):
@@ -104,14 +104,44 @@ class DCProblem(Problem):
         return Jtv
 
 
+
+def genTxRxmat(nelec, spacelec, surfloc, elecini, mesh):
+    """ Generate projection matrix (Q) and """
+    elecend = 0.5+spacelec*(nelec-1)
+    elecLocR = np.linspace(elecini, elecend, nelec)
+    elecLocT = elecLocR+1
+    nrx = nelec-1
+    ntx = nelec-1
+    q = np.zeros((mesh.nC, ntx))
+    Q = np.zeros((mesh.nC, nrx))
+
+    for i in range(nrx):
+
+        rxind1 = np.argwhere((mesh.gridCC[:,0]==surfloc) & (mesh.gridCC[:,1]==elecLocR[i]))
+        rxind2 = np.argwhere((mesh.gridCC[:,0]==surfloc) & (mesh.gridCC[:,1]==elecLocR[i+1]))
+
+        txind1 = np.argwhere((mesh.gridCC[:,0]==surfloc) & (mesh.gridCC[:,1]==elecLocT[i]))
+        txind2 = np.argwhere((mesh.gridCC[:,0]==surfloc) & (mesh.gridCC[:,1]==elecLocT[i+1]))
+
+        q[txind1,i] = 1
+        q[txind2,i] = -1
+        Q[rxind1,i] = 1
+        Q[rxind2,i] = -1
+
+    Q = sp.csr_matrix(Q)
+    rxmidLoc = (elecLocR[0:nelec-1]+elecLocR[1:nelec])*0.5
+    return q, Q, rxmidLoc
+
+
+
 if __name__ == '__main__':
 
     from SimPEG.regularization import Regularization
     from SimPEG import inverse
 
     # Create the mesh
-    h1 = np.ones(100)
-    h2 = np.ones(100)
+    h1 = np.ones(10)
+    h2 = np.ones(10)
     mesh = TensorMesh([h1,h2])
 
     # Create some parameters for the model
@@ -153,14 +183,14 @@ if __name__ == '__main__':
     problem = DCProblem(mesh)
     problem.P = P
     problem.RHS = q
-    problem.W = Wd
     problem.dobs = dobs
+    problem.std = dobs*0 + 0.05
     m0 = mesh.gridCC[:,0]*0+sig1
 
     # print problem.misfit(m0)
     # print problem.misfit(mSynth)
 
-    opt = inverse.InexactGaussNewton()
+    opt = inverse.InexactGaussNewton(maxIterLS=20)
     reg = Regularization(mesh)
 
     inv = inverse.Inversion(problem, reg, opt)
@@ -181,30 +211,3 @@ if __name__ == '__main__':
 
 
 
-
-def genTxRxmat(nelec, spacelec, surfloc, elecini, mesh):
-    """ Generate projection matrix (Q) and """
-    elecend = 0.5+spacelec*(nelec-1)
-    elecLocR = np.linspace(elecini, elecend, nelec)
-    elecLocT = elecLocR+1
-    nrx = nelec-1
-    ntx = nelec-1
-    q = np.zeros((mesh.nC, ntx))
-    Q = np.zeros((mesh.nC, nrx))
-
-    for i in range(nrx):
-
-        rxind1 = np.argwhere((mesh.gridCC[:,0]==surfloc) & (mesh.gridCC[:,1]==elecLocR[i]))
-        rxind2 = np.argwhere((mesh.gridCC[:,0]==surfloc) & (mesh.gridCC[:,1]==elecLocR[i+1]))
-
-        txind1 = np.argwhere((mesh.gridCC[:,0]==surfloc) & (mesh.gridCC[:,1]==elecLocT[i]))
-        txind2 = np.argwhere((mesh.gridCC[:,0]==surfloc) & (mesh.gridCC[:,1]==elecLocT[i+1]))
-
-        q[txind1,i] = 1
-        q[txind2,i] = -1
-        Q[rxind1,i] = 1
-        Q[rxind2,i] = -1
-
-    Q = sp.csr_matrix(Q)
-    rxmidLoc = (elecLocR[0:nelec-1]+elecLocR[1:nelec])*0.5
-    return q, Q, rxmidLoc
