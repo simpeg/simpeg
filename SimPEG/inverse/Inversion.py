@@ -1,8 +1,9 @@
 import numpy as np
 import scipy.sparse as sp
 from SimPEG.utils import sdiag, mkvc
+from SimPEG.inverse import BS
 
-class Inversion(object):
+class Inversion(object, BetaSchedual.Cooling):
     """docstring for Inversion"""
 
     maxIter = 10
@@ -42,6 +43,7 @@ class Inversion(object):
     def run(self, m0):
         m = m0
         self._iter = 0
+        self._beta = None
         while True:
             self._beta = self.getBeta()
             m = self.opt.minimize(self.evalFunction,m)
@@ -49,8 +51,13 @@ class Inversion(object):
             self._iter += 1
         return m
 
+    beta0 = 1.e6
+    beta_coolingFactor = 5.
+
     def getBeta(self):
-        return 1e-2
+        if self._beta is None:
+            return beta0
+        return self._beta * beta_coolingFactor
 
     def stoppingCriteria(self):
         self._STOP = np.zeros(2,dtype=bool)
@@ -191,3 +198,4 @@ class Inversion(object):
         dmisfit = self.prob.Jt(m, self.Wd * self.Wd * self.prob.J(m, v, u=u), u=u)
 
         return dmisfit
+

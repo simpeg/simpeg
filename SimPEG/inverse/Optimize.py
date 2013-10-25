@@ -158,6 +158,7 @@ class GaussNewton(Minimize):
 class InexactGaussNewton(Minimize):
     name = 'InexactGaussNewton'
     def findSearchDirection(self):
+        # TODO: use BFGS as a preconditioner or gauss sidel of the WtW or solve WtW directly
         p, info = sp.linalg.cg(self.H, -self.g, tol=1e-05, maxiter=5)
         return p
 
