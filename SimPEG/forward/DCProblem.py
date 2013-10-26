@@ -40,13 +40,8 @@ class DCProblem(ModelTransforms.LogModel, Problem):
 
     def field(self, m):
         A = self.createMatrix(m)
-        solve = linalg.factorized(A)
-
-        nRHSs = self.RHS.shape[1]  # Number of RHSs
-        phi = np.zeros((self.mesh.nC, nRHSs)) + np.nan
-        for ii in range(nRHSs):
-            phi[:,ii] = solve(self.RHS[:,ii])
-
+        solve = Solver(A)
+        phi = solve.solve(self.RHS)
         return phi
 
     def J(self, m, v, u=None):
