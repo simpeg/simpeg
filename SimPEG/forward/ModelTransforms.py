@@ -1,5 +1,5 @@
 import numpy as np
-
+from SimPEG.utils import mkvc, sdiag
 
 class LogModel(object):
     """docstring for LogModel"""

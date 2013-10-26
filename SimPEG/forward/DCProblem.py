@@ -7,7 +7,7 @@ import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.linalg as linalg
 
-class DCProblem(Problem, ModelTransforms.LogModel):
+class DCProblem(ModelTransforms.LogModel, Problem):
     """
         **DCProblem**
 
