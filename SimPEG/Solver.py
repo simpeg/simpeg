@@ -36,21 +36,27 @@ class Solver(object):
         del self.dsolve
         self.dsolve = None
 
-    def solveDirect(self, b, backend='scipy'):
+    def solveDirect(self, b, factorize=False, backend='scipy'):
         assert np.shape(self.A)[1] == np.shape(b)[0], 'Dimension mismatch'
 
-        if self.dsolve is None:
+        if factorize and self.dsolve is None:
             self.A = self.A.tocsc()  # for efficiency
             self.dsolve = linalg.factorized(self.A)
 
         if len(b.shape) == 1 or b.shape[1] == 1:
             # Just one RHS
-            return self.dsolve(b)
+            if factorize:
+                return self.dsolve(b)
+            else:
+                return linalg.dsolve.spsolve(self.A, b)
 
         # Multiple RHSs
         X = np.empty_like(b)
         for i in range(b.shape[1]):
-            X[:,i] = self.dsolve(b[:,i])
+            if factorize:
+                X[:,i] = self.dsolve(b[:,i])
+            else:
+                X[:,i] = linalg.dsolve.spsolve(self.A,b[:,i])
 
         return X
 
@@ -73,3 +79,33 @@ class Solver(object):
         for i in range(b.shape[1]):
             X[:,i] = b[:,i]/diagA
         return X
+
+
+if __name__ == '__main__':
+    from SimPEG.mesh import TensorMesh
+    from time import time
+    h1 = np.ones(20)*100.
+    h2 = np.ones(20)*100.
+    h3 = np.ones(20)*100.
+
+    h = [h1,h2,h3]
+
+    M = TensorMesh(h)
+
+    D = M.faceDiv
+    G = M.cellGrad
+    Msig = M.getFaceMass()
+    A = D*Msig*G
+
+    rhs = np.random.rand(M.nC)
+
+
+    tic = time()
+    solve = Solver(A, options={'factorize':True})
+    x = solve.solve(rhs)
+    print 'Factorized', time() - tic
+    tic = time()
+    solve = Solver(A, options={'factorize':False})
+    x = solve.solve(rhs)
+    print 'spsolve', time() - tic
+
