@@ -13,14 +13,16 @@ Problem
 DCProblem
 *********
 
-.. automodule:: SimPEG.forward.DCProblem.DCProblem
+.. automodule:: SimPEG.forward.DCProblem
     :members:
     :undoc-members:
 
 
-DCutils
-*******
 
-.. automodule:: SimPEG.forward.DCProblem.DCutils
+Linear Problem
+**************
+
+.. automodule:: SimPEG.forward.LinearProblem
     :members:
     :undoc-members:
+

@@ -1,7 +1,7 @@
 
 
 class Cooling(object):
-    """Simple Beta Schedual"""
+    """Simple Beta Schedule"""
 
     beta0 = 1.e6
     beta_coolingFactor = 5.
