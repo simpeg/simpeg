@@ -1,18 +1,26 @@
 import numpy as np
 import scipy.sparse as sp
 from SimPEG.utils import sdiag, mkvc
-from SimPEG.inverse import BS
 
-class Inversion(object, BetaSchedual.Cooling):
+class Inversion(object):
     """docstring for Inversion"""
 
     maxIter = 10
 
-    def __init__(self, prob, reg, opt):
+    def __init__(self, prob, reg, opt, **kwargs):
         self.prob = prob
         self.reg = reg
         self.opt = opt
         self.opt.parent = self
+        self.setKwargs(**kwargs)
+
+    def setKwargs(self, **kwargs):
+        # Set the variables, throw an error if they don't exist.
+        for attr in kwargs:
+            if hasattr(self, attr):
+                setattr(self, attr, kwargs[attr])
+            else:
+                raise Exception('%s attr is not recognized' % attr)
 
     @property
     def Wd(self):
@@ -51,13 +59,13 @@ class Inversion(object, BetaSchedual.Cooling):
             self._iter += 1
         return m
 
-    beta0 = 1.e6
+    beta0 = 1.e2
     beta_coolingFactor = 5.
 
     def getBeta(self):
         if self._beta is None:
-            return beta0
-        return self._beta * beta_coolingFactor
+            return self.beta0
+        return self._beta * self.beta_coolingFactor
 
     def stoppingCriteria(self):
         self._STOP = np.zeros(2,dtype=bool)

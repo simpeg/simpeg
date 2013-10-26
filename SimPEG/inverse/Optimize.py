@@ -19,9 +19,9 @@ class Minimize(object):
     maxIterLS = 10
     LSreduction = 1e-4
     LSshorten = 0.5
-    tolF = 1e-4
-    tolX = 1e-4
-    tolG = 1e-4
+    tolF = 1e-1
+    tolX = 1e-1
+    tolG = 1e-1
     eps = 1e-5
 
     printIter = [] # push to here if you want to print these on iter

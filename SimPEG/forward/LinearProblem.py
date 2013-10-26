@@ -59,12 +59,6 @@ class LinearProblem(Problem):
     def Jt(self, m, v, u=None):
         return G.T.dot(v)
 
-    def modelTransform(self, m):
-        return m
-
-    def modelTransformDeriv(self, m):
-        return sp.eye(m.size)
-
 prob = LinearProblem(M)
 prob.G = G
 prob.dobs = d_obs
@@ -72,9 +66,9 @@ prob.std = np.ones_like(d_obs)*0.1
 
 reg = Regularization(M)
 
-opt = InexactGaussNewton(maxIter=10)
+opt = InexactGaussNewton(maxIter=20)
 
-inv = Inversion(prob,reg,opt)
+inv = Inversion(prob,reg,opt,beta0=1e-4)
 
 m0 = np.zeros_like(m_true)
 
