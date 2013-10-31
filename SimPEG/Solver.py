@@ -4,9 +4,30 @@ import scipy.sparse.linalg as linalg
 
 
 class Solver(object):
-    """docstring for Solver"""
-    def __init__(self, A, doDirect=True, flag=None, options={}):
+    """
+        Solver is a light wrapper on the various types of
+        linear solvers available in python.
 
+        :param scipy.sparse A: Matrix
+        :param bool doDirect: if you want a direct solver
+        :param string flag: Matrix type flag for special solves: [None, 'L', 'U', 'D']
+        :param dict options: options which are passed to each sub solver, see each for details.
+        :rtype: Solver
+        :return: Solver
+
+        To use for direct solvers::
+
+            solve = Solver(A, doDirect=True, flag=None, options={'factorize':True,'backend':'scipy'})
+            x = solve.solve(rhs)
+
+        Or in one line::
+
+            x = Solver(A).solve(rhs)
+
+        The flag can be set to None, 'L', 'U', or 'D', for general, lower, upper, and diagonal matrices, respectively.
+
+    """
+    def __init__(self, A, doDirect=True, flag=None, options={}):
         assert type(doDirect) is bool, 'doDirect must be a boolean'
         assert flag in [None, 'L', 'U', 'D'], "flag must be set to None, 'L', 'U', or 'D'"
 
@@ -18,6 +39,17 @@ class Solver(object):
         self.options = options
 
     def solve(self, b):
+        """
+            Solves the linear system.
+
+            .. math::
+
+                Ax=b
+
+            :param numpy.ndarray b: the right hand side
+            :rtype: numpy.ndarray
+            :return: x
+        """
         if self.flag is None and self.doDirect:
             return self.solveDirect(b, **self.options)
         elif self.flag is None and not self.doDirect:
@@ -38,6 +70,14 @@ class Solver(object):
         self.dsolve = None
 
     def solveDirect(self, b, factorize=False, backend='scipy'):
+        """
+            Use solve instead of this interface.
+
+            :param bool factorize: if you want to factorize and store factors
+            :param str backend: which backend to use. Default is scipy
+            :rtype: numpy.ndarray
+            :return: x
+        """
         assert np.shape(self.A)[1] == np.shape(b)[0], 'Dimension mismatch'
 
         if factorize and self.dsolve is None:
@@ -64,8 +104,16 @@ class Solver(object):
     def solveIter(self, b, M=None, iterSolver='CG'):
         pass
 
-    def solveBackward(self, b):
-        "Perform a backwards solve with upper triangular A in CSR format."
+    def solveBackward(self, b, backend='python'):
+        """
+            Use solve instead of this interface.
+
+            Perform a backwards solve with upper triangular A in CSR format (best, if not, it will be converted).
+
+            :param str backend: which backend to use. Default is python.
+            :rtype: numpy.ndarray
+            :return: x
+        """
         if type(self.A) is not sparse.csr.csr_matrix:
             from scipy.sparse import csr_matrix
             self.A = csr_matrix(self.A)
@@ -80,8 +128,16 @@ class Solver(object):
             x[i] = (b[i] - np.dot(ith_row[1:], x_vals[1:])) / ith_row[0]
         return x
 
-    def solveForward(self, b):
-        "Perform a forward solve with lower triangular A in CSR format."
+    def solveForward(self, backend='python'):
+        """
+            Use solve instead of this interface.
+
+            Perform a forward solve with lower triangular A in CSR format (best, if not, it will be converted).
+
+            :param str backend: which backend to use. Default is python.
+            :rtype: numpy.ndarray
+            :return: x
+        """
         if type(self.A) is not sparse.csr.csr_matrix:
             from scipy.sparse import csr_matrix
             self.A = csr_matrix(self.A)
@@ -96,7 +152,16 @@ class Solver(object):
             x[i] = (b[i] - np.dot(ith_row[:-1], x_vals[:-1])) / ith_row[-1]
         return x
 
-    def solveDiagonal(self, b):
+    def solveDiagonal(self, backend='python'):
+        """
+            Use solve instead of this interface.
+
+            Perform a diagonal solve with diagonal matrix A.
+
+            :param str backend: which backend to use. Default is python.
+            :rtype: numpy.ndarray
+            :return: x
+        """
         diagA = self.A.diagonal()
         if len(b.shape) == 1 or b.shape[1] == 1:
             # Just one RHS

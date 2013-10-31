@@ -62,6 +62,7 @@ Utility Codes
 .. toctree::
    :maxdepth: 2
 
+   api_Solver
    api_Utils
 
 
