@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.sparse as sparse
 import scipy.sparse.linalg as linalg
 
 
@@ -64,10 +65,36 @@ class Solver(object):
         pass
 
     def solveBackward(self, b):
-        pass
+        "Perform a backwards solve with upper triangular A in CSR format."
+        if type(self.A) is not sparse.csr.csr_matrix:
+            from scipy.sparse import csr_matrix
+            self.A = csr_matrix(self.A)
+        vals = self.A.data
+        rowptr = self.A.indptr
+        colind = self.A.indices
+        x = np.empty_like(b)   # empty() is faster than zeros().
+        for i in reversed(xrange(self.A.shape[0])):
+            ith_row = vals[rowptr[i] : rowptr[i+1]]
+            cols = colind[rowptr[i] : rowptr[i+1]]
+            x_vals = x[cols]
+            x[i] = (b[i] - np.dot(ith_row[1:], x_vals[1:])) / ith_row[0]
+        return x
 
     def solveForward(self, b):
-        pass
+        "Perform a forward solve with lower triangular A in CSR format."
+        if type(self.A) is not sparse.csr.csr_matrix:
+            from scipy.sparse import csr_matrix
+            self.A = csr_matrix(self.A)
+        vals = self.A.data
+        rowptr = self.A.indptr
+        colind = self.A.indices
+        x = np.empty_like(b)   # empty() is faster than zeros().
+        for i in xrange(self.A.shape[0]):
+            ith_row = vals[rowptr[i] : rowptr[i+1]]
+            cols = colind[rowptr[i] : rowptr[i+1]]
+            x_vals = x[cols]
+            x[i] = (b[i] - np.dot(ith_row[:-1], x_vals[:-1])) / ith_row[-1]
+        return x
 
     def solveDiagonal(self, b):
         diagA = self.A.diagonal()
@@ -96,16 +123,20 @@ if __name__ == '__main__':
     G = M.cellGrad
     Msig = M.getFaceMass()
     A = D*Msig*G
+    A[0,0] *= 10 # remove the constant null space from the matrix
 
-    rhs = np.random.rand(M.nC)
-
+    e = np.ones(M.nC)
+    rhs = A.dot(e)
 
     tic = time()
     solve = Solver(A, options={'factorize':True})
     x = solve.solve(rhs)
     print 'Factorized', time() - tic
+    print np.linalg.norm(e-x,np.inf)
     tic = time()
     solve = Solver(A, options={'factorize':False})
     x = solve.solve(rhs)
     print 'spsolve', time() - tic
+    print np.linalg.norm(e-x,np.inf)
+
 
