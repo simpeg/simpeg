@@ -192,6 +192,16 @@ def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None):
         :rtype: bool
         :return: did you pass the test?!
 
+
+        .. plot::
+            :include-source:
+
+            from SimPEG.tests import checkDerivative
+            from SimPEG.utils import sdiag
+            import numpy as np
+            def simplePass(x):
+                return np.sin(x), sdiag(np.cos(x))
+            checkDerivative(simplePass, np.random.randn(5))
     """
 
     print "%s checkDerivative %s" % ('='*20, '='*20)
