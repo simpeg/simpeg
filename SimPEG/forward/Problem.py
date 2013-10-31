@@ -1,5 +1,6 @@
 import numpy as np
 from SimPEG.utils import mkvc, sdiag
+import scipy.sparse as sp
 norm = np.linalg.norm
 
 

@@ -128,7 +128,7 @@ class Solver(object):
             x[i] = (b[i] - np.dot(ith_row[1:], x_vals[1:])) / ith_row[0]
         return x
 
-    def solveForward(self, backend='python'):
+    def solveForward(self, b, backend='python'):
         """
             Use solve instead of this interface.
 
@@ -152,7 +152,7 @@ class Solver(object):
             x[i] = (b[i] - np.dot(ith_row[:-1], x_vals[:-1])) / ith_row[-1]
         return x
 
-    def solveDiagonal(self, backend='python'):
+    def solveDiagonal(self, b, backend='python'):
         """
             Use solve instead of this interface.
 
