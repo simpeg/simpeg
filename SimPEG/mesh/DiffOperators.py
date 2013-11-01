@@ -192,7 +192,7 @@ class DiffOperators(object):
                 BC = ['neumann', 'neumann']
                 n = self.n
                 if(self.dim == 2):
-                    G2 = sp.kron(speye(n[1]), ddxCellGrad(n[0], BC))
+                    G2 = sp.kron(ddxCellGrad(n[1], BC), speye(n[0]))
                 elif(self.dim == 3):
                     G2 = kron3(speye(n[2]), ddxCellGrad(n[1], BC), speye(n[0]))
                 # Compute areas of cell faces & volumes
