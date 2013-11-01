@@ -94,7 +94,7 @@ class Problem(object):
             u = self.field(m)
         return self.P*u
 
-    def misfit(self, m, u=None):
+    def dataResidual(self, m, u=None):
         """
             :param numpy.array m: geophysical model
             :param numpy.array u: fields

@@ -6,6 +6,7 @@ class Inversion(object):
     """docstring for Inversion"""
 
     maxIter = 10
+    name = 'SimPEG Inversion'
 
     def __init__(self, prob, reg, opt, **kwargs):
         self.prob = prob
@@ -21,6 +22,14 @@ class Inversion(object):
                 setattr(self, attr, kwargs[attr])
             else:
                 raise Exception('%s attr is not recognized' % attr)
+
+    def printInit(self):
+        print "%s %s %s" % ('='*22, self.name, '='*22)
+        print "  #    beta     phi_d      phi_m       f     norm(dJ)   #LS"
+        print "%s" % '-'*62
+
+    def printIter(self):
+        print "%3d  %1.2e  %1.2e  %1.2e  %1.2e  %1.2e  %3d" % (self.opt._iter, self._beta, self._phi_d_last, self._phi_m_last, self.opt.f, np.linalg.norm(self.opt.g), self.opt._iterLS)
 
     @property
     def Wd(self):
@@ -65,7 +74,7 @@ class Inversion(object):
     def getBeta(self):
         if self._beta is None:
             return self.beta0
-        return self._beta * self.beta_coolingFactor
+        return self._beta / self.beta_coolingFactor
 
     def stoppingCriteria(self):
         self._STOP = np.zeros(2,dtype=bool)
@@ -121,9 +130,10 @@ class Inversion(object):
             Where P is a projection matrix that brings the field on the full domain to the data measurement locations;
             u is the field of interest; d_obs is the observed data; and W is the weighting matrix.
         """
-        R = self.Wd*self.prob.misfit(m, u=u)
+        # TODO: ensure that this is a data is vector and Wd is a matrix.
+        R = self.Wd*self.prob.dataResidual(m, u=u)
         R = mkvc(R)
-        return 0.5*R.dot(R)
+        return 0.5*np.vdot(R, R)
 
     def dataObjDeriv(self, m, u=None):
         """
@@ -159,7 +169,7 @@ class Inversion(object):
         if u is None:
             u = self.prob.field(m)
 
-        R = self.Wd*self.prob.misfit(m, u=u)
+        R = self.Wd*self.prob.dataResidual(m, u=u)
 
         dmisfit = self.prob.Jt(m, self.Wd * R, u=u)
 
@@ -201,8 +211,10 @@ class Inversion(object):
         if u is None:
             u = self.prob.field(m)
 
-        R = self.Wd*self.prob.misfit(m, u=u)
+        R = self.Wd*self.prob.dataResidual(m, u=u)
 
+        # TODO: abstract to different norms a little cleaner.
+        #                                 \/ it goes here. in l2 it is the identity.
         dmisfit = self.prob.Jt(m, self.Wd * self.Wd * self.prob.J(m, v, u=u), u=u)
 
         return dmisfit
