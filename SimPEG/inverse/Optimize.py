@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from SimPEG.utils import mkvc, sdiag
 norm = np.linalg.norm
 import scipy.sparse as sp
+from pubsub import pub
 
 
 class Minimize(object):
@@ -24,9 +25,8 @@ class Minimize(object):
     tolG = 1e-1
     eps = 1e-5
 
-    printIter = [] # push to here if you want to print these on iter
-
     def __init__(self, **kwargs):
+        self._id = int(np.random.rand()*1e6)  # create a unique identifier to this program to be used in pubsub
         self.setKwargs(**kwargs)
 
     def setKwargs(self, **kwargs):
@@ -51,13 +51,19 @@ class Minimize(object):
 
         while True:
             self.f, self.g, self.H = evalFunction(self.xc, return_g=True, return_H=True)
+            pub.sendMessage('Minimize.evalFunction', minimize=self, f=self.f, g=self.g, H=self.H)
             self.printIter()
             if self.stoppingCriteria(): break
             p = self.findSearchDirection()
-            xt, passLS = self.linesearch(p)
+            #TODO: Scale search direction
+            pub.sendMessage('Minimize.searchDirection', minimize=self, p=p)
+            xt, passLS = self.linesearch(p) ## TODO: should be called modifyStep to be inclusive of trust region stuff etc.
+            pub.sendMessage('Minimize.linesearch', minimize=self, xt=xt)
             if not passLS:
                 xt = self.linesearchBreak(p)
+                return self.xc
             self.doEndIteration(xt)
+            pub.sendMessage('Minimize.endIteration', minimize=self, xt=xt)
 
         self.printDone()
 
@@ -65,7 +71,9 @@ class Minimize(object):
 
     @property
     def parent(self):
-        """This is the parent of the optimization routine."""
+        """
+            This is the parent of the optimization routine.
+        """
         return getattr(self, '_parent', None)
     @parent.setter
     def parent(self, value):
@@ -85,6 +93,10 @@ class Minimize(object):
             printIter is called at the beginning of the optimization routine.
 
         """
+        pub.sendMessage('Minimize.printInit', minimize=self)
+        if self.parent is not None and hasattr(self.parent, 'printInit'):
+            self.parent.printInit()
+            return
         print "%s %s %s" % ('='*22, self.name, '='*22)
         print "iter\tJc\t\tnorm(dJ)\tLS"
         print "%s" % '-'*57
@@ -94,12 +106,22 @@ class Minimize(object):
             printIter is called directly after function evaluations.
 
         """
+        pub.sendMessage('Minimize.printIter', minimize=self)
+        if self.parent is not None and hasattr(self.parent, 'printIter'):
+            self.parent.printIter()
+            return
         print "%3d\t%1.2e\t%1.2e\t%d" % (self._iter, self.f, norm(self.g), self._iterLS)
 
     def printDone(self):
+        pub.sendMessage('Minimize.printDone', minimize=self)
+        if self.parent is not None and hasattr(self.parent, 'printDone'):
+            self.parent.printDone()
+            return
         print "%s STOP! %s" % ('-'*25,'-'*25)
-        print "%d : |fc-fOld| = %1.4e <= tolF*(1+|fStop|) = %1.4e"  % (self._STOP[0], abs(self.f-self.fOld), self.tolF*(1+abs(self.fStop)))
-        print "%d : |xc-xOld| = %1.4e <= tolX*(1+|x0|)    = %1.4e"  % (self._STOP[1], norm(self.xc-self.xOld), self.tolX*(1+norm(self.x0)))
+        # TODO: put controls on gradient value, min model update, and function value
+        if self._iter > 0:
+            print "%d : |fc-fOld| = %1.4e <= tolF*(1+|fStop|) = %1.4e"  % (self._STOP[0], abs(self.f-self.fOld), self.tolF*(1+abs(self.fStop)))
+            print "%d : |xc-xOld| = %1.4e <= tolX*(1+|x0|)    = %1.4e"  % (self._STOP[1], norm(self.xc-self.xOld), self.tolX*(1+norm(self.x0)))
         print "%d : |g|       = %1.4e <= tolG*(1+|fStop|) = %1.4e"  % (self._STOP[2], norm(self.g), self.tolG*(1+abs(self.fStop)))
         print "%d : |g|       = %1.4e <= 1e3*eps          = %1.4e"  % (self._STOP[3], norm(self.g), 1e3*self.eps)
         print "%d : iter      = %3d\t <= maxIter\t       = %3d"     % (self._STOP[4], self._iter, self.maxIter)
@@ -140,7 +162,7 @@ class Minimize(object):
         return xt, iterLS < self.maxIterLS
 
     def linesearchBreak(self, p):
-        raise Exception('The linesearch got broken. Boo.')
+        print 'The linesearch got broken. Boo.'
 
     def doEndIteration(self, xt):
         # store old values
@@ -159,7 +181,7 @@ class InexactGaussNewton(Minimize):
     name = 'InexactGaussNewton'
     def findSearchDirection(self):
         # TODO: use BFGS as a preconditioner or gauss sidel of the WtW or solve WtW directly
-        p, info = sp.linalg.cg(self.H, -self.g, tol=1e-05, maxiter=5)
+        p, info = sp.linalg.cg(self.H, -self.g, tol=1e-05, maxiter=10)
         return p
 
 
@@ -170,11 +192,19 @@ class SteepestDescent(Minimize):
 
 if __name__ == '__main__':
     from SimPEG.tests import Rosenbrock, checkDerivative
+    import matplotlib.pyplot as plt
     x0 = np.array([2.6, 3.7])
     checkDerivative(Rosenbrock, x0, plotIt=False)
-    xOpt = GaussNewton(maxIter=20).minimize(Rosenbrock,x0)
+
+    def listener1(minimize,p):
+        plt.plot(p)
+        plt.show()
+        print p
+    pub.subscribe(listener1, 'Minimize.searchDirection')
+
+    xOpt = GaussNewton(maxIter=20,tolF=1e-10,tolX=1e-10,tolG=1e-10).minimize(Rosenbrock,x0)
     print "xOpt=[%f, %f]" % (xOpt[0], xOpt[1])
-    xOpt = SteepestDescent(maxIter=20, maxIterLS=15).minimize(Rosenbrock, x0)
+    xOpt = SteepestDescent(maxIter=30, maxIterLS=15,tolF=1e-10,tolX=1e-10,tolG=1e-10).minimize(Rosenbrock, x0)
     print "xOpt=[%f, %f]" % (xOpt[0], xOpt[1])
 
     def simplePass(x):
