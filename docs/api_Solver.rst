@@ -3,7 +3,7 @@
 Solver
 ******
 
-.. automodule:: SimPEG.Solver
+.. automodule:: SimPEG.utils.Solver
     :members:
     :undoc-members:
 

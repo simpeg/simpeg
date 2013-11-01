@@ -1,6 +1,6 @@
-import mesh
 import utils
+from utils import Solver
+import mesh
 import inverse
 import forward
 import regularization
-from Solver import Solver
