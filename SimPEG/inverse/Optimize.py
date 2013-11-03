@@ -18,6 +18,7 @@ class Minimize(object):
 
     maxIter = 20
     maxIterLS = 10
+    maxStep = np.inf    
     LSreduction = 1e-4
     LSshorten = 0.5
     tolF = 1e-1
@@ -55,7 +56,8 @@ class Minimize(object):
             self.printIter()
             if self.stoppingCriteria(): break
             p = self.findSearchDirection()
-            #TODO: Scale search direction
+            if self.maxStep < np.abs(p.max()):
+                p = self.maxStep*p/np.abs(p.max())
             pub.sendMessage('Minimize.searchDirection', minimize=self, p=p)
             xt, passLS = self.linesearch(p) ## TODO: should be called modifyStep to be inclusive of trust region stuff etc.
             pub.sendMessage('Minimize.linesearch', minimize=self, xt=xt)
