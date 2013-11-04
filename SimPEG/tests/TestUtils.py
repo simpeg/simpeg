@@ -1,12 +1,15 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from pylab import norm
-from SimPEG.utils import mkvc
+from SimPEG.utils import mkvc, sdiag
 from SimPEG import utils
 from SimPEG.mesh import TensorMesh, LogicallyOrthogonalMesh
 import numpy as np
 import unittest
+import inspect
 
+happiness = ['The test be workin!', 'You get a gold star!', 'Yay passed!', 'Happy little convergence test!', 'That was easy!', 'Testing is important.', 'You are awesome.', 'Go Test Go!', 'Once upon a time, a happy little test passed.', 'And then everyone was happy.']
+sadness = ['No gold star for you.','Try again soon.','Thankfully, persistence is a great substitute for talent.','It might be easier to call this a feature...','Coffee break?', 'Boooooooo  :(', 'Testing is important. Do it again.']
 
 class OrderTest(unittest.TestCase):
     """
@@ -157,9 +160,10 @@ class OrderTest(unittest.TestCase):
             print '---------------------------------------------'
             passTest = np.mean(np.array(order)) > self.tolerance*self._expectedOrder
             if passTest:
-                print ['The test be workin!', 'You get a gold star!', 'Yay passed!', 'Happy little convergence test!', 'That was easy!'][np.random.randint(5)]
+                print happiness[np.random.randint(len(happiness))]
             else:
                 print 'Failed to pass test on ' + self._meshType + '.'
+                print sadness[np.random.randint(len(sadness))]
             print ''
             self.assertTrue(passTest)
 
@@ -222,7 +226,11 @@ def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None):
     for i in range(num):
         Jt = fctn(x0+t[i]*dx)
         E0[i] = l2norm(Jt[0]-Jc[0])               # 0th order Taylor
-        E1[i] = l2norm(Jt[0]-Jc[0]-t[i]*Jc[1].dot(dx))  # 1st order Taylor
+        if inspect.isfunction(Jc[1]):
+            E1[i] = l2norm(Jt[0]-Jc[0]-t[i]*Jc[1](dx))  # 1st order Taylor
+        else:
+            # We assume it is a numpy.ndarray
+            E1[i] = l2norm(Jt[0]-Jc[0]-t[i]*Jc[1].dot(dx))  # 1st order Taylor
         order0 = np.log10(E0[:-1]/E0[1:])
         order1 = np.log10(E1[:-1]/E1[1:])
         print "%d\t%1.2e\t%1.3e\t\t%1.3e\t\t%1.3f" % (i, t[i], E0[i], E1[i], np.nan if i == 0 else order1[i-1])
@@ -238,9 +246,12 @@ def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None):
     passTest = belowTol or correctOrder
 
     if passTest:
-        print "%s PASS! %s\n" % ('='*25, '='*25)
+        print "%s PASS! %s" % ('='*25, '='*25)
+        print happiness[np.random.randint(len(happiness))]+'\n'
     else:
         print "%s\n%s FAIL! %s\n%s" % ('*'*57, '<'*25, '>'*25, '*'*57)
+        print sadness[np.random.randint(len(sadness))]+'\n'
+
 
     if plotIt:
         plt.figure()
@@ -254,3 +265,19 @@ def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None):
         plt.show()
 
     return passTest
+
+
+if __name__ == '__main__':
+
+    def simplePass(x):
+        return np.sin(x), sdiag(np.cos(x))
+
+    def simpleFunction(x):
+        return np.sin(x), lambda xi: sdiag(np.cos(x))*xi
+
+    def simpleFail(x):
+        return np.sin(x), -sdiag(np.cos(x))
+
+    checkDerivative(simplePass, np.random.randn(5), plotIt=False)
+    checkDerivative(simpleFunction, np.random.randn(5), plotIt=False)
+    checkDerivative(simpleFail, np.random.randn(5), plotIt=False)

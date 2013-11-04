@@ -16,7 +16,7 @@ class Inversion(object):
         self.setKwargs(**kwargs)
 
     def setKwargs(self, **kwargs):
-        # Set the variables, throw an error if they don't exist.
+        """Sets key word arguments (kwargs) that are present in the object, throw an error if they don't exist."""
         for attr in kwargs:
             if hasattr(self, attr):
                 setattr(self, attr, kwargs[attr])

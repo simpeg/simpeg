@@ -7,6 +7,7 @@ import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.linalg as linalg
 
+
 class DCProblem(ModelTransforms.LogModel, Problem):
     """
         **DCProblem**
@@ -17,6 +18,11 @@ class DCProblem(ModelTransforms.LogModel, Problem):
     def __init__(self, mesh):
         super(DCProblem, self).__init__(mesh)
         self.mesh.setCellGradBC('neumann')
+
+    def reshapeFields(self, u):
+        if len(u.shape) == 1:
+            u = u.reshape([-1, self.RHS.shape[1]], order='F')
+        return u
 
     def createMatrix(self, m):
         """
@@ -38,11 +44,25 @@ class DCProblem(ModelTransforms.LogModel, Problem):
         A = D*Msig*G
         return A.tocsc()
 
+    def dpred(self, m, u=None):
+        """
+            Predicted data.
+
+            .. math::
+                d_\\text{pred} = Pu(m)
+        """
+        if u is None:
+            u = self.field(m)
+
+        u = self.reshapeFields(u)
+
+        return mkvc(self.P*u)
+
     def field(self, m):
         A = self.createMatrix(m)
         solve = Solver(A)
         phi = solve.solve(self.RHS)
-        return phi
+        return mkvc(phi)
 
     def J(self, m, v, u=None):
         """
@@ -69,6 +89,8 @@ class DCProblem(ModelTransforms.LogModel, Problem):
         if u is None:
             u = self.field(m)
 
+        u = self.reshapeFields(u)
+
         P = self.P
         D = self.mesh.faceDiv
         G = self.mesh.cellGrad
@@ -83,13 +105,18 @@ class DCProblem(ModelTransforms.LogModel, Problem):
             dCdm[:, i] = D * ( sdiag( G * ui ) * ( Av_dm * ( mT_dm * v ) ) )
 
         solve = Solver(dCdu)
-        # solve = linalg.factorized(dCdu)
-
         Jv = - P * solve.solve(dCdm)
-        return Jv
+        return mkvc(Jv)
 
     def Jt(self, m, v, u=None):
         """Takes data, turns it into a model..ish"""
+
+        if u is None:
+            u = self.field(m)
+
+        u = self.reshapeFields(u)
+        v = self.reshapeFields(v)
+
         P = self.P
         D = self.mesh.faceDiv
         G = self.mesh.cellGrad
@@ -147,7 +174,7 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
     # Create the mesh
-    h1 = np.ones(100)
+    h1 = np.ones(20)
     h2 = np.ones(100)
     mesh = TensorMesh([h1,h2])
 
@@ -156,12 +183,12 @@ if __name__ == '__main__':
     sig2 = np.log(0.01)
 
     # Create a synthetic model from a block in a half-space
-    p0 = [20, 20]
-    p1 = [50, 50]
+    p0 = [5, 10]
+    p1 = [15, 50]
     condVals = [sig1, sig2]
     mSynth = ModelBuilder.defineBlockConductivity(p0,p1,mesh.gridCC,condVals)
     plt.colorbar(mesh.plotImage(mSynth))
-    # plt.show()
+    plt.show()
 
     # Set up the projection
     nelec = 50
@@ -184,7 +211,9 @@ if __name__ == '__main__':
     dobs, Wd = synthetic.createData(mSynth, std=0.05)
 
     u = synthetic.field(mSynth)
-    # mesh.plotImage(u[:,10], showIt=False)
+    u = synthetic.reshapeFields(u)
+    mesh.plotImage(u[:,10])
+    # plt.show()
 
     # Now set up the problem to do some minimization
     problem = DCProblem(mesh)
@@ -194,37 +223,14 @@ if __name__ == '__main__':
     problem.std = dobs*0 + 0.05
     m0 = mesh.gridCC[:,0]*0+sig2
 
-
-
-    # Adjoint Test
-    u = np.random.rand(mesh.nC, problem.RHS.shape[1])
-    v = np.random.rand(mesh.nC)
-    w = np.random.rand(*dobs.shape)
-    Jv = mkvc(problem.J(mSynth, v, u=u))
-    print mkvc(w).dot(Jv)
-    print v.dot(problem.Jt(mSynth, w, u=u))
-
-    # Check Derivative
-    dm = np.random.randn(*m0.shape)
-    for alp in np.logspace(-2,-6, 5):
-        a = problem.dpred(m0)
-        b = problem.dpred(m0 + alp*dm)
-        c = problem.J(m0, alp*dm)
-        print np.linalg.norm(a-b), np.linalg.norm(a-b+c)
-
-
-    # derChk = lambda m: [problem.dpred(m), problem.J(mSynth,m)]
-    # checkDerivative(derChk, mSynth)
-
-
-    opt = inverse.InexactGaussNewton(maxIterLS=20, maxIter=3)
+    opt = inverse.InexactGaussNewton(maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6)
     reg = Regularization(mesh)
-
-    inv = inverse.Inversion(problem, reg, opt)
+    inv = inverse.Inversion(problem, reg, opt, beta0=1e4)
 
     # Check Derivative
     derChk = lambda m: [inv.dataObj(m), inv.dataObjDeriv(m)]
     checkDerivative(derChk, mSynth)
+
 
 
     print inv.dataObj(m0)

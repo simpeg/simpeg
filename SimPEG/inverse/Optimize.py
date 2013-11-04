@@ -39,8 +39,7 @@ class Minimize(object):
         self.setKwargs(**kwargs)
 
     def setKwargs(self, **kwargs):
-        """Sets key word arguments (kwargs) that are present in the object."""
-        # Set the variables, throw an error if they don't exist.
+        """Sets key word arguments (kwargs) that are present in the object, throw an error if they don't exist."""
         for attr in kwargs:
             if hasattr(self, attr):
                 setattr(self, attr, kwargs[attr])
@@ -161,7 +160,7 @@ class Minimize(object):
 
     def printInit(self):
         """
-            printInit is called at the beginning of the optimization routine.
+            **printInit** is called at the beginning of the optimization routine.
 
             If there is a parent object, printInit will check for a
             parent.printInit function and call that.
@@ -177,7 +176,7 @@ class Minimize(object):
 
     def printIter(self):
         """
-            printIter is called directly after function evaluations.
+            **printIter** is called directly after function evaluations.
 
             If there is a parent object, printIter will check for a
             parent.printIter function and call that.
@@ -191,7 +190,7 @@ class Minimize(object):
 
     def printDone(self):
         """
-            printDone is called at the end of the optimization routine.
+            **printDone** is called at the end of the optimization routine.
 
             If there is a parent object, printDone will check for a
             parent.printDone function and call that.
@@ -386,12 +385,3 @@ if __name__ == '__main__':
     print "xOpt=[%f, %f]" % (xOpt[0], xOpt[1])
     xOpt = SteepestDescent(maxIter=30, maxIterLS=15,tolF=1e-10,tolX=1e-10,tolG=1e-10).minimize(Rosenbrock, x0)
     print "xOpt=[%f, %f]" % (xOpt[0], xOpt[1])
-
-    def simplePass(x):
-        return np.sin(x), sdiag(np.cos(x))
-
-    def simpleFail(x):
-        return np.sin(x), -sdiag(np.cos(x))
-
-    checkDerivative(simplePass, np.random.randn(5), plotIt=False)
-    checkDerivative(simpleFail, np.random.randn(5), plotIt=False)
