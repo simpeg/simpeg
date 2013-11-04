@@ -342,22 +342,22 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
         locType can be::
 
-            'ex'    -> x-component of field defined on edges
-            'ey'    -> y-component of field defined on edges
-            'ez'    -> z-component of field defined on edges
-            'fx'    -> x-component of field defined on edges
-            'fy'    -> y-component of field defined on edges
-            'fz'    -> z-component of field defined on edges
-            'n'     -> scalar field defined on nodes
-            'cc'    -> scalar field defined on cell centres
+            'Ex'    -> x-component of field defined on edges
+            'Ey'    -> y-component of field defined on edges
+            'Ez'    -> z-component of field defined on edges
+            'Fx'    -> x-component of field defined on edges
+            'Fy'    -> y-component of field defined on edges
+            'Fz'    -> z-component of field defined on edges
+            'N'     -> scalar field defined on nodes
+            'CC'    -> scalar field defined on cell centers
         """
 
         loc = np.atleast_2d(loc)
         assert np.all(self.isInside(loc)), "Points outside of mesh"
 
         if self.dim == 3:
-            
-            if locType == 'fx':
+
+            if locType == 'Fx':
                 Qx = interpmat(self.vectorNx,
                                self.vectorCCy,
                                self.vectorCCz,
@@ -365,7 +365,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
                 Qy = spzeros(loc.shape[0], self.nF[1])
                 Qz = spzeros(loc.shape[0], self.nF[2])
                 Q = sp.hstack([Qx, Qy, Qz])
-            elif locType == 'fy':
+            elif locType == 'Fy':
                 Qx = spzeros(loc.shape[0], self.nF[0])
                 Qy = interpmat(self.vectorCCx,
                                self.vectorNy,
@@ -373,7 +373,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
                                loc[:,0], loc[:,1], loc[:,2])
                 Qz = spzeros(loc.shape[0], self.nF[2])
                 Q = sp.hstack([Qx, Qy, Qz])
-            elif locType == 'fz':
+            elif locType == 'Fz':
                 Qx = spzeros(loc.shape[0], self.nF[0])
                 Qy = spzeros(loc.shape[0], self.nF[1])
                 Qz = interpmat(self.vectorCCx,
@@ -381,7 +381,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
                                self.vectorNz,
                                loc[:,0], loc[:,1], loc[:,2])
                 Q = sp.hstack([Qx, Qy, Qz])
-            elif locType == 'ex':
+            elif locType == 'Ex':
                 Qx = interpmat(self.vectorCCx,
                                self.vectorNy,
                                self.vectorNz,
@@ -389,15 +389,15 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
                 Qy = spzeros(loc.shape[0], self.nF[1])
                 Qz = spzeros(loc.shape[0], self.nF[2])
                 Q = sp.hstack([Qx, Qy, Qz])
-            elif locType == 'ey':
+            elif locType == 'Ey':
                 Qx = spzeros(loc.shape[0], self.nF[0])
                 Qy = interpmat(self.vectorNx,
                                self.vectorCCy,
                                self.vectorNz,
                                loc[:,0], loc[:,1], loc[:,2])
-                Qz = spzeros(loc.shape[0], self.nF[2])                
+                Qz = spzeros(loc.shape[0], self.nF[2])
                 Q = sp.hstack([Qx, Qy, Qz])
-            elif locType == 'ez':
+            elif locType == 'Ez':
                 Qx = spzeros(loc.shape[0], self.nF[0])
                 Qy = spzeros(loc.shape[0], self.nF[1])
                 Qz = interpmat(self.vectorNx,
@@ -405,12 +405,12 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
                                self.vectorCCz,
                                loc[:,0], loc[:,1], loc[:,2])
                 Q = sp.hstack([Qx, Qy, Qz])
-            elif locType == 'n':
+            elif locType == 'N':
                 Q = interpmat(self.vectorNx,
                               self.vectorNy,
                               self.vectorNz,
                               loc[:,0], loc[:,1], loc[:,2])
-            elif locType == 'cc':
+            elif locType == 'CC':
                 Q = interpmat(self.vectorCCx,
                               self.vectorCCy,
                               self.vectorCCz,
