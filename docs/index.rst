@@ -1,8 +1,3 @@
-.. SimPEG documentation master file, created by
-   sphinx-quickstart on Fri Aug 30 18:42:44 2013.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 SimPEG
 ======
 
@@ -24,10 +19,8 @@ Meshing & Operators
 
    api_BaseMesh
    api_TensorMesh
-   api_TensorView
    api_LogicallyOrthogonalMesh
    api_Cyl1DMesh
-   api_LOMView
    api_DiffOperators
    api_InnerProducts
 
