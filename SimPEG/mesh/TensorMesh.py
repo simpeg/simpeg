@@ -386,20 +386,20 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
                                self.vectorNy,
                                self.vectorNz,
                                loc[:,0], loc[:,1], loc[:,2])
-                Qy = spzeros(loc.shape[0], self.nF[1])
-                Qz = spzeros(loc.shape[0], self.nF[2])
+                Qy = spzeros(loc.shape[0], self.nE[1])
+                Qz = spzeros(loc.shape[0], self.nE[2])
                 Q = sp.hstack([Qx, Qy, Qz])
             elif locType == 'Ey':
-                Qx = spzeros(loc.shape[0], self.nF[0])
+                Qx = spzeros(loc.shape[0], self.nE[0])
                 Qy = interpmat(self.vectorNx,
                                self.vectorCCy,
                                self.vectorNz,
                                loc[:,0], loc[:,1], loc[:,2])
-                Qz = spzeros(loc.shape[0], self.nF[2])
+                Qz = spzeros(loc.shape[0], self.nE[2])
                 Q = sp.hstack([Qx, Qy, Qz])
             elif locType == 'Ez':
-                Qx = spzeros(loc.shape[0], self.nF[0])
-                Qy = spzeros(loc.shape[0], self.nF[1])
+                Qx = spzeros(loc.shape[0], self.nE[0])
+                Qy = spzeros(loc.shape[0], self.nE[1])
                 Qz = interpmat(self.vectorNx,
                                self.vectorNy,
                                self.vectorCCz,
