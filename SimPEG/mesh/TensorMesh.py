@@ -1,9 +1,10 @@
 import numpy as np
+import scipy.sparse as sp
 from BaseMesh import BaseMesh
 from TensorView import TensorView
 from DiffOperators import DiffOperators
 from InnerProducts import InnerProducts
-from SimPEG.utils import ndgrid, mkvc
+from SimPEG.utils import ndgrid, mkvc, spzeros, interpmat
 
 
 class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
@@ -312,6 +313,113 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
     _edge = None
     edge = property(**edge())
 
+    # --------------- Methods ---------------------
+
+    def isInside(self, pts):
+        """
+        Determines if a set of points are inside a mesh.
+
+        :param numpy.ndarray pts: Location of points to test
+        :rtype numpy.ndarray
+        :return inside, numpy array of booleans
+        """
+
+        pts = np.atleast_2d(pts)
+        inside = (pts[:,0] >= self.vectorNx.min()) & (pts[:,0] <= self.vectorNx.max())
+        if self.dim > 1:
+            inside = inside & ((pts[:,1] >= self.vectorNy.min()) & (pts[:,1] <= self.vectorNy.max()))
+        if self.dim > 2:
+            inside = inside & ((pts[:,2] >= self.vectorNz.min()) & (pts[:,2] <= self.vectorNz.max()))
+        return inside
+
+    def getInterpolationMat(self, loc, locType):
+        """ Produces interpolation matrix
+
+        :param numpy.ndarray loc: Location of points to interpolate to
+        :param str locType: What to interpolate (see below)
+        :rtype: scipy.sparse.csr.csr_matrix
+        :return: M, the interpolation matrix
+
+        locType can be::
+
+            'ex'    -> x-component of field defined on edges
+            'ey'    -> y-component of field defined on edges
+            'ez'    -> z-component of field defined on edges
+            'fx'    -> x-component of field defined on edges
+            'fy'    -> y-component of field defined on edges
+            'fz'    -> z-component of field defined on edges
+            'n'     -> scalar field defined on nodes
+            'cc'    -> scalar field defined on cell centres
+        """
+
+        loc = np.atleast_2d(loc)
+        assert np.all(self.isInside(loc)), "Points outside of mesh"
+
+        if self.dim == 3:
+            
+            if locType == 'fx':
+                Qx = interpmat(self.vectorNx,
+                               self.vectorCCy,
+                               self.vectorCCz,
+                               loc[:,0], loc[:,1], loc[:,2])
+                Qy = spzeros(loc.shape[0], self.nF[1])
+                Qz = spzeros(loc.shape[0], self.nF[2])
+                Q = sp.hstack([Qx, Qy, Qz])
+            elif locType == 'fy':
+                Qx = spzeros(loc.shape[0], self.nF[0])
+                Qy = interpmat(self.vectorCCx,
+                               self.vectorNy,
+                               self.vectorCCz,
+                               loc[:,0], loc[:,1], loc[:,2])
+                Qz = spzeros(loc.shape[0], self.nF[2])
+                Q = sp.hstack([Qx, Qy, Qz])
+            elif locType == 'fz':
+                Qx = spzeros(loc.shape[0], self.nF[0])
+                Qy = spzeros(loc.shape[0], self.nF[1])
+                Qz = interpmat(self.vectorCCx,
+                               self.vectorCCy,
+                               self.vectorNz,
+                               loc[:,0], loc[:,1], loc[:,2])
+                Q = sp.hstack([Qx, Qy, Qz])
+            elif locType == 'ex':
+                Qx = interpmat(self.vectorCCx,
+                               self.vectorNy,
+                               self.vectorNz,
+                               loc[:,0], loc[:,1], loc[:,2])
+                Qy = spzeros(loc.shape[0], self.nF[1])
+                Qz = spzeros(loc.shape[0], self.nF[2])
+                Q = sp.hstack([Qx, Qy, Qz])
+            elif locType == 'ey':
+                Qx = spzeros(loc.shape[0], self.nF[0])
+                Qy = interpmat(self.vectorNx,
+                               self.vectorCCy,
+                               self.vectorNz,
+                               loc[:,0], loc[:,1], loc[:,2])
+                Qz = spzeros(loc.shape[0], self.nF[2])                
+                Q = sp.hstack([Qx, Qy, Qz])
+            elif locType == 'ez':
+                Qx = spzeros(loc.shape[0], self.nF[0])
+                Qy = spzeros(loc.shape[0], self.nF[1])
+                Qz = interpmat(self.vectorNx,
+                               self.vectorNy,
+                               self.vectorCCz,
+                               loc[:,0], loc[:,1], loc[:,2])
+                Q = sp.hstack([Qx, Qy, Qz])
+            elif locType == 'n':
+                Q = interpmat(self.vectorNx,
+                              self.vectorNy,
+                              self.vectorNz,
+                              loc[:,0], loc[:,1], loc[:,2])
+            elif locType == 'cc':
+                Q = interpmat(self.vectorCCx,
+                              self.vectorCCy,
+                              self.vectorCCz,
+                              loc[:,0], loc[:,1], loc[:,2])
+            else:
+                raise NotImplementedError('getInterpolationMat: locType=='+locType)
+        else:
+            raise NotImplementedError('getInterpolationMat: dim=='+str(m.dim))
+        return Q
 
 if __name__ == '__main__':
     print('Welcome to tensor mesh!')
