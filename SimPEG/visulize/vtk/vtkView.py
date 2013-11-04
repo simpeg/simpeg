@@ -58,7 +58,11 @@ class vtkView(object):
 
 	def Show(self,imageType='cell'):
 		"""
-		Open the VTK figure window
+		Open the VTK figure window and show the mesh.
+
+		Inputs:
+		param: str imageType: type of image {'cell','face','edge'}
+		
 		"""
 		#vtkSP = simpeg.visulize.vtk.vtkTools
 		import SimPEG.visulize.vtk.vtkTools as vtkSP
