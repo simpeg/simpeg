@@ -3,7 +3,14 @@ import matplotlib.pyplot as plt
 from SimPEG.utils import mkvc, sdiag
 norm = np.linalg.norm
 import scipy.sparse as sp
-from pubsub import pub
+
+try:
+    from pubsub import pub
+    doPub = True
+except Exception, e:
+    print 'Warning: you may not have the required pubsub installed, use pypubsub. You will not be able to listen to events.'
+    doPub = False
+
 
 
 class Minimize(object):
@@ -52,20 +59,20 @@ class Minimize(object):
 
         while True:
             self.f, self.g, self.H = evalFunction(self.xc, return_g=True, return_H=True)
-            pub.sendMessage('Minimize.evalFunction', minimize=self, f=self.f, g=self.g, H=self.H)
+            if doPub: pub.sendMessage('Minimize.evalFunction', minimize=self, f=self.f, g=self.g, H=self.H)
             self.printIter()
             if self.stoppingCriteria(): break
             p = self.findSearchDirection()
-            pub.sendMessage('Minimize.searchDirection', minimize=self, p=p)
+            if doPub: pub.sendMessage('Minimize.searchDirection', minimize=self, p=p)
             p = self.scaleSearchDirection(p)
-            pub.sendMessage('Minimize.scaleSearchDirection', minimize=self, p=p)
+            if doPub: pub.sendMessage('Minimize.scaleSearchDirection', minimize=self, p=p)
             xt, passLS = self.modifySearchDirection(p)
-            pub.sendMessage('Minimize.modifySearchDirection', minimize=self, xt=xt)
+            if doPub: pub.sendMessage('Minimize.modifySearchDirection', minimize=self, xt=xt)
             if not passLS:
                 xt, caught = self.modifySearchDirectionBreak(p)
                 if not caught: return self.xc
             self.doEndIteration(xt)
-            pub.sendMessage('Minimize.endIteration', minimize=self, xt=xt)
+            if doPub: pub.sendMessage('Minimize.endIteration', minimize=self, xt=xt)
 
         self.printDone()
 
@@ -95,7 +102,7 @@ class Minimize(object):
             printIter is called at the beginning of the optimization routine.
 
         """
-        pub.sendMessage('Minimize.printInit', minimize=self)
+        if doPub: pub.sendMessage('Minimize.printInit', minimize=self)
         if self.parent is not None and hasattr(self.parent, 'printInit'):
             self.parent.printInit()
             return
@@ -108,14 +115,14 @@ class Minimize(object):
             printIter is called directly after function evaluations.
 
         """
-        pub.sendMessage('Minimize.printIter', minimize=self)
+        if doPub: pub.sendMessage('Minimize.printIter', minimize=self)
         if self.parent is not None and hasattr(self.parent, 'printIter'):
             self.parent.printIter()
             return
         print "%3d\t%1.2e\t%1.2e\t%d" % (self._iter, self.f, norm(self.g), self._iterLS)
 
     def printDone(self):
-        pub.sendMessage('Minimize.printDone', minimize=self)
+        if doPub: pub.sendMessage('Minimize.printDone', minimize=self)
         if self.parent is not None and hasattr(self.parent, 'printDone'):
             self.parent.printDone()
             return
@@ -221,7 +228,7 @@ if __name__ == '__main__':
 
     def listener1(minimize,p):
         print 'hi:  ', p
-    pub.subscribe(listener1, 'Minimize.searchDirection')
+    if doPub: pub.subscribe(listener1, 'Minimize.searchDirection')
 
     xOpt = GaussNewton(maxIter=20,tolF=1e-10,tolX=1e-10,tolG=1e-10).minimize(Rosenbrock,x0)
     print "xOpt=[%f, %f]" % (xOpt[0], xOpt[1])
