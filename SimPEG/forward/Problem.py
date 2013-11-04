@@ -150,9 +150,37 @@ class Problem(object):
             :rtype: numpy.array
             :return: JTv
 
-            Transpose of J
+            Effect of transpose of J on a vector v.
         """
         pass
+
+
+    def J_approx(self, m, v, u=None):
+        """
+
+            :param numpy.array m: model
+            :param numpy.array v: vector to multiply
+            :param numpy.array u: fields
+            :rtype: numpy.array
+            :return: Jv
+
+            Approximate effect of J on a vector v
+
+        """
+        return self.J(m, v, u)
+
+    def Jt_approx(self, m, v, u=None):
+        """
+            :param numpy.array m: model
+            :param numpy.array v: vector to multiply
+            :param numpy.array u: fields
+            :rtype: numpy.array
+            :return: JTv
+
+            Approximate transpose of J*v
+
+        """
+        return self.Jt(m, v, u)
 
     def field(self, m):
         """

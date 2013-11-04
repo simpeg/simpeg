@@ -215,7 +215,7 @@ class Inversion(object):
 
         # TODO: abstract to different norms a little cleaner.
         #                                 \/ it goes here. in l2 it is the identity.
-        dmisfit = self.prob.Jt(m, self.Wd * self.Wd * self.prob.J(m, v, u=u), u=u)
+        dmisfit = self.prob.Jt_approx(m, self.Wd * self.Wd * self.prob.J_approx(m, v, u=u), u=u)
 
         return dmisfit
 
