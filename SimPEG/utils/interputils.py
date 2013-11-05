@@ -14,37 +14,25 @@ def interpmat(x,y,z,xr,yr,zr):
 
     Q = sp.lil_matrix((npts, nx*ny*nz))
 
-    for i in range(npts):
-        # in x-direction
-        im = np.argmin(abs(x-xr[i]))
-        if  xr[i] - x[im] >= 0:  # Point on the left
+
+    def inter1D(x, xr_i):
+        im = np.argmin(abs(x-xr_i))
+        if  xr_i - x[im] >= 0:  # Point on the left
             ind_x1 = im
             ind_x2 = im+1
-        elif  xr[i] - x[im] < 0:  # Point on the right
+        elif  xr_i - x[im] < 0:  # Point on the right
             ind_x1 = im-1
             ind_x2 = im
-        dx1 = xr[i] - x[ind_x1]
-        dx2 = x[ind_x2] - xr[i]
-        # in y-direction
-        im = np.argmin(abs(y-yr[i]))
-        if  yr[i] - y[im] >= 0:  # Point on the left
-            ind_y1 = im
-            ind_y2 = im+1
-        elif  yr[i] - y[im] < 0:  # Point on the right
-            ind_y1 = im-1
-            ind_y2 = im
-        dy1 = yr[i] - y[ind_y1]
-        dy2 = y[ind_y2] - yr[i]
-        # in z-direction
-        im = np.argmin(abs(z-zr[i]))
-        if  zr[i] - z[im] >= 0:  # Point on the left
-            ind_z1 = im
-            ind_z2 = im+1
-        elif  zr[i] - z[im] < 0:  # Point on the right
-            ind_z1 = im-1
-            ind_z2 = im
-        dz1 = zr[i] - z[ind_z1]
-        dz2 = z[ind_z2] - zr[i]
+        dx1 = xr_i - x[ind_x1]
+        dx2 = x[ind_x2] - xr_i
+        return ind_x1, ind_x2, dx1, dx2
+
+    for i in range(npts):
+        # in x-direction
+        ind_x1, ind_x2, dx1, dx2 = inter1D(x, xr[i])
+        ind_y1, ind_y2, dy1, dy2 = inter1D(y, yr[i])
+        ind_z1, ind_z2, dz1, dz2 = inter1D(z, zr[i])
+
         dv = (x[ind_x2] - x[ind_x1]) * (y[ind_y2] - y[ind_y1]) *(z[ind_z2] - z[ind_z1])
 
         Dx =  x[ind_x2] - x[ind_x1]
