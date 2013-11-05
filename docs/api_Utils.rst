@@ -19,3 +19,7 @@ Utilities
     :members:
     :undoc-members:
 
+.. automodule:: SimPEG.utils.interputils
+    :members:
+    :undoc-members:
+
