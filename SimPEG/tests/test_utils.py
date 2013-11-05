@@ -1,6 +1,28 @@
 import numpy as np
 import unittest
 from SimPEG.utils import mkvc, ndgrid, indexCube, sdiag, inv3X3BlockDiagonal, inv2X2BlockDiagonal
+from SimPEG.tests import checkDerivative
+
+
+class TestCheckDerivative(unittest.TestCase):
+
+    def test_simplePass(self):
+        def simplePass(x):
+            return np.sin(x), sdiag(np.cos(x))
+        passed = checkDerivative(simplePass, np.random.randn(5), plotIt=False)
+        self.assertTrue(passed, True)
+
+    def test_simpleFunction(self):
+        def simpleFunction(x):
+            return np.sin(x), lambda xi: sdiag(np.cos(x))*xi
+        passed = checkDerivative(simpleFunction, np.random.randn(5), plotIt=False)
+        self.assertTrue(passed, True)
+
+    def test_simpleFail(self):
+        def simpleFail(x):
+            return np.sin(x), -sdiag(np.cos(x))
+        passed = checkDerivative(simpleFail, np.random.randn(5), plotIt=False)
+        self.assertTrue(not passed, True)
 
 
 class TestSequenceFunctions(unittest.TestCase):
@@ -83,6 +105,7 @@ class TestSequenceFunctions(unittest.TestCase):
         Z3 = B*A - sp.eye(15, 15)
 
         self.assertTrue(np.linalg.norm(Z3.todense().ravel(), 2) < 1e-12)
+
 
 
 if __name__ == '__main__':
