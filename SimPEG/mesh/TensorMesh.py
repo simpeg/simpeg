@@ -157,7 +157,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
         def fget(self):
             if self._gridCC is None:
-                self._gridCC = ndgrid([x for x in [self.vectorCCx, self.vectorCCy, self.vectorCCz] if not x is None])
+                self._gridCC = ndgrid(self.getTensor('CC'))
             return self._gridCC
         return locals()
     _gridCC = None  # Store grid by default
@@ -168,7 +168,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
         def fget(self):
             if self._gridN is None:
-                self._gridN = ndgrid([x for x in [self.vectorNx, self.vectorNy, self.vectorNz] if not x is None])
+                self._gridN = ndgrid(self.getTensor('N'))
             return self._gridN
         return locals()
     _gridN = None  # Store grid by default
@@ -179,7 +179,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
         def fget(self):
             if self._gridFx is None:
-                self._gridFx = ndgrid([x for x in [self.vectorNx, self.vectorCCy, self.vectorCCz] if not x is None])
+                self._gridFx = ndgrid(self.getTensor('Fx'))
             return self._gridFx
         return locals()
     _gridFx = None  # Store grid by default
@@ -190,7 +190,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
         def fget(self):
             if self._gridFy is None and self.dim > 1:
-                self._gridFy = ndgrid([x for x in [self.vectorCCx, self.vectorNy, self.vectorCCz] if not x is None])
+                self._gridFy = ndgrid(self.getTensor('Fy'))
             return self._gridFy
         return locals()
     _gridFy = None  # Store grid by default
@@ -201,7 +201,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
         def fget(self):
             if self._gridFz is None and self.dim > 2:
-                self._gridFz = ndgrid([x for x in [self.vectorCCx, self.vectorCCy, self.vectorNz] if not x is None])
+                self._gridFz = ndgrid(self.getTensor('Fz'))
             return self._gridFz
         return locals()
     _gridFz = None  # Store grid by default
@@ -212,7 +212,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
         def fget(self):
             if self._gridEx is None:
-                self._gridEx = ndgrid([x for x in [self.vectorCCx, self.vectorNy, self.vectorNz] if not x is None])
+                self._gridEx = ndgrid(self.getTensor('Ex'))
             return self._gridEx
         return locals()
     _gridEx = None  # Store grid by default
@@ -223,7 +223,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
         def fget(self):
             if self._gridEy is None and self.dim > 1:
-                self._gridEy = ndgrid([x for x in [self.vectorNx, self.vectorCCy, self.vectorNz] if not x is None])
+                self._gridEy = ndgrid(self.getTensor('Ey'))
             return self._gridEy
         return locals()
     _gridEy = None  # Store grid by default
@@ -234,7 +234,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
         def fget(self):
             if self._gridEz is None and self.dim > 2:
-                self._gridEz = ndgrid([x for x in [self.vectorNx, self.vectorNy, self.vectorCCz] if not x is None])
+                self._gridEz = ndgrid(self.getTensor('Ez'))
             return self._gridEz
         return locals()
     _gridEz = None  # Store grid by default
@@ -420,5 +420,6 @@ if __name__ == '__main__':
     h = h[:testDim]
 
     M = TensorMesh(h)
+    print M
 
     xn = M.plotGrid()
