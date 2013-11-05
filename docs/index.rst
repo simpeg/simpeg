@@ -47,6 +47,7 @@ Testing SimPEG
    :maxdepth: 2
 
    api_Tests
+   api_TestResults
 
 
 Utility Codes
