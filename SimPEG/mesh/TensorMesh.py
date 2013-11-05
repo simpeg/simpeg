@@ -315,6 +315,45 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
     # --------------- Methods ---------------------
 
+    def getTensor(self, locType):
+        """ Returns a tensor list.
+
+        :param str locType: What tensor (see below)
+        :rtype: list
+        :return: list of the tensors that make up the mesh.
+
+        locType can be::
+
+            'Ex'    -> x-component of field defined on edges
+            'Ey'    -> y-component of field defined on edges
+            'Ez'    -> z-component of field defined on edges
+            'Fx'    -> x-component of field defined on faces
+            'Fy'    -> y-component of field defined on faces
+            'Fz'    -> z-component of field defined on faces
+            'N'     -> scalar field defined on nodes
+            'CC'    -> scalar field defined on cell centers
+        """
+
+        if   locType is 'Fx':
+            ten = [self.vectorNx , self.vectorCCy, self.vectorCCz]
+        elif locType is 'Fy':
+            ten = [self.vectorCCx, self.vectorNy , self.vectorCCz]
+        elif locType is 'Fz':
+            ten = [self.vectorCCx, self.vectorCCy, self.vectorNz ]
+        elif locType is 'Ex':
+            ten = [self.vectorCCx, self.vectorNy , self.vectorNz ]
+        elif locType is 'Ey':
+            ten = [self.vectorNx , self.vectorCCy, self.vectorNz ]
+        elif locType is 'Ez':
+            ten = [self.vectorNx , self.vectorNy , self.vectorCCz]
+        elif locType is 'CC':
+            ten = [self.vectorCCx, self.vectorCCy, self.vectorCCz]
+        elif locType is 'N':
+            ten = [self.vectorNx , self.vectorNy , self.vectorNz ]
+
+        return [t for t in ten if t is not None]
+
+
     def isInside(self, pts):
         """
         Determines if a set of points are inside a mesh.
@@ -345,9 +384,9 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
             'Ex'    -> x-component of field defined on edges
             'Ey'    -> y-component of field defined on edges
             'Ez'    -> z-component of field defined on edges
-            'Fx'    -> x-component of field defined on edges
-            'Fy'    -> y-component of field defined on edges
-            'Fz'    -> z-component of field defined on edges
+            'Fx'    -> x-component of field defined on faces
+            'Fy'    -> y-component of field defined on faces
+            'Fz'    -> z-component of field defined on faces
             'N'     -> scalar field defined on nodes
             'CC'    -> scalar field defined on cell centers
         """
@@ -355,70 +394,16 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
         loc = np.atleast_2d(loc)
         assert np.all(self.isInside(loc)), "Points outside of mesh"
 
-        if self.dim == 3:
-
-            if locType == 'Fx':
-                Qx = interpmat(self.vectorNx,
-                               self.vectorCCy,
-                               self.vectorCCz,
-                               loc[:,0], loc[:,1], loc[:,2])
-                Qy = spzeros(loc.shape[0], self.nF[1])
-                Qz = spzeros(loc.shape[0], self.nF[2])
-                Q = sp.hstack([Qx, Qy, Qz])
-            elif locType == 'Fy':
-                Qx = spzeros(loc.shape[0], self.nF[0])
-                Qy = interpmat(self.vectorCCx,
-                               self.vectorNy,
-                               self.vectorCCz,
-                               loc[:,0], loc[:,1], loc[:,2])
-                Qz = spzeros(loc.shape[0], self.nF[2])
-                Q = sp.hstack([Qx, Qy, Qz])
-            elif locType == 'Fz':
-                Qx = spzeros(loc.shape[0], self.nF[0])
-                Qy = spzeros(loc.shape[0], self.nF[1])
-                Qz = interpmat(self.vectorCCx,
-                               self.vectorCCy,
-                               self.vectorNz,
-                               loc[:,0], loc[:,1], loc[:,2])
-                Q = sp.hstack([Qx, Qy, Qz])
-            elif locType == 'Ex':
-                Qx = interpmat(self.vectorCCx,
-                               self.vectorNy,
-                               self.vectorNz,
-                               loc[:,0], loc[:,1], loc[:,2])
-                Qy = spzeros(loc.shape[0], self.nE[1])
-                Qz = spzeros(loc.shape[0], self.nE[2])
-                Q = sp.hstack([Qx, Qy, Qz])
-            elif locType == 'Ey':
-                Qx = spzeros(loc.shape[0], self.nE[0])
-                Qy = interpmat(self.vectorNx,
-                               self.vectorCCy,
-                               self.vectorNz,
-                               loc[:,0], loc[:,1], loc[:,2])
-                Qz = spzeros(loc.shape[0], self.nE[2])
-                Q = sp.hstack([Qx, Qy, Qz])
-            elif locType == 'Ez':
-                Qx = spzeros(loc.shape[0], self.nE[0])
-                Qy = spzeros(loc.shape[0], self.nE[1])
-                Qz = interpmat(self.vectorNx,
-                               self.vectorNy,
-                               self.vectorCCz,
-                               loc[:,0], loc[:,1], loc[:,2])
-                Q = sp.hstack([Qx, Qy, Qz])
-            elif locType == 'N':
-                Q = interpmat(self.vectorNx,
-                              self.vectorNy,
-                              self.vectorNz,
-                              loc[:,0], loc[:,1], loc[:,2])
-            elif locType == 'CC':
-                Q = interpmat(self.vectorCCx,
-                              self.vectorCCy,
-                              self.vectorCCz,
-                              loc[:,0], loc[:,1], loc[:,2])
-            else:
-                raise NotImplementedError('getInterpolationMat: locType=='+locType)
+        ind = 0 if 'x' in locType else 1 if 'y' in locType else 2 if 'z' in locType else -1
+        if locType in ['Fx','Fy','Fz','Ex','Ey','Ez'] and self.dim >= ind:
+            nF_nE = self.nF if 'F' in locType else self.nE
+            components = [spzeros(loc.shape[0], n) for n in nF_nE]
+            components[ind] = interpmat(loc, *self.getTensor(locType))
+            Q = sp.hstack(components)
+        elif locType in ['CC', 'N']:
+            Q = interpmat(loc, *self.getTensor(locType))
         else:
-            raise NotImplementedError('getInterpolationMat: dim=='+str(m.dim))
+            raise NotImplementedError('getInterpolationMat: locType=='+locType+' and mesh.dim=='+str(self.dim))
         return Q
 
 if __name__ == '__main__':
