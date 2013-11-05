@@ -4,6 +4,15 @@ from sputils import spzeros
 from matutils import mkvc, sub2ind
 
 def _interp_point_1D(x, xr_i):
+    """
+        given a point, xr_i, this will find which two integers it lies between.
+
+        :param numpy.ndarray x: Tensor vector of 1st dimension of grid.
+        :param float xr_i: Location of a point
+        :rtype: int,int,float,float
+        :return: index1, index2, portion1, portion2
+    """
+    # TODO: This fails if the point is on the outside of the mesh. We may want to replace this by extrapolation?
     im = np.argmin(abs(x-xr_i))
     if  xr_i - x[im] >= 0:  # Point on the left
         ind_x1 = im
@@ -17,16 +26,43 @@ def _interp_point_1D(x, xr_i):
 
 
 def interpmat(locs, x, y=None, z=None):
-    """ Local interpolation computed for each receiver point in turn """
+    """
+        Local interpolation computed for each receiver point in turn
+
+        :param numpy.ndarray loc: Location of points to interpolate to
+        :param numpy.ndarray x: Tensor vector of 1st dimension of grid.
+        :param numpy.ndarray y: Tensor vector of 2nd dimension of grid. None by default.
+        :param numpy.ndarray z: Tensor vector of 3rd dimension of grid. None by default.
+        :rtype: scipy.sparse.csr.csr_matrix
+        :return: Interpolation matrix
+
+        .. plot::
+
+            import SimPEG
+            import numpy as np
+            import matplotlib.pyplot as plt
+            locs = np.random.rand(50)*0.8+0.1
+            x = np.linspace(0,1,7)
+            dense = np.linspace(0,1,200)
+            fun = lambda x: np.cos(2*np.pi*x)
+            Q = SimPEG.utils.interpmat(locs, x)
+            plt.plot(x, fun(x), 'bs-')
+            plt.plot(dense, fun(dense), 'y:')
+            plt.plot(locs, Q*fun(x), 'mo')
+            plt.plot(locs, fun(locs), 'rx')
+            plt.show()
+
+    """
     if y is None and z is None:
-        return interpmat1D(locs, x)
+        return _interpmat1D(locs, x)
     elif z is None:
-        return interpmat2D(locs, x, y)
+        return _interpmat2D(locs, x, y)
     else:
-        return interpmat3D(locs, x, y, z)
+        return _interpmat3D(locs, x, y, z)
 
 
-def interpmat1D(locs, x):
+def _interpmat1D(locs, x):
+    """Use interpmat with only x component provided."""
     nx = x.size
     locs = mkvc(locs)
     npts = locs.shape[0]
@@ -45,7 +81,8 @@ def interpmat1D(locs, x):
 
 
 
-def interpmat2D(locs, x, y):
+def _interpmat2D(locs, x, y):
+    """Use interpmat with only x and y components provided."""
     nx = x.size
     ny = y.size
     npts = locs.shape[0]
@@ -81,7 +118,8 @@ def interpmat2D(locs, x, y):
 
 
 
-def interpmat3D(locs, x, y, z):
+def _interpmat3D(locs, x, y, z):
+    """Use interpmat."""
     nx = x.size
     ny = y.size
     nz = z.size
@@ -125,3 +163,19 @@ def interpmat3D(locs, x, y, z):
         Q[i, mkvc(inds)] = vals
 
     return Q.tocsr()
+
+
+if __name__ == '__main__':
+    import SimPEG
+    import numpy as np
+    import matplotlib.pyplot as plt
+    locs = np.random.rand(50)*0.8+0.1
+    x = np.linspace(0,1,7)
+    dense = np.linspace(0,1,200)
+    fun = lambda x: np.cos(2*np.pi*x)
+    Q = SimPEG.utils.interpmat(locs, x)
+    plt.plot(x, fun(x), 'bs-')
+    plt.plot(dense, fun(dense), 'y:')
+    plt.plot(locs, Q*fun(x), 'mo')
+    plt.plot(locs, fun(locs), 'rx')
+    plt.show()

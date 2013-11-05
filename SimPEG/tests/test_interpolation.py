@@ -18,7 +18,7 @@ cartE3 = lambda M, ex, ey, ez: np.vstack((cart_row3(M.gridEx, ex, ey, ez), cart_
 
 
 class TestInterpolation1D(OrderTest):
-    LOCS = np.random.rand(50,1)*0.6+0.2
+    LOCS = np.random.rand(50)*0.6+0.2
     name = "Interpolation 1D"
     meshTypes = MESHTYPES
     tolerance = TOLERANCES
@@ -28,7 +28,7 @@ class TestInterpolation1D(OrderTest):
     def getError(self):
         funX = lambda x: np.cos(2*np.pi*x)
 
-        anal = mkvc(call1(funX, self.LOCS))
+        anal = call1(funX, self.LOCS)
 
         if 'CC' == self.type:
             grid = call1(funX, self.M.gridCC)
