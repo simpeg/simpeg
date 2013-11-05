@@ -67,8 +67,7 @@ class OrderTest(unittest.TestCase):
 
     name = "Order Test"
     expectedOrders = 2.  # This can be a list of orders, must be the same length as meshTypes
-    _expectedOrder = 2.
-    tolerance = 0.85
+    tolerance = 0.85     # This can also be a list, must be the same length as meshTypes
     meshSizes = [4, 8, 16, 32]
     meshTypes = ['uniformTensorMesh']
     _meshType = meshTypes[0]
@@ -124,6 +123,8 @@ class OrderTest(unittest.TestCase):
 
         """
         assert type(self.meshTypes) == list, 'meshTypes must be a list'
+        if type(self.tolerance) is not list:
+            self.tolerance = np.ones(len(self.meshTypes))*self.tolerance
 
         # if we just provide one expected order, repeat it for each mesh type
         if type(self.expectedOrders) == float or type(self.expectedOrders) == int:
@@ -134,6 +135,7 @@ class OrderTest(unittest.TestCase):
 
         for ii_meshType, meshType in enumerate(self.meshTypes):
             self._meshType = meshType
+            self._tolerance = self.tolerance[ii_meshType]
             self._expectedOrder = self.expectedOrders[ii_meshType]
 
             order = []
@@ -144,7 +146,7 @@ class OrderTest(unittest.TestCase):
                 err = self.getError()
                 if ii == 0:
                     print ''
-                    print 'Testing convergence on ' + self.M._meshType + ' of:  ' + self.name
+                    print self._meshType + ':  ' + self.name
                     print '_____________________________________________'
                     print '   h  |    error    | e(i-1)/e(i) |  order'
                     print '~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~'
@@ -155,7 +157,7 @@ class OrderTest(unittest.TestCase):
                 err_old = err
                 max_h_old = max_h
             print '---------------------------------------------'
-            passTest = np.mean(np.array(order)) > self.tolerance*self._expectedOrder
+            passTest = np.mean(np.array(order)) > self._tolerance*self._expectedOrder
             if passTest:
                 print ['The test be workin!', 'You get a gold star!', 'Yay passed!', 'Happy little convergence test!', 'That was easy!'][np.random.randint(5)]
             else:

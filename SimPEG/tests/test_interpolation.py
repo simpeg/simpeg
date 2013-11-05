@@ -2,7 +2,8 @@ import numpy as np
 import unittest
 from TestUtils import OrderTest
 
-MESHTYPES = ['uniformTensorMesh']
+MESHTYPES = ['uniformTensorMesh', 'randomTensorMesh']
+TOLERANCES = [0.9, 0.6]
 call2 = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1])
 call3 = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1], xyz[:, 2])
 cart_row2 = lambda g, xfun, yfun: np.c_[call2(xfun, g), call2(yfun, g)]
@@ -18,7 +19,9 @@ LOCS = np.random.rand(50,3)*0.6+0.2
 class TestInterpolation(OrderTest):
     name = "Interpolation"
     meshTypes = MESHTYPES
+    tolerance = TOLERANCES
     meshDimension = 3
+    meshSizes = [8, 16, 32]
 
     def getError(self):
         funX = lambda x, y, z: np.cos(2*np.pi*y)
@@ -31,6 +34,8 @@ class TestInterpolation(OrderTest):
             anal = call3(funY, LOCS)
         elif 'z' in self.type:
             anal = call3(funZ, LOCS)
+        else:
+            anal = call3(funX, LOCS)
 
         if 'F' in self.type:
             Fc = cartF3(self.M, funX, funY, funZ)
@@ -38,11 +43,25 @@ class TestInterpolation(OrderTest):
         elif 'E' in self.type:
             Ec = cartE3(self.M, funX, funY, funZ)
             grid = self.M.projectEdgeVector(Ec)
+        elif 'CC' == self.type:
+            grid = call3(funX, self.M.gridCC)
+        elif 'N' == self.type:
+            grid = call3(funX, self.M.gridN)
 
         comp = self.M.getInterpolationMat(LOCS, self.type)*grid
 
         err = np.linalg.norm((comp - anal), np.inf)
         return err
+
+    def test_orderCC(self):
+        self.type = 'CC'
+        self.name = 'Interpolation CC'
+        self.orderTest()
+
+    def test_orderN(self):
+        self.type = 'N'
+        self.name = 'Interpolation N'
+        self.orderTest()
 
     def test_orderFx(self):
         self.type = 'Fx'
