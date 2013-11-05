@@ -38,7 +38,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
             assert len(h_i.shape) == 1, ("h[%i] must be a 1D numpy array." % i)
 
         # Ensure h contains 1D vectors
-        self._h = [mkvc(x) for x in h]
+        self._h = [mkvc(x.astype(float)) for x in h]
 
     def __str__(self):
         outStr = '  ---- {0:d}-D TensorMesh ----  '.format(self.dim)

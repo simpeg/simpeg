@@ -81,9 +81,9 @@ class InnerProducts(object):
     def getFaceInnerProduct(self, mu=None, returnP=False):
         """Wrapper function,
 
-        :py:func:`SimPEG.InnerProducts.getEdgeInnerProduct`
+        :py:func:`SimPEG.mesh.InnerProducts.InnerProducts.getEdgeInnerProduct`
 
-        :py:func:`SimPEG.InnerProducts.getEdgeInnerProduct2D`
+        :py:func:`SimPEG.mesh.InnerProducts.InnerProducts.getEdgeInnerProduct2D`
         """
         if self.dim == 2:
             return getFaceInnerProduct2D(self, mu, returnP)
@@ -93,9 +93,9 @@ class InnerProducts(object):
     def getEdgeInnerProduct(self, sigma=None, returnP=False):
         """Wrapper function,
 
-        :py:func:`SimPEG.InnerProducts.getFaceInnerProduct`
+        :py:func:`SimPEG.mesh.InnerProducts.InnerProducts.getFaceInnerProduct`
 
-        :py:func:`SimPEG.InnerProducts.getFaceInnerProduct2D`
+        :py:func:`SimPEG.mesh.InnerProducts.InnerProducts.getFaceInnerProduct2D`
         """
         if self.dim == 2:
             return getEdgeInnerProduct2D(self, sigma, returnP)

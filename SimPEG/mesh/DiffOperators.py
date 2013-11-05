@@ -161,6 +161,68 @@ class DiffOperators(object):
     _cellGrad = None
     cellGrad = property(**cellGrad())
 
+    def cellGradx():
+        doc = "Cell centered Gradient in the x dimension. Has neumann boundary conditions."
+
+        def fget(self):
+            if getattr(self, '_cellGradx', None) is None:
+                BC = ['neumann', 'neumann']
+                n = self.n
+                if(self.dim == 1):
+                    G1 = ddxCellGrad(n[0], BC)
+                elif(self.dim == 2):
+                    G1 = sp.kron(speye(n[1]), ddxCellGrad(n[0], BC))
+                elif(self.dim == 3):
+                    G1 = kron3(speye(n[2]), speye(n[1]), ddxCellGrad(n[0], BC))
+                # Compute areas of cell faces & volumes
+                S = self.r(self.area, 'F','Fx', 'V')
+                V = self.vol
+                self._cellGradx = sdiag(S)*G1*sdiag(1/V)
+            return self._cellGradx
+        return locals()
+    cellGradx = property(**cellGradx())
+
+
+    def cellGrady():
+        doc = "Cell centered Gradient in the x dimension. Has neumann boundary conditions."
+        def fget(self):
+            if self.dim < 2:
+                return None
+            if getattr(self, '_cellGrady', None) is None:
+                BC = ['neumann', 'neumann']
+                n = self.n
+                if(self.dim == 2):
+                    G2 = sp.kron(ddxCellGrad(n[1], BC), speye(n[0]))
+                elif(self.dim == 3):
+                    G2 = kron3(speye(n[2]), ddxCellGrad(n[1], BC), speye(n[0]))
+                # Compute areas of cell faces & volumes
+                S = self.r(self.area, 'F','Fy', 'V')
+                V = self.vol
+                self._cellGrady = sdiag(S)*G2*sdiag(1/V)
+            return self._cellGrady
+        return locals()
+    cellGrady = property(**cellGrady())
+
+
+
+    def cellGradz():
+        doc = "Cell centered Gradient in the x dimension. Has neumann boundary conditions."
+        def fget(self):
+            if self.dim < 3:
+                return None
+            if getattr(self, '_cellGradz', None) is None:
+                BC = ['neumann', 'neumann']
+                n = self.n
+                G3 = kron3(ddxCellGrad(n[2], BC), speye(n[1]), speye(n[0]))
+                # Compute areas of cell faces & volumes
+                S = self.r(self.area, 'F','Fz', 'V')
+                V = self.vol
+                self._cellGradz = sdiag(S)*G3*sdiag(1/V)
+            return self._cellGradz
+        return locals()
+    cellGradz = property(**cellGradz())
+
+
     def edgeCurl():
         doc = "Construct the 3D curl operator."
 

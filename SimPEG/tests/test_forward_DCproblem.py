@@ -3,9 +3,11 @@ import unittest
 from SimPEG.mesh import TensorMesh
 from SimPEG.utils import ModelBuilder, sdiag
 from SimPEG.forward import Problem, SyntheticProblem
-from SimPEG.forward.DCProblem import DCProblem, DCutils
+from SimPEG.forward.DCProblem import *
 from TestUtils import checkDerivative
 from scipy.sparse.linalg import dsolve
+from SimPEG.regularization import Regularization
+from SimPEG import inverse
 
 
 class DCProblemTests(unittest.TestCase):
@@ -34,7 +36,7 @@ class DCProblemTests(unittest.TestCase):
         elecend = 0.5+spacelec*(nelec-1)
         elecLocR = np.linspace(elecini, elecend, nelec)
         rxmidLoc = (elecLocR[0:nelec-1]+elecLocR[1:nelec])*0.5
-        q, Q, rxmidloc = DCutils.genTxRxmat(nelec, spacelec, surfloc, elecini, mesh)
+        q, Q, rxmidloc = genTxRxmat(nelec, spacelec, surfloc, elecini, mesh)
         P = Q.T
 
         # Create some data
@@ -52,22 +54,27 @@ class DCProblemTests(unittest.TestCase):
         problem.RHS = q
         problem.W = Wd
         problem.dobs = dobs
+        problem.std = dobs*0 + 0.05
 
+        opt = inverse.InexactGaussNewton(maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6)
+        reg = Regularization(mesh)
+        inv = inverse.Inversion(problem, reg, opt, beta0=1e4)
+
+        self.inv = inv
+        self.reg = reg
         self.p = problem
         self.mesh = mesh
         self.m0 = mSynth
         self.dobs = dobs
 
-
     def test_misfit(self):
-        print 'SimPEG.forward.DCProblem: Testing Misfit'
-        derChk = lambda m: [self.p.misfit(m), self.p.misfitDeriv(m)]
+        derChk = lambda m: [self.p.dpred(m), lambda mx: self.p.J(self.m0, mx)]
         passed = checkDerivative(derChk, self.m0, plotIt=False)
         self.assertTrue(passed)
 
     def test_adjoint(self):
         # Adjoint Test
-        u = np.random.rand(self.mesh.nC)
+        u = np.random.rand(self.mesh.nC*self.p.RHS.shape[1])
         v = np.random.rand(self.mesh.nC)
         w = np.random.rand(self.dobs.shape[0])
         wtJv = w.dot(self.p.J(self.m0, v, u=u))
@@ -75,6 +82,13 @@ class DCProblemTests(unittest.TestCase):
         passed = (wtJv - vtJtw) < 1e-10
         self.assertTrue(passed)
 
+    def test_dataObj(self):
+        derChk = lambda m: [self.inv.dataObj(m), self.inv.dataObjDeriv(m)]
+        checkDerivative(derChk, self.m0, plotIt=False)
+
+    def test_modelObj(self):
+        derChk = lambda m: [self.reg.modelObj(m), self.reg.modelObjDeriv(m)]
+        checkDerivative(derChk, self.m0, plotIt=False)
 
 
 if __name__ == '__main__':

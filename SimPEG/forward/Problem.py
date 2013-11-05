@@ -1,5 +1,6 @@
 import numpy as np
 from SimPEG.utils import mkvc, sdiag
+import scipy.sparse as sp
 norm = np.linalg.norm
 
 
@@ -50,16 +51,6 @@ class Problem(object):
         self._RHS = value
 
     @property
-    def W(self):
-        """
-            Standard deviation weighting matrix.
-        """
-        return self._W
-    @W.setter
-    def W(self, value):
-        self._W = value
-
-    @property
     def P(self):
         """
             Projection matrix.
@@ -72,6 +63,15 @@ class Problem(object):
     def P(self, value):
         self._P = value
 
+    @property
+    def std(self):
+        """
+            Estimated Standard Deviations.
+        """
+        return self._std
+    @std.setter
+    def std(self, value):
+        self._std = value
 
     @property
     def dobs(self):
@@ -83,16 +83,35 @@ class Problem(object):
     def dobs(self, value):
         self._dobs = value
 
-    def evalFunction(self, m, doDerivative=True):
+    def dpred(self, m, u=None):
         """
-            :param numpy.array m: model
-            :param bool doDerivative: do you want to compute the derivative?
-            :rtype: numpy.array
-            :return: Jv
-        """
-        f = self.misfit(m)
+            Predicted data.
 
-        return f, g, H
+            .. math::
+                d_\\text{pred} = Pu(m)
+        """
+        if u is None:
+            u = self.field(m)
+        return self.P*u
+
+    def dataResidual(self, m, u=None):
+        """
+            :param numpy.array m: geophysical model
+            :param numpy.array u: fields
+            :rtype: float
+            :return: data misfit
+
+            The data misfit:
+
+            .. math::
+
+                \mu_\\text{data} = \mathbf{d}_\\text{pred} - \mathbf{d}_\\text{obs}
+
+            Where P is a projection matrix that brings the field on the full domain to the data measurement locations;
+            u is the field of interest; d_obs is the observed data.
+        """
+
+        return self.dpred(m, u=u) - self.dobs
 
     def J(self, m, v, u=None):
         """
@@ -131,9 +150,37 @@ class Problem(object):
             :rtype: numpy.array
             :return: JTv
 
-            Transpose of J
+            Effect of transpose of J on a vector v.
         """
         pass
+
+
+    def J_approx(self, m, v, u=None):
+        """
+
+            :param numpy.array m: model
+            :param numpy.array v: vector to multiply
+            :param numpy.array u: fields
+            :rtype: numpy.array
+            :return: Jv
+
+            Approximate effect of J on a vector v
+
+        """
+        return self.J(m, v, u)
+
+    def Jt_approx(self, m, v, u=None):
+        """
+            :param numpy.array m: model
+            :param numpy.array v: vector to multiply
+            :param numpy.array u: fields
+            :rtype: numpy.array
+            :return: JTv
+
+            Approximate transpose of J*v
+
+        """
+        return self.Jt(m, v, u)
 
     def field(self, m):
         """
@@ -144,17 +191,6 @@ class Problem(object):
 
         """
         pass
-
-    def dpred(self, m, u=None):
-        """
-            Predicted data.
-
-            .. math::
-                d_\\text{pred} = Pu(m)
-        """
-        if u is None:
-            u = self.field(m)
-        return self.P*u
 
     def modelTransform(self, m):
         """
@@ -168,13 +204,8 @@ class Problem(object):
             in log space. In this case, your model will be log(sigma) and to
             get back to sigma, you can take the exponential:
 
-            .. math::
-
-                m = \log{\sigma}
-
-                \exp{m} = \exp{\log{\sigma}} = \sigma
         """
-        return np.exp(mkvc(m))
+        return m
 
     def modelTransformDeriv(self, m):
         """
@@ -184,129 +215,10 @@ class Problem(object):
 
             The modelTransform changes the model into the physical property.
             The modelTransformDeriv provides the derivative of the modelTransform.
-
-            If the model transform is:
-
-            .. math::
-
-                m = \log{\sigma}
-
-                \exp{m} = \exp{\log{\sigma}} = \sigma
-
-            Then the derivative is:
-
-            .. math::
-
-                \\frac{\partial \exp{m}}{\partial m} = \\text{sdiag}(\exp{m})
         """
-        return sdiag(np.exp(mkvc(m)))
+        return sp.eye(m.size)
 
-    def misfit(self, m, u=None):
-        """
-            :param numpy.array m: geophysical model
-            :param numpy.array u: fields
-            :rtype: float
-            :return: data misfit
 
-            The data misfit using an l_2 norm is:
-
-            .. math::
-
-                \mu_\\text{data} = {1\over 2}\left| \mathbf{W} \circ (\mathbf{d}_\\text{pred} - \mathbf{d}_\\text{obs}) \\right|_2^2
-
-            Where P is a projection matrix that brings the field on the full domain to the data measurement locations;
-            u is the field of interest; d_obs is the observed data; and W is the weighting matrix.
-        """
-
-        R = self.W*(self.dpred(m, u=u) - self.dobs)
-        R = mkvc(R)
-        return 0.5*R.dot(R)
-
-    def misfitDeriv(self, m, u=None):
-        """
-            :param numpy.array m: geophysical model
-            :param numpy.array u: fields
-            :rtype: numpy.array
-            :return: data misfit derivative
-
-            The data misfit using an l_2 norm is:
-
-            .. math::
-
-                \mu_\\text{data} = {1\over 2}\left| \mathbf{W} \circ (\mathbf{d}_\\text{pred} - \mathbf{d}_\\text{obs}) \\right|_2^2
-
-            If the field, u, is provided, the calculation of the data is fast:
-
-            .. math::
-
-                \mathbf{d}_\\text{pred} = \mathbf{Pu(m)}
-
-                \mathbf{R} = \mathbf{W} \circ (\mathbf{d}_\\text{pred} - \mathbf{d}_\\text{obs})
-
-            Where P is a projection matrix that brings the field on the full domain to the data measurement locations;
-            u is the field of interest; d_obs is the observed data; and W is the weighting matrix.
-
-            The derivative of this, with respect to the model, is:
-
-            .. math::
-
-                \\frac{\partial \mu_\\text{data}}{\partial \mathbf{m}} = \mathbf{J}^\\top \mathbf{W \circ R}
-
-        """
-        if u is None:
-            u = self.field(m)
-
-        R = self.W*(self.dpred(m, u=u) - self.dobs)
-
-        dmisfit = 0
-        for i in range(self.RHS.shape[1]): # Loop over each right hand side
-            dmisfit += self.Jt(m, self.W[:,i]*R[:,i], u=u[:,i])
-
-        return dmisfit
-
-    def misfitDerivDeriv(self, m, u=None):
-        """
-            :param numpy.array m: geophysical model
-            :param numpy.array u: fields
-            :rtype: numpy.array
-            :return: data misfit derivative
-
-            The data misfit using an l_2 norm is:
-
-            .. math::
-
-                \mu_\\text{data} = {1\over 2}\left| \mathbf{W} \circ (\mathbf{d}_\\text{pred} - \mathbf{d}_\\text{obs}) \\right|_2^2
-
-            If the field, u, is provided, the calculation of the data is fast:
-
-            .. math::
-
-                \mathbf{d}_\\text{pred} = \mathbf{Pu(m)}
-
-                \mathbf{R} = \mathbf{W} \circ (\mathbf{d}_\\text{pred} - \mathbf{d}_\\text{obs})
-
-            Where P is a projection matrix that brings the field on the full domain to the data measurement locations;
-            u is the field of interest; d_obs is the observed data; and W is the weighting matrix.
-
-            The derivative of this, with respect to the model, is:
-
-            .. math::
-
-                \\frac{\partial \mu_\\text{data}}{\partial \mathbf{m}} = \mathbf{J}^\\top \mathbf{W \circ R}
-
-                \\frac{\partial^2 \mu_\\text{data}}{\partial^2 \mathbf{m}} = \mathbf{J}^\\top \mathbf{W \circ W J}
-
-        """
-        if u is None:
-            u = self.field(m)
-
-        R = self.W*(self.dpred(m, u=u) - self.dobs)
-
-        dmisfit = 0
-        for i in range(self.RHS.shape[1]): # Loop over each right hand side
-            dmisfit += self.Jt(m, self.W[:,i]*R[:,i], u=u[:,i])
-
-        return dmisfit
 
 
 class SyntheticProblem(object):
@@ -337,3 +249,6 @@ class SyntheticProblem(object):
         eps = np.linalg.norm(mkvc(dobs),2)*1e-5
         Wd = 1/(abs(dobs)*std+eps)
         return dobs, Wd
+
+
+
