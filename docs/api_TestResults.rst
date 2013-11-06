@@ -185,9 +185,9 @@ Test Results
     --></script>
     
     <div class='heading'>
-    <p class='attribute'><strong>Start Time:</strong> 2013-11-05 15:38:27</p>
-    <p class='attribute'><strong>Duration:</strong> 0:00:32.112639</p>
-    <p class='attribute'><strong>Status:</strong> Pass 96 Error 3</p>
+    <p class='attribute'><strong>Start Time:</strong> 2013-11-05 16:10:07</p>
+    <p class='attribute'><strong>Duration:</strong> 0:00:31.280082</p>
+    <p class='attribute'><strong>Status:</strong> Pass 99</p>
     
     <p class='description'>SimPEG Test Report was automatically generated.</p>
     </div>
@@ -345,37 +345,48 @@ Test Results
         <td colspan='5' align='center'>pass</td>
     </tr>
     
-    <tr class='errorClass'>
+    <tr class='passClass'>
         <td>test_forward_DCproblem.DCProblemTests</td>
         <td>4</td>
-        <td>1</td>
+        <td>4</td>
         <td>0</td>
-        <td>3</td>
+        <td>0</td>
         <td><a href="javascript:showClassDetail('c3',4)">Detail</a></td>
     </tr>
     
-    <tr id='ft3.1' class='none'>
-        <td class='errorCase'><div class='testcase'>test_adjoint</div></td>
+    <tr id='pt3.1' class='hiddenRow'>
+        <td class='none'><div class='testcase'>test_adjoint</div></td>
+        <td colspan='5' align='center'>pass</td>
+    </tr>
+    
+    <tr id='pt3.2' class='hiddenRow'>
+        <td class='none'><div class='testcase'>test_dataObj</div></td>
         <td colspan='5' align='center'>
     
         <!--css div popup start-->
-        <a class="popup_link" onfocus='this.blur();' href="javascript:showTestDetail('div_ft3.1')" >
-            error</a>
+        <a class="popup_link" onfocus='this.blur();' href="javascript:showTestDetail('div_pt3.2')" >
+            pass</a>
     
-        <div id='div_ft3.1' class="popup_window">
+        <div id='div_pt3.2' class="popup_window">
             <div style='text-align: right; color:red;cursor:pointer'>
-            <a onfocus='this.blur();' onclick="document.getElementById('div_ft3.1').style.display = 'none' " >
+            <a onfocus='this.blur();' onclick="document.getElementById('div_pt3.2').style.display = 'none' " >
                [x]</a>
             </div>
             <pre>
             
-    ft3.1: Traceback (most recent call last):
-      File "/Users/rowan/git/simpeg/SimPEG/tests/test_forward_DCproblem.py", line 80, in test_adjoint
-        wtJv = w.dot(self.p.J(self.m0, v, u=u))
-      File "/Users/rowan/git/simpeg/SimPEG/forward/DCProblem/DCProblem.py", line 81, in J
-      File "/Users/rowan/Library/Enthought/Canopy_64bit/User/lib/python2.7/site-packages/scipy/sparse/base.py", line 276, in __mul__
-        raise ValueError('dimension mismatch')
-    ValueError: dimension mismatch
+    pt3.2: ==================== checkDerivative ====================
+    iter	h		|J0-Jt|		|J0+h*dJ'*dx-Jt|	Order
+    ---------------------------------------------------------
+    0	1.00e-01	3.555e+01		3.750e+01		nan
+    1	1.00e-02	1.711e-01		3.662e-01		2.010
+    2	1.00e-03	1.586e-02		3.653e-03		2.001
+    3	1.00e-04	1.915e-03		3.652e-05		2.000
+    4	1.00e-05	1.948e-04		3.652e-07		2.000
+    5	1.00e-06	1.951e-05		3.662e-09		1.999
+    6	1.00e-07	1.951e-06		3.158e-11		2.064
+    ========================= PASS! =========================
+    Testing is important.
+    
     
     
             </pre>
@@ -385,68 +396,34 @@ Test Results
         </td>
     </tr>
     
-    <tr id='ft3.2' class='none'>
-        <td class='errorCase'><div class='testcase'>test_dataObj</div></td>
+    <tr id='pt3.3' class='hiddenRow'>
+        <td class='none'><div class='testcase'>test_misfit</div></td>
         <td colspan='5' align='center'>
     
         <!--css div popup start-->
-        <a class="popup_link" onfocus='this.blur();' href="javascript:showTestDetail('div_ft3.2')" >
-            error</a>
+        <a class="popup_link" onfocus='this.blur();' href="javascript:showTestDetail('div_pt3.3')" >
+            pass</a>
     
-        <div id='div_ft3.2' class="popup_window">
+        <div id='div_pt3.3' class="popup_window">
             <div style='text-align: right; color:red;cursor:pointer'>
-            <a onfocus='this.blur();' onclick="document.getElementById('div_ft3.2').style.display = 'none' " >
+            <a onfocus='this.blur();' onclick="document.getElementById('div_pt3.3').style.display = 'none' " >
                [x]</a>
             </div>
             <pre>
             
-    ft3.2: ==================== checkDerivative ====================
+    pt3.3: ==================== checkDerivative ====================
     iter	h		|J0-Jt|		|J0+h*dJ'*dx-Jt|	Order
     ---------------------------------------------------------
-    Traceback (most recent call last):
-      File "/Users/rowan/git/simpeg/SimPEG/tests/test_forward_DCproblem.py", line 87, in test_dataObj
-        checkDerivative(derChk, self.m0, plotIt=False)
-      File "/Users/rowan/git/simpeg/SimPEG/tests/TestUtils.py", line 216, in checkDerivative
-        Jc = fctn(x0)
-      File "/Users/rowan/git/simpeg/SimPEG/tests/test_forward_DCproblem.py", line 86, in &lt;lambda&gt;
-        derChk = lambda m: [self.inv.dataObj(m), self.inv.dataObjDeriv(m)]
-      File "/Users/rowan/git/simpeg/SimPEG/inverse/Inversion.py", line 174, in dataObjDeriv
-        dmisfit = self.prob.Jt(m, self.Wd * R, u=u)
-      File "/Users/rowan/git/simpeg/SimPEG/forward/DCProblem/DCProblem.py", line 101, in Jt
-    SystemError: gstrs was called with invalid arguments
+    0	1.00e-01	5.409e-02		4.593e-03		nan
+    1	1.00e-02	5.429e-03		4.574e-05		2.002
+    2	1.00e-03	5.431e-04		4.570e-07		2.000
+    3	1.00e-04	5.431e-05		4.570e-09		2.000
+    4	1.00e-05	5.431e-06		4.570e-11		2.000
+    5	1.00e-06	5.431e-07		4.553e-13		2.002
+    6	1.00e-07	5.431e-08		4.751e-15		1.982
+    ========================= PASS! =========================
+    That was easy!
     
-    
-            </pre>
-        </div>
-        <!--css div popup end-->
-    
-        </td>
-    </tr>
-    
-    <tr id='ft3.3' class='none'>
-        <td class='errorCase'><div class='testcase'>test_misfit</div></td>
-        <td colspan='5' align='center'>
-    
-        <!--css div popup start-->
-        <a class="popup_link" onfocus='this.blur();' href="javascript:showTestDetail('div_ft3.3')" >
-            error</a>
-    
-        <div id='div_ft3.3' class="popup_window">
-            <div style='text-align: right; color:red;cursor:pointer'>
-            <a onfocus='this.blur();' onclick="document.getElementById('div_ft3.3').style.display = 'none' " >
-               [x]</a>
-            </div>
-            <pre>
-            
-    ft3.3: ==================== checkDerivative ====================
-    iter	h		|J0-Jt|		|J0+h*dJ'*dx-Jt|	Order
-    ---------------------------------------------------------
-    Traceback (most recent call last):
-      File "/Users/rowan/git/simpeg/SimPEG/tests/test_forward_DCproblem.py", line 72, in test_misfit
-        passed = checkDerivative(derChk, self.m0, plotIt=False)
-      File "/Users/rowan/git/simpeg/SimPEG/tests/TestUtils.py", line 230, in checkDerivative
-        E0[i] = l2norm(Jt[0]-Jc[0])               # 0th order Taylor
-    ValueError: setting an array element with a sequence.
     
     
             </pre>
@@ -474,13 +451,13 @@ Test Results
     pt3.4: ==================== checkDerivative ====================
     iter	h		|J0-Jt|		|J0+h*dJ'*dx-Jt|	Order
     ---------------------------------------------------------
-    0	1.00e-01	7.349e+00		7.167e+00		nan
-    1	1.00e-02	8.988e-02		7.167e-02		2.000
-    2	1.00e-03	2.537e-03		7.167e-04		2.000
-    3	1.00e-04	1.892e-04		7.167e-06		2.000
-    4	1.00e-05	1.828e-05		7.167e-08		2.000
-    5	1.00e-06	1.821e-06		7.167e-10		2.000
-    6	1.00e-07	1.821e-07		7.167e-12		2.000
+    0	1.00e-01	8.756e+00		7.946e+00		nan
+    1	1.00e-02	1.605e-01		7.946e-02		2.000
+    2	1.00e-03	8.894e-03		7.946e-04		2.000
+    3	1.00e-04	8.179e-04		7.946e-06		2.000
+    4	1.00e-05	8.108e-05		7.946e-08		2.000
+    5	1.00e-06	8.100e-06		7.946e-10		2.000
+    6	1.00e-07	8.100e-07		7.947e-12		2.000
     ========================= PASS! =========================
     The test be workin!
     
@@ -521,15 +498,15 @@ Test Results
     ==================== checkDerivative ====================
     iter	h		|J0-Jt|		|J0+h*dJ'*dx-Jt|	Order
     ---------------------------------------------------------
-    0	1.00e-01	3.194e-01		8.067e-17		nan
-    1	1.00e-02	3.194e-02		7.049e-17		0.059
-    2	1.00e-03	3.194e-03		7.671e-17		-0.037
-    3	1.00e-04	3.194e-04		4.227e-17		0.259
-    4	1.00e-05	3.194e-05		5.849e-17		-0.141
-    5	1.00e-06	3.194e-06		6.918e-17		-0.073
-    6	1.00e-07	3.194e-07		7.987e-17		-0.062
+    0	1.00e-01	1.309e-01		4.745e-17		nan
+    1	1.00e-02	1.309e-02		4.825e-17		-0.007
+    2	1.00e-03	1.309e-03		5.993e-17		-0.094
+    3	1.00e-04	1.309e-04		6.648e-17		-0.045
+    4	1.00e-05	1.309e-05		6.931e-17		-0.018
+    5	1.00e-06	1.309e-06		6.247e-17		0.045
+    6	1.00e-07	1.309e-07		5.708e-17		0.039
     ========================= PASS! =========================
-    And then everyone was happy.
+    You are awesome.
     
     
     
@@ -558,15 +535,15 @@ Test Results
     pt4.2: ==================== checkDerivative ====================
     iter	h		|J0-Jt|		|J0+h*dJ'*dx-Jt|	Order
     ---------------------------------------------------------
-    0	1.00e-01	1.902e+00		4.847e-02		nan
-    1	1.00e-02	1.858e-01		4.847e-04		2.000
-    2	1.00e-03	1.854e-02		4.847e-06		2.000
-    3	1.00e-04	1.854e-03		4.847e-08		2.000
-    4	1.00e-05	1.854e-04		4.847e-10		2.000
-    5	1.00e-06	1.854e-05		4.861e-12		1.999
-    6	1.00e-07	1.854e-06		5.196e-14		1.971
+    0	1.00e-01	3.133e-01		3.168e-02		nan
+    1	1.00e-02	3.418e-02		3.168e-04		2.000
+    2	1.00e-03	3.447e-03		3.168e-06		2.000
+    3	1.00e-04	3.449e-04		3.168e-08		2.000
+    4	1.00e-05	3.450e-05		3.168e-10		2.000
+    5	1.00e-06	3.450e-06		3.169e-12		2.000
+    6	1.00e-07	3.450e-07		3.481e-14		1.959
     ========================= PASS! =========================
-    And then everyone was happy.
+    That was easy!
     
     
     
@@ -606,22 +583,22 @@ Test Results
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  3.00e-01   |
-      16  |  7.24e-02   |   4.1496    |  2.0530
-      32  |  1.80e-02   |   4.0176    |  2.0063
+       8  |  2.76e-01   |
+      16  |  6.10e-02   |   4.5221    |  2.1770
+      32  |  1.44e-02   |   4.2290    |  2.0803
     ---------------------------------------------
-    Go Test Go!
+    Happy little convergence test!
     
     
     randomTensorMesh:  Interpolation 1D: CC
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  1.67e+00   |
-      16  |  1.47e-01   |   11.2991    |  2.2158
-      32  |  2.40e-02   |   6.1450    |  2.8068
+       8  |  2.46e-01   |
+      16  |  1.11e-01   |   2.2066    |  0.9651
+      32  |  4.07e-02   |   2.7360    |  3.1871
     ---------------------------------------------
-    That was easy!
+    Testing is important.
     
     
     
@@ -652,22 +629,22 @@ Test Results
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  2.62e-01   |
-      16  |  7.01e-02   |   3.7367    |  1.9018
-      32  |  1.77e-02   |   3.9522    |  1.9827
+       8  |  2.39e-01   |
+      16  |  6.89e-02   |   3.4636    |  1.7923
+      32  |  1.78e-02   |   3.8797    |  1.9559
     ---------------------------------------------
-    Once upon a time, a happy little test passed.
+    You get a gold star!
     
     
     randomTensorMesh:  Interpolation 1D: N
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  1.06e+00   |
-      16  |  2.16e-01   |   4.9073    |  2.1977
-      32  |  4.65e-02   |   4.6558    |  2.1125
+       8  |  5.97e-01   |
+      16  |  1.38e-01   |   4.3354    |  1.7681
+      32  |  3.33e-02   |   4.1339    |  2.1579
     ---------------------------------------------
-    Go Test Go!
+    Yay passed!
     
     
     
@@ -707,24 +684,24 @@ Test Results
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  7.58e-02   |
-      16  |  1.89e-02   |   4.0123    |  2.0044
-      32  |  4.72e-03   |   4.0061    |  2.0022
-      64  |  1.18e-03   |   4.0130    |  2.0047
+       8  |  7.06e-02   |
+      16  |  1.78e-02   |   3.9781    |  1.9921
+      32  |  4.72e-03   |   3.7595    |  1.9106
+      64  |  1.18e-03   |   3.9981    |  1.9993
     ---------------------------------------------
-    And then everyone was happy.
+    The test be workin!
     
     
     randomTensorMesh:  Interpolation 2D: CC
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  7.19e-02   |
-      16  |  4.02e-02   |   1.7891    |  0.8450
-      32  |  1.76e-02   |   2.2896    |  1.2692
-      64  |  2.59e-03   |   6.7732    |  2.7962
+       8  |  9.16e-02   |
+      16  |  3.39e-02   |   2.7044    |  1.6128
+      32  |  9.31e-03   |   3.6391    |  1.9612
+      64  |  4.10e-03   |   2.2687    |  1.5130
     ---------------------------------------------
-    You get a gold star!
+    Testing is important.
     
     
     
@@ -755,24 +732,24 @@ Test Results
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  6.97e-02   |
-      16  |  1.88e-02   |   3.7021    |  1.8883
-      32  |  4.25e-03   |   4.4349    |  2.1489
-      64  |  1.18e-03   |   3.5918    |  1.8447
+       8  |  7.04e-02   |
+      16  |  1.88e-02   |   3.7329    |  1.9003
+      32  |  4.77e-03   |   3.9517    |  1.9825
+      64  |  1.19e-03   |   4.0081    |  2.0029
     ---------------------------------------------
-    And then everyone was happy.
+    Testing is important.
     
     
     randomTensorMesh:  Interpolation 2D: Ex
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  7.23e-02   |
-      16  |  6.36e-02   |   1.1363    |  0.2932
-      32  |  1.45e-02   |   4.3757    |  1.6505
-      64  |  2.85e-03   |   5.0936    |  2.5565
+       8  |  1.96e-01   |
+      16  |  4.30e-02   |   4.5625    |  2.7996
+      32  |  2.01e-02   |   2.1406    |  1.0860
+      64  |  3.32e-03   |   6.0522    |  2.4217
     ---------------------------------------------
-    That was easy!
+    You get a gold star!
     
     
     
@@ -803,24 +780,24 @@ Test Results
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  7.03e-02   |
-      16  |  1.84e-02   |   3.8128    |  1.9308
-      32  |  4.25e-03   |   4.3399    |  2.1177
-      64  |  1.20e-03   |   3.5303    |  1.8198
+       8  |  7.01e-02   |
+      16  |  1.88e-02   |   3.7175    |  1.8943
+      32  |  4.59e-03   |   4.1014    |  2.0361
+      64  |  1.19e-03   |   3.8653    |  1.9506
     ---------------------------------------------
-    Happy little convergence test!
+    The test be workin!
     
     
     randomTensorMesh:  Interpolation 2D: Ey
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  1.25e-01   |
-      16  |  1.33e-01   |   0.9426    |  -0.2519
-      32  |  9.22e-03   |   14.4149    |  2.6455
-      64  |  4.30e-03   |   2.1433    |  1.1026
+       8  |  1.92e-01   |
+      16  |  5.13e-02   |   3.7457    |  2.6593
+      32  |  1.09e-02   |   4.7164    |  2.0227
+      64  |  4.07e-03   |   2.6707    |  1.4891
     ---------------------------------------------
-    And then everyone was happy.
+    Go Test Go!
     
     
     
@@ -851,24 +828,24 @@ Test Results
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  7.58e-02   |
-      16  |  1.89e-02   |   4.0123    |  2.0044
-      32  |  4.72e-03   |   4.0061    |  2.0022
-      64  |  1.18e-03   |   4.0130    |  2.0047
+       8  |  7.06e-02   |
+      16  |  1.78e-02   |   3.9781    |  1.9921
+      32  |  4.72e-03   |   3.7595    |  1.9106
+      64  |  1.18e-03   |   3.9981    |  1.9993
     ---------------------------------------------
-    The test be workin!
+    Yay passed!
     
     
     randomTensorMesh:  Interpolation 2D: Fx
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  2.62e-01   |
-      16  |  3.56e-02   |   7.3451    |  2.2879
-      32  |  8.65e-03   |   4.1162    |  1.9898
-      64  |  1.98e-03   |   4.3670    |  2.2176
+       8  |  9.82e-02   |
+      16  |  5.58e-02   |   1.7592    |  6.6696
+      32  |  6.57e-03   |   8.4887    |  2.2061
+      64  |  4.28e-03   |   1.5342    |  0.6081
     ---------------------------------------------
-    You get a gold star!
+    The test be workin!
     
     
     
@@ -899,24 +876,24 @@ Test Results
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  7.60e-02   |
-      16  |  1.91e-02   |   3.9730    |  1.9902
-      32  |  4.74e-03   |   4.0368    |  2.0132
-      64  |  1.13e-03   |   4.1926    |  2.0679
+       8  |  7.57e-02   |
+      16  |  1.88e-02   |   4.0222    |  2.0080
+      32  |  4.72e-03   |   3.9905    |  1.9966
+      64  |  1.18e-03   |   4.0110    |  2.0040
     ---------------------------------------------
-    You get a gold star!
+    That was easy!
     
     
     randomTensorMesh:  Interpolation 2D: Fy
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  1.39e-01   |
-      16  |  1.52e-02   |   9.1581    |  3.8279
-      32  |  9.96e-03   |   1.5254    |  0.6484
-      64  |  2.55e-03   |   3.9018    |  1.9789
+       8  |  6.72e-02   |
+      16  |  3.28e-02   |   2.0482    |  1.6433
+      32  |  1.13e-02   |   2.9135    |  2.1786
+      64  |  3.35e-03   |   3.3628    |  1.6438
     ---------------------------------------------
-    Testing is important.
+    Yay passed!
     
     
     
@@ -947,24 +924,24 @@ Test Results
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  6.97e-02   |
-      16  |  1.88e-02   |   3.7021    |  1.8883
-      32  |  4.25e-03   |   4.4349    |  2.1489
-      64  |  1.18e-03   |   3.5918    |  1.8447
+       8  |  7.04e-02   |
+      16  |  1.88e-02   |   3.7329    |  1.9003
+      32  |  4.77e-03   |   3.9517    |  1.9825
+      64  |  1.19e-03   |   4.0081    |  2.0029
     ---------------------------------------------
-    You get a gold star!
+    Once upon a time, a happy little test passed.
     
     
     randomTensorMesh:  Interpolation 2D: N
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  1.71e-01   |
-      16  |  8.78e-02   |   1.9477    |  1.5625
-      32  |  1.06e-02   |   8.3121    |  2.4877
-      64  |  3.89e-03   |   2.7167    |  1.4633
+       8  |  1.24e-01   |
+      16  |  6.30e-02   |   1.9636    |  1.2918
+      32  |  2.15e-02   |   2.9310    |  1.6864
+      64  |  4.96e-03   |   4.3359    |  1.9158
     ---------------------------------------------
-    You get a gold star!
+    Happy little convergence test!
     
     
     
@@ -1004,24 +981,24 @@ Test Results
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  7.61e-02   |
-      16  |  1.92e-02   |   3.9642    |  1.9870
-      32  |  4.80e-03   |   4.0008    |  2.0003
-      64  |  1.20e-03   |   4.0030    |  2.0011
+       8  |  7.36e-02   |
+      16  |  1.74e-02   |   4.2291    |  2.0803
+      32  |  4.16e-03   |   4.1900    |  2.0669
+      64  |  9.48e-04   |   4.3858    |  2.1328
     ---------------------------------------------
-    Go Test Go!
+    That was easy!
     
     
     randomTensorMesh:  Interpolation CC
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  1.84e-01   |
-      16  |  3.69e-02   |   4.9854    |  2.8455
-      32  |  6.69e-03   |   5.5221    |  2.0070
-      64  |  3.04e-03   |   2.2027    |  0.9704
+       8  |  2.30e-01   |
+      16  |  1.70e-02   |   13.5276    |  3.5152
+      32  |  6.70e-03   |   2.5405    |  1.2651
+      64  |  1.88e-03   |   3.5689    |  1.8184
     ---------------------------------------------
-    And then everyone was happy.
+    That was easy!
     
     
     
@@ -1052,22 +1029,22 @@ Test Results
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  7.04e-02   |
-      16  |  1.88e-02   |   3.7334    |  1.9005
-      32  |  4.79e-03   |   3.9323    |  1.9754
-      64  |  1.19e-03   |   4.0214    |  2.0077
+       8  |  6.98e-02   |
+      16  |  1.79e-02   |   3.8902    |  1.9598
+      32  |  4.41e-03   |   4.0681    |  2.0244
+      64  |  1.18e-03   |   3.7418    |  1.9037
     ---------------------------------------------
-    Testing is important.
+    Happy little convergence test!
     
     
     randomTensorMesh:  Interpolation Ex
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  2.14e-01   |
-      16  |  3.60e-02   |   5.9382    |  2.2410
-      32  |  1.67e-02   |   2.1567    |  1.1497
-      64  |  3.03e-03   |   5.5107    |  2.1484
+       8  |  2.92e-01   |
+      16  |  8.20e-02   |   3.5597    |  4.3217
+      32  |  9.49e-03   |   8.6460    |  1.9353
+      64  |  2.89e-03   |   3.2854    |  1.7236
     ---------------------------------------------
     Testing is important.
     
@@ -1100,10 +1077,10 @@ Test Results
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  7.02e-02   |
-      16  |  1.81e-02   |   3.8703    |  1.9524
-      32  |  4.77e-03   |   3.7978    |  1.9252
-      64  |  1.13e-03   |   4.2261    |  2.0793
+       8  |  7.04e-02   |
+      16  |  1.87e-02   |   3.7726    |  1.9155
+      32  |  4.61e-03   |   4.0477    |  2.0171
+      64  |  1.09e-03   |   4.2392    |  2.0838
     ---------------------------------------------
     You are awesome.
     
@@ -1112,12 +1089,12 @@ Test Results
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  3.88e-01   |
-      16  |  4.89e-02   |   7.9410    |  2.5753
-      32  |  8.30e-03   |   5.8915    |  2.8572
-      64  |  5.74e-03   |   1.4462    |  0.5487
+       8  |  1.30e-01   |
+      16  |  4.52e-02   |   2.8770    |  1.4488
+      32  |  1.36e-02   |   3.3196    |  2.2159
+      64  |  2.81e-03   |   4.8481    |  1.8199
     ---------------------------------------------
-    Yay passed!
+    You are awesome.
     
     
     
@@ -1148,10 +1125,10 @@ Test Results
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  6.87e-02   |
-      16  |  1.88e-02   |   3.6495    |  1.8677
-      32  |  4.61e-03   |   4.0889    |  2.0317
-      64  |  1.16e-03   |   3.9550    |  1.9837
+       8  |  7.04e-02   |
+      16  |  1.87e-02   |   3.7711    |  1.9150
+      32  |  4.61e-03   |   4.0489    |  2.0175
+      64  |  1.15e-03   |   4.0151    |  2.0054
     ---------------------------------------------
     Yay passed!
     
@@ -1160,10 +1137,10 @@ Test Results
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  8.14e-02   |
-      16  |  5.73e-02   |   1.4201    |  0.5350
-      32  |  9.37e-03   |   6.1172    |  3.1703
-      64  |  4.08e-03   |   2.2987    |  1.1426
+       8  |  3.81e-01   |
+      16  |  3.89e-02   |   9.7974    |  2.2747
+      32  |  2.09e-02   |   1.8614    |  2.2906
+      64  |  3.97e-03   |   5.2691    |  1.7820
     ---------------------------------------------
     Once upon a time, a happy little test passed.
     
@@ -1196,24 +1173,24 @@ Test Results
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  7.61e-02   |
-      16  |  1.92e-02   |   3.9642    |  1.9870
-      32  |  4.80e-03   |   4.0008    |  2.0003
-      64  |  1.20e-03   |   4.0030    |  2.0011
+       8  |  7.36e-02   |
+      16  |  1.74e-02   |   4.2291    |  2.0803
+      32  |  4.16e-03   |   4.1900    |  2.0669
+      64  |  9.48e-04   |   4.3858    |  2.1328
     ---------------------------------------------
-    Happy little convergence test!
+    Once upon a time, a happy little test passed.
     
     
     randomTensorMesh:  Interpolation Fx
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  1.88e-01   |
-      16  |  2.92e-02   |   6.4326    |  2.9368
-      32  |  1.86e-02   |   1.5699    |  0.6042
-      64  |  2.79e-03   |   6.6806    |  2.3316
+       8  |  1.59e-01   |
+      16  |  7.66e-02   |   2.0691    |  1.2662
+      32  |  1.01e-02   |   7.5592    |  3.0198
+      64  |  1.82e-03   |   5.5842    |  2.5778
     ---------------------------------------------
-    And then everyone was happy.
+    That was easy!
     
     
     
@@ -1244,24 +1221,24 @@ Test Results
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  7.32e-02   |
-      16  |  1.75e-02   |   4.1844    |  2.0650
-      32  |  4.24e-03   |   4.1315    |  2.0467
-      64  |  1.18e-03   |   3.5873    |  1.8429
+       8  |  7.61e-02   |
+      16  |  1.92e-02   |   3.9682    |  1.9885
+      32  |  4.77e-03   |   4.0172    |  2.0062
+      64  |  1.16e-03   |   4.1081    |  2.0385
     ---------------------------------------------
-    The test be workin!
+    Once upon a time, a happy little test passed.
     
     
     randomTensorMesh:  Interpolation Fy
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  1.57e-01   |
-      16  |  4.79e-02   |   3.2812    |  1.7250
-      32  |  9.12e-03   |   5.2500    |  1.7325
-      64  |  3.25e-03   |   2.8028    |  2.3192
+       8  |  1.45e-01   |
+      16  |  5.01e-02   |   2.8858    |  1.2456
+      32  |  8.71e-03   |   5.7525    |  3.4043
+      64  |  1.85e-03   |   4.7102    |  1.9579
     ---------------------------------------------
-    Testing is important.
+    The test be workin!
     
     
     
@@ -1292,24 +1269,24 @@ Test Results
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  7.54e-02   |
-      16  |  1.85e-02   |   4.0704    |  2.0252
-      32  |  4.70e-03   |   3.9420    |  1.9789
-      64  |  1.16e-03   |   4.0578    |  2.0207
+       8  |  7.41e-02   |
+      16  |  1.78e-02   |   4.1730    |  2.0611
+      32  |  4.55e-03   |   3.9004    |  1.9636
+      64  |  1.11e-03   |   4.0930    |  2.0332
     ---------------------------------------------
-    You are awesome.
+    And then everyone was happy.
     
     
     randomTensorMesh:  Interpolation Fz
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  1.10e-01   |
-      16  |  6.45e-02   |   1.7112    |  1.6193
-      32  |  1.01e-02   |   6.3968    |  2.1949
-      64  |  2.39e-03   |   4.2256    |  1.9266
+       8  |  7.63e-02   |
+      16  |  4.19e-02   |   1.8225    |  1.1195
+      32  |  9.07e-03   |   4.6176    |  1.4900
+      64  |  2.70e-03   |   3.3657    |  2.0946
     ---------------------------------------------
-    Yay passed!
+    Go Test Go!
     
     
     
@@ -1340,10 +1317,10 @@ Test Results
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  7.04e-02   |
-      16  |  1.88e-02   |   3.7334    |  1.9005
-      32  |  4.79e-03   |   3.9323    |  1.9754
-      64  |  1.19e-03   |   4.0214    |  2.0077
+       8  |  6.98e-02   |
+      16  |  1.79e-02   |   3.8902    |  1.9598
+      32  |  4.41e-03   |   4.0681    |  2.0244
+      64  |  1.18e-03   |   3.7418    |  1.9037
     ---------------------------------------------
     You are awesome.
     
@@ -1352,12 +1329,12 @@ Test Results
     _____________________________________________
        h  |    error    | e(i-1)/e(i) |  order
     ~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~
-       8  |  1.37e-01   |
-      16  |  3.14e-02   |   4.3725    |  2.0534
-      32  |  1.43e-02   |   2.2051    |  0.9674
-      64  |  2.08e-03   |   6.8413    |  2.7537
+       8  |  2.76e-01   |
+      16  |  4.47e-02   |   6.1758    |  2.9429
+      32  |  1.13e-02   |   3.9576    |  1.7499
+      64  |  4.59e-03   |   2.4595    |  2.1993
     ---------------------------------------------
-    You are awesome.
+    And then everyone was happy.
     
     
     
@@ -1449,7 +1426,7 @@ Test Results
       16  |  2.42e-03   |
       32  |  6.06e-04   |   4.0001    |  2.0000
     ---------------------------------------------
-    Testing is important.
+    Once upon a time, a happy little test passed.
     
     
     uniformLOM:  Edge Inner Product - Isotropic
@@ -1459,7 +1436,7 @@ Test Results
       16  |  2.42e-03   |
       32  |  6.06e-04   |   4.0001    |  2.0000
     ---------------------------------------------
-    Go Test Go!
+    Testing is important.
     
     
     rotateLOM:  Edge Inner Product - Isotropic
@@ -1513,7 +1490,7 @@ Test Results
       16  |  6.29e-04   |
       32  |  1.57e-04   |   3.9978    |  1.9992
     ---------------------------------------------
-    You get a gold star!
+    Yay passed!
     
     
     rotateLOM:  Face Inner Product - Isotropic
@@ -1523,7 +1500,7 @@ Test Results
       16  |  3.08e-04   |
       32  |  7.07e-05   |   4.3564    |  2.1231
     ---------------------------------------------
-    Happy little convergence test!
+    And then everyone was happy.
     
     
     
@@ -1557,7 +1534,7 @@ Test Results
       16  |  6.99e-03   |
       32  |  1.75e-03   |   3.9996    |  1.9998
     ---------------------------------------------
-    Happy little convergence test!
+    Yay passed!
     
     
     uniformLOM:  Edge Inner Product - Anisotropic
@@ -1577,7 +1554,7 @@ Test Results
       16  |  7.70e-03   |
       32  |  1.94e-03   |   3.9622    |  1.9863
     ---------------------------------------------
-    You get a gold star!
+    And then everyone was happy.
     
     
     
@@ -1611,7 +1588,7 @@ Test Results
       16  |  2.68e-03   |
       32  |  6.69e-04   |   3.9982    |  1.9993
     ---------------------------------------------
-    Yay passed!
+    You are awesome.
     
     
     uniformLOM:  Face Inner Product - Anisotropic
@@ -1621,7 +1598,7 @@ Test Results
       16  |  2.68e-03   |
       32  |  6.69e-04   |   3.9982    |  1.9993
     ---------------------------------------------
-    Yay passed!
+    Testing is important.
     
     
     rotateLOM:  Face Inner Product - Anisotropic
@@ -1631,7 +1608,7 @@ Test Results
       16  |  2.15e-03   |
       32  |  5.25e-04   |   4.0845    |  2.0302
     ---------------------------------------------
-    Testing is important.
+    The test be workin!
     
     
     
@@ -1665,7 +1642,7 @@ Test Results
       16  |  6.79e-03   |
       32  |  1.70e-03   |   3.9996    |  1.9998
     ---------------------------------------------
-    Go Test Go!
+    And then everyone was happy.
     
     
     uniformLOM:  Edge Inner Product - Full Tensor
@@ -1675,7 +1652,7 @@ Test Results
       16  |  6.79e-03   |
       32  |  1.70e-03   |   3.9996    |  1.9998
     ---------------------------------------------
-    Happy little convergence test!
+    You get a gold star!
     
     
     rotateLOM:  Edge Inner Product - Full Tensor
@@ -1685,7 +1662,7 @@ Test Results
       16  |  7.49e-03   |
       32  |  1.89e-03   |   3.9617    |  1.9861
     ---------------------------------------------
-    Once upon a time, a happy little test passed.
+    The test be workin!
     
     
     
@@ -1719,7 +1696,7 @@ Test Results
       16  |  3.10e-03   |
       32  |  7.74e-04   |   3.9981    |  1.9993
     ---------------------------------------------
-    Once upon a time, a happy little test passed.
+    Testing is important.
     
     
     uniformLOM:  Face Inner Product - Full Tensor
@@ -1729,7 +1706,7 @@ Test Results
       16  |  3.10e-03   |
       32  |  7.74e-04   |   3.9981    |  1.9993
     ---------------------------------------------
-    Yay passed!
+    Go Test Go!
     
     
     rotateLOM:  Face Inner Product - Full Tensor
@@ -1739,7 +1716,7 @@ Test Results
       16  |  2.54e-03   |
       32  |  6.23e-04   |   4.0741    |  2.0265
     ---------------------------------------------
-    You get a gold star!
+    You are awesome.
     
     
     
@@ -1786,7 +1763,7 @@ Test Results
       64  |  2.18e-02   |   4.0001    |  2.0000
      128  |  5.46e-03   |   4.0000    |  2.0000
     ---------------------------------------------
-    That was easy!
+    Go Test Go!
     
     
     uniformLOM:  2D Edge Inner Product - Isotropic
@@ -1800,7 +1777,7 @@ Test Results
       64  |  2.18e-02   |   4.0001    |  2.0000
      128  |  5.46e-03   |   4.0000    |  2.0000
     ---------------------------------------------
-    The test be workin!
+    And then everyone was happy.
     
     
     rotateLOM:  2D Edge Inner Product - Isotropic
@@ -1814,7 +1791,7 @@ Test Results
       64  |  2.00e-02   |   4.0155    |  2.0056
      128  |  5.00e-03   |   4.0038    |  2.0014
     ---------------------------------------------
-    And then everyone was happy.
+    You get a gold star!
     
     
     
@@ -1852,7 +1829,7 @@ Test Results
       64  |  2.53e-02   |   4.0000    |  2.0000
      128  |  6.32e-03   |   4.0000    |  2.0000
     ---------------------------------------------
-    You are awesome.
+    And then everyone was happy.
     
     
     uniformLOM:  2D Face Inner Product - Isotropic
@@ -1866,7 +1843,7 @@ Test Results
       64  |  2.53e-02   |   4.0000    |  2.0000
      128  |  6.32e-03   |   4.0000    |  2.0000
     ---------------------------------------------
-    You get a gold star!
+    Yay passed!
     
     
     rotateLOM:  2D Face Inner Product - Isotropic
@@ -1880,7 +1857,7 @@ Test Results
       64  |  2.30e-02   |   4.0132    |  2.0048
      128  |  5.74e-03   |   4.0009    |  2.0003
     ---------------------------------------------
-    Go Test Go!
+    And then everyone was happy.
     
     
     
@@ -1946,7 +1923,7 @@ Test Results
       64  |  1.28e-01   |   4.0007    |  2.0003
      128  |  3.19e-02   |   3.9975    |  1.9991
     ---------------------------------------------
-    Go Test Go!
+    And then everyone was happy.
     
     
     
@@ -1984,7 +1961,7 @@ Test Results
       64  |  3.66e-02   |   4.0000    |  2.0000
      128  |  9.14e-03   |   4.0000    |  2.0000
     ---------------------------------------------
-    You get a gold star!
+    And then everyone was happy.
     
     
     uniformLOM:  2D Edge Inner Product - Anisotropic
@@ -1998,7 +1975,7 @@ Test Results
       64  |  3.66e-02   |   4.0000    |  2.0000
      128  |  9.14e-03   |   4.0000    |  2.0000
     ---------------------------------------------
-    And then everyone was happy.
+    You get a gold star!
     
     
     rotateLOM:  2D Edge Inner Product - Anisotropic
@@ -2012,7 +1989,7 @@ Test Results
       64  |  2.23e-02   |   4.0739    |  2.0264
      128  |  5.54e-03   |   4.0255    |  2.0092
     ---------------------------------------------
-    You get a gold star!
+    Testing is important.
     
     
     
@@ -2050,7 +2027,7 @@ Test Results
       64  |  1.52e-01   |   4.0000    |  2.0000
      128  |  3.80e-02   |   4.0000    |  2.0000
     ---------------------------------------------
-    You get a gold star!
+    Yay passed!
     
     
     uniformLOM:  2D Face Inner Product - Full Tensor
@@ -2064,7 +2041,7 @@ Test Results
       64  |  1.52e-01   |   4.0000    |  2.0000
      128  |  3.80e-02   |   4.0000    |  2.0000
     ---------------------------------------------
-    You get a gold star!
+    Once upon a time, a happy little test passed.
     
     
     rotateLOM:  2D Face Inner Product - Full Tensor
@@ -2078,7 +2055,7 @@ Test Results
       64  |  1.45e-01   |   4.0074    |  2.0027
      128  |  3.62e-02   |   3.9984    |  1.9994
     ---------------------------------------------
-    Testing is important.
+    And then everyone was happy.
     
     
     
@@ -2116,7 +2093,7 @@ Test Results
       64  |  3.78e-03   |   4.0001    |  2.0000
      128  |  9.46e-04   |   4.0000    |  2.0000
     ---------------------------------------------
-    And then everyone was happy.
+    You get a gold star!
     
     
     uniformLOM:  2D Edge Inner Product - Full Tensor
@@ -2130,7 +2107,7 @@ Test Results
       64  |  3.78e-03   |   4.0001    |  2.0000
      128  |  9.46e-04   |   4.0000    |  2.0000
     ---------------------------------------------
-    Happy little convergence test!
+    Testing is important.
     
     
     rotateLOM:  2D Edge Inner Product - Full Tensor
@@ -2144,7 +2121,7 @@ Test Results
       64  |  1.98e-02   |   3.8708    |  1.9526
      128  |  5.03e-03   |   3.9418    |  1.9789
     ---------------------------------------------
-    And then everyone was happy.
+    Testing is important.
     
     
     
@@ -2189,7 +2166,7 @@ Test Results
       16  |  3.95e-02   |   3.7462    |  1.9054
       32  |  1.00e-02   |   3.9364    |  1.9769
     ---------------------------------------------
-    Go Test Go!
+    You are awesome.
     
     
     uniformLOM:  Curl
@@ -2201,7 +2178,7 @@ Test Results
       16  |  3.95e-02   |   3.7462    |  1.9054
       32  |  1.00e-02   |   3.9364    |  1.9769
     ---------------------------------------------
-    Go Test Go!
+    The test be workin!
     
     
     rotateLOM:  Curl
@@ -2213,7 +2190,7 @@ Test Results
       16  |  1.70e-02   |   5.2040    |  2.3796
       32  |  3.77e-03   |   4.5126    |  2.1740
     ---------------------------------------------
-    You are awesome.
+    Happy little convergence test!
     
     
     
@@ -2257,7 +2234,7 @@ Test Results
       16  |  1.19e-01   |   3.7462    |  1.9054
       32  |  3.01e-02   |   3.9364    |  1.9769
     ---------------------------------------------
-    Once upon a time, a happy little test passed.
+    That was easy!
     
     
     uniformLOM:  Face Divergence
@@ -2268,7 +2245,7 @@ Test Results
       16  |  1.19e-01   |   3.7462    |  1.9054
       32  |  3.01e-02   |   3.9364    |  1.9769
     ---------------------------------------------
-    You are awesome.
+    Once upon a time, a happy little test passed.
     
     
     rotateLOM:  Face Divergence
@@ -2279,7 +2256,7 @@ Test Results
       16  |  9.53e-04   |   9.5374    |  3.2536
       32  |  2.75e-04   |   3.4594    |  1.7905
     ---------------------------------------------
-    Testing is important.
+    That was easy!
     
     
     
@@ -2324,7 +2301,7 @@ Test Results
       32  |  2.01e-02   |   3.9364    |  1.9769
       64  |  5.04e-03   |   3.9841    |  1.9943
     ---------------------------------------------
-    Once upon a time, a happy little test passed.
+    That was easy!
     
     
     uniformLOM:  Face Divergence 2D
@@ -2336,7 +2313,7 @@ Test Results
       32  |  2.01e-02   |   3.9364    |  1.9769
       64  |  5.04e-03   |   3.9841    |  1.9943
     ---------------------------------------------
-    Happy little convergence test!
+    The test be workin!
     
     
     rotateLOM:  Face Divergence 2D
@@ -2348,7 +2325,7 @@ Test Results
       32  |  2.01e-02   |   3.9364    |  1.9769
       64  |  5.57e-03   |   3.6062    |  1.8505
     ---------------------------------------------
-    You get a gold star!
+    Go Test Go!
     
     
     
@@ -2393,7 +2370,7 @@ Test Results
       16  |  1.34e-04   |   3.9116    |  1.9678
       32  |  3.39e-05   |   3.9578    |  1.9847
     ---------------------------------------------
-    Happy little convergence test!
+    Yay passed!
     
     
     uniformLOM:  Nodal Gradient
@@ -2405,7 +2382,7 @@ Test Results
       16  |  1.34e-04   |   3.9116    |  1.9678
       32  |  3.39e-05   |   3.9578    |  1.9847
     ---------------------------------------------
-    You are awesome.
+    You get a gold star!
     
     
     rotateLOM:  Nodal Gradient
@@ -2417,7 +2394,7 @@ Test Results
       16  |  1.80e-04   |   3.6283    |  1.8593
       32  |  4.66e-05   |   3.8703    |  1.9525
     ---------------------------------------------
-    The test be workin!
+    You get a gold star!
     
     
     
@@ -2462,7 +2439,7 @@ Test Results
       16  |  1.34e-04   |   3.9116    |  1.9678
       32  |  3.39e-05   |   3.9578    |  1.9847
     ---------------------------------------------
-    Testing is important.
+    Go Test Go!
     
     
     uniformLOM:  Nodal Gradient 2D
@@ -2474,7 +2451,7 @@ Test Results
       16  |  1.34e-04   |   3.9116    |  1.9678
       32  |  3.39e-05   |   3.9578    |  1.9847
     ---------------------------------------------
-    The test be workin!
+    You are awesome.
     
     
     rotateLOM:  Nodal Gradient 2D
@@ -2486,7 +2463,7 @@ Test Results
       16  |  1.80e-04   |   3.6343    |  1.8617
       32  |  4.64e-05   |   3.8804    |  1.9562
     ---------------------------------------------
-    You get a gold star!
+    Go Test Go!
     
     
     
@@ -2633,7 +2610,7 @@ Test Results
       20  |  7.96e-03   |   1.5342    |  1.9182
       24  |  5.59e-03   |   1.4258    |  1.9458
     ---------------------------------------------
-    Testing is important.
+    Go Test Go!
     
     
     
@@ -2668,7 +2645,7 @@ Test Results
       20  |  9.35e-01   |   1.5271    |  1.8974
       24  |  6.58e-01   |   1.4223    |  1.9320
     ---------------------------------------------
-    Go Test Go!
+    Testing is important.
     
     
     
@@ -2706,17 +2683,17 @@ Test Results
     pt19.1: ==================== checkDerivative ====================
     iter	h		|J0-Jt|		|J0+h*dJ'*dx-Jt|	Order
     ---------------------------------------------------------
-    0	1.00e-01	1.958e-01		3.905e-01		nan
-    1	1.00e-02	1.956e-02		3.911e-02		0.999
-    2	1.00e-03	1.956e-03		3.912e-03		1.000
-    3	1.00e-04	1.956e-04		3.912e-04		1.000
-    4	1.00e-05	1.956e-05		3.912e-05		1.000
-    5	1.00e-06	1.956e-06		3.912e-06		1.000
-    6	1.00e-07	1.956e-07		3.912e-07		1.000
+    0	1.00e-01	8.863e-02		1.778e-01		nan
+    1	1.00e-02	8.915e-03		1.784e-02		0.999
+    2	1.00e-03	8.921e-04		1.784e-03		1.000
+    3	1.00e-04	8.921e-05		1.784e-04		1.000
+    4	1.00e-05	8.921e-06		1.784e-05		1.000
+    5	1.00e-06	8.921e-07		1.784e-06		1.000
+    6	1.00e-07	8.921e-08		1.784e-07		1.000
     *********************************************************
     &lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt; FAIL! &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;
     *********************************************************
-    Thankfully, persistence is a great substitute for talent.
+    Testing is important. Do it again.
     
     
     
@@ -2745,15 +2722,15 @@ Test Results
     pt19.2: ==================== checkDerivative ====================
     iter	h		|J0-Jt|		|J0+h*dJ'*dx-Jt|	Order
     ---------------------------------------------------------
-    0	1.00e-01	1.732e-01		9.470e-03		nan
-    1	1.00e-02	1.817e-02		8.582e-05		2.043
-    2	1.00e-03	1.825e-03		8.491e-07		2.005
-    3	1.00e-04	1.825e-04		8.482e-09		2.000
-    4	1.00e-05	1.825e-05		8.481e-11		2.000
-    5	1.00e-06	1.825e-06		8.481e-13		2.000
-    6	1.00e-07	1.825e-07		8.451e-15		2.002
+    0	1.00e-01	2.825e-01		1.846e-02		nan
+    1	1.00e-02	2.803e-02		1.930e-04		1.981
+    2	1.00e-03	2.799e-03		1.939e-06		1.998
+    3	1.00e-04	2.799e-04		1.940e-08		2.000
+    4	1.00e-05	2.799e-05		1.940e-10		2.000
+    5	1.00e-06	2.799e-06		1.940e-12		2.000
+    6	1.00e-07	2.799e-07		1.947e-14		1.998
     ========================= PASS! =========================
-    Go Test Go!
+    The test be workin!
     
     
     
@@ -2782,15 +2759,15 @@ Test Results
     pt19.3: ==================== checkDerivative ====================
     iter	h		|J0-Jt|		|J0+h*dJ'*dx-Jt|	Order
     ---------------------------------------------------------
-    0	1.00e-01	1.244e-01		1.037e-02		nan
-    1	1.00e-02	1.211e-02		1.047e-04		1.996
-    2	1.00e-03	1.208e-03		1.048e-06		2.000
-    3	1.00e-04	1.208e-04		1.048e-08		2.000
-    4	1.00e-05	1.208e-05		1.048e-10		2.000
-    5	1.00e-06	1.208e-06		1.048e-12		2.000
-    6	1.00e-07	1.208e-07		1.052e-14		1.999
+    0	1.00e-01	1.229e-01		5.540e-03		nan
+    1	1.00e-02	1.249e-02		5.407e-05		2.011
+    2	1.00e-03	1.251e-03		5.393e-07		2.001
+    3	1.00e-04	1.251e-04		5.392e-09		2.000
+    4	1.00e-05	1.251e-05		5.391e-11		2.000
+    5	1.00e-06	1.251e-06		5.391e-13		2.000
+    6	1.00e-07	1.251e-07		5.336e-15		2.004
     ========================= PASS! =========================
-    You get a gold star!
+    Testing is important.
     
     
     
@@ -2853,9 +2830,9 @@ Test Results
     <tr id='total_row'>
         <td>Total</td>
         <td>99</td>
-        <td>96</td>
+        <td>99</td>
         <td>0</td>
-        <td>3</td>
+        <td>0</td>
         <td>&nbsp;</td>
     </tr>
     </table>

@@ -1,3 +1,4 @@
+import os
 import glob
 import unittest
 import HTMLTestRunner
@@ -45,3 +46,5 @@ for line in reader:
         writer.write('    '+line)
 
 writer.close()
+reader.close()
+os.remove("report.html")
