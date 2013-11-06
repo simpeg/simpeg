@@ -44,43 +44,43 @@ class BasicLOMTests(unittest.TestCase):
 
     def test_tangents(self):
         T = self.LOM2.tangents
-        self.assertTrue(np.all(self.LOM2.r(T, 'E', 'Ex', 'V')[0] == np.ones(self.LOM2.nE[0])))
-        self.assertTrue(np.all(self.LOM2.r(T, 'E', 'Ex', 'V')[1] == np.zeros(self.LOM2.nE[0])))
-        self.assertTrue(np.all(self.LOM2.r(T, 'E', 'Ey', 'V')[0] == np.zeros(self.LOM2.nE[1])))
-        self.assertTrue(np.all(self.LOM2.r(T, 'E', 'Ey', 'V')[1] == np.ones(self.LOM2.nE[1])))
+        self.assertTrue(np.all(self.LOM2.r(T, 'E', 'Ex', 'V')[0] == np.ones(self.LOM2.nEv[0])))
+        self.assertTrue(np.all(self.LOM2.r(T, 'E', 'Ex', 'V')[1] == np.zeros(self.LOM2.nEv[0])))
+        self.assertTrue(np.all(self.LOM2.r(T, 'E', 'Ey', 'V')[0] == np.zeros(self.LOM2.nEv[1])))
+        self.assertTrue(np.all(self.LOM2.r(T, 'E', 'Ey', 'V')[1] == np.ones(self.LOM2.nEv[1])))
 
         T = self.LOM3.tangents
-        self.assertTrue(np.all(self.LOM3.r(T, 'E', 'Ex', 'V')[0] == np.ones(self.LOM3.nE[0])))
-        self.assertTrue(np.all(self.LOM3.r(T, 'E', 'Ex', 'V')[1] == np.zeros(self.LOM3.nE[0])))
-        self.assertTrue(np.all(self.LOM3.r(T, 'E', 'Ex', 'V')[2] == np.zeros(self.LOM3.nE[0])))
+        self.assertTrue(np.all(self.LOM3.r(T, 'E', 'Ex', 'V')[0] == np.ones(self.LOM3.nEv[0])))
+        self.assertTrue(np.all(self.LOM3.r(T, 'E', 'Ex', 'V')[1] == np.zeros(self.LOM3.nEv[0])))
+        self.assertTrue(np.all(self.LOM3.r(T, 'E', 'Ex', 'V')[2] == np.zeros(self.LOM3.nEv[0])))
 
-        self.assertTrue(np.all(self.LOM3.r(T, 'E', 'Ey', 'V')[0] == np.zeros(self.LOM3.nE[1])))
-        self.assertTrue(np.all(self.LOM3.r(T, 'E', 'Ey', 'V')[1] == np.ones(self.LOM3.nE[1])))
-        self.assertTrue(np.all(self.LOM3.r(T, 'E', 'Ey', 'V')[2] == np.zeros(self.LOM3.nE[1])))
+        self.assertTrue(np.all(self.LOM3.r(T, 'E', 'Ey', 'V')[0] == np.zeros(self.LOM3.nEv[1])))
+        self.assertTrue(np.all(self.LOM3.r(T, 'E', 'Ey', 'V')[1] == np.ones(self.LOM3.nEv[1])))
+        self.assertTrue(np.all(self.LOM3.r(T, 'E', 'Ey', 'V')[2] == np.zeros(self.LOM3.nEv[1])))
 
-        self.assertTrue(np.all(self.LOM3.r(T, 'E', 'Ez', 'V')[0] == np.zeros(self.LOM3.nE[2])))
-        self.assertTrue(np.all(self.LOM3.r(T, 'E', 'Ez', 'V')[1] == np.zeros(self.LOM3.nE[2])))
-        self.assertTrue(np.all(self.LOM3.r(T, 'E', 'Ez', 'V')[2] == np.ones(self.LOM3.nE[2])))
+        self.assertTrue(np.all(self.LOM3.r(T, 'E', 'Ez', 'V')[0] == np.zeros(self.LOM3.nEv[2])))
+        self.assertTrue(np.all(self.LOM3.r(T, 'E', 'Ez', 'V')[1] == np.zeros(self.LOM3.nEv[2])))
+        self.assertTrue(np.all(self.LOM3.r(T, 'E', 'Ez', 'V')[2] == np.ones(self.LOM3.nEv[2])))
 
     def test_normals(self):
         N = self.LOM2.normals
-        self.assertTrue(np.all(self.LOM2.r(N, 'F', 'Fx', 'V')[0] == np.ones(self.LOM2.nF[0])))
-        self.assertTrue(np.all(self.LOM2.r(N, 'F', 'Fx', 'V')[1] == np.zeros(self.LOM2.nF[0])))
-        self.assertTrue(np.all(self.LOM2.r(N, 'F', 'Fy', 'V')[0] == np.zeros(self.LOM2.nF[1])))
-        self.assertTrue(np.all(self.LOM2.r(N, 'F', 'Fy', 'V')[1] == np.ones(self.LOM2.nF[1])))
+        self.assertTrue(np.all(self.LOM2.r(N, 'F', 'Fx', 'V')[0] == np.ones(self.LOM2.nFv[0])))
+        self.assertTrue(np.all(self.LOM2.r(N, 'F', 'Fx', 'V')[1] == np.zeros(self.LOM2.nFv[0])))
+        self.assertTrue(np.all(self.LOM2.r(N, 'F', 'Fy', 'V')[0] == np.zeros(self.LOM2.nFv[1])))
+        self.assertTrue(np.all(self.LOM2.r(N, 'F', 'Fy', 'V')[1] == np.ones(self.LOM2.nFv[1])))
 
         N = self.LOM3.normals
-        self.assertTrue(np.all(self.LOM3.r(N, 'F', 'Fx', 'V')[0] == np.ones(self.LOM3.nF[0])))
-        self.assertTrue(np.all(self.LOM3.r(N, 'F', 'Fx', 'V')[1] == np.zeros(self.LOM3.nF[0])))
-        self.assertTrue(np.all(self.LOM3.r(N, 'F', 'Fx', 'V')[2] == np.zeros(self.LOM3.nF[0])))
+        self.assertTrue(np.all(self.LOM3.r(N, 'F', 'Fx', 'V')[0] == np.ones(self.LOM3.nFv[0])))
+        self.assertTrue(np.all(self.LOM3.r(N, 'F', 'Fx', 'V')[1] == np.zeros(self.LOM3.nFv[0])))
+        self.assertTrue(np.all(self.LOM3.r(N, 'F', 'Fx', 'V')[2] == np.zeros(self.LOM3.nFv[0])))
 
-        self.assertTrue(np.all(self.LOM3.r(N, 'F', 'Fy', 'V')[0] == np.zeros(self.LOM3.nF[1])))
-        self.assertTrue(np.all(self.LOM3.r(N, 'F', 'Fy', 'V')[1] == np.ones(self.LOM3.nF[1])))
-        self.assertTrue(np.all(self.LOM3.r(N, 'F', 'Fy', 'V')[2] == np.zeros(self.LOM3.nF[1])))
+        self.assertTrue(np.all(self.LOM3.r(N, 'F', 'Fy', 'V')[0] == np.zeros(self.LOM3.nFv[1])))
+        self.assertTrue(np.all(self.LOM3.r(N, 'F', 'Fy', 'V')[1] == np.ones(self.LOM3.nFv[1])))
+        self.assertTrue(np.all(self.LOM3.r(N, 'F', 'Fy', 'V')[2] == np.zeros(self.LOM3.nFv[1])))
 
-        self.assertTrue(np.all(self.LOM3.r(N, 'F', 'Fz', 'V')[0] == np.zeros(self.LOM3.nF[2])))
-        self.assertTrue(np.all(self.LOM3.r(N, 'F', 'Fz', 'V')[1] == np.zeros(self.LOM3.nF[2])))
-        self.assertTrue(np.all(self.LOM3.r(N, 'F', 'Fz', 'V')[2] == np.ones(self.LOM3.nF[2])))
+        self.assertTrue(np.all(self.LOM3.r(N, 'F', 'Fz', 'V')[0] == np.zeros(self.LOM3.nFv[2])))
+        self.assertTrue(np.all(self.LOM3.r(N, 'F', 'Fz', 'V')[1] == np.zeros(self.LOM3.nFv[2])))
+        self.assertTrue(np.all(self.LOM3.r(N, 'F', 'Fz', 'V')[2] == np.ones(self.LOM3.nFv[2])))
 
     def test_grid(self):
         self.assertTrue(np.all(self.LOM2.gridFx == self.TM2.gridFx))

@@ -1,5 +1,6 @@
 from scipy import sparse as sp
 from matutils import mkvc
+import numpy as np
 
 
 def sdiag(h):

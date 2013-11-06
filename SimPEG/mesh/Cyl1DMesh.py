@@ -110,6 +110,12 @@ class Cyl1DMesh(object):
         return locals()
     nFz = property(**nFz())
 
+    def nFv():
+        doc = "Total number of faces in each direction"
+        fget = lambda self: np.array([self.nFr, self.nFz])
+        return locals()
+    nF = property(**nF())
+
     def nF():
         doc = "Total number of faces"
         fget = lambda self: self.nFr + self.nFz
