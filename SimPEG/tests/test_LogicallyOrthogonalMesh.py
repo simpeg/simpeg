@@ -83,11 +83,15 @@ class BasicLOMTests(unittest.TestCase):
         self.assertTrue(np.all(self.LOM3.r(N, 'F', 'Fz', 'V')[2] == np.ones(self.LOM3.nFv[2])))
 
     def test_grid(self):
+        self.assertTrue(np.all(self.LOM2.gridCC == self.TM2.gridCC))
+        self.assertTrue(np.all(self.LOM2.gridN == self.TM2.gridN))
         self.assertTrue(np.all(self.LOM2.gridFx == self.TM2.gridFx))
         self.assertTrue(np.all(self.LOM2.gridFy == self.TM2.gridFy))
         self.assertTrue(np.all(self.LOM2.gridEx == self.TM2.gridEx))
         self.assertTrue(np.all(self.LOM2.gridEy == self.TM2.gridEy))
 
+        self.assertTrue(np.all(self.LOM3.gridCC == self.TM3.gridCC))
+        self.assertTrue(np.all(self.LOM3.gridN == self.TM3.gridN))
         self.assertTrue(np.all(self.LOM3.gridFx == self.TM3.gridFx))
         self.assertTrue(np.all(self.LOM3.gridFy == self.TM3.gridFy))
         self.assertTrue(np.all(self.LOM3.gridFz == self.TM3.gridFz))
