@@ -97,6 +97,38 @@ class DiffOperators(object):
     _nodalGrad = None
     nodalGrad = property(**nodalGrad())
 
+    def nodalLaplacian():
+        doc = "Construct laplacian operator (nodes to edges)."
+
+        def fget(self):
+            if(self._nodalLaplacian is None):
+                print 'Warning: Laplacian has not been tested rigorously.'
+                # The number of cell centers in each direction
+                n = self.n
+                # Compute divergence operator on faces
+                if(self.dim == 1):
+                    D1 = sdiag(1./self.hx) * ddx(mesh.nCx)
+                    L  = - D1.T*D1
+                elif(self.dim == 2):
+                    D1 = sdiag(1./self.hx) * ddx(n[0])
+                    D2 = sdiag(1./self.hy) * ddx(n[1])
+                    L1 = sp.kron(speye(n[1]+1), - D1.T * D1)
+                    L2 = sp.kron(- D2.T * D2, speye(n[0]+1))
+                    L  = L1 + L2
+                elif(self.dim == 3):
+                    D1 = sdiag(1./self.hx) * ddx(n[0])
+                    D2 = sdiag(1./self.hy) * ddx(n[1])
+                    D3 = sdiag(1./self.hz) * ddx(n[2])
+                    L1 = kron3(speye(n[2]+1), speye(n[1]+1), - D1.T * D1)
+                    L2 = kron3(speye(n[2]+1), - D2.T * D2, speye(n[0]+1))
+                    L3 = kron3(- D3.T * D3, speye(n[1]+1), speye(n[0]+1))
+                    L  = L1 + L2 + L3
+                self._nodalLaplacian = L
+            return self._nodalLaplacian
+        return locals()
+    _nodalLaplacian = None
+    nodalLaplacian = property(**nodalLaplacian())
+
     def setCellGradBC(self, BC):
         """
         Function that sets the boundary conditions for cell-centred derivative operators.
@@ -172,7 +204,6 @@ class DiffOperators(object):
         return locals()
     cellGradx = property(**cellGradx())
 
-
     def cellGrady():
         doc = "Cell centered Gradient in the x dimension. Has neumann boundary conditions."
         def fget(self):
@@ -193,8 +224,6 @@ class DiffOperators(object):
         return locals()
     cellGrady = property(**cellGrady())
 
-
-
     def cellGradz():
         doc = "Cell centered Gradient in the x dimension. Has neumann boundary conditions."
         def fget(self):
@@ -211,7 +240,6 @@ class DiffOperators(object):
             return self._cellGradz
         return locals()
     cellGradz = property(**cellGradz())
-
 
     def edgeCurl():
         doc = "Construct the 3D curl operator."
@@ -254,6 +282,8 @@ class DiffOperators(object):
         return locals()
     _edgeCurl = None
     edgeCurl = property(**edgeCurl())
+
+    # --------------- Averaging ---------------------
 
     def aveF2CC():
         doc = "Construct the averaging operator on cell faces to cell centers."
@@ -355,6 +385,8 @@ class DiffOperators(object):
         return locals()
     _aveN2F = None
     aveN2F = property(**aveN2F())
+
+    # --------------- Methods ---------------------
 
     def getMass(self, materialProp=None, loc='e'):
         """ Produces mass matricies.
