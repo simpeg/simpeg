@@ -1,4 +1,4 @@
 *.pyc
-SimPEG.sublime-project
-SimPEG.sublime-workspace
+*.sublime-project
+*.sublime-workspace
 docs/_build/

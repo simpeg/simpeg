@@ -154,6 +154,7 @@ class Minimize(object):
         self._iterLS = 0
         self._STOP = np.zeros((5,1),dtype=bool)
 
+        x0 = self.projection(x0)  # ensure that we start of feasible.
         self.x0 = x0
         self.xc = x0
         self.xOld = x0
@@ -296,17 +297,18 @@ class Minimize(object):
             :rtype: numpy.ndarray,bool
             :return: (xt, passLS)
         """
-        # Armijo linesearch
-        descent = np.inner(self.g, p)
+        # Projected Armijo linesearch
         t = 1
         iterLS = 0
         while iterLS < self.maxIterLS:
             xt = self.projection(self.xc + t*p)
             ft = self.evalFunction(xt, return_g=False, return_H=False)
-            if ft < self.f + t*self.LSreduction*descent:
+            descent = np.inner(self.g, xt - self.xc)  # this takes into account multiplying by t, but is important for projection.
+            if ft < self.f + self.LSreduction*descent:
                 break
             iterLS += 1
             t = self.LSshorten*t
+            # TODO: Check if t is tooo small.
 
         self._iterLS = iterLS
         return xt, iterLS < self.maxIterLS
