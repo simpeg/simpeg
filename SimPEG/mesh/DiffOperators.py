@@ -306,12 +306,9 @@ class DiffOperators(object):
                 if(self.dim == 1):
                     self._aveN2CC = av(n[0])
                 elif(self.dim == 2):
-                    self._aveN2CC = sp.hstack((sp.kron(av(n[1]), av(n[0])),
-                                               sp.kron(av(n[1]), av(n[0]))), format="csr")
+                    self._aveN2CC = sp.kron(av(n[1]), av(n[0])).tocsr()
                 elif(self.dim == 3):
-                    self._aveN2CC = sp.hstack((kron3(av(n[2]), av(n[1]), av(n[0])),
-                                               kron3(av(n[2]), av(n[1]), av(n[0])),
-                                               kron3(av(n[2]), av(n[1]), av(n[0]))), format="csr")
+                    self._aveN2CC = kron3(av(n[2]), av(n[1]), av(n[0])).tocsr()
             return self._aveN2CC
         return locals()
     _aveN2CC = None
@@ -327,12 +324,12 @@ class DiffOperators(object):
                 if(self.dim == 1):
                     self._aveN2CCv = av(n[0])
                 elif(self.dim == 2):
-                    self._aveN2CCv = sp.block_diag((sp.kron(av(n[1]), av(n[0])),
-                                                    sp.kron(av(n[1]), av(n[0]))), format="csr")
+                    self._aveN2CCv = sp.block_diag((sp.kron(speye(n[1]), av(n[0])),
+                                                    sp.kron(av(n[1]), speye(n[0]))), format="csr")
                 elif(self.dim == 3):
-                    self._aveN2CCv = sp.block_diag((kron3(av(n[2]), av(n[1]), av(n[0])),
-                                                    kron3(av(n[2]), av(n[1]), av(n[0])),
-                                                    kron3(av(n[2]), av(n[1]), av(n[0]))), format="csr")
+                    self._aveN2CCv = sp.block_diag((kron3(speye(n[2]), speye(n[1]), av(n[0])),
+                                                    kron3(speye(n[2]), av(n[1]), speye(n[0])),
+                                                    kron3(av(n[2]), speye(n[1]), speye(n[0]))), format="csr")
             return self._aveN2CCv
         return locals()
     _aveN2CCv = None
