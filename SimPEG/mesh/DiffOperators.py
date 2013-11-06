@@ -1,11 +1,6 @@
 import numpy as np
 from scipy import sparse as sp
-from SimPEG.utils import mkvc, sdiag, speye, kron3, spzeros
-
-
-def ddx(n):
-    """Define 1D derivatives, inner, this means we go from n+1 to n+1"""
-    return sp.spdiags((np.ones((n+1, 1))*[-1, 1]).T, [0, 1], n, n+1, format="csr")
+from SimPEG.utils import mkvc, sdiag, speye, kron3, spzeros, ddx, av
 
 
 def checkBC(bc):
@@ -37,11 +32,6 @@ def ddxCellGrad(n, bc):
     elif(bc[1] == 'neumann'):
         D[-1, -1] = 0
     return D
-
-
-def av(n):
-    """Define 1D averaging operator from cell-centres to nodes."""
-    return sp.spdiags((0.5*np.ones((n+1, 1))*[1, 1]).T, [0, 1], n, n+1, format="csr")
 
 
 class DiffOperators(object):
