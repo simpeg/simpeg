@@ -1,6 +1,6 @@
 import numpy as np
 import scipy.sparse as sp
-from SimPEG.utils import sdiag, mkvc
+from SimPEG.utils import sdiag, mkvc, setKwargs
 
 class Inversion(object):
     """docstring for Inversion"""
@@ -9,7 +9,7 @@ class Inversion(object):
     name = 'SimPEG Inversion'
 
     def __init__(self, prob, reg, opt, **kwargs):
-        self.setKwargs(**kwargs)
+        setKwargs(self, **kwargs)
         self.prob = prob
         self.reg = reg
         self.opt = opt
@@ -30,22 +30,6 @@ class Inversion(object):
             self.opt.printers.insert(3,{"title":    "phi_m",
                                     "value":    lambda M: M.parent.phi_m,
                                     "width":    10, "format":   "%1.2e"})
-
-    def setKwargs(self, **kwargs):
-        """Sets key word arguments (kwargs) that are present in the object, throw an error if they don't exist."""
-        for attr in kwargs:
-            if hasattr(self, attr):
-                setattr(self, attr, kwargs[attr])
-            else:
-                raise Exception('%s attr is not recognized' % attr)
-
-    # def printInit(self):
-    #     print "%s %s %s" % ('='*22, self.name, '='*22)
-    #     print "  #    beta     phi_d      phi_m       f     norm(dJ)   #LS"
-    #     print "%s" % '-'*62
-
-    # def printIter(self):
-    #     print "%3d  %1.2e  %1.2e  %1.2e  %1.2e  %1.2e  %3d" % (self.opt._iter, self._beta, self.phi_d, self.phi_m, self.opt.f, np.linalg.norm(self.opt.g), self.opt._iterLS)
 
     @property
     def Wd(self):

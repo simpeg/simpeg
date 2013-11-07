@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from SimPEG.utils import mkvc, sdiag
+from SimPEG.utils import mkvc, sdiag, setKwargs, printTitles, printLine, printStoppers
 norm = np.linalg.norm
 import scipy.sparse as sp
 from SimPEG import Solver
@@ -122,15 +122,7 @@ class Minimize(object):
                             "format":   "%1.2e"
                          }]
 
-        self.setKwargs(**kwargs)
-
-    def setKwargs(self, **kwargs):
-        """Sets key word arguments (kwargs) that are present in the object, throw an error if they don't exist."""
-        for attr in kwargs:
-            if hasattr(self, attr):
-                setattr(self, attr, kwargs[attr])
-            else:
-                raise Exception('%s attr is not recognized' % attr)
+        setKwargs(self, **kwargs)
 
     def minimize(self, evalFunction, x0):
         """
@@ -276,17 +268,8 @@ class Minimize(object):
         """
         if doPub and not inLS: pub.sendMessage('Minimize.printInit', minimize=self)
         pad = ' '*10 if inLS else ''
-
-        printers = self.printers if not inLS else self.printersLS
         name = self.name if not inLS else self.nameLS
-        titles = ''
-        widths = 0
-        for printer in printers:
-            titles += ('{:^%i}'%printer['width']).format(printer['title']) + ''
-            widths += printer['width']
-        print pad + "{0} {1} {0}".format('='*((widths-1-len(name))/2), name)
-        print pad + titles
-        print pad + "%s" % '-'*widths
+        printTitles(self, self.printers if not inLS else self.printersLS, name, pad)
 
     def printIter(self, inLS=False):
         """
@@ -298,13 +281,7 @@ class Minimize(object):
         """
         if doPub and not inLS: pub.sendMessage('Minimize.printIter', minimize=self)
         pad = ' '*10 if inLS else ''
-
-        printers = self.printers if not inLS else self.printersLS
-        values = ''
-        for printer in printers:
-            values += ('{:^%i}'%printer['width']).format(printer['format'] % printer['value'](self))
-        print pad + values
-        # print pad + "%3d\t%1.2e\t%1.2e\t%d" % (self._iter, self.f, norm(self.g), self._iterLS)
+        printLine(self, self.printers if not inLS else self.printersLS, pad=pad)
 
     def printDone(self, inLS=False):
         """
@@ -317,15 +294,8 @@ class Minimize(object):
         if doPub and not inLS: pub.sendMessage('Minimize.printDone', minimize=self)
         pad = ' '*10 if inLS else ''
         stop, done = (' STOP! ', ' DONE! ') if not inLS else ('----------------', ' End Linesearch ')
-        print pad + "%s%s%s" % ('-'*25,stop,'-'*25)
-
         stoppers = self.stoppers if not inLS else self.stoppersLS
-        for stopper in stoppers:
-            l = stopper['left'](self)
-            r = stopper['right'](self)
-            print pad + stopper['str'] % (l<=r,l,r)
-
-        print pad + "%s%s%s" % ('-'*25,done,'-'*25)
+        printStoppers(self, stoppers, pad='', stop=stop, done=done)
 
 
     def stoppingCriteria(self, inLS=False):
