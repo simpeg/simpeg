@@ -22,7 +22,7 @@ class Minimize(object):
 
     """
 
-    name = "GeneralOptimizationAlgorithm"
+    name = "General Optimization Algorithm"
 
     maxIter = 20
     maxIterLS = 10
@@ -36,6 +36,55 @@ class Minimize(object):
 
     def __init__(self, **kwargs):
         self._id = int(np.random.rand()*1e6)  # create a unique identifier to this program to be used in pubsub
+        self.stoppers = [{
+                            "str":      "%d : |fc-fOld| = %1.4e <= tolF*(1+|f0|) = %1.4e",
+                            "left":     lambda M: 1 if M._iter==0 else abs(M.f-M.fOld),
+                            "right":    lambda M: 0 if M._iter==0 else M.tolF*(1+abs(M.f0)),
+                            "stopType": "optimal"
+                         },{
+                            "str":      "%d : |xc-xOld| = %1.4e <= tolX*(1+|x0|) = %1.4e",
+                            "left":     lambda M: 1 if M._iter==0 else norm(M.xc-M.xOld),
+                            "right":    lambda M: 0 if M._iter==0 else M.tolX*(1+norm(M.x0)),
+                            "stopType": "optimal"
+                         },{
+                            "str":      "%d : |g|       = %1.4e <= tolG          = %1.4e",
+                            "left":     lambda M: norm(M.projection(M.g)),
+                            "right":    lambda M: M.tolG,
+                            "stopType": "optimal"
+                         },{
+                            "str":      "%d : |g|       = %1.4e <= 1e3*eps       = %1.4e",
+                            "left":     lambda M: norm(M.g),
+                            "right":    lambda M: 1e3*M.eps,
+                            "stopType": "critical"
+                         },{
+                            "str":      "%d : maxIter   =    %3d\t   <= iter\t        =    %3d",
+                            "left":     lambda M: M.maxIter,
+                            "right":    lambda M: M._iter,
+                            "stopType": "critical"
+                         }]
+         # print "%3d\t%1.2e\t%1.2e\t%d" % (self._iter, self.f, norm(self.g), self._iterLS)
+
+        self.printers = [{
+                            "title":    "#",
+                            "value":    lambda M: M._iter,
+                            "width":    5,
+                            "format":   "%3d"
+                         },{
+                            "title":    "f",
+                            "value":    lambda M: self.f,
+                            "width":    14,
+                            "format":   "%1.2e"
+                         },{
+                            "title":    "|g|",
+                            "value":    lambda M: norm(M.g),
+                            "width":    14,
+                            "format":   "%1.2e"
+                         },{
+                            "title":    "LS",
+                            "value":    lambda M: M._iterLS,
+                            "width":    5,
+                            "format":   "%d"
+                         }]
         self.setKwargs(**kwargs)
 
     def setKwargs(self, **kwargs):
@@ -146,18 +195,28 @@ class Minimize(object):
                 xc = x0
                 _iter = _iterLS = 0
 
+            If you have things that also need to run on startup, you can create a method::
+
+                def _startup(self, x0):
+                    pass
+
+            If present, _startup will be called at the start of the default startup call.
+            You may also completely overwrite this function.
+
             :param numpy.ndarray x0: initial x
             :rtype: None
             :return: None
         """
+        if hasattr(self,'_startup'): self._startup(x0)
+
         self._iter = 0
         self._iterLS = 0
-        self._STOP = np.zeros((5,1),dtype=bool)
 
         x0 = self.projection(x0)  # ensure that we start of feasible.
         self.x0 = x0
         self.xc = x0
         self.xOld = x0
+
 
     def printInit(self):
         """
@@ -171,9 +230,14 @@ class Minimize(object):
         if self.parent is not None and hasattr(self.parent, 'printInit'):
             self.parent.printInit()
             return
-        print "%s %s %s" % ('='*22, self.name, '='*22)
-        print "iter\tJc\t\tnorm(dJ)\tLS"
-        print "%s" % '-'*57
+        titles = ''
+        widths = 0
+        for printer in self.printers:
+            titles += ('{:^%i}'%printer['width']).format(printer['title']) + ''
+            widths += printer['width']
+        print "{0} {1} {0}".format('='*((widths-1-len(self.name))/2), self.name)
+        print titles
+        print "%s" % '-'*widths
 
     def printIter(self):
         """
@@ -187,7 +251,12 @@ class Minimize(object):
         if self.parent is not None and hasattr(self.parent, 'printIter'):
             self.parent.printIter()
             return
-        print "%3d\t%1.2e\t%1.2e\t%d" % (self._iter, self.f, norm(self.g), self._iterLS)
+
+        values = ''
+        for printer in self.printers:
+            values += ('{:^%i}'%printer['width']).format(printer['format'] % printer['value'](self))
+        print values
+        # print "%3d\t%1.2e\t%1.2e\t%d" % (self._iter, self.f, norm(self.g), self._iterLS)
 
     def printDone(self):
         """
@@ -198,30 +267,34 @@ class Minimize(object):
 
         """
         if doPub: pub.sendMessage('Minimize.printDone', minimize=self)
-        if self.parent is not None and hasattr(self.parent, 'printDone'):
-            self.parent.printDone()
-            return
         print "%s STOP! %s" % ('-'*25,'-'*25)
         # TODO: put controls on gradient value, min model update, and function value
-        if self._iter > 0:
-            print "%d : |fc-fOld| = %1.4e <= tolF*(1+|fStop|) = %1.4e"  % (self._STOP[0], abs(self.f-self.fOld), self.tolF*(1+abs(self.fStop)))
-            print "%d : |xc-xOld| = %1.4e <= tolX*(1+|x0|)    = %1.4e"  % (self._STOP[1], norm(self.xc-self.xOld), self.tolX*(1+norm(self.x0)))
-        print "%d : |g|       = %1.4e <= tolG*(1+|fStop|) = %1.4e"  % (self._STOP[2], norm(self.g), self.tolG*(1+abs(self.fStop)))
-        print "%d : |g|       = %1.4e <= 1e3*eps          = %1.4e"  % (self._STOP[3], norm(self.g), 1e3*self.eps)
-        print "%d : iter      = %3d\t <= maxIter\t       = %3d"     % (self._STOP[4], self._iter, self.maxIter)
+        for stopper in self.stoppers:
+            l = stopper['left'](self)
+            r = stopper['right'](self)
+            print stopper['str'] % (l<=r,l,r)
+
         print "%s DONE! %s\n" % ('='*25,'='*25)
+
+        if self.parent is not None and hasattr(self.parent, 'printDone'): self.parent.printDone()
 
     def stoppingCriteria(self):
         if self._iter == 0:
-            self.fStop = self.f  # Save this for stopping criteria
+            # Save this for stopping criteria
+            self.f0 = self.f
+            self.g0 = self.g
 
         # check stopping rules
-        self._STOP[0] = self._iter > 0 and (abs(self.f-self.fOld) <= self.tolF*(1+abs(self.fStop)))
-        self._STOP[1] = self._iter > 0 and (norm(self.xc-self.xOld) <= self.tolX*(1+norm(self.x0)))
-        self._STOP[2] = norm(self.g) <= self.tolG*(1+abs(self.fStop))
-        self._STOP[3] = norm(self.g) <= 1e3*self.eps
-        self._STOP[4] = self._iter >= self.maxIter
-        return all(self._STOP[0:3]) | any(self._STOP[3:])
+        optimal = []
+        critical = []
+        for stopper in self.stoppers:
+            l = stopper['left'](self)
+            r = stopper['right'](self)
+            if stopper['stopType'] == 'optimal':
+                optimal.append(l <= r)
+            if stopper['stopType'] == 'critical':
+                critical.append(l <= r)
+        return all(optimal) | any(critical)
 
     def projection(self, p):
         """
@@ -304,7 +377,7 @@ class Minimize(object):
             xt = self.projection(self.xc + t*p)
             ft = self.evalFunction(xt, return_g=False, return_H=False)
             descent = np.inner(self.g, xt - self.xc)  # this takes into account multiplying by t, but is important for projection.
-            if ft < self.f + self.LSreduction*descent:
+            if ft < self.f + t*self.LSreduction*descent:
                 break
             iterLS += 1
             t = self.LSshorten*t
@@ -334,16 +407,29 @@ class Minimize(object):
 
     def doEndIteration(self, xt):
         """
-        **doEndIteration** is called at the end of each minimize iteration.
+            **doEndIteration** is called at the end of each minimize iteration.
 
-        By default, function values and x locations are shuffled to store 1 past iteration in memory.
+            By default, function values and x locations are shuffled to store 1 past iteration in memory.
 
-        self.xc must be updated in this code.
+            self.xc must be updated in this code.
 
-        :param numpy.ndarray xt: tested new iterate that ensures a descent direction.
-        :rtype: None
-        :return: None
+
+            If you have things that also need to run at the end of every iteration, you can create a method::
+
+                def _doEndIteration(self, xt):
+                    pass
+
+            If present, _doEndIteration will be called at the start of the default doEndIteration call.
+            You may also completely overwrite this function.
+
+            :param numpy.ndarray xt: tested new iterate that ensures a descent direction.
+            :rtype: None
+            :return: None
         """
+
+        if hasattr(self,'_doEndIteration'): self._doEndIteration(xt)
+
+
         # store old values
         self.fOld = self.f
         self.xOld, self.xc = self.xc, xt
@@ -351,13 +437,13 @@ class Minimize(object):
 
 
 class GaussNewton(Minimize):
-    name = 'GaussNewton'
+    name = 'Gauss Newton'
     def findSearchDirection(self):
         return Solver(self.H).solve(-self.g)
 
 
 class InexactGaussNewton(Minimize):
-    name = 'InexactGaussNewton'
+    name = 'Inexact Gauss Newton'
 
     maxIterCG = 10
     tolCG = 1e-5
@@ -369,7 +455,7 @@ class InexactGaussNewton(Minimize):
 
 
 class SteepestDescent(Minimize):
-    name = 'SteepestDescent'
+    name = 'Steepest Descent'
     def findSearchDirection(self):
         return -self.g
 
@@ -379,9 +465,9 @@ if __name__ == '__main__':
     x0 = np.array([2.6, 3.7])
     checkDerivative(Rosenbrock, x0, plotIt=False)
 
-    def listener1(minimize,p):
-        print 'hi:  ', p
-    if doPub: pub.subscribe(listener1, 'Minimize.searchDirection')
+    # def listener1(minimize,p):
+    #     print 'hi:  ', p
+    # if doPub: pub.subscribe(listener1, 'Minimize.searchDirection')
 
     xOpt = GaussNewton(maxIter=20,tolF=1e-10,tolX=1e-10,tolG=1e-10).minimize(Rosenbrock,x0)
     print "xOpt=[%f, %f]" % (xOpt[0], xOpt[1])
