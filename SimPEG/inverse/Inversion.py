@@ -25,10 +25,10 @@ class Inversion(object):
                                     "value":    lambda M: M.parent._beta,
                                     "width":    10, "format":   "%1.2e"})
             self.opt.printers.insert(2,{"title":    "phi_d",
-                                    "value":    lambda M: M.parent._phi_d_last,
+                                    "value":    lambda M: M.parent.phi_d,
                                     "width":    10, "format":   "%1.2e"})
             self.opt.printers.insert(3,{"title":    "phi_m",
-                                    "value":    lambda M: M.parent._phi_m_last,
+                                    "value":    lambda M: M.parent.phi_m,
                                     "width":    10, "format":   "%1.2e"})
 
     def setKwargs(self, **kwargs):
@@ -45,7 +45,7 @@ class Inversion(object):
     #     print "%s" % '-'*62
 
     # def printIter(self):
-    #     print "%3d  %1.2e  %1.2e  %1.2e  %1.2e  %1.2e  %3d" % (self.opt._iter, self._beta, self._phi_d_last, self._phi_m_last, self.opt.f, np.linalg.norm(self.opt.g), self.opt._iterLS)
+    #     print "%3d  %1.2e  %1.2e  %1.2e  %1.2e  %1.2e  %3d" % (self.opt._iter, self._beta, self.phi_d, self.phi_m, self.opt.f, np.linalg.norm(self.opt.g), self.opt._iterLS)
 
     @property
     def Wd(self):
@@ -95,7 +95,7 @@ class Inversion(object):
     def stoppingCriteria(self):
         self._STOP = np.zeros(2,dtype=bool)
         self._STOP[0] = self._iter >= self.maxIter
-        self._STOP[1] = self._phi_d_last <= self.phi_d_target
+        self._STOP[1] = self.phi_d <= self.phi_d_target
         return np.any(self._STOP)
 
 
@@ -105,8 +105,8 @@ class Inversion(object):
         phi_d = self.dataObj(m, u)
         phi_m = self.reg.modelObj(m)
 
-        self._phi_d_last = phi_d
-        self._phi_m_last = phi_m
+        self.phi_d = phi_d
+        self.phi_m = phi_m
 
         f = phi_d + self._beta * phi_m
 

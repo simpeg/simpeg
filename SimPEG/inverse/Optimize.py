@@ -252,9 +252,9 @@ class Minimize(object):
             :rtype: None
             :return: None
         """
-        if method in [posible for posible in dir(self) if '_startup' in posible]:
+        for method in [posible for posible in dir(self) if '_startup' in posible]:
             if self.debug: print 'startup is calling self.'+method
-            getattr(self,method)(xt)
+            getattr(self,method)(x0)
 
         self._iter = 0
         self._iterLS = 0
@@ -482,7 +482,7 @@ class Minimize(object):
             :rtype: None
             :return: None
         """
-        if method in [posible for posible in dir(self) if '_doEndIteration' in posible]:
+        for method in [posible for posible in dir(self) if '_doEndIteration' in posible]:
             if self.debug: print 'doEndIteration is calling self.'+method
             getattr(self,method)(xt)
 
@@ -493,13 +493,207 @@ class Minimize(object):
         self._iter += 1
 
 
-class GaussNewton(Minimize):
+class Remember(object):
+    """
+        This mixin remembers all the things you tend to forget.
+
+        You can remember parameters directly, naming the str in Minimize,
+        or pass a tuple with the name and the function that takes Minimize.
+
+        For Example::
+
+            opt.remember('f',('norm_g', lambda M: np.linalg.norm(M.g)))
+
+            opt.minimize(evalFunction, x0)
+
+            opt.recall('f')
+
+        The param name (str) can also be located in the parent (if no conflicts),
+        and it will be looked up by default.
+    """
+
+    _rememberThese = []
+
+    def remember(self, *args):
+        self._rememberThese = args
+
+    def recall(self, param):
+        assert param in self._rememberThese, "You didn't tell me to remember "+param+", you gotta tell me what to remember!"
+        return self._rememberList[param]
+
+    def _startupRemember(self, x0):
+        self._rememberList = {}
+        for param in self._rememberThese:
+            if type(param) is str:
+                self._rememberList[param] = []
+            elif type(param) is tuple:
+                self._rememberList[param[0]] = []
+
+    def _doEndIterationRemember(self, xt):
+        for param in self._rememberThese:
+            if type(param) is str:
+                val = getattr(self, param, None)
+                if val is None and self.parent is not None:
+                    # Look to the parent for the param if not found here.
+                    val = getattr(self.parent, param, None)
+                self._rememberList[param].append( val )
+            elif type(param) is tuple:
+                self._rememberList[param[0]].append( param[1](self) )
+
+
+
+class ProjectedGradient(Minimize, Remember):
+    name = 'Projected Gradient'
+
+    maxIterCG = 10
+    tolCG = 1e-3
+
+    lower = -0.4
+    upper = 0.9
+
+    def __init__(self,**kwargs):
+        super(ProjectedGradient, self).__init__(**kwargs)
+
+        self.stoppers.append({
+                "str":      "%d : probSize  =    %3d   <= bindingSet      =    %3d",
+                "left":     lambda M: M.xc.size,
+                "right":    lambda M: np.sum(M.bindingSet(M.xc)),
+                "stopType": "critical"
+             })
+
+        self.stoppersLS.append({
+                "str":      "%d : probSize  =    %3d   <= bindingSet      =    %3d",
+                "left":     lambda M: M._LS_xt.size,
+                "right":    lambda M: np.sum(M.bindingSet(M._LS_xt)),
+                "stopType": "critical"
+             })
+
+        self.printers.append({"title":    "itType",
+                              "value":    lambda M: M._itType,
+                              "width":    8, "format":   "%s"})
+        self.printers.append({"title":    "aSet",
+                              "value":    lambda M: np.sum(M.activeSet(M.xc)),
+                              "width":    8, "format":   "%d"})
+        self.printers.append({"title":    "bSet",
+                              "value":    lambda M: np.sum(M.bindingSet(M.xc)),
+                              "width":    8, "format":   "%d"})
+        self.printers.append({"title":    "Comment",
+                              "value":    lambda M: M.projComment,
+                              "width":    7, "format":   "%s"})
+
+
+    def _startup(self, x0):
+        # ensure bound vectors are the same size as the model
+        if type(self.lower) is not np.ndarray:
+            self.lower = np.ones_like(x0)*self.lower
+        if type(self.upper) is not np.ndarray:
+            self.upper = np.ones_like(x0)*self.upper
+
+        self.explorePG = True
+        self.exploreCG = False
+        self.stopDoingPG = False
+
+        self._itType = 'SD'
+        self.projComment = ''
+
+        self.aSet_prev = self.activeSet(x0)
+
+    def projection(self, x):
+        """Make sure we are feasible."""
+        return np.median(np.c_[self.lower,x,self.upper],axis=1)
+
+    def activeSet(self, x):
+        """If we are on a bound"""
+        return np.logical_or(x == self.lower, x == self.upper)
+
+    def inactiveSet(self, x):
+        """The free variables."""
+        return np.logical_not(self.activeSet(x))
+
+    def bindingSet(self, x):
+        """
+            If we are on a bound and the negative gradient points away from the feasible set.
+
+            Optimality condition. (Satisfies Kuhn-Tucker) MoreToraldo91
+
+        """
+        bind_up  = np.logical_and(x == self.lower, self.g >= 0)
+        bind_low = np.logical_and(x == self.upper, self.g <= 0)
+        return np.logical_or(bind_up, bind_low)
+
+    def findSearchDirection(self):
+        self.aSet_prev = self.activeSet(self.xc)
+        allBoundsAreActive = sum(self.aSet_prev) == self.xc.size
+
+        if self.debug: print 'findSearchDirection: stopDoingPG: ', self.stopDoingPG
+        if self.debug: print 'findSearchDirection: explorePG: ', self.explorePG
+        if self.debug: print 'findSearchDirection: exploreCG: ', self.exploreCG
+        if self.debug: print 'findSearchDirection: aSet', np.sum(self.activeSet(self.xc))
+        if self.debug: print 'findSearchDirection: bSet', np.sum(self.bindingSet(self.xc))
+        if self.debug: print 'findSearchDirection: allBoundsAreActive: ', allBoundsAreActive
+
+        if self.explorePG or not self.exploreCG or allBoundsAreActive:
+            if self.debug: print 'findSearchDirection.PG: doingPG'
+            self._itType = 'SD'
+            p = -self.g
+        else:
+            if self.debug: print 'findSearchDirection.CG: doingCG'
+            self.f_decrease_max = -np.inf # Reset the max decrease each time you do a CG iteration
+            self._itType = '.CG.'
+
+            iSet  = self.inactiveSet(self.xc)  # The inactive set (free variables)
+            bSet = self.bindingSet(self.xc)
+            shape = (self.xc.size, np.sum(iSet))
+            v = np.ones(shape[1])
+            i = np.where(iSet)[0]
+            j = np.arange(shape[1])
+            if self.debug: print 'findSearchDirection.CG: Z.shape', shape
+            Z = sp.csr_matrix((v, (i, j)), shape=shape)
+
+            def reduceHess(v):
+                # Z is tall and skinny
+                return Z.T*(self.H*(Z*v))
+            operator = sp.linalg.LinearOperator( (shape[1], shape[1]), reduceHess, dtype=float )
+            p, info  = sp.linalg.cg(operator, -Z.T*self.g, tol=self.tolCG, maxiter=self.maxIterCG)
+            p = Z*p  #  bring up to full size
+            # aSet_after = self.activeSet(self.xc+p)
+        return p
+
+    def _doEndIteration_ProjectedGradient(self, xt):
+        aSet = self.activeSet(xt)
+        bSet = self.bindingSet(xt)
+
+        self.explorePG = not np.all(aSet == self.aSet_prev) # explore proximal gradient
+        self.exploreCG = np.all(aSet == bSet) # explore conjugate gradient
+
+        f_current_decrease = self.f_last - self.f
+        self.projComment = ''
+#         print f_current_decrease
+        if self._iter < 1:
+            self.f_decrease_max = -np.inf
+        else:
+            # Note that I reset this if we do a CG iteration.
+            self.f_decrease_max = max(self.f_decrease_max, f_current_decrease)
+            self.stopDoingPG = f_current_decrease < 0.25 * self.f_decrease_max
+#             print 'f_decrease_max: ', self.f_decrease_max
+#             print 'stopDoingSD: ', self.stopDoingSD
+            if self.stopDoingPG:
+                self.projComment = 'Stop SD'
+                self.explorePG = False
+                self.exploreCG = True
+        # implement 3.8, MoreToraldo91
+        #self.eta_2 * max_decrease where max decrease
+        # if true go to CG
+        # don't do too many steps of PG in a row.
+        if self.debug: self.printDone()
+
+class GaussNewton(Minimize, Remember):
     name = 'Gauss Newton'
     def findSearchDirection(self):
         return Solver(self.H).solve(-self.g)
 
 
-class InexactGaussNewton(Minimize):
+class InexactGaussNewton(Minimize, Remember):
     name = 'Inexact Gauss Newton'
 
     maxIterCG = 10
@@ -511,7 +705,7 @@ class InexactGaussNewton(Minimize):
         return p
 
 
-class SteepestDescent(Minimize):
+class SteepestDescent(Minimize, Remember):
     name = 'Steepest Descent'
     def findSearchDirection(self):
         return -self.g

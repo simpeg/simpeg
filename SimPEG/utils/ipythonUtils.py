@@ -6,7 +6,7 @@ from IPython.display import HTML
 # http://jakevdp.github.io/blog/2013/05/12/embedding-matplotlib-animations/
 # http://www.renevolution.com/how-to-install-ffmpeg-on-mac-os-x/
 
-VIDEO_TAG = """<video controls>
+VIDEO_TAG = """<video controls loop>
  <source src="data:video/x-m4v;base64,{0}" type="video/mp4">
  Your browser does not support the video tag.
 </video>"""
