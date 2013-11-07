@@ -23,13 +23,13 @@ class Inversion(object):
         if not haveInserted:
             self.opt.printers.insert(1,{"title":    "beta",
                                     "value":    lambda M: M.parent._beta,
-                                    "width":    13, "format":   "%1.2e"})
+                                    "width":    10, "format":   "%1.2e"})
             self.opt.printers.insert(2,{"title":    "phi_d",
                                     "value":    lambda M: M.parent._phi_d_last,
-                                    "width":    13, "format":   "%1.2e"})
+                                    "width":    10, "format":   "%1.2e"})
             self.opt.printers.insert(3,{"title":    "phi_m",
                                     "value":    lambda M: M.parent._phi_m_last,
-                                    "width":    13, "format":   "%1.2e"})
+                                    "width":    10, "format":   "%1.2e"})
 
     def setKwargs(self, **kwargs):
         """Sets key word arguments (kwargs) that are present in the object, throw an error if they don't exist."""
@@ -80,8 +80,8 @@ class Inversion(object):
         while True:
             self._beta = self.getBeta()
             m = self.opt.minimize(self.evalFunction,m)
-            if self.stoppingCriteria(): break
             self._iter += 1
+            if self.stoppingCriteria(): break
         return m
 
     beta0 = 1.e2
@@ -127,7 +127,7 @@ class Inversion(object):
 
             operator = sp.linalg.LinearOperator( (m.size, m.size), H_fun, dtype=float )
             out += (operator,)
-        return out
+        return out if len(out) > 1 else out[0]
 
 
     def dataObj(self, m, u=None):

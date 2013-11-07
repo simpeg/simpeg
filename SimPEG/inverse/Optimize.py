@@ -33,7 +33,9 @@ class Minimize(object):
     tolX = 1e-1
     tolG = 1e-1
     eps = 1e-5
-    debug = True
+
+    debug   = False
+    debugLS = False
 
     def __init__(self, **kwargs):
         self._id = int(np.random.rand()*1e6)  # create a unique identifier to this program to be used in pubsub
@@ -79,17 +81,17 @@ class Minimize(object):
         self.printers = [{
                             "title":    "#",
                             "value":    lambda M: M._iter,
-                            "width":    10,
+                            "width":    5,
                             "format":   "%3d"
                          },{
                             "title":    "f",
                             "value":    lambda M: self.f,
-                            "width":    14,
+                            "width":    10,
                             "format":   "%1.2e"
                          },{
                             "title":    "|g|",
                             "value":    lambda M: norm(M.g),
-                            "width":    14,
+                            "width":    10,
                             "format":   "%1.2e"
                          },{
                             "title":    "LS",
@@ -101,17 +103,17 @@ class Minimize(object):
         self.printersLS = [{
                             "title":    "#",
                             "value":    lambda M: (M._iter, M._iterLS),
-                            "width":    10,
+                            "width":    5,
                             "format":   "%3d.%d"
                          },{
                             "title":    "t",
                             "value":    lambda M: M._LS_t,
-                            "width":    14,
+                            "width":    10,
                             "format":   "%0.5f"
                          },{
                             "title":    "ft",
                             "value":    lambda M: M._LS_ft,
-                            "width":    14,
+                            "width":    10,
                             "format":   "%1.2e"
                          },{
                             "title":      "f + alp*g.T*p",
@@ -142,6 +144,14 @@ class Minimize(object):
         evalFunction is a function handle::
 
             (f[, g][, H]) = evalFunction(x, return_g=False, return_H=False )
+
+            def evalFunction(x, return_g=False, return_H=False):
+                out = (f,)
+                if return_g:
+                    out += (g,)
+                if return_H:
+                    out += (H,)
+                return out if len(out) > 1 else out[0]
 
 
         Events are fired with the following inputs via pypubsub::
@@ -192,6 +202,7 @@ class Minimize(object):
         while True:
             self.f, self.g, self.H = evalFunction(self.xc, return_g=True, return_H=True)
             if doPub: pub.sendMessage('Minimize.evalFunction', minimize=self, f=self.f, g=self.g, H=self.H)
+            self.printIter()
             if self.stoppingCriteria(): break
             p = self.findSearchDirection()
             if doPub: pub.sendMessage('Minimize.searchDirection', minimize=self, p=p)
@@ -204,7 +215,6 @@ class Minimize(object):
                 if not caught: return self.xc
             self.doEndIteration(xt)
             if doPub: pub.sendMessage('Minimize.endIteration', minimize=self, xt=xt)
-            self.printIter()
 
         self.printDone()
 
@@ -232,17 +242,19 @@ class Minimize(object):
 
             If you have things that also need to run on startup, you can create a method::
 
-                def _startup(self, x0):
+                def _startup*(self, x0):
                     pass
 
-            If present, _startup will be called at the start of the default startup call.
+            Where the * can be any string. If present, _startup* will be called at the start of the default startup call.
             You may also completely overwrite this function.
 
             :param numpy.ndarray x0: initial x
             :rtype: None
             :return: None
         """
-        if hasattr(self,'_startup'): self._startup(x0)
+        if method in [posible for posible in dir(self) if '_startup' in posible]:
+            if self.debug: print 'startup is calling self.'+method
+            getattr(self,method)(xt)
 
         self._iter = 0
         self._iterLS = 0
@@ -417,16 +429,16 @@ class Minimize(object):
         self._iterLS = 0
         while self._iterLS < self.maxIterLS:
             self._LS_xt      = self.projection(self.xc + self._LS_t*p)
-            self._LS_ft      = self.evalFunction(self._LS_xt, return_g=False, return_H=False)[0]
+            self._LS_ft      = self.evalFunction(self._LS_xt, return_g=False, return_H=False)
             self._LS_descent = np.inner(self.g, self._LS_xt - self.xc)  # this takes into account multiplying by t, but is important for projection.
             if self.stoppingCriteria(inLS=True): break
             self._iterLS += 1
             self._LS_t = self.LSshorten*self._LS_t
-            if self.debug:
+            if self.debugLS:
                 if self._iterLS == 1: self.printInit(inLS=True)
                 self.printIter(inLS=True)
 
-        if self.debug and self._iterLS > 0: self.printDone(inLS=True)
+        if self.debugLS and self._iterLS > 0: self.printDone(inLS=True)
 
         return self._LS_xt, self._iterLS < self.maxIterLS
 
@@ -460,18 +472,19 @@ class Minimize(object):
 
             If you have things that also need to run at the end of every iteration, you can create a method::
 
-                def _doEndIteration(self, xt):
+                def _doEndIteration*(self, xt):
                     pass
 
-            If present, _doEndIteration will be called at the start of the default doEndIteration call.
+            Where the * can be any string. If present, _doEndIteration* will be called at the start of the default doEndIteration call.
             You may also completely overwrite this function.
 
             :param numpy.ndarray xt: tested new iterate that ensures a descent direction.
             :rtype: None
             :return: None
         """
-
-        if hasattr(self,'_doEndIteration'): self._doEndIteration(xt)
+        if method in [posible for posible in dir(self) if '_doEndIteration' in posible]:
+            if self.debug: print 'doEndIteration is calling self.'+method
+            getattr(self,method)(xt)
 
 
         # store old values
