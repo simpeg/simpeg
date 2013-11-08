@@ -51,6 +51,15 @@ class StoppingCriteria(object):
                       "left": lambda M: M._LS_xt.size, "right": lambda M: np.sum(M.bindingSet(M._LS_xt)),
                       "stopType": "critical"}
 
+    phi_d_target_Minimize = { "str": "%d : phi_d  = %1.4e <= phi_d_target  = %1.4e ",
+                              "left": lambda M: M.parent.phi_d, "right": lambda M: M.parent.phi_d_target,
+                              "stopType": "critical"}
+
+    phi_d_target_Inversion = { "str": "%d : phi_d  = %1.4e <= phi_d_target  = %1.4e ",
+                               "left": lambda I: I.phi_d, "right": lambda I: I.phi_d_target,
+                               "stopType": "critical"}
+
+
 class IterationPrinters(object):
     """docstring for IterationPrinters"""
 
@@ -68,6 +77,11 @@ class IterationPrinters(object):
     aSet = {"title": "aSet", "value": lambda M: np.sum(M.activeSet(M.xc)), "width": 8, "format": "%d"}
     bSet = {"title": "bSet", "value": lambda M: np.sum(M.bindingSet(M.xc)), "width": 8, "format": "%d"}
     comment = {"title": "Comment", "value": lambda M: M.projComment, "width": 7, "format": "%s"}
+
+    beta = {"title": "beta", "value": lambda M: M.parent._beta, "width": 10, "format":   "%1.2e"}
+    phi_d = {"title": "phi_d", "value": lambda M: M.parent.phi_d, "width": 10, "format":   "%1.2e"}
+    phi_m = {"title": "phi_m", "value": lambda M: M.parent.phi_m, "width": 10, "format":   "%1.2e"}
+
 
 class Minimize(object):
     """
@@ -393,6 +407,7 @@ class Minimize(object):
             :rtype: numpy.ndarray,bool
             :return: (xt, breakCaught)
         """
+        self.printDone(inLS=True)
         print 'The linesearch got broken. Boo.'
         return p, False
 

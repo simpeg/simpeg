@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
-from SimPEG.utils import sdiag, mkvc, setKwargs
+import SimPEG
+from SimPEG.utils import sdiag, mkvc, setKwargs, checkStoppers
 
 class Inversion(object):
     """docstring for Inversion"""
@@ -15,21 +16,14 @@ class Inversion(object):
         self.opt = opt
         self.opt.parent = self
 
-        # Check if we have inserted printers into the optimization
-        haveInserted = False
-        for printer in self.opt.printers:
-            haveInserted = haveInserted or printer["title"] == 'phi_d'
+        self.stoppers = [SimPEG.inverse.StoppingCriteria.iteration, SimPEG.inverse.StoppingCriteria.phi_d_target_Inversion]
 
-        if not haveInserted:
-            self.opt.printers.insert(1,{"title":    "beta",
-                                    "value":    lambda M: M.parent._beta,
-                                    "width":    10, "format":   "%1.2e"})
-            self.opt.printers.insert(2,{"title":    "phi_d",
-                                    "value":    lambda M: M.parent.phi_d,
-                                    "width":    10, "format":   "%1.2e"})
-            self.opt.printers.insert(3,{"title":    "phi_m",
-                                    "value":    lambda M: M.parent.phi_m,
-                                    "width":    10, "format":   "%1.2e"})
+        # Check if we have inserted printers into the optimization
+        if not np.any([p is SimPEG.inverse.IterationPrinters.phi_d for p in self.opt.printers]):
+            self.opt.printers.insert(1,SimPEG.inverse.IterationPrinters.beta)
+            self.opt.printers.insert(2,SimPEG.inverse.IterationPrinters.phi_d)
+            self.opt.printers.insert(3,SimPEG.inverse.IterationPrinters.phi_m)
+            self.opt.stoppers.append(SimPEG.inverse.StoppingCriteria.phi_d_target_Minimize)
 
     @property
     def Wd(self):
@@ -77,11 +71,7 @@ class Inversion(object):
         return self._beta / self.beta_coolingFactor
 
     def stoppingCriteria(self):
-        self._STOP = np.zeros(2,dtype=bool)
-        self._STOP[0] = self._iter >= self.maxIter
-        self._STOP[1] = self.phi_d <= self.phi_d_target
-        return np.any(self._STOP)
-
+        return checkStoppers(self, self.stoppers)
 
     def evalFunction(self, m, return_g=True, return_H=True):
 
