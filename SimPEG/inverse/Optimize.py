@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from SimPEG.utils import mkvc, sdiag, setKwargs, printTitles, printLine, printStoppers
+from SimPEG.utils import mkvc, sdiag, setKwargs, printTitles, printLine, printStoppers, checkStoppers
 norm = np.linalg.norm
 import scipy.sparse as sp
 from SimPEG import Solver
@@ -12,7 +12,62 @@ except Exception, e:
     print 'Warning: you may not have the required pubsub installed, use pypubsub. You will not be able to listen to events.'
     doPub = False
 
+class StoppingCriteria(object):
+    """docstring for StoppingCriteria"""
 
+    iteration   = { "str": "%d : maxIter   =     %3d    <= iter          =    %3d",
+                    "left": lambda M: M.maxIter, "right": lambda M: M._iter,
+                    "stopType": "critical"}
+
+    iterationLS = { "str": "%d : maxIterLS =     %3d    <= iterLS          =    %3d",
+                    "left": lambda M: M.maxIterLS, "right": lambda M: M._iterLS,
+                    "stopType": "critical"}
+
+    armijoGoldstein = { "str": "%d :    ft     = %1.4e <= alp*descent     = %1.4e",
+                        "left": lambda M: M._LS_ft, "right": lambda M: M.f + M.LSreduction * M._LS_descent,
+                        "stopType": "optimal"}
+
+    tolerance_f = { "str": "%d : |fc-fOld| = %1.4e <= tolF*(1+|f0|) = %1.4e",
+                    "left":     lambda M: 1 if M._iter==0 else abs(M.f-M.f_last), "right":    lambda M: 0 if M._iter==0 else M.tolF*(1+abs(M.f0)),
+                    "stopType": "optimal"}
+
+    moving_x = { "str": "%d : |xc-x_last| = %1.4e <= tolX*(1+|x0|) = %1.4e",
+                 "left": lambda M: 1 if M._iter==0 else norm(M.xc-M.x_last), "right": lambda M: 0 if M._iter==0 else M.tolX*(1+norm(M.x0)),
+                 "stopType": "optimal"}
+
+    tolerance_g = { "str": "%d : |g|       = %1.4e <= tolG          = %1.4e",
+                   "left": lambda M: norm(M.projection(M.g)), "right": lambda M: M.tolG,
+                   "stopType": "optimal"}
+
+    norm_g = { "str": "%d : |g|       = %1.4e <= 1e3*eps       = %1.4e",
+               "left": lambda M: norm(M.g), "right": lambda M: 1e3*M.eps,
+               "stopType": "critical"}
+
+    bindingSet = { "str": "%d : probSize  =    %3d   <= bindingSet      =    %3d",
+                   "left": lambda M: M.xc.size, "right": lambda M: np.sum(M.bindingSet(M.xc)),
+                   "stopType": "critical"}
+
+    bindingSet_LS = { "str": "%d : probSize  =    %3d   <= bindingSet      =    %3d",
+                      "left": lambda M: M._LS_xt.size, "right": lambda M: np.sum(M.bindingSet(M._LS_xt)),
+                      "stopType": "critical"}
+
+class IterationPrinters(object):
+    """docstring for IterationPrinters"""
+
+    iteration = {"title": "#", "value": lambda M: M._iter, "width": 5, "format": "%3d"}
+    f = {"title": "f", "value": lambda M: M.f, "width": 10, "format": "%1.2e"}
+    norm_g = {"title": "|g|", "value": lambda M: norm(M.g), "width": 10, "format": "%1.2e"}
+    totalLS = {"title": "LS", "value": lambda M: M._iterLS, "width": 5, "format": "%d"}
+
+    iterationLS = {"title": "#", "value": lambda M: (M._iter, M._iterLS), "width": 5, "format": "%3d.%d"}
+    LS_ft = {"title": "ft", "value": lambda M: M._LS_ft, "width": 10, "format": "%1.2e"}
+    LS_t = {"title": "t", "value": lambda M: M._LS_t, "width": 10, "format": "%0.5f"}
+    LS_armijoGoldstein = {"title": "f + alp*g.T*p", "value": lambda M: M.f + M.LSreduction*M._LS_descent, "width": 16, "format": "%1.2e"}
+
+    itType = {"title": "itType", "value": lambda M: M._itType, "width": 8, "format": "%s"}
+    aSet = {"title": "aSet", "value": lambda M: np.sum(M.activeSet(M.xc)), "width": 8, "format": "%d"}
+    bSet = {"title": "bSet", "value": lambda M: np.sum(M.bindingSet(M.xc)), "width": 8, "format": "%d"}
+    comment = {"title": "Comment", "value": lambda M: M.projComment, "width": 7, "format": "%s"}
 
 class Minimize(object):
     """
@@ -39,88 +94,11 @@ class Minimize(object):
 
     def __init__(self, **kwargs):
         self._id = int(np.random.rand()*1e6)  # create a unique identifier to this program to be used in pubsub
-        self.stoppers = [{
-                            "str":      "%d : |fc-fOld| = %1.4e <= tolF*(1+|f0|) = %1.4e",
-                            "left":     lambda M: 1 if M._iter==0 else abs(M.f-M.f_last),
-                            "right":    lambda M: 0 if M._iter==0 else M.tolF*(1+abs(M.f0)),
-                            "stopType": "optimal"
-                         },{
-                            "str":      "%d : |xc-x_last| = %1.4e <= tolX*(1+|x0|) = %1.4e",
-                            "left":     lambda M: 1 if M._iter==0 else norm(M.xc-M.x_last),
-                            "right":    lambda M: 0 if M._iter==0 else M.tolX*(1+norm(M.x0)),
-                            "stopType": "optimal"
-                         },{
-                            "str":      "%d : |g|       = %1.4e <= tolG          = %1.4e",
-                            "left":     lambda M: norm(M.projection(M.g)),
-                            "right":    lambda M: M.tolG,
-                            "stopType": "optimal"
-                         },{
-                            "str":      "%d : |g|       = %1.4e <= 1e3*eps       = %1.4e",
-                            "left":     lambda M: norm(M.g),
-                            "right":    lambda M: 1e3*M.eps,
-                            "stopType": "critical"
-                         },{
-                            "str":      "%d : maxIter   =     %3d    <= iter          =    %3d",
-                            "left":     lambda M: M.maxIter,
-                            "right":    lambda M: M._iter,
-                            "stopType": "critical"
-                         }]
+        self.stoppers = [StoppingCriteria.tolerance_f, StoppingCriteria.moving_x, StoppingCriteria.tolerance_g, StoppingCriteria.norm_g, StoppingCriteria.iteration]
+        self.stoppersLS = [StoppingCriteria.armijoGoldstein, StoppingCriteria.iterationLS]
 
-        self.stoppersLS = [{
-                            "str":      "%d :    ft     = %1.4e <= alp*descent     = %1.4e",
-                            "left":     lambda M: M._LS_ft,
-                            "right":    lambda M: M.f + self.LSreduction * M._LS_descent,
-                            "stopType": "optimal"
-                           },{
-                            "str":      "%d : maxIterLS =     %3d    <= iterLS          =    %3d",
-                            "left":     lambda M: M.maxIterLS,
-                            "right":    lambda M: M._iterLS,
-                            "stopType": "critical"
-                           }]
-
-        self.printers = [{
-                            "title":    "#",
-                            "value":    lambda M: M._iter,
-                            "width":    5,
-                            "format":   "%3d"
-                         },{
-                            "title":    "f",
-                            "value":    lambda M: self.f,
-                            "width":    10,
-                            "format":   "%1.2e"
-                         },{
-                            "title":    "|g|",
-                            "value":    lambda M: norm(M.g),
-                            "width":    10,
-                            "format":   "%1.2e"
-                         },{
-                            "title":    "LS",
-                            "value":    lambda M: M._iterLS,
-                            "width":    5,
-                            "format":   "%d"
-                         }]
-
-        self.printersLS = [{
-                            "title":    "#",
-                            "value":    lambda M: (M._iter, M._iterLS),
-                            "width":    5,
-                            "format":   "%3d.%d"
-                         },{
-                            "title":    "t",
-                            "value":    lambda M: M._LS_t,
-                            "width":    10,
-                            "format":   "%0.5f"
-                         },{
-                            "title":    "ft",
-                            "value":    lambda M: M._LS_ft,
-                            "width":    10,
-                            "format":   "%1.2e"
-                         },{
-                            "title":      "f + alp*g.T*p",
-                            "value":    lambda M: M.f + M.LSreduction*M._LS_descent,
-                            "width":    16,
-                            "format":   "%1.2e"
-                         }]
+        self.printers = [IterationPrinters.iteration, IterationPrinters.f, IterationPrinters.norm_g, IterationPrinters.totalLS]
+        self.printersLS = [IterationPrinters.iterationLS, IterationPrinters.LS_ft, IterationPrinters.LS_t, IterationPrinters.LS_armijoGoldstein]
 
         setKwargs(self, **kwargs)
 
@@ -300,23 +278,10 @@ class Minimize(object):
 
     def stoppingCriteria(self, inLS=False):
         if self._iter == 0:
-            # Save this for stopping criteria
             self.f0 = self.f
             self.g0 = self.g
+        return checkStoppers(self, self.stoppers if not inLS else self.stoppersLS)
 
-        # check stopping rules
-        optimal = []
-        critical = []
-
-        stoppers = self.stoppers if not inLS else self.stoppersLS
-        for stopper in stoppers:
-            l = stopper['left'](self)
-            r = stopper['right'](self)
-            if stopper['stopType'] == 'optimal':
-                optimal.append(l <= r)
-            if stopper['stopType'] == 'critical':
-                critical.append(l <= r)
-        return all(optimal) | any(critical)
 
     def projection(self, p):
         """
@@ -524,32 +489,10 @@ class ProjectedGradient(Minimize, Remember):
     def __init__(self,**kwargs):
         super(ProjectedGradient, self).__init__(**kwargs)
 
-        self.stoppers.append({
-                "str":      "%d : probSize  =    %3d   <= bindingSet      =    %3d",
-                "left":     lambda M: M.xc.size,
-                "right":    lambda M: np.sum(M.bindingSet(M.xc)),
-                "stopType": "critical"
-             })
+        self.stoppers.append(StoppingCriteria.bindingSet)
+        self.stoppersLS.append(StoppingCriteria.bindingSet_LS)
 
-        self.stoppersLS.append({
-                "str":      "%d : probSize  =    %3d   <= bindingSet      =    %3d",
-                "left":     lambda M: M._LS_xt.size,
-                "right":    lambda M: np.sum(M.bindingSet(M._LS_xt)),
-                "stopType": "critical"
-             })
-
-        self.printers.append({"title":    "itType",
-                              "value":    lambda M: M._itType,
-                              "width":    8, "format":   "%s"})
-        self.printers.append({"title":    "aSet",
-                              "value":    lambda M: np.sum(M.activeSet(M.xc)),
-                              "width":    8, "format":   "%d"})
-        self.printers.append({"title":    "bSet",
-                              "value":    lambda M: np.sum(M.bindingSet(M.xc)),
-                              "width":    8, "format":   "%d"})
-        self.printers.append({"title":    "Comment",
-                              "value":    lambda M: M.projComment,
-                              "width":    7, "format":   "%s"})
+        self.printers.extend([ IterationPrinters.itType, IterationPrinters.aSet, IterationPrinters.bSet, IterationPrinters.comment ])
 
 
     def _startup(self, x0):

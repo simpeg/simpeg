@@ -36,6 +36,19 @@ def printLine(obj, printers, pad=''):
         values += ('{:^%i}'%printer['width']).format(printer['format'] % printer['value'](obj))
     print pad + values
 
+def checkStoppers(obj, stoppers):
+    # check stopping rules
+    optimal = []
+    critical = []
+    for stopper in stoppers:
+        l = stopper['left'](obj)
+        r = stopper['right'](obj)
+        if stopper['stopType'] == 'optimal':
+            optimal.append(l <= r)
+        if stopper['stopType'] == 'critical':
+            critical.append(l <= r)
+    return all(optimal) | any(critical)
+
 def printStoppers(obj, stoppers, pad='', stop='STOP!', done='DONE!'):
     print pad + "%s%s%s" % ('-'*25,stop,'-'*25)
     for stopper in stoppers:
