@@ -1,13 +1,17 @@
 import numpy as np
 import scipy.sparse as sp
 import SimPEG
-from SimPEG.utils import sdiag, mkvc, setKwargs, checkStoppers
+from SimPEG.utils import sdiag, mkvc, setKwargs, checkStoppers, printStoppers
+from Optimize import Remember
+from BetaSchedule import Cooling
 
-class Inversion(object):
-    """docstring for Inversion"""
+class BaseInversion(object):
+    """docstring for BaseInversion"""
 
-    maxIter = 10
-    name = 'SimPEG Inversion'
+    maxIter = 1
+    name = 'BaseInversion'
+    debug = False
+    beta0 = 1e4
 
     def __init__(self, prob, reg, opt, **kwargs):
         setKwargs(self, **kwargs)
@@ -47,31 +51,86 @@ class Inversion(object):
         if getattr(self, '_phi_d_target', None) is None:
             return self.prob.dobs.size #
         return self._phi_d_target
+
     @phi_d_target.setter
     def phi_d_target(self, value):
         self._phi_d_target = value
 
     def run(self, m0):
-        m = m0
-        self._iter = 0
-        self._beta = None
+        self.startup(m0)
         while True:
             self._beta = self.getBeta()
-            m = self.opt.minimize(self.evalFunction,m)
-            self._iter += 1
+            self.m = self.opt.minimize(self.evalFunction, self.m)
+            self.doEndIteration()
             if self.stoppingCriteria(): break
-        return m
 
-    beta0 = 1.e2
-    beta_coolingFactor = 5.
+        self.printDone()
+        return self.m
+
+    def startup(self, m0):
+        """
+            **startup** is called at the start of any new run call.
+
+            If you have things that also need to run on startup, you can create a method::
+
+                def _startup*(self, x0):
+                    pass
+
+            Where the * can be any string. If present, _startup* will be called at the start of the default startup call.
+            You may also completely overwrite this function.
+
+            :param numpy.ndarray x0: initial x
+            :rtype: None
+            :return: None
+        """
+        for method in [posible for posible in dir(self) if '_startup' in posible]:
+            if self.debug: print 'startup is calling self.'+method
+            getattr(self,method)(m0)
+
+        self.m = m0
+        self._iter = 0
+        self._beta = None
+
+    def doEndIteration(self):
+        """
+            **doEndIteration** is called at the end of each run iteration.
+
+            If you have things that also need to run at the end of every iteration, you can create a method::
+
+                def _doEndIteration*(self, xt):
+                    pass
+
+            Where the * can be any string. If present, _doEndIteration* will be called at the start of the default doEndIteration call.
+            You may also completely overwrite this function.
+
+            :param numpy.ndarray xt: tested new iterate that ensures a descent direction.
+            :rtype: None
+            :return: None
+        """
+        for method in [posible for posible in dir(self) if '_doEndIteration' in posible]:
+            if self.debug: print 'doEndIteration is calling self.'+method
+            getattr(self,method)()
+
+        # store old values
+        self.phi_d_last = self.phi_d
+        self.phi_m_last = self.phi_m
+        self._iter += 1
 
     def getBeta(self):
-        if self._beta is None:
-            return self.beta0
-        return self._beta / self.beta_coolingFactor
+        return self.beta0
 
     def stoppingCriteria(self):
+        if self.debug: print 'checking stoppingCriteria'
         return checkStoppers(self, self.stoppers)
+
+
+    def printDone(self):
+        """
+            **printDone** is called at the end of the inversion routine.
+
+        """
+        printStoppers(self, self.stoppers)
+
 
     def evalFunction(self, m, return_g=True, return_H=True):
 
@@ -209,3 +268,10 @@ class Inversion(object):
 
         return dmisfit
 
+class Inversion(Cooling, Remember, BaseInversion):
+
+    maxIter = 10
+    name = "SimPEG Inversion"
+
+    def __init__(self, prob, reg, opt, **kwargs):
+        BaseInversion.__init__(self, prob, reg, opt, **kwargs)

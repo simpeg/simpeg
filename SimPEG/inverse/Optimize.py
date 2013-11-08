@@ -468,7 +468,7 @@ class Remember(object):
         self._rememberThese = args
 
     def recall(self, param):
-        assert param in self._rememberThese, "You didn't tell me to remember "+param+", you gotta tell me what to remember!"
+        assert param in self._rememberList, "You didn't tell me to remember "+param+", you gotta tell me what to remember!"
         return self._rememberList[param]
 
     def _startupRemember(self, x0):
@@ -479,15 +479,17 @@ class Remember(object):
             elif type(param) is tuple:
                 self._rememberList[param[0]] = []
 
-    def _doEndIterationRemember(self, xt):
+    def _doEndIterationRemember(self, *args):
         for param in self._rememberThese:
             if type(param) is str:
+                if self.debug: print 'Remember is remembering: ' + param
                 val = getattr(self, param, None)
-                if val is None and self.parent is not None:
+                if val is None and getattr(self, 'parent', None) is not None:
                     # Look to the parent for the param if not found here.
                     val = getattr(self.parent, param, None)
                 self._rememberList[param].append( val )
             elif type(param) is tuple:
+                if self.debug: print 'Remember is remembering: ' + param[0]
                 self._rememberList[param[0]].append( param[1](self) )
 
 

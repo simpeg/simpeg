@@ -47,7 +47,11 @@ def checkStoppers(obj, stoppers):
             optimal.append(l <= r)
         if stopper['stopType'] == 'critical':
             critical.append(l <= r)
-    return all(optimal) | any(critical)
+
+    if obj.debug: print 'checkStoppers.optimal: ', optimal
+    if obj.debug: print 'checkStoppers.critical: ', critical
+
+    return (len(optimal)>0 and all(optimal)) | (len(critical)>0 and any(critical))
 
 def printStoppers(obj, stoppers, pad='', stop='STOP!', done='DONE!'):
     print pad + "%s%s%s" % ('-'*25,stop,'-'*25)
