@@ -55,7 +55,8 @@ class vtkTools(object):
 			vtkDoubleArr = npsup.numpy_to_vtk(item[1],deep=1)
 			vtkDoubleArr.SetName(item[0])
 			vtkObj.GetCellData().AddArray(vtkDoubleArr)
-
+		
+		vtkObj.GetCellData().SetActiveScalars(model.keys()[0])
 		return vtkObj
 
 	@staticmethod
@@ -117,6 +118,8 @@ class vtkTools(object):
 			vtkDoubleArr = npsup.numpy_to_vtk(item[1],deep=1)
 			vtkDoubleArr.SetName(item[0])
 			vtkObj.GetCellData().AddArray(vtkDoubleArr)
+		
+		vtkObj.GetCellData().SetActiveScalars(model.keys()[0])
 		vtkObj.Update()
 		return vtkObj
 
@@ -177,17 +180,18 @@ class vtkTools(object):
 			vtkDoubleArr = npsup.numpy_to_vtk(item[1],deep=1)
 			vtkDoubleArr.SetName(item[0])
 			vtkObj.GetCellData().AddArray(vtkDoubleArr)
-
+		
+		vtkObj.GetCellData().SetActiveScalars(model.keys()[0])
 		return vtkObj
 
 	@staticmethod
 	def makeRenderWindow(ren):
-		renWin = vtk.vtkRenderWindow()
-		renWin.AddRenderer(ren)
+		renwin = vtk.vtkRenderWindow()
+		renwin.AddRenderer(ren)
 		iren = vtk.vtkRenderWindowInteractor()
-		iren.SetRenderWindow(renWin)
+		iren.SetRenderWindow(renwin)
 
-		return iren
+		return iren, renwin
 
 
 	@staticmethod
@@ -195,6 +199,7 @@ class vtkTools(object):
 		renwin = iren.GetRenderWindow()
 		renwin.Finalize()
 		iren.TerminateApp()
+		
 		del iren, renwin
 
 	@staticmethod
@@ -206,8 +211,79 @@ class vtkTools(object):
 		actor.SetMapper(mapper)
 		actor.GetProperty().SetColor(0,0,0)
 		actor.GetProperty().SetRepresentationToWireframe()
-
 		return actor
+
+	@staticmethod
+	def makeVTKLODActor(vtkObj,clipper):
+		"""Make LOD vtk Actor"""
+		selectMapper = vtk.vtkDataSetMapper()
+		selectMapper.SetInputConnection(clipper.GetOutputPort())
+		selectMapper.SetScalarVisibility(1)
+		selectMapper.SetColorModeToMapScalars()
+		selectMapper.SetScalarModeToUseCellData()
+		selectMapper.SetScalarRange(clipper.GetInputDataObject(0,0).GetCellData().GetArray(0).GetRange())
+
+		selectActor = vtk.vtkLODActor()
+		selectActor.SetMapper(selectMapper)
+		selectActor.GetProperty().SetEdgeColor(1,0.5,0)
+		selectActor.GetProperty().SetEdgeVisibility(0)
+		selectActor.VisibilityOn()
+		selectActor.SetScale(1.01, 1.01, 1.01)
+		return selectActor
+
+	@staticmethod
+	def setScalar2View(vtkObj,scalarName):
+		""" Sets the sclar to view """
+		useArr = vtkObj.GetCellData().GetArray(scalarName)
+		if useArr == None:
+			raise IOError('Nerty array {:s} in the vtkObject'.format(scalarName))
+		vtkObj.GetCellData().SetActiveScalars(scalarName)
+		
+	@staticmethod
+	def makeRectiVTKVOIThres(vtkObj):
+		"""Make volume of interest and threshold for rectilinear grid."""
+		cellCore = vtk.vtkExtractRectilinearGrid()
+		cellCore.SetInput(vtkObj)
+		cellCore.SetVOI(vtkObj.GetExtent())
+		cellThres = vtk.vtkThreshold()
+		cellThres.AllScalarsOn()  
+		cellThres.SetInputConnection(cellCore.GetOutputPort()) 
+		cellThres.ThresholdByUpper(-1)
+		cellThres.Update()
+		return cellThres.GetOutput(), cellCore.GetOutput()
+
+	@staticmethod
+	def makePlaneClipper(vtkObj):
+		"""Makes a plane and clipper """
+		plane = vtk.vtkPlane()
+		clipper = vtk.vtkClipDataSet()
+		clipper.SetInputConnection(vtkObj.GetProducerPort())
+		clipper.SetClipFunction(plane)
+		clipper.InsideOutOff()
+		return clipper, plane
+
+	@staticmethod
+	def makePlaneWidget(vtkObj,iren,plane,actor):
+		"""Make an interactive planeWidget"""
+
+		# Callback function
+		def movePlane(obj, events):
+		    obj.GetPlane(intPlane)
+		    intActor.VisibilityOn()
+
+		# Associate the line widget with the interactor
+		planeWidget = vtk.vtkImplicitPlaneWidget()
+		planeWidget.SetInteractor(iren)
+		planeWidget.SetPlaceFactor(1.25)
+		planeWidget.SetInput(vtkObj)
+		planeWidget.PlaceWidget()
+		#planeWidget.AddObserver("InteractionEvent", movePlane)
+		planeWidget.SetScaleEnabled(0)
+		planeWidget.SetEnabled(1)
+		planeWidget.SetOutlineTranslation(0)
+		planeWidget.GetPlaneProperty().SetOpacity(0.1)
+		return planeWidget
+
 
 	@staticmethod
 	def startRenderWindow(iren):

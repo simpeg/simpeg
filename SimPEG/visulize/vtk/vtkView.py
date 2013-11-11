@@ -28,13 +28,24 @@ class vtkView(object):
 
 		self.name = 'VTK figure of SimPEG model'
 		self._mesh = mesh
+		# Set vtk object containers
 		self._cell = None
 		self._faces = None
 		self._edges = None
 
-
-
 		self._readPropertyDictionary(propdict)
+
+		# Setup hidden properties
+		self._ren = None
+		self._iren = None
+		self._renwin = None
+		self._core = None
+		self._viewobj = None
+		self._plane = None
+		self._clipper = None
+		self._widget = None
+		self._actor = None
+		self._lut = None
 
 	def _readPropertyDictionary(self,propdict):
 		""" 
@@ -68,27 +79,50 @@ class vtkView(object):
 		import SimPEG.visulize.vtk.vtkTools as vtkSP
 
 		# Make a renderer
-		ren = vtk.vtkRenderer()
+		self._ren = vtk.vtkRenderer()
 		# Make renderwindow. Returns the interactor.
-		iren = vtkSP.makeRenderWindow(ren)
+		self._iren, self._renwin = vtkSP.makeRenderWindow(self._ren)
+
 
 		# Sort out the actor
 		if imageType == 'cell':
-			actor = vtkSP.makeVTKActor(self._cell)
+			self._vtkobj, self._core = vtkSP.makeRectiVTKVOIThres(self._cell)
 		elif imageType == 'face':
-			actor = vtkSP.makeVTKActor(self._face)
+			self._vtkobj, self._core = vtkSP.makeRectiVTKVOIThres(self._face)
 		elif imageType == 'edge':
-			actor = vtkSP.makeVTKActor(self._edge)
-			actor.GetProperty().SetRepresentationToSurface()
+			self._vtkobj, self._core = vtkSP.makeRectiVTKVOIThres(self._edge)
 		else:
-			raise(Exception,"{:s} is not a vailid imageType. Has to be 'cell':'face':'edge'".format(imageType))
+			raise Exception("{:s} is not a vailid imageType. Has to be 'cell':'face':'edge'".format(imageType))
 
-		ren.AddActor(actor)
-		ren.SetBackground(.5,.5,.5)
 
-		vtkSP.startRenderWindow(iren)
+		global intPlane, intActor
+		self._clipper, intPlane = vtkSP.makePlaneClipper(self._vtkobj)
+		intActor = vtkSP.makeVTKLODActor(self._vtkobj,self._clipper)
+		self._widget = vtkSP.makePlaneWidget(self._vtkobj,self._iren,self._clipper.GetClipFunction(),self._actor)
+		# Callback function
+		self._plane = intPlane
+		self._actor = intActor
+		def movePlane(obj, events):
+			global intPlane, intActor
+			obj.GetPlane(intPlane)
+			intActor.VisibilityOn()
 
-		vtkSP.closeRenderWindow(iren)
+		self._widget.AddObserver("InteractionEvent",movePlane)		    
+		lut = vtk.vtkLookupTable()
+		lut.SetNumberOfColors(256)
+		lut.SetHueRange(0,0.66667)
+		lut.Build()
+		self._lut = lut
+		self._actor.GetMapper().SetLookupTable(lut)
+
+		# Set renderer options
+		self._ren.SetBackground(.5,.5,.5)
+		self._ren.AddActor(self._actor)
+
+		# Start the render Window		
+		vtkSP.startRenderWindow(self._iren)
+		# Close the window when exited
+		vtkSP.closeRenderWindow(self._iren)
 
 
 
