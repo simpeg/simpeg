@@ -27,7 +27,10 @@ class vtkView(object):
 		"""
 
 		self.name = 'VTK figure of SimPEG model'
+		self.extent = [0,mesh.nCx-1,0,mesh.nCy-1,0,mesh.nCz-1]
+		self.limits = [0, 10000]
 		self._mesh = mesh
+
 		# Set vtk object containers
 		self._cell = None
 		self._faces = None
@@ -123,6 +126,7 @@ class vtkView(object):
 		vtkSP.startRenderWindow(self._iren)
 		# Close the window when exited
 		vtkSP.closeRenderWindow(self._iren)
+		del self._iren, self._renwin
 
 
 
