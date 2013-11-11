@@ -1,9 +1,10 @@
 import numpy as np
+import scipy.sparse as sp
 from BaseMesh import BaseMesh
 from TensorView import TensorView
 from DiffOperators import DiffOperators
 from InnerProducts import InnerProducts
-from SimPEG.utils import ndgrid, mkvc
+from SimPEG.utils import ndgrid, mkvc, spzeros, interpmat
 
 
 class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
@@ -38,7 +39,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
             assert len(h_i.shape) == 1, ("h[%i] must be a 1D numpy array." % i)
 
         # Ensure h contains 1D vectors
-        self._h = [mkvc(x) for x in h]
+        self._h = [mkvc(x.astype(float)) for x in h]
 
     def __str__(self):
         outStr = '  ---- {0:d}-D TensorMesh ----  '.format(self.dim)
@@ -156,7 +157,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
         def fget(self):
             if self._gridCC is None:
-                self._gridCC = ndgrid([x for x in [self.vectorCCx, self.vectorCCy, self.vectorCCz] if not x is None])
+                self._gridCC = ndgrid(self.getTensor('CC'))
             return self._gridCC
         return locals()
     _gridCC = None  # Store grid by default
@@ -167,7 +168,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
         def fget(self):
             if self._gridN is None:
-                self._gridN = ndgrid([x for x in [self.vectorNx, self.vectorNy, self.vectorNz] if not x is None])
+                self._gridN = ndgrid(self.getTensor('N'))
             return self._gridN
         return locals()
     _gridN = None  # Store grid by default
@@ -178,7 +179,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
         def fget(self):
             if self._gridFx is None:
-                self._gridFx = ndgrid([x for x in [self.vectorNx, self.vectorCCy, self.vectorCCz] if not x is None])
+                self._gridFx = ndgrid(self.getTensor('Fx'))
             return self._gridFx
         return locals()
     _gridFx = None  # Store grid by default
@@ -189,7 +190,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
         def fget(self):
             if self._gridFy is None and self.dim > 1:
-                self._gridFy = ndgrid([x for x in [self.vectorCCx, self.vectorNy, self.vectorCCz] if not x is None])
+                self._gridFy = ndgrid(self.getTensor('Fy'))
             return self._gridFy
         return locals()
     _gridFy = None  # Store grid by default
@@ -200,7 +201,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
         def fget(self):
             if self._gridFz is None and self.dim > 2:
-                self._gridFz = ndgrid([x for x in [self.vectorCCx, self.vectorCCy, self.vectorNz] if not x is None])
+                self._gridFz = ndgrid(self.getTensor('Fz'))
             return self._gridFz
         return locals()
     _gridFz = None  # Store grid by default
@@ -211,7 +212,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
         def fget(self):
             if self._gridEx is None:
-                self._gridEx = ndgrid([x for x in [self.vectorCCx, self.vectorNy, self.vectorNz] if not x is None])
+                self._gridEx = ndgrid(self.getTensor('Ex'))
             return self._gridEx
         return locals()
     _gridEx = None  # Store grid by default
@@ -222,7 +223,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
         def fget(self):
             if self._gridEy is None and self.dim > 1:
-                self._gridEy = ndgrid([x for x in [self.vectorNx, self.vectorCCy, self.vectorNz] if not x is None])
+                self._gridEy = ndgrid(self.getTensor('Ey'))
             return self._gridEy
         return locals()
     _gridEy = None  # Store grid by default
@@ -233,7 +234,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
         def fget(self):
             if self._gridEz is None and self.dim > 2:
-                self._gridEz = ndgrid([x for x in [self.vectorNx, self.vectorNy, self.vectorCCz] if not x is None])
+                self._gridEz = ndgrid(self.getTensor('Ez'))
             return self._gridEz
         return locals()
     _gridEz = None  # Store grid by default
@@ -312,6 +313,98 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
     _edge = None
     edge = property(**edge())
 
+    # --------------- Methods ---------------------
+
+    def getTensor(self, locType):
+        """ Returns a tensor list.
+
+        :param str locType: What tensor (see below)
+        :rtype: list
+        :return: list of the tensors that make up the mesh.
+
+        locType can be::
+
+            'Ex'    -> x-component of field defined on edges
+            'Ey'    -> y-component of field defined on edges
+            'Ez'    -> z-component of field defined on edges
+            'Fx'    -> x-component of field defined on faces
+            'Fy'    -> y-component of field defined on faces
+            'Fz'    -> z-component of field defined on faces
+            'N'     -> scalar field defined on nodes
+            'CC'    -> scalar field defined on cell centers
+        """
+
+        if   locType is 'Fx':
+            ten = [self.vectorNx , self.vectorCCy, self.vectorCCz]
+        elif locType is 'Fy':
+            ten = [self.vectorCCx, self.vectorNy , self.vectorCCz]
+        elif locType is 'Fz':
+            ten = [self.vectorCCx, self.vectorCCy, self.vectorNz ]
+        elif locType is 'Ex':
+            ten = [self.vectorCCx, self.vectorNy , self.vectorNz ]
+        elif locType is 'Ey':
+            ten = [self.vectorNx , self.vectorCCy, self.vectorNz ]
+        elif locType is 'Ez':
+            ten = [self.vectorNx , self.vectorNy , self.vectorCCz]
+        elif locType is 'CC':
+            ten = [self.vectorCCx, self.vectorCCy, self.vectorCCz]
+        elif locType is 'N':
+            ten = [self.vectorNx , self.vectorNy , self.vectorNz ]
+
+        return [t for t in ten if t is not None]
+
+
+    def isInside(self, pts):
+        """
+        Determines if a set of points are inside a mesh.
+
+        :param numpy.ndarray pts: Location of points to test
+        :rtype numpy.ndarray
+        :return inside, numpy array of booleans
+        """
+
+        pts = np.atleast_2d(pts)
+        inside = (pts[:,0] >= self.vectorNx.min()) & (pts[:,0] <= self.vectorNx.max())
+        if self.dim > 1:
+            inside = inside & ((pts[:,1] >= self.vectorNy.min()) & (pts[:,1] <= self.vectorNy.max()))
+        if self.dim > 2:
+            inside = inside & ((pts[:,2] >= self.vectorNz.min()) & (pts[:,2] <= self.vectorNz.max()))
+        return inside
+
+    def getInterpolationMat(self, loc, locType):
+        """ Produces interpolation matrix
+
+        :param numpy.ndarray loc: Location of points to interpolate to
+        :param str locType: What to interpolate (see below)
+        :rtype: scipy.sparse.csr.csr_matrix
+        :return: M, the interpolation matrix
+
+        locType can be::
+
+            'Ex'    -> x-component of field defined on edges
+            'Ey'    -> y-component of field defined on edges
+            'Ez'    -> z-component of field defined on edges
+            'Fx'    -> x-component of field defined on faces
+            'Fy'    -> y-component of field defined on faces
+            'Fz'    -> z-component of field defined on faces
+            'N'     -> scalar field defined on nodes
+            'CC'    -> scalar field defined on cell centers
+        """
+
+        loc = np.atleast_2d(loc)
+        assert np.all(self.isInside(loc)), "Points outside of mesh"
+
+        ind = 0 if 'x' in locType else 1 if 'y' in locType else 2 if 'z' in locType else -1
+        if locType in ['Fx','Fy','Fz','Ex','Ey','Ez'] and self.dim >= ind:
+            nF_nE = self.nF if 'F' in locType else self.nE
+            components = [spzeros(loc.shape[0], n) for n in nF_nE]
+            components[ind] = interpmat(loc, *self.getTensor(locType))
+            Q = sp.hstack(components)
+        elif locType in ['CC', 'N']:
+            Q = interpmat(loc, *self.getTensor(locType))
+        else:
+            raise NotImplementedError('getInterpolationMat: locType=='+locType+' and mesh.dim=='+str(self.dim))
+        return Q
 
 if __name__ == '__main__':
     print('Welcome to tensor mesh!')
@@ -327,5 +420,6 @@ if __name__ == '__main__':
     h = h[:testDim]
 
     M = TensorMesh(h)
+    print M
 
     xn = M.plotGrid()

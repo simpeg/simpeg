@@ -38,7 +38,7 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators, InnerProducts, LomView):
         # Save nodes to private variable _gridN as vectors
         self._gridN = np.ones((nodes[0].size, self.dim))
         for i, node_i in enumerate(nodes):
-            self._gridN[:, i] = mkvc(node_i)
+            self._gridN[:, i] = mkvc(node_i.astype(float))
 
     def gridCC():
         doc = "Cell-centered grid."
