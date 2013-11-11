@@ -2,6 +2,13 @@ import numpy as np
 import scipy.sparse as sparse
 import scipy.sparse.linalg as linalg
 
+try:
+    import TriSolve
+except Exception, e:
+    import os
+    # Note: this may not work from SublimeText, if that is the case, just run the command in your shell.
+    os.system('f2py -c TriSolve.f -m TriSolve')
+    import TriSolve
 
 class Solver(object):
     """
@@ -55,11 +62,11 @@ class Solver(object):
         elif self.flag is None and not self.doDirect:
             return self.solveIter(b, **self.options)
         elif self.flag == 'U':
-            return self.solveBackward(b)
+            return self.solveBackward(b, **self.options)
         elif self.flag == 'L':
-            return self.solveForward(b)
+            return self.solveForward(b, **self.options)
         elif self.flag == 'D':
-            return self.solveDiagonal(b)
+            return self.solveDiagonal(b, **self.options)
         else:
             raise Exception('Unknown flag.')
         pass
@@ -120,12 +127,15 @@ class Solver(object):
         vals = self.A.data
         rowptr = self.A.indptr
         colind = self.A.indices
-        x = np.empty_like(b)   # empty() is faster than zeros().
-        for i in reversed(xrange(self.A.shape[0])):
-            ith_row = vals[rowptr[i] : rowptr[i+1]]
-            cols = colind[rowptr[i] : rowptr[i+1]]
-            x_vals = x[cols]
-            x[i] = (b[i] - np.dot(ith_row[1:], x_vals[1:])) / ith_row[0]
+        if backend == 'fortran':
+            x = TriSolve.backward(vals, rowptr, colind, b, self.A.data.size, b.size)
+        elif backend == 'python':
+            x = np.empty_like(b)   # empty() is faster than zeros().
+            for i in reversed(xrange(self.A.shape[0])):
+                ith_row = vals[rowptr[i] : rowptr[i+1]]
+                cols = colind[rowptr[i] : rowptr[i+1]]
+                x_vals = x[cols]
+                x[i] = (b[i] - np.dot(ith_row[1:], x_vals[1:])) / ith_row[0]
         return x
 
     def solveForward(self, b, backend='python'):
@@ -144,12 +154,15 @@ class Solver(object):
         vals = self.A.data
         rowptr = self.A.indptr
         colind = self.A.indices
-        x = np.empty_like(b)   # empty() is faster than zeros().
-        for i in xrange(self.A.shape[0]):
-            ith_row = vals[rowptr[i] : rowptr[i+1]]
-            cols = colind[rowptr[i] : rowptr[i+1]]
-            x_vals = x[cols]
-            x[i] = (b[i] - np.dot(ith_row[:-1], x_vals[:-1])) / ith_row[-1]
+        if backend == 'fortran':
+            x = TriSolve.forward(vals, rowptr, colind, b, self.A.data.size, b.size)
+        elif backend == 'python':
+            x = np.empty_like(b)   # empty() is faster than zeros().
+            for i in xrange(self.A.shape[0]):
+                ith_row = vals[rowptr[i] : rowptr[i+1]]
+                cols = colind[rowptr[i] : rowptr[i+1]]
+                x_vals = x[cols]
+                x[i] = (b[i] - np.dot(ith_row[:-1], x_vals[:-1])) / ith_row[-1]
         return x
 
     def solveDiagonal(self, b, backend='python'):
@@ -205,3 +218,20 @@ if __name__ == '__main__':
     print np.linalg.norm(e-x,np.inf)
 
 
+    n = 6000
+    A_dense = np.random.random((n,n))
+    L = np.tril(np.dot(A_dense, A_dense))  # Positive definite is better conditioned.
+    e = np.ones(n)
+    b = np.dot(L, e)
+
+    A = sparse.csr_matrix(L)
+    pSolve = Solver(A,flag='L',options={'backend':'python'});
+    fSolve = Solver(A,flag='L',options={'backend':'fortran'})
+    tic = time()
+    x = pSolve.solve(b)
+    toc = time() - tic
+    print 'Error Forward Python  = ', np.linalg.norm(x-e, np.inf), 'Time: ', toc
+    tic = time()
+    x = fSolve.solve(b)
+    toc = time() - tic
+    print 'Error Forward Fortran = ', np.linalg.norm(x-e, np.inf), 'Time: ', toc
