@@ -1,2 +1,4 @@
 numpy
+ez_setup
 pypubsub
+ipython
