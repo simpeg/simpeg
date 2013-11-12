@@ -38,15 +38,17 @@ class TestBaseMesh(unittest.TestCase):
 
     def test_mesh_numbers(self):
         c = self.mesh.nC == 36
-        f = np.all(self.mesh.nF == [42, 54, 48])
-        e = np.all(self.mesh.nE == [72, 56, 63])
+        fv = np.all(self.mesh.nFv == [42, 54, 48])
+        ev = np.all(self.mesh.nEv == [72, 56, 63])
+        f = np.all(self.mesh.nF == np.sum([42, 54, 48]))
+        e = np.all(self.mesh.nE == np.sum([72, 56, 63]))
 
-        self.assertTrue(np.all([c, f, e]))
+        self.assertTrue(np.all([c, fv, ev, f, e]))
 
     def test_mesh_r_E_V(self):
-        ex = np.ones(self.mesh.nE[0])
-        ey = np.ones(self.mesh.nE[1])*2
-        ez = np.ones(self.mesh.nE[2])*3
+        ex = np.ones(self.mesh.nEv[0])
+        ey = np.ones(self.mesh.nEv[1])*2
+        ez = np.ones(self.mesh.nEv[2])*3
         e = np.r_[ex, ey, ez]
         tex = self.mesh.r(e, 'E', 'Ex', 'V')
         tey = self.mesh.r(e, 'E', 'Ey', 'V')
@@ -60,9 +62,9 @@ class TestBaseMesh(unittest.TestCase):
         self.assertTrue(np.all(tez == ez))
 
     def test_mesh_r_F_V(self):
-        fx = np.ones(self.mesh.nF[0])
-        fy = np.ones(self.mesh.nF[1])*2
-        fz = np.ones(self.mesh.nF[2])*3
+        fx = np.ones(self.mesh.nFv[0])
+        fy = np.ones(self.mesh.nFv[1])*2
+        fz = np.ones(self.mesh.nFv[2])*3
         f = np.r_[fx, fy, fz]
         tfx = self.mesh.r(f, 'F', 'Fx', 'V')
         tfy = self.mesh.r(f, 'F', 'Fy', 'V')
@@ -146,14 +148,16 @@ class TestMeshNumbers2D(unittest.TestCase):
 
     def test_mesh_numbers(self):
         c = self.mesh.nC == 12
-        f = np.all(self.mesh.nF == [14, 18])
-        e = np.all(self.mesh.nE == [18, 14])
+        fv = np.all(self.mesh.nFv == [14, 18])
+        ev = np.all(self.mesh.nEv == [18, 14])
+        f = np.all(self.mesh.nF == np.sum([14, 18]))
+        e = np.all(self.mesh.nE == np.sum([18, 14]))
 
-        self.assertTrue(np.all([c, f, e]))
+        self.assertTrue(np.all([c, fv, ev, f, e]))
 
     def test_mesh_r_E_V(self):
-        ex = np.ones(self.mesh.nE[0])
-        ey = np.ones(self.mesh.nE[1])*2
+        ex = np.ones(self.mesh.nEv[0])
+        ey = np.ones(self.mesh.nEv[1])*2
         e = np.r_[ex, ey]
         tex = self.mesh.r(e, 'E', 'Ex', 'V')
         tey = self.mesh.r(e, 'E', 'Ey', 'V')
@@ -165,8 +169,8 @@ class TestMeshNumbers2D(unittest.TestCase):
         self.assertRaises(AssertionError,   self.mesh.r, e, 'E', 'Ez', 'V')
 
     def test_mesh_r_F_V(self):
-        fx = np.ones(self.mesh.nF[0])
-        fy = np.ones(self.mesh.nF[1])*2
+        fx = np.ones(self.mesh.nFv[0])
+        fy = np.ones(self.mesh.nFv[1])*2
         f = np.r_[fx, fy]
         tfx = self.mesh.r(f, 'F', 'Fx', 'V')
         tfy = self.mesh.r(f, 'F', 'Fy', 'V')

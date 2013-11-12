@@ -45,8 +45,7 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators, InnerProducts, LomView):
 
         def fget(self):
             if self._gridCC is None:
-                ccV = (self.aveN2CCv*mkvc(self.gridN))
-                self._gridCC = ccV.reshape((-1, self.dim), order='F')
+                self._gridCC = np.concatenate([self.aveN2CC*self.gridN[:,i] for i in range(self.dim)]).reshape((-1,self.dim), order='F')
             return self._gridCC
         return locals()
     _gridCC = None  # Store grid by default
