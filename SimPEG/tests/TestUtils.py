@@ -275,6 +275,28 @@ def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None):
     return passTest
 
 
+
+def getQuadratic(A, b):
+    """
+        Given A and b, this returns a quadratic, Q
+
+        .. math::
+
+            \mathbf{Q( x ) = 0.5 x A x + b x}
+    """
+    def Quadratic(x, return_g=True, return_H=True):
+        f = 0.5 * x.dot( A.dot(x)) + b.dot( x )
+        out = (f,)
+        if return_g:
+            g = A.dot(x) + b
+            out += (g,)
+        if return_H:
+            H = A
+            out += (H,)
+        return out if len(out) > 1 else out[0]
+    return Quadratic
+
+
 if __name__ == '__main__':
 
     def simplePass(x):

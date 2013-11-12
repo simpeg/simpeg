@@ -35,12 +35,12 @@ class StoppingCriteria(object):
                  "left": lambda M: 1 if M._iter==0 else norm(M.xc-M.x_last), "right": lambda M: 0 if M._iter==0 else M.tolX*(1+norm(M.x0)),
                  "stopType": "optimal"}
 
-    tolerance_g = { "str": "%d : |g|       = %1.4e <= tolG          = %1.4e",
-                   "left": lambda M: norm(M.projection(M.g)), "right": lambda M: M.tolG,
+    tolerance_g = { "str": "%d : |proj(x-g)-x|    = %1.4e <= tolG          = %1.4e",
+                   "left": lambda M: norm(M.projection(M.xc - M.g) - M.xc), "right": lambda M: M.tolG,
                    "stopType": "optimal"}
 
-    norm_g = { "str": "%d : |g|       = %1.4e <= 1e3*eps       = %1.4e",
-               "left": lambda M: norm(M.g), "right": lambda M: 1e3*M.eps,
+    norm_g = { "str": "%d : |proj(x-g)-x|    = %1.4e <= 1e3*eps       = %1.4e",
+               "left": lambda M: norm(M.projection(M.xc - M.g) - M.xc), "right": lambda M: 1e3*M.eps,
                "stopType": "critical"}
 
     bindingSet = { "str": "%d : probSize  =    %3d   <= bindingSet      =    %3d",
@@ -65,7 +65,7 @@ class IterationPrinters(object):
 
     iteration = {"title": "#", "value": lambda M: M._iter, "width": 5, "format": "%3d"}
     f = {"title": "f", "value": lambda M: M.f, "width": 10, "format": "%1.2e"}
-    norm_g = {"title": "|g|", "value": lambda M: norm(M.g), "width": 10, "format": "%1.2e"}
+    norm_g = {"title": "|proj(x-g)-x|", "value": lambda M: norm(M.projection(M.xc - M.g) - M.xc), "width": 15, "format": "%1.2e"}
     totalLS = {"title": "LS", "value": lambda M: M._iterLS, "width": 5, "format": "%d"}
 
     iterationLS = {"title": "#", "value": lambda M: (M._iter, M._iterLS), "width": 5, "format": "%3d.%d"}
@@ -436,11 +436,12 @@ class Minimize(object):
             if self.debug: print 'doEndIteration is calling self.'+method
             getattr(self,method)(xt)
 
-
         # store old values
         self.f_last = self.f
         self.x_last, self.xc = self.xc, xt
         self._iter += 1
+        if self.debug: self.printDone()
+
 
 
 class Remember(object):
@@ -500,8 +501,8 @@ class ProjectedGradient(Minimize, Remember):
     maxIterCG = 10
     tolCG = 1e-3
 
-    lower = -0.4
-    upper = 0.9
+    lower = -np.inf
+    upper = np.inf
 
     def __init__(self,**kwargs):
         super(ProjectedGradient, self).__init__(**kwargs)
@@ -568,7 +569,9 @@ class ProjectedGradient(Minimize, Remember):
             p = -self.g
         else:
             if self.debug: print 'findSearchDirection.CG: doingCG'
-            self.f_decrease_max = -np.inf # Reset the max decrease each time you do a CG iteration
+            # Reset the max decrease each time you do a CG iteration
+            self.f_decrease_max = -np.inf
+
             self._itType = '.CG.'
 
             iSet  = self.inactiveSet(self.xc)  # The inactive set (free variables)
@@ -598,15 +601,12 @@ class ProjectedGradient(Minimize, Remember):
 
         f_current_decrease = self.f_last - self.f
         self.projComment = ''
-#         print f_current_decrease
         if self._iter < 1:
+            # Note that this is reset on every CG iteration.
             self.f_decrease_max = -np.inf
         else:
-            # Note that I reset this if we do a CG iteration.
             self.f_decrease_max = max(self.f_decrease_max, f_current_decrease)
             self.stopDoingPG = f_current_decrease < 0.25 * self.f_decrease_max
-#             print 'f_decrease_max: ', self.f_decrease_max
-#             print 'stopDoingSD: ', self.stopDoingSD
             if self.stopDoingPG:
                 self.projComment = 'Stop SD'
                 self.explorePG = False
@@ -615,7 +615,10 @@ class ProjectedGradient(Minimize, Remember):
         #self.eta_2 * max_decrease where max decrease
         # if true go to CG
         # don't do too many steps of PG in a row.
-        if self.debug: self.printDone()
+
+        if self.debug: print 'doEndIteration.ProjGrad, f_current_decrease: ', f_current_decrease
+        if self.debug: print 'doEndIteration.ProjGrad, f_decrease_max: ', self.f_decrease_max
+        if self.debug: print 'doEndIteration.ProjGrad, stopDoingSD: ', self.stopDoingSD
 
 class GaussNewton(Minimize, Remember):
     name = 'Gauss Newton'
