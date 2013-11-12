@@ -1,7 +1,6 @@
 from tempfile import NamedTemporaryFile
 import matplotlib.pyplot as plt
 from matplotlib import animation
-from IPython.display import HTML
 
 # http://jakevdp.github.io/blog/2013/05/12/embedding-matplotlib-animations/
 # http://www.renevolution.com/how-to-install-ffmpeg-on-mac-os-x/
