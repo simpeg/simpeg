@@ -3,14 +3,13 @@ import sputils
 import lomutils
 import interputils
 import ModelBuilder
-import Solver
-from Solver import Solver
 from matutils import getSubArray, mkvc, ndgrid, ind2sub, sub2ind
 from sputils import spzeros, kron3, speye, sdiag
 from lomutils import volTetra, faceInfo, inv2X2BlockDiagonal, inv3X3BlockDiagonal, indexCube, exampleLomGird
 from interputils import interpmat
 from ipythonUtils import easyAnimate as animate
-
+import Solver
+from Solver import Solver
 
 def setKwargs(obj, **kwargs):
     """Sets key word arguments (kwargs) that are present in the object, throw an error if they don't exist."""
