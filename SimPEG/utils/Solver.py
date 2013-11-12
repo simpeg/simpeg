@@ -93,7 +93,7 @@ class Solver(object):
             :rtype: numpy.ndarray
             :return: x
         """
-        if backend is None: backend = DEFAULTS['scipy']
+        if backend is None: backend = DEFAULTS['direct']
 
         assert np.shape(self.A)[1] == np.shape(b)[0], 'Dimension mismatch'
 
