@@ -2,3 +2,4 @@
 SimPEG.sublime-project
 SimPEG.sublime-workspace
 docs/_build/
+myNotebooks/*
