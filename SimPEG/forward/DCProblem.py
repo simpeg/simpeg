@@ -16,7 +16,7 @@ class DCProblem(ModelTransforms.LogModel, Problem):
 
     """
     def __init__(self, mesh):
-        super(DCProblem, self).__init__(mesh)
+        Problem.__init__(self, mesh)
         self.mesh.setCellGradBC('neumann')
 
     def reshapeFields(self, u):
