@@ -58,22 +58,6 @@ class TestSolver(unittest.TestCase):
         x = solve.solve(rhs)
         self.assertTrue(np.linalg.norm(e-x,np.inf) < TOL, True)
 
-    def test_directLower_1_fortran(self):
-        AL = sparse.tril(self.A)
-        solve = Solver(AL, doDirect=True, flag='L', options={'backend':'fortran'})
-        e = np.ones(self.M.nC)
-        rhs = AL.dot(e)
-        x = solve.solve(rhs)
-        self.assertTrue(np.linalg.norm(e-x,np.inf) < TOL, True)
-
-    # def test_directLower_M_fortran(self):
-    #     AL = sparse.tril(self.A)
-    #     solve = Solver(AL, doDirect=True, flag='L', options={'backend':'fortran'})
-    #     e = np.ones((self.M.nC,numRHS))
-    #     rhs = AL.dot(e)
-    #     x = solve.solve(rhs)
-    #     self.assertTrue(np.linalg.norm(e-x,np.inf) < TOL, True)
-
     def test_directLower_1_python(self):
         AL = sparse.tril(self.A)
         solve = Solver(AL, doDirect=True, flag='L', options={'backend':'python'})
@@ -88,9 +72,25 @@ class TestSolver(unittest.TestCase):
         e = np.ones((self.M.nC,numRHS))
         rhs = AL.dot(e)
         x = solve.solve(rhs)
+
+    def test_directLower_1_fortran(self):
+        AL = sparse.tril(self.A)
+        solve = Solver(AL, doDirect=True, flag='L', options={'backend':'fortran'})
+        e = np.ones(self.M.nC)
+        rhs = AL.dot(e)
+        x = solve.solve(rhs)
         self.assertTrue(np.linalg.norm(e-x,np.inf) < TOL, True)
 
-    def test_directUpper_1(self):
+    def test_directLower_M_fortran(self):
+        AL = sparse.tril(self.A)
+        solve = Solver(AL, doDirect=True, flag='L', options={'backend':'fortran'})
+        e = np.ones((self.M.nC,numRHS))
+        rhs = AL.dot(e)
+        x = solve.solve(rhs)
+        self.assertTrue(np.linalg.norm(e-x,np.inf) < TOL, True)
+        self.assertTrue(np.linalg.norm(e-x,np.inf) < TOL, True)
+
+    def test_directUpper_1_python(self):
         AU = sparse.triu(self.A)
         solve = Solver(AU, doDirect=True, flag='U', options={})
         e = np.ones(self.M.nC)
@@ -98,7 +98,7 @@ class TestSolver(unittest.TestCase):
         x = solve.solve(rhs)
         self.assertTrue(np.linalg.norm(e-x,np.inf) < TOL, True)
 
-    def test_directUpper_M(self):
+    def test_directUpper_M_python(self):
         AU = sparse.triu(self.A)
         solve = Solver(AU, doDirect=True, flag='U', options={})
         e = np.ones((self.M.nC,numRHS))
@@ -115,13 +115,13 @@ class TestSolver(unittest.TestCase):
         x = solve.solve(rhs)
         self.assertTrue(np.linalg.norm(e-x,np.inf) < TOL, True)
 
-    # def test_directUpper_M_fortran(self):
-    #     AU = sparse.triu(self.A)
-    #     solve = Solver(AU, doDirect=True, flag='U', options={'backend':'fortran'})
-    #     e = np.ones((self.M.nC,numRHS))
-    #     rhs = AU.dot(e)
-    #     x = solve.solve(rhs)
-    #     self.assertTrue(np.linalg.norm(e-x,np.inf) < TOL, True)
+    def test_directUpper_M_fortran(self):
+        AU = sparse.triu(self.A)
+        solve = Solver(AU, doDirect=True, flag='U', options={'backend':'fortran'})
+        e = np.ones((self.M.nC,numRHS))
+        rhs = AU.dot(e)
+        x = solve.solve(rhs)
+        self.assertTrue(np.linalg.norm(e-x,np.inf) < TOL, True)
 
     def test_directDiagonal_1(self):
         AD = sdiag(self.A.diagonal())
