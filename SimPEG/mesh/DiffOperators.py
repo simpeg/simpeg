@@ -4,7 +4,13 @@ from SimPEG.utils import mkvc, sdiag, speye, kron3, spzeros, ddx, av
 
 
 def checkBC(bc):
-    """ Checks if boundary condition 'bc' is valid. """
+    """
+
+        Checks if boundary condition 'bc' is valid.
+
+        Each bc must be either 'dirichlet' or 'neumann'
+
+    """
     if(type(bc) is str):
         bc = [bc, bc]
     assert type(bc) is list, 'bc must be a list'
@@ -17,7 +23,33 @@ def checkBC(bc):
 
 
 def ddxCellGrad(n, bc):
-    """Create 1D derivative operator from cell-centres to nodes this means we go from n to n+1"""
+    """
+        Create 1D derivative operator from cell-centers to nodes this means we go from n to n+1
+
+        For Cell-Centered **Dirichlet**, use a ghost point::
+
+            (u_1 - u_g)/hf = grad
+
+                u_g       u_1      u_2
+                 *    |    *   |    *     ...
+                      ^
+                      0
+
+            u_g = - u_1
+            grad = 2*u1/dx
+            negitive on the other side.
+
+        For Cell-Centered **Neumann**, use a ghost point::
+
+            (u_1 - u_g)/hf = 0
+
+                u_g       u_1      u_2
+                 *    |    *   |    *     ...
+
+            u_g = u_1
+            grad = 0;  put a zero in.
+
+    """
     bc = checkBC(bc)
 
     D = sp.spdiags((np.ones((n+1, 1))*[-1, 1]).T, [-1, 0], n+1, n, format="csr")
@@ -31,6 +63,56 @@ def ddxCellGrad(n, bc):
         D[-1, -1] = -2
     elif(bc[1] == 'neumann'):
         D[-1, -1] = 0
+    return D
+
+def ddxCellGradBC(n, bc):
+    """
+
+        Create 1D derivative operator from cell-centers to nodes this means we go from n to n+1
+
+        For Cell-Centered **Dirichlet**, use a ghost point::
+
+            (u_1 - u_g)/hf = grad
+
+             u_g       u_1      u_2
+              *    |    *   |    *     ...
+                   ^
+                  u_b
+
+        We know the value at the boundary (u_b)::
+
+            (u_g+u_1)/2 = u_b               (the average)
+            u_g = 2*u_b - u_1
+
+            So plug in to gradient:
+
+            (u_1 - (2*u_b - u_1))/hf = grad
+            2*(u_1-u_b)/hf = grad
+
+        Separate, because BC are known (and can move to RHS later)::
+
+            ( 2/hf )*u_1 + ( -2/hf )*u_b = grad
+
+                           (   ^   ) JUST RETURN THIS
+
+
+    """
+    bc = checkBC(bc)
+
+    ij   = (np.array([0, n+1]),np.array([0, 1]))
+    vals = np.zeros(2)
+
+    # Set the first side
+    if(bc[0] == 'dirichlet'):
+        vals[0] = -2
+    elif(bc[0] == 'neumann'):
+        vals[0] = 0
+    # Set the second side
+    if(bc[1] == 'dirichlet'):
+        vals[1] = 2
+    elif(bc[1] == 'neumann'):
+        vals[1] = 0
+    D = sp.csr_matrix((vals, ij), shape=(n+1,2))
     return D
 
 
