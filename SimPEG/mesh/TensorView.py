@@ -89,18 +89,18 @@ class TensorView(object):
             # Determine the subplot number: 131, 121
             numPlots = 130 if plotAll else len(imageType)/2*10+100
             pltNum = 1
-            fx, fy, fz = self.r(I,'F','F','M')
+            fxyz = self.r(I,'F','F','M')
             if plotAll or 'Fx' in imageType:
                 ax_x = plt.subplot(numPlots+pltNum)
-                self.plotImage(fx, imageType='Fx', ax=ax_x, **options)
+                self.plotImage(fxyz[0], imageType='Fx', ax=ax_x, **options)
                 pltNum +=1
             if plotAll or 'Fy' in imageType:
                 ax_y = plt.subplot(numPlots+pltNum)
-                self.plotImage(fy, imageType='Fy', ax=ax_y, **options)
+                self.plotImage(fxyz[1], imageType='Fy', ax=ax_y, **options)
                 pltNum +=1
             if plotAll or 'Fz' in imageType:
                 ax_z = plt.subplot(numPlots+pltNum)
-                self.plotImage(fz, imageType='Fz', ax=ax_z, **options)
+                self.plotImage(fxyz[2], imageType='Fz', ax=ax_z, **options)
                 pltNum +=1
             return
         else:
