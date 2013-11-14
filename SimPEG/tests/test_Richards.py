@@ -9,12 +9,21 @@ from SimPEG.forward import Richards
 class RichardsTests(unittest.TestCase):
 
     def setUp(self):
-        pass
-        # a = np.array([1, 1, 1])
-        # b = np.array([1, 2])
-        # c = np.array([1, 4])
-        # self.mesh2 = TensorMesh([a, b], np.array([3, 5]))
-        # self.mesh3 = TensorMesh([a, b, c])
+        M = TensorMesh([np.ones(40)])
+        Ks = 9.4400e-03
+        E = Richards.Haverkamp(Ks=np.log(Ks), A=1.1750e+06, gamma=4.74, alpha=1.6110e+06, theta_s=0.287, theta_r=0.075, beta=3.96)
+
+        prob = Richards.RichardsProblem(M,E)
+        prob.timeStep = 1
+        prob.boundaryConditions = np.array([-61.5,-20.7])
+        prob.doNewton = True
+        prob.method = 'mixed'
+
+        h = np.zeros(M.nC) + prob.boundaryConditions[0]
+
+        self.h0 = h
+        self.M = M
+        self.prob = prob
 
     def test_VanGenuchten_moistureContent(self):
         vanG = Richards.VanGenuchten()
@@ -59,6 +68,9 @@ class RichardsTests(unittest.TestCase):
             return hav.hydraulicConductivity(x), hav.hydraulicConductivityDeriv(x)
         passed = checkDerivative(wrapper, np.random.randn(n), plotIt=False)
         self.assertTrue(passed,True)
+
+    def test_Richards_getResidual(self):
+        checkDerivative(lambda hn1: self.prob.getResidual(self.h0,hn1), self.h0, plotIt=False)
 
 
 

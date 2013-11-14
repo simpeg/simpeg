@@ -6,7 +6,8 @@ from SimPEG.utils import sdiag, mkvc, setKwargs
 class RichardsProblem(Problem):
     """docstring for RichardsProblem"""
 
-    dt = None
+    timeStep = None
+    boundaryConditions = None
 
 
     _method = 'mixed'
@@ -47,7 +48,7 @@ class RichardsProblem(Problem):
         return self._method
     @method.setter
     def method(self, value):
-        assert value in ['mixed','head']
+        assert value in ['mixed','head'], "method must be 'mixed' or 'head'."
         self._method = value
 
     _doNewton = False
@@ -57,20 +58,29 @@ class RichardsProblem(Problem):
         return self._doNewton
     @doNewton.setter
     def doNewton(self, value):
+        assert type(value) is bool, 'doNewton must be a boolean.'
         self._doNewton = value
 
 
     def __init__(self, mesh, empirical):
         Problem.__init__(self, mesh)
         self.empirical = empirical
+        self.mesh.setCellGradBC('dirichlet')
 
 
-    def getResidual(self, h, hn):
+
+    def getResidual(self, hn, h):
+        """
+            Where h is the proposed value for the next time iterate (h_{n+1})
+        """
         DIV  = self.mesh.faceDiv
         GRAD = self.mesh.cellGrad
-        BC   = self.mesh.BC
-        AV   = self.mesh.AV
-        Dz   = self.mesh.Dz
+        BC   = self.mesh.cellGradBC
+        AV   = self.mesh.aveCC2F
+        Dz   = self.mesh.faceDiv #TODO: fix this for more than one dimension.
+
+        bc = self.boundaryConditions
+        dt = self.timeStep
 
         T  = self.empirical.moistureContent(h)
         dT = self.empirical.moistureContentDeriv(h)
@@ -80,16 +90,16 @@ class RichardsProblem(Problem):
 
         aveK = 1./(AV*(1./K));
 
-        RHS = DIV*sdiag(aveK)*(GRAD*h+BC*P.bc) + Dz*aveK
+        RHS = DIV*sdiag(aveK)*(GRAD*h+BC*bc) + Dz*aveK
         if self.method is 'mixed':
             r = (T-Tn)/dt - RHS
         elif self.method is 'head':
             r = dT*(h - hn)/dt - RHS
 
-        J = + dT/dt - DIV*sdiag(aveK)*GRAD
+        J = dT/dt - DIV*sdiag(aveK)*GRAD
         if self.doNewton:
             DDharmAve = sdiag(aveK**2)*AV*sdiag(K**(-2)) * dK
-            J = J - DIV*sdiag(GRAD*h + BC*P.bc)*DDharmAve - Dz*DDharmAve
+            J = J - DIV*sdiag(GRAD*h + BC*bc)*DDharmAve - Dz*DDharmAve
 
         return r, J
 
@@ -217,3 +227,23 @@ class VanGenuchten(object):
         # dI = np.exp(Ks)*np.log((abs(alpha*h)**n + 1)**(1/n - 1))*((abs(alpha*h)**n + 1)**(1/n - 1))**I*((1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))**(1 - 1/n) - 1)**2;
 
         return g
+
+
+if __name__ == '__main__':
+    from SimPEG.mesh import TensorMesh
+    from SimPEG.tests import checkDerivative
+    M = TensorMesh([np.ones(40)])
+    Ks = 9.4400e-03
+    E = Haverkamp(Ks=np.log(Ks), A=1.1750e+06, gamma=4.74, alpha=1.6110e+06, theta_s=0.287, theta_r=0.075, beta=3.96)
+
+    prob = RichardsProblem(M,E)
+    prob.timeStep = 1
+    prob.boundaryConditions = np.array([-61.5,-20.7])
+    prob.doNewton = True
+    prob.method = 'mixed'
+
+    h = np.zeros(M.nC) + prob.boundaryConditions[0]
+
+    checkDerivative(lambda hn1: prob.getResidual(h,hn1), h)
+
+
