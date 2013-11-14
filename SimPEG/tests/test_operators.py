@@ -49,6 +49,34 @@ class TestCurl(OrderTest):
         self.orderTest()
 
 
+class TestCellGrad1D_InhomogeneousDirichlet(OrderTest):
+    name = "Cell Grad 1D - Dirichlet"
+    meshTypes = ['uniformTensorMesh']
+    meshDimension = 1
+    expectedOrders = 1 # because of the averaging involved in the ghost point. u_b = (u_n + u_g)/2
+    meshSizes = [8, 16, 32, 64]
+
+    def getError(self):
+        #Test function
+        fx = lambda x: -2*np.pi*np.sin(2*np.pi*x)
+        sol = lambda x: np.cos(2*np.pi*x)
+
+
+        xc = sol(self.M.gridCC)
+
+        gradX_anal = fx(self.M.gridFx)
+
+        bc = np.array([1,1])
+        self.M.setCellGradBC('dirichlet')
+        gradX = self.M.cellGrad.dot(xc) + self.M.cellGradBC*bc
+
+        err = np.linalg.norm((gradX-gradX_anal), np.inf)
+
+        return err
+
+    def test_order(self):
+        self.orderTest()
+
 class TestCellGrad2D_Dirichlet(OrderTest):
     name = "Cell Grad 2D - Dirichlet"
     meshTypes = ['uniformTensorMesh']
@@ -81,7 +109,7 @@ class TestCellGrad3D_Dirichlet(OrderTest):
     name = "Cell Grad 3D - Dirichlet"
     meshTypes = ['uniformTensorMesh']
     meshDimension = 3
-    meshSizes = [8, 16, 32, 64]
+    meshSizes = [8, 16, 32]
 
     def getError(self):
         #Test function
@@ -137,7 +165,7 @@ class TestCellGrad3D_Neumann(OrderTest):
     name = "Cell Grad 3D - Neumann"
     meshTypes = ['uniformTensorMesh']
     meshDimension = 3
-    meshSizes = [8, 16, 32, 64]
+    meshSizes = [8, 16, 32]
 
     def getError(self):
         #Test function
@@ -310,6 +338,16 @@ class TestAveraging2D(OrderTest):
         self.getAve = lambda M: M.aveF2CC
         self.orderTest()
 
+    def test_orderCC2F(self):
+        self.name = "Averaging 2D: CC2F"
+        fun = lambda x, y: (np.cos(x)+np.sin(y))
+        self.getHere = lambda M: call2(fun, M.gridCC)
+        self.getThere = lambda M: np.r_[call2(fun, M.gridFx), call2(fun, M.gridFy)]
+        self.getAve = lambda M: M.aveCC2F
+        self.expectedOrders = 1
+        self.orderTest()
+        self.expectedOrders = 2
+
 
     def test_orderE2CC(self):
         self.name = "Averaging 2D: E2CC"
@@ -370,6 +408,17 @@ class TestAveraging3D(OrderTest):
         self.getThere = lambda M: call3(fun, M.gridCC)
         self.getAve = lambda M: M.aveE2CC
         self.orderTest()
+
+    def test_orderCC2F(self):
+        self.name = "Averaging 3D: CC2F"
+        fun = lambda x, y, z: (np.cos(x)+np.sin(y)+np.exp(z))
+        self.getHere = lambda M: call3(fun, M.gridCC)
+        self.getThere = lambda M: np.r_[call3(fun, M.gridFx), call3(fun, M.gridFy), call3(fun, M.gridFz)]
+        self.getAve = lambda M: M.aveCC2F
+        self.expectedOrders = 1
+        self.orderTest()
+        self.expectedOrders = 2
+
 
 
 if __name__ == '__main__':
