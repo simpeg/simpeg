@@ -308,9 +308,9 @@ class DiffOperators(object):
                 elif(self.dim == 3):
                     G1 = kron3(speye(n[2]), speye(n[1]), ddxCellGrad(n[0], BC))
                 # Compute areas of cell faces & volumes
-                S = self.r(self.area, 'F','Fx', 'V')
-                V = self.vol
-                self._cellGradx = sdiag(S)*G1*sdiag(1/V)
+                V = self.aveCC2F*self.vol
+                L = self.r(self.area/V, 'F','Fx', 'V')
+                self._cellGradx = sdiag(L)*G1
             return self._cellGradx
         return locals()
     cellGradx = property(**cellGradx())
@@ -328,9 +328,9 @@ class DiffOperators(object):
                 elif(self.dim == 3):
                     G2 = kron3(speye(n[2]), ddxCellGrad(n[1], BC), speye(n[0]))
                 # Compute areas of cell faces & volumes
-                S = self.r(self.area, 'F','Fy', 'V')
-                V = self.vol
-                self._cellGrady = sdiag(S)*G2*sdiag(1/V)
+                V = self.aveCC2F*self.vol
+                L = self.r(self.area/V, 'F','Fy', 'V')
+                self._cellGrady = sdiag(L)*G2
             return self._cellGrady
         return locals()
     cellGrady = property(**cellGrady())
@@ -345,9 +345,9 @@ class DiffOperators(object):
                 n = self.n
                 G3 = kron3(ddxCellGrad(n[2], BC), speye(n[1]), speye(n[0]))
                 # Compute areas of cell faces & volumes
-                S = self.r(self.area, 'F','Fz', 'V')
-                V = self.vol
-                self._cellGradz = sdiag(S)*G3*sdiag(1/V)
+                V = self.aveCC2F*self.vol
+                L = self.r(self.area/V, 'F','Fz', 'V')
+                self._cellGradz = sdiag(L)*G3
             return self._cellGradz
         return locals()
     cellGradz = property(**cellGradz())
