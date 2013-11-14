@@ -1,1 +1,1 @@
-from MagneticDipoleVectorPotential import MagneticDipoleVectorPotential
+from emSources import MagneticDipoleVectorPotential
