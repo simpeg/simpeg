@@ -176,6 +176,56 @@ class RichardsProblem(Problem):
 
         return r, J
 
+    def J(self, m, v, u=None):
+        if u is None:
+            u = self.field(m)
+        Hs = u
+        JvC = range(len(Hs)-1) # Cell to hold each row of the long vector.
+
+        # This is done via forward substitution.
+        temp, Adiag, B = self.diagsJacobian(Hs[0],Hs[1])
+        Adiaginv = Solver(Adiag)
+        JvC[0] = Adiaginv.solve(B*v)
+
+        # M = @(x) tril(Adiag)\(diag(Adiag).*(triu(Adiag)\x));
+        # JvC{1} = bicgstab(Adiag,(B*v),tolbcg,500,M);
+
+        for ii in range(1,len(Hs)-1):
+            Asub, Adiag, B = self.diagsJacobian(Hs[ii],Hs[ii+1])
+            Adiaginv = Solver(Adiag)
+            JvC[ii] = Adiaginv.solve(B*v - Asub*JvC[ii-1])
+
+        if self.dataType is 'pressureHead':
+            Jv = P.Q*np.concatenate(JvC)
+        elif self.dataType is 'saturation':
+            dT = self.empirical.moistureContentDeriv(np.concatenate(Hs[1:]))
+            Jv = P.Q*dT*np.concatenate(JvC)
+
+    def Jt(self, m, v, u=None):
+        if u is None:
+            u = self.field(m)
+        Hs = u
+
+        if self.dataType is 'pressureHead':
+            QTz = P.Q.T*z;
+        elif self.dataType is 'saturation':
+            dT = self.empirical.moistureContentDeriv(np.concatenate(Hs[1:]))
+            QTz = dT.T*P.Q.T*z
+
+        # This is done via backward substitution.
+        minus = 0
+        BJtz = 0
+        for ii in range(numel(Hs)-1,-1,-1):
+            Asub, Adiag, B = self.diagsJacobian(Hs[ii-1], Hs[ii])
+            #select the correct part of z
+            # TODO: This might be easier by reshaping the array
+            zpart = range((ii-2)*Adiag.shape[0], (ii-1)*Adiag.shape[0])
+            AdiaginvT = Solver(Adiag.T)
+            JTzC = AdiaginvT.solve(QTz[zpart] - minus)
+            minus = Asub.T*JTzC  # this is now the super diagonal.
+            BJtz = BJtz + B.T*JTzC
+
+
 class Haverkamp(object):
     """docstring for Haverkamp"""
 
