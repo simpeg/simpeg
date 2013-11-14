@@ -643,6 +643,81 @@ class SteepestDescent(Minimize, Remember):
     def findSearchDirection(self):
         return -self.g
 
+
+class NewtonRoot(object):
+    """
+        Newton Method - Root Finding
+
+        root = newtonRoot(fun,x);
+
+        Where fun is the function that returns the function value as well as the
+        gradient.
+
+        For iterative solving of dh = -J\\r, use O.solveTol = TOL. For direct
+        solves, use SOLVETOL = 0 (default)
+
+        Rowan Cockett
+        16-May-2013 16:29:51
+        University of British Columbia
+        rcockett@eos.ubc.ca
+
+    """
+
+    tol      = 1.000e-06;
+    solveTol = 0; # Default direct solve.
+    maxIter    = 20;
+    stepDcr  = 0.5;
+    maxLS    = 30;
+    comments = False;
+
+    def __init__(self, **kwargs):
+        setKwargs(self, **kwargs)
+
+    def root(self, fun, x):
+        if self.comments: print 'Newton Method:\n'
+
+        self._iter = 0
+        while True:
+
+            [r,J] = fun(x);
+            if self.solveTol == 0:
+                Jinv = Solver(J)
+                dh   = - Jinv.solve(r)
+            else:
+                raise NotImplementedError('Iterative solve on NewtonRoot is not yet implemented.')
+                # M = @(x) tril(J)\(diag(J).*(triu(J)\x));
+                # [dh, ~] = bicgstab(J,-r,O.solveTol,500,M);
+
+            muLS = 1
+            LScnt  = 1
+
+            if self.comments: print '\tLinesearch:\n'
+            # Enter Linesearch
+            while True:
+                xt = x + muLS*dh
+                rt, Jt = fun(xt) # TODO: get rid of Jt
+                if self.comments:
+                    print '\t\tResid: %e\n'%norm(rt)
+                if norm(rt) <= norm(r) or norm(rt) < self.tol:
+                    break
+
+                muLS = muLS*self.stepDcr
+                LScnt = LScnt + 1
+                print '.'
+                if LScnt > self.maxLS:
+                    print 'Newton Method: Line search break.'
+                    root = NaN
+                    return
+
+            x = xt
+            self._iter += 1
+            if norm(rt) < self.tol or self._iter > self.maxIter:
+                break
+
+        return x
+
+
+
 if __name__ == '__main__':
     from SimPEG.tests import Rosenbrock, checkDerivative
     import matplotlib.pyplot as plt
@@ -657,3 +732,10 @@ if __name__ == '__main__':
     print "xOpt=[%f, %f]" % (xOpt[0], xOpt[1])
     xOpt = SteepestDescent(maxIter=30, maxIterLS=15,tolF=1e-10,tolX=1e-10,tolG=1e-10).minimize(Rosenbrock, x0)
     print "xOpt=[%f, %f]" % (xOpt[0], xOpt[1])
+
+
+    print 'test the newtonRoot finding.'
+    fun = lambda x: (np.sin(x), sdiag(np.cos(x)))
+    x = np.array([np.pi-0.3, np.pi+0.1, 0])
+    pnt = NewtonRoot(comments=False).root(fun,x)
+    print pnt
