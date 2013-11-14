@@ -1,14 +1,21 @@
 from SimPEG.forward import Problem
 import numpy as np
 from SimPEG.utils import sdiag, mkvc, setKwargs
+from SimPEG.inverse import NewtonRoot
 
 
 class RichardsProblem(Problem):
     """docstring for RichardsProblem"""
 
     timeStep = None
+    timeEnd  = None
     boundaryConditions = None
+    initialConditions  = None
 
+    @property
+    def numIts(self):
+        """The number of iterations in the time domain problem."""
+        return int(self.timeEnd/self.timeStep)
 
     _method = 'mixed'
     @property
@@ -51,7 +58,6 @@ class RichardsProblem(Problem):
         assert value in ['mixed','head'], "method must be 'mixed' or 'head'."
         self._method = value
 
-    _doNewton = False
     @property
     def doNewton(self):
         """Do a Newton iteration. If False, a Picard iteration will be completed."""
@@ -59,15 +65,82 @@ class RichardsProblem(Problem):
     @doNewton.setter
     def doNewton(self, value):
         assert type(value) is bool, 'doNewton must be a boolean.'
+        self.rootFinder = NewtonRoot(doLS=value)
         self._doNewton = value
 
+    @property
+    def dataType(self):
+        """Choose how your data is collected, must be 'saturation' or 'pressureHead'."""
+        assert value in ['saturation','pressureHead'], "dataType must be 'saturation' or 'pressureHead'."
+        return self._dataType
+    @dataType.setter
+    def dataType(self, value):
+        self._dataType = value
 
-    def __init__(self, mesh, empirical):
+
+
+    def __init__(self, mesh, empirical, **kwargs):
         Problem.__init__(self, mesh)
         self.empirical = empirical
         self.mesh.setCellGradBC('dirichlet')
+        self.doNewton = False  # This also sets the rootFinder algorithm.
+        setKwargs(self, **kwargs)
+
+    def field(self, m):
+        self.empirical.setModel(m)
+        Hs = range(self.numIts+1)
+        Hs[0] = self.initialConditions
+        for ii in range(self.numIts):
+            hn = Hs[ii]
+            hn1 = self.rootFinder.root(lambda hn1: self.getResidual(hn,hn1), hn)
+            Hs[ii+1] = hn1
+        return Hs
 
 
+    def diagsJacobian(self, hn, hn1):
+
+        DIV  = self.mesh.faceDiv
+        GRAD = self.mesh.cellGrad
+        BC   = self.mesh.cellGradBC
+        AV   = self.mesh.aveCC2F
+        Dz   = self.mesh.faceDiv #TODO: fix this for more than one dimension.
+
+        bc   = self.boundaryConditions
+        dt   = self.timeStep
+
+        dT   = self.empirical.moistureContentDeriv(hn)
+        dT1  = self.empirical.moistureContentDeriv(hn1)
+        K1   = self.empirical.hydraulicConductivity(hn1)
+        dK1  = self.empirical.hydraulicConductivityDeriv(hn1)
+        dKa1 = self.empirical.hydraulicConductivityModelDeriv(hn1)
+
+        # Compute part of the derivative of:
+        #
+        #       DIV*diag(GRAD*hn1+BC*bc)*(AV*(1/K))^-1
+
+        DdiagGh1 = DIV*sdiag(GRAD*hn1+BC*bc)
+        diagAVk2_AVdiagK2 = sdiag((AV*(1./K1))**(-2)) * AV*sdiag(K1**(-2))
+
+        # The matrix that we are computing has the form:
+        #
+        #   -                                      -   -  -     -  -
+        #  |  Adiag                                 | | h1 |   | b1 |
+        #  |   Asub    Adiag                        | | h2 |   | b2 |
+        #  |            Asub    Adiag               | | h3 | = | b3 |
+        #  |                 ...     ...            | | .. |   | .. |
+        #  |                         Asub    Adiag  | | hn |   | bn |
+        #   -                                      -   -  -     -  -
+
+        Asub = (-1/dt)*dT
+
+        Adiag = (
+                  (1/dt)*dT1
+                 -DdiagGh1*diagAVk2_AVdiagK2*dK1
+                 -DIV*sdiag(1./(AV*(1./K1)))*GRAD
+                 -Dz*diagAVk2_AVdiagK2*dK1
+                )
+
+        B = DdiagGh1*diagAVk2_AVdiagK2*dKa1 + Dz*diagAVk2_AVdiagK2*dKa1
 
     def getResidual(self, hn, h):
         """
@@ -119,6 +192,9 @@ class Haverkamp(object):
     def __init__(self, **kwargs):
         setKwargs(self, **kwargs)
 
+    def setModel(self, m):
+        self.Ks = m
+
     def moistureContent(self, h):
         f = (self.alpha*(self.theta_s  -    self.theta_r  )/
                         (self.alpha    + abs(h)**self.beta) + self.theta_r)
@@ -141,14 +217,17 @@ class Haverkamp(object):
             f[h >= 0] = np.exp(self.Ks)
         return f
 
-    def hydraulicConductivityDeriv(self, h):
-        g = -(np.exp(self.Ks)*self.A*self.gamma*abs(h)**(self.gamma-1)*np.sign(h))/((self.A+abs(h)**self.gamma)**2)
-        g[h >= 0] = 0
-        g = sdiag(g)
+    def hydraulicConductivityModelDeriv(self, h):
         #A
         # dA = np.exp(self.Ks)/(self.A+abs(h)**self.gamma) - np.exp(self.Ks)*self.A/(self.A+abs(h)**self.gamma)**2;
         #gamma
         # dgamma = -(self.A*np.exp(self.Ks)*np.log(abs(h))*abs(h)**self.gamma)/(self.A + abs(h)**self.gamma)**2;
+        return sdiag(self.hydraulicConductivity(h)) # This assumes that the the model is Ks
+
+    def hydraulicConductivityDeriv(self, h):
+        g = -(np.exp(self.Ks)*self.A*self.gamma*abs(h)**(self.gamma-1)*np.sign(h))/((self.A+abs(h)**self.gamma)**2)
+        g[h >= 0] = 0
+        g = sdiag(g)
         return g
 
 
@@ -180,6 +259,9 @@ class VanGenuchten(object):
     def __init__(self, **kwargs):
         setKwargs(self, **kwargs)
 
+    def setModel(self, m):
+        self.Ks = m
+
     def moistureContent(self, h):
         m = 1 - 1/self.n;
         f = ((  self.theta_s  -  self.theta_r  )/
@@ -208,6 +290,15 @@ class VanGenuchten(object):
             f[h >= 0] = np.exp(self.Ks)
         return f
 
+    def hydraulicConductivityModelDeriv(self, h):
+        #alpha
+        # dA = I*h*n*np.exp(Ks)*abs(alpha*h)**(n - 1)*np.sign(alpha*h)*(1/n - 1)*((abs(alpha*h)**n + 1)**(1/n - 1))**(I - 1)*((1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))**(1 - 1/n) - 1)**2*(abs(alpha*h)**n + 1)**(1/n - 2) - (2*h*n*np.exp(Ks)*abs(alpha*h)**(n - 1)*np.sign(alpha*h)*(1/n - 1)*((abs(alpha*h)**n + 1)**(1/n - 1))**I*((1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))**(1 - 1/n) - 1)*(abs(alpha*h)**n + 1)**(1/n - 2))/(((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1) + 1)*(1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))**(1/n));
+        #n
+        # dn = 2*np.exp(Ks)*((np.log(1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))*(1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))**(1 - 1/n))/n**2 + ((1/n - 1)*(((np.log(abs(alpha*h)**n + 1)*(abs(alpha*h)**n + 1)**(1/n - 1))/n**2 - abs(alpha*h)**n*np.log(abs(alpha*h))*(1/n - 1)*(abs(alpha*h)**n + 1)**(1/n - 2))/((1/n - 1)*((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1) + 1)) - np.log((abs(alpha*h)**n + 1)**(1/n - 1))/(n**2*(1/n - 1)**2*((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))))/(1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))**(1/n))*((abs(alpha*h)**n + 1)**(1/n - 1))**I*((1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))**(1 - 1/n) - 1) - I*np.exp(Ks)*((np.log(abs(alpha*h)**n + 1)*(abs(alpha*h)**n + 1)**(1/n - 1))/n**2 - abs(alpha*h)**n*np.log(abs(alpha*h))*(1/n - 1)*(abs(alpha*h)**n + 1)**(1/n - 2))*((abs(alpha*h)**n + 1)**(1/n - 1))**(I - 1)*((1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))**(1 - 1/n) - 1)**2;
+        #I
+        # dI = np.exp(Ks)*np.log((abs(alpha*h)**n + 1)**(1/n - 1))*((abs(alpha*h)**n + 1)**(1/n - 1))**I*((1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))**(1 - 1/n) - 1)**2;
+        return sdiag(self.hydraulicConductivity(h)) # This assumes that the the model is Ks
+
     def hydraulicConductivityDeriv(self, h):
         alpha = self.alpha
         I = self.I
@@ -218,14 +309,6 @@ class VanGenuchten(object):
         g = I*alpha*n*np.exp(Ks)*abs(alpha*h)**(n - 1)*np.sign(alpha*h)*(1/n - 1)*((abs(alpha*h)**n + 1)**(1/n - 1))**(I - 1)*((1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))**(1 - 1/n) - 1)**2*(abs(alpha*h)**n + 1)**(1/n - 2) - (2*alpha*n*np.exp(Ks)*abs(alpha*h)**(n - 1)*np.sign(alpha*h)*(1/n - 1)*((abs(alpha*h)**n + 1)**(1/n - 1))**I*((1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))**(1 - 1/n) - 1)*(abs(alpha*h)**n + 1)**(1/n - 2))/(((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1) + 1)*(1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))**(1/n))
         g[h >= 0] = 0
         g = sdiag(g)
-
-        #alpha
-        # dA = I*h*n*np.exp(Ks)*abs(alpha*h)**(n - 1)*np.sign(alpha*h)*(1/n - 1)*((abs(alpha*h)**n + 1)**(1/n - 1))**(I - 1)*((1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))**(1 - 1/n) - 1)**2*(abs(alpha*h)**n + 1)**(1/n - 2) - (2*h*n*np.exp(Ks)*abs(alpha*h)**(n - 1)*np.sign(alpha*h)*(1/n - 1)*((abs(alpha*h)**n + 1)**(1/n - 1))**I*((1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))**(1 - 1/n) - 1)*(abs(alpha*h)**n + 1)**(1/n - 2))/(((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1) + 1)*(1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))**(1/n));
-        #n
-        # dn = 2*np.exp(Ks)*((np.log(1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))*(1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))**(1 - 1/n))/n**2 + ((1/n - 1)*(((np.log(abs(alpha*h)**n + 1)*(abs(alpha*h)**n + 1)**(1/n - 1))/n**2 - abs(alpha*h)**n*np.log(abs(alpha*h))*(1/n - 1)*(abs(alpha*h)**n + 1)**(1/n - 2))/((1/n - 1)*((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1) + 1)) - np.log((abs(alpha*h)**n + 1)**(1/n - 1))/(n**2*(1/n - 1)**2*((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))))/(1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))**(1/n))*((abs(alpha*h)**n + 1)**(1/n - 1))**I*((1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))**(1 - 1/n) - 1) - I*np.exp(Ks)*((np.log(abs(alpha*h)**n + 1)*(abs(alpha*h)**n + 1)**(1/n - 1))/n**2 - abs(alpha*h)**n*np.log(abs(alpha*h))*(1/n - 1)*(abs(alpha*h)**n + 1)**(1/n - 2))*((abs(alpha*h)**n + 1)**(1/n - 1))**(I - 1)*((1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))**(1 - 1/n) - 1)**2;
-        #I
-        # dI = np.exp(Ks)*np.log((abs(alpha*h)**n + 1)**(1/n - 1))*((abs(alpha*h)**n + 1)**(1/n - 1))**I*((1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))**(1 - 1/n) - 1)**2;
-
         return g
 
 
@@ -244,6 +327,12 @@ if __name__ == '__main__':
 
     h = np.zeros(M.nC) + prob.boundaryConditions[0]
 
-    checkDerivative(lambda hn1: prob.getResidual(h,hn1), h)
-
+    numIts = 10
+    Hs = range(numIts+1)
+    Hs[0] = h
+    for ii in range(numIts):
+        hn = Hs[ii]
+        hn1 = NewtonRoot().root(lambda hn1: prob.getResidual(hn,hn1), hn)
+        Hs[ii+1] = hn1
+        M.plotImage(hn1,showIt=True)
 

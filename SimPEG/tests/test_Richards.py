@@ -69,8 +69,13 @@ class RichardsTests(unittest.TestCase):
         passed = checkDerivative(wrapper, np.random.randn(n), plotIt=False)
         self.assertTrue(passed,True)
 
-    def test_Richards_getResidual(self):
+    def test_Richards_getResidual_Newton(self):
+        self.prob.doNewton = True
         checkDerivative(lambda hn1: self.prob.getResidual(self.h0,hn1), self.h0, plotIt=False)
+
+    def test_Richards_getResidual_Picard(self):
+        self.prob.doNewton = False
+        checkDerivative(lambda hn1: self.prob.getResidual(self.h0,hn1), self.h0, plotIt=False, expectedOrder=1)
 
 
 

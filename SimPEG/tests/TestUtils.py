@@ -189,7 +189,7 @@ def Rosenbrock(x, return_g=True, return_H=True):
         out += (H,)
     return out if len(out) > 1 else out[0]
 
-def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None):
+def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None, expectedOrder=2, tolerance=0.9, eps=1e-10):
     """
         Basic derivative check
 
@@ -201,6 +201,9 @@ def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None):
         :param int num: number of times to reduce step length, h
         :param bool plotIt: if you would like to plot
         :param numpy.array dx: step direction
+        :param int expectedOrder: The order that you expect the derivative to yield.
+        :param float tolerance: The tolerance on the expected order.
+        :param float eps: What is zero?
         :rtype: bool
         :return: did you pass the test?!
 
@@ -243,9 +246,6 @@ def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None):
         order1 = np.log10(E1[:-1]/E1[1:])
         print "%d\t%1.2e\t%1.3e\t\t%1.3e\t\t%1.3f" % (i, t[i], E0[i], E1[i], np.nan if i == 0 else order1[i-1])
 
-    tolerance = 0.9
-    expectedOrder = 2
-    eps = 1e-10
     order0 = order0[E0[1:] > eps]
     order1 = order1[E1[1:] > eps]
     belowTol = order1.size == 0 and order0.size > 0
