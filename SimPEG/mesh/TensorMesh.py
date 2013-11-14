@@ -26,17 +26,24 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
     .. plot:: examples/mesh/plot_TensorMesh.py
 
+    For a quick tensor mesh on a (10x12x15) unit cube::
+
+        mesh = TensorMesh([10, 12, 15])
+
     """
     _meshType = 'TENSOR'
 
     def __init__(self, h, x0=None):
-        super(TensorMesh, self).__init__(np.array([x.size for x in h]), x0)
-
-        assert len(h) == len(self.x0), "Dimension mismatch. x0 != len(h)"
-
         for i, h_i in enumerate(h):
+            if type(h_i) in [int, long, float]:
+                # This gives you something over the unit cube.
+                h_i = np.ones(int(h_i))/int(h_i)
+                h[i] = h_i
             assert type(h_i) == np.ndarray, ("h[%i] is not a numpy array." % i)
             assert len(h_i.shape) == 1, ("h[%i] must be a 1D numpy array." % i)
+
+        BaseMesh.__init__(self, np.array([x.size for x in h]), x0)
+        assert len(h) == len(self.x0), "Dimension mismatch. x0 != len(h)"
 
         # Ensure h contains 1D vectors
         self._h = [mkvc(x.astype(float)) for x in h]
