@@ -287,8 +287,8 @@ class DiffOperators(object):
                     G = sp.vstack((G1, G2, G3), format="csr")
                 # Compute areas of cell faces & volumes
                 S = self.area
-                V = self.vol
-                self._cellGradBC = sdiag(S)*G*sdiag(1/V[[0,-1]])
+                V = self.aveCC2F*self.vol  # Average volume between adjacent cells
+                self._cellGradBC = sdiag(S/V)*G
             return self._cellGradBC
         return locals()
     _cellGradBC = None
