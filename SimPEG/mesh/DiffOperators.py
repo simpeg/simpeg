@@ -1,6 +1,6 @@
 import numpy as np
 from scipy import sparse as sp
-from SimPEG.utils import mkvc, sdiag, speye, kron3, spzeros, ddx, av
+from SimPEG.utils import mkvc, sdiag, speye, kron3, spzeros, ddx, av, avExtrap
 
 
 def checkBC(bc):
@@ -423,25 +423,14 @@ class DiffOperators(object):
             if(self._aveCC2F is None):
                 n = self.n
                 if(self.dim == 1):
-                    Av = av(n[0]).T
-                    Av = sdiag(1/Av.sum(axis=1))*Av
-                    self._aveCC2F = Av
+                    self._aveCC2F = avExtrap(n[0])
                 elif(self.dim == 2):
-                    Av1 = av(n[0]).T
-                    Av1 = sdiag(1/Av1.sum(axis=1))*Av1
-                    Av2 = av(n[1]).T
-                    Av2 = sdiag(1/Av2.sum(axis=1))*Av2
-                    Av = sp.vstack((sp.kron(speye(n[1]), Av1), sp.kron(Av2, speye(n[0]))), format="csr")
-                    self._aveCC2F = Av
+                    self._aveCC2F = sp.vstack((sp.kron(speye(n[1]), avExtrap(n[0])),
+                                               sp.kron(avExtrap(n[1]), speye(n[0]))), format="csr")
                 elif(self.dim == 3):
-                    Av1 = av(n[0]).T
-                    Av1 = sdiag(1/Av1.sum(axis=1))*Av1
-                    Av2 = av(n[1]).T
-                    Av2 = sdiag(1/Av2.sum(axis=1))*Av2
-                    Av3 = av(n[2]).T
-                    Av3 = sdiag(1/Av3.sum(axis=1))*Av3
-                    Av = sp.vstack((kron3(speye(n[2]), speye(n[1]), Av1), kron3(speye(n[2]), Av2, speye(n[0])), kron3(Av3, speye(n[1]), speye(n[0]))), format="csr")
-                    self._aveCC2F = Av
+                    self._aveCC2F = sp.vstack((kron3(speye(n[2]), speye(n[1]), avExtrap(n[0])),
+                                               kron3(speye(n[2]), avExtrap(n[1]), speye(n[0])),
+                                               kron3(avExtrap(n[2]), speye(n[1]), speye(n[0]))), format="csr")
             return self._aveCC2F
         return locals()
     _aveCC2F = None
