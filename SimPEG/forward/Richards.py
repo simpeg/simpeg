@@ -86,6 +86,20 @@ class RichardsProblem(Problem):
         self.doNewton = False  # This also sets the rootFinder algorithm.
         setKwargs(self, **kwargs)
 
+    def dpred(self, m, u=None):
+        """
+            Predicted data.
+
+            .. math::
+                d_\\text{pred} = Pu(m)
+        """
+        if u is None:
+            u = self.field(m)
+        u = np.concatenate(u[1:])
+        if self.dataType is 'saturation':
+            u = self.empirical.moistureContent(u)
+        return self.P*u
+
     def field(self, m):
         self.empirical.setModel(m)
         Hs = range(self.numIts+1)
