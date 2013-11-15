@@ -1,16 +1,24 @@
 from SimPEG.forward import Problem
 import numpy as np
-from SimPEG.utils import sdiag, mkvc, setKwargs, Solver
+from SimPEG.utils import sdiag, spzeros, mkvc, setKwargs, Solver
 from SimPEG.inverse import NewtonRoot
+import scipy.sparse as sp
 
 
 class RichardsProblem(Problem):
     """docstring for RichardsProblem"""
 
-    timeStep = None
     timeEnd  = None
     boundaryConditions = None
     initialConditions  = None
+
+    @property
+    def timeStep(self):
+        """The time between steps."""
+        return self._timeStep
+    @timeStep.setter
+    def timeStep(self, value):
+        self._timeStep = float(value)
 
     @property
     def numIts(self):
@@ -127,7 +135,7 @@ class RichardsProblem(Problem):
 
         # Compute part of the derivative of:
         #
-        #       DIV*diag(GRAD*hn1+BC*bc)*(AV*(1/K))^-1
+        #       DIV*diag(GRAD*hn1+BC*bc)*(AV*(1.0/K))^-1
 
         DdiagGh1 = DIV*sdiag(GRAD*hn1+BC*bc)
         diagAVk2_AVdiagK2 = sdiag((AV*(1./K1))**(-2)) * AV*sdiag(K1**(-2))
@@ -142,10 +150,10 @@ class RichardsProblem(Problem):
         #  |                         Asub    Adiag  | | hn |   | bn |
         #   -                                      -   -  -     -  -
 
-        Asub = (-1/dt)*dT
+        Asub = (-1.0/dt)*dT
 
         Adiag = (
-                  (1/dt)*dT1
+                  (1.0/dt)*dT1
                  -DdiagGh1*diagAVk2_AVdiagK2*dK1
                  -DIV*sdiag(1./(AV*(1./K1)))*GRAD
                  -Dz*diagAVk2_AVdiagK2*dK1
@@ -188,6 +196,26 @@ class RichardsProblem(Problem):
             J = J - DIV*sdiag(GRAD*h + BC*bc)*DDharmAve - Dz*DDharmAve
 
         return r, J
+
+    def fullJ(self, m, u=None):
+        if u is None:
+            u = self.field(m)
+        Hs = u
+        nn = len(Hs)-1
+        Asubs, Adiags, Bs = range(nn), range(nn), range(nn)
+        for ii in range(nn):
+            Asubs[ii], Adiags[ii], Bs[ii] = self.diagsJacobian(Hs[ii],Hs[ii+1])
+        Ad = sp.block_diag(Adiags)
+        zRight = spzeros((len(Asubs)-1)*Asubs[0].shape[0],Adiags[0].shape[1])
+        zTop = spzeros(Adiags[0].shape[0], len(Adiags)*Adiags[0].shape[1])
+        As = sp.vstack((zTop,sp.hstack((sp.block_diag(Asubs[1:]),zRight))))
+        A = As + Ad
+        B = np.array(sp.vstack(Bs).todense())
+
+        Ainv = Solver(A)
+        J = Ainv.solve(B)
+        return J
+
 
     def J(self, m, v, u=None):
         if u is None:
@@ -329,7 +357,7 @@ class VanGenuchten(object):
         self.Ks = m
 
     def moistureContent(self, h):
-        m = 1 - 1/self.n;
+        m = 1 - 1.0/self.n;
         f = ((  self.theta_s  -  self.theta_r  )/
              ((1+abs(self.alpha*h)**self.n)**m)   +  self.theta_r)
         f[h > 0] = self.theta_s
@@ -346,10 +374,10 @@ class VanGenuchten(object):
         I = self.I
         n = self.n
         Ks = self.Ks
-        m = 1 - 1/n
+        m = 1 - 1.0/n
 
-        theta_e = 1/((1+abs(alpha*h)**n)**m)
-        f = np.exp(Ks)*theta_e**I* ( ( 1 - ( 1 - theta_e**(1/m) )**m )**2 )
+        theta_e = 1.0/((1+abs(alpha*h)**n)**m)
+        f = np.exp(Ks)*theta_e**I* ( ( 1 - ( 1 - theta_e**(1.0/m) )**m )**2 )
         if type(self.Ks) is np.ndarray and self.Ks.size > 1:
             f[h >= 0] = np.exp(self.Ks[h >= 0])
         else:
@@ -358,11 +386,11 @@ class VanGenuchten(object):
 
     def hydraulicConductivityModelDeriv(self, h):
         #alpha
-        # dA = I*h*n*np.exp(Ks)*abs(alpha*h)**(n - 1)*np.sign(alpha*h)*(1/n - 1)*((abs(alpha*h)**n + 1)**(1/n - 1))**(I - 1)*((1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))**(1 - 1/n) - 1)**2*(abs(alpha*h)**n + 1)**(1/n - 2) - (2*h*n*np.exp(Ks)*abs(alpha*h)**(n - 1)*np.sign(alpha*h)*(1/n - 1)*((abs(alpha*h)**n + 1)**(1/n - 1))**I*((1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))**(1 - 1/n) - 1)*(abs(alpha*h)**n + 1)**(1/n - 2))/(((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1) + 1)*(1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))**(1/n));
+        # dA = I*h*n*np.exp(Ks)*abs(alpha*h)**(n - 1)*np.sign(alpha*h)*(1.0/n - 1)*((abs(alpha*h)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*h)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2*(abs(alpha*h)**n + 1)**(1.0/n - 2) - (2*h*n*np.exp(Ks)*abs(alpha*h)**(n - 1)*np.sign(alpha*h)*(1.0/n - 1)*((abs(alpha*h)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*h)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)*(abs(alpha*h)**n + 1)**(1.0/n - 2))/(((abs(alpha*h)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)*(1 - 1.0/((abs(alpha*h)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n));
         #n
-        # dn = 2*np.exp(Ks)*((np.log(1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))*(1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))**(1 - 1/n))/n**2 + ((1/n - 1)*(((np.log(abs(alpha*h)**n + 1)*(abs(alpha*h)**n + 1)**(1/n - 1))/n**2 - abs(alpha*h)**n*np.log(abs(alpha*h))*(1/n - 1)*(abs(alpha*h)**n + 1)**(1/n - 2))/((1/n - 1)*((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1) + 1)) - np.log((abs(alpha*h)**n + 1)**(1/n - 1))/(n**2*(1/n - 1)**2*((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))))/(1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))**(1/n))*((abs(alpha*h)**n + 1)**(1/n - 1))**I*((1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))**(1 - 1/n) - 1) - I*np.exp(Ks)*((np.log(abs(alpha*h)**n + 1)*(abs(alpha*h)**n + 1)**(1/n - 1))/n**2 - abs(alpha*h)**n*np.log(abs(alpha*h))*(1/n - 1)*(abs(alpha*h)**n + 1)**(1/n - 2))*((abs(alpha*h)**n + 1)**(1/n - 1))**(I - 1)*((1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))**(1 - 1/n) - 1)**2;
+        # dn = 2*np.exp(Ks)*((np.log(1 - 1.0/((abs(alpha*h)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))*(1 - 1.0/((abs(alpha*h)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n))/n**2 + ((1.0/n - 1)*(((np.log(abs(alpha*h)**n + 1)*(abs(alpha*h)**n + 1)**(1.0/n - 1))/n**2 - abs(alpha*h)**n*np.log(abs(alpha*h))*(1.0/n - 1)*(abs(alpha*h)**n + 1)**(1.0/n - 2))/((1.0/n - 1)*((abs(alpha*h)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)) - np.log((abs(alpha*h)**n + 1)**(1.0/n - 1))/(n**2*(1.0/n - 1)**2*((abs(alpha*h)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))))/(1 - 1.0/((abs(alpha*h)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n))*((abs(alpha*h)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*h)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1) - I*np.exp(Ks)*((np.log(abs(alpha*h)**n + 1)*(abs(alpha*h)**n + 1)**(1.0/n - 1))/n**2 - abs(alpha*h)**n*np.log(abs(alpha*h))*(1.0/n - 1)*(abs(alpha*h)**n + 1)**(1.0/n - 2))*((abs(alpha*h)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*h)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2;
         #I
-        # dI = np.exp(Ks)*np.log((abs(alpha*h)**n + 1)**(1/n - 1))*((abs(alpha*h)**n + 1)**(1/n - 1))**I*((1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))**(1 - 1/n) - 1)**2;
+        # dI = np.exp(Ks)*np.log((abs(alpha*h)**n + 1)**(1.0/n - 1))*((abs(alpha*h)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*h)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2;
         return sdiag(self.hydraulicConductivity(h)) # This assumes that the the model is Ks
 
     def hydraulicConductivityDeriv(self, h):
@@ -370,35 +398,43 @@ class VanGenuchten(object):
         I = self.I
         n = self.n
         Ks = self.Ks
-        m = 1 - 1/n
+        m = 1 - 1.0/n
 
-        g = I*alpha*n*np.exp(Ks)*abs(alpha*h)**(n - 1)*np.sign(alpha*h)*(1/n - 1)*((abs(alpha*h)**n + 1)**(1/n - 1))**(I - 1)*((1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))**(1 - 1/n) - 1)**2*(abs(alpha*h)**n + 1)**(1/n - 2) - (2*alpha*n*np.exp(Ks)*abs(alpha*h)**(n - 1)*np.sign(alpha*h)*(1/n - 1)*((abs(alpha*h)**n + 1)**(1/n - 1))**I*((1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))**(1 - 1/n) - 1)*(abs(alpha*h)**n + 1)**(1/n - 2))/(((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1) + 1)*(1 - 1/((abs(alpha*h)**n + 1)**(1/n - 1))**(1/(1/n - 1)))**(1/n))
+        g = I*alpha*n*np.exp(Ks)*abs(alpha*h)**(n - 1)*np.sign(alpha*h)*(1.0/n - 1)*((abs(alpha*h)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*h)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2*(abs(alpha*h)**n + 1)**(1.0/n - 2) - (2*alpha*n*np.exp(Ks)*abs(alpha*h)**(n - 1)*np.sign(alpha*h)*(1.0/n - 1)*((abs(alpha*h)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*h)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)*(abs(alpha*h)**n + 1)**(1.0/n - 2))/(((abs(alpha*h)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)*(1 - 1.0/((abs(alpha*h)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n))
         g[h >= 0] = 0
         g = sdiag(g)
         return g
 
 
 if __name__ == '__main__':
-    from SimPEG.mesh import TensorMesh
-    from SimPEG.tests import checkDerivative
-    M = TensorMesh([np.ones(40)])
+    import SimPEG
+    from SimPEG import mesh, inverse, regularization, tests
+    import scipy.sparse as sp
+    import numpy as np
+    from SimPEG.forward import Problem, Richards
+    M = mesh.TensorMesh([np.ones(40)])
     Ks = 9.4400e-03
-    E = Haverkamp(Ks=np.log(Ks), A=1.1750e+06, gamma=4.74, alpha=1.6110e+06, theta_s=0.287, theta_r=0.075, beta=3.96)
+    E = Richards.Haverkamp(Ks=np.log(Ks), A=1.1750e+06, gamma=4.74, alpha=1.6110e+06, theta_s=0.287, theta_r=0.075, beta=3.96)
+    bc = np.array([-61.5,-20.7])
+    h = np.zeros(M.nC) + bc[0]
+    prob = Richards.RichardsProblem(M,E, timeStep=10, timeEnd=60, boundaryConditions=bc, initialConditions=h, doNewton=False, method='mixed')
 
-    prob = RichardsProblem(M,E)
-    prob.timeStep = 1
-    prob.boundaryConditions = np.array([-61.5,-20.7])
-    prob.doNewton = True
-    prob.method = 'mixed'
+    q = sp.csr_matrix((np.ones(4),(np.arange(4),np.array([20, 30, 35, 38]))),shape=(4,M.nCx))
+    P = sp.kron(sp.identity(prob.numIts),q)
+    prob.P = P
 
-    h = np.zeros(M.nC) + prob.boundaryConditions[0]
-
-    numIts = 10
-    Hs = range(numIts+1)
-    Hs[0] = h
-    for ii in range(numIts):
-        hn = Hs[ii]
-        hn1 = NewtonRoot().root(lambda hn1: prob.getResidual(hn,hn1), hn)
-        Hs[ii+1] = hn1
-        M.plotImage(hn1,showIt=True)
+    prob.dataType = 'pressureHead'
+    mTrue = np.ones(M.nC)*np.log(Ks)
+    stdev = 0.01  # The standard deviation for the noise
+    dobs = prob.createSyntheticData(mTrue,std=stdev)[0]
+    # p = plot(dobs.reshape((-1,4)))
+    prob.dobs = dobs
+    prob.std = dobs*0 + stdev
+    opt = inverse.InexactGaussNewton(maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6)
+    reg = regularization.Regularization(mesh)
+    inv = inverse.Inversion(prob, reg, opt, beta0=1e4)
+    derChk = lambda m: [inv.dataObj(m), inv.dataObjDeriv(m)]
+    print inv.dataObj(mTrue*0+np.log(1e-5))
+    print inv.dataObj(mTrue)
+    tests.checkDerivative(derChk, mTrue, plotIt=False)
 

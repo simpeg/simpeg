@@ -38,6 +38,9 @@ class BaseInversion(object):
             eps = np.linalg.norm(mkvc(self.prob.dobs),2)*1e-5
             self._Wd = 1/(abs(self.prob.dobs)*self.prob.std+eps)
         return self._Wd
+    @Wd.setter
+    def Wd(self, value):
+        self._Wd = value
 
     @property
     def phi_d_target(self):

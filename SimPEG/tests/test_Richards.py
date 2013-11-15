@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
 import unittest
-from SimPEG.mesh import TensorMesh
+from SimPEG import mesh, regularization, inverse
 from TestUtils import OrderTest, checkDerivative
 from scipy.sparse.linalg import dsolve
 from SimPEG.forward import Richards
@@ -12,7 +12,7 @@ TOL = 1E-8
 class RichardsTests(unittest.TestCase):
 
     def setUp(self):
-        M = TensorMesh([np.ones(40)])
+        M = mesh.TensorMesh([np.ones(40)])
         Ks = 9.4400e-03
         E = Richards.Haverkamp(Ks=np.log(Ks), A=1.1750e+06, gamma=4.74, alpha=1.6110e+06, theta_s=0.287, theta_r=0.075, beta=3.96)
 
@@ -113,8 +113,21 @@ class RichardsTests(unittest.TestCase):
         print '%4.4e === %4.4e, diff=%4.4e < %4.e'%(vJz, zJv,np.abs(vJz - zJv),tol)
         self.assertTrue(passed,True)
 
-
-
+    def test_Sensitivity(self):
+        self.prob.dataType = 'pressureHead'
+        mTrue = np.ones(self.M.nC)*np.log(self.Ks)
+        stdev = 0.01  # The standard deviation for the noise
+        dobs = self.prob.createSyntheticData(mTrue,std=stdev)[0]
+        self.prob.dobs = dobs
+        self.prob.std = dobs*0 + stdev
+        Hs = self.prob.field(mTrue)
+        opt = inverse.InexactGaussNewton(maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6)
+        reg = regularization.Regularization(mesh)
+        inv = inverse.Inversion(self.prob, reg, opt, beta0=1e4)
+        derChk = lambda m: [inv.dataObj(m), inv.dataObjDeriv(m)]
+        print 'Testing Richards Derivative'
+        passed = checkDerivative(derChk, mTrue, num=5, plotIt=False)
+        self.assertTrue(passed,True)
 
 
 if __name__ == '__main__':
