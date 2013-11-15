@@ -26,10 +26,13 @@ class vtkView(object):
 		"""
 		"""
 
+		# ToDo: Set the properties up so that there are set/get methods
 		self.name = 'VTK figure of SimPEG model'
 		self.extent = [0,mesh.nCx-1,0,mesh.nCy-1,0,mesh.nCz-1]
-		self.limits = [0, 10000]
+		self.limits = [0, 1e12]
+		self.viewProp = 0 # Int or name of the vector.
 		self._mesh = mesh
+
 
 		# Set vtk object containers
 		self._cell = None
@@ -99,7 +102,15 @@ class vtkView(object):
 		else:
 			raise Exception("{:s} is not a vailid imageType. Has to be 'cell':'face':'edge'".format(imageType))
 
-
+		# Set the active scalar.
+		if type(self.viewProp) == int:
+			actScalar = self._vtkobj.GetCellData().GetArrayName(self.viewProp)
+		elif type(self.viewProp) == str:
+			actScalar = self.viewProp
+		else :
+			raise Exception('The vtkView.viewProp has the wrong format. Has to be interger or a string.')
+		self._vtkobj.GetCellData().SetActiveScalars(actScalar)
+		# Set up the plane, clipper and the user interaction.
 		global intPlane, intActor
 		self._clipper, intPlane = vtkSP.makePlaneClipper(self._vtkobj)
 		intActor = vtkSP.makeVTKLODActor(self._vtkobj,self._clipper)
