@@ -85,7 +85,7 @@ class RichardsTests(unittest.TestCase):
         self.assertTrue(passed,True)
 
     def test_Adjoint_PressureHead(self):
-        # self.prob.dataType = 'pressureHead'
+        self.prob.dataType = 'pressureHead'
         Ks = self.Ks
         v = np.random.rand(self.prob.P.shape[0])
         z = np.random.rand(self.M.nC)

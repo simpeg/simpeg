@@ -78,7 +78,6 @@ class RichardsProblem(Problem):
         self._dataType = value
 
 
-
     def __init__(self, mesh, empirical, **kwargs):
         Problem.__init__(self, mesh)
         self.empirical = empirical
@@ -92,11 +91,8 @@ class RichardsProblem(Problem):
         Hs = range(self.numIts+1)
         Hs[0] = self.initialConditions
         for ii in range(self.numIts):
-            hn = Hs[ii]
-            hn1 = self.rootFinder.root(lambda hn1: self.getResidual(hn,hn1), hn)
-            Hs[ii+1] = hn1
+            Hs[ii+1] = self.rootFinder.root(lambda hn1: self.getResidual(Hs[ii],hn1), Hs[ii])
         return Hs
-
 
     def diagsJacobian(self, hn, hn1):
 

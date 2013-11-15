@@ -218,26 +218,14 @@ class Problem(object):
         """
         return sp.eye(m.size)
 
-
-
-
-class SyntheticProblem(object):
-    """
-        Has helpful functions when dealing with synthetic problems
-
-        To use this class, inherit to your problem::
-
-            class mySyntheticExample(Problem, SyntheticProblem):
-                pass
-    """
-    def createData(self, m, std=0.05):
+    def createSyntheticData(self, m, std=0.05):
         """
+            Create synthetic data given a model, and a standard deviation.
+
             :param numpy.array m: geophysical model
             :param numpy.array std: standard deviation
             :rtype: numpy.array, numpy.array
             :return: dobs, Wd
-
-            Create synthetic data given a model, and a standard deviation.
 
             Returns the observed data with random Gaussian noise
             and Wd which is the same size as data, and can be used to weight the inversion.

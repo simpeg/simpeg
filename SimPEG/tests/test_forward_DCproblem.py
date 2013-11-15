@@ -2,7 +2,7 @@ import numpy as np
 import unittest
 from SimPEG.mesh import TensorMesh
 from SimPEG.utils import ModelBuilder, sdiag
-from SimPEG.forward import Problem, SyntheticProblem
+from SimPEG.forward import Problem
 from SimPEG.forward.DCProblem import *
 from TestUtils import checkDerivative
 from scipy.sparse.linalg import dsolve
@@ -40,18 +40,13 @@ class DCProblemTests(unittest.TestCase):
         P = Q.T
 
         # Create some data
-        class syntheticDCProblem(DCProblem, SyntheticProblem):
-            pass
 
-        synthetic = syntheticDCProblem(mesh);
-        synthetic.P = P
-        synthetic.RHS = q
-        dobs, Wd = synthetic.createData(mSynth, std=0.05)
-
-        # Now set up the problem to do some minimization
         problem = DCProblem(mesh)
         problem.P = P
         problem.RHS = q
+        dobs, Wd = problem.createSyntheticData(mSynth, std=0.05)
+
+        # Now set up the problem to do some minimization
         problem.W = Wd
         problem.dobs = dobs
         problem.std = dobs*0 + 0.05
