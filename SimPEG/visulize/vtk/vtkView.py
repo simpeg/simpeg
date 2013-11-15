@@ -89,11 +89,13 @@ class vtkView(object):
 
 		# Sort out the actor
 		if imageType == 'cell':
-			self._vtkobj, self._core = vtkSP.makeRectiVTKVOIThres(self._cell)
+			self._vtkobj, self._core = vtkSP.makeRectiVTKVOIThres(self._cell,self.extent,self.limits)
 		elif imageType == 'face':
-			self._vtkobj, self._core = vtkSP.makeRectiVTKVOIThres(self._face)
+			extent = [self._mesh.vectorNx[self.extent[0]], self._mesh.vectorNx[self.extent[1]], self._mesh.vectorNy[self.extent[2]], self._mesh.vectorNy[self.extent[3]], self._mesh.vectorNz[self.extent[4]], self._mesh.vectorNz[self.extent[5]] ]
+			self._vtkobj, self._core = vtkSP.makeUnstructVTKVOIThres(self._face,extent,self.limits)
 		elif imageType == 'edge':
-			self._vtkobj, self._core = vtkSP.makeRectiVTKVOIThres(self._edge)
+			extent = [self._mesh.vectorNx[self.extent[0]], self._mesh.vectorNx[self.extent[1]], self._mesh.vectorNy[self.extent[2]], self._mesh.vectorNy[self.extent[3]], self._mesh.vectorNz[self.extent[4]], self._mesh.vectorNz[self.extent[5]] ]
+			self._vtkobj, self._core = vtkSP.makeUnstructVTKVOIThres(self._edge,extent,self.limits)
 		else:
 			raise Exception("{:s} is not a vailid imageType. Has to be 'cell':'face':'edge'".format(imageType))
 

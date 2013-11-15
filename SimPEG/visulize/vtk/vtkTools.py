@@ -240,15 +240,34 @@ class vtkTools(object):
 		vtkObj.GetCellData().SetActiveScalars(scalarName)
 		
 	@staticmethod
-	def makeRectiVTKVOIThres(vtkObj):
+	def makeRectiVTKVOIThres(vtkObj,VOI,limits):
 		"""Make volume of interest and threshold for rectilinear grid."""
+		# Check for the input
 		cellCore = vtk.vtkExtractRectilinearGrid()
+		cellCore.SetVOI(VOI)
 		cellCore.SetInput(vtkObj)
-		cellCore.SetVOI(vtkObj.GetExtent())
+		
 		cellThres = vtk.vtkThreshold()
 		cellThres.AllScalarsOn()  
 		cellThres.SetInputConnection(cellCore.GetOutputPort()) 
-		cellThres.ThresholdByUpper(-1)
+		cellThres.ThresholdByUpper(limits[0])
+		cellThres.ThresholdByLower(limits[1])
+		cellThres.Update()
+		return cellThres.GetOutput(), cellCore.GetOutput()
+	
+	@staticmethod
+	def makeUnstructVTKVOIThres(vtkObj,extent,limits):
+		"""Make volume of interest and threshold for rectilinear grid."""
+		# Check for the input
+		cellCore = vtk.vtkExtractUnstructuredGrid()
+		cellCore.SetExtent(extent)
+		cellCore.SetInput(vtkObj)
+		
+		cellThres = vtk.vtkThreshold()
+		cellThres.AllScalarsOn()  
+		cellThres.SetInputConnection(cellCore.GetOutputPort()) 
+		cellThres.ThresholdByUpper(limits[0])
+		cellThres.ThresholdByLower(limits[1])
 		cellThres.Update()
 		return cellThres.GetOutput(), cellCore.GetOutput()
 
