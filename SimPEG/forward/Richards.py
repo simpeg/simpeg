@@ -1,6 +1,6 @@
 from SimPEG.forward import Problem
 import numpy as np
-from SimPEG.utils import sdiag, mkvc, setKwargs
+from SimPEG.utils import sdiag, mkvc, setKwargs, Solver
 from SimPEG.inverse import NewtonRoot
 
 
@@ -71,10 +71,10 @@ class RichardsProblem(Problem):
     @property
     def dataType(self):
         """Choose how your data is collected, must be 'saturation' or 'pressureHead'."""
-        assert value in ['saturation','pressureHead'], "dataType must be 'saturation' or 'pressureHead'."
         return self._dataType
     @dataType.setter
     def dataType(self, value):
+        assert value in ['saturation','pressureHead'], "dataType must be 'saturation' or 'pressureHead'."
         self._dataType = value
 
 
@@ -83,6 +83,7 @@ class RichardsProblem(Problem):
         Problem.__init__(self, mesh)
         self.empirical = empirical
         self.mesh.setCellGradBC('dirichlet')
+        self.dataType = 'pressureHead'
         self.doNewton = False  # This also sets the rootFinder algorithm.
         setKwargs(self, **kwargs)
 
@@ -142,6 +143,8 @@ class RichardsProblem(Problem):
 
         B = DdiagGh1*diagAVk2_AVdiagK2*dKa1 + Dz*diagAVk2_AVdiagK2*dKa1
 
+        return Asub, Adiag, B
+
     def getResidual(self, hn, h):
         """
             Where h is the proposed value for the next time iterate (h_{n+1})
@@ -196,10 +199,12 @@ class RichardsProblem(Problem):
             JvC[ii] = Adiaginv.solve(B*v - Asub*JvC[ii-1])
 
         if self.dataType is 'pressureHead':
-            Jv = P.Q*np.concatenate(JvC)
+            Jv = self.P*np.concatenate(JvC)
         elif self.dataType is 'saturation':
             dT = self.empirical.moistureContentDeriv(np.concatenate(Hs[1:]))
-            Jv = P.Q*dT*np.concatenate(JvC)
+            Jv = self.P*dT*np.concatenate(JvC)
+
+        return Jv
 
     def Jt(self, m, v, u=None):
         if u is None:
@@ -207,23 +212,24 @@ class RichardsProblem(Problem):
         Hs = u
 
         if self.dataType is 'pressureHead':
-            QTz = P.Q.T*z;
+            PTv = self.P.T*v;
         elif self.dataType is 'saturation':
             dT = self.empirical.moistureContentDeriv(np.concatenate(Hs[1:]))
-            QTz = dT.T*P.Q.T*z
+            PTv = dT.T*self.P.T*v
 
         # This is done via backward substitution.
         minus = 0
-        BJtz = 0
-        for ii in range(numel(Hs)-1,-1,-1):
+        BJtv = 0
+        for ii in range(len(Hs)-1,0,-1):
             Asub, Adiag, B = self.diagsJacobian(Hs[ii-1], Hs[ii])
-            #select the correct part of z
-            # TODO: This might be easier by reshaping the array
-            zpart = range((ii-2)*Adiag.shape[0], (ii-1)*Adiag.shape[0])
+            #select the correct part of v
+            vpart = range((ii-1)*Adiag.shape[0], (ii)*Adiag.shape[0])
             AdiaginvT = Solver(Adiag.T)
-            JTzC = AdiaginvT.solve(QTz[zpart] - minus)
-            minus = Asub.T*JTzC  # this is now the super diagonal.
-            BJtz = BJtz + B.T*JTzC
+            JTvC = AdiaginvT.solve(PTv[vpart] - minus)
+            minus = Asub.T*JTvC  # this is now the super diagonal.
+            BJtv = BJtv + B.T*JTvC
+
+        return BJtv
 
 
 class Haverkamp(object):

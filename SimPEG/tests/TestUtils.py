@@ -189,7 +189,7 @@ def Rosenbrock(x, return_g=True, return_H=True):
         out += (H,)
     return out if len(out) > 1 else out[0]
 
-def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None, expectedOrder=2, tolerance=0.9, eps=1e-10):
+def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None, expectedOrder=2, tolerance=0.85, eps=1e-10):
     """
         Basic derivative check
 
