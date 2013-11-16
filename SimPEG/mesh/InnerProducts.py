@@ -174,8 +174,8 @@ def getFaceInnerProduct(mesh, mu=None, returnP=False):
 
     def Pxxx(pos):
         ind1 = sub2ind(mesh.nFx, np.c_[ii + pos[0][0], jj + pos[0][1], kk + pos[0][2]])
-        ind2 = sub2ind(mesh.nFy, np.c_[ii + pos[1][0], jj + pos[1][1], kk + pos[1][2]]) + mesh.nF[0]
-        ind3 = sub2ind(mesh.nFz, np.c_[ii + pos[2][0], jj + pos[2][1], kk + pos[2][2]]) + mesh.nF[0] + mesh.nF[1]
+        ind2 = sub2ind(mesh.nFy, np.c_[ii + pos[1][0], jj + pos[1][1], kk + pos[1][2]]) + mesh.nFv[0]
+        ind3 = sub2ind(mesh.nFz, np.c_[ii + pos[2][0], jj + pos[2][1], kk + pos[2][2]]) + mesh.nFv[0] + mesh.nFv[1]
 
         IND = np.r_[ind1, ind2, ind3].flatten()
 
@@ -286,7 +286,7 @@ def getFaceInnerProduct2D(mesh, mu=None, returnP=False):
 
     def Pxx(pos):
         ind1 = sub2ind(mesh.nFx, np.c_[ii + pos[0][0], jj + pos[0][1]])
-        ind2 = sub2ind(mesh.nFy, np.c_[ii + pos[1][0], jj + pos[1][1]]) + mesh.nF[0]
+        ind2 = sub2ind(mesh.nFy, np.c_[ii + pos[1][0], jj + pos[1][1]]) + mesh.nFv[0]
 
         IND = np.r_[ind1, ind2].flatten()
 
@@ -387,8 +387,8 @@ def getEdgeInnerProduct(mesh, sigma=None, returnP=False):
 
     def Pxxx(pos):
         ind1 = sub2ind(mesh.nEx, np.c_[ii + pos[0][0], jj + pos[0][1], kk + pos[0][2]])
-        ind2 = sub2ind(mesh.nEy, np.c_[ii + pos[1][0], jj + pos[1][1], kk + pos[1][2]]) + mesh.nE[0]
-        ind3 = sub2ind(mesh.nEz, np.c_[ii + pos[2][0], jj + pos[2][1], kk + pos[2][2]]) + mesh.nE[0] + mesh.nE[1]
+        ind2 = sub2ind(mesh.nEy, np.c_[ii + pos[1][0], jj + pos[1][1], kk + pos[1][2]]) + mesh.nEv[0]
+        ind3 = sub2ind(mesh.nEz, np.c_[ii + pos[2][0], jj + pos[2][1], kk + pos[2][2]]) + mesh.nEv[0] + mesh.nEv[1]
 
         IND = np.r_[ind1, ind2, ind3].flatten()
 
@@ -499,7 +499,7 @@ def getEdgeInnerProduct2D(mesh, sigma=None, returnP=False):
 
     def Pxx(pos):
         ind1 = sub2ind(mesh.nEx, np.c_[ii + pos[0][0], jj + pos[0][1]])
-        ind2 = sub2ind(mesh.nEy, np.c_[ii + pos[1][0], jj + pos[1][1]]) + mesh.nE[0]
+        ind2 = sub2ind(mesh.nEy, np.c_[ii + pos[1][0], jj + pos[1][1]]) + mesh.nEv[0]
 
         IND = np.r_[ind1, ind2].flatten()
 

@@ -1,11 +1,6 @@
 import numpy as np
 from scipy import sparse as sp
-from SimPEG.utils import mkvc, sdiag, speye, kron3, spzeros
-
-
-def ddx(n):
-    """Define 1D derivatives, inner, this means we go from n+1 to n+1"""
-    return sp.spdiags((np.ones((n+1, 1))*[-1, 1]).T, [0, 1], n, n+1, format="csr")
+from SimPEG.utils import mkvc, sdiag, speye, kron3, spzeros, ddx, av
 
 
 def checkBC(bc):
@@ -37,11 +32,6 @@ def ddxCellGrad(n, bc):
     elif(bc[1] == 'neumann'):
         D[-1, -1] = 0
     return D
-
-
-def av(n):
-    """Define 1D averaging operator from cell-centres to nodes."""
-    return sp.spdiags((0.5*np.ones((n+1, 1))*[1, 1]).T, [0, 1], n, n+1, format="csr")
 
 
 class DiffOperators(object):
@@ -106,6 +96,38 @@ class DiffOperators(object):
         return locals()
     _nodalGrad = None
     nodalGrad = property(**nodalGrad())
+
+    def nodalLaplacian():
+        doc = "Construct laplacian operator (nodes to edges)."
+
+        def fget(self):
+            if(self._nodalLaplacian is None):
+                print 'Warning: Laplacian has not been tested rigorously.'
+                # The number of cell centers in each direction
+                n = self.n
+                # Compute divergence operator on faces
+                if(self.dim == 1):
+                    D1 = sdiag(1./self.hx) * ddx(mesh.nCx)
+                    L  = - D1.T*D1
+                elif(self.dim == 2):
+                    D1 = sdiag(1./self.hx) * ddx(n[0])
+                    D2 = sdiag(1./self.hy) * ddx(n[1])
+                    L1 = sp.kron(speye(n[1]+1), - D1.T * D1)
+                    L2 = sp.kron(- D2.T * D2, speye(n[0]+1))
+                    L  = L1 + L2
+                elif(self.dim == 3):
+                    D1 = sdiag(1./self.hx) * ddx(n[0])
+                    D2 = sdiag(1./self.hy) * ddx(n[1])
+                    D3 = sdiag(1./self.hz) * ddx(n[2])
+                    L1 = kron3(speye(n[2]+1), speye(n[1]+1), - D1.T * D1)
+                    L2 = kron3(speye(n[2]+1), - D2.T * D2, speye(n[0]+1))
+                    L3 = kron3(- D3.T * D3, speye(n[1]+1), speye(n[0]+1))
+                    L  = L1 + L2 + L3
+                self._nodalLaplacian = L
+            return self._nodalLaplacian
+        return locals()
+    _nodalLaplacian = None
+    nodalLaplacian = property(**nodalLaplacian())
 
     def setCellGradBC(self, BC):
         """
@@ -182,7 +204,6 @@ class DiffOperators(object):
         return locals()
     cellGradx = property(**cellGradx())
 
-
     def cellGrady():
         doc = "Cell centered Gradient in the x dimension. Has neumann boundary conditions."
         def fget(self):
@@ -203,8 +224,6 @@ class DiffOperators(object):
         return locals()
     cellGrady = property(**cellGrady())
 
-
-
     def cellGradz():
         doc = "Cell centered Gradient in the x dimension. Has neumann boundary conditions."
         def fget(self):
@@ -221,7 +240,6 @@ class DiffOperators(object):
             return self._cellGradz
         return locals()
     cellGradz = property(**cellGradz())
-
 
     def edgeCurl():
         doc = "Construct the 3D curl operator."
@@ -265,6 +283,8 @@ class DiffOperators(object):
     _edgeCurl = None
     edgeCurl = property(**edgeCurl())
 
+    # --------------- Averaging ---------------------
+
     def aveF2CC():
         doc = "Construct the averaging operator on cell faces to cell centers."
 
@@ -274,10 +294,10 @@ class DiffOperators(object):
                 if(self.dim == 1):
                     self._aveF2CC = av(n[0])
                 elif(self.dim == 2):
-                    self._aveF2CC = sp.hstack((sp.kron(speye(n[1]), av(n[0])),
+                    self._aveF2CC = (0.5)*sp.hstack((sp.kron(speye(n[1]), av(n[0])),
                                                sp.kron(av(n[1]), speye(n[0]))), format="csr")
                 elif(self.dim == 3):
-                    self._aveF2CC = sp.hstack((kron3(speye(n[2]), speye(n[1]), av(n[0])),
+                    self._aveF2CC = (1./3.)*sp.hstack((kron3(speye(n[2]), speye(n[1]), av(n[0])),
                                                kron3(speye(n[2]), av(n[1]), speye(n[0])),
                                                kron3(av(n[2]), speye(n[1]), speye(n[0]))), format="csr")
             return self._aveF2CC
@@ -295,10 +315,10 @@ class DiffOperators(object):
                 if(self.dim == 1):
                     raise Exception('Edge Averaging does not make sense in 1D: Use Identity?')
                 elif(self.dim == 2):
-                    self._aveE2CC = sp.hstack((sp.kron(av(n[1]), speye(n[0])),
+                    self._aveE2CC = 0.5*sp.hstack((sp.kron(av(n[1]), speye(n[0])),
                                                sp.kron(speye(n[1]), av(n[0]))), format="csr")
                 elif(self.dim == 3):
-                    self._aveE2CC = sp.hstack((kron3(av(n[2]), av(n[1]), speye(n[0])),
+                    self._aveE2CC = (1./3)*sp.hstack((kron3(av(n[2]), av(n[1]), speye(n[0])),
                                                kron3(av(n[2]), speye(n[1]), av(n[0])),
                                                kron3(speye(n[2]), av(n[1]), av(n[0]))), format="csr")
             return self._aveE2CC
@@ -316,37 +336,57 @@ class DiffOperators(object):
                 if(self.dim == 1):
                     self._aveN2CC = av(n[0])
                 elif(self.dim == 2):
-                    self._aveN2CC = sp.hstack((sp.kron(av(n[1]), av(n[0])),
-                                               sp.kron(av(n[1]), av(n[0]))), format="csr")
+                    self._aveN2CC = sp.kron(av(n[1]), av(n[0])).tocsr()
                 elif(self.dim == 3):
-                    self._aveN2CC = sp.hstack((kron3(av(n[2]), av(n[1]), av(n[0])),
-                                               kron3(av(n[2]), av(n[1]), av(n[0])),
-                                               kron3(av(n[2]), av(n[1]), av(n[0]))), format="csr")
+                    self._aveN2CC = kron3(av(n[2]), av(n[1]), av(n[0])).tocsr()
             return self._aveN2CC
         return locals()
     _aveN2CC = None
     aveN2CC = property(**aveN2CC())
 
-    def aveN2CCv():
-        doc = "Construct the averaging operator on cell nodes to cell centers, keeping each dimension separate."
+    def aveN2E():
+        doc = "Construct the averaging operator on cell nodes to cell edges, keeping each dimension separate."
 
         def fget(self):
-            if(self._aveN2CCv is None):
+            if(self._aveN2E is None):
                 # The number of cell centers in each direction
                 n = self.n
                 if(self.dim == 1):
-                    self._aveN2CCv = av(n[0])
+                    self._aveN2E = av(n[0])
                 elif(self.dim == 2):
-                    self._aveN2CCv = sp.block_diag((sp.kron(av(n[1]), av(n[0])),
-                                                    sp.kron(av(n[1]), av(n[0]))), format="csr")
+                    self._aveN2E = sp.vstack((sp.kron(speye(n[1]+1), av(n[0])),
+                                              sp.kron(av(n[1]), speye(n[0]+1))), format="csr")
                 elif(self.dim == 3):
-                    self._aveN2CCv = sp.block_diag((kron3(av(n[2]), av(n[1]), av(n[0])),
-                                                    kron3(av(n[2]), av(n[1]), av(n[0])),
-                                                    kron3(av(n[2]), av(n[1]), av(n[0]))), format="csr")
-            return self._aveN2CCv
+                    self._aveN2E = sp.vstack((kron3(speye(n[2]+1), speye(n[1]+1), av(n[0])),
+                                              kron3(speye(n[2]+1), av(n[1]), speye(n[0]+1)),
+                                              kron3(av(n[2]), speye(n[1]+1), speye(n[0]+1))), format="csr")
+            return self._aveN2E
         return locals()
-    _aveN2CCv = None
-    aveN2CCv = property(**aveN2CCv())
+    _aveN2E = None
+    aveN2E = property(**aveN2E())
+
+    def aveN2F():
+        doc = "Construct the averaging operator on cell nodes to cell faces, keeping each dimension separate."
+
+        def fget(self):
+            if(self._aveN2F is None):
+                # The number of cell centers in each direction
+                n = self.n
+                if(self.dim == 1):
+                    self._aveN2F = av(n[0])
+                elif(self.dim == 2):
+                    self._aveN2F = sp.vstack((sp.kron(av(n[1]), speye(n[0]+1)),
+                                              sp.kron(speye(n[1]+1), av(n[0]))), format="csr")
+                elif(self.dim == 3):
+                    self._aveN2F = sp.vstack((kron3(av(n[2]), av(n[1]), speye(n[0]+1)),
+                                              kron3(av(n[2]), speye(n[1]+1), av(n[0])),
+                                              kron3(speye(n[2]+1), av(n[1]), av(n[0]))), format="csr")
+            return self._aveN2F
+        return locals()
+    _aveN2F = None
+    aveN2F = property(**aveN2F())
+
+    # --------------- Methods ---------------------
 
     def getMass(self, materialProp=None, loc='e'):
         """ Produces mass matricies.

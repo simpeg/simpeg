@@ -155,6 +155,109 @@ class TestNodalGrad2D(OrderTest):
     def test_order(self):
         self.orderTest()
 
+class TestAveraging2D(OrderTest):
+    name = "Averaging 2D"
+    meshTypes = MESHTYPES
+    meshDimension = 2
+
+    def getError(self):
+        num = self.getAve(self.M) * self.getHere(self.M)
+        err = np.linalg.norm((self.getThere(self.M)-num), np.inf)
+        return err
+
+    def test_orderN2CC(self):
+        self.name = "Averaging 2D: N2CC"
+        fun = lambda x, y: (np.cos(x)+np.sin(y))
+        self.getHere = lambda M: call2(fun, M.gridN)
+        self.getThere = lambda M: call2(fun, M.gridCC)
+        self.getAve = lambda M: M.aveN2CC
+        self.orderTest()
+
+    def test_orderN2F(self):
+        self.name = "Averaging 2D: N2F"
+        fun = lambda x, y: (np.cos(x)+np.sin(y))
+        self.getHere = lambda M: call2(fun, M.gridN)
+        self.getThere = lambda M: np.r_[call2(fun, M.gridFx), call2(fun, M.gridFy)]
+        self.getAve = lambda M: M.aveN2F
+        self.orderTest()
+
+    def test_orderN2E(self):
+        self.name = "Averaging 2D: N2E"
+        fun = lambda x, y: (np.cos(x)+np.sin(y))
+        self.getHere = lambda M: call2(fun, M.gridN)
+        self.getThere = lambda M: np.r_[call2(fun, M.gridEx), call2(fun, M.gridEy)]
+        self.getAve = lambda M: M.aveN2E
+        self.orderTest()
+
+    def test_orderF2CC(self):
+        self.name = "Averaging 2D: F2CC"
+        fun = lambda x, y: (np.cos(x)+np.sin(y))
+        self.getHere = lambda M: np.r_[call2(fun, M.gridFx), call2(fun, M.gridFy)]
+        self.getThere = lambda M: call2(fun, M.gridCC)
+        self.getAve = lambda M: M.aveF2CC
+        self.orderTest()
+
+
+    def test_orderE2CC(self):
+        self.name = "Averaging 2D: E2CC"
+        fun = lambda x, y: (np.cos(x)+np.sin(y))
+        self.getHere = lambda M: np.r_[call2(fun, M.gridEx), call2(fun, M.gridEy)]
+        self.getThere = lambda M: call2(fun, M.gridCC)
+        self.getAve = lambda M: M.aveE2CC
+        self.orderTest()
+
+
+class TestAveraging3D(OrderTest):
+    name = "Averaging 3D"
+    meshTypes = MESHTYPES
+    meshDimension = 3
+
+    def getError(self):
+        num = self.getAve(self.M) * self.getHere(self.M)
+        err = np.linalg.norm((self.getThere(self.M)-num), np.inf)
+        return err
+
+    def test_orderN2CC(self):
+        self.name = "Averaging 3D: N2CC"
+        fun = lambda x, y, z: (np.cos(x)+np.sin(y)+np.exp(z))
+        self.getHere = lambda M: call3(fun, M.gridN)
+        self.getThere = lambda M: call3(fun, M.gridCC)
+        self.getAve = lambda M: M.aveN2CC
+        self.orderTest()
+
+    def test_orderN2F(self):
+        self.name = "Averaging 3D: N2F"
+        fun = lambda x, y, z: (np.cos(x)+np.sin(y)+np.exp(z))
+        self.getHere = lambda M: call3(fun, M.gridN)
+        self.getThere = lambda M: np.r_[call3(fun, M.gridFx), call3(fun, M.gridFy), call3(fun, M.gridFz)]
+        self.getAve = lambda M: M.aveN2F
+        self.orderTest()
+
+    def test_orderN2E(self):
+        self.name = "Averaging 3D: N2E"
+        fun = lambda x, y, z: (np.cos(x)+np.sin(y)+np.exp(z))
+        self.getHere = lambda M: call3(fun, M.gridN)
+        self.getThere = lambda M: np.r_[call3(fun, M.gridEx), call3(fun, M.gridEy), call3(fun, M.gridEz)]
+        self.getAve = lambda M: M.aveN2E
+        self.orderTest()
+
+    def test_orderF2CC(self):
+        self.name = "Averaging 3D: F2CC"
+        fun = lambda x, y, z: (np.cos(x)+np.sin(y)+np.exp(z))
+        self.getHere = lambda M: np.r_[call3(fun, M.gridFx), call3(fun, M.gridFy), call3(fun, M.gridFz)]
+        self.getThere = lambda M: call3(fun, M.gridCC)
+        self.getAve = lambda M: M.aveF2CC
+        self.orderTest()
+
+
+    def test_orderE2CC(self):
+        self.name = "Averaging 3D: E2CC"
+        fun = lambda x, y, z: (np.cos(x)+np.sin(y)+np.exp(z))
+        self.getHere = lambda M: np.r_[call3(fun, M.gridEx), call3(fun, M.gridEy), call3(fun, M.gridEz)]
+        self.getThere = lambda M: call3(fun, M.gridCC)
+        self.getAve = lambda M: M.aveE2CC
+        self.orderTest()
+
 
 if __name__ == '__main__':
     unittest.main()

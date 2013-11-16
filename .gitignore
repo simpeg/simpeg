@@ -1,4 +1,6 @@
 *.pyc
-SimPEG.sublime-project
-SimPEG.sublime-workspace
+*.so
+*.sublime-project
+*.sublime-workspace
 docs/_build/
+myNotebooks/*

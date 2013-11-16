@@ -1,35 +1,33 @@
 import numpy as np
 import scipy.sparse as sp
-from SimPEG.utils import sdiag, mkvc
+import SimPEG
+from SimPEG.utils import sdiag, mkvc, setKwargs, checkStoppers, printStoppers
+from Optimize import Remember
+from BetaSchedule import Cooling
 
-class Inversion(object):
-    """docstring for Inversion"""
+class BaseInversion(object):
+    """docstring for BaseInversion"""
 
-    maxIter = 10
-    name = 'SimPEG Inversion'
+    maxIter = 1
+    name = 'BaseInversion'
+    debug = False
+    beta0 = 1e4
 
     def __init__(self, prob, reg, opt, **kwargs):
+        setKwargs(self, **kwargs)
         self.prob = prob
         self.reg = reg
         self.opt = opt
         self.opt.parent = self
-        self.setKwargs(**kwargs)
 
-    def setKwargs(self, **kwargs):
-        """Sets key word arguments (kwargs) that are present in the object, throw an error if they don't exist."""
-        for attr in kwargs:
-            if hasattr(self, attr):
-                setattr(self, attr, kwargs[attr])
-            else:
-                raise Exception('%s attr is not recognized' % attr)
+        self.stoppers = [SimPEG.inverse.StoppingCriteria.iteration, SimPEG.inverse.StoppingCriteria.phi_d_target_Inversion]
 
-    def printInit(self):
-        print "%s %s %s" % ('='*22, self.name, '='*22)
-        print "  #    beta     phi_d      phi_m       f     norm(dJ)   #LS"
-        print "%s" % '-'*62
-
-    def printIter(self):
-        print "%3d  %1.2e  %1.2e  %1.2e  %1.2e  %1.2e  %3d" % (self.opt._iter, self._beta, self._phi_d_last, self._phi_m_last, self.opt.f, np.linalg.norm(self.opt.g), self.opt._iterLS)
+        # Check if we have inserted printers into the optimization
+        if not np.any([p is SimPEG.inverse.IterationPrinters.phi_d for p in self.opt.printers]):
+            self.opt.printers.insert(1,SimPEG.inverse.IterationPrinters.beta)
+            self.opt.printers.insert(2,SimPEG.inverse.IterationPrinters.phi_d)
+            self.opt.printers.insert(3,SimPEG.inverse.IterationPrinters.phi_m)
+            self.opt.stoppers.append(SimPEG.inverse.StoppingCriteria.phi_d_target_Minimize)
 
     @property
     def Wd(self):
@@ -53,34 +51,85 @@ class Inversion(object):
         if getattr(self, '_phi_d_target', None) is None:
             return self.prob.dobs.size #
         return self._phi_d_target
+
     @phi_d_target.setter
     def phi_d_target(self, value):
         self._phi_d_target = value
 
     def run(self, m0):
-        m = m0
-        self._iter = 0
-        self._beta = None
+        self.startup(m0)
         while True:
             self._beta = self.getBeta()
-            m = self.opt.minimize(self.evalFunction,m)
+            self.m = self.opt.minimize(self.evalFunction, self.m)
+            self.doEndIteration()
             if self.stoppingCriteria(): break
-            self._iter += 1
-        return m
 
-    beta0 = 1.e2
-    beta_coolingFactor = 5.
+        self.printDone()
+        return self.m
+
+    def startup(self, m0):
+        """
+            **startup** is called at the start of any new run call.
+
+            If you have things that also need to run on startup, you can create a method::
+
+                def _startup*(self, x0):
+                    pass
+
+            Where the * can be any string. If present, _startup* will be called at the start of the default startup call.
+            You may also completely overwrite this function.
+
+            :param numpy.ndarray x0: initial x
+            :rtype: None
+            :return: None
+        """
+        for method in [posible for posible in dir(self) if '_startup' in posible]:
+            if self.debug: print 'startup is calling self.'+method
+            getattr(self,method)(m0)
+
+        self.m = m0
+        self._iter = 0
+        self._beta = None
+
+    def doEndIteration(self):
+        """
+            **doEndIteration** is called at the end of each run iteration.
+
+            If you have things that also need to run at the end of every iteration, you can create a method::
+
+                def _doEndIteration*(self, xt):
+                    pass
+
+            Where the * can be any string. If present, _doEndIteration* will be called at the start of the default doEndIteration call.
+            You may also completely overwrite this function.
+
+            :param numpy.ndarray xt: tested new iterate that ensures a descent direction.
+            :rtype: None
+            :return: None
+        """
+        for method in [posible for posible in dir(self) if '_doEndIteration' in posible]:
+            if self.debug: print 'doEndIteration is calling self.'+method
+            getattr(self,method)()
+
+        # store old values
+        self.phi_d_last = self.phi_d
+        self.phi_m_last = self.phi_m
+        self._iter += 1
 
     def getBeta(self):
-        if self._beta is None:
-            return self.beta0
-        return self._beta / self.beta_coolingFactor
+        return self.beta0
 
     def stoppingCriteria(self):
-        self._STOP = np.zeros(2,dtype=bool)
-        self._STOP[0] = self._iter >= self.maxIter
-        self._STOP[1] = self._phi_d_last <= self.phi_d_target
-        return np.any(self._STOP)
+        if self.debug: print 'checking stoppingCriteria'
+        return checkStoppers(self, self.stoppers)
+
+
+    def printDone(self):
+        """
+            **printDone** is called at the end of the inversion routine.
+
+        """
+        printStoppers(self, self.stoppers)
 
 
     def evalFunction(self, m, return_g=True, return_H=True):
@@ -89,8 +138,8 @@ class Inversion(object):
         phi_d = self.dataObj(m, u)
         phi_m = self.reg.modelObj(m)
 
-        self._phi_d_last = phi_d
-        self._phi_m_last = phi_m
+        self.phi_d = phi_d
+        self.phi_m = phi_m
 
         f = phi_d + self._beta * phi_m
 
@@ -111,7 +160,7 @@ class Inversion(object):
 
             operator = sp.linalg.LinearOperator( (m.size, m.size), H_fun, dtype=float )
             out += (operator,)
-        return out
+        return out if len(out) > 1 else out[0]
 
 
     def dataObj(self, m, u=None):
@@ -219,3 +268,10 @@ class Inversion(object):
 
         return dmisfit
 
+class Inversion(Cooling, Remember, BaseInversion):
+
+    maxIter = 10
+    name = "SimPEG Inversion"
+
+    def __init__(self, prob, reg, opt, **kwargs):
+        BaseInversion.__init__(self, prob, reg, opt, **kwargs)

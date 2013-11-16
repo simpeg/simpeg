@@ -1,2 +1,2 @@
 import TestUtils
-from TestUtils import checkDerivative, Rosenbrock, OrderTest
+from TestUtils import checkDerivative, Rosenbrock, OrderTest, getQuadratic

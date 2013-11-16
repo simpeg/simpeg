@@ -5,11 +5,17 @@ from SimPEG.utils import mkvc, sdiag
 from SimPEG import utils
 from SimPEG.mesh import TensorMesh, LogicallyOrthogonalMesh
 import numpy as np
+import scipy.sparse as sp
 import unittest
 import inspect
 
-happiness = ['The test be workin!', 'You get a gold star!', 'Yay passed!', 'Happy little convergence test!', 'That was easy!', 'Testing is important.', 'You are awesome.', 'Go Test Go!', 'Once upon a time, a happy little test passed.', 'And then everyone was happy.']
-sadness = ['No gold star for you.','Try again soon.','Thankfully, persistence is a great substitute for talent.','It might be easier to call this a feature...','Coffee break?', 'Boooooooo  :(', 'Testing is important. Do it again.']
+try:
+    import getpass
+    name = getpass.getuser()[0].upper() + getpass.getuser()[1:]
+except Exception, e:
+    name = 'You'
+happiness = ['The test be workin!', 'You get a gold star!', 'Yay passed!', 'Happy little convergence test!', 'That was easy!', 'Testing is important.', 'You are awesome.', 'Go Test Go!', 'Once upon a time, a happy little test passed.', 'And then everyone was happy.','Not just a pretty face '+name,'You deserve a pat on the back!','Well done '+name+'!', 'Awesome, '+name+', just awesome.']
+sadness = ['No gold star for you.','Try again soon.','Thankfully, persistence is a great substitute for talent.','It might be easier to call this a feature...','Coffee break?', 'Boooooooo  :(', 'Testing is important. Do it again.',"Did you put your clever trousers on today?",'Just think about a dancing dinosaur and life will get better!','You had so much promise '+name+', oh well...', name.upper()+' ERROR!','Get on it '+name+'!', 'You break it, you fix it.']
 
 class OrderTest(unittest.TestCase):
     """
@@ -174,14 +180,14 @@ def Rosenbrock(x, return_g=True, return_H=True):
 
     f = 100*(x[1]-x[0]**2)**2+(1-x[0])**2
     g = np.array([2*(200*x[0]**3-200*x[0]*x[1]+x[0]-1), 200*(x[1]-x[0]**2)])
-    H = np.array([[-400*x[1]+1200*x[0]**2+2, -400*x[0]], [-400*x[0], 200]])
+    H = sp.csr_matrix(np.array([[-400*x[1]+1200*x[0]**2+2, -400*x[0]], [-400*x[0], 200]]))
 
     out = (f,)
     if return_g:
         out += (g,)
     if return_H:
         out += (H,)
-    return out
+    return out if len(out) > 1 else out[0]
 
 def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None):
     """
@@ -267,6 +273,28 @@ def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None):
         plt.show()
 
     return passTest
+
+
+
+def getQuadratic(A, b):
+    """
+        Given A and b, this returns a quadratic, Q
+
+        .. math::
+
+            \mathbf{Q( x ) = 0.5 x A x + b x}
+    """
+    def Quadratic(x, return_g=True, return_H=True):
+        f = 0.5 * x.dot( A.dot(x)) + b.dot( x )
+        out = (f,)
+        if return_g:
+            g = A.dot(x) + b
+            out += (g,)
+        if return_H:
+            H = A
+            out += (H,)
+        return out if len(out) > 1 else out[0]
+    return Quadratic
 
 
 if __name__ == '__main__':

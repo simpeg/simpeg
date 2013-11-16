@@ -5,3 +5,4 @@ import inverse
 import visulize
 import forward
 import regularization
+import examples

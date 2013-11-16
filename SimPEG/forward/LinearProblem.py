@@ -13,13 +13,13 @@ class LinearProblem(Problem):
         return self.G.dot(m)
 
     def J(self, m, v, u=None):
-        return G.dot(v)
+        return self.G.dot(v)
 
     def Jt(self, m, v, u=None):
-        return G.T.dot(v)
+        return self.G.T.dot(v)
 
-if __name__ == '__main__':
-    N = 100
+
+def example(N):
     h = np.ones(N)/N
     M = TensorMesh([h])
 
@@ -28,20 +28,12 @@ if __name__ == '__main__':
     p = -0.25
     q = 0.25
 
-
-
     g = lambda k: np.exp(p*jk[k]*M.vectorCCx)*np.cos(2*np.pi*q*jk[k]*M.vectorCCx)
 
     G = np.empty((nk, M.nC))
 
     for i in range(nk):
         G[i,:] = g(i)
-
-
-
-    plt.figure(1)
-    for i in range(nk):
-        plt.plot(G[i,:])
 
 
     m_true = np.zeros(M.nC)
@@ -55,29 +47,29 @@ if __name__ == '__main__':
 
     d_obs = d_true + noise
 
-    # plt.figure(3)
-    # plt.plot(d_true,'-o')
-    # plt.plot(d_obs,'r-o')
-
-
-
-
-
     prob = LinearProblem(M)
     prob.G = G
     prob.dobs = d_obs
     prob.std = np.ones_like(d_obs)*0.1
 
+    return prob, m_true
+
+
+if __name__ == '__main__':
+
+    prob, m_true = example(100)
+    M = prob.mesh
+
     reg = Regularization(M)
-
     opt = InexactGaussNewton(maxIter=20)
-
     inv = Inversion(prob,reg,opt,beta0=1e-4)
-
     m0 = np.zeros_like(m_true)
 
     mrec = inv.run(m0)
 
+    plt.figure(1)
+    for i in range(prob.G.shape[0]):
+        plt.plot(prob.G[i,:])
 
     plt.figure(2)
 

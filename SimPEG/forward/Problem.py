@@ -140,7 +140,7 @@ class Problem(object):
             This can often be computed given a vector (i.e. J(v)) rather than stored, as J is a large dense matrix.
 
         """
-        pass
+        raise NotImplementedError('J is not yet implemented.')
 
     def Jt(self, m, v, u=None):
         """
@@ -152,7 +152,7 @@ class Problem(object):
 
             Effect of transpose of J on a vector v.
         """
-        pass
+        raise NotImplementedError('Jt is not yet implemented.')
 
 
     def J_approx(self, m, v, u=None):

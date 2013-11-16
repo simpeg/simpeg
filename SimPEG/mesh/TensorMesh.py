@@ -396,7 +396,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
         ind = 0 if 'x' in locType else 1 if 'y' in locType else 2 if 'z' in locType else -1
         if locType in ['Fx','Fy','Fz','Ex','Ey','Ez'] and self.dim >= ind:
-            nF_nE = self.nF if 'F' in locType else self.nE
+            nF_nE = self.nFv if 'F' in locType else self.nEv
             components = [spzeros(loc.shape[0], n) for n in nF_nE]
             components[ind] = interpmat(loc, *self.getTensor(locType))
             Q = sp.hstack(components)
