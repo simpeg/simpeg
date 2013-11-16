@@ -99,12 +99,12 @@ class vtkTools(object):
 			FzCellBlock = np.hstack([ 4*np.ones((nTFz,1),dtype='int64'),faceR(nodeMat[:-1,:-1,:],nTFz),faceR(nodeMat[1: ,:-1,:],nTFz),faceR(nodeMat[1: ,1: ,:],nTFz),faceR(nodeMat[:-1,1: ,:],nTFz)] )	
 		# Cells -cell array
 		FCellArr = vtk.vtkCellArray()
-		FCellArr.SetNumberOfCells(np.sum(mesh.nF))
-		FCellArr.SetCells(np.sum(mesh.nF)*5,npsup.numpy_to_vtkIdTypeArray(np.vstack([FxCellBlock,FyCellBlock,FzCellBlock]),deep=1))
+		FCellArr.SetNumberOfCells(mesh.nF)
+		FCellArr.SetCells(mesh.nF*5,npsup.numpy_to_vtkIdTypeArray(np.vstack([FxCellBlock,FyCellBlock,FzCellBlock]),deep=1))
 		# Cell type
-		FCellType = npsup.numpy_to_vtk(vtk.VTK_QUAD*np.ones(np.sum(mesh.nF),dtype='uint8'),deep=1)
+		FCellType = npsup.numpy_to_vtk(vtk.VTK_QUAD*np.ones(mesh.nF,dtype='uint8'),deep=1)
 		# Cell location
-		FCellLoc = npsup.numpy_to_vtkIdTypeArray(np.arange(0,np.sum(mesh.nF)*5,5,dtype='int64'),deep=1)
+		FCellLoc = npsup.numpy_to_vtkIdTypeArray(np.arange(0,mesh.nF*5,5,dtype='int64'),deep=1)
 		
 		## Make the object
 		vtkObj = vtk.vtkUnstructuredGrid()
@@ -161,12 +161,12 @@ class vtkTools(object):
 			EzCellBlock = np.hstack([ 2*np.ones((nTEz,1),dtype='int64'),edgeR(nodeMat[:,:,:-1],nTEz),edgeR(nodeMat[:,:,1:],nTEz)])	
 		# Cells -cell array
 		ECellArr = vtk.vtkCellArray()
-		ECellArr.SetNumberOfCells(np.sum(mesh.nE))
-		ECellArr.SetCells(np.sum(mesh.nE)*3,npsup.numpy_to_vtkIdTypeArray(np.vstack([ExCellBlock,EyCellBlock,EzCellBlock]),deep=1))
+		ECellArr.SetNumberOfCells(mesh.nE)
+		ECellArr.SetCells(mesh.nE*3,npsup.numpy_to_vtkIdTypeArray(np.vstack([ExCellBlock,EyCellBlock,EzCellBlock]),deep=1))
 		# Cell type
-		ECellType = npsup.numpy_to_vtk(vtk.VTK_LINE*np.ones(np.sum(mesh.nE),dtype='uint8'),deep=1)
+		ECellType = npsup.numpy_to_vtk(vtk.VTK_LINE*np.ones(mesh.nE,dtype='uint8'),deep=1)
 		# Cell location
-		ECellLoc = npsup.numpy_to_vtkIdTypeArray(np.arange(0,np.sum(mesh.nE)*3,3,dtype='int64'),deep=1)
+		ECellLoc = npsup.numpy_to_vtkIdTypeArray(np.arange(0,mesh.nE*3,3,dtype='int64'),deep=1)
 
 		## Make the object
 		vtkObj = vtk.vtkUnstructuredGrid()
