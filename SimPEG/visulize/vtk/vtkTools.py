@@ -189,6 +189,7 @@ class vtkTools(object):
 		renwin = vtk.vtkRenderWindow()
 		renwin.AddRenderer(ren)
 		iren = vtk.vtkRenderWindowInteractor()
+		iren.GetInteractorStyle().SetCurrentStyleToTrackballCamera()
 		iren.SetRenderWindow(renwin)
 
 		return iren, renwin

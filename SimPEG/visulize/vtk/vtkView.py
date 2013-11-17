@@ -30,7 +30,7 @@ class vtkView(object):
 		self.name = 'VTK figure of SimPEG model'
 		self.extent = [0,mesh.nCx-1,0,mesh.nCy-1,0,mesh.nCz-1]
 		self.limits = [0, 1e12]
-		self.viewProp = 0 # Int or name of the vector.
+		self.viewprop = {'cell':0} # Name of the tyep and Int order of the array or name of the vector.
 		self._mesh = mesh
 
 
@@ -73,7 +73,7 @@ class vtkView(object):
 			else:
 				raise(Exception,'{:s} is not allowed as a dictonary key. Can be \'cell\',\'face\',\'edge\'.'.format(propitem[0]))
 
-	def Show(self,imageType='cell'):
+	def Show(self):
 		"""
 		Open the VTK figure window and show the mesh.
 
@@ -89,7 +89,7 @@ class vtkView(object):
 		# Make renderwindow. Returns the interactor.
 		self._iren, self._renwin = vtkSP.makeRenderWindow(self._ren)
 
-
+		imageType = self.viewprop.keys()[0]
 		# Sort out the actor
 		if imageType == 'cell':
 			self._vtkobj, self._core = vtkSP.makeRectiVTKVOIThres(self._cell,self.extent,self.limits)
@@ -103,12 +103,12 @@ class vtkView(object):
 			raise Exception("{:s} is not a vailid imageType. Has to be 'cell':'face':'edge'".format(imageType))
 
 		# Set the active scalar.
-		if type(self.viewProp) == int:
-			actScalar = self._vtkobj.GetCellData().GetArrayName(self.viewProp)
-		elif type(self.viewProp) == str:
-			actScalar = self.viewProp
+		if type(self.viewprop.values()[0]) == int:
+			actScalar = self._vtkobj.GetCellData().GetArrayName(self.viewprop.values()[0])
+		elif type(self.viewprop.values()[0]) == str:
+			actScalar = self.viewprop.values()[0]
 		else :
-			raise Exception('The vtkView.viewProp has the wrong format. Has to be interger or a string.')
+			raise Exception('The vtkView.viewprop.values()[0] has the wrong format. Has to be interger or a string.')
 		self._vtkobj.GetCellData().SetActiveScalars(actScalar)
 		# Set up the plane, clipper and the user interaction.
 		global intPlane, intActor
