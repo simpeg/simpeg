@@ -10,6 +10,7 @@ from interputils import interpmat
 from ipythonUtils import easyAnimate as animate
 import Solver
 from Solver import Solver
+import Geophysics
 
 def setKwargs(obj, **kwargs):
     """Sets key word arguments (kwargs) that are present in the object, throw an error if they don't exist."""
