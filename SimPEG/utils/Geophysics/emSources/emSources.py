@@ -25,6 +25,7 @@ def MagneticDipoleVectorPotential(txLoc, obsLoc, component, dipoleMoment=(0., 0.
 
     txLoc = np.atleast_2d(txLoc)
     obsLoc = np.atleast_2d(obsLoc)
+    dipoleMoment = np.atleast_2d(dipoleMoment)
 
     nEdges = obsLoc.shape[0]
     nTx = txLoc.shape[0]

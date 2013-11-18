@@ -62,11 +62,11 @@ class Cyl1DMesh(object):
     # Counting
     ####################################################
 
-    def nCr():
+    def nCx():
         doc = "Number of cells in the radial direction"
         fget = lambda self: self.hr.size
         return locals()
-    nCr = property(**nCr())
+    nCx = property(**nCx())
 
     def nCz():
         doc = "Number of cells in the z direction"
@@ -76,7 +76,7 @@ class Cyl1DMesh(object):
 
     def nC():
         doc = "Total number of cells"
-        fget = lambda self: self.nCr * self.nCz
+        fget = lambda self: self.nCx * self.nCz
         return locals()
     nC = property(**nC())
 
@@ -106,7 +106,7 @@ class Cyl1DMesh(object):
 
     def nFz():
         doc = "Number of z faces"
-        fget = lambda self: self.nNz * self.nCr
+        fget = lambda self: self.nNz * self.nCx
         return locals()
     nFz = property(**nFz())
 
@@ -242,12 +242,12 @@ class Cyl1DMesh(object):
         def fget(self):
             if self._edgeCurl is None:
                 #1D Difference matricies
-                dr = sp.spdiags((np.ones((self.nCr+1, 1))*[-1, 1]).T, [-1,0], self.nCr, self.nCr, format="csr")
+                dr = sp.spdiags((np.ones((self.nCx+1, 1))*[-1, 1]).T, [-1,0], self.nCx, self.nCx, format="csr")
                 dz = sp.spdiags((np.ones((self.nCz+1, 1))*[-1, 1]).T, [0,1], self.nCz, self.nCz+1, format="csr")
 
                 #2D Difference matricies
                 Dr = sp.kron(sp.eye(self.nNz), dr)
-                Dz = -sp.kron(dz, sp.eye(self.nCr))  #Not sure about this negative
+                Dz = -sp.kron(dz, sp.eye(self.nCx))  #Not sure about this negative
 
                 #Edge curl operator
                 self._edgeCurl = sp.diags(1/self.area,0)*sp.vstack((Dz, Dr))*sp.diags(self.edge,0)
@@ -261,7 +261,7 @@ class Cyl1DMesh(object):
         def fget(self):
             if self._aveE2CC is None:
                 az = sp.spdiags(0.5*np.ones((2, self.nNz)), [-1,0], self.nNz, self.nCz, format='csr')
-                ar = sp.spdiags(0.5*np.ones((2, self.nCr)), [0, 1], self.nCr, self.nCr, format='csr')
+                ar = sp.spdiags(0.5*np.ones((2, self.nCx)), [0, 1], self.nCx, self.nCx, format='csr')
                 ar[0,0] = 1
                 self._aveE2CC = sp.kron(az, ar).T
             return self._aveE2CC
@@ -274,10 +274,10 @@ class Cyl1DMesh(object):
         def fget(self):
             if self._aveF2CC is None:
                 az = sp.spdiags(0.5*np.ones((2, self.nNz)), [-1,0], self.nNz, self.nCz, format='csr')
-                ar = sp.spdiags(0.5*np.ones((2, self.nCr)), [0, 1], self.nCr, self.nCr, format='csr')
+                ar = sp.spdiags(0.5*np.ones((2, self.nCx)), [0, 1], self.nCx, self.nCx, format='csr')
                 ar[0,0] = 1
                 Afr = sp.kron(sp.eye(self.nCz),ar)
-                Afz = sp.kron(az,sp.eye(self.nCr))
+                Afz = sp.kron(az,sp.eye(self.nCx))
                 self._aveF2CC = sp.vstack((Afr,Afz)).T
             return self._aveF2CC
         return locals()
@@ -311,7 +311,7 @@ class Cyl1DMesh(object):
         elif type(materialProp) is float:
             materialProp = np.ones(self.nC)*materialProp
         elif materialProp.shape == (self.nCz,):
-            materialProp = materialProp.repeat(self.nCr)
+            materialProp = materialProp.repeat(self.nCx)
         materialProp = mkvc(materialProp)
         assert materialProp.shape == (self.nC,), "materialProp incorrect shape"
 
@@ -383,7 +383,7 @@ class Cyl1DMesh(object):
                     dFz = np.sum(dFz**2, axis=1)
 
                     indBL = np.argmin(dFz)         # Face below and to the left
-                    indAL = indBL + self.nCr        # Face above and to the left
+                    indAL = indBL + self.nCx        # Face above and to the left
 
                     zF_BL = self.gridFz[indBL,:]
                     zF_AL = self.gridFz[indAL,:]
