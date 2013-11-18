@@ -1,6 +1,6 @@
 import numpy as np, vtk
 import SimPEG as simpeg
-#import SimPEG.visulize.vtk.vtkTools as vtkSP # Always get an error for this import
+#import SimPEG.visualize.vtk.vtkTools as vtkSP # Always get an error for this import
 
 class vtkView(object):
 	"""
@@ -8,11 +8,11 @@ class vtkView(object):
 
 	Inputs:
 	:param mesh, SimPEG mesh.
-	:param propdict, dictionary of property models. 
+	:param propdict, dictionary of property models.
 		Can have these dictionary names:
 		'cell' - cell model; 'face' - face model; 'edge' - edge model
 		The dictionary properties are given as dictionaries with:
-		{'NameOfThePropertyModel': np.array of the properties}. 
+		{'NameOfThePropertyModel': np.array of the properties}.
 		The property array has to be ordered in compliance with SimPEG standards.
 
 	::
@@ -54,10 +54,10 @@ class vtkView(object):
 		self._lut = None
 
 	def _readPropertyDictionary(self,propdict):
-		""" 
+		"""
 		Reads the property and assigns to the object
 		"""
-		import SimPEG.visulize.vtk.vtkTools as vtkSP
+		import SimPEG.visualize.vtk.vtkTools as vtkSP
 
 		# Test the property dictionary
 		if len(propdict) > 3:
@@ -75,10 +75,10 @@ class vtkView(object):
 
 	def Show(self):
 		"""
-		Open the VTK figure window and show the mesh.		
+		Open the VTK figure window and show the mesh.
 		"""
-		#vtkSP = simpeg.visulize.vtk.vtkTools
-		import SimPEG.visulize.vtk.vtkTools as vtkSP
+		#vtkSP = simpeg.visualize.vtk.vtkTools
+		import SimPEG.visualize.vtk.vtkTools as vtkSP
 
 		# Make a renderer
 		self._ren = vtk.vtkRenderer()
@@ -119,7 +119,7 @@ class vtkView(object):
 			obj.GetPlane(intPlane)
 			intActor.VisibilityOn()
 
-		self._widget.AddObserver("InteractionEvent",movePlane)		    
+		self._widget.AddObserver("InteractionEvent",movePlane)
 		lut = vtk.vtkLookupTable()
 		lut.SetNumberOfColors(256)
 		lut.SetHueRange(0,0.66667)
@@ -131,7 +131,7 @@ class vtkView(object):
 		self._ren.SetBackground(.5,.5,.5)
 		self._ren.AddActor(self._actor)
 
-		# Start the render Window		
+		# Start the render Window
 		vtkSP.startRenderWindow(self._iren)
 		# Close the window when exited
 		vtkSP.closeRenderWindow(self._iren)
