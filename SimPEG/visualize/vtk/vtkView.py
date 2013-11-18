@@ -1,6 +1,10 @@
-import numpy as np, vtk
+import numpy as np
+try:
+	import vtk
+	#import SimPEG.visualize.vtk.vtkTools as vtkSP # Always get an error for this import
+except Exception, e:
+	print 'VTK import error. Please ensure you have VTK installed to use this visualization package.'
 import SimPEG as simpeg
-#import SimPEG.visualize.vtk.vtkTools as vtkSP # Always get an error for this import
 
 class vtkView(object):
 	"""
@@ -139,8 +143,18 @@ class vtkView(object):
 
 
 
+if __name__ == '__main__':
+	#Make a mesh and model
+	x0 = np.zeros(3)
+	h1 = np.ones(20)*50
+	h2 = np.ones(10)*100
+	h3 = np.ones(5)*200
 
+	mesh = simpeg.mesh.TensorMesh([h1,h2,h3],x0)
 
-
-
-
+	# Make a models that correspond to the cells, faces and edges.
+	models = {'cell':{'Test':np.arange(0,mesh.nC),'AllOnce':np.ones(mesh.nC)},'face':{'Test':np.arange(0,np.sum(mesh.nF)),'AllOnce':np.ones(np.sum(mesh.nF))},'edge':{'Test':np.arange(0,np.sum(mesh.nE)),'AllOnce':np.ones(np.sum(mesh.nE))}}
+	# Make the vtk viewer object.
+	vtkViewer = simpeg.visualize.vtk.vtkView(mesh,models)
+	# Show the image
+	vtkViewer.Show()

@@ -1,16 +1,20 @@
-import numpy as np, vtk, vtk.util.numpy_support as npsup, pdb
+import numpy as np
+try:
+	import vtk, vtk.util.numpy_support as npsup, pdb
+except Exception, e:
+	print 'VTK import error. Please ensure you have VTK installed to use this visualization package.'
 from SimPEG.utils import mkvc
 
 
 class vtkTools(object):
-	""" 
+	"""
 	Class that interacts with VTK visulization toolkit.
 
 	"""
 
 	def __init__(self):
 		""" Initializes the VTK vtkTools.
-		
+
 		"""
 
 		pass
@@ -20,7 +24,7 @@ class vtkTools(object):
 		"""
 		Make and return a cell based VTK object for a simpeg mesh and model.
 
-		Input: 
+		Input:
 		:param mesh, SimPEG TensorMesh object - mesh to be transfer to VTK
 		:param model, dictionary of numpy.array - Name('s) and array('s). Match number of cells
 
@@ -55,7 +59,7 @@ class vtkTools(object):
 			vtkDoubleArr = npsup.numpy_to_vtk(item[1],deep=1)
 			vtkDoubleArr.SetName(item[0])
 			vtkObj.GetCellData().AddArray(vtkDoubleArr)
-		
+
 		vtkObj.GetCellData().SetActiveScalars(model.keys()[0])
 		return vtkObj
 
@@ -64,9 +68,9 @@ class vtkTools(object):
 		"""
 		Make and return a face based VTK object for a simpeg mesh and model.
 
-		Input: 
+		Input:
 		:param mesh, SimPEG TensorMesh object - mesh to be transfer to VTK
-		:param model, dictionary of numpy.array - Name('s) and array('s). 
+		:param model, dictionary of numpy.array - Name('s) and array('s).
 			Property array must be order hstack(Fx,Fy,Fz)
 
 		Output:
@@ -78,7 +82,7 @@ class vtkTools(object):
 		# Convert mesh nodes to vtkPoints
 		vtkPts = vtk.vtkPoints()
 		vtkPts.SetData(npsup.numpy_to_vtk(mesh.gridN,deep=1))
-		
+
 		# Define the face "cells"
 		# Using VTK_QUAD cell for faces (see VTK file format)
 		nodeMat = mesh.r(np.arange(mesh.nN,dtype='int64'),'N','N','M')
@@ -96,7 +100,7 @@ class vtkTools(object):
 		# Third direction
 		if mesh.dim == 3:
 			nTFz = np.prod(mesh.nFz)
-			FzCellBlock = np.hstack([ 4*np.ones((nTFz,1),dtype='int64'),faceR(nodeMat[:-1,:-1,:],nTFz),faceR(nodeMat[1: ,:-1,:],nTFz),faceR(nodeMat[1: ,1: ,:],nTFz),faceR(nodeMat[:-1,1: ,:],nTFz)] )	
+			FzCellBlock = np.hstack([ 4*np.ones((nTFz,1),dtype='int64'),faceR(nodeMat[:-1,:-1,:],nTFz),faceR(nodeMat[1: ,:-1,:],nTFz),faceR(nodeMat[1: ,1: ,:],nTFz),faceR(nodeMat[:-1,1: ,:],nTFz)] )
 		# Cells -cell array
 		FCellArr = vtk.vtkCellArray()
 		FCellArr.SetNumberOfCells(mesh.nF)
@@ -105,12 +109,12 @@ class vtkTools(object):
 		FCellType = npsup.numpy_to_vtk(vtk.VTK_QUAD*np.ones(mesh.nF,dtype='uint8'),deep=1)
 		# Cell location
 		FCellLoc = npsup.numpy_to_vtkIdTypeArray(np.arange(0,mesh.nF*5,5,dtype='int64'),deep=1)
-		
+
 		## Make the object
 		vtkObj = vtk.vtkUnstructuredGrid()
 		# Set the objects properties
 		vtkObj.SetPoints(vtkPts)
-		vtkObj.SetCells(FCellType,FCellLoc,FCellArr)		
+		vtkObj.SetCells(FCellType,FCellLoc,FCellArr)
 
 		# Assign the model('s) to the object
 		for item in model.iteritems():
@@ -118,7 +122,7 @@ class vtkTools(object):
 			vtkDoubleArr = npsup.numpy_to_vtk(item[1],deep=1)
 			vtkDoubleArr.SetName(item[0])
 			vtkObj.GetCellData().AddArray(vtkDoubleArr)
-		
+
 		vtkObj.GetCellData().SetActiveScalars(model.keys()[0])
 		vtkObj.Update()
 		return vtkObj
@@ -128,9 +132,9 @@ class vtkTools(object):
 		"""
 		Make and return a edge based VTK object for a simpeg mesh and model.
 
-		Input: 
+		Input:
 		:param mesh, SimPEG TensorMesh object - mesh to be transfer to VTK
-		:param model, dictionary of numpy.array - Name('s) and array('s). 
+		:param model, dictionary of numpy.array - Name('s) and array('s).
 			Property array must be order hstack(Ex,Ey,Ez)
 
 		Output:
@@ -142,7 +146,7 @@ class vtkTools(object):
 		# Convert mesh nodes to vtkPoints
 		vtkPts = vtk.vtkPoints()
 		vtkPts.SetData(npsup.numpy_to_vtk(mesh.gridN,deep=1))
-		
+
 		# Define the face "cells"
 		# Using VTK_QUAD cell for faces (see VTK file format)
 		nodeMat = mesh.r(np.arange(mesh.nN,dtype='int64'),'N','N','M')
@@ -158,7 +162,7 @@ class vtkTools(object):
 		# Third direction
 		if mesh.dim == 3:
 			nTEz = np.prod(mesh.nEz)
-			EzCellBlock = np.hstack([ 2*np.ones((nTEz,1),dtype='int64'),edgeR(nodeMat[:,:,:-1],nTEz),edgeR(nodeMat[:,:,1:],nTEz)])	
+			EzCellBlock = np.hstack([ 2*np.ones((nTEz,1),dtype='int64'),edgeR(nodeMat[:,:,:-1],nTEz),edgeR(nodeMat[:,:,1:],nTEz)])
 		# Cells -cell array
 		ECellArr = vtk.vtkCellArray()
 		ECellArr.SetNumberOfCells(mesh.nE)
@@ -172,7 +176,7 @@ class vtkTools(object):
 		vtkObj = vtk.vtkUnstructuredGrid()
 		# Set the objects properties
 		vtkObj.SetPoints(vtkPts)
-		vtkObj.SetCells(ECellType,ECellLoc,ECellArr)		
+		vtkObj.SetCells(ECellType,ECellLoc,ECellArr)
 
 		# Assign the model('s) to the object
 		for item in model.iteritems():
@@ -180,7 +184,7 @@ class vtkTools(object):
 			vtkDoubleArr = npsup.numpy_to_vtk(item[1],deep=1)
 			vtkDoubleArr.SetName(item[0])
 			vtkObj.GetCellData().AddArray(vtkDoubleArr)
-		
+
 		vtkObj.GetCellData().SetActiveScalars(model.keys()[0])
 		return vtkObj
 
@@ -200,7 +204,7 @@ class vtkTools(object):
 		renwin = iren.GetRenderWindow()
 		renwin.Finalize()
 		iren.TerminateApp()
-		
+
 		del iren, renwin
 
 	@staticmethod
@@ -239,7 +243,7 @@ class vtkTools(object):
 		if useArr == None:
 			raise IOError('Nerty array {:s} in the vtkObject'.format(scalarName))
 		vtkObj.GetCellData().SetActiveScalars(scalarName)
-		
+
 	@staticmethod
 	def makeRectiVTKVOIThres(vtkObj,VOI,limits):
 		"""Make volume of interest and threshold for rectilinear grid."""
@@ -247,15 +251,15 @@ class vtkTools(object):
 		cellCore = vtk.vtkExtractRectilinearGrid()
 		cellCore.SetVOI(VOI)
 		cellCore.SetInput(vtkObj)
-		
+
 		cellThres = vtk.vtkThreshold()
-		cellThres.AllScalarsOn()  
-		cellThres.SetInputConnection(cellCore.GetOutputPort()) 
+		cellThres.AllScalarsOn()
+		cellThres.SetInputConnection(cellCore.GetOutputPort())
 		cellThres.ThresholdByUpper(limits[0])
 		cellThres.ThresholdByLower(limits[1])
 		cellThres.Update()
 		return cellThres.GetOutput(), cellCore.GetOutput()
-	
+
 	@staticmethod
 	def makeUnstructVTKVOIThres(vtkObj,extent,limits):
 		"""Make volume of interest and threshold for rectilinear grid."""
@@ -263,10 +267,10 @@ class vtkTools(object):
 		cellCore = vtk.vtkExtractUnstructuredGrid()
 		cellCore.SetExtent(extent)
 		cellCore.SetInput(vtkObj)
-		
+
 		cellThres = vtk.vtkThreshold()
-		cellThres.AllScalarsOn()  
-		cellThres.SetInputConnection(cellCore.GetOutputPort()) 
+		cellThres.AllScalarsOn()
+		cellThres.SetInputConnection(cellCore.GetOutputPort())
 		cellThres.ThresholdByUpper(limits[0])
 		cellThres.ThresholdByLower(limits[1])
 		cellThres.Update()
