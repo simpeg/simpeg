@@ -80,6 +80,12 @@ class Cyl1DMesh(object):
         return locals()
     nC = property(**nC())
 
+    def nCv():
+        doc = "Total number of cells in each direction"
+        fget = lambda self: np.array([self.nCx, self.nCz])
+        return locals()
+    nCv = property(**nCv())    
+
     def nNr():
         doc = "Number of nodes in the radial direction"
         fget = lambda self: self.hr.size
