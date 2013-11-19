@@ -299,6 +299,17 @@ class BaseMesh(object):
         return locals()
     nN = property(**nN())
 
+    def nNv():
+        doc = """
+        Total number of nodes in each direction
+
+        :rtype: numpy.array (dim, )
+        :return: [nNx, nNy, nNz]
+        """
+        fget = lambda self: np.array([x for x in [self.nNx, self.nNy, self.nNz] if not x is None])
+        return locals()
+    nNv = property(**nNv())    
+
     def nEx():
         doc = """
         Number of x-edges in each direction
