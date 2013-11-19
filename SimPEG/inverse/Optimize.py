@@ -76,7 +76,7 @@ class IterationPrinters(object):
     itType = {"title": "itType", "value": lambda M: M._itType, "width": 8, "format": "%s"}
     aSet = {"title": "aSet", "value": lambda M: np.sum(M.activeSet(M.xc)), "width": 8, "format": "%d"}
     bSet = {"title": "bSet", "value": lambda M: np.sum(M.bindingSet(M.xc)), "width": 8, "format": "%d"}
-    comment = {"title": "Comment", "value": lambda M: M.projComment, "width": 7, "format": "%s"}
+    comment = {"title": "Comment", "value": lambda M: M.comment, "width": 12, "format": "%s"}
 
     beta = {"title": "beta", "value": lambda M: M.parent._beta, "width": 10, "format":   "%1.2e"}
     phi_d = {"title": "phi_d", "value": lambda M: M.parent.phi_d, "width": 10, "format":   "%1.2e"}
@@ -105,6 +105,8 @@ class Minimize(object):
 
     debug   = False
     debugLS = False
+
+    comment = ''
 
     def __init__(self, **kwargs):
         self._id = int(np.random.rand()*1e6)  # create a unique identifier to this program to be used in pubsub
@@ -525,7 +527,7 @@ class ProjectedGradient(Minimize, Remember):
         self.stopDoingPG = False
 
         self._itType = 'SD'
-        self.projComment = ''
+        self.comment = ''
 
         self.aSet_prev = self.activeSet(x0)
 
@@ -600,7 +602,7 @@ class ProjectedGradient(Minimize, Remember):
         self.exploreCG = np.all(aSet == bSet) # explore conjugate gradient
 
         f_current_decrease = self.f_last - self.f
-        self.projComment = ''
+        self.comment = ''
         if self._iter < 1:
             # Note that this is reset on every CG iteration.
             self.f_decrease_max = -np.inf
@@ -608,7 +610,7 @@ class ProjectedGradient(Minimize, Remember):
             self.f_decrease_max = max(self.f_decrease_max, f_current_decrease)
             self.stopDoingPG = f_current_decrease < 0.25 * self.f_decrease_max
             if self.stopDoingPG:
-                self.projComment = 'Stop SD'
+                self.comment = 'Stop SD'
                 self.explorePG = False
                 self.exploreCG = True
         # implement 3.8, MoreToraldo91
