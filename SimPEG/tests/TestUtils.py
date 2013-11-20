@@ -276,16 +276,16 @@ def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None):
 
 
 
-def getQuadratic(A, b):
+def getQuadratic(A, b, c=0):
     """
-        Given A and b, this returns a quadratic, Q
+        Given A, b and c, this returns a quadratic, Q
 
         .. math::
 
-            \mathbf{Q( x ) = 0.5 x A x + b x}
+            \mathbf{Q( x ) = 0.5 x A x + b x} + c
     """
     def Quadratic(x, return_g=True, return_H=True):
-        f = 0.5 * x.dot( A.dot(x)) + b.dot( x )
+        f = 0.5 * x.dot( A.dot(x)) + b.dot( x ) + c
         out = (f,)
         if return_g:
             g = A.dot(x) + b
