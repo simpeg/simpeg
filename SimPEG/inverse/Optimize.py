@@ -588,7 +588,7 @@ class ProjectedGradient(Minimize, Remember):
             def reduceHess(v):
                 # Z is tall and skinny
                 return Z.T*(self.H*(Z*v))
-            operator = sp.linalg.LinearOperator( (shape[1], shape[1]), reduceHess, dtype=float )
+            operator = sp.linalg.LinearOperator( (shape[1], shape[1]), reduceHess, dtype=self.xc.dtype )
             p, info  = sp.linalg.cg(operator, -Z.T*self.g, tol=self.tolCG, maxiter=self.maxIterCG)
             p = Z*p  #  bring up to full size
             # aSet_after = self.activeSet(self.xc+p)
@@ -622,21 +622,125 @@ class ProjectedGradient(Minimize, Remember):
         if self.debug: print 'doEndIteration.ProjGrad, f_decrease_max: ', self.f_decrease_max
         if self.debug: print 'doEndIteration.ProjGrad, stopDoingSD: ', self.stopDoingSD
 
+
+
+class BFGS(Minimize, Remember):
+    name  = 'BFGS'
+    nbfgs = 10
+
+    @property
+    def bfgsH0(self):
+        """
+            Approximate Hessian used in preconditioning the problem.
+
+            Must be a SimPEG.Solver
+        """
+        _bfgsH0 = getattr(self,'_bfgsH0',None)
+        if _bfgsH0 is None:
+            return Solver(sp.identity(self.xc.size).tocsc(), flag='D')
+        return _bfgsH0
+    @bfgsH0.setter
+    def bfgsH0(self, value):
+        assert type(value) is Solver, 'bfgsH0 must be a SimPEG.Solver'
+        self._bfgsH0 = value
+
+    def _startup_BFGS(self,x0):
+        self._bfgscnt = -1
+        self._bfgsY   = np.zeros((x0.size, self.nbfgs))
+        self._bfgsS   = np.zeros((x0.size, self.nbfgs))
+        if not np.any([p is IterationPrinters.comment for p in self.printers]):
+            self.printers.append(IterationPrinters.comment)
+
+    def bfgs(self, d):
+        n  = self._bfgscnt
+        nn = ktop = min(self._bfgsS.shape[1],n)
+        return self.bfgsrec(ktop,n,nn,self._bfgsS,self._bfgsY,d)
+
+    def bfgsrec(self,k,n,nn,S,Y,d):
+        """BFGS recursion"""
+        if k < 0:
+            d = self.bfgsH0.solve(d)
+        else:
+            khat    = np.mod(n-nn+k,nn)
+            gamma   = np.vdot(S[:,khat],d)/np.vdot(Y[:,khat],S[:,khat])
+            d       = d - gamma*Y[:,khat]
+            d       = self.bfgsrec(k-1,n,nn,S,Y,d)
+            d       = d + (gamma - np.vdot(Y[:,khat],d)/np.vdot(Y[:,khat],S[:,khat]))*S[:,khat]
+        return d
+
+    def findSearchDirection(self):
+        return self.bfgs(-self.g)
+
+    def _doEndIteration_BFGS(self, xt):
+        if self._iter is 0:
+            self.g_last = self.g
+            return
+
+        yy = self.g - self.g_last;
+        ss = self.xc - xt;
+        self.g_last = self.g
+
+        if yy.dot(ss) > 0:
+            self._bfgscnt += 1
+            ktop = np.mod(self._bfgscnt,self.nbfgs)
+            self._bfgsY[:,ktop] = yy
+            self._bfgsS[:,ktop] = ss
+            self.comment = ''
+        else:
+            self.comment = 'Skip BFGS'
+
+
 class GaussNewton(Minimize, Remember):
     name = 'Gauss Newton'
     def findSearchDirection(self):
         return Solver(self.H).solve(-self.g)
 
 
-class InexactGaussNewton(Minimize, Remember):
+class InexactGaussNewton(BFGS, Minimize, Remember):
+    """
+        Minimizes using CG as the inexact solver of
+
+        .. math::
+
+            \mathbf{H p = -g}
+
+        By default BFGS is used as the preconditioner.
+
+        Use *nbfgs* to set the memory limitation of BFGS.
+
+        To set the initial H0 to be used in BFGS, set *bfgsH0* to be a SimPEG.Solver
+
+    """
+
+    def __init__(self, **kwargs):
+        Minimize.__init__(self, **kwargs)
+
     name = 'Inexact Gauss Newton'
 
     maxIterCG = 10
-    tolCG = 1e-5
+    tolCG = 1e-3
+
+    @property
+    def approxHinv(self):
+        """
+            The approximate Hessian inverse is used to precondition CG.
+
+            Default uses BFGS, with an initial H0 of *bfgsH0*.
+
+            Must be a scipy.sparse.linalg.LinearOperator
+        """
+        _approxHinv = getattr(self,'_approxHinv',None)
+        if _approxHinv is None:
+            M = sp.linalg.LinearOperator( (self.xc.size, self.xc.size), self.bfgs, dtype=self.xc.dtype )
+            return M
+        return _approxHinv
+    @approxHinv.setter
+    def approxHinv(self, value):
+        self._approxHinv = value
 
     def findSearchDirection(self):
-        # TODO: use BFGS as a preconditioner or gauss sidel of the WtW or solve WtW directly
-        p, info = sp.linalg.cg(self.H, -self.g, tol=self.tolCG, maxiter=self.maxIterCG)
+        Hinv = Solver(self.H, doDirect=False, options={'iterSolver': 'CG', 'M': self.approxHinv, 'tol': self.tolCG, 'maxIter': self.maxIterCG})
+        p = Hinv.solve(-self.g)
         return p
 
 

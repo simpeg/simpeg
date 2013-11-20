@@ -62,8 +62,11 @@ class Solver(object):
         M = options['M']
         if type(M) is sp.linalg.LinearOperator:
             return
-        elif type(M) is tuple:
-            PreconditionerList = ['J','GS']
+        PreconditionerList = ['J','GS']
+        if type(M) is str:
+            assert M in PreconditionerList, "M must be in the known preconditioner list. ['J','GS']"
+            M = (M,A) # use A as the base for the preconditioner.
+        if type(M) is tuple:
             assert type(M[0]) is str and M[0] in PreconditionerList, "M as a tuple must be (str, Matrix) where str is in ['J','GS']: e.g. ('J', WtW) where J stands for Jacobi, and WtW is a sparse matrix."
             if M[0] is 'J':
                 Jacobi = sdiag(1.0/M[1].diagonal())
