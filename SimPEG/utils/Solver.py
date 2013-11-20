@@ -1,9 +1,10 @@
 import numpy as np
-import scipy.sparse as sparse
+import scipy.sparse as sp
 import scipy.sparse.linalg as linalg
-from SimPEG.utils import mkvc
+from SimPEG.utils import mkvc, sdiag
+import warnings
 
-DEFAULTS = {'direct':'scipy', 'forward':'fortran', 'backward':'fortran', 'diagonal':'python'}
+DEFAULTS = {'direct':'scipy', 'iter':'scipy', 'forward':'fortran', 'backward':'fortran', 'diagonal':'python'}
 
 try:
     import TriSolve
@@ -45,13 +46,44 @@ class Solver(object):
     def __init__(self, A, doDirect=True, flag=None, options={}):
         assert type(doDirect) is bool, 'doDirect must be a boolean'
         assert flag in [None, 'L', 'U', 'D'], "flag must be set to None, 'L', 'U', or 'D'"
-
+        assert type(options) is dict, 'options must be a dictionary object'
         self.A = A
 
         self.dsolve = None
         self.doDirect = doDirect
         self.flag = flag
         self.options = options
+        if doDirect: return
+
+        # Now deal with iterative stuff only
+        if 'M' not in options:
+            warnings.warn("You should provide a preconditioner, M.", UserWarning)
+            return
+        M = options['M']
+        if type(M) is sp.linalg.LinearOperator:
+            return
+        PreconditionerList = ['J','GS']
+        if type(M) is str:
+            assert M in PreconditionerList, "M must be in the known preconditioner list. ['J','GS']"
+            M = (M,A) # use A as the base for the preconditioner.
+        if type(M) is tuple:
+            assert type(M[0]) is str and M[0] in PreconditionerList, "M as a tuple must be (str, Matrix) where str is in ['J','GS']: e.g. ('J', WtW) where J stands for Jacobi, and WtW is a sparse matrix."
+            if M[0] is 'J':
+                Jacobi = sdiag(1.0/M[1].diagonal())
+                options['M'] = Jacobi
+            elif M[0] is 'GS':
+                LL = sp.tril(M[1])
+                UU = sp.triu(M[1])
+                DD = sdiag(M[1].diagonal())
+                Uinv = Solver(UU, flag='U')
+                Linv = Solver(LL, flag='L')
+                def GS(f):
+                    return Uinv.solve(DD*Linv.solve(f))
+                options['M'] = sp.linalg.LinearOperator( A.shape, GS, dtype=A.dtype )
+
+        else:
+            raise Exception('M must be a LinearOperator or a tuple')
+
 
     def solve(self, b):
         """
@@ -118,8 +150,20 @@ class Solver(object):
 
         return X
 
-    def solveIter(self, b, M=None, iterSolver='CG'):
-        pass
+    def solveIter(self, b, backend=None, M=None, iterSolver='CG', tol=1e-6, maxIter=50):
+        if backend is None: backend = DEFAULTS['iter']
+
+        algorithms = {'CG':sp.linalg.cg}
+        assert iterSolver in algorithms, "iterSolver must be 'CG', or implement it yourself and add it here!"
+        alg = algorithms[iterSolver]
+
+        if len(b.shape) == 1 or b.shape[1] == 1:
+            x, self.info = alg(self.A, b, M=M, tol=tol, maxiter=maxIter)
+        else:
+            x = np.empty_like(b)
+            for i in range(b.shape[1]):
+                x[:,i], self.info = alg(self.A, b[:,i], M=M, tol=tol, maxiter=maxIter)
+        return x
 
     def solveBackward(self, b, backend=None):
         """
@@ -132,9 +176,8 @@ class Solver(object):
             :return: x
         """
         if backend is None: backend = DEFAULTS['backward']
-        if type(self.A) is not sparse.csr.csr_matrix:
-            from scipy.sparse import csr_matrix
-            self.A = csr_matrix(self.A)
+        if type(self.A) is not sp.csr.csr_matrix:
+            self.A = sp.csr_matrix(self.A)
         vals = self.A.data
         rowptr = self.A.indptr
         colind = self.A.indices
@@ -164,7 +207,7 @@ class Solver(object):
             :return: x
         """
         if backend is None: backend = DEFAULTS['forward']
-        if type(self.A) is not sparse.csr.csr_matrix:
+        if type(self.A) is not sp.csr.csr_matrix:
             from scipy.sparse import csr_matrix
             self.A = csr_matrix(self.A)
         vals = self.A.data
@@ -240,13 +283,13 @@ if __name__ == '__main__':
     print np.linalg.norm(e-x,np.inf)
 
 
-    n = 6000
+    n = 600
     A_dense = np.random.random((n,n))
     L = np.tril(np.dot(A_dense, A_dense))  # Positive definite is better conditioned.
     e = np.ones(n)
     b = np.dot(L, e)
 
-    A = sparse.csr_matrix(L)
+    A = sp.csr_matrix(L)
     pSolve = Solver(A,flag='L',options={'backend':'python'});
     fSolve = Solver(A,flag='L',options={'backend':'fortran'})
     tic = time()
@@ -257,3 +300,17 @@ if __name__ == '__main__':
     x = fSolve.solve(b)
     toc = time() - tic
     print 'Error Forward Fortran = ', np.linalg.norm(x-e, np.inf), 'Time: ', toc
+
+
+
+    A = -D*D.T
+    A[0,0] *= 10 # remove the constant null space from the matrix
+    e = np.ones(M.nC)
+    b = A.dot(e)
+
+    iSolve = Solver(A, doDirect=False,options={'M':('GS',A)})
+    tic = time()
+    x = iSolve.solve(b)
+    toc = time() - tic
+    print x
+    print 'Error CG  = ', np.linalg.norm(x-e, np.inf), 'Time: ', toc, 'Info: ', iSolve.info
