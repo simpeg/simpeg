@@ -228,6 +228,17 @@ class BaseMesh(object):
         return locals()
     nC = property(**nC())
 
+    def nCv():
+        doc = """
+        Total number of cells in each direction
+
+        :rtype: numpy.array (dim, )
+        :return: [nCx, nCy, nCz]
+        """
+        fget = lambda self: np.array([x for x in [self.nCx, self.nCy, self.nCz] if not x is None])
+        return locals()
+    nCv = property(**nCv())
+
     def nNx():
         doc = """
         Number of nodes in the x-direction
@@ -287,6 +298,17 @@ class BaseMesh(object):
         fget = lambda self: np.prod(self.n + 1)
         return locals()
     nN = property(**nN())
+
+    def nNv():
+        doc = """
+        Total number of nodes in each direction
+
+        :rtype: numpy.array (dim, )
+        :return: [nNx, nNy, nNz]
+        """
+        fget = lambda self: np.array([x for x in [self.nNx, self.nNy, self.nNz] if not x is None])
+        return locals()
+    nNv = property(**nNv())    
 
     def nEx():
         doc = """
