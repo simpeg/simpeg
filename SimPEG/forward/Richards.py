@@ -15,10 +15,10 @@ class RichardsProblem(Problem):
     @property
     def timeStep(self):
         """The time between steps."""
-        return self._timeStep
+        return getattr(self, '_timeStep', None)
     @timeStep.setter
     def timeStep(self, value):
-        self._timeStep = float(value)
+        self._timeStep = float(value) # Because integers suck.
 
     @property
     def numIts(self):

@@ -93,6 +93,8 @@ class BaseInversion(object):
         self.m = m0
         self._iter = 0
         self._beta = None
+        self.phi_d_last = np.nan
+        self.phi_m_last = np.nan
 
     def doEndIteration(self):
         """

@@ -189,7 +189,9 @@ class Minimize(object):
             self.f, self.g, self.H = evalFunction(self.xc, return_g=True, return_H=True)
             if doPub: pub.sendMessage('Minimize.evalFunction', minimize=self, f=self.f, g=self.g, H=self.H)
             self.printIter()
-            if self.stoppingCriteria(): break
+            if self.stoppingCriteria():
+                self.doEndIteration(self.xc)
+                break
             p = self.findSearchDirection()
             if doPub: pub.sendMessage('Minimize.searchDirection', minimize=self, p=p)
             p = self.scaleSearchDirection(p)
@@ -273,6 +275,11 @@ class Minimize(object):
             parent.printIter function and call that.
 
         """
+
+        for method in [posible for posible in dir(self) if '_printIter' in posible]:
+            if self.debug: print 'printIter is calling self.'+method
+            getattr(self,method)(inLS)
+
         if doPub and not inLS: pub.sendMessage('Minimize.printIter', minimize=self)
         pad = ' '*10 if inLS else ''
         printLine(self, self.printers if not inLS else self.printersLS, pad=pad)
