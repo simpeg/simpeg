@@ -31,6 +31,11 @@ class BaseInversion(object):
             self.opt.printers.insert(3,SimPEG.inverse.IterationPrinters.phi_m)
             self.opt.stoppers.append(SimPEG.inverse.StoppingCriteria.phi_d_target_Minimize)
 
+        if not hasattr(opt, '_bfgsH0'): # Check if it has been set by the user and the default is not being used.
+            print 'Setting bfgsH0 to the inverse of the modelObj2Deriv.'
+            opt.bfgsH0 = SimPEG.Solver(reg.modelObj2Deriv(),doDirect=True,options={'factorize':True})  # False, options={'M':'GS','maxIter':15}
+
+
     @property
     def Wd(self):
         """
@@ -40,6 +45,9 @@ class BaseInversion(object):
             eps = np.linalg.norm(mkvc(self.prob.dobs),2)*1e-5
             self._Wd = 1/(abs(self.prob.dobs)*self.prob.std+eps)
         return self._Wd
+    @Wd.setter
+    def Wd(self, value):
+        self._Wd = value
 
     @property
     def phi_d_target(self):
@@ -90,9 +98,15 @@ class BaseInversion(object):
             if self.debug: print 'startup is calling self.'+method
             getattr(self,method)(m0)
 
+        if not hasattr(self.reg, '_mref'):
+            print 'Regularization has not set mref. SimPEG will set it to m0.'
+            self.reg.mref = m0
+
         self.m = m0
         self._iter = 0
         self._beta = None
+        self.phi_d_last = np.nan
+        self.phi_m_last = np.nan
 
     def doEndIteration(self):
         """
@@ -157,7 +171,7 @@ class BaseInversion(object):
         if return_H:
             def H_fun(v):
                 phi_d2Deriv = self.dataObj2Deriv(m, v, u=u)
-                phi_m2Deriv = self.reg.modelObj2Deriv(m)*v
+                phi_m2Deriv = self.reg.modelObj2Deriv()*v
 
                 return phi_d2Deriv + self._beta * phi_m2Deriv
 

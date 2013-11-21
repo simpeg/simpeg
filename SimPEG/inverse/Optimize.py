@@ -76,7 +76,7 @@ class IterationPrinters(object):
     itType = {"title": "itType", "value": lambda M: M._itType, "width": 8, "format": "%s"}
     aSet = {"title": "aSet", "value": lambda M: np.sum(M.activeSet(M.xc)), "width": 8, "format": "%d"}
     bSet = {"title": "bSet", "value": lambda M: np.sum(M.bindingSet(M.xc)), "width": 8, "format": "%d"}
-    comment = {"title": "Comment", "value": lambda M: M.projComment, "width": 7, "format": "%s"}
+    comment = {"title": "Comment", "value": lambda M: M.comment, "width": 12, "format": "%s"}
 
     beta = {"title": "beta", "value": lambda M: M.parent._beta, "width": 10, "format":   "%1.2e"}
     phi_d = {"title": "phi_d", "value": lambda M: M.parent.phi_d, "width": 10, "format":   "%1.2e"}
@@ -106,6 +106,7 @@ class Minimize(object):
     debug   = False
     debugLS = False
 
+    comment = ''
     counter = None
 
     def __init__(self, **kwargs):
@@ -275,6 +276,11 @@ class Minimize(object):
             parent.printIter function and call that.
 
         """
+
+        for method in [posible for posible in dir(self) if '_printIter' in posible]:
+            if self.debug: print 'printIter is calling self.'+method
+            getattr(self,method)(inLS)
+
         if doPub and not inLS: pub.sendMessage('Minimize.printIter', minimize=self)
         pad = ' '*10 if inLS else ''
         printLine(self, self.printers if not inLS else self.printersLS, pad=pad)
@@ -534,7 +540,7 @@ class ProjectedGradient(Minimize, Remember):
         self.stopDoingPG = False
 
         self._itType = 'SD'
-        self.projComment = ''
+        self.comment = ''
 
         self.aSet_prev = self.activeSet(x0)
 
@@ -600,7 +606,7 @@ class ProjectedGradient(Minimize, Remember):
             def reduceHess(v):
                 # Z is tall and skinny
                 return Z.T*(self.H*(Z*v))
-            operator = sp.linalg.LinearOperator( (shape[1], shape[1]), reduceHess, dtype=float )
+            operator = sp.linalg.LinearOperator( (shape[1], shape[1]), reduceHess, dtype=self.xc.dtype )
             p, info  = sp.linalg.cg(operator, -Z.T*self.g, tol=self.tolCG, maxiter=self.maxIterCG)
             p = Z*p  #  bring up to full size
             # aSet_after = self.activeSet(self.xc+p)
@@ -615,7 +621,7 @@ class ProjectedGradient(Minimize, Remember):
         self.exploreCG = np.all(aSet == bSet) # explore conjugate gradient
 
         f_current_decrease = self.f_last - self.f
-        self.projComment = ''
+        self.comment = ''
         if self._iter < 1:
             # Note that this is reset on every CG iteration.
             self.f_decrease_max = -np.inf
@@ -623,7 +629,7 @@ class ProjectedGradient(Minimize, Remember):
             self.f_decrease_max = max(self.f_decrease_max, f_current_decrease)
             self.stopDoingPG = f_current_decrease < 0.25 * self.f_decrease_max
             if self.stopDoingPG:
-                self.projComment = 'Stop SD'
+                self.comment = 'Stop SD'
                 self.explorePG = False
                 self.exploreCG = True
         # implement 3.8, MoreToraldo91
@@ -635,6 +641,74 @@ class ProjectedGradient(Minimize, Remember):
         if self.debug: print 'doEndIteration.ProjGrad, f_decrease_max: ', self.f_decrease_max
         if self.debug: print 'doEndIteration.ProjGrad, stopDoingSD: ', self.stopDoingSD
 
+
+
+class BFGS(Minimize, Remember):
+    name  = 'BFGS'
+    nbfgs = 10
+
+    @property
+    def bfgsH0(self):
+        """
+            Approximate Hessian used in preconditioning the problem.
+
+            Must be a SimPEG.Solver
+        """
+        _bfgsH0 = getattr(self,'_bfgsH0',None)
+        if _bfgsH0 is None:
+            return Solver(sp.identity(self.xc.size).tocsc(), flag='D')
+        return _bfgsH0
+    @bfgsH0.setter
+    def bfgsH0(self, value):
+        assert type(value) is Solver, 'bfgsH0 must be a SimPEG.Solver'
+        self._bfgsH0 = value
+
+    def _startup_BFGS(self,x0):
+        self._bfgscnt = -1
+        self._bfgsY   = np.zeros((x0.size, self.nbfgs))
+        self._bfgsS   = np.zeros((x0.size, self.nbfgs))
+        if not np.any([p is IterationPrinters.comment for p in self.printers]):
+            self.printers.append(IterationPrinters.comment)
+
+    def bfgs(self, d):
+        n  = self._bfgscnt
+        nn = ktop = min(self._bfgsS.shape[1],n)
+        return self.bfgsrec(ktop,n,nn,self._bfgsS,self._bfgsY,d)
+
+    def bfgsrec(self,k,n,nn,S,Y,d):
+        """BFGS recursion"""
+        if k < 0:
+            d = self.bfgsH0.solve(d)
+        else:
+            khat    = 0 if nn is 0 else np.mod(n-nn+k,nn)
+            gamma   = np.vdot(S[:,khat],d)/np.vdot(Y[:,khat],S[:,khat])
+            d       = d - gamma*Y[:,khat]
+            d       = self.bfgsrec(k-1,n,nn,S,Y,d)
+            d       = d + (gamma - np.vdot(Y[:,khat],d)/np.vdot(Y[:,khat],S[:,khat]))*S[:,khat]
+        return d
+
+    def findSearchDirection(self):
+        return self.bfgs(-self.g)
+
+    def _doEndIteration_BFGS(self, xt):
+        if self._iter is 0:
+            self.g_last = self.g
+            return
+
+        yy = self.g - self.g_last;
+        ss = self.xc - xt;
+        self.g_last = self.g
+
+        if yy.dot(ss) > 0:
+            self._bfgscnt += 1
+            ktop = np.mod(self._bfgscnt,self.nbfgs)
+            self._bfgsY[:,ktop] = yy
+            self._bfgsS[:,ktop] = ss
+            self.comment = ''
+        else:
+            self.comment = 'Skip BFGS'
+
+
 class GaussNewton(Minimize, Remember):
     name = 'Gauss Newton'
 
@@ -643,16 +717,52 @@ class GaussNewton(Minimize, Remember):
         return Solver(self.H).solve(-self.g)
 
 
-class InexactGaussNewton(Minimize, Remember):
+class InexactGaussNewton(BFGS, Minimize, Remember):
+    """
+        Minimizes using CG as the inexact solver of
+
+        .. math::
+
+            \mathbf{H p = -g}
+
+        By default BFGS is used as the preconditioner.
+
+        Use *nbfgs* to set the memory limitation of BFGS.
+
+        To set the initial H0 to be used in BFGS, set *bfgsH0* to be a SimPEG.Solver
+
+    """
+
+    def __init__(self, **kwargs):
+        Minimize.__init__(self, **kwargs)
+
     name = 'Inexact Gauss Newton'
 
     maxIterCG = 10
-    tolCG = 1e-5
+    tolCG = 1e-3
+
+    @property
+    def approxHinv(self):
+        """
+            The approximate Hessian inverse is used to precondition CG.
+
+            Default uses BFGS, with an initial H0 of *bfgsH0*.
+
+            Must be a scipy.sparse.linalg.LinearOperator
+        """
+        _approxHinv = getattr(self,'_approxHinv',None)
+        if _approxHinv is None:
+            M = sp.linalg.LinearOperator( (self.xc.size, self.xc.size), self.bfgs, dtype=self.xc.dtype )
+            return M
+        return _approxHinv
+    @approxHinv.setter
+    def approxHinv(self, value):
+        self._approxHinv = value
 
     @timeIt
     def findSearchDirection(self):
-        # TODO: use BFGS as a preconditioner or gauss sidel of the WtW or solve WtW directly
-        p, info = sp.linalg.cg(self.H, -self.g, tol=self.tolCG, maxiter=self.maxIterCG)
+        Hinv = Solver(self.H, doDirect=False, options={'iterSolver': 'CG', 'M': self.approxHinv, 'tol': self.tolCG, 'maxIter': self.maxIterCG})
+        p = Hinv.solve(-self.g)
         return p
 
 
@@ -662,6 +772,84 @@ class SteepestDescent(Minimize, Remember):
     @timeIt
     def findSearchDirection(self):
         return -self.g
+
+
+class NewtonRoot(object):
+    """
+        Newton Method - Root Finding
+
+        root = newtonRoot(fun,x);
+
+        Where fun is the function that returns the function value as well as the
+        gradient.
+
+        For iterative solving of dh = -J\\r, use O.solveTol = TOL. For direct
+        solves, use SOLVETOL = 0 (default)
+
+        Rowan Cockett
+        16-May-2013 16:29:51
+        University of British Columbia
+        rcockett@eos.ubc.ca
+
+    """
+
+    tol      = 1.000e-06
+    solveTol = 0 # Default direct solve.
+    maxIter  = 20
+    stepDcr  = 0.5
+    maxLS    = 30
+    comments = False
+    doLS     = True
+
+    def __init__(self, **kwargs):
+        setKwargs(self, **kwargs)
+
+    def root(self, fun, x):
+        if self.comments: print 'Newton Method:\n'
+
+        self._iter = 0
+        while True:
+
+            [r,J] = fun(x);
+            if self.solveTol == 0:
+                Jinv = Solver(J)
+                dh   = - Jinv.solve(r)
+            else:
+                raise NotImplementedError('Iterative solve on NewtonRoot is not yet implemented.')
+                # M = @(x) tril(J)\(diag(J).*(triu(J)\x));
+                # [dh, ~] = bicgstab(J,-r,O.solveTol,500,M);
+
+            muLS = 1.
+            LScnt  = 1
+            xt = x + dh
+            rt, Jt = fun(xt) # TODO: get rid of Jt
+
+            if self.comments: print '\tLinesearch:\n'
+            # Enter Linesearch
+            while True and self.doLS:
+                if self.comments:
+                    print '\t\tResid: %e\n'%norm(rt)
+                if norm(rt) <= norm(r) or norm(rt) < self.tol:
+                    break
+
+                muLS = muLS*self.stepDcr
+                LScnt = LScnt + 1
+                print '.'
+                if LScnt > self.maxLS:
+                    print 'Newton Method: Line search break.'
+                    root = NaN
+                    return
+                xt = x + muLS*dh
+                rt, Jt = fun(xt) # TODO: get rid of Jt
+
+            x = xt
+            self._iter += 1
+            if norm(rt) < self.tol or self._iter > self.maxIter:
+                break
+
+        return x
+
+
 
 if __name__ == '__main__':
     from SimPEG.tests import Rosenbrock, checkDerivative
@@ -677,3 +865,10 @@ if __name__ == '__main__':
     print "xOpt=[%f, %f]" % (xOpt[0], xOpt[1])
     xOpt = SteepestDescent(maxIter=30, maxIterLS=15,tolF=1e-10,tolX=1e-10,tolG=1e-10).minimize(Rosenbrock, x0)
     print "xOpt=[%f, %f]" % (xOpt[0], xOpt[1])
+
+
+    print 'test the newtonRoot finding.'
+    fun = lambda x: (np.sin(x), sdiag(np.cos(x)))
+    x = np.array([np.pi-0.3, np.pi+0.1, 0])
+    pnt = NewtonRoot(comments=False).root(fun,x)
+    print pnt
