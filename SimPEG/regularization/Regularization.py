@@ -7,7 +7,7 @@ class Regularization(object):
     @property
     def mref(self):
         if getattr(self, '_mref', None) is None:
-            self._mref = np.zeros(self.mesh.nC);
+            return np.zeros(self.mesh.nC);
         return self._mref
     @mref.setter
     def mref(self, value):
@@ -104,8 +104,7 @@ class Regularization(object):
         return mobjDeriv
 
 
-    def modelObj2Deriv(self, m):
-        mresid = m - self.mref
+    def modelObj2Deriv(self):
 
         mobj2Deriv = self.alpha_s * self.Ws.T * self.Ws
 
