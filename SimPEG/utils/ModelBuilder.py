@@ -1,4 +1,6 @@
 import numpy as np
+import scipy.ndimage as ndi
+import scipy.sparse as sp
 
 
 def getIndecesBlock(p0,p1,ccMesh):
@@ -129,6 +131,68 @@ def scalarConductivity(ccMesh,pFunction):
     sigma = pFunction(*CC)
 
     return sigma
+
+
+
+def randomModel(shape, seed=None, anisotropy=None, its=100, bounds=[0,1]):
+    """
+        Create a random model by convolving a kernal with a
+        uniformly distributed model.
+
+        :param int,tuple shape: shape of the model.
+        :param int seed: pick which model to produce, prints the seed if you don't choose.
+        :param numpy.ndarray,list anisotropy: this is the (3 x n) blurring kernal that is used.
+        :param int its: number of smoothing iterations
+        :param list bounds: bounds on the model, len(list) == 2
+        :rtype: numpy.ndarray
+        :return: M, the model
+
+
+        .. plot::
+
+            import matplotlib.pyplot as plt
+            import SimPEG.utils.ModelBuilder as MB
+            plt.colorbar(plt.imshow(MB.randomModel((50,50),bounds=[-4,0])))
+            plt.title('A very cool, yet completely random model.')
+            plt.show()
+
+
+    """
+
+    if seed is None:
+        seed = np.random.randint(1e3)
+        print 'Using a seed of: ', seed
+
+    if type(shape) in [int, long, float]:
+        shape = (shape,) # make it a tuple for consistency
+
+    np.random.seed(seed)
+    mr = np.random.rand(*shape)
+    if anisotropy is None:
+        if len(shape) is 1:
+            smth = np.array([1,10.,1],dtype=float)
+        elif len(shape) is 2:
+            smth = np.array([[1,2,1],[7,10,7],[1,2,1]],dtype=float)
+        elif len(shape) is 3:
+            kernal = np.array([1,4,1], dtype=float).reshape((1,3))
+            smth = np.array(sp.kron(sp.kron(kernal,kernal.T).todense()[:],kernal).todense()).reshape((3,3,3))
+    else:
+        assert len(anisotropy.shape) is len(shape), 'Anisotropy must be the same shape.'
+        smth = np.array(anisotropy,dtype=float)
+
+    smth = smth/smth.sum() # normalize
+    mi = mr
+    for i in range(its):
+        mi = ndi.convolve(mi, smth)
+
+    # scale the model to live between the bounds.
+    mi = (mi - mi.min())/(mi.max()-mi.min()) # scaled between 0 and 1
+    mi = mi*(bounds[1]-bounds[0])+bounds[0]
+
+
+    return mi
+
+
 
 if __name__ == '__main__':
 

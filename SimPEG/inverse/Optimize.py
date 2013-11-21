@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from SimPEG.utils import mkvc, sdiag, setKwargs, printTitles, printLine, printStoppers, checkStoppers
+from SimPEG.utils import mkvc, sdiag, setKwargs, printTitles, printLine, printStoppers, checkStoppers, count, timeIt
 norm = np.linalg.norm
 import scipy.sparse as sp
 from SimPEG import Solver
@@ -107,6 +107,7 @@ class Minimize(object):
     debugLS = False
 
     comment = ''
+    counter = None
 
     def __init__(self, **kwargs):
         self._id = int(np.random.rand()*1e6)  # create a unique identifier to this program to be used in pubsub
@@ -118,6 +119,7 @@ class Minimize(object):
 
         setKwargs(self, **kwargs)
 
+    @timeIt
     def minimize(self, evalFunction, x0):
         """
         Minimizes the function (evalFunction) starting at the location x0.
@@ -265,6 +267,7 @@ class Minimize(object):
         name = self.name if not inLS else self.nameLS
         printTitles(self, self.printers if not inLS else self.printersLS, name, pad)
 
+    @count
     def printIter(self, inLS=False):
         """
             **printIter** is called directly after function evaluations.
@@ -296,14 +299,14 @@ class Minimize(object):
         stoppers = self.stoppers if not inLS else self.stoppersLS
         printStoppers(self, stoppers, pad='', stop=stop, done=done)
 
-
+    @timeIt
     def stoppingCriteria(self, inLS=False):
         if self._iter == 0:
             self.f0 = self.f
             self.g0 = self.g
         return checkStoppers(self, self.stoppers if not inLS else self.stoppersLS)
 
-
+    @timeIt
     def projection(self, p):
         """
             projects the search direction.
@@ -316,6 +319,7 @@ class Minimize(object):
         """
         return p
 
+    @timeIt
     def findSearchDirection(self):
         """
             **findSearchDirection** should return an approximation of:
@@ -345,6 +349,7 @@ class Minimize(object):
         """
         return -self.g
 
+    @count
     def scaleSearchDirection(self, p):
         """
             **scaleSearchDirection** should scale the search direction if appropriate.
@@ -362,6 +367,7 @@ class Minimize(object):
 
     nameLS = "Armijo linesearch"
 
+    @timeIt
     def modifySearchDirection(self, p):
         """
             **modifySearchDirection** changes the search direction based on some sort of linesearch or trust-region criteria.
@@ -398,6 +404,7 @@ class Minimize(object):
 
         return self._LS_xt, self._iterLS < self.maxIterLS
 
+    @count
     def modifySearchDirectionBreak(self, p):
         """
             Code is called if modifySearchDirection fails
@@ -418,6 +425,7 @@ class Minimize(object):
         print 'The linesearch got broken. Boo.'
         return p, False
 
+    @count
     def doEndIteration(self, xt):
         """
             **doEndIteration** is called at the end of each minimize iteration.
@@ -536,18 +544,22 @@ class ProjectedGradient(Minimize, Remember):
 
         self.aSet_prev = self.activeSet(x0)
 
+    @count
     def projection(self, x):
         """Make sure we are feasible."""
         return np.median(np.c_[self.lower,x,self.upper],axis=1)
 
+    @count
     def activeSet(self, x):
         """If we are on a bound"""
         return np.logical_or(x == self.lower, x == self.upper)
 
+    @count
     def inactiveSet(self, x):
         """The free variables."""
         return np.logical_not(self.activeSet(x))
 
+    @count
     def bindingSet(self, x):
         """
             If we are on a bound and the negative gradient points away from the feasible set.
@@ -559,6 +571,7 @@ class ProjectedGradient(Minimize, Remember):
         bind_low = np.logical_and(x == self.upper, self.g <= 0)
         return np.logical_or(bind_up, bind_low)
 
+    @timeIt
     def findSearchDirection(self):
         self.aSet_prev = self.activeSet(self.xc)
         allBoundsAreActive = sum(self.aSet_prev) == self.xc.size
@@ -599,6 +612,7 @@ class ProjectedGradient(Minimize, Remember):
             # aSet_after = self.activeSet(self.xc+p)
         return p
 
+    @timeIt
     def _doEndIteration_ProjectedGradient(self, xt):
         aSet = self.activeSet(xt)
         bSet = self.bindingSet(xt)
@@ -697,6 +711,8 @@ class BFGS(Minimize, Remember):
 
 class GaussNewton(Minimize, Remember):
     name = 'Gauss Newton'
+
+    @timeIt
     def findSearchDirection(self):
         return Solver(self.H).solve(-self.g)
 
@@ -743,6 +759,7 @@ class InexactGaussNewton(BFGS, Minimize, Remember):
     def approxHinv(self, value):
         self._approxHinv = value
 
+    @timeIt
     def findSearchDirection(self):
         Hinv = Solver(self.H, doDirect=False, options={'iterSolver': 'CG', 'M': self.approxHinv, 'tol': self.tolCG, 'maxIter': self.maxIterCG})
         p = Hinv.solve(-self.g)
@@ -751,6 +768,8 @@ class InexactGaussNewton(BFGS, Minimize, Remember):
 
 class SteepestDescent(Minimize, Remember):
     name = 'Steepest Descent'
+
+    @timeIt
     def findSearchDirection(self):
         return -self.g
 
