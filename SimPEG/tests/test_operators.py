@@ -1,6 +1,7 @@
 import numpy as np
 import unittest
 from TestUtils import OrderTest
+import matplotlib.pyplot as plt
 
 MESHTYPES = ['uniformTensorMesh', 'uniformLOM', 'rotateLOM']
 call2 = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1])
@@ -48,8 +49,148 @@ class TestCurl(OrderTest):
         self.orderTest()
 
 
-class TestFaceDiv(OrderTest):
-    name = "Face Divergence"
+class TestCellGrad1D_InhomogeneousDirichlet(OrderTest):
+    name = "Cell Grad 1D - Dirichlet"
+    meshTypes = ['uniformTensorMesh']
+    meshDimension = 1
+    expectedOrders = 1 # because of the averaging involved in the ghost point. u_b = (u_n + u_g)/2
+    meshSizes = [8, 16, 32, 64]
+
+    def getError(self):
+        #Test function
+        fx = lambda x: -2*np.pi*np.sin(2*np.pi*x)
+        sol = lambda x: np.cos(2*np.pi*x)
+
+
+        xc = sol(self.M.gridCC)
+
+        gradX_anal = fx(self.M.gridFx)
+
+        bc = np.array([1,1])
+        self.M.setCellGradBC('dirichlet')
+        gradX = self.M.cellGrad.dot(xc) + self.M.cellGradBC*bc
+
+        err = np.linalg.norm((gradX-gradX_anal), np.inf)
+
+        return err
+
+    def test_order(self):
+        self.orderTest()
+
+class TestCellGrad2D_Dirichlet(OrderTest):
+    name = "Cell Grad 2D - Dirichlet"
+    meshTypes = ['uniformTensorMesh']
+    meshDimension = 2
+    meshSizes = [8, 16, 32, 64]
+
+    def getError(self):
+        #Test function
+        fx = lambda x, y: 2*np.pi*np.cos(2*np.pi*x)*np.sin(2*np.pi*y)
+        fy = lambda x, y: 2*np.pi*np.cos(2*np.pi*y)*np.sin(2*np.pi*x)
+        sol = lambda x, y: np.sin(2*np.pi*x)*np.sin(2*np.pi*y)
+
+        xc = call2(sol, self.M.gridCC)
+
+        Fc = cartF2(self.M, fx, fy)
+        gradX_anal = self.M.projectFaceVector(Fc)
+
+        self.M.setCellGradBC('dirichlet')
+        gradX = self.M.cellGrad.dot(xc)
+
+        err = np.linalg.norm((gradX-gradX_anal), np.inf)
+
+        return err
+
+    def test_order(self):
+        self.orderTest()
+
+
+class TestCellGrad3D_Dirichlet(OrderTest):
+    name = "Cell Grad 3D - Dirichlet"
+    meshTypes = ['uniformTensorMesh']
+    meshDimension = 3
+    meshSizes = [8, 16, 32]
+
+    def getError(self):
+        #Test function
+        fx = lambda x, y, z: 2*np.pi*np.cos(2*np.pi*x)*np.sin(2*np.pi*y)*np.sin(2*np.pi*z)
+        fy = lambda x, y, z: 2*np.pi*np.sin(2*np.pi*x)*np.cos(2*np.pi*y)*np.sin(2*np.pi*z)
+        fz = lambda x, y, z: 2*np.pi*np.sin(2*np.pi*x)*np.sin(2*np.pi*y)*np.cos(2*np.pi*z)
+        sol = lambda x, y, z: np.sin(2*np.pi*x)*np.sin(2*np.pi*y)*np.sin(2*np.pi*z)
+
+        xc = call3(sol, self.M.gridCC)
+
+        Fc = cartF3(self.M, fx, fy, fz)
+        gradX_anal = self.M.projectFaceVector(Fc)
+
+        self.M.setCellGradBC('dirichlet')
+        gradX = self.M.cellGrad.dot(xc)
+
+        err = np.linalg.norm((gradX-gradX_anal), np.inf)
+
+        return err
+
+    def test_order(self):
+        self.orderTest()
+
+class TestCellGrad2D_Neumann(OrderTest):
+    name = "Cell Grad 2D - Neumann"
+    meshTypes = ['uniformTensorMesh']
+    meshDimension = 2
+    meshSizes = [8, 16, 32, 64]
+
+    def getError(self):
+        #Test function
+        fx = lambda x, y: -2*np.pi*np.sin(2*np.pi*x)*np.cos(2*np.pi*y)
+        fy = lambda x, y: -2*np.pi*np.sin(2*np.pi*y)*np.cos(2*np.pi*x)
+        sol = lambda x, y: np.cos(2*np.pi*x)*np.cos(2*np.pi*y)
+
+        xc = call2(sol, self.M.gridCC)
+
+        Fc = cartF2(self.M, fx, fy)
+        gradX_anal = self.M.projectFaceVector(Fc)
+
+        self.M.setCellGradBC('neumann')
+        gradX = self.M.cellGrad.dot(xc)
+
+        err = np.linalg.norm((gradX-gradX_anal), np.inf)
+
+        return err
+
+    def test_order(self):
+        self.orderTest()
+
+
+class TestCellGrad3D_Neumann(OrderTest):
+    name = "Cell Grad 3D - Neumann"
+    meshTypes = ['uniformTensorMesh']
+    meshDimension = 3
+    meshSizes = [8, 16, 32]
+
+    def getError(self):
+        #Test function
+        fx = lambda x, y, z: -2*np.pi*np.sin(2*np.pi*x)*np.cos(2*np.pi*y)*np.cos(2*np.pi*z)
+        fy = lambda x, y, z: -2*np.pi*np.cos(2*np.pi*x)*np.sin(2*np.pi*y)*np.cos(2*np.pi*z)
+        fz = lambda x, y, z: -2*np.pi*np.cos(2*np.pi*x)*np.cos(2*np.pi*y)*np.sin(2*np.pi*z)
+        sol = lambda x, y, z: np.cos(2*np.pi*x)*np.cos(2*np.pi*y)*np.cos(2*np.pi*z)
+
+        xc = call3(sol, self.M.gridCC)
+
+        Fc = cartF3(self.M, fx, fy, fz)
+        gradX_anal = self.M.projectFaceVector(Fc)
+
+        self.M.setCellGradBC('neumann')
+        gradX = self.M.cellGrad.dot(xc)
+
+        err = np.linalg.norm((gradX-gradX_anal), np.inf)
+
+        return err
+
+    def test_order(self):
+        self.orderTest()
+
+class TestFaceDiv3D(OrderTest):
+    name = "Face Divergence 3D"
     meshTypes = MESHTYPES
     meshSizes = [8, 16, 32]
 
@@ -197,6 +338,16 @@ class TestAveraging2D(OrderTest):
         self.getAve = lambda M: M.aveF2CC
         self.orderTest()
 
+    def test_orderCC2F(self):
+        self.name = "Averaging 2D: CC2F"
+        fun = lambda x, y: (np.cos(x)+np.sin(y))
+        self.getHere = lambda M: call2(fun, M.gridCC)
+        self.getThere = lambda M: np.r_[call2(fun, M.gridFx), call2(fun, M.gridFy)]
+        self.getAve = lambda M: M.aveCC2F
+        self.expectedOrders = 1
+        self.orderTest()
+        self.expectedOrders = 2
+
 
     def test_orderE2CC(self):
         self.name = "Averaging 2D: E2CC"
@@ -257,6 +408,17 @@ class TestAveraging3D(OrderTest):
         self.getThere = lambda M: call3(fun, M.gridCC)
         self.getAve = lambda M: M.aveE2CC
         self.orderTest()
+
+    def test_orderCC2F(self):
+        self.name = "Averaging 3D: CC2F"
+        fun = lambda x, y, z: (np.cos(x)+np.sin(y)+np.exp(z))
+        self.getHere = lambda M: call3(fun, M.gridCC)
+        self.getThere = lambda M: np.r_[call3(fun, M.gridFx), call3(fun, M.gridFy), call3(fun, M.gridFz)]
+        self.getAve = lambda M: M.aveCC2F
+        self.expectedOrders = 1
+        self.orderTest()
+        self.expectedOrders = 2
+
 
 
 if __name__ == '__main__':

@@ -1,10 +1,16 @@
 import numpy as np
 from scipy import sparse as sp
-from SimPEG.utils import mkvc, sdiag, speye, kron3, spzeros, ddx, av
+from SimPEG.utils import mkvc, sdiag, speye, kron3, spzeros, ddx, av, avExtrap
 
 
 def checkBC(bc):
-    """ Checks if boundary condition 'bc' is valid. """
+    """
+
+        Checks if boundary condition 'bc' is valid.
+
+        Each bc must be either 'dirichlet' or 'neumann'
+
+    """
     if(type(bc) is str):
         bc = [bc, bc]
     assert type(bc) is list, 'bc must be a list'
@@ -17,7 +23,33 @@ def checkBC(bc):
 
 
 def ddxCellGrad(n, bc):
-    """Create 1D derivative operator from cell-centres to nodes this means we go from n to n+1"""
+    """
+        Create 1D derivative operator from cell-centers to nodes this means we go from n to n+1
+
+        For Cell-Centered **Dirichlet**, use a ghost point::
+
+            (u_1 - u_g)/hf = grad
+
+                u_g       u_1      u_2
+                 *    |    *   |    *     ...
+                      ^
+                      0
+
+            u_g = - u_1
+            grad = 2*u1/dx
+            negitive on the other side.
+
+        For Cell-Centered **Neumann**, use a ghost point::
+
+            (u_1 - u_g)/hf = 0
+
+                u_g       u_1      u_2
+                 *    |    *   |    *     ...
+
+            u_g = u_1
+            grad = 0;  put a zero in.
+
+    """
     bc = checkBC(bc)
 
     D = sp.spdiags((np.ones((n+1, 1))*[-1, 1]).T, [-1, 0], n+1, n, format="csr")
@@ -31,6 +63,56 @@ def ddxCellGrad(n, bc):
         D[-1, -1] = -2
     elif(bc[1] == 'neumann'):
         D[-1, -1] = 0
+    return D
+
+def ddxCellGradBC(n, bc):
+    """
+
+        Create 1D derivative operator from cell-centers to nodes this means we go from n to n+1
+
+        For Cell-Centered **Dirichlet**, use a ghost point::
+
+            (u_1 - u_g)/hf = grad
+
+             u_g       u_1      u_2
+              *    |    *   |    *     ...
+                   ^
+                  u_b
+
+        We know the value at the boundary (u_b)::
+
+            (u_g+u_1)/2 = u_b               (the average)
+            u_g = 2*u_b - u_1
+
+            So plug in to gradient:
+
+            (u_1 - (2*u_b - u_1))/hf = grad
+            2*(u_1-u_b)/hf = grad
+
+        Separate, because BC are known (and can move to RHS later)::
+
+            ( 2/hf )*u_1 + ( -2/hf )*u_b = grad
+
+                           (   ^   ) JUST RETURN THIS
+
+
+    """
+    bc = checkBC(bc)
+
+    ij   = (np.array([0, n]),np.array([0, 1]))
+    vals = np.zeros(2)
+
+    # Set the first side
+    if(bc[0] == 'dirichlet'):
+        vals[0] = -2
+    elif(bc[0] == 'neumann'):
+        vals[0] = 0
+    # Set the second side
+    if(bc[1] == 'dirichlet'):
+        vals[1] = 2
+    elif(bc[1] == 'neumann'):
+        vals[1] = 0
+    D = sp.csr_matrix((vals, ij), shape=(n+1,2))
     return D
 
 
@@ -151,17 +233,19 @@ class DiffOperators(object):
         for i, bc_i in enumerate(BC):
             BC[i] = checkBC(bc_i)
 
-        self._cellGrad = None  # ensure we create a new gradient next time we call it
-        self._cellGradBC = BC
+        # ensure we create a new gradient next time we call it
+        self._cellGrad        = None
+        self._cellGradBC      = None
+        self._cellGradBC_list = BC
         return BC
-    _cellGradBC = 'neumann'
+    _cellGradBC_list = 'neumann'
 
     def cellGrad():
         doc = "The cell centered Gradient, takes you to cell faces."
 
         def fget(self):
             if(self._cellGrad is None):
-                BC = self.setCellGradBC(self._cellGradBC)
+                BC = self.setCellGradBC(self._cellGradBC_list)
                 n = self.n
                 if(self.dim == 1):
                     G = ddxCellGrad(n[0], BC[0])
@@ -176,12 +260,39 @@ class DiffOperators(object):
                     G = sp.vstack((G1, G2, G3), format="csr")
                 # Compute areas of cell faces & volumes
                 S = self.area
-                V = self.vol
-                self._cellGrad = sdiag(S)*G*sdiag(1/V)
+                V = self.aveCC2F*self.vol  # Average volume between adjacent cells
+                self._cellGrad = sdiag(S/V)*G
             return self._cellGrad
         return locals()
     _cellGrad = None
     cellGrad = property(**cellGrad())
+
+    def cellGradBC():
+        doc = "The cell centered Gradient boundary condition matrix"
+
+        def fget(self):
+            if(self._cellGradBC is None):
+                BC = self.setCellGradBC(self._cellGradBC_list)
+                n = self.n
+                if(self.dim == 1):
+                    G = ddxCellGradBC(n[0], BC[0])
+                elif(self.dim == 2):
+                    G1 = sp.kron(speye(n[1]), ddxCellGradBC(n[0], BC[0]))
+                    G2 = sp.kron(ddxCellGradBC(n[1], BC[1]), speye(n[0]))
+                    G = sp.vstack((G1, G2), format="csr")
+                elif(self.dim == 3):
+                    G1 = kron3(speye(n[2]), speye(n[1]), ddxCellGradBC(n[0], BC[0]))
+                    G2 = kron3(speye(n[2]), ddxCellGradBC(n[1], BC[1]), speye(n[0]))
+                    G3 = kron3(ddxCellGradBC(n[2], BC[2]), speye(n[1]), speye(n[0]))
+                    G = sp.vstack((G1, G2, G3), format="csr")
+                # Compute areas of cell faces & volumes
+                S = self.area
+                V = self.aveCC2F*self.vol  # Average volume between adjacent cells
+                self._cellGradBC = sdiag(S/V)*G
+            return self._cellGradBC
+        return locals()
+    _cellGradBC = None
+    cellGradBC = property(**cellGradBC())
 
     def cellGradx():
         doc = "Cell centered Gradient in the x dimension. Has neumann boundary conditions."
@@ -197,9 +308,9 @@ class DiffOperators(object):
                 elif(self.dim == 3):
                     G1 = kron3(speye(n[2]), speye(n[1]), ddxCellGrad(n[0], BC))
                 # Compute areas of cell faces & volumes
-                S = self.r(self.area, 'F','Fx', 'V')
-                V = self.vol
-                self._cellGradx = sdiag(S)*G1*sdiag(1/V)
+                V = self.aveCC2F*self.vol
+                L = self.r(self.area/V, 'F','Fx', 'V')
+                self._cellGradx = sdiag(L)*G1
             return self._cellGradx
         return locals()
     cellGradx = property(**cellGradx())
@@ -217,9 +328,9 @@ class DiffOperators(object):
                 elif(self.dim == 3):
                     G2 = kron3(speye(n[2]), ddxCellGrad(n[1], BC), speye(n[0]))
                 # Compute areas of cell faces & volumes
-                S = self.r(self.area, 'F','Fy', 'V')
-                V = self.vol
-                self._cellGrady = sdiag(S)*G2*sdiag(1/V)
+                V = self.aveCC2F*self.vol
+                L = self.r(self.area/V, 'F','Fy', 'V')
+                self._cellGrady = sdiag(L)*G2
             return self._cellGrady
         return locals()
     cellGrady = property(**cellGrady())
@@ -234,9 +345,9 @@ class DiffOperators(object):
                 n = self.n
                 G3 = kron3(ddxCellGrad(n[2], BC), speye(n[1]), speye(n[0]))
                 # Compute areas of cell faces & volumes
-                S = self.r(self.area, 'F','Fz', 'V')
-                V = self.vol
-                self._cellGradz = sdiag(S)*G3*sdiag(1/V)
+                V = self.aveCC2F*self.vol
+                L = self.r(self.area/V, 'F','Fz', 'V')
+                self._cellGradz = sdiag(L)*G3
             return self._cellGradz
         return locals()
     cellGradz = property(**cellGradz())
@@ -295,15 +406,35 @@ class DiffOperators(object):
                     self._aveF2CC = av(n[0])
                 elif(self.dim == 2):
                     self._aveF2CC = (0.5)*sp.hstack((sp.kron(speye(n[1]), av(n[0])),
-                                               sp.kron(av(n[1]), speye(n[0]))), format="csr")
+                                                     sp.kron(av(n[1]), speye(n[0]))), format="csr")
                 elif(self.dim == 3):
                     self._aveF2CC = (1./3.)*sp.hstack((kron3(speye(n[2]), speye(n[1]), av(n[0])),
-                                               kron3(speye(n[2]), av(n[1]), speye(n[0])),
-                                               kron3(av(n[2]), speye(n[1]), speye(n[0]))), format="csr")
+                                                       kron3(speye(n[2]), av(n[1]), speye(n[0])),
+                                                       kron3(av(n[2]), speye(n[1]), speye(n[0]))), format="csr")
             return self._aveF2CC
         return locals()
     _aveF2CC = None
     aveF2CC = property(**aveF2CC())
+
+    def aveCC2F():
+        doc = "Construct the averaging operator on cell cell centers to faces."
+
+        def fget(self):
+            if(self._aveCC2F is None):
+                n = self.n
+                if(self.dim == 1):
+                    self._aveCC2F = avExtrap(n[0])
+                elif(self.dim == 2):
+                    self._aveCC2F = sp.vstack((sp.kron(speye(n[1]), avExtrap(n[0])),
+                                               sp.kron(avExtrap(n[1]), speye(n[0]))), format="csr")
+                elif(self.dim == 3):
+                    self._aveCC2F = sp.vstack((kron3(speye(n[2]), speye(n[1]), avExtrap(n[0])),
+                                               kron3(speye(n[2]), avExtrap(n[1]), speye(n[0])),
+                                               kron3(avExtrap(n[2]), speye(n[1]), speye(n[0]))), format="csr")
+            return self._aveCC2F
+        return locals()
+    _aveCC2F = None
+    aveCC2F = property(**aveCC2F())
 
     def aveE2CC():
         doc = "Construct the averaging operator on cell edges to cell centers."

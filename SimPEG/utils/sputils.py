@@ -29,5 +29,10 @@ def ddx(n):
 
 
 def av(n):
-    """Define 1D averaging operator from cell-centres to nodes."""
+    """Define 1D averaging operator from nodes to cell-centers."""
     return sp.spdiags((0.5*np.ones((n+1, 1))*[1, 1]).T, [0, 1], n, n+1, format="csr")
+
+def avExtrap(n):
+    """Define 1D averaging operator from cell-centers to nodes."""
+    Av = sp.spdiags((0.5*np.ones((n, 1))*[1, 1]).T, [-1, 0], n+1, n, format="csr") + sp.csr_matrix(([0.5,0.5],([0,n],[0,n-1])),shape=(n+1,n))
+    return Av
