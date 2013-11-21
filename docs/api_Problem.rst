@@ -26,10 +26,4 @@ Linear Problem
     :members:
     :undoc-members:
 
-Richards Problem
-****************
-
-.. automodule:: SimPEG.forward.Richards
-    :members:
-    :undoc-members:
 
