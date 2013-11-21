@@ -120,6 +120,7 @@ class Solver(object):
         """
             Use solve instead of this interface.
 
+            :param numpy.ndarray b: the right hand side
             :param bool factorize: if you want to factorize and store factors
             :param str backend: which backend to use. Default is scipy
             :rtype: numpy.ndarray
@@ -129,6 +130,20 @@ class Solver(object):
 
         assert np.shape(self.A)[1] == np.shape(b)[0], 'Dimension mismatch'
 
+        if backend == 'scipy':
+            X = self.solveDirect_scipy(b, factorize)
+
+        return X
+
+    def solveDirect_scipy(self, b, factorize):
+        """
+            Use solve instead of this interface.
+
+            :param numpy.ndarray b: the right hand side
+            :param bool factorize: if you want to factorize and store factors
+            :rtype: numpy.ndarray
+            :return: x
+        """
         if factorize and self.dsolve is None:
             self.A = self.A.tocsc()  # for efficiency
             self.dsolve = linalg.factorized(self.A)
