@@ -5,12 +5,6 @@ norm = np.linalg.norm
 import scipy.sparse as sp
 from SimPEG import Solver
 
-try:
-    from pubsub import pub
-    doPub = True
-except Exception, e:
-    print 'Warning: you may not have the required pubsub installed, use pypubsub. You will not be able to listen to events.'
-    doPub = False
 
 class StoppingCriteria(object):
     """docstring for StoppingCriteria"""
@@ -142,27 +136,6 @@ class Minimize(object):
                 return out if len(out) > 1 else out[0]
 
 
-        Events are fired with the following inputs via pypubsub::
-
-            Minimize.printInit              (minimize)
-            Minimize.evalFunction           (minimize, f, g, H)
-            Minimize.printIter              (minimize)
-            Minimize.searchDirection        (minimize, p)
-            Minimize.scaleSearchDirection   (minimize, p)
-            Minimize.modifySearchDirection  (minimize, xt, passLS)
-            Minimize.endIteration           (minimize, xt)
-            Minimize.printDone              (minimize)
-
-        To hook into one of these events (must have pypubsub installed)::
-
-            from pubsub import pub
-            def listener(minimize,p):
-                print 'The search direction is:  ', p
-            pub.subscribe(listener, 'Minimize.searchDirection')
-
-        You can use pubsub communication to debug your code, it is not used internally.
-
-
         The algorithm for general minimization is as follows::
 
             startup(x0)
@@ -189,20 +162,15 @@ class Minimize(object):
 
         while True:
             self.f, self.g, self.H = evalFunction(self.xc, return_g=True, return_H=True)
-            if doPub: pub.sendMessage('Minimize.evalFunction', minimize=self, f=self.f, g=self.g, H=self.H)
             self.printIter()
             if self.stoppingCriteria(): break
             p = self.findSearchDirection()
-            if doPub: pub.sendMessage('Minimize.searchDirection', minimize=self, p=p)
             p = self.scaleSearchDirection(p)
-            if doPub: pub.sendMessage('Minimize.scaleSearchDirection', minimize=self, p=p)
             xt, passLS = self.modifySearchDirection(p)
-            if doPub: pub.sendMessage('Minimize.modifySearchDirection', minimize=self, xt=xt, passLS=passLS)
             if not passLS:
                 xt, caught = self.modifySearchDirectionBreak(p)
                 if not caught: return self.xc
             self.doEndIteration(xt)
-            if doPub: pub.sendMessage('Minimize.endIteration', minimize=self, xt=xt)
 
         self.printDone()
 
@@ -856,10 +824,6 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     x0 = np.array([2.6, 3.7])
     checkDerivative(Rosenbrock, x0, plotIt=False)
-
-    # def listener1(minimize,p):
-    #     print 'hi:  ', p
-    # if doPub: pub.subscribe(listener1, 'Minimize.searchDirection')
 
     xOpt = GaussNewton(maxIter=20,tolF=1e-10,tolX=1e-10,tolG=1e-10).minimize(Rosenbrock,x0)
     print "xOpt=[%f, %f]" % (xOpt[0], xOpt[1])
