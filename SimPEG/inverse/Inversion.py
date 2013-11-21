@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
 import SimPEG
-from SimPEG.utils import sdiag, mkvc, setKwargs, checkStoppers, printStoppers
+from SimPEG.utils import sdiag, mkvc, setKwargs, checkStoppers, printStoppers, count, timeIt
 from Optimize import Remember
 from BetaSchedule import Cooling
 
@@ -12,6 +12,8 @@ class BaseInversion(object):
     name = 'BaseInversion'
     debug = False
     beta0 = 1e4
+
+    counter = None
 
     def __init__(self, prob, reg, opt, **kwargs):
         setKwargs(self, **kwargs)
@@ -56,6 +58,7 @@ class BaseInversion(object):
     def phi_d_target(self, value):
         self._phi_d_target = value
 
+    @timeIt
     def run(self, m0):
         self.startup(m0)
         while True:
@@ -131,7 +134,7 @@ class BaseInversion(object):
         """
         printStoppers(self, self.stoppers)
 
-
+    @timeIt
     def evalFunction(self, m, return_g=True, return_H=True):
 
         u = self.prob.field(m)
@@ -162,7 +165,7 @@ class BaseInversion(object):
             out += (operator,)
         return out if len(out) > 1 else out[0]
 
-
+    @timeIt
     def dataObj(self, m, u=None):
         """
             :param numpy.array m: geophysical model
@@ -184,6 +187,7 @@ class BaseInversion(object):
         R = mkvc(R)
         return 0.5*np.vdot(R, R)
 
+    @timeIt
     def dataObjDeriv(self, m, u=None):
         """
             :param numpy.array m: geophysical model
@@ -224,6 +228,7 @@ class BaseInversion(object):
 
         return dmisfit
 
+    @timeIt
     def dataObj2Deriv(self, m, v, u=None):
         """
             :param numpy.array m: geophysical model
