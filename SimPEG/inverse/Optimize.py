@@ -189,9 +189,7 @@ class Minimize(object):
             self.f, self.g, self.H = evalFunction(self.xc, return_g=True, return_H=True)
             if doPub: pub.sendMessage('Minimize.evalFunction', minimize=self, f=self.f, g=self.g, H=self.H)
             self.printIter()
-            if self.stoppingCriteria():
-                self.doEndIteration(self.xc)
-                break
+            if self.stoppingCriteria(): break
             p = self.findSearchDirection()
             if doPub: pub.sendMessage('Minimize.searchDirection', minimize=self, p=p)
             p = self.scaleSearchDirection(p)
@@ -668,7 +666,7 @@ class BFGS(Minimize, Remember):
         if k < 0:
             d = self.bfgsH0.solve(d)
         else:
-            khat    = np.mod(n-nn+k,nn)
+            khat    = 0 if nn is 0 else np.mod(n-nn+k,nn)
             gamma   = np.vdot(S[:,khat],d)/np.vdot(Y[:,khat],S[:,khat])
             d       = d - gamma*Y[:,khat]
             d       = self.bfgsrec(k-1,n,nn,S,Y,d)
