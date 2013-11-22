@@ -6,6 +6,9 @@ import scipy.sparse as sp
 from SimPEG import Solver
 
 
+__all__ = ['Minimize', 'Remember', 'SteepestDescent', 'BFGS', 'GaussNewton', 'InexactGaussNewton', 'ProjectedGradient', 'NewtonRoot', 'StoppingCriteria', 'IterationPrinters']
+
+
 class StoppingCriteria(object):
     """docstring for StoppingCriteria"""
 
@@ -79,29 +82,26 @@ class IterationPrinters(object):
 
 class Minimize(object):
     """
-
         Minimize is a general class for derivative based optimization.
-
-
     """
 
-    name = "General Optimization Algorithm"
+    name = "General Optimization Algorithm"  #: The name of the optimization algorithm
 
-    maxIter = 20
-    maxIterLS = 10
-    maxStep = np.inf
-    LSreduction = 1e-4
-    LSshorten = 0.5
-    tolF = 1e-1
-    tolX = 1e-1
-    tolG = 1e-1
-    eps = 1e-5
+    maxIter = 20       #: Maximum number of iterations
+    maxIterLS = 10     #: Maximum number of iterations for the line-search
+    maxStep = np.inf   #: Maximum step possible, used in scaling before the line-search.
+    LSreduction = 1e-4 #: Expected decrease in the line-search
+    LSshorten = 0.5    #: Line-search step is shortened by this amount each time.
+    tolF = 1e-1        #: Tolerance on function value decrease
+    tolX = 1e-1        #: Tolerance on norm(x) movement
+    tolG = 1e-1        #: Tolerance on gradient norm
+    eps = 1e-5         #: Small value
 
-    debug   = False
-    debugLS = False
+    debug   = False    #: Print debugging information
+    debugLS = False    #: Print debugging information for the line-search
 
-    comment = ''
-    counter = None
+    comment = ''       #: Used by some functions to indicate what is going on in the algorithm
+    counter = None     #: Set this to a SimPEG.utils.Counter() if you want to count things
 
     def __init__(self, **kwargs):
         self.stoppers = [StoppingCriteria.tolerance_f, StoppingCriteria.moving_x, StoppingCriteria.tolerance_g, StoppingCriteria.norm_g, StoppingCriteria.iteration]
@@ -114,7 +114,8 @@ class Minimize(object):
 
     @timeIt
     def minimize(self, evalFunction, x0):
-        """
+        """minimize(evalFunction, x0)
+
         Minimizes the function (evalFunction) starting at the location x0.
 
         :param def evalFunction: function handle that evaluates: f, g, H = F(x)
@@ -231,7 +232,6 @@ class Minimize(object):
         name = self.name if not inLS else self.nameLS
         printTitles(self, self.printers if not inLS else self.printersLS, name, pad)
 
-    @count
     def printIter(self, inLS=False):
         """
             **printIter** is called directly after function evaluations.
@@ -258,7 +258,6 @@ class Minimize(object):
         stoppers = self.stoppers if not inLS else self.stoppersLS
         printStoppers(self, stoppers, pad='', stop=stop, done=done)
 
-    @timeIt
     def stoppingCriteria(self, inLS=False):
         if self._iter == 0:
             self.f0 = self.f
@@ -267,7 +266,8 @@ class Minimize(object):
 
     @timeIt
     def projection(self, p):
-        """
+        """projection(p)
+
             projects the search direction.
 
             by default, no projection is applied.
@@ -281,7 +281,8 @@ class Minimize(object):
 
     @timeIt
     def findSearchDirection(self):
-        """
+        """findSearchDirection()
+
             **findSearchDirection** should return an approximation of:
 
             .. math::
@@ -311,7 +312,8 @@ class Minimize(object):
 
     @count
     def scaleSearchDirection(self, p):
-        """
+        """scaleSearchDirection(p)
+
             **scaleSearchDirection** should scale the search direction if appropriate.
 
             Set the parameter **maxStep** in the minimize object, to scale back the gradient to a maximum size.
@@ -325,11 +327,12 @@ class Minimize(object):
             p = self.maxStep*p/np.abs(p.max())
         return p
 
-    nameLS = "Armijo linesearch"
+    nameLS = "Armijo linesearch" #: The line-search name
 
     @timeIt
     def modifySearchDirection(self, p):
-        """
+        """modifySearchDirection(p)
+
             **modifySearchDirection** changes the search direction based on some sort of linesearch or trust-region criteria.
 
             By default, an Armijo backtracking linesearch is preformed with the following parameters:
@@ -366,7 +369,8 @@ class Minimize(object):
 
     @count
     def modifySearchDirectionBreak(self, p):
-        """
+        """modifySearchDirectionBreak(p)
+
             Code is called if modifySearchDirection fails
             to find a descent direction.
 
@@ -387,7 +391,8 @@ class Minimize(object):
 
     @count
     def doEndIteration(self, xt):
-        """
+        """doEndIteration(xt)
+
             **doEndIteration** is called at the end of each minimize iteration.
 
             By default, function values and x locations are shuffled to store 1 past iteration in memory.
@@ -414,7 +419,6 @@ class Minimize(object):
         self.x_last, self.xc = self.xc, xt
         self._iter += 1
         if self.debug: self.printDone()
-
 
 
 class Remember(object):
@@ -467,7 +471,6 @@ class Remember(object):
                 self._rememberList[param[0]].append( param[1](self) )
 
 
-
 class ProjectedGradient(Minimize, Remember):
     name = 'Projected Gradient'
 
@@ -504,22 +507,35 @@ class ProjectedGradient(Minimize, Remember):
 
     @count
     def projection(self, x):
-        """Make sure we are feasible."""
+        """projection(x)
+
+            Make sure we are feasible.
+
+        """
         return np.median(np.c_[self.lower,x,self.upper],axis=1)
 
     @count
     def activeSet(self, x):
-        """If we are on a bound"""
+        """activeSet(x)
+
+            If we are on a bound
+
+        """
         return np.logical_or(x == self.lower, x == self.upper)
 
     @count
     def inactiveSet(self, x):
-        """The free variables."""
+        """inactiveSet(x)
+
+            The free variables.
+
+        """
         return np.logical_not(self.activeSet(x))
 
     @count
     def bindingSet(self, x):
-        """
+        """bindingSet(x)
+
             If we are on a bound and the negative gradient points away from the feasible set.
 
             Optimality condition. (Satisfies Kuhn-Tucker) MoreToraldo91
@@ -531,6 +547,10 @@ class ProjectedGradient(Minimize, Remember):
 
     @timeIt
     def findSearchDirection(self):
+        """findSearchDirection()
+
+            Finds the search direction based on either CG or steepest descent.
+        """
         self.aSet_prev = self.activeSet(self.xc)
         allBoundsAreActive = sum(self.aSet_prev) == self.xc.size
 
@@ -572,6 +592,7 @@ class ProjectedGradient(Minimize, Remember):
 
     @timeIt
     def _doEndIteration_ProjectedGradient(self, xt):
+        """_doEndIteration_ProjectedGradient(xt)"""
         aSet = self.activeSet(xt)
         bSet = self.bindingSet(xt)
 
@@ -598,7 +619,6 @@ class ProjectedGradient(Minimize, Remember):
         if self.debug: print 'doEndIteration.ProjGrad, f_current_decrease: ', f_current_decrease
         if self.debug: print 'doEndIteration.ProjGrad, f_decrease_max: ', self.f_decrease_max
         if self.debug: print 'doEndIteration.ProjGrad, stopDoingSD: ', self.stopDoingSD
-
 
 
 class BFGS(Minimize, Remember):

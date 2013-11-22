@@ -15,6 +15,19 @@ import Geophysics
 import types
 import time
 import numpy as np
+from functools import wraps
+
+def hook(obj, method, name=None, overwrite=False, silent=False):
+    """
+        This dynamically binds a method to the instance of the class.
+
+        If name is None, the name of the method is used.
+    """
+    if name is None: name = method.__name__
+    if not hasattr(obj,name) or overwrite:
+        setattr(obj, name, types.MethodType( method, obj ))
+    elif not silent:
+        print 'Method '+name+' was not overwritten.'
 
 def setKwargs(obj, **kwargs):
     """Sets key word arguments (kwargs) that are present in the object, throw an error if they don't exist."""
@@ -23,6 +36,9 @@ def setKwargs(obj, **kwargs):
             setattr(obj, attr, kwargs[attr])
         else:
             raise Exception('%s attr is not recognized' % attr)
+    hook(obj,callHooks, silent=True)
+    hook(obj,hook, silent=True)
+    hook(obj,setKwargs, silent=True)
 
 def printTitles(obj, printers, name='Print Titles', pad=''):
     titles = ''
@@ -70,17 +86,6 @@ def callHooks(obj, match, *args, **kwargs):
             if getattr(obj,'debug',False): print (match+' is calling self.'+method)
             getattr(obj,method)(*args, **kwargs)
 
-def hook(obj, method, name=None, overwrite=False):
-    """
-        This dynamically binds a method to the instance of the class.
-
-        If name is None, the name of the method is used.
-    """
-    if name is None: name = method.__name__
-    if not hasattr(obj,name) or overwrite:
-        setattr(obj, name, types.MethodType( method, obj ))
-    else:
-        print 'Method '+name+' was not overwritten.'
 
 
 class Counter(object):
@@ -156,6 +161,7 @@ class Counter(object):
             print "  {0:<40}: {1:4.2e}, {2:4.2e}, {3:4d}x".format(prop,a.mean(),a.sum(),l)
 
 def count(f):
+    @wraps(f)
     def wrapper(self,*args,**kwargs):
         counter = getattr(self,'counter',None)
         if type(counter) is Counter: counter.count(self.__class__.__name__+'.'+f.__name__)
@@ -164,6 +170,7 @@ def count(f):
     return wrapper
 
 def timeIt(f):
+    @wraps(f)
     def wrapper(self,*args,**kwargs):
         counter = getattr(self,'counter',None)
         if type(counter) is Counter: counter.countTic(self.__class__.__name__+'.'+f.__name__)

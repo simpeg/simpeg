@@ -5,9 +5,9 @@ Optimize
 
 .. automodule:: SimPEG.inverse.Optimize
     :show-inheritance:
+    :private-members:
     :members:
     :undoc-members:
-    :inherited-members:
 
 
 Inversion
@@ -17,7 +17,6 @@ Inversion
     :show-inheritance:
     :members:
     :undoc-members:
-    :inherited-members:
 
 Beta Schedule
 *************
