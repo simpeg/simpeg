@@ -70,6 +70,11 @@ class BaseInversion(object):
 
     @timeIt
     def run(self, m0):
+        """run(m0)
+
+            Runs the inversion!
+
+        """
         self.startup(m0)
         while True:
             self._beta = self.getBeta()
@@ -114,7 +119,7 @@ class BaseInversion(object):
 
             If you have things that also need to run at the end of every iteration, you can create a method::
 
-                def _doEndIteration*(self, xt):
+                def _doEndIteration*(self):
                     pass
 
             Where the * can be any string. If present, _doEndIteration* will be called at the start of the default doEndIteration call.
@@ -142,16 +147,46 @@ class BaseInversion(object):
     def getBeta(self):
         return self.beta0
 
-    def estimateBeta0(self):
-        """
+    def estimateBeta0(self, u=None, ratio=0.1):
+        """estimateBeta0(u=None, ratio=0.1)
+
+            The initial beta is calculated by comparing the estimated
+            eigenvalues of JtJ and WtW.
+
+            To estimate the eigenvector of **A**, we will use one iteration
+            of the *Power Method*:
+
+            .. math::
+
+                \mathbf{x_1 = A x_0}
+
+            Given this (very course) approximation of the eigenvector,
+            we can use the *Rayleigh quotient* to approximate the largest eigenvalue.
+
+            .. math::
+
+                \lambda_0 = \\frac{\mathbf{x^\\top A x}}{\mathbf{x^\\top x}}
+
+            We will approximate the largest eigenvalue for both JtJ and WtW, and
+            use some ratio of the quotient to estimate beta0.
+
+            .. math::
+
+                \\beta_0 = \gamma \\frac{\mathbf{x^\\top J^\\top J x}}{\mathbf{x^\\top W^\\top W x}}
 
 
+            :param numpy.array u: fields
+            :param float ratio: desired ratio of the eigenvalues, default is 0.1
+            :rtype: float
+            :return: beta0
         """
-        u = self.prob.field(self.m)
-        v = np.random.rand(*self.m.shape)
-        t = v.dot(self.dataObj2Deriv(self.m,v,u=u))
-        b = v.dot(self.reg.modelObj2Deriv()*v)
-        return 0.1*(t/b)
+        if u is None:
+            u = self.prob.field(self.m)
+
+        x0 = np.random.rand(*self.m.shape)
+        t = x0.dot(self.dataObj2Deriv(self.m,x0,u=u))
+        b = x0.dot(self.reg.modelObj2Deriv()*x0)
+        return ratio*(t/b)
 
     def stoppingCriteria(self):
         if self.debug: print 'checking stoppingCriteria'
@@ -167,6 +202,10 @@ class BaseInversion(object):
 
     @timeIt
     def evalFunction(self, m, return_g=True, return_H=True):
+        """evalFunction(m, return_g=True, return_H=True)
+
+
+        """
 
         u = self.prob.field(m)
         phi_d = self.dataObj(m, u)
@@ -198,7 +237,8 @@ class BaseInversion(object):
 
     @timeIt
     def dataObj(self, m, u=None):
-        """
+        """dataObj(m, u=None)
+
             :param numpy.array m: geophysical model
             :param numpy.array u: fields
             :rtype: float
@@ -220,7 +260,8 @@ class BaseInversion(object):
 
     @timeIt
     def dataObjDeriv(self, m, u=None):
-        """
+        """dataObjDeriv(m, u=None)
+
             :param numpy.array m: geophysical model
             :param numpy.array u: fields
             :rtype: numpy.array
