@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
 import SimPEG
-from SimPEG.utils import sdiag, mkvc, setKwargs, checkStoppers, printStoppers, count, timeIt
+from SimPEG.utils import sdiag, mkvc, setKwargs, checkStoppers, printStoppers, count, timeIt, callHooks
 from Optimize import Remember
 from BetaSchedule import Cooling
 
@@ -31,9 +31,9 @@ class BaseInversion(object):
             self.opt.printers.insert(3,SimPEG.inverse.IterationPrinters.phi_m)
             self.opt.stoppers.append(SimPEG.inverse.StoppingCriteria.phi_d_target_Minimize)
 
-        if not hasattr(opt, '_bfgsH0'): # Check if it has been set by the user and the default is not being used.
-            print 'Setting bfgsH0 to the inverse of the modelObj2Deriv.'
-            opt.bfgsH0 = SimPEG.Solver(reg.modelObj2Deriv(),doDirect=True,options={'factorize':True})  # False, options={'M':'GS','maxIter':15}
+        if not hasattr(opt, '_bfgsH0') and hasattr(opt, 'bfgsH0'): # Check if it has been set by the user and the default is not being used.
+            print 'Setting bfgsH0 to the inverse of the modelObj2Deriv. Done using direct methods.'
+            opt.bfgsH0 = SimPEG.Solver(reg.modelObj2Deriv())
 
 
     @property
@@ -94,9 +94,7 @@ class BaseInversion(object):
             :rtype: None
             :return: None
         """
-        for method in [posible for posible in dir(self) if '_startup' in posible]:
-            if self.debug: print 'startup is calling self.'+method
-            getattr(self,method)(m0)
+        callHooks(self,'startup',m0)
 
         if not hasattr(self.reg, '_mref'):
             print 'Regularization has not set mref. SimPEG will set it to m0.'
@@ -124,9 +122,7 @@ class BaseInversion(object):
             :rtype: None
             :return: None
         """
-        for method in [posible for posible in dir(self) if '_doEndIteration' in posible]:
-            if self.debug: print 'doEndIteration is calling self.'+method
-            getattr(self,method)()
+        callHooks(self,'doEndIteration')
 
         # store old values
         self.phi_d_last = self.phi_d

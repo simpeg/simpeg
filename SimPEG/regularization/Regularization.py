@@ -1,4 +1,4 @@
-from SimPEG.utils import sdiag, count, timeIt
+from SimPEG.utils import sdiag, count, timeIt, setKwargs
 import numpy as np
 
 class Regularization(object):
@@ -41,14 +41,16 @@ class Regularization(object):
         return self._Wz
 
     alpha_s = 1e-6
-    alpha_x = 1
-    alpha_y = 1
-    alpha_z = 1
+    alpha_x = 1.0
+    alpha_y = 1.0
+    alpha_z = 1.0
 
     counter = None
 
-    def __init__(self, mesh):
+    def __init__(self, mesh, **kwargs):
+        setKwargs(self, **kwargs)
         self.mesh = mesh
+
 
     def pnorm(self, r):
         return 0.5*r.dot(r)

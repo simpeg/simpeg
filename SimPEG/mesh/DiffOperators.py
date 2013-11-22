@@ -318,8 +318,7 @@ class DiffOperators(object):
     def cellGrady():
         doc = "Cell centered Gradient in the x dimension. Has neumann boundary conditions."
         def fget(self):
-            if self.dim < 2:
-                return None
+            if self.dim < 2: return None
             if getattr(self, '_cellGrady', None) is None:
                 BC = ['neumann', 'neumann']
                 n = self.n
@@ -338,8 +337,7 @@ class DiffOperators(object):
     def cellGradz():
         doc = "Cell centered Gradient in the x dimension. Has neumann boundary conditions."
         def fget(self):
-            if self.dim < 3:
-                return None
+            if self.dim < 3: return None
             if getattr(self, '_cellGradz', None) is None:
                 BC = ['neumann', 'neumann']
                 n = self.n

@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from SimPEG.utils import mkvc, sdiag, setKwargs, printTitles, printLine, printStoppers, checkStoppers, count, timeIt
+from SimPEG.utils import mkvc, sdiag, setKwargs, printTitles, printLine, printStoppers, checkStoppers, count, timeIt, callHooks
 norm = np.linalg.norm
 import scipy.sparse as sp
 from SimPEG import Solver
@@ -104,7 +104,6 @@ class Minimize(object):
     counter = None
 
     def __init__(self, **kwargs):
-        self._id = int(np.random.rand()*1e6)  # create a unique identifier to this program to be used in pubsub
         self.stoppers = [StoppingCriteria.tolerance_f, StoppingCriteria.moving_x, StoppingCriteria.tolerance_g, StoppingCriteria.norm_g, StoppingCriteria.iteration]
         self.stoppersLS = [StoppingCriteria.armijoGoldstein, StoppingCriteria.iterationLS]
 
@@ -208,9 +207,7 @@ class Minimize(object):
             :rtype: None
             :return: None
         """
-        for method in [posible for posible in dir(self) if '_startup' in posible]:
-            if self.debug: print 'startup is calling self.'+method
-            getattr(self,method)(x0)
+        callHooks(self,'startup',x0)
 
         self._iter = 0
         self._iterLS = 0
@@ -230,7 +227,6 @@ class Minimize(object):
             parent.printInit function and call that.
 
         """
-        if doPub and not inLS: pub.sendMessage('Minimize.printInit', minimize=self)
         pad = ' '*10 if inLS else ''
         name = self.name if not inLS else self.nameLS
         printTitles(self, self.printers if not inLS else self.printersLS, name, pad)
@@ -244,12 +240,8 @@ class Minimize(object):
             parent.printIter function and call that.
 
         """
+        callHooks(self,'printIter',inLS)
 
-        for method in [posible for posible in dir(self) if '_printIter' in posible]:
-            if self.debug: print 'printIter is calling self.'+method
-            getattr(self,method)(inLS)
-
-        if doPub and not inLS: pub.sendMessage('Minimize.printIter', minimize=self)
         pad = ' '*10 if inLS else ''
         printLine(self, self.printers if not inLS else self.printersLS, pad=pad)
 
@@ -261,7 +253,6 @@ class Minimize(object):
             parent.printDone function and call that.
 
         """
-        if doPub and not inLS: pub.sendMessage('Minimize.printDone', minimize=self)
         pad = ' '*10 if inLS else ''
         stop, done = (' STOP! ', ' DONE! ') if not inLS else ('----------------', ' End Linesearch ')
         stoppers = self.stoppers if not inLS else self.stoppersLS
@@ -285,6 +276,7 @@ class Minimize(object):
             :rtype: numpy.ndarray
             :return: p, projected search direction
         """
+        callHooks(self,'projection',p)
         return p
 
     @timeIt
@@ -415,9 +407,7 @@ class Minimize(object):
             :rtype: None
             :return: None
         """
-        for method in [posible for posible in dir(self) if '_doEndIteration' in posible]:
-            if self.debug: print 'doEndIteration is calling self.'+method
-            getattr(self,method)(xt)
+        callHooks(self,'doEndIteration',xt)
 
         # store old values
         self.f_last = self.f
