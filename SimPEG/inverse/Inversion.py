@@ -118,7 +118,6 @@ class BaseInversion(object):
             Where the * can be any string. If present, _doEndIteration* will be called at the start of the default doEndIteration call.
             You may also completely overwrite this function.
 
-            :param numpy.ndarray xt: tested new iterate that ensures a descent direction.
             :rtype: None
             :return: None
         """

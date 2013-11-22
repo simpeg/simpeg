@@ -12,6 +12,10 @@ import Solver
 from Solver import Solver
 import Geophysics
 
+import types
+import time
+import numpy as np
+
 def setKwargs(obj, **kwargs):
     """Sets key word arguments (kwargs) that are present in the object, throw an error if they don't exist."""
     for attr in kwargs:
@@ -66,10 +70,17 @@ def callHooks(obj, match, *args, **kwargs):
             if getattr(obj,'debug',False): print (match+' is calling self.'+method)
             getattr(obj,method)(*args, **kwargs)
 
+def hook(obj, method, name=None, overwrite=False):
+    """
+        This dynamically binds a method to the instance of the class.
 
-
-import time
-import numpy as np
+        If name is None, the name of the method is used.
+    """
+    if name is None: name = method.__name__
+    if not hasattr(obj,name) or overwrite:
+        setattr(obj, name, types.MethodType( method, obj ))
+    else:
+        print 'Method '+name+' was not overwritten.'
 
 
 class Counter(object):
