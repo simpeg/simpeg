@@ -474,8 +474,8 @@ class Remember(object):
 class ProjectedGradient(Minimize, Remember):
     name = 'Projected Gradient'
 
-    maxIterCG = 10
-    tolCG = 1e-3
+    maxIterCG = 5
+    tolCG = 1e-1
 
     lower = -np.inf
     upper = np.inf
@@ -716,8 +716,8 @@ class InexactGaussNewton(BFGS, Minimize, Remember):
 
     name = 'Inexact Gauss Newton'
 
-    maxIterCG = 10
-    tolCG = 1e-3
+    maxIterCG = 5
+    tolCG = 1e-1
 
     @property
     def approxHinv(self):

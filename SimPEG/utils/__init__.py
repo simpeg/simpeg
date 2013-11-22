@@ -26,8 +26,11 @@ def hook(obj, method, name=None, overwrite=False, silent=False):
     if name is None: name = method.__name__
     if not hasattr(obj,name) or overwrite:
         setattr(obj, name, types.MethodType( method, obj ))
-    elif not silent:
+        if getattr(obj,'debug',False):
+            print 'Method '+name+' was added to class.'
+    elif not silent or getattr(obj,'debug',False):
         print 'Method '+name+' was not overwritten.'
+
 
 def setKwargs(obj, **kwargs):
     """Sets key word arguments (kwargs) that are present in the object, throw an error if they don't exist."""
@@ -97,7 +100,7 @@ class Counter(object):
 
         If you want to use this, import *count* or *timeIt* and use them as decorators on class methods.
 
-        .. ::
+        ::
 
             class MyClass(object):
                 def __init__(self, url):
