@@ -187,7 +187,7 @@ class Solver(object):
         if factorize and self.dsolve is None:
             self.mctx = mumps.DMumpsContext()
             self.mctx.set_icntl(14, 60)
-            self.mctx.set_silent()
+            # self.mctx.set_silent()
             self.mctx.set_centralized_sparse(self.A)
             self.mctx.run(job=4)
 
@@ -202,12 +202,20 @@ class Solver(object):
         if len(b.shape) == 1 or b.shape[1] == 1:
             # Just one RHS
             if factorize:
-                return self.dsolve(b)
+                X = self.dsolve(b)
             else:
-                return mumps.spsolve(self.A, b)
+                X = mumps.spsolve(self.A, b)
 
         else:
-            raise NotImplementedError('Multiple RHS not yet implemented with mumps solver.')
+            # Multiple RHSs
+            X = np.empty_like(b)
+            for i in range(b.shape[1]):
+                if factorize:
+                    X[:,i] = self.dsolve(b[:,i])
+                else:
+                    X[:,i] = mumps.spsolve(self.A,b[:,i])
+    
+        return X
 
     def solveIter(self, b, backend=None, M=None, iterSolver='CG', tol=1e-6, maxIter=50):
         if backend is None: backend = DEFAULTS['iter']
