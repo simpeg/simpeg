@@ -13,7 +13,7 @@ sudo pip install scipy --upgrade
 sudo pip install numpy --upgrade
 sudo pip install ipython --upgrade
 
-git clone https://dwfmarchant@bitbucket.org/rcockett/simpeg.git
+git clone https://bitbucket.org/rcockett/simpeg.git
 cd simpeg/SimPEG/
 python setup.py
 cd ~
