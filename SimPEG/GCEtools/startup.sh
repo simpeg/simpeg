@@ -19,4 +19,4 @@ python setup.py
 cd ~
 
 echo export PYTHONPATH=/home/$USER/simpeg/ >> .bashrc
-source .profile
+source .bashrc
