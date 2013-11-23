@@ -23,7 +23,10 @@ def hook(obj, method, name=None, overwrite=False, silent=False):
 
         If name is None, the name of the method is used.
     """
-    if name is None: name = method.__name__
+    if name is None: 
+        name = method.__name__
+        if name == '<lambda>':
+            raise Exception('Must provide name to hook lambda functions.')
     if not hasattr(obj,name) or overwrite:
         setattr(obj, name, types.MethodType( method, obj ))
         if getattr(obj,'debug',False):
