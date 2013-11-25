@@ -152,6 +152,73 @@ class DiffOperators(object):
     _faceDiv = None
     faceDiv = property(**faceDiv())
 
+    def faceDivx():
+        doc = "Construct divergence operator in the x component (face-stg to cell-centres)."
+
+        def fget(self):
+            if(self._faceDivx is None):
+                # The number of cell centers in each direction
+                n = self.n
+                # Compute faceDivergence operator on faces
+                if(self.dim == 1):
+                    D1 = ddx(n[0])
+                elif(self.dim == 2):
+                    D1 = sp.kron(speye(n[1]), ddx(n[0]))
+                elif(self.dim == 3):
+                    D1 = kron3(speye(n[2]), speye(n[1]), ddx(n[0]))
+                # Compute areas of cell faces & volumes
+                S = self.r(self.area, 'F','Fx', 'V')
+                V = self.vol
+                self._faceDivx = sdiag(1/V)*D1*sdiag(S)
+
+            return self._faceDivx
+        return locals()
+    _faceDivx = None
+    faceDivx = property(**faceDivx())
+
+    def faceDivy():
+        doc = "Construct divergence operator in the y component (face-stg to cell-centres)."
+
+        def fget(self):
+            if(self.dim < 2): return None
+            if(self._faceDivy is None):
+                # The number of cell centers in each direction
+                n = self.n
+                # Compute faceDivergence operator on faces
+                if(self.dim == 2):
+                    D2 = sp.kron(ddx(n[1]), speye(n[0]))
+                elif(self.dim == 3):
+                    D2 = kron3(speye(n[2]), ddx(n[1]), speye(n[0]))
+                # Compute areas of cell faces & volumes
+                S = self.r(self.area, 'F','Fy', 'V')
+                V = self.vol
+                self._faceDivy = sdiag(1/V)*D2*sdiag(S)
+
+            return self._faceDivy
+        return locals()
+    _faceDivy = None
+    faceDivy = property(**faceDivy())
+
+    def faceDivz():
+        doc = "Construct divergence operator in the z component (face-stg to cell-centres)."
+
+        def fget(self):
+            if(self.dim < 3): return None
+            if(self._faceDivz is None):
+                # The number of cell centers in each direction
+                n = self.n
+                # Compute faceDivergence operator on faces
+                D3 = kron3(ddx(n[2]), speye(n[1]), speye(n[0]))
+                # Compute areas of cell faces & volumes
+                S = self.r(self.area, 'F','Fz', 'V')
+                V = self.vol
+                self._faceDivz = sdiag(1/V)*D3*sdiag(S)
+
+            return self._faceDivz
+        return locals()
+    _faceDivz = None
+    faceDivz = property(**faceDivz())
+
     def nodalGrad():
         doc = "Construct gradient operator (nodes to edges)."
 
@@ -279,12 +346,12 @@ class DiffOperators(object):
                 elif(self.dim == 2):
                     G1 = sp.kron(speye(n[1]), ddxCellGradBC(n[0], BC[0]))
                     G2 = sp.kron(ddxCellGradBC(n[1], BC[1]), speye(n[0]))
-                    G = sp.vstack((G1, G2), format="csr")
+                    G = sp.block_diag((G1, G2), format="csr")
                 elif(self.dim == 3):
                     G1 = kron3(speye(n[2]), speye(n[1]), ddxCellGradBC(n[0], BC[0]))
                     G2 = kron3(speye(n[2]), ddxCellGradBC(n[1], BC[1]), speye(n[0]))
                     G3 = kron3(ddxCellGradBC(n[2], BC[2]), speye(n[1]), speye(n[0]))
-                    G = sp.vstack((G1, G2, G3), format="csr")
+                    G = sp.block_diag((G1, G2, G3), format="csr")
                 # Compute areas of cell faces & volumes
                 S = self.area
                 V = self.aveCC2F*self.vol  # Average volume between adjacent cells
