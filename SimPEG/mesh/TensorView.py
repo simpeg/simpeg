@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 from mpl_toolkits.mplot3d import Axes3D
-from SimPEG.utils import mkvc
+from SimPEG.utils import mkvc, animate
 
 
 class TensorView(object):
@@ -14,7 +14,7 @@ class TensorView(object):
     def __init__(self):
         pass
 
-    def plotImage(self, I, imageType='CC', figNum=1,ax=None,direction='z',numbering=True,annotationColor='w',showIt=False):
+    def plotImage(self, I, imageType='CC', figNum=1,ax=None,direction='z',numbering=True,annotationColor='w',showIt=False,clim=None):
         """
         Mesh.plotImage(I)
 
@@ -141,7 +141,9 @@ class TensorView(object):
                 C = I[:].reshape(self.nEy, order='F')
                 C = 0.5*(C[:-1,:] + C[1:,:] )
 
-            ph = ax.pcolormesh(self.vectorNx, self.vectorNy, C.T)
+            if clim is None:
+                clim = [C.min(),C.max()]
+            ph = ax.pcolormesh(self.vectorNx, self.vectorNy, C.T, vmin=clim[0], vmax=clim[1])
             ax.axis('tight')
             ax.set_xlabel("x")
             ax.set_ylabel("y")
@@ -196,7 +198,10 @@ class TensorView(object):
                 xx = np.r_[0, np.cumsum(np.kron(np.ones((nX, 1)), self.hx).ravel())]
                 yy = np.r_[0, np.cumsum(np.kron(np.ones((nY, 1)), self.hy).ravel())]
                 # Plot the mesh
-                ph = ax.pcolormesh(xx, yy, C.T)
+
+                if clim is None:
+                    clim = [C.min(),C.max()]
+                ph = ax.pcolormesh(xx, yy, C.T, vmin=clim[0], vmax=clim[1])
                 # Plot the lines
                 gx =  np.arange(nX+1)*(self.vectorNx[-1]-self.x0[0])
                 gy =  np.arange(nY+1)*(self.vectorNy[-1]-self.x0[1])
@@ -336,3 +341,33 @@ class TensorView(object):
             ax.set_ylabel('x2')
             ax.set_zlabel('x3')
             if showIt: plt.show()
+
+    def Slicer(mesh, var, imageType='CC', normal='z', index=0, ax=None, clim=None):
+        assert normal in 'xyz', 'normal must be x, y, or z'
+        if ax is None: ax = plt.subplot(111)
+        I = mesh.r(var,'CC','CC','M')
+        axes = [p for p in 'xyz' if p not in normal.lower()]
+        if normal is 'x': I = I[index,:,:]
+        if normal is 'y': I = I[:,index,:]
+        if normal is 'z': I = I[:,:,index]
+        if clim is None: clim = [I.min(),I.max()]
+        p = ax.pcolormesh(getattr(mesh,'vectorN'+axes[0]),getattr(mesh,'vectorN'+axes[1]),I.T,vmin=clim[0],vmax=clim[1])
+        ax.axis('tight')
+        ax.set_xlabel(axes[0])
+        ax.set_ylabel(axes[1])
+        return p
+
+    def SliceVideo(mesh,var,imageType='CC',normal='z',figsize=(10,8)):
+        # First set up the figure, the axis, and the plot element we want to animate
+        fig = plt.figure(figsize=figsize)
+        ax = plt.axes()
+        clim = [var.min(),var.max()]
+        plt.colorbar(mesh.Slicer(var, imageType=imageType, normal=normal, index=0, ax=ax, clim=clim))
+        tlt = plt.title(normal)
+
+        def animateFrame(i):
+            mesh.Slicer(var, imageType=imageType, normal=normal, index=i, ax=ax, clim=clim)
+            tlt.set_text(normal.upper()+('-Slice: %d, %4.4f' % (i,getattr(mesh,'vectorCC'+normal)[i])))
+
+        return animate(fig, animateFrame, frames=mesh.nCv['xyz'.index(normal)])
+
