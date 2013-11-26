@@ -14,7 +14,7 @@ class vtkView(object):
 	:param mesh, SimPEG mesh.
 	:param propdict, dictionary of property models.
 		Can have these dictionary names:
-		'cell' - cell model; 'face' - face model; 'edge' - edge model
+		'C' - cell model; 'F' - face model; 'E' - edge model
 		The dictionary properties are given as dictionaries with:
 		{'NameOfThePropertyModel': np.array of the properties}.
 		The property array has to be ordered in compliance with SimPEG standards.
@@ -30,11 +30,16 @@ class vtkView(object):
 		"""
 		"""
 
-		# ToDo: Set the properties up so that there are set/get methods
+		# Error check inputs
+		if type(mesh).__name__ != 'TensorMesh':
+			raise Exception('The input {:s} to vtkView has to be a TensorMesh object'.format(mesh))
+
+
+		# Set default values
 		self.name = 'VTK figure of SimPEG model'
-		self.extent = [0,mesh.nCx-1,0,mesh.nCy-1,0,mesh.nCz-1]
-		self.limits = [0, 1e12]
-		self.viewprop = {'cell':0} # Name of the tyep and Int order of the array or name of the vector.
+		self._extent = [0,mesh.nCx-1,0,mesh.nCy-1,0,mesh.nCz-1]
+		self._limits = [0, 1e12]
+		self._viewprop = {'C':0} # Name of the tyep and Int order of the array or name of the vector.
 		self._mesh = mesh
 
 
@@ -57,6 +62,31 @@ class vtkView(object):
 		self._actor = None
 		self._lut = None
 
+	# Set/Get properties
+	@property 
+	def extent(self):
+		return getattr(self,_extent)
+
+	@extent.setter
+	def extent(self,value):
+
+		# Error check
+		valnp = np.array(value)
+		if valnp.dtype != int or len(valnp) != 6:
+			raise Exception('.extent has to be list or nparray of 6 integers.')
+
+		self._extent = valnp
+
+	@property
+	def limits(self):
+		return getattr(self._limits)
+
+	@limits.setter
+	def limits(self,value):
+		valnp = np.array(value)
+		if valnp.dtype != float or len(valnp) != 2:
+			raise Exception('.limits has to be list or nparray of 2 floats.')
+
 	def _readPropertyDictionary(self,propdict):
 		"""
 		Reads the property and assigns to the object
@@ -67,15 +97,15 @@ class vtkView(object):
 		if len(propdict) > 3:
 			raise(Exception,'Too many input items in the property dictionary')
 		for propitem in propdict.iteritems():
-			if propitem[0] in ['cell','face','edge']:
-				if propitem[0] == 'cell':
+			if propitem[0] in ['C','F','E']:
+				if propitem[0] == 'C':
 					self._cell = vtkSP.makeCellVTKObject(self._mesh,propitem[1])
-				if propitem[0] == 'face':
+				if propitem[0] == 'F':
 					self._face = vtkSP.makeFaceVTKObject(self._mesh,propitem[1])
-				if propitem[0] == 'edge':
+				if propitem[0] == 'E':
 					self._edge = vtkSP.makeEdgeVTKObject(self._mesh,propitem[1])
 			else:
-				raise(Exception,'{:s} is not allowed as a dictonary key. Can be \'cell\',\'face\',\'edge\'.'.format(propitem[0]))
+				raise(Exception,'{:s} is not allowed as a dictonary key. Can be \'C\',\'F\',\'E\'.'.format(propitem[0]))
 
 	def Show(self):
 		"""
@@ -91,16 +121,16 @@ class vtkView(object):
 
 		imageType = self.viewprop.keys()[0]
 		# Sort out the actor
-		if imageType == 'cell':
+		if imageType == 'C':
 			self._vtkobj, self._core = vtkSP.makeRectiVTKVOIThres(self._cell,self.extent,self.limits)
-		elif imageType == 'face':
+		elif imageType == 'F':
 			extent = [self._mesh.vectorNx[self.extent[0]], self._mesh.vectorNx[self.extent[1]], self._mesh.vectorNy[self.extent[2]], self._mesh.vectorNy[self.extent[3]], self._mesh.vectorNz[self.extent[4]], self._mesh.vectorNz[self.extent[5]] ]
 			self._vtkobj, self._core = vtkSP.makeUnstructVTKVOIThres(self._face,extent,self.limits)
-		elif imageType == 'edge':
+		elif imageType == 'E':
 			extent = [self._mesh.vectorNx[self.extent[0]], self._mesh.vectorNx[self.extent[1]], self._mesh.vectorNy[self.extent[2]], self._mesh.vectorNy[self.extent[3]], self._mesh.vectorNz[self.extent[4]], self._mesh.vectorNz[self.extent[5]] ]
 			self._vtkobj, self._core = vtkSP.makeUnstructVTKVOIThres(self._edge,extent,self.limits)
 		else:
-			raise Exception("{:s} is not a vailid imageType. Has to be 'cell':'face':'edge'".format(imageType))
+			raise Exception("{:s} is not a valid viewprop. Has to be 'C':'F':'E'".format(imageType))
 
 		# Set the active scalar.
 		if type(self.viewprop.values()[0]) == int:
@@ -153,7 +183,7 @@ if __name__ == '__main__':
 	mesh = simpeg.mesh.TensorMesh([h1,h2,h3],x0)
 
 	# Make a models that correspond to the cells, faces and edges.
-	models = {'cell':{'Test':np.arange(0,mesh.nC),'AllOnce':np.ones(mesh.nC)},'face':{'Test':np.arange(0,np.sum(mesh.nF)),'AllOnce':np.ones(np.sum(mesh.nF))},'edge':{'Test':np.arange(0,np.sum(mesh.nE)),'AllOnce':np.ones(np.sum(mesh.nE))}}
+	models = {'C':{'Test':np.arange(0,mesh.nC),'AllOnce':np.ones(mesh.nC)},'F':{'Test':np.arange(0,np.sum(mesh.nF)),'AllOnce':np.ones(np.sum(mesh.nF))},'E':{'Test':np.arange(0,np.sum(mesh.nE)),'AllOnce':np.ones(np.sum(mesh.nE))}}
 	# Make the vtk viewer object.
 	vtkViewer = simpeg.visualize.vtk.vtkView(mesh,models)
 	# Show the image
