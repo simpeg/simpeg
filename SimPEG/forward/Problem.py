@@ -1,5 +1,5 @@
 import numpy as np
-from SimPEG.utils import mkvc, sdiag
+from SimPEG.utils import mkvc, sdiag, count, timeIt
 import scipy.sparse as sp
 norm = np.linalg.norm
 
@@ -36,6 +36,8 @@ class Problem(object):
         The sensitivity matrix, and it's transpose will be used in the inverse problem
         to (locally) find how model parameters change the data, and optimize!
     """
+
+    counter = None
 
     def __init__(self, mesh):
         self.mesh = mesh
@@ -83,6 +85,7 @@ class Problem(object):
     def dobs(self, value):
         self._dobs = value
 
+    @count
     def dpred(self, m, u=None):
         """
             Predicted data.
@@ -94,6 +97,7 @@ class Problem(object):
             u = self.field(m)
         return self.P*u
 
+    @count
     def dataResidual(self, m, u=None):
         """
             :param numpy.array m: geophysical model
@@ -113,6 +117,7 @@ class Problem(object):
 
         return self.dpred(m, u=u) - self.dobs
 
+    @timeIt
     def J(self, m, v, u=None):
         """
             :param numpy.array m: model
@@ -142,6 +147,7 @@ class Problem(object):
         """
         raise NotImplementedError('J is not yet implemented.')
 
+    @timeIt
     def Jt(self, m, v, u=None):
         """
             :param numpy.array m: model
@@ -155,6 +161,7 @@ class Problem(object):
         raise NotImplementedError('Jt is not yet implemented.')
 
 
+    @timeIt
     def J_approx(self, m, v, u=None):
         """
 
@@ -169,6 +176,7 @@ class Problem(object):
         """
         return self.J(m, v, u)
 
+    @timeIt
     def Jt_approx(self, m, v, u=None):
         """
             :param numpy.array m: model
@@ -218,32 +226,19 @@ class Problem(object):
         """
         return sp.eye(m.size)
 
-
-
-
-class SyntheticProblem(object):
-    """
-        Has helpful functions when dealing with synthetic problems
-
-        To use this class, inherit to your problem::
-
-            class mySyntheticExample(Problem, SyntheticProblem):
-                pass
-    """
-    def createData(self, m, std=0.05):
+    def createSyntheticData(self, m, std=0.05, u=None):
         """
+            Create synthetic data given a model, and a standard deviation.
+
             :param numpy.array m: geophysical model
             :param numpy.array std: standard deviation
             :rtype: numpy.array, numpy.array
             :return: dobs, Wd
 
-            Create synthetic data given a model, and a standard deviation.
-
             Returns the observed data with random Gaussian noise
             and Wd which is the same size as data, and can be used to weight the inversion.
         """
-        dobs = self.dpred(m)
-        dobs = dobs
+        dobs = self.dpred(m,u=u)
         noise = std*abs(dobs)*np.random.randn(*dobs.shape)
         dobs = dobs+noise
         eps = np.linalg.norm(mkvc(dobs),2)*1e-5

@@ -102,7 +102,7 @@ class BaseMesh(object):
             elif xType in ['F', 'E']:
                 # This will only deal with components of fields, not full 'F' or 'E'
                 xx = mkvc(xx)  # unwrap it in case it is a matrix
-                nn = self.nF if xType == 'F' else self.nE
+                nn = self.nFv if xType == 'F' else self.nEv
                 nn = np.r_[0, nn]
 
                 nx = [0, 0, 0]
@@ -228,6 +228,17 @@ class BaseMesh(object):
         return locals()
     nC = property(**nC())
 
+    def nCv():
+        doc = """
+        Total number of cells in each direction
+
+        :rtype: numpy.array (dim, )
+        :return: [nCx, nCy, nCz]
+        """
+        fget = lambda self: np.array([x for x in [self.nCx, self.nCy, self.nCz] if not x is None])
+        return locals()
+    nCv = property(**nCv())
+
     def nNx():
         doc = """
         Number of nodes in the x-direction
@@ -288,6 +299,17 @@ class BaseMesh(object):
         return locals()
     nN = property(**nN())
 
+    def nNv():
+        doc = """
+        Total number of nodes in each direction
+
+        :rtype: numpy.array (dim, )
+        :return: [nNx, nNy, nNz]
+        """
+        fget = lambda self: np.array([x for x in [self.nNx, self.nNy, self.nNz] if not x is None])
+        return locals()
+    nNv = property(**nNv())    
+
     def nEx():
         doc = """
         Number of x-edges in each direction
@@ -331,7 +353,7 @@ class BaseMesh(object):
         return locals()
     nEz = property(**nEz())
 
-    def nE():
+    def nEv():
         doc = """
         Total number of edges in each direction
 
@@ -345,6 +367,18 @@ class BaseMesh(object):
             TensorMesh([np.ones(n) for n in [2,3]]).plotGrid(edges=True,showIt=True)
         """
         fget = lambda self: np.array([np.prod(x) for x in [self.nEx, self.nEy, self.nEz] if not x is None])
+        return locals()
+    nEv = property(**nEv())
+
+    def nE():
+        doc = """
+        Total number of edges.
+
+        :rtype: int
+        :return: sum([prod(nEx), prod(nEy), prod(nEz)])
+
+        """
+        fget = lambda self: np.sum(self.nEv)
         return locals()
     nE = property(**nE())
 
@@ -391,7 +425,7 @@ class BaseMesh(object):
         return locals()
     nFz = property(**nFz())
 
-    def nF():
+    def nFv():
         doc = """
         Total number of faces in each direction
 
@@ -406,6 +440,19 @@ class BaseMesh(object):
         """
         fget = lambda self: np.array([np.prod(x) for x in [self.nFx, self.nFy, self.nFz] if not x is None])
         return locals()
+    nFv = property(**nFv())
+
+
+    def nF():
+        doc = """
+        Total number of faces.
+
+        :rtype: int
+        :return: sum([prod(nFx), prod(nFy), prod(nFz)])
+
+        """
+        fget = lambda self: np.sum(self.nFv)
+        return locals()
     nF = property(**nF())
 
     def normals():
@@ -418,13 +465,13 @@ class BaseMesh(object):
 
         def fget(self):
             if self.dim == 2:
-                nX = np.c_[np.ones(self.nF[0]), np.zeros(self.nF[0])]
-                nY = np.c_[np.zeros(self.nF[1]), np.ones(self.nF[1])]
+                nX = np.c_[np.ones(self.nFv[0]), np.zeros(self.nFv[0])]
+                nY = np.c_[np.zeros(self.nFv[1]), np.ones(self.nFv[1])]
                 return np.r_[nX, nY]
             elif self.dim == 3:
-                nX = np.c_[np.ones(self.nF[0]), np.zeros(self.nF[0]), np.zeros(self.nF[0])]
-                nY = np.c_[np.zeros(self.nF[1]), np.ones(self.nF[1]), np.zeros(self.nF[1])]
-                nZ = np.c_[np.zeros(self.nF[2]), np.zeros(self.nF[2]), np.ones(self.nF[2])]
+                nX = np.c_[np.ones(self.nFv[0]), np.zeros(self.nFv[0]), np.zeros(self.nFv[0])]
+                nY = np.c_[np.zeros(self.nFv[1]), np.ones(self.nFv[1]), np.zeros(self.nFv[1])]
+                nZ = np.c_[np.zeros(self.nFv[2]), np.zeros(self.nFv[2]), np.ones(self.nFv[2])]
                 return np.r_[nX, nY, nZ]
         return locals()
     normals = property(**normals())
@@ -439,13 +486,13 @@ class BaseMesh(object):
 
         def fget(self):
             if self.dim == 2:
-                tX = np.c_[np.ones(self.nE[0]), np.zeros(self.nE[0])]
-                tY = np.c_[np.zeros(self.nE[1]), np.ones(self.nE[1])]
+                tX = np.c_[np.ones(self.nEv[0]), np.zeros(self.nEv[0])]
+                tY = np.c_[np.zeros(self.nEv[1]), np.ones(self.nEv[1])]
                 return np.r_[tX, tY]
             elif self.dim == 3:
-                tX = np.c_[np.ones(self.nE[0]), np.zeros(self.nE[0]), np.zeros(self.nE[0])]
-                tY = np.c_[np.zeros(self.nE[1]), np.ones(self.nE[1]), np.zeros(self.nE[1])]
-                tZ = np.c_[np.zeros(self.nE[2]), np.zeros(self.nE[2]), np.ones(self.nE[2])]
+                tX = np.c_[np.ones(self.nEv[0]), np.zeros(self.nEv[0]), np.zeros(self.nEv[0])]
+                tY = np.c_[np.zeros(self.nEv[1]), np.ones(self.nEv[1]), np.zeros(self.nEv[1])]
+                tZ = np.c_[np.zeros(self.nEv[2]), np.zeros(self.nEv[2]), np.ones(self.nEv[2])]
                 return np.r_[tX, tY, tZ]
         return locals()
     tangents = property(**tangents())

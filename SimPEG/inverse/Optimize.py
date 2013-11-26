@@ -1,16 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from SimPEG.utils import mkvc, sdiag, setKwargs, printTitles, printLine, printStoppers, checkStoppers
+from SimPEG.utils import mkvc, sdiag, setKwargs, printTitles, printLine, printStoppers, checkStoppers, count, timeIt, callHooks
 norm = np.linalg.norm
 import scipy.sparse as sp
 from SimPEG import Solver
 
-try:
-    from pubsub import pub
-    doPub = True
-except Exception, e:
-    print 'Warning: you may not have the required pubsub installed, use pypubsub. You will not be able to listen to events.'
-    doPub = False
+
+__all__ = ['Minimize', 'Remember', 'SteepestDescent', 'BFGS', 'GaussNewton', 'InexactGaussNewton', 'ProjectedGradient', 'NewtonRoot', 'StoppingCriteria', 'IterationPrinters']
+
 
 class StoppingCriteria(object):
     """docstring for StoppingCriteria"""
@@ -76,7 +73,7 @@ class IterationPrinters(object):
     itType = {"title": "itType", "value": lambda M: M._itType, "width": 8, "format": "%s"}
     aSet = {"title": "aSet", "value": lambda M: np.sum(M.activeSet(M.xc)), "width": 8, "format": "%d"}
     bSet = {"title": "bSet", "value": lambda M: np.sum(M.bindingSet(M.xc)), "width": 8, "format": "%d"}
-    comment = {"title": "Comment", "value": lambda M: M.projComment, "width": 7, "format": "%s"}
+    comment = {"title": "Comment", "value": lambda M: M.comment, "width": 12, "format": "%s"}
 
     beta = {"title": "beta", "value": lambda M: M.parent._beta, "width": 10, "format":   "%1.2e"}
     phi_d = {"title": "phi_d", "value": lambda M: M.parent.phi_d, "width": 10, "format":   "%1.2e"}
@@ -85,29 +82,28 @@ class IterationPrinters(object):
 
 class Minimize(object):
     """
-
         Minimize is a general class for derivative based optimization.
-
-
     """
 
-    name = "General Optimization Algorithm"
+    name = "General Optimization Algorithm"  #: The name of the optimization algorithm
 
-    maxIter = 20
-    maxIterLS = 10
-    maxStep = np.inf
-    LSreduction = 1e-4
-    LSshorten = 0.5
-    tolF = 1e-1
-    tolX = 1e-1
-    tolG = 1e-1
-    eps = 1e-5
+    maxIter = 20       #: Maximum number of iterations
+    maxIterLS = 10     #: Maximum number of iterations for the line-search
+    maxStep = np.inf   #: Maximum step possible, used in scaling before the line-search.
+    LSreduction = 1e-4 #: Expected decrease in the line-search
+    LSshorten = 0.5    #: Line-search step is shortened by this amount each time.
+    tolF = 1e-1        #: Tolerance on function value decrease
+    tolX = 1e-1        #: Tolerance on norm(x) movement
+    tolG = 1e-1        #: Tolerance on gradient norm
+    eps = 1e-5         #: Small value
 
-    debug   = False
-    debugLS = False
+    debug   = False    #: Print debugging information
+    debugLS = False    #: Print debugging information for the line-search
+
+    comment = ''       #: Used by some functions to indicate what is going on in the algorithm
+    counter = None     #: Set this to a SimPEG.utils.Counter() if you want to count things
 
     def __init__(self, **kwargs):
-        self._id = int(np.random.rand()*1e6)  # create a unique identifier to this program to be used in pubsub
         self.stoppers = [StoppingCriteria.tolerance_f, StoppingCriteria.moving_x, StoppingCriteria.tolerance_g, StoppingCriteria.norm_g, StoppingCriteria.iteration]
         self.stoppersLS = [StoppingCriteria.armijoGoldstein, StoppingCriteria.iterationLS]
 
@@ -116,8 +112,10 @@ class Minimize(object):
 
         setKwargs(self, **kwargs)
 
+    @timeIt
     def minimize(self, evalFunction, x0):
-        """
+        """minimize(evalFunction, x0)
+
         Minimizes the function (evalFunction) starting at the location x0.
 
         :param def evalFunction: function handle that evaluates: f, g, H = F(x)
@@ -136,27 +134,6 @@ class Minimize(object):
                 if return_H:
                     out += (H,)
                 return out if len(out) > 1 else out[0]
-
-
-        Events are fired with the following inputs via pypubsub::
-
-            Minimize.printInit              (minimize)
-            Minimize.evalFunction           (minimize, f, g, H)
-            Minimize.printIter              (minimize)
-            Minimize.searchDirection        (minimize, p)
-            Minimize.scaleSearchDirection   (minimize, p)
-            Minimize.modifySearchDirection  (minimize, xt, passLS)
-            Minimize.endIteration           (minimize, xt)
-            Minimize.printDone              (minimize)
-
-        To hook into one of these events (must have pypubsub installed)::
-
-            from pubsub import pub
-            def listener(minimize,p):
-                print 'The search direction is:  ', p
-            pub.subscribe(listener, 'Minimize.searchDirection')
-
-        You can use pubsub communication to debug your code, it is not used internally.
 
 
         The algorithm for general minimization is as follows::
@@ -185,20 +162,15 @@ class Minimize(object):
 
         while True:
             self.f, self.g, self.H = evalFunction(self.xc, return_g=True, return_H=True)
-            if doPub: pub.sendMessage('Minimize.evalFunction', minimize=self, f=self.f, g=self.g, H=self.H)
             self.printIter()
             if self.stoppingCriteria(): break
             p = self.findSearchDirection()
-            if doPub: pub.sendMessage('Minimize.searchDirection', minimize=self, p=p)
             p = self.scaleSearchDirection(p)
-            if doPub: pub.sendMessage('Minimize.scaleSearchDirection', minimize=self, p=p)
             xt, passLS = self.modifySearchDirection(p)
-            if doPub: pub.sendMessage('Minimize.modifySearchDirection', minimize=self, xt=xt, passLS=passLS)
             if not passLS:
                 xt, caught = self.modifySearchDirectionBreak(p)
                 if not caught: return self.xc
             self.doEndIteration(xt)
-            if doPub: pub.sendMessage('Minimize.endIteration', minimize=self, xt=xt)
 
         self.printDone()
 
@@ -236,9 +208,7 @@ class Minimize(object):
             :rtype: None
             :return: None
         """
-        for method in [posible for posible in dir(self) if '_startup' in posible]:
-            if self.debug: print 'startup is calling self.'+method
-            getattr(self,method)(x0)
+        callHooks(self,'startup',x0)
 
         self._iter = 0
         self._iterLS = 0
@@ -258,7 +228,6 @@ class Minimize(object):
             parent.printInit function and call that.
 
         """
-        if doPub and not inLS: pub.sendMessage('Minimize.printInit', minimize=self)
         pad = ' '*10 if inLS else ''
         name = self.name if not inLS else self.nameLS
         printTitles(self, self.printers if not inLS else self.printersLS, name, pad)
@@ -271,7 +240,8 @@ class Minimize(object):
             parent.printIter function and call that.
 
         """
-        if doPub and not inLS: pub.sendMessage('Minimize.printIter', minimize=self)
+        callHooks(self,'printIter',inLS)
+
         pad = ' '*10 if inLS else ''
         printLine(self, self.printers if not inLS else self.printersLS, pad=pad)
 
@@ -283,12 +253,10 @@ class Minimize(object):
             parent.printDone function and call that.
 
         """
-        if doPub and not inLS: pub.sendMessage('Minimize.printDone', minimize=self)
         pad = ' '*10 if inLS else ''
         stop, done = (' STOP! ', ' DONE! ') if not inLS else ('----------------', ' End Linesearch ')
         stoppers = self.stoppers if not inLS else self.stoppersLS
         printStoppers(self, stoppers, pad='', stop=stop, done=done)
-
 
     def stoppingCriteria(self, inLS=False):
         if self._iter == 0:
@@ -296,9 +264,10 @@ class Minimize(object):
             self.g0 = self.g
         return checkStoppers(self, self.stoppers if not inLS else self.stoppersLS)
 
-
+    @timeIt
     def projection(self, p):
-        """
+        """projection(p)
+
             projects the search direction.
 
             by default, no projection is applied.
@@ -307,10 +276,13 @@ class Minimize(object):
             :rtype: numpy.ndarray
             :return: p, projected search direction
         """
+        callHooks(self,'projection',p)
         return p
 
+    @timeIt
     def findSearchDirection(self):
-        """
+        """findSearchDirection()
+
             **findSearchDirection** should return an approximation of:
 
             .. math::
@@ -338,8 +310,10 @@ class Minimize(object):
         """
         return -self.g
 
+    @count
     def scaleSearchDirection(self, p):
-        """
+        """scaleSearchDirection(p)
+
             **scaleSearchDirection** should scale the search direction if appropriate.
 
             Set the parameter **maxStep** in the minimize object, to scale back the gradient to a maximum size.
@@ -353,10 +327,12 @@ class Minimize(object):
             p = self.maxStep*p/np.abs(p.max())
         return p
 
-    nameLS = "Armijo linesearch"
+    nameLS = "Armijo linesearch" #: The line-search name
 
+    @timeIt
     def modifySearchDirection(self, p):
-        """
+        """modifySearchDirection(p)
+
             **modifySearchDirection** changes the search direction based on some sort of linesearch or trust-region criteria.
 
             By default, an Armijo backtracking linesearch is preformed with the following parameters:
@@ -391,8 +367,10 @@ class Minimize(object):
 
         return self._LS_xt, self._iterLS < self.maxIterLS
 
+    @count
     def modifySearchDirectionBreak(self, p):
-        """
+        """modifySearchDirectionBreak(p)
+
             Code is called if modifySearchDirection fails
             to find a descent direction.
 
@@ -411,8 +389,10 @@ class Minimize(object):
         print 'The linesearch got broken. Boo.'
         return p, False
 
+    @count
     def doEndIteration(self, xt):
-        """
+        """doEndIteration(xt)
+
             **doEndIteration** is called at the end of each minimize iteration.
 
             By default, function values and x locations are shuffled to store 1 past iteration in memory.
@@ -432,16 +412,13 @@ class Minimize(object):
             :rtype: None
             :return: None
         """
-        for method in [posible for posible in dir(self) if '_doEndIteration' in posible]:
-            if self.debug: print 'doEndIteration is calling self.'+method
-            getattr(self,method)(xt)
+        callHooks(self,'doEndIteration',xt)
 
         # store old values
         self.f_last = self.f
         self.x_last, self.xc = self.xc, xt
         self._iter += 1
         if self.debug: self.printDone()
-
 
 
 class Remember(object):
@@ -494,12 +471,11 @@ class Remember(object):
                 self._rememberList[param[0]].append( param[1](self) )
 
 
-
 class ProjectedGradient(Minimize, Remember):
     name = 'Projected Gradient'
 
-    maxIterCG = 10
-    tolCG = 1e-3
+    maxIterCG = 5
+    tolCG = 1e-1
 
     lower = -np.inf
     upper = np.inf
@@ -525,24 +501,41 @@ class ProjectedGradient(Minimize, Remember):
         self.stopDoingPG = False
 
         self._itType = 'SD'
-        self.projComment = ''
+        self.comment = ''
 
         self.aSet_prev = self.activeSet(x0)
 
+    @count
     def projection(self, x):
-        """Make sure we are feasible."""
+        """projection(x)
+
+            Make sure we are feasible.
+
+        """
         return np.median(np.c_[self.lower,x,self.upper],axis=1)
 
+    @count
     def activeSet(self, x):
-        """If we are on a bound"""
+        """activeSet(x)
+
+            If we are on a bound
+
+        """
         return np.logical_or(x == self.lower, x == self.upper)
 
+    @count
     def inactiveSet(self, x):
-        """The free variables."""
+        """inactiveSet(x)
+
+            The free variables.
+
+        """
         return np.logical_not(self.activeSet(x))
 
+    @count
     def bindingSet(self, x):
-        """
+        """bindingSet(x)
+
             If we are on a bound and the negative gradient points away from the feasible set.
 
             Optimality condition. (Satisfies Kuhn-Tucker) MoreToraldo91
@@ -552,7 +545,12 @@ class ProjectedGradient(Minimize, Remember):
         bind_low = np.logical_and(x == self.upper, self.g <= 0)
         return np.logical_or(bind_up, bind_low)
 
+    @timeIt
     def findSearchDirection(self):
+        """findSearchDirection()
+
+            Finds the search direction based on either CG or steepest descent.
+        """
         self.aSet_prev = self.activeSet(self.xc)
         allBoundsAreActive = sum(self.aSet_prev) == self.xc.size
 
@@ -586,13 +584,15 @@ class ProjectedGradient(Minimize, Remember):
             def reduceHess(v):
                 # Z is tall and skinny
                 return Z.T*(self.H*(Z*v))
-            operator = sp.linalg.LinearOperator( (shape[1], shape[1]), reduceHess, dtype=float )
+            operator = sp.linalg.LinearOperator( (shape[1], shape[1]), reduceHess, dtype=self.xc.dtype )
             p, info  = sp.linalg.cg(operator, -Z.T*self.g, tol=self.tolCG, maxiter=self.maxIterCG)
             p = Z*p  #  bring up to full size
             # aSet_after = self.activeSet(self.xc+p)
         return p
 
+    @timeIt
     def _doEndIteration_ProjectedGradient(self, xt):
+        """_doEndIteration_ProjectedGradient(xt)"""
         aSet = self.activeSet(xt)
         bSet = self.bindingSet(xt)
 
@@ -600,7 +600,7 @@ class ProjectedGradient(Minimize, Remember):
         self.exploreCG = np.all(aSet == bSet) # explore conjugate gradient
 
         f_current_decrease = self.f_last - self.f
-        self.projComment = ''
+        self.comment = ''
         if self._iter < 1:
             # Note that this is reset on every CG iteration.
             self.f_decrease_max = -np.inf
@@ -608,7 +608,7 @@ class ProjectedGradient(Minimize, Remember):
             self.f_decrease_max = max(self.f_decrease_max, f_current_decrease)
             self.stopDoingPG = f_current_decrease < 0.25 * self.f_decrease_max
             if self.stopDoingPG:
-                self.projComment = 'Stop SD'
+                self.comment = 'Stop SD'
                 self.explorePG = False
                 self.exploreCG = True
         # implement 3.8, MoreToraldo91
@@ -620,28 +620,214 @@ class ProjectedGradient(Minimize, Remember):
         if self.debug: print 'doEndIteration.ProjGrad, f_decrease_max: ', self.f_decrease_max
         if self.debug: print 'doEndIteration.ProjGrad, stopDoingSD: ', self.stopDoingSD
 
+
+class BFGS(Minimize, Remember):
+    name  = 'BFGS'
+    nbfgs = 10
+
+    @property
+    def bfgsH0(self):
+        """
+            Approximate Hessian used in preconditioning the problem.
+
+            Must be a SimPEG.Solver
+        """
+        _bfgsH0 = getattr(self,'_bfgsH0',None)
+        if _bfgsH0 is None:
+            return Solver(sp.identity(self.xc.size).tocsc(), flag='D')
+        return _bfgsH0
+    @bfgsH0.setter
+    def bfgsH0(self, value):
+        assert type(value) is Solver, 'bfgsH0 must be a SimPEG.Solver'
+        self._bfgsH0 = value
+
+    def _startup_BFGS(self,x0):
+        self._bfgscnt = -1
+        self._bfgsY   = np.zeros((x0.size, self.nbfgs))
+        self._bfgsS   = np.zeros((x0.size, self.nbfgs))
+        if not np.any([p is IterationPrinters.comment for p in self.printers]):
+            self.printers.append(IterationPrinters.comment)
+
+    def bfgs(self, d):
+        n  = self._bfgscnt
+        nn = ktop = min(self._bfgsS.shape[1],n)
+        return self.bfgsrec(ktop,n,nn,self._bfgsS,self._bfgsY,d)
+
+    def bfgsrec(self,k,n,nn,S,Y,d):
+        """BFGS recursion"""
+        if k < 0:
+            d = self.bfgsH0.solve(d)
+        else:
+            khat    = 0 if nn is 0 else np.mod(n-nn+k,nn)
+            gamma   = np.vdot(S[:,khat],d)/np.vdot(Y[:,khat],S[:,khat])
+            d       = d - gamma*Y[:,khat]
+            d       = self.bfgsrec(k-1,n,nn,S,Y,d)
+            d       = d + (gamma - np.vdot(Y[:,khat],d)/np.vdot(Y[:,khat],S[:,khat]))*S[:,khat]
+        return d
+
+    def findSearchDirection(self):
+        return self.bfgs(-self.g)
+
+    def _doEndIteration_BFGS(self, xt):
+        if self._iter is 0:
+            self.g_last = self.g
+            return
+
+        yy = self.g - self.g_last;
+        ss = self.xc - xt;
+        self.g_last = self.g
+
+        if yy.dot(ss) > 0:
+            self._bfgscnt += 1
+            ktop = np.mod(self._bfgscnt,self.nbfgs)
+            self._bfgsY[:,ktop] = yy
+            self._bfgsS[:,ktop] = ss
+            self.comment = ''
+        else:
+            self.comment = 'Skip BFGS'
+
+
 class GaussNewton(Minimize, Remember):
     name = 'Gauss Newton'
+
+    @timeIt
     def findSearchDirection(self):
         return Solver(self.H).solve(-self.g)
 
 
-class InexactGaussNewton(Minimize, Remember):
+class InexactGaussNewton(BFGS, Minimize, Remember):
+    """
+        Minimizes using CG as the inexact solver of
+
+        .. math::
+
+            \mathbf{H p = -g}
+
+        By default BFGS is used as the preconditioner.
+
+        Use *nbfgs* to set the memory limitation of BFGS.
+
+        To set the initial H0 to be used in BFGS, set *bfgsH0* to be a SimPEG.Solver
+
+    """
+
+    def __init__(self, **kwargs):
+        Minimize.__init__(self, **kwargs)
+
     name = 'Inexact Gauss Newton'
 
-    maxIterCG = 10
-    tolCG = 1e-5
+    maxIterCG = 5
+    tolCG = 1e-1
 
+    @property
+    def approxHinv(self):
+        """
+            The approximate Hessian inverse is used to precondition CG.
+
+            Default uses BFGS, with an initial H0 of *bfgsH0*.
+
+            Must be a scipy.sparse.linalg.LinearOperator
+        """
+        _approxHinv = getattr(self,'_approxHinv',None)
+        if _approxHinv is None:
+            M = sp.linalg.LinearOperator( (self.xc.size, self.xc.size), self.bfgs, dtype=self.xc.dtype )
+            return M
+        return _approxHinv
+    @approxHinv.setter
+    def approxHinv(self, value):
+        self._approxHinv = value
+
+    @timeIt
     def findSearchDirection(self):
-        # TODO: use BFGS as a preconditioner or gauss sidel of the WtW or solve WtW directly
-        p, info = sp.linalg.cg(self.H, -self.g, tol=self.tolCG, maxiter=self.maxIterCG)
+        Hinv = Solver(self.H, doDirect=False, options={'iterSolver': 'CG', 'M': self.approxHinv, 'tol': self.tolCG, 'maxIter': self.maxIterCG})
+        p = Hinv.solve(-self.g)
         return p
 
 
 class SteepestDescent(Minimize, Remember):
     name = 'Steepest Descent'
+
+    @timeIt
     def findSearchDirection(self):
         return -self.g
+
+
+class NewtonRoot(object):
+    """
+        Newton Method - Root Finding
+
+        root = newtonRoot(fun,x);
+
+        Where fun is the function that returns the function value as well as the
+        gradient.
+
+        For iterative solving of dh = -J\\r, use O.solveTol = TOL. For direct
+        solves, use SOLVETOL = 0 (default)
+
+        Rowan Cockett
+        16-May-2013 16:29:51
+        University of British Columbia
+        rcockett@eos.ubc.ca
+
+    """
+
+    tol      = 1.000e-06
+    solveTol = 0 # Default direct solve.
+    maxIter  = 20
+    stepDcr  = 0.5
+    maxLS    = 30
+    comments = False
+    doLS     = True
+
+    def __init__(self, **kwargs):
+        setKwargs(self, **kwargs)
+
+    def root(self, fun, x):
+        if self.comments: print 'Newton Method:\n'
+
+        self._iter = 0
+        while True:
+
+            [r,J] = fun(x);
+            if self.solveTol == 0:
+                Jinv = Solver(J)
+                dh   = - Jinv.solve(r)
+            else:
+                raise NotImplementedError('Iterative solve on NewtonRoot is not yet implemented.')
+                # M = @(x) tril(J)\(diag(J).*(triu(J)\x));
+                # [dh, ~] = bicgstab(J,-r,O.solveTol,500,M);
+
+            muLS = 1.
+            LScnt  = 1
+            xt = x + dh
+            rt, Jt = fun(xt) # TODO: get rid of Jt
+
+            if self.comments: print '\tLinesearch:\n'
+            # Enter Linesearch
+            while True and self.doLS:
+                if self.comments:
+                    print '\t\tResid: %e\n'%norm(rt)
+                if norm(rt) <= norm(r) or norm(rt) < self.tol:
+                    break
+
+                muLS = muLS*self.stepDcr
+                LScnt = LScnt + 1
+                print '.'
+                if LScnt > self.maxLS:
+                    print 'Newton Method: Line search break.'
+                    root = NaN
+                    return
+                xt = x + muLS*dh
+                rt, Jt = fun(xt) # TODO: get rid of Jt
+
+            x = xt
+            self._iter += 1
+            if norm(rt) < self.tol or self._iter > self.maxIter:
+                break
+
+        return x
+
+
 
 if __name__ == '__main__':
     from SimPEG.tests import Rosenbrock, checkDerivative
@@ -649,11 +835,14 @@ if __name__ == '__main__':
     x0 = np.array([2.6, 3.7])
     checkDerivative(Rosenbrock, x0, plotIt=False)
 
-    # def listener1(minimize,p):
-    #     print 'hi:  ', p
-    # if doPub: pub.subscribe(listener1, 'Minimize.searchDirection')
-
     xOpt = GaussNewton(maxIter=20,tolF=1e-10,tolX=1e-10,tolG=1e-10).minimize(Rosenbrock,x0)
     print "xOpt=[%f, %f]" % (xOpt[0], xOpt[1])
     xOpt = SteepestDescent(maxIter=30, maxIterLS=15,tolF=1e-10,tolX=1e-10,tolG=1e-10).minimize(Rosenbrock, x0)
     print "xOpt=[%f, %f]" % (xOpt[0], xOpt[1])
+
+
+    print 'test the newtonRoot finding.'
+    fun = lambda x: (np.sin(x), sdiag(np.cos(x)))
+    x = np.array([np.pi-0.3, np.pi+0.1, 0])
+    pnt = NewtonRoot(comments=False).root(fun,x)
+    print pnt

@@ -1,11 +1,10 @@
 from SimPEG.mesh import TensorMesh
-from SimPEG.forward import Problem, SyntheticProblem, ModelTransforms
+from SimPEG.forward import Problem, ModelTransforms
 from SimPEG.tests import checkDerivative
 from SimPEG.utils import ModelBuilder, sdiag, mkvc
 from SimPEG import Solver
 import numpy as np
 import scipy.sparse as sp
-import scipy.sparse.linalg as linalg
 
 
 class DCProblem(ModelTransforms.LogModel, Problem):
@@ -202,23 +201,17 @@ if __name__ == '__main__':
     P = Q.T
 
     # Create some data
-    class syntheticDCProblem(DCProblem, SyntheticProblem):
-        pass
+    problem = DCProblem(mesh)
+    problem.P = P
+    problem.RHS = q
+    dobs, Wd = problem.createSyntheticData(mSynth, std=0.05)
 
-    synthetic = syntheticDCProblem(mesh);
-    synthetic.P = P
-    synthetic.RHS = q
-    dobs, Wd = synthetic.createData(mSynth, std=0.05)
-
-    u = synthetic.field(mSynth)
-    u = synthetic.reshapeFields(u)
+    u = problem.field(mSynth)
+    u = problem.reshapeFields(u)
     mesh.plotImage(u[:,10])
     # plt.show()
 
     # Now set up the problem to do some minimization
-    problem = DCProblem(mesh)
-    problem.P = P
-    problem.RHS = q
     problem.dobs = dobs
     problem.std = dobs*0 + 0.05
     m0 = mesh.gridCC[:,0]*0+sig2

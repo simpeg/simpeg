@@ -1,4 +1,4 @@
-from SimPEG.utils import sdiag
+from SimPEG.utils import sdiag, count, timeIt, setKwargs
 import numpy as np
 
 class Regularization(object):
@@ -7,7 +7,7 @@ class Regularization(object):
     @property
     def mref(self):
         if getattr(self, '_mref', None) is None:
-            self._mref = np.zeros(self.mesh.nC);
+            return np.zeros(self.mesh.nC);
         return self._mref
     @mref.setter
     def mref(self, value):
@@ -40,21 +40,22 @@ class Regularization(object):
             self._Wz = sdiag(a)*self.mesh.cellGradz
         return self._Wz
 
+    alpha_s = 1e-6
+    alpha_x = 1.0
+    alpha_y = 1.0
+    alpha_z = 1.0
 
+    counter = None
 
-    def __init__(self, mesh):
+    def __init__(self, mesh, **kwargs):
+        setKwargs(self, **kwargs)
         self.mesh = mesh
-        self._Wx = None
-        self._Wy = None
-        self._Wz = None
-        self.alpha_s = 1e-6
-        self.alpha_x = 1
-        self.alpha_y = 1
-        self.alpha_z = 1
+
 
     def pnorm(self, r):
         return 0.5*r.dot(r)
 
+    @timeIt
     def modelObj(self, m):
         mresid = m - self.mref
 
@@ -69,6 +70,7 @@ class Regularization(object):
 
         return mobj
 
+    @timeIt
     def modelObjDeriv(self, m):
         """
 
@@ -104,8 +106,8 @@ class Regularization(object):
         return mobjDeriv
 
 
-    def modelObj2Deriv(self, m):
-        mresid = m - self.mref
+    @timeIt
+    def modelObj2Deriv(self):
 
         mobj2Deriv = self.alpha_s * self.Ws.T * self.Ws
 

@@ -4,8 +4,10 @@ Logically Orthogonal Mesh
 *************************
 
 .. automodule:: SimPEG.mesh.LogicallyOrthogonalMesh
+    :show-inheritance:
     :members:
     :undoc-members:
+    :inherited-members:
 
 
 LOM View
