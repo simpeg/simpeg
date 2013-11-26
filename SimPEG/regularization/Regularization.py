@@ -22,22 +22,19 @@ class Regularization(object):
     @property
     def Wx(self):
         if getattr(self, '_Wx', None) is None:
-            a = self.mesh.r(self.mesh.area,'F','Fx','V')
-            self._Wx = sdiag(a)*self.mesh.cellGradx
+            self._Wx = self.mesh.cellGradx*sdiag(self.mesh.vol)
         return self._Wx
 
     @property
     def Wy(self):
         if getattr(self, '_Wy', None) is None:
-            a = self.mesh.r(self.mesh.area,'F','Fy','V')
-            self._Wy = sdiag(a)*self.mesh.cellGrady
+            self._Wy = self.mesh.cellGrady*sdiag(self.mesh.vol)
         return self._Wy
 
     @property
     def Wz(self):
         if getattr(self, '_Wz', None) is None:
-            a = self.mesh.r(self.mesh.area,'F','Fz','V')
-            self._Wz = sdiag(a)*self.mesh.cellGradz
+            self._Wz = self.mesh.cellGradz*sdiag(self.mesh.vol)
         return self._Wz
 
     alpha_s = 1e-6
