@@ -342,7 +342,7 @@ class TensorView(object):
             ax.set_zlabel('x3')
             if showIt: plt.show()
 
-    def Slicer(mesh, var, imageType='CC', normal='z', index=0, ax=None, clim=None):
+    def slicer(mesh, var, imageType='CC', normal='z', index=0, ax=None, clim=None):
         assert normal in 'xyz', 'normal must be x, y, or z'
         if ax is None: ax = plt.subplot(111)
         I = mesh.r(var,'CC','CC','M')
@@ -357,17 +357,44 @@ class TensorView(object):
         ax.set_ylabel(axes[1])
         return p
 
-    def SliceVideo(mesh,var,imageType='CC',normal='z',figsize=(10,8)):
+    def videoSlicer(mesh,var,imageType='CC',normal='z',figsize=(10,8)):
+        assert mesh.dim > 2, 'This is for 3D meshes only.'
         # First set up the figure, the axis, and the plot element we want to animate
         fig = plt.figure(figsize=figsize)
         ax = plt.axes()
         clim = [var.min(),var.max()]
-        plt.colorbar(mesh.Slicer(var, imageType=imageType, normal=normal, index=0, ax=ax, clim=clim))
+        plt.colorbar(mesh.slicer(var, imageType=imageType, normal=normal, index=0, ax=ax, clim=clim))
         tlt = plt.title(normal)
 
         def animateFrame(i):
-            mesh.Slicer(var, imageType=imageType, normal=normal, index=i, ax=ax, clim=clim)
+            mesh.slicer(var, imageType=imageType, normal=normal, index=i, ax=ax, clim=clim)
             tlt.set_text(normal.upper()+('-Slice: %d, %4.4f' % (i,getattr(mesh,'vectorCC'+normal)[i])))
 
         return animate(fig, animateFrame, frames=mesh.nCv['xyz'.index(normal)])
+
+    def video(mesh,var,function,figsize=(10,8)):
+        """
+        Call a function for a list of models to create a video.
+
+        ::
+
+            def function(var, ax, clim, tlt, i):
+                tlt.set_text('%%d'%%i)
+                return mesh.plotImage(var, imageType='CC', ax=ax, clim=clim)
+
+            mesh.video([model1, model2, ..., modeln],function)
+        """
+        # First set up the figure, the axis, and the plot element we want to animate
+        fig = plt.figure(figsize=figsize)
+        ax = plt.axes()
+        VAR = np.concatenate(var)
+        clim = [VAR.min(),VAR.max()]
+        tlt = plt.title('')
+        plt.colorbar(function(var[0],ax,clim,tlt,0))
+
+        def animateFrame(i):
+            function(var[i],ax,clim,tlt,i)
+
+        return animate(fig, animateFrame, frames=len(var))
+
 
