@@ -4,8 +4,10 @@ Tensor Mesh
 ***********
 
 .. automodule:: SimPEG.mesh.TensorMesh
+    :show-inheritance:
     :members:
     :undoc-members:
+    :inherited-members:
 
 Tensor View
 ***********

@@ -4,6 +4,8 @@ Optimize
 ********
 
 .. automodule:: SimPEG.inverse.Optimize
+    :show-inheritance:
+    :private-members:
     :members:
     :undoc-members:
 
@@ -12,6 +14,7 @@ Inversion
 *********
 
 .. automodule:: SimPEG.inverse.Inversion
+    :show-inheritance:
     :members:
     :undoc-members:
 

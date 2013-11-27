@@ -226,7 +226,7 @@ class Problem(object):
         """
         return sp.eye(m.size)
 
-    def createSyntheticData(self, m, std=0.05):
+    def createSyntheticData(self, m, std=0.05, u=None):
         """
             Create synthetic data given a model, and a standard deviation.
 
@@ -238,8 +238,7 @@ class Problem(object):
             Returns the observed data with random Gaussian noise
             and Wd which is the same size as data, and can be used to weight the inversion.
         """
-        dobs = self.dpred(m)
-        dobs = dobs
+        dobs = self.dpred(m,u=u)
         noise = std*abs(dobs)*np.random.randn(*dobs.shape)
         dobs = dobs+noise
         eps = np.linalg.norm(mkvc(dobs),2)*1e-5

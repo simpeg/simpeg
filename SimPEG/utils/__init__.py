@@ -12,6 +12,29 @@ import Solver
 from Solver import Solver
 import Geophysics
 
+import types
+import time
+import numpy as np
+from functools import wraps
+
+def hook(obj, method, name=None, overwrite=False, silent=False):
+    """
+        This dynamically binds a method to the instance of the class.
+
+        If name is None, the name of the method is used.
+    """
+    if name is None: 
+        name = method.__name__
+        if name == '<lambda>':
+            raise Exception('Must provide name to hook lambda functions.')
+    if not hasattr(obj,name) or overwrite:
+        setattr(obj, name, types.MethodType( method, obj ))
+        if getattr(obj,'debug',False):
+            print 'Method '+name+' was added to class.'
+    elif not silent or getattr(obj,'debug',False):
+        print 'Method '+name+' was not overwritten.'
+
+
 def setKwargs(obj, **kwargs):
     """Sets key word arguments (kwargs) that are present in the object, throw an error if they don't exist."""
     for attr in kwargs:
@@ -19,6 +42,9 @@ def setKwargs(obj, **kwargs):
             setattr(obj, attr, kwargs[attr])
         else:
             raise Exception('%s attr is not recognized' % attr)
+    hook(obj,callHooks, silent=True)
+    hook(obj,hook, silent=True)
+    hook(obj,setKwargs, silent=True)
 
 def printTitles(obj, printers, name='Print Titles', pad=''):
     titles = ''
@@ -61,9 +87,11 @@ def printStoppers(obj, stoppers, pad='', stop='STOP!', done='DONE!'):
         print pad + stopper['str'] % (l<=r,l,r)
     print pad + "%s%s%s" % ('-'*25,done,'-'*25)
 
+def callHooks(obj, match, *args, **kwargs):
+    for method in [posible for posible in dir(obj) if ('_'+match) in posible]:
+            if getattr(obj,'debug',False): print (match+' is calling self.'+method)
+            getattr(obj,method)(*args, **kwargs)
 
-import time
-import numpy as np
 
 
 class Counter(object):
@@ -75,7 +103,7 @@ class Counter(object):
 
         If you want to use this, import *count* or *timeIt* and use them as decorators on class methods.
 
-        .. ::
+        ::
 
             class MyClass(object):
                 def __init__(self, url):
@@ -139,6 +167,7 @@ class Counter(object):
             print "  {0:<40}: {1:4.2e}, {2:4.2e}, {3:4d}x".format(prop,a.mean(),a.sum(),l)
 
 def count(f):
+    @wraps(f)
     def wrapper(self,*args,**kwargs):
         counter = getattr(self,'counter',None)
         if type(counter) is Counter: counter.count(self.__class__.__name__+'.'+f.__name__)
@@ -147,6 +176,7 @@ def count(f):
     return wrapper
 
 def timeIt(f):
+    @wraps(f)
     def wrapper(self,*args,**kwargs):
         counter = getattr(self,'counter',None)
         if type(counter) is Counter: counter.countTic(self.__class__.__name__+'.'+f.__name__)
@@ -154,6 +184,8 @@ def timeIt(f):
         if type(counter) is Counter: counter.countToc(self.__class__.__name__+'.'+f.__name__)
         return out
     return wrapper
+
+
 if __name__ == '__main__':
     class MyClass(object):
         def __init__(self, url):
