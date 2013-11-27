@@ -4,23 +4,19 @@ import scipy.sparse.linalg as linalg
 from SimPEG.utils import mkvc, sdiag
 import warnings
 
-DEFAULTS = {'direct':'scipy', 'iter':'scipy', 'forward':'fortran', 'backward':'fortran', 'diagonal':'python'}
+DEFAULTS = {'direct':'scipy', 'iter':'scipy', 'triangular':'fortran', 'diagonal':'python'}
+OPTIONS = {'direct':['scipy'], 'iter':['scipy'], 'triangular':['python'], 'diagonal':['python']}
 
 try:
     import TriSolve
+    OPTIONS['triangular'].append('fortran')
 except Exception, e:
-    try:
-        import os
-        # Note: this may not work from SublimeText, if that is the case, just run the command in your shell.
-        os.system('f2py -c TriSolve.f -m TriSolve')
-        import TriSolve
-    except Exception, e:
-        print 'Warning: Python backend is being used for solver. Run setup.py from the command line.'
-        DEFAULTS['forward'] = 'python'
-        DEFAULTS['backward'] = 'python'
+    print 'Warning: Python backend is being used for solver. Run setup.py from the command line.'
+    DEFAULTS['triangular'] = 'python'
 
 try:
     import mumps
+    OPTIONS['direct'].append('mumps')
 except Exception, e:
     print 'Warning: mumps solver not available.'
 
@@ -183,7 +179,7 @@ class Solver(object):
             :param bool factorize: if you want to factorize and store factors
             :rtype: numpy.ndarray
             :return: x
-        """        
+        """
         if factorize and self.dsolve is None:
             self.mctx = mumps.DMumpsContext()
             self.mctx.set_icntl(14, 60)
@@ -214,7 +210,7 @@ class Solver(object):
                     X[:,i] = self.dsolve(b[:,i])
                 else:
                     X[:,i] = mumps.spsolve(self.A,b[:,i])
-    
+
         return X
 
     def solveIter(self, b, backend=None, M=None, iterSolver='CG', tol=1e-6, maxIter=50):
@@ -242,7 +238,10 @@ class Solver(object):
             :rtype: numpy.ndarray
             :return: x
         """
-        if backend is None: backend = DEFAULTS['backward']
+        if backend is None: backend = DEFAULTS['triangular']
+        if backend not in OPTIONS['triangular']:
+            print 'Warning: %s-backend not being used, %s-default will be used instead.'%(backend,DEFAULTS['triangular'])
+            backend = DEFAULTS['triangular']
         if type(self.A) is not sp.csr.csr_matrix:
             self.A = sp.csr_matrix(self.A)
         vals = self.A.data
@@ -273,7 +272,10 @@ class Solver(object):
             :rtype: numpy.ndarray
             :return: x
         """
-        if backend is None: backend = DEFAULTS['forward']
+        if backend is None: backend = DEFAULTS['triangular']
+        if backend not in OPTIONS['triangular']:
+            print 'Warning: %s-backend not being used, %s-default will be used instead.'%(backend,DEFAULTS['triangular'])
+            backend = DEFAULTS['triangular']
         if type(self.A) is not sp.csr.csr_matrix:
             from scipy.sparse import csr_matrix
             self.A = csr_matrix(self.A)
