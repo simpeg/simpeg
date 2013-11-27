@@ -17,6 +17,8 @@ class BaseInversion(object):
     comment = ''       #: Used by some functions to indicate what is going on in the algorithm
     counter = None     #: Set this to a SimPEG.utils.Counter() if you want to count things
 
+    beta0  = None     #: The initial Beta (regularization parameter)
+
 
     def __init__(self, prob, reg, opt, **kwargs):
         setKwargs(self, **kwargs)
@@ -77,7 +79,7 @@ class BaseInversion(object):
         """
         self.startup(m0)
         while True:
-            self._beta = self.getBeta()
+            self.doStartIteration()
             self.m = self.opt.minimize(self.evalFunction, self.m)
             self.doEndIteration()
             if self.stoppingCriteria(): break
@@ -113,6 +115,26 @@ class BaseInversion(object):
         self.phi_d_last = np.nan
         self.phi_m_last = np.nan
 
+    def doStartIteration(self):
+        """
+            **doStartIteration** is called at the end of each run iteration.
+
+            If you have things that also need to run at the end of every iteration, you can create a method::
+
+                def _doStartIteration*(self):
+                    pass
+
+            Where the * can be any string. If present, _doStartIteration* will be called at the start of the default doStartIteration call.
+            You may also completely overwrite this function.
+
+            :rtype: None
+            :return: None
+        """
+        callHooks(self,'doStartIteration')
+
+        self._beta = self.getBeta()
+
+
     def doEndIteration(self):
         """
             **doEndIteration** is called at the end of each run iteration.
@@ -134,15 +156,6 @@ class BaseInversion(object):
         self.phi_d_last = self.phi_d
         self.phi_m_last = self.phi_m
         self._iter += 1
-
-    @property
-    def beta0(self):
-        if getattr(self,'_beta0',None) is None:
-            self._beta0 = self.estimateBeta0()
-        return self._beta0
-    @beta0.setter
-    def beta0(self, value):
-        self._beta0 = value
 
     def getBeta(self):
         return self.beta0
@@ -208,9 +221,14 @@ class BaseInversion(object):
         """
 
         u = self.prob.field(m)
+
+        if self._iter is 0 and self._beta is None:
+            self._beta = self.beta0 = self.estimateBeta0(u=u)
+
         phi_d = self.dataObj(m, u)
         phi_m = self.reg.modelObj(m)
 
+        self.dpred = self.prob.dpred(m, u=u)  # This is a cheap matrix vector calculation.
         self.phi_d = phi_d
         self.phi_m = phi_m
 

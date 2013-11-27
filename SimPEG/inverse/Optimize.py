@@ -142,6 +142,7 @@ class Minimize(object):
             printInit()
 
             while True:
+                doStartIteration()
                 f, g, H = evalFunction(xc)
                 printIter()
                 if stoppingCriteria(): break
@@ -161,11 +162,12 @@ class Minimize(object):
         self.printInit()
 
         while True:
+            self.doStartIteration()
             self.f, self.g, self.H = evalFunction(self.xc, return_g=True, return_H=True)
             self.printIter()
             if self.stoppingCriteria(): break
-            p = self.findSearchDirection()
-            p = self.scaleSearchDirection(p)
+            self.searchDirection = self.findSearchDirection()
+            p = self.scaleSearchDirection(self.searchDirection)
             xt, passLS = self.modifySearchDirection(p)
             if not passLS:
                 xt, caught = self.modifySearchDirectionBreak(p)
@@ -219,6 +221,16 @@ class Minimize(object):
         self.f_last = np.nan
         self.x_last = x0
 
+    @count
+    def doStartIteration(self):
+        """doStartIteration()
+
+            **doStartIteration** is called at the start of each minimize iteration.
+
+            :rtype: None
+            :return: None
+        """
+        callHooks(self,'doStartIteration')
 
     def printInit(self, inLS=False):
         """
