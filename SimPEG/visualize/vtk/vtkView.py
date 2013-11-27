@@ -312,14 +312,18 @@ if __name__ == '__main__':
 
 	#Make a mesh and model
 	x0 = np.zeros(3)
-	h1 = np.ones(20)*50
-	h2 = np.ones(10)*100
-	h3 = np.ones(5)*200
+	h1 = np.ones(60)*50
+	h2 = np.ones(60)*100
+	h3 = np.ones(50)*200
 
 	mesh = simpeg.mesh.TensorMesh([h1,h2,h3],x0)
 
 	# Make a models that correspond to the cells, faces and edges.
-	models = {'C':{'Test':np.arange(0,mesh.nC),'AllOnce':np.ones(mesh.nC)},'F':{'Test':np.arange(0,mesh.nF),'AllOnce':np.ones(mesh.nF)},'E':{'Test':np.arange(0,mesh.nE),'AllOnce':np.ones(mesh.nE)}}
+	t = np.ones(mesh.nC)
+	t[10000:50000] = 100
+	t[100000:120000] = 100
+	t[100000:120000] = 50
+	models = {'C':{'Test':np.arange(0,mesh.nC),'Model':t, 'AllOnce':np.ones(mesh.nC)},'F':{'Test':np.arange(0,mesh.nF),'AllOnce':np.ones(mesh.nF)},'E':{'Test':np.arange(0,mesh.nE),'AllOnce':np.ones(mesh.nE)}}
 	# Make the vtk viewer object.
 	vtkViewer = simpeg.visualize.vtk.vtkView(mesh,models)
 	# Set the .viewprop for which model to view
@@ -329,4 +333,18 @@ if __name__ == '__main__':
 
 	# Set subset of the mesh to view (remove padding)
 	vtkViewer.extent = [4,14,0,7,0,3]
+	vtkViewer.Show()
+
+	# Change viewing property 
+	vtkViewer.viewprop = {'C':'Model'}
+	# Set the color range
+	# Reset extent.
+	vtkViewer.extent = [-1,1000,-1,1000,-1,1000]
+	vtkViewer.range = [0.,100.]
+	vtkViewer.Show()
+	# Change color scale, has to be set to bytes=True.
+	vtkViewer.cmap = mpl.cm.copper(np.arange(0.,1.,0.01),bytes=True)
+	vtkViewer.Show()
+	# Set limits of values to view 
+	vtkViewer.limits = [5.0,100.0]
 	vtkViewer.Show()
