@@ -46,7 +46,7 @@ class vtkTools(object):
 			vZ = mesh.vectorNz
 			zD = mesh.nNz
 		# Use rectilinear VTK grid.
-		# Asaign the spatial information.
+		# Assign the spatial information.
 		vtkObj = vtk.vtkRectilinearGrid()
 		vtkObj.SetDimensions(xD,yD,zD)
 		vtkObj.SetXCoordinates(npsup.numpy_to_vtk(vX,deep=1))
@@ -257,8 +257,7 @@ class vtkTools(object):
 		cellThres = vtk.vtkThreshold()
 		cellThres.AllScalarsOn()
 		cellThres.SetInputConnection(cellCore.GetOutputPort())
-		cellThres.ThresholdByUpper(limits[0])
-		cellThres.ThresholdByLower(limits[1])
+		cellThres.ThresholdBetween(limits[0],limits[1])
 		cellThres.Update()
 		return cellThres.GetOutput(), cellCore.GetOutput()
 
@@ -273,8 +272,7 @@ class vtkTools(object):
 		cellThres = vtk.vtkThreshold()
 		cellThres.AllScalarsOn()
 		cellThres.SetInputConnection(cellCore.GetOutputPort())
-		cellThres.ThresholdByUpper(limits[0])
-		cellThres.ThresholdByLower(limits[1])
+		cellThres.ThresholdBetween(limits[0],limits[1])
 		cellThres.Update()
 		return cellThres.GetOutput(), cellCore.GetOutput()
 

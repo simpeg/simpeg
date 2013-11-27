@@ -1,6 +1,6 @@
-import numpy as np
+import numpy as np, matplotlib as mpl
 try:
-	import vtk
+	import vtk, vtk.util.numpy_support as npsup
 	#import SimPEG.visualize.vtk.vtkTools as vtkSP # Always get an error for this import
 except Exception, e:
 	print 'VTK import error. Please ensure you have VTK installed to use this visualization package.'
@@ -65,12 +65,36 @@ class vtkView(object):
 		
 	# Set/Get properties
 	@property 
+	def cmap(self):
+		''' Colormap to use in vtkView. Colormap is a matplotlib cmap(cm) array, has to be uint8(use flag bytes=True during cmap generation).'''
+		if getattr(self,'_cmap',None) is None:
+			# Set default
+			self._cmap = mpl.cm.hsv(np.arange(0.,1.,0.05),bytes=True)
+		return self._cmap
+	@cmap.setter
+	def cmap(self,value):
+		if value.min() > 0 or value.max() < 255 or value.shape[1] != 4 or value.dtype != np.uint8:
+			raise Exception('Input not an allowed array.\n Use matplotlib.cm to generate an array of size [nrColors,4] and dtype = uint8(flag bytes=True).')
+		self._cmap = value
+	
+	@property 
+	def range(self):
+		''' Range of the colors in vtkView.'''
+		if getattr(self,'_range',None) is None:
+			self._range = np.array(self._getActiveVTKobj().GetArray(self.viewprop.values()[0]).GetRange())
+		return self._range
+	@range.setter
+	def range(self,value):
+		if type(value) not in [tuple, list, np.ndarray] or len(value) != 2 or np.array(value).dtype is not np.dtype('float'):
+			raise Exception('Input not in correct format. \n Has to be a list, tuple or np.arry of 2 floats.')
+		self._range = np.array(value)
+
+	@property 
 	def extent(self):
 		''' Extent of the sub-domain of the model to view'''
 		if getattr(self,'_extent',None) is None:
 			self._extent = [0,self._mesh.nCx-1,0,self._mesh.nCy-1,0,self._mesh.nCz-1]
 		return self._extent
-
 	@extent.setter
 	def extent(self,value):
 
@@ -85,28 +109,24 @@ class vtkView(object):
 		# Test the bounds
 		change = 0
 		# Test for lower bounds, can't be smaller the 0
-		#tlb = np.prod(valnp[::2] < loB,axis=0,dtype=bool)
 		tlb = valnp[::2] < loB
 		if tlb.any(): 
 			valnp[::2][tlb] = loB[tlb] 
 			change = 1
 			warnings.warn('Lower bounds smaller then 0')
 		# Test for lower bounds, can't be larger then upB
-		#tlb = np.prod(valnp[::2] < loB,axis=0,dtype=bool)
 		tlub = valnp[::2] > upB
 		if tlub.any(): 
 			valnp[::2][tlub] = upB[tlub] - 1  
 			change = 1
 			warnings.warn('Lower bounds larger then uppermost bounds')
 		# Test for upper bounds, can't be larger the extent of the mesh
-		#tub = np.prod(valnp[1::2] > upB,axis=0,dtype=bool)
 		tub = valnp[1::2] > upB
 		if tub.any(): 
 			valnp[1::2][tub] = upB[tub] 
 			change = 1
 			warnings.warn('Upper bounds greater then number of cells')
 		# Test if lower is smaller the upper
-		#tgt = np.prod(valnp[::2] < valnp[1::2],axis=0,dtype=bool)
 		tgt = valnp[::2] > valnp[1::2]
 		if tgt.any():
 			valnp[1::2][tgt] = valnp[::2][tgt] + 1
@@ -123,8 +143,6 @@ class vtkView(object):
 	def limits(self):
 		''' Lower and upper limits (cutoffs) of the values to view. '''
 		return getattr(self,'_limits',None)
-			
-
 	@limits.setter
 	def limits(self,value):
 		if value is None:
@@ -143,7 +161,6 @@ class vtkView(object):
 		if getattr(self,'_viewprop',None) is None:
 			self._viewprop = {'C':0} # Name of the type and Int order of the array or name of the vector.
 		return self._viewprop
-
 	@viewprop.setter
 	def viewprop(self,value):
 		if type(value) != dict:
@@ -157,6 +174,20 @@ class vtkView(object):
 		
 
 		self._viewprop = value
+
+	def _getActiveVTKobj(self):
+		"""
+		Finds the active VTK object.
+		"""
+
+		if self.viewprop.keys()[0] is 'C':
+			vtkCellData = self._cells.GetCellData()
+		elif self.viewprop.keys()[0] is 'F':
+			vtkCellData = self._faces.GetCellData()
+		elif self.viewprop.keys()[0] is 'E':
+			vtkCellData = self._edges.GetCellData()
+
+		return vtkCellData
 
 	def _readPropertyDictionary(self,propdict):
 		"""
@@ -192,9 +223,17 @@ class vtkView(object):
 		# Make renderwindow. Returns the interactor.
 		self._iren, self._renwin = vtkSP.makeRenderWindow(self._ren)
 
-		imageType = self.viewprop.keys()[0]
-
+		
+		# Set the active scalar.
+		if type(self.viewprop.values()[0]) == int:
+			actScalar = self._getActiveVTKobj().GetArrayName(self.viewprop.values()[0])
+		elif type(self.viewprop.values()[0]) == str:
+			actScalar = self.viewprop.values()[0]
+		else :
+			raise Exception('The vtkView.viewprop.values()[0] has the wrong format. Has to be interger or a string.')
+		self._getActiveVTKobj().SetActiveScalars(actScalar)
 		# Sort out the actor
+		imageType = self.viewprop.keys()[0]
 		if imageType == 'C':
 			if self.limits is None:
 				self.limits = self._cells.GetCellData().GetArray(self.viewprop.values()[0]).GetRange()
@@ -211,15 +250,7 @@ class vtkView(object):
 			self._vtkobj, self._core = vtkSP.makeUnstructVTKVOIThres(self._edges,extent,self.limits)
 		else:
 			raise Exception("{:s} is not a valid viewprop. Has to be 'C':'F':'E'".format(imageType))
-
-		# Set the active scalar.
-		if type(self.viewprop.values()[0]) == int:
-			actScalar = self._vtkobj.GetCellData().GetArrayName(self.viewprop.values()[0])
-		elif type(self.viewprop.values()[0]) == str:
-			actScalar = self.viewprop.values()[0]
-		else :
-			raise Exception('The vtkView.viewprop.values()[0] has the wrong format. Has to be interger or a string.')
-		self._vtkobj.GetCellData().SetActiveScalars(actScalar)
+		#self._vtkobj.GetCellData().SetActiveScalars(actScalar)
 		# Set up the plane, clipper and the user interaction.
 		global intPlane, intActor
 		self._clipper, intPlane = vtkSP.makePlaneClipper(self._vtkobj)
@@ -235,10 +266,11 @@ class vtkView(object):
 
 		self._widget.AddObserver("InteractionEvent",movePlane)
 		lut = vtk.vtkLookupTable()
-		lut.SetNumberOfColors(256)
-		lut.SetHueRange(0,0.66667)
+		lut.SetNumberOfColors(len(self.cmap))
+		lut.SetTable(npsup.numpy_to_vtk(self.cmap))
 		lut.Build()
 		self._lut = lut
+		self._actor.GetMapper().SetScalarRange(self.range)
 		self._actor.GetMapper().SetLookupTable(lut)
 
 		# Set renderer options
