@@ -372,7 +372,7 @@ class TensorView(object):
 
         return animate(fig, animateFrame, frames=mesh.nCv['xyz'.index(normal)])
 
-    def video(mesh,var,function,figsize=(10,8)):
+    def video(mesh,var,function,figsize=(10,8),colorbar=True):
         """
         Call a function for a list of models to create a video.
 
@@ -390,7 +390,8 @@ class TensorView(object):
         VAR = np.concatenate(var)
         clim = [VAR.min(),VAR.max()]
         tlt = plt.title('')
-        plt.colorbar(function(var[0],ax,clim,tlt,0))
+        if colorbar:
+            plt.colorbar(function(var[0],ax,clim,tlt,0))
 
         def animateFrame(i):
             function(var[i],ax,clim,tlt,i)
