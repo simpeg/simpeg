@@ -189,6 +189,17 @@ class vtkView(object):
 
 		return vtkCellData
 
+	def _getActiveArrayName(self):
+		"""
+		Finds the name of the active array.
+		"""
+		actArr = self.viewprop.values()[0]
+		if type(actArr) is str:
+			activeName = actArr
+		elif type(actArr) is int:
+			activeName = self._getActiveVTKobj().GetArrayName(actArr)
+		return activeName
+
 	def _readPropertyDictionary(self,propdict):
 		"""
 		Reads the property and assigns to the object
@@ -270,12 +281,23 @@ class vtkView(object):
 		lut.SetTable(npsup.numpy_to_vtk(self.cmap))
 		lut.Build()
 		self._lut = lut
+		scalarBar = vtk.vtkScalarBarActor()
+  		scalarBar.SetLookupTable(lut)
+ 		scalarBar.SetTitle(self._getActiveArrayName())
+  		scalarBar.GetPositionCoordinate().SetCoordinateSystemToNormalizedViewport()
+  		scalarBar.GetPositionCoordinate().SetValue(0.1,0.01)
+  		scalarBar.SetOrientationToHorizontal()
+  		scalarBar.SetWidth(0.8)
+  		scalarBar.SetHeight(0.17)
+
 		self._actor.GetMapper().SetScalarRange(self.range)
 		self._actor.GetMapper().SetLookupTable(lut)
 
 		# Set renderer options
 		self._ren.SetBackground(.5,.5,.5)
 		self._ren.AddActor(self._actor)
+		self._ren.AddActor2D(scalarBar)
+  		self._renwin.SetSize(450,450)
 
 		# Start the render Window
 		vtkSP.startRenderWindow(self._iren)
