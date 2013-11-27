@@ -1,7 +1,11 @@
 language: python
 python:
   - "2.7"
+virtualenv:
+  system_site_packages: true
+before_install:
+  - sudo apt-get install -qq python-numpy python-scipy
 # command to install dependencies
-install: "pip install -r requirements.txt"
+install: "pip install -r requirements.txt --use-mirrors"
 # command to run tests
 script: nosetests
