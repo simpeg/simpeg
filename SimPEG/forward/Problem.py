@@ -224,7 +224,7 @@ class Problem(object):
             The modelTransform changes the model into the physical property.
             The modelTransformDeriv provides the derivative of the modelTransform.
         """
-        return sp.eye(m.size)
+        return sp.identity(m.size)
 
     def createSyntheticData(self, m, std=0.05, u=None):
         """
