@@ -10,6 +10,7 @@ from interputils import interpmat
 from ipythonUtils import easyAnimate as animate
 import Solver
 from Solver import Solver
+import Save
 import Geophysics
 
 import types
@@ -23,7 +24,7 @@ def hook(obj, method, name=None, overwrite=False, silent=False):
 
         If name is None, the name of the method is used.
     """
-    if name is None: 
+    if name is None:
         name = method.__name__
         if name == '<lambda>':
             raise Exception('Must provide name to hook lambda functions.')
@@ -88,6 +89,15 @@ def printStoppers(obj, stoppers, pad='', stop='STOP!', done='DONE!'):
     print pad + "%s%s%s" % ('-'*25,done,'-'*25)
 
 def callHooks(obj, match, *args, **kwargs):
+    """
+        If you have things that also need to run at the end of every iteration, you can create a method::
+
+            def _doEndIteration*(self, xt):
+                pass
+
+        Where the * can be any string. If present, _doEndIteration* will be called at the start of the default doEndIteration call.
+        You may also completely overwrite this function.
+    """
     for method in [posible for posible in dir(obj) if ('_'+match) in posible]:
             if getattr(obj,'debug',False): print (match+' is calling self.'+method)
             getattr(obj,method)(*args, **kwargs)
