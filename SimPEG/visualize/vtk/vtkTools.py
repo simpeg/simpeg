@@ -61,6 +61,7 @@ class vtkTools(object):
 			vtkObj.GetCellData().AddArray(vtkDoubleArr)
 
 		vtkObj.GetCellData().SetActiveScalars(model.keys()[0])
+		vtkObj.Update()
 		return vtkObj
 
 	@staticmethod
@@ -104,7 +105,7 @@ class vtkTools(object):
 		# Cells -cell array
 		FCellArr = vtk.vtkCellArray()
 		FCellArr.SetNumberOfCells(mesh.nF)
-		FCellArr.SetCells(mesh.nF*5,npsup.numpy_to_vtkIdTypeArray(np.vstack([FxCellBlock,FyCellBlock,FzCellBlock]),deep=1))
+		FCellArr.SetCells(mesh.nF,npsup.numpy_to_vtkIdTypeArray(np.vstack([FxCellBlock,FyCellBlock,FzCellBlock]),deep=1))
 		# Cell type
 		FCellType = npsup.numpy_to_vtk(vtk.VTK_QUAD*np.ones(mesh.nF,dtype='uint8'),deep=1)
 		# Cell location
@@ -166,7 +167,7 @@ class vtkTools(object):
 		# Cells -cell array
 		ECellArr = vtk.vtkCellArray()
 		ECellArr.SetNumberOfCells(mesh.nE)
-		ECellArr.SetCells(mesh.nE*3,npsup.numpy_to_vtkIdTypeArray(np.vstack([ExCellBlock,EyCellBlock,EzCellBlock]),deep=1))
+		ECellArr.SetCells(mesh.nE,npsup.numpy_to_vtkIdTypeArray(np.vstack([ExCellBlock,EyCellBlock,EzCellBlock]),deep=1))
 		# Cell type
 		ECellType = npsup.numpy_to_vtk(vtk.VTK_LINE*np.ones(mesh.nE,dtype='uint8'),deep=1)
 		# Cell location
@@ -186,6 +187,7 @@ class vtkTools(object):
 			vtkObj.GetCellData().AddArray(vtkDoubleArr)
 
 		vtkObj.GetCellData().SetActiveScalars(model.keys()[0])
+		vtkObj.Update()
 		return vtkObj
 
 	@staticmethod
