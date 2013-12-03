@@ -46,7 +46,7 @@ class vtkTools(object):
 			vZ = mesh.vectorNz
 			zD = mesh.nNz
 		# Use rectilinear VTK grid.
-		# Asaign the spatial information.
+		# Assign the spatial information.
 		vtkObj = vtk.vtkRectilinearGrid()
 		vtkObj.SetDimensions(xD,yD,zD)
 		vtkObj.SetXCoordinates(npsup.numpy_to_vtk(vX,deep=1))
@@ -61,6 +61,7 @@ class vtkTools(object):
 			vtkObj.GetCellData().AddArray(vtkDoubleArr)
 
 		vtkObj.GetCellData().SetActiveScalars(model.keys()[0])
+		vtkObj.Update()
 		return vtkObj
 
 	@staticmethod
@@ -104,7 +105,7 @@ class vtkTools(object):
 		# Cells -cell array
 		FCellArr = vtk.vtkCellArray()
 		FCellArr.SetNumberOfCells(mesh.nF)
-		FCellArr.SetCells(mesh.nF*5,npsup.numpy_to_vtkIdTypeArray(np.vstack([FxCellBlock,FyCellBlock,FzCellBlock]),deep=1))
+		FCellArr.SetCells(mesh.nF,npsup.numpy_to_vtkIdTypeArray(np.vstack([FxCellBlock,FyCellBlock,FzCellBlock]),deep=1))
 		# Cell type
 		FCellType = npsup.numpy_to_vtk(vtk.VTK_QUAD*np.ones(mesh.nF,dtype='uint8'),deep=1)
 		# Cell location
@@ -166,7 +167,7 @@ class vtkTools(object):
 		# Cells -cell array
 		ECellArr = vtk.vtkCellArray()
 		ECellArr.SetNumberOfCells(mesh.nE)
-		ECellArr.SetCells(mesh.nE*3,npsup.numpy_to_vtkIdTypeArray(np.vstack([ExCellBlock,EyCellBlock,EzCellBlock]),deep=1))
+		ECellArr.SetCells(mesh.nE,npsup.numpy_to_vtkIdTypeArray(np.vstack([ExCellBlock,EyCellBlock,EzCellBlock]),deep=1))
 		# Cell type
 		ECellType = npsup.numpy_to_vtk(vtk.VTK_LINE*np.ones(mesh.nE,dtype='uint8'),deep=1)
 		# Cell location
@@ -186,6 +187,7 @@ class vtkTools(object):
 			vtkObj.GetCellData().AddArray(vtkDoubleArr)
 
 		vtkObj.GetCellData().SetActiveScalars(model.keys()[0])
+		vtkObj.Update()
 		return vtkObj
 
 	@staticmethod
@@ -255,8 +257,7 @@ class vtkTools(object):
 		cellThres = vtk.vtkThreshold()
 		cellThres.AllScalarsOn()
 		cellThres.SetInputConnection(cellCore.GetOutputPort())
-		cellThres.ThresholdByUpper(limits[0])
-		cellThres.ThresholdByLower(limits[1])
+		cellThres.ThresholdBetween(limits[0],limits[1])
 		cellThres.Update()
 		return cellThres.GetOutput(), cellCore.GetOutput()
 
@@ -271,8 +272,7 @@ class vtkTools(object):
 		cellThres = vtk.vtkThreshold()
 		cellThres.AllScalarsOn()
 		cellThres.SetInputConnection(cellCore.GetOutputPort())
-		cellThres.ThresholdByUpper(limits[0])
-		cellThres.ThresholdByLower(limits[1])
+		cellThres.ThresholdBetween(limits[0],limits[1])
 		cellThres.Update()
 		return cellThres.GetOutput(), cellCore.GetOutput()
 
