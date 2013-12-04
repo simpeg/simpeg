@@ -32,7 +32,7 @@ class SimPEGTable:
 
     def saveInversion(self, invObj, dataPath):
 
-        invObj._invNode = self.inversions.addGroup('%d'%self.numChildren)
+        invObj._invNode = self.inversions.addGroup('%d'%self.inversions.numChildren)
 
         # At the start of every iteration we will create a inversion iteration node.
         def _doStartIteration_hdf5_inv(invObj):
