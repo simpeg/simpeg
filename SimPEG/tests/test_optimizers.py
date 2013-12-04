@@ -32,7 +32,7 @@ class TestOptimizers(unittest.TestCase):
         self.assertTrue(np.linalg.norm(xopt-x_true,2) < TOL, True)
 
     def test_ProjGradient_quadraticBounded(self):
-        PG = inverse.ProjectedGradient()
+        PG = inverse.ProjectedGradient(debug=True)
         PG.lower, PG.upper = -2, 2
         xopt = PG.minimize(getQuadratic(self.A,self.b),np.array([0,0]))
         x_true = np.array([2.,2.])

@@ -155,6 +155,7 @@ class Minimize(object):
                 doEndIteration(xt)
 
             printDone()
+            finish()
             return xc
         """
         self.evalFunction = evalFunction
@@ -175,6 +176,7 @@ class Minimize(object):
             self.doEndIteration(xt)
 
         self.printDone()
+        self.finish()
 
         return self.xc
 
@@ -188,6 +190,7 @@ class Minimize(object):
     def parent(self, value):
         self._parent = value
 
+    @callHooks('startup')
     def startup(self, x0):
         """
             **startup** is called at the start of any new minimize call.
@@ -198,19 +201,10 @@ class Minimize(object):
                 xc = x0
                 _iter = _iterLS = 0
 
-            If you have things that also need to run on startup, you can create a method::
-
-                def _startup*(self, x0):
-                    pass
-
-            Where the * can be any string. If present, _startup* will be called at the start of the default startup call.
-            You may also completely overwrite this function.
-
             :param numpy.ndarray x0: initial x
             :rtype: None
             :return: None
         """
-        callHooks(self,'startup',x0)
 
         self._iter = 0
         self._iterLS = 0
@@ -222,6 +216,7 @@ class Minimize(object):
         self.x_last = x0
 
     @count
+    @callHooks('doStartIteration')
     def doStartIteration(self):
         """doStartIteration()
 
@@ -230,7 +225,8 @@ class Minimize(object):
             :rtype: None
             :return: None
         """
-        callHooks(self,'doStartIteration')
+        pass
+
 
     def printInit(self, inLS=False):
         """
@@ -244,6 +240,7 @@ class Minimize(object):
         name = self.name if not inLS else self.nameLS
         printTitles(self, self.printers if not inLS else self.printersLS, name, pad)
 
+    @callHooks('printIter')
     def printIter(self, inLS=False):
         """
             **printIter** is called directly after function evaluations.
@@ -252,8 +249,6 @@ class Minimize(object):
             parent.printIter function and call that.
 
         """
-        callHooks(self,'printIter',inLS)
-
         pad = ' '*10 if inLS else ''
         printLine(self, self.printers if not inLS else self.printersLS, pad=pad)
 
@@ -270,6 +265,11 @@ class Minimize(object):
         stoppers = self.stoppers if not inLS else self.stoppersLS
         printStoppers(self, stoppers, pad='', stop=stop, done=done)
 
+
+    def finish(self):
+        pass
+
+
     def stoppingCriteria(self, inLS=False):
         if self._iter == 0:
             self.f0 = self.f
@@ -277,6 +277,7 @@ class Minimize(object):
         return checkStoppers(self, self.stoppers if not inLS else self.stoppersLS)
 
     @timeIt
+    @callHooks('projection')
     def projection(self, p):
         """projection(p)
 
@@ -288,7 +289,6 @@ class Minimize(object):
             :rtype: numpy.ndarray
             :return: p, projected search direction
         """
-        callHooks(self,'projection',p)
         return p
 
     @timeIt
@@ -402,6 +402,7 @@ class Minimize(object):
         return p, False
 
     @count
+    @callHooks('doEndIteration')
     def doEndIteration(self, xt):
         """doEndIteration(xt)
 
@@ -411,21 +412,10 @@ class Minimize(object):
 
             self.xc must be updated in this code.
 
-
-            If you have things that also need to run at the end of every iteration, you can create a method::
-
-                def _doEndIteration*(self, xt):
-                    pass
-
-            Where the * can be any string. If present, _doEndIteration* will be called at the start of the default doEndIteration call.
-            You may also completely overwrite this function.
-
             :param numpy.ndarray xt: tested new iterate that ensures a descent direction.
             :rtype: None
             :return: None
         """
-        callHooks(self,'doEndIteration',xt)
-
         # store old values
         self.f_last = self.f
         self.x_last, self.xc = self.xc, xt
@@ -630,7 +620,7 @@ class ProjectedGradient(Minimize, Remember):
 
         if self.debug: print 'doEndIteration.ProjGrad, f_current_decrease: ', f_current_decrease
         if self.debug: print 'doEndIteration.ProjGrad, f_decrease_max: ', self.f_decrease_max
-        if self.debug: print 'doEndIteration.ProjGrad, stopDoingSD: ', self.stopDoingSD
+        if self.debug: print 'doEndIteration.ProjGrad, stopDoingSD: ', self.stopDoingPG
 
 
 class BFGS(Minimize, Remember):

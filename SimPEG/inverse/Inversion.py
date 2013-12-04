@@ -85,25 +85,19 @@ class BaseInversion(object):
             if self.stoppingCriteria(): break
 
         self.printDone()
+        self.finish()
+
         return self.m
 
+    @callHooks('startup')
     def startup(self, m0):
         """
             **startup** is called at the start of any new run call.
-
-            If you have things that also need to run on startup, you can create a method::
-
-                def _startup*(self, x0):
-                    pass
-
-            Where the * can be any string. If present, _startup* will be called at the start of the default startup call.
-            You may also completely overwrite this function.
 
             :param numpy.ndarray x0: initial x
             :rtype: None
             :return: None
         """
-        callHooks(self,'startup',m0)
 
         if not hasattr(self.reg, '_mref'):
             print 'Regularization has not set mref. SimPEG will set it to m0.'
@@ -115,43 +109,25 @@ class BaseInversion(object):
         self.phi_d_last = np.nan
         self.phi_m_last = np.nan
 
+    @callHooks('doStartIteration')
     def doStartIteration(self):
         """
             **doStartIteration** is called at the end of each run iteration.
 
-            If you have things that also need to run at the end of every iteration, you can create a method::
-
-                def _doStartIteration*(self):
-                    pass
-
-            Where the * can be any string. If present, _doStartIteration* will be called at the start of the default doStartIteration call.
-            You may also completely overwrite this function.
-
             :rtype: None
             :return: None
         """
-        callHooks(self,'doStartIteration')
-
         self._beta = self.getBeta()
 
 
+    @callHooks('doEndIteration')
     def doEndIteration(self):
         """
             **doEndIteration** is called at the end of each run iteration.
 
-            If you have things that also need to run at the end of every iteration, you can create a method::
-
-                def _doEndIteration*(self):
-                    pass
-
-            Where the * can be any string. If present, _doEndIteration* will be called at the start of the default doEndIteration call.
-            You may also completely overwrite this function.
-
             :rtype: None
             :return: None
         """
-        callHooks(self,'doEndIteration')
-
         # store old values
         self.phi_d_last = self.phi_d
         self.phi_m_last = self.phi_m
@@ -212,6 +188,14 @@ class BaseInversion(object):
 
         """
         printStoppers(self, self.stoppers)
+
+    @callHooks('finish')
+    def finish(self):
+        """finish()
+
+            **finish** is called at the end of the optimization.
+        """
+        pass
 
     @timeIt
     def evalFunction(self, m, return_g=True, return_H=True):
