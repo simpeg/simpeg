@@ -88,20 +88,39 @@ def printStoppers(obj, stoppers, pad='', stop='STOP!', done='DONE!'):
         print pad + stopper['str'] % (l<=r,l,r)
     print pad + "%s%s%s" % ('-'*25,done,'-'*25)
 
-def callHooks(obj, match, *args, **kwargs):
+def callHooks(match):
     """
-        If you have things that also need to run at the end of every iteration, you can create a method::
+    Use this to wrap a funciton::
 
-            def _doEndIteration*(self, xt):
-                pass
+        @callHooks('doEndIteration')
+        def doEndIteration(self):
+            pass
 
-        Where the * can be any string. If present, _doEndIteration* will be called at the start of the default doEndIteration call.
-        You may also completely overwrite this function.
+    This will call everything named _doEndIteration* at the beginning of the function call.
     """
-    for method in [posible for posible in dir(obj) if ('_'+match) in posible]:
-            if getattr(obj,'debug',False): print (match+' is calling self.'+method)
-            getattr(obj,method)(*args, **kwargs)
+    def callHooksWrap(f):
+        @wraps(f)
+        def wrapper(self,*args,**kwargs):
 
+            for method in [posible for posible in dir(self) if ('_'+match) in posible]:
+                if getattr(self,'debug',False): print (match+' is calling self.'+method)
+                getattr(self,method)(*args, **kwargs)
+
+            return f(self,*args,**kwargs)
+
+        extra = """
+            If you have things that also need to run in the method %s, you can create a method::
+
+                def _%s*(self, ... ):
+                    pass
+
+            Where the * can be any string. If present, _%s* will be called at the start of the default %s call.
+            You may also completely overwrite this function.
+        """ % (match, match, match, match)
+
+        wrapper.__doc__ += extra
+        return wrapper
+    return callHooksWrap
 
 
 class Counter(object):

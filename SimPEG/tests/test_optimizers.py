@@ -32,7 +32,7 @@ class TestOptimizers(unittest.TestCase):
         self.assertTrue(np.linalg.norm(xopt-x_true,2) < TOL, True)
 
     def test_ProjGradient_quadraticBounded(self):
-        PG = inverse.ProjectedGradient()
+        PG = inverse.ProjectedGradient(debug=True)
         PG.lower, PG.upper = -2, 2
         xopt = PG.minimize(getQuadratic(self.A,self.b),np.array([0,0]))
         x_true = np.array([2.,2.])
@@ -46,6 +46,16 @@ class TestOptimizers(unittest.TestCase):
         PG.lower, PG.upper = -2, 2
         xopt = PG.minimize(getQuadratic(self.A,myB),np.array([0,0]))
         x_true = np.array([2.,-1.])
+        print 'xopt: ', xopt
+        print 'x_true: ', x_true
+        self.assertTrue(np.linalg.norm(xopt-x_true,2) < TOL, True)
+
+    def test_NewtonRoot(self):
+        fun = lambda x, return_g=True: np.sin(x) if not return_g else ( np.sin(x), sdiag( np.cos(x) ) )
+        x = np.array([np.pi-0.3, np.pi+0.1, 0])
+        xopt = inverse.NewtonRoot(comments=False).root(fun,x)
+        x_true = np.array([np.pi,np.pi,0])
+        print 'Newton Root Finding'
         print 'xopt: ', xopt
         print 'x_true: ', x_true
         self.assertTrue(np.linalg.norm(xopt-x_true,2) < TOL, True)
