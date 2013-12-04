@@ -795,12 +795,23 @@ class NewtonRoot(object):
         setKwargs(self, **kwargs)
 
     def root(self, fun, x):
+        """root(fun, x)
+
+        Function Should have the form::
+
+            def evalFunction(x, return_g=False):
+                    out = (f,)
+                    if return_g:
+                        out += (g,)
+                    return out if len(out) > 1 else out[0]
+
+        """
         if self.comments: print 'Newton Method:\n'
 
         self._iter = 0
         while True:
 
-            [r,J] = fun(x);
+            r, J = fun(x, return_g=True)
             if self.solveTol == 0:
                 Jinv = Solver(J)
                 dh   = - Jinv.solve(r)
@@ -812,13 +823,12 @@ class NewtonRoot(object):
             muLS = 1.
             LScnt  = 1
             xt = x + dh
-            rt, Jt = fun(xt) # TODO: get rid of Jt
+            rt = fun(xt, return_g=False)
 
             if self.comments: print '\tLinesearch:\n'
             # Enter Linesearch
             while True and self.doLS:
-                if self.comments:
-                    print '\t\tResid: %e\n'%norm(rt)
+                if self.comments: print '\t\tResid: %e\n'%norm(rt)
                 if norm(rt) <= norm(r) or norm(rt) < self.tol:
                     break
 
@@ -827,10 +837,9 @@ class NewtonRoot(object):
                 print '.'
                 if LScnt > self.maxLS:
                     print 'Newton Method: Line search break.'
-                    root = NaN
-                    return
+                    return None
                 xt = x + muLS*dh
-                rt, Jt = fun(xt) # TODO: get rid of Jt
+                rt = fun(xt, return_g=False)
 
             x = xt
             self._iter += 1
@@ -854,7 +863,7 @@ if __name__ == '__main__':
 
 
     print 'test the newtonRoot finding.'
-    fun = lambda x: (np.sin(x), sdiag(np.cos(x)))
+    fun = lambda x, return_g=True: np.sin(x) if not return_g else ( np.sin(x), sdiag( np.cos(x) ) )
     x = np.array([np.pi-0.3, np.pi+0.1, 0])
-    pnt = NewtonRoot(comments=False).root(fun,x)
+    pnt = NewtonRoot(comments=True).root(fun,x)
     print pnt

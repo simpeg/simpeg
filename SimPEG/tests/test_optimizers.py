@@ -50,5 +50,15 @@ class TestOptimizers(unittest.TestCase):
         print 'x_true: ', x_true
         self.assertTrue(np.linalg.norm(xopt-x_true,2) < TOL, True)
 
+    def test_NewtonRoot(self):
+        fun = lambda x, return_g=True: np.sin(x) if not return_g else ( np.sin(x), sdiag( np.cos(x) ) )
+        x = np.array([np.pi-0.3, np.pi+0.1, 0])
+        xopt = inverse.NewtonRoot(comments=False).root(fun,x)
+        x_true = np.array([np.pi,np.pi,0])
+        print 'Newton Root Finding'
+        print 'xopt: ', xopt
+        print 'x_true: ', x_true
+        self.assertTrue(np.linalg.norm(xopt-x_true,2) < TOL, True)
+
 if __name__ == '__main__':
     unittest.main()
