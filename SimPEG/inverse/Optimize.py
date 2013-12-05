@@ -266,9 +266,17 @@ class Minimize(object):
         printStoppers(self, stoppers, pad='', stop=stop, done=done)
 
 
+    @callHooks('finish')
     def finish(self):
-        pass
+        """finish()
 
+            **finish** is called at the end of the optimization.
+
+            :rtype: None
+            :return: None
+
+        """
+        pass
 
     def stoppingCriteria(self, inLS=False):
         if self._iter == 0:

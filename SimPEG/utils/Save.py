@@ -29,10 +29,14 @@ class SimPEGTable:
 
         self.inversions = hdf5InversionGroup(self,self.root.addGroup('inversions',soft=True))
 
+    def show(self): self.root.show()
 
     def saveInversion(self, invObj, dataPath):
 
-        invObj._invNode = self.inversions.addGroup('%d'%self.inversions.numChildren)
+        # Create a new inversion anytime this is run.
+        def _startup_hdf5_inv(invObj, m0):
+            invObj._invNode = self.inversions.addGroup('%d'%self.inversions.numChildren)
+        invObj.hook(_startup_hdf5_inv, overwrite=True)
 
         # At the start of every iteration we will create a inversion iteration node.
         def _doStartIteration_hdf5_inv(invObj):
@@ -53,6 +57,14 @@ class SimPEGTable:
             invNodeIt.attrs['complete'] = True
         invObj.hook(_doEndIteration_hdf5_inv, overwrite=True)
 
+        # Delete all iterates that did not finish.
+        def _finish_hdf5_inv(invObj):
+            for it in invObj._invNode:
+                if not it.attrs['complete']:
+                    del self.f[it.path]
+            del invObj._invNode
+        invObj.hook(_finish_hdf5_inv, overwrite=True)
+
         def _doStartIteration_hdf5_opt(optObj):
             optNodeIt = optObj.parent._invNode.addGroup('%d.%d'%(optObj.parent._iter, optObj._iter))
             optNodeIt.attrs['complete'] = False
@@ -71,7 +83,6 @@ class SimPEGTable:
             optNodeIt.attrs['complete'] = True
         invObj.opt.hook(_doEndIteration_hdf5_opt, overwrite=True)
 
-        return invObj._invNode
 
 
 
@@ -142,6 +153,9 @@ class hdf5Group(object):
         if type(child) is h5py.Group:
             child = self.childClass(self.T, child)
         return child
+
+    def __contains__(self, key):
+        return key in self.children
 
     def show(self, pad='', maxDepth=1, depth=0):
         """
