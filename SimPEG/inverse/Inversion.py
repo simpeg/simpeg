@@ -349,6 +349,12 @@ class BaseInversion(object):
 
         return dmisfit
 
+    def save(self, group):
+        group.attrs['phi_d'] = self.phi_d
+        group.attrs['phi_m'] = self.phi_m
+        group.setArray('m', self.m)
+        group.setArray('dpred', self.dpred)
+
 class Inversion(Cooling, Remember, BaseInversion):
 
     maxIter = 10

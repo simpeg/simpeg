@@ -431,6 +431,17 @@ class Minimize(object):
         if self.debug: self.printDone()
 
 
+    def save(self, group):
+        group.setArray('searchDirection', self.searchDirection)
+
+        if getattr(self,'parent',None) is None:
+            group.setArray('x', self.xc)
+        else: # Assume inversion is the parent
+            group.setArray('m', self.xc)
+            group.setArray('dpred', self.parent.dpred)
+
+
+
 class Remember(object):
     """
         This mixin remembers all the things you tend to forget.

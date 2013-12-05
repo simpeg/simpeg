@@ -17,6 +17,15 @@ def natural_keys(text):
     return [ atoi(c) for c in re.split('(\d+)', text) ]
 
 
+def preIteration(group):
+    group.attrs['complete'] = False
+    group.attrs['time'] = time.time()
+
+def postIteration(group):
+    group.attrs['time'] = time.time() - group.attrs['time']
+    group.attrs['date'] = time.ctime()
+    group.attrs['complete'] = True
+
 class SimPEGTable:
     """
         This is a wrapper class on the HDF5 file.
@@ -41,20 +50,13 @@ class SimPEGTable:
         # At the start of every iteration we will create a inversion iteration node.
         def _doStartIteration_hdf5_inv(invObj):
             invNodeIt = invObj._invNode.addGroup('%d'%(invObj._iter+1))
-            invNodeIt.attrs['complete'] = False
-            invNodeIt.attrs['time'] = time.time()
+            preIteration(invNodeIt)
             invObj._invNodeIt = invNodeIt
         invObj.hook(_doStartIteration_hdf5_inv, overwrite=True)
 
         def _doEndIteration_hdf5_inv(invObj):
-            invNodeIt = invObj._invNodeIt
-            invNodeIt.attrs['time'] = time.time() - invNodeIt.attrs['time']
-            invNodeIt.attrs['ctime'] = time.ctime()
-            invNodeIt.attrs['phi_d'] = invObj.phi_d
-            invNodeIt.attrs['phi_m'] = invObj.phi_m
-            invNodeIt.setArray('m', invObj.m)
-            invNodeIt.setArray('dpred', invObj.dpred)
-            invNodeIt.attrs['complete'] = True
+            invObj.save(invObj._invNodeIt)
+            postIteration(invObj._invNodeIt)
         invObj.hook(_doEndIteration_hdf5_inv, overwrite=True)
 
         # Delete all iterates that did not finish.
@@ -63,24 +65,19 @@ class SimPEGTable:
                 if not it.attrs['complete']:
                     del self.f[it.path]
             del invObj._invNode
+            self.f.flush()
         invObj.hook(_finish_hdf5_inv, overwrite=True)
 
         def _doStartIteration_hdf5_opt(optObj):
             optNodeIt = optObj.parent._invNode.addGroup('%d.%d'%(optObj.parent._iter, optObj._iter))
-            optNodeIt.attrs['complete'] = False
-            optNodeIt.attrs['time'] = time.time()
+            preIteration(optNodeIt)
             optObj._optNodeIt = optNodeIt
 
         invObj.opt.hook(_doStartIteration_hdf5_opt, overwrite=True)
 
         def _doEndIteration_hdf5_opt(optObj, xt):
-            optNodeIt = optObj._optNodeIt
-            optNodeIt.attrs['time'] = time.time() - optNodeIt.attrs['time']
-            optNodeIt.attrs['ctime'] = time.ctime()
-            optNodeIt.setArray('m', xt)
-            optNodeIt.setArray('dpred', optObj.parent.dpred)
-            optNodeIt.setArray('searchDirection', optObj.searchDirection)
-            optNodeIt.attrs['complete'] = True
+            optObj.save(optObj._optNodeIt)
+            postIteration(optObj._optNodeIt)
         invObj.opt.hook(_doEndIteration_hdf5_opt, overwrite=True)
 
 
