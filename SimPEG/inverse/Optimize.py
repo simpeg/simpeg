@@ -834,7 +834,7 @@ class NewtonRoot(object):
             xt = x + dh
             rt = fun(xt, return_g=False)
 
-            if self.comments: print '\tLinesearch:\n'
+            if self.comments and self.doLS: print '\tLinesearch:\n'
             # Enter Linesearch
             while True and self.doLS:
                 if self.comments: print '\t\tResid: %e\n'%norm(rt)
@@ -852,7 +852,10 @@ class NewtonRoot(object):
 
             x = xt
             self._iter += 1
-            if norm(rt) < self.tol or self._iter > self.maxIter:
+            if norm(rt) < self.tol:
+                break
+            if self._iter > self.maxIter:
+                print 'NewtonRoot stopped by maxIters. norm: %4.4e' % norm(rt)
                 break
 
         return x
