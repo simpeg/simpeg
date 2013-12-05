@@ -24,7 +24,11 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
     Example of a padded tensor mesh:
 
-    .. plot:: examples/mesh/plot_TensorMesh.py
+    .. plot::
+
+        from SimPEG import mesh, utils
+        M = mesh.TensorMesh(utils.meshTensors(((10,10),(40,10),(10,10)), ((10,10),(20,10),(0,0))))
+        M.plotGrid()
 
     For a quick tensor mesh on a (10x12x15) unit cube::
 
