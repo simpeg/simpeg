@@ -3,9 +3,11 @@ import sputils
 import lomutils
 import interputils
 import ModelBuilder
+import meshutils
 from matutils import getSubArray, mkvc, ndgrid, ind2sub, sub2ind
 from sputils import spzeros, kron3, speye, sdiag, ddx, av, avExtrap
-from lomutils import volTetra, faceInfo, inv2X2BlockDiagonal, inv3X3BlockDiagonal, indexCube, exampleLomGird
+from meshutils import exampleLomGird, meshTensors
+from lomutils import volTetra, faceInfo, inv2X2BlockDiagonal, inv3X3BlockDiagonal, indexCube
 from interputils import interpmat
 from ipythonUtils import easyAnimate as animate
 import Solver
