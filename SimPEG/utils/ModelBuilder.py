@@ -172,7 +172,7 @@ def randomModel(shape, seed=None, anisotropy=None, its=100, bounds=[0,1]):
         if len(shape) is 1:
             smth = np.array([1,10.,1],dtype=float)
         elif len(shape) is 2:
-            smth = np.array([[1,2,1],[7,10,7],[1,2,1]],dtype=float)
+            smth = np.array([[1,7,1],[2,10,2],[1,7,1]],dtype=float)
         elif len(shape) is 3:
             kernal = np.array([1,4,1], dtype=float).reshape((1,3))
             smth = np.array(sp.kron(sp.kron(kernal,kernal.T).todense()[:],kernal).todense()).reshape((3,3,3))
