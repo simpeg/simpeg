@@ -1,9 +1,6 @@
-import numpy as np
+from SimPEG import Solver, utils, sp, np
 import matplotlib.pyplot as plt
-from SimPEG.utils import mkvc, sdiag, setKwargs, printTitles, printLine, printStoppers, checkStoppers, count, timeIt, callHooks
 norm = np.linalg.norm
-import scipy.sparse as sp
-from SimPEG import Solver
 
 
 __all__ = ['Minimize', 'Remember', 'SteepestDescent', 'BFGS', 'GaussNewton', 'InexactGaussNewton', 'ProjectedGradient', 'NewtonRoot', 'StoppingCriteria', 'IterationPrinters']
@@ -85,6 +82,8 @@ class Minimize(object):
         Minimize is a general class for derivative based optimization.
     """
 
+    __metaclass__ = utils.Save.Savable
+
     name = "General Optimization Algorithm"  #: The name of the optimization algorithm
 
     maxIter = 20       #: Maximum number of iterations
@@ -110,9 +109,9 @@ class Minimize(object):
         self.printers = [IterationPrinters.iteration, IterationPrinters.f, IterationPrinters.norm_g, IterationPrinters.totalLS]
         self.printersLS = [IterationPrinters.iterationLS, IterationPrinters.LS_ft, IterationPrinters.LS_t, IterationPrinters.LS_armijoGoldstein]
 
-        setKwargs(self, **kwargs)
+        utils.setKwargs(self, **kwargs)
 
-    @timeIt
+    @utils.timeIt
     def minimize(self, evalFunction, x0):
         """minimize(evalFunction, x0)
 
@@ -190,7 +189,7 @@ class Minimize(object):
     def parent(self, value):
         self._parent = value
 
-    @callHooks('startup')
+    @utils.callHooks('startup')
     def startup(self, x0):
         """
             **startup** is called at the start of any new minimize call.
@@ -215,8 +214,8 @@ class Minimize(object):
         self.f_last = np.nan
         self.x_last = x0
 
-    @count
-    @callHooks('doStartIteration')
+    @utils.count
+    @utils.callHooks('doStartIteration')
     def doStartIteration(self):
         """doStartIteration()
 
@@ -238,9 +237,9 @@ class Minimize(object):
         """
         pad = ' '*10 if inLS else ''
         name = self.name if not inLS else self.nameLS
-        printTitles(self, self.printers if not inLS else self.printersLS, name, pad)
+        utils.printTitles(self, self.printers if not inLS else self.printersLS, name, pad)
 
-    @callHooks('printIter')
+    @utils.callHooks('printIter')
     def printIter(self, inLS=False):
         """
             **printIter** is called directly after function evaluations.
@@ -250,7 +249,7 @@ class Minimize(object):
 
         """
         pad = ' '*10 if inLS else ''
-        printLine(self, self.printers if not inLS else self.printersLS, pad=pad)
+        utils.printLine(self, self.printers if not inLS else self.printersLS, pad=pad)
 
     def printDone(self, inLS=False):
         """
@@ -263,10 +262,10 @@ class Minimize(object):
         pad = ' '*10 if inLS else ''
         stop, done = (' STOP! ', ' DONE! ') if not inLS else ('----------------', ' End Linesearch ')
         stoppers = self.stoppers if not inLS else self.stoppersLS
-        printStoppers(self, stoppers, pad='', stop=stop, done=done)
+        utils.printStoppers(self, stoppers, pad='', stop=stop, done=done)
 
 
-    @callHooks('finish')
+    @utils.callHooks('finish')
     def finish(self):
         """finish()
 
@@ -282,10 +281,10 @@ class Minimize(object):
         if self._iter == 0:
             self.f0 = self.f
             self.g0 = self.g
-        return checkStoppers(self, self.stoppers if not inLS else self.stoppersLS)
+        return utils.checkStoppers(self, self.stoppers if not inLS else self.stoppersLS)
 
-    @timeIt
-    @callHooks('projection')
+    @utils.timeIt
+    @utils.callHooks('projection')
     def projection(self, p):
         """projection(p)
 
@@ -299,7 +298,7 @@ class Minimize(object):
         """
         return p
 
-    @timeIt
+    @utils.timeIt
     def findSearchDirection(self):
         """findSearchDirection()
 
@@ -330,7 +329,7 @@ class Minimize(object):
         """
         return -self.g
 
-    @count
+    @utils.count
     def scaleSearchDirection(self, p):
         """scaleSearchDirection(p)
 
@@ -349,7 +348,7 @@ class Minimize(object):
 
     nameLS = "Armijo linesearch" #: The line-search name
 
-    @timeIt
+    @utils.timeIt
     def modifySearchDirection(self, p):
         """modifySearchDirection(p)
 
@@ -387,7 +386,7 @@ class Minimize(object):
 
         return self._LS_xt, self._iterLS < self.maxIterLS
 
-    @count
+    @utils.count
     def modifySearchDirectionBreak(self, p):
         """modifySearchDirectionBreak(p)
 
@@ -409,8 +408,8 @@ class Minimize(object):
         print 'The linesearch got broken. Boo.'
         return p, False
 
-    @count
-    @callHooks('doEndIteration')
+    @utils.count
+    @utils.callHooks('doEndIteration')
     def doEndIteration(self, xt):
         """doEndIteration(xt)
 
@@ -437,6 +436,8 @@ class Minimize(object):
         if getattr(self,'parent',None) is None:
             group.setArray('x', self.xc)
         else: # Assume inversion is the parent
+            group.attrs['phi_d'] = self.parent.phi_d
+            group.attrs['phi_m'] = self.parent.phi_m
             group.setArray('m', self.xc)
             group.setArray('dpred', self.parent.dpred)
 
@@ -526,7 +527,7 @@ class ProjectedGradient(Minimize, Remember):
 
         self.aSet_prev = self.activeSet(x0)
 
-    @count
+    @utils.count
     def projection(self, x):
         """projection(x)
 
@@ -535,7 +536,7 @@ class ProjectedGradient(Minimize, Remember):
         """
         return np.median(np.c_[self.lower,x,self.upper],axis=1)
 
-    @count
+    @utils.count
     def activeSet(self, x):
         """activeSet(x)
 
@@ -544,7 +545,7 @@ class ProjectedGradient(Minimize, Remember):
         """
         return np.logical_or(x == self.lower, x == self.upper)
 
-    @count
+    @utils.count
     def inactiveSet(self, x):
         """inactiveSet(x)
 
@@ -553,7 +554,7 @@ class ProjectedGradient(Minimize, Remember):
         """
         return np.logical_not(self.activeSet(x))
 
-    @count
+    @utils.count
     def bindingSet(self, x):
         """bindingSet(x)
 
@@ -566,7 +567,7 @@ class ProjectedGradient(Minimize, Remember):
         bind_low = np.logical_and(x == self.upper, self.g <= 0)
         return np.logical_or(bind_up, bind_low)
 
-    @timeIt
+    @utils.timeIt
     def findSearchDirection(self):
         """findSearchDirection()
 
@@ -611,7 +612,7 @@ class ProjectedGradient(Minimize, Remember):
             # aSet_after = self.activeSet(self.xc+p)
         return p
 
-    @timeIt
+    @utils.timeIt
     def _doEndIteration_ProjectedGradient(self, xt):
         """_doEndIteration_ProjectedGradient(xt)"""
         aSet = self.activeSet(xt)
@@ -645,6 +646,9 @@ class ProjectedGradient(Minimize, Remember):
 class BFGS(Minimize, Remember):
     name  = 'BFGS'
     nbfgs = 10
+
+    def __init__(self, **kwargs):
+        Minimize.__init__(self, **kwargs)
 
     @property
     def bfgsH0(self):
@@ -711,7 +715,10 @@ class BFGS(Minimize, Remember):
 class GaussNewton(Minimize, Remember):
     name = 'Gauss Newton'
 
-    @timeIt
+    def __init__(self, **kwargs):
+        Minimize.__init__(self, **kwargs)
+
+    @utils.timeIt
     def findSearchDirection(self):
         return Solver(self.H).solve(-self.g)
 
@@ -758,7 +765,7 @@ class InexactGaussNewton(BFGS, Minimize, Remember):
     def approxHinv(self, value):
         self._approxHinv = value
 
-    @timeIt
+    @utils.timeIt
     def findSearchDirection(self):
         Hinv = Solver(self.H, doDirect=False, options={'iterSolver': 'CG', 'M': self.approxHinv, 'tol': self.tolCG, 'maxIter': self.maxIterCG})
         p = Hinv.solve(-self.g)
@@ -768,7 +775,10 @@ class InexactGaussNewton(BFGS, Minimize, Remember):
 class SteepestDescent(Minimize, Remember):
     name = 'Steepest Descent'
 
-    @timeIt
+    def __init__(self, **kwargs):
+        Minimize.__init__(self, **kwargs)
+
+    @utils.timeIt
     def findSearchDirection(self):
         return -self.g
 
@@ -801,7 +811,7 @@ class NewtonRoot(object):
     doLS     = True
 
     def __init__(self, **kwargs):
-        setKwargs(self, **kwargs)
+        utils.setKwargs(self, **kwargs)
 
     def root(self, fun, x):
         """root(fun, x)
@@ -875,7 +885,7 @@ if __name__ == '__main__':
 
 
     print 'test the newtonRoot finding.'
-    fun = lambda x, return_g=True: np.sin(x) if not return_g else ( np.sin(x), sdiag( np.cos(x) ) )
+    fun = lambda x, return_g=True: np.sin(x) if not return_g else ( np.sin(x), utils.sdiag( np.cos(x) ) )
     x = np.array([np.pi-0.3, np.pi+0.1, 0])
     pnt = NewtonRoot(comments=True).root(fun,x)
     print pnt

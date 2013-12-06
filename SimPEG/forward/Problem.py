@@ -1,6 +1,4 @@
-import numpy as np
-from SimPEG.utils import mkvc, sdiag, count, timeIt
-import scipy.sparse as sp
+from SimPEG import utils, np, sp
 norm = np.linalg.norm
 
 
@@ -36,6 +34,8 @@ class Problem(object):
         The sensitivity matrix, and it's transpose will be used in the inverse problem
         to (locally) find how model parameters change the data, and optimize!
     """
+
+    __metaclass__ = utils.Save.Savable
 
     counter = None
 
@@ -85,7 +85,7 @@ class Problem(object):
     def dobs(self, value):
         self._dobs = value
 
-    @count
+    @utils.count
     def dpred(self, m, u=None):
         """
             Predicted data.
@@ -97,7 +97,7 @@ class Problem(object):
             u = self.field(m)
         return self.P*u
 
-    @count
+    @utils.count
     def dataResidual(self, m, u=None):
         """
             :param numpy.array m: geophysical model
@@ -117,7 +117,7 @@ class Problem(object):
 
         return self.dpred(m, u=u) - self.dobs
 
-    @timeIt
+    @utils.timeIt
     def J(self, m, v, u=None):
         """
             :param numpy.array m: model
@@ -147,7 +147,7 @@ class Problem(object):
         """
         raise NotImplementedError('J is not yet implemented.')
 
-    @timeIt
+    @utils.timeIt
     def Jt(self, m, v, u=None):
         """
             :param numpy.array m: model
@@ -161,7 +161,7 @@ class Problem(object):
         raise NotImplementedError('Jt is not yet implemented.')
 
 
-    @timeIt
+    @utils.timeIt
     def J_approx(self, m, v, u=None):
         """
 
@@ -176,7 +176,7 @@ class Problem(object):
         """
         return self.J(m, v, u)
 
-    @timeIt
+    @utils.timeIt
     def Jt_approx(self, m, v, u=None):
         """
             :param numpy.array m: model
@@ -241,7 +241,7 @@ class Problem(object):
         dobs = self.dpred(m,u=u)
         noise = std*abs(dobs)*np.random.randn(*dobs.shape)
         dobs = dobs+noise
-        eps = np.linalg.norm(mkvc(dobs),2)*1e-5
+        eps = np.linalg.norm(utils.mkvc(dobs),2)*1e-5
         Wd = 1/(abs(dobs)*std+eps)
         return dobs, Wd
 

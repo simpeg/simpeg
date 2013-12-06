@@ -73,11 +73,9 @@ class Solver(object):
                 Jacobi = sdiag(1.0/M[1].diagonal())
                 options['M'] = Jacobi
             elif M[0] is 'GS':
-                LL = sp.tril(M[1])
-                UU = sp.triu(M[1])
                 DD = sdiag(M[1].diagonal())
-                Uinv = Solver(UU, flag='U')
-                Linv = Solver(LL, flag='L')
+                Uinv = Solver(M[1], flag='U')
+                Linv = Solver(M[1], flag='L')
                 def GS(f):
                     return Uinv.solve(DD*Linv.solve(f))
                 options['M'] = sp.linalg.LinearOperator( A.shape, GS, dtype=A.dtype )

@@ -7,6 +7,9 @@ try:
 except Exception, e:
     print 'Warning: SimPEG table needs h5py to be installed.'
 
+
+SAVEABLES = {}
+
 def natural_keys(text):
     '''
     alist.sort(key=natural_keys) sorts in human order
@@ -57,6 +60,7 @@ class SimPEGTable:
         def _doEndIteration_hdf5_inv(invObj):
             invObj.save(invObj._invNodeIt)
             postIteration(invObj._invNodeIt)
+            self.f.flush()
         invObj.hook(_doEndIteration_hdf5_inv, overwrite=True)
 
         # Delete all iterates that did not finish.
@@ -78,8 +82,8 @@ class SimPEGTable:
         def _doEndIteration_hdf5_opt(optObj, xt):
             optObj.save(optObj._optNodeIt)
             postIteration(optObj._optNodeIt)
+            self.f.flush()
         invObj.opt.hook(_doEndIteration_hdf5_opt, overwrite=True)
-
 
 
 
@@ -183,7 +187,7 @@ class hdf5Group(object):
             return s
 
     def __str__(self):
-        return '<%s "%s" (%d member%s)>' % (self.__class__.__name__, self.path, self.numChildren, '' if self.numChildren == 1 else 's')
+        return '<%s "%s" (%d member%s, attrs=[%s])>' % (self.__class__.__name__, self.path, self.numChildren, '' if self.numChildren == 1 else 's',', '.join([a for a in self.attrs]))
 
 
 
@@ -204,3 +208,97 @@ class hdf5InversionIteration(hdf5Group):
     def __init__(self, T, groupNode):
         hdf5Group.__init__(self, T, groupNode)
         self.parentClass = hdf5Inversion
+
+
+
+class Savable(type):
+    def __new__(cls, name, bases, attrs):
+        __init__ = attrs['__init__']
+        def init_wrapper(self, *args, **kwargs):
+            self._args_init = args
+            self._kwargs_init = kwargs
+            return __init__(self, *args,**kwargs)
+        attrs['__init__'] = init_wrapper
+
+        newClass = super(Savable, cls).__new__(cls, name, bases, attrs)
+        SAVEABLES[name] = newClass
+        return newClass
+
+
+def saveSavable(obj, group):
+    """
+    """
+    assert type(obj.__class__) is Savable, 'Can only save objects that are Savable objects.'
+
+    def doSave(grp, name, val):
+        if type(val.__class__) is Savable:
+            subgrp = grp.addGroup(name)
+            saveInitArgs(val, subgrp)
+        elif type(val) is np.ndarray:
+            grp.setArray(name, val)
+        elif type(val) in [list, tuple]:
+            # Split up, and save each element
+            for i, v in enumerate(val):
+                doSave(grp, name + '[%d]'%i, v)
+        else:
+            # just try saving it as an attr
+            grp.attrs[name] = val
+
+    group.attrs['__class__'] = obj.__class__.__name__
+    for arg in obj._kwargs_init:
+        doSave(group, '_kwarg_'+arg, obj._kwargs_init[arg])
+    for i, arg in enumerate(obj._args_init):
+        doSave(group, '_arg%d'%i, arg)
+
+
+def loadSavable(node):
+
+    args = ([a for a in node.attrs if '_arg' in a] + [a for a in node.children if '_arg' in a])
+    kwargs = ([a for a in node.attrs if '_kwarg' in a] + [a for a in node.children if '_kwarg' in a])
+    args.sort(key=utils.Save.natural_keys)
+    kwargs.sort(key=utils.Save.natural_keys)
+
+    def get(node,key):
+        if key in node.children: return node[key]
+        elif key in node.attrs: return node.attrs[key]
+
+    ARGS = []
+    for name in args:
+        val = get(node, name)
+        if val.__class__ is h5py.Dataset: val = val[:]
+        if '[' in name:  # We are reloading a list
+            ind = int(name[4:name.index('[')])
+            if len(ARGS) is ind: # Create the list
+                ARGS.append([val])
+            else:
+                ARGS[ind].append(val)
+        elif issubclass(val.__class__,hdf5Group):
+            ARGS.append(load(val))
+        else:
+            ind = int(name[4:])
+            ARGS.append(val)
+
+    KWARGS = {}
+    for name in kwargs:
+        val = get(node, name)
+        if val.__class__ is h5py.Dataset: val = val[:]
+        if '[' in name:  # We are reloading a list
+            key = name[7:name.index('[')]
+            if key not in KWARGS: # Create the list
+                KWARGS[key] = [val]
+            else:
+                KWARGS[key].append(val)
+        elif issubclass(val.__class__,hdf5Group):
+            key = name[7:]
+            KWARGS[key] = load(val)
+        else:
+            key = name[7:]
+            KWARGS[key] = val
+
+    cls = get(node, '__class__')
+    if cls in SAVEABLES:
+        return SAVEABLES[cls](*ARGS,**KWARGS)
+    else:
+        print 'Warning: %s Class not found in SimPEG.utils.Save.SAVABLES' % cls
+        return (cls, ARGS, KWARGS)
+

@@ -1,13 +1,13 @@
-import numpy as np
-import scipy.sparse as sp
 import SimPEG
-from SimPEG.utils import sdiag, mkvc, setKwargs, checkStoppers, printStoppers, count, timeIt, callHooks
+from SimPEG import utils, sp, np
 from Optimize import Remember
 from BetaSchedule import Cooling
 from SimPEG.inverse import IterationPrinters, StoppingCriteria
 
 class BaseInversion(object):
     """docstring for BaseInversion"""
+
+    __metaclass__ = utils.Save.Savable
 
     maxIter = 1        #: Maximum number of iterations
     name = 'BaseInversion'
@@ -17,11 +17,11 @@ class BaseInversion(object):
     comment = ''       #: Used by some functions to indicate what is going on in the algorithm
     counter = None     #: Set this to a SimPEG.utils.Counter() if you want to count things
 
-    beta0  = None     #: The initial Beta (regularization parameter)
-
+    beta0  = None      #: The initial Beta (regularization parameter)
+    beta0_ratio = 0.1  #: When beta0 is set to None, estimateBeta0 is used with this ratio
 
     def __init__(self, prob, reg, opt, **kwargs):
-        setKwargs(self, **kwargs)
+        utils.setKwargs(self, **kwargs)
         self.prob = prob
         self.reg = reg
         self.opt = opt
@@ -46,7 +46,7 @@ class BaseInversion(object):
             Standard deviation weighting matrix.
         """
         if getattr(self,'_Wd',None) is None:
-            eps = np.linalg.norm(mkvc(self.prob.dobs),2)*1e-5
+            eps = np.linalg.norm(utils.mkvc(self.prob.dobs),2)*1e-5
             self._Wd = 1/(abs(self.prob.dobs)*self.prob.std+eps)
         return self._Wd
     @Wd.setter
@@ -70,7 +70,7 @@ class BaseInversion(object):
     def phi_d_target(self, value):
         self._phi_d_target = value
 
-    @timeIt
+    @utils.timeIt
     def run(self, m0):
         """run(m0)
 
@@ -89,7 +89,7 @@ class BaseInversion(object):
 
         return self.m
 
-    @callHooks('startup')
+    @utils.callHooks('startup')
     def startup(self, m0):
         """
             **startup** is called at the start of any new run call.
@@ -109,7 +109,7 @@ class BaseInversion(object):
         self.phi_d_last = np.nan
         self.phi_m_last = np.nan
 
-    @callHooks('doStartIteration')
+    @utils.callHooks('doStartIteration')
     def doStartIteration(self):
         """
             **doStartIteration** is called at the end of each run iteration.
@@ -120,7 +120,7 @@ class BaseInversion(object):
         self._beta = self.getBeta()
 
 
-    @callHooks('doEndIteration')
+    @utils.callHooks('doEndIteration')
     def doEndIteration(self):
         """
             **doEndIteration** is called at the end of each run iteration.
@@ -179,7 +179,7 @@ class BaseInversion(object):
 
     def stoppingCriteria(self):
         if self.debug: print 'checking stoppingCriteria'
-        return checkStoppers(self, self.stoppers)
+        return utils.checkStoppers(self, self.stoppers)
 
 
     def printDone(self):
@@ -189,7 +189,7 @@ class BaseInversion(object):
         """
         printStoppers(self, self.stoppers)
 
-    @callHooks('finish')
+    @utils.callHooks('finish')
     def finish(self):
         """finish()
 
@@ -197,7 +197,7 @@ class BaseInversion(object):
         """
         pass
 
-    @timeIt
+    @utils.timeIt
     def evalFunction(self, m, return_g=True, return_H=True):
         """evalFunction(m, return_g=True, return_H=True)
 
@@ -207,7 +207,7 @@ class BaseInversion(object):
         u = self.prob.field(m)
 
         if self._iter is 0 and self._beta is None:
-            self._beta = self.beta0 = self.estimateBeta0(u=u)
+            self._beta = self.beta0 = self.estimateBeta0(u=u,ratio=self.beta0_ratio)
 
         phi_d = self.dataObj(m, u)
         phi_m = self.reg.modelObj(m)
@@ -237,7 +237,7 @@ class BaseInversion(object):
             out += (operator,)
         return out if len(out) > 1 else out[0]
 
-    @timeIt
+    @utils.timeIt
     def dataObj(self, m, u=None):
         """dataObj(m, u=None)
 
@@ -257,10 +257,10 @@ class BaseInversion(object):
         """
         # TODO: ensure that this is a data is vector and Wd is a matrix.
         R = self.Wd*self.prob.dataResidual(m, u=u)
-        R = mkvc(R)
+        R = utils.mkvc(R)
         return 0.5*np.vdot(R, R)
 
-    @timeIt
+    @utils.timeIt
     def dataObjDeriv(self, m, u=None):
         """dataObjDeriv(m, u=None)
 
@@ -302,7 +302,7 @@ class BaseInversion(object):
 
         return dmisfit
 
-    @timeIt
+    @utils.timeIt
     def dataObj2Deriv(self, m, v, u=None):
         """dataObj2Deriv(m, v, u=None)
 

@@ -9,6 +9,9 @@ import matplotlib.pyplot as plt
 class LinearProblem(Problem):
     """docstring for LinearProblem"""
 
+    def __init__(self, *args, **kwargs):
+        Problem.__init__(self, *args, **kwargs)
+
     def dpred(self, m, u=None):
         return self.G.dot(m)
 

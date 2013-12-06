@@ -1,3 +1,5 @@
+import numpy as np
+import scipy.sparse as sp
 import utils
 from utils import Solver
 import mesh

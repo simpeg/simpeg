@@ -45,7 +45,7 @@ def setKwargs(obj, **kwargs):
             setattr(obj, attr, kwargs[attr])
         else:
             raise Exception('%s attr is not recognized' % attr)
-    hook(obj,callHooks, silent=True)
+
     hook(obj,hook, silent=True)
     hook(obj,setKwargs, silent=True)
 
