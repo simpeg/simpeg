@@ -1,16 +1,12 @@
-import numpy as np
-from SimPEG.mesh import TensorMesh
-from SimPEG.forward import Problem
-from SimPEG.regularization import Regularization
-from SimPEG.inverse import *
+from SimPEG import mesh, forward, inverse, regularization, np
 import matplotlib.pyplot as plt
 
 
-class LinearProblem(Problem):
+class LinearProblem(forward.Problem):
     """docstring for LinearProblem"""
 
     def __init__(self, *args, **kwargs):
-        Problem.__init__(self, *args, **kwargs)
+        forward.Problem.__init__(self, *args, **kwargs)
 
     def dpred(self, m, u=None):
         return self.G.dot(m)
@@ -24,7 +20,7 @@ class LinearProblem(Problem):
 
 def example(N):
     h = np.ones(N)/N
-    M = TensorMesh([h])
+    M = mesh.TensorMesh([h])
 
     nk = 20
     jk = np.linspace(1.,20.,nk)
@@ -63,9 +59,9 @@ if __name__ == '__main__':
     prob, m_true = example(100)
     M = prob.mesh
 
-    reg = Regularization(M)
-    opt = InexactGaussNewton(maxIter=20)
-    inv = Inversion(prob,reg,opt,beta0=1e-4)
+    reg = regularization.Regularization(M)
+    opt = inverse.InexactGaussNewton(maxIter=20)
+    inv = inverse.Inversion(prob,reg,opt,beta0=1e-4)
     m0 = np.zeros_like(m_true)
 
     mrec = inv.run(m0)

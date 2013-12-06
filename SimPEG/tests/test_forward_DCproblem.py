@@ -3,7 +3,7 @@ import unittest
 from SimPEG.mesh import TensorMesh
 from SimPEG.utils import ModelBuilder, sdiag
 from SimPEG.forward import Problem
-from SimPEG.forward.DCProblem import *
+from SimPEG.examples.DC import *
 from TestUtils import checkDerivative
 from scipy.sparse.linalg import dsolve
 from SimPEG.regularization import Regularization
