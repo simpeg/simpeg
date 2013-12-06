@@ -187,7 +187,7 @@ class BaseInversion(object):
             **printDone** is called at the end of the inversion routine.
 
         """
-        printStoppers(self, self.stoppers)
+        utils.printStoppers(self, self.stoppers)
 
     @utils.callHooks('finish')
     def finish(self):

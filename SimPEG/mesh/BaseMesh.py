@@ -11,7 +11,6 @@ class BaseMesh(object):
     :param numpy.array,list x0: Origin of the mesh (dim, )
 
     """
-    __metaclass__ = utils.Save.Savable
 
     def __init__(self, n, x0=None):
 

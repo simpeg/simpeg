@@ -1,8 +1,20 @@
-from SimPEG.utils import sdiag, count, timeIt, setKwargs
-import numpy as np
+from SimPEG import utils, np
 
 class Regularization(object):
     """docstring for Regularization"""
+
+    __metaclass__ = utils.Save.Savable
+
+    alpha_s = 1e-6
+    alpha_x = 1.0
+    alpha_y = 1.0
+    alpha_z = 1.0
+
+    counter = None
+
+    def __init__(self, mesh, **kwargs):
+        utils.setKwargs(self, **kwargs)
+        self.mesh = mesh
 
     @property
     def mref(self):
@@ -16,43 +28,32 @@ class Regularization(object):
     @property
     def Ws(self):
         if getattr(self,'_Ws', None) is None:
-            self._Ws = sdiag(self.mesh.vol)
+            self._Ws = utils.sdiag(self.mesh.vol)
         return self._Ws
 
     @property
     def Wx(self):
         if getattr(self, '_Wx', None) is None:
-            self._Wx = self.mesh.cellGradx*sdiag(self.mesh.vol)
+            self._Wx = self.mesh.cellGradx*utils.sdiag(self.mesh.vol)
         return self._Wx
 
     @property
     def Wy(self):
         if getattr(self, '_Wy', None) is None:
-            self._Wy = self.mesh.cellGrady*sdiag(self.mesh.vol)
+            self._Wy = self.mesh.cellGrady*utils.sdiag(self.mesh.vol)
         return self._Wy
 
     @property
     def Wz(self):
         if getattr(self, '_Wz', None) is None:
-            self._Wz = self.mesh.cellGradz*sdiag(self.mesh.vol)
+            self._Wz = self.mesh.cellGradz*utils.sdiag(self.mesh.vol)
         return self._Wz
-
-    alpha_s = 1e-6
-    alpha_x = 1.0
-    alpha_y = 1.0
-    alpha_z = 1.0
-
-    counter = None
-
-    def __init__(self, mesh, **kwargs):
-        setKwargs(self, **kwargs)
-        self.mesh = mesh
 
 
     def pnorm(self, r):
         return 0.5*r.dot(r)
 
-    @timeIt
+    @utils.timeIt
     def modelObj(self, m):
         mresid = m - self.mref
 
@@ -67,7 +68,7 @@ class Regularization(object):
 
         return mobj
 
-    @timeIt
+    @utils.timeIt
     def modelObjDeriv(self, m):
         """
 
@@ -103,7 +104,7 @@ class Regularization(object):
         return mobjDeriv
 
 
-    @timeIt
+    @utils.timeIt
     def modelObj2Deriv(self):
 
         mobj2Deriv = self.alpha_s * self.Ws.T * self.Ws

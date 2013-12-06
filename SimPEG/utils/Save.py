@@ -5,7 +5,7 @@ import re
 try:
     import h5py
 except Exception, e:
-    print 'Warning: SimPEG table needs h5py to be installed.'
+    print 'Warning: SimPEG.utils.Save needs h5py to be installed.'
 
 
 SAVEABLES = {}
@@ -47,7 +47,10 @@ class SimPEGTable:
 
         # Create a new inversion anytime this is run.
         def _startup_hdf5_inv(invObj, m0):
-            invObj._invNode = self.inversions.addGroup('%d'%self.inversions.numChildren)
+            node = self.inversions.addGroup('%d'%self.inversions.numChildren)
+            saveSavable(invObj,node.addGroup('rebuild'))
+            results = node.addGroup('results')
+            invObj._invNode = results
         invObj.hook(_startup_hdf5_inv, overwrite=True)
 
         # At the start of every iteration we will create a inversion iteration node.
@@ -196,18 +199,25 @@ class hdf5InversionGroup(hdf5Group):
         hdf5Group.__init__(self, T, groupNode)
         self.childClass = hdf5Inversion
 
-
 class hdf5Inversion(hdf5Group):
     def __init__(self, T, groupNode):
         hdf5Group.__init__(self, T, groupNode)
         self.parentClass = hdf5InversionGroup
-        self.childClass = hdf5InversionIteration
+        self.childClass = hdf5InversionResults
 
+    def rebuild(self):
+        return loadSavable(self['rebuild'])
+
+class hdf5InversionResults(hdf5Group):
+    def __init__(self, T, groupNode):
+        hdf5Group.__init__(self, T, groupNode)
+        self.parentClass = hdf5Inversion
+        self.childClass = hdf5InversionIteration
 
 class hdf5InversionIteration(hdf5Group):
     def __init__(self, T, groupNode):
         hdf5Group.__init__(self, T, groupNode)
-        self.parentClass = hdf5Inversion
+        self.parentClass = hdf5InversionResults
 
 
 
@@ -225,38 +235,61 @@ class Savable(type):
         return newClass
 
 
-def saveSavable(obj, group):
+def saveSavable(obj, group, debug=False):
     """
+        This creates softlinks if _savable exists in children object.
+
+        The first object is always created.
     """
     assert type(obj.__class__) is Savable, 'Can only save objects that are Savable objects.'
 
     def doSave(grp, name, val):
+        if debug: print name, val
         if type(val.__class__) is Savable:
-            subgrp = grp.addGroup(name)
-            saveInitArgs(val, subgrp)
-        elif type(val) is np.ndarray:
-            grp.setArray(name, val)
+            link = getattr(val,'_savable',None)
+            if link is not None:
+                group.node[name] = h5py.SoftLink(link.path)
+                if debug: 'Created a softlink path to %s' % link.path
+            else:
+                subgrp = grp.addGroup(name)
+                saveSavable(val, subgrp, debug=debug)
         elif type(val) in [list, tuple]:
             # Split up, and save each element
             for i, v in enumerate(val):
                 doSave(grp, name + '[%d]'%i, v)
+        elif type(val) is np.ndarray:
+            grp.setArray(name, val)
+        elif val is None:
+            grp.attrs[name] = 'None'
         else:
             # just try saving it as an attr
-            grp.attrs[name] = val
+            try:
+                grp.attrs[name] = val
+            except Exception, e:
+                print 'Warning: Could not save %s, problems may arise is loading.' % name
 
     group.attrs['__class__'] = obj.__class__.__name__
     for arg in obj._kwargs_init:
         doSave(group, '_kwarg_'+arg, obj._kwargs_init[arg])
     for i, arg in enumerate(obj._args_init):
         doSave(group, '_arg%d'%i, arg)
+    obj._savable = group
 
 
-def loadSavable(node):
+def loadSavable(node, pointers=None):
+    """
+        pointers allow things that point to the same node in the h5py file to
+        be returned as the same object, if they have already been created.
+    """
+
+    if pointers is None: pointers = []
+    for pointer in pointers:
+        if pointer._savable.node == node.node: return pointer
 
     args = ([a for a in node.attrs if '_arg' in a] + [a for a in node.children if '_arg' in a])
     kwargs = ([a for a in node.attrs if '_kwarg' in a] + [a for a in node.children if '_kwarg' in a])
-    args.sort(key=utils.Save.natural_keys)
-    kwargs.sort(key=utils.Save.natural_keys)
+    args.sort(key=natural_keys)
+    kwargs.sort(key=natural_keys)
 
     def get(node,key):
         if key in node.children: return node[key]
@@ -266,6 +299,7 @@ def loadSavable(node):
     for name in args:
         val = get(node, name)
         if val.__class__ is h5py.Dataset: val = val[:]
+        if val is 'None': val = None
         if '[' in name:  # We are reloading a list
             ind = int(name[4:name.index('[')])
             if len(ARGS) is ind: # Create the list
@@ -273,7 +307,7 @@ def loadSavable(node):
             else:
                 ARGS[ind].append(val)
         elif issubclass(val.__class__,hdf5Group):
-            ARGS.append(load(val))
+            ARGS.append(loadSavable(val,pointers=pointers))
         else:
             ind = int(name[4:])
             ARGS.append(val)
@@ -282,6 +316,7 @@ def loadSavable(node):
     for name in kwargs:
         val = get(node, name)
         if val.__class__ is h5py.Dataset: val = val[:]
+        if val is 'None': val = None
         if '[' in name:  # We are reloading a list
             key = name[7:name.index('[')]
             if key not in KWARGS: # Create the list
@@ -290,15 +325,18 @@ def loadSavable(node):
                 KWARGS[key].append(val)
         elif issubclass(val.__class__,hdf5Group):
             key = name[7:]
-            KWARGS[key] = load(val)
+            KWARGS[key] = loadSavable(val,pointers=pointers)
         else:
             key = name[7:]
             KWARGS[key] = val
 
     cls = get(node, '__class__')
     if cls in SAVEABLES:
-        return SAVEABLES[cls](*ARGS,**KWARGS)
+        out = SAVEABLES[cls](*ARGS, **KWARGS)
+        out._savable = node
+        pointers.append(out)  # Because this is recursive.
+        return out
     else:
         print 'Warning: %s Class not found in SimPEG.utils.Save.SAVABLES' % cls
-        return (cls, ARGS, KWARGS)
+        return (cls, ARGS, KWARGS, node)
 
