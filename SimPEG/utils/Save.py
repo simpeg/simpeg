@@ -50,14 +50,15 @@ class SimPEGTable:
             node = self.inversions.addGroup('%d'%self.inversions.numChildren)
             saveSavable(invObj,node.addGroup('rebuild'))
             results = node.addGroup('results')
+            preIteration(results)
             invObj._invNode = results
+            self.f.flush()
         invObj.hook(_startup_hdf5_inv, overwrite=True)
 
         # At the start of every iteration we will create a inversion iteration node.
         def _doStartIteration_hdf5_inv(invObj):
-            invNodeIt = invObj._invNode.addGroup('%d'%(invObj._iter+1))
-            preIteration(invNodeIt)
-            invObj._invNodeIt = invNodeIt
+            invObj._invNodeIt = invObj._invNode.addGroup('%d'%(invObj._iter+1))
+            preIteration(invObj._invNodeIt)
         invObj.hook(_doStartIteration_hdf5_inv, overwrite=True)
 
         def _doEndIteration_hdf5_inv(invObj):
@@ -68,6 +69,7 @@ class SimPEGTable:
 
         # Delete all iterates that did not finish.
         def _finish_hdf5_inv(invObj):
+            postIteration(invObj._invNode)
             for it in invObj._invNode:
                 if not it.attrs['complete']:
                     del self.f[it.path]
@@ -76,10 +78,8 @@ class SimPEGTable:
         invObj.hook(_finish_hdf5_inv, overwrite=True)
 
         def _doStartIteration_hdf5_opt(optObj):
-            optNodeIt = optObj.parent._invNode.addGroup('%d.%d'%(optObj.parent._iter, optObj._iter))
-            preIteration(optNodeIt)
-            optObj._optNodeIt = optNodeIt
-
+            optObj._optNodeIt = optObj.parent._invNode.addGroup('%d.%d'%(optObj.parent._iter, optObj._iter))
+            preIteration(optObj._optNodeIt)
         invObj.opt.hook(_doStartIteration_hdf5_opt, overwrite=True)
 
         def _doEndIteration_hdf5_opt(optObj, xt):
@@ -332,10 +332,16 @@ def loadSavable(node, pointers=None):
 
     cls = get(node, '__class__')
     if cls in SAVEABLES:
-        out = SAVEABLES[cls](*ARGS, **KWARGS)
-        out._savable = node
-        pointers.append(out)  # Because this is recursive.
-        return out
+        try:
+            out = SAVEABLES[cls](*ARGS, **KWARGS)
+            out._savable = node
+            pointers.append(out)  # Because this is recursive.
+            return out
+        except Exception, e:
+            print 'Warning: %s Class could not be initiated.' % cls
+            print 'ARGS: ', ARGS
+            print 'KWARGS: ', KWARGS
+            return (cls, ARGS, KWARGS, node)
     else:
         print 'Warning: %s Class not found in SimPEG.utils.Save.SAVABLES' % cls
         return (cls, ARGS, KWARGS, node)

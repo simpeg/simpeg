@@ -5,7 +5,8 @@ from BetaSchedule import Cooling
 from SimPEG.inverse import IterationPrinters, StoppingCriteria
 
 class BaseInversion(object):
-    """docstring for BaseInversion"""
+    """BaseInversion(prob, reg, opt, data, **kwargs)
+    """
 
     __metaclass__ = utils.Save.Savable
 
@@ -20,11 +21,12 @@ class BaseInversion(object):
     beta0  = None      #: The initial Beta (regularization parameter)
     beta0_ratio = 0.1  #: When beta0 is set to None, estimateBeta0 is used with this ratio
 
-    def __init__(self, prob, reg, opt, **kwargs):
+    def __init__(self, prob, reg, opt, data, **kwargs):
         utils.setKwargs(self, **kwargs)
         self.prob = prob
         self.reg = reg
         self.opt = opt
+        self.data = data
         self.opt.parent = self
 
         self.stoppers = [StoppingCriteria.iteration]
@@ -46,8 +48,8 @@ class BaseInversion(object):
             Standard deviation weighting matrix.
         """
         if getattr(self,'_Wd',None) is None:
-            eps = np.linalg.norm(utils.mkvc(self.prob.dobs),2)*1e-5
-            self._Wd = 1/(abs(self.prob.dobs)*self.prob.std+eps)
+            eps = np.linalg.norm(utils.mkvc(self.data.dobs),2)*1e-5
+            self._Wd = 1/(abs(self.data.dobs)*self.data.std+eps)
         return self._Wd
     @Wd.setter
     def Wd(self, value):
@@ -63,7 +65,7 @@ class BaseInversion(object):
         Note that we do not set the target if it is None, but we return the default value.
         """
         if getattr(self, '_phi_d_target', None) is None:
-            return self.prob.dobs.size #
+            return self.data.dobs.size #
         return self._phi_d_target
 
     @phi_d_target.setter
@@ -256,7 +258,7 @@ class BaseInversion(object):
             u is the field of interest; d_obs is the observed data; and W is the weighting matrix.
         """
         # TODO: ensure that this is a data is vector and Wd is a matrix.
-        R = self.Wd*self.prob.dataResidual(m, u=u)
+        R = self.Wd*self.prob.dataResidual(m, self.data, u=u)
         R = utils.mkvc(R)
         return 0.5*np.vdot(R, R)
 
@@ -296,7 +298,7 @@ class BaseInversion(object):
         if u is None:
             u = self.prob.field(m)
 
-        R = self.Wd*self.prob.dataResidual(m, u=u)
+        R = self.Wd*self.prob.dataResidual(m, self.data, u=u)
 
         dmisfit = self.prob.Jt(m, self.Wd * R, u=u)
 
@@ -341,7 +343,7 @@ class BaseInversion(object):
         if u is None:
             u = self.prob.field(m)
 
-        R = self.Wd*self.prob.dataResidual(m, u=u)
+        R = self.Wd*self.prob.dataResidual(m, self.data, u=u)
 
         # TODO: abstract to different norms a little cleaner.
         #                                        \/ it goes here. in l2 it is the identity.
@@ -360,8 +362,8 @@ class Inversion(Cooling, Remember, BaseInversion):
     maxIter = 10
     name = "SimPEG Inversion"
 
-    def __init__(self, prob, reg, opt, **kwargs):
-        BaseInversion.__init__(self, prob, reg, opt, **kwargs)
+    def __init__(self, prob, reg, opt, data, **kwargs):
+        BaseInversion.__init__(self, prob, reg, opt, data, **kwargs)
 
         self.stoppers.append(StoppingCriteria.phi_d_target_Inversion)
 
@@ -377,8 +379,8 @@ class TimeSteppingInversion(Remember, BaseInversion):
     maxIter = 1
     name = "Time-Stepping SimPEG Inversion"
 
-    def __init__(self, prob, reg, opt, **kwargs):
-        BaseInversion.__init__(self, prob, reg, opt, **kwargs)
+    def __init__(self, prob, reg, opt, data, **kwargs):
+        BaseInversion.__init__(self, prob, reg, opt, data, **kwargs)
 
         self.stoppers.append(StoppingCriteria.phi_d_target_Inversion)
 

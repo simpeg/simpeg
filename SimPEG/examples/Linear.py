@@ -34,35 +34,27 @@ def example(N):
     for i in range(nk):
         G[i,:] = g(i)
 
-
-    m_true = np.zeros(M.nC)
-    m_true[M.vectorCCx > 0.3] = 1.
-    m_true[M.vectorCCx > 0.45] = -0.5
-    m_true[M.vectorCCx > 0.6] = 0
-
-
-    d_true = G.dot(m_true)
-    noise = 0.1 * np.random.rand(d_true.size)
-
-    d_obs = d_true + noise
+    mtrue = np.zeros(M.nC)
+    mtrue[M.vectorCCx > 0.3] = 1.
+    mtrue[M.vectorCCx > 0.45] = -0.5
+    mtrue[M.vectorCCx > 0.6] = 0
 
     prob = LinearProblem(M)
     prob.G = G
-    prob.dobs = d_obs
-    prob.std = np.ones_like(d_obs)*0.1
+    data = prob.createSyntheticData(mtrue, std=0.01)
 
-    return prob, m_true
+    return prob, data
 
 
 if __name__ == '__main__':
 
-    prob, m_true = example(100)
+    prob, data = example(100)
     M = prob.mesh
 
     reg = regularization.Regularization(M)
     opt = inverse.InexactGaussNewton(maxIter=20)
-    inv = inverse.Inversion(prob,reg,opt,beta0=1e-4)
-    m0 = np.zeros_like(m_true)
+    inv = inverse.Inversion(prob,reg,opt,data)
+    m0 = np.zeros_like(data.mtrue)
 
     mrec = inv.run(m0)
 
@@ -72,9 +64,7 @@ if __name__ == '__main__':
 
     plt.figure(2)
 
-    plt.plot(M.vectorCCx, m_true, 'b-')
+    plt.plot(M.vectorCCx, data.mtrue, 'b-')
     plt.plot(M.vectorCCx, mrec, 'r-')
-
-
 
     plt.show()
