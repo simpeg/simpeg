@@ -3,10 +3,11 @@ import scipy.sparse as sp
 import utils
 from utils import Solver
 import mesh
-import inverse
-import visualize
+import data
 import forward
 import regularization
+import inverse
+import visualize
 import examples
 
 import scipy.version as _v
