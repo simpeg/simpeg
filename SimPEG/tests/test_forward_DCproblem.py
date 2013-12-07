@@ -44,23 +44,19 @@ class DCProblemTests(unittest.TestCase):
         problem = DCProblem(mesh)
         problem.P = P
         problem.RHS = q
-        dobs, Wd = problem.createSyntheticData(mSynth, std=0.05)
+        data = problem.createSyntheticData(mSynth, std=0.05)
 
         # Now set up the problem to do some minimization
-        problem.W = Wd
-        problem.dobs = dobs
-        problem.std = dobs*0 + 0.05
-
         opt = inverse.InexactGaussNewton(maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6)
         reg = Regularization(mesh)
-        inv = inverse.Inversion(problem, reg, opt, beta0=1e4)
+        inv = inverse.Inversion(problem, reg, opt, data, beta0=1e4)
 
         self.inv = inv
         self.reg = reg
         self.p = problem
         self.mesh = mesh
         self.m0 = mSynth
-        self.dobs = dobs
+        self.data = data
 
     def test_misfit(self):
         derChk = lambda m: [self.p.dpred(m), lambda mx: self.p.J(self.m0, mx)]
@@ -71,7 +67,7 @@ class DCProblemTests(unittest.TestCase):
         # Adjoint Test
         u = np.random.rand(self.mesh.nC*self.p.RHS.shape[1])
         v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(self.dobs.shape[0])
+        w = np.random.rand(self.data.dobs.shape[0])
         wtJv = w.dot(self.p.J(self.m0, v, u=u))
         vtJtw = v.dot(self.p.Jt(self.m0, w, u=u))
         passed = (wtJv - vtJtw) < 1e-10
