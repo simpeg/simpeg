@@ -43,7 +43,7 @@ class SimPEGTable:
 
     def show(self): self.root.show()
 
-    def saveInversion(self, invObj, dataPath):
+    def saveInversion(self, invObj):
 
         # Create a new inversion anytime this is run.
         def _startup_hdf5_inv(invObj, m0):
