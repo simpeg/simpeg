@@ -266,7 +266,7 @@ def saveSavable(obj, group, debug=False):
             try:
                 grp.attrs[name] = val
             except Exception, e:
-                print 'Warning: Could not save %s, problems may arise is loading.' % name
+                print 'Warning: Could not save %s, problems may arise in loading.' % name
 
     group.attrs['__class__'] = obj.__class__.__name__
     for arg in obj._kwargs_init:

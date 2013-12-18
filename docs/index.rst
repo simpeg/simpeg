@@ -3,14 +3,23 @@
    :alt: SimPEG
    :align: center
 
-SimPEG (Simulation and Parameter Estimation in Geophysics) is a python package for simulation and gradient based parameter estimation in the context of geophysical applications.
+SimPEG (Simulation and Parameter Estimation in Geoscience) is a python
+package for simulation and gradient based parameter estimation in the
+context of geoscience applications.
 
-The vision is to create a package for finite volume simulation with applications to geophysical imaging and subsurface flow. To enable the understanding of the many different components, this package has the following features:
+The vision is to create a package for finite volume simulation and parameter estimation with
+applications to geophysical imaging and subsurface flow. To enable
+these goals, this package has the following features:
 
-* modular with respect to the spacial discretization
-* is built with the inverse problem in mind
-* supports different hyperbolic solvers (Euler, Semi-Lagrangian, Lagrangian)
-* supports 2D and 3D problems
+* is modular with respect to discretization, physics, optimization, and regularization
+* is built with the (large-scale) inverse problem in mind
+* provides a framework for geophysical and hydrogeologic problems
+* supports 1D, 2D and 3D problems
+
+
+.. raw:: html
+
+   <iframe src="http://row1.ca/labs/simpegvis" width="100%" height="500px" style="border:none;background:#eee;margin:50px 0;"></iframe>
 
 
 Meshing & Operators
