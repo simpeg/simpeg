@@ -37,6 +37,13 @@ LOM Utilities
     :members:
     :undoc-members:
 
+Mesh Utilities
+**************
+
+.. automodule:: SimPEG.utils.meshutils
+    :members:
+    :undoc-members:
+
 Model Builder Utilities
 ***********************
 

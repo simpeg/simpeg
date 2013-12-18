@@ -1,15 +1,14 @@
-import numpy as np
+from SimPEG import utils, np
 from BaseMesh import BaseMesh
 from DiffOperators import DiffOperators
 from InnerProducts import InnerProducts
 from LomView import LomView
-from SimPEG.utils import mkvc, ndgrid, volTetra, indexCube, faceInfo
 
 # Some helper functions.
 length2D = lambda x: (x[:, 0]**2 + x[:, 1]**2)**0.5
 length3D = lambda x: (x[:, 0]**2 + x[:, 1]**2 + x[:, 2]**2)**0.5
-normalize2D = lambda x: x/np.kron(np.ones((1, 2)), mkvc(length2D(x), 2))
-normalize3D = lambda x: x/np.kron(np.ones((1, 3)), mkvc(length3D(x), 2))
+normalize2D = lambda x: x/np.kron(np.ones((1, 2)), utils.mkvc(length2D(x), 2))
+normalize3D = lambda x: x/np.kron(np.ones((1, 3)), utils.mkvc(length3D(x), 2))
 
 
 class LogicallyOrthogonalMesh(BaseMesh, DiffOperators, InnerProducts, LomView):
@@ -21,6 +20,9 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators, InnerProducts, LomView):
     .. plot:: examples/mesh/plot_LogicallyOrthogonalMesh.py
 
     """
+
+    __metaclass__ = utils.Save.Savable
+
     _meshType = 'LOM'
 
     def __init__(self, nodes):
@@ -38,7 +40,7 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators, InnerProducts, LomView):
         # Save nodes to private variable _gridN as vectors
         self._gridN = np.ones((nodes[0].size, self.dim))
         for i, node_i in enumerate(nodes):
-            self._gridN[:, i] = mkvc(node_i.astype(float))
+            self._gridN[:, i] = utils.mkvc(node_i.astype(float))
 
     def gridCC():
         doc = "Cell-centered grid."
@@ -69,10 +71,10 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators, InnerProducts, LomView):
             if self._gridFx is None:
                 N = self.r(self.gridN, 'N', 'N', 'M')
                 if self.dim == 2:
-                    XY = [mkvc(0.5 * (n[:, :-1] + n[:, 1:])) for n in N]
+                    XY = [utils.mkvc(0.5 * (n[:, :-1] + n[:, 1:])) for n in N]
                     self._gridFx = np.c_[XY[0], XY[1]]
                 elif self.dim == 3:
-                    XYZ = [mkvc(0.25 * (n[:, :-1, :-1] + n[:, :-1, 1:] + n[:, 1:, :-1] + n[:, 1:, 1:])) for n in N]
+                    XYZ = [utils.mkvc(0.25 * (n[:, :-1, :-1] + n[:, :-1, 1:] + n[:, 1:, :-1] + n[:, 1:, 1:])) for n in N]
                     self._gridFx = np.c_[XYZ[0], XYZ[1], XYZ[2]]
             return self._gridFx
         return locals()
@@ -86,10 +88,10 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators, InnerProducts, LomView):
             if self._gridFy is None:
                 N = self.r(self.gridN, 'N', 'N', 'M')
                 if self.dim == 2:
-                    XY = [mkvc(0.5 * (n[:-1, :] + n[1:, :])) for n in N]
+                    XY = [utils.mkvc(0.5 * (n[:-1, :] + n[1:, :])) for n in N]
                     self._gridFy = np.c_[XY[0], XY[1]]
                 elif self.dim == 3:
-                    XYZ = [mkvc(0.25 * (n[:-1, :, :-1] + n[:-1, :, 1:] + n[1:, :, :-1] + n[1:, :, 1:])) for n in N]
+                    XYZ = [utils.mkvc(0.25 * (n[:-1, :, :-1] + n[:-1, :, 1:] + n[1:, :, :-1] + n[1:, :, 1:])) for n in N]
                     self._gridFy = np.c_[XYZ[0], XYZ[1], XYZ[2]]
             return self._gridFy
         return locals()
@@ -102,7 +104,7 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators, InnerProducts, LomView):
         def fget(self):
             if self._gridFz is None and self.dim == 3:
                 N = self.r(self.gridN, 'N', 'N', 'M')
-                XYZ = [mkvc(0.25 * (n[:-1, :-1, :] + n[:-1, 1:, :] + n[1:, :-1, :] + n[1:, 1:, :])) for n in N]
+                XYZ = [utils.mkvc(0.25 * (n[:-1, :-1, :] + n[:-1, 1:, :] + n[1:, :-1, :] + n[1:, 1:, :])) for n in N]
                 self._gridFz = np.c_[XYZ[0], XYZ[1], XYZ[2]]
             return self._gridFz
         return locals()
@@ -116,10 +118,10 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators, InnerProducts, LomView):
             if self._gridEx is None:
                 N = self.r(self.gridN, 'N', 'N', 'M')
                 if self.dim == 2:
-                    XY = [mkvc(0.5 * (n[:-1, :] + n[1:, :])) for n in N]
+                    XY = [utils.mkvc(0.5 * (n[:-1, :] + n[1:, :])) for n in N]
                     self._gridEx = np.c_[XY[0], XY[1]]
                 elif self.dim == 3:
-                    XYZ = [mkvc(0.5 * (n[:-1, :, :] + n[1:, :, :])) for n in N]
+                    XYZ = [utils.mkvc(0.5 * (n[:-1, :, :] + n[1:, :, :])) for n in N]
                     self._gridEx = np.c_[XYZ[0], XYZ[1], XYZ[2]]
             return self._gridEx
         return locals()
@@ -133,10 +135,10 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators, InnerProducts, LomView):
             if self._gridEy is None:
                 N = self.r(self.gridN, 'N', 'N', 'M')
                 if self.dim == 2:
-                    XY = [mkvc(0.5 * (n[:, :-1] + n[:, 1:])) for n in N]
+                    XY = [utils.mkvc(0.5 * (n[:, :-1] + n[:, 1:])) for n in N]
                     self._gridEy = np.c_[XY[0], XY[1]]
                 elif self.dim == 3:
-                    XYZ = [mkvc(0.5 * (n[:, :-1, :] + n[:, 1:, :])) for n in N]
+                    XYZ = [utils.mkvc(0.5 * (n[:, :-1, :] + n[:, 1:, :])) for n in N]
                     self._gridEy = np.c_[XYZ[0], XYZ[1], XYZ[2]]
             return self._gridEy
         return locals()
@@ -149,7 +151,7 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators, InnerProducts, LomView):
         def fget(self):
             if self._gridEz is None and self.dim == 3:
                 N = self.r(self.gridN, 'N', 'N', 'M')
-                XYZ = [mkvc(0.5 * (n[:, :, :-1] + n[:, :, 1:])) for n in N]
+                XYZ = [utils.mkvc(0.5 * (n[:, :, :-1] + n[:, :, 1:])) for n in N]
                 self._gridEz = np.c_[XYZ[0], XYZ[1], XYZ[2]]
             return self._gridEz
         return locals()
@@ -192,25 +194,25 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators, InnerProducts, LomView):
         def fget(self):
             if(self._vol is None):
                 if self.dim == 2:
-                    A, B, C, D = indexCube('ABCD', self.n+1)
-                    normal, area = faceInfo(np.c_[self.gridN, np.zeros((self.nN, 1))], A, B, C, D)
+                    A, B, C, D = utils.indexCube('ABCD', self.n+1)
+                    normal, area = utils.faceInfo(np.c_[self.gridN, np.zeros((self.nN, 1))], A, B, C, D)
                     self._vol = area
                 elif self.dim == 3:
                     # Each polyhedron can be decomposed into 5 tetrahedrons
                     # However, this presents a choice so we may as well divide in two ways and average.
-                    A, B, C, D, E, F, G, H = indexCube('ABCDEFGH', self.n+1)
+                    A, B, C, D, E, F, G, H = utils.indexCube('ABCDEFGH', self.n+1)
 
-                    vol1 = (volTetra(self.gridN, A, B, D, E) +  # cutted edge top
-                            volTetra(self.gridN, B, E, F, G) +  # cutted edge top
-                            volTetra(self.gridN, B, D, E, G) +  # middle
-                            volTetra(self.gridN, B, C, D, G) +  # cutted edge bottom
-                            volTetra(self.gridN, D, E, G, H))   # cutted edge bottom
+                    vol1 = (utils.volTetra(self.gridN, A, B, D, E) +  # cutted edge top
+                            utils.volTetra(self.gridN, B, E, F, G) +  # cutted edge top
+                            utils.volTetra(self.gridN, B, D, E, G) +  # middle
+                            utils.volTetra(self.gridN, B, C, D, G) +  # cutted edge bottom
+                            utils.volTetra(self.gridN, D, E, G, H))   # cutted edge bottom
 
-                    vol2 = (volTetra(self.gridN, A, F, B, C) +  # cutted edge top
-                            volTetra(self.gridN, A, E, F, H) +  # cutted edge top
-                            volTetra(self.gridN, A, H, F, C) +  # middle
-                            volTetra(self.gridN, C, H, D, A) +  # cutted edge bottom
-                            volTetra(self.gridN, C, G, H, F))   # cutted edge bottom
+                    vol2 = (utils.volTetra(self.gridN, A, F, B, C) +  # cutted edge top
+                            utils.volTetra(self.gridN, A, E, F, H) +  # cutted edge top
+                            utils.volTetra(self.gridN, A, H, F, C) +  # middle
+                            utils.volTetra(self.gridN, C, H, D, A) +  # cutted edge bottom
+                            utils.volTetra(self.gridN, C, G, H, F))   # cutted edge bottom
 
                     self._vol = (vol1 + vol2)/2
             return self._vol
@@ -226,30 +228,30 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators, InnerProducts, LomView):
                 # Compute areas of cell faces
                 if(self.dim == 2):
                     xy = self.gridN
-                    A, B = indexCube('AB', self.n+1, np.array([self.nNx, self.nCy]))
+                    A, B = utils.indexCube('AB', self.n+1, np.array([self.nNx, self.nCy]))
                     edge1 = xy[B, :] - xy[A, :]
                     normal1 = np.c_[edge1[:, 1], -edge1[:, 0]]
                     area1 = length2D(edge1)
-                    A, D = indexCube('AD', self.n+1, np.array([self.nCx, self.nNy]))
+                    A, D = utils.indexCube('AD', self.n+1, np.array([self.nCx, self.nNy]))
                     # Note that we are doing A-D to make sure the normal points the right way.
                     # Think about it. Look at the picture. Normal points towards C iff you do this.
                     edge2 = xy[A, :] - xy[D, :]
                     normal2 = np.c_[edge2[:, 1], -edge2[:, 0]]
                     area2 = length2D(edge2)
-                    self._area = np.r_[mkvc(area1), mkvc(area2)]
+                    self._area = np.r_[utils.mkvc(area1), utils.mkvc(area2)]
                     self._normals = [normalize2D(normal1), normalize2D(normal2)]
                 elif(self.dim == 3):
 
-                    A, E, F, B = indexCube('AEFB', self.n+1, np.array([self.nNx, self.nCy, self.nCz]))
-                    normal1, area1 = faceInfo(self.gridN, A, E, F, B, average=False, normalizeNormals=False)
+                    A, E, F, B = utils.indexCube('AEFB', self.n+1, np.array([self.nNx, self.nCy, self.nCz]))
+                    normal1, area1 = utils.faceInfo(self.gridN, A, E, F, B, average=False, normalizeNormals=False)
 
-                    A, D, H, E = indexCube('ADHE', self.n+1, np.array([self.nCx, self.nNy, self.nCz]))
-                    normal2, area2 = faceInfo(self.gridN, A, D, H, E, average=False, normalizeNormals=False)
+                    A, D, H, E = utils.indexCube('ADHE', self.n+1, np.array([self.nCx, self.nNy, self.nCz]))
+                    normal2, area2 = utils.faceInfo(self.gridN, A, D, H, E, average=False, normalizeNormals=False)
 
-                    A, B, C, D = indexCube('ABCD', self.n+1, np.array([self.nCx, self.nCy, self.nNz]))
-                    normal3, area3 = faceInfo(self.gridN, A, B, C, D, average=False, normalizeNormals=False)
+                    A, B, C, D = utils.indexCube('ABCD', self.n+1, np.array([self.nCx, self.nCy, self.nNz]))
+                    normal3, area3 = utils.faceInfo(self.gridN, A, B, C, D, average=False, normalizeNormals=False)
 
-                    self._area = np.r_[mkvc(area1), mkvc(area2), mkvc(area3)]
+                    self._area = np.r_[utils.mkvc(area1), utils.mkvc(area2), utils.mkvc(area3)]
                     self._normals = [normal1, normal2, normal3]
             return self._area
         return locals()
@@ -289,21 +291,21 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators, InnerProducts, LomView):
             if(self._edge is None or self._tangents is None):
                 if(self.dim == 2):
                     xy = self.gridN
-                    A, D = indexCube('AD', self.n+1, np.array([self.nCx, self.nNy]))
+                    A, D = utils.indexCube('AD', self.n+1, np.array([self.nCx, self.nNy]))
                     edge1 = xy[D, :] - xy[A, :]
-                    A, B = indexCube('AB', self.n+1, np.array([self.nNx, self.nCy]))
+                    A, B = utils.indexCube('AB', self.n+1, np.array([self.nNx, self.nCy]))
                     edge2 = xy[B, :] - xy[A, :]
-                    self._edge = np.r_[mkvc(length2D(edge1)), mkvc(length2D(edge2))]
+                    self._edge = np.r_[utils.mkvc(length2D(edge1)), utils.mkvc(length2D(edge2))]
                     self._tangents = np.r_[edge1, edge2]/np.c_[self._edge, self._edge]
                 elif(self.dim == 3):
                     xyz = self.gridN
-                    A, D = indexCube('AD', self.n+1, np.array([self.nCx, self.nNy, self.nNz]))
+                    A, D = utils.indexCube('AD', self.n+1, np.array([self.nCx, self.nNy, self.nNz]))
                     edge1 = xyz[D, :] - xyz[A, :]
-                    A, B = indexCube('AB', self.n+1, np.array([self.nNx, self.nCy, self.nNz]))
+                    A, B = utils.indexCube('AB', self.n+1, np.array([self.nNx, self.nCy, self.nNz]))
                     edge2 = xyz[B, :] - xyz[A, :]
-                    A, E = indexCube('AE', self.n+1, np.array([self.nNx, self.nNy, self.nCz]))
+                    A, E = utils.indexCube('AE', self.n+1, np.array([self.nNx, self.nNy, self.nCz]))
                     edge3 = xyz[E, :] - xyz[A, :]
-                    self._edge = np.r_[mkvc(length3D(edge1)), mkvc(length3D(edge2)), mkvc(length3D(edge3))]
+                    self._edge = np.r_[utils.mkvc(length3D(edge1)), utils.mkvc(length3D(edge2)), utils.mkvc(length3D(edge3))]
                     self._tangents = np.r_[edge1, edge2, edge3]/np.c_[self._edge, self._edge, self._edge]
             return self._edge
         return locals()
@@ -329,10 +331,10 @@ if __name__ == '__main__':
     h3 = np.cumsum(np.r_[0, np.ones(nc)/(nc)])
     dee3 = True
     if dee3:
-        X, Y, Z = ndgrid(h1, h2, h3, vector=False)
+        X, Y, Z = utils.ndgrid(h1, h2, h3, vector=False)
         M = LogicallyOrthogonalMesh([X, Y, Z])
     else:
-        X, Y = ndgrid(h1, h2, vector=False)
+        X, Y = utils.ndgrid(h1, h2, vector=False)
         M = LogicallyOrthogonalMesh([X, Y])
 
     print M.r(M.normals, 'F', 'Fx', 'V')

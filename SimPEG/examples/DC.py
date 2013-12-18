@@ -168,7 +168,6 @@ def genTxRxmat(nelec, spacelec, surfloc, elecini, mesh):
 
 if __name__ == '__main__':
 
-    from SimPEG.regularization import Regularization
     from SimPEG import inverse
     import matplotlib.pyplot as plt
 
@@ -217,7 +216,7 @@ if __name__ == '__main__':
     m0 = mesh.gridCC[:,0]*0+sig2
 
     opt = inverse.InexactGaussNewton(maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6)
-    reg = Regularization(mesh)
+    reg = inverse.Regularization(mesh)
     inv = inverse.Inversion(problem, reg, opt, beta0=1e4)
 
     # Check Derivative

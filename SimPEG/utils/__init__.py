@@ -3,13 +3,16 @@ import sputils
 import lomutils
 import interputils
 import ModelBuilder
+import meshutils
 from matutils import getSubArray, mkvc, ndgrid, ind2sub, sub2ind
 from sputils import spzeros, kron3, speye, sdiag, ddx, av, avExtrap
-from lomutils import volTetra, faceInfo, inv2X2BlockDiagonal, inv3X3BlockDiagonal, indexCube, exampleLomGird
+from meshutils import exampleLomGird, meshTensors
+from lomutils import volTetra, faceInfo, inv2X2BlockDiagonal, inv3X3BlockDiagonal, indexCube
 from interputils import interpmat
 from ipythonUtils import easyAnimate as animate
 import Solver
 from Solver import Solver
+import Save
 import Geophysics
 
 import types
@@ -23,7 +26,7 @@ def hook(obj, method, name=None, overwrite=False, silent=False):
 
         If name is None, the name of the method is used.
     """
-    if name is None: 
+    if name is None:
         name = method.__name__
         if name == '<lambda>':
             raise Exception('Must provide name to hook lambda functions.')
@@ -42,7 +45,7 @@ def setKwargs(obj, **kwargs):
             setattr(obj, attr, kwargs[attr])
         else:
             raise Exception('%s attr is not recognized' % attr)
-    hook(obj,callHooks, silent=True)
+
     hook(obj,hook, silent=True)
     hook(obj,setKwargs, silent=True)
 
@@ -87,11 +90,48 @@ def printStoppers(obj, stoppers, pad='', stop='STOP!', done='DONE!'):
         print pad + stopper['str'] % (l<=r,l,r)
     print pad + "%s%s%s" % ('-'*25,done,'-'*25)
 
-def callHooks(obj, match, *args, **kwargs):
-    for method in [posible for posible in dir(obj) if ('_'+match) in posible]:
-            if getattr(obj,'debug',False): print (match+' is calling self.'+method)
-            getattr(obj,method)(*args, **kwargs)
+def callHooks(match):
+    """
+    Use this to wrap a funciton::
 
+        @callHooks('doEndIteration')
+        def doEndIteration(self):
+            pass
+
+    This will call everything named _doEndIteration* at the beginning of the function call.
+    """
+    def callHooksWrap(f):
+        @wraps(f)
+        def wrapper(self,*args,**kwargs):
+
+            for method in [posible for posible in dir(self) if ('_'+match) in posible]:
+                if getattr(self,'debug',False): print (match+' is calling self.'+method)
+                getattr(self,method)(*args, **kwargs)
+
+            return f(self,*args,**kwargs)
+
+        extra = """
+            If you have things that also need to run in the method %s, you can create a method::
+
+                def _%s*(self, ... ):
+                    pass
+
+            Where the * can be any string. If present, _%s* will be called at the start of the default %s call.
+            You may also completely overwrite this function.
+        """ % (match, match, match, match)
+
+        wrapper.__doc__ += extra
+        return wrapper
+    return callHooksWrap
+
+def dependentProperty(name, value, children, doc):
+    def fget(self): return getattr(self,name,value)
+    def fset(self, val):
+        for child in children:
+            if hasattr(self, child):
+                delattr(self, child)
+        setattr(self, name, val)
+    return property(fget=fget, fset=fset, doc=doc)
 
 
 class Counter(object):

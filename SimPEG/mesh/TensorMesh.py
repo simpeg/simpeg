@@ -1,11 +1,8 @@
-import numpy as np
-import scipy.sparse as sp
+from SimPEG import utils, np, sp
 from BaseMesh import BaseMesh
 from TensorView import TensorView
 from DiffOperators import DiffOperators
 from InnerProducts import InnerProducts
-from SimPEG.utils import ndgrid, mkvc, spzeros, interpmat
-
 
 class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
     """
@@ -24,13 +21,20 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
     Example of a padded tensor mesh:
 
-    .. plot:: examples/mesh/plot_TensorMesh.py
+    .. plot::
+
+        from SimPEG import mesh, utils
+        M = mesh.TensorMesh(utils.meshTensors(((10,10),(40,10),(10,10)), ((10,10),(20,10),(0,0))))
+        M.plotGrid()
 
     For a quick tensor mesh on a (10x12x15) unit cube::
 
         mesh = TensorMesh([10, 12, 15])
 
     """
+
+    __metaclass__ = utils.Save.Savable
+
     _meshType = 'TENSOR'
 
     def __init__(self, h_in, x0=None):
@@ -48,7 +52,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
         assert len(h) == len(self.x0), "Dimension mismatch. x0 != len(h)"
 
         # Ensure h contains 1D vectors
-        self._h = [mkvc(x.astype(float)) for x in h]
+        self._h = [utils.mkvc(x.astype(float)) for x in h]
 
     def __str__(self):
         outStr = '  ---- {0:d}-D TensorMesh ----  '.format(self.dim)
@@ -166,7 +170,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
         def fget(self):
             if self._gridCC is None:
-                self._gridCC = ndgrid(self.getTensor('CC'))
+                self._gridCC = utils.ndgrid(self.getTensor('CC'))
             return self._gridCC
         return locals()
     _gridCC = None  # Store grid by default
@@ -177,7 +181,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
         def fget(self):
             if self._gridN is None:
-                self._gridN = ndgrid(self.getTensor('N'))
+                self._gridN = utils.ndgrid(self.getTensor('N'))
             return self._gridN
         return locals()
     _gridN = None  # Store grid by default
@@ -188,7 +192,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
         def fget(self):
             if self._gridFx is None:
-                self._gridFx = ndgrid(self.getTensor('Fx'))
+                self._gridFx = utils.ndgrid(self.getTensor('Fx'))
             return self._gridFx
         return locals()
     _gridFx = None  # Store grid by default
@@ -199,7 +203,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
         def fget(self):
             if self._gridFy is None and self.dim > 1:
-                self._gridFy = ndgrid(self.getTensor('Fy'))
+                self._gridFy = utils.ndgrid(self.getTensor('Fy'))
             return self._gridFy
         return locals()
     _gridFy = None  # Store grid by default
@@ -210,7 +214,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
         def fget(self):
             if self._gridFz is None and self.dim > 2:
-                self._gridFz = ndgrid(self.getTensor('Fz'))
+                self._gridFz = utils.ndgrid(self.getTensor('Fz'))
             return self._gridFz
         return locals()
     _gridFz = None  # Store grid by default
@@ -221,7 +225,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
         def fget(self):
             if self._gridEx is None:
-                self._gridEx = ndgrid(self.getTensor('Ex'))
+                self._gridEx = utils.ndgrid(self.getTensor('Ex'))
             return self._gridEx
         return locals()
     _gridEx = None  # Store grid by default
@@ -232,7 +236,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
         def fget(self):
             if self._gridEy is None and self.dim > 1:
-                self._gridEy = ndgrid(self.getTensor('Ey'))
+                self._gridEy = utils.ndgrid(self.getTensor('Ey'))
             return self._gridEy
         return locals()
     _gridEy = None  # Store grid by default
@@ -243,7 +247,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
         def fget(self):
             if self._gridEz is None and self.dim > 2:
-                self._gridEz = ndgrid(self.getTensor('Ez'))
+                self._gridEz = utils.ndgrid(self.getTensor('Ez'))
             return self._gridEz
         return locals()
     _gridEz = None  # Store grid by default
@@ -258,13 +262,13 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
                 vh = self.h
                 # Compute cell volumes
                 if(self.dim == 1):
-                    self._vol = mkvc(vh[0])
+                    self._vol = utils.mkvc(vh[0])
                 elif(self.dim == 2):
                     # Cell sizes in each direction
-                    self._vol = mkvc(np.outer(vh[0], vh[1]))
+                    self._vol = utils.mkvc(np.outer(vh[0], vh[1]))
                 elif(self.dim == 3):
                     # Cell sizes in each direction
-                    self._vol = mkvc(np.outer(mkvc(np.outer(vh[0], vh[1])), vh[2]))
+                    self._vol = utils.mkvc(np.outer(utils.mkvc(np.outer(vh[0], vh[1])), vh[2]))
             return self._vol
         return locals()
     _vol = None
@@ -285,12 +289,12 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
                 elif(self.dim == 2):
                     area1 = np.outer(np.ones(n[0]+1), vh[1])
                     area2 = np.outer(vh[0], np.ones(n[1]+1))
-                    self._area = np.r_[mkvc(area1), mkvc(area2)]
+                    self._area = np.r_[utils.mkvc(area1), utils.mkvc(area2)]
                 elif(self.dim == 3):
-                    area1 = np.outer(np.ones(n[0]+1), mkvc(np.outer(vh[1], vh[2])))
-                    area2 = np.outer(vh[0], mkvc(np.outer(np.ones(n[1]+1), vh[2])))
-                    area3 = np.outer(vh[0], mkvc(np.outer(vh[1], np.ones(n[2]+1))))
-                    self._area = np.r_[mkvc(area1), mkvc(area2), mkvc(area3)]
+                    area1 = np.outer(np.ones(n[0]+1), utils.mkvc(np.outer(vh[1], vh[2])))
+                    area2 = np.outer(vh[0], utils.mkvc(np.outer(np.ones(n[1]+1), vh[2])))
+                    area3 = np.outer(vh[0], utils.mkvc(np.outer(vh[1], np.ones(n[2]+1))))
+                    self._area = np.r_[utils.mkvc(area1), utils.mkvc(area2), utils.mkvc(area3)]
             return self._area
         return locals()
     _area = None
@@ -307,16 +311,16 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
                 n = self.n
                 # Compute edge lengths
                 if(self.dim == 1):
-                    self._edge = mkvc(vh[0])
+                    self._edge = utils.mkvc(vh[0])
                 elif(self.dim == 2):
                     l1 = np.outer(vh[0], np.ones(n[1]+1))
                     l2 = np.outer(np.ones(n[0]+1), vh[1])
-                    self._edge = np.r_[mkvc(l1), mkvc(l2)]
+                    self._edge = np.r_[utils.mkvc(l1), utils.mkvc(l2)]
                 elif(self.dim == 3):
-                    l1 = np.outer(vh[0], mkvc(np.outer(np.ones(n[1]+1), np.ones(n[2]+1))))
-                    l2 = np.outer(np.ones(n[0]+1), mkvc(np.outer(vh[1], np.ones(n[2]+1))))
-                    l3 = np.outer(np.ones(n[0]+1), mkvc(np.outer(np.ones(n[1]+1), vh[2])))
-                    self._edge = np.r_[mkvc(l1), mkvc(l2), mkvc(l3)]
+                    l1 = np.outer(vh[0], utils.mkvc(np.outer(np.ones(n[1]+1), np.ones(n[2]+1))))
+                    l2 = np.outer(np.ones(n[0]+1), utils.mkvc(np.outer(vh[1], np.ones(n[2]+1))))
+                    l3 = np.outer(np.ones(n[0]+1), utils.mkvc(np.outer(np.ones(n[1]+1), vh[2])))
+                    self._edge = np.r_[utils.mkvc(l1), utils.mkvc(l2), utils.mkvc(l3)]
             return self._edge
         return locals()
     _edge = None
@@ -406,11 +410,11 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
         ind = 0 if 'x' in locType else 1 if 'y' in locType else 2 if 'z' in locType else -1
         if locType in ['Fx','Fy','Fz','Ex','Ey','Ez'] and self.dim >= ind:
             nF_nE = self.nFv if 'F' in locType else self.nEv
-            components = [spzeros(loc.shape[0], n) for n in nF_nE]
-            components[ind] = interpmat(loc, *self.getTensor(locType))
+            components = [utils.spzeros(loc.shape[0], n) for n in nF_nE]
+            components[ind] = utils.interpmat(loc, *self.getTensor(locType))
             Q = sp.hstack(components)
         elif locType in ['CC', 'N']:
-            Q = interpmat(loc, *self.getTensor(locType))
+            Q = utils.interpmat(loc, *self.getTensor(locType))
         else:
             raise NotImplementedError('getInterpolationMat: locType=='+locType+' and mesh.dim=='+str(self.dim))
         return Q

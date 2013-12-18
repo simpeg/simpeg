@@ -24,3 +24,12 @@ Beta Schedule
 .. automodule:: SimPEG.inverse.BetaSchedule
     :members:
     :undoc-members:
+
+
+Regularization
+**************
+
+.. automodule:: SimPEG.inverse.Regularization
+    :show-inheritance:
+    :members:
+    :undoc-members:

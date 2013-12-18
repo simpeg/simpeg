@@ -1,6 +1,4 @@
-import numpy as np
-from SimPEG.utils import mkvc, sdiag, count, timeIt
-import scipy.sparse as sp
+from SimPEG import utils, data, np, sp
 norm = np.linalg.norm
 
 
@@ -37,9 +35,13 @@ class Problem(object):
         to (locally) find how model parameters change the data, and optimize!
     """
 
-    counter = None
+    __metaclass__ = utils.Save.Savable
 
-    def __init__(self, mesh):
+    counter = None   #: A SimPEG.utils.Counter object
+
+
+    def __init__(self, mesh, *args, **kwargs):
+        utils.setKwargs(self, **kwargs)
         self.mesh = mesh
 
     @property
@@ -65,27 +67,7 @@ class Problem(object):
     def P(self, value):
         self._P = value
 
-    @property
-    def std(self):
-        """
-            Estimated Standard Deviations.
-        """
-        return self._std
-    @std.setter
-    def std(self, value):
-        self._std = value
-
-    @property
-    def dobs(self):
-        """
-            Observed data.
-        """
-        return self._dobs
-    @dobs.setter
-    def dobs(self, value):
-        self._dobs = value
-
-    @count
+    @utils.count
     def dpred(self, m, u=None):
         """
             Predicted data.
@@ -97,8 +79,8 @@ class Problem(object):
             u = self.field(m)
         return self.P*u
 
-    @count
-    def dataResidual(self, m, u=None):
+    @utils.count
+    def dataResidual(self, m, data, u=None):
         """
             :param numpy.array m: geophysical model
             :param numpy.array u: fields
@@ -115,9 +97,9 @@ class Problem(object):
             u is the field of interest; d_obs is the observed data.
         """
 
-        return self.dpred(m, u=u) - self.dobs
+        return self.dpred(m, u=u) - data.dobs
 
-    @timeIt
+    @utils.timeIt
     def J(self, m, v, u=None):
         """
             :param numpy.array m: model
@@ -147,7 +129,7 @@ class Problem(object):
         """
         raise NotImplementedError('J is not yet implemented.')
 
-    @timeIt
+    @utils.timeIt
     def Jt(self, m, v, u=None):
         """
             :param numpy.array m: model
@@ -161,7 +143,7 @@ class Problem(object):
         raise NotImplementedError('Jt is not yet implemented.')
 
 
-    @timeIt
+    @utils.timeIt
     def J_approx(self, m, v, u=None):
         """
 
@@ -176,7 +158,7 @@ class Problem(object):
         """
         return self.J(m, v, u)
 
-    @timeIt
+    @utils.timeIt
     def Jt_approx(self, m, v, u=None):
         """
             :param numpy.array m: model
@@ -238,12 +220,11 @@ class Problem(object):
             Returns the observed data with random Gaussian noise
             and Wd which is the same size as data, and can be used to weight the inversion.
         """
-        dobs = self.dpred(m,u=u)
-        noise = std*abs(dobs)*np.random.randn(*dobs.shape)
-        dobs = dobs+noise
-        eps = np.linalg.norm(mkvc(dobs),2)*1e-5
-        Wd = 1/(abs(dobs)*std+eps)
-        return dobs, Wd
+        dtrue = self.dpred(m,u=u)
+        noise = std*abs(dtrue)*np.random.randn(*dtrue.shape)
+        dobs = dtrue+noise
+        stdev = dobs*0 + std
+        return data.SimPEGData(self, dobs=dobs, std=stdev, dtrue=dtrue, mtrue=m)
 
 
 

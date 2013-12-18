@@ -1,13 +1,14 @@
-import numpy as np
-import scipy.sparse as sp
 import SimPEG
-from SimPEG.utils import sdiag, mkvc, setKwargs, checkStoppers, printStoppers, count, timeIt, callHooks
+from SimPEG import utils, sp, np
 from Optimize import Remember
 from BetaSchedule import Cooling
 from SimPEG.inverse import IterationPrinters, StoppingCriteria
 
 class BaseInversion(object):
-    """docstring for BaseInversion"""
+    """BaseInversion(prob, reg, opt, data, **kwargs)
+    """
+
+    __metaclass__ = utils.Save.Savable
 
     maxIter = 1        #: Maximum number of iterations
     name = 'BaseInversion'
@@ -17,14 +18,15 @@ class BaseInversion(object):
     comment = ''       #: Used by some functions to indicate what is going on in the algorithm
     counter = None     #: Set this to a SimPEG.utils.Counter() if you want to count things
 
-    beta0  = None     #: The initial Beta (regularization parameter)
+    beta0  = None      #: The initial Beta (regularization parameter)
+    beta0_ratio = 0.1  #: When beta0 is set to None, estimateBeta0 is used with this ratio
 
-
-    def __init__(self, prob, reg, opt, **kwargs):
-        setKwargs(self, **kwargs)
+    def __init__(self, prob, reg, opt, data, **kwargs):
+        utils.setKwargs(self, **kwargs)
         self.prob = prob
         self.reg = reg
         self.opt = opt
+        self.data = data
         self.opt.parent = self
 
         self.stoppers = [StoppingCriteria.iteration]
@@ -46,8 +48,8 @@ class BaseInversion(object):
             Standard deviation weighting matrix.
         """
         if getattr(self,'_Wd',None) is None:
-            eps = np.linalg.norm(mkvc(self.prob.dobs),2)*1e-5
-            self._Wd = 1/(abs(self.prob.dobs)*self.prob.std+eps)
+            eps = np.linalg.norm(utils.mkvc(self.data.dobs),2)*1e-5
+            self._Wd = 1/(abs(self.data.dobs)*self.data.std+eps)
         return self._Wd
     @Wd.setter
     def Wd(self, value):
@@ -63,14 +65,14 @@ class BaseInversion(object):
         Note that we do not set the target if it is None, but we return the default value.
         """
         if getattr(self, '_phi_d_target', None) is None:
-            return self.prob.dobs.size #
+            return self.data.dobs.size #
         return self._phi_d_target
 
     @phi_d_target.setter
     def phi_d_target(self, value):
         self._phi_d_target = value
 
-    @timeIt
+    @utils.timeIt
     def run(self, m0):
         """run(m0)
 
@@ -85,25 +87,19 @@ class BaseInversion(object):
             if self.stoppingCriteria(): break
 
         self.printDone()
+        self.finish()
+
         return self.m
 
+    @utils.callHooks('startup')
     def startup(self, m0):
         """
             **startup** is called at the start of any new run call.
-
-            If you have things that also need to run on startup, you can create a method::
-
-                def _startup*(self, x0):
-                    pass
-
-            Where the * can be any string. If present, _startup* will be called at the start of the default startup call.
-            You may also completely overwrite this function.
 
             :param numpy.ndarray x0: initial x
             :rtype: None
             :return: None
         """
-        callHooks(self,'startup',m0)
 
         if not hasattr(self.reg, '_mref'):
             print 'Regularization has not set mref. SimPEG will set it to m0.'
@@ -115,43 +111,25 @@ class BaseInversion(object):
         self.phi_d_last = np.nan
         self.phi_m_last = np.nan
 
+    @utils.callHooks('doStartIteration')
     def doStartIteration(self):
         """
             **doStartIteration** is called at the end of each run iteration.
 
-            If you have things that also need to run at the end of every iteration, you can create a method::
-
-                def _doStartIteration*(self):
-                    pass
-
-            Where the * can be any string. If present, _doStartIteration* will be called at the start of the default doStartIteration call.
-            You may also completely overwrite this function.
-
             :rtype: None
             :return: None
         """
-        callHooks(self,'doStartIteration')
-
         self._beta = self.getBeta()
 
 
+    @utils.callHooks('doEndIteration')
     def doEndIteration(self):
         """
             **doEndIteration** is called at the end of each run iteration.
 
-            If you have things that also need to run at the end of every iteration, you can create a method::
-
-                def _doEndIteration*(self):
-                    pass
-
-            Where the * can be any string. If present, _doEndIteration* will be called at the start of the default doEndIteration call.
-            You may also completely overwrite this function.
-
             :rtype: None
             :return: None
         """
-        callHooks(self,'doEndIteration')
-
         # store old values
         self.phi_d_last = self.phi_d
         self.phi_m_last = self.phi_m
@@ -203,7 +181,7 @@ class BaseInversion(object):
 
     def stoppingCriteria(self):
         if self.debug: print 'checking stoppingCriteria'
-        return checkStoppers(self, self.stoppers)
+        return utils.checkStoppers(self, self.stoppers)
 
 
     def printDone(self):
@@ -211,9 +189,17 @@ class BaseInversion(object):
             **printDone** is called at the end of the inversion routine.
 
         """
-        printStoppers(self, self.stoppers)
+        utils.printStoppers(self, self.stoppers)
 
-    @timeIt
+    @utils.callHooks('finish')
+    def finish(self):
+        """finish()
+
+            **finish** is called at the end of the optimization.
+        """
+        pass
+
+    @utils.timeIt
     def evalFunction(self, m, return_g=True, return_H=True):
         """evalFunction(m, return_g=True, return_H=True)
 
@@ -223,7 +209,7 @@ class BaseInversion(object):
         u = self.prob.field(m)
 
         if self._iter is 0 and self._beta is None:
-            self._beta = self.beta0 = self.estimateBeta0(u=u)
+            self._beta = self.beta0 = self.estimateBeta0(u=u,ratio=self.beta0_ratio)
 
         phi_d = self.dataObj(m, u)
         phi_m = self.reg.modelObj(m)
@@ -253,7 +239,7 @@ class BaseInversion(object):
             out += (operator,)
         return out if len(out) > 1 else out[0]
 
-    @timeIt
+    @utils.timeIt
     def dataObj(self, m, u=None):
         """dataObj(m, u=None)
 
@@ -272,11 +258,11 @@ class BaseInversion(object):
             u is the field of interest; d_obs is the observed data; and W is the weighting matrix.
         """
         # TODO: ensure that this is a data is vector and Wd is a matrix.
-        R = self.Wd*self.prob.dataResidual(m, u=u)
-        R = mkvc(R)
+        R = self.Wd*self.prob.dataResidual(m, self.data, u=u)
+        R = utils.mkvc(R)
         return 0.5*np.vdot(R, R)
 
-    @timeIt
+    @utils.timeIt
     def dataObjDeriv(self, m, u=None):
         """dataObjDeriv(m, u=None)
 
@@ -312,13 +298,13 @@ class BaseInversion(object):
         if u is None:
             u = self.prob.field(m)
 
-        R = self.Wd*self.prob.dataResidual(m, u=u)
+        R = self.Wd*self.prob.dataResidual(m, self.data, u=u)
 
         dmisfit = self.prob.Jt(m, self.Wd * R, u=u)
 
         return dmisfit
 
-    @timeIt
+    @utils.timeIt
     def dataObj2Deriv(self, m, v, u=None):
         """dataObj2Deriv(m, v, u=None)
 
@@ -357,7 +343,7 @@ class BaseInversion(object):
         if u is None:
             u = self.prob.field(m)
 
-        R = self.Wd*self.prob.dataResidual(m, u=u)
+        R = self.Wd*self.prob.dataResidual(m, self.data, u=u)
 
         # TODO: abstract to different norms a little cleaner.
         #                                        \/ it goes here. in l2 it is the identity.
@@ -365,13 +351,19 @@ class BaseInversion(object):
 
         return dmisfit
 
+    def save(self, group):
+        group.attrs['phi_d'] = self.phi_d
+        group.attrs['phi_m'] = self.phi_m
+        group.setArray('m', self.m)
+        group.setArray('dpred', self.dpred)
+
 class Inversion(Cooling, Remember, BaseInversion):
 
     maxIter = 10
     name = "SimPEG Inversion"
 
-    def __init__(self, prob, reg, opt, **kwargs):
-        BaseInversion.__init__(self, prob, reg, opt, **kwargs)
+    def __init__(self, prob, reg, opt, data, **kwargs):
+        BaseInversion.__init__(self, prob, reg, opt, data, **kwargs)
 
         self.stoppers.append(StoppingCriteria.phi_d_target_Inversion)
 
@@ -387,8 +379,8 @@ class TimeSteppingInversion(Remember, BaseInversion):
     maxIter = 1
     name = "Time-Stepping SimPEG Inversion"
 
-    def __init__(self, prob, reg, opt, **kwargs):
-        BaseInversion.__init__(self, prob, reg, opt, **kwargs)
+    def __init__(self, prob, reg, opt, data, **kwargs):
+        BaseInversion.__init__(self, prob, reg, opt, data, **kwargs)
 
         self.stoppers.append(StoppingCriteria.phi_d_target_Inversion)
 

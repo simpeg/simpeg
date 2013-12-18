@@ -1,10 +1,12 @@
+import numpy as np
+import scipy.sparse as sp
 import utils
 from utils import Solver
 import mesh
+import data
+import forward
 import inverse
 import visualize
-import forward
-import regularization
 import examples
 
 import scipy.version as _v

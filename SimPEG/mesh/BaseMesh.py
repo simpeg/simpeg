@@ -1,6 +1,5 @@
 import numpy as np
-from SimPEG.utils import mkvc
-
+from SimPEG import utils
 
 
 class BaseMesh(object):
@@ -12,6 +11,7 @@ class BaseMesh(object):
     :param numpy.array,list x0: Origin of the mesh (dim, )
 
     """
+
     def __init__(self, n, x0=None):
 
         # Check inputs
@@ -78,7 +78,7 @@ class BaseMesh(object):
             x_array = np.ones((x.size, len(x)))
             # Unwrap it and put it in a np array
             for i, xi in enumerate(x):
-                x_array[:, i] = mkvc(xi)
+                x_array[:, i] = utils.mkvc(xi)
             x = x_array
 
         assert type(x) == np.ndarray, "x must be a numpy array"
@@ -91,7 +91,7 @@ class BaseMesh(object):
             if format == 'M':
                 return xx.reshape(nn, order='F')
             elif format == 'V':
-                return mkvc(xx)
+                return utils.mkvc(xx)
 
         def switchKernal(xx):
             """Switches over the different options."""
@@ -101,7 +101,7 @@ class BaseMesh(object):
                 return outKernal(xx, nn)
             elif xType in ['F', 'E']:
                 # This will only deal with components of fields, not full 'F' or 'E'
-                xx = mkvc(xx)  # unwrap it in case it is a matrix
+                xx = utils.mkvc(xx)  # unwrap it in case it is a matrix
                 nn = self.nFv if xType == 'F' else self.nEv
                 nn = np.r_[0, nn]
 
@@ -308,7 +308,7 @@ class BaseMesh(object):
         """
         fget = lambda self: np.array([x for x in [self.nNx, self.nNy, self.nNz] if not x is None])
         return locals()
-    nNv = property(**nNv())    
+    nNv = property(**nNv())
 
     def nEx():
         doc = """
