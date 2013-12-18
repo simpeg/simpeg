@@ -124,6 +124,15 @@ def callHooks(match):
         return wrapper
     return callHooksWrap
 
+def dependentProperty(name, value, children, doc):
+    def fget(self): return getattr(self,name,value)
+    def fset(self, val):
+        for child in children:
+            if hasattr(self, child):
+                delattr(self, child)
+        setattr(self, name, val)
+    return property(fget=fget, fset=fset, doc=doc)
+
 
 class Counter(object):
     """
