@@ -1,6 +1,6 @@
 ![SimPEG](https://raw.github.com/simpeg/simpeg/master/docs/simpeg-logo.png)
 
-Simulation and Parameter Estimation in Geophysics  -  A python package for simulation and gradient based parameter estimation in the context of geophysical applications.
+Simulation and Parameter Estimation in Geoscience  -  A python package for simulation and gradient based parameter estimation in the context of geophysical applications.
 
 The vision is to create a package for finite volume simulation with applications to geophysical imaging and subsurface flow. To enable the understanding of the many different components, this package has the following features:
 

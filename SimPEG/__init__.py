@@ -5,7 +5,6 @@ from utils import Solver
 import mesh
 import data
 import forward
-import regularization
 import inverse
 import visualize
 import examples

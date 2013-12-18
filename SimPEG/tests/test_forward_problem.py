@@ -1,8 +1,6 @@
 import numpy as np
 import unittest
-from SimPEG.mesh import TensorMesh
-from SimPEG.forward import Problem
-from SimPEG.regularization import Regularization
+from SimPEG import mesh, forward, inverse
 from TestUtils import checkDerivative
 from scipy.sparse.linalg import dsolve
 
@@ -14,9 +12,9 @@ class ProblemTests(unittest.TestCase):
         a = np.array([1, 1, 1])
         b = np.array([1, 2])
         c = np.array([1, 4])
-        self.mesh2 = TensorMesh([a, b], np.array([3, 5]))
-        self.p2 = Problem(self.mesh2)
-        self.reg = Regularization(self.mesh2)
+        self.mesh2 = mesh.TensorMesh([a, b], np.array([3, 5]))
+        self.p2 = forward.Problem(self.mesh2)
+        self.reg = inverse.Regularization(self.mesh2)
 
     def test_modelTransform(self):
         print 'SimPEG.forward.Problem: Testing Model Transform'

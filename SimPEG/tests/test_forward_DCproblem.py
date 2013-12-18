@@ -6,7 +6,6 @@ from SimPEG.forward import Problem
 from SimPEG.examples.DC import *
 from TestUtils import checkDerivative
 from scipy.sparse.linalg import dsolve
-from SimPEG.regularization import Regularization
 from SimPEG import inverse
 
 
@@ -48,7 +47,7 @@ class DCProblemTests(unittest.TestCase):
 
         # Now set up the problem to do some minimization
         opt = inverse.InexactGaussNewton(maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6)
-        reg = Regularization(mesh)
+        reg = inverse.Regularization(mesh)
         inv = inverse.Inversion(problem, reg, opt, data, beta0=1e4)
 
         self.inv = inv

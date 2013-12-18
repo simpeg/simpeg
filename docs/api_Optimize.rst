@@ -29,7 +29,7 @@ Beta Schedule
 Regularization
 **************
 
-.. automodule:: SimPEG.regularization.Regularization
+.. automodule:: SimPEG.inverse.Regularization
     :show-inheritance:
     :members:
     :undoc-members:

@@ -111,46 +111,46 @@ class Regularization(object):
     @property
     def Ws(self):
         if getattr(self,'_Ws', None) is None:
-            self._Ws = utils.sdiag(self.mesh.vol)
+            self._Ws = utils.sdiag(self.mesh.vol**0.5)
         return self._Ws
 
     @property
     def Wx(self):
         if getattr(self, '_Wx', None) is None:
-            Ave_x_vol = self.mesh.aveCC2F[:self.mesh.nFv[0],:]*self.mesh.vol
+            Ave_x_vol = self.mesh.aveF2CC[:,:self.mesh.nFv[0]].T*self.mesh.vol
             self._Wx = utils.sdiag(Ave_x_vol**0.5)*self.mesh.cellGradx
         return self._Wx
 
     @property
     def Wy(self):
         if getattr(self, '_Wy', None) is None:
-            Ave_y_vol = self.mesh.aveCC2F[self.mesh.nFv[0]:np.sum(self.mesh.nFv[:2]),:]*self.mesh.vol
+            Ave_y_vol = self.mesh.aveF2CC[:,self.mesh.nFv[0]:np.sum(self.mesh.nFv[:2])].T*self.mesh.vol
             self._Wy = utils.sdiag(Ave_y_vol**0.5)*self.mesh.cellGrady
         return self._Wy
 
     @property
     def Wz(self):
         if getattr(self, '_Wz', None) is None:
-            Ave_z_vol = self.mesh.aveCC2F[np.sum(self.mesh.nFv[:2]):,:]*self.mesh.vol
+            Ave_z_vol = self.mesh.aveF2CC[:,np.sum(self.mesh.nFv[:2]):].T*self.mesh.vol
             self._Wz = utils.sdiag(Ave_z_vol**0.5)*self.mesh.cellGradz
         return self._Wz
 
     @property
     def Wxx(self):
         if getattr(self, '_Wxx', None) is None:
-            self._Wxx = self.mesh.faceDivx*self.mesh.cellGradx*utils.sdiag(self.mesh.vol)
+            self._Wxx = utils.sdiag(self.mesh.vol**0.5)*self.mesh.faceDivx*self.mesh.cellGradx
         return self._Wxx
 
     @property
     def Wyy(self):
         if getattr(self, '_Wyy', None) is None:
-            self._Wyy = self.mesh.faceDivy*self.mesh.cellGrady*utils.sdiag(self.mesh.vol)
+            self._Wyy = utils.sdiag(self.mesh.vol**0.5)*self.mesh.faceDivy*self.mesh.cellGrady
         return self._Wyy
 
     @property
     def Wzz(self):
         if getattr(self, '_Wzz', None) is None:
-            self._Wzz = self.mesh.faceDivz*self.mesh.cellGradz*utils.sdiag(self.mesh.vol)
+            self._Wzz = utils.sdiag(self.mesh.vol**0.5)*self.mesh.faceDivz*self.mesh.cellGradz
         return self._Wzz
 
 

@@ -1,4 +1,4 @@
-from SimPEG import mesh, forward, inverse, regularization, np
+from SimPEG import mesh, forward, inverse, np
 import matplotlib.pyplot as plt
 
 
@@ -51,7 +51,7 @@ if __name__ == '__main__':
     prob, data = example(100)
     M = prob.mesh
 
-    reg = regularization.Regularization(M)
+    reg = inverse.Regularization(M)
     opt = inverse.InexactGaussNewton(maxIter=20)
     inv = inverse.Inversion(prob,reg,opt,data)
     m0 = np.zeros_like(data.mtrue)
