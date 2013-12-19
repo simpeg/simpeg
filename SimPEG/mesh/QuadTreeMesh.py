@@ -139,25 +139,6 @@ class TreeNode(object):
 
         self.mesh.cells.remove(self)
 
-
-    def countCell(self, COUNTER, column, maxColumns):
-        if self.isleaf:
-            if self.numCell is None:
-                self.numCell = COUNTER
-                return COUNTER + 1
-            else:
-                return COUNTER
-        if column < maxColumns/2:
-            COUNTER = self.children[0,0].countCell(COUNTER, column, maxColumns/2)
-            COUNTER = self.children[1,0].countCell(COUNTER, column, maxColumns/2)
-            return COUNTER
-        else:
-            column = column - maxColumns/2
-            COUNTER = self.children[0,1].countCell(COUNTER, column, maxColumns/2)
-            COUNTER = self.children[1,1].countCell(COUNTER, column, maxColumns/2)
-            return COUNTER
-
-
     @property
     def isleaf(self): return self.children is None
 
@@ -200,14 +181,6 @@ class QuadTreeMesh(object):
 
 
     def number(self):
-        # COUNTER = 0
-        # for col in range(self.children.shape[1]):
-        #     coldepth = np.max([node.branchdepth for node in self.children[:,col]])
-        #     maxColumns = 2**coldepth
-        #     for COL in range(maxColumns):
-        #         for row in range(self.children.shape[0]):
-        #             COUNTER = self.children[row,col].countCell(COUNTER, COL, maxColumns)
-
         sortCells = sorted(M.cells,key=SortByX0())
         sortFaceX = sorted(M.faceX,key=SortByX0())
         sortFaceY = sorted(M.faceY,key=SortByX0())
