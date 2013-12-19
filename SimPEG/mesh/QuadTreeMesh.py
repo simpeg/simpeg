@@ -49,8 +49,16 @@ class TreeFace(object):
     @property
     def isleaf(self): return self.children is None
 
+    @property
+    def index(self):
+        if self.isleaf: return np.r_[self.numFace]
+        return np.concatenate([face.index for face in self.children])
+
+
     def refine(self):
         if not self.isleaf: return
+        self.mesh.isNumbered = False
+
         self.children = np.empty(2,dtype=TreeFace)
         # Create refined x0's
         x0r_0 = self.x0
@@ -67,8 +75,8 @@ class TreeFace(object):
     def viz(self, ax):
         if not self.isleaf: return
         ax.plot(np.r_[self.x0[0],self.x0[0]+self.tangent[0]*self.sz], np.r_[self.x0[1], self.x0[1]+self.tangent[1]*self.sz],'rx-')
-        if self.faceType is 'y':
-            ax.text(self.x0[0]+0.5*self.tangent[0]*self.sz, self.x0[1]+0.5*self.tangent[1]*self.sz,self.numFace)
+        # if self.faceType is 'y':
+        ax.text(self.x0[0]+0.5*self.tangent[0]*self.sz, self.x0[1]+0.5*self.tangent[1]*self.sz,self.numFace)
 
 
 
@@ -110,6 +118,7 @@ class TreeNode(object):
 
     def refine(self):
         if not self.isleaf: return
+        self.mesh.isNumbered = False
 
         self.children = np.empty((2,2),dtype=TreeNode)
         x0, sz = self.x0, self.sz
@@ -142,6 +151,19 @@ class TreeNode(object):
     @property
     def isleaf(self): return self.children is None
 
+    @property
+    def faceIndex(self):
+        I, J, V = np.empty(0,dtype=float), np.empty(0,dtype=float), np.empty(0,dtype=float)
+        for face in self.faces:
+            j = self.faces[face].index
+            i = j*0+self.numCell
+            v = j*0+1
+            if 'p' in face:
+                v *= -1
+            I, J, V = np.r_[I,i], np.r_[J,j], np.r_[V,v]
+        return I, J, V
+
+
     def viz(self, ax):
         if self.isleaf:
             x0, sz = self.x0, self.sz
@@ -166,7 +188,7 @@ class QuadTreeMesh(object):
         self.faceX = set()
         self.faceY = set()
         self.cells = set()
-
+        self.isNumbered = False
         self.children = np.empty(cells,dtype=TreeNode)
         for i in range(cells[0]):
             for j in range(cells[1]):
@@ -181,6 +203,7 @@ class QuadTreeMesh(object):
 
 
     def number(self):
+        if self.isNumbered: return
         sortCells = sorted(M.cells,key=SortByX0())
         sortFaceX = sorted(M.faceX,key=SortByX0())
         sortFaceY = sorted(M.faceY,key=SortByX0())
@@ -189,10 +212,22 @@ class QuadTreeMesh(object):
         for i, sfx in enumerate(sortFaceX): sfx.numFace = i
         for i, sfy in enumerate(sortFaceY): sfy.numFace = i + nFx
 
-    def viz(self):
-        ax = plt.subplot(111)
+        self.sortCells = sortCells
+        self.sortFaceX = sortFaceX
+        self.sortFaceY = sortFaceY
+
+        self.isNumbered = True
+
+    def viz(self, ax=None):
+        if ax is None: ax = plt.subplot(111)
         [node.viz(ax) for node in self.cells]
         [node.viz(ax) for node in self.faces]
+
+    @property
+    def nC(self): return len(self.cells)
+    @property
+    def nF(self): return len(self.faces)
+
 
 
 if __name__ == '__main__':
@@ -204,10 +239,27 @@ if __name__ == '__main__':
 
 
 
-    M.number()
 
-    print M.children[0,0].faces['fXp'] is M.children[1,0].faces['fXm']
+
+    M.number()
+    M.sortCells[5].refine()
+    M.number()
+    I, J, V = np.empty(0), np.empty(0), np.empty(0)
+    for cell in M.cells:
+        i, j, v = cell.faceIndex
+        I, J, V = np.r_[I,i], np.r_[J,j], np.r_[V,v]
+
+    print J
+    import scipy.sparse as sp
+
+    DIV = sp.csr_matrix((V,(I,J)), shape=(M.nC, M.nF))
+    plt.subplot(211)
+    plt.spy(DIV)
+
+    # print M.sortCells[6].faces['fYm'].index
+
+    # print M.children[0,0].faces['fXp'] is M.children[1,0].faces['fXm']
     print len(M.faces)
-    M.viz()
+    M.viz(ax=plt.subplot(212))
     # plt.gca().invert_yaxis()
     plt.show()
