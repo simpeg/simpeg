@@ -119,8 +119,10 @@ def callHooks(match):
             Where the * can be any string. If present, _%s* will be called at the start of the default %s call.
             You may also completely overwrite this function.
         """ % (match, match, match, match)
-
-        wrapper.__doc__ += extra
+        try:
+            wrapper.__doc__ += extra
+        except Exception, e:
+            pass
         return wrapper
     return callHooksWrap
 
