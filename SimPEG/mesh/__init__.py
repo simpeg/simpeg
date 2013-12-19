@@ -1,5 +1,6 @@
 from Cyl1DMesh import Cyl1DMesh
 from TensorMesh import TensorMesh
+from QuadTreeMesh import QuadTreeMesh
 from LogicallyOrthogonalMesh import LogicallyOrthogonalMesh
 from BaseMesh import BaseMesh
 from TensorView import TensorView

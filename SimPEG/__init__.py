@@ -6,7 +6,7 @@ import mesh
 import data
 import forward
 import inverse
-import visualize
+# import visualize
 import examples
 
 import scipy.version as _v
