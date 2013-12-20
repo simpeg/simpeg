@@ -1,4 +1,4 @@
-import numpy as np
+from SimPEG import np, sp, utils
 import matplotlib.pyplot as plt
 
 
@@ -53,6 +53,9 @@ class TreeFace(object):
     def index(self):
         if self.isleaf: return np.r_[self.numFace]
         return np.concatenate([face.index for face in self.children])
+
+    @property
+    def area(self): return self.sz
 
 
     def refine(self):
@@ -163,6 +166,9 @@ class TreeNode(object):
             I, J, V = np.r_[I,i], np.r_[J,j], np.r_[V,v]
         return I, J, V
 
+    @property
+    def vol(self): return self.sz.prod()
+
 
     def viz(self, ax):
         if self.isleaf:
@@ -188,7 +194,6 @@ class QuadTreeMesh(object):
         self.faceX = set()
         self.faceY = set()
         self.cells = set()
-        self.isNumbered = False
         self.children = np.empty(cells,dtype=TreeNode)
         for i in range(cells[0]):
             for j in range(cells[1]):
@@ -196,6 +201,7 @@ class QuadTreeMesh(object):
                 fYm = None if j is 0 else self.children[i][j-1].faces['fYp']
                 self.children[i][j] = TreeNode(self, x0=[i*sz[0],j*sz[1]], dim=2, depth=0, sz=sz, fXm=fXm, fYm=fYm)
 
+    isNumbered = utils.dependentProperty('_isNumbered', False, ['_faceDiv'], 'Setting this to False will delete all operators.')
 
     @property
     def branchdepth(self):
@@ -204,6 +210,7 @@ class QuadTreeMesh(object):
 
     def number(self):
         if self.isNumbered: return
+
         sortCells = sorted(M.cells,key=SortByX0())
         sortFaceX = sorted(M.faceX,key=SortByX0())
         sortFaceY = sorted(M.faceY,key=SortByX0())
@@ -228,6 +235,31 @@ class QuadTreeMesh(object):
     @property
     def nF(self): return len(self.faces)
 
+    @property
+    def vol(self):
+        self.number()
+        return np.array([cell.vol for cell in self.sortCells])
+
+    @property
+    def area(self):
+        self.number()
+        return np.concatenate(([face.area for face in self.sortFaceX],[face.area for face in self.sortFaceY]))
+
+    @property
+    def faceDiv(self):
+        if getattr(self, '_faceDiv', None) is None:
+            self.number()
+            I, J, V = np.empty(0), np.empty(0), np.empty(0)
+            for cell in M.cells:
+                i, j, v = cell.faceIndex
+                I, J, V = np.r_[I,i], np.r_[J,j], np.r_[V,v]
+
+            VOL = self.vol
+            D = sp.csr_matrix((V,(I,J)), shape=(M.nC, M.nF))
+            S = self.area
+            self._faceDiv = utils.sdiag(1/VOL)*D*utils.sdiag(S)
+        return self._faceDiv
+
 
 
 if __name__ == '__main__':
@@ -237,29 +269,10 @@ if __name__ == '__main__':
         # M.children[ii,ii].children[0,0].refine()
 
 
-
-
-
-
-    M.number()
-    M.sortCells[5].refine()
-    M.number()
-    I, J, V = np.empty(0), np.empty(0), np.empty(0)
-    for cell in M.cells:
-        i, j, v = cell.faceIndex
-        I, J, V = np.r_[I,i], np.r_[J,j], np.r_[V,v]
-
-    print J
-    import scipy.sparse as sp
-
-    DIV = sp.csr_matrix((V,(I,J)), shape=(M.nC, M.nF))
+    DIV = M.faceDiv
     plt.subplot(211)
     plt.spy(DIV)
 
-    # print M.sortCells[6].faces['fYm'].index
-
-    # print M.children[0,0].faces['fXp'] is M.children[1,0].faces['fXm']
-    print len(M.faces)
     M.viz(ax=plt.subplot(212))
     # plt.gca().invert_yaxis()
     plt.show()
