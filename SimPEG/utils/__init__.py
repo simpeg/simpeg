@@ -90,7 +90,7 @@ def printStoppers(obj, stoppers, pad='', stop='STOP!', done='DONE!'):
         print pad + stopper['str'] % (l<=r,l,r)
     print pad + "%s%s%s" % ('-'*25,done,'-'*25)
 
-def callHooks(match):
+def callHooks(match, mainFirst=False):
     """
     Use this to wrap a funciton::
 
@@ -98,17 +98,29 @@ def callHooks(match):
         def doEndIteration(self):
             pass
 
-    This will call everything named _doEndIteration* at the beginning of the function call.
+    This will call everything named _doEndIteration* at the beginning of the function call.  
+    By default the master method (doEndIteration) is run after all of the sub methods (_doEndIteration*).
+    This can be reversed by adding the mainFirst=True kwarg.
     """
     def callHooksWrap(f):
         @wraps(f)
         def wrapper(self,*args,**kwargs):
 
-            for method in [posible for posible in dir(self) if ('_'+match) in posible]:
-                if getattr(self,'debug',False): print (match+' is calling self.'+method)
-                getattr(self,method)(*args, **kwargs)
+            if not mainFirst:
+                for method in [posible for posible in dir(self) if ('_'+match) in posible]:
+                    if getattr(self,'debug',False): print (match+' is calling self.'+method)
+                    getattr(self,method)(*args, **kwargs)
 
-            return f(self,*args,**kwargs)
+                return f(self,*args,**kwargs)
+            else:
+                out = f(self,*args,**kwargs)
+
+                for method in [posible for posible in dir(self) if ('_'+match) in posible]:
+                    if getattr(self,'debug',False): print (match+' is calling self.'+method)
+                    getattr(self,method)(*args, **kwargs)
+
+                return out
+
 
         extra = """
             If you have things that also need to run in the method %s, you can create a method::
