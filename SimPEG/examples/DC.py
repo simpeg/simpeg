@@ -203,7 +203,7 @@ if __name__ == '__main__':
     problem = DCProblem(mesh)
     problem.P = P
     problem.RHS = q
-    dobs, Wd = problem.createSyntheticData(mSynth, std=0.05)
+    data = problem.createSyntheticData(mSynth, std=0.05)
 
     u = problem.field(mSynth)
     u = problem.reshapeFields(u)
@@ -211,13 +211,13 @@ if __name__ == '__main__':
     # plt.show()
 
     # Now set up the problem to do some minimization
-    problem.dobs = dobs
-    problem.std = dobs*0 + 0.05
+    # problem.dobs = dobs
+    # problem.std = dobs*0 + 0.05
     m0 = mesh.gridCC[:,0]*0+sig2
 
     opt = inverse.InexactGaussNewton(maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6)
     reg = inverse.Regularization(mesh)
-    inv = inverse.Inversion(problem, reg, opt, beta0=1e4)
+    inv = inverse.Inversion(problem, reg, opt, data, beta0=1e4)
 
     # Check Derivative
     derChk = lambda m: [inv.dataObj(m), inv.dataObjDeriv(m)]
