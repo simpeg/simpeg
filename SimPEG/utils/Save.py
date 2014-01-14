@@ -208,6 +208,10 @@ class hdf5Inversion(hdf5Group):
     def rebuild(self):
         return loadSavable(self['rebuild'])
 
+    @property
+    def results(self): return self['results']
+
+
 class hdf5InversionResults(hdf5Group):
     def __init__(self, T, groupNode):
         hdf5Group.__init__(self, T, groupNode)
