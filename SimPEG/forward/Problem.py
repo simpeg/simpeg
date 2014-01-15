@@ -1,4 +1,5 @@
-from SimPEG import utils, data, np, sp
+from SimPEG import utils, np, sp
+import Data
 norm = np.linalg.norm
 
 
@@ -224,7 +225,7 @@ class Problem(object):
         noise = std*abs(dtrue)*np.random.randn(*dtrue.shape)
         dobs = dtrue+noise
         stdev = dobs*0 + std
-        return data.SimPEGData(self, dobs=dobs, std=stdev, dtrue=dtrue, mtrue=m)
+        return Data.SimPEGData(self, dobs=dobs, std=stdev, dtrue=dtrue, mtrue=m)
 
 
 
