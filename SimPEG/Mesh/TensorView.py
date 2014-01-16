@@ -124,9 +124,9 @@ class TensorView(object):
             ax.axis('tight')
         elif self.dim == 2:
             if imageType == 'CC':
-                C = I[:].reshape(self.n, order='F')
+                C = I[:].reshape(self.nCv, order='F')
             elif imageType == 'N':
-                C = I[:].reshape(self.n+1, order='F')
+                C = I[:].reshape(self.nNv, order='F')
                 C = 0.25*(C[:-1, :-1] + C[1:, :-1] + C[:-1, 1:] + C[1:, 1:])
             elif imageType == 'Fx':
                 C = I[:].reshape(self.nFx, order='F')
@@ -153,9 +153,9 @@ class TensorView(object):
 
                 # get copy of image and average to cell-centres is necessary
                 if imageType == 'CC':
-                    Ic = I[:].reshape(self.n, order='F')
+                    Ic = I[:].reshape(self.nCv, order='F')
                 elif imageType == 'N':
-                    Ic = I[:].reshape(self.n+1, order='F')
+                    Ic = I[:].reshape(self.nNv, order='F')
                     Ic = .125*(Ic[:-1,:-1,:-1]+Ic[1:,:-1,:-1] + Ic[:-1,1:,:-1]+ Ic[1:,1:,:-1]+ Ic[:-1,:-1,1:]+Ic[1:,:-1,1:] + Ic[:-1,1:,1:]+ Ic[1:,1:,1:] )
                 elif imageType == 'Fx':
                     Ic = I[:].reshape(self.nFx, order='F')
