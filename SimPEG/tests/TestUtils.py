@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from pylab import norm
+from numpy.linalg import norm
 from SimPEG.utils import mkvc, sdiag
 from SimPEG import utils
 from SimPEG.mesh import TensorMesh, LogicallyOrthogonalMesh
