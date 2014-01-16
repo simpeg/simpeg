@@ -27,6 +27,9 @@ def getIndecesBlock(p0,p1,ccMesh):
     dimMesh = np.size(ccMesh[0,:])
     assert len(p0) == dimMesh, "Dimension mismatch. len(p0) != dimMesh"
 
+    for ii in range(len(p0)):
+        p0[ii], p1[ii] = np.min([p0[ii], p1[ii]]), np.max([p0[ii], p1[ii]])
+
     if dimMesh == 1:
        # Define the reference points
         x1 = p0[0]
@@ -67,7 +70,7 @@ def getIndecesBlock(p0,p1,ccMesh):
     # Return a tuple
     return ind
 
-def defineBlockConductivity(p0,p1,ccMesh,condVals):
+def defineBlockConductivity(ccMesh,p0,p1,condVals):
     """
         Build a block with the conductivity specified by condVal.  Returns an array.
         condVals[0]  conductivity of the block
@@ -80,7 +83,7 @@ def defineBlockConductivity(p0,p1,ccMesh,condVals):
 
     return sigma
 
-def defineTwoLayeredConductivity(depth,ccMesh,condVals):
+def defineTwoLayeredConductivity(ccMesh,depth,condVals):
     """
     Define a two layered model.  Depth of the first layer must be specified.
     CondVals vector with the conductivity values of the layers.  Eg:
@@ -229,7 +232,7 @@ if __name__ == '__main__':
     p1 = np.array([1.0,1.0,1.0])[:testDim]
     condVals = np.array([100,1e-6])
 
-    sigma = defineBlockConductivity(p0,p1,ccMesh,condVals)
+    sigma = defineBlockConductivity(ccMesh,p0,p1,condVals)
 
     # Plot sigma model
     print sigma.shape
@@ -242,7 +245,7 @@ if __name__ == '__main__':
     condVals = np.array([100,1e-5]);
     depth    = 1.0;
 
-    sigma = defineTwoLayeredConductivity(depth,ccMesh,condVals)
+    sigma = defineTwoLayeredConductivity(ccMesh,depth,condVals)
 
     M.plotImage(sigma)
     print sigma
