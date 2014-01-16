@@ -13,7 +13,7 @@ class TestBaseMesh(unittest.TestCase):
         self.assertTrue(self.mesh.dim, 3)
 
     def test_mesh_nc(self):
-        self.assertTrue(np.all(self.mesh.n == [6, 2, 3]))
+        self.assertTrue(np.all(self.mesh.nCv == [6, 2, 3]))
 
     def test_mesh_nc_xyz(self):
         x = np.all(self.mesh.nCx == 6)
@@ -106,9 +106,9 @@ class TestBaseMesh(unittest.TestCase):
         g[:, 1] = 2
         g[:, 2] = 3
         Xc, Yc, Zc = self.mesh.r(g, 'CC', 'CC', 'M')
-        self.assertTrue(np.all(Xc.shape == self.mesh.n))
-        self.assertTrue(np.all(Yc.shape == self.mesh.n))
-        self.assertTrue(np.all(Zc.shape == self.mesh.n))
+        self.assertTrue(np.all(Xc.shape == self.mesh.nCv))
+        self.assertTrue(np.all(Yc.shape == self.mesh.nCv))
+        self.assertTrue(np.all(Zc.shape == self.mesh.nCv))
         self.assertTrue(np.all(Xc == 1))
         self.assertTrue(np.all(Yc == 2))
         self.assertTrue(np.all(Zc == 3))
@@ -123,7 +123,7 @@ class TestMeshNumbers2D(unittest.TestCase):
         self.assertTrue(self.mesh.dim, 2)
 
     def test_mesh_nc(self):
-        self.assertTrue(np.all(self.mesh.n == [6, 2]))
+        self.assertTrue(np.all(self.mesh.nCv == [6, 2]))
 
     def test_mesh_nc_xyz(self):
         x = np.all(self.mesh.nCx == 6)
@@ -203,8 +203,8 @@ class TestMeshNumbers2D(unittest.TestCase):
         g = np.ones((self.mesh.nC, 2))
         g[:, 1] = 2
         Xc, Yc = self.mesh.r(g, 'CC', 'CC', 'M')
-        self.assertTrue(np.all(Xc.shape == self.mesh.n))
-        self.assertTrue(np.all(Yc.shape == self.mesh.n))
+        self.assertTrue(np.all(Xc.shape == self.mesh.nCv))
+        self.assertTrue(np.all(Yc.shape == self.mesh.nCv))
         self.assertTrue(np.all(Xc == 1))
         self.assertTrue(np.all(Yc == 2))
 

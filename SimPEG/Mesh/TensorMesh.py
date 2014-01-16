@@ -282,7 +282,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
                 # Ensure that we are working with column vectors
                 vh = self.h
                 # The number of cell centers in each direction
-                n = self.n
+                n = self.nCv
                 # Compute areas of cell faces
                 if(self.dim == 1):
                     self._area = np.ones(n[0]+1)
@@ -308,7 +308,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
                 # Ensure that we are working with column vectors
                 vh = self.h
                 # The number of cell centers in each direction
-                n = self.n
+                n = self.nCv
                 # Compute edge lengths
                 if(self.dim == 1):
                     self._edge = Utils.mkvc(vh[0])

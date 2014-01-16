@@ -96,7 +96,7 @@ class BaseMesh(object):
         def switchKernal(xx):
             """Switches over the different options."""
             if xType in ['CC', 'N']:
-                nn = (self.n) if xType == 'CC' else (self.n+1)
+                nn = (self._n) if xType == 'CC' else (self._n+1)
                 assert xx.size == np.prod(nn), "Number of elements must not change."
                 return outKernal(xx, nn)
             elif xType in ['F', 'E']:
@@ -147,16 +147,16 @@ class BaseMesh(object):
         else:
             return switchKernal(x)
 
-    def n():
-        doc = """
-        Number of Cells in each dimension (array of integers)
+    # def n():
+    #     doc = """
+    #     Number of Cells in each dimension (array of integers)
 
-        :rtype: numpy.array
-        :return: n
-        """
-        fget = lambda self: self._n
-        return locals()
-    n = property(**n())
+    #     :rtype: numpy.array
+    #     :return: n
+    #     """
+    #     fget = lambda self: self._n
+    #     return locals()
+    # n = property(**n())
 
     def dim():
         doc = """
@@ -176,7 +176,7 @@ class BaseMesh(object):
         :rtype: int
         :return: nCx
         """
-        fget = lambda self: self.n[0]
+        fget = lambda self: self._n[0]
         return locals()
     nCx = property(**nCx())
 
@@ -190,7 +190,7 @@ class BaseMesh(object):
 
         def fget(self):
             if self.dim > 1:
-                return self.n[1]
+                return self._n[1]
             else:
                 return None
         return locals()
@@ -205,7 +205,7 @@ class BaseMesh(object):
 
         def fget(self):
             if self.dim > 2:
-                return self.n[2]
+                return self._n[2]
             else:
                 return None
         return locals()
@@ -224,7 +224,7 @@ class BaseMesh(object):
             import numpy as np
             TensorMesh([np.ones(n) for n in [2,3]]).plotGrid(centers=True,showIt=True)
         """
-        fget = lambda self: np.prod(self.n)
+        fget = lambda self: np.prod(self._n)
         return locals()
     nC = property(**nC())
 
@@ -260,7 +260,7 @@ class BaseMesh(object):
 
         def fget(self):
             if self.dim > 1:
-                return self.n[1] + 1
+                return self._n[1] + 1
             else:
                 return None
         return locals()
@@ -276,7 +276,7 @@ class BaseMesh(object):
 
         def fget(self):
             if self.dim > 2:
-                return self.n[2] + 1
+                return self._n[2] + 1
             else:
                 return None
         return locals()
@@ -295,7 +295,7 @@ class BaseMesh(object):
             import numpy as np
             TensorMesh([np.ones(n) for n in [2,3]]).plotGrid(nodes=True,showIt=True)
         """
-        fget = lambda self: np.prod(self.n + 1)
+        fget = lambda self: np.prod(self.nCv + 1)
         return locals()
     nN = property(**nN())
 

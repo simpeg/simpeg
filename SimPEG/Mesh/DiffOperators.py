@@ -129,7 +129,7 @@ class DiffOperators(object):
         def fget(self):
             if(self._faceDiv is None):
                 # The number of cell centers in each direction
-                n = self.n
+                n = self.nCv
                 # Compute faceDivergence operator on faces
                 if(self.dim == 1):
                     D = ddx(n[0])
@@ -158,7 +158,7 @@ class DiffOperators(object):
         def fget(self):
             if(self._faceDivx is None):
                 # The number of cell centers in each direction
-                n = self.n
+                n = self.nCv
                 # Compute faceDivergence operator on faces
                 if(self.dim == 1):
                     D1 = ddx(n[0])
@@ -183,7 +183,7 @@ class DiffOperators(object):
             if(self.dim < 2): return None
             if(self._faceDivy is None):
                 # The number of cell centers in each direction
-                n = self.n
+                n = self.nCv
                 # Compute faceDivergence operator on faces
                 if(self.dim == 2):
                     D2 = sp.kron(ddx(n[1]), speye(n[0]))
@@ -225,7 +225,7 @@ class DiffOperators(object):
         def fget(self):
             if(self._nodalGrad is None):
                 # The number of cell centers in each direction
-                n = self.n
+                n = self.nCv
                 # Compute divergence operator on faces
                 if(self.dim == 1):
                     G = ddx(n[0])
@@ -253,7 +253,7 @@ class DiffOperators(object):
             if(self._nodalLaplacian is None):
                 print 'Warning: Laplacian has not been tested rigorously.'
                 # The number of cell centers in each direction
-                n = self.n
+                n = self.nCv
                 # Compute divergence operator on faces
                 if(self.dim == 1):
                     D1 = sdiag(1./self.hx) * ddx(mesh.nCx)
@@ -291,7 +291,7 @@ class DiffOperators(object):
 
         """
         if(type(BC) is str):
-            BC = [BC for _ in self.n]  # Repeat the str self.dim times
+            BC = [BC for _ in self.nCv]  # Repeat the str self.dim times
         elif(type(BC) is list):
             assert len(BC) == self.dim, 'BC list must be the size of your mesh'
         else:
@@ -313,7 +313,7 @@ class DiffOperators(object):
         def fget(self):
             if(self._cellGrad is None):
                 BC = self.setCellGradBC(self._cellGradBC_list)
-                n = self.n
+                n = self.nCv
                 if(self.dim == 1):
                     G = ddxCellGrad(n[0], BC[0])
                 elif(self.dim == 2):
@@ -340,7 +340,7 @@ class DiffOperators(object):
         def fget(self):
             if(self._cellGradBC is None):
                 BC = self.setCellGradBC(self._cellGradBC_list)
-                n = self.n
+                n = self.nCv
                 if(self.dim == 1):
                     G = ddxCellGradBC(n[0], BC[0])
                 elif(self.dim == 2):
@@ -367,7 +367,7 @@ class DiffOperators(object):
         def fget(self):
             if getattr(self, '_cellGradx', None) is None:
                 BC = ['neumann', 'neumann']
-                n = self.n
+                n = self.nCv
                 if(self.dim == 1):
                     G1 = ddxCellGrad(n[0], BC)
                 elif(self.dim == 2):
@@ -388,7 +388,7 @@ class DiffOperators(object):
             if self.dim < 2: return None
             if getattr(self, '_cellGrady', None) is None:
                 BC = ['neumann', 'neumann']
-                n = self.n
+                n = self.nCv
                 if(self.dim == 2):
                     G2 = sp.kron(ddxCellGrad(n[1], BC), speye(n[0]))
                 elif(self.dim == 3):
@@ -466,7 +466,7 @@ class DiffOperators(object):
 
         def fget(self):
             if(self._aveF2CC is None):
-                n = self.n
+                n = self.nCv
                 if(self.dim == 1):
                     self._aveF2CC = av(n[0])
                 elif(self.dim == 2):
@@ -486,7 +486,7 @@ class DiffOperators(object):
 
         def fget(self):
             if(self._aveCC2F is None):
-                n = self.n
+                n = self.nCv
                 if(self.dim == 1):
                     self._aveCC2F = avExtrap(n[0])
                 elif(self.dim == 2):
@@ -507,7 +507,7 @@ class DiffOperators(object):
         def fget(self):
             if(self._aveE2CC is None):
                 # The number of cell centers in each direction
-                n = self.n
+                n = self.nCv
                 if(self.dim == 1):
                     raise Exception('Edge Averaging does not make sense in 1D: Use Identity?')
                 elif(self.dim == 2):
@@ -528,7 +528,7 @@ class DiffOperators(object):
         def fget(self):
             if(self._aveN2CC is None):
                 # The number of cell centers in each direction
-                n = self.n
+                n = self.nCv
                 if(self.dim == 1):
                     self._aveN2CC = av(n[0])
                 elif(self.dim == 2):
@@ -546,7 +546,7 @@ class DiffOperators(object):
         def fget(self):
             if(self._aveN2E is None):
                 # The number of cell centers in each direction
-                n = self.n
+                n = self.nCv
                 if(self.dim == 1):
                     self._aveN2E = av(n[0])
                 elif(self.dim == 2):
@@ -567,7 +567,7 @@ class DiffOperators(object):
         def fget(self):
             if(self._aveN2F is None):
                 # The number of cell centers in each direction
-                n = self.n
+                n = self.nCv
                 if(self.dim == 1):
                     self._aveN2F = av(n[0])
                 elif(self.dim == 2):
