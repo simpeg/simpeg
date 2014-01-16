@@ -196,7 +196,7 @@ def randomModel(shape, seed=None, anisotropy=None, its=100, bounds=[0,1]):
 
 if __name__ == '__main__':
 
-    from SimPEG.mesh import TensorMesh
+    from SimPEG.Mesh import TensorMesh
     from matplotlib import pyplot as plt
 
     # Define the mesh

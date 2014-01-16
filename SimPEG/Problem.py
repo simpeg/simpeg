@@ -130,7 +130,7 @@ class BaseProblem(object):
         """
         pass
 
-    def createSyntheticData(self, m, std=0.05, u=None):
+    def createSyntheticData(self, m, std=0.05, u=None, **geometry_kwargs):
         """
             Create synthetic data given a model, and a standard deviation.
 
@@ -142,11 +142,13 @@ class BaseProblem(object):
             Returns the observed data with random Gaussian noise
             and Wd which is the same size as data, and can be used to weight the inversion.
         """
-        dtrue = self.dpred(m,u=u)
-        noise = std*abs(dtrue)*np.random.randn(*dtrue.shape)
-        dobs = dtrue+noise
-        stdev = dobs*0 + std
-        return self.dataPair(dobs=dobs, std=stdev, dtrue=dtrue, mtrue=m)
+        data = self.dataPair(mtrue=m, **geometry_kwargs)
+        data.setProblem(self)
+        data.dtrue = self.data.dpred(m,u=u)
+        noise = std*abs(data.dtrue)*np.random.randn(*data.dtrue.shape)
+        data.dobs = data.dtrue+noise
+        data.std = data.dobs*0 + std
+        return data
 
 
 

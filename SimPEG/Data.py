@@ -1,5 +1,5 @@
 import Utils
-
+import numpy as np
 
 def requiresProblem(f):
     """
@@ -13,12 +13,13 @@ def requiresProblem(f):
     If a problem is not bound an Exception will be raised, and an nice error message printed.
     """
     extra = """
-        This function requires that a problem be bound to the data.
+        To use data.%s(), SimPEG requires that a problem be bound to the data.
         If a problem has not been bound, an Exception will be raised.
         To bind a problem to the Data object::
 
             data.setProblem(myProblem)
-    """
+
+    """ % f.__name__
     from functools import wraps
     @wraps(f)
     def requiresProblemWrapper(self,*args,**kwargs):
@@ -37,11 +38,11 @@ class BaseData(object):
 
     __metaclass__ = Utils.Save.Savable
 
+    prob = None      #: The geophysical problem that explains this data, use data.setProblem(prob)
     std = None       #: Estimated Standard Deviations
     dobs = None      #: Observed data
     dtrue = None     #: True data, if data is synthetic
     mtrue = None     #: True model, if data is synthetic
-    prob = None      #: The geophysical problem that explains this data
 
     counter = None   #: A SimPEG.Utils.Counter object
 
@@ -49,19 +50,39 @@ class BaseData(object):
         Utils.setKwargs(self, **kwargs)
 
     def setProblem(self, prob):
+        # Bind these two instances together using pointers
         self.prob = prob
+        prob.data = self
 
     @Utils.count
     @requiresProblem
     def dpred(self, m, u=None):
         """
-            Projection matrix.
+            Create the projected data from a model.
+            The field, u, (if provided) will be used for the predicted data
+            instead of recalculating the fields (which may be expensive!).
+
+            .. math::
+                d_\\text{pred} = P(u(m))
+
+            Where P is a projection of the fields onto the data space.
+        """
+        if u is None: u = self.prob.field(m)
+        return self.projectField(u)
+
+
+    @Utils.count
+    def projectField(self, u):
+        """
+            This function projects the fields onto the data space.
+
 
             .. math::
                 d_\\text{pred} = Pu(m)
         """
-        if u is None: u = self.prob.field(m)
-        return self.P*u
+        return u
+
+    #TODO: def projectFieldDeriv(self, u):  Does this need to be made??!
 
     @Utils.count
     def residual(self, m, u=None):
@@ -122,7 +143,7 @@ class BaseData(object):
         """
             Source matrix.
         """
-        return self._RHS
+        return getattr(self, '_RHS', None)
     @RHS.setter
     def RHS(self, value):
         self._RHS = value

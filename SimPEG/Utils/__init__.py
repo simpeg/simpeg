@@ -7,6 +7,7 @@ from ipythonutils import easyAnimate as animate
 from Solver import Solver
 import Save
 import Geophysics
+import ModelBuilder
 
 import types
 import time

@@ -201,7 +201,7 @@ class BaseInversion(object):
         phi_d = self.dataObj(m, u)
         phi_m = self.reg.modelObj(m)
 
-        self.dpred = self.prob.dpred(m, u=u)  # This is a cheap matrix vector calculation.
+        self.dpred = self.data.dpred(m, u=u)  # This is a cheap matrix vector calculation.
         self.phi_d = phi_d
         self.phi_m = phi_m
 
@@ -245,7 +245,7 @@ class BaseInversion(object):
             u is the field of interest; d_obs is the observed data; and W is the weighting matrix.
         """
         # TODO: ensure that this is a data is vector and Wd is a matrix.
-        R = self.Wd*self.prob.dataResidual(m, self.data, u=u)
+        R = self.data.residualWeighted(m, u=u)
         R = Utils.mkvc(R)
         return 0.5*np.vdot(R, R)
 
@@ -285,9 +285,9 @@ class BaseInversion(object):
         if u is None:
             u = self.prob.field(m)
 
-        R = self.Wd*self.prob.dataResidual(m, self.data, u=u)
+        R = self.data.residualWeighted(m, u=u)
 
-        dmisfit = self.prob.Jt(m, self.Wd * R, u=u)
+        dmisfit = self.prob.Jt(m, self.data.Wd * R, u=u)
 
         return dmisfit
 
@@ -330,11 +330,11 @@ class BaseInversion(object):
         if u is None:
             u = self.prob.field(m)
 
-        R = self.Wd*self.prob.dataResidual(m, self.data, u=u)
+        R = self.data.residualWeighted(m, u=u)
 
         # TODO: abstract to different norms a little cleaner.
         #                                        \/ it goes here. in l2 it is the identity.
-        dmisfit = self.prob.Jt_approx(m, self.Wd * self.Wd * self.prob.J_approx(m, v, u=u), u=u)
+        dmisfit = self.prob.Jt_approx(m, self.data.Wd * self.data.Wd * self.prob.J_approx(m, v, u=u), u=u)
 
         return dmisfit
 

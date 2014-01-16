@@ -10,9 +10,10 @@ class DCData(Data.BaseData):
 
     """
 
-    def __init__(self, mesh, model, **kwargs):
-        problem.BaseProblem.__init__(self, mesh, model)
-        self.mesh.setCellGradBC('neumann')
+    P = None #: projection
+
+    def __init__(self, **kwargs):
+        Data.BaseData.__init__(self, **kwargs)
         Utils.setKwargs(self, **kwargs)
 
     def reshapeFields(self, u):
@@ -20,18 +21,14 @@ class DCData(Data.BaseData):
             u = u.reshape([-1, self.RHS.shape[1]], order='F')
         return u
 
-    def dpred(self, m, u=None):
+    def projectField(self, u):
         """
             Predicted data.
 
             .. math::
                 d_\\text{pred} = Pu(m)
         """
-        if u is None:
-            u = self.field(m)
-
         u = self.reshapeFields(u)
-
         return Utils.mkvc(self.P*u)
 
 
@@ -47,7 +44,7 @@ class DCProblem(Problem.BaseProblem):
     dataPair = DCData
 
     def __init__(self, mesh, model, **kwargs):
-        problem.BaseProblem.__init__(self, mesh, model)
+        Problem.BaseProblem.__init__(self, mesh, model)
         self.mesh.setCellGradBC('neumann')
         Utils.setKwargs(self, **kwargs)
 
@@ -75,7 +72,7 @@ class DCProblem(Problem.BaseProblem):
     def field(self, m):
         A = self.createMatrix(m)
         solve = Solver(A)
-        phi = solve.solve(self.RHS)
+        phi = solve.solve(self.data.RHS)
         return Utils.mkvc(phi)
 
     def J(self, m, v, u=None):
@@ -103,9 +100,9 @@ class DCProblem(Problem.BaseProblem):
         if u is None:
             u = self.field(m)
 
-        u = self.reshapeFields(u)
+        u = self.data.reshapeFields(u)
 
-        P = self.P
+        P = self.data.P
         D = self.mesh.faceDiv
         G = self.mesh.cellGrad
         A = self.createMatrix(m)
@@ -128,10 +125,10 @@ class DCProblem(Problem.BaseProblem):
         if u is None:
             u = self.field(m)
 
-        u = self.reshapeFields(u)
-        v = self.reshapeFields(v)
+        u = self.data.reshapeFields(u)
+        v = self.data.reshapeFields(v)
 
-        P = self.P
+        P = self.data.P
         D = self.mesh.faceDiv
         G = self.mesh.cellGrad
         A = self.createMatrix(m)
@@ -186,7 +183,7 @@ if __name__ == '__main__':
     # Create the mesh
     h1 = np.ones(20)
     h2 = np.ones(100)
-    M = mesh.TensorMesh([h1,h2])
+    M = Mesh.TensorMesh([h1,h2])
 
     # Create some parameters for the model
     sig1 = np.log(1)
@@ -198,7 +195,7 @@ if __name__ == '__main__':
     condVals = [sig1, sig2]
     mSynth = Utils.ModelBuilder.defineBlockConductivity(p0,p1,M.gridCC,condVals)
     plt.colorbar(M.plotImage(mSynth))
-    plt.show()
+    # plt.show()
 
     # Set up the projection
     nelec = 50
@@ -211,29 +208,29 @@ if __name__ == '__main__':
     q, Q, rxmidloc = genTxRxmat(nelec, spacelec, surfloc, elecini, M)
     P = Q.T
 
-    # Create some data
-    problem = DCProblem(M)
-    problem.P = P
-    problem.RHS = q
-    data = problem.createSyntheticData(mSynth, std=0.05)
+    model = Model.LogModel()
+    prob = DCProblem(M, model)
 
-    u = problem.field(mSynth)
-    u = problem.reshapeFields(u)
+    # Create some data
+    data = prob.createSyntheticData(mSynth, std=0.05, P=P, RHS=q)
+
+    u = prob.field(mSynth)
+    u = data.reshapeFields(u)
     M.plotImage(u[:,10])
     # plt.show()
 
-    # Now set up the problem to do some minimization
-    # problem.dobs = dobs
-    # problem.std = dobs*0 + 0.05
+    # Now set up the prob to do some minimization
+    # prob.dobs = dobs
+    # prob.std = dobs*0 + 0.05
     m0 = M.gridCC[:,0]*0+sig2
 
-    opt = inverse.InexactGaussNewton(maxIterLS=20, maxIter=3, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6)
-    reg = inverse.Regularization(M)
-    inv = inverse.Inversion(problem, reg, opt, data, beta0=1e4)
+    opt = Inverse.InexactGaussNewton(maxIterLS=20, maxIter=3, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6)
+    reg = Inverse.Regularization(M)
+    inv = Inverse.Inversion(prob, reg, opt, data, beta0=1e4)
 
     # Check Derivative
     derChk = lambda m: [inv.dataObj(m), inv.dataObjDeriv(m)]
-    tests.checkDerivative(derChk, mSynth)
+    # Tests.checkDerivative(derChk, mSynth)
 
 
 
