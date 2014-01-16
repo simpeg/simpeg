@@ -1,7 +1,7 @@
 import numpy as np
 import unittest
-from SimPEG.utils import mkvc, ndgrid, indexCube, sdiag, inv3X3BlockDiagonal, inv2X2BlockDiagonal
-from SimPEG.tests import checkDerivative
+from SimPEG.Utils import mkvc, ndgrid, indexCube, sdiag, inv3X3BlockDiagonal, inv2X2BlockDiagonal
+from SimPEG.Tests import checkDerivative
 
 
 class TestCheckDerivative(unittest.TestCase):

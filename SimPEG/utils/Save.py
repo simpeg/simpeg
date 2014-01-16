@@ -5,7 +5,7 @@ import re
 try:
     import h5py
 except Exception, e:
-    print 'Warning: SimPEG.utils.Save needs h5py to be installed.'
+    print 'Warning: SimPEG.Utils.Save needs h5py to be installed.'
 
 
 SAVEABLES = {}
@@ -347,6 +347,6 @@ def loadSavable(node, pointers=None):
             print 'KWARGS: ', KWARGS
             return (cls, ARGS, KWARGS, node)
     else:
-        print 'Warning: %s Class not found in SimPEG.utils.Save.SAVABLES' % cls
+        print 'Warning: %s Class not found in SimPEG.Utils.Save.SAVABLES' % cls
         return (cls, ARGS, KWARGS, node)
 

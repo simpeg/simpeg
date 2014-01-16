@@ -1,4 +1,4 @@
-from SimPEG import utils, np, sp
+from SimPEG import Utils, np, sp
 
 class Regularization(object):
     """**Regularization**
@@ -83,20 +83,20 @@ class Regularization(object):
 
     """
 
-    __metaclass__ = utils.Save.Savable
+    __metaclass__ = Utils.Save.Savable
 
-    alpha_s  = utils.dependentProperty('_alpha_s', 1e-6, ['_W', '_Ws'], "Smallness weight")
-    alpha_x  = utils.dependentProperty('_alpha_x', 1.0, ['_W', '_Wx'], "Weight for the first derivative in the x direction")
-    alpha_y  = utils.dependentProperty('_alpha_y', 1.0, ['_W', '_Wy'], "Weight for the first derivative in the y direction")
-    alpha_z  = utils.dependentProperty('_alpha_z', 1.0, ['_W', '_Wz'], "Weight for the first derivative in the z direction")
-    alpha_xx = utils.dependentProperty('_alpha_xx', 0.0, ['_W', '_Wxx'], "Weight for the second derivative in the x direction")
-    alpha_yy = utils.dependentProperty('_alpha_yy', 0.0, ['_W', '_Wyy'], "Weight for the second derivative in the y direction")
-    alpha_zz = utils.dependentProperty('_alpha_zz', 0.0, ['_W', '_Wzz'], "Weight for the second derivative in the z direction")
+    alpha_s  = Utils.dependentProperty('_alpha_s', 1e-6, ['_W', '_Ws'], "Smallness weight")
+    alpha_x  = Utils.dependentProperty('_alpha_x', 1.0, ['_W', '_Wx'], "Weight for the first derivative in the x direction")
+    alpha_y  = Utils.dependentProperty('_alpha_y', 1.0, ['_W', '_Wy'], "Weight for the first derivative in the y direction")
+    alpha_z  = Utils.dependentProperty('_alpha_z', 1.0, ['_W', '_Wz'], "Weight for the first derivative in the z direction")
+    alpha_xx = Utils.dependentProperty('_alpha_xx', 0.0, ['_W', '_Wxx'], "Weight for the second derivative in the x direction")
+    alpha_yy = Utils.dependentProperty('_alpha_yy', 0.0, ['_W', '_Wyy'], "Weight for the second derivative in the y direction")
+    alpha_zz = Utils.dependentProperty('_alpha_zz', 0.0, ['_W', '_Wzz'], "Weight for the second derivative in the z direction")
 
     counter = None
 
     def __init__(self, mesh, **kwargs):
-        utils.setKwargs(self, **kwargs)
+        Utils.setKwargs(self, **kwargs)
         self.mesh = mesh
 
     @property
@@ -112,7 +112,7 @@ class Regularization(object):
     def Ws(self):
         """Regularization matrix Ws"""
         if getattr(self,'_Ws', None) is None:
-            self._Ws = utils.sdiag((self.mesh.vol*self.alpha_s)**0.5)
+            self._Ws = Utils.sdiag((self.mesh.vol*self.alpha_s)**0.5)
         return self._Ws
 
     @property
@@ -120,7 +120,7 @@ class Regularization(object):
         """Regularization matrix Wx"""
         if getattr(self, '_Wx', None) is None:
             Ave_x_vol = self.mesh.aveF2CC[:,:self.mesh.nFv[0]].T*self.mesh.vol
-            self._Wx = utils.sdiag((Ave_x_vol*self.alpha_x)**0.5)*self.mesh.cellGradx
+            self._Wx = Utils.sdiag((Ave_x_vol*self.alpha_x)**0.5)*self.mesh.cellGradx
         return self._Wx
 
     @property
@@ -128,7 +128,7 @@ class Regularization(object):
         """Regularization matrix Wy"""
         if getattr(self, '_Wy', None) is None:
             Ave_y_vol = self.mesh.aveF2CC[:,self.mesh.nFv[0]:np.sum(self.mesh.nFv[:2])].T*self.mesh.vol
-            self._Wy = utils.sdiag((Ave_y_vol*self.alpha_y)**0.5)*self.mesh.cellGrady
+            self._Wy = Utils.sdiag((Ave_y_vol*self.alpha_y)**0.5)*self.mesh.cellGrady
         return self._Wy
 
     @property
@@ -136,28 +136,28 @@ class Regularization(object):
         """Regularization matrix Wz"""
         if getattr(self, '_Wz', None) is None:
             Ave_z_vol = self.mesh.aveF2CC[:,np.sum(self.mesh.nFv[:2]):].T*self.mesh.vol
-            self._Wz = utils.sdiag((Ave_z_vol*self.alpha_z)**0.5)*self.mesh.cellGradz
+            self._Wz = Utils.sdiag((Ave_z_vol*self.alpha_z)**0.5)*self.mesh.cellGradz
         return self._Wz
 
     @property
     def Wxx(self):
         """Regularization matrix Wxx"""
         if getattr(self, '_Wxx', None) is None:
-            self._Wxx = utils.sdiag((self.mesh.vol*self.alpha_xx)**0.5)*self.mesh.faceDivx*self.mesh.cellGradx
+            self._Wxx = Utils.sdiag((self.mesh.vol*self.alpha_xx)**0.5)*self.mesh.faceDivx*self.mesh.cellGradx
         return self._Wxx
 
     @property
     def Wyy(self):
         """Regularization matrix Wyy"""
         if getattr(self, '_Wyy', None) is None:
-            self._Wyy = utils.sdiag((self.mesh.vol*self.alpha_yy)**0.5)*self.mesh.faceDivy*self.mesh.cellGrady
+            self._Wyy = Utils.sdiag((self.mesh.vol*self.alpha_yy)**0.5)*self.mesh.faceDivy*self.mesh.cellGrady
         return self._Wyy
 
     @property
     def Wzz(self):
         """Regularization matrix Wzz"""
         if getattr(self, '_Wzz', None) is None:
-            self._Wzz = utils.sdiag((self.mesh.vol*self.alpha_zz)**0.5)*self.mesh.faceDivz*self.mesh.cellGradz
+            self._Wzz = Utils.sdiag((self.mesh.vol*self.alpha_zz)**0.5)*self.mesh.faceDivz*self.mesh.cellGradz
         return self._Wzz
 
 
@@ -174,12 +174,12 @@ class Regularization(object):
         return self._W
 
 
-    @utils.timeIt
+    @Utils.timeIt
     def modelObj(self, m):
         r = self.W * (m - self.mref)
         return 0.5*r.dot(r)
 
-    @utils.timeIt
+    @Utils.timeIt
     def modelObjDeriv(self, m):
         """
 
@@ -198,7 +198,7 @@ class Regularization(object):
         """
         return self.W.T * ( self.W * (m - self.mref) )
 
-    @utils.timeIt
+    @Utils.timeIt
     def modelObj2Deriv(self):
         """
 

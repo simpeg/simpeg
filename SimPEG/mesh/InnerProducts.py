@@ -1,5 +1,5 @@
 from scipy import sparse as sp
-from SimPEG.utils import sub2ind, ndgrid, mkvc, getSubArray, sdiag, inv3X3BlockDiagonal, inv2X2BlockDiagonal
+from SimPEG.Utils import sub2ind, ndgrid, mkvc, getSubArray, sdiag, inv3X3BlockDiagonal, inv2X2BlockDiagonal
 import numpy as np
 
 

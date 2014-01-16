@@ -1,14 +1,15 @@
 import numpy as np
 import scipy.sparse as sp
-import utils
-Solver = utils.Solver
-import mesh
-import forward
-import inverse
-import examples
-import tests
+import Utils
+Solver = Utils.Solver
+import Mesh
+import Model
+import Problem
+import Data
+import Inverse
+import Examples
+import Tests
 
-Data = forward.Data
 
 import scipy.version as _v
 if _v.version < '0.13.0':

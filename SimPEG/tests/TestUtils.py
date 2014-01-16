@@ -1,9 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from numpy.linalg import norm
-from SimPEG.utils import mkvc, sdiag
-from SimPEG import utils
-from SimPEG.mesh import TensorMesh, LogicallyOrthogonalMesh
+from SimPEG.Utils import mkvc, sdiag
+from SimPEG import Utils
+from SimPEG.Mesh import TensorMesh, LogicallyOrthogonalMesh
 import numpy as np
 import scipy.sparse as sp
 import unittest
@@ -112,10 +112,10 @@ class OrderTest(unittest.TestCase):
             else:
                 raise Exception('Unexpected meshType')
             if self.meshDimension == 2:
-                X, Y = utils.exampleLomGird([nc, nc], kwrd)
+                X, Y = Utils.exampleLomGird([nc, nc], kwrd)
                 self.M = LogicallyOrthogonalMesh([X, Y])
             if self.meshDimension == 3:
-                X, Y, Z = utils.exampleLomGird([nc, nc, nc], kwrd)
+                X, Y, Z = Utils.exampleLomGird([nc, nc, nc], kwrd)
                 self.M = LogicallyOrthogonalMesh([X, Y, Z])
             return 1./nc
 
@@ -212,7 +212,7 @@ def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None, expectedOrder=2, tole
             :include-source:
 
             from SimPEG.tests import checkDerivative
-            from SimPEG.utils import sdiag
+            from SimPEG.Utils import sdiag
             import numpy as np
             def simplePass(x):
                 return np.sin(x), sdiag(np.cos(x))

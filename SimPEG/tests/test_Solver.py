@@ -1,7 +1,7 @@
 import unittest
 from SimPEG import Solver
-from SimPEG.mesh import TensorMesh
-from SimPEG.utils import sdiag
+from SimPEG.Mesh import TensorMesh
+from SimPEG.Utils import sdiag
 import numpy as np
 import scipy.sparse as sparse
 

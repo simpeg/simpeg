@@ -3,7 +3,7 @@ try:
 	import vtk, vtk.util.numpy_support as npsup, pdb
 except Exception, e:
 	print 'VTK import error. Please ensure you have VTK installed to use this visualization package.'
-from SimPEG.utils import mkvc
+from SimPEG.Utils import mkvc
 
 
 class vtkTools(object):

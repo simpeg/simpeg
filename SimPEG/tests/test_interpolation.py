@@ -1,7 +1,7 @@
 import numpy as np
 import unittest
 from TestUtils import OrderTest
-from SimPEG.utils import mkvc
+from SimPEG.Utils import mkvc
 
 MESHTYPES = ['uniformTensorMesh', 'randomTensorMesh']
 TOLERANCES = [0.9, 0.55]

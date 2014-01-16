@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
 from scipy.constants import pi
-from SimPEG.utils import mkvc, ndgrid, sdiag
+from SimPEG.Utils import mkvc, ndgrid, sdiag
 
 class Cyl1DMesh(object):
     """
@@ -84,7 +84,7 @@ class Cyl1DMesh(object):
         doc = "Total number of cells in each direction"
         fget = lambda self: np.array([self.nCx, self.nCz])
         return locals()
-    nCv = property(**nCv())    
+    nCv = property(**nCv())
 
     def nNr():
         doc = "Number of nodes in the radial direction"

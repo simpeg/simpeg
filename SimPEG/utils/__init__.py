@@ -3,7 +3,7 @@ from sputils import spzeros, kron3, speye, sdiag, ddx, av, avExtrap
 from meshutils import exampleLomGird, meshTensors
 from lomutils import volTetra, faceInfo, inv2X2BlockDiagonal, inv3X3BlockDiagonal, indexCube
 from interputils import interpmat
-from ipythonUtils import easyAnimate as animate
+from ipythonutils import easyAnimate as animate
 from Solver import Solver
 import Save
 import Geophysics

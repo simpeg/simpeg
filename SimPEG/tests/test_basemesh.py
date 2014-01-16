@@ -1,6 +1,6 @@
 import unittest
 import sys
-from SimPEG.mesh import BaseMesh
+from SimPEG.Mesh import BaseMesh
 import numpy as np
 
 

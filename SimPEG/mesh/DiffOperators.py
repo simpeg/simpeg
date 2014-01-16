@@ -1,6 +1,6 @@
 import numpy as np
 from scipy import sparse as sp
-from SimPEG.utils import mkvc, sdiag, speye, kron3, spzeros, ddx, av, avExtrap
+from SimPEG.Utils import mkvc, sdiag, speye, kron3, spzeros, ddx, av, avExtrap
 
 
 def checkBC(bc):

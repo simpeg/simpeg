@@ -1,9 +1,8 @@
-from SimPEG import utils, np, sp
-import SimPEGData
+from SimPEG import Utils, np, sp, Data
 norm = np.linalg.norm
 
 
-class Problem(object):
+class BaseProblem(object):
     """
         Problem is the base class for all geophysical forward problems in SimPEG.
 
@@ -36,58 +35,19 @@ class Problem(object):
         to (locally) find how model parameters change the data, and optimize!
     """
 
-    __metaclass__ = utils.Save.Savable
+    __metaclass__ = Utils.Save.Savable
 
-    counter = None   #: A SimPEG.utils.Counter object
+    counter = None   #: A SimPEG.Utils.Counter object
+
+    dataPair = Data.BaseData
 
 
-    def __init__(self, mesh, *args, **kwargs):
-        utils.setKwargs(self, **kwargs)
+    def __init__(self, mesh, model, *args, **kwargs):
+        Utils.setKwargs(self, **kwargs)
         self.mesh = mesh
+        self.model = model
 
-    @property
-    def RHS(self):
-        """
-            Source matrix.
-        """
-        return self._RHS
-    @RHS.setter
-    def RHS(self, value):
-        self._RHS = value
-
-    @utils.count
-    def dpred(self, m, u=None):
-        """
-            Predicted data.
-
-            .. math::
-                d_\\text{pred} = Pu(m)
-        """
-        if u is None:
-            u = self.field(m)
-        return self.P*u
-
-    @utils.count
-    def dataResidual(self, m, data, u=None):
-        """
-            :param numpy.array m: geophysical model
-            :param numpy.array u: fields
-            :rtype: float
-            :return: data misfit
-
-            The data misfit:
-
-            .. math::
-
-                \mu_\\text{data} = \mathbf{d}_\\text{pred} - \mathbf{d}_\\text{obs}
-
-            Where P is a projection matrix that brings the field on the full domain to the data measurement locations;
-            u is the field of interest; d_obs is the observed data.
-        """
-
-        return self.dpred(m, u=u) - data.dobs
-
-    @utils.timeIt
+    @Utils.timeIt
     def J(self, m, v, u=None):
         """
             :param numpy.array m: model
@@ -117,7 +77,7 @@ class Problem(object):
         """
         raise NotImplementedError('J is not yet implemented.')
 
-    @utils.timeIt
+    @Utils.timeIt
     def Jt(self, m, v, u=None):
         """
             :param numpy.array m: model
@@ -131,7 +91,7 @@ class Problem(object):
         raise NotImplementedError('Jt is not yet implemented.')
 
 
-    @utils.timeIt
+    @Utils.timeIt
     def J_approx(self, m, v, u=None):
         """
 
@@ -146,7 +106,7 @@ class Problem(object):
         """
         return self.J(m, v, u)
 
-    @utils.timeIt
+    @Utils.timeIt
     def Jt_approx(self, m, v, u=None):
         """
             :param numpy.array m: model
@@ -170,32 +130,6 @@ class Problem(object):
         """
         pass
 
-    def modelTransform(self, m):
-        """
-            :param numpy.array m: model
-            :rtype: numpy.array
-            :return: transformed model
-
-            The modelTransform changes the model into the physical property.
-
-            A common example of this is to invert for electrical conductivity
-            in log space. In this case, your model will be log(sigma) and to
-            get back to sigma, you can take the exponential:
-
-        """
-        return m
-
-    def modelTransformDeriv(self, m):
-        """
-            :param numpy.array m: model
-            :rtype: scipy.csr_matrix
-            :return: derivative of transformed model
-
-            The modelTransform changes the model into the physical property.
-            The modelTransformDeriv provides the derivative of the modelTransform.
-        """
-        return sp.identity(m.size)
-
     def createSyntheticData(self, m, std=0.05, u=None):
         """
             Create synthetic data given a model, and a standard deviation.
@@ -212,7 +146,7 @@ class Problem(object):
         noise = std*abs(dtrue)*np.random.randn(*dtrue.shape)
         dobs = dtrue+noise
         stdev = dobs*0 + std
-        return SimPEGData.Data(dobs=dobs, std=stdev, dtrue=dtrue, mtrue=m)
+        return self.dataPair(dobs=dobs, std=stdev, dtrue=dtrue, mtrue=m)
 
 
 

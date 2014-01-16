@@ -1,14 +1,14 @@
 import SimPEG
-from SimPEG import utils, sp, np
+from SimPEG import Utils, sp, np
 from Optimize import Remember
 from BetaSchedule import Cooling
-from SimPEG.inverse import IterationPrinters, StoppingCriteria
+from SimPEG.Inverse import IterationPrinters, StoppingCriteria
 
 class BaseInversion(object):
     """BaseInversion(prob, reg, opt, data, **kwargs)
     """
 
-    __metaclass__ = utils.Save.Savable
+    __metaclass__ = Utils.Save.Savable
 
     maxIter = 1        #: Maximum number of iterations
     name = 'BaseInversion'
@@ -16,13 +16,13 @@ class BaseInversion(object):
     debug   = False    #: Print debugging information
 
     comment = ''       #: Used by some functions to indicate what is going on in the algorithm
-    counter = None     #: Set this to a SimPEG.utils.Counter() if you want to count things
+    counter = None     #: Set this to a SimPEG.Utils.Counter() if you want to count things
 
     beta0  = None      #: The initial Beta (regularization parameter)
     beta0_ratio = 0.1  #: When beta0 is set to None, estimateBeta0 is used with this ratio
 
     def __init__(self, prob, reg, opt, data, **kwargs):
-        utils.setKwargs(self, **kwargs)
+        Utils.setKwargs(self, **kwargs)
         self.prob = prob
         self.reg = reg
         self.opt = opt
@@ -59,7 +59,7 @@ class BaseInversion(object):
     def phi_d_target(self, value):
         self._phi_d_target = value
 
-    @utils.timeIt
+    @Utils.timeIt
     def run(self, m0):
         """run(m0)
 
@@ -78,7 +78,7 @@ class BaseInversion(object):
 
         return self.m
 
-    @utils.callHooks('startup')
+    @Utils.callHooks('startup')
     def startup(self, m0):
         """
             **startup** is called at the start of any new run call.
@@ -98,7 +98,7 @@ class BaseInversion(object):
         self.phi_d_last = np.nan
         self.phi_m_last = np.nan
 
-    @utils.callHooks('doStartIteration')
+    @Utils.callHooks('doStartIteration')
     def doStartIteration(self):
         """
             **doStartIteration** is called at the end of each run iteration.
@@ -109,7 +109,7 @@ class BaseInversion(object):
         self._beta = self.getBeta()
 
 
-    @utils.callHooks('doEndIteration')
+    @Utils.callHooks('doEndIteration')
     def doEndIteration(self):
         """
             **doEndIteration** is called at the end of each run iteration.
@@ -168,7 +168,7 @@ class BaseInversion(object):
 
     def stoppingCriteria(self):
         if self.debug: print 'checking stoppingCriteria'
-        return utils.checkStoppers(self, self.stoppers)
+        return Utils.checkStoppers(self, self.stoppers)
 
 
     def printDone(self):
@@ -176,9 +176,9 @@ class BaseInversion(object):
             **printDone** is called at the end of the inversion routine.
 
         """
-        utils.printStoppers(self, self.stoppers)
+        Utils.printStoppers(self, self.stoppers)
 
-    @utils.callHooks('finish')
+    @Utils.callHooks('finish')
     def finish(self):
         """finish()
 
@@ -186,7 +186,7 @@ class BaseInversion(object):
         """
         pass
 
-    @utils.timeIt
+    @Utils.timeIt
     def evalFunction(self, m, return_g=True, return_H=True):
         """evalFunction(m, return_g=True, return_H=True)
 
@@ -226,7 +226,7 @@ class BaseInversion(object):
             out += (operator,)
         return out if len(out) > 1 else out[0]
 
-    @utils.timeIt
+    @Utils.timeIt
     def dataObj(self, m, u=None):
         """dataObj(m, u=None)
 
@@ -246,10 +246,10 @@ class BaseInversion(object):
         """
         # TODO: ensure that this is a data is vector and Wd is a matrix.
         R = self.Wd*self.prob.dataResidual(m, self.data, u=u)
-        R = utils.mkvc(R)
+        R = Utils.mkvc(R)
         return 0.5*np.vdot(R, R)
 
-    @utils.timeIt
+    @Utils.timeIt
     def dataObjDeriv(self, m, u=None):
         """dataObjDeriv(m, u=None)
 
@@ -291,7 +291,7 @@ class BaseInversion(object):
 
         return dmisfit
 
-    @utils.timeIt
+    @Utils.timeIt
     def dataObj2Deriv(self, m, v, u=None):
         """dataObj2Deriv(m, v, u=None)
 

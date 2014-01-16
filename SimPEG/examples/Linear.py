@@ -1,12 +1,12 @@
-from SimPEG import mesh, forward, inverse, np
+from SimPEG import Mesh, Model, Problem, Data, Inverse, np
 import matplotlib.pyplot as plt
 
 
-class LinearProblem(forward.Problem):
+class LinearProblem(Problem.BaseProblem):
     """docstring for LinearProblem"""
 
     def __init__(self, *args, **kwargs):
-        forward.Problem.__init__(self, *args, **kwargs)
+        problem.BaseProblem.__init__(self, *args, **kwargs)
 
     def dpred(self, m, u=None):
         return self.G.dot(m)
@@ -39,7 +39,9 @@ def example(N):
     mtrue[M.vectorCCx > 0.45] = -0.5
     mtrue[M.vectorCCx > 0.6] = 0
 
-    prob = LinearProblem(M)
+
+
+    prob = LinearProblem(M, None)
     prob.G = G
     data = prob.createSyntheticData(mtrue, std=0.01)
 

@@ -1,5 +1,5 @@
 import numpy as np
-from SimPEG import utils
+from SimPEG import Utils
 
 
 class BaseMesh(object):
@@ -78,7 +78,7 @@ class BaseMesh(object):
             x_array = np.ones((x.size, len(x)))
             # Unwrap it and put it in a np array
             for i, xi in enumerate(x):
-                x_array[:, i] = utils.mkvc(xi)
+                x_array[:, i] = Utils.mkvc(xi)
             x = x_array
 
         assert type(x) == np.ndarray, "x must be a numpy array"
@@ -91,7 +91,7 @@ class BaseMesh(object):
             if format == 'M':
                 return xx.reshape(nn, order='F')
             elif format == 'V':
-                return utils.mkvc(xx)
+                return Utils.mkvc(xx)
 
         def switchKernal(xx):
             """Switches over the different options."""
@@ -101,7 +101,7 @@ class BaseMesh(object):
                 return outKernal(xx, nn)
             elif xType in ['F', 'E']:
                 # This will only deal with components of fields, not full 'F' or 'E'
-                xx = utils.mkvc(xx)  # unwrap it in case it is a matrix
+                xx = Utils.mkvc(xx)  # unwrap it in case it is a matrix
                 nn = self.nFv if xType == 'F' else self.nEv
                 nn = np.r_[0, nn]
 

@@ -1,20 +1,56 @@
 from SimPEG import *
 
-class DCProblem(forward.ModelTransforms.LogModel, forward.Problem):
+
+
+class DCData(Data.BaseData):
+    """
+        **DCData**
+
+        Geophysical DC resistivity data.
+
+    """
+
+    def __init__(self, mesh, model, **kwargs):
+        problem.BaseProblem.__init__(self, mesh, model)
+        self.mesh.setCellGradBC('neumann')
+        Utils.setKwargs(self, **kwargs)
+
+    def reshapeFields(self, u):
+        if len(u.shape) == 1:
+            u = u.reshape([-1, self.RHS.shape[1]], order='F')
+        return u
+
+    def dpred(self, m, u=None):
+        """
+            Predicted data.
+
+            .. math::
+                d_\\text{pred} = Pu(m)
+        """
+        if u is None:
+            u = self.field(m)
+
+        u = self.reshapeFields(u)
+
+        return Utils.mkvc(self.P*u)
+
+
+
+class DCProblem(Problem.BaseProblem):
     """
         **DCProblem**
 
         Geophysical DC resistivity problem.
 
     """
-    def __init__(self, mesh):
-        forward.Problem.__init__(self, mesh)
-        self.mesh.setCellGradBC('neumann')
 
-    def reshapeFields(self, u):
-        if len(u.shape) == 1:
-            u = u.reshape([-1, self.RHS.shape[1]], order='F')
-        return u
+    dataPair = DCData
+
+    def __init__(self, mesh, model, **kwargs):
+        problem.BaseProblem.__init__(self, mesh, model)
+        self.mesh.setCellGradBC('neumann')
+        Utils.setKwargs(self, **kwargs)
+
 
     def createMatrix(self, m):
         """
@@ -31,30 +67,16 @@ class DCProblem(forward.ModelTransforms.LogModel, forward.Problem):
         """
         D = self.mesh.faceDiv
         G = self.mesh.cellGrad
-        sigma = self.modelTransform(m)
+        sigma = self.model.transform(m)
         Msig = self.mesh.getFaceMass(sigma)
         A = D*Msig*G
         return A.tocsc()
-
-    def dpred(self, m, u=None):
-        """
-            Predicted data.
-
-            .. math::
-                d_\\text{pred} = Pu(m)
-        """
-        if u is None:
-            u = self.field(m)
-
-        u = self.reshapeFields(u)
-
-        return utils.mkvc(self.P*u)
 
     def field(self, m):
         A = self.createMatrix(m)
         solve = Solver(A)
         phi = solve.solve(self.RHS)
-        return utils.mkvc(phi)
+        return Utils.mkvc(phi)
 
     def J(self, m, v, u=None):
         """
@@ -88,17 +110,17 @@ class DCProblem(forward.ModelTransforms.LogModel, forward.Problem):
         G = self.mesh.cellGrad
         A = self.createMatrix(m)
         Av_dm = self.mesh.getFaceMassDeriv()
-        mT_dm = self.modelTransformDeriv(m)
+        mT_dm = self.model.transformDeriv(m)
 
         dCdu = A
 
         dCdm = np.empty_like(u)
         for i, ui in enumerate(u.T):  # loop over each column
-            dCdm[:, i] = D * ( utils.sdiag( G * ui ) * ( Av_dm * ( mT_dm * v ) ) )
+            dCdm[:, i] = D * ( Utils.sdiag( G * ui ) * ( Av_dm * ( mT_dm * v ) ) )
 
         solve = Solver(dCdu)
         Jv = - P * solve.solve(dCdm)
-        return utils.mkvc(Jv)
+        return Utils.mkvc(Jv)
 
     def Jt(self, m, v, u=None):
         """Takes data, turns it into a model..ish"""
@@ -114,7 +136,7 @@ class DCProblem(forward.ModelTransforms.LogModel, forward.Problem):
         G = self.mesh.cellGrad
         A = self.createMatrix(m)
         Av_dm = self.mesh.getFaceMassDeriv()
-        mT_dm = self.modelTransformDeriv(m)
+        mT_dm = self.model.transformDeriv(m)
 
         dCdu = A.T
         solve = Solver(dCdu)
@@ -123,7 +145,7 @@ class DCProblem(forward.ModelTransforms.LogModel, forward.Problem):
 
         Jtv = 0
         for i, ui in enumerate(u.T):  # loop over each column
-            Jtv += utils.sdiag( G * ui ) * ( D.T * w[:,i] )
+            Jtv += Utils.sdiag( G * ui ) * ( D.T * w[:,i] )
 
         Jtv = - mT_dm.T * ( Av_dm.T * Jtv )
         return Jtv
@@ -174,7 +196,7 @@ if __name__ == '__main__':
     p0 = [5, 10]
     p1 = [15, 50]
     condVals = [sig1, sig2]
-    mSynth = utils.ModelBuilder.defineBlockConductivity(p0,p1,M.gridCC,condVals)
+    mSynth = Utils.ModelBuilder.defineBlockConductivity(p0,p1,M.gridCC,condVals)
     plt.colorbar(M.plotImage(mSynth))
     plt.show()
 

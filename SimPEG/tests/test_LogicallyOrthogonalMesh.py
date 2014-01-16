@@ -1,7 +1,7 @@
 import numpy as np
 import unittest
-from SimPEG.mesh import TensorMesh, LogicallyOrthogonalMesh
-from SimPEG.utils import ndgrid
+from SimPEG.Mesh import TensorMesh, LogicallyOrthogonalMesh
+from SimPEG.Utils import ndgrid
 
 
 class BasicLOMTests(unittest.TestCase):
