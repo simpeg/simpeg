@@ -43,19 +43,6 @@ class BaseInversion(object):
 
 
     @property
-    def Wd(self):
-        """
-            Standard deviation weighting matrix.
-        """
-        if getattr(self,'_Wd',None) is None:
-            eps = np.linalg.norm(utils.mkvc(self.data.dobs),2)*1e-5
-            self._Wd = 1/(abs(self.data.dobs)*self.data.std+eps)
-        return self._Wd
-    @Wd.setter
-    def Wd(self, value):
-        self._Wd = value
-
-    @property
     def phi_d_target(self):
         """
         target for phi_d

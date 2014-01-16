@@ -98,7 +98,7 @@ def callHooks(match, mainFirst=False):
         def doEndIteration(self):
             pass
 
-    This will call everything named _doEndIteration* at the beginning of the function call.  
+    This will call everything named _doEndIteration* at the beginning of the function call.
     By default the master method (doEndIteration) is run after all of the sub methods (_doEndIteration*).
     This can be reversed by adding the mainFirst=True kwarg.
     """
@@ -131,10 +131,8 @@ def callHooks(match, mainFirst=False):
             Where the * can be any string. If present, _%s* will be called at the start of the default %s call.
             You may also completely overwrite this function.
         """ % (match, match, match, match)
-        try:
-            wrapper.__doc__ += extra
-        except Exception, e:
-            pass
+        doc = wrapper.__doc__
+        wrapper.__doc__ = ('' if doc is None else doc) + extra
         return wrapper
     return callHooksWrap
 

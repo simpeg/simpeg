@@ -55,19 +55,6 @@ class Problem(object):
     def RHS(self, value):
         self._RHS = value
 
-    @property
-    def P(self):
-        """
-            Projection matrix.
-
-            .. math::
-                d_\\text{pred} = Pu(m)
-        """
-        return self._P
-    @P.setter
-    def P(self, value):
-        self._P = value
-
     @utils.count
     def dpred(self, m, u=None):
         """
