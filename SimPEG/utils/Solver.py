@@ -1,7 +1,8 @@
 import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.linalg as linalg
-from SimPEG.utils import mkvc, sdiag
+from matutils import mkvc
+from sputils import sdiag
 import warnings
 
 DEFAULTS = {'direct':'scipy', 'iter':'scipy', 'triangular':'fortran', 'diagonal':'python'}

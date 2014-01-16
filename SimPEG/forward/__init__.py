@@ -1,3 +1,3 @@
 from Problem import *
 import ModelTransforms
-from Data import *
+from SimPEGData import *

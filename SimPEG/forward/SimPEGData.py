@@ -32,7 +32,7 @@ def requiresProblem(f):
     return requiresProblemWrapper
 
 
-class SimPEGData(object):
+class Data(object):
     """Data holds the observed data, and the standard deviations."""
 
     __metaclass__ = utils.Save.Savable
@@ -72,14 +72,17 @@ class SimPEGData(object):
 
     @requiresProblem
     def dpred(self, m, u=None):
-        pass
+        if u is None: u = self.prob.field(m)
 
+    @requiresProblem
     def residual(self, m, u=None):
-        pass
+        if u is None: u = self.prob.field(m)
 
+    @requiresProblem
     def residualWeighted(self, m, u=None):
-        pass
+        if u is None: u = self.prob.field(m)
 
+    @requiresProblem
     def projectField(self, m, u=None):
         """
             Projection matrix.
@@ -87,6 +90,7 @@ class SimPEGData(object):
             .. math::
                 d_\\text{pred} = Pu(m)
         """
+        if u is None: u = self.prob.field(m)
         return self.P*u
 
 
