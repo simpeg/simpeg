@@ -71,9 +71,9 @@ class IterationPrinters(object):
     bSet = {"title": "bSet", "value": lambda M: np.sum(M.bindingSet(M.xc)), "width": 8, "format": "%d"}
     comment = {"title": "Comment", "value": lambda M: M.comment, "width": 12, "format": "%s"}
 
-    beta = {"title": "beta", "value": lambda M: M.parent._beta, "width": 10, "format":   "%1.2e"}
-    phi_d = {"title": "phi_d", "value": lambda M: M.parent.phi_d, "width": 10, "format":   "%1.2e"}
-    phi_m = {"title": "phi_m", "value": lambda M: M.parent.phi_m, "width": 10, "format":   "%1.2e"}
+    beta = {"title": "beta", "value": lambda M: M.parent.objFunc.beta.get(), "width": 10, "format":   "%1.2e"}
+    phi_d = {"title": "phi_d", "value": lambda M: M.parent.objFunc.phi_d, "width": 10, "format":   "%1.2e"}
+    phi_m = {"title": "phi_m", "value": lambda M: M.parent.objFunc.phi_m, "width": 10, "format":   "%1.2e"}
 
 
 class Minimize(object):

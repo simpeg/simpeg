@@ -8,7 +8,6 @@ class BaseInversion(object):
 
     __metaclass__ = Utils.Save.Savable
 
-    maxIter = 1        #: Maximum number of iterations
     name = 'BaseInversion'
 
     debug   = False    #: Print debugging information
@@ -16,11 +15,11 @@ class BaseInversion(object):
     comment = ''       #: Used by some functions to indicate what is going on in the algorithm
     counter = None     #: Set this to a SimPEG.Utils.Counter() if you want to count things
 
-    def __init__(self, dataObj, opt, **kwargs):
+    def __init__(self, objFunc, opt, **kwargs):
         Utils.setKwargs(self, **kwargs)
 
-        self.dataObj = dataObj
-        self.dataObj.parent = self
+        self.objFunc = objFunc
+        self.objFunc.parent = self
 
         self.opt = opt
         self.opt.parent = self
@@ -36,7 +35,7 @@ class BaseInversion(object):
         if not hasattr(opt, '_bfgsH0') and hasattr(opt, 'bfgsH0'): # Check if it has been set by the user and the default is not being used.
             #TODO: I don't think that this if statement is working...
             print 'Setting bfgsH0 to the inverse of the modelObj2Deriv. Done using direct methods.'
-            opt.bfgsH0 = SimPEG.Solver(reg.modelObj2Deriv())
+            opt.bfgsH0 = SimPEG.Solver(objFunc.reg.modelObj2Deriv())
 
 
     @property
@@ -63,74 +62,16 @@ class BaseInversion(object):
             Runs the inversion!
 
         """
-        self.startup(m0)
-        while True:
-            self.doStartIteration()
-            self.m = self.opt.minimize(self.evalFunction, self.m)
-            self.doEndIteration()
-            if self.stoppingCriteria(): break
-
-        self.printDone()
+        self.objFunc.startup(m0)
+        self.m = self.opt.minimize(self.objFunc.evalFunction, m0)
         self.finish()
 
         return self.m
-
-    @Utils.callHooks('startup')
-    def startup(self, m0):
-        """
-            **startup** is called at the start of any new run call.
-
-            :param numpy.ndarray x0: initial x
-            :rtype: None
-            :return: None
-        """
-
-        if not hasattr(self.reg, '_mref'):
-            print 'Regularization has not set mref. SimPEG will set it to m0.'
-            self.reg.mref = m0
-
-        self.m = m0
-        self._iter = 0
-        self._beta = None
-        self.phi_d_last = np.nan
-        self.phi_m_last = np.nan
-
-    @Utils.callHooks('doStartIteration')
-    def doStartIteration(self):
-        """
-            **doStartIteration** is called at the end of each run iteration.
-
-            :rtype: None
-            :return: None
-        """
-        self._beta = self.getBeta()
-
-
-    @Utils.callHooks('doEndIteration')
-    def doEndIteration(self):
-        """
-            **doEndIteration** is called at the end of each run iteration.
-
-            :rtype: None
-            :return: None
-        """
-        # store old values
-        self.phi_d_last = self.phi_d
-        self.phi_m_last = self.phi_m
-        self._iter += 1
-
 
     def stoppingCriteria(self):
         if self.debug: print 'checking stoppingCriteria'
         return Utils.checkStoppers(self, self.stoppers)
 
-
-    def printDone(self):
-        """
-            **printDone** is called at the end of the inversion routine.
-
-        """
-        Utils.printStoppers(self, self.stoppers)
 
     @Utils.callHooks('finish')
     def finish(self):

@@ -270,7 +270,10 @@ def timeIt(f):
 class Parameter(object):
     """Parameter"""
 
-    debug   = False    #: Print debugging information
+    debug    = False    #: Print debugging information
+
+    current = None     #: This hold
+    currentIter = 0
 
     def __init__(self, *args, **kwargs):
         pass
@@ -285,10 +288,21 @@ class Parameter(object):
             print 'Parameter has switched to a new parent!'
         self._parent = p
 
+    @property
+    def opt(self):
+        return self.parent.parent.opt
+
     def initialize(self):
         pass
 
     def get(self):
+        if (self.current is None or
+            not self.opt._iter == self.currentIter):
+            self.current = self.nextIter()
+            self.currentIter = self.opt._iter
+        return self.current
+
+    def nextIter(self):
         raise NotImplementedError('Getting the Parameter is not yet implemented.')
 
 

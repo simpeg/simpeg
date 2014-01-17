@@ -1,15 +1,15 @@
-from SimPEG import Utils
+from SimPEG import Utils, np, sp
 
 class BaseObjFunction(object):
     """docstring for BaseObjFunction"""
 
     __metaclass__ = Utils.Save.Savable
 
-    beta = None                #: Regularization trade-off parameter
+    beta    = None   #: Regularization trade-off parameter
+    debug   = False  #: Print debugging information
+    counter = None   #: Set this to a SimPEG.Utils.Counter() if you want to count things
 
     name = 'BaseObjFunction'   #: Name of the objective function
-
-    counter = None     #: Set this to a SimPEG.Utils.Counter() if you want to count things
 
     u_current = None   #: The most current evaluated field
     m_current = None   #: The most current model
@@ -31,6 +31,24 @@ class BaseObjFunction(object):
         self.data = data
         self.reg = reg
 
+
+    @Utils.callHooks('startup')
+    def startup(self, m0):
+        """startup(m0)
+
+            Called when inversion is first starting.
+        """
+        if self.debug: print 'Calling ObjFunction.startup'
+
+        if not hasattr(self.reg, '_mref'):
+            print 'Regularization has not set mref. SimPEG will set it to m0.'
+            self.reg.mref = m0
+
+        self.phi_d = np.nan
+        self.phi_m = np.nan
+
+        self.m_current = m0
+
     @Utils.timeIt
     def evalFunction(self, m, return_g=True, return_H=True):
         """evalFunction(m, return_g=True, return_H=True)
@@ -42,15 +60,15 @@ class BaseObjFunction(object):
         u = self.data.prob.field(m)
         self.u_current = u
 
-        if self._iter is 0 and self._beta is None:
-            self._beta = self.beta0 = self.estimateBeta0(u=u,ratio=self.beta0_ratio)
-
         phi_d = self.dataObj(m, u=u)
         phi_m = self.reg.modelObj(m)
 
         self.dpred = self.data.dpred(m, u=u)  # This is a cheap matrix vector calculation.
-        self.phi_d = phi_d
-        self.phi_m = phi_m
+
+        self.phi_d, self.phi_d_last  = phi_d, self.phi_d
+        self.phi_m, self.phi_m_last  = phi_m, self.phi_m
+
+        self._beta = self.beta.get()  #TODO: This needs to be fixed.
 
         f = phi_d + self._beta * phi_m
 
@@ -195,25 +213,28 @@ class BetaSchedule(Utils.Parameter):
 
     beta = None          #: Beta parameter
 
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
+        Utils.Parameter.__init__(self, *args, **kwargs)
         Utils.setKwargs(self, **kwargs)
 
     def initialize(self):
         self.beta = self.beta0
 
     @Utils.requires('parent')
-    def get(self):
+    def nextIter(self):
         if self.beta is 'guess':
+            if self.debug: print 'BetaSchedule is estimating Beta0.'
             self.beta = self.estimateBeta0()
 
-        invesion = self.parent.parent
-        if inversion._iter > 0 and inversion._iter % self.coolingRate == 0:
+        opt = self.parent.parent.opt
+        if opt._iter > 0 and opt._iter % self.coolingRate == 0:
+            if self.debug: print 'BetaSchedule is cooling Beta. Iteration: %d' % opt._iter
             self.beta /= self.coolingFactor
 
         return self.beta
 
     @Utils.requires('parent')
-    def estimateBeta0(self, u=None):
+    def estimateBeta0(self):
         """estimateBeta0(u=None)
 
             The initial beta is calculated by comparing the estimated
@@ -246,10 +267,11 @@ class BetaSchedule(Utils.Parameter):
             :rtype: float
             :return: beta0
         """
-        objFunc  =
+        objFunc  = self.parent
         data     = objFunc.data
 
-        m = invesion.m
+        m = objFunc.m_current
+        u = objFunc.u_current
 
         if u is None:
             u = data.prob.field(m)
