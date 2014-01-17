@@ -14,7 +14,7 @@ class ProblemTests(unittest.TestCase):
         c = np.array([1, 4])
         self.mesh2 = Mesh.TensorMesh([a, b], np.array([3, 5]))
         self.p2 = Problem.BaseProblem(self.mesh2, None)
-        self.reg = Inverse.Regularization(self.mesh2)
+        self.reg = Regularization.BaseRegularization(self.mesh2)
 
     def test_regularization(self):
         derChk = lambda m: [self.reg.modelObj(m), self.reg.modelObjDeriv(m)]

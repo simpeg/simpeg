@@ -1,37 +1,6 @@
 import Utils
 import numpy as np
 
-def requiresProblem(f):
-    """
-    Use this to wrap a funciton::
-
-        @requiresProblem
-        def dpred(self):
-            pass
-
-    This wrapper will ensure that a problem has been bound to the data.
-    If a problem is not bound an Exception will be raised, and an nice error message printed.
-    """
-    extra = """
-        To use data.%s(), SimPEG requires that a problem be bound to the data.
-        If a problem has not been bound, an Exception will be raised.
-        To bind a problem to the Data object::
-
-            data.setProblem(myProblem)
-
-    """ % f.__name__
-    from functools import wraps
-    @wraps(f)
-    def requiresProblemWrapper(self,*args,**kwargs):
-        if getattr(self, 'prob', None) is None:
-            raise Exception(extra)
-        return f(self,*args,**kwargs)
-
-    doc = requiresProblemWrapper.__doc__
-    requiresProblemWrapper.__doc__ = ('' if doc is None else doc) + extra
-
-    return requiresProblemWrapper
-
 
 class BaseData(object):
     """Data holds the observed data, and the standard deviations."""
@@ -55,7 +24,7 @@ class BaseData(object):
         prob.data = self
 
     @Utils.count
-    @requiresProblem
+    @Utils.requires('prob')
     def dpred(self, m, u=None):
         """
             Create the projected data from a model.
@@ -68,7 +37,7 @@ class BaseData(object):
             Where P is a projection of the fields onto the data space.
         """
         if u is None: u = self.prob.field(m)
-        return self.projectField(u)
+        return Utils.mkvc(self.projectField(u))
 
 
     @Utils.count
@@ -99,7 +68,7 @@ class BaseData(object):
                 \mu_\\text{data} = \mathbf{d}_\\text{pred} - \mathbf{d}_\\text{obs}
 
         """
-        return self.dpred(m, u=u) - self.dobs
+        return Utils.mkvc(self.dpred(m, u=u) - self.dobs)
 
 
     @property
@@ -136,7 +105,7 @@ class BaseData(object):
 
             Where W_d is a covariance matrix that weights the data residual.
         """
-        return self.Wd*self.residual(m, u=u)
+        return Utils.mkvc(self.Wd*self.residual(m, u=u))
 
     @property
     def RHS(self):

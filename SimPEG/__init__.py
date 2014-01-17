@@ -6,7 +6,9 @@ import Mesh
 import Model
 import Problem
 import Data
-import Inverse
+import Inversion
+import Optimization
+import Regularization
 import Examples
 import Tests
 

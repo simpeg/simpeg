@@ -1,6 +1,6 @@
 from SimPEG import Utils, np, sp
 
-class Regularization(object):
+class BaseRegularization(object):
     """**Regularization**
 
         Here we will define regularization of a model, m, in general however, this should be thought of as (m-m_ref) but otherwise it is exactly the same:

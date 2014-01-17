@@ -2,14 +2,18 @@ from SimPEG import Utils, np, sp
 
 
 class BaseModel(object):
-    """SimPEG Model"""
+    """
+    SimPEG Model
+
+    """
 
     __metaclass__ = Utils.Save.Savable
 
     counter = None   #: A SimPEG.Utils.Counter object
+    mesh = None      #: A SimPEG Mesh
 
-    def __init__(self):
-        pass
+    def __init__(self, mesh):
+        self.mesh = mesh
 
     def transform(self, m):
         """
@@ -19,12 +23,21 @@ class BaseModel(object):
 
             The *transform* changes the model into the physical property.
 
-            A common example of this is to invert for electrical conductivity
-            in log space. In this case, your model will be log(sigma) and to
-            get back to sigma, you can take the exponential:
-
         """
         return m
+
+    def transformInverse(self, D):
+        """
+            :param numpy.array D: physical property
+            :rtype: numpy.array
+            :return: model
+
+            The *transformInverse* changes the physical property into the model.
+
+            .. note:: The *transformInverse* may not be easy to create in general.
+
+        """
+        raise NotImplementedError('The transformInverse is not implemented.')
 
     def transformDeriv(self, m):
         """
@@ -37,16 +50,16 @@ class BaseModel(object):
         """
         return sp.identity(m.size)
 
-    def example(self, mesh, type=None):
-        return np.random.rand(mesh.nC)
+    def example(self, modelType=None):
+        return np.random.rand(self.mesh.nC)
 
 
 
 class LogModel(BaseModel):
     """SimPEG LogModel"""
 
-    def __init__(self, **kwargs):
-        BaseModel.__init__(self, **kwargs)
+    def __init__(self, mesh, **kwargs):
+        BaseModel.__init__(self, mesh, **kwargs)
 
     def transform(self, m):
         """
@@ -67,6 +80,23 @@ class LogModel(BaseModel):
                 \exp{m} = \exp{\log{\sigma}} = \sigma
         """
         return np.exp(Utils.mkvc(m))
+
+
+    def transformInverse(self, D):
+        """
+            :param numpy.array D: physical property
+            :rtype: numpy.array
+            :return: model
+
+            The *transformInverse* changes the physical property into the model.
+
+            .. math::
+
+                m = \log{\sigma}
+
+        """
+        return np.log(Utils.mkvc(D))
+
 
     def transformDeriv(self, m):
         """

@@ -193,7 +193,7 @@ if __name__ == '__main__':
     p0 = [5, 10]
     p1 = [15, 50]
     condVals = [sig1, sig2]
-    mSynth = Utils.ModelBuilder.defineBlockConductivity(p0,p1,M.gridCC,condVals)
+    mSynth = Utils.ModelBuilder.defineBlockConductivity(M.gridCC,p0,p1,condVals)
     plt.colorbar(M.plotImage(mSynth))
     # plt.show()
 
@@ -217,7 +217,7 @@ if __name__ == '__main__':
     u = prob.field(mSynth)
     u = data.reshapeFields(u)
     M.plotImage(u[:,10])
-    # plt.show()
+    plt.show()
 
     # Now set up the prob to do some minimization
     # prob.dobs = dobs

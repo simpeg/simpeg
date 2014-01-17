@@ -14,10 +14,10 @@ def _interp_point_1D(x, xr_i):
     """
     # TODO: This fails if the point is on the outside of the mesh. We may want to replace this by extrapolation?
     im = np.argmin(abs(x-xr_i))
-    if  xr_i - x[im] >= 0:  # Point on the left
+    if xr_i - x[im] >= 0:  # Point on the left
         ind_x1 = im
         ind_x2 = im+1
-    elif  xr_i - x[im] < 0:  # Point on the right
+    elif xr_i - x[im] < 0:  # Point on the right
         ind_x1 = im-1
         ind_x2 = im
     dx1 = xr_i - x[ind_x1]

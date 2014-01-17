@@ -1,4 +1,4 @@
-from SimPEG import Mesh, Model, Problem, Data, Inverse, np
+from SimPEG import Mesh, Model, Problem, Data, Inversion, np
 import matplotlib.pyplot as plt
 
 

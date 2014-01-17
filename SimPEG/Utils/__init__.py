@@ -139,6 +139,42 @@ def dependentProperty(name, value, children, doc):
         setattr(self, name, val)
     return property(fget=fget, fset=fset, doc=doc)
 
+def requires(var):
+    """
+        Use this to wrap a funciton::
+
+            @requires('prob')
+            def dpred(self):
+                pass
+
+        This wrapper will ensure that a problem has been bound to the data.
+        If a problem is not bound an Exception will be raised, and an nice error message printed.
+    """
+    def requiresVar(f):
+        if var is 'prob':
+            extra = """
+                To use data.%s(), SimPEG requires that a problem be bound to the data.
+                If a problem has not been bound, an Exception will be raised.
+                To bind a problem to the Data object::
+
+                    data.setProblem(myProblem)
+
+            """ % f.__name__
+        else:
+            extra = """
+                To use *%s* method, SimPEG requires that the %s be specified.
+            """ % (f.__name__, var)
+        @wraps(f)
+        def requiresVarWrapper(self,*args,**kwargs):
+            if getattr(self, var, None) is None:
+                raise Exception(extra)
+            return f(self,*args,**kwargs)
+
+        doc = requiresVarWrapper.__doc__
+        requiresVarWrapper.__doc__ = ('' if doc is None else doc) + extra
+
+        return requiresVarWrapper
+    return requiresVar
 
 class Counter(object):
     """
@@ -230,6 +266,32 @@ def timeIt(f):
         if type(counter) is Counter: counter.countToc(self.__class__.__name__+'.'+f.__name__)
         return out
     return wrapper
+
+
+class Parameter(object):
+    """Parameter"""
+
+    debug   = False    #: Print debugging information
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    @property
+    def parent(self):
+        """This is the parent of the Parameter instance."""
+        return getattr(self,'_parent',None)
+    @parent.setter
+    def parent(self, p):
+        if getattr(self,'_parent',None) is not None:
+            print 'Parameter has switched to a new parent!'
+        self._parent = p
+
+    def initialize(self):
+        pass
+
+    def get(self):
+        raise NotImplementedError('Getting the Parameter is not yet implemented.')
+
 
 
 if __name__ == '__main__':

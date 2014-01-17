@@ -1,5 +1,4 @@
 from SimPEG import Solver, Utils, sp, np
-import matplotlib.pyplot as plt
 norm = np.linalg.norm
 
 
@@ -101,6 +100,7 @@ class Minimize(object):
 
     comment = ''       #: Used by some functions to indicate what is going on in the algorithm
     counter = None     #: Set this to a SimPEG.Utils.Counter() if you want to count things
+    parent = None      #: This is the parent of the optimization routine.
 
     def __init__(self, **kwargs):
         self.stoppers = [StoppingCriteria.tolerance_f, StoppingCriteria.moving_x, StoppingCriteria.tolerance_g, StoppingCriteria.norm_g, StoppingCriteria.iteration]
@@ -178,16 +178,6 @@ class Minimize(object):
         self.finish()
 
         return self.xc
-
-    @property
-    def parent(self):
-        """
-            This is the parent of the optimization routine.
-        """
-        return getattr(self, '_parent', None)
-    @parent.setter
-    def parent(self, value):
-        self._parent = value
 
     @Utils.callHooks('startup')
     def startup(self, x0):
@@ -873,7 +863,7 @@ class NewtonRoot(object):
 
 
 if __name__ == '__main__':
-    from SimPEG.tests import Rosenbrock, checkDerivative
+    from SimPEG.Tests import Rosenbrock, checkDerivative
     import matplotlib.pyplot as plt
     x0 = np.array([2.6, 3.7])
     checkDerivative(Rosenbrock, x0, plotIt=False)

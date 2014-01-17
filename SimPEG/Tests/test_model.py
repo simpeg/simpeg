@@ -18,8 +18,8 @@ class ModelTests(unittest.TestCase):
         print 'SimPEG.Model.BaseModel: Testing Model Transform'
         for M in dir(Model):
             if 'Model' not in M: continue
-            model = getattr(Model, M)()
-            m = model.example(self.mesh2)
+            model = getattr(Model, M)(self.mesh2)
+            m = model.example()
             passed = checkDerivative(lambda m : [model.transform(m), model.transformDeriv(m)], m, plotIt=False)
             self.assertTrue(passed)
 
