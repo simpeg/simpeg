@@ -1,14 +1,15 @@
 import numpy as np
 import scipy.sparse as sp
 import Utils
-Solver = Utils.Solver
+from Solver import Solver
 import Mesh
 import Model
 import Problem
 import Data
-import Inversion
-import Optimization
 import Regularization
+import ObjFunction
+import Optimization
+import Inversion
 import Examples
 import Tests
 

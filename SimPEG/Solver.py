@@ -1,15 +1,15 @@
 import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.linalg as linalg
-from matutils import mkvc
-from sputils import sdiag
+from Utils.matutils import mkvc
+from Utils.sputils import sdiag
 import warnings
 
 DEFAULTS = {'direct':'scipy', 'iter':'scipy', 'triangular':'fortran', 'diagonal':'python'}
 OPTIONS = {'direct':['scipy'], 'iter':['scipy'], 'triangular':['python'], 'diagonal':['python']}
 
 try:
-    import TriSolve
+    import Utils.TriSolve as TriSolve
     OPTIONS['triangular'].append('fortran')
 except Exception, e:
     print 'Warning: Python backend is being used for solver. Run setup.py from the command line.'
@@ -320,7 +320,7 @@ class Solver(object):
 
 
 if __name__ == '__main__':
-    from SimPEG.mesh import TensorMesh
+    from SimPEG.Mesh import TensorMesh
     from time import time
     h1 = np.ones(20)*100.
     h2 = np.ones(20)*100.
