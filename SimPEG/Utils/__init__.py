@@ -284,13 +284,31 @@ class Parameter(object):
         return getattr(self,'_parent',None)
     @parent.setter
     def parent(self, p):
+        startupName = '_startup_paramProperty_'+self._propertyName
         if getattr(self,'_parent',None) is not None:
-            print 'Parameter has switched to a new parent!'
+            delattr(self._parent,startupName)
+            print 'Warning: Parameter %s has switched to a new parent.' % self._propertyName
+            if self.debug: print '%s function has been deleted' % startupName
         self._parent = p
+
+        prop = self
+        def _startup_paramProperty(self, *args):
+            if prop.debug: print 'initializing %s' % prop._propertyName
+            prop.initialize()
+
+        hook(self._parent, _startup_paramProperty, name=startupName, overwrite=True)
 
     @property
     def opt(self):
         return self.parent.parent.opt
+
+    @property
+    def objFunc(self):
+        return self.parent
+
+    @property
+    def reg(self):
+        return self.parent.reg
 
     def initialize(self):
         pass
@@ -305,6 +323,20 @@ class Parameter(object):
     def nextIter(self):
         raise NotImplementedError('Getting the Parameter is not yet implemented.')
 
+
+def ParameterProperty(name, default=None, doc=""):
+    def getter(self):
+        out = getattr(self,'_'+name,default)
+        if isinstance(out, Parameter):
+            out = out.get()
+        return out
+    def setter(self, value):
+        if isinstance(value, Parameter):
+            value._propertyName = name
+            value.parent = self
+        setattr(self, '_'+name, value)
+
+    return property(fget=getter, fset=setter, doc=doc)
 
 
 if __name__ == '__main__':

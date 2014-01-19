@@ -5,7 +5,8 @@ class BaseObjFunction(object):
 
     __metaclass__ = Utils.Save.Savable
 
-    beta    = None   #: Regularization trade-off parameter
+    beta    = Utils.ParameterProperty('beta', default=None, doc='Regularization trade-off parameter')
+
     debug   = False  #: Print debugging information
     counter = None   #: Set this to a SimPEG.Utils.Counter() if you want to count things
 
@@ -68,16 +69,14 @@ class BaseObjFunction(object):
         self.phi_d, self.phi_d_last  = phi_d, self.phi_d
         self.phi_m, self.phi_m_last  = phi_m, self.phi_m
 
-        self._beta = self.beta.get()  #TODO: This needs to be fixed.
-
-        f = phi_d + self._beta * phi_m
+        f = phi_d + self.beta * phi_m
 
         out = (f,)
         if return_g:
             phi_dDeriv = self.dataObjDeriv(m, u=u)
             phi_mDeriv = self.reg.modelObjDeriv(m)
 
-            g = phi_dDeriv + self._beta * phi_mDeriv
+            g = phi_dDeriv + self.beta * phi_mDeriv
             out += (g,)
 
         if return_H:
@@ -85,7 +84,7 @@ class BaseObjFunction(object):
                 phi_d2Deriv = self.dataObj2Deriv(m, v, u=u)
                 phi_m2Deriv = self.reg.modelObj2Deriv()*v
 
-                return phi_d2Deriv + self._beta * phi_m2Deriv
+                return phi_d2Deriv + self.beta * phi_m2Deriv
 
             operator = sp.linalg.LinearOperator( (m.size, m.size), H_fun, dtype=m.dtype )
             out += (operator,)
