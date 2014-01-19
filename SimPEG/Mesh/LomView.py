@@ -15,10 +15,18 @@ class LomView(object):
     def __init__(self):
         pass
 
-    def plotGrid(self, length=0.05):
+    def plotGrid(self, length=0.05, showIt=False):
         """Plot the nodal, cell-centered and staggered grids for 1,2 and 3 dimensions.
 
-        .. plot:: examples/mesh/plot_LogicallyOrthogonalMesh.py
+
+        .. plot::
+            :include-source:
+
+            from SimPEG import Mesh, Utils
+            X, Y = Utils.exampleLomGird([3,3],'rotate')
+            M = Mesh.LogicallyOrthogonalMesh([X, Y])
+            M.plotGrid(showIt=True)
+
         """
         NN = self.r(self.gridN, 'N', 'N', 'M')
         if self.dim == 2:
@@ -92,4 +100,5 @@ class LomView(object):
         ax.hold(False)
         ax.set_xlabel('x1')
         ax.set_ylabel('x2')
-        fig.show()
+
+        if showIt: plt.show()

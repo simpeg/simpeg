@@ -3,16 +3,8 @@
 Logically Orthogonal Mesh
 *************************
 
-.. automodule:: SimPEG.mesh.LogicallyOrthogonalMesh
+.. automodule:: SimPEG.Mesh.LogicallyOrthogonalMesh
     :show-inheritance:
     :members:
     :undoc-members:
     :inherited-members:
-
-
-LOM View
-********
-
-.. automodule:: SimPEG.mesh.LomView
-    :members:
-    :undoc-members:

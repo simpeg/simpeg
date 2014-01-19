@@ -3,6 +3,6 @@
 Base Mesh
 *********
 
-.. automodule:: SimPEG.mesh.BaseMesh
+.. automodule:: SimPEG.Mesh.BaseMesh
     :members:
     :undoc-members:

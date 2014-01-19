@@ -4,7 +4,7 @@
 Problem
 *******
 
-.. automodule:: SimPEG.forward.Problem
+.. automodule:: SimPEG.Problem
     :show-inheritance:
     :members:
     :undoc-members:
@@ -14,7 +14,7 @@ Problem
 DCProblem
 *********
 
-.. automodule:: SimPEG.examples.DC
+.. automodule:: SimPEG.Examples.DC
     :show-inheritance:
     :members:
     :undoc-members:
@@ -25,7 +25,7 @@ DCProblem
 Linear Problem
 **************
 
-.. automodule:: SimPEG.examples.Linear
+.. automodule:: SimPEG.Examples.Linear
     :show-inheritance:
     :members:
     :undoc-members:

@@ -17,19 +17,19 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
         hy = np.array([1,2])
         hz = np.array([1,1,1,1])
 
-        mesh = TensorMesh([hx, hy, hz])
+        mesh = Mesh.TensorMesh([hx, hy, hz])
 
     Example of a padded tensor mesh:
 
     .. plot::
 
-        from SimPEG import mesh, Utils
-        M = mesh.TensorMesh(Utils.meshTensors(((10,10),(40,10),(10,10)), ((10,10),(20,10),(0,0))))
+        from SimPEG import Mesh, Utils
+        M = Mesh.TensorMesh(Utils.meshTensors(((10,10),(40,10),(10,10)), ((10,10),(20,10),(0,0))))
         M.plotGrid()
 
     For a quick tensor mesh on a (10x12x15) unit cube::
 
-        mesh = TensorMesh([10, 12, 15])
+        mesh = Mesh.TensorMesh([10, 12, 15])
 
     """
 

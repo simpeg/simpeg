@@ -17,8 +17,13 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators, InnerProducts, LomView):
 
     Example of a logically orthogonal mesh:
 
-    .. plot:: examples/mesh/plot_LogicallyOrthogonalMesh.py
+    .. plot::
+            :include-source:
 
+            from SimPEG import Mesh, Utils
+            X, Y = Utils.exampleLomGird([3,3],'rotate')
+            M = Mesh.LogicallyOrthogonalMesh([X, Y])
+            M.plotGrid(showIt=True)
     """
 
     __metaclass__ = Utils.Save.Savable

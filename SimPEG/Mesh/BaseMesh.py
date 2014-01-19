@@ -147,16 +147,6 @@ class BaseMesh(object):
         else:
             return switchKernal(x)
 
-    # def n():
-    #     doc = """
-    #     Number of Cells in each dimension (array of integers)
-
-    #     :rtype: numpy.array
-    #     :return: n
-    #     """
-    #     fget = lambda self: self._n
-    #     return locals()
-    # n = property(**n())
 
     def dim():
         doc = """
@@ -219,10 +209,10 @@ class BaseMesh(object):
         :return: nC
 
         .. plot::
+            :include-source:
 
-            from SimPEG.mesh import TensorMesh
-            import numpy as np
-            TensorMesh([np.ones(n) for n in [2,3]]).plotGrid(centers=True,showIt=True)
+            from SimPEG import Mesh, np
+            Mesh.TensorMesh([np.ones(n) for n in [2,3]]).plotGrid(centers=True,showIt=True)
         """
         fget = lambda self: np.prod(self._n)
         return locals()
@@ -290,10 +280,10 @@ class BaseMesh(object):
         :return: nN
 
         .. plot::
+            :include-source:
 
-            from SimPEG.mesh import TensorMesh
-            import numpy as np
-            TensorMesh([np.ones(n) for n in [2,3]]).plotGrid(nodes=True,showIt=True)
+            from SimPEG import Mesh, np
+            Mesh.TensorMesh([np.ones(n) for n in [2,3]]).plotGrid(nodes=True,showIt=True)
         """
         fget = lambda self: np.prod(self.nCv + 1)
         return locals()
@@ -361,10 +351,10 @@ class BaseMesh(object):
         :return: [prod(nEx), prod(nEy), prod(nEz)]
 
         .. plot::
+            :include-source:
 
-            from SimPEG.mesh import TensorMesh
-            import numpy as np
-            TensorMesh([np.ones(n) for n in [2,3]]).plotGrid(edges=True,showIt=True)
+            from SimPEG import Mesh, np
+            Mesh.TensorMesh([np.ones(n) for n in [2,3]]).plotGrid(edges=True,showIt=True)
         """
         fget = lambda self: np.array([np.prod(x) for x in [self.nEx, self.nEy, self.nEz] if not x is None])
         return locals()
@@ -433,10 +423,10 @@ class BaseMesh(object):
         :return: [prod(nFx), prod(nFy), prod(nFz)]
 
         .. plot::
+            :include-source:
 
-            from SimPEG.mesh import TensorMesh
-            import numpy as np
-            TensorMesh([np.ones(n) for n in [2,3]]).plotGrid(faces=True,showIt=True)
+            from SimPEG import Mesh, np
+            Mesh.TensorMesh([np.ones(n) for n in [2,3]]).plotGrid(faces=True,showIt=True)
         """
         fget = lambda self: np.array([np.prod(x) for x in [self.nFx, self.nFy, self.nFz] if not x is None])
         return locals()

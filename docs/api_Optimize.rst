@@ -1,27 +1,28 @@
 .. _api_Inverse:
 
+
+Objective Function
+******************
+
+.. automodule:: SimPEG.ObjFunction
+    :members:
+    :undoc-members:
+
+
 Optimize
 ********
 
-.. automodule:: SimPEG.inverse.Optimize
+.. automodule:: SimPEG.Optimization
     :show-inheritance:
     :private-members:
     :members:
     :undoc-members:
 
-
 Inversion
 *********
 
-.. automodule:: SimPEG.inverse.Inversion
+.. automodule:: SimPEG.Inversion
     :show-inheritance:
-    :members:
-    :undoc-members:
-
-Beta Schedule
-*************
-
-.. automodule:: SimPEG.inverse.BetaSchedule
     :members:
     :undoc-members:
 
@@ -29,7 +30,7 @@ Beta Schedule
 Regularization
 **************
 
-.. automodule:: SimPEG.inverse.Regularization
+.. automodule:: SimPEG.Regularization
     :show-inheritance:
     :members:
     :undoc-members:

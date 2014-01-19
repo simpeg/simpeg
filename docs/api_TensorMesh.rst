@@ -3,15 +3,8 @@
 Tensor Mesh
 ***********
 
-.. automodule:: SimPEG.mesh.TensorMesh
+.. automodule:: SimPEG.Mesh.TensorMesh
     :show-inheritance:
     :members:
     :undoc-members:
     :inherited-members:
-
-Tensor View
-***********
-
-.. automodule:: SimPEG.mesh.TensorView
-    :members:
-    :undoc-members:

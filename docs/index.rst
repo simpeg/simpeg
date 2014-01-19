@@ -64,16 +64,16 @@ Build Results
 =============
 
 * Master Branch
-.. image:: https://travis-ci.org/simpeg/simpeg.png?branch=master
-   :target: https://travis-ci.org/simpeg/simpeg
-   :alt: Master Branch
-   :align: center
+   .. image:: https://travis-ci.org/simpeg/simpeg.png?branch=master
+      :target: https://travis-ci.org/simpeg/simpeg
+      :alt: Master Branch
+      :align: center
 
 * Develop Branch
-.. image:: https://travis-ci.org/simpeg/simpeg.png?branch=develop
-   :target: https://travis-ci.org/simpeg/simpeg
-   :alt: Develop Branch
-   :align: center
+   .. image:: https://travis-ci.org/simpeg/simpeg.png?branch=develop
+      :target: https://travis-ci.org/simpeg/simpeg
+      :alt: Develop Branch
+      :align: center
 
 
 Utility Codes

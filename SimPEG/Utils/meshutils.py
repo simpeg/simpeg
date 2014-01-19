@@ -34,8 +34,8 @@ def meshTensors(*args):
 
         .. plot::
 
-            from SimPEG import mesh, Utils
-            M = mesh.TensorMesh(Utils.meshTensors(((10,10),(40,10),(10,10)), ((10,10),(20,10),(0,0))))
+            from SimPEG import Mesh, Utils
+            M = Mesh.TensorMesh(Utils.meshTensors(((10,10),(40,10),(10,10)), ((10,10),(20,10),(0,0))))
             M.plotGrid()
 
     """

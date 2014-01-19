@@ -34,11 +34,22 @@ class TensorView(object):
         :param str annotationColor: color of annotation, e.g. 'w', 'k', 'b'
         :param bool showIt: call plt.show()
 
-        .. plot:: examples/mesh/plot_image_2D.py
-           :include-source:
+        .. plot::
+            :include-source:
 
-        .. plot:: examples/mesh/plot_image_3D.py
-           :include-source:
+            from SimPEG import Mesh, np
+            M = Mesh.TensorMesh([20, 20])
+            I = np.sin(M.gridCC[:,0]*2*np.pi)*np.sin(M.gridCC[:,1]*2*np.pi)
+            M.plotImage(I, showIt=True)
+
+        .. plot::
+            :include-source:
+
+            from SimPEG import Mesh, np
+            M = Mesh.TensorMesh([20,20,20])
+            I = np.sin(M.gridCC[:,0]*2*np.pi)*np.sin(M.gridCC[:,1]*2*np.pi)*np.sin(M.gridCC[:,2]*2*np.pi)
+            M.plotImage(I, annotationColor='k', showIt=True)
+
         """
         assert type(I) == np.ndarray, "I must be a numpy array"
         assert type(numbering) == bool, "numbering must be a bool"
@@ -237,11 +248,25 @@ class TensorView(object):
         :param bool lines: plot lines connecting nodes
         :param bool showIt: call plt.show()
 
-        .. plot:: examples/mesh/plot_grid_2D.py
+        .. plot::
            :include-source:
 
-        .. plot:: examples/mesh/plot_grid_3D.py
+           from SimPEG import Mesh, np
+           h1 = np.linspace(.1,.5,3)
+           h2 = np.linspace(.1,.5,5)
+           mesh = Mesh.TensorMesh([h1, h2])
+           mesh.plotGrid(nodes=True, faces=True, centers=True, lines=True, showIt=True)
+
+        .. plot::
            :include-source:
+
+           from SimPEG import Mesh, np
+           h1 = np.linspace(.1,.5,3)
+           h2 = np.linspace(.1,.5,5)
+           h3 = np.linspace(.1,.5,3)
+           mesh = Mesh.TensorMesh([h1,h2,h3])
+           mesh.plotGrid(nodes=True, faces=True, centers=True, lines=True, showIt=True)
+
         """
         if self.dim == 1:
             fig = plt.figure(1)
