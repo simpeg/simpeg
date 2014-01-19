@@ -58,10 +58,6 @@ Testing SimPEG
    :maxdepth: 2
 
    api_Tests
-   api_TestResults
-
-Build Results
-=============
 
 * Master Branch
    .. image:: https://travis-ci.org/simpeg/simpeg.png?branch=master
