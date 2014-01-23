@@ -50,6 +50,11 @@ class BaseModel(object):
         """
         return sp.identity(m.size)
 
+    @property
+    def nP(self):
+        """Number of parameters in the model."""
+        return self.mesh.nC
+
     def example(self, modelType=None):
         return np.random.rand(self.mesh.nC)
 
