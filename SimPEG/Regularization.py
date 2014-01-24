@@ -25,14 +25,30 @@ class BaseRegularization(object):
         self.mesh = mesh
         self.model = model
 
+    mref = Utils.ParameterProperty('mref', default=None, doc='Reference model.')
+
     @property
-    def mref(self):
-        if getattr(self, '_mref', None) is None:
-            return np.zeros(self.model.nP);
-        return self._mref
-    @mref.setter
-    def mref(self, value):
-        self._mref = value
+    def parent(self):
+        """This is the parent of the regularization."""
+        return getattr(self,'_parent',None)
+    @parent.setter
+    def parent(self, p):
+        if getattr(self,'_parent',None) is not None:
+            print 'Regularization has switched to a new parent!'
+        self._parent = p
+
+    @property
+    def inv(self): return self.parent.inv
+    @property
+    def objFunc(self): return self.parent
+    @property
+    def reg(self): return self
+    @property
+    def opt(self): return self.parent.opt
+    @property
+    def prob(self): return self.parent.prob
+    @property
+    def data(self): return self.parent.data
 
 
     @property

@@ -299,25 +299,30 @@ class Parameter(object):
         hook(self._parent, _startup_paramProperty, name=startupName, overwrite=True)
 
     @property
-    def opt(self):
-        return self.parent.parent.opt
-
+    def inv(self): return self.parent.inv
     @property
-    def objFunc(self):
-        return self.parent
-
+    def objFunc(self): return self.parent.objFunc
     @property
-    def reg(self):
-        return self.parent.reg
+    def opt(self): return self.parent.opt
+    @property
+    def reg(self): return self.parent.reg
+    @property
+    def data(self): return self.parent.data
+    @property
+    def prob(self): return self.parent.prob
+    @property
+    def model(self): return self.parent.model
+    @property
+    def mesh(self): return self.parent.mesh
 
     def initialize(self):
         pass
 
     def get(self):
         if (self.current is None or
-            not self.opt._iter == self.currentIter):
+            not self.opt.iter == self.currentIter):
             self.current = self.nextIter()
-            self.currentIter = self.opt._iter
+            self.currentIter = self.opt.iter
         return self.current
 
     def nextIter(self):

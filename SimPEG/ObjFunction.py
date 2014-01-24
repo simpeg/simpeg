@@ -1,16 +1,16 @@
 from SimPEG import Utils, np, sp
 
 class BaseObjFunction(object):
-    """docstring for BaseObjFunction"""
+    """BaseObjFunction(data, reg, **kwargs)"""
 
     __metaclass__ = Utils.Save.Savable
 
-    beta    = Utils.ParameterProperty('beta', default=None, doc='Regularization trade-off parameter')
+    beta    = Utils.ParameterProperty('beta', default=1, doc='Regularization trade-off parameter')
 
     debug   = False  #: Print debugging information
     counter = None   #: Set this to a SimPEG.Utils.Counter() if you want to count things
 
-    name = 'BaseObjFunction'   #: Name of the objective function
+    name = 'Base Objective Function'   #: Name of the objective function
 
     u_current = None   #: The most current evaluated field
     m_current = None   #: The most current model
@@ -25,12 +25,27 @@ class BaseObjFunction(object):
             print 'Objective function has switched to a new parent!'
         self._parent = p
 
+    @property
+    def inv(self): return self.parent
+    @property
+    def objFunc(self): return self
+    @property
+    def opt(self): return getattr(self.parent,'opt',None)
+    @property
+    def prob(self): return self.data.prob
+    @property
+    def mesh(self): return self.data.prob.mesh
+    @property
+    def model(self): return self.data.prob.model
+
 
     def __init__(self, data, reg, **kwargs):
         Utils.setKwargs(self, **kwargs)
 
         self.data = data
+
         self.reg = reg
+        self.reg.parent = self
 
 
     @Utils.callHooks('startup')
@@ -41,7 +56,7 @@ class BaseObjFunction(object):
         """
         if self.debug: print 'Calling ObjFunction.startup'
 
-        if not hasattr(self.reg, '_mref'):
+        if self.reg.mref is None:
             print 'Regularization has not set mref. SimPEG will set it to m0.'
             self.reg.mref = m0
 
@@ -226,8 +241,8 @@ class BetaSchedule(Utils.Parameter):
             self.beta = self.estimateBeta0()
 
         opt = self.parent.parent.opt
-        if opt._iter > 0 and opt._iter % self.coolingRate == 0:
-            if self.debug: print 'BetaSchedule is cooling Beta. Iteration: %d' % opt._iter
+        if opt.iter > 0 and opt.iter % self.coolingRate == 0:
+            if self.debug: print 'BetaSchedule is cooling Beta. Iteration: %d' % opt.iter
             self.beta /= self.coolingFactor
 
         return self.beta

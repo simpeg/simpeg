@@ -57,7 +57,7 @@ class SimPEGTable:
 
         # At the start of every iteration we will create a inversion iteration node.
         def _doStartIteration_hdf5_inv(invObj):
-            invObj._invNodeIt = invObj._invNode.addGroup('%d'%(invObj._iter+1))
+            invObj._invNodeIt = invObj._invNode.addGroup('%d'%(invObj.iter+1))
             preIteration(invObj._invNodeIt)
         invObj.hook(_doStartIteration_hdf5_inv, overwrite=True)
 
@@ -78,7 +78,7 @@ class SimPEGTable:
         invObj.hook(_finish_hdf5_inv, overwrite=True)
 
         def _doStartIteration_hdf5_opt(optObj):
-            optObj._optNodeIt = optObj.parent._invNode.addGroup('%d.%d'%(optObj.parent._iter, optObj._iter))
+            optObj._optNodeIt = optObj.parent._invNode.addGroup('%d.%d'%(optObj.parent.iter, optObj.iter))
             preIteration(optObj._optNodeIt)
         invObj.opt.hook(_doStartIteration_hdf5_opt, overwrite=True)
 

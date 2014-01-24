@@ -9,11 +9,11 @@ class StoppingCriteria(object):
     """docstring for StoppingCriteria"""
 
     iteration   = { "str": "%d : maxIter   =     %3d    <= iter          =    %3d",
-                    "left": lambda M: M.maxIter, "right": lambda M: M._iter,
+                    "left": lambda M: M.maxIter, "right": lambda M: M.iter,
                     "stopType": "critical"}
 
     iterationLS = { "str": "%d : maxIterLS =     %3d    <= iterLS          =    %3d",
-                    "left": lambda M: M.maxIterLS, "right": lambda M: M._iterLS,
+                    "left": lambda M: M.maxIterLS, "right": lambda M: M.iterLS,
                     "stopType": "critical"}
 
     armijoGoldstein = { "str": "%d :    ft     = %1.4e <= alp*descent     = %1.4e",
@@ -21,11 +21,11 @@ class StoppingCriteria(object):
                         "stopType": "optimal"}
 
     tolerance_f = { "str": "%d : |fc-fOld| = %1.4e <= tolF*(1+|f0|) = %1.4e",
-                    "left":     lambda M: 1 if M._iter==0 else abs(M.f-M.f_last), "right":    lambda M: 0 if M._iter==0 else M.tolF*(1+abs(M.f0)),
+                    "left":     lambda M: 1 if M.iter==0 else abs(M.f-M.f_last), "right":    lambda M: 0 if M.iter==0 else M.tolF*(1+abs(M.f0)),
                     "stopType": "optimal"}
 
     moving_x = { "str": "%d : |xc-x_last| = %1.4e <= tolX*(1+|x0|) = %1.4e",
-                 "left": lambda M: 1 if M._iter==0 else norm(M.xc-M.x_last), "right": lambda M: 0 if M._iter==0 else M.tolX*(1+norm(M.x0)),
+                 "left": lambda M: 1 if M.iter==0 else norm(M.xc-M.x_last), "right": lambda M: 0 if M.iter==0 else M.tolX*(1+norm(M.x0)),
                  "stopType": "optimal"}
 
     tolerance_g = { "str": "%d : |proj(x-g)-x|    = %1.4e <= tolG          = %1.4e",
@@ -56,12 +56,12 @@ class StoppingCriteria(object):
 class IterationPrinters(object):
     """docstring for IterationPrinters"""
 
-    iteration = {"title": "#", "value": lambda M: M._iter, "width": 5, "format": "%3d"}
+    iteration = {"title": "#", "value": lambda M: M.iter, "width": 5, "format": "%3d"}
     f = {"title": "f", "value": lambda M: M.f, "width": 10, "format": "%1.2e"}
     norm_g = {"title": "|proj(x-g)-x|", "value": lambda M: norm(M.projection(M.xc - M.g) - M.xc), "width": 15, "format": "%1.2e"}
-    totalLS = {"title": "LS", "value": lambda M: M._iterLS, "width": 5, "format": "%d"}
+    totalLS = {"title": "LS", "value": lambda M: M.iterLS, "width": 5, "format": "%d"}
 
-    iterationLS = {"title": "#", "value": lambda M: (M._iter, M._iterLS), "width": 5, "format": "%3d.%d"}
+    iterationLS = {"title": "#", "value": lambda M: (M.iter, M.iterLS), "width": 5, "format": "%3d.%d"}
     LS_ft = {"title": "ft", "value": lambda M: M._LS_ft, "width": 10, "format": "%1.2e"}
     LS_t = {"title": "t", "value": lambda M: M._LS_t, "width": 10, "format": "%0.5f"}
     LS_armijoGoldstein = {"title": "f + alp*g.T*p", "value": lambda M: M.f + M.LSreduction*M._LS_descent, "width": 16, "format": "%1.2e"}
@@ -188,15 +188,15 @@ class Minimize(object):
 
                 x0 = x0
                 xc = x0
-                _iter = _iterLS = 0
+                iter = iterLS = 0
 
             :param numpy.ndarray x0: initial x
             :rtype: None
             :return: None
         """
 
-        self._iter = 0
-        self._iterLS = 0
+        self.iter = 0
+        self.iterLS = 0
 
         x0 = self.projection(x0)  # ensure that we start of feasible.
         self.x0 = x0
@@ -268,7 +268,7 @@ class Minimize(object):
         pass
 
     def stoppingCriteria(self, inLS=False):
-        if self._iter == 0:
+        if self.iter == 0:
             self.f0 = self.f
             self.g0 = self.g
         return Utils.checkStoppers(self, self.stoppers if not inLS else self.stoppersLS)
@@ -360,21 +360,21 @@ class Minimize(object):
         """
         # Projected Armijo linesearch
         self._LS_t = 1
-        self._iterLS = 0
-        while self._iterLS < self.maxIterLS:
+        self.iterLS = 0
+        while self.iterLS < self.maxIterLS:
             self._LS_xt      = self.projection(self.xc + self._LS_t*p)
             self._LS_ft      = self.evalFunction(self._LS_xt, return_g=False, return_H=False)
             self._LS_descent = np.inner(self.g, self._LS_xt - self.xc)  # this takes into account multiplying by t, but is important for projection.
             if self.stoppingCriteria(inLS=True): break
-            self._iterLS += 1
+            self.iterLS += 1
             self._LS_t = self.LSshorten*self._LS_t
             if self.debugLS:
-                if self._iterLS == 1: self.printInit(inLS=True)
+                if self.iterLS == 1: self.printInit(inLS=True)
                 self.printIter(inLS=True)
 
-        if self.debugLS and self._iterLS > 0: self.printDone(inLS=True)
+        if self.debugLS and self.iterLS > 0: self.printDone(inLS=True)
 
-        return self._LS_xt, self._iterLS < self.maxIterLS
+        return self._LS_xt, self.iterLS < self.maxIterLS
 
     @Utils.count
     def modifySearchDirectionBreak(self, p):
@@ -416,7 +416,7 @@ class Minimize(object):
         # store old values
         self.f_last = self.f
         self.x_last, self.xc = self.xc, xt
-        self._iter += 1
+        self.iter += 1
         if self.debug: self.printDone()
 
 
@@ -613,7 +613,7 @@ class ProjectedGradient(Minimize, Remember):
 
         f_current_decrease = self.f_last - self.f
         self.comment = ''
-        if self._iter < 1:
+        if self.iter < 1:
             # Note that this is reset on every CG iteration.
             self.f_decrease_max = -np.inf
         else:
@@ -684,7 +684,7 @@ class BFGS(Minimize, Remember):
         return self.bfgs(-self.g)
 
     def _doEndIteration_BFGS(self, xt):
-        if self._iter is 0:
+        if self.iter is 0:
             self.g_last = self.g
             return
 
@@ -817,7 +817,7 @@ class NewtonRoot(object):
         """
         if self.comments: print 'Newton Method:\n'
 
-        self._iter = 0
+        self.iter = 0
         while True:
 
             r, J = fun(x, return_g=True)
@@ -851,10 +851,10 @@ class NewtonRoot(object):
                 rt = fun(xt, return_g=False)
 
             x = xt
-            self._iter += 1
+            self.iter += 1
             if norm(rt) < self.tol:
                 break
-            if self._iter > self.maxIter:
+            if self.iter > self.maxIter:
                 print 'NewtonRoot stopped by maxIters. norm: %4.4e' % norm(rt)
                 break
 

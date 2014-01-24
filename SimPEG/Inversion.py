@@ -4,7 +4,7 @@ from Optimization import Remember, IterationPrinters, StoppingCriteria
 
 
 class BaseInversion(object):
-    """BaseInversion(prob, reg, opt, data, **kwargs)
+    """BaseInversion(objFunc, opt, **kwargs)
     """
 
     __metaclass__ = Utils.Save.Savable
