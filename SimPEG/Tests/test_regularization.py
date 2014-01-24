@@ -20,8 +20,9 @@ class RegularizationTests(unittest.TestCase):
             # if 'Regularization' not in R: continue
             print 'Check:', R
             model = r.modelPair(self.mesh2)
-            reg = r(self.mesh2, model)
+            reg = r(model)
             m = model.example()
+            reg.mref = model.example()*0
             passed = checkDerivative(lambda m : [reg.modelObj(m), reg.modelObjDeriv(m)], m, plotIt=False)
             self.assertTrue(passed)
 

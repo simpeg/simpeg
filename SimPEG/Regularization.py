@@ -14,15 +14,13 @@ class BaseRegularization(object):
 
     modelPair = Model.BaseModel  #: Some regularizations only work on specific models
 
-    mesh  = None    #: A SimPEG.Mesh instance.
     model = None    #: A SimPEG.Model instance.
 
     counter = None
 
-    def __init__(self, mesh, model, **kwargs):
+    def __init__(self, model, **kwargs):
         Utils.setKwargs(self, **kwargs)
         assert isinstance(model, self.modelPair), "Incorrect model for this regularization"
-        self.mesh = mesh
         self.model = model
 
     mref = Utils.ParameterProperty('mref', default=None, doc='Reference model.')
@@ -49,6 +47,8 @@ class BaseRegularization(object):
     def prob(self): return self.parent.prob
     @property
     def data(self): return self.parent.data
+    @property
+    def mesh(self): return self.model.mesh
 
 
     @property
@@ -193,8 +193,8 @@ class Tikhonov(BaseRegularization):
     alpha_yy = Utils.dependentProperty('_alpha_yy', 0.0, ['_W', '_Wyy'], "Weight for the second derivative in the y direction")
     alpha_zz = Utils.dependentProperty('_alpha_zz', 0.0, ['_W', '_Wzz'], "Weight for the second derivative in the z direction")
 
-    def __init__(self, mesh, model, **kwargs):
-        BaseRegularization.__init__(self, mesh, model, **kwargs)
+    def __init__(self, model, **kwargs):
+        BaseRegularization.__init__(self, model, **kwargs)
 
     @property
     def Ws(self):
