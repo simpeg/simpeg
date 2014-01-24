@@ -1,4 +1,4 @@
-from SimPEG import Utils, np, sp
+import Utils, Parameters, numpy as np, scipy.sparse as sp
 
 
 class BaseModel(object):

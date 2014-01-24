@@ -1,4 +1,4 @@
-from SimPEG import Utils, Model, np, sp
+import Utils, Model, Parameters, numpy as np, scipy.sparse as sp
 
 class BaseRegularization(object):
     """
@@ -23,7 +23,7 @@ class BaseRegularization(object):
         assert isinstance(model, self.modelPair), "Incorrect model for this regularization"
         self.model = model
 
-    mref = Utils.ParameterProperty('mref', default=None, doc='Reference model.')
+    mref = Parameters.ParameterProperty('mref', default=None, doc='Reference model.')
 
     @property
     def parent(self):

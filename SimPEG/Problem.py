@@ -1,6 +1,4 @@
-import Utils, Data
-import scipy.sparse as sp
-import numpy as np
+import Utils, Data, numpy as np, scipy.sparse as sp
 
 
 class BaseProblem(object):

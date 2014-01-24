@@ -1,4 +1,5 @@
-from SimPEG import Solver, Utils, sp, np
+import Utils, numpy as np, scipy.sparse as sp
+from Solver import Solver
 norm = np.linalg.norm
 
 

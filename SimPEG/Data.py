@@ -1,5 +1,4 @@
-import Utils
-import numpy as np
+import Utils, numpy as np
 
 
 class BaseData(object):

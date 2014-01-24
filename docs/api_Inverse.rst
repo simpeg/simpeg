@@ -1,6 +1,15 @@
 .. _api_Inverse:
 
 
+Regularization
+**************
+
+.. automodule:: SimPEG.Regularization
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+
 Objective Function
 ******************
 
@@ -27,10 +36,3 @@ Inversion
     :undoc-members:
 
 
-Regularization
-**************
-
-.. automodule:: SimPEG.Regularization
-    :show-inheritance:
-    :members:
-    :undoc-members:
