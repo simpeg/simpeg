@@ -1,5 +1,6 @@
-from SimPEG import Utils, np, sp, Data
-norm = np.linalg.norm
+import Utils, Data
+import scipy.sparse as sp
+import numpy as np
 
 
 class BaseProblem(object):
@@ -41,11 +42,34 @@ class BaseProblem(object):
 
     dataPair = Data.BaseData
 
-
     def __init__(self, mesh, model, *args, **kwargs):
         Utils.setKwargs(self, **kwargs)
         self.mesh = mesh
         self.model = model
+
+    @property
+    def data(self):
+        """
+        The data object for this problem. Data
+        """
+        return getattr(self, '_data', None)
+
+    def pair(self, d):
+        """Bind a data to this problem instance using pointers."""
+        assert isinstance(d, self.dataPair), "Data object must be an instance of a %s class."%(self.dataPair.__name__)
+        if d.ispaired:
+            raise Exception("The data object is already paired to a problem. Use data.unpair()")
+        self._data = d
+        d._prob = self
+
+    def unpair(self):
+        """Unbind a data from this problem instance."""
+        if not self.ispaired: return
+        self.data._prob = None
+        self._data = None
+
+    @property
+    def ispaired(self): return self.data is not None
 
     @Utils.timeIt
     def J(self, m, v, u=None):
@@ -143,8 +167,8 @@ class BaseProblem(object):
             and Wd which is the same size as data, and can be used to weight the inversion.
         """
         data = self.dataPair(mtrue=m, **geometry_kwargs)
-        data.setProblem(self)
-        data.dtrue = self.data.dpred(m,u=u)
+        data.pair(self)
+        data.dtrue = data.dpred(m, u=u)
         noise = std*abs(data.dtrue)*np.random.randn(*data.dtrue.shape)
         data.dobs = data.dtrue+noise
         data.std = data.dobs*0 + std

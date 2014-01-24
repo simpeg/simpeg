@@ -7,7 +7,6 @@ class BaseData(object):
 
     __metaclass__ = Utils.Save.Savable
 
-    prob = None      #: The geophysical problem that explains this data, use data.setProblem(prob)
     std = None       #: Estimated Standard Deviations
     dobs = None      #: Observed data
     dtrue = None     #: True data, if data is synthetic
@@ -18,10 +17,32 @@ class BaseData(object):
     def __init__(self, **kwargs):
         Utils.setKwargs(self, **kwargs)
 
-    def setProblem(self, prob):
-        # Bind these two instances together using pointers
-        self.prob = prob
-        prob.data = self
+    @property
+    def prob(self):
+        """
+        The geophysical problem that explains this data, use::
+
+            data.setProblem(prob)
+        """
+        return getattr(self, '_prob', None)
+
+    def pair(self, p):
+        """Bind a problem to this data instance using pointers"""
+        assert hasattr(p, 'dataPair'), "Problem must have an attribute 'dataPair'."
+        assert isinstance(self, p.dataPair), "Problem requires data object must be an instance of a %s class."%(p.dataPair.__name__)
+        if p.ispaired:
+            raise Exception("The problem object is already paired to a data. Use prob.unpair()")
+        self._prob = p
+        p._data = self
+
+    def unpair(self):
+        """Unbind a problem from this data instance"""
+        if not self.ispaired: return
+        self.prob._data = None
+        self._prob = None
+
+    @property
+    def ispaired(self): return self.prob is not None
 
     @Utils.count
     @Utils.requires('prob')
@@ -117,6 +138,7 @@ class BaseData(object):
     def RHS(self, value):
         self._RHS = value
 
+    @property
     def isSynthetic(self):
         "Check if the data is synthetic."
         return (self.mtrue is not None)

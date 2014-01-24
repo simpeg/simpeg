@@ -2,6 +2,7 @@ import SimPEG
 from SimPEG import Utils, sp, np
 from Optimization import Remember, IterationPrinters, StoppingCriteria
 
+
 class BaseInversion(object):
     """BaseInversion(prob, reg, opt, data, **kwargs)
     """
