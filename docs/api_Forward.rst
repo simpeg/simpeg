@@ -1,5 +1,23 @@
-.. _api_Problem:
+.. _api_Forward:
 
+
+Model
+*****
+
+.. automodule:: SimPEG.Model
+    :show-inheritance:
+    :members:
+    :undoc-members:
+    :inherited-members:
+
+Data
+****
+
+.. automodule:: SimPEG.Data
+    :show-inheritance:
+    :members:
+    :undoc-members:
+    :inherited-members:
 
 Problem
 *******
@@ -10,23 +28,3 @@ Problem
     :undoc-members:
     :inherited-members:
 
-
-DCProblem
-*********
-
-.. automodule:: SimPEG.Examples.DC
-    :show-inheritance:
-    :members:
-    :undoc-members:
-    :inherited-members:
-
-
-
-Linear Problem
-**************
-
-.. automodule:: SimPEG.Examples.Linear
-    :show-inheritance:
-    :members:
-    :undoc-members:
-    :inherited-members:

@@ -48,7 +48,7 @@ class BaseProblem(object):
     @property
     def data(self):
         """
-        The data object for this problem. Data
+        The data object for this problem.
         """
         return getattr(self, '_data', None)
 

@@ -152,11 +152,14 @@ def requires(var):
     def requiresVar(f):
         if var is 'prob':
             extra = """
-                To use data.%s(), SimPEG requires that a problem be bound to the data.
-                If a problem has not been bound, an Exception will be raised.
-                To bind a problem to the Data object::
 
-                    data.setProblem(myProblem)
+        .. note::
+
+            To use data.%s(), SimPEG requires that a problem be bound to the data.
+            If a problem has not been bound, an Exception will be raised.
+            To bind a problem to the Data object::
+
+                data.pair(myProblem)
 
             """ % f.__name__
         else:

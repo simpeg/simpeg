@@ -21,7 +21,7 @@ class BaseData(object):
         """
         The geophysical problem that explains this data, use::
 
-            data.setProblem(prob)
+            data.pair(prob)
         """
         return getattr(self, '_prob', None)
 
@@ -67,7 +67,7 @@ class BaseData(object):
 
 
             .. math::
-                d_\\text{pred} = Pu(m)
+                d_\\text{pred} = P(u(m))
         """
         return u
 
