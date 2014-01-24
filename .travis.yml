@@ -5,9 +5,14 @@ virtualenv:
   system_site_packages: true
 before_install:
   - sudo apt-get install -qq python-numpy python-scipy python-matplotlib
+  - cd ../
   - git clone https://github.com/simpeg/simpeg.git
-  - python simpeg/SimPEG/setup.py
+  - pwd
   - ls
+  - export PYTHONPATH = $PYTHONPATH:/$USER/simpeg
+  - echo $PYTHONPATH
+  - python simpeg/SimPEG/setup.py
+  - cd simpegdc
 # command to install dependencies
 install: "pip install -r requirements.txt --use-mirrors"
 # command to run tests
