@@ -208,7 +208,7 @@ if __name__ == '__main__':
     q, Q, rxmidloc = genTxRxmat(nelec, spacelec, surfloc, elecini, M)
     P = Q.T
 
-    model = Model.LogModel()
+    model = Model.LogModel(M)
     prob = DCProblem(M, model)
 
     # Create some data
@@ -224,18 +224,17 @@ if __name__ == '__main__':
     # prob.std = dobs*0 + 0.05
     m0 = M.gridCC[:,0]*0+sig2
 
-    opt = Inverse.InexactGaussNewton(maxIterLS=20, maxIter=3, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6)
-    reg = Inverse.Regularization(M)
-    inv = Inverse.Inversion(prob, reg, opt, data, beta0=1e4)
+    reg = Regularization.Tikhonov(model)
+    objFunc = ObjFunction.BaseObjFunction(data, reg)
+    opt = Optimization.InexactGaussNewton(maxIterLS=20, maxIter=3, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6)
+    inv = Inversion.BaseInversion(objFunc, opt)
 
     # Check Derivative
-    derChk = lambda m: [inv.dataObj(m), inv.dataObjDeriv(m)]
+    derChk = lambda m: [objFunc.dataObj(m), objFunc.dataObjDeriv(m)]
     # Tests.checkDerivative(derChk, mSynth)
 
-
-
-    print inv.dataObj(m0)
-    print inv.dataObj(mSynth)
+    print objFunc.dataObj(m0)
+    print objFunc.dataObj(mSynth)
 
     m = inv.run(m0)
 

@@ -1,14 +1,15 @@
-from SimPEG import Mesh, Model, Problem, Data, Inversion, np
+from SimPEG import *
 import matplotlib.pyplot as plt
 
 
 class LinearProblem(Problem.BaseProblem):
     """docstring for LinearProblem"""
 
-    def __init__(self, *args, **kwargs):
-        problem.BaseProblem.__init__(self, *args, **kwargs)
+    def __init__(self, mesh, model, G, **kwargs):
+        Problem.BaseProblem.__init__(self, mesh, model, **kwargs)
+        self.G = G
 
-    def dpred(self, m, u=None):
+    def field(self, m, u=None):
         return self.G.dot(m)
 
     def J(self, m, v, u=None):
@@ -20,7 +21,7 @@ class LinearProblem(Problem.BaseProblem):
 
 def example(N):
     h = np.ones(N)/N
-    M = mesh.TensorMesh([h])
+    M = Mesh.TensorMesh([h])
 
     nk = 20
     jk = np.linspace(1.,20.,nk)
@@ -41,21 +42,22 @@ def example(N):
 
 
 
-    prob = LinearProblem(M, None)
-    prob.G = G
+    model = Model.BaseModel(M)
+    prob = LinearProblem(M, model, G)
     data = prob.createSyntheticData(mtrue, std=0.01)
 
-    return prob, data
+    return prob, data, model
 
 
 if __name__ == '__main__':
 
-    prob, data = example(100)
+    prob, data, model = example(100)
     M = prob.mesh
 
-    reg = inverse.Regularization(M)
-    opt = inverse.InexactGaussNewton(maxIter=20)
-    inv = inverse.Inversion(prob,reg,opt,data)
+    reg = Regularization.Tikhonov(model)
+    objFunc = ObjFunction.BaseObjFunction(data, reg)
+    opt = Optimization.InexactGaussNewton(maxIter=20)
+    inv = Inversion.BaseInversion(objFunc, opt)
     m0 = np.zeros_like(data.mtrue)
 
     mrec = inv.run(m0)
