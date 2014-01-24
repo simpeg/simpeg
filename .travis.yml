@@ -7,8 +7,9 @@ before_install:
   - sudo apt-get install -qq python-numpy python-scipy python-matplotlib
   - cd ../
   - git clone https://github.com/simpeg/simpeg.git
-  - setenv PYTHONPATH $PYTHONPATH:/home/travis/build/simpeg/simpeg
   - python simpeg/SimPEG/setup.py
+  - echo export PYTHONPATH=$PYTHONPATH:/home/travis/build/simpeg/simpeg >> .bashrc
+  - source .bashrc
   - cd simpegdc
 # command to install dependencies
 install: "pip install -r requirements.txt --use-mirrors"
