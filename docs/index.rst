@@ -24,14 +24,14 @@ Testing SimPEG
 ==============
 
 * Master Branch
-   .. image:: https://travis-ci.org/simpeg/simpeg.png?branch=master
-      :target: https://travis-ci.org/simpeg/simpeg
+   .. image:: https://travis-ci.org/simpeg/simpegdc.png?branch=master
+      :target: https://travis-ci.org/simpeg/simpegdc
       :alt: Master Branch
       :align: center
 
 * Develop Branch
-   .. image:: https://travis-ci.org/simpeg/simpeg.png?branch=develop
-      :target: https://travis-ci.org/simpeg/simpeg
+   .. image:: https://travis-ci.org/simpeg/simpegdc.png?branch=develop
+      :target: https://travis-ci.org/simpeg/simpegdc
       :alt: Develop Branch
       :align: center
 
