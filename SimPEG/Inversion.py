@@ -1,6 +1,6 @@
 import SimPEG
 from SimPEG import Utils, sp, np
-from Optimization import Remember, IterationPrinters, StoppingCriteria
+from Optimization import Remember, IterationPrinters
 
 
 class BaseInversion(object):
@@ -13,7 +13,6 @@ class BaseInversion(object):
 
     debug   = False    #: Print debugging information
 
-    comment = ''       #: Used by some functions to indicate what is going on in the algorithm
     counter = None     #: Set this to a SimPEG.Utils.Counter() if you want to count things
 
     def __init__(self, objFunc, opt, **kwargs):
@@ -39,6 +38,7 @@ class BaseInversion(object):
             opt.bfgsH0 = SimPEG.Solver(objFunc.reg.modelObj2Deriv())
 
 
+    #TODO: Move this to the data class?
     @property
     def phi_d_target(self):
         """
@@ -68,11 +68,6 @@ class BaseInversion(object):
         self.finish()
 
         return self.m
-
-    def stoppingCriteria(self):
-        if self.debug: print 'checking stoppingCriteria'
-        return Utils.checkStoppers(self, self.stoppers)
-
 
     @Utils.callHooks('finish')
     def finish(self):
