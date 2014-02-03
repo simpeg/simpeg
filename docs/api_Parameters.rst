@@ -1,9 +1,10 @@
-.. _api_TensorMesh:
+.. _api_Parameters:
 
-Tensor Mesh
-***********
 
-.. automodule:: SimPEG.Mesh.TensorMesh
+Parameters
+**********
+
+.. automodule:: SimPEG.Parameters
     :show-inheritance:
     :members:
     :undoc-members:

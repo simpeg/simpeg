@@ -3,6 +3,6 @@
 Cylindrical 1D Mesh
 *******************
 
-.. automodule:: SimPEG.mesh.Cyl1DMesh
+.. automodule:: SimPEG.Mesh.Cyl1DMesh
     :members:
     :undoc-members:

@@ -1,6 +1,6 @@
 ![SimPEG](https://raw.github.com/simpeg/simpeg/master/docs/simpeg-logo.png)
 
-Simulation and Parameter Estimation in Geoscience  -  A python package for simulation and gradient based parameter estimation in the context of geophysical applications.
+Simulation and Parameter Estimation in Geophysics  -  A python package for simulation and gradient based parameter estimation in the context of geophysical applications.
 
 The vision is to create a package for finite volume simulation with applications to geophysical imaging and subsurface flow. To enable the understanding of the many different components, this package has the following features:
 
@@ -10,4 +10,20 @@ The vision is to create a package for finite volume simulation with applications
 * supports 1D, 2D and 3D problems
 * designed for large-scale inversions
 
+Documentation:
+[http://simpeg.readthedocs.org/en/latest/](http://simpeg.readthedocs.org/en/latest/)
+
+Code:
+[https://github.com/simpeg/simpeg](https://github.com/simpeg/simpeg)
+
+Tests:
+[https://travis-ci.org/simpeg/simpeg](https://travis-ci.org/simpeg/simpeg)
+
+Build Status:
 [![Build Status](https://travis-ci.org/simpeg/simpeg.png)](https://travis-ci.org/simpeg/simpeg)
+
+Bugs & Issues:
+[https://github.com/simpeg/simpeg/issues](https://github.com/simpeg/simpeg/issues)
+
+Code Snippets & Tutorials:
+[http://www.row1.ca/simpeg](http://www.row1.ca/simpeg)

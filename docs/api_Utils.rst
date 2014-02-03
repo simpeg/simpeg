@@ -4,7 +4,7 @@
 Solver
 ******
 
-.. automodule:: SimPEG.utils.Solver
+.. automodule:: SimPEG.Solver
     :members:
     :undoc-members:
 
@@ -12,49 +12,49 @@ Solver
 Utilities
 *********
 
-.. automodule:: SimPEG.utils
+.. automodule:: SimPEG.Utils
     :members:
     :undoc-members:
 
 Matrix Utilities
 ****************
 
-.. automodule:: SimPEG.utils.matutils
+.. automodule:: SimPEG.Utils.matutils
     :members:
     :undoc-members:
 
 Sparse Utilities
 ****************
 
-.. automodule:: SimPEG.utils.sputils
+.. automodule:: SimPEG.Utils.sputils
     :members:
     :undoc-members:
 
 LOM Utilities
 *************
 
-.. automodule:: SimPEG.utils.lomutils
+.. automodule:: SimPEG.Utils.lomutils
     :members:
     :undoc-members:
 
 Mesh Utilities
 **************
 
-.. automodule:: SimPEG.utils.meshutils
+.. automodule:: SimPEG.Utils.meshutils
     :members:
     :undoc-members:
 
 Model Builder Utilities
 ***********************
 
-.. automodule:: SimPEG.utils.ModelBuilder
+.. automodule:: SimPEG.Utils.ModelBuilder
     :members:
     :undoc-members:
 
 Interpolation Utilities
 ***********************
 
-.. automodule:: SimPEG.utils.interputils
+.. automodule:: SimPEG.Utils.interputils
     :members:
     :undoc-members:
 
