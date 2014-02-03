@@ -422,6 +422,7 @@ class DiffOperators(object):
 
         def fget(self):
             if(self._edgeCurl is None):
+                assert self.dim > 2, "Edge Curl only programed for 3D."
                 # The number of cell centers in each direction
                 n1 = self.nCx
                 n2 = self.nCy
