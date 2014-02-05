@@ -1,0 +1,17 @@
+language: python
+python:
+  - "2.7"
+virtualenv:
+  system_site_packages: true
+before_install:
+  - sudo apt-get install -qq python-numpy python-scipy python-matplotlib
+  - cd ../
+  - git clone https://github.com/simpeg/simpeg.git
+  - python simpeg/SimPEG/setup.py
+  - echo export PYTHONPATH=$PYTHONPATH:/home/travis/build/simpeg/simpeg >> .bashrc
+  - source .bashrc
+  - cd simpegdc
+# command to install dependencies
+install: "pip install -r requirements.txt --use-mirrors"
+# command to run tests
+script: nosetests -v
