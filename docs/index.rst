@@ -3,7 +3,7 @@
    :alt: SimPEG
    :align: center
 
-SimPEG (Simulation and Parameter Estimation in Geoscience) is a python
+SimPEG (Simulation and Parameter Estimation in Geophysics) is a python
 package for simulation and gradient based parameter estimation in the
 context of geoscience applications.
 
@@ -16,11 +16,10 @@ these goals, this package has the following features:
 * provides a framework for geophysical and hydrogeologic problems
 * supports 1D, 2D and 3D problems
 
-
-.. raw:: html
-
-   <iframe src="http://row1.ca/labs/simpegvis" width="100%" height="500px" style="border:none;background:#eee;margin:50px 0;"></iframe>
-
+.. image:: simpeg-framework.png
+   :width: 400 px
+   :alt: Framework
+   :align: center
 
 Meshing & Operators
 ===================
@@ -41,7 +40,7 @@ Forward Problems
 .. toctree::
    :maxdepth: 2
 
-   api_Problem
+   api_Forward
 
 Inversion
 =========
@@ -49,7 +48,8 @@ Inversion
 .. toctree::
    :maxdepth: 2
 
-   api_Optimize
+   api_Inverse
+   api_Parameters
 
 Testing SimPEG
 ==============
@@ -58,22 +58,18 @@ Testing SimPEG
    :maxdepth: 2
 
    api_Tests
-   api_TestResults
-
-Build Results
-=============
 
 * Master Branch
-.. image:: https://travis-ci.org/simpeg/simpeg.png?branch=master
-   :target: https://travis-ci.org/simpeg/simpeg
-   :alt: Master Branch
-   :align: center
+   .. image:: https://travis-ci.org/simpeg/simpeg.png?branch=master
+      :target: https://travis-ci.org/simpeg/simpeg
+      :alt: Master Branch
+      :align: center
 
 * Develop Branch
-.. image:: https://travis-ci.org/simpeg/simpeg.png?branch=develop
-   :target: https://travis-ci.org/simpeg/simpeg
-   :alt: Develop Branch
-   :align: center
+   .. image:: https://travis-ci.org/simpeg/simpeg.png?branch=develop
+      :target: https://travis-ci.org/simpeg/simpeg
+      :alt: Develop Branch
+      :align: center
 
 
 Utility Codes

@@ -3,4 +3,3 @@
 *.sublime-project
 *.sublime-workspace
 docs/_build/
-myNotebooks/*
