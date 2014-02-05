@@ -5,7 +5,6 @@ from lomutils import volTetra, faceInfo, inv2X2BlockDiagonal, inv3X3BlockDiagona
 from interputils import interpmat
 from ipythonutils import easyAnimate as animate
 import Save
-import Geophysics
 import ModelBuilder
 
 import types
