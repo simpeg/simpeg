@@ -1,6 +1,6 @@
 import SimPEG
 from SimPEG import Utils, sp, np
-from Optimization import Remember, IterationPrinters
+from Optimization import Remember, IterationPrinters, StoppingCriteria
 
 
 class BaseInversion(object):
