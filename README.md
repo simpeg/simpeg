@@ -6,7 +6,7 @@ A electromagnetic forward modelling and inversion package for SimPEG.
 
 
 Documentation:
-[http://simpeg-em.readthedocs.org/en/latest/](http://simpeg-em.readthedocs.org/en/latest/)
+[http://simpegem.readthedocs.org/en/latest/](http://simpegem.readthedocs.org/en/latest/)
 
 Code:
 [https://github.com/simpeg/simpegem](https://github.com/simpeg/simpegem)
