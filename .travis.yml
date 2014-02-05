@@ -10,7 +10,7 @@ before_install:
   - python simpeg/SimPEG/setup.py
   - echo export PYTHONPATH=$PYTHONPATH:/home/travis/build/simpeg/simpeg >> .bashrc
   - source .bashrc
-  - cd simpegdc
+  - cd simpegem
 # command to install dependencies
 install: "pip install -r requirements.txt --use-mirrors"
 # command to run tests
