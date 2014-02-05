@@ -1,5 +1,5 @@
-from SimPEG import *
 import unittest
+from SimPEG import *
 import simpegDC
 
 
