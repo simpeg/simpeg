@@ -127,3 +127,17 @@ class LogModel(BaseModel):
                 \\frac{\partial \exp{m}}{\partial m} = \\text{sdiag}(\exp{m})
         """
         return Utils.sdiag(np.exp(Utils.mkvc(m)))
+
+class CylModel(BaseModel):
+    """SimPEG LogModel"""
+
+    def __init__(self, mesh, **kwargs):
+        BaseModel.__init__(self, mesh, **kwargs)
+
+    def transform(self, m):
+        """
+            :param numpy.array m: model
+            :rtype: numpy.array
+            :return: transformed model
+        """
+        return m.repeat(self.mesh.nCx)
