@@ -58,9 +58,10 @@ class BaseModel(object):
     def example(self):
         return np.random.rand(self.nP)
 
-    def test(self):
+    def test(self, m=None):
         print 'Testing the %s Class!' % self.__class__.__name__
-        m = self.example()
+        if m is None:
+            m = self.example()
         return checkDerivative(lambda m : [self.transform(m), self.transformDeriv(m)], m, plotIt=False)
 
 
@@ -172,3 +173,39 @@ class Vertical1DModel(BaseModel):
                     (range(repNum), np.zeros(repNum))
                     ), shape=(repNum, 1))
         return sp.kron(sp.identity(self.nP), repVec)
+
+class ComboModel(BaseModel):
+    """Combination of various models."""
+
+    def __init__(self, mesh, models, **kwargs):
+        BaseModel.__init__(self, mesh, **kwargs)
+        self.models = [m(mesh, **kwargs) for m in models]
+
+    @property
+    def nP(self):
+        """Number of model properties.
+
+           The number of cells in the
+           last dimension of the mesh."""
+        return self.models[-1].nP
+
+    def transform(self, m):
+        for model in reversed(self.models):
+            m = model.transform(m)
+        return m
+
+    def transformDeriv(self, m):
+        deriv = 1
+        mi = m
+        for model in reversed(self.models):
+            deriv = model.transformDeriv(mi) * deriv
+            mi = model.transform(mi)
+        return deriv
+
+if __name__ == '__main__':
+    from SimPEG import *
+    mesh = Mesh.TensorMesh([10,8])
+    combo = ComboModel(mesh, [LogModel, Vertical1DModel])
+    m = combo.example()
+    print m.shape
+    print combo.test(np.arange(8))

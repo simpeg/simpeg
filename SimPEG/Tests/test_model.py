@@ -22,5 +22,12 @@ class ModelTests(unittest.TestCase):
                 continue
             self.assertTrue(model.test())
 
+    def test_comboModels(self):
+        combos = [(Model.LogModel, Model.Vertical1DModel)]
+        for combo in combos:
+            model = Model.ComboModel(self.mesh2, combo)
+            self.assertTrue(model.test())
+
+
 if __name__ == '__main__':
     unittest.main()
