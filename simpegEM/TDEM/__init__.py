@@ -1,1 +1,1 @@
-from BaseTDEM import DataTDEM1D
+from BaseTDEM import DataTDEM1D, ProblemTDEM1D
