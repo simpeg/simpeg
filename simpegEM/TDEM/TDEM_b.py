@@ -9,7 +9,7 @@ class ProblemTDEM_b(ProblemBaseTDEM):
     def __init__(self, mesh, model, **kwargs):
         ProblemBaseTDEM.__init__(self, mesh, model, **kwargs)
 
-    # solType = 'b'
+    solType = 'b'
 
     ####################################################
     # Physical Properties

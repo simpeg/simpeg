@@ -1,4 +1,4 @@
-from SimPEG import Utils
+from SimPEG import Utils, Solver
 from SimPEG.Data import BaseData
 from SimPEG.Problem import BaseProblem
 from simpegEM.Utils import Sources
@@ -41,7 +41,7 @@ class MixinInitialFieldCalc(object):
             MVP = np.concatenate((MVPx, MVPy, MVPz))
         
         # Initialize field object
-        F = FieldsTDEM(self.mesh, 1, self.tCalc.size, 'b')
+        F = FieldsTDEM(self.mesh, 1, self.times.size, 'b')
 
         # Set initial B
         F.b0 = self.mesh.edgeCurl*MVP
@@ -69,7 +69,7 @@ class MixinTimeStuff(object):
         return locals()
     nsteps = property(**nsteps())
 
-    def tCalc():
+    def times():
         doc = "Modelling times"
         def fget(self):
             t = np.r_[1:self.nsteps[0]+1]*self.dt[0]
@@ -77,7 +77,7 @@ class MixinTimeStuff(object):
                 t = np.r_[t, np.r_[1:self.nsteps[i]+1]*self.dt[i]+t[-1]]
             return t
         return locals()
-    tCalc = property(**tCalc())
+    times = property(**times())
 
     def getDt(self, tInd):
         return np.concatenate([self.dt[i].repeat(self.nsteps[i]) for i in range(self.dt.size)])[tInd]
@@ -94,19 +94,25 @@ class ProblemBaseTDEM(MixinTimeStuff, MixinInitialFieldCalc, BaseProblem):
     def __init__(self, mesh, model, **kwargs):
         BaseProblem.__init__(self, mesh, model, **kwargs)
         
-    # solveOpts = {'factorize':True,'backend':'mumps'}
-    # def field(self, m):
-    #     F = self.getInitialFields()
-    #     A = None
-    #     for i, dt in enumerate(self.times):
-    #         if A is None or redoSolver:
-    #             A = self.getA(i)
-    #             Asolve = Solver(A,options=self.solveOpts) 
-    #         rhs = self.getRHS(i, F)
-    #         sol = Asolve.Solve(rhs)
-    #         # self.updateField(sol, F)
-    #         F.update(sol, i, self.solType)
-    #     return F
+    solveOpts = {'factorize':True,'backend':'scipy'}
+
+    def field(self, m):
+        F = self.getInitialFields()
+        dtFact = None
+        for tInd, t in enumerate(self.times):
+            dt = self.getDt(tInd)
+            if dt!=dtFact:
+                dtFact = dt
+                A = self.getA(tInd)
+                print 'Factoring...   (dt = ' + str(dt) + ')'
+                Asolve = Solver(A,options=self.solveOpts) 
+                print 'Done'
+            rhs = self.getRHS(tInd, F)
+            sol = Asolve.solve(rhs)
+            if sol.ndim == 1:
+                sol.shape = (sol.size,1)
+            F.update(sol, tInd, self.solType)
+        return F
         
 class FieldsTDEM(object):
     """docstring for FieldsTDEM"""
@@ -131,6 +137,13 @@ class FieldsTDEM(object):
         self.nTx = nTx #: Number of transmitters
         self.mesh = mesh
 
+    def update(self, sol, tInd, solType):
+        if solType == 'b':
+            self.set_b(sol, tInd)
+        else:
+            errStr = 'solType: ' + solType
+            raise NotImplementedError(errStr)
+
     ####################################################
     # Get Methods
     ####################################################        
@@ -147,6 +160,6 @@ class FieldsTDEM(object):
 
     def set_b(self, b, ind):
         if self.b is None:
-            self.b = np.zeros((self.nTimes, np.sum(self.mesh.nF), self.nTimes))
+            self.b = np.zeros((self.nTimes, np.sum(self.mesh.nF), self.nTx))
             self.b[:] = np.nan
         self.b[ind, :] = b
