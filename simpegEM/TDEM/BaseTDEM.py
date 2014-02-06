@@ -1,6 +1,7 @@
 from SimPEG import Utils
 from SimPEG.Data import BaseData
 from SimPEG.Problem import BaseProblem
+from simpegEM.Utils import Sources
 import numpy as np
 
 
@@ -19,14 +20,33 @@ class DataTDEM1D(BaseData):
         BaseData.__init__(self, **kwargs)
         Utils.setKwargs(self, **kwargs)
 
-
 class MixinInitialFieldCalc(object):
     """docstring for MixinInitialFieldCalc"""
                         
     def getInitialFields(self):
+        if self.data.txType == 'VMD_MVP':
+            # Vertical magnetic dipole, magnetic vector potential
+            self._getInitialFields_VMD_MVP()
+        else:
+            exStr = 'Invalid txType: ' + str(self.data.txType)
+            raise Exception(exStr)
         pass
-        # return fields obj
+
+    def _getInitialFields_VMD_MVP(self):
+        print 'VMD INI'
+        if self.mesh._meshType is 'CYL1D':
+            MVP = Sources.MagneticDipoleVectorPotential(np.r_[0,0,self.data.txLoc], np.c_[np.zeros(self.mesh.nN), self.mesh.gridN], 'x')
+        elif self.mesh._meshType is 'TENSOR':
+            MVPx = Sources.MagneticDipoleVectorPotential(self.data.txLoc, self.mesh.gridEx, 'x')
+            MVPy = Sources.MagneticDipoleVectorPotential(self.data.txLoc, self.mesh.gridEy, 'y')
+            MVPz = Sources.MagneticDipoleVectorPotential(self.data.txLoc, self.mesh.gridEz, 'z')
+            MVP = np.concatenate((MVPx, MVPy, MVPz))
         
+        # Initialize field object
+        self.F = FieldsTDEM(self.mesh, self.tCalc.size, 'b')
+
+        # Set initial B
+        self.F.b0 = self.mesh.edgeCurl*MVP
 
 class ProblemTDEM1D(MixinInitialFieldCalc, BaseProblem):
     """docstring for ProblemTDEM1D"""
