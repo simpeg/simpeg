@@ -462,126 +462,120 @@ class DiffOperators(object):
 
     # --------------- Averaging ---------------------
 
-    def aveF2CC():
-        doc = "Construct the averaging operator on cell faces to cell centers."
+    @property
+    def aveF2CC(self):
+        "Construct the averaging operator on cell faces to cell centers."
+        if getattr(self, '_aveF2CC', None) is None:
+            n = self.nCv
+            if(self.dim == 1):
+                self._aveF2CC = av(n[0])
+            elif(self.dim == 2):
+                self._aveF2CC = (0.5)*sp.hstack((sp.kron(speye(n[1]), av(n[0])),
+                                                 sp.kron(av(n[1]), speye(n[0]))), format="csr")
+            elif(self.dim == 3):
+                self._aveF2CC = (1./3.)*sp.hstack((kron3(speye(n[2]), speye(n[1]), av(n[0])),
+                                                   kron3(speye(n[2]), av(n[1]), speye(n[0])),
+                                                   kron3(av(n[2]), speye(n[1]), speye(n[0]))), format="csr")
+        return self._aveF2CC
 
-        def fget(self):
-            if(self._aveF2CC is None):
-                n = self.nCv
-                if(self.dim == 1):
-                    self._aveF2CC = av(n[0])
-                elif(self.dim == 2):
-                    self._aveF2CC = (0.5)*sp.hstack((sp.kron(speye(n[1]), av(n[0])),
-                                                     sp.kron(av(n[1]), speye(n[0]))), format="csr")
-                elif(self.dim == 3):
-                    self._aveF2CC = (1./3.)*sp.hstack((kron3(speye(n[2]), speye(n[1]), av(n[0])),
-                                                       kron3(speye(n[2]), av(n[1]), speye(n[0])),
-                                                       kron3(av(n[2]), speye(n[1]), speye(n[0]))), format="csr")
-            return self._aveF2CC
-        return locals()
-    _aveF2CC = None
-    aveF2CC = property(**aveF2CC())
+    @property
+    def aveCC2F(self):
+        "Construct the averaging operator on cell cell centers to faces."
+        if getattr(self, '_aveCC2F', None) is None:
+            n = self.nCv
+            if(self.dim == 1):
+                self._aveCC2F = avExtrap(n[0])
+            elif(self.dim == 2):
+                self._aveCC2F = sp.vstack((sp.kron(speye(n[1]), avExtrap(n[0])),
+                                           sp.kron(avExtrap(n[1]), speye(n[0]))), format="csr")
+            elif(self.dim == 3):
+                self._aveCC2F = sp.vstack((kron3(speye(n[2]), speye(n[1]), avExtrap(n[0])),
+                                           kron3(speye(n[2]), avExtrap(n[1]), speye(n[0])),
+                                           kron3(avExtrap(n[2]), speye(n[1]), speye(n[0]))), format="csr")
+        return self._aveCC2F
 
-    def aveCC2F():
-        doc = "Construct the averaging operator on cell cell centers to faces."
+    @property
+    def aveE2CC(self):
+        "Construct the averaging operator on cell edges to cell centers."
+        if getattr(self, '_aveE2CC', None) is None:
+            # The number of cell centers in each direction
+            n = self.nCv
+            if(self.dim == 1):
+                raise Exception('Edge Averaging does not make sense in 1D: Use Identity?')
+            elif(self.dim == 2):
+                self._aveE2CC = 0.5*sp.hstack((sp.kron(av(n[1]), speye(n[0])),
+                                           sp.kron(speye(n[1]), av(n[0]))), format="csr")
+            elif(self.dim == 3):
+                self._aveE2CC = (1./3)*sp.hstack((kron3(av(n[2]), av(n[1]), speye(n[0])),
+                                           kron3(av(n[2]), speye(n[1]), av(n[0])),
+                                           kron3(speye(n[2]), av(n[1]), av(n[0]))), format="csr")
+        return self._aveE2CC
 
-        def fget(self):
-            if(self._aveCC2F is None):
-                n = self.nCv
-                if(self.dim == 1):
-                    self._aveCC2F = avExtrap(n[0])
-                elif(self.dim == 2):
-                    self._aveCC2F = sp.vstack((sp.kron(speye(n[1]), avExtrap(n[0])),
-                                               sp.kron(avExtrap(n[1]), speye(n[0]))), format="csr")
-                elif(self.dim == 3):
-                    self._aveCC2F = sp.vstack((kron3(speye(n[2]), speye(n[1]), avExtrap(n[0])),
-                                               kron3(speye(n[2]), avExtrap(n[1]), speye(n[0])),
-                                               kron3(avExtrap(n[2]), speye(n[1]), speye(n[0]))), format="csr")
-            return self._aveCC2F
-        return locals()
-    _aveCC2F = None
-    aveCC2F = property(**aveCC2F())
+    @property
+    def aveE2CCV(self):
+        "Construct the averaging operator on cell edges to cell centers."
+        if getattr(self, '_aveE2CCV', None) is None:
+            # The number of cell centers in each direction
+            n = self.nCv
+            if(self.dim == 1):
+                raise Exception('Edge Averaging does not make sense in 1D: Use Identity?')
+            elif(self.dim == 2):
+                self._aveE2CCV = sp.block_diag((sp.kron(av(n[1]), speye(n[0])),
+                                                sp.kron(speye(n[1]), av(n[0]))), format="csr")
+            elif(self.dim == 3):
+                self._aveE2CCV = sp.block_diag((kron3(av(n[2]), av(n[1]), speye(n[0])),
+                                                kron3(av(n[2]), speye(n[1]), av(n[0])),
+                                                kron3(speye(n[2]), av(n[1]), av(n[0]))), format="csr")
+        return self._aveE2CCV
 
-    def aveE2CC():
-        doc = "Construct the averaging operator on cell edges to cell centers."
+    @property
+    def aveN2CC(self):
+        "Construct the averaging operator on cell nodes to cell centers."
+        if getattr(self, '_aveN2CC', None) is None:
+            # The number of cell centers in each direction
+            n = self.nCv
+            if(self.dim == 1):
+                self._aveN2CC = av(n[0])
+            elif(self.dim == 2):
+                self._aveN2CC = sp.kron(av(n[1]), av(n[0])).tocsr()
+            elif(self.dim == 3):
+                self._aveN2CC = kron3(av(n[2]), av(n[1]), av(n[0])).tocsr()
+        return self._aveN2CC
 
-        def fget(self):
-            if(self._aveE2CC is None):
-                # The number of cell centers in each direction
-                n = self.nCv
-                if(self.dim == 1):
-                    raise Exception('Edge Averaging does not make sense in 1D: Use Identity?')
-                elif(self.dim == 2):
-                    self._aveE2CC = 0.5*sp.hstack((sp.kron(av(n[1]), speye(n[0])),
-                                               sp.kron(speye(n[1]), av(n[0]))), format="csr")
-                elif(self.dim == 3):
-                    self._aveE2CC = (1./3)*sp.hstack((kron3(av(n[2]), av(n[1]), speye(n[0])),
-                                               kron3(av(n[2]), speye(n[1]), av(n[0])),
-                                               kron3(speye(n[2]), av(n[1]), av(n[0]))), format="csr")
-            return self._aveE2CC
-        return locals()
-    _aveE2CC = None
-    aveE2CC = property(**aveE2CC())
+    @property
+    def aveN2E(self):
+        "Construct the averaging operator on cell nodes to cell edges, keeping each dimension separate."
 
-    def aveN2CC():
-        doc = "Construct the averaging operator on cell nodes to cell centers."
+        if getattr(self, '_aveN2E', None) is None:
+            # The number of cell centers in each direction
+            n = self.nCv
+            if(self.dim == 1):
+                self._aveN2E = av(n[0])
+            elif(self.dim == 2):
+                self._aveN2E = sp.vstack((sp.kron(speye(n[1]+1), av(n[0])),
+                                          sp.kron(av(n[1]), speye(n[0]+1))), format="csr")
+            elif(self.dim == 3):
+                self._aveN2E = sp.vstack((kron3(speye(n[2]+1), speye(n[1]+1), av(n[0])),
+                                          kron3(speye(n[2]+1), av(n[1]), speye(n[0]+1)),
+                                          kron3(av(n[2]), speye(n[1]+1), speye(n[0]+1))), format="csr")
+        return self._aveN2E
 
-        def fget(self):
-            if(self._aveN2CC is None):
-                # The number of cell centers in each direction
-                n = self.nCv
-                if(self.dim == 1):
-                    self._aveN2CC = av(n[0])
-                elif(self.dim == 2):
-                    self._aveN2CC = sp.kron(av(n[1]), av(n[0])).tocsr()
-                elif(self.dim == 3):
-                    self._aveN2CC = kron3(av(n[2]), av(n[1]), av(n[0])).tocsr()
-            return self._aveN2CC
-        return locals()
-    _aveN2CC = None
-    aveN2CC = property(**aveN2CC())
-
-    def aveN2E():
-        doc = "Construct the averaging operator on cell nodes to cell edges, keeping each dimension separate."
-
-        def fget(self):
-            if(self._aveN2E is None):
-                # The number of cell centers in each direction
-                n = self.nCv
-                if(self.dim == 1):
-                    self._aveN2E = av(n[0])
-                elif(self.dim == 2):
-                    self._aveN2E = sp.vstack((sp.kron(speye(n[1]+1), av(n[0])),
-                                              sp.kron(av(n[1]), speye(n[0]+1))), format="csr")
-                elif(self.dim == 3):
-                    self._aveN2E = sp.vstack((kron3(speye(n[2]+1), speye(n[1]+1), av(n[0])),
-                                              kron3(speye(n[2]+1), av(n[1]), speye(n[0]+1)),
-                                              kron3(av(n[2]), speye(n[1]+1), speye(n[0]+1))), format="csr")
-            return self._aveN2E
-        return locals()
-    _aveN2E = None
-    aveN2E = property(**aveN2E())
-
-    def aveN2F():
-        doc = "Construct the averaging operator on cell nodes to cell faces, keeping each dimension separate."
-
-        def fget(self):
-            if(self._aveN2F is None):
-                # The number of cell centers in each direction
-                n = self.nCv
-                if(self.dim == 1):
-                    self._aveN2F = av(n[0])
-                elif(self.dim == 2):
-                    self._aveN2F = sp.vstack((sp.kron(av(n[1]), speye(n[0]+1)),
-                                              sp.kron(speye(n[1]+1), av(n[0]))), format="csr")
-                elif(self.dim == 3):
-                    self._aveN2F = sp.vstack((kron3(av(n[2]), av(n[1]), speye(n[0]+1)),
-                                              kron3(av(n[2]), speye(n[1]+1), av(n[0])),
-                                              kron3(speye(n[2]+1), av(n[1]), av(n[0]))), format="csr")
-            return self._aveN2F
-        return locals()
-    _aveN2F = None
-    aveN2F = property(**aveN2F())
+    @property
+    def aveN2F(self):
+        "Construct the averaging operator on cell nodes to cell faces, keeping each dimension separate."
+        if getattr(self, '_aveN2F', None) is None:
+            # The number of cell centers in each direction
+            n = self.nCv
+            if(self.dim == 1):
+                self._aveN2F = av(n[0])
+            elif(self.dim == 2):
+                self._aveN2F = sp.vstack((sp.kron(av(n[1]), speye(n[0]+1)),
+                                          sp.kron(speye(n[1]+1), av(n[0]))), format="csr")
+            elif(self.dim == 3):
+                self._aveN2F = sp.vstack((kron3(av(n[2]), av(n[1]), speye(n[0]+1)),
+                                          kron3(av(n[2]), speye(n[1]+1), av(n[0])),
+                                          kron3(speye(n[2]+1), av(n[1]), av(n[0]))), format="csr")
+        return self._aveN2F
 
     # --------------- Methods ---------------------
 
