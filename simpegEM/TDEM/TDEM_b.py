@@ -63,11 +63,14 @@ class ProblemTDEM_b(ProblemBaseTDEM):
 if __name__ == '__main__':
     from SimPEG import *
     import simpegEM as EM
+    from simpegEM.Utils.Ana import hzAnalyticDipoleT
+    from scipy.constants import mu_0
+    import matplotlib.pyplot as plt
 
     cs = 5.
     ncx = 20
     ncy = 6
-    npad = 15
+    npad = 20
     hx = Utils.meshTensors(((0,cs), (ncx,cs), (npad,cs)))
     hy = Utils.meshTensors(((npad,cs), (ncy,cs), (npad,cs)))
     mesh = Mesh.Cyl1DMesh([hx,hy], -hy.sum()/2)
@@ -81,8 +84,16 @@ if __name__ == '__main__':
     dat = EM.TDEM.DataTDEM1D(txLoc=txLoc, txType=txType, rxLoc=rxLoc, rxType=rxType, timeCh=timeCh)
 
     prb = EM.TDEM.ProblemTDEM_b(mesh, model)
-    prb.setTimes([1e-5, 5e-5, 2.5e-4], [50, 50, 50])
-    prb.sigma = np.ones(mesh.nCz)
+    prb.setTimes([1e-5, 5e-5, 2.5e-4], [150, 150, 150])
+    prb.sigma = np.ones(mesh.nCz)*1e-8
+    prb.sigma[mesh.vectorCCz<0] = 0.1
     prb.pair(dat)
 
-    F = prb.field(prb.sigma)
+    bz_calc = dat.dpred(-999999)
+    bz_ana = mu_0*hzAnalyticDipoleT(dat.rxLoc[0], prb.times, prb.sigma[0])
+
+
+    plt.loglog(prb.times, np.abs(bz_calc.flatten()), label='TDEM_b')
+    plt.loglog(prb.times, np.abs(bz_ana), 'r', label='Analytic')
+    plt.legend()
+    plt.show()
