@@ -7,6 +7,9 @@ def sdiag(h):
     """Sparse diagonal matrix"""
     return sp.spdiags(mkvc(h), 0, h.size, h.size, format="csr")
 
+def sdInv(M):
+    "Inverse of a sparse diagonal matrix"
+    return sdiag(1/M.diagonal())
 
 def speye(n):
     """Sparse identity"""
