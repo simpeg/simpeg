@@ -25,14 +25,13 @@ class MixinInitialFieldCalc(object):
     def getInitialFields(self):
         if self.data.txType == 'VMD_MVP':
             # Vertical magnetic dipole, magnetic vector potential
-            self._getInitialFields_VMD_MVP()
+            F = self._getInitialFields_VMD_MVP()
         else:
             exStr = 'Invalid txType: ' + str(self.data.txType)
             raise Exception(exStr)
-        pass
+        return F
 
     def _getInitialFields_VMD_MVP(self):
-        print 'VMD INI'
         if self.mesh._meshType is 'CYL1D':
             MVP = Sources.MagneticDipoleVectorPotential(np.r_[0,0,self.data.txLoc], np.c_[np.zeros(self.mesh.nN), self.mesh.gridN], 'x')
         elif self.mesh._meshType is 'TENSOR':
@@ -42,10 +41,12 @@ class MixinInitialFieldCalc(object):
             MVP = np.concatenate((MVPx, MVPy, MVPz))
         
         # Initialize field object
-        self.F = FieldsTDEM(self.mesh, self.tCalc.size, 'b')
+        F = FieldsTDEM(self.mesh, 1, self.tCalc.size, 'b')
 
         # Set initial B
-        self.F.b0 = self.mesh.edgeCurl*MVP
+        F.b0 = self.mesh.edgeCurl*MVP
+
+        return F
 
 class MixinTimeStuff(object):
     """docstring for MixinTimeStuff"""
@@ -94,22 +95,21 @@ class ProblemBaseTDEM(MixinTimeStuff, MixinInitialFieldCalc, BaseProblem):
         BaseProblem.__init__(self, mesh, model, **kwargs)
         
     # solveOpts = {'factorize':True,'backend':'mumps'}
-
     # def field(self, m):
     #     F = self.getInitialFields()
     #     A = None
     #     for i, dt in enumerate(self.times):
     #         if A is None or redoSolver:
-    #             A = self.getA(i, F)
+    #             A = self.getA(i)
     #             Asolve = Solver(A,options=self.solveOpts) 
     #         rhs = self.getRHS(i, F)
     #         sol = Asolve.Solve(rhs)
     #         # self.updateField(sol, F)
     #         F.update(sol, i, self.solType)
-
     #     return F
         
 class FieldsTDEM(object):
+    """docstring for FieldsTDEM"""
 
     phi0 = None #: Initial electric potential
     A0 = None #: Initial magnetic vector potential
@@ -125,13 +125,28 @@ class FieldsTDEM(object):
     j = None #: Current density
     h = None #: Magnetic field
 
-    """docstring for FieldsTDEM"""
-    def __init__(self, mesh, nTimes, store):
+    def __init__(self, mesh, nTx, nTimes, store):
         
-        self.nTimes = nTimes
-        self.nC = mesh.nC
-        self.nE = mesh.nE
-        self.nF = mesh.nF
-        self.nN = mesh.nN
+        self.nTimes = nTimes #: Number of times
+        self.nTx = nTx #: Number of transmitters
+        self.mesh = mesh
 
+    ####################################################
+    # Get Methods
+    ####################################################        
 
+    def get_b(self, ind):
+        if ind == -1:
+            return self.b0
+        else:
+            return self.b[ind,:,:]
+
+    ####################################################
+    # Set Methods
+    ####################################################        
+
+    def set_b(self, b, ind):
+        if self.b is None:
+            self.b = np.zeros((self.nTimes, np.sum(self.mesh.nF), self.nTimes))
+            self.b[:] = np.nan
+        self.b[ind, :] = b
