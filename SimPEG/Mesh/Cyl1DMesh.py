@@ -37,6 +37,9 @@ class Cyl1DMesh(object):
         return locals()
     h = property(**h())
 
+    @property
+    def dim(self): return 2
+
     def z0():
         doc = "The z-origin"
         def fget(self):
