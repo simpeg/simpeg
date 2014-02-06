@@ -19,6 +19,23 @@ class DataTDEM1D(BaseData):
         BaseData.__init__(self, **kwargs)
         Utils.setKwargs(self, **kwargs)
 
+    def dpred(self, sigma, F=None):
+        if F is None: F = self.prob.field(sigma)
+        return self.Qrx.dot(F.b[:,:,0].T)
+
+    ####################################################
+    # Interpolation Matrices
+    ####################################################
+
+    @property
+    def Qrx(self):
+        if self._Qrx is None:
+            if self.rxType == 'bz':
+                locType = 'fz'
+            self._Qrx = self.prob.mesh.getInterpolationMat(self.rxLoc, locType=locType)
+        return self._Qrx
+    _Qrx = None
+
 class MixinInitialFieldCalc(object):
     """docstring for MixinInitialFieldCalc"""
                         
