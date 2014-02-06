@@ -4,7 +4,6 @@ from SimPEG.Problem import BaseProblem
 from simpegEM.Utils import Sources
 import numpy as np
 
-
 class DataTDEM1D(BaseData):
     """
         docstring for DataTDEM1D
@@ -48,14 +47,9 @@ class MixinInitialFieldCalc(object):
         # Set initial B
         self.F.b0 = self.mesh.edgeCurl*MVP
 
-class ProblemTDEM1D(MixinInitialFieldCalc, BaseProblem):
-    """docstring for ProblemTDEM1D"""
-    def __init__(self, mesh, model, **kwargs):
-        BaseProblem.__init__(self, mesh, model, **kwargs)
-        
-
-    # Time stuff ########################################
-
+class MixinTimeStuff(object):
+    """docstring for MixinTimeStuff"""
+    
     def dt():
         doc = "Size of time steps"
         def fget(self):
@@ -93,24 +87,28 @@ class ProblemTDEM1D(MixinInitialFieldCalc, BaseProblem):
         assert dt.size==nsteps.size, "dt, nsteps must be same length"
         self._dt = dt
         self._nsteps = nsteps
+        
+class ProblemBaseTDEM(MixinTimeStuff, MixinInitialFieldCalc, BaseProblem):
+    """docstring for ProblemTDEM1D"""
+    def __init__(self, mesh, model, **kwargs):
+        BaseProblem.__init__(self, mesh, model, **kwargs)
+        
+    # solveOpts = {'factorize':True,'backend':'mumps'}
 
-    # End Time stuff ########################################
+    # def field(self, m):
+    #     F = self.getInitialFields()
+    #     A = None
+    #     for i, dt in enumerate(self.times):
+    #         if A is None or redoSolver:
+    #             A = self.getA(i, F)
+    #             Asolve = Solver(A,options=self.solveOpts) 
+    #         rhs = self.getRHS(i, F)
+    #         sol = Asolve.Solve(rhs)
+    #         # self.updateField(sol, F)
+    #         F.update(sol, i, self.solType)
 
-    def field(self, m):
-        F = self.getInitialFields()
-        Asolve = None
-        for i, dt in enumerate(self.times):
-            A = self.getA(i, F)
-            rhs = self.getRHS(i, F)
-            if Asolve is None or redoSolver:
-                Asolve = Solver(A,options=self.solveOpts)
-            sol = Asolve.Solve(rhs)
-            self.updateField(sol, F)
-
-        return F
-
-
-
+    #     return F
+        
 class FieldsTDEM(object):
 
     phi0 = None #: Initial electric potential
