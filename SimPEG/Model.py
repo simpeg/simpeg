@@ -145,7 +145,9 @@ class Vertical1DModel(BaseModel):
 
     @property
     def nP(self):
-        """The number of cells in the
+        """Number of model properties.
+
+           The number of cells in the
            last dimension of the mesh."""
         return self.mesh.nCv[self.mesh.dim-1]
 
@@ -155,7 +157,7 @@ class Vertical1DModel(BaseModel):
             :rtype: numpy.array
             :return: transformed model
         """
-        repNum = self.mesh.nCv[:self.mesh.dim-2].prod()
+        repNum = self.mesh.nCv[:self.mesh.dim-1].prod()
         return Utils.mkvc(m).repeat(repNum)
 
     def transformDeriv(self, m):
@@ -164,15 +166,9 @@ class Vertical1DModel(BaseModel):
             :rtype: scipy.csr_matrix
             :return: derivative of transformed model
         """
-        repNum = self.mesh.nCv[:self.mesh.dim-2].prod()
+        repNum = self.mesh.nCv[:self.mesh.dim-1].prod()
         repVec = sp.csr_matrix(
                     (np.ones(repNum),
                     (range(repNum), np.zeros(repNum))
                     ), shape=(repNum, 1))
-        return sp.kron(repVec, sp.identity(self.nP))
-
-if __name__ == '__main__':
-    from SimPEG import *
-    mesh = Mesh.TensorMesh([10,8])
-    model = BaseModel(mesh)
-    model.test()
+        return sp.kron(sp.identity(self.nP), repVec)
