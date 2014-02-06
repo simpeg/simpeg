@@ -1,5 +1,5 @@
 import Utils, Parameters, numpy as np, scipy.sparse as sp
-
+from Tests import checkDerivative
 
 class BaseModel(object):
     """
@@ -55,9 +55,13 @@ class BaseModel(object):
         """Number of parameters in the model."""
         return self.mesh.nC
 
-    def example(self, modelType=None):
-        return np.random.rand(self.mesh.nC)
+    def example(self):
+        return np.random.rand(self.nP)
 
+    def test(self):
+        print 'Testing the %s Class!' % self.__class__.__name__
+        m = self.example()
+        return checkDerivative(lambda m : [self.transform(m), self.transformDeriv(m)], m, plotIt=False)
 
 
 class LogModel(BaseModel):
@@ -128,11 +132,22 @@ class LogModel(BaseModel):
         """
         return Utils.sdiag(np.exp(Utils.mkvc(m)))
 
-class CylModel(BaseModel):
-    """SimPEG LogModel"""
+class Vertical1DModel(BaseModel):
+    """Vertical1DModel
+
+        Given a 1D vector through the last dimension
+        of the mesh, this will extend to the full
+        model space.
+    """
 
     def __init__(self, mesh, **kwargs):
         BaseModel.__init__(self, mesh, **kwargs)
+
+    @property
+    def nP(self):
+        """The number of cells in the
+           last dimension of the mesh."""
+        return self.mesh.nCv[self.mesh.dim-1]
 
     def transform(self, m):
         """
@@ -140,4 +155,24 @@ class CylModel(BaseModel):
             :rtype: numpy.array
             :return: transformed model
         """
-        return m.repeat(self.mesh.nCx)
+        repNum = self.mesh.nCv[:self.mesh.dim-2].prod()
+        return Utils.mkvc(m).repeat(repNum)
+
+    def transformDeriv(self, m):
+        """
+            :param numpy.array m: model
+            :rtype: scipy.csr_matrix
+            :return: derivative of transformed model
+        """
+        repNum = self.mesh.nCv[:self.mesh.dim-2].prod()
+        repVec = sp.csr_matrix(
+                    (np.ones(repNum),
+                    (range(repNum), np.zeros(repNum))
+                    ), shape=(repNum, 1))
+        return sp.kron(repVec, sp.identity(self.nP))
+
+if __name__ == '__main__':
+    from SimPEG import *
+    mesh = Mesh.TensorMesh([10,8])
+    model = BaseModel(mesh)
+    model.test()
