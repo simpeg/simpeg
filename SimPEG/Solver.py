@@ -156,7 +156,7 @@ class Solver(object):
         if len(b.shape) == 1 or b.shape[1] == 1:
             # Just one RHS
             if factorize:
-                return self.dsolve(b)
+                return self.dsolve(b.flatten())
             else:
                 return linalg.dsolve.spsolve(self.A, b)
 
