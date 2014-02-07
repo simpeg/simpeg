@@ -7,17 +7,32 @@ SimPEG (Simulation and Parameter Estimation in Geophysics) is a python
 package for simulation and gradient based parameter estimation in the
 context of geoscience applications.
 
-SimPEG-DC uses SimPEG as the framework for the forward and inverse
-direct current resistivity geophysical problem.
+SimPEG-EM uses SimPEG as the framework for the forward and inverse
+electromagnetics geophysical problems.
 
-
-DC
-==
+Time Domian Electromagnetics
+============================
 
 .. toctree::
    :maxdepth: 2
 
-   api_DC
+   api_TDEM
+
+Frequency Domian Electromagnetics
+=================================
+
+.. toctree::
+   :maxdepth: 2
+
+   api_FDEM
+
+Utils
+=====
+
+.. toctree::
+   :maxdepth: 2
+
+   api_Utils
 
 
 Testing SimPEG

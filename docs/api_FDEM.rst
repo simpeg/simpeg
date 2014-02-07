@@ -1,10 +1,10 @@
-.. _api_DC:
+.. _api_FDEM:
 
 
-DC
-**
+Base Classes
+************
 
-.. automodule:: simpegDC.DC
+.. automodule:: simpegEM.FDEM
     :show-inheritance:
     :members:
     :undoc-members:

@@ -4,10 +4,14 @@ python:
 virtualenv:
   system_site_packages: true
 before_install:
-  - sudo apt-get install -qq python-numpy python-scipy python-matplotlib
+  - sudo apt-get install -qq gcc gfortran libblas-dev liblapack-dev python-numpy python-scipy python-matplotlib python-pip
+  - sudo pip install scipy --upgrade
+  - sudo pip install numpy --upgrade
   - cd ../
   - git clone https://github.com/simpeg/simpeg.git
-  - python simpeg/SimPEG/setup.py
+  - cd simpeg/SimPEG/
+  - python setup.py
+  - cd ../../
   - echo export PYTHONPATH=$PYTHONPATH:/home/travis/build/simpeg/simpeg >> .bashrc
   - source .bashrc
   - cd simpegem
