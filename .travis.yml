@@ -4,7 +4,8 @@ python:
 virtualenv:
   system_site_packages: true
 before_install:
-  - sudo apt-get install -qq python-numpy python-scipy python-matplotlib python-pip
+  - sudo apt-get install -qq gcc gfortran python-numpy python-scipy python-matplotlib python-pip
+  - sudo apt-get -qq install libblas-dev liblapack-dev
   - sudo pip install scipy --upgrade
   - sudo pip install numpy --upgrade
   - python SimPEG/setup.py
