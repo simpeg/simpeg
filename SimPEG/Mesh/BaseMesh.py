@@ -44,7 +44,7 @@ class BaseMesh(object):
 
         For example, you have a face variable, and you want the x component of it reshaped to a 3D matrix.
 
-        Mesh.r can fulfil your dreams::
+        Mesh.r can fulfill your dreams::
 
             mesh.r(V, 'F', 'Fx', 'M')
                    |   |     |    { How: 'M' or ['V'] for a matrix (ndgrid style) or a vector (n x dim) }
