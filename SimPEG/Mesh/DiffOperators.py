@@ -478,6 +478,23 @@ class DiffOperators(object):
                                                    kron3(av(n[2]), speye(n[1]), speye(n[0]))), format="csr")
         return self._aveF2CC
 
+
+    @property
+    def aveF2CCV(self):
+        "Construct the averaging operator on cell faces to cell centers."
+        if getattr(self, '_aveF2CCV', None) is None:
+            n = self.nCv
+            if(self.dim == 1):
+                self._aveF2CCV = av(n[0])
+            elif(self.dim == 2):
+                self._aveF2CCV = sp.block_diag((sp.kron(speye(n[1]), av(n[0])),
+                                               sp.kron(av(n[1]), speye(n[0]))), format="csr")
+            elif(self.dim == 3):
+                self._aveF2CCV = sp.block_diag((kron3(speye(n[2]), speye(n[1]), av(n[0])),
+                                               kron3(speye(n[2]), av(n[1]), speye(n[0])),
+                                               kron3(av(n[2]), speye(n[1]), speye(n[0]))), format="csr")
+        return self._aveF2CCV
+
     @property
     def aveCC2F(self):
         "Construct the averaging operator on cell cell centers to faces."
