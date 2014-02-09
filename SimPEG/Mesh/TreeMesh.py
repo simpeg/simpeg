@@ -56,9 +56,29 @@ class TreeNode(TreeObject):
     """docstring for TreeNode"""
     def __init__(self, mesh, x0=[0,0], depth=0, parent=None):
         TreeObject.__init__(self, mesh, parent)
-        self.x0 = x0
+        self.x0 = np.array(x0, dtype=float)
         self.mesh.nodes.add(self)
 
+
+class TreeEdge(TreeObject):
+    """docstring for TreeEdge"""
+    def __init__(self, mesh, x0=[0,0], edgeType=None, sz=[1,], depth=0,
+                 node0=None, node1=None,
+                 parent=None):
+        TreeObject.__init__(self, mesh, parent)
+
+        self.x0 = np.array(x0, dtype=float)
+        self.depth = depth
+        self.edgeType = edgeType
+        self.sz = np.array(sz, dtype=float)
+
+        mesh.edges.add(self)
+        if   edgeType is 'x': mesh.edgesX.add(self)
+        elif edgeType is 'y': mesh.edgesY.add(self)
+        elif edgeType is 'z': mesh.edgesZ.add(self)
+
+        self.node0 = node0
+        self.node1 = node1
 
 
 class TreeFace(TreeObject):
@@ -69,28 +89,41 @@ class TreeFace(TreeObject):
         TreeObject.__init__(self, mesh, parent)
 
         self.x0 = np.array(x0, dtype=float)
+        self.depth = depth
         self.faceType = faceType
         self.sz = np.array(sz, dtype=float)
-        self.depth = depth
+
         mesh.faces.add(self)
-        if   faceType is 'x': self.mesh.facesX.add(self)
-        elif faceType is 'y': self.mesh.facesY.add(self)
-        elif faceType is 'z': self.mesh.facesZ.add(self)
+        if   faceType is 'x': mesh.facesX.add(self)
+        elif faceType is 'y': mesh.facesY.add(self)
+        elif faceType is 'z': mesh.facesZ.add(self)
         # Add the nodes:
-        self.node0 = node0 if isinstance(node0,TreeNode) else TreeNode(mesh, x0=self.x0)
-        self.node1 = node1 if isinstance(node1,TreeNode) else TreeNode(mesh, x0=self.x0 + self.tangent*self.sz)
+        if self.dim == 2:
+            self.node0 = node0 if isinstance(node0,TreeNode) else TreeNode(mesh, x0=self.x0)
+            self.node1 = node1 if isinstance(node1,TreeNode) else TreeNode(mesh, x0=self.x0 + self.tangent0*self.sz)
 
     @property
-    def tangent(self):
-        t = np.zeros(self.dim)
-        t[1 if self.faceType is 'x' else 0] = 1
-        return t
+    def tangent0(self):
+        if   self.faceType is 'x': t = np.r_[0,1.,0]
+        elif self.faceType is 'y': t = np.r_[1.,0,0]
+        elif self.faceType is 'z': t = np.r_[1.,0,0]
+        return t[:self.dim]
+
+    @property
+    def tangent1(self):
+        if self.dim == 2: return
+        if   self.faceType is 'x': t = np.r_[0,0,1.]
+        elif self.faceType is 'y': t = np.r_[0,0,1.]
+        elif self.faceType is 'z': t = np.r_[0,1.,0]
+        return t[:self.dim]
 
     @property
     def normal(self):
-        if   self.faceType is 'x': return np.r_[1.,0,0]
-        elif self.faceType is 'y': return np.r_[0,1.,0]
-        elif self.faceType is 'z': return np.r_[0,0,1.]
+        if   self.faceType is 'x': n = np.r_[1.,0,0]
+        elif self.faceType is 'y': n = np.r_[0,1.,0]
+        elif self.faceType is 'z': n = np.r_[0,0,1.]
+        return n[:self.dim]
+
 
     @property
     def index(self):
@@ -110,7 +143,7 @@ class TreeFace(TreeObject):
         self.children = np.empty(2,dtype=TreeFace)
         # Create refined x0's
         x0r_0 = self.x0
-        x0r_1 = self.x0+0.5*self.tangent*self.sz
+        x0r_1 = self.x0+0.5*self.tangent0*self.sz
         self.children[0] = TreeFace(self.mesh, x0=x0r_0, faceType=self.faceType, sz=0.5*self.sz, depth=self.depth+1, parent=self, node0=self.node0)
         self.children[1] = TreeFace(self.mesh, x0=x0r_1, faceType=self.faceType, sz=0.5*self.sz, depth=self.depth+1, parent=self, node0=self.children[0].node1, node1=self.node1)
         self.mesh.faces.remove(self)
@@ -119,14 +152,14 @@ class TreeFace(TreeObject):
         elif self.faceType is 'y':
             self.mesh.facesY.remove(self)
 
-    def viz(self, ax, text=True):
+    def plotGrid(self, ax, text=True):
         if not self.isleaf: return
-        ax.plot(np.r_[self.x0[0],self.x0[0]+self.tangent[0]*self.sz], np.r_[self.x0[1], self.x0[1]+self.tangent[1]*self.sz],'r-')
-        if text: ax.text(self.x0[0]+0.5*self.tangent[0]*self.sz, self.x0[1]+0.5*self.tangent[1]*self.sz,self.num)
+        ax.plot(np.r_[self.x0[0],self.x0[0]+self.tangent0[0]*self.sz], np.r_[self.x0[1], self.x0[1]+self.tangent0[1]*self.sz],'r-')
+        if text: ax.text(self.x0[0]+0.5*self.tangent0[0]*self.sz, self.x0[1]+0.5*self.tangent0[1]*self.sz,self.num)
 
     @property
     def center(self):
-        return self.x0 + 0.5*self.tangent*self.sz
+        return self.x0 + 0.5*self.tangent0*self.sz
 
 
 class TreeCell(TreeObject):
@@ -153,21 +186,26 @@ class TreeCell(TreeObject):
             #      |___________|         |___> x
             #      0    fYm    1
             #
-            self.nodes = {}
+            N = {}
+            N["n0"] = getattr(fXm, 'node0', None) or getattr(fYm, 'node0', None)
+            N["n1"] = getattr(fXp, 'node0', None) or getattr(fYm, 'node1', None)
+            N["n2"] = getattr(fXm, 'node1', None) or getattr(fYp, 'node0', None)
+            N["n3"] = getattr(fXp, 'node1', None) or getattr(fYp, 'node1', None)
 
-            self.nodes["n0"] = getattr(fXm, 'node0', None) or getattr(fYm, 'node0', None)
-            self.nodes["n1"] = getattr(fXp, 'node0', None) or getattr(fYm, 'node1', None)
-            self.nodes["n2"] = getattr(fXm, 'node1', None) or getattr(fYp, 'node0', None)
-            self.nodes["n3"] = getattr(fXp, 'node1', None) or getattr(fYp, 'node1', None)
-            fXm = fXm if isinstance(fXm, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]      ], faceType='x', sz=np.r_[sz[1]], depth=depth, parent=parent, node0=self.nodes['n0'], node1=self.nodes['n2'])
-            self.nodes["n0"], self.nodes["n2"] = fXm.node0, fXm.node1
-            fXp = fXp if isinstance(fXp, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]+sz[0], x0[1]      ], faceType='x', sz=np.r_[sz[1]], depth=depth, parent=parent, node0=self.nodes['n1'], node1=self.nodes['n3'])
-            self.nodes["n1"], self.nodes["n3"] = fXp.node0, fXp.node1
-            fYm = fYm if isinstance(fYm, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]      ], faceType='y', sz=np.r_[sz[0]], depth=depth, parent=parent, node0=self.nodes['n0'], node1=self.nodes['n1'])
-            self.nodes["n0"], self.nodes["n1"] = fYm.node0, fYm.node1
-            fYp = fYp if isinstance(fYp, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]+sz[1]], faceType='y', sz=np.r_[sz[0]], depth=depth, parent=parent, node0=self.nodes['n2'], node1=self.nodes['n3'])
-            self.nodes["n2"], self.nodes["n3"] = fYp.node0, fYp.node1
+            fXm = fXm if isinstance(fXm, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]      ], faceType='x', sz=np.r_[sz[1]], depth=depth, parent=parent, node0=N['n0'], node1=N['n2'])
+            N["n0"], N["n2"] = fXm.node0, fXm.node1
+
+            fXp = fXp if isinstance(fXp, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]+sz[0], x0[1]      ], faceType='x', sz=np.r_[sz[1]], depth=depth, parent=parent, node0=N['n1'], node1=N['n3'])
+            N["n1"], N["n3"] = fXp.node0, fXp.node1
+
+            fYm = fYm if isinstance(fYm, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]      ], faceType='y', sz=np.r_[sz[0]], depth=depth, parent=parent, node0=N['n0'], node1=N['n1'])
+            N["n0"], N["n1"] = fYm.node0, fYm.node1
+
+            fYp = fYp if isinstance(fYp, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]+sz[1]], faceType='y', sz=np.r_[sz[0]], depth=depth, parent=parent, node0=N['n2'], node1=N['n3'])
+            N["n2"], N["n3"] = fYp.node0, fYp.node1
+
             self.faces = {"fXm":fXm, "fXp":fXp, "fYm":fYm, "fYp":fYp}
+            self.nodes = N
 
         elif self.dim == 3:
             fXm = fXm if isinstance(fXm, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]      , x0[2]      ], faceType='x', sz=np.r_[sz[1], sz[2]], depth=depth, parent=parent)
@@ -191,15 +229,21 @@ class TreeCell(TreeObject):
     def center(self): return self.x0 + 0.5*self.sz
 
     def refine(self, function=None):
-        if self.dim == 2:
-            return self._refine2D(function=function)
-
-    def _refine2D(self, function=None):
         if not self.isleaf and function is None: return
 
         if function is not None:
             do = function(self.center) > self.depth
             if not do: return
+
+        if self.dim == 2:
+            return self._refine2D()
+
+        # pass the refine function to the children
+        if function is not None:
+            for child in self.children.flatten():
+                child.refine(function)
+
+    def _refine2D(self):
 
         self.mesh.isNumbered = False
 
@@ -231,13 +275,9 @@ class TreeCell(TreeObject):
 
         self.mesh.cells.remove(self)
 
-        # pass the refine function to the children
-        if function is not None:
-            for child in self.children.flatten():
-                child.refine(function)
-
     @property
     def faceIndex(self):
+        #TODO: preallocate
         I, J, V = np.empty(0,dtype=float), np.empty(0,dtype=float), np.empty(0,dtype=float)
         for face in self.faces:
             j = self.faces[face].index
@@ -256,6 +296,11 @@ class TreeCell(TreeObject):
         if not self.isleaf: return
         x0, sz = self.x0, self.sz
         ax.add_patch(plt.Rectangle((x0[0], x0[1]), sz[0], sz[1], facecolor=color, edgecolor='k'))
+        if text: ax.text(self.center[0],self.center[1],self.num)
+
+    def plotGrid(self, ax, text=False):
+        if not self.isleaf: return
+        ax.plot(self.center[0],self.center[1],'b.')
         if text: ax.text(self.center[0],self.center[1],self.num)
 
 
@@ -455,16 +500,14 @@ class TreeMesh(object):
             self._faceDiv = Utils.sdiag(1/VOL)*D*Utils.sdiag(S)
         return self._faceDiv
 
-
-    def plotGrid(self, ax=None, text=True, plotC=True, plotF=False, showIt=False):
+    def plotGrid(self, ax=None, text=True, plotC=True, plotF=True, showIt=False):
         if ax is None: ax = plt.subplot(111)
 
-        if plotC: [node.viz(ax, text=text) for node in self.cells]
-        if plotF: [node.viz(ax, text=text) for node in self.faces]
+        if plotC: [node.plotGrid(ax, text=text) for node in self.cells]
+        if plotF: [node.plotGrid(ax, text=text) for node in self.faces]
         ax.set_xlim((self.x0[0], self.h[0].sum()))
         ax.set_ylim((self.x0[1], self.h[1].sum()))
         if showIt: plt.show()
-
 
     def plotImage(self, I, ax=None, showIt=True):
         if self.dim == 2:
