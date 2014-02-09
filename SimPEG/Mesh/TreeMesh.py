@@ -29,36 +29,74 @@ def SortByX0():
     return K
 
 
-class TreeFace(object):
-    """docstring for TreeFace"""
-    def __init__(self, mesh, x0=[0,0], faceType=None, dim=2, sz=1, depth=0, parent=None):
-        self.mesh = mesh
-        self.children = None
-        self.numFace = None
+class TreeObject(object):
+    """docstring for TreeObject"""
 
-        self.x0 = np.array(x0, dtype=float)
-        self.faceType = faceType
-        self.sz = np.array(sz, dtype=float)
-        self.dim = dim
-        self.depth = depth
-        mesh.faces.add(self)
-        if faceType is 'x': self.mesh.facesX.add(self)
-        elif faceType is 'y': self.mesh.facesY.add(self)
-        elif faceType is 'z': self.mesh.facesZ.add(self)
-        self.tangent = np.zeros(dim)
-        self.tangent[1 if faceType is 'x' else 0] = 1
-        self.normal = np.zeros(dim)
-        self.normal[0 if faceType is 'x' else 1] = 1
+    children = None #: children of the tree object
+    num = None
+
+    def __init__(self, mesh, parent):
+        self.mesh = mesh
+        self._parent = parent
+
+    @property
+    def parent(self): return self._parent
+
+    @property
+    def dim(self): return self.mesh.dim
 
     @property
     def isleaf(self): return self.children is None
 
     @property
+    def center(self): return self.x0
+
+
+class TreeNode(TreeObject):
+    """docstring for TreeNode"""
+    def __init__(self, mesh, x0=[0,0], depth=0, parent=None):
+        TreeObject.__init__(self, mesh, parent)
+        self.x0 = x0
+        self.mesh.nodes.add(self)
+
+
+
+class TreeFace(TreeObject):
+    """docstring for TreeFace"""
+    def __init__(self, mesh, x0=[0,0], faceType=None, sz=[1,], depth=0,
+                 node0=None, node1=None, node2=None, node3=None,
+                 parent=None):
+        TreeObject.__init__(self, mesh, parent)
+
+        self.x0 = np.array(x0, dtype=float)
+        self.faceType = faceType
+        self.sz = np.array(sz, dtype=float)
+        self.depth = depth
+        mesh.faces.add(self)
+        if   faceType is 'x': self.mesh.facesX.add(self)
+        elif faceType is 'y': self.mesh.facesY.add(self)
+        elif faceType is 'z': self.mesh.facesZ.add(self)
+        # Add the nodes:
+        self.node0 = node0 if isinstance(node0,TreeNode) else TreeNode(mesh, x0=self.x0)
+        self.node1 = node1 if isinstance(node1,TreeNode) else TreeNode(mesh, x0=self.x0 + self.tangent*self.sz)
+
+    @property
+    def tangent(self):
+        t = np.zeros(self.dim)
+        t[1 if self.faceType is 'x' else 0] = 1
+        return t
+
+    @property
+    def normal(self):
+        if   self.faceType is 'x': return np.r_[1.,0,0]
+        elif self.faceType is 'y': return np.r_[0,1.,0]
+        elif self.faceType is 'z': return np.r_[0,0,1.]
+
+    @property
     def index(self):
         if not self.mesh.isNumbered: raise Exception('Mesh is not numbered.')
-        if self.isleaf: return np.r_[self.numFace]
+        if self.isleaf: return np.r_[self.num]
         return np.concatenate([face.index for face in self.children])
-
 
     @property
     def area(self):
@@ -73,8 +111,8 @@ class TreeFace(object):
         # Create refined x0's
         x0r_0 = self.x0
         x0r_1 = self.x0+0.5*self.tangent*self.sz
-        self.children[0] = TreeFace(self.mesh, x0=x0r_0, faceType=self.faceType, dim=self.dim, sz=0.5*self.sz, depth=self.depth+1, parent=self)
-        self.children[1] = TreeFace(self.mesh, x0=x0r_1, faceType=self.faceType, dim=self.dim, sz=0.5*self.sz, depth=self.depth+1, parent=self)
+        self.children[0] = TreeFace(self.mesh, x0=x0r_0, faceType=self.faceType, sz=0.5*self.sz, depth=self.depth+1, parent=self, node0=self.node0)
+        self.children[1] = TreeFace(self.mesh, x0=x0r_1, faceType=self.faceType, sz=0.5*self.sz, depth=self.depth+1, parent=self, node0=self.children[0].node1, node1=self.node1)
         self.mesh.faces.remove(self)
         if self.faceType is 'x':
             self.mesh.facesX.remove(self)
@@ -84,50 +122,63 @@ class TreeFace(object):
     def viz(self, ax, text=True):
         if not self.isleaf: return
         ax.plot(np.r_[self.x0[0],self.x0[0]+self.tangent[0]*self.sz], np.r_[self.x0[1], self.x0[1]+self.tangent[1]*self.sz],'r-')
-        if text: ax.text(self.x0[0]+0.5*self.tangent[0]*self.sz, self.x0[1]+0.5*self.tangent[1]*self.sz,self.numFace)
+        if text: ax.text(self.x0[0]+0.5*self.tangent[0]*self.sz, self.x0[1]+0.5*self.tangent[1]*self.sz,self.num)
 
     @property
     def center(self):
         return self.x0 + 0.5*self.tangent*self.sz
 
 
-class TreeNode(object):
-    """docstring for TreeNode"""
+class TreeCell(TreeObject):
+    """docstring for TreeCell"""
     children = None #:
-    numCell = None
 
-    def __init__(self, mesh, x0=[0,0], dim=2, depth=0, sz=[1,1], parent=None, fXm=None, fXp=None, fYm=None, fYp=None, fZm=None, fZp=None):
+    def __init__(self, mesh, x0=[0,0], depth=0, sz=[1,1],
+                 fXm=None, fXp=None,
+                 fYm=None, fYp=None,
+                 fZm=None, fZp=None,
+                 parent=None):
+        TreeObject.__init__(self, mesh, parent)
 
-        self.mesh = mesh
         self.x0 = np.array(x0, dtype=float)
         self.sz = np.array(sz, dtype=float)
-        self.dim = dim
         self.depth = depth
-        self.parent = parent
-        if dim == 2:
-            fXm = fXm if fXm is not None else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]      ], faceType='x', dim=dim, sz=np.r_[sz[1]], depth=depth, parent=parent)
-            fXp = fXp if fXp is not None else TreeFace(mesh, x0=np.r_[x0[0]+sz[0], x0[1]      ], faceType='x', dim=dim, sz=np.r_[sz[1]], depth=depth, parent=parent)
-            fYm = fYm if fYm is not None else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]      ], faceType='y', dim=dim, sz=np.r_[sz[0]], depth=depth, parent=parent)
-            fYp = fYp if fYp is not None else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]+sz[1]], faceType='y', dim=dim, sz=np.r_[sz[0]], depth=depth, parent=parent)
+        if self.dim == 2:
+            #
+            #      2___________3
+            #      |    fYp    |
+            #      |           |
+            #   fXm|     x     |fXp      y
+            #      |           |         ^
+            #      |___________|         |___> x
+            #      0    fYm    1
+            #
+            self.nodes = {}
+
+            self.nodes["n0"] = getattr(fXm, 'node0', None) or getattr(fYm, 'node0', None)
+            self.nodes["n1"] = getattr(fXp, 'node0', None) or getattr(fYm, 'node1', None)
+            self.nodes["n2"] = getattr(fXm, 'node1', None) or getattr(fYp, 'node0', None)
+            self.nodes["n3"] = getattr(fXp, 'node1', None) or getattr(fYp, 'node1', None)
+            fXm = fXm if isinstance(fXm, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]      ], faceType='x', sz=np.r_[sz[1]], depth=depth, parent=parent, node0=self.nodes['n0'], node1=self.nodes['n2'])
+            self.nodes["n0"], self.nodes["n2"] = fXm.node0, fXm.node1
+            fXp = fXp if isinstance(fXp, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]+sz[0], x0[1]      ], faceType='x', sz=np.r_[sz[1]], depth=depth, parent=parent, node0=self.nodes['n1'], node1=self.nodes['n3'])
+            self.nodes["n1"], self.nodes["n3"] = fXp.node0, fXp.node1
+            fYm = fYm if isinstance(fYm, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]      ], faceType='y', sz=np.r_[sz[0]], depth=depth, parent=parent, node0=self.nodes['n0'], node1=self.nodes['n1'])
+            self.nodes["n0"], self.nodes["n1"] = fYm.node0, fYm.node1
+            fYp = fYp if isinstance(fYp, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]+sz[1]], faceType='y', sz=np.r_[sz[0]], depth=depth, parent=parent, node0=self.nodes['n2'], node1=self.nodes['n3'])
+            self.nodes["n2"], self.nodes["n3"] = fYp.node0, fYp.node1
             self.faces = {"fXm":fXm, "fXp":fXp, "fYm":fYm, "fYp":fYp}
 
-        elif dim == 3:
-            fXm = fXm if fXm is not None else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]      , x0[2]      ], faceType='x', dim=dim, sz=np.r_[sz[1], sz[2]], depth=depth, parent=parent)
-            fXp = fXp if fXp is not None else TreeFace(mesh, x0=np.r_[x0[0]+sz[0], x0[1]      , x0[2]      ], faceType='x', dim=dim, sz=np.r_[sz[1], sz[2]], depth=depth, parent=parent)
-            fYm = fYm if fYm is not None else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]      , x0[2]      ], faceType='y', dim=dim, sz=np.r_[sz[0], sz[2]], depth=depth, parent=parent)
-            fYp = fYp if fYp is not None else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]+sz[1], x0[2]      ], faceType='y', dim=dim, sz=np.r_[sz[0], sz[2]], depth=depth, parent=parent)
-            fZm = fZm if fZm is not None else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]      , x0[2]      ], faceType='z', dim=dim, sz=np.r_[sz[0], sz[1]], depth=depth, parent=parent)
-            fZp = fZp if fZp is not None else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]      , x0[2]+sz[2]], faceType='z', dim=dim, sz=np.r_[sz[0], sz[1]], depth=depth, parent=parent)
+        elif self.dim == 3:
+            fXm = fXm if isinstance(fXm, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]      , x0[2]      ], faceType='x', sz=np.r_[sz[1], sz[2]], depth=depth, parent=parent)
+            fXp = fXp if isinstance(fXp, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]+sz[0], x0[1]      , x0[2]      ], faceType='x', sz=np.r_[sz[1], sz[2]], depth=depth, parent=parent)
+            fYm = fYm if isinstance(fYm, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]      , x0[2]      ], faceType='y', sz=np.r_[sz[0], sz[2]], depth=depth, parent=parent)
+            fYp = fYp if isinstance(fYp, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]+sz[1], x0[2]      ], faceType='y', sz=np.r_[sz[0], sz[2]], depth=depth, parent=parent)
+            fZm = fZm if isinstance(fZm, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]      , x0[2]      ], faceType='z', sz=np.r_[sz[0], sz[1]], depth=depth, parent=parent)
+            fZp = fZp if isinstance(fZp, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]      , x0[2]+sz[2]], faceType='z', sz=np.r_[sz[0], sz[1]], depth=depth, parent=parent)
             self.faces = {"fXm":fXm, "fXp":fXp, "fYm":fYm, "fYp":fYp, "fZm":fZm, "fZp":fZp}
 
         mesh.cells.add(self)
-
-    @property
-    def parent(self):
-        return self._parent
-    @parent.setter
-    def parent(self, value):
-        self._parent = value
 
     @property
     def branchdepth(self):
@@ -152,7 +203,7 @@ class TreeNode(object):
 
         self.mesh.isNumbered = False
 
-        self.children = np.empty((2,2),dtype=TreeNode)
+        self.children = np.empty((2,2),dtype=TreeCell)
         x0, sz = self.x0, self.sz
 
         for faceName in self.faces:
@@ -161,22 +212,22 @@ class TreeNode(object):
         i, j = 0, 0
         x0r = np.r_[x0[0] + 0.5*i*sz[0], x0[1] + 0.5*j*sz[1]]
         fXm, fXp, fYm, fYp = self.faces['fXm'].children[0], None, self.faces['fYm'].children[0], None
-        self.children[i,j] = TreeNode(self.mesh, x0=x0r,dim=self.dim, depth=self.depth+1, sz=0.5*sz, parent=self, fXm=fXm, fXp=fXp, fYm=fYm, fYp=fYp)
+        self.children[i,j] = TreeCell(self.mesh, x0=x0r, depth=self.depth+1, sz=0.5*sz, parent=self, fXm=fXm, fXp=fXp, fYm=fYm, fYp=fYp)
 
         i, j = 1, 0
         x0r = np.r_[x0[0] + 0.5*i*sz[0], x0[1] + 0.5*j*sz[1]]
         fXm, fXp, fYm, fYp = self.children[0,0].faces['fXp'], self.faces['fXp'].children[0], self.faces['fYm'].children[1], None
-        self.children[i,j] = TreeNode(self.mesh, x0=x0r,dim=self.dim, depth=self.depth+1, sz=0.5*sz, parent=self, fXm=fXm, fXp=fXp, fYm=fYm, fYp=fYp)
+        self.children[i,j] = TreeCell(self.mesh, x0=x0r, depth=self.depth+1, sz=0.5*sz, parent=self, fXm=fXm, fXp=fXp, fYm=fYm, fYp=fYp)
 
         i, j = 0, 1
         x0r = np.r_[x0[0] + 0.5*i*sz[0], x0[1] + 0.5*j*sz[1]]
         fXm, fXp, fYm, fYp = self.faces['fXm'].children[1], None, self.children[0,0].faces['fYp'], self.faces['fYp'].children[0]
-        self.children[i,j] = TreeNode(self.mesh, x0=x0r,dim=self.dim, depth=self.depth+1, sz=0.5*sz, parent=self, fXm=fXm, fXp=fXp, fYm=fYm, fYp=fYp)
+        self.children[i,j] = TreeCell(self.mesh, x0=x0r, depth=self.depth+1, sz=0.5*sz, parent=self, fXm=fXm, fXp=fXp, fYm=fYm, fYp=fYp)
 
         i, j = 1, 1
         x0r = np.r_[x0[0] + 0.5*i*sz[0], x0[1] + 0.5*j*sz[1]]
         fXm, fXp, fYm, fYp = self.children[0,1].faces['fXp'], self.faces['fXp'].children[1], self.children[1,0].faces['fYp'], self.faces['fYp'].children[1]
-        self.children[i,j] = TreeNode(self.mesh, x0=x0r,dim=self.dim, depth=self.depth+1, sz=0.5*sz, parent=self, fXm=fXm, fXp=fXp, fYm=fYm, fYp=fYp)
+        self.children[i,j] = TreeCell(self.mesh, x0=x0r, depth=self.depth+1, sz=0.5*sz, parent=self, fXm=fXm, fXp=fXp, fYm=fYm, fYp=fYp)
 
         self.mesh.cells.remove(self)
 
@@ -186,14 +237,11 @@ class TreeNode(object):
                 child.refine(function)
 
     @property
-    def isleaf(self): return self.children is None
-
-    @property
     def faceIndex(self):
         I, J, V = np.empty(0,dtype=float), np.empty(0,dtype=float), np.empty(0,dtype=float)
         for face in self.faces:
             j = self.faces[face].index
-            i = j*0+self.numCell
+            i = j*0+self.num
             v = j*0+1
             if 'p' in face:
                 v *= -1
@@ -208,18 +256,24 @@ class TreeNode(object):
         if not self.isleaf: return
         x0, sz = self.x0, self.sz
         ax.add_patch(plt.Rectangle((x0[0], x0[1]), sz[0], sz[1], facecolor=color, edgecolor='k'))
-        if text: ax.text(self.center[0],self.center[1],self.numCell)
-
+        if text: ax.text(self.center[0],self.center[1],self.num)
 
 
 
 class TreeMesh(object):
     """TreeMesh"""
-    def __init__(self, h, x0=None):
-
-        assert type(h) is list, 'h must be a list'
-
+    def __init__(self, h_in, x0=None):
+        assert type(h_in) is list, 'h_in must be a list'
+        h = range(len(h_in))
+        for i, h_i in enumerate(h_in):
+            if type(h_i) in [int, long, float]:
+                # This gives you something over the unit cube.
+                h_i = np.ones(int(h_i))/int(h_i)
+            assert type(h_i) == np.ndarray, ("h[%i] is not a numpy array." % i)
+            assert len(h_i.shape) == 1, ("h[%i] must be a 1D numpy array." % i)
+            h[i] = h_i[:] # make a copy.
         self.h = h
+
         if x0 is None:
             x0 = np.zeros(self.dim)
         else:
@@ -229,19 +283,24 @@ class TreeMesh(object):
 
         # set the sets for holding the faces and cells
         self.cells = set()
+        self.nodes = set()
         self.faces = set()
         self.facesX = set()
         self.facesY = set()
         if self.dim == 3: self.facesZ = set()
+        self.edges = set()
+        self.edgesX = set()
+        self.edgesY = set()
+        if self.dim == 3: self.edgesZ = set()
 
-        self.children = np.empty([hi.size for hi in h],dtype=TreeNode)
+        self.children = np.empty([hi.size for hi in h],dtype=TreeCell)
         for i in range(h[0].size):
             for j in range(h[1].size):
                 fXm = None if i is 0 else self.children[i-1][j].faces['fXp']
                 fYm = None if j is 0 else self.children[i][j-1].faces['fYp']
                 x0i = (np.r_[x0[0], h[0][:i]]).sum()
                 x0j = (np.r_[x0[1], h[1][:j]]).sum()
-                self.children[i][j] = TreeNode(self, x0=[x0i, x0j], dim=len(h), depth=0, sz=[h[0][i], h[1][j]], fXm=fXm, fYm=fYm)
+                self.children[i][j] = TreeCell(self, x0=[x0i, x0j], depth=0, sz=[h[0][i], h[1][j]], fXm=fXm, fYm=fYm)
 
     isNumbered = Utils.dependentProperty('_isNumbered', False, ['_faceDiv'], 'Setting this to False will delete all operators.')
 
@@ -257,17 +316,20 @@ class TreeMesh(object):
         if self.isNumbered: return
 
         self.sortedCells = sorted(self.cells,key=SortByX0())
-        for i, sc in enumerate(self.sortedCells): sc.numCell = i
+        for i, sc in enumerate(self.sortedCells): sc.num = i
+
+        self.sortedNodes = sorted(self.nodes,key=SortByX0())
+        for i, sn in enumerate(self.sortedNodes): sn.num = i
 
         self.sortedFaceX = sorted(self.facesX,key=SortByX0())
-        for i, sfx in enumerate(self.sortedFaceX): sfx.numFace = i
+        for i, sfx in enumerate(self.sortedFaceX): sfx.num = i
 
         self.sortedFaceY = sorted(self.facesY,key=SortByX0())
-        for i, sfy in enumerate(self.sortedFaceY): sfy.numFace = i + self.nFx
+        for i, sfy in enumerate(self.sortedFaceY): sfy.num = i + self.nFx
 
         if self.dim == 3:
             self.sortedFaceZ = sorted(self.facesZ,key=SortByX0())
-            for i, sfz in enumerate(self.sortedFaceZ): sfz.numFace = i + self.nFx + self.nFy
+            for i, sfz in enumerate(self.sortedFaceZ): sfz.num = i + self.nFx + self.nFy
 
         self.isNumbered = True
 
@@ -276,6 +338,9 @@ class TreeMesh(object):
 
     @property
     def nC(self): return len(self.cells)
+
+    @property
+    def nN(self): return len(self.nodes)
 
     @property
     def nF(self): return len(self.faces)
@@ -314,6 +379,15 @@ class TreeMesh(object):
         return self._gridCC
 
     @property
+    def gridN(self):
+        if getattr(self, '_gridN', None) is None:
+            self.number()
+            self._gridN = np.empty((self.nN,self.dim))
+            for ii, node in enumerate(self.sortedNodes):
+                self._gridN[ii,:] = node.center
+        return self._gridN
+
+    @property
     def gridFx(self):
         if getattr(self, '_gridFx', None) is None:
             self.number()
@@ -330,6 +404,31 @@ class TreeMesh(object):
             for ii, face in enumerate(self.sortedFaceY):
                 self._gridFy[ii,:] = face.center
         return self._gridFy
+
+    @property
+    def gridFz(self):
+        if self.dim == 2: return None
+        if getattr(self, '_gridFz', None) is None:
+            self.number()
+            self._gridFz = np.emptz((self.nFz,self.dim))
+            for ii, face in enumerate(self.sortedFaceZ):
+                self._gridFz[ii,:] = face.center
+        return self._gridFz
+
+    @property
+    def gridEx(self):
+        if self.dim == 2: return self.gridFy
+        else: raise NotImplementedError('Edge Grid not yet implemented')
+
+    @property
+    def gridEy(self):
+        if self.dim == 2: return self.gridFx
+        else: raise NotImplementedError('Edge Grid not yet implemented')
+
+    @property
+    def gridEz(self):
+        if self.dim == 2: return None
+        else: raise NotImplementedError('Edge Grid not yet implemented')
 
     @property
     def vol(self):
