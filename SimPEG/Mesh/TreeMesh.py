@@ -178,21 +178,21 @@ class TreeFace(TreeObject):
         #
         #      2_______________3                    _______________
         #      |               |                   |       |       |
-        #   ^  |               |                   | (1,0) | (1,1) |
+        #   ^  |               |                   | (0,1) | (1,1) |
         #   |  |               |                   |       |       |
         #   |  |       x       |        --->       |-------+-------|
         #   t1 |               |                   |       |       |
-        #      |               |                   | (0,0) | (0,1) |
+        #      |               |                   | (0,0) | (1,0) |
         #      |_______________|                   |_______|_______|
         #      0      t0-->    1
 
         c00 = TreeFace(self.mesh, x0=x0r_0, faceType=self.faceType, sz=0.5*self.sz, depth=self.depth+1, parent=self, node0=self.node0)
-        c10 = TreeFace(self.mesh, x0=x0r_1, faceType=self.faceType, sz=0.5*self.sz, depth=self.depth+1, parent=self, node0=c00.node2, node1=c00.node3, node2=self.node2)
-        c01 = TreeFace(self.mesh, x0=x0r_2, faceType=self.faceType, sz=0.5*self.sz, depth=self.depth+1, parent=self, node0=c00.node1, node1=self.node1, node2=c00.node3)
-        c11 = TreeFace(self.mesh, x0=x0r_3, faceType=self.faceType, sz=0.5*self.sz, depth=self.depth+1, parent=self, node0=c00.node3, node1=c01.node3, node2=c10.node3, node3=self.node3)
+        c01 = TreeFace(self.mesh, x0=x0r_1, faceType=self.faceType, sz=0.5*self.sz, depth=self.depth+1, parent=self, node0=c00.node2, node1=c00.node3, node2=self.node2)
+        c10 = TreeFace(self.mesh, x0=x0r_2, faceType=self.faceType, sz=0.5*self.sz, depth=self.depth+1, parent=self, node0=c00.node1, node1=self.node1, node2=c00.node3)
+        c11 = TreeFace(self.mesh, x0=x0r_3, faceType=self.faceType, sz=0.5*self.sz, depth=self.depth+1, parent=self, node0=c00.node3, node1=c10.node3, node2=c01.node3, node3=self.node3)
 
         C = np.empty((2,2), dtype=TreeFace)
-        C[0,0], C[1,0], C[0,1], C[1,1] = c00, c10, c01, c11
+        C[0,0], C[0,1], C[1,0], C[1,1] = c00, c01, c10, c11
         self.children = C
 
         self.mesh.faces.remove(self)
@@ -400,16 +400,16 @@ class TreeCell(TreeObject):
         #                  /   |            /   |            /   |
         #                 .----------------.----+-----------.    |
         #                /|    . ---------/|----.----------/|----.
-        #               / |   /          / |   /          / |   /|
-        #              /  |  /          /  |  /          /  |  / |
-        #             /   | /          /   | /          /   | /  |
+        #               / |   /|         / |   /|         / |   /|
+        #              /  |  / | 001    /  |  / |  101   /  |  / |
+        #             /   | /  |       /   | /  |       /   | /  |
         #            . -------------- .----------------.    |/   |
-        #            |    . ----------|----.-----------|----. 110|
-        #            |   /|   001     |   /|     101   |   /|    .
-        #            |  / |           |  / |           |  / |   /
-        #            | /  |           | /  |           | /  |  /
+        #            |    . ---+------|----.----+------|----.    |
+        #            |   /|    .______|___/|____.______|___/|____.
+        #            |  / |   /   010 |  / |   /    110|  / |   /
+        #            | /  |  /        | /  |  /        | /  |  /
         #            . ---+---------- . ---+---------- .    | /
-        #            |    |           |    |           |    |/             z
+        #            |    |/          |    |/          |    |/             z
         #            |    . ----------|----.-----------|----.              ^   y
         #            |   /    000     |   /     100    |   /               |  /
         #            |  /             |  /             |  /                | /
@@ -417,6 +417,27 @@ class TreeCell(TreeObject):
         #            . -------------- . -------------- .
         #
         #
+        # Face Refinement:
+        #
+        #      2_______________3                    _______________
+        #      |               |                   |       |       |
+        #   ^  |               |                   | (0,1) | (1,1) |
+        #   |  |               |                   |       |       |
+        #   |  |       x       |        --->       |-------+-------|
+        #   t1 |               |                   |       |       |
+        #      |               |                   | (0,0) | (1,0) |
+        #      |_______________|                   |_______|_______|
+        #      0      t0-->    1
+
+
+        order = [{'c':[0,0,0], 'fXm': ('p', 'fXm', [0,0]),   'fXp': 'new'              },
+                 {'c':[1,0,0], 'fXm': ('c', 'fXp', [0,0,0]), 'fXp': ('p', 'fXp', [0,0])},
+                 {'c':[0,1,0], 'fXm': ('p', 'fXm', [1,0]),   'fXp': 'new'              },
+                 {'c':[1,1,0], 'fXm': ('c', 'fXp', [0,1,0]), 'fXp': ('p', 'fXp', [1,0])},
+                 {'c':[0,0,1], 'fXm': ('p', 'fXm', [0,1]),   'fXp': 'new'              },
+                 {'c':[1,0,1], 'fXm': ('c', 'fXp', [0,0,1]), 'fXp': ('p', 'fXp', [0,1])},
+                 {'c':[0,1,1], 'fXm': ('p', 'fXm', [1,1]),   'fXp': 'new'              },
+                 {'c':[1,1,1], 'fXm': ('c', 'fXp', [0,1,1]), 'fXp': ('p', 'fXp', [1,1])}]
 
         self.mesh.isNumbered = False
 
@@ -426,46 +447,18 @@ class TreeCell(TreeObject):
         for faceName in self.faces:
             self.faces[faceName].refine()
 
-        i, j, k = 0, 0, 0
-        x0r = np.r_[x0[0] + 0.5*i*sz[0], x0[1] + 0.5*j*sz[1], x0[2] + 0.5*k*sz[2]]
-        fXm, fXp, fYm, fYp, fZm, fZp =  None, None, None, None, None, None
-        self.children[i,j,k] = TreeCell(self.mesh, x0=x0r, depth=self.depth+1, sz=0.5*sz, parent=self, fXm=fXm, fXp=fXp, fYm=fYm, fYp=fYp, fZm=fZm, fZp=fZp)
+        def getFace(pointer):
+            if pointer is 'new': return None
+            if pointer[0] == 'p':
+                return self.faces[pointer[1]].children[pointer[2][0],pointer[2][1]]
+            if pointer[0] == 'c':
+                return self.children[pointer[2][0],pointer[2][1],pointer[2][2]].faces[pointer[1]]
 
-        i, j, k = 1, 0, 0
-        x0r = np.r_[x0[0] + 0.5*i*sz[0], x0[1] + 0.5*j*sz[1], x0[2] + 0.5*k*sz[2]]
-        fXm, fXp, fYm, fYp, fZm, fZp =  None, None, None, None, None, None
-        self.children[i,j,k] = TreeCell(self.mesh, x0=x0r, depth=self.depth+1, sz=0.5*sz, parent=self, fXm=fXm, fXp=fXp, fYm=fYm, fYp=fYp, fZm=fZm, fZp=fZp)
-
-        i, j, k = 0, 1, 0
-        x0r = np.r_[x0[0] + 0.5*i*sz[0], x0[1] + 0.5*j*sz[1], x0[2] + 0.5*k*sz[2]]
-        fXm, fXp, fYm, fYp, fZm, fZp =  None, None, None, None, None, None
-        self.children[i,j,k] = TreeCell(self.mesh, x0=x0r, depth=self.depth+1, sz=0.5*sz, parent=self, fXm=fXm, fXp=fXp, fYm=fYm, fYp=fYp, fZm=fZm, fZp=fZp)
-
-        i, j, k = 1, 1, 0
-        x0r = np.r_[x0[0] + 0.5*i*sz[0], x0[1] + 0.5*j*sz[1], x0[2] + 0.5*k*sz[2]]
-        fXm, fXp, fYm, fYp, fZm, fZp =  None, None, None, None, None, None
-        self.children[i,j,k] = TreeCell(self.mesh, x0=x0r, depth=self.depth+1, sz=0.5*sz, parent=self, fXm=fXm, fXp=fXp, fYm=fYm, fYp=fYp, fZm=fZm, fZp=fZp)
-
-        # Upper layer
-        i, j, k = 0, 0, 1
-        x0r = np.r_[x0[0] + 0.5*i*sz[0], x0[1] + 0.5*j*sz[1], x0[2] + 0.5*k*sz[2]]
-        fXm, fXp, fYm, fYp, fZm, fZp =  None, None, None, None, None, None
-        self.children[i,j,k] = TreeCell(self.mesh, x0=x0r, depth=self.depth+1, sz=0.5*sz, parent=self, fXm=fXm, fXp=fXp, fYm=fYm, fYp=fYp, fZm=fZm, fZp=fZp)
-
-        i, j, k = 1, 0, 1
-        x0r = np.r_[x0[0] + 0.5*i*sz[0], x0[1] + 0.5*j*sz[1], x0[2] + 0.5*k*sz[2]]
-        fXm, fXp, fYm, fYp, fZm, fZp =  None, None, None, None, None, None
-        self.children[i,j,k] = TreeCell(self.mesh, x0=x0r, depth=self.depth+1, sz=0.5*sz, parent=self, fXm=fXm, fXp=fXp, fYm=fYm, fYp=fYp, fZm=fZm, fZp=fZp)
-
-        i, j, k = 0, 1, 1
-        x0r = np.r_[x0[0] + 0.5*i*sz[0], x0[1] + 0.5*j*sz[1], x0[2] + 0.5*k*sz[2]]
-        fXm, fXp, fYm, fYp, fZm, fZp =  None, None, None, None, None, None
-        self.children[i,j,k] = TreeCell(self.mesh, x0=x0r, depth=self.depth+1, sz=0.5*sz, parent=self, fXm=fXm, fXp=fXp, fYm=fYm, fYp=fYp, fZm=fZm, fZp=fZp)
-
-        i, j, k = 1, 1, 1
-        x0r = np.r_[x0[0] + 0.5*i*sz[0], x0[1] + 0.5*j*sz[1], x0[2] + 0.5*k*sz[2]]
-        fXm, fXp, fYm, fYp, fZm, fZp =  None, None, None, None, None, None
-        self.children[i,j,k] = TreeCell(self.mesh, x0=x0r, depth=self.depth+1, sz=0.5*sz, parent=self, fXm=fXm, fXp=fXp, fYm=fYm, fYp=fYp, fZm=fZm, fZp=fZp)
+        for O in order:
+            i, j, k = O['c']
+            x0r = np.r_[x0[0] + 0.5*i*sz[0], x0[1] + 0.5*j*sz[1], x0[2] + 0.5*k*sz[2]]
+            fXm, fXp, fYm, fYp, fZm, fZp = getFace(O['fXm']), getFace(O['fXp']), None, None, None, None
+            self.children[i,j,k] = TreeCell(self.mesh, x0=x0r, depth=self.depth+1, sz=0.5*sz, parent=self, fXm=fXm, fXp=fXp, fYm=fYm, fYp=fYp, fZm=fZm, fZp=fZp)
 
         self.mesh.cells.remove(self)
 

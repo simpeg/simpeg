@@ -18,14 +18,23 @@ class TestOcTreeObjects(unittest.TestCase):
         self.assertTrue(self.M.nFz == 4)
         self.assertTrue(self.M.nF == 11)
         self.assertTrue(self.M.nN == 12)
-        self.assertTrue(self.Mr.nC == 9)
 
-    def test_pointersM(self):
-        c0    = self.M.children[0,0,0]
-        c0fXm = c0.faces['fXm']
-        c0fXp = c0.faces['fXp']
-        c0fYm = c0.faces['fYm']
-        c0fYp = c0.faces['fYp']
+        self.assertTrue(self.Mr.nC == 9)
+        print self.Mr.nFx
+        self.assertTrue(self.Mr.nFx == 13)
+        self.assertTrue(self.Mr.nFy == 14)
+        self.assertTrue(self.Mr.nFz == 14)
+        self.assertTrue(self.Mr.nF == 41)
+
+        print self.Mr.nN
+        self.assertTrue(self.Mr.nN == 22)
+
+    # def test_pointersM(self):
+    #     c0    = self.M.children[0,0,0]
+    #     c0fXm = c0.faces['fXm']
+    #     c0fXp = c0.faces['fXp']
+    #     c0fYm = c0.faces['fYm']
+    #     c0fYp = c0.faces['fYp']
 
 
 
