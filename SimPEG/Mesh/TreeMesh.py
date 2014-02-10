@@ -432,35 +432,36 @@ class TreeCell(TreeObject):
 
         order = [{'c':[0,0,0],
                     'fXm': ('p', 'fXm', [0,0]),   'fXp': 'new'              ,
-                    'fYm': ('p', 'fYm', [0,0]),   'fYp': 'new'              ,},
-
+                    'fYm': ('p', 'fYm', [0,0]),   'fYp': 'new'              ,
+                    'fZm': ('p', 'fZm', [0,0]),   'fZp': 'new'              ,},
                  {'c':[1,0,0],
                     'fXm': ('c', 'fXp', [0,0,0]), 'fXp': ('p', 'fXp', [0,0]),
-                    'fYm': ('p', 'fYm', [1,0]),   'fYp': 'new'              ,},
-
+                    'fYm': ('p', 'fYm', [1,0]),   'fYp': 'new'              ,
+                    'fZm': ('p', 'fZm', [1,0]),   'fZp': 'new'              },
                  {'c':[0,1,0],
                     'fXm': ('p', 'fXm', [1,0]),   'fXp': 'new'              ,
-                    'fYm': ('c', 'fYp', [0,0,0]), 'fYp': ('p', 'fYp', [0,0])},
-
+                    'fYm': ('c', 'fYp', [0,0,0]), 'fYp': ('p', 'fYp', [0,0]),
+                    'fZm': ('p', 'fZm', [0,1]),   'fZp': 'new'              },
                  {'c':[1,1,0],
                     'fXm': ('c', 'fXp', [0,1,0]), 'fXp': ('p', 'fXp', [1,0]),
-                    'fYm': ('c', 'fYp', [1,0,0]), 'fYp': ('p', 'fYp', [1,0])},
-
+                    'fYm': ('c', 'fYp', [1,0,0]), 'fYp': ('p', 'fYp', [1,0]),
+                    'fZm': ('p', 'fZm', [1,1]),   'fZp': 'new'              },
                  {'c':[0,0,1],
                     'fXm': ('p', 'fXm', [0,1]),   'fXp': 'new'              ,
-                    'fYm': ('p', 'fYm', [0,1]),   'fYp': 'new'              ,},
-
+                    'fYm': ('p', 'fYm', [0,1]),   'fYp': 'new'              ,
+                    'fZm': ('c', 'fZp', [0,0,0]), 'fZp': ('p', 'fZp', [0,0])},
                  {'c':[1,0,1],
                     'fXm': ('c', 'fXp', [0,0,1]), 'fXp': ('p', 'fXp', [0,1]),
-                    'fYm': ('p', 'fYm', [1,1]),   'fYp': 'new'              ,},
-
+                    'fYm': ('p', 'fYm', [1,1]),   'fYp': 'new'              ,
+                    'fZm': ('c', 'fZp', [1,0,0]), 'fZp': ('p', 'fZp', [1,0])},
                  {'c':[0,1,1],
                     'fXm': ('p', 'fXm', [1,1]),   'fXp': 'new'              ,
-                    'fYm': ('c', 'fYp', [0,0,1]), 'fYp': ('p', 'fYp', [0,1])},
-
+                    'fYm': ('c', 'fYp', [0,0,1]), 'fYp': ('p', 'fYp', [0,1]),
+                    'fZm': ('c', 'fZp', [0,1,0]), 'fZp': ('p', 'fZp', [0,1])},
                  {'c':[1,1,1],
                     'fXm': ('c', 'fXp', [0,1,1]), 'fXp': ('p', 'fXp', [1,1]),
-                    'fYm': ('c', 'fYp', [1,0,1]), 'fYp': ('p', 'fYp', [1,1])}]
+                    'fYm': ('c', 'fYp', [1,0,1]), 'fYp': ('p', 'fYp', [1,1]),
+                    'fZm': ('c', 'fZp', [1,1,0]), 'fZp': ('p', 'fZp', [1,1])}]
 
         self.mesh.isNumbered = False
 
@@ -480,7 +481,7 @@ class TreeCell(TreeObject):
         for O in order:
             i, j, k = O['c']
             x0r = np.r_[x0[0] + 0.5*i*sz[0], x0[1] + 0.5*j*sz[1], x0[2] + 0.5*k*sz[2]]
-            fXm, fXp, fYm, fYp, fZm, fZp = getFace(O['fXm']), getFace(O['fXp']), getFace(O['fYm']), getFace(O['fYp']), None, None
+            fXm, fXp, fYm, fYp, fZm, fZp = getFace(O['fXm']), getFace(O['fXp']), getFace(O['fYm']), getFace(O['fYp']), getFace(O['fZm']), getFace(O['fZp']),
             self.children[i,j,k] = TreeCell(self.mesh, x0=x0r, depth=self.depth+1, sz=0.5*sz, parent=self, fXm=fXm, fXp=fXp, fYm=fYm, fYp=fYp, fZm=fZm, fZp=fZp)
 
         self.mesh.cells.remove(self)
