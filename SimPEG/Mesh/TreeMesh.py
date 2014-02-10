@@ -43,10 +43,12 @@ class TreeObject(object):
 
     children = None #: children of the tree object
     num = None
+    depth = 0
 
-    def __init__(self, mesh, parent):
+    def __init__(self, mesh, parent, depth):
         self.mesh = mesh
         self._parent = parent
+        self.depth = depth
 
     @property
     def parent(self): return self._parent
@@ -60,11 +62,18 @@ class TreeObject(object):
     @property
     def center(self): return self.x0
 
+    @property
+    def branchdepth(self):
+        if self.isleaf:
+            return self.depth
+        else:
+            return np.max([node.branchdepth for node in self.children.flatten('F')])
+
 
 class TreeNode(TreeObject):
     """docstring for TreeNode"""
-    def __init__(self, mesh, x0=[0,0], depth=0, parent=None):
-        TreeObject.__init__(self, mesh, parent)
+    def __init__(self, mesh, x0=[0,0], parent=None):
+        TreeObject.__init__(self, mesh, parent, 0)
         self.x0 = np.array(x0, dtype=float)
         self.mesh.nodes.add(self)
 
@@ -74,10 +83,9 @@ class TreeEdge(TreeObject):
     def __init__(self, mesh, x0=[0,0], edgeType=None, sz=[1,], depth=0,
                  node0=None, node1=None,
                  parent=None):
-        TreeObject.__init__(self, mesh, parent)
+        TreeObject.__init__(self, mesh, parent, depth)
 
         self.x0 = np.array(x0, dtype=float)
-        self.depth = depth
         self.edgeType = edgeType
         self.sz = np.array(sz, dtype=float)
 
@@ -114,9 +122,9 @@ class TreeEdge(TreeObject):
         elif self.edgeType is 'y': return np.r_[0,1.,0]
         elif self.edgeType is 'z': return np.r_[0,0,1.]
 
-    def plotGrid(self, ax, text=False):
+    def plotGrid(self, ax, text=False, lineOpts={'color':'r', 'ls': '-'}):
         line = np.c_[self.node0.x0, self.node1.x0].T
-        ax.plot(line[:,0], line[:,1],'r-', zs=line[:,2])
+        ax.plot(line[:,0], line[:,1], zs=line[:,2], **lineOpts)
 
 
 class TreeFace(TreeObject):
@@ -125,10 +133,9 @@ class TreeFace(TreeObject):
                  node0=None, node1=None,
                  edge0=None, edge1=None, edge2=None, edge3=None,
                  parent=None):
-        TreeObject.__init__(self, mesh, parent)
+        TreeObject.__init__(self, mesh, parent, depth)
 
         self.x0 = np.array(x0, dtype=float)
-        self.depth = depth
         self.faceType = faceType
         self.sz = np.array(sz, dtype=float)
 
@@ -272,7 +279,7 @@ class TreeFace(TreeObject):
 
         for O in order:
             i, j = O['c']
-            x0r = 0.5*i*self.tangent0*self.sz[0] + 0.5*j*self.tangent1*self.sz[1]
+            x0r = self.x0 + 0.5*i*self.tangent0*self.sz[0] + 0.5*j*self.tangent1*self.sz[1]
             e0, e1, e2, e3 = getEdge(O['e0']), getEdge(O['e1']), getEdge(O['e2']), getEdge(O['e3'])
             self.children[i,j] = TreeFace(self.mesh, x0=x0r, faceType=self.faceType, depth=self.depth+1, sz=0.5*self.sz, parent=self, edge0=e0, edge1=e1, edge2=e2, edge3=e3)
 
@@ -310,11 +317,10 @@ class TreeCell(TreeObject):
                  fYm=None, fYp=None,
                  fZm=None, fZp=None,
                  parent=None):
-        TreeObject.__init__(self, mesh, parent)
+        TreeObject.__init__(self, mesh, parent, depth)
 
         self.x0 = np.array(x0, dtype=float)
         self.sz = np.array(sz, dtype=float)
-        self.depth = depth
         if self.dim == 2:
             #
             #      2___________3
@@ -421,13 +427,6 @@ class TreeCell(TreeObject):
             self.edges = {"eX0":eX0, "eX1":eX1, "eX2":eX2, "eX3":eX3, "eY0":eY0, "eY1":eY1, "eY2":eY2, "eY3":eY3, "eZ0":eZ0, "eZ1":eZ1, "eZ2":eZ2, "eZ3":eZ3}
 
         mesh.cells.add(self)
-
-    @property
-    def branchdepth(self):
-        if self.isleaf:
-            return self.depth
-        else:
-            return np.max([node.branchdepth for node in self.children.flatten('F')])
 
     @property
     def center(self): return self.x0 + 0.5*self.sz
