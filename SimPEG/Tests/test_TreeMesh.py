@@ -36,9 +36,10 @@ class TestOcTreeObjects(unittest.TestCase):
             for e in cell.edges:
                 self.assertTrue(cell.edges[e].edgeType==e[1].lower())
 
-        print self.Mr.nEx
         # self.assertTrue(self.Mr.nN == 22)
-        # self.assertTrue(self.Mr.nEx == 22)
+        self.assertTrue(self.Mr.nEx == 22)
+        self.assertTrue(self.Mr.nEy == 20)
+        self.assertTrue(self.Mr.nEz == 20)
 
     def test_pointersM(self):
         c0    = self.M.children[0,0,0]
@@ -112,23 +113,31 @@ class TestOcTreeObjects(unittest.TestCase):
         ax = plt.subplot(111, projection='3d')
         self.Mr.plotGrid(ax=ax,showIt=False,plotC=True,plotEy=True, text=False)
 
-        cell = self.Mr.sortedCells[1]
+        cell = self.Mr.sortedCells[0]
         [cell.edges[e].plotGrid(ax,lineOpts={'color':'b','ls':'-'}) for e in cell.edges]
         cell.plotGrid(ax)
-        plt.show()
+        # plt.show()
 
         def q(s):
-            c = self.Mr.sortedCells[int(s[1])]
+            if s[0] == 'M':
+                m = self.M
+                s = s[1:]
+            else:
+                m = self.Mr
+            c = m.sortedCells[int(s[1])]
             if len(s) == 2: return c
-            if s[2] == 'f': return c.faces[s[2:]]
+            if s[2] == 'f' and len(s) == 5: return c.faces[s[2:]]
+            if s[2] == 'f': return c.faces[s[2:5]].edges[s[5:]]
             if s[2] == 'e': return c.edges[s[2:]]
 
         c0    = self.Mr.sortedCells[0]
         c0fXm = c0.faces['fXm']
         c0eX0 = c0.edges['eX0']
+        c0fYme0 = c0.faces['fYm'].edges['e0']
         self.assertTrue(c0 is q('c0'))
         self.assertTrue(c0fXm is q('c0fXm'))
         self.assertTrue(c0eX0 is q('c0eX0'))
+        self.assertTrue(c0fYme0 is q('c0fYme0'))
 
         self.assertTrue(q('c0').depth == 1)
         self.assertTrue(q('c1').depth == 1)
@@ -145,6 +154,7 @@ class TestOcTreeObjects(unittest.TestCase):
         self.assertTrue(np.all(q('c7').center == np.r_[0.125,0.75,0.75]))
         self.assertTrue(np.all(q('c8').center == np.r_[0.375,0.75,0.75]))
 
+        # Test X face connectivity and locations and stuff...
         self.assertTrue(np.all(q('c0fXm').center == np.r_[0,0.25,0.25]))
         self.assertTrue(np.all(q('c0fXp').center == np.r_[0.25,0.25,0.25]))
         self.assertTrue(q('c0fXp') is q('c1fXm'))
@@ -153,6 +163,75 @@ class TestOcTreeObjects(unittest.TestCase):
         self.assertTrue(q('c2fXm').branchdepth == 1)
         self.assertTrue(q('c1fXp').parent is q('c2fXm'))
         self.assertTrue(q('c2fXm').children[0,0] is q('c1fXp'))
+        self.assertTrue(np.all(q('c3fXm').center == np.r_[0,0.75,0.25]))
+        self.assertTrue(np.all(q('c3fXp').center == np.r_[0.25,0.75,0.25]))
+        self.assertTrue(q('c4fXm') is q('c3fXp'))
+        self.assertTrue(q('c2fXm').children[1,0] is q('c4fXp'))
+
+        #Test some internal stuff (edges held by cell should be same as inside)
+        for key in ['Mc0', 'Mc1'] + ['c%d'%i for i in range(9)]:
+            self.assertTrue(q(key+'eX0') is q(key+'fZme0'))
+            self.assertTrue(q(key+'eX1') is q(key+'fZme1'))
+            self.assertTrue(q(key+'eX2') is q(key+'fZpe0'))
+            self.assertTrue(q(key+'eX3') is q(key+'fZpe1'))
+
+            self.assertTrue(q(key+'eX0') is q(key+'fYme0'))
+            self.assertTrue(q(key+'eX1') is q(key+'fYpe0'))
+            self.assertTrue(q(key+'eX2') is q(key+'fYme1'))
+            self.assertTrue(q(key+'eX3') is q(key+'fYpe1'))
+
+            self.assertTrue(q(key+'eY0') is q(key+'fXme0'))
+            self.assertTrue(q(key+'eY1') is q(key+'fXpe0'))
+            self.assertTrue(q(key+'eY2') is q(key+'fXme1'))
+            self.assertTrue(q(key+'eY3') is q(key+'fXpe1'))
+
+            self.assertTrue(q(key+'eY0') is q(key+'fZme2'))
+            self.assertTrue(q(key+'eY1') is q(key+'fZme3'))
+            self.assertTrue(q(key+'eY2') is q(key+'fZpe2'))
+            self.assertTrue(q(key+'eY3') is q(key+'fZpe3'))
+
+            self.assertTrue(q(key+'eZ0') is q(key+'fXme2'))
+            self.assertTrue(q(key+'eZ1') is q(key+'fXpe2'))
+            self.assertTrue(q(key+'eZ2') is q(key+'fXme3'))
+            self.assertTrue(q(key+'eZ3') is q(key+'fXpe3'))
+
+            self.assertTrue(q(key+'eZ0') is q(key+'fYme2'))
+            self.assertTrue(q(key+'eZ1') is q(key+'fYme3'))
+            self.assertTrue(q(key+'eZ2') is q(key+'fYpe2'))
+            self.assertTrue(q(key+'eZ3') is q(key+'fYpe3'))
+
+        #Test some edge stuff
+        self.assertTrue(np.all(q('c0eX0').center == np.r_[0.125,0,0]))
+        self.assertTrue(np.all(q('c0eX1').center == np.r_[0.125,0.5,0]))
+        self.assertTrue(np.all(q('c0eX2').center == np.r_[0.125,0,0.5]))
+        self.assertTrue(np.all(q('c0eX3').center == np.r_[0.125,0.5,0.5]))
+
+        self.assertTrue(np.all(q('c5eX0').center == np.r_[0.125,0,0.5]))
+        self.assertTrue(np.all(q('c5eX1').center == np.r_[0.125,0.5,0.5]))
+        self.assertTrue(q('c5eX0') is q('c0eX2'))
+        self.assertTrue(q('c5eX1') is q('c0eX3'))
+
+        self.assertTrue(np.all(q('c0eY0').center == np.r_[0,0.25,0]))
+        self.assertTrue(np.all(q('c0eY1').center == np.r_[0.25,0.25,0]))
+        self.assertTrue(np.all(q('c0eY2').center == np.r_[0,0.25,0.5]))
+        self.assertTrue(np.all(q('c0eY3').center == np.r_[0.25,0.25,0.5]))
+
+        self.assertTrue(np.all(q('c1eY0').center == np.r_[0.25,0.25,0]))
+        self.assertTrue(np.all(q('c1eY2').center == np.r_[0.25,0.25,0.5]))
+        self.assertTrue(q('c1eY0') is q('c0eY1'))
+        self.assertTrue(q('c1eY2') is q('c0eY3'))
+
+
+        self.assertTrue(np.all(q('c0eZ0').center == np.r_[0,0,0.25]))
+        self.assertTrue(np.all(q('c0eZ1').center == np.r_[0.25,0,0.25]))
+        self.assertTrue(np.all(q('c0eZ2').center == np.r_[0,0.5,0.25]))
+        self.assertTrue(np.all(q('c0eZ3').center == np.r_[0.25,0.5,0.25]))
+
+        self.assertTrue(np.all(q('c3eZ0').center == np.r_[0,0.5,0.25]))
+        self.assertTrue(np.all(q('c3eZ1').center == np.r_[0.25,0.5,0.25]))
+        self.assertTrue(q('c3eZ0') is q('c0eZ2'))
+        self.assertTrue(q('c3eZ1') is q('c0eZ3'))
+
 
         self.assertTrue(q('c0fXp') is q('c1fXm'))
         self.assertTrue(q('c0fYp') is not q('c1fYm'))
@@ -194,6 +273,35 @@ class TestOcTreeObjects(unittest.TestCase):
         z = np.r_[0.25,0.25,0.25,0.5,0.25,0.25,0.25,0.75,0.75,0.75,0.75,0.75,0.75]
         self.assertTrue(np.linalg.norm((np.c_[x,y,z]-self.Mr.gridFx).flatten()) == 0)
 
+    def test_gridFy(self):
+        x = np.r_[0.25,0.75,0.25,0.75]
+        y = np.r_[0,0,1.,1.]
+        z = np.r_[0.5,0.5,0.5,0.5]
+        self.assertTrue(np.linalg.norm((np.c_[x,y,z]-self.M.gridFy).flatten()) == 0)
+
+    def test_gridFz(self):
+        x = np.r_[0.25,0.75,0.25,0.75]
+        y = np.r_[0.5,0.5,0.5,0.5]
+        z = np.r_[0,0,1.,1.]
+        self.assertTrue(np.linalg.norm((np.c_[x,y,z]-self.M.gridFz).flatten()) == 0)
+
+    def test_gridEx(self):
+        x = np.r_[0.25,0.75,0.25,0.75,0.25,0.75,0.25,0.75]
+        y = np.r_[0,0,1.,1.,0,0,1.,1.]
+        z = np.r_[0,0,0,0,1.,1.,1.,1.]
+        self.assertTrue(np.linalg.norm((np.c_[x,y,z]-self.M.gridEx).flatten()) == 0)
+
+    def test_gridEy(self):
+        x = np.r_[0,0.5,1,0,0.5,1]
+        y = np.r_[0.5,0.5,0.5,0.5,0.5,0.5]
+        z = np.r_[0,0,0,1.,1.,1.]
+        self.assertTrue(np.linalg.norm((np.c_[x,y,z]-self.M.gridEy).flatten()) == 0)
+
+    def test_gridEz(self):
+        x = np.r_[0,0.5,1,0,0.5,1]
+        y = np.r_[0,0,0,1.,1.,1.]
+        z = np.r_[0.5,0.5,0.5,0.5,0.5,0.5]
+        self.assertTrue(np.linalg.norm((np.c_[x,y,z]-self.M.gridEz).flatten()) == 0)
 
 
 

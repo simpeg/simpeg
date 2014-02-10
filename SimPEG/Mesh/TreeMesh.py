@@ -241,11 +241,6 @@ class TreeFace(TreeObject):
             self.mesh.facesY.remove(self)
 
     def _refine3D(self):
-        self.children = np.empty((2,2),dtype=TreeFace)
-
-        for edgeName in self.edges:
-            self.edges[edgeName].refine()
-
         #
         #      2_______________3                    _______________
         #      |     e1-->     |                   |       |       |
@@ -272,12 +267,16 @@ class TreeFace(TreeObject):
                     'e2': ('c', 'e3', [0,1]), 'e3': ('p', 'e3', [1])}]
 
         def getEdge(pointer):
-            return
             if pointer is 'new': return
             if pointer[0] == 'p':
                 return self.edges[pointer[1]].children[pointer[2][0]]
             if pointer[0] == 'c':
                 return self.children[pointer[2][0],pointer[2][1]].edges[pointer[1]]
+
+        self.children = np.empty((2,2), dtype=TreeFace)
+
+        for edgeName in self.edges:
+            self.edges[edgeName].refine()
 
         for O in order:
             i, j = O['c']
