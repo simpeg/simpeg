@@ -17,8 +17,7 @@ class TestOcTreeObjects(unittest.TestCase):
         self.assertTrue(self.M.nFy == 4)
         self.assertTrue(self.M.nFz == 4)
         self.assertTrue(self.M.nF == 11)
-        # self.assertTrue(self.M.nN == 12)
-
+        self.assertTrue(self.M.nN == 12)
         self.assertTrue(self.Mr.nC == 9)
 
     def test_pointersM(self):

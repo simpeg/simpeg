@@ -174,6 +174,7 @@ class TreeFace(TreeObject):
         x0r_1 = self.x0+0.5*self.tangent0*self.sz[0]
         x0r_2 = self.x0+0.5*self.tangent1*self.sz[1]
         x0r_3 = self.x0+0.5*self.tangent0*self.sz[0]+0.5*self.tangent1*self.sz[1]
+
         # TODO: Set nodes
         self.children[0,0] = TreeFace(self.mesh, x0=x0r_0, faceType=self.faceType, sz=0.5*self.sz, depth=self.depth+1, parent=self)
         self.children[1,0] = TreeFace(self.mesh, x0=x0r_1, faceType=self.faceType, sz=0.5*self.sz, depth=self.depth+1, parent=self)
@@ -268,22 +269,50 @@ class TreeCell(TreeObject):
             #                       |
             #                      fZm
             #
-            N = {}
-            N["n0"] = None #getattr(fXm, 'node0', None) or getattr(fYm, 'node0', None) or getattr(fZm, 'node0', None)
-            N["n1"] = None #getattr(fXp, 'node0', None) or getattr(fYm, 'node1', None) or getattr(fZm, 'node1', None)
-            N["n2"] = None #getattr(fXm, 'node1', None) or getattr(fYp, 'node0', None) or getattr(fZp, 'node0', None)
-            N["n3"] = None #getattr(fXp, 'node1', None) or getattr(fYp, 'node1', None) or getattr(fZp, 'node1', None)
-            N["n4"] = None #getattr(fXp, 'node1', None) or getattr(fYp, 'node1', None) or getattr(fZp, 'node1', None)
-            N["n5"] = None #getattr(fXp, 'node1', None) or getattr(fYp, 'node1', None) or getattr(fZp, 'node1', None)
-            N["n6"] = None #getattr(fXp, 'node1', None) or getattr(fYp, 'node1', None) or getattr(fZp, 'node1', None)
-            N["n7"] = None #getattr(fXp, 'node1', None) or getattr(fYp, 'node1', None) or getattr(fZp, 'node1', None)
+            #
+            #            fX                                  fY                                 fZ
+            #      2___________3                       2___________3                      2___________3
+            #      |    eYp    |                       |    eXp    |                      |    eXp    |
+            #      |           |                       |           |                      |           |
+            #   eZm|     x     |eZp      z          eZm|     x     |eZp      z         eYm|     x     |eYp      y
+            #      |           |         ^             |           |         ^            |           |         ^
+            #      |___________|         |___> y       |___________|         |___> x      |___________|         |___> x
+            #      0    eYm    1                       0    eXm    1                      0    eXm    1
+            #
+            #  Mappings: numOnFace > numOnCell
+            #
+            #  fXm 0>0, 1>2, 2>4, 3>6              fYm 0>0, 1>1, 2>4, 3>5             fZm 0>0, 1>1, 2>2, 3>3
+            #  fXp 0>1, 1>3, 2>5, 3>7              fYp 0>2, 1>3, 2>6, 3>7             fZp 0>4, 1>5, 2>6, 3>7
 
-            fXm = fXm if isinstance(fXm, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]      , x0[2]      ], faceType='x', sz=np.r_[sz[1], sz[2]], depth=depth, parent=parent)
-            fXp = fXp if isinstance(fXp, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]+sz[0], x0[1]      , x0[2]      ], faceType='x', sz=np.r_[sz[1], sz[2]], depth=depth, parent=parent)
-            fYm = fYm if isinstance(fYm, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]      , x0[2]      ], faceType='y', sz=np.r_[sz[0], sz[2]], depth=depth, parent=parent)
-            fYp = fYp if isinstance(fYp, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]+sz[1], x0[2]      ], faceType='y', sz=np.r_[sz[0], sz[2]], depth=depth, parent=parent)
-            fZm = fZm if isinstance(fZm, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]      , x0[2]      ], faceType='z', sz=np.r_[sz[0], sz[1]], depth=depth, parent=parent)
-            fZp = fZp if isinstance(fZp, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]      , x0[2]+sz[2]], faceType='z', sz=np.r_[sz[0], sz[1]], depth=depth, parent=parent)
+            N = {}
+            N["n0"] = getattr(fXm, 'node0', None) or getattr(fYm, 'node0', None) or getattr(fZm, 'node0', None)
+            N["n1"] = getattr(fXp, 'node0', None) or getattr(fYm, 'node1', None) or getattr(fZm, 'node1', None)
+            N["n2"] = getattr(fXm, 'node1', None) or getattr(fYp, 'node0', None) or getattr(fZm, 'node2', None)
+            N["n3"] = getattr(fXp, 'node1', None) or getattr(fYp, 'node1', None) or getattr(fZm, 'node3', None)
+            N["n4"] = getattr(fXm, 'node2', None) or getattr(fYm, 'node2', None) or getattr(fZp, 'node0', None)
+            N["n5"] = getattr(fXp, 'node2', None) or getattr(fYm, 'node3', None) or getattr(fZp, 'node1', None)
+            N["n6"] = getattr(fXm, 'node3', None) or getattr(fYp, 'node2', None) or getattr(fZp, 'node2', None)
+            N["n7"] = getattr(fXp, 'node3', None) or getattr(fYp, 'node3', None) or getattr(fZp, 'node3', None)
+
+
+            fXm = fXm if isinstance(fXm, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]      , x0[2]      ], faceType='x', sz=np.r_[sz[1], sz[2]], depth=depth, parent=parent, node0=N["n0"], node1=N["n2"], node2=N["n4"], node3=N["n6"])
+            N["n0"], N["n2"], N["n4"], N["n6"] = fXm.node0, fXm.node1, fXm.node2, fXm.node3
+
+            fXp = fXp if isinstance(fXp, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]+sz[0], x0[1]      , x0[2]      ], faceType='x', sz=np.r_[sz[1], sz[2]], depth=depth, parent=parent, node0=N["n1"], node1=N["n3"], node2=N["n5"], node3=N["n7"])
+            N["n1"], N["n3"], N["n5"], N["n7"] = fXp.node0, fXp.node1, fXp.node2, fXp.node3
+
+            fYm = fYm if isinstance(fYm, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]      , x0[2]      ], faceType='y', sz=np.r_[sz[0], sz[2]], depth=depth, parent=parent, node0=N["n0"], node1=N["n1"], node2=N["n4"], node3=N["n5"])
+            N["n0"], N["n1"], N["n4"], N["n5"] = fYm.node0, fYm.node1, fYm.node2, fYm.node3
+
+            fYp = fYp if isinstance(fYp, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]+sz[1], x0[2]      ], faceType='y', sz=np.r_[sz[0], sz[2]], depth=depth, parent=parent, node0=N["n2"], node1=N["n3"], node2=N["n6"], node3=N["n7"])
+            N["n2"], N["n3"], N["n6"], N["n7"] = fYp.node0, fYp.node1, fYp.node2, fYp.node3
+
+            fZm = fZm if isinstance(fZm, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]      , x0[2]      ], faceType='z', sz=np.r_[sz[0], sz[1]], depth=depth, parent=parent, node0=N["n0"], node1=N["n1"], node2=N["n2"], node3=N["n3"])
+            N["n0"], N["n1"], N["n2"], N["n3"] = fZm.node0, fZm.node1, fZm.node2, fZm.node3
+
+            fZp = fZp if isinstance(fZp, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]      , x0[2]+sz[2]], faceType='z', sz=np.r_[sz[0], sz[1]], depth=depth, parent=parent, node0=N["n4"], node1=N["n5"], node2=N["n6"], node3=N["n7"])
+            N["n4"], N["n5"], N["n6"], N["n7"] = fZp.node0, fZp.node1, fZp.node2, fZp.node3
+
             self.faces = {"fXm":fXm, "fXp":fXp, "fYm":fYm, "fYp":fYp, "fZm":fZm, "fZp":fZp}
 
         mesh.cells.add(self)
