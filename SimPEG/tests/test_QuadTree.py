@@ -2,6 +2,35 @@ from SimPEG.Mesh.TreeMesh import TreeMesh, TreeFace, TreeCell
 import numpy as np
 import unittest
 
+class TestOcTreeObjects(unittest.TestCase):
+
+    def setUp(self):
+        self.M  = TreeMesh([2,1,1])
+        self.Mr = TreeMesh([2,1,1])
+        self.Mr.children[0,0,0].refine()
+        self.Mr.number()
+        # self.Mr.plotGrid(showIt=True,plotC=True,plotF=True)
+
+    def test_counts(self):
+        self.assertTrue(self.M.nC == 2)
+        self.assertTrue(self.M.nFx == 3)
+        self.assertTrue(self.M.nFy == 4)
+        self.assertTrue(self.M.nFz == 4)
+        self.assertTrue(self.M.nF == 11)
+        # self.assertTrue(self.M.nN == 12)
+
+        self.assertTrue(self.Mr.nC == 9)
+
+    def test_pointersM(self):
+        c0    = self.M.children[0,0,0]
+        c0fXm = c0.faces['fXm']
+        c0fXp = c0.faces['fXp']
+        c0fYm = c0.faces['fYm']
+        c0fYp = c0.faces['fYp']
+
+
+
+
 class TestQuadTreeObjects(unittest.TestCase):
 
     def setUp(self):

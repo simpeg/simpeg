@@ -1,5 +1,6 @@
 from SimPEG import np, sp, Utils, Solver
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.colors as colors
 import matplotlib.cm as cmx
 
@@ -8,9 +9,17 @@ import matplotlib.cm as cmx
 def SortByX0():
     eps = 1e-7
     def mycmp(c1,c2):
-        if np.abs(c1.x0[1] - c2.x0[1]) < eps:
-            return c1.x0[0] - c2.x0[0]
-        return c1.x0[1] - c2.x0[1]
+        if c1.x0.size == 2:
+            if np.abs(c1.x0[1] - c2.x0[1]) < eps:
+                return c1.x0[0] - c2.x0[0]
+            return c1.x0[1] - c2.x0[1]
+        elif c1.x0.size == 3:
+            if np.abs(c1.x0[2] - c2.x0[2]) < eps:
+                if np.abs(c1.x0[1] - c2.x0[1]) < eps:
+                    return c1.x0[0] - c2.x0[0]
+                return c1.x0[1] - c2.x0[1]
+            return c1.x0[2] - c2.x0[2]
+
     class K(object):
         def __init__(self, obj, *args):
             self.obj = obj
@@ -98,9 +107,11 @@ class TreeFace(TreeObject):
         elif faceType is 'y': mesh.facesY.add(self)
         elif faceType is 'z': mesh.facesZ.add(self)
         # Add the nodes:
-        if self.dim == 2:
-            self.node0 = node0 if isinstance(node0,TreeNode) else TreeNode(mesh, x0=self.x0)
-            self.node1 = node1 if isinstance(node1,TreeNode) else TreeNode(mesh, x0=self.x0 + self.tangent0*self.sz)
+        self.node0 = node0 if isinstance(node0,TreeNode) else TreeNode(mesh, x0=self.x0)
+        self.node1 = node1 if isinstance(node1,TreeNode) else TreeNode(mesh, x0=self.x0 + self.tangent0*self.sz[0])
+        if self.dim == 3:
+            self.node2 = node2 if isinstance(node1,TreeNode) else TreeNode(mesh, x0=self.x0 + self.tangent1*self.sz[1])
+            self.node3 = node3 if isinstance(node1,TreeNode) else TreeNode(mesh, x0=self.x0 + self.tangent0*self.sz[0] + self.tangent1*self.sz[1])
 
     @property
     def tangent0(self):
@@ -124,7 +135,6 @@ class TreeFace(TreeObject):
         elif self.faceType is 'z': n = np.r_[0,0,1.]
         return n[:self.dim]
 
-
     @property
     def index(self):
         if not self.mesh.isNumbered: raise Exception('Mesh is not numbered.')
@@ -139,7 +149,12 @@ class TreeFace(TreeObject):
     def refine(self):
         if not self.isleaf: return
         self.mesh.isNumbered = False
+        if self.dim == 2:
+            self._refine2D()
+        elif self.dim == 3:
+            self._refine3D()
 
+    def _refine2D(self):
         self.children = np.empty(2,dtype=TreeFace)
         # Create refined x0's
         x0r_0 = self.x0
@@ -152,14 +167,43 @@ class TreeFace(TreeObject):
         elif self.faceType is 'y':
             self.mesh.facesY.remove(self)
 
+    def _refine3D(self):
+        self.children = np.empty((2,2),dtype=TreeFace)
+        # Create refined x0's
+        x0r_0 = self.x0
+        x0r_1 = self.x0+0.5*self.tangent0*self.sz[0]
+        x0r_2 = self.x0+0.5*self.tangent1*self.sz[1]
+        x0r_3 = self.x0+0.5*self.tangent0*self.sz[0]+0.5*self.tangent1*self.sz[1]
+        # TODO: Set nodes
+        self.children[0,0] = TreeFace(self.mesh, x0=x0r_0, faceType=self.faceType, sz=0.5*self.sz, depth=self.depth+1, parent=self)
+        self.children[1,0] = TreeFace(self.mesh, x0=x0r_1, faceType=self.faceType, sz=0.5*self.sz, depth=self.depth+1, parent=self)
+        self.children[0,1] = TreeFace(self.mesh, x0=x0r_2, faceType=self.faceType, sz=0.5*self.sz, depth=self.depth+1, parent=self)
+        self.children[1,1] = TreeFace(self.mesh, x0=x0r_3, faceType=self.faceType, sz=0.5*self.sz, depth=self.depth+1, parent=self)
+        self.mesh.faces.remove(self)
+        if self.faceType is 'x':
+            self.mesh.facesX.remove(self)
+        elif self.faceType is 'y':
+            self.mesh.facesY.remove(self)
+        elif self.faceType is 'z':
+            self.mesh.facesZ.remove(self)
+
     def plotGrid(self, ax, text=True):
         if not self.isleaf: return
-        ax.plot(np.r_[self.x0[0],self.x0[0]+self.tangent0[0]*self.sz], np.r_[self.x0[1], self.x0[1]+self.tangent0[1]*self.sz],'r-')
-        if text: ax.text(self.x0[0]+0.5*self.tangent0[0]*self.sz, self.x0[1]+0.5*self.tangent0[1]*self.sz,self.num)
+        if self.dim == 2:
+            line = np.c_[self.node0.x0, self.node1.x0].T
+            ax.plot(line[:,0], line[:,1],'r-')
+            if text: ax.text(self.center[0], self.center[1],self.num)
+        elif self.dim == 3:
+            line = np.c_[self.node0.x0, self.node1.x0, self.node3.x0, self.node2.x0, self.node0.x0].T
+            ax.plot(line[:,0], line[:,1],'r-', zs=line[:,2])
+            if text: ax.text(self.center[0], self.center[1], self.center[2], self.num)
 
     @property
     def center(self):
-        return self.x0 + 0.5*self.tangent0*self.sz
+        if self.dim == 2:
+            return self.x0 + 0.5*self.tangent0*self.sz[0]
+        elif self.dim == 3:
+            return self.x0 + 0.5*self.tangent0*self.sz[0] + 0.5*self.tangent1*self.sz[1]
 
 
 class TreeCell(TreeObject):
@@ -208,6 +252,32 @@ class TreeCell(TreeObject):
             self.nodes = N
 
         elif self.dim == 3:
+            #                      fZp
+            #                       |
+            #                 6 --------------- 7
+            #                /|     |         / |
+            #               / |     .        /  |
+            #              /  |        fYp  /   |
+            #             /   |            / fXp|
+            #            4 -------------- 5     |
+            #            |fXm 2 ----------|---- 3          z
+            #            |   /            |   /            ^   y
+            #            |  /  fYm  .     |  /             |  /
+            #            | /        |     | /              | /
+            #            0 -------------- 1                o----> x
+            #                       |
+            #                      fZm
+            #
+            N = {}
+            N["n0"] = None #getattr(fXm, 'node0', None) or getattr(fYm, 'node0', None) or getattr(fZm, 'node0', None)
+            N["n1"] = None #getattr(fXp, 'node0', None) or getattr(fYm, 'node1', None) or getattr(fZm, 'node1', None)
+            N["n2"] = None #getattr(fXm, 'node1', None) or getattr(fYp, 'node0', None) or getattr(fZp, 'node0', None)
+            N["n3"] = None #getattr(fXp, 'node1', None) or getattr(fYp, 'node1', None) or getattr(fZp, 'node1', None)
+            N["n4"] = None #getattr(fXp, 'node1', None) or getattr(fYp, 'node1', None) or getattr(fZp, 'node1', None)
+            N["n5"] = None #getattr(fXp, 'node1', None) or getattr(fYp, 'node1', None) or getattr(fZp, 'node1', None)
+            N["n6"] = None #getattr(fXp, 'node1', None) or getattr(fYp, 'node1', None) or getattr(fZp, 'node1', None)
+            N["n7"] = None #getattr(fXp, 'node1', None) or getattr(fYp, 'node1', None) or getattr(fZp, 'node1', None)
+
             fXm = fXm if isinstance(fXm, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]      , x0[2]      ], faceType='x', sz=np.r_[sz[1], sz[2]], depth=depth, parent=parent)
             fXp = fXp if isinstance(fXp, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]+sz[0], x0[1]      , x0[2]      ], faceType='x', sz=np.r_[sz[1], sz[2]], depth=depth, parent=parent)
             fYm = fYm if isinstance(fYm, TreeFace) else TreeFace(mesh, x0=np.r_[x0[0]      , x0[1]      , x0[2]      ], faceType='y', sz=np.r_[sz[0], sz[2]], depth=depth, parent=parent)
@@ -237,6 +307,8 @@ class TreeCell(TreeObject):
 
         if self.dim == 2:
             return self._refine2D()
+        elif self.dim == 3:
+            return self._refine3D()
 
         # pass the refine function to the children
         if function is not None:
@@ -275,6 +347,60 @@ class TreeCell(TreeObject):
 
         self.mesh.cells.remove(self)
 
+
+    def _refine3D(self):
+
+        self.mesh.isNumbered = False
+
+        self.children = np.empty((2,2,2),dtype=TreeCell)
+        x0, sz = self.x0, self.sz
+
+        for faceName in self.faces:
+            self.faces[faceName].refine()
+
+        i, j, k = 0, 0, 0
+        x0r = np.r_[x0[0] + 0.5*i*sz[0], x0[1] + 0.5*j*sz[1], x0[2] + 0.5*k*sz[2]]
+        fXm, fXp, fYm, fYp, fZm, fZp =  None, None, None, None, None, None
+        self.children[i,j,k] = TreeCell(self.mesh, x0=x0r, depth=self.depth+1, sz=0.5*sz, parent=self, fXm=fXm, fXp=fXp, fYm=fYm, fYp=fYp, fZm=fZm, fZp=fZp)
+
+        i, j, k = 1, 0, 0
+        x0r = np.r_[x0[0] + 0.5*i*sz[0], x0[1] + 0.5*j*sz[1], x0[2] + 0.5*k*sz[2]]
+        fXm, fXp, fYm, fYp, fZm, fZp =  None, None, None, None, None, None
+        self.children[i,j,k] = TreeCell(self.mesh, x0=x0r, depth=self.depth+1, sz=0.5*sz, parent=self, fXm=fXm, fXp=fXp, fYm=fYm, fYp=fYp, fZm=fZm, fZp=fZp)
+
+        i, j, k = 0, 1, 0
+        x0r = np.r_[x0[0] + 0.5*i*sz[0], x0[1] + 0.5*j*sz[1], x0[2] + 0.5*k*sz[2]]
+        fXm, fXp, fYm, fYp, fZm, fZp =  None, None, None, None, None, None
+        self.children[i,j,k] = TreeCell(self.mesh, x0=x0r, depth=self.depth+1, sz=0.5*sz, parent=self, fXm=fXm, fXp=fXp, fYm=fYm, fYp=fYp, fZm=fZm, fZp=fZp)
+
+        i, j, k = 1, 1, 0
+        x0r = np.r_[x0[0] + 0.5*i*sz[0], x0[1] + 0.5*j*sz[1], x0[2] + 0.5*k*sz[2]]
+        fXm, fXp, fYm, fYp, fZm, fZp =  None, None, None, None, None, None
+        self.children[i,j,k] = TreeCell(self.mesh, x0=x0r, depth=self.depth+1, sz=0.5*sz, parent=self, fXm=fXm, fXp=fXp, fYm=fYm, fYp=fYp, fZm=fZm, fZp=fZp)
+
+        # Upper layer
+        i, j, k = 0, 0, 1
+        x0r = np.r_[x0[0] + 0.5*i*sz[0], x0[1] + 0.5*j*sz[1], x0[2] + 0.5*k*sz[2]]
+        fXm, fXp, fYm, fYp, fZm, fZp =  None, None, None, None, None, None
+        self.children[i,j,k] = TreeCell(self.mesh, x0=x0r, depth=self.depth+1, sz=0.5*sz, parent=self, fXm=fXm, fXp=fXp, fYm=fYm, fYp=fYp, fZm=fZm, fZp=fZp)
+
+        i, j, k = 1, 0, 1
+        x0r = np.r_[x0[0] + 0.5*i*sz[0], x0[1] + 0.5*j*sz[1], x0[2] + 0.5*k*sz[2]]
+        fXm, fXp, fYm, fYp, fZm, fZp =  None, None, None, None, None, None
+        self.children[i,j,k] = TreeCell(self.mesh, x0=x0r, depth=self.depth+1, sz=0.5*sz, parent=self, fXm=fXm, fXp=fXp, fYm=fYm, fYp=fYp, fZm=fZm, fZp=fZp)
+
+        i, j, k = 0, 1, 1
+        x0r = np.r_[x0[0] + 0.5*i*sz[0], x0[1] + 0.5*j*sz[1], x0[2] + 0.5*k*sz[2]]
+        fXm, fXp, fYm, fYp, fZm, fZp =  None, None, None, None, None, None
+        self.children[i,j,k] = TreeCell(self.mesh, x0=x0r, depth=self.depth+1, sz=0.5*sz, parent=self, fXm=fXm, fXp=fXp, fYm=fYm, fYp=fYp, fZm=fZm, fZp=fZp)
+
+        i, j, k = 1, 1, 1
+        x0r = np.r_[x0[0] + 0.5*i*sz[0], x0[1] + 0.5*j*sz[1], x0[2] + 0.5*k*sz[2]]
+        fXm, fXp, fYm, fYp, fZm, fZp =  None, None, None, None, None, None
+        self.children[i,j,k] = TreeCell(self.mesh, x0=x0r, depth=self.depth+1, sz=0.5*sz, parent=self, fXm=fXm, fXp=fXp, fYm=fYm, fYp=fYp, fZm=fZm, fZp=fZp)
+
+        self.mesh.cells.remove(self)
+
     @property
     def faceIndex(self):
         #TODO: preallocate
@@ -300,9 +426,12 @@ class TreeCell(TreeObject):
 
     def plotGrid(self, ax, text=False):
         if not self.isleaf: return
-        ax.plot(self.center[0],self.center[1],'b.')
-        if text: ax.text(self.center[0],self.center[1],self.num)
-
+        if self.dim == 2:
+            ax.plot(self.center[0],self.center[1],'b.')
+            if text: ax.text(self.center[0],self.center[1],self.num)
+        elif self.dim == 3:
+            ax.plot([self.center[0]],[self.center[1]],'b.', zs=[self.center[2]])
+            if text: ax.text(self.center[0], self.center[1], self.center[2], self.num)
 
 
 class TreeMesh(object):
@@ -323,29 +452,45 @@ class TreeMesh(object):
             x0 = np.zeros(self.dim)
         else:
             assert type(x0) in [list, np.ndarray], 'x0 must be a numpy array or a list'
+            x0 = np.array(x0, dtype=float)
             assert len(x0) == self.dim, 'x0 must have the same dimensions as the mesh'
-        self.x0 = np.array(x0, dtype=float)
+        self.x0 = x0
 
-        # set the sets for holding the faces and cells
-        self.cells = set()
-        self.nodes = set()
-        self.faces = set()
+        # set the sets for holding the cells, nodes, faces, and edges
+        self.cells  = set()
+        self.nodes  = set()
+        self.faces  = set()
         self.facesX = set()
         self.facesY = set()
-        if self.dim == 3: self.facesZ = set()
-        self.edges = set()
-        self.edgesX = set()
-        self.edgesY = set()
-        if self.dim == 3: self.edgesZ = set()
+        if self.dim == 3:
+            self.facesZ = set()
+            self.edges  = set()
+            self.edgesX = set()
+            self.edgesY = set()
+            self.edgesZ = set()
 
         self.children = np.empty([hi.size for hi in h],dtype=TreeCell)
-        for i in range(h[0].size):
-            for j in range(h[1].size):
-                fXm = None if i is 0 else self.children[i-1][j].faces['fXp']
-                fYm = None if j is 0 else self.children[i][j-1].faces['fYp']
-                x0i = (np.r_[x0[0], h[0][:i]]).sum()
-                x0j = (np.r_[x0[1], h[1][:j]]).sum()
-                self.children[i][j] = TreeCell(self, x0=[x0i, x0j], depth=0, sz=[h[0][i], h[1][j]], fXm=fXm, fYm=fYm)
+
+        if self.dim == 2:
+            for i in range(h[0].size):
+                for j in range(h[1].size):
+                    fXm = None if i is 0 else self.children[i-1][j].faces['fXp']
+                    fYm = None if j is 0 else self.children[i][j-1].faces['fYp']
+                    x0i = (np.r_[x0[0], h[0][:i]]).sum()
+                    x0j = (np.r_[x0[1], h[1][:j]]).sum()
+                    self.children[i][j] = TreeCell(self, x0=[x0i, x0j], depth=0, sz=[h[0][i], h[1][j]], fXm=fXm, fYm=fYm)
+
+        elif self.dim == 3:
+            for i in range(h[0].size):
+                for j in range(h[1].size):
+                    for k in range(h[2].size):
+                        fXm = None if i is 0 else self.children[i-1][j][k].faces['fXp']
+                        fYm = None if j is 0 else self.children[i][j-1][k].faces['fYp']
+                        fZm = None if k is 0 else self.children[i][j][k-1].faces['fZp']
+                        x0i = (np.r_[x0[0], h[0][:i]]).sum()
+                        x0j = (np.r_[x0[1], h[1][:j]]).sum()
+                        x0k = (np.r_[x0[2], h[2][:k]]).sum()
+                        self.children[i][j] = TreeCell(self, x0=[x0i, x0j, x0k], depth=0, sz=[h[0][i], h[1][j], h[2][k]], fXm=fXm, fYm=fYm, fZm=fZm)
 
     isNumbered = Utils.dependentProperty('_isNumbered', False, ['_faceDiv'], 'Setting this to False will delete all operators.')
 
@@ -361,20 +506,29 @@ class TreeMesh(object):
         if self.isNumbered: return
 
         self.sortedCells = sorted(self.cells,key=SortByX0())
-        for i, sc in enumerate(self.sortedCells): sc.num = i
+        for i, sC in enumerate(self.sortedCells): sC.num = i
 
         self.sortedNodes = sorted(self.nodes,key=SortByX0())
-        for i, sn in enumerate(self.sortedNodes): sn.num = i
+        for i, sN in enumerate(self.sortedNodes): sN.num = i
 
         self.sortedFaceX = sorted(self.facesX,key=SortByX0())
-        for i, sfx in enumerate(self.sortedFaceX): sfx.num = i
+        for i, sFx in enumerate(self.sortedFaceX): sFx.num = i
 
         self.sortedFaceY = sorted(self.facesY,key=SortByX0())
-        for i, sfy in enumerate(self.sortedFaceY): sfy.num = i + self.nFx
+        for i, sFy in enumerate(self.sortedFaceY): sFy.num = i + self.nFx
 
         if self.dim == 3:
             self.sortedFaceZ = sorted(self.facesZ,key=SortByX0())
-            for i, sfz in enumerate(self.sortedFaceZ): sfz.num = i + self.nFx + self.nFy
+            for i, sFz in enumerate(self.sortedFaceZ): sFz.num = i + self.nFx + self.nFy
+
+            self.sortedEdgeX = sorted(self.edgesX,key=SortByX0())
+            for i, sEx in enumerate(self.sortedEdgeX): sEx.num = i
+
+            self.sortedEdgeY = sorted(self.edgesY,key=SortByX0())
+            for i, sEy in enumerate(self.sortedEdgeY): sEy.num = i + self.nEx
+
+            self.sortedEdgeZ = sorted(self.edgesZ,key=SortByX0())
+            for i, sEz in enumerate(self.sortedEdgeZ): sEz.num = i + self.nEx + self.nEy
 
         self.isNumbered = True
 
@@ -501,12 +655,16 @@ class TreeMesh(object):
         return self._faceDiv
 
     def plotGrid(self, ax=None, text=True, plotC=True, plotF=True, showIt=False):
-        if ax is None: ax = plt.subplot(111)
+        axOpts = {'projection':'3d'} if self.dim == 3 else {}
+        if ax is None: ax = plt.subplot(111, **axOpts)
 
-        if plotC: [node.plotGrid(ax, text=text) for node in self.cells]
-        if plotF: [node.plotGrid(ax, text=text) for node in self.faces]
+        if plotC: [c.plotGrid(ax, text=text) for c in self.cells]
+        if plotF: [f.plotGrid(ax, text=text) for f in self.faces]
+
         ax.set_xlim((self.x0[0], self.h[0].sum()))
         ax.set_ylim((self.x0[1], self.h[1].sum()))
+        if self.dim == 3:
+            ax.set_zlim((self.x0[2], self.h[2].sum()))
         if showIt: plt.show()
 
     def plotImage(self, I, ax=None, showIt=True):
