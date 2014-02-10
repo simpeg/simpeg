@@ -60,9 +60,6 @@ class TreeObject(object):
     def isleaf(self): return self.children is None
 
     @property
-    def center(self): return self.x0
-
-    @property
     def branchdepth(self):
         if self.isleaf:
             return self.depth
@@ -77,6 +74,8 @@ class TreeNode(TreeObject):
         self.x0 = np.array(x0, dtype=float)
         self.mesh.nodes.add(self)
 
+    @property
+    def center(self): return self.x0
 
 class TreeEdge(TreeObject):
     """docstring for TreeEdge"""
@@ -126,6 +125,9 @@ class TreeEdge(TreeObject):
         line = np.c_[self.node0.x0, self.node1.x0].T
         ax.plot(line[:,0], line[:,1], zs=line[:,2], **lineOpts)
 
+    @property
+    def center(self):
+        return 0.5*(self.node0.x0 + self.node1.x0)
 
 class TreeFace(TreeObject):
     """docstring for TreeFace"""
@@ -757,66 +759,72 @@ class TreeMesh(object):
     @property
     def nEz(self): return None if self.dim < 3 else len(self.edgesZ)
 
+    def _grid(self, key):
+        self.number()
+        sObjs = {'CC':self.sortedCells,
+                 'N':self.sortedNodes,
+                 'Fx': self.sortedFaceX,
+                 'Fy': self.sortedFaceY,
+                 'Fz': getattr(self,'sortedFaceZ', None),
+                 'Ex': getattr(self,'sortedEdgeX', self.sortedFaceY),
+                 'Ey': getattr(self,'sortedEdgeY', self.sortedFaceX),
+                 'Ez': getattr(self,'sortedEdgeZ', None)}[key]
+        G = np.empty((len(sObjs),self.dim))
+        for ii, obj in enumerate(sObjs):
+            G[ii,:] = obj.center
+        return G
+
     @property
     def gridCC(self):
         if getattr(self, '_gridCC', None) is None:
-            self.number()
-            self._gridCC = np.empty((self.nC,self.dim))
-            for ii, cell in enumerate(self.sortedCells):
-                self._gridCC[ii,:] = cell.center
+            self._gridCC = self._grid('CC')
         return self._gridCC
 
     @property
     def gridN(self):
         if getattr(self, '_gridN', None) is None:
-            self.number()
-            self._gridN = np.empty((self.nN,self.dim))
-            for ii, node in enumerate(self.sortedNodes):
-                self._gridN[ii,:] = node.center
+            self._gridN = self._grid('N')
         return self._gridN
 
     @property
     def gridFx(self):
         if getattr(self, '_gridFx', None) is None:
-            self.number()
-            self._gridFx = np.empty((self.nFx,self.dim))
-            for ii, face in enumerate(self.sortedFaceX):
-                self._gridFx[ii,:] = face.center
+            self._gridFx = self._grid('Fx')
         return self._gridFx
 
     @property
     def gridFy(self):
         if getattr(self, '_gridFy', None) is None:
-            self.number()
-            self._gridFy = np.empty((self.nFy,self.dim))
-            for ii, face in enumerate(self.sortedFaceY):
-                self._gridFy[ii,:] = face.center
+            self._gridFy = self._grid('Fy')
         return self._gridFy
 
     @property
     def gridFz(self):
         if self.dim == 2: return None
         if getattr(self, '_gridFz', None) is None:
-            self.number()
-            self._gridFz = np.emptz((self.nFz,self.dim))
-            for ii, face in enumerate(self.sortedFaceZ):
-                self._gridFz[ii,:] = face.center
+            self._gridFz = self._grid('Fz')
         return self._gridFz
 
     @property
     def gridEx(self):
         if self.dim == 2: return self.gridFy
-        else: raise NotImplementedError('Edge Grid not yet implemented')
+        if getattr(self, '_gridEx', None) is None:
+            self._gridEx = self._grid('Ex')
+        return self._gridEx
 
     @property
     def gridEy(self):
         if self.dim == 2: return self.gridFx
-        else: raise NotImplementedError('Edge Grid not yet implemented')
+        if getattr(self, '_gridEy', None) is None:
+            self._gridEy = self._grid('Ey')
+        return self._gridEy
 
     @property
     def gridEz(self):
         if self.dim == 2: return None
-        else: raise NotImplementedError('Edge Grid not yet implemented')
+        if getattr(self, '_gridEz', None) is None:
+            self._gridEz = self._grid('Ez')
+        return self._gridEz
 
     @property
     def vol(self):

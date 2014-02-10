@@ -36,7 +36,7 @@ class TestOcTreeObjects(unittest.TestCase):
             for e in cell.edges:
                 self.assertTrue(cell.edges[e].edgeType==e[1].lower())
 
-        # print self.Mr.nEx
+        print self.Mr.nEx
         # self.assertTrue(self.Mr.nN == 22)
         # self.assertTrue(self.Mr.nEx == 22)
 
@@ -192,8 +192,7 @@ class TestOcTreeObjects(unittest.TestCase):
         x = np.r_[0.0,0.25,0.5,1.0,0.0,0.25,0.5,0.0,0.25,0.5,0.0,0.25,0.5]
         y = np.r_[0.25,0.25,0.25,0.5,0.75,0.75,0.75,0.25,0.25,0.25,0.75,0.75,0.75]
         z = np.r_[0.25,0.25,0.25,0.5,0.25,0.25,0.25,0.75,0.75,0.75,0.75,0.75,0.75]
-        # print self.Mr.gridFx - np.c_[x,y,z]
-        # self.assertTrue(np.linalg.norm((np.c_[x,y,z]-self.Mr.gridFx).flatten()) == 0)
+        self.assertTrue(np.linalg.norm((np.c_[x,y,z]-self.Mr.gridFx).flatten()) == 0)
 
 
 
