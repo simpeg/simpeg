@@ -175,11 +175,26 @@ class TreeFace(TreeObject):
         x0r_2 = self.x0+0.5*self.tangent1*self.sz[1]
         x0r_3 = self.x0+0.5*self.tangent0*self.sz[0]+0.5*self.tangent1*self.sz[1]
 
-        # TODO: Set nodes
-        self.children[0,0] = TreeFace(self.mesh, x0=x0r_0, faceType=self.faceType, sz=0.5*self.sz, depth=self.depth+1, parent=self)
-        self.children[1,0] = TreeFace(self.mesh, x0=x0r_1, faceType=self.faceType, sz=0.5*self.sz, depth=self.depth+1, parent=self)
-        self.children[0,1] = TreeFace(self.mesh, x0=x0r_2, faceType=self.faceType, sz=0.5*self.sz, depth=self.depth+1, parent=self)
-        self.children[1,1] = TreeFace(self.mesh, x0=x0r_3, faceType=self.faceType, sz=0.5*self.sz, depth=self.depth+1, parent=self)
+        #
+        #      2_______________3                    _______________
+        #      |               |                   |       |       |
+        #   ^  |               |                   | (1,0) | (1,1) |
+        #   |  |               |                   |       |       |
+        #   |  |       x       |        --->       |-------+-------|
+        #   t1 |               |                   |       |       |
+        #      |               |                   | (0,0) | (0,1) |
+        #      |_______________|                   |_______|_______|
+        #      0      t0-->    1
+
+        c00 = TreeFace(self.mesh, x0=x0r_0, faceType=self.faceType, sz=0.5*self.sz, depth=self.depth+1, parent=self, node0=self.node0)
+        c10 = TreeFace(self.mesh, x0=x0r_1, faceType=self.faceType, sz=0.5*self.sz, depth=self.depth+1, parent=self, node0=c00.node2, node1=c00.node3, node2=self.node2)
+        c01 = TreeFace(self.mesh, x0=x0r_2, faceType=self.faceType, sz=0.5*self.sz, depth=self.depth+1, parent=self, node0=c00.node1, node1=self.node1, node2=c00.node3)
+        c11 = TreeFace(self.mesh, x0=x0r_3, faceType=self.faceType, sz=0.5*self.sz, depth=self.depth+1, parent=self, node0=c00.node3, node1=c01.node3, node2=c10.node3, node3=self.node3)
+
+        C = np.empty((2,2), dtype=TreeFace)
+        C[0,0], C[1,0], C[0,1], C[1,1] = c00, c10, c01, c11
+        self.children = C
+
         self.mesh.faces.remove(self)
         if self.faceType is 'x':
             self.mesh.facesX.remove(self)
@@ -279,7 +294,7 @@ class TreeCell(TreeObject):
             #      |___________|         |___> y       |___________|         |___> x      |___________|         |___> x
             #      0    eYm    1                       0    eXm    1                      0    eXm    1
             #
-            #  Mappings: numOnFace > numOnCell
+            #  Mapping Nodes: numOnFace > numOnCell
             #
             #  fXm 0>0, 1>2, 2>4, 3>6              fYm 0>0, 1>1, 2>4, 3>5             fZm 0>0, 1>1, 2>2, 3>3
             #  fXp 0>1, 1>3, 2>5, 3>7              fYp 0>2, 1>3, 2>6, 3>7             fZp 0>4, 1>5, 2>6, 3>7
@@ -378,10 +393,34 @@ class TreeCell(TreeObject):
 
 
     def _refine3D(self):
+        #                      .----------------.----------------.
+        #                     /|               /|               /|
+        #                    / |              / |              / |
+        #                   /  |     011     /  |    111      /  |
+        #                  /   |            /   |            /   |
+        #                 .----------------.----+-----------.    |
+        #                /|    . ---------/|----.----------/|----.
+        #               / |   /          / |   /          / |   /|
+        #              /  |  /          /  |  /          /  |  / |
+        #             /   | /          /   | /          /   | /  |
+        #            . -------------- .----------------.    |/   |
+        #            |    . ----------|----.-----------|----. 110|
+        #            |   /|   001     |   /|     101   |   /|    .
+        #            |  / |           |  / |           |  / |   /
+        #            | /  |           | /  |           | /  |  /
+        #            . ---+---------- . ---+---------- .    | /
+        #            |    |           |    |           |    |/             z
+        #            |    . ----------|----.-----------|----.              ^   y
+        #            |   /    000     |   /     100    |   /               |  /
+        #            |  /             |  /             |  /                | /
+        #            | /              | /              | /                 o----> x
+        #            . -------------- . -------------- .
+        #
+        #
 
         self.mesh.isNumbered = False
 
-        self.children = np.empty((2,2,2),dtype=TreeCell)
+        self.children = np.empty((2,2,2), dtype=TreeCell)
         x0, sz = self.x0, self.sz
 
         for faceName in self.faces:
