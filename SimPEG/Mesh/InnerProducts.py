@@ -121,6 +121,32 @@ class InnerProducts(object):
 #         |                                     |/
 #    node(i+1,j,k) ------ edge2(i+1,j,k) ----- node(i+1,j+1,k)
 
+def _makeTensor(M, sigma):
+    if sigma is None:  # default is ones
+        sigma = np.ones((M.nC, 1))
+
+    if M.dim == 2:
+        if sigma.size == M.nC:  # Isotropic!
+            sigma = mkvc(sigma)  # ensure it is a vector.
+            Sigma = sdiag(np.r_[sigma, sigma])
+        elif sigma.shape[1] == 2:  # Diagonal tensor
+            Sigma = sdiag(np.r_[sigma[:, 0], sigma[:, 1]])
+        elif sigma.shape[1] == 3:  # Fully anisotropic
+            row1 = sp.hstack((sdiag(sigma[:, 0]), sdiag(sigma[:, 2])))
+            row2 = sp.hstack((sdiag(sigma[:, 2]), sdiag(sigma[:, 1])))
+            Sigma = sp.vstack((row1, row2))
+    elif M.dim == 3:
+        if sigma.size == M.nC:  # Isotropic!
+            sigma = mkvc(sigma)  # ensure it is a vector.
+            Sigma = sdiag(np.r_[sigma, sigma, sigma])
+        elif sigma.shape[1] == 3:  # Diagonal tensor
+            Sigma = sdiag(np.r_[sigma[:, 0], sigma[:, 1], sigma[:, 2]])
+        elif sigma.shape[1] == 6:  # Fully anisotropic
+            row1 = sp.hstack((sdiag(sigma[:, 0]), sdiag(sigma[:, 3]), sdiag(sigma[:, 4])))
+            row2 = sp.hstack((sdiag(sigma[:, 3]), sdiag(sigma[:, 1]), sdiag(sigma[:, 5])))
+            row3 = sp.hstack((sdiag(sigma[:, 4]), sdiag(sigma[:, 5]), sdiag(sigma[:, 2])))
+            Sigma = sp.vstack((row1, row2, row3))
+    return Sigma
 
 def _getFacePxx(M):
     if M._meshType == 'TREE':
@@ -382,10 +408,6 @@ def getFaceInnerProduct(M, mu=None, returnP=False):
         Note that this is completed for each cell in the mesh at the same time.
 
     """
-
-    if mu is None:  # default is ones
-        mu = np.ones((M.nC, 1))
-
     # Square root of cell volume multiplied by 1/8
     v = np.sqrt(0.125*M.vol)
     V3 = sdiag(np.r_[v, v, v])  # We will multiply on each side to keep symmetry
@@ -400,17 +422,7 @@ def getFaceInnerProduct(M, mu=None, returnP=False):
     P011 = V3*Pxxx('fXm', 'fYp', 'fZp')
     P111 = V3*Pxxx('fXp', 'fYp', 'fZp')
 
-    if mu.size == M.nC:  # Isotropic!
-        mu = mkvc(mu)  # ensure it is a vector.
-        Mu = sdiag(np.r_[mu, mu, mu])
-    elif mu.shape[1] == 3:  # Diagonal tensor
-        Mu = sdiag(np.r_[mu[:, 0], mu[:, 1], mu[:, 2]])
-    elif mu.shape[1] == 6:  # Fully anisotropic
-        row1 = sp.hstack((sdiag(mu[:, 0]), sdiag(mu[:, 3]), sdiag(mu[:, 4])))
-        row2 = sp.hstack((sdiag(mu[:, 3]), sdiag(mu[:, 1]), sdiag(mu[:, 5])))
-        row3 = sp.hstack((sdiag(mu[:, 4]), sdiag(mu[:, 5]), sdiag(mu[:, 2])))
-        Mu = sp.vstack((row1, row2, row3))
-
+    Mu = _makeTensor(M, mu)
     A = P000.T*Mu*P000 + P001.T*Mu*P001 + P010.T*Mu*P010 + P011.T*Mu*P011 + P100.T*Mu*P100 + P101.T*Mu*P101 + P110.T*Mu*P110 + P111.T*Mu*P111
     P = [P000, P001, P010, P011, P100, P101, P110, P111]
     if returnP:
@@ -455,10 +467,6 @@ def getFaceInnerProduct2D(M, mu=None, returnP=False):
         Note that this is completed for each cell in the mesh at the same time.
 
     """
-
-    if mu is None:  # default is ones
-        mu = np.ones((M.nC, 1))
-
     # Square root of cell volume multiplied by 1/4
     v = np.sqrt(0.25*M.vol)
     V2 = sdiag(np.r_[v, v])  # We will multiply on each side to keep symmetry
@@ -469,16 +477,7 @@ def getFaceInnerProduct2D(M, mu=None, returnP=False):
     P01 = V2*Pxx('fXm', 'fYp')
     P11 = V2*Pxx('fXp', 'fYp')
 
-    if mu.size == M.nC:  # Isotropic!
-        mu = mkvc(mu)  # ensure it is a vector.
-        Mu = sdiag(np.r_[mu, mu])
-    elif mu.shape[1] == 2:  # Diagonal tensor
-        Mu = sdiag(np.r_[mu[:, 0], mu[:, 1]])
-    elif mu.shape[1] == 3:  # Fully anisotropic
-        row1 = sp.hstack((sdiag(mu[:, 0]), sdiag(mu[:, 2])))
-        row2 = sp.hstack((sdiag(mu[:, 2]), sdiag(mu[:, 1])))
-        Mu = sp.vstack((row1, row2))
-
+    Mu = _makeTensor(M, mu)
     A = P00.T*Mu*P00 + P10.T*Mu*P10 + P01.T*Mu*P01 + P11.T*Mu*P11
     P = [P00, P10, P01, P11]
     if returnP:
@@ -523,10 +522,6 @@ def getEdgeInnerProduct(M, sigma=None, returnP=False):
 
         Note that this is completed for each cell in the mesh at the same time.
     """
-
-    if sigma is None:  # default is ones
-        sigma = np.ones((M.nC, 1))
-
     # Square root of cell volume multiplied by 1/8
     v = np.sqrt(0.125*M.vol)
     V3 = sdiag(np.r_[v, v, v])  # We will multiply on each side to keep symmetry
@@ -541,17 +536,7 @@ def getEdgeInnerProduct(M, sigma=None, returnP=False):
     P011 = V3*Pxxx('eX3', 'eY2', 'eZ2')
     P111 = V3*Pxxx('eX3', 'eY3', 'eZ3')
 
-    if sigma.size == M.nC:  # Isotropic!
-        sigma = mkvc(sigma)  # ensure it is a vector.
-        Sigma = sdiag(np.r_[sigma, sigma, sigma])
-    elif sigma.shape[1] == 3:  # Diagonal tensor
-        Sigma = sdiag(np.r_[sigma[:, 0], sigma[:, 1], sigma[:, 2]])
-    elif sigma.shape[1] == 6:  # Fully anisotropic
-        row1 = sp.hstack((sdiag(sigma[:, 0]), sdiag(sigma[:, 3]), sdiag(sigma[:, 4])))
-        row2 = sp.hstack((sdiag(sigma[:, 3]), sdiag(sigma[:, 1]), sdiag(sigma[:, 5])))
-        row3 = sp.hstack((sdiag(sigma[:, 4]), sdiag(sigma[:, 5]), sdiag(sigma[:, 2])))
-        Sigma = sp.vstack((row1, row2, row3))
-
+    Sigma = _makeTensor(M, sigma)
     A = P000.T*Sigma*P000 + P001.T*Sigma*P001 + P010.T*Sigma*P010 + P011.T*Sigma*P011 + P100.T*Sigma*P100 + P101.T*Sigma*P101 + P110.T*Sigma*P110 + P111.T*Sigma*P111
     P = [P000, P001, P010, P011, P100, P101, P110, P111]
     if returnP:
@@ -597,10 +582,6 @@ def getEdgeInnerProduct2D(M, sigma=None, returnP=False):
         Note that this is completed for each cell in the mesh at the same time.
 
     """
-
-    if sigma is None:  # default is ones
-        sigma = np.ones((M.nC, 1))
-
     # Square root of cell volume multiplied by 1/4
     v = np.sqrt(0.25*M.vol)
     V2 = sdiag(np.r_[v, v])  # We will multiply on each side to keep symmetry
@@ -611,16 +592,7 @@ def getEdgeInnerProduct2D(M, sigma=None, returnP=False):
     P01 = V2*Pxx('eX1', 'eY0')
     P11 = V2*Pxx('eX1', 'eY1')
 
-    if sigma.size == M.nC:  # Isotropic!
-        sigma = mkvc(sigma)  # ensure it is a vector.
-        Sigma = sdiag(np.r_[sigma, sigma])
-    elif sigma.shape[1] == 2:  # Diagonal tensor
-        Sigma = sdiag(np.r_[sigma[:, 0], sigma[:, 1]])
-    elif sigma.shape[1] == 3:  # Fully anisotropic
-        row1 = sp.hstack((sdiag(sigma[:, 0]), sdiag(sigma[:, 2])))
-        row2 = sp.hstack((sdiag(sigma[:, 2]), sdiag(sigma[:, 1])))
-        Sigma = sp.vstack((row1, row2))
-
+    Sigma = _makeTensor(M, sigma)
     A = P00.T*Sigma*P00 + P10.T*Sigma*P10 + P01.T*Sigma*P01 + P11.T*Sigma*P11
     P = [P00, P10, P01, P11]
     if returnP:
