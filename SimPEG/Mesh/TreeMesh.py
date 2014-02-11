@@ -97,7 +97,7 @@ class TreeEdge(TreeObject):
 
         self.node0 = node0 if isinstance(node0,TreeNode) else TreeNode(mesh, x0=self.x0)
         self.node1 = node1 if isinstance(node1,TreeNode) else TreeNode(mesh, x0=self.x0 + self.tangent*self.sz[0])
-
+        self.nodes = {'n0':node0, 'n1':node1}
 
     def refine(self):
         if not self.isleaf: return
@@ -130,6 +130,10 @@ class TreeEdge(TreeObject):
     @property
     def center(self):
         return 0.5*(self.node0.x0 + self.node1.x0)
+
+    @property
+    def length(self):
+        return np.sqrt(((self.node1.x0 - self.node0.x0)**2).sum())
 
     @property
     def index(self):
@@ -232,6 +236,11 @@ class TreeFace(TreeObject):
     def area(self):
         """area of the face"""
         return self.sz.prod()
+
+    @property
+    def length(self):
+        if self.dim == 3: raise Exception('face.length is not defined for 2D face')
+        return np.sqrt(((self.node1.x0 - self.node0.x0)**2).sum())
 
     def refine(self):
         if not self.isleaf: return
@@ -846,11 +855,19 @@ class TreeMesh(InnerProducts, BaseMesh):
     @property
     def area(self):
         self.number()
-        if self.dim == 2:
-            faces = self.sortedFaceX + self.sortedFaceY
-        elif self.dim == 3:
-            faces = self.sortedFaceX + self.sortedFaceY + self.sortedFaceZ
+        faces = self.sortedFaceX + self.sortedFaceY
+        if self.dim == 3:
+            faces += self.sortedFaceZ
         return np.array([face.area for face in faces], dtype=float)
+
+    @property
+    def edge(self):
+        self.number()
+        if self.dim == 2:
+            edges = self.sortedFaceY + self.sortedFaceX
+        elif self.dim == 3:
+            edges = self.sortedEdgeX + self.sortedEdgeY + self.sortedEdgeZ
+        return np.array([e.length for e in edges], dtype=float)
 
     @property
     def faceDiv(self):
@@ -869,6 +886,22 @@ class TreeMesh(InnerProducts, BaseMesh):
             S = self.area
             self._faceDiv = Utils.sdiag(1/VOL)*D*Utils.sdiag(S)
         return self._faceDiv
+
+    @property
+    def nodalGrad(self):
+        if getattr(self, '_nodalGrad', None) is None:
+            self.number()
+            # TODO: Preallocate!
+            I, J, V = [], [], []
+            edges = self.faces if self.dim == 2 else self.edges
+            for edge in edges:
+                I += [edge.num, edge.num]
+                J += [edge.node0.num, edge.node1.num]
+                V += [-1, 1]
+            G = sp.csr_matrix((V,(I,J)), shape=(self.nE, self.nN))
+            L = self.edge
+            self._nodalGrad = Utils.sdiag(1/L)*G
+        return self._nodalGrad
 
     def _getFaceP(self, face0, face1, face2):
         I, J, V = [], [], []
