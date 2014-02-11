@@ -131,6 +131,15 @@ class TreeEdge(TreeObject):
     def center(self):
         return 0.5*(self.node0.x0 + self.node1.x0)
 
+    @property
+    def index(self):
+        if self.isleaf: return [self.num]
+        l = [edge.index for edge in self.children.flatten(order='F')]
+        # Flatten the list
+        # e.g.
+        #    [[1,3],[4]]  -->  [1, 3, 4]
+        return [item for sublist in l for item in sublist]
+
 class TreeFace(TreeObject):
     """docstring for TreeFace"""
     def __init__(self, mesh, x0=[0,0], faceType=None, sz=[1,], depth=0,
@@ -877,10 +886,46 @@ class TreeMesh(InnerProducts, BaseMesh):
             V += [1./lenj]*lenj
         return sp.csr_matrix((V,(I,J)), shape=(self.nC, self.nF))
 
+    def _getEdgeP(self, edge0, edge1, edge2):
+        I, J, V = [], [], []
+        for cell in self.sortedCells:
+            if self.dim == 2:
+                e2f = lambda e: ('f' + {'X':'Y','Y':'X'}[e[1]]
+                                     + {'0':'m','1':'p'}[e[2]])
+                face = cell.faces[e2f(edge0)]
+                if face.isleaf:
+                    j = face.index
+                else:
+                    j = face.children[0 if 'm' in e2f(edge1) else 1].index
+                # Need to flip the numbering for edges
+                if 'X' in edge0:
+                    j = [jj - self.nFx for jj in j]
+                elif 'Y' in edge0:
+                    j = [jj + self.nFy for jj in j]
+            elif self.dim == 3:
+                edge = cell.edges[edge0]
+                if edge.isleaf:
+                    j = edge.index
+                else:
+                    mSide = lambda e: {'0':True,'1':True,'2':False,'3':False}[e[2]]
+                    j = edge.children[0 if mSide(edge1) else 1,
+                                      0 if mSide(edge2) else 1].index
+            lenj = len(j)
+            I += [cell.num]*lenj
+            J += j
+            V += [1./lenj]*lenj
+        return sp.csr_matrix((V,(I,J)), shape=(self.nC, self.nE))
+
     def _getFacePxx(self, xFace, yFace):
         self.number()
         xP = self._getFaceP(xFace, yFace, None)
         yP = self._getFaceP(yFace, xFace, None)
+        return sp.vstack((xP, yP))
+
+    def _getEdgePxx(self, xEdge, yEdge):
+        self.number()
+        xP = self._getEdgeP(xEdge, yEdge, None)
+        yP = self._getEdgeP(yEdge, xEdge, None)
         return sp.vstack((xP, yP))
 
     def _getFacePxxx(self, xFace, yFace, zFace):
@@ -888,6 +933,13 @@ class TreeMesh(InnerProducts, BaseMesh):
         xP = self._getFaceP(xFace, yFace, zFace)
         yP = self._getFaceP(yFace, xFace, zFace)
         zP = self._getFaceP(zFace, xFace, yFace)
+        return sp.vstack((xP, yP, zP))
+
+    def _getEdgePxxx(self, xEdge, yEdge, zEdge):
+        self.number()
+        xP = self._getEdgeP(xEdge, yEdge, zEdge)
+        yP = self._getEdgeP(yEdge, xEdge, zEdge)
+        zP = self._getEdgeP(zEdge, xEdge, yEdge)
         return sp.vstack((xP, yP, zP))
 
     def plotGrid(self, ax=None, text=True, plotC=True, plotF=True, plotE=False, plotEx=False, plotEy=False, plotEz=False, showIt=False):

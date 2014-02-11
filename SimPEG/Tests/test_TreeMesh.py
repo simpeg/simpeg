@@ -492,6 +492,8 @@ class SimpleOctreeOperatorTests(unittest.TestCase):
     def test_InnerProducts(self):
         self.assertTrue((self.tM.getFaceInnerProduct() - self.oM.getFaceInnerProduct()).toarray().sum() == 0)
         self.assertTrue((self.tM2.getFaceInnerProduct() - self.oM2.getFaceInnerProduct()).toarray().sum() == 0)
+        self.assertTrue((self.tM2.getEdgeInnerProduct() - self.oM2.getEdgeInnerProduct()).toarray().sum() == 0)
+        self.assertTrue((self.tM.getEdgeInnerProduct() - self.oM.getEdgeInnerProduct()).toarray().sum() == 0)
 
 
 if __name__ == '__main__':
