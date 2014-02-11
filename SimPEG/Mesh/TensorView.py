@@ -404,7 +404,7 @@ class TensorView(object):
         ::
 
             def function(var, ax, clim, tlt, i):
-                tlt.set_text('%%d'%%i)
+                tlt.set_text('%d'%i)
                 return mesh.plotImage(var, imageType='CC', ax=ax, clim=clim)
 
             mesh.video([model1, model2, ..., modeln],function)

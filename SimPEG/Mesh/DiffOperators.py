@@ -644,3 +644,7 @@ class DiffOperators(object):
     def getFaceMassDeriv(self):
         Av = self.aveF2CC
         return Av.T * sdiag(self.vol)
+
+    def getEdgeMassDeriv(self):
+        Av = self.aveE2CC
+        return Av.T * sdiag(self.vol)
