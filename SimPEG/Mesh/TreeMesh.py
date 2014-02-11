@@ -212,9 +212,12 @@ class TreeFace(TreeObject):
 
     @property
     def index(self):
-        if not self.mesh.isNumbered: raise Exception('Mesh is not numbered.')
-        if self.isleaf: return np.r_[self.num]
-        return np.concatenate([face.index for face in self.children.flatten(order='F')])
+        if self.isleaf: return [self.num]
+        l = [face.index for face in self.children.flatten(order='F')]
+        # Flatten the list
+        # e.g.
+        #    [[1,3],[4]]  -->  [1, 3, 4]
+        return [item for sublist in l for item in sublist]
 
     @property
     def area(self):
@@ -584,19 +587,12 @@ class TreeCell(TreeObject):
 
         self.mesh.cells.remove(self)
 
-    def faceIndex(self, theseFaces='all', addDirection=True):
-        #TODO: preallocate
-        I, J, V = np.empty(0,dtype=float), np.empty(0,dtype=float), np.empty(0,dtype=float)
+    @property
+    def faceIndex(self):
+        F = {}
         for face in self.faces:
-            thisFace = 'all' == theseFaces or face in theseFaces
-            if not thisFace: continue
-            j = self.faces[face].index
-            i = j*0+self.num
-            v = j*0+1
-            if addDirection and 'm' in face:
-                v *= -1
-            I, J, V = np.r_[I,i], np.r_[J,j], np.r_[V,v]
-        return I, J, V
+            F[face] = self.faces[face].index
+        return F
 
     @property
     def vol(self): return self.sz.prod()
@@ -851,52 +847,47 @@ class TreeMesh(InnerProducts, BaseMesh):
         if getattr(self, '_faceDiv', None) is None:
             self.number()
             # TODO: Preallocate!
-            I, J, V = np.empty(0), np.empty(0), np.empty(0)
+            I, J, V = [], [], []
             for cell in self.sortedCells:
-                i, j, v = cell.faceIndex('all')
-                I, J, V = np.r_[I,i], np.r_[J,j], np.r_[V,v]
-
+                for face in cell.faces:
+                    j = cell.faces[face].index
+                    I += [cell.num]*len(j)
+                    J += j
+                    V += [-1 if 'm' in face else 1]*len(j)
             VOL = self.vol
             D = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.nF))
             S = self.area
             self._faceDiv = Utils.sdiag(1/VOL)*D*Utils.sdiag(S)
         return self._faceDiv
 
+    def _getFaceP(self, face0, face1, face2):
+        I, J, V = [], [], []
+        for cell in self.sortedCells:
+            face = cell.faces[face0]
+            if face.isleaf:
+                j = face.index
+            elif self.dim == 2:
+                j = face.children[0 if 'm' in face1 else 1].index
+            elif self.dim == 3:
+                j = face.children[0 if 'm' in face1 else 1,
+                                  0 if 'm' in face2 else 1].index
+            lenj = len(j)
+            I += [cell.num]*lenj
+            J += j
+            V += [1./lenj]*lenj
+        return sp.csr_matrix((V,(I,J)), shape=(self.nC, self.nF))
+
     def _getFacePxx(self, xFace, yFace):
         self.number()
-        I, J, V = np.empty(0), np.empty(0), np.empty(0)
-        for cell in self.sortedCells:
-            i, j, v = cell.faceIndex('fX'+xFace)
-            I, J, V = np.r_[I,i], np.r_[J,j], np.r_[V,v]
-        xP = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.nF))
-
-        I, J, V = np.empty(0), np.empty(0), np.empty(0)
-        for cell in self.sortedCells:
-            i, j, v = cell.faceIndex('fY'+yFace)
-            I, J, V = np.r_[I,i], np.r_[J,j], np.r_[V,v]
-        yP = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.nF))
+        xP = self._getFaceP(xFace, yFace, None)
+        yP = self._getFaceP(yFace, xFace, None)
         return sp.vstack((xP, yP))
 
     def _getFacePxxx(self, xFace, yFace, zFace):
         self.number()
-        I, J, V = np.empty(0), np.empty(0), np.empty(0)
-        for cell in self.sortedCells:
-            i, j, v = cell.faceIndex('fX'+xFace)
-            I, J, V = np.r_[I,i], np.r_[J,j], np.r_[V,v]
-        xP = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.nF))
-
-        I, J, V = np.empty(0), np.empty(0), np.empty(0)
-        for cell in self.sortedCells:
-            i, j, v = cell.faceIndex('fY'+yFace)
-            I, J, V = np.r_[I,i], np.r_[J,j], np.r_[V,v]
-        yP = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.nF))
-
-        I, J, V = np.empty(0), np.empty(0), np.empty(0)
-        for cell in self.sortedCells:
-            i, j, v = cell.faceIndex('fZ'+zFace)
-            I, J, V = np.r_[I,i], np.r_[J,j], np.r_[V,v]
-        zP = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.nF))
-
+        xP = self._getFaceP(xFace, yFace, zFace)
+        yP = self._getFaceP(yFace, xFace, zFace)
+        zP = self._getFaceP(zFace, xFace, yFace)
         return sp.vstack((xP, yP, zP))
 
     def plotGrid(self, ax=None, text=True, plotC=True, plotF=True, plotE=False, plotEx=False, plotEy=False, plotEz=False, showIt=False):
@@ -953,6 +944,7 @@ if __name__ == '__main__':
     M.refine(function)
 
     DIV = M.faceDiv
+    Mf = M.getFaceInnerProduct()
     # plt.subplot(211)
     # plt.spy(DIV)
     M.plotGrid(ax=plt.subplot(111),text=True,showIt=True)
@@ -960,7 +952,7 @@ if __name__ == '__main__':
     q = np.zeros(M.nC)
     q[208] = -1.0
     q[291] = 1.0
-    b = Solver(-DIV*DIV.T).solve(q)
+    b = Solver(-DIV*Mf*DIV.T).solve(q)
     plt.figure()
     M.plotImage(b)
     # plt.gca().invert_yaxis()

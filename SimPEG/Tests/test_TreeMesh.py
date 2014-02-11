@@ -14,7 +14,6 @@ class TestOcTreeObjects(unittest.TestCase):
         self.Mr.children[0,0,0].refine()
         self.Mr.number()
 
-
         def q(s):
             if s[0] == 'M':
                 m = self.M
@@ -138,14 +137,6 @@ class TestOcTreeObjects(unittest.TestCase):
 
 
     def test_pointersMr(self):
-        ax = plt.subplot(111, projection='3d')
-        self.Mr.plotGrid(ax=ax,showIt=False,plotC=True,plotEy=True, text=False)
-
-        cell = self.Mr.sortedCells[0]
-        [cell.edges[e].plotGrid(ax,lineOpts={'color':'b','ls':'-'}) for e in cell.edges]
-        cell.plotGrid(ax)
-        # plt.show()
-
         q = self.q
 
         c0    = self.Mr.sortedCells[0]
@@ -491,12 +482,16 @@ class SimpleOctreeOperatorTests(unittest.TestCase):
         h3 = np.random.rand(3)
         self.tM = TensorMesh([h1,h2,h3])
         self.oM = TreeMesh([h1,h2,h3])
+        self.tM2 = TensorMesh([h1,h2])
+        self.oM2 = TreeMesh([h1,h2])
 
     def test_faceDiv(self):
         self.assertTrue((self.tM.faceDiv - self.oM.faceDiv).toarray().sum() == 0)
+        self.assertTrue((self.tM2.faceDiv - self.oM2.faceDiv).toarray().sum() == 0)
 
     def test_InnerProducts(self):
         self.assertTrue((self.tM.getFaceInnerProduct() - self.oM.getFaceInnerProduct()).toarray().sum() == 0)
+        self.assertTrue((self.tM2.getFaceInnerProduct() - self.oM2.getFaceInnerProduct()).toarray().sum() == 0)
 
 
 if __name__ == '__main__':
