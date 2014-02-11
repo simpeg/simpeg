@@ -489,12 +489,14 @@ class SimpleOctreeOperatorTests(unittest.TestCase):
         h1 = np.random.rand(5)
         h2 = np.random.rand(7)
         h3 = np.random.rand(3)
-        self.tM = TensorMesh([h1,h2,1])
-        self.oM = TreeMesh([h1,h2,1])
+        self.tM = TensorMesh([h1,h2,h3])
+        self.oM = TreeMesh([h1,h2,h3])
 
     def test_faceDiv(self):
-        print (self.tM.faceDiv - self.oM.faceDiv)
         self.assertTrue((self.tM.faceDiv - self.oM.faceDiv).toarray().sum() == 0)
+
+    def test_InnerProducts(self):
+        self.assertTrue((self.tM.getFaceInnerProduct() - self.oM.getFaceInnerProduct()).toarray().sum() == 0)
 
 
 if __name__ == '__main__':

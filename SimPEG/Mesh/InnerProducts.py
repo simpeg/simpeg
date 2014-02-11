@@ -101,7 +101,7 @@ class InnerProducts(object):
 
             If requested (returnP=True) the projection matricies are returned as well (ordered by nodes)::
 
-                P = [P000, P001, P010, P011, P100, P101, P110, P111]
+                P = [P000, P100, P010, P110, P001, P101, P011, P111]
 
             Here each P (3*nC, sum(nF)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
 
@@ -205,7 +205,7 @@ class InnerProducts(object):
 
             If requested (returnP=True) the projection matricies are returned as well (ordered by nodes)::
 
-                P = [P000, P001, P010, P011, P100, P101, P110, P111]
+                P = [P000, P100, P010, P110, P001, P101, P011, P111]
 
             Here each P (3*nC, sum(nE)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
 

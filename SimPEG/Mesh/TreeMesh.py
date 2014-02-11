@@ -1,4 +1,6 @@
 from SimPEG import np, sp, Utils, Solver
+from BaseMesh import BaseMesh
+from InnerProducts import InnerProducts
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.colors as colors
@@ -582,22 +584,22 @@ class TreeCell(TreeObject):
 
         self.mesh.cells.remove(self)
 
-    @property
-    def faceIndex(self):
+    def faceIndex(self, theseFaces='all', addDirection=True):
         #TODO: preallocate
         I, J, V = np.empty(0,dtype=float), np.empty(0,dtype=float), np.empty(0,dtype=float)
         for face in self.faces:
+            thisFace = 'all' == theseFaces or face in theseFaces
+            if not thisFace: continue
             j = self.faces[face].index
             i = j*0+self.num
             v = j*0+1
-            if 'm' in face:
+            if addDirection and 'm' in face:
                 v *= -1
             I, J, V = np.r_[I,i], np.r_[J,j], np.r_[V,v]
         return I, J, V
 
     @property
     def vol(self): return self.sz.prod()
-
 
     def viz(self, ax, color='none', text=False):
         if not self.isleaf: return
@@ -615,8 +617,11 @@ class TreeCell(TreeObject):
             if text: ax.text(self.center[0], self.center[1], self.center[2], self.num)
 
 
-class TreeMesh(object):
+class TreeMesh(InnerProducts, BaseMesh):
     """TreeMesh"""
+
+    _meshType = 'TREE'
+
     def __init__(self, h_in, x0=None):
         assert type(h_in) is list, 'h_in must be a list'
         h = range(len(h_in))
@@ -635,7 +640,9 @@ class TreeMesh(object):
             assert type(x0) in [list, np.ndarray], 'x0 must be a numpy array or a list'
             x0 = np.array(x0, dtype=float)
             assert len(x0) == self.dim, 'x0 must have the same dimensions as the mesh'
-        self.x0 = x0
+
+        # TODO: this has a lot of stuff which doesn't work for this style of mesh...
+        BaseMesh.__init__(self, np.array([x.size for x in h]), x0)
 
         # set the sets for holding the cells, nodes, faces, and edges
         self.cells  = set()
@@ -846,7 +853,7 @@ class TreeMesh(object):
             # TODO: Preallocate!
             I, J, V = np.empty(0), np.empty(0), np.empty(0)
             for cell in self.sortedCells:
-                i, j, v = cell.faceIndex
+                i, j, v = cell.faceIndex('all')
                 I, J, V = np.r_[I,i], np.r_[J,j], np.r_[V,v]
 
             VOL = self.vol
@@ -854,6 +861,43 @@ class TreeMesh(object):
             S = self.area
             self._faceDiv = Utils.sdiag(1/VOL)*D*Utils.sdiag(S)
         return self._faceDiv
+
+    def _getFacePxx(self, xFace, yFace):
+        self.number()
+        I, J, V = np.empty(0), np.empty(0), np.empty(0)
+        for cell in self.sortedCells:
+            i, j, v = cell.faceIndex('fX'+xFace)
+            I, J, V = np.r_[I,i], np.r_[J,j], np.r_[V,v]
+        xP = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.nF))
+
+        I, J, V = np.empty(0), np.empty(0), np.empty(0)
+        for cell in self.sortedCells:
+            i, j, v = cell.faceIndex('fY'+yFace)
+            I, J, V = np.r_[I,i], np.r_[J,j], np.r_[V,v]
+        yP = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.nF))
+        return sp.vstack((xP, yP))
+
+    def _getFacePxxx(self, xFace, yFace, zFace):
+        self.number()
+        I, J, V = np.empty(0), np.empty(0), np.empty(0)
+        for cell in self.sortedCells:
+            i, j, v = cell.faceIndex('fX'+xFace)
+            I, J, V = np.r_[I,i], np.r_[J,j], np.r_[V,v]
+        xP = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.nF))
+
+        I, J, V = np.empty(0), np.empty(0), np.empty(0)
+        for cell in self.sortedCells:
+            i, j, v = cell.faceIndex('fY'+yFace)
+            I, J, V = np.r_[I,i], np.r_[J,j], np.r_[V,v]
+        yP = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.nF))
+
+        I, J, V = np.empty(0), np.empty(0), np.empty(0)
+        for cell in self.sortedCells:
+            i, j, v = cell.faceIndex('fZ'+zFace)
+            I, J, V = np.r_[I,i], np.r_[J,j], np.r_[V,v]
+        zP = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.nF))
+
+        return sp.vstack((xP, yP, zP))
 
     def plotGrid(self, ax=None, text=True, plotC=True, plotF=True, plotE=False, plotEx=False, plotEy=False, plotEz=False, showIt=False):
         axOpts = {'projection':'3d'} if self.dim == 3 else {}
