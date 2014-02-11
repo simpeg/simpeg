@@ -78,17 +78,105 @@ class InnerProducts(object):
     def __init__(self):
         raise Exception('InnerProducts is a base class providing inner product matrices for meshes and cannot run on its own. Inherit to your favorite Mesh class.')
 
-    def getFaceInnerProduct(self, mu=None, returnP=False):
-        """Wrapper function,
-
-        :py:func:`SimPEG.mesh.InnerProducts.InnerProducts.getFaceInnerProduct`
-
-        :py:func:`SimPEG.mesh.InnerProducts.InnerProducts.getFaceInnerProduct2D`
+    def getFaceInnerProduct(M, mu=None, returnP=False):
         """
-        if self.dim == 2:
-            return getFaceInnerProduct2D(self, mu, returnP)
-        elif self.dim == 3:
-            return getFaceInnerProduct(self, mu, returnP)
+            :param numpy.array mu: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :param bool returnP: returns the projection matrices
+            :rtype: scipy.csr_matrix
+            :return: M, the inner product matrix (sum(nF), sum(nF))
+
+            Depending on the number of columns (either 1, 3, or 6) of mu, the material property is interpreted as follows:
+
+            .. math::
+                \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & 0 & 0 \\\\ 0 & \mu_{1} & 0 \\\\ 0 & 0 & \mu_{1}  \end{matrix}\\right]
+
+                \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & 0 & 0 \\\\ 0 & \mu_{2} & 0 \\\\ 0 & 0 & \mu_{3}  \end{matrix}\\right]
+
+                \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & \mu_{4} & \mu_{5} \\\\ \mu_{4} & \mu_{2} & \mu_{6} \\\\ \mu_{5} & \mu_{6} & \mu_{3}  \end{matrix}\\right]
+
+                \mathbf{M}(\\vec{\mu}) = {1\over 8}
+                    \left(\sum_{i=1}^8
+                    \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \\vec{\mu} \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
+                    \\right)
+
+            If requested (returnP=True) the projection matricies are returned as well (ordered by nodes)::
+
+                P = [P000, P001, P010, P011, P100, P101, P110, P111]
+
+            Here each P (3*nC, sum(nF)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
+
+            .. math::
+                \mathbf{P}_{(i)} =  \sqrt{ {1\over 8} v_{\\text{cell}}} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\\text{LOM only}} \mathbf{Q}_{(i)}
+
+            Note that this is completed for each cell in the mesh at the same time.
+
+            **For 2D:**
+
+             Depending on the number of columns (either 1, 2, or 3) of mu, the material property is interpreted as follows:
+
+            .. math::
+                \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & 0 \\\\ 0 & \mu_{1} \end{matrix}\\right]
+
+                \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & 0 \\\\ 0 & \mu_{2} \end{matrix}\\right]
+
+                \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & \mu_{3} \\\\ \mu_{3} & \mu_{2} \end{matrix}\\right]
+
+
+            .. math::
+
+                \mathbf{M}(\\vec{\mu}) = {1\over 4}
+                    \left(\sum_{i=1}^4
+                    \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \\vec{\mu} \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
+                    \\right)
+
+
+            If requested (returnP=True) the projection matricies are returned as well (ordered by nodes)::
+
+                P = [P00, P10, P01, P11]
+
+            Here each P (2*nC, sum(nF)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
+
+            .. math::
+                \mathbf{P}_{(i)} =  \sqrt{ {1\over 4} v_{\\text{cell}}} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\\text{LOM only}} \mathbf{Q}_{(i)}
+
+            Note that this is completed for each cell in the mesh at the same time.
+
+        """
+        if M.dim == 2:
+            # Square root of cell volume multiplied by 1/4
+            v = np.sqrt(0.25*M.vol)
+            V2 = sdiag(np.r_[v, v])  # We will multiply on each side to keep symmetry
+
+            Pxx = _getFacePxx(M)
+            P000 = V2*Pxx('fXm', 'fYm')
+            P100 = V2*Pxx('fXp', 'fYm')
+            P010 = V2*Pxx('fXm', 'fYp')
+            P110 = V2*Pxx('fXp', 'fYp')
+        elif M.dim == 3:
+            # Square root of cell volume multiplied by 1/8
+            v = np.sqrt(0.125*M.vol)
+            V3 = sdiag(np.r_[v, v, v])  # We will multiply on each side to keep symmetry
+
+            Pxxx = _getFacePxxx(M)
+            P000 = V3*Pxxx('fXm', 'fYm', 'fZm')
+            P100 = V3*Pxxx('fXp', 'fYm', 'fZm')
+            P010 = V3*Pxxx('fXm', 'fYp', 'fZm')
+            P110 = V3*Pxxx('fXp', 'fYp', 'fZm')
+            P001 = V3*Pxxx('fXm', 'fYm', 'fZp')
+            P101 = V3*Pxxx('fXp', 'fYm', 'fZp')
+            P011 = V3*Pxxx('fXm', 'fYp', 'fZp')
+            P111 = V3*Pxxx('fXp', 'fYp', 'fZp')
+
+        Mu = _makeTensor(M, mu)
+        A = P000.T*Mu*P000 + P100.T*Mu*P100 + P010.T*Mu*P010 + P110.T*Mu*P110
+        P = [P000, P100, P010, P110]
+        if M.dim == 3:
+            A = A + P001.T*Mu*P001 + P101.T*Mu*P101 + P011.T*Mu*P011 + P111.T*Mu*P111
+            P += [P001, P101, P011,  P111]
+        if returnP:
+            return A, P
+        else:
+            return A
 
     def getEdgeInnerProduct(M, sigma=None, returnP=False):
         """
@@ -465,117 +553,6 @@ def _getEdgePxxx_Rectangular(M):
 
         return PXXX
     return Pxxx
-
-def getFaceInnerProduct(M, mu=None, returnP=False):
-    """
-        :param numpy.array mu: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
-        :param bool returnP: returns the projection matrices
-        :rtype: scipy.csr_matrix
-        :return: M, the inner product matrix (sum(nF), sum(nF))
-
-        Depending on the number of columns (either 1, 3, or 6) of mu, the material property is interpreted as follows:
-
-        .. math::
-            \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & 0 & 0 \\\\ 0 & \mu_{1} & 0 \\\\ 0 & 0 & \mu_{1}  \end{matrix}\\right]
-
-            \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & 0 & 0 \\\\ 0 & \mu_{2} & 0 \\\\ 0 & 0 & \mu_{3}  \end{matrix}\\right]
-
-            \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & \mu_{4} & \mu_{5} \\\\ \mu_{4} & \mu_{2} & \mu_{6} \\\\ \mu_{5} & \mu_{6} & \mu_{3}  \end{matrix}\\right]
-
-            \mathbf{M}(\\vec{\mu}) = {1\over 8}
-                \left(\sum_{i=1}^8
-                \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \\vec{\mu} \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
-                \\right)
-
-        If requested (returnP=True) the projection matricies are returned as well (ordered by nodes)::
-
-            P = [P000, P001, P010, P011, P100, P101, P110, P111]
-
-        Here each P (3*nC, sum(nF)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
-
-        .. math::
-            \mathbf{P}_{(i)} =  \sqrt{ {1\over 8} v_{\\text{cell}}} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\\text{LOM only}} \mathbf{Q}_{(i)}
-
-        Note that this is completed for each cell in the mesh at the same time.
-
-    """
-    # Square root of cell volume multiplied by 1/8
-    v = np.sqrt(0.125*M.vol)
-    V3 = sdiag(np.r_[v, v, v])  # We will multiply on each side to keep symmetry
-
-    Pxxx = _getFacePxxx(M)
-    P000 = V3*Pxxx('fXm', 'fYm', 'fZm')
-    P100 = V3*Pxxx('fXp', 'fYm', 'fZm')
-    P010 = V3*Pxxx('fXm', 'fYp', 'fZm')
-    P110 = V3*Pxxx('fXp', 'fYp', 'fZm')
-    P001 = V3*Pxxx('fXm', 'fYm', 'fZp')
-    P101 = V3*Pxxx('fXp', 'fYm', 'fZp')
-    P011 = V3*Pxxx('fXm', 'fYp', 'fZp')
-    P111 = V3*Pxxx('fXp', 'fYp', 'fZp')
-
-    Mu = _makeTensor(M, mu)
-    A = P000.T*Mu*P000 + P001.T*Mu*P001 + P010.T*Mu*P010 + P011.T*Mu*P011 + P100.T*Mu*P100 + P101.T*Mu*P101 + P110.T*Mu*P110 + P111.T*Mu*P111
-    P = [P000, P001, P010, P011, P100, P101, P110, P111]
-    if returnP:
-        return A, P
-    else:
-        return A
-
-def getFaceInnerProduct2D(M, mu=None, returnP=False):
-    """
-        :param numpy.array mu: material property (tensor properties are possible) at each cell center (nC, (1, 2, or 3))
-        :param bool returnP: returns the projection matrices
-        :rtype: scipy.csr_matrix
-        :return: M, the inner product matrix (sum(nF), sum(nF))
-
-        Depending on the number of columns (either 1, 2, or 3) of mu, the material property is interpreted as follows:
-
-        .. math::
-            \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & 0 \\\\ 0 & \mu_{1} \end{matrix}\\right]
-
-            \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & 0 \\\\ 0 & \mu_{2} \end{matrix}\\right]
-
-            \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & \mu_{3} \\\\ \mu_{3} & \mu_{2} \end{matrix}\\right]
-
-
-        .. math::
-
-            \mathbf{M}(\\vec{\mu}) = {1\over 4}
-                \left(\sum_{i=1}^4
-                \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \\vec{\mu} \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
-                \\right)
-
-
-        If requested (returnP=True) the projection matricies are returned as well (ordered by nodes)::
-
-            P = [P00, P10, P01, P11]
-
-        Here each P (2*nC, sum(nF)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
-
-        .. math::
-            \mathbf{P}_{(i)} =  \sqrt{ {1\over 4} v_{\\text{cell}}} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\\text{LOM only}} \mathbf{Q}_{(i)}
-
-        Note that this is completed for each cell in the mesh at the same time.
-
-    """
-    # Square root of cell volume multiplied by 1/4
-    v = np.sqrt(0.25*M.vol)
-    V2 = sdiag(np.r_[v, v])  # We will multiply on each side to keep symmetry
-
-    Pxx = _getFacePxx(M)
-    P00 = V2*Pxx('fXm', 'fYm')
-    P10 = V2*Pxx('fXp', 'fYm')
-    P01 = V2*Pxx('fXm', 'fYp')
-    P11 = V2*Pxx('fXp', 'fYp')
-
-    Mu = _makeTensor(M, mu)
-    A = P00.T*Mu*P00 + P10.T*Mu*P10 + P01.T*Mu*P01 + P11.T*Mu*P11
-    P = [P00, P10, P01, P11]
-    if returnP:
-        return A, P
-    else:
-        return A
-
 
 if __name__ == '__main__':
     from TensorMesh import TensorMesh
