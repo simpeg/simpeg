@@ -90,17 +90,108 @@ class InnerProducts(object):
         elif self.dim == 3:
             return getFaceInnerProduct(self, mu, returnP)
 
-    def getEdgeInnerProduct(self, sigma=None, returnP=False):
-        """Wrapper function,
-
-        :py:func:`SimPEG.mesh.InnerProducts.InnerProducts.getEdgeInnerProduct`
-
-        :py:func:`SimPEG.mesh.InnerProducts.InnerProducts.getEdgeInnerProduct2D`
+    def getEdgeInnerProduct(M, sigma=None, returnP=False):
         """
-        if self.dim == 2:
-            return getEdgeInnerProduct2D(self, sigma, returnP)
-        elif self.dim == 3:
-            return getEdgeInnerProduct(self, sigma, returnP)
+            :param numpy.array sigma: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :param bool returnP: returns the projection matrices
+            :rtype: scipy.csr_matrix
+            :return: M, the inner product matrix (sum(nE), sum(nE))
+
+
+            Depending on the number of columns (either 1, 3, or 6) of sigma, the material property is interpreted as follows:
+
+            .. math::
+                \Sigma = \left[\\begin{matrix} \sigma_{1} & 0 & 0 \\\\ 0 & \sigma_{1} & 0 \\\\ 0 & 0 & \sigma_{1}  \end{matrix}\\right]
+
+                \Sigma = \left[\\begin{matrix} \sigma_{1} & 0 & 0 \\\\ 0 & \sigma_{2} & 0 \\\\ 0 & 0 & \sigma_{3}  \end{matrix}\\right]
+
+                \Sigma = \left[\\begin{matrix} \sigma_{1} & \sigma_{4} & \sigma_{5} \\\\ \sigma_{4} & \sigma_{2} & \sigma_{6} \\\\ \sigma_{5} & \sigma_{6} & \sigma_{3}  \end{matrix}\\right]
+
+            What is returned:
+
+            .. math::
+                \mathbf{M}(\Sigma) = {1\over 8}
+                    \left(\sum_{i=1}^8
+                    \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \Sigma \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
+                    \\right)
+
+            If requested (returnP=True) the projection matricies are returned as well (ordered by nodes)::
+
+                P = [P000, P001, P010, P011, P100, P101, P110, P111]
+
+            Here each P (3*nC, sum(nE)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
+
+            .. math::
+                \mathbf{P}_{(i)} =  \sqrt{ {1\over 8} v_{\\text{cell}}} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\\text{LOM only}} \mathbf{Q}_{(i)}
+
+            Note that this is completed for each cell in the mesh at the same time.
+
+            **For 2D:**
+
+            Depending on the number of columns (either 1, 2, or 3) of sigma, the material property is interpreted as follows:
+
+            .. math::
+                \Sigma = \left[\\begin{matrix} \sigma_{1} & 0 \\\\ 0 & \sigma_{1} \end{matrix}\\right]
+
+                \Sigma = \left[\\begin{matrix} \sigma_{1} & 0 \\\\ 0 & \sigma_{2} \end{matrix}\\right]
+
+                \Sigma = \left[\\begin{matrix} \sigma_{1} & \sigma_{3} \\\\ \sigma_{3} & \sigma_{2} \end{matrix}\\right]
+
+
+            .. math::
+
+                \mathbf{M}(\Sigma) = {1\over 4}
+                    \left(\sum_{i=1}^4
+                    \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \Sigma \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
+                    \\right)
+
+
+            If requested (returnP=True) the projection matricies are returned as well (ordered by nodes)::
+
+                P = [P00, P10, P01, P11]
+
+            Here each P (2*nC, sum(nE)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
+
+            .. math::
+                \mathbf{P}_{(i)} =  \sqrt{ {1\over 4} v_{\\text{cell}}} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\\text{LOM only}} \mathbf{Q}_{(i)}
+
+            Note that this is completed for each cell in the mesh at the same time.
+
+        """
+        # We will multiply by V on each side to keep symmetry
+        if M.dim == 2:
+            # Square root of cell volume multiplied by 1/4
+            v = np.sqrt(0.25*M.vol)
+            V = sdiag(np.r_[v, v])
+            eP = _getEdgePxx(M)
+            P000 = V*eP('eX0', 'eY0')
+            P100 = V*eP('eX0', 'eY1')
+            P010 = V*eP('eX1', 'eY0')
+            P110 = V*eP('eX1', 'eY1')
+        elif M.dim == 3:
+            # Square root of cell volume multiplied by 1/8
+            v = np.sqrt(0.125*M.vol)
+            V = sdiag(np.r_[v, v, v])
+            eP = _getEdgePxxx(M)
+            P000 = V*eP('eX0', 'eY0', 'eZ0')
+            P100 = V*eP('eX0', 'eY1', 'eZ1')
+            P010 = V*eP('eX1', 'eY0', 'eZ2')
+            P110 = V*eP('eX1', 'eY1', 'eZ3')
+            P001 = V*eP('eX2', 'eY2', 'eZ0')
+            P101 = V*eP('eX2', 'eY3', 'eZ1')
+            P011 = V*eP('eX3', 'eY2', 'eZ2')
+            P111 = V*eP('eX3', 'eY3', 'eZ3')
+
+        Sigma = _makeTensor(M, sigma)
+        A = P000.T*Sigma*P000 + P100.T*Sigma*P100 + P010.T*Sigma*P010 + P110.T*Sigma*P110
+        P = [P000, P100, P010, P110]
+        if M.dim == 3:
+            A = A + P001.T*Sigma*P001 + P101.T*Sigma*P101 + P011.T*Sigma*P011 + P111.T*Sigma*P111
+            P += [P001, P101, P011,  P111]
+        if returnP:
+            return A, P
+        else:
+            return A
 
 # ------------------------ Geometries ------------------------------
 #
@@ -479,121 +570,6 @@ def getFaceInnerProduct2D(M, mu=None, returnP=False):
 
     Mu = _makeTensor(M, mu)
     A = P00.T*Mu*P00 + P10.T*Mu*P10 + P01.T*Mu*P01 + P11.T*Mu*P11
-    P = [P00, P10, P01, P11]
-    if returnP:
-        return A, P
-    else:
-        return A
-
-
-def getEdgeInnerProduct(M, sigma=None, returnP=False):
-    """
-        :param numpy.array sigma: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
-        :param bool returnP: returns the projection matrices
-        :rtype: scipy.csr_matrix
-        :return: M, the inner product matrix (sum(nE), sum(nE))
-
-
-        Depending on the number of columns (either 1, 3, or 6) of sigma, the material property is interpreted as follows:
-
-        .. math::
-            \Sigma = \left[\\begin{matrix} \sigma_{1} & 0 & 0 \\\\ 0 & \sigma_{1} & 0 \\\\ 0 & 0 & \sigma_{1}  \end{matrix}\\right]
-
-            \Sigma = \left[\\begin{matrix} \sigma_{1} & 0 & 0 \\\\ 0 & \sigma_{2} & 0 \\\\ 0 & 0 & \sigma_{3}  \end{matrix}\\right]
-
-            \Sigma = \left[\\begin{matrix} \sigma_{1} & \sigma_{4} & \sigma_{5} \\\\ \sigma_{4} & \sigma_{2} & \sigma_{6} \\\\ \sigma_{5} & \sigma_{6} & \sigma_{3}  \end{matrix}\\right]
-
-        What is returned:
-
-        .. math::
-            \mathbf{M}(\Sigma) = {1\over 8}
-                \left(\sum_{i=1}^8
-                \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \Sigma \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
-                \\right)
-
-        If requested (returnP=True) the projection matricies are returned as well (ordered by nodes)::
-
-            P = [P000, P001, P010, P011, P100, P101, P110, P111]
-
-        Here each P (3*nC, sum(nE)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
-
-        .. math::
-            \mathbf{P}_{(i)} =  \sqrt{ {1\over 8} v_{\\text{cell}}} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\\text{LOM only}} \mathbf{Q}_{(i)}
-
-        Note that this is completed for each cell in the mesh at the same time.
-    """
-    # Square root of cell volume multiplied by 1/8
-    v = np.sqrt(0.125*M.vol)
-    V3 = sdiag(np.r_[v, v, v])  # We will multiply on each side to keep symmetry
-
-    Pxxx = _getEdgePxxx(M)
-    P000 = V3*Pxxx('eX0', 'eY0', 'eZ0')
-    P100 = V3*Pxxx('eX0', 'eY1', 'eZ1')
-    P010 = V3*Pxxx('eX1', 'eY0', 'eZ2')
-    P110 = V3*Pxxx('eX1', 'eY1', 'eZ3')
-    P001 = V3*Pxxx('eX2', 'eY2', 'eZ0')
-    P101 = V3*Pxxx('eX2', 'eY3', 'eZ1')
-    P011 = V3*Pxxx('eX3', 'eY2', 'eZ2')
-    P111 = V3*Pxxx('eX3', 'eY3', 'eZ3')
-
-    Sigma = _makeTensor(M, sigma)
-    A = P000.T*Sigma*P000 + P001.T*Sigma*P001 + P010.T*Sigma*P010 + P011.T*Sigma*P011 + P100.T*Sigma*P100 + P101.T*Sigma*P101 + P110.T*Sigma*P110 + P111.T*Sigma*P111
-    P = [P000, P001, P010, P011, P100, P101, P110, P111]
-    if returnP:
-        return A, P
-    else:
-        return A
-
-
-def getEdgeInnerProduct2D(M, sigma=None, returnP=False):
-    """
-        :param numpy.array sigma: material property (tensor properties are possible) at each cell center (nC, (1, 2, or 3))
-        :param bool returnP: returns the projection matrices
-        :rtype: scipy.csr_matrix
-        :return: M, the inner product matrix (sum(nE), sum(nE))
-
-        Depending on the number of columns (either 1, 2, or 3) of sigma, the material property is interpreted as follows:
-
-        .. math::
-            \Sigma = \left[\\begin{matrix} \sigma_{1} & 0 \\\\ 0 & \sigma_{1} \end{matrix}\\right]
-
-            \Sigma = \left[\\begin{matrix} \sigma_{1} & 0 \\\\ 0 & \sigma_{2} \end{matrix}\\right]
-
-            \Sigma = \left[\\begin{matrix} \sigma_{1} & \sigma_{3} \\\\ \sigma_{3} & \sigma_{2} \end{matrix}\\right]
-
-
-        .. math::
-
-            \mathbf{M}(\Sigma) = {1\over 4}
-                \left(\sum_{i=1}^4
-                \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \Sigma \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
-                \\right)
-
-
-        If requested (returnP=True) the projection matricies are returned as well (ordered by nodes)::
-
-            P = [P00, P10, P01, P11]
-
-        Here each P (2*nC, sum(nE)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
-
-        .. math::
-            \mathbf{P}_{(i)} =  \sqrt{ {1\over 4} v_{\\text{cell}}} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\\text{LOM only}} \mathbf{Q}_{(i)}
-
-        Note that this is completed for each cell in the mesh at the same time.
-
-    """
-    # Square root of cell volume multiplied by 1/4
-    v = np.sqrt(0.25*M.vol)
-    V2 = sdiag(np.r_[v, v])  # We will multiply on each side to keep symmetry
-
-    Pxx = _getEdgePxx(M)
-    P00 = V2*Pxx('eX0', 'eY0')
-    P10 = V2*Pxx('eX0', 'eY1')
-    P01 = V2*Pxx('eX1', 'eY0')
-    P11 = V2*Pxx('eX1', 'eY1')
-
-    Sigma = _makeTensor(M, sigma)
-    A = P00.T*Sigma*P00 + P10.T*Sigma*P10 + P01.T*Sigma*P01 + P11.T*Sigma*P11
     P = [P00, P10, P01, P11]
     if returnP:
         return A, P
