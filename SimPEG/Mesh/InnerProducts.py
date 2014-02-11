@@ -121,6 +121,57 @@ class InnerProducts(object):
 #         |                                     |/
 #    node(i+1,j,k) ------ edge2(i+1,j,k) ----- node(i+1,j+1,k)
 
+def _getFacePxxx(M):
+    if M._meshType == 'TREE':
+        return M._getFacePxxx
+
+    return _getFacePxxx_Rectangular(M)
+
+def _getFacePxxx_Rectangular(M):
+
+    i, j, k = np.int64(range(M.nCx)), np.int64(range(M.nCy)), np.int64(range(M.nCz))
+
+    iijjkk = ndgrid(i, j, k)
+    ii, jj, kk = iijjkk[:, 0], iijjkk[:, 1], iijjkk[:, 2]
+
+    if M._meshType == 'LOM':
+        fN1 = M.r(M.normals, 'F', 'Fx', 'M')
+        fN2 = M.r(M.normals, 'F', 'Fy', 'M')
+        fN3 = M.r(M.normals, 'F', 'Fz', 'M')
+
+    def Pxxx(xFace, yFace, zFace):
+
+        # no  | node        | f1        | f2        | f3
+        # 000 | i  ,j  ,k   | i  , j, k | i, j  , k | i, j, k
+        # 100 | i+1,j  ,k   | i+1, j, k | i, j  , k | i, j, k
+        # 010 | i  ,j+1,k   | i  , j, k | i, j+1, k | i, j, k
+        # 110 | i+1,j+1,k   | i+1, j, k | i, j+1, k | i, j, k
+        # 001 | i  ,j  ,k+1 | i  , j, k | i, j  , k | i, j, k+1
+        # 101 | i+1,j  ,k+1 | i+1, j, k | i, j  , k | i, j, k+1
+        # 011 | i  ,j+1,k+1 | i  , j, k | i, j+1, k | i, j, k+1
+        # 111 | i+1,j+1,k+1 | i+1, j, k | i, j+1, k | i, j, k+1
+
+        posX = 0 if xFace == 'm' else 1
+        posY = 0 if yFace == 'm' else 1
+        posZ = 0 if zFace == 'm' else 1
+
+        ind1 = sub2ind(M.nFx, np.c_[ii + posX, jj, kk])
+        ind2 = sub2ind(M.nFy, np.c_[ii, jj + posY, kk]) + M.nFv[0]
+        ind3 = sub2ind(M.nFz, np.c_[ii, jj, kk + posZ]) + M.nFv[0] + M.nFv[1]
+
+        IND = np.r_[ind1, ind2, ind3].flatten()
+
+        PXXX = sp.coo_matrix((np.ones(3*M.nC), (range(3*M.nC), IND)), shape=(3*M.nC, np.sum(M.nF))).tocsr()
+
+        if M._meshType == 'LOM':
+            I3x3 = inv3X3BlockDiagonal(getSubArray(fN1[0], [i + posX, j, k]), getSubArray(fN1[1], [i + posX, j, k]), getSubArray(fN1[2], [i + posX, j, k]),
+                                       getSubArray(fN2[0], [i, j + posY, k]), getSubArray(fN2[1], [i, j + posY, k]), getSubArray(fN2[2], [i, j + posY, k]),
+                                       getSubArray(fN3[0], [i, j, k + posZ]), getSubArray(fN3[1], [i, j, k + posZ]), getSubArray(fN3[2], [i, j, k + posZ]))
+            PXXX = I3x3 * PXXX
+
+        return PXXX
+    return Pxxx
+
 
 def getFaceInnerProduct(M, mu=None, returnP=False):
     """
@@ -159,55 +210,20 @@ def getFaceInnerProduct(M, mu=None, returnP=False):
     if mu is None:  # default is ones
         mu = np.ones((M.nC, 1))
 
-    i, j, k = np.int64(range(M.nCx)), np.int64(range(M.nCy)), np.int64(range(M.nCz))
-
-    iijjkk = ndgrid(i, j, k)
-    ii, jj, kk = iijjkk[:, 0], iijjkk[:, 1], iijjkk[:, 2]
-
-    if M._meshType == 'LOM':
-        fN1 = M.r(M.normals, 'F', 'Fx', 'M')
-        fN2 = M.r(M.normals, 'F', 'Fy', 'M')
-        fN3 = M.r(M.normals, 'F', 'Fz', 'M')
-
-    def Pxxx(posX, posY, posZ):
-        ind1 = sub2ind(M.nFx, np.c_[ii + posX[0], jj + posX[1], kk + posX[2]])
-        ind2 = sub2ind(M.nFy, np.c_[ii + posY[0], jj + posY[1], kk + posY[2]]) + M.nFv[0]
-        ind3 = sub2ind(M.nFz, np.c_[ii + posZ[0], jj + posZ[1], kk + posZ[2]]) + M.nFv[0] + M.nFv[1]
-
-        IND = np.r_[ind1, ind2, ind3].flatten()
-
-        PXXX = sp.coo_matrix((np.ones(3*M.nC), (range(3*M.nC), IND)), shape=(3*M.nC, np.sum(M.nF))).tocsr()
-
-        if M._meshType == 'LOM':
-            I3x3 = inv3X3BlockDiagonal(getSubArray(fN1[0], [i + posX[0], j + posX[1], k + posX[2]]), getSubArray(fN1[1], [i + posX[0], j + posX[1], k + posX[2]]), getSubArray(fN1[2], [i + posX[0], j + posX[1], k + posX[2]]),
-                                       getSubArray(fN2[0], [i + posY[0], j + posY[1], k + posY[2]]), getSubArray(fN2[1], [i + posY[0], j + posY[1], k + posY[2]]), getSubArray(fN2[2], [i + posY[0], j + posY[1], k + posY[2]]),
-                                       getSubArray(fN3[0], [i + posZ[0], j + posZ[1], k + posZ[2]]), getSubArray(fN3[1], [i + posZ[0], j + posZ[1], k + posZ[2]]), getSubArray(fN3[2], [i + posZ[0], j + posZ[1], k + posZ[2]]))
-            PXXX = I3x3 * PXXX
-
-        return PXXX
-
-    # no  | node        | f1        | f2        | f3
-    # 000 | i  ,j  ,k   | i  , j, k | i, j  , k | i, j, k
-    # 100 | i+1,j  ,k   | i+1, j, k | i, j  , k | i, j, k
-    # 010 | i  ,j+1,k   | i  , j, k | i, j+1, k | i, j, k
-    # 110 | i+1,j+1,k   | i+1, j, k | i, j+1, k | i, j, k
-    # 001 | i  ,j  ,k+1 | i  , j, k | i, j  , k | i, j, k+1
-    # 101 | i+1,j  ,k+1 | i+1, j, k | i, j  , k | i, j, k+1
-    # 011 | i  ,j+1,k+1 | i  , j, k | i, j+1, k | i, j, k+1
-    # 111 | i+1,j+1,k+1 | i+1, j, k | i, j+1, k | i, j, k+1
-
     # Square root of cell volume multiplied by 1/8
     v = np.sqrt(0.125*M.vol)
     V3 = sdiag(np.r_[v, v, v])  # We will multiply on each side to keep symmetry
 
-    P000 = V3*Pxxx([0, 0, 0], [0, 0, 0], [0, 0, 0])
-    P100 = V3*Pxxx([1, 0, 0], [0, 0, 0], [0, 0, 0])
-    P010 = V3*Pxxx([0, 0, 0], [0, 1, 0], [0, 0, 0])
-    P110 = V3*Pxxx([1, 0, 0], [0, 1, 0], [0, 0, 0])
-    P001 = V3*Pxxx([0, 0, 0], [0, 0, 0], [0, 0, 1])
-    P101 = V3*Pxxx([1, 0, 0], [0, 0, 0], [0, 0, 1])
-    P011 = V3*Pxxx([0, 0, 0], [0, 1, 0], [0, 0, 1])
-    P111 = V3*Pxxx([1, 0, 0], [0, 1, 0], [0, 0, 1])
+    Pxxx = _getFacePxxx(M)
+
+    P000 = V3*Pxxx('m', 'm', 'm')
+    P100 = V3*Pxxx('p', 'm', 'm')
+    P010 = V3*Pxxx('m', 'p', 'm')
+    P110 = V3*Pxxx('p', 'p', 'm')
+    P001 = V3*Pxxx('m', 'm', 'p')
+    P101 = V3*Pxxx('p', 'm', 'p')
+    P011 = V3*Pxxx('m', 'p', 'p')
+    P111 = V3*Pxxx('p', 'p', 'p')
 
     if mu.size == M.nC:  # Isotropic!
         mu = mkvc(mu)  # ensure it is a vector.
