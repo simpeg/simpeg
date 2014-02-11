@@ -230,8 +230,78 @@ def getFaceInnerProduct(mesh, mu=None, returnP=False):
     else:
         return A
 
+def _getFacePxx(M):
+    return _getFacePxx_Rectangular(M)
 
-def getFaceInnerProduct2D(mesh, mu=None, returnP=False):
+def _getFacePxx_Rectangular(M):
+    """returns a function for creating projection matrices
+
+        Mats takes you from faces a subset of all faces on only the
+        faces that you ask for.
+
+        These are centered around a single nodes.
+
+        For example, if this was your entire mesh:
+
+                        f3(Yp)
+                  2_______________3
+                  |               |
+                  |               |
+                  |               |
+          f0(Xm)  |       x       |  f1(Xp)
+                  |               |
+                  |               |
+                  |_______________|
+                  0               1
+                        f2(Ym)
+
+        Pxx('m','m') = | 1, 0, 0, 0 |
+                       | 0, 0, 1, 0 |
+
+        Pxx('p','m') = | 0, 1, 0, 0 |
+                       | 0, 0, 1, 0 |
+
+        """
+    i, j = np.int64(range(M.nCx)), np.int64(range(M.nCy))
+
+    iijj = ndgrid(i, j)
+    ii, jj = iijj[:, 0], iijj[:, 1]
+
+    if M._meshType == 'LOM':
+        fN1 = M.r(M.normals, 'F', 'Fx', 'M')
+        fN2 = M.r(M.normals, 'F', 'Fy', 'M')
+
+    def Pxx(xFace, yFace):
+        """
+            xFace is 'p' or 'm'
+            yFace is 'p' or 'm'
+        """
+        # no | node      | f1     | f2
+        # 00 | i  ,j     | i  , j | i, j
+        # 10 | i+1,j     | i+1, j | i, j
+        # 01 | i  ,j+1   | i  , j | i, j+1
+        # 11 | i+1,j+1   | i+1, j | i, j+1
+
+        posFx = 0 if xFace == 'm' else 1
+        posFy = 0 if yFace == 'm' else 1
+
+        ind1 = sub2ind(M.nFx, np.c_[ii + posFx, jj])
+        ind2 = sub2ind(M.nFy, np.c_[ii, jj + posFy]) + M.nFv[0]
+
+        IND = np.r_[ind1, ind2].flatten()
+
+        PXX = sp.csr_matrix((np.ones(2*M.nC), (range(2*M.nC), IND)), shape=(2*M.nC, np.sum(M.nF)))
+
+        if M._meshType == 'LOM':
+            I2x2 = inv2X2BlockDiagonal(getSubArray(fN1[0], [i + posFx, j]), getSubArray(fN1[1], [i + posFx, j]),
+                                       getSubArray(fN2[0], [i, j + posFy]), getSubArray(fN2[1], [i, j + posFy]))
+            PXX = I2x2 * PXX
+
+        return PXX
+
+    return Pxx
+
+def getFaceInnerProduct2D(M, mu=None, returnP=False):
     """
         :param numpy.array mu: material property (tensor properties are possible) at each cell center (nC, (1, 2, or 3))
         :param bool returnP: returns the projection matrices
@@ -270,51 +340,20 @@ def getFaceInnerProduct2D(mesh, mu=None, returnP=False):
     """
 
     if mu is None:  # default is ones
-        mu = np.ones((mesh.nC, 1))
+        mu = np.ones((M.nC, 1))
 
-    m = np.array([mesh.nCx, mesh.nCy])
-    nc = mesh.nC
-
-    i, j = np.int64(range(m[0])), np.int64(range(m[1]))
-
-    iijj = ndgrid(i, j)
-    ii, jj = iijj[:, 0], iijj[:, 1]
-
-    if mesh._meshType == 'LOM':
-        fN1 = mesh.r(mesh.normals, 'F', 'Fx', 'M')
-        fN2 = mesh.r(mesh.normals, 'F', 'Fy', 'M')
-
-    def Pxx(pos):
-        ind1 = sub2ind(mesh.nFx, np.c_[ii + pos[0][0], jj + pos[0][1]])
-        ind2 = sub2ind(mesh.nFy, np.c_[ii + pos[1][0], jj + pos[1][1]]) + mesh.nFv[0]
-
-        IND = np.r_[ind1, ind2].flatten()
-
-        PXX = sp.coo_matrix((np.ones(2*nc), (range(2*nc), IND)), shape=(2*nc, np.sum(mesh.nF))).tocsr()
-
-        if mesh._meshType == 'LOM':
-            I2x2 = inv2X2BlockDiagonal(getSubArray(fN1[0], [i + pos[0][0], j + pos[0][1]]), getSubArray(fN1[1], [i + pos[0][0], j + pos[0][1]]),
-                                       getSubArray(fN2[0], [i + pos[1][0], j + pos[1][1]]), getSubArray(fN2[1], [i + pos[1][0], j + pos[1][1]]))
-            PXX = I2x2 * PXX
-
-        return PXX
-
-    # no | node      | f1     | f2
-    # 00 | i  ,j     | i  , j | i, j
-    # 10 | i+1,j     | i+1, j | i, j
-    # 01 | i  ,j+1   | i  , j | i, j+1
-    # 11 | i+1,j+1   | i+1, j | i, j+1
+    Pxx = _getFacePxx(M)
 
     # Square root of cell volume multiplied by 1/4
-    v = np.sqrt(0.25*mesh.vol)
+    v = np.sqrt(0.25*M.vol)
     V2 = sdiag(np.r_[v, v])  # We will multiply on each side to keep symmetry
 
-    P00 = V2*Pxx([[0, 0], [0, 0]])
-    P10 = V2*Pxx([[1, 0], [0, 0]])
-    P01 = V2*Pxx([[0, 0], [0, 1]])
-    P11 = V2*Pxx([[1, 0], [0, 1]])
+    P00 = V2*Pxx('m', 'm')
+    P10 = V2*Pxx('p', 'm')
+    P01 = V2*Pxx('m', 'p')
+    P11 = V2*Pxx('p', 'p')
 
-    if mu.size == mesh.nC:  # Isotropic!
+    if mu.size == M.nC:  # Isotropic!
         mu = mkvc(mu)  # ensure it is a vector.
         Mu = sdiag(np.r_[mu, mu])
     elif mu.shape[1] == 2:  # Diagonal tensor
@@ -372,10 +411,7 @@ def getEdgeInnerProduct(mesh, sigma=None, returnP=False):
     if sigma is None:  # default is ones
         sigma = np.ones((mesh.nC, 1))
 
-    m = np.array([mesh.nCx, mesh.nCy, mesh.nCz])
-    nc = mesh.nC
-
-    i, j, k = np.int64(range(m[0])), np.int64(range(m[1])), np.int64(range(m[2]))
+    i, j, k = np.int64(range(mesh.nCx)), np.int64(range(mesh.nCy)), np.int64(range(mesh.nCz))
 
     iijjkk = ndgrid(i, j, k)
     ii, jj, kk = iijjkk[:, 0], iijjkk[:, 1], iijjkk[:, 2]
@@ -392,7 +428,7 @@ def getEdgeInnerProduct(mesh, sigma=None, returnP=False):
 
         IND = np.r_[ind1, ind2, ind3].flatten()
 
-        PXXX = sp.coo_matrix((np.ones(3*nc), (range(3*nc), IND)), shape=(3*nc, np.sum(mesh.nE))).tocsr()
+        PXXX = sp.coo_matrix((np.ones(3*mesh.nC), (range(3*mesh.nC), IND)), shape=(3*mesh.nC, np.sum(mesh.nE))).tocsr()
 
         if mesh._meshType == 'LOM':
             I3x3 = inv3X3BlockDiagonal(getSubArray(eT1[0], [i + pos[0][0], j + pos[0][1], k + pos[0][2]]), getSubArray(eT1[1], [i + pos[0][0], j + pos[0][1], k + pos[0][2]]), getSubArray(eT1[2], [i + pos[0][0], j + pos[0][1], k + pos[0][2]]),
