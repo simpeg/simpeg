@@ -893,9 +893,16 @@ class TreeMesh(InnerProducts, BaseMesh):
             self.number()
             # TODO: Preallocate!
             I, J, V = [], [], []
+            # kinda a hack for the 2D gradient
+            # because edges are not stored
             edges = self.faces if self.dim == 2 else self.edges
             for edge in edges:
-                I += [edge.num, edge.num]
+                if self.dim == 3:
+                    I += [edge.num, edge.num]
+                elif self.dim == 2 and edge.faceType == 'x':
+                    I += [edge.num + self.nFy, edge.num + self.nFy]
+                elif self.dim == 2 and edge.faceType == 'y':
+                    I += [edge.num - self.nFx, edge.num - self.nFx]
                 J += [edge.node0.num, edge.node1.num]
                 V += [-1, 1]
             G = sp.csr_matrix((V,(I,J)), shape=(self.nE, self.nN))
