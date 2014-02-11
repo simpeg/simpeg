@@ -440,6 +440,7 @@ class TreeCell(TreeObject):
 
             self.faces = {"fXm":fXm, "fXp":fXp, "fYm":fYm, "fYp":fYp, "fZm":fZm, "fZp":fZp}
             self.edges = {"eX0":eX0, "eX1":eX1, "eX2":eX2, "eX3":eX3, "eY0":eY0, "eY1":eY1, "eY2":eY2, "eY3":eY3, "eZ0":eZ0, "eZ1":eZ1, "eZ2":eZ2, "eZ3":eZ3}
+            self.nodes = {"n0": fZm.nodes['n0'], "n1": fZm.nodes['n1'], "n2": fZm.nodes['n2'], "n3": fZm.nodes['n3'], "n4": fZp.nodes['n0'], "n5": fZp.nodes['n1'], "n6": fZp.nodes['n2'], "n7": fZp.nodes['n3']}
 
         mesh.cells.add(self)
 

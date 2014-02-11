@@ -25,6 +25,7 @@ class TestOcTreeObjects(unittest.TestCase):
             if s[2] == 'f' and len(s) == 5: return c.faces[s[2:]]
             if s[2] == 'f': return c.faces[s[2:5]].edges[s[5:]]
             if s[2] == 'e': return c.edges[s[2:]]
+            if s[2] == 'n': return c.nodes[s[2:]]
 
         self.q = q
 
@@ -135,6 +136,20 @@ class TestOcTreeObjects(unittest.TestCase):
         self.assertTrue(c1fYp.edges['e2'] is c0fXp.edges['e3'])
 
 
+    def test_nodePointers(self):
+        q = self.q
+        c0 = self.Mr.sortedCells[0]
+        c0n0 = c0.nodes['n0']
+        self.assertTrue(c0n0 is q('c0n0'))
+        self.assertTrue(np.all(q('c0n0').center == np.r_[0,0,0.]))
+        self.assertTrue(q('c0n0').num == 0)
+        self.assertTrue(q('c0n1').num == 1)
+        self.assertTrue(q('c0n2').num == 4)
+        self.assertTrue(q('c0n3').num == 5)
+        self.assertTrue(q('c0n4').num == 11)
+        self.assertTrue(q('c0n5').num == 12)
+        self.assertTrue(q('c0n6').num == 14)
+        self.assertTrue(q('c0n7').num == 15)
 
     def test_pointersMr(self):
         q = self.q
