@@ -1,3 +1,4 @@
+from SimPEG.Mesh import TensorMesh
 from SimPEG.Mesh.TreeMesh import TreeMesh, TreeFace, TreeCell
 import numpy as np
 import unittest
@@ -12,6 +13,21 @@ class TestOcTreeObjects(unittest.TestCase):
         self.Mr = TreeMesh([2,1,1])
         self.Mr.children[0,0,0].refine()
         self.Mr.number()
+
+
+        def q(s):
+            if s[0] == 'M':
+                m = self.M
+                s = s[1:]
+            else:
+                m = self.Mr
+            c = m.sortedCells[int(s[1])]
+            if len(s) == 2: return c
+            if s[2] == 'f' and len(s) == 5: return c.faces[s[2:]]
+            if s[2] == 'f': return c.faces[s[2:5]].edges[s[5:]]
+            if s[2] == 'e': return c.edges[s[2:]]
+
+        self.q = q
 
     def test_counts(self):
         self.assertTrue(self.M.nC == 2)
@@ -40,6 +56,18 @@ class TestOcTreeObjects(unittest.TestCase):
         self.assertTrue(self.Mr.nEx == 22)
         self.assertTrue(self.Mr.nEy == 20)
         self.assertTrue(self.Mr.nEz == 20)
+
+    def test_sizes(self):
+        q = self.q
+
+        for key in ['Mc0','Mc1']:
+            self.assertTrue(q(key).vol == 0.5)
+            self.assertTrue(q(key+'fXm').area == 1.)
+            self.assertTrue(q(key+'fXp').area == 1.)
+            self.assertTrue(q(key+'fYm').area == 0.5)
+            self.assertTrue(q(key+'fYp').area == 0.5)
+            self.assertTrue(q(key+'fZm').area == 0.5)
+            self.assertTrue(q(key+'fZp').area == 0.5)
 
     def test_pointersM(self):
         c0    = self.M.children[0,0,0]
@@ -118,17 +146,7 @@ class TestOcTreeObjects(unittest.TestCase):
         cell.plotGrid(ax)
         # plt.show()
 
-        def q(s):
-            if s[0] == 'M':
-                m = self.M
-                s = s[1:]
-            else:
-                m = self.Mr
-            c = m.sortedCells[int(s[1])]
-            if len(s) == 2: return c
-            if s[2] == 'f' and len(s) == 5: return c.faces[s[2:]]
-            if s[2] == 'f': return c.faces[s[2:5]].edges[s[5:]]
-            if s[2] == 'e': return c.edges[s[2:]]
+        q = self.q
 
         c0    = self.Mr.sortedCells[0]
         c0fXm = c0.faces['fXm']
@@ -464,6 +482,19 @@ class TestQuadTreeMesh(unittest.TestCase):
         y = np.r_[0.25,0.25,0.25,0.5,0.5,0.75,0.75,0.75,1.5,1.5,1.5,1.5]
         self.assertTrue(np.linalg.norm((np.c_[x,y]-self.M.gridEy).flatten()) == 0)
 
+
+class SimpleOctreeOperatorTests(unittest.TestCase):
+
+    def setUp(self):
+        h1 = np.random.rand(5)
+        h2 = np.random.rand(7)
+        h3 = np.random.rand(3)
+        self.tM = TensorMesh([h1,h2,1])
+        self.oM = TreeMesh([h1,h2,1])
+
+    def test_faceDiv(self):
+        print (self.tM.faceDiv - self.oM.faceDiv)
+        self.assertTrue((self.tM.faceDiv - self.oM.faceDiv).toarray().sum() == 0)
 
 
 if __name__ == '__main__':

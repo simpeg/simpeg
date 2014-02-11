@@ -212,7 +212,7 @@ class TreeFace(TreeObject):
     def index(self):
         if not self.mesh.isNumbered: raise Exception('Mesh is not numbered.')
         if self.isleaf: return np.r_[self.num]
-        return np.concatenate([face.index for face in self.children])
+        return np.concatenate([face.index for face in self.children.flatten(order='F')])
 
     @property
     def area(self):
@@ -590,7 +590,7 @@ class TreeCell(TreeObject):
             j = self.faces[face].index
             i = j*0+self.num
             v = j*0+1
-            if 'p' in face:
+            if 'm' in face:
                 v *= -1
             I, J, V = np.r_[I,i], np.r_[J,j], np.r_[V,v]
         return I, J, V
@@ -671,7 +671,7 @@ class TreeMesh(object):
                         x0i = (np.r_[x0[0], h[0][:i]]).sum()
                         x0j = (np.r_[x0[1], h[1][:j]]).sum()
                         x0k = (np.r_[x0[2], h[2][:k]]).sum()
-                        self.children[i][j] = TreeCell(self, x0=[x0i, x0j, x0k], depth=0, sz=[h[0][i], h[1][j], h[2][k]], fXm=fXm, fYm=fYm, fZm=fZm)
+                        self.children[i][j][k] = TreeCell(self, x0=[x0i, x0j, x0k], depth=0, sz=[h[0][i], h[1][j], h[2][k]], fXm=fXm, fYm=fYm, fZm=fZm)
 
     isNumbered = Utils.dependentProperty('_isNumbered', False, ['_faceDiv'], 'Setting this to False will delete all operators.')
 
@@ -833,19 +833,24 @@ class TreeMesh(object):
     @property
     def area(self):
         self.number()
-        return np.concatenate(([face.area for face in self.sortedFaceX],[face.area for face in self.sortedFaceY]))
+        if self.dim == 2:
+            faces = self.sortedFaceX + self.sortedFaceY
+        elif self.dim == 3:
+            faces = self.sortedFaceX + self.sortedFaceY + self.sortedFaceZ
+        return np.array([face.area for face in faces], dtype=float)
 
     @property
     def faceDiv(self):
         if getattr(self, '_faceDiv', None) is None:
             self.number()
+            # TODO: Preallocate!
             I, J, V = np.empty(0), np.empty(0), np.empty(0)
-            for cell in M.sortedCells:
+            for cell in self.sortedCells:
                 i, j, v = cell.faceIndex
                 I, J, V = np.r_[I,i], np.r_[J,j], np.r_[V,v]
 
             VOL = self.vol
-            D = sp.csr_matrix((V,(I,J)), shape=(M.nC, M.nF))
+            D = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.nF))
             S = self.area
             self._faceDiv = Utils.sdiag(1/VOL)*D*Utils.sdiag(S)
         return self._faceDiv
