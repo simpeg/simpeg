@@ -36,7 +36,7 @@ class TestOcTreeObjects(unittest.TestCase):
             for e in cell.edges:
                 self.assertTrue(cell.edges[e].edgeType==e[1].lower())
 
-        # self.assertTrue(self.Mr.nN == 22)
+        self.assertTrue(self.Mr.nN == 31)
         self.assertTrue(self.Mr.nEx == 22)
         self.assertTrue(self.Mr.nEy == 20)
         self.assertTrue(self.Mr.nEz == 20)
@@ -261,6 +261,17 @@ class TestOcTreeObjects(unittest.TestCase):
         y = np.r_[0.25,0.25,0.5,0.75,0.75,0.25,0.25,0.75,0.75]
         z = np.r_[0.25,0.25,0.5,0.25,0.25,0.75,0.75,0.75,0.75]
         self.assertTrue(np.linalg.norm((np.c_[x,y,z]-self.Mr.gridCC).flatten()) == 0)
+
+    def test_gridN(self):
+        x = np.r_[0,0.5,1,0,0.5,1,0,0.5,1,0,0.5,1]
+        y = np.r_[0,0,0,1,1,1,0,0,0,1,1,1.]
+        z = np.r_[0,0,0,0,0,0,1,1,1,1,1,1.]
+        self.assertTrue(np.linalg.norm((np.c_[x,y,z]-self.M.gridN).flatten()) == 0)
+
+        x = np.r_[0,0.25,0.5,1,0,0.25,0.5,0,0.25,0.5,1,0,0.25,0.5,0,0.25,0.5,0,0.25,0.5,0,0.25,0.5,1,0,0.25,0.5,0,0.25,0.5,1]
+        y = np.r_[0,0,0,0,0.5,0.5,0.5,1,1,1,1,0,0,0,0.5,0.5,0.5,1,1,1,0,0,0,0,0.5,0.5,0.5,1,1,1,1]
+        z = np.r_[0,0,0,0,0,0,0,0,0,0,0,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,1,1,1,1,1,1,1,1,1,1,1]
+        self.assertTrue(np.linalg.norm((np.c_[x,y,z]-self.Mr.gridN).flatten()) == 0)
 
     def test_gridFx(self):
         x = np.r_[0.0,0.5,1.0]
