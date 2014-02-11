@@ -122,7 +122,7 @@ class InnerProducts(object):
 #    node(i+1,j,k) ------ edge2(i+1,j,k) ----- node(i+1,j+1,k)
 
 
-def getFaceInnerProduct(mesh, mu=None, returnP=False):
+def getFaceInnerProduct(M, mu=None, returnP=False):
     """
         :param numpy.array mu: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
         :param bool returnP: returns the projection matrices
@@ -157,34 +157,31 @@ def getFaceInnerProduct(mesh, mu=None, returnP=False):
     """
 
     if mu is None:  # default is ones
-        mu = np.ones((mesh.nC, 1))
+        mu = np.ones((M.nC, 1))
 
-    m = np.array([mesh.nCx, mesh.nCy, mesh.nCz])
-    nc = mesh.nC
-
-    i, j, k = np.int64(range(m[0])), np.int64(range(m[1])), np.int64(range(m[2]))
+    i, j, k = np.int64(range(M.nCx)), np.int64(range(M.nCy)), np.int64(range(M.nCz))
 
     iijjkk = ndgrid(i, j, k)
     ii, jj, kk = iijjkk[:, 0], iijjkk[:, 1], iijjkk[:, 2]
 
-    if mesh._meshType == 'LOM':
-        fN1 = mesh.r(mesh.normals, 'F', 'Fx', 'M')
-        fN2 = mesh.r(mesh.normals, 'F', 'Fy', 'M')
-        fN3 = mesh.r(mesh.normals, 'F', 'Fz', 'M')
+    if M._meshType == 'LOM':
+        fN1 = M.r(M.normals, 'F', 'Fx', 'M')
+        fN2 = M.r(M.normals, 'F', 'Fy', 'M')
+        fN3 = M.r(M.normals, 'F', 'Fz', 'M')
 
-    def Pxxx(pos):
-        ind1 = sub2ind(mesh.nFx, np.c_[ii + pos[0][0], jj + pos[0][1], kk + pos[0][2]])
-        ind2 = sub2ind(mesh.nFy, np.c_[ii + pos[1][0], jj + pos[1][1], kk + pos[1][2]]) + mesh.nFv[0]
-        ind3 = sub2ind(mesh.nFz, np.c_[ii + pos[2][0], jj + pos[2][1], kk + pos[2][2]]) + mesh.nFv[0] + mesh.nFv[1]
+    def Pxxx(posX, posY, posZ):
+        ind1 = sub2ind(M.nFx, np.c_[ii + posX[0], jj + posX[1], kk + posX[2]])
+        ind2 = sub2ind(M.nFy, np.c_[ii + posY[0], jj + posY[1], kk + posY[2]]) + M.nFv[0]
+        ind3 = sub2ind(M.nFz, np.c_[ii + posZ[0], jj + posZ[1], kk + posZ[2]]) + M.nFv[0] + M.nFv[1]
 
         IND = np.r_[ind1, ind2, ind3].flatten()
 
-        PXXX = sp.coo_matrix((np.ones(3*nc), (range(3*nc), IND)), shape=(3*nc, np.sum(mesh.nF))).tocsr()
+        PXXX = sp.coo_matrix((np.ones(3*M.nC), (range(3*M.nC), IND)), shape=(3*M.nC, np.sum(M.nF))).tocsr()
 
-        if mesh._meshType == 'LOM':
-            I3x3 = inv3X3BlockDiagonal(getSubArray(fN1[0], [i + pos[0][0], j + pos[0][1], k + pos[0][2]]), getSubArray(fN1[1], [i + pos[0][0], j + pos[0][1], k + pos[0][2]]), getSubArray(fN1[2], [i + pos[0][0], j + pos[0][1], k + pos[0][2]]),
-                                       getSubArray(fN2[0], [i + pos[1][0], j + pos[1][1], k + pos[1][2]]), getSubArray(fN2[1], [i + pos[1][0], j + pos[1][1], k + pos[1][2]]), getSubArray(fN2[2], [i + pos[1][0], j + pos[1][1], k + pos[1][2]]),
-                                       getSubArray(fN3[0], [i + pos[2][0], j + pos[2][1], k + pos[2][2]]), getSubArray(fN3[1], [i + pos[2][0], j + pos[2][1], k + pos[2][2]]), getSubArray(fN3[2], [i + pos[2][0], j + pos[2][1], k + pos[2][2]]))
+        if M._meshType == 'LOM':
+            I3x3 = inv3X3BlockDiagonal(getSubArray(fN1[0], [i + posX[0], j + posX[1], k + posX[2]]), getSubArray(fN1[1], [i + posX[0], j + posX[1], k + posX[2]]), getSubArray(fN1[2], [i + posX[0], j + posX[1], k + posX[2]]),
+                                       getSubArray(fN2[0], [i + posY[0], j + posY[1], k + posY[2]]), getSubArray(fN2[1], [i + posY[0], j + posY[1], k + posY[2]]), getSubArray(fN2[2], [i + posY[0], j + posY[1], k + posY[2]]),
+                                       getSubArray(fN3[0], [i + posZ[0], j + posZ[1], k + posZ[2]]), getSubArray(fN3[1], [i + posZ[0], j + posZ[1], k + posZ[2]]), getSubArray(fN3[2], [i + posZ[0], j + posZ[1], k + posZ[2]]))
             PXXX = I3x3 * PXXX
 
         return PXXX
@@ -200,19 +197,19 @@ def getFaceInnerProduct(mesh, mu=None, returnP=False):
     # 111 | i+1,j+1,k+1 | i+1, j, k | i, j+1, k | i, j, k+1
 
     # Square root of cell volume multiplied by 1/8
-    v = np.sqrt(0.125*mesh.vol)
+    v = np.sqrt(0.125*M.vol)
     V3 = sdiag(np.r_[v, v, v])  # We will multiply on each side to keep symmetry
 
-    P000 = V3*Pxxx([[0, 0, 0], [0, 0, 0], [0, 0, 0]])
-    P100 = V3*Pxxx([[1, 0, 0], [0, 0, 0], [0, 0, 0]])
-    P010 = V3*Pxxx([[0, 0, 0], [0, 1, 0], [0, 0, 0]])
-    P110 = V3*Pxxx([[1, 0, 0], [0, 1, 0], [0, 0, 0]])
-    P001 = V3*Pxxx([[0, 0, 0], [0, 0, 0], [0, 0, 1]])
-    P101 = V3*Pxxx([[1, 0, 0], [0, 0, 0], [0, 0, 1]])
-    P011 = V3*Pxxx([[0, 0, 0], [0, 1, 0], [0, 0, 1]])
-    P111 = V3*Pxxx([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+    P000 = V3*Pxxx([0, 0, 0], [0, 0, 0], [0, 0, 0])
+    P100 = V3*Pxxx([1, 0, 0], [0, 0, 0], [0, 0, 0])
+    P010 = V3*Pxxx([0, 0, 0], [0, 1, 0], [0, 0, 0])
+    P110 = V3*Pxxx([1, 0, 0], [0, 1, 0], [0, 0, 0])
+    P001 = V3*Pxxx([0, 0, 0], [0, 0, 0], [0, 0, 1])
+    P101 = V3*Pxxx([1, 0, 0], [0, 0, 0], [0, 0, 1])
+    P011 = V3*Pxxx([0, 0, 0], [0, 1, 0], [0, 0, 1])
+    P111 = V3*Pxxx([1, 0, 0], [0, 1, 0], [0, 0, 1])
 
-    if mu.size == mesh.nC:  # Isotropic!
+    if mu.size == M.nC:  # Isotropic!
         mu = mkvc(mu)  # ensure it is a vector.
         Mu = sdiag(np.r_[mu, mu, mu])
     elif mu.shape[1] == 3:  # Diagonal tensor
@@ -231,6 +228,9 @@ def getFaceInnerProduct(mesh, mu=None, returnP=False):
         return A
 
 def _getFacePxx(M):
+    if M._meshType == 'TREE':
+        return M._getFacePxx
+
     return _getFacePxx_Rectangular(M)
 
 def _getFacePxx_Rectangular(M):
@@ -371,7 +371,7 @@ def getFaceInnerProduct2D(M, mu=None, returnP=False):
         return A
 
 
-def getEdgeInnerProduct(mesh, sigma=None, returnP=False):
+def getEdgeInnerProduct(M, sigma=None, returnP=False):
     """
         :param numpy.array sigma: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
         :param bool returnP: returns the projection matrices
@@ -409,31 +409,31 @@ def getEdgeInnerProduct(mesh, sigma=None, returnP=False):
     """
 
     if sigma is None:  # default is ones
-        sigma = np.ones((mesh.nC, 1))
+        sigma = np.ones((M.nC, 1))
 
-    i, j, k = np.int64(range(mesh.nCx)), np.int64(range(mesh.nCy)), np.int64(range(mesh.nCz))
+    i, j, k = np.int64(range(M.nCx)), np.int64(range(M.nCy)), np.int64(range(M.nCz))
 
     iijjkk = ndgrid(i, j, k)
     ii, jj, kk = iijjkk[:, 0], iijjkk[:, 1], iijjkk[:, 2]
 
-    if mesh._meshType == 'LOM':
-        eT1 = mesh.r(mesh.tangents, 'E', 'Ex', 'M')
-        eT2 = mesh.r(mesh.tangents, 'E', 'Ey', 'M')
-        eT3 = mesh.r(mesh.tangents, 'E', 'Ez', 'M')
+    if M._meshType == 'LOM':
+        eT1 = M.r(M.tangents, 'E', 'Ex', 'M')
+        eT2 = M.r(M.tangents, 'E', 'Ey', 'M')
+        eT3 = M.r(M.tangents, 'E', 'Ez', 'M')
 
-    def Pxxx(pos):
-        ind1 = sub2ind(mesh.nEx, np.c_[ii + pos[0][0], jj + pos[0][1], kk + pos[0][2]])
-        ind2 = sub2ind(mesh.nEy, np.c_[ii + pos[1][0], jj + pos[1][1], kk + pos[1][2]]) + mesh.nEv[0]
-        ind3 = sub2ind(mesh.nEz, np.c_[ii + pos[2][0], jj + pos[2][1], kk + pos[2][2]]) + mesh.nEv[0] + mesh.nEv[1]
+    def Pxxx(posX, posY, posZ):
+        ind1 = sub2ind(M.nEx, np.c_[ii + posX[0], jj + posX[1], kk + posX[2]])
+        ind2 = sub2ind(M.nEy, np.c_[ii + posY[0], jj + posY[1], kk + posY[2]]) + M.nEv[0]
+        ind3 = sub2ind(M.nEz, np.c_[ii + posZ[0], jj + posZ[1], kk + posZ[2]]) + M.nEv[0] + M.nEv[1]
 
         IND = np.r_[ind1, ind2, ind3].flatten()
 
-        PXXX = sp.coo_matrix((np.ones(3*mesh.nC), (range(3*mesh.nC), IND)), shape=(3*mesh.nC, np.sum(mesh.nE))).tocsr()
+        PXXX = sp.coo_matrix((np.ones(3*M.nC), (range(3*M.nC), IND)), shape=(3*M.nC, np.sum(M.nE))).tocsr()
 
-        if mesh._meshType == 'LOM':
-            I3x3 = inv3X3BlockDiagonal(getSubArray(eT1[0], [i + pos[0][0], j + pos[0][1], k + pos[0][2]]), getSubArray(eT1[1], [i + pos[0][0], j + pos[0][1], k + pos[0][2]]), getSubArray(eT1[2], [i + pos[0][0], j + pos[0][1], k + pos[0][2]]),
-                                       getSubArray(eT2[0], [i + pos[1][0], j + pos[1][1], k + pos[1][2]]), getSubArray(eT2[1], [i + pos[1][0], j + pos[1][1], k + pos[1][2]]), getSubArray(eT2[2], [i + pos[1][0], j + pos[1][1], k + pos[1][2]]),
-                                       getSubArray(eT3[0], [i + pos[2][0], j + pos[2][1], k + pos[2][2]]), getSubArray(eT3[1], [i + pos[2][0], j + pos[2][1], k + pos[2][2]]), getSubArray(eT3[2], [i + pos[2][0], j + pos[2][1], k + pos[2][2]]))
+        if M._meshType == 'LOM':
+            I3x3 = inv3X3BlockDiagonal(getSubArray(eT1[0], [i + posX[0], j + posX[1], k + posX[2]]), getSubArray(eT1[1], [i + posX[0], j + posX[1], k + posX[2]]), getSubArray(eT1[2], [i + posX[0], j + posX[1], k + posX[2]]),
+                                       getSubArray(eT2[0], [i + posY[0], j + posY[1], k + posY[2]]), getSubArray(eT2[1], [i + posY[0], j + posY[1], k + posY[2]]), getSubArray(eT2[2], [i + posY[0], j + posY[1], k + posY[2]]),
+                                       getSubArray(eT3[0], [i + posZ[0], j + posZ[1], k + posZ[2]]), getSubArray(eT3[1], [i + posZ[0], j + posZ[1], k + posZ[2]]), getSubArray(eT3[2], [i + posZ[0], j + posZ[1], k + posZ[2]]))
             PXXX = I3x3 * PXXX
 
         return PXXX
@@ -449,19 +449,19 @@ def getEdgeInnerProduct(mesh, sigma=None, returnP=False):
     # 111 | i+1,j+1,k+1 | i  ,j+1,k+1 | i+1,j  ,k+1 | i+1,j+1,k
 
     # Square root of cell volume multiplied by 1/8
-    v = np.sqrt(0.125*mesh.vol)
+    v = np.sqrt(0.125*M.vol)
     V3 = sdiag(np.r_[v, v, v])  # We will multiply on each side to keep symmetry
 
-    P000 = V3*Pxxx([[0, 0, 0], [0, 0, 0], [0, 0, 0]])
-    P100 = V3*Pxxx([[0, 0, 0], [1, 0, 0], [1, 0, 0]])
-    P010 = V3*Pxxx([[0, 1, 0], [0, 0, 0], [0, 1, 0]])
-    P110 = V3*Pxxx([[0, 1, 0], [1, 0, 0], [1, 1, 0]])
-    P001 = V3*Pxxx([[0, 0, 1], [0, 0, 1], [0, 0, 0]])
-    P101 = V3*Pxxx([[0, 0, 1], [1, 0, 1], [1, 0, 0]])
-    P011 = V3*Pxxx([[0, 1, 1], [0, 0, 1], [0, 1, 0]])
-    P111 = V3*Pxxx([[0, 1, 1], [1, 0, 1], [1, 1, 0]])
+    P000 = V3*Pxxx([0, 0, 0], [0, 0, 0], [0, 0, 0])
+    P100 = V3*Pxxx([0, 0, 0], [1, 0, 0], [1, 0, 0])
+    P010 = V3*Pxxx([0, 1, 0], [0, 0, 0], [0, 1, 0])
+    P110 = V3*Pxxx([0, 1, 0], [1, 0, 0], [1, 1, 0])
+    P001 = V3*Pxxx([0, 0, 1], [0, 0, 1], [0, 0, 0])
+    P101 = V3*Pxxx([0, 0, 1], [1, 0, 1], [1, 0, 0])
+    P011 = V3*Pxxx([0, 1, 1], [0, 0, 1], [0, 1, 0])
+    P111 = V3*Pxxx([0, 1, 1], [1, 0, 1], [1, 1, 0])
 
-    if sigma.size == mesh.nC:  # Isotropic!
+    if sigma.size == M.nC:  # Isotropic!
         sigma = mkvc(sigma)  # ensure it is a vector.
         Sigma = sdiag(np.r_[sigma, sigma, sigma])
     elif sigma.shape[1] == 3:  # Diagonal tensor
@@ -480,7 +480,7 @@ def getEdgeInnerProduct(mesh, sigma=None, returnP=False):
         return A
 
 
-def getEdgeInnerProduct2D(mesh, sigma=None, returnP=False):
+def getEdgeInnerProduct2D(M, sigma=None, returnP=False):
     """
         :param numpy.array sigma: material property (tensor properties are possible) at each cell center (nC, (1, 2, or 3))
         :param bool returnP: returns the projection matrices
@@ -519,31 +519,28 @@ def getEdgeInnerProduct2D(mesh, sigma=None, returnP=False):
     """
 
     if sigma is None:  # default is ones
-        sigma = np.ones((mesh.nC, 1))
+        sigma = np.ones((M.nC, 1))
 
-    m = np.array([mesh.nCx, mesh.nCy])
-    nc = mesh.nC
-
-    i, j = np.int64(range(m[0])), np.int64(range(m[1]))
+    i, j = np.int64(range(M.nCx)), np.int64(range(M.nCy))
 
     iijj = ndgrid(i, j)
     ii, jj = iijj[:, 0], iijj[:, 1]
 
-    if mesh._meshType == 'LOM':
-        eT1 = mesh.r(mesh.tangents, 'E', 'Ex', 'M')
-        eT2 = mesh.r(mesh.tangents, 'E', 'Ey', 'M')
+    if M._meshType == 'LOM':
+        eT1 = M.r(M.tangents, 'E', 'Ex', 'M')
+        eT2 = M.r(M.tangents, 'E', 'Ey', 'M')
 
-    def Pxx(pos):
-        ind1 = sub2ind(mesh.nEx, np.c_[ii + pos[0][0], jj + pos[0][1]])
-        ind2 = sub2ind(mesh.nEy, np.c_[ii + pos[1][0], jj + pos[1][1]]) + mesh.nEv[0]
+    def Pxx(posX, posY):
+        ind1 = sub2ind(M.nEx, np.c_[ii + posX[0], jj + posX[1]])
+        ind2 = sub2ind(M.nEy, np.c_[ii + posY[0], jj + posY[1]]) + M.nEv[0]
 
         IND = np.r_[ind1, ind2].flatten()
 
-        PXX = sp.coo_matrix((np.ones(2*nc), (range(2*nc), IND)), shape=(2*nc, np.sum(mesh.nE))).tocsr()
+        PXX = sp.coo_matrix((np.ones(2*M.nC), (range(2*M.nC), IND)), shape=(2*M.nC, np.sum(M.nE))).tocsr()
 
-        if mesh._meshType == 'LOM':
-            I2x2 = inv2X2BlockDiagonal(getSubArray(eT1[0], [i + pos[0][0], j + pos[0][1]]), getSubArray(eT1[1], [i + pos[0][0], j + pos[0][1]]),
-                                       getSubArray(eT2[0], [i + pos[1][0], j + pos[1][1]]), getSubArray(eT2[1], [i + pos[1][0], j + pos[1][1]]))
+        if M._meshType == 'LOM':
+            I2x2 = inv2X2BlockDiagonal(getSubArray(eT1[0], [i + posX[0], j + posX[1]]), getSubArray(eT1[1], [i + posX[0], j + posX[1]]),
+                                       getSubArray(eT2[0], [i + posY[0], j + posY[1]]), getSubArray(eT2[1], [i + posY[0], j + posY[1]]))
             PXX = I2x2 * PXX
 
         return PXX
@@ -555,15 +552,15 @@ def getEdgeInnerProduct2D(mesh, sigma=None, returnP=False):
     # 11 | i+1,j+1   | i  ,j+1 | i+1,j
 
     # Square root of cell volume multiplied by 1/4
-    v = np.sqrt(0.25*mesh.vol)
+    v = np.sqrt(0.25*M.vol)
     V2 = sdiag(np.r_[v, v])  # We will multiply on each side to keep symmetry
 
-    P00 = V2*Pxx([[0, 0], [0, 0]])
-    P10 = V2*Pxx([[0, 0], [1, 0]])
-    P01 = V2*Pxx([[0, 1], [0, 0]])
-    P11 = V2*Pxx([[0, 1], [1, 0]])
+    P00 = V2*Pxx([0, 0], [0, 0])
+    P10 = V2*Pxx([0, 0], [1, 0])
+    P01 = V2*Pxx([0, 1], [0, 0])
+    P11 = V2*Pxx([0, 1], [1, 0])
 
-    if sigma.size == mesh.nC:  # Isotropic!
+    if sigma.size == M.nC:  # Isotropic!
         sigma = mkvc(sigma)  # ensure it is a vector.
         Sigma = sdiag(np.r_[sigma, sigma])
     elif sigma.shape[1] == 2:  # Diagonal tensor
@@ -584,7 +581,7 @@ def getEdgeInnerProduct2D(mesh, sigma=None, returnP=False):
 if __name__ == '__main__':
     from TensorMesh import TensorMesh
     h = [np.array([1, 2, 3, 4]), np.array([1, 2, 1, 4, 2]), np.array([1, 1, 4, 1])]
-    mesh = TensorMesh(h)
-    mu = np.ones((mesh.nC, 6))
-    A, P = mesh.getFaceInnerProduct(mu, returnP=True)
-    B, P = mesh.getEdgeInnerProduct(mu, returnP=True)
+    M = TensorMesh(h)
+    mu = np.ones((M.nC, 6))
+    A, P = M.getFaceInnerProduct(mu, returnP=True)
+    B, P = M.getEdgeInnerProduct(mu, returnP=True)
