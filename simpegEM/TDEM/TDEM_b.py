@@ -70,7 +70,9 @@ class ProblemTDEM_b(ProblemBaseTDEM):
     # Functions for tests
     ####################################################
 
-    def AhVec(self, m, u):
+    def AhVec(self, m, u=None):
+        if u is None:
+            u = self.fields(m)
         self.makeMassMatrices(m)
         dt = self.getDt(0)
         b = 1/dt*u.get_b(0) + self.mesh.edgeCurl*u.get_e(0)
@@ -124,26 +126,26 @@ if __name__ == '__main__':
     # Ahu = prb.AhVec(sigma, u)
 
     # Random fields
-    f = FieldsTDEM(prb.mesh, 1, prb.times.size, 'b')
-    for i in range(f.nTimes):
-        f.set_b(np.random.rand(mesh.nF, 1), i)
-        f.set_e(np.random.rand(mesh.nE, 1), i)
-
-
     sigma = np.random.rand(mesh.nCz)
+    # f = FieldsTDEM(prb.mesh, 1, prb.times.size, 'b')
+    # for i in range(f.nTimes):
+        # f.set_b(np.random.rand(mesh.nF, 1), i)
+        # f.set_e(np.random.rand(mesh.nE, 1), i)
+    f = prb.fields(sigma)
+
     dm = np.random.rand(mesh.nCz)
 
-    for h in np.logspace(30, 10, 20):
+    for h in np.logspace(0, -10, 10):
         # print h
         a = np.linalg.norm(prb.AhVec(sigma+h*dm, f).fieldVec() - prb.AhVec(sigma, f).fieldVec())
         b = np.linalg.norm(prb.AhVec(sigma+h*dm, f).fieldVec() - prb.AhVec(sigma, f).fieldVec() - h*prb.G(sigma, dm, u=f).fieldVec())
         print a, b, b/a
     # print 
     # h = 1.
-    # plt.semilogy(-prb.AhVec(sigma+h*dm, f).fieldVec() + prb.AhVec(sigma, f).fieldVec(), 'ko')
-    # plt.semilogy(-prb.G(sigma, dm, u=f).fieldVec(), 'rx')
+    plt.semilogy(np.abs(prb.AhVec(sigma+h*dm,f).fieldVec() - prb.AhVec(sigma, f).fieldVec()), 'ko')
+    plt.semilogy(np.abs(h*prb.G(sigma, dm, u=f).fieldVec()), 'rx')
     # plt.semilogy(prb.AhVec(sigma+h*dm, f).fieldVec() - prb.AhVec(sigma, f).fieldVec() - h*prb.G(sigma, dm, u=f).fieldVec(),'ko')
-    # plt.show()
+    plt.show()
 
     # plt.show()
 
