@@ -73,7 +73,7 @@ class BaseObjFunction(object):
         self.u_current = None
         self.m_current = m
 
-        u = self.data.prob.field(m)
+        u = self.data.prob.fields(m)
         self.u_current = u
 
         phi_d = self.dataObj(m, u=u)
@@ -160,7 +160,7 @@ class BaseObjFunction(object):
                 \\frac{\partial \mu_\\text{data}}{\partial \mathbf{m}} = \mathbf{J}^\\top \mathbf{W \circ R}
 
         """
-        if u is None: u = self.data.prob.field(m)
+        if u is None: u = self.data.prob.fields(m)
 
         R = self.data.residualWeighted(m, u=u)
 
@@ -204,7 +204,7 @@ class BaseObjFunction(object):
                 \\frac{\partial^2 \mu_\\text{data}}{\partial^2 \mathbf{m}} = \mathbf{J}^\\top \mathbf{W \circ W J}
 
         """
-        if u is None: u = self.data.prob.field(m)
+        if u is None: u = self.data.prob.fields(m)
 
         R = self.data.residualWeighted(m, u=u)
 
