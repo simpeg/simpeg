@@ -29,9 +29,11 @@ class FieldsTDEM(object):
         self.set_e(newFields['e'], tInd)
 
     def fieldVec(self):
-        u = np.ndarray((0,self.nTx))
+        u = np.ndarray((0, self.nTx))
         for i in range(self.nTimes):
             u = np.r_[u, self.get_b(i), self.get_e(i)]
+        if self.nTx == 1:
+            u = u.flatten()
         return u
 
     ####################################################
