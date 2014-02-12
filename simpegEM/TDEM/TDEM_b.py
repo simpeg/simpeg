@@ -1,5 +1,5 @@
 from BaseTDEM import ProblemBaseTDEM
-from BaseTDEM import FieldsTDEM
+from FieldsTDEM import FieldsTDEM
 import numpy as np
 
 class ProblemTDEM_b(ProblemBaseTDEM):
