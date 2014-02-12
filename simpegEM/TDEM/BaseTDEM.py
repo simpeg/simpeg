@@ -21,7 +21,7 @@ class DataTDEM1D(BaseData):
         BaseData.__init__(self, **kwargs)
         Utils.setKwargs(self, **kwargs)
 
-    def projectField(self, u):
+    def projectFields(self, u):
         return self.Qrx.dot(u.b[:,:,0].T)
 
     ####################################################
@@ -39,7 +39,7 @@ class DataTDEM1D(BaseData):
 
 class MixinInitialFieldCalc(object):
     """docstring for MixinInitialFieldCalc"""
-                        
+
     def getInitialFields(self):
         if self.data.txType == 'VMD_MVP':
             # Vertical magnetic dipole, magnetic vector potential
@@ -57,7 +57,7 @@ class MixinInitialFieldCalc(object):
             MVPy = Sources.MagneticDipoleVectorPotential(self.data.txLoc, self.mesh.gridEy, 'y')
             MVPz = Sources.MagneticDipoleVectorPotential(self.data.txLoc, self.mesh.gridEz, 'z')
             MVP = np.concatenate((MVPx, MVPy, MVPz))
-        
+
         # Initialize field object
         F = FieldsTDEM(self.mesh, 1, self.times.size, 'b')
 
@@ -68,7 +68,7 @@ class MixinInitialFieldCalc(object):
 
 class MixinTimeStuff(object):
     """docstring for MixinTimeStuff"""
-    
+
     def dt():
         doc = "Size of time steps"
         def fget(self):
@@ -106,7 +106,7 @@ class MixinTimeStuff(object):
         assert dt.size==nsteps.size, "dt, nsteps must be same length"
         self._dt = dt
         self._nsteps = nsteps
-        
+
 class ProblemBaseTDEM(MixinTimeStuff, MixinInitialFieldCalc, BaseProblem):
     """docstring for ProblemTDEM1D"""
     def __init__(self, mesh, model, **kwargs):
@@ -152,10 +152,10 @@ class ProblemBaseTDEM(MixinTimeStuff, MixinInitialFieldCalc, BaseProblem):
             raise NotImplementedError(errStr)
 
         return {'b':b, 'e':e}
-        
+
     solveOpts = {'factorize':True,'backend':'scipy'}
 
-    def field(self, m, useThisRhs=None, useThisCalcFields=None):
+    def fields(self, m, useThisRhs=None, useThisCalcFields=None):
         RHS = useThisRhs or self.getRHS
         CalcFields = useThisCalcFields or self.calcFields
 
@@ -169,7 +169,7 @@ class ProblemBaseTDEM(MixinTimeStuff, MixinInitialFieldCalc, BaseProblem):
                 dtFact = dt
                 A = self.getA(tInd)
                 # print 'Factoring...   (dt = ' + str(dt) + ')'
-                Asolve = Solver(A,options=self.solveOpts) 
+                Asolve = Solver(A, options=self.solveOpts)
                 # print 'Done'
             rhs = RHS(tInd, F)
             sol = Asolve.solve(rhs)
@@ -180,7 +180,7 @@ class ProblemBaseTDEM(MixinTimeStuff, MixinInitialFieldCalc, BaseProblem):
         return F
 
 
-        
+
 class FieldsTDEM(object):
     """docstring for FieldsTDEM"""
 
@@ -199,7 +199,7 @@ class FieldsTDEM(object):
     h = None #: Magnetic field
 
     def __init__(self, mesh, nTx, nTimes, store):
-        
+
         self.nTimes = nTimes #: Number of times
         self.nTx = nTx #: Number of transmitters
         self.mesh = mesh
@@ -210,7 +210,7 @@ class FieldsTDEM(object):
 
     ####################################################
     # Get Methods
-    ####################################################        
+    ####################################################
 
     def get_b(self, ind):
         if ind == -1:
@@ -226,7 +226,7 @@ class FieldsTDEM(object):
 
     ####################################################
     # Set Methods
-    ####################################################        
+    ####################################################
 
     def set_b(self, b, ind):
         if self.b is None:
