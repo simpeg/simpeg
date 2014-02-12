@@ -64,7 +64,7 @@ class ProblemTDEM_b(ProblemBaseTDEM):
 
     def solveAh(self, m, p):
         def AhRHS(tInd, u):
-            rhs = self.MfMui*self.mesh.edgeCurl*self.MeSigmaI*p.get_e(tInd)
+            rhs = self.MfMui*self.mesh.edgeCurl*self.MeSigmaI*p.get_e(tInd) + self.MfMui*p.get_b(tInd)
             if tInd == 0:
                 return rhs
             dt = self.getDt(tInd)
@@ -131,8 +131,6 @@ if __name__ == '__main__':
     prb.pair(dat)
     sigma = np.random.rand(mesh.nCz)
 
-
-
     f = FieldsTDEM(prb.mesh, 1, prb.times.size, 'b')
     for i in range(f.nTimes):
         f.set_b(np.zeros((mesh.nF, 1)), i)
@@ -140,6 +138,8 @@ if __name__ == '__main__':
 
     Ahf = prb.AhVec(sigma, f)
     f_test = prb.solveAh(sigma, Ahf)
+
+    print np.linalg.norm(f.fieldVec() - f_test.fieldVec())
 
     e0 = f.get_e(0)
     e1 = f_test.get_e(0)
