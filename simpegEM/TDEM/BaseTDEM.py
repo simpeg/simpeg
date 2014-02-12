@@ -2,6 +2,8 @@ from SimPEG import Utils, Solver
 from SimPEG.Data import BaseData
 from SimPEG.Problem import BaseProblem
 from simpegEM.Utils import Sources
+from scipy.constants import mu_0
+from SimPEG.Utils import sdiag, mkvc
 import numpy as np
 
 class DataTDEM1D(BaseData):
@@ -19,9 +21,8 @@ class DataTDEM1D(BaseData):
         BaseData.__init__(self, **kwargs)
         Utils.setKwargs(self, **kwargs)
 
-    def dpred(self, sigma, F=None):
-        if F is None: F = self.prob.field(sigma)
-        return self.Qrx.dot(F.b[:,:,0].T)
+    def projectField(self, u):
+        return self.Qrx.dot(u.b[:,:,0].T)
 
     ####################################################
     # Interpolation Matrices
@@ -110,10 +111,56 @@ class ProblemBaseTDEM(MixinTimeStuff, MixinInitialFieldCalc, BaseProblem):
     """docstring for ProblemTDEM1D"""
     def __init__(self, mesh, model, **kwargs):
         BaseProblem.__init__(self, mesh, model, **kwargs)
+
+
+    ####################################################
+    # Physical Properties
+    ####################################################
+
+    @property
+    def sigma(self):
+        return self._sigma
+    @sigma.setter
+    def sigma(self, value):
+        self._sigma = value
+    _sigma = None
+
+    ####################################################
+    # Mass Matrices
+    ####################################################
+
+    @property
+    def MfMui(self): return self._MfMui
+
+    @property
+    def MeSigmaI(self): return self._MeSigmaI
+
+    def makeMassMatrices(self, m):
+        MeSigma = self.mesh.getMass(m, loc='e')
+        self._MeSigmaI = sdiag(1/MeSigma.diagonal())
+        self._MfMui = self.mesh.getMass(1/mu_0, loc='f')
+
+
+    def calcFields(self, sol, solType, tInd):
+
+        if solType == 'b':
+            b = sol
+            e = self.MeSigmaI*self.mesh.edgeCurl.T*self.MfMui*b
+            # Todo: implement non-zero js
+        else:
+            errStr = 'solType: ' + solType
+            raise NotImplementedError(errStr)
+
+        return {'b':b, 'e':e}
         
     solveOpts = {'factorize':True,'backend':'scipy'}
 
-    def field(self, m):
+    def field(self, m, useThisRhs=None, useThisCalcFields=None):
+        RHS = useThisRhs or self.getRHS
+        CalcFields = useThisCalcFields or self.calcFields
+
+        self.makeMassMatrices(m)
+
         F = self.getInitialFields()
         dtFact = None
         for tInd, t in enumerate(self.times):
@@ -121,15 +168,18 @@ class ProblemBaseTDEM(MixinTimeStuff, MixinInitialFieldCalc, BaseProblem):
             if dt!=dtFact:
                 dtFact = dt
                 A = self.getA(tInd)
-                print 'Factoring...   (dt = ' + str(dt) + ')'
+                # print 'Factoring...   (dt = ' + str(dt) + ')'
                 Asolve = Solver(A,options=self.solveOpts) 
-                print 'Done'
-            rhs = self.getRHS(tInd, F)
+                # print 'Done'
+            rhs = RHS(tInd, F)
             sol = Asolve.solve(rhs)
             if sol.ndim == 1:
                 sol.shape = (sol.size,1)
-            F.update(sol, tInd, self.solType)
+            newFields = CalcFields(sol, self.solType, tInd)
+            F.update(newFields, tInd)
         return F
+
+
         
 class FieldsTDEM(object):
     """docstring for FieldsTDEM"""
@@ -154,12 +204,9 @@ class FieldsTDEM(object):
         self.nTx = nTx #: Number of transmitters
         self.mesh = mesh
 
-    def update(self, sol, tInd, solType):
-        if solType == 'b':
-            self.set_b(sol, tInd)
-        else:
-            errStr = 'solType: ' + solType
-            raise NotImplementedError(errStr)
+    def update(self, newFields, tInd):
+        self.set_b(newFields['b'], tInd)
+        self.set_e(newFields['e'], tInd)
 
     ####################################################
     # Get Methods
@@ -171,6 +218,12 @@ class FieldsTDEM(object):
         else:
             return self.b[ind,:,:]
 
+    def get_e(self, ind):
+        if ind == -1:
+            return self.e0
+        else:
+            return self.e[ind,:,:]
+
     ####################################################
     # Set Methods
     ####################################################        
@@ -179,4 +232,10 @@ class FieldsTDEM(object):
         if self.b is None:
             self.b = np.zeros((self.nTimes, np.sum(self.mesh.nF), self.nTx))
             self.b[:] = np.nan
-        self.b[ind, :] = b
+        self.b[ind,:,:] = b
+
+    def set_e(self, e, ind):
+        if self.e is None:
+            self.e = np.zeros((self.nTimes, np.sum(self.mesh.nE), self.nTx))
+            self.e[:] = np.nan
+        self.e[ind,:,:] = e
