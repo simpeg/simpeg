@@ -4,7 +4,13 @@ import numpy as np
 
 class ProblemTDEM_b(ProblemBaseTDEM):
     """
-        docstring for ProblemTDEM_b
+        Time-Domain EM problem - B-formulation
+
+
+        .. math::
+
+            \dcurl \e^{(t+1)} + \\frac{\\b^{(t+1)} - \\b^{(t)}}{\delta t} = 0 \\\\
+            \dcurl^\\top \MfMui \\b^{(t+1)} - \MeSig \e^{(t+1)} = \Me \j_s^{(t+1)}
     """
     def __init__(self, mesh, model, **kwargs):
         ProblemBaseTDEM.__init__(self, mesh, model, **kwargs)
@@ -16,6 +22,12 @@ class ProblemTDEM_b(ProblemBaseTDEM):
     ####################################################
 
     def getA(self, tInd):
+        """
+            :param int tInd: Time index
+            :rtype: scipy.sparse.csr_matrix
+            :return: A
+        """
+
         dt = self.getDt(tInd)
         return self.MfMui*self.mesh.edgeCurl*self.MeSigmaI*self.mesh.edgeCurl.T*self.MfMui + (1/dt)*self.MfMui
 
