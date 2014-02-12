@@ -1,0 +1,250 @@
+\documentclass[]{article}
+
+\renewcommand{\div}{\nabla\cdot\,}
+\newcommand{\grad}{\ensuremath {\vec \nabla}}
+\newcommand{\curl}{\ensuremath{{\vec \nabla}\times\,}}
+\newcommand {\J}  { {\vec J} }
+\renewcommand {\H}  { {\vec H} }
+\newcommand {\E}  { {\vec E} }
+\newcommand{\dcurl}{\ensuremath{{\mathbf C}}}
+\newcommand{\dgrad}{\ensuremath{{\mathbf G}}}
+\newcommand{\Acf}{\ensuremath{{\mathbf A_c^f}}}
+\newcommand{\Ace}{\ensuremath{{\mathbf A_c^e}}}
+\renewcommand{\S}{\ensuremath{{\mathbf \Sigma}}}
+\newcommand{\St}{\ensuremath{{\mathbf \Sigma_\tau}}}
+\newcommand{\T}{\ensuremath{{\mathbf T}}}
+\newcommand{\Tt}{\ensuremath{{\mathbf T_\tau}}}
+\newcommand{\diag}[1]{\, {\sf diag}\left( #1 \right)}
+
+%Common mass matricies
+\newcommand{\M}{\ensuremath{{\mathbf M}}}
+\newcommand{\MfMui}{\ensuremath{{\M^f_{\mu^{-1}}}}}
+\newcommand{\MeSig}{\ensuremath{{\M^e_\sigma}}}
+\newcommand{\MeSigInf}{\ensuremath{{\M^e_{\sigma_\infty}}}}
+\newcommand{\MeSigO}{\ensuremath{{\M^e_{\sigma_0}}}}
+\newcommand{\Me}{\ensuremath{{\M^e}}}
+\newcommand{\Mes}[1]{\ensuremath{{\M^e_{#1}}}}
+\newcommand{\Mee}{\ensuremath{{\M^e_e}}}
+\newcommand{\Mej}{\ensuremath{{\M^e_j}}}
+
+\newcommand{\BigO}[1]{\ensuremath{\mathcal{O}\bigl(#1\bigr)}}
+
+% ********** TDIP paper
+
+\newcommand{\bE}{\mathbf{E}}
+\newcommand{\bH}{\mathbf{H}}
+\newcommand{\B}{\vec{B}}
+\newcommand{\D}{\vec{D}}
+\renewcommand{\H}{\vec{H}}
+\newcommand{\s}{\vec{s}}
+\newcommand{\bfJ}{\bf{J}}
+\newcommand{\vecm}{\vec m}
+\renewcommand{\Re}{\mathsf{Re}}
+\renewcommand{\Im}{\mathsf{Im}}
+
+\renewcommand {\j}  { {\vec j} }
+\newcommand {\h}  { {\vec h} }
+\renewcommand {\b}  { {\vec b} }
+\newcommand {\e}  { {\vec e} }
+\renewcommand {\d}  { {\vec d} }
+\renewcommand {\u}  { {\vec u} }
+
+\newcommand{\I}{\vec{I}}
+
+
+\usepackage{pslatex,palatino,avant,graphicx,color,amsmath}
+% \usepackage[margin=2cm]{geometry}
+
+\begin{document}
+\title{TEM}
+
+\section{Sensitivity Calculation}
+
+\begin{subequations}
+    \begin{align}
+        \dcurl \e^{(t+1)} + \frac{\b^{(t+1)} - \b^{(t)}}{\delta t} = 0 \\
+        \dcurl^\top \MfMui \b^{(t+1)} - \MeSig \e^{(t+1)} = \Me \j_s^{(t+1)}
+    \end{align}
+\end{subequations}
+
+Using Gauss-Newton to solve the inverse problem requires the ability to calculate the product of the Jacobian and a vector, as well as the transpose of the Jacobian times a vector. The above system can be rewritten as
+
+\begin{align}
+    \mathbf{A} \u^{(t+1)} + \mathbf{B} \u^{(t)}= \s^{(t+1)}
+\end{align}
+where
+\begin{subequations}
+    \begin{align}
+        \mathbf{A} = 
+        \left[
+            \begin{array}{cc}
+                \frac{1}{\delta t} \mathbf{I} & \dcurl \\
+                \dcurl^\top & -\MeSig
+            \end{array}
+        \right] \\
+        \mathbf{B} = 
+        \left[
+            \begin{array}{cc}
+                -\frac{1}{\delta t} \mathbf{I} & 0 \\
+                0 & 0
+            \end{array}
+        \right] \\
+        \u^{(k)} = \left[ 
+        \begin{array}{c}
+            \b^{(k)}\\
+            \e^{(k)}
+        \end{array}
+        \right] \\
+        \s^{(k)} = \left[ 
+        \begin{array}{c}
+            0\\
+            \Me \j^{(k)}_s
+        \end{array}
+        \right]
+    \end{align}
+\end{subequations}
+
+The entire time dependent system can be written in a single matrix expression
+\begin{align}
+    \hat{\mathbf{A}} \hat{u} = \hat{s}
+\end{align}
+where
+\begin{subequations}
+    \begin{align}
+        \mathbf{\hat{A}} = \left[
+        \begin{array}{cccc}
+            A & 0 & & \\
+            B & A & & \\
+              & \ddots & \ddots & \\
+              & & B & A
+        \end{array}
+        \right] \\
+        \hat{u} = \left[
+            \begin{array}{c}
+                \u^{(1)} \\
+                \u^{(2)} \\
+                \vdots \\
+                \u^{(N)}
+            \end{array} \right]\\
+        \hat{s} = \left[
+            \begin{array}{c}
+                \s^{(1)} - \mathbf{B} \u^{(0)} \\
+                \s^{(2)} \\
+                \vdots \\
+                \s^{(N)}
+            \end{array}
+        \right]
+    \end{align}
+\end{subequations}
+
+For the fields $\u$, the measured data is given by
+\begin{align}
+    \vec{d} = \mathbf{Q} \u
+\end{align}
+The sensitivity matrix $\mathbf{J}$ is then defined as
+\begin{align}
+    \mathbf{J} = \mathbf{Q} \frac{\partial \u}{\partial \sigma}
+\end{align}
+
+
+Defining the function $\vec{c}(m,\vec{u})$ to be
+\begin{align}
+    \vec{c}(m,\u) = \hat{\mathbf{A}} \vec{u} - \vec{q} = \vec{0}
+\end{align}
+then
+\begin{align}
+    \frac{\partial \vec{c}}{\partial m} \partial m 
+    + \frac{\partial \vec{c}}{\partial \u} \partial \vec{u} = 0
+\end{align}
+or
+\begin{align}
+    \frac{\partial \vec{u}}{\partial m} = -\left(\frac{\partial \vec{c}}{\partial \u} \right)^{-1} \frac{\partial \vec{c}}{\partial m}
+\end{align}
+
+
+Differentiating, we find that
+\begin{align}
+    \frac{\partial \vec{c}}{\partial \hat{u}} = \hat{\mathbf{A}}
+\end{align}
+and
+\begin{align}
+    \frac{\partial \vec{c}}{\partial \sigma} = \mathbf{G}_\sigma = 
+    \left[ 
+        \begin{array}{c}
+            g_\sigma^{(1)}\\
+            g_\sigma^{(2)}\\
+            \vdots \\
+            g_\sigma^{(N)}
+        \end{array}
+    \right]
+\end{align}
+with
+\begin{subequations}
+    \begin{align}
+        g_\sigma^{(n)} = 
+        \left[ 
+            \begin{array}{c}
+                \mathbf{0} \\
+                - \diag{\e^{(n)}} \Ace \diag{\vec{V}}
+            \end{array}
+        \right]
+    \end{align}
+\end{subequations}
+
+\subsection{Implementing $\mathbf{J}$ times a vector}
+Multiplying $\mathbf{J}$ onto a vector can be broken into three steps
+\begin{enumerate}
+\item Compute $\vec{p} = \mathbf{G}m$
+\item Solve $\hat{\mathbf{A}} \vec{y} = \vec{p}$
+\item Compute $\vec{w} = -\mathbf{Q} \vec{y}$
+\end{enumerate}
+
+\begin{subequations}
+    \begin{align}
+        \vec{p}^{(n)} = \left[
+            \begin{array}{c}
+                0 \\
+                \vec{p}_e^{(n)}
+            \end{array}
+        \right] \\
+        \vec{p}_e^{(n)} = - \diag{\e^{(n)}} \Ace \diag{V} m
+    \end{align}
+\end{subequations}
+
+\paragraph{First time step}
+
+\begin{subequations}
+    \begin{align}
+        \frac{1}{\delta t} \vec{y}_{b}^{(1)} + \dcurl \vec{y}_{e}^{(1)} = 0 \\
+        \dcurl^\top \MfMui \vec{y}_b^{(1)} - \MeSig \vec{y}_e^{(1)} = \vec{p}_e^{(1)}
+    \end{align}
+\end{subequations}
+
+\begin{subequations}
+    \begin{align}
+        \left( \MfMui \dcurl \MeSig^{-1} \dcurl^\top \MfMui + \frac{1}{\delta t} \MfMui \right) \vec{y}_{b}^{(1)} = \MfMui \dcurl \MeSig^{-1} \vec{p}_e^{(1)} \\
+        \vec{y}_e^{(1)} = \MeSig^{-1} \dcurl^\top \MfMui \vec{y}_b^{(1)} - \MeSig^{-1} \vec{p}_e^{(1)}
+    \end{align}
+\end{subequations}
+
+\paragraph{Remaining time steps}
+
+\begin{subequations}
+    \begin{align}
+        \dcurl \vec{y}_{e}^{(t+1)} + \frac{1}{\delta t} \vec{y}_{b}^{(t+1)} - \frac{1}{\delta t} \vec{y}_{b}^{(t)} = 0 \\
+        \vec{y}_e^{(t+1)} = \MeSig^{-1} \dcurl^\top \MfMui \vec{y}_b^{(t+1)} - \MeSig^{-1} \vec{p}_e^{(t+1)}
+    \end{align}
+\end{subequations}
+    
+\begin{subequations}
+        \begin{align}
+            \left( \MfMui \dcurl \MeSig^{-1} \dcurl^\top \MfMui + \frac{1}{\delta t} \MfMui \right) \vec{y}_{b}^{(1)} = \frac{1}{\delta t} \MfMui \vec{y}_b^{(t)} + \MfMui \dcurl \MeSig^{-1} \vec{p}_e^{(1)} \\
+            \vec{y}_e^{(t+1)} = \MeSig^{-1} \dcurl^\top \MfMui \vec{y}_b^{(t+1)} - \MeSig^{-1} \vec{p}_e^{(t+1)}
+        \end{align}
+    \end{subequations}
+
+\subsection{Implementing $\mathbf{J}^\top$ onto a vector}
+
+
+
+\end{document}
