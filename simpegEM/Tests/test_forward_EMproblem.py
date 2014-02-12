@@ -82,6 +82,72 @@ class TDEM_bDerivTests(unittest.TestCase):
             self.assertTrue(np.linalg.norm(Ahu.get_b(i))/np.linalg.norm(u.get_b(i)) < 1.e-2)
             self.assertTrue(np.linalg.norm(Ahu.get_e(i))/np.linalg.norm(u.get_e(i)) < 1.e-2)
 
+    def test_AhVecVSMat_OneTS(self):
+        
+        self.prb.setTimes([1e-5], [1])
+
+        sigma = np.ones(self.prb.mesh.nCz)*1e-8
+        sigma[self.prb.mesh.vectorCCz<0] = 0.1
+        self.prb.makeMassMatrices(sigma)
+
+        dt = self.prb.getDt(0)
+        a11 = 1/dt*sp.eye(self.prb.mesh.nF)
+        a12 = self.prb.mesh.edgeCurl
+        a21 = self.prb.mesh.edgeCurl.T*self.prb.MfMui
+        a22 = -self.prb.MeSigma
+        A = sp.bmat([[a11,a12],[a21,a22]])
+
+        f = self.prb.fields(sigma)
+        u1 = A*f.fieldVec()
+        u2 = self.prb.AhVec(sigma,f).fieldVec()
+
+        self.assertTrue(np.linalg.norm(u1-u2)<1e-12)
+
+    def test_solveAhVSMat_OneTS(self):
+        self.prb.setTimes([1e-5], [1])
+
+        sigma = np.ones(self.prb.mesh.nCz)*1e-8
+        sigma[self.prb.mesh.vectorCCz<0] = 0.1
+        self.prb.makeMassMatrices(sigma)
+
+        dt = self.prb.getDt(0)
+        a11 = 1/dt*sp.eye(self.prb.mesh.nF)
+        a12 = self.prb.mesh.edgeCurl
+        a21 = self.prb.mesh.edgeCurl.T*self.prb.MfMui
+        a22 = -self.prb.MeSigma
+        A = sp.bmat([[a11,a12],[a21,a22]])
+
+        f = self.prb.fields(sigma)
+        f.set_b(np.zeros((self.prb.mesh.nF,1)),0)
+        f.set_e(np.random.rand(self.prb.mesh.nE,1),0)
+
+        u1 = self.prb.solveAh(sigma,f).fieldVec().flatten()
+        u2 = sp.linalg.spsolve(A.tocsr(),f.fieldVec())
+
+        self.assertTrue(np.linalg.norm(u1-u2)<1e-8)
+
+    def test_solveAhVsAhVec(self):
+
+        prb = self.prb
+        mesh = self.prb.mesh
+
+        sigma = np.ones(self.prb.mesh.nCz)*1e-8
+        sigma[self.prb.mesh.vectorCCz<0] = 0.1
+        self.prb.makeMassMatrices(sigma)
+
+        f = EM.TDEM.FieldsTDEM(prb.mesh, 1, prb.times.size, 'b')
+        for i in range(f.nTimes):
+            f.set_b(np.zeros((mesh.nF, 1)), i)
+            f.set_e(np.random.rand(mesh.nE, 1), i)
+
+        Ahf = prb.AhVec(sigma, f)
+        f_test = prb.solveAh(sigma, Ahf)
+
+        u1 = f.fieldVec()
+        u2 = f_test.fieldVec()
+        self.assertTrue(np.linalg.norm(u1-u2)<1e-8)
+
+
 
     def test_DerivG(self):
         """
