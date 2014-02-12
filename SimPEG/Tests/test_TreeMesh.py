@@ -22,10 +22,10 @@ class TestOcTreeObjects(unittest.TestCase):
                 m = self.Mr
             c = m.sortedCells[int(s[1])]
             if len(s) == 2: return c
-            if s[2] == 'f' and len(s) == 5: return c.faces[s[2:]]
-            if s[2] == 'f': return c.faces[s[2:5]].edges[s[5:]]
-            if s[2] == 'e': return c.edges[s[2:]]
-            if s[2] == 'n': return c.nodes[s[2:]]
+            if s[2] == 'f' and len(s) == 5: return c.faceDict[s[2:]]
+            if s[2] == 'f': return getattr(c.faceDict[s[2:5]], 'edg' +s[5:])
+            if s[2] == 'e': return getattr(c,s[2:])
+            if s[2] == 'n': return getattr(c,'node'+s[3:])
 
         self.q = q
 
@@ -49,8 +49,8 @@ class TestOcTreeObjects(unittest.TestCase):
 
 
         for cell in self.Mr.sortedCells:
-            for e in cell.edges:
-                self.assertTrue(cell.edges[e].edgeType==e[1].lower())
+            for e in cell.edgeDict:
+                self.assertTrue(cell.edgeDict[e].edgeType==e[1].lower())
 
         self.assertTrue(self.Mr.nN == 31)
         self.assertTrue(self.Mr.nEx == 22)
@@ -70,76 +70,62 @@ class TestOcTreeObjects(unittest.TestCase):
             self.assertTrue(q(key+'fZp').area == 0.5)
 
     def test_pointersM(self):
-        c0    = self.M.children[0,0,0]
-        c0fXm = c0.faces['fXm']
-        c0fXp = c0.faces['fXp']
-        c0fYm = c0.faces['fYm']
-        c0fYp = c0.faces['fYp']
-        c0fZm = c0.faces['fZm']
-        c0fZp = c0.faces['fZp']
+        q = self.q
 
-        c1    = self.M.children[1,0,0]
-        c1fXm = c1.faces['fXm']
-        c1fXp = c1.faces['fXp']
-        c1fYm = c1.faces['fYm']
-        c1fYp = c1.faces['fYp']
-        c1fZm = c1.faces['fZm']
-        c1fZp = c1.faces['fZp']
-
-        self.assertTrue(c0fXp is c1fXm)
-        self.assertTrue(c0fXp.edges['e0'] is c1fXm.edges['e0'])
-        self.assertTrue(c0fXp.edges['e1'] is c1fXm.edges['e1'])
-        self.assertTrue(c0fXp.edges['e2'] is c1fXm.edges['e2'])
-        self.assertTrue(c0fXp.edges['e3'] is c1fXm.edges['e3'])
-        self.assertTrue(c0fYp is not c1fYm)
-        self.assertTrue(c0fXm is not c1fXm)
+        self.assertTrue(q('Mc0fXp') is q('Mc1fXm'))
+        self.assertTrue(q('Mc0fXpe0') is q('Mc1fXme0'))
+        self.assertTrue(q('Mc0fXpe1') is q('Mc1fXme1'))
+        self.assertTrue(q('Mc0fXpe2') is q('Mc1fXme2'))
+        self.assertTrue(q('Mc0fXpe3') is q('Mc1fXme3'))
+        self.assertTrue(q('Mc0fYp') is not q('c1fYm'))
+        self.assertTrue(q('Mc0fXm') is not q('c1fXm'))
 
         # Test connectivity of shared edges
-        self.assertTrue(c0fZp.edges['e3'] is not c1fZp.edges['e0'])
-        self.assertTrue(c0fZp.edges['e3'] is not c1fZp.edges['e1'])
-        self.assertTrue(c0fZp.edges['e3'] is c1fZp.edges['e2'])
-        self.assertTrue(c0fZp.edges['e3'] is not c1fZp.edges['e3'])
+        self.assertTrue(q('Mc0fZpe3') is not q('c1fZpe0'))
+        self.assertTrue(q('Mc0fZpe3') is not q('c1fZpe1'))
+        self.assertTrue(q('Mc0fZpe3') is q('Mc1fZpe2'))
+        self.assertTrue(q('Mc0fZpe3') is not q('c1fZpe3'))
 
-        self.assertTrue(c0fZm.edges['e3'] is not c1fZm.edges['e0'])
-        self.assertTrue(c0fZm.edges['e3'] is not c1fZm.edges['e1'])
-        self.assertTrue(c0fZm.edges['e3'] is c1fZm.edges['e2'])
-        self.assertTrue(c0fZm.edges['e3'] is not c1fZm.edges['e3'])
+        self.assertTrue(q('Mc0fZme3') is not q('c1fZme0'))
+        self.assertTrue(q('Mc0fZme3') is not q('c1fZme1'))
+        self.assertTrue(q('Mc0fZme3') is q('Mc1fZme2'))
+        self.assertTrue(q('Mc0fZme3') is not q('c1fZme3'))
 
-        self.assertTrue(c0fYp.edges['e3'] is not c1fYp.edges['e0'])
-        self.assertTrue(c0fYp.edges['e3'] is not c1fYp.edges['e1'])
-        self.assertTrue(c0fYp.edges['e3'] is c1fYp.edges['e2'])
-        self.assertTrue(c0fYp.edges['e3'] is not c1fYp.edges['e3'])
+        self.assertTrue(q('Mc0fYpe3') is not q('c1fYpe0'))
+        self.assertTrue(q('Mc0fYpe3') is not q('c1fYpe1'))
+        self.assertTrue(q('Mc0fYpe3') is q('Mc1fYpe2'))
+        self.assertTrue(q('Mc0fYpe3') is not q('c1fYpe3'))
 
-        self.assertTrue(c0fYm.edges['e3'] is not c1fYm.edges['e0'])
-        self.assertTrue(c0fYm.edges['e3'] is not c1fYm.edges['e1'])
-        self.assertTrue(c0fYm.edges['e3'] is c1fYm.edges['e2'])
-        self.assertTrue(c0fYm.edges['e3'] is not c1fYm.edges['e3'])
+        self.assertTrue(q('Mc0fYme3') is not q('c1fYme0'))
+        self.assertTrue(q('Mc0fYme3') is not q('c1fYme1'))
+        self.assertTrue(q('Mc0fYme3') is q('Mc1fYme2'))
+        self.assertTrue(q('Mc0fYme3') is not q('c1fYme3'))
 
-        self.assertTrue(c0fZm.edges['e3'] is c1fXm.edges['e0'])
-        self.assertTrue(c0fZp.edges['e3'] is c1fXm.edges['e1'])
-        self.assertTrue(c0fYm.edges['e3'] is c1fXm.edges['e2'])
-        self.assertTrue(c0fYp.edges['e3'] is c1fXm.edges['e3'])
+        self.assertTrue(q('Mc0fZme3') is q('Mc1fXme0'))
+        self.assertTrue(q('Mc0fZpe3') is q('Mc1fXme1'))
+        self.assertTrue(q('Mc0fYme3') is q('Mc1fXme2'))
+        self.assertTrue(q('Mc0fYpe3') is q('Mc1fXme3'))
 
-        self.assertTrue(c0fZm.edges['e3'] is c0fXp.edges['e0'])
-        self.assertTrue(c0fZp.edges['e3'] is c0fXp.edges['e1'])
-        self.assertTrue(c0fYm.edges['e3'] is c0fXp.edges['e2'])
-        self.assertTrue(c0fYp.edges['e3'] is c0fXp.edges['e3'])
+        self.assertTrue(q('Mc0fZme3') is q('Mc0fXpe0'))
+        self.assertTrue(q('Mc0fZpe3') is q('Mc0fXpe1'))
+        self.assertTrue(q('Mc0fYme3') is q('Mc0fXpe2'))
+        self.assertTrue(q('Mc0fYpe3') is q('Mc0fXpe3'))
 
-        self.assertTrue(c1fZm.edges['e2'] is c1fXm.edges['e0'])
-        self.assertTrue(c1fZp.edges['e2'] is c1fXm.edges['e1'])
-        self.assertTrue(c1fYm.edges['e2'] is c1fXm.edges['e2'])
-        self.assertTrue(c1fYp.edges['e2'] is c1fXm.edges['e3'])
+        self.assertTrue(q('Mc1fZme2') is q('Mc1fXme0'))
+        self.assertTrue(q('Mc1fZpe2') is q('Mc1fXme1'))
+        self.assertTrue(q('Mc1fYme2') is q('Mc1fXme2'))
+        self.assertTrue(q('Mc1fYpe2') is q('Mc1fXme3'))
 
-        self.assertTrue(c1fZm.edges['e2'] is c0fXp.edges['e0'])
-        self.assertTrue(c1fZp.edges['e2'] is c0fXp.edges['e1'])
-        self.assertTrue(c1fYm.edges['e2'] is c0fXp.edges['e2'])
-        self.assertTrue(c1fYp.edges['e2'] is c0fXp.edges['e3'])
+        self.assertTrue(q('Mc1fZme2') is q('Mc0fXpe0'))
+        self.assertTrue(q('Mc1fZpe2') is q('Mc0fXpe1'))
+        self.assertTrue(q('Mc1fYme2') is q('Mc0fXpe2'))
+        self.assertTrue(q('Mc1fYpe2') is q('Mc0fXpe3'))
 
 
     def test_nodePointers(self):
         q = self.q
         c0 = self.Mr.sortedCells[0]
-        c0n0 = c0.nodes['n0']
+        c0n0 = c0.node0
         self.assertTrue(c0n0 is q('c0n0'))
         self.assertTrue(np.all(q('c0n0').center == np.r_[0,0,0.]))
         self.assertTrue(q('c0n0').num == 0)
@@ -155,9 +141,9 @@ class TestOcTreeObjects(unittest.TestCase):
         q = self.q
 
         c0    = self.Mr.sortedCells[0]
-        c0fXm = c0.faces['fXm']
-        c0eX0 = c0.edges['eX0']
-        c0fYme0 = c0.faces['fYm'].edges['e0']
+        c0fXm = c0.fXm
+        c0eX0 = c0.eX0
+        c0fYme0 = c0.fYm.edge0
         self.assertTrue(c0 is q('c0'))
         self.assertTrue(c0fXm is q('c0fXm'))
         self.assertTrue(c0eX0 is q('c0eX0'))
@@ -185,7 +171,6 @@ class TestOcTreeObjects(unittest.TestCase):
         self.assertTrue(np.all(q('c1fXp').center == np.r_[0.5,0.25,0.25]))
         self.assertTrue(np.all(q('c2fXm').center == np.r_[0.5,0.5,0.5]))
         self.assertTrue(q('c2fXm').branchdepth == 1)
-        self.assertTrue(q('c1fXp').parent is q('c2fXm'))
         self.assertTrue(q('c2fXm').children[0,0] is q('c1fXp'))
         self.assertTrue(np.all(q('c3fXm').center == np.r_[0,0.75,0.25]))
         self.assertTrue(np.all(q('c3fXp').center == np.r_[0.25,0.75,0.25]))
@@ -262,16 +247,13 @@ class TestOcTreeObjects(unittest.TestCase):
         self.assertTrue(q('c0fXm') is not q('c1fXm'))
 
         self.assertTrue(q('c1fXp') is q('c2fXm').children[0,0])
-        self.assertTrue(q('c1fXp').parent is q('c2fXm'))
 
         self.assertTrue(q('c1fYp') is q('c4fYm'))
         self.assertTrue(q('c1fZp') is q('c6fZm'))
 
         self.assertTrue(q('c6fXp') is q('c2fXm').children[0,1])
-        self.assertTrue(q('c6fXp').parent is q('c2fXm'))
 
         self.assertTrue(q('c4fXp') is q('c2fXm').children[1,0])
-        self.assertTrue(q('c4fXp').parent is q('c2fXm'))
 
 
     def test_gridCC(self):
@@ -375,16 +357,16 @@ class TestQuadTreeObjects(unittest.TestCase):
 
     def test_pointersM(self):
         c0    = self.M.children[0,0]
-        c0fXm = c0.faces['fXm']
-        c0fXp = c0.faces['fXp']
-        c0fYm = c0.faces['fYm']
-        c0fYp = c0.faces['fYp']
+        c0fXm = c0.fXm
+        c0fXp = c0.fXp
+        c0fYm = c0.fYm
+        c0fYp = c0.fYp
 
         c1    = self.M.children[1,0]
-        c1fXm = c1.faces['fXm']
-        c1fXp = c1.faces['fXp']
-        c1fYm = c1.faces['fYm']
-        c1fYp = c1.faces['fYp']
+        c1fXm = c1.fXm
+        c1fXp = c1.fXp
+        c1fYm = c1.fYm
+        c1fYp = c1.fYp
 
         self.assertTrue(c0fXp is c1fXm)
         self.assertTrue(c0fYp is not c1fYm)
@@ -393,42 +375,40 @@ class TestQuadTreeObjects(unittest.TestCase):
         self.assertTrue(c0fXm.area == 1)
         self.assertTrue(c0fYm.area == 0.5)
 
-        self.assertTrue(c0.nodes['n1'] is c1.nodes['n0'])
-        self.assertTrue(c0.nodes['n3'] is c1.nodes['n2'])
+        self.assertTrue(c0.node1 is c1.node0)
+        self.assertTrue(c0.node3 is c1.node2)
         self.assertTrue(self.M.nN == 6)
 
 
     def test_pointersMr(self):
         c0    = self.Mr.sortedCells[0]
-        c0fXm = c0.faces['fXm']
-        c0fXp = c0.faces['fXp']
-        c0fYm = c0.faces['fYm']
-        c0fYp = c0.faces['fYp']
+        c0fXm = c0.fXm
+        c0fXp = c0.fXp
+        c0fYm = c0.fYm
+        c0fYp = c0.fYp
 
         c1    = self.Mr.sortedCells[1]
-        c1fXm = c1.faces['fXm']
-        c1fXp = c1.faces['fXp']
-        c1fYm = c1.faces['fYm']
-        c1fYp = c1.faces['fYp']
+        c1fXm = c1.fXm
+        c1fXp = c1.fXp
+        c1fYm = c1.fYm
+        c1fYp = c1.fYp
 
         c2    = self.Mr.sortedCells[2]
-        c2fXm = c2.faces['fXm']
-        c2fXp = c2.faces['fXp']
-        c2fYm = c2.faces['fYm']
-        c2fYp = c2.faces['fYp']
+        c2fXm = c2.fXm
+        c2fXp = c2.fXp
+        c2fYm = c2.fYm
+        c2fYp = c2.fYp
 
         c4    = self.Mr.sortedCells[4]
-        c4fXm = c4.faces['fXm']
-        c4fXp = c4.faces['fXp']
-        c4fYm = c4.faces['fYm']
-        c4fYp = c4.faces['fYp']
+        c4fXm = c4.fXm
+        c4fXp = c4.fXp
+        c4fYm = c4.fYm
+        c4fYp = c4.fYp
 
         self.assertTrue(c0fXp is c1fXm)
-        self.assertTrue(c1fXp.parent is c2fXm)
         self.assertTrue(c1fXp.node0 is c2fXm.node0)
         self.assertTrue(c1fXp.node0 is c2fXm.node0)
         self.assertTrue(c4fYm is c1fYp)
-        self.assertTrue(c4fXp.parent is c2fXm)
         self.assertTrue(c4fXp.node1 is c2fXm.node1)
         self.assertTrue(c4fXp.node0 is c1fYp.node1)
         self.assertTrue(c0fXp.node1 is c4fYm.node0)
