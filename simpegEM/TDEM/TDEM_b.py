@@ -30,14 +30,14 @@ class ProblemTDEM_b(ProblemBaseTDEM):
 
     def J(self, m, v, u=None):
         if u is None:
-            u = self.field(m)
+            u = self.fields(m)
         p = self.G(m, v, u)
         y = self.solveAh(m, p)
-        return self.data.projectField(y)
+        return self.data.projectFields(y)
 
     def G(self, m, v, u=None):
         if u is None:
-            u = self.field(m)
+            u = self.fields(m)
         p = FieldsTDEM(self.mesh, 1, self.times.size, 'b')
         c = self.mesh.getEdgeMassDeriv()*self.model.transformDeriv(m)*v
         for i in range(self.times.size):
@@ -61,7 +61,7 @@ class ProblemTDEM_b(ProblemBaseTDEM):
             e = self.MeSigmaI*self.mesh.edgeCurl.T*self.MfMui*b - self.MeSigmaI*p.get_e(tInd)
             return {'b':b, 'e':e}
 
-        Y = self.field(m, useThisRhs=AhRHS, useThisCalcFields=AhCalcFields)
+        Y = self.fields(m, useThisRhs=AhRHS, useThisCalcFields=AhCalcFields)
         return Y
 
 if __name__ == '__main__':
@@ -93,7 +93,7 @@ if __name__ == '__main__':
     sigma = np.ones(mesh.nCz)*1e-8
     sigma[mesh.vectorCCz<0] = 0.1
     prb.pair(dat)
-    f = prb.field(sigma)
+    f = prb.fields(sigma)
     # prb.G(prb.sigma, prb.sigma)
     # prb.solveAh(prb.sigma, f)
     # prb.J(prb.sigma, prb.sigma, f)
