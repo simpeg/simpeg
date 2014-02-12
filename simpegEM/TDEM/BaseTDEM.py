@@ -133,11 +133,14 @@ class ProblemBaseTDEM(MixinTimeStuff, MixinInitialFieldCalc, BaseProblem):
     def MfMui(self): return self._MfMui
 
     @property
+    def MeSigma(self): return self._MeSigma
+
+    @property
     def MeSigmaI(self): return self._MeSigmaI
 
     def makeMassMatrices(self, m):
-        MeSigma = self.mesh.getMass(m, loc='e')
-        self._MeSigmaI = sdiag(1/MeSigma.diagonal())
+        self._MeSigma = self.mesh.getMass(m, loc='e')
+        self._MeSigmaI = sdiag(1/self.MeSigma.diagonal())
         self._MfMui = self.mesh.getMass(1/mu_0, loc='f')
 
 
@@ -207,6 +210,12 @@ class FieldsTDEM(object):
     def update(self, newFields, tInd):
         self.set_b(newFields['b'], tInd)
         self.set_e(newFields['e'], tInd)
+
+    def fieldVec(self):
+        u = np.ndarray((0,self.nTx))
+        for i in range(self.nTimes):
+            u = np.r_[u, self.get_b(i), self.get_e(i)]
+        return u
 
     ####################################################
     # Get Methods

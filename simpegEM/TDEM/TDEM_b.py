@@ -64,6 +64,26 @@ class ProblemTDEM_b(ProblemBaseTDEM):
         Y = self.fields(m, useThisRhs=AhRHS, useThisCalcFields=AhCalcFields)
         return Y
 
+    ####################################################
+    # Functions for tests
+    ####################################################
+
+    def AhVec(self, m, u):
+        self.makeMassMatrices(m)
+        dt = self.getDt(0)
+        b = 1/dt*u.get_b(0) + self.mesh.edgeCurl*u.get_e(0)
+        e = self.mesh.edgeCurl.T*self.MfMui*u.get_b(0) - self.MeSigma*u.get_e(0)
+        f = FieldsTDEM(self.mesh, 1, self.times.size, 'b')
+        f.set_b(b, 0)
+        f.set_e(e, 0)
+        for i in range(1,self.times.size):
+            dt = self.getDt(i)
+            b = 1/dt*u.get_b(i) + self.mesh.edgeCurl*u.get_e(i) - 1/dt*u.get_b(i-1)
+            e = self.mesh.edgeCurl.T*self.MfMui*u.get_b(i) - self.MeSigma*u.get_e(i)
+            f.set_b(b, i)
+            f.set_e(e, i)
+        return f
+
 if __name__ == '__main__':
     from SimPEG import *
     import simpegEM as EM

@@ -5,7 +5,7 @@ from scipy.constants import mu_0
 from simpegEM.Utils.Ana import hzAnalyticDipoleT
 
 
-class EMProblemTests(unittest.TestCase):
+class TDEM_bTests(unittest.TestCase):
 
     def setUp(self):
 
@@ -32,17 +32,27 @@ class EMProblemTests(unittest.TestCase):
        self.sigma[mesh.vectorCCz<0] = 0.1
        self.prb.pair(self.dat)
 
-
     def test_analitic_b(self):
        bz_calc = self.dat.dpred(self.sigma)
        bz_ana = mu_0*hzAnalyticDipoleT(self.dat.rxLoc[0], self.prb.times, self.sigma[0])
 
        diff = np.linalg.norm(bz_calc.flatten() - bz_ana.flatten())/np.linalg.norm(bz_ana.flatten())
-       print diff
        self.assertTrue(diff<0.05)
 
-    def test_awesome(self):
-        self.assertTrue(True)
+    def test_AhVec(self):
+        """
+            Test that fields and AhVec produce consistent results
+        """
+
+        sigma = np.ones(self.prb.mesh.nCz)*1e-8
+        sigma[self.prb.mesh.vectorCCz<0] = 0.1
+        u = self.prb.fields(sigma)
+        Ahu = self.prb.AhVec(sigma, u)
+        self.assertTrue(np.linalg.norm(Ahu.get_b(0)-1/self.prb.getDt(0)*u.get_b(-1))/np.linalg.norm(u.get_b(0)) < 1.e-2)
+        self.assertTrue(np.linalg.norm(Ahu.get_e(0))/np.linalg.norm(u.get_e(0)) < 1.e-2)
+        for i in range(1,u.nTimes):
+            self.assertTrue(np.linalg.norm(Ahu.get_b(i))/np.linalg.norm(u.get_b(i)) < 1.e-2)
+            self.assertTrue(np.linalg.norm(Ahu.get_e(i))/np.linalg.norm(u.get_e(i)) < 1.e-2)
 
 
 
