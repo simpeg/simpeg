@@ -45,7 +45,9 @@ class ProblemTDEM_b(ProblemBaseTDEM):
             pVal = np.empty_like(ei)
             for j in range(ei.shape[1]):
                 pVal[:,j] = -ei[:,j]*c    
+            
             p.set_e(pVal,i)
+            p.set_b(np.zeros((self.mesh.nF,1)), i)
         return p
 
     def solveAh(self, m, p):
@@ -109,21 +111,57 @@ if __name__ == '__main__':
     dat = EM.TDEM.DataTDEM1D(**opts)
 
     prb = EM.TDEM.ProblemTDEM_b(mesh, model)
-    prb.setTimes([1e-5, 5e-5, 2.5e-4], [150, 150, 150])
-    sigma = np.ones(mesh.nCz)*1e-8
-    sigma[mesh.vectorCCz<0] = 0.1
+    # prb.setTimes([1e-5, 5e-5, 2.5e-4], [150, 150, 150])
+    prb.setTimes([1e-5, 5e-5, 2.5e-4], [10, 10, 10])
+    # prb.setTimes([1e-5], [10])
     prb.pair(dat)
-    f = prb.fields(sigma)
+    
+    # sigma = np.ones(mesh.nCz)*1e-8
+    # sigma[mesh.vectorCCz<0] = 0.1
+
+
+    # u = prb.fields(sigma)
+    # Ahu = prb.AhVec(sigma, u)
+
+    # Random fields
+    f = FieldsTDEM(prb.mesh, 1, prb.times.size, 'b')
+    for i in range(f.nTimes):
+        f.set_b(np.random.rand(mesh.nF, 1), i)
+        f.set_e(np.random.rand(mesh.nE, 1), i)
+
+
+    sigma = np.random.rand(mesh.nCz)
+    dm = np.random.rand(mesh.nCz)
+
+    for h in np.logspace(30, 10, 20):
+        # print h
+        a = np.linalg.norm(prb.AhVec(sigma+h*dm, f).fieldVec() - prb.AhVec(sigma, f).fieldVec())
+        b = np.linalg.norm(prb.AhVec(sigma+h*dm, f).fieldVec() - prb.AhVec(sigma, f).fieldVec() - h*prb.G(sigma, dm, u=f).fieldVec())
+        print a, b, b/a
+    # print 
+    # h = 1.
+    # plt.semilogy(-prb.AhVec(sigma+h*dm, f).fieldVec() + prb.AhVec(sigma, f).fieldVec(), 'ko')
+    # plt.semilogy(-prb.G(sigma, dm, u=f).fieldVec(), 'rx')
+    # plt.semilogy(prb.AhVec(sigma+h*dm, f).fieldVec() - prb.AhVec(sigma, f).fieldVec() - h*prb.G(sigma, dm, u=f).fieldVec(),'ko')
+    # plt.show()
+
+    # plt.show()
+
+    # f = prb.fields(sigma)
+    # print f.fieldVec()
+
+    # prb.AhVec(sigma,f)
+
     # prb.G(prb.sigma, prb.sigma)
     # prb.solveAh(prb.sigma, f)
     # prb.J(prb.sigma, prb.sigma, f)
 
-    from SimPEG.Tests import checkDerivative
-    m0 = sigma
-    dx = np.zeros_like(sigma)
-    dx[prb.mesh.vectorCCz<0] = 1e-4
-    derChk = lambda m: [dat.dpred(m), lambda mx: prb.J(m0, mx, u=f)]
-    passed = checkDerivative(derChk, m0, dx=dx, plotIt=False)
+    # from SimPEG.Tests import checkDerivative
+    # m0 = sigma
+    # dx = np.zeros_like(sigma)
+    # dx[prb.mesh.vectorCCz<0] = 1e-4
+    # derChk = lambda m: [dat.dpred(m), lambda mx: prb.J(m0, mx, u=f)]
+    # passed = checkDerivative(derChk, m0, dx=dx, plotIt=False)
 
     # bz_calc = dat.dpred(sigma)
     # bz_ana = mu_0*hzAnalyticDipoleT(dat.rxLoc[0], prb.times, sigma[0])
@@ -132,5 +170,3 @@ if __name__ == '__main__':
     # plt.loglog(prb.times, np.abs(bz_ana), 'r', label='Analytic')
     # plt.legend()
     # plt.show()
-
-
