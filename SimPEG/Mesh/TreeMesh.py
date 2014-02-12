@@ -125,7 +125,7 @@ class TreeEdge(object):
 class TreeFace(object):
     """docstring for TreeFace"""
 
-    __slots__ = ['mesh', 'children', 'depth', 'x0', 'num', 'faceType', 'sz', 'node0', 'node1', 'node2', 'node3', 'edge0', 'edge1', 'edge2', 'edge3', '_tangent0', '_tangent1']
+    __slots__ = ['mesh', 'children', 'depth', 'num', 'faceType', 'sz', 'node0', 'node1', 'node2', 'node3', 'edge0', 'edge1', 'edge2', 'edge3', '_tangent0', '_tangent1']
 
     def __init__(self, mesh, x0=[0,0], faceType=None, sz=[1,], depth=0,
                  node0=None, node1=None,
@@ -134,7 +134,6 @@ class TreeFace(object):
         self.mesh = mesh
         self.depth = depth
 
-        self.x0 = x0
         self.faceType = faceType
         self.sz = sz
 
@@ -144,8 +143,8 @@ class TreeFace(object):
         elif faceType is 'z': mesh.facesZ.add(self)
         if self.dim == 2:
             # Add the nodes:
-            self.node0 = node0 if isinstance(node0,TreeNode) else TreeNode(mesh, x0=self.x0)
-            self.node1 = node1 if isinstance(node1,TreeNode) else TreeNode(mesh, x0=self.x0 + self.tangent0*self.sz[0])
+            self.node0 = node0 if isinstance(node0,TreeNode) else TreeNode(mesh, x0=x0)
+            self.node1 = node1 if isinstance(node1,TreeNode) else TreeNode(mesh, x0=x0 + self.tangent0*self.sz[0])
         if self.dim == 3:
             #TODO: Change this to edges
 
@@ -167,16 +166,16 @@ class TreeFace(object):
 
             eType = ['x', 'y'] if self.faceType == 'z' else ['x', 'z'] if self.faceType == 'y' else ['y', 'z']
 
-            e0 = edge0 if isinstance(edge0,TreeEdge) else TreeEdge(mesh, x0=self.x0,                            edgeType=eType[0], sz=np.r_[sz[0]], depth=depth, node0=n0, node1=n1)
+            e0 = edge0 if isinstance(edge0,TreeEdge) else TreeEdge(mesh, x0=x0,                            edgeType=eType[0], sz=np.r_[sz[0]], depth=depth, node0=n0, node1=n1)
             n0, n1 = e0.node0, e0.node1
 
-            e1 = edge1 if isinstance(edge1,TreeEdge) else TreeEdge(mesh, x0=self.x0 + self.tangent1*self.sz[1], edgeType=eType[0], sz=np.r_[sz[0]], depth=depth, node0=n2, node1=n3)
+            e1 = edge1 if isinstance(edge1,TreeEdge) else TreeEdge(mesh, x0=x0 + self.tangent1*self.sz[1], edgeType=eType[0], sz=np.r_[sz[0]], depth=depth, node0=n2, node1=n3)
             n2, n3 = e1.node0, e1.node1
 
-            e2 = edge2 if isinstance(edge2,TreeEdge) else TreeEdge(mesh, x0=self.x0,                            edgeType=eType[1], sz=np.r_[sz[1]], depth=depth, node0=n0, node1=n2)
+            e2 = edge2 if isinstance(edge2,TreeEdge) else TreeEdge(mesh, x0=x0,                            edgeType=eType[1], sz=np.r_[sz[1]], depth=depth, node0=n0, node1=n2)
             n0, n2 = e2.node0, e2.node1
 
-            e3 = edge3 if isinstance(edge3,TreeEdge) else TreeEdge(mesh, x0=self.x0 + self.tangent0*self.sz[0], edgeType=eType[1], sz=np.r_[sz[1]], depth=depth, node0=n1, node1=n3)
+            e3 = edge3 if isinstance(edge3,TreeEdge) else TreeEdge(mesh, x0=x0 + self.tangent0*self.sz[0], edgeType=eType[1], sz=np.r_[sz[1]], depth=depth, node0=n1, node1=n3)
             n1, n3 = e3.node0, e3.node1
 
             # self.nodes = N
@@ -186,6 +185,9 @@ class TreeFace(object):
 
     @property
     def dim(self): return self.mesh.dim
+
+    @property
+    def x0(self): return self.node0.x0
 
     @property
     def isleaf(self): return getattr(self, 'children', None) is None
