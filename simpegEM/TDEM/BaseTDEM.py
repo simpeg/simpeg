@@ -3,7 +3,7 @@ from SimPEG.Problem import BaseProblem
 from simpegEM.Utils import Sources
 from FieldsTDEM import FieldsTDEM
 from scipy.constants import mu_0
-from SimPEG.Utils import sdiag
+from SimPEG.Utils import sdiag, mkvc
 import numpy as np
 
 

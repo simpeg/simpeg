@@ -16,7 +16,7 @@ class ProblemTDEM_b(ProblemBaseTDEM):
         ProblemBaseTDEM.__init__(self, mesh, model, **kwargs)
 
     solType = 'b'
-    
+
     ####################################################
     # Internal Methods
     ####################################################
@@ -56,19 +56,19 @@ class ProblemTDEM_b(ProblemBaseTDEM):
             ei = u.get_e(i)
             pVal = np.empty_like(ei)
             for j in range(ei.shape[1]):
-                pVal[:,j] = -ei[:,j]*c    
-            
+                pVal[:,j] = -ei[:,j]*c
+
             p.set_e(pVal,i)
             p.set_b(np.zeros((self.mesh.nF,1)), i)
         return p
 
     def solveAh(self, m, p):
         def AhRHS(tInd, u):
+            rhs = self.MfMui*self.mesh.edgeCurl*self.MeSigmaI*p.get_e(tInd)
             if tInd == 0:
-                return self.MfMui*self.mesh.edgeCurl*self.MeSigmaI*p.get_e(tInd)
-            else:
-                dt = self.getDt(tInd)
-                return self.MfMui*self.mesh.edgeCurl*self.MeSigmaI*p.get_e(tInd) + 1./dt*self.MfMui*u.get_b(tInd-1)
+                return rhs
+            dt = self.getDt(tInd)
+            return rhs + 1./dt*self.MfMui*u.get_b(tInd-1)
 
         def AhCalcFields(sol, solType, tInd):
             b = sol
@@ -126,61 +126,28 @@ if __name__ == '__main__':
 
     prb = EM.TDEM.ProblemTDEM_b(mesh, model)
     # prb.setTimes([1e-5, 5e-5, 2.5e-4], [150, 150, 150])
-    prb.setTimes([1e-5, 5e-5, 2.5e-4], [10, 10, 10])
-    # prb.setTimes([1e-5], [10])
+    # prb.setTimes([1e-5, 5e-5, 2.5e-4], [10, 10, 10])
+    prb.setTimes([1e-5], [1])
     prb.pair(dat)
-    
-    # sigma = np.ones(mesh.nCz)*1e-8
-    # sigma[mesh.vectorCCz<0] = 0.1
-
-
-    # u = prb.fields(sigma)
-    # Ahu = prb.AhVec(sigma, u)
-
-    # Random fields
     sigma = np.random.rand(mesh.nCz)
-    # f = FieldsTDEM(prb.mesh, 1, prb.times.size, 'b')
-    # for i in range(f.nTimes):
-        # f.set_b(np.random.rand(mesh.nF, 1), i)
-        # f.set_e(np.random.rand(mesh.nE, 1), i)
-    f = prb.fields(sigma)
 
-    dm = np.random.rand(mesh.nCz)
 
-    for h in np.logspace(0, -10, 10):
-        # print h
-        a = np.linalg.norm(prb.AhVec(sigma+h*dm, f).fieldVec() - prb.AhVec(sigma, f).fieldVec())
-        b = np.linalg.norm(prb.AhVec(sigma+h*dm, f).fieldVec() - prb.AhVec(sigma, f).fieldVec() - h*prb.G(sigma, dm, u=f).fieldVec())
-        print a, b, b/a
-    # print 
-    # h = 1.
-    plt.semilogy(np.abs(prb.AhVec(sigma+h*dm,f).fieldVec() - prb.AhVec(sigma, f).fieldVec()), 'ko')
-    plt.semilogy(np.abs(h*prb.G(sigma, dm, u=f).fieldVec()), 'rx')
-    # plt.semilogy(prb.AhVec(sigma+h*dm, f).fieldVec() - prb.AhVec(sigma, f).fieldVec() - h*prb.G(sigma, dm, u=f).fieldVec(),'ko')
+
+    f = FieldsTDEM(prb.mesh, 1, prb.times.size, 'b')
+    for i in range(f.nTimes):
+        f.set_b(np.zeros((mesh.nF, 1)), i)
+        f.set_e(np.random.rand(mesh.nE, 1), i)
+
+    Ahf = prb.AhVec(sigma, f)
+    f_test = prb.solveAh(sigma, Ahf)
+
+    e0 = f.get_e(0)
+    e1 = f_test.get_e(0)
+    b0 = f.get_b(0)
+    b1 = f_test.get_b(0)
+    plt.semilogy(np.abs(e0))
+    plt.semilogy(np.abs(e1),'r')
     plt.show()
 
-    # plt.show()
 
-    # f = prb.fields(sigma)
-    # print f.fieldVec()
 
-    # prb.AhVec(sigma,f)
-
-    # prb.G(prb.sigma, prb.sigma)
-    # prb.solveAh(prb.sigma, f)
-    # prb.J(prb.sigma, prb.sigma, f)
-
-    # from SimPEG.Tests import checkDerivative
-    # m0 = sigma
-    # dx = np.zeros_like(sigma)
-    # dx[prb.mesh.vectorCCz<0] = 1e-4
-    # derChk = lambda m: [dat.dpred(m), lambda mx: prb.J(m0, mx, u=f)]
-    # passed = checkDerivative(derChk, m0, dx=dx, plotIt=False)
-
-    # bz_calc = dat.dpred(sigma)
-    # bz_ana = mu_0*hzAnalyticDipoleT(dat.rxLoc[0], prb.times, sigma[0])
-
-    # plt.loglog(prb.times, np.abs(bz_calc.flatten()), label='TDEM_b')
-    # plt.loglog(prb.times, np.abs(bz_ana), 'r', label='Analytic')
-    # plt.legend()
-    # plt.show()
