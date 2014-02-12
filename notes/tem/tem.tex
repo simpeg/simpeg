@@ -203,11 +203,12 @@ Multiplying $\mathbf{J}$ onto a vector can be broken into three steps
     \begin{align}
         \vec{p}^{(n)} = \left[
             \begin{array}{c}
-                0 \\
+                \vec{p}_b^{(n)} \\
                 \vec{p}_e^{(n)}
             \end{array}
         \right] \\
-        \vec{p}_e^{(n)} = - \diag{\e^{(n)}} \Ace \diag{V} m
+        \vec{p}_b^{(n)} = 0 \\
+        \vec{p}_e^{(n)} = - \diag{\e^{(n)}} \Ace \diag{V} m 
     \end{align}
 \end{subequations}
 
@@ -215,14 +216,14 @@ Multiplying $\mathbf{J}$ onto a vector can be broken into three steps
 
 \begin{subequations}
     \begin{align}
-        \dcurl \vec{y}_{e}^{(1)} + \frac{1}{\delta t} \vec{y}_{b}^{(1)} = 0 \\
+        \dcurl \vec{y}_{e}^{(1)} + \frac{1}{\delta t} \vec{y}_{b}^{(1)} = \vec{p}_b^{(1)} \\
         \dcurl^\top \MfMui \vec{y}_b^{(1)} - \MeSig \vec{y}_e^{(1)} = \vec{p}_e^{(1)}
     \end{align}
 \end{subequations}
 
 \begin{subequations}
     \begin{align}
-        \left( \MfMui \dcurl \MeSig^{-1} \dcurl^\top \MfMui + \frac{1}{\delta t} \MfMui \right) \vec{y}_{b}^{(1)} = \MfMui \dcurl \MeSig^{-1} \vec{p}_e^{(1)} \\
+        \left( \MfMui \dcurl \MeSig^{-1} \dcurl^\top \MfMui + \frac{1}{\delta t} \MfMui \right) \vec{y}_{b}^{(1)} = \MfMui \dcurl \MeSig^{-1} \vec{p}_e^{(1)} + \MfMui \vec{p}_b^{(1)} \\
         \vec{y}_e^{(1)} = \MeSig^{-1} \dcurl^\top \MfMui \vec{y}_b^{(1)} - \MeSig^{-1} \vec{p}_e^{(1)}
     \end{align}
 \end{subequations}
@@ -233,7 +234,7 @@ Multiplying $\mathbf{J}$ onto a vector can be broken into three steps
     \begin{align}
         \dcurl \vec{y}_{e}^{(t+1)} + \frac{1}{\delta t} \vec{y}_{b}^{(t+1)}
         {\color{red}- \frac{1}{\delta t} \vec{y}_{b}^{(t)} }
-        = 0 \\
+        = \vec{p}_b^{(t+1)} \\
         \dcurl^\top \MfMui \vec{y}_b^{(t+1)} - \MeSig \vec{y}_e^{(t+1)} = \vec{p}_e^{(t+1)}
     \end{align}
 \end{subequations}
@@ -242,7 +243,7 @@ Multiplying $\mathbf{J}$ onto a vector can be broken into three steps
         \begin{align}
             \left( \MfMui \dcurl \MeSig^{-1} \dcurl^\top \MfMui + \frac{1}{\delta t} \MfMui \right) \vec{y}_{b}^{(t+1)} =
             {\color{red} \frac{1}{\delta t} \MfMui \vec{y}_b^{(t)} }
-            + \MfMui \dcurl \MeSig^{-1} \vec{p}_e^{(t+1)} \\
+            + \MfMui \dcurl \MeSig^{-1} \vec{p}_e^{(t+1)} + \MfMui \vec{p}_b^{(t+1)} \\
             \vec{y}_e^{(t+1)} = \MeSig^{-1} \dcurl^\top \MfMui \vec{y}_b^{(t+1)} - \MeSig^{-1} \vec{p}_e^{(t+1)}
         \end{align}
     \end{subequations}
