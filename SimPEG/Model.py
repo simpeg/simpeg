@@ -7,7 +7,7 @@ class BaseModel(object):
 
     """
 
-    __metaclass__ = Utils.Save.Savable
+    __metaclass__ = Utils.SimPEGMetaClass
 
     counter = None   #: A SimPEG.Utils.Counter object
     mesh = None      #: A SimPEG Mesh

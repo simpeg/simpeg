@@ -33,7 +33,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
     """
 
-    __metaclass__ = Utils.Save.Savable
+    __metaclass__ = Utils.SimPEGMetaClass
 
     _meshType = 'TENSOR'
 

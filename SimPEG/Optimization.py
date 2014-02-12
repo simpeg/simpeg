@@ -82,7 +82,7 @@ class Minimize(object):
         Minimize is a general class for derivative based optimization.
     """
 
-    __metaclass__ = Utils.Save.Savable
+    __metaclass__ = Utils.SimPEGMetaClass
 
     name = "General Optimization Algorithm"  #: The name of the optimization algorithm
 

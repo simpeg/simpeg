@@ -4,13 +4,18 @@ from meshutils import exampleLomGird, meshTensors
 from lomutils import volTetra, faceInfo, inv2X2BlockDiagonal, inv3X3BlockDiagonal, indexCube
 from interputils import interpmat
 from ipythonutils import easyAnimate as animate
-import Save
 import ModelBuilder
 
 import types
 import time
 import numpy as np
 from functools import wraps
+
+
+class SimPEGMetaClass(type):
+    def __new__(cls, name, bases, attrs):
+        return super(SimPEGMetaClass, cls).__new__(cls, name, bases, attrs)
+
 
 def hook(obj, method, name=None, overwrite=False, silent=False):
     """

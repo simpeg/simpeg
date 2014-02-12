@@ -7,7 +7,7 @@ class BaseInversion(object):
     """BaseInversion(objFunc, opt, **kwargs)
     """
 
-    __metaclass__ = Utils.Save.Savable
+    __metaclass__ = Utils.SimPEGMetaClass
 
     name = 'BaseInversion'
 

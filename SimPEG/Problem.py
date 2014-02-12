@@ -34,7 +34,7 @@ class BaseProblem(object):
         to (locally) find how model parameters change the data, and optimize!
     """
 
-    __metaclass__ = Utils.Save.Savable
+    __metaclass__ = Utils.SimPEGMetaClass
 
     counter = None   #: A SimPEG.Utils.Counter object
 

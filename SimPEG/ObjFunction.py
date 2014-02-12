@@ -3,7 +3,7 @@ import Utils, Parameters, numpy as np, scipy.sparse as sp
 class BaseObjFunction(object):
     """BaseObjFunction(data, reg, **kwargs)"""
 
-    __metaclass__ = Utils.Save.Savable
+    __metaclass__ = Utils.SimPEGMetaClass
 
     beta    = Parameters.ParameterProperty('beta', default=1, doc='Regularization trade-off parameter')
 

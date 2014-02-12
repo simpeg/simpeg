@@ -4,7 +4,7 @@ import Utils, numpy as np
 class BaseData(object):
     """Data holds the observed data, and the standard deviations."""
 
-    __metaclass__ = Utils.Save.Savable
+    __metaclass__ = Utils.SimPEGMetaClass
 
     std = None       #: Estimated Standard Deviations
     dobs = None      #: Observed data
