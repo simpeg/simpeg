@@ -508,6 +508,10 @@ class SimpleOctreeOperatorTests(unittest.TestCase):
         self.assertTrue((self.tM.nodalGrad - self.oM.nodalGrad).toarray().sum() == 0)
         self.assertTrue((self.tM2.nodalGrad - self.oM2.nodalGrad).toarray().sum() == 0)
 
+    def test_edgeCurl(self):
+        self.assertTrue((self.tM.edgeCurl - self.oM.edgeCurl).toarray().sum() == 0)
+        # self.assertTrue((self.tM2.edgeCurl - self.oM2.edgeCurl).toarray().sum() == 0)
+
     def test_InnerProducts(self):
         self.assertTrue((self.tM.getFaceInnerProduct() - self.oM.getFaceInnerProduct()).toarray().sum() == 0)
         self.assertTrue((self.tM2.getFaceInnerProduct() - self.oM2.getFaceInnerProduct()).toarray().sum() == 0)

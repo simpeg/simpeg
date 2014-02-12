@@ -888,6 +888,28 @@ class TreeMesh(InnerProducts, BaseMesh):
         return self._faceDiv
 
     @property
+    def edgeCurl(self):
+        """Construct the 3D curl operator."""
+        assert self.dim > 2, "Edge Curl only programed for 3D."
+
+        if getattr(self, '_edgeCurl', None) is None:
+            self.number()
+            # TODO: Preallocate!
+            I, J, V = [], [], []
+            for face in self.faces:
+                for edge in face.edges:
+                    j = face.edges[edge].index
+                    I += [face.num]*len(j)
+                    J += j
+                    isNeg = lambda e: {'0':True,'1':False,'2':True,'3':False}[e[1]]
+                    V += [-1 if isNeg(edge) else 1]*len(j)
+            C = sp.csr_matrix((V,(I,J)), shape=(self.nF, self.nE))
+            S = self.area
+            L = self.edge
+            self._edgeCurl = Utils.sdiag(1/S)*C*Utils.sdiag(L)
+        return self._edgeCurl
+
+    @property
     def nodalGrad(self):
         if getattr(self, '_nodalGrad', None) is None:
             self.number()
