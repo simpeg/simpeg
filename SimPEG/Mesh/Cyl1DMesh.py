@@ -293,6 +293,15 @@ class Cyl1DMesh(object):
     _aveF2CC = None
     aveF2CC = property(**aveF2CC())
 
+    def getFaceMassDeriv(self):
+        Av = self.aveF2CC
+        return Av.T * sdiag(self.vol)
+
+    def getEdgeMassDeriv(self):
+        Av = self.aveE2CC
+        return Av.T * sdiag(self.vol)
+
+
     ####################################################
     # Methods
     ####################################################
