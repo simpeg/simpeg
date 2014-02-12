@@ -9,7 +9,7 @@ class LinearProblem(Problem.BaseProblem):
         Problem.BaseProblem.__init__(self, mesh, model, **kwargs)
         self.G = G
 
-    def field(self, m, u=None):
+    def fields(self, m, u=None):
         return self.G.dot(m)
 
     def J(self, m, v, u=None):

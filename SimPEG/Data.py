@@ -56,12 +56,12 @@ class BaseData(object):
 
             Where P is a projection of the fields onto the data space.
         """
-        if u is None: u = self.prob.field(m)
-        return Utils.mkvc(self.projectField(u))
+        if u is None: u = self.prob.fields(m)
+        return Utils.mkvc(self.projectFields(u))
 
 
     @Utils.count
-    def projectField(self, u):
+    def projectFields(self, u):
         """
             This function projects the fields onto the data space.
 

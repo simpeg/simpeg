@@ -69,7 +69,7 @@ class DCProblem(Problem.BaseProblem):
         A = D*Msig*G
         return A.tocsc()
 
-    def field(self, m):
+    def fields(self, m):
         A = self.createMatrix(m)
         solve = Solver(A)
         phi = solve.solve(self.data.RHS)
@@ -98,7 +98,7 @@ class DCProblem(Problem.BaseProblem):
                 J(v) = - P ( A(m)^{-1} ( G\\text{sdiag}(Du)\\nabla_m(M(mT(m))) v ) )
         """
         if u is None:
-            u = self.field(m)
+            u = self.fields(m)
 
         u = self.data.reshapeFields(u)
 
@@ -123,7 +123,7 @@ class DCProblem(Problem.BaseProblem):
         """Takes data, turns it into a model..ish"""
 
         if u is None:
-            u = self.field(m)
+            u = self.fields(m)
 
         u = self.data.reshapeFields(u)
         v = self.data.reshapeFields(v)
@@ -214,7 +214,7 @@ if __name__ == '__main__':
     # Create some data
     data = prob.createSyntheticData(mSynth, std=0.05, P=P, RHS=q)
 
-    u = prob.field(mSynth)
+    u = prob.fields(mSynth)
     u = data.reshapeFields(u)
     M.plotImage(u[:,10])
     plt.show()
