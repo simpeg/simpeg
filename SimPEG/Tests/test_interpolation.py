@@ -4,7 +4,7 @@ from TestUtils import OrderTest
 from SimPEG.Utils import mkvc
 
 MESHTYPES = ['uniformTensorMesh', 'randomTensorMesh']
-TOLERANCES = [0.9, 0.55]
+TOLERANCES = [0.9, 0.5]
 call1 = lambda fun, xyz: fun(xyz)
 call2 = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1])
 call3 = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1], xyz[:, 2])
@@ -23,7 +23,7 @@ class TestInterpolation1D(OrderTest):
     meshTypes = MESHTYPES
     tolerance = TOLERANCES
     meshDimension = 1
-    meshSizes = [8, 16, 32]
+    meshSizes = [8, 16, 32, 64, 128]
 
     def getError(self):
         funX = lambda x: np.cos(2*np.pi*x)
