@@ -131,23 +131,6 @@ if __name__ == '__main__':
     prb.pair(dat)
     sigma = np.random.rand(mesh.nCz)
 
-    f = FieldsTDEM(prb.mesh, 1, prb.times.size, 'b')
-    for i in range(f.nTimes):
-        f.set_b(np.zeros((mesh.nF, 1)), i)
-        f.set_e(np.random.rand(mesh.nE, 1), i)
-
-    Ahf = prb.AhVec(sigma, f)
-    f_test = prb.solveAh(sigma, Ahf)
-
-    print np.linalg.norm(f.fieldVec() - f_test.fieldVec())
-
-    e0 = f.get_e(0)
-    e1 = f_test.get_e(0)
-    b0 = f.get_b(0)
-    b1 = f_test.get_b(0)
-    plt.semilogy(np.abs(e0))
-    plt.semilogy(np.abs(e1),'r')
-    plt.show()
 
 
 

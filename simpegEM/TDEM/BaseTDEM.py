@@ -135,6 +135,8 @@ class ProblemBaseTDEM(MixinTimeStuff, MixinInitialFieldCalc, BaseProblem):
         self.makeMassMatrices(m)
 
         F = self.getInitialFields()
+        #TODO: Split next code to forward and adjoint.
+        # fields would call forward
         dtFact = None
         for tInd, t in enumerate(self.times):
             dt = self.getDt(tInd)
