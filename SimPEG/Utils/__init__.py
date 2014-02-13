@@ -136,6 +136,7 @@ def callHooks(match, mainFirst=False):
 def dependentProperty(name, value, children, doc):
     def fget(self): return getattr(self,name,value)
     def fset(self, val):
+        if getattr(self,name,value) == val: return # it is the same!
         for child in children:
             if hasattr(self, child):
                 delattr(self, child)

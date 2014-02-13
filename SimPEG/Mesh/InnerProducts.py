@@ -78,29 +78,208 @@ class InnerProducts(object):
     def __init__(self):
         raise Exception('InnerProducts is a base class providing inner product matrices for meshes and cannot run on its own. Inherit to your favorite Mesh class.')
 
-    def getFaceInnerProduct(self, mu=None, returnP=False):
-        """Wrapper function,
-
-        :py:func:`SimPEG.mesh.InnerProducts.InnerProducts.getFaceInnerProduct`
-
-        :py:func:`SimPEG.mesh.InnerProducts.InnerProducts.getFaceInnerProduct2D`
+    def getFaceInnerProduct(M, mu=None, returnP=False):
         """
-        if self.dim == 2:
-            return getFaceInnerProduct2D(self, mu, returnP)
-        elif self.dim == 3:
-            return getFaceInnerProduct(self, mu, returnP)
+            :param numpy.array mu: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :param bool returnP: returns the projection matrices
+            :rtype: scipy.csr_matrix
+            :return: M, the inner product matrix (sum(nF), sum(nF))
 
-    def getEdgeInnerProduct(self, sigma=None, returnP=False):
-        """Wrapper function,
+            Depending on the number of columns (either 1, 3, or 6) of mu, the material property is interpreted as follows:
 
-        :py:func:`SimPEG.mesh.InnerProducts.InnerProducts.getEdgeInnerProduct`
+            .. math::
+                \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & 0 & 0 \\\\ 0 & \mu_{1} & 0 \\\\ 0 & 0 & \mu_{1}  \end{matrix}\\right]
 
-        :py:func:`SimPEG.mesh.InnerProducts.InnerProducts.getEdgeInnerProduct2D`
+                \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & 0 & 0 \\\\ 0 & \mu_{2} & 0 \\\\ 0 & 0 & \mu_{3}  \end{matrix}\\right]
+
+                \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & \mu_{4} & \mu_{5} \\\\ \mu_{4} & \mu_{2} & \mu_{6} \\\\ \mu_{5} & \mu_{6} & \mu_{3}  \end{matrix}\\right]
+
+                \mathbf{M}(\\vec{\mu}) = {1\over 8}
+                    \left(\sum_{i=1}^8
+                    \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \\vec{\mu} \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
+                    \\right)
+
+            If requested (returnP=True) the projection matricies are returned as well (ordered by nodes)::
+
+                P = [P000, P100, P010, P110, P001, P101, P011, P111]
+
+            Here each P (3*nC, sum(nF)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
+
+            .. math::
+                \mathbf{P}_{(i)} =  \sqrt{ {1\over 8} v_{\\text{cell}}} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\\text{LOM only}} \mathbf{Q}_{(i)}
+
+            Note that this is completed for each cell in the mesh at the same time.
+
+            **For 2D:**
+
+             Depending on the number of columns (either 1, 2, or 3) of mu, the material property is interpreted as follows:
+
+            .. math::
+                \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & 0 \\\\ 0 & \mu_{1} \end{matrix}\\right]
+
+                \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & 0 \\\\ 0 & \mu_{2} \end{matrix}\\right]
+
+                \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & \mu_{3} \\\\ \mu_{3} & \mu_{2} \end{matrix}\\right]
+
+
+            .. math::
+
+                \mathbf{M}(\\vec{\mu}) = {1\over 4}
+                    \left(\sum_{i=1}^4
+                    \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \\vec{\mu} \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
+                    \\right)
+
+
+            If requested (returnP=True) the projection matricies are returned as well (ordered by nodes)::
+
+                P = [P00, P10, P01, P11]
+
+            Here each P (2*nC, sum(nF)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
+
+            .. math::
+                \mathbf{P}_{(i)} =  \sqrt{ {1\over 4} v_{\\text{cell}}} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\\text{LOM only}} \mathbf{Q}_{(i)}
+
+            Note that this is completed for each cell in the mesh at the same time.
+
         """
-        if self.dim == 2:
-            return getEdgeInnerProduct2D(self, sigma, returnP)
-        elif self.dim == 3:
-            return getEdgeInnerProduct(self, sigma, returnP)
+        if M.dim == 2:
+            # Square root of cell volume multiplied by 1/4
+            v = np.sqrt(0.25*M.vol)
+            V2 = sdiag(np.r_[v, v])  # We will multiply on each side to keep symmetry
+
+            Pxx = _getFacePxx(M)
+            P000 = V2*Pxx('fXm', 'fYm')
+            P100 = V2*Pxx('fXp', 'fYm')
+            P010 = V2*Pxx('fXm', 'fYp')
+            P110 = V2*Pxx('fXp', 'fYp')
+        elif M.dim == 3:
+            # Square root of cell volume multiplied by 1/8
+            v = np.sqrt(0.125*M.vol)
+            V3 = sdiag(np.r_[v, v, v])  # We will multiply on each side to keep symmetry
+
+            Pxxx = _getFacePxxx(M)
+            P000 = V3*Pxxx('fXm', 'fYm', 'fZm')
+            P100 = V3*Pxxx('fXp', 'fYm', 'fZm')
+            P010 = V3*Pxxx('fXm', 'fYp', 'fZm')
+            P110 = V3*Pxxx('fXp', 'fYp', 'fZm')
+            P001 = V3*Pxxx('fXm', 'fYm', 'fZp')
+            P101 = V3*Pxxx('fXp', 'fYm', 'fZp')
+            P011 = V3*Pxxx('fXm', 'fYp', 'fZp')
+            P111 = V3*Pxxx('fXp', 'fYp', 'fZp')
+
+        Mu = _makeTensor(M, mu)
+        A = P000.T*Mu*P000 + P100.T*Mu*P100 + P010.T*Mu*P010 + P110.T*Mu*P110
+        P = [P000, P100, P010, P110]
+        if M.dim == 3:
+            A = A + P001.T*Mu*P001 + P101.T*Mu*P101 + P011.T*Mu*P011 + P111.T*Mu*P111
+            P += [P001, P101, P011,  P111]
+        if returnP:
+            return A, P
+        else:
+            return A
+
+    def getEdgeInnerProduct(M, sigma=None, returnP=False):
+        """
+            :param numpy.array sigma: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :param bool returnP: returns the projection matrices
+            :rtype: scipy.csr_matrix
+            :return: M, the inner product matrix (sum(nE), sum(nE))
+
+
+            Depending on the number of columns (either 1, 3, or 6) of sigma, the material property is interpreted as follows:
+
+            .. math::
+                \Sigma = \left[\\begin{matrix} \sigma_{1} & 0 & 0 \\\\ 0 & \sigma_{1} & 0 \\\\ 0 & 0 & \sigma_{1}  \end{matrix}\\right]
+
+                \Sigma = \left[\\begin{matrix} \sigma_{1} & 0 & 0 \\\\ 0 & \sigma_{2} & 0 \\\\ 0 & 0 & \sigma_{3}  \end{matrix}\\right]
+
+                \Sigma = \left[\\begin{matrix} \sigma_{1} & \sigma_{4} & \sigma_{5} \\\\ \sigma_{4} & \sigma_{2} & \sigma_{6} \\\\ \sigma_{5} & \sigma_{6} & \sigma_{3}  \end{matrix}\\right]
+
+            What is returned:
+
+            .. math::
+                \mathbf{M}(\Sigma) = {1\over 8}
+                    \left(\sum_{i=1}^8
+                    \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \Sigma \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
+                    \\right)
+
+            If requested (returnP=True) the projection matricies are returned as well (ordered by nodes)::
+
+                P = [P000, P100, P010, P110, P001, P101, P011, P111]
+
+            Here each P (3*nC, sum(nE)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
+
+            .. math::
+                \mathbf{P}_{(i)} =  \sqrt{ {1\over 8} v_{\\text{cell}}} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\\text{LOM only}} \mathbf{Q}_{(i)}
+
+            Note that this is completed for each cell in the mesh at the same time.
+
+            **For 2D:**
+
+            Depending on the number of columns (either 1, 2, or 3) of sigma, the material property is interpreted as follows:
+
+            .. math::
+                \Sigma = \left[\\begin{matrix} \sigma_{1} & 0 \\\\ 0 & \sigma_{1} \end{matrix}\\right]
+
+                \Sigma = \left[\\begin{matrix} \sigma_{1} & 0 \\\\ 0 & \sigma_{2} \end{matrix}\\right]
+
+                \Sigma = \left[\\begin{matrix} \sigma_{1} & \sigma_{3} \\\\ \sigma_{3} & \sigma_{2} \end{matrix}\\right]
+
+
+            .. math::
+
+                \mathbf{M}(\Sigma) = {1\over 4}
+                    \left(\sum_{i=1}^4
+                    \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \Sigma \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
+                    \\right)
+
+
+            If requested (returnP=True) the projection matricies are returned as well (ordered by nodes)::
+
+                P = [P00, P10, P01, P11]
+
+            Here each P (2*nC, sum(nE)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
+
+            .. math::
+                \mathbf{P}_{(i)} =  \sqrt{ {1\over 4} v_{\\text{cell}}} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\\text{LOM only}} \mathbf{Q}_{(i)}
+
+            Note that this is completed for each cell in the mesh at the same time.
+
+        """
+        # We will multiply by V on each side to keep symmetry
+        if M.dim == 2:
+            # Square root of cell volume multiplied by 1/4
+            v = np.sqrt(0.25*M.vol)
+            V = sdiag(np.r_[v, v])
+            eP = _getEdgePxx(M)
+            P000 = V*eP('eX0', 'eY0')
+            P100 = V*eP('eX0', 'eY1')
+            P010 = V*eP('eX1', 'eY0')
+            P110 = V*eP('eX1', 'eY1')
+        elif M.dim == 3:
+            # Square root of cell volume multiplied by 1/8
+            v = np.sqrt(0.125*M.vol)
+            V = sdiag(np.r_[v, v, v])
+            eP = _getEdgePxxx(M)
+            P000 = V*eP('eX0', 'eY0', 'eZ0')
+            P100 = V*eP('eX0', 'eY1', 'eZ1')
+            P010 = V*eP('eX1', 'eY0', 'eZ2')
+            P110 = V*eP('eX1', 'eY1', 'eZ3')
+            P001 = V*eP('eX2', 'eY2', 'eZ0')
+            P101 = V*eP('eX2', 'eY3', 'eZ1')
+            P011 = V*eP('eX3', 'eY2', 'eZ2')
+            P111 = V*eP('eX3', 'eY3', 'eZ3')
+
+        Sigma = _makeTensor(M, sigma)
+        A = P000.T*Sigma*P000 + P100.T*Sigma*P100 + P010.T*Sigma*P010 + P110.T*Sigma*P110
+        P = [P000, P100, P010, P110]
+        if M.dim == 3:
+            A = A + P001.T*Sigma*P001 + P101.T*Sigma*P101 + P011.T*Sigma*P011 + P111.T*Sigma*P111
+            P += [P001, P101, P011,  P111]
+        if returnP:
+            return A, P
+        else:
+            return A
 
 # ------------------------ Geometries ------------------------------
 #
@@ -121,434 +300,264 @@ class InnerProducts(object):
 #         |                                     |/
 #    node(i+1,j,k) ------ edge2(i+1,j,k) ----- node(i+1,j+1,k)
 
+def _makeTensor(M, sigma):
+    if sigma is None:  # default is ones
+        sigma = np.ones((M.nC, 1))
 
-def getFaceInnerProduct(mesh, mu=None, returnP=False):
-    """
-        :param numpy.array mu: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
-        :param bool returnP: returns the projection matrices
-        :rtype: scipy.csr_matrix
-        :return: M, the inner product matrix (sum(nF), sum(nF))
+    if M.dim == 2:
+        if sigma.size == M.nC:  # Isotropic!
+            sigma = mkvc(sigma)  # ensure it is a vector.
+            Sigma = sdiag(np.r_[sigma, sigma])
+        elif sigma.shape[1] == 2:  # Diagonal tensor
+            Sigma = sdiag(np.r_[sigma[:, 0], sigma[:, 1]])
+        elif sigma.shape[1] == 3:  # Fully anisotropic
+            row1 = sp.hstack((sdiag(sigma[:, 0]), sdiag(sigma[:, 2])))
+            row2 = sp.hstack((sdiag(sigma[:, 2]), sdiag(sigma[:, 1])))
+            Sigma = sp.vstack((row1, row2))
+    elif M.dim == 3:
+        if sigma.size == M.nC:  # Isotropic!
+            sigma = mkvc(sigma)  # ensure it is a vector.
+            Sigma = sdiag(np.r_[sigma, sigma, sigma])
+        elif sigma.shape[1] == 3:  # Diagonal tensor
+            Sigma = sdiag(np.r_[sigma[:, 0], sigma[:, 1], sigma[:, 2]])
+        elif sigma.shape[1] == 6:  # Fully anisotropic
+            row1 = sp.hstack((sdiag(sigma[:, 0]), sdiag(sigma[:, 3]), sdiag(sigma[:, 4])))
+            row2 = sp.hstack((sdiag(sigma[:, 3]), sdiag(sigma[:, 1]), sdiag(sigma[:, 5])))
+            row3 = sp.hstack((sdiag(sigma[:, 4]), sdiag(sigma[:, 5]), sdiag(sigma[:, 2])))
+            Sigma = sp.vstack((row1, row2, row3))
+    return Sigma
 
-        Depending on the number of columns (either 1, 3, or 6) of mu, the material property is interpreted as follows:
+def _getFacePxx(M):
+    if M._meshType == 'TREE':
+        return M._getFacePxx
 
-        .. math::
-            \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & 0 & 0 \\\\ 0 & \mu_{1} & 0 \\\\ 0 & 0 & \mu_{1}  \end{matrix}\\right]
+    return _getFacePxx_Rectangular(M)
 
-            \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & 0 & 0 \\\\ 0 & \mu_{2} & 0 \\\\ 0 & 0 & \mu_{3}  \end{matrix}\\right]
+def _getFacePxxx(M):
+    if M._meshType == 'TREE':
+        return M._getFacePxxx
 
-            \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & \mu_{4} & \mu_{5} \\\\ \mu_{4} & \mu_{2} & \mu_{6} \\\\ \mu_{5} & \mu_{6} & \mu_{3}  \end{matrix}\\right]
+    return _getFacePxxx_Rectangular(M)
 
-            \mathbf{M}(\\vec{\mu}) = {1\over 8}
-                \left(\sum_{i=1}^8
-                \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \\vec{\mu} \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
-                \\right)
+def _getEdgePxx(M):
+    if M._meshType == 'TREE':
+        return M._getEdgePxx
 
-        If requested (returnP=True) the projection matricies are returned as well (ordered by nodes)::
+    return _getEdgePxx_Rectangular(M)
 
-            P = [P000, P001, P010, P011, P100, P101, P110, P111]
+def _getEdgePxxx(M):
+    if M._meshType == 'TREE':
+        return M._getEdgePxxx
 
-        Here each P (3*nC, sum(nF)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
+    return _getEdgePxxx_Rectangular(M)
 
-        .. math::
-            \mathbf{P}_{(i)} =  \sqrt{ {1\over 8} v_{\\text{cell}}} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\\text{LOM only}} \mathbf{Q}_{(i)}
+def _getFacePxx_Rectangular(M):
+    """returns a function for creating projection matrices
 
-        Note that this is completed for each cell in the mesh at the same time.
+        Mats takes you from faces a subset of all faces on only the
+        faces that you ask for.
 
-    """
+        These are centered around a single nodes.
 
-    if mu is None:  # default is ones
-        mu = np.ones((mesh.nC, 1))
+        For example, if this was your entire mesh:
 
-    m = np.array([mesh.nCx, mesh.nCy, mesh.nCz])
-    nc = mesh.nC
+                        f3(Yp)
+                  2_______________3
+                  |               |
+                  |               |
+                  |               |
+          f0(Xm)  |       x       |  f1(Xp)
+                  |               |
+                  |               |
+                  |_______________|
+                  0               1
+                        f2(Ym)
 
-    i, j, k = np.int64(range(m[0])), np.int64(range(m[1])), np.int64(range(m[2]))
+        Pxx('m','m') = | 1, 0, 0, 0 |
+                       | 0, 0, 1, 0 |
 
-    iijjkk = ndgrid(i, j, k)
-    ii, jj, kk = iijjkk[:, 0], iijjkk[:, 1], iijjkk[:, 2]
+        Pxx('p','m') = | 0, 1, 0, 0 |
+                       | 0, 0, 1, 0 |
 
-    if mesh._meshType == 'LOM':
-        fN1 = mesh.r(mesh.normals, 'F', 'Fx', 'M')
-        fN2 = mesh.r(mesh.normals, 'F', 'Fy', 'M')
-        fN3 = mesh.r(mesh.normals, 'F', 'Fz', 'M')
-
-    def Pxxx(pos):
-        ind1 = sub2ind(mesh.nFx, np.c_[ii + pos[0][0], jj + pos[0][1], kk + pos[0][2]])
-        ind2 = sub2ind(mesh.nFy, np.c_[ii + pos[1][0], jj + pos[1][1], kk + pos[1][2]]) + mesh.nFv[0]
-        ind3 = sub2ind(mesh.nFz, np.c_[ii + pos[2][0], jj + pos[2][1], kk + pos[2][2]]) + mesh.nFv[0] + mesh.nFv[1]
-
-        IND = np.r_[ind1, ind2, ind3].flatten()
-
-        PXXX = sp.coo_matrix((np.ones(3*nc), (range(3*nc), IND)), shape=(3*nc, np.sum(mesh.nF))).tocsr()
-
-        if mesh._meshType == 'LOM':
-            I3x3 = inv3X3BlockDiagonal(getSubArray(fN1[0], [i + pos[0][0], j + pos[0][1], k + pos[0][2]]), getSubArray(fN1[1], [i + pos[0][0], j + pos[0][1], k + pos[0][2]]), getSubArray(fN1[2], [i + pos[0][0], j + pos[0][1], k + pos[0][2]]),
-                                       getSubArray(fN2[0], [i + pos[1][0], j + pos[1][1], k + pos[1][2]]), getSubArray(fN2[1], [i + pos[1][0], j + pos[1][1], k + pos[1][2]]), getSubArray(fN2[2], [i + pos[1][0], j + pos[1][1], k + pos[1][2]]),
-                                       getSubArray(fN3[0], [i + pos[2][0], j + pos[2][1], k + pos[2][2]]), getSubArray(fN3[1], [i + pos[2][0], j + pos[2][1], k + pos[2][2]]), getSubArray(fN3[2], [i + pos[2][0], j + pos[2][1], k + pos[2][2]]))
-            PXXX = I3x3 * PXXX
-
-        return PXXX
-
-    # no  | node        | f1        | f2        | f3
-    # 000 | i  ,j  ,k   | i  , j, k | i, j  , k | i, j, k
-    # 100 | i+1,j  ,k   | i+1, j, k | i, j  , k | i, j, k
-    # 010 | i  ,j+1,k   | i  , j, k | i, j+1, k | i, j, k
-    # 110 | i+1,j+1,k   | i+1, j, k | i, j+1, k | i, j, k
-    # 001 | i  ,j  ,k+1 | i  , j, k | i, j  , k | i, j, k+1
-    # 101 | i+1,j  ,k+1 | i+1, j, k | i, j  , k | i, j, k+1
-    # 011 | i  ,j+1,k+1 | i  , j, k | i, j+1, k | i, j, k+1
-    # 111 | i+1,j+1,k+1 | i+1, j, k | i, j+1, k | i, j, k+1
-
-    # Square root of cell volume multiplied by 1/8
-    v = np.sqrt(0.125*mesh.vol)
-    V3 = sdiag(np.r_[v, v, v])  # We will multiply on each side to keep symmetry
-
-    P000 = V3*Pxxx([[0, 0, 0], [0, 0, 0], [0, 0, 0]])
-    P100 = V3*Pxxx([[1, 0, 0], [0, 0, 0], [0, 0, 0]])
-    P010 = V3*Pxxx([[0, 0, 0], [0, 1, 0], [0, 0, 0]])
-    P110 = V3*Pxxx([[1, 0, 0], [0, 1, 0], [0, 0, 0]])
-    P001 = V3*Pxxx([[0, 0, 0], [0, 0, 0], [0, 0, 1]])
-    P101 = V3*Pxxx([[1, 0, 0], [0, 0, 0], [0, 0, 1]])
-    P011 = V3*Pxxx([[0, 0, 0], [0, 1, 0], [0, 0, 1]])
-    P111 = V3*Pxxx([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
-
-    if mu.size == mesh.nC:  # Isotropic!
-        mu = mkvc(mu)  # ensure it is a vector.
-        Mu = sdiag(np.r_[mu, mu, mu])
-    elif mu.shape[1] == 3:  # Diagonal tensor
-        Mu = sdiag(np.r_[mu[:, 0], mu[:, 1], mu[:, 2]])
-    elif mu.shape[1] == 6:  # Fully anisotropic
-        row1 = sp.hstack((sdiag(mu[:, 0]), sdiag(mu[:, 3]), sdiag(mu[:, 4])))
-        row2 = sp.hstack((sdiag(mu[:, 3]), sdiag(mu[:, 1]), sdiag(mu[:, 5])))
-        row3 = sp.hstack((sdiag(mu[:, 4]), sdiag(mu[:, 5]), sdiag(mu[:, 2])))
-        Mu = sp.vstack((row1, row2, row3))
-
-    A = P000.T*Mu*P000 + P001.T*Mu*P001 + P010.T*Mu*P010 + P011.T*Mu*P011 + P100.T*Mu*P100 + P101.T*Mu*P101 + P110.T*Mu*P110 + P111.T*Mu*P111
-    P = [P000, P001, P010, P011, P100, P101, P110, P111]
-    if returnP:
-        return A, P
-    else:
-        return A
-
-
-def getFaceInnerProduct2D(mesh, mu=None, returnP=False):
-    """
-        :param numpy.array mu: material property (tensor properties are possible) at each cell center (nC, (1, 2, or 3))
-        :param bool returnP: returns the projection matrices
-        :rtype: scipy.csr_matrix
-        :return: M, the inner product matrix (sum(nF), sum(nF))
-
-        Depending on the number of columns (either 1, 2, or 3) of mu, the material property is interpreted as follows:
-
-        .. math::
-            \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & 0 \\\\ 0 & \mu_{1} \end{matrix}\\right]
-
-            \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & 0 \\\\ 0 & \mu_{2} \end{matrix}\\right]
-
-            \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & \mu_{3} \\\\ \mu_{3} & \mu_{2} \end{matrix}\\right]
-
-
-        .. math::
-
-            \mathbf{M}(\\vec{\mu}) = {1\over 4}
-                \left(\sum_{i=1}^4
-                \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \\vec{\mu} \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
-                \\right)
-
-
-        If requested (returnP=True) the projection matricies are returned as well (ordered by nodes)::
-
-            P = [P00, P10, P01, P11]
-
-        Here each P (2*nC, sum(nF)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
-
-        .. math::
-            \mathbf{P}_{(i)} =  \sqrt{ {1\over 4} v_{\\text{cell}}} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\\text{LOM only}} \mathbf{Q}_{(i)}
-
-        Note that this is completed for each cell in the mesh at the same time.
-
-    """
-
-    if mu is None:  # default is ones
-        mu = np.ones((mesh.nC, 1))
-
-    m = np.array([mesh.nCx, mesh.nCy])
-    nc = mesh.nC
-
-    i, j = np.int64(range(m[0])), np.int64(range(m[1]))
+        """
+    i, j = np.int64(range(M.nCx)), np.int64(range(M.nCy))
 
     iijj = ndgrid(i, j)
     ii, jj = iijj[:, 0], iijj[:, 1]
 
-    if mesh._meshType == 'LOM':
-        fN1 = mesh.r(mesh.normals, 'F', 'Fx', 'M')
-        fN2 = mesh.r(mesh.normals, 'F', 'Fy', 'M')
+    if M._meshType == 'LOM':
+        fN1 = M.r(M.normals, 'F', 'Fx', 'M')
+        fN2 = M.r(M.normals, 'F', 'Fy', 'M')
 
-    def Pxx(pos):
-        ind1 = sub2ind(mesh.nFx, np.c_[ii + pos[0][0], jj + pos[0][1]])
-        ind2 = sub2ind(mesh.nFy, np.c_[ii + pos[1][0], jj + pos[1][1]]) + mesh.nFv[0]
+    def Pxx(xFace, yFace):
+        """
+            xFace is 'fXp' or 'fXm'
+            yFace is 'fYp' or 'fYm'
+        """
+        # no | node      | f1     | f2
+        # 00 | i  ,j     | i  , j | i, j
+        # 10 | i+1,j     | i+1, j | i, j
+        # 01 | i  ,j+1   | i  , j | i, j+1
+        # 11 | i+1,j+1   | i+1, j | i, j+1
+
+        posFx = 0 if xFace == 'fXm' else 1
+        posFy = 0 if yFace == 'fYm' else 1
+
+        ind1 = sub2ind(M.nFx, np.c_[ii + posFx, jj])
+        ind2 = sub2ind(M.nFy, np.c_[ii, jj + posFy]) + M.nFv[0]
 
         IND = np.r_[ind1, ind2].flatten()
 
-        PXX = sp.coo_matrix((np.ones(2*nc), (range(2*nc), IND)), shape=(2*nc, np.sum(mesh.nF))).tocsr()
+        PXX = sp.csr_matrix((np.ones(2*M.nC), (range(2*M.nC), IND)), shape=(2*M.nC, np.sum(M.nF)))
 
-        if mesh._meshType == 'LOM':
-            I2x2 = inv2X2BlockDiagonal(getSubArray(fN1[0], [i + pos[0][0], j + pos[0][1]]), getSubArray(fN1[1], [i + pos[0][0], j + pos[0][1]]),
-                                       getSubArray(fN2[0], [i + pos[1][0], j + pos[1][1]]), getSubArray(fN2[1], [i + pos[1][0], j + pos[1][1]]))
+        if M._meshType == 'LOM':
+            I2x2 = inv2X2BlockDiagonal(getSubArray(fN1[0], [i + posFx, j]), getSubArray(fN1[1], [i + posFx, j]),
+                                       getSubArray(fN2[0], [i, j + posFy]), getSubArray(fN2[1], [i, j + posFy]))
             PXX = I2x2 * PXX
 
         return PXX
 
-    # no | node      | f1     | f2
-    # 00 | i  ,j     | i  , j | i, j
-    # 10 | i+1,j     | i+1, j | i, j
-    # 01 | i  ,j+1   | i  , j | i, j+1
-    # 11 | i+1,j+1   | i+1, j | i, j+1
+    return Pxx
 
-    # Square root of cell volume multiplied by 1/4
-    v = np.sqrt(0.25*mesh.vol)
-    V2 = sdiag(np.r_[v, v])  # We will multiply on each side to keep symmetry
+def _getFacePxxx_Rectangular(M):
+    """returns a function for creating projection matrices
 
-    P00 = V2*Pxx([[0, 0], [0, 0]])
-    P10 = V2*Pxx([[1, 0], [0, 0]])
-    P01 = V2*Pxx([[0, 0], [0, 1]])
-    P11 = V2*Pxx([[1, 0], [0, 1]])
+        Mats takes you from faces a subset of all faces on only the
+        faces that you ask for.
 
-    if mu.size == mesh.nC:  # Isotropic!
-        mu = mkvc(mu)  # ensure it is a vector.
-        Mu = sdiag(np.r_[mu, mu])
-    elif mu.shape[1] == 2:  # Diagonal tensor
-        Mu = sdiag(np.r_[mu[:, 0], mu[:, 1]])
-    elif mu.shape[1] == 3:  # Fully anisotropic
-        row1 = sp.hstack((sdiag(mu[:, 0]), sdiag(mu[:, 2])))
-        row2 = sp.hstack((sdiag(mu[:, 2]), sdiag(mu[:, 1])))
-        Mu = sp.vstack((row1, row2))
-
-    A = P00.T*Mu*P00 + P10.T*Mu*P10 + P01.T*Mu*P01 + P11.T*Mu*P11
-    P = [P00, P10, P01, P11]
-    if returnP:
-        return A, P
-    else:
-        return A
-
-
-def getEdgeInnerProduct(mesh, sigma=None, returnP=False):
-    """
-        :param numpy.array sigma: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
-        :param bool returnP: returns the projection matrices
-        :rtype: scipy.csr_matrix
-        :return: M, the inner product matrix (sum(nE), sum(nE))
-
-
-        Depending on the number of columns (either 1, 3, or 6) of sigma, the material property is interpreted as follows:
-
-        .. math::
-            \Sigma = \left[\\begin{matrix} \sigma_{1} & 0 & 0 \\\\ 0 & \sigma_{1} & 0 \\\\ 0 & 0 & \sigma_{1}  \end{matrix}\\right]
-
-            \Sigma = \left[\\begin{matrix} \sigma_{1} & 0 & 0 \\\\ 0 & \sigma_{2} & 0 \\\\ 0 & 0 & \sigma_{3}  \end{matrix}\\right]
-
-            \Sigma = \left[\\begin{matrix} \sigma_{1} & \sigma_{4} & \sigma_{5} \\\\ \sigma_{4} & \sigma_{2} & \sigma_{6} \\\\ \sigma_{5} & \sigma_{6} & \sigma_{3}  \end{matrix}\\right]
-
-        What is returned:
-
-        .. math::
-            \mathbf{M}(\Sigma) = {1\over 8}
-                \left(\sum_{i=1}^8
-                \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \Sigma \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
-                \\right)
-
-        If requested (returnP=True) the projection matricies are returned as well (ordered by nodes)::
-
-            P = [P000, P001, P010, P011, P100, P101, P110, P111]
-
-        Here each P (3*nC, sum(nE)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
-
-        .. math::
-            \mathbf{P}_{(i)} =  \sqrt{ {1\over 8} v_{\\text{cell}}} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\\text{LOM only}} \mathbf{Q}_{(i)}
-
-        Note that this is completed for each cell in the mesh at the same time.
+        These are centered around a single nodes.
     """
 
-    if sigma is None:  # default is ones
-        sigma = np.ones((mesh.nC, 1))
-
-    m = np.array([mesh.nCx, mesh.nCy, mesh.nCz])
-    nc = mesh.nC
-
-    i, j, k = np.int64(range(m[0])), np.int64(range(m[1])), np.int64(range(m[2]))
+    i, j, k = np.int64(range(M.nCx)), np.int64(range(M.nCy)), np.int64(range(M.nCz))
 
     iijjkk = ndgrid(i, j, k)
     ii, jj, kk = iijjkk[:, 0], iijjkk[:, 1], iijjkk[:, 2]
 
-    if mesh._meshType == 'LOM':
-        eT1 = mesh.r(mesh.tangents, 'E', 'Ex', 'M')
-        eT2 = mesh.r(mesh.tangents, 'E', 'Ey', 'M')
-        eT3 = mesh.r(mesh.tangents, 'E', 'Ez', 'M')
+    if M._meshType == 'LOM':
+        fN1 = M.r(M.normals, 'F', 'Fx', 'M')
+        fN2 = M.r(M.normals, 'F', 'Fy', 'M')
+        fN3 = M.r(M.normals, 'F', 'Fz', 'M')
 
-    def Pxxx(pos):
-        ind1 = sub2ind(mesh.nEx, np.c_[ii + pos[0][0], jj + pos[0][1], kk + pos[0][2]])
-        ind2 = sub2ind(mesh.nEy, np.c_[ii + pos[1][0], jj + pos[1][1], kk + pos[1][2]]) + mesh.nEv[0]
-        ind3 = sub2ind(mesh.nEz, np.c_[ii + pos[2][0], jj + pos[2][1], kk + pos[2][2]]) + mesh.nEv[0] + mesh.nEv[1]
+    def Pxxx(xFace, yFace, zFace):
+        """
+            xFace is 'fXp' or 'fXm'
+            yFace is 'fYp' or 'fYm'
+            zFace is 'fZp' or 'fZm'
+        """
+
+        # no  | node        | f1        | f2        | f3
+        # 000 | i  ,j  ,k   | i  , j, k | i, j  , k | i, j, k
+        # 100 | i+1,j  ,k   | i+1, j, k | i, j  , k | i, j, k
+        # 010 | i  ,j+1,k   | i  , j, k | i, j+1, k | i, j, k
+        # 110 | i+1,j+1,k   | i+1, j, k | i, j+1, k | i, j, k
+        # 001 | i  ,j  ,k+1 | i  , j, k | i, j  , k | i, j, k+1
+        # 101 | i+1,j  ,k+1 | i+1, j, k | i, j  , k | i, j, k+1
+        # 011 | i  ,j+1,k+1 | i  , j, k | i, j+1, k | i, j, k+1
+        # 111 | i+1,j+1,k+1 | i+1, j, k | i, j+1, k | i, j, k+1
+
+        posX = 0 if xFace == 'fXm' else 1
+        posY = 0 if yFace == 'fYm' else 1
+        posZ = 0 if zFace == 'fZm' else 1
+
+        ind1 = sub2ind(M.nFx, np.c_[ii + posX, jj, kk])
+        ind2 = sub2ind(M.nFy, np.c_[ii, jj + posY, kk]) + M.nFv[0]
+        ind3 = sub2ind(M.nFz, np.c_[ii, jj, kk + posZ]) + M.nFv[0] + M.nFv[1]
 
         IND = np.r_[ind1, ind2, ind3].flatten()
 
-        PXXX = sp.coo_matrix((np.ones(3*nc), (range(3*nc), IND)), shape=(3*nc, np.sum(mesh.nE))).tocsr()
+        PXXX = sp.coo_matrix((np.ones(3*M.nC), (range(3*M.nC), IND)), shape=(3*M.nC, np.sum(M.nF))).tocsr()
 
-        if mesh._meshType == 'LOM':
-            I3x3 = inv3X3BlockDiagonal(getSubArray(eT1[0], [i + pos[0][0], j + pos[0][1], k + pos[0][2]]), getSubArray(eT1[1], [i + pos[0][0], j + pos[0][1], k + pos[0][2]]), getSubArray(eT1[2], [i + pos[0][0], j + pos[0][1], k + pos[0][2]]),
-                                       getSubArray(eT2[0], [i + pos[1][0], j + pos[1][1], k + pos[1][2]]), getSubArray(eT2[1], [i + pos[1][0], j + pos[1][1], k + pos[1][2]]), getSubArray(eT2[2], [i + pos[1][0], j + pos[1][1], k + pos[1][2]]),
-                                       getSubArray(eT3[0], [i + pos[2][0], j + pos[2][1], k + pos[2][2]]), getSubArray(eT3[1], [i + pos[2][0], j + pos[2][1], k + pos[2][2]]), getSubArray(eT3[2], [i + pos[2][0], j + pos[2][1], k + pos[2][2]]))
+        if M._meshType == 'LOM':
+            I3x3 = inv3X3BlockDiagonal(getSubArray(fN1[0], [i + posX, j, k]), getSubArray(fN1[1], [i + posX, j, k]), getSubArray(fN1[2], [i + posX, j, k]),
+                                       getSubArray(fN2[0], [i, j + posY, k]), getSubArray(fN2[1], [i, j + posY, k]), getSubArray(fN2[2], [i, j + posY, k]),
+                                       getSubArray(fN3[0], [i, j, k + posZ]), getSubArray(fN3[1], [i, j, k + posZ]), getSubArray(fN3[2], [i, j, k + posZ]))
             PXXX = I3x3 * PXXX
 
         return PXXX
+    return Pxxx
 
-    # no  | node        | e1          | e2          | e3
-    # 000 | i  ,j  ,k   | i  ,j  ,k   | i  ,j  ,k   | i  ,j  ,k
-    # 100 | i+1,j  ,k   | i  ,j  ,k   | i+1,j  ,k   | i+1,j  ,k
-    # 010 | i  ,j+1,k   | i  ,j+1,k   | i  ,j  ,k   | i  ,j+1,k
-    # 110 | i+1,j+1,k   | i  ,j+1,k   | i+1,j  ,k   | i+1,j+1,k
-    # 001 | i  ,j  ,k+1 | i  ,j  ,k+1 | i  ,j  ,k+1 | i  ,j  ,k
-    # 101 | i+1,j  ,k+1 | i  ,j  ,k+1 | i+1,j  ,k+1 | i+1,j  ,k
-    # 011 | i  ,j+1,k+1 | i  ,j+1,k+1 | i  ,j  ,k+1 | i  ,j+1,k
-    # 111 | i+1,j+1,k+1 | i  ,j+1,k+1 | i+1,j  ,k+1 | i+1,j+1,k
-
-    # Square root of cell volume multiplied by 1/8
-    v = np.sqrt(0.125*mesh.vol)
-    V3 = sdiag(np.r_[v, v, v])  # We will multiply on each side to keep symmetry
-
-    P000 = V3*Pxxx([[0, 0, 0], [0, 0, 0], [0, 0, 0]])
-    P100 = V3*Pxxx([[0, 0, 0], [1, 0, 0], [1, 0, 0]])
-    P010 = V3*Pxxx([[0, 1, 0], [0, 0, 0], [0, 1, 0]])
-    P110 = V3*Pxxx([[0, 1, 0], [1, 0, 0], [1, 1, 0]])
-    P001 = V3*Pxxx([[0, 0, 1], [0, 0, 1], [0, 0, 0]])
-    P101 = V3*Pxxx([[0, 0, 1], [1, 0, 1], [1, 0, 0]])
-    P011 = V3*Pxxx([[0, 1, 1], [0, 0, 1], [0, 1, 0]])
-    P111 = V3*Pxxx([[0, 1, 1], [1, 0, 1], [1, 1, 0]])
-
-    if sigma.size == mesh.nC:  # Isotropic!
-        sigma = mkvc(sigma)  # ensure it is a vector.
-        Sigma = sdiag(np.r_[sigma, sigma, sigma])
-    elif sigma.shape[1] == 3:  # Diagonal tensor
-        Sigma = sdiag(np.r_[sigma[:, 0], sigma[:, 1], sigma[:, 2]])
-    elif sigma.shape[1] == 6:  # Fully anisotropic
-        row1 = sp.hstack((sdiag(sigma[:, 0]), sdiag(sigma[:, 3]), sdiag(sigma[:, 4])))
-        row2 = sp.hstack((sdiag(sigma[:, 3]), sdiag(sigma[:, 1]), sdiag(sigma[:, 5])))
-        row3 = sp.hstack((sdiag(sigma[:, 4]), sdiag(sigma[:, 5]), sdiag(sigma[:, 2])))
-        Sigma = sp.vstack((row1, row2, row3))
-
-    A = P000.T*Sigma*P000 + P001.T*Sigma*P001 + P010.T*Sigma*P010 + P011.T*Sigma*P011 + P100.T*Sigma*P100 + P101.T*Sigma*P101 + P110.T*Sigma*P110 + P111.T*Sigma*P111
-    P = [P000, P001, P010, P011, P100, P101, P110, P111]
-    if returnP:
-        return A, P
-    else:
-        return A
-
-
-def getEdgeInnerProduct2D(mesh, sigma=None, returnP=False):
-    """
-        :param numpy.array sigma: material property (tensor properties are possible) at each cell center (nC, (1, 2, or 3))
-        :param bool returnP: returns the projection matrices
-        :rtype: scipy.csr_matrix
-        :return: M, the inner product matrix (sum(nE), sum(nE))
-
-        Depending on the number of columns (either 1, 2, or 3) of sigma, the material property is interpreted as follows:
-
-        .. math::
-            \Sigma = \left[\\begin{matrix} \sigma_{1} & 0 \\\\ 0 & \sigma_{1} \end{matrix}\\right]
-
-            \Sigma = \left[\\begin{matrix} \sigma_{1} & 0 \\\\ 0 & \sigma_{2} \end{matrix}\\right]
-
-            \Sigma = \left[\\begin{matrix} \sigma_{1} & \sigma_{3} \\\\ \sigma_{3} & \sigma_{2} \end{matrix}\\right]
-
-
-        .. math::
-
-            \mathbf{M}(\Sigma) = {1\over 4}
-                \left(\sum_{i=1}^4
-                \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \Sigma \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
-                \\right)
-
-
-        If requested (returnP=True) the projection matricies are returned as well (ordered by nodes)::
-
-            P = [P00, P10, P01, P11]
-
-        Here each P (2*nC, sum(nE)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
-
-        .. math::
-            \mathbf{P}_{(i)} =  \sqrt{ {1\over 4} v_{\\text{cell}}} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\\text{LOM only}} \mathbf{Q}_{(i)}
-
-        Note that this is completed for each cell in the mesh at the same time.
-
-    """
-
-    if sigma is None:  # default is ones
-        sigma = np.ones((mesh.nC, 1))
-
-    m = np.array([mesh.nCx, mesh.nCy])
-    nc = mesh.nC
-
-    i, j = np.int64(range(m[0])), np.int64(range(m[1]))
+def _getEdgePxx_Rectangular(M):
+    i, j = np.int64(range(M.nCx)), np.int64(range(M.nCy))
 
     iijj = ndgrid(i, j)
     ii, jj = iijj[:, 0], iijj[:, 1]
 
-    if mesh._meshType == 'LOM':
-        eT1 = mesh.r(mesh.tangents, 'E', 'Ex', 'M')
-        eT2 = mesh.r(mesh.tangents, 'E', 'Ey', 'M')
+    if M._meshType == 'LOM':
+        eT1 = M.r(M.tangents, 'E', 'Ex', 'M')
+        eT2 = M.r(M.tangents, 'E', 'Ey', 'M')
 
-    def Pxx(pos):
-        ind1 = sub2ind(mesh.nEx, np.c_[ii + pos[0][0], jj + pos[0][1]])
-        ind2 = sub2ind(mesh.nEy, np.c_[ii + pos[1][0], jj + pos[1][1]]) + mesh.nEv[0]
+    def Pxx(xEdge, yEdge):
+        # no | node      | e1      | e2
+        # 00 | i  ,j     | i  ,j   | i  ,j
+        # 10 | i+1,j     | i  ,j   | i+1,j
+        # 01 | i  ,j+1   | i  ,j+1 | i  ,j
+        # 11 | i+1,j+1   | i  ,j+1 | i+1,j
+        posX = 0 if xEdge == 'eX0' else 1
+        posY = 0 if yEdge == 'eY0' else 1
+
+        ind1 = sub2ind(M.nEx, np.c_[ii, jj + posX])
+        ind2 = sub2ind(M.nEy, np.c_[ii + posY, jj]) + M.nEv[0]
 
         IND = np.r_[ind1, ind2].flatten()
 
-        PXX = sp.coo_matrix((np.ones(2*nc), (range(2*nc), IND)), shape=(2*nc, np.sum(mesh.nE))).tocsr()
+        PXX = sp.coo_matrix((np.ones(2*M.nC), (range(2*M.nC), IND)), shape=(2*M.nC, np.sum(M.nE))).tocsr()
 
-        if mesh._meshType == 'LOM':
-            I2x2 = inv2X2BlockDiagonal(getSubArray(eT1[0], [i + pos[0][0], j + pos[0][1]]), getSubArray(eT1[1], [i + pos[0][0], j + pos[0][1]]),
-                                       getSubArray(eT2[0], [i + pos[1][0], j + pos[1][1]]), getSubArray(eT2[1], [i + pos[1][0], j + pos[1][1]]))
+        if M._meshType == 'LOM':
+            I2x2 = inv2X2BlockDiagonal(getSubArray(eT1[0], [i, j + posX]), getSubArray(eT1[1], [i, j + posX]),
+                                       getSubArray(eT2[0], [i + posY, j]), getSubArray(eT2[1], [i + posY, j]))
             PXX = I2x2 * PXX
 
         return PXX
+    return Pxx
 
-    # no | node      | e1      | e2
-    # 00 | i  ,j     | i  ,j   | i  ,j
-    # 10 | i+1,j     | i  ,j   | i+1,j
-    # 01 | i  ,j+1   | i  ,j+1 | i  ,j
-    # 11 | i+1,j+1   | i  ,j+1 | i+1,j
+def _getEdgePxxx_Rectangular(M):
+    i, j, k = np.int64(range(M.nCx)), np.int64(range(M.nCy)), np.int64(range(M.nCz))
 
-    # Square root of cell volume multiplied by 1/4
-    v = np.sqrt(0.25*mesh.vol)
-    V2 = sdiag(np.r_[v, v])  # We will multiply on each side to keep symmetry
+    iijjkk = ndgrid(i, j, k)
+    ii, jj, kk = iijjkk[:, 0], iijjkk[:, 1], iijjkk[:, 2]
 
-    P00 = V2*Pxx([[0, 0], [0, 0]])
-    P10 = V2*Pxx([[0, 0], [1, 0]])
-    P01 = V2*Pxx([[0, 1], [0, 0]])
-    P11 = V2*Pxx([[0, 1], [1, 0]])
+    if M._meshType == 'LOM':
+        eT1 = M.r(M.tangents, 'E', 'Ex', 'M')
+        eT2 = M.r(M.tangents, 'E', 'Ey', 'M')
+        eT3 = M.r(M.tangents, 'E', 'Ez', 'M')
 
-    if sigma.size == mesh.nC:  # Isotropic!
-        sigma = mkvc(sigma)  # ensure it is a vector.
-        Sigma = sdiag(np.r_[sigma, sigma])
-    elif sigma.shape[1] == 2:  # Diagonal tensor
-        Sigma = sdiag(np.r_[sigma[:, 0], sigma[:, 1]])
-    elif sigma.shape[1] == 3:  # Fully anisotropic
-        row1 = sp.hstack((sdiag(sigma[:, 0]), sdiag(sigma[:, 2])))
-        row2 = sp.hstack((sdiag(sigma[:, 2]), sdiag(sigma[:, 1])))
-        Sigma = sp.vstack((row1, row2))
+    def Pxxx(xEdge, yEdge, zEdge):
 
-    A = P00.T*Sigma*P00 + P10.T*Sigma*P10 + P01.T*Sigma*P01 + P11.T*Sigma*P11
-    P = [P00, P10, P01, P11]
-    if returnP:
-        return A, P
-    else:
-        return A
+        # no  | node        | e1          | e2          | e3
+        # 000 | i  ,j  ,k   | i  ,j  ,k   | i  ,j  ,k   | i  ,j  ,k
+        # 100 | i+1,j  ,k   | i  ,j  ,k   | i+1,j  ,k   | i+1,j  ,k
+        # 010 | i  ,j+1,k   | i  ,j+1,k   | i  ,j  ,k   | i  ,j+1,k
+        # 110 | i+1,j+1,k   | i  ,j+1,k   | i+1,j  ,k   | i+1,j+1,k
+        # 001 | i  ,j  ,k+1 | i  ,j  ,k+1 | i  ,j  ,k+1 | i  ,j  ,k
+        # 101 | i+1,j  ,k+1 | i  ,j  ,k+1 | i+1,j  ,k+1 | i+1,j  ,k
+        # 011 | i  ,j+1,k+1 | i  ,j+1,k+1 | i  ,j  ,k+1 | i  ,j+1,k
+        # 111 | i+1,j+1,k+1 | i  ,j+1,k+1 | i+1,j  ,k+1 | i+1,j+1,k
 
+        posX = [0,0] if xEdge == 'eX0' else [1, 0] if xEdge == 'eX1' else [0,1] if xEdge == 'eX2' else [1,1]
+        posY = [0,0] if yEdge == 'eY0' else [1, 0] if yEdge == 'eY1' else [0,1] if yEdge == 'eY2' else [1,1]
+        posZ = [0,0] if zEdge == 'eZ0' else [1, 0] if zEdge == 'eZ1' else [0,1] if zEdge == 'eZ2' else [1,1]
+
+        ind1 = sub2ind(M.nEx, np.c_[ii, jj + posX[0], kk + posX[1]])
+        ind2 = sub2ind(M.nEy, np.c_[ii + posY[0], jj, kk + posY[1]]) + M.nEv[0]
+        ind3 = sub2ind(M.nEz, np.c_[ii + posZ[0], jj + posZ[1], kk]) + M.nEv[0] + M.nEv[1]
+
+        IND = np.r_[ind1, ind2, ind3].flatten()
+
+        PXXX = sp.coo_matrix((np.ones(3*M.nC), (range(3*M.nC), IND)), shape=(3*M.nC, np.sum(M.nE))).tocsr()
+
+        if M._meshType == 'LOM':
+            I3x3 = inv3X3BlockDiagonal(getSubArray(eT1[0], [i, j + posX[0], k + posX[1]]), getSubArray(eT1[1], [i, j + posX[0], k + posX[1]]), getSubArray(eT1[2], [i, j + posX[0], k + posX[1]]),
+                                       getSubArray(eT2[0], [i + posY[0], j, k + posY[1]]), getSubArray(eT2[1], [i + posY[0], j, k + posY[1]]), getSubArray(eT2[2], [i + posY[0], j, k + posY[1]]),
+                                       getSubArray(eT3[0], [i + posZ[0], j + posZ[1], k]), getSubArray(eT3[1], [i + posZ[0], j + posZ[1], k]), getSubArray(eT3[2], [i + posZ[0], j + posZ[1], k]))
+            PXXX = I3x3 * PXXX
+
+        return PXXX
+    return Pxxx
 
 if __name__ == '__main__':
     from TensorMesh import TensorMesh
     h = [np.array([1, 2, 3, 4]), np.array([1, 2, 1, 4, 2]), np.array([1, 1, 4, 1])]
-    mesh = TensorMesh(h)
-    mu = np.ones((mesh.nC, 6))
-    A, P = mesh.getFaceInnerProduct(mu, returnP=True)
-    B, P = mesh.getEdgeInnerProduct(mu, returnP=True)
+    M = TensorMesh(h)
+    mu = np.ones((M.nC, 6))
+    A, P = M.getFaceInnerProduct(mu, returnP=True)
+    B, P = M.getEdgeInnerProduct(mu, returnP=True)
