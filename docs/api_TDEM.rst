@@ -48,22 +48,6 @@
     \newcommand{\I}{\vec{I}}
 
 
-.. raw:: html
-
-    <script type="text/x-mathjax-config">
-      MathJax.Hub.Config({
-        extensions: ["tex2jax.js"],
-        jax: ["input/TeX", "output/HTML-CSS"],
-        tex2jax: {
-          inlineMath: [ ['$','$'], ["\\(","\\)"] ],
-          displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
-          processEscapes: true
-        },
-        "HTML-CSS": { availableFonts: ["TeX"] },
-        TeX: {extensions: ["color.js"]}
-      });
-    </script>
-
 
 Sensitivity Calculation
 ***********************
@@ -156,7 +140,7 @@ where
         \right]
     \end{align}
 
-For the fields $\u$, the measured data is given by
+For the fields \\(\\u\\), the measured data is given by
 
 .. math::
 
@@ -173,7 +157,7 @@ The sensitivity matrix **J** is then defined as
     \end{align}
 
 
-Defining the function $\\c(m,\\u)$ to be
+Defining the function \\(\\c(m,\\u)\\) to be
 
 .. math::
 
@@ -244,9 +228,9 @@ Implementing **J** times a vector
 Multiplying **J** onto a vector can be broken into three steps
 
 
-* Compute $\\vec{p} = \\mathbf{G}m$
-* Solve $\\hat{\\mathbf{A}} \\vec{y} = \\vec{p}$
-* Compute $\\vec{w} = -\\mathbf{Q} \\vec{y}$
+* Compute \\(\\vec{p} = \\mathbf{G}m\\)
+* Solve \\(\\hat{\\mathbf{A}} \\vec{y} = \\vec{p}\\)
+* Compute \\(\\vec{w} = -\\mathbf{Q} \\vec{y}\\)
 
 .. math::
 
@@ -285,7 +269,7 @@ Remaining time steps:
 
     \begin{align}
         \dcurl \vec{y}_{e}^{(t+1)} + \frac{1}{\delta t} \vec{y}_{b}^{(t+1)}
-        {\color{red}- \frac{1}{\delta t} \vec{y}_{b}^{(t)} }
+        - \frac{1}{\delta t} \vec{y}_{b}^{(t)}
         = \vec{p}_b^{(t+1)} \\
         \dcurl^\top \MfMui \vec{y}_b^{(t+1)} - \MeSig \vec{y}_e^{(t+1)} = \vec{p}_e^{(t+1)}
     \end{align}
@@ -296,7 +280,7 @@ and
 
     \begin{align}
         \left( \MfMui \dcurl \MeSig^{-1} \dcurl^\top \MfMui + \frac{1}{\delta t} \MfMui \right) \vec{y}_{b}^{(t+1)} =
-        {\color{red} \frac{1}{\delta t} \MfMui \vec{y}_b^{(t)} }
+        \frac{1}{\delta t} \MfMui \vec{y}_b^{(t)}
         + \MfMui \dcurl \MeSig^{-1} \vec{p}_e^{(t+1)} + \MfMui \vec{p}_b^{(t+1)} \\
         \vec{y}_e^{(t+1)} = \MeSig^{-1} \dcurl^\top \MfMui \vec{y}_b^{(t+1)} - \MeSig^{-1} \vec{p}_e^{(t+1)}
     \end{align}
