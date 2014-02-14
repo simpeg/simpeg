@@ -83,14 +83,14 @@ where
         \mathbf{A} =
         \left[
             \begin{array}{cc}
-                \frac{1}{\delta t} \mathbf{I} & \dcurl \\
+                \frac{1}{\delta t} \MfMui & \MfMui\dcurl \\
                 \dcurl^\top \MfMui & -\MeSig
             \end{array}
         \right] \\
         \mathbf{B} =
         \left[
             \begin{array}{cc}
-                -\frac{1}{\delta t} \mathbf{I} & 0 \\
+                -\frac{1}{\delta t} \MfMui & 0 \\
                 0 & 0
             \end{array}
         \right] \\
@@ -107,6 +107,10 @@ where
         \end{array}
         \right]
     \end{align}
+
+.. note::
+
+    Here we have multiplied through by \\(\\MfMui\\) to make A and B symmetric!
 
 The entire time dependent system can be written in a single matrix expression
 
@@ -256,7 +260,7 @@ First time step
 .. math::
 
     \begin{align}
-        \dcurl \vec{y}_{e}^{(1)} + \frac{1}{\delta t} \vec{y}_{b}^{(1)} = \vec{p}_b^{(1)} \\
+        \frac{1}{\delta t} \MfMui \vec{y}_{b}^{(1)} + \MfMui \dcurl \vec{y}_{e}^{(1)} = \vec{p}_b^{(1)} \\
         \dcurl^\top \MfMui \vec{y}_b^{(1)} - \MeSig \vec{y}_e^{(1)} = \vec{p}_e^{(1)}
     \end{align}
 
@@ -264,7 +268,7 @@ First time step
 .. math::
 
     \begin{align}
-        \left( \MfMui \dcurl \MeSig^{-1} \dcurl^\top \MfMui + \frac{1}{\delta t} \MfMui \right) \vec{y}_{b}^{(1)} = \MfMui \dcurl \MeSig^{-1} \vec{p}_e^{(1)} + \MfMui \vec{p}_b^{(1)} \\
+        \left( \MfMui \dcurl \MeSig^{-1} \dcurl^\top \MfMui + \frac{1}{\delta t} \MfMui \right) \vec{y}_{b}^{(1)} = \MfMui \dcurl \MeSig^{-1} \vec{p}_e^{(1)} + \vec{p}_b^{(1)} \\
         \vec{y}_e^{(1)} = \MeSig^{-1} \dcurl^\top \MfMui \vec{y}_b^{(1)} - \MeSig^{-1} \vec{p}_e^{(1)}
     \end{align}
 
@@ -274,8 +278,8 @@ Remaining time steps:
 .. math::
 
     \begin{align}
-        \dcurl \vec{y}_{e}^{(t+1)} + \frac{1}{\delta t} \vec{y}_{b}^{(t+1)}
-        - \frac{1}{\delta t} \vec{y}_{b}^{(t)}
+        \frac{1}{\delta t} \MfMui\vec{y}_{b}^{(t+1)} + \MfMui\dcurl \vec{y}_{e}^{(t+1)}
+        - \frac{1}{\delta t} \MfMui \vec{y}_{b}^{(t)}
         = \vec{p}_b^{(t+1)} \\
         \dcurl^\top \MfMui \vec{y}_b^{(t+1)} - \MeSig \vec{y}_e^{(t+1)} = \vec{p}_e^{(t+1)}
     \end{align}
@@ -287,7 +291,7 @@ and
     \begin{align}
         \left( \MfMui \dcurl \MeSig^{-1} \dcurl^\top \MfMui + \frac{1}{\delta t} \MfMui \right) \vec{y}_{b}^{(t+1)} =
         \frac{1}{\delta t} \MfMui \vec{y}_b^{(t)}
-        + \MfMui \dcurl \MeSig^{-1} \vec{p}_e^{(t+1)} + \MfMui \vec{p}_b^{(t+1)} \\
+        + \MfMui \dcurl \MeSig^{-1} \vec{p}_e^{(t+1)} + \vec{p}_b^{(t+1)} \\
         \vec{y}_e^{(t+1)} = \MeSig^{-1} \dcurl^\top \MfMui \vec{y}_b^{(t+1)} - \MeSig^{-1} \vec{p}_e^{(t+1)}
     \end{align}
 
@@ -299,6 +303,63 @@ Implementing \\(\\mathbf{J}^\\top\\) times a vector
 Multiplying \\(\\mathbf{J}^\\top\\) onto a vector can be broken into three steps
 
 
-* Compute \\(\\vec{u} = \\mathbf{Q}^\\top \\vec{v}\\)
-* Solve \\(\\hat{\\mathbf{A}}^\\top \\vec{y} = \\vec{u}\\)
+* Compute \\(\\vec{p} = \\mathbf{Q}^\\top \\vec{v}\\)
+* Solve \\(\\hat{\\mathbf{A}}^\\top \\vec{y} = \\vec{p}\\)
 * Compute \\(\\vec{w} = -\\mathbf{G}^\\top y\\)
+
+
+.. math::
+
+    \mathbf{\hat{A}}^\top = \left[
+        \begin{array}{cccc}
+            A & B & & \\
+              & \ddots & \ddots & \\
+              & & A & B \\
+              & & 0 & A
+        \end{array}
+    \right]
+
+For the last time-step \\(t=N\\):
+
+.. math::
+
+    \begin{align}
+        \frac{1}{\delta t} \MfMui \vec{y}_{b}^{(N)} + \MfMui \dcurl \vec{y}_{e}^{(N)} = \vec{p}_b^{(N)} \\
+        \dcurl^\top \MfMui \vec{y}_b^{(N)} - \MeSig \vec{y}_e^{(N)} = \vec{p}_e^{(N)}
+    \end{align}
+
+
+.. math::
+
+    \begin{align}
+        \left( \MfMui \dcurl \MeSig^{-1} \dcurl^\top \MfMui + \frac{1}{\delta t} \MfMui \right) \vec{y}_{b}^{(N)} = \MfMui \dcurl \MeSig^{-1} \vec{p}_e^{(N)} + \vec{p}_b^{(N)} \\
+        \vec{y}_e^{(N)} = \MeSig^{-1} \dcurl^\top \MfMui \vec{y}_b^{(N)} - \MeSig^{-1} \vec{p}_e^{(N)}
+    \end{align}
+
+For the rest of the time-steps (going backwards in time)
+
+
+.. math::
+
+    A \vec{y}^{(t-1)} + B \vec{y}^{(t)} = \vec{p}^{(t-1)}
+
+
+.. math::
+
+    \begin{align}
+        \frac{1}{\delta t} \MfMui\vec{y}_{b}^{(t-1)} + \MfMui\dcurl \vec{y}_{e}^{(t-1)}
+        - \frac{1}{\delta t} \MfMui \vec{y}_{b}^{(t)}
+        = \vec{p}_b^{(t-1)} \\
+        \dcurl^\top \MfMui \vec{y}_b^{(t-1)} - \MeSig \vec{y}_e^{(t-1)} = \vec{p}_e^{(t-1)}
+    \end{align}
+
+and
+
+.. math::
+
+    \begin{align}
+        \left( \MfMui \dcurl \MeSig^{-1} \dcurl^\top \MfMui + \frac{1}{\delta t} \MfMui \right) \vec{y}_{b}^{(t-1)} =
+        \frac{1}{\delta t} \MfMui \vec{y}_b^{(t)}
+        + \MfMui \dcurl \MeSig^{-1} \vec{p}_e^{(t-1)} + \vec{p}_b^{(t-1)} \\
+        \vec{y}_e^{(t-1)} = \MeSig^{-1} \dcurl^\top \MfMui \vec{y}_b^{(t-1)} - \MeSig^{-1} \vec{p}_e^{(t-1)}
+    \end{align}
