@@ -1,5 +1,5 @@
 from SimPEG import Utils, np
-from BaseMesh import BaseMesh
+from BaseMesh import BaseRectangularMesh
 from DiffOperators import DiffOperators
 from InnerProducts import InnerProducts
 from LomView import LomView
@@ -11,7 +11,7 @@ normalize2D = lambda x: x/np.kron(np.ones((1, 2)), Utils.mkvc(length2D(x), 2))
 normalize3D = lambda x: x/np.kron(np.ones((1, 3)), Utils.mkvc(length3D(x), 2))
 
 
-class LogicallyOrthogonalMesh(BaseMesh, DiffOperators, InnerProducts, LomView):
+class LogicallyOrthogonalMesh(BaseRectangularMesh, DiffOperators, InnerProducts, LomView):
     """
     LogicallyOrthogonalMesh is a mesh class that deals with logically orthogonal meshes.
 
@@ -40,7 +40,7 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators, InnerProducts, LomView):
         assert len(nodes[0].shape) == len(nodes), "Dimension mismatch"
         assert len(nodes[0].shape) > 1, "Not worth using LOM for a 1D mesh."
 
-        super(LogicallyOrthogonalMesh, self).__init__(np.array(nodes[0].shape)-1, None)
+        BaseRectangularMesh.__init__(self, np.array(nodes[0].shape)-1, None)
 
         # Save nodes to private variable _gridN as vectors
         self._gridN = np.ones((nodes[0].size, self.dim))

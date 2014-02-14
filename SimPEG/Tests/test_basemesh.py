@@ -1,13 +1,13 @@
 import unittest
 import sys
-from SimPEG.Mesh import BaseMesh
+from SimPEG.Mesh import BaseRectangularMesh
 import numpy as np
 
 
 class TestBaseMesh(unittest.TestCase):
 
     def setUp(self):
-        self.mesh = BaseMesh([6, 2, 3])
+        self.mesh = BaseRectangularMesh([6, 2, 3])
 
     def test_meshDimensions(self):
         self.assertTrue(self.mesh.dim, 3)
@@ -109,7 +109,7 @@ class TestBaseMesh(unittest.TestCase):
 class TestMeshNumbers2D(unittest.TestCase):
 
     def setUp(self):
-        self.mesh = BaseMesh([6, 2])
+        self.mesh = BaseRectangularMesh([6, 2])
 
     def test_meshDimensions(self):
         self.assertTrue(self.mesh.dim, 2)

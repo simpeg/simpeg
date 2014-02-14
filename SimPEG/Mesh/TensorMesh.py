@@ -1,10 +1,10 @@
 from SimPEG import Utils, np, sp
-from BaseMesh import BaseMesh
+from BaseMesh import BaseRectangularMesh
 from TensorView import TensorView
 from DiffOperators import DiffOperators
 from InnerProducts import InnerProducts
 
-class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
+class TensorMesh(BaseRectangularMesh, TensorView, DiffOperators, InnerProducts):
     """
     TensorMesh is a mesh class that deals with tensor product meshes.
 
@@ -48,7 +48,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
             assert len(h_i.shape) == 1, ("h[%i] must be a 1D numpy array." % i)
             h[i] = h_i[:] # make a copy.
 
-        BaseMesh.__init__(self, np.array([x.size for x in h]), x0)
+        BaseRectangularMesh.__init__(self, np.array([x.size for x in h]), x0)
         assert len(h) == len(self.x0), "Dimension mismatch. x0 != len(h)"
 
         # Ensure h contains 1D vectors
