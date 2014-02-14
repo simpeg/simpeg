@@ -150,7 +150,7 @@ class Vertical1DModel(BaseModel):
 
            The number of cells in the
            last dimension of the mesh."""
-        return self.mesh.nCv[self.mesh.dim-1]
+        return self.mesh.vnC[self.mesh.dim-1]
 
     def transform(self, m):
         """
@@ -158,7 +158,7 @@ class Vertical1DModel(BaseModel):
             :rtype: numpy.array
             :return: transformed model
         """
-        repNum = self.mesh.nCv[:self.mesh.dim-1].prod()
+        repNum = self.mesh.vnC[:self.mesh.dim-1].prod()
         return Utils.mkvc(m).repeat(repNum)
 
     def transformDeriv(self, m):
@@ -167,7 +167,7 @@ class Vertical1DModel(BaseModel):
             :rtype: scipy.csr_matrix
             :return: derivative of transformed model
         """
-        repNum = self.mesh.nCv[:self.mesh.dim-1].prod()
+        repNum = self.mesh.vnC[:self.mesh.dim-1].prod()
         repVec = sp.csr_matrix(
                     (np.ones(repNum),
                     (range(repNum), np.zeros(repNum))

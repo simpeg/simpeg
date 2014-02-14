@@ -199,13 +199,13 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators, InnerProducts, LomView):
         def fget(self):
             if(self._vol is None):
                 if self.dim == 2:
-                    A, B, C, D = Utils.indexCube('ABCD', self.nCv+1)
+                    A, B, C, D = Utils.indexCube('ABCD', self.vnC+1)
                     normal, area = Utils.faceInfo(np.c_[self.gridN, np.zeros((self.nN, 1))], A, B, C, D)
                     self._vol = area
                 elif self.dim == 3:
                     # Each polyhedron can be decomposed into 5 tetrahedrons
                     # However, this presents a choice so we may as well divide in two ways and average.
-                    A, B, C, D, E, F, G, H = Utils.indexCube('ABCDEFGH', self.nCv+1)
+                    A, B, C, D, E, F, G, H = Utils.indexCube('ABCDEFGH', self.vnC+1)
 
                     vol1 = (Utils.volTetra(self.gridN, A, B, D, E) +  # cutted edge top
                             Utils.volTetra(self.gridN, B, E, F, G) +  # cutted edge top
@@ -233,11 +233,11 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators, InnerProducts, LomView):
                 # Compute areas of cell faces
                 if(self.dim == 2):
                     xy = self.gridN
-                    A, B = Utils.indexCube('AB', self.nCv+1, np.array([self.nNx, self.nCy]))
+                    A, B = Utils.indexCube('AB', self.vnC+1, np.array([self.nNx, self.nCy]))
                     edge1 = xy[B, :] - xy[A, :]
                     normal1 = np.c_[edge1[:, 1], -edge1[:, 0]]
                     area1 = length2D(edge1)
-                    A, D = Utils.indexCube('AD', self.nCv+1, np.array([self.nCx, self.nNy]))
+                    A, D = Utils.indexCube('AD', self.vnC+1, np.array([self.nCx, self.nNy]))
                     # Note that we are doing A-D to make sure the normal points the right way.
                     # Think about it. Look at the picture. Normal points towards C iff you do this.
                     edge2 = xy[A, :] - xy[D, :]
@@ -247,13 +247,13 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators, InnerProducts, LomView):
                     self._normals = [normalize2D(normal1), normalize2D(normal2)]
                 elif(self.dim == 3):
 
-                    A, E, F, B = Utils.indexCube('AEFB', self.nCv+1, np.array([self.nNx, self.nCy, self.nCz]))
+                    A, E, F, B = Utils.indexCube('AEFB', self.vnC+1, np.array([self.nNx, self.nCy, self.nCz]))
                     normal1, area1 = Utils.faceInfo(self.gridN, A, E, F, B, average=False, normalizeNormals=False)
 
-                    A, D, H, E = Utils.indexCube('ADHE', self.nCv+1, np.array([self.nCx, self.nNy, self.nCz]))
+                    A, D, H, E = Utils.indexCube('ADHE', self.vnC+1, np.array([self.nCx, self.nNy, self.nCz]))
                     normal2, area2 = Utils.faceInfo(self.gridN, A, D, H, E, average=False, normalizeNormals=False)
 
-                    A, B, C, D = Utils.indexCube('ABCD', self.nCv+1, np.array([self.nCx, self.nCy, self.nNz]))
+                    A, B, C, D = Utils.indexCube('ABCD', self.vnC+1, np.array([self.nCx, self.nCy, self.nNz]))
                     normal3, area3 = Utils.faceInfo(self.gridN, A, B, C, D, average=False, normalizeNormals=False)
 
                     self._area = np.r_[Utils.mkvc(area1), Utils.mkvc(area2), Utils.mkvc(area3)]
@@ -296,19 +296,19 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators, InnerProducts, LomView):
             if(self._edge is None or self._tangents is None):
                 if(self.dim == 2):
                     xy = self.gridN
-                    A, D = Utils.indexCube('AD', self.nCv+1, np.array([self.nCx, self.nNy]))
+                    A, D = Utils.indexCube('AD', self.vnC+1, np.array([self.nCx, self.nNy]))
                     edge1 = xy[D, :] - xy[A, :]
-                    A, B = Utils.indexCube('AB', self.nCv+1, np.array([self.nNx, self.nCy]))
+                    A, B = Utils.indexCube('AB', self.vnC+1, np.array([self.nNx, self.nCy]))
                     edge2 = xy[B, :] - xy[A, :]
                     self._edge = np.r_[Utils.mkvc(length2D(edge1)), Utils.mkvc(length2D(edge2))]
                     self._tangents = np.r_[edge1, edge2]/np.c_[self._edge, self._edge]
                 elif(self.dim == 3):
                     xyz = self.gridN
-                    A, D = Utils.indexCube('AD', self.nCv+1, np.array([self.nCx, self.nNy, self.nNz]))
+                    A, D = Utils.indexCube('AD', self.vnC+1, np.array([self.nCx, self.nNy, self.nNz]))
                     edge1 = xyz[D, :] - xyz[A, :]
-                    A, B = Utils.indexCube('AB', self.nCv+1, np.array([self.nNx, self.nCy, self.nNz]))
+                    A, B = Utils.indexCube('AB', self.vnC+1, np.array([self.nNx, self.nCy, self.nNz]))
                     edge2 = xyz[B, :] - xyz[A, :]
-                    A, E = Utils.indexCube('AE', self.nCv+1, np.array([self.nNx, self.nNy, self.nCz]))
+                    A, E = Utils.indexCube('AE', self.vnC+1, np.array([self.nNx, self.nNy, self.nCz]))
                     edge3 = xyz[E, :] - xyz[A, :]
                     self._edge = np.r_[Utils.mkvc(length3D(edge1)), Utils.mkvc(length3D(edge2)), Utils.mkvc(length3D(edge3))]
                     self._tangents = np.r_[edge1, edge2, edge3]/np.c_[self._edge, self._edge, self._edge]

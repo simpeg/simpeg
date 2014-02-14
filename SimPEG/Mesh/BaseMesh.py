@@ -100,13 +100,13 @@ class BaseMesh(object):
             elif xType in ['F', 'E']:
                 # This will only deal with components of fields, not full 'F' or 'E'
                 xx = Utils.mkvc(xx)  # unwrap it in case it is a matrix
-                nn = self.nFv if xType == 'F' else self.nEv
+                nn = self.vnF if xType == 'F' else self.vnE
                 nn = np.r_[0, nn]
 
                 nx = [0, 0, 0]
-                nx[0] = self.nFx if xType == 'F' else self.nEx
-                nx[1] = self.nFy if xType == 'F' else self.nEy
-                nx[2] = self.nFz if xType == 'F' else self.nEz
+                nx[0] = self.vnFx if xType == 'F' else self.vnEx
+                nx[1] = self.vnFy if xType == 'F' else self.vnEy
+                nx[2] = self.vnFz if xType == 'F' else self.vnEz
 
                 for dim, dimName in enumerate(['x', 'y', 'z']):
                     if dimName in outType:
@@ -118,11 +118,11 @@ class BaseMesh(object):
             elif xTypeIsFExyz:
                 # This will deal with partial components (x, y or z) lying on edges or faces
                 if 'x' in xType:
-                    nn = self.nFx if 'F' in xType else self.nEx
+                    nn = self.vnFx if 'F' in xType else self.vnEx
                 elif 'y' in xType:
-                    nn = self.nFy if 'F' in xType else self.nEy
+                    nn = self.vnFy if 'F' in xType else self.vnEy
                 elif 'z' in xType:
-                    nn = self.nFz if 'F' in xType else self.nEz
+                    nn = self.vnFz if 'F' in xType else self.vnEz
                 assert xx.size == np.prod(nn), 'Vector is not the right size.'
                 return outKernal(xx, nn)
 
@@ -185,7 +185,7 @@ class BaseMesh(object):
         return None if self.dim < 3 else self._n[2]
 
     @property
-    def nCv(self):
+    def vnC(self):
         """
         Total number of cells in each direction
 
@@ -208,7 +208,7 @@ class BaseMesh(object):
             from SimPEG import Mesh, np
             Mesh.TensorMesh([np.ones(n) for n in [2,3]]).plotGrid(centers=True,showIt=True)
         """
-        return self.nCv.prod()
+        return self.vnC.prod()
 
     @property
     def nNx(self):
@@ -241,7 +241,7 @@ class BaseMesh(object):
         return None if self.dim < 3 else self.nCz + 1
 
     @property
-    def nNv(self):
+    def vnN(self):
         """
         Total number of nodes in each direction
 
@@ -264,45 +264,75 @@ class BaseMesh(object):
             from SimPEG import Mesh, np
             Mesh.TensorMesh([np.ones(n) for n in [2,3]]).plotGrid(nodes=True,showIt=True)
         """
-        return self.nNv.prod()
+        return self.vnN.prod()
 
     @property
     def nEx(self):
         """
-        Number of x-edges in each direction
+        Number of x-edges
 
-        :rtype: numpy.array (dim, )
+        :rtype: int
         :return: nEx
         """
-        return np.array([x for x in [self.nCx, self.nNy, self.nNz] if not x is None])
+        return self.vnEx.prod()
 
     @property
     def nEy(self):
         """
-        Number of y-edges in each direction
+        Number of y-edges
 
-        :rtype: numpy.array (dim, )
-        :return: nEy or None if dim < 2
+        :rtype: int
+        :return: nEy
         """
-        return None if self.dim < 2 else np.array([x for x in [self.nNx, self.nCy, self.nNz] if not x is None])
+        return self.vnEy.prod()
 
     @property
     def nEz(self):
         """
+        Number of z-edges
+
+        :rtype: int
+        :return: nEz
+        """
+        return self.vnEz.prod()
+
+    @property
+    def vnEx(self):
+        """
+        Number of x-edges in each direction
+
+        :rtype: numpy.array (dim, )
+        :return: vnEx
+        """
+        return np.array([x for x in [self.nCx, self.nNy, self.nNz] if not x is None])
+
+    @property
+    def vnEy(self):
+        """
+        Number of y-edges in each direction
+
+        :rtype: numpy.array (dim, )
+        :return: vnEy or None if dim < 2
+        """
+        return None if self.dim < 2 else np.array([x for x in [self.nNx, self.nCy, self.nNz] if not x is None])
+
+    @property
+    def vnEz(self):
+        """
         Number of z-edges in each direction
 
         :rtype: numpy.array (dim, )
-        :return: nEz or None if dim < 3
+        :return: vnEz or None if dim < 3
         """
         return None if self.dim < 3 else np.array([x for x in [self.nNx, self.nNy, self.nCz] if not x is None])
 
     @property
-    def nEv(self):
+    def vnE(self):
         """
         Total number of edges in each direction
 
         :rtype: numpy.array (dim, )
-        :return: [prod(nEx), prod(nEy), prod(nEz)]
+        :return: [prod(vnEx), prod(vnEy), prod(vnEz)]
 
         .. plot::
             :include-source:
@@ -310,7 +340,7 @@ class BaseMesh(object):
             from SimPEG import Mesh, np
             Mesh.TensorMesh([np.ones(n) for n in [2,3]]).plotGrid(edges=True,showIt=True)
         """
-        return np.array([np.prod(x) for x in [self.nEx, self.nEy, self.nEz] if not x is None])
+        return np.array([np.prod(x) for x in [self.vnEx, self.vnEy, self.vnEz] if not x is None])
 
 
     @property
@@ -319,48 +349,78 @@ class BaseMesh(object):
         Total number of edges.
 
         :rtype: int
-        :return: sum([prod(nEx), prod(nEy), prod(nEz)])
+        :return: sum([prod(vnEx), prod(vnEy), prod(vnEz)])
 
         """
-        return self.nEv.sum()
+        return self.vnE.sum()
 
     @property
     def nFx(self):
         """
-        Number of x-faces in each direction
+        Number of x-faces
 
-        :rtype: numpy.array (dim, )
+        :rtype: int
         :return: nFx
         """
-        return np.array([x for x in [self.nNx, self.nCy, self.nCz] if not x is None])
+        return self.vnFx.prod()
 
     @property
     def nFy(self):
         """
-        Number of y-faces in each direction
+        Number of y-faces
 
-        :rtype: numpy.array (dim, )
-        :return: nFy or None if dim < 2
+        :rtype: int
+        :return: nFy
         """
-        return None if self.dim < 2 else np.array([x for x in [self.nCx, self.nNy, self.nCz] if not x is None])
+        return self.vnFy.prod()
 
     @property
     def nFz(self):
         """
+        Number of z-faces
+
+        :rtype: int
+        :return: nFz
+        """
+        return self.vnFz.prod()
+
+    @property
+    def vnFx(self):
+        """
+        Number of x-faces in each direction
+
+        :rtype: numpy.array (dim, )
+        :return: vnFx
+        """
+        return np.array([x for x in [self.nNx, self.nCy, self.nCz] if not x is None])
+
+    @property
+    def vnFy(self):
+        """
+        Number of y-faces in each direction
+
+        :rtype: numpy.array (dim, )
+        :return: vnFy or None if dim < 2
+        """
+        return None if self.dim < 2 else np.array([x for x in [self.nCx, self.nNy, self.nCz] if not x is None])
+
+    @property
+    def vnFz(self):
+        """
         Number of z-faces in each direction
 
         :rtype: numpy.array (dim, )
-        :return: nFz or None if dim < 3
+        :return: vnFz or None if dim < 3
         """
         return None if self.dim < 3 else np.array([x for x in [self.nCx, self.nCy, self.nNz] if not x is None])
 
     @property
-    def nFv(self):
+    def vnF(self):
         """
         Total number of faces in each direction
 
         :rtype: numpy.array (dim, )
-        :return: [prod(nFx), prod(nFy), prod(nFz)]
+        :return: [prod(vnFx), prod(vnFy), prod(vnFz)]
 
         .. plot::
             :include-source:
@@ -368,7 +428,7 @@ class BaseMesh(object):
             from SimPEG import Mesh, np
             Mesh.TensorMesh([np.ones(n) for n in [2,3]]).plotGrid(faces=True,showIt=True)
         """
-        return np.array([np.prod(x) for x in [self.nFx, self.nFy, self.nFz] if not x is None])
+        return np.array([np.prod(x) for x in [self.vnFx, self.vnFy, self.vnFz] if not x is None])
 
 
     @property
@@ -377,10 +437,10 @@ class BaseMesh(object):
         Total number of faces.
 
         :rtype: int
-        :return: sum([nFx, nFy, nFz])
+        :return: sum([vnFx, vnFy, vnFz])
 
         """
-        return self.nFv.sum()
+        return self.vnF.sum()
 
     @property
     def normals(self):
@@ -391,13 +451,13 @@ class BaseMesh(object):
         :return: normals
         """
         if self.dim == 2:
-            nX = np.c_[np.ones(self.nFv[0]), np.zeros(self.nFv[0])]
-            nY = np.c_[np.zeros(self.nFv[1]), np.ones(self.nFv[1])]
+            nX = np.c_[np.ones(self.nFx), np.zeros(self.nFx)]
+            nY = np.c_[np.zeros(self.nFy), np.ones(self.nFy)]
             return np.r_[nX, nY]
         elif self.dim == 3:
-            nX = np.c_[np.ones(self.nFv[0]), np.zeros(self.nFv[0]), np.zeros(self.nFv[0])]
-            nY = np.c_[np.zeros(self.nFv[1]), np.ones(self.nFv[1]), np.zeros(self.nFv[1])]
-            nZ = np.c_[np.zeros(self.nFv[2]), np.zeros(self.nFv[2]), np.ones(self.nFv[2])]
+            nX = np.c_[np.ones(self.nFx), np.zeros(self.nFx), np.zeros(self.nFx)]
+            nY = np.c_[np.zeros(self.nFy), np.ones(self.nFy), np.zeros(self.nFy)]
+            nZ = np.c_[np.zeros(self.nFz), np.zeros(self.nFz), np.ones(self.nFz)]
             return np.r_[nX, nY, nZ]
 
     @property
@@ -409,13 +469,13 @@ class BaseMesh(object):
         :return: normals
         """
         if self.dim == 2:
-            tX = np.c_[np.ones(self.nEv[0]), np.zeros(self.nEv[0])]
-            tY = np.c_[np.zeros(self.nEv[1]), np.ones(self.nEv[1])]
+            tX = np.c_[np.ones(self.nEx), np.zeros(self.nEx)]
+            tY = np.c_[np.zeros(self.nEy), np.ones(self.nEy)]
             return np.r_[tX, tY]
         elif self.dim == 3:
-            tX = np.c_[np.ones(self.nEv[0]), np.zeros(self.nEv[0]), np.zeros(self.nEv[0])]
-            tY = np.c_[np.zeros(self.nEv[1]), np.ones(self.nEv[1]), np.zeros(self.nEv[1])]
-            tZ = np.c_[np.zeros(self.nEv[2]), np.zeros(self.nEv[2]), np.ones(self.nEv[2])]
+            tX = np.c_[np.ones(self.nEx), np.zeros(self.nEx), np.zeros(self.nEx)]
+            tY = np.c_[np.zeros(self.nEy), np.ones(self.nEy), np.zeros(self.nEy)]
+            tZ = np.c_[np.zeros(self.nEz), np.zeros(self.nEz), np.ones(self.nEz)]
             return np.r_[tX, tY, tZ]
 
 

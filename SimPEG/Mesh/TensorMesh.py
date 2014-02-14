@@ -282,7 +282,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
                 # Ensure that we are working with column vectors
                 vh = self.h
                 # The number of cell centers in each direction
-                n = self.nCv
+                n = self.vnC
                 # Compute areas of cell faces
                 if(self.dim == 1):
                     self._area = np.ones(n[0]+1)
@@ -308,7 +308,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
                 # Ensure that we are working with column vectors
                 vh = self.h
                 # The number of cell centers in each direction
-                n = self.nCv
+                n = self.vnC
                 # Compute edge lengths
                 if(self.dim == 1):
                     self._edge = Utils.mkvc(vh[0])
@@ -409,7 +409,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
         ind = 0 if 'x' in locType else 1 if 'y' in locType else 2 if 'z' in locType else -1
         if locType in ['Fx','Fy','Fz','Ex','Ey','Ez'] and self.dim >= ind:
-            nF_nE = self.nFv if 'F' in locType else self.nEv
+            nF_nE = self.vnF if 'F' in locType else self.vnE
             components = [Utils.spzeros(loc.shape[0], n) for n in nF_nE]
             components[ind] = Utils.interpmat(loc, *self.getTensor(locType))
             Q = sp.hstack(components)

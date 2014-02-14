@@ -207,7 +207,7 @@ class Tikhonov(BaseRegularization):
     def Wx(self):
         """Regularization matrix Wx"""
         if getattr(self, '_Wx', None) is None:
-            Ave_x_vol = self.mesh.aveF2CC[:,:self.mesh.nFv[0]].T*self.mesh.vol
+            Ave_x_vol = self.mesh.aveF2CC[:,:self.mesh.nFx].T*self.mesh.vol
             self._Wx = Utils.sdiag((Ave_x_vol*self.alpha_x)**0.5)*self.mesh.cellGradx
         return self._Wx
 
@@ -215,7 +215,7 @@ class Tikhonov(BaseRegularization):
     def Wy(self):
         """Regularization matrix Wy"""
         if getattr(self, '_Wy', None) is None:
-            Ave_y_vol = self.mesh.aveF2CC[:,self.mesh.nFv[0]:np.sum(self.mesh.nFv[:2])].T*self.mesh.vol
+            Ave_y_vol = self.mesh.aveF2CC[:,self.mesh.nFx:np.sum(self.mesh.vnF[:2])].T*self.mesh.vol
             self._Wy = Utils.sdiag((Ave_y_vol*self.alpha_y)**0.5)*self.mesh.cellGrady
         return self._Wy
 
@@ -223,7 +223,7 @@ class Tikhonov(BaseRegularization):
     def Wz(self):
         """Regularization matrix Wz"""
         if getattr(self, '_Wz', None) is None:
-            Ave_z_vol = self.mesh.aveF2CC[:,np.sum(self.mesh.nFv[:2]):].T*self.mesh.vol
+            Ave_z_vol = self.mesh.aveF2CC[:,np.sum(self.mesh.vnF[:2]):].T*self.mesh.vol
             self._Wz = Utils.sdiag((Ave_z_vol*self.alpha_z)**0.5)*self.mesh.cellGradz
         return self._Wz
 
