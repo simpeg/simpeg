@@ -67,9 +67,27 @@ class BaseData(object):
 
 
             .. math::
-                d_\\text{pred} = P(u(m))
+                d_\\text{pred} = \mathbf{P} u(m)
         """
         return u
+
+
+    @Utils.count
+    def projectFieldsAdjoint(self, d):
+        """
+            This function is the adjoint of the projection.
+            **projectFieldsAdjoint** is used in the
+            calculation of the sensitivities.
+
+            .. math::
+                u = \mathbf{P}^\\top d
+
+            :param numpy.array d: data
+            :param numpy.array u: fields (ish)
+            :rtype: fields like object
+            :return: data
+        """
+        return d
 
     #TODO: def projectFieldDeriv(self, u):  Does this need to be made??!
 
