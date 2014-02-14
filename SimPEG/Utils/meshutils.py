@@ -30,7 +30,12 @@ def meshTensors(*args):
     """
         **meshTensors** takes any number of tuples that have the form::
 
-            h1 = ( (numPad, sizeStart [, increaseFactor]), (numCore, sizeCore), (numPad, sizeStart [, increaseFactor]) )
+            mT = ( (numPad, sizeStart [, increaseFactor]), (numCore, sizeCore), (numPad, sizeStart [, increaseFactor]) )
+
+        .. note::
+
+            The increaseFactor is an optional input.
+
 
         .. plot::
 
