@@ -61,17 +61,17 @@ class TensorView(object):
         elif imageType == 'N':
             assert I.size == self.nN, "Incorrect dimensions for N."
         elif imageType == 'Fx':
-            if I.size != np.prod(self.nFx): I, fy, fz = self.r(I,'F','F','M')
+            if I.size != np.prod(self.vnFx): I, fy, fz = self.r(I,'F','F','M')
         elif imageType == 'Fy':
-            if I.size != np.prod(self.nFy): fx, I, fz = self.r(I,'F','F','M')
+            if I.size != np.prod(self.vnFy): fx, I, fz = self.r(I,'F','F','M')
         elif imageType == 'Fz':
-            if I.size != np.prod(self.nFz): fx, fy, I = self.r(I,'F','F','M')
+            if I.size != np.prod(self.vnFz): fx, fy, I = self.r(I,'F','F','M')
         elif imageType == 'Ex':
-            if I.size != np.prod(self.nEx): I, ey, ez = self.r(I,'E','E','M')
+            if I.size != np.prod(self.vnEx): I, ey, ez = self.r(I,'E','E','M')
         elif imageType == 'Ey':
-            if I.size != np.prod(self.nEy): ex, I, ez = self.r(I,'E','E','M')
+            if I.size != np.prod(self.vnEy): ex, I, ez = self.r(I,'E','E','M')
         elif imageType == 'Ez':
-            if I.size != np.prod(self.nEz): ex, ey, I = self.r(I,'E','E','M')
+            if I.size != np.prod(self.vnEz): ex, ey, I = self.r(I,'E','E','M')
         elif imageType[0] == 'E':
             plotAll = len(imageType) == 1
             options = {"direction":direction,"numbering":numbering,"annotationColor":annotationColor,"showIt":showIt}
@@ -135,21 +135,21 @@ class TensorView(object):
             ax.axis('tight')
         elif self.dim == 2:
             if imageType == 'CC':
-                C = I[:].reshape(self.nCv, order='F')
+                C = I[:].reshape(self.vnC, order='F')
             elif imageType == 'N':
-                C = I[:].reshape(self.nNv, order='F')
+                C = I[:].reshape(self.vnN, order='F')
                 C = 0.25*(C[:-1, :-1] + C[1:, :-1] + C[:-1, 1:] + C[1:, 1:])
             elif imageType == 'Fx':
-                C = I[:].reshape(self.nFx, order='F')
+                C = I[:].reshape(self.vnFx, order='F')
                 C = 0.5*(C[:-1, :] + C[1:, :] )
             elif imageType == 'Fy':
-                C = I[:].reshape(self.nFy, order='F')
+                C = I[:].reshape(self.vnFy, order='F')
                 C = 0.5*(C[:, :-1] + C[:, 1:] )
             elif imageType == 'Ex':
-                C = I[:].reshape(self.nEx, order='F')
+                C = I[:].reshape(self.vnEx, order='F')
                 C = 0.5*(C[:,:-1] + C[:,1:] )
             elif imageType == 'Ey':
-                C = I[:].reshape(self.nEy, order='F')
+                C = I[:].reshape(self.vnEy, order='F')
                 C = 0.5*(C[:-1,:] + C[1:,:] )
 
             if clim is None:
@@ -164,27 +164,27 @@ class TensorView(object):
 
                 # get copy of image and average to cell-centres is necessary
                 if imageType == 'CC':
-                    Ic = I[:].reshape(self.nCv, order='F')
+                    Ic = I[:].reshape(self.vnC, order='F')
                 elif imageType == 'N':
-                    Ic = I[:].reshape(self.nNv, order='F')
+                    Ic = I[:].reshape(self.vnN, order='F')
                     Ic = .125*(Ic[:-1,:-1,:-1]+Ic[1:,:-1,:-1] + Ic[:-1,1:,:-1]+ Ic[1:,1:,:-1]+ Ic[:-1,:-1,1:]+Ic[1:,:-1,1:] + Ic[:-1,1:,1:]+ Ic[1:,1:,1:] )
                 elif imageType == 'Fx':
-                    Ic = I[:].reshape(self.nFx, order='F')
+                    Ic = I[:].reshape(self.vnFx, order='F')
                     Ic = .5*(Ic[:-1,:,:]+Ic[1:,:,:])
                 elif imageType == 'Fy':
-                    Ic = I[:].reshape(self.nFy, order='F')
+                    Ic = I[:].reshape(self.vnFy, order='F')
                     Ic = .5*(Ic[:,:-1,:]+Ic[:,1:,:])
                 elif imageType == 'Fz':
-                    Ic = I[:].reshape(self.nFz, order='F')
+                    Ic = I[:].reshape(self.vnFz, order='F')
                     Ic = .5*(Ic[:,:,:-1]+Ic[:,:,1:])
                 elif imageType == 'Ex':
-                    Ic = I[:].reshape(self.nEx, order='F')
+                    Ic = I[:].reshape(self.vnEx, order='F')
                     Ic = .25*(Ic[:,:-1,:-1]+Ic[:,1:,:-1]+Ic[:,:-1,1:]+Ic[:,1:,:1])
                 elif imageType == 'Ey':
-                    Ic = I[:].reshape(self.nEy, order='F')
+                    Ic = I[:].reshape(self.vnEy, order='F')
                     Ic = .25*(Ic[:-1,:,:-1]+Ic[1:,:,:-1]+Ic[:-1,:,1:]+Ic[1:,:,:1])
                 elif imageType == 'Ez':
-                    Ic = I[:].reshape(self.nEz, order='F')
+                    Ic = I[:].reshape(self.vnEz, order='F')
                     Ic = .25*(Ic[:-1,:-1,:]+Ic[1:,:-1,:]+Ic[:-1,1:,:]+Ic[1:,:1,:])
 
                 # determine number oE slices in x and y dimension
@@ -395,7 +395,7 @@ class TensorView(object):
             mesh.slicer(var, imageType=imageType, normal=normal, index=i, ax=ax, clim=clim)
             tlt.set_text(normal.upper()+('-Slice: %d, %4.4f' % (i,getattr(mesh,'vectorCC'+normal)[i])))
 
-        return animate(fig, animateFrame, frames=mesh.nCv['xyz'.index(normal)])
+        return animate(fig, animateFrame, frames=mesh.vnC['xyz'.index(normal)])
 
     def video(mesh, var, function, figsize=(10, 8), colorbar=True, skip=1):
         """

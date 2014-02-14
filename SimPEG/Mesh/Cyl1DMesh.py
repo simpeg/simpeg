@@ -83,11 +83,11 @@ class Cyl1DMesh(object):
         return locals()
     nC = property(**nC())
 
-    def nCv():
+    def vnC():
         doc = "Total number of cells in each direction"
         fget = lambda self: np.array([self.nCx, self.nCz])
         return locals()
-    nCv = property(**nCv())
+    vnC = property(**vnC())
 
     def nNr():
         doc = "Number of nodes in the radial direction"
@@ -113,21 +113,21 @@ class Cyl1DMesh(object):
         return locals()
     nFr = property(**nFr())
 
-    def nFz():
+    def vnFz():
         doc = "Number of z faces"
         fget = lambda self: self.nNz * self.nCx
         return locals()
-    nFz = property(**nFz())
+    vnFz = property(**vnFz())
 
-    def nFv():
+    def vnF():
         doc = "Total number of faces in each direction"
-        fget = lambda self: np.array([self.nFr, self.nFz])
+        fget = lambda self: np.array([self.nFr, self.vnFz])
         return locals()
-    nFv = property(**nFv())
+    vnF = property(**vnF())
 
     def nF():
         doc = "Total number of faces"
-        fget = lambda self: self.nFr + self.nFz
+        fget = lambda self: self.nFr + self.vnFz
         return locals()
     nF = property(**nF())
 

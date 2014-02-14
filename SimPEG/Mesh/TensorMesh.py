@@ -1,10 +1,10 @@
 from SimPEG import Utils, np, sp
-from BaseMesh import BaseMesh
+from BaseMesh import BaseRectangularMesh
 from TensorView import TensorView
 from DiffOperators import DiffOperators
 from InnerProducts import InnerProducts
 
-class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
+class TensorMesh(BaseRectangularMesh, TensorView, DiffOperators, InnerProducts):
     """
     TensorMesh is a mesh class that deals with tensor product meshes.
 
@@ -48,7 +48,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
             assert len(h_i.shape) == 1, ("h[%i] must be a 1D numpy array." % i)
             h[i] = h_i[:] # make a copy.
 
-        BaseMesh.__init__(self, np.array([x.size for x in h]), x0)
+        BaseRectangularMesh.__init__(self, np.array([x.size for x in h]), x0)
         assert len(h) == len(self.x0), "Dimension mismatch. x0 != len(h)"
 
         # Ensure h contains 1D vectors
@@ -282,7 +282,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
                 # Ensure that we are working with column vectors
                 vh = self.h
                 # The number of cell centers in each direction
-                n = self.nCv
+                n = self.vnC
                 # Compute areas of cell faces
                 if(self.dim == 1):
                     self._area = np.ones(n[0]+1)
@@ -308,7 +308,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
                 # Ensure that we are working with column vectors
                 vh = self.h
                 # The number of cell centers in each direction
-                n = self.nCv
+                n = self.vnC
                 # Compute edge lengths
                 if(self.dim == 1):
                     self._edge = Utils.mkvc(vh[0])
@@ -409,7 +409,7 @@ class TensorMesh(BaseMesh, TensorView, DiffOperators, InnerProducts):
 
         ind = 0 if 'x' in locType else 1 if 'y' in locType else 2 if 'z' in locType else -1
         if locType in ['Fx','Fy','Fz','Ex','Ey','Ez'] and self.dim >= ind:
-            nF_nE = self.nFv if 'F' in locType else self.nEv
+            nF_nE = self.vnF if 'F' in locType else self.vnE
             components = [Utils.spzeros(loc.shape[0], n) for n in nF_nE]
             components[ind] = Utils.interpmat(loc, *self.getTensor(locType))
             Q = sp.hstack(components)

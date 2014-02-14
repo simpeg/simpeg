@@ -403,8 +403,8 @@ def _getFacePxx_Rectangular(M):
         posFx = 0 if xFace == 'fXm' else 1
         posFy = 0 if yFace == 'fYm' else 1
 
-        ind1 = sub2ind(M.nFx, np.c_[ii + posFx, jj])
-        ind2 = sub2ind(M.nFy, np.c_[ii, jj + posFy]) + M.nFv[0]
+        ind1 = sub2ind(M.vnFx, np.c_[ii + posFx, jj])
+        ind2 = sub2ind(M.vnFy, np.c_[ii, jj + posFy]) + M.nFx
 
         IND = np.r_[ind1, ind2].flatten()
 
@@ -459,9 +459,9 @@ def _getFacePxxx_Rectangular(M):
         posY = 0 if yFace == 'fYm' else 1
         posZ = 0 if zFace == 'fZm' else 1
 
-        ind1 = sub2ind(M.nFx, np.c_[ii + posX, jj, kk])
-        ind2 = sub2ind(M.nFy, np.c_[ii, jj + posY, kk]) + M.nFv[0]
-        ind3 = sub2ind(M.nFz, np.c_[ii, jj, kk + posZ]) + M.nFv[0] + M.nFv[1]
+        ind1 = sub2ind(M.vnFx, np.c_[ii + posX, jj, kk])
+        ind2 = sub2ind(M.vnFy, np.c_[ii, jj + posY, kk]) + M.nFx
+        ind3 = sub2ind(M.vnFz, np.c_[ii, jj, kk + posZ]) + M.nFx + M.nFy
 
         IND = np.r_[ind1, ind2, ind3].flatten()
 
@@ -495,8 +495,8 @@ def _getEdgePxx_Rectangular(M):
         posX = 0 if xEdge == 'eX0' else 1
         posY = 0 if yEdge == 'eY0' else 1
 
-        ind1 = sub2ind(M.nEx, np.c_[ii, jj + posX])
-        ind2 = sub2ind(M.nEy, np.c_[ii + posY, jj]) + M.nEv[0]
+        ind1 = sub2ind(M.vnEx, np.c_[ii, jj + posX])
+        ind2 = sub2ind(M.vnEy, np.c_[ii + posY, jj]) + M.nEx
 
         IND = np.r_[ind1, ind2].flatten()
 
@@ -537,9 +537,9 @@ def _getEdgePxxx_Rectangular(M):
         posY = [0,0] if yEdge == 'eY0' else [1, 0] if yEdge == 'eY1' else [0,1] if yEdge == 'eY2' else [1,1]
         posZ = [0,0] if zEdge == 'eZ0' else [1, 0] if zEdge == 'eZ1' else [0,1] if zEdge == 'eZ2' else [1,1]
 
-        ind1 = sub2ind(M.nEx, np.c_[ii, jj + posX[0], kk + posX[1]])
-        ind2 = sub2ind(M.nEy, np.c_[ii + posY[0], jj, kk + posY[1]]) + M.nEv[0]
-        ind3 = sub2ind(M.nEz, np.c_[ii + posZ[0], jj + posZ[1], kk]) + M.nEv[0] + M.nEv[1]
+        ind1 = sub2ind(M.vnEx, np.c_[ii, jj + posX[0], kk + posX[1]])
+        ind2 = sub2ind(M.vnEy, np.c_[ii + posY[0], jj, kk + posY[1]]) + M.nEx
+        ind3 = sub2ind(M.vnEz, np.c_[ii + posZ[0], jj + posZ[1], kk]) + M.nEx + M.nEy
 
         IND = np.r_[ind1, ind2, ind3].flatten()
 
