@@ -40,7 +40,7 @@ class ProblemTDEM_b(ProblemBaseTDEM):
     # Derivatives
     ####################################################
 
-    def J(self, m, v, u=None):
+    def Jvec(self, m, v, u=None):
         if u is None:
             u = self.fields(m)
         p = self.G(m, v, u)

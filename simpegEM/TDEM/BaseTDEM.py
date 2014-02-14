@@ -10,6 +10,8 @@ import numpy as np
 class MixinInitialFieldCalc(object):
     """docstring for MixinInitialFieldCalc"""
 
+    storeTheseFields = 'b'
+
     def getInitialFields(self):
         if self.data.txType == 'VMD_MVP':
             # Vertical magnetic dipole, magnetic vector potential
@@ -29,7 +31,7 @@ class MixinInitialFieldCalc(object):
             MVP = np.concatenate((MVPx, MVPy, MVPz))
 
         # Initialize field object
-        F = FieldsTDEM(self.mesh, 1, self.times.size, 'b')
+        F = FieldsTDEM(self.mesh, 1, self.times.size, store=self.storeTheseFields)
 
         # Set initial B
         F.b0 = self.mesh.edgeCurl*MVP
@@ -140,8 +142,14 @@ class ProblemBaseTDEM(MixinTimeStuff, MixinInitialFieldCalc, BaseProblem):
         self.makeMassMatrices(m)
 
         F = self.getInitialFields()
-        #TODO: Split next code to forward and adjoint.
-        # fields would call forward
+
+        return self.forward(m, RHS, CalcFields, F=F)
+
+
+    def forward(self, m, RHS, CalcFields, F=None):
+        if F is None:
+            F = FieldsTDEM(self.mesh, self.data.nTx, self.nTimes, store=self.storeTheseFields)
+
         dtFact = None
         for tInd, t in enumerate(self.times):
             dt = self.getDt(tInd)
@@ -158,3 +166,25 @@ class ProblemBaseTDEM(MixinTimeStuff, MixinInitialFieldCalc, BaseProblem):
             newFields = CalcFields(sol, self.solType, tInd)
             F.update(newFields, tInd)
         return F
+
+    def adjoint(self, m, RHS, CalcFields, F=None):
+        if F is None:
+            F = FieldsTDEM(self.mesh, self.data.nTx, self.nTimes, store=self.storeTheseFields)
+
+        dtFact = None
+        for tInd, t in reversed(list(enumerate(self.times))):
+            dt = self.getDt(tInd)
+            if dt!=dtFact:
+                dtFact = dt
+                A = self.getA(tInd)
+                # print 'Factoring...   (dt = ' + str(dt) + ')'
+                Asolve = Solver(A, options=self.solveOpts)
+                # print 'Done'
+            rhs = RHS(tInd, F)
+            sol = Asolve.solve(rhs)
+            if sol.ndim == 1:
+                sol.shape = (sol.size,1)
+            newFields = CalcFields(sol, self.solType, tInd)
+            F.update(newFields, tInd)
+        return F
+

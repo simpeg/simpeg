@@ -18,7 +18,7 @@ class FieldsTDEM(object):
     j = None #: Current density
     h = None #: Magnetic field
 
-    def __init__(self, mesh, nTx, nTimes, store):
+    def __init__(self, mesh, nTx, nTimes, store='b'):
 
         self.nTimes = nTimes #: Number of times
         self.nTx = nTx #: Number of transmitters
