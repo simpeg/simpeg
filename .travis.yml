@@ -4,9 +4,20 @@ python:
 virtualenv:
   system_site_packages: true
 before_install:
-  - sudo apt-get install -qq python-numpy python-scipy python-matplotlib
-  - python SimPEG/setup.py
+  - sudo apt-get install -qq gcc gfortran libblas-dev liblapack-dev python-numpy python-scipy python-matplotlib python-pip
+  - sudo pip install scipy --upgrade
+  - sudo pip install numpy --upgrade
+  - cd SimPEG
+  - python setup.py
+  - cd ../
 # command to install dependencies
 install: "pip install -r requirements.txt --use-mirrors"
 # command to run tests
 script: nosetests -v
+
+notifications:
+  email:
+    - rowanc1@gmail.com
+    - sgkang09@gmail.com
+    - dwfmarchant@gmail.com
+    - lindseyheagy@gmail.com

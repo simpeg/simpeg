@@ -4,7 +4,7 @@ import Utils, numpy as np
 class BaseData(object):
     """Data holds the observed data, and the standard deviations."""
 
-    __metaclass__ = Utils.Save.Savable
+    __metaclass__ = Utils.SimPEGMetaClass
 
     std = None       #: Estimated Standard Deviations
     dobs = None      #: Observed data
@@ -56,20 +56,38 @@ class BaseData(object):
 
             Where P is a projection of the fields onto the data space.
         """
-        if u is None: u = self.prob.field(m)
-        return Utils.mkvc(self.projectField(u))
+        if u is None: u = self.prob.fields(m)
+        return Utils.mkvc(self.projectFields(u))
 
 
     @Utils.count
-    def projectField(self, u):
+    def projectFields(self, u):
         """
             This function projects the fields onto the data space.
 
 
             .. math::
-                d_\\text{pred} = P(u(m))
+                d_\\text{pred} = \mathbf{P} u(m)
         """
         return u
+
+
+    @Utils.count
+    def projectFieldsAdjoint(self, d):
+        """
+            This function is the adjoint of the projection.
+            **projectFieldsAdjoint** is used in the
+            calculation of the sensitivities.
+
+            .. math::
+                u = \mathbf{P}^\\top d
+
+            :param numpy.array d: data
+            :param numpy.array u: fields (ish)
+            :rtype: fields like object
+            :return: data
+        """
+        return d
 
     #TODO: def projectFieldDeriv(self, u):  Does this need to be made??!
 

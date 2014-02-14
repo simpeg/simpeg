@@ -2,7 +2,7 @@ import numpy as np
 import unittest
 from SimPEG.Mesh import TensorMesh
 from TestUtils import OrderTest
-from scipy.sparse.linalg import dsolve
+from SimPEG import Solver
 
 
 class BasicTensorMeshTests(unittest.TestCase):
@@ -58,7 +58,7 @@ class BasicTensorMeshTests(unittest.TestCase):
 
 class TestPoissonEqn(OrderTest):
     name = "Poisson Equation"
-    meshSizes = [16, 20, 24]
+    meshSizes = [10, 16, 20]
 
     def getError(self):
         # Create some functions to integrate
@@ -75,7 +75,7 @@ class TestPoissonEqn(OrderTest):
             err = np.linalg.norm((sA - sN), np.inf)
         else:
             fA = fun(self.M.gridCC)
-            fN = dsolve.spsolve(D*G, sol(self.M.gridCC))
+            fN = Solver(D*G).solve(sol(self.M.gridCC))
             err = np.linalg.norm((fA - fN), np.inf)
         return err
 

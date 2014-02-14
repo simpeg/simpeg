@@ -10,7 +10,7 @@ class BaseRegularization(object):
 
     """
 
-    __metaclass__ = Utils.Save.Savable
+    __metaclass__ = Utils.SimPEGMetaClass
 
     modelPair = Model.BaseModel  #: Some regularizations only work on specific models
 

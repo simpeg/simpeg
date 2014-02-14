@@ -1,17 +1,21 @@
 from matutils import getSubArray, mkvc, ndgrid, ind2sub, sub2ind
-from sputils import spzeros, kron3, speye, sdiag, ddx, av, avExtrap
+from sputils import spzeros, kron3, speye, sdiag, sdInv, ddx, av, avExtrap
 from meshutils import exampleLomGird, meshTensors
 from lomutils import volTetra, faceInfo, inv2X2BlockDiagonal, inv3X3BlockDiagonal, indexCube
 from interputils import interpmat
 from ipythonutils import easyAnimate as animate
-import Save
-import Geophysics
 import ModelBuilder
 
 import types
 import time
 import numpy as np
 from functools import wraps
+
+
+class SimPEGMetaClass(type):
+    def __new__(cls, name, bases, attrs):
+        return super(SimPEGMetaClass, cls).__new__(cls, name, bases, attrs)
+
 
 def hook(obj, method, name=None, overwrite=False, silent=False):
     """
@@ -132,6 +136,7 @@ def callHooks(match, mainFirst=False):
 def dependentProperty(name, value, children, doc):
     def fget(self): return getattr(self,name,value)
     def fset(self, val):
+        if getattr(self,name,value) == val: return # it is the same!
         for child in children:
             if hasattr(self, child):
                 delattr(self, child)

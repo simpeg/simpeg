@@ -26,7 +26,7 @@ class LogicallyOrthogonalMesh(BaseMesh, DiffOperators, InnerProducts, LomView):
             M.plotGrid(showIt=True)
     """
 
-    __metaclass__ = Utils.Save.Savable
+    __metaclass__ = Utils.SimPEGMetaClass
 
     _meshType = 'LOM'
 

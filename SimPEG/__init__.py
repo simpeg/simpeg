@@ -11,7 +11,6 @@ import ObjFunction
 import Optimization
 import Inversion
 import Parameters
-import Examples
 import Tests
 
 

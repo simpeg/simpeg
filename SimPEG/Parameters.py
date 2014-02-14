@@ -137,7 +137,7 @@ class BetaEstimate(Parameter):
         u = objFunc.u_current
 
         if u is None:
-            u = data.prob.field(m)
+            u = data.prob.fields(m)
 
         x0 = np.random.rand(*m.shape)
         t = x0.dot(objFunc.dataObj2Deriv(m,x0,u=u))

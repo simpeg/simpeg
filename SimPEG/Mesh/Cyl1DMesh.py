@@ -37,6 +37,9 @@ class Cyl1DMesh(object):
         return locals()
     h = property(**h())
 
+    @property
+    def dim(self): return 2
+
     def z0():
         doc = "The z-origin"
         def fget(self):
@@ -289,6 +292,15 @@ class Cyl1DMesh(object):
         return locals()
     _aveF2CC = None
     aveF2CC = property(**aveF2CC())
+
+    def getFaceMassDeriv(self):
+        Av = self.aveF2CC
+        return Av.T * sdiag(self.vol)
+
+    def getEdgeMassDeriv(self):
+        Av = self.aveE2CC
+        return Av.T * sdiag(self.vol)
+
 
     ####################################################
     # Methods
