@@ -45,7 +45,7 @@ class ProblemTDEM_b(ProblemBaseTDEM):
             u = self.fields(m)
         p = self.G(m, v, u)
         y = self.solveAh(m, p)
-        return self.data.projectFields(y)
+        return self.data.dpred(m, u=y)
 
     def G(self, m, v, u=None):
         if u is None:
