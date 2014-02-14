@@ -60,10 +60,14 @@ class FieldsTDEM(object):
         if self.b is None:
             self.b = np.zeros((self.nTimes, np.sum(self.mesh.nF), self.nTx))
             self.b[:] = np.nan
+        if len(b.shape) == 1:
+            b = b[:, np.newaxis]
         self.b[ind,:,:] = b
 
     def set_e(self, e, ind):
         if self.e is None:
             self.e = np.zeros((self.nTimes, np.sum(self.mesh.nE), self.nTx))
             self.e[:] = np.nan
+        if len(e.shape) == 1:
+            e = e[:, np.newaxis]
         self.e[ind,:,:] = e

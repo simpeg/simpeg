@@ -77,6 +77,11 @@ class MixinTimeStuff(object):
         self._dt = dt
         self._nsteps = nsteps
 
+    @property
+    def nTimes(self):
+        return self.times.size
+
+
 class ProblemBaseTDEM(MixinTimeStuff, MixinInitialFieldCalc, BaseProblem):
     """docstring for ProblemTDEM1D"""
     def __init__(self, mesh, model, **kwargs):

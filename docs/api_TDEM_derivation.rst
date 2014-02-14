@@ -1,4 +1,4 @@
-.. _api_TDEM:
+.. _api_TDEM_derivation:
 
 
 .. math::
@@ -229,7 +229,7 @@ with
 
 
 Implementing **J** times a vector
-****************************************
+*********************************
 
 Multiplying **J** onto a vector can be broken into three steps
 
@@ -290,3 +290,15 @@ and
         + \MfMui \dcurl \MeSig^{-1} \vec{p}_e^{(t+1)} + \MfMui \vec{p}_b^{(t+1)} \\
         \vec{y}_e^{(t+1)} = \MeSig^{-1} \dcurl^\top \MfMui \vec{y}_b^{(t+1)} - \MeSig^{-1} \vec{p}_e^{(t+1)}
     \end{align}
+
+
+
+Implementing \\(\\mathbf{J}^\\top\\) times a vector
+*********************************
+
+Multiplying \\(\\mathbf{J}^\\top\\) onto a vector can be broken into three steps
+
+
+* Compute \\(\\vec{u} = \\mathbf{Q}^\\top \\vec{v}\\)
+* Solve \\(\\hat{\\mathbf{A}}^\\top \\vec{y} = \\vec{u}\\)
+* Compute \\(\\vec{w} = -\\mathbf{G}^\\top y\\)
