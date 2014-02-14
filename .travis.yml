@@ -19,3 +19,8 @@ before_install:
 install: "pip install -r requirements.txt --use-mirrors"
 # command to run tests
 script: nosetests -v
+
+notifications:
+  email:
+    - rowanc1@gmail.com
+    - dwfmarchant@gmail.com
