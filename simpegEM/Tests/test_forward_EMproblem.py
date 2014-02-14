@@ -210,7 +210,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         d_sig[d_sig==1e-8] = 0
 
 
-        derChk = lambda m: [prb.data.dpred(m), lambda mx: -prb.J(sigma, mx)]
+        derChk = lambda m: [prb.data.dpred(m), lambda mx: -prb.Jvec(sigma, mx)]
         passed = Tests.checkDerivative(derChk, sigma, plotIt=False, dx=d_sig, num=2, eps=1e-20)
         self.assertTrue(passed)
 

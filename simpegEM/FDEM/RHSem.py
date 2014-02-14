@@ -5,10 +5,10 @@ def ismember(a, b):
     return tf
 
 def path2edgeModel(mesh, pts):
-    edm_x = np.zeros(np.prod(mesh.nEx))
-    edm_y = np.zeros(np.prod(mesh.nEy))
-    edm_z = np.zeros(np.prod(mesh.nEz))
-    
+    edm_x = np.zeros(np.prod(mesh.vnEx))
+    edm_y = np.zeros(np.prod(mesh.vnEy))
+    edm_z = np.zeros(np.prod(mesh.vnEz))
+
     for ii in range (pts.shape[0]-1):
         pt1 = pts[ii,:]
         pt2 = pts[ii+1,:]
@@ -25,7 +25,7 @@ def path2edgeModel(mesh, pts):
             edm_x[edgeInd] = delDir
             # print '>> x-direction', ii
             # print mesh.gridEx[edgeInd]
-        if deltaDim == 1:    
+        if deltaDim == 1:
             xLoc = pts[ii,0]
             yLoc = mesh.vectorCCy[(min(pt1[1],pt2[1]) < mesh.vectorCCy ) & (mesh.vectorCCy < max(pt1[1],pt2[1]))]
             zLoc = pts[ii,2]
@@ -35,7 +35,7 @@ def path2edgeModel(mesh, pts):
             edm_y[edgeInd] = delDir
             # print '>> y-direction', ii
             # print mesh.gridEy[edgeInd]
-        if deltaDim == 2:    
+        if deltaDim == 2:
             xLoc = pts[ii,0]
             yLoc = pts[ii,1]
             zLoc = mesh.vectorCCz[(min(pt1[2],pt2[2]) < mesh.vectorCCz ) & (mesh.vectorCCz < max(pt1[2],pt2[2]))]
@@ -45,8 +45,8 @@ def path2edgeModel(mesh, pts):
             edm_z[edgeInd] = delDir
             # print '>> z-direction', ii
             # print mesh.gridEz[edgeInd]
-    
-            
+
+
     edgeModel = np.r_[edm_x, edm_y, edm_z]
     return edgeModel
 
@@ -67,7 +67,7 @@ def MMRhalf(loc1, loc2, x, y):
     y2=loc2[1]
     mu0 = 4*np.pi*1e-7
     I = 1
-    By =mu0*I/(4*np.pi)*np.array((x-x1)/rho(x1,y1,x,y)**2-(x-x2)/rho(x2,y2,x,y)**2)  
-    Bx =mu0*I/(4*np.pi)*np.array(-(y-y1)/rho(x1,y1,x,y)**2+(y-y2)/rho(x2,y2,x,y)**2)  
-    
+    By =mu0*I/(4*np.pi)*np.array((x-x1)/rho(x1,y1,x,y)**2-(x-x2)/rho(x2,y2,x,y)**2)
+    Bx =mu0*I/(4*np.pi)*np.array(-(y-y1)/rho(x1,y1,x,y)**2+(y-y2)/rho(x2,y2,x,y)**2)
+
     return Bx, By
