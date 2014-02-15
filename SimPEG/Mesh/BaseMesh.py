@@ -98,8 +98,7 @@ class BaseMesh(object):
         :rtype: int
         :return: nEy
         """
-        if self.dim < 2: return None
-        return (self._n + np.r_[1,0,1][:self.dim]).prod()
+        return None if self.dim < 2 else (self._n + np.r_[1,0,1][:self.dim]).prod()
 
     @property
     def nEz(self):
@@ -109,8 +108,7 @@ class BaseMesh(object):
         :rtype: int
         :return: nEz
         """
-        if self.dim < 3: return None
-        return (self._n + np.r_[1,1,0][:self.dim]).prod()
+        return None if self.dim < 3 else (self._n + np.r_[1,1,0][:self.dim]).prod()
 
     @property
     def vnE(self):
@@ -157,8 +155,7 @@ class BaseMesh(object):
         :rtype: int
         :return: nFy
         """
-        if self.dim < 2: return None
-        return (self._n + np.r_[0,1,0][:self.dim]).prod()
+        return None if self.dim < 2 else (self._n + np.r_[0,1,0][:self.dim]).prod()
 
     @property
     def nFz(self):
@@ -168,8 +165,7 @@ class BaseMesh(object):
         :rtype: int
         :return: nFz
         """
-        if self.dim < 3: return None
-        return (self._n + np.r_[0,0,1][:self.dim]).prod()
+        return None if self.dim < 3 else (self._n + np.r_[0,0,1][:self.dim]).prod()
 
     @property
     def vnF(self):
@@ -316,7 +312,7 @@ class BaseRectangularMesh(BaseMesh):
     @property
     def nNy(self):
         """
-        Number of noes in the y-direction
+        Number of nodes in the y-direction
 
         :rtype: int
         :return: nNy or None if dim < 2

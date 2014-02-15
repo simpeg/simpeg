@@ -105,226 +105,172 @@ class TensorMesh(BaseRectangularMesh, TensorView, DiffOperators, InnerProducts):
 
         return outStr
 
-    def h():
-        doc = "h is a list containing the cell widths of the tensor mesh in each dimension."
-        fget = lambda self: self._h
-        return locals()
-    h = property(**h())
+    @property
+    def h(self):
+        """h is a list containing the cell widths of the tensor mesh in each dimension."""
+        return self._h
 
-    def hx():
-        doc = "Width of cells in the x direction"
-        fget = lambda self: self._h[0]
-        return locals()
-    hx = property(**hx())
+    @property
+    def hx(self):
+        "Width of cells in the x direction"
+        return self._h[0]
 
-    def hy():
-        doc = "Width of cells in the y direction"
-        fget = lambda self: None if self.dim < 2 else self._h[1]
-        return locals()
-    hy = property(**hy())
+    @property
+    def hy(self):
+        "Width of cells in the y direction"
+        return None if self.dim < 2 else self._h[1]
 
-    def hz():
-        doc = "Width of cells in the z direction"
-        fget = lambda self: None if self.dim < 3 else self._h[2]
-        return locals()
-    hz = property(**hz())
+    @property
+    def hz(self):
+        "Width of cells in the z direction"
+        return None if self.dim < 3 else self._h[2]
 
-    def vectorNx():
-        doc = "Nodal grid vector (1D) in the x direction."
-        fget = lambda self: np.r_[0., self.hx.cumsum()] + self.x0[0]
-        return locals()
-    vectorNx = property(**vectorNx())
+    @property
+    def vectorNx(self):
+        """Nodal grid vector (1D) in the x direction."""
+        return np.r_[0., self.hx.cumsum()] + self.x0[0]
 
-    def vectorNy():
-        doc = "Nodal grid vector (1D) in the y direction."
-        fget = lambda self: None if self.dim < 2 else np.r_[0., self.hy.cumsum()] + self.x0[1]
-        return locals()
-    vectorNy = property(**vectorNy())
+    @property
+    def vectorNy(self):
+        """Nodal grid vector (1D) in the y direction."""
+        return None if self.dim < 2 else np.r_[0., self.hy.cumsum()] + self.x0[1]
 
-    def vectorNz():
-        doc = "Nodal grid vector (1D) in the z direction."
-        fget = lambda self: None if self.dim < 3 else np.r_[0., self.hz.cumsum()] + self.x0[2]
-        return locals()
-    vectorNz = property(**vectorNz())
+    @property
+    def vectorNz(self):
+        """Nodal grid vector (1D) in the z direction."""
+        return None if self.dim < 3 else np.r_[0., self.hz.cumsum()] + self.x0[2]
 
-    def vectorCCx():
-        doc = "Cell-centered grid vector (1D) in the x direction."
-        fget = lambda self: np.r_[0, self.hx[:-1].cumsum()] + self.hx*0.5 + self.x0[0]
-        return locals()
-    vectorCCx = property(**vectorCCx())
+    @property
+    def vectorCCx(self):
+        """Cell-centered grid vector (1D) in the x direction."""
+        return np.r_[0, self.hx[:-1].cumsum()] + self.hx*0.5 + self.x0[0]
 
-    def vectorCCy():
-        doc = "Cell-centered grid vector (1D) in the y direction."
-        fget = lambda self: None if self.dim < 2 else np.r_[0, self.hy[:-1].cumsum()] + self.hy*0.5 + self.x0[1]
-        return locals()
-    vectorCCy = property(**vectorCCy())
+    @property
+    def vectorCCy(self):
+        """Cell-centered grid vector (1D) in the y direction."""
+        return None if self.dim < 2 else np.r_[0, self.hy[:-1].cumsum()] + self.hy*0.5 + self.x0[1]
 
-    def vectorCCz():
-        doc = "Cell-centered grid vector (1D) in the z direction."
-        fget = lambda self: None if self.dim < 3 else np.r_[0, self.hz[:-1].cumsum()] + self.hz*0.5 + self.x0[2]
-        return locals()
-    vectorCCz = property(**vectorCCz())
+    @property
+    def vectorCCz(self):
+        """Cell-centered grid vector (1D) in the z direction."""
+        return None if self.dim < 3 else np.r_[0, self.hz[:-1].cumsum()] + self.hz*0.5 + self.x0[2]
 
-    def gridCC():
-        doc = "Cell-centered grid."
+    @property
+    def gridCC(self):
+        """Cell-centered grid."""
+        if getattr(self, '_gridCC', None) is None:
+            self._gridCC = Utils.ndgrid(self.getTensor('CC'))
+        return self._gridCC
 
-        def fget(self):
-            if self._gridCC is None:
-                self._gridCC = Utils.ndgrid(self.getTensor('CC'))
-            return self._gridCC
-        return locals()
-    _gridCC = None  # Store grid by default
-    gridCC = property(**gridCC())
+    @property
+    def gridN(self):
+        """Nodal grid."""
+        if getattr(self, '_gridN', None) is None:
+            self._gridN = Utils.ndgrid(self.getTensor('N'))
+        return self._gridN
 
-    def gridN():
-        doc = "Nodal grid."
+    @property
+    def gridFx(self):
+        """Face staggered grid in the x direction."""
+        if getattr(self, '_gridFx', None) is None:
+            self._gridFx = Utils.ndgrid(self.getTensor('Fx'))
+        return self._gridFx
 
-        def fget(self):
-            if self._gridN is None:
-                self._gridN = Utils.ndgrid(self.getTensor('N'))
-            return self._gridN
-        return locals()
-    _gridN = None  # Store grid by default
-    gridN = property(**gridN())
+    @property
+    def gridFy(self):
+        """Face staggered grid in the y direction."""
+        if getattr(self, '_gridFy', None) is None and self.dim > 1:
+            self._gridFy = Utils.ndgrid(self.getTensor('Fy'))
+        return self._gridFy
 
-    def gridFx():
-        doc = "Face staggered grid in the x direction."
+    @property
+    def gridFz(self):
+        """Face staggered grid in the z direction."""
+        if getattr(self, '_gridFz', None) is None and self.dim > 2:
+            self._gridFz = Utils.ndgrid(self.getTensor('Fz'))
+        return self._gridFz
 
-        def fget(self):
-            if self._gridFx is None:
-                self._gridFx = Utils.ndgrid(self.getTensor('Fx'))
-            return self._gridFx
-        return locals()
-    _gridFx = None  # Store grid by default
-    gridFx = property(**gridFx())
+    @property
+    def gridEx(self):
+        """Edge staggered grid in the x direction."""
+        if getattr(self, '_gridEx', None) is None:
+            self._gridEx = Utils.ndgrid(self.getTensor('Ex'))
+        return self._gridEx
 
-    def gridFy():
-        doc = "Face staggered grid in the y direction."
+    @property
+    def gridEy(self):
+        """Edge staggered grid in the y direction."""
+        if getattr(self, '_gridEy', None) is None and self.dim > 1:
+            self._gridEy = Utils.ndgrid(self.getTensor('Ey'))
+        return self._gridEy
 
-        def fget(self):
-            if self._gridFy is None and self.dim > 1:
-                self._gridFy = Utils.ndgrid(self.getTensor('Fy'))
-            return self._gridFy
-        return locals()
-    _gridFy = None  # Store grid by default
-    gridFy = property(**gridFy())
-
-    def gridFz():
-        doc = "Face staggered grid in the z direction."
-
-        def fget(self):
-            if self._gridFz is None and self.dim > 2:
-                self._gridFz = Utils.ndgrid(self.getTensor('Fz'))
-            return self._gridFz
-        return locals()
-    _gridFz = None  # Store grid by default
-    gridFz = property(**gridFz())
-
-    def gridEx():
-        doc = "Edge staggered grid in the x direction."
-
-        def fget(self):
-            if self._gridEx is None:
-                self._gridEx = Utils.ndgrid(self.getTensor('Ex'))
-            return self._gridEx
-        return locals()
-    _gridEx = None  # Store grid by default
-    gridEx = property(**gridEx())
-
-    def gridEy():
-        doc = "Edge staggered grid in the y direction."
-
-        def fget(self):
-            if self._gridEy is None and self.dim > 1:
-                self._gridEy = Utils.ndgrid(self.getTensor('Ey'))
-            return self._gridEy
-        return locals()
-    _gridEy = None  # Store grid by default
-    gridEy = property(**gridEy())
-
-    def gridEz():
-        doc = "Edge staggered grid in the z direction."
-
-        def fget(self):
-            if self._gridEz is None and self.dim > 2:
-                self._gridEz = Utils.ndgrid(self.getTensor('Ez'))
-            return self._gridEz
-        return locals()
-    _gridEz = None  # Store grid by default
-    gridEz = property(**gridEz())
+    @property
+    def gridEz(self):
+        """Edge staggered grid in the z direction."""
+        if getattr(self, '_gridEz', None) is None and self.dim > 2:
+            self._gridEz = Utils.ndgrid(self.getTensor('Ez'))
+        return self._gridEz
 
     # --------------- Geometries ---------------------
-    def vol():
-        doc = "Construct cell volumes of the 3D model as 1d array."
+    @property
+    def vol(self):
+        """Construct cell volumes of the 3D model as 1d array."""
+        if getattr(self, '_vol', None) is None:
+            vh = self.h
+            # Compute cell volumes
+            if self.dim == 1:
+                self._vol = Utils.mkvc(vh[0])
+            elif self.dim == 2:
+                # Cell sizes in each direction
+                self._vol = Utils.mkvc(np.outer(vh[0], vh[1]))
+            elif self.dim == 3:
+                # Cell sizes in each direction
+                self._vol = Utils.mkvc(np.outer(Utils.mkvc(np.outer(vh[0], vh[1])), vh[2]))
+        return self._vol
 
-        def fget(self):
-            if(self._vol is None):
-                vh = self.h
-                # Compute cell volumes
-                if(self.dim == 1):
-                    self._vol = Utils.mkvc(vh[0])
-                elif(self.dim == 2):
-                    # Cell sizes in each direction
-                    self._vol = Utils.mkvc(np.outer(vh[0], vh[1]))
-                elif(self.dim == 3):
-                    # Cell sizes in each direction
-                    self._vol = Utils.mkvc(np.outer(Utils.mkvc(np.outer(vh[0], vh[1])), vh[2]))
-            return self._vol
-        return locals()
-    _vol = None
-    vol = property(**vol())
+    @property
+    def area(self):
+        """Construct face areas of the 3D model as 1d array."""
+        if getattr(self, '_area', None) is None:
+            # Ensure that we are working with column vectors
+            vh = self.h
+            # The number of cell centers in each direction
+            n = self.vnC
+            # Compute areas of cell faces
+            if(self.dim == 1):
+                self._area = np.ones(n[0]+1)
+            elif(self.dim == 2):
+                area1 = np.outer(np.ones(n[0]+1), vh[1])
+                area2 = np.outer(vh[0], np.ones(n[1]+1))
+                self._area = np.r_[Utils.mkvc(area1), Utils.mkvc(area2)]
+            elif(self.dim == 3):
+                area1 = np.outer(np.ones(n[0]+1), Utils.mkvc(np.outer(vh[1], vh[2])))
+                area2 = np.outer(vh[0], Utils.mkvc(np.outer(np.ones(n[1]+1), vh[2])))
+                area3 = np.outer(vh[0], Utils.mkvc(np.outer(vh[1], np.ones(n[2]+1))))
+                self._area = np.r_[Utils.mkvc(area1), Utils.mkvc(area2), Utils.mkvc(area3)]
+        return self._area
 
-    def area():
-        doc = "Construct face areas of the 3D model as 1d array."
-
-        def fget(self):
-            if(self._area is None):
-                # Ensure that we are working with column vectors
-                vh = self.h
-                # The number of cell centers in each direction
-                n = self.vnC
-                # Compute areas of cell faces
-                if(self.dim == 1):
-                    self._area = np.ones(n[0]+1)
-                elif(self.dim == 2):
-                    area1 = np.outer(np.ones(n[0]+1), vh[1])
-                    area2 = np.outer(vh[0], np.ones(n[1]+1))
-                    self._area = np.r_[Utils.mkvc(area1), Utils.mkvc(area2)]
-                elif(self.dim == 3):
-                    area1 = np.outer(np.ones(n[0]+1), Utils.mkvc(np.outer(vh[1], vh[2])))
-                    area2 = np.outer(vh[0], Utils.mkvc(np.outer(np.ones(n[1]+1), vh[2])))
-                    area3 = np.outer(vh[0], Utils.mkvc(np.outer(vh[1], np.ones(n[2]+1))))
-                    self._area = np.r_[Utils.mkvc(area1), Utils.mkvc(area2), Utils.mkvc(area3)]
-            return self._area
-        return locals()
-    _area = None
-    area = property(**area())
-
-    def edge():
-        doc = "Construct edge legnths of the 3D model as 1d array."
-
-        def fget(self):
-            if(self._edge is None):
-                # Ensure that we are working with column vectors
-                vh = self.h
-                # The number of cell centers in each direction
-                n = self.vnC
-                # Compute edge lengths
-                if(self.dim == 1):
-                    self._edge = Utils.mkvc(vh[0])
-                elif(self.dim == 2):
-                    l1 = np.outer(vh[0], np.ones(n[1]+1))
-                    l2 = np.outer(np.ones(n[0]+1), vh[1])
-                    self._edge = np.r_[Utils.mkvc(l1), Utils.mkvc(l2)]
-                elif(self.dim == 3):
-                    l1 = np.outer(vh[0], Utils.mkvc(np.outer(np.ones(n[1]+1), np.ones(n[2]+1))))
-                    l2 = np.outer(np.ones(n[0]+1), Utils.mkvc(np.outer(vh[1], np.ones(n[2]+1))))
-                    l3 = np.outer(np.ones(n[0]+1), Utils.mkvc(np.outer(np.ones(n[1]+1), vh[2])))
-                    self._edge = np.r_[Utils.mkvc(l1), Utils.mkvc(l2), Utils.mkvc(l3)]
-            return self._edge
-        return locals()
-    _edge = None
-    edge = property(**edge())
+    @property
+    def edge(self):
+        """Construct edge legnths of the 3D model as 1d array."""
+        if getattr(self, '_edge', None) is None:
+            # Ensure that we are working with column vectors
+            vh = self.h
+            # The number of cell centers in each direction
+            n = self.vnC
+            # Compute edge lengths
+            if(self.dim == 1):
+                self._edge = Utils.mkvc(vh[0])
+            elif(self.dim == 2):
+                l1 = np.outer(vh[0], np.ones(n[1]+1))
+                l2 = np.outer(np.ones(n[0]+1), vh[1])
+                self._edge = np.r_[Utils.mkvc(l1), Utils.mkvc(l2)]
+            elif(self.dim == 3):
+                l1 = np.outer(vh[0], Utils.mkvc(np.outer(np.ones(n[1]+1), np.ones(n[2]+1))))
+                l2 = np.outer(np.ones(n[0]+1), Utils.mkvc(np.outer(vh[1], np.ones(n[2]+1))))
+                l3 = np.outer(np.ones(n[0]+1), Utils.mkvc(np.outer(np.ones(n[1]+1), vh[2])))
+                self._edge = np.r_[Utils.mkvc(l1), Utils.mkvc(l2), Utils.mkvc(l3)]
+        return self._edge
 
     # --------------- Methods ---------------------
 
