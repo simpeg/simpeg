@@ -303,6 +303,8 @@ class InnerProducts(object):
 def _makeTensor(M, sigma):
     if sigma is None:  # default is ones
         sigma = np.ones((M.nC, 1))
+    elif type(sigma) is float:
+       sigma = np.ones(self.nC)*sigma
 
     if M.dim == 2:
         if sigma.size == M.nC:  # Isotropic!

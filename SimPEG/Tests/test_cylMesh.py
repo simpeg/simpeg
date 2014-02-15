@@ -15,6 +15,8 @@ class TestCyl2DMesh(unittest.TestCase):
 
     def test_cylMesh_numbers(self):
         self.assertTrue(self.mesh.dim == 3)
+
+        self.assertTrue(self.mesh.nC == 6)
         self.assertTrue(self.mesh.nCx == 3)
         self.assertTrue(self.mesh.nCy == 1)
         self.assertTrue(self.mesh.nCz == 2)
@@ -42,6 +44,7 @@ class TestCyl2DMesh(unittest.TestCase):
         self.assertTrue(self.mesh.nEz == 0)
         self.assertTrue(np.all(self.mesh.vnEz == [3, 0, 2]))
         self.assertTrue(self.mesh.nE == 9)
+        self.assertTrue(np.all(self.mesh.vnE == [0, 9, 0]))
 
     def test_vectorsCC(self):
         v = np.r_[0, 1, 1.75]
@@ -60,9 +63,20 @@ class TestCyl2DMesh(unittest.TestCase):
         self.assertTrue(np.linalg.norm((v-self.mesh.vectorNz)) == 0)
 
     def test_dimensions(self):
-        v = np.r_[0.5, 1.5, 2, 0.5, 1.5, 2, 0.5, 1.5, 2] * 2 * np.pi
-        self.assertTrue(np.linalg.norm((v-self.mesh.edge)) == 0)
+        edge = np.r_[0.5, 1.5, 2, 0.5, 1.5, 2, 0.5, 1.5, 2] * 2 * np.pi
+        self.assertTrue(np.linalg.norm((edge-self.mesh.edge)) == 0)
 
+        r = np.r_[0, 0.5, 1.5, 2]
+        a = r[1:]*2*np.pi
+        areaX = np.r_[2*a,a]
+        a = (r[1:]**2 - r[:-1]**2)*np.pi
+        areaZ = np.r_[a,a,a]
+        area = np.r_[areaX, areaZ]
+        self.assertTrue(np.linalg.norm((area-self.mesh.area)) == 0)
+
+        a = (r[1:]**2 - r[:-1]**2)*np.pi
+        vol = np.r_[2*a,a]
+        self.assertTrue(np.linalg.norm((vol-self.mesh.vol)) == 0)
 
 class TestCyl3DMesh(unittest.TestCase):
 

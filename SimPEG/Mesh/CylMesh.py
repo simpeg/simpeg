@@ -157,15 +157,17 @@ class CylMesh(TensorMesh):
             if self.nCy == 1:
                 self._edge = 2*pi*self.gridN[:,0]
             else:
-                raise NotImplementedError('edges not implemented for 3D cyl mesh')
+                raise NotImplementedError('edges not yet implemented for 3D cyl mesh')
         return self._edge
 
     @property
     def area(self):
         """Face areas"""
         if getattr(self, '_area', None) is None:
-            areaR = np.kron(self.hz, 2*pi*self.vectorNr)
-            areaZ = np.kron(np.ones_like(self.vectorNz),pi*(self.vectorNr**2 - np.r_[0, self.vectorNr[:-1]]**2))
+            if self.nCy > 1:
+                raise NotImplementedError('area not yet implemented for 3D cyl mesh')
+            areaR = np.kron(self.hz, 2*pi*self.vectorNx)
+            areaZ = np.kron(np.ones_like(self.vectorNz),pi*(self.vectorNx**2 - np.r_[0, self.vectorNx[:-1]]**2))
             self._area = np.r_[areaR, areaZ]
         return self._area
 
@@ -173,7 +175,9 @@ class CylMesh(TensorMesh):
     def vol(self):
         """Volume of each cell"""
         if getattr(self, '_vol', None) is None:
-            az = pi*(self.vectorNr**2 - np.r_[0, self.vectorNr[:-1]]**2)
+            if self.nCy > 1:
+                raise NotImplementedError('vol not yet implemented for 3D cyl mesh')
+            az = pi*(self.vectorNx**2 - np.r_[0, self.vectorNx[:-1]]**2)
             self._vol = np.kron(self.hz,az)
         return self._vol
 
@@ -295,7 +299,7 @@ class CylMesh(TensorMesh):
 
         loc = np.atleast_2d(loc)
 
-        assert np.all(loc[:,0]<=self.vectorNr.max()) & \
+        assert np.all(loc[:,0]<=self.vectorNx.max()) & \
                np.all(loc[:,1]>=self.vectorNz.min()) & \
                np.all(loc[:,1]<=self.vectorNz.max()), \
                "Points outside of mesh"
