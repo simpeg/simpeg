@@ -6,7 +6,7 @@ from TensorMesh import TensorMesh
 
 class CylMesh(TensorMesh):
     """
-        CylMesh is a mesh class for cylindrically problems
+        CylMesh is a mesh class for cylindrical problems
     """
 
     _meshType = 'CYL'
@@ -15,7 +15,8 @@ class CylMesh(TensorMesh):
         assert len(h) == 3, "len(h) must equal 3, for a cylindrically symmetric mesh use [hx, 1, hz]"
 
         if x0 is not None:
-            assert x0.size == 3, "x0.size must equal 1"
+            assert type(x0) == np.ndarray, "x0 must be an ndarray"
+            assert x0.size == 3, "x0 must have 3 elements"
         else:
             x0 = np.r_[0, 0, 0]
 
@@ -39,7 +40,9 @@ class CylMesh(TensorMesh):
         :rtype: int
         :return: nNx
         """
-        return self.nCx
+        if self.nCy == 1:
+            return self.nCx
+        return self.nCx + 1
 
     @property
     def nNy(self):
@@ -49,7 +52,9 @@ class CylMesh(TensorMesh):
         :rtype: int
         :return: nNy
         """
-        return self.nCy - 1
+        if self.nCy == 1:
+            return self.nCy - 1
+        return self.nCy
 
     @property
     def nN(self):
@@ -122,15 +127,37 @@ class CylMesh(TensorMesh):
         return (self._n + np.r_[0,-1,0]).prod()
 
     @property
+    def vectorCCx(self):
+        """Cell-centered grid vector (1D) in the x direction."""
+        if self.nCy == 1:
+            return np.r_[0, self.hx[:-1].cumsum()] + self.hx*0.5 - self.hx[0]/2
+        return np.r_[0, self.hx[:-1].cumsum()] + self.hx*0.5
+
+    @property
+    def vectorCCy(self):
+        """Cell-centered grid vector (1D) in the y direction."""
+        return np.r_[0, self.hy[:-1]]
+
+    @property
     def vectorNx(self):
-        """Nodal grid vector (1D) in the r direction"""
-        return self.hr.cumsum()
+        """Nodal grid vector (1D) in the x direction."""
+        if self.nCy == 1:
+            return self.hx.cumsum() - self.hx[0]/2
+        return np.r_[0, self.hx].cumsum()
+
+    @property
+    def vectorNy(self):
+        """Nodal grid vector (1D) in the y direction."""
+        return np.r_[0, self.hy[:-1].cumsum()] + self.hy[0]*0.5
 
     @property
     def edge(self):
         """Edge lengths"""
         if getattr(self, '_edge', None) is None:
-            self._edge = 2*pi*self.gridN[:,0]
+            if self.nCy == 1:
+                self._edge = 2*pi*self.gridN[:,0]
+            else:
+                raise NotImplementedError('edges not implemented for 3D cyl mesh')
         return self._edge
 
     @property
