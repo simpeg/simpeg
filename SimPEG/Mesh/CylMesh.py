@@ -31,6 +31,15 @@ class CylMesh(TensorMesh):
 
         TensorMesh.__init__(self, h, x0)
 
+    @property
+    def nNx(self):
+        """
+        Number of nodes in the x-direction
+
+        :rtype: int
+        :return: nNx
+        """
+        return self.nCx
 
     @property
     def nNy(self):
@@ -40,7 +49,7 @@ class CylMesh(TensorMesh):
         :rtype: int
         :return: nNy
         """
-        return self.nCy
+        return self.nCy - 1
 
     @property
     def nN(self):
@@ -49,14 +58,28 @@ class CylMesh(TensorMesh):
 
         :rtype: int
         :return: nN
-
-        .. plot::
-            :include-source:
-
-            from SimPEG import Mesh, np
-            Mesh.TensorMesh([np.ones(n) for n in [2,3]]).plotGrid(nodes=True,showIt=True)
         """
         return (np.r_[self.nNx, self.nNy, self.nNz]).prod()
+
+    @property
+    def nFx(self):
+        """
+        Number of x-faces
+
+        :rtype: int
+        :return: nFx
+        """
+        return self.nC
+
+    @property
+    def vnFx(self):
+        """
+        Number of x-faces in each direction
+
+        :rtype: numpy.array (dim, )
+        :return: vnFx
+        """
+        return self.vnC
 
     @property
     def nFy(self):
@@ -69,19 +92,34 @@ class CylMesh(TensorMesh):
         return (self.vnC + np.r_[0,-1,0][:self.dim]).prod()
 
     @property
-    def vnF(self):
-        """Total number of faces in each direction"""
-        return np.array([self.nFr, self.vnFz])
+    def nEx(self):
+        """
+        Number of x-edges
+
+        :rtype: int
+        :return: nEx
+        """
+        return (self._n + np.r_[0,-1,1]).prod()
 
     @property
-    def nF(self):
-        """Total number of faces"""
-        return self.nFr + self.vnFz
+    def nEy(self):
+        """
+        Number of y-edges
+
+        :rtype: int
+        :return: nEy
+        """
+        return (self._n + np.r_[0,0,1]).prod()
 
     @property
-    def nE(self):
-        """Number of edges"""
-        return self.nN
+    def nEz(self):
+        """
+        Number of z-edges
+
+        :rtype: int
+        :return: nEz
+        """
+        return (self._n + np.r_[0,-1,0]).prod()
 
     @property
     def vectorNx(self):
