@@ -234,6 +234,23 @@ class TDEM_bDerivTests(unittest.TestCase):
         self.assertTrue(passed)
 
 
+    def test_projectAdjoint(self):
+        prb = self.prb
+        dat = self.dat
+        mesh = self.mesh
+
+        # Generate random fields and data
+        f = EM.TDEM.FieldsTDEM(prb.mesh, 1, prb.times.size, 'b')
+        for i in range(f.nTimes):
+            f.set_b(np.random.rand(mesh.nF, 1), i)
+            f.set_e(np.random.rand(mesh.nE, 1), i)
+        d = np.random.rand(dat.prob.nTimes, dat.nTx)
+
+        # Check that d.T*Q*f = f.T*Q.T*d
+        V1 = d.T.dot(dat.projectFields(f))
+        V2 = f.fieldVec().dot(dat.projectFieldsAdjoint(d).fieldVec())
+
+        self.assertTrue((V1-V2)/V1<1e-12)
 
 
 if __name__ == '__main__':
