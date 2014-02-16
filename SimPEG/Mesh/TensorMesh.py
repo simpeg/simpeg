@@ -4,38 +4,13 @@ from TensorView import TensorView
 from DiffOperators import DiffOperators
 from InnerProducts import InnerProducts
 
-class TensorMesh(BaseRectangularMesh, TensorView, DiffOperators, InnerProducts):
-    """
-    TensorMesh is a mesh class that deals with tensor product meshes.
-
-    Any Mesh that has a constant width along the entire axis
-    such that it can defined by a single width vector, called 'h'.
-
-    ::
-
-        hx = np.array([1,1,1])
-        hy = np.array([1,2])
-        hz = np.array([1,1,1,1])
-
-        mesh = Mesh.TensorMesh([hx, hy, hz])
-
-    Example of a padded tensor mesh:
-
-    .. plot::
-
-        from SimPEG import Mesh, Utils
-        M = Mesh.TensorMesh(Utils.meshTensors(((10,10),(40,10),(10,10)), ((10,10),(20,10),(0,0))))
-        M.plotGrid()
-
-    For a quick tensor mesh on a (10x12x15) unit cube::
-
-        mesh = Mesh.TensorMesh([10, 12, 15])
-
-    """
+class BaseTensorMesh(BaseRectangularMesh):
 
     __metaclass__ = Utils.SimPEGMetaClass
 
-    _meshType = 'TENSOR'
+    _meshType = 'BASETENSOR'
+
+    _unitDimensions = [1, 1, 1]
 
     def __init__(self, h_in, x0=None):
         assert type(h_in) is list, 'h_in must be a list'
@@ -43,7 +18,7 @@ class TensorMesh(BaseRectangularMesh, TensorView, DiffOperators, InnerProducts):
         for i, h_i in enumerate(h_in):
             if type(h_i) in [int, long, float]:
                 # This gives you something over the unit cube.
-                h_i = np.ones(int(h_i))/int(h_i)
+                h_i = self._unitDimensions[i] * np.ones(int(h_i))/int(h_i)
             assert type(h_i) == np.ndarray, ("h[%i] is not a numpy array." % i)
             assert len(h_i.shape) == 1, ("h[%i] must be a 1D numpy array." % i)
             h[i] = h_i[:] # make a copy.
@@ -53,57 +28,6 @@ class TensorMesh(BaseRectangularMesh, TensorView, DiffOperators, InnerProducts):
 
         # Ensure h contains 1D vectors
         self._h = [Utils.mkvc(x.astype(float)) for x in h]
-
-    def __str__(self):
-        outStr = '  ---- {0:d}-D TensorMesh ----  '.format(self.dim)
-        def printH(hx, outStr=''):
-            i = -1
-            while True:
-                i = i + 1
-                if i > hx.size:
-                    break
-                elif i == hx.size:
-                    break
-                h = hx[i]
-                n = 1
-                for j in range(i+1, hx.size):
-                    if hx[j] == h:
-                        n = n + 1
-                        i = i + 1
-                    else:
-                        break
-
-                if n == 1:
-                    outStr = outStr + ' {0:.2f},'.format(h)
-                else:
-                    outStr = outStr + ' {0:d}*{1:.2f},'.format(n,h)
-
-            return outStr[:-1]
-
-        if self.dim == 1:
-            outStr = outStr + '\n   x0: {0:.2f}'.format(self.x0[0])
-            outStr = outStr + '\n  nCx: {0:d}'.format(self.nCx)
-            outStr = outStr + printH(self.hx, outStr='\n   hx:')
-            pass
-        elif self.dim == 2:
-            outStr = outStr + '\n   x0: {0:.2f}'.format(self.x0[0])
-            outStr = outStr + '\n   y0: {0:.2f}'.format(self.x0[1])
-            outStr = outStr + '\n  nCx: {0:d}'.format(self.nCx)
-            outStr = outStr + '\n  nCy: {0:d}'.format(self.nCy)
-            outStr = outStr + printH(self.hx, outStr='\n   hx:')
-            outStr = outStr + printH(self.hy, outStr='\n   hy:')
-        elif self.dim == 3:
-            outStr = outStr + '\n   x0: {0:.2f}'.format(self.x0[0])
-            outStr = outStr + '\n   y0: {0:.2f}'.format(self.x0[1])
-            outStr = outStr + '\n   z0: {0:.2f}'.format(self.x0[2])
-            outStr = outStr + '\n  nCx: {0:d}'.format(self.nCx)
-            outStr = outStr + '\n  nCy: {0:d}'.format(self.nCy)
-            outStr = outStr + '\n  nCz: {0:d}'.format(self.nCz)
-            outStr = outStr + printH(self.hx, outStr='\n   hx:')
-            outStr = outStr + printH(self.hy, outStr='\n   hy:')
-            outStr = outStr + printH(self.hz, outStr='\n   hz:')
-
-        return outStr
 
     @property
     def h(self):
@@ -211,6 +135,133 @@ class TensorMesh(BaseRectangularMesh, TensorView, DiffOperators, InnerProducts):
             self._gridEz = Utils.ndgrid(self.getTensor('Ez'))
         return self._gridEz
 
+    def getTensor(self, locType):
+        """ Returns a tensor list.
+
+        :param str locType: What tensor (see below)
+        :rtype: list
+        :return: list of the tensors that make up the mesh.
+
+        locType can be::
+
+            'Ex'    -> x-component of field defined on edges
+            'Ey'    -> y-component of field defined on edges
+            'Ez'    -> z-component of field defined on edges
+            'Fx'    -> x-component of field defined on faces
+            'Fy'    -> y-component of field defined on faces
+            'Fz'    -> z-component of field defined on faces
+            'N'     -> scalar field defined on nodes
+            'CC'    -> scalar field defined on cell centers
+        """
+
+        if   locType is 'Fx':
+            ten = [self.vectorNx , self.vectorCCy, self.vectorCCz]
+        elif locType is 'Fy':
+            ten = [self.vectorCCx, self.vectorNy , self.vectorCCz]
+        elif locType is 'Fz':
+            ten = [self.vectorCCx, self.vectorCCy, self.vectorNz ]
+        elif locType is 'Ex':
+            ten = [self.vectorCCx, self.vectorNy , self.vectorNz ]
+        elif locType is 'Ey':
+            ten = [self.vectorNx , self.vectorCCy, self.vectorNz ]
+        elif locType is 'Ez':
+            ten = [self.vectorNx , self.vectorNy , self.vectorCCz]
+        elif locType is 'CC':
+            ten = [self.vectorCCx, self.vectorCCy, self.vectorCCz]
+        elif locType is 'N':
+            ten = [self.vectorNx , self.vectorNy , self.vectorNz ]
+
+        return [t for t in ten if t is not None]
+
+
+class TensorMesh(BaseTensorMesh, TensorView, DiffOperators, InnerProducts):
+    """
+    TensorMesh is a mesh class that deals with tensor product meshes.
+
+    Any Mesh that has a constant width along the entire axis
+    such that it can defined by a single width vector, called 'h'.
+
+    ::
+
+        hx = np.array([1,1,1])
+        hy = np.array([1,2])
+        hz = np.array([1,1,1,1])
+
+        mesh = Mesh.TensorMesh([hx, hy, hz])
+
+    Example of a padded tensor mesh:
+
+    .. plot::
+
+        from SimPEG import Mesh, Utils
+        M = Mesh.TensorMesh(Utils.meshTensors(((10,10),(40,10),(10,10)), ((10,10),(20,10),(0,0))))
+        M.plotGrid()
+
+    For a quick tensor mesh on a (10x12x15) unit cube::
+
+        mesh = Mesh.TensorMesh([10, 12, 15])
+
+    """
+
+    __metaclass__ = Utils.SimPEGMetaClass
+
+    _meshType = 'TENSOR'
+
+    def __init__(self, h_in, x0=None):
+        BaseTensorMesh.__init__(self, h_in, x0)
+
+    def __str__(self):
+        outStr = '  ---- {0:d}-D TensorMesh ----  '.format(self.dim)
+        def printH(hx, outStr=''):
+            i = -1
+            while True:
+                i = i + 1
+                if i > hx.size:
+                    break
+                elif i == hx.size:
+                    break
+                h = hx[i]
+                n = 1
+                for j in range(i+1, hx.size):
+                    if hx[j] == h:
+                        n = n + 1
+                        i = i + 1
+                    else:
+                        break
+
+                if n == 1:
+                    outStr = outStr + ' {0:.2f},'.format(h)
+                else:
+                    outStr = outStr + ' {0:d}*{1:.2f},'.format(n,h)
+
+            return outStr[:-1]
+
+        if self.dim == 1:
+            outStr = outStr + '\n   x0: {0:.2f}'.format(self.x0[0])
+            outStr = outStr + '\n  nCx: {0:d}'.format(self.nCx)
+            outStr = outStr + printH(self.hx, outStr='\n   hx:')
+            pass
+        elif self.dim == 2:
+            outStr = outStr + '\n   x0: {0:.2f}'.format(self.x0[0])
+            outStr = outStr + '\n   y0: {0:.2f}'.format(self.x0[1])
+            outStr = outStr + '\n  nCx: {0:d}'.format(self.nCx)
+            outStr = outStr + '\n  nCy: {0:d}'.format(self.nCy)
+            outStr = outStr + printH(self.hx, outStr='\n   hx:')
+            outStr = outStr + printH(self.hy, outStr='\n   hy:')
+        elif self.dim == 3:
+            outStr = outStr + '\n   x0: {0:.2f}'.format(self.x0[0])
+            outStr = outStr + '\n   y0: {0:.2f}'.format(self.x0[1])
+            outStr = outStr + '\n   z0: {0:.2f}'.format(self.x0[2])
+            outStr = outStr + '\n  nCx: {0:d}'.format(self.nCx)
+            outStr = outStr + '\n  nCy: {0:d}'.format(self.nCy)
+            outStr = outStr + '\n  nCz: {0:d}'.format(self.nCz)
+            outStr = outStr + printH(self.hx, outStr='\n   hx:')
+            outStr = outStr + printH(self.hy, outStr='\n   hy:')
+            outStr = outStr + printH(self.hz, outStr='\n   hz:')
+
+        return outStr
+
+
     # --------------- Geometries ---------------------
     @property
     def vol(self):
@@ -273,45 +324,6 @@ class TensorMesh(BaseRectangularMesh, TensorView, DiffOperators, InnerProducts):
         return self._edge
 
     # --------------- Methods ---------------------
-
-    def getTensor(self, locType):
-        """ Returns a tensor list.
-
-        :param str locType: What tensor (see below)
-        :rtype: list
-        :return: list of the tensors that make up the mesh.
-
-        locType can be::
-
-            'Ex'    -> x-component of field defined on edges
-            'Ey'    -> y-component of field defined on edges
-            'Ez'    -> z-component of field defined on edges
-            'Fx'    -> x-component of field defined on faces
-            'Fy'    -> y-component of field defined on faces
-            'Fz'    -> z-component of field defined on faces
-            'N'     -> scalar field defined on nodes
-            'CC'    -> scalar field defined on cell centers
-        """
-
-        if   locType is 'Fx':
-            ten = [self.vectorNx , self.vectorCCy, self.vectorCCz]
-        elif locType is 'Fy':
-            ten = [self.vectorCCx, self.vectorNy , self.vectorCCz]
-        elif locType is 'Fz':
-            ten = [self.vectorCCx, self.vectorCCy, self.vectorNz ]
-        elif locType is 'Ex':
-            ten = [self.vectorCCx, self.vectorNy , self.vectorNz ]
-        elif locType is 'Ey':
-            ten = [self.vectorNx , self.vectorCCy, self.vectorNz ]
-        elif locType is 'Ez':
-            ten = [self.vectorNx , self.vectorNy , self.vectorCCz]
-        elif locType is 'CC':
-            ten = [self.vectorCCx, self.vectorCCy, self.vectorCCz]
-        elif locType is 'N':
-            ten = [self.vectorNx , self.vectorNy , self.vectorNz ]
-
-        return [t for t in ten if t is not None]
-
 
     def isInside(self, pts):
         """

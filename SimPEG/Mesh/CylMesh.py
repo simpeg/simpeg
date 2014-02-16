@@ -2,35 +2,21 @@ import numpy as np
 import scipy.sparse as sp
 from scipy.constants import pi
 from SimPEG.Utils import mkvc, ndgrid, sdiag
-from TensorMesh import TensorMesh
+from TensorMesh import BaseTensorMesh
 
-class CylMesh(TensorMesh):
+class CylMesh(BaseTensorMesh):
     """
         CylMesh is a mesh class for cylindrical problems
     """
 
     _meshType = 'CYL'
 
+    _unitDimensions = [1, 2*np.pi, 1]
+
     def __init__(self, h, x0=None):
-        assert len(h) == 3, "len(h) must equal 3, for a cylindrically symmetric mesh use [hx, 1, hz]"
-
-        if x0 is not None:
-            assert type(x0) == np.ndarray, "x0 must be an ndarray"
-            assert x0.size == 3, "x0 must have 3 elements"
-        else:
-            x0 = np.r_[0, 0, 0]
-
-        for i, h_i in enumerate(h):
-            if type(h_i) in [int, long, float]:
-                # This gives you something over the unit cylinder.
-                h_i = (2*np.pi if i==1 else 1.)*np.ones(int(h_i))/int(h_i)
-            assert type(h_i) == np.ndarray, ("h[%i] is not a numpy array." % i)
-            assert len(h_i.shape) == 1, ("h[%i] must be a 1D numpy array." % i)
-            h[i] = h_i[:] # make a copy.
-
-        assert h[1].sum() == 2*np.pi, "The 2nd dimension must sum to 2*pi"
-
-        TensorMesh.__init__(self, h, x0)
+        BaseTensorMesh.__init__(self, h, x0)
+        assert self.dim == 3, "dim of mesh must equal 3, for a cylindrically symmetric mesh use [hx, 1, hz]"
+        assert self.hy.sum() == 2*np.pi, "The 2nd dimension must sum to 2*pi"
 
     @property
     def nNx(self):
@@ -184,6 +170,35 @@ class CylMesh(TensorMesh):
     ####################################################
     # Operators
     ####################################################
+
+    @property
+    def faceDiv(self):
+        """Construct divergence operator (face-stg to cell-centres)."""
+        raise NotImplementedError('faceDiv not yet implemented')
+    @property
+    def faceDivx(self):
+        """Construct divergence operator in the x component (face-stg to cell-centres)."""
+        raise NotImplementedError('faceDivx not yet implemented')
+
+    @property
+    def faceDivy(self):
+        """Construct divergence operator in the y component (face-stg to cell-centres)."""
+        raise NotImplementedError('faceDivy not yet implemented')
+
+    @property
+    def faceDivz(self):
+        """Construct divergence operator in the z component (face-stg to cell-centres)."""
+        raise NotImplementedError('faceDivz not yet implemented')
+
+    @property
+    def nodalGrad(self):
+        """Construct gradient operator (nodes to edges)."""
+        raise NotImplementedError('nodalGrad not yet implemented')
+
+    @property
+    def nodalLaplacian(self):
+        """Construct laplacian operator (nodes to edges)."""
+        raise NotImplementedError('nodalLaplacian not yet implemented')
 
     @property
     def edgeCurl(self):
