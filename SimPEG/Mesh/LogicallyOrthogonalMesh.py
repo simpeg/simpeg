@@ -2,7 +2,7 @@ from SimPEG import Utils, np
 from BaseMesh import BaseRectangularMesh
 from DiffOperators import DiffOperators
 from InnerProducts import InnerProducts
-from LomView import LomView
+from View import LomView
 
 # Some helper functions.
 length2D = lambda x: (x[:, 0]**2 + x[:, 1]**2)**0.5

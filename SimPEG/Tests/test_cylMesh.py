@@ -10,9 +10,6 @@ class TestCyl2DMesh(unittest.TestCase):
         hz = np.r_[2,1]
         self.mesh = Mesh.CylMesh([hx, 1,hz])
 
-    def test_cylMeshInheritance(self):
-        self.assertTrue(isinstance(self.mesh, Mesh.BaseMesh))
-
     def test_cylMesh_numbers(self):
         self.assertTrue(self.mesh.dim == 3)
 

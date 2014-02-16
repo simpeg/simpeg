@@ -1,6 +1,6 @@
 from SimPEG import Utils, np, sp
 from BaseMesh import BaseRectangularMesh
-from TensorView import TensorView
+from View import TensorView
 from DiffOperators import DiffOperators
 from InnerProducts import InnerProducts
 

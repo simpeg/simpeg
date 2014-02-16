@@ -1,6 +1,6 @@
 import unittest
 import sys
-from SimPEG.Mesh import BaseRectangularMesh
+from SimPEG.Mesh.BaseMesh import BaseRectangularMesh
 import numpy as np
 
 
