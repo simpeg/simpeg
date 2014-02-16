@@ -167,7 +167,7 @@ class DiffOperators(object):
                 elif(self.dim == 3):
                     D1 = kron3(speye(n[2]), speye(n[1]), ddx(n[0]))
                 # Compute areas of cell faces & volumes
-                S = self.r(self.area, 'F','Fx', 'V')
+                S = self.r(self.area, 'F', 'Fx', 'V')
                 V = self.vol
                 self._faceDivx = sdiag(1/V)*D1*sdiag(S)
 
@@ -190,7 +190,7 @@ class DiffOperators(object):
                 elif(self.dim == 3):
                     D2 = kron3(speye(n[2]), ddx(n[1]), speye(n[0]))
                 # Compute areas of cell faces & volumes
-                S = self.r(self.area, 'F','Fy', 'V')
+                S = self.r(self.area, 'F', 'Fy', 'V')
                 V = self.vol
                 self._faceDivy = sdiag(1/V)*D2*sdiag(S)
 
@@ -210,7 +210,7 @@ class DiffOperators(object):
                 # Compute faceDivergence operator on faces
                 D3 = kron3(ddx(n[2]), speye(n[1]), speye(n[0]))
                 # Compute areas of cell faces & volumes
-                S = self.r(self.area, 'F','Fz', 'V')
+                S = self.r(self.area, 'F', 'Fz', 'V')
                 V = self.vol
                 self._faceDivz = sdiag(1/V)*D3*sdiag(S)
 

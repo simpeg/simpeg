@@ -78,6 +78,9 @@ class TestCyl2DMesh(unittest.TestCase):
         vol = np.r_[2*a,a]
         self.assertTrue(np.linalg.norm((vol-self.mesh.vol)) == 0)
 
+    def test_faceDiv(self):
+        print self.mesh.faceDiv
+
 class TestCyl3DMesh(unittest.TestCase):
 
     def setUp(self):

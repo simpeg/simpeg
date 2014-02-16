@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
 from scipy.constants import pi
-from SimPEG.Utils import mkvc, ndgrid, sdiag
+from SimPEG.Utils import mkvc, ndgrid, sdiag, kron3, speye, ddx, av, avExtrap
 from TensorMesh import BaseTensorMesh
 
 class CylMesh(BaseTensorMesh):
@@ -174,21 +174,50 @@ class CylMesh(BaseTensorMesh):
     @property
     def faceDiv(self):
         """Construct divergence operator (face-stg to cell-centres)."""
-        raise NotImplementedError('faceDiv not yet implemented')
+        if getattr(self, '_faceDiv', None) is None:
+            n = self.vnC
+            # Compute faceDivergence operator on faces
+            D1 = self.faceDivx
+            D3 = self.faceDivz
+            if self.nCy == 1:
+                D = sp.hstack((D1, D3), format="csr")
+            elif self.nCy > 1:
+                D2 = self.faceDivy
+                D = sp.hstack((D1, D2, D3), format="csr")
+            self._faceDiv = D
+        return self._faceDiv
+
     @property
     def faceDivx(self):
         """Construct divergence operator in the x component (face-stg to cell-centres)."""
-        raise NotImplementedError('faceDivx not yet implemented')
+        if getattr(self, '_faceDivx', None) is None:
+            D1 = kron3(speye(self.nCz), speye(self.nCy), ddx(self.nCx)[:,1:])
+            S = self.r(self.area, 'F', 'Fx', 'V')
+            V = self.vol
+            self._faceDivx = sdiag(1/V)*D1*sdiag(S)
+        return self._faceDivx
 
     @property
     def faceDivy(self):
         """Construct divergence operator in the y component (face-stg to cell-centres)."""
-        raise NotImplementedError('faceDivy not yet implemented')
+        raise NotImplementedError('Wrapping the ddx is not yet implemented.')
+        if getattr(self, '_faceDivy', None) is None:
+            # TODO: this needs to wrap to join up faces which are connected in the cylinder
+            D2 = kron3(speye(self.nCz), ddx(self.nCy), speye(self.nCx))
+            S = self.r(self.area, 'F', 'Fy', 'V')
+            V = self.vol
+            self._faceDivy = sdiag(1/V)*D2*sdiag(S)
+        return self._faceDivy
 
     @property
     def faceDivz(self):
         """Construct divergence operator in the z component (face-stg to cell-centres)."""
-        raise NotImplementedError('faceDivz not yet implemented')
+        if getattr(self, '_faceDivz', None) is None:
+            D3 = kron3(ddx(self.nCz), speye(self.nCy), speye(self.nCx))
+            S = self.r(self.area, 'F', 'Fz', 'V')
+            V = self.vol
+            self._faceDivz = sdiag(1/V)*D3*sdiag(S)
+        return self._faceDivz
 
     @property
     def nodalGrad(self):
