@@ -147,8 +147,8 @@ class InnerProducts(object):
             V1 = sdiag(v)  # We will multiply on each side to keep symmetry
 
             Px = _getFacePx(M)
-            P000 = V2*Px('fXm')
-            P100 = V2*Px('fXp')
+            P000 = V1*Px('fXm')
+            P100 = V1*Px('fXp')
         elif M.dim == 2:
             # Square root of cell volume multiplied by 1/4
             v = np.sqrt(0.25*M.vol)
