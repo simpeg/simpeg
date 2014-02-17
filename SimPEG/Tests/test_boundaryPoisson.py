@@ -35,14 +35,15 @@ class Test1D_InhomogeneousDirichlet(OrderTest):
 
         Mc = self.M.getFaceInnerProduct()
         McI = Utils.sdInv(self.M.getFaceInnerProduct())
-        G = -Pin.T*Pin*self.M.faceDiv.T * Utils.sdiag(self.M.vol)
+        V = Utils.sdiag(self.M.vol)
+        G = -Pin.T*Pin*self.M.faceDiv.T * V
         D = self.M.faceDiv
         j = McI*(G*xc_anal + P*phi_bc)
-        q = D*Pin.T*Pin*j + D*Pout.T*j_bc
+        q = V*D*Pin.T*Pin*j + V*D*Pout.T*j_bc
 
         # Rearrange if we know q to solve for x
-        A = D*Pin.T*Pin*McI*G
-        rhs = q_anal - D*Pin.T*Pin*McI*P*phi_bc - D*Pout.T*j_bc
+        A = V*D*Pin.T*Pin*McI*G
+        rhs = V*q_anal - V*D*Pin.T*Pin*McI*P*phi_bc - V*D*Pout.T*j_bc
         # A = D*McI*G
         # rhs = q_anal - D*McI*P*phi_bc
 
@@ -53,8 +54,9 @@ class Test1D_InhomogeneousDirichlet(OrderTest):
             err = np.linalg.norm((q-q_anal), np.inf)
         elif self.myTest == 'xc':
             #TODO: fix the null space
-            xc = Solver(A).solve(rhs)
-            print np.linalg.norm(Utils.mkvc(A*xc) - rhs)
+            solver = Solver(A, doDirect=False, options={'M':'J','iterSolver':'CG','backend':'scipy','maxIter':1000})
+            xc = solver.solve(rhs)
+            print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)
             err = np.linalg.norm((xc-xc_anal), np.inf)
         elif self.myTest == 'xcJ':
             #TODO: fix the null space
