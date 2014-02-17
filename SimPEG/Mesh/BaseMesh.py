@@ -243,7 +243,7 @@ class BaseMesh(object):
         :return: projected face vector
         """
         assert type(fV) == np.ndarray, 'fV must be an ndarray'
-        assert len(fV.shape) == 2 and fV.shape[0] == np.sum(self.nF) and fV.shape[1] == self.dim, 'fV must be an ndarray of shape (nF x dim)'
+        assert len(fV.shape) == 2 and fV.shape[0] == self.nF and fV.shape[1] == self.dim, 'fV must be an ndarray of shape (nF x dim)'
         return np.sum(fV*self.normals, 1)
 
     def projectEdgeVector(self, eV):
@@ -255,7 +255,7 @@ class BaseMesh(object):
         :return: projected edge vector
         """
         assert type(eV) == np.ndarray, 'eV must be an ndarray'
-        assert len(eV.shape) == 2 and eV.shape[0] == np.sum(self.nE) and eV.shape[1] == self.dim, 'eV must be an ndarray of shape (nE x dim)'
+        assert len(eV.shape) == 2 and eV.shape[0] == self.nE and eV.shape[1] == self.dim, 'eV must be an ndarray of shape (nE x dim)'
         return np.sum(eV*self.tangents, 1)
 
 

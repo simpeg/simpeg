@@ -32,6 +32,7 @@ class LogicallyOrthogonalMesh(BaseRectangularMesh, DiffOperators, InnerProducts,
 
     def __init__(self, nodes):
         assert type(nodes) == list, "'nodes' variable must be a list of np.ndarray"
+        assert len(nodes) > 1, "len(node) must be greater than 1"
 
         for i, nodes_i in enumerate(nodes):
             assert type(nodes_i) == np.ndarray, ("nodes[%i] is not a numpy array." % i)
