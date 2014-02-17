@@ -383,7 +383,7 @@ def _getFacePx_Rectangular(M):
     """Returns a function for creating projection matrices
 
     """
-    i = np.int64(range(M.nCx))
+    ii = np.int64(range(M.nCx))
 
     def Px(xFace):
         """
