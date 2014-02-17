@@ -460,6 +460,104 @@ class DiffOperators(object):
     _edgeCurl = None
     edgeCurl = property(**edgeCurl())
 
+    def getBCProjWF(self, BC, discretization='CC'):
+        """
+
+        The weak form boundary condition projection matrices.
+
+        Examples::
+
+            BC = 'neumann'                                            # Neumann in all directions
+            BC = ['neumann', 'dirichlet', 'neumann']                  # 3D, Dirichlet in y Neumann else
+            BC = [['neumann', 'dirichlet'], 'dirichlet', 'dirichlet'] # 3D, Neumann in x on bottom of domain,
+                                                                      #     Dirichlet else
+
+        """
+        if(type(BC) is str):
+            BC = [BC for _ in self.vnC]  # Repeat the str self.dim times
+        elif(type(BC) is list):
+            assert len(BC) == self.dim, 'BC list must be the size of your mesh'
+        else:
+            raise Exception("BC must be a str or a list.")
+
+        for i, bc_i in enumerate(BC):
+            BC[i] = checkBC(bc_i)
+
+
+        def projDirichlet(n, bc):
+            bc = checkBC(bc)
+            ij = ([0,n], [0,1])
+            vals = [0,0]
+            if(bc[0] == 'dirichlet'):
+                vals[0] = -1
+            if(bc[1] == 'dirichlet'):
+                vals[1] = 1
+            return sp.csr_matrix((vals, ij), shape=(n+1,2))
+
+        def projNeumannIn(n, bc):
+            bc = checkBC(bc)
+            P = sp.identity(n+1).tocsr()
+            if(bc[0] == 'neumann'):
+                P = P[1:,:]
+            if(bc[0] == 'neumann'):
+                P = P[:-1,:]
+            return P
+
+        def projNeumannOut(n, bc):
+            bc = checkBC(bc)
+            ij   = ([0, 1],[0, n])
+            vals = [0,0]
+            if(bc[0] == 'neumann'):
+                vals[0] = 1
+            if(bc[1] == 'neumann'):
+                vals[1] = 1
+            return sp.csr_matrix((vals, ij), shape=(2,n+1))
+
+        n = self.vnC
+        indF = self.faceBoundaryInd
+        if(self.dim == 1):
+            Pbc = projDirichlet(n[0], BC[0])
+            indF = indF[0] | indF[1]
+            Pbc = Pbc*sdiag(self.area[indF])
+
+            Pin = projNeumannIn(n[0], BC[0])
+
+            Pout = projNeumannOut(n[0], BC[0])
+        elif(self.dim == 2):
+            Pbc1 = sp.kron(speye(n[1]), projDirichlet(n[0], BC[0]))
+            Pbc2 = sp.kron(projDirichlet(n[1], BC[1]), speye(n[0]))
+            Pbc = sp.block_diag((Pbc1, Pbc2), format="csr")
+            indF = np.r_[(indF[0] | indF[1]), (indF[2] | indF[3])]
+            Pbc = Pbc*sdiag(self.area[indF])
+
+            P1 = sp.kron(speye(n[1]), projNeumannIn(n[0], BC[0]))
+            P2 = sp.kron(projNeumannIn(n[1], BC[1]), speye(n[0]))
+            Pin = sp.block_diag((P1, P2), format="csr")
+
+            P1 = sp.kron(speye(n[1]), projNeumannOut(n[0], BC[0]))
+            P2 = sp.kron(projNeumannOut(n[1], BC[1]), speye(n[0]))
+            Pout = sp.block_diag((P1, P2), format="csr")
+        elif(self.dim == 3):
+            Pbc1 = kron3(speye(n[2]), speye(n[1]), projDirichlet(n[0], BC[0]))
+            Pbc2 = kron3(speye(n[2]), projDirichlet(n[1], BC[1]), speye(n[0]))
+            Pbc3 = kron3(projDirichlet(n[2], BC[2]), speye(n[1]), speye(n[0]))
+            Pbc = sp.block_diag((Pbc1, Pbc2, Pbc3), format="csr")
+            indF = np.r_[(indF[0] | indF[1]), (indF[2] | indF[3]), (indF[4] | indF[5])]
+            Pbc = Pbc*sdiag(self.area[indF])
+
+            P1 = kron3(speye(n[2]), speye(n[1]), projNeumannIn(n[0], BC[0]))
+            P2 = kron3(speye(n[2]), projNeumannIn(n[1], BC[1]), speye(n[0]))
+            P3 = kron3(projNeumannIn(n[2], BC[2]), speye(n[1]), speye(n[0]))
+            Pin = sp.block_diag((P1, P2, P3), format="csr")
+
+            P1 = kron3(speye(n[2]), speye(n[1]), projNeumannOut(n[0], BC[0]))
+            P2 = kron3(speye(n[2]), projNeumannOut(n[1], BC[1]), speye(n[0]))
+            P3 = kron3(projNeumannOut(n[2], BC[2]), speye(n[1]), speye(n[0]))
+            Pout = sp.block_diag((P1, P2, P3), format="csr")
+
+        return Pbc, Pin, Pout
+
+
     # --------------- Averaging ---------------------
 
     @property

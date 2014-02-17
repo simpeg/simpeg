@@ -419,6 +419,56 @@ class TensorMesh(BaseRectangularMesh, TensorView, DiffOperators, InnerProducts):
             raise NotImplementedError('getInterpolationMat: locType=='+locType+' and mesh.dim=='+str(self.dim))
         return Q
 
+
+    @property
+    def faceBoundaryInd(self):
+        """
+            Find indices of boundary faces in each direction
+        """
+        if self.dim==1:
+            indxd = (self.gridFx==min(self.gridFx))
+            indxu = (self.gridFx==max(self.gridFx))
+            return indxd, indxu
+        elif self.dim==2:
+            indxd = (self.gridFx[:,0]==min(self.gridFx[:,0]))
+            indxu = (self.gridFx[:,0]==max(self.gridFx[:,0]))
+            indyd = (self.gridFy[:,1]==min(self.gridFy[:,1]))
+            indyu = (self.gridFy[:,1]==max(self.gridFy[:,1]))
+            return indxd, indxu, indyd, indyu
+        elif self.dim==3:
+            indxd = (self.gridFx[:,0]==min(self.gridFx[:,0]))
+            indxu = (self.gridFx[:,0]==max(self.gridFx[:,0]))
+            indyd = (self.gridFy[:,1]==min(self.gridFy[:,1]))
+            indyu = (self.gridFy[:,1]==max(self.gridFy[:,1]))
+            indzd = (self.gridFz[:,2]==min(self.gridFz[:,2]))
+            indzu = (self.gridFz[:,2]==max(self.gridFz[:,2]))
+            return indxd, indxu, indyd, indyu, indzd, indzu
+
+    @property
+    def cellBoundaryInd(self):
+        """
+            Find indices of boundary faces in each direction
+        """
+        if self.dim==1:
+            indxd = (self.gridCC==min(self.gridCC))
+            indxu = (self.gridCC==max(self.gridCC))
+            return indxd, indxu
+        elif self.dim==2:
+            indxd = (self.gridCC[:,0]==min(self.gridCC[:,0]))
+            indxu = (self.gridCC[:,0]==max(self.gridCC[:,0]))
+            indyd = (self.gridCC[:,1]==min(self.gridCC[:,1]))
+            indyu = (self.gridCC[:,1]==max(self.gridCC[:,1]))
+            return indxd, indxu, indyd, indyu
+        elif self.dim==3:
+            indxd = (self.gridCC[:,0]==min(self.gridCC[:,0]))
+            indxu = (self.gridCC[:,0]==max(self.gridCC[:,0]))
+            indyd = (self.gridCC[:,1]==min(self.gridCC[:,1]))
+            indyu = (self.gridCC[:,1]==max(self.gridCC[:,1]))
+            indzd = (self.gridCC[:,2]==min(self.gridCC[:,2]))
+            indzu = (self.gridCC[:,2]==max(self.gridCC[:,2]))
+            return indxd, indxu, indyd, indyu, indzd, indzu
+
+
 if __name__ == '__main__':
     print('Welcome to tensor mesh!')
 
