@@ -27,20 +27,24 @@ class Test1D_InhomogeneousDirichlet(OrderTest):
         #TODO: Check where our boundary conditions are CCx or Nx
         # vec = self.M.vectorNx
         vec = self.M.vectorCCx
-        bc = phi(vec[[0,-1]])
+
+        phi_bc = phi(vec[[0,-1]])
+        j_bc = j_fun(vec[[0,-1]])
 
         P, Pin, Pout = self.M.getBCProjWF([['dirichlet', 'dirichlet']])
 
         Mc = self.M.getFaceInnerProduct()
         McI = Utils.sdInv(self.M.getFaceInnerProduct())
-        G = -self.M.faceDiv.T * Utils.sdiag(self.M.vol)
+        G = -Pin.T*Pin*self.M.faceDiv.T * Utils.sdiag(self.M.vol)
         D = self.M.faceDiv
-        j = McI*(G*xc_anal + P*bc)
-        q = D*j
+        j = McI*(G*xc_anal + P*phi_bc)
+        q = D*Pin.T*Pin*j + D*Pout.T*j_bc
 
         # Rearrange if we know q to solve for x
-        A = D*McI*G
-        rhs = q_anal - D*McI*P*bc
+        A = D*Pin.T*Pin*McI*G
+        rhs = q_anal - D*Pin.T*Pin*McI*P*phi_bc - D*Pout.T*j_bc
+        # A = D*McI*G
+        # rhs = q_anal - D*McI*P*phi_bc
 
 
         if self.myTest == 'j':
@@ -48,11 +52,15 @@ class Test1D_InhomogeneousDirichlet(OrderTest):
         elif self.myTest == 'q':
             err = np.linalg.norm((q-q_anal), np.inf)
         elif self.myTest == 'xc':
+            #TODO: fix the null space
             xc = Solver(A).solve(rhs)
+            print np.linalg.norm(Utils.mkvc(A*xc) - rhs)
             err = np.linalg.norm((xc-xc_anal), np.inf)
         elif self.myTest == 'xcJ':
+            #TODO: fix the null space
             xc = Solver(A).solve(rhs)
-            j = McI*(G*xc + P*bc)
+            print np.linalg.norm(Utils.mkvc(A*xc) - rhs)
+            j = McI*(G*xc + P*phi_bc)
             err = np.linalg.norm((j-j_anal), np.inf)
 
         return err
