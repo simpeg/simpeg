@@ -51,7 +51,7 @@ class Test1D_InhomogeneousDirichlet(OrderTest):
         if self.myTest == 'j':
             err = np.linalg.norm((j-j_anal), np.inf)
         elif self.myTest == 'q':
-            err = np.linalg.norm((q-q_anal), np.inf)
+            err = np.linalg.norm((q-V*q_anal), np.inf)
         elif self.myTest == 'xc':
             #TODO: fix the null space
             solver = Solver(A, doDirect=False, options={'M':'J','iterSolver':'CG','backend':'scipy','maxIter':1000})
