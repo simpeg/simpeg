@@ -136,6 +136,45 @@ class CylMesh(BaseTensorMesh):
         """Nodal grid vector (1D) in the y direction."""
         return np.r_[0, self.hy[:-1].cumsum()] + self.hy[0]*0.5
 
+
+    def getTensor(self, locType):
+        """ Returns a tensor list.
+
+        :param str locType: What tensor (see below)
+        :rtype: list
+        :return: list of the tensors that make up the mesh.
+
+        locType can be::
+
+            'Ex'    -> x-component of field defined on edges
+            'Ey'    -> y-component of field defined on edges
+            'Ez'    -> z-component of field defined on edges
+            'Fx'    -> x-component of field defined on faces
+            'Fy'    -> y-component of field defined on faces
+            'Fz'    -> z-component of field defined on faces
+            'N'     -> scalar field defined on nodes
+            'CC'    -> scalar field defined on cell centers
+        """
+
+        if   locType is 'Fx':
+            ten = [self.vectorNx , self.vectorCCy, self.vectorCCz]
+        elif locType is 'Fy':
+            ten = [self.vectorCCx, self.vectorNy , self.vectorCCz]
+        elif locType is 'Fz':
+            ten = [self.vectorCCx, self.vectorCCy, self.vectorNz ]
+        elif locType is 'Ex':
+            ten = [self.vectorCCx, self.vectorNy , self.vectorNz ]
+        elif locType is 'Ey':
+            ten = [self.vectorNx , self.vectorCCy, self.vectorNz ]
+        elif locType is 'Ez':
+            ten = [self.vectorNx , self.vectorNy , self.vectorCCz]
+        elif locType is 'CC':
+            ten = [self.vectorCCx, self.vectorCCy, self.vectorCCz]
+        elif locType is 'N':
+            ten = [self.vectorNx , self.vectorNy , self.vectorNz ]
+
+        return [t for t in ten if t is not None]
+
     @property
     def edge(self):
         """Edge lengths"""
@@ -218,6 +257,13 @@ class CylMesh(BaseTensorMesh):
             V = self.vol
             self._faceDivz = sdiag(1/V)*D3*sdiag(S)
         return self._faceDivz
+
+
+    @property
+    def cellGrad(self):
+        """The cell centered Gradient, takes you to cell faces."""
+        raise NotImplementedError('Cell Grad is not yet implemented.')
+
 
     @property
     def nodalGrad(self):

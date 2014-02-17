@@ -1,6 +1,7 @@
 import unittest
 import sys
 from SimPEG import *
+from TestUtils import OrderTest
 
 
 class TestCyl2DMesh(unittest.TestCase):
@@ -75,8 +76,60 @@ class TestCyl2DMesh(unittest.TestCase):
         vol = np.r_[2*a,a]
         self.assertTrue(np.linalg.norm((vol-self.mesh.vol)) == 0)
 
-    def test_faceDiv(self):
-        print self.mesh.faceDiv
+    def test_gridSizes(self):
+        self.assertTrue(self.mesh.gridCC.shape == (self.mesh.nC, 3))
+        # self.assertTrue(self.mesh.gridN.shape == (self.mesh.nN, 3))
+
+        self.assertTrue(self.mesh.gridFx.shape == (self.mesh.nFx, 3))
+        # self.assertTrue(self.mesh.gridFy.shape == (self.mesh.nFy, 3))
+        self.assertTrue(self.mesh.gridFz.shape == (self.mesh.nFz, 3))
+
+        # self.assertTrue(self.mesh.gridEx.shape == (self.mesh.nEx, 3))
+        self.assertTrue(self.mesh.gridEy.shape == (self.mesh.nEy, 3))
+        # self.assertTrue(self.mesh.gridEz.shape == (self.mesh.nEz, 3))
+
+
+MESHTYPES = ['uniformCylMesh']
+MESHDIMENSION = 2
+call2 = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1])
+call3 = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1], xyz[:, 2])
+cart_row2 = lambda g, xfun, yfun: np.c_[call2(xfun, g), call2(yfun, g)]
+cart_row3 = lambda g, xfun, yfun, zfun: np.c_[call3(xfun, g), call3(yfun, g), call3(zfun, g)]
+cartF2 = lambda M, fx, fy: np.vstack((cart_row2(M.gridFx, fx, fy), cart_row2(M.gridFy, fx, fy)))
+cartE2 = lambda M, ex, ey: np.vstack((cart_row2(M.gridEx, ex, ey), cart_row2(M.gridEy, ex, ey)))
+cartF3 = lambda M, fx, fy, fz: np.vstack((cart_row3(M.gridFx, fx, fy, fz), cart_row3(M.gridFy, fx, fy, fz), cart_row3(M.gridFz, fx, fy, fz)))
+cartE3 = lambda M, ex, ey, ez: np.vstack((cart_row3(M.gridEx, ex, ey, ez), cart_row3(M.gridEy, ex, ey, ez), cart_row3(M.gridEz, ex, ey, ez)))
+
+
+class TestFaceDiv(OrderTest):
+    name = "FaceDiv"
+    meshTypes = MESHTYPES
+    meshDimension = MESHDIMENSION
+
+    def getError(self):
+
+        funX = lambda x, y, z: np.cos(2*np.pi*y)
+        funY = lambda x, y, z: 1+x*0
+        funZ = lambda x, y, z: np.cos(2*np.pi*x)
+
+        solX = lambda x, y, z: 2*np.pi*np.sin(2*np.pi*z)
+        solY = lambda x, y, z: 2*np.pi*np.sin(2*np.pi*x)
+        solZ = lambda x, y, z: 2*np.pi*np.sin(2*np.pi*y)
+
+        Ec = cartE3(self.M, funX, funY, funZ)
+        print Ec.shape, self.M.nE
+        print self.M
+        E = self.M.projectEdgeVector(Ec)
+
+        Fc = cartF3(self.M, solX, solY, solZ)
+        curlE_anal = self.M.projectFaceVector(Fc)
+
+        curlE = self.M.edgeCurl.dot(E)
+        err = np.linalg.norm((curlE - curlE_anal), np.inf)
+        return err
+
+    # def test_order(self):
+    #     self.orderTest()
 
 class TestCyl3DMesh(unittest.TestCase):
 
