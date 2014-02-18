@@ -142,7 +142,14 @@ class InnerProducts(object):
             Note that this is completed for each cell in the mesh at the same time.
 
         """
-        if M.dim == 2:
+        if M.dim == 1:
+            v = np.sqrt(0.5*M.vol)
+            V1 = sdiag(v)  # We will multiply on each side to keep symmetry
+
+            Px = _getFacePx(M)
+            P000 = V1*Px('fXm')
+            P100 = V1*Px('fXp')
+        elif M.dim == 2:
             # Square root of cell volume multiplied by 1/4
             v = np.sqrt(0.25*M.vol)
             V2 = sdiag(np.r_[v, v])  # We will multiply on each side to keep symmetry
@@ -168,9 +175,13 @@ class InnerProducts(object):
             P111 = V3*Pxxx('fXp', 'fYp', 'fZp')
 
         Mu = _makeTensor(M, mu)
-        A = P000.T*Mu*P000 + P100.T*Mu*P100 + P010.T*Mu*P010 + P110.T*Mu*P110
-        P = [P000, P100, P010, P110]
-        if M.dim == 3:
+        A = P000.T*Mu*P000 + P100.T*Mu*P100
+        P = [P000, P100]
+
+        if M.dim > 1:
+            A = A + P010.T*Mu*P010 + P110.T*Mu*P110
+            P += [P010, P110]
+        if M.dim > 2:
             A = A + P001.T*Mu*P001 + P101.T*Mu*P101 + P011.T*Mu*P011 + P111.T*Mu*P111
             P += [P001, P101, P011,  P111]
         if returnP:
@@ -246,8 +257,10 @@ class InnerProducts(object):
             Note that this is completed for each cell in the mesh at the same time.
 
         """
+        if M.dim == 1:
+            raise NotImplementedError('getEdgeInnerProduct not implemented for 1D')
         # We will multiply by V on each side to keep symmetry
-        if M.dim == 2:
+        elif M.dim == 2:
             # Square root of cell volume multiplied by 1/4
             v = np.sqrt(0.25*M.vol)
             V = sdiag(np.r_[v, v])
@@ -306,7 +319,13 @@ def _makeTensor(M, sigma):
     elif type(sigma) is float:
        sigma = np.ones(self.nC)*sigma
 
-    if M.dim == 2:
+    if M.dim == 1:
+        if sigma.size == M.nC:  # Isotropic!
+            sigma = mkvc(sigma)  # ensure it is a vector.
+            Sigma = sdiag(sigma)
+        else:
+            raise Exception('Unexpected shape of sigma')
+    elif M.dim == 2:
         if sigma.size == M.nC:  # Isotropic!
             sigma = mkvc(sigma)  # ensure it is a vector.
             Sigma = sdiag(np.r_[sigma, sigma])
@@ -316,6 +335,8 @@ def _makeTensor(M, sigma):
             row1 = sp.hstack((sdiag(sigma[:, 0]), sdiag(sigma[:, 2])))
             row2 = sp.hstack((sdiag(sigma[:, 2]), sdiag(sigma[:, 1])))
             Sigma = sp.vstack((row1, row2))
+        else:
+            raise Exception('Unexpected shape of sigma')
     elif M.dim == 3:
         if sigma.size == M.nC:  # Isotropic!
             sigma = mkvc(sigma)  # ensure it is a vector.
@@ -327,7 +348,14 @@ def _makeTensor(M, sigma):
             row2 = sp.hstack((sdiag(sigma[:, 3]), sdiag(sigma[:, 1]), sdiag(sigma[:, 5])))
             row3 = sp.hstack((sdiag(sigma[:, 4]), sdiag(sigma[:, 5]), sdiag(sigma[:, 2])))
             Sigma = sp.vstack((row1, row2, row3))
+        else:
+            raise Exception('Unexpected shape of sigma')
     return Sigma
+
+
+def _getFacePx(M):
+    assert M._meshType == 'TENSOR', 'Only supported for a tensor mesh'
+    return _getFacePx_Rectangular(M)
 
 def _getFacePxx(M):
     if M._meshType == 'TREE':
@@ -352,6 +380,23 @@ def _getEdgePxxx(M):
         return M._getEdgePxxx
 
     return _getEdgePxxx_Rectangular(M)
+
+def _getFacePx_Rectangular(M):
+    """Returns a function for creating projection matrices
+
+    """
+    ii = np.int64(range(M.nCx))
+
+    def Px(xFace):
+        """
+            xFace is 'fXp' or 'fXm'
+        """
+        posFx = 0 if xFace == 'fXm' else 1
+        IND = ii + posFx
+        PX = sp.csr_matrix((np.ones(M.nC), (range(M.nC), IND)), shape=(M.nC, M.nF))
+        return PX
+
+    return Px
 
 def _getFacePxx_Rectangular(M):
     """returns a function for creating projection matrices
@@ -410,7 +455,7 @@ def _getFacePxx_Rectangular(M):
 
         IND = np.r_[ind1, ind2].flatten()
 
-        PXX = sp.csr_matrix((np.ones(2*M.nC), (range(2*M.nC), IND)), shape=(2*M.nC, np.sum(M.nF)))
+        PXX = sp.csr_matrix((np.ones(2*M.nC), (range(2*M.nC), IND)), shape=(2*M.nC, M.nF))
 
         if M._meshType == 'LOM':
             I2x2 = inv2X2BlockDiagonal(getSubArray(fN1[0], [i + posFx, j]), getSubArray(fN1[1], [i + posFx, j]),
@@ -467,7 +512,7 @@ def _getFacePxxx_Rectangular(M):
 
         IND = np.r_[ind1, ind2, ind3].flatten()
 
-        PXXX = sp.coo_matrix((np.ones(3*M.nC), (range(3*M.nC), IND)), shape=(3*M.nC, np.sum(M.nF))).tocsr()
+        PXXX = sp.coo_matrix((np.ones(3*M.nC), (range(3*M.nC), IND)), shape=(3*M.nC, M.nF)).tocsr()
 
         if M._meshType == 'LOM':
             I3x3 = inv3X3BlockDiagonal(getSubArray(fN1[0], [i + posX, j, k]), getSubArray(fN1[1], [i + posX, j, k]), getSubArray(fN1[2], [i + posX, j, k]),
@@ -502,7 +547,7 @@ def _getEdgePxx_Rectangular(M):
 
         IND = np.r_[ind1, ind2].flatten()
 
-        PXX = sp.coo_matrix((np.ones(2*M.nC), (range(2*M.nC), IND)), shape=(2*M.nC, np.sum(M.nE))).tocsr()
+        PXX = sp.coo_matrix((np.ones(2*M.nC), (range(2*M.nC), IND)), shape=(2*M.nC, M.nE)).tocsr()
 
         if M._meshType == 'LOM':
             I2x2 = inv2X2BlockDiagonal(getSubArray(eT1[0], [i, j + posX]), getSubArray(eT1[1], [i, j + posX]),
@@ -545,7 +590,7 @@ def _getEdgePxxx_Rectangular(M):
 
         IND = np.r_[ind1, ind2, ind3].flatten()
 
-        PXXX = sp.coo_matrix((np.ones(3*M.nC), (range(3*M.nC), IND)), shape=(3*M.nC, np.sum(M.nE))).tocsr()
+        PXXX = sp.coo_matrix((np.ones(3*M.nC), (range(3*M.nC), IND)), shape=(3*M.nC, M.nE)).tocsr()
 
         if M._meshType == 'LOM':
             I3x3 = inv3X3BlockDiagonal(getSubArray(eT1[0], [i, j + posX[0], k + posX[1]]), getSubArray(eT1[1], [i, j + posX[0], k + posX[1]]), getSubArray(eT1[2], [i, j + posX[0], k + posX[1]]),
