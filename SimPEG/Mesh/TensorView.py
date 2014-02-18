@@ -316,7 +316,7 @@ class TensorView(object):
             if normalizeVector:
                 length = np.sqrt(U**2+V**2)
                 U, V = U/length, V/length
-            out += (quiver( tM.gridCC[:,0], tM.gridCC[:,1], U, V),)
+            out += (plt.quiver( tM.gridCC[:,0], tM.gridCC[:,1], U, V),)
 
         if grid:
             xXGrid = np.c_[tM.vectorNx,tM.vectorNx,np.nan*np.ones(tM.nNx)].flatten()
