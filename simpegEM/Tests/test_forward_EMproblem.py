@@ -69,7 +69,6 @@ class TDEM_bDerivTests(unittest.TestCase):
        self.prb.pair(self.dat)
        self.mesh = mesh
 
-
     def test_AhVec(self):
         """
             Test that fields and AhVec produce consistent results
@@ -233,7 +232,6 @@ class TDEM_bDerivTests(unittest.TestCase):
         passed = Tests.checkDerivative(derChk, sigma, plotIt=False, dx=d_sig, num=2, eps=1e-20)
         self.assertTrue(passed)
 
-
     def test_projectAdjoint(self):
         prb = self.prb
         dat = self.dat
@@ -251,6 +249,25 @@ class TDEM_bDerivTests(unittest.TestCase):
         V2 = f.fieldVec().dot(dat.projectFieldsAdjoint(d).fieldVec())
 
         self.assertTrue((V1-V2)/V1<1e-12)
+
+    def test_adjointAhVsAht(self):
+        prb = self.prb
+        mesh = self.mesh
+        sigma = self.sigma
+
+        f1 = EM.TDEM.FieldsTDEM(prb.mesh, 1, prb.nTimes, 'b')
+        for i in range(f1.nTimes):
+            f1.set_b(np.random.rand(mesh.nF, 1), i)
+            f1.set_e(np.random.rand(mesh.nE, 1), i)
+
+        f2 = EM.TDEM.FieldsTDEM(prb.mesh, 1, prb.nTimes, 'b')
+        for i in range(f2.nTimes):
+            f2.set_b(np.random.rand(mesh.nF, 1), i)
+            f2.set_e(np.random.rand(mesh.nE, 1), i)
+
+        V1 = f2.fieldVec().dot(prb.AhVec(sigma, f1).fieldVec())
+        V2 = f1.fieldVec().dot(prb.AhtVec(sigma, f2).fieldVec())
+        self.assertLess(np.abs(V1-V2)/V1, 1e-12)
 
 
 if __name__ == '__main__':
