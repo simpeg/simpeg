@@ -240,6 +240,100 @@ class TensorView(object):
         if showIt: plt.show()
         return ph
 
+    def plotSlice(self, v, vType='CC',
+                  normal='Z', ind=None, grid=False, view='real',
+                  ax=None, clim=None, showIt=False,
+                  gridOpts={'color':'k'}
+                  ):
+        viewOpts = ['real','imag','abs','vec','|vec|']
+        normalOpts = ['X', 'Y', 'Z']
+        vTypeOpts = ['CC','F','E']
+
+        # Some user error checking
+        assert vType in vTypeOpts, "vType must be in ['%s']" % "','".join(vTypeOpts)
+        assert self.dim == 3, 'Must be a 3D mesh.'
+        assert view in viewOpts, "view must be in ['%s']" % "','".join(viewOpts)
+        assert normal in normalOpts, "normal must be in ['%s']" % "','".join(normalOpts)
+        assert type(grid) is bool, 'grid must be a boolean'
+
+        szSliceDim = getattr(self, 'nC'+normal.lower()) #: Size of the sliced dimension
+        if ind is None: ind = int(szSliceDim/2)
+        assert type(ind) in [int, long], 'ind must be an integer'
+
+        normalizeVector = False
+        if view == '|vec|':
+            view = 'vec'
+            normalizeVector = True
+
+        if ax is None:
+            fig = plt.figure(1)
+            fig.clf()
+            ax = plt.subplot(111)
+        else:
+            assert isinstance(ax, matplotlib.axes.Axes), "ax must be an matplotlib.axes.Axes"
+            fig = ax.figure
+
+        # The slicing and plotting code!!
+
+        def getIndSlice(v):
+            if   normal == 'X': v = v[ind,:,:]
+            elif normal == 'Y': v = v[:,ind,:]
+            elif normal == 'Z': v = v[:,:,ind]
+            return v
+
+        def doSlice(v):
+            if vType == 'CC':
+                return getIndSlice(self.r(v,'CC','CC','M'))
+            # Now just deal with 'F' and 'E'
+            aveOp = 'ave' + vType + ('2CCV' if view == 'vec' else '2CC')
+            v = getattr(self,aveOp)*v # average to cell centers (might be a vector)
+            if view == 'vec':
+                v = self.r(v.reshape((self.nC,3),order='F'),'CC','CC','M')
+                outSlice = []
+                if 'X' not in normal: outSlice.append(getIndSlice(v[0]))
+                if 'Y' not in normal: outSlice.append(getIndSlice(v[1]))
+                if 'Z' not in normal: outSlice.append(getIndSlice(v[2]))
+                return outSlice
+            else:
+                return getIndSlice(self.r(v,'CC','CC','M'))
+
+        h2d = []
+        if 'X' not in normal: h2d.append(self.hx)
+        if 'Y' not in normal: h2d.append(self.hy)
+        if 'Z' not in normal: h2d.append(self.hz)
+        tM = self.__class__(h2d) #: Temp Mesh
+
+        out = ()
+        if view in ['real','imag','abs']:
+            v = getattr(np,view)(v) # e.g. np.real(v)
+            v = doSlice(v)
+            if clim is None:
+                clim = [v.min(),v.max()]
+            out += (ax.pcolormesh(tM.vectorNx, tM.vectorNy, v.T, vmin=clim[0], vmax=clim[1]),)
+        elif view in ['vec']:
+            U, V = doSlice(v)
+            if clim is None:
+                clim = [v.min(),v.max()]
+            out += (ax.pcolormesh(tM.vectorNx, tM.vectorNy, 0.5*(U+V).T, vmin=clim[0], vmax=clim[1]),)
+            if normalizeVector:
+                length = np.sqrt(U**2+V**2)
+                U, V = U/length, V/length
+            out += (quiver( tM.gridCC[:,0], tM.gridCC[:,1], U, V),)
+
+        if grid:
+            xXGrid = np.c_[tM.vectorNx,tM.vectorNx,np.nan*np.ones(tM.nNx)].flatten()
+            xYGrid = np.c_[tM.vectorNy[0]*np.ones(tM.nNx),tM.vectorNy[-1]*np.ones(tM.nNx),np.nan*np.ones(tM.nNx)].flatten()
+            yXGrid = np.c_[tM.vectorNx[0]*np.ones(tM.nNy),tM.vectorNx[-1]*np.ones(tM.nNy),np.nan*np.ones(tM.nNy)].flatten()
+            yYGrid = np.c_[tM.vectorNy,tM.vectorNy,np.nan*np.ones(tM.nNy)].flatten()
+            out += (ax.plot(np.r_[xXGrid,yXGrid],np.r_[xYGrid,yYGrid],**gridOpts)[0],)
+
+        ax.set_xlabel('y' if normal == 'X' else 'x')
+        ax.set_ylabel('y' if normal == 'Z' else 'z')
+        ax.set_title('Slice %d' % ind)
+
+        if showIt: plt.show()
+        return out
+
     def plotGrid(self, nodes=False, faces=False, centers=False, edges=False, lines=True, showIt=False):
         """Plot the nodal, cell-centered and staggered grids for 1,2 and 3 dimensions.
 
