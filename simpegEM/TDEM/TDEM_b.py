@@ -64,7 +64,7 @@ class ProblemTDEM_b(ProblemBaseTDEM):
 
     def solveAh(self, m, p):
         def AhRHS(tInd, u):
-            rhs = self.MfMui*self.mesh.edgeCurl*self.MeSigmaI*p.get_e(tInd) + self.MfMui*p.get_b(tInd)
+            rhs = self.MfMui*self.mesh.edgeCurl*self.MeSigmaI*p.get_e(tInd) + p.get_b(tInd)
             if tInd == 0:
                 return rhs
             dt = self.getDt(tInd)
@@ -75,8 +75,25 @@ class ProblemTDEM_b(ProblemBaseTDEM):
             e = self.MeSigmaI*self.mesh.edgeCurl.T*self.MfMui*b - self.MeSigmaI*p.get_e(tInd)
             return {'b':b, 'e':e}
 
-        Y = self.fields(m, useThisRhs=AhRHS, useThisCalcFields=AhCalcFields)
-        return Y
+        self.makeMassMatrices(m)
+        return self.forward(m, AhRHS, AhCalcFields)
+
+    def solveAht(self, m, p):
+        
+        def AhtRHS(tInd, u):
+            rhs = self.MfMui*self.mesh.edgeCurl*self.MeSigmaI*p.get_e(tInd) + p.get_b(tInd)
+            if tInd == self.nTimes-1:
+                return rhs
+            dt = self.getDt(tInd+1)
+            return rhs + 1./dt*self.MfMui*u.get_b(tInd+1)
+        
+        def AhtCalcFields(sol, solType, tInd):
+            b = sol
+            e = self.MeSigmaI*self.mesh.edgeCurl.T*self.MfMui*b - self.MeSigmaI*p.get_e(tInd)
+            return {'b':b, 'e':e}
+
+        self.makeMassMatrices(m)
+        return self.adjoint(m, AhtRHS, AhtCalcFields)
 
     ####################################################
     # Functions for tests
@@ -87,18 +104,37 @@ class ProblemTDEM_b(ProblemBaseTDEM):
             u = self.fields(m)
         self.makeMassMatrices(m)
         dt = self.getDt(0)
-        b = 1/dt*u.get_b(0) + self.mesh.edgeCurl*u.get_e(0)
+        b = 1/dt*self.MfMui*u.get_b(0) + self.MfMui*self.mesh.edgeCurl*u.get_e(0)
         e = self.mesh.edgeCurl.T*self.MfMui*u.get_b(0) - self.MeSigma*u.get_e(0)
         f = FieldsTDEM(self.mesh, 1, self.times.size, 'b')
         f.set_b(b, 0)
         f.set_e(e, 0)
-        for i in range(1,self.times.size):
+        for i in range(1,self.nTimes):
             dt = self.getDt(i)
-            b = 1/dt*u.get_b(i) + self.mesh.edgeCurl*u.get_e(i) - 1/dt*u.get_b(i-1)
+            b = 1/dt*self.MfMui*u.get_b(i) + self.MfMui*self.mesh.edgeCurl*u.get_e(i) - 1/dt*self.MfMui*u.get_b(i-1)
             e = self.mesh.edgeCurl.T*self.MfMui*u.get_b(i) - self.MeSigma*u.get_e(i)
             f.set_b(b, i)
             f.set_e(e, i)
         return f
+
+    def AhtVec(self, m, u=None):
+        if u is None:
+            u = self.fields(m)
+        self.makeMassMatrices(m)
+        f = FieldsTDEM(self.mesh, 1, self.times.size, 'b')
+        for i in range(self.nTimes-1):
+            b = 1/self.getDt(i)*self.MfMui*u.get_b(i) + self.MfMui*self.mesh.edgeCurl*u.get_e(i) - 1/self.getDt(i+1)*self.MfMui*u.get_b(i+1)
+            e = self.mesh.edgeCurl.T*self.MfMui*u.get_b(i) - self.MeSigma*u.get_e(i)
+            f.set_b(b, i)
+            f.set_e(e, i)
+        N = self.nTimes - 1
+        b = 1/self.getDt(N)*self.MfMui*u.get_b(N) + self.MfMui*self.mesh.edgeCurl*u.get_e(N)
+        e = self.mesh.edgeCurl.T*self.MfMui*u.get_b(N) - self.MeSigma*u.get_e(N)
+        f.set_b(b, N)
+        f.set_e(e, N)
+        return f
+
+
 
 if __name__ == '__main__':
     from SimPEG import *

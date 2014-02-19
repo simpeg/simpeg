@@ -135,15 +135,10 @@ class ProblemBaseTDEM(MixinTimeStuff, MixinInitialFieldCalc, BaseProblem):
 
     solveOpts = {'factorize':True,'backend':'scipy'}
 
-    def fields(self, m, useThisRhs=None, useThisCalcFields=None):
-        RHS = useThisRhs or self.getRHS
-        CalcFields = useThisCalcFields or self.calcFields
-
+    def fields(self, m):
         self.makeMassMatrices(m)
-
         F = self.getInitialFields()
-
-        return self.forward(m, RHS, CalcFields, F=F)
+        return self.forward(m, self.getRHS, self.calcFields, F=F)
 
 
     def forward(self, m, RHS, CalcFields, F=None):
