@@ -180,7 +180,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         h = 1.
 
         a = np.linalg.norm(self.prb.AhVec(sigma+h*dm, f).fieldVec() - self.prb.AhVec(sigma, f).fieldVec())
-        b = np.linalg.norm(self.prb.AhVec(sigma+h*dm, f).fieldVec() - self.prb.AhVec(sigma, f).fieldVec() - h*self.prb.G(sigma, dm, u=f).fieldVec())
+        b = np.linalg.norm(self.prb.AhVec(sigma+h*dm, f).fieldVec() - self.prb.AhVec(sigma, f).fieldVec() - h*self.prb.Gvec(sigma, dm, u=f).fieldVec())
         # Assuming that the gradient is exact to machine precision
         self.assertTrue(b<1e-16)
 
@@ -202,7 +202,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         for i, h in enumerate(hv):
             f = prb.fields(sigma)
             fstep = prb.fields(sigma + h*d_sig)
-            dcdm = prb.G(sigma, h*d_sig, u=f) # TODO: make negative!?!?
+            dcdm = prb.Gvec(sigma, h*d_sig, u=f) # TODO: make negative!?!?
             dudm = prb.solveAh(sigma, dcdm)
 
             linear = np.linalg.norm(f.fieldVec() - fstep.fieldVec())
@@ -305,7 +305,26 @@ class TDEM_bDerivTests(unittest.TestCase):
         V2 = f1.fieldVec().dot(prb.solveAht(sigma, f2).fieldVec())
         self.assertLess(np.abs(V1-V2)/np.abs(V1), 1e-8)
 
-        
+    def test_adjointGvecVsGtvec(self):
+        mesh = self.mesh
+        prb = self.prb
+
+        m = np.random.rand(mesh.nCz)
+        sigma = np.random.rand(mesh.nCz)
+
+        u = EM.TDEM.FieldsTDEM(prb.mesh, 1, prb.nTimes, 'b')
+        for i in range(u.nTimes):
+            u.set_b(np.random.rand(mesh.nF, 1), i)
+            u.set_e(np.random.rand(mesh.nE, 1), i)
+
+        v = EM.TDEM.FieldsTDEM(prb.mesh, 1, prb.nTimes, 'b')
+        for i in range(v.nTimes):
+            v.set_b(np.random.rand(mesh.nF, 1), i)
+            v.set_e(np.random.rand(mesh.nE, 1), i)
+
+        V1 = m.dot(prb.Gtvec(sigma, v, u))
+        V2 = v.fieldVec().dot(prb.Gvec(sigma, m, u).fieldVec())
+        self.assertLess(np.abs(V1-V2)/np.abs(V1), 1e-8)
 
 
 if __name__ == '__main__':

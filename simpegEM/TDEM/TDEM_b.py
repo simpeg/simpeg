@@ -1,5 +1,6 @@
 from BaseTDEM import ProblemBaseTDEM
 from FieldsTDEM import FieldsTDEM
+from SimPEG.Utils import mkvc
 import numpy as np
 
 class ProblemTDEM_b(ProblemBaseTDEM):
@@ -43,15 +44,15 @@ class ProblemTDEM_b(ProblemBaseTDEM):
     def Jvec(self, m, v, u=None):
         if u is None:
             u = self.fields(m)
-        p = self.G(m, v, u)
+        p = self.Gvec(m, v, u)
         y = self.solveAh(m, p)
         return self.data.dpred(m, u=y)
 
-    def G(self, m, v, u=None):
+    def Gvec(self, m, v, u=None):
         if u is None:
             u = self.fields(m)
         p = FieldsTDEM(self.mesh, 1, self.times.size, 'b')
-        c = self.mesh.getEdgeMassDeriv()*self.model.transformDeriv(m)*v
+        c = self.mesh.getEdgeMassDeriv()*self.model.transformDeriv(None)*v
         for i in range(self.times.size):
             ei = u.get_e(i)
             pVal = np.empty_like(ei)
@@ -61,6 +62,16 @@ class ProblemTDEM_b(ProblemBaseTDEM):
             p.set_e(pVal,i)
             p.set_b(np.zeros((self.mesh.nF,1)), i)
         return p
+
+    def Gtvec(self, m, v, u=None):
+        if u is None:
+            u = self.fields(m)
+        tmp = np.zeros((self.mesh.nE,self.data.nTx))
+        for i in range(self.nTimes):
+            tmp += v.get_e(i)*u.get_e(i)
+        p = -mkvc(self.model.transformDeriv(None).T*self.mesh.getEdgeMassDeriv().T*tmp)
+        return p
+
 
     def solveAh(self, m, p):
         def AhRHS(tInd, u):
