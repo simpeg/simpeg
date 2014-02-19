@@ -4,7 +4,7 @@ from scipy.constants import mu_0
 from SimPEG.Utils import sdiag, mkvc
 
 
-class ProblemFDEM_e(Problem):
+class ProblemFDEM_e(Problem.BaseProblem):
     """
         Frequency-Domain EM problem - E-formulation
 
@@ -15,7 +15,7 @@ class ProblemFDEM_e(Problem):
             \dcurl^\\top \MfMui B - \MeSig E = \Me \j_s
     """
     def __init__(self, mesh, model, **kwargs):
-        Problem.__init__(self, mesh, model, **kwargs)
+        Problem.BaseProblem.__init__(self, mesh, model, **kwargs)
 
     solType = 'b'
 
