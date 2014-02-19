@@ -48,6 +48,14 @@ class ProblemTDEM_b(ProblemBaseTDEM):
         y = self.solveAh(m, p)
         return self.data.dpred(m, u=y)
 
+    def Jtvec(self, m, v, u=None):
+        if u is None:
+            u = self.fields(m)
+        p = self.data.projectFieldsAdjoint(v)
+        y = self.solveAht(m, p)
+        w = self.Gtvec(m, y, u)
+        return w
+
     def Gvec(self, m, v, u=None):
         if u is None:
             u = self.fields(m)

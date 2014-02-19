@@ -248,7 +248,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         V1 = d.T.dot(dat.projectFields(f))
         V2 = f.fieldVec().dot(dat.projectFieldsAdjoint(d).fieldVec())
 
-        self.assertLess((V1-V2)/np.abs(V1), 1e-8)
+        self.assertLess((V1-V2)/np.abs(V1), 1e-6)
 
     def test_adjointAhVsAht(self):
         prb = self.prb
@@ -267,7 +267,7 @@ class TDEM_bDerivTests(unittest.TestCase):
 
         V1 = f2.fieldVec().dot(prb.AhVec(sigma, f1).fieldVec())
         V2 = f1.fieldVec().dot(prb.AhtVec(sigma, f2).fieldVec())
-        self.assertLess(np.abs(V1-V2)/np.abs(V1), 1e-8)
+        self.assertLess(np.abs(V1-V2)/np.abs(V1), 1e-6)
 
     def test_solveAhtVsAhtVec(self):
         prb = self.prb
@@ -284,7 +284,7 @@ class TDEM_bDerivTests(unittest.TestCase):
 
         V1 = np.linalg.norm(f3.fieldVec()-f1.fieldVec())
         V2 = np.linalg.norm(f1.fieldVec())
-        self.assertLess(V1/V2, 1e-8)
+        self.assertLess(V1/V2, 1e-6)
 
     def test_adjointsolveAhVssolveAht(self):
         prb = self.prb
@@ -303,7 +303,7 @@ class TDEM_bDerivTests(unittest.TestCase):
 
         V1 = f2.fieldVec().dot(prb.solveAh(sigma, f1).fieldVec())
         V2 = f1.fieldVec().dot(prb.solveAht(sigma, f2).fieldVec())
-        self.assertLess(np.abs(V1-V2)/np.abs(V1), 1e-8)
+        self.assertLess(np.abs(V1-V2)/np.abs(V1), 1e-6)
 
     def test_adjointGvecVsGtvec(self):
         mesh = self.mesh
@@ -324,7 +324,20 @@ class TDEM_bDerivTests(unittest.TestCase):
 
         V1 = m.dot(prb.Gtvec(sigma, v, u))
         V2 = v.fieldVec().dot(prb.Gvec(sigma, m, u).fieldVec())
-        self.assertLess(np.abs(V1-V2)/np.abs(V1), 1e-8)
+        self.assertLess(np.abs(V1-V2)/np.abs(V1), 1e-6)
+
+    def test_adjointJvecVsJtvec(self):
+        mesh = self.mesh
+        prb = self.prb
+        sigma = self.sigma
+
+        m = np.random.rand(mesh.nCz)
+        d = np.random.rand(prb.nTimes)
+
+        V1 = d.dot(prb.Jvec(sigma, m))
+        V2 = m.dot(prb.Jtvec(sigma, d))
+        self.assertLess(np.abs(V1-V2)/np.abs(V1), 1e-6)
+
 
 
 if __name__ == '__main__':
