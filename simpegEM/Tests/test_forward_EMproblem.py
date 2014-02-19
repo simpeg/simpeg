@@ -248,7 +248,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         V1 = d.T.dot(dat.projectFields(f))
         V2 = f.fieldVec().dot(dat.projectFieldsAdjoint(d).fieldVec())
 
-        self.assertTrue((V1-V2)/V1<1e-12)
+        self.assertLess((V1-V2)/np.abs(V1), 1e-8)
 
     def test_adjointAhVsAht(self):
         prb = self.prb
@@ -267,7 +267,45 @@ class TDEM_bDerivTests(unittest.TestCase):
 
         V1 = f2.fieldVec().dot(prb.AhVec(sigma, f1).fieldVec())
         V2 = f1.fieldVec().dot(prb.AhtVec(sigma, f2).fieldVec())
-        self.assertLess(np.abs(V1-V2)/V1, 1e-12)
+        self.assertLess(np.abs(V1-V2)/np.abs(V1), 1e-8)
+
+    def test_solveAhtVsAhtVec(self):
+        prb = self.prb
+        mesh = self.mesh
+        sigma = np.random.rand(mesh.nCz)
+
+        f1 = EM.TDEM.FieldsTDEM(mesh, 1, prb.nTimes, 'b')
+        for i in range(f1.nTimes):
+            f1.set_b(np.random.rand(mesh.nF, 1), i)
+            f1.set_e(np.random.rand(mesh.nE, 1), i)
+
+        f2 = prb.solveAht(sigma, f1)
+        f3 = prb.AhtVec(sigma, f2)
+
+        V1 = np.linalg.norm(f3.fieldVec()-f1.fieldVec())
+        V2 = np.linalg.norm(f1.fieldVec())
+        self.assertLess(V1/V2, 1e-8)
+
+    def test_adjointsolveAhVssolveAht(self):
+        prb = self.prb
+        mesh = self.mesh
+        sigma = self.sigma
+
+        f1 = EM.TDEM.FieldsTDEM(prb.mesh, 1, prb.nTimes, 'b')
+        for i in range(f1.nTimes):
+            f1.set_b(np.random.rand(mesh.nF, 1), i)
+            f1.set_e(np.random.rand(mesh.nE, 1), i)
+
+        f2 = EM.TDEM.FieldsTDEM(prb.mesh, 1, prb.nTimes, 'b')
+        for i in range(f2.nTimes):
+            f2.set_b(np.random.rand(mesh.nF, 1), i)
+            f2.set_e(np.random.rand(mesh.nE, 1), i)
+
+        V1 = f2.fieldVec().dot(prb.solveAh(sigma, f1).fieldVec())
+        V2 = f1.fieldVec().dot(prb.solveAht(sigma, f2).fieldVec())
+        self.assertLess(np.abs(V1-V2)/np.abs(V1), 1e-8)
+
+        
 
 
 if __name__ == '__main__':

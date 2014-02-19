@@ -76,8 +76,24 @@ class ProblemTDEM_b(ProblemBaseTDEM):
             return {'b':b, 'e':e}
 
         self.makeMassMatrices(m)
-        Y = self.forward(m, AhRHS, AhCalcFields)
-        return Y
+        return self.forward(m, AhRHS, AhCalcFields)
+
+    def solveAht(self, m, p):
+        
+        def AhtRHS(tInd, u):
+            rhs = self.MfMui*self.mesh.edgeCurl*self.MeSigmaI*p.get_e(tInd) + p.get_b(tInd)
+            if tInd == self.nTimes-1:
+                return rhs
+            dt = self.getDt(tInd+1)
+            return rhs + 1./dt*self.MfMui*u.get_b(tInd+1)
+        
+        def AhtCalcFields(sol, solType, tInd):
+            b = sol
+            e = self.MeSigmaI*self.mesh.edgeCurl.T*self.MfMui*b - self.MeSigmaI*p.get_e(tInd)
+            return {'b':b, 'e':e}
+
+        self.makeMassMatrices(m)
+        return self.adjoint(m, AhtRHS, AhtCalcFields)
 
     ####################################################
     # Functions for tests
