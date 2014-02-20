@@ -499,7 +499,7 @@ class DiffOperators(object):
             P = sp.identity(n+1).tocsr()
             if(bc[0] == 'neumann'):
                 P = P[1:,:]
-            if(bc[0] == 'neumann'):
+            if(bc[1] == 'neumann'):
                 P = P[:-1,:]
             return P
 
