@@ -20,6 +20,8 @@ def _interp_point_1D(x, xr_i):
     elif xr_i - x[im] < 0:  # Point on the right
         ind_x1 = im-1
         ind_x2 = im
+    ind_x1 = max(min(ind_x1, x.size-1), 0)
+    ind_x2 = max(min(ind_x2, x.size-1), 0)
     dx1 = xr_i - x[ind_x1]
     dx2 = x[ind_x2] - xr_i
     return ind_x1, ind_x2, dx1, dx2
@@ -77,7 +79,7 @@ def _interpmat1D(locs, x):
         inds = [ind_x1, ind_x2]
         vals = [(1-dx1/Dx),(1-dx2/Dx)]
         Q[i, inds] = vals
-    return Q.tocsr()
+    return Q
 
 
 
@@ -114,7 +116,7 @@ def _interpmat2D(locs, x, y):
 
         Q[i, mkvc(inds)] = vals
 
-    return Q.tocsr()
+    return Q
 
 
 
@@ -162,7 +164,7 @@ def _interpmat3D(locs, x, y, z):
 
         Q[i, mkvc(inds)] = vals
 
-    return Q.tocsr()
+    return Q
 
 
 if __name__ == '__main__':
