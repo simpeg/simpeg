@@ -24,7 +24,13 @@ def _interp_point_1D(x, xr_i):
     ind_x2 = max(min(ind_x2, x.size-1), 0)
     dx1 = xr_i - x[ind_x1]
     dx2 = x[ind_x2] - xr_i
-    return ind_x1, ind_x2, dx1, dx2
+
+    Dx =  x[ind_x2] - x[ind_x1]
+    if ind_x1 == ind_x2:
+        dx1 = 0.5
+        dx2 = 0.5
+        Dx = 1
+    return ind_x1, ind_x2, dx1, dx2, Dx
 
 
 def interpmat(locs, x, y=None, z=None):
@@ -72,13 +78,16 @@ def _interpmat1D(locs, x):
     Q = sp.lil_matrix((npts, nx))
 
     for i in range(npts):
-        ind_x1, ind_x2, dx1, dx2 = _interp_point_1D(x, locs[i])
-        dv = (x[ind_x2] - x[ind_x1])
-        Dx =  x[ind_x2] - x[ind_x1]
+        ind_x1, ind_x2, dx1, dx2, Dx = _interp_point_1D(x, locs[i])
+        # dv = (x[ind_x2] - x[ind_x1])
         # Get the row in the matrix
         inds = [ind_x1, ind_x2]
         vals = [(1-dx1/Dx),(1-dx2/Dx)]
-        Q[i, inds] = vals
+
+        for I, V in zip(inds, vals):
+            Q[i, I] += V
+        # Q[i, mkvc(inds)] = vals
+
     return Q
 
 
@@ -93,13 +102,10 @@ def _interpmat2D(locs, x, y):
 
 
     for i in range(npts):
-        ind_x1, ind_x2, dx1, dx2 = _interp_point_1D(x, locs[i, 0])
-        ind_y1, ind_y2, dy1, dy2 = _interp_point_1D(y, locs[i, 1])
+        ind_x1, ind_x2, dx1, dx2, Dx = _interp_point_1D(x, locs[i, 0])
+        ind_y1, ind_y2, dy1, dy2, Dy = _interp_point_1D(y, locs[i, 1])
 
-        dv = (x[ind_x2] - x[ind_x1]) * (y[ind_y2] - y[ind_y1])
-
-        Dx =  x[ind_x2] - x[ind_x1]
-        Dy =  y[ind_y2] - y[ind_y1]
+        # dv = (x[ind_x2] - x[ind_x1]) * (y[ind_y2] - y[ind_y1])
 
         # Get the row in the matrix
 
@@ -114,7 +120,11 @@ def _interpmat2D(locs, x, y):
                 (1-dx2/Dx)*(1-dy1/Dy),
                 (1-dx2/Dx)*(1-dy2/Dy)]
 
-        Q[i, mkvc(inds)] = vals
+
+        for I, V in zip(mkvc(inds), vals):
+            Q[i, I] += V
+        # Q[i, mkvc(inds)] = vals
+
 
     return Q
 
@@ -131,15 +141,11 @@ def _interpmat3D(locs, x, y, z):
 
 
     for i in range(npts):
-        ind_x1, ind_x2, dx1, dx2 = _interp_point_1D(x, locs[i, 0])
-        ind_y1, ind_y2, dy1, dy2 = _interp_point_1D(y, locs[i, 1])
-        ind_z1, ind_z2, dz1, dz2 = _interp_point_1D(z, locs[i, 2])
+        ind_x1, ind_x2, dx1, dx2, Dx = _interp_point_1D(x, locs[i, 0])
+        ind_y1, ind_y2, dy1, dy2, Dy = _interp_point_1D(y, locs[i, 1])
+        ind_z1, ind_z2, dz1, dz2, Dz = _interp_point_1D(z, locs[i, 2])
 
-        dv = (x[ind_x2] - x[ind_x1]) * (y[ind_y2] - y[ind_y1]) *(z[ind_z2] - z[ind_z1])
-
-        Dx =  x[ind_x2] - x[ind_x1]
-        Dy =  y[ind_y2] - y[ind_y1]
-        Dz =  z[ind_z2] - z[ind_z1]
+        # dv = (x[ind_x2] - x[ind_x1]) * (y[ind_y2] - y[ind_y1]) *(z[ind_z2] - z[ind_z1])
 
         # Get the row in the matrix
 
@@ -162,22 +168,29 @@ def _interpmat3D(locs, x, y, z):
                 (1-dx2/Dx)*(1-dy1/Dy)*(1-dz2/Dz),
                 (1-dx2/Dx)*(1-dy2/Dy)*(1-dz2/Dz)]
 
-        Q[i, mkvc(inds)] = vals
+        for I, V in zip(mkvc(inds), vals):
+            Q[i, I] += V
+        # Q[i, mkvc(inds)] = vals
 
     return Q
 
 
 if __name__ == '__main__':
-    import SimPEG
-    import numpy as np
+    from SimPEG import *
     import matplotlib.pyplot as plt
-    locs = np.random.rand(50)*0.8+0.1
-    x = np.linspace(0,1,7)
-    dense = np.linspace(0,1,200)
-    fun = lambda x: np.cos(2*np.pi*x)
-    Q = SimPEG.Utils.interpmat(locs, x)
-    plt.plot(x, fun(x), 'bs-')
-    plt.plot(dense, fun(dense), 'y:')
-    plt.plot(locs, Q*fun(x), 'mo')
-    plt.plot(locs, fun(locs), 'rx')
-    plt.show()
+
+    M = Mesh.TensorMesh([4])
+    M.vectorCCx
+    Q = M.getInterpolationMat(np.array([[0],[0.126],[0.127]]),'CC',zerosOutside=True)
+    print Q.todense()
+
+    # locs = np.random.rand(50)*0.8+0.1
+    # x = np.linspace(0,1,7)
+    # dense = np.linspace(0,1,200)
+    # fun = lambda x: np.cos(2*np.pi*x)
+    # Q = Utils.interpmat(locs, x)
+    # plt.plot(x, fun(x), 'bs-')
+    # plt.plot(dense, fun(dense), 'y:')
+    # plt.plot(locs, Q*fun(x), 'mo')
+    # plt.plot(locs, fun(locs), 'rx')
+    # plt.show()
