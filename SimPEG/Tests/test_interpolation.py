@@ -2,6 +2,9 @@ import numpy as np
 import unittest
 from TestUtils import OrderTest
 from SimPEG.Utils import mkvc
+from SimPEG import Mesh
+import unittest
+
 
 MESHTYPES = ['uniformTensorMesh', 'randomTensorMesh']
 TOLERANCES = [0.9, 0.5]
@@ -49,6 +52,19 @@ class TestInterpolation1D(OrderTest):
         self.type = 'N'
         self.name = 'Interpolation 1D: N'
         self.orderTest()
+
+class TestOutliersInterp1D(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+    def test_outliers(self):
+        M = Mesh.TensorMesh([4])
+        Q = M.getInterpolationMat(np.array([[0],[0.126],[0.127]]),'CC',zerosOutside=True)
+        x = np.arange(4)+1
+        self.assertTrue(np.all(Q*x == [1,1.004,1.008]))
+        Q = M.getInterpolationMat(np.array([[-1],[0.126],[0.127]]),'CC',zerosOutside=True)
+        self.assertTrue(np.all(Q*x == [0,1.004,1.008]))
 
 class TestInterpolation2d(OrderTest):
     name = "Interpolation 2D"
