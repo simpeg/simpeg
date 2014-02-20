@@ -7,11 +7,13 @@ class ProblemTDEM_b(ProblemBaseTDEM):
     """
         Time-Domain EM problem - B-formulation
 
-
+        TDEM_b treats the following discretization of Maxwell's equations
+        
         .. math::
-
             \dcurl \e^{(t+1)} + \\frac{\\b^{(t+1)} - \\b^{(t)}}{\delta t} = 0 \\\\
             \dcurl^\\top \MfMui \\b^{(t+1)} - \MeSig \e^{(t+1)} = \Me \j_s^{(t+1)}
+
+        with \\\(\\b\\\) defined on cell faces and \\\(\e\\\) defined on edges.
     """
     def __init__(self, mesh, model, **kwargs):
         ProblemBaseTDEM.__init__(self, mesh, model, **kwargs)
@@ -56,11 +58,20 @@ class ProblemTDEM_b(ProblemBaseTDEM):
         w = self.Gtvec(m, y, u)
         return w
 
-    def Gvec(self, m, v, u=None):
+    def Gvec(self, sigma, vec, u=None):
+        """
+            :param numpy.array sigma: Conductivity model
+            :param numpy.array vec: vector (like a model)
+            :param simpegEM.TDEM.FieldsTDEM u: Fields resulting from sigma
+            :rtype: simpegEM.TDEM.FieldsTDEM
+            :return: f
+
+            Multiply G by a vector where 
+        """
         if u is None:
-            u = self.fields(m)
+            u = self.fields(sigma)
         p = FieldsTDEM(self.mesh, 1, self.times.size, 'b')
-        c = self.mesh.getEdgeMassDeriv()*self.model.transformDeriv(None)*v
+        c = self.mesh.getEdgeMassDeriv()*self.model.transformDeriv(None)*vec
         for i in range(self.times.size):
             ei = u.get_e(i)
             pVal = np.empty_like(ei)
@@ -79,7 +90,6 @@ class ProblemTDEM_b(ProblemBaseTDEM):
             tmp += v.get_e(i)*u.get_e(i)
         p = -mkvc(self.model.transformDeriv(None).T*self.mesh.getEdgeMassDeriv().T*tmp)
         return p
-
 
     def solveAh(self, m, p):
         def AhRHS(tInd, u):
@@ -118,37 +128,98 @@ class ProblemTDEM_b(ProblemBaseTDEM):
     # Functions for tests
     ####################################################
 
-    def AhVec(self, m, u=None):
-        if u is None:
-            u = self.fields(m)
-        self.makeMassMatrices(m)
+    def AhVec(self, sigma, vec):
+        """
+            :param numpy.array sigma: Conductivity model
+            :param simpegEM.TDEM.FieldsTDEM vec: Fields object
+            :rtype: simpegEM.TDEM.FieldsTDEM
+            :return: f
+
+            Multiply the matrix \\\(\\\hat{A}\\\) by a fields vector where
+
+            .. math::
+                \mathbf{\hat{A}} = \left[
+                    \\begin{array}{cccc}
+                        A & 0 & & \\\\
+                        B & A & & \\\\
+                        & \ddots & \ddots & \\\\
+                        & & B & A
+                    \end{array}
+                \\right] \\\\
+                \mathbf{A} =
+                \left[
+                    \\begin{array}{cc}
+                        \\frac{1}{\delta t} \MfMui & \MfMui\dcurl \\\\
+                        \dcurl^\\top \MfMui & -\MeSig
+                    \end{array}
+                \\right] \\\\
+                \mathbf{B} =
+                \left[
+                    \\begin{array}{cc}
+                        -\\frac{1}{\delta t} \MfMui & 0 \\\\
+                        0 & 0
+                    \end{array}
+                \\right] \\\\            
+        """
+
+        self.makeMassMatrices(sigma)
         dt = self.getDt(0)
-        b = 1/dt*self.MfMui*u.get_b(0) + self.MfMui*self.mesh.edgeCurl*u.get_e(0)
-        e = self.mesh.edgeCurl.T*self.MfMui*u.get_b(0) - self.MeSigma*u.get_e(0)
+        b = 1/dt*self.MfMui*vec.get_b(0) + self.MfMui*self.mesh.edgeCurl*vec.get_e(0)
+        e = self.mesh.edgeCurl.T*self.MfMui*vec.get_b(0) - self.MeSigma*vec.get_e(0)
         f = FieldsTDEM(self.mesh, 1, self.times.size, 'b')
         f.set_b(b, 0)
         f.set_e(e, 0)
         for i in range(1,self.nTimes):
             dt = self.getDt(i)
-            b = 1/dt*self.MfMui*u.get_b(i) + self.MfMui*self.mesh.edgeCurl*u.get_e(i) - 1/dt*self.MfMui*u.get_b(i-1)
-            e = self.mesh.edgeCurl.T*self.MfMui*u.get_b(i) - self.MeSigma*u.get_e(i)
+            b = 1/dt*self.MfMui*vec.get_b(i) + self.MfMui*self.mesh.edgeCurl*vec.get_e(i) - 1/dt*self.MfMui*vec.get_b(i-1)
+            e = self.mesh.edgeCurl.T*self.MfMui*vec.get_b(i) - self.MeSigma*vec.get_e(i)
             f.set_b(b, i)
             f.set_e(e, i)
         return f
 
-    def AhtVec(self, m, u=None):
-        if u is None:
-            u = self.fields(m)
-        self.makeMassMatrices(m)
+    def AhtVec(self, sigma, vec):
+        """
+            :param numpy.array sigma: Conductivity model
+            :param simpegEM.TDEM.FieldsTDEM vec: Fields object
+            :rtype: simpegEM.TDEM.FieldsTDEM
+            :return: f
+
+            Multiply the matrix \\\(\\\hat{A}\\\) by a fields vector where
+
+            .. math::
+                \mathbf{\hat{A}}^\\top = \left[
+                    \\begin{array}{cccc}
+                        A & B & & \\\\
+                          & \ddots & \ddots & \\\\
+                          & & A & B \\\\
+                          & & 0 & A
+                    \end{array}
+                \\right] \\\\
+                \mathbf{A} =
+                \left[
+                    \\begin{array}{cc}
+                        \\frac{1}{\delta t} \MfMui & \MfMui\dcurl \\\\
+                        \dcurl^\\top \MfMui & -\MeSig
+                    \end{array}
+                \\right] \\\\
+                \mathbf{B} =
+                \left[
+                    \\begin{array}{cc}
+                        -\\frac{1}{\delta t} \MfMui & 0 \\\\
+                        0 & 0
+                    \end{array}
+                \\right] \\\\            
+        """
+        self.makeMassMatrices(sigma)
         f = FieldsTDEM(self.mesh, 1, self.times.size, 'b')
         for i in range(self.nTimes-1):
-            b = 1/self.getDt(i)*self.MfMui*u.get_b(i) + self.MfMui*self.mesh.edgeCurl*u.get_e(i) - 1/self.getDt(i+1)*self.MfMui*u.get_b(i+1)
-            e = self.mesh.edgeCurl.T*self.MfMui*u.get_b(i) - self.MeSigma*u.get_e(i)
+            b = 1/self.getDt(i)*self.MfMui*vec.get_b(i) + self.MfMui*self.mesh.edgeCurl*vec.get_e(i) - 1/self.getDt(i+1)*self.MfMui*vec.get_b(i+1)
+            e = self.mesh.edgeCurl.T*self.MfMui*vec.get_b(i) - self.MeSigma*vec.get_e(i)
             f.set_b(b, i)
             f.set_e(e, i)
         N = self.nTimes - 1
-        b = 1/self.getDt(N)*self.MfMui*u.get_b(N) + self.MfMui*self.mesh.edgeCurl*u.get_e(N)
-        e = self.mesh.edgeCurl.T*self.MfMui*u.get_b(N) - self.MeSigma*u.get_e(N)
+        b = 1/self.getDt(N)*self.MfMui*vec.get_b(N) + self.MfMui*self.mesh.edgeCurl*vec.get_e(N)
+        e = self.mesh.edgeCurl.T*self.MfMui*vec.get_b(N) - self.MeSigma*vec.get_e(N)
         f.set_b(b, N)
         f.set_e(e, N)
         return f
