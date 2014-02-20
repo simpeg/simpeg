@@ -1,6 +1,6 @@
 import numpy as np
 import unittest
-from SimPEG.Utils import mkvc, ndgrid, indexCube, sdiag, inv3X3BlockDiagonal, inv2X2BlockDiagonal
+from SimPEG.Utils import mkvc, ndgrid, indexCube, sdiag, inv3X3BlockDiagonal, inv2X2BlockDiagonal,sub2ind,ind2sub
 from SimPEG.Tests import checkDerivative
 
 
@@ -63,6 +63,19 @@ class TestSequenceFunctions(unittest.TestCase):
         self.assertTrue(np.all(XYZ[:, 0] == X1_test))
         self.assertTrue(np.all(XYZ[:, 1] == X2_test))
         self.assertTrue(np.all(XYZ[:, 2] == X3_test))
+
+    def test_sub2ind(self):
+        x = np.ones((5,2))
+        self.assertTrue(np.all(sub2ind(x.shape, [0,0]) == [0]))
+        self.assertTrue(np.all(sub2ind(x.shape, [4,0]) == [4]))
+        self.assertTrue(np.all(sub2ind(x.shape, [0,1]) == [5]))
+        self.assertTrue(np.all(sub2ind(x.shape, [4,1]) == [9]))
+        self.assertTrue(np.all(sub2ind(x.shape, [[0,0],[4,0],[0,1],[4,1]]) == [0,4,5,9]))
+
+    def test_ind2sub(self):
+        x = np.ones((5,2))
+        self.assertTrue(np.all(ind2sub(x.shape, [0,4,5,9])[0] == [0,4,0,4]))
+        self.assertTrue(np.all(ind2sub(x.shape, [0,4,5,9])[1] == [0,0,1,1]))
 
     def test_indexCube_2D(self):
         nN = np.array([3, 3])
