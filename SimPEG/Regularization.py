@@ -19,11 +19,11 @@ class BaseRegularization(object):
 
     counter = None
 
-    def __init__(self, mesh, model, **kwargs):
+    def __init__(self, model, **kwargs):
         Utils.setKwargs(self, **kwargs)
         assert isinstance(model, self.modelPair), "Incorrect model for this regularization"
         self.model = model
-        self.mesh = mesh
+        self.mesh = model.mesh
 
     mref = Parameters.ParameterProperty('mref', default=None, doc='Reference model.')
 
@@ -195,8 +195,8 @@ class Tikhonov(BaseRegularization):
     alpha_yy = Utils.dependentProperty('_alpha_yy', 0.0, ['_W', '_Wyy'], "Weight for the second derivative in the y direction")
     alpha_zz = Utils.dependentProperty('_alpha_zz', 0.0, ['_W', '_Wzz'], "Weight for the second derivative in the z direction")
 
-    def __init__(self, mesh, model, **kwargs):
-        BaseRegularization.__init__(self, mesh, model, **kwargs)
+    def __init__(self, model, **kwargs):
+        BaseRegularization.__init__(self, model, **kwargs)
 
     @property
     def Ws(self):
