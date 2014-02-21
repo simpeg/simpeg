@@ -60,10 +60,11 @@ class TestCyl2DMesh(unittest.TestCase):
         v = np.r_[0, 2, 3.]
         self.assertTrue(np.linalg.norm((v-self.mesh.vectorNz)) == 0)
 
-    def test_dimensions(self):
+    def test_edge(self):
         edge = np.r_[1, 2, 2.5, 1, 2, 2.5, 1, 2, 2.5] * 2 * np.pi
         self.assertTrue(np.linalg.norm((edge-self.mesh.edge)) == 0)
 
+    def test_area(self):
         r = np.r_[0, 1, 2, 2.5]
         a = r[1:]*2*np.pi
         areaX = np.r_[2*a,a]
@@ -72,6 +73,8 @@ class TestCyl2DMesh(unittest.TestCase):
         area = np.r_[areaX, areaZ]
         self.assertTrue(np.linalg.norm((area-self.mesh.area)) == 0)
 
+    def test_vol(self):
+        r = np.r_[0, 1, 2, 2.5]
         a = (r[1:]**2 - r[:-1]**2)*np.pi
         vol = np.r_[2*a,a]
         self.assertTrue(np.linalg.norm((vol-self.mesh.vol)) == 0)
