@@ -4,6 +4,12 @@ from View import TensorView
 from DiffOperators import DiffOperators
 from InnerProducts import InnerProducts
 
+def _getTensorGrid(self, key):
+    if getattr(self, '_grid' + key, None) is None:
+        setattr(self, '_grid' + key, Utils.ndgrid(self.getTensor(key)))
+    return getattr(self, '_grid' + key)
+
+
 class BaseTensorMesh(BaseRectangularMesh):
 
     __metaclass__ = Utils.SimPEGMetaClass
@@ -82,64 +88,48 @@ class BaseTensorMesh(BaseRectangularMesh):
     @property
     def gridCC(self):
         """Cell-centered grid."""
-        if getattr(self, '_gridCC', None) is None:
-            self._gridCC = Utils.ndgrid(self.getTensor('CC'))
-        return self._gridCC
+        return _getTensorGrid(self, 'CC')
 
     @property
     def gridN(self):
         """Nodal grid."""
-        if getattr(self, '_gridN', None) is None:
-            self._gridN = Utils.ndgrid(self.getTensor('N'))
-        return self._gridN
+        return _getTensorGrid(self, 'N')
 
     @property
     def gridFx(self):
-        if self.nFx == 0: return
         """Face staggered grid in the x direction."""
-        if getattr(self, '_gridFx', None) is None:
-            self._gridFx = Utils.ndgrid(self.getTensor('Fx'))
-        return self._gridFx
+        if self.nFx == 0: return
+        return _getTensorGrid(self, 'Fx')
 
     @property
     def gridFy(self):
-        if self.nFy == 0: return
         """Face staggered grid in the y direction."""
-        if getattr(self, '_gridFy', None) is None and self.dim > 1:
-            self._gridFy = Utils.ndgrid(self.getTensor('Fy'))
-        return self._gridFy
+        if self.nFy == 0 or self.dim < 2: return
+        return _getTensorGrid(self, 'Fy')
 
     @property
     def gridFz(self):
-        if self.nFz == 0: return
         """Face staggered grid in the z direction."""
-        if getattr(self, '_gridFz', None) is None and self.dim > 2:
-            self._gridFz = Utils.ndgrid(self.getTensor('Fz'))
-        return self._gridFz
+        if self.nFz == 0 or self.dim < 3: return
+        return _getTensorGrid(self, 'Fz')
 
     @property
     def gridEx(self):
-        if self.nEx == 0: return
         """Edge staggered grid in the x direction."""
-        if getattr(self, '_gridEx', None) is None:
-            self._gridEx = Utils.ndgrid(self.getTensor('Ex'))
-        return self._gridEx
+        if self.nEx == 0: return
+        return _getTensorGrid(self, 'Ex')
 
     @property
     def gridEy(self):
-        if self.nEy == 0: return
         """Edge staggered grid in the y direction."""
-        if getattr(self, '_gridEy', None) is None and self.dim > 1:
-            self._gridEy = Utils.ndgrid(self.getTensor('Ey'))
-        return self._gridEy
+        if self.nEy == 0 or self.dim < 2: return
+        return _getTensorGrid(self, 'Ey')
 
     @property
     def gridEz(self):
-        if self.nEz == 0: return
         """Edge staggered grid in the z direction."""
-        if getattr(self, '_gridEz', None) is None and self.dim > 2:
-            self._gridEz = Utils.ndgrid(self.getTensor('Ez'))
-        return self._gridEz
+        if self.nEz == 0 or self.dim < 3: return
+        return _getTensorGrid(self, 'Ez')
 
     def getTensor(self, locType):
         """ Returns a tensor list.
