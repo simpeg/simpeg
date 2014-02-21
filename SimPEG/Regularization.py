@@ -14,7 +14,6 @@ class BaseRegularization(object):
 
     modelPair = Model.BaseModel  #: Some regularizations only work on specific models
 
-    mesh = None    #: A SimPEG.Mesh instance.
     model = None    #: A SimPEG.Model instance.
 
     counter = None
@@ -23,7 +22,6 @@ class BaseRegularization(object):
         Utils.setKwargs(self, **kwargs)
         assert isinstance(model, self.modelPair), "Incorrect model for this regularization"
         self.model = model
-        self.mesh = model.mesh
 
     mref = Parameters.ParameterProperty('mref', default=None, doc='Reference model.')
 
