@@ -399,6 +399,94 @@ class BaseRectangularMesh(BaseMesh):
         """
         return None if self.dim < 3 else np.array([x for x in [self.nCx, self.nCy, self.nNz] if not x is None])
 
+    ##################################
+    # Redo the numbering so they are dependent of the vector numbers
+    ##################################
+
+    @property
+    def nC(self):
+        """
+        Total number of cells
+
+        :rtype: int
+        :return: nC
+        """
+        return self.vnC.prod()
+
+    @property
+    def nN(self):
+        """
+        Total number of nodes
+
+        :rtype: int
+        :return: nN
+        """
+        return self.vnN.prod()
+
+    @property
+    def nEx(self):
+        """
+        Number of x-edges
+
+        :rtype: int
+        :return: nEx
+        """
+        return self.vnEx.prod()
+
+    @property
+    def nEy(self):
+        """
+        Number of y-edges
+
+        :rtype: int
+        :return: nEy
+        """
+        if self.dim < 2: return
+        return self.vnEy.prod()
+
+    @property
+    def nEz(self):
+        """
+        Number of z-edges
+
+        :rtype: int
+        :return: nEz
+        """
+        if self.dim < 3: return
+        return self.vnEz.prod()
+
+    @property
+    def nFx(self):
+        """
+        Number of x-faces
+
+        :rtype: int
+        :return: nFx
+        """
+        return self.vnFx.prod()
+
+    @property
+    def nFy(self):
+        """
+        Number of y-faces
+
+        :rtype: int
+        :return: nFy
+        """
+        if self.dim < 2: return
+        return self.vnFy.prod()
+
+    @property
+    def nFz(self):
+        """
+        Number of z-faces
+
+        :rtype: int
+        :return: nFz
+        """
+        if self.dim < 3: return
+        return self.vnFz.prod()
+
     def r(self, x, xType='CC', outType='CC', format='V'):
         """
         Mesh.r is a quick reshape command that will do the best it can at giving you what you want.

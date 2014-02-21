@@ -26,8 +26,7 @@ class CylMesh(BaseTensorMesh):
         :rtype: int
         :return: nNx
         """
-        if self.nCy == 1:
-            return self.nCx
+        if self.nCy == 1: return self.nCx
         return self.nCx + 1
 
     @property
@@ -38,29 +37,8 @@ class CylMesh(BaseTensorMesh):
         :rtype: int
         :return: nNy
         """
-        if self.nCy == 1:
-            return self.nCy - 1
+        if self.nCy == 1: return 0
         return self.nCy
-
-    @property
-    def nN(self):
-        """
-        Total number of nodes
-
-        :rtype: int
-        :return: nN
-        """
-        return (np.r_[self.nNx, self.nNy, self.nNz]).prod()
-
-    @property
-    def nFx(self):
-        """
-        Number of x-faces
-
-        :rtype: int
-        :return: nFx
-        """
-        return self.nC
 
     @property
     def vnFx(self):
@@ -73,44 +51,15 @@ class CylMesh(BaseTensorMesh):
         return self.vnC
 
     @property
-    def nFy(self):
+    def vnEy(self):
         """
-        Number of y-faces
+        Number of y-edges in each direction
 
-        :rtype: int
-        :return: nFy
+        :rtype: numpy.array (dim, )
+        :return: vnEy or None if dim < 2
         """
-        return (self.vnC + np.r_[0,-1,0][:self.dim]).prod()
-
-    @property
-    def nEx(self):
-        """
-        Number of x-edges
-
-        :rtype: int
-        :return: nEx
-        """
-        return (self._n + np.r_[0,-1,1]).prod()
-
-    @property
-    def nEy(self):
-        """
-        Number of y-edges
-
-        :rtype: int
-        :return: nEy
-        """
-        return (self._n + np.r_[0,0,1]).prod()
-
-    @property
-    def nEz(self):
-        """
-        Number of z-edges
-
-        :rtype: int
-        :return: nEz
-        """
-        return (self._n + np.r_[0,-1,0]).prod()
+        nNx = self.nNx if self.nCy == 1 else self.nNx - 1
+        return np.r_[nNx, self.nCy, self.nNz]
 
     @property
     def vectorCCx(self):
@@ -232,8 +181,8 @@ class CylMesh(BaseTensorMesh):
     @property
     def nodalGrad(self):
         """Construct gradient operator (nodes to edges)."""
-        if self.nCy == 1:
-            raise Exception('Nodal grad does not make sense for cylindrically symmetric mesh.')
+        # Nodal grad does not make sense for cylindrically symmetric mesh.
+        if self.nCy == 1: return None
         raise NotImplementedError('nodalGrad not yet implemented')
 
     @property
