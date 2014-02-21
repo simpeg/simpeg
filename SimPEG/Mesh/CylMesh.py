@@ -89,8 +89,7 @@ class CylMesh(BaseTensorMesh):
     @property
     def vectorCCx(self):
         """Cell-centered grid vector (1D) in the x direction."""
-        firstEl = -self.hx[0]*0.5 if self.nCy == 1 else 0
-        return np.r_[firstEl, self.hx[:-1].cumsum()] + self.hx*0.5
+        return np.r_[0, self.hx[:-1].cumsum()] + self.hx*0.5
 
     @property
     def vectorCCy(self):

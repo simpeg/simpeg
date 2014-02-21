@@ -22,7 +22,7 @@ class BaseTensorMesh(BaseRectangularMesh):
         assert type(h_in) is list, 'h_in must be a list'
         h = range(len(h_in))
         for i, h_i in enumerate(h_in):
-            if type(h_i) in [int, long, float]:
+            if type(h_i) in [int, long, float, np.int_]:
                 # This gives you something over the unit cube.
                 h_i = self._unitDimensions[i] * np.ones(int(h_i))/int(h_i)
             assert type(h_i) == np.ndarray, ("h[%i] is not a numpy array." % i)

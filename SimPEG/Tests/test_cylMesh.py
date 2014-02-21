@@ -49,7 +49,7 @@ class TestCyl2DMesh(unittest.TestCase):
         self.assertTrue(np.all(self.mesh.vnE == [0, 9, 0]))
 
     def test_vectorsCC(self):
-        v = np.r_[0, 1.5, 2.25]
+        v = np.r_[0.5, 1.5, 2.25]
         self.assertTrue(np.linalg.norm((v-self.mesh.vectorCCx)) == 0)
         v = np.r_[0]
         self.assertTrue(np.linalg.norm((v-self.mesh.vectorCCy)) == 0)
@@ -96,7 +96,7 @@ class TestCyl2DMesh(unittest.TestCase):
         self.assertTrue(self.mesh.gridEz is None)
 
     def test_gridCC(self):
-        x = np.r_[0,1.5,2.25,0,1.5,2.25]
+        x = np.r_[0.5,1.5,2.25,0.5,1.5,2.25]
         y = np.zeros(6)
         z = np.r_[1,1,1,2.5,2.5,2.5]
         G = np.c_[x,y,z]
@@ -117,7 +117,7 @@ class TestCyl2DMesh(unittest.TestCase):
         self.assertTrue(np.linalg.norm((G-self.mesh.gridFx).ravel()) == 0)
 
     def test_gridFz(self):
-        x = np.r_[0,1.5,2.25,0,1.5,2.25,0,1.5,2.25]
+        x = np.r_[0.5,1.5,2.25,0.5,1.5,2.25,0.5,1.5,2.25]
         y = np.zeros(9)
         z = np.r_[0,0,0,2,2,2,3,3,3.]
         G = np.c_[x,y,z]
@@ -137,14 +137,14 @@ class TestCyl2DMesh(unittest.TestCase):
 
 MESHTYPES = ['uniformCylMesh']
 MESHDIMENSION = 2
-call2 = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1])
+call2 = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 2])
 call3 = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1], xyz[:, 2])
-cart_row2 = lambda g, xfun, yfun: np.c_[call2(xfun, g), call2(yfun, g)]
-cart_row3 = lambda g, xfun, yfun, zfun: np.c_[call3(xfun, g), call3(yfun, g), call3(zfun, g)]
-cartF2 = lambda M, fx, fy: np.vstack((cart_row2(M.gridFx, fx, fy), cart_row2(M.gridFy, fx, fy)))
-cartE2 = lambda M, ex, ey: np.vstack((cart_row2(M.gridEx, ex, ey), cart_row2(M.gridEy, ex, ey)))
-cartF3 = lambda M, fx, fy, fz: np.vstack((cart_row3(M.gridFx, fx, fy, fz), cart_row3(M.gridFy, fx, fy, fz), cart_row3(M.gridFz, fx, fy, fz)))
-cartE3 = lambda M, ex, ey, ez: np.vstack((cart_row3(M.gridEx, ex, ey, ez), cart_row3(M.gridEy, ex, ey, ez), cart_row3(M.gridEz, ex, ey, ez)))
+cyl_row2 = lambda g, xfun, yfun: np.c_[call2(xfun, g), call2(yfun, g)]
+cyl_row3 = lambda g, xfun, yfun, zfun: np.c_[call3(xfun, g), call3(yfun, g), call3(zfun, g)]
+cylF2 = lambda M, fx, fy: np.vstack((cyl_row2(M.gridFx, fx, fy), cyl_row2(M.gridFz, fx, fy)))
+# cylE2 = lambda M, ex, ey: np.vstack((cyl_row2(M.gridEx, ex, ey), cyl_row2(M.gridEy, ex, ey)))
+# cylF3 = lambda M, fx, fy, fz: np.vstack((cyl_row3(M.gridFx, fx, fy, fz), cyl_row3(M.gridFy, fx, fy, fz), cyl_row3(M.gridFz, fx, fy, fz)))
+# cylE3 = lambda M, ex, ey, ez: np.vstack((cyl_row3(M.gridEx, ex, ey, ez), cyl_row3(M.gridEy, ex, ey, ez), cyl_row3(M.gridEz, ex, ey, ez)))
 
 
 class TestFaceDiv(OrderTest):
@@ -154,28 +154,24 @@ class TestFaceDiv(OrderTest):
 
     def getError(self):
 
-        funX = lambda x, y, z: np.cos(2*np.pi*y)
-        funY = lambda x, y, z: 1+x*0
-        funZ = lambda x, y, z: np.cos(2*np.pi*x)
+        funR = lambda r, z: np.sin(2.*np.pi*r)
+        funZ = lambda r, z: np.sin(2.*np.pi*z)
 
-        solX = lambda x, y, z: 2*np.pi*np.sin(2*np.pi*z)
-        solY = lambda x, y, z: 2*np.pi*np.sin(2*np.pi*x)
-        solZ = lambda x, y, z: 2*np.pi*np.sin(2*np.pi*y)
+        sol = lambda r, t, z: (2*np.pi*r*np.cos(2*np.pi*r) + np.sin(2*np.pi*r))/r + 2*np.pi*np.cos(2*np.pi*z)
 
-        Ec = cartE3(self.M, funX, funY, funZ)
-        print Ec.shape, self.M.nE
-        print self.M
-        E = self.M.projectEdgeVector(Ec)
+        Fc = cylF2(self.M, funR, funZ)
+        Fc = np.c_[Fc[:,0],np.zeros(self.M.nF),Fc[:,1]]
+        F = self.M.projectFaceVector(Fc)
 
-        Fc = cartF3(self.M, solX, solY, solZ)
-        curlE_anal = self.M.projectFaceVector(Fc)
+        divF = self.M.faceDiv.dot(F)
+        tm = Mesh.TensorMesh([self.M.nCx, self.M.nCz])
+        divF_anal = call3(sol, self.M.gridCC)
 
-        curlE = self.M.edgeCurl.dot(E)
-        err = np.linalg.norm((curlE - curlE_anal), np.inf)
+        err = np.linalg.norm((divF-divF_anal), np.inf)
         return err
 
-    # def test_order(self):
-    #     self.orderTest()
+    def test_order(self):
+        self.orderTest()
 
 class TestCyl3DMesh(unittest.TestCase):
 
