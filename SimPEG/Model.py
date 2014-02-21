@@ -224,6 +224,47 @@ class Mesh2Mesh(BaseModel):
     def transformDeriv(self, m):
         return self.P
 
+
+class ActiveModel(BaseModel):
+    """
+        Active model parameters.
+
+    """
+
+    indActive   = None #: Active Cells
+    valInactive = None #: Values of inactive Cells
+    nC          = None #: Number of cells in the full model
+
+    def __init__(self, mesh, indActive, valInactive, nC=None):
+        self.mesh  = mesh
+
+        self.nC = nC or mesh.nC
+
+        if indActive.dtype is not bool:
+            z = np.zeros(mesh.nC,dtype=bool)
+            z[indActive] = True
+            indActive = z
+        self.indActive = indActive
+        self.indInactive = np.logical_not(indActive)
+        if type(valInactive) in [float, int, long]:
+            valInactive = np.ones(mesh.nC)*float(valInactive)
+
+        valInactive[self.indActive] = 0
+        self.valInactive = valInactive
+
+        inds = np.nonzero(self.indActive)[0]
+        self.P = sp.csr_matrix((np.ones(inds.size),(inds, range(inds.size))), shape=(self.nC, self.nP))
+
+    @property
+    def nP(self):
+        """Number of parameters in the model."""
+        return self.indActive.sum()
+
+    def transform(self, m):
+        return self.P*m + self.valInactive
+    def transformDeriv(self, m):
+        return self.P
+
 class ComboModel(BaseModel):
     """Combination of various models."""
 
