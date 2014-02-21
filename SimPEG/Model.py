@@ -241,13 +241,13 @@ class ActiveModel(BaseModel):
         self.nC = nC or mesh.nC
 
         if indActive.dtype is not bool:
-            z = np.zeros(mesh.nC,dtype=bool)
+            z = np.zeros(self.nC,dtype=bool)
             z[indActive] = True
             indActive = z
         self.indActive = indActive
         self.indInactive = np.logical_not(indActive)
         if type(valInactive) in [float, int, long]:
-            valInactive = np.ones(mesh.nC)*float(valInactive)
+            valInactive = np.ones(self.nC)*float(valInactive)
 
         valInactive[self.indActive] = 0
         self.valInactive = valInactive
@@ -270,7 +270,13 @@ class ComboModel(BaseModel):
 
     def __init__(self, mesh, models, **kwargs):
         BaseModel.__init__(self, mesh, **kwargs)
-        self.models = [m(mesh, **kwargs) for m in models]
+
+        self.models = []
+        for m in models:
+            if not isinstance(m, BaseModel):
+                self.models += [m(mesh, **kwargs)]
+            else:
+                self.models += [m]
 
     @property
     def nP(self):
