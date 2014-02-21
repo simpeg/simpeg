@@ -1,8 +1,10 @@
 .. _api_PF:
 
 
-PF
-**
+Magnetics
+*********
+
+
 
 .. automodule:: simpegPF.PF
     :show-inheritance:
