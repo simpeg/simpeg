@@ -95,6 +95,13 @@ class TestCyl2DMesh(unittest.TestCase):
         G = np.c_[x,y,z]
         self.assertTrue(np.linalg.norm((G-self.mesh.gridCC).ravel()) == 0)
 
+    def test_gridN(self):
+        x = np.r_[1,2,2.5,1,2,2.5,1,2,2.5]
+        y = np.zeros(9)
+        z = np.r_[0,0,0,2,2,2,3,3,3.]
+        G = np.c_[x,y,z]
+        self.assertTrue(np.linalg.norm((G-self.mesh.gridN).ravel()) == 0)
+
     def test_gridFx(self):
         x = np.r_[1,2,2.5,1,2,2.5]
         y = np.zeros(6)
