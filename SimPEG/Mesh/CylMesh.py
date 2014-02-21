@@ -116,7 +116,7 @@ class CylMesh(BaseTensorMesh):
     def vectorCCx(self):
         """Cell-centered grid vector (1D) in the x direction."""
         if self.nCy == 1:
-            return np.r_[0, self.hx[:-1].cumsum()] + self.hx*0.5 - self.hx[0]/2
+            return np.r_[-self.hx[0]*0.5, self.hx[:-1].cumsum()] + self.hx*0.5 # - self.hx[0]/2
         return np.r_[0, self.hx[:-1].cumsum()] + self.hx*0.5
 
     @property
@@ -128,12 +128,14 @@ class CylMesh(BaseTensorMesh):
     def vectorNx(self):
         """Nodal grid vector (1D) in the x direction."""
         if self.nCy == 1:
-            return self.hx.cumsum() - self.hx[0]/2
+            return self.hx.cumsum()# - self.hx[0]/2
         return np.r_[0, self.hx].cumsum()
 
     @property
     def vectorNy(self):
         """Nodal grid vector (1D) in the y direction."""
+        if self.nCy == 1:
+            return np.r_[0]
         return np.r_[0, self.hy[:-1].cumsum()] + self.hy[0]*0.5
 
 

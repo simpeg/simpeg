@@ -45,7 +45,7 @@ class TestCyl2DMesh(unittest.TestCase):
         self.assertTrue(np.all(self.mesh.vnE == [0, 9, 0]))
 
     def test_vectorsCC(self):
-        v = np.r_[0, 1, 1.75]
+        v = np.r_[0, 1.5, 2.25]
         self.assertTrue(np.linalg.norm((v-self.mesh.vectorCCx)) == 0)
         v = np.r_[0]
         self.assertTrue(np.linalg.norm((v-self.mesh.vectorCCy)) == 0)
@@ -53,18 +53,18 @@ class TestCyl2DMesh(unittest.TestCase):
         self.assertTrue(np.linalg.norm((v-self.mesh.vectorCCz)) == 0)
 
     def test_vectorsN(self):
-        v = np.r_[0.5, 1.5, 2]
+        v = np.r_[1, 2, 2.5]
         self.assertTrue(np.linalg.norm((v-self.mesh.vectorNx)) == 0)
-        v = np.r_[np.pi] #This is kinda a fake. But it is where it would be if there was a radial connection
+        v = np.r_[0]
         self.assertTrue(np.linalg.norm((v-self.mesh.vectorNy)) == 0)
         v = np.r_[0, 2, 3.]
         self.assertTrue(np.linalg.norm((v-self.mesh.vectorNz)) == 0)
 
     def test_dimensions(self):
-        edge = np.r_[0.5, 1.5, 2, 0.5, 1.5, 2, 0.5, 1.5, 2] * 2 * np.pi
+        edge = np.r_[1, 2, 2.5, 1, 2, 2.5, 1, 2, 2.5] * 2 * np.pi
         self.assertTrue(np.linalg.norm((edge-self.mesh.edge)) == 0)
 
-        r = np.r_[0, 0.5, 1.5, 2]
+        r = np.r_[0, 1, 2, 2.5]
         a = r[1:]*2*np.pi
         areaX = np.r_[2*a,a]
         a = (r[1:]**2 - r[:-1]**2)*np.pi
