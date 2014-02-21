@@ -216,10 +216,10 @@ class TestCyl3DMesh(unittest.TestCase):
         self.assertTrue(np.all(self.mesh.vnEx == [3, 2, 3]))
         self.assertTrue(self.mesh.nEy == 18)
         self.assertTrue(np.all(self.mesh.vnEy == [3, 2, 3]))
-        # self.assertTrue(self.mesh.nEz == 0)
-        # self.assertTrue(np.all(self.mesh.vnEz == [3, 0, 2]))
-        # self.assertTrue(self.mesh.nE == 9)
-        # self.assertTrue(np.all(self.mesh.vnE == [0, 9, 0]))
+        self.assertTrue(self.mesh.nEz == 12 + 2)
+        self.assertTrue(self.mesh.vnEz is None)
+        self.assertTrue(self.mesh.nE == 50)
+        self.assertTrue(np.all(self.mesh.vnE == [18, 18, 14]))
 
     def test_vectorsCC(self):
         v = np.r_[0.5, 1.5, 2.25]

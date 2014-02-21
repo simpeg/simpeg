@@ -62,6 +62,31 @@ class CylMesh(BaseTensorMesh):
         return np.r_[nNx, self.nCy, self.nNz]
 
     @property
+    def vnEz(self):
+        """
+        Number of z-edges in each direction
+
+        :rtype: numpy.array (dim, )
+        :return: vnEz or None if nCy > 1
+        """
+        if self.nCy == 1:
+            return np.r_[self.nNx, self.nNy, self.nCz]
+        else:
+            return None
+
+    @property
+    def nEz(self):
+        """
+        Number of z-edges
+
+        :rtype: int
+        :return: nEz
+        """
+        if self.nCy == 1:
+            return self.vnEz.prod()
+        return (np.r_[self.nNx-1, self.nNy, self.nCz]).prod() + self.nCz
+
+    @property
     def vectorCCx(self):
         """Cell-centered grid vector (1D) in the x direction."""
         firstEl = -self.hx[0]*0.5 if self.nCy == 1 else 0
@@ -116,7 +141,7 @@ class CylMesh(BaseTensorMesh):
             if self.nCy > 1:
                 raise NotImplementedError('vol not yet implemented for 3D cyl mesh')
             az = pi*(self.vectorNx**2 - np.r_[0, self.vectorNx[:-1]]**2)
-            self._vol = np.kron(self.hz,az)
+            self._vol = np.kron(self.hz, az)
         return self._vol
 
     ####################################################
