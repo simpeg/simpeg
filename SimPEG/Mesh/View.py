@@ -243,7 +243,7 @@ class TensorView(object):
                   ax=None, clim=None, showIt=False,
                   gridOpts={'color':'k'}
                   ):
-        viewOpts = ['real','imag','abs','vec','|vec|']
+        viewOpts = ['real','imag','abs','vec']
         normalOpts = ['X', 'Y', 'Z']
         vTypeOpts = ['CC','F','E']
 
@@ -257,11 +257,6 @@ class TensorView(object):
         szSliceDim = getattr(self, 'nC'+normal.lower()) #: Size of the sliced dimension
         if ind is None: ind = int(szSliceDim/2)
         assert type(ind) in [int, long], 'ind must be an integer'
-
-        normalizeVector = False
-        if view == '|vec|':
-            view = 'vec'
-            normalizeVector = True
 
         if ax is None:
             fig = plt.figure(1)
@@ -313,10 +308,7 @@ class TensorView(object):
             if clim is None:
                 clim = [v.min(),v.max()]
             out += (ax.pcolormesh(tM.vectorNx, tM.vectorNy, 0.5*(U+V).T, vmin=clim[0], vmax=clim[1]),)
-            if normalizeVector:
-                length = np.sqrt(U**2+V**2)
-                U, V = U/length, V/length
-            out += (quiver( tM.gridCC[:,0], tM.gridCC[:,1], U, V),)
+            out += (plt.streamplot(tM.vectorCCx, tM.vectorCCy, U.T, V.T),)
 
         if grid:
             xXGrid = np.c_[tM.vectorNx,tM.vectorNx,np.nan*np.ones(tM.nNx)].flatten()

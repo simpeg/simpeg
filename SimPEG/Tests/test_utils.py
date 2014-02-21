@@ -1,6 +1,6 @@
 import numpy as np
 import unittest
-from SimPEG.Utils import mkvc, ndgrid, indexCube, sdiag, inv3X3BlockDiagonal, inv2X2BlockDiagonal
+from SimPEG.Utils import mkvc, ndgrid, indexCube, sdiag, inv3X3BlockDiagonal, inv2X2BlockDiagonal,sub2ind,ind2sub
 from SimPEG.Tests import checkDerivative
 
 
@@ -64,6 +64,19 @@ class TestSequenceFunctions(unittest.TestCase):
         self.assertTrue(np.all(XYZ[:, 1] == X2_test))
         self.assertTrue(np.all(XYZ[:, 2] == X3_test))
 
+    def test_sub2ind(self):
+        x = np.ones((5,2))
+        self.assertTrue(np.all(sub2ind(x.shape, [0,0]) == [0]))
+        self.assertTrue(np.all(sub2ind(x.shape, [4,0]) == [4]))
+        self.assertTrue(np.all(sub2ind(x.shape, [0,1]) == [5]))
+        self.assertTrue(np.all(sub2ind(x.shape, [4,1]) == [9]))
+        self.assertTrue(np.all(sub2ind(x.shape, [[0,0],[4,0],[0,1],[4,1]]) == [0,4,5,9]))
+
+    def test_ind2sub(self):
+        x = np.ones((5,2))
+        self.assertTrue(np.all(ind2sub(x.shape, [0,4,5,9])[0] == [0,4,0,4]))
+        self.assertTrue(np.all(ind2sub(x.shape, [0,4,5,9])[1] == [0,0,1,1]))
+
     def test_indexCube_2D(self):
         nN = np.array([3, 3])
         self.assertTrue(np.all(indexCube('A', nN) == np.array([0, 1, 3, 4])))
@@ -93,7 +106,7 @@ class TestSequenceFunctions(unittest.TestCase):
                        sp.hstack((sdiag(a[2]), sdiag(a[3])))))
 
         Z2 = B*A - sp.eye(10, 10)
-        self.assertTrue(np.linalg.norm(Z2.todense().ravel(), 2) < 1e-12)
+        self.assertTrue(np.linalg.norm(Z2.todense().ravel(), 2) < 1e-10)
 
         a = [np.random.rand(5, 1) for i in range(9)]
         B = inv3X3BlockDiagonal(*a)
@@ -104,7 +117,7 @@ class TestSequenceFunctions(unittest.TestCase):
 
         Z3 = B*A - sp.eye(15, 15)
 
-        self.assertTrue(np.linalg.norm(Z3.todense().ravel(), 2) < 1e-12)
+        self.assertTrue(np.linalg.norm(Z3.todense().ravel(), 2) < 1e-10)
 
 
 

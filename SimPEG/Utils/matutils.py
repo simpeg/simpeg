@@ -97,35 +97,22 @@ def ndgrid(*args, **kwargs):
         else:
             return XYZ[2], XYZ[1], XYZ[0]
 
-
-def ind2sub(shape, ind):
-    """From the given shape, returns the subscrips of the given index"""
-    revshp = []
-    revshp.extend(shape)
-    mult = [1]
-    for i in range(0, len(revshp)-1):
-        mult.extend([mult[i]*revshp[i]])
-    mult = np.array(mult).reshape(len(mult))
-
-    sub = []
-
-    for i in range(0, len(shape)):
-        sub.extend([np.math.floor(ind / mult[i])])
-        ind = ind - (np.math.floor(ind/mult[i]) * mult[i])
-    return sub
-
+def ind2sub(shape, inds):
+    """From the given shape, returns the subscripts of the given index"""
+    if type(inds) is not np.ndarray:
+        inds = np.array(inds)
+    assert len(inds.shape) == 1, 'Indexing must be done as a 1D row vector, e.g. [3,6,6,...]'
+    return np.unravel_index(inds, shape, order='F')
 
 def sub2ind(shape, subs):
     """From the given shape, returns the index of the given subscript"""
-    revshp = list(shape)
-    mult = [1]
-    for i in range(0, len(revshp)-1):
-        mult.extend([mult[i]*revshp[i]])
-    mult = np.array(mult).reshape(len(mult), 1)
-
-    idx = np.dot((subs), (mult))
-    return idx
-
+    if type(subs) is not np.ndarray:
+        subs = np.array(subs)
+    if subs.size == len(shape):
+        subs = subs[np.newaxis,:]
+    assert subs.shape[1] == len(shape), 'Indexing must be done as a column vectors. e.g. [[3,6],[6,2],...]'
+    inds = np.ravel_multi_index(subs.T, shape, order='F')
+    return mkvc(inds)
 
 def getSubArray(A, ind):
     """subArray"""
