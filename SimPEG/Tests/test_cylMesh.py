@@ -78,15 +78,44 @@ class TestCyl2DMesh(unittest.TestCase):
 
     def test_gridSizes(self):
         self.assertTrue(self.mesh.gridCC.shape == (self.mesh.nC, 3))
-        # self.assertTrue(self.mesh.gridN.shape == (self.mesh.nN, 3))
+        self.assertTrue(self.mesh.gridN.shape == (9, 3))
 
         self.assertTrue(self.mesh.gridFx.shape == (self.mesh.nFx, 3))
-        # self.assertTrue(self.mesh.gridFy.shape == (self.mesh.nFy, 3))
+        self.assertTrue(self.mesh.gridFy is None)
         self.assertTrue(self.mesh.gridFz.shape == (self.mesh.nFz, 3))
 
-        # self.assertTrue(self.mesh.gridEx.shape == (self.mesh.nEx, 3))
+        self.assertTrue(self.mesh.gridEx is None)
         self.assertTrue(self.mesh.gridEy.shape == (self.mesh.nEy, 3))
-        # self.assertTrue(self.mesh.gridEz.shape == (self.mesh.nEz, 3))
+        self.assertTrue(self.mesh.gridEz is None)
+
+    def test_gridCC(self):
+        x = np.r_[0,1.5,2.25,0,1.5,2.25]
+        y = np.zeros(6)
+        z = np.r_[1,1,1,2.5,2.5,2.5]
+        G = np.c_[x,y,z]
+        self.assertTrue(np.linalg.norm((G-self.mesh.gridCC).ravel()) == 0)
+
+    def test_gridFx(self):
+        x = np.r_[1,2,2.5,1,2,2.5]
+        y = np.zeros(6)
+        z = np.r_[1,1,1,2.5,2.5,2.5]
+        G = np.c_[x,y,z]
+        self.assertTrue(np.linalg.norm((G-self.mesh.gridFx).ravel()) == 0)
+
+    def test_gridFz(self):
+        x = np.r_[0,1.5,2.25,0,1.5,2.25,0,1.5,2.25]
+        y = np.zeros(9)
+        z = np.r_[0,0,0,2,2,2,3,3,3.]
+        G = np.c_[x,y,z]
+        self.assertTrue(np.linalg.norm((G-self.mesh.gridFz).ravel()) == 0)
+
+    def test_gridEy(self):
+        x = np.r_[1,2,2.5,1,2,2.5,1,2,2.5]
+        y = np.zeros(9)
+        z = np.r_[0,0,0,2,2,2,3,3,3.]
+        G = np.c_[x,y,z]
+        self.assertTrue(np.linalg.norm((G-self.mesh.gridEy).ravel()) == 0)
+
 
 
 MESHTYPES = ['uniformCylMesh']

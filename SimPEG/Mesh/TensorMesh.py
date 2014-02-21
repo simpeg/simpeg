@@ -95,6 +95,7 @@ class BaseTensorMesh(BaseRectangularMesh):
 
     @property
     def gridFx(self):
+        if self.nFx == 0: return
         """Face staggered grid in the x direction."""
         if getattr(self, '_gridFx', None) is None:
             self._gridFx = Utils.ndgrid(self.getTensor('Fx'))
@@ -102,6 +103,7 @@ class BaseTensorMesh(BaseRectangularMesh):
 
     @property
     def gridFy(self):
+        if self.nFy == 0: return
         """Face staggered grid in the y direction."""
         if getattr(self, '_gridFy', None) is None and self.dim > 1:
             self._gridFy = Utils.ndgrid(self.getTensor('Fy'))
@@ -109,6 +111,7 @@ class BaseTensorMesh(BaseRectangularMesh):
 
     @property
     def gridFz(self):
+        if self.nFz == 0: return
         """Face staggered grid in the z direction."""
         if getattr(self, '_gridFz', None) is None and self.dim > 2:
             self._gridFz = Utils.ndgrid(self.getTensor('Fz'))
@@ -116,6 +119,7 @@ class BaseTensorMesh(BaseRectangularMesh):
 
     @property
     def gridEx(self):
+        if self.nEx == 0: return
         """Edge staggered grid in the x direction."""
         if getattr(self, '_gridEx', None) is None:
             self._gridEx = Utils.ndgrid(self.getTensor('Ex'))
@@ -123,6 +127,7 @@ class BaseTensorMesh(BaseRectangularMesh):
 
     @property
     def gridEy(self):
+        if self.nEy == 0: return
         """Edge staggered grid in the y direction."""
         if getattr(self, '_gridEy', None) is None and self.dim > 1:
             self._gridEy = Utils.ndgrid(self.getTensor('Ey'))
@@ -130,6 +135,7 @@ class BaseTensorMesh(BaseRectangularMesh):
 
     @property
     def gridEz(self):
+        if self.nEz == 0: return
         """Edge staggered grid in the z direction."""
         if getattr(self, '_gridEz', None) is None and self.dim > 2:
             self._gridEz = Utils.ndgrid(self.getTensor('Ez'))
