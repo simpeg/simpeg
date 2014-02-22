@@ -264,7 +264,7 @@ class TensorView(object):
         """
         viewOpts = ['real','imag','abs','vec']
         normalOpts = ['X', 'Y', 'Z']
-        vTypeOpts = ['CC','F','E']
+        vTypeOpts = ['CC', 'CCv','F','E']
 
         # Some user error checking
         assert vType in vTypeOpts, "vType must be in ['%s']" % "','".join(vTypeOpts)
@@ -296,11 +296,15 @@ class TensorView(object):
         def doSlice(v):
             if vType == 'CC':
                 return getIndSlice(self.r(v,'CC','CC','M'))
-            # Now just deal with 'F' and 'E'
-            aveOp = 'ave' + vType + ('2CCV' if view == 'vec' else '2CC')
-            v = getattr(self,aveOp)*v # average to cell centers (might be a vector)
-            if view == 'vec':
+            elif vType == 'CCv':
                 v = self.r(v.reshape((self.nC,3),order='F'),'CC','CC','M')
+                assert view == 'vec', 'Other types for CCv not yet supported'
+            else:
+                # Now just deal with 'F' and 'E'
+                aveOp = 'ave' + vType + ('2CCV' if view == 'vec' else '2CC')
+                v = getattr(self,aveOp)*v # average to cell centers (might be a vector)
+                v = self.r(v.reshape((self.nC,3),order='F'),'CC','CC','M')
+            if view == 'vec':
                 outSlice = []
                 if 'X' not in normal: outSlice.append(getIndSlice(v[0]))
                 if 'Y' not in normal: outSlice.append(getIndSlice(v[1]))
@@ -357,6 +361,8 @@ class TensorView(object):
         ax.set_xlabel('y' if normal == 'X' else 'x')
         ax.set_ylabel('y' if normal == 'Z' else 'z')
         ax.set_title('Slice %d' % ind)
+        ax.set_xlim(*tM.vectorNx[[0,-1]])
+        ax.set_ylim(*tM.vectorNy[[0,-1]])
 
         if showIt: plt.show()
         return out
