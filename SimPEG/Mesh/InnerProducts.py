@@ -317,6 +317,9 @@ def _makeTensor(M, sigma):
     if sigma is None:  # default is ones
         sigma = np.ones((M.nC, 1))
 
+    if type(sigma) is float:
+        sigma = np.ones((M.nC, 1))*sigma
+
     if M.dim == 1:
         if sigma.size == M.nC:  # Isotropic!
             sigma = mkvc(sigma)  # ensure it is a vector.
