@@ -1,7 +1,6 @@
-from matutils import getSubArray, mkvc, ndgrid, ind2sub, sub2ind
-from sputils import spzeros, kron3, speye, sdiag, sdInv, ddx, av, avExtrap
+from matutils import *
 from meshutils import exampleLomGird, meshTensors
-from lomutils import volTetra, faceInfo, inv2X2BlockDiagonal, inv3X3BlockDiagonal, indexCube
+from lomutils import volTetra, faceInfo, indexCube
 from interputils import interpmat
 from ipythonutils import easyAnimate as animate
 import ModelBuilder

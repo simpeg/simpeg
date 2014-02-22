@@ -1,5 +1,5 @@
 import numpy as np
-
+import scipy.sparse as sp
 
 def mkvc(x, numDims=1):
     """Creates a vector with the number of dimension specified
@@ -30,6 +30,42 @@ def mkvc(x, numDims=1):
     elif numDims == 3:
         return x.flatten(order='F')[:, np.newaxis, np.newaxis]
 
+def sdiag(h):
+    """Sparse diagonal matrix"""
+    return sp.spdiags(mkvc(h), 0, h.size, h.size, format="csr")
+
+def sdInv(M):
+    "Inverse of a sparse diagonal matrix"
+    return sdiag(1/M.diagonal())
+
+def speye(n):
+    """Sparse identity"""
+    return sp.identity(n, format="csr")
+
+
+def kron3(A, B, C):
+    """Three kron prods"""
+    return sp.kron(sp.kron(A, B), C, format="csr")
+
+
+def spzeros(n1, n2):
+    """spzeros"""
+    return sp.coo_matrix((n1, n2)).tocsr()
+
+
+def ddx(n):
+    """Define 1D derivatives, inner, this means we go from n+1 to n"""
+    return sp.spdiags((np.ones((n+1, 1))*[-1, 1]).T, [0, 1], n, n+1, format="csr")
+
+
+def av(n):
+    """Define 1D averaging operator from nodes to cell-centers."""
+    return sp.spdiags((0.5*np.ones((n+1, 1))*[1, 1]).T, [0, 1], n, n+1, format="csr")
+
+def avExtrap(n):
+    """Define 1D averaging operator from cell-centers to nodes."""
+    Av = sp.spdiags((0.5*np.ones((n, 1))*[1, 1]).T, [-1, 0], n+1, n, format="csr") + sp.csr_matrix(([0.5,0.5],([0,n],[0,n-1])),shape=(n+1,n))
+    return Av
 
 def ndgrid(*args, **kwargs):
     """
@@ -97,12 +133,14 @@ def ndgrid(*args, **kwargs):
         else:
             return XYZ[2], XYZ[1], XYZ[0]
 
+
 def ind2sub(shape, inds):
     """From the given shape, returns the subscripts of the given index"""
     if type(inds) is not np.ndarray:
         inds = np.array(inds)
     assert len(inds.shape) == 1, 'Indexing must be done as a 1D row vector, e.g. [3,6,6,...]'
     return np.unravel_index(inds, shape, order='F')
+
 
 def sub2ind(shape, subs):
     """From the given shape, returns the index of the given subscript"""
@@ -113,6 +151,7 @@ def sub2ind(shape, subs):
     assert subs.shape[1] == len(shape), 'Indexing must be done as a column vectors. e.g. [[3,6],[6,2],...]'
     inds = np.ravel_multi_index(subs.T, shape, order='F')
     return mkvc(inds)
+
 
 def getSubArray(A, ind):
     """subArray"""
@@ -125,3 +164,159 @@ def getSubArray(A, ind):
         return A[ind[0], :, :][:, ind[1], :][:, :, ind[2]]
     else:
         raise Exception("getSubArray does not support dimension asked.")
+
+
+def inv3X3BlockDiagonal(a11, a12, a13, a21, a22, a23, a31, a32, a33, returnMatrix=True):
+    """ B = inv3X3BlockDiagonal(a11, a12, a13, a21, a22, a23, a31, a32, a33)
+
+    inverts a stack of 3x3 matrices
+
+    Input:
+     A   - a11, a12, a13, a21, a22, a23, a31, a32, a33
+
+    Output:
+     B   - inverse
+     """
+
+    a11 = mkvc(a11)
+    a12 = mkvc(a12)
+    a13 = mkvc(a13)
+    a21 = mkvc(a21)
+    a22 = mkvc(a22)
+    a23 = mkvc(a23)
+    a31 = mkvc(a31)
+    a32 = mkvc(a32)
+    a33 = mkvc(a33)
+
+    detA = a31*a12*a23 - a31*a13*a22 - a21*a12*a33 + a21*a13*a32 + a11*a22*a33 - a11*a23*a32
+
+    b11 = +(a22*a33 - a23*a32)/detA
+    b12 = -(a12*a33 - a13*a32)/detA
+    b13 = +(a12*a23 - a13*a22)/detA
+
+    b21 = +(a31*a23 - a21*a33)/detA
+    b22 = -(a31*a13 - a11*a33)/detA
+    b23 = +(a21*a13 - a11*a23)/detA
+
+    b31 = -(a31*a22 - a21*a32)/detA
+    b32 = +(a31*a12 - a11*a32)/detA
+    b33 = -(a21*a12 - a11*a22)/detA
+
+    if not returnMatrix:
+        return b11, b12, b13, b21, b22, b23, b31, b32, b33
+
+    return sp.vstack((sp.hstack((sdiag(b11), sdiag(b12),  sdiag(b13))),
+                      sp.hstack((sdiag(b21), sdiag(b22),  sdiag(b23))),
+                      sp.hstack((sdiag(b31), sdiag(b32),  sdiag(b33)))))
+
+
+
+def inv2X2BlockDiagonal(a11, a12, a21, a22, returnMatrix=True):
+    """ B = inv2X2BlockDiagonal(a11, a12, a21, a22)
+
+    Inverts a stack of 2x2 matrices by using the inversion formula
+
+    inv(A) = (1/det(A)) * cof(A)^T
+
+    Input:
+    A   - a11, a12, a21, a22
+
+    Output:
+    B   - inverse
+    """
+
+    a11 = mkvc(a11)
+    a12 = mkvc(a12)
+    a21 = mkvc(a21)
+    a22 = mkvc(a22)
+
+    # compute inverse of the determinant.
+    detAinv = 1./(a11*a22 - a21*a12)
+
+    b11 = +detAinv*a22
+    b12 = -detAinv*a12
+    b21 = -detAinv*a21
+    b22 = +detAinv*a11
+
+    if not returnMatrix:
+        return b11, b12, b21, b22
+
+    return sp.vstack((sp.hstack((sdiag(b11), sdiag(b12))),
+                      sp.hstack((sdiag(b21), sdiag(b22)))))
+
+def makePropertyTensor(M, sigma):
+    if sigma is None:  # default is ones
+        sigma = np.ones(M.nC)
+
+    if type(sigma) in [float, int, long]:
+        sigma = sigma * np.ones(M.nC)
+
+    if M.dim == 1:
+        if sigma.size == M.nC:  # Isotropic!
+            sigma = mkvc(sigma)  # ensure it is a vector.
+            Sigma = sdiag(sigma)
+        else:
+            raise Exception('Unexpected shape of sigma')
+    elif M.dim == 2:
+        if sigma.size == M.nC:  # Isotropic!
+            sigma = mkvc(sigma)  # ensure it is a vector.
+            Sigma = sdiag(np.r_[sigma, sigma])
+        elif sigma.shape[1] == 2:  # Diagonal tensor
+            Sigma = sdiag(np.r_[sigma[:, 0], sigma[:, 1]])
+        elif sigma.shape[1] == 3:  # Fully anisotropic
+            row1 = sp.hstack((sdiag(sigma[:, 0]), sdiag(sigma[:, 2])))
+            row2 = sp.hstack((sdiag(sigma[:, 2]), sdiag(sigma[:, 1])))
+            Sigma = sp.vstack((row1, row2))
+        else:
+            raise Exception('Unexpected shape of sigma')
+    elif M.dim == 3:
+        if sigma.size == M.nC:  # Isotropic!
+            sigma = mkvc(sigma)  # ensure it is a vector.
+            Sigma = sdiag(np.r_[sigma, sigma, sigma])
+        elif sigma.shape[1] == 3:  # Diagonal tensor
+            Sigma = sdiag(np.r_[sigma[:, 0], sigma[:, 1], sigma[:, 2]])
+        elif sigma.shape[1] == 6:  # Fully anisotropic
+            row1 = sp.hstack((sdiag(sigma[:, 0]), sdiag(sigma[:, 3]), sdiag(sigma[:, 4])))
+            row2 = sp.hstack((sdiag(sigma[:, 3]), sdiag(sigma[:, 1]), sdiag(sigma[:, 5])))
+            row3 = sp.hstack((sdiag(sigma[:, 4]), sdiag(sigma[:, 5]), sdiag(sigma[:, 2])))
+            Sigma = sp.vstack((row1, row2, row3))
+        else:
+            raise Exception('Unexpected shape of sigma')
+    return Sigma
+
+
+def invPropertyTensor(M, tensor, returnMatrix=False):
+
+    T = None
+
+    if type(tensor) in [float, int, long]:
+        T = 1./tensor
+
+    elif tensor.size == M.nC:  # Isotropic!
+        T = 1./mkvc(tensor)  # ensure it is a vector.
+
+    elif M.dim == 2:
+        if tensor.shape[1] == 2:  # Diagonal tensor
+            T = 1./tensor
+        elif tensor.shape[1] == 3:  # Fully anisotropic
+            B = inv2X2BlockDiagonal(tensor[:,0], tensor[:,2],
+                                    tensor[:,2], tensor[:,1],
+                                    returnMatrix=False)
+            b11, b12, b21, b22 = B
+            T = np.c_[b11, b22, b12]
+    elif M.dim == 3:
+        if tensor.shape[1] == 3:  # Diagonal tensor
+            T = 1./tensor
+        elif tensor.shape[1] == 6:  # Fully anisotropic
+            B = inv3X3BlockDiagonal(tensor[:,0], tensor[:,3], tensor[:,4],
+                                    tensor[:,3], tensor[:,1], tensor[:,5],
+                                    tensor[:,4], tensor[:,5], tensor[:,2],
+                                    returnMatrix=False)
+            b11, b12, b13, b21, b22, b23, b31, b32, b33 = B
+            T = np.c_[b11, b22, b33, b12, b13, b23]
+
+    if T is None:
+        raise Exception('Unexpected shape of tensor')
+    if returnMatrix:
+        return makePropertyTensor(M, T)
+    return T
