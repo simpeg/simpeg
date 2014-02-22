@@ -241,8 +241,27 @@ class TensorView(object):
     def plotSlice(self, v, vType='CC',
                   normal='Z', ind=None, grid=False, view='real',
                   ax=None, clim=None, showIt=False,
+                  pcolorOpts={},
+                  streamOpts={'color':'k'},
                   gridOpts={'color':'k'}
                   ):
+
+        """
+        Plots a slice of a 3D mesh.
+
+        .. plot::
+
+            from SimPEG import *
+            mT = Utils.meshTensors(((2,5),(4,2),(2,5)),((2,2),(6,2),(2,2)),((2,2),(6,2),(2,2)))
+            M = Mesh.TensorMesh(mT)
+            q = np.zeros(M.vnC)
+            q[[4,4],[4,4],[2,6]]=[-1,1]
+            q = Utils.mkvc(q)
+            A = M.faceDiv*M.cellGrad
+            b = Solver(A).solve(q)
+            M.plotSlice(M.cellGrad*b, 'F', view='vec', grid=True, showIt=True, pcolorOpts={'alpha':0.8})
+
+        """
         viewOpts = ['real','imag','abs','vec']
         normalOpts = ['X', 'Y', 'Z']
         vTypeOpts = ['CC','F','E']
@@ -302,13 +321,31 @@ class TensorView(object):
             v = doSlice(v)
             if clim is None:
                 clim = [v.min(),v.max()]
-            out += (ax.pcolormesh(tM.vectorNx, tM.vectorNy, v.T, vmin=clim[0], vmax=clim[1]),)
+            out += (ax.pcolormesh(tM.vectorNx, tM.vectorNy, v.T, vmin=clim[0], vmax=clim[1], **pcolorOpts),)
         elif view in ['vec']:
             U, V = doSlice(v)
             if clim is None:
-                clim = [v.min(),v.max()]
-            out += (ax.pcolormesh(tM.vectorNx, tM.vectorNy, 0.5*(U+V).T, vmin=clim[0], vmax=clim[1]),)
-            out += (plt.streamplot(tM.vectorCCx, tM.vectorCCy, U.T, V.T),)
+                uv = np.r_[mkvc(U), mkvc(V)]
+                uv = np.sqrt(uv**2)
+                clim = [uv.min(),uv.max()]
+
+            # Matplotlib seems to not support irregular
+            # spaced vectors at the moment. So we will
+            # Interpolate down to a regular mesh at the
+            # smallest mesh size in this 2D slice.
+            nxi = int(tM.hx.sum()/tM.hx.min())
+            nyi = int(tM.hy.sum()/tM.hy.min())
+            tMi = self.__class__([np.ones(nxi)*tM.hx.sum()/nxi,
+                                  np.ones(nyi)*tM.hy.sum()/nyi])
+            P = tM.getInterpolationMat(tMi.gridCC,'CC',zerosOutside=True)
+            Ui = P*mkvc(U)
+            Vi = P*mkvc(V)
+            Ui = tMi.r(Ui, 'CC', 'CC', 'M')
+            Vi = tMi.r(Vi, 'CC', 'CC', 'M')
+            # End Interpolation
+
+            out += (ax.pcolormesh(tM.vectorNx, tM.vectorNy, np.sqrt(U**2+V**2).T, vmin=clim[0], vmax=clim[1], **pcolorOpts),)
+            out += (plt.streamplot(tMi.vectorCCx, tMi.vectorCCy, Ui.T, Vi.T, **streamOpts),)
 
         if grid:
             xXGrid = np.c_[tM.vectorNx,tM.vectorNx,np.nan*np.ones(tM.nNx)].flatten()
@@ -512,3 +549,13 @@ class TensorView(object):
         return animate(fig, animateFrame, frames=len(frames))
 
 
+if __name__ == '__main__':
+    from SimPEG import *
+    mT = Utils.meshTensors(((2,5),(4,2),(2,5)),((2,2),(6,2),(2,2)),((2,2),(6,2),(2,2)))
+    M = Mesh.TensorMesh(mT)
+    q = np.zeros(M.vnC)
+    q[[4,4],[4,4],[2,6]]=[-1,1]
+    q = Utils.mkvc(q)
+    A = M.faceDiv*M.cellGrad
+    b = Solver(A).solve(q)
+    M.plotSlice(M.cellGrad*b, 'F', view='vec', grid=True, showIt=True, pcolorOpts={'alpha':0.8})
