@@ -1,5 +1,5 @@
 
-from SimPEG.Utils.sputils import kron3, speye, sdiag
+from SimPEG.Utils.matutils import kron3, speye, sdiag
 from SimPEG import *
 import numpy as np
 import scipy.sparse as sp
@@ -87,22 +87,22 @@ def spheremodel(mesh, x0, y0, z0, r):
     """
     ind = np.sqrt((mesh.gridCC[:,0]-x0)**2+(mesh.gridCC[:,1]-y0)**2+(mesh.gridCC[:,2]-z0)**2 ) < r
     return ind
-  
+
 
 
 def MagSphereAnalFun(x, y, z, R, x0, y0, z0, mu1, mu2, H0, flag):
-    """ 
-        Analytic function for Magnetics problem. The set up here is 
+    """
+        Analytic function for Magnetics problem. The set up here is
         magnetic sphere in whole-space.
         - (x0,y0,z0)
         - (x0, y0, z0 ): is the center location of sphere
         - r: is the radius of the sphere
 
     .. math::
-    
+
         \mathbf{H}^p = H_0\hat{x}
 
-                
+
     """
     if (~np.size(x)==np.size(y)==np.size(z)):
         print "Specify same size of x, y, z"
@@ -111,7 +111,7 @@ def MagSphereAnalFun(x, y, z, R, x0, y0, z0, mu1, mu2, H0, flag):
     x = Utils.mkvc(x)
     y = Utils.mkvc(y)
     z = Utils.mkvc(z)
-    
+
     ind = np.sqrt((x-x0)**2+(y-y0)**2+(z-z0)**2 ) < R
     r = Utils.mkvc(np.sqrt((x-x0)**2+(y-y0)**2+(z-z0)**2 ))
     Bx = np.zeros(x.size)
@@ -124,7 +124,7 @@ def MagSphereAnalFun(x, y, z, R, x0, y0, z0, mu1, mu2, H0, flag):
         Bx[ind] = mu2*H0*(rf2)
     elif (flag == 'secondary'):
         Bx[ind] = mu2*H0*(rf2)-mu1*H0
-        
+
     By[ind] = 0.
     Bz[ind] = 0.
     # Outside of the sphere
@@ -133,10 +133,10 @@ def MagSphereAnalFun(x, y, z, R, x0, y0, z0, mu1, mu2, H0, flag):
         Bx[~ind] = mu1*(H0+H0/r[~ind]**5*(R**3)*rf1*(2*x[~ind]**2-y[~ind]**2-z[~ind]**2))
     elif (flag == 'secondary'):
         Bx[~ind] = mu1*(H0/r[~ind]**5*(R**3)*rf1*(2*x[~ind]**2-y[~ind]**2-z[~ind]**2))
-    
+
     By[~ind] = mu1*(H0/r[~ind]**5*(R**3)*rf1*(3*x[~ind]*y[~ind]))
     Bz[~ind] = mu1*(H0/r[~ind]**5*(R**3)*rf1*(3*x[~ind]*z[~ind]))
-    
+
     return np.reshape(Bx, x.shape, order='F'), np.reshape(By, x.shape, order='F'), np.reshape(Bz, x.shape, order='F')
-    
-    
+
+
