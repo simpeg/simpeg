@@ -1,7 +1,6 @@
 import numpy as np
 import scipy.sparse as sp
-from sputils import spzeros
-from matutils import mkvc, sub2ind
+from matutils import mkvc, sub2ind, spzeros
 
 def _interp_point_1D(x, xr_i):
     """
