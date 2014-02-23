@@ -1,5 +1,5 @@
 
-from SimPEG.Utils.sputils import kron3, speye, sdiag, spzeros
+from SimPEG.Utils.matutils import kron3, speye, sdiag, spzeros
 import numpy as np
 import scipy.sparse as sp
 
