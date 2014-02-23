@@ -217,6 +217,8 @@ class CylMesh(BaseTensorMesh):
     @property
     def edgeCurl(self):
         """The edgeCurl property."""
+        if self.nCy > 1:
+            raise NotImplementedError('Edge curl not yet implemented for nCy > 1')
         if getattr(self, '_edgeCurl', None) is None:
             #1D Difference matricies
             dr = sp.spdiags((np.ones((self.nCx+1, 1))*[-1, 1]).T, [-1,0], self.nCx, self.nCx, format="csr")

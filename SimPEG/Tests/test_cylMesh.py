@@ -136,7 +136,6 @@ class TestCyl2DMesh(unittest.TestCase):
 
 
 MESHTYPES = ['uniformCylMesh']
-MESHDIMENSION = 2
 call2 = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 2])
 call3 = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1], xyz[:, 2])
 cyl_row2 = lambda g, xfun, yfun: np.c_[call2(xfun, g), call2(yfun, g)]
@@ -147,10 +146,10 @@ cylF2 = lambda M, fx, fy: np.vstack((cyl_row2(M.gridFx, fx, fy), cyl_row2(M.grid
 # cylE3 = lambda M, ex, ey, ez: np.vstack((cyl_row3(M.gridEx, ex, ey, ez), cyl_row3(M.gridEy, ex, ey, ez), cyl_row3(M.gridEz, ex, ey, ez)))
 
 
-class TestFaceDiv(OrderTest):
+class TestFaceDiv2D(OrderTest):
     name = "FaceDiv"
     meshTypes = MESHTYPES
-    meshDimension = MESHDIMENSION
+    meshDimension = 2
 
     def getError(self):
 
@@ -172,6 +171,18 @@ class TestFaceDiv(OrderTest):
 
     def test_order(self):
         self.orderTest()
+
+class TestEdgeCurl2D(OrderTest):
+    name = "EdgeCurl"
+    meshTypes = MESHTYPES
+    meshDimension = 2
+
+    def getError(self):
+
+        #TODO!
+
+    # def test_order(self):
+    #     self.orderTest()
 
 class TestCyl3DMesh(unittest.TestCase):
 
