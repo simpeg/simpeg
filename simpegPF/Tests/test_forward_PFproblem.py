@@ -11,12 +11,12 @@ class MagProblemTests(unittest.TestCase):
         prob = PF.Mag.MagProblem(M, mod, None)
 
         self.prob = prob
-        self.M = M    
+        self.M = M
 
     def test_forward(self):
-    
+
         passed = True
-        self.assertTrue(passed) 
+        self.assertTrue(passed)
 
 
     def test_DirchletBC(self):
