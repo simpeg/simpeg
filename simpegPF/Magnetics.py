@@ -18,19 +18,7 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
 
         Dface = self.mesh.faceDiv
         Mc = Utils.sdiag(self.mesh.vol)
-        self._Div = Mc*Dface*self.Pin.T*self.Pin
-
-    @property
-    def Pbc(self): return self._Pbc
-
-    @property
-    def Pin(self): return self._Pin
-
-    @property
-    def Pout(self): return self._Pout
-
-    @property
-    def Div(self): return self._Div
+        self._Div = Mc*Dface*self._Pin.T*self._Pin
 
     @property
     def MfMuI(self): return self._MfMuI
@@ -45,18 +33,19 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
         self._MfmuI = Utils.sdiag(1./Mfmui.diagonal())
         self._Mfmu0 = self.mesh.getFaceInnerProduct(1/mu_0)
 
-    def getRHS(self):
+    def getRHS(self, m):
         b0 = self.data.B0
-        B0 = np.r_[b0[0]*np.ones(M3.nFx),
-                   b0[1]*np.ones(M3.nFy),
-                   b0[2]*np.ones(M3.nFz)]
+        B0 = np.r_[b0[0]*np.ones(self.mesh.nFx),
+                   b0[1]*np.ones(self.mesh.nFy),
+                   b0[2]*np.ones(self.mesh.nFz)]
 
         Dface = self.mesh.faceDiv
         Mc = Utils.sdiag(self.mesh.vol)
 
-        Bbc = CongruousMagBC(M3, np.array([Box, Boy, Boz]), chi)
+        chi = self.model.transform(m, asMu=False)
+        Bbc = CongruousMagBC(self.mesh, self.data.B0, chi)
 
-        rhs = -self.Div*self.MfmuI*self.Mfmu0*B0 + self.Div*B0 - Mc*Dface*self.Pout.T*Bbc
+        return -self._Div*self.MfmuI*self.Mfmu0*B0 + self._Div*B0 - Mc*Dface*self._Pout.T*Bbc
 
     def getA(self, m):
         """
@@ -71,11 +60,14 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
 
 
         """
-        return -self.Div*self.MfmuI*self.Div.T
+        return -self._Div*self.MfmuI*self._Div.T
 
 
     def fields(self, m):
         self.makeMassMatrices(m)
+        A = self.getA(m)
+        rhs = self.getRHS(m)
+
         # F = self.getInitialFields()
         # return self.forward(m, self.getRHS, self.calcFields, F=F)
 
