@@ -1,5 +1,5 @@
 from scipy.constants import mu_0
-from SimPEG.Utils.sputils import kron3, speye, sdiag
+from SimPEG.Utils.matutils import kron3, speye, sdiag
 import matplotlib.pyplot as plt
 from SimPEG import *
 import numpy as np
