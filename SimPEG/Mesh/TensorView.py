@@ -243,11 +243,30 @@ class TensorView(object):
     def plotSlice(self, v, vType='CC',
                   normal='Z', ind=None, grid=False, view='real',
                   ax=None, clim=None, showIt=False,
+                  pcolorOpts={},
+                  streamOpts={'color':'k'},
                   gridOpts={'color':'k'}
                   ):
+
+        """
+        Plots a slice of a 3D mesh.
+
+        .. plot::
+
+            from SimPEG import *
+            mT = Utils.meshTensors(((2,5),(4,2),(2,5)),((2,2),(6,2),(2,2)),((2,2),(6,2),(2,2)))
+            M = Mesh.TensorMesh(mT)
+            q = np.zeros(M.vnC)
+            q[[4,4],[4,4],[2,6]]=[-1,1]
+            q = Utils.mkvc(q)
+            A = M.faceDiv*M.cellGrad
+            b = Solver(A).solve(q)
+            M.plotSlice(M.cellGrad*b, 'F', view='vec', grid=True, showIt=True, pcolorOpts={'alpha':0.8})
+
+        """
         viewOpts = ['real','imag','abs','vec']
         normalOpts = ['X', 'Y', 'Z']
-        vTypeOpts = ['CC','F','E']
+        vTypeOpts = ['CC', 'CCv','F','E']
 
         # Some user error checking
         assert vType in vTypeOpts, "vType must be in ['%s']" % "','".join(vTypeOpts)
@@ -279,11 +298,15 @@ class TensorView(object):
         def doSlice(v):
             if vType == 'CC':
                 return getIndSlice(self.r(v,'CC','CC','M'))
-            # Now just deal with 'F' and 'E'
-            aveOp = 'ave' + vType + ('2CCV' if view == 'vec' else '2CC')
-            v = getattr(self,aveOp)*v # average to cell centers (might be a vector)
-            if view == 'vec':
+            elif vType == 'CCv':
                 v = self.r(v.reshape((self.nC,3),order='F'),'CC','CC','M')
+                assert view == 'vec', 'Other types for CCv not yet supported'
+            else:
+                # Now just deal with 'F' and 'E'
+                aveOp = 'ave' + vType + ('2CCV' if view == 'vec' else '2CC')
+                v = getattr(self,aveOp)*v # average to cell centers (might be a vector)
+                v = self.r(v.reshape((self.nC,3),order='F'),'CC','CC','M')
+            if view == 'vec':
                 outSlice = []
                 if 'X' not in normal: outSlice.append(getIndSlice(v[0]))
                 if 'Y' not in normal: outSlice.append(getIndSlice(v[1]))
@@ -304,13 +327,31 @@ class TensorView(object):
             v = doSlice(v)
             if clim is None:
                 clim = [v.min(),v.max()]
-            out += (ax.pcolormesh(tM.vectorNx, tM.vectorNy, v.T, vmin=clim[0], vmax=clim[1]),)
+            out += (ax.pcolormesh(tM.vectorNx, tM.vectorNy, v.T, vmin=clim[0], vmax=clim[1], **pcolorOpts),)
         elif view in ['vec']:
             U, V = doSlice(v)
             if clim is None:
-                clim = [v.min(),v.max()]
-            out += (ax.pcolormesh(tM.vectorNx, tM.vectorNy, 0.5*(U+V).T, vmin=clim[0], vmax=clim[1]),)
-            out += (plt.streamplot(tM.vectorCCx, tM.vectorCCy, U.T, V.T),)
+                uv = np.r_[mkvc(U), mkvc(V)]
+                uv = np.sqrt(uv**2)
+                clim = [uv.min(),uv.max()]
+
+            # Matplotlib seems to not support irregular
+            # spaced vectors at the moment. So we will
+            # Interpolate down to a regular mesh at the
+            # smallest mesh size in this 2D slice.
+            nxi = int(tM.hx.sum()/tM.hx.min())
+            nyi = int(tM.hy.sum()/tM.hy.min())
+            tMi = self.__class__([np.ones(nxi)*tM.hx.sum()/nxi,
+                                  np.ones(nyi)*tM.hy.sum()/nyi])
+            P = tM.getInterpolationMat(tMi.gridCC,'CC',zerosOutside=True)
+            Ui = P*mkvc(U)
+            Vi = P*mkvc(V)
+            Ui = tMi.r(Ui, 'CC', 'CC', 'M')
+            Vi = tMi.r(Vi, 'CC', 'CC', 'M')
+            # End Interpolation
+
+            out += (ax.pcolormesh(tM.vectorNx, tM.vectorNy, np.sqrt(U**2+V**2).T, vmin=clim[0], vmax=clim[1], **pcolorOpts),)
+            out += (ax.streamplot(tMi.vectorCCx, tMi.vectorCCy, Ui.T, Vi.T, **streamOpts),)
 
         if grid:
             xXGrid = np.c_[tM.vectorNx,tM.vectorNx,np.nan*np.ones(tM.nNx)].flatten()
@@ -322,6 +363,8 @@ class TensorView(object):
         ax.set_xlabel('y' if normal == 'X' else 'x')
         ax.set_ylabel('y' if normal == 'Z' else 'z')
         ax.set_title('Slice %d' % ind)
+        ax.set_xlim(*tM.vectorNx[[0,-1]])
+        ax.set_ylim(*tM.vectorNy[[0,-1]])
 
         if showIt: plt.show()
         return out
@@ -514,3 +557,13 @@ class TensorView(object):
         return animate(fig, animateFrame, frames=len(frames))
 
 
+if __name__ == '__main__':
+    from SimPEG import *
+    mT = Utils.meshTensors(((2,5),(4,2),(2,5)),((2,2),(6,2),(2,2)),((2,2),(6,2),(2,2)))
+    M = Mesh.TensorMesh(mT)
+    q = np.zeros(M.vnC)
+    q[[4,4],[4,4],[2,6]]=[-1,1]
+    q = Utils.mkvc(q)
+    A = M.faceDiv*M.cellGrad
+    b = Solver(A).solve(q)
+    M.plotSlice(M.cellGrad*b, 'F', view='vec', grid=True, showIt=True, pcolorOpts={'alpha':0.8})

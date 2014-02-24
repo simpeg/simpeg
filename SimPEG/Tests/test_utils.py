@@ -1,6 +1,6 @@
-import numpy as np
 import unittest
-from SimPEG.Utils import mkvc, ndgrid, indexCube, sdiag, inv3X3BlockDiagonal, inv2X2BlockDiagonal
+from SimPEG.Utils import *
+from SimPEG import Mesh, np, sp
 from SimPEG.Tests import checkDerivative
 
 
@@ -64,6 +64,19 @@ class TestSequenceFunctions(unittest.TestCase):
         self.assertTrue(np.all(XYZ[:, 1] == X2_test))
         self.assertTrue(np.all(XYZ[:, 2] == X3_test))
 
+    def test_sub2ind(self):
+        x = np.ones((5,2))
+        self.assertTrue(np.all(sub2ind(x.shape, [0,0]) == [0]))
+        self.assertTrue(np.all(sub2ind(x.shape, [4,0]) == [4]))
+        self.assertTrue(np.all(sub2ind(x.shape, [0,1]) == [5]))
+        self.assertTrue(np.all(sub2ind(x.shape, [4,1]) == [9]))
+        self.assertTrue(np.all(sub2ind(x.shape, [[0,0],[4,0],[0,1],[4,1]]) == [0,4,5,9]))
+
+    def test_ind2sub(self):
+        x = np.ones((5,2))
+        self.assertTrue(np.all(ind2sub(x.shape, [0,4,5,9])[0] == [0,4,0,4]))
+        self.assertTrue(np.all(ind2sub(x.shape, [0,4,5,9])[1] == [0,0,1,1]))
+
     def test_indexCube_2D(self):
         nN = np.array([3, 3])
         self.assertTrue(np.all(indexCube('A', nN) == np.array([0, 1, 3, 4])))
@@ -83,8 +96,6 @@ class TestSequenceFunctions(unittest.TestCase):
         self.assertTrue(np.all(indexCube('H', nN) == np.array([10, 11, 13, 14, 19, 20, 22, 23])))
 
     def test_invXXXBlockDiagonal(self):
-        import scipy.sparse as sp
-
         a = [np.random.rand(5, 1) for i in range(4)]
 
         B = inv2X2BlockDiagonal(*a)
@@ -106,6 +117,50 @@ class TestSequenceFunctions(unittest.TestCase):
 
         self.assertTrue(np.linalg.norm(Z3.todense().ravel(), 2) < 1e-12)
 
+
+    def test_invPropertyTensor2D(self):
+        M = Mesh.TensorMesh([6, 6])
+        a1 = np.random.rand(M.nC)
+        a2 = np.random.rand(M.nC)
+        a3 = np.random.rand(M.nC)
+        prop1 = a1
+        prop2 = np.c_[a1, a2]
+        prop3 = np.c_[a1, a2, a3]
+
+        for prop in [4, prop1, prop2, prop3]:
+            b = invPropertyTensor(M, prop)
+            A = makePropertyTensor(M, prop)
+            B1 = makePropertyTensor(M, b)
+            B2 = invPropertyTensor(M, prop, returnMatrix=True)
+
+            Z = B1*A - sp.identity(M.nC*2)
+            self.assertTrue(np.linalg.norm(Z.todense().ravel(), 2) < 1e-12)
+            Z = B2*A - sp.identity(M.nC*2)
+            self.assertTrue(np.linalg.norm(Z.todense().ravel(), 2) < 1e-12)
+
+
+    def test_invPropertyTensor3D(self):
+        M = Mesh.TensorMesh([6, 6, 6])
+        a1 = np.random.rand(M.nC)
+        a2 = np.random.rand(M.nC)
+        a3 = np.random.rand(M.nC)
+        a4 = np.random.rand(M.nC)
+        a5 = np.random.rand(M.nC)
+        a6 = np.random.rand(M.nC)
+        prop1 = a1
+        prop2 = np.c_[a1, a2, a3]
+        prop3 = np.c_[a1, a2, a3, a4, a5, a6]
+
+        for prop in [4, prop1, prop2, prop3]:
+            b = invPropertyTensor(M, prop)
+            A = makePropertyTensor(M, prop)
+            B1 = makePropertyTensor(M, b)
+            B2 = invPropertyTensor(M, prop, returnMatrix=True)
+
+            Z = B1*A - sp.identity(M.nC*3)
+            self.assertTrue(np.linalg.norm(Z.todense().ravel(), 2) < 1e-12)
+            Z = B2*A - sp.identity(M.nC*3)
+            self.assertTrue(np.linalg.norm(Z.todense().ravel(), 2) < 1e-12)
 
 
 if __name__ == '__main__':

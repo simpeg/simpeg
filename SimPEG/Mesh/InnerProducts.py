@@ -1,5 +1,5 @@
 from scipy import sparse as sp
-from SimPEG.Utils import sub2ind, ndgrid, mkvc, getSubArray, sdiag, inv3X3BlockDiagonal, inv2X2BlockDiagonal
+from SimPEG.Utils import sub2ind, ndgrid, mkvc, getSubArray, sdiag, inv3X3BlockDiagonal, inv2X2BlockDiagonal, makePropertyTensor
 import numpy as np
 
 
@@ -174,7 +174,7 @@ class InnerProducts(object):
             P011 = V3*Pxxx('fXm', 'fYp', 'fZp')
             P111 = V3*Pxxx('fXp', 'fYp', 'fZp')
 
-        Mu = _makeTensor(M, mu)
+        Mu = makePropertyTensor(M, mu)
         A = P000.T*Mu*P000 + P100.T*Mu*P100
         P = [P000, P100]
 
@@ -283,7 +283,7 @@ class InnerProducts(object):
             P011 = V*eP('eX3', 'eY2', 'eZ2')
             P111 = V*eP('eX3', 'eY3', 'eZ3')
 
-        Sigma = _makeTensor(M, sigma)
+        Sigma = makePropertyTensor(M, sigma)
         A = P000.T*Sigma*P000 + P100.T*Sigma*P100 + P010.T*Sigma*P010 + P110.T*Sigma*P110
         P = [P000, P100, P010, P110]
         if M.dim == 3:
@@ -312,43 +312,6 @@ class InnerProducts(object):
 #         |                                     | /
 #         |                                     |/
 #    node(i+1,j,k) ------ edge2(i+1,j,k) ----- node(i+1,j+1,k)
-
-def _makeTensor(M, sigma):
-    if sigma is None:  # default is ones
-        sigma = np.ones((M.nC, 1))
-
-    if M.dim == 1:
-        if sigma.size == M.nC:  # Isotropic!
-            sigma = mkvc(sigma)  # ensure it is a vector.
-            Sigma = sdiag(sigma)
-        else:
-            raise Exception('Unexpected shape of sigma')
-    elif M.dim == 2:
-        if sigma.size == M.nC:  # Isotropic!
-            sigma = mkvc(sigma)  # ensure it is a vector.
-            Sigma = sdiag(np.r_[sigma, sigma])
-        elif sigma.shape[1] == 2:  # Diagonal tensor
-            Sigma = sdiag(np.r_[sigma[:, 0], sigma[:, 1]])
-        elif sigma.shape[1] == 3:  # Fully anisotropic
-            row1 = sp.hstack((sdiag(sigma[:, 0]), sdiag(sigma[:, 2])))
-            row2 = sp.hstack((sdiag(sigma[:, 2]), sdiag(sigma[:, 1])))
-            Sigma = sp.vstack((row1, row2))
-        else:
-            raise Exception('Unexpected shape of sigma')
-    elif M.dim == 3:
-        if sigma.size == M.nC:  # Isotropic!
-            sigma = mkvc(sigma)  # ensure it is a vector.
-            Sigma = sdiag(np.r_[sigma, sigma, sigma])
-        elif sigma.shape[1] == 3:  # Diagonal tensor
-            Sigma = sdiag(np.r_[sigma[:, 0], sigma[:, 1], sigma[:, 2]])
-        elif sigma.shape[1] == 6:  # Fully anisotropic
-            row1 = sp.hstack((sdiag(sigma[:, 0]), sdiag(sigma[:, 3]), sdiag(sigma[:, 4])))
-            row2 = sp.hstack((sdiag(sigma[:, 3]), sdiag(sigma[:, 1]), sdiag(sigma[:, 5])))
-            row3 = sp.hstack((sdiag(sigma[:, 4]), sdiag(sigma[:, 5]), sdiag(sigma[:, 2])))
-            Sigma = sp.vstack((row1, row2, row3))
-        else:
-            raise Exception('Unexpected shape of sigma')
-    return Sigma
 
 
 def _getFacePx(M):

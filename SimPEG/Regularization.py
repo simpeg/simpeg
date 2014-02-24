@@ -59,7 +59,7 @@ class BaseRegularization(object):
 
     @Utils.timeIt
     def modelObj(self, m):
-        r = self.W * (m - self.mref)
+        r = self.W * self.model.transform(m - self.mref)
         return 0.5*r.dot(r)
 
     @Utils.timeIt
@@ -79,7 +79,7 @@ class BaseRegularization(object):
             R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
 
         """
-        return self.W.T * ( self.W * (m - self.mref) )
+        return self.W.T * ( self.W * self.model.transform(m - self.mref) )
 
     @Utils.timeIt
     def modelObj2Deriv(self):
