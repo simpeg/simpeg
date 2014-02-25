@@ -64,6 +64,68 @@ class BaseModel(object):
             m = self.example()
         return checkDerivative(lambda m : [self.transform(m), self.transformDeriv(m)], m, plotIt=False)
 
+class BaseNonLinearModel(object):
+    """
+    SimPEG BaseNonLinearModel
+
+    """
+
+    __metaclass__ = Utils.SimPEGMetaClass
+
+    counter = None   #: A SimPEG.Utils.Counter object
+    mesh = None      #: A SimPEG Mesh
+
+    def __init__(self, mesh):
+        self.mesh = mesh
+
+    def transform(self, u, m):
+        """
+            :param numpy.array u: fields
+            :param numpy.array m: model
+            :rtype: numpy.array
+            :return: transformed model
+
+            The *transform* changes the model into the physical property.
+
+        """
+        return m
+
+    def transformDerivU(self, u, m):
+        """
+            :param numpy.array u: fields
+            :param numpy.array m: model
+            :rtype: scipy.csr_matrix
+            :return: derivative of transformed model
+
+            The *transform* changes the model into the physical property.
+            The *transformDerivU* provides the derivative of the *transform* with respect to the fields.
+        """
+        raise NotImplementedError('The transformDerivU is not implemented.')
+
+
+    def transformDerivM(self, u, m):
+        """
+            :param numpy.array u: fields
+            :param numpy.array m: model
+            :rtype: scipy.csr_matrix
+            :return: derivative of transformed model
+
+            The *transform* changes the model into the physical property.
+            The *transformDerivU* provides the derivative of the *transform* with respect to the model.
+        """
+        raise NotImplementedError('The transformDerivM is not implemented.')
+
+    @property
+    def nP(self):
+        """Number of parameters in the model."""
+        return self.mesh.nC
+
+    def example(self):
+        raise NotImplementedError('The example is not implemented.')
+
+    def test(self, m=None):
+        raise NotImplementedError('The test is not implemented.')
+
 
 class LogModel(BaseModel):
     """SimPEG LogModel"""

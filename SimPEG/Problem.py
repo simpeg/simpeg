@@ -40,7 +40,7 @@ class BaseProblem(object):
 
     dataPair = Data.BaseData
 
-    def __init__(self, mesh, model, *args, **kwargs):
+    def __init__(self, mesh, model, **kwargs):
         Utils.setKwargs(self, **kwargs)
         self.mesh = mesh
         self.model = model
