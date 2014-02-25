@@ -19,14 +19,5 @@ class MagProblemTests(unittest.TestCase):
         self.assertTrue(passed)
 
 
-    def test_DirchletBC(self):
-        q = lambda x: np.sin(x)
-
-        M = self.M
-        order = 2
-        self.assertTrue(order > 1)
-
-
-
 if __name__ == '__main__':
     unittest.main()

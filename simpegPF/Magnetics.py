@@ -91,7 +91,7 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     hxind = ((5,25,1.3),(41, 12.5),(5,25,1.3))
     hyind = ((5,25,1.3),(41, 12.5),(5,25,1.3))
-    hzind = ((5,25,1.3),(40, 12.5),(1,25,1.3))
+    hzind = ((5,25,1.3),(40, 12.5),(5,25,1.3))
     hx, hy, hz = Utils.meshTensors(hxind, hyind, hzind)
     mesh = Mesh.TensorMesh([hx, hy, hz], [-hx.sum()/2,-hy.sum()/2,-hz.sum()/2])
 
@@ -121,9 +121,9 @@ if __name__ == '__main__':
 
     dpred = data.dpred(chi, u=B)
 
-    plt.pcolor(X, Y, dpred.reshape(X.shape, order='F'))
+    # plt.pcolor(X, Y, dpred.reshape(X.shape, order='F'))
 
-    plt.show()
+    # plt.show()
 
 
 

@@ -1,3 +1,3 @@
 import MagAnalytics
-import MagData
+import BaseMag
 import Magnetics

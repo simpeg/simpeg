@@ -11,8 +11,8 @@ simpegPF uses SimPEG as the framework for the forward and inverse
 gravity and magnetics geophysical problems.
 
 
-PF
-==
+Potential fields
+================
 
 .. toctree::
    :maxdepth: 2
