@@ -1,5 +1,9 @@
 .. _api_Richards:
 
+
+Richards Equation
+*****************
+
 There are two different forms of Richards equation that differ
 on how they deal with the non-linearity in the time-stepping term.
 
@@ -8,7 +12,7 @@ The most fundamental form, referred to as the
 
 .. math::
 
-    \\frac{\partial \\theta(\psi)}{\partial t} - \\nabla \cdot k(\psi) \\nabla \psi - \\frac{\partial k(\psi)}{\partial z} = 0
+    \frac{\partial \theta(\psi)}{\partial t} - \nabla \cdot k(\psi) \nabla \psi - \frac{\partial k(\psi)}{\partial z} = 0
     \quad \psi \in \Omega
 
 where theta is water content, and psi is pressure head.
@@ -21,7 +25,7 @@ equation can be written in the continuous form as:
 
 .. math::
 
-    \\frac{\partial \\theta}{\partial \psi}\\frac{\partial \psi}{\partial t} - \\nabla \cdot k(\psi) \\nabla \psi - \\frac{\partial k(\psi)}{\partial z} = 0
+    \frac{\partial \theta}{\partial \psi}\frac{\partial \psi}{\partial t} - \nabla \cdot k(\psi) \nabla \psi - \frac{\partial k(\psi)}{\partial z} = 0
     \quad \psi \in \Omega
 
 However, it can be shown that this does not conserve mass in the discrete formulation.
