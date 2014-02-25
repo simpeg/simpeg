@@ -2,7 +2,7 @@
 
 
 Regularization
-**************
+==============
 
 .. automodule:: SimPEG.Regularization
     :show-inheritance:
@@ -11,7 +11,7 @@ Regularization
 
 
 Objective Function
-******************
+==================
 
 .. automodule:: SimPEG.ObjFunction
     :members:
@@ -19,7 +19,7 @@ Objective Function
 
 
 Optimize
-********
+========
 
 .. automodule:: SimPEG.Optimization
     :show-inheritance:
@@ -28,7 +28,7 @@ Optimize
     :undoc-members:
 
 Inversion
-*********
+=========
 
 .. automodule:: SimPEG.Inversion
     :show-inheritance:

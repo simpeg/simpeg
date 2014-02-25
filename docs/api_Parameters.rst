@@ -2,7 +2,7 @@
 
 
 Parameters
-**********
+==========
 
 .. automodule:: SimPEG.Parameters
     :show-inheritance:
