@@ -291,8 +291,8 @@ class DiffOperators(object):
 
         """
         if(type(BC) is str):
-            BC = [BC for _ in self.vnC]  # Repeat the str self.dim times
-        elif(type(BC) is list):
+            BC = [BC]*self.dim
+        if(type(BC) is list):
             assert len(BC) == self.dim, 'BC list must be the size of your mesh'
         else:
             raise Exception("BC must be a str or a list.")
@@ -473,6 +473,10 @@ class DiffOperators(object):
                                                                       #     Dirichlet else
 
         """
+
+        if discretization is not 'CC':
+            raise NotImplementedError('Boundary conditions only implemented for CC discretization.')
+
         if(type(BC) is str):
             BC = [BC for _ in self.vnC]  # Repeat the str self.dim times
         elif(type(BC) is list):
