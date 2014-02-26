@@ -34,6 +34,7 @@ class RichardsData(Data.BaseData):
         if u is None: u = self.prob.fields(m)
         return Utils.mkvc(self.projectFields(u, m))
 
+    @Utils.requires('prob')
     def projectFields(self, U, m):
 
         u = np.concatenate(U[1:])
@@ -42,13 +43,18 @@ class RichardsData(Data.BaseData):
             u = self.prob.model.theta(u, m)
         return self.P*u
 
-    def projectFieldsDerivU(self, U, m):
+    @Utils.requires('prob')
+    def projectFieldsDeriv(self, U, m):
+        """The Derivative with respect to the fields."""
 
         u = np.concatenate(U[1:])
 
         if self.dataType == 'pressureHead':
             return self.P
         elif self.dataType == 'saturation':
+            #TODO: if m is a parameter in the theta
+            #      distribution, we may need to do
+            #      some more chain rule here.
             dT = self.model.thetaDerivU(u, m)
             return self.P*dT
 
@@ -64,7 +70,6 @@ class RichardsProblem(Problem.BaseProblem):
     modelPair = RichardsModel
 
     def __init__(self, mesh, model, **kwargs):
-        self.doNewton = False  # This also sets the rootFinder algorithm.
         Problem.BaseProblem.__init__(self, mesh, model, **kwargs)
 
     @property
@@ -89,15 +94,16 @@ class RichardsProblem(Problem.BaseProblem):
         assert value in ['mixed','head'], "method must be 'mixed' or 'head'."
         self._method = value
 
+    # Setting doNewton will clear the rootFinder, which will be reinitialized when called
+    doNewton = Utils.dependentProperty('_doNewton', False, ['_rootFinder'],
+                "Do a Newton iteration. If False, a Picard iteration will be completed.")
+
     @property
-    def doNewton(self):
-        """Do a Newton iteration. If False, a Picard iteration will be completed."""
-        return self._doNewton
-    @doNewton.setter
-    def doNewton(self, value):
-        value = bool(value)
-        self.rootFinder = Optimization.NewtonRoot(doLS=value)
-        self._doNewton = value
+    def rootFinder(self):
+        """Root-finding Algorithm"""
+        if getattr(self, '_rootFinder', None) is None:
+            self._rootFinder = Optimization.NewtonRoot(doLS=self.doNewton)
+        return self._rootFinder
 
     def fields(self, m):
         u = range(self.numIts+1)
@@ -126,7 +132,7 @@ class RichardsProblem(Problem.BaseProblem):
         dT1  = self.model.thetaDerivU(hn1, m)
         K1   = self.model.k(hn1, m)
         dK1  = self.model.kDerivU(hn1, m)
-        dKa1 = self.model.kDerivM(hn1, m)
+        dKm1 = self.model.kDerivM(hn1, m)
 
         # Compute part of the derivative of:
         #
@@ -154,7 +160,7 @@ class RichardsProblem(Problem.BaseProblem):
                  -Dz*diagAVk2_AVdiagK2*dK1
                 )
 
-        B = DdiagGh1*diagAVk2_AVdiagK2*dKa1 + Dz*diagAVk2_AVdiagK2*dKa1
+        B = DdiagGh1*diagAVk2_AVdiagK2*dKm1 + Dz*diagAVk2_AVdiagK2*dKm1
 
         return Asub, Adiag, B
 
@@ -218,7 +224,6 @@ class RichardsProblem(Problem.BaseProblem):
         J = Ainv.solve(B)
         return J
 
-
     def Jvec(self, m, v, u=None):
         if u is None:
             u = self.field(m)
@@ -238,15 +243,14 @@ class RichardsProblem(Problem.BaseProblem):
             Adiaginv = Solver(Adiag)
             JvC[ii] = Adiaginv.solve(B*v - Asub*JvC[ii-1])
 
-        P = self.data.projectFieldsDerivU(u, m)
+        P = self.data.projectFieldsDeriv(u, m)
         return P * np.concatenate(JvC)
 
     def Jtvec(self, m, v, u=None):
         if u is None:
             u = self.field(m)
 
-
-        P = self.data.projectFieldsDerivU(u, m)
+        P = self.data.projectFieldsDeriv(u, m)
         PTv = P.T*v
 
         # This is done via backward substitution.
