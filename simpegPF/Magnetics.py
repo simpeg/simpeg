@@ -46,7 +46,7 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
         chi = self.model.transform(m, asMu=False)
         Bbc = CongruousMagBC(self.mesh, self.data.B0, chi)
 
-        return -self._Div*self.MfMuI*self.MfMu0*B0 + self._Div*B0 - Mc*Dface*self._Pout.T*Bbc
+        return self._Div*self.MfMuI*self.MfMu0*B0 - self._Div*B0 + Mc*Dface*self._Pout.T*Bbc
 
     def getA(self, m):
         """
@@ -61,16 +61,15 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
 
 
         """
-        return -self._Div*self.MfMuI*self._Div.T
+        return self._Div*self.MfMuI*self._Div.T
 
 
     def fields(self, m):
         self.makeMassMatrices(m)
-        #TODO: change to pos def A
         A = self.getA(m)
         rhs = self.getRHS(m)
 
-        m1 = sp.linalg.interface.aslinearoperator(Utils.sdiag(-1/A.diagonal()))
+        m1 = sp.linalg.interface.aslinearoperator(Utils.sdiag(1/A.diagonal()))
         phi, info = sp.linalg.bicgstab(A, rhs, tol=1e-6, maxiter=1000, M=m1)
 
         #TODO: make onPair function call
@@ -85,6 +84,11 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
 
         # F = self.getInitialFields()
         # return self.forward(m, self.getRHS, self.calcFields, F=F)
+
+    @Utils.timeIt
+    def Jvec(self, m, v, u=None):
+        pass
+
 
 
 if __name__ == '__main__':
