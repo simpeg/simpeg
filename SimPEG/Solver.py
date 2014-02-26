@@ -1,8 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.linalg as linalg
-from Utils.matutils import mkvc
-from Utils.sputils import sdiag
+from Utils.matutils import mkvc, sdiag
 import warnings
 
 DEFAULTS = {'direct':'scipy', 'iter':'scipy', 'triangular':'fortran', 'diagonal':'python'}

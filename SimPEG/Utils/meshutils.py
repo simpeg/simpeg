@@ -1,7 +1,6 @@
 import numpy as np
 from scipy import sparse as sp
-from matutils import mkvc, ndgrid, sub2ind
-from sputils import sdiag
+from matutils import mkvc, ndgrid, sub2ind, sdiag
 
 def exampleLomGird(nC, exType):
     assert type(nC) == list, "nC must be a list containing the number of nodes"
@@ -30,7 +29,12 @@ def meshTensors(*args):
     """
         **meshTensors** takes any number of tuples that have the form::
 
-            h1 = ( (numPad, sizeStart [, increaseFactor]), (numCore, sizeCore), (numPad, sizeStart [, increaseFactor]) )
+            mT = ( (numPad, sizeStart [, increaseFactor]), (numCore, sizeCore), (numPad, sizeStart [, increaseFactor]) )
+
+        .. note::
+
+            The increaseFactor is an optional input.
+
 
         .. plot::
 

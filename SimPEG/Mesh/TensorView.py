@@ -61,20 +61,20 @@ class TensorView(object):
         elif imageType == 'N':
             assert I.size == self.nN, "Incorrect dimensions for N."
         elif imageType == 'Fx':
-            if I.size != np.prod(self.nFx): I, fy, fz = self.r(I,'F','F','M')
+            if I.size != np.prod(self.vnFx): I, fy, fz = self.r(I,'F','F','M')
         elif imageType == 'Fy':
-            if I.size != np.prod(self.nFy): fx, I, fz = self.r(I,'F','F','M')
+            if I.size != np.prod(self.vnFy): fx, I, fz = self.r(I,'F','F','M')
         elif imageType == 'Fz':
-            if I.size != np.prod(self.nFz): fx, fy, I = self.r(I,'F','F','M')
+            if I.size != np.prod(self.vnFz): fx, fy, I = self.r(I,'F','F','M')
         elif imageType == 'Ex':
-            if I.size != np.prod(self.nEx): I, ey, ez = self.r(I,'E','E','M')
+            if I.size != np.prod(self.vnEx): I, ey, ez = self.r(I,'E','E','M')
         elif imageType == 'Ey':
-            if I.size != np.prod(self.nEy): ex, I, ez = self.r(I,'E','E','M')
+            if I.size != np.prod(self.vnEy): ex, I, ez = self.r(I,'E','E','M')
         elif imageType == 'Ez':
-            if I.size != np.prod(self.nEz): ex, ey, I = self.r(I,'E','E','M')
+            if I.size != np.prod(self.vnEz): ex, ey, I = self.r(I,'E','E','M')
         elif imageType[0] == 'E':
             plotAll = len(imageType) == 1
-            options = {"direction":direction,"numbering":numbering,"annotationColor":annotationColor,"showIt":showIt}
+            options = {"direction":direction,"numbering":numbering,"annotationColor":annotationColor,"showIt":False}
             fig = plt.figure(figNum)
             # Determine the subplot number: 131, 121
             numPlots = 130 if plotAll else len(imageType)/2*10+100
@@ -92,10 +92,11 @@ class TensorView(object):
                 ax_z = plt.subplot(numPlots+pltNum)
                 self.plotImage(ez, imageType='Ez', ax=ax_z, **options)
                 pltNum +=1
+            if showIt: plt.show()
             return
         elif imageType[0] == 'F':
             plotAll = len(imageType) == 1
-            options = {"direction":direction,"numbering":numbering,"annotationColor":annotationColor,"showIt":showIt}
+            options = {"direction":direction,"numbering":numbering,"annotationColor":annotationColor,"showIt":False}
             fig = plt.figure(figNum)
             # Determine the subplot number: 131, 121
             numPlots = 130 if plotAll else len(imageType)/2*10+100
@@ -113,6 +114,7 @@ class TensorView(object):
                 ax_z = plt.subplot(numPlots+pltNum)
                 self.plotImage(fxyz[2], imageType='Fz', ax=ax_z, **options)
                 pltNum +=1
+            if showIt: plt.show()
             return
         else:
             raise Exception("imageType must be 'CC', 'N','Fx','Fy','Fz','Ex','Ey','Ez'")
@@ -135,21 +137,21 @@ class TensorView(object):
             ax.axis('tight')
         elif self.dim == 2:
             if imageType == 'CC':
-                C = I[:].reshape(self.nCv, order='F')
+                C = I[:].reshape(self.vnC, order='F')
             elif imageType == 'N':
-                C = I[:].reshape(self.nNv, order='F')
+                C = I[:].reshape(self.vnN, order='F')
                 C = 0.25*(C[:-1, :-1] + C[1:, :-1] + C[:-1, 1:] + C[1:, 1:])
             elif imageType == 'Fx':
-                C = I[:].reshape(self.nFx, order='F')
+                C = I[:].reshape(self.vnFx, order='F')
                 C = 0.5*(C[:-1, :] + C[1:, :] )
             elif imageType == 'Fy':
-                C = I[:].reshape(self.nFy, order='F')
+                C = I[:].reshape(self.vnFy, order='F')
                 C = 0.5*(C[:, :-1] + C[:, 1:] )
             elif imageType == 'Ex':
-                C = I[:].reshape(self.nEx, order='F')
+                C = I[:].reshape(self.vnEx, order='F')
                 C = 0.5*(C[:,:-1] + C[:,1:] )
             elif imageType == 'Ey':
-                C = I[:].reshape(self.nEy, order='F')
+                C = I[:].reshape(self.vnEy, order='F')
                 C = 0.5*(C[:-1,:] + C[1:,:] )
 
             if clim is None:
@@ -164,27 +166,27 @@ class TensorView(object):
 
                 # get copy of image and average to cell-centres is necessary
                 if imageType == 'CC':
-                    Ic = I[:].reshape(self.nCv, order='F')
+                    Ic = I[:].reshape(self.vnC, order='F')
                 elif imageType == 'N':
-                    Ic = I[:].reshape(self.nNv, order='F')
+                    Ic = I[:].reshape(self.vnN, order='F')
                     Ic = .125*(Ic[:-1,:-1,:-1]+Ic[1:,:-1,:-1] + Ic[:-1,1:,:-1]+ Ic[1:,1:,:-1]+ Ic[:-1,:-1,1:]+Ic[1:,:-1,1:] + Ic[:-1,1:,1:]+ Ic[1:,1:,1:] )
                 elif imageType == 'Fx':
-                    Ic = I[:].reshape(self.nFx, order='F')
+                    Ic = I[:].reshape(self.vnFx, order='F')
                     Ic = .5*(Ic[:-1,:,:]+Ic[1:,:,:])
                 elif imageType == 'Fy':
-                    Ic = I[:].reshape(self.nFy, order='F')
+                    Ic = I[:].reshape(self.vnFy, order='F')
                     Ic = .5*(Ic[:,:-1,:]+Ic[:,1:,:])
                 elif imageType == 'Fz':
-                    Ic = I[:].reshape(self.nFz, order='F')
+                    Ic = I[:].reshape(self.vnFz, order='F')
                     Ic = .5*(Ic[:,:,:-1]+Ic[:,:,1:])
                 elif imageType == 'Ex':
-                    Ic = I[:].reshape(self.nEx, order='F')
+                    Ic = I[:].reshape(self.vnEx, order='F')
                     Ic = .25*(Ic[:,:-1,:-1]+Ic[:,1:,:-1]+Ic[:,:-1,1:]+Ic[:,1:,:1])
                 elif imageType == 'Ey':
-                    Ic = I[:].reshape(self.nEy, order='F')
+                    Ic = I[:].reshape(self.vnEy, order='F')
                     Ic = .25*(Ic[:-1,:,:-1]+Ic[1:,:,:-1]+Ic[:-1,:,1:]+Ic[1:,:,:1])
                 elif imageType == 'Ez':
-                    Ic = I[:].reshape(self.nEz, order='F')
+                    Ic = I[:].reshape(self.vnEz, order='F')
                     Ic = .25*(Ic[:-1,:-1,:]+Ic[1:,:-1,:]+Ic[:-1,1:,:]+Ic[1:,:1,:])
 
                 # determine number oE slices in x and y dimension
@@ -237,6 +239,135 @@ class TensorView(object):
         ax.set_title(imageType)
         if showIt: plt.show()
         return ph
+
+    def plotSlice(self, v, vType='CC',
+                  normal='Z', ind=None, grid=False, view='real',
+                  ax=None, clim=None, showIt=False,
+                  pcolorOpts={},
+                  streamOpts={'color':'k'},
+                  gridOpts={'color':'k'}
+                  ):
+
+        """
+        Plots a slice of a 3D mesh.
+
+        .. plot::
+
+            from SimPEG import *
+            mT = Utils.meshTensors(((2,5),(4,2),(2,5)),((2,2),(6,2),(2,2)),((2,2),(6,2),(2,2)))
+            M = Mesh.TensorMesh(mT)
+            q = np.zeros(M.vnC)
+            q[[4,4],[4,4],[2,6]]=[-1,1]
+            q = Utils.mkvc(q)
+            A = M.faceDiv*M.cellGrad
+            b = Solver(A).solve(q)
+            M.plotSlice(M.cellGrad*b, 'F', view='vec', grid=True, showIt=True, pcolorOpts={'alpha':0.8})
+
+        """
+        viewOpts = ['real','imag','abs','vec']
+        normalOpts = ['X', 'Y', 'Z']
+        vTypeOpts = ['CC', 'CCv','F','E']
+
+        # Some user error checking
+        assert vType in vTypeOpts, "vType must be in ['%s']" % "','".join(vTypeOpts)
+        assert self.dim == 3, 'Must be a 3D mesh.'
+        assert view in viewOpts, "view must be in ['%s']" % "','".join(viewOpts)
+        assert normal in normalOpts, "normal must be in ['%s']" % "','".join(normalOpts)
+        assert type(grid) is bool, 'grid must be a boolean'
+
+        szSliceDim = getattr(self, 'nC'+normal.lower()) #: Size of the sliced dimension
+        if ind is None: ind = int(szSliceDim/2)
+        assert type(ind) in [int, long], 'ind must be an integer'
+
+        if ax is None:
+            fig = plt.figure(1)
+            fig.clf()
+            ax = plt.subplot(111)
+        else:
+            assert isinstance(ax, matplotlib.axes.Axes), "ax must be an matplotlib.axes.Axes"
+            fig = ax.figure
+
+        # The slicing and plotting code!!
+
+        def getIndSlice(v):
+            if   normal == 'X': v = v[ind,:,:]
+            elif normal == 'Y': v = v[:,ind,:]
+            elif normal == 'Z': v = v[:,:,ind]
+            return v
+
+        def doSlice(v):
+            if vType == 'CC':
+                return getIndSlice(self.r(v,'CC','CC','M'))
+            elif vType == 'CCv':
+                v = self.r(v.reshape((self.nC,3),order='F'),'CC','CC','M')
+                assert view == 'vec', 'Other types for CCv not yet supported'
+            else:
+                # Now just deal with 'F' and 'E'
+                aveOp = 'ave' + vType + ('2CCV' if view == 'vec' else '2CC')
+                v = getattr(self,aveOp)*v # average to cell centers (might be a vector)
+                v = self.r(v.reshape((self.nC,3),order='F'),'CC','CC','M')
+            if view == 'vec':
+                outSlice = []
+                if 'X' not in normal: outSlice.append(getIndSlice(v[0]))
+                if 'Y' not in normal: outSlice.append(getIndSlice(v[1]))
+                if 'Z' not in normal: outSlice.append(getIndSlice(v[2]))
+                return outSlice
+            else:
+                return getIndSlice(self.r(v,'CC','CC','M'))
+
+        h2d = []
+        if 'X' not in normal: h2d.append(self.hx)
+        if 'Y' not in normal: h2d.append(self.hy)
+        if 'Z' not in normal: h2d.append(self.hz)
+        tM = self.__class__(h2d) #: Temp Mesh
+
+        out = ()
+        if view in ['real','imag','abs']:
+            v = getattr(np,view)(v) # e.g. np.real(v)
+            v = doSlice(v)
+            if clim is None:
+                clim = [v.min(),v.max()]
+            out += (ax.pcolormesh(tM.vectorNx, tM.vectorNy, v.T, vmin=clim[0], vmax=clim[1], **pcolorOpts),)
+        elif view in ['vec']:
+            U, V = doSlice(v)
+            if clim is None:
+                uv = np.r_[mkvc(U), mkvc(V)]
+                uv = np.sqrt(uv**2)
+                clim = [uv.min(),uv.max()]
+
+            # Matplotlib seems to not support irregular
+            # spaced vectors at the moment. So we will
+            # Interpolate down to a regular mesh at the
+            # smallest mesh size in this 2D slice.
+            nxi = int(tM.hx.sum()/tM.hx.min())
+            nyi = int(tM.hy.sum()/tM.hy.min())
+            tMi = self.__class__([np.ones(nxi)*tM.hx.sum()/nxi,
+                                  np.ones(nyi)*tM.hy.sum()/nyi])
+            P = tM.getInterpolationMat(tMi.gridCC,'CC',zerosOutside=True)
+            Ui = P*mkvc(U)
+            Vi = P*mkvc(V)
+            Ui = tMi.r(Ui, 'CC', 'CC', 'M')
+            Vi = tMi.r(Vi, 'CC', 'CC', 'M')
+            # End Interpolation
+
+            out += (ax.pcolormesh(tM.vectorNx, tM.vectorNy, np.sqrt(U**2+V**2).T, vmin=clim[0], vmax=clim[1], **pcolorOpts),)
+            out += (ax.streamplot(tMi.vectorCCx, tMi.vectorCCy, Ui.T, Vi.T, **streamOpts),)
+
+        if grid:
+            xXGrid = np.c_[tM.vectorNx,tM.vectorNx,np.nan*np.ones(tM.nNx)].flatten()
+            xYGrid = np.c_[tM.vectorNy[0]*np.ones(tM.nNx),tM.vectorNy[-1]*np.ones(tM.nNx),np.nan*np.ones(tM.nNx)].flatten()
+            yXGrid = np.c_[tM.vectorNx[0]*np.ones(tM.nNy),tM.vectorNx[-1]*np.ones(tM.nNy),np.nan*np.ones(tM.nNy)].flatten()
+            yYGrid = np.c_[tM.vectorNy,tM.vectorNy,np.nan*np.ones(tM.nNy)].flatten()
+            out += (ax.plot(np.r_[xXGrid,yXGrid],np.r_[xYGrid,yYGrid],**gridOpts)[0],)
+
+        ax.set_xlabel('y' if normal == 'X' else 'x')
+        ax.set_ylabel('y' if normal == 'Z' else 'z')
+        ax.set_title('Slice %d' % ind)
+        ax.set_xlim(*tM.vectorNx[[0,-1]])
+        ax.set_ylim(*tM.vectorNy[[0,-1]])
+
+        if showIt: plt.show()
+        return out
 
     def plotGrid(self, nodes=False, faces=False, centers=False, edges=False, lines=True, showIt=False):
         """Plot the nodal, cell-centered and staggered grids for 1,2 and 3 dimensions.
@@ -395,7 +526,7 @@ class TensorView(object):
             mesh.slicer(var, imageType=imageType, normal=normal, index=i, ax=ax, clim=clim)
             tlt.set_text(normal.upper()+('-Slice: %d, %4.4f' % (i,getattr(mesh,'vectorCC'+normal)[i])))
 
-        return animate(fig, animateFrame, frames=mesh.nCv['xyz'.index(normal)])
+        return animate(fig, animateFrame, frames=mesh.vnC['xyz'.index(normal)])
 
     def video(mesh, var, function, figsize=(10, 8), colorbar=True, skip=1):
         """
@@ -426,3 +557,13 @@ class TensorView(object):
         return animate(fig, animateFrame, frames=len(frames))
 
 
+if __name__ == '__main__':
+    from SimPEG import *
+    mT = Utils.meshTensors(((2,5),(4,2),(2,5)),((2,2),(6,2),(2,2)),((2,2),(6,2),(2,2)))
+    M = Mesh.TensorMesh(mT)
+    q = np.zeros(M.vnC)
+    q[[4,4],[4,4],[2,6]]=[-1,1]
+    q = Utils.mkvc(q)
+    A = M.faceDiv*M.cellGrad
+    b = Solver(A).solve(q)
+    M.plotSlice(M.cellGrad*b, 'F', view='vec', grid=True, showIt=True, pcolorOpts={'alpha':0.8})

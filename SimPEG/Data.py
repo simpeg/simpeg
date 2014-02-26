@@ -52,6 +52,7 @@ class BaseData(object):
             instead of recalculating the fields (which may be expensive!).
 
             .. math::
+
                 d_\\text{pred} = P(u(m))
 
             Where P is a projection of the fields onto the data space.
@@ -67,29 +68,22 @@ class BaseData(object):
 
 
             .. math::
+
                 d_\\text{pred} = \mathbf{P} u(m)
         """
         return u
 
-
     @Utils.count
-    def projectFieldsAdjoint(self, d):
+    def projectFieldsDeriv(self, u):
         """
-            This function is the adjoint of the projection.
-            **projectFieldsAdjoint** is used in the
-            calculation of the sensitivities.
+            This function projects the fields onto the data space.
+
 
             .. math::
-                u = \mathbf{P}^\\top d
 
-            :param numpy.array d: data
-            :param numpy.array u: fields (ish)
-            :rtype: fields like object
-            :return: data
+                \\frac{\partial d_\\text{pred}}{\partial u} = \mathbf{P}
         """
-        return d
-
-    #TODO: def projectFieldDeriv(self, u):  Does this need to be made??!
+        return sp.identity(u.size)
 
     @Utils.count
     def residual(self, m, u=None):

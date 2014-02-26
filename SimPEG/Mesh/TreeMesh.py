@@ -679,6 +679,8 @@ class TreeMesh(InnerProducts, BaseMesh):
 
     def __init__(self, h_in, x0=None):
         assert type(h_in) is list, 'h_in must be a list'
+        assert len(h_in) > 1, "len(h_in) must be greater than 1"
+
         h = range(len(h_in))
         for i, h_i in enumerate(h_in):
             if type(h_i) in [int, long, float]:

@@ -64,6 +64,68 @@ class BaseModel(object):
             m = self.example()
         return checkDerivative(lambda m : [self.transform(m), self.transformDeriv(m)], m, plotIt=False)
 
+class BaseNonLinearModel(object):
+    """
+    SimPEG BaseNonLinearModel
+
+    """
+
+    __metaclass__ = Utils.SimPEGMetaClass
+
+    counter = None   #: A SimPEG.Utils.Counter object
+    mesh = None      #: A SimPEG Mesh
+
+    def __init__(self, mesh):
+        self.mesh = mesh
+
+    def transform(self, u, m):
+        """
+            :param numpy.array u: fields
+            :param numpy.array m: model
+            :rtype: numpy.array
+            :return: transformed model
+
+            The *transform* changes the model into the physical property.
+
+        """
+        return m
+
+    def transformDerivU(self, u, m):
+        """
+            :param numpy.array u: fields
+            :param numpy.array m: model
+            :rtype: scipy.csr_matrix
+            :return: derivative of transformed model
+
+            The *transform* changes the model into the physical property.
+            The *transformDerivU* provides the derivative of the *transform* with respect to the fields.
+        """
+        raise NotImplementedError('The transformDerivU is not implemented.')
+
+
+    def transformDerivM(self, u, m):
+        """
+            :param numpy.array u: fields
+            :param numpy.array m: model
+            :rtype: scipy.csr_matrix
+            :return: derivative of transformed model
+
+            The *transform* changes the model into the physical property.
+            The *transformDerivU* provides the derivative of the *transform* with respect to the model.
+        """
+        raise NotImplementedError('The transformDerivM is not implemented.')
+
+    @property
+    def nP(self):
+        """Number of parameters in the model."""
+        return self.mesh.nC
+
+    def example(self):
+        raise NotImplementedError('The example is not implemented.')
+
+    def test(self, m=None):
+        raise NotImplementedError('The test is not implemented.')
+
 
 class LogModel(BaseModel):
     """SimPEG LogModel"""
@@ -150,7 +212,7 @@ class Vertical1DModel(BaseModel):
 
            The number of cells in the
            last dimension of the mesh."""
-        return self.mesh.nCv[self.mesh.dim-1]
+        return self.mesh.vnC[self.mesh.dim-1]
 
     def transform(self, m):
         """
@@ -158,7 +220,7 @@ class Vertical1DModel(BaseModel):
             :rtype: numpy.array
             :return: transformed model
         """
-        repNum = self.mesh.nCv[:self.mesh.dim-1].prod()
+        repNum = self.mesh.vnC[:self.mesh.dim-1].prod()
         return Utils.mkvc(m).repeat(repNum)
 
     def transformDeriv(self, m):
@@ -167,19 +229,116 @@ class Vertical1DModel(BaseModel):
             :rtype: scipy.csr_matrix
             :return: derivative of transformed model
         """
-        repNum = self.mesh.nCv[:self.mesh.dim-1].prod()
+        repNum = self.mesh.vnC[:self.mesh.dim-1].prod()
         repVec = sp.csr_matrix(
                     (np.ones(repNum),
                     (range(repNum), np.zeros(repNum))
                     ), shape=(repNum, 1))
         return sp.kron(sp.identity(self.nP), repVec)
 
+class Mesh2Mesh(BaseModel):
+    """
+        Takes a model on one mesh are translates it to another mesh.
+
+        .. plot::
+
+            from SimPEG import *
+            M = Mesh.TensorMesh([100,100])
+            h1 = Utils.meshTensors(((7,6,1.5),(10,6),(7,6,1.5)))
+            h1 = h1/h1.sum()
+            M2 = Mesh.TensorMesh([h1,h1])
+            V = Utils.ModelBuilder.randomModel(M.vnC, seed=79, its=50)
+            v = Utils.mkvc(V)
+            modh = Model.Mesh2Mesh([M,M2])
+            modH = Model.Mesh2Mesh([M2,M])
+            H = modH.transform(v)
+            h = modh.transform(H)
+            ax = plt.subplot(131)
+            M.plotImage(v, ax=ax)
+            ax.set_title('Fine Mesh (Original)')
+            ax = plt.subplot(132)
+            M2.plotImage(H,clim=[0,1],ax=ax)
+            ax.set_title('Course Mesh')
+            ax = plt.subplot(133)
+            M.plotImage(h,clim=[0,1],ax=ax)
+            ax.set_title('Fine Mesh (Interpolated)')
+
+    """
+
+    def __init__(self, meshes, **kwargs):
+        Utils.setKwargs(self, **kwargs)
+
+        assert type(meshes) is list, "meshes must be a list of two meshes"
+        assert len(meshes) == 2, "meshes must be a list of two meshes"
+        assert meshes[0].dim == meshes[1].dim, """The two meshes must be the same dimension"""
+
+        self.mesh  = meshes[0]
+        self.mesh2 = meshes[1]
+
+        self.P = self.mesh2.getInterpolationMat(self.mesh.gridCC,'CC',zerosOutside=True)
+
+    @property
+    def nP(self):
+        """Number of parameters in the model."""
+        return self.mesh2.nC
+    def transform(self, m):
+        return self.P*m
+    def transformDeriv(self, m):
+        return self.P
+
+
+class ActiveModel(BaseModel):
+    """
+        Active model parameters.
+
+    """
+
+    indActive   = None #: Active Cells
+    valInactive = None #: Values of inactive Cells
+    nC          = None #: Number of cells in the full model
+
+    def __init__(self, mesh, indActive, valInactive, nC=None):
+        self.mesh  = mesh
+
+        self.nC = nC or mesh.nC
+
+        if indActive.dtype is not bool:
+            z = np.zeros(self.nC,dtype=bool)
+            z[indActive] = True
+            indActive = z
+        self.indActive = indActive
+        self.indInactive = np.logical_not(indActive)
+        if type(valInactive) in [float, int, long]:
+            valInactive = np.ones(self.nC)*float(valInactive)
+
+        valInactive[self.indActive] = 0
+        self.valInactive = valInactive
+
+        inds = np.nonzero(self.indActive)[0]
+        self.P = sp.csr_matrix((np.ones(inds.size),(inds, range(inds.size))), shape=(self.nC, self.nP))
+
+    @property
+    def nP(self):
+        """Number of parameters in the model."""
+        return self.indActive.sum()
+
+    def transform(self, m):
+        return self.P*m + self.valInactive
+    def transformDeriv(self, m):
+        return self.P
+
 class ComboModel(BaseModel):
     """Combination of various models."""
 
     def __init__(self, mesh, models, **kwargs):
         BaseModel.__init__(self, mesh, **kwargs)
-        self.models = [m(mesh, **kwargs) for m in models]
+
+        self.models = []
+        for m in models:
+            if not isinstance(m, BaseModel):
+                self.models += [m(mesh, **kwargs)]
+            else:
+                self.models += [m]
 
     @property
     def nP(self):

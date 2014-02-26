@@ -2,7 +2,7 @@
 
 
 Model
-*****
+=====
 
 .. automodule:: SimPEG.Model
     :show-inheritance:
@@ -11,7 +11,7 @@ Model
     :inherited-members:
 
 Data
-****
+====
 
 .. automodule:: SimPEG.Data
     :show-inheritance:
@@ -20,7 +20,7 @@ Data
     :inherited-members:
 
 Problem
-*******
+=======
 
 .. automodule:: SimPEG.Problem
     :show-inheritance:

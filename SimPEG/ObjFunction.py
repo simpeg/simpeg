@@ -164,7 +164,7 @@ class BaseObjFunction(object):
 
         R = self.data.residualWeighted(m, u=u)
 
-        dmisfit = self.data.prob.Jt(m, self.data.Wd * R, u=u)
+        dmisfit = self.data.prob.Jtvec(m, self.data.Wd * R, u=u)
 
         return dmisfit
 
@@ -209,7 +209,7 @@ class BaseObjFunction(object):
         R = self.data.residualWeighted(m, u=u)
 
         # TODO: abstract to different norms a little cleaner.
-        #                                                 \/ it goes here. in l2 it is the identity.
-        dmisfit = self.data.prob.Jt_approx(m, self.data.Wd * self.data.Wd * self.data.prob.J_approx(m, v, u=u), u=u)
+        #                                                     \/ it goes here. in l2 it is the identity.
+        dmisfit = self.data.prob.Jtvec_approx(m, self.data.Wd * self.data.Wd * self.data.prob.Jvec_approx(m, v, u=u), u=u)
 
         return dmisfit

@@ -129,7 +129,7 @@ class DiffOperators(object):
         def fget(self):
             if(self._faceDiv is None):
                 # The number of cell centers in each direction
-                n = self.nCv
+                n = self.vnC
                 # Compute faceDivergence operator on faces
                 if(self.dim == 1):
                     D = ddx(n[0])
@@ -158,7 +158,7 @@ class DiffOperators(object):
         def fget(self):
             if(self._faceDivx is None):
                 # The number of cell centers in each direction
-                n = self.nCv
+                n = self.vnC
                 # Compute faceDivergence operator on faces
                 if(self.dim == 1):
                     D1 = ddx(n[0])
@@ -183,7 +183,7 @@ class DiffOperators(object):
             if(self.dim < 2): return None
             if(self._faceDivy is None):
                 # The number of cell centers in each direction
-                n = self.nCv
+                n = self.vnC
                 # Compute faceDivergence operator on faces
                 if(self.dim == 2):
                     D2 = sp.kron(ddx(n[1]), speye(n[0]))
@@ -225,7 +225,7 @@ class DiffOperators(object):
         def fget(self):
             if(self._nodalGrad is None):
                 # The number of cell centers in each direction
-                n = self.nCv
+                n = self.vnC
                 # Compute divergence operator on faces
                 if(self.dim == 1):
                     G = ddx(n[0])
@@ -253,7 +253,7 @@ class DiffOperators(object):
             if(self._nodalLaplacian is None):
                 print 'Warning: Laplacian has not been tested rigorously.'
                 # The number of cell centers in each direction
-                n = self.nCv
+                n = self.vnC
                 # Compute divergence operator on faces
                 if(self.dim == 1):
                     D1 = sdiag(1./self.hx) * ddx(mesh.nCx)
@@ -291,8 +291,8 @@ class DiffOperators(object):
 
         """
         if(type(BC) is str):
-            BC = [BC for _ in self.nCv]  # Repeat the str self.dim times
-        elif(type(BC) is list):
+            BC = [BC]*self.dim
+        if(type(BC) is list):
             assert len(BC) == self.dim, 'BC list must be the size of your mesh'
         else:
             raise Exception("BC must be a str or a list.")
@@ -313,7 +313,7 @@ class DiffOperators(object):
         def fget(self):
             if(self._cellGrad is None):
                 BC = self.setCellGradBC(self._cellGradBC_list)
-                n = self.nCv
+                n = self.vnC
                 if(self.dim == 1):
                     G = ddxCellGrad(n[0], BC[0])
                 elif(self.dim == 2):
@@ -340,7 +340,7 @@ class DiffOperators(object):
         def fget(self):
             if(self._cellGradBC is None):
                 BC = self.setCellGradBC(self._cellGradBC_list)
-                n = self.nCv
+                n = self.vnC
                 if(self.dim == 1):
                     G = ddxCellGradBC(n[0], BC[0])
                 elif(self.dim == 2):
@@ -367,7 +367,7 @@ class DiffOperators(object):
         def fget(self):
             if getattr(self, '_cellGradx', None) is None:
                 BC = ['neumann', 'neumann']
-                n = self.nCv
+                n = self.vnC
                 if(self.dim == 1):
                     G1 = ddxCellGrad(n[0], BC)
                 elif(self.dim == 2):
@@ -388,7 +388,7 @@ class DiffOperators(object):
             if self.dim < 2: return None
             if getattr(self, '_cellGrady', None) is None:
                 BC = ['neumann', 'neumann']
-                n = self.nCv
+                n = self.vnC
                 if(self.dim == 2):
                     G2 = sp.kron(ddxCellGrad(n[1], BC), speye(n[0]))
                 elif(self.dim == 3):
@@ -460,13 +460,115 @@ class DiffOperators(object):
     _edgeCurl = None
     edgeCurl = property(**edgeCurl())
 
+    def getBCProjWF(self, BC, discretization='CC'):
+        """
+
+        The weak form boundary condition projection matrices.
+
+        Examples::
+
+            BC = 'neumann'                                            # Neumann in all directions
+            BC = ['neumann', 'dirichlet', 'neumann']                  # 3D, Dirichlet in y Neumann else
+            BC = [['neumann', 'dirichlet'], 'dirichlet', 'dirichlet'] # 3D, Neumann in x on bottom of domain,
+                                                                      #     Dirichlet else
+
+        """
+
+        if discretization is not 'CC':
+            raise NotImplementedError('Boundary conditions only implemented for CC discretization.')
+
+        if(type(BC) is str):
+            BC = [BC for _ in self.vnC]  # Repeat the str self.dim times
+        elif(type(BC) is list):
+            assert len(BC) == self.dim, 'BC list must be the size of your mesh'
+        else:
+            raise Exception("BC must be a str or a list.")
+
+        for i, bc_i in enumerate(BC):
+            BC[i] = checkBC(bc_i)
+
+
+        def projDirichlet(n, bc):
+            bc = checkBC(bc)
+            ij = ([0,n], [0,1])
+            vals = [0,0]
+            if(bc[0] == 'dirichlet'):
+                vals[0] = -1
+            if(bc[1] == 'dirichlet'):
+                vals[1] = 1
+            return sp.csr_matrix((vals, ij), shape=(n+1,2))
+
+        def projNeumannIn(n, bc):
+            bc = checkBC(bc)
+            P = sp.identity(n+1).tocsr()
+            if(bc[0] == 'neumann'):
+                P = P[1:,:]
+            if(bc[1] == 'neumann'):
+                P = P[:-1,:]
+            return P
+
+        def projNeumannOut(n, bc):
+            bc = checkBC(bc)
+            ij   = ([0, 1],[0, n])
+            vals = [0,0]
+            if(bc[0] == 'neumann'):
+                vals[0] = 1
+            if(bc[1] == 'neumann'):
+                vals[1] = 1
+            return sp.csr_matrix((vals, ij), shape=(2,n+1))
+
+        n = self.vnC
+        indF = self.faceBoundaryInd
+        if(self.dim == 1):
+            Pbc = projDirichlet(n[0], BC[0])
+            indF = indF[0] | indF[1]
+            Pbc = Pbc*sdiag(self.area[indF])
+
+            Pin = projNeumannIn(n[0], BC[0])
+
+            Pout = projNeumannOut(n[0], BC[0])
+        elif(self.dim == 2):
+            Pbc1 = sp.kron(speye(n[1]), projDirichlet(n[0], BC[0]))
+            Pbc2 = sp.kron(projDirichlet(n[1], BC[1]), speye(n[0]))
+            Pbc = sp.block_diag((Pbc1, Pbc2), format="csr")
+            indF = np.r_[(indF[0] | indF[1]), (indF[2] | indF[3])]
+            Pbc = Pbc*sdiag(self.area[indF])
+
+            P1 = sp.kron(speye(n[1]), projNeumannIn(n[0], BC[0]))
+            P2 = sp.kron(projNeumannIn(n[1], BC[1]), speye(n[0]))
+            Pin = sp.block_diag((P1, P2), format="csr")
+
+            P1 = sp.kron(speye(n[1]), projNeumannOut(n[0], BC[0]))
+            P2 = sp.kron(projNeumannOut(n[1], BC[1]), speye(n[0]))
+            Pout = sp.block_diag((P1, P2), format="csr")
+        elif(self.dim == 3):
+            Pbc1 = kron3(speye(n[2]), speye(n[1]), projDirichlet(n[0], BC[0]))
+            Pbc2 = kron3(speye(n[2]), projDirichlet(n[1], BC[1]), speye(n[0]))
+            Pbc3 = kron3(projDirichlet(n[2], BC[2]), speye(n[1]), speye(n[0]))
+            Pbc = sp.block_diag((Pbc1, Pbc2, Pbc3), format="csr")
+            indF = np.r_[(indF[0] | indF[1]), (indF[2] | indF[3]), (indF[4] | indF[5])]
+            Pbc = Pbc*sdiag(self.area[indF])
+
+            P1 = kron3(speye(n[2]), speye(n[1]), projNeumannIn(n[0], BC[0]))
+            P2 = kron3(speye(n[2]), projNeumannIn(n[1], BC[1]), speye(n[0]))
+            P3 = kron3(projNeumannIn(n[2], BC[2]), speye(n[1]), speye(n[0]))
+            Pin = sp.block_diag((P1, P2, P3), format="csr")
+
+            P1 = kron3(speye(n[2]), speye(n[1]), projNeumannOut(n[0], BC[0]))
+            P2 = kron3(speye(n[2]), projNeumannOut(n[1], BC[1]), speye(n[0]))
+            P3 = kron3(projNeumannOut(n[2], BC[2]), speye(n[1]), speye(n[0]))
+            Pout = sp.block_diag((P1, P2, P3), format="csr")
+
+        return Pbc, Pin, Pout
+
+
     # --------------- Averaging ---------------------
 
     @property
     def aveF2CC(self):
         "Construct the averaging operator on cell faces to cell centers."
         if getattr(self, '_aveF2CC', None) is None:
-            n = self.nCv
+            n = self.vnC
             if(self.dim == 1):
                 self._aveF2CC = av(n[0])
             elif(self.dim == 2):
@@ -483,7 +585,7 @@ class DiffOperators(object):
     def aveF2CCV(self):
         "Construct the averaging operator on cell faces to cell centers."
         if getattr(self, '_aveF2CCV', None) is None:
-            n = self.nCv
+            n = self.vnC
             if(self.dim == 1):
                 self._aveF2CCV = av(n[0])
             elif(self.dim == 2):
@@ -499,7 +601,7 @@ class DiffOperators(object):
     def aveCC2F(self):
         "Construct the averaging operator on cell cell centers to faces."
         if getattr(self, '_aveCC2F', None) is None:
-            n = self.nCv
+            n = self.vnC
             if(self.dim == 1):
                 self._aveCC2F = avExtrap(n[0])
             elif(self.dim == 2):
@@ -516,7 +618,7 @@ class DiffOperators(object):
         "Construct the averaging operator on cell edges to cell centers."
         if getattr(self, '_aveE2CC', None) is None:
             # The number of cell centers in each direction
-            n = self.nCv
+            n = self.vnC
             if(self.dim == 1):
                 raise Exception('Edge Averaging does not make sense in 1D: Use Identity?')
             elif(self.dim == 2):
@@ -533,7 +635,7 @@ class DiffOperators(object):
         "Construct the averaging operator on cell edges to cell centers."
         if getattr(self, '_aveE2CCV', None) is None:
             # The number of cell centers in each direction
-            n = self.nCv
+            n = self.vnC
             if(self.dim == 1):
                 raise Exception('Edge Averaging does not make sense in 1D: Use Identity?')
             elif(self.dim == 2):
@@ -550,7 +652,7 @@ class DiffOperators(object):
         "Construct the averaging operator on cell nodes to cell centers."
         if getattr(self, '_aveN2CC', None) is None:
             # The number of cell centers in each direction
-            n = self.nCv
+            n = self.vnC
             if(self.dim == 1):
                 self._aveN2CC = av(n[0])
             elif(self.dim == 2):
@@ -565,7 +667,7 @@ class DiffOperators(object):
 
         if getattr(self, '_aveN2E', None) is None:
             # The number of cell centers in each direction
-            n = self.nCv
+            n = self.vnC
             if(self.dim == 1):
                 self._aveN2E = av(n[0])
             elif(self.dim == 2):
@@ -582,7 +684,7 @@ class DiffOperators(object):
         "Construct the averaging operator on cell nodes to cell faces, keeping each dimension separate."
         if getattr(self, '_aveN2F', None) is None:
             # The number of cell centers in each direction
-            n = self.nCv
+            n = self.vnC
             if(self.dim == 1):
                 self._aveN2F = av(n[0])
             elif(self.dim == 2):

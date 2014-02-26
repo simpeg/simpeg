@@ -1,5 +1,5 @@
 import Utils, Data, numpy as np, scipy.sparse as sp
-
+import Model
 
 class BaseProblem(object):
     """
@@ -39,10 +39,12 @@ class BaseProblem(object):
     counter = None   #: A SimPEG.Utils.Counter object
 
     dataPair = Data.BaseData
+    modelPair = Model.BaseModel
 
-    def __init__(self, mesh, model, *args, **kwargs):
+    def __init__(self, mesh, model, **kwargs):
         Utils.setKwargs(self, **kwargs)
         self.mesh = mesh
+        assert isinstance(model, self.modelPair), "Model object must be an instance of a %s class."%(self.modelPair.__name__)
         self.model = model
 
     @property
@@ -70,7 +72,7 @@ class BaseProblem(object):
     def ispaired(self): return self.data is not None
 
     @Utils.timeIt
-    def J(self, m, v, u=None):
+    def Jvec(self, m, v, u=None):
         """
             :param numpy.array m: model
             :param numpy.array v: vector to multiply
@@ -100,7 +102,7 @@ class BaseProblem(object):
         raise NotImplementedError('J is not yet implemented.')
 
     @Utils.timeIt
-    def Jt(self, m, v, u=None):
+    def Jtvec(self, m, v, u=None):
         """
             :param numpy.array m: model
             :param numpy.array v: vector to multiply
@@ -114,7 +116,7 @@ class BaseProblem(object):
 
 
     @Utils.timeIt
-    def J_approx(self, m, v, u=None):
+    def Jvec_approx(self, m, v, u=None):
         """
 
             :param numpy.array m: model
@@ -126,10 +128,10 @@ class BaseProblem(object):
             Approximate effect of J on a vector v
 
         """
-        return self.J(m, v, u)
+        return self.Jvec(m, v, u)
 
     @Utils.timeIt
-    def Jt_approx(self, m, v, u=None):
+    def Jtvec_approx(self, m, v, u=None):
         """
             :param numpy.array m: model
             :param numpy.array v: vector to multiply
@@ -140,7 +142,7 @@ class BaseProblem(object):
             Approximate transpose of J*v
 
         """
-        return self.Jt(m, v, u)
+        return self.Jtvec(m, v, u)
 
     def fields(self, m):
         """
