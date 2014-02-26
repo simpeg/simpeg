@@ -31,12 +31,14 @@ equation can be written in the continuous form as:
 However, it can be shown that this does not conserve mass in the discrete formulation.
 
 
+Here we reproduce the results from Ceilia et al. (1990):
+
+.. plot:: examples/richards/comparisonToCeiliaEtAl1990.py
 
 Richards
 ========
 
-.. automodule:: simpegFLOW.Richards
+.. automodule:: simpegFLOW.Richards.Empirical
     :show-inheritance:
     :members:
     :undoc-members:
-    :inherited-members:

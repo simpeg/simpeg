@@ -18,12 +18,39 @@ class RichardsData(Data.BaseData):
         assert value in ['saturation','pressureHead'], "dataType must be 'saturation' or 'pressureHead'."
         self._dataType = value
 
-    def projectFields(self, u):
-        u = np.concatenate(u[1:])
+    @Utils.count
+    @Utils.requires('prob')
+    def dpred(self, m, u=None):
+        """
+            Create the projected data from a model.
+            The field, u, (if provided) will be used for the predicted data
+            instead of recalculating the fields (which may be expensive!).
+
+            .. math::
+                d_\\text{pred} = P(u(m))
+
+            Where P is a projection of the fields onto the data space.
+        """
+        if u is None: u = self.prob.fields(m)
+        return Utils.mkvc(self.projectFields(u, m))
+
+    def projectFields(self, U, m):
+
+        u = np.concatenate(U[1:])
+
         if self.dataType == 'saturation':
-            #TODO: Fix this:
-            u = self.prob.model.theta(MODEL, u)
+            u = self.prob.model.theta(u, m)
         return self.P*u
+
+    def projectFieldsDerivU(self, U, m):
+
+        u = np.concatenate(U[1:])
+
+        if self.dataType == 'pressureHead':
+            return self.P
+        elif self.dataType == 'saturation':
+            dT = self.model.thetaDerivU(u, m)
+            return self.P*dT
 
 
 class RichardsProblem(Problem.BaseProblem):
@@ -73,11 +100,11 @@ class RichardsProblem(Problem.BaseProblem):
         self._doNewton = value
 
     def fields(self, m):
-        Hs = range(self.numIts+1)
-        Hs[0] = self.initialConditions
+        u = range(self.numIts+1)
+        u[0] = self.initialConditions
         for ii in range(self.numIts):
-            Hs[ii+1] = self.rootFinder.root(lambda hn1m, return_g=True: self.getResidual(m, Hs[ii], hn1m, return_g=return_g), Hs[ii])
-        return Hs
+            u[ii+1] = self.rootFinder.root(lambda hn1m, return_g=True: self.getResidual(m, u[ii], hn1m, return_g=return_g), u[ii])
+        return u
 
     def diagsJacobian(self, m, hn, hn1):
 
@@ -172,14 +199,14 @@ class RichardsProblem(Problem.BaseProblem):
 
         return r, J
 
-    def fullJ(self, m, u=None):
+    def Jfull(self, m, u=None):
         if u is None:
             u = self.field(m)
-        Hs = u
-        nn = len(Hs)-1
+
+        nn = len(u)-1
         Asubs, Adiags, Bs = range(nn), range(nn), range(nn)
         for ii in range(nn):
-            Asubs[ii], Adiags[ii], Bs[ii] = self.diagsJacobian(m, Hs[ii],Hs[ii+1])
+            Asubs[ii], Adiags[ii], Bs[ii] = self.diagsJacobian(m, u[ii],u[ii+1])
         Ad = sp.block_diag(Adiags)
         zRight = Utils.spzeros((len(Asubs)-1)*Asubs[0].shape[0],Adiags[0].shape[1])
         zTop = Utils.spzeros(Adiags[0].shape[0], len(Adiags)*Adiags[0].shape[1])
@@ -195,46 +222,38 @@ class RichardsProblem(Problem.BaseProblem):
     def Jvec(self, m, v, u=None):
         if u is None:
             u = self.field(m)
-        Hs = u
-        JvC = range(len(Hs)-1) # Cell to hold each row of the long vector.
+
+        JvC = range(len(u)-1) # Cell to hold each row of the long vector.
 
         # This is done via forward substitution.
-        temp, Adiag, B = self.diagsJacobian(m, Hs[0],Hs[1])
+        temp, Adiag, B = self.diagsJacobian(m, u[0],u[1])
         Adiaginv = Solver(Adiag)
         JvC[0] = Adiaginv.solve(B*v)
 
         # M = @(x) tril(Adiag)\(diag(Adiag).*(triu(Adiag)\x));
         # JvC{1} = bicgstab(Adiag,(B*v),tolbcg,500,M);
 
-        for ii in range(1,len(Hs)-1):
-            Asub, Adiag, B = self.diagsJacobian(m, Hs[ii],Hs[ii+1])
+        for ii in range(1,len(u)-1):
+            Asub, Adiag, B = self.diagsJacobian(m, u[ii],u[ii+1])
             Adiaginv = Solver(Adiag)
             JvC[ii] = Adiaginv.solve(B*v - Asub*JvC[ii-1])
 
-        if self.dataType == 'pressureHead':
-            Jv = self.P*np.concatenate(JvC)
-        elif self.dataType == 'saturation':
-            dT = self.model.thetaDerivU(np.concatenate(Hs[1:]), m)
-            Jv = self.P*dT*np.concatenate(JvC)
-
-        return Jv
+        P = self.data.projectFieldsDerivU(u, m)
+        return P * np.concatenate(JvC)
 
     def Jtvec(self, m, v, u=None):
         if u is None:
             u = self.field(m)
-        Hs = u
 
-        if self.dataType == 'pressureHead':
-            PTv = self.P.T*v;
-        elif self.dataType == 'saturation':
-            dT = self.model.thetaDerivU(np.concatenate(Hs[1:]), m)
-            PTv = dT.T*self.P.T*v
+
+        P = self.data.projectFieldsDerivU(u, m)
+        PTv = P.T*v
 
         # This is done via backward substitution.
         minus = 0
         BJtv = 0
-        for ii in range(len(Hs)-1,0,-1):
-            Asub, Adiag, B = self.diagsJacobian(m, Hs[ii-1], Hs[ii])
+        for ii in range(len(u)-1,0,-1):
+            Asub, Adiag, B = self.diagsJacobian(m, u[ii-1], u[ii])
             #select the correct part of v
             vpart = range((ii-1)*Adiag.shape[0], (ii)*Adiag.shape[0])
             AdiaginvT = Solver(Adiag.T)
@@ -243,36 +262,3 @@ class RichardsProblem(Problem.BaseProblem):
             BJtv = BJtv + B.T*JTvC
 
         return BJtv
-
-
-
-if __name__ == '__main__':
-    from SimPEG import *
-    import Richards
-    import matplotlib.pyplot as plt
-    M = Mesh.TensorMesh([np.ones(40)])
-    Ks = 9.4400e-03
-    E = Richards.Haverkamp(Ks=np.log(Ks), A=1.1750e+06, gamma=4.74, alpha=1.6110e+06, theta_s=0.287, theta_r=0.075, beta=3.96)
-    bc = np.array([-61.5,-20.7])
-    h = np.zeros(M.nC) + bc[0]
-
-    # data = R
-    prob = Richards.RichardsProblem(M,E, timeStep=10, timeEnd=100, boundaryConditions=bc, initialConditions=h, doNewton=False, method='mixed')
-
-    q = sp.csr_matrix((np.ones(4),(np.arange(4),np.array([20, 30, 35, 38]))), shape=(4,M.nCx))
-    P = sp.kron(sp.identity(prob.numIts),q)
-
-    prob.dataType = 'pressureHead'
-    mTrue = np.ones(M.nC)*np.log(Ks)
-    stdev = 0.01  # The standard deviation for the noise
-    data = prob.createSyntheticData(mTrue,std=stdev, P=P)
-    p = plt.plot(data.dobs.reshape((-1,4)))
-    plt.show()
-    # opt = Optimization.InexactGaussNewton(maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6)
-    # reg = Regularization.Tikhonov(model)
-    # inv = Inversion.BaseInversion(prob, reg, opt, beta0=1e4)
-    # derChk = lambda m: [inv.dataObj(m), inv.dataObjDeriv(m)]
-    # print inv.dataObj(mTrue*0+np.log(1e-5))
-    # print inv.dataObj(mTrue)
-    # tests.checkDerivative(derChk, mTrue, plotIt=False)
-

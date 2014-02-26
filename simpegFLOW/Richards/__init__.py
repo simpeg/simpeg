@@ -1,2 +1,2 @@
-from BaseRichards import *
+import Empirical
 from RichardsProblem import *

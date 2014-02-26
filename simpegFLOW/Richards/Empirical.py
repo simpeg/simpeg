@@ -43,7 +43,42 @@ class RichardsModel(object):
         return self.kModel.transformDerivU(u, m)
 
 
-class BaseHaverkamp_theta(Model.BaseNonLinearModel):
+def _ModelProperty(name, model, doc=None, default=None):
+
+    def fget(self):
+        if getattr(self, model, None) is not None:
+            MOD = getattr(self, model)
+            return getattr(MOD, name, default)
+        return default
+
+    def fset(self, value):
+        if getattr(self, model, None) is not None:
+            MOD = getattr(self, model)
+            setattr(MOD, name, value)
+
+    return property(fget, fset=fset, doc=doc)
+
+
+class HaverkampParams(object):
+    """Holds some default parameterizations for the Haverkamp model."""
+    def __init__(self): pass
+    @property
+    def celia1990(self):
+        """
+            Parameters used in:
+
+                Celia, Michael A., Efthimios T. Bouloutas, and Rebecca L. Zarba.
+                "A general mass-conservative numerical solution for the unsaturated flow equation."
+                Water Resources Research 26.7 (1990): 1483-1496.
+
+        """
+        return {'alpha':1.611e+06, 'beta':3.96,
+                'theta_r':0.075, 'theta_s':0.287,
+                'Ks':np.log(9.44e-03), 'A':1.175e+06,
+                'gamma':4.74}
+
+
+class _haverkamp_theta(Model.BaseNonLinearModel):
 
     theta_s = 0.430
     theta_r = 0.078
@@ -77,7 +112,7 @@ class BaseHaverkamp_theta(Model.BaseNonLinearModel):
         return g
 
 
-class BaseHaverkamp_k(Model.BaseNonLinearModel):
+class _haverkamp_k(Model.BaseNonLinearModel):
 
     A       = 1.175e+06
     gamma   = 4.74
@@ -117,6 +152,26 @@ class BaseHaverkamp_k(Model.BaseNonLinearModel):
         g[u >= 0] = 0
         g = Utils.sdiag(g)
         return g
+
+class Haverkamp(RichardsModel):
+    """Haverkamp Model"""
+
+    alpha   = _ModelProperty('alpha',   'thetaModel', default=1.6110e+06)
+    beta    = _ModelProperty('beta',    'thetaModel', default=3.96)
+    theta_r = _ModelProperty('theta_r', 'thetaModel', default=0.075)
+    theta_s = _ModelProperty('theta_s', 'thetaModel', default=0.287)
+
+    Ks    = _ModelProperty('Ks',    'kModel', default=np.log(24.96))
+    A     = _ModelProperty('A',     'kModel', default=1.1750e+06)
+    gamma = _ModelProperty('gamma', 'kModel', default=4.74)
+
+    def __init__(self, mesh, **kwargs):
+        RichardsModel.__init__(self, mesh,
+                               _haverkamp_theta(mesh),
+                               _haverkamp_k(mesh))
+        Utils.setKwargs(self, **kwargs)
+
+
 
 
 
