@@ -51,7 +51,7 @@ class BaseMagData(Data.BaseData):
         # return np.sqrt(bfx**2 + bfy**2 + bfz**2)
 
     @Utils.count
-    def projectFieldDeriv(self, B):
+    def projectFieldsDeriv(self, B):
         """
             This function projects the fields onto the data space.
 

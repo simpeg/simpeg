@@ -25,13 +25,16 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
     def MfMuI(self): return self._MfMuI
 
     @property
+    def MfMui(self): return self._MfMui
+
+    @property
     def MfMu0(self): return self._MfMu0
 
     def makeMassMatrices(self, m):
         mu = self.model.transform(m)
-        MfMui = self.mesh.getFaceInnerProduct(1./mu)
+        self._MfMui = self.mesh.getFaceInnerProduct(1./mu)
         #TODO: this will break if tensor mu
-        self._MfMuI = Utils.sdiag(1./MfMui.diagonal())
+        self._MfMuI = Utils.sdiag(1./self._MfMui.diagonal())
         self._MfMu0 = self.mesh.getFaceInnerProduct(1/mu_0)
 
     def getB0(self):
@@ -50,6 +53,7 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
         chi = self.model.transform(m, asMu=False)
         Bbc = CongruousMagBC(self.mesh, self.data.B0, chi)
 
+        #TODO: put congrous BC back in
         return self._Div*self.MfMuI*self.MfMu0*B0 - self._Div*B0 #+ Mc*Dface*self._Pout.T*Bbc
 
     def getA(self, m):
@@ -80,15 +84,19 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
 
         B = self.MfMuI*self.MfMu0*B0-B0-self.MfMuI*self._Div.T*phi
 
+        #TODO: Create a mag fields object class.
+        # F = self.getInitialFields()
+        # e.g. {'B': B, 'phi': phi}
         return B
 
-        # F = self.getInitialFields()
         # return self.forward(m, self.getRHS, self.calcFields, F=F)
 
     @Utils.timeIt
     def Jvec(self, m, v, u=None):
         if u is None:
             u = self.fields(m)
+
+        #TODO: B, phi = u['B'], u['phi']
 
         mu = self.model.transform(m, asMu=True)
 
@@ -102,7 +110,7 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
 
         #TODO: only works for diagonal MfMui
         # Some chain rule!
-        harm_dm = Utils.sdiag(MfMui.diagonal()**(-2))
+        harm_dm = Utils.sdiag(self.MfMui.diagonal()**(-2))
         MfMu_dm = self.mesh.getFaceMassDeriv()
         dmuI_dm = Utils.sdiag(mu**(-2))
         mT_dm   = self.model.transformDeriv(m, asMu=True)
@@ -110,7 +118,7 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
         D = self._Div
         # lots-o-bracket for vector multiplication first!
         MfMu_dmXv =  harm_dm * ( MfMu_dm * ( dmuI_dm * ( mT_dm * v ) ) )
-        dCdm_A = D * ( Utils.sdiag( D.T * u ) * MfMu_dmXv )
+        dCdm_A = D * ( Utils.sdiag( D.T * phi ) * MfMu_dmXv )
 
 
         # rhs = D * MfMuI * MfMu0 * B0
@@ -120,11 +128,16 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
         #TODO: add congrous stuff
         dCdm_RHS = D * Utils.sdiag( self.MfMu0*B0  ) * MfMu_dmXv
 
+
         # c(m,u) = A(m)u - rhs(m)
         dCdm = dCdm_A - dCdm_RHS
 
         solve = Solver(dCdu)
-        Jv = - P * solve.solve(dCdm)
+
+        #TODO: Multiply by the dP(phi(m))/dphi
+        # We transformed phi in our fields object.
+        #         ( dBdphi *                   + dBdm(phi)  )
+        Jv = - P *           solve.solve(dCdm)
         return Utils.mkvc(Jv)
 
 
@@ -159,9 +172,24 @@ if __name__ == '__main__':
     prob.pair(data)
 
     B = prob.fields(chi)
-    mesh.plotSlice(B, 'F', view='vec', showIt=True)
+    # mesh.plotSlice(B, 'F', view='vec', showIt=True)
 
     dpred = data.dpred(chi, u=B)
+
+
+    ##################
+    # Test J
+    ##################
+
+    d_chi = 0.8*chi #np.random.rand(mesh.nCz)
+    d_sph_ind = spheremodel(mesh, 0., 0., -100., 50)
+    d_chi[d_sph_ind] = 0.02
+
+    from SimPEG.Tests import checkDerivative
+
+    derChk = lambda m: [prob.data.dpred(m), lambda mx: -prob.Jvec(chi, mx)]
+    print '\n'
+    passed = checkDerivative(derChk, chi, plotIt=False, dx=d_chi, num=2)
 
 
     # plt.pcolor(X, Y, dpred.reshape(X.shape, order='F'))
