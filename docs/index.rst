@@ -30,6 +30,7 @@ Meshing & Operators
    :maxdepth: 2
 
    api_Mesh
+   api_InnerProducts
 
 Forward Problems
 ****************

@@ -29,7 +29,6 @@ Logically Orthogonal Mesh
     :inherited-members:
 
 
-
 Base Mesh
 =========
 
@@ -37,13 +36,6 @@ Base Mesh
     :members:
     :undoc-members:
 
-
-Inner Products
-==============
-
-.. automodule:: SimPEG.Mesh.InnerProducts
-    :members:
-    :undoc-members:
 
 Differential Operators
 ======================
