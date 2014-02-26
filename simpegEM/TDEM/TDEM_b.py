@@ -2,13 +2,14 @@ from BaseTDEM import ProblemBaseTDEM
 from FieldsTDEM import FieldsTDEM
 from SimPEG.Utils import mkvc
 import numpy as np
+from DataTDEM import DataTDEM1D
 
 class ProblemTDEM_b(ProblemBaseTDEM):
     """
         Time-Domain EM problem - B-formulation
 
         TDEM_b treats the following discretization of Maxwell's equations
-        
+
         .. math::
             \dcurl \e^{(t+1)} + \\frac{\\b^{(t+1)} - \\b^{(t)}}{\delta t} = 0 \\\\
             \dcurl^\\top \MfMui \\b^{(t+1)} - \MeSig \e^{(t+1)} = \Me \j_s^{(t+1)}
@@ -19,6 +20,8 @@ class ProblemTDEM_b(ProblemBaseTDEM):
         ProblemBaseTDEM.__init__(self, mesh, model, **kwargs)
 
     solType = 'b'
+
+    dataPair = DataTDEM1D
 
     ####################################################
     # Internal Methods
@@ -66,7 +69,7 @@ class ProblemTDEM_b(ProblemBaseTDEM):
             :rtype: simpegEM.TDEM.FieldsTDEM
             :return: f
 
-            Multiply G by a vector where 
+            Multiply G by a vector where
         """
         if u is None:
             u = self.fields(m)
@@ -108,14 +111,14 @@ class ProblemTDEM_b(ProblemBaseTDEM):
         return self.forward(m, AhRHS, AhCalcFields)
 
     def solveAht(self, m, p):
-        
+
         def AhtRHS(tInd, u):
             rhs = self.MfMui*self.mesh.edgeCurl*self.MeSigmaI*p.get_e(tInd) + p.get_b(tInd)
             if tInd == self.nTimes-1:
                 return rhs
             dt = self.getDt(tInd+1)
             return rhs + 1./dt*self.MfMui*u.get_b(tInd+1)
-        
+
         def AhtCalcFields(sol, solType, tInd):
             b = sol
             e = self.MeSigmaI*self.mesh.edgeCurl.T*self.MfMui*b - self.MeSigmaI*p.get_e(tInd)
@@ -159,7 +162,7 @@ class ProblemTDEM_b(ProblemBaseTDEM):
                         -\\frac{1}{\delta t} \MfMui & 0 \\\\
                         0 & 0
                     \end{array}
-                \\right] \\\\            
+                \\right] \\\\
         """
 
         self.makeMassMatrices(sigma)
@@ -208,7 +211,7 @@ class ProblemTDEM_b(ProblemBaseTDEM):
                         -\\frac{1}{\delta t} \MfMui & 0 \\\\
                         0 & 0
                     \end{array}
-                \\right] \\\\            
+                \\right] \\\\
         """
         self.makeMassMatrices(sigma)
         f = FieldsTDEM(self.mesh, 1, self.times.size, 'b')

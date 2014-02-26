@@ -1,7 +1,9 @@
-from SimPEG import Problem
+from SimPEG import Problem, Solver
 import numpy as np
 from scipy.constants import mu_0
 from SimPEG.Utils import sdiag, mkvc
+from FieldsFDEM import FieldsFDEM
+from DataFDEM import DataFDEM
 
 
 class ProblemFDEM_e(Problem.BaseProblem):
@@ -18,11 +20,18 @@ class ProblemFDEM_e(Problem.BaseProblem):
         Problem.BaseProblem.__init__(self, mesh, model, **kwargs)
 
     solType = 'b'
+    storeTheseFields = 'e'
 
-    #TODO:
-    # j_s
-    # getOmega
-    # getFieldsObject
+    dataPair = DataFDEM
+
+    solveOpts = {'factorize':False, 'backend':'scipy'}
+
+    j_s = None
+
+
+    def getFieldsObject(self):
+        F = FieldsFDEM(self.mesh, self.data.nTx, self.data.nFreq, store=self.storeTheseFields)
+        return F
 
     ####################################################
     # Mass Matrices
@@ -41,8 +50,10 @@ class ProblemFDEM_e(Problem.BaseProblem):
     def MeSigmaI(self): return self._MeSigmaI
 
     def makeMassMatrices(self, m):
+        #TODO: hardcoded to sigma as the model
+        sigma = self.model.transform(m)
         self._Me = self.mesh.getEdgeInnerProduct()
-        self._MeSigma = self.mesh.getEdgeInnerProduct(m)
+        self._MeSigma = self.mesh.getEdgeInnerProduct(sigma)
         # TODO: this will not work if tensor conductivity
         self._MeSigmaI = sdiag(1/self.MeSigma.diagonal())
         #TODO: assuming constant mu
@@ -52,17 +63,17 @@ class ProblemFDEM_e(Problem.BaseProblem):
     # Internal Methods
     ####################################################
 
-    def getA(self, omegaInd):
+    def getA(self, freqInd):
         """
             :param int tInd: Time index
             :rtype: scipy.sparse.csr_matrix
             :return: A
         """
-        omega = self.getOmega(omegaInd)
+        omega = self.data.omega[freqInd]
         return self.mesh.edgeCurl.T*self.MfMui*self.mesh.edgeCurl + 1j*omega*self.MeSigma
 
-    def getRHS(self, omegaInd):
-        omega = self.getOmega(omegaInd)
+    def getRHS(self, freqInd):
+        omega = self.data.omega[freqInd]
         return -1j*omega*self.Me*self.j_s
 
 
@@ -73,8 +84,18 @@ class ProblemFDEM_e(Problem.BaseProblem):
 
         F = self.getFieldsObject()
 
+        for freqInd in range(self.data.nFreq):
+            A = self.getA(freqInd)
+            b = self.getRHS(freqInd)
+            e = Solver(A, options=self.solveOpts).solve(b)
 
-        return
+            F.set_e(e, freqInd)
+            omega = self.data.omega[freqInd]
+            #TODO: check if mass matrices needed:
+            b = -1./(1j*omega)*self.mesh.edgeCurl*e
+            F.set_b(b, freqInd)
+
+        return F
 
 
     def Jvec(self, m, v, u=None):
@@ -99,28 +120,42 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
     cs = 5.
-    ncx = 20
+    ncx = 6
     ncy = 6
-    npad = 20
-    hx = Utils.meshTensors(((0,cs), (ncx,cs), (npad,cs)))
+    ncz = 6
+    npad = 3
+    hx = Utils.meshTensors(((npad,cs), (ncx,cs), (npad,cs)))
     hy = Utils.meshTensors(((npad,cs), (ncy,cs), (npad,cs)))
-    mesh = Mesh.Cyl1DMesh([hx,hy], -hy.sum()/2)
-    model = Model.Vertical1DModel(mesh)
+    hz = Utils.meshTensors(((npad,cs), (ncz,cs), (npad,cs)))
+    mesh = Mesh.TensorMesh([hx,hy,hz])
+
+    XY = Utils.ndgrid(np.linspace(20,50,3), np.linspace(20,50,3))
+    rxLoc = np.c_[XY, np.ones(XY.shape[0])*40]
+
+    model = Model.LogModel(mesh)
 
     opts = {'txLoc':0.,
             'txType':'VMD_MVP',
-            'rxLoc':np.r_[150., 0.],
+            'rxLoc': rxLoc,
             'rxType':'bz',
-            'timeCh':np.logspace(-4,-2,20),
+            'freq': np.logspace(0,3,4),
             }
-    dat = EM.TDEM.DataTDEM1D(**opts)
+    dat = EM.FDEM.DataFDEM(**opts)
 
-    prb = EM.TDEM.ProblemTDEM_b(mesh, model)
-    # prb.setTimes([1e-5, 5e-5, 2.5e-4], [150, 150, 150])
-    # prb.setTimes([1e-5, 5e-5, 2.5e-4], [10, 10, 10])
-    prb.setTimes([1e-5], [1])
+    prb = EM.FDEM.ProblemFDEM_e(mesh, model)
     prb.pair(dat)
-    sigma = np.random.rand(mesh.nCz)
+
+    sigma = np.log(np.ones(mesh.nC)*1e-3)
+
+    j_sx = np.zeros(mesh.vnEx)
+    j_sx[6,6,6] = 1
+    j_s = np.r_[Utils.mkvc(j_sx),np.zeros(mesh.nEy+mesh.nEz)]
+
+    prb.j_s = j_s
+    f = prb.fields(sigma)
+
+    colorbar(mesh.plotSlice((f.get_e(3)), 'E', ind=11, normal='Z', view='real')[0])
+    plt.show()
 
 
 
