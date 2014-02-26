@@ -74,7 +74,7 @@ class TensorView(object):
             if I.size != np.prod(self.vnEz): ex, ey, I = self.r(I,'E','E','M')
         elif imageType[0] == 'E':
             plotAll = len(imageType) == 1
-            options = {"direction":direction,"numbering":numbering,"annotationColor":annotationColor,"showIt":showIt}
+            options = {"direction":direction,"numbering":numbering,"annotationColor":annotationColor,"showIt":False}
             fig = plt.figure(figNum)
             # Determine the subplot number: 131, 121
             numPlots = 130 if plotAll else len(imageType)/2*10+100
@@ -92,10 +92,11 @@ class TensorView(object):
                 ax_z = plt.subplot(numPlots+pltNum)
                 self.plotImage(ez, imageType='Ez', ax=ax_z, **options)
                 pltNum +=1
+            if showIt: plt.show()
             return
         elif imageType[0] == 'F':
             plotAll = len(imageType) == 1
-            options = {"direction":direction,"numbering":numbering,"annotationColor":annotationColor,"showIt":showIt}
+            options = {"direction":direction,"numbering":numbering,"annotationColor":annotationColor,"showIt":False}
             fig = plt.figure(figNum)
             # Determine the subplot number: 131, 121
             numPlots = 130 if plotAll else len(imageType)/2*10+100
@@ -113,6 +114,7 @@ class TensorView(object):
                 ax_z = plt.subplot(numPlots+pltNum)
                 self.plotImage(fxyz[2], imageType='Fz', ax=ax_z, **options)
                 pltNum +=1
+            if showIt: plt.show()
             return
         else:
             raise Exception("imageType must be 'CC', 'N','Fx','Fy','Fz','Ex','Ey','Ez'")

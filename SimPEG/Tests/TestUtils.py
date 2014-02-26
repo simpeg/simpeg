@@ -93,9 +93,9 @@ class OrderTest(unittest.TestCase):
                 h3 = np.ones(nc)/nc
                 h = [h1, h2, h3]
             elif 'random' in self._meshType:
-                h1 = np.random.rand(nc)
-                h2 = np.random.rand(nc)
-                h3 = np.random.rand(nc)
+                h1 = np.random.rand(nc)*nc*0.5 + nc*0.5
+                h2 = np.random.rand(nc)*nc*0.5 + nc*0.5
+                h3 = np.random.rand(nc)*nc*0.5 + nc*0.5
                 h = [hi/np.sum(hi) for hi in [h1, h2, h3]]  # normalize
             else:
                 raise Exception('Unexpected meshType')
@@ -111,10 +111,12 @@ class OrderTest(unittest.TestCase):
                 kwrd = 'rotate'
             else:
                 raise Exception('Unexpected meshType')
-            if self.meshDimension == 2:
+            if self.meshDimension == 1:
+                raise Exception('Lom not supported for 1D')
+            elif self.meshDimension == 2:
                 X, Y = Utils.exampleLomGird([nc, nc], kwrd)
                 self.M = LogicallyOrthogonalMesh([X, Y])
-            if self.meshDimension == 3:
+            elif self.meshDimension == 3:
                 X, Y, Z = Utils.exampleLomGird([nc, nc, nc], kwrd)
                 self.M = LogicallyOrthogonalMesh([X, Y, Z])
             return 1./nc

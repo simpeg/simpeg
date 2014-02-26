@@ -3,6 +3,7 @@ from SimPEG.Utils import *
 from SimPEG import Mesh, np, sp
 from SimPEG.Tests import checkDerivative
 
+TOL = 1e-8
 
 class TestCheckDerivative(unittest.TestCase):
 
@@ -104,7 +105,7 @@ class TestSequenceFunctions(unittest.TestCase):
                        sp.hstack((sdiag(a[2]), sdiag(a[3])))))
 
         Z2 = B*A - sp.eye(10, 10)
-        self.assertTrue(np.linalg.norm(Z2.todense().ravel(), 2) < 1e-12)
+        self.assertTrue(np.linalg.norm(Z2.todense().ravel(), 2) < TOL)
 
         a = [np.random.rand(5, 1) for i in range(9)]
         B = inv3X3BlockDiagonal(*a)
@@ -115,7 +116,7 @@ class TestSequenceFunctions(unittest.TestCase):
 
         Z3 = B*A - sp.eye(15, 15)
 
-        self.assertTrue(np.linalg.norm(Z3.todense().ravel(), 2) < 1e-12)
+        self.assertTrue(np.linalg.norm(Z3.todense().ravel(), 2) < TOL)
 
 
     def test_invPropertyTensor2D(self):
@@ -134,9 +135,9 @@ class TestSequenceFunctions(unittest.TestCase):
             B2 = invPropertyTensor(M, prop, returnMatrix=True)
 
             Z = B1*A - sp.identity(M.nC*2)
-            self.assertTrue(np.linalg.norm(Z.todense().ravel(), 2) < 1e-12)
+            self.assertTrue(np.linalg.norm(Z.todense().ravel(), 2) < TOL)
             Z = B2*A - sp.identity(M.nC*2)
-            self.assertTrue(np.linalg.norm(Z.todense().ravel(), 2) < 1e-12)
+            self.assertTrue(np.linalg.norm(Z.todense().ravel(), 2) < TOL)
 
 
     def test_invPropertyTensor3D(self):
@@ -158,9 +159,9 @@ class TestSequenceFunctions(unittest.TestCase):
             B2 = invPropertyTensor(M, prop, returnMatrix=True)
 
             Z = B1*A - sp.identity(M.nC*3)
-            self.assertTrue(np.linalg.norm(Z.todense().ravel(), 2) < 1e-12)
+            self.assertTrue(np.linalg.norm(Z.todense().ravel(), 2) < TOL)
             Z = B2*A - sp.identity(M.nC*3)
-            self.assertTrue(np.linalg.norm(Z.todense().ravel(), 2) < 1e-12)
+            self.assertTrue(np.linalg.norm(Z.todense().ravel(), 2) < TOL)
 
 
 if __name__ == '__main__':
