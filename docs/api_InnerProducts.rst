@@ -57,7 +57,7 @@ We can then discretize for every cell:
 
 .. math::
 
-    v_{\text{cell}} \sigma^{-1} (\mathbf{J}_x \mathbf{F}_x +\mathbf{J}_y \mathbf{F}_y  + \mathbf{J}_z \mathbf{F}_z ) = -\phi^{\top} v_{\text{cell}} (\mathbf{D}_{\text{cell}} \mathbf{F})  + \text{BC}
+    v_{\text{cell}} \sigma^{-1} (\mathbf{J}_x \mathbf{F}_x +\mathbf{J}_y \mathbf{F}_y  + \mathbf{J}_z \mathbf{F}_z ) = -\phi^{\top} v_{\text{cell}} \mathbf{D}_{\text{cell}} \mathbf{F}  + \text{BC}
 
 .. note::
 
@@ -67,7 +67,9 @@ Regardless of how we choose to approximate this dot product, we can represent th
 
 .. math::
 
-    \mathbf{F}_c^{\top} (\sqrt{v_{\text{cell}}} \Sigma^{-1} \sqrt{v_{\text{cell}}})  \mathbf{J}_c = -\phi^{\top} v_{\text{cell}}( v_\text{cell}^{-1} \mathbf{D}_{\text{cell}} \mathbf{A} \mathbf{F})  + \text{BC}
+    \mathbf{F}_c^{\top} (\sqrt{v_{\text{cell}}} \Sigma^{-1} \sqrt{v_{\text{cell}}})  \mathbf{J}_c =
+    -\phi^{\top} v_{\text{cell}} \mathbf{D}_{\text{cell}} \mathbf{F})
+    + \text{BC}
 
 We multiply by  square-root of volume on each side of the tensor conductivity to keep symmetry in the system. Here \\\(\\mathbf{J}_c\\\) is the Cartesian \\\(\\mathbf{J}\\\) (on the faces that we choose to use in our approximation) and must be calculated differently depending on the mesh:
 
@@ -87,7 +89,7 @@ We will approximate this integral by taking the fluxes clustered around every no
         \right)
         \mathbf{J}
         =
-        -\mathbf{F}^{\top} \mathbf{A} \mathbf{D}_{\text{cell}}^{\top} \phi   + \text{BC}
+        -\mathbf{F}^{\top} \mathbf{D}_{\text{cell}}^{\top} v_{\text{cell}} \phi   + \text{BC}
 
 Or, when generalizing to the entire mesh and dropping our general face function:
 
@@ -95,26 +97,24 @@ Or, when generalizing to the entire mesh and dropping our general face function:
 
     \mathbf{M}^f_{\Sigma^{-1}} \mathbf{J}
         =
-        -\mathbf{A} \mathbf{D}^{\top} \phi   + \text{BC}
+        - \mathbf{D}^{\top} \text{diag}(\mathbf{v}) \phi   + \text{BC}
 
-By defining the faceInnerProduct in 3D (8 combinations of fluxes) to be:
+By defining the faceInnerProduct (8 combinations of fluxes in 3D, 4 in 2D, 2 in 1D) to be:
 
 .. math::
 
-    \mathbf{M}^f_{\Sigma^{-1}} = {1\over 8}
-        \left(\sum_{i=1}^8
+    \mathbf{M}^f_{\Sigma^{-1}} =
+        \sum_{i=1}^{2^d}
         \mathbf{P}_{(i)}^{\top} \Sigma^{-1} \mathbf{P}_{(i)}
-        \right)
 
-The M is returned when given the input of \\\( \\Sigma^{-1} \\\).
+Where \\\(d\\\) is the dimension of the mesh.
+The \\\( \\mathbf{M}^f \\\) is returned when given the input of \\\( \\Sigma^{-1} \\\).
 
 Here each \\( \\mathbf{P} \\in \\mathbb{R}^{(d*nC, nF)} \\\) is a combination of the projection, volume, and any normalization to Cartesian coordinates (where the dot product is well defined):
 
 .. math::
 
     \mathbf{P}_{(i)} =  \sqrt{ \frac{1}{2^d} \mathbf{I}^d \otimes \text{diag}(\mathbf{v})} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\text{LRM only}} \mathbf{Q}_{(i)}
-
-Where \\\(d\\\) is the dimension of the mesh.
 
 .. note::
 
@@ -126,6 +126,8 @@ If ``returnP=True`` is requested in any of these methods the projection matrices
     P = [P000, P100, P010, P110, P001, P101, P011, P111]
     # In 2D
     P = [P00, P10, P01, P11]
+    # In 1D
+    P = [P0, P1]
 
 The derivation for ``edgeInnerProducts`` is exactly the same, however, when we approximate the integral using the fields around each node, the projection matrices look a bit different because we have 12 edges in 3D instead of just 6 faces. The interface to the code is exactly the same.
 
