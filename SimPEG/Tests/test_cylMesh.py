@@ -178,7 +178,7 @@ class TestEdgeCurl2D(OrderTest):
     meshDimension = 2
 
     def getError(self):
-
+        pass
         #TODO!
 
     # def test_order(self):
