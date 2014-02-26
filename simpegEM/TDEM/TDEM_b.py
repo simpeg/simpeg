@@ -58,20 +58,20 @@ class ProblemTDEM_b(ProblemBaseTDEM):
         w = self.Gtvec(m, y, u)
         return w
 
-    def Gvec(self, sigma, vec, u=None):
+    def Gvec(self, m, vec, u=None):
         """
-            :param numpy.array sigma: Conductivity model
+            :param numpy.array m: Conductivity model
             :param numpy.array vec: vector (like a model)
-            :param simpegEM.TDEM.FieldsTDEM u: Fields resulting from sigma
+            :param simpegEM.TDEM.FieldsTDEM u: Fields resulting from m
             :rtype: simpegEM.TDEM.FieldsTDEM
             :return: f
 
             Multiply G by a vector where 
         """
         if u is None:
-            u = self.fields(sigma)
+            u = self.fields(m)
         p = FieldsTDEM(self.mesh, 1, self.times.size, 'b')
-        c = self.mesh.getEdgeMassDeriv()*self.model.transformDeriv(None)*vec
+        c = self.mesh.getEdgeMassDeriv()*self.model.transformDeriv(m)*vec
         for i in range(self.times.size):
             ei = u.get_e(i)
             pVal = np.empty_like(ei)
@@ -88,7 +88,7 @@ class ProblemTDEM_b(ProblemBaseTDEM):
         tmp = np.zeros((self.mesh.nE,self.data.nTx))
         for i in range(self.nTimes):
             tmp += v.get_e(i)*u.get_e(i)
-        p = -mkvc(self.model.transformDeriv(None).T*self.mesh.getEdgeMassDeriv().T*tmp)
+        p = -mkvc(self.model.transformDeriv(m).T*self.mesh.getEdgeMassDeriv().T*tmp)
         return p
 
     def solveAh(self, m, p):

@@ -116,6 +116,7 @@ class ProblemBaseTDEM(MixinTimeStuff, MixinInitialFieldCalc, BaseProblem):
     def MeSigmaI(self): return self._MeSigmaI
 
     def makeMassMatrices(self, m):
+        m = self.model.transform(m)
         self._MeSigma = self.mesh.getMass(m, loc='e')
         self._MeSigmaI = sdiag(1/self.MeSigma.diagonal())
         self._MfMui = self.mesh.getMass(1/mu_0, loc='f')
