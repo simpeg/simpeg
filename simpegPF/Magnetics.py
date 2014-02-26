@@ -1,4 +1,4 @@
-from SimPEG import Mesh, Problem, Utils, np, sp
+from SimPEG import Mesh, Problem, Utils, np, sp, Tests
 import BaseMag
 from scipy.constants import mu_0
 from MagAnalytics import spheremodel, CongruousMagBC
@@ -34,19 +34,23 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
         self._MfMuI = Utils.sdiag(1./MfMui.diagonal())
         self._MfMu0 = self.mesh.getFaceInnerProduct(1/mu_0)
 
-    def getRHS(self, m):
+    def getB0(self):
         b0 = self.data.B0
         B0 = np.r_[b0[0]*np.ones(self.mesh.nFx),
                    b0[1]*np.ones(self.mesh.nFy),
                    b0[2]*np.ones(self.mesh.nFz)]
+        return B0
 
+    def getRHS(self, m):
+
+        B0 = self.getB0()
         Dface = self.mesh.faceDiv
         Mc = Utils.sdiag(self.mesh.vol)
 
         chi = self.model.transform(m, asMu=False)
         Bbc = CongruousMagBC(self.mesh, self.data.B0, chi)
 
-        return self._Div*self.MfMuI*self.MfMu0*B0 - self._Div*B0 + Mc*Dface*self._Pout.T*Bbc
+        return self._Div*self.MfMuI*self.MfMu0*B0 - self._Div*B0 #+ Mc*Dface*self._Pout.T*Bbc
 
     def getA(self, m):
         """
@@ -72,11 +76,7 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
         m1 = sp.linalg.interface.aslinearoperator(Utils.sdiag(1/A.diagonal()))
         phi, info = sp.linalg.bicgstab(A, rhs, tol=1e-6, maxiter=1000, M=m1)
 
-        #TODO: make onPair function call
-        b0 = self.data.B0
-        B0 = np.r_[b0[0]*np.ones(self.mesh.nFx),
-                   b0[1]*np.ones(self.mesh.nFy),
-                   b0[2]*np.ones(self.mesh.nFz)]
+        B0 = self.getB0()
 
         B = self.MfMuI*self.MfMu0*B0-B0-self.MfMuI*self._Div.T*phi
 
@@ -87,7 +87,45 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
 
     @Utils.timeIt
     def Jvec(self, m, v, u=None):
-        pass
+        if u is None:
+            u = self.fields(m)
+
+        mu = self.model.transform(m, asMu=True)
+
+        P = self.data.projectFieldsDeriv(u)
+
+        A = self.getA(m)
+        dCdu = A
+        # (Av_m)^-1
+        # -(Av_m)^-2 * MfMu_dm * d/dm(1/mu(m))
+        # (Av_m)^-2 * MfMu_dm * diag(mu(m)^-2) * mT_dm
+
+        #TODO: only works for diagonal MfMui
+        # Some chain rule!
+        harm_dm = Utils.sdiag(MfMui.diagonal()**(-2))
+        MfMu_dm = self.mesh.getFaceMassDeriv()
+        dmuI_dm = Utils.sdiag(mu**(-2))
+        mT_dm   = self.model.transformDeriv(m, asMu=True)
+
+        D = self._Div
+        # lots-o-bracket for vector multiplication first!
+        MfMu_dmXv =  harm_dm * ( MfMu_dm * ( dmuI_dm * ( mT_dm * v ) ) )
+        dCdm_A = D * ( Utils.sdiag( D.T * u ) * MfMu_dmXv )
+
+
+        # rhs = D * MfMuI * MfMu0 * B0
+
+        B0 = self.getB0()
+
+        #TODO: add congrous stuff
+        dCdm_RHS = D * Utils.sdiag( self.MfMu0*B0  ) * MfMu_dmXv
+
+        # c(m,u) = A(m)u - rhs(m)
+        dCdm = dCdm_A - dCdm_RHS
+
+        solve = Solver(dCdu)
+        Jv = - P * solve.solve(dCdm)
+        return Utils.mkvc(Jv)
 
 
 
@@ -124,6 +162,7 @@ if __name__ == '__main__':
     mesh.plotSlice(B, 'F', view='vec', showIt=True)
 
     dpred = data.dpred(chi, u=B)
+
 
     # plt.pcolor(X, Y, dpred.reshape(X.shape, order='F'))
 

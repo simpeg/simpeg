@@ -1,4 +1,4 @@
-from SimPEG import Model, Data, np, sp
+from SimPEG import Model, Data, Utils, np, sp
 from scipy.constants import mu_0
 
 
@@ -43,11 +43,25 @@ class BaseMagData(Data.BaseData):
                 d_\\text{pred} = \mathbf{P} u(m)
         """
 
-        bfx = self.Qfx*B
-        bfy = self.Qfy*B
+        # bfx = self.Qfx*B
+        # bfy = self.Qfy*B
         bfz = self.Qfz*B
+        return bfz
 
-        return np.sqrt(bfx**2 + bfy**2 + bfz**2)
+        # return np.sqrt(bfx**2 + bfy**2 + bfz**2)
+
+    @Utils.count
+    def projectFieldDeriv(self, B):
+        """
+            This function projects the fields onto the data space.
+
+
+            .. math::
+
+                \\frac{\partial d_\\text{pred}}{\partial u} = \mathbf{P}
+        """
+        return self.Qfz
+
 
     def projectFieldsAsVector(self, B):
 
