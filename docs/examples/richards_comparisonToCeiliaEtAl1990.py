@@ -2,6 +2,10 @@ from SimPEG import *
 from simpegFLOW import Richards
 import matplotlib.pyplot as plt
 
+import os
+os.system('pwd')
+os.system('ls')
+
 M = Mesh.TensorMesh([np.ones(40)])
 M.setCellGradBC('dirichlet')
 params = Richards.Empirical.HaverkampParams().celia1990
