@@ -35,8 +35,8 @@ Here we reproduce the results from Ceilia et al. (1990):
 
 .. plot:: examples/richards/comparisonToCeiliaEtAl1990.py
 
-Richards
-========
+Richards API
+============
 
 .. automodule:: simpegFLOW.Richards.Empirical
     :show-inheritance:

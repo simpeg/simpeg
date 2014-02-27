@@ -16,12 +16,12 @@ def getFields(timeStep,method):
                                     doNewton=False, method=method)
     return prob.fields(params['Ks'])
 
-Hs_M10 = getFields(10, 'mixed')
-Hs_M30 = getFields(30, 'mixed')
-Hs_M120= getFields(120,'mixed')
-Hs_H10 = getFields(10, 'head')
-Hs_H30 = getFields(30, 'head')
-Hs_H120= getFields(120,'head')
+Hs_M10 = getFields(10., 'mixed')
+Hs_M30 = getFields(30., 'mixed')
+Hs_M120= getFields(120.,'mixed')
+Hs_H10 = getFields(10., 'head')
+Hs_H30 = getFields(30., 'head')
+Hs_H120= getFields(120.,'head')
 
 plt.figure(figsize=(13,5))
 plt.subplot(121)

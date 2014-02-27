@@ -1,5 +1,5 @@
 from SimPEG import *
-from BaseRichards import RichardsModel
+from Empirical import RichardsModel
 
 class RichardsData(Data.BaseData):
     """docstring for RichardsData"""
@@ -66,7 +66,7 @@ class RichardsProblem(Problem.BaseProblem):
     boundaryConditions = None
     initialConditions  = None
 
-    dataPair = RichardsData
+    dataPair  = RichardsData
     modelPair = RichardsModel
 
     def __init__(self, mesh, model, **kwargs):
@@ -117,7 +117,7 @@ class RichardsProblem(Problem.BaseProblem):
         DIV  = self.mesh.faceDiv
         GRAD = self.mesh.cellGrad
         BC   = self.mesh.cellGradBC
-        AV   = self.mesh.aveCC2F
+        AV   = self.mesh.aveF2CC.T
         if self.mesh.dim == 1:
             Dz = self.mesh.faceDivx
         elif self.mesh.dim == 2:
@@ -171,7 +171,7 @@ class RichardsProblem(Problem.BaseProblem):
         DIV  = self.mesh.faceDiv
         GRAD = self.mesh.cellGrad
         BC   = self.mesh.cellGradBC
-        AV   = self.mesh.aveCC2F
+        AV   = self.mesh.aveF2CC.T
         if self.mesh.dim == 1:
             Dz = self.mesh.faceDivx
         elif self.mesh.dim == 2:
@@ -188,7 +188,7 @@ class RichardsProblem(Problem.BaseProblem):
         K  = self.model.k(h, m)
         dK = self.model.kDerivU(h, m)
 
-        aveK = 1./(AV*(1./K));
+        aveK = 1./(AV*(1./K))
 
         RHS = DIV*Utils.sdiag(aveK)*(GRAD*h+BC*bc) + Dz*aveK
         if self.method == 'mixed':
@@ -221,7 +221,8 @@ class RichardsProblem(Problem.BaseProblem):
         B = np.array(sp.vstack(Bs).todense())
 
         Ainv = Solver(A)
-        J = Ainv.solve(B)
+        P = self.data.projectFieldsDeriv(u, m)
+        J = P * Ainv.solve(B)
         return J
 
     def Jvec(self, m, v, u=None):
