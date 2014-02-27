@@ -14,12 +14,14 @@
     \newcommand{\Acf}{{\mathbf A_c^f}}
     \newcommand{\Ace}{{\mathbf A_c^e}}
     \renewcommand{\S}{{\mathbf \Sigma}}
+    \renewcommand{\Div}{{\mathbf {Div}}}
     \newcommand{\St}{{\mathbf \Sigma_\tau}}
     \newcommand{\T}{{\mathbf T}}
     \newcommand{\Tt}{{\mathbf T_\tau}}
-    \newcommand{\diag}[1]{\,{\sf diag}\left( #1 \right)}
+    \newcommand{\diag}{\mathbf{diag}}
     \newcommand{\M}{{\mathbf M}}
-    \newcommand{\MfMui}{{\M^f_{\mu^{-1}}}}
+    \newcommand{\MfMui}{{\M^f_{\mu^{-1}}}}    
+    \newcommand{\dMfMuI}{{d_m (\M^f_{\mu^{-1}})^{-1}}}
     \newcommand{\MeSig}{{\M^e_\sigma}}
     \newcommand{\MeSigInf}{{\M^e_{\sigma_\infty}}}
     \newcommand{\MeSigO}{{\M^e_{\sigma_0}}}
@@ -95,36 +97,60 @@ Since most materials in the earth  have lower permeability than \\(\\mu_0\\), us
 
     Actually, this is an asumption, which means we are not sure exactly this is true, although we are sure, it is very rare that we can encounter those materials. Anyway, practical range of the susceptibility is \\(0 < \\chi < 1 \\).
 
-Since we compute secondary field based on the earth field, which can be different from different locations in the world, we can expect different anomalous responses in different locations in the earth. For instance, assume we have two susceptible spheres, which are exactly same. However, anomalous responses in Canada and South Korea is going to be different.
+Since we compute secondary field based on the earth field, which can be different from different locations in the world, we can expect different anomalous responses in different locations in the earth. For instance, assume we have two susceptible spheres, which are exactly same. However, anomalous responses in Seoul and Vancouver are going to be different.
 
 
-.. plot::
+.. plot :: /home/seogi/Documents/simpegpf/docs/figures/figure1.py
 
-    from simpegPF.MagAnalytics import MagSphereAnalFunA
-    from SimPEG import *
-    import matplotlib.pyplot as plt
+Since we can measure total fields ( \\(\\vec{B}\\)), and usually have reasonably accurate earth field (\\(\\vec{B}_0\\)), we can compute anmalous fields, \\(\\vec{B}_s\\) from our observed data. If you want to download earth magnetic fields at specific location see this website (`noaa <http://www.ngdc.noaa.gov/geomag-web/>`_).
 
-    hxind = ((0,25,1.3),(81, 5),(0,25,1.3))
-    hyind = ((0,25,1.3),(81, 5),(0,25,1.3))
-    hzind = ((0,25,1.3),(80, 5),(0,25,1.3))
+What is our data?
+-----------------
 
-    hx, hy, hz = Utils.meshTensors(hxind, hyind, hzind)
-    M3 = Mesh.TensorMesh([hx, hy, hz], [-sum(hx)/2,-sum(hy)/2,-sum(hz)/2])
+In applied geophysics, which means in practice, it is common to refer to measurements as "the magnetic anomlay" and we can consider this as our observed data. For further descriptions in `GPG <http://www.eos.ubc.ca/courses/eosc350/content/>`_ materials for magnetic survey. Now we have the simple relation ship between "the magnetic anomlay" and the total field as 
 
-    bx,by,bz = MagSphereAnalFunA(M3.gridCC[:,0],M3.gridCC[:,1],M3.gridCC[:,2],100.,0.,0.,0.,0.01,np.array([1.,1.,0.]),'secondary')
+.. math ::
 
-    M3.plotSlice(np.c_[bx, by, bz], vType='CCv', view='vec', ind=21, grid=False, gridOpts={'color':'b','lw':0.5, 'alpha':0.8})
+	\triangle\vec{B} = |\vec{B}_0-\vec{B}_s|-|\vec{B}_0| \approx |\vec{B}_s|cos \theta
+
+where \\(\\theta\\) is the angle between total and anomalous fields. Equivalently, we can use the vector dot product to show that the anomalous field is aproximately equal to the projection of that field onto the direction of the inducing field. Using this approach we would write
+
+.. math ::
+
+	\triangle\vec{B} = |\vec{B}_s|cos \theta = |\vec{B}_o||\vec{B}_s|cos \theta = \vec{B}_o \cdot \vec{B}_s
+
+This is important because, in practice we usually use a total field magnetometer (like a proton precession or optically pumped sensor), which can measure only that part of the anomalous field which is in the direction of the earth's main field.
+
+Sphere in a whole space
+-----------------------
+
 
 Forward problem
 ===============
+
+
 
 Inverse problem
 ===============
 
 
+Mag Differential eq. approach
+*****************************
+
+.. autoclass:: simpegPF.Magnetics.MagneticsDiffSecondary
+    :show-inheritance:
+    :members:
+    :undoc-members:
+    :inherited-members:
 
 
-.. automodule:: simpegPF.PF
+Mag Integral eq. approach
+*************************
+
+Mag analytic solutions
+**********************
+
+.. automodule:: simpegPF.MagAnalytics
     :show-inheritance:
     :members:
     :undoc-members:
