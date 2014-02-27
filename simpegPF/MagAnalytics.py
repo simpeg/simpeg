@@ -224,5 +224,4 @@ if __name__ == '__main__':
         print 'Mag Boundary computation is valid, err = ', err
     else:
         print 'Mag Boundary computation is wrong!!, err = ', err
-
     pass
