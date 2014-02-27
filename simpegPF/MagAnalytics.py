@@ -120,7 +120,7 @@ def CongruousMagBC(mesh, Bo, chi):
 
     Bbcz = const/(rfun(mesh.gridFz[(indzd|indzu),:])**3)*(3*mdotrz*(mesh.gridFz[(indzd|indzu),2]-zc)/rfun(mesh.gridFz[(indzd|indzu),:])-mz)
 
-    return np.r_[Bbcx, Bbcy, Bbcz]
+    return np.r_[Bbcx, Bbcy, Bbcz], (1/gamma-1/(3+gamma))*1/V
 
 
 def MagSphereAnalFunA(x, y, z, R, xc, yc, zc, chi, Bo, flag):
@@ -179,6 +179,15 @@ def MagSphereAnalFunA(x, y, z, R, xc, yc, zc, chi, Bo, flag):
 
     return Bx, By, Bz
 
+def IDTtoxyz(Inc, Dec, Btot):
+    """
+        Convert from Inclination, Declination, Total  intensity of earth field to x, y, z
+    """
+    Bx = Btot*np.cos(Inc/180.*np.pi)*np.sin(Dec/180.*np.pi)
+    By = Btot*np.cos(Inc/180.*np.pi)*np.cos(Dec/180.*np.pi)
+    Bz = -Btot*np.sin(Inc/180.*np.pi)
+
+    return np.r_[Bx, By, Bz]
 
 if __name__ == '__main__':
 
@@ -195,7 +204,7 @@ if __name__ == '__main__':
     sph_ind = spheremodel(M3, 0, 0, 0, 100)
     chi[sph_ind] = chiblk
     mu = (1.+chi)*mu0
-    Bbc = CongruousMagBC(M3, np.array([1., 0., 0.]), chi)
+    Bbc, const = CongruousMagBC(M3, np.array([1., 0., 0.]), chi)
 
     flag = 'secondary'
     Box = 1.

@@ -49,6 +49,9 @@ class BaseMagData(Data.BaseData):
         return bfz
 
         # return np.sqrt(bfx**2 + bfy**2 + bfz**2)
+    
+
+        # return np.sqrt(bfx**2 + bfy**2 + bfz**2)        
 
     @Utils.count
     def projectFieldsDeriv(self, B):
@@ -69,7 +72,7 @@ class BaseMagData(Data.BaseData):
         bfy = self.Qfy*B
         bfz = self.Qfz*B
 
-        return np.c_[bfx, bfy, bfz]
+        return np.r_[bfx, bfy, bfz]
 
 class MagDataBx(object):
     """docstring for MagDataBx"""
