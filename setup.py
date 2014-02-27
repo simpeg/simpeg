@@ -7,5 +7,7 @@ except ImportError, e:
     os.system('rm -rf simpeg')
     os.system('mv temp SimPEG')
     # os.system('mkdir simp')
-    print os.path.abspath('.')
     # os.system('cp -r SimPEG simpegflow/docs/examples/SimPEG')
+
+print os.path.abspath('.')
+print os.system('ls')
