@@ -8,5 +8,3 @@ except ImportError, e:
     os.system('mv simpeg/SimPEG temp')
     os.system('rm -rf simpeg')
     os.system('mv temp SimPEG')
-    os.system('mkdir docs/examples/SimPEG')
-    os.system('cp -r SimPEG simpegflow/docs/examples/SimPEG')
