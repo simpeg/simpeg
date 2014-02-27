@@ -6,4 +6,6 @@ except ImportError, e:
     os.system('mv simpeg/SimPEG temp')
     os.system('rm -rf simpeg')
     os.system('mv temp SimPEG')
-    os.system('echo export PYTHONPATH=$PYTHONPATH:'+os.path.abspath('.')+' >> ~/.bashrc')
+    # os.system('mkdir simp')
+    print os.path.abspath('.')
+    # os.system('cp -r SimPEG simpegflow/docs/examples/SimPEG')
