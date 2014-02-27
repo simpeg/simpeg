@@ -1,5 +1,5 @@
 from scipy import sparse as sp
-from SimPEG.Utils import sub2ind, ndgrid, mkvc, getSubArray, sdiag, inv3X3BlockDiagonal, inv2X2BlockDiagonal, makePropertyTensor
+from SimPEG.Utils import sub2ind, ndgrid, mkvc, getSubArray, sdiag, inv3X3BlockDiagonal, inv2X2BlockDiagonal, makePropertyTensor, invPropertyTensor
 import numpy as np
 
 
@@ -10,13 +10,19 @@ class InnerProducts(object):
     def __init__(self):
         raise Exception('InnerProducts is a base class providing inner product matrices for meshes and cannot run on its own. Inherit to your favorite Mesh class.')
 
-    def getFaceInnerProduct(self, materialProperty=None, returnP=False):
+    def getFaceInnerProduct(self, materialProperty=None, returnP=False, invertProperty=False):
         """
             :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
             :param bool returnP: returns the projection matrices
+            :param bool invertProperty: inverts the material property
             :rtype: scipy.csr_matrix
             :return: M, the inner product matrix (nF, nF)
         """
+        if invertProperty:
+            materialProperty = invPropertyTensor(self, materialProperty)
+
+        Mu = makePropertyTensor(self, materialProperty)
+
         d = self.dim
         # We will multiply by sqrt on each side to keep symmetry
         V = sp.kron(sp.identity(d), sdiag(np.sqrt((2**(-d))*self.vol)))
@@ -42,7 +48,6 @@ class InnerProducts(object):
             P011 = V*fP('fXm', 'fYp', 'fZp')
             P111 = V*fP('fXp', 'fYp', 'fZp')
 
-        Mu = makePropertyTensor(self, materialProperty)
         A = P000.T*Mu*P000 + P100.T*Mu*P100
         P = [P000, P100]
 
@@ -57,13 +62,19 @@ class InnerProducts(object):
         else:
             return A
 
-    def getEdgeInnerProduct(self, materialProperty=None, returnP=False):
+    def getEdgeInnerProduct(self, materialProperty=None, returnP=False, invertProperty=False):
         """
             :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
             :param bool returnP: returns the projection matrices
+            :param bool invertProperty: inverts the material property
             :rtype: scipy.csr_matrix
             :return: M, the inner product matrix (nE, nE)
         """
+        if invertProperty:
+            materialProperty = invPropertyTensor(self, materialProperty)
+
+        Mu = makePropertyTensor(self, materialProperty)
+
         d = self.dim
         # We will multiply by sqrt on each side to keep symmetry
         V = sp.kron(sp.identity(d), sdiag(np.sqrt((2**(-d))*self.vol)))
