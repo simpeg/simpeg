@@ -1,3 +1,6 @@
+import sys
+sys.path.append('../../')
+
 from simpegPF.MagAnalytics import MagSphereAnalFunA, IDTtoxyz
 from SimPEG import *
 import matplotlib.pyplot as plt
@@ -30,7 +33,7 @@ Bzca = np.reshape(bz, (np.size(xr), np.size(yr)), order='F')
 fig = plt.figure( figsize = (14,5) )
 
 ax1 = plt.subplot(121)
-dat1 = plt.imshow(Bzkr, extent=[min(xr), max(xr), min(yr), max(yr)]); 
+dat1 = plt.imshow(Bzkr, extent=[min(xr), max(xr), min(yr), max(yr)]);
 divider = make_axes_locatable(ax1)
 cax1 = divider.append_axes("right", size="5%", pad=0.05)
 ax1.set_xlabel('East-West (m)'); ax1.set_ylabel('South-North (m)')
@@ -38,7 +41,7 @@ plt.colorbar(dat1, cax=cax1)
 ax1.set_title('$B_z$ field at Seoul, South Korea')
 
 ax2 = plt.subplot(122)
-dat2 = plt.imshow(Bzca, extent=[min(xr), max(xr), min(yr), max(yr)]); 
+dat2 = plt.imshow(Bzca, extent=[min(xr), max(xr), min(yr), max(yr)]);
 divider = make_axes_locatable(ax2)
 cax2 = divider.append_axes("right", size="5%", pad=0.05)
 ax2.set_xlabel('East-West (m)'); ax2.set_ylabel('South-North (m)')
