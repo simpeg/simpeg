@@ -1,14 +1,6 @@
 .. _api_Utils:
 
 
-Solver
-******
-
-.. automodule:: SimPEG.Solver
-    :members:
-    :undoc-members:
-
-
 Utilities
 *********
 

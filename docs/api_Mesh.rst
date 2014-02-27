@@ -8,13 +8,13 @@ Tensor Mesh
     :show-inheritance:
     :members:
     :undoc-members:
-    :inherited-members:
 
 
 Cylindrical 1D Mesh
 ===================
 
 .. automodule:: SimPEG.Mesh.Cyl1DMesh
+    :show-inheritance:
     :members:
     :undoc-members:
 
@@ -26,7 +26,6 @@ Logically Orthogonal Mesh
     :show-inheritance:
     :members:
     :undoc-members:
-    :inherited-members:
 
 
 Base Mesh
@@ -37,9 +36,3 @@ Base Mesh
     :undoc-members:
 
 
-Differential Operators
-======================
-
-.. automodule:: SimPEG.Mesh.DiffOperators
-    :members:
-    :undoc-members:

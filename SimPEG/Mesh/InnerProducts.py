@@ -22,25 +22,25 @@ class InnerProducts(object):
         V = sp.kron(sp.identity(d), sdiag(np.sqrt((2**(-d))*self.vol)))
 
         if d == 1:
-            Px = _getFacePx(self)
-            P000 = V*Px('fXm')
-            P100 = V*Px('fXp')
+            fP = _getFacePx(self)
+            P000 = V*fP('fXm')
+            P100 = V*fP('fXp')
         elif d == 2:
-            Pxx = _getFacePxx(self)
-            P000 = V*Pxx('fXm', 'fYm')
-            P100 = V*Pxx('fXp', 'fYm')
-            P010 = V*Pxx('fXm', 'fYp')
-            P110 = V*Pxx('fXp', 'fYp')
+            fP = _getFacePxx(self)
+            P000 = V*fP('fXm', 'fYm')
+            P100 = V*fP('fXp', 'fYm')
+            P010 = V*fP('fXm', 'fYp')
+            P110 = V*fP('fXp', 'fYp')
         elif d == 3:
-            Pxxx = _getFacePxxx(self)
-            P000 = V*Pxxx('fXm', 'fYm', 'fZm')
-            P100 = V*Pxxx('fXp', 'fYm', 'fZm')
-            P010 = V*Pxxx('fXm', 'fYp', 'fZm')
-            P110 = V*Pxxx('fXp', 'fYp', 'fZm')
-            P001 = V*Pxxx('fXm', 'fYm', 'fZp')
-            P101 = V*Pxxx('fXp', 'fYm', 'fZp')
-            P011 = V*Pxxx('fXm', 'fYp', 'fZp')
-            P111 = V*Pxxx('fXp', 'fYp', 'fZp')
+            fP = _getFacePxxx(self)
+            P000 = V*fP('fXm', 'fYm', 'fZm')
+            P100 = V*fP('fXp', 'fYm', 'fZm')
+            P010 = V*fP('fXm', 'fYp', 'fZm')
+            P110 = V*fP('fXp', 'fYp', 'fZm')
+            P001 = V*fP('fXm', 'fYm', 'fZp')
+            P101 = V*fP('fXp', 'fYm', 'fZp')
+            P011 = V*fP('fXm', 'fYp', 'fZp')
+            P111 = V*fP('fXp', 'fYp', 'fZp')
 
         Mu = makePropertyTensor(self, materialProperty)
         A = P000.T*Mu*P000 + P100.T*Mu*P100
@@ -70,7 +70,6 @@ class InnerProducts(object):
 
         if d == 1:
             raise NotImplementedError('getEdgeInnerProduct not implemented for 1D')
-        # We will multiply by V on each side to keep symmetry
         elif d == 2:
             eP = _getEdgePxx(self)
             P000 = V*eP('eX0', 'eY0')
