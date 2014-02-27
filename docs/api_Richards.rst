@@ -33,7 +33,7 @@ However, it can be shown that this does not conserve mass in the discrete formul
 
 Here we reproduce the results from Ceilia et al. (1990):
 
-.. plot:: examples/richards/comparisonToCeiliaEtAl1990.py
+.. plot:: examples/richards_comparisonToCeiliaEtAl1990.py
 
 Richards
 ========
