@@ -10,6 +10,7 @@ model = Richards.Empirical.Haverkamp(M, **params)
 bc = np.array([-61.5,-20.7])
 h = np.zeros(M.nC) + bc[0]
 
+
 def getFields(timeStep,method):
     prob = Richards.RichardsProblem(M,model, timeStep=timeStep, timeEnd=360,
                                     boundaryConditions=bc, initialConditions=h,
