@@ -10,7 +10,8 @@ class InnerProducts(object):
     def __init__(self):
         raise Exception('InnerProducts is a base class providing inner product matrices for meshes and cannot run on its own. Inherit to your favorite Mesh class.')
 
-    def getFaceInnerProduct(self, materialProperty=None, returnP=False, invertProperty=False):
+    def getFaceInnerProduct(self, materialProperty=None, returnP=False,
+                            invertProperty=False):
         """
             :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
             :param bool returnP: returns the projection matrices
@@ -18,6 +19,14 @@ class InnerProducts(object):
             :rtype: scipy.csr_matrix
             :return: M, the inner product matrix (nF, nF)
         """
+        fast = None
+
+        if returnP is False and hasattr(self, '_fastFaceInnerProduct'):
+            fast = self._fastFaceInnerProduct(materialProperty=materialProperty, invertProperty=invertProperty)
+
+        if fast is not None:
+            return fast
+
         if invertProperty:
             materialProperty = invPropertyTensor(self, materialProperty)
 
@@ -61,6 +70,34 @@ class InnerProducts(object):
             return A, P
         else:
             return A
+
+    def getFaceInnerProductDeriv(self, materialProperty=None, P=None):
+        """
+            :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :rtype: scipy.csr_matrix
+            :return: M, the inner product matrix (nF, nF)
+        """
+
+        fast = None
+
+        if hasattr(self, '_fastFaceInnerProductDeriv'):
+            fast = self._fastFaceInnerProductDeriv(materialProperty=materialProperty)
+
+        if fast is not None:
+            return fast
+
+        raise NotImplementedError('Derivatives for the material property specified are not yet implemented.')
+
+        if P is None:
+            M, P = getFaceInnerProduct(self, materialProperty=materialProperty, returnP=True)
+
+        d = self.dim
+
+        if d == 1:
+            P[0].T * sp.identity(n) * P[0]
+
+
+
 
     def getEdgeInnerProduct(self, materialProperty=None, returnP=False, invertProperty=False):
         """

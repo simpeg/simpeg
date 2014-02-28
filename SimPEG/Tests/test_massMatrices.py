@@ -30,7 +30,7 @@ class TestInnerProducts(OrderTest):
             sigma = np.c_[call(sigma1, Gc)]
             analytic = 647./360  # Found using sympy.
         elif self.sigmaTest == 3:
-            sigma = np.c_[call(sigma1, Gc), call(sigma2, Gc), call(sigma3, Gc)]
+            sigma = np.r_[call(sigma1, Gc), call(sigma2, Gc), call(sigma3, Gc)]
             analytic = 37./12  # Found using sympy.
         elif self.sigmaTest == 6:
             sigma = np.c_[call(sigma1, Gc), call(sigma2, Gc), call(sigma3, Gc),

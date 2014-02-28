@@ -131,6 +131,7 @@ If ``returnP=True`` is requested in any of these methods the projection matrices
 
 The derivation for ``edgeInnerProducts`` is exactly the same, however, when we approximate the integral using the fields around each node, the projection matrices look a bit different because we have 12 edges in 3D instead of just 6 faces. The interface to the code is exactly the same.
 
+
 Defining Tensor Properties
 --------------------------
 
@@ -156,6 +157,42 @@ Depending on the number of columns (either 1, 3, or 6) of mu, the material prope
     \vec{\mu} = \left[\begin{matrix} \mu_{1} & 0 \\ 0 & \mu_{2} \end{matrix}\right]
 
     \vec{\mu} = \left[\begin{matrix} \mu_{1} & \mu_{3} \\ \mu_{3} & \mu_{2} \end{matrix}\right]
+
+
+Structure of Matrices
+---------------------
+
+Both the isotropic, and anisotropic material properties result in a diagonal mass matrix.
+Which is nice and easy to invert if necessary, however, in the fully anisotropic case which is not aligned with the grid, the matrix is not diagonal. This can be seen for a 3D mesh in the figure below.
+
+.. plot::
+
+    from SimPEG import *
+    mesh = Mesh.TensorMesh([10,50,3])
+    m1 = np.random.rand(mesh.nC)
+    m2 = np.random.rand(mesh.nC,3)
+    m3 = np.random.rand(mesh.nC,6)
+    M = range(3)
+    M[0] = mesh.getFaceInnerProduct(m1)
+    M[1] = mesh.getFaceInnerProduct(m2)
+    M[2] = mesh.getFaceInnerProduct(m3)
+    plt.figure(figsize=(13,5))
+    for i, lab in enumerate(['Isotropic','Anisotropic','Tensor']):
+        plt.subplot(131 + i)
+        plt.spy(M[i],ms=0.5,color='k')
+        plt.tick_params(axis='both',which='both',labeltop='off',labelleft='off')
+        plt.title(lab + ' Material Property')
+    plt.show()
+
+
+Taking Derivatives
+------------------
+
+TODO: Take the derivatives of the tensors.
+
+.. math::
+
+    \left[\begin{smallmatrix}0.5 \sigma_{1} & 0 & 0.25 \sigma_{3} & 0.25 \sigma_{3}\\0 & 0.5 \sigma_{1} & 0.25 \sigma_{3} & 0.25 \sigma_{3}\\0.25 \sigma_{3} & 0.25 \sigma_{3} & 0.5 \sigma_{2} & 0\\0.25 \sigma_{3} & 0.25 \sigma_{3} & 0 & 0.5 \sigma_{2}\end{smallmatrix}\right]
 
 
 The API
