@@ -71,6 +71,7 @@ class TestSequenceFunctions(unittest.TestCase):
         self.assertTrue(np.all(sub2ind(x.shape, [4,0]) == [4]))
         self.assertTrue(np.all(sub2ind(x.shape, [0,1]) == [5]))
         self.assertTrue(np.all(sub2ind(x.shape, [4,1]) == [9]))
+        self.assertTrue(np.all(sub2ind(x.shape, [[4,1]]) == [9]))
         self.assertTrue(np.all(sub2ind(x.shape, [[0,0],[4,0],[0,1],[4,1]]) == [0,4,5,9]))
 
     def test_ind2sub(self):
