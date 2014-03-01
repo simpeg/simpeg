@@ -41,6 +41,7 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
         self._MfMu0 = self.mesh.getFaceMass(1/mu_0)
         # self._MfMu0 = self.mesh.getFaceInnerProduct(1/mu_0)
 
+    @Utils.requires('data')
     def getB0(self):
         b0 = self.data.B0
         B0 = np.r_[b0[0]*np.ones(self.mesh.nFx),
@@ -49,17 +50,21 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
         return B0
 
     def getRHS(self, m):
+        """
+        
+        .. math ::
 
+            \mathbf{rhs} =  \Div(\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0 - \Div\mathbf{B}_0+\diag(v)\mathbf{D} \mathbf{P}_{out}^T \mathbf{B}_{sBC}
+
+        """
         B0 = self.getB0()
         Dface = self.mesh.faceDiv
         Mc = Utils.sdiag(self.mesh.vol)
 
         chi = self.model.transform(m, asMu=False)
-        Bbc, const = CongruousMagBC(self.mesh, self.data.B0, chi)
-        self.Bbc_const = const
+        Bbc, Bbc_const = CongruousMagBC(self.mesh, self.data.B0, chi)
         self.Bbc = Bbc
-        #TODO: put congrous BC back in
-        # return self._Div*self.MfMuI*self.MfMu0*B0 - self._Div*B0 #+ Mc*Dface*self._Pout.T*Bbc
+        self.Bbc_const = Bbc_const
         return self._Div*self.MfMuI*self.MfMu0*B0 - self._Div*B0 + Mc*Dface*self._Pout.T*Bbc
 
     def getA(self, m):
@@ -68,41 +73,39 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
 
         The A matrix has the form:
 
-            .. math ::
+        .. math ::
 
-                \mathbf{A}\mathbf{u} = \mathbf{rhs}
-
-                \mathbf{A} = - \Div(\MfMui)^{-1}\Div^{T}
-                
-                \mathbf{rhs} = - \Div(\MfMui)^{-1}\mathbf{M}^f_{\\frac{1}{\mu_0}}\mathbf{B}_0 + \Div\mathbf{B}_0-\diag(v)\mathbf{D} \mathbf{P}_{out}^T \mathbf{B}_{sBC}
-
+            \mathbf{A} =  \Div(\MfMui)^{-1}\Div^{T}
 
         """
         return self._Div*self.MfMuI*self._Div.T
 
 
     def fields(self, m):
+        """
+            Return magnetic potential (u) and flux (B)
+            u: defined on the cell center [nC x 1]
+            B: defined on the cell center [nF x 1]
+
+            After we compute u, then we update B.
+
+            .. math ::
+
+                \mathbf{B}_s = (\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0-\mathbf{B}_0 -(\MfMui)^{-1}\Div^T \mathbf{u}
+
+        """
         self.makeMassMatrices(m)
         A = self.getA(m)
         rhs = self.getRHS(m)
-
         m1 = sp.linalg.interface.aslinearoperator(Utils.sdiag(1/A.diagonal()))
         u, info = sp.linalg.bicgstab(A, rhs, tol=1e-6, maxiter=1000, M=m1)
-
         B0 = self.getB0()
-
         B = self.MfMuI*self.MfMu0*B0-B0-self.MfMuI*self._Div.T*u
-
-        #TODO: Create a mag fields object class.
-        # F = self.getInitialFields()
-        # e.g. {'B': B, 'u': u}
 
         return {'B': B, 'u': u}
 
-        # return self.forward(m, self.getRHS, self.calcFields, F=F)
-
     @Utils.timeIt
-    def Jvec(self, m, v, u=None):
+    def Jvec(self, m, v, fields=None):
         """
             Computing Jacobian multiplied by vector
             
@@ -122,7 +125,7 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
                 \\frac{\delta \mathbf{u}}{\delta \mathbf{m}} = - [\\nabla_u \mathbf{C}(\mathbf{u})]^{-1}\\nabla_m \mathbf{C}(\mathbf{m})
 
             With some linear algebra we can have 
-
+ 
             .. math ::
 
                 \\nabla_u \mathbf{C}(\mathbf{u}) = \mathbf{A}
@@ -138,66 +141,177 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
                 \dMfMuI = \diag(\MfMui)^{-1}_{vec} \mathbf{Av}_{F2CC}^T\diag(\mathbf{v})\diag(\\frac{1}{\mu^2})
 
                 \\frac{\partial \mathbf{rhs}(\mathbf{m})}{\partial \mathbf{m}} =  \\frac{\partial \mathbf{\mu}}{\partial \mathbf{m}} \left[ 
-                \Div \diag(\M^f_{\mu_{0}^{-1} \mathbf{B}_0}) \dMfMuI \\right] - \diag(\mathbf{v})\mathbf{D} \mathbf{P}_{out}^T\\frac{\partial B_{sBC}}{\partial \mathbf{m}}
+                \Div \diag(\M^f_{\mu_{0}^{-1}}\mathbf{B}_0) \dMfMuI \\right] - \diag(\mathbf{v})\mathbf{D} \mathbf{P}_{out}^T\\frac{\partial B_{sBC}}{\partial \mathbf{m}}
+
+            In the end, 
+
+            .. math ::
+
+                \\frac{\delta \mathbf{u}}{\delta \mathbf{m}} = 
+                - [ \mathbf{A} ]^{-1}\left[ \\frac{\partial \mathbf{A}}{\partial \mathbf{m}}(\mathbf{m})\mathbf{u} 
+                - \\frac{\partial \mathbf{rhs}(\mathbf{m})}{\partial \mathbf{m}} \\right]
+            
+            A little tricky point here is we are not interested in potential (u), but interested in magnetic flux (B). 
+            Thus, we need sensitivity for B. Now we take derivative of B w.r.t m and have 
+
+            .. math ::
+
+                \\frac{\delta \mathbf{B}} {\delta \mathbf{m}} = \\frac{\partial \mathbf{\mu} } {\partial \mathbf{m} } 
+                \left[ 
+                \diag(\M^f_{\mu_{0}^{-1} } \mathbf{B}_0) \dMfMuI  \\
+                 -  \diag (\Div^T\mathbf{u})\dMfMuI
+                \\right ]
+
+                 -  (\MfMui)^{-1}\Div^T\\frac{\delta\mathbf{u}}{\delta \mathbf{m}}  
+            
+            Finally we evaluate the above, but we should remember that 
+
+            .. note :: 
+
+                We only want to evalute 
+
+                .. math ::
+
+                    \mathbf{J}\mathbf{v} = \\frac{\delta \mathbf{P}\mathbf{B}} {\delta \mathbf{m}}\mathbf{v}
+
+                Since forming sensitivity matrix is very expensive in that this monster is "big" and "dense" matrix!!
 
 
         """
-        if u is None:
-            u = self.fields(m)
+        if fields is None:
+            fields = self.fields(m)
 
-        #TODO: B, u = u['B'], u['u']
-
-        B, u = u['B'], u['u']
-
+        B, u = fields['B'], fields['u']
         mu = self.model.transform(m, asMu=True)
-        dmudm = self.model.transform(m, asMu=True)
+        dmudm = self.model.transformDeriv(m, asMu=True)
+        dmdmu = Utils.sdiag(1/(dmudm.diagonal()))
 
-        P = self.data.projectFieldsDeriv(u)
-
-        A = self.getA(m)
-        dCdu = A
-        # (Av_m)^-1
-        # -(Av_m)^-2 * MfMu_dm * d/dm(1/mu(m))
-        # (Av_m)^-2 * MfMu_dm * diag(mu(m)^-2) * mT_dm
-
-        #TODO: only works for diagonal MfMui
-        # Some chain rule!
-
-
-        # harm_dm = Utils.sdiag(self.MfMui.diagonal()**(-2))
-        # MfMu_dm = self.mesh.getFaceMassDeriv()
-        # dmuI_dm = Utils.sdiag(mu**(-2))
-        # mT_dm   = self.model.transformDeriv(m, asMu=True)
-
-        getFIPconst = 1./3
-        MfMuIvec = 1/self.MfMui.diagonal()*getFIPconst
-        dMfMuI = Utils.sdiag(MfMuIvec**2)*self.mesh.aveF2CC.T*Utils.sdiag(self.mesh.vol*1./mu**2)
-
+        vol = self.mesh.vol
         Div = self._Div
-        # lots-o-bracket for vector multiplication first!
-        # MfMu_dmXv =  harm_dm * ( MfMu_dm * ( dmuI_dm * ( mT_dm * v ) ) )
-        #dCdm_A = D * ( Utils.sdiag( D.T * u ) * MfMu_dmXv )
-
-        dCdm_A = dmudm*Div * ( Utils.sdiag( Div.T * u * dMfMuI ) )
-
-        # rhs = D * MfMuI * MfMu0 * B0
-
+        Dface = self.mesh.faceDiv
+        P = self.data.projectFieldsDeriv(B)                 # Projection matrix
         B0 = self.getB0()
 
-        #TODO: add congrous stuff
-        dCdm_RHS = dmudm* Div * Utils.sdiag( self.MfMu0*B0  ) * dMfMuI - Utils.sdiag(self.mesh.vol)*self.mesh.faceDiv*self.Pout.T*self.Bbc*self.Bbc_const
+        MfMuIvec = 1/self.MfMui.diagonal()
+        dMfMuI = Utils.sdiag(MfMuIvec**2)*self.mesh.aveF2CC.T*Utils.sdiag(vol*1./mu**2)
 
+        # A = self._Div*self.MfMuI*self._Div.T
+        # RHS = Div*MfMuI*MfMu0*B0 - Div*B0 + Mc*Dface*Pout.T*Bbc
+        # C(m,u) = A*m-rhs
+        # dudm = -(dCdu)^(-1)dCdm
 
-        # c(m,u) = A(m)u - rhs(m)
-        dCdm = dCdm_A - dCdm_RHS
+        dCdu = self.getA(m)
+        dCdm_A = Div * ( Utils.sdiag( Div.T * u )* dMfMuI *dmudm  )
+        dCdm_RHS1 = Div * (Utils.sdiag( self.MfMu0*B0  ) * dMfMuI)
+        temp1 = (Dface*(self._Pout.T*self.Bbc_const*self.Bbc))
+        dCdm_RHS2v  = (Utils.sdiag(vol)*temp1)*np.inner(vol, v)
+        dCdm_RHSv =  dCdm_RHS1*(dmudm*v) +  dCdm_RHS2v           
+        dCdm_v = dCdm_A*v - dCdm_RHSv
 
-        solve = Solver(dCdu)
+        m1 = sp.linalg.interface.aslinearoperator(Utils.sdiag(1/dCdu.diagonal()))           
+        sol, info = sp.linalg.bicgstab(dCdu, dCdm_v, tol=1e-8, maxiter=1000, M=m1)
 
-        #TODO: Multiply by the dP(u(m))/du
-        # We transformed u in our fields object.
-        #         ( dBdu *                   + dBdm(u)  )
-        Jv = - P *           solve.solve(dCdm)
-        return Utils.mkvc(Jv)
+        if info > 0:
+            raise Exception ("Iterative solver did not work well")
+
+        # B = self.MfMuI*self.MfMu0*B0-B0-self.MfMuI*self._Div.T*u
+        # dBdm = d\mudm*dBd\mu
+
+        dudm = -sol 
+        dBdmv =     (  Utils.sdiag(self.MfMu0*B0)*(dMfMuI * (dmudm*v)) \
+                     - Utils.sdiag(Div.T*u)*(dMfMuI* (dmudm*v)) \
+                     - self.MfMuI*(Div.T* (dudm)) ) 
+        
+        return Utils.mkvc(P*dBdmv)
+
+    @Utils.timeIt
+    def Jtvec(self, m, v, fields=None):
+        """
+            Computing Jacobian^T multiplied by vector.
+
+        .. math ::
+
+            (\\frac{\delta \mathbf{P}\mathbf{B}} {\delta \mathbf{m}})^{T} = \left[ \mathbf{P}_{deriv}\\frac{\partial \mathbf{\mu} } {\partial \mathbf{m} } 
+            \left[ 
+            \diag(\M^f_{\mu_{0}^{-1} } \mathbf{B}_0) \dMfMuI  \\
+             -  \diag (\Div^T\mathbf{u})\dMfMuI
+            \\right ]\\right]^{T}              
+
+             -  \left[\mathbf{P}_{deriv}(\MfMui)^{-1}\Div^T\\frac{\delta\mathbf{u}}{\delta \mathbf{m}} \\right]^{T}
+
+        where 
+
+        .. math ::
+
+            \mathbf{P}_{derv} = \\frac{\partial \mathbf{P}}{\partial\mathbf{B}}
+
+        .. note ::
+
+            Here we only want to compute 
+
+            .. math ::
+
+                \mathbf{J}^{T}\mathbf{v} = (\\frac{\delta \mathbf{P}\mathbf{B}} {\delta \mathbf{m}})^{T} \mathbf{v}
+
+        """
+        if fields is None:
+            fields = self.fields(m)
+
+        B, u = fields['B'], fields['u']
+        mu = self.model.transform(m, asMu=True)
+        dmudm = self.model.transformDeriv(m, asMu=True)
+        dmdmu = Utils.sdiag(1/(dmudm.diagonal()))
+
+        vol = self.mesh.vol
+        Div = self._Div
+        Dface = self.mesh.faceDiv
+        P = self.data.projectFieldsDeriv(B)                 # Projection matrix
+        B0 = self.getB0()
+
+        MfMuIvec = 1/self.MfMui.diagonal()
+        dMfMuI = Utils.sdiag(MfMuIvec**2)*self.mesh.aveF2CC.T*Utils.sdiag(vol*1./mu**2)
+
+        # A = self._Div*self.MfMuI*self._Div.T
+        # RHS = Div*MfMuI*MfMu0*B0 - Div*B0 + Mc*Dface*Pout.T*Bbc
+        # C(m,u) = A*m-rhs
+        # dudm = -(dCdu)^(-1)dCdm
+
+        dCdu = self.getA(m)
+        s = Div * ( self.MfMuI.T * ( P.T*v ) )
+
+        m1 = sp.linalg.interface.aslinearoperator(Utils.sdiag(1/(dCdu.T).diagonal()))           
+        sol, info = sp.linalg.bicgstab(dCdu.T, s, tol=1e-8, maxiter=1000, M=m1)
+
+        if info > 0:
+            raise Exception ("Iterative solver did not work well")
+
+        # dCdm_A = Div * ( Utils.sdiag( Div.T * u )* dMfMuI *dmudm  )
+        dCdm_Atsol = ( dMfMuI.T*( Utils.sdiag( Div.T * u ) * (Div.T * dmudm)) ) * sol
+
+        # dCdm_RHS1 = Div * (Utils.sdiag( self.MfMu0*B0  ) * dMfMuI)       
+        dCdm_RHS1tsol = (dMfMuI.T*( Utils.sdiag( self.MfMu0*B0  ) ) * Div.T * dmudm) * sol
+                
+        # temp1 = (Dface*(self._Pout.T*self.Bbc_const*self.Bbc))
+        # dCdm_RHS2v  = (Utils.sdiag(vol)*temp1)*np.inner(vol, v)
+        temp1sol = ( Dface.T*( Utils.sdiag(vol)*sol ) )
+        temp2 = self.Bbc_const*(self._Pout.T*self.Bbc).T
+        dCdm_RHS2tsol  = vol*np.inner(temp2, temp1sol)
+        dCdm_RHStsol = dCdm_RHS1tsol - dCdm_RHS2tsol
+
+        # dCdm_RHSv =  dCdm_RHS1*(dmudm*v) +  dCdm_RHS2v           
+        # dCdm_v = dCdm_A*v - dCdm_RHSv
+
+        Ctv = dCdm_Atsol - dCdm_RHStsol
+
+        # B = self.MfMuI*self.MfMu0*B0-B0-self.MfMuI*self._Div.T*u
+        # dBdm = d\mudm*dBd\mu
+        # dPBdm^T*v = Atemp^T*P^T*v - Btemp^T*P^T*v - Ctv
+
+        Atemp = Utils.sdiag(self.MfMu0*B0)*(dMfMuI * (dmudm))
+        Btemp = Utils.sdiag(Div.T*u)*(dMfMuI* (dmudm))
+        Jtv = Atemp.T*(P.T*v) - Btemp.T*(P.T*v) - Ctv
+
+        return Utils.mkvc(Jtv)        
 
 
 
@@ -218,7 +332,12 @@ if __name__ == '__main__':
     # mu = (1.+chi)*mu_0
 
     data = BaseMag.BaseMagData()
-    data.setBackgroundField(x=1., y=1., z=0.)
+    Inc = 90.
+    Dec = 0.
+    Btot = 51000
+
+    data.setBackgroundField(Inc, Dec, Btot)
+    
     xr = np.linspace(-300, 300, 41)
     yr = np.linspace(-300, 300, 41)
     X, Y = np.meshgrid(xr, yr)
@@ -230,30 +349,14 @@ if __name__ == '__main__':
 
     prob.pair(data)
 
-    B = prob.fields(chi)
-    # mesh.plotSlice(B, 'F', view='vec', showIt=True)
-
-    dpred = data.dpred(chi, u=B)
-
-
-    # ##################
-    # # Test J
-    # ##################
-
-    # d_chi = 0.8*chi #np.random.rand(mesh.nCz)
-    # d_sph_ind = spheremodel(mesh, 0., 0., -100., 50)
-    # d_chi[d_sph_ind] = 0.02
-
-    # from SimPEG.Tests import checkDerivative
-
-    # derChk = lambda m: [prob.data.dpred(m), lambda mx: -prob.Jvec(chi, mx)]
-    # print '\n'
-    # passed = checkDerivative(derChk, chi, plotIt=False, dx=d_chi, num=2)
+    dpred = data.dpred(chi)
+    fig = plt.figure( figsize = (8,5) )
+    ax = plt.subplot(111)
+    dat = plt.imshow(np.reshape(dpred, (xr.size, yr.size), order='F'), extent=[min(xr), max(xr), min(yr), max(yr)])
+    plt.colorbar(dat, ax = ax)
+    plt.show()
 
 
-    # # plt.pcolor(X, Y, dpred.reshape(X.shape, order='F'))
-
-    # # plt.show()
 
 
 

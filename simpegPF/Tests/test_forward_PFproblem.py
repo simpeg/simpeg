@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import simpegPF as PF
 
 
-class MagProblemTests(unittest.TestCase):
+class MagFwdProblemTests(unittest.TestCase):
 
     def setUp(self):
 
@@ -29,7 +29,13 @@ class MagProblemTests(unittest.TestCase):
     def test_anal_forward(self):
 
         data = PF.BaseMag.BaseMagData()
-        data.setBackgroundField(x=1., y=1., z=0.)
+
+        Inc = 90.
+        Dec = 0.
+        Btot = 51000
+
+        b0 = PF.MagAnalytics.IDTtoxyz(Inc, Dec, Btot)        
+        data.setBackgroundField(Inc, Dec, Btot)
         xr = np.linspace(-300, 300, 41)
         yr = np.linspace(-300, 300, 41)
         X, Y = np.meshgrid(xr, yr)
@@ -38,9 +44,10 @@ class MagProblemTests(unittest.TestCase):
         data.rxLoc = rxLoc
             
         self.prob.pair(data)
-        B = self.prob.fields(self.chi)
+        u = self.prob.fields(self.chi)
+        B = u['B']
 
-        bxa,bya,bza = PF.MagAnalytics.MagSphereAnalFunA(rxLoc[:,0],rxLoc[:,1],rxLoc[:,2],100.,0.,0.,0.,0.01,np.array([1.,1.,0.]),'secondary') 
+        bxa,bya,bza = PF.MagAnalytics.MagSphereAnalFunA(rxLoc[:,0],rxLoc[:,1],rxLoc[:,2],100.,0.,0.,0.,0.01, b0,'secondary') 
        
         dpred = data.projectFieldsAsVector(B)
         err = np.linalg.norm(dpred-np.r_[bxa, bya, bza])/np.linalg.norm(np.r_[bxa, bya, bza])
@@ -50,6 +57,6 @@ class MagProblemTests(unittest.TestCase):
         else:
             print "Anaytic test is passed"
             pass
-
+    
 if __name__ == '__main__':
     unittest.main()

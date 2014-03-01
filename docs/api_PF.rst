@@ -111,13 +111,13 @@ In applied geophysics, which means in practice, it is common to refer to measure
 
 .. math ::
 
-	\triangle\vec{B} = |\vec{B}_0-\vec{B}_s|-|\vec{B}_0| \approx |\vec{B}_s|cos \theta
+	\triangle\vec{B} = |\hat{B}_o-\vec{B}_s|-|\hat{B}_o| \approx |\vec{B}_s|cos \theta
 
-where \\(\\theta\\) is the angle between total and anomalous fields. Equivalently, we can use the vector dot product to show that the anomalous field is aproximately equal to the projection of that field onto the direction of the inducing field. Using this approach we would write
+where \\(\\theta\\) is the angle between total and anomalous fields, \\(\\hat{B}_o\\) is the unit vector for \\(\\vec{B}_o\\). Equivalently, we can use the vector dot product to show that the anomalous field is aproximately equal to the projection of that field onto the direction of the inducing field. Using this approach we would write
 
 .. math ::
 
-	\triangle\vec{B} = |\vec{B}_s|cos \theta = |\vec{B}_o||\vec{B}_s|cos \theta = \vec{B}_o \cdot \vec{B}_s
+	\triangle\vec{B} = |\vec{B}_s|cos \theta = |\hat{B}_o||\vec{B}_s|cos \theta = \hat{B}_o \cdot \vec{B}_s
 
 This is important because, in practice we usually use a total field magnetometer (like a proton precession or optically pumped sensor), which can measure only that part of the anomalous field which is in the direction of the earth's main field.
 
@@ -127,6 +127,19 @@ Sphere in a whole space
 
 Forward problem
 ===============
+
+Differential equation approach
+------------------------------
+
+    .. math ::
+
+        \mathbf{A}\mathbf{u} = \mathbf{rhs}
+
+        \mathbf{A} =  \Div(\MfMui)^{-1}\Div^{T}
+        
+        \mathbf{rhs} =  \Div(\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0 - \Div\mathbf{B}_0+\diag(v)\mathbf{D} \mathbf{P}_{out}^T \mathbf{B}_{sBC}
+
+        \mathbf{B}_s = (\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0-\mathbf{B}_0 -(\MfMui)^{-1}\Div^T \mathbf{u}
 
 
 
@@ -142,6 +155,12 @@ Mag Differential eq. approach
     :members:
     :undoc-members:
     :inherited-members:
+
+.. autoclass:: simpegPF.BaseMag.BaseMagData
+    :show-inheritance:
+    :members:
+    :undoc-members:
+    :inherited-members:    
 
 
 Mag Integral eq. approach
