@@ -77,7 +77,6 @@ class InnerProducts(object):
             :rtype: scipy.csr_matrix
             :return: M, the inner product matrix (nF, nF)
         """
-
         fast = None
 
         if hasattr(self, '_fastFaceInnerProductDeriv'):
@@ -97,8 +96,6 @@ class InnerProducts(object):
             P[0].T * sp.identity(n) * P[0]
 
 
-
-
     def getEdgeInnerProduct(self, materialProperty=None, returnP=False, invertProperty=False):
         """
             :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
@@ -107,6 +104,14 @@ class InnerProducts(object):
             :rtype: scipy.csr_matrix
             :return: M, the inner product matrix (nE, nE)
         """
+        fast = None
+
+        if returnP is False and hasattr(self, '_fastEdgeInnerProduct'):
+            fast = self._fastEdgeInnerProduct(materialProperty=materialProperty, invertProperty=invertProperty)
+
+        if fast is not None:
+            return fast
+
         if invertProperty:
             materialProperty = invPropertyTensor(self, materialProperty)
 
@@ -145,6 +150,25 @@ class InnerProducts(object):
             return A, P
         else:
             return A
+
+
+    def getEdgeInnerProductDeriv(self, materialProperty=None, P=None):
+        """
+            :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :rtype: scipy.csr_matrix
+            :return: M, the inner product matrix (nF, nF)
+        """
+
+        fast = None
+
+        if hasattr(self, '_fastEdgeInnerProductDeriv'):
+            fast = self._fastEdgeInnerProductDeriv(materialProperty=materialProperty)
+
+        if fast is not None:
+            return fast
+
+        raise NotImplementedError('Derivatives for the material property specified are not yet implemented.')
+
 
 # ------------------------ Geometries ------------------------------
 #

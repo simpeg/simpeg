@@ -503,22 +503,50 @@ class TensorMesh(BaseRectangularMesh, TensorView, DiffOperators, InnerProducts):
             :rtype: scipy.csr_matrix
             :return: M, the inner product matrix (nF, nF)
         """
+        return self._fastInnerProduct('F', materialProperty=materialProperty, invertProperty=invertProperty)
+
+
+    def _fastEdgeInnerProduct(self, materialProperty=None, invertProperty=False):
+        """
+            Fast version of getEdgeInnerProduct.
+            This does not handle the case of a full tensor materialProperty.
+
+            :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :param bool returnP: returns the projection matrices
+            :param bool invertProperty: inverts the material property
+            :rtype: scipy.csr_matrix
+            :return: M, the inner product matrix (nE, nE)
+        """
+        return self._fastInnerProduct('E', materialProperty=materialProperty, invertProperty=invertProperty)
+
+
+    def _fastInnerProduct(self, AvType, materialProperty=None, invertProperty=False):
+        """
+            Fast version of getFaceInnerProduct.
+            This does not handle the case of a full tensor materialProperty.
+
+            :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :param str AvType: 'E' or 'F'
+            :param bool returnP: returns the projection matrices
+            :param bool invertProperty: inverts the material property
+            :rtype: scipy.csr_matrix
+            :return: M, the inner product matrix (nF, nF)
+        """
         if materialProperty is None:
             materialProperty = np.ones(self.nC)
 
         if materialProperty.size == self.nC:
             if invertProperty:
                 materialProperty = 1./materialProperty
-            Av = self.aveF2CC
+            Av = getattr(self, 'ave'+AvType+'2CC')
             V = Utils.sdiag(self.vol)
             return self.dim * Utils.sdiag(Av.T * V * materialProperty)
         if materialProperty.size == self.nC*self.dim:
             if invertProperty:
                 materialProperty = 1./materialProperty
-            Av = self.aveF2CCV
+            Av = getattr(self, 'ave'+AvType+'2CCV')
             V = sp.kron(sp.identity(self.dim), Utils.sdiag(self.vol))
             return Utils.sdiag(Av.T * V * Utils.mkvc(materialProperty))
-
 
 
     def _fastFaceInnerProductDeriv(self, materialProperty=None):
@@ -527,11 +555,30 @@ class TensorMesh(BaseRectangularMesh, TensorView, DiffOperators, InnerProducts):
             :rtype: scipy.csr_matrix
             :return: M, the inner product matrix (nF, nF)
         """
+        return self._fastInnerProductDeriv('F', materialProperty=materialProperty)
+
+
+    def _fastEdgeInnerProductDeriv(self, materialProperty=None):
+        """
+            :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :rtype: scipy.csr_matrix
+            :return: M, the inner product matrix (nE, nE)
+        """
+        return self._fastInnerProductDeriv('E', materialProperty=materialProperty)
+
+
+    def _fastInnerProductDeriv(self, AvType, materialProperty=None):
+        """
+            :param str AvType: 'E' or 'F'
+            :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :rtype: scipy.csr_matrix
+            :return: M, the inner product matrix (nF, nF)
+        """
         if materialProperty is None or materialProperty.size == self.nC:
-            Av = self.aveF2CC
+            Av = getattr(self, 'ave'+AvType+'2CC')
             return self.dim * Av.T * Utils.sdiag(self.vol)
         if materialProperty.size == self.nC*self.dim: # anisotropic
-            Av = self.aveF2CCV
+            Av = getattr(self, 'ave'+AvType+'2CCV')
             V = sp.kron(sp.identity(self.dim), Utils.sdiag(self.vol))
             return Av.T * V
 
