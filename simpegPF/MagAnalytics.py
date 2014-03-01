@@ -17,6 +17,7 @@ def spheremodel(mesh, x0, y0, z0, r):
 
 def MagSphereAnalFun(x, y, z, R, x0, y0, z0, mu1, mu2, H0, flag):
     """
+        test
         Analytic function for Magnetics problem. The set up here is
         magnetic sphere in whole-space.
 
