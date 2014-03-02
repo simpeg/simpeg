@@ -61,7 +61,7 @@ class Solver(object):
             warnings.warn("You should provide a preconditioner, M.", UserWarning)
             return
         M = options['M']
-        if type(M) is sp.linalg.LinearOperator:
+        if isinstance(M, sp.linalg.LinearOperator):
             return
         PreconditionerList = ['J','GS']
         if type(M) is str:
