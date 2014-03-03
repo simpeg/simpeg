@@ -74,8 +74,11 @@ class InnerProducts(object):
     def getFaceInnerProductDeriv(self, materialProperty=None, v=None, P=None, doFast=True):
         """
             :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :param numpy.array v: vector to multiply (required in the general implementation)
+            :param list P: list of projection matrices
+            :param bool doFast: do a faster implementation if available.
             :rtype: scipy.csr_matrix
-            :return: M, the inner product matrix (nF, nF)
+            :return: dMdm, the derivative of the inner product matrix (nF, nC*nA)
         """
         fast = None
 
@@ -148,8 +151,11 @@ class InnerProducts(object):
     def getEdgeInnerProductDeriv(self, materialProperty=None, v=None, P=None, doFast=True):
         """
             :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :param numpy.array v: vector to multiply (required in the general implementation)
+            :param list P: list of projection matrices
+            :param bool doFast: do a faster implementation if available.
             :rtype: scipy.csr_matrix
-            :return: M, the inner product matrix (nF, nF)
+            :return: dMdm, the derivative of the inner product matrix (nE, nC*nA)
         """
 
         fast = None
@@ -166,7 +172,14 @@ class InnerProducts(object):
         return self._getInnerProductDeriv(materialProperty, v, P, self.nE)
 
     def _getInnerProductDeriv(self, materialProperty, v, P, n):
-
+        """
+            :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :param numpy.array v: vector to multiply (required in the general implementation)
+            :param list P: list of projection matrices
+            :param int n: nF or nE
+            :rtype: scipy.csr_matrix
+            :return: dMdm, the derivative of the inner product matrix (n, nC*nA)
+        """
         if v is None:
             raise Exception('v must be supplied for this implementation.')
 
@@ -186,27 +199,24 @@ class InnerProducts(object):
                     y2 = Y[self.nC:]
                     dMdm = dMdm + p.T * sp.vstack((sdiag( y1 ), sdiag( y2 )))
             if materialProperty.size == self.nC*2:
-                dMdm1 = spzeros(n, self.nC)
-                dMdm2 = spzeros(n, self.nC)
+                dMdms = [spzeros(n, self.nC) for _ in range(2)]
                 for i, p in enumerate(P):
                     Y = p * v
                     y1 = Y[:self.nC]
                     y2 = Y[self.nC:]
-                    dMdm1 = dMdm1 + p.T * sp.vstack(( sdiag( y1 ), Z))
-                    dMdm2 = dMdm2 + p.T * sp.vstack(( Z, sdiag( y2 )))
-                dMdm = sp.hstack((dMdm1, dMdm2))
+                    dMdms[0] = dMdms[0] + p.T * sp.vstack(( sdiag( y1 ), Z))
+                    dMdms[1] = dMdms[1] + p.T * sp.vstack(( Z, sdiag( y2 )))
+                dMdm = sp.hstack(dMdms)
             if materialProperty.size == self.nC*3:
-                dMdm1 = spzeros(n, self.nC)
-                dMdm2 = spzeros(n, self.nC)
-                dMdm3 = spzeros(n, self.nC)
+                dMdms = [spzeros(n, self.nC) for _ in range(3)]
                 for i, p in enumerate(P):
                     Y = p * v
                     y1 = Y[:self.nC]
                     y2 = Y[self.nC:]
-                    dMdm1 = dMdm1 + p.T * sp.vstack(( sdiag( y1 ), Z))
-                    dMdm2 = dMdm2 + p.T * sp.vstack(( Z, sdiag( y2 )))
-                    dMdm3 = dMdm3 + p.T * sp.vstack(( sdiag( y2 ), sdiag( y1 )))
-                dMdm = sp.hstack((dMdm1, dMdm2, dMdm3))
+                    dMdms[0] = dMdms[0] + p.T * sp.vstack(( sdiag( y1 ), Z))
+                    dMdms[1] = dMdms[1] + p.T * sp.vstack(( Z, sdiag( y2 )))
+                    dMdms[2] = dMdms[2] + p.T * sp.vstack(( sdiag( y2 ), sdiag( y1 )))
+                dMdm = sp.hstack(dMdms)
         elif d == 3:
             if materialProperty is None or materialProperty.size == self.nC:
                 dMdm = spzeros(n, self.nC)
@@ -217,37 +227,30 @@ class InnerProducts(object):
                     y3 = Y[self.nC*2:]
                     dMdm = dMdm + p.T * sp.vstack((sdiag( y1 ), sdiag( y2 ), sdiag( y3 )))
             if materialProperty.size == self.nC*3:
-                dMdm1 = spzeros(n, self.nC)
-                dMdm2 = spzeros(n, self.nC)
-                dMdm3 = spzeros(n, self.nC)
+                dMdms = [spzeros(n, self.nC) for _ in range(3)]
                 for i, p in enumerate(P):
                     Y = p * v
                     y1 = Y[:self.nC]
                     y2 = Y[self.nC:self.nC*2]
                     y3 = Y[self.nC*2:]
-                    dMdm1 = dMdm1 + p.T * sp.vstack(( sdiag( y1 ), Z, Z))
-                    dMdm2 = dMdm2 + p.T * sp.vstack(( Z, sdiag( y2 ), Z))
-                    dMdm3 = dMdm3 + p.T * sp.vstack(( Z, Z, sdiag( y3 )))
-                dMdm = sp.hstack((dMdm1, dMdm2, dMdm3))
+                    dMdms[0] = dMdms[0] + p.T * sp.vstack(( sdiag( y1 ), Z, Z))
+                    dMdms[1] = dMdms[1] + p.T * sp.vstack(( Z, sdiag( y2 ), Z))
+                    dMdms[2] = dMdms[2] + p.T * sp.vstack(( Z, Z, sdiag( y3 )))
+                dMdm = sp.hstack(dMdms)
             if materialProperty.size == self.nC*6:
-                dMdm1 = spzeros(n, self.nC)
-                dMdm2 = spzeros(n, self.nC)
-                dMdm3 = spzeros(n, self.nC)
-                dMdm4 = spzeros(n, self.nC)
-                dMdm5 = spzeros(n, self.nC)
-                dMdm6 = spzeros(n, self.nC)
+                dMdms = [spzeros(n, self.nC) for _ in range(6)]
                 for i, p in enumerate(P):
                     Y = p * v
                     y1 = Y[:self.nC]
                     y2 = Y[self.nC:self.nC*2]
                     y3 = Y[self.nC*2:]
-                    dMdm1 = dMdm1 + p.T * sp.vstack(( sdiag( y1 ), Z, Z))
-                    dMdm2 = dMdm2 + p.T * sp.vstack(( Z, sdiag( y2 ), Z))
-                    dMdm3 = dMdm3 + p.T * sp.vstack(( Z, Z, sdiag( y3 )))
-                    dMdm4 = dMdm4 + p.T * sp.vstack(( sdiag( y2 ), sdiag( y1 ), Z))
-                    dMdm5 = dMdm5 + p.T * sp.vstack(( sdiag( y3 ), Z, sdiag( y1 )))
-                    dMdm6 = dMdm6 + p.T * sp.vstack(( Z, sdiag( y3 ), sdiag( y2 )))
-                dMdm = sp.hstack((dMdm1, dMdm2, dMdm3, dMdm4, dMdm5, dMdm6))
+                    dMdms[0] = dMdms[0] + p.T * sp.vstack(( sdiag( y1 ), Z, Z))
+                    dMdms[1] = dMdms[1] + p.T * sp.vstack(( Z, sdiag( y2 ), Z))
+                    dMdms[2] = dMdms[2] + p.T * sp.vstack(( Z, Z, sdiag( y3 )))
+                    dMdms[3] = dMdms[3] + p.T * sp.vstack(( sdiag( y2 ), sdiag( y1 ), Z))
+                    dMdms[4] = dMdms[4] + p.T * sp.vstack(( sdiag( y3 ), Z, sdiag( y1 )))
+                    dMdms[5] = dMdms[5] + p.T * sp.vstack(( Z, sdiag( y3 ), sdiag( y2 )))
+                dMdm = sp.hstack(dMdms)
 
         return dMdm
 
