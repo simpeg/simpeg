@@ -188,12 +188,80 @@ Which is nice and easy to invert if necessary, however, in the fully anisotropic
 Taking Derivatives
 ------------------
 
-TODO: Take the derivatives of the tensors.
+We will take the derivative of the fully anisotropic tensor for a 3D mesh, the other cases are easier and will not be discussed here. Let us start with one part of the sum which makes up \\\(\\mathbf{M}^f_\\Sigma\\\) and take the derivative when this is multiplied by some vector \\\(\\mathbf{v}\\\):
 
 .. math::
 
-    \left[\begin{smallmatrix}0.5 \sigma_{1} & 0 & 0.25 \sigma_{3} & 0.25 \sigma_{3}\\0 & 0.5 \sigma_{1} & 0.25 \sigma_{3} & 0.25 \sigma_{3}\\0.25 \sigma_{3} & 0.25 \sigma_{3} & 0.5 \sigma_{2} & 0\\0.25 \sigma_{3} & 0.25 \sigma_{3} & 0 & 0.5 \sigma_{2}\end{smallmatrix}\right]
+    \mathbf{P}^\top \boldsymbol{\Sigma} \mathbf{Pv}
 
+Here we will let \\\( \\mathbf{Pv} = \\mathbf{y} \\\) and \\\(\\mathbf{y}\\\) will have the form:
+
+.. math::
+
+    \mathbf{y} = \mathbf{Pv} =
+    \left[
+        \begin{matrix}
+            \mathbf{y}_1\\
+            \mathbf{y}_2\\
+            \mathbf{y}_3\\
+        \end{matrix}
+    \right]
+
+.. math::
+
+    \mathbf{P}^\top\Sigma\mathbf{y} =
+    \mathbf{P}^\top
+    \left[\begin{matrix}
+        \boldsymbol{\sigma}_{1} & \boldsymbol{\sigma}_{4} & \boldsymbol{\sigma}_{5} \\
+        \boldsymbol{\sigma}_{4} & \boldsymbol{\sigma}_{2} & \boldsymbol{\sigma}_{6} \\
+        \boldsymbol{\sigma}_{5} & \boldsymbol{\sigma}_{6} & \boldsymbol{\sigma}_{3}
+    \end{matrix}\right]
+    \left[
+        \begin{matrix}
+            \mathbf{y}_1\\
+            \mathbf{y}_2\\
+            \mathbf{y}_3\\
+        \end{matrix}
+    \right]
+    =
+    \mathbf{P}^\top
+    \left[
+        \begin{matrix}
+            \boldsymbol{\sigma}_{1}\circ \mathbf{y}_1 + \boldsymbol{\sigma}_{4}\circ \mathbf{y}_2 + \boldsymbol{\sigma}_{5}\circ \mathbf{y}_3\\
+            \boldsymbol{\sigma}_{4}\circ \mathbf{y}_1 + \boldsymbol{\sigma}_{2}\circ \mathbf{y}_2 + \boldsymbol{\sigma}_{6}\circ \mathbf{y}_3\\
+            \boldsymbol{\sigma}_{5}\circ \mathbf{y}_1 + \boldsymbol{\sigma}_{6}\circ \mathbf{y}_2 + \boldsymbol{\sigma}_{3}\circ \mathbf{y}_3\\
+        \end{matrix}
+    \right]
+
+Now it is easy to take the derivative with respect to any one of the parameters, for example, \\\(\\frac{\\partial}{\\partial\\boldsymbol{\\sigma}_1}\\\)
+
+.. math::
+    \frac{\partial}{\partial \boldsymbol{\sigma}_1}\left(\mathbf{P}^\top\Sigma\mathbf{y}\right)
+    =
+    \mathbf{P}^\top
+    \left[
+        \begin{matrix}
+            \text{diag}(\mathbf{y}_1)\\
+            0\\
+            0\\
+        \end{matrix}
+    \right]
+
+Whereas \\\(\\frac{\\partial}{\\partial\\boldsymbol{\\sigma}_4}\\\), for example, is:
+
+.. math::
+    \frac{\partial}{\partial \boldsymbol{\sigma}_4}\left(\mathbf{P}^\top\Sigma\mathbf{y}\right)
+    =
+    \mathbf{P}^\top
+    \left[
+        \begin{matrix}
+            \text{diag}(\mathbf{y}_2)\\
+            \text{diag}(\mathbf{y}_1)\\
+            0\\
+        \end{matrix}
+    \right]
+
+These are computed for each of the 8 projections, horizontally concatenated, and returned.
 
 The API
 -------
