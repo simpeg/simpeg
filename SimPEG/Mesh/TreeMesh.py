@@ -322,7 +322,7 @@ class TreeFace(object):
         if not self.isleaf: return
         if self.dim == 2:
             line = np.c_[self.node0.x0, self.node1.x0].T
-            ax.plot(line[:,0], line[:,1],'r-')
+            ax.plot(line[:,0], line[:,1],'b-')
             if text: ax.text(self.center[0], self.center[1],self.num)
         elif self.dim == 3:
             if text: ax.text(self.center[0], self.center[1], self.center[2], self.num)
@@ -665,10 +665,10 @@ class TreeCell(object):
     def plotGrid(self, ax, text=False):
         if not self.isleaf: return
         if self.dim == 2:
-            ax.plot(self.center[0],self.center[1],'b.')
+            ax.plot(self.center[0],self.center[1],'ro')
             if text: ax.text(self.center[0],self.center[1],self.num)
         elif self.dim == 3:
-            ax.plot([self.center[0]],[self.center[1]],'b.', zs=[self.center[2]])
+            ax.plot([self.center[0]],[self.center[1]],'ro', zs=[self.center[2]])
             if text: ax.text(self.center[0], self.center[1], self.center[2], self.num)
 
 
@@ -1048,21 +1048,38 @@ class TreeMesh(InnerProducts, BaseMesh):
         zP = self._getEdgeP(zEdge, xEdge, yEdge)
         return sp.vstack((xP, yP, zP))
 
-    def plotGrid(self, ax=None, text=True, plotC=True, plotF=True, plotE=False, plotEx=False, plotEy=False, plotEz=False, showIt=False):
+    def plotGrid(self, ax=None, text=False, centers=False, faces=False, edges=False, lines=True, nodes=False, showIt=False):
+        self.number()
+
         axOpts = {'projection':'3d'} if self.dim == 3 else {}
         if ax is None: ax = plt.subplot(111, **axOpts)
 
-        if plotC: [c.plotGrid(ax, text=text) for c in self.cells]
-        if plotF: [f.plotGrid(ax, text=text) for f in self.faces]
-        if plotE and self.dim==3: [e.plotGrid(ax, text=text) for e in self.edges]
-        if plotEx and self.dim==3: [e.plotGrid(ax, text=text) for e in self.edgesX]
-        if plotEy and self.dim==3: [e.plotGrid(ax, text=text) for e in self.edgesY]
-        if plotEz and self.dim==3: [e.plotGrid(ax, text=text) for e in self.edgesZ]
+        if lines:
+            [f.plotGrid(ax, text=text) for f in self.faces]
+        if centers:
+            [c.plotGrid(ax, text=text) for c in self.cells]
+        if faces:
+            fX = np.array([f.center for f in self.sortedFaceX])
+            ax.plot(fX[:,0],fX[:,1],'g>')
+            fY = np.array([f.center for f in self.sortedFaceY])
+            ax.plot(fY[:,0],fY[:,1],'g^')
+        if edges:
+            eX = np.array([e.center for e in self.sortedFaceY])
+            ax.plot(eX[:,0],eX[:,1],'c>')
+            eY = np.array([e.center for e in self.sortedFaceX])
+            ax.plot(eY[:,0],eY[:,1],'c^')
+        if nodes:
+            ns = np.array([n.x0 for n in self.sortedNodes])
+            ax.plot(ns[:,0],ns[:,1],'bs')
 
         ax.set_xlim((self.x0[0], self.h[0].sum()))
         ax.set_ylim((self.x0[1], self.h[1].sum()))
         if self.dim == 3:
             ax.set_zlim((self.x0[2], self.h[2].sum()))
+        ax.grid(True)
+        ax.hold(False)
+        ax.set_xlabel('x1')
+        ax.set_ylabel('x2')
         if showIt: plt.show()
 
     def plotImage(self, I, ax=None, showIt=True):

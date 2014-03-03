@@ -9,19 +9,19 @@ Tensor Mesh
     :undoc-members:
 
 
-Cylindrical 1D Mesh
-===================
+Logically Rectangular Mesh
+==========================
 
-.. automodule:: SimPEG.Mesh.Cyl1DMesh
+.. automodule:: SimPEG.Mesh.LogicallyRectMesh
     :show-inheritance:
     :members:
     :undoc-members:
 
 
-Logically Rectangular Mesh
-==========================
+Cylindrical 1D Mesh
+===================
 
-.. automodule:: SimPEG.Mesh.LogicallyRectMesh
+.. automodule:: SimPEG.Mesh.Cyl1DMesh
     :show-inheritance:
     :members:
     :undoc-members:
