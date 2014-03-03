@@ -44,7 +44,9 @@ class BaseProblem(object):
     def __init__(self, mesh, model, **kwargs):
         Utils.setKwargs(self, **kwargs)
         self.mesh = mesh
-        assert isinstance(model, self.modelPair), "Model object must be an instance of a %s class."%(self.modelPair.__name__)
+        assert (isinstance(model, self.modelPair) or
+            isinstance(model, Model.ComboModel) and isinstance(model.models[0], self.modelPair)
+            ), "Model object must be an instance of a %s class."%(self.modelPair.__name__)
         self.model = model
 
     @property
