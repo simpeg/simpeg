@@ -18,7 +18,7 @@ class MagSensProblemTests(unittest.TestCase):
         chibkg = 0.001
         chiblk = 0.01
         chi = np.ones(M.nC)*chibkg
-        
+
         Inc = 90.
         Dec = 0.
         Btot = 51000
@@ -58,7 +58,7 @@ class MagSensProblemTests(unittest.TestCase):
 
     def test_mass(self):
         print '\n >>Derivative for MfMuI works.'
-        mu = self.model.transform(self.chi, asMu=True)
+        mu = self.model.transform(self.chi)
         def MfmuI(mu):
 
             chi = mu/mu_0-1
@@ -70,36 +70,36 @@ class MagSensProblemTests(unittest.TestCase):
             return MfMuI
 
         def dMfmuI(mu, v):
-                        
+
             chi = mu/mu_0-1
             self.prob.makeMassMatrices(chi)
             vol = self.prob.mesh.vol
             aveF2CC = self.prob.mesh.aveF2CC
             MfMuI = self.prob.MfMuI.diagonal()
-            dMfMuI = Utils.sdiag(MfMuI**2)*aveF2CC.T*Utils.sdiag(vol*1./mu**2)           
+            dMfMuI = Utils.sdiag(MfMuI**2)*aveF2CC.T*Utils.sdiag(vol*1./mu**2)
 
             return dMfMuI*v
 
         d_mu = mu*0.8
         derChk = lambda m: [MfmuI(m), lambda mx: dMfmuI(self.chi, mx)]
         passed = Tests.checkDerivative(derChk, mu, num=4, dx = d_mu, plotIt=False)
-        
-        
+
+
         self.assertTrue(passed)
 
-    
+
     def test_dCdm_Av(self):
         print '\n >>Derivative for Cm_A.'
-        Div = self.prob._Div       
+        Div = self.prob._Div
         vol = self.prob.mesh.vol
         aveF2CC = self.prob.mesh.aveF2CC
 
         def Cm_A(chi):
-            dmudm = self.model.transformDeriv(chi, asMu=True)
+            dmudm = self.model.transformDeriv(chi)
             u = self.u
             # chi = mu/mu_0-1
             self.prob.makeMassMatrices(chi)
-            mu = self.model.transform(self.chi, asMu=True)
+            mu = self.model.transform(self.chi)
             A = self.prob.getA(self.chi)
             MfMuIvec = 1/self.prob.MfMui.diagonal()
             dMfMuI = Utils.sdiag(MfMuIvec**2)*aveF2CC.T*Utils.sdiag(vol*1./mu**2)
@@ -109,11 +109,11 @@ class MagSensProblemTests(unittest.TestCase):
             return Cm_A
 
         def dCdm_A(chi, v):
-            
-            dmudm = self.model.transformDeriv(chi, asMu=True)
+
+            dmudm = self.model.transformDeriv(chi)
             u = self.u
             self.prob.makeMassMatrices(chi)
-            mu = self.model.transform(self.chi, asMu=True)
+            mu = self.model.transform(self.chi)
             A = self.prob.getA(self.chi)
             MfMuIvec = 1/self.prob.MfMui.diagonal()
             dMfMuI = Utils.sdiag(MfMuIvec**2)*aveF2CC.T*Utils.sdiag(vol*1./mu**2)
@@ -133,7 +133,7 @@ class MagSensProblemTests(unittest.TestCase):
         print '\n >>Derivative for Cm_RHS.'
         u = self.u
         Div = self.prob._Div
-        mu = self.model.transform(self.chi, asMu=True)
+        mu = self.model.transform(self.chi)
         vol = self.prob.mesh.vol
         Mc = Utils.sdiag(vol)
         aveF2CC = self.prob.mesh.aveF2CC
@@ -143,45 +143,45 @@ class MagSensProblemTests(unittest.TestCase):
         def Cm_RHS(chi):
 
             self.prob.makeMassMatrices(chi)
-            dmudm = self.model.transformDeriv(chi, asMu=True)
+            dmudm = self.model.transformDeriv(chi)
             dchidmu = Utils.sdiag(1/(dmudm.diagonal()))
             Bbc, Bbc_const = PF.MagAnalytics.CongruousMagBC(self.prob.mesh, self.data.B0, chi)
             MfMuIvec = 1/self.prob.MfMui.diagonal()
             dMfMuI = Utils.sdiag(MfMuIvec**2)*aveF2CC.T*Utils.sdiag(vol*1./mu**2)
-            RHS1 = Div*self.prob.MfMuI*self.prob.MfMu0*B0 
-            RHS2 =  Mc*Dface*self.prob._Pout.T*Bbc                     
-            RHS = RHS1 + RHS2 + Div*B0        
+            RHS1 = Div*self.prob.MfMuI*self.prob.MfMu0*B0
+            RHS2 =  Mc*Dface*self.prob._Pout.T*Bbc
+            RHS = RHS1 + RHS2 + Div*B0
 
             return RHS
 
 
         def dCdm_RHS(chi, v):
-        
+
 
             self.prob.makeMassMatrices(chi)
-            dmudm = self.model.transformDeriv(chi, asMu=True)
+            dmudm = self.model.transformDeriv(chi)
             dmdmu = Utils.sdiag(1/(dmudm.diagonal()))
             Bbc, Bbc_const = PF.MagAnalytics.CongruousMagBC(self.prob.mesh, self.data.B0, chi)
             MfMuIvec = 1/self.prob.MfMui.diagonal()
-            dMfMuI = Utils.sdiag(MfMuIvec**2)*aveF2CC.T*Utils.sdiag(vol*1./mu**2)           
+            dMfMuI = Utils.sdiag(MfMuIvec**2)*aveF2CC.T*Utils.sdiag(vol*1./mu**2)
             dCdm_RHS1 = Div * (Utils.sdiag( self.prob.MfMu0*B0  ) * dMfMuI)
             temp1 = (Dface*(self.prob._Pout.T*Bbc_const*Bbc))
             dCdm_RHS2v  = (Utils.sdiag(vol)*temp1)*np.inner(vol, v)
             dCdm_RHSv =  dCdm_RHS1*(dmudm*v) + dCdm_RHS2v
-                            
+
             return dCdm_RHSv
 
         d_chi = self.chi*0.8
         derChk = lambda m: [Cm_RHS(m), lambda mx: dCdm_RHS(self.chi, mx)]
         passed = Tests.checkDerivative(derChk, self.chi, num=4, dx = d_chi, plotIt=False)
-        self.assertTrue(passed)        
+        self.assertTrue(passed)
 
 
     def test_dudm(self):
         print ">> Derivative test for dudm"
         u = self.u
         Div = self.prob._Div
-        mu = self.model.transform(self.chi, asMu=True)
+        mu = self.model.transform(self.chi)
         vol = self.prob.mesh.vol
         Mc = Utils.sdiag(vol)
         aveF2CC = self.prob.mesh.aveF2CC
@@ -193,11 +193,11 @@ class MagSensProblemTests(unittest.TestCase):
             return u
 
         def dudm(chi, v):
-        
+
             chi = mu/mu_0-1
-            self.prob.makeMassMatrices(chi)            
+            self.prob.makeMassMatrices(chi)
             u = self.u
-            dmudm = self.model.transformDeriv(chi, asMu=True)
+            dmudm = self.model.transformDeriv(chi)
             dmdmu = Utils.sdiag(1/(dmudm.diagonal()))
             Bbc, Bbc_const = PF.MagAnalytics.CongruousMagBC(self.prob.mesh, self.data.B0, chi)
             MfMuIvec = 1/self.prob.MfMui.diagonal()
@@ -207,21 +207,21 @@ class MagSensProblemTests(unittest.TestCase):
             dCdm_RHS1 = Div * (Utils.sdiag( self.prob.MfMu0*B0  ) * dMfMuI)
             temp1 = (Dface*(self.prob._Pout.T*Bbc_const*Bbc))
             dCdm_RHS2v  = (Utils.sdiag(vol)*temp1)*np.inner(vol, v)
-            dCdm_RHSv =  dCdm_RHS1*(dmudm*v) +  dCdm_RHS2v           
+            dCdm_RHSv =  dCdm_RHS1*(dmudm*v) +  dCdm_RHS2v
             dCdm_v = dCdm_A*v - dCdm_RHSv
-            m1 = sp.linalg.interface.aslinearoperator(Utils.sdiag(1/dCdu.diagonal()))           
+            m1 = sp.linalg.interface.aslinearoperator(Utils.sdiag(1/dCdu.diagonal()))
             sol, info = sp.linalg.bicgstab(dCdu, dCdm_v, tol=1e-8, maxiter=1000, M=m1)
 
-            dudm = -sol 
+            dudm = -sol
 
             return dudm
 
         d_chi = 10.0*self.chi #np.random.rand(mesh.nCz)
         d_sph_ind = PF.MagAnalytics.spheremodel(self.prob.mesh, 0., 0., -50., 50)
-        d_chi[d_sph_ind] = 0.1        
+        d_chi[d_sph_ind] = 0.1
 
         derChk = lambda m: [ufun(m), lambda mx: dudm(self.chi, mx)]
-        # TODO: I am not sure why the order get worse as step decreases .. --;        
+        # TODO: I am not sure why the order get worse as step decreases .. --;
         passed = Tests.checkDerivative(derChk, self.chi, num=2, dx = d_chi, plotIt=False)
         self.assertTrue(passed)
 
@@ -230,7 +230,7 @@ class MagSensProblemTests(unittest.TestCase):
         print ">> Derivative test for dBdm"
         u = self.u
         Div = self.prob._Div
-        mu = self.model.transform(self.chi, asMu=True)
+        mu = self.model.transform(self.chi)
         vol = self.prob.mesh.vol
         Mc = Utils.sdiag(vol)
         aveF2CC = self.prob.mesh.aveF2CC
@@ -242,11 +242,11 @@ class MagSensProblemTests(unittest.TestCase):
             return B
 
         def dBdm(chi, v):
-        
+
             chi = mu/mu_0-1
-            self.prob.makeMassMatrices(chi)            
+            self.prob.makeMassMatrices(chi)
             u = self.u
-            dmudm = self.model.transformDeriv(chi, asMu=True)
+            dmudm = self.model.transformDeriv(chi)
             dmdmu = Utils.sdiag(1/(dmudm.diagonal()))
             Bbc, Bbc_const = PF.MagAnalytics.CongruousMagBC(self.prob.mesh, self.data.B0, chi)
             MfMuIvec = 1/self.prob.MfMui.diagonal()
@@ -256,47 +256,47 @@ class MagSensProblemTests(unittest.TestCase):
             dCdm_RHS1 = Div * (Utils.sdiag( self.prob.MfMu0*B0  ) * dMfMuI)
             temp1 = (Dface*(self.prob._Pout.T*Bbc_const*Bbc))
             dCdm_RHS2v  = (Utils.sdiag(vol)*temp1)*np.inner(vol, v)
-            dCdm_RHSv =  dCdm_RHS1*(dmudm*v) +  dCdm_RHS2v           
+            dCdm_RHSv =  dCdm_RHS1*(dmudm*v) +  dCdm_RHS2v
             dCdm_v = dCdm_A*v - dCdm_RHSv
-            m1 = sp.linalg.interface.aslinearoperator(Utils.sdiag(1/dCdu.diagonal()))           
+            m1 = sp.linalg.interface.aslinearoperator(Utils.sdiag(1/dCdu.diagonal()))
             sol, info = sp.linalg.bicgstab(dCdu, dCdm_v, tol=1e-8, maxiter=1000, M=m1)
 
-            dudm = -sol 
+            dudm = -sol
             dBdmv =       (  Utils.sdiag(self.prob.MfMu0*B0)*(dMfMuI * (dmudm*v)) \
                          - Utils.sdiag(Div.T*u)*(dMfMuI* (dmudm*v)) \
-                         - self.prob.MfMuI*(Div.T* (dudm)) ) 
+                         - self.prob.MfMuI*(Div.T* (dudm)) )
 
             return dBdmv
 
         d_chi = 10.0*self.chi #np.random.rand(mesh.nCz)
         d_sph_ind = PF.MagAnalytics.spheremodel(self.prob.mesh, 0., 0., -50., 50)
-        d_chi[d_sph_ind] = 0.1        
+        d_chi[d_sph_ind] = 0.1
 
         derChk = lambda m: [Bfun(m), lambda mx: dBdm(self.chi, mx)]
-        # TODO: I am not sure why the order get worse as step decreases .. --;        
-        passed = Tests.checkDerivative(derChk, self.chi, num=3, dx = d_chi, plotIt=False)
+        # TODO: I am not sure why the order get worse as step decreases .. --;
+        passed = Tests.checkDerivative(derChk, self.chi, num=2, dx = d_chi, plotIt=False)
         self.assertTrue(passed)
 
 
 
     def test_Jvec(self):
         print ">> Derivative test for Jvec"
-        mu = self.model.transform(self.chi, asMu=True)
+        mu = self.model.transform(self.chi)
 
         d_chi = 10.0*self.chi #np.random.rand(mesh.nCz)
         d_sph_ind = PF.MagAnalytics.spheremodel(self.prob.mesh, 0., 0., -50., 50)
-        d_chi[d_sph_ind] = 0.1        
+        d_chi[d_sph_ind] = 0.1
 
         a = self.prob.Jvec(self.chi, d_chi)
 
         derChk = lambda m: [self.data.dpred(m), lambda mx: self.prob.Jvec(self.chi, mx)]
-        # TODO: I am not sure why the order get worse as step decreases .. --;        
+        # TODO: I am not sure why the order get worse as step decreases .. --;
         passed = Tests.checkDerivative(derChk, self.chi, num=2, dx = d_chi, plotIt=False)
         self.assertTrue(passed)
 
     def test_Jtvec(self):
         print ">> Derivative test for Jtvec"
-        mu = self.model.transform(self.chi, asMu=True)
+        mu = self.model.transform(self.chi)
         dobs = self.data.dpred(self.chi)
 
         def misfit (m, dobs):
@@ -307,10 +307,10 @@ class MagSensProblemTests(unittest.TestCase):
 
             return misfit, dmisfit
 
-        # TODO: I am not sure why the order get worse as step decreases .. --;        
+        # TODO: I am not sure why the order get worse as step decreases .. --;
         derChk = lambda m: misfit(m, dobs)
         passed = Tests.checkDerivative(derChk, self.chi, num=4, plotIt=False)
-        self.assertTrue(passed)        
+        self.assertTrue(passed)
 
 if __name__ == '__main__':
     unittest.main()

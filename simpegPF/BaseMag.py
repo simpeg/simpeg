@@ -42,13 +42,13 @@ class BaseMagData(Data.BaseData):
         """
             This function projects the fields onto the data space.
 
-            Esepcially, here for we use total magnetic intensity (TMI) data, 
-            which is common in practice. 
+            Esepcially, here for we use total magnetic intensity (TMI) data,
+            which is common in practice.
 
-            First we project our B on to data location 
+            First we project our B on to data location
 
             .. math::
-                
+
                 \mathbf{B}_{rec} = \mathbf{P} \mathbf{B}
 
             then we take the dot product between B and b_0
@@ -121,13 +121,30 @@ class BaseMagModel(Model.BaseModel):
     def __init__(self, mesh, **kwargs):
         Model.BaseModel.__init__(self, mesh)
 
-    def transform(self, m, asMu=True):
-        if asMu:
-            return mu_0*(1 + m)
-        return m
+    def transform(self, m):
 
-    def transformDeriv(self, m, asMu=True):
-        if asMu:
-            return mu_0*sp.identity(self.nP)
-        return sp.identity(self.nP)
+        return mu_0*(1 + m)
 
+    def transformDeriv(self, m):
+
+        return mu_0*sp.identity(self.nP)
+
+class BaseDepthModel(Model.BaseModel):
+    """BaseDepthMagModel"""
+
+    def __init__(self, mesh, **kwargs):
+        Model.BaseModel.__init__(self, mesh)
+        self.mesh = mesh
+        self.active_ind = kwargs['active_ind']
+
+    def transform(self, m):
+        weight = abs(self.mesh.gridCC[:,2])**1.0
+        weight = weight/weight.max()
+        weight[~self.active_ind] = 1.
+        return m*weight
+
+    def transformDeriv(self, m):
+        weight = abs(self.mesh.gridCC[:,2])**1.0
+        weight = weight/weight.max()
+        weight[~self.active_ind] = 1.
+        return Utils.sdiag(weight)
