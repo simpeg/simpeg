@@ -97,7 +97,7 @@ class BaseObjFunction(object):
         if return_H:
             def H_fun(v):
                 phi_d2Deriv = self.dataObj2Deriv(m, v, u=u)
-                phi_m2Deriv = self.reg.modelObj2Deriv()*v
+                phi_m2Deriv = self.reg.modelObj2Deriv(m, v=v)
 
                 return phi_d2Deriv + self.beta * phi_m2Deriv
 

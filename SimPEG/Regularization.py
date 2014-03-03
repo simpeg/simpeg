@@ -79,11 +79,17 @@ class BaseRegularization(object):
             R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
 
         """
-        return self.W.T * ( self.W * self.model.transform(m - self.mref) )
+        mTd = self.model.transformDeriv(m - self.mref)
+        return mTd.T * ( self.W.T * ( self.W * self.model.transform(m - self.mref) ) )
 
     @Utils.timeIt
-    def modelObj2Deriv(self):
+    def modelObj2Deriv(self, m, v=None):
         """
+
+            :param numpy.array m: geophysical model
+            :param numpy.array v: vector to multiply
+            :rtype: scipy.sparse.csr_matrix or numpy.ndarray
+            :return: WtW or WtW*v
 
         The regularization is:
 
@@ -98,7 +104,12 @@ class BaseRegularization(object):
             R(m) = \mathbf{W^\\top W}
 
         """
-        return self.W.T * self.W
+        mTd = self.model.transformDeriv(m - self.mref)
+        if v is None:
+            return mTd.T * self.W.T * self.W * mTd
+
+        return mTd.T * ( self.W.T * ( self.W * ( mTd * v) ) )
+
 
 
 

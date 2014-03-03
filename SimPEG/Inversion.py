@@ -32,12 +32,6 @@ class BaseInversion(object):
             self.opt.printers.insert(2,IterationPrinters.phi_d)
             self.opt.printers.insert(3,IterationPrinters.phi_m)
 
-        if not hasattr(opt, '_bfgsH0') and hasattr(opt, 'bfgsH0'): # Check if it has been set by the user and the default is not being used.
-            #TODO: I don't think that this if statement is working...
-            print 'Setting bfgsH0 to the inverse of the modelObj2Deriv. Done using direct methods.'
-            opt.bfgsH0 = SimPEG.Solver(objFunc.reg.modelObj2Deriv())
-
-
     #TODO: Move this to the data class?
     @property
     def phi_d_target(self):
