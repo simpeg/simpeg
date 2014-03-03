@@ -215,10 +215,10 @@ if __name__ == '__main__':
     Bbczx, Bbczy, Bbczz  = MagSphereAnalFun(M3.gridFz[(indzd|indzu),0], M3.gridFz[(indzd|indzu),1], M3.gridFz[(indzd|indzu),2], 100, 0., 0., 0., mu_0, mu_0*(1+chiblk), H0, flag)
     Bbc_anal = np.r_[Bbcxx, Bbcyy, Bbczz]
 
-    fig, ax = plt.subplots(1,1, figsize = (10, 10))
-    ax.plot(Bbc_anal)
-    ax.plot(Bbc)
-    plt.show()
+    # fig, ax = plt.subplots(1,1, figsize = (10, 10))
+    # ax.plot(Bbc_anal)
+    # ax.plot(Bbc)
+    # plt.show()
     err = np.linalg.norm(Bbc-Bbc_anal)/np.linalg.norm(Bbc_anal)
 
     if err < 0.1:

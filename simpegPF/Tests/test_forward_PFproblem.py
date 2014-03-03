@@ -52,9 +52,9 @@ class MagFwdProblemTests(unittest.TestCase):
         dpred = data.projectFieldsAsVector(B)
         err = np.linalg.norm(dpred-np.r_[bxa, bya, bza])/np.linalg.norm(np.r_[bxa, bya, bza])
 
-        plt.plot(dpred)
-        plt.plot(np.r_[bxa, bya, bza])
-        plt.show()
+        # plt.plot(dpred)
+        # plt.plot(np.r_[bxa, bya, bza])
+        # plt.show()
 
         if err > 0.05:
             raise Exception('Anaytic test is failed T.T')

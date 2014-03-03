@@ -136,15 +136,16 @@ class BaseDepthModel(Model.BaseModel):
         Model.BaseModel.__init__(self, mesh)
         self.mesh = mesh
         self.active_ind = kwargs['active_ind']
+        self.c = kwargs['c']
 
     def transform(self, m):
-        weight = abs(self.mesh.gridCC[:,2])**1.0
+        weight = abs(self.mesh.gridCC[:,2])**self.c
         weight = weight/weight.max()
         weight[~self.active_ind] = 1.
         return m*weight
 
     def transformDeriv(self, m):
-        weight = abs(self.mesh.gridCC[:,2])**1.0
+        weight = abs(self.mesh.gridCC[:,2])**self.c
         weight = weight/weight.max()
         weight[~self.active_ind] = 1.
         return Utils.sdiag(weight)

@@ -332,6 +332,8 @@ def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
     from SimPEG import Optimization, Regularization, Parameters, ObjFunction, Inversion
     prob = MagneticsDiffSecondary(mesh, model)
 
+    miter = kwargs.get('maxIter', 10)
+
     if prob.ispaired:
         prob.unpair()
     if data.ispaired:
@@ -339,7 +341,7 @@ def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
     prob.pair(data)
 
     # Create an optimization program
-    opt = Optimization.InexactGaussNewton(maxIter=5)
+    opt = Optimization.InexactGaussNewton(maxIter=miter)
     opt.bfgsH0 = Solver(sp.identity(model.nP),flag='D')
     # Create a regularization program
     reg = Regularization.Tikhonov(model)
@@ -387,11 +389,12 @@ if __name__ == '__main__':
     prob.pair(data)
 
     dpred = data.dpred(chi)
-    fig = plt.figure( figsize = (8,5) )
-    ax = plt.subplot(111)
-    dat = plt.imshow(np.reshape(dpred, (xr.size, yr.size), order='F'), extent=[min(xr), max(xr), min(yr), max(yr)])
-    plt.colorbar(dat, ax = ax)
-    plt.show()
+    
+    # fig = plt.figure( figsize = (8,5) )
+    # ax = plt.subplot(111)
+    # dat = plt.imshow(np.reshape(dpred, (xr.size, yr.size), order='F'), extent=[min(xr), max(xr), min(yr), max(yr)])
+    # plt.colorbar(dat, ax = ax)
+    # plt.show()
 
 
 
