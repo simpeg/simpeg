@@ -206,7 +206,7 @@ class DiffOperators(object):
             if(self.dim < 3): return None
             if(self._faceDivz is None):
                 # The number of cell centers in each direction
-                n = self.n
+                n = self.vnC
                 # Compute faceDivergence operator on faces
                 D3 = kron3(ddx(n[2]), speye(n[1]), speye(n[0]))
                 # Compute areas of cell faces & volumes
