@@ -549,25 +549,25 @@ class TensorMesh(BaseRectangularMesh, TensorView, DiffOperators, InnerProducts):
             return Utils.sdiag(Av.T * V * Utils.mkvc(materialProperty))
 
 
-    def _fastFaceInnerProductDeriv(self, materialProperty=None):
+    def _fastFaceInnerProductDeriv(self, materialProperty=None, v=None):
         """
             :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
             :rtype: scipy.csr_matrix
             :return: M, the inner product matrix (nF, nF)
         """
-        return self._fastInnerProductDeriv('F', materialProperty=materialProperty)
+        return self._fastInnerProductDeriv('F', materialProperty=materialProperty, v=v)
 
 
-    def _fastEdgeInnerProductDeriv(self, materialProperty=None):
+    def _fastEdgeInnerProductDeriv(self, materialProperty=None, v=None):
         """
             :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
             :rtype: scipy.csr_matrix
             :return: M, the inner product matrix (nE, nE)
         """
-        return self._fastInnerProductDeriv('E', materialProperty=materialProperty)
+        return self._fastInnerProductDeriv('E', materialProperty=materialProperty, v=v)
 
 
-    def _fastInnerProductDeriv(self, AvType, materialProperty=None):
+    def _fastInnerProductDeriv(self, AvType, materialProperty=None, v=None):
         """
             :param str AvType: 'E' or 'F'
             :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
@@ -576,11 +576,16 @@ class TensorMesh(BaseRectangularMesh, TensorView, DiffOperators, InnerProducts):
         """
         if materialProperty is None or materialProperty.size == self.nC:
             Av = getattr(self, 'ave'+AvType+'2CC')
-            return self.dim * Av.T * Utils.sdiag(self.vol)
+            V = Utils.sdiag(self.vol)
+            if v is None:
+                return self.dim * Av.T * Utils.sdiag(self.vol)
+            return Utils.sdiag(v) * self.dim * Av.T * V
         if materialProperty.size == self.nC*self.dim: # anisotropic
             Av = getattr(self, 'ave'+AvType+'2CCV')
             V = sp.kron(sp.identity(self.dim), Utils.sdiag(self.vol))
-            return Av.T * V
+            if v is None:
+                return Av.T * V
+            return Utils.sdiag(v) * Av.T * V
 
 
 if __name__ == '__main__':

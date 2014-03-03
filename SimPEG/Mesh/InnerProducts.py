@@ -1,5 +1,5 @@
 from scipy import sparse as sp
-from SimPEG.Utils import sub2ind, ndgrid, mkvc, getSubArray, sdiag, inv3X3BlockDiagonal, inv2X2BlockDiagonal, makePropertyTensor, invPropertyTensor
+from SimPEG.Utils import sub2ind, ndgrid, mkvc, getSubArray, sdiag, inv3X3BlockDiagonal, inv2X2BlockDiagonal, makePropertyTensor, invPropertyTensor, spzeros
 import numpy as np
 
 
@@ -11,7 +11,7 @@ class InnerProducts(object):
         raise Exception('InnerProducts is a base class providing inner product matrices for meshes and cannot run on its own. Inherit to your favorite Mesh class.')
 
     def getFaceInnerProduct(self, materialProperty=None, returnP=False,
-                            invertProperty=False):
+                            invertProperty=False, doFast=True):
         """
             :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
             :param bool returnP: returns the projection matrices
@@ -21,7 +21,7 @@ class InnerProducts(object):
         """
         fast = None
 
-        if returnP is False and hasattr(self, '_fastFaceInnerProduct'):
+        if returnP is False and hasattr(self, '_fastFaceInnerProduct') and doFast:
             fast = self._fastFaceInnerProduct(materialProperty=materialProperty, invertProperty=invertProperty)
 
         if fast is not None:
@@ -71,7 +71,7 @@ class InnerProducts(object):
         else:
             return A
 
-    def getFaceInnerProductDeriv(self, materialProperty=None, P=None):
+    def getFaceInnerProductDeriv(self, materialProperty=None, v=None, P=None, doFast=True):
         """
             :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
             :rtype: scipy.csr_matrix
@@ -79,24 +79,18 @@ class InnerProducts(object):
         """
         fast = None
 
-        if hasattr(self, '_fastFaceInnerProductDeriv'):
-            fast = self._fastFaceInnerProductDeriv(materialProperty=materialProperty)
+        if hasattr(self, '_fastFaceInnerProductDeriv') and doFast:
+            fast = self._fastFaceInnerProductDeriv(materialProperty=materialProperty, v=v)
 
         if fast is not None:
             return fast
 
-        raise NotImplementedError('Derivatives for the material property specified are not yet implemented.')
-
         if P is None:
-            M, P = getFaceInnerProduct(self, materialProperty=materialProperty, returnP=True)
+            M, P = self.getFaceInnerProduct(materialProperty=materialProperty, returnP=True)
 
-        d = self.dim
+        return self._getInnerProductDeriv(materialProperty, v, P, self.nF)
 
-        if d == 1:
-            P[0].T * sp.identity(n) * P[0]
-
-
-    def getEdgeInnerProduct(self, materialProperty=None, returnP=False, invertProperty=False):
+    def getEdgeInnerProduct(self, materialProperty=None, returnP=False, invertProperty=False, doFast=True):
         """
             :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
             :param bool returnP: returns the projection matrices
@@ -106,7 +100,7 @@ class InnerProducts(object):
         """
         fast = None
 
-        if returnP is False and hasattr(self, '_fastEdgeInnerProduct'):
+        if returnP is False and hasattr(self, '_fastEdgeInnerProduct') and doFast:
             fast = self._fastEdgeInnerProduct(materialProperty=materialProperty, invertProperty=invertProperty)
 
         if fast is not None:
@@ -151,8 +145,7 @@ class InnerProducts(object):
         else:
             return A
 
-
-    def getEdgeInnerProductDeriv(self, materialProperty=None, P=None):
+    def getEdgeInnerProductDeriv(self, materialProperty=None, v=None, P=None, doFast=True):
         """
             :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
             :rtype: scipy.csr_matrix
@@ -161,14 +154,102 @@ class InnerProducts(object):
 
         fast = None
 
-        if hasattr(self, '_fastEdgeInnerProductDeriv'):
-            fast = self._fastEdgeInnerProductDeriv(materialProperty=materialProperty)
+        if hasattr(self, '_fastEdgeInnerProductDeriv') and doFast:
+            fast = self._fastEdgeInnerProductDeriv(materialProperty=materialProperty, v=v)
 
         if fast is not None:
             return fast
 
-        raise NotImplementedError('Derivatives for the material property specified are not yet implemented.')
+        if P is None:
+            M, P = self.getEdgeInnerProduct(materialProperty=materialProperty, returnP=True)
 
+        return self._getInnerProductDeriv(materialProperty, v, P, self.nE)
+
+    def _getInnerProductDeriv(self, materialProperty, v, P, n):
+
+        if v is None:
+            raise Exception('v must be supplied for this implementation.')
+
+        d = self.dim
+        Z = spzeros(self.nC, self.nC)
+
+        if d == 1:
+            dMdm = spzeros(n, self.nC)
+            for i, p in enumerate(P):
+                dMdm = dMdm + p.T * sdiag( p * v )
+        elif d == 2:
+            if materialProperty is None or materialProperty.size == self.nC:
+                dMdm = spzeros(n, self.nC)
+                for i, p in enumerate(P):
+                    Y = p * v
+                    y1 = Y[:self.nC]
+                    y2 = Y[self.nC:]
+                    dMdm = dMdm + p.T * sp.vstack((sdiag( y1 ), sdiag( y2 )))
+            if materialProperty.size == self.nC*2:
+                dMdm1 = spzeros(n, self.nC)
+                dMdm2 = spzeros(n, self.nC)
+                for i, p in enumerate(P):
+                    Y = p * v
+                    y1 = Y[:self.nC]
+                    y2 = Y[self.nC:]
+                    dMdm1 = dMdm1 + p.T * sp.vstack(( sdiag( y1 ), Z))
+                    dMdm2 = dMdm2 + p.T * sp.vstack(( Z, sdiag( y2 )))
+                dMdm = sp.hstack((dMdm1, dMdm2))
+            if materialProperty.size == self.nC*3:
+                dMdm1 = spzeros(n, self.nC)
+                dMdm2 = spzeros(n, self.nC)
+                dMdm3 = spzeros(n, self.nC)
+                for i, p in enumerate(P):
+                    Y = p * v
+                    y1 = Y[:self.nC]
+                    y2 = Y[self.nC:]
+                    dMdm1 = dMdm1 + p.T * sp.vstack(( sdiag( y1 ), Z))
+                    dMdm2 = dMdm2 + p.T * sp.vstack(( Z, sdiag( y2 )))
+                    dMdm3 = dMdm3 + p.T * sp.vstack(( sdiag( y2 ), sdiag( y1 )))
+                dMdm = sp.hstack((dMdm1, dMdm2, dMdm3))
+        elif d == 3:
+            if materialProperty is None or materialProperty.size == self.nC:
+                dMdm = spzeros(n, self.nC)
+                for i, p in enumerate(P):
+                    Y = p * v
+                    y1 = Y[:self.nC]
+                    y2 = Y[self.nC:self.nC*2]
+                    y3 = Y[self.nC*2:]
+                    dMdm = dMdm + p.T * sp.vstack((sdiag( y1 ), sdiag( y2 ), sdiag( y3 )))
+            if materialProperty.size == self.nC*3:
+                dMdm1 = spzeros(n, self.nC)
+                dMdm2 = spzeros(n, self.nC)
+                dMdm3 = spzeros(n, self.nC)
+                for i, p in enumerate(P):
+                    Y = p * v
+                    y1 = Y[:self.nC]
+                    y2 = Y[self.nC:self.nC*2]
+                    y3 = Y[self.nC*2:]
+                    dMdm1 = dMdm1 + p.T * sp.vstack(( sdiag( y1 ), Z, Z))
+                    dMdm2 = dMdm2 + p.T * sp.vstack(( Z, sdiag( y2 ), Z))
+                    dMdm3 = dMdm3 + p.T * sp.vstack(( Z, Z, sdiag( y3 )))
+                dMdm = sp.hstack((dMdm1, dMdm2, dMdm3))
+            if materialProperty.size == self.nC*6:
+                dMdm1 = spzeros(n, self.nC)
+                dMdm2 = spzeros(n, self.nC)
+                dMdm3 = spzeros(n, self.nC)
+                dMdm4 = spzeros(n, self.nC)
+                dMdm5 = spzeros(n, self.nC)
+                dMdm6 = spzeros(n, self.nC)
+                for i, p in enumerate(P):
+                    Y = p * v
+                    y1 = Y[:self.nC]
+                    y2 = Y[self.nC:self.nC*2]
+                    y3 = Y[self.nC*2:]
+                    dMdm1 = dMdm1 + p.T * sp.vstack(( sdiag( y1 ), Z, Z))
+                    dMdm2 = dMdm2 + p.T * sp.vstack(( Z, sdiag( y2 ), Z))
+                    dMdm3 = dMdm3 + p.T * sp.vstack(( Z, Z, sdiag( y3 )))
+                    dMdm4 = dMdm4 + p.T * sp.vstack(( sdiag( y2 ), sdiag( y1 ), Z))
+                    dMdm5 = dMdm5 + p.T * sp.vstack(( sdiag( y3 ), Z, sdiag( y1 )))
+                    dMdm6 = dMdm6 + p.T * sp.vstack(( Z, sdiag( y3 ), sdiag( y2 )))
+                dMdm = sp.hstack((dMdm1, dMdm2, dMdm3, dMdm4, dMdm5, dMdm6))
+
+        return dMdm
 
 # ------------------------ Geometries ------------------------------
 #
