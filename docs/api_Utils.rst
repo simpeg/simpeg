@@ -15,10 +15,10 @@ Matrix Utilities
     :members:
     :undoc-members:
 
-LOM Utilities
+LRM Utilities
 =============
 
-.. automodule:: SimPEG.Utils.lomutils
+.. automodule:: SimPEG.Utils.lrmutils
     :members:
     :undoc-members:
 

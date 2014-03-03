@@ -16,6 +16,7 @@ class InnerProducts(object):
             :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
             :param bool returnP: returns the projection matrices
             :param bool invertProperty: inverts the material property
+            :param bool doFast: do a faster implementation if available.
             :rtype: scipy.csr_matrix
             :return: M, the inner product matrix (nF, nF)
         """
@@ -93,11 +94,13 @@ class InnerProducts(object):
 
         return self._getInnerProductDeriv(materialProperty, v, P, self.nF)
 
-    def getEdgeInnerProduct(self, materialProperty=None, returnP=False, invertProperty=False, doFast=True):
+    def getEdgeInnerProduct(self, materialProperty=None, returnP=False,
+                            invertProperty=False, doFast=True):
         """
             :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
             :param bool returnP: returns the projection matrices
             :param bool invertProperty: inverts the material property
+            :param bool doFast: do a faster implementation if available.
             :rtype: scipy.csr_matrix
             :return: M, the inner product matrix (nE, nE)
         """
@@ -353,7 +356,7 @@ def _getFacePxx_Rectangular(M):
     iijj = ndgrid(i, j)
     ii, jj = iijj[:, 0], iijj[:, 1]
 
-    if M._meshType == 'LOM':
+    if M._meshType == 'LRM':
         fN1 = M.r(M.normals, 'F', 'Fx', 'M')
         fN2 = M.r(M.normals, 'F', 'Fy', 'M')
 
@@ -378,7 +381,7 @@ def _getFacePxx_Rectangular(M):
 
         PXX = sp.csr_matrix((np.ones(2*M.nC), (range(2*M.nC), IND)), shape=(2*M.nC, M.nF))
 
-        if M._meshType == 'LOM':
+        if M._meshType == 'LRM':
             I2x2 = inv2X2BlockDiagonal(getSubArray(fN1[0], [i + posFx, j]), getSubArray(fN1[1], [i + posFx, j]),
                                        getSubArray(fN2[0], [i, j + posFy]), getSubArray(fN2[1], [i, j + posFy]))
             PXX = I2x2 * PXX
@@ -401,7 +404,7 @@ def _getFacePxxx_Rectangular(M):
     iijjkk = ndgrid(i, j, k)
     ii, jj, kk = iijjkk[:, 0], iijjkk[:, 1], iijjkk[:, 2]
 
-    if M._meshType == 'LOM':
+    if M._meshType == 'LRM':
         fN1 = M.r(M.normals, 'F', 'Fx', 'M')
         fN2 = M.r(M.normals, 'F', 'Fy', 'M')
         fN3 = M.r(M.normals, 'F', 'Fz', 'M')
@@ -435,7 +438,7 @@ def _getFacePxxx_Rectangular(M):
 
         PXXX = sp.coo_matrix((np.ones(3*M.nC), (range(3*M.nC), IND)), shape=(3*M.nC, M.nF)).tocsr()
 
-        if M._meshType == 'LOM':
+        if M._meshType == 'LRM':
             I3x3 = inv3X3BlockDiagonal(getSubArray(fN1[0], [i + posX, j, k]), getSubArray(fN1[1], [i + posX, j, k]), getSubArray(fN1[2], [i + posX, j, k]),
                                        getSubArray(fN2[0], [i, j + posY, k]), getSubArray(fN2[1], [i, j + posY, k]), getSubArray(fN2[2], [i, j + posY, k]),
                                        getSubArray(fN3[0], [i, j, k + posZ]), getSubArray(fN3[1], [i, j, k + posZ]), getSubArray(fN3[2], [i, j, k + posZ]))
@@ -450,7 +453,7 @@ def _getEdgePxx_Rectangular(M):
     iijj = ndgrid(i, j)
     ii, jj = iijj[:, 0], iijj[:, 1]
 
-    if M._meshType == 'LOM':
+    if M._meshType == 'LRM':
         eT1 = M.r(M.tangents, 'E', 'Ex', 'M')
         eT2 = M.r(M.tangents, 'E', 'Ey', 'M')
 
@@ -470,7 +473,7 @@ def _getEdgePxx_Rectangular(M):
 
         PXX = sp.coo_matrix((np.ones(2*M.nC), (range(2*M.nC), IND)), shape=(2*M.nC, M.nE)).tocsr()
 
-        if M._meshType == 'LOM':
+        if M._meshType == 'LRM':
             I2x2 = inv2X2BlockDiagonal(getSubArray(eT1[0], [i, j + posX]), getSubArray(eT1[1], [i, j + posX]),
                                        getSubArray(eT2[0], [i + posY, j]), getSubArray(eT2[1], [i + posY, j]))
             PXX = I2x2 * PXX
@@ -484,7 +487,7 @@ def _getEdgePxxx_Rectangular(M):
     iijjkk = ndgrid(i, j, k)
     ii, jj, kk = iijjkk[:, 0], iijjkk[:, 1], iijjkk[:, 2]
 
-    if M._meshType == 'LOM':
+    if M._meshType == 'LRM':
         eT1 = M.r(M.tangents, 'E', 'Ex', 'M')
         eT2 = M.r(M.tangents, 'E', 'Ey', 'M')
         eT3 = M.r(M.tangents, 'E', 'Ez', 'M')
@@ -513,7 +516,7 @@ def _getEdgePxxx_Rectangular(M):
 
         PXXX = sp.coo_matrix((np.ones(3*M.nC), (range(3*M.nC), IND)), shape=(3*M.nC, M.nE)).tocsr()
 
-        if M._meshType == 'LOM':
+        if M._meshType == 'LRM':
             I3x3 = inv3X3BlockDiagonal(getSubArray(eT1[0], [i, j + posX[0], k + posX[1]]), getSubArray(eT1[1], [i, j + posX[0], k + posX[1]]), getSubArray(eT1[2], [i, j + posX[0], k + posX[1]]),
                                        getSubArray(eT2[0], [i + posY[0], j, k + posY[1]]), getSubArray(eT2[1], [i + posY[0], j, k + posY[1]]), getSubArray(eT2[2], [i + posY[0], j, k + posY[1]]),
                                        getSubArray(eT3[0], [i + posZ[0], j + posZ[1], k]), getSubArray(eT3[1], [i + posZ[0], j + posZ[1], k]), getSubArray(eT3[2], [i + posZ[0], j + posZ[1], k]))

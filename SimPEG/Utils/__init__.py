@@ -1,6 +1,6 @@
 from matutils import *
-from meshutils import exampleLomGird, meshTensors
-from lomutils import volTetra, faceInfo, indexCube
+from meshutils import exampleLrmGrid, meshTensors
+from lrmutils import volTetra, faceInfo, indexCube
 from interputils import interpmat
 from ipythonutils import easyAnimate as animate
 import ModelBuilder

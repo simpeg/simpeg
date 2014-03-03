@@ -2,7 +2,7 @@ import numpy as np
 from scipy import sparse as sp
 from matutils import mkvc, ndgrid, sub2ind, sdiag
 
-def exampleLomGird(nC, exType):
+def exampleLrmGrid(nC, exType):
     assert type(nC) == list, "nC must be a list containing the number of nodes"
     assert len(nC) == 2 or len(nC) == 3, "nC must either two or three dimensions"
     exType = exType.lower()

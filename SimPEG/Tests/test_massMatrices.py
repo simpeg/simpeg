@@ -6,7 +6,7 @@ from TestUtils import OrderTest
 class TestInnerProducts(OrderTest):
     """Integrate an function over a unit cube domain using edgeInnerProducts and faceInnerProducts."""
 
-    meshTypes = ['uniformTensorMesh', 'uniformLOM', 'rotateLOM']
+    meshTypes = ['uniformTensorMesh', 'uniformLRM', 'rotateLRM']
     meshDimension = 3
     meshSizes = [16, 32]
 
@@ -97,7 +97,7 @@ class TestInnerProducts(OrderTest):
 class TestInnerProducts2D(OrderTest):
     """Integrate an function over a unit cube domain using edgeInnerProducts and faceInnerProducts."""
 
-    meshTypes = ['uniformTensorMesh', 'uniformLOM', 'rotateLOM']
+    meshTypes = ['uniformTensorMesh', 'uniformLRM', 'rotateLRM']
     meshDimension = 2
     meshSizes = [4, 8, 16, 32, 64, 128]
 
