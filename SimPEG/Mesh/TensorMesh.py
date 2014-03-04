@@ -534,6 +534,8 @@ class TensorMesh(BaseRectangularMesh, TensorView, DiffOperators, InnerProducts):
         """
         if materialProperty is None:
             materialProperty = np.ones(self.nC)
+        elif type(materialProperty) in [float, int, long]:
+            materialProperty = materialProperty * np.ones(M.nC)
 
         if materialProperty.size == self.nC:
             if invertProperty:
