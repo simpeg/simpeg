@@ -1,5 +1,4 @@
-from SimPEG import Problem, Solver
-import numpy as np
+from SimPEG import Problem, Solver, np, sp
 from scipy.constants import mu_0
 from SimPEG.Utils import sdiag, mkvc
 from FieldsFDEM import FieldsFDEM
@@ -57,7 +56,7 @@ class ProblemFDEM_e(Problem.BaseProblem):
         # TODO: this will not work if tensor conductivity
         self._MeSigmaI = sdiag(1/self.MeSigma.diagonal())
         #TODO: assuming constant mu
-        self._MfMui = self.mesh.getFaceInnerProduct(1/mu_0)
+        self._MfMui = self.mesh.getFaceInnerProduct(1/mu_0*np.ones(self.mesh.nC))
 
     ####################################################
     # Internal Methods
@@ -65,7 +64,7 @@ class ProblemFDEM_e(Problem.BaseProblem):
 
     def getA(self, freqInd):
         """
-            :param int tInd: Time index
+            :param int fInd: Frequency index
             :rtype: scipy.sparse.csr_matrix
             :return: A
         """
@@ -99,17 +98,32 @@ class ProblemFDEM_e(Problem.BaseProblem):
 
 
     def Jvec(self, m, v, u=None):
+        # TODO: only 1 transmitter for now
+        # TODO: all P's the same
         if u is None:
-            u = self.fields(m)
-        raise NotImplementedError('Jvec todo!')
+           u = self.fields(m)
+
+        Jvs = range(self.data.nFreq)
+        P  = self.data.projectFieldsDeriv(u)
+
+        for i, freqInd in enumerate(range(self.data.nFreq)):
+            e = u.get_e(freqInd)
+            omega = self.data.omega[freqInd]
+            for txInd in self.data.nTx
+            b = 1j*omega*self.mesh.getEdgeInnerProductDeriv(m,v=e)*self.model.transformDeriv(m)*v
+            A = self.getA(freqInd)
+            Ab = Solver(A, options=self.solveOpts).solve(b)
+            Jvs[i] = -P*Ab
+
+        Jv = np.concatenate(Jvs)
+
+        return Jv
 
 
     def Jtvec(self, m, v, u=None):
         if u is None:
             u = self.fields(m)
         raise NotImplementedError('Jtvec todo!')
-
-
 
 
 if __name__ == '__main__':
@@ -135,11 +149,11 @@ if __name__ == '__main__':
     model = Model.LogModel(mesh)
 
     opts = {'txLoc':0.,
-            'txType':'VMD_MVP',
-            'rxLoc': rxLoc,
-            'rxType':'bz',
-            'freq': np.logspace(0,3,4),
-            }
+        'txType':'VMD_MVP',
+        'rxLoc': rxLoc,
+        'rxType':'bz',
+        'freq': np.logspace(0,3,4),
+        }
     dat = EM.FDEM.DataFDEM(**opts)
 
     prb = EM.FDEM.ProblemFDEM_e(mesh, model)
@@ -156,6 +170,7 @@ if __name__ == '__main__':
 
     colorbar(mesh.plotSlice((f.get_e(3)), 'E', ind=11, normal='Z', view='real')[0])
     plt.show()
+
 
 
 

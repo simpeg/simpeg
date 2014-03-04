@@ -17,8 +17,8 @@ class TDEM_bTests(unittest.TestCase):
         mesh = Mesh.Cyl1DMesh([hx,hy], -hy.sum()/2)
 
         active = mesh.vectorCCz<0.
-        model = Model.ActiveModel(mesh, active, -8, nC=mesh.nCz) 
-        model = Model.ComboModel(mesh, 
+        model = Model.ActiveModel(mesh, active, -8, nC=mesh.nCz)
+        model = Model.ComboModel(mesh,
                     [Model.LogModel, Model.Vertical1DModel, model])
 
         opts = {'txLoc':0.,
@@ -35,7 +35,7 @@ class TDEM_bTests(unittest.TestCase):
         self.sigma = np.ones(mesh.nCz)*1e-8
         self.sigma[mesh.vectorCCz<0] = 1e-1
         self.sigma = np.log(self.sigma[active])
-        
+
         self.prb.pair(self.dat)
 
     def test_analitic_b(self):

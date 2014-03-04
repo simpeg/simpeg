@@ -1,4 +1,4 @@
-from SimPEG import Utils, np
+from SimPEG import Utils, np, sp
 from SimPEG.Data import BaseData
 from FieldsFDEM import FieldsFDEM
 
@@ -28,13 +28,23 @@ class DataFDEM(BaseData):
         BaseData.__init__(self, **kwargs)
         Utils.setKwargs(self, **kwargs)
 
-    def projectFields(self, u):
-        #TODO: this is hardcoded to 1Tx
-        return self.Qrx.dot(u.b[:,:,0].T).T
+    @property
+    def nRx(self):
+        return self.rxLoc.shape[0]
 
-    def projectFieldsAdjoint(self, d):
-        # TODO: fix this
-        pass
+    def projectFields(self, u):
+        P = sp.identity(self.prob.mesh.nE)
+        Pes = range(self.nFreq)
+        #TODO: this is hardcoded to 1Tx
+        for i, freqInd in enumerate(range(self.nFreq)):
+            e = u.get_e(freqInd)
+            Pes[i] = P*e
+        Pe = np.concatenate(Pes)
+        return Pe
+
+    def projectFieldsDeriv(self, u):
+        # TODO : more general
+        return sp.identity(self.prob.mesh.nE)
 
     ####################################################
     # Interpolation Matrices
