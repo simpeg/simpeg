@@ -122,7 +122,7 @@ class TestInnerProducts2D(OrderTest):
             sigma = np.c_[call(sigma1, Gc), call(sigma2, Gc)]
             analytic = 189959./120  # Found using sympy. z=5
         elif self.sigmaTest == 3:
-            sigma = np.c_[call(sigma1, Gc), call(sigma2, Gc), call(sigma3, Gc)]
+            sigma = np.r_[call(sigma1, Gc), call(sigma2, Gc), call(sigma3, Gc)]
             analytic = 781427./360  # Found using sympy. z=5
 
         if self.location == 'edges':

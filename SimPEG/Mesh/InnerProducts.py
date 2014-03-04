@@ -1,5 +1,5 @@
 from scipy import sparse as sp
-from SimPEG.Utils import sub2ind, ndgrid, mkvc, getSubArray, sdiag, inv3X3BlockDiagonal, inv2X2BlockDiagonal, makePropertyTensor, invPropertyTensor, spzeros
+from SimPEG.Utils import sub2ind, ndgrid, mkvc, getSubArray, sdiag, inv3X3BlockDiagonal, inv2X2BlockDiagonal, makePropertyTensor, invPropertyTensor, spzeros, isScalar
 import numpy as np
 
 
@@ -183,25 +183,33 @@ class InnerProducts(object):
             :rtype: scipy.csr_matrix
             :return: dMdm, the derivative of the inner product matrix (n, nC*nA)
         """
+        if materialProperty is None:
+            return None
+
         if v is None:
             raise Exception('v must be supplied for this implementation.')
 
         d = self.dim
         Z = spzeros(self.nC, self.nC)
 
-        if d == 1:
-            dMdm = spzeros(n, self.nC)
+        if isScalar(materialProperty):
+            dMdm = spzeros(n, 1)
             for i, p in enumerate(P):
-                dMdm = dMdm + p.T * sdiag( p * v )
+                dMdm = dMdm + sp.csr_matrix((p.T * (p * v), (range(n), np.zeros(n))), shape=(n,1))
+        if d == 1:
+            if materialProperty.size == self.nC:
+                dMdm = spzeros(n, self.nC)
+                for i, p in enumerate(P):
+                    dMdm = dMdm + p.T * sdiag( p * v )
         elif d == 2:
-            if materialProperty is None or materialProperty.size == self.nC:
+            if materialProperty.size == self.nC:
                 dMdm = spzeros(n, self.nC)
                 for i, p in enumerate(P):
                     Y = p * v
                     y1 = Y[:self.nC]
                     y2 = Y[self.nC:]
                     dMdm = dMdm + p.T * sp.vstack((sdiag( y1 ), sdiag( y2 )))
-            if materialProperty.size == self.nC*2:
+            elif materialProperty.size == self.nC*2:
                 dMdms = [spzeros(n, self.nC) for _ in range(2)]
                 for i, p in enumerate(P):
                     Y = p * v
@@ -210,7 +218,7 @@ class InnerProducts(object):
                     dMdms[0] = dMdms[0] + p.T * sp.vstack(( sdiag( y1 ), Z))
                     dMdms[1] = dMdms[1] + p.T * sp.vstack(( Z, sdiag( y2 )))
                 dMdm = sp.hstack(dMdms)
-            if materialProperty.size == self.nC*3:
+            elif materialProperty.size == self.nC*3:
                 dMdms = [spzeros(n, self.nC) for _ in range(3)]
                 for i, p in enumerate(P):
                     Y = p * v
@@ -221,7 +229,7 @@ class InnerProducts(object):
                     dMdms[2] = dMdms[2] + p.T * sp.vstack(( sdiag( y2 ), sdiag( y1 )))
                 dMdm = sp.hstack(dMdms)
         elif d == 3:
-            if materialProperty is None or materialProperty.size == self.nC:
+            if materialProperty.size == self.nC:
                 dMdm = spzeros(n, self.nC)
                 for i, p in enumerate(P):
                     Y = p * v
@@ -229,7 +237,7 @@ class InnerProducts(object):
                     y2 = Y[self.nC:self.nC*2]
                     y3 = Y[self.nC*2:]
                     dMdm = dMdm + p.T * sp.vstack((sdiag( y1 ), sdiag( y2 ), sdiag( y3 )))
-            if materialProperty.size == self.nC*3:
+            elif materialProperty.size == self.nC*3:
                 dMdms = [spzeros(n, self.nC) for _ in range(3)]
                 for i, p in enumerate(P):
                     Y = p * v
@@ -240,7 +248,7 @@ class InnerProducts(object):
                     dMdms[1] = dMdms[1] + p.T * sp.vstack(( Z, sdiag( y2 ), Z))
                     dMdms[2] = dMdms[2] + p.T * sp.vstack(( Z, Z, sdiag( y3 )))
                 dMdm = sp.hstack(dMdms)
-            if materialProperty.size == self.nC*6:
+            elif materialProperty.size == self.nC*6:
                 dMdms = [spzeros(n, self.nC) for _ in range(6)]
                 for i, p in enumerate(P):
                     Y = p * v

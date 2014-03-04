@@ -1,6 +1,15 @@
 import numpy as np
 import scipy.sparse as sp
 
+
+def isScalar(f):
+    scalarTypes = [float, int, long, np.float_, np.int_]
+    if type(f) in scalarTypes:
+        return True
+    elif type(f) == np.ndarray and f.size == 1 and type(f[0]) in scalarTypes:
+        return True
+    return False
+
 def mkvc(x, numDims=1):
     """Creates a vector with the number of dimension specified
 
@@ -248,7 +257,7 @@ def makePropertyTensor(M, sigma):
     if sigma is None:  # default is ones
         sigma = np.ones(M.nC)
 
-    if type(sigma) in [float, int, long]:
+    if isScalar(sigma):
         sigma = sigma * np.ones(M.nC)
 
     if M.dim == 1:
@@ -294,7 +303,7 @@ def invPropertyTensor(M, tensor, returnMatrix=False):
 
     T = None
 
-    if type(tensor) in [float, int, long]:
+    if isScalar(tensor):
         T = 1./tensor
 
     elif tensor.size == M.nC:  # Isotropic!

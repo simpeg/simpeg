@@ -164,6 +164,12 @@ class TestSequenceFunctions(unittest.TestCase):
             Z = B2*A - sp.identity(M.nC*3)
             self.assertTrue(np.linalg.norm(Z.todense().ravel(), 2) < TOL)
 
+    def test_isFloat(self):
+        self.assertTrue(isScalar(1.))
+        self.assertTrue(isScalar(1))
+        self.assertTrue(isScalar(long(1)))
+        self.assertTrue(isScalar(np.r_[1.]))
+        self.assertTrue(isScalar(np.r_[1]))
 
 if __name__ == '__main__':
     unittest.main()

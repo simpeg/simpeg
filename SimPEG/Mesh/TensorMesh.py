@@ -534,18 +534,18 @@ class TensorMesh(BaseRectangularMesh, TensorView, DiffOperators, InnerProducts):
         """
         if materialProperty is None:
             materialProperty = np.ones(self.nC)
-        elif type(materialProperty) in [float, int, long]:
-            materialProperty = materialProperty * np.ones(M.nC)
+
+        if invertProperty:
+            materialProperty = 1./materialProperty
+
+        if Utils.isScalar(materialProperty):
+            materialProperty = materialProperty*np.ones(self.nC)
 
         if materialProperty.size == self.nC:
-            if invertProperty:
-                materialProperty = 1./materialProperty
             Av = getattr(self, 'ave'+AvType+'2CC')
-            V = Utils.sdiag(self.vol)
-            return self.dim * Utils.sdiag(Av.T * V * materialProperty)
+            Vprop = self.vol * Utils.mkvc(materialProperty)
+            return self.dim * Utils.sdiag(Av.T * Vprop)
         if materialProperty.size == self.nC*self.dim:
-            if invertProperty:
-                materialProperty = 1./materialProperty
             Av = getattr(self, 'ave'+AvType+'2CCV')
             V = sp.kron(sp.identity(self.dim), Utils.sdiag(self.vol))
             return Utils.sdiag(Av.T * V * Utils.mkvc(materialProperty))
@@ -576,11 +576,20 @@ class TensorMesh(BaseRectangularMesh, TensorView, DiffOperators, InnerProducts):
             :rtype: scipy.csr_matrix
             :return: M, the inner product matrix (nF, nF)
         """
-        if materialProperty is None or materialProperty.size == self.nC:
+        if materialProperty is None:
+            return None
+        if Utils.isScalar(materialProperty):
+            Av = getattr(self, 'ave'+AvType+'2CC')
+            V = Utils.sdiag(self.vol)
+            ones = sp.csr_matrix((np.ones(self.nC), (range(self.nC), np.zeros(self.nC))), shape=(self.nC,1))
+            if v is None:
+                return self.dim * Av.T * V * ones
+            return Utils.sdiag(v) * self.dim * Av.T * V * ones
+        if materialProperty.size == self.nC:
             Av = getattr(self, 'ave'+AvType+'2CC')
             V = Utils.sdiag(self.vol)
             if v is None:
-                return self.dim * Av.T * Utils.sdiag(self.vol)
+                return self.dim * Av.T * V
             return Utils.sdiag(v) * self.dim * Av.T * V
         if materialProperty.size == self.nC*self.dim: # anisotropic
             Av = getattr(self, 'ave'+AvType+'2CCV')
