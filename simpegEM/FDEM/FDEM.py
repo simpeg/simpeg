@@ -109,7 +109,7 @@ class ProblemFDEM_e(Problem.BaseProblem):
         for i, freqInd in enumerate(range(self.data.nFreq)):
             e = u.get_e(freqInd)
             omega = self.data.omega[freqInd]
-            for txInd in self.data.nTx
+            # for txInd in self.data.nTx
             b = 1j*omega*self.mesh.getEdgeInnerProductDeriv(m,v=e)*self.model.transformDeriv(m)*v
             A = self.getA(freqInd)
             Ab = Solver(A, options=self.solveOpts).solve(b)
@@ -168,7 +168,7 @@ if __name__ == '__main__':
     prb.j_s = j_s
     f = prb.fields(sigma)
 
-    colorbar(mesh.plotSlice((f.get_e(3)), 'E', ind=11, normal='Z', view='real')[0])
+    plt.colorbar(mesh.plotSlice((f.get_e(3)), 'E', ind=11, normal='Z', view='real')[0])
     plt.show()
 
 
