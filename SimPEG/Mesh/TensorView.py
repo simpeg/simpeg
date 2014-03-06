@@ -305,7 +305,7 @@ class TensorView(object):
                 # Now just deal with 'F' and 'E'
                 aveOp = 'ave' + vType + ('2CCV' if view == 'vec' else '2CC')
                 v = getattr(self,aveOp)*v # average to cell centers (might be a vector)
-                v = self.r(v.reshape((self.nC,3),order='F'),'CC','CC','M')
+                v = self.r(v.reshape((self.nC,-1),order='F'),'CC','CC','M')
             if view == 'vec':
                 outSlice = []
                 if 'X' not in normal: outSlice.append(getIndSlice(v[0]))
