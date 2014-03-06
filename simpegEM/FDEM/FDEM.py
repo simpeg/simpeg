@@ -1,6 +1,5 @@
-from SimPEG import Problem, Solver, np, sp
+from SimPEG import Problem, Solver, Utils, np, sp
 from scipy.constants import mu_0
-from SimPEG.Utils import sdiag, mkvc
 from FieldsFDEM import FieldsFDEM
 from DataFDEM import DataFDEM
 
@@ -27,10 +26,10 @@ class ProblemFDEM_e(Problem.BaseProblem):
 
     j_s = None
 
-
     def getFieldsObject(self):
-        F = FieldsFDEM(self.mesh, self.data.nTx, self.data.nFreq, store=self.storeTheseFields)
-        return F
+        return FieldsFDEM(self.mesh, self.data.nTx,
+                          self.data.nFreq, store=self.storeTheseFields)
+
 
     ####################################################
     # Mass Matrices
@@ -54,9 +53,9 @@ class ProblemFDEM_e(Problem.BaseProblem):
         self._Me = self.mesh.getEdgeInnerProduct()
         self._MeSigma = self.mesh.getEdgeInnerProduct(sigma)
         # TODO: this will not work if tensor conductivity
-        self._MeSigmaI = sdiag(1/self.MeSigma.diagonal())
+        self._MeSigmaI = Utils.sdiag(1/self.MeSigma.diagonal())
         #TODO: assuming constant mu
-        self._MfMui = self.mesh.getFaceInnerProduct(1/mu_0*np.ones(self.mesh.nC))
+        self._MfMui = self.mesh.getFaceInnerProduct(1/mu_0)
 
     ####################################################
     # Internal Methods
@@ -73,6 +72,7 @@ class ProblemFDEM_e(Problem.BaseProblem):
 
     def getRHS(self, freqInd):
         omega = self.data.omega[freqInd]
+        #TODO: this needs to also depend on your transmitter!
         return -1j*omega*self.Me*self.j_s
 
 
@@ -110,7 +110,9 @@ class ProblemFDEM_e(Problem.BaseProblem):
             e = u.get_e(freqInd)
             omega = self.data.omega[freqInd]
             # for txInd in self.data.nTx
-            b = 1j*omega*self.mesh.getEdgeInnerProductDeriv(m,v=e)*self.model.transformDeriv(m)*v
+            dMe_dsig = self.mesh.getEdgeInnerProductDeriv(m, v=e)
+            dsig_dm = self.model.transformDeriv(m)
+            b = 1j*omega * ( dMe_dsig * ( dsig_dm * v ) )
             A = self.getA(freqInd)
             Ab = Solver(A, options=self.solveOpts).solve(b)
             Jvs[i] = -P*Ab
