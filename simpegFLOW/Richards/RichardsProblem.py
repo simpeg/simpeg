@@ -1,13 +1,13 @@
 from SimPEG import *
 from Empirical import RichardsModel
 
-class RichardsData(Data.BaseData):
-    """docstring for RichardsData"""
+class RichardsSurvey(Survey.BaseSurvey):
+    """docstring for RichardsSurvey"""
 
     P = None
 
     def __init__(self, **kwargs):
-        Data.BaseData.__init__(self, **kwargs)
+        Survey.BaseSurvey.__init__(self, **kwargs)
 
     @property
     def dataType(self):
@@ -66,11 +66,11 @@ class RichardsProblem(Problem.BaseProblem):
     boundaryConditions = None
     initialConditions  = None
 
-    dataPair  = RichardsData
+    surveyPair  = RichardsSurvey
     modelPair = RichardsModel
 
-    def __init__(self, mesh, model, **kwargs):
-        Problem.BaseProblem.__init__(self, mesh, model, **kwargs)
+    def __init__(self, model, **kwargs):
+        Problem.BaseProblem.__init__(self, model, **kwargs)
 
     @property
     def timeStep(self):
@@ -221,7 +221,7 @@ class RichardsProblem(Problem.BaseProblem):
         B = np.array(sp.vstack(Bs).todense())
 
         Ainv = Solver(A)
-        P = self.data.projectFieldsDeriv(u, m)
+        P = self.survey.projectFieldsDeriv(u, m)
         J = P * Ainv.solve(B)
         return J
 
@@ -244,14 +244,14 @@ class RichardsProblem(Problem.BaseProblem):
             Adiaginv = Solver(Adiag)
             JvC[ii] = Adiaginv.solve(B*v - Asub*JvC[ii-1])
 
-        P = self.data.projectFieldsDeriv(u, m)
+        P = self.survey.projectFieldsDeriv(u, m)
         return P * np.concatenate(JvC)
 
     def Jtvec(self, m, v, u=None):
         if u is None:
             u = self.field(m)
 
-        P = self.data.projectFieldsDeriv(u, m)
+        P = self.survey.projectFieldsDeriv(u, m)
         PTv = P.T*v
 
         # This is done via backward substitution.

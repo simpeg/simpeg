@@ -114,21 +114,21 @@ class RichardsTests1D(unittest.TestCase):
         bc = np.array([-61.5,-20.7])
         h = np.zeros(M.nC) + bc[0]
 
-        prob = Richards.RichardsProblem(M,model, timeStep=60, timeEnd=180,
+        prob = Richards.RichardsProblem(model, timeStep=60, timeEnd=180,
                                     boundaryConditions=bc, initialConditions=h,
                                     doNewton=False, method='mixed')
 
         q = sp.csr_matrix((np.ones(3),(np.arange(3),np.array([5,10,15]))),shape=(3,M.nC))
         P = sp.kron(sp.identity(prob.numIts),q)
-        data = Richards.RichardsData(P=P)
+        survey = Richards.RichardsSurvey(P=P)
 
-        prob.pair(data)
+        prob.pair(survey)
 
         self.h0 = h
         self.M = M
         self.Ks = params['Ks']
         self.prob = prob
-        self.data = data
+        self.survey = survey
 
     def test_Richards_getResidual_Newton(self):
         self.prob.doNewton = True
@@ -144,7 +144,7 @@ class RichardsTests1D(unittest.TestCase):
 
     def test_Adjoint_PressureHead(self):
         self.prob.dataType = 'pressureHead'
-        v = np.random.rand(self.data.P.shape[0])
+        v = np.random.rand(self.survey.P.shape[0])
         z = np.random.rand(self.M.nC)
         Hs = self.prob.fields(self.Ks)
         vJz = v.dot(self.prob.Jvec(self.Ks,z,u=Hs))
@@ -157,7 +157,7 @@ class RichardsTests1D(unittest.TestCase):
 
     def test_Adjoint_Saturation(self):
         self.prob.dataType = 'saturation'
-        v = np.random.rand(self.data.P.shape[0])
+        v = np.random.rand(self.survey.P.shape[0])
         z = np.random.rand(self.M.nC)
         Hs = self.prob.fields(self.Ks)
         vJz = v.dot(self.prob.Jvec(self.Ks,z,u=Hs))
@@ -173,10 +173,10 @@ class RichardsTests1D(unittest.TestCase):
         self.prob.unpair()
         mTrue = np.ones(self.M.nC)*self.Ks
         stdev = 0.01  # The standard deviation for the noise
-        data = self.prob.createSyntheticData(mTrue, std=stdev, P=self.data.P)
+        survey = self.prob.createSyntheticSurvey(mTrue, std=stdev, P=self.survey.P)
         opt = Optimization.InexactGaussNewton(maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6)
         reg = Regularization.Tikhonov(Model.BaseModel(self.M))
-        obj = ObjFunction.BaseObjFunction(data, reg)
+        obj = ObjFunction.BaseObjFunction(survey, reg)
         derChk = lambda m: [obj.dataObj(m), obj.dataObjDeriv(m)]
         print 'Testing Richards Derivative - Pressure Head'
         passed = checkDerivative(derChk, mTrue, num=5, plotIt=False)
@@ -187,10 +187,10 @@ class RichardsTests1D(unittest.TestCase):
         self.prob.dataType = 'saturation'
         mTrue = np.ones(self.M.nC)*self.Ks
         stdev = 0.01  # The standard deviation for the noise
-        data = self.prob.createSyntheticData(mTrue, std=stdev, P=self.data.P)
+        survey = self.prob.createSyntheticSurvey(mTrue, std=stdev, P=self.survey.P)
         opt = Optimization.InexactGaussNewton(maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6)
         reg = Regularization.Tikhonov(Model.BaseModel(self.M))
-        obj = ObjFunction.BaseObjFunction(data, reg)
+        obj = ObjFunction.BaseObjFunction(survey, reg)
         derChk = lambda m: [obj.dataObj(m), obj.dataObjDeriv(m)]
         print 'Testing Richards Derivative - Saturation'
         passed = checkDerivative(derChk, mTrue, num=5, plotIt=False)
@@ -264,7 +264,7 @@ class RichardsTests1D(unittest.TestCase):
 #         self.prob.dataType = 'pressureHead'
 #         mTrue = np.ones(self.M.nC)*self.Ks
 #         stdev = 0.01  # The standard deviation for the noise
-#         dobs = self.prob.createSyntheticData(mTrue,std=stdev)[0]
+#         dobs = self.prob.createSyntheticSurvey(mTrue,std=stdev)[0]
 #         self.prob.dobs = dobs
 #         self.prob.std = dobs*0 + stdev
 #         Hs = self.prob.field(mTrue)

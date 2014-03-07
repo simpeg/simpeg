@@ -19,7 +19,6 @@ import sys, os
 #sys.path.insert(0, os.path.abspath('.'))
 
 sys.path.append('../')
-sys.path.append('../../')
 
 # -- General configuration -----------------------------------------------------
 

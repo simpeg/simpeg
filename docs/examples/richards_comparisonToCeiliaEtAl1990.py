@@ -1,5 +1,4 @@
 import sys
-sys.path.append('../')
 sys.path.append('../../')
 
 from SimPEG import *
@@ -17,7 +16,7 @@ h = np.zeros(M.nC) + bc[0]
 
 
 def getFields(timeStep,method):
-    prob = Richards.RichardsProblem(M,model, timeStep=timeStep, timeEnd=360,
+    prob = Richards.RichardsProblem(model, timeStep=timeStep, timeEnd=360,
                                     boundaryConditions=bc, initialConditions=h,
                                     doNewton=False, method=method)
     return prob.fields(params['Ks'])
