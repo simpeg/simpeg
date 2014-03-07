@@ -5,7 +5,7 @@ from Solver import Solver
 import Mesh
 import Model
 import Problem
-import Data
+import Survey
 import Regularization
 import ObjFunction
 import Optimization

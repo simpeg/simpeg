@@ -46,7 +46,7 @@ class BaseRegularization(object):
     @property
     def prob(self): return self.parent.prob
     @property
-    def data(self): return self.parent.data
+    def survey(self): return self.parent.survey
     @property
     def mesh(self): return self.model.mesh
 

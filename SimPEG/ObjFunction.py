@@ -1,7 +1,7 @@
-import Utils, Parameters, numpy as np, scipy.sparse as sp
+import Utils, Parameters, Survey, Problem, numpy as np, scipy.sparse as sp
 
 class BaseObjFunction(object):
-    """BaseObjFunction(data, reg, **kwargs)"""
+    """BaseObjFunction(forward, reg, **kwargs)"""
 
     __metaclass__ = Utils.SimPEGMetaClass
 
@@ -9,6 +9,9 @@ class BaseObjFunction(object):
 
     debug   = False  #: Print debugging information
     counter = None   #: Set this to a SimPEG.Utils.Counter() if you want to count things
+
+    surveyPair  = Survey.BaseSurvey
+    problemPair = Problem.BaseProblem
 
     name = 'Base Objective Function'   #: Name of the objective function
 
@@ -31,18 +34,19 @@ class BaseObjFunction(object):
     def objFunc(self): return self
     @property
     def opt(self): return getattr(self.parent,'opt',None)
-    @property
-    def prob(self): return self.data.prob
-    @property
-    def mesh(self): return self.data.prob.mesh
-    @property
-    def model(self): return self.data.prob.model
 
 
-    def __init__(self, data, reg, **kwargs):
+    def __init__(self, forward, reg, **kwargs):
         Utils.setKwargs(self, **kwargs)
 
-        self.data = data
+        assert forward.ispaired, 'The forward problem and survey must be paired.'
+        if isinstance(forward, self.surveyPair):
+            self.survey = forward
+            self.prob = forward.prob
+        elif isinstance(forward, self.problemPair):
+            self.prob = forward
+            self.survey = forward.survey
+
 
         self.reg = reg
         self.reg.parent = self
@@ -73,13 +77,13 @@ class BaseObjFunction(object):
         self.u_current = None
         self.m_current = m
 
-        u = self.data.prob.fields(m)
+        u = self.prob.fields(m)
         self.u_current = u
 
         phi_d = self.dataObj(m, u=u)
         phi_m = self.reg.modelObj(m)
 
-        self.dpred = self.data.dpred(m, u=u)  # This is a cheap matrix vector calculation.
+        self.dpred = self.survey.dpred(m, u=u)  # This is a cheap matrix vector calculation.
 
         self.phi_d, self.phi_d_last  = phi_d, self.phi_d
         self.phi_m, self.phi_m_last  = phi_m, self.phi_m
@@ -124,7 +128,7 @@ class BaseObjFunction(object):
             u is the field of interest; d_obs is the observed data; and W is the weighting matrix.
         """
         # TODO: ensure that this is a data is vector and Wd is a matrix.
-        R = self.data.residualWeighted(m, u=u)
+        R = self.survey.residualWeighted(m, u=u)
         return 0.5*np.vdot(R, R)
 
     @Utils.timeIt
@@ -160,11 +164,11 @@ class BaseObjFunction(object):
                 \\frac{\partial \mu_\\text{data}}{\partial \mathbf{m}} = \mathbf{J}^\\top \mathbf{W \circ R}
 
         """
-        if u is None: u = self.data.prob.fields(m)
+        if u is None: u = self.prob.fields(m)
 
-        R = self.data.residualWeighted(m, u=u)
+        R = self.survey.residualWeighted(m, u=u)
 
-        dmisfit = self.data.prob.Jtvec(m, self.data.Wd * R, u=u)
+        dmisfit = self.prob.Jtvec(m, self.survey.Wd * R, u=u)
 
         return dmisfit
 
@@ -204,12 +208,12 @@ class BaseObjFunction(object):
                 \\frac{\partial^2 \mu_\\text{data}}{\partial^2 \mathbf{m}} = \mathbf{J}^\\top \mathbf{W \circ W J}
 
         """
-        if u is None: u = self.data.prob.fields(m)
+        if u is None: u = self.prob.fields(m)
 
-        R = self.data.residualWeighted(m, u=u)
+        R = self.survey.residualWeighted(m, u=u)
 
         # TODO: abstract to different norms a little cleaner.
         #                                                     \/ it goes here. in l2 it is the identity.
-        dmisfit = self.data.prob.Jtvec_approx(m, self.data.Wd * self.data.Wd * self.data.prob.Jvec_approx(m, v, u=u), u=u)
+        dmisfit = self.prob.Jtvec_approx(m, self.survey.Wd * self.survey.Wd * self.prob.Jvec_approx(m, v, u=u), u=u)
 
         return dmisfit

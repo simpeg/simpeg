@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 class LinearProblem(Problem.BaseProblem):
     """docstring for LinearProblem"""
 
-    def __init__(self, mesh, model, G, **kwargs):
-        Problem.BaseProblem.__init__(self, mesh, model, **kwargs)
+    def __init__(self, model, G, **kwargs):
+        Problem.BaseProblem.__init__(self, model, **kwargs)
         self.G = G
 
     def fields(self, m, u=None):
@@ -20,8 +20,7 @@ class LinearProblem(Problem.BaseProblem):
 
 
 def example(N):
-    h = np.ones(N)/N
-    M = Mesh.TensorMesh([h])
+    M = Mesh.TensorMesh([N])
 
     nk = 20
     jk = np.linspace(1.,20.,nk)
@@ -43,8 +42,8 @@ def example(N):
 
 
     model = Model.BaseModel(M)
-    prob = LinearProblem(M, model, G)
-    data = prob.createSyntheticData(mtrue, std=0.01)
+    prob = LinearProblem(model, G)
+    data = prob.createSyntheticSurvey(mtrue, std=0.01)
 
     return prob, data, model
 

@@ -159,11 +159,11 @@ def requires(var):
 
         .. note::
 
-            To use data.%s(), SimPEG requires that a problem be bound to the data.
+            To use survey.%s(), SimPEG requires that a problem be bound to the survey.
             If a problem has not been bound, an Exception will be raised.
             To bind a problem to the Data object::
 
-                data.pair(myProblem)
+                survey.pair(myProblem)
 
             """ % f.__name__
         else:
