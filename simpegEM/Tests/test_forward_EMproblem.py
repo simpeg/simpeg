@@ -27,9 +27,9 @@ class TDEM_bTests(unittest.TestCase):
                 'rxType':'bz',
                 'timeCh':np.logspace(-4,-2,20),
                 }
-        self.dat = EM.TDEM.DataTDEM1D(**opts)
+        self.dat = EM.TDEM.SurveyTDEM1D(**opts)
 
-        self.prb = EM.TDEM.ProblemTDEM_b(mesh, model)
+        self.prb = EM.TDEM.ProblemTDEM_b(model)
         self.prb.setTimes([1e-5, 5e-5, 2.5e-4], [150, 150, 150])
 
         self.sigma = np.ones(mesh.nCz)*1e-8

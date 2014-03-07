@@ -1,10 +1,9 @@
-from SimPEG import Utils, np, sp
-from SimPEG.Data import BaseData
+from SimPEG import Survey, Utils, np, sp
 from FieldsFDEM import FieldsFDEM
 
-class DataFDEM(BaseData):
+class SurveyFDEM(Survey.BaseSurvey):
     """
-        docstring for DataFDEM
+        docstring for SurveyFDEM
     """
 
     txLoc = None #: txLoc
@@ -25,7 +24,7 @@ class DataFDEM(BaseData):
         return self.freq.size
 
     def __init__(self, **kwargs):
-        BaseData.__init__(self, **kwargs)
+        Survey.BaseSurvey.__init__(self, **kwargs)
         Utils.setKwargs(self, **kwargs)
 
     @property
@@ -49,4 +48,5 @@ class DataFDEM(BaseData):
     ####################################################
     # Interpolation Matrices
     ####################################################
+
 

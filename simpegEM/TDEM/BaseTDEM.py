@@ -13,21 +13,21 @@ class MixinInitialFieldCalc(object):
     storeTheseFields = 'b'
 
     def getInitialFields(self):
-        if self.data.txType == 'VMD_MVP':
+        if self.survey.txType == 'VMD_MVP':
             # Vertical magnetic dipole, magnetic vector potential
             F = self._getInitialFields_VMD_MVP()
         else:
-            exStr = 'Invalid txType: ' + str(self.data.txType)
+            exStr = 'Invalid txType: ' + str(self.survey.txType)
             raise Exception(exStr)
         return F
 
     def _getInitialFields_VMD_MVP(self):
         if self.mesh._meshType is 'CYL1D':
-            MVP = Sources.MagneticDipoleVectorPotential(np.r_[0,0,self.data.txLoc], np.c_[np.zeros(self.mesh.nN), self.mesh.gridN], 'x')
+            MVP = Sources.MagneticDipoleVectorPotential(np.r_[0,0,self.survey.txLoc], np.c_[np.zeros(self.mesh.nN), self.mesh.gridN], 'x')
         elif self.mesh._meshType is 'TENSOR':
-            MVPx = Sources.MagneticDipoleVectorPotential(self.data.txLoc, self.mesh.gridEx, 'x')
-            MVPy = Sources.MagneticDipoleVectorPotential(self.data.txLoc, self.mesh.gridEy, 'y')
-            MVPz = Sources.MagneticDipoleVectorPotential(self.data.txLoc, self.mesh.gridEz, 'z')
+            MVPx = Sources.MagneticDipoleVectorPotential(self.survey.txLoc, self.mesh.gridEx, 'x')
+            MVPy = Sources.MagneticDipoleVectorPotential(self.survey.txLoc, self.mesh.gridEy, 'y')
+            MVPz = Sources.MagneticDipoleVectorPotential(self.survey.txLoc, self.mesh.gridEz, 'z')
             MVP = np.concatenate((MVPx, MVPy, MVPz))
 
         # Initialize field object
@@ -86,8 +86,8 @@ class MixinTimeStuff(object):
 
 class ProblemBaseTDEM(MixinTimeStuff, MixinInitialFieldCalc, BaseProblem):
     """docstring for ProblemTDEM1D"""
-    def __init__(self, mesh, model, **kwargs):
-        BaseProblem.__init__(self, mesh, model, **kwargs)
+    def __init__(self, model, **kwargs):
+        BaseProblem.__init__(self, model, **kwargs)
 
 
     ####################################################
@@ -144,7 +144,7 @@ class ProblemBaseTDEM(MixinTimeStuff, MixinInitialFieldCalc, BaseProblem):
 
     def forward(self, m, RHS, CalcFields, F=None):
         if F is None:
-            F = FieldsTDEM(self.mesh, self.data.nTx, self.nTimes, store=self.storeTheseFields)
+            F = FieldsTDEM(self.mesh, self.survey.nTx, self.nTimes, store=self.storeTheseFields)
 
         dtFact = None
         for tInd, t in enumerate(self.times):
@@ -165,7 +165,7 @@ class ProblemBaseTDEM(MixinTimeStuff, MixinInitialFieldCalc, BaseProblem):
 
     def adjoint(self, m, RHS, CalcFields, F=None):
         if F is None:
-            F = FieldsTDEM(self.mesh, self.data.nTx, self.nTimes, store=self.storeTheseFields)
+            F = FieldsTDEM(self.mesh, self.survey.nTx, self.nTimes, store=self.storeTheseFields)
 
         dtFact = None
         for tInd, t in reversed(list(enumerate(self.times))):

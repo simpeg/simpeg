@@ -1,10 +1,10 @@
 from SimPEG import Utils, np
-from SimPEG.Data import BaseData
+from SimPEG.Survey import BaseSurvey
 from FieldsTDEM import FieldsTDEM
 
-class DataTDEM1D(BaseData):
+class SurveyTDEM1D(BaseSurvey):
     """
-        docstring for DataTDEM1D
+        docstring for SurveyTDEM1D
     """
 
     txLoc = None #: txLoc
@@ -20,7 +20,7 @@ class DataTDEM1D(BaseData):
         return self.timeCh.size
 
     def __init__(self, **kwargs):
-        BaseData.__init__(self, **kwargs)
+        BaseSurvey.__init__(self, **kwargs)
         Utils.setKwargs(self, **kwargs)
 
     def projectFields(self, u):

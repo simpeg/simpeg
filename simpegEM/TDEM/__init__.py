@@ -1,4 +1,4 @@
 from BaseTDEM import ProblemBaseTDEM
-from DataTDEM import DataTDEM1D
+from SurveyTDEM import SurveyTDEM1D
 from FieldsTDEM import FieldsTDEM
 from TDEM_b import ProblemTDEM_b

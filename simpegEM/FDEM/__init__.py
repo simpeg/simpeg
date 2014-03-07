@@ -1,3 +1,3 @@
 from FieldsFDEM import FieldsFDEM
-from DataFDEM import DataFDEM
+from SurveyFDEM import *
 from FDEM import ProblemFDEM_e

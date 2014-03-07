@@ -27,9 +27,9 @@ class TDEM_bDerivTests(unittest.TestCase):
             'rxType':'bz',
             'freq': np.logspace(0,3,4),
             }
-        dat = EM.FDEM.DataFDEM(**opts)
+        dat = EM.FDEM.SurveyFDEM(**opts)
 
-        prb = EM.FDEM.ProblemFDEM_e(mesh, model)
+        prb = EM.FDEM.ProblemFDEM_e(model)
         prb.pair(dat)
 
         sigma = np.log(np.ones(mesh.nC)*1e-3)

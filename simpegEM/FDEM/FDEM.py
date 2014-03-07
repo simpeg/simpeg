@@ -1,7 +1,7 @@
 from SimPEG import Problem, Solver, Utils, np, sp
 from scipy.constants import mu_0
 from FieldsFDEM import FieldsFDEM
-from DataFDEM import DataFDEM
+from SurveyFDEM import SurveyFDEM
 
 
 class ProblemFDEM_e(Problem.BaseProblem):
@@ -14,21 +14,21 @@ class ProblemFDEM_e(Problem.BaseProblem):
             \dcurl E + i \omega B = 0 \\\\
             \dcurl^\\top \MfMui B - \MeSig E = \Me \j_s
     """
-    def __init__(self, mesh, model, **kwargs):
-        Problem.BaseProblem.__init__(self, mesh, model, **kwargs)
+    def __init__(self, model, **kwargs):
+        Problem.BaseProblem.__init__(self, model, **kwargs)
 
     solType = 'b'
     storeTheseFields = 'e'
 
-    dataPair = DataFDEM
+    surveyPair = SurveyFDEM
 
     solveOpts = {'factorize':False, 'backend':'scipy'}
 
     j_s = None
 
     def getFieldsObject(self):
-        return FieldsFDEM(self.mesh, self.data.nTx,
-                          self.data.nFreq, store=self.storeTheseFields)
+        return FieldsFDEM(self.mesh, self.survey.nTx,
+                          self.survey.nFreq, store=self.storeTheseFields)
 
 
     ####################################################
@@ -67,11 +67,11 @@ class ProblemFDEM_e(Problem.BaseProblem):
             :rtype: scipy.sparse.csr_matrix
             :return: A
         """
-        omega = self.data.omega[freqInd]
+        omega = self.survey.omega[freqInd]
         return self.mesh.edgeCurl.T*self.MfMui*self.mesh.edgeCurl + 1j*omega*self.MeSigma
 
     def getRHS(self, freqInd):
-        omega = self.data.omega[freqInd]
+        omega = self.survey.omega[freqInd]
         #TODO: this needs to also depend on your transmitter!
         return -1j*omega*self.Me*self.j_s
 
@@ -83,13 +83,13 @@ class ProblemFDEM_e(Problem.BaseProblem):
 
         F = self.getFieldsObject()
 
-        for freqInd in range(self.data.nFreq):
+        for freqInd in range(self.survey.nFreq):
             A = self.getA(freqInd)
             b = self.getRHS(freqInd)
             e = Solver(A, options=self.solveOpts).solve(b)
 
             F.set_e(e, freqInd)
-            omega = self.data.omega[freqInd]
+            omega = self.survey.omega[freqInd]
             #TODO: check if mass matrices needed:
             b = -1./(1j*omega)*self.mesh.edgeCurl*e
             F.set_b(b, freqInd)
@@ -103,13 +103,13 @@ class ProblemFDEM_e(Problem.BaseProblem):
         if u is None:
            u = self.fields(m)
 
-        Jvs = range(self.data.nFreq)
-        P  = self.data.projectFieldsDeriv(u)
+        Jvs = range(self.survey.nFreq)
+        P  = self.survey.projectFieldsDeriv(u)
 
-        for i, freqInd in enumerate(range(self.data.nFreq)):
+        for i, freqInd in enumerate(range(self.survey.nFreq)):
             e = u.get_e(freqInd)
-            omega = self.data.omega[freqInd]
-            # for txInd in self.data.nTx
+            omega = self.survey.omega[freqInd]
+            # for txInd in self.survey.nTx
             dMe_dsig = self.mesh.getEdgeInnerProductDeriv(m, v=e)
             dsig_dm = self.model.transformDeriv(m)
             b = 1j*omega * ( dMe_dsig * ( dsig_dm * v ) )

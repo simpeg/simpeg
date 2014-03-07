@@ -13,10 +13,10 @@ class TDEM_bDerivTests(unittest.TestCase):
         hx = Utils.meshTensors(((0,cs), (ncx,cs), (npad,cs)))
         hy = Utils.meshTensors(((npad,cs), (ncy,cs), (npad,cs)))
         mesh = Mesh.Cyl1DMesh([hx,hy], -hy.sum()/2)
-       
+
         active = mesh.vectorCCz<0.
-        model = Model.ActiveModel(mesh, active, -8, nC=mesh.nCz) 
-        model = Model.ComboModel(mesh, 
+        model = Model.ActiveModel(mesh, active, -8, nC=mesh.nCz)
+        model = Model.ComboModel(mesh,
                     [Model.LogModel, Model.Vertical1DModel, model])
 
 
@@ -26,9 +26,9 @@ class TDEM_bDerivTests(unittest.TestCase):
                'rxType':'bz',
                'timeCh':np.logspace(-4,-2,20),
                }
-        self.dat = EM.TDEM.DataTDEM1D(**opts)
+        self.dat = EM.TDEM.SurveyTDEM1D(**opts)
 
-        self.prb = EM.TDEM.ProblemTDEM_b(mesh, model)
+        self.prb = EM.TDEM.ProblemTDEM_b(model)
         self.prb.setTimes([1e-5, 5e-5, 2.5e-4], [10, 10, 10])
 
         self.sigma = np.ones(mesh.nCz)*1e-8
@@ -45,21 +45,21 @@ class TDEM_bDerivTests(unittest.TestCase):
 
         prb = self.prb
         sigma = self.sigma
-        
+
         u = prb.fields(sigma)
         Ahu = prb.AhVec(sigma, u)
-        
+
         V1 = Ahu.get_b(0)
         V2 = 1/prb.getDt(0)*prb.MfMui*u.get_b(-1)
         self.assertTrue(np.linalg.norm(V1-V2)/np.linalg.norm(V2) < 1.e-6)
-        
+
         V1 = Ahu.get_e(0)
         self.assertTrue(np.linalg.norm(V1) < 1.e-6)
 
         for i in range(1,u.nTimes):
-            
+
             dt = prb.getDt(i)
-            
+
             V1 = Ahu.get_b(i)
             V2 = 1/dt*prb.MfMui*u.get_b(i-1)
             self.assertTrue(np.linalg.norm(V1)/np.linalg.norm(V2) < 1.e-6)
@@ -175,7 +175,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         d_sig = 10*np.random.rand(prb.model.nP)
 
 
-        derChk = lambda m: [prb.data.dpred(m), lambda mx: -prb.Jvec(sigma, mx)]
+        derChk = lambda m: [prb.survey.dpred(m), lambda mx: -prb.Jvec(sigma, mx)]
         print '\n'
         print 'test_Deriv_J'
         passed = Tests.checkDerivative(derChk, sigma, plotIt=False, dx=d_sig, num=6, eps=1e-20)
@@ -286,7 +286,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         V1 = d.dot(prb.Jvec(sigma, m))
         V2 = m.dot(prb.Jtvec(sigma, d))
         self.assertLess(np.abs(V1-V2)/np.abs(V1), 1e-6)
-    
+
 
 
 if __name__ == '__main__':

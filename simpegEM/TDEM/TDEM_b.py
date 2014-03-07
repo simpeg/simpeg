@@ -2,7 +2,7 @@ from BaseTDEM import ProblemBaseTDEM
 from FieldsTDEM import FieldsTDEM
 from SimPEG.Utils import mkvc
 import numpy as np
-from DataTDEM import DataTDEM1D
+from SurveyTDEM import SurveyTDEM1D
 
 class ProblemTDEM_b(ProblemBaseTDEM):
     """
@@ -16,12 +16,12 @@ class ProblemTDEM_b(ProblemBaseTDEM):
 
         with \\\(\\b\\\) defined on cell faces and \\\(\e\\\) defined on edges.
     """
-    def __init__(self, mesh, model, **kwargs):
-        ProblemBaseTDEM.__init__(self, mesh, model, **kwargs)
+    def __init__(self, model, **kwargs):
+        ProblemBaseTDEM.__init__(self, model, **kwargs)
 
     solType = 'b'
 
-    dataPair = DataTDEM1D
+    surveyPair = SurveyTDEM1D
 
     ####################################################
     # Internal Methods
@@ -51,12 +51,12 @@ class ProblemTDEM_b(ProblemBaseTDEM):
             u = self.fields(m)
         p = self.Gvec(m, v, u)
         y = self.solveAh(m, p)
-        return self.data.dpred(m, u=y)
+        return self.survey.dpred(m, u=y)
 
     def Jtvec(self, m, v, u=None):
         if u is None:
             u = self.fields(m)
-        p = self.data.projectFieldsAdjoint(v)
+        p = self.survey.projectFieldsAdjoint(v)
         y = self.solveAht(m, p)
         w = self.Gtvec(m, y, u)
         return w
@@ -88,7 +88,7 @@ class ProblemTDEM_b(ProblemBaseTDEM):
     def Gtvec(self, m, v, u=None):
         if u is None:
             u = self.fields(m)
-        tmp = np.zeros((self.mesh.nE,self.data.nTx))
+        tmp = np.zeros((self.mesh.nE,self.survey.nTx))
         for i in range(self.nTimes):
             tmp += v.get_e(i)*u.get_e(i)
         p = -mkvc(self.model.transformDeriv(m).T*self.mesh.getEdgeMassDeriv().T*tmp)
