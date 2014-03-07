@@ -170,6 +170,87 @@ class BaseTensorMesh(BaseRectangularMesh):
 
         return [t for t in ten if t is not None]
 
+    # --------------- Methods ---------------------
+
+    def isInside(self, pts, locType='N'):
+        """
+        Determines if a set of points are inside a mesh.
+
+        :param numpy.ndarray pts: Location of points to test
+        :rtype numpy.ndarray
+        :return inside, numpy array of booleans
+        """
+
+        tensors = self.getTensor(locType)
+        if type(pts) == list:
+            pts = np.array(pts)
+        assert type(pts) == np.ndarray, "must be a numpy array"
+        if self.dim > 1:
+            assert pts.shape[1] == self.dim, "must be a column vector of shape (nPts, mesh.dim)"
+        elif len(pts.shape) == 1:
+            pts = pts[:,np.newaxis]
+        else:
+            assert pts.shape[1] == self.dim, "must be a column vector of shape (nPts, mesh.dim)"
+
+        inside = np.ones(pts.shape[0],dtype=bool)
+        for i, tensor in enumerate(tensors):
+            inside = inside & (pts[:,i] >= tensor.min()) & (pts[:,i] <= tensor.max())
+        return inside
+
+    def getInterpolationMat(self, loc, locType, zerosOutside=False):
+        """ Produces interpolation matrix
+
+        :param numpy.ndarray loc: Location of points to interpolate to
+        :param str locType: What to interpolate (see below)
+        :rtype: scipy.sparse.csr.csr_matrix
+        :return: M, the interpolation matrix
+
+        locType can be::
+
+            'Ex'    -> x-component of field defined on edges
+            'Ey'    -> y-component of field defined on edges
+            'Ez'    -> z-component of field defined on edges
+            'Fx'    -> x-component of field defined on faces
+            'Fy'    -> y-component of field defined on faces
+            'Fz'    -> z-component of field defined on faces
+            'N'     -> scalar field defined on nodes
+            'CC'    -> scalar field defined on cell centers
+        """
+
+        if type(loc) == list:
+            loc = np.array(loc)
+        assert type(loc) == np.ndarray, "must be a numpy array"
+        if self.dim > 1:
+            assert loc.shape[1] == self.dim, "must be a column vector of shape (nPts, mesh.dim)"
+        elif len(loc.shape) == 1:
+            loc = loc[:,np.newaxis]
+        else:
+            assert loc.shape[1] == self.dim, "must be a column vector of shape (nPts, mesh.dim)"
+
+        if zerosOutside is False:
+            assert np.all(self.isInside(loc)), "Points outside of mesh"
+        else:
+            indZeros = np.logical_not(self.isInside(loc))
+            loc[indZeros, :] = np.array([v.mean() for v in self.getTensor('CC')])
+
+        if locType in ['Fx','Fy','Fz','Ex','Ey','Ez']:
+            ind = {'x':0, 'y':1, 'z':2}[locType[1]]
+            assert self.dim >= ind, 'mesh is not high enough dimension.'
+            nF_nE = self.vnF if 'F' in locType else self.vnE
+            components = [Utils.spzeros(loc.shape[0], n) for n in nF_nE]
+            components[ind] = Utils.interpmat(loc, *self.getTensor(locType))
+            Q = sp.hstack(components)
+        elif locType in ['CC', 'N']:
+            Q = Utils.interpmat(loc, *self.getTensor(locType))
+        else:
+            raise NotImplementedError('getInterpolationMat: locType=='+locType+' and mesh.dim=='+str(self.dim))
+
+        if zerosOutside:
+            Q[indZeros, :] = 0
+
+        return Q.tocsr()
+
+
 
 class TensorMesh(BaseTensorMesh, TensorView, DiffOperators, InnerProducts):
     """
@@ -319,84 +400,6 @@ class TensorMesh(BaseTensorMesh, TensorView, DiffOperators, InnerProducts):
                 l3 = np.outer(np.ones(n[0]+1), Utils.mkvc(np.outer(np.ones(n[1]+1), vh[2])))
                 self._edge = np.r_[Utils.mkvc(l1), Utils.mkvc(l2), Utils.mkvc(l3)]
         return self._edge
-
-    # --------------- Methods ---------------------
-
-    def isInside(self, pts, locType='N'):
-        """
-        Determines if a set of points are inside a mesh.
-
-        :param numpy.ndarray pts: Location of points to test
-        :rtype numpy.ndarray
-        :return inside, numpy array of booleans
-        """
-
-        tensors = self.getTensor(locType)
-        if type(pts) == list:
-            pts = np.array(pts)
-        assert type(pts) == np.ndarray, "must be a numpy array"
-        if self.dim > 1:
-            assert pts.shape[1] == self.dim, "must be a column vector of shape (nPts, mesh.dim)"
-        elif len(pts.shape) == 1:
-            pts = pts[:,np.newaxis]
-        else:
-            assert pts.shape[1] == self.dim, "must be a column vector of shape (nPts, mesh.dim)"
-
-        inside = np.ones(pts.shape[0],dtype=bool)
-        for i, tensor in enumerate(tensors):
-            inside = inside & (pts[:,i] >= tensor.min()) & (pts[:,i] <= tensor.max())
-        return inside
-
-    def getInterpolationMat(self, loc, locType, zerosOutside=False):
-        """ Produces interpolation matrix
-
-        :param numpy.ndarray loc: Location of points to interpolate to
-        :param str locType: What to interpolate (see below)
-        :rtype: scipy.sparse.csr.csr_matrix
-        :return: M, the interpolation matrix
-
-        locType can be::
-
-            'Ex'    -> x-component of field defined on edges
-            'Ey'    -> y-component of field defined on edges
-            'Ez'    -> z-component of field defined on edges
-            'Fx'    -> x-component of field defined on faces
-            'Fy'    -> y-component of field defined on faces
-            'Fz'    -> z-component of field defined on faces
-            'N'     -> scalar field defined on nodes
-            'CC'    -> scalar field defined on cell centers
-        """
-
-        if type(loc) == list:
-            loc = np.array(loc)
-        assert type(loc) == np.ndarray, "must be a numpy array"
-        if self.dim > 1:
-            assert loc.shape[1] == self.dim, "must be a column vector of shape (nPts, mesh.dim)"
-        elif len(loc.shape) == 1:
-            loc = loc[:,np.newaxis]
-        else:
-            assert loc.shape[1] == self.dim, "must be a column vector of shape (nPts, mesh.dim)"
-
-        if zerosOutside is False:
-            assert np.all(self.isInside(loc)), "Points outside of mesh"
-        else:
-            indZeros = np.logical_not(self.isInside(loc))
-            loc[indZeros, :] = np.array([v.mean() for v in self.getTensor('CC')])
-
-        ind = 0 if 'x' in locType else 1 if 'y' in locType else 2 if 'z' in locType else -1
-        if locType in ['Fx','Fy','Fz','Ex','Ey','Ez'] and self.dim >= ind:
-            nF_nE = self.vnF if 'F' in locType else self.vnE
-            components = [Utils.spzeros(loc.shape[0], n) for n in nF_nE]
-            components[ind] = Utils.interpmat(loc, *self.getTensor(locType))
-            Q = sp.hstack(components)
-        elif locType in ['CC', 'N']:
-            Q = Utils.interpmat(loc, *self.getTensor(locType))
-        else:
-            raise NotImplementedError('getInterpolationMat: locType=='+locType+' and mesh.dim=='+str(self.dim))
-        if zerosOutside:
-            Q[indZeros, :] = 0
-        return Q.tocsr()
-
 
     @property
     def faceBoundaryInd(self):

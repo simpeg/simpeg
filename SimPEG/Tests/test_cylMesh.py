@@ -163,7 +163,6 @@ class TestFaceDiv2D(OrderTest):
         F = self.M.projectFaceVector(Fc)
 
         divF = self.M.faceDiv.dot(F)
-        tm = Mesh.TensorMesh([self.M.nCx, self.M.nCz])
         divF_anal = call3(sol, self.M.gridCC)
 
         err = np.linalg.norm((divF-divF_anal), np.inf)
