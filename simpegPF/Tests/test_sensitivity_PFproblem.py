@@ -28,27 +28,27 @@ class MagSensProblemTests(unittest.TestCase):
         chi[sph_ind] = chiblk
         model = PF.BaseMag.BaseMagModel(M)
 
-        data = BaseMag.BaseMagData()
+        survey = BaseMag.BaseMagSurvey()
 
-        data.setBackgroundField(Inc, Dec, Btot)
+        survey.setBackgroundField(Inc, Dec, Btot)
         xr = np.linspace(-300, 300, 41)
         yr = np.linspace(-300, 300, 41)
         X, Y = np.meshgrid(xr, yr)
         Z = np.ones((xr.size, yr.size))*150
         rxLoc = np.c_[Utils.mkvc(X), Utils.mkvc(Y), Utils.mkvc(Z)]
-        data.rxLoc = rxLoc
+        survey.rxLoc = rxLoc
 
 
 
-        prob = PF.Magnetics.MagneticsDiffSecondary(M, model)
-        prob.pair(data)
-        dpre = data.dpred(chi)
+        prob = PF.Magnetics.MagneticsDiffSecondary(model)
+        prob.pair(survey)
+        dpre = survey.dpred(chi)
 
         fields = prob.fields(chi)
         self.u = fields['u']
         self.B = fields['B']
 
-        self.data = data
+        self.survey = survey
         self.model = model
         self.prob = prob
         self.M = M
@@ -145,7 +145,7 @@ class MagSensProblemTests(unittest.TestCase):
             self.prob.makeMassMatrices(chi)
             dmudm = self.model.transformDeriv(chi)
             dchidmu = Utils.sdiag(1/(dmudm.diagonal()))
-            Bbc, Bbc_const = PF.MagAnalytics.CongruousMagBC(self.prob.mesh, self.data.B0, chi)
+            Bbc, Bbc_const = PF.MagAnalytics.CongruousMagBC(self.prob.mesh, self.survey.B0, chi)
             MfMuIvec = 1/self.prob.MfMui.diagonal()
             dMfMuI = Utils.sdiag(MfMuIvec**2)*aveF2CC.T*Utils.sdiag(vol*1./mu**2)
             RHS1 = Div*self.prob.MfMuI*self.prob.MfMu0*B0
@@ -161,7 +161,7 @@ class MagSensProblemTests(unittest.TestCase):
             self.prob.makeMassMatrices(chi)
             dmudm = self.model.transformDeriv(chi)
             dmdmu = Utils.sdiag(1/(dmudm.diagonal()))
-            Bbc, Bbc_const = PF.MagAnalytics.CongruousMagBC(self.prob.mesh, self.data.B0, chi)
+            Bbc, Bbc_const = PF.MagAnalytics.CongruousMagBC(self.prob.mesh, self.survey.B0, chi)
             MfMuIvec = 1/self.prob.MfMui.diagonal()
             dMfMuI = Utils.sdiag(MfMuIvec**2)*aveF2CC.T*Utils.sdiag(vol*1./mu**2)
             dCdm_RHS1 = Div * (Utils.sdiag( self.prob.MfMu0*B0  ) * dMfMuI)
@@ -199,7 +199,7 @@ class MagSensProblemTests(unittest.TestCase):
             u = self.u
             dmudm = self.model.transformDeriv(chi)
             dmdmu = Utils.sdiag(1/(dmudm.diagonal()))
-            Bbc, Bbc_const = PF.MagAnalytics.CongruousMagBC(self.prob.mesh, self.data.B0, chi)
+            Bbc, Bbc_const = PF.MagAnalytics.CongruousMagBC(self.prob.mesh, self.survey.B0, chi)
             MfMuIvec = 1/self.prob.MfMui.diagonal()
             dMfMuI = Utils.sdiag(MfMuIvec**2)*aveF2CC.T*Utils.sdiag(vol*1./mu**2)
             dCdu = self.prob.getA(chi)
@@ -248,7 +248,7 @@ class MagSensProblemTests(unittest.TestCase):
             u = self.u
             dmudm = self.model.transformDeriv(chi)
             dmdmu = Utils.sdiag(1/(dmudm.diagonal()))
-            Bbc, Bbc_const = PF.MagAnalytics.CongruousMagBC(self.prob.mesh, self.data.B0, chi)
+            Bbc, Bbc_const = PF.MagAnalytics.CongruousMagBC(self.prob.mesh, self.survey.B0, chi)
             MfMuIvec = 1/self.prob.MfMui.diagonal()
             dMfMuI = Utils.sdiag(MfMuIvec**2)*aveF2CC.T*Utils.sdiag(vol*1./mu**2)
             dCdu = self.prob.getA(chi)
@@ -289,7 +289,7 @@ class MagSensProblemTests(unittest.TestCase):
 
         a = self.prob.Jvec(self.chi, d_chi)
 
-        derChk = lambda m: [self.data.dpred(m), lambda mx: self.prob.Jvec(self.chi, mx)]
+        derChk = lambda m: [self.survey.dpred(m), lambda mx: self.prob.Jvec(self.chi, mx)]
         # TODO: I am not sure why the order get worse as step decreases .. --;
         passed = Tests.checkDerivative(derChk, self.chi, num=2, dx = d_chi, plotIt=False)
         self.assertTrue(passed)
@@ -297,10 +297,10 @@ class MagSensProblemTests(unittest.TestCase):
     def test_Jtvec(self):
         print ">> Derivative test for Jtvec"
         mu = self.model.transform(self.chi)
-        dobs = self.data.dpred(self.chi)
+        dobs = self.survey.dpred(self.chi)
 
         def misfit (m, dobs):
-            dpre = self.data.dpred(m)
+            dpre = self.survey.dpred(m)
             misfit = 0.5*np.linalg.norm(dpre-dobs)**2
             residual = dpre-dobs
             dmisfit = self.prob.Jtvec(self.chi, residual)

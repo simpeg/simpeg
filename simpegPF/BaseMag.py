@@ -1,15 +1,15 @@
-from SimPEG import Model, Data, Utils, np, sp
+from SimPEG import Model, Survey, Utils, np, sp
 from scipy.constants import mu_0
 
 
-class BaseMagData(Data.BaseData):
-    """Base Magnetics Data"""
+class BaseMagSurvey(Survey.BaseSurvey):
+    """Base Magnetics Survey"""
 
     rxLoc = None #: receiver locations
     rxType = None #: receiver type
 
     def __init__(self, **kwargs):
-        Data.BaseData.__init__(self, **kwargs)
+        Survey.BaseSurvey.__init__(self, **kwargs)
 
 
     def setBackgroundField(self, Inc, Dec, Btot):
@@ -65,7 +65,7 @@ class BaseMagData(Data.BaseData):
         bfz = self.Qfz*u['B']
 
         # Generate unit vector
-        B0 = self.prob.data.B0
+        B0 = self.prob.survey.B0
         Bot = np.sqrt(B0[0]**2+B0[1]**2+B0[2]**2)
         box = B0[0]/Bot
         boy = B0[1]/Bot
@@ -88,7 +88,7 @@ class BaseMagData(Data.BaseData):
 
         """
         # Generate unit vector
-        B0 = self.prob.data.B0
+        B0 = self.prob.survey.B0
         Bot = np.sqrt(B0[0]**2+B0[1]**2+B0[2]**2)
         box = B0[0]/Bot
         boy = B0[1]/Bot
@@ -105,10 +105,10 @@ class BaseMagData(Data.BaseData):
 
         return np.r_[bfx, bfy, bfz]
 
-class MagDataBx(object):
-    """docstring for MagDataBx"""
+class MagSurveyBx(object):
+    """docstring for MagSurveyBx"""
     def __init__(self, **kwargs):
-        Data.BaseData.__init__(self, **kwargs)
+        Survey.BaseData.__init__(self, **kwargs)
 
     def projectFields(self, B):
         bfx = self.Qfx*B

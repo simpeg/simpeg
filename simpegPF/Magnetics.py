@@ -10,11 +10,11 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
         Secondary field approach using differential equations!
     """
 
-    dataPair = BaseMag.BaseMagData
+    surveyPair = BaseMag.BaseMagSurvey
     modelPair = BaseMag.BaseMagModel
 
-    def __init__(self, mesh, model, **kwargs):
-        Problem.BaseProblem.__init__(self, mesh, model, **kwargs)
+    def __init__(self, model, **kwargs):
+        Problem.BaseProblem.__init__(self, model, **kwargs)
 
         Pbc, Pin, self._Pout = \
             self.mesh.getBCProjWF('neumann', discretization='CC')
@@ -41,9 +41,9 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
         self._MfMu0 = self.mesh.getFaceMass(1/mu_0)
         # self._MfMu0 = self.mesh.getFaceInnerProduct(1/mu_0)
 
-    @Utils.requires('data')
+    @Utils.requires('survey')
     def getB0(self):
-        b0 = self.data.B0
+        b0 = self.survey.B0
         B0 = np.r_[b0[0]*np.ones(self.mesh.nFx),
                    b0[1]*np.ones(self.mesh.nFy),
                    b0[2]*np.ones(self.mesh.nFz)]
@@ -64,7 +64,7 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
         mu = self.model.transform(m)
         chi = mu/mu_0-1
 
-        Bbc, Bbc_const = CongruousMagBC(self.mesh, self.data.B0, chi)
+        Bbc, Bbc_const = CongruousMagBC(self.mesh, self.survey.B0, chi)
         self.Bbc = Bbc
         self.Bbc_const = Bbc_const
         return self._Div*self.MfMuI*self.MfMu0*B0 - self._Div*B0 + Mc*Dface*self._Pout.T*Bbc
@@ -191,7 +191,7 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
         vol = self.mesh.vol
         Div = self._Div
         Dface = self.mesh.faceDiv
-        P = self.data.projectFieldsDeriv(B)                 # Projection matrix
+        P = self.survey.projectFieldsDeriv(B)                 # Projection matrix
         B0 = self.getB0()
 
         MfMuIvec = 1/self.MfMui.diagonal()
@@ -268,7 +268,7 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
         vol = self.mesh.vol
         Div = self._Div
         Dface = self.mesh.faceDiv
-        P = self.data.projectFieldsDeriv(B)                 # Projection matrix
+        P = self.survey.projectFieldsDeriv(B)                 # Projection matrix
         B0 = self.getB0()
 
         MfMuIvec = 1/self.MfMui.diagonal()
@@ -389,7 +389,7 @@ if __name__ == '__main__':
     prob.pair(data)
 
     dpred = data.dpred(chi)
-    
+
     # fig = plt.figure( figsize = (8,5) )
     # ax = plt.subplot(111)
     # dat = plt.imshow(np.reshape(dpred, (xr.size, yr.size), order='F'), extent=[min(xr), max(xr), min(yr), max(yr)])
