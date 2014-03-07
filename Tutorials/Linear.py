@@ -12,10 +12,10 @@ class LinearProblem(Problem.BaseProblem):
     def fields(self, m, u=None):
         return self.G.dot(m)
 
-    def J(self, m, v, u=None):
+    def Jvec(self, m, v, u=None):
         return self.G.dot(v)
 
-    def Jt(self, m, v, u=None):
+    def Jtvec(self, m, v, u=None):
         return self.G.T.dot(v)
 
 

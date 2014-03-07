@@ -141,7 +141,7 @@ class BetaEstimate(Parameter):
 
         x0 = np.random.rand(*m.shape)
         t = x0.dot(objFunc.dataObj2Deriv(m,x0,u=u))
-        b = x0.dot(objFunc.reg.modelObj2Deriv()*x0)
+        b = x0.dot(objFunc.reg.modelObj2Deriv(m, v=x0))
         return self.beta0_ratio*(t/b)
 
 

@@ -11,12 +11,10 @@ The vision is to create a package for finite volume simulation and parameter est
 applications to geophysical imaging and subsurface flow. To enable
 these goals, this package has the following features:
 
-
-   * is modular with respect to discretization, physics, optimization, and regularization
-   * is built with the (large-scale) inverse problem in mind
-   * provides a framework for geophysical and hydrogeologic problems
-   * supports 1D, 2D and 3D problems
-
+- is modular with respect to discretization, physics, optimization, and regularization
+- is built with the (large-scale) inverse problem in mind
+- provides a framework for geophysical and hydrogeologic problems
+- supports 1D, 2D and 3D problems
 
 .. image:: simpeg-framework.png
    :width: 400 px
@@ -30,6 +28,8 @@ Meshing & Operators
    :maxdepth: 2
 
    api_Mesh
+   api_DiffOps
+   api_InnerProducts
 
 Forward Problems
 ****************
@@ -48,6 +48,16 @@ Inversion
    api_Inverse
    api_Parameters
 
+Utility Codes
+*************
+
+.. toctree::
+   :maxdepth: 2
+
+   api_Solver
+   api_Utils
+
+
 Testing SimPEG
 **************
 
@@ -61,21 +71,6 @@ Testing SimPEG
       :target: https://travis-ci.org/simpeg/simpeg
       :alt: Master Branch
       :align: center
-
-* Develop Branch
-   .. image:: https://travis-ci.org/simpeg/simpeg.png?branch*develop
-      :target: https://travis-ci.org/simpeg/simpeg
-      :alt: Develop Branch
-      :align: center
-
-
-Utility Codes
-*************
-
-.. toctree::
-   :maxdepth: 2
-
-   api_Utils
 
 
 Project Index & Search

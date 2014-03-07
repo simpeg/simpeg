@@ -20,6 +20,7 @@ class BaseTensorMesh(BaseRectangularMesh):
 
     def __init__(self, h_in, x0=None):
         assert type(h_in) is list, 'h_in must be a list'
+        assert len(h_in) in [1,2,3], 'h_in must be of dimension 1, 2, or 3'
         h = range(len(h_in))
         for i, h_i in enumerate(h_in):
             if type(h_i) in [int, long, float, np.int_]:
@@ -444,6 +445,112 @@ class TensorMesh(BaseTensorMesh, TensorView, DiffOperators, InnerProducts):
             indzd = (self.gridCC[:,2]==min(self.gridCC[:,2]))
             indzu = (self.gridCC[:,2]==max(self.gridCC[:,2]))
             return indxd, indxu, indyd, indyu, indzd, indzu
+
+    def _fastFaceInnerProduct(self, materialProperty=None, invertProperty=False):
+        """
+            Fast version of getFaceInnerProduct.
+            This does not handle the case of a full tensor materialProperty.
+
+            :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :param bool returnP: returns the projection matrices
+            :param bool invertProperty: inverts the material property
+            :rtype: scipy.csr_matrix
+            :return: M, the inner product matrix (nF, nF)
+        """
+        return self._fastInnerProduct('F', materialProperty=materialProperty, invertProperty=invertProperty)
+
+
+    def _fastEdgeInnerProduct(self, materialProperty=None, invertProperty=False):
+        """
+            Fast version of getEdgeInnerProduct.
+            This does not handle the case of a full tensor materialProperty.
+
+            :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :param bool returnP: returns the projection matrices
+            :param bool invertProperty: inverts the material property
+            :rtype: scipy.csr_matrix
+            :return: M, the inner product matrix (nE, nE)
+        """
+        return self._fastInnerProduct('E', materialProperty=materialProperty, invertProperty=invertProperty)
+
+
+    def _fastInnerProduct(self, AvType, materialProperty=None, invertProperty=False):
+        """
+            Fast version of getFaceInnerProduct.
+            This does not handle the case of a full tensor materialProperty.
+
+            :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :param str AvType: 'E' or 'F'
+            :param bool returnP: returns the projection matrices
+            :param bool invertProperty: inverts the material property
+            :rtype: scipy.csr_matrix
+            :return: M, the inner product matrix (nF, nF)
+        """
+        if materialProperty is None:
+            materialProperty = np.ones(self.nC)
+
+        if invertProperty:
+            materialProperty = 1./materialProperty
+
+        if Utils.isScalar(materialProperty):
+            materialProperty = materialProperty*np.ones(self.nC)
+
+        if materialProperty.size == self.nC:
+            Av = getattr(self, 'ave'+AvType+'2CC')
+            Vprop = self.vol * Utils.mkvc(materialProperty)
+            return self.dim * Utils.sdiag(Av.T * Vprop)
+        if materialProperty.size == self.nC*self.dim:
+            Av = getattr(self, 'ave'+AvType+'2CCV')
+            V = sp.kron(sp.identity(self.dim), Utils.sdiag(self.vol))
+            return Utils.sdiag(Av.T * V * Utils.mkvc(materialProperty))
+
+
+    def _fastFaceInnerProductDeriv(self, materialProperty=None, v=None):
+        """
+            :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :rtype: scipy.csr_matrix
+            :return: M, the inner product matrix (nF, nF)
+        """
+        return self._fastInnerProductDeriv('F', materialProperty=materialProperty, v=v)
+
+
+    def _fastEdgeInnerProductDeriv(self, materialProperty=None, v=None):
+        """
+            :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :rtype: scipy.csr_matrix
+            :return: M, the inner product matrix (nE, nE)
+        """
+        return self._fastInnerProductDeriv('E', materialProperty=materialProperty, v=v)
+
+
+    def _fastInnerProductDeriv(self, AvType, materialProperty=None, v=None):
+        """
+            :param str AvType: 'E' or 'F'
+            :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :rtype: scipy.csr_matrix
+            :return: M, the inner product matrix (nF, nF)
+        """
+        if materialProperty is None:
+            return None
+        if Utils.isScalar(materialProperty):
+            Av = getattr(self, 'ave'+AvType+'2CC')
+            V = Utils.sdiag(self.vol)
+            ones = sp.csr_matrix((np.ones(self.nC), (range(self.nC), np.zeros(self.nC))), shape=(self.nC,1))
+            if v is None:
+                return self.dim * Av.T * V * ones
+            return Utils.sdiag(v) * self.dim * Av.T * V * ones
+        if materialProperty.size == self.nC:
+            Av = getattr(self, 'ave'+AvType+'2CC')
+            V = Utils.sdiag(self.vol)
+            if v is None:
+                return self.dim * Av.T * V
+            return Utils.sdiag(v) * self.dim * Av.T * V
+        if materialProperty.size == self.nC*self.dim: # anisotropic
+            Av = getattr(self, 'ave'+AvType+'2CCV')
+            V = sp.kron(sp.identity(self.dim), Utils.sdiag(self.vol))
+            if v is None:
+                return Av.T * V
+            return Utils.sdiag(v) * Av.T * V
 
 
 if __name__ == '__main__':

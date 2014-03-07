@@ -1,187 +1,70 @@
 from scipy import sparse as sp
-from SimPEG.Utils import sub2ind, ndgrid, mkvc, getSubArray, sdiag, inv3X3BlockDiagonal, inv2X2BlockDiagonal, makePropertyTensor
+from SimPEG.Utils import sub2ind, ndgrid, mkvc, getSubArray, sdiag, inv3X3BlockDiagonal, inv2X2BlockDiagonal, makePropertyTensor, invPropertyTensor, spzeros, isScalar
 import numpy as np
 
 
 class InnerProducts(object):
     """
-        Class creates the inner product matrices that you need!
-
-        InnerProducts is a base class providing inner product matrices for meshes and cannot run on its own. Inherit to your favorite Mesh class.
-
-
-        **Example problem for DC resistivity**
-
-        .. math::
-
-            \sigma^{-1}\mathbf{J} = \\nabla \phi
-
-        We can define in weak form by integrating with a general face function F:
-
-        .. math::
-
-            \int_{\\text{cell}}{\sigma^{-1}\mathbf{J} \cdot \mathbf{F}} = \int_{\\text{cell}}{\\nabla \phi  \cdot \mathbf{F}}
-
-            \int_{\\text{cell}}{\sigma^{-1}\mathbf{J} \cdot \mathbf{F}} = \int_{\\text{cell}}{(\\nabla \cdot \mathbf{F}) \phi   } + \int_{\partial \\text{cell}}{ \phi  \mathbf{F} \cdot \mathbf{n}}
-
-        We can then discretize for every cell:
-
-        .. math::
-
-            v_{\\text{cell}} \sigma^{-1} (\mathbf{J}_x \mathbf{F}_x +\mathbf{J}_y \mathbf{F}_y  + \mathbf{J}_z \mathbf{F}_z ) = -\phi^{\\top} v_{\\text{cell}} (\mathbf{D}_{\\text{cell}} \mathbf{F})  + \\text{BC}
-
-        We can represent this in vector form (again this is for every cell), and will generalize for the case of anisotropic (tensor) sigma.
-
-        .. math::
-
-            \mathbf{F}_c^{\\top} (\sqrt{v_{\\text{cell}}} \Sigma^{-1} \sqrt{v_{\\text{cell}}})  \mathbf{J}_c = -\phi^{\\top} v_{\\text{cell}}( v_\\text{cell}^{-1} \mathbf{D}_{\\text{cell}} \mathbf{A} \mathbf{F})  + \\text{BC}
-
-        We multiply by volume on each side of the tensor conductivity to keep symmetry in the system. Here J_c is the Cartesian J (on the faces) and must be calculated differently depending on the mesh:
-
-        .. math::
-            \mathbf{J}_c = \mathbf{Q}_{(i)}\mathbf{J}_\\text{TENSOR} = \mathbf{N}_{(i)}^{-1}\mathbf{Q}_{(i)}\mathbf{J}_\\text{LOM}
-
-        Here the i index refers to where we choose to approximate this integral.
-        We will approximate this relation at every node of the cell, there are 8 in 3D, using a projection matrix Q_i to pick the appropriate fluxes.
-        We will then average to the cell center. For the TENSOR mesh, this looks like:
-
-        .. math::
-
-            \mathbf{F}^{\\top}
-                {1\over 8}
-                \left(\sum_{i=1}^8
-                \mathbf{Q}_{(i)}^{-\\top} \sqrt{v_{\\text{cell}}} \Sigma^{-1} \sqrt{v_{\\text{cell}}}  \mathbf{Q}_{(i)}
-                \\right)
-                \mathbf{J}
-                =
-                -\mathbf{F}^{\\top} \mathbf{A} \mathbf{D}_{\\text{cell}}^{\\top} \phi   + \\text{BC}
-
-            \mathbf{M}(\Sigma^{-1}) \mathbf{J}
-                =
-                -\mathbf{A} \mathbf{D}_{\\text{cell}}^{\\top} \phi   + \\text{BC}
-
-            \mathbf{M}(\Sigma^{-1}) = {1\over 8}
-                \left(\sum_{i=1}^8
-                \mathbf{Q}_{(i)}^{-\\top} \sqrt{v_{\\text{cell}}} \Sigma^{-1} \sqrt{v_{\\text{cell}}}  \mathbf{Q}_{(i)}
-                \\right)
-
-        The M is returned if mu is set equal  to \Sigma^{-1}.
-
-        If requested (returnP=True) the projection matricies are returned as well (ordered by nodes).
-        Here each P (3*nC, sum(nF)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
-
-        .. math::
-            \mathbf{P}_{(i)} =  \sqrt{ {1\over 8} v_{\\text{cell}}} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\\text{LOM only}} \mathbf{Q}_{(i)}
-
-        Note that this is completed for each cell in the mesh at the same time.
+        This is a base for the SimPEG.Mesh classes. This mixIn creates the all the inner product matrices that you need!
     """
     def __init__(self):
         raise Exception('InnerProducts is a base class providing inner product matrices for meshes and cannot run on its own. Inherit to your favorite Mesh class.')
 
-    def getFaceInnerProduct(M, mu=None, returnP=False):
+    def getFaceInnerProduct(self, materialProperty=None, returnP=False,
+                            invertProperty=False, doFast=True):
         """
-            :param numpy.array mu: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
             :param bool returnP: returns the projection matrices
+            :param bool invertProperty: inverts the material property
+            :param bool doFast: do a faster implementation if available.
             :rtype: scipy.csr_matrix
-            :return: M, the inner product matrix (sum(nF), sum(nF))
-
-            Depending on the number of columns (either 1, 3, or 6) of mu, the material property is interpreted as follows:
-
-            .. math::
-                \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & 0 & 0 \\\\ 0 & \mu_{1} & 0 \\\\ 0 & 0 & \mu_{1}  \end{matrix}\\right]
-
-                \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & 0 & 0 \\\\ 0 & \mu_{2} & 0 \\\\ 0 & 0 & \mu_{3}  \end{matrix}\\right]
-
-                \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & \mu_{4} & \mu_{5} \\\\ \mu_{4} & \mu_{2} & \mu_{6} \\\\ \mu_{5} & \mu_{6} & \mu_{3}  \end{matrix}\\right]
-
-                \mathbf{M}(\\vec{\mu}) = {1\over 8}
-                    \left(\sum_{i=1}^8
-                    \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \\vec{\mu} \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
-                    \\right)
-
-            If requested (returnP=True) the projection matricies are returned as well (ordered by nodes)::
-
-                P = [P000, P100, P010, P110, P001, P101, P011, P111]
-
-            Here each P (3*nC, sum(nF)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
-
-            .. math::
-                \mathbf{P}_{(i)} =  \sqrt{ {1\over 8} v_{\\text{cell}}} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\\text{LOM only}} \mathbf{Q}_{(i)}
-
-            Note that this is completed for each cell in the mesh at the same time.
-
-            **For 2D:**
-
-             Depending on the number of columns (either 1, 2, or 3) of mu, the material property is interpreted as follows:
-
-            .. math::
-                \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & 0 \\\\ 0 & \mu_{1} \end{matrix}\\right]
-
-                \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & 0 \\\\ 0 & \mu_{2} \end{matrix}\\right]
-
-                \\vec{\mu} = \left[\\begin{matrix} \mu_{1} & \mu_{3} \\\\ \mu_{3} & \mu_{2} \end{matrix}\\right]
-
-
-            .. math::
-
-                \mathbf{M}(\\vec{\mu}) = {1\over 4}
-                    \left(\sum_{i=1}^4
-                    \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \\vec{\mu} \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
-                    \\right)
-
-
-            If requested (returnP=True) the projection matricies are returned as well (ordered by nodes)::
-
-                P = [P00, P10, P01, P11]
-
-            Here each P (2*nC, sum(nF)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
-
-            .. math::
-                \mathbf{P}_{(i)} =  \sqrt{ {1\over 4} v_{\\text{cell}}} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\\text{LOM only}} \mathbf{Q}_{(i)}
-
-            Note that this is completed for each cell in the mesh at the same time.
-
+            :return: M, the inner product matrix (nF, nF)
         """
-        if M.dim == 1:
-            v = np.sqrt(0.5*M.vol)
-            V1 = sdiag(v)  # We will multiply on each side to keep symmetry
+        fast = None
 
-            Px = _getFacePx(M)
-            P000 = V1*Px('fXm')
-            P100 = V1*Px('fXp')
-        elif M.dim == 2:
-            # Square root of cell volume multiplied by 1/4
-            v = np.sqrt(0.25*M.vol)
-            V2 = sdiag(np.r_[v, v])  # We will multiply on each side to keep symmetry
+        if returnP is False and hasattr(self, '_fastFaceInnerProduct') and doFast:
+            fast = self._fastFaceInnerProduct(materialProperty=materialProperty, invertProperty=invertProperty)
 
-            Pxx = _getFacePxx(M)
-            P000 = V2*Pxx('fXm', 'fYm')
-            P100 = V2*Pxx('fXp', 'fYm')
-            P010 = V2*Pxx('fXm', 'fYp')
-            P110 = V2*Pxx('fXp', 'fYp')
-        elif M.dim == 3:
-            # Square root of cell volume multiplied by 1/8
-            v = np.sqrt(0.125*M.vol)
-            V3 = sdiag(np.r_[v, v, v])  # We will multiply on each side to keep symmetry
+        if fast is not None:
+            return fast
 
-            Pxxx = _getFacePxxx(M)
-            P000 = V3*Pxxx('fXm', 'fYm', 'fZm')
-            P100 = V3*Pxxx('fXp', 'fYm', 'fZm')
-            P010 = V3*Pxxx('fXm', 'fYp', 'fZm')
-            P110 = V3*Pxxx('fXp', 'fYp', 'fZm')
-            P001 = V3*Pxxx('fXm', 'fYm', 'fZp')
-            P101 = V3*Pxxx('fXp', 'fYm', 'fZp')
-            P011 = V3*Pxxx('fXm', 'fYp', 'fZp')
-            P111 = V3*Pxxx('fXp', 'fYp', 'fZp')
+        if invertProperty:
+            materialProperty = invPropertyTensor(self, materialProperty)
 
-        Mu = makePropertyTensor(M, mu)
+        Mu = makePropertyTensor(self, materialProperty)
+
+        d = self.dim
+        # We will multiply by sqrt on each side to keep symmetry
+        V = sp.kron(sp.identity(d), sdiag(np.sqrt((2**(-d))*self.vol)))
+
+        if d == 1:
+            fP = _getFacePx(self)
+            P000 = V*fP('fXm')
+            P100 = V*fP('fXp')
+        elif d == 2:
+            fP = _getFacePxx(self)
+            P000 = V*fP('fXm', 'fYm')
+            P100 = V*fP('fXp', 'fYm')
+            P010 = V*fP('fXm', 'fYp')
+            P110 = V*fP('fXp', 'fYp')
+        elif d == 3:
+            fP = _getFacePxxx(self)
+            P000 = V*fP('fXm', 'fYm', 'fZm')
+            P100 = V*fP('fXp', 'fYm', 'fZm')
+            P010 = V*fP('fXm', 'fYp', 'fZm')
+            P110 = V*fP('fXp', 'fYp', 'fZm')
+            P001 = V*fP('fXm', 'fYm', 'fZp')
+            P101 = V*fP('fXp', 'fYm', 'fZp')
+            P011 = V*fP('fXm', 'fYp', 'fZp')
+            P111 = V*fP('fXp', 'fYp', 'fZp')
+
         A = P000.T*Mu*P000 + P100.T*Mu*P100
         P = [P000, P100]
 
-        if M.dim > 1:
+        if d > 1:
             A = A + P010.T*Mu*P010 + P110.T*Mu*P110
             P += [P010, P110]
-        if M.dim > 2:
+        if d > 2:
             A = A + P001.T*Mu*P001 + P101.T*Mu*P101 + P011.T*Mu*P011 + P111.T*Mu*P111
             P += [P001, P101, P011,  P111]
         if returnP:
@@ -189,91 +72,65 @@ class InnerProducts(object):
         else:
             return A
 
-    def getEdgeInnerProduct(M, sigma=None, returnP=False):
+    def getFaceInnerProductDeriv(self, materialProperty=None, v=None, P=None, doFast=True):
         """
-            :param numpy.array sigma: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
-            :param bool returnP: returns the projection matrices
+            :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :param numpy.array v: vector to multiply (required in the general implementation)
+            :param list P: list of projection matrices
+            :param bool doFast: do a faster implementation if available.
             :rtype: scipy.csr_matrix
-            :return: M, the inner product matrix (sum(nE), sum(nE))
-
-
-            Depending on the number of columns (either 1, 3, or 6) of sigma, the material property is interpreted as follows:
-
-            .. math::
-                \Sigma = \left[\\begin{matrix} \sigma_{1} & 0 & 0 \\\\ 0 & \sigma_{1} & 0 \\\\ 0 & 0 & \sigma_{1}  \end{matrix}\\right]
-
-                \Sigma = \left[\\begin{matrix} \sigma_{1} & 0 & 0 \\\\ 0 & \sigma_{2} & 0 \\\\ 0 & 0 & \sigma_{3}  \end{matrix}\\right]
-
-                \Sigma = \left[\\begin{matrix} \sigma_{1} & \sigma_{4} & \sigma_{5} \\\\ \sigma_{4} & \sigma_{2} & \sigma_{6} \\\\ \sigma_{5} & \sigma_{6} & \sigma_{3}  \end{matrix}\\right]
-
-            What is returned:
-
-            .. math::
-                \mathbf{M}(\Sigma) = {1\over 8}
-                    \left(\sum_{i=1}^8
-                    \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \Sigma \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
-                    \\right)
-
-            If requested (returnP=True) the projection matricies are returned as well (ordered by nodes)::
-
-                P = [P000, P100, P010, P110, P001, P101, P011, P111]
-
-            Here each P (3*nC, sum(nE)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
-
-            .. math::
-                \mathbf{P}_{(i)} =  \sqrt{ {1\over 8} v_{\\text{cell}}} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\\text{LOM only}} \mathbf{Q}_{(i)}
-
-            Note that this is completed for each cell in the mesh at the same time.
-
-            **For 2D:**
-
-            Depending on the number of columns (either 1, 2, or 3) of sigma, the material property is interpreted as follows:
-
-            .. math::
-                \Sigma = \left[\\begin{matrix} \sigma_{1} & 0 \\\\ 0 & \sigma_{1} \end{matrix}\\right]
-
-                \Sigma = \left[\\begin{matrix} \sigma_{1} & 0 \\\\ 0 & \sigma_{2} \end{matrix}\\right]
-
-                \Sigma = \left[\\begin{matrix} \sigma_{1} & \sigma_{3} \\\\ \sigma_{3} & \sigma_{2} \end{matrix}\\right]
-
-
-            .. math::
-
-                \mathbf{M}(\Sigma) = {1\over 4}
-                    \left(\sum_{i=1}^4
-                    \mathbf{J}_c^{-\\top} \sqrt{v_{\\text{cell}}} \Sigma \sqrt{v_{\\text{cell}}}  \mathbf{J}_c
-                    \\right)
-
-
-            If requested (returnP=True) the projection matricies are returned as well (ordered by nodes)::
-
-                P = [P00, P10, P01, P11]
-
-            Here each P (2*nC, sum(nE)) is a combination of the projection, volume, and any normalization to Cartesian coordinates:
-
-            .. math::
-                \mathbf{P}_{(i)} =  \sqrt{ {1\over 4} v_{\\text{cell}}} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\\text{LOM only}} \mathbf{Q}_{(i)}
-
-            Note that this is completed for each cell in the mesh at the same time.
-
+            :return: dMdm, the derivative of the inner product matrix (nF, nC*nA)
         """
-        if M.dim == 1:
+        fast = None
+
+        if hasattr(self, '_fastFaceInnerProductDeriv') and doFast:
+            fast = self._fastFaceInnerProductDeriv(materialProperty=materialProperty, v=v)
+
+        if fast is not None:
+            return fast
+
+        if P is None:
+            M, P = self.getFaceInnerProduct(materialProperty=materialProperty, returnP=True)
+
+        return self._getInnerProductDeriv(materialProperty, v, P, self.nF)
+
+    def getEdgeInnerProduct(self, materialProperty=None, returnP=False,
+                            invertProperty=False, doFast=True):
+        """
+            :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :param bool returnP: returns the projection matrices
+            :param bool invertProperty: inverts the material property
+            :param bool doFast: do a faster implementation if available.
+            :rtype: scipy.csr_matrix
+            :return: M, the inner product matrix (nE, nE)
+        """
+        fast = None
+
+        if returnP is False and hasattr(self, '_fastEdgeInnerProduct') and doFast:
+            fast = self._fastEdgeInnerProduct(materialProperty=materialProperty, invertProperty=invertProperty)
+
+        if fast is not None:
+            return fast
+
+        if invertProperty:
+            materialProperty = invPropertyTensor(self, materialProperty)
+
+        Mu = makePropertyTensor(self, materialProperty)
+
+        d = self.dim
+        # We will multiply by sqrt on each side to keep symmetry
+        V = sp.kron(sp.identity(d), sdiag(np.sqrt((2**(-d))*self.vol)))
+
+        if d == 1:
             raise NotImplementedError('getEdgeInnerProduct not implemented for 1D')
-        # We will multiply by V on each side to keep symmetry
-        elif M.dim == 2:
-            # Square root of cell volume multiplied by 1/4
-            v = np.sqrt(0.25*M.vol)
-            V = sdiag(np.r_[v, v])
-            eP = _getEdgePxx(M)
+        elif d == 2:
+            eP = _getEdgePxx(self)
             P000 = V*eP('eX0', 'eY0')
             P100 = V*eP('eX0', 'eY1')
             P010 = V*eP('eX1', 'eY0')
             P110 = V*eP('eX1', 'eY1')
-        elif M.dim == 3:
-            # Square root of cell volume multiplied by 1/8
-            v = np.sqrt(0.125*M.vol)
-            V = sdiag(np.r_[v, v, v])
-            eP = _getEdgePxxx(M)
+        elif d == 3:
+            eP = _getEdgePxxx(self)
             P000 = V*eP('eX0', 'eY0', 'eZ0')
             P100 = V*eP('eX0', 'eY1', 'eZ1')
             P010 = V*eP('eX1', 'eY0', 'eZ2')
@@ -283,16 +140,130 @@ class InnerProducts(object):
             P011 = V*eP('eX3', 'eY2', 'eZ2')
             P111 = V*eP('eX3', 'eY3', 'eZ3')
 
-        Sigma = makePropertyTensor(M, sigma)
-        A = P000.T*Sigma*P000 + P100.T*Sigma*P100 + P010.T*Sigma*P010 + P110.T*Sigma*P110
+        Mu = makePropertyTensor(self, materialProperty)
+        A = P000.T*Mu*P000 + P100.T*Mu*P100 + P010.T*Mu*P010 + P110.T*Mu*P110
         P = [P000, P100, P010, P110]
-        if M.dim == 3:
-            A = A + P001.T*Sigma*P001 + P101.T*Sigma*P101 + P011.T*Sigma*P011 + P111.T*Sigma*P111
+        if d == 3:
+            A = A + P001.T*Mu*P001 + P101.T*Mu*P101 + P011.T*Mu*P011 + P111.T*Mu*P111
             P += [P001, P101, P011,  P111]
         if returnP:
             return A, P
         else:
             return A
+
+    def getEdgeInnerProductDeriv(self, materialProperty=None, v=None, P=None, doFast=True):
+        """
+            :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :param numpy.array v: vector to multiply (required in the general implementation)
+            :param list P: list of projection matrices
+            :param bool doFast: do a faster implementation if available.
+            :rtype: scipy.csr_matrix
+            :return: dMdm, the derivative of the inner product matrix (nE, nC*nA)
+        """
+
+        fast = None
+
+        if hasattr(self, '_fastEdgeInnerProductDeriv') and doFast:
+            fast = self._fastEdgeInnerProductDeriv(materialProperty=materialProperty, v=v)
+
+        if fast is not None:
+            return fast
+
+        if P is None:
+            M, P = self.getEdgeInnerProduct(materialProperty=materialProperty, returnP=True)
+
+        return self._getInnerProductDeriv(materialProperty, v, P, self.nE)
+
+    def _getInnerProductDeriv(self, materialProperty, v, P, n):
+        """
+            :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :param numpy.array v: vector to multiply (required in the general implementation)
+            :param list P: list of projection matrices
+            :param int n: nF or nE
+            :rtype: scipy.csr_matrix
+            :return: dMdm, the derivative of the inner product matrix (n, nC*nA)
+        """
+        if materialProperty is None:
+            return None
+
+        if v is None:
+            raise Exception('v must be supplied for this implementation.')
+
+        d = self.dim
+        Z = spzeros(self.nC, self.nC)
+
+        if isScalar(materialProperty):
+            dMdm = spzeros(n, 1)
+            for i, p in enumerate(P):
+                dMdm = dMdm + sp.csr_matrix((p.T * (p * v), (range(n), np.zeros(n))), shape=(n,1))
+        if d == 1:
+            if materialProperty.size == self.nC:
+                dMdm = spzeros(n, self.nC)
+                for i, p in enumerate(P):
+                    dMdm = dMdm + p.T * sdiag( p * v )
+        elif d == 2:
+            if materialProperty.size == self.nC:
+                dMdm = spzeros(n, self.nC)
+                for i, p in enumerate(P):
+                    Y = p * v
+                    y1 = Y[:self.nC]
+                    y2 = Y[self.nC:]
+                    dMdm = dMdm + p.T * sp.vstack((sdiag( y1 ), sdiag( y2 )))
+            elif materialProperty.size == self.nC*2:
+                dMdms = [spzeros(n, self.nC) for _ in range(2)]
+                for i, p in enumerate(P):
+                    Y = p * v
+                    y1 = Y[:self.nC]
+                    y2 = Y[self.nC:]
+                    dMdms[0] = dMdms[0] + p.T * sp.vstack(( sdiag( y1 ), Z))
+                    dMdms[1] = dMdms[1] + p.T * sp.vstack(( Z, sdiag( y2 )))
+                dMdm = sp.hstack(dMdms)
+            elif materialProperty.size == self.nC*3:
+                dMdms = [spzeros(n, self.nC) for _ in range(3)]
+                for i, p in enumerate(P):
+                    Y = p * v
+                    y1 = Y[:self.nC]
+                    y2 = Y[self.nC:]
+                    dMdms[0] = dMdms[0] + p.T * sp.vstack(( sdiag( y1 ), Z))
+                    dMdms[1] = dMdms[1] + p.T * sp.vstack(( Z, sdiag( y2 )))
+                    dMdms[2] = dMdms[2] + p.T * sp.vstack(( sdiag( y2 ), sdiag( y1 )))
+                dMdm = sp.hstack(dMdms)
+        elif d == 3:
+            if materialProperty.size == self.nC:
+                dMdm = spzeros(n, self.nC)
+                for i, p in enumerate(P):
+                    Y = p * v
+                    y1 = Y[:self.nC]
+                    y2 = Y[self.nC:self.nC*2]
+                    y3 = Y[self.nC*2:]
+                    dMdm = dMdm + p.T * sp.vstack((sdiag( y1 ), sdiag( y2 ), sdiag( y3 )))
+            elif materialProperty.size == self.nC*3:
+                dMdms = [spzeros(n, self.nC) for _ in range(3)]
+                for i, p in enumerate(P):
+                    Y = p * v
+                    y1 = Y[:self.nC]
+                    y2 = Y[self.nC:self.nC*2]
+                    y3 = Y[self.nC*2:]
+                    dMdms[0] = dMdms[0] + p.T * sp.vstack(( sdiag( y1 ), Z, Z))
+                    dMdms[1] = dMdms[1] + p.T * sp.vstack(( Z, sdiag( y2 ), Z))
+                    dMdms[2] = dMdms[2] + p.T * sp.vstack(( Z, Z, sdiag( y3 )))
+                dMdm = sp.hstack(dMdms)
+            elif materialProperty.size == self.nC*6:
+                dMdms = [spzeros(n, self.nC) for _ in range(6)]
+                for i, p in enumerate(P):
+                    Y = p * v
+                    y1 = Y[:self.nC]
+                    y2 = Y[self.nC:self.nC*2]
+                    y3 = Y[self.nC*2:]
+                    dMdms[0] = dMdms[0] + p.T * sp.vstack(( sdiag( y1 ), Z, Z))
+                    dMdms[1] = dMdms[1] + p.T * sp.vstack(( Z, sdiag( y2 ), Z))
+                    dMdms[2] = dMdms[2] + p.T * sp.vstack(( Z, Z, sdiag( y3 )))
+                    dMdms[3] = dMdms[3] + p.T * sp.vstack(( sdiag( y2 ), sdiag( y1 ), Z))
+                    dMdms[4] = dMdms[4] + p.T * sp.vstack(( sdiag( y3 ), Z, sdiag( y1 )))
+                    dMdms[5] = dMdms[5] + p.T * sp.vstack(( Z, sdiag( y3 ), sdiag( y2 )))
+                dMdm = sp.hstack(dMdms)
+
+        return dMdm
 
 # ------------------------ Geometries ------------------------------
 #
@@ -380,11 +351,11 @@ def _getFacePxx_Rectangular(M):
                   0               1
                         f2(Ym)
 
-        Pxx('m','m') = | 1, 0, 0, 0 |
-                       | 0, 0, 1, 0 |
+        Pxx('fXm','fYm') = | 1, 0, 0, 0 |
+                           | 0, 0, 1, 0 |
 
-        Pxx('p','m') = | 0, 1, 0, 0 |
-                       | 0, 0, 1, 0 |
+        Pxx('fXp','fYm') = | 0, 1, 0, 0 |
+                           | 0, 0, 1, 0 |
 
         """
     i, j = np.int64(range(M.nCx)), np.int64(range(M.nCy))
@@ -392,7 +363,7 @@ def _getFacePxx_Rectangular(M):
     iijj = ndgrid(i, j)
     ii, jj = iijj[:, 0], iijj[:, 1]
 
-    if M._meshType == 'LOM':
+    if M._meshType == 'LRM':
         fN1 = M.r(M.normals, 'F', 'Fx', 'M')
         fN2 = M.r(M.normals, 'F', 'Fy', 'M')
 
@@ -417,7 +388,7 @@ def _getFacePxx_Rectangular(M):
 
         PXX = sp.csr_matrix((np.ones(2*M.nC), (range(2*M.nC), IND)), shape=(2*M.nC, M.nF))
 
-        if M._meshType == 'LOM':
+        if M._meshType == 'LRM':
             I2x2 = inv2X2BlockDiagonal(getSubArray(fN1[0], [i + posFx, j]), getSubArray(fN1[1], [i + posFx, j]),
                                        getSubArray(fN2[0], [i, j + posFy]), getSubArray(fN2[1], [i, j + posFy]))
             PXX = I2x2 * PXX
@@ -440,7 +411,7 @@ def _getFacePxxx_Rectangular(M):
     iijjkk = ndgrid(i, j, k)
     ii, jj, kk = iijjkk[:, 0], iijjkk[:, 1], iijjkk[:, 2]
 
-    if M._meshType == 'LOM':
+    if M._meshType == 'LRM':
         fN1 = M.r(M.normals, 'F', 'Fx', 'M')
         fN2 = M.r(M.normals, 'F', 'Fy', 'M')
         fN3 = M.r(M.normals, 'F', 'Fz', 'M')
@@ -474,7 +445,7 @@ def _getFacePxxx_Rectangular(M):
 
         PXXX = sp.coo_matrix((np.ones(3*M.nC), (range(3*M.nC), IND)), shape=(3*M.nC, M.nF)).tocsr()
 
-        if M._meshType == 'LOM':
+        if M._meshType == 'LRM':
             I3x3 = inv3X3BlockDiagonal(getSubArray(fN1[0], [i + posX, j, k]), getSubArray(fN1[1], [i + posX, j, k]), getSubArray(fN1[2], [i + posX, j, k]),
                                        getSubArray(fN2[0], [i, j + posY, k]), getSubArray(fN2[1], [i, j + posY, k]), getSubArray(fN2[2], [i, j + posY, k]),
                                        getSubArray(fN3[0], [i, j, k + posZ]), getSubArray(fN3[1], [i, j, k + posZ]), getSubArray(fN3[2], [i, j, k + posZ]))
@@ -489,7 +460,7 @@ def _getEdgePxx_Rectangular(M):
     iijj = ndgrid(i, j)
     ii, jj = iijj[:, 0], iijj[:, 1]
 
-    if M._meshType == 'LOM':
+    if M._meshType == 'LRM':
         eT1 = M.r(M.tangents, 'E', 'Ex', 'M')
         eT2 = M.r(M.tangents, 'E', 'Ey', 'M')
 
@@ -509,7 +480,7 @@ def _getEdgePxx_Rectangular(M):
 
         PXX = sp.coo_matrix((np.ones(2*M.nC), (range(2*M.nC), IND)), shape=(2*M.nC, M.nE)).tocsr()
 
-        if M._meshType == 'LOM':
+        if M._meshType == 'LRM':
             I2x2 = inv2X2BlockDiagonal(getSubArray(eT1[0], [i, j + posX]), getSubArray(eT1[1], [i, j + posX]),
                                        getSubArray(eT2[0], [i + posY, j]), getSubArray(eT2[1], [i + posY, j]))
             PXX = I2x2 * PXX
@@ -523,7 +494,7 @@ def _getEdgePxxx_Rectangular(M):
     iijjkk = ndgrid(i, j, k)
     ii, jj, kk = iijjkk[:, 0], iijjkk[:, 1], iijjkk[:, 2]
 
-    if M._meshType == 'LOM':
+    if M._meshType == 'LRM':
         eT1 = M.r(M.tangents, 'E', 'Ex', 'M')
         eT2 = M.r(M.tangents, 'E', 'Ey', 'M')
         eT3 = M.r(M.tangents, 'E', 'Ez', 'M')
@@ -552,7 +523,7 @@ def _getEdgePxxx_Rectangular(M):
 
         PXXX = sp.coo_matrix((np.ones(3*M.nC), (range(3*M.nC), IND)), shape=(3*M.nC, M.nE)).tocsr()
 
-        if M._meshType == 'LOM':
+        if M._meshType == 'LRM':
             I3x3 = inv3X3BlockDiagonal(getSubArray(eT1[0], [i, j + posX[0], k + posX[1]]), getSubArray(eT1[1], [i, j + posX[0], k + posX[1]]), getSubArray(eT1[2], [i, j + posX[0], k + posX[1]]),
                                        getSubArray(eT2[0], [i + posY[0], j, k + posY[1]]), getSubArray(eT2[1], [i + posY[0], j, k + posY[1]]), getSubArray(eT2[2], [i + posY[0], j, k + posY[1]]),
                                        getSubArray(eT3[0], [i + posZ[0], j + posZ[1], k]), getSubArray(eT3[1], [i + posZ[0], j + posZ[1], k]), getSubArray(eT3[2], [i + posZ[0], j + posZ[1], k]))

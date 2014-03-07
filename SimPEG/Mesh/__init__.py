@@ -1,4 +1,4 @@
 from TensorMesh import TensorMesh
 from CylMesh import CylMesh
-from LogicallyOrthogonalMesh import LogicallyOrthogonalMesh
+from LogicallyRectMesh import LogicallyRectMesh
 from TreeMesh import TreeMesh

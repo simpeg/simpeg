@@ -648,10 +648,16 @@ class BFGS(Minimize, Remember):
 
             Must be a SimPEG.Solver
         """
-        _bfgsH0 = getattr(self,'_bfgsH0',None)
-        if _bfgsH0 is None:
-            return Solver(sp.identity(self.xc.size).tocsc(), flag='D')
-        return _bfgsH0
+        if getattr(self,'_bfgsH0',None) is None:
+            # Check if it has been set by the user and the default is not being used.
+            if self.parent is None:
+                self._bfgsH0 = Solver(sp.identity(self.xc.size).tocsc(), flag='D')
+            else:
+                print 'Setting bfgsH0 to the inverse of the modelObj2Deriv. Done using direct methods.'
+                objFunc = self.parent.objFunc
+                self._bfgsH0 = Solver(objFunc.reg.modelObj2Deriv(objFunc.m_current))
+        return self._bfgsH0
+
     @bfgsH0.setter
     def bfgsH0(self, value):
         assert type(value) is Solver, 'bfgsH0 must be a SimPEG.Solver'

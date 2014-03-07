@@ -71,6 +71,7 @@ class TestSequenceFunctions(unittest.TestCase):
         self.assertTrue(np.all(sub2ind(x.shape, [4,0]) == [4]))
         self.assertTrue(np.all(sub2ind(x.shape, [0,1]) == [5]))
         self.assertTrue(np.all(sub2ind(x.shape, [4,1]) == [9]))
+        self.assertTrue(np.all(sub2ind(x.shape, [[4,1]]) == [9]))
         self.assertTrue(np.all(sub2ind(x.shape, [[0,0],[4,0],[0,1],[4,1]]) == [0,4,5,9]))
 
     def test_ind2sub(self):
@@ -163,6 +164,12 @@ class TestSequenceFunctions(unittest.TestCase):
             Z = B2*A - sp.identity(M.nC*3)
             self.assertTrue(np.linalg.norm(Z.todense().ravel(), 2) < TOL)
 
+    def test_isFloat(self):
+        self.assertTrue(isScalar(1.))
+        self.assertTrue(isScalar(1))
+        self.assertTrue(isScalar(long(1)))
+        self.assertTrue(isScalar(np.r_[1.]))
+        self.assertTrue(isScalar(np.r_[1]))
 
 if __name__ == '__main__':
     unittest.main()

@@ -4,6 +4,8 @@ import numpy as np
 import unittest
 import matplotlib.pyplot as plt
 
+TOL = 1e-10
+
 class TestOcTreeObjects(unittest.TestCase):
 
     def setUp(self):
@@ -493,10 +495,10 @@ class SimpleOctreeOperatorTests(unittest.TestCase):
         # self.assertTrue((self.tM2.edgeCurl - self.oM2.edgeCurl).toarray().sum() == 0)
 
     def test_InnerProducts(self):
-        self.assertTrue((self.tM.getFaceInnerProduct() - self.oM.getFaceInnerProduct()).toarray().sum() == 0)
-        self.assertTrue((self.tM2.getFaceInnerProduct() - self.oM2.getFaceInnerProduct()).toarray().sum() == 0)
-        self.assertTrue((self.tM2.getEdgeInnerProduct() - self.oM2.getEdgeInnerProduct()).toarray().sum() == 0)
-        self.assertTrue((self.tM.getEdgeInnerProduct() - self.oM.getEdgeInnerProduct()).toarray().sum() == 0)
+        self.assertTrue((self.tM.getFaceInnerProduct() - self.oM.getFaceInnerProduct()).toarray().sum() < TOL)
+        self.assertTrue((self.tM2.getFaceInnerProduct() - self.oM2.getFaceInnerProduct()).toarray().sum() < TOL)
+        self.assertTrue((self.tM2.getEdgeInnerProduct() - self.oM2.getEdgeInnerProduct()).toarray().sum() < TOL)
+        self.assertTrue((self.tM.getEdgeInnerProduct() - self.oM.getEdgeInnerProduct()).toarray().sum() < TOL)
 
 
 if __name__ == '__main__':

@@ -305,7 +305,7 @@ class TensorView(object):
                 # Now just deal with 'F' and 'E'
                 aveOp = 'ave' + vType + ('2CCV' if view == 'vec' else '2CC')
                 v = getattr(self,aveOp)*v # average to cell centers (might be a vector)
-                v = self.r(v.reshape((self.nC,3),order='F'),'CC','CC','M')
+                v = self.r(v.reshape((self.nC,-1),order='F'),'CC','CC','M')
             if view == 'vec':
                 outSlice = []
                 if 'X' not in normal: outSlice.append(getIndSlice(v[0]))
@@ -369,7 +369,7 @@ class TensorView(object):
         if showIt: plt.show()
         return out
 
-    def plotGrid(self, nodes=False, faces=False, centers=False, edges=False, lines=True, showIt=False):
+    def plotGrid(self, ax=None, nodes=False, faces=False, centers=False, edges=False, lines=True, showIt=False):
         """Plot the nodal, cell-centered and staggered grids for 1,2 and 3 dimensions.
 
         :param bool nodes: plot nodes
@@ -399,35 +399,26 @@ class TensorView(object):
            mesh.plotGrid(nodes=True, faces=True, centers=True, lines=True, showIt=True)
 
         """
-        if self.dim == 1:
-            fig = plt.figure(1)
-            fig.clf()
-            ax = plt.subplot(111)
-            xn = self.gridN
-            xc = self.gridCC
-            ax.hold(True)
-            ax.plot(xn, np.ones(np.shape(xn)), 'bs')
-            ax.plot(xc, np.ones(np.shape(xc)), 'ro')
-            ax.plot(xn, np.ones(np.shape(xn)), 'k--')
-            ax.grid(True)
-            ax.hold(False)
-            ax.set_xlabel('x1')
-            if showIt: plt.show()
-        elif self.dim == 2:
-            fig = plt.figure(2)
-            fig.clf()
-            ax = plt.subplot(111)
-            xn = self.gridN
-            xc = self.gridCC
-            xs1 = self.gridFx
-            xs2 = self.gridFy
 
-            ax.hold(True)
-            if nodes: ax.plot(xn[:, 0], xn[:, 1], 'bs')
-            if centers: ax.plot(xc[:, 0], xc[:, 1], 'ro')
+        axOpts = {'projection':'3d'} if self.dim == 3 else {}
+        if ax is None: ax = plt.subplot(111, **axOpts)
+
+        if self.dim == 1:
+            if nodes:
+                ax.plot(xn, np.ones(self.nN), 'bs')
+            if centers:
+                ax.plot(xc, np.ones(self.nC), 'ro')
+            if lines:
+                ax.plot(xn, np.ones(self.nN), 'b-')
+            ax.set_xlabel('x1')
+        elif self.dim == 2:
+            if nodes:
+                ax.plot(self.gridN[:, 0], self.gridN[:, 1], 'bs')
+            if centers:
+                ax.plot(self.gridCC[:, 0], self.gridCC[:, 1], 'ro')
             if faces:
-                ax.plot(xs1[:, 0], xs1[:, 1], 'g>')
-                ax.plot(xs2[:, 0], xs2[:, 1], 'g^')
+                ax.plot(self.gridFx[:, 0], self.gridFx[:, 1], 'g>')
+                ax.plot(self.gridFy[:, 0], self.gridFy[:, 1], 'g^')
             if edges:
                 ax.plot(self.gridEx[:, 0], self.gridEx[:, 1], 'c>')
                 ax.plot(self.gridEy[:, 0], self.gridEy[:, 1], 'c^')
@@ -441,38 +432,23 @@ class TensorView(object):
                 Y2 = np.c_[mkvc(NN[1][:, 0]), mkvc(NN[1][:, self.nCy]), mkvc(NN[1][:, 0])*np.nan].flatten()
                 X = np.r_[X1, X2]
                 Y = np.r_[Y1, Y2]
-                plt.plot(X, Y)
+                ax.plot(X, Y, 'b-')
 
-            ax.grid(True)
-            ax.hold(False)
             ax.set_xlabel('x1')
             ax.set_ylabel('x2')
-            if showIt: plt.show()
         elif self.dim == 3:
-            fig = plt.figure(3)
-            fig.clf()
-            ax = fig.add_subplot(111, projection='3d')
-            xn = self.gridN
-            xc = self.gridCC
-            xfs1 = self.gridFx
-            xfs2 = self.gridFy
-            xfs3 = self.gridFz
-
-            xes1 = self.gridEx
-            xes2 = self.gridEy
-            xes3 = self.gridEz
-
-            ax.hold(True)
-            if nodes: ax.plot(xn[:, 0], xn[:, 1], 'bs', zs=xn[:, 2])
-            if centers: ax.plot(xc[:, 0], xc[:, 1], 'ro', zs=xc[:, 2])
+            if nodes:
+                ax.plot(self.gridN[:, 0], self.gridN[:, 1], 'bs', zs=self.gridN[:, 2])
+            if centers:
+                ax.plot(self.gridCC[:, 0], self.gridCC[:, 1], 'ro', zs=self.gridCC[:, 2])
             if faces:
-                ax.plot(xfs1[:, 0], xfs1[:, 1], 'g>', zs=xfs1[:, 2])
-                ax.plot(xfs2[:, 0], xfs2[:, 1], 'g<', zs=xfs2[:, 2])
-                ax.plot(xfs3[:, 0], xfs3[:, 1], 'g^', zs=xfs3[:, 2])
+                ax.plot(self.gridFx[:, 0], self.gridFx[:, 1], 'g>', zs=self.gridFx[:, 2])
+                ax.plot(self.gridFy[:, 0], self.gridFy[:, 1], 'g<', zs=self.gridFy[:, 2])
+                ax.plot(self.gridFz[:, 0], self.gridFz[:, 1], 'g^', zs=self.gridFz[:, 2])
             if edges:
-                ax.plot(xes1[:, 0], xes1[:, 1], 'k>', zs=xes1[:, 2])
-                ax.plot(xes2[:, 0], xes2[:, 1], 'k<', zs=xes2[:, 2])
-                ax.plot(xes3[:, 0], xes3[:, 1], 'k^', zs=xes3[:, 2])
+                ax.plot(self.gridEx[:, 0], self.gridEx[:, 1], 'k>', zs=self.gridEx[:, 2])
+                ax.plot(self.gridEy[:, 0], self.gridEy[:, 1], 'k<', zs=self.gridEy[:, 2])
+                ax.plot(self.gridEz[:, 0], self.gridEz[:, 1], 'k^', zs=self.gridEz[:, 2])
 
             # Plot the grid lines
             if lines:
@@ -489,14 +465,14 @@ class TensorView(object):
                 X = np.r_[X1, X2, X3]
                 Y = np.r_[Y1, Y2, Y3]
                 Z = np.r_[Z1, Z2, Z3]
-                plt.plot(X, Y, 'b-', zs=Z)
-
-            ax.grid(True)
-            ax.hold(False)
+                ax.plot(X, Y, 'b-', zs=Z)
             ax.set_xlabel('x1')
             ax.set_ylabel('x2')
             ax.set_zlabel('x3')
-            if showIt: plt.show()
+
+        ax.grid(True)
+        ax.hold(False)
+        if showIt: plt.show()
 
     def slicer(mesh, var, imageType='CC', normal='z', index=0, ax=None, clim=None):
         assert normal in 'xyz', 'normal must be x, y, or z'

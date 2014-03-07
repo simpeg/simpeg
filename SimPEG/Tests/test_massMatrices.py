@@ -6,7 +6,7 @@ from TestUtils import OrderTest
 class TestInnerProducts(OrderTest):
     """Integrate an function over a unit cube domain using edgeInnerProducts and faceInnerProducts."""
 
-    meshTypes = ['uniformTensorMesh', 'uniformLOM', 'rotateLOM']
+    meshTypes = ['uniformTensorMesh', 'uniformLRM', 'rotateLRM']
     meshDimension = 3
     meshSizes = [16, 32]
 
@@ -30,7 +30,7 @@ class TestInnerProducts(OrderTest):
             sigma = np.c_[call(sigma1, Gc)]
             analytic = 647./360  # Found using sympy.
         elif self.sigmaTest == 3:
-            sigma = np.c_[call(sigma1, Gc), call(sigma2, Gc), call(sigma3, Gc)]
+            sigma = np.r_[call(sigma1, Gc), call(sigma2, Gc), call(sigma3, Gc)]
             analytic = 37./12  # Found using sympy.
         elif self.sigmaTest == 6:
             sigma = np.c_[call(sigma1, Gc), call(sigma2, Gc), call(sigma3, Gc),
@@ -97,7 +97,7 @@ class TestInnerProducts(OrderTest):
 class TestInnerProducts2D(OrderTest):
     """Integrate an function over a unit cube domain using edgeInnerProducts and faceInnerProducts."""
 
-    meshTypes = ['uniformTensorMesh', 'uniformLOM', 'rotateLOM']
+    meshTypes = ['uniformTensorMesh', 'uniformLRM', 'rotateLRM']
     meshDimension = 2
     meshSizes = [4, 8, 16, 32, 64, 128]
 
@@ -122,7 +122,7 @@ class TestInnerProducts2D(OrderTest):
             sigma = np.c_[call(sigma1, Gc), call(sigma2, Gc)]
             analytic = 189959./120  # Found using sympy. z=5
         elif self.sigmaTest == 3:
-            sigma = np.c_[call(sigma1, Gc), call(sigma2, Gc), call(sigma3, Gc)]
+            sigma = np.r_[call(sigma1, Gc), call(sigma2, Gc), call(sigma3, Gc)]
             analytic = 781427./360  # Found using sympy. z=5
 
         if self.location == 'edges':

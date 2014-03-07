@@ -1,6 +1,15 @@
 import numpy as np
 import scipy.sparse as sp
 
+
+def isScalar(f):
+    scalarTypes = [float, int, long, np.float_, np.int_]
+    if type(f) in scalarTypes:
+        return True
+    elif type(f) == np.ndarray and f.size == 1 and type(f[0]) in scalarTypes:
+        return True
+    return False
+
 def mkvc(x, numDims=1):
     """Creates a vector with the number of dimension specified
 
@@ -146,7 +155,7 @@ def sub2ind(shape, subs):
     """From the given shape, returns the index of the given subscript"""
     if type(subs) is not np.ndarray:
         subs = np.array(subs)
-    if subs.size == len(shape):
+    if len(subs.shape) == 1:
         subs = subs[np.newaxis,:]
     assert subs.shape[1] == len(shape), 'Indexing must be done as a column vectors. e.g. [[3,6],[6,2],...]'
     inds = np.ravel_multi_index(subs.T, shape, order='F')
@@ -248,7 +257,7 @@ def makePropertyTensor(M, sigma):
     if sigma is None:  # default is ones
         sigma = np.ones(M.nC)
 
-    if type(sigma) in [float, int, long]:
+    if isScalar(sigma):
         sigma = sigma * np.ones(M.nC)
 
     if M.dim == 1:
@@ -261,9 +270,11 @@ def makePropertyTensor(M, sigma):
         if sigma.size == M.nC:  # Isotropic!
             sigma = mkvc(sigma)  # ensure it is a vector.
             Sigma = sdiag(np.r_[sigma, sigma])
-        elif sigma.shape[1] == 2:  # Diagonal tensor
+        elif sigma.size == M.nC*2:  # Diagonal tensor
+            sigma = sigma.reshape((M.nC,2), order='F')
             Sigma = sdiag(np.r_[sigma[:, 0], sigma[:, 1]])
-        elif sigma.shape[1] == 3:  # Fully anisotropic
+        elif sigma.size == M.nC*3:  # Fully anisotropic
+            sigma = sigma.reshape((M.nC,3), order='F')
             row1 = sp.hstack((sdiag(sigma[:, 0]), sdiag(sigma[:, 2])))
             row2 = sp.hstack((sdiag(sigma[:, 2]), sdiag(sigma[:, 1])))
             Sigma = sp.vstack((row1, row2))
@@ -273,15 +284,18 @@ def makePropertyTensor(M, sigma):
         if sigma.size == M.nC:  # Isotropic!
             sigma = mkvc(sigma)  # ensure it is a vector.
             Sigma = sdiag(np.r_[sigma, sigma, sigma])
-        elif sigma.shape[1] == 3:  # Diagonal tensor
+        elif sigma.size == M.nC*3:  # Diagonal tensor
+            sigma = sigma.reshape((M.nC,3), order='F')
             Sigma = sdiag(np.r_[sigma[:, 0], sigma[:, 1], sigma[:, 2]])
-        elif sigma.shape[1] == 6:  # Fully anisotropic
+        elif sigma.size == M.nC*6:  # Fully anisotropic
+            sigma = sigma.reshape((M.nC,6), order='F')
             row1 = sp.hstack((sdiag(sigma[:, 0]), sdiag(sigma[:, 3]), sdiag(sigma[:, 4])))
             row2 = sp.hstack((sdiag(sigma[:, 3]), sdiag(sigma[:, 1]), sdiag(sigma[:, 5])))
             row3 = sp.hstack((sdiag(sigma[:, 4]), sdiag(sigma[:, 5]), sdiag(sigma[:, 2])))
             Sigma = sp.vstack((row1, row2, row3))
         else:
             raise Exception('Unexpected shape of sigma')
+
     return Sigma
 
 
@@ -289,34 +303,38 @@ def invPropertyTensor(M, tensor, returnMatrix=False):
 
     T = None
 
-    if type(tensor) in [float, int, long]:
+    if isScalar(tensor):
         T = 1./tensor
 
     elif tensor.size == M.nC:  # Isotropic!
         T = 1./mkvc(tensor)  # ensure it is a vector.
 
     elif M.dim == 2:
-        if tensor.shape[1] == 2:  # Diagonal tensor
+        if tensor.size == M.nC*2:  # Diagonal tensor
             T = 1./tensor
-        elif tensor.shape[1] == 3:  # Fully anisotropic
+        elif tensor.size == M.nC*3:  # Fully anisotropic
+            tensor = tensor.reshape((M.nC,3), order='F')
             B = inv2X2BlockDiagonal(tensor[:,0], tensor[:,2],
                                     tensor[:,2], tensor[:,1],
                                     returnMatrix=False)
             b11, b12, b21, b22 = B
-            T = np.c_[b11, b22, b12]
+            T = np.r_[b11, b22, b12]
     elif M.dim == 3:
-        if tensor.shape[1] == 3:  # Diagonal tensor
+        if tensor.size == M.nC*3:  # Diagonal tensor
             T = 1./tensor
-        elif tensor.shape[1] == 6:  # Fully anisotropic
+        elif tensor.size == M.nC*6:  # Fully anisotropic
+            tensor = tensor.reshape((M.nC,6), order='F')
             B = inv3X3BlockDiagonal(tensor[:,0], tensor[:,3], tensor[:,4],
                                     tensor[:,3], tensor[:,1], tensor[:,5],
                                     tensor[:,4], tensor[:,5], tensor[:,2],
                                     returnMatrix=False)
             b11, b12, b13, b21, b22, b23, b31, b32, b33 = B
-            T = np.c_[b11, b22, b33, b12, b13, b23]
+            T = np.r_[b11, b22, b33, b12, b13, b23]
 
     if T is None:
         raise Exception('Unexpected shape of tensor')
+
     if returnMatrix:
         return makePropertyTensor(M, T)
+
     return T

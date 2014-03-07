@@ -206,7 +206,7 @@ class DiffOperators(object):
             if(self.dim < 3): return None
             if(self._faceDivz is None):
                 # The number of cell centers in each direction
-                n = self.n
+                n = self.vnC
                 # Compute faceDivergence operator on faces
                 D3 = kron3(ddx(n[2]), speye(n[1]), speye(n[0]))
                 # Compute areas of cell faces & volumes
@@ -407,7 +407,7 @@ class DiffOperators(object):
             if self.dim < 3: return None
             if getattr(self, '_cellGradz', None) is None:
                 BC = ['neumann', 'neumann']
-                n = self.n
+                n = self.vnC
                 G3 = kron3(ddxCellGrad(n[2], BC), speye(n[1]), speye(n[0]))
                 # Compute areas of cell faces & volumes
                 V = self.aveCC2F*self.vol
