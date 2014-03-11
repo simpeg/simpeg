@@ -25,6 +25,13 @@ class BaseSurvey(object):
         """
         return getattr(self, '_prob', None)
 
+    @property
+    def mesh(self):
+        """Mesh of the paired problem."""
+        if self.ispaired:
+            return self.prob.mesh
+        raise Exception('Pair survey to a problem to access the problems mesh.')
+
     def pair(self, p):
         """Bind a problem to this survey instance using pointers"""
         assert hasattr(p, 'surveyPair'), "Problem must have an attribute 'surveyPair'."
@@ -71,7 +78,7 @@ class BaseSurvey(object):
 
                 d_\\text{pred} = \mathbf{P} u(m)
         """
-        return u
+        raise NotImplemented('projectFields is not yet implemented.')
 
     @Utils.count
     def projectFieldsDeriv(self, u):

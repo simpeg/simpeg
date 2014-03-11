@@ -30,6 +30,9 @@ def mkvc(x, numDims=1):
     if type(x) == np.matrix:
         x = np.array(x)
 
+    if hasattr(x, 'tovec'):
+        x = x.tovec()
+
     assert type(x) == np.ndarray, "Vector must be a numpy array"
 
     if numDims == 1:
