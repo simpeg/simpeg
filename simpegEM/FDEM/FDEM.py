@@ -123,52 +123,6 @@ class ProblemFDEM_e(Problem.BaseProblem):
         raise NotImplementedError('Jtvec todo!')
 
 
-if __name__ == '__main__':
-    from SimPEG import *
-    import simpegEM as EM
-    from simpegEM.Utils.Ana import hzAnalyticDipoleT
-    from scipy.constants import mu_0
-    import matplotlib.pyplot as plt
-
-    cs = 5.
-    ncx = 6
-    ncy = 6
-    ncz = 6
-    npad = 3
-    hx = Utils.meshTensors(((npad,cs), (ncx,cs), (npad,cs)))
-    hy = Utils.meshTensors(((npad,cs), (ncy,cs), (npad,cs)))
-    hz = Utils.meshTensors(((npad,cs), (ncz,cs), (npad,cs)))
-    mesh = Mesh.TensorMesh([hx,hy,hz])
-
-    XY = Utils.ndgrid(np.linspace(20,50,3), np.linspace(20,50,3))
-    rxLoc = np.c_[XY, np.ones(XY.shape[0])*40]
-
-    model = Model.LogModel(mesh)
-
-    opts = {'txLoc':0.,
-        'txType':'VMD_MVP',
-        'rxLoc': rxLoc,
-        'rxType':'bz',
-        'freq': np.logspace(0,3,4),
-        }
-    survey = EM.FDEM.SurveyFDEM(**opts)
-
-    prb = EM.FDEM.ProblemFDEM_e(mesh, model)
-    prb.pair(survey)
-
-    sigma = np.log(np.ones(mesh.nC)*1e-3)
-
-    j_sx = np.zeros(mesh.vnEx)
-    j_sx[6,6,6] = 1
-    j_s = np.r_[Utils.mkvc(j_sx),np.zeros(mesh.nEy+mesh.nEz)]
-
-    prb.j_s = j_s
-    f = prb.fields(sigma)
-
-    plt.colorbar(mesh.plotSlice((f.get_e(3)), 'E', ind=11, normal='Z', view='real')[0])
-    plt.show()
-
-
 
 
 
