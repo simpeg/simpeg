@@ -2,7 +2,7 @@ import unittest
 from SimPEG import *
 import simpegEM as EM
 
-class TDEM_bDerivTests(unittest.TestCase):
+class FDEM_bDerivTests(unittest.TestCase):
 
     def setUp(self):
 
