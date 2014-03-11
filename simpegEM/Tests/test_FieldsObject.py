@@ -22,10 +22,16 @@ class FieldsTest(unittest.TestCase):
     def test_SetGet(self):
         F = self.F
         for freq in F.survey.freqs:
-            e = np.random.rand(F.mesh.nE, F.survey.nTx[freq])
+            nFreq = F.survey.nTx[freq]
+            e = np.random.rand(F.mesh.nE, nFreq)
             F[freq, 'e'] = e
-            b = np.random.rand(F.mesh.nF, F.survey.nTx[freq])
+            b = np.random.rand(F.mesh.nF, nFreq)
             F[freq, 'b'] = b
+            if nFreq == 1:
+                F[freq, 'b'] = Utils.mkvc(b)
+            self.assertTrue(np.all(F[freq, 'e'] == e))
+            self.assertTrue(np.all(F[freq, 'b'] == b))
+            F[freq] = {'b':b,'e':e}
             self.assertTrue(np.all(F[freq, 'e'] == e))
             self.assertTrue(np.all(F[freq, 'b'] == b))
 

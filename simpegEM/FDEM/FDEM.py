@@ -93,8 +93,6 @@ class ProblemFDEM_e(Problem.BaseProblem):
 
 
     def Jvec(self, m, v, u=None):
-        # TODO: only 1 transmitter for now
-        # TODO: all P's the same
         if u is None:
            u = self.fields(m)
 
@@ -108,17 +106,15 @@ class ProblemFDEM_e(Problem.BaseProblem):
             for tx in self.survey.getTransmitters(freq):
                 dMe_dsig = self.mesh.getEdgeInnerProductDeriv(m, v=e)
                 dsig_dm = self.model.transformDeriv(m)
+
                 b = 1j*omega(freq) * ( dMe_dsig * ( dsig_dm * v ) )
                 Ab = solver.solve(b)
 
-                #TODO: look at Rx for this...
-                P  = self.survey.projectFieldsDeriv(u)
+                P  = tx.projectFieldsDeriv(self.mesh, u)
 
                 Jv[tx] = -P*Ab
 
-        Jv = np.concatenate(Jvs)
-
-        return Jv
+        return Utils.mkvc(Jv)
 
 
     def Jtvec(self, m, v, u=None):

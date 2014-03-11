@@ -35,15 +35,18 @@ class TxFDEM(Survey.BaseTx):
 
     def projectFields(self, mesh, u):
 
+        if self.rxList.rxType in ['Ex', 'Ey', 'Ez']:
+            u_part = u[self, 'e']
+        else:
+            raise NotImplemented('Unknown receiver type.')
+
         P = self.rxList.getP(mesh)
-
-        u_part = u[self]
-
         Pu = P*u_part
         return Pu
 
     def projectFieldsDeriv(self, mesh, u):
-        pass
+        P = self.rxList.getP(mesh)
+        return P
 
 
 class FieldsFDEM(object):
@@ -119,8 +122,10 @@ class FieldsFDEM(object):
         elif isinstance(key, TxFDEM):
             raise Exception('Cannot set one transmitter at a time.')
 
-        for field in newFields:
+        for name in newFields:
             field = self._initStore(name)
+            if field[freq].shape[1] == 1:
+                newFields[name] = Utils.mkvc(newFields[name],2)
             assert field[freq].shape == newFields[name].shape, 'Must be correct shape (n%s x nTx[freq])' % self.knownFields[name]
             field[freq] = newFields[name]
 
@@ -173,13 +178,13 @@ class DataFDEM(object):
         self._ensureCorrectKey(key)
         return self._dataDict[key]
 
-    def toarray(self):
+    def tovec(self):
         D = self._dataDict
         return np.concatenate([D[k] for k in D])
 
 
 
-class SurveyFDEM(Survey.MixinFancyProjection, Survey.BaseSurvey):
+class SurveyFDEM(Survey.BaseSurvey):
     """
         docstring for SurveyFDEM
     """
@@ -228,35 +233,16 @@ class SurveyFDEM(Survey.MixinFancyProjection, Survey.BaseSurvey):
                 self._nTx[freq] = len(self.getTransmitters(freq))
         return self._nTx
 
-
     def getTransmitters(self, freq):
         """Returns the transmitters associated with a specific frequency."""
         assert freq in self._freqDict, "The requested frequency is not in this survey."
         return self._freqDict[freq]
 
     def projectFields(self, u):
-        P = sp.identity(self.prob.mesh.nE)
-        Pes = range(self.nFreq)
-        #TODO: this is hardcoded to 1Tx
-        for i, freqInd in enumerate(range(self.nFreq)):
-            e = u.get_e(freqInd)
-            Pes[i] = P*e
-        Pe = np.concatenate(Pes)
-        return Pe
+        data = DataFDEM(self)
+        for tx in self.txList:
+            data[tx] = tx.projectFields(self.mesh, u)
+        return data
 
-
-    def projectFieldsDerivVec(self, u, v=None):
-        raise NotImplemented('projectFieldsDerivVec is not yet implemented')
-
-    def projectAdjointFieldsDerivVec(self, u, v=None):
-        raise NotImplemented('projectAdjointFieldsDerivVec is not yet implemented')
-
-
-    ####################################################
-    # Interpolation Matrices
-    ####################################################
-
-    @Utils.requires('prob')
-    def getP(self, Tx):
-        # TODO: store these in a mesh lookup table by transmitter?
-        pass
+    def projectFieldsDeriv(self, u):
+        raise Exception('Use Transmitters to project fields deriv.')

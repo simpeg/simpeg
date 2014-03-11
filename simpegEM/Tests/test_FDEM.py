@@ -21,13 +21,12 @@ class FDEM_bDerivTests(unittest.TestCase):
 
         model = Model.LogModel(mesh)
 
-        opts = {'txLoc':0.,
-            'txType':'VMD_MVP',
-            'rxLoc': rxLoc,
-            'rxType':'bz',
-            'freq': np.logspace(0,3,4),
-            }
-        dat = EM.FDEM.SurveyFDEM(**opts)
+        x = np.linspace(5,10,3)
+        XYZ = Utils.ndgrid(x,x,np.r_[0])
+        rxList = EM.FDEM.RxListFDEM(XYZ, 'Ex')
+        Tx0 = EM.FDEM.TxFDEM(None, 'VMD', 3, rxList)
+
+        dat = EM.FDEM.SurveyFDEM([Tx0])
 
         prb = EM.FDEM.ProblemFDEM_e(model)
         prb.pair(dat)
