@@ -1,9 +1,14 @@
 from SimPEG import *
 import matplotlib.pyplot as plt
 
+class LinearSurvey(Survey.BaseSurvey):
+    def projectFields(self, u):
+        return u
 
 class LinearProblem(Problem.BaseProblem):
     """docstring for LinearProblem"""
+
+    surveyPair = LinearSurvey
 
     def __init__(self, model, G, **kwargs):
         Problem.BaseProblem.__init__(self, model, **kwargs)
@@ -43,21 +48,21 @@ def example(N):
 
     model = Model.BaseModel(M)
     prob = LinearProblem(model, G)
-    data = prob.createSyntheticSurvey(mtrue, std=0.01)
+    survey = prob.createSyntheticSurvey(mtrue, std=0.01)
 
-    return prob, data, model
+    return prob, survey, model
 
 
 if __name__ == '__main__':
 
-    prob, data, model = example(100)
+    prob, survey, model = example(100)
     M = prob.mesh
 
     reg = Regularization.Tikhonov(model)
-    objFunc = ObjFunction.BaseObjFunction(data, reg)
+    objFunc = ObjFunction.BaseObjFunction(survey, reg)
     opt = Optimization.InexactGaussNewton(maxIter=20)
     inv = Inversion.BaseInversion(objFunc, opt)
-    m0 = np.zeros_like(data.mtrue)
+    m0 = np.zeros_like(survey.mtrue)
 
     mrec = inv.run(m0)
 
@@ -67,7 +72,7 @@ if __name__ == '__main__':
 
     plt.figure(2)
 
-    plt.plot(M.vectorCCx, data.mtrue, 'b-')
+    plt.plot(M.vectorCCx, survey.mtrue, 'b-')
     plt.plot(M.vectorCCx, mrec, 'r-')
 
     plt.show()
