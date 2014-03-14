@@ -471,7 +471,6 @@ class TensorView(object):
             ax.set_zlabel('x3')
 
         ax.grid(True)
-        ax.hold(False)
         if showIt: plt.show()
 
     def slicer(mesh, var, imageType='CC', normal='z', index=0, ax=None, clim=None):
