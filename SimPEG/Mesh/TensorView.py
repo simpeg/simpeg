@@ -279,14 +279,6 @@ class TensorView(object):
         if ind is None: ind = int(szSliceDim/2)
         assert type(ind) in [int, long], 'ind must be an integer'
 
-        if ax is None:
-            fig = plt.figure(1)
-            fig.clf()
-            ax = plt.subplot(111)
-        else:
-            assert isinstance(ax, matplotlib.axes.Axes), "ax must be an matplotlib.axes.Axes"
-            fig = ax.figure
-
         # The slicing and plotting code!!
 
         def getIndSlice(v):
@@ -316,10 +308,26 @@ class TensorView(object):
                 return getIndSlice(self.r(v,'CC','CC','M'))
 
         h2d = []
-        if 'X' not in normal: h2d.append(self.hx)
-        if 'Y' not in normal: h2d.append(self.hy)
-        if 'Z' not in normal: h2d.append(self.hz)
-        tM = self.__class__(h2d) #: Temp Mesh
+        x2d = []
+        if 'X' not in normal:
+            h2d.append(self.hx)
+            x2d.append(self.x0[0])
+        if 'Y' not in normal:
+            h2d.append(self.hy)
+            x2d.append(self.x0[1])
+        if 'Z' not in normal:
+            h2d.append(self.hz)
+            x2d.append(self.x0[2])
+        tM = self.__class__(h2d, x2d) #: Temp Mesh
+
+
+        if ax is None:
+            fig = plt.figure(1)
+            fig.clf()
+            ax = plt.subplot(111)
+        else:
+            assert isinstance(ax, matplotlib.axes.Axes), "ax must be an matplotlib.axes.Axes"
+            fig = ax.figure
 
         out = ()
         if view in ['real','imag','abs']:
@@ -342,12 +350,10 @@ class TensorView(object):
             nxi = int(tM.hx.sum()/tM.hx.min())
             nyi = int(tM.hy.sum()/tM.hy.min())
             tMi = self.__class__([np.ones(nxi)*tM.hx.sum()/nxi,
-                                  np.ones(nyi)*tM.hy.sum()/nyi])
+                                  np.ones(nyi)*tM.hy.sum()/nyi], x2d)
             P = tM.getInterpolationMat(tMi.gridCC,'CC',zerosOutside=True)
-            Ui = P*mkvc(U)
-            Vi = P*mkvc(V)
-            Ui = tMi.r(Ui, 'CC', 'CC', 'M')
-            Vi = tMi.r(Vi, 'CC', 'CC', 'M')
+            Ui = tMi.r(P*mkvc(U), 'CC', 'CC', 'M')
+            Vi = tMi.r(P*mkvc(V), 'CC', 'CC', 'M')
             # End Interpolation
 
             out += (ax.pcolormesh(tM.vectorNx, tM.vectorNy, np.sqrt(U**2+V**2).T, vmin=clim[0], vmax=clim[1], **pcolorOpts),)
@@ -368,6 +374,15 @@ class TensorView(object):
 
         if showIt: plt.show()
         return out
+
+    # def _plotImage2D(self, v, vType='CC',
+    #           normal='Z', ind=None, grid=False, view='real',
+    #           ax=None, clim=None, showIt=False,
+    #           pcolorOpts={},
+    #           streamOpts={'color':'k'},
+    #           gridOpts={'color':'k'}
+    #           ):
+
 
     def plotGrid(self, ax=None, nodes=False, faces=False, centers=False, edges=False, lines=True, showIt=False):
         """Plot the nodal, cell-centered and staggered grids for 1,2 and 3 dimensions.
@@ -536,7 +551,7 @@ class TensorView(object):
 if __name__ == '__main__':
     from SimPEG import *
     mT = Utils.meshTensors(((2,5),(4,2),(2,5)),((2,2),(6,2),(2,2)),((2,2),(6,2),(2,2)))
-    M = Mesh.TensorMesh(mT)
+    M = Mesh.TensorMesh(mT, x0=[10,20,14])
     q = np.zeros(M.vnC)
     q[[4,4],[4,4],[2,6]]=[-1,1]
     q = Utils.mkvc(q)
