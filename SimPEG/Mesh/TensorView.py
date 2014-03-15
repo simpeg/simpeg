@@ -420,11 +420,11 @@ class TensorView(object):
 
         if self.dim == 1:
             if nodes:
-                ax.plot(xn, np.ones(self.nN), 'bs')
+                ax.plot(self.gridN, np.ones(self.nN), 'bs')
             if centers:
-                ax.plot(xc, np.ones(self.nC), 'ro')
+                ax.plot(self.gridCC, np.ones(self.nC), 'ro')
             if lines:
-                ax.plot(xn, np.ones(self.nN), 'b-')
+                ax.plot(self.gridN, np.ones(self.nN), 'b.-')
             ax.set_xlabel('x1')
         elif self.dim == 2:
             if nodes:
@@ -558,3 +558,5 @@ if __name__ == '__main__':
     A = M.faceDiv*M.cellGrad
     b = Solver(A).solve(q)
     M.plotSlice(M.cellGrad*b, 'F', view='vec', grid=True, showIt=True, pcolorOpts={'alpha':0.8})
+
+    Mesh.TensorMesh([10]).plotGrid(showIt=True)
