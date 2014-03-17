@@ -97,6 +97,7 @@ class ProblemFDEM_e(Problem.BaseProblem):
            u = self.fields(m)
 
         Jv = self.dataPair(self.survey)
+        sig = self.model.transform(m)
         dsig_dm = self.model.transformDeriv(m)
 
         for i, freq in enumerate(self.survey.freqs):
@@ -105,7 +106,7 @@ class ProblemFDEM_e(Problem.BaseProblem):
             solver = Solver(A, options=self.solveOpts)
 
             for txi, tx in enumerate(self.survey.getTransmitters(freq)):
-                dMe_dsig = self.mesh.getEdgeInnerProductDeriv(m, v=e[:,txi])
+                dMe_dsig = self.mesh.getEdgeInnerProductDeriv(sig, v=e[:,txi])
 
                 P = tx.projectFieldsDeriv(self.mesh, u)
                 b = 1j*omega(freq) * ( dMe_dsig * ( dsig_dm * v ) )
@@ -125,6 +126,7 @@ class ProblemFDEM_e(Problem.BaseProblem):
 
         Jtv = np.zeros(self.model.nP, dtype=complex)
 
+        sig = self.model.transform(m)
         dsig_dm = self.model.transformDeriv(m)
 
         for i, freq in enumerate(self.survey.freqs):
@@ -133,7 +135,7 @@ class ProblemFDEM_e(Problem.BaseProblem):
             solver = Solver(AT, options=self.solveOpts)
 
             for txi, tx in enumerate(self.survey.getTransmitters(freq)):
-                dMe_dsig = self.mesh.getEdgeInnerProductDeriv(m, v=e[:,txi])
+                dMe_dsig = self.mesh.getEdgeInnerProductDeriv(sig, v=e[:,txi])
 
                 P  = tx.projectFieldsDeriv(self.mesh, u)
                 w = solver.solve(P.T * v[tx])
