@@ -1,6 +1,7 @@
 from SimPEG import Problem, Solver, Utils, np, sp
 from scipy.constants import mu_0
 from SurveyFDEM import SurveyFDEM, DataFDEM, FieldsFDEM
+from simpegEM.Utils import Sources
 
 def omega(freq):
     """Change frequency to angular frequency, omega"""
@@ -60,16 +61,33 @@ class ProblemFDEM_e(Problem.BaseProblem):
 
     def getA(self, freq):
         """
-            :param int fInd: Frequency index
+            :param float freq: Frequency
             :rtype: scipy.sparse.csr_matrix
             :return: A
         """
         return self.mesh.edgeCurl.T*self.MfMui*self.mesh.edgeCurl + 1j*omega(freq)*self.MeSigma
 
     def getRHS(self, freq):
-        #TODO: this needs to also depend on your transmitter!
+        """
+            :param float freq: Frequency
+            :rtype: numpy.ndarray (nE, nTx)
+            :return: RHS
+        """
+        Txs = self.survey.getTransmitters(freq)
+        rhs = range(len(Txs))
+        for i, tx in enumerate(Txs):
+            if tx.txType == 'VMD':
+                src = Sources.MagneticDipoleVectorPotential
+            else:
+                raise NotImplemented('%s txType is not implemented' % tx.txType)
+            SRCx = src(tx.loc, self.mesh.gridEx, 'x')
+            SRCy = src(tx.loc, self.mesh.gridEy, 'y')
+            SRCz = src(tx.loc, self.mesh.gridEz, 'z')
+            rhs[i] = np.concatenate((SRCx, SRCy, SRCz))
 
-        return -1j*omega(freq)*self.Me*self.j_s
+        #TODO: this is completely wrong. b0 = self.mesh.edgeCurl*rhs but we are doing an e formulation...
+        j_s = np.concatenate(rhs).reshape((self.mesh.nE, len(Txs)), order='F')
+        return -1j*omega(freq)*self.Me*j_s
 
 
     def fields(self, m, useThisRhs=None):
