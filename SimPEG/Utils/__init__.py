@@ -1,5 +1,5 @@
 from matutils import *
-from meshutils import exampleLrmGrid, meshTensors
+from meshutils import exampleLrmGrid, meshTensors, points2nodes
 from lrmutils import volTetra, faceInfo, indexCube
 from interputils import interpmat
 from ipythonutils import easyAnimate as animate
