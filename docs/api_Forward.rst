@@ -10,10 +10,10 @@ Model
     :undoc-members:
     :inherited-members:
 
-Data
-====
+Survey
+======
 
-.. automodule:: SimPEG.Data
+.. automodule:: SimPEG.Survey
     :show-inheritance:
     :members:
     :undoc-members:

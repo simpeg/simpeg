@@ -48,6 +48,13 @@ class BaseSurvey(object):
         self._prob = None
 
     @property
+    def nD(self):
+        """Number of data."""
+        if hasattr(self, 'dobs'):
+            return self.dobs.size
+        raise NotImplemented('Number of data is unknown.')
+
+    @property
     def ispaired(self): return self.prob is not None
 
     @Utils.count

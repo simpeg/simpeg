@@ -1,5 +1,4 @@
 from SimPEG import *
-import matplotlib.pyplot as plt
 
 class LinearSurvey(Survey.BaseSurvey):
     def projectFields(self, u):
@@ -55,11 +54,14 @@ def example(N):
 
 if __name__ == '__main__':
 
+    import matplotlib.pyplot as plt
+
     prob, survey, model = example(100)
     M = prob.mesh
 
     reg = Regularization.Tikhonov(model)
-    objFunc = ObjFunction.BaseObjFunction(survey, reg)
+    beta = Parameters.BetaSchedule()
+    objFunc = ObjFunction.BaseObjFunction(survey, reg, beta=beta)
     opt = Optimization.InexactGaussNewton(maxIter=20)
     inv = Inversion.BaseInversion(objFunc, opt)
     m0 = np.zeros_like(survey.mtrue)
