@@ -97,22 +97,20 @@ class ProblemFDEM_e(Problem.BaseProblem):
            u = self.fields(m)
 
         Jv = self.dataPair(self.survey)
+        dsig_dm = self.model.transformDeriv(m)
 
         for i, freq in enumerate(self.survey.freqs):
             e = u[freq, 'e']
             A = self.getA(freq)
             solver = Solver(A, options=self.solveOpts)
 
-            for tx in self.survey.getTransmitters(freq):
-                dMe_dsig = self.mesh.getEdgeInnerProductDeriv(m, v=e)
-                dsig_dm = self.model.transformDeriv(m)
+            for txi, tx in enumerate(self.survey.getTransmitters(freq)):
+                dMe_dsig = self.mesh.getEdgeInnerProductDeriv(m, v=e[:,txi])
 
+                P = tx.projectFieldsDeriv(self.mesh, u)
                 b = 1j*omega(freq) * ( dMe_dsig * ( dsig_dm * v ) )
-                Ab = solver.solve(b)
-
-                P  = tx.projectFieldsDeriv(self.mesh, u)
-
-                Jv[tx] = -P*Ab
+                Ainvb = solver.solve(b)
+                Jv[tx] = -P*Ainvb
 
         return Utils.mkvc(Jv)
 
@@ -120,7 +118,28 @@ class ProblemFDEM_e(Problem.BaseProblem):
     def Jtvec(self, m, v, u=None):
         if u is None:
             u = self.fields(m)
-        raise NotImplementedError('Jtvec todo!')
+
+        # Ensure v is a data object.
+        if not isinstance(v, self.dataPair):
+            v = self.dataPair(self.survey, v)
+
+        Jtv = np.zeros(self.model.nP, dtype=complex)
+
+        dsig_dm = self.model.transformDeriv(m)
+
+        for i, freq in enumerate(self.survey.freqs):
+            e = u[freq, 'e']
+            AT = self.getA(freq).T
+            solver = Solver(AT, options=self.solveOpts)
+
+            for txi, tx in enumerate(self.survey.getTransmitters(freq)):
+                dMe_dsig = self.mesh.getEdgeInnerProductDeriv(m, v=e[:,txi])
+
+                P  = tx.projectFieldsDeriv(self.mesh, u)
+                w = solver.solve(P.T * v[tx])
+                Jtv += - 1j*omega(freq) * ( dsig_dm.T * ( dMe_dsig.T * w ) )
+
+        return Jtv
 
 
 
