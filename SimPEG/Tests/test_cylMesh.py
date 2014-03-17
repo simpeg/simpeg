@@ -141,9 +141,6 @@ call3 = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1], xyz[:, 2])
 cyl_row2 = lambda g, xfun, yfun: np.c_[call2(xfun, g), call2(yfun, g)]
 cyl_row3 = lambda g, xfun, yfun, zfun: np.c_[call3(xfun, g), call3(yfun, g), call3(zfun, g)]
 cylF2 = lambda M, fx, fy: np.vstack((cyl_row2(M.gridFx, fx, fy), cyl_row2(M.gridFz, fx, fy)))
-# cylE2 = lambda M, ex, ey: np.vstack((cyl_row2(M.gridEx, ex, ey), cyl_row2(M.gridEy, ex, ey)))
-# cylF3 = lambda M, fx, fy, fz: np.vstack((cyl_row3(M.gridFx, fx, fy, fz), cyl_row3(M.gridFy, fx, fy, fz), cyl_row3(M.gridFz, fx, fy, fz)))
-# cylE3 = lambda M, ex, ey, ez: np.vstack((cyl_row3(M.gridEx, ex, ey, ez), cyl_row3(M.gridEy, ex, ey, ez), cyl_row3(M.gridEz, ex, ey, ez)))
 
 
 class TestFaceDiv2D(OrderTest):
@@ -177,11 +174,37 @@ class TestEdgeCurl2D(OrderTest):
     meshDimension = 2
 
     def getError(self):
-        pass
-        #TODO!
+        # To Recreate or change the functions:
 
-    # def test_order(self):
-    #     self.orderTest()
+        # import sympy
+        # r,t,z = sympy.symbols('r,t,z')
+
+        # fR = 0
+        # fZ = 0
+        # fT = sympy.sin(2.*sympy.pi*z)
+
+        # print 1/r*sympy.diff(fZ,t) - sympy.diff(fT,z)
+        # print sympy.diff(fR,z) - sympy.diff(fZ,r)
+        # print 1/r*(sympy.diff(r*fT,r) - sympy.diff(fR,t))
+
+        funT = lambda r, t, z: np.sin(2.*np.pi*z)
+
+        solR = lambda r, z: -2.0*np.pi*np.cos(2.0*np.pi*z)
+        solZ = lambda r, z: np.sin(2.0*np.pi*z)/r
+
+        E = call3(funT, self.M.gridEy)
+
+        curlE = self.M.edgeCurl.dot(E)
+
+        Fc = cylF2(self.M, solR, solZ)
+        Fc = np.c_[Fc[:,0],np.zeros(self.M.nF),Fc[:,1]]
+        curlE_anal = self.M.projectFaceVector(Fc)
+
+        err = np.linalg.norm((curlE-curlE_anal), np.inf)
+        return err
+
+    def test_order(self):
+        self.orderTest()
 
 class TestCyl3DMesh(unittest.TestCase):
 
