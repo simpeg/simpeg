@@ -1,8 +1,8 @@
 import Utils, numpy as np
 
 
-class BaseData(object):
-    """Data holds the observed data, and the standard deviations."""
+class BaseSurvey(object):
+    """Survey holds the observed data, and the standard deviations."""
 
     __metaclass__ = Utils.SimPEGMetaClass
 
@@ -19,25 +19,32 @@ class BaseData(object):
     @property
     def prob(self):
         """
-        The geophysical problem that explains this data, use::
+        The geophysical problem that explains this survey, use::
 
-            data.pair(prob)
+            survey.pair(prob)
         """
         return getattr(self, '_prob', None)
 
+    @property
+    def mesh(self):
+        """Mesh of the paired problem."""
+        if self.ispaired:
+            return self.prob.mesh
+        raise Exception('Pair survey to a problem to access the problems mesh.')
+
     def pair(self, p):
-        """Bind a problem to this data instance using pointers"""
-        assert hasattr(p, 'dataPair'), "Problem must have an attribute 'dataPair'."
-        assert isinstance(self, p.dataPair), "Problem requires data object must be an instance of a %s class."%(p.dataPair.__name__)
+        """Bind a problem to this survey instance using pointers"""
+        assert hasattr(p, 'surveyPair'), "Problem must have an attribute 'surveyPair'."
+        assert isinstance(self, p.surveyPair), "Problem requires survey object must be an instance of a %s class."%(p.surveyPair.__name__)
         if p.ispaired:
-            raise Exception("The problem object is already paired to a data. Use prob.unpair()")
+            raise Exception("The problem object is already paired to a survey. Use prob.unpair()")
         self._prob = p
-        p._data = self
+        p._survey = self
 
     def unpair(self):
-        """Unbind a problem from this data instance"""
+        """Unbind a problem from this survey instance"""
         if not self.ispaired: return
-        self.prob._data = None
+        self.prob._survey = None
         self._prob = None
 
     @property
@@ -71,7 +78,7 @@ class BaseData(object):
 
                 d_\\text{pred} = \mathbf{P} u(m)
         """
-        return u
+        raise NotImplemented('projectFields is not yet implemented.')
 
     @Utils.count
     def projectFieldsDeriv(self, u):
@@ -108,7 +115,7 @@ class BaseData(object):
         """
             Data weighting matrix. This is a covariance matrix used in::
 
-                def data.residualWeighted(m,u=None):
+                def residualWeighted(m,u=None):
                     return self.Wd*self.residual(m, u=u)
 
             By default, this is based on the norm of the data plus a noise floor.
@@ -140,19 +147,81 @@ class BaseData(object):
         return Utils.mkvc(self.Wd*self.residual(m, u=u))
 
     @property
-    def RHS(self):
-        """
-            Source matrix.
-        """
-        return getattr(self, '_RHS', None)
-    @RHS.setter
-    def RHS(self, value):
-        self._RHS = value
-
-    @property
     def isSynthetic(self):
         "Check if the data is synthetic."
-        return (self.mtrue is not None)
+        return self.mtrue is not None
+
+
+    #TODO: Move this to the data class?
+    # @property
+    # def phi_d_target(self):
+    #     """
+    #     target for phi_d
+
+    #     By default this is the number of data.
+
+    #     Note that we do not set the target if it is None, but we return the default value.
+    #     """
+    #     if getattr(self, '_phi_d_target', None) is None:
+    #         return self.data.dobs.size #
+    #     return self._phi_d_target
+
+    # @phi_d_target.setter
+    # def phi_d_target(self, value):
+    #     self._phi_d_target = value
+
+
+class BaseRxList(object):
+    """SimPEG Receiver List Object"""
+
+    locs = None   #: Locations (nRx x 3)
+
+    knownRxTypes = None  #: Set this to a list of strings to ensure that txType is known
+
+    def __init__(self, locs, rxType, **kwargs):
+        self.locs = locs
+        self.rxType = rxType
+        Utils.setKwargs(self, **kwargs)
+
+    @property
+    def rxType(self):
+        """Receiver Type"""
+        return getattr(self, '_rxType', None)
+    @rxType.setter
+    def rxType(self, value):
+        known = self.knownRxTypes
+        if known is not None:
+            assert value in known, "rxType must be in ['%s']" % ("', '".join(known))
+        self._rxType = value
+
+class BaseTx(object):
+    """SimPEG Transmitter Object"""
+
+    loc    = None #: Location [x,y,z]
+
+    rxList = None #: SimPEG Receiver List
+    rxListPair = BaseRxList
+
+    knownTxTypes = None #: Set this to a list of strings to ensure that txType is known
+
+    def __init__(self, loc, txType, rxList, **kwargs):
+        assert isinstance(rxList, self.rxListPair), 'rxList must be a %s'%self.rxListPair.__name__
+
+        self.loc    = loc
+        self.txType = txType
+        self.rxList = rxList
+        Utils.setKwargs(self, **kwargs)
+
+    @property
+    def txType(self):
+        """Transmitter Type"""
+        return getattr(self, '_txType', None)
+    @txType.setter
+    def txType(self, value):
+        known = self.knownTxTypes
+        if known is not None:
+            assert value in known, "txType must be in ['%s']" % ("', '".join(known))
+        self._txType = value
 
 if __name__ == '__main__':
     d = BaseData()

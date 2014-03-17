@@ -1,12 +1,16 @@
 from SimPEG import *
-import matplotlib.pyplot as plt
 
+class LinearSurvey(Survey.BaseSurvey):
+    def projectFields(self, u):
+        return u
 
 class LinearProblem(Problem.BaseProblem):
     """docstring for LinearProblem"""
 
-    def __init__(self, mesh, model, G, **kwargs):
-        Problem.BaseProblem.__init__(self, mesh, model, **kwargs)
+    surveyPair = LinearSurvey
+
+    def __init__(self, model, G, **kwargs):
+        Problem.BaseProblem.__init__(self, model, **kwargs)
         self.G = G
 
     def fields(self, m, u=None):
@@ -20,8 +24,7 @@ class LinearProblem(Problem.BaseProblem):
 
 
 def example(N):
-    h = np.ones(N)/N
-    M = Mesh.TensorMesh([h])
+    M = Mesh.TensorMesh([N])
 
     nk = 20
     jk = np.linspace(1.,20.,nk)
@@ -43,22 +46,25 @@ def example(N):
 
 
     model = Model.BaseModel(M)
-    prob = LinearProblem(M, model, G)
-    data = prob.createSyntheticData(mtrue, std=0.01)
+    prob = LinearProblem(model, G)
+    survey = prob.createSyntheticSurvey(mtrue, std=0.01)
 
-    return prob, data, model
+    return prob, survey, model
 
 
 if __name__ == '__main__':
 
-    prob, data, model = example(100)
+    import matplotlib.pyplot as plt
+
+    prob, survey, model = example(100)
     M = prob.mesh
 
     reg = Regularization.Tikhonov(model)
-    objFunc = ObjFunction.BaseObjFunction(data, reg)
+    beta = Parameters.BetaSchedule()
+    objFunc = ObjFunction.BaseObjFunction(survey, reg, beta=beta)
     opt = Optimization.InexactGaussNewton(maxIter=20)
     inv = Inversion.BaseInversion(objFunc, opt)
-    m0 = np.zeros_like(data.mtrue)
+    m0 = np.zeros_like(survey.mtrue)
 
     mrec = inv.run(m0)
 
@@ -68,7 +74,7 @@ if __name__ == '__main__':
 
     plt.figure(2)
 
-    plt.plot(M.vectorCCx, data.mtrue, 'b-')
+    plt.plot(M.vectorCCx, survey.mtrue, 'b-')
     plt.plot(M.vectorCCx, mrec, 'r-')
 
     plt.show()

@@ -1,4 +1,4 @@
-import Utils, Data, numpy as np, scipy.sparse as sp
+import Utils, Survey, numpy as np, scipy.sparse as sp
 import Model
 
 class BaseProblem(object):
@@ -38,40 +38,42 @@ class BaseProblem(object):
 
     counter = None   #: A SimPEG.Utils.Counter object
 
-    dataPair = Data.BaseData
+    surveyPair = Survey.BaseSurvey
     modelPair = Model.BaseModel
 
-    def __init__(self, mesh, model, **kwargs):
+    def __init__(self, model, **kwargs):
         Utils.setKwargs(self, **kwargs)
-        self.mesh = mesh
         assert (isinstance(model, self.modelPair) or
             isinstance(model, Model.ComboModel) and isinstance(model.models[0], self.modelPair)
             ), "Model object must be an instance of a %s class."%(self.modelPair.__name__)
         self.model = model
 
     @property
-    def data(self):
+    def mesh(self): return self.model.mesh
+
+    @property
+    def survey(self):
         """
-        The data object for this problem.
+        The survey object for this problem.
         """
-        return getattr(self, '_data', None)
+        return getattr(self, '_survey', None)
 
     def pair(self, d):
-        """Bind a data to this problem instance using pointers."""
-        assert isinstance(d, self.dataPair), "Data object must be an instance of a %s class."%(self.dataPair.__name__)
+        """Bind a survey to this problem instance using pointers."""
+        assert isinstance(d, self.surveyPair), "Data object must be an instance of a %s class."%(self.surveyPair.__name__)
         if d.ispaired:
-            raise Exception("The data object is already paired to a problem. Use data.unpair()")
-        self._data = d
+            raise Exception("The survey object is already paired to a problem. Use survey.unpair()")
+        self._survey = d
         d._prob = self
 
     def unpair(self):
-        """Unbind a data from this problem instance."""
+        """Unbind a survey from this problem instance."""
         if not self.ispaired: return
-        self.data._prob = None
-        self._data = None
+        self.survey._prob = None
+        self._survey = None
 
     @property
-    def ispaired(self): return self.data is not None
+    def ispaired(self): return self.survey is not None
 
     @Utils.timeIt
     def Jvec(self, m, v, u=None):
@@ -156,25 +158,26 @@ class BaseProblem(object):
         """
         pass
 
-    def createSyntheticData(self, m, std=0.05, u=None, **geometry_kwargs):
+    #TODO: Rename and refactor to createSyntheticData
+    def createSyntheticSurvey(self, m, std=0.05, u=None, **geometry_kwargs):
         """
-            Create synthetic data given a model, and a standard deviation.
+            Create synthetic survey given a model, and a standard deviation.
 
             :param numpy.array m: geophysical model
             :param numpy.array std: standard deviation
-            :rtype: numpy.array, numpy.array
-            :return: dobs, Wd
+            :rtype: SurveyObject
+            :return: survey
 
             Returns the observed data with random Gaussian noise
             and Wd which is the same size as data, and can be used to weight the inversion.
         """
-        data = self.dataPair(mtrue=m, **geometry_kwargs)
-        data.pair(self)
-        data.dtrue = data.dpred(m, u=u)
-        noise = std*abs(data.dtrue)*np.random.randn(*data.dtrue.shape)
-        data.dobs = data.dtrue+noise
-        data.std = data.dobs*0 + std
-        return data
+        survey = self.surveyPair(mtrue=m, **geometry_kwargs)
+        survey.pair(self)
+        survey.dtrue = survey.dpred(m, u=u)
+        noise = std*abs(survey.dtrue)*np.random.randn(*survey.dtrue.shape)
+        survey.dobs = survey.dtrue+noise
+        survey.std = survey.dobs*0 + std
+        return survey
 
 
 

@@ -14,229 +14,153 @@ class TensorView(object):
     def __init__(self):
         pass
 
-    def plotImage(self, I, imageType='CC', figNum=1,ax=None,direction='z',numbering=True,annotationColor='w',showIt=False,clim=None):
+    # def components(self):
+
+    #     plotAll = len(imageType) == 1
+    #     options = {"direction":direction,"numbering":numbering,"annotationColor":annotationColor,"showIt":False}
+    #     fig = plt.figure(figNum)
+    #     # Determine the subplot number: 131, 121
+    #     numPlots = 130 if plotAll else len(imageType)/2*10+100
+    #     pltNum = 1
+    #     fxyz = self.r(I,'F','F','M')
+    #     if plotAll or 'Fx' in imageType:
+    #         ax_x = plt.subplot(numPlots+pltNum)
+    #         self.plotImage(fxyz[0], imageType='Fx', ax=ax_x, **options)
+    #         pltNum +=1
+    #     if plotAll or 'Fy' in imageType:
+    #         ax_y = plt.subplot(numPlots+pltNum)
+    #         self.plotImage(fxyz[1], imageType='Fy', ax=ax_y, **options)
+    #         pltNum +=1
+    #     if plotAll or 'Fz' in imageType:
+    #         ax_z = plt.subplot(numPlots+pltNum)
+    #         self.plotImage(fxyz[2], imageType='Fz', ax=ax_z, **options)
+    #         pltNum +=1
+    #     if showIt: plt.show()
+
+    def plotImage(self, v, vType='CC', grid=False, view='real',
+              ax=None, clim=None, showIt=False,
+              pcolorOpts={},
+              streamOpts={'color':'k'},
+              gridOpts={'color':'k'},
+              numbering=True, annotationColor='w'
+              ):
         """
-        Mesh.plotImage(I)
+        Mesh.plotImage(v)
 
         Plots scalar fields on the given mesh.
 
         Input:
 
-        :param numpy.array I: scalar field
+        :param numpy.array v: vector
 
-        Optional Input:
+        Optional Inputs:
 
-        :param str imageType: type of image ('CC','N','F','Fx','Fy','Fz','E','Ex','Ey','Ez') or combinations, e.g. ExEy or FxFz
-        :param int figNum: number of figure to plot to
+        :param str vType: type of vector ('CC','N','F','Fx','Fy','Fz','E','Ex','Ey','Ez')
         :param matplotlib.axes.Axes ax: axis to plot to
-        :param str direction: slice dimensions, 3D only ('x', 'y', 'z')
+        :param bool showIt: call plt.show()
+
+        3D Inputs:
+
         :param bool numbering: show numbering of slices, 3D only
         :param str annotationColor: color of annotation, e.g. 'w', 'k', 'b'
-        :param bool showIt: call plt.show()
 
         .. plot::
             :include-source:
 
             from SimPEG import Mesh, np
             M = Mesh.TensorMesh([20, 20])
-            I = np.sin(M.gridCC[:,0]*2*np.pi)*np.sin(M.gridCC[:,1]*2*np.pi)
-            M.plotImage(I, showIt=True)
+            v = np.sin(M.gridCC[:,0]*2*np.pi)*np.sin(M.gridCC[:,1]*2*np.pi)
+            M.plotImage(v, showIt=True)
 
         .. plot::
             :include-source:
 
             from SimPEG import Mesh, np
             M = Mesh.TensorMesh([20,20,20])
-            I = np.sin(M.gridCC[:,0]*2*np.pi)*np.sin(M.gridCC[:,1]*2*np.pi)*np.sin(M.gridCC[:,2]*2*np.pi)
-            M.plotImage(I, annotationColor='k', showIt=True)
+            v = np.sin(M.gridCC[:,0]*2*np.pi)*np.sin(M.gridCC[:,1]*2*np.pi)*np.sin(M.gridCC[:,2]*2*np.pi)
+            M.plotImage(v, annotationColor='k', showIt=True)
 
         """
-        assert type(I) == np.ndarray, "I must be a numpy array"
-        assert type(numbering) == bool, "numbering must be a bool"
-        assert direction in ["x", "y","z"], "direction must be either x,y, or z"
-
-
-        if imageType == 'CC':
-            assert I.size == self.nC, "Incorrect dimensions for CC."
-        elif imageType == 'N':
-            assert I.size == self.nN, "Incorrect dimensions for N."
-        elif imageType == 'Fx':
-            if I.size != np.prod(self.vnFx): I, fy, fz = self.r(I,'F','F','M')
-        elif imageType == 'Fy':
-            if I.size != np.prod(self.vnFy): fx, I, fz = self.r(I,'F','F','M')
-        elif imageType == 'Fz':
-            if I.size != np.prod(self.vnFz): fx, fy, I = self.r(I,'F','F','M')
-        elif imageType == 'Ex':
-            if I.size != np.prod(self.vnEx): I, ey, ez = self.r(I,'E','E','M')
-        elif imageType == 'Ey':
-            if I.size != np.prod(self.vnEy): ex, I, ez = self.r(I,'E','E','M')
-        elif imageType == 'Ez':
-            if I.size != np.prod(self.vnEz): ex, ey, I = self.r(I,'E','E','M')
-        elif imageType[0] == 'E':
-            plotAll = len(imageType) == 1
-            options = {"direction":direction,"numbering":numbering,"annotationColor":annotationColor,"showIt":False}
-            fig = plt.figure(figNum)
-            # Determine the subplot number: 131, 121
-            numPlots = 130 if plotAll else len(imageType)/2*10+100
-            pltNum = 1
-            ex, ey, ez = self.r(I,'E','E','M')
-            if plotAll or 'Ex' in imageType:
-                ax_x = plt.subplot(numPlots+pltNum)
-                self.plotImage(ex, imageType='Ex', ax=ax_x, **options)
-                pltNum +=1
-            if plotAll or 'Ey' in imageType:
-                ax_y = plt.subplot(numPlots+pltNum)
-                self.plotImage(ey, imageType='Ey', ax=ax_y, **options)
-                pltNum +=1
-            if plotAll or 'Ez' in imageType:
-                ax_z = plt.subplot(numPlots+pltNum)
-                self.plotImage(ez, imageType='Ez', ax=ax_z, **options)
-                pltNum +=1
-            if showIt: plt.show()
-            return
-        elif imageType[0] == 'F':
-            plotAll = len(imageType) == 1
-            options = {"direction":direction,"numbering":numbering,"annotationColor":annotationColor,"showIt":False}
-            fig = plt.figure(figNum)
-            # Determine the subplot number: 131, 121
-            numPlots = 130 if plotAll else len(imageType)/2*10+100
-            pltNum = 1
-            fxyz = self.r(I,'F','F','M')
-            if plotAll or 'Fx' in imageType:
-                ax_x = plt.subplot(numPlots+pltNum)
-                self.plotImage(fxyz[0], imageType='Fx', ax=ax_x, **options)
-                pltNum +=1
-            if plotAll or 'Fy' in imageType:
-                ax_y = plt.subplot(numPlots+pltNum)
-                self.plotImage(fxyz[1], imageType='Fy', ax=ax_y, **options)
-                pltNum +=1
-            if plotAll or 'Fz' in imageType:
-                ax_z = plt.subplot(numPlots+pltNum)
-                self.plotImage(fxyz[2], imageType='Fz', ax=ax_z, **options)
-                pltNum +=1
-            if showIt: plt.show()
-            return
-        else:
-            raise Exception("imageType must be 'CC', 'N','Fx','Fy','Fz','Ex','Ey','Ez'")
-
 
         if ax is None:
-            fig = plt.figure(figNum)
-            fig.clf()
+            fig = plt.figure()
             ax = plt.subplot(111)
         else:
             assert isinstance(ax,matplotlib.axes.Axes), "ax must be an Axes!"
             fig = ax.figure
 
         if self.dim == 1:
-            if imageType == 'CC':
-                ph = ax.plot(self.vectorCCx, I, '-ro')
-            elif imageType == 'N':
-                ph = ax.plot(self.vectorNx, I, '-bs')
+            if vType == 'CC':
+                ph = ax.plot(self.vectorCCx, v, '-ro')
+            elif vType == 'N':
+                ph = ax.plot(self.vectorNx, v, '-bs')
             ax.set_xlabel("x")
             ax.axis('tight')
         elif self.dim == 2:
-            if imageType == 'CC':
-                C = I[:].reshape(self.vnC, order='F')
-            elif imageType == 'N':
-                C = I[:].reshape(self.vnN, order='F')
-                C = 0.25*(C[:-1, :-1] + C[1:, :-1] + C[:-1, 1:] + C[1:, 1:])
-            elif imageType == 'Fx':
-                C = I[:].reshape(self.vnFx, order='F')
-                C = 0.5*(C[:-1, :] + C[1:, :] )
-            elif imageType == 'Fy':
-                C = I[:].reshape(self.vnFy, order='F')
-                C = 0.5*(C[:, :-1] + C[:, 1:] )
-            elif imageType == 'Ex':
-                C = I[:].reshape(self.vnEx, order='F')
-                C = 0.5*(C[:,:-1] + C[:,1:] )
-            elif imageType == 'Ey':
-                C = I[:].reshape(self.vnEy, order='F')
-                C = 0.5*(C[:-1,:] + C[1:,:] )
+            return self._plotImage2D(v, vType=vType, grid=grid, view=view,
+                                     ax=ax, clim=clim, showIt=showIt,
+                                     pcolorOpts=pcolorOpts, streamOpts=streamOpts,
+                                     gridOpts=gridOpts)
+        elif self.dim == 3:
+            # get copy of image and average to cell-centers is necessary
+            if vType == 'CC':
+                vc = v.reshape(self.vnC, order='F')
+            elif vType == 'N':
+                vc = (self.aveN2CC*v).reshape(self.vnC, order='F')
+            elif vType in ['Fx', 'Fy', 'Fz', 'Ex', 'Ey', 'Ez']:
+                aveOp = 'ave' + vType[0] + '2CCV'
+                v = getattr(self,aveOp)*v # average to cell centers
+                ind_xyz = {'x':0,'y':1,'z':2}[vType[1]]
+                vc = self.r(v.reshape((self.nC,-1),order='F'), 'CC','CC','M')[ind_xyz]
+
+            # determine number oE slices in x and y dimension
+            nX = np.ceil(np.sqrt(self.nCz))
+            nY = np.ceil(self.nCz/nX)
+
+            #  allocate space for montage
+            nCx = self.nCx
+            nCy = self.nCy
+
+            C = np.zeros((nX*nCx,nY*nCy))
+
+            for iy in range(int(nY)):
+                for ix in range(int(nX)):
+                    iz = ix + iy*nX
+                    if iz < self.nCz:
+                        C[ix*nCx:(ix+1)*nCx, iy*nCy:(iy+1)*nCy] = vc[:, :, iz]
+                    else:
+                        C[ix*nCx:(ix+1)*nCx, iy*nCy:(iy+1)*nCy] = np.nan
+
+            C = np.ma.masked_where(np.isnan(C), C)
+            xx = np.r_[0, np.cumsum(np.kron(np.ones((nX, 1)), self.hx).ravel())]
+            yy = np.r_[0, np.cumsum(np.kron(np.ones((nY, 1)), self.hy).ravel())]
+            # Plot the mesh
 
             if clim is None:
                 clim = [C.min(),C.max()]
-            ph = ax.pcolormesh(self.vectorNx, self.vectorNy, C.T, vmin=clim[0], vmax=clim[1])
+            ph = ax.pcolormesh(xx, yy, C.T, vmin=clim[0], vmax=clim[1])
+            # Plot the lines
+            gx =  np.arange(nX+1)*(self.vectorNx[-1]-self.x0[0])
+            gy =  np.arange(nY+1)*(self.vectorNy[-1]-self.x0[1])
+            # Repeat and seperate with NaN
+            gxX = np.c_[gx, gx, gx+np.nan].ravel()
+            gxY = np.kron(np.ones((nX+1, 1)), np.array([0, sum(self.hy)*nY, np.nan])).ravel()
+            gyX = np.kron(np.ones((nY+1, 1)), np.array([0, sum(self.hx)*nX, np.nan])).ravel()
+            gyY = np.c_[gy, gy, gy+np.nan].ravel()
+            ax.plot(gxX, gxY, annotationColor+'-', linewidth=2)
+            ax.plot(gyX, gyY, annotationColor+'-', linewidth=2)
             ax.axis('tight')
-            ax.set_xlabel("x")
-            ax.set_ylabel("y")
 
-        elif self.dim == 3:
-            if direction == 'z':
-
-                # get copy of image and average to cell-centres is necessary
-                if imageType == 'CC':
-                    Ic = I[:].reshape(self.vnC, order='F')
-                elif imageType == 'N':
-                    Ic = I[:].reshape(self.vnN, order='F')
-                    Ic = .125*(Ic[:-1,:-1,:-1]+Ic[1:,:-1,:-1] + Ic[:-1,1:,:-1]+ Ic[1:,1:,:-1]+ Ic[:-1,:-1,1:]+Ic[1:,:-1,1:] + Ic[:-1,1:,1:]+ Ic[1:,1:,1:] )
-                elif imageType == 'Fx':
-                    Ic = I[:].reshape(self.vnFx, order='F')
-                    Ic = .5*(Ic[:-1,:,:]+Ic[1:,:,:])
-                elif imageType == 'Fy':
-                    Ic = I[:].reshape(self.vnFy, order='F')
-                    Ic = .5*(Ic[:,:-1,:]+Ic[:,1:,:])
-                elif imageType == 'Fz':
-                    Ic = I[:].reshape(self.vnFz, order='F')
-                    Ic = .5*(Ic[:,:,:-1]+Ic[:,:,1:])
-                elif imageType == 'Ex':
-                    Ic = I[:].reshape(self.vnEx, order='F')
-                    Ic = .25*(Ic[:,:-1,:-1]+Ic[:,1:,:-1]+Ic[:,:-1,1:]+Ic[:,1:,:1])
-                elif imageType == 'Ey':
-                    Ic = I[:].reshape(self.vnEy, order='F')
-                    Ic = .25*(Ic[:-1,:,:-1]+Ic[1:,:,:-1]+Ic[:-1,:,1:]+Ic[1:,:,:1])
-                elif imageType == 'Ez':
-                    Ic = I[:].reshape(self.vnEz, order='F')
-                    Ic = .25*(Ic[:-1,:-1,:]+Ic[1:,:-1,:]+Ic[:-1,1:,:]+Ic[1:,:1,:])
-
-                # determine number oE slices in x and y dimension
-                nX = np.ceil(np.sqrt(self.nCz))
-                nY = np.ceil(self.nCz/nX)
-
-                #  allocate space for montage
-                nCx = self.nCx
-                nCy = self.nCy
-
-                C = np.zeros((nX*nCx,nY*nCy))
-
+            if numbering:
+                pad = np.sum(self.hx)*0.04
                 for iy in range(int(nY)):
                     for ix in range(int(nX)):
                         iz = ix + iy*nX
                         if iz < self.nCz:
-                            C[ix*nCx:(ix+1)*nCx, iy*nCy:(iy+1)*nCy] = Ic[:, :, iz]
-                        else:
-                            C[ix*nCx:(ix+1)*nCx, iy*nCy:(iy+1)*nCy] = np.nan
+                            ax.text((ix+1)*(self.vectorNx[-1]-self.x0[0])-pad,(iy)*(self.vectorNy[-1]-self.x0[1])+pad,
+                                     '#%i'%iz,color=annotationColor,verticalalignment='bottom',horizontalalignment='right',size='x-large')
 
-                C = np.ma.masked_where(np.isnan(C), C)
-                xx = np.r_[0, np.cumsum(np.kron(np.ones((nX, 1)), self.hx).ravel())]
-                yy = np.r_[0, np.cumsum(np.kron(np.ones((nY, 1)), self.hy).ravel())]
-                # Plot the mesh
-
-                if clim is None:
-                    clim = [C.min(),C.max()]
-                ph = ax.pcolormesh(xx, yy, C.T, vmin=clim[0], vmax=clim[1])
-                # Plot the lines
-                gx =  np.arange(nX+1)*(self.vectorNx[-1]-self.x0[0])
-                gy =  np.arange(nY+1)*(self.vectorNy[-1]-self.x0[1])
-                # Repeat and seperate with NaN
-                gxX = np.c_[gx, gx, gx+np.nan].ravel()
-                gxY = np.kron(np.ones((nX+1, 1)), np.array([0, sum(self.hy)*nY, np.nan])).ravel()
-                gyX = np.kron(np.ones((nY+1, 1)), np.array([0, sum(self.hx)*nX, np.nan])).ravel()
-                gyY = np.c_[gy, gy, gy+np.nan].ravel()
-                ax.plot(gxX, gxY, annotationColor+'-', linewidth=2)
-                ax.plot(gyX, gyY, annotationColor+'-', linewidth=2)
-                ax.axis('tight')
-
-                if numbering:
-                    pad = np.sum(self.hx)*0.04
-                    for iy in range(int(nY)):
-                        for ix in range(int(nX)):
-                            iz = ix + iy*nX
-                            if iz < self.nCz:
-                                ax.text((ix+1)*(self.vectorNx[-1]-self.x0[0])-pad,(iy)*(self.vectorNy[-1]-self.x0[1])+pad,
-                                         '#%i'%iz,color=annotationColor,verticalalignment='bottom',horizontalalignment='right',size='x-large')
-
-        ax.set_title(imageType)
+        ax.set_title(vType)
         if showIt: plt.show()
         return ph
 
@@ -270,7 +194,7 @@ class TensorView(object):
 
         # Some user error checking
         assert vType in vTypeOpts, "vType must be in ['%s']" % "','".join(vTypeOpts)
-        assert self.dim == 3, 'Must be a 3D mesh.'
+        assert self.dim == 3, 'Must be a 3D mesh. Use plotImage.'
         assert view in viewOpts, "view must be in ['%s']" % "','".join(viewOpts)
         assert normal in normalOpts, "normal must be in ['%s']" % "','".join(normalOpts)
         assert type(grid) is bool, 'grid must be a boolean'
@@ -278,14 +202,6 @@ class TensorView(object):
         szSliceDim = getattr(self, 'nC'+normal.lower()) #: Size of the sliced dimension
         if ind is None: ind = int(szSliceDim/2)
         assert type(ind) in [int, long], 'ind must be an integer'
-
-        if ax is None:
-            fig = plt.figure(1)
-            fig.clf()
-            ax = plt.subplot(111)
-        else:
-            assert isinstance(ax, matplotlib.axes.Axes), "ax must be an matplotlib.axes.Axes"
-            fig = ax.figure
 
         # The slicing and plotting code!!
 
@@ -299,75 +215,138 @@ class TensorView(object):
             if vType == 'CC':
                 return getIndSlice(self.r(v,'CC','CC','M'))
             elif vType == 'CCv':
-                v = self.r(v.reshape((self.nC,3),order='F'),'CC','CC','M')
-                assert view == 'vec', 'Other types for CCv not yet supported'
+                assert view == 'vec', 'Other types for CCv not supported'
             else:
                 # Now just deal with 'F' and 'E'
                 aveOp = 'ave' + vType + ('2CCV' if view == 'vec' else '2CC')
                 v = getattr(self,aveOp)*v # average to cell centers (might be a vector)
-                v = self.r(v.reshape((self.nC,-1),order='F'),'CC','CC','M')
+            v = self.r(v.reshape((self.nC,-1),order='F'),'CC','CC','M')
             if view == 'vec':
                 outSlice = []
                 if 'X' not in normal: outSlice.append(getIndSlice(v[0]))
                 if 'Y' not in normal: outSlice.append(getIndSlice(v[1]))
                 if 'Z' not in normal: outSlice.append(getIndSlice(v[2]))
-                return outSlice
+                return np.r_[mkvc(outSlice[0]), mkvc(outSlice[1])]
             else:
                 return getIndSlice(self.r(v,'CC','CC','M'))
 
         h2d = []
-        if 'X' not in normal: h2d.append(self.hx)
-        if 'Y' not in normal: h2d.append(self.hy)
-        if 'Z' not in normal: h2d.append(self.hz)
-        tM = self.__class__(h2d) #: Temp Mesh
+        x2d = []
+        if 'X' not in normal:
+            h2d.append(self.hx)
+            x2d.append(self.x0[0])
+        if 'Y' not in normal:
+            h2d.append(self.hy)
+            x2d.append(self.x0[1])
+        if 'Z' not in normal:
+            h2d.append(self.hz)
+            x2d.append(self.x0[2])
+        tM = self.__class__(h2d, x2d) #: Temp Mesh
+        v2d = doSlice(v)
+
+
+        if ax is None:
+            fig = plt.figure()
+            ax = plt.subplot(111)
+        else:
+            assert isinstance(ax, matplotlib.axes.Axes), "ax must be an matplotlib.axes.Axes"
+            fig = ax.figure
+
+        tM._plotImage2D(v2d, vType=('CCv' if view == 'vec' else 'CC'), grid=grid, view=view,
+                        ax=ax, clim=clim, showIt=showIt,
+                        pcolorOpts=pcolorOpts, streamOpts=streamOpts,
+                        gridOpts=gridOpts)
+
+
+        ax.set_xlabel('y' if normal == 'X' else 'x')
+        ax.set_ylabel('y' if normal == 'Z' else 'z')
+        ax.set_title('Slice %d' % ind)
+
+
+    def _plotImage2D(self, v, vType='CC', grid=False, view='real',
+              ax=None, clim=None, showIt=False,
+              pcolorOpts={},
+              streamOpts={'color':'k'},
+              gridOpts={'color':'k'}
+              ):
+
+        vTypeOptsCC = ['N','CC','Fx','Fy','Ex','Ey']
+        vTypeOptsV = ['CCv','F','E']
+        vTypeOpts = vTypeOptsCC + vTypeOptsV
+        if view == 'vec':
+            assert vType in vTypeOptsV, "vType must be in ['%s'] when view='vec'" % "','".join(vTypeOptsV)
+        assert vType in vTypeOpts, "vType must be in ['%s']" % "','".join(vTypeOpts)
+
+        viewOpts = ['real','imag','abs','vec']
+        assert view in viewOpts, "view must be in ['%s']" % "','".join(viewOpts)
+
+
+        if ax is None:
+            fig = plt.figure()
+            ax = plt.subplot(111)
+        else:
+            assert isinstance(ax, matplotlib.axes.Axes), "ax must be an matplotlib.axes.Axes"
+            fig = ax.figure
+
+        # Reshape to a cell centered variable
+        if vType == 'CC':
+            pass
+        elif vType == 'CCv':
+            assert view == 'vec', 'Other types for CCv not supported'
+        elif vType in ['F', 'E', 'N']:
+            aveOp = 'ave' + vType + ('2CCV' if view == 'vec' else '2CC')
+            v = getattr(self,aveOp)*v # average to cell centers (might be a vector)
+        elif vType in ['Fx','Fy','Ex','Ey']:
+            aveOp = 'ave' + vType[0] + '2CCV'
+            v = getattr(self,aveOp)*v # average to cell centers (might be a vector)
+            xORy = {'x':0,'y':1}[vType[1]]
+            v = v.reshape((self.nC,-1), order='F')[:,xORy]
 
         out = ()
         if view in ['real','imag','abs']:
+            v = self.r(v, 'CC', 'CC', 'M')
             v = getattr(np,view)(v) # e.g. np.real(v)
-            v = doSlice(v)
             if clim is None:
                 clim = [v.min(),v.max()]
-            out += (ax.pcolormesh(tM.vectorNx, tM.vectorNy, v.T, vmin=clim[0], vmax=clim[1], **pcolorOpts),)
+            out += (ax.pcolormesh(self.vectorNx, self.vectorNy, v.T, vmin=clim[0], vmax=clim[1], **pcolorOpts),)
         elif view in ['vec']:
-            U, V = doSlice(v)
+            U, V = self.r(v.reshape((self.nC,-1), order='F'), 'CC', 'CC', 'M')
             if clim is None:
-                uv = np.r_[mkvc(U), mkvc(V)]
-                uv = np.sqrt(uv**2)
+                uv = np.sqrt(U**2 + V**2)
                 clim = [uv.min(),uv.max()]
 
             # Matplotlib seems to not support irregular
             # spaced vectors at the moment. So we will
             # Interpolate down to a regular mesh at the
             # smallest mesh size in this 2D slice.
-            nxi = int(tM.hx.sum()/tM.hx.min())
-            nyi = int(tM.hy.sum()/tM.hy.min())
-            tMi = self.__class__([np.ones(nxi)*tM.hx.sum()/nxi,
-                                  np.ones(nyi)*tM.hy.sum()/nyi])
-            P = tM.getInterpolationMat(tMi.gridCC,'CC',zerosOutside=True)
-            Ui = P*mkvc(U)
-            Vi = P*mkvc(V)
-            Ui = tMi.r(Ui, 'CC', 'CC', 'M')
-            Vi = tMi.r(Vi, 'CC', 'CC', 'M')
+            nxi = int(self.hx.sum()/self.hx.min())
+            nyi = int(self.hy.sum()/self.hy.min())
+            tMi = self.__class__([np.ones(nxi)*self.hx.sum()/nxi,
+                                  np.ones(nyi)*self.hy.sum()/nyi], self.x0)
+            P = self.getInterpolationMat(tMi.gridCC,'CC',zerosOutside=True)
+            Ui = tMi.r(P*mkvc(U), 'CC', 'CC', 'M')
+            Vi = tMi.r(P*mkvc(V), 'CC', 'CC', 'M')
             # End Interpolation
 
-            out += (ax.pcolormesh(tM.vectorNx, tM.vectorNy, np.sqrt(U**2+V**2).T, vmin=clim[0], vmax=clim[1], **pcolorOpts),)
+            out += (ax.pcolormesh(self.vectorNx, self.vectorNy, np.sqrt(U**2+V**2).T, vmin=clim[0], vmax=clim[1], **pcolorOpts),)
             out += (ax.streamplot(tMi.vectorCCx, tMi.vectorCCy, Ui.T, Vi.T, **streamOpts),)
 
         if grid:
-            xXGrid = np.c_[tM.vectorNx,tM.vectorNx,np.nan*np.ones(tM.nNx)].flatten()
-            xYGrid = np.c_[tM.vectorNy[0]*np.ones(tM.nNx),tM.vectorNy[-1]*np.ones(tM.nNx),np.nan*np.ones(tM.nNx)].flatten()
-            yXGrid = np.c_[tM.vectorNx[0]*np.ones(tM.nNy),tM.vectorNx[-1]*np.ones(tM.nNy),np.nan*np.ones(tM.nNy)].flatten()
-            yYGrid = np.c_[tM.vectorNy,tM.vectorNy,np.nan*np.ones(tM.nNy)].flatten()
+            xXGrid = np.c_[self.vectorNx,self.vectorNx,np.nan*np.ones(self.nNx)].flatten()
+            xYGrid = np.c_[self.vectorNy[0]*np.ones(self.nNx),self.vectorNy[-1]*np.ones(self.nNx),np.nan*np.ones(self.nNx)].flatten()
+            yXGrid = np.c_[self.vectorNx[0]*np.ones(self.nNy),self.vectorNx[-1]*np.ones(self.nNy),np.nan*np.ones(self.nNy)].flatten()
+            yYGrid = np.c_[self.vectorNy,self.vectorNy,np.nan*np.ones(self.nNy)].flatten()
             out += (ax.plot(np.r_[xXGrid,yXGrid],np.r_[xYGrid,yYGrid],**gridOpts)[0],)
 
-        ax.set_xlabel('y' if normal == 'X' else 'x')
-        ax.set_ylabel('y' if normal == 'Z' else 'z')
-        ax.set_title('Slice %d' % ind)
-        ax.set_xlim(*tM.vectorNx[[0,-1]])
-        ax.set_ylim(*tM.vectorNy[[0,-1]])
+
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        ax.set_xlim(*self.vectorNx[[0,-1]])
+        ax.set_ylim(*self.vectorNy[[0,-1]])
 
         if showIt: plt.show()
         return out
+
 
     def plotGrid(self, ax=None, nodes=False, faces=False, centers=False, edges=False, lines=True, showIt=False):
         """Plot the nodal, cell-centered and staggered grids for 1,2 and 3 dimensions.
@@ -401,15 +380,20 @@ class TensorView(object):
         """
 
         axOpts = {'projection':'3d'} if self.dim == 3 else {}
-        if ax is None: ax = plt.subplot(111, **axOpts)
+        if ax is None:
+            fig = plt.figure()
+            ax = plt.subplot(111, **axOpts)
+        else:
+            assert isinstance(ax, matplotlib.axes.Axes), "ax must be an matplotlib.axes.Axes"
+            fig = ax.figure
 
         if self.dim == 1:
             if nodes:
-                ax.plot(xn, np.ones(self.nN), 'bs')
+                ax.plot(self.gridN, np.ones(self.nN), 'bs')
             if centers:
-                ax.plot(xc, np.ones(self.nC), 'ro')
+                ax.plot(self.gridCC, np.ones(self.nC), 'ro')
             if lines:
-                ax.plot(xn, np.ones(self.nN), 'b-')
+                ax.plot(self.gridN, np.ones(self.nN), 'b.-')
             ax.set_xlabel('x1')
         elif self.dim == 2:
             if nodes:
@@ -636,11 +620,31 @@ class LomView(object):
 if __name__ == '__main__':
     from SimPEG import *
     mT = Utils.meshTensors(((2,5),(4,2),(2,5)),((2,2),(6,2),(2,2)),((2,2),(6,2),(2,2)))
-    M = Mesh.TensorMesh(mT)
+    M = Mesh.TensorMesh(mT, x0=[10,20,14])
     q = np.zeros(M.vnC)
     q[[4,4],[4,4],[2,6]]=[-1,1]
     q = Utils.mkvc(q)
     A = M.faceDiv*M.cellGrad
     b = Solver(A).solve(q)
-    M.plotSlice(M.cellGrad*b, 'F', view='vec', grid=True, showIt=True, pcolorOpts={'alpha':0.8})
 
+    M.plotSlice(M.cellGrad*b, 'F', view='vec', grid=True, pcolorOpts={'alpha':0.8})
+    M2 = Mesh.TensorMesh([10,20],x0=[10,5])
+    f = np.r_[np.sin(M2.gridFx[:,0]*2*np.pi), np.sin(M2.gridFy[:,1]*2*np.pi)]
+    M2.plotImage(f, 'F', view='vec', grid=True, pcolorOpts={'alpha':0.8})
+    M2.plotImage(f, 'Fx')
+
+    f = np.r_[np.sin(M2.gridEx[:,0]*2*np.pi), np.sin(M2.gridEy[:,1]*2*np.pi)]
+    M2.plotImage(f, 'E', view='vec', grid=True, pcolorOpts={'alpha':0.8})
+
+    c = np.r_[np.sin(M2.gridCC[:,0]*2*np.pi)]
+    M2.plotImage(c, 'CC', view='real')
+
+    from SimPEG import Mesh, np
+    M = Mesh.TensorMesh([20,20,20])
+    v = np.sin(M.gridCC[:,0]*2*np.pi)*np.sin(M.gridCC[:,1]*2*np.pi)*np.sin(M.gridCC[:,2]*2*np.pi)
+    M.plotImage(v, annotationColor='k')
+
+
+    Mesh.TensorMesh([10]).plotGrid()
+
+    plt.show()

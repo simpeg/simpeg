@@ -41,7 +41,7 @@ class Parameter(object):
     @property
     def reg(self): return self.parent.reg
     @property
-    def data(self): return self.parent.data
+    def survey(self): return self.parent.survey
     @property
     def prob(self): return self.parent.prob
     @property
@@ -131,13 +131,13 @@ class BetaEstimate(Parameter):
             :return: beta0
         """
         objFunc  = self.parent
-        data     = objFunc.data
+        survey     = objFunc.survey
 
         m = objFunc.m_current
         u = objFunc.u_current
 
         if u is None:
-            u = data.prob.fields(m)
+            u = survey.prob.fields(m)
 
         x0 = np.random.rand(*m.shape)
         t = x0.dot(objFunc.dataObj2Deriv(m,x0,u=u))
