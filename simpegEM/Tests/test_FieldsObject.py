@@ -16,6 +16,7 @@ class FieldsTest(unittest.TestCase):
         mesh = Mesh.TensorMesh([np.ones(n)*5 for n in [10,11,12]],[0,0,-30])
         survey = EM.FDEM.SurveyFDEM(txList)
         self.F = EM.FDEM.FieldsFDEM(mesh, survey)
+        self.D = EM.FDEM.DataFDEM(survey)
         self.Tx0 = Tx0
         self.Tx1 = Tx1
 
@@ -66,6 +67,20 @@ class FieldsTest(unittest.TestCase):
         txs = self.F.survey.txList
         txs += [txs[0]]
         self.assertRaises(AssertionError, EM.FDEM.SurveyFDEM, txs)
+
+
+    def test_dataFDEM(self):
+        V = []
+        for tx in self.D.survey.txList:
+            v = np.random.rand(tx.nD)
+            V += [v]
+            self.D[tx] = v
+            self.assertTrue(np.all(v == self.D[tx]))
+        V = np.concatenate(V)
+        self.assertTrue(np.all(V == Utils.mkvc(self.D)))
+
+        D2 = EM.FDEM.DataFDEM(self.D.survey, V)
+        self.assertTrue(np.all(Utils.mkvc(D2) == Utils.mkvc(self.D)))
 
 
 

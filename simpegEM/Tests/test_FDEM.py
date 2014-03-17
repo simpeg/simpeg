@@ -26,10 +26,10 @@ class FDEM_bDerivTests(unittest.TestCase):
         rxList = EM.FDEM.RxListFDEM(XYZ, 'Ex')
         Tx0 = EM.FDEM.TxFDEM(None, 'VMD', 3, rxList)
 
-        dat = EM.FDEM.SurveyFDEM([Tx0])
+        survey = EM.FDEM.SurveyFDEM([Tx0])
 
         prb = EM.FDEM.ProblemFDEM_e(model)
-        prb.pair(dat)
+        prb.pair(survey)
 
         sigma = np.log(np.ones(mesh.nC)*1e-3)
 
@@ -42,14 +42,22 @@ class FDEM_bDerivTests(unittest.TestCase):
 
         self.sigma = sigma
         self.prb = prb
-        self.dat = dat
+        self.survey = survey
 
-    def test_JVec(self):
+    def test_Jvec(self):
         x0 = self.sigma
         def fun(x):
-            return self.dat.dpred(x), lambda x: self.prb.Jvec(x0, x)
+            return self.survey.dpred(x), lambda x: self.prb.Jvec(x0, x)
         passed = Tests.checkDerivative(fun, x0, num=3, plotIt=False)
         self.assertTrue(passed)
+
+    # def test_Jtvec(self):
+    #     v = self.survey.nD
+    #     x0 = self.sigma
+    #     def fun(x):
+    #         return self.survey.dpred(x), lambda x: self.prb.Jvec(x0, x)
+    #     passed = Tests.checkDerivative(fun, x0, num=3, plotIt=False)
+    #     self.assertTrue(passed)
 
 
 if __name__ == '__main__':

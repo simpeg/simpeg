@@ -160,9 +160,11 @@ class FieldsFDEM(object):
 
 class DataFDEM(object):
     """docstring for DataFDEM"""
-    def __init__(self, survey):
+    def __init__(self, survey, v=None):
         self.survey = survey
         self._dataDict = {}
+        if v is not None:
+            self.fromvec(v)
 
     def _ensureCorrectKey(self, key):
         if key not in self.survey.txList:
@@ -176,11 +178,22 @@ class DataFDEM(object):
 
     def __getitem__(self, key):
         self._ensureCorrectKey(key)
+        if key not in self._dataDict:
+            raise Exception('Data for transmitter has not yet been set.')
         return self._dataDict[key]
 
     def tovec(self):
-        D = self._dataDict
-        return np.concatenate([D[k] for k in D])
+        return np.concatenate([self[tx] for tx in self.survey.txList])
+
+    def fromvec(self, v):
+        v = Utils.mkvc(v)
+        assert v.size == self.survey.nD, 'v must have the correct number of data.'
+        indBot, indTop = 0, 0
+        for tx in self.survey.txList:
+            indTop += tx.nD
+            self[tx] = v[indBot:indTop]
+            indBot += tx.nD
+
 
 
 
@@ -209,6 +222,11 @@ class SurveyFDEM(Survey.BaseSurvey):
         self._freqs = sorted([f for f in self._freqDict])
 
         Survey.BaseSurvey.__init__(self, **kwargs)
+
+    @property
+    def nD(self):
+        """Number of data"""
+        return np.array([tx.nD for tx in self.txList]).sum()
 
     @property
     def freqs(self):
