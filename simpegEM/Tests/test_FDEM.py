@@ -41,7 +41,7 @@ class FDEM_bDerivTests(unittest.TestCase):
         x0 = self.sigma
         def fun(x):
             return self.survey.dpred(x), lambda x: self.prb.Jvec(x0, x)
-        passed = Tests.checkDerivative(fun, x0, num=3, plotIt=False)
+        passed = Tests.checkDerivative(fun, x0, num=3, plotIt=False, eps=1e-18)
         self.assertTrue(passed)
 
     def test_Jtvec_adjointTest(self):
