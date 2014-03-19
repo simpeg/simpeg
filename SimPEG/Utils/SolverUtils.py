@@ -2,7 +2,7 @@ import numpy as np
 from matutils import mkvc
 import warnings
 
-def DSolverWrap(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-8):
+def DSolverWrap(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6):
 
     def __init__(self, A, **kwargs):
         self.A = A.tocsc()
@@ -12,11 +12,12 @@ def DSolverWrap(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-8):
 
     def solve(self, b):
         if len(b.shape) == 1 or b.shape[1] == 1:
+            b = b.flatten()
             # Just one RHS
             if factorize:
-                X = self.solver.solve(b.flatten(), **self.kwargs)
+                X = self.solver.solve(b, **self.kwargs)
             else:
-                X = fun(self.A, b.flatten(), **self.kwargs)
+                X = fun(self.A, b, **self.kwargs)
         else: # Multiple RHSs
             X = np.empty_like(b)
             for i in range(b.shape[1]):
@@ -26,7 +27,7 @@ def DSolverWrap(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-8):
                     X[:,i] = fun(self.A, b[:,i], **self.kwargs)
 
         if checkAccuracy:
-            nrm = np.linalg.norm(mkvc(self.A*X - b)) / np.linalg.norm(Utils.mkvc(b))
+            nrm = np.linalg.norm(mkvc(self.A*X - b)) / np.linalg.norm(mkvc(b))
             if nrm > accuracyTol:
                 msg = '### SolverWarning ###: Accuracy on solve is above tolerance: %e > %e' % (nrm, accuracyTol)
                 print msg
@@ -45,8 +46,9 @@ def ISolverWrap(fun, checkAccuracy=True, accuracyTol=1e-5):
 
     def solve(self, b):
         if len(b.shape) == 1 or b.shape[1] == 1:
+            b = b.flatten()
             # Just one RHS
-            out = fun(self.A, b.flatten(), **self.kwargs)
+            out = fun(self.A, b, **self.kwargs)
             if type(out) is tuple and len(out) == 2:
                 # We are dealing with scipy output with an info!
                 X = out[0]
@@ -65,7 +67,7 @@ def ISolverWrap(fun, checkAccuracy=True, accuracyTol=1e-5):
                     X[:,i] = out
 
         if checkAccuracy:
-            nrm = np.linalg.norm(mkvc(self.A*X - b)) / np.linalg.norm(Utils.mkvc(b))
+            nrm = np.linalg.norm(mkvc(self.A*X - b)) / np.linalg.norm(mkvc(b))
             if nrm > accuracyTol:
                 msg = '### SolverWarning ###: Accuracy on solve is above tolerance: %e > %e' % (nrm, accuracyTol)
                 print msg

@@ -3,8 +3,8 @@
    :alt: SimPEG
    :align: center
 
-Simulation and Parameter Estimation in Geophysics (SimPEG)
-**********************************************************
+Simulation and Parameter Estimation in Geophysics
+*************************************************
 
 SimPEG is a python package for simulation and gradient
 based parameter estimation in the context of geoscience applications.
