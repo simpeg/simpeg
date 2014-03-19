@@ -20,7 +20,6 @@ class BaseProblemFDEM(Problem.BaseProblem):
     def __init__(self, model, **kwargs):
         Problem.BaseProblem.__init__(self, model, **kwargs)
 
-    solType = None
     storeTheseFields = ['e', 'b']
 
     surveyPair = SurveyFDEM
@@ -63,13 +62,28 @@ class BaseProblemFDEM(Problem.BaseProblem):
 
     currentTransformedModel = Utils.dependentProperty('_currentTransformedModel', None, ['_MeSigma', '_MeSigmaI'], 'Sets the current model, and removes dependent mass matrices.')
 
+    def fields(self, m):
+        self.currentTransformedModel = self.model.transform(m)
+        F = self.forward(m, self.getRHS, self.calcFields)
+        return F
+
+    def forward(self, m, RHS, CalcFields):
+
+        F = FieldsFDEM(self.mesh, self.survey)
+
+        for freq in self.survey.freqs:
+            A = self.getA(freq)
+            rhs = RHS(freq)
+            solver = self.Solver(A, **self.solverOpts)
+            sol = solver.solve(rhs)
+            F[freq] = CalcFields(sol, freq)
+
+        return F
 
 class ProblemFDEM_e(BaseProblemFDEM):
     """
         Solving for e!
     """
-
-    solType = 'e'
 
     def __init__(self, model, **kwargs):
         BaseProblemFDEM.__init__(self, model, **kwargs)
@@ -80,7 +94,11 @@ class ProblemFDEM_e(BaseProblemFDEM):
             :rtype: scipy.sparse.csr_matrix
             :return: A
         """
-        return self.mesh.edgeCurl.T*self.MfMui*self.mesh.edgeCurl + 1j*omega(freq)*self.MeSigma
+        mui = self.MfMui
+        sig = self.MeSigma
+        C = self.mesh.edgeCurl
+
+        return C.T*mui*C + 1j*omega(freq)*sig
 
     def getRHS(self, freq):
         """
@@ -101,31 +119,25 @@ class ProblemFDEM_e(BaseProblemFDEM):
             rhs[i] = np.concatenate((SRCx, SRCy, SRCz))
 
         a = np.concatenate(rhs).reshape((self.mesh.nE, len(Txs)), order='F')
+        mui = self.MfMui
         C = self.mesh.edgeCurl
-        j_s = C.T*self.MfMui*C*a
-        #TODO: self.Me* ??
+
+        j_s = C.T*mui*C*a
         return -1j*omega(freq)*j_s
 
+    def calcFields(self, sol, freq):
+        e = sol
 
-    def fields(self, m, useThisRhs=None):
-        RHS = useThisRhs or self.getRHS
+        fDict = {}
 
-        self.currentTransformedModel = self.model.transform(m)
+        if 'e' in self.storeTheseFields:
+            fDict['e'] = e
 
-        F = FieldsFDEM(self.mesh, self.survey)
-
-        for freq in self.survey.freqs:
-            A = self.getA(freq)
-            rhs = self.getRHS(freq)
-            solver = self.Solver(A, **self.solverOpts)
-            e = solver.solve(rhs)
-
-            F[freq, 'e'] = e
+        if 'b' in self.storeTheseFields:
             b = -1./(1j*omega(freq))*self.mesh.edgeCurl*e
-            F[freq, 'b'] = b
+            fDict['b'] = b
 
-        return F
-
+        return fDict
 
     def Jvec(self, m, v, u=None):
         if u is None:
@@ -187,8 +199,6 @@ class ProblemFDEM_b(BaseProblemFDEM):
         Solving for b!
     """
 
-    solType = 'b'
-
     def __init__(self, model, **kwargs):
         BaseProblemFDEM.__init__(self, model, **kwargs)
 
@@ -198,7 +208,11 @@ class ProblemFDEM_b(BaseProblemFDEM):
             :rtype: scipy.sparse.csr_matrix
             :return: A
         """
-        return self.MfMui*self.mesh.edgeCurl*self.MeSigmaI*self.mesh.edgeCurl.T*self.MfMui + 1j*omega(freq)*self.MfMui
+        mui = self.MfMui
+        sigI = self.MeSigmaI
+        C = self.mesh.edgeCurl
+
+        return mui*C*sigI*C.T*mui + 1j*omega(freq)*mui
 
     def getRHS(self, freq):
         """
@@ -219,31 +233,25 @@ class ProblemFDEM_b(BaseProblemFDEM):
             rhs[i] = np.concatenate((SRCx, SRCy, SRCz))
 
         a = np.concatenate(rhs).reshape((self.mesh.nE, len(Txs)), order='F')
+        mui = self.MfMui
         C = self.mesh.edgeCurl
+
         b_0 = C*a
-        return -1j*omega(freq)*self.MfMui*b_0
+        return -1j*omega(freq)*mui*b_0
 
+    def calcFields(self, sol, freq):
+        b = sol
 
-    def fields(self, m, useThisRhs=None):
-        RHS = useThisRhs or self.getRHS
+        fDict = {}
 
-        self.currentTransformedModel = self.model.transform(m)
+        if 'b' in self.storeTheseFields:
+            fDict['b'] = b
 
-        F = FieldsFDEM(self.mesh, self.survey)
-
-        for freq in self.survey.freqs:
-            A = self.getA(freq)
-            rhs = self.getRHS(freq)
-            solver = self.Solver(A, **self.solverOpts)
-            #Note that we are solving for b_s
-            b = solver.solve(rhs)
-
-            F[freq, 'b'] = b
+        if 'e' in self.storeTheseFields:
             e = self.MeSigmaI*self.mesh.edgeCurl.T*self.MfMui*b
-            F[freq, 'e'] = e
+            fDict['e'] = e
 
-        return F
-
+        return fDict
 
     def Jvec(self, m, v, u=None):
         if u is None:

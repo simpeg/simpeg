@@ -12,7 +12,7 @@ npad = 5
 hx = Utils.meshTensors(((npad,cs), (ncx,cs), (npad,cs)))
 hy = Utils.meshTensors(((npad,cs), (ncy,cs), (npad,cs)))
 hz = Utils.meshTensors(((npad,cs), (ncz,cs), (npad,cs)))
-mesh = Mesh.TensorMesh([hx,hy,hz], x0=[-hx.sum()/2.,-hy.sum()/2.,-hz.sum()/2.,])
+mesh = Mesh.TensorMesh([hx,hy,hz], x0=[-hx.sum()/2.,-hy.sum()/2.,-hz.sum()/2.])
 
 model = Model.LogModel(mesh)
 
