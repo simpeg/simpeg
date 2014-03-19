@@ -49,7 +49,7 @@
 
 
 TDEM - B formulation
-********************
+====================
 
 .. automodule:: simpegEM.TDEM.TDEM_b
     :show-inheritance:
@@ -59,7 +59,7 @@ TDEM - B formulation
 
 
 Field Storage
-*************
+=============
 
 .. automodule:: simpegEM.TDEM.FieldsTDEM
     :show-inheritance:
@@ -68,10 +68,10 @@ Field Storage
     :inherited-members:
 
 
-TDEM Data Classes
-*****************
+TDEM Survey Classes
+===================
 
-.. automodule:: simpegEM.TDEM.DataTDEM
+.. automodule:: simpegEM.TDEM.SurveyTDEM
     :show-inheritance:
     :members:
     :undoc-members:
@@ -79,7 +79,7 @@ TDEM Data Classes
 
 
 Base Classes
-************
+============
 
 .. automodule:: simpegEM.TDEM.BaseTDEM
     :show-inheritance:

@@ -56,7 +56,7 @@ The following shows the derivation for the TDEM problem. We use the b-formulatio
 
 
 Sensitivity Calculation
-***********************
+=======================
 
 .. math::
 
@@ -233,7 +233,7 @@ with
 
 
 Implementing **J** times a vector
-*********************************
+=================================
 
 Multiplying **J** onto a vector can be broken into three steps
 
@@ -297,8 +297,8 @@ and
 
 
 
-Implementing \\(\\mathbf{J}^\\top\\) times a vector
-*********************************
+Implementing **J** transpose times a vector
+===========================================
 
 Multiplying \\(\\mathbf{J}^\\top\\) onto a vector can be broken into three steps
 

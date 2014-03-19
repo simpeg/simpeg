@@ -1,11 +1,20 @@
 .. _api_FDEM:
 
 
-Base Classes
-************
+The API
+=======
 
-.. automodule:: simpegEM.FDEM
+.. automodule:: simpegEM.FDEM.FDEM
     :show-inheritance:
     :members:
     :undoc-members:
-    :inherited-members:
+
+
+FDEM Survey
+-----------
+
+.. automodule:: simpegEM.FDEM.SurveyFDEM
+    :show-inheritance:
+    :members:
+    :undoc-members:
+

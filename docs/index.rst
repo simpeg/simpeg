@@ -3,6 +3,10 @@
    :alt: SimPEG
    :align: center
 
+
+SimPEG for Electromagnetics
+===========================
+
 SimPEG (Simulation and Parameter Estimation in Geophysics) is a python
 package for simulation and gradient based parameter estimation in the
 context of geoscience applications.
@@ -44,19 +48,13 @@ Utils
    api_Utils
 
 
-Testing SimPEG
-==============
+Testing simpegEM
+================
 
 * Master Branch
-   .. image:: https://travis-ci.org/simpeg/simpegdc.png?branch=master
-      :target: https://travis-ci.org/simpeg/simpegdc
+   .. image:: https://travis-ci.org/simpeg/simpegem.png?branch=master
+      :target: https://travis-ci.org/simpeg/simpegem
       :alt: Master Branch
-      :align: center
-
-* Develop Branch
-   .. image:: https://travis-ci.org/simpeg/simpegdc.png?branch=develop
-      :target: https://travis-ci.org/simpeg/simpegdc
-      :alt: Develop Branch
       :align: center
 
 
