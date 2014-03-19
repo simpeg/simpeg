@@ -4,6 +4,7 @@ from lrmutils import volTetra, faceInfo, indexCube
 from interputils import interpmat
 from ipythonutils import easyAnimate as animate
 import ModelBuilder
+import SolverUtils
 
 import types
 import time

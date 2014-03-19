@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.linalg as linalg
-from Utils.matutils import mkvc, sdiag
+from Utils import mkvc, sdiag
 import warnings
 
 DEFAULTS = {'direct':'scipy', 'iter':'scipy', 'triangular':'fortran', 'diagonal':'python'}
@@ -214,12 +214,18 @@ class Solver(object):
     def solveIter(self, b, backend=None, M=None, iterSolver='CG', tol=1e-6, maxIter=50):
         if backend is None: backend = DEFAULTS['iter']
 
-        algorithms = {'CG':sp.linalg.cg}
+        algorithms = {'CG':sp.linalg.cg, 'QMR':sp.linalg.qmr}
         assert iterSolver in algorithms, "iterSolver must be 'CG', or implement it yourself and add it here!"
         alg = algorithms[iterSolver]
 
+        if iterSolver == 'CG':
+            opts = {'M':M}
+        elif iterSolver == 'QMR':
+            #TODO: make preconditioner better.
+            opts = {'M1':np.sqrt(M), 'M2':np.sqrt(M)}
+
         if len(b.shape) == 1 or b.shape[1] == 1:
-            x, self.info = alg(self.A, b, M=M, tol=tol, maxiter=maxIter)
+            x, self.info = alg(self.A, b,  tol=tol, maxiter=maxIter)
         else:
             x = np.empty_like(b)
             for i in range(b.shape[1]):
@@ -381,3 +387,17 @@ if __name__ == '__main__':
     toc = time() - tic
     print x
     print 'Error CG  = ', np.linalg.norm(x-e, np.inf), 'Time: ', toc, 'Info: ', iSolve.info
+
+
+
+    A = -D*D.T
+    A[0,0] *= 10 # remove the constant null space from the matrix
+    e = np.ones(M.nC)
+    b = A.dot(e)
+
+    iSolve = Solver(A, doDirect=False, options={'iterSolver': 'QMR', 'M':'J'})
+    tic = time()
+    x = iSolve.solve(b)
+    toc = time() - tic
+    print x
+    print 'Error QMR  = ', np.linalg.norm(x-e, np.inf), 'Time: ', toc, 'Info: ', iSolve.info
