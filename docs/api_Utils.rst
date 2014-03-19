@@ -15,6 +15,14 @@ Matrix Utilities
     :members:
     :undoc-members:
 
+
+Solver Utilities
+================
+
+.. automodule:: SimPEG.Utils.SolverUtils
+    :members:
+    :undoc-members:
+
 LRM Utilities
 =============
 
