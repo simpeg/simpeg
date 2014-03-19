@@ -20,8 +20,8 @@ class BaseProblemFDEM(Problem.BaseProblem):
     def __init__(self, model, **kwargs):
         Problem.BaseProblem.__init__(self, model, **kwargs)
 
-    solType = 'b'
-    storeTheseFields = 'e'
+    solType = None
+    storeTheseFields = ['e', 'b']
 
     surveyPair = SurveyFDEM
     dataPair = DataFDEM
@@ -34,35 +34,45 @@ class BaseProblemFDEM(Problem.BaseProblem):
     ####################################################
 
     @property
-    def MfMui(self): return self._MfMui
-
-    @property
-    def Me(self): return self._Me
-
-    @property
-    def MeSigma(self): return self._MeSigma
-
-    @property
-    def MeSigmaI(self): return self._MeSigmaI
-
-    def makeMassMatrices(self, m):
-        #TODO: hardcoded to sigma as the model
-        sigma = self.model.transform(m)
-        self._Me = self.mesh.getEdgeInnerProduct()
-        self._MeSigma = self.mesh.getEdgeInnerProduct(sigma)
-        # TODO: this will not work if tensor conductivity
-        self._MeSigmaI = Utils.sdiag(1/self.MeSigma.diagonal())
+    def MfMui(self):
         #TODO: assuming constant mu
-        self._MfMui = self.mesh.getFaceInnerProduct(1/mu_0)
+        if getattr(self, '_MfMui', None) is None:
+            self._MfMui = self.mesh.getFaceInnerProduct(1/mu_0)
+        return self._MfMui
+
+    @property
+    def Me(self):
+        if getattr(self, '_Me', None) is None:
+            self._Me = self.mesh.getEdgeInnerProduct()
+        return self._Me
+
+    @property
+    def MeSigma(self):
+        #TODO: hardcoded to sigma as the model
+        if getattr(self, '_MeSigma', None) is None:
+            sigma = self.currentTransformedModel
+            self._MeSigma = self.mesh.getEdgeInnerProduct(sigma)
+        return self._MeSigma
+
+    @property
+    def MeSigmaI(self):
+        # TODO: this will not work if tensor conductivity
+        if getattr(self, '_MeSigmaI', None) is None:
+            self._MeSigmaI = Utils.sdiag(1/self.MeSigma.diagonal())
+        return self._MeSigmaI
+
+    currentTransformedModel = Utils.dependentProperty('_currentTransformedModel', None, ['_MeSigma', '_MeSigmaI'], 'Sets the current model, and removes dependent mass matrices.')
 
 
 class ProblemFDEM_e(BaseProblemFDEM):
     """
         Solving for e!
     """
+
+    solType = 'e'
+
     def __init__(self, model, **kwargs):
         BaseProblemFDEM.__init__(self, model, **kwargs)
-
 
     def getA(self, freq):
         """
@@ -100,7 +110,7 @@ class ProblemFDEM_e(BaseProblemFDEM):
     def fields(self, m, useThisRhs=None):
         RHS = useThisRhs or self.getRHS
 
-        self.makeMassMatrices(m)
+        self.currentTransformedModel = self.model.transform(m)
 
         F = FieldsFDEM(self.mesh, self.survey)
 
@@ -121,8 +131,10 @@ class ProblemFDEM_e(BaseProblemFDEM):
         if u is None:
            u = self.fields(m)
 
-        Jv = self.dataPair(self.survey)
         sig = self.model.transform(m)
+        self.currentTransformedModel = sig
+
+        Jv = self.dataPair(self.survey)
         dsig_dm = self.model.transformDeriv(m)
 
         for i, freq in enumerate(self.survey.freqs):
@@ -145,13 +157,15 @@ class ProblemFDEM_e(BaseProblemFDEM):
         if u is None:
             u = self.fields(m)
 
+        sig = self.model.transform(m)
+        self.currentTransformedModel = sig
+
         # Ensure v is a data object.
         if not isinstance(v, self.dataPair):
             v = self.dataPair(self.survey, v)
 
         Jtv = np.zeros(self.model.nP, dtype=complex)
 
-        sig = self.model.transform(m)
         dsig_dm = self.model.transformDeriv(m)
 
         for i, freq in enumerate(self.survey.freqs):
@@ -172,9 +186,11 @@ class ProblemFDEM_b(BaseProblemFDEM):
     """
         Solving for b!
     """
+
+    solType = 'b'
+
     def __init__(self, model, **kwargs):
         BaseProblemFDEM.__init__(self, model, **kwargs)
-
 
     def getA(self, freq):
         """
@@ -211,7 +227,7 @@ class ProblemFDEM_b(BaseProblemFDEM):
     def fields(self, m, useThisRhs=None):
         RHS = useThisRhs or self.getRHS
 
-        self.makeMassMatrices(m)
+        self.currentTransformedModel = self.model.transform(m)
 
         F = FieldsFDEM(self.mesh, self.survey)
 
@@ -235,8 +251,10 @@ class ProblemFDEM_b(BaseProblemFDEM):
 
         raise NotImplemented('')
 
-        # Jv = self.dataPair(self.survey)
         # sig = self.model.transform(m)
+        # self.currentTransformedModel = sig
+
+        # Jv = self.dataPair(self.survey)
         # dsig_dm = self.model.transformDeriv(m)
 
         # for i, freq in enumerate(self.survey.freqs):
@@ -264,9 +282,12 @@ class ProblemFDEM_b(BaseProblemFDEM):
             v = self.dataPair(self.survey, v)
 
         raise NotImplemented('')
-        # Jtv = np.zeros(self.model.nP, dtype=complex)
 
         # sig = self.model.transform(m)
+        # self.currentTransformedModel = sig
+
+        # Jtv = np.zeros(self.model.nP, dtype=complex)
+
         # dsig_dm = self.model.transformDeriv(m)
 
         # for i, freq in enumerate(self.survey.freqs):
