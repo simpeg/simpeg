@@ -11,6 +11,13 @@ Analytic Functions
     :inherited-members:
 
 
+.. automodule:: simpegEM.Utils.Ana.FEM
+    :show-inheritance:
+    :members:
+    :undoc-members:
+    :inherited-members:
+
+
 Sources
 *******
 

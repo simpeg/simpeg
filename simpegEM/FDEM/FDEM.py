@@ -27,7 +27,7 @@ class BaseProblemFDEM(Problem.BaseProblem):
     dataPair = DataFDEM
 
     Solver = SimpegSolver
-    solverOpts = {'doDirect':True, 'options':{'factorize':False, 'backend':'scipy'}}
+    solverOpts = {}
 
     ####################################################
     # Mass Matrices
@@ -109,8 +109,6 @@ class ProblemFDEM_e(BaseProblemFDEM):
             rhs = self.getRHS(freq)
             solver = self.Solver(A, **self.solverOpts)
             e = solver.solve(rhs)
-
-            print np.linalg.norm(A*Utils.mkvc(e) - Utils.mkvc(rhs)) / np.linalg.norm(Utils.mkvc(rhs))
 
             F[freq, 'e'] = e
             b = -1./(1j*omega(freq))*self.mesh.edgeCurl*e
@@ -223,8 +221,6 @@ class ProblemFDEM_b(BaseProblemFDEM):
             solver = self.Solver(A, **self.solverOpts)
             #Note that we are solving for b_s
             b = solver.solve(rhs)
-
-            print np.linalg.norm(A*Utils.mkvc(b) - Utils.mkvc(rhs)) / np.linalg.norm(Utils.mkvc(rhs))
 
             F[freq, 'b'] = b
             e = self.MeSigmaI*self.mesh.edgeCurl.T*self.MfMui*b
