@@ -89,7 +89,8 @@ class BaseProblemFDEM(Problem.BaseProblem):
             rhs = RHS(freq)
             solver = self.Solver(A, **self.solverOpts)
             sol = solver.solve(rhs)
-            F[freq] = CalcFields(sol, freq)
+            for fieldType in self.storeTheseFields:
+                F[freq, fieldType] = CalcFields(sol, freq, fieldType)
 
         return F
 
@@ -106,10 +107,17 @@ class BaseProblemFDEM(Problem.BaseProblem):
             solver = self.Solver(A, **self.solverOpts)
 
             for tx in self.survey.getTransmitters(freq):
-                w = self.getADeriv(freq, u[tx, self.solType], v)
+                u_tx = u[tx, self.solType]
+                w = self.getADeriv(freq, u_tx, v)
                 Ainvw = solver.solve(w)
+                fAinvw = self.calcFields(Ainvw, freq, tx.rxList.fieldType)
                 P = tx.projectFieldsDeriv(self.mesh, u)
-                Jv[tx] = -P*Ainvw
+
+                df_dm = self.calcFieldsDeriv(u_tx, freq, tx.rxList.fieldType, v)
+                if df_dm is None:
+                    Jv[tx] = - P*fAinvw
+                else:
+                    Jv[tx] = - P*fAinvw + P*df_dm
 
         return Utils.mkvc(Jv)
 
@@ -131,8 +139,20 @@ class BaseProblemFDEM(Problem.BaseProblem):
 
             for tx in self.survey.getTransmitters(freq):
                 P = tx.projectFieldsDeriv(self.mesh, u)
-                w = solver.solve( - P.T * v[tx])
-                Jtv += self.getADeriv(freq, u[tx, self.solType], w, adjoint=True)
+
+                PTv = P.T * v[tx]
+                fPTv = self.calcFields(PTv, freq, tx.rxList.fieldType, adjoint=True)
+
+                w = solver.solve( fPTv )
+                u_tx = u[tx, self.solType]
+                Jtv_tx = self.getADeriv(freq, u_tx, w, adjoint=True)
+
+                df_dm = self.calcFieldsDeriv(u_tx, freq, tx.rxList.fieldType, PTv, adjoint=True)
+
+                if df_dm is None:
+                    Jtv += - Jtv_tx
+                else:
+                    Jtv += - Jtv_tx + df_dm
 
         return Jtv
 
@@ -192,19 +212,25 @@ class ProblemFDEM_e(BaseProblemFDEM):
         j_s = C.T*mui*C*a
         return -1j*omega(freq)*j_s
 
-    def calcFields(self, sol, freq):
+    def calcFields(self, sol, freq, fieldType, adjoint=False):
         e = sol
+        if fieldType == 'e':
+            return e
+        elif fieldType == 'b':
+            if not adjoint:
+                b = -1./(1j*omega(freq))*self.mesh.edgeCurl*e
+            else:
+                b = -1./(1j*omega(freq))*self.mesh.edgeCurl.T*e
+            return b
+        raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
 
-        fDict = {}
-
-        if 'e' in self.storeTheseFields:
-            fDict['e'] = e
-
-        if 'b' in self.storeTheseFields:
-            b = -1./(1j*omega(freq))*self.mesh.edgeCurl*e
-            fDict['b'] = b
-
-        return fDict
+    def calcFieldsDeriv(self, sol, freq, fieldType, v, adjoint=False):
+        e = sol
+        if fieldType == 'e':
+            return None
+        elif fieldType == 'b':
+            return None
+        raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
 
 
 class ProblemFDEM_b(BaseProblemFDEM):
@@ -270,17 +296,37 @@ class ProblemFDEM_b(BaseProblemFDEM):
         b_0 = C*a
         return -1j*omega(freq)*mui*b_0
 
-    def calcFields(self, sol, freq):
+    def calcFields(self, sol, freq, fieldType, adjoint=False):
         b = sol
+        if fieldType == 'e':
+            if not adjoint:
+                e = self.MeSigmaI * ( self.mesh.edgeCurl.T * ( self.MfMui * b ) )
+            else:
+                e = self.MfMui.T * ( self.mesh.edgeCurl * ( self.MeSigmaI.T * b ) )
+            return e
+        elif fieldType == 'b':
+            return b
+        raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
 
-        fDict = {}
+    def calcFieldsDeriv(self, sol, freq, fieldType, v, adjoint=False):
+        b = sol
+        if fieldType == 'e':
+            sig = self.curTModel
+            dsig_dm = self.curTModelDeriv
 
-        if 'b' in self.storeTheseFields:
-            fDict['b'] = b
+            C = self.mesh.edgeCurl
+            mui = self.MfMui
 
-        if 'e' in self.storeTheseFields:
-            e = self.MeSigmaI*self.mesh.edgeCurl.T*self.MfMui*b
-            fDict['e'] = e
+            #TODO: This only works if diagonal (no tensors)...
+            dMeSigmaI_dI = - self.MeSigmaI**2
 
-        return fDict
+            vec = C.T * ( mui * b )
+            dMe_dsig = self.mesh.getEdgeInnerProductDeriv(sig, v=vec)
+            if not adjoint:
+                return dMeSigmaI_dI * ( dMe_dsig * ( dsig_dm * v ) )
+            else:
+                return dsig_dm.T * ( dMe_dsig.T * ( dMeSigmaI_dI.T * v ) )
+        elif fieldType == 'b':
+            return None
+        raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
 

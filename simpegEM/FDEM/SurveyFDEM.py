@@ -3,19 +3,24 @@ from SimPEG import Survey, Utils, np, sp
 class RxListFDEM(Survey.BaseRxList):
 
     knownRxTypes = {
-                    'Ex':'Ex',
-                    'Ey':'Ey',
-                    'Ez':'Ez',
+                    'ex':'Ex',
+                    'ey':'Ey',
+                    'ez':'Ez',
 
-                    'Bx':'Fx',
-                    'By':'Fy',
-                    'Bz':'Fz',
+                    'bx':'Fx',
+                    'by':'Fy',
+                    'bz':'Fz',
                    }
 
     def __init__(self, locs, rxType):
         Survey.BaseRxList.__init__(self, locs, rxType)
 
         self._Ps = {}
+
+    @property
+    def fieldType(self):
+        #TODO: This assumes that it has the structure ex, by ...
+        return self.rxType[0]
 
     def getP(self, mesh):
         if mesh not in self._Ps:
@@ -43,9 +48,9 @@ class TxFDEM(Survey.BaseTx):
 
     def projectFields(self, mesh, u):
 
-        if self.rxList.rxType in ['Ex', 'Ey', 'Ez']:
+        if self.rxList.rxType in ['ex', 'ey', 'ez']:
             u_part = u[self, 'e']
-        elif self.rxList.rxType in ['Bx', 'By', 'Bz']:
+        elif self.rxList.rxType in ['bx', 'by', 'bz']:
             u_part = u[self, 'b']
         else:
             raise NotImplemented('Unknown receiver type.')
