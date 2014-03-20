@@ -138,13 +138,13 @@ class BaseProblemFDEM(Problem.BaseProblem):
             solver = self.Solver(AT, **self.solverOpts)
 
             for tx in self.survey.getTransmitters(freq):
-                P = tx.projectFieldsDeriv(self.mesh, u)
+                u_tx = u[tx, self.solType]
 
+                P = tx.projectFieldsDeriv(self.mesh, u)
                 PTv = P.T * v[tx]
                 fPTv = self.calcFields(PTv, freq, tx.rxList.fieldType, adjoint=True)
 
                 w = solver.solve( fPTv )
-                u_tx = u[tx, self.solType]
                 Jtv_tx = self.getADeriv(freq, u_tx, w, adjoint=True)
 
                 df_dm = self.calcFieldsDeriv(u_tx, freq, tx.rxList.fieldType, PTv, adjoint=True)
@@ -218,9 +218,9 @@ class ProblemFDEM_e(BaseProblemFDEM):
             return e
         elif fieldType == 'b':
             if not adjoint:
-                b = -1./(1j*omega(freq))*self.mesh.edgeCurl*e
+                b = -1./(1j*omega(freq)) * ( self.mesh.edgeCurl * e )
             else:
-                b = -1./(1j*omega(freq))*self.mesh.edgeCurl.T*e
+                b = -1./(1j*omega(freq)) * ( self.mesh.edgeCurl.T * e )
             return b
         raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
 
