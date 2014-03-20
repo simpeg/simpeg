@@ -78,7 +78,7 @@ class FDEM_DerivTests_e(unittest.TestCase):
 class FDEM_DerivTests_b(unittest.TestCase):
 
     def setUp(self):
-        prb = getProblem('e')
+        prb = getProblem('b')
         self.prb = prb
         self.sigma = np.log(np.ones(prb.mesh.nC)*1e-3)
         self.survey = prb.survey
