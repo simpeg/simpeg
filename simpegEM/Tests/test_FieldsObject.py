@@ -7,7 +7,7 @@ class FieldsTest(unittest.TestCase):
     def setUp(self):
         x = np.linspace(5,10,3)
         XYZ = Utils.ndgrid(x,x,np.r_[0])
-        rxList = EM.FDEM.RxListFDEM(XYZ, 'Ex')
+        rxList = EM.FDEM.RxListFDEM(XYZ, 'ex')
         Tx0 = EM.FDEM.TxFDEM(None, 'VMD', 3, rxList)
         Tx1 = EM.FDEM.TxFDEM(None, 'VMD', 3, rxList)
         Tx2 = EM.FDEM.TxFDEM(None, 'VMD', 2, rxList)
