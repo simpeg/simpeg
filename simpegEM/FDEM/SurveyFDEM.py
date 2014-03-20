@@ -2,7 +2,15 @@ from SimPEG import Survey, Utils, np, sp
 
 class RxListFDEM(Survey.BaseRxList):
 
-    knownRxTypes = ['Ex', 'Ey', 'Ez']
+    knownRxTypes = {
+                    'Ex':'Ex',
+                    'Ey':'Ey',
+                    'Ez':'Ez',
+
+                    'Bx':'Fx',
+                    'By':'Fy',
+                    'Bz':'Fz',
+                   }
 
     def __init__(self, locs, rxType):
         Survey.BaseRxList.__init__(self, locs, rxType)
@@ -11,7 +19,7 @@ class RxListFDEM(Survey.BaseRxList):
 
     def getP(self, mesh):
         if mesh not in self._Ps:
-            self._Ps[mesh] = mesh.getInterpolationMat(self.locs, self.rxType)
+            self._Ps[mesh] = mesh.getInterpolationMat(self.locs, self.knownRxTypes[self.rxType])
         return self._Ps[mesh]
 
 
@@ -37,6 +45,8 @@ class TxFDEM(Survey.BaseTx):
 
         if self.rxList.rxType in ['Ex', 'Ey', 'Ez']:
             u_part = u[self, 'e']
+        elif self.rxList.rxType in ['Bx', 'By', 'Bz']:
+            u_part = u[self, 'b']
         else:
             raise NotImplemented('Unknown receiver type.')
 
