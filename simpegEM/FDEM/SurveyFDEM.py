@@ -61,6 +61,35 @@ class RxFDEM(Survey.BaseRx):
         P = self._Ps[gloc][mesh]
         return P
 
+    def projectFields(self, tx, mesh, u):
+        P = self.getP(mesh)
+        u_part_complex = u[tx, self.projField]
+        # get the real or imag component
+        real_or_imag = self.projComp
+        u_part = getattr(u_part_complex, real_or_imag)
+        return P*u_part
+
+    def projectFieldsDeriv(self, tx, mesh, u, v, adjoint=False):
+        P = self.getP(mesh)
+
+        if not adjoint:
+            Pv_complex = P * v
+            #TODO: check this deriv...
+            real_or_imag = self.projComp
+            Pv = getattr(Pv_complex, real_or_imag)
+        elif adjoint:
+            Pv_real = P.T * v
+
+            real_or_imag = self.projComp
+            if real_or_imag == 'imag':
+                Pv = 1j*Pv_real
+            elif real_or_imag == 'real':
+                Pv = Pv_real.astype(complex)
+            else:
+                raise NotImplementedError('must be real or imag')
+
+        return Pv
+
 
 class TxFDEM(Survey.BaseTx):
 
@@ -83,41 +112,6 @@ class TxFDEM(Survey.BaseTx):
     def vnD(self):
         """Vector number of data"""
         return np.array([rx.nD for rx in self.rxList])
-
-    def projectFields(self, mesh, u):
-
-        nRt = len(self.rxList)
-        Pu = range(nRt)
-
-        for ii, rx in enumerate(self.rxList):
-            P = rx.getP(mesh)
-            u_part_complex = u[self, rx.projField]
-            # get the real or imag component
-            real_or_imag = rx.projComp
-            u_part = getattr(u_part_complex, real_or_imag)
-            Pu[ii] = P*u_part
-        return np.concatenate(Pu)
-
-    def projectFieldsDeriv(self, mesh, u, v, adjoint=False):
-        V = v.reshape((-1, len(Ps)), order='F')
-        Pvs = range(len(Ps))
-        for ii, rx in enumerate(self.rxList):
-            P = rx.getP(mesh)
-
-            if not adjoint:
-                Pv = Ps[ii] * V[:, ii]
-            elif adjoint:
-                Pv = Ps[ii].T * V[:, ii]
-
-            real_or_imag = rx.projComp
-            if real_or_imag == 'imag':
-                Pvs[ii] = 1j*Pv
-            elif real_or_imag == 'real':
-                Pvs[ii] = Pv.astype(complex)
-            else:
-                raise NotImplementedError('must be real or imag')
-
-        return np.concatenate(Pvs)
 
 
 class FieldsFDEM(object):
@@ -285,8 +279,6 @@ class DataFDEM(object):
                 indBot += rx.nD
 
 
-
-
 class SurveyFDEM(Survey.BaseSurvey):
     """
         docstring for SurveyFDEM
@@ -349,7 +341,8 @@ class SurveyFDEM(Survey.BaseSurvey):
     def projectFields(self, u):
         data = DataFDEM(self)
         for tx in self.txList:
-            data[tx] = tx.projectFields(self.mesh, u)
+            for rx in tx.rxList:
+                data[tx, rx] = rx.projectFields(tx, self.mesh, u)
         return data
 
     def projectFieldsDeriv(self, u):

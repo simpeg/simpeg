@@ -70,8 +70,9 @@ class FDEM_DerivTests_e(unittest.TestCase):
 
         m = self.sigma
         u = self.prb.fields(m)
-        vJw = v.dot(self.prb.Jvec(m, w, u=u))
-        wJtv = w.dot(self.prb.Jtvec(m, v, u=u))
+        vJw = np.vdot(v, self.prb.Jvec(m, w, u=u))
+        wJtv = np.vdot(w, self.prb.Jtvec(m, v, u=u))
+        print 'Jtvec: ', vJw - wJtv
         self.assertTrue(vJw - wJtv < TOL)
 
 

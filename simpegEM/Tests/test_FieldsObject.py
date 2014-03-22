@@ -100,17 +100,16 @@ class FieldsTest(unittest.TestCase):
 
             Txs = F.survey.getTransmitters(freq)
             for ii, tx in enumerate(Txs):
-                dat = tx.projectFields(self.mesh, F)
-                self.assertTrue(dat.dtype == float)
-                dat = dat.reshape((self.XYZ.shape[0], len(tx.rxList)), order='F')
                 for jj, rx in enumerate(tx.rxList):
+                    dat = rx.projectFields(tx, self.mesh, F)
+                    self.assertTrue(dat.dtype == float)
                     fieldType = rx.projField
                     u = {'b':b[:,ii], 'e': e[:,ii]}[fieldType]
                     real_or_imag = rx.projComp
                     u = getattr(u, real_or_imag)
                     gloc = rx.projGLoc
                     d = self.mesh.getInterpolationMat(self.XYZ, gloc)*u
-                    self.assertTrue(np.all(dat[:, jj] == d))
+                    self.assertTrue(np.all(dat == d))
 
 
 
