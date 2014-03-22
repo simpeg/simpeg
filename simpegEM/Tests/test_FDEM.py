@@ -18,24 +18,24 @@ def getProblem(fdemType):
     x = np.linspace(5,10,3)
     XYZ = Utils.ndgrid(x,x,np.r_[0])
     if fdemType == 'e':
-        rxList = EM.FDEM.RxListFDEM(XYZ, 'bxr,exi')
+        rxList = EM.FDEM.RxFDEM(XYZ, 'bxr')
     elif fdemType == 'b':
-        rxList = EM.FDEM.RxListFDEM(XYZ, 'exi')
+        rxList = EM.FDEM.RxFDEM(XYZ, 'exi')
     else:
         raise NotImplementedError()
 
-    Tx0 = EM.FDEM.TxFDEM(np.r_[4.,2.,2.], 'VMD', 1e-2, rxList)
+    Tx0 = EM.FDEM.TxFDEM(np.r_[4.,2.,2.], 'VMD', 1e-2, [rxList])
 
     x = np.linspace(5,10,3)
     XYZ = Utils.ndgrid(x,x,np.r_[0])
     if fdemType == 'e':
-        rxList = EM.FDEM.RxListFDEM(XYZ, 'eyi')
+        rxList = EM.FDEM.RxFDEM(XYZ, 'eyi')
     elif fdemType == 'b':
-        rxList = EM.FDEM.RxListFDEM(XYZ, 'eyr')
+        rxList = EM.FDEM.RxFDEM(XYZ, 'eyr')
     else:
         raise NotImplementedError()
 
-    Tx1 = EM.FDEM.TxFDEM(np.r_[4.,2.,2.], 'VMD', 1e-4, rxList)
+    Tx1 = EM.FDEM.TxFDEM(np.r_[4.,2.,2.], 'VMD', 1e-4, [rxList])
 
     survey = EM.FDEM.SurveyFDEM([Tx0, Tx1])
 

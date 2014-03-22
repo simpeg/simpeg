@@ -1,6 +1,6 @@
 from SimPEG import Survey, Utils, np, sp
 
-class RxListFDEM(Survey.BaseRxList):
+class RxFDEM(Survey.BaseRx):
 
     knownRxTypes = {
                     'exr':['e', 'Ex', 'real'],
@@ -19,36 +19,25 @@ class RxListFDEM(Survey.BaseRxList):
                    }
 
     def __init__(self, locs, rxType):
-        Survey.BaseRxList.__init__(self, locs, rxType)
+        Survey.BaseRx.__init__(self, locs, rxType)
 
         self._Ps = {}
-        for rx in self.rxTypes:
-            self._Ps[self._projGLoc(rx)] = {}
+        self._Ps[self.projGLoc] = {}
 
-    def _projField(self, rx):
+    @property
+    def projField(self):
         """Field Type projection (e.g. e b ...)"""
-        if type(rx) is int: rx = self.rxTypes[rx]
-        return self.knownRxTypes[rx][0]
+        return self.knownRxTypes[self.rxType][0]
 
-    def _projGLoc(self, rx):
+    @property
+    def projGLoc(self):
         """Grid Location projection (e.g. Ex Fy ...)"""
-        if type(rx) is int: rx = self.rxTypes[rx]
-        return self.knownRxTypes[rx][1]
+        return self.knownRxTypes[self.rxType][1]
 
-    def _projComp(self, rx):
+    @property
+    def projComp(self):
         """Component projection (real/imag)"""
-        if type(rx) is int: rx = self.rxTypes[rx]
-        return self.knownRxTypes[rx][2]
-
-    @property
-    def rxTypes(self):
-        """A list of the recieve types that are collected at this rxList locations."""
-        return self.rxType.split(',')
-
-    @property
-    def fieldTypes(self):
-        #TODO: This assumes that it has the structure ex, by ...
-        return [self._projField(rx) for rx in self.rxTypes]
+        return self.knownRxTypes[self.rxType][2]
 
     def getP(self, mesh):
         """
@@ -61,12 +50,10 @@ class RxListFDEM(Survey.BaseRxList):
                 Projection matrices are stored as a nested dict,
                 First gridLocation, then mesh.
         """
-        P = []
-        for rx in self.rxTypes:
-            gloc = self._projGLoc(rx)
-            if mesh not in self._Ps[gloc]:
-                self._Ps[gloc][mesh] = mesh.getInterpolationMat(self.locs, gloc)
-            P += [self._Ps[gloc][mesh]]
+        gloc = self.projGLoc
+        if mesh not in self._Ps[gloc]:
+            self._Ps[gloc][mesh] = mesh.getInterpolationMat(self.locs, gloc)
+        P = self._Ps[gloc][mesh]
         return P
 
 
@@ -74,7 +61,7 @@ class TxFDEM(Survey.BaseTx):
 
     freq = None #: Frequency (float)
 
-    rxListPair = RxListFDEM
+    rxListPair = RxFDEM
 
     knownTxTypes = ['VMD']
 
@@ -85,35 +72,43 @@ class TxFDEM(Survey.BaseTx):
     @property
     def nD(self):
         """Number of data"""
-        return self.rxList.locs.shape[0]*len(self.rxList.rxTypes)
+        return self.vnD.sum()
+
+    @property
+    def vnD(self):
+        """Vector number of data"""
+        return np.array([rx.locs.shape[0] for rx in self.rxList])
 
     def projectFields(self, mesh, u):
 
-        nRt = len(self.rxList.rxTypes)
+        nRt = len(self.rxList)
         Pu = range(nRt)
-        Ps = self.rxList.getP(mesh)
 
-        for ii, rx in enumerate(self.rxList.rxTypes):
-            fieldType = self.rxList._projField(rx)
-            u_part_complex = u[self, fieldType]
+        for ii, rx in enumerate(self.rxList):
+            P = rx.getP(mesh)
+            u_part_complex = u[self, rx.projField]
             # get the real or imag component
-            real_or_imag = self.rxList._projComp(rx)
+            real_or_imag = rx.projComp
             u_part = getattr(u_part_complex, real_or_imag)
-            Pu[ii] = Ps[ii]*u_part
-
+            Pu[ii] = P*u_part
         return np.concatenate(Pu)
 
     def projectFieldsDeriv(self, mesh, u, v, adjoint=False):
-        Ps = self.rxList.getP(mesh)
         V = v.reshape((-1, len(Ps)), order='F')
         Pvs = range(len(Ps))
-        for ii, rx in enumerate(self.rxList.rxTypes):
-            Pv = Ps[ii] * V[:, ii]
-            real_or_imag = self.rxList._projComp(rx)
+        for ii, rx in enumerate(self.rxList):
+            P = rx.getP(mesh)
+
+            if not adjoint:
+                Pv = Ps[ii] * V[:, ii]
+            elif adjoint:
+                Pv = Ps[ii].T * V[:, ii]
+
+            real_or_imag = rx.projComp
             if real_or_imag == 'imag':
-                Pv = 1j*Pv
+                Pvs[ii] = 1j*Pv
             elif real_or_imag == 'real':
-                Pv = Pv.astype(complex)
+                Pvs[ii] = Pv.astype(complex)
             else:
                 raise NotImplementedError('must be real or imag')
 

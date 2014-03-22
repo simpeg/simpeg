@@ -9,15 +9,15 @@ class FieldsTest(unittest.TestCase):
         x = np.linspace(5,10,3)
         XYZ = Utils.ndgrid(x,x,np.r_[0.])
         txLoc = np.r_[0,0,0.]
-        rxList0 = EM.FDEM.RxListFDEM(XYZ, 'exi,exr,eyi,eyr,ezi,ezr')
-        Tx0 = EM.FDEM.TxFDEM(txLoc, 'VMD', 3., rxList0)
-        rxList1 = EM.FDEM.RxListFDEM(XYZ, 'bxi,bxr,byi,byr,bzi,bzr')
-        Tx1 = EM.FDEM.TxFDEM(txLoc, 'VMD', 3., rxList1)
-        rxList2 = EM.FDEM.RxListFDEM(XYZ, 'bxi,eyr')
-        Tx2 = EM.FDEM.TxFDEM(txLoc, 'VMD', 2., rxList2)
-        rxList3 = EM.FDEM.RxListFDEM(XYZ, 'bxi')
-        Tx3 = EM.FDEM.TxFDEM(txLoc, 'VMD', 2., rxList3)
-        Tx4 = EM.FDEM.TxFDEM(txLoc, 'VMD', 1., rxList0)
+        rxList0 = EM.FDEM.RxFDEM(XYZ, 'exi')
+        Tx0 = EM.FDEM.TxFDEM(txLoc, 'VMD', 3., [rxList0])
+        rxList1 = EM.FDEM.RxFDEM(XYZ, 'bxi')
+        Tx1 = EM.FDEM.TxFDEM(txLoc, 'VMD', 3., [rxList1])
+        rxList2 = EM.FDEM.RxFDEM(XYZ, 'bxi')
+        Tx2 = EM.FDEM.TxFDEM(txLoc, 'VMD', 2., [rxList2])
+        rxList3 = EM.FDEM.RxFDEM(XYZ, 'bxi')
+        Tx3 = EM.FDEM.TxFDEM(txLoc, 'VMD', 2., [rxList3])
+        Tx4 = EM.FDEM.TxFDEM(txLoc, 'VMD', 1., [rxList0, rxList1, rxList2, rxList3])
         txList = [Tx0,Tx1,Tx2,Tx3,Tx4]
         survey = EM.FDEM.SurveyFDEM(txList)
         self.F = EM.FDEM.FieldsFDEM(mesh, survey)
@@ -101,13 +101,13 @@ class FieldsTest(unittest.TestCase):
             for ii, tx in enumerate(Txs):
                 dat = tx.projectFields(self.mesh, F)
                 self.assertTrue(dat.dtype == float)
-                dat = dat.reshape((self.XYZ.shape[0], len(tx.rxList.rxTypes)), order='F')
-                for jj, rx in enumerate(tx.rxList.rxTypes):
-                    fieldType = tx.rxList._projField(rx)
+                dat = dat.reshape((self.XYZ.shape[0], len(tx.rxList)), order='F')
+                for jj, rx in enumerate(tx.rxList):
+                    fieldType = rx.projField
                     u = {'b':b[:,ii], 'e': e[:,ii]}[fieldType]
-                    real_or_imag = tx.rxList._projComp(rx)
+                    real_or_imag = rx.projComp
                     u = getattr(u, real_or_imag)
-                    gloc = tx.rxList._projGLoc(rx)
+                    gloc = rx.projGLoc
                     d = self.mesh.getInterpolationMat(self.XYZ, gloc)*u
                     self.assertTrue(np.all(dat[:, jj] == d))
 
