@@ -18,9 +18,9 @@ def getProblem(fdemType):
     x = np.linspace(5,10,3)
     XYZ = Utils.ndgrid(x,x,np.r_[0])
     if fdemType == 'e':
-        rxList = EM.FDEM.RxListFDEM(XYZ, 'bx')
+        rxList = EM.FDEM.RxListFDEM(XYZ, 'bxr,exi')
     elif fdemType == 'b':
-        rxList = EM.FDEM.RxListFDEM(XYZ, 'ex')
+        rxList = EM.FDEM.RxListFDEM(XYZ, 'exi')
     else:
         raise NotImplementedError()
 
@@ -29,9 +29,9 @@ def getProblem(fdemType):
     x = np.linspace(5,10,3)
     XYZ = Utils.ndgrid(x,x,np.r_[0])
     if fdemType == 'e':
-        rxList = EM.FDEM.RxListFDEM(XYZ, 'ey')
+        rxList = EM.FDEM.RxListFDEM(XYZ, 'eyi')
     elif fdemType == 'b':
-        rxList = EM.FDEM.RxListFDEM(XYZ, 'ey')
+        rxList = EM.FDEM.RxListFDEM(XYZ, 'eyr')
     else:
         raise NotImplementedError()
 

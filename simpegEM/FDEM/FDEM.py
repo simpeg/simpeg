@@ -110,14 +110,15 @@ class BaseProblemFDEM(Problem.BaseProblem):
                 u_tx = u[tx, self.solType]
                 w = self.getADeriv(freq, u_tx, v)
                 Ainvw = solver.solve(w)
-                fAinvw = self.calcFields(Ainvw, freq, tx.rxList.fieldType)
-                P = tx.projectFieldsDeriv(self.mesh, u)
+                fAinvw = self.calcFieldsList(Ainvw, freq, tx.rxList.fieldTypes)
+                P = lambda v: tx.projectFieldsDeriv(self.mesh, u, v)
 
-                df_dm = self.calcFieldsDeriv(u_tx, freq, tx.rxList.fieldType, v)
+                df_dm = self.calcFieldsDerivList(u_tx, freq, tx.rxList.fieldTypes, v)
+                #TODO: this is now a list?
                 if df_dm is None:
-                    Jv[tx] = - P*fAinvw
+                    Jv[tx] = - P(fAinvw)
                 else:
-                    Jv[tx] = - P*fAinvw + P*df_dm
+                    Jv[tx] = - P(fAinvw) + P(df_dm)
 
         return Utils.mkvc(Jv)
 
@@ -140,14 +141,13 @@ class BaseProblemFDEM(Problem.BaseProblem):
             for tx in self.survey.getTransmitters(freq):
                 u_tx = u[tx, self.solType]
 
-                P = tx.projectFieldsDeriv(self.mesh, u)
-                PTv = P.T * v[tx]
-                fPTv = self.calcFields(PTv, freq, tx.rxList.fieldType, adjoint=True)
+                PTv = tx.projectFieldsDeriv(self.mesh, u, v[tx], adjoint=True)
+                fPTv = self.calcFields(PTv, freq, tx.rxList.fieldTypes, adjoint=True)
 
                 w = solver.solve( fPTv )
                 Jtv_tx = self.getADeriv(freq, u_tx, w, adjoint=True)
 
-                df_dm = self.calcFieldsDeriv(u_tx, freq, tx.rxList.fieldType, PTv, adjoint=True)
+                df_dm = self.calcFieldsDeriv(u_tx, freq, tx.rxList.fieldTypes, PTv, adjoint=True)
 
                 if df_dm is None:
                     Jtv += - Jtv_tx

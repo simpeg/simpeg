@@ -3,29 +3,71 @@ from SimPEG import Survey, Utils, np, sp
 class RxListFDEM(Survey.BaseRxList):
 
     knownRxTypes = {
-                    'ex':'Ex',
-                    'ey':'Ey',
-                    'ez':'Ez',
+                    'exr':['e', 'Ex', 'real'],
+                    'eyr':['e', 'Ey', 'real'],
+                    'ezr':['e', 'Ez', 'real'],
+                    'exi':['e', 'Ex', 'imag'],
+                    'eyi':['e', 'Ey', 'imag'],
+                    'ezi':['e', 'Ez', 'imag'],
 
-                    'bx':'Fx',
-                    'by':'Fy',
-                    'bz':'Fz',
+                    'bxr':['b', 'Fx', 'real'],
+                    'byr':['b', 'Fy', 'real'],
+                    'bzr':['b', 'Fz', 'real'],
+                    'bxi':['b', 'Fx', 'imag'],
+                    'byi':['b', 'Fy', 'imag'],
+                    'bzi':['b', 'Fz', 'imag'],
                    }
 
     def __init__(self, locs, rxType):
         Survey.BaseRxList.__init__(self, locs, rxType)
 
         self._Ps = {}
+        for rx in self.rxTypes:
+            self._Ps[self._projGLoc(rx)] = {}
+
+    def _projField(self, rx):
+        """Field Type projection (e.g. e b ...)"""
+        if type(rx) is int: rx = self.rxTypes[rx]
+        return self.knownRxTypes[rx][0]
+
+    def _projGLoc(self, rx):
+        """Grid Location projection (e.g. Ex Fy ...)"""
+        if type(rx) is int: rx = self.rxTypes[rx]
+        return self.knownRxTypes[rx][1]
+
+    def _projComp(self, rx):
+        """Component projection (real/imag)"""
+        if type(rx) is int: rx = self.rxTypes[rx]
+        return self.knownRxTypes[rx][2]
 
     @property
-    def fieldType(self):
+    def rxTypes(self):
+        """A list of the recieve types that are collected at this rxList locations."""
+        return self.rxType.split(',')
+
+    @property
+    def fieldTypes(self):
         #TODO: This assumes that it has the structure ex, by ...
-        return self.rxType[0]
+        return [self._projField(rx) for rx in self.rxTypes]
 
     def getP(self, mesh):
-        if mesh not in self._Ps:
-            self._Ps[mesh] = mesh.getInterpolationMat(self.locs, self.knownRxTypes[self.rxType])
-        return self._Ps[mesh]
+        """
+            Returns the projection matrices as a
+            list for all components collected by
+            the receivers.
+
+            .. note::
+
+                Projection matrices are stored as a nested dict,
+                First gridLocation, then mesh.
+        """
+        P = []
+        for rx in self.rxTypes:
+            gloc = self._projGLoc(rx)
+            if mesh not in self._Ps[gloc]:
+                self._Ps[gloc][mesh] = mesh.getInterpolationMat(self.locs, gloc)
+            P += [self._Ps[gloc][mesh]]
+        return P
 
 
 class TxFDEM(Survey.BaseTx):
@@ -43,25 +85,39 @@ class TxFDEM(Survey.BaseTx):
     @property
     def nD(self):
         """Number of data"""
-        return self.rxList.locs.shape[0]
-
+        return self.rxList.locs.shape[0]*len(self.rxList.rxTypes)
 
     def projectFields(self, mesh, u):
 
-        if self.rxList.rxType in ['ex', 'ey', 'ez']:
-            u_part = u[self, 'e']
-        elif self.rxList.rxType in ['bx', 'by', 'bz']:
-            u_part = u[self, 'b']
-        else:
-            raise NotImplemented('Unknown receiver type.')
+        nRt = len(self.rxList.rxTypes)
+        Pu = range(nRt)
+        Ps = self.rxList.getP(mesh)
 
-        P = self.rxList.getP(mesh)
-        Pu = P*u_part
-        return Pu
+        for ii, rx in enumerate(self.rxList.rxTypes):
+            fieldType = self.rxList._projField(rx)
+            u_part_complex = u[self, fieldType]
+            # get the real or imag component
+            real_or_imag = self.rxList._projComp(rx)
+            u_part = getattr(u_part_complex, real_or_imag)
+            Pu[ii] = Ps[ii]*u_part
 
-    def projectFieldsDeriv(self, mesh, u):
-        P = self.rxList.getP(mesh)
-        return P
+        return np.concatenate(Pu)
+
+    def projectFieldsDeriv(self, mesh, u, v, adjoint=False):
+        Ps = self.rxList.getP(mesh)
+        V = v.reshape((-1, len(Ps)), order='F')
+        Pvs = range(len(Ps))
+        for ii, rx in enumerate(self.rxList.rxTypes):
+            Pv = Ps[ii] * V[:, ii]
+            real_or_imag = self.rxList._projComp(rx)
+            if real_or_imag == 'imag':
+                Pv = 1j*Pv
+            elif real_or_imag == 'real':
+                Pv = Pv.astype(complex)
+            else:
+                raise NotImplementedError('must be real or imag')
+
+        return np.concatenate(Pvs)
 
 
 class FieldsFDEM(object):

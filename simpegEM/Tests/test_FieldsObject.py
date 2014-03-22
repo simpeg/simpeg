@@ -5,20 +5,27 @@ import simpegEM as EM
 class FieldsTest(unittest.TestCase):
 
     def setUp(self):
-        x = np.linspace(5,10,3)
-        XYZ = Utils.ndgrid(x,x,np.r_[0])
-        rxList = EM.FDEM.RxListFDEM(XYZ, 'ex')
-        Tx0 = EM.FDEM.TxFDEM(None, 'VMD', 3, rxList)
-        Tx1 = EM.FDEM.TxFDEM(None, 'VMD', 3, rxList)
-        Tx2 = EM.FDEM.TxFDEM(None, 'VMD', 2, rxList)
-        Tx3 = EM.FDEM.TxFDEM(None, 'VMD', 1, rxList)
-        txList = [Tx0,Tx1,Tx2,Tx3]
         mesh = Mesh.TensorMesh([np.ones(n)*5 for n in [10,11,12]],[0,0,-30])
+        x = np.linspace(5,10,3)
+        XYZ = Utils.ndgrid(x,x,np.r_[0.])
+        txLoc = np.r_[0,0,0.]
+        rxList0 = EM.FDEM.RxListFDEM(XYZ, 'exi,exr,eyi,eyr,ezi,ezr')
+        Tx0 = EM.FDEM.TxFDEM(txLoc, 'VMD', 3., rxList0)
+        rxList1 = EM.FDEM.RxListFDEM(XYZ, 'bxi,bxr,byi,byr,bzi,bzr')
+        Tx1 = EM.FDEM.TxFDEM(txLoc, 'VMD', 3., rxList1)
+        rxList2 = EM.FDEM.RxListFDEM(XYZ, 'bxi,eyr')
+        Tx2 = EM.FDEM.TxFDEM(txLoc, 'VMD', 2., rxList2)
+        rxList3 = EM.FDEM.RxListFDEM(XYZ, 'bxi')
+        Tx3 = EM.FDEM.TxFDEM(txLoc, 'VMD', 2., rxList3)
+        Tx4 = EM.FDEM.TxFDEM(txLoc, 'VMD', 1., rxList0)
+        txList = [Tx0,Tx1,Tx2,Tx3,Tx4]
         survey = EM.FDEM.SurveyFDEM(txList)
         self.F = EM.FDEM.FieldsFDEM(mesh, survey)
         self.D = EM.FDEM.DataFDEM(survey)
         self.Tx0 = Tx0
         self.Tx1 = Tx1
+        self.mesh = mesh
+        self.XYZ = XYZ
 
     def test_SetGet(self):
         F = self.F
@@ -82,7 +89,27 @@ class FieldsTest(unittest.TestCase):
         D2 = EM.FDEM.DataFDEM(self.D.survey, V)
         self.assertTrue(np.all(Utils.mkvc(D2) == Utils.mkvc(self.D)))
 
+    def test_FieldProjections(self):
+        F = self.F
+        for freq in F.survey.freqs:
+            nFreq = F.survey.nTx[freq]
+            e = np.random.rand(F.mesh.nE, nFreq)
+            b = np.random.rand(F.mesh.nF, nFreq)
+            F[freq] = {'b':b,'e':e}
 
+            Txs = F.survey.getTransmitters(freq)
+            for ii, tx in enumerate(Txs):
+                dat = tx.projectFields(self.mesh, F)
+                self.assertTrue(dat.dtype == float)
+                dat = dat.reshape((self.XYZ.shape[0], len(tx.rxList.rxTypes)), order='F')
+                for jj, rx in enumerate(tx.rxList.rxTypes):
+                    fieldType = tx.rxList._projField(rx)
+                    u = {'b':b[:,ii], 'e': e[:,ii]}[fieldType]
+                    real_or_imag = tx.rxList._projComp(rx)
+                    u = getattr(u, real_or_imag)
+                    gloc = tx.rxList._projGLoc(rx)
+                    d = self.mesh.getInterpolationMat(self.XYZ, gloc)*u
+                    self.assertTrue(np.all(dat[:, jj] == d))
 
 
 
