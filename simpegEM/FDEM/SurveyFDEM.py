@@ -39,6 +39,11 @@ class RxFDEM(Survey.BaseRx):
         """Component projection (real/imag)"""
         return self.knownRxTypes[self.rxType][2]
 
+    @property
+    def nD(self):
+        """Number of data in the receiver."""
+        return self.locs.shape[0]
+
     def getP(self, mesh):
         """
             Returns the projection matrices as a
@@ -77,7 +82,7 @@ class TxFDEM(Survey.BaseTx):
     @property
     def vnD(self):
         """Vector number of data"""
-        return np.array([rx.locs.shape[0] for rx in self.rxList])
+        return np.array([rx.nD for rx in self.rxList])
 
     def projectFields(self, mesh, u):
 
@@ -229,24 +234,42 @@ class DataFDEM(object):
     def __init__(self, survey, v=None):
         self.survey = survey
         self._dataDict = {}
+        for tx in self.survey.txList:
+            self._dataDict[tx] = {}
         if v is not None:
             self.fromvec(v)
 
     def _ensureCorrectKey(self, key):
-        if key not in self.survey.txList:
-            raise KeyError('Key must be a transmitter in the survey.')
+        if type(key) is tuple:
+            if len(key) is not 2:
+                raise KeyError('Key must be [Tx, Rx]')
+            if key[0] not in self.survey.txList:
+                raise KeyError('Tx Key must be a transmitter in the survey.')
+            if key[1] not in key[0].rxList:
+                raise KeyError('Rx Key must be a receiver for the transmitter.')
+            return key
+        elif isinstance(key, self.survey.txPair):
+            if key not in self.survey.txList:
+                raise KeyError('Key must be a transmitter in the survey.')
+            return key, None
+        else:
+            raise KeyError('Key must be [Tx] or [Tx,Rx]')
 
     def __setitem__(self, key, value):
-        self._ensureCorrectKey(key)
+        tx, rx = self._ensureCorrectKey(key)
+        assert rx is not None, 'set data using [Tx, Rx]'
         assert type(value) == np.ndarray, 'value must by ndarray'
-        assert value.size == key.nD, "value must have the same number of data as the transmitter."
-        self._dataDict[key] = Utils.mkvc(value)
+        assert value.size == rx.nD, "value must have the same number of data as the transmitter."
+        self._dataDict[tx][rx] = Utils.mkvc(value)
 
     def __getitem__(self, key):
-        self._ensureCorrectKey(key)
-        if key not in self._dataDict:
-            raise Exception('Data for transmitter has not yet been set.')
-        return self._dataDict[key]
+        tx, rx = self._ensureCorrectKey(key)
+        if rx is not None:
+            if rx not in self._dataDict[tx]:
+                raise Exception('Data for receiver has not yet been set.')
+            return self._dataDict[tx][rx]
+
+        return np.concatenate([self[tx,rx] for rx in tx.rxList])
 
     def tovec(self):
         return np.concatenate([self[tx] for tx in self.survey.txList])
@@ -256,9 +279,10 @@ class DataFDEM(object):
         assert v.size == self.survey.nD, 'v must have the correct number of data.'
         indBot, indTop = 0, 0
         for tx in self.survey.txList:
-            indTop += tx.nD
-            self[tx] = v[indBot:indTop]
-            indBot += tx.nD
+            for rx in tx.rxList:
+                indTop += rx.nD
+                self[tx, rx] = v[indBot:indTop]
+                indBot += rx.nD
 
 
 

@@ -21,8 +21,8 @@ class FDEM_analyticTests(unittest.TestCase):
 
         x = np.linspace(-10,10,5)
         XYZ = Utils.ndgrid(x,np.r_[0],np.r_[0])
-        rxList = EM.FDEM.RxListFDEM(XYZ, 'exi')
-        Tx0 = EM.FDEM.TxFDEM(np.r_[0.,0.,0.], 'VMD', 1e2, rxList)
+        rxList = EM.FDEM.RxFDEM(XYZ, 'exi')
+        Tx0 = EM.FDEM.TxFDEM(np.r_[0.,0.,0.], 'VMD', 1e2, [rxList])
 
         survey = EM.FDEM.SurveyFDEM([Tx0])
 

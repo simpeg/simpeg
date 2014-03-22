@@ -79,10 +79,11 @@ class FieldsTest(unittest.TestCase):
     def test_dataFDEM(self):
         V = []
         for tx in self.D.survey.txList:
-            v = np.random.rand(tx.nD)
-            V += [v]
-            self.D[tx] = v
-            self.assertTrue(np.all(v == self.D[tx]))
+            for rx in tx.rxList:
+                v = np.random.rand(rx.nD)
+                V += [v]
+                self.D[tx, rx] = v
+                self.assertTrue(np.all(v == self.D[tx, rx]))
         V = np.concatenate(V)
         self.assertTrue(np.all(V == Utils.mkvc(self.D)))
 
