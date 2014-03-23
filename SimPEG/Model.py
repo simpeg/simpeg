@@ -58,11 +58,13 @@ class BaseModel(object):
     def example(self):
         return np.random.rand(self.nP)
 
-    def test(self, m=None):
+    def test(self, m=None, **kwargs):
         print 'Testing the %s Class!' % self.__class__.__name__
         if m is None:
             m = self.example()
-        return checkDerivative(lambda m : [self.transform(m), self.transformDeriv(m)], m, plotIt=False)
+            if 'plotIt' not in kwargs:
+                kwargs['plotIt'] = False
+        return checkDerivative(lambda m : [self.transform(m), self.transformDeriv(m)], m, **kwargs)
 
 class BaseNonLinearModel(object):
     """
