@@ -310,7 +310,7 @@ class ActiveModel(BaseModel):
             indActive = z
         self.indActive = indActive
         self.indInactive = np.logical_not(indActive)
-        if type(valInactive) in [float, int, long]:
+        if Utils.isScalar(valInactive):
             valInactive = np.ones(self.nC)*float(valInactive)
 
         valInactive[self.indActive] = 0
