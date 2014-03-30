@@ -74,7 +74,6 @@ class RxFDEM(Survey.BaseRx):
 
         if not adjoint:
             Pv_complex = P * v
-            #TODO: check this deriv...
             real_or_imag = self.projComp
             Pv = getattr(Pv_complex, real_or_imag)
         elif adjoint:

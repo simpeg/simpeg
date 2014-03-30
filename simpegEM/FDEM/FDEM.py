@@ -132,7 +132,7 @@ class BaseProblemFDEM(Problem.BaseProblem):
         if not isinstance(v, self.dataPair):
             v = self.dataPair(self.survey, v)
 
-        Jtv = np.zeros(self.model.nP, dtype=complex)
+        Jtv = np.zeros(self.model.nP)
 
         for freq in self.survey.freqs:
             AT = self.getA(freq).T
@@ -146,14 +146,20 @@ class BaseProblemFDEM(Problem.BaseProblem):
                     fPTv = self.calcFields(PTv, freq, rx.projField, adjoint=True)
 
                     w = solver.solve( fPTv )
-                    Jtv_tx = self.getADeriv(freq, u_tx, w, adjoint=True)
+                    Jtv_rx = - self.getADeriv(freq, u_tx, w, adjoint=True)
 
                     df_dm = self.calcFieldsDeriv(u_tx, freq, rx.projField, PTv, adjoint=True)
 
-                    if df_dm is None:
-                        Jtv += - Jtv_tx
+                    if df_dm is not None:
+                        Jtv_rx += df_dm
+
+                    real_or_imag = rx.projComp
+                    if real_or_imag == 'real':
+                        Jtv +=   Jtv_rx.real
+                    elif real_or_imag == 'imag':
+                        Jtv += - Jtv_rx.real
                     else:
-                        Jtv += - Jtv_tx + df_dm
+                        raise Exception('Must be real or imag')
 
         return Jtv
 
@@ -220,9 +226,9 @@ class ProblemFDEM_e(BaseProblemFDEM):
             return e
         elif fieldType == 'b':
             if not adjoint:
-                b = -1./(1j*omega(freq)) * ( self.mesh.edgeCurl * e )
+                b = -(1./(1j*omega(freq))) * ( self.mesh.edgeCurl * e )
             else:
-                b = -1./(1j*omega(freq)) * ( self.mesh.edgeCurl.T * e )
+                b = -(1./(1j*omega(freq))) * ( self.mesh.edgeCurl.T * e )
             return b
         raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
 

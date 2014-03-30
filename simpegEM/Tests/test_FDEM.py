@@ -1,43 +1,28 @@
 import unittest
 from SimPEG import *
 import simpegEM as EM
+import sys
 
-TOL = 1e-10
+TOL = 1e-4
+CONDUCTIVITY = 1e3
 
-def getProblem(fdemType):
+def getProblem(fdemType, comp):
     cs = 5.
-    ncx, ncy, ncz = 2, 2, 2
+    ncx, ncy, ncz = 6, 6, 6
     npad = 3
     hx = Utils.meshTensors(((npad,cs), (ncx,cs), (npad,cs)))
     hy = Utils.meshTensors(((npad,cs), (ncy,cs), (npad,cs)))
     hz = Utils.meshTensors(((npad,cs), (ncz,cs), (npad,cs)))
-    mesh = Mesh.TensorMesh([hx,hy,hz])
+    mesh = Mesh.TensorMesh([hx,hy,hz],[-hx.sum()/2., -hy.sum()/2., -hz.sum()/2.])
 
     model = Model.LogModel(mesh)
 
-    x = np.linspace(5,10,3)
+    x = np.linspace(-30,30,6)
     XYZ = Utils.ndgrid(x,x,np.r_[0])
-    if fdemType == 'e':
-        rxList = EM.FDEM.RxFDEM(XYZ, 'bxr')
-    elif fdemType == 'b':
-        rxList = EM.FDEM.RxFDEM(XYZ, 'exi')
-    else:
-        raise NotImplementedError()
+    Rx0 = EM.FDEM.RxFDEM(XYZ, comp)
+    Tx0 = EM.FDEM.TxFDEM(np.r_[4.,2.,2.], 'VMD', 1e-2, [Rx0])
 
-    Tx0 = EM.FDEM.TxFDEM(np.r_[4.,2.,2.], 'VMD', 1e-2, [rxList])
-
-    x = np.linspace(5,10,3)
-    XYZ = Utils.ndgrid(x,x,np.r_[0])
-    if fdemType == 'e':
-        rxList = EM.FDEM.RxFDEM(XYZ, 'eyi')
-    elif fdemType == 'b':
-        rxList = EM.FDEM.RxFDEM(XYZ, 'eyr')
-    else:
-        raise NotImplementedError()
-
-    Tx1 = EM.FDEM.TxFDEM(np.r_[4.,2.,2.], 'VMD', 1e-4, [rxList])
-
-    survey = EM.FDEM.SurveyFDEM([Tx0, Tx1])
+    survey = EM.FDEM.SurveyFDEM([Tx0])
 
     if fdemType == 'e':
         prb = EM.FDEM.ProblemFDEM_e(model)
@@ -49,57 +34,137 @@ def getProblem(fdemType):
 
     return prb
 
-class FDEM_DerivTests_e(unittest.TestCase):
+def adjointTest(fdemType, comp):
+    prb = getProblem(fdemType, comp)
+    print 'Adjoint %s formulation - %s' % (fdemType, comp)
 
-    def setUp(self):
-        prb = getProblem('e')
-        self.prb = prb
-        self.sigma = np.log(np.ones(prb.mesh.nC)*1e-3)
-        self.survey = prb.survey
+    m = np.log(np.ones(prb.mesh.nC)*CONDUCTIVITY)
+    survey = prb.survey
 
-    def test_Jvec(self):
-        x0 = self.sigma
-        def fun(x):
-            return self.survey.dpred(x), lambda x: self.prb.Jvec(x0, x)
-        passed = Tests.checkDerivative(fun, x0, num=3, plotIt=False, eps=1e-25)
-        self.assertTrue(passed)
+    v = np.random.rand(survey.nD)
+    w = np.random.rand(prb.model.nP)
 
-    def test_Jtvec_adjointTest(self):
-        v = np.random.rand(self.survey.nD)
-        w = np.random.rand(self.prb.model.nP)
+    u = prb.fields(m)
+    vJw = v.dot(prb.Jvec(m, w, u=u))
+    wJtv = w.dot(prb.Jtvec(m, v, u=u))
+    tol = TOL*(10**int(np.log10(np.abs(vJw))))
+    print vJw, wJtv, vJw - wJtv, tol, np.abs(vJw - wJtv) < tol
+    return np.abs(vJw - wJtv) < tol
 
-        m = self.sigma
-        u = self.prb.fields(m)
-        vJw = np.vdot(v, self.prb.Jvec(m, w, u=u))
-        wJtv = np.vdot(w, self.prb.Jtvec(m, v, u=u))
-        print 'Jtvec: ', vJw - wJtv
-        self.assertTrue(vJw - wJtv < TOL)
+def derivTest(fdemType, comp):
+    prb = getProblem(fdemType, comp)
+    print '%s formulation - %s' % (fdemType, comp)
+    x0 = np.log(np.ones(prb.mesh.nC)*CONDUCTIVITY)
+    survey = prb.survey
+    def fun(x):
+        return survey.dpred(x), lambda x: prb.Jvec(x0, x)
+    return Tests.checkDerivative(fun, x0, num=3, plotIt=False, eps=1e-25)
 
 
-class FDEM_DerivTests_b(unittest.TestCase):
+class FDEM_DerivTests(unittest.TestCase):
 
-    def setUp(self):
-        prb = getProblem('b')
-        self.prb = prb
-        self.sigma = np.log(np.ones(prb.mesh.nC)*1e-3)
-        self.survey = prb.survey
+    def test_Jvec_exr_Eform(self):
+        self.assertTrue(derivTest('e', 'exr'))
+    def test_Jvec_exr_Bform(self):
+        self.assertTrue(derivTest('b', 'exr'))
+    def test_Jvec_eyr_Eform(self):
+        self.assertTrue(derivTest('e', 'eyr'))
+    def test_Jvec_eyr_Bform(self):
+        self.assertTrue(derivTest('b', 'eyr'))
+    def test_Jvec_ezr_Eform(self):
+        self.assertTrue(derivTest('e', 'ezr'))
+    def test_Jvec_ezr_Bform(self):
+        self.assertTrue(derivTest('b', 'ezr'))
+    def test_Jvec_exi_Eform(self):
+        self.assertTrue(derivTest('e', 'exi'))
+    def test_Jvec_exi_Bform(self):
+        self.assertTrue(derivTest('b', 'exi'))
+    def test_Jvec_eyi_Eform(self):
+        self.assertTrue(derivTest('e', 'eyi'))
+    def test_Jvec_eyi_Bform(self):
+        self.assertTrue(derivTest('b', 'eyi'))
+    def test_Jvec_ezi_Eform(self):
+        self.assertTrue(derivTest('e', 'ezi'))
+    def test_Jvec_ezi_Bform(self):
+        self.assertTrue(derivTest('b', 'ezi'))
 
-    def test_Jvec(self):
-        x0 = self.sigma
-        def fun(x):
-            return self.survey.dpred(x), lambda x: self.prb.Jvec(x0, x)
-        passed = Tests.checkDerivative(fun, x0, num=3, plotIt=False, eps=1e-25)
-        self.assertTrue(passed)
+    def test_Jvec_bxr_Eform(self):
+        self.assertTrue(derivTest('e', 'bxr'))
+    def test_Jvec_bxr_Bform(self):
+        self.assertTrue(derivTest('b', 'bxr'))
+    def test_Jvec_byr_Eform(self):
+        self.assertTrue(derivTest('e', 'byr'))
+    def test_Jvec_byr_Bform(self):
+        self.assertTrue(derivTest('b', 'byr'))
+    def test_Jvec_bzr_Eform(self):
+        self.assertTrue(derivTest('e', 'bzr'))
+    def test_Jvec_bzr_Bform(self):
+        self.assertTrue(derivTest('b', 'bzr'))
+    def test_Jvec_bxi_Eform(self):
+        self.assertTrue(derivTest('e', 'bxi'))
+    def test_Jvec_bxi_Bform(self):
+        self.assertTrue(derivTest('b', 'bxi'))
+    def test_Jvec_byi_Eform(self):
+        self.assertTrue(derivTest('e', 'byi'))
+    def test_Jvec_byi_Bform(self):
+        self.assertTrue(derivTest('b', 'byi'))
+    def test_Jvec_bzi_Eform(self):
+        self.assertTrue(derivTest('e', 'bzi'))
+    def test_Jvec_bzi_Bform(self):
+        self.assertTrue(derivTest('b', 'bzi'))
 
-    def test_Jtvec_adjointTest(self):
-        v = np.random.rand(self.survey.nD)
-        w = np.random.rand(self.prb.model.nP)
 
-        m = self.sigma
-        u = self.prb.fields(m)
-        vJw = v.dot(self.prb.Jvec(m, w, u=u))
-        wJtv = w.dot(self.prb.Jtvec(m, v, u=u))
-        self.assertTrue(vJw - wJtv < TOL)
+
+    def test_Jtvec_adjointTest_exr_Eform(self):
+        self.assertTrue(adjointTest('e', 'exr'))
+    def test_Jtvec_adjointTest_exr_Bform(self):
+        self.assertTrue(adjointTest('b', 'exr'))
+    def test_Jtvec_adjointTest_eyr_Eform(self):
+        self.assertTrue(adjointTest('e', 'eyr'))
+    def test_Jtvec_adjointTest_eyr_Bform(self):
+        self.assertTrue(adjointTest('b', 'eyr'))
+    def test_Jtvec_adjointTest_ezr_Eform(self):
+        self.assertTrue(adjointTest('e', 'ezr'))
+    def test_Jtvec_adjointTest_ezr_Bform(self):
+        self.assertTrue(adjointTest('b', 'ezr'))
+    def test_Jtvec_adjointTest_exi_Eform(self):
+        self.assertTrue(adjointTest('e', 'exi'))
+    def test_Jtvec_adjointTest_exi_Bform(self):
+        self.assertTrue(adjointTest('b', 'exi'))
+    def test_Jtvec_adjointTest_eyi_Eform(self):
+        self.assertTrue(adjointTest('e', 'eyi'))
+    def test_Jtvec_adjointTest_eyi_Bform(self):
+        self.assertTrue(adjointTest('b', 'eyi'))
+    def test_Jtvec_adjointTest_ezi_Eform(self):
+        self.assertTrue(adjointTest('e', 'ezi'))
+    def test_Jtvec_adjointTest_ezi_Bform(self):
+        self.assertTrue(adjointTest('b', 'ezi'))
+
+    def test_Jtvec_adjointTest_bxr_Eform(self):
+        self.assertTrue(adjointTest('e', 'bxr'))
+    def test_Jtvec_adjointTest_bxr_Bform(self):
+        self.assertTrue(adjointTest('b', 'bxr'))
+    def test_Jtvec_adjointTest_byr_Eform(self):
+        self.assertTrue(adjointTest('e', 'byr'))
+    def test_Jtvec_adjointTest_byr_Bform(self):
+        self.assertTrue(adjointTest('b', 'byr'))
+    def test_Jtvec_adjointTest_bzr_Eform(self):
+        self.assertTrue(adjointTest('e', 'bzr'))
+    def test_Jtvec_adjointTest_bzr_Bform(self):
+        self.assertTrue(adjointTest('b', 'bzr'))
+    def test_Jtvec_adjointTest_bxi_Eform(self):
+        self.assertTrue(adjointTest('e', 'bxi'))
+    def test_Jtvec_adjointTest_bxi_Bform(self):
+        self.assertTrue(adjointTest('b', 'bxi'))
+    def test_Jtvec_adjointTest_byi_Eform(self):
+        self.assertTrue(adjointTest('e', 'byi'))
+    def test_Jtvec_adjointTest_byi_Bform(self):
+        self.assertTrue(adjointTest('b', 'byi'))
+    def test_Jtvec_adjointTest_bzi_Eform(self):
+        self.assertTrue(adjointTest('e', 'bzi'))
+    def test_Jtvec_adjointTest_bzi_Bform(self):
+        self.assertTrue(adjointTest('b', 'bzi'))
+
 
 
 if __name__ == '__main__':
