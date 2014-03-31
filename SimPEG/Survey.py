@@ -159,7 +159,7 @@ class BaseSurvey(object):
         return self.mtrue is not None
 
 
-    #TODO: Move this to the data class?
+    #TODO: Move this to the survey class?
     # @property
     # def phi_d_target(self):
     #     """
@@ -178,8 +178,8 @@ class BaseSurvey(object):
     #     self._phi_d_target = value
 
 
-class BaseRxList(object):
-    """SimPEG Receiver List Object"""
+class BaseRx(object):
+    """SimPEG Receiver Object"""
 
     locs = None   #: Locations (nRx x 3)
 
@@ -207,12 +207,15 @@ class BaseTx(object):
     loc    = None #: Location [x,y,z]
 
     rxList = None #: SimPEG Receiver List
-    rxListPair = BaseRxList
+    rxPair = BaseRx
 
     knownTxTypes = None #: Set this to a list of strings to ensure that txType is known
 
     def __init__(self, loc, txType, rxList, **kwargs):
-        assert isinstance(rxList, self.rxListPair), 'rxList must be a %s'%self.rxListPair.__name__
+        assert type(rxList) is list, 'rxList must be a list'
+        for rx in rxList:
+            assert isinstance(rx, self.rxPair), 'rxList must be a %s'%self.rxListPair.__name__
+        assert len(set(rxList)) == len(rxList), 'The rxList must be unique'
 
         self.loc    = loc
         self.txType = txType

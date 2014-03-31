@@ -1,9 +1,10 @@
 from matutils import *
-from meshutils import exampleLrmGrid, meshTensors
+from meshutils import exampleLrmGrid, meshTensors, points2nodes
 from lrmutils import volTetra, faceInfo, indexCube
 from interputils import interpmat
 from ipythonutils import easyAnimate as animate
 import ModelBuilder
+import SolverUtils
 
 import types
 import time
@@ -135,7 +136,8 @@ def callHooks(match, mainFirst=False):
 def dependentProperty(name, value, children, doc):
     def fget(self): return getattr(self,name,value)
     def fset(self, val):
-        if getattr(self,name,value) == val: return # it is the same!
+        if isScalar(val) and getattr(self,name,value) == val:
+            return # it is the same!
         for child in children:
             if hasattr(self, child):
                 delattr(self, child)

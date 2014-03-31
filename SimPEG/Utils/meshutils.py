@@ -53,6 +53,27 @@ def meshTensors(*args):
 
     return list(tensors) if len(tensors) > 1 else tensors[0]
 
+def points2nodes(mesh, pts):
+    """
+        Move a list of the nearest nodes to a set of points
+
+        :param simpeg.Mesh.TensorMesh mesh: The mesh
+        :param numpy.ndarray pts: Points to move}
+        :rtype: numpy.ndarray
+        :return: nodeInds
+    """
+
+    pts = np.atleast_2d(pts)
+
+    assert mesh._meshType == 'TENSOR'
+    assert pts.shape[1] == mesh.dim
+
+    nodeInds = np.empty(pts.shape[0], dtype=int)
+
+    for i, pt in enumerate(pts):
+        nodeInds[i] = ((np.tile(pt, (mesh.nN,1)) - mesh.gridN)**2).sum(axis=1).argmin()
+
+    return nodeInds
 if __name__ == '__main__':
     from SimPEG import mesh
     import matplotlib.pyplot as plt
