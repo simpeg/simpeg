@@ -201,6 +201,10 @@ class BaseRx(object):
             assert value in known, "rxType must be in ['%s']" % ("', '".join(known))
         self._rxType = value
 
+    @property
+    def nD(self):
+        return self.locs.shape[0]
+
 class BaseTx(object):
     """SimPEG Transmitter Object"""
 
