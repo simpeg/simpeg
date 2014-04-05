@@ -42,7 +42,7 @@ class BaseMagSurvey(Survey.BaseSurvey):
         """
             This function projects the fields onto the data space.
 
-            Esepcially, here for we use total magnetic intensity (TMI) data,
+            Especially, here for we use total magnetic intensity (TMI) data,
             which is common in practice.
 
             First we project our B on to data location
@@ -84,7 +84,7 @@ class BaseMagSurvey(Survey.BaseSurvey):
 
                 \\frac{\partial d_\\text{pred}}{\partial \mathbf{B}} = \mathbf{P}
 
-            Esepcially, this function is for TMI data type
+            Especially, this function is for TMI data type
 
         """
         # Generate unit vector
