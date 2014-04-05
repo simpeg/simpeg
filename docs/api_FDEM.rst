@@ -19,7 +19,7 @@ Electromagnetic phenomena are governed by Maxwell's equations. They describe the
 
 Fourier Transform Convention
 ----------------------------
-In order to examine Maxwell's equations in the frequency domain, we must first define our choice of harmonic time-dependence by choosing a Fourier transform convention. We use the \\(e^{i \\omega t} \\)\\ convention, so we define our Fourier Transform pair as
+In order to examine Maxwell's equations in the frequency domain, we must first define our choice of harmonic time-dependence by choosing a Fourier transform convention. We use the \\(e^{i \\omega t} \\) convention, so we define our Fourier Transform pair as
 
 .. math ::
 	F(\omega) = \int_{-\infty}^{\infty} f(t) e^{- i \omega t} dt \\
@@ -76,7 +76,7 @@ For a more complete discussion of physical properties see `GPG <http://www.eos.u
 
 Quasi-static Approximation
 --------------------------
-For the frequency range typical of most geophysical surveys, the contribution of the electric displacement is negligible compared to the electric current density. In this case, we use the \\(\\emph{Quasi-static approximation}\\) and assume that this term can be neglected, giving
+For the frequency range typical of most geophysical surveys, the contribution of the electric displacement is negligible compared to the electric current density. In this case, we use the Quasi-static approximation and assume that this term can be neglected, giving
 
 .. math ::
 	\nabla \times \vec{E} = -i \omega \vec{B} \\
