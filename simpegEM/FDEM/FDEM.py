@@ -9,13 +9,16 @@ def omega(freq):
 
 class BaseProblemFDEM(Problem.BaseProblem):
     """
-        Frequency-Domain EM problem - E-formulation
-
-
-        .. math::
-
-            \dcurl E + i \omega B = 0 \\\\
-            \dcurl^\\top \MfMui B - \MeSig E = \Me \j_s
+        We start with the E-formulation Maxwell's equations in the frequency domain:
+        .. math ::
+            \\nabla \\times \\vec{E} + i \\omega \\vec{B} = 0 \\\\
+            \\nabla \\times \\mu^{-1} \\vec{B} - \\sigma \\vec{E} = \\vec{J_s}
+        By eliminating the magnetic flux density using
+        .. math ::
+            \\vec{B} = \\frac{-1}{i\\omega}\\nabla\\times\\vec{E},
+        we can write Maxwell's equations as a second order system in \\ \\vec{E} \\ only:
+        .. math ::
+            \\nabla \\times \\mu^{-1} \\nabla \\times \\vec{E} + i \\omega \\sigma \\vec{E} = \\vec{J_s}
     """
     def __init__(self, model, **kwargs):
         Problem.BaseProblem.__init__(self, model, **kwargs)
