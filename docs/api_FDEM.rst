@@ -9,11 +9,13 @@
 Frequency Domain Electromagnetics
 *********************************
 
-Intro Here
+Electromagnetic (EM) geophysical methods are used in a variety of applications from resource exploration, including for hydrocarbons and minerals, to environmental applications, such as groundwater monitoring.
+
 
 Background
 ==========
-Electromagnetic (EM) geophysical methods are used in a variety of applications from resource exploration, including for hydrocarbons and minerals, to environmental applications, such as groundwater monitoring.
+
+Electromagnetic phenomena are governed by Maxwell's equations. They describe the behavior of EM fields and fluxes. Electromagnetic theory for geophysical applications by Ward and Hohmann (1988) is a highly recommended resource on this topic.
 
 Fourier Transform Convention
 ----------------------------
@@ -31,7 +33,7 @@ Maxwell's Equations
 ===================
 In the frequency domain, Maxwell's equations are given by
 
-.. math::
+.. math ::
 	\curl \vec{E} = - i \omega \vec{B} \\
 
 	\curl \vec{H} = \vec{J} + i \omega \vec{D} + \vec{J_s} \\
@@ -54,7 +56,7 @@ Constitutive Relations
 ----------------------
 The fields and fluxes are related through the constitutive relations. At each frequency, they are given by
 
-.. math::
+.. math ::
 	\vec{J} = \sigma \vec{E} \\
 
 	\vec{B} = \mu \vec{H} \\
@@ -74,7 +76,7 @@ Quasi-static Approximation
 --------------------------
 For the frequency range typical of most geophysical surveys, the contribution of the electric displacement is negligible compared to the electric current density. In this case, we use the \emph{Quasi-static approximation} and assume that this term can be neglected, giving
 
-.. math::
+.. math ::
 	\nabla \times \vec{E} = -i \omega \vec{B} \\
 	\nabla \times \vec{H} = \vec{J} + \vec{J_s}
 
