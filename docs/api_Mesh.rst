@@ -39,6 +39,7 @@ the implementations.
     axes[1].set_title('TreeMesh')
     rM.plotGrid(ax=axes[2], **opts)
     axes[2].set_title('LogicallyRectMesh')
+    plt.show()
 
 
 Variable Locations and Terminology
@@ -58,10 +59,12 @@ of the TensorMesh.
     :include-source:
 
     from SimPEG import Mesh, np
+    import matplotlib.pyplot as plt
     hx = np.r_[3,2,1,1,1,1,2,3]
     hy = np.r_[3,1,1,3]
     M = Mesh.TensorMesh([hx, hy])
     M.plotGrid(centers=True)
+    plt.show()
 
 
 In this simple mesh, the hx vector defines the widths of the cell
@@ -85,6 +88,7 @@ plotted above as red circles. Other terminology for this mesh are:
     M.plotGrid(faces=True, nodes=True)
     plt.title('Cell faces in the x- and y-directions.')
     plt.legend(('Nodes', 'X-Faces', 'Y-Faces'))
+    plt.show()
 
 Generally, the faces are used to discretize fluxes, quantities that
 leave or enter the cells. As such, these fluxes have a direction to
@@ -102,7 +106,7 @@ and live on the edges(!) of the cell.
     :include-source:
 
     from SimPEG import Mesh
-    Mesh.TensorMesh([1,1,1]).plotGrid(faces=True, edges=True, centers=True)
+    Mesh.TensorMesh([1,1,1]).plotGrid(faces=True, edges=True, centers=True, showIt=True)
 
 How many of each?
 -----------------
@@ -159,7 +163,7 @@ vector grid size.
     :include-source:
 
     from SimPEG import Mesh
-    Mesh.TensorMesh([4,5]).plotGrid(faces=True)
+    Mesh.TensorMesh([4,5]).plotGrid(faces=True, showIt=True)
 
 
 Making Tensors
@@ -183,7 +187,7 @@ notation::
     from SimPEG import Mesh, Utils
     h1 = (5, 10, 1.5), (20, 5), (3, 10)
     M = Mesh.TensorMesh(Utils.meshTensors(h1, h1))
-    M.plotGrid()
+    M.plotGrid(showIt=True)
 
 Hopefully, you now know how to create TensorMesh objects in SimPEG,
 and by extension you are also familiar with how to create and use

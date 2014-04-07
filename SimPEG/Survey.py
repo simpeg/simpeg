@@ -60,7 +60,8 @@ class BaseSurvey(object):
     @Utils.count
     @Utils.requires('prob')
     def dpred(self, m, u=None):
-        """
+        """dpred(m, u=None)
+
             Create the projected data from a model.
             The field, u, (if provided) will be used for the predicted data
             instead of recalculating the fields (which may be expensive!).
@@ -77,9 +78,9 @@ class BaseSurvey(object):
 
     @Utils.count
     def projectFields(self, u):
-        """
-            This function projects the fields onto the data space.
+        """projectFields(u)
 
+            This function projects the fields onto the data space.
 
             .. math::
 
@@ -89,22 +90,23 @@ class BaseSurvey(object):
 
     @Utils.count
     def projectFieldsDeriv(self, u):
-        """
-            This function projects the fields onto the data space.
+        """projectFieldsDeriv(u)
 
+            This function s the derivative of projects the fields onto the data space.
 
             .. math::
 
                 \\frac{\partial d_\\text{pred}}{\partial u} = \mathbf{P}
         """
-        return sp.identity(u.size)
+        raise NotImplemented('projectFields is not yet implemented.')
 
     @Utils.count
     def residual(self, m, u=None):
-        """
+        """residual(m, u=None)
+
             :param numpy.array m: geophysical model
             :param numpy.array u: fields
-            :rtype: float
+            :rtype: numpy.array
             :return: data residual
 
             The data residual:
@@ -129,6 +131,7 @@ class BaseSurvey(object):
 
         """
         if getattr(self,'_Wd',None) is None:
+            print 'SimPEG is making Survey.Wd to be norm of the data plus a floor.'
             eps = np.linalg.norm(Utils.mkvc(self.dobs),2)*1e-5
             self._Wd = 1/(abs(self.dobs)*self.std+eps)
         return self._Wd
@@ -137,11 +140,12 @@ class BaseSurvey(object):
         self._Wd = value
 
     def residualWeighted(self, m, u=None):
-        """
+        """residualWeighted(m, u=None)
+
             :param numpy.array m: geophysical model
             :param numpy.array u: fields
-            :rtype: float
-            :return: data residual
+            :rtype: numpy.array
+            :return: weighted data residual
 
             The weighted data residual:
 
@@ -149,7 +153,7 @@ class BaseSurvey(object):
 
                 \mu_\\text{data}^{\\text{weighted}} = \mathbf{W}_d(\mathbf{d}_\\text{pred} - \mathbf{d}_\\text{obs})
 
-            Where W_d is a covariance matrix that weights the data residual.
+            Where \\\\(W_d\\\\) is a covariance matrix that weights the data residual.
         """
         return Utils.mkvc(self.Wd*self.residual(m, u=u))
 
