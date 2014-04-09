@@ -36,7 +36,7 @@ class TDEM_bTests(unittest.TestCase):
         self.sigma = np.ones(mesh.nCz)*1e-8
         self.sigma[mesh.vectorCCz<0] = 1e-3
         self.sigma = np.log(self.sigma[active])
-        self.showIt = True
+        self.showIt = False
         self.prb.pair(self.dat)
 
     def test_analitic_b(self):
