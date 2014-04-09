@@ -17,6 +17,14 @@ class TestModels(unittest.TestCase):
         passed = checkDerivative(wrapper, np.random.randn(50), plotIt=False)
         self.assertTrue(passed,True)
 
+    def test_vangenuchten_theta(self):
+        mesh = Mesh.TensorMesh([50])
+        hav = Richards.Empirical._vangenuchten_theta(mesh)
+        m = np.random.randn(50)
+        def wrapper(u):
+            return hav.transform(u, m), hav.transformDerivU(u, m)
+        passed = checkDerivative(wrapper, np.random.randn(50), plotIt=False)
+        self.assertTrue(passed,True)
 
     def test_BaseHaverkamp_k(self):
         mesh = Mesh.TensorMesh([50])
@@ -28,6 +36,22 @@ class TestModels(unittest.TestCase):
         self.assertTrue(passed,True)
 
         hav = Richards.Empirical._haverkamp_k(mesh)
+        u = np.random.randn(50)
+        def wrapper(m):
+            return hav.transform(u, m), hav.transformDerivM(u, m)
+        passed = checkDerivative(wrapper, np.random.randn(50), plotIt=False)
+        self.assertTrue(passed,True)
+
+    def test_vangenuchten_k(self):
+        mesh = Mesh.TensorMesh([50])
+        hav = Richards.Empirical._vangenuchten_k(mesh)
+        m = np.random.randn(50)
+        def wrapper(u):
+            return hav.transform(u, m), hav.transformDerivU(u, m)
+        passed = checkDerivative(wrapper, np.random.randn(50), plotIt=False)
+        self.assertTrue(passed,True)
+
+        hav = Richards.Empirical._vangenuchten_k(mesh)
         u = np.random.randn(50)
         def wrapper(m):
             return hav.transform(u, m), hav.transformDerivM(u, m)

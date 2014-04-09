@@ -69,6 +69,9 @@ class RichardsProblem(Problem.BaseProblem):
     surveyPair  = RichardsSurvey
     modelPair = RichardsModel
 
+    Solver = Solver
+    solverOpts = {}
+
     def __init__(self, model, **kwargs):
         Problem.BaseProblem.__init__(self, model, **kwargs)
 
@@ -102,7 +105,7 @@ class RichardsProblem(Problem.BaseProblem):
     def rootFinder(self):
         """Root-finding Algorithm"""
         if getattr(self, '_rootFinder', None) is None:
-            self._rootFinder = Optimization.NewtonRoot(doLS=self.doNewton)
+            self._rootFinder = Optimization.NewtonRoot(doLS=self.doNewton, Solver=self.Solver)
         return self._rootFinder
 
     def fields(self, m):
@@ -121,9 +124,9 @@ class RichardsProblem(Problem.BaseProblem):
         if self.mesh.dim == 1:
             Dz = self.mesh.faceDivx
         elif self.mesh.dim == 2:
-            Dz = sp.hstack((Utils.spzeros(self.mesh.nC,self.mesh.nFv[0]), self.mesh.faceDivy),format='csr')
+            Dz = sp.hstack((Utils.spzeros(self.mesh.nC,self.mesh.vnF[0]), self.mesh.faceDivy),format='csr')
         elif self.mesh.dim == 3:
-            Dz = sp.hstack((Utils.spzeros(self.mesh.nC,self.mesh.nFv[0]+self.mesh.nFv[1]), self.mesh.faceDivz),format='csr')
+            Dz = sp.hstack((Utils.spzeros(self.mesh.nC,self.mesh.vnF[0]+self.mesh.vnF[1]), self.mesh.faceDivz),format='csr')
 
         bc   = self.boundaryConditions
         dt   = self.timeStep
@@ -175,9 +178,9 @@ class RichardsProblem(Problem.BaseProblem):
         if self.mesh.dim == 1:
             Dz = self.mesh.faceDivx
         elif self.mesh.dim == 2:
-            Dz = sp.hstack((Utils.spzeros(self.mesh.nC,self.mesh.nFv[0]), self.mesh.faceDivy),format='csr')
+            Dz = sp.hstack((Utils.spzeros(self.mesh.nC,self.mesh.vnF[0]), self.mesh.faceDivy),format='csr')
         elif self.mesh.dim == 3:
-            Dz = sp.hstack((Utils.spzeros(self.mesh.nC,self.mesh.nFv[0]+self.mesh.nFv[1]), self.mesh.faceDivz),format='csr')
+            Dz = sp.hstack((Utils.spzeros(self.mesh.nC,self.mesh.vnF[0]+self.mesh.vnF[1]), self.mesh.faceDivz),format='csr')
 
         bc = self.boundaryConditions
         dt = self.timeStep
@@ -220,7 +223,7 @@ class RichardsProblem(Problem.BaseProblem):
         A = As + Ad
         B = np.array(sp.vstack(Bs).todense())
 
-        Ainv = Solver(A)
+        Ainv = self.Solver(A, **self.solverOpts)
         P = self.survey.projectFieldsDeriv(u, m)
         J = P * Ainv.solve(B)
         return J
@@ -233,7 +236,7 @@ class RichardsProblem(Problem.BaseProblem):
 
         # This is done via forward substitution.
         temp, Adiag, B = self.diagsJacobian(m, u[0],u[1])
-        Adiaginv = Solver(Adiag)
+        Adiaginv = self.Solver(Adiag, **self.solverOpts)
         JvC[0] = Adiaginv.solve(B*v)
 
         # M = @(x) tril(Adiag)\(diag(Adiag).*(triu(Adiag)\x));
@@ -241,7 +244,7 @@ class RichardsProblem(Problem.BaseProblem):
 
         for ii in range(1,len(u)-1):
             Asub, Adiag, B = self.diagsJacobian(m, u[ii],u[ii+1])
-            Adiaginv = Solver(Adiag)
+            Adiaginv = self.Solver(Adiag, **self.solverOpts)
             JvC[ii] = Adiaginv.solve(B*v - Asub*JvC[ii-1])
 
         P = self.survey.projectFieldsDeriv(u, m)
@@ -261,7 +264,7 @@ class RichardsProblem(Problem.BaseProblem):
             Asub, Adiag, B = self.diagsJacobian(m, u[ii-1], u[ii])
             #select the correct part of v
             vpart = range((ii-1)*Adiag.shape[0], (ii)*Adiag.shape[0])
-            AdiaginvT = Solver(Adiag.T)
+            AdiaginvT = self.Solver(Adiag.T, **self.solverOpts)
             JTvC = AdiaginvT.solve(PTv[vpart] - minus)
             minus = Asub.T*JTvC  # this is now the super diagonal.
             BJtv = BJtv + B.T*JTvC
