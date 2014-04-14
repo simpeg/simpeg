@@ -70,20 +70,37 @@ def getIndecesBlock(p0,p1,ccMesh):
     # Return a tuple
     return ind
 
-def defineBlockConductivity(ccMesh,p0,p1,condVals):
+def defineBlock(ccMesh,p0,p1,vals=[0,1]):
     """
         Build a block with the conductivity specified by condVal.  Returns an array.
-        condVals[0]  conductivity of the block
-        condVals[1]  conductivity of the ground
+        vals[0]  conductivity of the block
+        vals[1]  conductivity of the ground
     """
-    sigma = np.zeros(ccMesh.shape[0]) + condVals[1]
+    sigma = np.zeros(ccMesh.shape[0]) + vals[1]
     ind   = getIndecesBlock(p0,p1,ccMesh)
 
-    sigma[ind] = condVals[0]
+    sigma[ind] = vals[0]
 
     return sigma
 
-def defineTwoLayeredConductivity(ccMesh,depth,condVals):
+def defineElipse(ccMesh, center=[0,0,0], anisotropy=[1,1,1], slope=10., theta=0.):
+    G = ccMesh.copy()
+    dim = ccMesh.shape[1]
+    for i in range(dim):
+        G[:, i] = G[:,i] - center[i]
+
+    theta = -theta*np.pi/180
+    M = np.array([[np.cos(theta),-np.sin(theta),0],[np.sin(theta),np.cos(theta),0],[0,0,1.]])
+    M = M[:dim,:dim]
+    G = M.dot(G.T).T
+
+    for i in range(dim):
+        G[:, i] = G[:,i]/anisotropy[i]*2.
+
+    D = np.sqrt(np.sum(G**2,axis=1))
+    return -np.arctan((D-1)*slope)*(2./np.pi)/2.+0.5
+
+def defineTwoLayers(ccMesh,depth,vals=[0,1]):
     """
     Define a two layered model.  Depth of the first layer must be specified.
     CondVals vector with the conductivity values of the layers.  Eg:
@@ -94,7 +111,7 @@ def defineTwoLayeredConductivity(ccMesh,depth,condVals):
         0                          depth                                 zf
              1st layer                       2nd layer
     """
-    sigma = np.zeros(ccMesh.shape[0]) + condVals[1]
+    sigma = np.zeros(ccMesh.shape[0]) + vals[1]
 
     dim = np.size(ccMesh[0,:])
 
@@ -116,7 +133,7 @@ def defineTwoLayeredConductivity(ccMesh,depth,condVals):
 
     ind   = getIndecesBlock(p0,p1,ccMesh)
 
-    sigma[ind] = condVals[0];
+    sigma[ind] = vals[0];
 
     return sigma
 
@@ -230,9 +247,9 @@ if __name__ == '__main__':
 
     p0 = np.array([0.5,0.5,0.5])[:testDim]
     p1 = np.array([1.0,1.0,1.0])[:testDim]
-    condVals = np.array([100,1e-6])
+    vals = np.array([100,1e-6])
 
-    sigma = defineBlockConductivity(ccMesh,p0,p1,condVals)
+    sigma = defineBlockConductivity(ccMesh,p0,p1,vals)
 
     # Plot sigma model
     print sigma.shape
@@ -242,10 +259,10 @@ if __name__ == '__main__':
 
     # -----------------------------------------
     print('Testing the two layered model')
-    condVals = np.array([100,1e-5]);
+    vals = np.array([100,1e-5]);
     depth    = 1.0;
 
-    sigma = defineTwoLayeredConductivity(ccMesh,depth,condVals)
+    sigma = defineTwoLayeredConductivity(ccMesh,depth,vals)
 
     M.plotImage(sigma)
     print sigma
