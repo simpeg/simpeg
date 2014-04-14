@@ -109,7 +109,10 @@ class _haverkamp_theta(Model.BaseNonLinearModel):
         self.setModel(m)
         f = (self.alpha*(self.theta_s  -    self.theta_r  )/
                         (self.alpha    + abs(u)**self.beta) + self.theta_r)
-        f[u >= 0] = self.theta_s
+        if Utils.isScalar(self.theta_s):
+            f[u >= 0] = self.theta_s
+        else:
+            f[u >= 0] = self.theta_s[u >= 0]
         return f
 
     def transformDerivM(self, u, m):
@@ -143,10 +146,10 @@ class _haverkamp_k(Model.BaseNonLinearModel):
     def transform(self, u, m):
         self.setModel(m)
         f = np.exp(self.Ks)*self.A/(self.A+abs(u)**self.gamma)
-        if type(self.Ks) is np.ndarray and self.Ks.size > 1:
-            f[u >= 0] = np.exp(self.Ks[u >= 0])
-        else:
+        if Utils.isScalar(self.Ks):
             f[u >= 0] = np.exp(self.Ks)
+        else:
+            f[u >= 0] = np.exp(self.Ks[u >= 0])
         return f
 
     def transformDerivM(self, u, m):
@@ -206,7 +209,11 @@ class _vangenuchten_theta(Model.BaseNonLinearModel):
         m = 1 - 1.0/self.n
         f = ((  self.theta_s  -  self.theta_r  )/
              ((1+abs(self.alpha*u)**self.n)**m)   +  self.theta_r)
-        f[u > 0] = self.theta_s
+        if Utils.isScalar(self.theta_s):
+            f[u >= 0] = self.theta_s
+        else:
+            f[u >= 0] = self.theta_s[u >= 0]
+
         return f
 
     def transformDerivM(self, u, m):
@@ -246,10 +253,10 @@ class _vangenuchten_k(Model.BaseNonLinearModel):
 
         theta_e = 1.0/((1.0+abs(alpha*u)**n)**m)
         f = np.exp(Ks)*theta_e**I* ( ( 1.0 - ( 1.0 - theta_e**(1.0/m) )**m )**2 )
-        if type(self.Ks) is np.ndarray and self.Ks.size > 1:
-            f[u >= 0] = np.exp(self.Ks[u >= 0])
-        else:
+        if Utils.isScalar(self.Ks):
             f[u >= 0] = np.exp(self.Ks)
+        else:
+            f[u >= 0] = np.exp(self.Ks[u >= 0])
         return f
 
     def transformDerivM(self, u, m):
@@ -294,7 +301,7 @@ class VanGenuchten(RichardsModel):
         Utils.setKwargs(self, **kwargs)
 
 
-class vanGenuchtenParams(object):
+class VanGenuchtenParams(object):
     """
         The RETC code for quantifying the hydraulic functions of unsaturated soils,
         Van Genuchten, M Th, Leij, F J, Yates, S R

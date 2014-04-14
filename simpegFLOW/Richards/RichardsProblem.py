@@ -101,11 +101,14 @@ class RichardsProblem(Problem.BaseProblem):
     doNewton = Utils.dependentProperty('_doNewton', False, ['_rootFinder'],
                 "Do a Newton iteration. If False, a Picard iteration will be completed.")
 
+    maxIterRootFinder = Utils.dependentProperty('_maxIterRootFinder', 30, ['_rootFinder'],
+                "Maximum iterations for rootFinder iteration.")
+
     @property
     def rootFinder(self):
         """Root-finding Algorithm"""
         if getattr(self, '_rootFinder', None) is None:
-            self._rootFinder = Optimization.NewtonRoot(doLS=self.doNewton, Solver=self.Solver)
+            self._rootFinder = Optimization.NewtonRoot(doLS=self.doNewton, maxIter=self.maxIterRootFinder, Solver=self.Solver)
         return self._rootFinder
 
     def fields(self, m):
