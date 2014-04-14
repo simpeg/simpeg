@@ -209,10 +209,7 @@ class BaseRx(object):
     def nD(self):
         return self.locs.shape[0]
 
-<<<<<<< HEAD
 
-=======
->>>>>>> dbd1334e0bf48dedc12f744841e71725a9d98d50
 class BaseTx(object):
     """SimPEG Transmitter Object"""
 
