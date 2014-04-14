@@ -800,12 +800,14 @@ class NewtonRoot(object):
     """
 
     tol      = 1.000e-06
-    solveTol = 0 # Default direct solve.
     maxIter  = 20
     stepDcr  = 0.5
     maxLS    = 30
     comments = False
     doLS     = True
+
+    Solver     = Solver
+    solverOpts = {}
 
     def __init__(self, **kwargs):
         Utils.setKwargs(self, **kwargs)
@@ -828,13 +830,9 @@ class NewtonRoot(object):
         while True:
 
             r, J = fun(x, return_g=True)
-            if self.solveTol == 0:
-                Jinv = Solver(J)
-                dh   = - Jinv.solve(r)
-            else:
-                raise NotImplementedError('Iterative solve on NewtonRoot is not yet implemented.')
-                # M = @(x) tril(J)\(diag(J).*(triu(J)\x));
-                # [dh, ~] = bicgstab(J,-r,O.solveTol,500,M);
+
+            Jinv = self.Solver(J, **self.solverOpts)
+            dh   = - Jinv.solve(r)
 
             muLS = 1.
             LScnt  = 1
@@ -862,7 +860,7 @@ class NewtonRoot(object):
             if norm(rt) < self.tol:
                 break
             if self.iter > self.maxIter:
-                print 'NewtonRoot stopped by maxIters. norm: %4.4e' % norm(rt)
+                print 'NewtonRoot stopped by maxIters (%d). norm: %4.4e' % (self.maxIter, norm(rt))
                 break
 
         return x
