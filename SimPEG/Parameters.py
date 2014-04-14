@@ -56,7 +56,7 @@ class Parameter(object):
         if (self.current is None or
             not self.opt.iter == self.currentIter):
             self.current = self.nextIter()
-            self.currentIter = self.opt.iter
+            self.currentIter = getattr(self.opt, 'iter', 0)
         return self.current
 
     def nextIter(self):
@@ -162,3 +162,16 @@ class BetaSchedule(BetaEstimate):
             self.beta /= self.coolingFactor
 
         return self.beta
+
+
+class UpdateReferenceModel(Parameter):
+
+    mref0 = None
+
+    def nextIter(self):
+        mref = getattr(self, 'm_prev', None)
+        if mref is None:
+            if self.debug: print 'UpdateReferenceModel is using mref0'
+            mref = self.mref0
+        self.m_prev = self.objFunc.m_current
+        return mref

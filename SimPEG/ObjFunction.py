@@ -61,7 +61,7 @@ class BaseObjFunction(object):
         if self.debug: print 'Calling ObjFunction.startup'
 
         if self.reg.mref is None:
-            print 'Regularization has not set mref. SimPEG will set it to m0.'
+            print 'Regularization has not set mref. SimPEG.ObjFunction will set it to m0.'
             self.reg.mref = m0
 
         self.phi_d = np.nan
