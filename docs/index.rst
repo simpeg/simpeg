@@ -39,7 +39,9 @@ Forward Problems
 .. toctree::
    :maxdepth: 2
 
-   api_Forward
+   api_Model
+   api_Survey
+   api_Problem
 
 Inversion
 *********
