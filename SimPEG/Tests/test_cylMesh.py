@@ -206,6 +206,62 @@ class TestEdgeCurl2D(OrderTest):
     def test_order(self):
         self.orderTest()
 
+
+# class TestInnerProducts2D(OrderTest):
+#     """Integrate an function over a unit cube domain using edgeInnerProducts and faceInnerProducts."""
+
+#     meshTypes = MESHTYPES
+#     meshDimension = 2
+#     meshSizes = [4, 8, 16, 32, 64, 128]
+
+#     def getError(self):
+
+#         funR = lambda r, t, z: np.cos(2.0*np.pi*z)
+#         funT = lambda r, t, z: 0*t
+#         funZ = lambda r, t, z: np.sin(2.0*np.pi*r)
+
+#         call = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1], xyz[:, 2])
+
+#         sigma1 = lambda r, t, z: z+1
+#         sigma2 = lambda r, t, z: r*z+50
+#         sigma3 = lambda r, t, z: 3+t*r
+#         sigma4 = lambda r, t, z: 0.1*r*t*z
+#         sigma5 = lambda r, t, z: 0.2*z*r*t
+#         sigma6 = lambda r, t, z: 0.1*t
+
+#         Gc = self.M.gridCC
+#         if self.sigmaTest == 1:
+#             sigma = np.c_[call(sigma1, Gc)]
+#             analytic = 144877./360  # Found using sympy. z=5
+#         elif self.sigmaTest == 2:
+#             sigma = np.c_[call(sigma1, Gc), call(sigma2, Gc)]
+#             analytic = 189959./120  # Found using sympy. z=5
+#         elif self.sigmaTest == 3:
+#             sigma = np.r_[call(sigma1, Gc), call(sigma2, Gc), call(sigma3, Gc)]
+#             analytic = 781427./360  # Found using sympy. z=5
+
+#         if self.location == 'edges':
+#             E = call(funT, self.M.gridEy)
+#             A = self.M.getEdgeInnerProduct(sigma)
+#             numeric = E.T.dot(A.dot(E))
+#         elif self.location == 'faces':
+#             Fr = call(funR, self.M.gridFx)
+#             Fz = call(funZ, self.M.gridFz)
+#             A = self.M.getFaceInnerProduct(sigma)
+#             F = np.r_[Fr,Fz]
+#             numeric = F.T.dot(A.dot(F))
+
+#         print numeric
+#         err = np.abs(numeric - analytic)
+#         return err
+
+#     def test_order1_faces(self):
+#         self.name = "2D Face Inner Product - Isotropic"
+#         self.location = 'faces'
+#         self.sigmaTest = 1
+#         self.orderTest()
+
+
 class TestCyl3DMesh(unittest.TestCase):
 
     def setUp(self):

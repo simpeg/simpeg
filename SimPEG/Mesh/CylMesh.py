@@ -3,39 +3,10 @@ import scipy.sparse as sp
 from scipy.constants import pi
 from SimPEG.Utils import mkvc, ndgrid, sdiag, kron3, speye, ddx, av, avExtrap
 from TensorMesh import BaseTensorMesh
+from InnerProducts import InnerProducts
 
 
-    # def getNearest(self, loc, locType):
-    #     """ Returns the index of the closest face or edge to a given location
-
-    #     :param numpy.ndarray loc: Test point
-    #     :param str locType: Type of location desired (see below)
-    #     :rtype: int
-    #     :return: ind:
-
-    #     locType can be::
-
-    #         'fz'    -> location of nearest z-face
-    #         'fr'    -> location of nearest r-face
-    #         'et'    -> location of nearest edge
-    #     """
-
-    #     if locType=='et':
-    #         dr = self.gridN[:,0] - loc[0]
-    #         dz = self.gridN[:,1] - loc[1]
-    #     elif locType=='fz':
-    #         dr = self.gridFz[:,0] - loc[0]
-    #         dz = self.gridFz[:,1] - loc[1]
-    #     elif locType=='fr':
-    #         dr = self.gridFr[:,0] - loc[0]
-    #         dz = self.gridFr[:,1] - loc[1]
-    #     else:
-    #         raise ValueError('Invalid locType')
-    #     R = np.sqrt(dr**2 + dz**2)
-    #     ind = np.argmin(R)
-    #     return ind
-
-class CylMesh(BaseTensorMesh):
+class CylMesh(BaseTensorMesh, InnerProducts):
     """
         CylMesh is a mesh class for cylindrical problems
     """
@@ -50,6 +21,10 @@ class CylMesh(BaseTensorMesh):
         assert self.hy.sum() == 2*np.pi, "The 2nd dimension must sum to 2*pi"
 
     @property
+    def isSymmetric(self):
+        return self.nCy == 1
+
+    @property
     def nNx(self):
         """
         Number of nodes in the x-direction
@@ -57,7 +32,7 @@ class CylMesh(BaseTensorMesh):
         :rtype: int
         :return: nNx
         """
-        if self.nCy == 1: return self.nCx
+        if self.isSymmetric: return self.nCx
         return self.nCx + 1
 
     @property
@@ -68,7 +43,7 @@ class CylMesh(BaseTensorMesh):
         :rtype: int
         :return: nNy
         """
-        if self.nCy == 1: return 0
+        if self.isSymmetric: return 0
         return self.nCy
 
     @property
@@ -89,7 +64,7 @@ class CylMesh(BaseTensorMesh):
         :rtype: numpy.array (dim, )
         :return: vnEy or None if dim < 2
         """
-        nNx = self.nNx if self.nCy == 1 else self.nNx - 1
+        nNx = self.nNx if self.isSymmetric else self.nNx - 1
         return np.r_[nNx, self.nCy, self.nNz]
 
     @property
@@ -100,7 +75,7 @@ class CylMesh(BaseTensorMesh):
         :rtype: numpy.array (dim, )
         :return: vnEz or None if nCy > 1
         """
-        if self.nCy == 1:
+        if self.isSymmetric:
             return np.r_[self.nNx, self.nNy, self.nCz]
         else:
             return None
@@ -113,7 +88,7 @@ class CylMesh(BaseTensorMesh):
         :rtype: int
         :return: nEz
         """
-        if self.nCy == 1:
+        if self.isSymmetric:
             return self.vnEz.prod()
         return (np.r_[self.nNx-1, self.nNy, self.nCz]).prod() + self.nCz
 
@@ -130,14 +105,14 @@ class CylMesh(BaseTensorMesh):
     @property
     def vectorNx(self):
         """Nodal grid vector (1D) in the x direction."""
-        if self.nCy == 1:
+        if self.isSymmetric:
             return self.hx.cumsum()
         return np.r_[0, self.hx].cumsum()
 
     @property
     def vectorNy(self):
         """Nodal grid vector (1D) in the y direction."""
-        if self.nCy == 1:
+        if self.isSymmetric:
             # There aren't really any nodes, but all the grids need
             # somewhere to live, why not zero?!
             return np.r_[0]
@@ -147,7 +122,7 @@ class CylMesh(BaseTensorMesh):
     def edge(self):
         """Edge lengths"""
         if getattr(self, '_edge', None) is None:
-            if self.nCy == 1:
+            if self.isSymmetric:
                 self._edge = 2*pi*self.gridN[:,0]
             else:
                 raise NotImplementedError('edges not yet implemented for 3D cyl mesh')
@@ -186,7 +161,7 @@ class CylMesh(BaseTensorMesh):
             # Compute faceDivergence operator on faces
             D1 = self.faceDivx
             D3 = self.faceDivz
-            if self.nCy == 1:
+            if self.isSymmetric:
                 D = sp.hstack((D1, D3), format="csr")
             elif self.nCy > 1:
                 D2 = self.faceDivy
@@ -237,7 +212,7 @@ class CylMesh(BaseTensorMesh):
     def nodalGrad(self):
         """Construct gradient operator (nodes to edges)."""
         # Nodal grad does not make sense for cylindrically symmetric mesh.
-        if self.nCy == 1: return None
+        if self.isSymmetric: return None
         raise NotImplementedError('nodalGrad not yet implemented')
 
     @property
@@ -263,178 +238,49 @@ class CylMesh(BaseTensorMesh):
             self._edgeCurl = sp.diags(1/self.area,0)*sp.vstack((Dz, Dr))*sp.diags(self.edge,0)
         return self._edgeCurl
 
+    # @property
+    # def aveE2CC(self):
+    #     """Averaging operator from cell edges to cell centers"""
+    #     if getattr(self, '_aveE2CC', None) is None:
+    #         if self.isSymmetric:
+    #             az = sp.spdiags(0.5*np.ones((2, self.nNz)), [-1,0], self.nNz, self.nCz, format='csr')
+    #             ar = sp.spdiags(0.5*np.ones((2, self.nCx)), [0, 1], self.nCx, self.nCx, format='csr')
+    #             ar[0,0] = 1
+    #             self._aveE2CC = (0.5)*sp.kron(az, ar).T
+    #         else:
+    #             raise NotImplementedError('wrapping in the averaging is not yet implemented')
+    #     return self._aveE2CC
+
     @property
     def aveE2CC(self):
-        """Averaging operator from cell edges to cell centres"""
+        "Construct the averaging operator on cell edges to cell centers."
         if getattr(self, '_aveE2CC', None) is None:
-            az = sp.spdiags(0.5*np.ones((2, self.nNz)), [-1,0], self.nNz, self.nCz, format='csr')
-            ar = sp.spdiags(0.5*np.ones((2, self.nCx)), [0, 1], self.nCx, self.nCx, format='csr')
-            ar[0,0] = 1
-            self._aveE2CC = sp.kron(az, ar).T
+            # The number of cell centers in each direction
+            n = self.vnC
+            if self.isSymmetric:
+                avR = av(n[0])[:,1:]
+                avR[0,0] = 1.
+                self._aveE2CC = (0.5)*sp.kron(av(n[2]), avR, format="csr")
+            else:
+                raise NotImplementedError('wrapping in the averaging is not yet implemented')
+                # self._aveE2CC = (1./3)*sp.hstack((kron3(av(n[2]), av(n[1]), speye(n[0])),
+                #                                   kron3(av(n[2]), speye(n[1]), av(n[0])),
+                #                                   kron3(speye(n[2]), av(n[1]), av(n[0]))), format="csr")
         return self._aveE2CC
+
 
     @property
     def aveF2CC(self):
-        """Averaging operator from cell faces to cell centres"""
+        "Construct the averaging operator on cell faces to cell centers."
         if getattr(self, '_aveF2CC', None) is None:
-            az = sp.spdiags(0.5*np.ones((2, self.nNz)), [-1,0], self.nNz, self.nCz, format='csr')
-            ar = sp.spdiags(0.5*np.ones((2, self.nCx)), [0, 1], self.nCx, self.nCx, format='csr')
-            ar[0,0] = 1
-            Afr = sp.kron(sp.eye(self.nCz),ar)
-            Afz = sp.kron(az,sp.eye(self.nCx))
-            self._aveF2CC = sp.vstack((Afr,Afz)).T
+            n = self.vnC
+            if self.isSymmetric:
+                avR = av(n[0])[:,1:]
+                avR[0,0] = 1.
+                self._aveF2CC = (0.5)*sp.hstack((sp.kron(speye(n[2]), avR), sp.kron(av(n[2]), speye(n[0]))), format="csr")
+            else:
+                raise NotImplementedError('wrapping in the averaging is not yet implemented')
+                # self._aveF2CC = (1./3.)*sp.hstack((kron3(speye(n[2]), speye(n[1]), av(n[0])),
+                #                                    kron3(speye(n[2]), av(n[1]), speye(n[0])),
+                #                                    kron3(av(n[2]), speye(n[1]), speye(n[0]))), format="csr")
         return self._aveF2CC
-
-    def getFaceMassDeriv(self):
-        Av = self.aveF2CC
-        return Av.T * sdiag(self.vol)
-
-    def getEdgeMassDeriv(self):
-        Av = self.aveE2CC
-        return Av.T * sdiag(self.vol)
-
-
-    ####################################################
-    # Methods
-    ####################################################
-
-
-    def getMass(self, materialProp=None, loc='e'):
-        """ Produces mass matricies.
-
-        :param None,float,numpy.ndarray materialProp: property to be averaged (see below)
-        :param str loc: Average to location: 'e'-edges, 'f'-faces
-        :rtype: scipy.sparse.csr.csr_matrix
-        :return: M, the mass matrix
-
-        materialProp can be::
-
-            None            -> takes materialProp = 1 (default)
-            float           -> a constant value for entire domain
-            numpy.ndarray   -> if materialProp.size == self.nC
-                                    3D property model
-                               if materialProp.size = self.nCz
-                                    1D (layered eath) property model
-        """
-        if materialProp is None:
-            materialProp = np.ones(self.nC)
-        elif type(materialProp) is float:
-            materialProp = np.ones(self.nC)*materialProp
-        elif materialProp.shape == (self.nCz,):
-            materialProp = materialProp.repeat(self.nCx)
-        materialProp = mkvc(materialProp)
-        assert materialProp.shape == (self.nC,), "materialProp incorrect shape"
-
-        if loc=='e':
-            Av = self.aveE2CC
-        elif loc=='f':
-            Av = self.aveF2CC
-        else:
-            raise ValueError('Invalid loc')
-
-        diag = Av.T * (self.vol * mkvc(materialProp))
-
-        return sdiag(diag)
-
-    def getEdgeMass(self, materialProp=None):
-        """mass matrix for products of edge functions w'*M(materialProp)*e"""
-        return self.getMass(loc='e', materialProp=materialProp)
-
-    def getFaceMass(self, materialProp=None):
-        """mass matrix for products of face functions w'*M(materialProp)*f"""
-        return self.getMass(loc='f', materialProp=materialProp)
-
-    # def getInterpolationMat(self, loc, locType='fz'):
-    #     """ Produces intrpolation matrix
-
-    #     :param numpy.ndarray loc: Location of points to interpolate to
-    #     :param str locType: What to interpolate (see below)
-    #     :rtype: scipy.sparse.csr.csr_matrix
-    #     :return: M, the intrpolation matrix
-
-    #     locType can be::
-
-    #         'fz'    -> z-component of field defined on faces
-    #         'fr'    -> r-component of field defined on faces
-    #         'et'    -> theta-component of field defined on edges
-    #     """
-
-    #     loc = np.atleast_2d(loc)
-
-    #     assert np.all(loc[:,0]<=self.vectorNx.max()) & \
-    #            np.all(loc[:,1]>=self.vectorNz.min()) & \
-    #            np.all(loc[:,1]<=self.vectorNz.max()), \
-    #            "Points outside of mesh"
-
-
-    #     if locType=='fz':
-    #         Q = sp.lil_matrix((loc.shape[0], self.nF), dtype=float)
-
-    #         for i, iloc in enumerate(loc):
-    #             # Point is on a z-interface
-    #             if np.any(np.abs(self.vectorNz-iloc[1])<0.001):
-    #                 dFz = self.gridFz-iloc          #Distance to z faces
-    #                 dFz[dFz[:,0]>0,:] = np.inf      #Looking for next face to the left...
-    #                 indL = np.argmin(np.sum(dFz**2, axis=1))  #Closest one
-    #                 if self.gridFz[indL,0] == self.vectorCCr.max(): #Point in outer half cell (linear extrapolation)
-    #                     zFL = self.gridFz[indL,:]
-    #                     zFLL = self.gridFz[indL-1,:]
-    #                     Q[i, indL+self.nFr] = (iloc[0] - zFLL[0])/(zFL[0] - zFLL[0])
-    #                     Q[i, indL+self.nFr-1] = -(iloc[0] - zFL[0])/(zFL[0] - zFLL[0])
-    #                 else:
-    #                     zFL = self.gridFz[indL,:]
-    #                     zFR = self.gridFz[indL+1,:]
-    #                     Q[i,indL+self.nFr] = (zFR[0] - iloc[0])/(zFR[0] - zFL[0])
-    #                     Q[i,indL+self.nFr+1] = (iloc[0] - zFL[0])/(zFR[0] - zFL[0])
-    #             # Point is in a cell
-    #             else:
-    #                 dFz = self.gridFz-iloc
-    #                 dFz[dFz>0] = np.inf
-    #                 dFz = np.sum(dFz**2, axis=1)
-
-    #                 indBL = np.argmin(dFz)         # Face below and to the left
-    #                 indAL = indBL + self.nCx        # Face above and to the left
-
-    #                 zF_BL = self.gridFz[indBL,:]
-    #                 zF_AL = self.gridFz[indAL,:]
-
-    #                 dzB = iloc[1] - zF_BL[1]         # z-distance to face below
-    #                 dzA = zF_AL[1] - iloc[1]         # z-distance to face above
-
-    #                 if self.gridFz[indBL,0] == self.vectorCCr.max(): #Point in outer half cell (linear extrapolation)
-    #                     zF_BLL = self.gridFz[indBL-1,:]
-    #                     zF_ALL = self.gridFz[indAL-1,:]
-
-    #                     DZ = zF_AL[1] - zF_BL[1]
-    #                     DR = zF_AL[0] - zF_ALL[0]
-
-    #                     drL = iloc[0] - zF_AL[0]
-    #                     drLL = iloc[0] - zF_ALL[0]
-
-    #                     Q[i, indBL+self.nFr-1] = -(1 - dzB/DZ)*(drL/DR)
-    #                     Q[i, indBL+self.nFr] = (1 - dzB/DZ)*(drLL/DR)
-    #                     Q[i, indAL+self.nFr-1] = -(dzB/DZ)*(drL/DR)
-    #                     Q[i, indAL+self.nFr] = (dzB/DZ)*(drLL/DR)
-    #                 else:
-    #                     indBR = indBL+1                 # Face below and to the right
-    #                     indAR = indAL + 1               # Face above and to the right
-    #                     zF_BR = self.gridFz[indBR,:]
-
-    #                     drL = iloc[0] - zF_BL[0]         # r-distance to face on left
-    #                     drR = zF_BR[0] - iloc[0]         # r-distance to face on right
-
-    #                     drz = (drL + drR)*(dzB + dzA)
-    #                     Q[i,indBL+self.nFr] = drR*dzA/drz
-    #                     Q[i,indBR+self.nFr] = drL*dzA/drz
-    #                     Q[i,indAL+self.nFr] = drR*dzB/drz
-    #                     Q[i,indAR+self.nFr] = drL*dzB/drz
-
-    #     elif locType=='fr':
-    #         raise NotImplementedError('locType==fr')
-    #     elif locType=='et':
-    #         raise NotImplementedError('locType==et')
-    #     else:
-    #         raise ValueError('Invalid locType')
-    #     return Q.tocsr()
-
-
