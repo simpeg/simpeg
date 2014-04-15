@@ -15,7 +15,7 @@ Tests:
 [https://travis-ci.org/simpeg/simpegem](https://travis-ci.org/simpeg/simpegem)
 
 Build Status:
-[![Build Status](https://travis-ci.org/simpeg/simpegem.png)](https://travis-ci.org/simpeg/simpegem)
+[![Build Status](https://travis-ci.org/simpeg/simpegem.svg?branch=master)](https://travis-ci.org/simpeg/simpegem)
 
 Bugs & Issues:
 [https://github.com/simpeg/simpegem/issues](https://github.com/simpeg/simpegem/issues)
