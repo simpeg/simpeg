@@ -19,8 +19,8 @@ class MagFwdProblemTests(unittest.TestCase):
         chi = np.ones(M.nC)*chibkg
         sph_ind = PF.MagAnalytics.spheremodel(M, 0., 0., 0., 100)
         chi[sph_ind] = chiblk
-        model = PF.BaseMag.BaseMagModel(M)
-        prob = PF.Magnetics.MagneticsDiffSecondary(model)
+        model = PF.BaseMag.BaseMagMap(M)
+        prob = PF.Magnetics.MagneticsDiffSecondary(M, mapping=model)
         self.prob = prob
         self.M = M
         self.chi = chi
