@@ -26,9 +26,10 @@ class TDEM_bTests(unittest.TestCase):
         mesh = Mesh.TensorMesh([hx,hy,hz], [-hx.sum()/2.,-hy.sum()/2.,-hz.sum()/2.])
 
         active = mesh.vectorCCz<0.
-        model = Model.ActiveModel(mesh, active, -8, nC=mesh.nCz)
-        model = Model.ComboModel(mesh,
-                    [Model.LogModel, Model.Vertical1DModel, model])
+        actMap = Maps.ActiveCells(mesh, active, -8, nC=mesh.nCz)
+        mapping = Maps.ComboMap(mesh,
+                    [Maps.ExpMap, Maps.Vertical1DMap, actMap])
+
 
         opts = {'txLoc':np.array([0., 0., 0.]),
                 'txType':'VMD_MVP',
@@ -40,11 +41,14 @@ class TDEM_bTests(unittest.TestCase):
         sig_half = 1e-3
         self.sig_half = sig_half
         self.dat = EM.TDEM.SurveyTDEM1D(**opts)
-        self.prb = EM.TDEM.ProblemTDEM_b(model)
-
-        from mumpsSCI import MumpsSolver
-        self.prb.Solver = MumpsSolver
+        self.prb = EM.TDEM.ProblemTDEM_b(mesh, mapping=mapping)
+        try:
+            from mumpsSCI import MumpsSolver
+            self.prb.Solver = MumpsSolver
+        except ImportError:
+            pass
         self.prb.setTimes([1e-6], [100])
+        # self.prb.setTimes([1e-6, 5e-6, 1e-5, 5e-5, 1e-4, 5e-4], [40, 40, 40, 40, 40, 40])
 
         self.sigma = np.ones(mesh.nCz)*1e-8
         self.sigma[active] = sig_half
@@ -78,15 +82,15 @@ class TDEM_bTests(unittest.TestCase):
 
         chi_half = 0.
 
-        Logmodel = EM1D.BaseEM1D.BaseEM1DModel(mesh1D)
-        modelReal = Model.ComboModel(mesh1D, [Logmodel])
+        expmap = EM1D.BaseEM1D.BaseEM1DMap(mesh1D)
+        mappingReal = Maps.ComboMap(mesh1D, [expmap])
         m_1D = np.log(np.ones(nlay)*sig_half)
 
         TDsurvey.rxType = 'Bz'
         WT0, WT1, YBASE = EM1D.DigFilter.LoadWeights()
         options = {'WT0': WT0, 'WT1': WT1, 'YBASE': YBASE}
 
-        prob = EM1D.EM1D.EM1D(modelReal, **options)
+        prob = EM1D.EM1D.EM1D(mesh1D, mapping=mappingReal, **options)
         prob.pair(TDsurvey)
         prob.chi = np.zeros(TDsurvey.nlay)
 

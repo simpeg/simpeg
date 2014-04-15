@@ -92,8 +92,8 @@ class MixinTimeStuff(object):
 
 class ProblemBaseTDEM(MixinTimeStuff, MixinInitialFieldCalc, BaseProblem):
     """docstring for ProblemTDEM1D"""
-    def __init__(self, model, **kwargs):
-        BaseProblem.__init__(self, model, **kwargs)
+    def __init__(self, mesh, mapping=None, **kwargs):
+        BaseProblem.__init__(self, mesh, mapping=mapping, **kwargs)
 
 
     ####################################################
@@ -122,7 +122,7 @@ class ProblemBaseTDEM(MixinTimeStuff, MixinInitialFieldCalc, BaseProblem):
     def MeSigmaI(self): return self._MeSigmaI
 
     def makeMassMatrices(self, m):
-        sig = self.model.transform(m)
+        sig = self.mapping.transform(m)
         self._MeSigma = self.mesh.getEdgeInnerProduct(sig)
         self._MeSigmaI = sdiag(1/self.MeSigma.diagonal())
         self._MfMui = self.mesh.getFaceInnerProduct(1/mu_0)

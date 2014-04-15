@@ -12,23 +12,23 @@ class TDEM_bDerivTests(unittest.TestCase):
         npad = 20
         hx = Utils.meshTensors(((0,cs), (ncx,cs), (npad,cs)))
         hy = Utils.meshTensors(((npad,cs), (ncy,cs), (npad,cs)))
-        mesh = Mesh.CylMesh([hx,hy], -hy.sum()/2)
+        mesh = Mesh.CylMesh([hx,1,hy], [0,0,-hy.sum()/2])
 
         active = mesh.vectorCCz<0.
-        model = Model.ActiveModel(mesh, active, -8, nC=mesh.nCz)
-        model = Model.ComboModel(mesh,
-                    [Model.LogModel, Model.Vertical1DModel, model])
+        activeMap = Maps.ActiveCells(mesh, active, -8, nC=mesh.nCz)
+        mapping = Maps.ComboMap(mesh,
+                    [Maps.ExpMap, Maps.Vertical1DMap, activeMap])
 
 
         opts = {'txLoc':0.,
                'txType': 'VMD_MVP',
-               'rxLoc':np.r_[150., 0.],
+               'rxLoc':np.r_[40., 0., 0.],
                'rxType':'bz',
                'timeCh':np.logspace(-4,-2,20),
                }
         self.dat = EM.TDEM.SurveyTDEM1D(**opts)
 
-        self.prb = EM.TDEM.ProblemTDEM_b(model)
+        self.prb = EM.TDEM.ProblemTDEM_b(mesh, mapping=mapping)
         self.prb.setTimes([1e-5, 5e-5, 2.5e-4], [10, 10, 10])
 
         self.sigma = np.ones(mesh.nCz)*1e-8
@@ -50,7 +50,8 @@ class TDEM_bDerivTests(unittest.TestCase):
         Ahu = prb.AhVec(sigma, u)
 
         V1 = Ahu.get_b(0)
-        V2 = 1/prb.getDt(0)*prb.MfMui*u.get_b(-1)
+        V2 = 1./prb.getDt(0)*prb.MfMui*u.get_b(-1)
+        print np.linalg.norm(V1-V2), np.linalg.norm(V2), np.linalg.norm(V1-V2)/np.linalg.norm(V2)
         self.assertTrue(np.linalg.norm(V1-V2)/np.linalg.norm(V2) < 1.e-6)
 
         V1 = Ahu.get_e(0)
@@ -137,10 +138,10 @@ class TDEM_bDerivTests(unittest.TestCase):
         """
 
         # Random model and perturbation
-        sigma = np.random.rand(self.prb.model.nP)
+        sigma = np.random.rand(self.prb.mapping.nP)
 
         f = self.prb.fields(sigma)
-        dm = 1000*np.random.rand(self.prb.model.nP)
+        dm = 1000*np.random.rand(self.prb.mapping.nP)
         h = 0.01
 
         derChk = lambda m: [self.prb.AhVec(m, f).fieldVec(), lambda mx: self.prb.Gvec(sigma, mx, u=f).fieldVec()]
@@ -155,7 +156,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         mesh = self.mesh
         sigma = self.sigma
 
-        dm = 10*np.random.rand(prb.model.nP)
+        dm = 10*np.random.rand(prb.mapping.nP)
         f = prb.fields(sigma)
 
         derChk = lambda m: [self.prb.fields(m).fieldVec(), lambda mx: -prb.solveAh(sigma, prb.Gvec(sigma, mx, u=f)).fieldVec()]
@@ -172,7 +173,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         sigma = self.sigma
 
         # d_sig = 0.8*sigma #np.random.rand(mesh.nCz)
-        d_sig = 10*np.random.rand(prb.model.nP)
+        d_sig = 10*np.random.rand(prb.mapping.nP)
 
 
         derChk = lambda m: [prb.survey.dpred(m), lambda mx: -prb.Jvec(sigma, mx)]
@@ -221,7 +222,7 @@ class TDEM_bDerivTests(unittest.TestCase):
     def test_solveAhtVsAhtVec(self):
         prb = self.prb
         mesh = self.mesh
-        sigma = np.random.rand(prb.model.nP)
+        sigma = np.random.rand(prb.mapping.nP)
 
         f1 = EM.TDEM.FieldsTDEM(mesh, 1, prb.nTimes, 'b')
         for i in range(f1.nTimes):
@@ -258,8 +259,8 @@ class TDEM_bDerivTests(unittest.TestCase):
         mesh = self.mesh
         prb = self.prb
 
-        m = np.random.rand(prb.model.nP)
-        sigma = np.random.rand(prb.model.nP)
+        m = np.random.rand(prb.mapping.nP)
+        sigma = np.random.rand(prb.mapping.nP)
 
         u = EM.TDEM.FieldsTDEM(prb.mesh, 1, prb.nTimes, 'b')
         for i in range(u.nTimes):
@@ -280,7 +281,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         prb = self.prb
         sigma = self.sigma
 
-        m = np.random.rand(prb.model.nP)
+        m = np.random.rand(prb.mapping.nP)
         d = np.random.rand(prb.nTimes)
 
         V1 = d.dot(prb.Jvec(sigma, m))

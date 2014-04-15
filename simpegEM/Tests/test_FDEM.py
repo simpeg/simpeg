@@ -15,7 +15,7 @@ def getProblem(fdemType, comp):
     hz = Utils.meshTensors(((npad,cs), (ncz,cs), (npad,cs)))
     mesh = Mesh.TensorMesh([hx,hy,hz],[-hx.sum()/2., -hy.sum()/2., -hz.sum()/2.])
 
-    model = Model.LogModel(mesh)
+    mapping = Maps.ExpMap(mesh)
 
     x = np.linspace(-30,30,6)
     XYZ = Utils.ndgrid(x,x,np.r_[0])
@@ -25,12 +25,18 @@ def getProblem(fdemType, comp):
     survey = EM.FDEM.SurveyFDEM([Tx0])
 
     if fdemType == 'e':
-        prb = EM.FDEM.ProblemFDEM_e(model)
+        prb = EM.FDEM.ProblemFDEM_e(mesh, mapping=mapping)
     elif fdemType == 'b':
-        prb = EM.FDEM.ProblemFDEM_b(model)
+        prb = EM.FDEM.ProblemFDEM_b(mesh, mapping=mapping)
     else:
         raise NotImplementedError()
     prb.pair(survey)
+
+    try:
+        from mumpsSCI import MumpsSolver
+        prb.Solver = MumpsSolver
+    except ImportError, e:
+        pass
 
     return prb
 
@@ -42,7 +48,7 @@ def adjointTest(fdemType, comp):
     survey = prb.survey
 
     v = np.random.rand(survey.nD)
-    w = np.random.rand(prb.model.nP)
+    w = np.random.rand(prb.mapping.nP)
 
     u = prb.fields(m)
     vJw = v.dot(prb.Jvec(m, w, u=u))

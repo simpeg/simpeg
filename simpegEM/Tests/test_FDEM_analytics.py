@@ -17,7 +17,7 @@ class FDEM_analyticTests(unittest.TestCase):
         hz = Utils.meshTensors(((npad,cs), (ncz,cs), (npad,cs)))
         mesh = Mesh.TensorMesh([hx,hy,hz], x0=[-hx.sum()/2.,-hy.sum()/2.,-hz.sum()/2.,])
 
-        model = Model.LogModel(mesh)
+        mapping = Maps.ExpMap(mesh)
 
         x = np.linspace(-10,10,5)
         XYZ = Utils.ndgrid(x,np.r_[0],np.r_[0])
@@ -26,7 +26,7 @@ class FDEM_analyticTests(unittest.TestCase):
 
         survey = EM.FDEM.SurveyFDEM([Tx0])
 
-        prb = EM.FDEM.ProblemFDEM_b(model)
+        prb = EM.FDEM.ProblemFDEM_b(mesh, mapping=mapping)
         prb.pair(survey)
         prb.Solver = Utils.SolverUtils.DSolverWrap(sp.linalg.splu, checkAccuracy=False)
 
