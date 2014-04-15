@@ -20,7 +20,7 @@ class BaseProblem(object):
         Utils.setKwargs(self, **kwargs)
         self.mesh = mesh
         self.mapping = mapping or Maps.IdentityMap(mesh)
-        self.mapping._assertMatchesPair(mapPair)
+        self.mapping._assertMatchesPair(self.mapPair)
 
     @property
     def survey(self):

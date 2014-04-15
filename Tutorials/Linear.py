@@ -24,42 +24,41 @@ class LinearProblem(Problem.BaseProblem):
 
 
 def example(N):
-    M = Mesh.TensorMesh([N])
+    mesh = Mesh.TensorMesh([N])
 
     nk = 20
     jk = np.linspace(1.,20.,nk)
     p = -0.25
     q = 0.25
 
-    g = lambda k: np.exp(p*jk[k]*M.vectorCCx)*np.cos(2*np.pi*q*jk[k]*M.vectorCCx)
+    g = lambda k: np.exp(p*jk[k]*mesh.vectorCCx)*np.cos(2*np.pi*q*jk[k]*mesh.vectorCCx)
 
-    G = np.empty((nk, M.nC))
+    G = np.empty((nk, mesh.nC))
 
     for i in range(nk):
         G[i,:] = g(i)
 
-    mtrue = np.zeros(M.nC)
-    mtrue[M.vectorCCx > 0.3] = 1.
-    mtrue[M.vectorCCx > 0.45] = -0.5
-    mtrue[M.vectorCCx > 0.6] = 0
+    mtrue = np.zeros(mesh.nC)
+    mtrue[mesh.vectorCCx > 0.3] = 1.
+    mtrue[mesh.vectorCCx > 0.45] = -0.5
+    mtrue[mesh.vectorCCx > 0.6] = 0
 
 
 
-    model = Model.BaseModel(M)
-    prob = LinearProblem(model, G)
+    prob = LinearProblem(mesh, G)
     survey = prob.createSyntheticSurvey(mtrue, std=0.01)
 
-    return prob, survey, model
+    return prob, survey, mesh
 
 
 if __name__ == '__main__':
 
     import matplotlib.pyplot as plt
 
-    prob, survey, model = example(100)
+    prob, survey, mesh = example(100)
     M = prob.mesh
 
-    reg = Regularization.Tikhonov(model)
+    reg = Regularization.Tikhonov(mesh)
     beta = Parameters.BetaSchedule()
     objFunc = ObjFunction.BaseObjFunction(survey, reg, beta=beta)
     opt = Optimization.InexactGaussNewton(maxIter=20)
