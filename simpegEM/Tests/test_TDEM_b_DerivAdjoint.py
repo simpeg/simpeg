@@ -12,7 +12,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         npad = 20
         hx = Utils.meshTensors(((0,cs), (ncx,cs), (npad,cs)))
         hy = Utils.meshTensors(((npad,cs), (ncy,cs), (npad,cs)))
-        mesh = Mesh.Cyl1DMesh([hx,hy], -hy.sum()/2)
+        mesh = Mesh.CylMesh([hx,hy], -hy.sum()/2)
 
         active = mesh.vectorCCz<0.
         model = Model.ActiveModel(mesh, active, -8, nC=mesh.nCz)
@@ -21,7 +21,7 @@ class TDEM_bDerivTests(unittest.TestCase):
 
 
         opts = {'txLoc':0.,
-               'txType':'VMD_MVP',
+               'txType': 'VMD_MVP',
                'rxLoc':np.r_[150., 0.],
                'rxType':'bz',
                'timeCh':np.logspace(-4,-2,20),

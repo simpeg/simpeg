@@ -22,13 +22,19 @@ class MixinInitialFieldCalc(object):
         return F
 
     def _getInitialFields_VMD_MVP(self):
-        if self.mesh._meshType is 'CYL1D':
-            MVP = Sources.MagneticDipoleVectorPotential(np.r_[0,0,self.survey.txLoc], np.c_[np.zeros(self.mesh.nN), self.mesh.gridN], 'x')
+        if self.mesh._meshType is 'CYL':
+            if self.mesh.isSymmetric:
+                MVP = Sources.MagneticDipoleVectorPotential(self.survey.txLoc, self.mesh.gridEy, 'y')
+                # MVP = Sources.MagneticDipoleVectorPotential(self.survey.txLoc, np.c_[np.zeros(self.mesh.nN), self.mesh.gridN], 'x')
+            else:
+                raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
         elif self.mesh._meshType is 'TENSOR':
             MVPx = Sources.MagneticDipoleVectorPotential(self.survey.txLoc, self.mesh.gridEx, 'x')
             MVPy = Sources.MagneticDipoleVectorPotential(self.survey.txLoc, self.mesh.gridEy, 'y')
             MVPz = Sources.MagneticDipoleVectorPotential(self.survey.txLoc, self.mesh.gridEz, 'z')
             MVP = np.concatenate((MVPx, MVPy, MVPz))
+        else:
+            raise Exception('Unknown mesh for VMD')
 
         # Initialize field object
         F = FieldsTDEM(self.mesh, 1, self.times.size, store=self.storeTheseFields)
@@ -60,7 +66,7 @@ class MixinTimeStuff(object):
     nsteps = property(**nsteps())
 
     def times():
-        doc = "Modelling times"
+        doc = "Modeling times"
         def fget(self):
             t = np.r_[1:self.nsteps[0]+1]*self.dt[0]
             for i in range(1,self.dt.size):
@@ -116,10 +122,10 @@ class ProblemBaseTDEM(MixinTimeStuff, MixinInitialFieldCalc, BaseProblem):
     def MeSigmaI(self): return self._MeSigmaI
 
     def makeMassMatrices(self, m):
-        m = self.model.transform(m)
-        self._MeSigma = self.mesh.getMass(m, loc='e')
+        sig = self.model.transform(m)
+        self._MeSigma = self.mesh.getEdgeInnerProduct(sig)
         self._MeSigmaI = sdiag(1/self.MeSigma.diagonal())
-        self._MfMui = self.mesh.getMass(1/mu_0, loc='f')
+        self._MfMui = self.mesh.getFaceInnerProduct(1/mu_0)
 
 
     def calcFields(self, sol, solType, tInd):
@@ -134,7 +140,8 @@ class ProblemBaseTDEM(MixinTimeStuff, MixinInitialFieldCalc, BaseProblem):
 
         return {'b':b, 'e':e}
 
-    solveOpts = {'factorize':True,'backend':'scipy'}
+    Solver = Solver
+    solveOpts = {}
 
     def fields(self, m):
         self.makeMassMatrices(m)
@@ -153,7 +160,7 @@ class ProblemBaseTDEM(MixinTimeStuff, MixinInitialFieldCalc, BaseProblem):
                 dtFact = dt
                 A = self.getA(tInd)
                 # print 'Factoring...   (dt = ' + str(dt) + ')'
-                Asolve = Solver(A, options=self.solveOpts)
+                Asolve = self.Solver(A, **self.solveOpts)
                 # print 'Done'
             rhs = RHS(tInd, F)
             sol = Asolve.solve(rhs)
