@@ -47,7 +47,7 @@ class SurveyTDEM1D(BaseSurvey):
     def Qrx(self):
         if self._Qrx is None:
             if self.rxType == 'bz':
-                locType = 'fz'
+                locType = 'Fz'
             self._Qrx = self.prob.mesh.getInterpolationMat(self.rxLoc, locType=locType)
         return self._Qrx
     _Qrx = None

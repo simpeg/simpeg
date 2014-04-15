@@ -52,7 +52,7 @@ Testing simpegEM
 ================
 
 * Master Branch
-   .. image:: https://travis-ci.org/simpeg/simpegem.png?branch=master
+   .. image:: https://travis-ci.org/simpeg/simpegem.svg?branch=master
       :target: https://travis-ci.org/simpeg/simpegem
       :alt: Master Branch
       :align: center

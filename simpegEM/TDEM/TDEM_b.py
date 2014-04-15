@@ -16,8 +16,8 @@ class ProblemTDEM_b(ProblemBaseTDEM):
 
         with \\\(\\b\\\) defined on cell faces and \\\(\e\\\) defined on edges.
     """
-    def __init__(self, model, **kwargs):
-        ProblemBaseTDEM.__init__(self, model, **kwargs)
+    def __init__(self, mesh, mapping=None, **kwargs):
+        ProblemBaseTDEM.__init__(self, mesh, mapping=mapping, **kwargs)
 
     solType = 'b'
 
@@ -35,11 +35,11 @@ class ProblemTDEM_b(ProblemBaseTDEM):
         """
 
         dt = self.getDt(tInd)
-        return self.MfMui*self.mesh.edgeCurl*self.MeSigmaI*self.mesh.edgeCurl.T*self.MfMui + (1/dt)*self.MfMui
+        return self.MfMui*self.mesh.edgeCurl*self.MeSigmaI*self.mesh.edgeCurl.T*self.MfMui + (1.0/dt)*self.MfMui
 
     def getRHS(self, tInd, F):
         dt = self.getDt(tInd)
-        return (1/dt)*self.MfMui*F.get_b(tInd-1)
+        return (1.0/dt)*self.MfMui*F.get_b(tInd-1)
 
 
     ####################################################
@@ -74,7 +74,8 @@ class ProblemTDEM_b(ProblemBaseTDEM):
         if u is None:
             u = self.fields(m)
         p = FieldsTDEM(self.mesh, 1, self.times.size, 'b')
-        c = self.mesh.getEdgeMassDeriv()*self.model.transformDeriv(m)*vec
+        curModel = self.mapping.transform(m)
+        c = self.mesh.getEdgeInnerProductDeriv(curModel)*self.mapping.transformDeriv(m)*vec
         for i in range(self.times.size):
             ei = u.get_e(i)
             pVal = np.empty_like(ei)
@@ -91,7 +92,9 @@ class ProblemTDEM_b(ProblemBaseTDEM):
         tmp = np.zeros((self.mesh.nE,self.survey.nTx))
         for i in range(self.nTimes):
             tmp += v.get_e(i)*u.get_e(i)
-        p = -mkvc(self.model.transformDeriv(m).T*self.mesh.getEdgeMassDeriv().T*tmp)
+
+        curModel = self.mapping.transform(m)
+        p = -mkvc(self.mapping.transformDeriv(m).T*self.mesh.getEdgeInnerProductDeriv(curModel).T*tmp)
         return p
 
     def solveAh(self, m, p):
@@ -100,7 +103,7 @@ class ProblemTDEM_b(ProblemBaseTDEM):
             if tInd == 0:
                 return rhs
             dt = self.getDt(tInd)
-            return rhs + 1./dt*self.MfMui*u.get_b(tInd-1)
+            return rhs + 1.0/dt*self.MfMui*u.get_b(tInd-1)
 
         def AhCalcFields(sol, solType, tInd):
             b = sol
@@ -117,7 +120,7 @@ class ProblemTDEM_b(ProblemBaseTDEM):
             if tInd == self.nTimes-1:
                 return rhs
             dt = self.getDt(tInd+1)
-            return rhs + 1./dt*self.MfMui*u.get_b(tInd+1)
+            return rhs + 1.0/dt*self.MfMui*u.get_b(tInd+1)
 
         def AhtCalcFields(sol, solType, tInd):
             b = sol
@@ -167,14 +170,14 @@ class ProblemTDEM_b(ProblemBaseTDEM):
 
         self.makeMassMatrices(sigma)
         dt = self.getDt(0)
-        b = 1/dt*self.MfMui*vec.get_b(0) + self.MfMui*self.mesh.edgeCurl*vec.get_e(0)
+        b = 1.0/dt*self.MfMui*vec.get_b(0) + self.MfMui*self.mesh.edgeCurl*vec.get_e(0)
         e = self.mesh.edgeCurl.T*self.MfMui*vec.get_b(0) - self.MeSigma*vec.get_e(0)
         f = FieldsTDEM(self.mesh, 1, self.times.size, 'b')
         f.set_b(b, 0)
         f.set_e(e, 0)
         for i in range(1,self.nTimes):
             dt = self.getDt(i)
-            b = 1/dt*self.MfMui*vec.get_b(i) + self.MfMui*self.mesh.edgeCurl*vec.get_e(i) - 1/dt*self.MfMui*vec.get_b(i-1)
+            b = 1.0/dt*self.MfMui*vec.get_b(i) + self.MfMui*self.mesh.edgeCurl*vec.get_e(i) - 1.0/dt*self.MfMui*vec.get_b(i-1)
             e = self.mesh.edgeCurl.T*self.MfMui*vec.get_b(i) - self.MeSigma*vec.get_e(i)
             f.set_b(b, i)
             f.set_e(e, i)

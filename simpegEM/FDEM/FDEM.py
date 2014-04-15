@@ -66,13 +66,13 @@ class BaseProblemFDEM(Problem.BaseProblem):
     @property
     def curTModel(self):
         if getattr(self, '_curTModel', None) is None:
-            self._curTModel = self.model.transform(self.curModel)
+            self._curTModel = self.mapping.transform(self.curModel)
         return self._curTModel
 
     @property
     def curTModelDeriv(self):
         if getattr(self, '_curTModelDeriv', None) is None:
-            self._curTModelDeriv = self.model.transformDeriv(self.curModel)
+            self._curTModelDeriv = self.mapping.transformDeriv(self.curModel)
         return self._curTModelDeriv
 
     def fields(self, m):
@@ -132,7 +132,7 @@ class BaseProblemFDEM(Problem.BaseProblem):
         if not isinstance(v, self.dataPair):
             v = self.dataPair(self.survey, v)
 
-        Jtv = np.zeros(self.model.nP)
+        Jtv = np.zeros(self.mapping.nP)
 
         for freq in self.survey.freqs:
             AT = self.getA(freq).T
