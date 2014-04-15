@@ -45,7 +45,7 @@ class Parameter(object):
     @property
     def prob(self): return self.parent.prob
     @property
-    def model(self): return self.parent.model
+    def mapping(self): return self.parent.mapping
     @property
     def mesh(self): return self.parent.mesh
 

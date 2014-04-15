@@ -9,6 +9,15 @@ Tensor Mesh
     :undoc-members:
 
 
+Tree Mesh
+=========
+
+.. autoclass:: SimPEG.Mesh.TreeMesh.TreeMesh
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+
 Logically Rectangular Mesh
 ==========================
 
@@ -23,13 +32,5 @@ Cylindrical 1D Mesh
 
 .. automodule:: SimPEG.Mesh.Cyl1DMesh
     :show-inheritance:
-    :members:
-    :undoc-members:
-
-
-Base Mesh
-=========
-
-.. automodule:: SimPEG.Mesh.BaseMesh
     :members:
     :undoc-members:

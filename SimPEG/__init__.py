@@ -3,7 +3,7 @@ import scipy.sparse as sp
 import Utils
 from Solver import Solver
 import Mesh
-import Model
+import Maps
 import Problem
 import Survey
 import Regularization

@@ -27,7 +27,7 @@ Meshing & Operators
 *******************
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    api_Mesh
    api_DiffOps
@@ -39,9 +39,9 @@ Forward Problems
 .. toctree::
    :maxdepth: 2
 
-   api_Model
-   api_Survey
    api_Problem
+   api_Survey
+   api_Maps
 
 Inversion
 *********

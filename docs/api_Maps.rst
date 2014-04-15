@@ -1,45 +1,45 @@
-.. _api_Model:
+.. _api_Maps:
 
 
-Model
-*****
+Maps
+****
 
-A SimPEG model operates on a vector and transforms it to another space.
+A SimPEG Map operates on a vector and transforms it to another space.
 We will use an example commonly applied in electromagnetics (EM) of the
-log-conductivity model (:class:`SimPEG.Model.LogModel`).
+log-conductivity model.
 Electrical conductivity varies over many orders of magnitude, so it is a common
 technique when solving the inverse problem to parameterize and optimize in terms
 of log conductivity. This makes sense not only because it ensures all conductivities
 will be positive, but because this is fundamentally the space where conductivity
-lives (i.e. it varies logarithmically). In SimPEG, we use the term Model to
-describe how to get between these two spaces.
+lives (i.e. it varies logarithmically). In SimPEG, we use a (:class:`SimPEG.Maps.ExpMap`) to
+describe how to map back to conductivity.
 
 The API
 =======
 
-.. autoclass:: SimPEG.Model.BaseModel
+.. autoclass:: SimPEG.Maps.IdentityMap
     :members:
     :undoc-members:
 
-.. autoclass:: SimPEG.Model.BaseNonLinearModel
+.. autoclass:: SimPEG.Maps.NonLinearMap
     :members:
     :undoc-members:
 
-.. autoclass:: SimPEG.Model.ComboModel
+.. autoclass:: SimPEG.Maps.ComboMap
     :members:
     :undoc-members:
 
-Common Models
-=============
+Common Maps
+===========
 
-.. autoclass:: SimPEG.Model.LogModel
+.. autoclass:: SimPEG.Maps.ExpMap
     :members:
     :undoc-members:
 
-.. autoclass:: SimPEG.Model.Vertical1DModel
+.. autoclass:: SimPEG.Maps.Vertical1DMap
     :members:
     :undoc-members:
 
-.. autoclass:: SimPEG.Model.Mesh2Mesh
+.. autoclass:: SimPEG.Maps.Mesh2Mesh
     :members:
     :undoc-members:

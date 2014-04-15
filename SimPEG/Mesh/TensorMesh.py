@@ -220,8 +220,12 @@ class BaseTensorMesh(BaseRectangularMesh):
         if type(loc) == list:
             loc = np.array(loc)
         assert type(loc) == np.ndarray, "must be a numpy array"
+
+        if loc.size == self.dim:
+            loc = np.atleast_2d(loc)
+
         if self.dim > 1:
-            assert loc.shape[1] == self.dim, "must be a column vector of shape (nPts, mesh.dim)"
+            assert loc.shape[1] == self.dim, "must be a column vector of shape (nPts, mesh.dim) not (%d,%d)" % loc.shape
         elif len(loc.shape) == 1:
             loc = loc[:,np.newaxis]
         else:

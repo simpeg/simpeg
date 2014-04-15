@@ -1,5 +1,5 @@
 import Utils, Survey, numpy as np, scipy.sparse as sp
-import Model
+import Maps, Mesh
 
 class BaseProblem(object):
     """
@@ -11,19 +11,17 @@ class BaseProblem(object):
     counter = None   #: A SimPEG.Utils.Counter object
 
     surveyPair = Survey.BaseSurvey   #: A SimPEG.Survey Class
-    modelPair = Model.BaseModel  #: A SimPEG.Model Class
+    mapPair    = Maps.IdentityMap    #: A SimPEG.Map Class
 
-    def __init__(self, model, **kwargs):
+    mapping = None    #: A SimPEG.Map instance.
+    mesh    = None    #: A SimPEG.Mesh instance.
+
+    def __init__(self, mesh, mapping=None, **kwargs):
         Utils.setKwargs(self, **kwargs)
-        assert (isinstance(model, self.modelPair) or
-            isinstance(model, Model.ComboModel) and isinstance(model.models[0], self.modelPair)
-            ), "Model object must be an instance of a %s class."%(self.modelPair.__name__)
-        self.model = model
-
-    @property
-    def mesh(self):
-        """SimPEG mesh that is associated with the model provided."""
-        return self.model.mesh
+        assert isinstance(mesh, Mesh.BaseMesh), "mesh must be a SimPEG.Mesh object."
+        self.mesh = mesh
+        self.mapping = mapping or Maps.IdentityMap(mesh)
+        self.mapping._assertMatchesPair(self.mapPair)
 
     @property
     def survey(self):
@@ -53,7 +51,8 @@ class BaseProblem(object):
 
     @Utils.timeIt
     def Jvec(self, m, v, u=None):
-        """
+        """Jvec(m, v, u=None)
+
             Effect of J(m) on a vector v.
 
             :param numpy.array m: model
@@ -66,7 +65,8 @@ class BaseProblem(object):
 
     @Utils.timeIt
     def Jtvec(self, m, v, u=None):
-        """
+        """Jtvec(m, v, u=None)
+
             Effect of transpose of J(m) on a vector v.
 
             :param numpy.array m: model
@@ -80,7 +80,8 @@ class BaseProblem(object):
 
     @Utils.timeIt
     def Jvec_approx(self, m, v, u=None):
-        """
+        """Jvec_approx(m, v, u=None)
+
             Approximate effect of J(m) on a vector v
 
             :param numpy.array m: model
@@ -93,7 +94,8 @@ class BaseProblem(object):
 
     @Utils.timeIt
     def Jtvec_approx(self, m, v, u=None):
-        """
+        """Jtvec_approx(m, v, u=None)
+
             Approximate effect of transpose of J(m) on a vector v.
 
             :param numpy.array m: model
