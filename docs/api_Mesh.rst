@@ -197,7 +197,6 @@ other types of meshes in this SimPEG framework.
 The API
 =======
 
-.. toctree::
-   :maxdepth: 2
-
-   api_MeshCode
+.. automodule:: SimPEG.Mesh.BaseMesh
+    :members:
+    :undoc-members:

@@ -25,11 +25,3 @@ Cylindrical 1D Mesh
     :show-inheritance:
     :members:
     :undoc-members:
-
-
-Base Mesh
-=========
-
-.. automodule:: SimPEG.Mesh.BaseMesh
-    :members:
-    :undoc-members:

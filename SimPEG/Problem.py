@@ -51,7 +51,8 @@ class BaseProblem(object):
 
     @Utils.timeIt
     def Jvec(self, m, v, u=None):
-        """
+        """Jvec(m, v, u=None)
+
             Effect of J(m) on a vector v.
 
             :param numpy.array m: model
@@ -64,7 +65,8 @@ class BaseProblem(object):
 
     @Utils.timeIt
     def Jtvec(self, m, v, u=None):
-        """
+        """Jtvec(m, v, u=None)
+
             Effect of transpose of J(m) on a vector v.
 
             :param numpy.array m: model
@@ -78,7 +80,8 @@ class BaseProblem(object):
 
     @Utils.timeIt
     def Jvec_approx(self, m, v, u=None):
-        """
+        """Jvec_approx(m, v, u=None)
+
             Approximate effect of J(m) on a vector v
 
             :param numpy.array m: model
@@ -91,7 +94,8 @@ class BaseProblem(object):
 
     @Utils.timeIt
     def Jtvec_approx(self, m, v, u=None):
-        """
+        """Jtvec_approx(m, v, u=None)
+
             Approximate effect of transpose of J(m) on a vector v.
 
             :param numpy.array m: model
