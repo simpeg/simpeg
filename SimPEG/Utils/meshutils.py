@@ -24,7 +24,6 @@ def exampleLrmGrid(nC, exType):
             amt[amt < 0] = 0
             return [X + (-(Y - 0.5))*amt, Y + (-(Z - 0.5))*amt, Z + (-(X - 0.5))*amt]
 
-
 def meshTensors(*args):
     """
         **meshTensors** takes any number of tuples that have the form::
@@ -58,7 +57,7 @@ def points2nodes(mesh, pts):
         Move a list of the nearest nodes to a set of points
 
         :param simpeg.Mesh.TensorMesh mesh: The mesh
-        :param numpy.ndarray pts: Points to move}
+        :param numpy.ndarray pts: Points to move
         :rtype: numpy.ndarray
         :return: nodeInds
     """
@@ -75,6 +74,48 @@ def points2nodes(mesh, pts):
 
     return nodeInds
 
+
+def writeUBCTensorMesh(mesh, fileName):
+    """
+        Writes a SimPEG TensorMesh to a UBC-GIF format mesh file.
+
+        :param simpeg.Mesh.TensorMesh mesh: The mesh
+        :param str fileName: File to write to
+    """
+    assert mesh.dim == 3
+    s = ''
+    s += '%i %i %i\n' %tuple(mesh.vnC)
+    origin = mesh.x0
+    origin.dtype = float
+    origin[2] = origin[2]+mesh.hz.sum()
+    s += '%.2f %.2f %.2f\n' %tuple(origin)
+    s += ('%.2f '*mesh.nCx+'\n')%tuple(mesh.hx)
+    s += ('%.2f '*mesh.nCy+'\n')%tuple(mesh.hy)
+    s += ('%.2f '*mesh.nCz+'\n')%tuple(mesh.hz)
+    f = open(fileName, 'w')
+    f.write(s)
+    f.close()
+
+def writeUBCTensorModel(mesh, model, fileName):
+    """
+        Writes a model associated with a SimPEG TensorMesh 
+        to a UBC-GIF format model file.
+
+        :param simpeg.Mesh.TensorMesh mesh: The mesh
+        :param numpy.ndarray model: The model
+        :param str fileName: File to write to
+    """
+
+
+
+    # Reshape to [z,y,x]
+    model3D = np.reshape(model, mesh.vnC)
+    # Permute to [z,x,y]
+    model3D = np.swapaxes(model3D, 1, 2)
+    # Flip z to positive down
+    model3D = model3D[::-1,:,:]
+    
+    np.savetxt(fileName, mkvc(model3D))
 
 
 if __name__ == '__main__':
