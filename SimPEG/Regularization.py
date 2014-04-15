@@ -25,7 +25,7 @@ class BaseRegularization(object):
         Utils.setKwargs(self, **kwargs)
         self.mesh = mesh
         self.mapping = mapping or Maps.IdentityMap(mesh)
-        self.mapping._assertMatchesPair(mapPair)
+        self.mapping._assertMatchesPair(self.mapPair)
 
     mref = Parameters.ParameterProperty('mref', default=None, doc='Reference model.')
 
@@ -56,7 +56,7 @@ class BaseRegularization(object):
     @property
     def W(self):
         """Full regularization weighting matrix W."""
-        return sp.identity(self.model.nP)
+        return sp.identity(self.mapping.nP)
 
 
     @Utils.timeIt
@@ -206,8 +206,8 @@ class Tikhonov(BaseRegularization):
     alpha_yy = Utils.dependentProperty('_alpha_yy', 0.0, ['_W', '_Wyy'], "Weight for the second derivative in the y direction")
     alpha_zz = Utils.dependentProperty('_alpha_zz', 0.0, ['_W', '_Wzz'], "Weight for the second derivative in the z direction")
 
-    def __init__(self, model, **kwargs):
-        BaseRegularization.__init__(self, model, **kwargs)
+    def __init__(self, mesh, mapping=None, **kwargs):
+        BaseRegularization.__init__(self, mesh, mapping=mapping, **kwargs)
 
     @property
     def Ws(self):
