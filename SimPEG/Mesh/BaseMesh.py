@@ -26,7 +26,7 @@ class BaseMesh(object):
 
         # Ensure x0 & n are 1D vectors
         self._n = np.array(n, dtype=int).ravel()
-        self._x0 = np.array(x0).ravel()
+        self._x0 = np.array(x0, dtype=float).ravel()
 
     @property
     def x0(self):
