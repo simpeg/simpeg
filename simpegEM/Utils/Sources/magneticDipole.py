@@ -37,4 +37,6 @@ def MagneticDipoleVectorPotential(txLoc, obsLoc, component, dipoleMoment=(0., 0.
         mCr = np.cross(m, dR)
         r = np.sqrt((dR**2).sum(axis=1))
         A[:, i] = -(mu_0/(4*pi)) * mCr[:,dimInd]/(r**3)
+    if nTx == 1:
+        return A.flatten()
     return A
