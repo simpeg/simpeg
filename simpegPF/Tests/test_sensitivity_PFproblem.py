@@ -26,7 +26,7 @@ class MagSensProblemTests(unittest.TestCase):
         b0 = PF.MagAnalytics.IDTtoxyz(Inc, Dec, Btot)
         sph_ind = PF.MagAnalytics.spheremodel(M, 0., 0., 0., 100)
         chi[sph_ind] = chiblk
-        model = PF.BaseMag.BaseMagModel(M)
+        model = PF.BaseMag.BaseMagMap(M)
 
         survey = BaseMag.BaseMagSurvey()
 
@@ -40,7 +40,7 @@ class MagSensProblemTests(unittest.TestCase):
 
 
 
-        prob = PF.Magnetics.MagneticsDiffSecondary(model)
+        prob = PF.Magnetics.MagneticsDiffSecondary(M, mapping=model)
         prob.pair(survey)
         dpre = survey.dpred(chi)
 
@@ -281,25 +281,21 @@ class MagSensProblemTests(unittest.TestCase):
 
     def test_Jvec(self):
         print ">> Derivative test for Jvec"
-        mu = self.model.transform(self.chi)
 
         d_chi = 10.0*self.chi #np.random.rand(mesh.nCz)
         d_sph_ind = PF.MagAnalytics.spheremodel(self.prob.mesh, 0., 0., -50., 50)
         d_chi[d_sph_ind] = 0.1
 
-        a = self.prob.Jvec(self.chi, d_chi)
-
-        derChk = lambda m: [self.survey.dpred(m), lambda mx: self.prob.Jvec(self.chi, mx)]
+        derChk = lambda m: (self.survey.dpred(m), lambda v: self.prob.Jvec(m, v))
         # TODO: I am not sure why the order get worse as step decreases .. --;
         passed = Tests.checkDerivative(derChk, self.chi, num=2, dx = d_chi, plotIt=False)
         self.assertTrue(passed)
 
     def test_Jtvec(self):
         print ">> Derivative test for Jtvec"
-        mu = self.model.transform(self.chi)
         dobs = self.survey.dpred(self.chi)
 
-        def misfit (m, dobs):
+        def misfit(m):
             dpre = self.survey.dpred(m)
             misfit = 0.5*np.linalg.norm(dpre-dobs)**2
             residual = dpre-dobs
@@ -308,8 +304,7 @@ class MagSensProblemTests(unittest.TestCase):
             return misfit, dmisfit
 
         # TODO: I am not sure why the order get worse as step decreases .. --;
-        derChk = lambda m: misfit(m, dobs)
-        passed = Tests.checkDerivative(derChk, self.chi, num=4, plotIt=False)
+        passed = Tests.checkDerivative(misfit, self.chi, num=4, plotIt=False)
         self.assertTrue(passed)
 
 if __name__ == '__main__':

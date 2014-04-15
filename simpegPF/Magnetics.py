@@ -11,10 +11,10 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
     """
 
     surveyPair = BaseMag.BaseMagSurvey
-    modelPair = BaseMag.BaseMagModel
+    modelPair = BaseMag.BaseMagMap
 
-    def __init__(self, model, **kwargs):
-        Problem.BaseProblem.__init__(self, model, **kwargs)
+    def __init__(self, model, mapping=None, **kwargs):
+        Problem.BaseProblem.__init__(self, model, mapping=mapping, **kwargs)
 
         Pbc, Pin, self._Pout = \
             self.mesh.getBCProjWF('neumann', discretization='CC')
@@ -33,12 +33,12 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
     def MfMu0(self): return self._MfMu0
 
     def makeMassMatrices(self, m):
-        mu = self.model.transform(m)
-        self._MfMui = self.mesh.getFaceMass(1./mu)
+        mu = self.mapping.transform(m)
+        self._MfMui = self.mesh.getFaceInnerProduct(1./mu)/self.mesh.dim
         # self._MfMui = self.mesh.getFaceInnerProduct(1./mu)
         #TODO: this will break if tensor mu
         self._MfMuI = Utils.sdiag(1./self._MfMui.diagonal())
-        self._MfMu0 = self.mesh.getFaceMass(1/mu_0)
+        self._MfMu0 = self.mesh.getFaceInnerProduct(1./mu_0)/self.mesh.dim
         # self._MfMu0 = self.mesh.getFaceInnerProduct(1/mu_0)
 
     @Utils.requires('survey')
@@ -61,7 +61,7 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
         Dface = self.mesh.faceDiv
         Mc = Utils.sdiag(self.mesh.vol)
 
-        mu = self.model.transform(m)
+        mu = self.mapping.transform(m)
         chi = mu/mu_0-1
 
         Bbc, Bbc_const = CongruousMagBC(self.mesh, self.survey.B0, chi)
@@ -184,8 +184,8 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
             u = self.fields(m)
 
         B, u = u['B'], u['u']
-        mu = self.model.transform(m)
-        dmudm = self.model.transformDeriv(m)
+        mu = self.mapping.transform(m)
+        dmudm = self.mapping.transformDeriv(m)
         dchidmu = Utils.sdiag(1/mu_0*np.ones(self.mesh.nC))
 
         vol = self.mesh.vol
@@ -261,8 +261,8 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
             u = self.fields(m)
 
         B, u = u['B'], u['u']
-        mu = self.model.transform(m)
-        dmudm = self.model.transformDeriv(m)
+        mu = self.mapping.transform(m)
+        dmudm = self.mapping.transformDeriv(m)
         dchidmu = Utils.sdiag(1/mu_0*np.ones(self.mesh.nC))
 
         vol = self.mesh.vol

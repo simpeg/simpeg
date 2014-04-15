@@ -20,22 +20,15 @@ Potential fields
    api_PF
 
 
-
-
 Testing SimPEG
 ==============
 
 * Master Branch
-   .. image:: https://travis-ci.org/simpeg/simpegpf.png?branch=master
+   .. image:: https://travis-ci.org/simpeg/simpegpf.svg?branch=master
       :target: https://travis-ci.org/simpeg/simpegpf
       :alt: Master Branch
       :align: center
 
-* Develop Branch
-   .. image:: https://travis-ci.org/simpeg/simpegpf.png?branch=develop
-      :target: https://travis-ci.org/simpeg/simpegpf
-      :alt: Develop Branch
-      :align: center
 
 
 Project Index & Search

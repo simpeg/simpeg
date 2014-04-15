@@ -1,4 +1,4 @@
-from SimPEG import Model, Survey, Utils, np, sp
+from SimPEG import Maps, Survey, Utils, np, sp
 from scipy.constants import mu_0
 
 
@@ -115,11 +115,11 @@ class MagSurveyBx(object):
         return bfx
 
 
-class BaseMagModel(Model.BaseModel):
-    """BaseMagModel"""
+class BaseMagMap(Maps.IdentityMap):
+    """BaseMagMap"""
 
     def __init__(self, mesh, **kwargs):
-        Model.BaseModel.__init__(self, mesh)
+        Maps.IdentityMap.__init__(self, mesh)
 
     def transform(self, m):
 
@@ -129,11 +129,11 @@ class BaseMagModel(Model.BaseModel):
 
         return mu_0*sp.identity(self.nP)
 
-class BaseDepthModel(Model.BaseModel):
+class BaseDepthMap(Maps.IdentityMap):
     """BaseDepthMagModel"""
 
     def __init__(self, mesh, **kwargs):
-        Model.BaseModel.__init__(self, mesh)
+        Maps.IdentityMap.__init__(self, mesh)
         self.mesh = mesh
         self.active_ind = kwargs['active_ind']
         self.c = kwargs['c']
