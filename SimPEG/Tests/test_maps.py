@@ -18,7 +18,7 @@ class MapTests(unittest.TestCase):
         for M in dir(Maps):
             try:
                 maps = getattr(Maps, M)(self.mesh2)
-                assert isinstance(maps, Maps.BaseModel)
+                assert isinstance(maps, Maps.IdentityMap)
             except Exception, e:
                 continue
             self.assertTrue(maps.test())

@@ -3,7 +3,7 @@ from Tests import checkDerivative
 
 class IdentityMap(object):
     """
-    SimPEG Model
+    SimPEG Map
 
     """
 

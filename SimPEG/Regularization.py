@@ -6,7 +6,7 @@ class BaseRegularization(object):
 
     This is used to regularize the model space::
 
-        reg = Regularization(mesh, model)
+        reg = Regularization(mesh)
 
     """
 
@@ -24,6 +24,7 @@ class BaseRegularization(object):
     def __init__(self, mesh, mapping=None, **kwargs):
         Utils.setKwargs(self, **kwargs)
         self.mesh = mesh
+        assert isinstance(mesh, Mesh.BaseMesh), "mesh must be a SimPEG.Mesh object."
         self.mapping = mapping or Maps.IdentityMap(mesh)
         self.mapping._assertMatchesPair(self.mapPair)
 

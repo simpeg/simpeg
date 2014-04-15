@@ -51,7 +51,7 @@ class BaseMesh(object):
     @property
     def nC(self):
         """
-        Total number of cells in the model.
+        Total number of cells in the mesh.
 
         :rtype: int
         :return: nC
