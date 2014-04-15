@@ -9,6 +9,15 @@ Tensor Mesh
     :undoc-members:
 
 
+Tree Mesh
+=========
+
+.. autoclass:: SimPEG.Mesh.TreeMesh.TreeMesh
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+
 Logically Rectangular Mesh
 ==========================
 
