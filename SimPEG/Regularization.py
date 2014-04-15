@@ -1,4 +1,4 @@
-import Utils, Maps, Parameters, numpy as np, scipy.sparse as sp
+import Utils, Maps, Mesh, Parameters, numpy as np, scipy.sparse as sp
 
 class BaseRegularization(object):
     """
