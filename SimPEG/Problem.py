@@ -1,5 +1,5 @@
 import Utils, Survey, numpy as np, scipy.sparse as sp
-import Model
+import Maps
 
 class BaseProblem(object):
     """
@@ -11,19 +11,16 @@ class BaseProblem(object):
     counter = None   #: A SimPEG.Utils.Counter object
 
     surveyPair = Survey.BaseSurvey   #: A SimPEG.Survey Class
-    modelPair = Model.BaseModel  #: A SimPEG.Model Class
+    mapPair    = Maps.IdentityMap    #: A SimPEG.Map Class
 
-    def __init__(self, model, **kwargs):
+    mapping = None    #: A SimPEG.Map instance.
+    mesh    = None    #: A SimPEG.Mesh instance.
+
+    def __init__(self, mesh, mapping=None, **kwargs):
         Utils.setKwargs(self, **kwargs)
-        assert (isinstance(model, self.modelPair) or
-            isinstance(model, Model.ComboModel) and isinstance(model.models[0], self.modelPair)
-            ), "Model object must be an instance of a %s class."%(self.modelPair.__name__)
-        self.model = model
-
-    @property
-    def mesh(self):
-        """SimPEG mesh that is associated with the model provided."""
-        return self.model.mesh
+        self.mesh = mesh
+        self.mapping = mapping or Maps.IdentityMap(mesh)
+        self.mapping._assertMatchesPair(mapPair)
 
     @property
     def survey(self):

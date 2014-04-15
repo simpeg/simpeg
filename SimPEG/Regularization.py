@@ -1,4 +1,4 @@
-import Utils, Model, Parameters, numpy as np, scipy.sparse as sp
+import Utils, Maps, Parameters, numpy as np, scipy.sparse as sp
 
 class BaseRegularization(object):
     """
@@ -12,16 +12,20 @@ class BaseRegularization(object):
 
     __metaclass__ = Utils.SimPEGMetaClass
 
-    modelPair = Model.BaseModel  #: Some regularizations only work on specific models
 
-    model = None    #: A SimPEG.Model instance.
 
     counter = None
 
-    def __init__(self, model, **kwargs):
+    mapPair = Maps.IdentityMap    #: A SimPEG.Map Class
+
+    mapping = None    #: A SimPEG.Map instance.
+    mesh    = None    #: A SimPEG.Mesh instance.
+
+    def __init__(self, mesh, mapping=None, **kwargs):
         Utils.setKwargs(self, **kwargs)
-        assert isinstance(model, self.modelPair), "Incorrect model for this regularization"
-        self.model = model
+        self.mesh = mesh
+        self.mapping = mapping or Maps.IdentityMap(mesh)
+        self.mapping._assertMatchesPair(mapPair)
 
     mref = Parameters.ParameterProperty('mref', default=None, doc='Reference model.')
 
@@ -47,8 +51,6 @@ class BaseRegularization(object):
     def prob(self): return self.parent.prob
     @property
     def survey(self): return self.parent.survey
-    @property
-    def mesh(self): return self.model.mesh
 
 
     @property
@@ -59,7 +61,7 @@ class BaseRegularization(object):
 
     @Utils.timeIt
     def modelObj(self, m):
-        r = self.W * self.model.transform(m - self.mref)
+        r = self.W * self.mapping.transform(m - self.mref)
         return 0.5*r.dot(r)
 
     @Utils.timeIt
@@ -79,8 +81,8 @@ class BaseRegularization(object):
             R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
 
         """
-        mTd = self.model.transformDeriv(m - self.mref)
-        return mTd.T * ( self.W.T * ( self.W * self.model.transform(m - self.mref) ) )
+        mTd = self.mapping.transformDeriv(m - self.mref)
+        return mTd.T * ( self.W.T * ( self.W * self.mapping.transform(m - self.mref) ) )
 
     @Utils.timeIt
     def modelObj2Deriv(self, m, v=None):
@@ -104,7 +106,7 @@ class BaseRegularization(object):
             R(m) = \mathbf{W^\\top W}
 
         """
-        mTd = self.model.transformDeriv(m - self.mref)
+        mTd = self.mapping.transformDeriv(m - self.mref)
         if v is None:
             return mTd.T * self.W.T * self.W * mTd
 

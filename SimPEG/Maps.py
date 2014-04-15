@@ -1,7 +1,7 @@
 import Utils, Parameters, numpy as np, scipy.sparse as sp
 from Tests import checkDerivative
 
-class BaseModel(object):
+class IdentityMap(object):
     """
     SimPEG Model
 
@@ -66,9 +66,14 @@ class BaseModel(object):
                 kwargs['plotIt'] = False
         return checkDerivative(lambda m : [self.transform(m), self.transformDeriv(m)], m, **kwargs)
 
-class BaseNonLinearModel(object):
+    def _assertMatchesPair(self, pair):
+        assert (isinstance(self, pair) or
+            isinstance(self, ComboMap) and isinstance(self.models[0], pair)
+            ), "Model object must be an instance of a %s class."%(pair.__name__)
+
+class NonLinearMap(object):
     """
-    SimPEG BaseNonLinearModel
+    SimPEG NonLinearMap
 
     """
 
@@ -129,11 +134,11 @@ class BaseNonLinearModel(object):
         raise NotImplementedError('The test is not implemented.')
 
 
-class LogModel(BaseModel):
-    """SimPEG LogModel"""
+class ExpMap(IdentityMap):
+    """SimPEG ExpMap"""
 
     def __init__(self, mesh, **kwargs):
-        BaseModel.__init__(self, mesh, **kwargs)
+        IdentityMap.__init__(self, mesh, **kwargs)
 
     def transform(self, m):
         """
@@ -197,8 +202,8 @@ class LogModel(BaseModel):
         """
         return Utils.sdiag(np.exp(Utils.mkvc(m)))
 
-class Vertical1DModel(BaseModel):
-    """Vertical1DModel
+class Vertical1DMap(IdentityMap):
+    """Vertical1DMap
 
         Given a 1D vector through the last dimension
         of the mesh, this will extend to the full
@@ -206,7 +211,7 @@ class Vertical1DModel(BaseModel):
     """
 
     def __init__(self, mesh, **kwargs):
-        BaseModel.__init__(self, mesh, **kwargs)
+        IdentityMap.__init__(self, mesh, **kwargs)
 
     @property
     def nP(self):
@@ -238,7 +243,7 @@ class Vertical1DModel(BaseModel):
                     ), shape=(repNum, 1))
         return sp.kron(sp.identity(self.nP), repVec)
 
-class Mesh2Mesh(BaseModel):
+class Mesh2Mesh(IdentityMap):
     """
         Takes a model on one mesh are translates it to another mesh.
 
@@ -251,8 +256,8 @@ class Mesh2Mesh(BaseModel):
             M2 = Mesh.TensorMesh([h1,h1])
             V = Utils.ModelBuilder.randomModel(M.vnC, seed=79, its=50)
             v = Utils.mkvc(V)
-            modh = Model.Mesh2Mesh([M,M2])
-            modH = Model.Mesh2Mesh([M2,M])
+            modh = Maps.Mesh2Mesh([M,M2])
+            modH = Maps.Mesh2Mesh([M2,M])
             H = modH.transform(v)
             h = modh.transform(H)
             ax = plt.subplot(131)
@@ -289,7 +294,7 @@ class Mesh2Mesh(BaseModel):
         return self.P
 
 
-class ActiveModel(BaseModel):
+class ActiveCells(IdentityMap):
     """
         Active model parameters.
 
@@ -329,15 +334,15 @@ class ActiveModel(BaseModel):
     def transformDeriv(self, m):
         return self.P
 
-class ComboModel(BaseModel):
+class ComboMap(IdentityMap):
     """Combination of various models."""
 
     def __init__(self, mesh, models, **kwargs):
-        BaseModel.__init__(self, mesh, **kwargs)
+        IdentityMap.__init__(self, mesh, **kwargs)
 
         self.models = []
         for m in models:
-            if not isinstance(m, BaseModel):
+            if not isinstance(m, IdentityMap):
                 self.models += [m(mesh, **kwargs)]
             else:
                 self.models += [m]
@@ -366,7 +371,7 @@ class ComboModel(BaseModel):
 if __name__ == '__main__':
     from SimPEG import *
     mesh = Mesh.TensorMesh([10,8])
-    combo = ComboModel(mesh, [LogModel, Vertical1DModel])
+    combo = ComboMap(mesh, [ExpMap, Vertical1DMap])
     m = combo.example()
     print m.shape
     print combo.test(np.arange(8))

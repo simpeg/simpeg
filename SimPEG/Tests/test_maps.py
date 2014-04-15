@@ -5,7 +5,7 @@ from TestUtils import checkDerivative
 from scipy.sparse.linalg import dsolve
 
 
-class ModelTests(unittest.TestCase):
+class MapTests(unittest.TestCase):
 
     def setUp(self):
 
@@ -15,22 +15,22 @@ class ModelTests(unittest.TestCase):
         self.mesh22 = Mesh.TensorMesh([b, a], x0=np.array([3, 5]))
 
     def test_modelTransforms(self):
-        for M in dir(Model):
+        for M in dir(Maps):
             try:
-                model = getattr(Model, M)(self.mesh2)
-                assert isinstance(model, Model.BaseModel)
+                model = getattr(Maps, M)(self.mesh2)
+                assert isinstance(model, Maps.BaseModel)
             except Exception, e:
                 continue
             self.assertTrue(model.test())
 
-    def test_Mesh2MeshModel(self):
-        model = Model.Mesh2Mesh([self.mesh22, self.mesh2])
+    def test_Mesh2MeshMap(self):
+        model = Maps.Mesh2Mesh([self.mesh22, self.mesh2])
         self.assertTrue(model.test())
 
-    def test_comboModels(self):
-        combos = [(Model.LogModel, Model.Vertical1DModel)]
+    def test_comboMaps(self):
+        combos = [(Maps.ExpMap, Maps.Vertical1DMap)]
         for combo in combos:
-            model = Model.ComboModel(self.mesh2, combo)
+            model = Maps.ComboMap(self.mesh2, combo)
             self.assertTrue(model.test())
 
 
