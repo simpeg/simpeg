@@ -34,11 +34,11 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
 
     def makeMassMatrices(self, m):
         mu = self.mapping.transform(m)
-        self._MfMui = self.mesh.getFaceInnerProduct(1./mu)
+        self._MfMui = self.mesh.getFaceInnerProduct(1./mu)/self.mesh.dim
         # self._MfMui = self.mesh.getFaceInnerProduct(1./mu)
         #TODO: this will break if tensor mu
         self._MfMuI = Utils.sdiag(1./self._MfMui.diagonal())
-        self._MfMu0 = self.mesh.getFaceInnerProduct(1./mu_0)
+        self._MfMu0 = self.mesh.getFaceInnerProduct(1./mu_0)/self.mesh.dim
         # self._MfMu0 = self.mesh.getFaceInnerProduct(1/mu_0)
 
     @Utils.requires('survey')
