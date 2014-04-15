@@ -71,7 +71,7 @@ Testing SimPEG
    api_Tests
 
 * Master Branch
-   .. image:: https://travis-ci.org/simpeg/simpeg.png?branch*master
+   .. image:: https://travis-ci.org/simpeg/simpeg.svg?branch=master
       :target: https://travis-ci.org/simpeg/simpeg
       :alt: Master Branch
       :align: center

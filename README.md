@@ -20,7 +20,7 @@ Tests:
 [https://travis-ci.org/simpeg/simpeg](https://travis-ci.org/simpeg/simpeg)
 
 Build Status:
-[![Build Status](https://travis-ci.org/simpeg/simpeg.png)](https://travis-ci.org/simpeg/simpeg)
+[![Build Status](https://travis-ci.org/simpeg/simpeg.svg?branch=master)](https://travis-ci.org/simpeg/simpeg)
 
 Bugs & Issues:
 [https://github.com/simpeg/simpeg/issues](https://github.com/simpeg/simpeg/issues)
