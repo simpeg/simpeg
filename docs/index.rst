@@ -24,15 +24,9 @@ Testing SimPEG
 ==============
 
 * Master Branch
-   .. image:: https://travis-ci.org/simpeg/simpegflow.png?branch=master
+   .. image:: https://travis-ci.org/simpeg/simpegflow.svg?branch=master
       :target: https://travis-ci.org/simpeg/simpegflow
       :alt: Master Branch
-      :align: center
-
-* Develop Branch
-   .. image:: https://travis-ci.org/simpeg/simpegflow.png?branch=develop
-      :target: https://travis-ci.org/simpeg/simpegflow
-      :alt: Develop Branch
       :align: center
 
 

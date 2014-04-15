@@ -1,5 +1,5 @@
 from SimPEG import *
-from Empirical import RichardsModel
+from Empirical import RichardsMap
 
 class RichardsSurvey(Survey.BaseSurvey):
     """docstring for RichardsSurvey"""
@@ -55,7 +55,7 @@ class RichardsSurvey(Survey.BaseSurvey):
             #TODO: if m is a parameter in the theta
             #      distribution, we may need to do
             #      some more chain rule here.
-            dT = self.model.thetaDerivU(u, m)
+            dT = self.mapping.thetaDerivU(u, m)
             return self.P*dT
 
 
@@ -67,13 +67,13 @@ class RichardsProblem(Problem.BaseProblem):
     initialConditions  = None
 
     surveyPair  = RichardsSurvey
-    modelPair = RichardsModel
+    mapPair = RichardsMap
 
     Solver = Solver
     solverOpts = {}
 
-    def __init__(self, model, **kwargs):
-        Problem.BaseProblem.__init__(self, model, **kwargs)
+    def __init__(self, mesh, mapping=None, **kwargs):
+        Problem.BaseProblem.__init__(self, mesh, mapping=mapping, **kwargs)
 
     @property
     def timeStep(self):
@@ -134,11 +134,11 @@ class RichardsProblem(Problem.BaseProblem):
         bc   = self.boundaryConditions
         dt   = self.timeStep
 
-        dT   = self.model.thetaDerivU(hn, m)
-        dT1  = self.model.thetaDerivU(hn1, m)
-        K1   = self.model.k(hn1, m)
-        dK1  = self.model.kDerivU(hn1, m)
-        dKm1 = self.model.kDerivM(hn1, m)
+        dT   = self.mapping.thetaDerivU(hn, m)
+        dT1  = self.mapping.thetaDerivU(hn1, m)
+        K1   = self.mapping.k(hn1, m)
+        dK1  = self.mapping.kDerivU(hn1, m)
+        dKm1 = self.mapping.kDerivM(hn1, m)
 
         # Compute part of the derivative of:
         #
@@ -188,11 +188,11 @@ class RichardsProblem(Problem.BaseProblem):
         bc = self.boundaryConditions
         dt = self.timeStep
 
-        T  = self.model.theta(h, m)
-        dT = self.model.thetaDerivU(h, m)
-        Tn = self.model.theta(hn, m)
-        K  = self.model.k(h, m)
-        dK = self.model.kDerivU(h, m)
+        T  = self.mapping.theta(h, m)
+        dT = self.mapping.thetaDerivU(h, m)
+        Tn = self.mapping.theta(hn, m)
+        K  = self.mapping.k(h, m)
+        dK = self.mapping.kDerivU(h, m)
 
         aveK = 1./(AV*(1./K))
 

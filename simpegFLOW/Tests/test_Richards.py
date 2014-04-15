@@ -133,12 +133,12 @@ class RichardsTests1D(unittest.TestCase):
         M.setCellGradBC('dirichlet')
 
         params = Richards.Empirical.HaverkampParams().celia1990
-        model = Richards.Empirical.Haverkamp(M, **params)
+        E = Richards.Empirical.Haverkamp(M, **params)
 
         bc = np.array([-61.5,-20.7])
         h = np.zeros(M.nC) + bc[0]
 
-        prob = Richards.RichardsProblem(model, timeStep=60, timeEnd=180,
+        prob = Richards.RichardsProblem(M, mapping=E, timeStep=60, timeEnd=180,
                                     boundaryConditions=bc, initialConditions=h,
                                     doNewton=False, method='mixed')
 
@@ -199,7 +199,7 @@ class RichardsTests1D(unittest.TestCase):
         stdev = 0.01  # The standard deviation for the noise
         survey = self.prob.createSyntheticSurvey(mTrue, std=stdev, P=self.survey.P)
         opt = Optimization.InexactGaussNewton(maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6)
-        reg = Regularization.Tikhonov(Model.BaseModel(self.M))
+        reg = Regularization.Tikhonov(self.M)
         obj = ObjFunction.BaseObjFunction(survey, reg)
         derChk = lambda m: [obj.dataObj(m), obj.dataObjDeriv(m)]
         print 'Testing Richards Derivative - Pressure Head'
@@ -213,7 +213,7 @@ class RichardsTests1D(unittest.TestCase):
         stdev = 0.01  # The standard deviation for the noise
         survey = self.prob.createSyntheticSurvey(mTrue, std=stdev, P=self.survey.P)
         opt = Optimization.InexactGaussNewton(maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6)
-        reg = Regularization.Tikhonov(Model.BaseModel(self.M))
+        reg = Regularization.Tikhonov(self.M)
         obj = ObjFunction.BaseObjFunction(survey, reg)
         derChk = lambda m: [obj.dataObj(m), obj.dataObjDeriv(m)]
         print 'Testing Richards Derivative - Saturation'

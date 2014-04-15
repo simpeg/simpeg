@@ -9,14 +9,14 @@ import matplotlib.pyplot as plt
 M = Mesh.TensorMesh([np.ones(40)])
 M.setCellGradBC('dirichlet')
 params = Richards.Empirical.HaverkampParams().celia1990
-model = Richards.Empirical.Haverkamp(M, **params)
+E = Richards.Empirical.Haverkamp(M, **params)
 
 bc = np.array([-61.5,-20.7])
 h = np.zeros(M.nC) + bc[0]
 
 
 def getFields(timeStep,method):
-    prob = Richards.RichardsProblem(model, timeStep=timeStep, timeEnd=360,
+    prob = Richards.RichardsProblem(M, mapping=E, timeStep=timeStep, timeEnd=360,
                                     boundaryConditions=bc, initialConditions=h,
                                     doNewton=False, method=method)
     return prob.fields(params['Ks'])

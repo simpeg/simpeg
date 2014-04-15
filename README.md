@@ -15,7 +15,7 @@ Tests:
 [https://travis-ci.org/simpeg/simpegflow](https://travis-ci.org/simpeg/simpegflow)
 
 Build Status:
-[![Build Status](https://travis-ci.org/simpeg/simpegflow.png)](https://travis-ci.org/simpeg/simpegflow)
+[![Build Status](https://travis-ci.org/simpeg/simpegflow.svg?branch=master)](https://travis-ci.org/simpeg/simpegflow)
 
 Bugs & Issues:
 [https://github.com/simpeg/simpegflow/issues](https://github.com/simpeg/simpegflow/issues)

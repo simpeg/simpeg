@@ -1,8 +1,8 @@
-from SimPEG import Mesh, Model, Utils, np
+from SimPEG import Mesh, Maps, Utils, np
 
 
-class RichardsModel(object):
-    """docstring for RichardsModel"""
+class RichardsMap(object):
+    """docstring for RichardsMap"""
 
     mesh       = None  #: SimPEG mesh
 
@@ -18,8 +18,8 @@ class RichardsModel(object):
 
     def __init__(self, mesh, thetaModel, kModel):
         self.mesh = mesh
-        assert isinstance(thetaModel, Model.BaseNonLinearModel)
-        assert isinstance(kModel, Model.BaseNonLinearModel)
+        assert isinstance(thetaModel, Maps.NonLinearMap)
+        assert isinstance(kModel, Maps.NonLinearMap)
 
         self._thetaModel = thetaModel
         self._kModel = kModel
@@ -51,6 +51,9 @@ class RichardsModel(object):
         ax.plot(self.theta(h, m), h)
         ax = plt.subplot(122)
         ax.semilogx(self.k(h, m), h)
+
+    def _assertMatchesPair(self, pair):
+        assert isinstance(self, pair), "Mapping object must be an instance of a %s class."%(pair.__name__)
 
 
 
@@ -91,7 +94,7 @@ class HaverkampParams(object):
                 'gamma':4.74}
 
 
-class _haverkamp_theta(Model.BaseNonLinearModel):
+class _haverkamp_theta(Maps.NonLinearMap):
 
     theta_s = 0.430
     theta_r = 0.078
@@ -99,7 +102,7 @@ class _haverkamp_theta(Model.BaseNonLinearModel):
     beta    = 3.960
 
     def __init__(self, mesh, **kwargs):
-        Model.BaseNonLinearModel.__init__(self, mesh)
+        Maps.NonLinearMap.__init__(self, mesh)
         Utils.setKwargs(self, **kwargs)
 
     def setModel(self, m):
@@ -128,14 +131,14 @@ class _haverkamp_theta(Model.BaseNonLinearModel):
         return g
 
 
-class _haverkamp_k(Model.BaseNonLinearModel):
+class _haverkamp_k(Maps.NonLinearMap):
 
     A       = 1.175e+06
     gamma   = 4.74
     Ks      = np.log(24.96)
 
     def __init__(self, mesh, **kwargs):
-        Model.BaseNonLinearModel.__init__(self, mesh)
+        Maps.NonLinearMap.__init__(self, mesh)
         Utils.setKwargs(self, **kwargs)
 
     def setModel(self, m):
@@ -169,7 +172,7 @@ class _haverkamp_k(Model.BaseNonLinearModel):
         g = Utils.sdiag(g)
         return g
 
-class Haverkamp(RichardsModel):
+class Haverkamp(RichardsMap):
     """Haverkamp Model"""
 
     alpha   = _ModelProperty('alpha',   ['thetaModel'], default=1.6110e+06)
@@ -182,7 +185,7 @@ class Haverkamp(RichardsModel):
     gamma = _ModelProperty('gamma', ['kModel'], default=4.74)
 
     def __init__(self, mesh, **kwargs):
-        RichardsModel.__init__(self, mesh,
+        RichardsMap.__init__(self, mesh,
                                _haverkamp_theta(mesh),
                                _haverkamp_k(mesh))
         Utils.setKwargs(self, **kwargs)
@@ -190,7 +193,7 @@ class Haverkamp(RichardsModel):
 
 
 
-class _vangenuchten_theta(Model.BaseNonLinearModel):
+class _vangenuchten_theta(Maps.NonLinearMap):
 
     theta_s = 0.430
     theta_r = 0.078
@@ -198,7 +201,7 @@ class _vangenuchten_theta(Model.BaseNonLinearModel):
     n       = 1.560
 
     def __init__(self, mesh, **kwargs):
-        Model.BaseNonLinearModel.__init__(self, mesh)
+        Maps.NonLinearMap.__init__(self, mesh)
         Utils.setKwargs(self, **kwargs)
 
     def setModel(self, m):
@@ -226,7 +229,7 @@ class _vangenuchten_theta(Model.BaseNonLinearModel):
         return g
 
 
-class _vangenuchten_k(Model.BaseNonLinearModel):
+class _vangenuchten_k(Maps.NonLinearMap):
 
     I       = 0.500
     alpha   = 0.036
@@ -234,7 +237,7 @@ class _vangenuchten_k(Model.BaseNonLinearModel):
     Ks      = np.log(24.96)
 
     def __init__(self, mesh, **kwargs):
-        Model.BaseNonLinearModel.__init__(self, mesh)
+        Maps.NonLinearMap.__init__(self, mesh)
         Utils.setKwargs(self, **kwargs)
 
     def setModel(self, m):
@@ -282,7 +285,7 @@ class _vangenuchten_k(Model.BaseNonLinearModel):
         g = Utils.sdiag(g)
         return g
 
-class VanGenuchten(RichardsModel):
+class VanGenuchten(RichardsMap):
     """vanGenuchten Model"""
 
     theta_r = _ModelProperty('theta_r', ['thetaModel'], default=0.075)
@@ -295,7 +298,7 @@ class VanGenuchten(RichardsModel):
     I     = _ModelProperty('I',     ['kModel'], default=0.500)
 
     def __init__(self, mesh, **kwargs):
-        RichardsModel.__init__(self, mesh,
+        RichardsMap.__init__(self, mesh,
                                _haverkamp_theta(mesh),
                                _haverkamp_k(mesh))
         Utils.setKwargs(self, **kwargs)
@@ -497,7 +500,7 @@ class VanGenuchtenParams(object):
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
     M = Mesh.TensorMesh([10])
-    VGparams = vanGenuchtenParams()
+    VGparams = VanGenuchtenParams()
     leg = []
     for p in dir(VGparams):
         if p[0] == '_': continue
