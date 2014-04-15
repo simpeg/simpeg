@@ -167,7 +167,7 @@ class DiffOperators(object):
                 elif(self.dim == 3):
                     D1 = kron3(speye(n[2]), speye(n[1]), ddx(n[0]))
                 # Compute areas of cell faces & volumes
-                S = self.r(self.area, 'F','Fx', 'V')
+                S = self.r(self.area, 'F', 'Fx', 'V')
                 V = self.vol
                 self._faceDivx = sdiag(1/V)*D1*sdiag(S)
 
@@ -190,7 +190,7 @@ class DiffOperators(object):
                 elif(self.dim == 3):
                     D2 = kron3(speye(n[2]), ddx(n[1]), speye(n[0]))
                 # Compute areas of cell faces & volumes
-                S = self.r(self.area, 'F','Fy', 'V')
+                S = self.r(self.area, 'F', 'Fy', 'V')
                 V = self.vol
                 self._faceDivy = sdiag(1/V)*D2*sdiag(S)
 
@@ -210,7 +210,7 @@ class DiffOperators(object):
                 # Compute faceDivergence operator on faces
                 D3 = kron3(ddx(n[2]), speye(n[1]), speye(n[0]))
                 # Compute areas of cell faces & volumes
-                S = self.r(self.area, 'F','Fz', 'V')
+                S = self.r(self.area, 'F', 'Fz', 'V')
                 V = self.vol
                 self._faceDivz = sdiag(1/V)*D3*sdiag(S)
 
@@ -623,11 +623,11 @@ class DiffOperators(object):
                 raise Exception('Edge Averaging does not make sense in 1D: Use Identity?')
             elif(self.dim == 2):
                 self._aveE2CC = 0.5*sp.hstack((sp.kron(av(n[1]), speye(n[0])),
-                                           sp.kron(speye(n[1]), av(n[0]))), format="csr")
+                                               sp.kron(speye(n[1]), av(n[0]))), format="csr")
             elif(self.dim == 3):
                 self._aveE2CC = (1./3)*sp.hstack((kron3(av(n[2]), av(n[1]), speye(n[0])),
-                                           kron3(av(n[2]), speye(n[1]), av(n[0])),
-                                           kron3(speye(n[2]), av(n[1]), av(n[0]))), format="csr")
+                                                  kron3(av(n[2]), speye(n[1]), av(n[0])),
+                                                  kron3(speye(n[2]), av(n[1]), av(n[0]))), format="csr")
         return self._aveE2CC
 
     @property
@@ -696,57 +696,3 @@ class DiffOperators(object):
                                           kron3(speye(n[2]+1), av(n[1]), av(n[0]))), format="csr")
         return self._aveN2F
 
-    # --------------- Methods ---------------------
-
-    def getMass(self, materialProp=None, loc='e'):
-        """ Produces mass matricies.
-
-        :param str loc: Average to location: 'e'-edges, 'f'-faces
-        :param None,float,numpy.ndarray materialProp: property to be averaged (see below)
-        :rtype: scipy.sparse.csr.csr_matrix
-        :return: M, the mass matrix
-
-        materialProp can be::
-
-            None            -> takes materialProp = 1 (default)
-            float           -> a constant value for entire domain
-            numpy.ndarray   -> if materialProp.size == self.nC
-                                    3D property model
-                               if materialProp.size = self.nCz
-                                    1D (layered eath) property model
-        """
-        if materialProp is None:
-            materialProp = np.ones(self.nC)
-        elif type(materialProp) is float:
-            materialProp = np.ones(self.nC)*materialProp
-        elif materialProp.shape == (self.nCz,):
-            materialProp = materialProp.repeat(self.nCx*self.nCy)
-        materialProp = mkvc(materialProp)
-        assert materialProp.shape == (self.nC,), "materialProp incorrect shape"
-
-        if loc=='e':
-            Av = self.aveE2CC
-        elif loc=='f':
-            Av = self.aveF2CC
-        else:
-            raise ValueError('Invalid loc')
-
-        diag = Av.T * (self.vol * mkvc(materialProp))
-
-        return sdiag(diag)
-
-    def getEdgeMass(self, materialProp=None):
-        """mass matrix for products of edge functions w'*M(materialProp)*e"""
-        return self.getMass(loc='e', materialProp=materialProp)
-
-    def getFaceMass(self, materialProp=None):
-        """mass matrix for products of face functions w'*M(materialProp)*f"""
-        return self.getMass(loc='f', materialProp=materialProp)
-
-    def getFaceMassDeriv(self):
-        Av = self.aveF2CC
-        return Av.T * sdiag(self.vol)
-
-    def getEdgeMassDeriv(self):
-        Av = self.aveE2CC
-        return Av.T * sdiag(self.vol)

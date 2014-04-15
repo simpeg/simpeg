@@ -284,7 +284,6 @@ class InnerProducts(object):
 #         |                                     |/
 #    node(i+1,j,k) ------ edge2(i+1,j,k) ----- node(i+1,j+1,k)
 
-
 def _getFacePx(M):
     assert M._meshType == 'TENSOR', 'Only supported for a tensor mesh'
     return _getFacePx_Rectangular(M)

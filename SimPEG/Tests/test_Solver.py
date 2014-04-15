@@ -22,7 +22,7 @@ class TestSolver(unittest.TestCase):
 
         D = M.faceDiv
         G = M.cellGrad
-        Msig = M.getFaceMass()
+        Msig = M.getFaceInnerProduct()
         A = D*Msig*G
         A[0,0] *= 10 # remove the constant null space from the matrix
 

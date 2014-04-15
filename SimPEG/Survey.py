@@ -209,6 +209,7 @@ class BaseRx(object):
     def nD(self):
         return self.locs.shape[0]
 
+
 class BaseTx(object):
     """SimPEG Transmitter Object"""
 

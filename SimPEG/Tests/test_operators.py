@@ -3,6 +3,7 @@ import unittest
 from TestUtils import OrderTest
 import matplotlib.pyplot as plt
 
+#TODO: 'randomTensorMesh'
 MESHTYPES = ['uniformTensorMesh', 'uniformLRM', 'rotateLRM']
 call2 = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1])
 call3 = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1], xyz[:, 2])

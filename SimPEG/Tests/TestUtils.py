@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from numpy.linalg import norm
 from SimPEG.Utils import mkvc, sdiag
 from SimPEG import Utils
-from SimPEG.Mesh import TensorMesh, LogicallyRectMesh
+from SimPEG.Mesh import TensorMesh, LogicallyRectMesh, CylMesh
 import numpy as np
 import scipy.sparse as sp
 import unittest
@@ -88,10 +88,7 @@ class OrderTest(unittest.TestCase):
         """
         if 'TensorMesh' in self._meshType:
             if 'uniform' in self._meshType:
-                h1 = np.ones(nc)/nc
-                h2 = np.ones(nc)/nc
-                h3 = np.ones(nc)/nc
-                h = [h1, h2, h3]
+                h = [nc, nc, nc]
             elif 'random' in self._meshType:
                 h1 = np.random.rand(nc)*nc*0.5 + nc*0.5
                 h2 = np.random.rand(nc)*nc*0.5 + nc*0.5
@@ -102,6 +99,20 @@ class OrderTest(unittest.TestCase):
 
             self.M = TensorMesh(h[:self.meshDimension])
             max_h = max([np.max(hi) for hi in self.M.h])
+            return max_h
+
+        elif 'CylMesh' in self._meshType:
+            if 'uniform' in self._meshType:
+                h = [nc, nc, nc]
+            else:
+                raise Exception('Unexpected meshType')
+
+            if self.meshDimension == 2:
+                self.M = CylMesh([h[0], 1, h[2]])
+                max_h = max([np.max(hi) for hi in [self.M.hx, self.M.hz]])
+            elif self.meshDimension == 3:
+                self.M = CylMesh(h)
+                max_h = max([np.max(hi) for hi in self.M.h])
             return max_h
 
         elif 'LRM' in self._meshType:
