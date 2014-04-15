@@ -12,6 +12,7 @@ class Cyl1DMesh(object):
 
     def __init__(self, h, z0=None):
         assert len(h) == 2, "len(h) must equal 2"
+        print 'PendingDeprecationWarning: Cyl1DMesh has been replaced by CylMesh. hy == theta == 2pi, use one cell to make this cylindrically symmetric.'
         if z0 is not None:
             assert z0.size == 1, "z0.size must equal 1"
 
