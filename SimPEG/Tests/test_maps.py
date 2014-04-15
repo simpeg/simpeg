@@ -14,24 +14,24 @@ class MapTests(unittest.TestCase):
         self.mesh2 = Mesh.TensorMesh([a, b], x0=np.array([3, 5]))
         self.mesh22 = Mesh.TensorMesh([b, a], x0=np.array([3, 5]))
 
-    def test_modelTransforms(self):
+    def test_transforms(self):
         for M in dir(Maps):
             try:
-                model = getattr(Maps, M)(self.mesh2)
-                assert isinstance(model, Maps.BaseModel)
+                maps = getattr(Maps, M)(self.mesh2)
+                assert isinstance(maps, Maps.BaseModel)
             except Exception, e:
                 continue
-            self.assertTrue(model.test())
+            self.assertTrue(maps.test())
 
     def test_Mesh2MeshMap(self):
-        model = Maps.Mesh2Mesh([self.mesh22, self.mesh2])
-        self.assertTrue(model.test())
+        maps = Maps.Mesh2Mesh([self.mesh22, self.mesh2])
+        self.assertTrue(maps.test())
 
     def test_comboMaps(self):
         combos = [(Maps.ExpMap, Maps.Vertical1DMap)]
         for combo in combos:
-            model = Maps.ComboMap(self.mesh2, combo)
-            self.assertTrue(model.test())
+            maps = Maps.ComboMap(self.mesh2, combo)
+            self.assertTrue(maps.test())
 
 
 if __name__ == '__main__':

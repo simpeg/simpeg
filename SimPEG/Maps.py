@@ -68,8 +68,8 @@ class IdentityMap(object):
 
     def _assertMatchesPair(self, pair):
         assert (isinstance(self, pair) or
-            isinstance(self, ComboMap) and isinstance(self.models[0], pair)
-            ), "Model object must be an instance of a %s class."%(pair.__name__)
+            isinstance(self, ComboMap) and isinstance(self.maps[0], pair)
+            ), "Mapping object must be an instance of a %s class."%(pair.__name__)
 
 class NonLinearMap(object):
     """
@@ -335,17 +335,17 @@ class ActiveCells(IdentityMap):
         return self.P
 
 class ComboMap(IdentityMap):
-    """Combination of various models."""
+    """Combination of various maps."""
 
-    def __init__(self, mesh, models, **kwargs):
+    def __init__(self, mesh, maps, **kwargs):
         IdentityMap.__init__(self, mesh, **kwargs)
 
-        self.models = []
-        for m in models:
+        self.maps = []
+        for m in maps:
             if not isinstance(m, IdentityMap):
-                self.models += [m(mesh, **kwargs)]
+                self.maps += [m(mesh, **kwargs)]
             else:
-                self.models += [m]
+                self.maps += [m]
 
     @property
     def nP(self):
@@ -353,19 +353,19 @@ class ComboMap(IdentityMap):
 
            The number of cells in the
            last dimension of the mesh."""
-        return self.models[-1].nP
+        return self.maps[-1].nP
 
     def transform(self, m):
-        for model in reversed(self.models):
-            m = model.transform(m)
+        for map_i in reversed(self.maps):
+            m = map_i.transform(m)
         return m
 
     def transformDeriv(self, m):
         deriv = 1
         mi = m
-        for model in reversed(self.models):
-            deriv = model.transformDeriv(mi) * deriv
-            mi = model.transform(mi)
+        for map_i in reversed(self.maps):
+            deriv = map_i.transformDeriv(mi) * deriv
+            mi = map_i.transform(mi)
         return deriv
 
 if __name__ == '__main__':

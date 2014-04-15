@@ -1,5 +1,5 @@
 import Utils, Survey, numpy as np, scipy.sparse as sp
-import Maps
+import Maps, Mesh
 
 class BaseProblem(object):
     """
@@ -18,6 +18,7 @@ class BaseProblem(object):
 
     def __init__(self, mesh, mapping=None, **kwargs):
         Utils.setKwargs(self, **kwargs)
+        assert isinstance(mesh, Mesh.BaseMesh), "mesh must be a SimPEG.Mesh object."
         self.mesh = mesh
         self.mapping = mapping or Maps.IdentityMap(mesh)
         self.mapping._assertMatchesPair(self.mapPair)
