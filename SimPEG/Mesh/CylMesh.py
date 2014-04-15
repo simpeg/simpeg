@@ -9,6 +9,13 @@ from InnerProducts import InnerProducts
 class CylMesh(BaseTensorMesh, InnerProducts):
     """
         CylMesh is a mesh class for cylindrical problems
+
+        ::
+
+            cs, nc, npad = 20., 30, 8
+            hx = Utils.meshTensors(((npad+10,cs,0.7), (nc,cs), (npad,cs)))
+            hz = Utils.meshTensors(((npad,cs), (nc,cs), (npad,cs)))
+            mesh = Mesh.CylMesh([hx,1,hz], [0.,0,-hz.sum()/2.])
     """
 
     _meshType = 'CYL'
