@@ -11,7 +11,6 @@ def _interp_point_1D(x, xr_i):
         :rtype: int,int,float,float
         :return: index1, index2, portion1, portion2
     """
-    # TODO: This fails if the point is on the outside of the mesh. We may want to replace this by extrapolation?
     im = np.argmin(abs(x-xr_i))
     if xr_i - x[im] >= 0:  # Point on the left
         ind_x1 = im
@@ -21,15 +20,16 @@ def _interp_point_1D(x, xr_i):
         ind_x2 = im
     ind_x1 = max(min(ind_x1, x.size-1), 0)
     ind_x2 = max(min(ind_x2, x.size-1), 0)
-    dx1 = xr_i - x[ind_x1]
-    dx2 = x[ind_x2] - xr_i
 
-    Dx =  x[ind_x2] - x[ind_x1]
     if ind_x1 == ind_x2:
-        dx1 = 0.5
-        dx2 = 0.5
-        Dx = 1
-    return ind_x1, ind_x2, dx1, dx2, Dx
+        return ind_x1, ind_x1, 0.5, 0.5
+
+    hx =  x[ind_x2] - x[ind_x1]
+    wx1 = 1 - (xr_i - x[ind_x1])/hx
+    wx2 = 1 - (x[ind_x2] - xr_i)/hx
+
+    return ind_x1, ind_x2, wx1, wx2
+
 
 
 def interpmat(locs, x, y=None, z=None):
@@ -77,11 +77,11 @@ def _interpmat1D(locs, x):
     Q = sp.lil_matrix((npts, nx))
 
     for i in range(npts):
-        ind_x1, ind_x2, dx1, dx2, Dx = _interp_point_1D(x, locs[i])
+        ind_x1, ind_x2, wx1, wx2 = _interp_point_1D(x, locs[i])
         # dv = (x[ind_x2] - x[ind_x1])
         # Get the row in the matrix
         inds = [ind_x1, ind_x2]
-        vals = [(1-dx1/Dx),(1-dx2/Dx)]
+        vals = [wx1,wx2]
 
         for I, V in zip(inds, vals):
             Q[i, I] += V
@@ -101,8 +101,8 @@ def _interpmat2D(locs, x, y):
 
 
     for i in range(npts):
-        ind_x1, ind_x2, dx1, dx2, Dx = _interp_point_1D(x, locs[i, 0])
-        ind_y1, ind_y2, dy1, dy2, Dy = _interp_point_1D(y, locs[i, 1])
+        ind_x1, ind_x2, wx1, wx2 = _interp_point_1D(x, locs[i, 0])
+        ind_y1, ind_y2, wy1, wy2 = _interp_point_1D(y, locs[i, 1])
 
         # dv = (x[ind_x2] - x[ind_x1]) * (y[ind_y2] - y[ind_y1])
 
@@ -114,10 +114,10 @@ def _interpmat2D(locs, x, y):
             ( ind_x2,  ind_y1),
             ( ind_x2,  ind_y2)])
 
-        vals = [(1-dx1/Dx)*(1-dy2/Dy),
-                (1-dx1/Dx)*(1-dy1/Dy),
-                (1-dx2/Dx)*(1-dy1/Dy),
-                (1-dx2/Dx)*(1-dy2/Dy)]
+        vals = [wx1*wy2,
+                wx1*wy1,
+                wx2*wy1,
+                wx2*wy2]
 
 
         for I, V in zip(mkvc(inds), vals):
@@ -140,9 +140,9 @@ def _interpmat3D(locs, x, y, z):
 
 
     for i in range(npts):
-        ind_x1, ind_x2, dx1, dx2, Dx = _interp_point_1D(x, locs[i, 0])
-        ind_y1, ind_y2, dy1, dy2, Dy = _interp_point_1D(y, locs[i, 1])
-        ind_z1, ind_z2, dz1, dz2, Dz = _interp_point_1D(z, locs[i, 2])
+        ind_x1, ind_x2, wx1, wx2 = _interp_point_1D(x, locs[i, 0])
+        ind_y1, ind_y2, wy1, wy2 = _interp_point_1D(y, locs[i, 1])
+        ind_z1, ind_z2, wz1, wz2 = _interp_point_1D(z, locs[i, 2])
 
         # dv = (x[ind_x2] - x[ind_x1]) * (y[ind_y2] - y[ind_y1]) *(z[ind_z2] - z[ind_z1])
 
@@ -158,14 +158,14 @@ def _interpmat3D(locs, x, y, z):
             ( ind_x2,  ind_y1,  ind_z2),
             ( ind_x2,  ind_y2,  ind_z2)])
 
-        vals = [(1-dx1/Dx)*(1-dy2/Dy)*(1-dz1/Dz),
-                (1-dx1/Dx)*(1-dy1/Dy)*(1-dz1/Dz),
-                (1-dx2/Dx)*(1-dy1/Dy)*(1-dz1/Dz),
-                (1-dx2/Dx)*(1-dy2/Dy)*(1-dz1/Dz),
-                (1-dx1/Dx)*(1-dy1/Dy)*(1-dz2/Dz),
-                (1-dx1/Dx)*(1-dy2/Dy)*(1-dz2/Dz),
-                (1-dx2/Dx)*(1-dy1/Dy)*(1-dz2/Dz),
-                (1-dx2/Dx)*(1-dy2/Dy)*(1-dz2/Dz)]
+        vals = [wx1*wy2*wz1,
+                wx1*wy1*wz1,
+                wx2*wy1*wz1,
+                wx2*wy2*wz1,
+                wx1*wy1*wz2,
+                wx1*wy2*wz2,
+                wx2*wy1*wz2,
+                wx2*wy2*wz2]
 
         for I, V in zip(mkvc(inds), vals):
             Q[i, I] += V
