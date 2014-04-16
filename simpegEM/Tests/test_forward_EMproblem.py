@@ -26,7 +26,7 @@ class TDEM_bTests(unittest.TestCase):
         mesh = Mesh.TensorMesh([hx,hy,hz], [-hx.sum()/2.,-hy.sum()/2.,-hz.sum()/2.])
 
         active = mesh.vectorCCz<0.
-        actMap = Maps.ActiveCells(mesh, active, -8, nC=mesh.nCz)
+        actMap = Maps.ActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
         mapping = Maps.ComboMap(mesh,
                     [Maps.ExpMap, Maps.Vertical1DMap, actMap])
 
