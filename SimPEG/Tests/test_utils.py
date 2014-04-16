@@ -164,12 +164,34 @@ class TestSequenceFunctions(unittest.TestCase):
             Z = B2*A - sp.identity(M.nC*3)
             self.assertTrue(np.linalg.norm(Z.todense().ravel(), 2) < TOL)
 
-    def test_isFloat(self):
+    def test_isScalar(self):
         self.assertTrue(isScalar(1.))
         self.assertTrue(isScalar(1))
         self.assertTrue(isScalar(long(1)))
         self.assertTrue(isScalar(np.r_[1.]))
         self.assertTrue(isScalar(np.r_[1]))
+
+    def test_asArray_N_x_Dim(self):
+
+        true = np.array([[1,2,3]])
+
+        listArray = asArray_N_x_Dim([1,2,3],3)
+        self.assertTrue(np.all(true == listArray))
+        self.assertTrue(true.shape == listArray.shape)
+
+        listArray = asArray_N_x_Dim(np.r_[1,2,3],3)
+        self.assertTrue(np.all(true == listArray))
+        self.assertTrue(true.shape == listArray.shape)
+
+        listArray = asArray_N_x_Dim(np.array([[1,2,3.]]),3)
+        self.assertTrue(np.all(true == listArray))
+        self.assertTrue(true.shape == listArray.shape)
+
+        true = np.array([[1,2],[4,5]])
+
+        listArray = asArray_N_x_Dim([[1,2],[4,5]],2)
+        self.assertTrue(np.all(true == listArray))
+        self.assertTrue(true.shape == listArray.shape)
 
 if __name__ == '__main__':
     unittest.main()

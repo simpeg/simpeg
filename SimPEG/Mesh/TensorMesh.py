@@ -180,17 +180,13 @@ class BaseTensorMesh(BaseRectangularMesh):
         :rtype numpy.ndarray
         :return inside, numpy array of booleans
         """
+        pts = Utils.asArray_N_x_Dim(pts, self.dim)
 
         tensors = self.getTensor(locType)
-        if type(pts) == list:
-            pts = np.array(pts)
-        assert type(pts) == np.ndarray, "must be a numpy array"
-        if self.dim > 1:
-            assert pts.shape[1] == self.dim, "must be a column vector of shape (nPts, mesh.dim)"
-        elif len(pts.shape) == 1:
-            pts = pts[:,np.newaxis]
-        else:
-            assert pts.shape[1] == self.dim, "must be a column vector of shape (nPts, mesh.dim)"
+
+        if locType == 'N' and self._meshType == 'CYL':
+            #NOTE: for a CYL mesh we add a node to check if we are inside in the radial direction!
+            tensors[0] = np.r_[0.,tensors[0]]
 
         inside = np.ones(pts.shape[0],dtype=bool)
         for i, tensor in enumerate(tensors):
@@ -217,19 +213,7 @@ class BaseTensorMesh(BaseRectangularMesh):
             'CC'    -> scalar field defined on cell centers
         """
 
-        if type(loc) == list:
-            loc = np.array(loc)
-        assert type(loc) == np.ndarray, "must be a numpy array"
-
-        if loc.size == self.dim:
-            loc = np.atleast_2d(loc)
-
-        if self.dim > 1:
-            assert loc.shape[1] == self.dim, "must be a column vector of shape (nPts, mesh.dim) not (%d,%d)" % loc.shape
-        elif len(loc.shape) == 1:
-            loc = loc[:,np.newaxis]
-        else:
-            assert loc.shape[1] == self.dim, "must be a column vector of shape (nPts, mesh.dim)"
+        loc = Utils.asArray_N_x_Dim(loc, self.dim)
 
         if zerosOutside is False:
             assert np.all(self.isInside(loc)), "Points outside of mesh"
@@ -342,7 +326,7 @@ class BaseTensorMesh(BaseRectangularMesh):
             :return: M, the inner product matrix (nF, nF)
         """
         if materialProperty is None:
-            return 0.0
+            return None
 
         if Utils.isScalar(materialProperty):
             Av = getattr(self, 'ave'+AvType+'2CC')

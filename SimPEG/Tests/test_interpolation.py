@@ -7,14 +7,16 @@ import unittest
 
 
 MESHTYPES = ['uniformTensorMesh', 'randomTensorMesh']
-TOLERANCES = [0.9, 0.5]
+TOLERANCES = [0.9, 0.5, 0.5]
 call1 = lambda fun, xyz: fun(xyz)
-call2 = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1])
+call2 = lambda fun, xyz: fun(xyz[:, 0], xyz[:, -1])
 call3 = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1], xyz[:, 2])
 cart_row2 = lambda g, xfun, yfun: np.c_[call2(xfun, g), call2(yfun, g)]
 cart_row3 = lambda g, xfun, yfun, zfun: np.c_[call3(xfun, g), call3(yfun, g), call3(zfun, g)]
 cartF2 = lambda M, fx, fy: np.vstack((cart_row2(M.gridFx, fx, fy), cart_row2(M.gridFy, fx, fy)))
+cartF2Cyl = lambda M, fx, fy: np.vstack((cart_row2(M.gridFx, fx, fy), cart_row2(M.gridFz, fx, fy)))
 cartE2 = lambda M, ex, ey: np.vstack((cart_row2(M.gridEx, ex, ey), cart_row2(M.gridEy, ex, ey)))
+cartE2Cyl = lambda M, ex, ey: cart_row2(M.gridEy, ex, ey)
 cartF3 = lambda M, fx, fy, fz: np.vstack((cart_row3(M.gridFx, fx, fy, fz), cart_row3(M.gridFy, fx, fy, fz), cart_row3(M.gridFz, fx, fy, fz)))
 cartE3 = lambda M, ex, ey, ez: np.vstack((cart_row3(M.gridEx, ex, ey, ez), cart_row3(M.gridEy, ex, ey, ez), cart_row3(M.gridEz, ex, ey, ez)))
 
@@ -132,6 +134,74 @@ class TestInterpolation2d(OrderTest):
         self.orderTest()
 
 
+
+class TestInterpolation2dCyl(OrderTest):
+    name = "Interpolation 2D"
+    LOCS = np.c_[np.random.rand(4)*0.6+0.2, np.zeros(4), np.random.rand(4)*0.6+0.2]
+    meshTypes = ['uniformCylMesh'] # MESHTYPES +
+    tolerance = 0.6
+    meshDimension = 2
+    meshSizes = [16, 32, 64]
+
+    def getError(self):
+        funX = lambda x, y: np.cos(2*np.pi*y)
+        funY = lambda x, y: np.cos(2*np.pi*x)
+
+        if 'x' in self.type:
+            anal = call2(funX, self.LOCS)
+        elif 'y' in self.type:
+            anal = call2(funY, self.LOCS)
+        elif 'z' in self.type:
+            anal = call2(funY, self.LOCS)
+        else:
+            anal = call2(funX, self.LOCS)
+
+        if 'Fx' == self.type:
+            Fc = cartF2Cyl(self.M, funX, funY)
+            Fc = np.c_[Fc[:,0],np.zeros(self.M.nF),Fc[:,1]]
+            grid = self.M.projectFaceVector(Fc)
+        elif 'Fz' == self.type:
+            Fc = cartF2Cyl(self.M, funX, funY)
+            Fc = np.c_[Fc[:,0],np.zeros(self.M.nF),Fc[:,1]]
+
+            grid = self.M.projectFaceVector(Fc)
+        elif 'E' in self.type:
+            Ec = cartE2Cyl(self.M, funX, funY)
+            grid = Ec[:,1]
+        elif 'CC' == self.type:
+            grid = call2(funX, self.M.gridCC)
+        elif 'N' == self.type:
+            grid = call2(funX, self.M.gridN)
+
+        comp = self.M.getInterpolationMat(self.LOCS, self.type)*grid
+
+        err = np.linalg.norm((comp - anal), np.inf)
+        return err
+
+    def test_orderCC(self):
+        self.type = 'CC'
+        self.name = 'Interpolation 2D CYLMESH: CC'
+        self.orderTest()
+
+    def test_orderN(self):
+        self.type = 'N'
+        self.name = 'Interpolation 2D CYLMESH: N'
+        self.orderTest()
+
+    def test_orderFx(self):
+        self.type = 'Fx'
+        self.name = 'Interpolation 2D CYLMESH: Fx'
+        self.orderTest()
+
+    def test_orderFz(self):
+        self.type = 'Fz'
+        self.name = 'Interpolation 2D CYLMESH: Fz'
+        self.orderTest()
+
+    def test_orderEy(self):
+        self.type = 'Ey'
+        self.name = 'Interpolation 2D CYLMESH: Ey'
+        self.orderTest()
 
 class TestInterpolation3D(OrderTest):
     name = "Interpolation"
