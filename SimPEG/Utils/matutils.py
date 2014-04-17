@@ -156,6 +156,8 @@ def ind2sub(shape, inds):
 
 def sub2ind(shape, subs):
     """From the given shape, returns the index of the given subscript"""
+    if len(shape) == 1:
+        return subs
     if type(subs) is not np.ndarray:
         subs = np.array(subs)
     if len(subs.shape) == 1:

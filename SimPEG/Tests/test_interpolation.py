@@ -20,6 +20,7 @@ cartE2Cyl = lambda M, ex, ey: cart_row2(M.gridEy, ex, ey)
 cartF3 = lambda M, fx, fy, fz: np.vstack((cart_row3(M.gridFx, fx, fy, fz), cart_row3(M.gridFy, fx, fy, fz), cart_row3(M.gridFz, fx, fy, fz)))
 cartE3 = lambda M, ex, ey, ez: np.vstack((cart_row3(M.gridEx, ex, ey, ez), cart_row3(M.gridEy, ex, ey, ez), cart_row3(M.gridEz, ex, ey, ez)))
 
+TOL = 1e-7
 
 
 class TestInterpolation1D(OrderTest):
@@ -64,9 +65,9 @@ class TestOutliersInterp1D(unittest.TestCase):
         M = Mesh.TensorMesh([4])
         Q = M.getInterpolationMat(np.array([[0],[0.126],[0.127]]),'CC',zerosOutside=True)
         x = np.arange(4)+1
-        self.assertTrue(np.all(Q*x == [1,1.004,1.008]))
+        self.assertTrue(np.linalg.norm(Q*x - np.r_[1,1.004,1.008]) < TOL)
         Q = M.getInterpolationMat(np.array([[-1],[0.126],[0.127]]),'CC',zerosOutside=True)
-        self.assertTrue(np.all(Q*x == [0,1.004,1.008]))
+        self.assertTrue(np.linalg.norm(Q*x - np.r_[0,1.004,1.008]) < TOL)
 
 class TestInterpolation2d(OrderTest):
     name = "Interpolation 2D"
@@ -243,42 +244,42 @@ class TestInterpolation3D(OrderTest):
 
     def test_orderCC(self):
         self.type = 'CC'
-        self.name = 'Interpolation CC'
+        self.name = 'Interpolation 3D: CC'
         self.orderTest()
 
     def test_orderN(self):
         self.type = 'N'
-        self.name = 'Interpolation N'
+        self.name = 'Interpolation 3D: N'
         self.orderTest()
 
     def test_orderFx(self):
         self.type = 'Fx'
-        self.name = 'Interpolation Fx'
+        self.name = 'Interpolation 3D: Fx'
         self.orderTest()
 
     def test_orderFy(self):
         self.type = 'Fy'
-        self.name = 'Interpolation Fy'
+        self.name = 'Interpolation 3D: Fy'
         self.orderTest()
 
     def test_orderFz(self):
         self.type = 'Fz'
-        self.name = 'Interpolation Fz'
+        self.name = 'Interpolation 3D: Fz'
         self.orderTest()
 
     def test_orderEx(self):
         self.type = 'Ex'
-        self.name = 'Interpolation Ex'
+        self.name = 'Interpolation 3D: Ex'
         self.orderTest()
 
     def test_orderEy(self):
         self.type = 'Ey'
-        self.name = 'Interpolation Ey'
+        self.name = 'Interpolation 3D: Ey'
         self.orderTest()
 
     def test_orderEz(self):
         self.type = 'Ez'
-        self.name = 'Interpolation Ez'
+        self.name = 'Interpolation 3D: Ez'
         self.orderTest()
 
 

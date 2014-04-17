@@ -5,9 +5,14 @@ SimPEG is a python package for simulation and gradient based
 parameter estimation in the context of geophysical applications.
 """
 
-import ez_setup
-ez_setup.use_setuptools()
-from setuptools import setup, find_packages
+# import ez_setup
+# ez_setup.use_setuptools()
+# from setuptools import setup, find_packages
+
+from distutils.core import setup
+from setuptools import find_packages
+from Cython.Build import cythonize
+import numpy as np
 
 CLASSIFIERS = [
 'Development Status :: 0.0.1 - Alpha',
@@ -42,5 +47,7 @@ setup(
     download_url = "http://github.com/simpeg",
     classifiers=CLASSIFIERS,
     platforms = ["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
-    use_2to3 = False
+    use_2to3 = False,
+    include_dirs=[np.get_include()],
+    ext_modules = cythonize('SimPEG/Utils/interputils_cython.pyx')
 )
