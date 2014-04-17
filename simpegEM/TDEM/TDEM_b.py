@@ -239,29 +239,28 @@ if __name__ == '__main__':
     from scipy.constants import mu_0
     import matplotlib.pyplot as plt
 
-    cs = 5.
-    ncx = 20
-    ncy = 6
-    npad = 20
+    cs, ncx, ncz, npad = 5., 20, 6, 20
     hx = Utils.meshTensors(((0,cs), (ncx,cs), (npad,cs)))
-    hy = Utils.meshTensors(((npad,cs), (ncy,cs), (npad,cs)))
-    mesh = Mesh.Cyl1DMesh([hx,hy], -hy.sum()/2)
-    model = Model.Vertical1DModel(mesh)
+    hz = Utils.meshTensors(((npad,cs), (ncz,cs), (npad,cs)))
+    mesh = Mesh.CylMesh([hx,1,hz], [0,0,-hz.sum()/2])
+    mapping = Maps.Vertical1DMap(mesh)
 
     opts = {'txLoc':0.,
             'txType':'VMD_MVP',
-            'rxLoc':np.r_[150., 0.],
+            'rxLoc':np.r_[150., 0., 0.],
             'rxType':'bz',
             'timeCh':np.logspace(-4,-2,20),
             }
-    dat = EM.TDEM.DataTDEM1D(**opts)
+    survey = EM.TDEM.SurveyTDEM1D(**opts)
 
-    prb = EM.TDEM.ProblemTDEM_b(mesh, model)
+    prb = EM.TDEM.ProblemTDEM_b(mesh, mapping=mapping)
     # prb.setTimes([1e-5, 5e-5, 2.5e-4], [150, 150, 150])
     # prb.setTimes([1e-5, 5e-5, 2.5e-4], [10, 10, 10])
-    prb.setTimes([1e-5], [1])
-    prb.pair(dat)
+    prb.setTimes([1e-5], [10])
+    prb.pair(survey)
     sigma = np.random.rand(mesh.nCz)
+
+    print survey.dpred(sigma)
 
 
 
