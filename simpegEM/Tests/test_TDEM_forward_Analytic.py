@@ -56,24 +56,35 @@ def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=[1e-5,
     if showIt == True:
         plt.loglog(prb.times[bz_calc>0], bz_calc[bz_calc>0], 'r', prb.times[bz_calc<0], -bz_calc[bz_calc<0], 'r--')
         plt.loglog(prb.times, abs(bz_ana), 'b*')
+        plt.title('sig_half = %e'%sig_half)
         plt.show()
 
     return log10diff
 
 
 class TDEM_bTests(unittest.TestCase):
-    def test_analitic_p2_CYL(self):
-        self.assertTrue(halfSpaceProblemAnaDiff('CYL',sig_half=1e+2) < 0.01)
-    def test_analitic_p1_CYL(self):
-        self.assertTrue(halfSpaceProblemAnaDiff('CYL',sig_half=1e+1) < 0.01)
-    def test_analitic_p0_CYL(self):
-        self.assertTrue(halfSpaceProblemAnaDiff('CYL',sig_half=1e+0) < 0.01)
-    def test_analitic_m1_CYL(self):
-        self.assertTrue(halfSpaceProblemAnaDiff('CYL',sig_half=1e-1) < 0.01)
-    def test_analitic_m2_CYL(self):
-        self.assertTrue(halfSpaceProblemAnaDiff('CYL',sig_half=1e-2) < 0.01)
-    def test_analitic_m3_CYL(self):
-        self.assertTrue(halfSpaceProblemAnaDiff('CYL',sig_half=1e-3) < 0.02)
+
+    def test_analitic_p2_CYL_50m(self):
+        self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=50., sig_half=1e+2) < 0.01)
+    def test_analitic_p1_CYL_50m(self):
+        self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=50., sig_half=1e+1) < 0.01)
+    def test_analitic_p0_CYL_50m(self):
+        self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=50., sig_half=1e+0) < 0.01)
+    def test_analitic_m1_CYL_50m(self):
+        self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=50., sig_half=1e-1) < 0.01)
+    def test_analitic_m2_CYL_50m(self):
+        self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=50., sig_half=1e-2) < 0.01)
+    def test_analitic_m3_CYL_50m(self):
+        self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=50., sig_half=1e-3) < 0.02)
+
+    def test_analitic_p0_CYL_1m(self):
+        self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=1.0, sig_half=1e+0) < 0.01)
+    def test_analitic_m1_CYL_1m(self):
+        self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=1.0, sig_half=1e-1) < 0.01)
+    def test_analitic_m2_CYL_1m(self):
+        self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=1.0, sig_half=1e-2) < 0.01)
+    def test_analitic_m3_CYL_1m(self):
+        self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=1.0, sig_half=1e-3) < 0.02)
 
 
 
