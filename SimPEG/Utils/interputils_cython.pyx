@@ -3,7 +3,7 @@ import numpy as np
 cimport numpy as np
 # from libcpp.vector cimport vector
 
-def _interp_point_1D (np.ndarray[np.float64_t, ndim=1] x, float xr_i):
+def _interp_point_1D(np.ndarray[np.float64_t, ndim=1] x, float xr_i):
     """
         given a point, xr_i, this will find which two integers it lies between.
 

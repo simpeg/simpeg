@@ -74,6 +74,57 @@ def points2nodes(mesh, pts):
 
     return nodeInds
 
+def readUBCTensorMesh(fileName):
+    """
+        ReadUBC 3DTensor mesh and generate 3D Tensor mesh in simpegTD
+
+    """
+    f = open(fileName, 'r')
+    mesh = []
+    for line in f:
+        if any("*" in s for s in line.split()):
+            tempa = []
+            tempb = []
+            for s in line.split():
+                if ("*" in s):
+                    tempb = map(float, s.split("*"))
+                    for i in range(int(tempb[0])):
+                        tempa.append(tempb[1])
+                else:
+                    tempa.append(float(s))
+            mesh.append(tempa)
+        else:
+            aline = map(float, line.split())
+            mesh.append(aline)
+
+    f.close()
+
+    hx = np.array(mesh[2])
+    hy = np.array(mesh[3])
+    hz = np.array(mesh[4])
+
+    x0 = mesh[1][0]
+    y0 = mesh[1][1]
+    z0 = -mesh[1][2]
+
+    mesh3D = Mesh.TensorMesh([hx, hy, hz], np.r_[x0, y0, z0])
+
+    return mesh3D
+
+def readUBCTensorModel(fileName, mesh):
+    """
+        ReadUBC 3DTensor mesh model and generate 3D Tensor mesh model in simpegTD
+
+    """
+    f = open(fileName, 'r')
+    model = np.array(map(float, f.readlines()))
+    f.close()
+    model = np.reshape(model, (mesh.nCz, mesh.nCx, mesh.nCy), order = 'F')
+    model = model[::-1,:,:]
+    model = np.transpose(model, (1, 2, 0))
+    model = Utils.mkvc(model)
+
+    return model
 
 def writeUBCTensorMesh(mesh, fileName):
     """
@@ -98,7 +149,7 @@ def writeUBCTensorMesh(mesh, fileName):
 
 def writeUBCTensorModel(mesh, model, fileName):
     """
-        Writes a model associated with a SimPEG TensorMesh 
+        Writes a model associated with a SimPEG TensorMesh
         to a UBC-GIF format model file.
 
         :param simpeg.Mesh.TensorMesh mesh: The mesh
@@ -106,15 +157,13 @@ def writeUBCTensorModel(mesh, model, fileName):
         :param str fileName: File to write to
     """
 
-
-
     # Reshape to [z,y,x]
     model3D = np.reshape(model, mesh.vnC)
     # Permute to [z,x,y]
     model3D = np.swapaxes(model3D, 1, 2)
     # Flip z to positive down
     model3D = model3D[::-1,:,:]
-    
+
     np.savetxt(fileName, mkvc(model3D))
 
 
