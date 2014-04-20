@@ -1,22 +1,44 @@
 from SimPEG import *
 from Empirical import RichardsMap
 
+
+class RichardsRx(Survey.BaseTimeRx):
+    """Richards Receiver Object"""
+
+    knownRxTypes = ['saturation','pressureHead']
+
+    def projectFields(self, u, m, mapping, mesh, timeMesh):
+
+        if self.rxType == 'saturation':
+            u = mapping.theta(u, m)
+
+        return self.getP(mesh, timeMesh) * u
+
+    def projectFieldsDeriv(self, u, m, mapping, mesh, timeMesh):
+
+        P = self.getP(mesh, timeMesh)
+        if self.rxType == 'pressureHead':
+            return P
+        elif self.rxType == 'saturation':
+            #TODO: if m is a parameter in the theta
+            #      distribution, we may need to do
+            #      some more chain rule here.
+            dT = mapping.thetaDerivU(u, m)
+            return P*dT
+
+
 class RichardsSurvey(Survey.BaseSurvey):
     """docstring for RichardsSurvey"""
 
-    P = None
+    rxList = None
 
-    def __init__(self, **kwargs):
+    def __init__(self, rxList, **kwargs):
+        self.rxList = rxList
         Survey.BaseSurvey.__init__(self, **kwargs)
 
     @property
-    def dataType(self):
-        """Choose how your data is collected, must be 'saturation' or 'pressureHead'."""
-        return getattr(self, '_dataType', 'pressureHead')
-    @dataType.setter
-    def dataType(self, value):
-        assert value in ['saturation','pressureHead'], "dataType must be 'saturation' or 'pressureHead'."
-        self._dataType = value
+    def nD(self):
+        return np.array([rx.nD for rx in self.rxList]).sum()
 
     @Utils.count
     @Utils.requires('prob')
@@ -27,7 +49,7 @@ class RichardsSurvey(Survey.BaseSurvey):
             instead of recalculating the fields (which may be expensive!).
 
             .. math::
-                d_\\text{pred} = P(u(m))
+                d_\\text{pred} = P(u(m), m)
 
             Where P is a projection of the fields onto the data space.
         """
@@ -37,27 +59,31 @@ class RichardsSurvey(Survey.BaseSurvey):
     @Utils.requires('prob')
     def projectFields(self, U, m):
 
-        u = np.concatenate(U[1:])
+        u = np.concatenate(U)
 
-        if self.dataType == 'saturation':
-            u = self.prob.model.theta(u, m)
-        return self.P*u
+        Ds = range(len(self.rxList))
+        for ii, rx in enumerate(self.rxList):
+            Ds[ii] = rx.projectFields(u, m,
+                                self.prob.mapping,
+                                self.prob.mesh,
+                                self.prob.timeMesh)
+
+        return np.concatenate(Ds)
 
     @Utils.requires('prob')
     def projectFieldsDeriv(self, U, m):
         """The Derivative with respect to the fields."""
 
-        u = np.concatenate(U[1:])
+        u = np.concatenate(U)
 
-        if self.dataType == 'pressureHead':
-            return self.P
-        elif self.dataType == 'saturation':
-            #TODO: if m is a parameter in the theta
-            #      distribution, we may need to do
-            #      some more chain rule here.
-            dT = self.mapping.thetaDerivU(u, m)
-            return self.P*dT
+        Ds = range(len(self.rxList))
+        for ii, rx in enumerate(self.rxList):
+            Ds[ii] = rx.projectFieldsDeriv(u, m,
+                                self.prob.mapping,
+                                self.prob.mesh,
+                                self.prob.timeMesh)
 
+        return sp.vstack(Ds)
 
 class RichardsProblem(Problem.BaseTimeProblem):
     """docstring for RichardsProblem"""
@@ -197,7 +223,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
 
     def Jfull(self, m, u=None):
         if u is None:
-            u = self.field(m)
+            u = self.fields(m)
 
         nn = len(u)-1
         Asubs, Adiags, Bs = range(nn), range(nn), range(nn)
@@ -217,7 +243,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
 
     def Jvec(self, m, v, u=None):
         if u is None:
-            u = self.field(m)
+            u = self.fields(m)
 
         JvC = range(len(u)-1) # Cell to hold each row of the long vector.
 
@@ -226,16 +252,13 @@ class RichardsProblem(Problem.BaseTimeProblem):
         Adiaginv = self.Solver(Adiag, **self.solverOpts)
         JvC[0] = Adiaginv.solve(B*v)
 
-        # M = @(x) tril(Adiag)\(diag(Adiag).*(triu(Adiag)\x));
-        # JvC{1} = bicgstab(Adiag,(B*v),tolbcg,500,M);
-
         for ii in range(1,len(u)-1):
             Asub, Adiag, B = self.diagsJacobian(m, u[ii], u[ii+1], self.timeSteps[ii])
             Adiaginv = self.Solver(Adiag, **self.solverOpts)
             JvC[ii] = Adiaginv.solve(B*v - Asub*JvC[ii-1])
 
         P = self.survey.projectFieldsDeriv(u, m)
-        return P * np.concatenate(JvC)
+        return P * np.concatenate([np.zeros(self.mesh.nC)] + JvC)
 
     def Jtvec(self, m, v, u=None):
         if u is None:
@@ -250,7 +273,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
         for ii in range(len(u)-1,0,-1):
             Asub, Adiag, B = self.diagsJacobian(m, u[ii-1], u[ii], self.timeSteps[ii-1])
             #select the correct part of v
-            vpart = range((ii-1)*Adiag.shape[0], (ii)*Adiag.shape[0])
+            vpart = range((ii)*Adiag.shape[0], (ii+1)*Adiag.shape[0])
             AdiaginvT = self.Solver(Adiag.T, **self.solverOpts)
             JTvC = AdiaginvT.solve(PTv[vpart] - minus)
             minus = Asub.T*JTvC  # this is now the super diagonal.

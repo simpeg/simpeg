@@ -58,72 +58,6 @@ class TestModels(unittest.TestCase):
         passed = checkDerivative(wrapper, np.random.randn(50), plotIt=False)
         self.assertTrue(passed,True)
 
-    # def test_Haverkamp_hydraulicConductivity(self):
-    #     print 'Haverkamp_hydraulicConductivity'
-    #     hav = Richards.Haverkamp()
-    #     def wrapper(x):
-    #         return hav.hydraulicConductivity(x), hav.hydraulicConductivityDeriv(x)
-    #     passed = checkDerivative(wrapper, np.random.randn(50), plotIt=False)
-    #     self.assertTrue(passed,True)
-
-    # def test_Haverkamp_hydraulicConductivity_FullKs(self):
-    #     print 'Haverkamp_hydraulicConductivity_FullKs'
-    #     n = 50
-    #     hav = Richards.Haverkamp(Ks=np.random.rand(n))
-    #     def wrapper(x):
-    #         return hav.hydraulicConductivity(x), hav.hydraulicConductivityDeriv(x)
-    #     passed = checkDerivative(wrapper, np.random.randn(n), plotIt=False)
-    #     self.assertTrue(passed,True)
-
-    # def test_VanGenuchten_moistureContent(self):
-    #     print 'VanGenuchten_moistureContent'
-    #     vanG = Richards.VanGenuchten()
-    #     def wrapper(x):
-    #         return vanG.moistureContent(x), vanG.moistureContentDeriv(x)
-    #     passed = checkDerivative(wrapper, np.random.randn(50), plotIt=False)
-    #     self.assertTrue(passed,True)
-
-    # def test_VanGenuchten_hydraulicConductivity(self):
-    #     print 'VanGenuchten_hydraulicConductivity'
-    #     hav = Richards.VanGenuchten()
-    #     def wrapper(x):
-    #         return hav.hydraulicConductivity(x), hav.hydraulicConductivityDeriv(x)
-    #     passed = checkDerivative(wrapper, np.random.randn(50), plotIt=False)
-    #     self.assertTrue(passed,True)
-
-    # def test_VanGenuchten_hydraulicConductivity_FullKs(self):
-    #     print 'VanGenuchten_hydraulicConductivity_FullKs'
-    #     n = 50
-    #     hav = Richards.VanGenuchten(Ks=np.random.rand(n))
-    #     def wrapper(x):
-    #         return hav.hydraulicConductivity(x), hav.hydraulicConductivityDeriv(x)
-    #     passed = checkDerivative(wrapper, np.random.randn(n), plotIt=False)
-    #     self.assertTrue(passed,True)
-
-    # def test_Haverkamp_moistureContent(self):
-    #     print 'Haverkamp_moistureContent'
-    #     hav = Richards.Haverkamp()
-    #     def wrapper(x):
-    #         return hav.moistureContent(x), hav.moistureContentDeriv(x)
-    #     passed = checkDerivative(wrapper, np.random.randn(50), plotIt=False)
-    #     self.assertTrue(passed,True)
-
-    # def test_Haverkamp_hydraulicConductivity(self):
-    #     print 'Haverkamp_hydraulicConductivity'
-    #     hav = Richards.Haverkamp()
-    #     def wrapper(x):
-    #         return hav.hydraulicConductivity(x), hav.hydraulicConductivityDeriv(x)
-    #     passed = checkDerivative(wrapper, np.random.randn(50), plotIt=False)
-    #     self.assertTrue(passed,True)
-
-    # def test_Haverkamp_hydraulicConductivity_FullKs(self):
-    #     print 'Haverkamp_hydraulicConductivity_FullKs'
-    #     n = 50
-    #     hav = Richards.Haverkamp(Ks=np.random.rand(n))
-    #     def wrapper(x):
-    #         return hav.hydraulicConductivity(x), hav.hydraulicConductivityDeriv(x)
-    #     passed = checkDerivative(wrapper, np.random.randn(n), plotIt=False)
-    #     self.assertTrue(passed,True)
 
 
 class RichardsTests1D(unittest.TestCase):
@@ -142,9 +76,11 @@ class RichardsTests1D(unittest.TestCase):
                                     boundaryConditions=bc, initialConditions=h,
                                     doNewton=False, method='mixed')
 
-        q = sp.csr_matrix((np.ones(3),(np.arange(3),np.array([5,10,15]))),shape=(3,M.nC))
-        P = sp.kron(sp.identity(prob.nT),q)
-        survey = Richards.RichardsSurvey(P=P)
+        locs = np.r_[5.,10,15]
+        times = prob.times[3:5]
+        rxSat = Richards.RichardsRx(locs, times, 'saturation')
+        rxPre = Richards.RichardsRx(locs, times, 'pressureHead')
+        survey = Richards.RichardsSurvey([rxSat, rxPre])
 
         prob.pair(survey)
 
@@ -157,18 +93,17 @@ class RichardsTests1D(unittest.TestCase):
     def test_Richards_getResidual_Newton(self):
         self.prob.doNewton = True
         m = self.Ks
-        passed = checkDerivative(lambda hn1: self.prob.getResidual(m, self.h0,hn1, self.prob.timeSteps[0]), self.h0, plotIt=False)
+        passed = checkDerivative(lambda hn1: self.prob.getResidual(m, self.h0, hn1, self.prob.timeSteps[0]), self.h0, plotIt=False)
         self.assertTrue(passed,True)
 
     def test_Richards_getResidual_Picard(self):
         self.prob.doNewton = False
         m = self.Ks
-        passed = checkDerivative(lambda hn1: self.prob.getResidual(m, self.h0,hn1, self.prob.timeSteps[0]), self.h0, plotIt=False, expectedOrder=1)
+        passed = checkDerivative(lambda hn1: self.prob.getResidual(m, self.h0, hn1, self.prob.timeSteps[0]), self.h0, plotIt=False, expectedOrder=1)
         self.assertTrue(passed,True)
 
-    def test_Adjoint_PressureHead(self):
-        self.prob.dataType = 'pressureHead'
-        v = np.random.rand(self.survey.P.shape[0])
+    def test_Adjoint(self):
+        v = np.random.rand(self.survey.nD)
         z = np.random.rand(self.M.nC)
         Hs = self.prob.fields(self.Ks)
         vJz = v.dot(self.prob.Jvec(self.Ks,z,u=Hs))
@@ -179,47 +114,12 @@ class RichardsTests1D(unittest.TestCase):
         print '%4.4e === %4.4e, diff=%4.4e < %4.e'%(vJz, zJv,np.abs(vJz - zJv),tol)
         self.assertTrue(passed,True)
 
-    def test_Adjoint_Saturation(self):
-        self.prob.dataType = 'saturation'
-        v = np.random.rand(self.survey.P.shape[0])
-        z = np.random.rand(self.M.nC)
-        Hs = self.prob.fields(self.Ks)
-        vJz = v.dot(self.prob.Jvec(self.Ks,z,u=Hs))
-        zJv = z.dot(self.prob.Jtvec(self.Ks,v,u=Hs))
-        tol = TOL*(10**int(np.log10(zJv)))
-        passed = np.abs(vJz - zJv) < tol
-        print 'Richards Adjoint Test - Saturation'
-        print '%4.4e === %4.4e, diff=%4.4e < %4.e'%(vJz, zJv,np.abs(vJz - zJv),tol)
+    def test_Sensitivity(self):
+        mTrue = self.Ks*np.ones(self.M.nC)
+        derChk = lambda m: [self.survey.dpred(m), lambda v: self.prob.Jvec(m, v)]
+        print 'Testing Richards Derivative'
+        passed = checkDerivative(derChk, mTrue, num=4, plotIt=False)
         self.assertTrue(passed,True)
-
-    def test_SensitivityPressureHead(self):
-        self.prob.dataType = 'pressureHead'
-        self.prob.unpair()
-        mTrue = np.ones(self.M.nC)*self.Ks
-        stdev = 0.01  # The standard deviation for the noise
-        survey = self.prob.createSyntheticSurvey(mTrue, std=stdev, P=self.survey.P)
-        opt = Optimization.InexactGaussNewton(maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6)
-        reg = Regularization.Tikhonov(self.M)
-        obj = ObjFunction.BaseObjFunction(survey, reg)
-        derChk = lambda m: [obj.dataObj(m), obj.dataObjDeriv(m)]
-        print 'Testing Richards Derivative - Pressure Head'
-        passed = checkDerivative(derChk, mTrue, num=5, plotIt=False)
-        self.assertTrue(passed,True)
-
-    def test_SensitivitySaturation(self):
-        self.prob.unpair()
-        self.prob.dataType = 'saturation'
-        mTrue = np.ones(self.M.nC)*self.Ks
-        stdev = 0.01  # The standard deviation for the noise
-        survey = self.prob.createSyntheticSurvey(mTrue, std=stdev, P=self.survey.P)
-        opt = Optimization.InexactGaussNewton(maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6)
-        reg = Regularization.Tikhonov(self.M)
-        obj = ObjFunction.BaseObjFunction(survey, reg)
-        derChk = lambda m: [obj.dataObj(m), obj.dataObjDeriv(m)]
-        print 'Testing Richards Derivative - Saturation'
-        passed = checkDerivative(derChk, mTrue, num=5, plotIt=False)
-        self.assertTrue(passed,True)
-
 
 
 # class RichardsTests2D(object):
