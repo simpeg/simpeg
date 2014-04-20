@@ -21,9 +21,6 @@ class RxFDEM(Survey.BaseRx):
     def __init__(self, locs, rxType):
         Survey.BaseRx.__init__(self, locs, rxType)
 
-        self._Ps = {}
-        self._Ps[self.projGLoc] = {}
-
     @property
     def projField(self):
         """Field Type projection (e.g. e b ...)"""
@@ -38,28 +35,6 @@ class RxFDEM(Survey.BaseRx):
     def projComp(self):
         """Component projection (real/imag)"""
         return self.knownRxTypes[self.rxType][2]
-
-    @property
-    def nD(self):
-        """Number of data in the receiver."""
-        return self.locs.shape[0]
-
-    def getP(self, mesh):
-        """
-            Returns the projection matrices as a
-            list for all components collected by
-            the receivers.
-
-            .. note::
-
-                Projection matrices are stored as a nested dict,
-                First gridLocation, then mesh.
-        """
-        gloc = self.projGLoc
-        if mesh not in self._Ps[gloc]:
-            self._Ps[gloc][mesh] = mesh.getInterpolationMat(self.locs, gloc)
-        P = self._Ps[gloc][mesh]
-        return P
 
     def projectFields(self, tx, mesh, u):
         P = self.getP(mesh)
@@ -102,15 +77,6 @@ class TxFDEM(Survey.BaseTx):
         self.freq = float(freq)
         Survey.BaseTx.__init__(self, loc, txType, rxList)
 
-    @property
-    def nD(self):
-        """Number of data"""
-        return self.vnD.sum()
-
-    @property
-    def vnD(self):
-        """Vector number of data"""
-        return np.array([rx.nD for rx in self.rxList])
 
 
 class FieldsFDEM(object):
