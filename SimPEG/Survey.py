@@ -1,4 +1,4 @@
-import Utils, numpy as np
+import Utils, numpy as np, scipy.sparse as sp
 
 
 class BaseSurvey(object):
@@ -185,7 +185,7 @@ class BaseSurvey(object):
 class BaseRx(object):
     """SimPEG Receiver Object"""
 
-    locs = None   #: Locations (nRx x 3)
+    locs = None   #: Locations (nRx x nDim)
 
     knownRxTypes = None  #: Set this to a list of strings to ensure that txType is known
 
@@ -221,13 +221,46 @@ class BaseRx(object):
 
             .. note::
 
-                Projection matrices are stored as a nested dict,
-                First gridLocation, then mesh.
+                Projection matrices are stored as a dictionary listed by meshes.
         """
         if mesh not in self._Ps:
             self._Ps[mesh] = mesh.getInterpolationMat(self.locs, self.projGLoc)
         P = self._Ps[mesh]
         return P
+
+
+class BaseTimeRx(BaseRx):
+    """SimPEG Receiver Object"""
+
+    times = None   #: Times when the receivers were active.
+
+    def __init__(self, locs, times, rxType, **kwargs):
+        self.times = times
+        BaseRx.__init__(self, locs, rxType, **kwargs)
+
+    @property
+    def nD(self):
+        """Number of data in the receiver."""
+        return self.locs.shape[0] * len(self.times)
+
+    def getP(self, mesh, timeMesh):
+        """
+            Returns the projection matrices as a
+            list for all components collected by
+            the receivers.
+
+            .. note::
+
+                Projection matrices are stored as a dictionary (mesh, timeMesh)
+        """
+        if (mesh, timeMesh) not in self._Ps:
+            Ps = mesh.getInterpolationMat(self.locs, self.projGLoc)
+            Pt = timeMesh.getInterpolationMat(self.times, 'N')
+            self._Ps[(mesh, timeMesh)] = sp.kron(Pt, Ps)
+
+        P = self._Ps[(mesh, timeMesh)]
+        return P
+
 
 
 class BaseTx(object):
