@@ -59,10 +59,9 @@ class RichardsSurvey(Survey.BaseSurvey):
             return self.P*dT
 
 
-class RichardsProblem(Problem.BaseProblem):
+class RichardsProblem(Problem.BaseTimeProblem):
     """docstring for RichardsProblem"""
 
-    timeEnd  = None
     boundaryConditions = None
     initialConditions  = None
 
@@ -73,20 +72,7 @@ class RichardsProblem(Problem.BaseProblem):
     solverOpts = {}
 
     def __init__(self, mesh, mapping=None, **kwargs):
-        Problem.BaseProblem.__init__(self, mesh, mapping=mapping, **kwargs)
-
-    @property
-    def timeStep(self):
-        """The time between steps."""
-        return getattr(self, '_timeStep', None)
-    @timeStep.setter
-    def timeStep(self, value):
-        self._timeStep = float(value) # Because integers suck.
-
-    @property
-    def numIts(self):
-        """The number of iterations in the time domain problem."""
-        return int(self.timeEnd/self.timeStep)
+        Problem.BaseTimeProblem.__init__(self, mesh, mapping=mapping, **kwargs)
 
     @property
     def method(self):
@@ -112,13 +98,13 @@ class RichardsProblem(Problem.BaseProblem):
         return self._rootFinder
 
     def fields(self, m):
-        u = range(self.numIts+1)
+        u = range(self.nT+1)
         u[0] = self.initialConditions
-        for ii in range(self.numIts):
-            u[ii+1] = self.rootFinder.root(lambda hn1m, return_g=True: self.getResidual(m, u[ii], hn1m, return_g=return_g), u[ii])
+        for ii, dt in enumerate(self.timeSteps):
+            u[ii+1] = self.rootFinder.root(lambda hn1m, return_g=True: self.getResidual(m, u[ii], hn1m, dt, return_g=return_g), u[ii])
         return u
 
-    def diagsJacobian(self, m, hn, hn1):
+    def diagsJacobian(self, m, hn, hn1, dt):
 
         DIV  = self.mesh.faceDiv
         GRAD = self.mesh.cellGrad
@@ -132,7 +118,6 @@ class RichardsProblem(Problem.BaseProblem):
             Dz = sp.hstack((Utils.spzeros(self.mesh.nC,self.mesh.vnF[0]+self.mesh.vnF[1]), self.mesh.faceDivz),format='csr')
 
         bc   = self.boundaryConditions
-        dt   = self.timeStep
 
         dT   = self.mapping.thetaDerivU(hn, m)
         dT1  = self.mapping.thetaDerivU(hn1, m)
@@ -170,7 +155,7 @@ class RichardsProblem(Problem.BaseProblem):
 
         return Asub, Adiag, B
 
-    def getResidual(self, m, hn, h, return_g=True):
+    def getResidual(self, m, hn, h, dt, return_g=True):
         """
             Where h is the proposed value for the next time iterate (h_{n+1})
         """
@@ -186,7 +171,6 @@ class RichardsProblem(Problem.BaseProblem):
             Dz = sp.hstack((Utils.spzeros(self.mesh.nC,self.mesh.vnF[0]+self.mesh.vnF[1]), self.mesh.faceDivz),format='csr')
 
         bc = self.boundaryConditions
-        dt = self.timeStep
 
         T  = self.mapping.theta(h, m)
         dT = self.mapping.thetaDerivU(h, m)
@@ -238,7 +222,7 @@ class RichardsProblem(Problem.BaseProblem):
         JvC = range(len(u)-1) # Cell to hold each row of the long vector.
 
         # This is done via forward substitution.
-        temp, Adiag, B = self.diagsJacobian(m, u[0],u[1])
+        temp, Adiag, B = self.diagsJacobian(m, u[0], u[1], self.timeSteps[0])
         Adiaginv = self.Solver(Adiag, **self.solverOpts)
         JvC[0] = Adiaginv.solve(B*v)
 
@@ -246,7 +230,7 @@ class RichardsProblem(Problem.BaseProblem):
         # JvC{1} = bicgstab(Adiag,(B*v),tolbcg,500,M);
 
         for ii in range(1,len(u)-1):
-            Asub, Adiag, B = self.diagsJacobian(m, u[ii],u[ii+1])
+            Asub, Adiag, B = self.diagsJacobian(m, u[ii], u[ii+1], self.timeSteps[ii])
             Adiaginv = self.Solver(Adiag, **self.solverOpts)
             JvC[ii] = Adiaginv.solve(B*v - Asub*JvC[ii-1])
 
@@ -264,7 +248,7 @@ class RichardsProblem(Problem.BaseProblem):
         minus = 0
         BJtv = 0
         for ii in range(len(u)-1,0,-1):
-            Asub, Adiag, B = self.diagsJacobian(m, u[ii-1], u[ii])
+            Asub, Adiag, B = self.diagsJacobian(m, u[ii-1], u[ii], self.timeSteps[ii-1])
             #select the correct part of v
             vpart = range((ii-1)*Adiag.shape[0], (ii)*Adiag.shape[0])
             AdiaginvT = self.Solver(Adiag.T, **self.solverOpts)

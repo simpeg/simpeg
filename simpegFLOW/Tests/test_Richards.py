@@ -138,12 +138,12 @@ class RichardsTests1D(unittest.TestCase):
         bc = np.array([-61.5,-20.7])
         h = np.zeros(M.nC) + bc[0]
 
-        prob = Richards.RichardsProblem(M, mapping=E, timeStep=60, timeEnd=180,
+        prob = Richards.RichardsProblem(M, mapping=E, timeSteps=[(40,3),(60,3)],
                                     boundaryConditions=bc, initialConditions=h,
                                     doNewton=False, method='mixed')
 
         q = sp.csr_matrix((np.ones(3),(np.arange(3),np.array([5,10,15]))),shape=(3,M.nC))
-        P = sp.kron(sp.identity(prob.numIts),q)
+        P = sp.kron(sp.identity(prob.nT),q)
         survey = Richards.RichardsSurvey(P=P)
 
         prob.pair(survey)
@@ -157,13 +157,13 @@ class RichardsTests1D(unittest.TestCase):
     def test_Richards_getResidual_Newton(self):
         self.prob.doNewton = True
         m = self.Ks
-        passed = checkDerivative(lambda hn1: self.prob.getResidual(m, self.h0,hn1), self.h0, plotIt=False)
+        passed = checkDerivative(lambda hn1: self.prob.getResidual(m, self.h0,hn1, self.prob.timeSteps[0]), self.h0, plotIt=False)
         self.assertTrue(passed,True)
 
     def test_Richards_getResidual_Picard(self):
         self.prob.doNewton = False
         m = self.Ks
-        passed = checkDerivative(lambda hn1: self.prob.getResidual(m, self.h0,hn1), self.h0, plotIt=False, expectedOrder=1)
+        passed = checkDerivative(lambda hn1: self.prob.getResidual(m, self.h0,hn1, self.prob.timeSteps[0]), self.h0, plotIt=False, expectedOrder=1)
         self.assertTrue(passed,True)
 
     def test_Adjoint_PressureHead(self):
