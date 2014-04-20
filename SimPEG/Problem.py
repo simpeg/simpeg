@@ -157,8 +157,7 @@ class BaseTimeProblem(BaseProblem):
             prob.timeSteps = np.r_[1e-6,1e-6,1e-6,1e-5,1e-4,1e-4]
 
         """
-        assert hasattr(self, '_timeSteps'), 'The timeSteps have not yet been set.'
-        return self._timeSteps
+        return getattr(self, '_timeSteps', None)
 
     @timeSteps.setter
     def timeSteps(self, value):
