@@ -189,9 +189,12 @@ class BaseRx(object):
 
     knownRxTypes = None  #: Set this to a list of strings to ensure that txType is known
 
+    projGLoc = 'CC'  #: Projection grid location, default is CC
+
     def __init__(self, locs, rxType, **kwargs):
         self.locs = locs
         self.rxType = rxType
+        self._Ps = {}
         Utils.setKwargs(self, **kwargs)
 
     @property
@@ -207,7 +210,24 @@ class BaseRx(object):
 
     @property
     def nD(self):
+        """Number of data in the receiver."""
         return self.locs.shape[0]
+
+    def getP(self, mesh):
+        """
+            Returns the projection matrices as a
+            list for all components collected by
+            the receivers.
+
+            .. note::
+
+                Projection matrices are stored as a nested dict,
+                First gridLocation, then mesh.
+        """
+        if mesh not in self._Ps:
+            self._Ps[mesh] = mesh.getInterpolationMat(self.locs, self.projGLoc)
+        P = self._Ps[mesh]
+        return P
 
 
 class BaseTx(object):
@@ -241,6 +261,16 @@ class BaseTx(object):
         if known is not None:
             assert value in known, "txType must be in ['%s']" % ("', '".join(known))
         self._txType = value
+
+    @property
+    def nD(self):
+        """Number of data"""
+        return self.vnD.sum()
+
+    @property
+    def vnD(self):
+        """Vector number of data"""
+        return np.array([rx.nD for rx in self.rxList])
 
 if __name__ == '__main__':
     d = BaseData()
