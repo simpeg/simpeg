@@ -7,18 +7,20 @@ import warnings
 DEFAULTS = {'direct':'scipy', 'iter':'scipy', 'triangular':'fortran', 'diagonal':'python'}
 OPTIONS = {'direct':['scipy'], 'iter':['scipy'], 'triangular':['python'], 'diagonal':['python']}
 
+HELP = []
+
 try:
     import Utils.TriSolve as TriSolve
     OPTIONS['triangular'].append('fortran')
 except Exception, e:
-    print 'Warning: Python backend is being used for solver. Run setup.py from the command line.'
+    HELP += ['Warning: Python backend is being used for solver. Run setup.py from the command line.']
     DEFAULTS['triangular'] = 'python'
 
 try:
     import mumps
     OPTIONS['direct'].append('mumps')
 except Exception, e:
-    print 'Warning: mumps solver not available.'
+    HELP += ['Warning: mumps solver not available.']
 
 class Solver(object):
     """

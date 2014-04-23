@@ -1,14 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
+from codeutils import isScalar
 
-
-def isScalar(f):
-    scalarTypes = [float, int, long, np.float_, np.int_]
-    if type(f) in scalarTypes:
-        return True
-    elif type(f) == np.ndarray and f.size == 1 and type(f[0]) in scalarTypes:
-        return True
-    return False
 
 def mkvc(x, numDims=1):
     """Creates a vector with the number of dimension specified

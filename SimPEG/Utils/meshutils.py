@@ -1,6 +1,7 @@
 import numpy as np
 from scipy import sparse as sp
 from matutils import mkvc, ndgrid, sub2ind, sdiag
+from codeutils import asArray_N_x_Dim
 
 def exampleLrmGrid(nC, exType):
     assert type(nC) == list, "nC must be a list containing the number of nodes"
@@ -52,25 +53,23 @@ def meshTensors(*args):
 
     return list(tensors) if len(tensors) > 1 else tensors[0]
 
-def points2nodes(mesh, pts):
+def closestPoints(mesh, pts, gridLoc='CC'):
     """
-        Move a list of the nearest nodes to a set of points
+        Move a list of points to the closest points on a grid.
 
-        :param simpeg.Mesh.TensorMesh mesh: The mesh
+        :param simpeg.Mesh.BaseMesh mesh: The mesh
         :param numpy.ndarray pts: Points to move
+        :param string gridLoc: ['CC', 'N', 'Fx', 'Fy', 'Fz', 'Ex', 'Ex', 'Ey', 'Ez']
         :rtype: numpy.ndarray
         :return: nodeInds
     """
 
-    pts = np.atleast_2d(pts)
-
-    assert mesh._meshType in ['TENSOR', 'CYL']
-    assert pts.shape[1] == mesh.dim
-
+    pts = asArray_N_x_Dim(pts, mesh.dim)
+    grid = getattr(mesh, 'grid' + gridLoc)
     nodeInds = np.empty(pts.shape[0], dtype=int)
 
     for i, pt in enumerate(pts):
-        nodeInds[i] = ((np.tile(pt, (mesh.gridN.shape[0],1)) - mesh.gridN)**2).sum(axis=1).argmin()
+        nodeInds[i] = ((np.tile(pt, (grid.shape[0],1)) - grid)**2).sum(axis=1).argmin()
 
     return nodeInds
 

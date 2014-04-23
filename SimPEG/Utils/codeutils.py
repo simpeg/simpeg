@@ -1,0 +1,199 @@
+import types
+import time
+import numpy as np
+from functools import wraps
+
+
+class SimPEGMetaClass(type):
+    def __new__(cls, name, bases, attrs):
+        return super(SimPEGMetaClass, cls).__new__(cls, name, bases, attrs)
+
+
+def hook(obj, method, name=None, overwrite=False, silent=False):
+    """
+        This dynamically binds a method to the instance of the class.
+
+        If name is None, the name of the method is used.
+    """
+    if name is None:
+        name = method.__name__
+        if name == '<lambda>':
+            raise Exception('Must provide name to hook lambda functions.')
+    if not hasattr(obj,name) or overwrite:
+        setattr(obj, name, types.MethodType( method, obj ))
+        if getattr(obj,'debug',False):
+            print 'Method '+name+' was added to class.'
+    elif not silent or getattr(obj,'debug',False):
+        print 'Method '+name+' was not overwritten.'
+
+
+def setKwargs(obj, **kwargs):
+    """Sets key word arguments (kwargs) that are present in the object, throw an error if they don't exist."""
+    for attr in kwargs:
+        if hasattr(obj, attr):
+            setattr(obj, attr, kwargs[attr])
+        else:
+            raise Exception('%s attr is not recognized' % attr)
+
+    hook(obj,hook, silent=True)
+    hook(obj,setKwargs, silent=True)
+
+def printTitles(obj, printers, name='Print Titles', pad=''):
+    titles = ''
+    widths = 0
+    for printer in printers:
+        titles += ('{:^%i}'%printer['width']).format(printer['title']) + ''
+        widths += printer['width']
+    print pad + "{0} {1} {0}".format('='*((widths-1-len(name))/2), name)
+    print pad + titles
+    print pad + "%s" % '-'*widths
+
+def printLine(obj, printers, pad=''):
+    values = ''
+    for printer in printers:
+        values += ('{:^%i}'%printer['width']).format(printer['format'] % printer['value'](obj))
+    print pad + values
+
+def checkStoppers(obj, stoppers):
+    # check stopping rules
+    optimal = []
+    critical = []
+    for stopper in stoppers:
+        l = stopper['left'](obj)
+        r = stopper['right'](obj)
+        if stopper['stopType'] == 'optimal':
+            optimal.append(l <= r)
+        if stopper['stopType'] == 'critical':
+            critical.append(l <= r)
+
+    if obj.debug: print 'checkStoppers.optimal: ', optimal
+    if obj.debug: print 'checkStoppers.critical: ', critical
+
+    return (len(optimal)>0 and all(optimal)) | (len(critical)>0 and any(critical))
+
+def printStoppers(obj, stoppers, pad='', stop='STOP!', done='DONE!'):
+    print pad + "%s%s%s" % ('-'*25,stop,'-'*25)
+    for stopper in stoppers:
+        l = stopper['left'](obj)
+        r = stopper['right'](obj)
+        print pad + stopper['str'] % (l<=r,l,r)
+    print pad + "%s%s%s" % ('-'*25,done,'-'*25)
+
+def callHooks(match, mainFirst=False):
+    """
+    Use this to wrap a funciton::
+
+        @callHooks('doEndIteration')
+        def doEndIteration(self):
+            pass
+
+    This will call everything named _doEndIteration* at the beginning of the function call.
+    By default the master method (doEndIteration) is run after all of the sub methods (_doEndIteration*).
+    This can be reversed by adding the mainFirst=True kwarg.
+    """
+    def callHooksWrap(f):
+        @wraps(f)
+        def wrapper(self,*args,**kwargs):
+
+            if not mainFirst:
+                for method in [posible for posible in dir(self) if ('_'+match) in posible]:
+                    if getattr(self,'debug',False): print (match+' is calling self.'+method)
+                    getattr(self,method)(*args, **kwargs)
+
+                return f(self,*args,**kwargs)
+            else:
+                out = f(self,*args,**kwargs)
+
+                for method in [posible for posible in dir(self) if ('_'+match) in posible]:
+                    if getattr(self,'debug',False): print (match+' is calling self.'+method)
+                    getattr(self,method)(*args, **kwargs)
+
+                return out
+
+
+        extra = """
+            If you have things that also need to run in the method %s, you can create a method::
+
+                def _%s*(self, ... ):
+                    pass
+
+            Where the * can be any string. If present, _%s* will be called at the start of the default %s call.
+            You may also completely overwrite this function.
+        """ % (match, match, match, match)
+        doc = wrapper.__doc__
+        wrapper.__doc__ = ('' if doc is None else doc) + extra
+        return wrapper
+    return callHooksWrap
+
+def dependentProperty(name, value, children, doc):
+    def fget(self): return getattr(self,name,value)
+    def fset(self, val):
+        if isScalar(val) and getattr(self,name,value) == val:
+            return # it is the same!
+        for child in children:
+            if hasattr(self, child):
+                delattr(self, child)
+        setattr(self, name, val)
+    return property(fget=fget, fset=fset, doc=doc)
+
+def isScalar(f):
+    scalarTypes = [float, int, long, np.float_, np.int_]
+    if type(f) in scalarTypes:
+        return True
+    elif type(f) == np.ndarray and f.size == 1 and type(f[0]) in scalarTypes:
+        return True
+    return False
+
+def asArray_N_x_Dim(pts, dim):
+        if type(pts) == list:
+            pts = np.array(pts)
+        assert type(pts) == np.ndarray, "pts must be a numpy array"
+
+        if dim > 1:
+            pts = np.atleast_2d(pts)
+        elif len(pts.shape) == 1:
+            pts = pts[:,np.newaxis]
+
+        assert pts.shape[1] == dim, "pts must be a column vector of shape (nPts, %d) not (%d, %d)" % ((dim,)+pts.shape)
+
+        return pts
+
+def requires(var):
+    """
+        Use this to wrap a funciton::
+
+            @requires('prob')
+            def dpred(self):
+                pass
+
+        This wrapper will ensure that a problem has been bound to the data.
+        If a problem is not bound an Exception will be raised, and an nice error message printed.
+    """
+    def requiresVar(f):
+        if var is 'prob':
+            extra = """
+
+        .. note::
+
+            To use survey.%s(), SimPEG requires that a problem be bound to the survey.
+            If a problem has not been bound, an Exception will be raised.
+            To bind a problem to the Data object::
+
+                survey.pair(myProblem)
+
+            """ % f.__name__
+        else:
+            extra = """
+                To use *%s* method, SimPEG requires that the %s be specified.
+            """ % (f.__name__, var)
+        @wraps(f)
+        def requiresVarWrapper(self,*args,**kwargs):
+            if getattr(self, var, None) is None:
+                raise Exception(extra)
+            return f(self,*args,**kwargs)
+
+        doc = requiresVarWrapper.__doc__
+        requiresVarWrapper.__doc__ = ('' if doc is None else doc) + extra
+
+        return requiresVarWrapper
+    return requiresVar
