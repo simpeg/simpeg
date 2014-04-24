@@ -1,9 +1,10 @@
 from SimPEG import Solver
-from SimPEG.Problem import BaseProblem
+from SimPEG.Problem import BaseTimeProblem
 from simpegEM.Utils import Sources
 from FieldsTDEM import FieldsTDEM
 from scipy.constants import mu_0
 from SimPEG.Utils import sdiag, mkvc
+from SimPEG import Utils, Mesh
 import numpy as np
 
 
@@ -37,63 +38,18 @@ class MixinInitialFieldCalc(object):
             raise Exception('Unknown mesh for VMD')
 
         # Initialize field object
-        F = FieldsTDEM(self.mesh, 1, self.times.size, store=self.storeTheseFields)
+        F = FieldsTDEM(self.mesh, 1, self.times[1:].size, store=self.storeTheseFields)
 
         # Set initial B
         F.b0 = self.mesh.edgeCurl*MVP
 
         return F
 
-class MixinTimeStuff(object):
-    """docstring for MixinTimeStuff"""
 
-    def dt():
-        doc = "Size of time steps"
-        def fget(self):
-            return self._dt
-        def fdel(self):
-            del self._dt
-        return locals()
-    dt = property(**dt())
-
-    def nsteps():
-        doc = "Number of steps to take"
-        def fget(self):
-            return self._nsteps
-        def fdel(self):
-            del self._nsteps
-        return locals()
-    nsteps = property(**nsteps())
-
-    def times():
-        doc = "Modeling times"
-        def fget(self):
-            t = np.r_[1:self.nsteps[0]+1]*self.dt[0]
-            for i in range(1,self.dt.size):
-                t = np.r_[t, np.r_[1:self.nsteps[i]+1]*self.dt[i]+t[-1]]
-            return t
-        return locals()
-    times = property(**times())
-
-    def getDt(self, tInd):
-        return np.concatenate([self.dt[i].repeat(self.nsteps[i]) for i in range(self.dt.size)])[tInd]
-
-    def setTimes(self, dt, nsteps):
-        dt = np.array(dt)
-        nsteps = np.array(nsteps)
-        assert dt.size==nsteps.size, "dt, nsteps must be same length"
-        self._dt = dt
-        self._nsteps = nsteps
-
-    @property
-    def nTimes(self):
-        return self.times.size
-
-
-class ProblemBaseTDEM(MixinTimeStuff, MixinInitialFieldCalc, BaseProblem):
+class ProblemBaseTDEM(MixinInitialFieldCalc, BaseTimeProblem):
     """docstring for ProblemTDEM1D"""
     def __init__(self, mesh, mapping=None, **kwargs):
-        BaseProblem.__init__(self, mesh, mapping=mapping, **kwargs)
+        BaseTimeProblem.__init__(self, mesh, mapping=mapping, **kwargs)
 
 
     ####################################################
@@ -151,11 +107,11 @@ class ProblemBaseTDEM(MixinTimeStuff, MixinInitialFieldCalc, BaseProblem):
 
     def forward(self, m, RHS, CalcFields, F=None):
         if F is None:
-            F = FieldsTDEM(self.mesh, self.survey.nTx, self.nTimes, store=self.storeTheseFields)
+            F = FieldsTDEM(self.mesh, self.survey.nTx, self.nT, store=self.storeTheseFields)
 
         dtFact = None
-        for tInd, t in enumerate(self.times):
-            dt = self.getDt(tInd)
+        for tInd, t in enumerate(self.times[1:]):
+            dt = self.timeSteps[tInd]
             if dt!=dtFact:
                 dtFact = dt
                 A = self.getA(tInd)
@@ -172,11 +128,11 @@ class ProblemBaseTDEM(MixinTimeStuff, MixinInitialFieldCalc, BaseProblem):
 
     def adjoint(self, m, RHS, CalcFields, F=None):
         if F is None:
-            F = FieldsTDEM(self.mesh, self.survey.nTx, self.nTimes, store=self.storeTheseFields)
+            F = FieldsTDEM(self.mesh, self.survey.nTx, self.nT, store=self.storeTheseFields)
 
         dtFact = None
-        for tInd, t in reversed(list(enumerate(self.times))):
-            dt = self.getDt(tInd)
+        for tInd, t in reversed(list(enumerate(self.times[1:]))):
+            dt = self.timeSteps[tInd]
             if dt!=dtFact:
                 dtFact = dt
                 A = self.getA(tInd)

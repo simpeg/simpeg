@@ -18,9 +18,9 @@ class FieldsTDEM(object):
     j = None #: Current density
     h = None #: Magnetic field
 
-    def __init__(self, mesh, nTx, nTimes, store='b'):
+    def __init__(self, mesh, nTx, nT, store='b'):
 
-        self.nTimes = nTimes #: Number of times
+        self.nT = nT #: Number of times
         self.nTx = nTx #: Number of transmitters
         self.mesh = mesh
 
@@ -30,7 +30,7 @@ class FieldsTDEM(object):
 
     def fieldVec(self):
         u = np.ndarray((0, self.nTx))
-        for i in range(self.nTimes):
+        for i in range(self.nT):
             u = np.r_[u, self.get_b(i), self.get_e(i)]
         if self.nTx == 1:
             u = u.flatten()
@@ -58,7 +58,7 @@ class FieldsTDEM(object):
 
     def set_b(self, b, ind):
         if self.b is None:
-            self.b = np.zeros((self.nTimes, np.sum(self.mesh.nF), self.nTx))
+            self.b = np.zeros((self.nT, np.sum(self.mesh.nF), self.nTx))
             self.b[:] = np.nan
         if len(b.shape) == 1:
             b = b[:, np.newaxis]
@@ -66,7 +66,7 @@ class FieldsTDEM(object):
 
     def set_e(self, e, ind):
         if self.e is None:
-            self.e = np.zeros((self.nTimes, np.sum(self.mesh.nE), self.nTx))
+            self.e = np.zeros((self.nT, np.sum(self.mesh.nE), self.nTx))
             self.e[:] = np.nan
         if len(e.shape) == 1:
             e = e[:, np.newaxis]

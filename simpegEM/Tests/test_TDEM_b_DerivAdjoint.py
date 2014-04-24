@@ -29,7 +29,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         self.dat = EM.TDEM.SurveyTDEM1D(**opts)
 
         self.prb = EM.TDEM.ProblemTDEM_b(mesh, mapping=mapping)
-        self.prb.setTimes([1e-5, 5e-5, 2.5e-4], [10, 10, 10])
+        self.prb.timeSteps = [(1e-05, 10), (5e-05, 10), (0.00025, 10)]
 
         self.sigma = np.ones(mesh.nCz)*1e-8
         self.sigma[mesh.vectorCCz<0] = 1e-1
@@ -50,16 +50,16 @@ class TDEM_bDerivTests(unittest.TestCase):
         Ahu = prb.AhVec(sigma, u)
 
         V1 = Ahu.get_b(0)
-        V2 = 1./prb.getDt(0)*prb.MfMui*u.get_b(-1)
+        V2 = 1./prb.timeSteps[0]*prb.MfMui*u.get_b(-1)
         # print np.linalg.norm(V1-V2), np.linalg.norm(V2), np.linalg.norm(V1-V2)/np.linalg.norm(V2)
         # self.assertTrue(np.linalg.norm(V1-V2)/np.linalg.norm(V2) < 1.e-6)
 
         V1 = Ahu.get_e(0)
         self.assertTrue(np.linalg.norm(V1) < 1.e-6)
 
-        for i in range(1,u.nTimes):
+        for i in range(1,u.nT):
 
-            dt = prb.getDt(i)
+            dt = prb.timeSteps[i]
 
             V1 = Ahu.get_b(i)
             V2 = 1/dt*prb.MfMui*u.get_b(i-1)
@@ -72,11 +72,11 @@ class TDEM_bDerivTests(unittest.TestCase):
     def test_AhVecVSMat_OneTS(self):
 
         prb = self.prb
-        prb.setTimes([1e-5], [1])
+        prb.timeSteps = [(1e-05, 1)]
         sigma = self.sigma
         prb.makeMassMatrices(sigma)
 
-        dt = prb.getDt(0)
+        dt = prb.timeSteps[0]
         a11 = 1/dt*prb.MfMui*sp.eye(prb.mesh.nF)
         a12 = prb.MfMui*prb.mesh.edgeCurl
         a21 = prb.mesh.edgeCurl.T*prb.MfMui
@@ -92,12 +92,12 @@ class TDEM_bDerivTests(unittest.TestCase):
     def test_solveAhVSMat_OneTS(self):
         prb = self.prb
 
-        prb.setTimes([1e-5], [1])
+        prb.timeSteps = [(1e-05, 1)]
 
         sigma = self.sigma
         prb.makeMassMatrices(sigma)
 
-        dt = prb.getDt(0)
+        dt = prb.timeSteps[0]
         a11 = 1/dt*prb.MfMui*sp.eye(prb.mesh.nF)
         a12 = prb.MfMui*prb.mesh.edgeCurl
         a21 = prb.mesh.edgeCurl.T*prb.MfMui
@@ -120,8 +120,8 @@ class TDEM_bDerivTests(unittest.TestCase):
         sigma = self.sigma
         self.prb.makeMassMatrices(sigma)
 
-        f = EM.TDEM.FieldsTDEM(prb.mesh, 1, prb.times.size, 'b')
-        for i in range(f.nTimes):
+        f = EM.TDEM.FieldsTDEM(prb.mesh, 1, prb.nT, 'b')
+        for i in range(f.nT):
             f.set_b(np.zeros((mesh.nF, 1)), i)
             f.set_e(np.random.rand(mesh.nE, 1), i)
 
@@ -152,7 +152,7 @@ class TDEM_bDerivTests(unittest.TestCase):
     def test_Deriv_dUdM(self):
 
         prb = self.prb
-        prb.setTimes([1e-5, 1e-4, 1e-3], [10, 10, 10])
+        prb.timeSteps = [(1e-05, 10), (0.0001, 10), (0.001, 10)]
         mesh = self.mesh
         sigma = self.sigma
 
@@ -168,7 +168,7 @@ class TDEM_bDerivTests(unittest.TestCase):
     def test_Deriv_J(self):
 
         prb = self.prb
-        prb.setTimes([1e-5, 1e-4, 1e-3], [10, 10, 10])
+        prb.timeSteps = [(1e-05, 10), (0.0001, 10), (0.001, 10)]
         mesh = self.mesh
         sigma = self.sigma
 
@@ -188,11 +188,11 @@ class TDEM_bDerivTests(unittest.TestCase):
         mesh = self.mesh
 
         # Generate random fields and data
-        f = EM.TDEM.FieldsTDEM(prb.mesh, 1, prb.times.size, 'b')
-        for i in range(f.nTimes):
+        f = EM.TDEM.FieldsTDEM(prb.mesh, 1, prb.nT, 'b')
+        for i in range(f.nT):
             f.set_b(np.random.rand(mesh.nF, 1), i)
             f.set_e(np.random.rand(mesh.nE, 1), i)
-        d = np.random.rand(dat.prob.nTimes, dat.nTx)
+        d = np.random.rand(dat.prob.nT, dat.nTx)
 
         # Check that d.T*Q*f = f.T*Q.T*d
         V1 = d.T.dot(dat.projectFields(f))
@@ -205,13 +205,13 @@ class TDEM_bDerivTests(unittest.TestCase):
         mesh = self.mesh
         sigma = self.sigma
 
-        f1 = EM.TDEM.FieldsTDEM(prb.mesh, 1, prb.nTimes, 'b')
-        for i in range(f1.nTimes):
+        f1 = EM.TDEM.FieldsTDEM(prb.mesh, 1, prb.nT, 'b')
+        for i in range(f1.nT):
             f1.set_b(np.random.rand(mesh.nF, 1), i)
             f1.set_e(np.random.rand(mesh.nE, 1), i)
 
-        f2 = EM.TDEM.FieldsTDEM(prb.mesh, 1, prb.nTimes, 'b')
-        for i in range(f2.nTimes):
+        f2 = EM.TDEM.FieldsTDEM(prb.mesh, 1, prb.nT, 'b')
+        for i in range(f2.nT):
             f2.set_b(np.random.rand(mesh.nF, 1), i)
             f2.set_e(np.random.rand(mesh.nE, 1), i)
 
@@ -224,8 +224,8 @@ class TDEM_bDerivTests(unittest.TestCase):
         mesh = self.mesh
         sigma = np.random.rand(prb.mapping.nP)
 
-        f1 = EM.TDEM.FieldsTDEM(mesh, 1, prb.nTimes, 'b')
-        for i in range(f1.nTimes):
+        f1 = EM.TDEM.FieldsTDEM(mesh, 1, prb.nT, 'b')
+        for i in range(f1.nT):
             f1.set_b(np.random.rand(mesh.nF, 1), i)
             f1.set_e(np.random.rand(mesh.nE, 1), i)
 
@@ -241,13 +241,13 @@ class TDEM_bDerivTests(unittest.TestCase):
         mesh = self.mesh
         sigma = self.sigma
 
-        f1 = EM.TDEM.FieldsTDEM(prb.mesh, 1, prb.nTimes, 'b')
-        for i in range(f1.nTimes):
+        f1 = EM.TDEM.FieldsTDEM(prb.mesh, 1, prb.nT, 'b')
+        for i in range(f1.nT):
             f1.set_b(np.random.rand(mesh.nF, 1), i)
             f1.set_e(np.random.rand(mesh.nE, 1), i)
 
-        f2 = EM.TDEM.FieldsTDEM(prb.mesh, 1, prb.nTimes, 'b')
-        for i in range(f2.nTimes):
+        f2 = EM.TDEM.FieldsTDEM(prb.mesh, 1, prb.nT, 'b')
+        for i in range(f2.nT):
             f2.set_b(np.random.rand(mesh.nF, 1), i)
             f2.set_e(np.random.rand(mesh.nE, 1), i)
 
@@ -262,13 +262,13 @@ class TDEM_bDerivTests(unittest.TestCase):
         m = np.random.rand(prb.mapping.nP)
         sigma = np.random.rand(prb.mapping.nP)
 
-        u = EM.TDEM.FieldsTDEM(prb.mesh, 1, prb.nTimes, 'b')
-        for i in range(u.nTimes):
+        u = EM.TDEM.FieldsTDEM(prb.mesh, 1, prb.nT, 'b')
+        for i in range(u.nT):
             u.set_b(np.random.rand(mesh.nF, 1), i)
             u.set_e(np.random.rand(mesh.nE, 1), i)
 
-        v = EM.TDEM.FieldsTDEM(prb.mesh, 1, prb.nTimes, 'b')
-        for i in range(v.nTimes):
+        v = EM.TDEM.FieldsTDEM(prb.mesh, 1, prb.nT, 'b')
+        for i in range(v.nT):
             v.set_b(np.random.rand(mesh.nF, 1), i)
             v.set_e(np.random.rand(mesh.nE, 1), i)
 
@@ -282,7 +282,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         sigma = self.sigma
 
         m = np.random.rand(prb.mapping.nP)
-        d = np.random.rand(prb.nTimes)
+        d = np.random.rand(prb.nT)
 
         V1 = d.dot(prb.Jvec(sigma, m))
         V2 = m.dot(prb.Jtvec(sigma, d))

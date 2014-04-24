@@ -29,11 +29,11 @@ class SurveyTDEM1D(BaseSurvey):
 
     def projectFieldsAdjoint(self, d):
         # TODO: make the following self.nTimeCh
-        d = d.reshape((self.prob.nTimes, self.nTx), order='F')
+        d = d.reshape((self.prob.nT, self.nTx), order='F')
         #TODO: *Qtime.T need to multiply by a time projection. (outside for loop??)
         ii = 0
-        F = FieldsTDEM(self.prob.mesh, self.nTx, self.prob.nTimes, 'b')
-        for ii in range(self.prob.nTimes):
+        F = FieldsTDEM(self.prob.mesh, self.nTx, self.prob.nT, 'b')
+        for ii in range(self.prob.nT):
             b = self.Qrx.T*d[ii,:]
             F.set_b(b, ii)
             F.set_e(np.zeros((self.prob.mesh.nE,self.nTx)), ii)

@@ -39,23 +39,23 @@ def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=[1e-5,
     # except ImportError, e:
     #     pass
 
-    prb.setTimes([1e-6, 5e-6, 1e-5, 5e-5, 1e-4, 5e-4], [40, 40, 40, 40, 40, 40])
+    prb.timeSteps = [(1e-06, 40), (5e-06, 40), (1e-05, 40), (5e-05, 40), (0.0001, 40), (0.0005, 40)]
 
     sigma = np.ones(mesh.nCz)*1e-8
     sigma[active] = sig_half
     sigma = np.log(sigma[active])
     prb.pair(survey)
 
-    bz_ana = mu_0*EM.Utils.Ana.hzAnalyticDipoleT(survey.rxLoc[0], prb.times, sig_half)
+    bz_ana = mu_0*EM.Utils.Ana.hzAnalyticDipoleT(survey.rxLoc[0]+1e-3, prb.times[1:], sig_half)
 
     bz_calc = survey.dpred(sigma)
-    ind = np.logical_and(prb.times > bounds[0],prb.times < bounds[1])
+    ind = np.logical_and(prb.times[1:] > bounds[0],prb.times[1:] < bounds[1])
     log10diff = np.linalg.norm(np.log10(np.abs(bz_calc[ind])) - np.log10(np.abs(bz_ana[ind])))/np.linalg.norm(np.log10(np.abs(bz_ana[ind])))
     print 'Difference: ', log10diff
 
     if showIt == True:
-        plt.loglog(prb.times[bz_calc>0], bz_calc[bz_calc>0], 'r', prb.times[bz_calc<0], -bz_calc[bz_calc<0], 'r--')
-        plt.loglog(prb.times, abs(bz_ana), 'b*')
+        plt.loglog(prb.times[1:][bz_calc>0], bz_calc[bz_calc>0], 'r', prb.times[1:][bz_calc<0], -bz_calc[bz_calc<0], 'r--')
+        plt.loglog(prb.times[1:], abs(bz_ana), 'b*')
         plt.title('sig_half = %e'%sig_half)
         plt.show()
 
