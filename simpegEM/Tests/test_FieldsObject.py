@@ -21,7 +21,6 @@ class FieldsTest(unittest.TestCase):
         txList = [Tx0,Tx1,Tx2,Tx3,Tx4]
         survey = EM.FDEM.SurveyFDEM(txList)
         self.F = EM.FDEM.FieldsFDEM(mesh, survey)
-        self.D = EM.FDEM.DataFDEM(survey)
         self.Tx0 = Tx0
         self.Tx1 = Tx1
         self.mesh = mesh
@@ -69,26 +68,6 @@ class FieldsTest(unittest.TestCase):
         self.assertRaises(KeyError, fun)
         def fun(): self.F[freq,'notThere']
         self.assertRaises(KeyError, fun)
-
-    def test_uniqueTxs(self):
-        txs = self.F.survey.txList
-        txs += [txs[0]]
-        self.assertRaises(AssertionError, EM.FDEM.SurveyFDEM, txs)
-
-
-    def test_dataFDEM(self):
-        V = []
-        for tx in self.D.survey.txList:
-            for rx in tx.rxList:
-                v = np.random.rand(rx.nD)
-                V += [v]
-                self.D[tx, rx] = v
-                self.assertTrue(np.all(v == self.D[tx, rx]))
-        V = np.concatenate(V)
-        self.assertTrue(np.all(V == Utils.mkvc(self.D)))
-
-        D2 = EM.FDEM.DataFDEM(self.D.survey, V)
-        self.assertTrue(np.all(Utils.mkvc(D2) == Utils.mkvc(self.D)))
 
     def test_FieldProjections(self):
         F = self.F

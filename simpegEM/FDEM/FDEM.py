@@ -1,6 +1,6 @@
-from SimPEG import Problem, Utils, np, sp, Solver as SimpegSolver
+from SimPEG import Survey, Problem, Utils, np, sp, Solver as SimpegSolver
 from scipy.constants import mu_0
-from SurveyFDEM import SurveyFDEM, DataFDEM, FieldsFDEM
+from SurveyFDEM import SurveyFDEM, FieldsFDEM
 from simpegEM.Utils import Sources
 
 def omega(freq):
@@ -24,7 +24,7 @@ class BaseProblemFDEM(Problem.BaseProblem):
     storeTheseFields = ['e', 'b']
 
     surveyPair = SurveyFDEM
-    dataPair = DataFDEM
+    dataPair = Survey.Data
 
     Solver = SimpegSolver
     solverOpts = {}

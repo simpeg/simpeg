@@ -188,62 +188,6 @@ class FieldsFDEM(object):
         return key in self.children
 
 
-class DataFDEM(object):
-    """docstring for DataFDEM"""
-    def __init__(self, survey, v=None):
-        self.survey = survey
-        self._dataDict = {}
-        for tx in self.survey.txList:
-            self._dataDict[tx] = {}
-        if v is not None:
-            self.fromvec(v)
-
-    def _ensureCorrectKey(self, key):
-        if type(key) is tuple:
-            if len(key) is not 2:
-                raise KeyError('Key must be [Tx, Rx]')
-            if key[0] not in self.survey.txList:
-                raise KeyError('Tx Key must be a transmitter in the survey.')
-            if key[1] not in key[0].rxList:
-                raise KeyError('Rx Key must be a receiver for the transmitter.')
-            return key
-        elif isinstance(key, self.survey.txPair):
-            if key not in self.survey.txList:
-                raise KeyError('Key must be a transmitter in the survey.')
-            return key, None
-        else:
-            raise KeyError('Key must be [Tx] or [Tx,Rx]')
-
-    def __setitem__(self, key, value):
-        tx, rx = self._ensureCorrectKey(key)
-        assert rx is not None, 'set data using [Tx, Rx]'
-        assert type(value) == np.ndarray, 'value must by ndarray'
-        assert value.size == rx.nD, "value must have the same number of data as the transmitter."
-        self._dataDict[tx][rx] = Utils.mkvc(value)
-
-    def __getitem__(self, key):
-        tx, rx = self._ensureCorrectKey(key)
-        if rx is not None:
-            if rx not in self._dataDict[tx]:
-                raise Exception('Data for receiver has not yet been set.')
-            return self._dataDict[tx][rx]
-
-        return np.concatenate([self[tx,rx] for rx in tx.rxList])
-
-    def tovec(self):
-        return np.concatenate([self[tx] for tx in self.survey.txList])
-
-    def fromvec(self, v):
-        v = Utils.mkvc(v)
-        assert v.size == self.survey.nD, 'v must have the correct number of data.'
-        indBot, indTop = 0, 0
-        for tx in self.survey.txList:
-            for rx in tx.rxList:
-                indTop += rx.nD
-                self[tx, rx] = v[indBot:indTop]
-                indBot += rx.nD
-
-
 class SurveyFDEM(Survey.BaseSurvey):
     """
         docstring for SurveyFDEM
@@ -252,28 +196,18 @@ class SurveyFDEM(Survey.BaseSurvey):
     txPair = TxFDEM
 
     def __init__(self, txList, **kwargs):
-        assert type(txList) is list, 'txList must be a list'
-        for tx in txList:
-            assert isinstance(tx, self.txPair), 'txList must be a %s'%self.txPair.__name__
-
-        assert len(set(txList)) == len(txList), 'The txList must be unique'
         # Sort these by frequency
+        self.txList = txList
+        Survey.BaseSurvey.__init__(self, **kwargs)
+
         _freqDict = {}
         for tx in txList:
             if tx.freq not in _freqDict:
                 _freqDict[tx.freq] = []
             _freqDict[tx.freq] += [tx]
 
-        self._txList = txList
         self._freqDict = _freqDict
         self._freqs = sorted([f for f in self._freqDict])
-
-        Survey.BaseSurvey.__init__(self, **kwargs)
-
-    @property
-    def nD(self):
-        """Number of data"""
-        return np.array([tx.nD for tx in self.txList]).sum()
 
     @property
     def freqs(self):
@@ -284,11 +218,6 @@ class SurveyFDEM(Survey.BaseSurvey):
     def nFreq(self):
         """Number of frequencies"""
         return len(self._freqDict)
-
-    @property
-    def txList(self):
-        """Transmitter List"""
-        return self._txList
 
     @property
     def nTx(self):
@@ -304,7 +233,7 @@ class SurveyFDEM(Survey.BaseSurvey):
         return self._freqDict[freq]
 
     def projectFields(self, u):
-        data = DataFDEM(self)
+        data = Survey.Data(self)
         for tx in self.txList:
             for rx in tx.rxList:
                 data[tx, rx] = rx.projectFields(tx, self.mesh, u)
