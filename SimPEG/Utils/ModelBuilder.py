@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.ndimage as ndi
 import scipy.sparse as sp
+from matutils import mkvc
 
 
 def getIndecesBlock(p0,p1,ccMesh):
@@ -81,7 +82,7 @@ def defineBlock(ccMesh,p0,p1,vals=[0,1]):
 
     sigma[ind] = vals[0]
 
-    return sigma
+    return mkvc(sigma)
 
 def defineElipse(ccMesh, center=[0,0,0], anisotropy=[1,1,1], slope=10., theta=0.):
     G = ccMesh.copy()
@@ -135,7 +136,7 @@ def defineTwoLayers(ccMesh,depth,vals=[0,1]):
 
     sigma[ind] = vals[0];
 
-    return sigma
+    return mkvc(sigma)
 
 def scalarConductivity(ccMesh,pFunction):
     """
@@ -150,7 +151,7 @@ def scalarConductivity(ccMesh,pFunction):
 
     sigma = pFunction(*CC)
 
-    return sigma
+    return mkvc(sigma)
 
 
 
