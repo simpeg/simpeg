@@ -10,12 +10,12 @@ class InnerProducts(object):
     def __init__(self):
         raise Exception('InnerProducts is a base class providing inner product matrices for meshes and cannot run on its own. Inherit to your favorite Mesh class.')
 
-    def getFaceInnerProduct(self, materialProperty=None, returnP=False,
-                            invertProperty=False, doFast=True):
+    def getFaceInnerProduct(self, prop=None, returnP=False,
+                            invProp=False, doFast=True):
         """
-            :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :param numpy.array prop: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
             :param bool returnP: returns the projection matrices
-            :param bool invertProperty: inverts the material property
+            :param bool invProp: inverts the material property
             :param bool doFast: do a faster implementation if available.
             :rtype: scipy.csr_matrix
             :return: M, the inner product matrix (nF, nF)
@@ -23,15 +23,15 @@ class InnerProducts(object):
         fast = None
 
         if returnP is False and hasattr(self, '_fastFaceInnerProduct') and doFast:
-            fast = self._fastFaceInnerProduct(materialProperty=materialProperty, invertProperty=invertProperty)
+            fast = self._fastFaceInnerProduct(prop=prop, invProp=invProp)
 
         if fast is not None:
             return fast
 
-        if invertProperty:
-            materialProperty = invPropertyTensor(self, materialProperty)
+        if invProp:
+            prop = invPropertyTensor(self, prop)
 
-        Mu = makePropertyTensor(self, materialProperty)
+        Mu = makePropertyTensor(self, prop)
 
         d = self.dim
         # We will multiply by sqrt on each side to keep symmetry
@@ -72,9 +72,9 @@ class InnerProducts(object):
         else:
             return A
 
-    def getFaceInnerProductDeriv(self, materialProperty=None, v=None, P=None, doFast=True):
+    def getFaceInnerProductDeriv(self, prop=None, v=None, P=None, doFast=True):
         """
-            :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :param numpy.array prop: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
             :param numpy.array v: vector to multiply (required in the general implementation)
             :param list P: list of projection matrices
             :param bool doFast: do a faster implementation if available.
@@ -84,22 +84,22 @@ class InnerProducts(object):
         fast = None
 
         if hasattr(self, '_fastFaceInnerProductDeriv') and doFast:
-            fast = self._fastFaceInnerProductDeriv(materialProperty=materialProperty, v=v)
+            fast = self._fastFaceInnerProductDeriv(prop=prop, v=v)
 
         if fast is not None:
             return fast
 
         if P is None:
-            M, P = self.getFaceInnerProduct(materialProperty=materialProperty, returnP=True)
+            M, P = self.getFaceInnerProduct(prop=prop, returnP=True)
 
-        return self._getInnerProductDeriv(materialProperty, v, P, self.nF)
+        return self._getInnerProductDeriv(prop, v, P, self.nF)
 
-    def getEdgeInnerProduct(self, materialProperty=None, returnP=False,
-                            invertProperty=False, doFast=True):
+    def getEdgeInnerProduct(self, prop=None, returnP=False,
+                            invProp=False, doFast=True):
         """
-            :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :param numpy.array prop: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
             :param bool returnP: returns the projection matrices
-            :param bool invertProperty: inverts the material property
+            :param bool invProp: inverts the material property
             :param bool doFast: do a faster implementation if available.
             :rtype: scipy.csr_matrix
             :return: M, the inner product matrix (nE, nE)
@@ -107,15 +107,15 @@ class InnerProducts(object):
         fast = None
 
         if returnP is False and hasattr(self, '_fastEdgeInnerProduct') and doFast:
-            fast = self._fastEdgeInnerProduct(materialProperty=materialProperty, invertProperty=invertProperty)
+            fast = self._fastEdgeInnerProduct(prop=prop, invProp=invProp)
 
         if fast is not None:
             return fast
 
-        if invertProperty:
-            materialProperty = invPropertyTensor(self, materialProperty)
+        if invProp:
+            prop = invPropertyTensor(self, prop)
 
-        Mu = makePropertyTensor(self, materialProperty)
+        Mu = makePropertyTensor(self, prop)
 
         d = self.dim
         # We will multiply by sqrt on each side to keep symmetry
@@ -140,7 +140,7 @@ class InnerProducts(object):
             P011 = V*eP('eX3', 'eY2', 'eZ2')
             P111 = V*eP('eX3', 'eY3', 'eZ3')
 
-        Mu = makePropertyTensor(self, materialProperty)
+        Mu = makePropertyTensor(self, prop)
         A = P000.T*Mu*P000 + P100.T*Mu*P100 + P010.T*Mu*P010 + P110.T*Mu*P110
         P = [P000, P100, P010, P110]
         if d == 3:
@@ -151,9 +151,9 @@ class InnerProducts(object):
         else:
             return A
 
-    def getEdgeInnerProductDeriv(self, materialProperty=None, v=None, P=None, doFast=True):
+    def getEdgeInnerProductDeriv(self, prop=None, v=None, P=None, doFast=True):
         """
-            :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :param numpy.array prop: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
             :param numpy.array v: vector to multiply (required in the general implementation)
             :param list P: list of projection matrices
             :param bool doFast: do a faster implementation if available.
@@ -164,26 +164,26 @@ class InnerProducts(object):
         fast = None
 
         if hasattr(self, '_fastEdgeInnerProductDeriv') and doFast:
-            fast = self._fastEdgeInnerProductDeriv(materialProperty=materialProperty, v=v)
+            fast = self._fastEdgeInnerProductDeriv(prop=prop, v=v)
 
         if fast is not None:
             return fast
 
         if P is None:
-            M, P = self.getEdgeInnerProduct(materialProperty=materialProperty, returnP=True)
+            M, P = self.getEdgeInnerProduct(prop=prop, returnP=True)
 
-        return self._getInnerProductDeriv(materialProperty, v, P, self.nE)
+        return self._getInnerProductDeriv(prop, v, P, self.nE)
 
-    def _getInnerProductDeriv(self, materialProperty, v, P, n):
+    def _getInnerProductDeriv(self, prop, v, P, n):
         """
-            :param numpy.array materialProperty: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :param numpy.array prop: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
             :param numpy.array v: vector to multiply (required in the general implementation)
             :param list P: list of projection matrices
             :param int n: nF or nE
             :rtype: scipy.csr_matrix
             :return: dMdm, the derivative of the inner product matrix (n, nC*nA)
         """
-        if materialProperty is None:
+        if prop is None:
             return None
 
         if v is None:
@@ -192,24 +192,24 @@ class InnerProducts(object):
         d = self.dim
         Z = spzeros(self.nC, self.nC)
 
-        if isScalar(materialProperty):
+        if isScalar(prop):
             dMdm = spzeros(n, 1)
             for i, p in enumerate(P):
                 dMdm = dMdm + sp.csr_matrix((p.T * (p * v), (range(n), np.zeros(n))), shape=(n,1))
         if d == 1:
-            if materialProperty.size == self.nC:
+            if prop.size == self.nC:
                 dMdm = spzeros(n, self.nC)
                 for i, p in enumerate(P):
                     dMdm = dMdm + p.T * sdiag( p * v )
         elif d == 2:
-            if materialProperty.size == self.nC:
+            if prop.size == self.nC:
                 dMdm = spzeros(n, self.nC)
                 for i, p in enumerate(P):
                     Y = p * v
                     y1 = Y[:self.nC]
                     y2 = Y[self.nC:]
                     dMdm = dMdm + p.T * sp.vstack((sdiag( y1 ), sdiag( y2 )))
-            elif materialProperty.size == self.nC*2:
+            elif prop.size == self.nC*2:
                 dMdms = [spzeros(n, self.nC) for _ in range(2)]
                 for i, p in enumerate(P):
                     Y = p * v
@@ -218,7 +218,7 @@ class InnerProducts(object):
                     dMdms[0] = dMdms[0] + p.T * sp.vstack(( sdiag( y1 ), Z))
                     dMdms[1] = dMdms[1] + p.T * sp.vstack(( Z, sdiag( y2 )))
                 dMdm = sp.hstack(dMdms)
-            elif materialProperty.size == self.nC*3:
+            elif prop.size == self.nC*3:
                 dMdms = [spzeros(n, self.nC) for _ in range(3)]
                 for i, p in enumerate(P):
                     Y = p * v
@@ -229,7 +229,7 @@ class InnerProducts(object):
                     dMdms[2] = dMdms[2] + p.T * sp.vstack(( sdiag( y2 ), sdiag( y1 )))
                 dMdm = sp.hstack(dMdms)
         elif d == 3:
-            if materialProperty.size == self.nC:
+            if prop.size == self.nC:
                 dMdm = spzeros(n, self.nC)
                 for i, p in enumerate(P):
                     Y = p * v
@@ -237,7 +237,7 @@ class InnerProducts(object):
                     y2 = Y[self.nC:self.nC*2]
                     y3 = Y[self.nC*2:]
                     dMdm = dMdm + p.T * sp.vstack((sdiag( y1 ), sdiag( y2 ), sdiag( y3 )))
-            elif materialProperty.size == self.nC*3:
+            elif prop.size == self.nC*3:
                 dMdms = [spzeros(n, self.nC) for _ in range(3)]
                 for i, p in enumerate(P):
                     Y = p * v
@@ -248,7 +248,7 @@ class InnerProducts(object):
                     dMdms[1] = dMdms[1] + p.T * sp.vstack(( Z, sdiag( y2 ), Z))
                     dMdms[2] = dMdms[2] + p.T * sp.vstack(( Z, Z, sdiag( y3 )))
                 dMdm = sp.hstack(dMdms)
-            elif materialProperty.size == self.nC*6:
+            elif prop.size == self.nC*6:
                 dMdms = [spzeros(n, self.nC) for _ in range(6)]
                 for i, p in enumerate(P):
                     Y = p * v
