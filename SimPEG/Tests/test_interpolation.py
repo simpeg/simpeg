@@ -152,7 +152,7 @@ class TestInterpolation2dCyl(OrderTest):
     meshTypes = ['uniformCylMesh'] # MESHTYPES +
     tolerance = 0.6
     meshDimension = 2
-    meshSizes = [16, 32, 64]
+    meshSizes = [32, 64, 128, 256]
 
     def getError(self):
         funX = lambda x, y: np.cos(2*np.pi*y)
