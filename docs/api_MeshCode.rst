@@ -27,10 +27,10 @@ Logically Rectangular Mesh
     :undoc-members:
 
 
-Cylindrical 1D Mesh
-===================
+Cylindrical Mesh
+================
 
-.. automodule:: SimPEG.Mesh.Cyl1DMesh
+.. automodule:: SimPEG.Mesh.CylMesh
     :show-inheritance:
     :members:
     :undoc-members:
