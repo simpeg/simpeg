@@ -1,0 +1,5 @@
+- Electromagnetics (`simpegEM <http://simpegem.rtfd.org/>`_)
+- Electromagnetics 1D (`simpegEM1D <http://simpegem1d.rtfd.org/>`_)
+- Direct Current Resistivity (`simpegDC <http://simpeg-dc.rtfd.org/>`_)
+- Potential Fields (`simpegPF <http://simpegpf.rtfd.org/>`_)
+- Ground Water Flow (`simpegFLOW <http://simpegflow.rtfd.org/>`_)

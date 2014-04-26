@@ -1,8 +1,9 @@
-Credits
-=======
-
-- Rowan Cockett
-- Eldad Haber
-- Lindsey Heagy
-- Seogi Kang
-- Dave Marchant
+- Luz Angelica Caudillo-Mata, (`@lacmajedrez <https://github.com/lacmajedrez/>`_)
+- Rowan Cockett, (`@rowanc1 <https://github.com/rowanc1/>`_)
+- Eldad Haber, (`@ehaber99 <https://github.com/ehaber99/>`_)
+- Lindsey Heagy, (`@lheagy <https://github.com/lheagy/>`_)
+- Seogi Kang, (`@sgkang <https://github.com/sgkang/>`_)
+- Dave Marchant, (`@dwfmarchant <https://github.com/dwfmarchant/>`_)
+- Gudni Rosenkjaer, (`@grosenkj <https://github.com/grosenkj/>`_)
+- Lars Ruthotto, (`@lruthotto <https://github.com/lruthotto/>`_)
+- Mike Wathen, (`@mrwathen <https://github.com/mrwathen/>`_)

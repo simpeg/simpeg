@@ -62,12 +62,13 @@ Utility Codes
    api_Utils
 
 
-Testing SimPEG
-**************
+Miscellaneous
+*************
 
 .. toctree::
    :maxdepth: 2
 
+   api_license
    api_Tests
 
 * Master Branch
@@ -76,6 +77,10 @@ Testing SimPEG
       :alt: Master Branch
       :align: center
 
+Projects Using SimPEG
+*********************
+
+.. include:: ../PROJECTS.rst
 
 Project Index & Search
 **********************
