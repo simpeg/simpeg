@@ -185,8 +185,8 @@ notation::
     :include-source:
 
     from SimPEG import Mesh, Utils
-    h1 = (5, 10, 1.5), (20, 5), (3, 10)
-    M = Mesh.TensorMesh(Utils.meshTensors(h1, h1))
+    h1 = [(10, 5, -1.3), (5, 20), (10, 3, 1.3)]
+    M = Mesh.TensorMesh([h1, h1])
     M.plotGrid(showIt=True)
 
 Hopefully, you now know how to create TensorMesh objects in SimPEG,

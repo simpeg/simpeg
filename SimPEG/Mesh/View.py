@@ -178,8 +178,10 @@ class TensorView(object):
         .. plot::
 
             from SimPEG import *
-            mT = Utils.meshTensors(((2,5),(4,2),(2,5)),((2,2),(6,2),(2,2)),((2,2),(6,2),(2,2)))
-            M = Mesh.TensorMesh(mT)
+            hx = [(5,2,-1.3),(2,4),(5,2,1.3)]
+            hy = [(2,2,-1.3),(2,6),(2,2,1.3)]
+            hz = [(2,2,-1.3),(2,6),(2,2,1.3)]
+            M = Mesh.TensorMesh([hx,hy,hz])
             q = np.zeros(M.vnC)
             q[[4,4],[4,4],[2,6]]=[-1,1]
             q = Utils.mkvc(q)
@@ -618,8 +620,10 @@ class LomView(object):
 
 if __name__ == '__main__':
     from SimPEG import *
-    mT = Utils.meshTensors(((2,5),(4,2),(2,5)),((2,2),(6,2),(2,2)),((2,2),(6,2),(2,2)))
-    M = Mesh.TensorMesh(mT, x0=[10,20,14])
+    hx = [(5,2,-1.3),(2,4),(5,2,1.3)]
+    hy = [(2,2,-1.3),(2,6),(2,2,1.3)]
+    hz = [(2,2,-1.3),(2,6),(2,2,1.3)]
+    M = Mesh.TensorMesh([hx,hy,hz], x0=[10,20,14])
     q = np.zeros(M.vnC)
     q[[4,4],[4,4],[2,6]]=[-1,1]
     q = Utils.mkvc(q)

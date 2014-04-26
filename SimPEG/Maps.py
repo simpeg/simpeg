@@ -251,7 +251,7 @@ class Mesh2Mesh(IdentityMap):
 
             from SimPEG import *
             M = Mesh.TensorMesh([100,100])
-            h1 = Utils.meshTensors(((7,6,1.5),(10,6),(7,6,1.5)))
+            h1 = Utils.meshTensor([(6,7,-1.5),(6,10),(6,7,1.5)])
             h1 = h1/h1.sum()
             M2 = Mesh.TensorMesh([h1,h1])
             V = Utils.ModelBuilder.randomModel(M.vnC, seed=79, its=50)

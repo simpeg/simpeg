@@ -2,6 +2,8 @@ import numpy as np
 from scipy import sparse as sp
 from matutils import mkvc, ndgrid, sub2ind, sdiag
 from codeutils import asArray_N_x_Dim
+from codeutils import isScalar
+
 
 def exampleLrmGrid(nC, exType):
     assert type(nC) == list, "nC must be a list containing the number of nodes"
@@ -25,33 +27,57 @@ def exampleLrmGrid(nC, exType):
             amt[amt < 0] = 0
             return [X + (-(Y - 0.5))*amt, Y + (-(Z - 0.5))*amt, Z + (-(X - 0.5))*amt]
 
-def meshTensors(*args):
+def meshTensor(value):
     """
-        **meshTensors** takes any number of tuples that have the form::
+        **meshTensor** takes a list of numbers and tuples that have the form::
 
-            mT = ( (numPad, sizeStart [, increaseFactor]), (numCore, sizeCore), (numPad, sizeStart [, increaseFactor]) )
+            mT = [ float, (cellSize, numCell), (cellSize, numCell, factor) ]
 
-        .. note::
+        For example, a time domain mesh code needs
+        many time steps at one time::
 
-            The increaseFactor is an optional input.
+            [(1e-5, 30), (1e-4, 30), 1e-3]
 
+        Means take 30 steps at 1e-5 and then 30 more at 1e-4,
+        and then one step of 1e-3.
+
+        Tensor meshes can also be created by increase factors::
+
+            [(10.0, 5, -1.3), (10.0, 50), (10.0, 5, 1.3)]
+
+        When there is a third number in the tuple, it
+        refers to the increase factor, if this number
+        is negative this section of the tensor is flipped right-to-left.
 
         .. plot::
 
-            from SimPEG import Mesh, Utils
-            M = Mesh.TensorMesh(Utils.meshTensors(((10,10),(40,10),(10,10)), ((10,10),(20,10),(0,0))))
-            M.plotGrid()
+            from SimPEG import Mesh
+            tx = [(10.0,10,-1.3),(10.0,40),(10.0,10,1.3)]
+            ty = [(10.0,10,-1.3),(10.0,40)]
+            M = Mesh.TensorMesh([tx, ty])
+            M.plotGrid(showIt=True)
 
     """
-    def padding(num, start, factor=1.3, reverse=False):
-        pad = ((np.ones(num)*factor)**np.arange(num))*start
-        if reverse: pad = pad[::-1]
-        return pad
-    tensors = tuple()
-    for i, arg in enumerate(args):
-        tensors += (np.r_[padding(*arg[0],reverse=True),np.ones(arg[1][0])*arg[1][1],padding(*arg[2])],)
+    if type(value) is not list:
+        raise Exception('meshTensor must be a list of scalars and tuples.')
 
-    return list(tensors) if len(tensors) > 1 else tensors[0]
+    proposed = []
+    for v in value:
+        if isScalar(v):
+            proposed += [float(v)]
+        elif type(v) is tuple and len(v) == 2:
+            proposed += [float(v[0])]*int(v[1])
+        elif type(v) is tuple and len(v) == 3:
+            start = float(v[0])
+            num = int(v[1])
+            factor = float(v[2])
+            pad = ((np.ones(num)*np.abs(factor))**(np.arange(num)+1))*start
+            if factor < 0: pad = pad[::-1]
+            proposed += pad.tolist()
+        else:
+            raise Exception('meshTensor must contain only scalars and len(2) or len(3) tuples.')
+
+    return np.array(proposed)
 
 def closestPoints(mesh, pts, gridLoc='CC'):
     """
@@ -169,7 +195,9 @@ def writeUBCTensorModel(mesh, model, fileName):
 if __name__ == '__main__':
     from SimPEG import Mesh
     import matplotlib.pyplot as plt
-    M = Mesh.TensorMesh(meshTensors(((10,10),(40,10),(10,10)), ((10,10),(20,10),(0,0))))
+    tx = [(10.0,10,-1.3),(10.0,40),(10.0,10,1.3)]
+    ty = [(10.0,10,-1.3),(10.0,40)]
+    M = Mesh.TensorMesh([tx, ty])
     M.plotGrid()
     plt.gca().axis('tight')
     plt.show()

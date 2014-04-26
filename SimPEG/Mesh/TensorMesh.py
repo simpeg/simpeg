@@ -18,20 +18,37 @@ class BaseTensorMesh(BaseRectangularMesh):
 
     _unitDimensions = [1, 1, 1]
 
-    def __init__(self, h_in, x0=None):
+    def __init__(self, h_in, x0_in=None):
         assert type(h_in) is list, 'h_in must be a list'
         assert len(h_in) in [1,2,3], 'h_in must be of dimension 1, 2, or 3'
         h = range(len(h_in))
         for i, h_i in enumerate(h_in):
-            if type(h_i) in [int, long, float, np.int_]:
+            if Utils.isScalar(h_i) and type(h_i) is not np.ndarray:
                 # This gives you something over the unit cube.
                 h_i = self._unitDimensions[i] * np.ones(int(h_i))/int(h_i)
+            elif type(h_i) is list:
+                h_i = Utils.meshTensor(h_i)
             assert type(h_i) == np.ndarray, ("h[%i] is not a numpy array." % i)
             assert len(h_i.shape) == 1, ("h[%i] must be a 1D numpy array." % i)
             h[i] = h_i[:] # make a copy.
 
+        x0 = np.zeros(len(h))
+        if x0_in is not None:
+            assert len(h) == len(x0_in), "Dimension mismatch. x0 != len(h)"
+            for i in range(len(h)):
+                x_i, h_i = x0_in[i], h[i]
+                if Utils.isScalar(x_i):
+                    x0[i] = x_i
+                elif x_i == '0':
+                    x0[i] = 0.0
+                elif x_i == 'C':
+                    x0[i] = -h_i.sum()*0.5
+                elif x_i == 'N':
+                    x0[i] = -h_i.sum()
+                else:
+                    raise Exception("x0[%i] must be a scalar or '0' to be zero, 'C' to center, or 'N' to be negative." % i)
+
         BaseRectangularMesh.__init__(self, np.array([x.size for x in h]), x0)
-        assert len(h) == len(self.x0), "Dimension mismatch. x0 != len(h)"
 
         # Ensure h contains 1D vectors
         self._h = [Utils.mkvc(x.astype(float)) for x in h]
@@ -376,12 +393,13 @@ class TensorMesh(BaseTensorMesh, TensorView, DiffOperators, InnerProducts):
 
         mesh = Mesh.TensorMesh([hx, hy, hz])
 
-    Example of a padded tensor mesh:
+    Example of a padded tensor mesh using :func:`SimPEG.Utils.meshTensor`:
 
     .. plot::
+        :include-source:
 
         from SimPEG import Mesh, Utils
-        M = Mesh.TensorMesh(Utils.meshTensors(((10,10),(40,10),(10,10)), ((10,10),(20,10),(0,0))))
+        M = Mesh.TensorMesh([(10,10,-1.3),(10,40),(10,10,1.3)], [(10,10,-1.3),(10,20)])
         M.plotGrid()
 
     For a quick tensor mesh on a (10x12x15) unit cube::

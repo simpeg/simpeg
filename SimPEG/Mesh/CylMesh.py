@@ -13,8 +13,8 @@ class CylMesh(BaseTensorMesh, InnerProducts):
         ::
 
             cs, nc, npad = 20., 30, 8
-            hx = Utils.meshTensors(((npad+10,cs,0.7), (nc,cs), (npad,cs)))
-            hz = Utils.meshTensors(((npad,cs), (nc,cs), (npad,cs)))
+            hx = Utils.meshTensor([(cs,npad+10,-0.7), (cs,nc), (cs,npad,1.3)])
+            hz = Utils.meshTensor([(cs,npad   ,-1.3), (cs,nc), (cs,npad,1.3)])
             mesh = Mesh.CylMesh([hx,1,hz], [0.,0,-hz.sum()/2.])
     """
 

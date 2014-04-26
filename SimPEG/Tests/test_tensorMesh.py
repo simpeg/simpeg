@@ -11,7 +11,7 @@ class BasicTensorMeshTests(unittest.TestCase):
         a = np.array([1, 1, 1])
         b = np.array([1, 2])
         c = np.array([1, 4])
-        self.mesh2 = TensorMesh([a, b], np.array([3, 5]))
+        self.mesh2 = TensorMesh([a, b], [3, 5])
         self.mesh3 = TensorMesh([a, b, c])
 
     def test_vectorN_2D(self):
@@ -55,6 +55,10 @@ class BasicTensorMeshTests(unittest.TestCase):
         t1 = np.all(self.mesh2.edge == test_edge)
         self.assertTrue(t1)
 
+    def test_oneCell(self):
+        hx = np.array([1e-5])
+        M = TensorMesh([hx])
+        self.assertTrue(M.nC == 1)
 
 class TestPoissonEqn(OrderTest):
     name = "Poisson Equation"
