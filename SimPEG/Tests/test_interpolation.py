@@ -135,6 +135,16 @@ class TestInterpolation2d(OrderTest):
         self.orderTest()
 
 
+class TestInterpolation2dCyl_Simple(unittest.TestCase):
+    def test_simpleInter(self):
+        M = Mesh.CylMesh([4,1,1])
+        locs = np.r_[0,0,0.5]
+        fx = np.array([[ 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]])
+        self.assertTrue( np.all(fx == M.getInterpolationMat(locs, 'Fx').todense()) )
+        fz = np.array([[ 0., 0., 0., 0., 0.5, 0., 0., 0., 0.5, 0., 0., 0.]])
+        self.assertTrue( np.all(fz == M.getInterpolationMat(locs, 'Fz').todense()) )
+
+
 
 class TestInterpolation2dCyl(OrderTest):
     name = "Interpolation 2D"
