@@ -190,6 +190,106 @@ class Data(object):
                 indBot += rx.nD
 
 
+class Fields(object):
+    """Fancy Field Storage
+
+        u[:,'phi'] = phi
+        print u[tx0,'phi']
+
+    """
+
+    knownFields = None
+    txPair = BaseTx
+
+    def __init__(self, mesh, survey, **kwargs):
+        self.survey = survey
+        self.mesh = mesh
+        Utils.setKwargs(self, **kwargs)
+        self._fields = {}
+
+    def _initStore(self, name):
+        if name in self._fields:
+            return self._fields[name]
+
+        assert name in self.knownFields, 'field name is not known.'
+
+        loc = self.knownFields[name]
+
+        nP = {'CC': self.mesh.nC,
+              'F':  self.mesh.nF,
+              'E':  self.mesh.nE}[loc]
+
+        nTx = self.survey.nTx
+        field = np.empty((nP, nTx))
+
+        self._fields[name] = field
+
+        return field
+
+    def _indexAndNameFromKey(self, key):
+        if type(key) is not tuple:
+            key = (key,)
+        if len(key) == 1:
+            key += (None,)
+
+        assert len(key) == 2, 'must be [Tx, fieldName]'
+
+        txTestList, name = key
+
+        if name is not None and name not in self.knownFields:
+            raise KeyError('Invalid field name')
+
+        if type(txTestList) is slice:
+            ind = txTestList
+        else:
+            if type(txTestList) is not list:
+                txTestList = [txTestList]
+            for txTest in txTestList:
+                if not isinstance(txTest, self.txPair):
+                    raise KeyError('First index must be a Transmitter')
+                if txTest not in self.survey.txList:
+                    raise KeyError('Invalid Transmitter, not in survey list.')
+
+            ind = np.in1d(self.survey.txList, txTestList)
+
+        return ind, name
+
+    def __setitem__(self, key, value):
+        ind, name = self._indexAndNameFromKey(key)
+        if name is None:
+            freq = key
+            assert type(value) is dict, 'New fields must be a dictionary, if field is not specified.'
+            newFields = value
+        elif name in self.knownFields:
+            assert type(value) is np.ndarray, 'Must be set to a numpy array'
+            newFields = {name: value}
+        else:
+            raise Exception('Unknown setter')
+
+        for name in newFields:
+            field = self._initStore(name)
+            NEWF = newFields[name]
+            if field.shape[1] == 1 or NEWF.ndim == 1:
+                NEWF = Utils.mkvc(NEWF,2)
+            field[:,ind] = NEWF
+
+    def __getitem__(self, key):
+        ind, name = self._indexAndNameFromKey(key)
+        if name is None:
+            out = {}
+            for name in self._fields:
+                out[name] = self._fields[name][:,ind]
+                if out[name].shape[1] == 1:
+                    out[name] = Utils.mkvc(out[name])
+            return out
+
+        out = self._fields[name][:,ind]
+        if out.shape[1] == 1:
+            out = Utils.mkvc(out)
+        return out
+
+
+
 class BaseSurvey(object):
     """Survey holds the observed data, and the standard deviations."""
 

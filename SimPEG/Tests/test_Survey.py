@@ -1,7 +1,7 @@
 import unittest
 from SimPEG import *
 
-class DataTest(unittest.TestCase):
+class DataAndFieldsTest(unittest.TestCase):
 
     def setUp(self):
         mesh = Mesh.TensorMesh([np.ones(n)*5 for n in [10,11,12]],[0,0,-30])
@@ -20,6 +20,7 @@ class DataTest(unittest.TestCase):
         txList = [Tx0,Tx1,Tx2,Tx3,Tx4]
         survey = Survey.BaseSurvey(txList=txList)
         self.D = Survey.Data(survey)
+        self.F = Survey.Fields(mesh, survey, knownFields={'phi':'CC','e':'E','b':'F'})
         self.Tx0 = Tx0
         self.Tx1 = Tx1
         self.mesh = mesh
@@ -45,7 +46,54 @@ class DataTest(unittest.TestCase):
         txs += [txs[0]]
         self.assertRaises(AssertionError, Survey.BaseSurvey, txList=txs)
 
+    def test_SetGet(self):
+        F = self.F
+        nTx = F.survey.nTx
+        e = np.random.rand(F.mesh.nE, nTx)
+        F[:, 'e'] = e
+        b = np.random.rand(F.mesh.nF, nTx)
+        F[:, 'b'] = b
 
+        self.assertTrue(np.all(F[:, 'e'] == e))
+        self.assertTrue(np.all(F[:, 'b'] == b))
+        F[:] = {'b':b,'e':e}
+        self.assertTrue(np.all(F[:, 'e'] == e))
+        self.assertTrue(np.all(F[:, 'b'] == b))
+
+        b = np.random.rand(F.mesh.nF,1)
+        F[self.Tx0, 'b'] = b
+        self.assertTrue(np.all(F[self.Tx0, 'b'] == Utils.mkvc(b)))
+
+        b = np.random.rand(F.mesh.nF)
+        F[self.Tx0, 'b'] = b
+        self.assertTrue(np.all(F[self.Tx0, 'b'] == b))
+
+        phi = np.random.rand(F.mesh.nC,2)
+        F[[self.Tx0,self.Tx1], 'phi'] = phi
+        self.assertTrue(np.all(F[[self.Tx0,self.Tx1], 'phi'] == phi))
+
+        fdict = F[:]
+        self.assertTrue(type(fdict) is dict)
+        self.assertTrue(sorted([k for k in fdict]) == ['b','e','phi'])
+
+        b = np.random.rand(F.mesh.nF, 2)
+        F[[self.Tx0, self.Tx1],'b'] = b
+        self.assertTrue(F[self.Tx0]['b'].shape == (F.mesh.nF,))
+        self.assertTrue(F[self.Tx0,'b'].shape == (F.mesh.nF,))
+        self.assertTrue(np.all(F[self.Tx0,'b'] == b[:,0]))
+        self.assertTrue(np.all(F[self.Tx1,'b'] == b[:,1]))
+
+    def test_assertions(self):
+        freq = [self.Tx0, self.Tx1]
+        bWrongSize = np.random.rand(self.F.mesh.nE, self.F.survey.nTx)
+        def fun(): self.F[freq, 'b'] = bWrongSize
+        self.assertRaises(ValueError, fun)
+        def fun(): self.F[-999.]
+        self.assertRaises(KeyError, fun)
+        def fun(): self.F['notRight']
+        self.assertRaises(KeyError, fun)
+        def fun(): self.F[freq,'notThere']
+        self.assertRaises(KeyError, fun)
 
 if __name__ == '__main__':
     unittest.main()
