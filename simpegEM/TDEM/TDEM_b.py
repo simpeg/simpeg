@@ -240,9 +240,9 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
     cs, ncx, ncz, npad = 5., 20, 6, 20
-    hx = Utils.meshTensors(((0,cs), (ncx,cs), (npad,cs)))
-    hz = Utils.meshTensors(((npad,cs), (ncz,cs), (npad,cs)))
-    mesh = Mesh.CylMesh([hx,1,hz], [0,0,-hz.sum()/2])
+    hx = [(cs, ncx), (cs, npad, 1.3)]
+    hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
+    mesh = Mesh.CylMesh([hx,1,hz], '00C')
     mapping = Maps.Vertical1DMap(mesh)
 
     opts = {'txLoc':0.,

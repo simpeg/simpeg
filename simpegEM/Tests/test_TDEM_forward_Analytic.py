@@ -8,15 +8,15 @@ import matplotlib.pyplot as plt
 def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=[1e-5,1e-3], showIt=False):
     if meshType == 'CYL':
         cs, ncx, ncz, npad = 5., 30, 10, 15
-        hx = Utils.meshTensors(((0,cs), (ncx,cs), (npad,cs)))
-        hz = Utils.meshTensors(((npad,cs), (ncz,cs), (npad,cs)))
-        mesh = Mesh.CylMesh([hx,1,hz], [0,0,-hz.sum()/2])
+        hx = [(cs,ncx), (cs,npad,1.3)]
+        hz = [(cs,npad,-1.3), (cs,ncz), (cs,npad,1.3)]
+        mesh = Mesh.CylMesh([hx,1,hz], '00C')
     elif meshType == 'TENSOR':
         cs, nc, npad = 20., 13, 5
-        hx = Utils.meshTensors(((npad,cs), (nc,cs), (npad,cs)))
-        hy = Utils.meshTensors(((npad,cs), (nc,cs), (npad,cs)))
-        hz = Utils.meshTensors(((npad,cs), (nc,cs), (npad,cs)))
-        mesh = Mesh.TensorMesh([hx,hy,hz], [-hx.sum()/2.,-hy.sum()/2.,-hz.sum()/2.])
+        hx = [(cs,npad,-1.3), (cs,nc), (cs,npad,1.3)]
+        hy = [(cs,npad,-1.3), (cs,nc), (cs,npad,1.3)]
+        hz = [(cs,npad,-1.3), (cs,nc), (cs,npad,1.3)]
+        mesh = Mesh.TensorMesh([hx,hy,hz], 'CCC')
 
     active = mesh.vectorCCz<0.
     actMap = Maps.ActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)

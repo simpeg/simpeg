@@ -38,7 +38,7 @@ class MixinInitialFieldCalc(object):
             raise Exception('Unknown mesh for VMD')
 
         # Initialize field object
-        F = FieldsTDEM(self.mesh, 1, self.times[1:].size, store=self.storeTheseFields)
+        F = FieldsTDEM(self.mesh, 1, self.nT, store=self.storeTheseFields)
 
         # Set initial B
         F.b0 = self.mesh.edgeCurl*MVP

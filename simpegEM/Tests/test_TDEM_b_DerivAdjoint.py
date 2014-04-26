@@ -10,9 +10,9 @@ class TDEM_bDerivTests(unittest.TestCase):
         ncx = 20
         ncy = 6
         npad = 20
-        hx = Utils.meshTensors(((0,cs), (ncx,cs), (npad,cs)))
-        hy = Utils.meshTensors(((npad,cs), (ncy,cs), (npad,cs)))
-        mesh = Mesh.CylMesh([hx,1,hy], [0,0,-hy.sum()/2])
+        hx = [(cs,ncx), (cs,npad,1.3)]
+        hy = [(cs,npad,-1.3), (cs,ncy), (cs,npad,1.3)]
+        mesh = Mesh.CylMesh([hx,1,hy], '00C')
 
         active = mesh.vectorCCz<0.
         activeMap = Maps.ActiveCells(mesh, active, -8, nC=mesh.nCz)
@@ -72,7 +72,7 @@ class TDEM_bDerivTests(unittest.TestCase):
     def test_AhVecVSMat_OneTS(self):
 
         prb = self.prb
-        prb.timeSteps = [(1e-05, 1)]
+        prb.timeSteps = [1e-05]
         sigma = self.sigma
         prb.makeMassMatrices(sigma)
 
@@ -92,7 +92,7 @@ class TDEM_bDerivTests(unittest.TestCase):
     def test_solveAhVSMat_OneTS(self):
         prb = self.prb
 
-        prb.timeSteps = [(1e-05, 1)]
+        prb.timeSteps = [1e-05]
 
         sigma = self.sigma
         prb.makeMassMatrices(sigma)
