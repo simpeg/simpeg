@@ -393,13 +393,13 @@ class TensorMesh(BaseTensorMesh, TensorView, DiffOperators, InnerProducts):
 
         mesh = Mesh.TensorMesh([hx, hy, hz])
 
-    Example of a padded tensor mesh using :func:`SimPEG.Utils.meshTensor`:
+    Example of a padded tensor mesh using :func:`SimPEG.Utils.meshutils.meshTensor`:
 
     .. plot::
         :include-source:
 
         from SimPEG import Mesh, Utils
-        M = Mesh.TensorMesh([(10,10,-1.3),(10,40),(10,10,1.3)], [(10,10,-1.3),(10,20)])
+        M = Mesh.TensorMesh([[(10,10,-1.3),(10,40),(10,10,1.3)], [(10,10,-1.3),(10,20)]])
         M.plotGrid()
 
     For a quick tensor mesh on a (10x12x15) unit cube::
