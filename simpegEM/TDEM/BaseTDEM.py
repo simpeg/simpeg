@@ -80,8 +80,8 @@ class ProblemBaseTDEM(MixinInitialFieldCalc, BaseTimeProblem):
     def makeMassMatrices(self, m):
         sig = self.mapping.transform(m)
         self._MeSigma = self.mesh.getEdgeInnerProduct(sig)
-        self._MeSigmaI = sdiag(1/self.MeSigma.diagonal())
-        self._MfMui = self.mesh.getFaceInnerProduct(1/mu_0)
+        self._MeSigmaI = Utils.sdInv(self.MeSigma)
+        self._MfMui = self.mesh.getFaceInnerProduct(1.0/mu_0)
 
 
     def calcFields(self, sol, solType, tInd):
@@ -110,8 +110,7 @@ class ProblemBaseTDEM(MixinInitialFieldCalc, BaseTimeProblem):
             F = FieldsTDEM(self.mesh, self.survey.nTx, self.nT, store=self.storeTheseFields)
 
         dtFact = None
-        for tInd, t in enumerate(self.times[1:]):
-            dt = self.timeSteps[tInd]
+        for tInd, dt in enumerate(self.timeSteps):
             if dt!=dtFact:
                 dtFact = dt
                 A = self.getA(tInd)
@@ -131,8 +130,7 @@ class ProblemBaseTDEM(MixinInitialFieldCalc, BaseTimeProblem):
             F = FieldsTDEM(self.mesh, self.survey.nTx, self.nT, store=self.storeTheseFields)
 
         dtFact = None
-        for tInd, t in reversed(list(enumerate(self.times[1:]))):
-            dt = self.timeSteps[tInd]
+        for tInd, dt in reversed(list(enumerate(self.timeSteps))):
             if dt!=dtFact:
                 dtFact = dt
                 A = self.getA(tInd)

@@ -256,7 +256,7 @@ if __name__ == '__main__':
     prb = EM.TDEM.ProblemTDEM_b(mesh, mapping=mapping)
     # prb.setTimes([1e-5, 5e-5, 2.5e-4], [150, 150, 150])
     # prb.setTimes([1e-5, 5e-5, 2.5e-4], [10, 10, 10])
-    prb.setTimes([1e-5], [10])
+    prb.timeSteps = [(1e-5, 10)]
     prb.pair(survey)
     sigma = np.random.rand(mesh.nCz)
 
