@@ -1,5 +1,5 @@
 from scipy import sparse as sp
-from SimPEG.Utils import sub2ind, ndgrid, mkvc, getSubArray, sdiag, inv3X3BlockDiagonal, inv2X2BlockDiagonal, makePropertyTensor, invPropertyTensor, spzeros, isScalar
+from SimPEG.Utils import *
 import numpy as np
 
 
@@ -11,11 +11,12 @@ class InnerProducts(object):
         raise Exception('InnerProducts is a base class providing inner product matrices for meshes and cannot run on its own. Inherit to your favorite Mesh class.')
 
     def getFaceInnerProduct(self, prop=None, returnP=False,
-                            invProp=False, doFast=True):
+                            invProp=False, invMat=False, doFast=True):
         """
             :param numpy.array prop: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
             :param bool returnP: returns the projection matrices
             :param bool invProp: inverts the material property
+            :param bool invMat: inverts the matrix
             :param bool doFast: do a faster implementation if available.
             :rtype: scipy.csr_matrix
             :return: M, the inner product matrix (nF, nF)
@@ -23,7 +24,7 @@ class InnerProducts(object):
         fast = None
 
         if returnP is False and hasattr(self, '_fastFaceInnerProduct') and doFast:
-            fast = self._fastFaceInnerProduct(prop=prop, invProp=invProp)
+            fast = self._fastFaceInnerProduct(prop=prop, invProp=invProp, invMat=invMat)
 
         if fast is not None:
             return fast
@@ -67,6 +68,12 @@ class InnerProducts(object):
         if d > 2:
             A = A + P001.T*Mu*P001 + P101.T*Mu*P101 + P011.T*Mu*P011 + P111.T*Mu*P111
             P += [P001, P101, P011,  P111]
+
+        if invMat and tensorType(self, prop) < 3:
+            A = sdInv(A)
+        elif invMat and tensorType(self, prop) == 3:
+            raise Exception('Solver needed to invert A.')
+
         if returnP:
             return A, P
         else:
@@ -95,11 +102,12 @@ class InnerProducts(object):
         return self._getInnerProductDeriv(prop, v, P, self.nF)
 
     def getEdgeInnerProduct(self, prop=None, returnP=False,
-                            invProp=False, doFast=True):
+                            invProp=False, invMat=False, doFast=True):
         """
             :param numpy.array prop: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
             :param bool returnP: returns the projection matrices
             :param bool invProp: inverts the material property
+            :param bool invMat: inverts the matrix
             :param bool doFast: do a faster implementation if available.
             :rtype: scipy.csr_matrix
             :return: M, the inner product matrix (nE, nE)
@@ -107,7 +115,7 @@ class InnerProducts(object):
         fast = None
 
         if returnP is False and hasattr(self, '_fastEdgeInnerProduct') and doFast:
-            fast = self._fastEdgeInnerProduct(prop=prop, invProp=invProp)
+            fast = self._fastEdgeInnerProduct(prop=prop, invProp=invProp, invMat=invMat)
 
         if fast is not None:
             return fast
@@ -146,6 +154,12 @@ class InnerProducts(object):
         if d == 3:
             A = A + P001.T*Mu*P001 + P101.T*Mu*P101 + P011.T*Mu*P011 + P111.T*Mu*P111
             P += [P001, P101, P011,  P111]
+
+        if invMat and tensorType(self, prop) < 3:
+            A = sdInv(A)
+        elif invMat and tensorType(self, prop) == 3:
+            raise Exception('Solver needed to invert A.')
+
         if returnP:
             return A, P
         else:

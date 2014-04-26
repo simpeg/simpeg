@@ -70,6 +70,22 @@ class TestInnerProductsDerivs(unittest.TestCase):
     def test_FaceIP_3D_anisotropic_fast(self):
         self.assertTrue(self.doTestFace([10, 4, 5],3, False, True))
 
+    def test_FaceIP_1D_float_fast_vec(self):
+        self.assertTrue(self.doTestFace([10],0, True, True))
+    def test_FaceIP_2D_float_fast_vec(self):
+        self.assertTrue(self.doTestFace([10, 4],0, True, True))
+    def test_FaceIP_3D_float_fast_vec(self):
+        self.assertTrue(self.doTestFace([10, 4, 5],0, True, True))
+    def test_FaceIP_1D_isotropic_fast_vec(self):
+        self.assertTrue(self.doTestFace([10],1, True, True))
+    def test_FaceIP_2D_isotropic_fast_vec(self):
+        self.assertTrue(self.doTestFace([10, 4],1, True, True))
+    def test_FaceIP_3D_isotropic_fast_vec(self):
+        self.assertTrue(self.doTestFace([10, 4, 5],1, True, True))
+    def test_FaceIP_2D_anisotropic_fast_vec(self):
+        self.assertTrue(self.doTestFace([10, 4],2, True, True))
+    def test_FaceIP_3D_anisotropic_fast_vec(self):
+        self.assertTrue(self.doTestFace([10, 4, 5],3, True, True))
 
     def test_EdgeIP_2D_float(self):
         self.assertTrue(self.doTestEdge([10, 4],0,True, False))
@@ -101,6 +117,18 @@ class TestInnerProductsDerivs(unittest.TestCase):
     def test_EdgeIP_3D_anisotropic_fast(self):
         self.assertTrue(self.doTestEdge([10, 4, 5],3, False, True))
 
+    def test_EdgeIP_2D_float_fast_vec(self):
+        self.assertTrue(self.doTestEdge([10, 4],0, True, True))
+    def test_EdgeIP_3D_float_fast_vec(self):
+        self.assertTrue(self.doTestEdge([10, 4, 5],0, True, True))
+    def test_EdgeIP_2D_isotropic_fast_vec(self):
+        self.assertTrue(self.doTestEdge([10, 4],1, True, True))
+    def test_EdgeIP_3D_isotropic_fast_vec(self):
+        self.assertTrue(self.doTestEdge([10, 4, 5],1, True, True))
+    def test_EdgeIP_2D_anisotropic_fast_vec(self):
+        self.assertTrue(self.doTestEdge([10, 4],2, True, True))
+    def test_EdgeIP_3D_anisotropic_fast_vec(self):
+        self.assertTrue(self.doTestEdge([10, 4, 5],3, True, True))
 
 
 

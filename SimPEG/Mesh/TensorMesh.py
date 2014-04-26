@@ -241,7 +241,7 @@ class BaseTensorMesh(BaseRectangularMesh):
         return Q.tocsr()
 
 
-    def _fastFaceInnerProduct(self, prop=None, invProp=False):
+    def _fastFaceInnerProduct(self, prop=None, invProp=False, invMat=False):
         """
             Fast version of getFaceInnerProduct.
             This does not handle the case of a full tensor prop.
@@ -249,13 +249,14 @@ class BaseTensorMesh(BaseRectangularMesh):
             :param numpy.array prop: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
             :param bool returnP: returns the projection matrices
             :param bool invProp: inverts the material property
+            :param bool invMat: inverts the matrix
             :rtype: scipy.csr_matrix
             :return: M, the inner product matrix (nF, nF)
         """
-        return self._fastInnerProduct('F', prop=prop, invProp=invProp)
+        return self._fastInnerProduct('F', prop=prop, invProp=invProp, invMat=invMat)
 
 
-    def _fastEdgeInnerProduct(self, prop=None, invProp=False):
+    def _fastEdgeInnerProduct(self, prop=None, invProp=False, invMat=False):
         """
             Fast version of getEdgeInnerProduct.
             This does not handle the case of a full tensor prop.
@@ -263,13 +264,14 @@ class BaseTensorMesh(BaseRectangularMesh):
             :param numpy.array prop: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
             :param bool returnP: returns the projection matrices
             :param bool invProp: inverts the material property
+            :param bool invMat: inverts the matrix
             :rtype: scipy.csr_matrix
             :return: M, the inner product matrix (nE, nE)
         """
-        return self._fastInnerProduct('E', prop=prop, invProp=invProp)
+        return self._fastInnerProduct('E', prop=prop, invProp=invProp, invMat=invMat)
 
 
-    def _fastInnerProduct(self, AvType, prop=None, invProp=False):
+    def _fastInnerProduct(self, AvType, prop=None, invProp=False, invMat=False):
         """
             Fast version of getFaceInnerProduct.
             This does not handle the case of a full tensor prop.
@@ -278,6 +280,7 @@ class BaseTensorMesh(BaseRectangularMesh):
             :param str AvType: 'E' or 'F'
             :param bool returnP: returns the projection matrices
             :param bool invProp: inverts the material property
+            :param bool invMat: inverts the matrix
             :rtype: scipy.csr_matrix
             :return: M, the inner product matrix (nF, nF)
         """
@@ -293,12 +296,18 @@ class BaseTensorMesh(BaseRectangularMesh):
         if prop.size == self.nC:
             Av = getattr(self, 'ave'+AvType+'2CC')
             Vprop = self.vol * Utils.mkvc(prop)
-            return self.dim * Utils.sdiag(Av.T * Vprop)
-        if prop.size == self.nC*self.dim:
+            M = self.dim * Utils.sdiag(Av.T * Vprop)
+        elif prop.size == self.nC*self.dim:
             Av = getattr(self, 'ave'+AvType+'2CCV')
             V = sp.kron(sp.identity(self.dim), Utils.sdiag(self.vol))
-            return Utils.sdiag(Av.T * V * Utils.mkvc(prop))
+            M = Utils.sdiag(Av.T * V * Utils.mkvc(prop))
+        else:
+            return None
 
+        if invMat:
+            return Utils.sdInv(M)
+        else:
+            return M
 
     def _fastFaceInnerProductDeriv(self, prop=None, v=None):
         """

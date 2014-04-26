@@ -1,6 +1,7 @@
 import numpy as np
 import unittest
 from TestUtils import OrderTest
+from SimPEG import Utils
 
 
 class TestInnerProducts(OrderTest):
@@ -130,14 +131,21 @@ class TestInnerProducts2D(OrderTest):
             Ec = np.vstack((cart(self.M.gridEx),
                             cart(self.M.gridEy)))
             E = self.M.projectEdgeVector(Ec)
-            A = self.M.getEdgeInnerProduct(sigma)
+            if self.invProp:
+                A = self.M.getEdgeInnerProduct(Utils.invPropertyTensor(self.M, sigma), invProp=True)
+            else:
+                A = self.M.getEdgeInnerProduct(sigma)
             numeric = E.T.dot(A.dot(E))
         elif self.location == 'faces':
             cart = lambda g: np.c_[call(ex, g), call(ey, g)]
             Fc = np.vstack((cart(self.M.gridFx),
                             cart(self.M.gridFy)))
             F = self.M.projectFaceVector(Fc)
-            A = self.M.getFaceInnerProduct(sigma)
+
+            if self.invProp:
+                A = self.M.getFaceInnerProduct(Utils.invPropertyTensor(self.M, sigma), invProp=True)
+            else:
+                A = self.M.getFaceInnerProduct(sigma)
             numeric = F.T.dot(A.dot(F))
 
         err = np.abs(numeric - analytic)
@@ -147,36 +155,60 @@ class TestInnerProducts2D(OrderTest):
         self.name = "2D Edge Inner Product - Isotropic"
         self.location = 'edges'
         self.sigmaTest = 1
+        self.invProp = True
+        self.orderTest()
+        self.name += " - invProp"
+        self.invProp = False
         self.orderTest()
 
     def test_order3_edges(self):
         self.name = "2D Edge Inner Product - Anisotropic"
         self.location = 'edges'
         self.sigmaTest = 2
+        self.invProp = True
+        self.orderTest()
+        self.name += " - invProp"
+        self.invProp = False
         self.orderTest()
 
     def test_order6_edges(self):
         self.name = "2D Edge Inner Product - Full Tensor"
         self.location = 'edges'
         self.sigmaTest = 3
+        self.invProp = True
+        self.orderTest()
+        self.name += " - invProp"
+        self.invProp = False
         self.orderTest()
 
     def test_order1_faces(self):
         self.name = "2D Face Inner Product - Isotropic"
         self.location = 'faces'
         self.sigmaTest = 1
+        self.invProp = True
+        self.orderTest()
+        self.name += " - invProp"
+        self.invProp = False
         self.orderTest()
 
     def test_order2_faces(self):
         self.name = "2D Face Inner Product - Anisotropic"
         self.location = 'faces'
         self.sigmaTest = 2
+        self.invProp = True
+        self.orderTest()
+        self.name += " - invProp"
+        self.invProp = False
         self.orderTest()
 
     def test_order3_faces(self):
         self.name = "2D Face Inner Product - Full Tensor"
         self.location = 'faces'
         self.sigmaTest = 3
+        self.invProp = True
+        self.orderTest()
+        self.name += " - invProp"
+        self.invProp = False
         self.orderTest()
 
 
@@ -205,7 +237,10 @@ class TestInnerProducts1D(OrderTest):
 
         if self.location == 'faces':
             F = call(ex, self.M.gridFx)
-            A = self.M.getFaceInnerProduct(sigma)
+            if self.invProp:
+                A = self.M.getFaceInnerProduct(1/sigma, invProp=True)
+            else:
+                A = self.M.getFaceInnerProduct(sigma)
             numeric = F.T.dot(A.dot(F))
 
         err = np.abs(numeric - analytic)
@@ -215,6 +250,10 @@ class TestInnerProducts1D(OrderTest):
         self.name = "1D Face Inner Product"
         self.location = 'faces'
         self.sigmaTest = 1
+        self.invProp = True
+        self.orderTest()
+        self.name += " - invProp"
+        self.invProp = False
         self.orderTest()
 
 

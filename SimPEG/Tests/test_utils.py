@@ -140,6 +140,39 @@ class TestSequenceFunctions(unittest.TestCase):
             Z = B2*A - sp.identity(M.nC*2)
             self.assertTrue(np.linalg.norm(Z.todense().ravel(), 2) < TOL)
 
+    def test_tensorType2D(self):
+        M = Mesh.TensorMesh([6, 6])
+        a1 = np.random.rand(M.nC)
+        a2 = np.random.rand(M.nC)
+        a3 = np.random.rand(M.nC)
+        prop1 = a1
+        prop2 = np.c_[a1, a2]
+        prop3 = np.c_[a1, a2, a3]
+
+        for ii, prop in enumerate([4, prop1, prop2, prop3]):
+            self.assertTrue(tensorType(M, prop) == ii)
+
+        self.assertRaises(Exception, tensorType, M, np.c_[a1, a2, a3, a3])
+        self.assertTrue(tensorType(M, None) == -1)
+
+    def test_tensorType3D(self):
+        M = Mesh.TensorMesh([6, 6, 7])
+        a1 = np.random.rand(M.nC)
+        a2 = np.random.rand(M.nC)
+        a3 = np.random.rand(M.nC)
+        a4 = np.random.rand(M.nC)
+        a5 = np.random.rand(M.nC)
+        a6 = np.random.rand(M.nC)
+        prop1 = a1
+        prop2 = np.c_[a1, a2, a3]
+        prop3 = np.c_[a1, a2, a3, a4, a5, a6]
+
+        for ii, prop in enumerate([4, prop1, prop2, prop3]):
+            self.assertTrue(tensorType(M, prop) == ii)
+
+        self.assertRaises(Exception, tensorType, M, np.c_[a1, a2, a3, a3])
+        self.assertTrue(tensorType(M, None) == -1)
+
 
     def test_invPropertyTensor3D(self):
         M = Mesh.TensorMesh([6, 6, 6])
