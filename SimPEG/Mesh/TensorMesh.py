@@ -4,12 +4,6 @@ from View import TensorView
 from DiffOperators import DiffOperators
 from InnerProducts import InnerProducts
 
-def _getTensorGrid(self, key):
-    if getattr(self, '_grid' + key, None) is None:
-        setattr(self, '_grid' + key, Utils.ndgrid(self.getTensor(key)))
-    return getattr(self, '_grid' + key)
-
-
 class BaseTensorMesh(BaseRectangularMesh):
 
     __metaclass__ = Utils.SimPEGMetaClass
@@ -106,83 +100,89 @@ class BaseTensorMesh(BaseRectangularMesh):
     @property
     def gridCC(self):
         """Cell-centered grid."""
-        return _getTensorGrid(self, 'CC')
+        return self._getTensorGrid('CC')
 
     @property
     def gridN(self):
         """Nodal grid."""
-        return _getTensorGrid(self, 'N')
+        return self._getTensorGrid('N')
 
     @property
     def gridFx(self):
         """Face staggered grid in the x direction."""
         if self.nFx == 0: return
-        return _getTensorGrid(self, 'Fx')
+        return self._getTensorGrid('Fx')
 
     @property
     def gridFy(self):
         """Face staggered grid in the y direction."""
         if self.nFy == 0 or self.dim < 2: return
-        return _getTensorGrid(self, 'Fy')
+        return self._getTensorGrid('Fy')
 
     @property
     def gridFz(self):
         """Face staggered grid in the z direction."""
         if self.nFz == 0 or self.dim < 3: return
-        return _getTensorGrid(self, 'Fz')
+        return self._getTensorGrid('Fz')
 
     @property
     def gridEx(self):
         """Edge staggered grid in the x direction."""
         if self.nEx == 0: return
-        return _getTensorGrid(self, 'Ex')
+        return self._getTensorGrid('Ex')
 
     @property
     def gridEy(self):
         """Edge staggered grid in the y direction."""
         if self.nEy == 0 or self.dim < 2: return
-        return _getTensorGrid(self, 'Ey')
+        return self._getTensorGrid('Ey')
 
     @property
     def gridEz(self):
         """Edge staggered grid in the z direction."""
         if self.nEz == 0 or self.dim < 3: return
-        return _getTensorGrid(self, 'Ez')
+        return self._getTensorGrid('Ez')
 
-    def getTensor(self, locType):
+    def _getTensorGrid(self, key):
+        if getattr(self, '_grid' + key, None) is None:
+            setattr(self, '_grid' + key, Utils.ndgrid(self.getTensor(key)))
+        return getattr(self, '_grid' + key)
+
+    def getTensor(self, key):
         """ Returns a tensor list.
 
-        :param str locType: What tensor (see below)
+        :param str key: What tensor (see below)
         :rtype: list
         :return: list of the tensors that make up the mesh.
 
-        locType can be::
+        key can be::
 
-            'Ex'    -> x-component of field defined on edges
-            'Ey'    -> y-component of field defined on edges
-            'Ez'    -> z-component of field defined on edges
+            'CC'    -> scalar field defined on cell centers
+            'N'     -> scalar field defined on nodes
             'Fx'    -> x-component of field defined on faces
             'Fy'    -> y-component of field defined on faces
             'Fz'    -> z-component of field defined on faces
-            'N'     -> scalar field defined on nodes
-            'CC'    -> scalar field defined on cell centers
+            'Ex'    -> x-component of field defined on edges
+            'Ey'    -> y-component of field defined on edges
+            'Ez'    -> z-component of field defined on edges
+
         """
 
-        if   locType is 'Fx':
+        if   key is 'Fx':
             ten = [self.vectorNx , self.vectorCCy, self.vectorCCz]
-        elif locType is 'Fy':
+        elif key is 'Fy':
             ten = [self.vectorCCx, self.vectorNy , self.vectorCCz]
-        elif locType is 'Fz':
+        elif key is 'Fz':
             ten = [self.vectorCCx, self.vectorCCy, self.vectorNz ]
-        elif locType is 'Ex':
+        elif key is 'Ex':
             ten = [self.vectorCCx, self.vectorNy , self.vectorNz ]
-        elif locType is 'Ey':
+        elif key is 'Ey':
             ten = [self.vectorNx , self.vectorCCy, self.vectorNz ]
-        elif locType is 'Ez':
+        elif key is 'Ez':
             ten = [self.vectorNx , self.vectorNy , self.vectorCCz]
-        elif locType is 'CC':
+        elif key is 'CC':
             ten = [self.vectorCCx, self.vectorCCy, self.vectorCCz]
-        elif locType is 'N':
+        elif key is 'N':
             ten = [self.vectorNx , self.vectorNy , self.vectorNz ]
 
         return [t for t in ten if t is not None]
