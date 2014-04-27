@@ -5,6 +5,7 @@ from SurveyTDEM import FieldsTDEM
 from scipy.constants import mu_0
 from SimPEG.Utils import sdiag, mkvc
 from SimPEG import Utils, Mesh
+from simpegEM.Base import BaseEMProblem
 import numpy as np
 
 
@@ -46,42 +47,10 @@ class MixinInitialFieldCalc(object):
         return F
 
 
-class ProblemBaseTDEM(MixinInitialFieldCalc, BaseTimeProblem):
+class ProblemBaseTDEM(MixinInitialFieldCalc, BaseTimeProblem, BaseEMProblem):
     """docstring for ProblemTDEM1D"""
     def __init__(self, mesh, mapping=None, **kwargs):
         BaseTimeProblem.__init__(self, mesh, mapping=mapping, **kwargs)
-
-
-    ####################################################
-    # Physical Properties
-    ####################################################
-
-    @property
-    def sigma(self):
-        return self._sigma
-    @sigma.setter
-    def sigma(self, value):
-        self._sigma = value
-    _sigma = None
-
-    ####################################################
-    # Mass Matrices
-    ####################################################
-
-    @property
-    def MfMui(self): return self._MfMui
-
-    @property
-    def MeSigma(self): return self._MeSigma
-
-    @property
-    def MeSigmaI(self): return self._MeSigmaI
-
-    def makeMassMatrices(self, m):
-        sig = self.mapping.transform(m)
-        self._MeSigma = self.mesh.getEdgeInnerProduct(sig)
-        self._MeSigmaI = Utils.sdInv(self.MeSigma)
-        self._MfMui = self.mesh.getFaceInnerProduct(1.0/mu_0)
 
 
     def calcFields(self, sol, solType, tInd):
@@ -100,7 +69,7 @@ class ProblemBaseTDEM(MixinInitialFieldCalc, BaseTimeProblem):
     solveOpts = {}
 
     def fields(self, m):
-        self.makeMassMatrices(m)
+        self.curModel = m
         F = self.getInitialFields()
         return self.forward(m, self.getRHS, self.calcFields, F=F)
 
@@ -111,7 +80,7 @@ class ProblemBaseTDEM(MixinInitialFieldCalc, BaseTimeProblem):
 
         dtFact = None
         for tInd, dt in enumerate(self.timeSteps):
-            if dt!=dtFact:
+            if dt != dtFact:
                 dtFact = dt
                 A = self.getA(tInd)
                 # print 'Factoring...   (dt = ' + str(dt) + ')'
@@ -131,7 +100,7 @@ class ProblemBaseTDEM(MixinInitialFieldCalc, BaseTimeProblem):
 
         dtFact = None
         for tInd, dt in reversed(list(enumerate(self.timeSteps))):
-            if dt!=dtFact:
+            if dt != dtFact:
                 dtFact = dt
                 A = self.getA(tInd)
                 # print 'Factoring...   (dt = ' + str(dt) + ')'

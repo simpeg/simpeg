@@ -17,7 +17,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         mesh = Mesh.CylMesh([hx,1,hy], '00C')
 
         active = mesh.vectorCCz<0.
-        activeMap = Maps.ActiveCells(mesh, active, -8, nC=mesh.nCz)
+        activeMap = Maps.ActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
         mapping = Maps.ComboMap(mesh,
                     [Maps.ExpMap, Maps.Vertical1DMap, activeMap])
 
@@ -76,7 +76,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         prb = self.prb
         prb.timeSteps = [1e-05]
         sigma = self.sigma
-        prb.makeMassMatrices(sigma)
+        prb.curModel = sigma
 
         dt = prb.timeSteps[0]
         a11 = 1/dt*prb.MfMui*sp.eye(prb.mesh.nF)
@@ -97,7 +97,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         prb.timeSteps = [1e-05]
 
         sigma = self.sigma
-        prb.makeMassMatrices(sigma)
+        prb.curModel = sigma
 
         dt = prb.timeSteps[0]
         a11 = 1/dt*prb.MfMui*sp.eye(prb.mesh.nF)
@@ -120,7 +120,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         prb = self.prb
         mesh = self.prb.mesh
         sigma = self.sigma
-        self.prb.makeMassMatrices(sigma)
+        self.prb.curModel = sigma
 
         f = EM.TDEM.FieldsTDEM(prb.mesh, 1, prb.nT, 'b')
         for i in range(f.nT):
@@ -242,6 +242,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         V1 = np.linalg.norm(f3.fieldVec()-f1.fieldVec())
         V2 = np.linalg.norm(f1.fieldVec())
         print V1, V2
+        print 'I am gunna fail this one: boo. :('
         self.assertLess(V1/V2, 1e-6)
 
     def test_adjointsolveAhVssolveAht(self):

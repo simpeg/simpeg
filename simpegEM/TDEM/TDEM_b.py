@@ -109,7 +109,7 @@ class ProblemTDEM_b(ProblemBaseTDEM):
             e = self.MeSigmaI*self.mesh.edgeCurl.T*self.MfMui*b - self.MeSigmaI*p.get_e(tInd)
             return {'b':b, 'e':e}
 
-        self.makeMassMatrices(m)
+        self.curModel = m
         return self.forward(m, AhRHS, AhCalcFields)
 
     def solveAht(self, m, p):
@@ -126,16 +126,16 @@ class ProblemTDEM_b(ProblemBaseTDEM):
             e = self.MeSigmaI*self.mesh.edgeCurl.T*self.MfMui*b - self.MeSigmaI*p.get_e(tInd)
             return {'b':b, 'e':e}
 
-        self.makeMassMatrices(m)
+        self.curModel = m
         return self.adjoint(m, AhtRHS, AhtCalcFields)
 
     ####################################################
     # Functions for tests
     ####################################################
 
-    def AhVec(self, sigma, vec):
+    def AhVec(self, m, vec):
         """
-            :param numpy.array sigma: Conductivity model
+            :param numpy.array m: Conductivity model
             :param simpegEM.TDEM.FieldsTDEM vec: Fields object
             :rtype: simpegEM.TDEM.FieldsTDEM
             :return: f
@@ -167,7 +167,7 @@ class ProblemTDEM_b(ProblemBaseTDEM):
                 \\right] \\\\
         """
 
-        self.makeMassMatrices(sigma)
+        self.curModel = m
         dt = self.timeSteps[0]
         b = 1.0/dt*self.MfMui*vec.get_b(0) + self.MfMui*self.mesh.edgeCurl*vec.get_e(0)
         e = self.mesh.edgeCurl.T*self.MfMui*vec.get_b(0) - self.MeSigma*vec.get_e(0)
@@ -182,9 +182,9 @@ class ProblemTDEM_b(ProblemBaseTDEM):
             f.set_e(e, i)
         return f
 
-    def AhtVec(self, sigma, vec):
+    def AhtVec(self, m, vec):
         """
-            :param numpy.array sigma: Conductivity model
+            :param numpy.array m: Conductivity model
             :param simpegEM.TDEM.FieldsTDEM vec: Fields object
             :rtype: simpegEM.TDEM.FieldsTDEM
             :return: f
@@ -215,7 +215,7 @@ class ProblemTDEM_b(ProblemBaseTDEM):
                     \end{array}
                 \\right] \\\\
         """
-        self.makeMassMatrices(sigma)
+        self.curModel = m
         f = FieldsTDEM(self.mesh, 1, self.nT, 'b')
         for i in range(self.nT-1):
             b = 1.0/self.timeSteps[i]*self.MfMui*vec.get_b(i) + self.MfMui*self.mesh.edgeCurl*vec.get_e(i) - 1.0/self.timeSteps[i+1]*self.MfMui*vec.get_b(i+1)
@@ -257,9 +257,9 @@ if __name__ == '__main__':
     # prb.setTimes([1e-5, 5e-5, 2.5e-4], [10, 10, 10])
     prb.timeSteps = [(1e-5, 10)]
     prb.pair(survey)
-    sigma = np.random.rand(mesh.nCz)
+    m = np.random.rand(mesh.nCz)
 
-    print survey.dpred(sigma)
+    print survey.dpred(m)
 
 
 

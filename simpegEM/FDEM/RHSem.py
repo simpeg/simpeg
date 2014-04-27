@@ -50,10 +50,6 @@ def path2edgeModel(mesh, pts):
     edgeModel = np.r_[edm_x, edm_y, edm_z]
     return edgeModel
 
-def rho(x1, y1, x, y):
-    r = np.sqrt((x-x1)**2+(y-y1)**2)
-    return r
-
 def MMRhalf(loc1, loc2, x, y):
     """ Anaytic function for MMR response (B^{1D})
             - loc1=(x1,y1): x, y location for (+) charge
@@ -67,6 +63,9 @@ def MMRhalf(loc1, loc2, x, y):
     y2=loc2[1]
     mu0 = 4*np.pi*1e-7
     I = 1
+
+    rho  = lambda x1, y1, x, y: np.sqrt((x-x1)**2+(y-y1)**2)
+
     By =mu0*I/(4*np.pi)*np.array((x-x1)/rho(x1,y1,x,y)**2-(x-x2)/rho(x2,y2,x,y)**2)
     Bx =mu0*I/(4*np.pi)*np.array(-(y-y1)/rho(x1,y1,x,y)**2+(y-y2)/rho(x2,y2,x,y)**2)
 
