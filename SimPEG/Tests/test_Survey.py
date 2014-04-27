@@ -20,7 +20,7 @@ class DataAndFieldsTest(unittest.TestCase):
         txList = [Tx0,Tx1,Tx2,Tx3,Tx4]
         survey = Survey.BaseSurvey(txList=txList)
         self.D = Survey.Data(survey)
-        self.F = Survey.Fields(mesh, survey, knownFields={'phi':'CC','e':'E','b':'F'})
+        self.F = Survey.Fields(mesh, survey, knownFields={'phi':'CC','e':'E','b':'F'}, dtype={"phi":float,"e":complex,"b":complex})
         self.Tx0 = Tx0
         self.Tx1 = Tx1
         self.mesh = mesh
@@ -49,9 +49,9 @@ class DataAndFieldsTest(unittest.TestCase):
     def test_SetGet(self):
         F = self.F
         nTx = F.survey.nTx
-        e = np.random.rand(F.mesh.nE, nTx)
+        e = np.random.rand(F.mesh.nE, nTx) + np.random.rand(F.mesh.nE, nTx)*1j
         F[:, 'e'] = e
-        b = np.random.rand(F.mesh.nF, nTx)
+        b = np.random.rand(F.mesh.nF, nTx) + np.random.rand(F.mesh.nF, nTx)*1j
         F[:, 'b'] = b
 
         self.assertTrue(np.all(F[:, 'e'] == e))
@@ -72,7 +72,7 @@ class DataAndFieldsTest(unittest.TestCase):
         F[[self.Tx0,self.Tx1], 'phi'] = phi
         self.assertTrue(np.all(F[[self.Tx0,self.Tx1], 'phi'] == phi))
 
-        fdict = F[:]
+        fdict = F[:,:]
         self.assertTrue(type(fdict) is dict)
         self.assertTrue(sorted([k for k in fdict]) == ['b','e','phi'])
 

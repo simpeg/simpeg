@@ -250,6 +250,16 @@ class Fields(object):
             ind = np.in1d(self.survey.txList, txTestList)
         return ind
 
+    def _nameIndex(self, name):
+
+        if type(name) is slice:
+            assert name == slice(None,None,None), 'Fancy field name slicing is not supported... yet.'
+            name = None
+
+        if name is not None and name not in self.knownFields:
+            raise KeyError('Invalid field name')
+        return name
+
     def _indexAndNameFromKey(self, key):
         if type(key) is not tuple:
             key = (key,)
@@ -259,10 +269,7 @@ class Fields(object):
         assert len(key) == 2, 'must be [Tx, fieldName]'
 
         txTestList, name = key
-
-        if name is not None and name not in self.knownFields:
-            raise KeyError('Invalid field name')
-
+        name = self._nameIndex(name)
         ind = self._txIndex(txTestList)
         return ind, name
 
@@ -328,9 +335,7 @@ class TimeFields(Fields):
 
         txTestList, name, timeInd = key
 
-        if name is not None and name not in self.knownFields:
-            raise KeyError('Invalid field name')
-
+        name = self._nameIndex(name)
         txInd = self._txIndex(txTestList)
 
         return (txInd, timeInd), name
