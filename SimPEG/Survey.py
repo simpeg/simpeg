@@ -198,9 +198,9 @@ class Fields(object):
 
     """
 
-    knownFields = None
+    knownFields = None  #: the known fields, a dict with locations, e.g. {"phi": "CC", "b": "F"}
     txPair = BaseTx
-    dtype = float
+    dtype = float  #: dtype is the type of the storage matrix. This can be a dictionary.
 
     def __init__(self, mesh, survey, **kwargs):
         self.survey = survey
@@ -221,6 +221,7 @@ class Fields(object):
         loc = self.knownFields[name]
 
         nP = {'CC': self.mesh.nC,
+              'N':  self.mesh.nN,
               'F':  self.mesh.nF,
               'E':  self.mesh.nE}[loc]
 
@@ -282,21 +283,72 @@ class Fields(object):
             NEWF = newFields[name]
             if field.shape[1] == 1 or NEWF.ndim == 1:
                 NEWF = Utils.mkvc(NEWF,2)
-            field[:,ind] = NEWF
+            self._setField(field, NEWF, ind)
 
     def __getitem__(self, key):
         ind, name = self._indexAndNameFromKey(key)
         if name is None:
             out = {}
             for name in self._fields:
-                out[name] = self._fields[name][:,ind]
-                if out[name].shape[1] == 1:
-                    out[name] = Utils.mkvc(out[name])
+                out[name] = self._getField(name, ind)
             return out
+        return self._getField(name, ind)
 
+    def _setField(self, field, val, ind):
+        field[:,ind] = val
+
+    def _getField(self, name, ind):
         out = self._fields[name][:,ind]
         if out.shape[1] == 1:
             out = Utils.mkvc(out)
+        return out
+
+class TimeFields(Fields):
+    """Fancy Field Storage for time domain problems
+
+        u[:,'phi', timeInd] = phi
+        print u[tx0,'phi']
+
+    """
+
+    def _storageShape(self, nP):
+        nTx = self.survey.nTx
+        nT = self.survey.prob.nT
+        return (nP, nTx, nT)
+
+    def _indexAndNameFromKey(self, key):
+        if type(key) is not tuple:
+            key = (key,)
+        if len(key) == 1:
+            key += (None,)
+        if len(key) == 2:
+            key += (slice(None,None,None),)
+
+        assert len(key) == 3, 'must be [Tx, fieldName, times]'
+
+        txTestList, name, timeInd = key
+
+        if name is not None and name not in self.knownFields:
+            raise KeyError('Invalid field name')
+
+        txInd = self._txIndex(txTestList)
+
+        return (txInd, timeInd), name
+
+    def _setField(self, field, val, ind):
+        txInd, timeInd = ind
+        if val.ndim == 2:
+            val = val[:, np.newaxis, :]
+        field[:,txInd,timeInd] = val
+
+    def _getField(self, name, ind):
+        txInd, timeInd = ind
+        out = self._fields[name][:,txInd,timeInd]
+        if out.shape[1] == 1:
+            if out.ndim == 2:
+                out = out[:,0]
+            else:
+                out = out[:,0,:]
         return out
 
 
