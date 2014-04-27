@@ -56,9 +56,10 @@ class BaseProblemFDEM(Problem.BaseProblem):
 
     @property
     def MeSigmaI(self):
-        # TODO: this will not work if tensor conductivity
+        #TODO: hardcoded to sigma as the model
         if getattr(self, '_MeSigmaI', None) is None:
-            self._MeSigmaI = Utils.sdiag(1/self.MeSigma.diagonal())
+            sigma = self.curTModel
+            self._MeSigmaI = self.mesh.getEdgeInnerProduct(sigma, invMat=True)
         return self._MeSigmaI
 
     curModel = Utils.dependentProperty('_curModel', None, ['_MeSigma', '_MeSigmaI', '_curTModel', '_curTModelDeriv'], 'Sets the current model, and removes dependent mass matrices.')
@@ -90,7 +91,8 @@ class BaseProblemFDEM(Problem.BaseProblem):
             solver = self.Solver(A, **self.solverOpts)
             sol = solver.solve(rhs)
             for fieldType in self.storeTheseFields:
-                F[freq, fieldType] = CalcFields(sol, freq, fieldType)
+                Txs = self.survey.getTransmitters(freq)
+                F[Txs, fieldType] = CalcFields(sol, freq, fieldType)
 
         return F
 

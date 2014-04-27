@@ -2,6 +2,8 @@ import unittest
 from SimPEG import *
 import simpegEM as EM
 
+plotIt = False
+
 class TDEM_bDerivTests(unittest.TestCase):
 
     def setUp(self):
@@ -29,7 +31,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         self.dat = EM.TDEM.SurveyTDEM1D(**opts)
 
         self.prb = EM.TDEM.ProblemTDEM_b(mesh, mapping=mapping)
-        self.prb.timeSteps = [(1e-05, 10), (5e-05, 10), (0.00025, 10)]
+        self.prb.timeSteps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
 
         self.sigma = np.ones(mesh.nCz)*1e-8
         self.sigma[mesh.vectorCCz<0] = 1e-1
@@ -146,7 +148,7 @@ class TDEM_bDerivTests(unittest.TestCase):
 
         derChk = lambda m: [self.prb.AhVec(m, f).fieldVec(), lambda mx: self.prb.Gvec(sigma, mx, u=f).fieldVec()]
         print '\ntest_DerivG'
-        passed = Tests.checkDerivative(derChk, sigma, plotIt=False, dx=dm, num=6, eps=1e-20)
+        passed = Tests.checkDerivative(derChk, sigma, plotIt=False, dx=dm, num=4, eps=1e-20)
         self.assertTrue(passed)
 
     def test_Deriv_dUdM(self):
@@ -162,7 +164,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         derChk = lambda m: [self.prb.fields(m).fieldVec(), lambda mx: -prb.solveAh(sigma, prb.Gvec(sigma, mx, u=f)).fieldVec()]
         print '\n'
         print 'test_Deriv_dUdM'
-        passed = Tests.checkDerivative(derChk, sigma, plotIt=False, dx=dm, num=6, eps=1e-20)
+        passed = Tests.checkDerivative(derChk, sigma, plotIt=False, dx=dm, num=4, eps=1e-20)
         self.assertTrue(passed)
 
     def test_Deriv_J(self):
@@ -179,7 +181,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         derChk = lambda m: [prb.survey.dpred(m), lambda mx: -prb.Jvec(sigma, mx)]
         print '\n'
         print 'test_Deriv_J'
-        passed = Tests.checkDerivative(derChk, sigma, plotIt=False, dx=d_sig, num=6, eps=1e-20)
+        passed = Tests.checkDerivative(derChk, sigma, plotIt=False, dx=d_sig, num=4, eps=1e-20)
         self.assertTrue(passed)
 
     def test_projectAdjoint(self):
@@ -225,15 +227,21 @@ class TDEM_bDerivTests(unittest.TestCase):
         sigma = np.random.rand(prb.mapping.nP)
 
         f1 = EM.TDEM.FieldsTDEM(mesh, 1, prb.nT, 'b')
-        for i in range(f1.nT):
+        for i in range(prb.nT):
             f1.set_b(np.random.rand(mesh.nF, 1), i)
             f1.set_e(np.random.rand(mesh.nE, 1), i)
 
         f2 = prb.solveAht(sigma, f1)
         f3 = prb.AhtVec(sigma, f2)
 
+        if plotIt:
+            import matplotlib.pyplot as plt
+            plt.plot(f3.fieldVec())
+            plt.plot(f1.fieldVec())
+            plt.show()
         V1 = np.linalg.norm(f3.fieldVec()-f1.fieldVec())
         V2 = np.linalg.norm(f1.fieldVec())
+        print V1, V2
         self.assertLess(V1/V2, 1e-6)
 
     def test_adjointsolveAhVssolveAht(self):

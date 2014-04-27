@@ -29,29 +29,34 @@ class FieldsTest(unittest.TestCase):
     def test_SetGet(self):
         F = self.F
         for freq in F.survey.freqs:
-            nFreq = F.survey.nTx[freq]
+            nFreq = F.survey.nTxByFreq[freq]
+            Txs = F.survey.getTransmitters(freq)
             e = np.random.rand(F.mesh.nE, nFreq)
-            F[freq, 'e'] = e
+            F[Txs, 'e'] = e
             b = np.random.rand(F.mesh.nF, nFreq)
-            F[freq, 'b'] = b
+            F[Txs, 'b'] = b
             if nFreq == 1:
-                F[freq, 'b'] = Utils.mkvc(b)
-            self.assertTrue(np.all(F[freq, 'e'] == e))
-            self.assertTrue(np.all(F[freq, 'b'] == b))
-            F[freq] = {'b':b,'e':e}
-            self.assertTrue(np.all(F[freq, 'e'] == e))
-            self.assertTrue(np.all(F[freq, 'b'] == b))
+                F[Txs, 'b'] = Utils.mkvc(b)
+            if e.shape[1] == 1:
+                e, b = Utils.mkvc(e), Utils.mkvc(b)
+            self.assertTrue(np.all(F[Txs, 'e'] == e))
+            self.assertTrue(np.all(F[Txs, 'b'] == b))
+            F[Txs] = {'b':b,'e':e}
+            self.assertTrue(np.all(F[Txs, 'e'] == e))
+            self.assertTrue(np.all(F[Txs, 'b'] == b))
 
-        lastFreq = F[freq]
+        lastFreq = F[Txs]
         self.assertTrue(type(lastFreq) is dict)
         self.assertTrue(sorted([k for k in lastFreq]) == ['b','e'])
         self.assertTrue(np.all(lastFreq['b'] == b))
         self.assertTrue(np.all(lastFreq['e'] == e))
 
-        self.assertTrue(F[3.,'b'].shape == (F.mesh.nF, 2))
+        Tx_f3 = F.survey.getTransmitters(3.)
+        self.assertTrue(F[Tx_f3,'b'].shape == (F.mesh.nF, 2))
 
         b = np.random.rand(F.mesh.nF, 2)
-        F[self.Tx0.freq,'b'] = b
+        Tx_f0 = F.survey.getTransmitters(self.Tx0.freq)
+        F[Tx_f0,'b'] = b
         self.assertTrue(F[self.Tx0]['b'].shape == (F.mesh.nF,))
         self.assertTrue(F[self.Tx0,'b'].shape == (F.mesh.nF,))
         self.assertTrue(np.all(F[self.Tx0,'b'] == b[:,0]))
@@ -59,23 +64,25 @@ class FieldsTest(unittest.TestCase):
 
     def test_assertions(self):
         freq = self.F.survey.freqs[0]
-        bWrongSize = np.random.rand(self.F.mesh.nE, self.F.survey.nTx[freq])
-        def fun(): self.F[freq, 'b'] = bWrongSize
-        self.assertRaises(AssertionError, fun)
+        Txs = self.F.survey.getTransmitters(freq)
+        bWrongSize = np.random.rand(self.F.mesh.nE, self.F.survey.nTxByFreq[freq])
+        def fun(): self.F[Txs, 'b'] = bWrongSize
+        self.assertRaises(ValueError, fun)
         def fun(): self.F[-999.]
         self.assertRaises(KeyError, fun)
         def fun(): self.F['notRight']
         self.assertRaises(KeyError, fun)
-        def fun(): self.F[freq,'notThere']
+        def fun(): self.F[Txs,'notThere']
         self.assertRaises(KeyError, fun)
 
     def test_FieldProjections(self):
         F = self.F
         for freq in F.survey.freqs:
-            nFreq = F.survey.nTx[freq]
+            nFreq = F.survey.nTxByFreq[freq]
+            Txs = F.survey.getTransmitters(freq)
             e = np.random.rand(F.mesh.nE, nFreq)
             b = np.random.rand(F.mesh.nF, nFreq)
-            F[freq] = {'b':b,'e':e}
+            F[Txs] = {'b':b,'e':e}
 
             Txs = F.survey.getTransmitters(freq)
             for ii, tx in enumerate(Txs):

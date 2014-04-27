@@ -1,5 +1,4 @@
 from BaseTDEM import ProblemBaseTDEM
-from FieldsTDEM import FieldsTDEM
 from SimPEG.Utils import mkvc
 import numpy as np
 from SurveyTDEM import SurveyTDEM1D

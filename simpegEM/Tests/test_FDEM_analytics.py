@@ -16,7 +16,6 @@ class FDEM_analyticTests(unittest.TestCase):
         hy = [(cs,npad,-1.3), (cs,ncy), (cs,npad,1.3)]
         hz = [(cs,npad,-1.3), (cs,ncz), (cs,npad,1.3)]
         mesh = Mesh.TensorMesh([hx,hy,hz], 'CCC')
-        print mesh.vectorCCx
 
         mapping = Maps.ExpMap(mesh)
 

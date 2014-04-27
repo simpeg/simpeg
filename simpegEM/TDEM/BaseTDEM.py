@@ -1,7 +1,6 @@
 from SimPEG import Solver
 from SimPEG.Problem import BaseTimeProblem
 from simpegEM.Utils import Sources
-from FieldsTDEM import FieldsTDEM
 from scipy.constants import mu_0
 from SimPEG.Utils import sdiag, mkvc
 from SimPEG import Utils, Mesh
