@@ -69,7 +69,7 @@ class TxFDEM(Survey.BaseTx):
 
     freq = None #: Frequency (float)
 
-    rxListPair = RxFDEM
+    rxPair = RxFDEM
 
     knownTxTypes = ['VMD']
 
