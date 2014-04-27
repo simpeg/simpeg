@@ -22,15 +22,10 @@ def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=[1e-5,
     actMap = Maps.ActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
     mapping = Maps.ComboMap(mesh, [Maps.ExpMap, Maps.Vertical1DMap, actMap])
 
+    rx = EM.TDEM.RxTDEM(np.array([[rxOffset, 0., 0.]]), np.logspace(-5,-4, 21), 'bz')
+    tx = EM.TDEM.TxTDEM(np.array([0., 0., 0.]), 'VMD_MVP', [rx])
 
-    opts = {'txLoc':np.array([0., 0., 0.]),
-            'txType':'VMD_MVP',
-            'rxLoc':np.array([rxOffset, 0., 0.]),
-            'rxType':'bz',
-            'timeCh':np.logspace(-5,-4, 21),
-            }
-
-    survey = EM.TDEM.SurveyTDEM1D(**opts)
+    survey = EM.TDEM.SurveyTDEM([tx])
     prb = EM.TDEM.ProblemTDEM_b(mesh, mapping=mapping)
     prb.Solver = Utils.SolverUtils.DSolverWrap(sp.linalg.splu, factorize=True)
     # try:
@@ -46,16 +41,17 @@ def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=[1e-5,
     sigma = np.log(sigma[active])
     prb.pair(survey)
 
-    bz_ana = mu_0*EM.Utils.Ana.hzAnalyticDipoleT(survey.rxLoc[0]+1e-3, prb.times[1:], sig_half)
+    bz_ana = mu_0*EM.Utils.Ana.hzAnalyticDipoleT(rx.locs[0][0]+1e-3, rx.times, sig_half)
 
     bz_calc = survey.dpred(sigma)
-    ind = np.logical_and(prb.times[1:] > bounds[0],prb.times[1:] < bounds[1])
+
+    ind = np.logical_and(rx.times > bounds[0],rx.times < bounds[1])
     log10diff = np.linalg.norm(np.log10(np.abs(bz_calc[ind])) - np.log10(np.abs(bz_ana[ind])))/np.linalg.norm(np.log10(np.abs(bz_ana[ind])))
     print 'Difference: ', log10diff
 
     if showIt == True:
-        plt.loglog(prb.times[1:][bz_calc>0], bz_calc[bz_calc>0], 'r', prb.times[1:][bz_calc<0], -bz_calc[bz_calc<0], 'r--')
-        plt.loglog(prb.times[1:], abs(bz_ana), 'b*')
+        plt.loglog(rx.times[bz_calc>0], bz_calc[bz_calc>0], 'r', rx.times[bz_calc<0], -bz_calc[bz_calc<0], 'r--')
+        plt.loglog(rx.times, abs(bz_ana), 'b*')
         plt.title('sig_half = %e'%sig_half)
         plt.show()
 

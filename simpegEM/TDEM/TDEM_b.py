@@ -1,9 +1,9 @@
-from BaseTDEM import ProblemBaseTDEM
+from BaseTDEM import BaseTDEMProblem
 from SimPEG.Utils import mkvc
 import numpy as np
-from SurveyTDEM import SurveyTDEM1D, FieldsTDEM
+from SurveyTDEM import SurveyTDEM, FieldsTDEM
 
-class ProblemTDEM_b(ProblemBaseTDEM):
+class ProblemTDEM_b(BaseTDEMProblem):
     """
         Time-Domain EM problem - B-formulation
 
@@ -16,11 +16,11 @@ class ProblemTDEM_b(ProblemBaseTDEM):
         with \\\(\\b\\\) defined on cell faces and \\\(\e\\\) defined on edges.
     """
     def __init__(self, mesh, mapping=None, **kwargs):
-        ProblemBaseTDEM.__init__(self, mesh, mapping=mapping, **kwargs)
+        BaseTDEMProblem.__init__(self, mesh, mapping=mapping, **kwargs)
 
     solType = 'b'
 
-    surveyPair = SurveyTDEM1D
+    surveyPair = SurveyTDEM
 
     ####################################################
     # Internal Methods
@@ -32,13 +32,14 @@ class ProblemTDEM_b(ProblemBaseTDEM):
             :rtype: scipy.sparse.csr_matrix
             :return: A
         """
-
         dt = self.timeSteps[tInd]
         return self.MfMui*self.mesh.edgeCurl*self.MeSigmaI*self.mesh.edgeCurl.T*self.MfMui + (1.0/dt)*self.MfMui
 
     def getRHS(self, tInd, F):
         dt = self.timeSteps[tInd]
-        return (1.0/dt)*self.MfMui*F.get_b(tInd-1)
+        B_n = np.concatenate([F[tx,'b',tInd] for tx in self.survey.txList], axis=1)
+        RHS = (1.0/dt)*self.MfMui*B_n
+        return RHS
 
 
     ####################################################

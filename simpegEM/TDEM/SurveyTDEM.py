@@ -1,5 +1,102 @@
-from SimPEG import Utils, np
+from SimPEG import Utils, Survey, np
 from SimPEG.Survey import BaseSurvey
+from simpegEM.Utils import Sources
+
+
+class RxTDEM(Survey.BaseTimeRx):
+
+    knownRxTypes = {
+                    'ex':['e', 'Ex'],
+                    'ey':['e', 'Ey'],
+                    'ez':['e', 'Ez'],
+
+                    'bx':['b', 'Fx'],
+                    'by':['b', 'Fy'],
+                    'bz':['b', 'Fz'],
+                   }
+
+    def __init__(self, locs, times, rxType):
+        Survey.BaseTimeRx.__init__(self, locs, times, rxType)
+
+    @property
+    def projField(self):
+        """Field Type projection (e.g. e b ...)"""
+        return self.knownRxTypes[self.rxType][0]
+
+    @property
+    def projGLoc(self):
+        """Grid Location projection (e.g. Ex Fy ...)"""
+        return self.knownRxTypes[self.rxType][1]
+
+    def projectFields(self, tx, mesh, timeMesh, u):
+        P = self.getP(mesh, timeMesh)
+        u_part = Utils.mkvc(u[tx, self.projField, :])
+        return P*u_part
+
+    def projectFieldsDeriv(self, tx, mesh, timeMesh, u, v, adjoint=False):
+        P = self.getP(mesh, timeMesh)
+
+        if not adjoint:
+            return P * v
+        elif adjoint:
+            return P.T * v
+
+
+class FieldsTDEM(Survey.TimeFields):
+    """Fancy Field Storage for a TDEM survey."""
+    knownFields = {'b': 'F', 'e': 'E'}
+
+
+class TxTDEM(Survey.BaseTx):
+    rxPair = RxTDEM
+    knownTxTypes = ['VMD_MVP']
+
+    def getInitialFields(self, mesh):
+        F0 = getattr(self, '_getInitialFields_' + self.txType)(mesh)
+        return F0
+
+    def _getInitialFields_VMD_MVP(self, mesh):
+        """Vertical magnetic dipole, magnetic vector potential"""
+        if mesh._meshType is 'CYL':
+            if mesh.isSymmetric:
+                MVP = Sources.MagneticDipoleVectorPotential(self.loc, mesh.gridEy, 'y')
+            else:
+                raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
+        elif mesh._meshType is 'TENSOR':
+            MVPx = Sources.MagneticDipoleVectorPotential(self.loc, mesh.gridEx, 'x')
+            MVPy = Sources.MagneticDipoleVectorPotential(self.loc, mesh.gridEy, 'y')
+            MVPz = Sources.MagneticDipoleVectorPotential(self.loc, mesh.gridEz, 'z')
+            MVP = np.concatenate((MVPx, MVPy, MVPz))
+        else:
+            raise Exception('Unknown mesh for VMD')
+
+        return {"b": mesh.edgeCurl*MVP}
+
+    def getJs(self, time):
+        return None
+
+class SurveyTDEM(Survey.BaseSurvey):
+    """
+        docstring for SurveyTDEM
+    """
+
+    txPair = TxTDEM
+
+    def __init__(self, txList, **kwargs):
+        # Sort these by frequency
+        self.txList = txList
+        Survey.BaseSurvey.__init__(self, **kwargs)
+
+    def projectFields(self, u):
+        data = Survey.Data(self)
+        for tx in self.txList:
+            for rx in tx.rxList:
+                data[tx, rx] = rx.projectFields(tx, self.mesh, self.prob.timeMesh, u)
+        return data
+
+    def projectFieldsDeriv(self, u):
+        raise Exception('Use Transmitters to project fields deriv.')
+
 
 class SurveyTDEM1D(BaseSurvey):
     """
@@ -52,7 +149,7 @@ class SurveyTDEM1D(BaseSurvey):
     _Qrx = None
 
 
-class FieldsTDEM(object):
+class FieldsTDEM_OLD(object):
     """docstring for FieldsTDEM"""
 
     phi0 = None #: Initial electric potential
