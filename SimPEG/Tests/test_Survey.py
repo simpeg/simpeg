@@ -126,7 +126,7 @@ class FieldsTest_Time(unittest.TestCase):
     def test_SetGet(self):
         F = self.F
         nTx = F.survey.nTx
-        nT = F.survey.prob.nT
+        nT = F.survey.prob.nT + 1
         e = np.random.rand(F.mesh.nE, nTx, nT)
         F[:, 'e'] = e
         b = np.random.rand(F.mesh.nF, nTx, nT)
@@ -138,9 +138,13 @@ class FieldsTest_Time(unittest.TestCase):
         self.assertTrue(np.all(F[:, 'e'] == e))
         self.assertTrue(np.all(F[:, 'b'] == b))
 
-        b = np.random.rand(F.mesh.nF,nT)
+        b = np.random.rand(F.mesh.nF,1,nT)
         F[self.Tx0, 'b'] = b
-        self.assertTrue(np.all(F[self.Tx0, 'b'] == b))
+        self.assertTrue(np.all(F[self.Tx0, 'b'] == b[:,0,:]))
+
+        b = np.random.rand(F.mesh.nF,1,nT)
+        F[self.Tx0, 'b', 0] = b[:,:,0]
+        self.assertTrue(np.all(F[self.Tx0, 'b', 0] == b[:,0,0]))
 
         phi = np.random.rand(F.mesh.nC,2,nT)
         F[[self.Tx0,self.Tx1], 'phi'] = phi
@@ -160,6 +164,10 @@ class FieldsTest_Time(unittest.TestCase):
         self.assertTrue(np.all(F[self.Tx1,'b',1] == b[:,1,1]))
         self.assertTrue(np.all(F[self.Tx0,'b',4] == b[:,0,4]))
         self.assertTrue(np.all(F[self.Tx1,'b',4] == b[:,1,4]))
+
+
+        b = np.random.rand(F.mesh.nF, 2, nT)
+        F[[self.Tx0, self.Tx1],'b', 0] = b[:,:,0]
 
     def test_assertions(self):
         freq = [self.Tx0, self.Tx1]

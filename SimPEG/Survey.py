@@ -103,7 +103,7 @@ class BaseTx(object):
     def __init__(self, loc, txType, rxList, **kwargs):
         assert type(rxList) is list, 'rxList must be a list'
         for rx in rxList:
-            assert isinstance(rx, self.rxPair), 'rxList must be a %s'%self.rxListPair.__name__
+            assert isinstance(rx, self.rxPair), 'rxList must be a %s'%self.rxPair.__name__
         assert len(set(rxList)) == len(rxList), 'The rxList must be unique'
 
         self.loc    = loc
@@ -321,7 +321,7 @@ class TimeFields(Fields):
     def _storageShape(self, nP):
         nTx = self.survey.nTx
         nT = self.survey.prob.nT
-        return (nP, nTx, nT)
+        return (nP, nTx, nT + 1)
 
     def _indexAndNameFromKey(self, key):
         if type(key) is not tuple:
@@ -342,8 +342,6 @@ class TimeFields(Fields):
 
     def _setField(self, field, val, ind):
         txInd, timeInd = ind
-        if val.ndim == 2:
-            val = val[:, np.newaxis, :]
         field[:,txInd,timeInd] = val
 
     def _getField(self, name, ind):
