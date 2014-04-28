@@ -28,11 +28,6 @@ def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=[1e-5,
     survey = EM.TDEM.SurveyTDEM([tx])
     prb = EM.TDEM.ProblemTDEM_b(mesh, mapping=mapping)
     prb.Solver = Utils.SolverUtils.DSolverWrap(sp.linalg.splu, factorize=True)
-    # try:
-    #     from mumpsSCI import MumpsSolver
-    #     prb.Solver = MumpsSolver
-    # except ImportError, e:
-    #     pass
 
     prb.timeSteps = [(1e-06, 40), (5e-06, 40), (1e-05, 40), (5e-05, 40), (0.0001, 40), (0.0005, 40)]
 

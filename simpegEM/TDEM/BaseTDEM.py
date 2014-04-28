@@ -58,7 +58,7 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
 
     def adjoint(self, m, RHS, CalcFields, F=None):
         if F is None:
-            F = FieldsTDEM(self.mesh, self.survey.nTx, self.nT, store=self.storeTheseFields)
+            F = FieldsTDEM(self.mesh, self.survey)
 
         dtFact = None
         for tInd, dt in reversed(list(enumerate(self.timeSteps))):
@@ -73,6 +73,6 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
             if sol.ndim == 1:
                 sol.shape = (sol.size,1)
             newFields = CalcFields(sol, self.solType, tInd)
-            F.update(newFields, tInd)
+            F[:,:,tInd] = newFields
         return F
 
