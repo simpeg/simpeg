@@ -229,7 +229,7 @@ class Fields(object):
             dtype = self.dtype[name]
         else:
             dtype = self.dtype
-        field = np.empty(self._storageShape(nP), dtype=dtype)
+        field = np.zeros(self._storageShape(nP), dtype=dtype)
 
         self._fields[name] = field
 
@@ -280,17 +280,13 @@ class Fields(object):
             assert type(value) is dict, 'New fields must be a dictionary, if field is not specified.'
             newFields = value
         elif name in self.knownFields:
-            assert type(value) is np.ndarray, 'Must be set to a numpy array'
             newFields = {name: value}
         else:
             raise Exception('Unknown setter')
 
         for name in newFields:
             field = self._initStore(name)
-            NEWF = newFields[name]
-            if field.shape[1] == 1 or NEWF.ndim == 1:
-                NEWF = Utils.mkvc(NEWF,2)
-            self._setField(field, NEWF, ind)
+            self._setField(field, newFields[name], ind)
 
     def __getitem__(self, key):
         ind, name = self._indexAndNameFromKey(key)
@@ -302,6 +298,8 @@ class Fields(object):
         return self._getField(name, ind)
 
     def _setField(self, field, val, ind):
+        if type(val) is np.ndarray and (field.shape[1] == 1 or val.ndim == 1):
+            val = Utils.mkvc(val,2)
         field[:,ind] = val
 
     def _getField(self, name, ind):
@@ -309,6 +307,9 @@ class Fields(object):
         if out.shape[1] == 1:
             out = Utils.mkvc(out)
         return out
+
+    def __contains__(self, other):
+       return self._fields.__contains__(other)
 
 class TimeFields(Fields):
     """Fancy Field Storage for time domain problems
@@ -342,6 +343,8 @@ class TimeFields(Fields):
 
     def _setField(self, field, val, ind):
         txInd, timeInd = ind
+        if type(val) is np.ndarray and (val.ndim == 1):
+            val = Utils.mkvc(val,2)
         field[:,txInd,timeInd] = val
 
     def _getField(self, name, ind):
