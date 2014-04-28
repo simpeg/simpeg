@@ -64,7 +64,7 @@ class ProblemTDEM_b(BaseTDEMProblem):
         p = self.survey.projectFieldsDeriv(u, v=v, adjoint=True)
         y = self.solveAht(m, p)
         w = self.Gtvec(m, y, u)
-        return - w
+        return - mkvc(w)
 
     def Gvec(self, m, vec, u=None):
         """
@@ -107,10 +107,13 @@ class ProblemTDEM_b(BaseTDEMProblem):
         if u is None:
             u = self.fields(m)
         nTx, nE = self.survey.nTx, self.mesh.nE
-        tmp = np.zeros(nE if nTx == 1 else (nE,nTx))
+        tmp = np.zeros(nE)
         # Here we can do internal multiplications of Gt*v and then multiply by MsigDeriv.T in one go.
         for i in range(1,self.nT+1):
-            tmp += vec[:,'e',i]*u[:,'e',i]
+            vu = vec[:,'e',i]*u[:,'e',i]
+            if nTx > 1:
+                vu = vu.sum(axis=1)
+            tmp += vu
 
         curModel = self.mapping.transform(m)
         p = -mkvc(self.mapping.transformDeriv(m).T*self.mesh.getEdgeInnerProductDeriv(curModel).T*tmp)
@@ -137,6 +140,12 @@ class ProblemTDEM_b(BaseTDEMProblem):
 
     def solveAht(self, m, p):
 
+        #  Mini Example:
+        #
+        #       nT = 3, len(times) == 4, fields stored in F[:,:,1:4]
+        #
+        #       0 is held for initial conditions (this shifts the storage by +1)
+        #       ^
         #  fLoc 0     1     2     3
         #       |-----|-----|-----|
         #  tInd    0     1     2  /   /

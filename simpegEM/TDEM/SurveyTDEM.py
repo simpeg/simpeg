@@ -60,8 +60,8 @@ class FieldsTDEM(Survey.TimeFields):
                 e = self[:,'e',i+1]
             else:
                 e = np.zeros(nE if nTx == 1 else (nE, nTx))
-            u = np.r_[u, b, e]
-        return u
+            u = np.concatenate((u, b, e))
+        return Utils.mkvc(u)
 
 class TxTDEM(Survey.BaseTx):
     rxPair = RxTDEM

@@ -197,7 +197,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         for i in range(prb.nT):
             f[:,'b',i] = np.random.rand(mesh.nF, 1)
             f[:,'e',i] = np.random.rand(mesh.nE, 1)
-        d_vec = np.random.rand(survey.nD, survey.nTx).flatten()
+        d_vec = np.random.rand(survey.nD)
         d = Survey.Data(survey,v=d_vec)
 
         # Check that d.T*Q*f = f.T*Q.T*d
