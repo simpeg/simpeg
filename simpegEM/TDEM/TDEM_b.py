@@ -74,29 +74,43 @@ class ProblemTDEM_b(BaseTDEMProblem):
             :rtype: simpegEM.TDEM.FieldsTDEM
             :return: f
 
-            Multiply G by a vector where
+            Multiply G by a vector
         """
         if u is None:
             u = self.fields(m)
 
+        # Note: Fields has shape (nF/E, nTx, nT+1)
+        #       However, p will only really fill (:,:,1:nT+1)
+        #       meaning the 'initial fields' are zero (:,:,0)
         p = FieldsTDEM(self.mesh, self.survey)
-        p[:, 'b', :] = 0.0 #np.zeros((self.mesh.nF, self.survey.nTx, self.prob.nT))
-        p[:, 'e', 0] = 0.0 #np.zeros((self.mesh.nF, self.survey.nTx))
-        # p = FieldsTDEM(self.mesh, 1, self.nT, 'b')
+        p[:, 'b', :] = 0.0 # b at all times is zero.
+        p[:, 'e', 0] = 0.0 # fake initial fields
         curModel = self.mapping.transform(m)
         c = self.mesh.getEdgeInnerProductDeriv(curModel)*self.mapping.transformDeriv(m)*vec
-        for i in range(self.nT):
+        for i in range(1,self.nT+1):
+            # TODO: G[1] may be dependent on the model
+            #       for a galvanic source (deriv of the dc problem)
             for tx in self.survey.txList:
-                p[tx, 'e', i+1] = -u[tx,'e',i+1]*c
+                p[tx, 'e', i] = -u[tx,'e',i]*c # - diag(e) * MsigDeriv * v
         return p
 
-    def Gtvec(self, m, v, u=None):
+    def Gtvec(self, m, vec, u=None):
+        """
+            :param numpy.array m: Conductivity model
+            :param numpy.array vec: vector (like a fields)
+            :param simpegEM.TDEM.FieldsTDEM u: Fields resulting from m
+            :rtype: np.ndarray (like a model)
+            :return: p
+
+            Multiply G.T by a vector
+        """
         if u is None:
             u = self.fields(m)
         nTx, nE = self.survey.nTx, self.mesh.nE
         tmp = np.zeros(nE if nTx == 1 else (nE,nTx))
+        # Here we can do internal multiplications of Gt*v and then multiply by MsigDeriv.T in one go.
         for i in range(1,self.nT+1):
-            tmp += v[:,'e',i]*u[:,'e',i]
+            tmp += vec[:,'e',i]*u[:,'e',i]
 
         curModel = self.mapping.transform(m)
         p = -mkvc(self.mapping.transformDeriv(m).T*self.mesh.getEdgeInnerProductDeriv(curModel).T*tmp)
