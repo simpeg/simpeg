@@ -137,19 +137,27 @@ class ProblemTDEM_b(BaseTDEMProblem):
 
     def solveAht(self, m, p):
 
-        def AhtRHS(tInd, u):
+        #  fLoc 0     1     2     3
+        #       |-----|-----|-----|
+        #  tInd    0     1     2  /   /
+        #                        / __/
+        #                      2          (tInd=2 uses fields 3 and would use 4 but it doesn't exist)
+        #                 / __/
+        #                1                (tInd=1 uses fields 2 and 3)
+
+        def AhtRHS(tInd, y):
             nTx, nF = self.survey.nTx, self.mesh.nF
             rhs = np.zeros(nF if nTx == 1 else (nF, nTx))
 
             if 'e' in p:
-                rhs += self.MfMui*self.mesh.edgeCurl*self.MeSigmaI*p[:,'e',tInd]
+                rhs += self.MfMui*self.mesh.edgeCurl*self.MeSigmaI*p[:,'e',tInd+1]
             if 'b' in p:
-                rhs += p[:,'b',tInd]
+                rhs += p[:,'b',tInd+1]
 
             if tInd == self.nT-1:
                 return rhs
-            dt = self.timeSteps[tInd]
-            return rhs + 1.0/dt*self.MfMui*u[:,'b',tInd+1]
+            dt = self.timeSteps[tInd+1]
+            return rhs + 1.0/dt*self.MfMui*y[:,'b',tInd+2]
 
         def AhtCalcFields(sol, solType, tInd):
             y_b = sol
