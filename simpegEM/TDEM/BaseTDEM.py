@@ -1,7 +1,7 @@
 from SimPEG import Solver
 from SimPEG.Problem import BaseTimeProblem
 from simpegEM.Utils import Sources
-from SurveyTDEM import FieldsTDEM
+from SurveyTDEM import FieldsTDEM, SurveyTDEM
 from scipy.constants import mu_0
 from SimPEG.Utils import sdiag, mkvc
 from SimPEG import Utils, Mesh
@@ -9,49 +9,12 @@ from simpegEM.Base import BaseEMProblem
 import numpy as np
 
 
-class MixinInitialFieldCalc(object):
-    """docstring for MixinInitialFieldCalc"""
-
-    storeTheseFields = 'b'
-
-    def getInitialFields(self):
-        if self.survey.txType == 'VMD_MVP':
-            # Vertical magnetic dipole, magnetic vector potential
-            F = self._getInitialFields_VMD_MVP()
-        else:
-            exStr = 'Invalid txType: ' + str(self.survey.txType)
-            raise Exception(exStr)
-        return F
-
-    def _getInitialFields_VMD_MVP(self):
-        if self.mesh._meshType is 'CYL':
-            if self.mesh.isSymmetric:
-                MVP = Sources.MagneticDipoleVectorPotential(self.survey.txLoc, self.mesh.gridEy, 'y')
-                # MVP = Sources.MagneticDipoleVectorPotential(self.survey.txLoc, np.c_[np.zeros(self.mesh.nN), self.mesh.gridN], 'x')
-            else:
-                raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
-        elif self.mesh._meshType is 'TENSOR':
-            MVPx = Sources.MagneticDipoleVectorPotential(self.survey.txLoc, self.mesh.gridEx, 'x')
-            MVPy = Sources.MagneticDipoleVectorPotential(self.survey.txLoc, self.mesh.gridEy, 'y')
-            MVPz = Sources.MagneticDipoleVectorPotential(self.survey.txLoc, self.mesh.gridEz, 'z')
-            MVP = np.concatenate((MVPx, MVPy, MVPz))
-        else:
-            raise Exception('Unknown mesh for VMD')
-
-        # Initialize field object
-        F = FieldsTDEM(self.mesh, 1, self.nT, store=self.storeTheseFields)
-
-        # Set initial B
-        F.b0 = self.mesh.edgeCurl*MVP
-
-        return F
-
-
-class ProblemBaseTDEM(MixinInitialFieldCalc, BaseTimeProblem, BaseEMProblem):
+class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
     """docstring for ProblemTDEM1D"""
     def __init__(self, mesh, mapping=None, **kwargs):
         BaseTimeProblem.__init__(self, mesh, mapping=mapping, **kwargs)
 
+    surveyPair = SurveyTDEM
 
     def calcFields(self, sol, solType, tInd):
 
@@ -65,18 +28,18 @@ class ProblemBaseTDEM(MixinInitialFieldCalc, BaseTimeProblem, BaseEMProblem):
 
         return {'b':b, 'e':e}
 
-    Solver = Solver
-    solveOpts = {}
-
     def fields(self, m):
         self.curModel = m
-        F = self.getInitialFields()
+        # Create a fields storage object
+        F = FieldsTDEM(self.mesh, self.survey)
+        for tx in self.survey.txList:
+            # Set the initial conditions
+            F[tx,:,0] = tx.getInitialFields(self.mesh)
         return self.forward(m, self.getRHS, self.calcFields, F=F)
 
 
     def forward(self, m, RHS, CalcFields, F=None):
-        if F is None:
-            F = FieldsTDEM(self.mesh, self.survey.nTx, self.nT, store=self.storeTheseFields)
+        F = F or FieldsTDEM(self.mesh, self.survey)
 
         dtFact = None
         for tInd, dt in enumerate(self.timeSteps):
@@ -84,19 +47,17 @@ class ProblemBaseTDEM(MixinInitialFieldCalc, BaseTimeProblem, BaseEMProblem):
                 dtFact = dt
                 A = self.getA(tInd)
                 # print 'Factoring...   (dt = ' + str(dt) + ')'
-                Asolve = self.Solver(A, **self.solveOpts)
+                Asolve = self.Solver(A, **self.solverOpts)
                 # print 'Done'
             rhs = RHS(tInd, F)
             sol = Asolve.solve(rhs)
             if sol.ndim == 1:
                 sol.shape = (sol.size,1)
-            newFields = CalcFields(sol, self.solType, tInd)
-            F.update(newFields, tInd)
+            F[:,:,tInd+1] = CalcFields(sol, self.solType, tInd)
         return F
 
     def adjoint(self, m, RHS, CalcFields, F=None):
-        if F is None:
-            F = FieldsTDEM(self.mesh, self.survey.nTx, self.nT, store=self.storeTheseFields)
+        F = F or FieldsTDEM(self.mesh, self.survey)
 
         dtFact = None
         for tInd, dt in reversed(list(enumerate(self.timeSteps))):
@@ -104,13 +65,12 @@ class ProblemBaseTDEM(MixinInitialFieldCalc, BaseTimeProblem, BaseEMProblem):
                 dtFact = dt
                 A = self.getA(tInd)
                 # print 'Factoring...   (dt = ' + str(dt) + ')'
-                Asolve = Solver(A, options=self.solveOpts)
+                Asolve = self.Solver(A, **self.solverOpts)
                 # print 'Done'
             rhs = RHS(tInd, F)
             sol = Asolve.solve(rhs)
             if sol.ndim == 1:
                 sol.shape = (sol.size,1)
-            newFields = CalcFields(sol, self.solType, tInd)
-            F.update(newFields, tInd)
+            F[:,:,tInd+1] = CalcFields(sol, self.solType, tInd)
         return F
 

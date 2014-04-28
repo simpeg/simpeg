@@ -255,25 +255,8 @@ Multiplying **J** onto a vector can be broken into three steps
         \vec{p}_e^{(n)} = - \diag{\e^{(n)}} \Ace \diag{V} m
     \end{align}
 
-First time step
 
-.. math::
-
-    \begin{align}
-        \frac{1}{\delta t} \MfMui \vec{y}_{b}^{(1)} + \MfMui \dcurl \vec{y}_{e}^{(1)} = \vec{p}_b^{(1)} \\
-        \dcurl^\top \MfMui \vec{y}_b^{(1)} - \MeSig \vec{y}_e^{(1)} = \vec{p}_e^{(1)}
-    \end{align}
-
-
-.. math::
-
-    \begin{align}
-        \left( \MfMui \dcurl \MeSig^{-1} \dcurl^\top \MfMui + \frac{1}{\delta t} \MfMui \right) \vec{y}_{b}^{(1)} = \MfMui \dcurl \MeSig^{-1} \vec{p}_e^{(1)} + \vec{p}_b^{(1)} \\
-        \vec{y}_e^{(1)} = \MeSig^{-1} \dcurl^\top \MfMui \vec{y}_b^{(1)} - \MeSig^{-1} \vec{p}_e^{(1)}
-    \end{align}
-
-
-Remaining time steps:
+For all time steps:
 
 .. math::
 
@@ -294,6 +277,11 @@ and
         + \MfMui \dcurl \MeSig^{-1} \vec{p}_e^{(t+1)} + \vec{p}_b^{(t+1)} \\
         \vec{y}_e^{(t+1)} = \MeSig^{-1} \dcurl^\top \MfMui \vec{y}_b^{(t+1)} - \MeSig^{-1} \vec{p}_e^{(t+1)}
     \end{align}
+
+.. note::
+
+    For the first time step, \\\(t=0\\\), the term: \\\(\\frac{1}{\\delta t} \\MfMui \\vec{y}_b^{(0)}\\\) is zero.
+
 
 
 
@@ -319,38 +307,21 @@ Multiplying \\(\\mathbf{J}^\\top\\) onto a vector can be broken into three steps
         \end{array}
     \right]
 
-For the last time-step \\(t=N\\):
-
-.. math::
-
-    \begin{align}
-        \frac{1}{\delta t} \MfMui \vec{y}_{b}^{(N)} + \MfMui \dcurl \vec{y}_{e}^{(N)} = \vec{p}_b^{(N)} \\
-        \dcurl^\top \MfMui \vec{y}_b^{(N)} - \MeSig \vec{y}_e^{(N)} = \vec{p}_e^{(N)}
-    \end{align}
+For the all time-steps (going backwards in time):
 
 
 .. math::
 
-    \begin{align}
-        \left( \MfMui \dcurl \MeSig^{-1} \dcurl^\top \MfMui + \frac{1}{\delta t} \MfMui \right) \vec{y}_{b}^{(N)} = \MfMui \dcurl \MeSig^{-1} \vec{p}_e^{(N)} + \vec{p}_b^{(N)} \\
-        \vec{y}_e^{(N)} = \MeSig^{-1} \dcurl^\top \MfMui \vec{y}_b^{(N)} - \MeSig^{-1} \vec{p}_e^{(N)}
-    \end{align}
-
-For the rest of the time-steps (going backwards in time)
-
-
-.. math::
-
-    A \vec{y}^{(t-1)} + B \vec{y}^{(t)} = \vec{p}^{(t-1)}
+    A \vec{y}^{(t)} + B \vec{y}^{(t+1)} = \vec{p}^{(t)}
 
 
 .. math::
 
     \begin{align}
-        \frac{1}{\delta t} \MfMui\vec{y}_{b}^{(t-1)} + \MfMui\dcurl \vec{y}_{e}^{(t-1)}
-        - \frac{1}{\delta t} \MfMui \vec{y}_{b}^{(t)}
-        = \vec{p}_b^{(t-1)} \\
-        \dcurl^\top \MfMui \vec{y}_b^{(t-1)} - \MeSig \vec{y}_e^{(t-1)} = \vec{p}_e^{(t-1)}
+        \frac{1}{\delta t} \MfMui\vec{y}_{b}^{(t)} + \MfMui\dcurl \vec{y}_{e}^{(t)}
+        - \frac{1}{\delta t} \MfMui \vec{y}_{b}^{(t+1)}
+        = \vec{p}_b^{(t)} \\
+        \dcurl^\top \MfMui \vec{y}_b^{(t)} - \MeSig \vec{y}_e^{(t)} = \vec{p}_e^{(t)}
     \end{align}
 
 and
@@ -358,8 +329,13 @@ and
 .. math::
 
     \begin{align}
-        \left( \MfMui \dcurl \MeSig^{-1} \dcurl^\top \MfMui + \frac{1}{\delta t} \MfMui \right) \vec{y}_{b}^{(t-1)} =
-        \frac{1}{\delta t} \MfMui \vec{y}_b^{(t)}
-        + \MfMui \dcurl \MeSig^{-1} \vec{p}_e^{(t-1)} + \vec{p}_b^{(t-1)} \\
-        \vec{y}_e^{(t-1)} = \MeSig^{-1} \dcurl^\top \MfMui \vec{y}_b^{(t-1)} - \MeSig^{-1} \vec{p}_e^{(t-1)}
+        \left( \MfMui \dcurl \MeSig^{-1} \dcurl^\top \MfMui + \frac{1}{\delta t} \MfMui \right) \vec{y}_{b}^{(t)} =
+        \frac{1}{\delta t} \MfMui \vec{y}_b^{(t+1)}
+        + \MfMui \dcurl \MeSig^{-1} \vec{p}_e^{(t)} + \vec{p}_b^{(t)} \\
+        \vec{y}_e^{(t)} = \MeSig^{-1} \dcurl^\top \MfMui \vec{y}_b^{(t)} - \MeSig^{-1} \vec{p}_e^{(t)}
     \end{align}
+
+
+.. note::
+
+    For the last time step, \\\(t=N\\\), the term: \\\(\\frac{1}{\\delta t} \\MfMui \\vec{y}_b^{(N+1)}\\\) is zero.

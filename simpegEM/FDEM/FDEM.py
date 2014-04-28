@@ -8,7 +8,7 @@ def omega(freq):
     """Change frequency to angular frequency, omega"""
     return 2.*np.pi*freq
 
-class BaseProblemFDEM(BaseEMProblem):
+class BaseFDEMProblem(BaseEMProblem):
     """
         We start by looking at Maxwell's equations in the electric field \\(\\vec{E}\\) and the magnetic flux density \\(\\vec{B}\\):
 
@@ -106,7 +106,7 @@ class BaseProblemFDEM(BaseEMProblem):
         return Jtv
 
 
-class ProblemFDEM_e(BaseProblemFDEM):
+class ProblemFDEM_e(BaseFDEMProblem):
     """
         By eliminating the magnetic flux density using
 
@@ -127,7 +127,7 @@ class ProblemFDEM_e(BaseProblemFDEM):
     solType = 'e'
 
     def __init__(self, model, **kwargs):
-        BaseProblemFDEM.__init__(self, model, **kwargs)
+        BaseFDEMProblem.__init__(self, model, **kwargs)
 
     def getA(self, freq):
         """
@@ -197,14 +197,14 @@ class ProblemFDEM_e(BaseProblemFDEM):
         raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
 
 
-class ProblemFDEM_b(BaseProblemFDEM):
+class ProblemFDEM_b(BaseFDEMProblem):
     """
         Solving for b!
     """
     solType = 'b'
 
     def __init__(self, model, **kwargs):
-        BaseProblemFDEM.__init__(self, model, **kwargs)
+        BaseFDEMProblem.__init__(self, model, **kwargs)
 
     def getA(self, freq):
         """
