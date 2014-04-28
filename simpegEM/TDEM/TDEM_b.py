@@ -128,7 +128,7 @@ class ProblemTDEM_b(BaseTDEMProblem):
             dt = self.timeSteps[tInd]
             return rhs + 1.0/dt*self.MfMui*y[:,'b',tInd]
 
-        def AhCalcFields(sol, solType, tInd):
+        def AhCalcFields(sol, tInd):
             y_b = sol
             if self.survey.nTx == 1:
                 y_b = mkvc(y_b)
@@ -168,7 +168,7 @@ class ProblemTDEM_b(BaseTDEMProblem):
             dt = self.timeSteps[tInd+1]
             return rhs + 1.0/dt*self.MfMui*y[:,'b',tInd+2]
 
-        def AhtCalcFields(sol, solType, tInd):
+        def AhtCalcFields(sol, tInd):
             y_b = sol
             if self.survey.nTx == 1:
                 y_b = mkvc(y_b)

@@ -16,15 +16,14 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
 
     surveyPair = SurveyTDEM
 
-    def calcFields(self, sol, solType, tInd):
+    def calcFields(self, sol, tInd):
 
-        if solType == 'b':
+        if self.solType == 'b':
             b = sol
             e = self.MeSigmaI*self.mesh.edgeCurl.T*self.MfMui*b
             # Todo: implement non-zero js
         else:
-            errStr = 'solType: ' + solType
-            raise NotImplementedError(errStr)
+            raise NotImplementedError('solType "%s" is not implemented in CalcFields.' % self.solType)
 
         return {'b':b, 'e':e}
 
@@ -53,7 +52,7 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
             sol = Asolve.solve(rhs)
             if sol.ndim == 1:
                 sol.shape = (sol.size,1)
-            F[:,:,tInd+1] = CalcFields(sol, self.solType, tInd)
+            F[:,:,tInd+1] = CalcFields(sol, tInd)
         return F
 
     def adjoint(self, m, RHS, CalcFields, F=None):
@@ -71,6 +70,6 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
             sol = Asolve.solve(rhs)
             if sol.ndim == 1:
                 sol.shape = (sol.size,1)
-            F[:,:,tInd+1] = CalcFields(sol, self.solType, tInd)
+            F[:,:,tInd+1] = CalcFields(sol, tInd)
         return F
 

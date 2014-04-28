@@ -124,8 +124,14 @@ class SurveyTDEM(Survey.BaseSurvey):
             for tx in self.txList:
                 for rx in tx.rxList:
                     Ptv = rx.projectFieldsDeriv(tx, self.mesh, self.prob.timeMesh, u, v, adjoint=True)
-                    Ptv = Ptv.reshape((-1, 1, self.prob.timeMesh.nN), order='F')
-                    f[tx, rx.projField, :] = Ptv
+                    if rx.projField not in f: # first time we are projecting
+                        Ptv = Ptv.reshape((-1, 1, self.prob.timeMesh.nN), order='F')
+                        f[tx, rx.projField, :] = Ptv
+                    else:
+                        Ptv = Ptv.reshape((-1, self.prob.timeMesh.nN), order='F')
+                        addedPtv = f[tx, rx.projField, :]  + Ptv
+                        addedPtv = addedPtv.reshape((-1, 1, self.prob.timeMesh.nN), order='F')
+                        f[tx, rx.projField, :] = addedPtv
             return f
 
 
