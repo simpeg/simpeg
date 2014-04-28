@@ -57,8 +57,7 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
         return F
 
     def adjoint(self, m, RHS, CalcFields, F=None):
-        if F is None:
-            F = FieldsTDEM(self.mesh, self.survey)
+        F = F or FieldsTDEM(self.mesh, self.survey)
 
         dtFact = None
         for tInd, dt in reversed(list(enumerate(self.timeSteps))):
@@ -66,13 +65,12 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
                 dtFact = dt
                 A = self.getA(tInd)
                 # print 'Factoring...   (dt = ' + str(dt) + ')'
-                Asolve = Solver(A, options=self.solverOpts)
+                Asolve = self.Solver(A, **self.solverOpts)
                 # print 'Done'
             rhs = RHS(tInd, F)
             sol = Asolve.solve(rhs)
             if sol.ndim == 1:
                 sol.shape = (sol.size,1)
-            newFields = CalcFields(sol, self.solType, tInd)
-            F[:,:,tInd] = newFields
+            F[:,:,tInd+1] = CalcFields(sol, self.solType, tInd)
         return F
 

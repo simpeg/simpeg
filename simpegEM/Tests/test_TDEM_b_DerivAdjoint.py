@@ -168,22 +168,22 @@ class TDEM_bDerivTests(unittest.TestCase):
     #     passed = Tests.checkDerivative(derChk, sigma, plotIt=False, dx=dm, num=4, eps=1e-20)
     #     self.assertTrue(passed)
 
-    def test_Deriv_J(self):
+    # def test_Deriv_J(self):
 
-        prb = self.prb
-        prb.timeSteps = [(1e-05, 10), (0.0001, 10), (0.001, 10)]
-        mesh = self.mesh
-        sigma = self.sigma
+    #     prb = self.prb
+    #     prb.timeSteps = [(1e-05, 10), (0.0001, 10), (0.001, 10)]
+    #     mesh = self.mesh
+    #     sigma = self.sigma
 
-        # d_sig = 0.8*sigma #np.random.rand(mesh.nCz)
-        d_sig = 10*np.random.rand(prb.mapping.nP)
+    #     # d_sig = 0.8*sigma #np.random.rand(mesh.nCz)
+    #     d_sig = 10*np.random.rand(prb.mapping.nP)
 
 
-        derChk = lambda m: [prb.survey.dpred(m), lambda mx: prb.Jvec(sigma, mx)]
-        print '\n'
-        print 'test_Deriv_J'
-        passed = Tests.checkDerivative(derChk, sigma, plotIt=False, dx=d_sig, num=4, eps=1e-20)
-        self.assertTrue(passed)
+    #     derChk = lambda m: [prb.survey.dpred(m), lambda mx: prb.Jvec(sigma, mx)]
+    #     print '\n'
+    #     print 'test_Deriv_J'
+    #     passed = Tests.checkDerivative(derChk, sigma, plotIt=False, dx=d_sig, num=4, eps=1e-20)
+    #     self.assertTrue(passed)
 
     # def test_projectAdjoint(self):
     #     prb = self.prb
@@ -223,48 +223,48 @@ class TDEM_bDerivTests(unittest.TestCase):
     #     V2 = f1.tovec().dot(prb.AhtVec(sigma, f2).tovec())
     #     self.assertLess(np.abs(V1-V2)/np.abs(V1), 1e-6)
 
-    # def test_solveAhtVsAhtVec(self):
-    #     prb = self.prb
-    #     mesh = self.mesh
-    #     sigma = np.random.rand(prb.mapping.nP)
+    def test_solveAhtVsAhtVec(self):
+        prb = self.prb
+        mesh = self.mesh
+        sigma = np.random.rand(prb.mapping.nP)
 
-    #     f1 = EM.TDEM.FieldsTDEM(mesh, 1, prb.nT, 'b')
-    #     for i in range(prb.nT):
-    #         f1.set_b(np.random.rand(mesh.nF, 1), i)
-    #         f1.set_e(np.random.rand(mesh.nE, 1), i)
+        f1 = EM.TDEM.FieldsTDEM(mesh,prb.survey)
+        for i in range(prb.nT):
+            f1[:,'b',i] = np.random.rand(mesh.nF, 1)
+            f1[:,'e',i] = np.random.rand(mesh.nE, 1)
 
-    #     f2 = prb.solveAht(sigma, f1)
-    #     f3 = prb.AhtVec(sigma, f2)
+        f2 = prb.solveAht(sigma, f1)
+        f3 = prb.AhtVec(sigma, f2)
 
-    #     if plotIt:
-    #         import matplotlib.pyplot as plt
-    #         plt.plot(f3.tovec())
-    #         plt.plot(f1.tovec())
-    #         plt.show()
-    #     V1 = np.linalg.norm(f3.tovec()-f1.tovec())
-    #     V2 = np.linalg.norm(f1.tovec())
-    #     print V1, V2
-    #     print 'I am gunna fail this one: boo. :('
-    #     self.assertLess(V1/V2, 1e-6)
+        if plotIt:
+            import matplotlib.pyplot as plt
+            plt.plot(f3.tovec())
+            plt.plot(f1.tovec())
+            plt.show()
+        V1 = np.linalg.norm(f3.tovec()-f1.tovec())
+        V2 = np.linalg.norm(f1.tovec())
+        print V1, V2
+        print 'I am gunna fail this one: boo. :('
+        self.assertLess(V1/V2, 1e-6)
 
-    # def test_adjointsolveAhVssolveAht(self):
-    #     prb = self.prb
-    #     mesh = self.mesh
-    #     sigma = self.sigma
+    def test_adjointsolveAhVssolveAht(self):
+        prb = self.prb
+        mesh = self.mesh
+        sigma = self.sigma
 
-    #     f1 = EM.TDEM.FieldsTDEM(prb.mesh, prb.survey)
-    #     for i in range(1,prb.nT+1):
-    #         f1[:,'b',i] = np.random.rand(mesh.nF, 1)
-    #         f1[:,'e',i] = np.random.rand(mesh.nE, 1)
+        f1 = EM.TDEM.FieldsTDEM(prb.mesh, prb.survey)
+        for i in range(1,prb.nT+1):
+            f1[:,'b',i] = np.random.rand(mesh.nF, 1)
+            f1[:,'e',i] = np.random.rand(mesh.nE, 1)
 
-    #     f2 = EM.TDEM.FieldsTDEM(prb.mesh, prb.survey)
-    #     for i in range(1,prb.nT+1):
-    #         f2[:,'b',i] = np.random.rand(mesh.nF, 1)
-    #         f2[:,'e',i] = np.random.rand(mesh.nE, 1)
+        f2 = EM.TDEM.FieldsTDEM(prb.mesh, prb.survey)
+        for i in range(1,prb.nT+1):
+            f2[:,'b',i] = np.random.rand(mesh.nF, 1)
+            f2[:,'e',i] = np.random.rand(mesh.nE, 1)
 
-    #     V1 = f2.tovec().dot(prb.solveAh(sigma, f1).tovec())
-    #     V2 = f1.tovec().dot(prb.solveAht(sigma, f2).tovec())
-    #     self.assertLess(np.abs(V1-V2)/np.abs(V1), 1e-6)
+        V1 = f2.tovec().dot(prb.solveAh(sigma, f1).tovec())
+        V2 = f1.tovec().dot(prb.solveAht(sigma, f2).tovec())
+        self.assertLess(np.abs(V1-V2)/np.abs(V1), 1e-6)
 
     # def test_adjointGvecVsGtvec(self):
     #     mesh = self.mesh
@@ -274,12 +274,12 @@ class TDEM_bDerivTests(unittest.TestCase):
     #     sigma = np.random.rand(prb.mapping.nP)
 
     #     u = EM.TDEM.FieldsTDEM(prb.mesh, prb.survey)
-    #     for i in range(prb.nT):
+    #     for i in range(1,prb.nT+1):
     #         u[:,'b',i] = np.random.rand(mesh.nF, 1)
     #         u[:,'e',i] = np.random.rand(mesh.nE, 1)
 
     #     v = EM.TDEM.FieldsTDEM(prb.mesh, prb.survey)
-    #     for i in range(prb.nT):
+    #     for i in range(1,prb.nT+1):
     #         v[:,'b',i] = np.random.rand(mesh.nF, 1)
     #         v[:,'e',i] = np.random.rand(mesh.nE, 1)
 

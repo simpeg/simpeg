@@ -39,8 +39,7 @@ class RxTDEM(Survey.BaseTimeRx):
         if not adjoint:
             return P * Utils.mkvc(v[tx, self.projField, :])
         elif adjoint:
-            Ptv = P.T * v[tx, self]
-            return Ptv
+            return P.T * v[tx, self]
 
 
 class FieldsTDEM(Survey.TimeFields):

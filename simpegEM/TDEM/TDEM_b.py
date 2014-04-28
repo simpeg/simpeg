@@ -64,7 +64,7 @@ class ProblemTDEM_b(BaseTDEMProblem):
         p = self.survey.projectFieldsDeriv(u, v=v, adjoint=True)
         y = self.solveAht(m, p)
         w = self.Gtvec(m, y, u)
-        return w
+        return - w
 
     def Gvec(self, m, vec, u=None):
         """
@@ -138,18 +138,27 @@ class ProblemTDEM_b(BaseTDEMProblem):
     def solveAht(self, m, p):
 
         def AhtRHS(tInd, u):
-            rhs = self.MfMui*self.mesh.edgeCurl*self.MeSigmaI*p[:,'e',tInd] + p[:,'b',tInd]
+            nTx, nF = self.survey.nTx, self.mesh.nF
+            rhs = np.zeros(nF if nTx == 1 else (nF, nTx))
+
+            if 'e' in p:
+                rhs += self.MfMui*self.mesh.edgeCurl*self.MeSigmaI*p[:,'e',tInd]
+            if 'b' in p:
+                rhs += p[:,'b',tInd]
+
             if tInd == self.nT-1:
                 return rhs
-            dt = self.timeSteps[tInd+1]
+            dt = self.timeSteps[tInd]
             return rhs + 1.0/dt*self.MfMui*u[:,'b',tInd+1]
 
         def AhtCalcFields(sol, solType, tInd):
-            b = sol
+            y_b = sol
             if self.survey.nTx == 1:
-                b = mkvc(b)
-            e = self.MeSigmaI*self.mesh.edgeCurl.T*self.MfMui*b - self.MeSigmaI*p[:,'e',tInd]
-            return {'b':b, 'e':e}
+                y_b = mkvc(y_b)
+            y_e = self.MeSigmaI*self.mesh.edgeCurl.T*self.MfMui*y_b
+            if 'e' in p:
+                y_e += - self.MeSigmaI*p[:,'e',tInd]
+            return {'b':y_b, 'e':y_e}
 
         self.curModel = m
         return self.adjoint(m, AhtRHS, AhtCalcFields)
