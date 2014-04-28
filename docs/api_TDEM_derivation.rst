@@ -255,25 +255,8 @@ Multiplying **J** onto a vector can be broken into three steps
         \vec{p}_e^{(n)} = - \diag{\e^{(n)}} \Ace \diag{V} m
     \end{align}
 
-First time step
 
-.. math::
-
-    \begin{align}
-        \frac{1}{\delta t} \MfMui \vec{y}_{b}^{(1)} + \MfMui \dcurl \vec{y}_{e}^{(1)} = \vec{p}_b^{(1)} \\
-        \dcurl^\top \MfMui \vec{y}_b^{(1)} - \MeSig \vec{y}_e^{(1)} = \vec{p}_e^{(1)}
-    \end{align}
-
-
-.. math::
-
-    \begin{align}
-        \left( \MfMui \dcurl \MeSig^{-1} \dcurl^\top \MfMui + \frac{1}{\delta t} \MfMui \right) \vec{y}_{b}^{(1)} = \MfMui \dcurl \MeSig^{-1} \vec{p}_e^{(1)} + \vec{p}_b^{(1)} \\
-        \vec{y}_e^{(1)} = \MeSig^{-1} \dcurl^\top \MfMui \vec{y}_b^{(1)} - \MeSig^{-1} \vec{p}_e^{(1)}
-    \end{align}
-
-
-Remaining time steps:
+For all time steps:
 
 .. math::
 
@@ -294,6 +277,11 @@ and
         + \MfMui \dcurl \MeSig^{-1} \vec{p}_e^{(t+1)} + \vec{p}_b^{(t+1)} \\
         \vec{y}_e^{(t+1)} = \MeSig^{-1} \dcurl^\top \MfMui \vec{y}_b^{(t+1)} - \MeSig^{-1} \vec{p}_e^{(t+1)}
     \end{align}
+
+.. note::
+
+    For the first time step, \\\(t=0\\\), the term: \\\(\\frac{1}{\\delta t} \\MfMui \\vec{y}_b^{(0)}\\\) is zero.
+
 
 
 

@@ -52,7 +52,7 @@ class ProblemTDEM_b(BaseTDEMProblem):
         p = self.Gvec(m, v, u)
         y = self.solveAh(m, p)
         Jv = self.survey.projectFieldsDeriv(u, v=y)
-        return mkvc(Jv)
+        return - mkvc(Jv)
 
     def Jtvec(self, m, v, u=None):
         if u is None:
@@ -117,19 +117,20 @@ class ProblemTDEM_b(BaseTDEMProblem):
         return p
 
     def solveAh(self, m, p):
-        def AhRHS(tInd, u):
+
+        def AhRHS(tInd, y):
             rhs = self.MfMui*self.mesh.edgeCurl*self.MeSigmaI*p[:,'e',tInd+1] + p[:,'b',tInd+1]
             if tInd == 0:
                 return rhs
             dt = self.timeSteps[tInd]
-            return rhs + 1.0/dt*self.MfMui*u[:,'b',tInd]
+            return rhs + 1.0/dt*self.MfMui*y[:,'b',tInd]
 
         def AhCalcFields(sol, solType, tInd):
-            b = sol
+            y_b = sol
             if self.survey.nTx == 1:
-                b = mkvc(b)
-            e = self.MeSigmaI*self.mesh.edgeCurl.T*self.MfMui*b - self.MeSigmaI*p[:,'e',tInd+1]
-            return {'b':b, 'e':e}
+                y_b = mkvc(y_b)
+            y_e = self.MeSigmaI*self.mesh.edgeCurl.T*self.MfMui*y_b - self.MeSigmaI*p[:,'e',tInd+1]
+            return {'b':y_b, 'e':y_e}
 
         self.curModel = m
         return self.forward(m, AhRHS, AhCalcFields)
