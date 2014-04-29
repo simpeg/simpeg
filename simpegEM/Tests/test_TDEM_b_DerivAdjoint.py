@@ -22,9 +22,8 @@ class TDEM_bDerivTests(unittest.TestCase):
                     [Maps.ExpMap, Maps.Vertical1DMap, activeMap])
 
         rxOffset = 40.
-        rxTypes = 'bx,bz'
-        rxs = [EM.TDEM.RxTDEM(np.array([[rxOffset, 0., 0.]]), np.logspace(-4,-3, 20), rxType) for rxType in rxTypes.split(',')]
-        tx = EM.TDEM.TxTDEM(np.array([0., 0., 0.]), 'VMD_MVP', rxs)
+        rx = EM.TDEM.RxTDEM(np.array([[rxOffset, 0., 0.]]), np.logspace(-4,-3, 20), 'bz')
+        tx = EM.TDEM.TxTDEM(np.array([0., 0., 0.]), 'VMD_MVP', [rx])
 
         survey = EM.TDEM.SurveyTDEM([tx])
 
