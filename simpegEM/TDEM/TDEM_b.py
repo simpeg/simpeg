@@ -41,56 +41,21 @@ class ProblemTDEM_b(BaseTDEMProblem):
         RHS = (1.0/dt)*self.MfMui*B_n
         return RHS
 
+    def calcFields(self, sol, tInd):
+
+        if self.solType == 'b':
+            b = sol
+            e = self.MeSigmaI*self.mesh.edgeCurl.T*self.MfMui*b
+            # Todo: implement non-zero js
+        else:
+            raise NotImplementedError('solType "%s" is not implemented in CalcFields.' % self.solType)
+
+        return {'b':b, 'e':e}
+
 
     ####################################################
     # Derivatives
     ####################################################
-
-    def Jvec(self, m, v, u=None):
-        """
-            :param numpy.array m: Conductivity model
-            :param numpy.ndarray v: vector (model object)
-            :param simpegEM.TDEM.FieldsTDEM u: Fields resulting from m
-            :rtype: numpy.ndarray
-            :return: w (data object)
-
-            Multiplying \\\(\\\mathbf{J}\\\) onto a vector can be broken into three steps
-
-            * Compute \\\(\\\\vec{p} = \\\mathbf{G}v\\\)
-            * Solve \\\(\\\hat{\\\mathbf{A}} \\\\vec{y} = \\\\vec{p}\\\)
-            * Compute \\\(\\\\vec{w} = -\\\mathbf{Q} \\\\vec{y}\\\)
-
-        """
-        u = u or self.fields(m)
-        p = self.Gvec(m, v, u)
-        y = self.solveAh(m, p)
-        Jv = self.survey.projectFieldsDeriv(u, v=y)
-        return - mkvc(Jv)
-
-    def Jtvec(self, m, v, u=None):
-        """
-            :param numpy.array m: Conductivity model
-            :param numpy.ndarray,SimPEG.Survey.Data v: vector (data object)
-            :param simpegEM.TDEM.FieldsTDEM u: Fields resulting from m
-            :rtype: numpy.ndarray
-            :return: w (model object)
-
-            Multiplying \\\(\\\mathbf{J}^\\\\top\\\) onto a vector can be broken into three steps
-
-            * Compute \\\(\\\\vec{p} = \\\mathbf{Q}^\\\\top \\\\vec{v}\\\)
-            * Solve \\\(\\\hat{\\\mathbf{A}}^\\\\top \\\\vec{y} = \\\\vec{p}\\\)
-            * Compute \\\(\\\\vec{w} = -\\\mathbf{G}^\\\\top y\\\)
-
-        """
-        u = u or self.fields(m)
-
-        if not isinstance(v, self.dataPair):
-            v = self.dataPair(self.survey, v)
-
-        p = self.survey.projectFieldsDeriv(u, v=v, adjoint=True)
-        y = self.solveAht(m, p)
-        w = self.Gtvec(m, y, u)
-        return - mkvc(w)
 
     def Gvec(self, m, vec, u=None):
         """
@@ -236,10 +201,10 @@ class ProblemTDEM_b(BaseTDEMProblem):
         #       ^
         #  fLoc 0     1     2     3
         #       |-----|-----|-----|
-        #  tInd    0     1     2  /   /
-        #                        / __/
+        #  tInd    0     1     2
+        #                        / ___/
         #                      2          (tInd=2 uses fields 3 and would use 4 but it doesn't exist)
-        #                 / __/
+        #                 / ___/
         #                1                (tInd=1 uses fields 2 and 3)
 
         def AhtRHS(tInd, y):
@@ -359,39 +324,3 @@ class ProblemTDEM_b(BaseTDEMProblem):
             f[:,'b', i] = b
             f[:,'e', i] = self.mesh.edgeCurl.T*self.MfMui*vec[:,'b',i] - self.MeSigma*vec[:,'e',i]
         return f
-
-
-
-if __name__ == '__main__':
-    from SimPEG import *
-    import simpegEM as EM
-    from simpegEM.Utils.Ana import hzAnalyticDipoleT
-    from scipy.constants import mu_0
-    import matplotlib.pyplot as plt
-
-    cs, ncx, ncz, npad = 5., 20, 6, 20
-    hx = [(cs, ncx), (cs, npad, 1.3)]
-    hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
-    mesh = Mesh.CylMesh([hx,1,hz], '00C')
-    mapping = Maps.Vertical1DMap(mesh)
-
-    opts = {'txLoc':0.,
-            'txType':'VMD_MVP',
-            'rxLoc':np.r_[150., 0., 0.],
-            'rxType':'bz',
-            'timeCh':np.logspace(-4,-2,20),
-            }
-    survey = EM.TDEM.SurveyTDEM1D(**opts)
-
-    prb = EM.TDEM.ProblemTDEM_b(mesh, mapping=mapping)
-    # prb.setTimes([1e-5, 5e-5, 2.5e-4], [150, 150, 150])
-    # prb.setTimes([1e-5, 5e-5, 2.5e-4], [10, 10, 10])
-    prb.timeSteps = [(1e-5, 10)]
-    prb.pair(survey)
-    m = np.random.rand(mesh.nCz)
-
-    print survey.dpred(m)
-
-
-
-

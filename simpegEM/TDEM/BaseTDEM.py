@@ -16,17 +16,6 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
 
     surveyPair = SurveyTDEM
 
-    def calcFields(self, sol, tInd):
-
-        if self.solType == 'b':
-            b = sol
-            e = self.MeSigmaI*self.mesh.edgeCurl.T*self.MfMui*b
-            # Todo: implement non-zero js
-        else:
-            raise NotImplementedError('solType "%s" is not implemented in CalcFields.' % self.solType)
-
-        return {'b':b, 'e':e}
-
     def fields(self, m):
         self.curModel = m
         # Create a fields storage object
@@ -72,4 +61,50 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
                 sol.shape = (sol.size,1)
             F[:,:,tInd+1] = CalcFields(sol, tInd)
         return F
+
+    def Jvec(self, m, v, u=None):
+        """
+            :param numpy.array m: Conductivity model
+            :param numpy.ndarray v: vector (model object)
+            :param simpegEM.TDEM.FieldsTDEM u: Fields resulting from m
+            :rtype: numpy.ndarray
+            :return: w (data object)
+
+            Multiplying \\\(\\\mathbf{J}\\\) onto a vector can be broken into three steps
+
+            * Compute \\\(\\\\vec{p} = \\\mathbf{G}v\\\)
+            * Solve \\\(\\\hat{\\\mathbf{A}} \\\\vec{y} = \\\\vec{p}\\\)
+            * Compute \\\(\\\\vec{w} = -\\\mathbf{Q} \\\\vec{y}\\\)
+
+        """
+        u = u or self.fields(m)
+        p = self.Gvec(m, v, u)
+        y = self.solveAh(m, p)
+        Jv = self.survey.projectFieldsDeriv(u, v=y)
+        return - mkvc(Jv)
+
+    def Jtvec(self, m, v, u=None):
+        """
+            :param numpy.array m: Conductivity model
+            :param numpy.ndarray,SimPEG.Survey.Data v: vector (data object)
+            :param simpegEM.TDEM.FieldsTDEM u: Fields resulting from m
+            :rtype: numpy.ndarray
+            :return: w (model object)
+
+            Multiplying \\\(\\\mathbf{J}^\\\\top\\\) onto a vector can be broken into three steps
+
+            * Compute \\\(\\\\vec{p} = \\\mathbf{Q}^\\\\top \\\\vec{v}\\\)
+            * Solve \\\(\\\hat{\\\mathbf{A}}^\\\\top \\\\vec{y} = \\\\vec{p}\\\)
+            * Compute \\\(\\\\vec{w} = -\\\mathbf{G}^\\\\top y\\\)
+
+        """
+        u = u or self.fields(m)
+
+        if not isinstance(v, self.dataPair):
+            v = self.dataPair(self.survey, v)
+
+        p = self.survey.projectFieldsDeriv(u, v=v, adjoint=True)
+        y = self.solveAht(m, p)
+        w = self.Gtvec(m, y, u)
+        return - mkvc(w)
 
