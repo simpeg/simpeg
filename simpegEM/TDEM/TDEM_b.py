@@ -18,7 +18,7 @@ class ProblemTDEM_b(BaseTDEMProblem):
     def __init__(self, mesh, mapping=None, **kwargs):
         BaseTDEMProblem.__init__(self, mesh, mapping=mapping, **kwargs)
 
-    solType = 'b'
+    solType = 'b' #: Type of the solution, in this case the 'b' field
 
     surveyPair = SurveyTDEM
 
@@ -47,16 +47,42 @@ class ProblemTDEM_b(BaseTDEMProblem):
     ####################################################
 
     def Jvec(self, m, v, u=None):
-        if u is None:
-            u = self.fields(m)
+        """
+            :param numpy.array m: Conductivity model
+            :param numpy.ndarray v: vector (model object)
+            :param simpegEM.TDEM.FieldsTDEM u: Fields resulting from m
+            :rtype: numpy.ndarray
+            :return: w (data object)
+
+            Multiplying \\\(\\\mathbf{J}\\\) onto a vector can be broken into three steps
+
+            * Compute \\\(\\\\vec{p} = \\\mathbf{G}v\\\)
+            * Solve \\\(\\\hat{\\\mathbf{A}} \\\\vec{y} = \\\\vec{p}\\\)
+            * Compute \\\(\\\\vec{w} = -\\\mathbf{Q} \\\\vec{y}\\\)
+
+        """
+        u = u or self.fields(m)
         p = self.Gvec(m, v, u)
         y = self.solveAh(m, p)
         Jv = self.survey.projectFieldsDeriv(u, v=y)
         return - mkvc(Jv)
 
     def Jtvec(self, m, v, u=None):
-        if u is None:
-            u = self.fields(m)
+        """
+            :param numpy.array m: Conductivity model
+            :param numpy.ndarray,SimPEG.Survey.Data v: vector (data object)
+            :param simpegEM.TDEM.FieldsTDEM u: Fields resulting from m
+            :rtype: numpy.ndarray
+            :return: w (model object)
+
+            Multiplying \\\(\\\mathbf{J}^\\\\top\\\) onto a vector can be broken into three steps
+
+            * Compute \\\(\\\\vec{p} = \\\mathbf{Q}^\\\\top \\\\vec{v}\\\)
+            * Solve \\\(\\\hat{\\\mathbf{A}}^\\\\top \\\\vec{y} = \\\\vec{p}\\\)
+            * Compute \\\(\\\\vec{w} = -\\\mathbf{G}^\\\\top y\\\)
+
+        """
+        u = u or self.fields(m)
 
         if not isinstance(v, self.dataPair):
             v = self.dataPair(self.survey, v)
@@ -76,8 +102,7 @@ class ProblemTDEM_b(BaseTDEMProblem):
 
             Multiply G by a vector
         """
-        if u is None:
-            u = self.fields(m)
+        u = u or self.fields(m)
 
         # Note: Fields has shape (nF/E, nTx, nT+1)
         #       However, p will only really fill (:,:,1:nT+1)
@@ -104,8 +129,7 @@ class ProblemTDEM_b(BaseTDEMProblem):
 
             Multiply G.T by a vector
         """
-        if u is None:
-            u = self.fields(m)
+        u = u or self.fields(m)
         nTx, nE = self.survey.nTx, self.mesh.nE
         tmp = np.zeros(nE)
         # Here we can do internal multiplications of Gt*v and then multiply by MsigDeriv.T in one go.
@@ -120,6 +144,38 @@ class ProblemTDEM_b(BaseTDEMProblem):
         return p
 
     def solveAh(self, m, p):
+        """
+            :param numpy.array m: Conductivity model
+            :param simpegEM.TDEM.FieldsTDEM p: Fields object
+            :rtype: simpegEM.TDEM.FieldsTDEM
+            :return: y
+
+            Solve the block-matrix system \\\(\\\hat{A} \\\hat{y} = \\\hat{p}\\\):
+
+            .. math::
+                \mathbf{\hat{A}} = \left[
+                    \\begin{array}{cccc}
+                        A & 0 & & \\\\
+                        B & A & & \\\\
+                        & \ddots & \ddots & \\\\
+                        & & B & A
+                    \end{array}
+                \\right] \\\\
+                \mathbf{A} =
+                \left[
+                    \\begin{array}{cc}
+                        \\frac{1}{\delta t} \MfMui & \MfMui\dcurl \\\\
+                        \dcurl^\\top \MfMui & -\MeSig
+                    \end{array}
+                \\right] \\\\
+                \mathbf{B} =
+                \left[
+                    \\begin{array}{cc}
+                        -\\frac{1}{\delta t} \MfMui & 0 \\\\
+                        0 & 0
+                    \end{array}
+                \\right] \\\\
+        """
 
         def AhRHS(tInd, y):
             rhs = self.MfMui*self.mesh.edgeCurl*self.MeSigmaI*p[:,'e',tInd+1] + p[:,'b',tInd+1]
@@ -139,6 +195,38 @@ class ProblemTDEM_b(BaseTDEMProblem):
         return self.forward(m, AhRHS, AhCalcFields)
 
     def solveAht(self, m, p):
+        """
+            :param numpy.array m: Conductivity model
+            :param simpegEM.TDEM.FieldsTDEM p: Fields object
+            :rtype: simpegEM.TDEM.FieldsTDEM
+            :return: y
+
+            Solve the block-matrix system \\\(\\\hat{A}^\\\\top \\\hat{y} = \\\hat{p}\\\):
+
+            .. math::
+                \mathbf{\hat{A}}^\\top = \left[
+                    \\begin{array}{cccc}
+                        A & B & & \\\\
+                          & \ddots & \ddots & \\\\
+                          & & A & B \\\\
+                          & & 0 & A
+                    \end{array}
+                \\right] \\\\
+                \mathbf{A} =
+                \left[
+                    \\begin{array}{cc}
+                        \\frac{1}{\delta t} \MfMui & \MfMui\dcurl \\\\
+                        \dcurl^\\top \MfMui & -\MeSig
+                    \end{array}
+                \\right] \\\\
+                \mathbf{B} =
+                \left[
+                    \\begin{array}{cc}
+                        -\\frac{1}{\delta t} \MfMui & 0 \\\\
+                        0 & 0
+                    \end{array}
+                \\right] \\\\
+        """
 
         #  Mini Example:
         #
@@ -184,7 +272,7 @@ class ProblemTDEM_b(BaseTDEMProblem):
     # Functions for tests
     ####################################################
 
-    def AhVec(self, m, vec):
+    def _AhVec(self, m, vec):
         """
             :param numpy.array m: Conductivity model
             :param simpegEM.TDEM.FieldsTDEM vec: Fields object
@@ -229,7 +317,7 @@ class ProblemTDEM_b(BaseTDEMProblem):
             f[:,'e',i] = self.mesh.edgeCurl.T*self.MfMui*vec[:,'b',i] - self.MeSigma*vec[:,'e',i]
         return f
 
-    def AhtVec(self, m, vec):
+    def _AhtVec(self, m, vec):
         """
             :param numpy.array m: Conductivity model
             :param simpegEM.TDEM.FieldsTDEM vec: Fields object

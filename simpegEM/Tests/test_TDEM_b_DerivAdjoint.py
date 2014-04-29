@@ -48,7 +48,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         sigma = self.sigma
 
         u = prb.fields(sigma)
-        Ahu = prb.AhVec(sigma, u)
+        Ahu = prb._AhVec(sigma, u)
 
         V1 = Ahu[:,'b',1]
         V2 = 1./prb.timeSteps[0]*prb.MfMui*u[:,'b',0]
@@ -87,7 +87,7 @@ class TDEM_bDerivTests(unittest.TestCase):
 
         f = prb.fields(sigma)
         u1 = A*f.tovec()
-        u2 = prb.AhVec(sigma,f).tovec()
+        u2 = prb._AhVec(sigma,f).tovec()
 
         self.assertTrue(np.linalg.norm(u1-u2)/np.linalg.norm(u1)<1e-12)
 
@@ -130,7 +130,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         for i in range(prb.nT):
             f[:,'e', i] = np.random.rand(mesh.nE, 1)
 
-        Ahf = prb.AhVec(sigma, f)
+        Ahf = prb._AhVec(sigma, f)
         f_test = prb.solveAh(sigma, Ahf)
 
         u1 = f.tovec()
@@ -149,7 +149,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         dm = 1000*np.random.rand(self.prb.mapping.nP)
         h = 0.01
 
-        derChk = lambda m: [self.prb.AhVec(m, f).tovec(), lambda mx: self.prb.Gvec(sigma, mx, u=f).tovec()]
+        derChk = lambda m: [self.prb._AhVec(m, f).tovec(), lambda mx: self.prb.Gvec(sigma, mx, u=f).tovec()]
         print '\ntest_DerivG'
         passed = Tests.checkDerivative(derChk, sigma, plotIt=False, dx=dm, num=4, eps=1e-20)
         self.assertTrue(passed)
@@ -221,8 +221,8 @@ class TDEM_bDerivTests(unittest.TestCase):
             f2[:,'b',i] = np.random.rand(mesh.nF, 1)
             f2[:,'e',i] = np.random.rand(mesh.nE, 1)
 
-        V1 = f2.tovec().dot(prb.AhVec(sigma, f1).tovec())
-        V2 = f1.tovec().dot(prb.AhtVec(sigma, f2).tovec())
+        V1 = f2.tovec().dot(prb._AhVec(sigma, f1).tovec())
+        V2 = f1.tovec().dot(prb._AhtVec(sigma, f2).tovec())
         self.assertLess(np.abs(V1-V2)/np.abs(V1), 1e-6)
 
     # def test_solveAhtVsAhtVec(self):
@@ -236,7 +236,7 @@ class TDEM_bDerivTests(unittest.TestCase):
     #         f1[:,'e',i] = np.random.rand(mesh.nE, 1)
 
     #     f2 = prb.solveAht(sigma, f1)
-    #     f3 = prb.AhtVec(sigma, f2)
+    #     f3 = prb._AhtVec(sigma, f2)
 
     #     if True:
     #         import matplotlib.pyplot as plt

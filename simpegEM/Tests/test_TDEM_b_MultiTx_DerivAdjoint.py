@@ -53,7 +53,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         dm = 1000*np.random.rand(self.prb.mapping.nP)
         h = 0.01
 
-        derChk = lambda m: [self.prb.AhVec(m, f).tovec(), lambda mx: self.prb.Gvec(sigma, mx, u=f).tovec()]
+        derChk = lambda m: [self.prb._AhVec(m, f).tovec(), lambda mx: self.prb.Gvec(sigma, mx, u=f).tovec()]
         print '\ntest_DerivG'
         passed = Tests.checkDerivative(derChk, sigma, plotIt=False, dx=dm, num=4, eps=1e-20)
         self.assertTrue(passed)

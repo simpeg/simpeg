@@ -55,13 +55,12 @@ TDEM - B formulation
     :show-inheritance:
     :members:
     :undoc-members:
-    :inherited-members:
 
 
 Field Storage
 =============
 
-.. automodule:: simpegEM.TDEM.FieldsTDEM
+.. autoclass:: simpegEM.TDEM.SurveyTDEM.FieldsTDEM
     :show-inheritance:
     :members:
     :undoc-members:
@@ -71,7 +70,7 @@ Field Storage
 TDEM Survey Classes
 ===================
 
-.. automodule:: simpegEM.TDEM.SurveyTDEM
+.. autoclass:: simpegEM.TDEM.SurveyTDEM.SurveyTDEM
     :show-inheritance:
     :members:
     :undoc-members:
