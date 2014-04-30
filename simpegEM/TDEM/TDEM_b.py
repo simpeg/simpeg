@@ -317,10 +317,10 @@ class ProblemTDEM_b(BaseTDEMProblem):
         """
         self.curModel = m
         f = FieldsTDEM(self.mesh, self.survey)
-        for i in range(1,self.nT+1):
-            b = 1.0/self.timeSteps[i-1]*self.MfMui*vec[:,'b',i] + self.MfMui*self.mesh.edgeCurl*vec[:,'e',i]
-            if i < self.nT:
-                b = b - 1.0/self.timeSteps[i]*self.MfMui*vec[:,'b',i+1]
-            f[:,'b', i] = b
-            f[:,'e', i] = self.mesh.edgeCurl.T*self.MfMui*vec[:,'b',i] - self.MeSigma*vec[:,'e',i]
+        for i in range(self.nT):
+            b = 1.0/self.timeSteps[i]*self.MfMui*vec[:,'b',i+1] + self.MfMui*self.mesh.edgeCurl*vec[:,'e',i+1]
+            if i < self.nT-1:
+                b = b - 1.0/self.timeSteps[i+1]*self.MfMui*vec[:,'b',i+2]
+            f[:,'b', i+1] = b
+            f[:,'e', i+1] = self.mesh.edgeCurl.T*self.MfMui*vec[:,'b',i+1] - self.MeSigma*vec[:,'e',i+1]
         return f
