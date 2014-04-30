@@ -368,10 +368,41 @@ class ComboMap(IdentityMap):
             mi = map_i.transform(mi)
         return deriv
 
+class ComplexMap(IdentityMap):
+    """docstring for ComplexMap"""
+    def __init__(self, mesh):
+        IdentityMap.__init__(self, mesh)
+
+    @property
+    def nP(self):
+        return self.mesh.nC * 2
+
+    def transform(self, m):
+        nC = self.mesh.nC
+        return m[:nC] + m[nC:]*1j
+
+    def transformDeriv(self, m, v=None, adjoint=False):
+        nC = self.mesh.nC
+        if v is None and adjoint is False:
+            return sp.hstack((sp.identity(nC), np.identity(nC,dtype=complex)*1j))
+
+        assert v is not None, 'Must have a vector to multiply by.'
+
+        if adjoint is False:
+            return sp.hstack((sp.identity(nC), np.identity(nC,dtype=complex)*1j)) * v
+        elif adjoint is True:
+            return np.r_[v.real,v.imag]
+
+
 if __name__ == '__main__':
     from SimPEG import *
+    # mesh = Mesh.TensorMesh([10,8])
+    # combo = ComboMap(mesh, [ExpMap, Vertical1DMap])
+    # m = combo.example()
+    # print m.shape
+    # print combo.test(np.arange(8))
     mesh = Mesh.TensorMesh([10,8])
-    combo = ComboMap(mesh, [ExpMap, Vertical1DMap])
-    m = combo.example()
+    mapping = ComplexMap(mesh)
+    m = mapping.example()
     print m.shape
-    print combo.test(np.arange(8))
+    print mapping.test(m)
