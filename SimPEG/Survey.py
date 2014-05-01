@@ -57,6 +57,7 @@ class BaseTimeRx(BaseRx):
     """SimPEG Receiver Object"""
 
     times = None   #: Times when the receivers were active.
+    projTLoc = 'N'
 
     def __init__(self, locs, times, rxType, **kwargs):
         self.times = times
@@ -81,7 +82,7 @@ class BaseTimeRx(BaseRx):
             return self._Ps[(mesh, timeMesh)]
 
         Ps = mesh.getInterpolationMat(self.locs, self.projGLoc)
-        Pt = timeMesh.getInterpolationMat(self.times, 'N')
+        Pt = timeMesh.getInterpolationMat(self.times, self.projTLoc)
         P = sp.kron(Pt, Ps)
 
         if self.storeProjections:
