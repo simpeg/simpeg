@@ -3,7 +3,7 @@ from SimPEG import *
 import simpegEM as EM
 from scipy.constants import mu_0
 
-plotIt = False
+plotIt = True
 
 class FDEM_analyticTests(unittest.TestCase):
 
@@ -55,7 +55,7 @@ class FDEM_analyticTests(unittest.TestCase):
 
         an = EM.Utils.Ana.FEM.hzAnalyticDipoleF(x, self.Tx0.freq, self.sig)
 
-        diff = np.log10(np.abs(P*np.imag(u[self.Tx0, 'b']) - np.abs(mu_0*np.imag(an))))
+        diff = np.log10(np.abs(P*np.imag(u[self.Tx0, 'b']) - mu_0*np.imag(an)))
 
         if plotIt:
             import matplotlib.pyplot as plt

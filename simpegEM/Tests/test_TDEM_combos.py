@@ -38,14 +38,14 @@ def getProb(meshType='CYL',rxTypes='bx,bz',nTx=1):
     prb.pair(survey)
     return prb, mesh, sigma
 
-def testJvec(prb, mesh, sigma):
+def dotestJvec(prb, mesh, sigma):
     prb.timeSteps = [(1e-05, 10), (0.0001, 10), (0.001, 10)]
     # d_sig = 0.8*sigma #np.random.rand(mesh.nCz)
     d_sig = 10*np.random.rand(prb.mapping.nP)
     derChk = lambda m: [prb.survey.dpred(m), lambda mx: prb.Jvec(sigma, mx)]
     return Tests.checkDerivative(derChk, sigma, plotIt=False, dx=d_sig, num=2, eps=1e-20)
 
-def testAdjoint(prb, mesh, sigma):
+def dotestAdjoint(prb, mesh, sigma):
     m = np.random.rand(prb.mapping.nP)
     d = np.random.rand(prb.survey.nD)
 
@@ -56,21 +56,20 @@ def testAdjoint(prb, mesh, sigma):
 
 class TDEM_bDerivTests(unittest.TestCase):
 
-    def test_Jvec_bx(self): self.assertTrue(testJvec(*getProb(rxTypes='bx')))
-    def test_Adjoint_bx(self): self.assertLess(*testAdjoint(*getProb(rxTypes='bx')))
+    def test_Jvec_bx(self): self.assertTrue(dotestJvec(*getProb(rxTypes='bx')))
+    def test_Adjoint_bx(self): self.assertLess(*dotestAdjoint(*getProb(rxTypes='bx')))
 
-    def test_Jvec_bxbz(self): self.assertTrue(testJvec(*getProb(rxTypes='bx,bz')))
-    def test_Adjoint_bxbz(self): self.assertLess(*testAdjoint(*getProb(rxTypes='bx,bz')))
+    def test_Jvec_bxbz(self): self.assertTrue(dotestJvec(*getProb(rxTypes='bx,bz')))
+    def test_Adjoint_bxbz(self): self.assertLess(*dotestAdjoint(*getProb(rxTypes='bx,bz')))
 
-    def test_Jvec_bxbz_2tx(self): self.assertTrue(testJvec(*getProb(rxTypes='bx,bz',nTx=2)))
-    def test_Adjoint_bxbz_2tx(self): self.assertLess(*testAdjoint(*getProb(rxTypes='bx,bz',nTx=2)))
+    def test_Jvec_bxbz_2tx(self): self.assertTrue(dotestJvec(*getProb(rxTypes='bx,bz',nTx=2)))
+    def test_Adjoint_bxbz_2tx(self): self.assertLess(*dotestAdjoint(*getProb(rxTypes='bx,bz',nTx=2)))
 
-    def test_Jvec_bxbzbz(self): self.assertTrue(testJvec(*getProb(rxTypes='bx,bz,bz')))
-    def test_Adjoint_bxbzbz(self): self.assertLess(*testAdjoint(*getProb(rxTypes='bx,bz,bz')))
+    def test_Jvec_bxbzbz(self): self.assertTrue(dotestJvec(*getProb(rxTypes='bx,bz,bz')))
+    def test_Adjoint_bxbzbz(self): self.assertLess(*dotestAdjoint(*getProb(rxTypes='bx,bz,bz')))
 
-    # def test_Jvec_ey(self): self.assertTrue(testJvec(*getProb(rxTypes='ey')))
-    # def test_Adjoint_ey(self): self.assertLess(*testAdjoint(*getProb(rxTypes='ey')))
-
+    # def test_Jvec_ey(self): self.assertTrue(dotestJvec(*getProb(rxTypes='ey')))
+    # def test_Adjoint_ey(self): self.assertLess(*dotestAdjoint(*getProb(rxTypes='ey')))
 
 
 if __name__ == '__main__':
