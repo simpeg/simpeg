@@ -3,7 +3,7 @@ from SimPEG import *
 import simpegEM as EM
 from scipy.constants import mu_0
 
-plotIt = True
+plotIt = False
 
 class FDEM_analyticTests(unittest.TestCase):
 
