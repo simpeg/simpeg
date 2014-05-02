@@ -57,6 +57,7 @@ class BaseTimeRx(BaseRx):
     """SimPEG Receiver Object"""
 
     times = None   #: Times when the receivers were active.
+    projTLoc = 'N'
 
     def __init__(self, locs, times, rxType, **kwargs):
         self.times = times
@@ -67,6 +68,26 @@ class BaseTimeRx(BaseRx):
         """Number of data in the receiver."""
         return self.locs.shape[0] * len(self.times)
 
+    def getSpatialP(self, mesh):
+        """
+            Returns the spatial projection matrix.
+
+            .. note::
+
+                This is not stored in memory, but is created on demand.
+        """
+        return mesh.getInterpolationMat(self.locs, self.projGLoc)
+
+    def getTimeP(self, timeMesh):
+        """
+            Returns the time projection matrix.
+
+            .. note::
+
+                This is not stored in memory, but is created on demand.
+        """
+        return timeMesh.getInterpolationMat(self.times, self.projTLoc)
+
     def getP(self, mesh, timeMesh):
         """
             Returns the projection matrices as a
@@ -75,13 +96,13 @@ class BaseTimeRx(BaseRx):
 
             .. note::
 
-                Projection matrices are stored as a dictionary (mesh, timeMesh)
+                Projection matrices are stored as a dictionary (mesh, timeMesh) if storeProjections is True
         """
         if (mesh, timeMesh) in self._Ps:
             return self._Ps[(mesh, timeMesh)]
 
-        Ps = mesh.getInterpolationMat(self.locs, self.projGLoc)
-        Pt = timeMesh.getInterpolationMat(self.times, 'N')
+        Ps = self.getSpatialP(mesh)
+        Pt = self.getTimeP(timeMesh)
         P = sp.kron(Pt, Ps)
 
         if self.storeProjections:

@@ -128,7 +128,7 @@ def callHooks(match, mainFirst=False):
 def dependentProperty(name, value, children, doc):
     def fget(self): return getattr(self,name,value)
     def fset(self, val):
-        if isScalar(val) and getattr(self,name,value) == val:
+        if (isScalar(val) and getattr(self,name,value) == val) or val is getattr(self,name,value):
             return # it is the same!
         for child in children:
             if hasattr(self, child):
