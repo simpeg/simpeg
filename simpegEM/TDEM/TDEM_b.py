@@ -68,6 +68,7 @@ class ProblemTDEM_b(BaseTDEMProblem):
             Multiply G by a vector
         """
         u = u or self.fields(m)
+        self.curModel = m
 
         # Note: Fields has shape (nF/E, nTx, nT+1)
         #       However, p will only really fill (:,:,1:nT+1)
@@ -75,8 +76,7 @@ class ProblemTDEM_b(BaseTDEMProblem):
         p = FieldsTDEM(self.mesh, self.survey)
         p[:, 'b', :] = 0.0 # b at all times is zero.
         p[:, 'e', 0] = 0.0 # fake initial fields
-        curModel = self.mapping.transform(m)
-        c = self.mesh.getEdgeInnerProductDeriv(curModel)*self.mapping.transformDeriv(m)*vec
+        c = self.mesh.getEdgeInnerProductDeriv(self.curTModel)*self.curTModelDeriv*vec
         for i in range(1,self.nT+1):
             # TODO: G[1] may be dependent on the model
             #       for a galvanic source (deriv of the dc problem)
@@ -95,6 +95,8 @@ class ProblemTDEM_b(BaseTDEMProblem):
             Multiply G.T by a vector
         """
         u = u or self.fields(m)
+        self.curModel = m
+
         nTx, nE = self.survey.nTx, self.mesh.nE
         tmp = np.zeros(nE)
         # Here we can do internal multiplications of Gt*v and then multiply by MsigDeriv.T in one go.
@@ -103,9 +105,7 @@ class ProblemTDEM_b(BaseTDEMProblem):
             if nTx > 1:
                 vu = vu.sum(axis=1)
             tmp += vu
-
-        curModel = self.mapping.transform(m)
-        p = -mkvc(self.mapping.transformDeriv(m).T*self.mesh.getEdgeInnerProductDeriv(curModel).T*tmp)
+        p = -mkvc(self.curTModelDeriv.T*(self.mesh.getEdgeInnerProductDeriv(self.curTModel).T*tmp))
         return p
 
     def solveAh(self, m, p):
@@ -156,7 +156,6 @@ class ProblemTDEM_b(BaseTDEMProblem):
             y_e = self.MeSigmaI*self.mesh.edgeCurl.T*self.MfMui*y_b - self.MeSigmaI*p[:,'e',tInd+1]
             return {'b':y_b, 'e':y_e}
 
-        self.curModel = m
         return self.forward(m, AhRHS, AhCalcFields)
 
     def solveAht(self, m, p):
@@ -230,7 +229,6 @@ class ProblemTDEM_b(BaseTDEMProblem):
                 y_e += - self.MeSigmaI*p[:,'e',tInd]
             return {'b':y_b, 'e':y_e}
 
-        self.curModel = m
         return self.adjoint(m, AhtRHS, AhtCalcFields)
 
     ####################################################

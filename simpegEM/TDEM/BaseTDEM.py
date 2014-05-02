@@ -27,6 +27,7 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
 
 
     def forward(self, m, RHS, CalcFields, F=None):
+        self.curModel = m
         F = F or FieldsTDEM(self.mesh, self.survey)
 
         dtFact = None
@@ -45,6 +46,7 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
         return F
 
     def adjoint(self, m, RHS, CalcFields, F=None):
+        self.curModel = m
         F = F or FieldsTDEM(self.mesh, self.survey)
 
         dtFact = None
@@ -77,6 +79,7 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
             * Compute \\\(\\\\vec{w} = -\\\mathbf{Q} \\\\vec{y}\\\)
 
         """
+        self.curModel = m
         u = u or self.fields(m)
         p = self.Gvec(m, v, u)
         y = self.solveAh(m, p)
@@ -98,6 +101,7 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
             * Compute \\\(\\\\vec{w} = -\\\mathbf{G}^\\\\top y\\\)
 
         """
+        self.curModel = m
         u = u or self.fields(m)
 
         if not isinstance(v, self.dataPair):
