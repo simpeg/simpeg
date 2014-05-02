@@ -2,9 +2,10 @@ import numpy as np
 from matutils import mkvc
 import warnings
 
-def DSolverWrap(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6):
+def DSolverWrap(fun, factorize=True, destroy = False, checkAccuracy=True, accuracyTol=1e-6):
 
     def __init__(self, A, **kwargs):
+
         self.A = A.tocsc()
         self.kwargs = kwargs
         if factorize:
@@ -34,7 +35,13 @@ def DSolverWrap(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6):
                 warnings.warn(msg, RuntimeWarning)
         return X
 
-    return type(fun.__name__, (object,), {"__init__": __init__, "solve": solve})
+    def clean(self):
+        if destroy == True:
+            return self.solver.clean()
+        else:
+            return True
+
+    return type(fun.__name__, (object,), {"__init__": __init__, "solve": solve, "clean": clean})
 
 
 

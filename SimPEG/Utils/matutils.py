@@ -330,14 +330,3 @@ def invPropertyTensor(M, tensor, returnMatrix=False):
         return makePropertyTensor(M, T)
 
     return T
-
-
-
-from scipy.sparse.linalg import LinearOperator
-
-class SimPEGLinearOperator(LinearOperator):
-    """Extends scipy.sparse.linalg.LinearOperator to have a .T function."""
-    @property
-    def T(self):
-        return self.__class__((self.shape[1],self.shape[0]),self.rmatvec,rmatvec=self.matvec,matmat=self.matmat)
-

@@ -368,47 +368,10 @@ class ComboMap(IdentityMap):
             mi = map_i.transform(mi)
         return deriv
 
-class ComplexMap(IdentityMap):
-    """docstring for ComplexMap
-
-        default nP is nC in the mesh times 2 [real, imag]
-
-    """
-    def __init__(self, mesh, nP=None):
-        IdentityMap.__init__(self, mesh)
-        if nP is not None:
-            assert nP%2 == 0, 'nP must be even.'
-        self._nP = nP or (self.mesh.nC * 2)
-
-    @property
-    def nP(self):
-        return self._nP
-
-    def transform(self, m):
-        nC = self.mesh.nC
-        return m[:nC] + m[nC:]*1j
-
-    def transformDeriv(self, m):
-        nC = self.nP/2
-        shp = (nC, nC*2)
-        def fwd(v):
-            return v[:nC] + v[nC:]*1j
-        def adj(v):
-            return np.r_[v.real,v.imag]
-        return Utils.SimPEGLinearOperator(shp,fwd,adj)
-
-    transformInverse = transformDeriv
-
-
 if __name__ == '__main__':
     from SimPEG import *
-    # mesh = Mesh.TensorMesh([10,8])
-    # combo = ComboMap(mesh, [ExpMap, Vertical1DMap])
-    # m = combo.example()
-    # print m.shape
-    # print combo.test(np.arange(8))
     mesh = Mesh.TensorMesh([10,8])
-    mapping = ComplexMap(mesh)
-    m = mapping.example()
+    combo = ComboMap(mesh, [ExpMap, Vertical1DMap])
+    m = combo.example()
     print m.shape
-    print mapping.test(m)
+    print combo.test(np.arange(8))

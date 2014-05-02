@@ -3,6 +3,8 @@ from scipy import sparse as sp
 from matutils import mkvc, ndgrid, sub2ind, sdiag
 from codeutils import asArray_N_x_Dim
 from codeutils import isScalar
+import SimPEG
+
 
 def exampleLrmGrid(nC, exType):
     assert type(nC) == list, "nC must be a list containing the number of nodes"
@@ -131,8 +133,7 @@ def readUBCTensorMesh(fileName):
     y0 = mesh[1][1]
     z0 = -(hz.sum()-mesh[1][2])
 
-    from SimPEG import Mesh
-    mesh3D = Mesh.TensorMesh([hx, hy, hz], np.r_[x0, y0, z0])
+    mesh3D = SimPEG.Mesh.TensorMesh([hx, hy, hz], np.r_[x0, y0, z0])
 
     return mesh3D
 
@@ -147,7 +148,7 @@ def readUBCTensorModel(fileName, mesh):
     model = np.reshape(model, (mesh.nCz, mesh.nCx, mesh.nCy), order = 'F')
     model = model[::-1,:,:]
     model = np.transpose(model, (1, 2, 0))
-    model = mkvc(model)
+    model = SimPEG.Utils.mkvc(model)
 
     return model
 
