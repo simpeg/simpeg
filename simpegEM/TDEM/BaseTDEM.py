@@ -31,9 +31,12 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
         F = F or FieldsTDEM(self.mesh, self.survey)
 
         dtFact = None
+        Asolve = None
         for tInd, dt in enumerate(self.timeSteps):
             if dt != dtFact:
                 dtFact = dt
+                if Asolve is not None:
+                    Asolve.clean()
                 A = self.getA(tInd)
                 # print 'Factoring...   (dt = ' + str(dt) + ')'
                 Asolve = self.Solver(A, **self.solverOpts)
@@ -43,6 +46,7 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
             if sol.ndim == 1:
                 sol.shape = (sol.size,1)
             F[:,:,tInd+1] = CalcFields(sol, tInd)
+        Asolve.clean()
         return F
 
     def adjoint(self, m, RHS, CalcFields, F=None):
@@ -50,9 +54,12 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
         F = F or FieldsTDEM(self.mesh, self.survey)
 
         dtFact = None
+        Asolve = None
         for tInd, dt in reversed(list(enumerate(self.timeSteps))):
             if dt != dtFact:
                 dtFact = dt
+                if Asolve is not None:
+                    Asolve.clean()
                 A = self.getA(tInd)
                 # print 'Factoring...   (dt = ' + str(dt) + ')'
                 Asolve = self.Solver(A, **self.solverOpts)
@@ -62,6 +69,7 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
             if sol.ndim == 1:
                 sol.shape = (sol.size,1)
             F[:,:,tInd+1] = CalcFields(sol, tInd)
+        Asolve.clean()
         return F
 
     def Jvec(self, m, v, u=None):
