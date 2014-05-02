@@ -6,13 +6,17 @@ from simpegEM.Utils import Sources
 class RxTDEM(Survey.BaseTimeRx):
 
     knownRxTypes = {
-                    'ex':['e', 'Ex'],
-                    'ey':['e', 'Ey'],
-                    'ez':['e', 'Ez'],
+                    'ex':['e', 'Ex', 'N'],
+                    'ey':['e', 'Ey', 'N'],
+                    'ez':['e', 'Ez', 'N'],
 
-                    'bx':['b', 'Fx'],
-                    'by':['b', 'Fy'],
-                    'bz':['b', 'Fz'],
+                    'bx':['b', 'Fx', 'N'],
+                    'by':['b', 'Fy', 'N'],
+                    'bz':['b', 'Fz', 'N'],
+
+                    'dbxdt':['b', 'Fx', 'CC'],
+                    'dbydt':['b', 'Fy', 'CC'],
+                    'dbzdt':['b', 'Fz', 'CC'],
                    }
 
     def __init__(self, locs, times, rxType):
@@ -27,6 +31,24 @@ class RxTDEM(Survey.BaseTimeRx):
     def projGLoc(self):
         """Grid Location projection (e.g. Ex Fy ...)"""
         return self.knownRxTypes[self.rxType][1]
+
+    @property
+    def projTLoc(self):
+        """Time Location projection (e.g. CC N)"""
+        return self.knownRxTypes[self.rxType][2]
+
+    def getTimeP(self, timeMesh):
+        """
+            Returns the time projection matrix.
+
+            .. note::
+
+                This is not stored in memory, but is created on demand.
+        """
+        if self.rxType in ['dbxdt','dbydt','dbzdt']:
+            return timeMesh.getInterpolationMat(self.times, self.projTLoc)*timeMesh.faceDiv
+        else:
+            return timeMesh.getInterpolationMat(self.times, self.projTLoc)
 
     def projectFields(self, tx, mesh, timeMesh, u):
         P = self.getP(mesh, timeMesh)
@@ -88,7 +110,7 @@ class TxTDEM(Survey.BaseTx):
 
         return {"b": mesh.edgeCurl*MVP}
 
-    def getJs(self, time):
+    def getJs(self, mesh, time):
         return None
 
 class SurveyTDEM(Survey.BaseSurvey):

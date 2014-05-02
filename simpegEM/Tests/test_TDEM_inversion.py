@@ -1,6 +1,6 @@
 from SimPEG import *
 import simpegEM as EM
-from simpegem1d import Utils1D
+# from simpegem1d import Utils1D
 from scipy.constants import mu_0
 import matplotlib.pyplot as plt
 

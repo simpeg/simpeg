@@ -68,8 +68,14 @@ class TDEM_bDerivTests(unittest.TestCase):
     def test_Jvec_bxbzbz(self): self.assertTrue(dotestJvec(*getProb(rxTypes='bx,bz,bz')))
     def test_Adjoint_bxbzbz(self): self.assertLess(*dotestAdjoint(*getProb(rxTypes='bx,bz,bz')))
 
-    # def test_Jvec_ey(self): self.assertTrue(dotestJvec(*getProb(rxTypes='ey')))
-    # def test_Adjoint_ey(self): self.assertLess(*dotestAdjoint(*getProb(rxTypes='ey')))
+    def test_Jvec_dbxdt(self): self.assertTrue(dotestJvec(*getProb(rxTypes='dbxdt')))
+    def test_Adjoint_dbxdt(self): self.assertLess(*dotestAdjoint(*getProb(rxTypes='dbxdt')))
+
+    def test_Jvec_dbzdt(self): self.assertTrue(dotestJvec(*getProb(rxTypes='dbzdt')))
+    def test_Adjoint_dbzdt(self): self.assertLess(*dotestAdjoint(*getProb(rxTypes='dbzdt')))
+
+    def test_Jvec_dbxdtbz(self): self.assertTrue(dotestJvec(*getProb(rxTypes='dbxdt,bz')))
+    def test_Adjoint_dbxdtbz(self): self.assertLess(*dotestAdjoint(*getProb(rxTypes='dbxdt,bz')))
 
 
 if __name__ == '__main__':
