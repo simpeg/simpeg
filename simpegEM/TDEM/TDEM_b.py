@@ -226,7 +226,7 @@ class ProblemTDEM_b(BaseTDEMProblem):
                 y_b = mkvc(y_b)
             y_e = self.MeSigmaI*self.mesh.edgeCurl.T*self.MfMui*y_b
             if 'e' in p:
-                y_e += - self.MeSigmaI*p[:,'e',tInd]
+                y_e += - self.MeSigmaI*p[:,'e',tInd+1]
             return {'b':y_b, 'e':y_e}
 
         return self.adjoint(m, AhtRHS, AhtCalcFields)
