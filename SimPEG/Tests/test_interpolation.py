@@ -144,6 +144,12 @@ class TestInterpolation2dCyl_Simple(unittest.TestCase):
         fz = np.array([[ 0., 0., 0., 0., 0.5, 0., 0., 0., 0.5, 0., 0., 0.]])
         self.assertTrue( np.all(fz == M.getInterpolationMat(locs, 'Fz').todense()) )
 
+    def test_exceptions(self):
+        M = Mesh.CylMesh([4,1,1])
+        locs = np.r_[0,0,0.5]
+        self.assertRaises(Exception,lambda:M.getInterpolationMat(locs, 'Fy'))
+        self.assertRaises(Exception,lambda:M.getInterpolationMat(locs, 'Ex'))
+        self.assertRaises(Exception,lambda:M.getInterpolationMat(locs, 'Ez'))
 
 
 class TestInterpolation2dCyl(OrderTest):
