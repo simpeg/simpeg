@@ -1,4 +1,4 @@
-import Utils, Parameters, Survey, Problem, numpy as np, scipy.sparse as sp
+import Utils, Parameters, Survey, Problem, numpy as np, scipy.sparse as sp, gc
 
 class BaseObjFunction(object):
     """BaseObjFunction(forward, reg, **kwargs)"""
@@ -76,6 +76,7 @@ class BaseObjFunction(object):
 
         self.u_current = None
         self.m_current = m
+        gc.collect()
 
         u = self.prob.fields(m)
         self.u_current = u
