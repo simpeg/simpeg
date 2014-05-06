@@ -100,41 +100,45 @@ def closestPoints(mesh, pts, gridLoc='CC'):
 
 def readUBCTensorMesh(fileName):
     """
-        ReadUBC 3DTensor mesh and generate 3D Tensor mesh in simpegTD
+        Read UBC GIF 3DTensor mesh and generate 3D Tensor mesh in simpegTD
 
+        Input:
+        :param fileName, path to the UBC GIF mesh file
+
+        Output:
+        :param SimPEG TensorMesh object
+        :return 
     """
-    f = open(fileName, 'r')
-    mesh = []
-    for line in f:
-        if any("*" in s for s in line.split()):
-            tempa = []
-            tempb = []
-            for s in line.split():
-                if ("*" in s):
-                    tempb = map(float, s.split("*"))
-                    for i in range(int(tempb[0])):
-                        tempa.append(tempb[1])
-                else:
-                    tempa.append(float(s))
-            mesh.append(tempa)
-        else:
-            aline = map(float, line.split())
-            mesh.append(aline)
 
-    f.close()
+    # Interal function to read cell size lines for the UBC mesh files.
+    def readCellLine(line):
+        for seg in line.split():
+            if '*' in seg:
+                st = seg
+                sp = seg.split('*')
+                re = np.array(sp[0],dtype=int)*(' ' + sp[1])
+                line = line.replace(st,re.strip())
+        return np.array(line.split(),dtype=float)
+    
+    # Read the file as line strings, remove lines with comment = ! 
+    msh = np.genfromtxt(fileName,delimiter='\n',dtype=np.str,comments='!')
 
-    hx = np.array(mesh[2])
-    hy = np.array(mesh[3])
-    hz = np.array(mesh[4])
-
-    x0 = mesh[1][0]
-    y0 = mesh[1][1]
-    z0 = -(hz.sum()-mesh[1][2])
-
+    # Fist line is the size of the model
+    sizeM = np.array(msh[0].split(),dtype=float)
+    # Second line is the South-West-Top corner coordinates.
+    x0 = np.array(msh[1].split(),dtype=float)
+    # Read the cell sizes
+    h1 = readCellLine(msh[2])
+    h2 = readCellLine(msh[3])
+    h3temp = readCellLine(msh[4])
+    h3 = h3temp[::-1] # Invert the indexing of the vector to start from the bottom.
+    # Adjust the reference point to the bottom south west corner
+    x0[2] = x0[2] - np.sum(h3)
+    # Make the mesh 
     from SimPEG import Mesh
-    mesh3D = Mesh.TensorMesh([hx, hy, hz], np.r_[x0, y0, z0])
+    tensMsh = Mesh.TensorMesh([h1,h2,h3],x0)
+    return tensMsh
 
-    return mesh3D
 
 def readUBCTensorModel(fileName, mesh):
     """
@@ -167,7 +171,7 @@ def writeUBCTensorMesh(mesh, fileName):
     s += '%.2f %.2f %.2f\n' %tuple(origin)
     s += ('%.2f '*mesh.nCx+'\n')%tuple(mesh.hx)
     s += ('%.2f '*mesh.nCy+'\n')%tuple(mesh.hy)
-    s += ('%.2f '*mesh.nCz+'\n')%tuple(mesh.hz)
+    s += ('%.2f '*mesh.nCz+'\n')%tuple(mesh.hz[::-1])
     f = open(fileName, 'w')
     f.write(s)
     f.close()
@@ -182,14 +186,14 @@ def writeUBCTensorModel(mesh, model, fileName):
         :param str fileName: File to write to
     """
 
-    # Reshape to [z,y,x]
-    model3D = np.reshape(model, mesh.vnC)
-    # Permute to [z,x,y]
-    model3D = np.swapaxes(model3D, 1, 2)
+    # Reshape model to a matrix
+    modelMat = mesh.r(model,'CC','CC','M')
+    # Transpose the axes
+    modelMatT = modelMat.transpose((2,0,1))
     # Flip z to positive down
-    model3D = model3D[::-1,:,:]
+    modelMatTR = mkvc(modelMatT[::-1,:,:])
 
-    np.savetxt(fileName, mkvc(model3D))
+    np.savetxt(fileName, modelMatTR.ravel())
 
 
 if __name__ == '__main__':
