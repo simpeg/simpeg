@@ -71,6 +71,14 @@ class IdentityMap(object):
             isinstance(self, ComboMap) and isinstance(self.maps[0], pair)
             ), "Mapping object must be an instance of a %s class."%(pair.__name__)
 
+    def __mul__(self, val):
+        if isinstance(val, ComboMap):
+            return ComboMap(self.mesh, [self] + val.maps)
+        elif isinstance(val, IdentityMap):
+            return ComboMap(self.mesh, [self, val])
+        elif type(val) is np.ndarray:
+            return self.transform(val)
+
 class NonLinearMap(object):
     """
     SimPEG NonLinearMap
@@ -368,6 +376,14 @@ class ComboMap(IdentityMap):
             mi = map_i.transform(mi)
         return deriv
 
+    def __mul__(self, val):
+        if isinstance(val, ComboMap):
+            return ComboMap(self.mesh, self.maps + val.maps)
+        elif isinstance(val, IdentityMap):
+            return ComboMap(self.mesh, self.maps + [val])
+        elif type(val) is np.ndarray:
+            return self.transform(val)
+
 class ComplexMap(IdentityMap):
     """docstring for ComplexMap
 
@@ -402,7 +418,16 @@ class ComplexMap(IdentityMap):
 
 if __name__ == '__main__':
     from SimPEG import *
-    # mesh = Mesh.TensorMesh([10,8])
+    mesh = Mesh.TensorMesh([10,8])
+    emap = ExpMap(mesh)
+    vmap = Vertical1DMap(mesh)
+
+    combo = emap*vmap
+    print combo
+    print combo.maps
+
+    # combo = ComboMap(mesh, [ExpMap, Vertical1DMap])
+
     # combo = ComboMap(mesh, [ExpMap, Vertical1DMap])
     # m = combo.example()
     # print m.shape
@@ -411,4 +436,4 @@ if __name__ == '__main__':
     mapping = ComplexMap(mesh)
     m = mapping.example()
     print m.shape
-    print mapping.test(m)
+    # print mapping.test(m)
