@@ -1,7 +1,7 @@
 from SimPEG import Survey, Problem, Utils, np, sp, Solver as SimpegSolver
 from scipy.constants import mu_0
 
-class BaseEMProblem(Problem.BaseProblem):
+class BaseMTProblem(Problem.BaseProblem):
 
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)

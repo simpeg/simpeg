@@ -1,14 +1,14 @@
 from SimPEG import Survey, Problem, Utils, np, sp, Solver as SimpegSolver
 from scipy.constants import mu_0
 from SurveyFDEM import SurveyFDEM, FieldsFDEM
-from simpegEM.Utils import Sources
-from simpegEM.Base import BaseEMProblem
+# from simpegMT.Utils import Sources
+from simpegMT.Base import BaseMTProblem
 
 def omega(freq):
     """Change frequency to angular frequency, omega"""
     return 2.*np.pi*freq
 
-class BaseFDEMProblem(BaseEMProblem):
+class BaseFDEMProblem(BaseMTProblem):
     """
         We start by looking at Maxwell's equations in the electric field \\(\\vec{E}\\) and the magnetic flux density \\(\\vec{B}\\):
 
