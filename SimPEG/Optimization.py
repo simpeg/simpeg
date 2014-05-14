@@ -112,6 +112,16 @@ class Minimize(object):
 
         Utils.setKwargs(self, **kwargs)
 
+    @property
+    def callback(self):
+        return getattr(self, '_callback', None)
+    @callback.setter
+    def callback(self, value):
+        if self.callback is not None:
+            print 'The callback on the %s Optimization was replaced.' % self.__name__
+        self._callback = value
+
+
     @Utils.timeIt
     def minimize(self, evalFunction, x0):
         """minimize(evalFunction, x0)
@@ -414,6 +424,8 @@ class Minimize(object):
             :rtype: None
             :return: None
         """
+        if self.callback is not None:
+            self.callback(xt)
         # store old values
         self.f_last = self.f
         self.x_last, self.xc = self.xc, xt
