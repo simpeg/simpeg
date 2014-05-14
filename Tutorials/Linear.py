@@ -43,8 +43,6 @@ def example(N):
     mtrue[mesh.vectorCCx > 0.45] = -0.5
     mtrue[mesh.vectorCCx > 0.6] = 0
 
-
-
     prob = LinearProblem(mesh, G)
     survey = prob.createSyntheticSurvey(mtrue, std=0.01)
 
@@ -59,10 +57,12 @@ if __name__ == '__main__':
     M = prob.mesh
 
     reg = Regularization.Tikhonov(mesh)
-    beta = Parameters.BetaSchedule()
-    objFunc = ObjFunction.BaseObjFunction(survey, reg, beta=beta)
+    objFunc = ObjFunction.BaseObjFunction(survey, reg)
     opt = Optimization.InexactGaussNewton(maxIter=20)
     inv = Inversion.BaseInversion(objFunc, opt)
+    beta = Rules.BetaSchedule()
+    betaest = Rules.BetaEstimate_ByEig()
+    inv.ruleList = Rules.RuleList(betaest, beta)
     m0 = np.zeros_like(survey.mtrue)
 
     mrec = inv.run(m0)
@@ -72,7 +72,6 @@ if __name__ == '__main__':
         plt.plot(prob.G[i,:])
 
     plt.figure(2)
-
     plt.plot(M.vectorCCx, survey.mtrue, 'b-')
     plt.plot(M.vectorCCx, mrec, 'r-')
 

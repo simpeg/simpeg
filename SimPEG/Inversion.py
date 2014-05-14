@@ -1,6 +1,7 @@
 import SimPEG
 from SimPEG import Utils, sp, np
 from Optimization import Remember, IterationPrinters, StoppingCriteria
+import Rules
 
 
 class BaseInversion(object):
@@ -15,6 +16,18 @@ class BaseInversion(object):
 
     counter = None     #: Set this to a SimPEG.Utils.Counter() if you want to count things
 
+    @property
+    def ruleList(self):
+        if getattr(self,'_ruleList', None) is None:
+            self._ruleList = Rules.RuleList(inversion=self)
+        return self._ruleList
+
+    @ruleList.setter
+    def ruleList(self, value):
+        assert isinstance(value, Rules.RuleList), 'Must be a RuleList'
+        self._ruleList = value
+        self._ruleList.inversion = self
+
     def __init__(self, objFunc, opt, **kwargs):
         Utils.setKwargs(self, **kwargs)
 
@@ -22,6 +35,7 @@ class BaseInversion(object):
         self.objFunc.parent = self
 
         self.opt = opt
+        opt.callback = self._optCallback
         self.opt.parent = self
 
         self.stoppers = [StoppingCriteria.iteration]
@@ -40,15 +54,11 @@ class BaseInversion(object):
 
         """
         self.objFunc.startup(m0)
+        self.ruleList.call('initialize')
         self.m = self.opt.minimize(self.objFunc.evalFunction, m0)
-        self.finish()
+        self.ruleList.call('finish')
 
         return self.m
 
-    @Utils.callHooks('finish')
-    def finish(self):
-        """finish()
-
-            **finish** is called at the end of the optimization.
-        """
-        pass
+    def _optCallback(self, xt):
+        self.ruleList.call('endIter')

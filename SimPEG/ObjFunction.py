@@ -1,11 +1,11 @@
-import Utils, Parameters, Survey, Problem, numpy as np, scipy.sparse as sp, gc
+import Utils, Survey, Problem, numpy as np, scipy.sparse as sp, gc
 
 class BaseObjFunction(object):
     """BaseObjFunction(forward, reg, **kwargs)"""
 
     __metaclass__ = Utils.SimPEGMetaClass
 
-    beta    = Parameters.ParameterProperty('beta', default=1, doc='Regularization trade-off parameter')
+    beta    = 1.0    #: Regularization trade-off parameter
 
     debug   = False  #: Print debugging information
     counter = None   #: Set this to a SimPEG.Utils.Counter() if you want to count things

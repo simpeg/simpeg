@@ -9,8 +9,8 @@ import Survey
 import Regularization
 import ObjFunction
 import Optimization
+import Rules
 import Inversion
-import Parameters
 import Tests
 
 

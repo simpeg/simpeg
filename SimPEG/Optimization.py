@@ -424,13 +424,14 @@ class Minimize(object):
             :rtype: None
             :return: None
         """
-        if self.callback is not None:
-            self.callback(xt)
         # store old values
         self.f_last = self.f
         self.x_last, self.xc = self.xc, xt
         self.iter += 1
         if self.debug: self.printDone()
+
+        if self.callback is not None:
+            self.callback(xt)
 
 
     def save(self, group):

@@ -1,4 +1,4 @@
-import Utils, Maps, Mesh, Parameters, numpy as np, scipy.sparse as sp
+import Utils, Maps, Mesh, numpy as np, scipy.sparse as sp
 
 class BaseRegularization(object):
     """
@@ -20,6 +20,7 @@ class BaseRegularization(object):
 
     mapping = None    #: A SimPEG.Map instance.
     mesh    = None    #: A SimPEG.Mesh instance.
+    mref = None       #: Reference model.
 
     def __init__(self, mesh, mapping=None, **kwargs):
         Utils.setKwargs(self, **kwargs)
@@ -27,8 +28,6 @@ class BaseRegularization(object):
         assert isinstance(mesh, Mesh.BaseMesh), "mesh must be a SimPEG.Mesh object."
         self.mapping = mapping or Maps.IdentityMap(mesh)
         self.mapping._assertMatchesPair(self.mapPair)
-
-    mref = Parameters.ParameterProperty('mref', default=None, doc='Reference model.')
 
     @property
     def parent(self):

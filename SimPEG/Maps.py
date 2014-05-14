@@ -1,4 +1,4 @@
-import Utils, Parameters, numpy as np, scipy.sparse as sp
+import Utils, numpy as np, scipy.sparse as sp
 from Tests import checkDerivative
 
 class IdentityMap(object):
