@@ -162,7 +162,9 @@ class ProblemTDEM_b(BaseTDEMProblem):
             y_b = sol
             if self.survey.nTx == 1:
                 y_b = mkvc(y_b)
-            y_e = self.MeSigmaI*(self.mesh.edgeCurl.T*(self.MfMui*y_b)) - self.MeSigmaI*p[:,'e',tInd+1]
+            y_e = self.MeSigmaI*(self.mesh.edgeCurl.T*(self.MfMui*y_b))
+            if 'e' in p:
+                y_e = y_e - self.MeSigmaI*p[:,'e',tInd+1]
             return {'b':y_b, 'e':y_e}
 
         return self.forward(m, AhRHS, AhCalcFields)
