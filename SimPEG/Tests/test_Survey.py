@@ -288,7 +288,6 @@ class FieldsTest_Time_Aliased(unittest.TestCase):
         prob = Problem.BaseTimeProblem(mesh, timeSteps=[(10.,3), (20.,2)])
         survey.pair(prob)
         def alias(F, b, ind):
-            print 'aliasB: b.shape:', b.shape
             return F.mesh.edgeCurl.T * b
         self.F = Survey.TimeFields(mesh, survey, knownFields={'b':'F'}, aliasFields={'e':['b','E',alias]})
         self.Tx0 = Tx0
@@ -322,6 +321,10 @@ class FieldsTest_Time_Aliased(unittest.TestCase):
             e[i] = e[i][:,:,np.newaxis]
         e = np.concatenate(e, axis=2)
         self.assertTrue(np.all(F[:, 'e', :] == e ))
+        self.assertTrue(np.all(F[self.Tx0, 'e', :] == e[:,0,:] ))
+        self.assertTrue(np.all(F[self.Tx1, 'e', :] == e[:,1,:] ))
+        for t in range(nT):
+            self.assertTrue(np.all(F[self.Tx1, 'e', t] == e[:,1,t] ))
 
         b = np.random.rand(F.mesh.nF,nT)
         F[self.Tx0, 'b',:] = b

@@ -434,7 +434,7 @@ class TimeFields(Fields):
             pointerFields = self._fields[alias][:,txInd,timeInd]
             pointerShape = self._correctShape(alias, ind, deflate=True)
             pointerFields = pointerFields.reshape(pointerShape, order='F')
-            if len(pointerShape) == 2:
+            if len(pointerShape) < 3:
                 out = func(self, pointerFields, txInd)
             else: #loop over the time steps
                 nT = pointerShape[2]
