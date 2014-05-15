@@ -220,7 +220,7 @@ class Fields(object):
     """
 
     knownFields = None  #: Known fields,   a dict with locations,         e.g. {"e": "E", "phi": "CC"}
-    aliasFields = None  #: Aliased fields, a dict with [alias, function], e.g. {"b":["e",lambda(F,e,ind)]}
+    aliasFields = None  #: Aliased fields, a dict with [alias, location, function], e.g. {"b":["e","F",lambda(F,e,ind)]}
     dtype = float       #: dtype is the type of the storage matrix. This can be a dictionary.
 
     def __init__(self, mesh, survey, **kwargs):
@@ -237,8 +237,23 @@ class Fields(object):
         allFields = [k for k in self.knownFields] + [a for a in self.aliasFields]
         assert len(allFields) == len(set(allFields)), 'Aliased fields and Known Fields have overlapping definitions.'
 
-    def _storageShape(self, nP):
+    @property
+    def approxSize(self):
+        """The approximate cost to storing all of the known fields."""
+        sz = 0.0
+        for f in self.knownFields:
+            loc =self.knownFields[f]
+            sz += np.array(self._storageShape(loc)).prod()*8.0/(1024**2)
+        return "%e MB"%sz
+
+    def _storageShape(self, loc):
         nTx = self.survey.nTx
+
+        nP = {'CC': self.mesh.nC,
+              'N':  self.mesh.nN,
+              'F':  self.mesh.nF,
+              'E':  self.mesh.nE}[loc]
+
         return (nP, nTx)
 
     def _initStore(self, name):
@@ -249,16 +264,11 @@ class Fields(object):
 
         loc = self.knownFields[name]
 
-        nP = {'CC': self.mesh.nC,
-              'N':  self.mesh.nN,
-              'F':  self.mesh.nF,
-              'E':  self.mesh.nE}[loc]
-
         if type(self.dtype) is dict:
             dtype = self.dtype[name]
         else:
             dtype = self.dtype
-        field = np.zeros(self._storageShape(nP), dtype=dtype)
+        field = np.zeros(self._storageShape(loc), dtype=dtype)
 
         self._fields[name] = field
 
@@ -321,7 +331,7 @@ class Fields(object):
 
         for name in newFields:
             field = self._initStore(name)
-            self._setField(field, newFields[name], ind)
+            self._setField(field, newFields[name], name, ind)
 
     def __getitem__(self, key):
         ind, name = self._indexAndNameFromKey(key, 'get')
@@ -332,7 +342,7 @@ class Fields(object):
             return out
         return self._getField(name, ind)
 
-    def _setField(self, field, val, ind):
+    def _setField(self, field, val, name, ind):
         if type(val) is np.ndarray and (field.shape[1] == 1 or val.ndim == 1):
             val = Utils.mkvc(val,2)
         field[:,ind] = val
@@ -342,7 +352,7 @@ class Fields(object):
             out = self._fields[name][:,ind]
         else:
             # Aliased fields
-            alias, func = self.aliasFields[name]
+            alias, loc, func = self.aliasFields[name]
             out = func(self, self._fields[alias][:,ind], ind)
 
         if out.shape[1] == 1:
@@ -362,7 +372,11 @@ class TimeFields(Fields):
 
     """
 
-    def _storageShape(self, nP):
+    def _storageShape(self, loc):
+        nP = {'CC': self.mesh.nC,
+              'N':  self.mesh.nN,
+              'F':  self.mesh.nF,
+              'E':  self.mesh.nE}[loc]
         nTx = self.survey.nTx
         nT = self.survey.prob.nT
         return (nP, nTx, nT + 1)
@@ -384,11 +398,30 @@ class TimeFields(Fields):
 
         return (txInd, timeInd), name
 
-    def _setField(self, field, val, ind):
+    def _correctShape(self, name, ind, deflate=False):
         txInd, timeInd = ind
-        if type(val) is np.ndarray and (val.ndim == 1):
-            val = Utils.mkvc(val,2)
-        field[:,txInd,timeInd] = val
+        if name in self.knownFields:
+            loc = self.knownFields[name]
+        else:
+            loc = self.aliasFields[name][1]
+        nP, total_nTx, total_nT = self._storageShape(loc)
+        nTx = np.ones(total_nTx, dtype=bool)[txInd].sum()
+        nT  = np.ones(total_nT, dtype=bool)[timeInd].sum()
+        shape = nP, nTx, nT
+        if deflate:
+             shape = tuple([s for s in shape if s > 1])
+        return shape
+
+    def _setField(self, field, val, name, ind):
+        txInd, timeInd = ind
+        shape = self._correctShape(name, ind)
+        if Utils.isScalar(val):
+            field[:,txInd,timeInd] = val
+            return
+        if val.size != np.array(shape).prod():
+            raise ValueError('Incorrect size for data.')
+        correctShape = field[:,txInd,timeInd].shape
+        field[:,txInd,timeInd] = val.reshape(correctShape, order='F')
 
     def _getField(self, name, ind):
         txInd, timeInd = ind
@@ -397,15 +430,22 @@ class TimeFields(Fields):
             out = self._fields[name][:,txInd,timeInd]
         else:
             # Aliased fields
-            alias, func = self.aliasFields[name]
-            out = func(self, self._fields[name][:,txInd,timeInd], txInd, timeInd)
+            alias, loc, func = self.aliasFields[name]
+            pointerFields = self._fields[alias][:,txInd,timeInd]
+            pointerShape = self._correctShape(alias, ind, deflate=True)
+            pointerFields = pointerFields.reshape(pointerShape, order='F')
+            if len(pointerShape) == 2:
+                out = func(self, pointerFields, txInd)
+            else: #loop over the time steps
+                nT = pointerShape[2]
+                out = range(nT)
+                for i in range(nT):
+                    out[i] = func(self, pointerFields[:,:,i], txInd)
+                    out[i] = out[i][:,:,np.newaxis]
+                out = np.concatenate(out, axis=2)
 
-        if out.shape[1] == 1:
-            if out.ndim == 2:
-                out = out[:,0]
-            else:
-                out = out[:,0,:]
-        return out
+        shape = self._correctShape(name, ind, deflate=True)
+        return out.reshape(shape, order='F')
 
 
 class BaseSurvey(object):

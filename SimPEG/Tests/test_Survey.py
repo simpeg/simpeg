@@ -74,6 +74,10 @@ class DataAndFieldsTest(unittest.TestCase):
         self.assertTrue(np.all(F[:, 'e'] == e))
         self.assertTrue(np.all(F[:, 'b'] == b))
 
+        for s in [0,0.0,np.r_[0],long(0)]:
+            F[:, 'b'] = s
+            self.assertTrue(np.all(F[:, 'b'] == b*0))
+
         b = np.random.rand(F.mesh.nF,1)
         F[self.Tx0, 'b'] = b
         self.assertTrue(np.all(F[self.Tx0, 'b'] == Utils.mkvc(b)))
@@ -129,7 +133,7 @@ class FieldsTest_Alias(unittest.TestCase):
         txList = [Tx0,Tx1,Tx2,Tx3,Tx4]
         survey = Survey.BaseSurvey(txList=txList)
         self.D = Survey.Data(survey)
-        self.F = Survey.Fields(mesh, survey, knownFields={'e':'E'}, aliasFields={'b':['e',(lambda F, e, ind: F.mesh.edgeCurl * e)]})
+        self.F = Survey.Fields(mesh, survey, knownFields={'e':'E'}, aliasFields={'b':['e','F',(lambda F, e, ind: F.mesh.edgeCurl * e)]})
         self.Tx0 = Tx0
         self.Tx1 = Tx1
         self.mesh = mesh
@@ -215,6 +219,10 @@ class FieldsTest_Time(unittest.TestCase):
         self.assertTrue(np.all(F[:, 'e'] == e))
         self.assertTrue(np.all(F[:, 'b'] == b))
 
+        for s in [0,0.0,np.r_[0],long(0)]:
+            F[:, 'b'] = s
+            self.assertTrue(np.all(F[:, 'b'] == b*0))
+
         b = np.random.rand(F.mesh.nF,1,nT)
         F[self.Tx0, 'b'] = b
         self.assertTrue(np.all(F[self.Tx0, 'b'] == b[:,0,:]))
@@ -279,7 +287,10 @@ class FieldsTest_Time_Aliased(unittest.TestCase):
         survey = Survey.BaseSurvey(txList=txList)
         prob = Problem.BaseTimeProblem(mesh, timeSteps=[(10.,3), (20.,2)])
         survey.pair(prob)
-        self.F = Survey.TimeFields(mesh, survey, knownFields={'b':'F'}, aliasFields={'e':['b',(lambda F, b, ind: F.mesh.edgeCurl.T * b)]})
+        def alias(F, b, ind):
+            print 'aliasB: b.shape:', b.shape
+            return F.mesh.edgeCurl.T * b
+        self.F = Survey.TimeFields(mesh, survey, knownFields={'b':'F'}, aliasFields={'e':['b','E',alias]})
         self.Tx0 = Tx0
         self.Tx1 = Tx1
         self.mesh = mesh
@@ -295,6 +306,33 @@ class FieldsTest_Time_Aliased(unittest.TestCase):
         F[:, 'b', :] = b
         self.assertTrue('e' in F)
         self.assertTrue('b' in F)
+
+
+    def test_simpleAlias(self):
+        F = self.F
+        nTx = F.survey.nTx
+        nT = F.survey.prob.nT + 1
+        b = np.random.rand(F.mesh.nF, nTx, nT)
+        F[:, 'b', :] = b
+        self.assertTrue(np.all(F[:, 'e', 0] == F.mesh.edgeCurl.T * b[:,:,0] ))
+
+        e = range(nT)
+        for i in range(nT):
+            e[i] = F.mesh.edgeCurl.T*b[:,:,i]
+            e[i] = e[i][:,:,np.newaxis]
+        e = np.concatenate(e, axis=2)
+        self.assertTrue(np.all(F[:, 'e', :] == e ))
+
+        b = np.random.rand(F.mesh.nF,nT)
+        F[self.Tx0, 'b',:] = b
+        Cb = F.mesh.edgeCurl.T * b
+        self.assertTrue(np.all(F[self.Tx0, 'e',:] == Cb))
+
+        def f():
+            F[self.Tx0, 'e'] = F[self.Tx0, 'e']
+        self.assertRaises(KeyError, f) # can't set a alias attr.
+
+
 
 
 if __name__ == '__main__':
