@@ -40,6 +40,15 @@ class DataAndFieldsTest(unittest.TestCase):
         D2 = Survey.Data(self.D.survey, V)
         self.assertTrue(np.all(Utils.mkvc(D2) == Utils.mkvc(self.D)))
 
+    def test_contains(self):
+        F = self.F
+        nTx = F.survey.nTx
+        self.assertTrue('b' not in F)
+        self.assertTrue('b' not in F)
+        e = np.random.rand(F.mesh.nE, nTx)
+        F[:, 'e'] = e
+        self.assertTrue('b' not in F)
+        self.assertTrue('e' in F)
 
     def test_uniqueTxs(self):
         txs = self.D.survey.txList
@@ -95,6 +104,56 @@ class DataAndFieldsTest(unittest.TestCase):
         def fun(): self.F[freq,'notThere']
         self.assertRaises(KeyError, fun)
 
+
+class FieldsTest_Alias(unittest.TestCase):
+
+    def setUp(self):
+        mesh = Mesh.TensorMesh([np.ones(n)*5 for n in [10,11,12]],[0,0,-30])
+        x = np.linspace(5,10,3)
+        XYZ = Utils.ndgrid(x,x,np.r_[0.])
+        txLoc = np.r_[0,0,0.]
+        rxList0 = Survey.BaseRx(XYZ, 'exi')
+        Tx0 = Survey.BaseTx(txLoc, 'VMD', [rxList0])
+        rxList1 = Survey.BaseRx(XYZ, 'bxi')
+        Tx1 = Survey.BaseTx(txLoc, 'VMD', [rxList1])
+        rxList2 = Survey.BaseRx(XYZ, 'bxi')
+        Tx2 = Survey.BaseTx(txLoc, 'VMD', [rxList2])
+        rxList3 = Survey.BaseRx(XYZ, 'bxi')
+        Tx3 = Survey.BaseTx(txLoc, 'VMD', [rxList3])
+        Tx4 = Survey.BaseTx(txLoc, 'VMD', [rxList0, rxList1, rxList2, rxList3])
+        txList = [Tx0,Tx1,Tx2,Tx3,Tx4]
+        survey = Survey.BaseSurvey(txList=txList)
+        self.D = Survey.Data(survey)
+        self.F = Survey.Fields(mesh, survey, knownFields={'e':'E'}, aliasFields={'b':['e',(lambda F, e: F.mesh.edgeCurl * e)]})
+        self.Tx0 = Tx0
+        self.Tx1 = Tx1
+        self.mesh = mesh
+        self.XYZ = XYZ
+
+    def test_contains(self):
+        F = self.F
+        nTx = F.survey.nTx
+        self.assertTrue('b' not in F)
+        self.assertTrue('b' not in F)
+        e = np.random.rand(F.mesh.nE, nTx)
+        F[:, 'e'] = e
+        self.assertTrue('b' in F)
+        self.assertTrue('e' in F)
+
+    def test_simpleAlias(self):
+        F = self.F
+        nTx = F.survey.nTx
+        e = np.random.rand(F.mesh.nE, nTx)
+        F[:, 'e'] = e
+        self.assertTrue(np.all(F[:, 'b'] == F.mesh.edgeCurl * e ))
+
+        e = np.random.rand(F.mesh.nE,1)
+        F[self.Tx0, 'e'] = e
+        self.assertTrue(np.all(F[self.Tx0, 'b'] == F.mesh.edgeCurl * Utils.mkvc(e)))
+
+        def f():
+            F[self.Tx0, 'b'] = F[self.Tx0, 'b']
+        self.assertRaises(KeyError, f) # can't set a alias attr.
 
 
 class FieldsTest_Time(unittest.TestCase):
