@@ -133,7 +133,7 @@ class FieldsTest_Alias(unittest.TestCase):
         txList = [Tx0,Tx1,Tx2,Tx3,Tx4]
         survey = Survey.BaseSurvey(txList=txList)
         self.D = Survey.Data(survey)
-        self.F = Survey.Fields(mesh, survey, knownFields={'e':'E'}, aliasFields={'b':['e','F',(lambda F, e, ind: F.mesh.edgeCurl * e)]})
+        self.F = Survey.Fields(mesh, survey, knownFields={'e':'E'}, aliasFields={'b':['e','F',(lambda e, ind: self.F.mesh.edgeCurl * e)]})
         self.Tx0 = Tx0
         self.Tx1 = Tx1
         self.mesh = mesh
@@ -287,8 +287,8 @@ class FieldsTest_Time_Aliased(unittest.TestCase):
         survey = Survey.BaseSurvey(txList=txList)
         prob = Problem.BaseTimeProblem(mesh, timeSteps=[(10.,3), (20.,2)])
         survey.pair(prob)
-        def alias(F, b, ind):
-            return F.mesh.edgeCurl.T * b
+        def alias(b, ind):
+            return self.F.mesh.edgeCurl.T * b
         self.F = Survey.TimeFields(mesh, survey, knownFields={'b':'F'}, aliasFields={'e':['b','E',alias]})
         self.Tx0 = Tx0
         self.Tx1 = Tx1

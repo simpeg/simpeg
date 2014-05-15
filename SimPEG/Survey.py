@@ -353,7 +353,10 @@ class Fields(object):
         else:
             # Aliased fields
             alias, loc, func = self.aliasFields[name]
-            out = func(self, self._fields[alias][:,ind], ind)
+            if type(func) is str:
+                assert hasattr(self, func), 'The alias field function is a string, but it does not exist in the Fields class.'
+                func = getattr(self, func)
+            out = func(self._fields[alias][:,ind], ind)
 
         if out.shape[1] == 1:
             out = Utils.mkvc(out)
@@ -431,16 +434,19 @@ class TimeFields(Fields):
         else:
             # Aliased fields
             alias, loc, func = self.aliasFields[name]
+            if type(func) is str:
+                assert hasattr(self, func), 'The alias field function is a string, but it does not exist in the Fields class.'
+                func = getattr(self, func)
             pointerFields = self._fields[alias][:,txInd,timeInd]
             pointerShape = self._correctShape(alias, ind, deflate=True)
             pointerFields = pointerFields.reshape(pointerShape, order='F')
             if len(pointerShape) < 3:
-                out = func(self, pointerFields, txInd)
+                out = func(pointerFields, txInd)
             else: #loop over the time steps
                 nT = pointerShape[2]
                 out = range(nT)
                 for i in range(nT):
-                    out[i] = func(self, pointerFields[:,:,i], txInd)
+                    out[i] = func(pointerFields[:,:,i], txInd)
                     out[i] = out[i][:,:,np.newaxis]
                 out = np.concatenate(out, axis=2)
 
