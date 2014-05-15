@@ -15,6 +15,8 @@ class BaseEMProblem(Problem.BaseProblem):
     Solver = SimpegSolver
     solverOpts = {}
 
+    verbose = False
+
     ####################################################
     # Mass Matrices
     ####################################################

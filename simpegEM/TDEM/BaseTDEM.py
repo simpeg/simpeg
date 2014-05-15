@@ -38,9 +38,9 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
                 if Asolve is not None:
                     Asolve.clean()
                 A = self.getA(tInd)
-                # print 'Factoring...   (dt = ' + str(dt) + ')'
+                if self.verbose: print 'Factoring...   (dt = ' + str(dt) + ')'
                 Asolve = self.Solver(A, **self.solverOpts)
-                # print 'Done'
+                if self.verbose: print 'Done'
             rhs = RHS(tInd, F)
             sol = Asolve.solve(rhs)
             if sol.ndim == 1:
@@ -61,9 +61,9 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
                 if Asolve is not None:
                     Asolve.clean()
                 A = self.getA(tInd)
-                # print 'Factoring...   (dt = ' + str(dt) + ')'
+                if self.verbose: print 'Factoring...   (dt = ' + str(dt) + ')'
                 Asolve = self.Solver(A, **self.solverOpts)
-                # print 'Done'
+                if self.verbose: print 'Done'
             rhs = RHS(tInd, F)
             sol = Asolve.solve(rhs)
             if sol.ndim == 1:
