@@ -234,6 +234,9 @@ class Fields(object):
         if self.aliasFields is None:
             self.aliasFields = {}
 
+        allFields = [k for k in self.knownFields] + [a for a in self.aliasFields]
+        assert len(allFields) == len(set(allFields)), 'Aliased fields and Known Fields have overlapping definitions.'
+
     def _storageShape(self, nP):
         nTx = self.survey.nTx
         return (nP, nTx)
@@ -338,15 +341,13 @@ class Fields(object):
         if name in self._fields:
             out = self._fields[name][:,ind]
         else:
-            out = self._getAliasField(name, ind)
+            # Aliased fields
+            alias, func = self.aliasFields[name]
+            out = func(self, self._fields[alias][:,ind], ind)
 
         if out.shape[1] == 1:
             out = Utils.mkvc(out)
         return out
-
-    def _getAliasField(self, name, ind):
-        alias, func = self.aliasFields[name]
-        return func(self, self._fields[alias][:,ind], ind)
 
     def __contains__(self, other):
         if other in self.aliasFields:
@@ -391,7 +392,14 @@ class TimeFields(Fields):
 
     def _getField(self, name, ind):
         txInd, timeInd = ind
-        out = self._fields[name][:,txInd,timeInd]
+
+        if name in self._fields:
+            out = self._fields[name][:,txInd,timeInd]
+        else:
+            # Aliased fields
+            alias, func = self.aliasFields[name]
+            out = func(self, self._fields[name][:,txInd,timeInd], txInd, timeInd)
+
         if out.shape[1] == 1:
             if out.ndim == 2:
                 out = out[:,0]
