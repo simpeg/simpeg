@@ -4,6 +4,11 @@ import simpegEM as EM
 from scipy.constants import mu_0
 import matplotlib.pyplot as plt
 
+try:
+    from pymatsolver import MumpsSolver
+except ImportError, e:
+    MumpsSolver = Utils.SolverUtils.DSolverWrap(sp.linalg.splu, factorize=True)
+
 
 def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=[1e-5,1e-3], showIt=False):
     if meshType == 'CYL':
@@ -27,7 +32,7 @@ def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=[1e-5,
 
     survey = EM.TDEM.SurveyTDEM([tx])
     prb = EM.TDEM.ProblemTDEM_b(mesh, mapping=mapping)
-    prb.Solver = Utils.SolverUtils.DSolverWrap(sp.linalg.splu, factorize=True)
+    prb.Solver = MumpsSolver
 
     prb.timeSteps = [(1e-06, 40), (5e-06, 40), (1e-05, 40), (5e-05, 40), (0.0001, 40), (0.0005, 40)]
 

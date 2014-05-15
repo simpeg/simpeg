@@ -33,7 +33,7 @@ def getProblem(fdemType, comp):
     prb.pair(survey)
 
     try:
-        from mumpsSCI import MumpsSolver
+        from pymatsolver import MumpsSolver
         prb.Solver = MumpsSolver
     except ImportError, e:
         pass

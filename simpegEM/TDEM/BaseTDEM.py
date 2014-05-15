@@ -88,7 +88,8 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
 
         """
         self.curModel = m
-        u = u or self.fields(m)
+        if u is None:
+            u = self.fields(m)
         p = self.Gvec(m, v, u)
         y = self.solveAh(m, p)
         Jv = self.survey.projectFieldsDeriv(u, v=y)
@@ -110,7 +111,8 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
 
         """
         self.curModel = m
-        u = u or self.fields(m)
+        if u is None:
+            u = self.fields(m)
 
         if not isinstance(v, self.dataPair):
             v = self.dataPair(self.survey, v)

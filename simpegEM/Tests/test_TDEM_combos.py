@@ -2,6 +2,11 @@ import unittest
 from SimPEG import *
 import simpegEM as EM
 
+try:
+    from pymatsolver import MumpsSolver
+except ImportError, e:
+    MumpsSolver = Utils.SolverUtils.DSolverWrap(sp.linalg.splu, factorize=True)
+
 plotIt = False
 
 def getProb(meshType='CYL',rxTypes='bx,bz',nTx=1):
@@ -30,6 +35,7 @@ def getProb(meshType='CYL',rxTypes='bx,bz',nTx=1):
     # prb.timeSteps = [1e-5]
     prb.timeSteps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
     # prb.timeSteps = [(1e-05, 100)]
+    prb.Solver = MumpsSolver
 
     sigma = np.ones(mesh.nCz)*1e-8
     sigma[mesh.vectorCCz<0] = 1e-1
