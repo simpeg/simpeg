@@ -124,7 +124,7 @@ class FieldsTest_Alias(unittest.TestCase):
         txList = [Tx0,Tx1,Tx2,Tx3,Tx4]
         survey = Survey.BaseSurvey(txList=txList)
         self.D = Survey.Data(survey)
-        self.F = Survey.Fields(mesh, survey, knownFields={'e':'E'}, aliasFields={'b':['e',(lambda F, e: F.mesh.edgeCurl * e)]})
+        self.F = Survey.Fields(mesh, survey, knownFields={'e':'E'}, aliasFields={'b':['e',(lambda F, e, ind: F.mesh.edgeCurl * e)]})
         self.Tx0 = Tx0
         self.Tx1 = Tx1
         self.mesh = mesh

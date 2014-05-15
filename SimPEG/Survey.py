@@ -219,10 +219,9 @@ class Fields(object):
 
     """
 
-    knownFields = None  #: Known fields,   a dict with locations, e.g. {"phi": "CC", "b": "F"}
-    aliasFields = None  #: Aliased fields, a dict with [alias, location, and function or float], e.g. {"b":["e",lambda(F,e)]}
-    txPair = BaseTx
-    dtype = float  #: dtype is the type of the storage matrix. This can be a dictionary.
+    knownFields = None  #: Known fields,   a dict with locations,         e.g. {"e": "E", "phi": "CC"}
+    aliasFields = None  #: Aliased fields, a dict with [alias, function], e.g. {"b":["e",lambda(F,e,ind)]}
+    dtype = float       #: dtype is the type of the storage matrix. This can be a dictionary.
 
     def __init__(self, mesh, survey, **kwargs):
         self.survey = survey
@@ -269,8 +268,6 @@ class Fields(object):
             if type(txTestList) is not list:
                 txTestList = [txTestList]
             for txTest in txTestList:
-                if not isinstance(txTest, self.txPair):
-                    raise KeyError('First index must be a Transmitter')
                 if txTest not in self.survey.txList:
                     raise KeyError('Invalid Transmitter, not in survey list.')
 
@@ -349,7 +346,7 @@ class Fields(object):
 
     def _getAliasField(self, name, ind):
         alias, func = self.aliasFields[name]
-        return func(self, self._fields[alias][:,ind])
+        return func(self, self._fields[alias][:,ind], ind)
 
     def __contains__(self, other):
         if other in self.aliasFields:
