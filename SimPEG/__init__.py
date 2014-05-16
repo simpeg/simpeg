@@ -9,7 +9,7 @@ import Survey
 import Regularization
 import ObjFunction
 import Optimization
-import Rules
+import Directives
 import Inversion
 import Tests
 

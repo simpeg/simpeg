@@ -60,9 +60,9 @@ if __name__ == '__main__':
     objFunc = ObjFunction.BaseObjFunction(survey, reg)
     opt = Optimization.InexactGaussNewton(maxIter=20)
     inv = Inversion.BaseInversion(objFunc, opt)
-    beta = Rules.BetaSchedule()
-    betaest = Rules.BetaEstimate_ByEig()
-    inv.ruleList = Rules.RuleList(betaest, beta)
+    beta = Directives.BetaSchedule()
+    betaest = Directives.BetaEstimate_ByEig()
+    inv.ruleList = Directives.DirectiveList(betaest, beta)
     m0 = np.zeros_like(survey.mtrue)
 
     mrec = inv.run(m0)

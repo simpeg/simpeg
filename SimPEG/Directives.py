@@ -1,7 +1,7 @@
 import Utils, numpy as np
 
-class InversionRule(object):
-    """InversionRule"""
+class InversionDirective(object):
+    """InversionDirective"""
 
     debug    = False    #: Print debugging information
 
@@ -12,12 +12,12 @@ class InversionRule(object):
 
     @property
     def inversion(self):
-        """This is the inversion of the InversionRule instance."""
+        """This is the inversion of the InversionDirective instance."""
         return getattr(self,'_inversion',None)
     @inversion.setter
     def inversion(self, i):
         if getattr(self,'_inversion',None) is not None:
-            print 'Warning: InversionRule %s has switched to a new inversion.' % self.__name__
+            print 'Warning: InversionDirective %s has switched to a new inversion.' % self.__name__
         self._inversion = i
 
     @property
@@ -40,14 +40,14 @@ class InversionRule(object):
     def finish(self):
         pass
 
-class RuleList(object):
+class DirectiveList(object):
 
-    rList = None   #: The list of Rules
+    rList = None   #: The list of Directives
 
     def __init__(self, *rules, **kwargs):
         self.rList = []
         for r in rules:
-            assert isinstance(r, InversionRule), 'All rules must be InversionRules not %s' % r.__name__
+            assert isinstance(r, InversionDirective), 'All rules must be InversionDirectives not %s' % r.__name__
             self.rList.append(r)
         Utils.setKwargs(self, **kwargs)
 
@@ -62,7 +62,7 @@ class RuleList(object):
 
     @property
     def inversion(self):
-        """This is the inversion of the InversionRule instance."""
+        """This is the inversion of the InversionDirective instance."""
         return getattr(self,'_inversion',None)
     @inversion.setter
     def inversion(self, i):
@@ -75,16 +75,16 @@ class RuleList(object):
 
     def call(self, ruleType):
         if self.rList is None:
-            if self.debug: 'RuleList is None, no rules to call!'
+            if self.debug: 'DirectiveList is None, no rules to call!'
             return
 
         rules = ['initialize', 'endIter', 'finish']
-        assert ruleType in rules, 'Rule type must be in ["%s"]' % '", "'.join(rules)
+        assert ruleType in rules, 'Directive type must be in ["%s"]' % '", "'.join(rules)
         for r in self.rList:
             getattr(r, ruleType)()
 
 
-class BetaEstimate_ByEig(InversionRule):
+class BetaEstimate_ByEig(InversionDirective):
     """BetaEstimate"""
 
     beta0 = None       #: The initial Beta (regularization parameter)
@@ -133,7 +133,7 @@ class BetaEstimate_ByEig(InversionRule):
         self.objFunc.beta = self.beta0
 
 
-class BetaSchedule(InversionRule):
+class BetaSchedule(InversionDirective):
     """BetaSchedule"""
 
     coolingFactor = 2.

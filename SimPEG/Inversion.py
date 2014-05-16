@@ -1,7 +1,7 @@
 import SimPEG
 from SimPEG import Utils, sp, np
 from Optimization import Remember, IterationPrinters, StoppingCriteria
-import Rules
+import Directives
 
 
 class BaseInversion(object):
@@ -19,12 +19,12 @@ class BaseInversion(object):
     @property
     def ruleList(self):
         if getattr(self,'_ruleList', None) is None:
-            self._ruleList = Rules.RuleList(inversion=self)
+            self._ruleList = Directives.DirectiveList(inversion=self)
         return self._ruleList
 
     @ruleList.setter
     def ruleList(self, value):
-        assert isinstance(value, Rules.RuleList), 'Must be a RuleList'
+        assert isinstance(value, Directives.DirectiveList), 'Must be a RuleList'
         self._ruleList = value
         self._ruleList.inversion = self
 
