@@ -1,23 +1,35 @@
 language: python
 python:
-  - "2.7"
-virtualenv:
-  system_site_packages: true
+  - 2.7
+
+# Setup anaconda
 before_install:
-  - sudo apt-get install -qq gcc gfortran libblas-dev liblapack-dev python-numpy python-scipy python-matplotlib python-pip
-  - sudo pip install scipy --upgrade
-  - sudo pip install numpy --upgrade
-  - cd SimPEG
-  - python setup.py
-  - cd ../
-# command to install dependencies
-install: "pip install -r requirements.txt --use-mirrors"
-# command to run tests
-script: nosetests -v
+  - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then wget http://repo.continuum.io/miniconda/Miniconda-3.3.0-Linux-x86_64.sh -O miniconda.sh; else wget http://repo.continuum.io/miniconda/Miniconda3-3.3.0-Linux-x86_64.sh -O miniconda.sh; fi
+  - chmod +x miniconda.sh
+  - ./miniconda.sh -b
+  - export PATH=/home/travis/anaconda/bin:/home/travis/miniconda/bin:$PATH
+  - conda update --yes conda
+  # The next couple lines fix a crash with multiprocessing on Travis and are not specific to using Miniconda
+  - sudo rm -rf /dev/shm
+  - sudo ln -s /run/shm /dev/shm
+
+# Install packages
+install:
+  - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib
+  - pip install nose-cov python-coveralls
+  # - pip install -r requirements.txt
+  - python setup.py install
+
+# Run test
+script:
+  - nosetests --with-cov --cov simpeg --cov-config .coveragerc
+
+# Calculate coverage
+after_success:
+  - coveralls --config_file .coveragerc
 
 notifications:
-  email:
     - rowanc1@gmail.com
-    - sgkang09@gmail.com
-    - dwfmarchant@gmail.com
-    - lindseyheagy@gmail.com
+    # - sgkang09@gmail.com
+    # - dwfmarchant@gmail.com
+    # - lindseyheagy@gmail.com
