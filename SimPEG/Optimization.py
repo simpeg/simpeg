@@ -178,6 +178,7 @@ class Minimize(object):
             self.printIter()
             if self.stoppingCriteria(): break
             self.searchDirection = self.findSearchDirection()
+            del self.H #: Doing this saves memory, as it is not needed in the rest of the computations.
             p = self.scaleSearchDirection(self.searchDirection)
             xt, passLS = self.modifySearchDirection(p)
             if not passLS:
