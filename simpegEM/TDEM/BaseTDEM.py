@@ -15,11 +15,12 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
         BaseTimeProblem.__init__(self, mesh, mapping=mapping, **kwargs)
 
     surveyPair = SurveyTDEM
+    _FieldsTDEM_pair = FieldsTDEM  #: used for the forward calculation only
 
     def fields(self, m):
         self.curModel = m
         # Create a fields storage object
-        F = FieldsTDEM(self.mesh, self.survey)
+        F = self._FieldsTDEM_pair(self.mesh, self.survey)
         for tx in self.survey.txList:
             # Set the initial conditions
             F[tx,:,0] = tx.getInitialFields(self.mesh)

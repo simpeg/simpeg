@@ -107,9 +107,8 @@ class TDEM_bDerivTests(unittest.TestCase):
         A = sp.bmat([[a11,a12],[a21,a22]])
 
         f = prb.fields(sigma)
-        f[:,:,0] = {'e':0,'b':0}
+        f[:,:,0] = {'b':0}
         f[:,'b',1] = 0
-        f[:,'e',1] = np.random.rand(prb.mesh.nE,1)
 
         self.assertTrue(np.all(np.r_[f[:,'b',1],f[:,'e',1]] == f.tovec()))
 

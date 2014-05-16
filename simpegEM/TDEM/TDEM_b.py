@@ -3,6 +3,21 @@ from SimPEG.Utils import mkvc
 import numpy as np
 from SurveyTDEM import SurveyTDEM, FieldsTDEM
 
+
+class FieldsTDEM_e_from_b(FieldsTDEM):
+    """Fancy Field Storage for a TDEM survey."""
+    knownFields = {'b': 'F'}
+    aliasFields = {'e': ['b','E','e_from_b']}
+
+    def startup(self):
+        self.MeSigmaI  = self.survey.prob.MeSigmaI
+        self.edgeCurlT = self.survey.prob.mesh.edgeCurl.T
+        self.MfMui     = self.survey.prob.MfMui
+
+    def e_from_b(self, b, ind):
+        # TODO: implement non-zero js
+        return self.MeSigmaI*(self.edgeCurlT*(self.MfMui*b))
+
 class ProblemTDEM_b(BaseTDEMProblem):
     """
         Time-Domain EM problem - B-formulation
@@ -21,6 +36,7 @@ class ProblemTDEM_b(BaseTDEMProblem):
     solType = 'b' #: Type of the solution, in this case the 'b' field
 
     surveyPair = SurveyTDEM
+    _FieldsTDEM_pair = FieldsTDEM_e_from_b  #: used for the forward calculation only
 
     ####################################################
     # Internal Methods
@@ -45,12 +61,11 @@ class ProblemTDEM_b(BaseTDEMProblem):
 
         if self.solType == 'b':
             b = sol
-            e = self.MeSigmaI*(self.mesh.edgeCurl.T*(self.MfMui*b))
-            # Todo: implement non-zero js
+            # e = self.MeSigmaI*(self.mesh.edgeCurl.T*(self.MfMui*b))
         else:
             raise NotImplementedError('solType "%s" is not implemented in CalcFields.' % self.solType)
 
-        return {'b':b, 'e':e}
+        return {'b':b}
 
 
     ####################################################
