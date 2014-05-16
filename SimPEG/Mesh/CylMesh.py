@@ -241,8 +241,10 @@ class CylMesh(BaseTensorMesh, InnerProducts):
             Dr =  sp.kron(sp.identity(self.nNz), dr)
             Dz = -sp.kron(dz, sp.identity(self.nCx))
 
+            A = self.area
+            E = self.edge
             #Edge curl operator
-            self._edgeCurl = sp.diags(1/self.area,0)*sp.vstack((Dz, Dr))*sp.diags(self.edge,0)
+            self._edgeCurl = sdiag(1/A)*sp.vstack((Dz, Dr))*sdiag(E)
         return self._edgeCurl
 
     # @property
