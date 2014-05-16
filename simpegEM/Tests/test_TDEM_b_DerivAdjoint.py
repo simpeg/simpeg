@@ -79,7 +79,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         prb.curModel = sigma
 
         dt = prb.timeSteps[0]
-        a11 = 1/dt*prb.MfMui*sp.eye(prb.mesh.nF)
+        a11 = 1/dt*prb.MfMui*sp.identity(prb.mesh.nF)
         a12 = prb.MfMui*prb.mesh.edgeCurl
         a21 = prb.mesh.edgeCurl.T*prb.MfMui
         a22 = -prb.MeSigma
@@ -100,7 +100,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         prb.curModel = sigma
 
         dt = prb.timeSteps[0]
-        a11 = 1.0/dt*prb.MfMui*sp.eye(prb.mesh.nF)
+        a11 = 1.0/dt*prb.MfMui*sp.identity(prb.mesh.nF)
         a12 = prb.MfMui*prb.mesh.edgeCurl
         a21 = prb.mesh.edgeCurl.T*prb.MfMui
         a22 = -prb.MeSigma
