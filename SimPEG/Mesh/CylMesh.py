@@ -238,8 +238,8 @@ class CylMesh(BaseTensorMesh, InnerProducts):
             dz = sp.spdiags((np.ones((self.nCz+1, 1))*[-1, 1]).T, [0,1], self.nCz, self.nCz+1, format="csr")
 
             #2D Difference matricies
-            Dr = sp.kron(sp.eye(self.nNz), dr)
-            Dz = -sp.kron(dz, sp.eye(self.nCx))  #Not sure about this negative
+            Dr =  sp.kron(sp.identity(self.nNz), dr)
+            Dz = -sp.kron(dz, sp.identity(self.nCx))
 
             #Edge curl operator
             self._edgeCurl = sp.diags(1/self.area,0)*sp.vstack((Dz, Dr))*sp.diags(self.edge,0)

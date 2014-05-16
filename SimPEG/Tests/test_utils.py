@@ -105,7 +105,7 @@ class TestSequenceFunctions(unittest.TestCase):
         A = sp.vstack((sp.hstack((sdiag(a[0]), sdiag(a[1]))),
                        sp.hstack((sdiag(a[2]), sdiag(a[3])))))
 
-        Z2 = B*A - sp.eye(10, 10)
+        Z2 = B*A - sp.identity(10)
         self.assertTrue(np.linalg.norm(Z2.todense().ravel(), 2) < TOL)
 
         a = [np.random.rand(5, 1) for i in range(9)]
@@ -115,7 +115,7 @@ class TestSequenceFunctions(unittest.TestCase):
                        sp.hstack((sdiag(a[3]), sdiag(a[4]),  sdiag(a[5]))),
                        sp.hstack((sdiag(a[6]), sdiag(a[7]),  sdiag(a[8])))))
 
-        Z3 = B*A - sp.eye(15, 15)
+        Z3 = B*A - sp.identity(15)
 
         self.assertTrue(np.linalg.norm(Z3.todense().ravel(), 2) < TOL)
 

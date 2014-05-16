@@ -55,7 +55,7 @@ def kron3(A, B, C):
 
 def spzeros(n1, n2):
     """spzeros"""
-    return sp.coo_matrix((n1, n2)).tocsr()
+    return sp.csr_matrix((n1, n2))
 
 
 def ddx(n):
