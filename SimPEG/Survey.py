@@ -236,6 +236,10 @@ class Fields(object):
 
         allFields = [k for k in self.knownFields] + [a for a in self.aliasFields]
         assert len(allFields) == len(set(allFields)), 'Aliased fields and Known Fields have overlapping definitions.'
+        self.startup()
+
+    def startup(self):
+        pass
 
     @property
     def approxSize(self):

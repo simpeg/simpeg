@@ -17,16 +17,16 @@ class BaseInversion(object):
     counter = None     #: Set this to a SimPEG.Utils.Counter() if you want to count things
 
     @property
-    def ruleList(self):
-        if getattr(self,'_ruleList', None) is None:
-            self._ruleList = Directives.DirectiveList(inversion=self)
-        return self._ruleList
+    def directiveList(self):
+        if getattr(self,'_directiveList', None) is None:
+            self._directiveList = Directives.DirectiveList(inversion=self)
+        return self._directiveList
 
-    @ruleList.setter
-    def ruleList(self, value):
-        assert isinstance(value, Directives.DirectiveList), 'Must be a RuleList'
-        self._ruleList = value
-        self._ruleList.inversion = self
+    @directiveList.setter
+    def directiveList(self, value):
+        assert isinstance(value, Directives.DirectiveList), 'Must be a DirectiveList'
+        self._directiveList = value
+        self._directiveList.inversion = self
 
     def __init__(self, objFunc, opt, **kwargs):
         Utils.setKwargs(self, **kwargs)
@@ -54,11 +54,11 @@ class BaseInversion(object):
 
         """
         self.objFunc.startup(m0)
-        self.ruleList.call('initialize')
+        self.directiveList.call('initialize')
         self.m = self.opt.minimize(self.objFunc.evalFunction, m0)
-        self.ruleList.call('finish')
+        self.directiveList.call('finish')
 
         return self.m
 
     def _optCallback(self, xt):
-        self.ruleList.call('endIter')
+        self.directiveList.call('endIter')

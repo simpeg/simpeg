@@ -42,13 +42,13 @@ class InversionDirective(object):
 
 class DirectiveList(object):
 
-    rList = None   #: The list of Directives
+    dList = None   #: The list of Directives
 
-    def __init__(self, *rules, **kwargs):
-        self.rList = []
-        for r in rules:
-            assert isinstance(r, InversionDirective), 'All rules must be InversionDirectives not %s' % r.__name__
-            self.rList.append(r)
+    def __init__(self, *directives, **kwargs):
+        self.dList = []
+        for d in directives:
+            assert isinstance(d, InversionDirective), 'All directives must be InversionDirectives not %s' % d.__name__
+            self.dList.append(d)
         Utils.setKwargs(self, **kwargs)
 
     @property
@@ -56,8 +56,8 @@ class DirectiveList(object):
         return getattr(self, '_debug', False)
     @debug.setter
     def debug(self, value):
-        for r in self.rList:
-            r.debug = value
+        for d in self.dList:
+            d.debug = value
         self._debug = value
 
     @property
@@ -69,18 +69,18 @@ class DirectiveList(object):
         if self.inversion is i: return
         if getattr(self,'_inversion',None) is not None:
             print 'Warning: %s has switched to a new inversion.' % self.__name__
-        for r in self.rList:
-            r.inversion = i
+        for d in self.dList:
+            d.inversion = i
         self._inversion = i
 
     def call(self, ruleType):
-        if self.rList is None:
-            if self.debug: 'DirectiveList is None, no rules to call!'
+        if self.dList is None:
+            if self.debug: 'DirectiveList is None, no directives to call!'
             return
 
-        rules = ['initialize', 'endIter', 'finish']
-        assert ruleType in rules, 'Directive type must be in ["%s"]' % '", "'.join(rules)
-        for r in self.rList:
+        directives = ['initialize', 'endIter', 'finish']
+        assert ruleType in directives, 'Directive type must be in ["%s"]' % '", "'.join(directives)
+        for r in self.dList:
             getattr(r, ruleType)()
 
 
