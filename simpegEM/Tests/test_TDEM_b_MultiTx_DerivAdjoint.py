@@ -94,13 +94,14 @@ class TDEM_bDerivTests(unittest.TestCase):
     def test_projectAdjoint(self):
         prb = self.prb
         survey = prb.survey
+        nTx = survey.nTx
         mesh = self.mesh
 
         # Generate random fields and data
         f = EM.TDEM.FieldsTDEM(prb.mesh, prb.survey)
         for i in range(prb.nT):
-            f[:,'b',i] = np.random.rand(mesh.nF, 1)
-            f[:,'e',i] = np.random.rand(mesh.nE, 1)
+            f[:,'b',i] = np.random.rand(mesh.nF, nTx)
+            f[:,'e',i] = np.random.rand(mesh.nE, nTx)
         d_vec = np.random.rand(survey.nD)
         d = Survey.Data(survey,v=d_vec)
 
