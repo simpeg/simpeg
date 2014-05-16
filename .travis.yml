@@ -28,7 +28,7 @@ before_install:
 
 # Install packages
 install:
-  - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy
+  - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib
   # - conda install --yes python=$TRAVIS_PYTHON_VERSION atlas numpy scipy matplotlib nose dateutil pandas statsmodels
   # Coverage packages are on dan_blanchard's binstar channel
   # - conda install --yes -c dan_blanchard python-coveralls #nose-cov
