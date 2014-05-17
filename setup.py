@@ -5,10 +5,6 @@ SimPEG is a python package for simulation and gradient based
 parameter estimation in the context of geophysical applications.
 """
 
-# import ez_setup
-# ez_setup.use_setuptools()
-# from setuptools import setup, find_packages
-
 from distutils.core import setup
 from setuptools import find_packages
 from Cython.Build import cythonize
@@ -35,7 +31,7 @@ setup(
     version = "0.1dev",
     packages = find_packages(),
     install_requires = ['numpy>=1.7',
-                        'scipy>=0.12',
+                        'scipy>=0.13',
                         'matplotlib>=1.3',
                        ],
     author = "Rowan Cockett",

@@ -23,7 +23,7 @@ class LinearProblem(Problem.BaseProblem):
         return self.G.T.dot(v)
 
 
-def example(N):
+def run(N):
     mesh = Mesh.TensorMesh([N])
 
     nk = 20
@@ -46,14 +46,6 @@ def example(N):
     prob = LinearProblem(mesh, G)
     survey = prob.createSyntheticSurvey(mtrue, std=0.01)
 
-    return prob, survey, mesh
-
-
-if __name__ == '__main__':
-
-    import matplotlib.pyplot as plt
-
-    prob, survey, mesh = example(100)
     M = prob.mesh
 
     reg = Regularization.Tikhonov(mesh)
@@ -67,6 +59,7 @@ if __name__ == '__main__':
 
     mrec = inv.run(m0)
 
+    import matplotlib.pyplot as plt
     plt.figure(1)
     for i in range(prob.G.shape[0]):
         plt.plot(prob.G[i,:])
@@ -75,4 +68,4 @@ if __name__ == '__main__':
     plt.plot(M.vectorCCx, survey.mtrue, 'b-')
     plt.plot(M.vectorCCx, mrec, 'r-')
 
-    plt.show()
+    return prob, survey, mesh

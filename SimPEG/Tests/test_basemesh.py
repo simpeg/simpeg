@@ -13,6 +13,7 @@ class TestBaseMesh(unittest.TestCase):
         self.assertTrue(self.mesh.dim, 3)
 
     def test_mesh_nc(self):
+        self.assertTrue(self.mesh.nC == 36)
         self.assertTrue(np.all(self.mesh.vnC == [6, 2, 3]))
 
     def test_mesh_nc_xyz(self):
