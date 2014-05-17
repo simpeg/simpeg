@@ -13,12 +13,8 @@ before_install:
   - sudo rm -rf /dev/shm
   - sudo ln -s /run/shm /dev/shm
   # Remove this when SimPEG is on pip
-  - cd ../
   - git clone https://github.com/simpeg/simpeg.git
-  - cd simpeg/SimPEG/
-  - python setup.py
-  - cd ../../
-  - export PYTHONPATH=/home/travis/build/simpeg/simpeg:$PYTHONPATH
+  - python simpeg/setup.py install
   - cd simpegem
 
 # Install packages
