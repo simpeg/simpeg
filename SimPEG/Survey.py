@@ -641,6 +641,23 @@ class BaseSurvey(object):
         "Check if the data is synthetic."
         return self.mtrue is not None
 
+    def makeSyntheticData(self, m, std=0.05, u=None):
+        """
+            Make synthetic data given a model, and a standard deviation.
+
+            :param numpy.array m: geophysical model
+            :param numpy.array std: standard deviation
+            :param numpy.array u: fields for the given model (if pre-calculated)
+
+        """
+        if getattr(self, 'dobs', None) is not None:
+            raise Exception('Survey already has dobs.')
+        self.mtrue = m
+        self.dtrue = self.dpred(m, u=u)
+        noise = std*abs(self.dtrue)*np.random.randn(*self.dtrue.shape)
+        self.dobs = self.dtrue+noise
+        self.std = self.dobs*0 + std
+
 
     #TODO: Move this to the survey class?
     # @property

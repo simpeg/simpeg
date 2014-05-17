@@ -117,29 +117,6 @@ class BaseProblem(object):
         """
         raise NotImplementedError('fields is not yet implemented.')
 
-    def createSyntheticSurvey(self, m, std=0.05, u=None, **survey_kwargs):
-        """
-            Create synthetic survey given a model, and a standard deviation.
-
-            :param numpy.array m: geophysical model
-            :param numpy.array std: standard deviation
-            :param numpy.array u: fields for the given model (if pre-calculated)
-            :param numpy.array survey_kwargs: Keyword arguments for initiating the survey.
-            :rtype: SurveyObject
-            :return: survey
-
-            Returns the observed data with random Gaussian noise
-            and Wd which is the same size as data, and can be used to weight the inversion.
-        """
-        survey = self.surveyPair(mtrue=m, **survey_kwargs)
-        survey.pair(self)
-        survey.dtrue = survey.dpred(m, u=u)
-        noise = std*abs(survey.dtrue)*np.random.randn(*survey.dtrue.shape)
-        survey.dobs = survey.dtrue+noise
-        survey.std = survey.dobs*0 + std
-        return survey
-
-
 
 class BaseTimeProblem(BaseProblem):
     """Sets up that basic needs of a time domain problem."""

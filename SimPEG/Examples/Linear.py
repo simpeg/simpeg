@@ -44,7 +44,9 @@ def run(N, plotIt=True):
     mtrue[mesh.vectorCCx > 0.6] = 0
 
     prob = LinearProblem(mesh, G)
-    survey = prob.createSyntheticSurvey(mtrue, std=0.01)
+    survey = LinearSurvey()
+    survey.pair(prob)
+    survey.makeSyntheticData(mtrue, std=0.01)
 
     M = prob.mesh
 
@@ -68,5 +70,9 @@ def run(N, plotIt=True):
         plt.figure(2)
         plt.plot(M.vectorCCx, survey.mtrue, 'b-')
         plt.plot(M.vectorCCx, mrec, 'r-')
+        plt.show()
 
     return prob, survey, mesh, mrec
+
+if __name__ == '__main__':
+    run(100)
