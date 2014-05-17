@@ -19,7 +19,9 @@ install:
   - pip install nose-cov python-coveralls
   # Remove this when SimPEG is on pip
   - git clone https://github.com/simpeg/simpeg.git
-  - python simpeg/setup.py install
+  - cd simpeg/
+  - python setup.py install
+  - cd ../
 
 # Run test
 script:
