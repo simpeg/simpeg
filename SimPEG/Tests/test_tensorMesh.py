@@ -4,6 +4,7 @@ from SimPEG.Mesh import TensorMesh
 from TestUtils import OrderTest
 from SimPEG import Solver
 
+TOL = 1e-10
 
 class BasicTensorMeshTests(unittest.TestCase):
 
@@ -59,6 +60,36 @@ class BasicTensorMeshTests(unittest.TestCase):
         hx = np.array([1e-5])
         M = TensorMesh([hx])
         self.assertTrue(M.nC == 1)
+
+    def test_printing(self):
+        print TensorMesh([10])
+        print TensorMesh([10,10])
+        print TensorMesh([10,10,10])
+
+    def test_centering(self):
+        M1d = TensorMesh([10], 'C')
+        M2d = TensorMesh([10,10], 'CC')
+        M3d = TensorMesh([10,10,10], 'CCC')
+        self.assertLess(np.abs(M1d.x0 + 0.5).sum(), TOL)
+        self.assertLess(np.abs(M2d.x0 + 0.5).sum(), TOL)
+        self.assertLess(np.abs(M3d.x0 + 0.5).sum(), TOL)
+
+    def test_negative(self):
+        M1d = TensorMesh([10], 'N')
+        self.assertRaises(Exception, TensorMesh, [10], 'F')
+        M2d = TensorMesh([10,10], 'NN')
+        M3d = TensorMesh([10,10,10], 'NNN')
+        self.assertLess(np.abs(M1d.x0 + 1.0).sum(), TOL)
+        self.assertLess(np.abs(M2d.x0 + 1.0).sum(), TOL)
+        self.assertLess(np.abs(M3d.x0 + 1.0).sum(), TOL)
+
+    def test_cent_neg(self):
+        M3d = TensorMesh([10,10,10], 'C0N')
+        self.assertLess(np.abs(M3d.x0 + np.r_[0.5,0,1.0]).sum(), TOL)
+
+    def test_tensor(self):
+        M = TensorMesh([[(10.,2)]])
+        self.assertLess(np.abs(M.hx - np.r_[10.,10.]).sum(), TOL)
 
 class TestPoissonEqn(OrderTest):
     name = "Poisson Equation"

@@ -577,24 +577,3 @@ class TensorMesh(BaseTensorMesh, TensorView, DiffOperators, InnerProducts):
             indzd = (self.gridCC[:,2]==min(self.gridCC[:,2]))
             indzu = (self.gridCC[:,2]==max(self.gridCC[:,2]))
             return indxd, indxu, indyd, indyu, indzd, indzu
-
-
-
-
-if __name__ == '__main__':
-    print('Welcome to tensor mesh!')
-
-    testDim = 1
-    h1 = 0.3*np.ones(7)
-    h1[0] = 0.5
-    h1[-1] = 0.6
-    h2 = .5 * np.ones(4)
-    h3 = .4 * np.ones(6)
-
-    h = [h1, h2, h3]
-    h = h[:testDim]
-
-    M = TensorMesh(h)
-    print M
-
-    xn = M.plotGrid()
