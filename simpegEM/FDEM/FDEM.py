@@ -28,8 +28,8 @@ class BaseFDEMProblem(BaseEMProblem):
         for freq in self.survey.freqs:
             A = self.getA(freq)
             rhs = RHS(freq)
-            solver = self.Solver(A, **self.solverOpts)
-            sol = solver.solve(rhs)
+            Ainv = self.Solver(A, **self.solverOpts)
+            sol = Ainv * rhs
             for fieldType in self.storeTheseFields:
                 Txs = self.survey.getTransmitters(freq)
                 F[Txs, fieldType] = CalcFields(sol, freq, fieldType)
@@ -46,12 +46,12 @@ class BaseFDEMProblem(BaseEMProblem):
 
         for freq in self.survey.freqs:
             A = self.getA(freq)
-            solver = self.Solver(A, **self.solverOpts)
+            Ainv = self.Solver(A, **self.solverOpts)
 
             for tx in self.survey.getTransmitters(freq):
                 u_tx = u[tx, self.solType]
                 w = self.getADeriv(freq, u_tx, v)
-                Ainvw = solver.solve(w)
+                Ainvw = Ainv * w
                 for rx in tx.rxList:
                     fAinvw = self.calcFields(Ainvw, freq, rx.projField)
                     P = lambda v: rx.projectFieldsDeriv(tx, self.mesh, u, v)
@@ -78,7 +78,7 @@ class BaseFDEMProblem(BaseEMProblem):
 
         for freq in self.survey.freqs:
             AT = self.getA(freq).T
-            solver = self.Solver(AT, **self.solverOpts)
+            ATinv = self.Solver(AT, **self.solverOpts)
 
             for tx in self.survey.getTransmitters(freq):
                 u_tx = u[tx, self.solType]
@@ -87,7 +87,7 @@ class BaseFDEMProblem(BaseEMProblem):
                     PTv = rx.projectFieldsDeriv(tx, self.mesh, u, v[tx, rx], adjoint=True)
                     fPTv = self.calcFields(PTv, freq, rx.projField, adjoint=True)
 
-                    w = solver.solve( fPTv )
+                    w = ATinv * fPTv
                     Jtv_rx = - self.getADeriv(freq, u_tx, w, adjoint=True)
 
                     df_dm = self.calcFieldsDeriv(u_tx, freq, rx.projField, PTv, adjoint=True)

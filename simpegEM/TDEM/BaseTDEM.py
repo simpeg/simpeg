@@ -32,22 +32,22 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
         F = F or FieldsTDEM(self.mesh, self.survey)
 
         dtFact = None
-        Asolve = None
+        Ainv   = None
         for tInd, dt in enumerate(self.timeSteps):
             if dt != dtFact:
                 dtFact = dt
-                if Asolve is not None:
-                    Asolve.clean()
+                if Ainv is not None:
+                    Ainv.clean()
                 A = self.getA(tInd)
                 if self.verbose: print 'Factoring...   (dt = ' + str(dt) + ')'
-                Asolve = self.Solver(A, **self.solverOpts)
+                Ainv = self.Solver(A, **self.solverOpts)
                 if self.verbose: print 'Done'
             rhs = RHS(tInd, F)
-            sol = Asolve.solve(rhs)
+            sol = Ainv * rhs
             if sol.ndim == 1:
                 sol.shape = (sol.size,1)
             F[:,:,tInd+1] = CalcFields(sol, tInd)
-        Asolve.clean()
+        Ainv.clean()
         return F
 
     def adjoint(self, m, RHS, CalcFields, F=None):
@@ -55,22 +55,22 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
         F = F or FieldsTDEM(self.mesh, self.survey)
 
         dtFact = None
-        Asolve = None
+        Ainv   = None
         for tInd, dt in reversed(list(enumerate(self.timeSteps))):
             if dt != dtFact:
                 dtFact = dt
-                if Asolve is not None:
-                    Asolve.clean()
+                if Ainv is not None:
+                    Ainv.clean()
                 A = self.getA(tInd)
                 if self.verbose: print 'Factoring...   (dt = ' + str(dt) + ')'
-                Asolve = self.Solver(A, **self.solverOpts)
+                Ainv = self.Solver(A, **self.solverOpts)
                 if self.verbose: print 'Done'
             rhs = RHS(tInd, F)
-            sol = Asolve.solve(rhs)
+            sol = Ainv * rhs
             if sol.ndim == 1:
                 sol.shape = (sol.size,1)
             F[:,:,tInd+1] = CalcFields(sol, tInd)
-        Asolve.clean()
+        Ainv.clean()
         return F
 
     def Jvec(self, m, v, u=None):
