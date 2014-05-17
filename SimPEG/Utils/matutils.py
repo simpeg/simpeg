@@ -26,7 +26,7 @@ def mkvc(x, numDims=1):
     if hasattr(x, 'tovec'):
         x = x.tovec()
 
-    assert type(x) == np.ndarray, "Vector must be a numpy array"
+    assert isinstance(x, np.ndarray), "Vector must be a numpy array"
 
     if numDims == 1:
         return x.flatten(order='F')
@@ -119,7 +119,7 @@ def ndgrid(*args, **kwargs):
         xin = args
 
     # Each vector needs to be a numpy array
-    assert np.all([type(x) == np.ndarray for x in xin]), "All vectors must be numpy arrays."
+    assert np.all([isinstance(x, np.ndarray) for x in xin]), "All vectors must be numpy arrays."
 
     if len(xin) == 1:
         return xin[0]

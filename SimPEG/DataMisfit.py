@@ -85,6 +85,20 @@ class BaseDataMisfit(object):
         """
         raise NotImplementedError('This method should be overwritten.')
 
+    def target(self, forward):
+        """target(forward)
+
+            Target for data misfit. By default this is the number of data,
+            which satisfies the Discrepancy Principle.
+
+            :param Problem,Survey forward: forward simulation
+            :rtype: float
+            :return: data misfit target
+
+        """
+        prob, survey = self.splitForward(forward)
+        return survey.nD
+
 
 class l2_DataMisfit(object):
     """

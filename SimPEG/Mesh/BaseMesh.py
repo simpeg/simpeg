@@ -238,7 +238,7 @@ class BaseMesh(object):
         :rtype: numpy.array with shape (nF, )
         :return: projected face vector
         """
-        assert type(fV) == np.ndarray, 'fV must be an ndarray'
+        assert isinstance(fV, np.ndarray), 'fV must be an ndarray'
         assert len(fV.shape) == 2 and fV.shape[0] == self.nF and fV.shape[1] == self.dim, 'fV must be an ndarray of shape (nF x dim)'
         return np.sum(fV*self.normals, 1)
 
@@ -250,7 +250,7 @@ class BaseMesh(object):
         :rtype: numpy.array with shape (nE, )
         :return: projected edge vector
         """
-        assert type(eV) == np.ndarray, 'eV must be an ndarray'
+        assert isinstance(eV, np.ndarray), 'eV must be an ndarray'
         assert len(eV.shape) == 2 and eV.shape[0] == self.nE and eV.shape[1] == self.dim, 'eV must be an ndarray of shape (nE x dim)'
         return np.sum(eV*self.tangents, 1)
 
@@ -511,7 +511,7 @@ class BaseRectangularMesh(BaseMesh):
             eX, eY, eZ = r(edgeVector, 'E', 'E', 'V')  # Separates each component of the edgeVector into 3 vectors
         """
 
-        assert (type(x) == list or type(x) == np.ndarray), "x must be either a list or a ndarray"
+        assert (type(x) == list or isinstance(x, np.ndarray)), "x must be either a list or a ndarray"
         assert xType in ['CC', 'N', 'F', 'Fx', 'Fy', 'Fz', 'E', 'Ex', 'Ey', 'Ez'], "xType must be either 'CC', 'N', 'F', 'Fx', 'Fy', 'Fz', 'E', 'Ex', 'Ey', or 'Ez'"
         assert outType in ['CC', 'N', 'F', 'Fx', 'Fy', 'Fz', 'E', 'Ex', 'Ey', 'Ez'], "outType must be either 'CC', 'N', 'F', Fx', 'Fy', 'Fz', 'E', 'Ex', 'Ey', or 'Ez'"
         assert format in ['M', 'V'], "format must be either 'M' or 'V'"
@@ -519,7 +519,7 @@ class BaseRectangularMesh(BaseMesh):
         assert xType in outType, 'You cannot change type of components.'
         if type(x) == list:
             for i, xi in enumerate(x):
-                assert type(x) == np.ndarray, "x[%i] must be a numpy array" % i
+                assert isinstance(x, np.ndarray), "x[%i] must be a numpy array" % i
                 assert xi.size == x[0].size, "Number of elements in list must not change."
 
             x_array = np.ones((x.size, len(x)))
@@ -528,7 +528,7 @@ class BaseRectangularMesh(BaseMesh):
                 x_array[:, i] = Utils.mkvc(xi)
             x = x_array
 
-        assert type(x) == np.ndarray, "x must be a numpy array"
+        assert isinstance(x, np.ndarray), "x must be a numpy array"
 
         x = x[:]  # make a copy.
         xTypeIsFExyz = len(xType) > 1 and xType[0] in ['F', 'E'] and xType[1] in ['x', 'y', 'z']

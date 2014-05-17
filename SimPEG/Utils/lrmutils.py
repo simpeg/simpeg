@@ -75,7 +75,7 @@ def indexCube(nodes, gridSize, n=None):
     """
 
     assert type(nodes) == str, "Nodes must be a str variable: e.g. 'ABCD'"
-    assert type(gridSize) == np.ndarray, "Number of nodes must be an ndarray"
+    assert isinstance(gridSize, np.ndarray), "Number of nodes must be an ndarray"
     nodes = nodes.upper()
     # Make sure that we choose from the possible nodes.
     possibleNodes = 'ABCD' if gridSize.size == 2 else 'ABCDEFGH'

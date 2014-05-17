@@ -5,7 +5,10 @@ import Directives
 
 
 class BaseInversion(object):
-    """BaseInversion(invProb, opt, **kwargs)
+    """
+
+        Inversion Class.
+
     """
 
     __metaclass__ = Utils.SimPEGMetaClass

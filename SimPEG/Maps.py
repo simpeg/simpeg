@@ -1,6 +1,42 @@
 import Utils, numpy as np, scipy.sparse as sp
 from Tests import checkDerivative
 
+class Model(np.ndarray):
+
+    def __new__(cls, input_array, mapping=None):
+        # Input array is an already formed ndarray instance
+        # We first cast to be our class type
+        obj = np.asarray(input_array).view(cls)
+        # add the new attribute to the created instance
+        obj.mapping = mapping
+        # Finally, we must return the newly created object:
+        return obj
+
+    def __array_finalize__(self, obj):
+        # see InfoArray.__array_finalize__ for comments
+        if obj is None: return
+        self.mapping = getattr(obj, 'mapping', None)
+
+    @property
+    def mapping(self):
+        return self._mapping
+    @mapping.setter
+    def mapping(self, value):
+        self._mapping = value
+
+    @property
+    def transform(self):
+        if getattr(self, '_transform', None) is None:
+            self._transform = self.mapping.transform(self.view(np.ndarray))
+        return self._transform
+
+    @property
+    def transformDeriv(self):
+        if getattr(self, '_transformDeriv', None) is None:
+            self._transformDeriv = self.mapping.transformDeriv(self.view(np.ndarray))
+        return self._transformDeriv
+
+
 class IdentityMap(object):
     """
     SimPEG Map
@@ -76,7 +112,7 @@ class IdentityMap(object):
             return ComboMap(self.mesh, [self] + val.maps)
         elif isinstance(val, IdentityMap):
             return ComboMap(self.mesh, [self, val])
-        elif type(val) is np.ndarray:
+        elif isinstance(val, np.ndarray):
             return self.transform(val)
 
 class NonLinearMap(object):
@@ -381,7 +417,7 @@ class ComboMap(IdentityMap):
             return ComboMap(self.mesh, self.maps + val.maps)
         elif isinstance(val, IdentityMap):
             return ComboMap(self.mesh, self.maps + [val])
-        elif type(val) is np.ndarray:
+        elif isinstance(val, np.ndarray):
             return self.transform(val)
 
 class ComplexMap(IdentityMap):

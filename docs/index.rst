@@ -41,7 +41,6 @@ Forward Problems
 
    api_Problem
    api_Survey
-   api_Maps
 
 Inversion
 *********
@@ -51,7 +50,6 @@ Inversion
 
    api_DataMisfit
    api_Inverse
-   api_Parameters
 
 Utility Codes
 *************
@@ -60,6 +58,7 @@ Utility Codes
    :maxdepth: 2
 
    api_Solver
+   api_Maps
    api_Utils
 
 

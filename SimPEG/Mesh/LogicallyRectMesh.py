@@ -34,7 +34,7 @@ class LogicallyRectMesh(BaseRectangularMesh, DiffOperators, InnerProducts):
         assert len(nodes) > 1, "len(node) must be greater than 1"
 
         for i, nodes_i in enumerate(nodes):
-            assert type(nodes_i) == np.ndarray, ("nodes[%i] is not a numpy array." % i)
+            assert isinstance(nodes_i, np.ndarray), ("nodes[%i] is not a numpy array." % i)
             assert nodes_i.shape == nodes[0].shape, ("nodes[%i] is not the same shape as nodes[0]" % i)
 
         assert len(nodes[0].shape) == len(nodes), "Dimension mismatch"

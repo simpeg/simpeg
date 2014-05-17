@@ -138,7 +138,7 @@ class BaseTimeProblem(BaseProblem):
 
     @timeSteps.setter
     def timeSteps(self, value):
-        if type(value) is np.ndarray:
+        if isinstance(value, np.ndarray):
             self._timeSteps = value
             del self.timeMesh
             return

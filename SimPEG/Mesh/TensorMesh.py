@@ -22,7 +22,7 @@ class BaseTensorMesh(BaseRectangularMesh):
                 h_i = self._unitDimensions[i] * np.ones(int(h_i))/int(h_i)
             elif type(h_i) is list:
                 h_i = Utils.meshTensor(h_i)
-            assert type(h_i) == np.ndarray, ("h[%i] is not a numpy array." % i)
+            assert isinstance(h_i, np.ndarray), ("h[%i] is not a numpy array." % i)
             assert len(h_i.shape) == 1, ("h[%i] must be a 1D numpy array." % i)
             h[i] = h_i[:] # make a copy.
 

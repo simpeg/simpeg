@@ -184,7 +184,7 @@ class Data(object):
     def __setitem__(self, key, value):
         tx, rx = self._ensureCorrectKey(key)
         assert rx is not None, 'set data using [Tx, Rx]'
-        assert type(value) == np.ndarray, 'value must by ndarray'
+        assert isinstance(value, np.ndarray), 'value must by ndarray'
         assert value.size == rx.nD, "value must have the same number of data as the transmitter."
         self._dataDict[tx][rx] = Utils.mkvc(value)
 
@@ -347,7 +347,7 @@ class Fields(object):
         return self._getField(name, ind)
 
     def _setField(self, field, val, name, ind):
-        if type(val) is np.ndarray and (field.shape[1] == 1 or val.ndim == 1):
+        if isinstance(val, np.ndarray) and (field.shape[1] == 1 or val.ndim == 1):
             val = Utils.mkvc(val,2)
         field[:,ind] = val
 
@@ -618,23 +618,3 @@ class BaseSurvey(object):
         noise = std*abs(self.dtrue)*np.random.randn(*self.dtrue.shape)
         self.dobs = self.dtrue+noise
         self.std = self.dobs*0 + std
-
-
-    #TODO: Move this to the survey class?
-    # @property
-    # def phi_d_target(self):
-    #     """
-    #     target for phi_d
-
-    #     By default this is the number of data.
-
-    #     Note that we do not set the target if it is None, but we return the default value.
-    #     """
-    #     if getattr(self, '_phi_d_target', None) is None:
-    #         return self.data.dobs.size #
-    #     return self._phi_d_target
-
-    # @phi_d_target.setter
-    # def phi_d_target(self, value):
-    #     self._phi_d_target = value
-
