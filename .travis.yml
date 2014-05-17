@@ -15,7 +15,6 @@ before_install:
   # Remove this when SimPEG is on pip
   - git clone https://github.com/simpeg/simpeg.git
   - python simpeg/setup.py install
-  - cd simpegem
 
 # Install packages
 install:
