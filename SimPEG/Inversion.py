@@ -24,6 +24,8 @@ class BaseInversion(object):
 
     @directiveList.setter
     def directiveList(self, value):
+        if type(value) is list:
+            value = Directives.DirectiveList(value)
         assert isinstance(value, Directives.DirectiveList), 'Must be a DirectiveList'
         self._directiveList = value
         self._directiveList.inversion = self
