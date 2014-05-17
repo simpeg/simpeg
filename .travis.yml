@@ -22,7 +22,7 @@ install:
 
 # Run test
 script:
-  - nosetests --with-cov --cov simpeg --cov-config .coveragerc
+  - nosetests --with-cov --cov SimPEG --cov-config .coveragerc
 
 # Calculate coverage
 after_success:
@@ -30,6 +30,3 @@ after_success:
 
 notifications:
     - rowanc1@gmail.com
-    # - sgkang09@gmail.com
-    # - dwfmarchant@gmail.com
-    # - lindseyheagy@gmail.com

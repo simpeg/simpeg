@@ -1,5 +1,5 @@
 [run]
-source = simpeg
+source = SimPEG
 omit =
     */python?.?/*
     */lib-python/?.?/*.py
