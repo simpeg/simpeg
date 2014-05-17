@@ -31,6 +31,7 @@ def dotest(solver, multi=False, **solverOpts):
         e = np.ones((M.nC, numRHS))
     rhs = A * e
     x = Ainv * rhs
+    Ainv.clean()
     return np.linalg.norm(e-x,np.inf) < TOL
 
 class TestSolver(unittest.TestCase):
@@ -41,8 +42,8 @@ class TestSolver(unittest.TestCase):
     def test_direct_splu_1(self): self.assertTrue(dotest(SolverLU, False))
     def test_direct_splu_M(self): self.assertTrue(dotest(SolverLU, True))
 
-    def test_iterative_cg_1(self): self.assertTrue(dotest(SolverLU, False))
-    def test_iterative_cg_M(self): self.assertTrue(dotest(SolverLU, True))
+    def test_iterative_cg_1(self): self.assertTrue(dotest(SolverCG, False))
+    def test_iterative_cg_M(self): self.assertTrue(dotest(SolverCG, True))
 
 
 if __name__ == '__main__':

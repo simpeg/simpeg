@@ -42,9 +42,8 @@ def DSolverWrap(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6):
         return X
 
     def clean(self):
-        if hasattr(self.solver, 'clean'):
+        if factorize and hasattr(self.solver, 'clean'):
             return self.solver.clean()
-
 
     def __mul__(self, val):
         if type(val) is np.ndarray:
@@ -87,9 +86,13 @@ def ISolverWrap(fun, checkAccuracy=True, accuracyTol=1e-5):
             _checkAccuracy(self.A, b, X, accuracyTol)
         return X
 
+    def clean(self):
+        if hasattr(self.solver, 'clean'):
+            return self.solver.clean()
+
     def __mul__(self, val):
         if type(val) is np.ndarray:
             return self.solve(val)
         raise TypeError('Can only multiply by a numpy array.')
 
-    return type(fun.__name__, (object,), {"__init__": __init__, "solve": solve, "__mul__": __mul__})
+    return type(fun.__name__, (object,), {"__init__": __init__, "solve": solve, "clean": clean, "__mul__": __mul__})
