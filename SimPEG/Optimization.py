@@ -1,5 +1,5 @@
 import Utils, numpy as np, scipy.sparse as sp
-from Utils.SolverUtils import Solver, SolverCG
+from Utils.SolverUtils import *
 norm = np.linalg.norm
 
 
@@ -663,13 +663,7 @@ class BFGS(Minimize, Remember):
             Must be a SimPEG.Solver
         """
         if getattr(self,'_bfgsH0',None) is None:
-            # Check if it has been set by the user and the default is not being used.
-            if self.parent is None:
-                self._bfgsH0 = Solver(sp.identity(self.xc.size).tocsc(), flag='D')
-            else:
-                print 'Setting bfgsH0 to the inverse of the modelObj2Deriv. Done using direct methods.'
-                objFunc = self.parent.objFunc
-                self._bfgsH0 = Solver(objFunc.reg.modelObj2Deriv(objFunc.m_current))
+            self._bfgsH0 = SolverDiag(sp.identity(self.xc.size))
         return self._bfgsH0
 
     @bfgsH0.setter
@@ -878,23 +872,3 @@ class NewtonRoot(object):
                 break
 
         return x
-
-
-
-if __name__ == '__main__':
-    from SimPEG.Tests import Rosenbrock, checkDerivative
-    import matplotlib.pyplot as plt
-    x0 = np.array([2.6, 3.7])
-    checkDerivative(Rosenbrock, x0, plotIt=False)
-
-    xOpt = GaussNewton(maxIter=20,tolF=1e-10,tolX=1e-10,tolG=1e-10).minimize(Rosenbrock,x0)
-    print "xOpt=[%f, %f]" % (xOpt[0], xOpt[1])
-    xOpt = SteepestDescent(maxIter=30, maxIterLS=15,tolF=1e-10,tolX=1e-10,tolG=1e-10).minimize(Rosenbrock, x0)
-    print "xOpt=[%f, %f]" % (xOpt[0], xOpt[1])
-
-
-    print 'test the newtonRoot finding.'
-    fun = lambda x, return_g=True: np.sin(x) if not return_g else ( np.sin(x), Utils.sdiag( np.cos(x) ) )
-    x = np.array([np.pi-0.3, np.pi+0.1, 0])
-    pnt = NewtonRoot(comments=True).root(fun,x)
-    print pnt

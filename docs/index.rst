@@ -47,8 +47,9 @@ Inversion
 *********
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
+   api_DataMisfit
    api_Inverse
    api_Parameters
 

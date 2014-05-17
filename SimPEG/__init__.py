@@ -7,7 +7,8 @@ import Maps
 import Problem
 import Survey
 import Regularization
-import ObjFunction
+import DataMisfit
+import InvProblem
 import Optimization
 import Directives
 import Inversion

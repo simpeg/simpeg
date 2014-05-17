@@ -5,7 +5,7 @@ import Directives
 
 
 class BaseInversion(object):
-    """BaseInversion(objFunc, opt, **kwargs)
+    """BaseInversion(invProb, opt, **kwargs)
     """
 
     __metaclass__ = Utils.SimPEGMetaClass
@@ -30,23 +30,21 @@ class BaseInversion(object):
         self._directiveList = value
         self._directiveList.inversion = self
 
-    def __init__(self, objFunc, opt, **kwargs):
+    def __init__(self, invProb, **kwargs):
         Utils.setKwargs(self, **kwargs)
 
-        self.objFunc = objFunc
-        self.objFunc.parent = self
+        self.invProb = invProb
 
-        self.opt = opt
-        opt.callback = self._optCallback
-        self.opt.parent = self
+        self.opt = invProb.opt
+        self.opt.callback = self._optCallback
 
         self.stoppers = [StoppingCriteria.iteration]
 
-        # Check if we have inserted printers into the optimization
-        if IterationPrinters.phi_d not in self.opt.printers:
-            self.opt.printers.insert(1,IterationPrinters.beta)
-            self.opt.printers.insert(2,IterationPrinters.phi_d)
-            self.opt.printers.insert(3,IterationPrinters.phi_m)
+        # # Check if we have inserted printers into the optimization
+        # if IterationPrinters.phi_d not in self.opt.printers:
+        #     self.opt.printers.insert(1,IterationPrinters.beta)
+        #     self.opt.printers.insert(2,IterationPrinters.phi_d)
+        #     self.opt.printers.insert(3,IterationPrinters.phi_m)
 
     @Utils.timeIt
     def run(self, m0):
@@ -55,9 +53,9 @@ class BaseInversion(object):
             Runs the inversion!
 
         """
-        self.objFunc.startup(m0)
+        self.invProb.startup(m0)
         self.directiveList.call('initialize')
-        self.m = self.opt.minimize(self.objFunc.evalFunction, m0)
+        self.m = self.opt.minimize(self.invProb.evalFunction, m0)
         self.directiveList.call('finish')
 
         return self.m

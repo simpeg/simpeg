@@ -51,12 +51,12 @@ def run(N, plotIt=True):
     M = prob.mesh
 
     reg = Regularization.Tikhonov(mesh)
-    objFunc = ObjFunction.BaseObjFunction(survey, reg)
+    dmis = DataMisfit.l2_DataMisfit()
     opt = Optimization.InexactGaussNewton(maxIter=20)
-    inv = Inversion.BaseInversion(objFunc, opt)
+    invProb = InvProblem.BaseInvProblem(prob, reg, dmis, opt)
     beta = Directives.BetaSchedule()
     betaest = Directives.BetaEstimate_ByEig()
-    inv.ruleList = Directives.DirectiveList(betaest, beta)
+    inv = Inversion.BaseInversion(invProb, directiveList=[beta, betaest])
     m0 = np.zeros_like(survey.mtrue)
 
     mrec = inv.run(m0)

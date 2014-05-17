@@ -20,6 +20,7 @@ import sys, os
 
 sys.path.append('../')
 
+
 # -- General configuration -----------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -242,3 +243,5 @@ texinfo_documents = [
 
 # How to display URL addresses: 'footnote', 'no', or 'inline'.
 #texinfo_show_urls = 'footnote'
+
+autodoc_member_order = 'bysource'

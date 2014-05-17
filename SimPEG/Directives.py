@@ -21,15 +21,17 @@ class InversionDirective(object):
         self._inversion = i
 
     @property
-    def objFunc(self): return self.inversion.objFunc
+    def invProb(self): return self.inversion.invProb
     @property
     def opt(self): return self.inversion.opt
     @property
-    def reg(self): return self.inversion.objFunc.reg
+    def reg(self): return self.invProb.reg
     @property
-    def survey(self): return self.inversion.objFunc.survey
+    def dmisfit(self): return self.invProb.dmisfit
     @property
-    def prob(self): return self.inversion.objFunc.prob
+    def survey(self): return self.invProb.survey
+    @property
+    def prob(self): return self.invProb.prob
 
     def initialize(self):
         pass
@@ -122,15 +124,15 @@ class BetaEstimate_ByEig(InversionDirective):
 
         if self.debug: print 'Calculating the beta0 parameter.'
 
-        m = self.objFunc.m_current
-        u = self.objFunc.u_current or self.prob.fields(m)
+        m = self.invProb.m_current
+        u = self.invProb.u_current or self.prob.fields(m)
 
         x0 = np.random.rand(*m.shape)
-        t = x0.dot(self.objFunc.dataObj2Deriv(m,x0,u=u))
+        t = x0.dot(self.dmisfit.dataObj2Deriv(self.prob,m,x0,u=u))
         b = x0.dot(self.reg.modelObj2Deriv(m, v=x0))
         self.beta0 = self.beta0_ratio*(t/b)
 
-        self.objFunc.beta = self.beta0
+        self.invProb.beta = self.beta0
 
 
 class BetaSchedule(InversionDirective):
@@ -142,7 +144,7 @@ class BetaSchedule(InversionDirective):
     def endIter(self):
         if self.opt.iter > 0 and self.opt.iter % self.coolingRate == 0:
             if self.debug: print 'BetaSchedule is cooling Beta. Iteration: %d' % self.opt.iter
-            self.objFunc.beta /= self.coolingFactor
+            self.invProb.beta /= self.coolingFactor
 
 
 # class UpdateReferenceModel(Parameter):
@@ -154,5 +156,5 @@ class BetaSchedule(InversionDirective):
 #         if mref is None:
 #             if self.debug: print 'UpdateReferenceModel is using mref0'
 #             mref = self.mref0
-#         self.m_prev = self.objFunc.m_current
+#         self.m_prev = self.invProb.m_current
 #         return mref

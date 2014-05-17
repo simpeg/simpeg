@@ -597,45 +597,6 @@ class BaseSurvey(object):
         """
         return Utils.mkvc(self.dpred(m, u=u) - self.dobs)
 
-
-    @property
-    def Wd(self):
-        """
-            Data weighting matrix. This is a covariance matrix used in::
-
-                def residualWeighted(m,u=None):
-                    return self.Wd*self.residual(m, u=u)
-
-            By default, this is based on the norm of the data plus a noise floor.
-
-        """
-        if getattr(self,'_Wd',None) is None:
-            print 'SimPEG is making Survey.Wd to be norm of the data plus a floor.'
-            eps = np.linalg.norm(Utils.mkvc(self.dobs),2)*1e-5
-            self._Wd = 1/(abs(self.dobs)*self.std+eps)
-        return self._Wd
-    @Wd.setter
-    def Wd(self, value):
-        self._Wd = value
-
-    def residualWeighted(self, m, u=None):
-        """residualWeighted(m, u=None)
-
-            :param numpy.array m: geophysical model
-            :param numpy.array u: fields
-            :rtype: numpy.array
-            :return: weighted data residual
-
-            The weighted data residual:
-
-            .. math::
-
-                \mu_\\text{data}^{\\text{weighted}} = \mathbf{W}_d(\mathbf{d}_\\text{pred} - \mathbf{d}_\\text{obs})
-
-            Where \\\\(W_d\\\\) is a covariance matrix that weights the data residual.
-        """
-        return Utils.mkvc(self.Wd*self.residual(m, u=u))
-
     @property
     def isSynthetic(self):
         "Check if the data is synthetic."

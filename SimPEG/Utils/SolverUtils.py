@@ -114,3 +114,36 @@ def SolverWrapI(fun, checkAccuracy=True, accuracyTol=1e-5):
 Solver   = SolverWrapD(sp.linalg.spsolve, factorize=False)
 SolverLU = SolverWrapD(sp.linalg.splu, factorize=True)
 SolverCG = SolverWrapI(sp.linalg.cg)
+
+
+class SolverDiag(object):
+    """docstring for SolverDiag"""
+    def __init__(self, A):
+        self.A = A
+        self._diagonal = A.diagonal()
+
+    def __mul__(self, rhs):
+        n = self.A.shape[0]
+        assert rhs.size % n == 0, 'Incorrect shape of rhs.'
+        nrhs = rhs.size // n
+
+        if len(rhs.shape) == 1 or rhs.shape[1] == 1:
+            x = self._solve1(rhs)
+        else:
+            x = self._solveM(rhs)
+
+        if nrhs == 1:
+            return x.flatten()
+        elif nrhs > 1:
+            return x.reshape((n,nrhs), order='F')
+
+    def _solve1(self, rhs):
+        return rhs.flatten()/self._diagonal
+
+    def _solveM(self, rhs):
+        n = self.A.shape[0]
+        nrhs = rhs.size // n
+        return rhs/self._diagonal.repeat(nrhs).reshape((n,nrhs))
+
+    def clean(self):
+        pass
