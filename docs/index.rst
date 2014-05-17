@@ -71,11 +71,19 @@ Miscellaneous
    api_license
    api_Tests
 
-* Master Branch
+* Travis-CI Testing
    .. image:: https://travis-ci.org/simpeg/simpeg.svg?branch=master
       :target: https://travis-ci.org/simpeg/simpeg
       :alt: Master Branch
       :align: center
+
+* Coveralls Testing
+   .. image:: https://coveralls.io/repos/simpeg/simpeg/badge.png?branch=master
+      :target: https://coveralls.io/r/simpeg/simpeg?branch=master
+      :alt: Coveralls
+      :align: center
+
+
 
 Projects Using SimPEG
 *********************

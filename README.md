@@ -22,6 +22,9 @@ Tests:
 Build Status:
 [![Build Status](https://travis-ci.org/simpeg/simpeg.svg?branch=master)](https://travis-ci.org/simpeg/simpeg)
 
+Coverage Status:
+[![Coverage Status](https://img.shields.io/coveralls/simpeg/simpeg.svg)](https://coveralls.io/r/simpeg/simpeg?branch=master)
+
 Bugs & Issues:
 [https://github.com/simpeg/simpeg/issues](https://github.com/simpeg/simpeg/issues)
 
