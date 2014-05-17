@@ -1,7 +1,7 @@
-simpegem
+simpegEM
 ========
 
-A electromagnetic forward modelling and inversion package for SimPEG.
+A electromagnetic forward modeling and inversion package for SimPEG.
 
 
 
@@ -16,6 +16,9 @@ Tests:
 
 Build Status:
 [![Build Status](https://travis-ci.org/simpeg/simpegem.svg?branch=master)](https://travis-ci.org/simpeg/simpegem)
+
+Coverage Status:
+[![Coverage Status](https://img.shields.io/coveralls/simpeg/simpegem.svg)](https://coveralls.io/r/simpeg/simpegem?branch=master)
 
 Bugs & Issues:
 [https://github.com/simpeg/simpegem/issues](https://github.com/simpeg/simpegem/issues)

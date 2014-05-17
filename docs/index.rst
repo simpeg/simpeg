@@ -57,6 +57,12 @@ Testing simpegEM
       :alt: Master Branch
       :align: center
 
+* Coveralls Testing
+   .. image:: https://coveralls.io/repos/simpeg/simpegem/badge.png?branch=master
+      :target: https://coveralls.io/r/simpeg/simpegem?branch=master
+      :alt: Coveralls
+      :align: center
+
 
 Project Index & Search
 ======================

@@ -1,11 +1,6 @@
 language: python
 python:
   - 2.7
-notifications:
-    - rowanc1@gmail.com
-    # - dwfmarchant@gmail.com
-    # - sgkang09@gmail.com
-    # - lindseyheagy@gmail.com
 
 # Setup anaconda
 before_install:
@@ -28,18 +23,19 @@ before_install:
 
 # Install packages
 install:
-  - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib
-  # - conda install --yes python=$TRAVIS_PYTHON_VERSION atlas numpy scipy matplotlib nose dateutil pandas statsmodels
-  # Coverage packages are on dan_blanchard's binstar channel
-  # - conda install --yes -c dan_blanchard python-coveralls #nose-cov
-  - pip install --use-mirrors nose-cov python-coveralls
-  # - pip install -r requirements.txt
-  # - python setup.py install
+  - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython
+  - pip install nose-cov python-coveralls
 
 # Run test
 script:
-  - nosetests --with-cov --cov simpegem --cov-config .coveragerc --logging-level=INFO
+  - nosetests --with-cov --cov simpegEM --cov-config .coveragerc
 
 # Calculate coverage
 after_success:
   - coveralls --config_file .coveragerc
+
+notifications:
+    - rowanc1@gmail.com
+    # - dwfmarchant@gmail.com
+    # - sgkang09@gmail.com
+    # - lindseyheagy@gmail.com
