@@ -186,7 +186,7 @@ class TensorView(object):
             q[[4,4],[4,4],[2,6]]=[-1,1]
             q = Utils.mkvc(q)
             A = M.faceDiv*M.cellGrad
-            b = Solver(A).solve(q)
+            b = Solver(A) * (q)
             M.plotSlice(M.cellGrad*b, 'F', view='vec', grid=True, showIt=True, pcolorOpts={'alpha':0.8})
 
         """
@@ -628,7 +628,7 @@ if __name__ == '__main__':
     q[[4,4],[4,4],[2,6]]=[-1,1]
     q = Utils.mkvc(q)
     A = M.faceDiv*M.cellGrad
-    b = Solver(A).solve(q)
+    b = Solver(A) * (q)
 
     M.plotSlice(M.cellGrad*b, 'F', view='vec', grid=True, pcolorOpts={'alpha':0.8})
     M2 = Mesh.TensorMesh([10,20],x0=[10,5])

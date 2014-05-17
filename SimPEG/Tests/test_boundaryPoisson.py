@@ -55,12 +55,12 @@ class Test1D_InhomogeneousDirichlet(OrderTest):
         elif self.myTest == 'xc':
             #TODO: fix the null space
             solver = SolverCG(A, maxiter=1000)
-            xc = solver.solve(rhs)
+            xc = solver * (rhs)
             print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)
             err = np.linalg.norm((xc-xc_anal), np.inf)
         elif self.myTest == 'xcJ':
             #TODO: fix the null space
-            xc = Solver(A).solve(rhs)
+            xc = Solver(A) * (rhs)
             print np.linalg.norm(Utils.mkvc(A*xc) - rhs)
             j = McI*(G*xc + P*phi_bc)
             err = np.linalg.norm((j-j_anal), np.inf)
@@ -140,10 +140,10 @@ class Test2D_InhomogeneousDirichlet(OrderTest):
         elif self.myTest == 'q':
             err = np.linalg.norm((q-q_anal), np.inf)
         elif self.myTest == 'xc':
-            xc = Solver(A).solve(rhs)
+            xc = Solver(A) * (rhs)
             err = np.linalg.norm((xc-xc_anal), np.inf)
         elif self.myTest == 'xcJ':
-            xc = Solver(A).solve(rhs)
+            xc = Solver(A) * (rhs)
             j = McI*(G*xc + P*bc)
             err = np.linalg.norm((j-j_anal), np.inf)
 

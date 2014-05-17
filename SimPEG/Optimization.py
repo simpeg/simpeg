@@ -1,5 +1,5 @@
 import Utils, numpy as np, scipy.sparse as sp
-from Solver import Solver, SolverCG
+from Utils.SolverUtils import Solver, SolverCG
 norm = np.linalg.norm
 
 
@@ -692,7 +692,7 @@ class BFGS(Minimize, Remember):
     def bfgsrec(self,k,n,nn,S,Y,d):
         """BFGS recursion"""
         if k < 0:
-            d = self.bfgsH0.solve(d)
+            d = self.bfgsH0 * (d)
         else:
             khat    = 0 if nn is 0 else np.mod(n-nn+k,nn)
             gamma   = np.vdot(S[:,khat],d)/np.vdot(Y[:,khat],S[:,khat])
@@ -731,7 +731,7 @@ class GaussNewton(Minimize, Remember):
 
     @Utils.timeIt
     def findSearchDirection(self):
-        return Solver(self.H).solve(-self.g)
+        return Solver(self.H) * (-self.g)
 
 
 class InexactGaussNewton(BFGS, Minimize, Remember):
@@ -779,7 +779,7 @@ class InexactGaussNewton(BFGS, Minimize, Remember):
     @Utils.timeIt
     def findSearchDirection(self):
         Hinv = SolverCG(self.H, M=self.approxHinv, tol=self.tolCG, maxiter=self.maxIterCG)
-        p = Hinv.solve(-self.g)
+        p = Hinv * (-self.g)
         return p
 
 
@@ -846,7 +846,7 @@ class NewtonRoot(object):
             r, J = fun(x, return_g=True)
 
             Jinv = self.Solver(J, **self.solverOpts)
-            dh   = - Jinv.solve(r)
+            dh   = - (Jinv * r)
 
             muLS = 1.
             LScnt  = 1

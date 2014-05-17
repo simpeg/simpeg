@@ -79,7 +79,7 @@ class TestPoissonEqn(OrderTest):
             err = np.linalg.norm((sA - sN), np.inf)
         else:
             fA = fun(self.M.gridCC)
-            fN = Solver(D*G).solve(sol(self.M.gridCC))
+            fN = Solver(D*G) * (sol(self.M.gridCC))
             err = np.linalg.norm((fA - fN), np.inf)
         return err
 

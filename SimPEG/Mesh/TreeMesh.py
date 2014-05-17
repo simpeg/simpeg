@@ -1127,7 +1127,7 @@ if __name__ == '__main__':
     q = np.zeros(M.nC)
     q[208] = -1.0
     q[291] = 1.0
-    b = Solver(-DIV*Mf*DIV.T).solve(q)
+    b = Solver(-DIV*Mf*DIV.T) * (q)
     plt.figure()
     M.plotImage(b)
     # plt.gca().invert_yaxis()

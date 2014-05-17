@@ -1,4 +1,4 @@
-import numpy as np
+import numpy as np, scipy.sparse as sp
 from matutils import mkvc
 import warnings
 
@@ -13,7 +13,16 @@ def _checkAccuracy(A, b, X, accuracyTol):
         warnings.warn(msg, RuntimeWarning)
 
 
-def DSolverWrap(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6):
+def SolverWrapD(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6):
+    """
+    Wraps a direct Solver.
+
+    ::
+
+        Solver   = SolverUtils.SolverWrapD(sp.linalg.spsolve, factorize=False)
+        SolverLU = SolverUtils.SolverWrapD(sp.linalg.splu, factorize=True)
+
+    """
 
     def __init__(self, A, **kwargs):
         self.A = A.tocsc()
@@ -21,7 +30,10 @@ def DSolverWrap(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6):
         if factorize:
             self.solver = fun(self.A, **kwargs)
 
-    def solve(self, b):
+    def __mul__(self, b):
+        if type(b) is not np.ndarray:
+            raise TypeError('Can only multiply by a numpy array.')
+
         if len(b.shape) == 1 or b.shape[1] == 1:
             b = b.flatten()
             # Just one RHS
@@ -45,22 +57,28 @@ def DSolverWrap(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6):
         if factorize and hasattr(self.solver, 'clean'):
             return self.solver.clean()
 
-    def __mul__(self, val):
-        if type(val) is np.ndarray:
-            return self.solve(val)
-        raise TypeError('Can only multiply by a numpy array.')
-
-    return type(fun.__name__, (object,), {"__init__": __init__, "solve": solve, "clean": clean, "__mul__": __mul__})
+    return type(fun.__name__+'_Wrapped', (object,), {"__init__": __init__, "clean": clean, "__mul__": __mul__})
 
 
 
-def ISolverWrap(fun, checkAccuracy=True, accuracyTol=1e-5):
+def SolverWrapI(fun, checkAccuracy=True, accuracyTol=1e-5):
+    """
+    Wraps an iterative Solver.
+
+    ::
+
+        SolverCG = SolverUtils.SolverWrapI(sp.linalg.cg)
+
+    """
 
     def __init__(self, A, **kwargs):
         self.A = A
         self.kwargs = kwargs
 
-    def solve(self, b):
+    def __mul__(self, b):
+        if type(b) is not np.ndarray:
+            raise TypeError('Can only multiply by a numpy array.')
+
         if len(b.shape) == 1 or b.shape[1] == 1:
             b = b.flatten()
             # Just one RHS
@@ -90,9 +108,9 @@ def ISolverWrap(fun, checkAccuracy=True, accuracyTol=1e-5):
         if hasattr(self.solver, 'clean'):
             return self.solver.clean()
 
-    def __mul__(self, val):
-        if type(val) is np.ndarray:
-            return self.solve(val)
-        raise TypeError('Can only multiply by a numpy array.')
+    return type(fun.__name__, (object,), {"__init__": __init__, "clean": clean, "__mul__": __mul__})
 
-    return type(fun.__name__, (object,), {"__init__": __init__, "solve": solve, "clean": clean, "__mul__": __mul__})
+
+Solver   = SolverWrapD(sp.linalg.spsolve, factorize=False)
+SolverLU = SolverWrapD(sp.linalg.splu, factorize=True)
+SolverCG = SolverWrapI(sp.linalg.cg)
