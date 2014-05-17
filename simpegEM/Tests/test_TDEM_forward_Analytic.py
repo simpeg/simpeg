@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 try:
     from pymatsolver import MumpsSolver
 except ImportError, e:
-    MumpsSolver = Utils.SolverUtils.DSolverWrap(sp.linalg.splu, factorize=True)
+    MumpsSolver = SolverLU
 
 
 def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=[1e-5,1e-3], showIt=False):

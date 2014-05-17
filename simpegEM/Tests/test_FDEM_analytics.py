@@ -28,7 +28,7 @@ class FDEM_analyticTests(unittest.TestCase):
 
         prb = EM.FDEM.ProblemFDEM_b(mesh, mapping=mapping)
         prb.pair(survey)
-        prb.Solver = Utils.SolverUtils.DSolverWrap(sp.linalg.splu, checkAccuracy=False)
+        prb.Solver = SolverLU
 
         sig = 1e-1
         sigma = np.ones(mesh.nC)*sig

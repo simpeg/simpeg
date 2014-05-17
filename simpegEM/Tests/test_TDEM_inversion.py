@@ -83,8 +83,8 @@ if __name__ == '__main__':
     tx = EM.TDEM.TxTDEM(np.array([0., 0., 80]), 'VMD_MVP', [rx])
     survey = EM.TDEM.SurveyTDEM([tx])
     prb = EM.TDEM.ProblemTDEM_b(mesh, mapping=mapping)
-    prb.Solver = Utils.SolverUtils.DSolverWrap(sp.linalg.splu, factorize=True)
-    prb.timeSteps = [(1e-06, 20),(1e-05, 20), (0.0001, 20)]
+    prb.Solver = SolverLU
+    prb.timeSteps = [(1e-06, 20), (1e-05, 20), (0.0001, 20)]
     prb.pair(survey)
     dtrue = survey.dpred(mtrue)
 

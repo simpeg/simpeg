@@ -33,6 +33,3 @@ after_success:
 
 notifications:
     - rowanc1@gmail.com
-    # - dwfmarchant@gmail.com
-    # - sgkang09@gmail.com
-    # - lindseyheagy@gmail.com

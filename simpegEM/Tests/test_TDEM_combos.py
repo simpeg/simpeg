@@ -5,7 +5,7 @@ import simpegEM as EM
 try:
     from pymatsolver import MumpsSolver
 except ImportError, e:
-    MumpsSolver = Utils.SolverUtils.DSolverWrap(sp.linalg.splu, factorize=True)
+    MumpsSolver = SolverLU
 
 plotIt = False
 
