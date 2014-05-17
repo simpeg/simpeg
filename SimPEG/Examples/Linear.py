@@ -23,7 +23,7 @@ class LinearProblem(Problem.BaseProblem):
         return self.G.T.dot(v)
 
 
-def run(N):
+def run(N, plotIt=True):
     mesh = Mesh.TensorMesh([N])
 
     nk = 20
@@ -59,13 +59,14 @@ def run(N):
 
     mrec = inv.run(m0)
 
-    import matplotlib.pyplot as plt
-    plt.figure(1)
-    for i in range(prob.G.shape[0]):
-        plt.plot(prob.G[i,:])
+    if plotIt:
+        import matplotlib.pyplot as plt
+        plt.figure(1)
+        for i in range(prob.G.shape[0]):
+            plt.plot(prob.G[i,:])
 
-    plt.figure(2)
-    plt.plot(M.vectorCCx, survey.mtrue, 'b-')
-    plt.plot(M.vectorCCx, mrec, 'r-')
+        plt.figure(2)
+        plt.plot(M.vectorCCx, survey.mtrue, 'b-')
+        plt.plot(M.vectorCCx, mrec, 'r-')
 
-    return prob, survey, mesh
+    return prob, survey, mesh, mrec

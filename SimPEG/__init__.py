@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
 import Utils
-from Solver import Solver
+from Solver import *
 import Mesh
 import Maps
 import Problem

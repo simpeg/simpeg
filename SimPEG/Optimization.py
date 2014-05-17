@@ -1,5 +1,5 @@
 import Utils, numpy as np, scipy.sparse as sp
-from Solver import Solver
+from Solver import Solver, SolverCG
 norm = np.linalg.norm
 
 
@@ -778,7 +778,7 @@ class InexactGaussNewton(BFGS, Minimize, Remember):
 
     @Utils.timeIt
     def findSearchDirection(self):
-        Hinv = Solver(self.H, doDirect=False, options={'iterSolver': 'CG', 'M': self.approxHinv, 'tol': self.tolCG, 'maxIter': self.maxIterCG})
+        Hinv = SolverCG(self.H, M=self.approxHinv, tol=self.tolCG, maxiter=self.maxIterCG)
         p = Hinv.solve(-self.g)
         return p
 

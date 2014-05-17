@@ -3,7 +3,7 @@ import scipy.sparse as sp
 import unittest
 from TestUtils import OrderTest
 import matplotlib.pyplot as plt
-from SimPEG import Utils, Solver
+from SimPEG import *
 
 MESHTYPES = ['uniformTensorMesh']
 
@@ -54,7 +54,7 @@ class Test1D_InhomogeneousDirichlet(OrderTest):
             err = np.linalg.norm((q-V*q_anal), np.inf)
         elif self.myTest == 'xc':
             #TODO: fix the null space
-            solver = Solver(A, doDirect=False, options={'M':'J','iterSolver':'CG','backend':'scipy','maxIter':1000})
+            solver = SolverCG(A, maxiter=1000)
             xc = solver.solve(rhs)
             print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)
             err = np.linalg.norm((xc-xc_anal), np.inf)
@@ -220,7 +220,7 @@ class Test1D_InhomogeneousNeumann(OrderTest):
             err = np.linalg.norm((xc-xc_anal), np.inf)
             if info > 0:
                 print 'Solve does not work well'
-                print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)            
+                print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)
         elif self.myTest == 'xcJ':
             #TODO: fix the null space
             xc, info = sp.linalg.minres(A, rhs, tol = 1e-6)
@@ -228,7 +228,7 @@ class Test1D_InhomogeneousNeumann(OrderTest):
             err = np.linalg.norm((Pin*j-Pin*j_anal), np.inf)
             if info > 0:
                 print 'Solve does not work well'
-                print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)                        
+                print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)
         return err
 
     def test_orderJ(self):
@@ -268,12 +268,12 @@ class Test2D_InhomogeneousNeumann(OrderTest):
         j_anal = np.r_[jX_anal,jY_anal]
 
         #TODO: Check where our boundary conditions are CCx or Nx
-        
+
         cxm,cxp,cym,cyp = self.M.cellBoundaryInd
         fxm,fxp,fym,fyp = self.M.faceBoundaryInd
 
         gBFx = self.M.gridFx[(fxm|fxp),:]
-        gBFy = self.M.gridFy[(fym|fyp),:]        
+        gBFy = self.M.gridFy[(fym|fyp),:]
 
         gBCx = self.M.gridCC[(cxm|cxp),:]
         gBCy = self.M.gridCC[(cym|cyp),:]
@@ -307,7 +307,7 @@ class Test2D_InhomogeneousNeumann(OrderTest):
             err = np.linalg.norm((xc-xc_anal), np.inf)
             if info > 0:
                 print 'Solve does not work well'
-                print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)            
+                print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)
         elif self.myTest == 'xcJ':
             #TODO: fix the null space
             xc, info = sp.linalg.minres(A, rhs, tol = 1e-6)
@@ -315,7 +315,7 @@ class Test2D_InhomogeneousNeumann(OrderTest):
             err = np.linalg.norm((Pin*j-Pin*j_anal), np.inf)
             if info > 0:
                 print 'Solve does not work well'
-                print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)                        
+                print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)
         return err
 
     def test_orderJ(self):
@@ -384,7 +384,7 @@ class Test1D_InhomogeneousMixed(OrderTest):
             err = np.linalg.norm((xc-xc_anal), np.inf)
             if info > 0:
                 print 'Solve does not work well'
-                print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)            
+                print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)
         elif self.myTest == 'xcJ':
             #TODO: fix the null space
             xc, info = sp.linalg.minres(A, rhs, tol = 1e-6)
@@ -392,7 +392,7 @@ class Test1D_InhomogeneousMixed(OrderTest):
             err = np.linalg.norm((Pin*j-Pin*j_anal), np.inf)
             if info > 0:
                 print 'Solve does not work well'
-                print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)                        
+                print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)
         return err
 
     def test_orderJ(self):
@@ -432,12 +432,12 @@ class Test2D_InhomogeneousMixed(OrderTest):
         j_anal = np.r_[jX_anal,jY_anal]
 
         #TODO: Check where our boundary conditions are CCx or Nx
-        
+
         cxm,cxp,cym,cyp = self.M.cellBoundaryInd
         fxm,fxp,fym,fyp = self.M.faceBoundaryInd
 
         gBFx = self.M.gridFx[(fxm|fxp),:]
-        gBFy = self.M.gridFy[(fym|fyp),:]        
+        gBFy = self.M.gridFy[(fym|fyp),:]
 
         gBCx = self.M.gridCC[(cxm|cxp),:]
         gBCy = self.M.gridCC[(cym|cyp),:]
@@ -471,7 +471,7 @@ class Test2D_InhomogeneousMixed(OrderTest):
             err = np.linalg.norm((xc-xc_anal), np.inf)
             if info > 0:
                 print 'Solve does not work well'
-                print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)            
+                print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)
         elif self.myTest == 'xcJ':
             #TODO: fix the null space
             xc, info = sp.linalg.minres(A, rhs, tol = 1e-6)
@@ -479,7 +479,7 @@ class Test2D_InhomogeneousMixed(OrderTest):
             err = np.linalg.norm((Pin*j-Pin*j_anal), np.inf)
             if info > 0:
                 print 'Solve does not work well'
-                print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)                        
+                print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)
         return err
 
     def test_orderJ(self):
