@@ -28,7 +28,12 @@ class FDEM_analyticTests(unittest.TestCase):
 
         prb = EM.FDEM.ProblemFDEM_b(mesh, mapping=mapping)
         prb.pair(survey)
-        prb.Solver = SolverLU
+
+        try:
+            from pymatsolver import MumpsSolver
+            prb.Solver = MumpsSolver
+        except ImportError, e:
+            prb.Solver = SolverLU
 
         sig = 1e-1
         sigma = np.ones(mesh.nC)*sig

@@ -142,8 +142,8 @@ class ProblemFDEM_e(BaseFDEMProblem):
         return C.T*mui*C + 1j*omega(freq)*sig
 
     def getADeriv(self, freq, u, v, adjoint=False):
-        sig = self.curTModel
-        dsig_dm = self.curTModelDeriv
+        sig = self.curModel.transform
+        dsig_dm = self.curModel.transformDeriv
         dMe_dsig = self.mesh.getEdgeInnerProductDeriv(sig, v=u)
 
         if adjoint:
@@ -222,8 +222,8 @@ class ProblemFDEM_b(BaseFDEMProblem):
 
         mui = self.MfMui
         C = self.mesh.edgeCurl
-        sig = self.curTModel
-        dsig_dm = self.curTModelDeriv
+        sig = self.curModel.transform
+        dsig_dm = self.curModel.transformDeriv
         #TODO: This only works if diagonal (no tensors)...
         dMeSigmaI_dI = - self.MeSigmaI**2
 
@@ -275,8 +275,8 @@ class ProblemFDEM_b(BaseFDEMProblem):
     def calcFieldsDeriv(self, sol, freq, fieldType, v, adjoint=False):
         b = sol
         if fieldType == 'e':
-            sig = self.curTModel
-            dsig_dm = self.curTModelDeriv
+            sig = self.curModel.transform
+            dsig_dm = self.curModel.transformDeriv
 
             C = self.mesh.edgeCurl
             mui = self.MfMui

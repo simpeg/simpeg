@@ -18,14 +18,16 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
     _FieldsTDEM_pair = FieldsTDEM  #: used for the forward calculation only
 
     def fields(self, m):
+        if self.verbose: print '%s\nCalculating fields(m)\n%s'%('*'*50,'*'*50)
         self.curModel = m
         # Create a fields storage object
         F = self._FieldsTDEM_pair(self.mesh, self.survey)
         for tx in self.survey.txList:
             # Set the initial conditions
             F[tx,:,0] = tx.getInitialFields(self.mesh)
-        return self.forward(m, self.getRHS, self.calcFields, F=F)
-
+        F = self.forward(m, self.getRHS, self.calcFields, F=F)
+        if self.verbose: print '%s\nDone calculating fields(m)\n%s'%('*'*50,'*'*50)
+        return F
 
     def forward(self, m, RHS, CalcFields, F=None):
         self.curModel = m
@@ -39,11 +41,13 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
                 if Ainv is not None:
                     Ainv.clean()
                 A = self.getA(tInd)
-                if self.verbose: print 'Factoring...   (dt = ' + str(dt) + ')'
+                if self.verbose: print 'Factoring...   (dt = %e)'%dt
                 Ainv = self.Solver(A, **self.solverOpts)
                 if self.verbose: print 'Done'
             rhs = RHS(tInd, F)
+            if self.verbose: print '    Solving...   (tInd = %d)'%tInd
             sol = Ainv * rhs
+            if self.verbose: print '    Done...'
             if sol.ndim == 1:
                 sol.shape = (sol.size,1)
             F[:,:,tInd+1] = CalcFields(sol, tInd)
@@ -62,11 +66,13 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
                 if Ainv is not None:
                     Ainv.clean()
                 A = self.getA(tInd)
-                if self.verbose: print 'Factoring...   (dt = ' + str(dt) + ')'
+                if self.verbose: print 'Factoring (Adjoint)...   (dt = %e)'%dt
                 Ainv = self.Solver(A, **self.solverOpts)
                 if self.verbose: print 'Done'
             rhs = RHS(tInd, F)
+            if self.verbose: print '    Solving (Adjoint)...   (tInd = %d)'%tInd
             sol = Ainv * rhs
+            if self.verbose: print '    Done...'
             if sol.ndim == 1:
                 sol.shape = (sol.size,1)
             F[:,:,tInd+1] = CalcFields(sol, tInd)
@@ -88,12 +94,14 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
             * Compute \\\(\\\\vec{w} = -\\\mathbf{Q} \\\\vec{y}\\\)
 
         """
+        if self.verbose: print '%s\nCalculating J(v)\n%s'%('*'*50,'*'*50)
         self.curModel = m
         if u is None:
             u = self.fields(m)
         p = self.Gvec(m, v, u)
         y = self.solveAh(m, p)
         Jv = self.survey.projectFieldsDeriv(u, v=y)
+        if self.verbose: print '%s\nDone calculating J(v)\n%s'%('*'*50,'*'*50)
         return - mkvc(Jv)
 
     def Jtvec(self, m, v, u=None):
@@ -111,6 +119,7 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
             * Compute \\\(\\\\vec{w} = -\\\mathbf{G}^\\\\top y\\\)
 
         """
+        if self.verbose: print '%s\nCalculating J^T(v)\n%s'%('*'*50,'*'*50)
         self.curModel = m
         if u is None:
             u = self.fields(m)
@@ -121,5 +130,6 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
         p = self.survey.projectFieldsDeriv(u, v=v, adjoint=True)
         y = self.solveAht(m, p)
         w = self.Gtvec(m, y, u)
+        if self.verbose: print '%s\nDone calculating J^T(v)\n%s'%('*'*50,'*'*50)
         return - mkvc(w)
 

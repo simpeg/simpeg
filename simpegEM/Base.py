@@ -1,4 +1,4 @@
-from SimPEG import Survey, Problem, Utils, np, sp, Solver as SimpegSolver
+from SimPEG import Survey, Problem, Utils, Models, np, sp, Solver as SimpegSolver
 from scipy.constants import mu_0
 
 class BaseEMProblem(Problem.BaseProblem):
@@ -38,7 +38,7 @@ class BaseEMProblem(Problem.BaseProblem):
     def MeSigma(self):
         #TODO: hardcoded to sigma as the model
         if getattr(self, '_MeSigma', None) is None:
-            sigma = self.curTModel
+            sigma = self.curModel.transform
             self._MeSigma = self.mesh.getEdgeInnerProduct(sigma)
         return self._MeSigma
 
@@ -46,23 +46,11 @@ class BaseEMProblem(Problem.BaseProblem):
     def MeSigmaI(self):
         #TODO: hardcoded to sigma as the model
         if getattr(self, '_MeSigmaI', None) is None:
-            sigma = self.curTModel
+            sigma = self.curModel.transform
             self._MeSigmaI = self.mesh.getEdgeInnerProduct(sigma, invMat=True)
         return self._MeSigmaI
 
-    curModel = Utils.dependentProperty('_curModel', None, ['_MeSigma', '_MeSigmaI', '_curTModel', '_curTModelDeriv'], 'Sets the current model, and removes dependent mass matrices.')
-
-    @property
-    def curTModel(self):
-        if getattr(self, '_curTModel', None) is None:
-            self._curTModel = self.mapping.transform(self.curModel)
-        return self._curTModel
-
-    @property
-    def curTModelDeriv(self):
-        if getattr(self, '_curTModelDeriv', None) is None:
-            self._curTModelDeriv = self.mapping.transformDeriv(self.curModel)
-        return self._curTModelDeriv
+    deleteTheseOnModelUpdate = ['_MeSigma', '_MeSigmaI']
 
     def fields(self, m):
         self.curModel = m
