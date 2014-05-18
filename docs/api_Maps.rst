@@ -4,8 +4,8 @@
 SimPEG Maps
 ***********
 
-Thats not a map...?!
-====================
+That's not a map...?!
+=====================
 
 A SimPEG Map operates on a vector and transforms it to another space.
 We will use an example commonly applied in electromagnetics (EM) of the
@@ -27,51 +27,17 @@ back to conductivity. This is a relatively trivial example (we are just taking
 the exponential!) but by defining maps we can start to combine and manipulate
 exactly what we think about as our model, \\\(m\\\). In code, this looks like
 
-.. plot::
-    :include-source:
+::
 
-    from SimPEG import *
-    import matplotlib.pyplot as plt
-    M = Mesh.TensorMesh([100])
-    expMap = Maps.ExpMap(M)
-    m = np.zeros(M.nC)
-    m[M.vectorCCx>0.5] = 1.0
-    sig = expMap.transform(m) # or just: expMap * m
-    plt.plot(M.vectorCCx, np.c_[m,sig])
-    plt.legend(['$m=\log(\sigma)$','$\sigma=\exp(m)$'],'best')
-    plt.ylim([-0.5,3])
-
-Taking Derivatives
-==================
-
-Now that we have wrapped up the mapping, we can ensure that it is easy to take
-derivatives (or at least have access to them!). In the :class:`SimPEG.Maps.ExpMap`
-there are no dependencies between model parameters, so it will be a diagonal matrix:
-
-.. math::
-
-    \left(\frac{\partial \mathcal{M}(m)}{\partial m}\right)_{ii} = \frac{\partial \exp(m_i)}{\partial m} = \exp(m_i)
-
-Or equivalently:
-
-.. math::
-
-    \frac{\partial \mathcal{M}(m)}{\partial m} = \text{diag}( \exp(m) )
-
-The mapping API makes this really easy to test that you have got the derivative correct.
-When these are used in the inverse problem, this is extremely important!!
-
-.. plot::
-    :include-source:
-
-    from SimPEG import *
-    import matplotlib.pyplot as plt
-    M = Mesh.TensorMesh([100])
-    expMap = Maps.ExpMap(M)
-    m = np.zeros(M.nC)
-    m[M.vectorCCx>0.5] = 1.0
-    expMap.test(m, plotIt=True)
-
+    M = Mesh.TensorMesh([100]) # Create a mesh
+    expMap = Maps.ExpMap(M)    # Create a mapping
+    m = np.zeros(M.nC)         # Create a model vector
+    m[M.vectorCCx>0.5] = 1.0   # Set half of it to 1.0
+    sig = expMap * m           # Apply the mapping using *
+    print m
+    # [ 0.    0.    0.    1.     1.     1. ]
+    print sig
+    # [ 1.    1.    1.  2.718  2.718  2.718]
 
 Combining Maps
 ==============
@@ -120,6 +86,38 @@ If you noticed, it was pretty easy to combine maps. What is even cooler is
 that the derivatives also are made for you (if everything goes right).
 Just to be sure that the derivative is correct, you should always run the test
 on the mapping that you create.
+
+Taking Derivatives
+==================
+
+Now that we have wrapped up the mapping, we can ensure that it is easy to take
+derivatives (or at least have access to them!). In the :class:`SimPEG.Maps.ExpMap`
+there are no dependencies between model parameters, so it will be a diagonal matrix:
+
+.. math::
+
+    \left(\frac{\partial \mathcal{M}(m)}{\partial m}\right)_{ii} = \frac{\partial \exp(m_i)}{\partial m} = \exp(m_i)
+
+Or equivalently:
+
+.. math::
+
+    \frac{\partial \mathcal{M}(m)}{\partial m} = \text{diag}( \exp(m) )
+
+The mapping API makes this really easy to test that you have got the derivative correct.
+When these are used in the inverse problem, this is extremely important!!
+
+.. plot::
+    :include-source:
+
+    from SimPEG import *
+    import matplotlib.pyplot as plt
+    M = Mesh.TensorMesh([100])
+    expMap = Maps.ExpMap(M)
+    m = np.zeros(M.nC)
+    m[M.vectorCCx>0.5] = 1.0
+    expMap.test(m, plotIt=True)
+
 
 
 The API
