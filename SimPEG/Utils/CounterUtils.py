@@ -93,22 +93,3 @@ def timeIt(f):
         if type(counter) is Counter: counter.countToc(self.__class__.__name__+'.'+f.__name__)
         return out
     return wrapper
-
-
-if __name__ == '__main__':
-    class MyClass(object):
-        def __init__(self, url):
-            self.counter = Counter()
-
-        @count
-        def MyMethod(self):
-            pass
-
-        @timeIt
-        def MySecondMethod(self):
-            pass
-
-    c = MyClass('blah')
-    for i in range(100): c.MyMethod()
-    for i in range(300): c.MySecondMethod()
-    c.counter.summary()

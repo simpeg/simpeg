@@ -26,6 +26,26 @@ class TestCheckDerivative(unittest.TestCase):
         self.assertTrue(not passed, True)
 
 
+class TestCounter(unittest.TestCase):
+    def test_simpleFail(self):
+        class MyClass(object):
+            def __init__(self, url):
+                self.counter = Counter()
+
+            @count
+            def MyMethod(self):
+                pass
+
+            @timeIt
+            def MySecondMethod(self):
+                pass
+
+        c = MyClass('blah')
+        for i in range(100): c.MyMethod()
+        for i in range(300): c.MySecondMethod()
+        c.counter.summary()
+        self.assertTrue(True)
+
 class TestSequenceFunctions(unittest.TestCase):
 
     def setUp(self):
