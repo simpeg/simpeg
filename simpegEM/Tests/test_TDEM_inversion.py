@@ -69,7 +69,7 @@ if __name__ == '__main__':
     active = mesh.vectorCCz<0.
     layer = (mesh.vectorCCz<0.) & (mesh.vectorCCz>=-100.)
     actMap = Maps.ActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
-    mapping = Maps.ComboMap(mesh, [Maps.ExpMap, Maps.Vertical1DMap, actMap])
+    mapping = Maps.ExpMap(mesh) * Maps.Vertical1DMap(mesh) * actMap
     sig_half = 2e-3
     sig_air = 1e-8
     sig_layer = 1e-3

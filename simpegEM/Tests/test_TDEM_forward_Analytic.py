@@ -25,7 +25,7 @@ def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=[1e-5,
 
     active = mesh.vectorCCz<0.
     actMap = Maps.ActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
-    mapping = Maps.ComboMap(mesh, [Maps.ExpMap, Maps.Vertical1DMap, actMap])
+    mapping = Maps.ExpMap(mesh) * Maps.Vertical1DMap(mesh) * actMap
 
     rx = EM.TDEM.RxTDEM(np.array([[rxOffset, 0., 0.]]), np.logspace(-5,-4, 21), 'bz')
     tx = EM.TDEM.TxTDEM(np.array([0., 0., 0.]), 'VMD_MVP', [rx])
