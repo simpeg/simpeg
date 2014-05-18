@@ -99,7 +99,7 @@ class IdentityMap(object):
         if isinstance(val, IdentityMap):
             if not self.shape[1] == val.shape[0]:
                 raise ValueError('Dimension mismatch in %s and %s.' % (str(self), str(val)))
-            return ComboMap(self.mesh, [self, val])
+            return ComboMap([self, val])
         elif isinstance(val, np.ndarray):
             if not self.shape[1] == val.shape[0]:
                 raise ValueError('Dimension mismatch in %s and np.ndarray%s.' % (str(self), str(val.shape)))
@@ -112,8 +112,8 @@ class IdentityMap(object):
 class ComboMap(IdentityMap):
     """Combination of various maps."""
 
-    def __init__(self, mesh, maps, **kwargs):
-        IdentityMap.__init__(self, mesh, **kwargs)
+    def __init__(self, maps, **kwargs):
+        IdentityMap.__init__(self, None, **kwargs)
 
         self.maps = []
         for ii, m in enumerate(maps):

@@ -1,4 +1,4 @@
-import Utils, Survey, numpy as np, scipy.sparse as sp
+import Utils, Survey, Models, numpy as np, scipy.sparse as sp
 import Maps, Mesh
 
 class BaseProblem(object):
@@ -43,6 +43,23 @@ class BaseProblem(object):
         if not self.ispaired: return
         self.survey._prob = None
         self._survey = None
+
+    deleteTheseOnModelUpdate = [] # List of strings, e.g. ['_MeSigma', '_MeSigmaI']
+
+    @property
+    def curModel(self):
+        """
+            Sets the current model, and removes dependent mass matrices.
+        """
+        return getattr(self, '_curModel', None)
+    @curModel.setter
+    def curModel(self, value):
+        if value is self.curModel:
+            return # it is the same!
+        self._curModel = Models.Model(value, self.mapping)
+        for prop in self.deleteTheseOnModelUpdate:
+            if hasattr(self, prop):
+                delattr(self, prop)
 
     @property
     def ispaired(self):
