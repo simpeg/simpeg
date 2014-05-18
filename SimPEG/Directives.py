@@ -3,9 +3,7 @@ import Utils, numpy as np
 class InversionDirective(object):
     """InversionDirective"""
 
-    debug    = False    #: Print debugging information
-
-    current = None     #: This hold
+    debug = False    #: Print debugging information
 
     def __init__(self, **kwargs):
         Utils.setKwargs(self, **kwargs)
@@ -23,7 +21,7 @@ class InversionDirective(object):
     @property
     def invProb(self): return self.inversion.invProb
     @property
-    def opt(self): return self.inversion.opt
+    def opt(self): return self.invProb.opt
     @property
     def reg(self): return self.invProb.reg
     @property

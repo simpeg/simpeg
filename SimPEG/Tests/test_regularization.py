@@ -21,8 +21,8 @@ class RegularizationTests(unittest.TestCase):
             print 'Check:', R
             mapping = r.mapPair(self.mesh2)
             reg = r(self.mesh2, mapping=mapping)
-            m = mapping.example()
-            reg.mref = mapping.example()*0
+            m = np.random.rand(mapping.nP)
+            reg.mref = m[:]*0
             passed = checkDerivative(lambda m : [reg.modelObj(m), reg.modelObjDeriv(m)], m, plotIt=False)
             self.assertTrue(passed)
 
