@@ -33,6 +33,3 @@ class Model(np.ndarray):
         if getattr(self, '_transformDeriv', None) is None:
             self.deriv = self.mapping.deriv(self.view(np.ndarray))
         return self.deriv
-
-    def test(self, **kwargs):
-        return self.mapping.test(self.view(np.ndarray),**kwargs)

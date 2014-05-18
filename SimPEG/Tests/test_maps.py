@@ -47,8 +47,6 @@ class MapTests(unittest.TestCase):
         # plt.show()
         self.assertLess(np.linalg.norm(mod.transform-t_true,np.inf),TOL)
 
-        self.assertTrue(mod.test(plotIt=False))
-
         self.assertRaises(Exception,Models.Model,np.r_[1.0],mapping=combo)
 
         self.assertRaises(ValueError, lambda: combo * (vertMap * expMap))
@@ -66,13 +64,14 @@ class MapTests(unittest.TestCase):
         expMap = Maps.ExpMap(M)
         actMap = Maps.ActiveCells(M, M.vectorCCy <=0, 10, nC=M.nCy)
         vertMap = Maps.Vertical1DMap(M)
-        mod = Models.Model(np.r_[1,2.],vertMap * actMap)
+        combo = vertMap * actMap
+        m = np.r_[1,2.]
+        mod = Models.Model(m,combo)
         # import matplotlib.pyplot as plt
         # plt.colorbar(M.plotImage(mod.transform)[0])
         # plt.show()
         self.assertLess(np.linalg.norm(mod.transform - np.r_[1,1,2,2,10,10,10,10.]), TOL)
-        self.assertTrue(mod.test())
-
+        self.assertLess((mod.transformDeriv - combo.deriv(m)).toarray().sum(), TOL)
 
     def test_tripleMultiply(self):
         M = Mesh.TensorMesh([2,4],'0C')
