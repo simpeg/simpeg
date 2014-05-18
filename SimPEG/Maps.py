@@ -43,59 +43,82 @@ class IdentityMap(object):
 
     __metaclass__ = Utils.SimPEGMetaClass
 
-    counter = None   #: A SimPEG.Utils.Counter object
     mesh = None      #: A SimPEG Mesh
 
     def __init__(self, mesh):
         self.mesh = mesh
 
+    @property
+    def nP(self):
+        """
+            :rtype: int
+            :return: number of parameters in the model
+        """
+        return self.mesh.nC
+
+    @property
+    def shape(self):
+        """
+            The default shape is (mesh.nC, nP).
+
+            :rtype: (int,int)
+            :return: shape of the operator as a tuple
+        """
+        return (self.mesh.nC, self.nP)
+
     def transform(self, m):
         """
+            Changes the model into the physical property.
+
+            .. note::
+
+                This can be called by the __mul__ property against a numpy.ndarray.
+
             :param numpy.array m: model
             :rtype: numpy.array
             :return: transformed model
-
-            The *transform* changes the model into the physical property.
 
         """
         return m
 
     def transformInverse(self, D):
         """
+            Changes the physical property into the model.
+
+            .. note::
+
+                The *transformInverse* may not be easy to create in general.
+
             :param numpy.array D: physical property
             :rtype: numpy.array
             :return: model
-
-            The *transformInverse* changes the physical property into the model.
-
-            .. note:: The *transformInverse* may not be easy to create in general.
 
         """
         raise NotImplementedError('The transformInverse is not implemented.')
 
     def transformDeriv(self, m):
         """
+            The derivative of the transformation.
+
             :param numpy.array m: model
             :rtype: scipy.csr_matrix
             :return: derivative of transformed model
 
-            The *transform* changes the model into the physical property.
-            The *transformDeriv* provides the derivative of the *transform*.
         """
         return sp.identity(m.size)
 
-    @property
-    def nP(self):
-        """Number of parameters in the model."""
-        return self.mesh.nC
-
-    def example(self):
-        return np.random.rand(self.nP)
-
     def test(self, m=None, **kwargs):
+        """Test the derivative of the mapping.
+
+            :param numpy.array m: model
+            :param kwargs: key word arguments of :meth:`SimPEG.Tests.checkDerivative`
+            :rtype: bool
+            :return: passed the test?
+
+        """
         print 'Testing the %s Class!' % self.__class__.__name__
         if m is None:
-            m = self.example()
+            m = np.random.rand(self.nP)
         if 'plotIt' not in kwargs:
             kwargs['plotIt'] = False
         return checkDerivative(lambda m : [self.transform(m), self.transformDeriv(m)], m, **kwargs)
@@ -419,7 +442,7 @@ class ComboMap(IdentityMap):
             return self.transform(val)
 
 class ComplexMap(IdentityMap):
-    """docstring for ComplexMap
+    """ComplexMap
 
         default nP is nC in the mesh times 2 [real, imag]
 
@@ -433,6 +456,10 @@ class ComplexMap(IdentityMap):
     @property
     def nP(self):
         return self._nP
+
+    @property
+    def shape(self):
+        return (self.nP/2,self.nP)
 
     def transform(self, m):
         nC = self.mesh.nC

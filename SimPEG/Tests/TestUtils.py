@@ -202,7 +202,7 @@ def Rosenbrock(x, return_g=True, return_H=True):
         out += (H,)
     return out if len(out) > 1 else out[0]
 
-def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None, expectedOrder=2, tolerance=0.85, eps=1e-10):
+def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None, expectedOrder=2, tolerance=0.85, eps=1e-10, ax=None):
     """
         Basic derivative check
 
@@ -231,7 +231,7 @@ def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None, expectedOrder=2, tole
     """
 
     print "%s checkDerivative %s" % ('='*20, '='*20)
-    print "iter    h         |f0-ft|   |f0-ft-h*J0*dx|  Order\n%s" % ('-'*57)
+    print "iter    h         |ft-f0|   |ft-f0-h*J0*dx|  Order\n%s" % ('-'*57)
 
     f0, J0 = fctn(x0)
 
@@ -282,14 +282,16 @@ def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None, expectedOrder=2, tole
 
 
     if plotIt:
-        plt.figure()
-        plt.clf()
-        plt.loglog(h, E0, 'b')
-        plt.loglog(h, E1, 'g--')
-        plt.title('checkDerivative')
-        plt.xlabel('h')
-        plt.ylabel('error of Taylor approximation')
-        plt.legend(['0th order', '1st order'], loc='upper left')
+        ax = ax or plt.subplot(111)
+        ax.loglog(h, E0, 'b')
+        ax.loglog(h, E1, 'g--')
+        ax.set_title('Check Derivative - %s' % ('PASSED :)' if passTest else 'FAILED :('))
+        ax.set_xlabel('h')
+        ax.set_ylabel('Error')
+        leg = ax.legend(['$\mathcal{O}(h)$', '$\mathcal{O}(h^2)$'], loc='best',
+            title="$f(x + h\Delta x) - f(x) - h g(x) \Delta x - \mathcal{O}(h^2) = 0$",
+            frameon=False)
+        plt.setp(leg.get_title(),fontsize=15)
         plt.show()
 
     return passTest
@@ -328,6 +330,6 @@ if __name__ == '__main__':
     def simpleFail(x):
         return np.sin(x), -sdiag(np.cos(x))
 
-    checkDerivative(simplePass, np.random.randn(5), plotIt=False)
+    checkDerivative(simplePass, np.random.randn(5), plotIt=True)
     checkDerivative(simpleFunction, np.random.randn(5), plotIt=False)
     checkDerivative(simpleFail, np.random.randn(5), plotIt=False)
