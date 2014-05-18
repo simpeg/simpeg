@@ -4,6 +4,9 @@
 Solver
 ******
 
+BYOS
+====
+
 The numerical linear algebra solver that you use will ultimately be the
 bottleneck of your large scale inversion. To be the most flexible, SimPEG
 provides wrappers rather than a comprehensive set of solvers (i.e. BYOS).
@@ -34,7 +37,9 @@ To wrap up solvers in scipy.sparse.linalg it takes one line of code::
 
 .. seealso::
 
-    https://github.com/rowanc1/pymatsolver
+    - https://bitbucket.org/petsc/petsc4py
+    - https://github.com/bfroehle/pymumps
+    - https://github.com/rowanc1/pymatsolver
 
 
 The API

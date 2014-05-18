@@ -4,6 +4,9 @@
 SimPEG Maps
 ***********
 
+Thats not a map...?!
+====================
+
 A SimPEG Map operates on a vector and transforms it to another space.
 We will use an example commonly applied in electromagnetics (EM) of the
 log-conductivity model.
@@ -70,14 +73,6 @@ When these are used in the inverse problem, this is extremely important!!
     expMap.test(m, plotIt=True)
 
 
-The API
-=======
-
-.. autoclass:: SimPEG.Maps.IdentityMap
-    :members:
-    :undoc-members:
-
-
 Combining Maps
 ==============
 
@@ -125,6 +120,14 @@ If you noticed, it was pretty easy to combine maps. What is even cooler is
 that the derivatives also are made for you (if everything goes right).
 Just to be sure that the derivative is correct, you should always run the test
 on the mapping that you create.
+
+
+The API
+=======
+
+.. autoclass:: SimPEG.Maps.IdentityMap
+    :members:
+    :undoc-members:
 
 
 Common Maps
