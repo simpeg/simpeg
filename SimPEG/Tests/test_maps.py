@@ -66,18 +66,6 @@ class MapTests(unittest.TestCase):
         self.assertLess(np.linalg.norm(mod.transform - np.r_[1,1,2,2,10,10,10,10.]), TOL)
         self.assertTrue(mod.test())
 
-    def test_activeCells(self):
-        M = Mesh.TensorMesh([2,4],'0C')
-        actMap = Maps.ActiveCells(M, M.vectorCCy <=0, 10, nC=M.nCy)
-        vertMap = Maps.Vertical1DMap(M)
-        mod = Maps.Model(np.r_[1,2.],vertMap * actMap)
-        # import matplotlib.pyplot as plt
-        # plt.colorbar(M.plotImage(mod.transform)[0])
-        # plt.show()
-        self.assertLess(np.linalg.norm(mod.transform - np.r_[1,1,2,2,10,10,10,10.]), TOL)
-        self.assertTrue(mod.test())
-
-
 
 if __name__ == '__main__':
     unittest.main()

@@ -105,10 +105,9 @@ def SolverWrapI(fun, checkAccuracy=True, accuracyTol=1e-5):
         return X
 
     def clean(self):
-        if hasattr(self.solver, 'clean'):
-            return self.solver.clean()
+        pass
 
-    return type(fun.__name__, (object,), {"__init__": __init__, "clean": clean, "__mul__": __mul__})
+    return type(fun.__name__+'_Wrapped', (object,), {"__init__": __init__, "clean": clean, "__mul__": __mul__})
 
 
 Solver   = SolverWrapD(sp.linalg.spsolve, factorize=False)
