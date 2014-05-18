@@ -61,7 +61,7 @@ class BaseRegularization(object):
 
     @Utils.timeIt
     def modelObj(self, m):
-        r = self.W * self.mapping.transform(m - self.mref)
+        r = self.W * ( self.mapping * (m - self.mref) )
         return 0.5*r.dot(r)
 
     @Utils.timeIt
@@ -81,8 +81,9 @@ class BaseRegularization(object):
             R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
 
         """
-        mTd = self.mapping.transformDeriv(m - self.mref)
-        return mTd.T * ( self.W.T * ( self.W * self.mapping.transform(m - self.mref) ) )
+        mD = self.mapping.deriv(m - self.mref)
+        r = self.W * ( self.mapping * (m - self.mref) )
+        return mD.T * ( self.W.T * r )
 
     @Utils.timeIt
     def modelObj2Deriv(self, m, v=None):
@@ -106,11 +107,11 @@ class BaseRegularization(object):
             R(m) = \mathbf{W^\\top W}
 
         """
-        mTd = self.mapping.transformDeriv(m - self.mref)
+        mD = self.mapping.deriv(m - self.mref)
         if v is None:
-            return mTd.T * self.W.T * self.W * mTd
+            return mD.T * self.W.T * self.W * mD
 
-        return mTd.T * ( self.W.T * ( self.W * ( mTd * v) ) )
+        return mD.T * ( self.W.T * ( self.W * ( mD * v) ) )
 
 
 

@@ -14,8 +14,8 @@ class BaseInvProblem(object):
     debug   = False  #: Print debugging information
     counter = None   #: Set this to a SimPEG.Utils.Counter() if you want to count things
 
-    reg     = None   #: Regularization
     dmisfit = None   #: DataMisfit
+    reg     = None   #: Regularization
     opt     = None   #: Optimization program
 
     u_current = None #: The most current evaluated field
@@ -42,7 +42,7 @@ class BaseInvProblem(object):
         if self.debug: print 'Calling InvProblem.startup'
 
         if self.reg.mref is None:
-            print 'Regularization has not set mref. SimPEG.InvProblem will set it to m0.'
+            print 'SimPEG.InvProblem will set Regularization.mref to m0.'
             self.reg.mref = m0
 
         self.phi_d = np.nan
@@ -50,7 +50,7 @@ class BaseInvProblem(object):
 
         self.m_current = m0
 
-        print 'Setting bfgsH0 to the inverse of the modelObj2Deriv. Done using direct methods.'
+        print 'SimPEG.InvProblem is setting bfgsH0 to the inverse of the modelObj2Deriv. \n    ***Done using direct methods***'
         self.opt.bfgsH0 = Solver(self.reg.modelObj2Deriv(self.m_current))
 
     @Utils.timeIt

@@ -1,39 +1,6 @@
 import Utils, numpy as np, scipy.sparse as sp
 from Tests import checkDerivative
 
-class Model(np.ndarray):
-
-    def __new__(cls, input_array, mapping=None):
-        assert isinstance(mapping, IdentityMap), 'mapping must be a SimPEG.Mapping'
-        obj = np.asarray(input_array).view(cls)
-        obj._mapping = mapping
-        if not obj.size == mapping.nP:
-            raise Exception('Incorrect size for array.')
-        return obj
-
-    def __array_finalize__(self, obj):
-        if obj is None: return
-        self._mapping = getattr(obj, '_mapping', None)
-
-    @property
-    def mapping(self):
-        return self._mapping
-
-    @property
-    def transform(self):
-        if getattr(self, '_transform', None) is None:
-            self._transform = self.mapping.transform(self.view(np.ndarray))
-        return self._transform
-
-    @property
-    def transformDeriv(self):
-        if getattr(self, '_transformDeriv', None) is None:
-            self._transformDeriv = self.mapping.transformDeriv(self.view(np.ndarray))
-        return self._transformDeriv
-
-    def test(self, **kwargs):
-        return self.mapping.test(self.view(np.ndarray),**kwargs)
-
 
 class IdentityMap(object):
     """
@@ -66,7 +33,7 @@ class IdentityMap(object):
         """
         return (self.mesh.nC, self.nP)
 
-    def transform(self, m):
+    def _transform(self, m):
         """
             Changes the model into the physical property.
 
@@ -81,7 +48,7 @@ class IdentityMap(object):
         """
         return m
 
-    def transformInverse(self, D):
+    def inverse(self, D):
         """
             Changes the physical property into the model.
 
@@ -96,7 +63,7 @@ class IdentityMap(object):
         """
         raise NotImplementedError('The transformInverse is not implemented.')
 
-    def transformDeriv(self, m):
+    def deriv(self, m):
         """
             The derivative of the transformation.
 
@@ -105,7 +72,7 @@ class IdentityMap(object):
             :return: derivative of transformed model
 
         """
-        return sp.identity(m.size)
+        return sp.identity(self.nP)
 
     def test(self, m=None, **kwargs):
         """Test the derivative of the mapping.
@@ -116,12 +83,12 @@ class IdentityMap(object):
             :return: passed the test?
 
         """
-        print 'Testing the %s Class!' % self.__class__.__name__
+        print 'Testing %s' % str(self)
         if m is None:
             m = np.random.rand(self.nP)
         if 'plotIt' not in kwargs:
             kwargs['plotIt'] = False
-        return checkDerivative(lambda m : [self.transform(m), self.transformDeriv(m)], m, **kwargs)
+        return checkDerivative(lambda m : [self * m, self.deriv(m)], m, **kwargs)
 
     def _assertMatchesPair(self, pair):
         assert (isinstance(self, pair) or
@@ -129,104 +96,90 @@ class IdentityMap(object):
             ), "Mapping object must be an instance of a %s class."%(pair.__name__)
 
     def __mul__(self, val):
-        if isinstance(val, ComboMap):
-            return ComboMap(self.mesh, [self] + val.maps)
-        elif isinstance(val, IdentityMap):
+        if isinstance(val, IdentityMap):
+            if not self.shape[1] == val.shape[0]:
+                raise ValueError('Dimension mismatch in %s and %s.' % (str(self), str(val)))
             return ComboMap(self.mesh, [self, val])
         elif isinstance(val, np.ndarray):
-            return self.transform(val)
+            if not self.shape[1] == val.shape[0]:
+                raise ValueError('Dimension mismatch in %s and np.ndarray%s.' % (str(self), str(val.shape)))
+            return self._transform(val)
+        raise Exception('Unrecognized data type to multiply. Try a map or a numpy.ndarray!')
 
-class NonLinearMap(object):
-    """
-    SimPEG NonLinearMap
+    def __str__(self):
+        return "%s(%d,%d)" % (self.__class__.__name__, self.shape[0], self.shape[1])
 
-    """
+class ComboMap(IdentityMap):
+    """Combination of various maps."""
 
-    __metaclass__ = Utils.SimPEGMetaClass
+    def __init__(self, mesh, maps, **kwargs):
+        IdentityMap.__init__(self, mesh, **kwargs)
 
-    counter = None   #: A SimPEG.Utils.Counter object
-    mesh = None      #: A SimPEG Mesh
+        self.maps = []
+        for ii, m in enumerate(maps):
+            assert isinstance(m, IdentityMap), 'Unrecognized data type, inherit from an IdentityMap or ComboMap!'
+            if ii > 0 and not self.shape[1] == m.shape[0]:
+                prev = self.maps[-1]
+                errArgs = (prev.__name__, prev.shape[0], prev.shape[1], m.__name__, m.shape[0], m.shape[1])
+                raise ValueError('Dimension mismatch in map[%s] (%i, %i) and map[%s] (%i, %i).' % errArgs)
 
-    def __init__(self, mesh):
-        self.mesh = mesh
+            if isinstance(m, ComboMap):
+                self.maps += m.maps
+            elif isinstance(m, IdentityMap):
+                self.maps += [m]
 
-    def transform(self, u, m):
-        """
-            :param numpy.array u: fields
-            :param numpy.array m: model
-            :rtype: numpy.array
-            :return: transformed model
-
-            The *transform* changes the model into the physical property.
-
-        """
-        return m
-
-    def transformDerivU(self, u, m):
-        """
-            :param numpy.array u: fields
-            :param numpy.array m: model
-            :rtype: scipy.csr_matrix
-            :return: derivative of transformed model
-
-            The *transform* changes the model into the physical property.
-            The *transformDerivU* provides the derivative of the *transform* with respect to the fields.
-        """
-        raise NotImplementedError('The transformDerivU is not implemented.')
-
-
-    def transformDerivM(self, u, m):
-        """
-            :param numpy.array u: fields
-            :param numpy.array m: model
-            :rtype: scipy.csr_matrix
-            :return: derivative of transformed model
-
-            The *transform* changes the model into the physical property.
-            The *transformDerivU* provides the derivative of the *transform* with respect to the model.
-        """
-        raise NotImplementedError('The transformDerivM is not implemented.')
+    @property
+    def shape(self):
+        return (self.maps[0].shape[0], self.maps[-1].shape[1])
 
     @property
     def nP(self):
-        """Number of parameters in the model."""
-        return self.mesh.nC
+        """Number of model properties.
 
-    def example(self):
-        raise NotImplementedError('The example is not implemented.')
+           The number of cells in the
+           last dimension of the mesh."""
+        return self.maps[-1].nP
 
-    def test(self, m=None):
-        raise NotImplementedError('The test is not implemented.')
+    def _transform(self, m):
+        for map_i in reversed(self.maps):
+            m = map_i * m
+        return m
+
+    def deriv(self, m):
+        deriv = 1
+        mi = m
+        for map_i in reversed(self.maps):
+            deriv = map_i.deriv(mi) * deriv
+            mi = map_i * mi
+        return deriv
+
+    def __str__(self):
+        return 'ComboMap[%s]%s' % (' * '.join([m.__str__() for m in self.maps]), str(self.shape))
 
 
 class ExpMap(IdentityMap):
-    """SimPEG ExpMap"""
+    """
+
+        Changes the model into the physical property.
+
+        A common example of this is to invert for electrical conductivity
+        in log space. In this case, your model will be log(sigma) and to
+        get back to sigma, you can take the exponential:
+
+        .. math::
+
+            m = \log{\sigma}
+
+            \exp{m} = \exp{\log{\sigma}} = \sigma
+    """
 
     def __init__(self, mesh, **kwargs):
         IdentityMap.__init__(self, mesh, **kwargs)
 
-    def transform(self, m):
-        """
-            :param numpy.array m: model
-            :rtype: numpy.array
-            :return: transformed model
-
-            The *transform* changes the model into the physical property.
-
-            A common example of this is to invert for electrical conductivity
-            in log space. In this case, your model will be log(sigma) and to
-            get back to sigma, you can take the exponential:
-
-            .. math::
-
-                m = \log{\sigma}
-
-                \exp{m} = \exp{\log{\sigma}} = \sigma
-        """
+    def _transform(self, m):
         return np.exp(Utils.mkvc(m))
 
-
-    def transformInverse(self, D):
+    def inverse(self, D):
         """
             :param numpy.array D: physical property
             :rtype: numpy.array
@@ -242,7 +195,7 @@ class ExpMap(IdentityMap):
         return np.log(Utils.mkvc(D))
 
 
-    def transformDeriv(self, m):
+    def deriv(self, m):
         """
             :param numpy.array m: model
             :rtype: scipy.csr_matrix
@@ -286,7 +239,7 @@ class Vertical1DMap(IdentityMap):
            last dimension of the mesh."""
         return self.mesh.vnC[self.mesh.dim-1]
 
-    def transform(self, m):
+    def _transform(self, m):
         """
             :param numpy.array m: model
             :rtype: numpy.array
@@ -295,7 +248,7 @@ class Vertical1DMap(IdentityMap):
         repNum = self.mesh.vnC[:self.mesh.dim-1].prod()
         return Utils.mkvc(m).repeat(repNum)
 
-    def transformDeriv(self, m):
+    def deriv(self, m):
         """
             :param numpy.array m: model
             :rtype: scipy.csr_matrix
@@ -327,12 +280,17 @@ class Mesh2Mesh(IdentityMap):
         self.P = self.mesh2.getInterpolationMat(self.mesh.gridCC,'CC',zerosOutside=True)
 
     @property
+    def shape(self):
+        """Number of parameters in the model."""
+        return (self.mesh.nC, self.mesh2.nC)
+
+    @property
     def nP(self):
         """Number of parameters in the model."""
         return self.mesh2.nC
-    def transform(self, m):
+    def _transform(self, m):
         return self.P*m
-    def transformDeriv(self, m):
+    def deriv(self, m):
         return self.P
 
 
@@ -367,56 +325,19 @@ class ActiveCells(IdentityMap):
         self.P = sp.csr_matrix((np.ones(inds.size),(inds, range(inds.size))), shape=(self.nC, self.nP))
 
     @property
+    def shape(self):
+        return (self.nC, self.nP)
+
+    @property
     def nP(self):
         """Number of parameters in the model."""
         return self.indActive.sum()
 
-    def transform(self, m):
+    def _transform(self, m):
         return self.P*m + self.valInactive
-    def transformDeriv(self, m):
+    def deriv(self, m):
         return self.P
 
-class ComboMap(IdentityMap):
-    """Combination of various maps."""
-
-    def __init__(self, mesh, maps, **kwargs):
-        IdentityMap.__init__(self, mesh, **kwargs)
-
-        self.maps = []
-        for m in maps:
-            if not isinstance(m, IdentityMap):
-                self.maps += [m(mesh, **kwargs)]
-            else:
-                self.maps += [m]
-
-    @property
-    def nP(self):
-        """Number of model properties.
-
-           The number of cells in the
-           last dimension of the mesh."""
-        return self.maps[-1].nP
-
-    def transform(self, m):
-        for map_i in reversed(self.maps):
-            m = map_i.transform(m)
-        return m
-
-    def transformDeriv(self, m):
-        deriv = 1
-        mi = m
-        for map_i in reversed(self.maps):
-            deriv = map_i.transformDeriv(mi) * deriv
-            mi = map_i.transform(mi)
-        return deriv
-
-    def __mul__(self, val):
-        if isinstance(val, ComboMap):
-            return ComboMap(self.mesh, self.maps + val.maps)
-        elif isinstance(val, IdentityMap):
-            return ComboMap(self.mesh, self.maps + [val])
-        elif isinstance(val, np.ndarray):
-            return self.transform(val)
 
 class ComplexMap(IdentityMap):
     """ComplexMap
@@ -438,11 +359,11 @@ class ComplexMap(IdentityMap):
     def shape(self):
         return (self.nP/2,self.nP)
 
-    def transform(self, m):
+    def _transform(self, m):
         nC = self.mesh.nC
         return m[:nC] + m[nC:]*1j
 
-    def transformDeriv(self, m):
+    def deriv(self, m):
         nC = self.nP/2
         shp = (nC, nC*2)
         def fwd(v):
@@ -451,5 +372,5 @@ class ComplexMap(IdentityMap):
             return np.r_[v.real,v.imag]
         return Utils.SimPEGLinearOperator(shp,fwd,adj)
 
-    transformInverse = transformDeriv
+    inverse = deriv
 

@@ -4,6 +4,7 @@ import Utils
 from Utils.SolverUtils import *
 import Mesh
 import Maps
+import Models
 import Problem
 import Survey
 import Regularization
