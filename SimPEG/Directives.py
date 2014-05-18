@@ -27,9 +27,9 @@ class InversionDirective(object):
     @property
     def dmisfit(self): return self.invProb.dmisfit
     @property
-    def survey(self): return self.invProb.survey
+    def survey(self): return self.dmisfit.survey
     @property
-    def prob(self): return self.invProb.prob
+    def prob(self): return self.dmisfit.prob
 
     def initialize(self):
         pass
@@ -126,7 +126,7 @@ class BetaEstimate_ByEig(InversionDirective):
         u = self.invProb.u_current or self.prob.fields(m)
 
         x0 = np.random.rand(*m.shape)
-        t = x0.dot(self.dmisfit.dataObj2Deriv(self.prob,m,x0,u=u))
+        t = x0.dot(self.dmisfit.dataObj2Deriv(m,x0,u=u))
         b = x0.dot(self.reg.modelObj2Deriv(m, v=x0))
         self.beta0 = self.beta0_ratio*(t/b)
 

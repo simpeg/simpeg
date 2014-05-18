@@ -33,7 +33,8 @@ class BaseInversion(object):
         self._directiveList = value
         self._directiveList.inversion = self
 
-    def __init__(self, invProb, **kwargs):
+    def __init__(self, invProb, directiveList=[], **kwargs):
+        self.directiveList = directiveList
         Utils.setKwargs(self, **kwargs)
 
         self.invProb = invProb
@@ -43,11 +44,11 @@ class BaseInversion(object):
 
         self.stoppers = [StoppingCriteria.iteration]
 
-        # # Check if we have inserted printers into the optimization
-        # if IterationPrinters.phi_d not in self.opt.printers:
-        #     self.opt.printers.insert(1,IterationPrinters.beta)
-        #     self.opt.printers.insert(2,IterationPrinters.phi_d)
-        #     self.opt.printers.insert(3,IterationPrinters.phi_m)
+        # Check if we have inserted printers into the optimization
+        if IterationPrinters.phi_d not in self.opt.printers:
+            self.opt.printers.insert(1,IterationPrinters.beta)
+            self.opt.printers.insert(2,IterationPrinters.phi_d)
+            self.opt.printers.insert(3,IterationPrinters.phi_m)
 
     @Utils.timeIt
     def run(self, m0):

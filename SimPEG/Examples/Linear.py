@@ -51,9 +51,9 @@ def run(N, plotIt=True):
     M = prob.mesh
 
     reg = Regularization.Tikhonov(mesh)
-    dmis = DataMisfit.l2_DataMisfit()
+    dmis = DataMisfit.l2_DataMisfit(survey)
     opt = Optimization.InexactGaussNewton(maxIter=20)
-    invProb = InvProblem.BaseInvProblem(prob, reg, dmis, opt)
+    invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
     beta = Directives.BetaSchedule()
     betaest = Directives.BetaEstimate_ByEig()
     inv = Inversion.BaseInversion(invProb, directiveList=[beta, betaest])

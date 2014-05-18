@@ -1,20 +1,6 @@
 import Utils, Survey, Problem, numpy as np, scipy.sparse as sp, gc
 
 
-def _splitForward(forward):
-    assert forward.ispaired, 'The problem and survey must be paired.'
-    if isinstance(forward, Survey.BaseSurvey):
-        survey = forward
-        prob = forward.prob
-    elif isinstance(forward, Problem.BaseProblem):
-        prob = forward
-        survey = forward.survey
-    else:
-        raise Exception('The forward simulation must either be a problem or a survey.')
-
-    return prob, survey
-
-
 class BaseDataMisfit(object):
     """BaseDataMisfit
 
@@ -28,25 +14,16 @@ class BaseDataMisfit(object):
     debug   = False  #: Print debugging information
     counter = None   #: Set this to a SimPEG.Utils.Counter() if you want to count things
 
-    def __init__(self):
-        pass
-
-    def splitForward(self, forward):
-        """splitForward(forward)
-
-            Split the forward simulation into a problem and a survey
-
-            :param Problem,Survey forward: forward simulation
-            :rtype: Problem,Survey
-            :return: (prob, survey)
-
-        """
-        prob, survey = _splitForward(forward)
-        return prob, survey
+    def __init__(self, survey, **kwargs):
+        assert survey.ispaired, 'The survey must be paired to a problem.'
+        if isinstance(survey, Survey.BaseSurvey):
+            self.survey = survey
+            self.prob   = survey.prob
+        Utils.setKwargs(self,**kwargs)
 
     @Utils.timeIt
-    def dataObj(self, forward, m, u=None):
-        """dataObj(forward, m, u=None)
+    def dataObj(self, m, u=None):
+        """dataObj(m, u=None)
 
             :param Problem,Survey forward: forward simulation
             :param numpy.array m: geophysical model
@@ -58,8 +35,8 @@ class BaseDataMisfit(object):
         raise NotImplementedError('This method should be overwritten.')
 
     @Utils.timeIt
-    def dataObjDeriv(self, forward, m, u=None):
-        """dataObjDeriv(forward, m, u=None)
+    def dataObjDeriv(self, m, u=None):
+        """dataObjDeriv(m, u=None)
 
             :param Problem,Survey forward: forward simulation
             :param numpy.array m: geophysical model
@@ -72,8 +49,8 @@ class BaseDataMisfit(object):
 
 
     @Utils.timeIt
-    def dataObj2Deriv(self, forward, m, v, u=None):
-        """dataObj2Deriv(forward, m, v, u=None)
+    def dataObj2Deriv(self, m, v, u=None):
+        """dataObj2Deriv(m, v, u=None)
 
             :param Problem,Survey forward: forward simulation
             :param numpy.array m: geophysical model
@@ -100,7 +77,7 @@ class BaseDataMisfit(object):
         return survey.nD
 
 
-class l2_DataMisfit(object):
+class l2_DataMisfit(BaseDataMisfit):
     """
 
     The data misfit with an l_2 norm:
@@ -111,44 +88,52 @@ class l2_DataMisfit(object):
 
     """
 
-    def __init__(self, **kwargs):
-        pass
+    def __init__(self, survey, **kwargs):
+        BaseDataMisfit.__init__(self, survey, **kwargs)
 
-    def getWd(self, survey):
+    @property
+    def Wd(self):
         """getWd(survey)
 
-            Get the data weighting matrix.
+            The data weighting matrix.
 
-            This is based on the norm of the data plus a noise floor.
+            The default is based on the norm of the data plus a noise floor.
 
-            :param Survey survey: geophysical survey
             :rtype: scipy.sparse.csr_matrix
             :return: Wd
 
         """
-        eps = np.linalg.norm(Utils.mkvc(survey.dobs),2)*1e-5
-        return Utils.sdiag(1/(abs(survey.dobs)*survey.std+eps))
+
+        if getattr(self, '_Wd', None) is None:
+            print 'SimPEG.l2_DataMisfit is creating default weightings for Wd.'
+            survey = self.survey
+            eps = np.linalg.norm(Utils.mkvc(survey.dobs),2)*1e-5
+            self._Wd = Utils.sdiag(1/(abs(survey.dobs)*survey.std+eps))
+        return self._Wd
+
+    @Wd.setter
+    def Wd(self, value):
+        self._Wd = value
 
     @Utils.timeIt
-    def dataObj(self, forward, m, u=None):
-        "dataObj2Deriv(forward, m, u=None)"
-        prob, survey = _splitForward(forward)
-        Wd = self.getWd(survey)
-        R = Wd * survey.residual(m, u=u)
+    def dataObj(self, m, u=None):
+        "dataObj2Deriv(m, u=None)"
+        prob   = self.prob
+        survey = self.survey
+        R = self.Wd * survey.residual(m, u=u)
         return 0.5*np.vdot(R, R)
 
     @Utils.timeIt
-    def dataObjDeriv(self, forward, m, u=None):
-        "dataObj2Deriv(forward, m, u=None)"
-        prob, survey = _splitForward(forward)
+    def dataObjDeriv(self, m, u=None):
+        "dataObj2Deriv(m, u=None)"
+        prob   = self.prob
+        survey = self.survey
         if u is None: u = prob.fields(m)
-        Wd = self.getWd(survey)
-        return prob.Jtvec(m, Wd * (Wd * survey.residual(m, u=u)), u=u)
+        return prob.Jtvec(m, self.Wd * (self.Wd * survey.residual(m, u=u)), u=u)
 
     @Utils.timeIt
-    def dataObj2Deriv(self, forward, m, v, u=None):
-        "dataObj2Deriv(forward, m, v, u=None)"
-        prob, survey = _splitForward(forward)
+    def dataObj2Deriv(self, m, v, u=None):
+        "dataObj2Deriv(m, v, u=None)"
+        prob   = self.prob
         if u is None: u = prob.fields(m)
-        Wd = self.getWd(survey)
-        return prob.Jtvec_approx(m, Wd * (Wd * prob.Jvec_approx(m, v, u=u)), u=u)
+        return prob.Jtvec_approx(m, self.Wd * (self.Wd * prob.Jvec_approx(m, v, u=u)), u=u)

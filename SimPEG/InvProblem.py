@@ -1,9 +1,11 @@
 import Utils, Survey, Problem, numpy as np, scipy.sparse as sp, gc
 from Utils.SolverUtils import *
-from DataMisfit import _splitForward
+import DataMisfit
+import Regularization
+
 
 class BaseInvProblem(object):
-    """BaseInvProblem(forward, reg, **kwargs)"""
+    """BaseInvProblem(dmisfit, reg, opt)"""
 
     __metaclass__ = Utils.SimPEGMetaClass
 
@@ -20,12 +22,16 @@ class BaseInvProblem(object):
     m_current = None #: The most current model
 
 
-    def __init__(self, forward, reg, dmisfit, opt, **kwargs):
+    def __init__(self, dmisfit, reg, opt, **kwargs):
         Utils.setKwargs(self, **kwargs)
-        self.prob, self.survey = _splitForward(forward)
-        self.reg = reg
+        assert isinstance(dmisfit, DataMisfit.BaseDataMisfit), 'dmisfit must be a DataMisfit class.'
+        assert isinstance(reg, Regularization.BaseRegularization), 'reg must be a Regularization class.'
         self.dmisfit = dmisfit
+        self.reg = reg
         self.opt = opt
+        self.prob, self.survey = dmisfit.prob, dmisfit.survey
+        #TODO: Remove: (and make iteration printers better!)
+        self.opt.parent = self
 
     @Utils.callHooks('startup')
     def startup(self, m0):
@@ -60,7 +66,7 @@ class BaseInvProblem(object):
         u = self.prob.fields(m)
         self.u_current = u
 
-        phi_d = self.dmisfit.dataObj(forward, m, u=u)
+        phi_d = self.dmisfit.dataObj(m, u=u)
         phi_m = self.reg.modelObj(m)
 
         self.dpred = self.survey.dpred(m, u=u)  # This is a cheap matrix vector calculation.
@@ -72,7 +78,7 @@ class BaseInvProblem(object):
 
         out = (f,)
         if return_g:
-            phi_dDeriv = self.dmisfit.dataObjDeriv(forward, m, u=u)
+            phi_dDeriv = self.dmisfit.dataObjDeriv(m, u=u)
             phi_mDeriv = self.reg.modelObjDeriv(m)
 
             g = phi_dDeriv + self.beta * phi_mDeriv
@@ -80,7 +86,7 @@ class BaseInvProblem(object):
 
         if return_H:
             def H_fun(v):
-                phi_d2Deriv = self.dmisfit.dataObj2Deriv(forward, m, v, u=u)
+                phi_d2Deriv = self.dmisfit.dataObj2Deriv(m, v, u=u)
                 phi_m2Deriv = self.reg.modelObj2Deriv(m, v=v)
 
                 return phi_d2Deriv + self.beta * phi_m2Deriv

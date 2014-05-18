@@ -5,6 +5,7 @@ norm = np.linalg.norm
 
 __all__ = ['Minimize', 'Remember', 'SteepestDescent', 'BFGS', 'GaussNewton', 'InexactGaussNewton', 'ProjectedGradient', 'NewtonRoot', 'StoppingCriteria', 'IterationPrinters']
 
+SolverICG = SolverWrapI(sp.linalg.cg, checkAccuracy=False)
 
 class StoppingCriteria(object):
     """docstring for StoppingCriteria"""
@@ -72,9 +73,9 @@ class IterationPrinters(object):
     bSet = {"title": "bSet", "value": lambda M: np.sum(M.bindingSet(M.xc)), "width": 8, "format": "%d"}
     comment = {"title": "Comment", "value": lambda M: M.comment, "width": 12, "format": "%s"}
 
-    beta = {"title": "beta", "value": lambda M: M.parent.objFunc.beta, "width": 10, "format":   "%1.2e"}
-    phi_d = {"title": "phi_d", "value": lambda M: M.parent.objFunc.phi_d, "width": 10, "format":   "%1.2e"}
-    phi_m = {"title": "phi_m", "value": lambda M: M.parent.objFunc.phi_m, "width": 10, "format":   "%1.2e"}
+    beta = {"title": "beta", "value": lambda M: M.parent.beta, "width": 10, "format":   "%1.2e"}
+    phi_d = {"title": "phi_d", "value": lambda M: M.parent.phi_d, "width": 10, "format":   "%1.2e"}
+    phi_m = {"title": "phi_m", "value": lambda M: M.parent.phi_m, "width": 10, "format":   "%1.2e"}
 
 
 class Minimize(object):
@@ -772,7 +773,7 @@ class InexactGaussNewton(BFGS, Minimize, Remember):
 
     @Utils.timeIt
     def findSearchDirection(self):
-        Hinv = SolverCG(self.H, M=self.approxHinv, tol=self.tolCG, maxiter=self.maxIterCG)
+        Hinv = SolverICG(self.H, M=self.approxHinv, tol=self.tolCG, maxiter=self.maxIterCG)
         p = Hinv * (-self.g)
         return p
 
