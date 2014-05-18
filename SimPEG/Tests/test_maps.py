@@ -4,6 +4,7 @@ from SimPEG import *
 from TestUtils import checkDerivative
 from scipy.sparse.linalg import dsolve
 
+TOL = 1e-14
 
 class MapTests(unittest.TestCase):
 
@@ -32,6 +33,50 @@ class MapTests(unittest.TestCase):
         for combo in combos:
             maps = Maps.ComboMap(self.mesh2, combo)
             self.assertTrue(maps.test())
+
+    def test_mapMultiplication(self):
+        M = Mesh.TensorMesh([2,3])
+        expMap = Maps.ExpMap(M)
+        vertMap = Maps.Vertical1DMap(M)
+        combo = expMap*vertMap
+        m = np.arange(3.0)
+        t = combo * m
+        t_true = np.exp(np.r_[0,0,1,1,2,2.])
+        self.assertLess(np.linalg.norm(t-t_true,np.inf),TOL)
+        #Try making a model
+        mod = Maps.Model(m,mapping=combo)
+        # print mod.transform
+        # import matplotlib.pyplot as plt
+        # plt.colorbar(M.plotImage(mod.transform)[0])
+        # plt.show()
+        self.assertLess(np.linalg.norm(mod.transform-t_true,np.inf),TOL)
+
+        self.assertTrue(mod.test(plotIt=False))
+
+        self.assertRaises(Exception,Maps.Model,np.r_[1.0],mapping=combo)
+
+    def test_activeCells(self):
+        M = Mesh.TensorMesh([2,4],'0C')
+        actMap = Maps.ActiveCells(M, M.vectorCCy <=0, 10, nC=M.nCy)
+        vertMap = Maps.Vertical1DMap(M)
+        mod = Maps.Model(np.r_[1,2.],vertMap * actMap)
+        # import matplotlib.pyplot as plt
+        # plt.colorbar(M.plotImage(mod.transform)[0])
+        # plt.show()
+        self.assertLess(np.linalg.norm(mod.transform - np.r_[1,1,2,2,10,10,10,10.]), TOL)
+        self.assertTrue(mod.test())
+
+    def test_activeCells(self):
+        M = Mesh.TensorMesh([2,4],'0C')
+        actMap = Maps.ActiveCells(M, M.vectorCCy <=0, 10, nC=M.nCy)
+        vertMap = Maps.Vertical1DMap(M)
+        mod = Maps.Model(np.r_[1,2.],vertMap * actMap)
+        # import matplotlib.pyplot as plt
+        # plt.colorbar(M.plotImage(mod.transform)[0])
+        # plt.show()
+        self.assertLess(np.linalg.norm(mod.transform - np.r_[1,1,2,2,10,10,10,10.]), TOL)
+        self.assertTrue(mod.test())
+
 
 
 if __name__ == '__main__':

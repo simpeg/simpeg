@@ -4,25 +4,20 @@ from Tests import checkDerivative
 class Model(np.ndarray):
 
     def __new__(cls, input_array, mapping=None):
-        # Input array is an already formed ndarray instance
-        # We first cast to be our class type
+        assert isinstance(mapping, IdentityMap), 'mapping must be a SimPEG.Mapping'
         obj = np.asarray(input_array).view(cls)
-        # add the new attribute to the created instance
-        obj.mapping = mapping
-        # Finally, we must return the newly created object:
+        obj._mapping = mapping
+        if not obj.size == mapping.nP:
+            raise Exception('Incorrect size for array.')
         return obj
 
     def __array_finalize__(self, obj):
-        # see InfoArray.__array_finalize__ for comments
         if obj is None: return
-        self.mapping = getattr(obj, 'mapping', None)
+        self._mapping = getattr(obj, '_mapping', None)
 
     @property
     def mapping(self):
         return self._mapping
-    @mapping.setter
-    def mapping(self, value):
-        self._mapping = value
 
     @property
     def transform(self):
@@ -35,6 +30,9 @@ class Model(np.ndarray):
         if getattr(self, '_transformDeriv', None) is None:
             self._transformDeriv = self.mapping.transformDeriv(self.view(np.ndarray))
         return self._transformDeriv
+
+    def test(self, **kwargs):
+        return self.mapping.test(self.view(np.ndarray),**kwargs)
 
 
 class IdentityMap(object):
@@ -98,8 +96,8 @@ class IdentityMap(object):
         print 'Testing the %s Class!' % self.__class__.__name__
         if m is None:
             m = self.example()
-            if 'plotIt' not in kwargs:
-                kwargs['plotIt'] = False
+        if 'plotIt' not in kwargs:
+            kwargs['plotIt'] = False
         return checkDerivative(lambda m : [self.transform(m), self.transformDeriv(m)], m, **kwargs)
 
     def _assertMatchesPair(self, pair):
@@ -451,25 +449,3 @@ class ComplexMap(IdentityMap):
 
     transformInverse = transformDeriv
 
-
-if __name__ == '__main__':
-    from SimPEG import *
-    mesh = Mesh.TensorMesh([10,8])
-    emap = ExpMap(mesh)
-    vmap = Vertical1DMap(mesh)
-
-    combo = emap*vmap
-    print combo
-    print combo.maps
-
-    # combo = ComboMap(mesh, [ExpMap, Vertical1DMap])
-
-    # combo = ComboMap(mesh, [ExpMap, Vertical1DMap])
-    # m = combo.example()
-    # print m.shape
-    # print combo.test(np.arange(8))
-    mesh = Mesh.TensorMesh([10,8])
-    mapping = ComplexMap(mesh)
-    m = mapping.example()
-    print m.shape
-    # print mapping.test(m)
