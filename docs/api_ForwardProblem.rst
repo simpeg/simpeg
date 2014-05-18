@@ -1,8 +1,11 @@
-.. _api_Problem:
+.. _api_ForwardProblem:
 
 
-Problem
-*******
+Forward Problem
+***************
+
+Problem Class
+=============
 
 The problem is a partial differential equation of the form:
 
@@ -62,10 +65,20 @@ This can often be computed given a vector (i.e. \\(J(v)\\)) rather than stored, 
 
     u(m)
 
+
+
 The API
 =======
 
+Problem
+-------
 .. automodule:: SimPEG.Problem
     :members:
     :undoc-members:
+
+Survey
+------
+
+.. automodule:: SimPEG.Survey
+    :members:
 
