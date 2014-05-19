@@ -385,8 +385,8 @@ class TimeFields(Fields):
               'F':  self.mesh.nF,
               'E':  self.mesh.nE}[loc]
         nTx = self.survey.nTx
-        nT = self.survey.prob.nT
-        return (nP, nTx, nT + 1)
+        nT = self.survey.prob.nT + 1
+        return (nP, nTx, nT)
 
     def _indexAndNameFromKey(self, key, accessType):
         if type(key) is not tuple:
@@ -442,15 +442,19 @@ class TimeFields(Fields):
                 assert hasattr(self, func), 'The alias field function is a string, but it does not exist in the Fields class.'
                 func = getattr(self, func)
             pointerFields = self._fields[alias][:,txInd,timeInd]
-            pointerShape = self._correctShape(alias, ind, deflate=True)
+            pointerShape = self._correctShape(alias, ind)
             pointerFields = pointerFields.reshape(pointerShape, order='F')
-            if len(pointerShape) < 3:
-                out = func(pointerFields, txInd)
+
+            timeII = np.arange(self.survey.prob.nT + 1)[timeInd]
+            if timeII.size == 1:
+                pointerShapeDeflated = self._correctShape(alias, ind, deflate=True)
+                pointerFields = pointerFields.reshape(pointerShapeDeflated, order='F')
+                out = func(pointerFields, txInd, timeII)
             else: #loop over the time steps
                 nT = pointerShape[2]
                 out = range(nT)
-                for i in range(nT):
-                    out[i] = func(pointerFields[:,:,i], txInd)
+                for i, TIND_i in enumerate(timeII):
+                    out[i] = func(pointerFields[:,:,i], txInd, TIND_i)
                     out[i] = out[i][:,:,np.newaxis]
                 out = np.concatenate(out, axis=2)
 
