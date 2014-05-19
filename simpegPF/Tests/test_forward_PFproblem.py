@@ -8,11 +8,11 @@ class MagFwdProblemTests(unittest.TestCase):
 
     def setUp(self):
 
-        hxind = ((5,25,1.3),(41, 12.5),(5,25,1.3))
-        hyind = ((5,25,1.3),(41, 12.5),(5,25,1.3))
-        hzind = ((5,25,1.3),(40, 12.5),(5,25,1.3))
-        hx, hy, hz = Utils.meshTensors(hxind, hyind, hzind)
-        M = Mesh.TensorMesh([hx, hy, hz], [-hx.sum()/2,-hy.sum()/2,-hz.sum()/2])
+        cs = 25.
+        hxind = [(cs,5,-1.3), (cs/2.0, 41),(cs,5,1.3)]
+        hyind = [(cs,5,-1.3), (cs/2.0, 41),(cs,5,1.3)]
+        hzind = [(cs,5,-1.3), (cs/2.0, 40),(cs,5,1.3)]
+        M = Mesh.TensorMesh([hxind, hyind, hzind], 'CCC')
 
         chibkg = 0.
         chiblk = 0.01
