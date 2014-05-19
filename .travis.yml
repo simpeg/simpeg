@@ -32,4 +32,6 @@ after_success:
   - coveralls --config_file .coveragerc
 
 notifications:
+  email:
     - rowanc1@gmail.com
+    - sgkang09@gmail.com

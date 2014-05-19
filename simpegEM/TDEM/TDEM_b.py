@@ -33,7 +33,6 @@ class FieldsTDEM_e_from_b_Ah(FieldsTDEM):
         self.MfMui     = self.survey.prob.MfMui
 
     def e_from_b(self, y_b, txInd, tInd):
-        # TODO: implement non-zero js
         y_e = self.MeSigmaI*(self.edgeCurlT*(self.MfMui*y_b))
         if 'e' in self.p:
             y_e = y_e - self.MeSigmaI*self.p[txInd,'e',tInd]
