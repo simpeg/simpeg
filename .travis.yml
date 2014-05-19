@@ -25,7 +25,7 @@ install:
 
 # Run test
 script:
-  - nosetests --with-cov --cov simpegEM --cov-config .coveragerc
+  - nosetests --with-cov --cov simpegFLOW --cov-config .coveragerc
 
 # Calculate coverage
 after_success:
