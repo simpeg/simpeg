@@ -15,21 +15,21 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
         BaseTimeProblem.__init__(self, mesh, mapping=mapping, **kwargs)
 
     surveyPair = SurveyTDEM
-    _FieldsTDEM_pair = FieldsTDEM  #: used for the forward calculation only
+    _FieldsForward_pair = FieldsTDEM  #: used for the forward calculation only
 
     def fields(self, m):
         if self.verbose: print '%s\nCalculating fields(m)\n%s'%('*'*50,'*'*50)
         self.curModel = m
         # Create a fields storage object
-        F = self._FieldsTDEM_pair(self.mesh, self.survey)
+        F = self._FieldsForward_pair(self.mesh, self.survey)
         for tx in self.survey.txList:
             # Set the initial conditions
             F[tx,:,0] = tx.getInitialFields(self.mesh)
-        F = self.forward(m, self.getRHS, self.calcFields, F=F)
+        F = self.forward(m, self.getRHS, F=F)
         if self.verbose: print '%s\nDone calculating fields(m)\n%s'%('*'*50,'*'*50)
         return F
 
-    def forward(self, m, RHS, CalcFields, F=None):
+    def forward(self, m, RHS, F=None):
         self.curModel = m
         F = F or FieldsTDEM(self.mesh, self.survey)
 
@@ -50,11 +50,11 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
             if self.verbose: print '    Done...'
             if sol.ndim == 1:
                 sol.shape = (sol.size,1)
-            F[:,:,tInd+1] = CalcFields(sol, tInd)
+            F[:,self.solType,tInd+1] = sol
         Ainv.clean()
         return F
 
-    def adjoint(self, m, RHS, CalcFields, F=None):
+    def adjoint(self, m, RHS, F=None):
         self.curModel = m
         F = F or FieldsTDEM(self.mesh, self.survey)
 
@@ -75,7 +75,7 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
             if self.verbose: print '    Done...'
             if sol.ndim == 1:
                 sol.shape = (sol.size,1)
-            F[:,:,tInd+1] = CalcFields(sol, tInd)
+            F[:,self.solType,tInd+1] = sol
         Ainv.clean()
         return F
 

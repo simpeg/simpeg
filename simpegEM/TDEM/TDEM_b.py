@@ -14,9 +14,30 @@ class FieldsTDEM_e_from_b(FieldsTDEM):
         self.edgeCurlT = self.survey.prob.mesh.edgeCurl.T
         self.MfMui     = self.survey.prob.MfMui
 
-    def e_from_b(self, b, ind):
+    def e_from_b(self, b, txInd, timeInd):
         # TODO: implement non-zero js
         return self.MeSigmaI*(self.edgeCurlT*(self.MfMui*b))
+
+class FieldsTDEM_e_from_b_Ah(FieldsTDEM):
+    """Fancy Field Storage for a TDEM survey.
+
+        This is used when solving Ahat and AhatT
+    """
+    knownFields = {'b': 'F'}
+    aliasFields = {'e': ['b','E','e_from_b']}
+    p = None
+
+    def startup(self):
+        self.MeSigmaI  = self.survey.prob.MeSigmaI
+        self.edgeCurlT = self.survey.prob.mesh.edgeCurl.T
+        self.MfMui     = self.survey.prob.MfMui
+
+    def e_from_b(self, y_b, txInd, tInd):
+        # TODO: implement non-zero js
+        y_e = self.MeSigmaI*(self.edgeCurlT*(self.MfMui*y_b))
+        if 'e' in self.p:
+            y_e = y_e - self.MeSigmaI*self.p[txInd,'e',tInd]
+        return y_e
 
 class ProblemTDEM_b(BaseTDEMProblem):
     """
@@ -36,7 +57,7 @@ class ProblemTDEM_b(BaseTDEMProblem):
     solType = 'b' #: Type of the solution, in this case the 'b' field
 
     surveyPair = SurveyTDEM
-    _FieldsTDEM_pair = FieldsTDEM_e_from_b  #: used for the forward calculation only
+    _FieldsForward_pair = FieldsTDEM_e_from_b     #: used for the forward calculation only
 
     ####################################################
     # Internal Methods
@@ -56,17 +77,6 @@ class ProblemTDEM_b(BaseTDEMProblem):
         B_n = np.c_[[F[tx,'b',tInd] for tx in self.survey.txList]].T
         RHS = (1.0/dt)*self.MfMui*B_n
         return RHS
-
-    def calcFields(self, sol, tInd):
-
-        if self.solType == 'b':
-            b = sol
-            # e = self.MeSigmaI*(self.mesh.edgeCurl.T*(self.MfMui*b))
-        else:
-            raise NotImplementedError('solType "%s" is not implemented in CalcFields.' % self.solType)
-
-        return {'b':b}
-
 
     ####################################################
     # Derivatives
@@ -173,16 +183,9 @@ class ProblemTDEM_b(BaseTDEMProblem):
             dt = self.timeSteps[tInd]
             return rhs + 1.0/dt*self.MfMui*y[:,'b',tInd]
 
-        def AhCalcFields(sol, tInd):
-            y_b = sol
-            if self.survey.nTx == 1:
-                y_b = mkvc(y_b)
-            y_e = self.MeSigmaI*(self.mesh.edgeCurl.T*(self.MfMui*y_b))
-            if 'e' in p:
-                y_e = y_e - self.MeSigmaI*p[:,'e',tInd+1]
-            return {'b':y_b, 'e':y_e}
+        F = FieldsTDEM_e_from_b_Ah(self.mesh, self.survey, p=p)
 
-        return self.forward(m, AhRHS, AhCalcFields)
+        return self.forward(m, AhRHS, F)
 
     def solveAht(self, m, p):
         """
@@ -246,16 +249,9 @@ class ProblemTDEM_b(BaseTDEMProblem):
             dt = self.timeSteps[tInd+1]
             return rhs + 1.0/dt*self.MfMui*y[:,'b',tInd+2]
 
-        def AhtCalcFields(sol, tInd):
-            y_b = sol
-            if self.survey.nTx == 1:
-                y_b = mkvc(y_b)
-            y_e = self.MeSigmaI*(self.mesh.edgeCurl.T*(self.MfMui*y_b))
-            if 'e' in p:
-                y_e += - self.MeSigmaI*p[:,'e',tInd+1]
-            return {'b':y_b, 'e':y_e}
+        F = FieldsTDEM_e_from_b_Ah(self.mesh, self.survey, p=p)
 
-        return self.adjoint(m, AhtRHS, AhtCalcFields)
+        return self.adjoint(m, AhtRHS, F)
 
     ####################################################
     # Functions for tests

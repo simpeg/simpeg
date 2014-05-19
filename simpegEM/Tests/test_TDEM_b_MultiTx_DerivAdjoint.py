@@ -33,6 +33,12 @@ class TDEM_bDerivTests(unittest.TestCase):
         self.prb.timeSteps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
         # self.prb.timeSteps = [(1e-05, 100)]
 
+        try:
+            from pymatsolver import MumpsSolver
+            self.prb.Solver = MumpsSolver
+        except ImportError, e:
+            self.prb.Solver  = SolverLU
+
         self.sigma = np.ones(mesh.nCz)*1e-8
         self.sigma[mesh.vectorCCz<0] = 1e-1
         self.sigma = np.log(self.sigma[active])
