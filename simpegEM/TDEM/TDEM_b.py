@@ -1,5 +1,5 @@
 from BaseTDEM import BaseTDEMProblem, FieldsTDEM
-from SimPEG.Utils import mkvc
+from SimPEG.Utils import mkvc, sdiag
 import numpy as np
 from SurveyTDEM import SurveyTDEM
 
@@ -110,8 +110,9 @@ class ProblemTDEM_b(BaseTDEMProblem):
         for i in range(1,self.nT+1):
             # TODO: G[1] may be dependent on the model
             #       for a galvanic source (deriv of the dc problem)
-            for tx in self.survey.txList:
-                p[tx, 'e', i] = -u[tx,'e',i]*c # i.e.: - diag(e) * MsigDeriv * v
+            #
+            # Do multiplication for all tx in self.survey.txList
+            p[:, 'e', i] = - sdiag(c) * u[:,'e',i] # i.e.: - sdiag(MsigDeriv * v) * e
         return p
 
     def Gtvec(self, m, vec, u=None):
