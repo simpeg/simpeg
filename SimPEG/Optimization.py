@@ -687,7 +687,7 @@ class BFGS(Minimize, Remember):
     def bfgsrec(self,k,n,nn,S,Y,d):
         """BFGS recursion"""
         if k < 0:
-            d = self.bfgsH0 * (d)
+            d = self.bfgsH0 * d
         else:
             khat    = 0 if nn is 0 else np.mod(n-nn+k,nn)
             gamma   = np.vdot(S[:,khat],d)/np.vdot(Y[:,khat],S[:,khat])

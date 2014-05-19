@@ -18,9 +18,22 @@ class BaseInvProblem(object):
     reg     = None   #: Regularization
     opt     = None   #: Optimization program
 
-    u_current = None #: The most current evaluated field
-    m_current = None #: The most current model
+    deleteTheseOnModelUpdate = [] # List of strings, e.g. ['_MeSigma', '_MeSigmaI']
 
+    @property
+    def curModel(self):
+        """
+            Sets the current model, and removes dependent properties
+        """
+        return getattr(self, '_curModel', None)
+    @curModel.setter
+    def curModel(self, value):
+        if value is self.curModel:
+            return # it is the same!
+        self._curModel = value
+        for prop in self.deleteTheseOnModelUpdate:
+            if hasattr(self, prop):
+                delattr(self, prop)
 
     def __init__(self, dmisfit, reg, opt, **kwargs):
         Utils.setKwargs(self, **kwargs)
@@ -48,23 +61,21 @@ class BaseInvProblem(object):
         self.phi_d = np.nan
         self.phi_m = np.nan
 
-        self.m_current = m0
+        self.curModel = m0
 
         print 'SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv. \n    ***Done using direct methods***'
-        self.opt.bfgsH0 = Solver(self.reg.eval2Deriv(self.m_current))
+        self.opt.bfgsH0 = Solver(self.reg.eval2Deriv(self.curModel))
 
     @Utils.timeIt
     def evalFunction(self, m, return_g=True, return_H=True):
         """evalFunction(m, return_g=True, return_H=True)
         """
 
-        self.u_current = None
-        self.m_current = m
-        forward = self.prob
+        #TODO: check for warmstart
+        self.curModel = m
         gc.collect()
 
         u = self.prob.fields(m)
-        self.u_current = u
 
         phi_d = self.dmisfit.eval(m, u=u)
         phi_m = self.reg.eval(m)

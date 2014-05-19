@@ -59,7 +59,7 @@ class BaseInversion(object):
         """
         self.invProb.startup(m0)
         self.directiveList.call('initialize')
-        self.m = self.opt.minimize(self.invProb.evalFunction, m0)
+        self.m = self.opt.minimize(self.invProb.evalFunction, self.invProb.curModel)
         self.directiveList.call('finish')
 
         return self.m
