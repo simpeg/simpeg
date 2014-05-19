@@ -1,4 +1,5 @@
 import Utils, Survey, Models, numpy as np, scipy.sparse as sp
+Solver = Utils.SolverUtils.Solver
 import Maps, Mesh
 
 
@@ -285,6 +286,9 @@ class BaseProblem(object):
 
     surveyPair = Survey.BaseSurvey   #: A SimPEG.Survey Class
     mapPair    = Maps.IdentityMap    #: A SimPEG.Map Class
+
+    Solver = Solver   #: A SimPEG Solver class.
+    solverOpts = {}   #: Sovler options as a kwarg dict
 
     mapping = None    #: A SimPEG.Map instance.
     mesh    = None    #: A SimPEG.Mesh instance.
