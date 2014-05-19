@@ -8,6 +8,37 @@ class SimPEGMetaClass(type):
     def __new__(cls, name, bases, attrs):
         return super(SimPEGMetaClass, cls).__new__(cls, name, bases, attrs)
 
+def memProfileWrapper(towrap, *funNames):
+    """
+        Create a wrapper for the functions you want to use, wrapping up the
+        class, and putting profile wrappers on the functions in funNames.
+
+        :param class towrap: Class to wrap
+        :param str funNames: And amount of function names to wrap
+        :rtype: class
+        :return: memory profiled wrapped class
+
+        For example::
+
+            foo_mem = memProfile(foo,'my_func')
+            fooi = foo_mem()
+            for i in range(5):
+                fooi.my_func()
+
+        Then run it from the command line::
+
+            python -m memory_profiler exampleMemWrapper.py
+    """
+    from memory_profiler import profile
+    attrs = {}
+    for f in funNames:
+        if hasattr(towrap,f):
+            attrs[f] = profile(getattr(towrap,f))
+        else:
+            print '%s not found in %s Class' % (f, towrap.__name__)
+
+    return type(towrap.__name__ + 'MemProfileWrap', (towrap,), attrs)
+
 
 def hook(obj, method, name=None, overwrite=False, silent=False):
     """
