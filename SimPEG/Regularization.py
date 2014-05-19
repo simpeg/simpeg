@@ -12,8 +12,6 @@ class BaseRegularization(object):
 
     __metaclass__ = Utils.SimPEGMetaClass
 
-
-
     counter = None
 
     mapPair = Maps.IdentityMap    #: A SimPEG.Map Class
@@ -60,12 +58,12 @@ class BaseRegularization(object):
 
 
     @Utils.timeIt
-    def modelObj(self, m):
+    def eval(self, m):
         r = self.W * ( self.mapping * (m - self.mref) )
         return 0.5*r.dot(r)
 
     @Utils.timeIt
-    def modelObjDeriv(self, m):
+    def evalDeriv(self, m):
         """
 
         The regularization is:
@@ -86,7 +84,7 @@ class BaseRegularization(object):
         return mD.T * ( self.W.T * r )
 
     @Utils.timeIt
-    def modelObj2Deriv(self, m, v=None):
+    def eval2Deriv(self, m, v=None):
         """
 
             :param numpy.array m: geophysical model

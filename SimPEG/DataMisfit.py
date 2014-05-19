@@ -22,8 +22,8 @@ class BaseDataMisfit(object):
         Utils.setKwargs(self,**kwargs)
 
     @Utils.timeIt
-    def dataObj(self, m, u=None):
-        """dataObj(m, u=None)
+    def eval(self, m, u=None):
+        """eval(m, u=None)
 
             :param Problem,Survey forward: forward simulation
             :param numpy.array m: geophysical model
@@ -35,8 +35,8 @@ class BaseDataMisfit(object):
         raise NotImplementedError('This method should be overwritten.')
 
     @Utils.timeIt
-    def dataObjDeriv(self, m, u=None):
-        """dataObjDeriv(m, u=None)
+    def evalDeriv(self, m, u=None):
+        """evalDeriv(m, u=None)
 
             :param Problem,Survey forward: forward simulation
             :param numpy.array m: geophysical model
@@ -49,8 +49,8 @@ class BaseDataMisfit(object):
 
 
     @Utils.timeIt
-    def dataObj2Deriv(self, m, v, u=None):
-        """dataObj2Deriv(m, v, u=None)
+    def eval2Deriv(self, m, v, u=None):
+        """eval2Deriv(m, v, u=None)
 
             :param Problem,Survey forward: forward simulation
             :param numpy.array m: geophysical model
@@ -116,24 +116,24 @@ class l2_DataMisfit(BaseDataMisfit):
         self._Wd = value
 
     @Utils.timeIt
-    def dataObj(self, m, u=None):
-        "dataObj2Deriv(m, u=None)"
+    def eval(self, m, u=None):
+        "eval(m, u=None)"
         prob   = self.prob
         survey = self.survey
         R = self.Wd * survey.residual(m, u=u)
         return 0.5*np.vdot(R, R)
 
     @Utils.timeIt
-    def dataObjDeriv(self, m, u=None):
-        "dataObj2Deriv(m, u=None)"
+    def evalDeriv(self, m, u=None):
+        "evalDeriv(m, u=None)"
         prob   = self.prob
         survey = self.survey
         if u is None: u = prob.fields(m)
         return prob.Jtvec(m, self.Wd * (self.Wd * survey.residual(m, u=u)), u=u)
 
     @Utils.timeIt
-    def dataObj2Deriv(self, m, v, u=None):
-        "dataObj2Deriv(m, v, u=None)"
+    def eval2Deriv(self, m, v, u=None):
+        "eval2Deriv(m, v, u=None)"
         prob   = self.prob
         if u is None: u = prob.fields(m)
         return prob.Jtvec_approx(m, self.Wd * (self.Wd * prob.Jvec_approx(m, v, u=u)), u=u)

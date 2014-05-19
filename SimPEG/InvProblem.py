@@ -50,8 +50,8 @@ class BaseInvProblem(object):
 
         self.m_current = m0
 
-        print 'SimPEG.InvProblem is setting bfgsH0 to the inverse of the modelObj2Deriv. \n    ***Done using direct methods***'
-        self.opt.bfgsH0 = Solver(self.reg.modelObj2Deriv(self.m_current))
+        print 'SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv. \n    ***Done using direct methods***'
+        self.opt.bfgsH0 = Solver(self.reg.eval2Deriv(self.m_current))
 
     @Utils.timeIt
     def evalFunction(self, m, return_g=True, return_H=True):
@@ -66,8 +66,8 @@ class BaseInvProblem(object):
         u = self.prob.fields(m)
         self.u_current = u
 
-        phi_d = self.dmisfit.dataObj(m, u=u)
-        phi_m = self.reg.modelObj(m)
+        phi_d = self.dmisfit.eval(m, u=u)
+        phi_m = self.reg.eval(m)
 
         self.dpred = self.survey.dpred(m, u=u)  # This is a cheap matrix vector calculation.
 
@@ -78,16 +78,16 @@ class BaseInvProblem(object):
 
         out = (f,)
         if return_g:
-            phi_dDeriv = self.dmisfit.dataObjDeriv(m, u=u)
-            phi_mDeriv = self.reg.modelObjDeriv(m)
+            phi_dDeriv = self.dmisfit.evalDeriv(m, u=u)
+            phi_mDeriv = self.reg.evalDeriv(m)
 
             g = phi_dDeriv + self.beta * phi_mDeriv
             out += (g,)
 
         if return_H:
             def H_fun(v):
-                phi_d2Deriv = self.dmisfit.dataObj2Deriv(m, v, u=u)
-                phi_m2Deriv = self.reg.modelObj2Deriv(m, v=v)
+                phi_d2Deriv = self.dmisfit.eval2Deriv(m, v, u=u)
+                phi_m2Deriv = self.reg.eval2Deriv(m, v=v)
 
                 return phi_d2Deriv + self.beta * phi_m2Deriv
 
