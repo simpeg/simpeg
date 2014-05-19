@@ -669,7 +669,6 @@ class BFGS(Minimize, Remember):
 
     @bfgsH0.setter
     def bfgsH0(self, value):
-        assert type(value) is Solver, 'bfgsH0 must be a SimPEG.Solver'
         self._bfgsH0 = value
 
     def _startup_BFGS(self,x0):
@@ -687,7 +686,7 @@ class BFGS(Minimize, Remember):
     def bfgsrec(self,k,n,nn,S,Y,d):
         """BFGS recursion"""
         if k < 0:
-            d = self.bfgsH0 * d
+            d = self.bfgsH0 * d   #Assume that bfgsH0 is a SimPEG.Solver
         else:
             khat    = 0 if nn is 0 else np.mod(n-nn+k,nn)
             gamma   = np.vdot(S[:,khat],d)/np.vdot(Y[:,khat],S[:,khat])
