@@ -374,3 +374,57 @@ class ComplexMap(IdentityMap):
 
     inverse = deriv
 
+
+class CircleMap(IdentityMap):
+    """CircleMap
+
+        Parameterize the model space using a circle in a wholespace.
+
+        ..math::
+
+            \sigma(m) = \sigma_1 + (\sigma_2 - \sigma_1)\left(\\arctan\left(100*\sqrt{(\\vec{x}-x_0)^2 + (\\vec{y}-y_0)}-r\\right) \pi^{-1} + 0.5\\right)
+
+        Define the model as:
+
+        ..math::
+
+            m = [\sigma_1, \sigma_2, x_0, y_0, r]
+
+    """
+    def __init__(self, mesh, logSigma=True):
+        assert mesh.dim == 2, "Working for a 2D mesh only right now. But it isn't that hard to change.. :)"
+        IdentityMap.__init__(self, mesh)
+        self.logSigma = logSigma
+
+    slope = 1e-1
+
+    @property
+    def nP(self):
+        return 5
+
+    def _transform(self, m):
+        a = self.slope
+        sig1,sig2,x,y,r = m[0],m[1],m[2],m[3],m[4]
+        if self.logSigma:
+            sig1, sig2 = np.exp(sig1), np.exp(sig2)
+        X = self.mesh.gridCC[:,0]
+        Y = self.mesh.gridCC[:,1]
+        return sig1 + (sig2 - sig1)*(np.arctan(a*(np.sqrt((X-x)**2 + (Y-y)**2) - r))/np.pi + 0.5)
+
+    def deriv(self, m):
+        a = self.slope
+        sig1,sig2,x,y,r = m[0],m[1],m[2],m[3],m[4]
+        if self.logSigma:
+            sig1, sig2 = np.exp(sig1), np.exp(sig2)
+        X = self.mesh.gridCC[:,0]
+        Y = self.mesh.gridCC[:,1]
+        if self.logSigma:
+            g1 = -(np.arctan(a*(-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi + 0.5)*sig1 + sig1
+            g2 = (np.arctan(a*(-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi + 0.5)*sig2
+        else:
+            g1 = -(np.arctan(a*(-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi + 0.5) + 1.0
+            g2 = (np.arctan(a*(-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi + 0.5)
+        g3 = a*(-X + x)*(-sig1 + sig2)/(np.pi*(a**2*(-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1)*np.sqrt((X - x)**2 + (Y - y)**2))
+        g4 = a*(-Y + y)*(-sig1 + sig2)/(np.pi*(a**2*(-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1)*np.sqrt((X - x)**2 + (Y - y)**2))
+        g5 = -a*(-sig1 + sig2)/(np.pi*(a**2*(-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1))
+        return np.c_[g1,g2,g3,g4,g5]
