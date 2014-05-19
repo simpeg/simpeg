@@ -93,13 +93,13 @@ class RichardsTests1D(unittest.TestCase):
     def test_Richards_getResidual_Newton(self):
         self.prob.doNewton = True
         m = self.Ks
-        passed = checkDerivative(lambda hn1: self.prob.getResidual(m, self.h0, hn1, self.prob.timeSteps[0]), self.h0, plotIt=False)
+        passed = checkDerivative(lambda hn1: self.prob.getResidual(m, self.h0, hn1, self.prob.timeSteps[0], self.prob.boundaryConditions), self.h0, plotIt=False)
         self.assertTrue(passed,True)
 
     def test_Richards_getResidual_Picard(self):
         self.prob.doNewton = False
         m = self.Ks
-        passed = checkDerivative(lambda hn1: self.prob.getResidual(m, self.h0, hn1, self.prob.timeSteps[0]), self.h0, plotIt=False, expectedOrder=1)
+        passed = checkDerivative(lambda hn1: self.prob.getResidual(m, self.h0, hn1, self.prob.timeSteps[0], self.prob.boundaryConditions), self.h0, plotIt=False, expectedOrder=1)
         self.assertTrue(passed,True)
 
     def test_Adjoint(self):
@@ -117,6 +117,15 @@ class RichardsTests1D(unittest.TestCase):
     def test_Sensitivity(self):
         mTrue = self.Ks*np.ones(self.M.nC)
         derChk = lambda m: [self.survey.dpred(m), lambda v: self.prob.Jvec(m, v)]
+        print 'Testing Richards Derivative'
+        passed = checkDerivative(derChk, mTrue, num=4, plotIt=False)
+        self.assertTrue(passed,True)
+
+
+    def test_Sensitivity_full(self):
+        mTrue = self.Ks*np.ones(self.M.nC)
+        J = self.prob.Jfull(mTrue)
+        derChk = lambda m: [self.survey.dpred(m), J]
         print 'Testing Richards Derivative'
         passed = checkDerivative(derChk, mTrue, num=4, plotIt=False)
         self.assertTrue(passed,True)

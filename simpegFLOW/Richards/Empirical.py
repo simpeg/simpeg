@@ -1,6 +1,69 @@
 from SimPEG import Mesh, Maps, Utils, np
 
 
+class NonLinearMap(object):
+    """
+    SimPEG NonLinearMap
+
+    """
+
+    __metaclass__ = Utils.SimPEGMetaClass
+
+    counter = None   #: A SimPEG.Utils.Counter object
+    mesh = None      #: A SimPEG Mesh
+
+    def __init__(self, mesh):
+        self.mesh = mesh
+
+    def _transform(self, u, m):
+        """
+            :param numpy.array u: fields
+            :param numpy.array m: model
+            :rtype: numpy.array
+            :return: transformed model
+
+            The *transform* changes the model into the physical property.
+
+        """
+        return m
+
+    def derivU(self, u, m):
+        """
+            :param numpy.array u: fields
+            :param numpy.array m: model
+            :rtype: scipy.csr_matrix
+            :return: derivative of transformed model
+
+            The *transform* changes the model into the physical property.
+            The *transformDerivU* provides the derivative of the *transform* with respect to the fields.
+        """
+        raise NotImplementedError('The transformDerivU is not implemented.')
+
+
+    def derivM(self, u, m):
+        """
+            :param numpy.array u: fields
+            :param numpy.array m: model
+            :rtype: scipy.csr_matrix
+            :return: derivative of transformed model
+
+            The *transform* changes the model into the physical property.
+            The *transformDerivU* provides the derivative of the *transform* with respect to the model.
+        """
+        raise NotImplementedError('The transformDerivM is not implemented.')
+
+    @property
+    def nP(self):
+        """Number of parameters in the model."""
+        return self.mesh.nC
+
+    def example(self):
+        raise NotImplementedError('The example is not implemented.')
+
+    def test(self, m=None):
+        raise NotImplementedError('The test is not implemented.')
+
+
 class RichardsMap(object):
     """docstring for RichardsMap"""
 
@@ -18,8 +81,8 @@ class RichardsMap(object):
 
     def __init__(self, mesh, thetaModel, kModel):
         self.mesh = mesh
-        assert isinstance(thetaModel, Maps.NonLinearMap)
-        assert isinstance(kModel, Maps.NonLinearMap)
+        assert isinstance(thetaModel, NonLinearMap)
+        assert isinstance(kModel, NonLinearMap)
 
         self._thetaModel = thetaModel
         self._kModel = kModel
@@ -94,7 +157,7 @@ class HaverkampParams(object):
                 'gamma':4.74}
 
 
-class _haverkamp_theta(Maps.NonLinearMap):
+class _haverkamp_theta(NonLinearMap):
 
     theta_s = 0.430
     theta_r = 0.078
@@ -102,7 +165,7 @@ class _haverkamp_theta(Maps.NonLinearMap):
     beta    = 3.960
 
     def __init__(self, mesh, **kwargs):
-        Maps.NonLinearMap.__init__(self, mesh)
+        NonLinearMap.__init__(self, mesh)
         Utils.setKwargs(self, **kwargs)
 
     def setModel(self, m):
@@ -131,14 +194,14 @@ class _haverkamp_theta(Maps.NonLinearMap):
         return g
 
 
-class _haverkamp_k(Maps.NonLinearMap):
+class _haverkamp_k(NonLinearMap):
 
     A       = 1.175e+06
     gamma   = 4.74
     Ks      = np.log(24.96)
 
     def __init__(self, mesh, **kwargs):
-        Maps.NonLinearMap.__init__(self, mesh)
+        NonLinearMap.__init__(self, mesh)
         Utils.setKwargs(self, **kwargs)
 
     def setModel(self, m):
@@ -193,7 +256,7 @@ class Haverkamp(RichardsMap):
 
 
 
-class _vangenuchten_theta(Maps.NonLinearMap):
+class _vangenuchten_theta(NonLinearMap):
 
     theta_s = 0.430
     theta_r = 0.078
@@ -201,7 +264,7 @@ class _vangenuchten_theta(Maps.NonLinearMap):
     n       = 1.560
 
     def __init__(self, mesh, **kwargs):
-        Maps.NonLinearMap.__init__(self, mesh)
+        NonLinearMap.__init__(self, mesh)
         Utils.setKwargs(self, **kwargs)
 
     def setModel(self, m):
@@ -229,7 +292,7 @@ class _vangenuchten_theta(Maps.NonLinearMap):
         return g
 
 
-class _vangenuchten_k(Maps.NonLinearMap):
+class _vangenuchten_k(NonLinearMap):
 
     I       = 0.500
     alpha   = 0.036
@@ -237,7 +300,7 @@ class _vangenuchten_k(Maps.NonLinearMap):
     Ks      = np.log(24.96)
 
     def __init__(self, mesh, **kwargs):
-        Maps.NonLinearMap.__init__(self, mesh)
+        NonLinearMap.__init__(self, mesh)
         Utils.setKwargs(self, **kwargs)
 
     def setModel(self, m):

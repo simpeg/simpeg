@@ -7,14 +7,16 @@ class RichardsRx(Survey.BaseTimeRx):
 
     knownRxTypes = ['saturation','pressureHead']
 
-    def projectFields(self, u, m, mapping, mesh, timeMesh):
+    def projectFields(self, U, m, mapping, mesh, timeMesh):
 
-        if self.rxType == 'saturation':
-            u = mapping.theta(u, m)
+        if self.rxType == 'pressureHead':
+            u = np.concatenate(U)
+        elif self.rxType == 'saturation':
+            u = np.concatenate([mapping.theta(ui, m) for ui in U])
 
         return self.getP(mesh, timeMesh) * u
 
-    def projectFieldsDeriv(self, u, m, mapping, mesh, timeMesh):
+    def projectFieldsDeriv(self, U, m, mapping, mesh, timeMesh):
 
         P = self.getP(mesh, timeMesh)
         if self.rxType == 'pressureHead':
@@ -23,7 +25,7 @@ class RichardsRx(Survey.BaseTimeRx):
             #TODO: if m is a parameter in the theta
             #      distribution, we may need to do
             #      some more chain rule here.
-            dT = mapping.thetaDerivU(u, m)
+            dT = sp.block_diag([mapping.thetaDerivU(ui, m) for ui in U])
             return P*dT
 
 
@@ -58,12 +60,9 @@ class RichardsSurvey(Survey.BaseSurvey):
 
     @Utils.requires('prob')
     def projectFields(self, U, m):
-
-        u = np.concatenate(U)
-
         Ds = range(len(self.rxList))
         for ii, rx in enumerate(self.rxList):
-            Ds[ii] = rx.projectFields(u, m,
+            Ds[ii] = rx.projectFields(U, m,
                                 self.prob.mapping,
                                 self.prob.mesh,
                                 self.prob.timeMesh)
@@ -73,12 +72,9 @@ class RichardsSurvey(Survey.BaseSurvey):
     @Utils.requires('prob')
     def projectFieldsDeriv(self, U, m):
         """The Derivative with respect to the fields."""
-
-        u = np.concatenate(U)
-
         Ds = range(len(self.rxList))
         for ii, rx in enumerate(self.rxList):
-            Ds[ii] = rx.projectFieldsDeriv(u, m,
+            Ds[ii] = rx.projectFieldsDeriv(U, m,
                                 self.prob.mapping,
                                 self.prob.mesh,
                                 self.prob.timeMesh)
@@ -99,6 +95,14 @@ class RichardsProblem(Problem.BaseTimeProblem):
 
     def __init__(self, mesh, mapping=None, **kwargs):
         Problem.BaseTimeProblem.__init__(self, mesh, mapping=mapping, **kwargs)
+
+    def getBoundaryConditions(self, ii):
+        if type(self.boundaryConditions) is np.ndarray:
+            return self.boundaryConditions
+
+        time = self.timeMesh.vectorCCx[ii]
+
+        return self.boundaryConditions(time)
 
     @property
     def method(self):
@@ -127,10 +131,11 @@ class RichardsProblem(Problem.BaseTimeProblem):
         u = range(self.nT+1)
         u[0] = self.initialConditions
         for ii, dt in enumerate(self.timeSteps):
-            u[ii+1] = self.rootFinder.root(lambda hn1m, return_g=True: self.getResidual(m, u[ii], hn1m, dt, return_g=return_g), u[ii])
+            bc = self.getBoundaryConditions(ii)
+            u[ii+1] = self.rootFinder.root(lambda hn1m, return_g=True: self.getResidual(m, u[ii], hn1m, dt, bc, return_g=return_g), u[ii])
         return u
 
-    def diagsJacobian(self, m, hn, hn1, dt):
+    def diagsJacobian(self, m, hn, hn1, dt, bc):
 
         DIV  = self.mesh.faceDiv
         GRAD = self.mesh.cellGrad
@@ -142,8 +147,6 @@ class RichardsProblem(Problem.BaseTimeProblem):
             Dz = sp.hstack((Utils.spzeros(self.mesh.nC,self.mesh.vnF[0]), self.mesh.faceDivy),format='csr')
         elif self.mesh.dim == 3:
             Dz = sp.hstack((Utils.spzeros(self.mesh.nC,self.mesh.vnF[0]+self.mesh.vnF[1]), self.mesh.faceDivz),format='csr')
-
-        bc   = self.boundaryConditions
 
         dT   = self.mapping.thetaDerivU(hn, m)
         dT1  = self.mapping.thetaDerivU(hn1, m)
@@ -181,7 +184,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
 
         return Asub, Adiag, B
 
-    def getResidual(self, m, hn, h, dt, return_g=True):
+    def getResidual(self, m, hn, h, dt, bc, return_g=True):
         """
             Where h is the proposed value for the next time iterate (h_{n+1})
         """
@@ -195,8 +198,6 @@ class RichardsProblem(Problem.BaseTimeProblem):
             Dz = sp.hstack((Utils.spzeros(self.mesh.nC,self.mesh.vnF[0]), self.mesh.faceDivy),format='csr')
         elif self.mesh.dim == 3:
             Dz = sp.hstack((Utils.spzeros(self.mesh.nC,self.mesh.vnF[0]+self.mesh.vnF[1]), self.mesh.faceDivz),format='csr')
-
-        bc = self.boundaryConditions
 
         T  = self.mapping.theta(h, m)
         dT = self.mapping.thetaDerivU(h, m)
@@ -228,7 +229,9 @@ class RichardsProblem(Problem.BaseTimeProblem):
         nn = len(u)-1
         Asubs, Adiags, Bs = range(nn), range(nn), range(nn)
         for ii in range(nn):
-            Asubs[ii], Adiags[ii], Bs[ii] = self.diagsJacobian(m, u[ii],u[ii+1])
+            dt = self.timeSteps[ii]
+            bc = self.getBoundaryConditions(ii)
+            Asubs[ii], Adiags[ii], Bs[ii] = self.diagsJacobian(m, u[ii], u[ii+1], dt, bc)
         Ad = sp.block_diag(Adiags)
         zRight = Utils.spzeros((len(Asubs)-1)*Asubs[0].shape[0],Adiags[0].shape[1])
         zTop = Utils.spzeros(Adiags[0].shape[0], len(Adiags)*Adiags[0].shape[1])
@@ -238,7 +241,10 @@ class RichardsProblem(Problem.BaseTimeProblem):
 
         Ainv = self.Solver(A, **self.solverOpts)
         P = self.survey.projectFieldsDeriv(u, m)
-        J = P * Ainv.solve(B)
+        AinvB = Ainv * B
+        z = np.zeros((self.mesh.nC, B.shape[1]))
+        zAinvB = np.vstack((z, AinvB))
+        J = P * zAinvB
         return J
 
     def Jvec(self, m, v, u=None):
@@ -248,14 +254,16 @@ class RichardsProblem(Problem.BaseTimeProblem):
         JvC = range(len(u)-1) # Cell to hold each row of the long vector.
 
         # This is done via forward substitution.
-        temp, Adiag, B = self.diagsJacobian(m, u[0], u[1], self.timeSteps[0])
+        bc = self.getBoundaryConditions(0)
+        temp, Adiag, B = self.diagsJacobian(m, u[0], u[1], self.timeSteps[0], bc)
         Adiaginv = self.Solver(Adiag, **self.solverOpts)
-        JvC[0] = Adiaginv.solve(B*v)
+        JvC[0] = Adiaginv * (B*v)
 
         for ii in range(1,len(u)-1):
-            Asub, Adiag, B = self.diagsJacobian(m, u[ii], u[ii+1], self.timeSteps[ii])
+            bc = self.getBoundaryConditions(ii)
+            Asub, Adiag, B = self.diagsJacobian(m, u[ii], u[ii+1], self.timeSteps[ii], bc)
             Adiaginv = self.Solver(Adiag, **self.solverOpts)
-            JvC[ii] = Adiaginv.solve(B*v - Asub*JvC[ii-1])
+            JvC[ii] = Adiaginv * (B*v - Asub*JvC[ii-1])
 
         P = self.survey.projectFieldsDeriv(u, m)
         return P * np.concatenate([np.zeros(self.mesh.nC)] + JvC)
@@ -271,11 +279,12 @@ class RichardsProblem(Problem.BaseTimeProblem):
         minus = 0
         BJtv = 0
         for ii in range(len(u)-1,0,-1):
-            Asub, Adiag, B = self.diagsJacobian(m, u[ii-1], u[ii], self.timeSteps[ii-1])
+            bc = self.getBoundaryConditions(ii-1)
+            Asub, Adiag, B = self.diagsJacobian(m, u[ii-1], u[ii], self.timeSteps[ii-1], bc)
             #select the correct part of v
             vpart = range((ii)*Adiag.shape[0], (ii+1)*Adiag.shape[0])
             AdiaginvT = self.Solver(Adiag.T, **self.solverOpts)
-            JTvC = AdiaginvT.solve(PTv[vpart] - minus)
+            JTvC = AdiaginvT * (PTv[vpart] - minus)
             minus = Asub.T*JTvC  # this is now the super diagonal.
             BJtv = BJtv + B.T*JTvC
 
