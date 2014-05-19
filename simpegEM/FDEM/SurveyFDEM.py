@@ -1,4 +1,4 @@
-from SimPEG import Survey, Utils, np, sp
+from SimPEG import Survey, Problem, Utils, np, sp
 
 class RxFDEM(Survey.BaseRx):
 
@@ -79,7 +79,7 @@ class TxFDEM(Survey.BaseTx):
 
 
 
-class FieldsFDEM(Survey.Fields):
+class FieldsFDEM(Problem.Fields):
     """Fancy Field Storage for a FDEM survey."""
     knownFields = {'b': 'F', 'e': 'E'}
     dtype = complex

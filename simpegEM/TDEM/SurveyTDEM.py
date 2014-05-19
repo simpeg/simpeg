@@ -1,6 +1,7 @@
 from SimPEG import Utils, Survey, np
 from SimPEG.Survey import BaseSurvey
 from simpegEM.Utils import Sources
+from BaseTDEM import FieldsTDEM
 
 
 class RxTDEM(Survey.BaseTimeRx):
@@ -63,27 +64,6 @@ class RxTDEM(Survey.BaseTimeRx):
         elif adjoint:
             return P.T * v[tx, self]
 
-
-class FieldsTDEM(Survey.TimeFields):
-    """Fancy Field Storage for a TDEM survey."""
-    knownFields = {'b': 'F', 'e': 'E'}
-
-    def tovec(self):
-        nTx, nF, nE = self.survey.nTx, self.mesh.nF, self.mesh.nE
-        u = np.empty(0 if nTx == 1 else (0, nTx))
-
-        for i in range(self.survey.prob.nT):
-            if 'b' in self:
-                b = self[:,'b',i+1]
-            else:
-                b = np.zeros(nF if nTx == 1 else (nF, nTx))
-
-            if 'e' in self:
-                e = self[:,'e',i+1]
-            else:
-                e = np.zeros(nE if nTx == 1 else (nE, nTx))
-            u = np.concatenate((u, b, e))
-        return Utils.mkvc(u)
 
 class TxTDEM(Survey.BaseTx):
     rxPair = RxTDEM
