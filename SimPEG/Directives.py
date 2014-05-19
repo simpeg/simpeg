@@ -123,7 +123,7 @@ class BetaEstimate_ByEig(InversionDirective):
         if self.debug: print 'Calculating the beta0 parameter.'
 
         m = self.invProb.curModel
-        u = self.prob.fields(m)
+        u = self.invProb.getFields(m, store=True, deleteWarmstart=False)
 
         x0 = np.random.rand(*m.shape)
         t = x0.dot(self.dmisfit.eval2Deriv(m,x0,u=u))

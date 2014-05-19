@@ -66,16 +66,48 @@ class BaseInvProblem(object):
         print 'SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv. \n    ***Done using direct methods***'
         self.opt.bfgsH0 = Solver(self.reg.eval2Deriv(self.curModel))
 
+
+    @property
+    def warmstart(self):
+        return getattr(self, '_warmstart', [])
+    @warmstart.setter
+    def warmstart(self, value):
+        assert type(value) is list, 'warmstart must be a list.'
+        for v in value:
+            assert type(v) is tuple, 'warmstart must be a list of tuples (m, u).'
+            assert len(v) == 2, 'warmstart must be a list of tuples (m, u). YOURS IS NOT LENGTH 2!'
+            assert isinstance(v[0], np.ndarray), 'first warmstart value must be a model.'
+        self._warmstart = value
+
+    def getFields(self, m, store=False, deleteWarmstart=True):
+        u = None
+
+        for mtest, u_ofmtest in self.warmstart:
+            if m is mtest:
+                u = u_ofmtest
+                if self.debug: print 'InvProb is Warm Starting!'
+                break
+
+        if u is None:
+            u = self.prob.fields(m)
+
+        if deleteWarmstart:
+            self.warmstart = []
+        if store:
+            self.warmstart += [(m,u)]
+
+        return u
+
     @Utils.timeIt
     def evalFunction(self, m, return_g=True, return_H=True):
         """evalFunction(m, return_g=True, return_H=True)
         """
 
-        #TODO: check for warmstart
         self.curModel = m
         gc.collect()
 
-        u = self.prob.fields(m)
+        # Store fields if doing a line-search
+        u = self.getFields(m, store=(return_g==False and return_H==False))
 
         phi_d = self.dmisfit.eval(m, u=u)
         phi_m = self.reg.eval(m)
