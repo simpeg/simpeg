@@ -357,10 +357,17 @@ class Fields(object):
         else:
             # Aliased fields
             alias, loc, func = self.aliasFields[name]
+
+            txII   = np.array(self.survey.txList)[ind]
+            if isinstance(txII, np.ndarray):
+                txII = txII.tolist()
+            if len(txII) == 1:
+                txII = txII[0]
+
             if type(func) is str:
                 assert hasattr(self, func), 'The alias field function is a string, but it does not exist in the Fields class.'
                 func = getattr(self, func)
-            out = func(self._fields[alias][:,ind], ind)
+            out = func(self._fields[alias][:,ind], txII)
 
         if out.shape[1] == 1:
             out = Utils.mkvc(out)
@@ -446,7 +453,12 @@ class TimeFields(Fields):
             pointerFields = pointerFields.reshape(pointerShape, order='F')
 
             timeII = np.arange(self.survey.prob.nT + 1)[timeInd]
-            txII   = list(np.array(self.survey.txList)[txInd])
+            txII   = np.array(self.survey.txList)[txInd]
+            if isinstance(txII, np.ndarray):
+                txII = txII.tolist()
+            if len(txII) == 1:
+                txII = txII[0]
+
             if timeII.size == 1:
                 pointerShapeDeflated = self._correctShape(alias, ind, deflate=True)
                 pointerFields = pointerFields.reshape(pointerShapeDeflated, order='F')

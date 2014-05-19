@@ -164,6 +164,26 @@ class FieldsTest_Alias(unittest.TestCase):
             F[self.Tx0, 'b'] = F[self.Tx0, 'b']
         self.assertRaises(KeyError, f) # can't set a alias attr.
 
+    def test_aliasFunction(self):
+        def alias(e, ind):
+            self.assertTrue(ind is self.Tx0)
+            return self.F.mesh.edgeCurl * e
+        F = Survey.Fields(self.F.mesh, self.F.survey, knownFields={'e':'E'}, aliasFields={'b':['e','F',alias]})
+        e = np.random.rand(F.mesh.nE,1)
+        F[self.Tx0, 'e'] = e
+        F[self.Tx0, 'b']
+
+
+        def alias(e, ind):
+            self.assertTrue(type(ind) is list)
+            self.assertTrue(ind[0] is self.Tx0)
+            self.assertTrue(ind[1] is self.Tx1)
+            return self.F.mesh.edgeCurl * e
+        F = Survey.Fields(self.F.mesh, self.F.survey, knownFields={'e':'E'}, aliasFields={'b':['e','F',alias]})
+        e = np.random.rand(F.mesh.nE,2)
+        F[[self.Tx0, self.Tx1], 'e'] = e
+        F[[self.Tx0, self.Tx1], 'b']
+
 
 class FieldsTest_Time(unittest.TestCase):
 
@@ -337,7 +357,42 @@ class FieldsTest_Time_Aliased(unittest.TestCase):
             F[self.Tx0, 'e'] = F[self.Tx0, 'e']
         self.assertRaises(KeyError, f) # can't set a alias attr.
 
+    def test_aliasFunction(self):
+        nT = self.F.survey.prob.nT + 1
+        count = [0]
+        def alias(e, txInd, timeInd):
+            count[0] += 1
+            self.assertTrue(txInd is self.Tx0)
+            return self.F.mesh.edgeCurl * e
+        F = Survey.TimeFields(self.F.mesh, self.F.survey, knownFields={'e':'E'}, aliasFields={'b':['e','F',alias]})
+        e = np.random.rand(F.mesh.nE,1,nT)
+        F[self.Tx0, 'e', :] = e
+        F[self.Tx0, 'b', :]
+        self.assertTrue(count[0] == nT) # ensure that this is called for every time separately.
+        e = np.random.rand(F.mesh.nE,1,1)
+        F[self.Tx0, 'e', 1] = e
+        count[0] = 0
+        F[self.Tx0, 'b', 1]
+        self.assertTrue(count[0] == 1) # ensure that this is called only once.
 
+
+        def alias(e, txInd, timeInd):
+            count[0] += 1
+            self.assertTrue(type(txInd) is list)
+            self.assertTrue(txInd[0] is self.Tx0)
+            self.assertTrue(txInd[1] is self.Tx1)
+            return self.F.mesh.edgeCurl * e
+        F = Survey.TimeFields(self.F.mesh, self.F.survey, knownFields={'e':'E'}, aliasFields={'b':['e','F',alias]})
+        e = np.random.rand(F.mesh.nE,2, nT)
+        F[[self.Tx0, self.Tx1], 'e', :] = e
+        count[0] = 0
+        F[[self.Tx0, self.Tx1], 'b', :]
+        self.assertTrue(count[0] == nT) # ensure that this is called for every time separately.
+        e = np.random.rand(F.mesh.nE,2, 1)
+        F[[self.Tx0, self.Tx1], 'e', 1] = e
+        count[0] = 0
+        F[[self.Tx0, self.Tx1], 'b', 1]
+        self.assertTrue(count[0] == 1) # ensure that this is called only once.
 
 
 if __name__ == '__main__':
