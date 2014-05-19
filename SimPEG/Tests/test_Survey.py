@@ -20,14 +20,14 @@ class DataAndFieldsTest(unittest.TestCase):
         txList = [Tx0,Tx1,Tx2,Tx3,Tx4]
         survey = Survey.BaseSurvey(txList=txList)
         self.D = Survey.Data(survey)
-        self.F = Survey.Fields(mesh, survey, knownFields={'phi':'CC','e':'E','b':'F'}, dtype={"phi":float,"e":complex,"b":complex})
+        self.F = Problem.Fields(mesh, survey, knownFields={'phi':'CC','e':'E','b':'F'}, dtype={"phi":float,"e":complex,"b":complex})
         self.Tx0 = Tx0
         self.Tx1 = Tx1
         self.mesh = mesh
         self.XYZ = XYZ
 
     def test_overlappingFields(self):
-        self.assertRaises(AssertionError, Survey.Fields, self.F.mesh, self.F.survey,
+        self.assertRaises(AssertionError, Problem.Fields, self.F.mesh, self.F.survey,
                             knownFields={'b':'F'},
                             aliasFields={'b':['b',(lambda F, b, ind: b)]})
 
@@ -133,7 +133,7 @@ class FieldsTest_Alias(unittest.TestCase):
         txList = [Tx0,Tx1,Tx2,Tx3,Tx4]
         survey = Survey.BaseSurvey(txList=txList)
         self.D = Survey.Data(survey)
-        self.F = Survey.Fields(mesh, survey, knownFields={'e':'E'}, aliasFields={'b':['e','F',(lambda e, ind: self.F.mesh.edgeCurl * e)]})
+        self.F = Problem.Fields(mesh, survey, knownFields={'e':'E'}, aliasFields={'b':['e','F',(lambda e, ind: self.F.mesh.edgeCurl * e)]})
         self.Tx0 = Tx0
         self.Tx1 = Tx1
         self.mesh = mesh
@@ -168,7 +168,7 @@ class FieldsTest_Alias(unittest.TestCase):
         def alias(e, ind):
             self.assertTrue(ind is self.Tx0)
             return self.F.mesh.edgeCurl * e
-        F = Survey.Fields(self.F.mesh, self.F.survey, knownFields={'e':'E'}, aliasFields={'b':['e','F',alias]})
+        F = Problem.Fields(self.F.mesh, self.F.survey, knownFields={'e':'E'}, aliasFields={'b':['e','F',alias]})
         e = np.random.rand(F.mesh.nE,1)
         F[self.Tx0, 'e'] = e
         F[self.Tx0, 'b']
@@ -179,7 +179,7 @@ class FieldsTest_Alias(unittest.TestCase):
             self.assertTrue(ind[0] is self.Tx0)
             self.assertTrue(ind[1] is self.Tx1)
             return self.F.mesh.edgeCurl * e
-        F = Survey.Fields(self.F.mesh, self.F.survey, knownFields={'e':'E'}, aliasFields={'b':['e','F',alias]})
+        F = Problem.Fields(self.F.mesh, self.F.survey, knownFields={'e':'E'}, aliasFields={'b':['e','F',alias]})
         e = np.random.rand(F.mesh.nE,2)
         F[[self.Tx0, self.Tx1], 'e'] = e
         F[[self.Tx0, self.Tx1], 'b']
@@ -205,7 +205,7 @@ class FieldsTest_Time(unittest.TestCase):
         survey = Survey.BaseSurvey(txList=txList)
         prob = Problem.BaseTimeProblem(mesh, timeSteps=[(10.,3), (20.,2)])
         survey.pair(prob)
-        self.F = Survey.TimeFields(mesh, survey, knownFields={'phi':'CC','e':'E','b':'F'})
+        self.F = Problem.TimeFields(mesh, survey, knownFields={'phi':'CC','e':'E','b':'F'})
         self.Tx0 = Tx0
         self.Tx1 = Tx1
         self.mesh = mesh
@@ -309,7 +309,7 @@ class FieldsTest_Time_Aliased(unittest.TestCase):
         survey.pair(prob)
         def alias(b, txInd, timeInd):
             return self.F.mesh.edgeCurl.T * b + timeInd
-        self.F = Survey.TimeFields(mesh, survey, knownFields={'b':'F'}, aliasFields={'e':['b','E',alias]})
+        self.F = Problem.TimeFields(mesh, survey, knownFields={'b':'F'}, aliasFields={'e':['b','E',alias]})
         self.Tx0 = Tx0
         self.Tx1 = Tx1
         self.mesh = mesh
@@ -364,7 +364,7 @@ class FieldsTest_Time_Aliased(unittest.TestCase):
             count[0] += 1
             self.assertTrue(txInd is self.Tx0)
             return self.F.mesh.edgeCurl * e
-        F = Survey.TimeFields(self.F.mesh, self.F.survey, knownFields={'e':'E'}, aliasFields={'b':['e','F',alias]})
+        F = Problem.TimeFields(self.F.mesh, self.F.survey, knownFields={'e':'E'}, aliasFields={'b':['e','F',alias]})
         e = np.random.rand(F.mesh.nE,1,nT)
         F[self.Tx0, 'e', :] = e
         F[self.Tx0, 'b', :]
@@ -382,7 +382,7 @@ class FieldsTest_Time_Aliased(unittest.TestCase):
             self.assertTrue(txInd[0] is self.Tx0)
             self.assertTrue(txInd[1] is self.Tx1)
             return self.F.mesh.edgeCurl * e
-        F = Survey.TimeFields(self.F.mesh, self.F.survey, knownFields={'e':'E'}, aliasFields={'b':['e','F',alias]})
+        F = Problem.TimeFields(self.F.mesh, self.F.survey, knownFields={'e':'E'}, aliasFields={'b':['e','F',alias]})
         e = np.random.rand(F.mesh.nE,2, nT)
         F[[self.Tx0, self.Tx1], 'e', :] = e
         count[0] = 0
