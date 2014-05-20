@@ -254,7 +254,7 @@ class TensorView(object):
             assert isinstance(ax, matplotlib.axes.Axes), "ax must be an matplotlib.axes.Axes"
             fig = ax.figure
 
-        tM._plotImage2D(v2d, vType=('CCv' if view == 'vec' else 'CC'), grid=grid, view=view,
+        out = tM._plotImage2D(v2d, vType=('CCv' if view == 'vec' else 'CC'), grid=grid, view=view,
                         ax=ax, clim=clim, showIt=showIt,
                         pcolorOpts=pcolorOpts, streamOpts=streamOpts,
                         gridOpts=gridOpts)
@@ -263,6 +263,7 @@ class TensorView(object):
         ax.set_xlabel('y' if normal == 'X' else 'x')
         ax.set_ylabel('y' if normal == 'Z' else 'z')
         ax.set_title('Slice %d' % ind)
+        return out
 
 
     def _plotImage2D(self, v, vType='CC', grid=False, view='real',
