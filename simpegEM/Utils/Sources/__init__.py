@@ -1,1 +1,0 @@
-from magneticDipole import MagneticDipoleVectorPotential

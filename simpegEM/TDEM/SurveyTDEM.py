@@ -67,7 +67,8 @@ class RxTDEM(Survey.BaseTimeRx):
 
 class TxTDEM(Survey.BaseTx):
     rxPair = RxTDEM
-    knownTxTypes = ['VMD_MVP']
+    radius = None
+    knownTxTypes = ['VMD_MVP', 'CircularLoop_MVP']
 
     def getInitialFields(self, mesh):
         F0 = getattr(self, '_getInitialFields_' + self.txType)(mesh)
@@ -90,6 +91,23 @@ class TxTDEM(Survey.BaseTx):
 
         return {"b": mesh.edgeCurl*MVP}
 
+    def _getInitialFields_CircularLoop_MVP(self, mesh):
+        """Circular Loop, magnetic vector potential"""
+        if mesh._meshType is 'CYL':
+            if mesh.isSymmetric:
+                MVP = Sources.MagneticLoopVectorPotential(self.loc, mesh.gridEy, 'y', self.radius)
+            else:
+                raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
+        elif mesh._meshType is 'TENSOR':
+            MVPx = Sources.MagneticLoopVectorPotential(self.loc, mesh.gridEx, 'x', self.radius)
+            MVPy = Sources.MagneticLoopVectorPotential(self.loc, mesh.gridEy, 'y', self.radius)
+            MVPz = Sources.MagneticLoopVectorPotential(self.loc, mesh.gridEz, 'z', self.radius)
+            MVP = np.concatenate((MVPx, MVPy, MVPz))
+        else:
+            raise Exception('Unknown mesh for CircularLoop')
+
+        return {"b": mesh.edgeCurl*MVP}        
+
     def getJs(self, mesh, time):
         return None
 
@@ -97,7 +115,6 @@ class SurveyTDEM(Survey.BaseSurvey):
     """
         docstring for SurveyTDEM
     """
-
     txPair = TxTDEM
 
     def __init__(self, txList, **kwargs):
