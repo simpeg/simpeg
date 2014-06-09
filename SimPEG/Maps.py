@@ -335,6 +335,10 @@ class ActiveCells(IdentityMap):
 
     def _transform(self, m):
         return self.P*m + self.valInactive
+
+    def inverse(self, D):
+        return self.P.T*D
+
     def deriv(self, m):
         return self.P
 
