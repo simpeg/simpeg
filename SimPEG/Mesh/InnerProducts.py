@@ -54,10 +54,9 @@ class InnerProducts(object):
             prop = invPropertyTensor(self, prop)
 
         tensorType = TensorType(self, prop)
+
         Mu = makePropertyTensor(self, prop)
-
         Ps = self._getInnerProductProjectionMatrices(projType, tensorType)
-
         A = np.sum([P.T * Mu * P for P in Ps])
 
         if invMat and tensorType < 3:
