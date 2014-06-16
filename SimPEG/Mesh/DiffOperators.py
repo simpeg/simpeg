@@ -620,7 +620,7 @@ class DiffOperators(object):
             # The number of cell centers in each direction
             n = self.vnC
             if(self.dim == 1):
-                raise Exception('Edge Averaging does not make sense in 1D: Use Identity?')
+                self._aveE2CC = speye(n[0])
             elif(self.dim == 2):
                 self._aveE2CC = 0.5*sp.hstack((sp.kron(av(n[1]), speye(n[0])),
                                                sp.kron(speye(n[1]), av(n[0]))), format="csr")

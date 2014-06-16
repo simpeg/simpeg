@@ -102,8 +102,8 @@ class InnerProducts(object):
 
         elif projType == 'E':
             locs = {
-                    '000': [  None  , ('eX0', 'eY0'), ('eX0', 'eY0', 'eZ0')],
-                    '100': [  None  , ('eX0', 'eY1'), ('eX0', 'eY1', 'eZ1')],
+                    '000': [('eX0',), ('eX0', 'eY0'), ('eX0', 'eY0', 'eZ0')],
+                    '100': [('eX0',), ('eX0', 'eY1'), ('eX0', 'eY1', 'eZ1')],
                     '010': [  None  , ('eX1', 'eY0'), ('eX1', 'eY0', 'eZ2')],
                     '110': [  None  , ('eX1', 'eY1'), ('eX1', 'eY1', 'eZ3')],
                     '001': [  None  ,      None     , ('eX2', 'eY2', 'eZ0')],
@@ -112,7 +112,7 @@ class InnerProducts(object):
                     '111': [  None  ,      None     , ('eX3', 'eY3', 'eZ3')]
                    }
             if d == 1:
-                raise NotImplementedError('getEdgeInnerProduct not implemented for 1D')
+                proj = _getEdgePx(self)
             elif d == 2:
                 proj = _getEdgePxx(self)
             elif d == 3:
@@ -295,6 +295,10 @@ def _getFacePxxx(M):
 
     return _getFacePxxx_Rectangular(M)
 
+def _getEdgePx(M):
+    assert M._meshType == 'TENSOR', 'Only supported for a tensor mesh'
+    return _getEdgePx_Rectangular(M)
+
 def _getEdgePxx(M):
     if M._meshType == 'TREE':
         return M._getEdgePxx
@@ -448,6 +452,13 @@ def _getFacePxxx_Rectangular(M):
 
         return PXXX
     return Pxxx
+
+def _getEdgePx_Rectangular(M):
+    """Returns a function for creating projection matrices"""
+    def Px(xEdge):
+        assert xEdge == 'eX0', 'xEdge = %s, not eX0' % xEdge
+        return sp.identity(M.nC)
+    return Px
 
 def _getEdgePxx_Rectangular(M):
     i, j = np.int64(range(M.nCx)), np.int64(range(M.nCy))
