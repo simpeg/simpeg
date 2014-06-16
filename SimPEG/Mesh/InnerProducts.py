@@ -19,7 +19,7 @@ class InnerProducts(object):
             :rtype: scipy.csr_matrix
             :return: M, the inner product matrix (nF, nF)
         """
-        return self._getInnerProduct('F', prop=prop, invProp=invProp, invMat=invMat, doFast=True)
+        return self._getInnerProduct('F', prop=prop, invProp=invProp, invMat=invMat, doFast=doFast)
 
     def getEdgeInnerProduct(self, prop=None, invProp=False, invMat=False, doFast=True):
         """
@@ -30,7 +30,7 @@ class InnerProducts(object):
             :rtype: scipy.csr_matrix
             :return: M, the inner product matrix (nE, nE)
         """
-        return self._getInnerProduct('E', prop=prop, invProp=invProp, invMat=invMat)
+        return self._getInnerProduct('E', prop=prop, invProp=invProp, invMat=invMat, doFast=doFast)
 
     def _getInnerProduct(self, projType, prop=None, invProp=False, invMat=False, doFast=True):
         """
@@ -43,11 +43,10 @@ class InnerProducts(object):
             :return: M, the inner product matrix (nE, nE)
         """
         assert projType in ['F', 'E'], "projType must be 'F' for faces or 'E' for edges"
-        fast = None
 
+        fast = None
         if hasattr(self, '_fastInnerProduct') and doFast:
             fast = self._fastInnerProduct(projType, prop=prop, invProp=invProp, invMat=invMat)
-
         if fast is not None:
             return fast
 
