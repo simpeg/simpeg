@@ -10,112 +10,43 @@ class InnerProducts(object):
     def __init__(self):
         raise Exception('InnerProducts is a base class providing inner product matrices for meshes and cannot run on its own. Inherit to your favorite Mesh class.')
 
-    def getFaceInnerProduct(self, prop=None, returnP=False,
-                            invProp=False, invMat=False, doFast=True):
+    def getFaceInnerProduct(self, prop=None, invProp=False, invMat=False, doFast=True):
         """
             :param numpy.array prop: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
-            :param bool returnP: returns the projection matrices
             :param bool invProp: inverts the material property
             :param bool invMat: inverts the matrix
             :param bool doFast: do a faster implementation if available.
             :rtype: scipy.csr_matrix
             :return: M, the inner product matrix (nF, nF)
         """
-        fast = None
+        return self._getInnerProduct('F', prop=prop, invProp=invProp, invMat=invMat, doFast=True)
 
-        if returnP is False and hasattr(self, '_fastFaceInnerProduct') and doFast:
-            fast = self._fastFaceInnerProduct(prop=prop, invProp=invProp, invMat=invMat)
-
-        if fast is not None:
-            return fast
-
-        if invProp:
-            prop = invPropertyTensor(self, prop)
-
-        Mu = makePropertyTensor(self, prop)
-
-        d = self.dim
-        # We will multiply by sqrt on each side to keep symmetry
-        V = sp.kron(sp.identity(d), sdiag(np.sqrt((2**(-d))*self.vol)))
-
-        if d == 1:
-            fP = _getFacePx(self)
-            P000 = V*fP('fXm')
-            P100 = V*fP('fXp')
-        elif d == 2:
-            fP = _getFacePxx(self)
-            P000 = V*fP('fXm', 'fYm')
-            P100 = V*fP('fXp', 'fYm')
-            P010 = V*fP('fXm', 'fYp')
-            P110 = V*fP('fXp', 'fYp')
-        elif d == 3:
-            fP = _getFacePxxx(self)
-            P000 = V*fP('fXm', 'fYm', 'fZm')
-            P100 = V*fP('fXp', 'fYm', 'fZm')
-            P010 = V*fP('fXm', 'fYp', 'fZm')
-            P110 = V*fP('fXp', 'fYp', 'fZm')
-            P001 = V*fP('fXm', 'fYm', 'fZp')
-            P101 = V*fP('fXp', 'fYm', 'fZp')
-            P011 = V*fP('fXm', 'fYp', 'fZp')
-            P111 = V*fP('fXp', 'fYp', 'fZp')
-
-        A = P000.T*Mu*P000 + P100.T*Mu*P100
-        P = [P000, P100]
-
-        if d > 1:
-            A = A + P010.T*Mu*P010 + P110.T*Mu*P110
-            P += [P010, P110]
-        if d > 2:
-            A = A + P001.T*Mu*P001 + P101.T*Mu*P101 + P011.T*Mu*P011 + P111.T*Mu*P111
-            P += [P001, P101, P011,  P111]
-
-        if invMat and tensorType(self, prop) < 3:
-            A = sdInv(A)
-        elif invMat and tensorType(self, prop) == 3:
-            raise Exception('Solver needed to invert A.')
-
-        if returnP:
-            return A, P
-        else:
-            return A
-
-    def getFaceInnerProductDeriv(self, prop=None, v=None, P=None, doFast=True):
+    def getEdgeInnerProduct(self, prop=None, invProp=False, invMat=False, doFast=True):
         """
             :param numpy.array prop: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
-            :param numpy.array v: vector to multiply (required in the general implementation)
-            :param list P: list of projection matrices
-            :param bool doFast: do a faster implementation if available.
-            :rtype: scipy.csr_matrix
-            :return: dMdm, the derivative of the inner product matrix (nF, nC*nA)
-        """
-        fast = None
-
-        if hasattr(self, '_fastFaceInnerProductDeriv') and doFast:
-            fast = self._fastFaceInnerProductDeriv(prop=prop, v=v)
-
-        if fast is not None:
-            return fast
-
-        if P is None:
-            M, P = self.getFaceInnerProduct(prop=prop, returnP=True)
-
-        return self._getInnerProductDeriv(prop, v, P, self.nF)
-
-    def getEdgeInnerProduct(self, prop=None, returnP=False,
-                            invProp=False, invMat=False, doFast=True):
-        """
-            :param numpy.array prop: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
-            :param bool returnP: returns the projection matrices
             :param bool invProp: inverts the material property
             :param bool invMat: inverts the matrix
             :param bool doFast: do a faster implementation if available.
             :rtype: scipy.csr_matrix
             :return: M, the inner product matrix (nE, nE)
         """
+        return self._getInnerProduct('E', prop=prop, invProp=invProp, invMat=invMat)
+
+    def _getInnerProduct(self, projType, prop=None, invProp=False, invMat=False, doFast=True):
+        """
+            :param str projType: 'F' for faces 'E' for edges
+            :param numpy.array prop: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :param bool invProp: inverts the material property
+            :param bool invMat: inverts the matrix
+            :param bool doFast: do a faster implementation if available.
+            :rtype: scipy.csr_matrix
+            :return: M, the inner product matrix (nE, nE)
+        """
+        assert projType in ['F', 'E'], "projType must be 'F' for faces or 'E' for edges"
         fast = None
 
-        if returnP is False and hasattr(self, '_fastEdgeInnerProduct') and doFast:
-            fast = self._fastEdgeInnerProduct(prop=prop, invProp=invProp, invMat=invMat)
+        if hasattr(self, '_fastInnerProduct') and doFast:
+            fast = self._fastInnerProduct(projType, prop=prop, invProp=invProp, invMat=invMat)
 
         if fast is not None:
             return fast
@@ -123,72 +54,122 @@ class InnerProducts(object):
         if invProp:
             prop = invPropertyTensor(self, prop)
 
+        tensorType = TensorType(self, prop)
         Mu = makePropertyTensor(self, prop)
+
+        Ps = self._getInnerProductProjectionMatrices(projType, tensorType)
+
+        A = np.sum([P.T * Mu * P for P in Ps])
+
+        if invMat and tensorType < 3:
+            A = sdInv(A)
+        elif invMat and tensorType == 3:
+            raise Exception('Solver needed to invert A.')
+
+        return A
+
+    def _getInnerProductProjectionMatrices(self, projType, tensorType):
+        """
+            :param str projType: 'F' for faces 'E' for edges
+            :param TensorType tensorType: type of the tensor: TensorType(mesh, sigma)
+        """
+        assert isinstance(tensorType, TensorType), 'tensorType must be an instance of TensorType.'
+        assert projType in ['F', 'E'], "projType must be 'F' for faces or 'E' for edges"
 
         d = self.dim
         # We will multiply by sqrt on each side to keep symmetry
         V = sp.kron(sp.identity(d), sdiag(np.sqrt((2**(-d))*self.vol)))
 
-        if d == 1:
-            raise NotImplementedError('getEdgeInnerProduct not implemented for 1D')
-        elif d == 2:
-            eP = _getEdgePxx(self)
-            P000 = V*eP('eX0', 'eY0')
-            P100 = V*eP('eX0', 'eY1')
-            P010 = V*eP('eX1', 'eY0')
-            P110 = V*eP('eX1', 'eY1')
-        elif d == 3:
-            eP = _getEdgePxxx(self)
-            P000 = V*eP('eX0', 'eY0', 'eZ0')
-            P100 = V*eP('eX0', 'eY1', 'eZ1')
-            P010 = V*eP('eX1', 'eY0', 'eZ2')
-            P110 = V*eP('eX1', 'eY1', 'eZ3')
-            P001 = V*eP('eX2', 'eY2', 'eZ0')
-            P101 = V*eP('eX2', 'eY3', 'eZ1')
-            P011 = V*eP('eX3', 'eY2', 'eZ2')
-            P111 = V*eP('eX3', 'eY3', 'eZ3')
+        nodes = ['000', '100', '010', '110', '001', '101', '011',  '111'][:2**d]
 
-        Mu = makePropertyTensor(self, prop)
-        A = P000.T*Mu*P000 + P100.T*Mu*P100 + P010.T*Mu*P010 + P110.T*Mu*P110
-        P = [P000, P100, P010, P110]
-        if d == 3:
-            A = A + P001.T*Mu*P001 + P101.T*Mu*P101 + P011.T*Mu*P011 + P111.T*Mu*P111
-            P += [P001, P101, P011,  P111]
+        if projType == 'F':
+            locs = {
+                    '000': [('fXm',), ('fXm', 'fYm'), ('fXm', 'fYm', 'fZm')],
+                    '100': [('fXp',), ('fXp', 'fYm'), ('fXp', 'fYm', 'fZm')],
+                    '010': [  None  , ('fXm', 'fYp'), ('fXm', 'fYp', 'fZm')],
+                    '110': [  None  , ('fXp', 'fYp'), ('fXp', 'fYp', 'fZm')],
+                    '001': [  None  ,      None     , ('fXm', 'fYm', 'fZp')],
+                    '101': [  None  ,      None     , ('fXp', 'fYm', 'fZp')],
+                    '011': [  None  ,      None     , ('fXm', 'fYp', 'fZp')],
+                    '111': [  None  ,      None     , ('fXp', 'fYp', 'fZp')]
+                   }
+            if d == 1:
+                proj = _getFacePx(self)
+            elif d == 2:
+                proj = _getFacePxx(self)
+            elif d == 3:
+                proj = _getFacePxxx(self)
 
-        if invMat and tensorType(self, prop) < 3:
-            A = sdInv(A)
-        elif invMat and tensorType(self, prop) == 3:
-            raise Exception('Solver needed to invert A.')
+        elif projType == 'E':
+            locs = {
+                    '000': [  None  , ('eX0', 'eY0'), ('eX0', 'eY0', 'eZ0')],
+                    '100': [  None  , ('eX0', 'eY1'), ('eX0', 'eY1', 'eZ1')],
+                    '010': [  None  , ('eX1', 'eY0'), ('eX1', 'eY0', 'eZ2')],
+                    '110': [  None  , ('eX1', 'eY1'), ('eX1', 'eY1', 'eZ3')],
+                    '001': [  None  ,      None     , ('eX2', 'eY2', 'eZ0')],
+                    '101': [  None  ,      None     , ('eX2', 'eY3', 'eZ1')],
+                    '011': [  None  ,      None     , ('eX3', 'eY2', 'eZ2')],
+                    '111': [  None  ,      None     , ('eX3', 'eY3', 'eZ3')]
+                   }
+            if d == 1:
+                raise NotImplementedError('getEdgeInnerProduct not implemented for 1D')
+            elif d == 2:
+                proj = _getEdgePxx(self)
+            elif d == 3:
+                proj = _getEdgePxxx(self)
 
-        if returnP:
-            return A, P
-        else:
-            return A
+        return [V*proj(*locs[node][d-1]) for node in nodes]
 
-    def getEdgeInnerProductDeriv(self, prop=None, v=None, P=None, doFast=True):
+
+    def getFaceInnerProductDeriv(self, tensorType, P=None, doFast=True):
         """
-            :param numpy.array prop: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
-            :param numpy.array v: vector to multiply (required in the general implementation)
+            :param TensorType tensorType: type of the tensor: TensorType(mesh, sigma)
             :param list P: list of projection matrices
             :param bool doFast: do a faster implementation if available.
             :rtype: scipy.csr_matrix
-            :return: dMdm, the derivative of the inner product matrix (nE, nC*nA)
+            :return: dMdm, the derivative of the inner product matrix (nF, nC*nA)
         """
-
+        assert isinstance(tensorType, TensorType), 'tensorType must be an instance of TensorType.'
         fast = None
 
-        if hasattr(self, '_fastEdgeInnerProductDeriv') and doFast:
-            fast = self._fastEdgeInnerProductDeriv(prop=prop, v=v)
+        if hasattr(self, '_fastInnerProductDeriv') and doFast:
+            fast = self._fastInnerProductDeriv('F', tensorType)
 
         if fast is not None:
             return fast
 
         if P is None:
-            M, P = self.getEdgeInnerProduct(prop=prop, returnP=True)
+            P = self._getInnerProductProjectionMatrices('F', tensorType=tensorType)
 
-        return self._getInnerProductDeriv(prop, v, P, self.nE)
+        def innerProductDeriv(v):
+            return self._getInnerProductDeriv(tensorType, P, self.nF, v)
+        return DerivOperator(innerProductDeriv)
 
-    def _getInnerProductDeriv(self, prop, v, P, n):
+
+    def getEdgeInnerProductDeriv(self, tensorType, P=None, doFast=True):
+        """
+            :param TensorType tensorType: type of the tensor: TensorType(mesh, sigma)
+            :param list P: list of projection matrices
+            :param bool doFast: do a faster implementation if available.
+            :rtype: scipy.csr_matrix
+            :return: dMdm, the derivative of the inner product matrix (nE, nC*nA)
+        """
+        assert isinstance(tensorType, TensorType), 'tensorType must be an instance of TensorType.'
+        fast = None
+
+        if hasattr(self, '_fastInnerProductDeriv') and doFast:
+            fast = self._fastInnerProductDeriv('E', tensorType)
+
+        if fast is not None:
+            return fast
+
+        if P is None:
+            P = self._getInnerProductProjectionMatrices('E', tensorType=tensorType)
+        def innerProductDeriv(v):
+            return self._getInnerProductDeriv(tensorType, P, self.nE, v)
+        return DerivOperator(innerProductDeriv)
+
+    def _getInnerProductDeriv(self, tensorType, P, n, v):
         """
             :param numpy.array prop: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
             :param numpy.array v: vector to multiply (required in the general implementation)
@@ -197,7 +178,7 @@ class InnerProducts(object):
             :rtype: scipy.csr_matrix
             :return: dMdm, the derivative of the inner product matrix (n, nC*nA)
         """
-        if prop is None:
+        if tensorType == -1:
             return None
 
         if v is None:
@@ -206,24 +187,24 @@ class InnerProducts(object):
         d = self.dim
         Z = spzeros(self.nC, self.nC)
 
-        if isScalar(prop):
+        if tensorType == 0:
             dMdm = spzeros(n, 1)
             for i, p in enumerate(P):
                 dMdm = dMdm + sp.csr_matrix((p.T * (p * v), (range(n), np.zeros(n))), shape=(n,1))
         if d == 1:
-            if prop.size == self.nC:
+            if tensorType == 1:
                 dMdm = spzeros(n, self.nC)
                 for i, p in enumerate(P):
                     dMdm = dMdm + p.T * sdiag( p * v )
         elif d == 2:
-            if prop.size == self.nC:
+            if tensorType == 1:
                 dMdm = spzeros(n, self.nC)
                 for i, p in enumerate(P):
                     Y = p * v
                     y1 = Y[:self.nC]
                     y2 = Y[self.nC:]
                     dMdm = dMdm + p.T * sp.vstack((sdiag( y1 ), sdiag( y2 )))
-            elif prop.size == self.nC*2:
+            elif tensorType == 2:
                 dMdms = [spzeros(n, self.nC) for _ in range(2)]
                 for i, p in enumerate(P):
                     Y = p * v
@@ -232,7 +213,7 @@ class InnerProducts(object):
                     dMdms[0] = dMdms[0] + p.T * sp.vstack(( sdiag( y1 ), Z))
                     dMdms[1] = dMdms[1] + p.T * sp.vstack(( Z, sdiag( y2 )))
                 dMdm = sp.hstack(dMdms)
-            elif prop.size == self.nC*3:
+            elif tensorType == 3:
                 dMdms = [spzeros(n, self.nC) for _ in range(3)]
                 for i, p in enumerate(P):
                     Y = p * v
@@ -243,7 +224,7 @@ class InnerProducts(object):
                     dMdms[2] = dMdms[2] + p.T * sp.vstack(( sdiag( y2 ), sdiag( y1 )))
                 dMdm = sp.hstack(dMdms)
         elif d == 3:
-            if prop.size == self.nC:
+            if tensorType == 1:
                 dMdm = spzeros(n, self.nC)
                 for i, p in enumerate(P):
                     Y = p * v
@@ -251,7 +232,7 @@ class InnerProducts(object):
                     y2 = Y[self.nC:self.nC*2]
                     y3 = Y[self.nC*2:]
                     dMdm = dMdm + p.T * sp.vstack((sdiag( y1 ), sdiag( y2 ), sdiag( y3 )))
-            elif prop.size == self.nC*3:
+            elif tensorType == 2:
                 dMdms = [spzeros(n, self.nC) for _ in range(3)]
                 for i, p in enumerate(P):
                     Y = p * v
@@ -262,7 +243,7 @@ class InnerProducts(object):
                     dMdms[1] = dMdms[1] + p.T * sp.vstack(( Z, sdiag( y2 ), Z))
                     dMdms[2] = dMdms[2] + p.T * sp.vstack(( Z, Z, sdiag( y3 )))
                 dMdm = sp.hstack(dMdms)
-            elif prop.size == self.nC*6:
+            elif tensorType == 3:
                 dMdms = [spzeros(n, self.nC) for _ in range(6)]
                 for i, p in enumerate(P):
                     Y = p * v

@@ -251,25 +251,34 @@ def inv2X2BlockDiagonal(a11, a12, a21, a22, returnMatrix=True):
     return sp.vstack((sp.hstack((sdiag(b11), sdiag(b12))),
                       sp.hstack((sdiag(b21), sdiag(b22)))))
 
-def tensorType(M, tensor):
-    if tensor is None:  # default is ones
-        return -1
-
-    if isScalar(tensor):
-        return 0
-
-    if tensor.size == M.nC:
-        return 1
-
-    if ((M.dim == 2 and tensor.size == M.nC*2) or
-        (M.dim == 3 and tensor.size == M.nC*3)):
-        return 2
-
-    if ((M.dim == 2 and tensor.size == M.nC*3) or
-        (M.dim == 3 and tensor.size == M.nC*6)):
-        return 3
-
-    raise Exception('Unexpected shape of tensor')
+class TensorType(object):
+    def __init__(self, M, tensor):
+        if tensor is None:  # default is ones
+            self._tt  = -1
+            self._tts = 'none'
+        elif isScalar(tensor):
+            self._tt  = 0
+            self._tts = 'scalar'
+        elif tensor.size == M.nC:
+            self._tt  = 1
+            self._tts = 'isotropic'
+        elif ((M.dim == 2 and tensor.size == M.nC*2) or
+            (M.dim == 3 and tensor.size == M.nC*3)):
+            self._tt  = 2
+            self._tts = 'anisotropic'
+        elif ((M.dim == 2 and tensor.size == M.nC*3) or
+            (M.dim == 3 and tensor.size == M.nC*6)):
+            self._tt  = 3
+            self._tts = 'tensor'
+        else:
+            raise Exception('Unexpected shape of tensor')
+    def __str__(self):
+        return 'TensorType[%i]: %s' % (self._tt, self._tts)
+    def __eq__(self, v): return self._tt == v
+    def __le__(self, v): return self._tt <= v
+    def __ge__(self, v): return self._tt >= v
+    def __lt__(self, v): return self._tt < v
+    def __gt__(self, v): return self._tt > v
 
 def makePropertyTensor(M, tensor):
     if tensor is None:  # default is ones
@@ -278,7 +287,7 @@ def makePropertyTensor(M, tensor):
     if isScalar(tensor):
         tensor = tensor * np.ones(M.nC)
 
-    propType = tensorType(M, tensor)
+    propType = TensorType(M, tensor)
     if propType == 1: # Isotropic!
         Sigma = sp.kron(sp.identity(M.dim), sdiag(mkvc(tensor)))
     elif propType == 2: # Diagonal tensor
@@ -302,7 +311,7 @@ def makePropertyTensor(M, tensor):
 
 def invPropertyTensor(M, tensor, returnMatrix=False):
 
-    propType = tensorType(M, tensor)
+    propType = TensorType(M, tensor)
 
     if isScalar(tensor):
         T = 1./tensor
@@ -341,3 +350,9 @@ class SimPEGLinearOperator(LinearOperator):
     def T(self):
         return self.__class__((self.shape[1],self.shape[0]),self.rmatvec,rmatvec=self.matvec,matmat=self.matmat)
 
+
+class DerivOperator(object):
+    def __init__(self, f):
+        self.f   = f
+    def __mul__(self, v):
+        return self.f(v)
