@@ -319,21 +319,21 @@ class BaseTensorMesh(BaseRectangularMesh):
             #     return self.dim * Av.T * V * ones
             def scalarInnerProductDeriv(v):
                 return Utils.sdiag(v) * self.dim * Av.T * V * ones
-            return Utils.DerivOperator(scalarInnerProductDeriv)
+            return scalarInnerProductDeriv
 
         if tensorType == 1:
             Av = getattr(self, 'ave'+projType+'2CC')
             V = Utils.sdiag(self.vol)
             def isotropicInnerProductDeriv(v):
                 return Utils.sdiag(v) * self.dim * Av.T * V
-            return Utils.DerivOperator(isotropicInnerProductDeriv)
+            return isotropicInnerProductDeriv
 
         if tensorType == 2: # anisotropic
             Av = getattr(self, 'ave'+projType+'2CCV')
             V = sp.kron(sp.identity(self.dim), Utils.sdiag(self.vol))
             def anisotropicInnerProductDeriv(v):
                 return Utils.sdiag(v) * Av.T * V
-            return Utils.DerivOperator(anisotropicInnerProductDeriv)
+            return anisotropicInnerProductDeriv
 
 
 

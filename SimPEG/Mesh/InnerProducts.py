@@ -114,8 +114,14 @@ class InnerProducts(object):
             :param TensorType tensorType: type of the tensor: TensorType(mesh, sigma)
             :param list P: list of projection matrices
             :param bool doFast: do a faster implementation if available.
+            :rtype: function
+            :return: dMdmu(u), the derivative of the inner product matrix (u)
+
+            Given u, dMdmu returns (nF, nC*nA)
+
+            :param np.ndarray u: vector that multiplies dMdmu
             :rtype: scipy.csr_matrix
-            :return: dMdm, the derivative of the inner product matrix (nF, nC*nA)
+            :return: dMdmu, the derivative of the inner product matrix for a certain u
         """
         assert isinstance(tensorType, TensorType), 'tensorType must be an instance of TensorType.'
         fast = None
@@ -131,7 +137,7 @@ class InnerProducts(object):
 
         def innerProductDeriv(v):
             return self._getInnerProductDeriv(tensorType, P, self.nF, v)
-        return DerivOperator(innerProductDeriv)
+        return innerProductDeriv
 
 
     def getEdgeInnerProductDeriv(self, tensorType, P=None, doFast=True):
@@ -155,7 +161,7 @@ class InnerProducts(object):
             P = self._getInnerProductProjectionMatrices('E', tensorType=tensorType)
         def innerProductDeriv(v):
             return self._getInnerProductDeriv(tensorType, P, self.nE, v)
-        return DerivOperator(innerProductDeriv)
+        return innerProductDeriv
 
     def _getInnerProductDeriv(self, tensorType, P, n, v):
         """

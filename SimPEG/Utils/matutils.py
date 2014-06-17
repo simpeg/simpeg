@@ -349,10 +349,3 @@ class SimPEGLinearOperator(LinearOperator):
     @property
     def T(self):
         return self.__class__((self.shape[1],self.shape[0]),self.rmatvec,rmatvec=self.matvec,matmat=self.matmat)
-
-
-class DerivOperator(object):
-    def __init__(self, f):
-        self.f   = f
-    def __mul__(self, v):
-        return self.f(v)
