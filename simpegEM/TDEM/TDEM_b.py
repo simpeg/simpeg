@@ -1,5 +1,5 @@
 from BaseTDEM import BaseTDEMProblem, FieldsTDEM
-from SimPEG.Utils import mkvc, sdiag
+from SimPEG.Utils import mkvc, sdiag, TensorType
 import numpy as np
 from SurveyTDEM import SurveyTDEM
 
@@ -106,7 +106,8 @@ class ProblemTDEM_b(BaseTDEMProblem):
 
         # fake initial 'e' fields
         p[:, 'e', 0] = 0.0
-        c = self.mesh.getEdgeInnerProductDeriv(self.curModel.transform)*(self.curModel.transformDeriv*vec)
+        tt = TensorType(self.mesh, self.curModel.transform)
+        c = self.mesh.getEdgeInnerProductDeriv(tt)()*(self.curModel.transformDeriv*vec)
         for i in range(1,self.nT+1):
             # TODO: G[1] may be dependent on the model
             #       for a galvanic source (deriv of the dc problem)
@@ -137,7 +138,8 @@ class ProblemTDEM_b(BaseTDEMProblem):
             if nTx > 1:
                 vu = vu.sum(axis=1)
             tmp += vu
-        p = -mkvc(self.curModel.transformDeriv.T*(self.mesh.getEdgeInnerProductDeriv(self.curModel.transform).T*tmp))
+        tt = TensorType(self.mesh, self.curModel.transform)
+        p = -mkvc(self.curModel.transformDeriv.T*(self.mesh.getEdgeInnerProductDeriv(tt)().T*tmp))
         return p
 
     def solveAh(self, m, p):
