@@ -107,13 +107,15 @@ class ProblemTDEM_b(BaseTDEMProblem):
         # fake initial 'e' fields
         p[:, 'e', 0] = 0.0
         tt = TensorType(self.mesh, self.curModel.transform)
-        c = self.mesh.getEdgeInnerProductDeriv(tt)()*(self.curModel.transformDeriv*vec)
+        dMdsig = self.mesh.getEdgeInnerProductDeriv(tt)
+        dsigdm_x_v = self.curModel.transformDeriv*vec
         for i in range(1,self.nT+1):
             # TODO: G[1] may be dependent on the model
             #       for a galvanic source (deriv of the dc problem)
             #
             # Do multiplication for all tx in self.survey.txList
-            p[:, 'e', i] = - sdiag(c) * u[:,'e',i] # i.e.: - sdiag(MsigDeriv * v) * e
+            for tx in self.survey.txList:
+                p[tx, 'e', i] = - dMdsig(u[tx,'e',i]) *  dsigdm_x_v
         return p
 
     def Gtvec(self, m, vec, u=None):
@@ -129,17 +131,20 @@ class ProblemTDEM_b(BaseTDEMProblem):
         if u is None:
             u = self.fields(m)
         self.curModel = m
+        tt = TensorType(self.mesh, self.curModel.transform)
+        dMdsig = self.mesh.getEdgeInnerProductDeriv(tt)
+        dsigdm = self.curModel.transformDeriv
 
-        nTx, nE = self.survey.nTx, self.mesh.nE
-        tmp = np.zeros(nE)
+        nTx = self.survey.nTx
+        VUs = None
         # Here we can do internal multiplications of Gt*v and then multiply by MsigDeriv.T in one go.
         for i in range(1,self.nT+1):
-            vu = vec[:,'e',i]*u[:,'e',i]
-            if nTx > 1:
-                vu = vu.sum(axis=1)
-            tmp += vu
-        tt = TensorType(self.mesh, self.curModel.transform)
-        p = -mkvc(self.curModel.transformDeriv.T*(self.mesh.getEdgeInnerProductDeriv(tt)().T*tmp))
+            vu = None
+            for tx in self.survey.txList:
+                vutx = dMdsig(u[tx,'e',i]).T * vec[tx,'e',i]
+                vu = vutx if vu is None else vu + vutx
+            VUs = vu if VUs is None else VUs + vu
+        p = -dsigdm.T*VUs
         return p
 
     def solveAh(self, m, p):
