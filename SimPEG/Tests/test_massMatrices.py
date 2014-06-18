@@ -260,56 +260,60 @@ class TestInnerProducts1D(OrderTest):
 if __name__ == '__main__':
     unittest.main()
 
-if __name__ == '__main__' and False:
-    import sympy
+###################################################
+#### Uncomment to Reevaluate the InnerProducts ####
+###################################################
 
-    x,y,z = sympy.symbols(['x','y','z'])
-    ex = x**2+y*z
-    ey = (z**2)*x+y*z
-    ez = y**2+x*z
-    e = sympy.Matrix([ex,ey,ez])
+# if __name__ == '__main__':
+    # import sympy
 
-    sigma1 = x*y+1
-    sigma2 = x*z+2
-    sigma3 = 3+z*y
-    sigma4 = 0.1*x*y*z
-    sigma5 = 0.2*x*y
-    sigma6 = 0.1*z
+    # x,y,z = sympy.symbols(['x','y','z'])
+    # ex = x**2+y*z
+    # ey = (z**2)*x+y*z
+    # ez = y**2+x*z
+    # e = sympy.Matrix([ex,ey,ez])
 
-    S1 = sympy.Matrix([[sigma1,0,0],[0,sigma1,0],[0,0,sigma1]])
-    S2 = sympy.Matrix([[sigma1,0,0],[0,sigma2,0],[0,0,sigma3]])
-    S3 = sympy.Matrix([[sigma1,sigma4,sigma5],[sigma4,sigma2,sigma6],[sigma5,sigma6,sigma3]])
+    # sigma1 = x*y+1
+    # sigma2 = x*z+2
+    # sigma3 = 3+z*y
+    # sigma4 = 0.1*x*y*z
+    # sigma5 = 0.2*x*y
+    # sigma6 = 0.1*z
 
-    print '3D'
-    print sympy.integrate(sympy.integrate(sympy.integrate(e.T*S1*e, (x,0,1)), (y,0,1)), (z,0,1))
-    print sympy.integrate(sympy.integrate(sympy.integrate(e.T*S2*e, (x,0,1)), (y,0,1)), (z,0,1))
-    print sympy.integrate(sympy.integrate(sympy.integrate(e.T*S3*e, (x,0,1)), (y,0,1)), (z,0,1))
+    # S1 = sympy.Matrix([[sigma1,0,0],[0,sigma1,0],[0,0,sigma1]])
+    # S2 = sympy.Matrix([[sigma1,0,0],[0,sigma2,0],[0,0,sigma3]])
+    # S3 = sympy.Matrix([[sigma1,sigma4,sigma5],[sigma4,sigma2,sigma6],[sigma5,sigma6,sigma3]])
+
+    # print '3D'
+    # print sympy.integrate(sympy.integrate(sympy.integrate(e.T*S1*e, (x,0,1)), (y,0,1)), (z,0,1))
+    # print sympy.integrate(sympy.integrate(sympy.integrate(e.T*S2*e, (x,0,1)), (y,0,1)), (z,0,1))
+    # print sympy.integrate(sympy.integrate(sympy.integrate(e.T*S3*e, (x,0,1)), (y,0,1)), (z,0,1))
 
 
-    z = 5
-    ex = x**2+y*z
-    ey = (z**2)*x+y*z
-    e = sympy.Matrix([ex,ey])
+    # z = 5
+    # ex = x**2+y*z
+    # ey = (z**2)*x+y*z
+    # e = sympy.Matrix([ex,ey])
 
-    sigma1 = x*y+1
-    sigma2 = x*z+2
-    sigma3 = 3+z*y
+    # sigma1 = x*y+1
+    # sigma2 = x*z+2
+    # sigma3 = 3+z*y
 
-    S1 = sympy.Matrix([[sigma1,0],[0,sigma1]])
-    S2 = sympy.Matrix([[sigma1,0],[0,sigma2]])
-    S3 = sympy.Matrix([[sigma1,sigma3],[sigma3,sigma2]])
+    # S1 = sympy.Matrix([[sigma1,0],[0,sigma1]])
+    # S2 = sympy.Matrix([[sigma1,0],[0,sigma2]])
+    # S3 = sympy.Matrix([[sigma1,sigma3],[sigma3,sigma2]])
 
-    print '2D'
-    print sympy.integrate(sympy.integrate(e.T*S1*e, (x,0,1)), (y,0,1))
-    print sympy.integrate(sympy.integrate(e.T*S2*e, (x,0,1)), (y,0,1))
-    print sympy.integrate(sympy.integrate(e.T*S3*e, (x,0,1)), (y,0,1))
+    # print '2D'
+    # print sympy.integrate(sympy.integrate(e.T*S1*e, (x,0,1)), (y,0,1))
+    # print sympy.integrate(sympy.integrate(e.T*S2*e, (x,0,1)), (y,0,1))
+    # print sympy.integrate(sympy.integrate(e.T*S3*e, (x,0,1)), (y,0,1))
 
-    y = 12
-    z = 5
-    ex = x**2+y*z
-    e = ex
+    # y = 12
+    # z = 5
+    # ex = x**2+y*z
+    # e = ex
 
-    sigma1 = x*y+1
+    # sigma1 = x*y+1
 
-    print '1D'
-    print sympy.integrate(e*sigma1*e, (x,0,1))
+    # print '1D'
+    # print sympy.integrate(e*sigma1*e, (x,0,1))
