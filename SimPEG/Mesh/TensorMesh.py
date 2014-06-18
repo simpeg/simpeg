@@ -304,8 +304,8 @@ class BaseTensorMesh(BaseRectangularMesh):
         """
             :param str projType: 'E' or 'F'
             :param TensorType tensorType: type of the tensor
-            :rtype: scipy.csr_matrix
-            :return: M, the inner product matrix (nF, nF)
+            :rtype: function
+            :return: dMdmu, the derivative of the inner product matrix
         """
         assert projType in ['F', 'E'], "projType must be 'F' for faces or 'E' for edges"
         if tensorType == -1:
@@ -317,22 +317,28 @@ class BaseTensorMesh(BaseRectangularMesh):
             ones = sp.csr_matrix((np.ones(self.nC), (range(self.nC), np.zeros(self.nC))), shape=(self.nC,1))
             # if v is None:
             #     return self.dim * Av.T * V * ones
+            dim_x_AvT_x_V_x_ones = self.dim * Av.T * V * ones
             def scalarInnerProductDeriv(v):
-                return Utils.sdiag(v) * self.dim * Av.T * V * ones
+                return Utils.sdiag(v) * dim_x_AvT_x_V_x_ones
             return scalarInnerProductDeriv
 
         if tensorType == 1:
             Av = getattr(self, 'ave'+projType+'2CC')
             V = Utils.sdiag(self.vol)
-            def isotropicInnerProductDeriv(v):
-                return Utils.sdiag(v) * self.dim * Av.T * V
+            dim_x_AvT_x_V = self.dim * Av.T * V
+            def isotropicInnerProductDeriv(v=None):
+                if v is None:
+                    print 'Depreciation Warning: TensorMesh.isotropicInnerProductDeriv. You should be supplying a vector. Returning: d * Av.T * V'
+                    return dim_x_AvT_x_V
+                return Utils.sdiag(v) * dim_x_AvT_x_V
             return isotropicInnerProductDeriv
 
         if tensorType == 2: # anisotropic
             Av = getattr(self, 'ave'+projType+'2CCV')
             V = sp.kron(sp.identity(self.dim), Utils.sdiag(self.vol))
+            AvT_x_V = Av.T * V
             def anisotropicInnerProductDeriv(v):
-                return Utils.sdiag(v) * Av.T * V
+                return Utils.sdiag(v) * AvT_x_V
             return anisotropicInnerProductDeriv
 
 
