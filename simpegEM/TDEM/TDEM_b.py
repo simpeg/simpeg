@@ -1,5 +1,5 @@
 from BaseTDEM import BaseTDEMProblem, FieldsTDEM
-from SimPEG.Utils import mkvc, sdiag, TensorType
+from SimPEG.Utils import mkvc, sdiag
 import numpy as np
 from SurveyTDEM import SurveyTDEM
 
@@ -106,8 +106,7 @@ class ProblemTDEM_b(BaseTDEMProblem):
 
         # fake initial 'e' fields
         p[:, 'e', 0] = 0.0
-        tt = TensorType(self.mesh, self.curModel.transform)
-        dMdsig = self.mesh.getEdgeInnerProductDeriv(tt)
+        dMdsig = self.mesh.getEdgeInnerProductDeriv(self.tensorType)
         dsigdm_x_v = self.curModel.transformDeriv*vec
         for i in range(1,self.nT+1):
             # TODO: G[1] may be dependent on the model
@@ -131,8 +130,7 @@ class ProblemTDEM_b(BaseTDEMProblem):
         if u is None:
             u = self.fields(m)
         self.curModel = m
-        tt = TensorType(self.mesh, self.curModel.transform)
-        dMdsig = self.mesh.getEdgeInnerProductDeriv(tt)
+        dMdsig = self.mesh.getEdgeInnerProductDeriv(self.tensorType)
         dsigdm = self.curModel.transformDeriv
 
         nTx = self.survey.nTx
