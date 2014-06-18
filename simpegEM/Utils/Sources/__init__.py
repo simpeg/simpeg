@@ -1,1 +1,2 @@
 from magneticDipole import MagneticDipoleVectorPotential
+from CircularLoop import MagneticLoopVectorPotential
