@@ -94,7 +94,10 @@ def closestPoints(mesh, pts, gridLoc='CC'):
     nodeInds = np.empty(pts.shape[0], dtype=int)
 
     for i, pt in enumerate(pts):
-        nodeInds[i] = ((np.tile(pt, (grid.shape[0],1)) - grid)**2).sum(axis=1).argmin()
+        if mesh.dim == 1:
+            nodeInds[i] = ((pt - grid)**2).argmin()
+        else:
+            nodeInds[i] = ((np.tile(pt, (grid.shape[0],1)) - grid)**2).sum(axis=1).argmin()
 
     return nodeInds
 
@@ -107,7 +110,7 @@ def readUBCTensorMesh(fileName):
 
         Output:
         :param SimPEG TensorMesh object
-        :return 
+        :return
     """
 
     # Interal function to read cell size lines for the UBC mesh files.
@@ -119,8 +122,8 @@ def readUBCTensorMesh(fileName):
                 re = np.array(sp[0],dtype=int)*(' ' + sp[1])
                 line = line.replace(st,re.strip())
         return np.array(line.split(),dtype=float)
-    
-    # Read the file as line strings, remove lines with comment = ! 
+
+    # Read the file as line strings, remove lines with comment = !
     msh = np.genfromtxt(fileName,delimiter='\n',dtype=np.str,comments='!')
 
     # Fist line is the size of the model
@@ -134,7 +137,7 @@ def readUBCTensorMesh(fileName):
     h3 = h3temp[::-1] # Invert the indexing of the vector to start from the bottom.
     # Adjust the reference point to the bottom south west corner
     x0[2] = x0[2] - np.sum(h3)
-    # Make the mesh 
+    # Make the mesh
     from SimPEG import Mesh
     tensMsh = Mesh.TensorMesh([h1,h2,h3],x0)
     return tensMsh
