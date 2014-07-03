@@ -28,7 +28,7 @@ CLASSIFIERS = [
 
 import os, os.path
 
-with open("README.md") as f:
+with open("README.rst") as f:
     LONG_DESCRIPTION = ''.join(f.readlines())
 
 setup(
