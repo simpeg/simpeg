@@ -44,7 +44,11 @@ class TestInnerProducts(OrderTest):
                             cart(self.M.gridEy),
                             cart(self.M.gridEz)))
             E = self.M.projectEdgeVector(Ec)
-            A = self.M.getEdgeInnerProduct(sigma)
+
+            if self.invProp:
+                A = self.M.getEdgeInnerProduct(Utils.invPropertyTensor(self.M, sigma), invProp=True)
+            else:
+                A = self.M.getEdgeInnerProduct(sigma)
             numeric = E.T.dot(A.dot(E))
         elif self.location == 'faces':
             cart = lambda g: np.c_[call(ex, g), call(ey, g), call(ez, g)]
@@ -52,7 +56,11 @@ class TestInnerProducts(OrderTest):
                             cart(self.M.gridFy),
                             cart(self.M.gridFz)))
             F = self.M.projectFaceVector(Fc)
-            A = self.M.getFaceInnerProduct(sigma)
+
+            if self.invProp:
+                A = self.M.getFaceInnerProduct(Utils.invPropertyTensor(self.M, sigma), invProp=True)
+            else:
+                A = self.M.getFaceInnerProduct(sigma)
             numeric = F.T.dot(A.dot(F))
 
         err = np.abs(numeric - analytic)
@@ -62,36 +70,84 @@ class TestInnerProducts(OrderTest):
         self.name = "Edge Inner Product - Isotropic"
         self.location = 'edges'
         self.sigmaTest = 1
+        self.invProp = False
+        self.orderTest()
+
+    def test_order1_edges_invProp(self):
+        self.name = "Edge Inner Product - Isotropic - invProp"
+        self.location = 'edges'
+        self.sigmaTest = 1
+        self.invProp = True
         self.orderTest()
 
     def test_order3_edges(self):
         self.name = "Edge Inner Product - Anisotropic"
         self.location = 'edges'
         self.sigmaTest = 3
+        self.invProp = False
+        self.orderTest()
+
+    def test_order3_edges_invProp(self):
+        self.name = "Edge Inner Product - Anisotropic - invProp"
+        self.location = 'edges'
+        self.sigmaTest = 3
+        self.invProp = True
         self.orderTest()
 
     def test_order6_edges(self):
         self.name = "Edge Inner Product - Full Tensor"
         self.location = 'edges'
         self.sigmaTest = 6
+        self.invProp = False
+        self.orderTest()
+
+    def test_order6_edges_invProp(self):
+        self.name = "Edge Inner Product - Full Tensor - invProp"
+        self.location = 'edges'
+        self.sigmaTest = 6
+        self.invProp = True
         self.orderTest()
 
     def test_order1_faces(self):
         self.name = "Face Inner Product - Isotropic"
         self.location = 'faces'
         self.sigmaTest = 1
+        self.invProp = False
+        self.orderTest()
+
+    def test_order1_faces_invProp(self):
+        self.name = "Face Inner Product - Isotropic - invProp"
+        self.location = 'faces'
+        self.sigmaTest = 1
+        self.invProp = True
         self.orderTest()
 
     def test_order3_faces(self):
         self.name = "Face Inner Product - Anisotropic"
         self.location = 'faces'
         self.sigmaTest = 3
+        self.invProp = False
+        self.orderTest()
+
+    def test_order3_faces_invProp(self):
+        self.name = "Face Inner Product - Anisotropic - invProp"
+        self.location = 'faces'
+        self.sigmaTest = 3
+        self.invProp = True
         self.orderTest()
 
     def test_order6_faces(self):
         self.name = "Face Inner Product - Full Tensor"
         self.location = 'faces'
         self.sigmaTest = 6
+        self.invProp = False
+        self.orderTest()
+
+    def test_order6_faces_invProp(self):
+        self.name = "Face Inner Product - Full Tensor - invProp"
+        self.location = 'faces'
+        self.sigmaTest = 6
+        self.invProp = True
         self.orderTest()
 
 
@@ -155,60 +211,84 @@ class TestInnerProducts2D(OrderTest):
         self.name = "2D Edge Inner Product - Isotropic"
         self.location = 'edges'
         self.sigmaTest = 1
-        self.invProp = True
-        self.orderTest()
-        self.name += " - invProp"
         self.invProp = False
+        self.orderTest()
+
+    def test_order1_edges_invProp(self):
+        self.name = "2D Edge Inner Product - Isotropic - invProp"
+        self.location = 'edges'
+        self.sigmaTest = 1
+        self.invProp = True
         self.orderTest()
 
     def test_order3_edges(self):
         self.name = "2D Edge Inner Product - Anisotropic"
         self.location = 'edges'
         self.sigmaTest = 2
-        self.invProp = True
-        self.orderTest()
-        self.name += " - invProp"
         self.invProp = False
+        self.orderTest()
+
+    def test_order3_edges_invProp(self):
+        self.name = "2D Edge Inner Product - Anisotropic - invProp"
+        self.location = 'edges'
+        self.sigmaTest = 2
+        self.invProp = True
         self.orderTest()
 
     def test_order6_edges(self):
         self.name = "2D Edge Inner Product - Full Tensor"
         self.location = 'edges'
         self.sigmaTest = 3
-        self.invProp = True
-        self.orderTest()
-        self.name += " - invProp"
         self.invProp = False
+        self.orderTest()
+
+    def test_order6_edges_invProp(self):
+        self.name = "2D Edge Inner Product - Full Tensor - invProp"
+        self.location = 'edges'
+        self.sigmaTest = 3
+        self.invProp = True
         self.orderTest()
 
     def test_order1_faces(self):
         self.name = "2D Face Inner Product - Isotropic"
         self.location = 'faces'
         self.sigmaTest = 1
-        self.invProp = True
-        self.orderTest()
-        self.name += " - invProp"
         self.invProp = False
+        self.orderTest()
+
+    def test_order1_faces_invProp(self):
+        self.name = "2D Face Inner Product - Isotropic - invProp"
+        self.location = 'faces'
+        self.sigmaTest = 1
+        self.invProp = True
         self.orderTest()
 
     def test_order2_faces(self):
         self.name = "2D Face Inner Product - Anisotropic"
         self.location = 'faces'
         self.sigmaTest = 2
-        self.invProp = True
-        self.orderTest()
-        self.name += " - invProp"
         self.invProp = False
+        self.orderTest()
+
+    def test_order2_faces_invProp(self):
+        self.name = "2D Face Inner Product - Anisotropic - invProp"
+        self.location = 'faces'
+        self.sigmaTest = 2
+        self.invProp = True
         self.orderTest()
 
     def test_order3_faces(self):
         self.name = "2D Face Inner Product - Full Tensor"
         self.location = 'faces'
         self.sigmaTest = 3
-        self.invProp = True
-        self.orderTest()
-        self.name += " - invProp"
         self.invProp = False
+        self.orderTest()
+
+    def test_order3_faces_invProp(self):
+        self.name = "2D Face Inner Product - Full Tensor - invProp"
+        self.location = 'faces'
+        self.sigmaTest = 3
+        self.invProp = True
         self.orderTest()
 
 
@@ -250,10 +330,14 @@ class TestInnerProducts1D(OrderTest):
         self.name = "1D Face Inner Product"
         self.location = 'faces'
         self.sigmaTest = 1
-        self.invProp = True
-        self.orderTest()
-        self.name += " - invProp"
         self.invProp = False
+        self.orderTest()
+
+    def test_order1_faces_invProp(self):
+        self.name = "1D Face Inner Product - invProp"
+        self.location = 'faces'
+        self.sigmaTest = 1
+        self.invProp = True
         self.orderTest()
 
 
