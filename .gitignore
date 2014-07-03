@@ -39,3 +39,4 @@ nosetests.xml
 *.sublime-workspace
 docs/_build/
 *_cython.c
+Makefile

@@ -11,10 +11,8 @@ from Cython.Build import cythonize
 import numpy as np
 
 CLASSIFIERS = [
-'Development Status :: 0.0.1 - Alpha',
-'Intended Audience :: Science/Research',
 'Intended Audience :: Developers',
-'License :: MIT License',
+'License :: OSI Approved :: MIT License',
 'Programming Language :: Python',
 'Topic :: Scientific/Engineering',
 'Topic :: Scientific/Engineering :: Mathematics',
@@ -28,7 +26,7 @@ import os, os.path
 
 setup(
     name = "SimPEG",
-    version = "0.1dev",
+    version = "0.1.0",
     packages = find_packages(),
     install_requires = ['numpy>=1.7',
                         'scipy>=0.13',
@@ -39,8 +37,8 @@ setup(
     description = "SimPEG: Simulation and Parameter Estimation for Geophysics",
     license = "MIT",
     keywords = "geophysics inverse problem",
-    url = "http://simeg.rtfd.org/",
-    download_url = "http://github.com/simpeg",
+    url = "http://simpeg.3ptscience.com/",
+    download_url = "http://github.com/simpeg/simpeg",
     classifiers=CLASSIFIERS,
     platforms = ["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
     use_2to3 = False,
