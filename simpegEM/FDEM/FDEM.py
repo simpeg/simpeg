@@ -144,7 +144,7 @@ class ProblemFDEM_e(BaseFDEMProblem):
     def getADeriv(self, freq, u, v, adjoint=False):
         sig = self.curModel.transform
         dsig_dm = self.curModel.transformDeriv
-        dMe_dsig = self.mesh.getEdgeInnerProductDeriv(sig, v=u)
+        dMe_dsig = self.mesh.getEdgeInnerProductDeriv(sig)(u)
 
         if adjoint:
             return 1j * omega(freq) * ( dsig_dm.T * ( dMe_dsig.T * v ) )
@@ -228,7 +228,7 @@ class ProblemFDEM_b(BaseFDEMProblem):
         dMeSigmaI_dI = - self.MeSigmaI**2
 
         vec = (C.T*(mui*u))
-        dMe_dsig = self.mesh.getEdgeInnerProductDeriv(sig, v=vec)
+        dMe_dsig = self.mesh.getEdgeInnerProductDeriv(sig)(vec)
 
         if adjoint:
             return dsig_dm.T * ( dMe_dsig.T * ( dMeSigmaI_dI.T * ( C.T * ( mui.T * v ) ) ) )
@@ -285,7 +285,7 @@ class ProblemFDEM_b(BaseFDEMProblem):
             dMeSigmaI_dI = - self.MeSigmaI**2
 
             vec = C.T * ( mui * b )
-            dMe_dsig = self.mesh.getEdgeInnerProductDeriv(sig, v=vec)
+            dMe_dsig = self.mesh.getEdgeInnerProductDeriv(sig)(vec)
             if not adjoint:
                 return dMeSigmaI_dI * ( dMe_dsig * ( dsig_dm * v ) )
             else:

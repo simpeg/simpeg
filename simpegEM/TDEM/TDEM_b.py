@@ -106,13 +106,15 @@ class ProblemTDEM_b(BaseTDEMProblem):
 
         # fake initial 'e' fields
         p[:, 'e', 0] = 0.0
-        c = self.mesh.getEdgeInnerProductDeriv(self.curModel.transform)*(self.curModel.transformDeriv*vec)
+        dMdsig = self.mesh.getEdgeInnerProductDeriv(self.curModel.transform)
+        dsigdm_x_v = self.curModel.transformDeriv*vec
         for i in range(1,self.nT+1):
             # TODO: G[1] may be dependent on the model
             #       for a galvanic source (deriv of the dc problem)
             #
             # Do multiplication for all tx in self.survey.txList
-            p[:, 'e', i] = - sdiag(c) * u[:,'e',i] # i.e.: - sdiag(MsigDeriv * v) * e
+            for tx in self.survey.txList:
+                p[tx, 'e', i] = - dMdsig(u[tx,'e',i]) *  dsigdm_x_v
         return p
 
     def Gtvec(self, m, vec, u=None):
@@ -128,16 +130,19 @@ class ProblemTDEM_b(BaseTDEMProblem):
         if u is None:
             u = self.fields(m)
         self.curModel = m
+        dMdsig = self.mesh.getEdgeInnerProductDeriv(self.curModel.transform)
+        dsigdm = self.curModel.transformDeriv
 
-        nTx, nE = self.survey.nTx, self.mesh.nE
-        tmp = np.zeros(nE)
+        nTx = self.survey.nTx
+        VUs = None
         # Here we can do internal multiplications of Gt*v and then multiply by MsigDeriv.T in one go.
         for i in range(1,self.nT+1):
-            vu = vec[:,'e',i]*u[:,'e',i]
-            if nTx > 1:
-                vu = vu.sum(axis=1)
-            tmp += vu
-        p = -mkvc(self.curModel.transformDeriv.T*(self.mesh.getEdgeInnerProductDeriv(self.curModel.transform).T*tmp))
+            vu = None
+            for tx in self.survey.txList:
+                vutx = dMdsig(u[tx,'e',i]).T * vec[tx,'e',i]
+                vu = vutx if vu is None else vu + vutx
+            VUs = vu if VUs is None else VUs + vu
+        p = -dsigdm.T*VUs
         return p
 
     def solveAh(self, m, p):
