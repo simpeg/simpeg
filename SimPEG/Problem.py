@@ -339,10 +339,6 @@ class BaseProblem(object):
                 delattr(self, prop)
 
     @property
-    def tensorType(self):
-        return Utils.TensorType(self.mesh, self.curModel.transform)
-
-    @property
     def ispaired(self):
         """True if the problem is paired to a survey."""
         return self.survey is not None
