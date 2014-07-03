@@ -67,6 +67,7 @@ class RichardsTests1D(unittest.TestCase):
         M.setCellGradBC('dirichlet')
 
         params = Richards.Empirical.HaverkampParams().celia1990
+        params['Ks'] = np.log(params['Ks'])
         E = Richards.Empirical.Haverkamp(M, **params)
 
         bc = np.array([-61.5,-20.7])
