@@ -161,6 +161,10 @@ class ProblemDC(Problem.BaseProblem):
         if u is None:
             # Run forward simulation if $u$ not provided
             u = self.fields(self.curModel)
+        else:
+            shp = (self.mesh.nC, self.survey.nTx)
+            u = u.reshape(shp, order='F')
+
         D = self.mesh.faceDiv
         G = self.mesh.cellGrad
         # Derivative of inner product, $\left(\mathbf{M}_{1/\sigma}^f\right)^{-1}$
@@ -186,26 +190,29 @@ class ProblemDC(Problem.BaseProblem):
     def Jtvec(self, m, v, u=None):
         """Takes data, turns it into a model..ish"""
 
+        self.curModel = m
+        sigma = self.curModel.transform # $\sigma = \mathcal{M}(\m)$
         if u is None:
-            u = self.fields(m)
+            u = self.fields(self.curModel)
 
-        u = self.survey.reshapeFields(u)
-        v = self.survey.reshapeFields(v)
-
+        shp = (self.mesh.nC, self.survey.nTx)
+        u = u.reshape(shp, order='F')
         P = self.survey.getP(self.mesh)
+        PT_x_v = (P.T*v).reshape(shp, order='F')
+
         D = self.mesh.faceDiv
         G = self.mesh.cellGrad
-        A = self.getA(m)
-        Av_dm = self.mesh.getFaceInnerProductDeriv(m)
+        A = self.A
+        Av_dm = self.mesh.getFaceInnerProductDeriv(sigma, invProp=True, invMat=True)
         mT_dm = self.mapping.deriv(m)
 
         dCdu = A.T
         Ainv = self.Solver(dCdu)
-        w = Ainv * (P.T*v)
+        w = Ainv * PT_x_v
 
         Jtv = 0
         for i, ui in enumerate(u.T):  # loop over each column
-            Jtv += Utils.sdiag( G * ui ) * ( D.T * w[:,i] )
+            Jtv += Av_dm( G * ui ).T * ( D.T * w[:,i] )
 
-        Jtv = - mT_dm.T * ( Av_dm.T * Jtv )
+        Jtv = - mT_dm.T * ( Jtv )
         return Jtv
