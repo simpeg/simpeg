@@ -25,7 +25,10 @@ You can download the package manager and use it to install the dependencies abov
 Installing SimPEG
 =================
 
-SimPEG is not **yet** on pip.
+SimPEG is on pip!!::
+
+    pip install SimPEG
+
 
 Installing from Source
 ----------------------

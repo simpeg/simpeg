@@ -11,15 +11,19 @@ from Cython.Build import cythonize
 import numpy as np
 
 CLASSIFIERS = [
+'Development Status :: 4 - Beta',
 'Intended Audience :: Developers',
+'Intended Audience :: Science/Research',
 'License :: OSI Approved :: MIT License',
 'Programming Language :: Python',
 'Topic :: Scientific/Engineering',
 'Topic :: Scientific/Engineering :: Mathematics',
+'Topic :: Scientific/Engineering :: Physics',
 'Operating System :: Microsoft :: Windows',
 'Operating System :: POSIX',
 'Operating System :: Unix',
 'Operating System :: MacOS',
+'Natural Language :: English',
 ]
 
 import os, os.path
