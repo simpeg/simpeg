@@ -1022,31 +1022,39 @@ class TreeMesh(InnerProducts, BaseMesh):
             V += [1./lenj]*lenj
         return sp.csr_matrix((V,(I,J)), shape=(self.nC, self.nE))
 
-    def _getFacePxx(self, xFace, yFace):
-        self.number()
-        xP = self._getFaceP(xFace, yFace, None)
-        yP = self._getFaceP(yFace, xFace, None)
-        return sp.vstack((xP, yP))
+    def _getFacePxx(self):
+        def Pxx(xFace, yFace):
+            self.number()
+            xP = self._getFaceP(xFace, yFace, None)
+            yP = self._getFaceP(yFace, xFace, None)
+            return sp.vstack((xP, yP))
+        return Pxx
 
-    def _getEdgePxx(self, xEdge, yEdge):
-        self.number()
-        xP = self._getEdgeP(xEdge, yEdge, None)
-        yP = self._getEdgeP(yEdge, xEdge, None)
-        return sp.vstack((xP, yP))
+    def _getEdgePxx(self):
+        def Pxx(xEdge, yEdge):
+            self.number()
+            xP = self._getEdgeP(xEdge, yEdge, None)
+            yP = self._getEdgeP(yEdge, xEdge, None)
+            return sp.vstack((xP, yP))
+        return Pxx
 
-    def _getFacePxxx(self, xFace, yFace, zFace):
-        self.number()
-        xP = self._getFaceP(xFace, yFace, zFace)
-        yP = self._getFaceP(yFace, xFace, zFace)
-        zP = self._getFaceP(zFace, xFace, yFace)
-        return sp.vstack((xP, yP, zP))
+    def _getFacePxxx(self):
+        def Pxxx(xFace, yFace, zFace):
+            self.number()
+            xP = self._getFaceP(xFace, yFace, zFace)
+            yP = self._getFaceP(yFace, xFace, zFace)
+            zP = self._getFaceP(zFace, xFace, yFace)
+            return sp.vstack((xP, yP, zP))
+        return Pxxx
 
-    def _getEdgePxxx(self, xEdge, yEdge, zEdge):
-        self.number()
-        xP = self._getEdgeP(xEdge, yEdge, zEdge)
-        yP = self._getEdgeP(yEdge, xEdge, zEdge)
-        zP = self._getEdgeP(zEdge, xEdge, yEdge)
-        return sp.vstack((xP, yP, zP))
+    def _getEdgePxxx(self):
+        def Pxxx(xEdge, yEdge, zEdge):
+            self.number()
+            xP = self._getEdgeP(xEdge, yEdge, zEdge)
+            yP = self._getEdgeP(yEdge, xEdge, zEdge)
+            zP = self._getEdgeP(zEdge, xEdge, yEdge)
+            return sp.vstack((xP, yP, zP))
+        return Pxxx
 
     def plotGrid(self, ax=None, text=False, centers=False, faces=False, edges=False, lines=True, nodes=False, showIt=False):
         self.number()

@@ -10,194 +10,172 @@ class InnerProducts(object):
     def __init__(self):
         raise Exception('InnerProducts is a base class providing inner product matrices for meshes and cannot run on its own. Inherit to your favorite Mesh class.')
 
-    def getFaceInnerProduct(self, prop=None, returnP=False,
-                            invProp=False, invMat=False, doFast=True):
+    def getFaceInnerProduct(self, prop=None, invProp=False, invMat=False, doFast=True):
         """
             :param numpy.array prop: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
-            :param bool returnP: returns the projection matrices
             :param bool invProp: inverts the material property
             :param bool invMat: inverts the matrix
             :param bool doFast: do a faster implementation if available.
             :rtype: scipy.csr_matrix
             :return: M, the inner product matrix (nF, nF)
         """
-        fast = None
+        return self._getInnerProduct('F', prop=prop, invProp=invProp, invMat=invMat, doFast=doFast)
 
-        if returnP is False and hasattr(self, '_fastFaceInnerProduct') and doFast:
-            fast = self._fastFaceInnerProduct(prop=prop, invProp=invProp, invMat=invMat)
-
-        if fast is not None:
-            return fast
-
-        if invProp:
-            prop = invPropertyTensor(self, prop)
-
-        Mu = makePropertyTensor(self, prop)
-
-        d = self.dim
-        # We will multiply by sqrt on each side to keep symmetry
-        V = sp.kron(sp.identity(d), sdiag(np.sqrt((2**(-d))*self.vol)))
-
-        if d == 1:
-            fP = _getFacePx(self)
-            P000 = V*fP('fXm')
-            P100 = V*fP('fXp')
-        elif d == 2:
-            fP = _getFacePxx(self)
-            P000 = V*fP('fXm', 'fYm')
-            P100 = V*fP('fXp', 'fYm')
-            P010 = V*fP('fXm', 'fYp')
-            P110 = V*fP('fXp', 'fYp')
-        elif d == 3:
-            fP = _getFacePxxx(self)
-            P000 = V*fP('fXm', 'fYm', 'fZm')
-            P100 = V*fP('fXp', 'fYm', 'fZm')
-            P010 = V*fP('fXm', 'fYp', 'fZm')
-            P110 = V*fP('fXp', 'fYp', 'fZm')
-            P001 = V*fP('fXm', 'fYm', 'fZp')
-            P101 = V*fP('fXp', 'fYm', 'fZp')
-            P011 = V*fP('fXm', 'fYp', 'fZp')
-            P111 = V*fP('fXp', 'fYp', 'fZp')
-
-        A = P000.T*Mu*P000 + P100.T*Mu*P100
-        P = [P000, P100]
-
-        if d > 1:
-            A = A + P010.T*Mu*P010 + P110.T*Mu*P110
-            P += [P010, P110]
-        if d > 2:
-            A = A + P001.T*Mu*P001 + P101.T*Mu*P101 + P011.T*Mu*P011 + P111.T*Mu*P111
-            P += [P001, P101, P011,  P111]
-
-        if invMat and tensorType(self, prop) < 3:
-            A = sdInv(A)
-        elif invMat and tensorType(self, prop) == 3:
-            raise Exception('Solver needed to invert A.')
-
-        if returnP:
-            return A, P
-        else:
-            return A
-
-    def getFaceInnerProductDeriv(self, prop=None, v=None, P=None, doFast=True):
+    def getEdgeInnerProduct(self, prop=None, invProp=False, invMat=False, doFast=True):
         """
             :param numpy.array prop: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
-            :param numpy.array v: vector to multiply (required in the general implementation)
-            :param list P: list of projection matrices
-            :param bool doFast: do a faster implementation if available.
-            :rtype: scipy.csr_matrix
-            :return: dMdm, the derivative of the inner product matrix (nF, nC*nA)
-        """
-        fast = None
-
-        if hasattr(self, '_fastFaceInnerProductDeriv') and doFast:
-            fast = self._fastFaceInnerProductDeriv(prop=prop, v=v)
-
-        if fast is not None:
-            return fast
-
-        if P is None:
-            M, P = self.getFaceInnerProduct(prop=prop, returnP=True)
-
-        return self._getInnerProductDeriv(prop, v, P, self.nF)
-
-    def getEdgeInnerProduct(self, prop=None, returnP=False,
-                            invProp=False, invMat=False, doFast=True):
-        """
-            :param numpy.array prop: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
-            :param bool returnP: returns the projection matrices
             :param bool invProp: inverts the material property
             :param bool invMat: inverts the matrix
             :param bool doFast: do a faster implementation if available.
             :rtype: scipy.csr_matrix
             :return: M, the inner product matrix (nE, nE)
         """
+        return self._getInnerProduct('E', prop=prop, invProp=invProp, invMat=invMat, doFast=doFast)
+
+    def _getInnerProduct(self, projType, prop=None, invProp=False, invMat=False, doFast=True):
+        """
+            :param str projType: 'F' for faces 'E' for edges
+            :param numpy.array prop: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :param bool invProp: inverts the material property
+            :param bool invMat: inverts the matrix
+            :param bool doFast: do a faster implementation if available.
+            :rtype: scipy.csr_matrix
+            :return: M, the inner product matrix (nE, nE)
+        """
+        assert projType in ['F', 'E'], "projType must be 'F' for faces or 'E' for edges"
+
         fast = None
-
-        if returnP is False and hasattr(self, '_fastEdgeInnerProduct') and doFast:
-            fast = self._fastEdgeInnerProduct(prop=prop, invProp=invProp, invMat=invMat)
-
+        if hasattr(self, '_fastInnerProduct') and doFast:
+            fast = self._fastInnerProduct(projType, prop=prop, invProp=invProp, invMat=invMat)
         if fast is not None:
             return fast
 
         if invProp:
             prop = invPropertyTensor(self, prop)
 
+        tensorType = TensorType(self, prop)
+
         Mu = makePropertyTensor(self, prop)
+        Ps = self._getInnerProductProjectionMatrices(projType, tensorType)
+        A = np.sum([P.T * Mu * P for P in Ps])
+
+        if invMat and tensorType < 3:
+            A = sdInv(A)
+        elif invMat and tensorType == 3:
+            raise Exception('Solver needed to invert A.')
+
+        return A
+
+    def _getInnerProductProjectionMatrices(self, projType, tensorType):
+        """
+            :param str projType: 'F' for faces 'E' for edges
+            :param TensorType tensorType: type of the tensor: TensorType(mesh, sigma)
+        """
+        assert isinstance(tensorType, TensorType), 'tensorType must be an instance of TensorType.'
+        assert projType in ['F', 'E'], "projType must be 'F' for faces or 'E' for edges"
 
         d = self.dim
         # We will multiply by sqrt on each side to keep symmetry
         V = sp.kron(sp.identity(d), sdiag(np.sqrt((2**(-d))*self.vol)))
 
-        if d == 1:
-            raise NotImplementedError('getEdgeInnerProduct not implemented for 1D')
-        elif d == 2:
-            eP = _getEdgePxx(self)
-            P000 = V*eP('eX0', 'eY0')
-            P100 = V*eP('eX0', 'eY1')
-            P010 = V*eP('eX1', 'eY0')
-            P110 = V*eP('eX1', 'eY1')
-        elif d == 3:
-            eP = _getEdgePxxx(self)
-            P000 = V*eP('eX0', 'eY0', 'eZ0')
-            P100 = V*eP('eX0', 'eY1', 'eZ1')
-            P010 = V*eP('eX1', 'eY0', 'eZ2')
-            P110 = V*eP('eX1', 'eY1', 'eZ3')
-            P001 = V*eP('eX2', 'eY2', 'eZ0')
-            P101 = V*eP('eX2', 'eY3', 'eZ1')
-            P011 = V*eP('eX3', 'eY2', 'eZ2')
-            P111 = V*eP('eX3', 'eY3', 'eZ3')
+        nodes = ['000', '100', '010', '110', '001', '101', '011',  '111'][:2**d]
 
-        Mu = makePropertyTensor(self, prop)
-        A = P000.T*Mu*P000 + P100.T*Mu*P100 + P010.T*Mu*P010 + P110.T*Mu*P110
-        P = [P000, P100, P010, P110]
-        if d == 3:
-            A = A + P001.T*Mu*P001 + P101.T*Mu*P101 + P011.T*Mu*P011 + P111.T*Mu*P111
-            P += [P001, P101, P011,  P111]
+        if projType == 'F':
+            locs = {
+                    '000': [('fXm',), ('fXm', 'fYm'), ('fXm', 'fYm', 'fZm')],
+                    '100': [('fXp',), ('fXp', 'fYm'), ('fXp', 'fYm', 'fZm')],
+                    '010': [  None  , ('fXm', 'fYp'), ('fXm', 'fYp', 'fZm')],
+                    '110': [  None  , ('fXp', 'fYp'), ('fXp', 'fYp', 'fZm')],
+                    '001': [  None  ,      None     , ('fXm', 'fYm', 'fZp')],
+                    '101': [  None  ,      None     , ('fXp', 'fYm', 'fZp')],
+                    '011': [  None  ,      None     , ('fXm', 'fYp', 'fZp')],
+                    '111': [  None  ,      None     , ('fXp', 'fYp', 'fZp')]
+                   }
+            proj = getattr(self, '_getFaceP' + ('x'*d))()
 
-        if invMat and tensorType(self, prop) < 3:
-            A = sdInv(A)
-        elif invMat and tensorType(self, prop) == 3:
-            raise Exception('Solver needed to invert A.')
+        elif projType == 'E':
+            locs = {
+                    '000': [('eX0',), ('eX0', 'eY0'), ('eX0', 'eY0', 'eZ0')],
+                    '100': [('eX0',), ('eX0', 'eY1'), ('eX0', 'eY1', 'eZ1')],
+                    '010': [  None  , ('eX1', 'eY0'), ('eX1', 'eY0', 'eZ2')],
+                    '110': [  None  , ('eX1', 'eY1'), ('eX1', 'eY1', 'eZ3')],
+                    '001': [  None  ,      None     , ('eX2', 'eY2', 'eZ0')],
+                    '101': [  None  ,      None     , ('eX2', 'eY3', 'eZ1')],
+                    '011': [  None  ,      None     , ('eX3', 'eY2', 'eZ2')],
+                    '111': [  None  ,      None     , ('eX3', 'eY3', 'eZ3')]
+                   }
+            proj = getattr(self, '_getEdgeP' + ('x'*d))()
 
-        if returnP:
-            return A, P
-        else:
-            return A
+        return [V*proj(*locs[node][d-1]) for node in nodes]
 
-    def getEdgeInnerProductDeriv(self, prop=None, v=None, P=None, doFast=True):
+
+    def getFaceInnerProductDeriv(self, prop, doFast=True, invProp=False, invMat=False):
         """
             :param numpy.array prop: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
-            :param numpy.array v: vector to multiply (required in the general implementation)
-            :param list P: list of projection matrices
             :param bool doFast: do a faster implementation if available.
+            :param bool invProp: inverts the material property
+            :param bool invMat: inverts the matrix
+            :rtype: function
+            :return: dMdmu(u), the derivative of the inner product matrix (u)
+
+            Given u, dMdmu returns (nF, nC*nA)
+
+            :param np.ndarray u: vector that multiplies dMdmu
+            :rtype: scipy.csr_matrix
+            :return: dMdmu, the derivative of the inner product matrix for a certain u
+        """
+        return self._getInnerProductDeriv(prop, 'F', doFast=doFast, invProp=invProp, invMat=invMat)
+
+
+    def getEdgeInnerProductDeriv(self, prop, doFast=True, invProp=False, invMat=False):
+        """
+            :param numpy.array prop: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :param bool doFast: do a faster implementation if available.
+            :param bool invProp: inverts the material property
+            :param bool invMat: inverts the matrix
             :rtype: scipy.csr_matrix
             :return: dMdm, the derivative of the inner product matrix (nE, nC*nA)
         """
+        return self._getInnerProductDeriv(prop, 'E', doFast=doFast, invProp=invProp, invMat=invMat)
 
+    def _getInnerProductDeriv(self, prop, projType, doFast=True, invProp=False, invMat=False):
+        """
+            :param numpy.array prop: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :param str projType: 'F' for faces 'E' for edges
+            :param bool doFast: do a faster implementation if available.
+            :param bool invProp: inverts the material property
+            :param bool invMat: inverts the matrix
+            :rtype: scipy.csr_matrix
+            :return: dMdm, the derivative of the inner product matrix (nE, nC*nA)
+        """
         fast = None
-
-        if hasattr(self, '_fastEdgeInnerProductDeriv') and doFast:
-            fast = self._fastEdgeInnerProductDeriv(prop=prop, v=v)
-
+        if hasattr(self, '_fastInnerProductDeriv') and doFast:
+            fast = self._fastInnerProductDeriv(projType, prop, invProp=invProp, invMat=invMat)
         if fast is not None:
             return fast
 
-        if P is None:
-            M, P = self.getEdgeInnerProduct(prop=prop, returnP=True)
+        if invProp or invMat:
+            raise NotImplementedError('inverting the property or the matrix is not yet implemented for this mesh/tensorType. You should write it!')
 
-        return self._getInnerProductDeriv(prop, v, P, self.nE)
+        tensorType = TensorType(self, prop)
+        P = self._getInnerProductProjectionMatrices(projType, tensorType=tensorType)
+        def innerProductDeriv(v):
+            return self._getInnerProductDerivFunction(tensorType, P, projType, v)
+        return innerProductDeriv
 
-    def _getInnerProductDeriv(self, prop, v, P, n):
+    def _getInnerProductDerivFunction(self, tensorType, P, projType, v):
         """
             :param numpy.array prop: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
             :param numpy.array v: vector to multiply (required in the general implementation)
             :param list P: list of projection matrices
-            :param int n: nF or nE
+            :param str projType: 'F' for faces 'E' for edges
             :rtype: scipy.csr_matrix
             :return: dMdm, the derivative of the inner product matrix (n, nC*nA)
         """
-        if prop is None:
+        assert projType in ['F', 'E'], "projType must be 'F' for faces or 'E' for edges"
+        n = getattr(self,'n'+projType)
+
+        if tensorType == -1:
             return None
 
         if v is None:
@@ -206,24 +184,24 @@ class InnerProducts(object):
         d = self.dim
         Z = spzeros(self.nC, self.nC)
 
-        if isScalar(prop):
+        if tensorType == 0:
             dMdm = spzeros(n, 1)
             for i, p in enumerate(P):
                 dMdm = dMdm + sp.csr_matrix((p.T * (p * v), (range(n), np.zeros(n))), shape=(n,1))
         if d == 1:
-            if prop.size == self.nC:
+            if tensorType == 1:
                 dMdm = spzeros(n, self.nC)
                 for i, p in enumerate(P):
                     dMdm = dMdm + p.T * sdiag( p * v )
         elif d == 2:
-            if prop.size == self.nC:
+            if tensorType == 1:
                 dMdm = spzeros(n, self.nC)
                 for i, p in enumerate(P):
                     Y = p * v
                     y1 = Y[:self.nC]
                     y2 = Y[self.nC:]
                     dMdm = dMdm + p.T * sp.vstack((sdiag( y1 ), sdiag( y2 )))
-            elif prop.size == self.nC*2:
+            elif tensorType == 2:
                 dMdms = [spzeros(n, self.nC) for _ in range(2)]
                 for i, p in enumerate(P):
                     Y = p * v
@@ -232,7 +210,7 @@ class InnerProducts(object):
                     dMdms[0] = dMdms[0] + p.T * sp.vstack(( sdiag( y1 ), Z))
                     dMdms[1] = dMdms[1] + p.T * sp.vstack(( Z, sdiag( y2 )))
                 dMdm = sp.hstack(dMdms)
-            elif prop.size == self.nC*3:
+            elif tensorType == 3:
                 dMdms = [spzeros(n, self.nC) for _ in range(3)]
                 for i, p in enumerate(P):
                     Y = p * v
@@ -243,7 +221,7 @@ class InnerProducts(object):
                     dMdms[2] = dMdms[2] + p.T * sp.vstack(( sdiag( y2 ), sdiag( y1 )))
                 dMdm = sp.hstack(dMdms)
         elif d == 3:
-            if prop.size == self.nC:
+            if tensorType == 1:
                 dMdm = spzeros(n, self.nC)
                 for i, p in enumerate(P):
                     Y = p * v
@@ -251,7 +229,7 @@ class InnerProducts(object):
                     y2 = Y[self.nC:self.nC*2]
                     y3 = Y[self.nC*2:]
                     dMdm = dMdm + p.T * sp.vstack((sdiag( y1 ), sdiag( y2 ), sdiag( y3 )))
-            elif prop.size == self.nC*3:
+            elif tensorType == 2:
                 dMdms = [spzeros(n, self.nC) for _ in range(3)]
                 for i, p in enumerate(P):
                     Y = p * v
@@ -262,7 +240,7 @@ class InnerProducts(object):
                     dMdms[1] = dMdms[1] + p.T * sp.vstack(( Z, sdiag( y2 ), Z))
                     dMdms[2] = dMdms[2] + p.T * sp.vstack(( Z, Z, sdiag( y3 )))
                 dMdm = sp.hstack(dMdms)
-            elif prop.size == self.nC*6:
+            elif tensorType == 3:
                 dMdms = [spzeros(n, self.nC) for _ in range(6)]
                 for i, p in enumerate(P):
                     Y = p * v
@@ -279,272 +257,252 @@ class InnerProducts(object):
 
         return dMdm
 
-# ------------------------ Geometries ------------------------------
-#
-#
-#         node(i,j,k+1) ------ edge2(i,j,k+1) ----- node(i,j+1,k+1)
-#              /                                    /
-#             /                                    / |
-#         edge3(i,j,k)     face1(i,j,k)        edge3(i,j+1,k)
-#           /                                    /   |
-#          /                                    /    |
-#    node(i,j,k) ------ edge2(i,j,k) ----- node(i,j+1,k)
-#         |                                     |    |
-#         |                                     |   node(i+1,j+1,k+1)
-#         |                                     |    /
-#    edge1(i,j,k)      face3(i,j,k)        edge1(i,j+1,k)
-#         |                                     |  /
-#         |                                     | /
-#         |                                     |/
-#    node(i+1,j,k) ------ edge2(i+1,j,k) ----- node(i+1,j+1,k)
+    # ------------------------ Geometries ------------------------------
+    #
+    #
+    #         node(i,j,k+1) ------ edge2(i,j,k+1) ----- node(i,j+1,k+1)
+    #              /                                    /
+    #             /                                    / |
+    #         edge3(i,j,k)     face1(i,j,k)        edge3(i,j+1,k)
+    #           /                                    /   |
+    #          /                                    /    |
+    #    node(i,j,k) ------ edge2(i,j,k) ----- node(i,j+1,k)
+    #         |                                     |    |
+    #         |                                     |   node(i+1,j+1,k+1)
+    #         |                                     |    /
+    #    edge1(i,j,k)      face3(i,j,k)        edge1(i,j+1,k)
+    #         |                                     |  /
+    #         |                                     | /
+    #         |                                     |/
+    #    node(i+1,j,k) ------ edge2(i+1,j,k) ----- node(i+1,j+1,k)
 
-def _getFacePx(M):
-    assert M._meshType == 'TENSOR', 'Only supported for a tensor mesh'
-    return _getFacePx_Rectangular(M)
 
-def _getFacePxx(M):
-    if M._meshType == 'TREE':
-        return M._getFacePxx
-
-    return _getFacePxx_Rectangular(M)
-
-def _getFacePxxx(M):
-    if M._meshType == 'TREE':
-        return M._getFacePxxx
-
-    return _getFacePxxx_Rectangular(M)
-
-def _getEdgePxx(M):
-    if M._meshType == 'TREE':
-        return M._getEdgePxx
-
-    return _getEdgePxx_Rectangular(M)
-
-def _getEdgePxxx(M):
-    if M._meshType == 'TREE':
-        return M._getEdgePxxx
-
-    return _getEdgePxxx_Rectangular(M)
-
-def _getFacePx_Rectangular(M):
-    """Returns a function for creating projection matrices
-
-    """
-    ii = np.int64(range(M.nCx))
-
-    def Px(xFace):
-        """
-            xFace is 'fXp' or 'fXm'
-        """
-        posFx = 0 if xFace == 'fXm' else 1
-        IND = ii + posFx
-        PX = sp.csr_matrix((np.ones(M.nC), (range(M.nC), IND)), shape=(M.nC, M.nF))
-        return PX
-
-    return Px
-
-def _getFacePxx_Rectangular(M):
-    """returns a function for creating projection matrices
-
-        Mats takes you from faces a subset of all faces on only the
-        faces that you ask for.
-
-        These are centered around a single nodes.
-
-        For example, if this was your entire mesh:
-
-                        f3(Yp)
-                  2_______________3
-                  |               |
-                  |               |
-                  |               |
-          f0(Xm)  |       x       |  f1(Xp)
-                  |               |
-                  |               |
-                  |_______________|
-                  0               1
-                        f2(Ym)
-
-        Pxx('fXm','fYm') = | 1, 0, 0, 0 |
-                           | 0, 0, 1, 0 |
-
-        Pxx('fXp','fYm') = | 0, 1, 0, 0 |
-                           | 0, 0, 1, 0 |
+    def _getFacePx(M):
+        """Returns a function for creating projection matrices
 
         """
-    i, j = np.int64(range(M.nCx)), np.int64(range(M.nCy))
+        ii = np.arange(M.nCx)
 
-    iijj = ndgrid(i, j)
-    ii, jj = iijj[:, 0], iijj[:, 1]
+        def Px(xFace):
+            """
+                xFace is 'fXp' or 'fXm'
+            """
+            posFx = 0 if xFace == 'fXm' else 1
+            IND = ii + posFx
+            PX = sp.csr_matrix((np.ones(M.nC), (range(M.nC), IND)), shape=(M.nC, M.nF))
+            return PX
 
-    if M._meshType == 'LRM':
-        fN1 = M.r(M.normals, 'F', 'Fx', 'M')
-        fN2 = M.r(M.normals, 'F', 'Fy', 'M')
+        return Px
 
-    def Pxx(xFace, yFace):
-        """
-            xFace is 'fXp' or 'fXm'
-            yFace is 'fYp' or 'fYm'
-        """
-        # no | node      | f1     | f2
-        # 00 | i  ,j     | i  , j | i, j
-        # 10 | i+1,j     | i+1, j | i, j
-        # 01 | i  ,j+1   | i  , j | i, j+1
-        # 11 | i+1,j+1   | i+1, j | i, j+1
+    def _getFacePxx(M):
+        """returns a function for creating projection matrices
 
-        posFx = 0 if xFace == 'fXm' else 1
-        posFy = 0 if yFace == 'fYm' else 1
+            Mats takes you from faces a subset of all faces on only the
+            faces that you ask for.
 
-        ind1 = sub2ind(M.vnFx, np.c_[ii + posFx, jj])
-        ind2 = sub2ind(M.vnFy, np.c_[ii, jj + posFy]) + M.nFx
+            These are centered around a single nodes.
 
-        IND = np.r_[ind1, ind2].flatten()
+            For example, if this was your entire mesh:
 
-        PXX = sp.csr_matrix((np.ones(2*M.nC), (range(2*M.nC), IND)), shape=(2*M.nC, M.nF))
+                            f3(Yp)
+                      2_______________3
+                      |               |
+                      |               |
+                      |               |
+              f0(Xm)  |       x       |  f1(Xp)
+                      |               |
+                      |               |
+                      |_______________|
+                      0               1
+                            f2(Ym)
+
+            Pxx('fXm','fYm') = | 1, 0, 0, 0 |
+                               | 0, 0, 1, 0 |
+
+            Pxx('fXp','fYm') = | 0, 1, 0, 0 |
+                               | 0, 0, 1, 0 |
+
+            """
+        i, j = np.arange(M.nCx), np.arange(M.nCy)
+
+        iijj = ndgrid(i, j)
+        ii, jj = iijj[:, 0], iijj[:, 1]
 
         if M._meshType == 'LRM':
-            I2x2 = inv2X2BlockDiagonal(getSubArray(fN1[0], [i + posFx, j]), getSubArray(fN1[1], [i + posFx, j]),
-                                       getSubArray(fN2[0], [i, j + posFy]), getSubArray(fN2[1], [i, j + posFy]))
-            PXX = I2x2 * PXX
+            fN1 = M.r(M.normals, 'F', 'Fx', 'M')
+            fN2 = M.r(M.normals, 'F', 'Fy', 'M')
 
-        return PXX
+        def Pxx(xFace, yFace):
+            """
+                xFace is 'fXp' or 'fXm'
+                yFace is 'fYp' or 'fYm'
+            """
+            # no | node      | f1     | f2
+            # 00 | i  ,j     | i  , j | i, j
+            # 10 | i+1,j     | i+1, j | i, j
+            # 01 | i  ,j+1   | i  , j | i, j+1
+            # 11 | i+1,j+1   | i+1, j | i, j+1
 
-    return Pxx
+            posFx = 0 if xFace == 'fXm' else 1
+            posFy = 0 if yFace == 'fYm' else 1
 
-def _getFacePxxx_Rectangular(M):
-    """returns a function for creating projection matrices
+            ind1 = sub2ind(M.vnFx, np.c_[ii + posFx, jj])
+            ind2 = sub2ind(M.vnFy, np.c_[ii, jj + posFy]) + M.nFx
 
-        Mats takes you from faces a subset of all faces on only the
-        faces that you ask for.
+            IND = np.r_[ind1, ind2].flatten()
 
-        These are centered around a single nodes.
-    """
+            PXX = sp.csr_matrix((np.ones(2*M.nC), (range(2*M.nC), IND)), shape=(2*M.nC, M.nF))
 
-    i, j, k = np.int64(range(M.nCx)), np.int64(range(M.nCy)), np.int64(range(M.nCz))
+            if M._meshType == 'LRM':
+                I2x2 = inv2X2BlockDiagonal(getSubArray(fN1[0], [i + posFx, j]), getSubArray(fN1[1], [i + posFx, j]),
+                                           getSubArray(fN2[0], [i, j + posFy]), getSubArray(fN2[1], [i, j + posFy]))
+                PXX = I2x2 * PXX
 
-    iijjkk = ndgrid(i, j, k)
-    ii, jj, kk = iijjkk[:, 0], iijjkk[:, 1], iijjkk[:, 2]
+            return PXX
 
-    if M._meshType == 'LRM':
-        fN1 = M.r(M.normals, 'F', 'Fx', 'M')
-        fN2 = M.r(M.normals, 'F', 'Fy', 'M')
-        fN3 = M.r(M.normals, 'F', 'Fz', 'M')
+        return Pxx
 
-    def Pxxx(xFace, yFace, zFace):
+    def _getFacePxxx(M):
+        """returns a function for creating projection matrices
+
+            Mats takes you from faces a subset of all faces on only the
+            faces that you ask for.
+
+            These are centered around a single nodes.
         """
-            xFace is 'fXp' or 'fXm'
-            yFace is 'fYp' or 'fYm'
-            zFace is 'fZp' or 'fZm'
-        """
 
-        # no  | node        | f1        | f2        | f3
-        # 000 | i  ,j  ,k   | i  , j, k | i, j  , k | i, j, k
-        # 100 | i+1,j  ,k   | i+1, j, k | i, j  , k | i, j, k
-        # 010 | i  ,j+1,k   | i  , j, k | i, j+1, k | i, j, k
-        # 110 | i+1,j+1,k   | i+1, j, k | i, j+1, k | i, j, k
-        # 001 | i  ,j  ,k+1 | i  , j, k | i, j  , k | i, j, k+1
-        # 101 | i+1,j  ,k+1 | i+1, j, k | i, j  , k | i, j, k+1
-        # 011 | i  ,j+1,k+1 | i  , j, k | i, j+1, k | i, j, k+1
-        # 111 | i+1,j+1,k+1 | i+1, j, k | i, j+1, k | i, j, k+1
+        i, j, k = np.arange(M.nCx), np.arange(M.nCy), np.arange(M.nCz)
 
-        posX = 0 if xFace == 'fXm' else 1
-        posY = 0 if yFace == 'fYm' else 1
-        posZ = 0 if zFace == 'fZm' else 1
-
-        ind1 = sub2ind(M.vnFx, np.c_[ii + posX, jj, kk])
-        ind2 = sub2ind(M.vnFy, np.c_[ii, jj + posY, kk]) + M.nFx
-        ind3 = sub2ind(M.vnFz, np.c_[ii, jj, kk + posZ]) + M.nFx + M.nFy
-
-        IND = np.r_[ind1, ind2, ind3].flatten()
-
-        PXXX = sp.coo_matrix((np.ones(3*M.nC), (range(3*M.nC), IND)), shape=(3*M.nC, M.nF)).tocsr()
+        iijjkk = ndgrid(i, j, k)
+        ii, jj, kk = iijjkk[:, 0], iijjkk[:, 1], iijjkk[:, 2]
 
         if M._meshType == 'LRM':
-            I3x3 = inv3X3BlockDiagonal(getSubArray(fN1[0], [i + posX, j, k]), getSubArray(fN1[1], [i + posX, j, k]), getSubArray(fN1[2], [i + posX, j, k]),
-                                       getSubArray(fN2[0], [i, j + posY, k]), getSubArray(fN2[1], [i, j + posY, k]), getSubArray(fN2[2], [i, j + posY, k]),
-                                       getSubArray(fN3[0], [i, j, k + posZ]), getSubArray(fN3[1], [i, j, k + posZ]), getSubArray(fN3[2], [i, j, k + posZ]))
-            PXXX = I3x3 * PXXX
+            fN1 = M.r(M.normals, 'F', 'Fx', 'M')
+            fN2 = M.r(M.normals, 'F', 'Fy', 'M')
+            fN3 = M.r(M.normals, 'F', 'Fz', 'M')
 
-        return PXXX
-    return Pxxx
+        def Pxxx(xFace, yFace, zFace):
+            """
+                xFace is 'fXp' or 'fXm'
+                yFace is 'fYp' or 'fYm'
+                zFace is 'fZp' or 'fZm'
+            """
 
-def _getEdgePxx_Rectangular(M):
-    i, j = np.int64(range(M.nCx)), np.int64(range(M.nCy))
+            # no  | node        | f1        | f2        | f3
+            # 000 | i  ,j  ,k   | i  , j, k | i, j  , k | i, j, k
+            # 100 | i+1,j  ,k   | i+1, j, k | i, j  , k | i, j, k
+            # 010 | i  ,j+1,k   | i  , j, k | i, j+1, k | i, j, k
+            # 110 | i+1,j+1,k   | i+1, j, k | i, j+1, k | i, j, k
+            # 001 | i  ,j  ,k+1 | i  , j, k | i, j  , k | i, j, k+1
+            # 101 | i+1,j  ,k+1 | i+1, j, k | i, j  , k | i, j, k+1
+            # 011 | i  ,j+1,k+1 | i  , j, k | i, j+1, k | i, j, k+1
+            # 111 | i+1,j+1,k+1 | i+1, j, k | i, j+1, k | i, j, k+1
 
-    iijj = ndgrid(i, j)
-    ii, jj = iijj[:, 0], iijj[:, 1]
+            posX = 0 if xFace == 'fXm' else 1
+            posY = 0 if yFace == 'fYm' else 1
+            posZ = 0 if zFace == 'fZm' else 1
 
-    if M._meshType == 'LRM':
-        eT1 = M.r(M.tangents, 'E', 'Ex', 'M')
-        eT2 = M.r(M.tangents, 'E', 'Ey', 'M')
+            ind1 = sub2ind(M.vnFx, np.c_[ii + posX, jj, kk])
+            ind2 = sub2ind(M.vnFy, np.c_[ii, jj + posY, kk]) + M.nFx
+            ind3 = sub2ind(M.vnFz, np.c_[ii, jj, kk + posZ]) + M.nFx + M.nFy
 
-    def Pxx(xEdge, yEdge):
-        # no | node      | e1      | e2
-        # 00 | i  ,j     | i  ,j   | i  ,j
-        # 10 | i+1,j     | i  ,j   | i+1,j
-        # 01 | i  ,j+1   | i  ,j+1 | i  ,j
-        # 11 | i+1,j+1   | i  ,j+1 | i+1,j
-        posX = 0 if xEdge == 'eX0' else 1
-        posY = 0 if yEdge == 'eY0' else 1
+            IND = np.r_[ind1, ind2, ind3].flatten()
 
-        ind1 = sub2ind(M.vnEx, np.c_[ii, jj + posX])
-        ind2 = sub2ind(M.vnEy, np.c_[ii + posY, jj]) + M.nEx
+            PXXX = sp.coo_matrix((np.ones(3*M.nC), (range(3*M.nC), IND)), shape=(3*M.nC, M.nF)).tocsr()
 
-        IND = np.r_[ind1, ind2].flatten()
+            if M._meshType == 'LRM':
+                I3x3 = inv3X3BlockDiagonal(getSubArray(fN1[0], [i + posX, j, k]), getSubArray(fN1[1], [i + posX, j, k]), getSubArray(fN1[2], [i + posX, j, k]),
+                                           getSubArray(fN2[0], [i, j + posY, k]), getSubArray(fN2[1], [i, j + posY, k]), getSubArray(fN2[2], [i, j + posY, k]),
+                                           getSubArray(fN3[0], [i, j, k + posZ]), getSubArray(fN3[1], [i, j, k + posZ]), getSubArray(fN3[2], [i, j, k + posZ]))
+                PXXX = I3x3 * PXXX
 
-        PXX = sp.coo_matrix((np.ones(2*M.nC), (range(2*M.nC), IND)), shape=(2*M.nC, M.nE)).tocsr()
+            return PXXX
+        return Pxxx
 
-        if M._meshType == 'LRM':
-            I2x2 = inv2X2BlockDiagonal(getSubArray(eT1[0], [i, j + posX]), getSubArray(eT1[1], [i, j + posX]),
-                                       getSubArray(eT2[0], [i + posY, j]), getSubArray(eT2[1], [i + posY, j]))
-            PXX = I2x2 * PXX
+    def _getEdgePx(M):
+        """Returns a function for creating projection matrices"""
+        def Px(xEdge):
+            assert xEdge == 'eX0', 'xEdge = %s, not eX0' % xEdge
+            return sp.identity(M.nC)
+        return Px
 
-        return PXX
-    return Pxx
+    def _getEdgePxx(M):
+        i, j = np.arange(M.nCx), np.arange(M.nCy)
 
-def _getEdgePxxx_Rectangular(M):
-    i, j, k = np.int64(range(M.nCx)), np.int64(range(M.nCy)), np.int64(range(M.nCz))
-
-    iijjkk = ndgrid(i, j, k)
-    ii, jj, kk = iijjkk[:, 0], iijjkk[:, 1], iijjkk[:, 2]
-
-    if M._meshType == 'LRM':
-        eT1 = M.r(M.tangents, 'E', 'Ex', 'M')
-        eT2 = M.r(M.tangents, 'E', 'Ey', 'M')
-        eT3 = M.r(M.tangents, 'E', 'Ez', 'M')
-
-    def Pxxx(xEdge, yEdge, zEdge):
-
-        # no  | node        | e1          | e2          | e3
-        # 000 | i  ,j  ,k   | i  ,j  ,k   | i  ,j  ,k   | i  ,j  ,k
-        # 100 | i+1,j  ,k   | i  ,j  ,k   | i+1,j  ,k   | i+1,j  ,k
-        # 010 | i  ,j+1,k   | i  ,j+1,k   | i  ,j  ,k   | i  ,j+1,k
-        # 110 | i+1,j+1,k   | i  ,j+1,k   | i+1,j  ,k   | i+1,j+1,k
-        # 001 | i  ,j  ,k+1 | i  ,j  ,k+1 | i  ,j  ,k+1 | i  ,j  ,k
-        # 101 | i+1,j  ,k+1 | i  ,j  ,k+1 | i+1,j  ,k+1 | i+1,j  ,k
-        # 011 | i  ,j+1,k+1 | i  ,j+1,k+1 | i  ,j  ,k+1 | i  ,j+1,k
-        # 111 | i+1,j+1,k+1 | i  ,j+1,k+1 | i+1,j  ,k+1 | i+1,j+1,k
-
-        posX = [0,0] if xEdge == 'eX0' else [1, 0] if xEdge == 'eX1' else [0,1] if xEdge == 'eX2' else [1,1]
-        posY = [0,0] if yEdge == 'eY0' else [1, 0] if yEdge == 'eY1' else [0,1] if yEdge == 'eY2' else [1,1]
-        posZ = [0,0] if zEdge == 'eZ0' else [1, 0] if zEdge == 'eZ1' else [0,1] if zEdge == 'eZ2' else [1,1]
-
-        ind1 = sub2ind(M.vnEx, np.c_[ii, jj + posX[0], kk + posX[1]])
-        ind2 = sub2ind(M.vnEy, np.c_[ii + posY[0], jj, kk + posY[1]]) + M.nEx
-        ind3 = sub2ind(M.vnEz, np.c_[ii + posZ[0], jj + posZ[1], kk]) + M.nEx + M.nEy
-
-        IND = np.r_[ind1, ind2, ind3].flatten()
-
-        PXXX = sp.coo_matrix((np.ones(3*M.nC), (range(3*M.nC), IND)), shape=(3*M.nC, M.nE)).tocsr()
+        iijj = ndgrid(i, j)
+        ii, jj = iijj[:, 0], iijj[:, 1]
 
         if M._meshType == 'LRM':
-            I3x3 = inv3X3BlockDiagonal(getSubArray(eT1[0], [i, j + posX[0], k + posX[1]]), getSubArray(eT1[1], [i, j + posX[0], k + posX[1]]), getSubArray(eT1[2], [i, j + posX[0], k + posX[1]]),
-                                       getSubArray(eT2[0], [i + posY[0], j, k + posY[1]]), getSubArray(eT2[1], [i + posY[0], j, k + posY[1]]), getSubArray(eT2[2], [i + posY[0], j, k + posY[1]]),
-                                       getSubArray(eT3[0], [i + posZ[0], j + posZ[1], k]), getSubArray(eT3[1], [i + posZ[0], j + posZ[1], k]), getSubArray(eT3[2], [i + posZ[0], j + posZ[1], k]))
-            PXXX = I3x3 * PXXX
+            eT1 = M.r(M.tangents, 'E', 'Ex', 'M')
+            eT2 = M.r(M.tangents, 'E', 'Ey', 'M')
 
-        return PXXX
-    return Pxxx
+        def Pxx(xEdge, yEdge):
+            # no | node      | e1      | e2
+            # 00 | i  ,j     | i  ,j   | i  ,j
+            # 10 | i+1,j     | i  ,j   | i+1,j
+            # 01 | i  ,j+1   | i  ,j+1 | i  ,j
+            # 11 | i+1,j+1   | i  ,j+1 | i+1,j
+            posX = 0 if xEdge == 'eX0' else 1
+            posY = 0 if yEdge == 'eY0' else 1
+
+            ind1 = sub2ind(M.vnEx, np.c_[ii, jj + posX])
+            ind2 = sub2ind(M.vnEy, np.c_[ii + posY, jj]) + M.nEx
+
+            IND = np.r_[ind1, ind2].flatten()
+
+            PXX = sp.coo_matrix((np.ones(2*M.nC), (range(2*M.nC), IND)), shape=(2*M.nC, M.nE)).tocsr()
+
+            if M._meshType == 'LRM':
+                I2x2 = inv2X2BlockDiagonal(getSubArray(eT1[0], [i, j + posX]), getSubArray(eT1[1], [i, j + posX]),
+                                           getSubArray(eT2[0], [i + posY, j]), getSubArray(eT2[1], [i + posY, j]))
+                PXX = I2x2 * PXX
+
+            return PXX
+        return Pxx
+
+    def _getEdgePxxx(M):
+        i, j, k = np.arange(M.nCx), np.arange(M.nCy), np.arange(M.nCz)
+
+        iijjkk = ndgrid(i, j, k)
+        ii, jj, kk = iijjkk[:, 0], iijjkk[:, 1], iijjkk[:, 2]
+
+        if M._meshType == 'LRM':
+            eT1 = M.r(M.tangents, 'E', 'Ex', 'M')
+            eT2 = M.r(M.tangents, 'E', 'Ey', 'M')
+            eT3 = M.r(M.tangents, 'E', 'Ez', 'M')
+
+        def Pxxx(xEdge, yEdge, zEdge):
+
+            # no  | node        | e1          | e2          | e3
+            # 000 | i  ,j  ,k   | i  ,j  ,k   | i  ,j  ,k   | i  ,j  ,k
+            # 100 | i+1,j  ,k   | i  ,j  ,k   | i+1,j  ,k   | i+1,j  ,k
+            # 010 | i  ,j+1,k   | i  ,j+1,k   | i  ,j  ,k   | i  ,j+1,k
+            # 110 | i+1,j+1,k   | i  ,j+1,k   | i+1,j  ,k   | i+1,j+1,k
+            # 001 | i  ,j  ,k+1 | i  ,j  ,k+1 | i  ,j  ,k+1 | i  ,j  ,k
+            # 101 | i+1,j  ,k+1 | i  ,j  ,k+1 | i+1,j  ,k+1 | i+1,j  ,k
+            # 011 | i  ,j+1,k+1 | i  ,j+1,k+1 | i  ,j  ,k+1 | i  ,j+1,k
+            # 111 | i+1,j+1,k+1 | i  ,j+1,k+1 | i+1,j  ,k+1 | i+1,j+1,k
+
+            posX = [0,0] if xEdge == 'eX0' else [1, 0] if xEdge == 'eX1' else [0,1] if xEdge == 'eX2' else [1,1]
+            posY = [0,0] if yEdge == 'eY0' else [1, 0] if yEdge == 'eY1' else [0,1] if yEdge == 'eY2' else [1,1]
+            posZ = [0,0] if zEdge == 'eZ0' else [1, 0] if zEdge == 'eZ1' else [0,1] if zEdge == 'eZ2' else [1,1]
+
+            ind1 = sub2ind(M.vnEx, np.c_[ii, jj + posX[0], kk + posX[1]])
+            ind2 = sub2ind(M.vnEy, np.c_[ii + posY[0], jj, kk + posY[1]]) + M.nEx
+            ind3 = sub2ind(M.vnEz, np.c_[ii + posZ[0], jj + posZ[1], kk]) + M.nEx + M.nEy
+
+            IND = np.r_[ind1, ind2, ind3].flatten()
+
+            PXXX = sp.coo_matrix((np.ones(3*M.nC), (range(3*M.nC), IND)), shape=(3*M.nC, M.nE)).tocsr()
+
+            if M._meshType == 'LRM':
+                I3x3 = inv3X3BlockDiagonal(getSubArray(eT1[0], [i, j + posX[0], k + posX[1]]), getSubArray(eT1[1], [i, j + posX[0], k + posX[1]]), getSubArray(eT1[2], [i, j + posX[0], k + posX[1]]),
+                                           getSubArray(eT2[0], [i + posY[0], j, k + posY[1]]), getSubArray(eT2[1], [i + posY[0], j, k + posY[1]]), getSubArray(eT2[2], [i + posY[0], j, k + posY[1]]),
+                                           getSubArray(eT3[0], [i + posZ[0], j + posZ[1], k]), getSubArray(eT3[1], [i + posZ[0], j + posZ[1], k]), getSubArray(eT3[2], [i + posZ[0], j + posZ[1], k]))
+                PXXX = I3x3 * PXXX
+
+            return PXXX
+        return Pxxx
 
 if __name__ == '__main__':
     from TensorMesh import TensorMesh
