@@ -13,8 +13,8 @@ SimPEG
     :target: https://crate.io/packages/SimPEG/
     :alt: Number of PyPI downloads
 
-.. image:: http://img.shields.io/badge/license-BSD-lightgrey.svg
-    :target: https://github.com/simpeg/simpeg/blob/master/LICENSE.txt
+.. image:: http://img.shields.io/badge/license-MIT-blue.svg
+    :target: https://github.com/simpeg/simpeg/blob/master/LICENSE
     :alt: BSD 3 clause license.
 
 .. image:: http://img.shields.io/travis/simpeg/simpeg.svg
