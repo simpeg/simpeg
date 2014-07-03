@@ -300,46 +300,57 @@ class BaseTensorMesh(BaseRectangularMesh):
         else:
             return M
 
-    def _fastInnerProductDeriv(self, projType, tensorType):
+    def _fastInnerProductDeriv(self, projType, prop, invProp=False, invMat=False):
         """
             :param str projType: 'E' or 'F'
             :param TensorType tensorType: type of the tensor
+            :param bool invProp: inverts the material property
+            :param bool invMat: inverts the matrix
             :rtype: function
             :return: dMdmu, the derivative of the inner product matrix
         """
         assert projType in ['F', 'E'], "projType must be 'F' for faces or 'E' for edges"
-        if tensorType == -1:
-            return None
+        tensorType = Utils.TensorType(self, prop)
+
+        dMdprop = None
+
+        if invMat:
+            MI = self._fastInnerProduct(projType, prop, invProp=invProp, invMat=invMat)
 
         if tensorType == 0:
             Av = getattr(self, 'ave'+projType+'2CC')
             V = Utils.sdiag(self.vol)
             ones = sp.csr_matrix((np.ones(self.nC), (range(self.nC), np.zeros(self.nC))), shape=(self.nC,1))
-            # if v is None:
-            #     return self.dim * Av.T * V * ones
-            dim_x_AvT_x_V_x_ones = self.dim * Av.T * V * ones
-            def scalarInnerProductDeriv(v):
-                return Utils.sdiag(v) * dim_x_AvT_x_V_x_ones
-            return scalarInnerProductDeriv
+            if not invMat and not invProp:
+                dMdprop = self.dim * Av.T * V * ones
+            elif invMat and invProp:
+                dMdprop =  self.dim * Utils.sdiag(MI.diagonal()**2) * Av.T * V * ones * Utils.sdiag(1./prop**2)
 
         if tensorType == 1:
             Av = getattr(self, 'ave'+projType+'2CC')
             V = Utils.sdiag(self.vol)
-            dim_x_AvT_x_V = self.dim * Av.T * V
-            def isotropicInnerProductDeriv(v=None):
-                if v is None:
-                    print 'Depreciation Warning: TensorMesh.isotropicInnerProductDeriv. You should be supplying a vector. Returning: d * Av.T * V'
-                    return dim_x_AvT_x_V
-                return Utils.sdiag(v) * dim_x_AvT_x_V
-            return isotropicInnerProductDeriv
+            if not invMat and not invProp:
+                dMdprop = self.dim * Av.T * V
+            elif invMat and invProp:
+                dMdprop =  self.dim * Utils.sdiag(MI.diagonal()**2) * Av.T * V * Utils.sdiag(1./prop**2)
 
         if tensorType == 2: # anisotropic
             Av = getattr(self, 'ave'+projType+'2CCV')
             V = sp.kron(sp.identity(self.dim), Utils.sdiag(self.vol))
-            AvT_x_V = Av.T * V
-            def anisotropicInnerProductDeriv(v):
-                return Utils.sdiag(v) * AvT_x_V
-            return anisotropicInnerProductDeriv
+            if not invMat and not invProp:
+                dMdprop = Av.T * V
+            elif invMat and invProp:
+                dMdprop =  Utils.sdiag(MI.diagonal()**2) * Av.T * V * Utils.sdiag(1./prop**2)
+
+        if dMdprop is not None:
+            def innerProductDeriv(v=None):
+                if v is None:
+                    print 'Depreciation Warning: TensorMesh.innerProductDeriv. You should be supplying a vector. Use: sdiag(u)*dMdprop'
+                    return dMdprop
+                return Utils.sdiag(v) * dMdprop
+            return innerProductDeriv
+        else:
+            return None
 
 
 

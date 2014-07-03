@@ -148,18 +148,16 @@ class InnerProducts(object):
             :rtype: scipy.csr_matrix
             :return: dMdm, the derivative of the inner product matrix (nE, nC*nA)
         """
-        tensorType = TensorType(self, prop)
         fast = None
-
         if hasattr(self, '_fastInnerProductDeriv') and doFast:
-            fast = self._fastInnerProductDeriv(projType, tensorType, invProp=invProp, invMat=invMat)
+            fast = self._fastInnerProductDeriv(projType, prop, invProp=invProp, invMat=invMat)
+        if fast is not None:
+            return fast
 
         if invProp or invMat:
             raise NotImplementedError('inverting the property or the matrix is not yet implemented for this mesh/tensorType. You should write it!')
 
-        if fast is not None:
-            return fast
-
+        tensorType = TensorType(self, prop)
         P = self._getInnerProductProjectionMatrices(projType, tensorType=tensorType)
         def innerProductDeriv(v):
             return self._getInnerProductDerivFunction(tensorType, P, projType, v)

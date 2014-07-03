@@ -20,7 +20,7 @@ class TestInnerProductsDerivs(unittest.TestCase):
             M  = mesh.getFaceInnerProduct(sig, invProp=invProp, invMat=invMat)
             Md = mesh.getFaceInnerProductDeriv(sig, invProp=invProp, invMat=invMat, doFast=fast)
             return M*v, Md(v)
-        print meshType, 'Face', h, rep, fast
+        print meshType, 'Face', h, rep, fast, ('harmonic' if invProp and invMat else 'standard')
         return checkDerivative(fun, sig, num=5, plotIt=False)
 
     def doTestEdge(self, h, rep, fast, meshType, invProp=False, invMat=False):
@@ -37,7 +37,7 @@ class TestInnerProductsDerivs(unittest.TestCase):
             M  = mesh.getEdgeInnerProduct(sig, invProp=invProp, invMat=invMat)
             Md = mesh.getEdgeInnerProductDeriv(sig, invProp=invProp, invMat=invMat, doFast=fast)
             return M*v, Md(v)
-        print meshType, 'Edge', h, rep, fast
+        print meshType, 'Edge', h, rep, fast, ('harmonic' if invProp and invMat else 'standard')
         return checkDerivative(fun, sig, num=5, plotIt=False)
 
     def test_FaceIP_1D_float(self):
@@ -118,22 +118,22 @@ class TestInnerProductsDerivs(unittest.TestCase):
 
 
 
-    # def test_FaceIP_1D_float_fast_harmonic(self):
-    #     self.assertTrue(self.doTestFace([10],0, True, 'Tensor', invProp=True, invMat=True))
-    # def test_FaceIP_2D_float_fast_harmonic(self):
-    #     self.assertTrue(self.doTestFace([10, 4],0, True, 'Tensor', invProp=True, invMat=True))
-    # def test_FaceIP_3D_float_fast_harmonic(self):
-    #     self.assertTrue(self.doTestFace([10, 4, 5],0, True, 'Tensor', invProp=True, invMat=True))
+    def test_FaceIP_1D_float_fast_harmonic(self):
+        self.assertTrue(self.doTestFace([10],0, True, 'Tensor', invProp=True, invMat=True))
+    def test_FaceIP_2D_float_fast_harmonic(self):
+        self.assertTrue(self.doTestFace([10, 4],0, True, 'Tensor', invProp=True, invMat=True))
+    def test_FaceIP_3D_float_fast_harmonic(self):
+        self.assertTrue(self.doTestFace([10, 4, 5],0, True, 'Tensor', invProp=True, invMat=True))
     def test_FaceIP_1D_isotropic_fast_harmonic(self):
         self.assertTrue(self.doTestFace([10],1, True, 'Tensor', invProp=True, invMat=True))
     def test_FaceIP_2D_isotropic_fast_harmonic(self):
         self.assertTrue(self.doTestFace([10, 4],1, True, 'Tensor', invProp=True, invMat=True))
     def test_FaceIP_3D_isotropic_fast_harmonic(self):
         self.assertTrue(self.doTestFace([10, 4, 5],1, True, 'Tensor', invProp=True, invMat=True))
-    # def test_FaceIP_2D_anisotropic_fast_harmonic(self):
-    #     self.assertTrue(self.doTestFace([10, 4],2, True, 'Tensor', invProp=True, invMat=True))
-    # def test_FaceIP_3D_anisotropic_fast_harmonic(self):
-    #     self.assertTrue(self.doTestFace([10, 4, 5],3, True, 'Tensor', invProp=True, invMat=True))
+    def test_FaceIP_2D_anisotropic_fast_harmonic(self):
+        self.assertTrue(self.doTestFace([10, 4],2, True, 'Tensor', invProp=True, invMat=True))
+    def test_FaceIP_3D_anisotropic_fast_harmonic(self):
+        self.assertTrue(self.doTestFace([10, 4, 5],3, True, 'Tensor', invProp=True, invMat=True))
 
 
 
