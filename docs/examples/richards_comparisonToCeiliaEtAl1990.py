@@ -16,7 +16,8 @@ h = np.zeros(M.nC) + bc[0]
 
 
 def getFields(timeStep,method):
-    prob = Richards.RichardsProblem(M, mapping=E, timeStep=timeStep, timeEnd=360,
+    timeSteps = np.ones(360/timeStep)*timeStep
+    prob = Richards.RichardsProblem(M, mapping=E, timeSteps=timeSteps,
                                     boundaryConditions=bc, initialConditions=h,
                                     doNewton=False, method=method)
     return prob.fields(params['Ks'])
