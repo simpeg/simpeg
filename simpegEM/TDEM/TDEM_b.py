@@ -106,7 +106,7 @@ class ProblemTDEM_b(BaseTDEMProblem):
 
         # fake initial 'e' fields
         p[:, 'e', 0] = 0.0
-        dMdsig = self.mesh.getEdgeInnerProductDeriv(self.tensorType)
+        dMdsig = self.mesh.getEdgeInnerProductDeriv(self.curModel.transform)
         dsigdm_x_v = self.curModel.transformDeriv*vec
         for i in range(1,self.nT+1):
             # TODO: G[1] may be dependent on the model
@@ -130,7 +130,7 @@ class ProblemTDEM_b(BaseTDEMProblem):
         if u is None:
             u = self.fields(m)
         self.curModel = m
-        dMdsig = self.mesh.getEdgeInnerProductDeriv(self.tensorType)
+        dMdsig = self.mesh.getEdgeInnerProductDeriv(self.curModel.transform)
         dsigdm = self.curModel.transformDeriv
 
         nTx = self.survey.nTx
