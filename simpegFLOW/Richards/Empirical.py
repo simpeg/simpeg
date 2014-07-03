@@ -153,7 +153,7 @@ class HaverkampParams(object):
         """
         return {'alpha':1.611e+06, 'beta':3.96,
                 'theta_r':0.075, 'theta_s':0.287,
-                'Ks':np.log(9.44e-03), 'A':1.175e+06,
+                'Ks':9.44e-03, 'A':1.175e+06,
                 'gamma':4.74}
 
 
@@ -243,7 +243,7 @@ class Haverkamp(RichardsMap):
     theta_r = _ModelProperty('theta_r', ['thetaModel'], default=0.075)
     theta_s = _ModelProperty('theta_s', ['thetaModel'], default=0.287)
 
-    Ks    = _ModelProperty('Ks',    ['kModel'], default=np.log(24.96))
+    Ks    = _ModelProperty('Ks',    ['kModel'], default=24.96)
     A     = _ModelProperty('A',     ['kModel'], default=1.1750e+06)
     gamma = _ModelProperty('gamma', ['kModel'], default=4.74)
 
@@ -357,7 +357,7 @@ class VanGenuchten(RichardsMap):
     alpha   = _ModelProperty('alpha',   ['thetaModel', 'kModel'], default=0.036)
     n       = _ModelProperty('n',       ['thetaModel', 'kModel'], default=1.560)
 
-    Ks    = _ModelProperty('Ks',    ['kModel'], default=np.log(24.96))
+    Ks    = _ModelProperty('Ks',    ['kModel'], default=24.96)
     I     = _ModelProperty('I',     ['kModel'], default=0.500)
 
     def __init__(self, mesh, **kwargs):
