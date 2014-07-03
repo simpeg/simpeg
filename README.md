@@ -19,7 +19,7 @@ Build Status:
 [![Build Status](https://travis-ci.org/simpeg/simpegpf.svg?branch=master)](https://travis-ci.org/simpeg/simpegpf)
 
 Coverage Status:
-[![Coverage Status](https://coveralls.io/repos/simpeg/simpegdc/badge.png?branch=master)](https://coveralls.io/r/simpeg/simpegdc?branch=master)
+[![Coverage Status](https://coveralls.io/repos/simpeg/simpegpf/badge.png?branch=master)](https://coveralls.io/r/simpeg/simpegpf?branch=master)
 
 Bugs & Issues:
 [https://github.com/simpeg/simpegpf/issues](https://github.com/simpeg/simpegpf/issues)
