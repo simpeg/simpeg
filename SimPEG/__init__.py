@@ -15,7 +15,4 @@ import Directives
 import Inversion
 import Tests
 
-
-import scipy.version as _v
-if _v.version < '0.13.0':
-    print 'Warning: upgrade your scipy to 0.13.0'
+__version__ = '0.1.0'
