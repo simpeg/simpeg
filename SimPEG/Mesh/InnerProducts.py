@@ -109,9 +109,9 @@ class InnerProducts(object):
         return [V*proj(*locs[node][d-1]) for node in nodes]
 
 
-    def getFaceInnerProductDeriv(self, tensorType, doFast=True):
+    def getFaceInnerProductDeriv(self, prop, doFast=True):
         """
-            :param TensorType tensorType: type of the tensor: TensorType(mesh, sigma)
+            :param numpy.array prop: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
             :param bool doFast: do a faster implementation if available.
             :rtype: function
             :return: dMdmu(u), the derivative of the inner product matrix (u)
@@ -122,27 +122,27 @@ class InnerProducts(object):
             :rtype: scipy.csr_matrix
             :return: dMdmu, the derivative of the inner product matrix for a certain u
         """
-        return self._getInnerProductDeriv(tensorType, 'F', doFast=doFast)
+        return self._getInnerProductDeriv(prop, 'F', doFast=doFast)
 
 
-    def getEdgeInnerProductDeriv(self, tensorType, doFast=True):
+    def getEdgeInnerProductDeriv(self, prop, doFast=True):
         """
-            :param TensorType tensorType: type of the tensor: TensorType(mesh, sigma)
+            :param numpy.array prop: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
             :param bool doFast: do a faster implementation if available.
             :rtype: scipy.csr_matrix
             :return: dMdm, the derivative of the inner product matrix (nE, nC*nA)
         """
-        return self._getInnerProductDeriv(tensorType, 'E', doFast=doFast)
+        return self._getInnerProductDeriv(prop, 'E', doFast=doFast)
 
-    def _getInnerProductDeriv(self, tensorType, projType, doFast=True):
+    def _getInnerProductDeriv(self, prop, projType, doFast=True):
         """
-            :param TensorType tensorType: type of the tensor: TensorType(mesh, sigma)
+            :param numpy.array prop: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
             :param str projType: 'F' for faces 'E' for edges
             :param bool doFast: do a faster implementation if available.
             :rtype: scipy.csr_matrix
             :return: dMdm, the derivative of the inner product matrix (nE, nC*nA)
         """
-        assert isinstance(tensorType, TensorType), 'tensorType must be an instance of TensorType.'
+        tensorType = TensorType(self, prop)
         fast = None
 
         if hasattr(self, '_fastInnerProductDeriv') and doFast:

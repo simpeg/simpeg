@@ -16,7 +16,7 @@ class TestInnerProductsDerivs(unittest.TestCase):
             mesh = Mesh.TensorMesh(h)
         v = np.random.rand(mesh.nF)
         sig = np.random.rand(1) if rep is 0 else np.random.rand(mesh.nC*rep)
-        Md = mesh.getFaceInnerProductDeriv(Utils.TensorType(mesh, sig), doFast=fast)
+        Md = mesh.getFaceInnerProductDeriv(sig, doFast=fast)
         def fun(sig):
             M = mesh.getFaceInnerProduct(sig)
             return M*v, Md(v)
@@ -33,7 +33,7 @@ class TestInnerProductsDerivs(unittest.TestCase):
             mesh = Mesh.TensorMesh(h)
         v = np.random.rand(mesh.nE)
         sig = np.random.rand(1) if rep is 0 else np.random.rand(mesh.nC*rep)
-        Md = mesh.getEdgeInnerProductDeriv(Utils.TensorType(mesh, sig), doFast=fast)
+        Md = mesh.getEdgeInnerProductDeriv(sig, doFast=fast)
         def fun(sig):
             M = mesh.getEdgeInnerProduct(sig)
             return M*v, Md(v)
