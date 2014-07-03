@@ -6,7 +6,7 @@ from TestUtils import checkDerivative
 
 class TestInnerProductsDerivs(unittest.TestCase):
 
-    def doTestFace(self, h, rep, fast, meshType):
+    def doTestFace(self, h, rep, fast, meshType, invProp=False, invMat=False):
         if meshType == 'LRM':
             hRect = Utils.exampleLrmGrid(h,'rotate')
             mesh = Mesh.LogicallyRectMesh(hRect)
@@ -16,14 +16,14 @@ class TestInnerProductsDerivs(unittest.TestCase):
             mesh = Mesh.TensorMesh(h)
         v = np.random.rand(mesh.nF)
         sig = np.random.rand(1) if rep is 0 else np.random.rand(mesh.nC*rep)
-        Md = mesh.getFaceInnerProductDeriv(sig, doFast=fast)
         def fun(sig):
-            M = mesh.getFaceInnerProduct(sig)
+            M  = mesh.getFaceInnerProduct(sig, invProp=invProp, invMat=invMat)
+            Md = mesh.getFaceInnerProductDeriv(sig, invProp=invProp, invMat=invMat, doFast=fast)
             return M*v, Md(v)
         print meshType, 'Face', h, rep, fast
         return checkDerivative(fun, sig, num=5, plotIt=False)
 
-    def doTestEdge(self, h, rep, fast, meshType):
+    def doTestEdge(self, h, rep, fast, meshType, invProp=False, invMat=False):
         if meshType == 'LRM':
             hRect = Utils.exampleLrmGrid(h,'rotate')
             mesh = Mesh.LogicallyRectMesh(hRect)
@@ -33,9 +33,9 @@ class TestInnerProductsDerivs(unittest.TestCase):
             mesh = Mesh.TensorMesh(h)
         v = np.random.rand(mesh.nE)
         sig = np.random.rand(1) if rep is 0 else np.random.rand(mesh.nC*rep)
-        Md = mesh.getEdgeInnerProductDeriv(sig, doFast=fast)
         def fun(sig):
-            M = mesh.getEdgeInnerProduct(sig)
+            M  = mesh.getEdgeInnerProduct(sig, invProp=invProp, invMat=invMat)
+            Md = mesh.getEdgeInnerProductDeriv(sig, invProp=invProp, invMat=invMat, doFast=fast)
             return M*v, Md(v)
         print meshType, 'Edge', h, rep, fast
         return checkDerivative(fun, sig, num=5, plotIt=False)
@@ -115,6 +115,25 @@ class TestInnerProductsDerivs(unittest.TestCase):
         self.assertTrue(self.doTestEdge([10, 4],2, True, 'Tensor'))
     def test_EdgeIP_3D_anisotropic_fast(self):
         self.assertTrue(self.doTestEdge([10, 4, 5],3, True, 'Tensor'))
+
+
+
+    # def test_FaceIP_1D_float_fast_harmonic(self):
+    #     self.assertTrue(self.doTestFace([10],0, True, 'Tensor', invProp=True, invMat=True))
+    # def test_FaceIP_2D_float_fast_harmonic(self):
+    #     self.assertTrue(self.doTestFace([10, 4],0, True, 'Tensor', invProp=True, invMat=True))
+    # def test_FaceIP_3D_float_fast_harmonic(self):
+    #     self.assertTrue(self.doTestFace([10, 4, 5],0, True, 'Tensor', invProp=True, invMat=True))
+    def test_FaceIP_1D_isotropic_fast_harmonic(self):
+        self.assertTrue(self.doTestFace([10],1, True, 'Tensor', invProp=True, invMat=True))
+    def test_FaceIP_2D_isotropic_fast_harmonic(self):
+        self.assertTrue(self.doTestFace([10, 4],1, True, 'Tensor', invProp=True, invMat=True))
+    def test_FaceIP_3D_isotropic_fast_harmonic(self):
+        self.assertTrue(self.doTestFace([10, 4, 5],1, True, 'Tensor', invProp=True, invMat=True))
+    # def test_FaceIP_2D_anisotropic_fast_harmonic(self):
+    #     self.assertTrue(self.doTestFace([10, 4],2, True, 'Tensor', invProp=True, invMat=True))
+    # def test_FaceIP_3D_anisotropic_fast_harmonic(self):
+    #     self.assertTrue(self.doTestFace([10, 4, 5],3, True, 'Tensor', invProp=True, invMat=True))
 
 
 

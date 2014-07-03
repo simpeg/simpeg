@@ -109,10 +109,12 @@ class InnerProducts(object):
         return [V*proj(*locs[node][d-1]) for node in nodes]
 
 
-    def getFaceInnerProductDeriv(self, prop, doFast=True):
+    def getFaceInnerProductDeriv(self, prop, doFast=True, invProp=False, invMat=False):
         """
             :param numpy.array prop: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
             :param bool doFast: do a faster implementation if available.
+            :param bool invProp: inverts the material property
+            :param bool invMat: inverts the matrix
             :rtype: function
             :return: dMdmu(u), the derivative of the inner product matrix (u)
 
@@ -122,23 +124,27 @@ class InnerProducts(object):
             :rtype: scipy.csr_matrix
             :return: dMdmu, the derivative of the inner product matrix for a certain u
         """
-        return self._getInnerProductDeriv(prop, 'F', doFast=doFast)
+        return self._getInnerProductDeriv(prop, 'F', doFast=doFast, invProp=invProp, invMat=invMat)
 
 
-    def getEdgeInnerProductDeriv(self, prop, doFast=True):
+    def getEdgeInnerProductDeriv(self, prop, doFast=True, invProp=False, invMat=False):
         """
             :param numpy.array prop: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
             :param bool doFast: do a faster implementation if available.
+            :param bool invProp: inverts the material property
+            :param bool invMat: inverts the matrix
             :rtype: scipy.csr_matrix
             :return: dMdm, the derivative of the inner product matrix (nE, nC*nA)
         """
-        return self._getInnerProductDeriv(prop, 'E', doFast=doFast)
+        return self._getInnerProductDeriv(prop, 'E', doFast=doFast, invProp=invProp, invMat=invMat)
 
-    def _getInnerProductDeriv(self, prop, projType, doFast=True):
+    def _getInnerProductDeriv(self, prop, projType, doFast=True, invProp=False, invMat=False):
         """
             :param numpy.array prop: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
             :param str projType: 'F' for faces 'E' for edges
             :param bool doFast: do a faster implementation if available.
+            :param bool invProp: inverts the material property
+            :param bool invMat: inverts the matrix
             :rtype: scipy.csr_matrix
             :return: dMdm, the derivative of the inner product matrix (nE, nC*nA)
         """
@@ -146,7 +152,10 @@ class InnerProducts(object):
         fast = None
 
         if hasattr(self, '_fastInnerProductDeriv') and doFast:
-            fast = self._fastInnerProductDeriv(projType, tensorType)
+            fast = self._fastInnerProductDeriv(projType, tensorType, invProp=invProp, invMat=invMat)
+
+        if invProp or invMat:
+            raise NotImplementedError('inverting the property or the matrix is not yet implemented for this mesh/tensorType. You should write it!')
 
         if fast is not None:
             return fast
