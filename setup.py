@@ -28,6 +28,9 @@ CLASSIFIERS = [
 
 import os, os.path
 
+with open("README.md") as f:
+    LONG_DESCRIPTION = ''.join(f.readlines())
+
 setup(
     name = "SimPEG",
     version = "0.1.1",
@@ -37,8 +40,9 @@ setup(
                         'matplotlib>=1.3',
                        ],
     author = "Rowan Cockett",
-    author_email = "rowanc1@gmail.com",
+    author_email = "rowan@3ptscience.com",
     description = "SimPEG: Simulation and Parameter Estimation for Geophysics",
+    long_description = LONG_DESCRIPTION,
     license = "MIT",
     keywords = "geophysics inverse problem",
     url = "http://simpeg.3ptscience.com/",
