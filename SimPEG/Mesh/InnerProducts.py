@@ -503,11 +503,3 @@ class InnerProducts(object):
 
             return PXXX
         return Pxxx
-
-if __name__ == '__main__':
-    from TensorMesh import TensorMesh
-    h = [np.array([1, 2, 3, 4]), np.array([1, 2, 1, 4, 2]), np.array([1, 1, 4, 1])]
-    M = TensorMesh(h)
-    mu = np.ones((M.nC, 6))
-    A, P = M.getFaceInnerProduct(mu, returnP=True)
-    B, P = M.getEdgeInnerProduct(mu, returnP=True)
