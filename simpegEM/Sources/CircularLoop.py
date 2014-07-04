@@ -7,13 +7,24 @@ def MagneticLoopVectorPotential(txLoc, obsLoc, component, radius):
         at given locations
 
         :param numpy.ndarray txLoc: Location of the transmitter(s) (x, y, z)
-        :param numpy.ndarray obsLoc: Where the potentials will be calculated (x, y, z)
-        :param str component: The component to calculate - 'x', 'y', or 'z'
+        :param numpy.ndarray,SimPEG.Mesh obsLoc: Where the potentials will be calculated (x, y, z) or a SimPEG Mesh
+        :param str,list component: The component to calculate - 'x', 'y', or 'z' if an array, or grid type if mesh, can be a list
         :param numpy.ndarray I: Input current of the loop
         :param numpy.ndarray radius: radius of the loop
         :rtype: numpy.ndarray
         :return: The vector potential each dipole at each observation location
     """
+
+    if type(component) in [list, tuple]:
+        out = range(len(component))
+        for i, comp in enumerate(component):
+            out[i] = MagneticLoopVectorPotential(txLoc, obsLoc, comp, radius)
+        return np.concatenate(out)
+
+    if isinstance(obsLoc, Mesh.BaseMesh):
+        mesh = obsLoc
+        assert component in ['Ex','Ey','Ez','Fx','Fy','Fz'], "Components must be in: ['Ex','Ey','Ez','Fx','Fy','Fz']"
+        return MagneticLoopVectorPotential(txLoc, getattr(mesh,'grid'+component), component[1], radius)
 
     txLoc = np.atleast_2d(txLoc)
     obsLoc = np.atleast_2d(obsLoc)
@@ -24,7 +35,7 @@ def MagneticLoopVectorPotential(txLoc, obsLoc, component, radius):
     if component=='z':
         A = np.zeros((n, nTx))
         if nTx ==1:
-            return A.flatten()        
+            return A.flatten()
         return A
 
     else:
@@ -51,10 +62,10 @@ def MagneticLoopVectorPotential(txLoc, obsLoc, component, radius):
             elif component == 'y':
                 A[ind, i] = Aphi[ind] * ( x[ind] / r[ind] )
             else:
-                raise ValueError('Invalid component')               
+                raise ValueError('Invalid component')
 
         if nTx == 1:
-            return A.flatten()                
+            return A.flatten()
         return A
 
 if __name__ == '__main__':

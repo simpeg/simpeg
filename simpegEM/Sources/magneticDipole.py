@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.constants import mu_0, pi
+from SimPEG import Mesh
 
 def MagneticDipoleVectorPotential(txLoc, obsLoc, component, dipoleMoment=(0., 0., 1.)):
     """
@@ -7,18 +8,29 @@ def MagneticDipoleVectorPotential(txLoc, obsLoc, component, dipoleMoment=(0., 0.
         at given locations 'ref. <http://en.wikipedia.org/wiki/Dipole#Magnetic_vector_potential>'
 
         :param numpy.ndarray txLoc: Location of the transmitter(s) (x, y, z)
-        :param numpy.ndarray obsLoc: Where the potentials will be calculated (x, y, z)
-        :param str component: The component to calculate - 'x', 'y', or 'z'
+        :param numpy.ndarray,SimPEG.Mesh obsLoc: Where the potentials will be calculated (x, y, z) or a SimPEG Mesh
+        :param str,list component: The component to calculate - 'x', 'y', or 'z' if an array, or grid type if mesh, can be a list
         :param numpy.ndarray dipoleMoment: The vector dipole moment
         :rtype: numpy.ndarray
         :return: The vector potential each dipole at each observation location
     """
 
-    if component=='x':
+    if type(component) in [list, tuple]:
+        out = range(len(component))
+        for i, comp in enumerate(component):
+            out[i] = MagneticDipoleVectorPotential(txLoc, obsLoc, comp, dipoleMoment=dipoleMoment)
+        return np.concatenate(out)
+
+    if isinstance(obsLoc, Mesh.BaseMesh):
+        mesh = obsLoc
+        assert component in ['Ex','Ey','Ez','Fx','Fy','Fz'], "Components must be in: ['Ex','Ey','Ez','Fx','Fy','Fz']"
+        return MagneticDipoleVectorPotential(txLoc, getattr(mesh,'grid'+component), component[1], dipoleMoment=dipoleMoment)
+
+    if component == 'x':
         dimInd = 0
-    elif component=='y':
+    elif component == 'y':
         dimInd = 1
-    elif component=='z':
+    elif component == 'z':
         dimInd = 2
     else:
         raise ValueError('Invalid component')
