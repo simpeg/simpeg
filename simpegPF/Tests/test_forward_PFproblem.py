@@ -51,8 +51,8 @@ class MagFwdProblemTests(unittest.TestCase):
 
         dpred = survey.projectFieldsAsVector(B)
         err = np.linalg.norm(dpred-np.r_[bxa, bya, bza])/np.linalg.norm(np.r_[bxa, bya, bza])
+        self.assertTrue(err < 0.08)
 
-        self.assertTrue(err < 0.05)
 
 if __name__ == '__main__':
     unittest.main()
