@@ -41,7 +41,7 @@ def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=[1e-5,
     sigma = np.log(sigma[active])
     prb.pair(survey)
 
-    bz_ana = mu_0*EM.Utils.Ana.hzAnalyticDipoleT(rx.locs[0][0]+1e-3, rx.times, sig_half)
+    bz_ana = mu_0*EM.Analytics.hzAnalyticDipoleT(rx.locs[0][0]+1e-3, rx.times, sig_half)
 
     bz_calc = survey.dpred(sigma)
 

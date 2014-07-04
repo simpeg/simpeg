@@ -1,6 +1,6 @@
 from SimPEG import Utils, Survey, np
 from SimPEG.Survey import BaseSurvey
-from simpegEM.Utils import Sources
+from simpegEM import Sources
 from BaseTDEM import FieldsTDEM
 
 
@@ -106,7 +106,7 @@ class TxTDEM(Survey.BaseTx):
         else:
             raise Exception('Unknown mesh for CircularLoop')
 
-        return {"b": mesh.edgeCurl*MVP}        
+        return {"b": mesh.edgeCurl*MVP}
 
     def getJs(self, mesh, time):
         return None

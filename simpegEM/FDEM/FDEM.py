@@ -1,7 +1,7 @@
 from SimPEG import Survey, Problem, Utils, np, sp, Solver as SimpegSolver
 from scipy.constants import mu_0
 from SurveyFDEM import SurveyFDEM, FieldsFDEM
-from simpegEM.Utils import Sources
+from simpegEM import Sources
 from simpegEM.Base import BaseEMProblem
 
 def omega(freq):
