@@ -78,14 +78,11 @@ class TxTDEM(Survey.BaseTx):
         """Vertical magnetic dipole, magnetic vector potential"""
         if mesh._meshType is 'CYL':
             if mesh.isSymmetric:
-                MVP = Sources.MagneticDipoleVectorPotential(self.loc, mesh.gridEy, 'y')
+                MVP = Sources.MagneticDipoleVectorPotential(self.loc, mesh, 'Ey')
             else:
                 raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
         elif mesh._meshType is 'TENSOR':
-            MVPx = Sources.MagneticDipoleVectorPotential(self.loc, mesh.gridEx, 'x')
-            MVPy = Sources.MagneticDipoleVectorPotential(self.loc, mesh.gridEy, 'y')
-            MVPz = Sources.MagneticDipoleVectorPotential(self.loc, mesh.gridEz, 'z')
-            MVP = np.concatenate((MVPx, MVPy, MVPz))
+            MVP = Sources.MagneticDipoleVectorPotential(self.loc, mesh, ['Ex','Ey','Ez'])
         else:
             raise Exception('Unknown mesh for VMD')
 
@@ -95,14 +92,11 @@ class TxTDEM(Survey.BaseTx):
         """Circular Loop, magnetic vector potential"""
         if mesh._meshType is 'CYL':
             if mesh.isSymmetric:
-                MVP = Sources.MagneticLoopVectorPotential(self.loc, mesh.gridEy, 'y', self.radius)
+                MVP = Sources.MagneticLoopVectorPotential(self.loc, mesh, 'Ey', self.radius)
             else:
                 raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
         elif mesh._meshType is 'TENSOR':
-            MVPx = Sources.MagneticLoopVectorPotential(self.loc, mesh.gridEx, 'x', self.radius)
-            MVPy = Sources.MagneticLoopVectorPotential(self.loc, mesh.gridEy, 'y', self.radius)
-            MVPz = Sources.MagneticLoopVectorPotential(self.loc, mesh.gridEz, 'z', self.radius)
-            MVP = np.concatenate((MVPx, MVPy, MVPz))
+            MVP = Sources.MagneticLoopVectorPotential(self.loc, mesh, ['Ex','Ey','Ez'])
         else:
             raise Exception('Unknown mesh for CircularLoop')
 

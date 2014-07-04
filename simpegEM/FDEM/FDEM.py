@@ -164,10 +164,7 @@ class ProblemFDEM_e(BaseFDEMProblem):
                 src = Sources.MagneticDipoleVectorPotential
             else:
                 raise NotImplemented('%s txType is not implemented' % tx.txType)
-            SRCx = src(tx.loc, self.mesh.gridEx, 'x')
-            SRCy = src(tx.loc, self.mesh.gridEy, 'y')
-            SRCz = src(tx.loc, self.mesh.gridEz, 'z')
-            rhs[i] = np.concatenate((SRCx, SRCy, SRCz))
+            rhs[i] = src(tx.loc, self.mesh, ['Ex','Ey','Ez'])
 
         a = np.concatenate(rhs).reshape((self.mesh.nE, len(Txs)), order='F')
         mui = self.MfMui
