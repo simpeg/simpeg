@@ -160,7 +160,7 @@ Inverse problem
 .. image:: examples/obspred.png
     :width: 800px
     :align: center
-    :height: 350px
+    :height: 400px
     :alt: alternate text    
 
 Mag Differential eq. approach
