@@ -33,7 +33,7 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
     def MfMu0(self): return self._MfMu0
 
     def makeMassMatrices(self, m):
-        mu = self.mapping.transform(m)
+        mu = self.mapping*m
         self._MfMui = self.mesh.getFaceInnerProduct(1./mu)/self.mesh.dim
         # self._MfMui = self.mesh.getFaceInnerProduct(1./mu)
         #TODO: this will break if tensor mu
@@ -61,13 +61,16 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
         Dface = self.mesh.faceDiv
         Mc = Utils.sdiag(self.mesh.vol)
 
-        mu = self.mapping.transform(m)
+        mu = self.mapping*m
         chi = mu/mu_0-1
 
+        
+        #temporary fix
         Bbc, Bbc_const = CongruousMagBC(self.mesh, self.survey.B0, chi)
         self.Bbc = Bbc
         self.Bbc_const = Bbc_const
-        return self._Div*self.MfMuI*self.MfMu0*B0 - self._Div*B0 + Mc*Dface*self._Pout.T*Bbc
+        # return self._Div*self.MfMuI*self.MfMu0*B0 - self._Div*B0 + Mc*Dface*self._Pout.T*Bbc
+        return self._Div*self.MfMuI*self.MfMu0*B0 - self._Div*B0 
 
     def getA(self, m):
         """
@@ -184,8 +187,8 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
             u = self.fields(m)
 
         B, u = u['B'], u['u']
-        mu = self.mapping.transform(m)
-        dmudm = self.mapping.transformDeriv(m)
+        mu = self.mapping*(m)
+        dmudm = self.mapping.deriv(m)
         dchidmu = Utils.sdiag(1/mu_0*np.ones(self.mesh.nC))
 
         vol = self.mesh.vol
@@ -207,7 +210,9 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
         dCdm_RHS1 = Div * (Utils.sdiag( self.MfMu0*B0  ) * dMfMuI)
         temp1 = (Dface*(self._Pout.T*self.Bbc_const*self.Bbc))
         dCdm_RHS2v  = (Utils.sdiag(vol)*temp1)*np.inner(vol, dchidmu*dmudm*v)
-        dCdm_RHSv =  dCdm_RHS1*(dmudm*v) +  dCdm_RHS2v
+        #temporary fix
+        # dCdm_RHSv =  dCdm_RHS1*(dmudm*v) +  dCdm_RHS2v
+        dCdm_RHSv =  dCdm_RHS1*(dmudm*v)
         dCdm_v = dCdm_A*v - dCdm_RHSv
 
         m1 = sp.linalg.interface.aslinearoperator(Utils.sdiag(1/dCdu.diagonal()))
@@ -261,8 +266,8 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
             u = self.fields(m)
 
         B, u = u['B'], u['u']
-        mu = self.mapping.transform(m)
-        dmudm = self.mapping.transformDeriv(m)
+        mu = self.mapping*(m)
+        dmudm = self.mapping.deriv(m)
         dchidmu = Utils.sdiag(1/mu_0*np.ones(self.mesh.nC))
 
         vol = self.mesh.vol
@@ -306,7 +311,10 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
         dCdm_RHS2tsol  = (dmudm.T*dchidmu.T*vol)*np.inner(temp2, temp1sol)
 
         # dCdm_RHSv =  dCdm_RHS1*(dmudm*v) +  dCdm_RHS2v
-        dCdm_RHStsol = dCdm_RHS1tsol - dCdm_RHS2tsol
+
+        #temporary fix
+        # dCdm_RHStsol = dCdm_RHS1tsol - dCdm_RHS2tsol
+        dCdm_RHStsol = dCdm_RHS1tsol
 
         # dCdm_RHSv =  dCdm_RHS1*(dmudm*v) +  dCdm_RHS2v
         # dCdm_v = dCdm_A*v - dCdm_RHSv

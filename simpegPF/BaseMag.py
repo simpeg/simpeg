@@ -121,31 +121,24 @@ class BaseMagMap(Maps.IdentityMap):
     def __init__(self, mesh, **kwargs):
         Maps.IdentityMap.__init__(self, mesh)
 
-    def transform(self, m):
+    def _transform(self, m):
 
         return mu_0*(1 + m)
 
-    def transformDeriv(self, m):
+    def deriv(self, m):
 
         return mu_0*sp.identity(self.nP)
 
-class BaseDepthMap(Maps.IdentityMap):
-    """BaseDepthMagModel"""
+class WeightMap(Maps.IdentityMap):
+    """Weighted Map for distributed parameters"""
 
-    def __init__(self, mesh, **kwargs):
+    def __init__(self, mesh, weight, **kwargs):
         Maps.IdentityMap.__init__(self, mesh)
         self.mesh = mesh
-        self.active_ind = kwargs['active_ind']
-        self.c = kwargs['c']
+        self.weight = weight
 
-    def transform(self, m):
-        weight = abs(self.mesh.gridCC[:,2])**self.c
-        weight = weight/weight.max()
-        weight[~self.active_ind] = 1.
-        return m*weight
+    def _transform(self, m):        
+        return m*self.weight
 
-    def transformDeriv(self, m):
-        weight = abs(self.mesh.gridCC[:,2])**self.c
-        weight = weight/weight.max()
-        weight[~self.active_ind] = 1.
-        return Utils.sdiag(weight)
+    def deriv(self, m):
+        return Utils.sdiag(self.weight)    
