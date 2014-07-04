@@ -151,6 +151,17 @@ Differential equation approach
 Inverse problem
 ===============
 
+.. image:: examples/model.png
+    :width: 800px
+    :align: center
+    :height: 350px
+    :alt: alternate text
+
+.. image:: examples/obspred.png
+    :width: 800px
+    :align: center
+    :height: 350px
+    :alt: alternate text    
 
 Mag Differential eq. approach
 *****************************

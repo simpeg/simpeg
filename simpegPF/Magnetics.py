@@ -55,7 +55,7 @@ class MagneticsDiffSecondary(Problem.BaseProblem):
         .. math ::
 
             \mathbf{rhs} =  \Div(\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0 - \Div\mathbf{B}_0+\diag(v)\mathbf{D} \mathbf{P}_{out}^T \mathbf{B}_{sBC}
-
+            
         """
         B0 = self.getB0()
         Dface = self.mesh.faceDiv
