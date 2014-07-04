@@ -355,16 +355,17 @@ class BaseSurvey(object):
         "Check if the data is synthetic."
         return self.mtrue is not None
 
-    def makeSyntheticData(self, m, std=0.05, u=None):
+    def makeSyntheticData(self, m, std=0.05, u=None, force=False):
         """
             Make synthetic data given a model, and a standard deviation.
 
             :param numpy.array m: geophysical model
             :param numpy.array std: standard deviation
             :param numpy.array u: fields for the given model (if pre-calculated)
+            :param bool force: force overwriting of dobs
 
         """
-        if getattr(self, 'dobs', None) is not None:
+        if getattr(self, 'dobs', None) is not None and not force:
             raise Exception('Survey already has dobs.')
         self.mtrue = m
         self.dtrue = self.dpred(m, u=u)
