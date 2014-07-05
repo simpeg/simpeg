@@ -36,8 +36,7 @@ setup(
     version = "0.1.1",
     packages = find_packages(),
     install_requires = ['numpy>=1.7',
-                        'scipy>=0.13',
-                        'matplotlib>=1.3',
+                        'scipy>=0.13'
                        ],
     author = "Rowan Cockett",
     author_email = "rowan@3ptscience.com",
