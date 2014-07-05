@@ -161,7 +161,10 @@ Inverse problem
     :width: 800px
     :align: center
     :height: 400px
-    :alt: alternate text    
+    :alt: alternate text
+
+.. raw:: html
+    :file: examples/movie.html
 
 Mag Differential eq. approach
 *****************************
