@@ -102,3 +102,7 @@ Project Index & Search
 * :ref:`modindex`
 * :ref:`search`
 
+Examples
+********
+
+* Examples
