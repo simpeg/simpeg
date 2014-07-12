@@ -13,12 +13,22 @@ class MapTests(unittest.TestCase):
         a = np.array([1, 1, 1])
         b = np.array([1, 2])
         self.mesh2 = Mesh.TensorMesh([a, b], x0=np.array([3, 5]))
+        self.mesh3 = Mesh.TensorMesh([a, b, [3,4]], x0=np.array([3, 5, 2]))
         self.mesh22 = Mesh.TensorMesh([b, a], x0=np.array([3, 5]))
 
-    def test_transforms(self):
+    def test_transforms2D(self):
         for M in dir(Maps):
             try:
                 maps = getattr(Maps, M)(self.mesh2)
+                assert isinstance(maps, Maps.IdentityMap)
+            except Exception, e:
+                continue
+            self.assertTrue(maps.test())
+
+    def test_transforms3D(self):
+        for M in dir(Maps):
+            try:
+                maps = getattr(Maps, M)(self.mesh3)
                 assert isinstance(maps, Maps.IdentityMap)
             except Exception, e:
                 continue
@@ -88,6 +98,35 @@ class MapTests(unittest.TestCase):
 
         self.assertRaises(ValueError, lambda: expMap * actMap * vertMap )
         self.assertRaises(ValueError, lambda: actMap * vertMap * expMap )
+
+
+    def test_map2Dto3D_x(self):
+        M2 = Mesh.TensorMesh([2,4])
+        M3 = Mesh.TensorMesh([3,2,4])
+        m = np.random.rand(M2.nC)
+        m2to3 = Maps.Map2Dto3D(M3, normal='X')
+        m = np.arange(m2to3.nP)
+        self.assertTrue(m2to3.test())
+        self.assertTrue(np.all(Utils.mkvc( (m2to3 * m).reshape(M3.vnC,order='F')[0,:,:] ) == m))
+
+
+    def test_map2Dto3D_y(self):
+        M2 = Mesh.TensorMesh([3,4])
+        M3 = Mesh.TensorMesh([3,2,4])
+        m = np.random.rand(M2.nC)
+        m2to3 = Maps.Map2Dto3D(M3, normal='Y')
+        m = np.arange(m2to3.nP)
+        self.assertTrue(m2to3.test())
+        self.assertTrue(np.all(Utils.mkvc( (m2to3 * m).reshape(M3.vnC,order='F')[:,0,:] ) == m))
+
+    def test_map2Dto3D_z(self):
+        M2 = Mesh.TensorMesh([3,2])
+        M3 = Mesh.TensorMesh([3,2,4])
+        m = np.random.rand(M2.nC)
+        m2to3 = Maps.Map2Dto3D(M3, normal='Z')
+        m = np.arange(m2to3.nP)
+        self.assertTrue(m2to3.test())
+        self.assertTrue(np.all(Utils.mkvc( (m2to3 * m).reshape(M3.vnC,order='F')[:,:,0] ) == m))
 
 
 if __name__ == '__main__':
