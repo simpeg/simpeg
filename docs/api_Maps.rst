@@ -119,7 +119,6 @@ When these are used in the inverse problem, this is extremely important!!
     expMap.test(m, plotIt=True)
 
 
-
 The API
 =======
 
@@ -178,8 +177,8 @@ Mesh to Mesh Map
     v = Utils.mkvc(V)
     modh = Maps.Mesh2Mesh([M,M2])
     modH = Maps.Mesh2Mesh([M2,M])
-    H = modH.transform(v)
-    h = modh.transform(H)
+    H = modH * v
+    h = modh * H
     ax = plt.subplot(131)
     M.plotImage(v, ax=ax)
     ax.set_title('Fine Mesh (Original)')
@@ -212,10 +211,3 @@ be sure to test that the derivative is correct.
     :members:
     :undoc-members:
 
-
-Non Linear Map
---------------
-
-.. autoclass:: SimPEG.Maps.NonLinearMap
-    :members:
-    :undoc-members:
