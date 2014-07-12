@@ -50,5 +50,14 @@ class DCProblemTests(unittest.TestCase):
         self.assertTrue(passed)
 
 
+    def test_massMatrices(self):
+        Gu = np.random.rand(self.mesh.nF)
+        def derChk(m):
+            self.p.curModel = m
+            return [self.p.Msig * Gu, self.p.dMdsig(Gu)]
+        passed = Tests.checkDerivative(derChk, self.m0, plotIt=False)
+        self.assertTrue(passed)
+
+
 if __name__ == '__main__':
     unittest.main()

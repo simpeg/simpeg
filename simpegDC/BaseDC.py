@@ -95,7 +95,24 @@ class ProblemDC(Problem.BaseProblem):
         Utils.setKwargs(self, **kwargs)
 
 
-    deleteTheseOnModelUpdate = ['_A']
+    deleteTheseOnModelUpdate = ['_A', '_Msig', '_dMdsig']
+
+    @property
+    def Msig(self):
+        if getattr(self, '_Msig', None) is None:
+            sigma = self.curModel.transform
+            Av = self.mesh.aveF2CC
+            self._Msig = Utils.sdInv(Utils.sdiag(self.mesh.dim * Av.T * (1/sigma)))
+        return self._Msig
+
+    @property
+    def dMdsig(self):
+        if getattr(self, '_dMdsig', None) is None:
+            sigma = self.curModel.transform
+            Av = self.mesh.aveF2CC
+            dMdprop = self.mesh.dim * Utils.sdiag(self.Msig.diagonal()**2) * Av.T * Utils.sdiag(1./sigma**2)
+            self._dMdsig = lambda Gu: Utils.sdiag(Gu) * dMdprop
+        return self._dMdsig
 
     @property
     def A(self):
@@ -114,9 +131,7 @@ class ProblemDC(Problem.BaseProblem):
         if getattr(self, '_A', None) is None:
             D = self.mesh.faceDiv
             G = self.mesh.cellGrad
-            sigma = self.curModel.transform
-            Msig = self.mesh.getFaceInnerProduct(sigma, invProp=True, invMat=True)
-            self._A = D*Msig*G
+            self._A = D*self.Msig*G
             # Remove the null space from the matrix.
             self._A[-1,-1] /= self.mesh.vol[-1]
             self._A = self._A.tocsc()
@@ -168,7 +183,7 @@ class ProblemDC(Problem.BaseProblem):
         D = self.mesh.faceDiv
         G = self.mesh.cellGrad
         # Derivative of inner product, $\left(\mathbf{M}_{1/\sigma}^f\right)^{-1}$
-        dMdsig = self.mesh.getFaceInnerProductDeriv(sigma, invProp=True, invMat=True)
+        dMdsig = self.dMdsig
         # Derivative of model transform, $\deriv{\sigma}{\m}$
         dsigdm_x_v = self.curModel.transformDeriv * v
 
@@ -203,7 +218,7 @@ class ProblemDC(Problem.BaseProblem):
         D = self.mesh.faceDiv
         G = self.mesh.cellGrad
         A = self.A
-        Av_dm = self.mesh.getFaceInnerProductDeriv(sigma, invProp=True, invMat=True)
+        dMdsig = self.dMdsig
         mT_dm = self.mapping.deriv(m)
 
         dCdu = A.T
@@ -212,7 +227,7 @@ class ProblemDC(Problem.BaseProblem):
 
         Jtv = 0
         for i, ui in enumerate(u.T):  # loop over each column
-            Jtv += Av_dm( G * ui ).T * ( D.T * w[:,i] )
+            Jtv += dMdsig( G * ui ).T * ( D.T * w[:,i] )
 
         Jtv = - mT_dm.T * ( Jtv )
         return Jtv
