@@ -104,7 +104,7 @@ class ProblemDC(Problem.BaseProblem):
         if getattr(self, '_Msig', None) is None:
             sigma = self.curModel.transform
             Av = self.mesh.aveF2CC
-            self._Msig = Utils.sdInv(Utils.sdiag(self.mesh.dim * Av.T * (1/sigma)))
+            self._Msig = Utils.sdiag(1/(self.mesh.dim * Av.T * (1/sigma)))
         return self._Msig
 
     @property
@@ -145,9 +145,6 @@ class ProblemDC(Problem.BaseProblem):
         Ainv = self.Solver(A)
         Q    = self.survey.getRhs(self.mesh)
         Phi  = Ainv * Q
-        for ii in range(Phi.shape[1]):
-            # Remove the static shift for each phi column.
-            Phi[:,ii] -= Phi[-1, ii]
         return Phi
 
     def Jvec(self, m, v, u=None):
@@ -201,7 +198,7 @@ class ProblemDC(Problem.BaseProblem):
         dCdu_inv = self.Solver(dCdu, **self.solverOpts)
         P        = self.survey.getP(self.mesh)
         J_x_v    = - P * mkvc( dCdu_inv * dCdm_x_v )
-        return J_x_v # Make $\mathbf{Jv}$ a vector.
+        return J_x_v
 
     def Jtvec(self, m, v, u=None):
 
