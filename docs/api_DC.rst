@@ -44,8 +44,9 @@ DC resistivity survey
 Electrical resistivity of subsurface materials is measured by causing an electrical current to flow in the earth between one pair of electrodes while the voltage across a second pair of electrodes is measured. The result is an "apparent" resistivity which is a value representing the weighted average resistivity over a volume of the earth. Variations in this measurement are caused by variations in the soil, rock, and pore fluid electrical resistivity. Surveys require contact with the ground, so they can be labour intensive. Results are sometimes interpreted directly, but more commonly, 1D, 2D or 3D models are estimated using inversion procedures (`GPG <http://www.eos.ubc.ca/courses/eosc350/content/>`_).
 
 
-Backgrounds
-===========
+Background
+==========
+
 As direct current (DC) implies, in DC resistivity survey, we assume steady-state. We consider Maxwell's equations in steady state as
 
 .. math::
@@ -129,13 +130,20 @@ where
 
 Here \\(\\bm\\) indicates model parameters in discretized space.
 
+Verification
+============
+
+Comparing to the analytic function:
+
 .. plot::
 
     import simpegDC as DC
     DC.Examples.Verification.run(plotIt=True)
 
+API
+===
 
-.. automodule:: simpegDC.DC
+.. automodule:: simpegDC.BaseDC
     :show-inheritance:
     :members:
     :undoc-members:
