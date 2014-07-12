@@ -2,5 +2,10 @@
 
 Examples
 ********
-* `Forward Problem: Acoustic Wave Equation <http://www.seogi.me/s/notebooks/SeismicEx.html>`_
+
+Forward problem
+===============
+
+* `Example 1: Direct Current <http://www.seogi.me/s/notebooks/DCEx.html>`_
+* `Example 2: Seismic-Acoustic <http://www.seogi.me/s/notebooks/SeismicEx.html>`_
 

@@ -105,4 +105,7 @@ Project Index & Search
 Examples
 ********
 
-* Examples
+.. toctree::
+   :maxdepth: 2
+
+   api_Examples
