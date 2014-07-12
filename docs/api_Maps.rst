@@ -154,6 +154,14 @@ Vertical 1D Map
     :undoc-members:
 
 
+Map 2D Cross-Section to 3D Model
+--------------------------------
+
+.. autoclass:: SimPEG.Maps.Map2Dto3D
+    :members:
+    :undoc-members:
+
+
 Mesh to Mesh Map
 ----------------
 
@@ -196,7 +204,7 @@ Combo Map
 ---------
 
 The ComboMap holds the information for multiplying and combining
-maps. It also uses the chain rule create the derivative.
+maps. It also uses the chain rule to create the derivative.
 Remember, any time that you make your own combination of mappings
 be sure to test that the derivative is correct.
 
