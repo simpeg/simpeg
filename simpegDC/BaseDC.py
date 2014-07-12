@@ -89,7 +89,7 @@ class ProblemDC(Problem.BaseProblem):
     """
 
     surveyPair = SurveyDC
-    Solver = Solver
+    Solver     = Solver
 
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh)
@@ -142,7 +142,7 @@ class ProblemDC(Problem.BaseProblem):
     def fields(self, m):
         self.curModel = m
         A    = self.A
-        Ainv = self.Solver(A)
+        Ainv = self.Solver(A, **self.solverOpts)
         Q    = self.survey.getRhs(self.mesh)
         Phi  = Ainv * Q
         return Phi
@@ -218,7 +218,7 @@ class ProblemDC(Problem.BaseProblem):
         mT_dm = self.mapping.deriv(m)
 
         dCdu = A.T
-        Ainv = self.Solver(dCdu)
+        Ainv = self.Solver(dCdu, **self.solverOpts)
         w = Ainv * PT_x_v
 
         Jtv = 0

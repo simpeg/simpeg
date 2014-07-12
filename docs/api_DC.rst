@@ -129,7 +129,11 @@ where
 
 Here \\(\\bm\\) indicates model parameters in discretized space.
 
-.. plot :: ../simpegDC/Examples/Verification.py
+.. plot::
+
+    import simpegDC as DC
+    DC.Examples.Verification.run(plotIt=True)
+
 
 .. automodule:: simpegDC.DC
     :show-inheritance:

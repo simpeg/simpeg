@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 def getTxList(nElecs, aSpacing, in2D=False, plotIt=False):
 
     elocs = np.arange(0,aSpacing*nElecs,aSpacing)
+    elocs -= (nElecs*aSpacing - aSpacing)/2
     space = 1
     WENNER = np.zeros((0,),dtype=int)
     for ii in range(nElecs):
