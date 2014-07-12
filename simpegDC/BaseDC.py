@@ -12,7 +12,7 @@ class DipoleTx(Survey.BaseTx):
             pts = [self.loc[0], self.loc[1]]
             inds = Utils.closestPoints(mesh, pts)
             q = np.zeros(mesh.nC)
-            q[inds] = [1., -1.]
+            q[inds] = - ( np.r_[1., -1.] / mesh.vol[inds] )
             self._rhsDict[mesh] = q
         return self._rhsDict[mesh]
 
@@ -61,8 +61,7 @@ class SurveyDC(Survey.BaseSurvey):
 
     def getRhs(self, mesh):
         if mesh not in self._rhsDict:
-            RHSlist = [tx.getRhs(mesh) for tx in self.txList]
-            RHS = np.array(RHSlist).T
+            RHS = np.array([tx.getRhs(mesh) for tx in self.txList]).T
             self._rhsDict[mesh] = RHS
         return self._rhsDict[mesh]
 
@@ -182,8 +181,6 @@ class ProblemDC(Problem.BaseProblem):
 
         D = self.mesh.faceDiv
         G = self.mesh.cellGrad
-        # Derivative of inner product, $\left(\mathbf{M}_{1/\sigma}^f\right)^{-1}$
-        dMdsig = self.dMdsig
         # Derivative of model transform, $\deriv{\sigma}{\m}$
         dsigdm_x_v = self.curModel.transformDeriv * v
 
@@ -191,7 +188,8 @@ class ProblemDC(Problem.BaseProblem):
         dCdm_x_v = np.empty_like(u)
         # loop over fields for each transmitter
         for i in range(self.survey.nTx):
-            dAdsig         = D * dMdsig( G * u[:,i] )
+            # Derivative of inner product, $\left(\mathbf{M}_{1/\sigma}^f\right)^{-1}$
+            dAdsig         = D * self.dMdsig( G * u[:,i] )
             dCdm_x_v[:, i] = dAdsig *  dsigdm_x_v
 
         # Take derivative of $C(m,u)$ w.r.t. $u$
@@ -203,7 +201,6 @@ class ProblemDC(Problem.BaseProblem):
         return J_x_v # Make $\mathbf{Jv}$ a vector.
 
     def Jtvec(self, m, v, u=None):
-        """Takes data, turns it into a model..ish"""
 
         self.curModel = m
         sigma = self.curModel.transform # $\sigma = \mathcal{M}(\m)$
@@ -218,7 +215,6 @@ class ProblemDC(Problem.BaseProblem):
         D = self.mesh.faceDiv
         G = self.mesh.cellGrad
         A = self.A
-        dMdsig = self.dMdsig
         mT_dm = self.mapping.deriv(m)
 
         dCdu = A.T
@@ -227,7 +223,7 @@ class ProblemDC(Problem.BaseProblem):
 
         Jtv = 0
         for i, ui in enumerate(u.T):  # loop over each column
-            Jtv += dMdsig( G * ui ).T * ( D.T * w[:,i] )
+            Jtv += self.dMdsig( G * ui ).T * ( D.T * w[:,i] )
 
         Jtv = - mT_dm.T * ( Jtv )
         return Jtv
