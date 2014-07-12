@@ -88,7 +88,7 @@ class BetaEstimate_ByEig(InversionDirective):
     """BetaEstimate"""
 
     beta0 = None       #: The initial Beta (regularization parameter)
-    beta0_ratio = 0.1  #: estimateBeta0 is used with this ratio
+    beta0_ratio = 1e2  #: estimateBeta0 is used with this ratio
 
     def initialize(self):
         """
@@ -136,7 +136,7 @@ class BetaEstimate_ByEig(InversionDirective):
 class BetaSchedule(InversionDirective):
     """BetaSchedule"""
 
-    coolingFactor = 2.
+    coolingFactor = 8.
     coolingRate = 3
 
     def endIter(self):
