@@ -11,8 +11,8 @@ SimPEG-DC uses SimPEG as the framework for the forward and inverse
 direct current resistivity geophysical problem.
 
 
-DC
-==
+DC Resistivity
+==============
 
 .. toctree::
    :maxdepth: 2
