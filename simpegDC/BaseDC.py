@@ -3,6 +3,9 @@ from SimPEG import *
 
 class DipoleTx(Survey.BaseTx):
     """A dipole transmitter, locA and locB are moved to the closest cell-centers"""
+
+    current = 1
+
     def __init__(self, locA, locB, rxList, **kwargs):
         super(DipoleTx, self).__init__((locA, locB), 'dipole', rxList, **kwargs)
         self._rhsDict = {}
@@ -12,7 +15,7 @@ class DipoleTx(Survey.BaseTx):
             pts = [self.loc[0], self.loc[1]]
             inds = Utils.closestPoints(mesh, pts)
             q = np.zeros(mesh.nC)
-            q[inds] = - ( np.r_[1., -1.] / mesh.vol[inds] )
+            q[inds] = - self.current * ( np.r_[1., -1.] / mesh.vol[inds] )
             self._rhsDict[mesh] = q
         return self._rhsDict[mesh]
 
