@@ -102,3 +102,10 @@ Project Index & Search
 * :ref:`modindex`
 * :ref:`search`
 
+Examples
+********
+
+.. toctree::
+   :maxdepth: 2
+
+   api_Examples
