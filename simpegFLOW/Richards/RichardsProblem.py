@@ -96,13 +96,13 @@ class RichardsProblem(Problem.BaseTimeProblem):
     def __init__(self, mesh, mapping=None, **kwargs):
         Problem.BaseTimeProblem.__init__(self, mesh, mapping=mapping, **kwargs)
 
-    def getBoundaryConditions(self, ii):
+    def getBoundaryConditions(self, ii, u_ii):
         if type(self.boundaryConditions) is np.ndarray:
             return self.boundaryConditions
 
         time = self.timeMesh.vectorCCx[ii]
 
-        return self.boundaryConditions(time)
+        return self.boundaryConditions(time, u_ii)
 
     @property
     def method(self):
@@ -131,7 +131,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
         u = range(self.nT+1)
         u[0] = self.initialConditions
         for ii, dt in enumerate(self.timeSteps):
-            bc = self.getBoundaryConditions(ii)
+            bc = self.getBoundaryConditions(ii, u[ii])
             u[ii+1] = self.rootFinder.root(lambda hn1m, return_g=True: self.getResidual(m, u[ii], hn1m, dt, bc, return_g=return_g), u[ii])
         return u
 
@@ -230,7 +230,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
         Asubs, Adiags, Bs = range(nn), range(nn), range(nn)
         for ii in range(nn):
             dt = self.timeSteps[ii]
-            bc = self.getBoundaryConditions(ii)
+            bc = self.getBoundaryConditions(ii, u[ii])
             Asubs[ii], Adiags[ii], Bs[ii] = self.diagsJacobian(m, u[ii], u[ii+1], dt, bc)
         Ad = sp.block_diag(Adiags)
         zRight = Utils.spzeros((len(Asubs)-1)*Asubs[0].shape[0],Adiags[0].shape[1])
@@ -254,13 +254,13 @@ class RichardsProblem(Problem.BaseTimeProblem):
         JvC = range(len(u)-1) # Cell to hold each row of the long vector.
 
         # This is done via forward substitution.
-        bc = self.getBoundaryConditions(0)
+        bc = self.getBoundaryConditions(0, u[0])
         temp, Adiag, B = self.diagsJacobian(m, u[0], u[1], self.timeSteps[0], bc)
         Adiaginv = self.Solver(Adiag, **self.solverOpts)
         JvC[0] = Adiaginv * (B*v)
 
         for ii in range(1,len(u)-1):
-            bc = self.getBoundaryConditions(ii)
+            bc = self.getBoundaryConditions(ii, u[ii])
             Asub, Adiag, B = self.diagsJacobian(m, u[ii], u[ii+1], self.timeSteps[ii], bc)
             Adiaginv = self.Solver(Adiag, **self.solverOpts)
             JvC[ii] = Adiaginv * (B*v - Asub*JvC[ii-1])
@@ -279,7 +279,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
         minus = 0
         BJtv = 0
         for ii in range(len(u)-1,0,-1):
-            bc = self.getBoundaryConditions(ii-1)
+            bc = self.getBoundaryConditions(ii-1, u[ii-1])
             Asub, Adiag, B = self.diagsJacobian(m, u[ii-1], u[ii], self.timeSteps[ii-1], bc)
             #select the correct part of v
             vpart = range((ii)*Adiag.shape[0], (ii+1)*Adiag.shape[0])
