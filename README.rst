@@ -37,7 +37,7 @@ The vision is to create a package for finite volume simulation with applications
 
 
 Documentation:
-http://simpeg.3ptscience.com
+http://simpeg.rtfd.org
 
 
 Code:
