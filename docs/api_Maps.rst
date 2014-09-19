@@ -119,7 +119,6 @@ When these are used in the inverse problem, this is extremely important!!
     expMap.test(m, plotIt=True)
 
 
-
 The API
 =======
 
@@ -154,6 +153,14 @@ Vertical 1D Map
     :undoc-members:
 
 
+Map 2D Cross-Section to 3D Model
+--------------------------------
+
+.. autoclass:: SimPEG.Maps.Map2Dto3D
+    :members:
+    :undoc-members:
+
+
 Mesh to Mesh Map
 ----------------
 
@@ -170,8 +177,8 @@ Mesh to Mesh Map
     v = Utils.mkvc(V)
     modh = Maps.Mesh2Mesh([M,M2])
     modH = Maps.Mesh2Mesh([M2,M])
-    H = modH.transform(v)
-    h = modh.transform(H)
+    H = modH * v
+    h = modh * H
     ax = plt.subplot(131)
     M.plotImage(v, ax=ax)
     ax.set_title('Fine Mesh (Original)')
@@ -196,7 +203,7 @@ Combo Map
 ---------
 
 The ComboMap holds the information for multiplying and combining
-maps. It also uses the chain rule create the derivative.
+maps. It also uses the chain rule to create the derivative.
 Remember, any time that you make your own combination of mappings
 be sure to test that the derivative is correct.
 
@@ -204,10 +211,3 @@ be sure to test that the derivative is correct.
     :members:
     :undoc-members:
 
-
-Non Linear Map
---------------
-
-.. autoclass:: SimPEG.Maps.NonLinearMap
-    :members:
-    :undoc-members:

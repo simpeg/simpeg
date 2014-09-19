@@ -12,7 +12,8 @@ class IdentityMap(object):
 
     mesh = None      #: A SimPEG Mesh
 
-    def __init__(self, mesh):
+    def __init__(self, mesh, **kwargs):
+        Utils.setKwargs(self, **kwargs)
         self.mesh = mesh
 
     @property
@@ -260,6 +261,62 @@ class Vertical1DMap(IdentityMap):
                     (range(repNum), np.zeros(repNum))
                     ), shape=(repNum, 1))
         return sp.kron(sp.identity(self.nP), repVec)
+
+
+class Map2Dto3D(IdentityMap):
+    """Map2Dto3D
+
+        Given a 2D vector, this will extend to the full
+        3D model space.
+    """
+
+    normal = 'Y' #: The normal
+
+    def __init__(self, mesh, **kwargs):
+        assert mesh.dim == 3, 'Only works for a 3D Mesh'
+        IdentityMap.__init__(self, mesh, **kwargs)
+        assert self.normal in ['X','Y','Z'], 'For now, only "Y" normal is supported'
+
+    @property
+    def nP(self):
+        """Number of model properties.
+
+           The number of cells in the
+           last dimension of the mesh."""
+        if self.normal == 'Z':
+            return self.mesh.nCx * self.mesh.nCy
+        elif self.normal == 'Y':
+            return self.mesh.nCx * self.mesh.nCz
+        elif self.normal == 'X':
+            return self.mesh.nCy * self.mesh.nCz
+
+    def _transform(self, m):
+        """
+            :param numpy.array m: model
+            :rtype: numpy.array
+            :return: transformed model
+        """
+        m = Utils.mkvc(m)
+        if self.normal == 'Z':
+            return Utils.mkvc(m.reshape(self.mesh.vnC[[0,1]], order='F')[:,:,np.newaxis].repeat(self.mesh.nCz,axis=2))
+        elif self.normal == 'Y':
+            return Utils.mkvc(m.reshape(self.mesh.vnC[[0,2]], order='F')[:,np.newaxis,:].repeat(self.mesh.nCy,axis=1))
+        elif self.normal == 'X':
+            return Utils.mkvc(m.reshape(self.mesh.vnC[[1,2]], order='F')[np.newaxis,:,:].repeat(self.mesh.nCx,axis=0))
+
+    def deriv(self, m):
+        """
+            :param numpy.array m: model
+            :rtype: scipy.csr_matrix
+            :return: derivative of transformed model
+        """
+        inds = self * np.arange(self.nP)
+        nC, nP = self.mesh.nC, self.nP
+        P = sp.csr_matrix(
+                    (np.ones(nC),
+                    (range(nC), inds)
+                ), shape=(nC, nP))
+        return P
 
 class Mesh2Mesh(IdentityMap):
     """
