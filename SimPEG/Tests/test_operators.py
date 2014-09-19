@@ -49,6 +49,27 @@ class TestCurl(OrderTest):
     def test_order(self):
         self.orderTest()
 
+class TestCurl2D(OrderTest):
+    name = "Cell Grad 2D - Dirichlet"
+    meshTypes = ['uniformTensorMesh']
+    meshDimension = 2
+    meshSizes = [8, 16, 32, 64]
+
+    def getError(self):
+        #Test function
+        ex = lambda x, y: np.cos(y)
+        ey = lambda x, y: np.cos(x)
+        sol = lambda x, y: -np.sin(x)+np.sin(y)
+
+        sol_curl2d = call2(sol, self.M.gridCC)
+        Ec = cartE2(self.M, ex, ey)
+        sol_anal = self.M.edgeCurl*self.M.projectFaceVector(Ec)
+        err = np.linalg.norm((sol_curl2d-sol_anal), np.inf)
+
+        return err
+
+    def test_order(self):
+        self.orderTest()
 
 class TestCellGrad1D_InhomogeneousDirichlet(OrderTest):
     name = "Cell Grad 1D - Dirichlet"
