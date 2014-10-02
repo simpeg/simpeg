@@ -36,8 +36,12 @@ The vision is to create a package for finite volume simulation with applications
 * designed for large-scale inversions
 
 
+Website:
+http://simpeg.xyz
+
+
 Documentation:
-http://simpeg.rtfd.org
+http://docs.simpeg.xyz
 
 
 Code:
