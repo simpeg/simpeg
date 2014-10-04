@@ -45,6 +45,8 @@ class BaseInvProblem(object):
         self.prob, self.survey = dmisfit.prob, dmisfit.survey
         #TODO: Remove: (and make iteration printers better!)
         self.opt.parent = self
+        self.reg.parent = self
+        self.dmisfit.parent = self
 
     @Utils.callHooks('startup')
     def startup(self, m0):

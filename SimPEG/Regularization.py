@@ -40,7 +40,7 @@ class BaseRegularization(object):
     @property
     def inv(self): return self.parent.inv
     @property
-    def objFunc(self): return self.parent
+    def invProb(self): return self.parent
     @property
     def reg(self): return self
     @property
