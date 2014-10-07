@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.constants import mu_0, pi
 from scipy.special import erf
+import matplotlib.pyplot as plt
 
 def hzAnalyticDipoleF(r, freq, sigma, secondary=True):
     """
@@ -22,7 +23,7 @@ def hzAnalyticDipoleF(r, freq, sigma, secondary=True):
 
     """
     r = np.abs(r)
-    k = np.sqrt(-1j*2.*np.pi*freq*mu_0*sigma)
+    k = np.sqrt(-1j*2.*np.pi*f*mu_0*sigma)
 
     m = 1
     front = m / (2. * np.pi * (k**2) * (r**5) )
@@ -35,4 +36,50 @@ def hzAnalyticDipoleF(r, freq, sigma, secondary=True):
 
     return hz
 
+def AnalyticDipoleH(x,y,z,sig,f,xs=0.,ys=0.,zs=0.,m=1.,orientation='X'):
+    """
+    Analytical solution for a dipole in a whole-space.
+
+    Equation 2.57 of Ward and Hohmann
+    """
+
+    dx = x-xs
+    dy = y-ys
+    dz = z-zs
+
+    r  = np.sqrt( dx**2. + dy**2. + dz**2.)
+    k  = np.sqrt(-1j*2.*np.pi*f*mu_0*sig)
+    kr = k*r
+
+    front = m / (4.*pi * r**3.) * np.exp(-1j*kr)
+    mid   = -kr**2. + 3.*1j*kr + 3.
+
+    if orientation.upper() == 'X':
+        Hx = front*( (dx/r)**2. * mid + (kr**2. - 1j*kr - 1.) )
+        Hy = front*( (dx*dy/r**2.) * mid )
+        Hz = front*( (dx*dz/r**2.) * mid )
+
+    elif orientation.upper() == 'Y':
+        Hx = front*( (dy*dx/r**2.) * mid )
+        Hy = front*( (dy/r)**2. * mid + (kr**2. - 1j*kr - 1.) )
+        Hz = front*( (dy*dz/r**2.) * mid )
+
+    elif orientation.upper() == 'Z':
+        Hx = front*( (dx*dz/r**2.) * mid )
+        Hy = front*( (dy*dz/r**2.) * mid )
+        Hz = front*( (dz/r)**2. * mid + (kr**2. - 1j*kr - 1.) )
+
+    return Hx, Hy, Hz
+
+
+if __name__ == '__main__':
+
+    x = np.arange(-100.,102.,2.)
+    y = 50.
+    z = 0.
+
+    sig = 1.
+    f   = 1.
+
+    Hx, Hy, Hz =  AnalyticDipoleH(x,y,z,sig,f)
 
