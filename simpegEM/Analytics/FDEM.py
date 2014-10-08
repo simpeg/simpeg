@@ -23,7 +23,7 @@ def hzAnalyticDipoleF(r, freq, sigma, secondary=True):
 
     """
     r = np.abs(r)
-    k = np.sqrt(-1j*2.*np.pi*f*mu_0*sigma)
+    k = np.sqrt(-1j*2.*np.pi*freq*mu_0*sigma)
 
     m = 1
     front = m / (2. * np.pi * (k**2) * (r**5) )
