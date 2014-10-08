@@ -36,11 +36,17 @@ def hzAnalyticDipoleF(r, freq, sigma, secondary=True):
 
     return hz
 
-def AnalyticDipoleH(x,y,z,sig,f,xs=0.,ys=0.,zs=0.,m=1.,orientation='X'):
+def AnalyticMagDipoleWholeSpace(x,y,z,sig,f,xs=0.,ys=0.,zs=0.,m=1.,orientation='X'):
     """
     Analytical solution for a dipole in a whole-space.
 
     Equation 2.57 of Ward and Hohmann
+
+    TODOs:
+        - set it up to instead take a mesh & survey
+        - add E-fields
+        - handle multiple frequencies
+        - add divide by zero safety
     """
 
     dx = x-xs
@@ -69,17 +75,8 @@ def AnalyticDipoleH(x,y,z,sig,f,xs=0.,ys=0.,zs=0.,m=1.,orientation='X'):
         Hy = front*( (dy*dz/r**2.) * mid )
         Hz = front*( (dz/r)**2. * mid + (kr**2. - 1j*kr - 1.) )
 
-    return Hx, Hy, Hz
-
-
-if __name__ == '__main__':
-
-    x = np.arange(-100.,102.,2.)
-    y = 50.
-    z = 0.
-
-    sig = 1.
-    f   = 1.
-
-    Hx, Hy, Hz =  AnalyticDipoleH(x,y,z,sig,f)
+    Bx = mu_0*Hx
+    By = mu_0*Hy
+    Bz = mu_0*Hz
+    return Bx, By, Bz
 
