@@ -1,2 +1,2 @@
-from TEM import hzAnalyticDipoleT
-from FEM import hzAnalyticDipoleF
+from TDEM import hzAnalyticDipoleT
+from FDEM import hzAnalyticDipoleF
