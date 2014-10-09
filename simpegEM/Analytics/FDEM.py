@@ -1,7 +1,9 @@
+from __future__ import division
 import numpy as np
 from scipy.constants import mu_0, pi
 from scipy.special import erf
 import matplotlib.pyplot as plt
+from SimPEG import Utils
 
 def hzAnalyticDipoleF(r, freq, sigma, secondary=True):
     """
@@ -12,7 +14,7 @@ def hzAnalyticDipoleF(r, freq, sigma, secondary=True):
         import matplotlib.pyplot as plt
         import simpegEM as EM
         freq = np.logspace(-1, 6, 61)
-        test = EM.Utils.Ana.FEM.hzAnalyticDipoleF(100, freq, 0.001, secondary=False)
+        test = EM.Analytics.FDEM.hzAnalyticDipoleF(100, freq, 0.001, secondary=False)
         plt.loglog(freq, abs(test.real))
         plt.loglog(freq, abs(test.imag))
         plt.title('Response at $r$=100m')
@@ -36,7 +38,7 @@ def hzAnalyticDipoleF(r, freq, sigma, secondary=True):
 
     return hz
 
-def AnalyticMagDipoleWholeSpace(x,y,z,sig,f,xs=0.,ys=0.,zs=0.,m=1.,orientation='X'):
+def AnalyticMagDipoleWholeSpace(XYZ, txLoc, sig, f, m=1., orientation='X'):
     """
     Analytical solution for a dipole in a whole-space.
 
@@ -47,14 +49,30 @@ def AnalyticMagDipoleWholeSpace(x,y,z,sig,f,xs=0.,ys=0.,zs=0.,m=1.,orientation='
         - add E-fields
         - handle multiple frequencies
         - add divide by zero safety
+
+
+    .. plot::
+
+        import simpegEM as EM
+        import matplotlib.pyplot as plt
+        freqs = np.logspace(-2,5,100)
+        Bx, By, Bz = EM.Analytics.FDEM.AnalyticMagDipoleWholeSpace([0,100,0], [0,0,0], 1e-2, freqs, m=1, orientation='Z')
+        plt.loglog(freqs, np.abs(Bz.real)/mu_0, 'b')
+        plt.loglog(freqs, np.abs(Bz.imag)/mu_0, 'r')
+        plt.legend(('real','imag'))
+        plt.show()
+
+
     """
 
-    dx = x-xs
-    dy = y-ys
-    dz = z-zs
+    XYZ = Utils.asArray_N_x_Dim(XYZ, 3)
+
+    dx = XYZ[:,0]-txLoc[0]
+    dy = XYZ[:,1]-txLoc[1]
+    dz = XYZ[:,2]-txLoc[2]
 
     r  = np.sqrt( dx**2. + dy**2. + dz**2.)
-    k  = np.sqrt(-1j*2.*np.pi*f*mu_0*sig)
+    k  = np.sqrt( -1j*2.*np.pi*f*mu_0*sig )
     kr = k*r
 
     front = m / (4.*pi * r**3.) * np.exp(-1j*kr)
