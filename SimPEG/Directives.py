@@ -145,6 +145,24 @@ class BetaSchedule(InversionDirective):
             self.invProb.beta /= self.coolingFactor
 
 
+
+class SaveModelEveryIteration(InversionDirective):
+    """SaveModelEveryIteration"""
+
+    @property
+    def modelName(self):
+        if getattr(self, '_modelName', None) is None:
+            from datetime import datetime
+            self._modelName = 'inversionModel-%s'%datetime.now().strftime('%Y-%m-%d')
+        return self._modelName
+    @modelName.setter
+    def modelName(self, value):
+        self._modelName = value
+
+    def endIter(self):
+        np.save('%03d-%s' % (self.opt.iter, self.modelName), self.opt.xc)
+
+
 # class UpdateReferenceModel(Parameter):
 
 #     mref0 = None
