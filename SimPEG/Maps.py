@@ -221,6 +221,27 @@ class ExpMap(IdentityMap):
         """
         return Utils.sdiag(np.exp(Utils.mkvc(m)))
 
+
+class LogMap(IdentityMap):
+
+    def __init__(self, mesh, **kwargs):
+        IdentityMap.__init__(self, mesh, **kwargs)
+
+    def _transform(self, m):
+        return np.log(Utils.mkvc(m))
+
+    def deriv(self, m):
+        mod = Utils.mkvc(m)
+        deriv = np.zeros(mod.shape)
+        tol = 1e-16 # zero
+        ind = np.greater_equal(np.abs(mod),tol)
+        deriv[ind] = 1.0/mod[ind]
+        return Utils.sdiag(deriv)
+
+    def inverse(self, m):
+        return np.exp(Utils.mkvc(m))
+
+
 class Vertical1DMap(IdentityMap):
     """Vertical1DMap
 
