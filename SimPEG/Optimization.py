@@ -444,6 +444,7 @@ class Minimize(object):
         else: # Assume inversion is the parent
             group.attrs['phi_d'] = self.parent.phi_d
             group.attrs['phi_m'] = self.parent.phi_m
+            group.attrs['beta'] = self.parent.beta
             group.setArray('m', self.xc)
             group.setArray('dpred', self.parent.dpred)
 
@@ -929,7 +930,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
 
     @approxHinv.setter
     def approxHinv(self, value):
-        self._approxHinv = value        
+        self._approxHinv = value
 
     @Utils.timeIt
     def findSearchDirection(self):
@@ -949,7 +950,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
             return p
         else:
 
-            
+
             delx = np.zeros(self.g.size)
             resid = -(1-Active) * self.g
 
