@@ -341,6 +341,32 @@ def invPropertyTensor(M, tensor, returnMatrix=False):
     return T
 
 
+def diagEst(matFun, n, k=None, type='Probing1s'):
+    """ Based on Saad http://www-users.cs.umn.edu/~saad/PDF/umsi-2005-082.pdf, and http://www.cita.utoronto.ca/~niels/diagonal.pdf"""
+
+    if k is None:
+        k = np.floor(n/10.)
+
+    if type =='Probing1s':
+        getv = lambda n: np.random.random_integers(-1,high=1,size=n)
+
+    elif type == 'ProbingRandn':
+        getv = lambda n: np.random.randn(n)
+
+    #d = np.zeros(n)
+    Mv = np.zeros(n)
+    vv = np.zeros(n)
+
+    for i in range(0,k):
+        print k
+        vk = getv(n)
+        Mv += (matFun(vk))*vk
+        vv += vk*vk
+
+    d   = Mv/vv
+
+    return d
+
 
 from scipy.sparse.linalg import LinearOperator
 
