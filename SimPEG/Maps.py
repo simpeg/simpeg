@@ -421,6 +421,47 @@ class ActiveCells(IdentityMap):
         return self.P
 
 
+class Weighting(IdentityMap):
+    """
+        Model weight parameters.
+
+    """
+
+    weights     = None #: Active Cells
+    nC          = None #: Number of cells in the full model
+
+    def __init__(self, mesh, weights=None, nC=None):
+        self.mesh  = mesh
+
+        self.nC = nC or mesh.nC
+
+        if weights is None:
+            weights = np.ones(nC)
+
+        weights = np.array(weights, dtype=float)
+
+        self.P = Utils.sdiag(weights)
+
+    @property
+    def shape(self):
+        return (self.nC, self.nP)
+
+    @property
+    def nP(self):
+        """Number of parameters in the model."""
+        return self.indActive.sum()
+
+    def _transform(self, m):
+        return self.P*m
+
+    def inverse(self, D):
+        Pinv = Utils.sdiag(weights**(-1.))
+        return Pinv*D
+
+    def deriv(self, m):
+        return self.P
+
+
 class ComplexMap(IdentityMap):
     """ComplexMap
 
