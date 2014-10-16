@@ -449,7 +449,7 @@ class Weighting(IdentityMap):
     @property
     def nP(self):
         """Number of parameters in the model."""
-        return self.indActive.sum()
+        return self.nC
 
     def _transform(self, m):
         return self.P*m
