@@ -168,9 +168,9 @@ def writeUBCTensorMesh(mesh, fileName):
     assert mesh.dim == 3
     s = ''
     s += '%i %i %i\n' %tuple(mesh.vnC)
-    origin = mesh.x0
+    origin = mesh.x0 + np.array([0,0,mesh.hz.sum()]) # Have to it in the same operation or use mesh.x0.copy(), otherwise the mesh.x0 is updated.
     origin.dtype = float
-    origin[2] = origin[2]+mesh.hz.sum()
+    
     s += '%.2f %.2f %.2f\n' %tuple(origin)
     s += ('%.2f '*mesh.nCx+'\n')%tuple(mesh.hx)
     s += ('%.2f '*mesh.nCy+'\n')%tuple(mesh.hy)
