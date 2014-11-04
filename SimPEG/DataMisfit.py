@@ -25,7 +25,6 @@ class BaseDataMisfit(object):
     def eval(self, m, u=None):
         """eval(m, u=None)
 
-            :param Problem,Survey forward: forward simulation
             :param numpy.array m: geophysical model
             :param numpy.array u: fields
             :rtype: float
@@ -38,7 +37,6 @@ class BaseDataMisfit(object):
     def evalDeriv(self, m, u=None):
         """evalDeriv(m, u=None)
 
-            :param Problem,Survey forward: forward simulation
             :param numpy.array m: geophysical model
             :param numpy.array u: fields
             :rtype: numpy.array
@@ -52,7 +50,6 @@ class BaseDataMisfit(object):
     def eval2Deriv(self, m, v, u=None):
         """eval2Deriv(m, v, u=None)
 
-            :param Problem,Survey forward: forward simulation
             :param numpy.array m: geophysical model
             :param numpy.array v: vector to multiply
             :param numpy.array u: fields
@@ -62,19 +59,20 @@ class BaseDataMisfit(object):
         """
         raise NotImplementedError('This method should be overwritten.')
 
-    def target(self, forward):
-        """target(forward)
+    # TODO: implement target misfit as a property, or possibly as an inversion directive.
 
-            Target for data misfit. By default this is the number of data,
-            which satisfies the Discrepancy Principle.
+    # def target(self, forward):
+    #     """target(forward)
 
-            :param Problem,Survey forward: forward simulation
-            :rtype: float
-            :return: data misfit target
+    #         Target for data misfit. By default this is the number of data,
+    #         which satisfies the Discrepancy Principle.
 
-        """
-        prob, survey = self.splitForward(forward)
-        return survey.nD
+    #         :rtype: float
+    #         :return: data misfit target
+
+    #     """
+    #     prob, survey = self.splitForward(forward)
+    #     return survey.nD
 
 
 class l2_DataMisfit(BaseDataMisfit):
