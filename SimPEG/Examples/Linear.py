@@ -9,8 +9,8 @@ class LinearProblem(Problem.BaseProblem):
 
     surveyPair = LinearSurvey
 
-    def __init__(self, model, G, **kwargs):
-        Problem.BaseProblem.__init__(self, model, **kwargs)
+    def __init__(self, mesh, G, **kwargs):
+        Problem.BaseProblem.__init__(self, mesh, **kwargs)
         self.G = G
 
     def fields(self, m, u=None):
