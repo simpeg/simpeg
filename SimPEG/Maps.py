@@ -436,11 +436,11 @@ class Weighting(IdentityMap):
         self.nC = nC or mesh.nC
 
         if weights is None:
-            weights = np.ones(nC)
+            weights = np.ones(self.nC)
 
-        weights = np.array(weights, dtype=float)
+        self.weights = np.array(weights, dtype=float)
 
-        self.P = Utils.sdiag(weights)
+        self.P = Utils.sdiag(self.weights)
 
     @property
     def shape(self):
@@ -455,7 +455,7 @@ class Weighting(IdentityMap):
         return self.P*m
 
     def inverse(self, D):
-        Pinv = Utils.sdiag(weights**(-1.))
+        Pinv = Utils.sdiag(self.weights**(-1.))
         return Pinv*D
 
     def deriv(self, m):
