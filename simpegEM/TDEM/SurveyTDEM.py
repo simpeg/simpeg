@@ -96,7 +96,7 @@ class TxTDEM(Survey.BaseTx):
             else:
                 raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
         elif mesh._meshType is 'TENSOR':
-            MVP = Sources.MagneticLoopVectorPotential(self.loc, mesh, ['Ex','Ey','Ez'])
+            MVP = Sources.MagneticLoopVectorPotential(self.loc, mesh, ['Ex','Ey','Ez'], self.radius)
         else:
             raise Exception('Unknown mesh for CircularLoop')
 
