@@ -362,8 +362,8 @@ class VanGenuchten(RichardsMap):
 
     def __init__(self, mesh, **kwargs):
         RichardsMap.__init__(self, mesh,
-                               _haverkamp_theta(mesh),
-                               _haverkamp_k(mesh))
+                               _vangenuchten_theta(mesh),
+                               _vangenuchten_k(mesh))
         Utils.setKwargs(self, **kwargs)
 
 
