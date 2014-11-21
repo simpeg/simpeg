@@ -17,6 +17,7 @@ class RxFDEM(Survey.BaseRx):
                     'byi':['b', 'Fy', 'imag'],
                     'bzi':['b', 'Fz', 'imag'],
                    }
+    radius = None
 
     def __init__(self, locs, rxType):
         Survey.BaseRx.__init__(self, locs, rxType)
@@ -71,7 +72,9 @@ class TxFDEM(Survey.BaseTx):
 
     rxPair = RxFDEM
 
-    knownTxTypes = ['VMD']
+    knownTxTypes = ['VMD', 'VMD_B', 'CircularLoop']
+
+    radius = None
 
     def __init__(self, loc, txType, freq, rxList):
         self.freq = float(freq)

@@ -162,9 +162,18 @@ class ProblemFDEM_e(BaseFDEMProblem):
         for i, tx in enumerate(Txs):
             if tx.txType == 'VMD':
                 src = Sources.MagneticDipoleVectorPotential
+                SRCx = src(tx.loc, self.mesh.gridEx, 'x')
+                SRCy = src(tx.loc, self.mesh.gridEy, 'y')
+                SRCz = src(tx.loc, self.mesh.gridEz, 'z')
+
+            elif tx.txType == 'CircularLoop':
+                src = Sources.MagneticLoopVectorPotential                
+                SRCx = src(tx.loc, self.mesh.gridEx, 'x', tx.radius)
+                SRCy = src(tx.loc, self.mesh.gridEy, 'y', tx.radius)
+                SRCz = src(tx.loc, self.mesh.gridEz, 'z', tx.radius)
             else:
                 raise NotImplemented('%s txType is not implemented' % tx.txType)
-            rhs[i] = src(tx.loc, self.mesh, ['Ex','Ey','Ez'])
+            rhs[i] = np.concatenate((SRCx, SRCy, SRCz))
 
         a = np.concatenate(rhs).reshape((self.mesh.nE, len(Txs)), order='F')
         mui = self.MfMui
@@ -241,20 +250,55 @@ class ProblemFDEM_b(BaseFDEMProblem):
         Txs = self.survey.getTransmitters(freq)
         rhs = range(len(Txs))
         for i, tx in enumerate(Txs):
-            if tx.txType == 'VMD':
-                src = Sources.MagneticDipoleVectorPotential
+
+            if self.mesh._meshType is 'CYL':
+                if self.mesh.isSymmetric:
+                    if tx.txType == 'VMD':                    
+                        SRC = Sources.MagneticDipoleVectorPotential(tx.loc, self.mesh.gridEy, 'y')
+                    elif tx.txType =='CircularLoop':
+                        SRC = Sources.MagneticLoopVectorPotential(tx.loc, self.mesh.gridEy, 'y', tx.radius)
+                    else:
+                        raise NotImplementedError('Only VMD and CircularLoop')
+                else:
+                    raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
+    
+            elif self.mesh._meshType is 'TENSOR':
+
+                if tx.txType == 'VMD':
+                    src = Sources.MagneticDipoleVectorPotential
+                    SRCx = src(tx.loc, self.mesh.gridEx, 'x')
+                    SRCy = src(tx.loc, self.mesh.gridEy, 'y')
+                    SRCz = src(tx.loc, self.mesh.gridEz, 'z')
+
+                elif tx.txType == 'VMD_B':
+                    src = Sources.MagneticDipoleFields
+                    SRCx = src(tx.loc, self.mesh.gridFx, 'x')
+                    SRCy = src(tx.loc, self.mesh.gridFy, 'y')
+                    SRCz = src(tx.loc, self.mesh.gridFz, 'z')
+
+                elif tx.txType == 'CircularLoop':
+                    src = Sources.MagneticLoopVectorPotential                
+                    SRCx = src(tx.loc, self.mesh.gridEx, 'x', tx.radius)
+                    SRCy = src(tx.loc, self.mesh.gridEy, 'y', tx.radius)
+                    SRCz = src(tx.loc, self.mesh.gridEz, 'z', tx.radius)
+                else:
+
+                    raise NotImplemented('%s txType is not implemented' % tx.txType)
+                SRC = np.concatenate((SRCx, SRCy, SRCz))                                    
+
             else:
-                raise NotImplemented('%s txType is not implemented' % tx.txType)
-            SRCx = src(tx.loc, self.mesh.gridEx, 'x')
-            SRCy = src(tx.loc, self.mesh.gridEy, 'y')
-            SRCz = src(tx.loc, self.mesh.gridEz, 'z')
-            rhs[i] = np.concatenate((SRCx, SRCy, SRCz))
+                raise Exception('Unknown mesh for VMD')           
+            
+            rhs[i] = SRC
+            
+        mui = self.MfMui            
+        if tx.txType == 'VMD_B':
+            b_0 = np.concatenate(rhs).reshape((self.mesh.nF, len(Txs)), order='F')
+        else:            
+            a = np.concatenate(rhs).reshape((self.mesh.nE, len(Txs)), order='F')
+            C = self.mesh.edgeCurl
+            b_0 = C*a
 
-        a = np.concatenate(rhs).reshape((self.mesh.nE, len(Txs)), order='F')
-        mui = self.MfMui
-        C = self.mesh.edgeCurl
-
-        b_0 = C*a
         return -1j*omega(freq)*mui*b_0
 
     def calcFields(self, sol, freq, fieldType, adjoint=False):
