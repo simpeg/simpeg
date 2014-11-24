@@ -38,3 +38,6 @@ nosetests.xml
 *.sublime-project
 *.sublime-workspace
 docs/_build/
+
+
+*.ipynb_checkpoints
