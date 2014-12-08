@@ -212,10 +212,7 @@ class Tikhonov(BaseRegularization):
     def Ws(self):
         """Regularization matrix Ws"""
         if getattr(self,'_Ws', None) is None:
-            if self.active == False:
                 self._Ws = Utils.sdiag((self.mesh.vol*self.alpha_s)**0.5)
-            elif self.active == True:
-                self._Ws = Utils.sdiag((self.mesh.vol[self.active_ind]*self.alpha_s)**0.5)
         return self._Ws
 
     @property
