@@ -89,7 +89,7 @@ class IdentityMap(object):
             m = abs(np.random.rand(self.nP))
         if 'plotIt' not in kwargs:
             kwargs['plotIt'] = False
-        return checkDerivative(lambda m : [self * m, self.deriv(m)], m, **kwargs)
+        return checkDerivative(lambda m : [self * m, self.deriv(m)], m, num=4, **kwargs)
 
     def _assertMatchesPair(self, pair):
         assert (isinstance(self, pair) or
