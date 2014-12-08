@@ -455,19 +455,32 @@ class ActiveCellsTopo(IdentityMap):
         return self.indActive.sum()
 
     def _transform(self, m):
-        if self.mesh.dim == 3:
+        val_temp = np.zeros(self.mesh.nC)
+        val_temp[self.indActive] = m
+        valInactive = np.zeros(self.mesh.nC)
+        #1D
+        if self.mesh.dim == 1:
+            z_temp = self.mesh.gridCC
+            val_temp[~self.indActive] = val_temp[np.argmax(z_temp[self.indActive])]
+        #2D
+        elif self.mesh.dim == 2:
+            act_temp = self.indActive.reshape((self.mesh.nCx, self.mesh.nCy), order = 'F')
+            val_temp = val_temp.reshape((self.mesh.nCx, self.mesh.nCy), order = 'F')
+            y_temp = self.mesh.gridCC[:,1].reshape((self.mesh.nCx, self.mesh.nCy), order = 'F')
+            for i in range(self.mesh.nCx):
+                act_tempx = act_temp[i,:] == 1
+                val_temp[i,~act_tempx] = val_temp[i,np.argmax(y_temp[i,act_tempx])]
+            valInactive[~self.indActive] = Utils.mkvc(val_temp)[~self.indActive]
+        #3D
+        elif self.mesh.dim == 3:
             act_temp = self.indActive.reshape((self.mesh.nCx*self.mesh.nCy, self.mesh.nCz), order = 'F')
-            val_temp = np.zeros(self.mesh.nC)
-            val_temp[self.indActive] = m
             val_temp = val_temp.reshape((self.mesh.nCx*self.mesh.nCy, self.mesh.nCz), order = 'F')
-            valInactive = np.zeros(self.mesh.nC)
             z_temp = self.mesh.gridCC[:,2].reshape((self.mesh.nCx*self.mesh.nCy, self.mesh.nCz), order = 'F')
             for i in range(self.mesh.nCx*self.mesh.nCy):
                 act_tempxy = act_temp[i,:] == 1
                 val_temp[i,~act_tempxy] = val_temp[i,np.argmax(z_temp[i,act_tempxy])]
             valInactive[~self.indActive] = Utils.mkvc(val_temp)[~self.indActive]
-        else:
-            raise Exception("Not implemented for 1D and 2D")
+
         self.valInactive = valInactive
 
         return self.P*m + self.valInactive
