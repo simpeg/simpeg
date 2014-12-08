@@ -86,7 +86,7 @@ class IdentityMap(object):
         """
         print 'Testing %s' % str(self)
         if m is None:
-            m = np.random.rand(self.nP)
+            m = abs(np.random.rand(self.nP))
         if 'plotIt' not in kwargs:
             kwargs['plotIt'] = False
         return checkDerivative(lambda m : [self * m, self.deriv(m)], m, **kwargs)
