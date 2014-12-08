@@ -420,6 +420,64 @@ class ActiveCells(IdentityMap):
     def deriv(self, m):
         return self.P
 
+class ActiveCellsTopo(IdentityMap):
+    """
+        Active model parameters. Extend for cells on topography to air cell (only works for tensor mesh)
+
+    """
+
+    indActive   = None #: Active Cells
+    valInactive = None #: Values of inactive Cells
+    nC          = None #: Number of cells in the full model
+
+    def __init__(self, mesh, indActive, nC=None):
+        self.mesh  = mesh
+
+        self.nC = nC or mesh.nC
+
+        if indActive.dtype is not bool:
+            z = np.zeros(self.nC,dtype=bool)
+            z[indActive] = True
+            indActive = z
+        self.indActive = indActive
+
+        self.indInactive = np.logical_not(indActive)
+        inds = np.nonzero(self.indActive)[0]
+        self.P = sp.csr_matrix((np.ones(inds.size),(inds, range(inds.size))), shape=(self.nC, self.nP))
+
+    @property
+    def shape(self):
+        return (self.nC, self.nP)
+
+    @property
+    def nP(self):
+        """Number of parameters in the model."""
+        return self.indActive.sum()
+
+    def _transform(self, m):
+        if self.mesh.dim == 3:
+            act_temp = self.indActive.reshape((self.mesh.nCx*self.mesh.nCy, self.mesh.nCz), order = 'F')
+            val_temp = np.zeros(self.mesh.nC)
+            val_temp[self.indActive] = m
+            val_temp = val_temp.reshape((self.mesh.nCx*self.mesh.nCy, self.mesh.nCz), order = 'F')
+            valInactive = np.zeros(self.mesh.nC)
+            z_temp = self.mesh.gridCC[:,2].reshape((self.mesh.nCx*self.mesh.nCy, self.mesh.nCz), order = 'F')
+            for i in range(self.mesh.nCx*self.mesh.nCy):
+                act_tempxy = act_temp[i,:] == 1
+                val_temp[i,~act_tempxy] = val_temp[i,np.argmax(z_temp[i,act_tempxy])]
+            valInactive[~self.indActive] = Utils.mkvc(val_temp)[~self.indActive]
+        else:
+            raise Exception("Not implemented for 1D and 2D")
+        self.valInactive = valInactive
+
+        return self.P*m + self.valInactive
+
+    def inverse(self, D):
+        return self.P.T*D
+
+    def deriv(self, m):
+        return self.P
+
 
 class Weighting(IdentityMap):
     """

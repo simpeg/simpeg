@@ -81,7 +81,7 @@ class BaseRegularization(object):
         """
         mD = self.mapping.deriv(m - self.mref)
         r = self.W * ( self.mapping * (m - self.mref) )
-        return mD.T * ( self.W.T * r )
+        return  mD.T * ( self.W.T * r )
 
     @Utils.timeIt
     def eval2Deriv(self, m, v=None):
@@ -196,7 +196,7 @@ class Tikhonov(BaseRegularization):
 
 
     """
-
+    smoothModel = True  #: SMOOTH and SMOOTH_MOD_DIF options
     alpha_s  = Utils.dependentProperty('_alpha_s', 1e-6, ['_W', '_Ws'], "Smallness weight")
     alpha_x  = Utils.dependentProperty('_alpha_x', 1.0, ['_W', '_Wx'], "Weight for the first derivative in the x direction")
     alpha_y  = Utils.dependentProperty('_alpha_y', 1.0, ['_W', '_Wy'], "Weight for the first derivative in the y direction")
@@ -212,7 +212,10 @@ class Tikhonov(BaseRegularization):
     def Ws(self):
         """Regularization matrix Ws"""
         if getattr(self,'_Ws', None) is None:
-            self._Ws = Utils.sdiag((self.mesh.vol*self.alpha_s)**0.5)
+            if self.active == False:
+                self._Ws = Utils.sdiag((self.mesh.vol*self.alpha_s)**0.5)
+            elif self.active == True:
+                self._Ws = Utils.sdiag((self.mesh.vol[self.active_ind]*self.alpha_s)**0.5)
         return self._Ws
 
     @property
@@ -271,4 +274,46 @@ class Tikhonov(BaseRegularization):
                 wlist += (self.Wz, self.Wzz)
             self._W = sp.vstack(wlist)
         return self._W
+
+    @Utils.timeIt
+    def eval(self, m):
+        if self.smoothModel == True:
+            r1 = self.W * ( self.mapping * (m) )
+            r2 = self.Ws * ( self.mapping * (self.mref) )
+            return 0.5*(r1.dot(r1)+r2.dot(r2))
+        elif self.smoothModel == False:
+            r = self.W * ( self.mapping * (m - self.mref) )
+            return 0.5*r.dot(r)
+
+
+    @Utils.timeIt
+    def evalDeriv(self, m):
+        """
+
+        The regularization is:
+
+        .. math::
+
+            R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top W(m-m_\\text{ref})}
+
+        So the derivative is straight forward:
+
+        .. math::
+
+            R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
+
+        """
+        if self.smoothModel == True:
+            mD1 = self.mapping.deriv(m)
+            mD2 = self.mapping.deriv(self.mref)
+            r1 = self.W * ( self.mapping * (m) )
+            r2 = self.Ws * ( self.mapping * (self.mref) )
+            out1 = mD1.T * ( self.W.T * r1 )
+            out2 = mD2.T * ( self.Ws.T * r2 )
+            out = out1-out2
+        elif self.smoothModel == False:
+            mD = self.mapping.deriv(m - self.mref)
+            r = self.W * ( self.mapping * (m - self.mref) )
+            out = mD.T * ( self.W.T * r )
+        return out
 
