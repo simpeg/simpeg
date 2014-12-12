@@ -7,7 +7,7 @@ Why SimPEG?
 The Big Picture
 ===============
 
-.. image:: simpeg-framework.png
+.. image:: InversionWorkflow.png
    :width: 400 px
    :alt: Framework
    :align: center
