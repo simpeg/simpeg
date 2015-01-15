@@ -160,7 +160,6 @@ class ComboMap(IdentityMap):
 
 class ExpMap(IdentityMap):
     """
-
         Changes the model into the physical property.
 
         A common example of this is to invert for electrical conductivity
@@ -223,6 +222,25 @@ class ExpMap(IdentityMap):
 
 
 class LogMap(IdentityMap):
+    """
+        Changes the model into the physical property.
+
+        If \\(p\\) is the physical property and \\(m\\) is the model, then
+
+        ..math::
+
+            p = \\log(m) 
+
+        and 
+
+        ..math::
+
+            m = \\exp(p)
+
+        NOTE: If you have a model which is log conductivity (ie. \\(m = \\log(\\sigma)\\)),
+        you should be using an ExpMap 
+
+    """
 
     def __init__(self, mesh, **kwargs):
         IdentityMap.__init__(self, mesh, **kwargs)
