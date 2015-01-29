@@ -6,6 +6,9 @@ from scipy.sparse.linalg import dsolve
 
 TOL = 1e-14
 
+MAPS_TO_TEST_2D = ["CircleMap", "ComplexMap", "ExpMap", "IdentityMap", "Vertical1DMap", "Weighting"]
+MAPS_TO_TEST_3D = [             "ComplexMap", "ExpMap", "IdentityMap", "Vertical1DMap", "Weighting"]
+
 class MapTests(unittest.TestCase):
 
     def setUp(self):
@@ -17,22 +20,26 @@ class MapTests(unittest.TestCase):
         self.mesh22 = Mesh.TensorMesh([b, a], x0=np.array([3, 5]))
 
     def test_transforms2D(self):
-        for M in dir(Maps):
-            try:
-                maps = getattr(Maps, M)(self.mesh2)
-                assert isinstance(maps, Maps.IdentityMap)
-            except Exception, e:
-                continue
+        for M in MAPS_TO_TEST_2D:
+            maps = getattr(Maps, M)(self.mesh2)
             self.assertTrue(maps.test())
 
     def test_transforms3D(self):
-        for M in dir(Maps):
-            try:
-                maps = getattr(Maps, M)(self.mesh3)
-                assert isinstance(maps, Maps.IdentityMap)
-            except Exception, e:
-                continue
+        for M in MAPS_TO_TEST_3D:
+            maps = getattr(Maps, M)(self.mesh3)
             self.assertTrue(maps.test())
+
+
+    def test_transforms_logMap(self):
+        # Note that log maps can be kinda finicky, so we are being explicit about the random seed.
+        v2 = np.r_[ 0.40077291, 0.14410044, 0.58452314, 0.96323738, 0.01198519, 0.79754415]
+        dv2 = np.r_[ 0.80653921, 0.13132446, 0.4901117, 0.03358737, 0.65473762, 0.44252488]
+        v3 = np.r_[ 0.96084865, 0.34385186, 0.39430044, 0.81671285, 0.65929109, 0.2235217, 0.87897526, 0.5784033, 0.96876393, 0.63535864, 0.84130763, 0.22123854]
+        dv3 = np.r_[ 0.96827838, 0.26072111, 0.45090749, 0.10573893, 0.65276365, 0.15646586, 0.51679682, 0.23071984, 0.95106218, 0.14201845, 0.25093564, 0.3732866 ]
+        maps = Maps.LogMap(self.mesh2)
+        self.assertTrue(maps.test(v2, dx=dv2))
+        maps = Maps.LogMap(self.mesh3)
+        self.assertTrue(maps.test(v3, dx=dv3))
 
     def test_Mesh2MeshMap(self):
         maps = Maps.Mesh2Mesh([self.mesh22, self.mesh2])
