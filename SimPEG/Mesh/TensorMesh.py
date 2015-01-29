@@ -13,7 +13,7 @@ class BaseTensorMesh(BaseRectangularMesh):
     _unitDimensions = [1, 1, 1]
 
     def __init__(self, h_in, x0_in=None):
-        assert type(h_in) is list, 'h_in must be a list'
+        assert type(h_in) in [list, tuple], 'h_in must be a list'
         assert len(h_in) in [1,2,3], 'h_in must be of dimension 1, 2, or 3'
         h = range(len(h_in))
         for i, h_i in enumerate(h_in):
