@@ -518,7 +518,46 @@ class TensorView(object):
 
         return animate(fig, animateFrame, frames=len(frames))
 
+class CylView(object):
 
+    def _plotCylTensorMesh(self, plotType, *args, **kwargs):
+
+        if not self.isSymmetric:
+            raise Exception('We have not yet implemented this type of view.')
+        assert plotType in ['plotImage', 'plotGrid']
+        # Hackity Hack:
+        # Just create a TM and use its view.
+        from SimPEG.Mesh import TensorMesh
+        M = TensorMesh([self.hx, self.hz], x0=[self.x0[0], self.x0[2]])
+
+        ax = kwargs.get('ax', None)
+        if ax is None:
+            fig = plt.figure()
+            ax = plt.subplot(111)
+            kwargs['ax'] = ax
+        else:
+            assert isinstance(ax, matplotlib.axes.Axes), "ax must be an matplotlib.axes.Axes"
+            fig = ax.figure
+
+        # Don't show things in the TM.plotImage
+        showIt = kwargs.get('showIt', False)
+        kwargs['showIt'] = False
+
+        out = getattr(M, plotType)(*args, **kwargs)
+
+        ax.set_xlabel('x')
+        ax.set_ylabel('z')
+
+        if showIt: plt.show()
+
+        return out
+
+
+    def plotGrid(self, *args, **kwargs):
+        return self._plotCylTensorMesh('plotGrid', *args, **kwargs)
+
+    def plotImage(self, *args, **kwargs):
+        return self._plotCylTensorMesh('plotImage', *args, **kwargs)
 
 class LomView(object):
     """

@@ -4,9 +4,10 @@ from scipy.constants import pi
 from SimPEG.Utils import mkvc, ndgrid, sdiag, kron3, speye, ddx, av, avExtrap
 from TensorMesh import BaseTensorMesh
 from InnerProducts import InnerProducts
+from View import CylView
 
 
-class CylMesh(BaseTensorMesh, InnerProducts):
+class CylMesh(BaseTensorMesh, InnerProducts, CylView):
     """
         CylMesh is a mesh class for cylindrical problems
 
@@ -293,3 +294,14 @@ class CylMesh(BaseTensorMesh, InnerProducts):
                 #                                    kron3(speye(n[2]), av(n[1]), speye(n[0])),
                 #                                    kron3(av(n[2]), speye(n[1]), speye(n[0]))), format="csr")
         return self._aveF2CC
+
+
+if __name__ == '__main__':
+
+    from SimPEG import *
+    hx = np.r_[1,1,0.5]
+    hz = np.r_[2,1]
+    M = Mesh.CylMesh([hx, 1,hz], x0='00N')
+
+    M.plotImage(np.random.rand(M.nC), showIt=False)
+    M.plotGrid(centers=True, showIt=True)
