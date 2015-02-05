@@ -11,6 +11,10 @@ class CylMesh(BaseTensorMesh, InnerProducts, CylView):
     """
         CylMesh is a mesh class for cylindrical problems
 
+        .. note::
+
+            for a cylindrically symmetric mesh use [hx, 1, hz]
+
         ::
 
             cs, nc, npad = 20., 30, 8
@@ -25,8 +29,10 @@ class CylMesh(BaseTensorMesh, InnerProducts, CylView):
 
     def __init__(self, h, x0=None):
         BaseTensorMesh.__init__(self, h, x0)
-        assert self.dim == 3, "dim of mesh must equal 3, for a cylindrically symmetric mesh use [hx, 1, hz]"
         assert self.hy.sum() == 2*np.pi, "The 2nd dimension must sum to 2*pi"
+        if self.dim == 2:
+            print 'Warning, a disk mesh has not been tested thoroughly.'
+
 
     @property
     def isSymmetric(self):
@@ -285,8 +291,7 @@ class CylMesh(BaseTensorMesh, InnerProducts, CylView):
             # The number of cell centers in each direction
             n = self.vnC
             if self.isSymmetric:
-                self._aveE2CCV = sp.block_diag((sp.kron(av(n[1]), speye(n[0])),
-                                                sp.kron(speye(n[1]), av(n[0]))), format="csr")
+                return self.aveE2CC
             else:
                 raise NotImplementedError('wrapping in the averaging is not yet implemented')
         return self._aveE2CCV
@@ -314,8 +319,10 @@ class CylMesh(BaseTensorMesh, InnerProducts, CylView):
         if getattr(self, '_aveF2CCV', None) is None:
             n = self.vnC
             if self.isSymmetric:
-                self._aveF2CCV = sp.block_diag((sp.kron(speye(n[1]), av(n[0])),
-                                               sp.kron(av(n[1]), speye(n[0]))), format="csr")
+                avR = av(n[0])[:,1:]
+                avR[0,0] = 1.
+                self._aveF2CCV = sp.block_diag((sp.kron(speye(n[2]), avR),
+                                                sp.kron(av(n[2]), speye(n[0]))), format="csr")
             else:
                 raise NotImplementedError('wrapping in the averaging is not yet implemented')
         return self._aveF2CCV
