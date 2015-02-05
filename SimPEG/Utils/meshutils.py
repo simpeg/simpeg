@@ -3,6 +3,7 @@ from scipy import sparse as sp
 from matutils import mkvc, ndgrid, sub2ind, sdiag
 from codeutils import asArray_N_x_Dim
 from codeutils import isScalar
+import os
 
 def exampleLrmGrid(nC, exType):
     assert type(nC) == list, "nC must be a list containing the number of nodes"
@@ -169,7 +170,7 @@ def writeUBCTensorMesh(mesh, fileName):
     s += '%i %i %i\n' %tuple(mesh.vnC)
     origin = mesh.x0 + np.array([0,0,mesh.hz.sum()]) # Have to it in the same operation or use mesh.x0.copy(), otherwise the mesh.x0 is updated.
     origin.dtype = float
-    
+
     s += '%.2f %.2f %.2f\n' %tuple(origin)
     s += ('%.2f '*mesh.nCx+'\n')%tuple(mesh.hx)
     s += ('%.2f '*mesh.nCy+'\n')%tuple(mesh.hy)
@@ -230,7 +231,7 @@ def readVTRFile(vtrFileName):
         hz = np.abs(zD[::-1])
         zR = vtk_to_numpy(vtrGrid.GetZCoordinates())[-1]
     else:
-        hz = np.abs(zD)   
+        hz = np.abs(zD)
         zR = vtk_to_numpy(vtrGrid.GetZCoordinates())[0]
     x0 = np.array([xR,yR,zR])
 
@@ -253,7 +254,7 @@ def readVTRFile(vtrFileName):
     # Return the data
     return tensMsh, modelDict
 
-def writeVTRFile(mesh,model=None,fileName):
+def writeVTRFile(mesh,fileName,model=None):
     """
     Makes and saves a VTK rectilinear file (vtr) for a simpeg Tensor mesh and model.
 
@@ -263,9 +264,9 @@ def writeVTRFile(mesh,model=None,fileName):
     :param model, path to the output vtk file
 
     """
-    # Import 
+    # Import
     from vtk import vtkRectilinearGrid as rectGrid, vtkXMLRectilinearGridWriter as rectWriter
-    from vtk.util.numpy_support import vtk_to_numpy
+    from vtk.util.numpy_support import numpy_to_vtk
 
     # Deal with dimensionalities
     if mesh.dim >= 1:
@@ -283,26 +284,26 @@ def writeVTRFile(mesh,model=None,fileName):
     # Assign the spatial information.
     vtkObj = rectGrid()
     vtkObj.SetDimensions(xD,yD,zD)
-    vtkObj.SetXCoordinates(npsup.numpy_to_vtk(vX,deep=1))
-    vtkObj.SetYCoordinates(npsup.numpy_to_vtk(vY,deep=1))
-    vtkObj.SetZCoordinates(npsup.numpy_to_vtk(vZ,deep=1))
+    vtkObj.SetXCoordinates(numpy_to_vtk(vX,deep=1))
+    vtkObj.SetYCoordinates(numpy_to_vtk(vY,deep=1))
+    vtkObj.SetZCoordinates(numpy_to_vtk(vZ,deep=1))
 
     # Assign the model('s) to the object
     for item in model.iteritems():
         # Convert numpy array
-        vtkDoubleArr = npsup.numpy_to_vtk(item[1],deep=1)
+        vtkDoubleArr = numpy_to_vtk(item[1],deep=1)
         vtkDoubleArr.SetName(item[0])
         vtkObj.GetCellData().AddArray(vtkDoubleArr)
     # Set the active scalar
     vtkObj.GetCellData().SetActiveScalars(model.keys()[0])
     vtkObj.Update()
-    
+
 
     # Check the extension of the fileName
-    os.path.splitext(fileName)[1]
+    ext = os.path.splitext(fileName)[1]
     if ext is '':
         fileName = fileName + '.vtr'
-    elif ext is not '.vtr':
+    elif ext not in '.vtr':
         raise IOError('{:s} is an incorrect extension, has to be .vtr')
     # Write the file.
     vtrWriteFilter = rectWriter()
