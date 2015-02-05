@@ -229,16 +229,16 @@ class LogMap(IdentityMap):
 
         ..math::
 
-            p = \\log(m) 
+            p = \\log(m)
 
-        and 
+        and
 
         ..math::
 
             m = \\exp(p)
 
         NOTE: If you have a model which is log conductivity (ie. \\(m = \\log(\\sigma)\\)),
-        you should be using an ExpMap 
+        you should be using an ExpMap
 
     """
 
