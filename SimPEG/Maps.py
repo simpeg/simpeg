@@ -229,16 +229,16 @@ class LogMap(IdentityMap):
 
         ..math::
 
-            p = \\log(m) 
+            p = \\log(m)
 
-        and 
+        and
 
         ..math::
 
             m = \\exp(p)
 
         NOTE: If you have a model which is log conductivity (ie. \\(m = \\log(\\sigma)\\)),
-        you should be using an ExpMap 
+        you should be using an ExpMap
 
     """
 
@@ -640,27 +640,3 @@ class CircleMap(IdentityMap):
         g4 = a*(-Y + y)*(-sig1 + sig2)/(np.pi*(a**2*(-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1)*np.sqrt((X - x)**2 + (Y - y)**2))
         g5 = -a*(-sig1 + sig2)/(np.pi*(a**2*(-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1))
         return np.c_[g1,g2,g3,g4,g5]
-
-class AnisotropyMap(IdentityMap):
-
-    def __init__(self, mesh, **kwargs):
-        Utils.setKwargs(self, **kwargs)
-        self.mesh = mesh
-
-    @property
-    def nP(self):
-        """
-            :rtype: int
-            :return: number of parameters in the model
-        """
-        return self.mesh.nC*2
-
-    @property
-    def shape(self):
-        """
-           The default shape is (mesh.nC, nP).
-
-           :rtype: (int,int)
-           :return: shape of the operator as a tuple
-        """
-        return (self.mesh.nC*2, self.nP)
