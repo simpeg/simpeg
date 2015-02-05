@@ -142,7 +142,6 @@ def readUBCTensorMesh(fileName):
     tensMsh = Mesh.TensorMesh([h1,h2,h3],x0)
     return tensMsh
 
-
 def readUBCTensorModel(fileName, mesh):
     """
         ReadUBC 3DTensor mesh model and generate 3D Tensor mesh model in simpegTD
@@ -197,6 +196,61 @@ def writeUBCTensorModel(mesh, model, fileName):
     modelMatTR = mkvc(modelMatT[::-1,:,:])
 
     np.savetxt(fileName, modelMatTR.ravel())
+
+def writeVTRFile(mesh,model=None,fileName):
+    """
+    Makes and saves a VTK rectilinear file (vtr) for a simpeg Tensor mesh and model.
+
+    Input:
+    :param mesh, SimPEG TensorMesh object - mesh to be transfer to VTK
+    :param model, dictionary of numpy.array - Name('s) and array('s). Match number of cells
+    :param model, path to the output vtk file
+
+    """
+
+    # Deal with dimensionalities
+    if mesh.dim >= 1:
+        vX = mesh.vectorNx
+        xD = mesh.nNx
+        yD,zD = 1,1
+        vY, vZ = np.array([0,0])
+    if mesh.dim >= 2:
+        vY = mesh.vectorNy
+        yD = mesh.nNy
+    if mesh.dim == 3:
+        vZ = mesh.vectorNz
+        zD = mesh.nNz
+    # Use rectilinear VTK grid.
+    # Assign the spatial information.
+    vtkObj = vtk.vtkRectilinearGrid()
+    vtkObj.SetDimensions(xD,yD,zD)
+    vtkObj.SetXCoordinates(npsup.numpy_to_vtk(vX,deep=1))
+    vtkObj.SetYCoordinates(npsup.numpy_to_vtk(vY,deep=1))
+    vtkObj.SetZCoordinates(npsup.numpy_to_vtk(vZ,deep=1))
+
+    # Assign the model('s) to the object
+    for item in model.iteritems():
+        # Convert numpy array
+        vtkDoubleArr = npsup.numpy_to_vtk(item[1],deep=1)
+        vtkDoubleArr.SetName(item[0])
+        vtkObj.GetCellData().AddArray(vtkDoubleArr)
+
+    vtkObj.GetCellData().SetActiveScalars(model.keys()[0])
+    vtkObj.Update()
+    
+    # Write the file.
+    # Check the extension of the fileName
+    os.path.splitext(fileName)[1]
+    if ext is '':
+        fileName = fileName + '.vtr'
+    elif ext is not '.vtr':
+        raise IOError('{:s} is an incorrect extension, has to be .vtr')
+    vtrWriteFilter = vtk.vtkXMLRectilinearGridWriter()
+    vtrWriteFilter.SetInput(vtkObj)
+    vtrWriteFilter.SetFileName(fileName)
+    vtrWriteFilter.Update()
+
+
 
 
 if __name__ == '__main__':
