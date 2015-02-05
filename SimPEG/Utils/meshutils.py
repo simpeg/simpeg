@@ -197,6 +197,62 @@ def writeUBCTensorModel(mesh, model, fileName):
 
     np.savetxt(fileName, modelMatTR.ravel())
 
+
+def readVTRFile(vtrFileName):
+    """
+        Read VTK vtr (Rectilinear xml file) and return SimPEG Tensor mesh
+
+        Input:
+        :param vtrFileName, path to the vtr model file
+
+        Output:
+        :param SimPEG TensorMesh object
+        :param SimPEG model dictionary
+        :return
+    """
+    # Import
+    from vtk import vtkXMLRectilinearGridReader as vtrFileReader
+    from vtk.util.numpy_support import vtk_to_numpy
+
+    # Read the file
+    vtrReader = vtrFileReader()
+    vtrReader.SetFileName(vtrFileName)
+    vtrReader.Update()
+    vtrGrid = vtrReader.GetOutput()
+    # Sort information
+    hx = np.abs(np.diff(vtk_to_numpy(vtrGrid.GetXCoordinates())))
+    xR = vtk_to_numpy(vtrGrid.GetXCoordinates())[0]
+    hy = np.abs(np.diff(vtk_to_numpy(vtrGrid.GetYCoordinates())))
+    yR = vtk_to_numpy(vtrGrid.GetYCoordinates())[0]
+    zD = np.diff(vtk_to_numpy(vtrGrid.GetZCoordinates()))
+    # Check the direction of hz
+    if np.all(zD < 0):
+        hz = np.abs(zD[::-1])
+        zR = vtk_to_numpy(vtrGrid.GetZCoordinates())[-1]
+    else:
+        hz = np.abs(zD)   
+        zR = vtk_to_numpy(vtrGrid.GetZCoordinates())[0]
+    x0 = np.array([xR,yR,zR])
+
+    # Make the SimPEG object
+    from SimPEG import Mesh
+    tensMsh = Mesh.TensorMesh([hx,hy,hz],x0)
+
+    # Grap the models
+    modelDict = {}
+    for i in np.arange(vtrGrid.GetCellData().GetNumberOfArrays()):
+        modelName = vtrGrid.GetCellData().GetArrayName(i)
+        if np.all(zD < 0):
+            modFlip = vtk_to_numpy(vtrGrid.GetCellData().GetArray(i))
+            tM = tensMsh.r(modFlip,'CC','CC','M')
+            modArr = tensMsh.r(tM[:,:,::-1],'CC','CC','V')
+        else:
+            modArr = vtk_to_numpy(vtrGrid.GetCellData().GetArray(i))
+        modelDict[modelName] = modArr
+
+    # Return the data
+    return tensMsh, modelDict
+
 def writeVTRFile(mesh,model=None,fileName):
     """
     Makes and saves a VTK rectilinear file (vtr) for a simpeg Tensor mesh and model.
@@ -207,6 +263,9 @@ def writeVTRFile(mesh,model=None,fileName):
     :param model, path to the output vtk file
 
     """
+    # Import 
+    from vtk import vtkRectilinearGrid as rectGrid, vtkXMLRectilinearGridWriter as rectWriter
+    from vtk.util.numpy_support import vtk_to_numpy
 
     # Deal with dimensionalities
     if mesh.dim >= 1:
@@ -222,7 +281,7 @@ def writeVTRFile(mesh,model=None,fileName):
         zD = mesh.nNz
     # Use rectilinear VTK grid.
     # Assign the spatial information.
-    vtkObj = vtk.vtkRectilinearGrid()
+    vtkObj = rectGrid()
     vtkObj.SetDimensions(xD,yD,zD)
     vtkObj.SetXCoordinates(npsup.numpy_to_vtk(vX,deep=1))
     vtkObj.SetYCoordinates(npsup.numpy_to_vtk(vY,deep=1))
@@ -234,18 +293,19 @@ def writeVTRFile(mesh,model=None,fileName):
         vtkDoubleArr = npsup.numpy_to_vtk(item[1],deep=1)
         vtkDoubleArr.SetName(item[0])
         vtkObj.GetCellData().AddArray(vtkDoubleArr)
-
+    # Set the active scalar
     vtkObj.GetCellData().SetActiveScalars(model.keys()[0])
     vtkObj.Update()
     
-    # Write the file.
+
     # Check the extension of the fileName
     os.path.splitext(fileName)[1]
     if ext is '':
         fileName = fileName + '.vtr'
     elif ext is not '.vtr':
         raise IOError('{:s} is an incorrect extension, has to be .vtr')
-    vtrWriteFilter = vtk.vtkXMLRectilinearGridWriter()
+    # Write the file.
+    vtrWriteFilter = rectWriter()
     vtrWriteFilter.SetInput(vtkObj)
     vtrWriteFilter.SetFileName(fileName)
     vtrWriteFilter.Update()
