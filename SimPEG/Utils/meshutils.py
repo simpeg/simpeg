@@ -145,8 +145,14 @@ def readUBCTensorMesh(fileName):
 
 def readUBCTensorModel(fileName, mesh):
     """
-        ReadUBC 3DTensor mesh model and generate 3D Tensor mesh model in simpegTD
+        Read UBC 3DTensor mesh model and generate 3D Tensor mesh model in simpeg
 
+        Input:
+        :param fileName, path to the UBC GIF mesh file to read
+        :param mesh, TensorMesh object, mesh that coresponds to the model 
+
+        Output:
+        :return numpy array, model with TensorMesh ordered
     """
     f = open(fileName, 'r')
     model = np.array(map(float, f.readlines()))
@@ -205,12 +211,12 @@ def readVTRFile(fileName):
         Read VTK Rectilinear (vtr xml file) and return SimPEG Tensor mesh and model
 
         Input:
-        :param vtrFileName, path to the vtr model file
+        :param vtrFileName, path to the vtr model file to write to
 
         Output:
-        :param SimPEG TensorMesh object
-        :param SimPEG model dictionary
-        :return
+        :return SimPEG TensorMesh object
+        :return SimPEG model dictionary
+        
     """
     # Import
     from vtk import vtkXMLRectilinearGridReader as vtrFileReader
