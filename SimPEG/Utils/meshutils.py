@@ -3,6 +3,7 @@ from scipy import sparse as sp
 from matutils import mkvc, ndgrid, sub2ind, sdiag
 from codeutils import asArray_N_x_Dim
 from codeutils import isScalar
+import os
 
 def exampleLrmGrid(nC, exType):
     assert type(nC) == list, "nC must be a list containing the number of nodes"
@@ -142,11 +143,16 @@ def readUBCTensorMesh(fileName):
     tensMsh = Mesh.TensorMesh([h1,h2,h3],x0)
     return tensMsh
 
-
 def readUBCTensorModel(fileName, mesh):
     """
-        ReadUBC 3DTensor mesh model and generate 3D Tensor mesh model in simpegTD
+        Read UBC 3DTensor mesh model and generate 3D Tensor mesh model in simpeg
 
+        Input:
+        :param fileName, path to the UBC GIF mesh file to read
+        :param mesh, TensorMesh object, mesh that coresponds to the model 
+
+        Output:
+        :return numpy array, model with TensorMesh ordered
     """
     f = open(fileName, 'r')
     model = np.array(map(float, f.readlines()))
@@ -158,19 +164,20 @@ def readUBCTensorModel(fileName, mesh):
 
     return model
 
-def writeUBCTensorMesh(mesh, fileName):
+def writeUBCTensorMesh(fileName, mesh):
     """
         Writes a SimPEG TensorMesh to a UBC-GIF format mesh file.
 
-        :param simpeg.Mesh.TensorMesh mesh: The mesh
         :param str fileName: File to write to
+        :param simpeg.Mesh.TensorMesh mesh: The mesh
+        
     """
     assert mesh.dim == 3
     s = ''
     s += '%i %i %i\n' %tuple(mesh.vnC)
     origin = mesh.x0 + np.array([0,0,mesh.hz.sum()]) # Have to it in the same operation or use mesh.x0.copy(), otherwise the mesh.x0 is updated.
     origin.dtype = float
-    
+
     s += '%.2f %.2f %.2f\n' %tuple(origin)
     s += ('%.2f '*mesh.nCx+'\n')%tuple(mesh.hx)
     s += ('%.2f '*mesh.nCy+'\n')%tuple(mesh.hy)
@@ -179,14 +186,14 @@ def writeUBCTensorMesh(mesh, fileName):
     f.write(s)
     f.close()
 
-def writeUBCTensorModel(mesh, model, fileName):
+def writeUBCTensorModel(fileName, mesh, model):
     """
         Writes a model associated with a SimPEG TensorMesh
         to a UBC-GIF format model file.
 
+        :param str fileName: File to write to
         :param simpeg.Mesh.TensorMesh mesh: The mesh
         :param numpy.ndarray model: The model
-        :param str fileName: File to write to
     """
 
     # Reshape model to a matrix
@@ -197,6 +204,121 @@ def writeUBCTensorModel(mesh, model, fileName):
     modelMatTR = mkvc(modelMatT[::-1,:,:])
 
     np.savetxt(fileName, modelMatTR.ravel())
+
+
+def readVTRFile(fileName):
+    """
+        Read VTK Rectilinear (vtr xml file) and return SimPEG Tensor mesh and model
+
+        Input:
+        :param vtrFileName, path to the vtr model file to write to
+
+        Output:
+        :return SimPEG TensorMesh object
+        :return SimPEG model dictionary
+        
+    """
+    # Import
+    from vtk import vtkXMLRectilinearGridReader as vtrFileReader
+    from vtk.util.numpy_support import vtk_to_numpy
+
+    # Read the file
+    vtrReader = vtrFileReader()
+    vtrReader.SetFileName(fileName)
+    vtrReader.Update()
+    vtrGrid = vtrReader.GetOutput()
+    # Sort information
+    hx = np.abs(np.diff(vtk_to_numpy(vtrGrid.GetXCoordinates())))
+    xR = vtk_to_numpy(vtrGrid.GetXCoordinates())[0]
+    hy = np.abs(np.diff(vtk_to_numpy(vtrGrid.GetYCoordinates())))
+    yR = vtk_to_numpy(vtrGrid.GetYCoordinates())[0]
+    zD = np.diff(vtk_to_numpy(vtrGrid.GetZCoordinates()))
+    # Check the direction of hz
+    if np.all(zD < 0):
+        hz = np.abs(zD[::-1])
+        zR = vtk_to_numpy(vtrGrid.GetZCoordinates())[-1]
+    else:
+        hz = np.abs(zD)
+        zR = vtk_to_numpy(vtrGrid.GetZCoordinates())[0]
+    x0 = np.array([xR,yR,zR])
+
+    # Make the SimPEG object
+    from SimPEG import Mesh
+    tensMsh = Mesh.TensorMesh([hx,hy,hz],x0)
+
+    # Grap the models
+    modelDict = {}
+    for i in np.arange(vtrGrid.GetCellData().GetNumberOfArrays()):
+        modelName = vtrGrid.GetCellData().GetArrayName(i)
+        if np.all(zD < 0):
+            modFlip = vtk_to_numpy(vtrGrid.GetCellData().GetArray(i))
+            tM = tensMsh.r(modFlip,'CC','CC','M')
+            modArr = tensMsh.r(tM[:,:,::-1],'CC','CC','V')
+        else:
+            modArr = vtk_to_numpy(vtrGrid.GetCellData().GetArray(i))
+        modelDict[modelName] = modArr
+
+    # Return the data
+    return tensMsh, modelDict
+
+def writeVTRFile(fileName,mesh,model=None):
+    """
+    Makes and saves a VTK rectilinear file (vtr) for a simpeg Tensor mesh and model.
+
+    Input:
+    :param str, path to the output vtk file
+    :param mesh, SimPEG TensorMesh object - mesh to be transfer to VTK
+    :param model, dictionary of numpy.array - Name('s) and array('s). Match number of cells
+
+    """
+    # Import
+    from vtk import vtkRectilinearGrid as rectGrid, vtkXMLRectilinearGridWriter as rectWriter
+    from vtk.util.numpy_support import numpy_to_vtk
+
+    # Deal with dimensionalities
+    if mesh.dim >= 1:
+        vX = mesh.vectorNx
+        xD = mesh.nNx
+        yD,zD = 1,1
+        vY, vZ = np.array([0,0])
+    if mesh.dim >= 2:
+        vY = mesh.vectorNy
+        yD = mesh.nNy
+    if mesh.dim == 3:
+        vZ = mesh.vectorNz
+        zD = mesh.nNz
+    # Use rectilinear VTK grid.
+    # Assign the spatial information.
+    vtkObj = rectGrid()
+    vtkObj.SetDimensions(xD,yD,zD)
+    vtkObj.SetXCoordinates(numpy_to_vtk(vX,deep=1))
+    vtkObj.SetYCoordinates(numpy_to_vtk(vY,deep=1))
+    vtkObj.SetZCoordinates(numpy_to_vtk(vZ,deep=1))
+
+    # Assign the model('s) to the object
+    for item in model.iteritems():
+        # Convert numpy array
+        vtkDoubleArr = numpy_to_vtk(item[1],deep=1)
+        vtkDoubleArr.SetName(item[0])
+        vtkObj.GetCellData().AddArray(vtkDoubleArr)
+    # Set the active scalar
+    vtkObj.GetCellData().SetActiveScalars(model.keys()[0])
+    vtkObj.Update()
+
+
+    # Check the extension of the fileName
+    ext = os.path.splitext(fileName)[1]
+    if ext is '':
+        fileName = fileName + '.vtr'
+    elif ext not in '.vtr':
+        raise IOError('{:s} is an incorrect extension, has to be .vtr')
+    # Write the file.
+    vtrWriteFilter = rectWriter()
+    vtrWriteFilter.SetInput(vtkObj)
+    vtrWriteFilter.SetFileName(fileName)
+    vtrWriteFilter.Update()
+
+
 
 
 if __name__ == '__main__':
