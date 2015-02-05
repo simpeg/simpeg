@@ -158,12 +158,13 @@ def readUBCTensorModel(fileName, mesh):
 
     return model
 
-def writeUBCTensorMesh(mesh, fileName):
+def writeUBCTensorMesh(fileName, mesh):
     """
         Writes a SimPEG TensorMesh to a UBC-GIF format mesh file.
 
-        :param simpeg.Mesh.TensorMesh mesh: The mesh
         :param str fileName: File to write to
+        :param simpeg.Mesh.TensorMesh mesh: The mesh
+        
     """
     assert mesh.dim == 3
     s = ''
@@ -179,14 +180,14 @@ def writeUBCTensorMesh(mesh, fileName):
     f.write(s)
     f.close()
 
-def writeUBCTensorModel(mesh, model, fileName):
+def writeUBCTensorModel(fileName, mesh, model):
     """
         Writes a model associated with a SimPEG TensorMesh
         to a UBC-GIF format model file.
 
+        :param str fileName: File to write to
         :param simpeg.Mesh.TensorMesh mesh: The mesh
         :param numpy.ndarray model: The model
-        :param str fileName: File to write to
     """
 
     # Reshape model to a matrix
@@ -199,9 +200,9 @@ def writeUBCTensorModel(mesh, model, fileName):
     np.savetxt(fileName, modelMatTR.ravel())
 
 
-def readVTRFile(vtrFileName):
+def readVTRFile(fileName):
     """
-        Read VTK vtr (Rectilinear xml file) and return SimPEG Tensor mesh
+        Read VTK Rectilinear (vtr xml file) and return SimPEG Tensor mesh and model
 
         Input:
         :param vtrFileName, path to the vtr model file
@@ -217,7 +218,7 @@ def readVTRFile(vtrFileName):
 
     # Read the file
     vtrReader = vtrFileReader()
-    vtrReader.SetFileName(vtrFileName)
+    vtrReader.SetFileName(fileName)
     vtrReader.Update()
     vtrGrid = vtrReader.GetOutput()
     # Sort information
@@ -254,14 +255,14 @@ def readVTRFile(vtrFileName):
     # Return the data
     return tensMsh, modelDict
 
-def writeVTRFile(mesh,fileName,model=None):
+def writeVTRFile(fileName,mesh,model=None):
     """
     Makes and saves a VTK rectilinear file (vtr) for a simpeg Tensor mesh and model.
 
     Input:
+    :param str, path to the output vtk file
     :param mesh, SimPEG TensorMesh object - mesh to be transfer to VTK
     :param model, dictionary of numpy.array - Name('s) and array('s). Match number of cells
-    :param model, path to the output vtk file
 
     """
     # Import
