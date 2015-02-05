@@ -278,6 +278,19 @@ class CylMesh(BaseTensorMesh, InnerProducts, CylView):
                 #                                   kron3(speye(n[2]), av(n[1]), av(n[0]))), format="csr")
         return self._aveE2CC
 
+    @property
+    def aveE2CCV(self):
+        "Construct the averaging operator on cell edges to cell centers."
+        if getattr(self, '_aveE2CCV', None) is None:
+            # The number of cell centers in each direction
+            n = self.vnC
+            if self.isSymmetric:
+                self._aveE2CCV = sp.block_diag((sp.kron(av(n[1]), speye(n[0])),
+                                                sp.kron(speye(n[1]), av(n[0]))), format="csr")
+            else:
+                raise NotImplementedError('wrapping in the averaging is not yet implemented')
+        return self._aveE2CCV
+
 
     @property
     def aveF2CC(self):
@@ -294,6 +307,18 @@ class CylMesh(BaseTensorMesh, InnerProducts, CylView):
                 #                                    kron3(speye(n[2]), av(n[1]), speye(n[0])),
                 #                                    kron3(av(n[2]), speye(n[1]), speye(n[0]))), format="csr")
         return self._aveF2CC
+
+    @property
+    def aveF2CCV(self):
+        "Construct the averaging operator on cell faces to cell centers."
+        if getattr(self, '_aveF2CCV', None) is None:
+            n = self.vnC
+            if self.isSymmetric:
+                self._aveF2CCV = sp.block_diag((sp.kron(speye(n[1]), av(n[0])),
+                                               sp.kron(av(n[1]), speye(n[0]))), format="csr")
+            else:
+                raise NotImplementedError('wrapping in the averaging is not yet implemented')
+        return self._aveF2CCV
 
 
 if __name__ == '__main__':
