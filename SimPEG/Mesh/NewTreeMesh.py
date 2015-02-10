@@ -93,6 +93,11 @@ class TreeMesh(object):
 
     def refineEdge(self, index):
         e = self._edges[index,:]
+        if e[ACTIVE] == 0:
+            # search for the children up to one level deep
+            subInds = np.argwhere(self._edges[:,PARENT] == index).flatten()
+            return subInds, self._edges[subInds,:]
+
         self._edges[index, ACTIVE] = 0
 
         newNode, node = self.addNode(e[[ENODE0, ENODE1]])
@@ -454,8 +459,10 @@ if __name__ == '__main__':
 
     tM = TreeMesh([np.ones(3),np.ones(2)])
 
-    # tM.refineFace(0)
-    # tM.refineFace(9)
+    tM.refineFace(0)
+    tM.refineFace(1)
+    tM.refineFace(3)
+    tM.refineFace(9)
 
     # print tM._faces
     # print tM._edges[0,:]
