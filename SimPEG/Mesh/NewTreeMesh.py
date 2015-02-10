@@ -376,6 +376,10 @@ class TreeMesh(BaseMesh):
 
 
     @property
+    def gridEz(self):
+        pass
+
+    @property
     def gridFx(self):
         if self.dim == 2:
             return self.gridEy
@@ -384,6 +388,10 @@ class TreeMesh(BaseMesh):
     def gridFy(self):
         if self.dim == 2:
             return self.gridEx
+
+    @property
+    def gridFz(self):
+        pass
 
     def _push(self, attr, rows):
         self.isNumbered = False

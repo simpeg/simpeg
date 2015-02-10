@@ -102,6 +102,44 @@ class SimpleOctreeOperatorTests(unittest.TestCase):
 
 
 
+class TestOcTreeObjects(unittest.TestCase):
+
+    def setUp(self):
+        self.M  = TreeMesh([2,1,1])
+        self.M.number()
+
+        # self.Mr = TreeMesh([2,1,1])
+        # self.Mr.children[0,0,0].refine()
+        # self.Mr.number()
+
+    def test_counts(self):
+        self.assertTrue(self.M.nC == 2)
+        self.assertTrue(self.M.nFx == 3)
+        self.assertTrue(self.M.nFy == 4)
+        self.assertTrue(self.M.nFz == 4)
+        self.assertTrue(self.M.nF == 11)
+        self.assertTrue(self.M.nEx == 8)
+        self.assertTrue(self.M.nEy == 6)
+        self.assertTrue(self.M.nEz == 6)
+        self.assertTrue(self.M.nE == 20)
+        self.assertTrue(self.M.nN == 12)
+
+        # self.assertTrue(self.Mr.nC == 9)
+        # self.assertTrue(self.Mr.nFx == 13)
+        # self.assertTrue(self.Mr.nFy == 14)
+        # self.assertTrue(self.Mr.nFz == 14)
+        # self.assertTrue(self.Mr.nF == 41)
+
+
+        # for cell in self.Mr.sortedCells:
+        #     for e in cell.edgeDict:
+        #         self.assertTrue(cell.edgeDict[e].edgeType==e[1].lower())
+
+        # self.assertTrue(self.Mr.nN == 31)
+        # self.assertTrue(self.Mr.nEx == 22)
+        # self.assertTrue(self.Mr.nEy == 20)
+        # self.assertTrue(self.Mr.nEz == 20)
+
 
 if __name__ == '__main__':
     unittest.main()
