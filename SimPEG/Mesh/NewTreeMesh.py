@@ -18,7 +18,8 @@ def SortByX0(grid):
 
 class TreeMesh(object):
 
-    def __init__(self, hx, hy):
+    def __init__(self, h):
+        hx, hy = h
         nx = np.r_[0,hx.cumsum()]
         ny = np.r_[0,hy.cumsum()]
         vnC = [nx.size-1, ny.size-1]
@@ -54,11 +55,12 @@ class TreeMesh(object):
 
     @property
     def isNumbered(self):
-        return self._numberedCC and self._numberedEx and self._numberedEy
+        return self._numberedCC and self._numberedN and self._numberedEx and self._numberedEy
     @isNumbered.setter
     def isNumbered(self, value):
         assert value is False, 'Can only set to False.'
         self._numberedCC = False
+        self._numberedN  = False
         self._numberedEx = False
         self._numberedEy = False
         for name in ['vol', 'area', 'edge', 'gridCC', 'gridN', 'gridEx', 'gridEy', 'gridEz', 'gridFx', 'gridFy', 'gridFz']:
@@ -270,6 +272,22 @@ class TreeMesh(object):
         return self._vol
 
     @property
+    def gridN(self):
+        N = self._nodes
+        activeNodes = N[:,ACTIVE] == 1
+        Nx = N[activeNodes,NX]
+        Ny = N[activeNodes,NY]
+
+        P = SortByX0(np.c_[Nx, Ny])
+        if not self._numberedN:
+            cnt = np.zeros(P.size, dtype=int)
+            cnt[P] = np.arange(P.size)
+            self._nodes[activeNodes, NUM] = cnt
+            self._numberedN = True
+
+        return np.c_[Nx, Ny][P, :]
+
+    @property
     def gridCC(self):
         N = self._nodes
         E = self._edges
@@ -287,7 +305,7 @@ class TreeMesh(object):
             self._faces[activeCells, NUM] = cnt
             self._numberedCC = True
 
-        return np.c_[Cx,Cy][P, :]
+        return np.c_[Cx, Cy][P, :]
 
     @property
     def gridEx(self):
@@ -306,7 +324,7 @@ class TreeMesh(object):
             self._edges[activeEdges, NUM] = cnt
             self._numberedEx = True
 
-        return np.c_[Ex,Ey][P, :]
+        return np.c_[Ex, Ey][P, :]
 
     @property
     def gridEy(self):
@@ -325,7 +343,7 @@ class TreeMesh(object):
             self._edges[activeEdges, NUM] = cnt + self.nEx
             self._numberedEy = True
 
-        return np.c_[Ex,Ey][P, :]
+        return np.c_[Ex, Ey][P, :]
 
 
     @property
@@ -384,6 +402,7 @@ class TreeMesh(object):
         self._faces[:,NUM] = -1
         # self._cells[:,NUM] = -1
         self.gridCC
+        self.gridN
         self.gridEx
         self.gridEy
 
