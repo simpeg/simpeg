@@ -114,7 +114,10 @@ class TreeMesh(object):
 
     def refineFace(self, index):
         f = self._faces[index,:]
-        nodeNums = self._edges[f[[FEDGE0, FEDGE1]],:][:,[ENODE0, ENODE1]]
+        if f[ACTIVE] == 0:
+            # search for the children up to one level deep
+            subInds = np.argwhere(self._faces[:,PARENT] == index).flatten()
+            return subInds, self._faces[subInds,:]
 
         self._faces[index, ACTIVE] = 0
 
@@ -135,6 +138,7 @@ class TreeMesh(object):
         E2i, E2 = self.refineEdge(f[FEDGE2])
         E3i, E3 = self.refineEdge(f[FEDGE3])
 
+        nodeNums = self._edges[f[[FEDGE0, FEDGE1]],:][:,[ENODE0, ENODE1]]
         newNode, node = self.addNode(nodeNums)
 
         # Refine the inner edges
@@ -478,11 +482,6 @@ if __name__ == '__main__':
     plt.subplot(211)
     plt.spy(tM.faceDiv)
     tM.plotGrid(ax=plt.subplot(212))
-
-
-    print tM.vol
-    print tM.area
-    print tM.edge
 
     # plt.figure(2)
     # plt.plot(SortByX0(tM.gridCC),'b.')
