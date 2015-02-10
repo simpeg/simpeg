@@ -54,6 +54,20 @@ class TestQuadTreeMesh(unittest.TestCase):
         y = np.r_[0.25,0.25,0.25,0.5,0.5,0.75,0.75,0.75,1.5,1.5,1.5,1.5]
         self.assertTrue(np.linalg.norm((np.c_[x,y]-self.M.gridEy).flatten()) == 0)
 
+    def test_vol(self):
+        v = np.r_[0.25,0.25,1,1,0.25,0.25,1,1,1]
+        self.assertTrue(np.linalg.norm((v-self.M.vol)) < TOL)
+
+    def test_edge(self):
+        ex = np.r_[0.5,0.5,1,1,0.5,0.5,0.5,0.5,1,1,1,1,1]
+        ey = np.r_[0.5,0.5,0.5,1,1,0.5,0.5,0.5,1,1,1,1]
+        self.assertTrue(np.linalg.norm((np.r_[ex,ey]-self.M.edge)) < TOL)
+
+    def test_area(self):
+        ax = np.r_[0.5,0.5,0.5,1,1,0.5,0.5,0.5,1,1,1,1]
+        ay = np.r_[0.5,0.5,1,1,0.5,0.5,0.5,0.5,1,1,1,1,1]
+        self.assertTrue(np.linalg.norm((np.r_[ax,ay]-self.M.area)) < TOL)
+
 
 if __name__ == '__main__':
     unittest.main()
