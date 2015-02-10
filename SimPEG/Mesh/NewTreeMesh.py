@@ -1,5 +1,6 @@
 import numpy as np, scipy.sparse as sp
 from SimPEG.Utils import ndgrid, mkvc, sdiag
+from BaseMesh import BaseMesh
 
 
 NUM, ACTIVE, NX, NY, NZ = range(5)
@@ -16,42 +17,172 @@ def SortByX0(grid):
     return P
 
 
-class TreeMesh(object):
+class TreeMesh(BaseMesh):
 
-    def __init__(self, h):
-        hx, hy = h
-        nx = np.r_[0,hx.cumsum()]
-        ny = np.r_[0,hy.cumsum()]
-        vnC = [nx.size-1, ny.size-1]
-        vnN = [nx.size, ny.size]
+    def __init__(self, h_in, x0=None):
+        assert type(h_in) in [list, tuple], 'h_in must be a list'
+        assert len(h_in) > 1, "len(h_in) must be greater than 1"
 
-        XY = ndgrid(nx, ny)
-        N = np.c_[np.arange(XY.shape[0]), np.ones(XY.shape[0]), XY]
+        h = range(len(h_in))
+        for i, h_i in enumerate(h_in):
+            if type(h_i) in [int, long, float]:
+                # This gives you something over the unit cube.
+                h_i = np.ones(int(h_i))/int(h_i)
+            assert isinstance(h_i, np.ndarray), ("h[%i] is not a numpy array." % i)
+            assert len(h_i.shape) == 1, ("h[%i] must be a 1D numpy array." % i)
+            h[i] = h_i[:] # make a copy.
+        self.h = h
 
-        I = np.arange(nx.size * ny.size, dtype=int).reshape(vnN, order='F')
+        if x0 is None:
+            x0 = np.zeros(len(h))
+        else:
+            assert type(x0) in [list, tuple, np.ndarray], 'x0 must be an array'
+            x0 = np.array(x0, dtype=float)
+            assert len(x0) == self.dim, 'x0 must have the same dimensions as the mesh'
 
-        vEx = np.c_[mkvc(I[:-1,:]), mkvc(I[1:,:])]
-        vEy = np.c_[mkvc(I[:,:-1]), mkvc(I[:,1:])]
+        # TODO: this has a lot of stuff which doesn't work for this style of mesh...
+        BaseMesh.__init__(self, np.array([x.size for x in h]), x0)
+        if self.dim == 2:
+            self._init2D()
+        else:
+            self._init3D()
 
-        nEx = np.arange(vEx.shape[0], dtype=int).reshape(nx.size-1, ny.size, order='F')
-        nEy = np.arange(vEy.shape[0], dtype=int).reshape(nx.size, ny.size-1, order='F') + vEx.shape[0]
+        self.isNumbered = False
 
-        zEx = np.zeros(nEx.size, dtype=int)
-        zEy = np.zeros(nEy.size, dtype=int)
+    def _init2D(self):
+        XY = ndgrid(*[np.r_[0, h.cumsum()] for h in self.h])
 
-        #             #      active parent  dir, n1,n2
-        Ex = np.c_[mkvc(nEx), zEx+1, zEx-1, zEx+0, vEx]
-        Ey = np.c_[mkvc(nEy), zEy+1, zEy-1, zEy+1, vEy]
+        nCx, nCy = [len(h) for h in self.h]
 
-        nC = np.arange(np.prod(vnC), dtype=int)
+        vnC  = [nCx  , nCy  ]
+        vnN  = [nCx+1, nCy+1]
 
-        C = np.c_[nC, nC*0+1, nC*0-1, nC*0+2, mkvc(nEx[:,:-1]), mkvc(nEx[:,1:]), mkvc(nEy[:-1,:]), mkvc(nEy[1:,:])]
+        vnEx = [nCx  , nCy+1]
+        vnEy = [nCx+1, nCy  ]
+
+        vnFx = [nCx+1, nCy  ]
+        vnFy = [nCx  , nCy+1]
+
+        nC   = np.prod(vnC)
+        nN   = np.prod(vnN)
+        nFx  = np.prod(vnFx)
+        nFy  = np.prod(vnFy)
+        nF   = nFx + nFy
+        nEx  = np.prod(vnEx)
+        nEy  = np.prod(vnEy)
+        nE   = nEx + nEy
+
+        N = np.c_[np.arange(nN), np.ones(nN), XY]
+
+        iN = np.arange(nN, dtype=int).reshape(vnN, order='F')
+
+        # Pointers to the nodes for the edges
+        pnEx = np.c_[mkvc(iN[:-1,:]), mkvc(iN[1:,:])]
+        pnEy = np.c_[mkvc(iN[:,:-1]), mkvc(iN[:,1:])]
+
+        iEx = np.arange(nEx, dtype=int).reshape(*vnEx, order='F')
+        iEy = np.arange(nEy, dtype=int).reshape(*vnEy, order='F') + nEx
+
+        zEx = np.zeros(nEx, dtype=int)
+        zEy = np.zeros(nEy, dtype=int)
+
+        Ex = np.c_[mkvc(iEx), zEx+1, zEx-1, zEx+0, pnEx]
+        Ey = np.c_[mkvc(iEy), zEy+1, zEy-1, zEy+1, pnEy]
+
+        # Pointers to the edges for the faces
+        vFz = np.c_[mkvc(iEx[:,:-1]), mkvc(iEx[:,1:]), mkvc(iEy[:-1,:]), mkvc(iEy[1:,:])]
+
+        iC = np.arange(nC, dtype=int)
+
+        zC = np.zeros(nC, dtype=int)
+
+        C = np.c_[iC, zC+1, zC-1, zC+2, vFz]
 
         self._nodes = N
         self._edges = np.r_[Ex, Ey]
         self._faces = C
 
-        self.isNumbered = False
+
+    def _init3D(self):
+        XYZ = ndgrid(*[np.r_[0, h.cumsum()] for h in self.h])
+
+        nCx, nCy, nCz = [len(h) for h in self.h]
+
+        vnC  = [nCx  , nCy  , nCz  ]
+        vnN  = [nCx+1, nCy+1, nCz+1]
+
+        vnEx = [nCx  , nCy+1, nCz+1]
+        vnEy = [nCx+1, nCy  , nCz+1]
+        vnEz = [nCx+1, nCy+1, nCz  ]
+
+        vnFx = [nCx+1, nCy  , nCz  ]
+        vnFy = [nCx  , nCy+1, nCz  ]
+        vnFz = [nCx  , nCy  , nCz+1]
+
+        nC   = np.prod(vnC)
+        nN   = np.prod(vnN)
+        nFx  = np.prod(vnFx)
+        nFy  = np.prod(vnFy)
+        nFz  = np.prod(vnFz)
+        nF   = nFx + nFy + nFz
+        nEx  = np.prod(vnEx)
+        nEy  = np.prod(vnEy)
+        nEz  = np.prod(vnEz)
+        nE   = nEx + nEy + nEz
+
+        N = np.c_[np.arange(XYZ.shape[0]), np.ones(XYZ.shape[0]), XYZ]
+
+        iN = np.arange(nN, dtype=int).reshape(vnN, order='F')
+
+        # Pointers to the nodes for the edges
+        pnEx = np.c_[mkvc(iN[:-1,:,:]), mkvc(iN[1:,:,:])]
+        pnEy = np.c_[mkvc(iN[:,:-1,:]), mkvc(iN[:,1:,:])]
+        pnEz = np.c_[mkvc(iN[:,:,:-1]), mkvc(iN[:,:,1:])]
+
+        iEx = np.arange(nEx, dtype=int).reshape(*vnEx, order='F')
+        iEy = np.arange(nEy, dtype=int).reshape(*vnEy, order='F') + nEx
+        iEz = np.arange(nEz, dtype=int).reshape(*vnEz, order='F') + nEx + nEy
+
+        zEx = np.zeros(nEx, dtype=int)
+        zEy = np.zeros(nEy, dtype=int)
+        zEz = np.zeros(nEz, dtype=int)
+
+        Ex = np.c_[mkvc(iEx), zEx+1, zEx-1, zEx+0, pnEx]
+        Ey = np.c_[mkvc(iEy), zEy+1, zEy-1, zEy+1, pnEy]
+        Ez = np.c_[mkvc(iEz), zEz+1, zEz-1, zEz+2, pnEz]
+
+        # Pointers to the edges for the faces
+        peFx = np.c_[                                       mkvc(iEy[:,:,:-1]), mkvc(iEy[:,:,1:]), mkvc(iEz[:,:-1,:]), mkvc(iEz[:,1:,:])]
+        peFy = np.c_[mkvc(iEx[:,:,:-1]), mkvc(iEx[:,:,1:]),                                        mkvc(iEz[:-1,:,:]), mkvc(iEz[1:,:,:])]
+        peFz = np.c_[mkvc(iEx[:,:-1,:]), mkvc(iEx[:,1:,:]), mkvc(iEy[:-1,:,:]), mkvc(iEy[1:,:,:])                                       ]
+
+        iFx = np.arange(nFx, dtype=int).reshape(*vnFx, order='F')
+        iFy = np.arange(nFy, dtype=int).reshape(*vnFy, order='F') + nFx
+        iFz = np.arange(nFz, dtype=int).reshape(*vnFz, order='F') + nFx + nFy
+
+        zFx = np.zeros(nFx, dtype=int)
+        zFy = np.zeros(nFy, dtype=int)
+        zFz = np.zeros(nFz, dtype=int)
+
+        Fx = np.c_[mkvc(iFx), zFx+1, zFx-1, zFx+0, peFx]
+        Fy = np.c_[mkvc(iFy), zFy+1, zFy-1, zFy+1, peFy]
+        Fz = np.c_[mkvc(iFz), zFz+1, zFz-1, zFz+2, peFz]
+
+        # Pointers to the faces for the cells
+        pfCx = np.c_[mkvc(iFx[:-1,:,:]), mkvc(iFx[1:,:,:])]
+        pfCy = np.c_[mkvc(iFy[:,:-1,:]), mkvc(iFy[:,1:,:])]
+        pfCz = np.c_[mkvc(iFz[:,:,:-1]), mkvc(iFz[:,:,1:])]
+
+        iC = np.arange(nC, dtype=int)
+
+        zC = np.zeros(nC, dtype=int)
+
+        C = np.c_[iC, zC+1, zC-1, pfCx, pfCy, pfCz]
+
+        self._nodes = N
+        self._edges = np.r_[Ex, Ey, Ez]
+        self._faces = np.r_[Fx, Fy, Fz]
+        self._cells = C
 
     @property
     def isNumbered(self):
@@ -68,109 +199,6 @@ class TreeMesh(object):
                 delattr(self, '_'+name)
 
     @property
-    def dim(self):
-        return 2
-
-    def _push(self, attr, rows):
-        self.isNumbered = False
-        rows = np.atleast_2d(rows)
-        X = getattr(self, attr)
-        offset = X.shape[0]
-        rowNumer = np.arange(rows.shape[0], dtype=int) + offset
-        rows[:,0] = rowNumer*0-1
-        setattr(self, attr, np.vstack((X, rows)).astype(X.dtype))
-        if rows.shape[0] == 1:
-            return offset, rows.flatten()
-        return rowNumer, rows
-
-    def addNode(self, between):
-        """Add a node between the node in list between"""
-        between = np.array(between).flatten()
-        nodes = self._nodes[between.astype(int), :]
-        newNode = np.mean(nodes, axis=0)
-        newNode[ACTIVE] = 1
-        return self._push('_nodes', newNode)
-
-    def refineEdge(self, index):
-        e = self._edges[index,:]
-        if e[ACTIVE] == 0:
-            # search for the children up to one level deep
-            subInds = np.argwhere(self._edges[:,PARENT] == index).flatten()
-            return subInds, self._edges[subInds,:]
-
-        self._edges[index, ACTIVE] = 0
-
-        newNode, node = self.addNode(e[[ENODE0, ENODE1]])
-
-        Es = np.zeros((2, 6))
-        Es[:, ACTIVE]  = 1
-        Es[:, PARENT]  = index
-        Es[:, EDIR]    = e[EDIR]
-        Es[0, ENODE0]  = e[ENODE0]
-        Es[0, ENODE1]  = newNode
-        Es[1, ENODE0]  = newNode
-        Es[1, ENODE1]  = e[ENODE1]
-        return self._push('_edges', Es)
-
-    def refineFace(self, index):
-        f = self._faces[index,:]
-        if f[ACTIVE] == 0:
-            # search for the children up to one level deep
-            subInds = np.argwhere(self._faces[:,PARENT] == index).flatten()
-            return subInds, self._faces[subInds,:]
-
-        self._faces[index, ACTIVE] = 0
-
-        #                                           new faces and edges
-        #      2_______________3                    _______________
-        #      |     e1-->     |                   |       |       |
-        #   ^  |               | ^                 |   2   3   3   |        y            z            z
-        #   |  |               | |                 |       |       |        ^            ^            ^
-        #   |  |       x       | |      --->       |---0---+---1---|        |            |            |
-        #   e2 |               | e3                |       |       |        |            |            |
-        #      |               |                   |   0   2   1   |        z-----> x    y-----> x    x-----> y
-        #      |_______________|                   |_______|_______|
-        #      0      e0-->    1
-
-        # Refine the outer edges
-        E0i, E0 = self.refineEdge(f[FEDGE0])
-        E1i, E1 = self.refineEdge(f[FEDGE1])
-        E2i, E2 = self.refineEdge(f[FEDGE2])
-        E3i, E3 = self.refineEdge(f[FEDGE3])
-
-        nodeNums = self._edges[f[[FEDGE0, FEDGE1]],:][:,[ENODE0, ENODE1]]
-        newNode, node = self.addNode(nodeNums)
-
-        # Refine the inner edges
-        nE = np.zeros((4,6))
-        nE[:, ACTIVE] = 1
-        nE[:, PARENT] = -1
-        nE[:, EDIR] = [0,0,1,1] if f[FDIR] == 2 else [0,0,2,2] if f[FDIR] == 1 else [1,1,2,2]
-        nE[0, ENODE0] = E2[0, ENODE1]
-        nE[0, ENODE1] = newNode
-        nE[1, ENODE0] = newNode
-        nE[1, ENODE1] = E3[0, ENODE1]
-        nE[2, ENODE0] = E0[0, ENODE1]
-        nE[2, ENODE1] = newNode
-        nE[3, ENODE0] = newNode
-        nE[3, ENODE1] = E1[0, ENODE1]
-        nEi, nE = self._push('_edges', nE)
-
-        # Add four new faces
-        Fs = np.zeros((4,8))
-        Fs[:, ACTIVE] = 1
-        Fs[:, PARENT] = index
-        Fs[:, FDIR]   = f[FDIR]
-
-        fInds = [FEDGE0,FEDGE1,FEDGE2,FEDGE3]
-        Fs[0, fInds] = [E0i[0], nEi[0], E2i[0], nEi[2]]
-        Fs[1, fInds] = [E0i[1], nEi[1], nEi[2], E3i[0]]
-        Fs[2, fInds] = [nEi[0], E1i[0], E2i[1], nEi[3]]
-        Fs[3, fInds] = [nEi[1], E1i[1], nEi[3], E3i[1]]
-
-        return self._push('_faces', Fs)
-
-    @property
     def nC(self):
         if self.dim == 2:
             return np.sum(self._faces[:,ACTIVE] == 1)
@@ -178,17 +206,19 @@ class TreeMesh(object):
 
     @property
     def nN(self):
-        return np.sum(self._cells[:,ACTIVE] == 1)
+        return np.sum(self._nodes[:,ACTIVE] == 1)
 
     @property
     def nE(self):
-        return np.sum(self._edges[:,ACTIVE] == 1)
+        if self.dim == 2:
+            return self.nEx + self.nEy
+        return self.nEx + self.nEy + self.nEz
 
     @property
     def nF(self):
         if self.dim == 2:
             return self.nFx + self.nFy
-        return np.sum(self._faces[:,ACTIVE] == 1)
+        return self.nFx + self.nFy + self.nFz
 
     @property
     def nEx(self):
@@ -220,7 +250,7 @@ class TreeMesh(object):
     def nFz(self):
         if self.dim == 2:
             return None
-        return np.sum((self._faces[:,ACTIVE] == 1) & (self._faces[:,FDIR] == 1))
+        return np.sum((self._faces[:,ACTIVE] == 1) & (self._faces[:,FDIR] == 2))
 
     @property
     def edge(self):
@@ -365,6 +395,105 @@ class TreeMesh(object):
         if self.dim == 2:
             return self.gridEx
 
+    def _push(self, attr, rows):
+        self.isNumbered = False
+        rows = np.atleast_2d(rows)
+        X = getattr(self, attr)
+        offset = X.shape[0]
+        rowNumer = np.arange(rows.shape[0], dtype=int) + offset
+        rows[:,0] = rowNumer*0-1
+        setattr(self, attr, np.vstack((X, rows)).astype(X.dtype))
+        if rows.shape[0] == 1:
+            return offset, rows.flatten()
+        return rowNumer, rows
+
+    def addNode(self, between):
+        """Add a node between the node in list between"""
+        between = np.array(between).flatten()
+        nodes = self._nodes[between.astype(int), :]
+        newNode = np.mean(nodes, axis=0)
+        newNode[ACTIVE] = 1
+        return self._push('_nodes', newNode)
+
+    def refineEdge(self, index):
+        e = self._edges[index,:]
+        if e[ACTIVE] == 0:
+            # search for the children up to one level deep
+            subInds = np.argwhere(self._edges[:,PARENT] == index).flatten()
+            return subInds, self._edges[subInds,:]
+
+        self._edges[index, ACTIVE] = 0
+
+        newNode, node = self.addNode(e[[ENODE0, ENODE1]])
+
+        Es = np.zeros((2, 6))
+        Es[:, ACTIVE]  = 1
+        Es[:, PARENT]  = index
+        Es[:, EDIR]    = e[EDIR]
+        Es[0, ENODE0]  = e[ENODE0]
+        Es[0, ENODE1]  = newNode
+        Es[1, ENODE0]  = newNode
+        Es[1, ENODE1]  = e[ENODE1]
+        return self._push('_edges', Es)
+
+    def refineFace(self, index):
+        f = self._faces[index,:]
+        if f[ACTIVE] == 0:
+            # search for the children up to one level deep
+            subInds = np.argwhere(self._faces[:,PARENT] == index).flatten()
+            return subInds, self._faces[subInds,:]
+
+        self._faces[index, ACTIVE] = 0
+
+        #                                           new faces and edges
+        #      2_______________3                    _______________
+        #      |     e1-->     |                   |       |       |
+        #   ^  |               | ^                 |   2   3   3   |        y            z            z
+        #   |  |               | |                 |       |       |        ^            ^            ^
+        #   |  |       x       | |      --->       |---0---+---1---|        |            |            |
+        #   e2 |               | e3                |       |       |        |            |            |
+        #      |               |                   |   0   2   1   |        z-----> x    y-----> x    x-----> y
+        #      |_______________|                   |_______|_______|
+        #      0      e0-->    1
+
+        # Refine the outer edges
+        E0i, E0 = self.refineEdge(f[FEDGE0])
+        E1i, E1 = self.refineEdge(f[FEDGE1])
+        E2i, E2 = self.refineEdge(f[FEDGE2])
+        E3i, E3 = self.refineEdge(f[FEDGE3])
+
+        nodeNums = self._edges[f[[FEDGE0, FEDGE1]],:][:,[ENODE0, ENODE1]]
+        newNode, node = self.addNode(nodeNums)
+
+        # Refine the inner edges
+        nE = np.zeros((4,6))
+        nE[:, ACTIVE] = 1
+        nE[:, PARENT] = -1
+        nE[:, EDIR] = [0,0,1,1] if f[FDIR] == 2 else [0,0,2,2] if f[FDIR] == 1 else [1,1,2,2]
+        nE[0, ENODE0] = E2[0, ENODE1]
+        nE[0, ENODE1] = newNode
+        nE[1, ENODE0] = newNode
+        nE[1, ENODE1] = E3[0, ENODE1]
+        nE[2, ENODE0] = E0[0, ENODE1]
+        nE[2, ENODE1] = newNode
+        nE[3, ENODE0] = newNode
+        nE[3, ENODE1] = E1[0, ENODE1]
+        nEi, nE = self._push('_edges', nE)
+
+        # Add four new faces
+        Fs = np.zeros((4,8))
+        Fs[:, ACTIVE] = 1
+        Fs[:, PARENT] = index
+        Fs[:, FDIR]   = f[FDIR]
+
+        fInds = [FEDGE0,FEDGE1,FEDGE2,FEDGE3]
+        Fs[0, fInds] = [E0i[0], nEi[0], E2i[0], nEi[2]]
+        Fs[1, fInds] = [E0i[1], nEi[1], nEi[2], E3i[0]]
+        Fs[2, fInds] = [nEi[0], E1i[0], E2i[1], nEi[3]]
+        Fs[3, fInds] = [nEi[1], E1i[1], nEi[3], E3i[1]]
+
+        return self._push('_faces', Fs)
+
     def _index(self, attr, index):
         index = [index] if np.isscalar(index) else list(index)
         C = getattr(self, attr)
@@ -409,11 +538,16 @@ class TreeMesh(object):
         self._nodes[:,NUM] = -1
         self._edges[:,NUM] = -1
         self._faces[:,NUM] = -1
-        # self._cells[:,NUM] = -1
         self.gridCC
         self.gridN
         self.gridEx
         self.gridEy
+        if self.dim > 2:
+            self._cells[:,NUM] = -1
+            self.gridEz
+            self.gridFx
+            self.gridFy
+            self.gridFz
 
     def plotGrid(self, ax=None, text=True, showIt=False):
         import matplotlib.pyplot as plt
