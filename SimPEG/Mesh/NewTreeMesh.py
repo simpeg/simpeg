@@ -168,6 +168,8 @@ class TreeMesh(object):
 
     @property
     def nF(self):
+        if self.dim == 2:
+            return self.nFx + self.nFy
         return np.sum(self._faces[:,ACTIVE] == 1)
 
     @property
@@ -240,7 +242,9 @@ class TreeMesh(object):
             q = np.sum((n3 - n1)**2,axis=1)**0.5
 
             # Area of an arbitrary quadrilateral (in a plane)
-            self._vol = 0.25 * (4.0*(p**2)*(q**2) - (a**2 + c**2 - b**2 - d**2))**0.5
+            V = 0.25 * (4.0*(p**2)*(q**2) - (a**2 + c**2 - b**2 - d**2))**0.5
+            P = np.argsort(C[activeCells,NUM])
+            self._vol = V[P]
 
         return self._vol
 
@@ -303,7 +307,7 @@ class TreeMesh(object):
         return np.c_[Ex,Ey][P, :]
 
     def _index(self, attr, index):
-        index = [index] if type(index) in [int, long] else list(index)
+        index = [index] if np.isscalar(index) else list(index)
         C = getattr(self, attr)
         cSub = []
         iSub = []
@@ -324,13 +328,21 @@ class TreeMesh(object):
             self.number()
             # TODO: Preallocate!
             I, J, V = [], [], []
-            for cell in self.sortedCells:
-                faces = cell.faceDict
-                for face in faces:
-                    j = faces[face].index
-                    I += [cell.num]*len(j)
-                    J += j
-                    V += [-1 if 'm' in face else 1]*len(j)
+            nEx, nFx = self.nEx, self.nFx
+
+            offset = np.r_[nFx, -nEx]
+            N = self._nodes
+            E = self._edges
+            C = self._faces
+            activeCells = C[:,ACTIVE] == 1
+            for cell in C[activeCells]:
+                for sign, face in zip([-1,1,-1,1],[FEDGE0, FEDGE1, FEDGE2, FEDGE3]):
+                    ij, jrow = self._index('_edges', cell[face])
+                    I += [cell[NUM]]*len(ij)
+                    print jrow
+                    J += list(jrow[:,0] + offset[jrow[:,EDIR]])# + nFx)
+                    # J += list(jrow[:,0] - nEx)
+                    V += [sign]*len(ij)
             VOL = self.vol
             D = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.nF))
             S = self.area
@@ -366,24 +378,24 @@ class TreeMesh(object):
             plt.plot(eX.flatten(), eY.flatten(), 'b-')
 
         gridCC = self.gridCC
-        # if text:
-        #     [ax.text(cc[0], cc[1],i) for i, cc in enumerate(gridCC)]
+        if text:
+            [ax.text(cc[0], cc[1],i) for i, cc in enumerate(gridCC)]
         plt.plot(gridCC[:,0], gridCC[:,1], 'r.')
         gridFx = self.gridEy
         gridFy = self.gridEx
-        # if text:
-        #     [ax.text(cc[0], cc[1],i) for i, cc in enumerate(np.vstack((gridFx,gridFy)))]
+        if text:
+            [ax.text(cc[0], cc[1],i) for i, cc in enumerate(np.vstack((gridFx,gridFy)))]
         gridEx = self.gridEx
         gridEy = self.gridEy
         # if text:
         #     [ax.text(cc[0], cc[1],i) for i, cc in enumerate(np.vstack((gridEx,gridEy)))]
 
-        for E in self._edges:
-            if E[ACTIVE] == 0: continue
-            ex = N[E[[ENODE0,ENODE1]],1]
-            ey = N[E[[ENODE0,ENODE1]],2]
-            ax.plot(ex, ey, 'b-')
-            ax.text(ex.mean(), ey.mean(), E[NUM])
+        # for E in self._edges:
+        #     if E[ACTIVE] == 0: continue
+        #     ex = N[E[[ENODE0,ENODE1]],1]
+        #     ey = N[E[[ENODE0,ENODE1]],2]
+        #     ax.plot(ex, ey, 'b-')
+        #     ax.text(ex.mean(), ey.mean(), E[NUM])
 
         if showIt:
             plt.show()
@@ -402,12 +414,16 @@ if __name__ == '__main__':
     # print tM.area
 
 
-    tM.number()
-    print tM._index('_edges',3)[1]
+    # tM.number()
+    # print tM._index('_edges',3)[1]
+
+    print tM.vol
 
     # print tM._edges[:,[0,1,3, 4,5 ]]
 
-    tM.plotGrid()
+    plt.subplot(211)
+    plt.spy(tM.faceDiv)
+    tM.plotGrid(ax=plt.subplot(212))
     # plt.figure(2)
     # plt.plot(SortByX0(tM.gridCC),'b.')
     plt.show()
