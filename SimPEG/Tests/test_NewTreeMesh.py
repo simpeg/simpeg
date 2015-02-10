@@ -69,5 +69,39 @@ class TestQuadTreeMesh(unittest.TestCase):
         self.assertTrue(np.linalg.norm((np.r_[ax,ay]-self.M.area)) < TOL)
 
 
+
+class SimpleOctreeOperatorTests(unittest.TestCase):
+
+    def setUp(self):
+        h1 = np.random.rand(5)
+        h2 = np.random.rand(7)
+        h3 = np.random.rand(3)
+        # self.tM = TensorMesh([h1,h2,h3])
+        # self.oM = TreeMesh([h1,h2,h3])
+        self.tM2 = TensorMesh([h1,h2])
+        self.oM2 = TreeMesh([h1,h2])
+        # self.oM2.plotGrid(showIt=True)
+
+    def test_faceDiv(self):
+        # self.assertAlmostEqual((self.tM.faceDiv - self.oM.faceDiv).toarray().sum(), 0)
+        self.assertAlmostEqual((self.tM2.faceDiv - self.oM2.faceDiv).toarray().sum(), 0)
+
+    # def test_nodalGrad(self):
+    #     self.assertAlmostEqual((self.tM.nodalGrad - self.oM.nodalGrad).toarray().sum(), 0)
+    #     self.assertAlmostEqual((self.tM2.nodalGrad - self.oM2.nodalGrad).toarray().sum(), 0)
+
+    # def test_edgeCurl(self):
+    #     self.assertAlmostEqual((self.tM.edgeCurl - self.oM.edgeCurl).toarray().sum(), 0)
+    #     # self.assertAlmostEqual((self.tM2.edgeCurl - self.oM2.edgeCurl).toarray().sum(), 0)
+
+    # def test_InnerProducts(self):
+    #     self.assertAlmostEqual((self.tM.getFaceInnerProduct() - self.oM.getFaceInnerProduct()).toarray().sum(), 0)
+    #     self.assertAlmostEqual((self.tM2.getFaceInnerProduct() - self.oM2.getFaceInnerProduct()).toarray().sum(), 0)
+    #     self.assertAlmostEqual((self.tM2.getEdgeInnerProduct() - self.oM2.getEdgeInnerProduct()).toarray().sum(), 0)
+    #     self.assertAlmostEqual((self.tM.getEdgeInnerProduct() - self.oM.getEdgeInnerProduct()).toarray().sum(), 0)
+
+
+
+
 if __name__ == '__main__':
     unittest.main()

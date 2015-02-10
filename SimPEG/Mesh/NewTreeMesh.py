@@ -1,5 +1,5 @@
 import numpy as np, scipy.sparse as sp
-from SimPEG.Utils import ndgrid, mkvc
+from SimPEG.Utils import ndgrid, mkvc, sdiag
 
 
 NUM, ACTIVE, NX, NY, NZ = range(5)
@@ -265,7 +265,7 @@ class TreeMesh(object):
             q = np.sum((n3 - n1)**2,axis=1)**0.5
 
             # Area of an arbitrary quadrilateral (in a plane)
-            V = 0.25 * (4.0*(p**2)*(q**2) - (a**2 + c**2 - b**2 - d**2))**0.5
+            V = 0.25 * (4.0*(p**2)*(q**2) - (a**2 + c**2 - b**2 - d**2)**2)**0.5
             P = np.argsort(C[activeCells,NUM])
             self._vol = V[P]
 
@@ -391,7 +391,7 @@ class TreeMesh(object):
             VOL = self.vol
             D = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.nF))
             S = self.area
-            self._faceDiv = Utils.sdiag(1/VOL)*D*Utils.sdiag(S)
+            self._faceDiv = sdiag(1/VOL)*D*sdiag(S)
         return self._faceDiv
 
     def number(self):
@@ -452,10 +452,10 @@ if __name__ == '__main__':
     from SimPEG import Mesh, Utils
     import matplotlib.pyplot as plt
 
-    tM = TreeMesh(np.ones(3),np.ones(2))
+    tM = TreeMesh([np.ones(3),np.ones(2)])
 
-    tM.refineFace(0)
-    tM.refineFace(9)
+    # tM.refineFace(0)
+    # tM.refineFace(9)
 
     # print tM._faces
     # print tM._edges[0,:]
