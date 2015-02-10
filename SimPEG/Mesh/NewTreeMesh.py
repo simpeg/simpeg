@@ -8,15 +8,6 @@ NUM, ACTIVE, PARENT, EDIR, ENODE0, ENODE1 = range(6)
 NUM, ACTIVE, PARENT, FDIR, FEDGE0, FEDGE1, FEDGE2, FEDGE3 = range(8)
 NUM, ACTIVE, PARENT, CFACE0, CFACE1, CFACE2, CFACE3, CFACE4, CFACE5 = range(9)
 
-def SortByX0(grid):
-    dtype=[('x',float),('y',float)]
-    grid2 = np.zeros(grid.shape[0], dtype=dtype)
-    grid2['x'][:] = grid[:,0]
-    grid2['y'][:] = grid[:,1]
-    P = np.argsort(grid2, order=['y','x'])
-    return P
-
-
 class TreeMesh(BaseMesh):
 
     def __init__(self, h_in, x0=None):
@@ -40,7 +31,6 @@ class TreeMesh(BaseMesh):
             x0 = np.array(x0, dtype=float)
             assert len(x0) == self.dim, 'x0 must have the same dimensions as the mesh'
 
-        # TODO: this has a lot of stuff which doesn't work for this style of mesh...
         BaseMesh.__init__(self, np.array([x.size for x in h]), x0)
         if self.dim == 2:
             self._init2D()
@@ -590,6 +580,30 @@ class TreeMesh(BaseMesh):
 
         if showIt:
             plt.show()
+
+
+def _SortByX0_2D(grid):
+    dtype=[('x',float),('y',float)]
+    grid2 = np.zeros(grid.shape[0], dtype=dtype)
+    grid2['x'][:] = grid[:,0]
+    grid2['y'][:] = grid[:,1]
+    return np.argsort(grid2, order=['y','x'])
+
+def _SortByX0_3D(grid):
+    dtype=[('x',float),('y',float),('z',float)]
+    grid2 = np.zeros(grid.shape[0], dtype=dtype)
+    grid2['x'][:] = grid[:,0]
+    grid2['y'][:] = grid[:,1]
+    grid2['z'][:] = grid[:,2]
+    return np.argsort(grid2, order=['z','y','x'])
+
+def SortByX0(grid):
+    if grid.shape[1] == 2:
+        return _SortByX0_2D(grid)
+    elif grid.shape[1] == 3:
+        return _SortByX0_3D(grid)
+
+
 
 if __name__ == '__main__':
     from SimPEG import Mesh, Utils
