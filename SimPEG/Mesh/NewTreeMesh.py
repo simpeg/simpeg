@@ -3,10 +3,156 @@ from SimPEG.Utils import ndgrid, mkvc, sdiag
 from BaseMesh import BaseMesh
 
 
-NUM, ACTIVE, NX, NY, NZ = range(5)
+NUM, ACTIVE, NX, NY, NZ = range(5) # Do not put anything after NZ
 NUM, ACTIVE, PARENT, EDIR, ENODE0, ENODE1 = range(6)
 NUM, ACTIVE, PARENT, FDIR, FEDGE0, FEDGE1, FEDGE2, FEDGE3 = range(8)
 NUM, ACTIVE, PARENT, CFACE0, CFACE1, CFACE2, CFACE3, CFACE4, CFACE5 = range(9)
+
+# The following classes are wrappers to make indexing easier
+
+class TreeIndexer(object):
+    def __init__(self, treeMesh, index=slice(None)):
+        self.M = treeMesh
+        if index == 'active':
+            array = getattr(self.M, self._pointer)
+            index = array[:,ACTIVE] == 1
+        self.index = index
+
+    @property
+    def C(self): return getattr(self.M, '_cells', None)
+    @property
+    def F(self): return getattr(self.M, '_faces', None)
+    @property
+    def E(self): return getattr(self.M, '_edges', None)
+    @property
+    def N(self): return getattr(self.M, '_nodes', None)
+
+    def sort(self, vec):
+        self.M.number()
+        P = np.argsort(self.num)
+        if len(vec.shape) == 1:
+            return vec[P]
+        return vec[P,:]
+
+    def _ind(self, column):
+        array = getattr(self.M, self._pointer)
+        ind = np.atleast_2d(array[self.index,:])[:,column]
+        return self._SubTree(self.M, ind)
+
+    def at(self, index=slice(None)):
+        self.index = index
+        return self
+
+class TreeNode(TreeIndexer):
+    _SubTree = None
+    _pointer = '_nodes'
+    @property
+    def num(self): return self.N[self.index, NUM]
+    @property
+    def vec(self): return self.N[self.index,:][:,NX:]
+    @property
+    def x(self):   return self.N[self.index,:][:,NX]
+    @property
+    def y(self):   return self.N[self.index,:][:,NY]
+    @property
+    def z(self):   return self.N[self.index,:][:,NZ]
+
+class TreeEdge(TreeIndexer):
+    _SubTree = TreeNode
+    _pointer = '_edges'
+
+    @property
+    def num(self):return self.E[self.index, NUM]
+    @property
+    def dir(self):return self.E[self.index, EDIR]
+    @property
+    def n0(self): return self._ind(ENODE0)
+    @property
+    def n1(self): return self._ind(ENODE1)
+    @property
+    def nodes(self):
+        return [self.n0, self.n1]
+    @property
+    def length(self):
+        return np.sum((self.n1.vec - self.n0.vec)**2,axis=1)**0.5
+    @property
+    def center(self):
+        return (self.n0.vec + self.n1.vec)/2.0
+
+class TreeFace(TreeIndexer):
+    _SubTree = TreeEdge
+    _pointer = '_faces'
+
+    @property
+    def num(self):return self.F[self.index, NUM]
+    @property
+    def dir(self):return self.F[self.index, FDIR]
+    @property
+    def e0(self): return self._ind(FEDGE0)
+    @property
+    def e1(self): return self._ind(FEDGE1)
+    @property
+    def e2(self): return self._ind(FEDGE2)
+    @property
+    def e3(self): return self._ind(FEDGE3)
+    @property
+    def n0(self): return self.e0.n0
+    @property
+    def n1(self): return self.e0.n1
+    @property
+    def n2(self): return self.e1.n0
+    @property
+    def n3(self): return self.e1.n1
+    @property
+    def nodes(self):
+        return [self.n0, self.n1, self.n2, self.n3]
+    @property
+    def center(self):
+        return (self.n0.vec + self.n1.vec + self.n2.vec + self.n3.vec)/4.0
+    @property
+    def area(self):
+
+        n0 = self.n0.vec #  2------3         3------2
+        n1 = self.n1.vec #  |      |  --->   |      |
+        n2 = self.n3.vec #  |      |         |      |
+        n3 = self.n2.vec #  0------1         0------1
+
+        a = np.sum((n1 - n0)**2,axis=1)**0.5
+        b = np.sum((n2 - n1)**2,axis=1)**0.5
+        c = np.sum((n3 - n2)**2,axis=1)**0.5
+        d = np.sum((n0 - n3)**2,axis=1)**0.5
+        p = np.sum((n2 - n0)**2,axis=1)**0.5
+        q = np.sum((n3 - n1)**2,axis=1)**0.5
+
+        # Area of an arbitrary quadrilateral (in a plane)
+        V = 0.25 * (4.0*(p**2)*(q**2) - (a**2 + c**2 - b**2 - d**2)**2)**0.5
+        return V
+
+class TreeCell(TreeIndexer):
+    _SubTree = TreeFace
+    _pointer = '_cells'
+
+    @property
+    def num(self):return self.C[self.index, NUM]
+
+    @property
+    def fXm(self): return self._ind(CFACE0)
+    @property
+    def fXp(self): return self._ind(CFACE1)
+    @property
+    def fYm(self): return self._ind(CFACE2)
+    @property
+    def fYp(self): return self._ind(CFACE3)
+    @property
+    def fZm(self): return self._ind(CFACE4)
+    @property
+    def fZp(self): return self._ind(CFACE5)
+
+    @property
+    def eX0(self): return self.fZm.e0
+
+    @property
+    def n0(self): return self.eX0.n0
 
 class TreeMesh(BaseMesh):
 
@@ -176,17 +322,59 @@ class TreeMesh(BaseMesh):
 
     @property
     def isNumbered(self):
-        return self._numberedCC and self._numberedN and self._numberedEx and self._numberedEy
+        return self._numbered
     @isNumbered.setter
     def isNumbered(self, value):
         assert value is False, 'Can only set to False.'
-        self._numberedCC = False
-        self._numberedN  = False
-        self._numberedEx = False
-        self._numberedEy = False
+        self._numbered = False
         for name in ['vol', 'area', 'edge', 'gridCC', 'gridN', 'gridEx', 'gridEy', 'gridEz', 'gridFx', 'gridFy', 'gridFz']:
             if hasattr(self, '_'+name):
                 delattr(self, '_'+name)
+
+    def number(self):
+        if self._numbered:
+            return
+
+        dtypeN = [('x',float),('y',float)]
+        if self.dim == 3:
+            dtypeN  += [('z',float)]
+        dtypeV   = [('v', int)]
+
+        N = TreeNode(self, 'active')
+        E = TreeEdge(self, 'active')
+        F = TreeFace(self, 'active')
+        self._nodes[:,NUM] = -1
+        self._edges[:,NUM] = -1
+        self._faces[:,NUM] = -1
+        if self.dim == 3:
+            C = TreeCell(self, 'active')
+            self._cells[:,NUM] = -1
+
+
+        def doNumbering(indexer, nodes, dtype):
+            grid = np.zeros(np.sum(indexer.index), dtype=dtype)
+            grid['x'][:] = nodes.x
+            grid['y'][:] = nodes.y
+            if self.dim == 3:
+                grid['z'][:] = nodes.z
+            if 'v' in [d[0] for d in dtype]:
+                grid['v'][:] = indexer.dir
+            P = np.argsort(grid, order=[d[0] for d in reversed(dtype)])
+            cnt = np.zeros(P.size, dtype=int)
+            cnt[P] = np.arange(P.size)
+            return cnt
+
+        self._nodes[N.index, NUM] = doNumbering(N, N, dtypeN)
+
+        self._edges[E.index, NUM] = doNumbering(E, E.n0, dtypeN + dtypeV)
+
+        dtype = dtypeN if self.dim == 2 else (dtypeN + dtypeV)
+        self._faces[F.index, NUM] = doNumbering(F, F.n0, dtype)
+
+        if self.dim == 3:
+            self._cells[C.index, NUM] = doNumbering(C, C.n0, dtypeN)
+
+        self._numbered = True
 
     @property
     def nC(self):
@@ -245,153 +433,71 @@ class TreeMesh(BaseMesh):
     @property
     def edge(self):
         if getattr(self, '_edge', None) is None:
-            self.number()
-
-            N = self._nodes
-            E = self._edges
-            activeEdges = E[:,ACTIVE] == 1
-            e0xy = N[E[activeEdges,ENODE0],:][:,[NX,NY]]
-            e1xy = N[E[activeEdges,ENODE1],:][:,[NX,NY]]
-
-            A = np.sum((e1xy - e0xy)**2,axis=1)**0.5
-
-            P = np.argsort(E[activeEdges,NUM])
-            self._edge = A[P]
-
+            E = TreeEdge(self, 'active')
+            self._edge = E.sort(E.length)
         return self._edge
 
     @property
     def area(self):
         if getattr(self, '_area', None) is None:
-            self.number()
             if self.dim == 2:
                 self._area = np.r_[self.edge[self.nEx:], self.edge[:self.nEx]]
-
         return self._area
-
 
     @property
     def vol(self):
         if getattr(self, '_vol', None) is None:
-            self.number()
-
-            N = self._nodes
-            E = self._edges
-            C = self._faces
-            activeCells = C[:,ACTIVE] == 1
-            nInds1 = E[C[activeCells,FEDGE0],:][:,[ENODE0,ENODE1]]
-            nInds2 = E[C[activeCells,FEDGE1],:][:,[ENODE0,ENODE1]]
-            n0 = N[nInds1[:,0],:][:,[NX,NY]] #   2------3       3------2
-            n1 = N[nInds1[:,1],:][:,[NX,NY]] #   |      |  -->  |      |
-            n3 = N[nInds2[:,0],:][:,[NX,NY]] #   |      |       |      |
-            n2 = N[nInds2[:,1],:][:,[NX,NY]] #   0------1       0------1
-
-            a = np.sum((n1 - n0)**2,axis=1)**0.5
-            b = np.sum((n2 - n1)**2,axis=1)**0.5
-            c = np.sum((n3 - n2)**2,axis=1)**0.5
-            d = np.sum((n0 - n3)**2,axis=1)**0.5
-            p = np.sum((n2 - n0)**2,axis=1)**0.5
-            q = np.sum((n3 - n1)**2,axis=1)**0.5
-
-            # Area of an arbitrary quadrilateral (in a plane)
-            V = 0.25 * (4.0*(p**2)*(q**2) - (a**2 + c**2 - b**2 - d**2)**2)**0.5
-            P = np.argsort(C[activeCells,NUM])
-            self._vol = V[P]
-
+            F = TreeFace(self, 'active')
+            self._vol = F.sort(F.area)
         return self._vol
 
     @property
     def gridN(self):
-        N = self._nodes
-        activeNodes = N[:,ACTIVE] == 1
-        Nx = N[activeNodes,NX]
-        Ny = N[activeNodes,NY]
-
-        P = SortByX0(np.c_[Nx, Ny])
-        if not self._numberedN:
-            cnt = np.zeros(P.size, dtype=int)
-            cnt[P] = np.arange(P.size)
-            self._nodes[activeNodes, NUM] = cnt
-            self._numberedN = True
-
-        return np.c_[Nx, Ny][P, :]
+        N = TreeNode(self, 'active')
+        return N.sort(N.vec)
 
     @property
     def gridCC(self):
-        N = self._nodes
-        E = self._edges
-        C = self._faces
-        activeCells = C[:,ACTIVE] == 1
-        nInds1 = E[C[activeCells,FEDGE0],:][:,[ENODE0,ENODE1]]
-        nInds2 = E[C[activeCells,FEDGE1],:][:,[ENODE0,ENODE1]]
-        Cx = (N[nInds1[:,0],NX] + N[nInds1[:,1],NX] + N[nInds2[:,0],NX] + N[nInds2[:,1],NX])/4.0
-        Cy = (N[nInds1[:,0],NY] + N[nInds1[:,1],NY] + N[nInds2[:,0],NY] + N[nInds2[:,1],NY])/4.0
-
-        P = SortByX0(np.c_[N[nInds1[:,0],NX], N[nInds1[:,0],NY]])
-        if not self._numberedCC:
-            cnt = np.zeros(P.size, dtype=int)
-            cnt[P] = np.arange(P.size)
-            self._faces[activeCells, NUM] = cnt
-            self._numberedCC = True
-
-        return np.c_[Cx, Cy][P, :]
+        F = TreeFace(self, 'active')
+        return F.sort(F.center)
 
     @property
     def gridEx(self):
-        N = self._nodes
-        E = self._edges
-        C = self._faces
-        activeEdges = (E[:,ACTIVE] == 1) & (E[:,EDIR] == 0)
-        nInds = E[activeEdges,:][:,[ENODE0,ENODE1]]
-        Ex = (N[nInds[:,0],NX] + N[nInds[:,1],NX])/2.0
-        Ey = (N[nInds[:,0],NY] + N[nInds[:,1],NY])/2.0
-
-        P = SortByX0(np.c_[N[nInds[:,0],NX], N[nInds[:,0],NY]])
-        if not self._numberedEx:
-            cnt = np.zeros(P.size, dtype=int)
-            cnt[P] = np.arange(P.size)
-            self._edges[activeEdges, NUM] = cnt
-            self._numberedEx = True
-
-        return np.c_[Ex, Ey][P, :]
+        E = TreeEdge(self, (self._edges[:,ACTIVE] == 1) & (self._edges[:,EDIR] == 0))
+        return E.sort(E.center)
 
     @property
     def gridEy(self):
-        N = self._nodes
-        E = self._edges
-        C = self._faces
-        activeEdges = (E[:,ACTIVE] == 1) & (E[:,EDIR] == 1)
-        nInds = E[activeEdges,:][:,[ENODE0,ENODE1]]
-        Ex = (N[nInds[:,0],NX] + N[nInds[:,1],NX])/2.0
-        Ey = (N[nInds[:,0],NY] + N[nInds[:,1],NY])/2.0
-
-        P = SortByX0(np.c_[N[nInds[:,0],NX], N[nInds[:,0],NY]])
-        if not self._numberedEy:
-            cnt = np.zeros(P.size, dtype=int)
-            cnt[P] = np.arange(P.size)
-            self._edges[activeEdges, NUM] = cnt + self.nEx
-            self._numberedEy = True
-
-        return np.c_[Ex, Ey][P, :]
-
+        E = TreeEdge(self, (self._edges[:,ACTIVE] == 1) & (self._edges[:,EDIR] == 1))
+        return E.sort(E.center)
 
     @property
     def gridEz(self):
-        pass
+        if self.dim == 2: return None
+        E = TreeEdge(self, (self._edges[:,ACTIVE] == 1) & (self._edges[:,EDIR] == 2))
+        return E.sort(E.center)
 
     @property
     def gridFx(self):
         if self.dim == 2:
             return self.gridEy
+        else:
+            F = TreeFace(self, (self._faces[:,ACTIVE] == 1) & (self._faces[:,FDIR] == 0))
+            return F.sort(F.center)
 
     @property
     def gridFy(self):
         if self.dim == 2:
             return self.gridEx
+        else:
+            F = TreeFace(self, (self._faces[:,ACTIVE] == 1) & (self._faces[:,FDIR] == 1))
+            return F.sort(F.center)
 
     @property
     def gridFz(self):
-        pass
+        if self.dim == 2: return None
+        F = TreeFace(self, (self._faces[:,ACTIVE] == 1) & (self._faces[:,FDIR] == 2))
+        return F.sort(F.center)
 
     def _push(self, attr, rows):
         self.isNumbered = False
@@ -443,17 +549,6 @@ class TreeMesh(BaseMesh):
 
         self._faces[index, ACTIVE] = 0
 
-        #                                           new faces and edges
-        #      2_______________3                    _______________
-        #      |     e1-->     |                   |       |       |
-        #   ^  |               | ^                 |   2   3   3   |        y            z            z
-        #   |  |               | |                 |       |       |        ^            ^            ^
-        #   |  |       x       | |      --->       |---0---+---1---|        |            |            |
-        #   e2 |               | e3                |       |       |        |            |            |
-        #      |               |                   |   0   2   1   |        z-----> x    y-----> x    x-----> y
-        #      |_______________|                   |_______|_______|
-        #      0      e0-->    1
-
         # Refine the outer edges
         E0i, E0 = self.refineEdge(f[FEDGE0])
         E1i, E1 = self.refineEdge(f[FEDGE1])
@@ -464,6 +559,17 @@ class TreeMesh(BaseMesh):
         newNode, node = self.addNode(nodeNums)
 
         # Refine the inner edges
+        #                                           new faces and edges
+        #      2_______________3                    _______________
+        #      |     e1-->     |                   |       |       |
+        #   ^  |               | ^                 |   2   3   3   |        y            z            z
+        #   |  |               | |                 |       |       |        ^            ^            ^
+        #   |  |       +       | |      --->       |---0---+---1---|        |            |            |
+        #   e2 |               | e3                |       |       |        |            |            |
+        #      |               |                   |   0   2   1   |        z-----> x    y-----> x    x-----> y
+        #      |_______________|                   |_______|_______|
+        #      0      e0-->    1
+
         nE = np.zeros((4,6))
         nE[:, ACTIVE] = 1
         nE[:, PARENT] = -1
@@ -491,6 +597,28 @@ class TreeMesh(BaseMesh):
         Fs[3, fInds] = [nEi[1], E1i[1], nEi[3], E3i[1]]
 
         return self._push('_faces', Fs)
+
+
+    def refineCell(self, index):
+        c = self._cells[index,:]
+        if f[ACTIVE] == 0:
+            # search for the children up to one level deep
+            subInds = np.argwhere(self._cells[:,PARENT] == index).flatten()
+            return subInds, self._cells[subInds,:]
+
+        self._cells[index, ACTIVE] = 0
+
+        # Refine the outer faces
+        F0i, F0 = self.refineFace(c[CFACE0])
+        F1i, F1 = self.refineFace(c[CFACE1])
+        F2i, F2 = self.refineFace(c[CFACE2])
+        F3i, F3 = self.refineFace(c[CFACE3])
+        F4i, F4 = self.refineFace(c[CFACE4])
+        F5i, F5 = self.refineFace(c[CFACE5])
+
+        nodeNums = self._edges[f[[FEDGE0, FEDGE1]],:][:,[ENODE0, ENODE1]]
+        newNode, node = self.addNode(nodeNums)
+
 
     def _index(self, attr, index):
         index = [index] if np.isscalar(index) else list(index)
@@ -529,23 +657,6 @@ class TreeMesh(BaseMesh):
             S = self.area
             self._faceDiv = sdiag(1/VOL)*D*sdiag(S)
         return self._faceDiv
-
-    def number(self):
-        if self.isNumbered:
-            return
-        self._nodes[:,NUM] = -1
-        self._edges[:,NUM] = -1
-        self._faces[:,NUM] = -1
-        self.gridCC
-        self.gridN
-        self.gridEx
-        self.gridEy
-        if self.dim > 2:
-            self._cells[:,NUM] = -1
-            self.gridEz
-            self.gridFx
-            self.gridFy
-            self.gridFz
 
     def plotGrid(self, ax=None, text=True, showIt=False):
         import matplotlib.pyplot as plt
@@ -590,27 +701,6 @@ class TreeMesh(BaseMesh):
             plt.show()
 
 
-def _SortByX0_2D(grid):
-    dtype=[('x',float),('y',float)]
-    grid2 = np.zeros(grid.shape[0], dtype=dtype)
-    grid2['x'][:] = grid[:,0]
-    grid2['y'][:] = grid[:,1]
-    return np.argsort(grid2, order=['y','x'])
-
-def _SortByX0_3D(grid):
-    dtype=[('x',float),('y',float),('z',float)]
-    grid2 = np.zeros(grid.shape[0], dtype=dtype)
-    grid2['x'][:] = grid[:,0]
-    grid2['y'][:] = grid[:,1]
-    grid2['z'][:] = grid[:,2]
-    return np.argsort(grid2, order=['z','y','x'])
-
-def SortByX0(grid):
-    if grid.shape[1] == 2:
-        return _SortByX0_2D(grid)
-    elif grid.shape[1] == 3:
-        return _SortByX0_3D(grid)
-
 
 
 if __name__ == '__main__':
@@ -624,9 +714,19 @@ if __name__ == '__main__':
     tM.refineFace(3)
     tM.refineFace(9)
 
+    print tM._nodes[:,NUM]
+    tM.number()
+    print tM._nodes[:,NUM]
+    print tM._edges[:,NUM]
+
+    print TreeFace(tM,[0]).e2.n0.x
+
+
+
+
     # print tM._faces
     # print tM._edges[0,:]
-    # print tM.area
+    # print tM.vol
 
 
     # tM.number()
@@ -642,6 +742,3 @@ if __name__ == '__main__':
     # plt.figure(2)
     # plt.plot(SortByX0(tM.gridCC),'b.')
     plt.show()
-
-
-
