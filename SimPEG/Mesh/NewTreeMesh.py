@@ -87,6 +87,16 @@ class TreeFace(TreeIndexer):
     def num(self):return self.F[self.index, NUM]
     @property
     def dir(self):return self.F[self.index, FDIR]
+
+    #            fX                                  fY                                 fZ
+    #     n2___________n3                     n2___________n3                    n2___________n3
+    #      |     e1    |                       |     e1    |                      |     e1    |
+    #      |           |                       |           |                      |           |
+    #   e2 |     x     | e3      z          e2 |     x     | e3      z         e2 |     x     | e3      y
+    #      |           |         ^             |           |         ^            |           |         ^
+    #      |___________|         |___> y       |___________|         |___> x      |___________|         |___> x
+    #     n0    e0     n1                     n0    e0     n1                    n0    e0     n1
+
     @property
     def e0(self): return self._ind(FEDGE0)
     @property
@@ -148,11 +158,80 @@ class TreeCell(TreeIndexer):
     @property
     def fZp(self): return self._ind(CFACE5)
 
-    @property
-    def eX0(self): return self.fZm.e0
+    #                      fZp
+    #                       |
+    #                 6 ------eX3------ 7
+    #                /|     |         / |
+    #               /eZ2    .        / eZ3
+    #             eY2 |        fYp eY3  |
+    #             /   |            / fXp|
+    #            4 ------eX2----- 5     |
+    #            |fXm 2 -----eX1--|---- 3          z
+    #           eZ0  /            |  eY1           ^   y
+    #            | eY0   .  fYm  eZ1 /             |  /
+    #            | /     |        | /              | /
+    #            0 ------eX0------1                o----> x
+    #                    |
+    #                   fZm
+    #
+    #
+    #            fX                                  fY                                 fZ
+    #      2___________3                       2___________3                      2___________3
+    #      |     e1    |                       |     e1    |                      |     e1    |
+    #      |           |                       |           |                      |           |
+    #   e2 |     x     | e3      z          e2 |     x     | e3      z         e2 |     x     | e3      y
+    #      |           |         ^             |           |         ^            |           |         ^
+    #      |___________|         |___> y       |___________|         |___> x      |___________|         |___> x
+    #      0    e0     1                       0    e0     1                      0    e0     1
+    #
+    #  Mapping Nodes: numOnFace > numOnCell
+    #
+    #  fXm 0>0, 1>2, 2>4, 3>6              fYm 0>0, 1>1, 2>4, 3>5             fZm 0>0, 1>1, 2>2, 3>3
+    #  fXp 0>1, 1>3, 2>5, 3>7              fYp 0>2, 1>3, 2>6, 3>7             fZp 0>4, 1>5, 2>6, 3>7
 
     @property
-    def n0(self): return self.eX0.n0
+    def eX0(self): return self.fZm.e0
+    @property
+    def eX1(self): return self.fZm.e1
+    @property
+    def eX2(self): return self.fZp.e0
+    @property
+    def eX3(self): return self.fZp.e1
+
+    @property
+    def eY0(self): return self.fZm.e2
+    @property
+    def eY1(self): return self.fZm.e3
+    @property
+    def eY2(self): return self.fZp.e2
+    @property
+    def eY3(self): return self.fZp.e3
+
+    @property
+    def eZ0(self): return self.fXm.e2
+    @property
+    def eZ1(self): return self.fXp.e2
+    @property
+    def eZ2(self): return self.fXm.e3
+    @property
+    def eZ3(self): return self.fXp.e3
+
+    @property
+    def n0(self): return self.fZm.n0
+    @property
+    def n1(self): return self.fZm.n1
+    @property
+    def n2(self): return self.fZm.n2
+    @property
+    def n3(self): return self.fZm.n3
+    @property
+    def n4(self): return self.fZp.n0
+    @property
+    def n5(self): return self.fZp.n1
+    @property
+    def n6(self): return self.fZp.n2
+    @property
+    def n7(self): return self.fZp.n3
 
 class TreeMesh(BaseMesh):
 
@@ -408,26 +487,22 @@ class TreeMesh(BaseMesh):
 
     @property
     def nEz(self):
-        if self.dim == 2:
-            return None
+        if self.dim == 2: return None
         return np.sum((self._edges[:,ACTIVE] == 1) & (self._edges[:,EDIR] == 2))
 
     @property
     def nFx(self):
-        if self.dim == 2:
-            return self.nEy
+        if self.dim == 2: return self.nEy
         return np.sum((self._faces[:,ACTIVE] == 1) & (self._faces[:,FDIR] == 0))
 
     @property
     def nFy(self):
-        if self.dim == 2:
-            return self.nEx
+        if self.dim == 2: return self.nEx
         return np.sum((self._faces[:,ACTIVE] == 1) & (self._faces[:,FDIR] == 1))
 
     @property
     def nFz(self):
-        if self.dim == 2:
-            return None
+        if self.dim == 2: return None
         return np.sum((self._faces[:,ACTIVE] == 1) & (self._faces[:,FDIR] == 2))
 
     @property
