@@ -888,6 +888,30 @@ class TreeMesh(BaseMesh):
             self._faceDiv = sdiag(1/VOL)*D*sdiag(S)
         return self._faceDiv
 
+    @property
+    def edgeCurl(self):
+        """Construct the 3D curl operator."""
+        assert self.dim > 2, "Edge Curl only programed for 3D."
+
+        if getattr(self, '_edgeCurl', None) is None:
+            self.number()
+            # TODO: Preallocate!
+            I, J, V = [], [], []
+            F = self._faces
+            sign_edge = zip([-1,1,-1,1],[FEDGE0, FEDGE1, FEDGE2, FEDGE3])
+            activeFaces = F[:,ACTIVE] == 1
+            for face in F[activeFaces]:
+                for sign, edge in sign_edge:
+                    ij, jrow = self._index('_edges', face[edge])
+                    I += [face[NUM]]*len(ij)
+                    J += list(jrow[:,0])
+                    V += [sign]*len(ij)
+            C = sp.csr_matrix((V,(I,J)), shape=(self.nF, self.nE))
+            S = self.area
+            L = self.edge
+            self._edgeCurl = sdiag(1/S)*C*sdiag(L)
+        return self._edgeCurl
+
     def plotGrid(self, ax=None, text=True, showIt=False):
         import matplotlib.pyplot as plt
 
@@ -955,6 +979,10 @@ if __name__ == '__main__':
     Mr.refineCell(0)
 
     print Mr.vol
+
+
+    tM = TreeMesh([100,100,100])
+    # print tM.vol
 
 
     # print tM._faces

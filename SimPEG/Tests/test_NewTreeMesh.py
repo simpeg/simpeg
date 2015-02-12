@@ -90,9 +90,9 @@ class SimpleOctreeOperatorTests(unittest.TestCase):
     #     self.assertAlmostEqual((self.tM.nodalGrad - self.oM.nodalGrad).toarray().sum(), 0)
     #     self.assertAlmostEqual((self.tM2.nodalGrad - self.oM2.nodalGrad).toarray().sum(), 0)
 
-    # def test_edgeCurl(self):
-    #     self.assertAlmostEqual((self.tM.edgeCurl - self.oM.edgeCurl).toarray().sum(), 0)
-    #     # self.assertAlmostEqual((self.tM2.edgeCurl - self.oM2.edgeCurl).toarray().sum(), 0)
+    def test_edgeCurl(self):
+        self.assertAlmostEqual((self.tM.edgeCurl - self.oM.edgeCurl).toarray().sum(), 0)
+        # self.assertAlmostEqual((self.tM2.edgeCurl - self.oM2.edgeCurl).toarray().sum(), 0)
 
     # def test_InnerProducts(self):
     #     self.assertAlmostEqual((self.tM.getFaceInnerProduct() - self.oM.getFaceInnerProduct()).toarray().sum(), 0)
