@@ -65,17 +65,19 @@ class RxFDEM(Survey.BaseRx):
         return Pv
 
 
+# Call this Source or polarization or something...?
 class TxFDEM(Survey.BaseTx):
 
     freq = None #: Frequency (float)
 
     rxPair = RxFDEM
 
-    knownTxTypes = ['VMD']
+    knownTxTypes = ['VMD'] # Polarization...
 
-    def __init__(self, loc, txType, freq, rxList):
+    def __init__(self, loc, txType, freq, rxList): # remove txType? hardcode to one thing. always polarizations
         self.freq = float(freq)
         Survey.BaseTx.__init__(self, loc, txType, rxList)
+        # Survey.BaseTx.__init__(self, loc, 'polarization', rxList)
 
 
 
@@ -124,6 +126,7 @@ class SurveyFDEM(Survey.BaseSurvey):
                 self._nTxByFreq[freq] = len(self.getTransmitters(freq))
         return self._nTxByFreq
 
+    # TODO: Rename to getSources
     def getTransmitters(self, freq):
         """Returns the transmitters associated with a specific frequency."""
         assert freq in self._freqDict, "The requested frequency is not in this survey."
