@@ -15,6 +15,13 @@ class TestQuadTreeMesh(unittest.TestCase):
         M.number()
         # M.plotGrid(showIt=True)
 
+    def test_numbering(self):
+        M = TreeMesh([2,2,2])
+        M.number()
+        M.refineCell(0)
+        M.refineCell(3)
+        assert M.isNumbered is False
+
     def test_MeshSizes(self):
         self.assertTrue(self.M.nC==9)
         self.assertTrue(self.M.nF==25)
@@ -94,11 +101,11 @@ class SimpleOctreeOperatorTests(unittest.TestCase):
         self.assertAlmostEqual((self.tM.edgeCurl - self.oM.edgeCurl).toarray().sum(), 0)
         # self.assertAlmostEqual((self.tM2.edgeCurl - self.oM2.edgeCurl).toarray().sum(), 0)
 
-    # def test_InnerProducts(self):
-    #     self.assertAlmostEqual((self.tM.getFaceInnerProduct() - self.oM.getFaceInnerProduct()).toarray().sum(), 0)
+    def test_InnerProducts(self):
+        self.assertAlmostEqual((self.tM.getFaceInnerProduct() - self.oM.getFaceInnerProduct()).toarray().sum(), 0)
+        self.assertAlmostEqual((self.tM.getEdgeInnerProduct() - self.oM.getEdgeInnerProduct()).toarray().sum(), 0)
     #     self.assertAlmostEqual((self.tM2.getFaceInnerProduct() - self.oM2.getFaceInnerProduct()).toarray().sum(), 0)
     #     self.assertAlmostEqual((self.tM2.getEdgeInnerProduct() - self.oM2.getEdgeInnerProduct()).toarray().sum(), 0)
-    #     self.assertAlmostEqual((self.tM.getEdgeInnerProduct() - self.oM.getEdgeInnerProduct()).toarray().sum(), 0)
 
 
 

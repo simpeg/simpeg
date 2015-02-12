@@ -1,7 +1,7 @@
 import numpy as np, scipy.sparse as sp
 from SimPEG.Utils import ndgrid, mkvc, sdiag, volTetra
 from BaseMesh import BaseMesh
-
+from InnerProducts import InnerProducts
 
 NUM, ACTIVE, NX, NY, NZ = range(5) # Do not put anything after NZ
 NUM, ACTIVE, PARENT, EDIR, ENODE0, ENODE1 = range(6)
@@ -66,6 +66,9 @@ class TreeEdge(TreeIndexer):
     @property
     def dir(self):return self.E[self.index, EDIR]
     @property
+    def isleaf(self):return self.E[self.index, ACTIVE] == 1
+
+    @property
     def n0(self): return self._ind(ENODE0)
     @property
     def n1(self): return self._ind(ENODE1)
@@ -87,6 +90,8 @@ class TreeFace(TreeIndexer):
     def num(self):return self.F[self.index, NUM]
     @property
     def dir(self):return self.F[self.index, FDIR]
+    @property
+    def isleaf(self):return self.F[self.index, ACTIVE] == 1
 
     #            fX                                  fY                                 fZ
     #     n2___________n3                     n2___________n3                    n2___________n3
@@ -144,6 +149,8 @@ class TreeCell(TreeIndexer):
 
     @property
     def num(self):return self.C[self.index, NUM]
+    @property
+    def isleaf(self):return self.C[self.index, ACTIVE] == 1
 
     @property
     def fXm(self): return self._ind(CFACE0)
@@ -273,7 +280,7 @@ class TreeCell(TreeIndexer):
         return (vol1 + vol2)/2.0
 
 
-class TreeMesh(BaseMesh):
+class TreeMesh(InnerProducts, BaseMesh):
 
     def __init__(self, h_in, x0=None):
         assert type(h_in) in [list, tuple], 'h_in must be a list'
@@ -930,6 +937,112 @@ class TreeMesh(BaseMesh):
             self._nodalGrad = sdiag(1.0/L)*G
         return self._nodalGrad
 
+
+    def _getFaceP(self, face0, face1, face2):
+        if self.dim == 2:
+            raise NotImplementedError()
+
+        I, J, V = [], [], []
+
+        Cs = self._cells
+        activeCells = Cs[:,ACTIVE] == 1
+        for cellInd in np.argwhere(activeCells):
+
+            C = TreeCell(self, cellInd)
+
+            face = getattr(C, face0)
+            if face.isleaf:
+                j = [int(face.num)]
+            elif self.dim == 2:
+                raise NotImplementedError()
+                j = face.children[0 if 'm' in face1 else 1].index
+            elif self.dim == 3:
+                raise NotImplementedError()
+                j = face.children[0 if 'm' in face1 else 1,
+                                  0 if 'm' in face2 else 1].index
+            lenj = len(j)
+            I += [int(C.num)]*lenj
+            J += j
+            V += [1./lenj]*lenj
+        return sp.csr_matrix((V,(I,J)), shape=(self.nC, self.nF))
+
+    def _getEdgeP(self, edge0, edge1, edge2):
+
+        if self.dim == 2:
+            raise NotImplementedError()
+
+        I, J, V = [], [], []
+
+
+        Cs = self._cells
+        activeCells = Cs[:,ACTIVE] == 1
+        for cellInd in np.argwhere(activeCells):
+
+            C = TreeCell(self, cellInd)
+
+            if self.dim == 2:
+                raise NotImplementedError()
+                e2f = lambda e: ('f' + {'X':'Y','Y':'X'}[e[1]]
+                                     + {'0':'m','1':'p'}[e[2]])
+                face = cell.faceDict[e2f(edge0)]
+                if face.isleaf:
+                    j = face.index
+                else:
+                    j = face.children[0 if 'm' in e2f(edge1) else 1].index
+                # Need to flip the numbering for edges
+                if 'X' in edge0:
+                    j = [jj - self.nFx for jj in j]
+                elif 'Y' in edge0:
+                    j = [jj + self.nFy for jj in j]
+            elif self.dim == 3:
+                edge = getattr(C, edge0)
+                if edge.isleaf:
+                    j = [int(edge.num)]
+                else:
+                    raise NotImplementedError()
+                    mSide = lambda e: {'0':True,'1':True,'2':False,'3':False}[e[2]]
+                    j = edge.children[0 if mSide(edge1) else 1,
+                                      0 if mSide(edge2) else 1].index
+            lenj = len(j)
+            I += [int(C.num)]*lenj
+            J += j
+            V += [1./lenj]*lenj
+        return sp.csr_matrix((V,(I,J)), shape=(self.nC, self.nE))
+
+    def _getFacePxx(self):
+        def Pxx(xFace, yFace):
+            self.number()
+            xP = self._getFaceP(xFace, yFace, None)
+            yP = self._getFaceP(yFace, xFace, None)
+            return sp.vstack((xP, yP))
+        return Pxx
+
+    def _getEdgePxx(self):
+        def Pxx(xEdge, yEdge):
+            self.number()
+            xP = self._getEdgeP(xEdge, yEdge, None)
+            yP = self._getEdgeP(yEdge, xEdge, None)
+            return sp.vstack((xP, yP))
+        return Pxx
+
+    def _getFacePxxx(self):
+        def Pxxx(xFace, yFace, zFace):
+            self.number()
+            xP = self._getFaceP(xFace, yFace, zFace)
+            yP = self._getFaceP(yFace, xFace, zFace)
+            zP = self._getFaceP(zFace, xFace, yFace)
+            return sp.vstack((xP, yP, zP))
+        return Pxxx
+
+    def _getEdgePxxx(self):
+        def Pxxx(xEdge, yEdge, zEdge):
+            self.number()
+            xP = self._getEdgeP(xEdge, yEdge, zEdge)
+            yP = self._getEdgeP(yEdge, xEdge, zEdge)
+            zP = self._getEdgeP(zEdge, xEdge, yEdge)
+            return sp.vstack((xP, yP, zP))
+        return Pxxx
+
     def plotGrid(self, ax=None, text=True, showIt=False):
         import matplotlib.pyplot as plt
 
@@ -998,8 +1111,15 @@ if __name__ == '__main__':
 
     print Mr.vol
 
+    M = TreeMesh([2,2,2])
+    M.number()
+    M.refineCell(0)
+    M.refineCell(3)
+    assert M.isNumbered is False
+    C = TreeCell(M, 'active')
+    M.getEdgeInnerProduct()
 
-    tM = TreeMesh([100,100,100])
+    # tM = TreeMesh([100,100,100])
     # print tM.vol
 
 
