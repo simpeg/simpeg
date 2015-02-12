@@ -76,14 +76,14 @@ class SimpleOctreeOperatorTests(unittest.TestCase):
         h1 = np.random.rand(5)
         h2 = np.random.rand(7)
         h3 = np.random.rand(3)
-        # self.tM = TensorMesh([h1,h2,h3])
-        # self.oM = TreeMesh([h1,h2,h3])
+        self.tM = TensorMesh([h1,h2,h3])
+        self.oM = TreeMesh([h1,h2,h3])
         self.tM2 = TensorMesh([h1,h2])
         self.oM2 = TreeMesh([h1,h2])
         # self.oM2.plotGrid(showIt=True)
 
     def test_faceDiv(self):
-        # self.assertAlmostEqual((self.tM.faceDiv - self.oM.faceDiv).toarray().sum(), 0)
+        self.assertAlmostEqual((self.tM.faceDiv - self.oM.faceDiv).toarray().sum(), 0)
         self.assertAlmostEqual((self.tM2.faceDiv - self.oM2.faceDiv).toarray().sum(), 0)
 
     # def test_nodalGrad(self):

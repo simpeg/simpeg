@@ -1,5 +1,5 @@
 import numpy as np, scipy.sparse as sp
-from SimPEG.Utils import ndgrid, mkvc, sdiag
+from SimPEG.Utils import ndgrid, mkvc, sdiag, volTetra
 from BaseMesh import BaseMesh
 
 
@@ -236,6 +236,42 @@ class TreeCell(TreeIndexer):
     def center(self):
         return (self.n0.vec + self.n1.vec + self.n2.vec + self.n3.vec +
                 self.n4.vec + self.n5.vec + self.n6.vec + self.n7.vec)/8.0
+
+    @property
+    def vol(self):
+        #
+        #                 6 --------------- 7
+        #                /|               / |
+        #               / |              /  |
+        #              /  |             /   |
+        #             /   |            /    |
+        #            4 -------------- 5     |
+        #            |    2 ----------|---- 3          z
+        #            |   /            |   /            ^   y
+        #            |  /             |  /             |  /
+        #            | /              | /              | /
+        #            0 ---------------1                o----> x
+
+
+        #                                         __  Look at the 4 (I mixed up the Z axis, sorry)
+        #                                        /
+        n0, n1, n2, n3, n4, n5, n6, n7 = (self.n4.index, self.n5.index, self.n6.index, self.n7.index,
+                                          self.n0.index, self.n1.index, self.n2.index, self.n3.index)
+
+        vol1 = (volTetra(self.M._nodes[:,NX:], n4, n5, n0, n6) +  # cut edge top
+                volTetra(self.M._nodes[:,NX:], n5, n6, n7, n3) +  # cut edge top
+                volTetra(self.M._nodes[:,NX:], n5, n0, n6, n3) +  # middle
+                volTetra(self.M._nodes[:,NX:], n5, n1, n0, n3) +  # cut edge bottom
+                volTetra(self.M._nodes[:,NX:], n0, n6, n3, n2))   # cut edge bottom
+
+        vol2 = (volTetra(self.M._nodes[:,NX:], n4, n7, n5, n1) +  # cut edge top
+                volTetra(self.M._nodes[:,NX:], n4, n6, n7, n2) +  # cut edge top
+                volTetra(self.M._nodes[:,NX:], n4, n2, n7, n1) +  # middle
+                volTetra(self.M._nodes[:,NX:], n1, n2, n0, n4) +  # cut edge bottom
+                volTetra(self.M._nodes[:,NX:], n1, n3, n2, n7))   # cut edge bottom
+
+        return (vol1 + vol2)/2.0
+
 
 class TreeMesh(BaseMesh):
 
@@ -521,13 +557,20 @@ class TreeMesh(BaseMesh):
         if getattr(self, '_area', None) is None:
             if self.dim == 2:
                 self._area = np.r_[self.edge[self.nEx:], self.edge[:self.nEx]]
+            elif self.dim == 3:
+                F = TreeFace(self, 'active')
+                self._area = F.sort(F.area)
         return self._area
 
     @property
     def vol(self):
         if getattr(self, '_vol', None) is None:
-            F = TreeFace(self, 'active')
-            self._vol = F.sort(F.area)
+            if self.dim == 2:
+                F = TreeFace(self, 'active')
+                self._vol = F.sort(F.area)
+            elif self.dim == 3:
+                C = TreeCell(self, 'active')
+                self._vol = C.sort(C.vol)
         return self._vol
 
     @property
@@ -702,6 +745,39 @@ class TreeMesh(BaseMesh):
         nodeNums = [n.index for n in nodes]
         newNode, node = self.addNode(nodeNums)
 
+        #                                                                      .----------------.----------------.
+        #                                                                     /|               /|               /|
+        #                                                                    / |              / |              / |
+        #                                                                   /  |      6      /  |     7       /  |
+        #                                                                  /   |            /   |            /   |
+        #                                                                 .----------------.----+-----------.    |
+        #                                                                /|    . ---------/|----.----------/|----.
+        #                      fZp                                      / |   /|         / |   /|         / |   /|
+        #                       |                                      /  |  / |  4     /  |  / |   5    /  |  / |
+        #                 6 ------eX3------ 7                         /   | /  |       /   | /  |       /   | /  |
+        #                /|     |         / |                        . -------------- .----------------.    |/   |
+        #               /eZ2    .        / eZ3                       |    . ---+------|----.----+------|----.    |
+        #             eY2 |        fYp eY3  |                        |   /|    .______|___/|____.______|___/|____.
+        #             /   |            / fXp|                        |  / |   /    2  |  / |   /     3 |  / |   /
+        #            4 ------eX2----- 5     |                        | /  |  /        | /  |  /        | /  |  /
+        #            |fXm 2 -----eX1--|---- 3          z             . ---+---------- . ---+---------- .    | /
+        #           eZ0  /            |  eY1           ^   y         |    |/          |    |/          |    |/
+        #            | eY0   .  fYm  eZ1 /             |  /          |    . ----------|----.-----------|----.
+        #            | /     |        | /              | /           |   /     0      |   /      1     |   /
+        #            0 ------eX0------1                o----> x      |  /             |  /             |  /
+        #                    |                                       | /              | /              | /
+        #                   fZm                                      . -------------- . -------------- .
+        #
+        #
+        #            fX                                  fY                                 fZ
+        #      2___________3                       2___________3                      2___________3
+        #      |     e1    |                       |     e1    |                      |     e1    |
+        #      |           |                       |           |                      |           |
+        #   e2 |     x     | e3      z          e2 |     x     | e3      z         e2 |     x     | e3      y
+        #      |           |         ^             |           |         ^            |           |         ^
+        #      |___________|         |___> y       |___________|         |___> x      |___________|         |___> x
+        #      0    e0     1                       0    e0     1                      0    e0     1
+
         nE = np.zeros((6,6))
         nE[:, ACTIVE] = 1
         nE[:, PARENT] = -1
@@ -751,54 +827,17 @@ class TreeMesh(BaseMesh):
         nC[:, ACTIVE] = 1
         nC[:, PARENT] = index
 
-        #                                                                      .----------------.----------------.
-        #                                                                     /|               /|               /|
-        #                                                                    / |              / |              / |
-        #                                                                   /  |      6      /  |     7       /  |
-        #                                                                  /   |            /   |            /   |
-        #                                                                 .----------------.----+-----------.    |
-        #                                                                /|    . ---------/|----.----------/|----.
-        #                      fZp                                      / |   /|         / |   /|         / |   /|
-        #                       |                                      /  |  / |  4     /  |  / |   5    /  |  / |
-        #                 6 ------eX3------ 7                         /   | /  |       /   | /  |       /   | /  |
-        #                /|     |         / |                        . -------------- .----------------.    |/   |
-        #               /eZ2    .        / eZ3                       |    . ---+------|----.----+------|----.    |
-        #             eY2 |        fYp eY3  |                        |   /|    .______|___/|____.______|___/|____.
-        #             /   |            / fXp|                        |  / |   /    2  |  / |   /     3 |  / |   /
-        #            4 ------eX2----- 5     |                        | /  |  /        | /  |  /        | /  |  /
-        #            |fXm 2 -----eX1--|---- 3          z             . ---+---------- . ---+---------- .    | /
-        #           eZ0  /            |  eY1           ^   y         |    |/          |    |/          |    |/
-        #            | eY0   .  fYm  eZ1 /             |  /          |    . ----------|----.-----------|----.
-        #            | /     |        | /              | /           |   /     0      |   /      1     |   /
-        #            0 ------eX0------1                o----> x      |  /             |  /             |  /
-        #                    |                                       | /              | /              | /
-        #                   fZm                                      . -------------- . -------------- .
-        #
-        #
-        #            fX                                  fY                                 fZ
-        #      2___________3                       2___________3                      2___________3
-        #      |     e1    |                       |     e1    |                      |     e1    |
-        #      |           |                       |           |                      |           |
-        #   e2 |     x     | e3      z          e2 |     x     | e3      z         e2 |     x     | e3      y
-        #      |           |         ^             |           |         ^            |           |         ^
-        #      |___________|         |___> y       |___________|         |___> x      |___________|         |___> x
-        #      0    e0     1                       0    e0     1                      0    e0     1
-
-
         cfInds = [CFACE0,CFACE1,CFACE2,CFACE3,CFACE4,CFACE5]
-        nC[0, cfInds] = [fXm[0], nFi[0], fYm[0], nFi[4], fZm[0], nFi[ 8]]
-        nC[1, cfInds] = [nFi[0], fXp[0], fYm[1], nFi[5], fZm[1], nFi[ 9]]
-        nC[2, cfInds] = [fXm[1], nFi[1], nFi[4], fYp[0], fZm[2], nFi[10]]
-        nC[3, cfInds] = [nFi[1], fXp[1], nFi[5], fYp[1], fZm[3], nFi[11]]
-        nC[4, cfInds] = [fXm[2], nFi[2], fYm[2], nFi[6], nFi[ 8], fZp[0]]
-        nC[5, cfInds] = [nFi[2], fXp[2], fYm[3], nFi[7], nFi[ 9], fZp[1]]
-        nC[6, cfInds] = [fXm[3], nFi[3], nFi[6], fYp[2], nFi[10], fZp[2]]
-        nC[7, cfInds] = [nFi[3], fXp[3], nFi[7], fYp[3], nFi[11], fZp[3]]
+        nC[0, cfInds] = [fXm[0], nFi[0], fYm[0], nFi[4], fZm[ 0], nFi[ 8]]
+        nC[1, cfInds] = [nFi[0], fXp[0], fYm[1], nFi[5], fZm[ 1], nFi[ 9]]
+        nC[2, cfInds] = [fXm[1], nFi[1], nFi[4], fYp[0], fZm[ 2], nFi[10]]
+        nC[3, cfInds] = [nFi[1], fXp[1], nFi[5], fYp[1], fZm[ 3], nFi[11]]
+        nC[4, cfInds] = [fXm[2], nFi[2], fYm[2], nFi[6], nFi[ 8], fZp[ 0]]
+        nC[5, cfInds] = [nFi[2], fXp[2], fYm[3], nFi[7], nFi[ 9], fZp[ 1]]
+        nC[6, cfInds] = [fXm[3], nFi[3], nFi[6], fYp[2], nFi[10], fZp[ 2]]
+        nC[7, cfInds] = [nFi[3], fXp[3], nFi[7], fYp[3], nFi[11], fZp[ 3]]
 
         return self._push('_cells', nC)
-
-
-
 
     def _index(self, attr, index):
         index = [index] if np.isscalar(index) else list(index)
@@ -820,17 +859,28 @@ class TreeMesh(BaseMesh):
     def faceDiv(self):
         if getattr(self, '_faceDiv', None) is None:
             self.number()
+
+            if self.dim == 2:
+                offset = np.r_[self.nFx, -self.nEx] # this switches from edge to face numbering
+                C = self._faces
+                sign_face = zip([-1,1,-1,1],[FEDGE0, FEDGE1, FEDGE2, FEDGE3])
+                faceStr = '_edges'
+            elif self.dim == 3:
+                C = self._cells
+                sign_face = zip([-1,1,-1,1,-1,1],[CFACE0, CFACE1, CFACE2, CFACE3, CFACE4, CFACE5])
+                faceStr = '_faces'
+
             # TODO: Preallocate!
             I, J, V = [], [], []
-
-            offset = np.r_[self.nFx, -self.nEx] # this switches from edge to face numbering
-            C = self._faces
             activeCells = C[:,ACTIVE] == 1
             for cell in C[activeCells]:
-                for sign, face in zip([-1,1,-1,1],[FEDGE0, FEDGE1, FEDGE2, FEDGE3]):
-                    ij, jrow = self._index('_edges', cell[face])
+                for sign, face in sign_face:
+                    ij, jrow = self._index(faceStr, cell[face])
                     I += [cell[NUM]]*len(ij)
-                    J += list(jrow[:,0] + offset[jrow[:,EDIR]])
+                    if self.dim == 2:
+                        J += list(jrow[:,0] + offset[jrow[:,EDIR]])
+                    elif self.dim == 3:
+                        J += list(jrow[:,0])
                     V += [sign]*len(ij)
             VOL = self.vol
             D = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.nF))
@@ -894,14 +944,17 @@ if __name__ == '__main__':
     tM.refineFace(3)
     tM.refineFace(9)
 
-    print tM._nodes[:,NUM]
+    # print tM._nodes[:,NUM]
     tM.number()
-    print tM._nodes[:,NUM]
-    print tM._edges[:,NUM]
+    # print tM._nodes[:,NUM]
+    # print tM._edges[:,NUM]
 
-    print TreeFace(tM,0).e3.n1.index
+    print TreeFace(tM,'active').e3.n1.index
 
+    Mr = TreeMesh([2,1,1])
+    Mr.refineCell(0)
 
+    print Mr.vol
 
 
     # print tM._faces
