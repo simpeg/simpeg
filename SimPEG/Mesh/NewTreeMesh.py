@@ -909,8 +909,26 @@ class TreeMesh(BaseMesh):
             C = sp.csr_matrix((V,(I,J)), shape=(self.nF, self.nE))
             S = self.area
             L = self.edge
-            self._edgeCurl = sdiag(1/S)*C*sdiag(L)
+            self._edgeCurl = sdiag(1.0/S)*C*sdiag(L)
         return self._edgeCurl
+
+    @property
+    def nodalGrad(self):
+        if getattr(self, '_nodalGrad', None) is None:
+            self.number()
+            # TODO: Preallocate!
+            I, J, V = [], [], []
+            E = self._edges
+            N = self._nodes
+            activeEdges = E[:,ACTIVE] == 1
+            for edge in E[activeEdges]:
+                I += [edge[NUM], edge[NUM]]
+                J += [N[edge[ENODE0], NUM], N[edge[ENODE1], NUM]]
+                V += [-1, 1]
+            G = sp.csr_matrix((V,(I,J)), shape=(self.nE, self.nN))
+            L = self.edge
+            self._nodalGrad = sdiag(1.0/L)*G
+        return self._nodalGrad
 
     def plotGrid(self, ax=None, text=True, showIt=False):
         import matplotlib.pyplot as plt
