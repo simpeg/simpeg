@@ -108,9 +108,9 @@ class TestOcTreeObjects(unittest.TestCase):
         self.M  = TreeMesh([2,1,1])
         self.M.number()
 
-        # self.Mr = TreeMesh([2,1,1])
-        # self.Mr.children[0,0,0].refine()
-        # self.Mr.number()
+        self.Mr = TreeMesh([2,1,1])
+        self.Mr.refineCell(0)
+        self.Mr.number()
 
     def test_counts(self):
         self.assertTrue(self.M.nC == 2)
@@ -124,22 +124,106 @@ class TestOcTreeObjects(unittest.TestCase):
         self.assertTrue(self.M.nE == 20)
         self.assertTrue(self.M.nN == 12)
 
-        # self.assertTrue(self.Mr.nC == 9)
-        # self.assertTrue(self.Mr.nFx == 13)
-        # self.assertTrue(self.Mr.nFy == 14)
-        # self.assertTrue(self.Mr.nFz == 14)
-        # self.assertTrue(self.Mr.nF == 41)
+        self.assertTrue(self.Mr.nC == 9)
+        self.assertTrue(self.Mr.nFx == 13)
+        self.assertTrue(self.Mr.nFy == 14)
+        self.assertTrue(self.Mr.nFz == 14)
+        self.assertTrue(self.Mr.nF == 41)
+
+        self.assertTrue(self.Mr.nN == 31)
+        self.assertTrue(self.Mr.nEx == 22)
+        self.assertTrue(self.Mr.nEy == 20)
+        self.assertTrue(self.Mr.nEz == 20)
 
 
-        # for cell in self.Mr.sortedCells:
-        #     for e in cell.edgeDict:
-        #         self.assertTrue(cell.edgeDict[e].edgeType==e[1].lower())
+    def test_gridCC(self):
+        x = np.r_[0.25,0.75]
+        y = np.r_[0.5,0.5]
+        z = np.r_[0.5,0.5]
+        self.assertTrue(np.linalg.norm((np.c_[x,y,z]-self.M.gridCC).flatten()) == 0)
 
-        # self.assertTrue(self.Mr.nN == 31)
-        # self.assertTrue(self.Mr.nEx == 22)
-        # self.assertTrue(self.Mr.nEy == 20)
-        # self.assertTrue(self.Mr.nEz == 20)
+        x = np.r_[0.125,0.375,0.75,0.125,0.375,0.125,0.375,0.125,0.375]
+        y = np.r_[0.25,0.25,0.5,0.75,0.75,0.25,0.25,0.75,0.75]
+        z = np.r_[0.25,0.25,0.5,0.25,0.25,0.75,0.75,0.75,0.75]
+        self.assertTrue(np.linalg.norm((np.c_[x,y,z]-self.Mr.gridCC).flatten()) == 0)
 
+    def test_gridN(self):
+        x = np.r_[0,0.5,1,0,0.5,1,0,0.5,1,0,0.5,1]
+        y = np.r_[0,0,0,1,1,1,0,0,0,1,1,1.]
+        z = np.r_[0,0,0,0,0,0,1,1,1,1,1,1.]
+        self.assertTrue(np.linalg.norm((np.c_[x,y,z]-self.M.gridN).flatten()) == 0)
+
+        x = np.r_[0,0.25,0.5,1,0,0.25,0.5,0,0.25,0.5,1,0,0.25,0.5,0,0.25,0.5,0,0.25,0.5,0,0.25,0.5,1,0,0.25,0.5,0,0.25,0.5,1]
+        y = np.r_[0,0,0,0,0.5,0.5,0.5,1,1,1,1,0,0,0,0.5,0.5,0.5,1,1,1,0,0,0,0,0.5,0.5,0.5,1,1,1,1]
+        z = np.r_[0,0,0,0,0,0,0,0,0,0,0,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,1,1,1,1,1,1,1,1,1,1,1]
+        self.assertTrue(np.linalg.norm((np.c_[x,y,z]-self.Mr.gridN).flatten()) == 0)
+
+    def test_gridFx(self):
+        x = np.r_[0.0,0.5,1.0]
+        y = np.r_[0.5,0.5,0.5]
+        z = np.r_[0.5,0.5,0.5]
+        self.assertTrue(np.linalg.norm((np.c_[x,y,z]-self.M.gridFx).flatten()) == 0)
+
+        x = np.r_[0.0,0.25,0.5,1.0,0.0,0.25,0.5,0.0,0.25,0.5,0.0,0.25,0.5]
+        y = np.r_[0.25,0.25,0.25,0.5,0.75,0.75,0.75,0.25,0.25,0.25,0.75,0.75,0.75]
+        z = np.r_[0.25,0.25,0.25,0.5,0.25,0.25,0.25,0.75,0.75,0.75,0.75,0.75,0.75]
+        self.assertTrue(np.linalg.norm((np.c_[x,y,z]-self.Mr.gridFx).flatten()) == 0)
+
+    def test_gridFy(self):
+        x = np.r_[0.25,0.75,0.25,0.75]
+        y = np.r_[0,0,1.,1.]
+        z = np.r_[0.5,0.5,0.5,0.5]
+        self.assertTrue(np.linalg.norm((np.c_[x,y,z]-self.M.gridFy).flatten()) == 0)
+
+        x = np.r_[0.125,0.375,0.75,0.125,0.375,0.125,0.375,0.75,0.125,0.375,0.125,0.375,0.125,0.375]
+        y = np.r_[0,0,0,0.5,0.5,1,1,1,0,0,0.5,0.5,1,1]
+        z = np.r_[0.25,0.25,0.5,0.25,0.25,0.25,0.25,0.5,0.75,0.75,0.75,0.75,0.75,0.75]
+        self.assertTrue(np.linalg.norm((np.c_[x,y,z]-self.Mr.gridFy).flatten()) == 0)
+
+    def test_gridFz(self):
+        x = np.r_[0.25,0.75,0.25,0.75]
+        y = np.r_[0.5,0.5,0.5,0.5]
+        z = np.r_[0,0,1.,1.]
+        self.assertTrue(np.linalg.norm((np.c_[x,y,z]-self.M.gridFz).flatten()) == 0)
+
+        x = np.r_[0.125,0.375,0.75,0.125,0.375,0.125,0.375,0.125,0.375,0.125,0.375,0.75,0.125,0.375]
+        y = np.r_[0.25,0.25,0.5,0.75,0.75,0.25,0.25,0.75,0.75,0.25,0.25,0.5,0.75,0.75]
+        z = np.r_[0,0,0,0,0,0.5,0.5,0.5,0.5,1,1,1,1,1]
+        self.assertTrue(np.linalg.norm((np.c_[x,y,z]-self.Mr.gridFz).flatten()) == 0)
+
+
+    def test_gridEx(self):
+        x = np.r_[0.25,0.75,0.25,0.75,0.25,0.75,0.25,0.75]
+        y = np.r_[0,0,1.,1.,0,0,1.,1.]
+        z = np.r_[0,0,0,0,1.,1.,1.,1.]
+        self.assertTrue(np.linalg.norm((np.c_[x,y,z]-self.M.gridEx).flatten()) == 0)
+
+        x = np.r_[0.125,0.375,0.75,0.125,0.375,0.125,0.375,0.75,0.125,0.375,0.125,0.375,0.125,0.375,0.125,0.375,0.75,0.125,0.375,0.125,0.375,0.75]
+        y = np.r_[0,0,0,0.5,0.5,1,1,1,0,0,0.5,0.5,1,1,0,0,0,0.5,0.5,1,1,1]
+        z = np.r_[0,0,0,0,0,0,0,0,0.5,0.5,0.5,0.5,0.5,0.5,1,1,1,1,1,1,1,1]
+        self.assertTrue(np.linalg.norm((np.c_[x,y,z]-self.Mr.gridEx).flatten()) == 0)
+
+    def test_gridEy(self):
+        x = np.r_[0,0.5,1,0,0.5,1]
+        y = np.r_[0.5,0.5,0.5,0.5,0.5,0.5]
+        z = np.r_[0,0,0,1.,1.,1.]
+        self.assertTrue(np.linalg.norm((np.c_[x,y,z]-self.M.gridEy).flatten()) == 0)
+
+        x = np.r_[0,0.25,0.5,1,0,0.25,0.5,0,0.25,0.5,0,0.25,0.5,0,0.25,0.5,1,0,0.25,0.5]
+        y = np.r_[0.25,0.25,0.25,0.5,0.75,0.75,0.75,0.25,0.25,0.25,0.75,0.75,0.75,0.25,0.25,0.25,0.5,0.75,0.75,0.75]
+        z = np.r_[0,0,0,0,0,0,0,0.5,0.5,0.5,0.5,0.5,0.5,1,1,1,1,1,1,1]
+        self.assertTrue(np.linalg.norm((np.c_[x,y,z]-self.Mr.gridEy).flatten()) == 0)
+
+    def test_gridEz(self):
+        x = np.r_[0,0.5,1,0,0.5,1]
+        y = np.r_[0,0,0,1.,1.,1.]
+        z = np.r_[0.5,0.5,0.5,0.5,0.5,0.5]
+        self.assertTrue(np.linalg.norm((np.c_[x,y,z]-self.M.gridEz).flatten()) == 0)
+
+        x = np.r_[0,0.25,0.5,1,0  ,0.25,0.5,0,0.25,0.5,1,0,0.25,0.5,0  ,0.25,0.5,0  ,0.25,0.5]
+        y = np.r_[0,0   ,0  ,0,0.5,0.5 ,0.5,1,1   ,1  ,1,0,0   ,0  ,0.5,0.5 ,0.5,1  ,1   ,1  ]
+        z = np.r_[0.25,0.25,0.25,0.5,0.25,0.25,0.25,0.25,0.25,0.25,0.5,0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75]
+        self.assertTrue(np.linalg.norm((np.c_[x,y,z]-self.Mr.gridEz).flatten()) == 0)
 
 if __name__ == '__main__':
     unittest.main()

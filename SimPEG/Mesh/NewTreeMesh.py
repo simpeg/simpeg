@@ -232,6 +232,10 @@ class TreeCell(TreeIndexer):
     def n6(self): return self.fZp.n2
     @property
     def n7(self): return self.fZp.n3
+    @property
+    def center(self):
+        return (self.n0.vec + self.n1.vec + self.n2.vec + self.n3.vec +
+                self.n4.vec + self.n5.vec + self.n6.vec + self.n7.vec)/8.0
 
 class TreeMesh(BaseMesh):
 
@@ -533,8 +537,11 @@ class TreeMesh(BaseMesh):
 
     @property
     def gridCC(self):
-        F = TreeFace(self, 'active')
-        return F.sort(F.center)
+        if self.dim == 2:
+            F = TreeFace(self, 'active')
+            return F.sort(F.center)
+        C = TreeCell(self, 'active')
+        return C.sort(C.center)
 
     @property
     def gridEx(self):
@@ -660,23 +667,23 @@ class TreeMesh(BaseMesh):
         nEi, nE = self._push('_edges', nE)
 
         # Add four new faces
-        Fs = np.zeros((4,8))
-        Fs[:, ACTIVE] = 1
-        Fs[:, PARENT] = index
-        Fs[:, FDIR]   = f[FDIR]
+        nF = np.zeros((4,8))
+        nF[:, ACTIVE] = 1
+        nF[:, PARENT] = index
+        nF[:, FDIR]   = f[FDIR]
 
-        fInds = [FEDGE0,FEDGE1,FEDGE2,FEDGE3]
-        Fs[0, fInds] = [E0i[0], nEi[0], E2i[0], nEi[2]]
-        Fs[1, fInds] = [E0i[1], nEi[1], nEi[2], E3i[0]]
-        Fs[2, fInds] = [nEi[0], E1i[0], E2i[1], nEi[3]]
-        Fs[3, fInds] = [nEi[1], E1i[1], nEi[3], E3i[1]]
+        feInds = [FEDGE0,FEDGE1,FEDGE2,FEDGE3]
+        nF[0, feInds] = [E0i[0], nEi[0], E2i[0], nEi[2]]
+        nF[1, feInds] = [E0i[1], nEi[1], nEi[2], E3i[0]]
+        nF[2, feInds] = [nEi[0], E1i[0], E2i[1], nEi[3]]
+        nF[3, feInds] = [nEi[1], E1i[1], nEi[3], E3i[1]]
 
-        return self._push('_faces', Fs)
+        return self._push('_faces', nF)
 
 
     def refineCell(self, index):
         c = self._cells[index,:]
-        if f[ACTIVE] == 0:
+        if c[ACTIVE] == 0:
             # search for the children up to one level deep
             subInds = np.argwhere(self._cells[:,PARENT] == index).flatten()
             return subInds, self._cells[subInds,:]
@@ -684,15 +691,113 @@ class TreeMesh(BaseMesh):
         self._cells[index, ACTIVE] = 0
 
         # Refine the outer faces
-        F0i, F0 = self.refineFace(c[CFACE0])
-        F1i, F1 = self.refineFace(c[CFACE1])
-        F2i, F2 = self.refineFace(c[CFACE2])
-        F3i, F3 = self.refineFace(c[CFACE3])
-        F4i, F4 = self.refineFace(c[CFACE4])
-        F5i, F5 = self.refineFace(c[CFACE5])
+        fXm, rfXm = self.refineFace(c[CFACE0])
+        fXp, rfXp = self.refineFace(c[CFACE1])
+        fYm, rfYm = self.refineFace(c[CFACE2])
+        fYp, rfYp = self.refineFace(c[CFACE3])
+        fZm, rfZm = self.refineFace(c[CFACE4])
+        fZp, rfZp = self.refineFace(c[CFACE5])
 
-        nodeNums = self._edges[f[[FEDGE0, FEDGE1]],:][:,[ENODE0, ENODE1]]
+        nodes = TreeCell(self, index).fXm.nodes + TreeCell(self, index).fXp.nodes
+        nodeNums = [n.index for n in nodes]
         newNode, node = self.addNode(nodeNums)
+
+        nE = np.zeros((6,6))
+        nE[:, ACTIVE] = 1
+        nE[:, PARENT] = -1
+        nE[:, EDIR] = [0, 0, 1, 1, 2, 2]
+
+        nE[0, ENODE0] = TreeFace(self, fXm[0]).n3.index
+        nE[0, ENODE1] = newNode
+        nE[1, ENODE0] = newNode
+        nE[1, ENODE1] = TreeFace(self, fXp[0]).n3.index
+
+        nE[2, ENODE0] = TreeFace(self, fYm[0]).n3.index
+        nE[2, ENODE1] = newNode
+        nE[3, ENODE0] = newNode
+        nE[3, ENODE1] = TreeFace(self, fYp[0]).n3.index
+
+        nE[4, ENODE0] = TreeFace(self, fZm[0]).n3.index
+        nE[4, ENODE1] = newNode
+        nE[5, ENODE0] = newNode
+        nE[5, ENODE1] = TreeFace(self, fZp[0]).n3.index
+
+        nEi, nE = self._push('_edges', nE)
+
+        nF = np.zeros((12,8))
+        nF[:, ACTIVE] = 1
+        nF[:, PARENT] = -1
+        nF[:, FDIR]   = [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2]
+
+        feInds = [FEDGE0,FEDGE1,FEDGE2,FEDGE3]
+        nF[0, feInds] = [rfZm[0, FEDGE3], nEi[2], rfYm[0, FEDGE3], nEi[4]]
+        nF[1, feInds] = [rfZm[2, FEDGE3], nEi[3], nEi[4], rfYp[0, FEDGE3]]
+        nF[2, feInds] = [nEi[2], rfZp[0, FEDGE3], rfYm[2, FEDGE3], nEi[5]]
+        nF[3, feInds] = [nEi[3], rfZp[2, FEDGE3], nEi[5], rfYp[2, FEDGE3]]
+
+        nF[4, feInds] = [rfZm[0, FEDGE1], nEi[0], rfXm[0, FEDGE3], nEi[4]]
+        nF[5, feInds] = [rfZm[1, FEDGE1], nEi[1], nEi[4], rfXp[0, FEDGE3]]
+        nF[6, feInds] = [nEi[0], rfZp[0, FEDGE1], rfXm[2, FEDGE3], nEi[5]]
+        nF[7, feInds] = [nEi[1], rfZp[1, FEDGE1], nEi[5], rfXp[2, FEDGE3]]
+
+        nF[8, feInds] = [rfYm[0, FEDGE1], nEi[0], rfXm[0, FEDGE1], nEi[2]]
+        nF[9, feInds] = [rfYm[1, FEDGE1], nEi[1], nEi[2], rfXp[0, FEDGE1]]
+        nF[10,feInds] = [nEi[0], rfYp[0, FEDGE1], rfXm[2, FEDGE1], nEi[3]]
+        nF[11,feInds] = [nEi[1], rfYp[1, FEDGE1], nEi[3], rfXp[2, FEDGE1]]
+
+        nFi, nF = self._push('_faces', nF)
+
+        nC = np.zeros((8,9))
+        nC[:, ACTIVE] = 1
+        nC[:, PARENT] = index
+
+        #                                                                      .----------------.----------------.
+        #                                                                     /|               /|               /|
+        #                                                                    / |              / |              / |
+        #                                                                   /  |      6      /  |     7       /  |
+        #                                                                  /   |            /   |            /   |
+        #                                                                 .----------------.----+-----------.    |
+        #                                                                /|    . ---------/|----.----------/|----.
+        #                      fZp                                      / |   /|         / |   /|         / |   /|
+        #                       |                                      /  |  / |  4     /  |  / |   5    /  |  / |
+        #                 6 ------eX3------ 7                         /   | /  |       /   | /  |       /   | /  |
+        #                /|     |         / |                        . -------------- .----------------.    |/   |
+        #               /eZ2    .        / eZ3                       |    . ---+------|----.----+------|----.    |
+        #             eY2 |        fYp eY3  |                        |   /|    .______|___/|____.______|___/|____.
+        #             /   |            / fXp|                        |  / |   /    2  |  / |   /     3 |  / |   /
+        #            4 ------eX2----- 5     |                        | /  |  /        | /  |  /        | /  |  /
+        #            |fXm 2 -----eX1--|---- 3          z             . ---+---------- . ---+---------- .    | /
+        #           eZ0  /            |  eY1           ^   y         |    |/          |    |/          |    |/
+        #            | eY0   .  fYm  eZ1 /             |  /          |    . ----------|----.-----------|----.
+        #            | /     |        | /              | /           |   /     0      |   /      1     |   /
+        #            0 ------eX0------1                o----> x      |  /             |  /             |  /
+        #                    |                                       | /              | /              | /
+        #                   fZm                                      . -------------- . -------------- .
+        #
+        #
+        #            fX                                  fY                                 fZ
+        #      2___________3                       2___________3                      2___________3
+        #      |     e1    |                       |     e1    |                      |     e1    |
+        #      |           |                       |           |                      |           |
+        #   e2 |     x     | e3      z          e2 |     x     | e3      z         e2 |     x     | e3      y
+        #      |           |         ^             |           |         ^            |           |         ^
+        #      |___________|         |___> y       |___________|         |___> x      |___________|         |___> x
+        #      0    e0     1                       0    e0     1                      0    e0     1
+
+
+        cfInds = [CFACE0,CFACE1,CFACE2,CFACE3,CFACE4,CFACE5]
+        nC[0, cfInds] = [fXm[0], nFi[0], fYm[0], nFi[4], fZm[0], nFi[ 8]]
+        nC[1, cfInds] = [nFi[0], fXp[0], fYm[1], nFi[5], fZm[1], nFi[ 9]]
+        nC[2, cfInds] = [fXm[1], nFi[1], nFi[4], fYp[0], fZm[2], nFi[10]]
+        nC[3, cfInds] = [nFi[1], fXp[1], nFi[5], fYp[1], fZm[3], nFi[11]]
+        nC[4, cfInds] = [fXm[2], nFi[2], fYm[2], nFi[6], nFi[ 8], fZp[0]]
+        nC[5, cfInds] = [nFi[2], fXp[2], fYm[3], nFi[7], nFi[ 9], fZp[1]]
+        nC[6, cfInds] = [fXm[3], nFi[3], nFi[6], fYp[2], nFi[10], fZp[2]]
+        nC[7, cfInds] = [nFi[3], fXp[3], nFi[7], fYp[3], nFi[11], fZp[3]]
+
+        return self._push('_cells', nC)
+
+
 
 
     def _index(self, attr, index):
@@ -794,7 +899,7 @@ if __name__ == '__main__':
     print tM._nodes[:,NUM]
     print tM._edges[:,NUM]
 
-    print TreeFace(tM,[0]).e2.n0.x
+    print TreeFace(tM,0).e3.n1.index
 
 
 
@@ -810,10 +915,10 @@ if __name__ == '__main__':
 
     # print tM._edges[:,[0,1,3, 4,5 ]]
 
-    plt.subplot(211)
-    plt.spy(tM.faceDiv)
-    tM.plotGrid(ax=plt.subplot(212))
+    # plt.subplot(211)
+    # plt.spy(tM.faceDiv)
+    # tM.plotGrid(ax=plt.subplot(212))
 
     # plt.figure(2)
     # plt.plot(SortByX0(tM.gridCC),'b.')
-    plt.show()
+    # plt.show()
