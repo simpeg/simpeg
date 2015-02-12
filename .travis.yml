@@ -21,9 +21,9 @@ install:
   - pip install nose-cov python-coveralls
   - cd ../
   - git clone https://github.com/simpeg/simpeg.git
-  - cd simpeg/SimPEG/
+  - cd simpeg/
   - python setup.py
-  - cd ../../
+  - cd ../
   - echo export PYTHONPATH=$PYTHONPATH:/home/travis/build/simpeg/simpeg >> .bashrc
   - source .bashrc
   - cd simpegmt
