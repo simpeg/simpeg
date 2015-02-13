@@ -22,7 +22,7 @@ install:
   - cd ../
   - git clone https://github.com/simpeg/simpeg.git
   - cd simpeg/
-  - python setup.py
+  - python setup.py build_ext --inplace
   - cd ../
   - echo export PYTHONPATH=$PYTHONPATH:/home/travis/build/simpeg/simpeg >> .bashrc
   - source .bashrc
