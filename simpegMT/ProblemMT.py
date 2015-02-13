@@ -85,14 +85,17 @@ class MTProblem(Problem.BaseProblem):
             e = Ainv * rhs # is this e?
 
             Src = self.survey.getSources(freq)
+            # Stroe the fields
             F[Src, 'e'] = e
-            F[Src, 'b'] = self.mesh.edgeCurl * e # ???
+            F[Src, 'b'] = self.mesh.edgeCurl * e 
 
         return F
 
 
     def getA(self, freq):
         """
+            Function to get the A matrix.
+
             :param float freq: Frequency
             :rtype: scipy.sparse.csr_matrix
             :return: A
@@ -104,6 +107,8 @@ class MTProblem(Problem.BaseProblem):
         return C.T*mui*C + 1j*omega(freq)*sig
     def getAbg(self, freq):
         """
+            Function to get the A matrix for the background model.
+
             :param float freq: Frequency
             :rtype: scipy.sparse.csr_matrix
             :return: A
@@ -132,26 +137,9 @@ class MTProblem(Problem.BaseProblem):
         """
         raise NotImplementedError()
 
-        getAbg(freq)
-
-
         """
         Put this in MT.Sources.EldadsSource
 
-        from simpegMT.Utils import get1DEfields
-        # Get a 1d solution for a halfspace background
-        mesh1d = simpeg.Mesh.TensorMesh([M.hz],np.array([M.x0[2]]))
-        e0_1d = get1DEfields(mesh1d,M.r(sigBG,'CC','CC','M')[0,0,:],freq)
-        # Setup x (east) polarization (_x)
-        ex_x = np.zeros(M.vnEx,dtype=complex)
-        ey_x = np.zeros((M.nEy,1),dtype=complex)
-        ez_x = np.zeros((M.nEz,1),dtype=complex)
-        # Assign the source to ex_x
-        for i in arange(M.vnEx[0]):
-            for j in arange(M.vnEx[2]):
-                ex_x[i,j,:] = e0_1d
-        eBG_x = np.vstack((simpeg.Utils.mkvc(M.r(ex_x,'Ex','Ex','V'),2),ey_x,ez_x))
-        rhs_x = ABG.dot(eBG_x)
         """
 
         Txs = self.survey.getTransmitters(freq)
