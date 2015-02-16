@@ -49,6 +49,13 @@ class MTProblem(Problem.BaseProblem):
 
     # TODO:
     # MeSigmaBG
+    @property
+    def MeSigmaBG(self):
+        #TODO: hardcoded to sigma as the model
+        if getattr(self, '_MeSigma', None) is None:
+            sigmaBG = self.curTModelBG
+            self._MeSigmaBG = self.mesh.getEdgeInnerProduct(sigmaBG)
+        return self._MeSigmaBG
 
     @property
     def MeSigmaI(self):
@@ -73,8 +80,13 @@ class MTProblem(Problem.BaseProblem):
         return self._curTModelDeriv
 
     def fields(self, m):
+        '''
+        Function to calculate all the fields for the model m.
+
+        :param np.ndarray (nC,) m: f
+        '''
         self.curModel = m
-        RHS, CalcFields = self.getRHS, self.calcFields
+        RHS, CalcFields = self.getRHS(freq), self.calcFields
 
         F = FieldsMT(self.mesh, self.survey)
 
@@ -82,8 +94,9 @@ class MTProblem(Problem.BaseProblem):
             A = self.getA(freq)
             rhs = RHS(freq)
             Ainv = self.Solver(A, **self.solverOpts)
-            e = Ainv * rhs # is this e?
+            e = Ainv * rhs 
 
+            # Store the fields
             Src = self.survey.getSources(freq)
             # Stroe the fields
             F[Src, 'e'] = e
@@ -105,6 +118,7 @@ class MTProblem(Problem.BaseProblem):
         C = self.mesh.edgeCurl
 
         return C.T*mui*C + 1j*omega(freq)*sig
+
     def getAbg(self, freq):
         """
             Function to get the A matrix for the background model.
@@ -129,45 +143,23 @@ class MTProblem(Problem.BaseProblem):
 
         return 1j * omega(freq) * ( dMe_dsig * ( dsig_dm * v ) )
 
-    def getRHS(self, freq):
+    def getRHS(self, freq, backSigma):
         """
             :param float freq: Frequency
+            :param numpy.ndarray (nC,) backSigma: Background conductivity model
             :rtype: numpy.ndarray (nE, 2)
             :return: one RHS for both polarizations
         """
-        raise NotImplementedError()
+        # Get sources for the frequency
+        src = self.survey.getSources(freq)
+        # Make sure that there is 2 polarizations. 
+        assert 
+        # Get the background electric fields
+        from simpegMT.Sources import homo1DModelSource
+        eBG_bp = home1DModelSource(self.mesh,freq,backSigma)
+        Abg = getAbg(freq)
 
-        """
-        Put this in MT.Sources.EldadsSource
-
-        """
-
-        Txs = self.survey.getTransmitters(freq)
-
-        # assert that only one Tx/src?
-        # Create the two polarizations at this freq and return np array (nE,2).
-
-        # solve analytic.... get p1 p2
-
-        # Abg * [p1,p2] = rhs
-
-        rhs = range(len(Txs))
-        for i, tx in enumerate(Txs):
-            if tx.txType == 'VMD': # EH source.
-                src = Sources.MagneticDipoleVectorPotential # this is where you would put multiple types of boundary conditions.
-            else:
-                raise NotImplemented('%s txType is not implemented' % tx.txType)
-            SRCx = src(tx.loc, self.mesh.gridEx, 'x')
-            SRCy = src(tx.loc, self.mesh.gridEy, 'y')
-            SRCz = src(tx.loc, self.mesh.gridEz, 'z')
-            rhs[i] = np.concatenate((SRCx, SRCy, SRCz))
-
-        a = np.concatenate(rhs).reshape((self.mesh.nE, len(Txs)), order='F')
-        mui = self.MfMui
-        C = self.mesh.edgeCurl
-
-        j_s = C.T*mui*C*a
-        return -1j*omega(freq)*j_s
+        return Abg*eBG_bp
 
     ##################################################################
     # Inversion stuff

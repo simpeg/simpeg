@@ -1,11 +1,17 @@
 from SimPEG import Survey, Utils, np, sp
 
-class RxFDEM(Survey.BaseRx):
+class RxMT(Survey.BaseRx):
 
     knownRxTypes = {
-                    'exr':['e', 'Ex', 'real'],
-                    'eyr':['e', 'Ey', 'real'],
-                    'ezr':['e', 'Ez', 'real'],
+                    'zxxr':[['e', 'Ex'],['b','Fx'], 'real'],
+                    'zxyr':[['e', 'Ex'],['b','Fy'], 'real'],
+                    'zyxr':[['e', 'Ey'],['b','Fx'], 'real'],
+                    'zyyr':[['e', 'Ey'],['b','Fy'], 'real'],
+                    'zxxi':[['e', 'Ex'],['b','Fx'], 'imag'],
+                    'zxyi':[['e', 'Ex'],['b','Fy'], 'imag'],
+                    'zyxi':[['e', 'Ey'],['b','Fx'], 'imag'],
+                    'zyyi':[['e', 'Ey'],['b','Fy'], 'imag'],
+
                     'exi':['e', 'Ex', 'imag'],
                     'eyi':['e', 'Ey', 'imag'],
                     'ezi':['e', 'Ez', 'imag'],
@@ -22,29 +28,56 @@ class RxFDEM(Survey.BaseRx):
         Survey.BaseRx.__init__(self, locs, rxType)
 
     @property
-    def projField(self):
-        """Field Type projection (e.g. e b ...)"""
-        return self.knownRxTypes[self.rxType][0]
+    def projField(self,fracPos):
+        """
+        Field Type projection (e.g. e b ...)
+        :param str fracPos: Position of the field in the data ratio
+        
+        """
+        if 'numerator' in fracPos:
+            return self.knownRxTypes[self.rxType][0][0]
+        elif 'denominator' in fracPos:
+            return self.knownRxTypes[self.rxType][1][0]
+        else:
+            raise Exception('{s} is an unknown option. Use numerator or denominator.')
 
     @property
-    def projGLoc(self):
-        """Grid Location projection (e.g. Ex Fy ...)"""
-        return self.knownRxTypes[self.rxType][1]
+    def projGLoc(self,fracPos):
+        """
+        Grid Location projection (e.g. Ex Fy ...)
+        :param str fracPos: Position of the field in the data ratio
+        
+        """
+        if 'numerator' in fracPos:
+            return self.knownRxTypes[self.rxType][0][1]
+        elif 'denominator' in fracPos:
+            return self.knownRxTypes[self.rxType][0][1]
+        else:
+            raise Exception('{s} is an unknown option. Use numerator or denominator.')
 
     @property
     def projComp(self):
         """Component projection (real/imag)"""
         return self.knownRxTypes[self.rxType][2]
 
-    def projectFields(self, tx, mesh, u):
-        P = self.getP(mesh)
-        u_part_complex = u[tx, self.projField]
+    def projectFields(self, src, mesh, u):
+        '''
+        Project the fields and return the 
+        '''
+        # Get the numerator information
+        P_num = self.getP(mesh,self.projGLoc('numerator'))
+        u_num_complex = u[src, self.projField('numerator')]
+        # Get the denominator information
+        P_den = self.getP(mesh,self.projGLoc('denominator'))
+        u_den_complex = u[src, self.projField('denominator')]
+        # Calculate the fraction
+        f_part_complex = (P_num*u_num_complex)/(P_den*u_den_complex)
         # get the real or imag component
         real_or_imag = self.projComp
-        u_part = getattr(u_part_complex, real_or_imag)
-        return P*u_part
+        f_part = getattr(f_part_complex, real_or_imag)
+        return f_part
 
-    def projectFieldsDeriv(self, tx, mesh, u, v, adjoint=False):
+    def projectFieldsDeriv(self, src, mesh, u, v, adjoint=False):
         P = self.getP(mesh)
 
         if not adjoint:
@@ -66,13 +99,16 @@ class RxFDEM(Survey.BaseRx):
 
 
 # Call this Source or polarization or something...?
-class TxFDEM(Survey.BaseTx):
+class srcMT(Survey.BaseTx):
+    '''
+    Sources for the MT problem. 
+    '''
 
     freq = None #: Frequency (float)
 
-    rxPair = RxFDEM
+    rxPair = RxMT
 
-    knownTxTypes = ['VMD'] # Polarization...
+    knownSrcTypes = ['ORTPOL'] # ORThogonal POLarization
 
     def __init__(self, loc, txType, freq, rxList): # remove txType? hardcode to one thing. always polarizations
         self.freq = float(freq)
@@ -81,29 +117,29 @@ class TxFDEM(Survey.BaseTx):
 
 
 
-class FieldsFDEM(Survey.Fields):
-    """Fancy Field Storage for a FDEM survey."""
+class FieldsMT(Survey.Fields):
+    """Fancy Field Storage for a MT survey."""
     knownFields = {'b': 'F', 'e': 'E'}
     dtype = complex
 
 
-class SurveyFDEM(Survey.BaseSurvey):
+class SurveyMT(Survey.BaseSurvey):
     """
-        docstring for SurveyFDEM
+        docstring for SurveyMT
     """
 
-    txPair = TxFDEM
+    srcPair = srcMT
 
-    def __init__(self, txList, **kwargs):
+    def __init__(self, srcList, **kwargs):
         # Sort these by frequency
-        self.txList = txList
+        self.srcList = srcList
         Survey.BaseSurvey.__init__(self, **kwargs)
 
         _freqDict = {}
-        for tx in txList:
-            if tx.freq not in _freqDict:
-                _freqDict[tx.freq] = []
-            _freqDict[tx.freq] += [tx]
+        for src in srcList:
+            if src.freq not in _freqDict:
+                _freqDict[src.freq] = []
+            _freqDict[src.freq] += [src]
 
         self._freqDict = _freqDict
         self._freqs = sorted([f for f in self._freqDict])
@@ -117,26 +153,26 @@ class SurveyFDEM(Survey.BaseSurvey):
     def nFreq(self):
         """Number of frequencies"""
         return len(self._freqDict)
-
-    @property
-    def nTxByFreq(self):
-        if getattr(self, '_nTxByFreq', None) is None:
-            self._nTxByFreq = {}
-            for freq in self.freqs:
-                self._nTxByFreq[freq] = len(self.getTransmitters(freq))
-        return self._nTxByFreq
+    # Don't need this
+    # @property
+    # def nTxByFreq(self):
+    #     if getattr(self, '_nTxByFreq', None) is None:
+    #         self._nTxByFreq = {}
+    #         for freq in self.freqs:
+    #             self._nTxByFreq[freq] = len(self.getTransmitters(freq))
+    #     return self._nTxByFreq
 
     # TODO: Rename to getSources
-    def getTransmitters(self, freq):
+    def getSources(self, freq):
         """Returns the transmitters associated with a specific frequency."""
         assert freq in self._freqDict, "The requested frequency is not in this survey."
         return self._freqDict[freq]
 
     def projectFields(self, u):
         data = Survey.Data(self)
-        for tx in self.txList:
-            for rx in tx.rxList:
-                data[tx, rx] = rx.projectFields(tx, self.mesh, u)
+        for src in self.srcList:
+            for rx in src.rxList:
+                data[src, rx] = rx.projectFields(src, self.mesh, u)
         return data
 
     def projectFieldsDeriv(self, u):
