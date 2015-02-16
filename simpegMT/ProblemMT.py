@@ -145,6 +145,7 @@ class MTProblem(Problem.BaseProblem):
 
     def getRHS(self, freq, backSigma):
         """
+            Function to return the right hand side for the system.
             :param float freq: Frequency
             :param numpy.ndarray (nC,) backSigma: Background conductivity model
             :rtype: numpy.ndarray (nE, 2)
@@ -153,7 +154,7 @@ class MTProblem(Problem.BaseProblem):
         # Get sources for the frequency
         src = self.survey.getSources(freq)
         # Make sure that there is 2 polarizations. 
-        assert 
+        # assert len()
         # Get the background electric fields
         from simpegMT.Sources import homo1DModelSource
         eBG_bp = home1DModelSource(self.mesh,freq,backSigma)

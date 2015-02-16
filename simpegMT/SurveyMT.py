@@ -1,4 +1,4 @@
-from SimPEG import Survey, Utils, np, sp
+from SimPEG import Survey, Utils, Problem, np, sp
 
 class RxMT(Survey.BaseRx):
 
@@ -12,18 +12,19 @@ class RxMT(Survey.BaseRx):
                     'zyxi':[['e', 'Ey'],['b','Fx'], 'imag'],
                     'zyyi':[['e', 'Ey'],['b','Fy'], 'imag'],
 
-                    'exi':['e', 'Ex', 'imag'],
-                    'eyi':['e', 'Ey', 'imag'],
-                    'ezi':['e', 'Ez', 'imag'],
+                    #TODO: Add tipper fractions as well. Bz/B(x|y)
+                    # 'exi':['e', 'Ex', 'imag'],
+                    # 'eyi':['e', 'Ey', 'imag'],
+                    # 'ezi':['e', 'Ez', 'imag'],
 
-                    'bxr':['b', 'Fx', 'real'],
-                    'byr':['b', 'Fy', 'real'],
-                    'bzr':['b', 'Fz', 'real'],
-                    'bxi':['b', 'Fx', 'imag'],
-                    'byi':['b', 'Fy', 'imag'],
-                    'bzi':['b', 'Fz', 'imag'],
+                    # 'bxr':['b', 'Fx', 'real'],
+                    # 'byr':['b', 'Fy', 'real'],
+                    # 'bzr':['b', 'Fz', 'real'],
+                    # 'bxi':['b', 'Fx', 'imag'],
+                    # 'byi':['b', 'Fy', 'imag'],
+                    # 'bzi':['b', 'Fz', 'imag'],
                    }
-
+    # TODO: Have locs as single or double coordinates for both or numerator and denominator separately, respectively.
     def __init__(self, locs, rxType):
         Survey.BaseRx.__init__(self, locs, rxType)
 
@@ -102,22 +103,26 @@ class RxMT(Survey.BaseRx):
 class srcMT(Survey.BaseTx):
     '''
     Sources for the MT problem. 
+    Use the SimPEG BaseTx, since the source fields share properties with the transmitters.
+
+    :param float freq: The frequency of the source
+    :param list rxList: A list of receivers associated with the source
     '''
 
     freq = None #: Frequency (float)
 
     rxPair = RxMT
 
-    knownSrcTypes = ['ORTPOL'] # ORThogonal POLarization
+    knownTxTypes = ['ORTPOL'] # ORThogonal POLarization
 
-    def __init__(self, loc, txType, freq, rxList): # remove txType? hardcode to one thing. always polarizations
+    def __init__(self, freq, rxList): # remove txType? hardcode to one thing. always polarizations
         self.freq = float(freq)
-        Survey.BaseTx.__init__(self, loc, txType, rxList)
+        Survey.BaseTx.__init__(self, None, 'ORTPOL', rxList)
         # Survey.BaseTx.__init__(self, loc, 'polarization', rxList)
 
 
 
-class FieldsMT(Survey.Fields):
+class FieldsMT(Problem.Fields):
     """Fancy Field Storage for a MT survey."""
     knownFields = {'b': 'F', 'e': 'E'}
     dtype = complex
@@ -125,7 +130,10 @@ class FieldsMT(Survey.Fields):
 
 class SurveyMT(Survey.BaseSurvey):
     """
-        docstring for SurveyMT
+        Survey class for MT. Contains all the sources associated with the survey.
+
+        :param list srcList: List of sources associated with the survey
+
     """
 
     srcPair = srcMT

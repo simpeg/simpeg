@@ -1,6 +1,12 @@
 def homo1DModelSource(mesh,freq,bgMod):
     '''
-        Function that calculates and return backround fields
+        Function that calculates and return background fields
+
+        :param Simpeg mesh object mesh: Holds information on the discretization
+        :param float freq: The frequency to solve at
+        :param np.array bgMod: Background model to base the calculations on.
+        :rtype: numpy.ndarray (mesh.nE,2)
+        :return: eBG_bp, E fields for the background model at both polarizations.
 
     '''
 
@@ -29,4 +35,5 @@ def homo1DModelSource(mesh,freq,bgMod):
     eBG_py = np.vstack((ex_py,simpeg.Utils.mkvc(ey_py,2),ez_py))
 
     # Return the electric fields
-    return np.hstack((eBG_px,eBG_py))
+    eBG_bp = np.hstack((eBG_px,eBG_py))
+    return eBG_bp
