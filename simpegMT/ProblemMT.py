@@ -1,4 +1,4 @@
-from SimPEG import Survey, Problem, Utils, np, sp, Solver as SimpegSolver
+from SimPEG import Survey, Problem, Utils, Models, np, sp, Solver as SimpegSolver
 from scipy.constants import mu_0
 from SurveyMT import SurveyMT, FieldsMT
 
@@ -47,15 +47,6 @@ class MTProblem(Problem.BaseProblem):
             self._MeSigma = self.mesh.getEdgeInnerProduct(sigma)
         return self._MeSigma
 
-    # TODO:
-    # MeSigmaBG
-    @property
-    def MeSigmaBG(self):
-        #TODO: hardcoded to sigma as the model
-        if getattr(self, '_MeSigma', None) is None:
-            sigmaBG = self.curTModelBG
-            self._MeSigmaBG = self.mesh.getEdgeInnerProduct(sigmaBG)
-        return self._MeSigmaBG
 
     @property
     def MeSigmaI(self):
@@ -70,38 +61,68 @@ class MTProblem(Problem.BaseProblem):
     @property
     def curTModel(self):
         if getattr(self, '_curTModel', None) is None:
-            self._curTModel = self.mapping.transform(self.curModel)
+            self._curTModel = self.mapping*self.curModel
         return self._curTModel
 
     @property
     def curTModelDeriv(self):
         if getattr(self, '_curTModelDeriv', None) is None:
-            self._curTModelDeriv = self.mapping.transformDeriv(self.curModel)
+            self._curTModelDeriv = self.mapping*self.curModel
         return self._curTModelDeriv
 
-    def fields(self, m):
+
+    # Background model
+    @property
+    def backModel(self):
+        """
+            Sets the model, and removes dependent mass matrices.
+        """
+        return getattr(self, '_backModel', None)
+
+    @backModel.setter
+    def backModel(self, value):
+        if value is self.backModel:
+            return # it is the same!
+        self._backModel = Models.Model(value, self.mapping)
+        for prop in self.deleteTheseOnModelUpdate:
+            if hasattr(self, prop):
+                delattr(self, prop)
+
+    @property
+    def MeSigmaBG(self):
+        #TODO: hardcoded to sigma as the model
+        if getattr(self, '_MeSigmaBG', None) is None:
+            sigmaBG = self.backModel
+            self._MeSigmaBG = self.mesh.getEdgeInnerProduct(sigmaBG)
+        return self._MeSigmaBG
+
+    def fields(self, m, m_back):
         '''
         Function to calculate all the fields for the model m.
 
-        :param np.ndarray (nC,) m: f
+        :param np.ndarray (nC,) m: Conductivity model
+        :param np.ndarray (nC,) m_back: Background conductivity model
         '''
         self.curModel = m
-        RHS, CalcFields = self.getRHS(freq), self.calcFields
+        self.backModel = m_back
+        # RHS, CalcFields = self.getRHS(freq,m_back), self.calcFields
 
         F = FieldsMT(self.mesh, self.survey)
 
         for freq in self.survey.freqs:
             A = self.getA(freq)
-            rhs = RHS(freq)
+            rhs = self.getRHS(freq,m_back)
             Ainv = self.Solver(A, **self.solverOpts)
             e = Ainv * rhs 
 
             # Store the fields
             Src = self.survey.getSources(freq)
-            # Stroe the fields
-            F[Src, 'e'] = e
-            F[Src, 'b'] = self.mesh.edgeCurl * e 
-
+            # Store the fields
+            F[Src, 'e_px'] = e[:,0]
+            F[Src, 'e_py'] = e[:,1]
+            b = self.mesh.edgeCurl * e     
+            F[Src, 'b_px'] = b[:,0]
+            F[Src, 'b_py'] = b[:,1]
         return F
 
 
@@ -157,8 +178,8 @@ class MTProblem(Problem.BaseProblem):
         # assert len()
         # Get the background electric fields
         from simpegMT.Sources import homo1DModelSource
-        eBG_bp = home1DModelSource(self.mesh,freq,backSigma)
-        Abg = getAbg(freq)
+        eBG_bp = homo1DModelSource(self.mesh,freq,backSigma)
+        Abg = self.getAbg(freq)
 
         return Abg*eBG_bp
 

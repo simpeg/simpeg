@@ -1,4 +1,5 @@
 from SimPEG import Survey, Utils, Problem, np, sp
+from scipy.constants import mu_0
 
 class RxMT(Survey.BaseRx):
 
@@ -65,14 +66,37 @@ class RxMT(Survey.BaseRx):
         '''
         Project the fields and return the 
         '''
-        # Get the numerator information
-        P_num = self.getP(mesh,self.projGLoc('numerator'))
-        u_num_complex = u[src, self.projField('numerator')]
-        # Get the denominator information
-        P_den = self.getP(mesh,self.projGLoc('denominator'))
-        u_den_complex = u[src, self.projField('denominator')]
-        # Calculate the fraction
-        f_part_complex = (P_num*u_num_complex)/(P_den*u_den_complex)
+
+        # Get the projection
+        Pex = self.getP(mesh,'Ex')
+        Pey = self.getP(mesh,'Ey')
+        Pbx = self.getP(mesh,'Fx')
+        Pby = self.getP(mesh,'Fy')
+        # Get the fields at location
+        ex_px = Pex*u[src,'e_px']
+        ey_px = Pey*u[src,'e_px']
+        ex_py = Pex*u[src,'e_py']
+        ey_py = Pey*u[src,'e_py']
+        hx_px = Pbx*u[src,'b_px']/mu_0
+        hy_px = Pby*u[src,'b_px']/mu_0
+        hx_py = Pbx*u[src,'b_py']/mu_0
+        hy_py = Pby*u[src,'b_py']/mu_0
+        if 'zxx' in self.rxType:
+            f_part_complex = (ex_px*hy_py - ex_py*hy_px)/(hx_px*hy_py - hx_py*hy_px)
+        elif 'zxy' in self.rxType:
+            f_part_complex  = (-ex_px*hx_py + ex_py*hx_px)/(hx_px*hy_py - hx_py*hy_px)
+        elif 'zyx' in self.rxType:
+            f_part_complex  = (ey_px*hy_py - ey_py*hy_px)/(hx_px*hy_py - hx_py*hy_px)
+        elif 'zyy' in self.rxType:
+            f_part_complex  = (-ey_px*hx_py + ey_py*hx_px)/(hx_px*hy_py - hx_py*hy_px)
+
+        # P_num = self.getP(mesh,self.projGLoc('numerator'))
+        # u_num_complex = u[src, self.projField('numerator')]
+        # # Get the denominator information
+        # P_den = self.getP(mesh,self.projGLoc('denominator'))
+        # u_den_complex = u[src, self.projField('denominator')]
+        # # Calculate the fraction
+        # f_part_complex = (P_num*u_num_complex)/(P_den*u_den_complex)
         # get the real or imag component
         real_or_imag = self.projComp
         f_part = getattr(f_part_complex, real_or_imag)
@@ -100,6 +124,7 @@ class RxMT(Survey.BaseRx):
 
 
 # Call this Source or polarization or something...?
+# Note: Might need to add tests to make sure that both polarization have the same rxList. 
 class srcMT(Survey.BaseTx):
     '''
     Sources for the MT problem. 
@@ -107,24 +132,25 @@ class srcMT(Survey.BaseTx):
 
     :param float freq: The frequency of the source
     :param list rxList: A list of receivers associated with the source
+    :param str srcPol: The polarization of the source
     '''
 
     freq = None #: Frequency (float)
 
     rxPair = RxMT
 
-    knownTxTypes = ['ORTPOL'] # ORThogonal POLarization
+    knownTxTypes = ['pol_xy','pol_x','pol_y'] # ORThogonal POLarization
 
-    def __init__(self, freq, rxList): # remove txType? hardcode to one thing. always polarizations
+    def __init__(self, freq, rxList, srcPol = 'pol_xy'): # remove txType? hardcode to one thing. always polarizations
         self.freq = float(freq)
-        Survey.BaseTx.__init__(self, None, 'ORTPOL', rxList)
+        Survey.BaseTx.__init__(self, None, srcPol, rxList)
         # Survey.BaseTx.__init__(self, loc, 'polarization', rxList)
 
 
 
 class FieldsMT(Problem.Fields):
     """Fancy Field Storage for a MT survey."""
-    knownFields = {'b': 'F', 'e': 'E'}
+    knownFields = {'b_px': 'F','b_py': 'F', 'e_px': 'E','e_py': 'E'}
     dtype = complex
 
 
@@ -141,6 +167,7 @@ class SurveyMT(Survey.BaseSurvey):
     def __init__(self, srcList, **kwargs):
         # Sort these by frequency
         self.srcList = srcList
+        self.txList = self.srcList # Hack - make txList index srcList, since it is used in the backend. 
         Survey.BaseSurvey.__init__(self, **kwargs)
 
         _freqDict = {}
