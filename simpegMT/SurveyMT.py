@@ -68,10 +68,14 @@ class RxMT(Survey.BaseRx):
         '''
 
         # Get the projection
-        Pex = self.getP(mesh,'Ex')
-        Pey = self.getP(mesh,'Ey')
-        Pbx = self.getP(mesh,'Fx')
-        Pby = self.getP(mesh,'Fy')
+        # Pex = self.getP(mesh,'Ex')
+        # Pey = self.getP(mesh,'Ey')
+        # Pbx = self.getP(mesh,'Fx')
+        # Pby = self.getP(mesh,'Fy')
+        Pex = mesh.getInterpolationMat(self.locs,'Ex')
+        Pey = mesh.getInterpolationMat(self.locs,'Ey')
+        Pbx = mesh.getInterpolationMat(self.locs,'Fx')
+        Pby = mesh.getInterpolationMat(self.locs,'Fy')
         # Get the fields at location
         ex_px = Pex*u[src,'e_px']
         ey_px = Pey*u[src,'e_px']
