@@ -31,7 +31,7 @@ for freq in np.logspace(3,-1,5):
 # Survey MT 
 survey = simpegmt.SurveyMT.SurveyMT(srcList)
 
-## Setup the problem object
+## Setup the problem objec
 problem = simpegmt.ProblemMT.MTProblem(M)
 problem.pair(survey)
 

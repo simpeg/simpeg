@@ -1,4 +1,4 @@
-from SimPEG import Survey, Utils, Problem, np, sp
+from SimPEG import Survey, Utils, Problem, np, sp, mkvc
 from scipy.constants import mu_0
 
 class RxMT(Survey.BaseRx):
@@ -259,7 +259,7 @@ class DataMT(Survey.Data):
                 dt = dtRI
                 for uniFL in uniFLmarr:
                     mTemp = rec2ndarr(mArrRec[np.ma.where(mArrRec[['freq','x','y','z']].data == np.array(uniFL))][impList]).sum(axis=0)
-                    dataBlock = simpeg.mkvc(np.concatenate((rec2ndarr(uniFL),mTemp.data)),2).T
+                    dataBlock = mkvc(np.concatenate((rec2ndarr(uniFL),mTemp.data)),2).T
                     try:
                         outArr = np.concatenate((outArr,dataBlock),axis=0)
                     except NameError as e:
@@ -271,7 +271,7 @@ class DataMT(Survey.Data):
                 for uniFL in uniFLmarr:
                     mTemp = simpeg.mkvc(rec2ndarr(mArrRec[np.ma.where(mArrRec[['freq','x','y','z']].data == np.array(uniFL))][impList]).sum(axis=0),2).T
                     compBlock = np.sum(mTemp.data.reshape((4,2))*np.array([[1,1j],[1,1j],[1,1j],[1,1j]]),axis=1).copy().view(dt[4::])
-                    dataBlock = simpeg.mkvc(recFunc.merge_arrays((np.array(uniFL),compBlock),flatten=True),2).T
+                    dataBlock = mkvc(recFunc.merge_arrays((np.array(uniFL),compBlock),flatten=True),2).T
                     try:
                         outArr = recFunc.stack_arrays((outArr,dataBlock),usemask=False)
                     except NameError as e:
