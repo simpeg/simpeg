@@ -108,7 +108,7 @@ class MTProblem(Problem.BaseProblem):
         # RHS, CalcFields = self.getRHS(freq,m_back), self.calcFields
 
         F = FieldsMT(self.mesh, self.survey)
-
+        #NOTE: add print status statements.
         for freq in self.survey.freqs:
             A = self.getA(freq)
             rhs = self.getRHS(freq,m_back)

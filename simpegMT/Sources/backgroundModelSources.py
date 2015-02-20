@@ -1,5 +1,4 @@
 import SimPEG as simpeg, numpy as np
-from simpegMT.Utils import get1DEfields
 
 def homo1DModelSource(mesh,freq,m_back):
     '''
@@ -14,7 +13,6 @@ def homo1DModelSource(mesh,freq,m_back):
     '''
 
     # import
-    import SimPEG as simpeg
     from simpegMT.Utils import get1DEfields
     # Get a 1d solution for a halfspace background
     mesh1d = simpeg.Mesh.TensorMesh([mesh.hz],np.array([mesh.x0[2]]))
@@ -27,6 +25,7 @@ def homo1DModelSource(mesh,freq,m_back):
     for i in np.arange(mesh.vnEx[0]):
         for j in np.arange(mesh.vnEx[1]):
             ex_px[i,j,:] = e0_1d
+    ex_px[1:-1,1:-1,1:-1] = 0
     eBG_px = np.vstack((simpeg.Utils.mkvc(mesh.r(ex_px,'Ex','Ex','V'),2),ey_px,ez_px))
     # Setup y (north) polarization (_py)
     ex_py = np.zeros((mesh.nEx,1), dtype='complex128')
@@ -36,6 +35,7 @@ def homo1DModelSource(mesh,freq,m_back):
     for i in np.arange(mesh.vnEy[0]):
         for j in np.arange(mesh.vnEy[1]):
             ey_py[i,j,:] = e0_1d 
+    ex_py[1:-1,1:-1,1:-1] = 0
     eBG_py = np.vstack((ex_py,simpeg.Utils.mkvc(ey_py,2),ez_py))
 
     # Return the electric fields

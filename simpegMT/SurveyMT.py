@@ -208,7 +208,7 @@ class SurveyMT(Survey.BaseSurvey):
         return self._freqDict[freq]
 
     def projectFields(self, u):
-        data = Survey.Data(self)
+        data = DataMT(self)
         for src in self.srcList:
             for rx in src.rxList:
                 data[src, rx] = rx.projectFields(src, self.mesh, u)
@@ -216,3 +216,69 @@ class SurveyMT(Survey.BaseSurvey):
 
     def projectFieldsDeriv(self, u):
         raise Exception('Use Transmitters to project fields deriv.')
+
+class DataMT(Survey.Data):
+    '''
+    Data class for MTdata 
+
+    :param SimPEG survey object survey: 
+    :param v vector with data
+
+    '''
+    def __init__(self, survey, v=None):
+        # Pass the variables to the "parent" method
+        Survey.Data.__init__(self, survey, v)
+
+    def toRecArray(self,returnType='RealImag'):
+        '''
+        Function that returns a numpy.recarray for a SimpegMT impedance data object.
+
+        :param str returnType: Switches between returning a rec array where the impedance is split to real and imaginary ('RealImag') or is a complex ('Complex')
+
+        '''
+
+        def rec2ndarr(x,dt=float):
+            return x.view((dt, len(x.dtype.names)))
+        # Define the record fields
+        dtRI = [('freq',float),('x',float),('y',float),('z',float),('zxxr',float),('zxxi',float),('zxyr',float),('zxyi',float),('zyxr',float),('zyxi',float),('zyyr',float),('zyyi',float)]
+        dtCP = [('freq',float),('x',float),('y',float),('z',float),('zxx',complex),('zxy',complex),('zyx',complex),('zyy',complex)]
+        impList = ['zxxr','zxxi','zxyr','zxyi','zyxr','zyxi','zyyr','zyyi']
+        for src in self.survey.srcList:
+            # Temp array for all the receivers of the source.
+            tArrRec = np.array([(src.freq,rx.locs[0,0],rx.locs[0,1],rx.locs[0,2],np.nan ,np.nan ,np.nan ,np.nan ,np.nan ,np.nan ,np.nan ,np.nan ) for rx in src.rxList],dtype=dtRI)
+            # Get the type and the value for the DataMT object as a list
+            typeList = [[rx.rxType,self[src,rx][0]] for rx in src.rxList]
+            # Insert the values to the temp array
+            for nr,(key,val) in enumerate(typeList):
+                tArrRec[key][nr] = val
+            # Masked array 
+            mArrRec = np.ma.MaskedArray(rec2ndarr(tArrRec),mask=np.isnan(rec2ndarr(tArrRec))).view(dtype=tArrRec.dtype)
+            # Unique freq and loc of the masked array
+            uniFLmarr = np.unique(mArrRec[['freq','x','y','z']])
+            if 'RealImag' in returnType:
+                dt = dtRI
+                for uniFL in uniFLmarr:
+                    mTemp = rec2ndarr(mArrRec[np.ma.where(mArrRec[['freq','x','y','z']].data == np.array(uniFL))][impList]).sum(axis=0)
+                    dataBlock = simpeg.mkvc(np.concatenate((rec2ndarr(uniFL),mTemp.data)),2).T
+                    try:
+                        outArr = np.concatenate((outArr,dataBlock),axis=0)
+                    except NameError as e:
+                        outArr = dataBlock
+            elif 'Complex' in returnType:
+                # Add the real and imaginary to a complex number
+                from numpy.lib import recfunctions as recFunc
+                dt = dtCP 
+                for uniFL in uniFLmarr:
+                    mTemp = simpeg.mkvc(rec2ndarr(mArrRec[np.ma.where(mArrRec[['freq','x','y','z']].data == np.array(uniFL))][impList]).sum(axis=0),2).T
+                    compBlock = np.sum(mTemp.data.reshape((4,2))*np.array([[1,1j],[1,1j],[1,1j],[1,1j]]),axis=1).copy().view(dt[4::])
+                    dataBlock = simpeg.mkvc(recFunc.merge_arrays((np.array(uniFL),compBlock),flatten=True),2).T
+                    try:
+                        outArr = recFunc.stack_arrays((outArr,dataBlock),usemask=False)
+                    except NameError as e:
+                        outArr = dataBlock
+
+        # Return 
+        if 'RealImag' in returnType:
+            return outArr.view(dt)
+        elif 'Complex' in returnType:
+            return outArr
