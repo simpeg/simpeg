@@ -35,7 +35,7 @@ def homo1DModelSource(mesh,freq,m_back):
     for i in np.arange(mesh.vnEy[0]):
         for j in np.arange(mesh.vnEy[1]):
             ey_py[i,j,:] = e0_1d 
-    ex_py[1:-1,1:-1,1:-1] = 0
+    ey_py[1:-1,1:-1,1:-1] = 0
     eBG_py = np.vstack((ex_py,simpeg.Utils.mkvc(ey_py,2),ez_py))
 
     # Return the electric fields
