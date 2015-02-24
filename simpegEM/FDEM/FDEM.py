@@ -335,3 +335,72 @@ class ProblemFDEM_b(BaseFDEMProblem):
             return None
         raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
 
+
+class ProblemFDEM_j(BaseFDEMProblem):
+    """
+        Using the H-J formulation of Maxwell's equations
+
+        .. math::
+            \\nabla \\times \\sigma^{-1} \\vec{J} + i\\omega\\mu\\vec{H} = 0
+            \\nabla \\times \\vec{H} - \\vec{J} = \\vec{J_s}
+
+        Since \(\\vec{J}\) is a flux and \(\\vec{H}\) is a field, we discretize \(\\vec{J}\) on faces and \(\\vec{H}\) on edges.
+
+        For this implementation, we solve for J, using \( \\vec{H} = - (i\\omega\\mu)^{-1} \\nabla \\times \\sigma^{-1} \\vec{J} \) :
+
+        .. math::
+            \\nabla \\times ( \\mu^{-1} \\nabla \\times \\sigma^{-1} \\vec{J} ) + i\\omega \\vec{J} = - i\\omega\\vec{J_s}
+    """
+
+    solType = 'j'
+
+    def __init__(self, model, **kwargs):
+        BaseFDEMProblem.__init__(self, model, **kwargs)
+
+    def getA(self, freq):
+        """
+            :param float freq: Frequency
+            :rtype: scipy.sparse.csr_matrix
+            :return: A
+        """
+
+        muI = self.MeMuI
+        sigI = self.MfSigmaI
+        C = self.mesh.edgeCurl
+
+        return C * muI * C.T * sigI + 1j * omega(freq)
+
+    def getADeriv(self, freq, u, v, adjoint=False):
+
+        muI = self.MeMuI
+        C = self.mesh.edgeCurl
+        sig = self.curModel.transform
+        dsig_dm = self.curModel.transformDeriv
+        #TODO: This only works if diagonal (no tensors)...
+        dMfSigmaI_dI = - self.MfSigmaI**2
+
+        dMf_dsig = self.mesh.getFaceInnerProductDeriv(sig)(u)
+
+        if adjoint:
+            raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
+
+        return C * ( muI * ( C.T * ( dMfSigmaI_dI * ( dMf_dsig * ( dsig_dm * v ) ) ) ) )
+
+
+        raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
+
+        
+
+    def getRHS(self, freq):
+        """
+            :param float freq: Frequency
+            :rtype: numpy.ndarray (nE, nTx)
+            :return: RHS
+        """
+        raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
+
+    def calcFields(self, sol, freq, fieldType, adjoint=False):
+        raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
+
+    def calcFieldsDeriv(self, sol, freq, fieldType, v, adjoint=False):
+        raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)

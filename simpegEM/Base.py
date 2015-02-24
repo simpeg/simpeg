@@ -29,6 +29,13 @@ class BaseEMProblem(Problem.BaseProblem):
         return self._MfMui
 
     @property
+    def MeMuI(self):
+        #TODO: assuming constant mu
+        if getattr(self, '_MeMuI', None) is None:
+            self._MeMuI = self.mesh.getEdgeInnerProduct(1/mu_0)
+        return self._MeMuI
+
+    @property
     def Me(self):
         if getattr(self, '_Me', None) is None:
             self._Me = self.mesh.getEdgeInnerProduct()
@@ -50,7 +57,15 @@ class BaseEMProblem(Problem.BaseProblem):
             self._MeSigmaI = self.mesh.getEdgeInnerProduct(sigma, invMat=True)
         return self._MeSigmaI
 
-    deleteTheseOnModelUpdate = ['_MeSigma', '_MeSigmaI']
+    @property
+    def MfSigmaI(self):
+        #TODO: hardcoded to sigma as the model
+        if getattr(self, '_MfSigmaI', None) is None:
+            sigma = self.curModel.transform
+            self._MfSigmaI = self.mesh.getFaceInnerProduct(sigma, invMat=True)
+        return self._MfSigmaI
+
+    deleteTheseOnModelUpdate = ['_MeSigma', '_MeSigmaI','_MfSigmaI']
 
     def fields(self, m):
         self.curModel = m
