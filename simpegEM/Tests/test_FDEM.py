@@ -7,7 +7,7 @@ from scipy.constants import mu_0
 TOL = 1e-4
 CONDUCTIVITY = 1e3
 MU = mu_0
-addrandoms = True
+addrandoms = True 
 
 def getProblem(fdemType, comp):
     cs = 5.
@@ -48,11 +48,11 @@ def adjointTest(fdemType, comp):
     print 'Adjoint %s formulation - %s' % (fdemType, comp)
 
     m  = np.log(np.ones(prb.mesh.nC)*CONDUCTIVITY)
-    mu = np.log(np.ones(prb.mesh.nC)*CONDUCTIVITY)
+    mu = np.log(np.ones(prb.mesh.nC)*MU)
 
     if addrandoms is True:
         m  = m + np.random.randn(prb.mesh.nC)*CONDUCTIVITY*1e-3 
-        mu = mu + np.random.randn(prb.mesh.nC)*CONDUCTIVITY*1e-3
+        mu = mu + np.random.randn(prb.mesh.nC)*MU*1e-3
 
     prb.mu = mu 
     survey = prb.survey
@@ -71,11 +71,13 @@ def derivTest(fdemType, comp):
     prb = getProblem(fdemType, comp)
     print '%s formulation - %s' % (fdemType, comp)
     x0 = np.log(np.ones(prb.mesh.nC)*CONDUCTIVITY)
+    mu = np.log(np.ones(prb.mesh.nC)*MU)
 
     if addrandoms is True:
         x0  = x0 + np.random.randn(prb.mesh.nC)*CONDUCTIVITY*1e-3 
-        mu = mu + np.random.randn(prb.mesh.nC)*CONDUCTIVITY*1e-3
+        mu = mu + np.random.randn(prb.mesh.nC)*MU*1e-3
 
+    prb.mu = mu 
     survey = prb.survey
     def fun(x):
         return survey.dpred(x), lambda x: prb.Jvec(x0, x)
