@@ -341,30 +341,49 @@ def invPropertyTensor(M, tensor, returnMatrix=False):
     return T
 
 
-def diagEst(matFun, n, k=None, type='Probing'):
-    """ Based on Saad http://www-users.cs.umn.edu/~saad/PDF/umsi-2005-082.pdf, and http://www.cita.utoronto.ca/~niels/diagonal.pdf"""
+def diagEst(matFun, n, k=None, approach='Probing'):
+    """ 
+    Estimate the diagonal of a matrix, A. Note that the matrix may be a function which returns A times a vector.
+
+    Three different approaches have been implemented, 
+        1. Probing : uses cyclic permutations of vectors with ones and zeros (default)
+        2. Ones : random +/- 1 entries
+        3. Random : random vectors
+
+    :param lambda (numpy.array) matFun: matrix to estimate the diagonal of
+    :param int64 n: size of the vector that should be used to compute matFun(v)
+    :param int64 k: number of vectors to be used to estimate the diagonal
+    :param str approach: approach to be used for getting vectors
+    :rtype: numpy.array
+    :return: est_diag(A)
+
+    Based on Saad http://www-users.cs.umn.edu/~saad/PDF/umsi-2005-082.pdf, and http://www.cita.utoronto.ca/~niels/diagonal.pdf
+    """
+
+    if type(matFun).__name__=='ndarray':
+        A = matFun
+        matFun = lambda v: A.dot(v) 
 
     if k is None:
         k = np.floor(n/10.)
 
-    if type =='Ones':
+    if approach =='Ones':
         def getv(n,i=None):
             v = np.random.randn(n)
             v[v<0]  = -1.
             v[v>=0] = 1.
             return v
 
-    elif type == 'Random':
+    elif approach == 'Random':
         def getv(n,i=None):
             return np.random.randn(n)
 
-    else: #if type == 'Probing':
+    else: #if approach == 'Probing':
         def getv(n,i):
             v = np.zeros(n)
             v[i:n:k] = 1.
             return v
 
-    #d = np.zeros(n)
     Mv = np.zeros(n)
     vv = np.zeros(n)
 
