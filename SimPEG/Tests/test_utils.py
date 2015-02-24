@@ -246,5 +246,18 @@ class TestSequenceFunctions(unittest.TestCase):
         self.assertTrue(np.all(true == listArray))
         self.assertTrue(true.shape == listArray.shape)
 
+class TestDiagEst(unittest.TestCase):
+
+    def setUp(self):
+        self.n = 10
+        self.A = np.random.rand(self.n,self.n)
+        self.Adiag = np.diagonal(self.A)
+
+    def testOnes(self):
+        Adiagtest = diagEst(self.A,self.n,self.n)
+        r = np.abs(Adiagtest-self.Adiag)
+        self.assertTrue(r.dot(r) < TOL)
+
+
 if __name__ == '__main__':
     unittest.main()
