@@ -17,8 +17,11 @@ before_install:
 install:
   - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython
   - pip install nose-cov python-coveralls
-  - pip install -r requirements.txt
+    # Remove this when SimPEG is on pip
+  - git clone https://github.com/simpeg/simpeg.git
+  - cd simpeg/
   - python setup.py install
+  - cd ../
 
 # Run test
 script:
