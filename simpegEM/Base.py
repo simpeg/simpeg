@@ -17,15 +17,31 @@ class BaseEMProblem(Problem.BaseProblem):
 
     verbose = False
 
+
+    ####################################################
+    # Mu Model
+    ####################################################
+    @property
+    def mu(self):
+        if getattr(self, '_mu', None) is None:
+            self._mu = mu_0
+        return self._mu
+    @mu.setter
+    def mu(self, value):
+        if getattr(self, '_MfMui', None) is not None:
+            del self._MfMui
+        self._mu = value
+        
+
+
     ####################################################
     # Mass Matrices
     ####################################################
 
     @property
     def MfMui(self):
-        #TODO: assuming constant mu
         if getattr(self, '_MfMui', None) is None:
-            self._MfMui = self.mesh.getFaceInnerProduct(1/mu_0)
+            self._MfMui = self.mesh.getFaceInnerProduct(1/self.mu)
         return self._MfMui
 
     @property
