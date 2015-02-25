@@ -350,6 +350,10 @@ class ProblemFDEM_j(BaseFDEMProblem):
 
         .. math::
             \\nabla \\times ( \\mu^{-1} \\nabla \\times \\sigma^{-1} \\vec{J} ) + i\\omega \\vec{J} = - i\\omega\\vec{J_s}
+    
+        .. note::
+            This implementation does not yet work with full anisotropy!!
+
     """
 
     solType = 'j'
@@ -364,32 +368,27 @@ class ProblemFDEM_j(BaseFDEMProblem):
             :return: A
         """
 
-        muI = self.MeMuI
-        sigI = self.MfSigmaI
+        mui = self.MeMui
+        sigi = self.MfSigmai
         C = self.mesh.edgeCurl
+        iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
 
-        return C * muI * C.T * sigI + 1j * omega(freq)
+        return C * mui * C.T * sigi + iomega
 
     def getADeriv(self, freq, u, v, adjoint=False):
 
-        muI = self.MeMuI
+        mui = self.MeMui
         C = self.mesh.edgeCurl
         sig = self.curModel.transform
         dsig_dm = self.curModel.transformDeriv
-        #TODO: This only works if diagonal (no tensors)...
-        dMfSigmaI_dI = - self.MfSigmaI**2
-
         dMf_dsig = self.mesh.getFaceInnerProductDeriv(sig)(u)
+        dMfSigi_di = - self.MfSigmai**2
 
         if adjoint:
-            raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
+            return dsig_dm.T * ( dMf_dsig.T * ( dMfSigi_di.T * ( C * ( mui.T * ( C.T * v ) ) ) ) )
 
-        return C * ( muI * ( C.T * ( dMfSigmaI_dI * ( dMf_dsig * ( dsig_dm * v ) ) ) ) )
+        return C * ( mui * ( C.T * ( dMfSigi_di * ( dMf_dsig * ( dsig_dm * v ) ) ) ) )
 
-
-        raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
-
-        
 
     def getRHS(self, freq):
         """
@@ -397,10 +396,49 @@ class ProblemFDEM_j(BaseFDEMProblem):
             :rtype: numpy.ndarray (nE, nTx)
             :return: RHS
         """
-        raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
+        Txs = self.survey.getTransmitters(freq)
+        rhs = range(len(Txs))
+        for i, tx in enumerate(Txs):
+            if tx.txType == 'VMD':
+                src = Sources.MagneticDipoleVectorPotential
+                SRCx = src(tx.loc, self.mesh.gridFx, 'x')
+                SRCy = src(tx.loc, self.mesh.gridFy, 'y')
+                SRCz = src(tx.loc, self.mesh.gridFz, 'z')
+
+            elif tx.txType == 'CircularLoop':
+                src = Sources.MagneticLoopVectorPotential                
+                SRCx = src(tx.loc, self.mesh.gridFx, 'x', tx.radius)
+                SRCy = src(tx.loc, self.mesh.gridFy, 'y', tx.radius)
+                SRCz = src(tx.loc, self.mesh.gridFz, 'z', tx.radius)
+            else:
+                raise NotImplemented('%s txType is not implemented' % tx.txType)
+            rhs[i] = np.concatenate((SRCx, SRCy, SRCz))
+
+        a = np.concatenate(rhs).reshape((self.mesh.nF, len(Txs)), order='F')
+        mui = self.MeMui
+        C = self.mesh.edgeCurl
+
+        j_s = C*mui*C.T*a
+        return -1j*omega(freq)*j_s
 
     def calcFields(self, sol, freq, fieldType, adjoint=False):
+        j = sol
+        if fieldType == 'j':
+            return j
+        elif fieldType == 'h':
+            mui = self.MeMui
+            C = self.mesh.edgeCurl
+            if not adjoint:
+                h = -(1./(1j*omega(freq))) * mui * ( C.T * j )
+            else:
+                h = -(1./(1j*omega(freq))) * C * ( mui.T * j )
+            return h
         raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
 
     def calcFieldsDeriv(self, sol, freq, fieldType, v, adjoint=False):
+        j = sol
+        if fieldType == 'j':
+            return None
+        elif fieldType == 'h':
+            return None
         raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)

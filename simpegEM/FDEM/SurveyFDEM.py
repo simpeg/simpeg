@@ -16,6 +16,20 @@ class RxFDEM(Survey.BaseRx):
                     'bxi':['b', 'Fx', 'imag'],
                     'byi':['b', 'Fy', 'imag'],
                     'bzi':['b', 'Fz', 'imag'],
+
+                    'jxr':['j', 'Fx', 'real'],
+                    'jyr':['j', 'Fy', 'real'],
+                    'jzr':['j', 'Fz', 'real'],
+                    'jxi':['j', 'Fx', 'imag'],
+                    'jyi':['j', 'Fy', 'imag'],
+                    'jzi':['j', 'Fz', 'imag'],
+
+                    'hxr':['h', 'Ex', 'real'],
+                    'hyr':['h', 'Ey', 'real'],
+                    'hzr':['h', 'Ez', 'real'],
+                    'hxi':['h', 'Ex', 'imag'],
+                    'hyi':['h', 'Ey', 'imag'],
+                    'hzi':['h', 'Ez', 'imag'],
                    }
     radius = None
 
@@ -84,7 +98,7 @@ class TxFDEM(Survey.BaseTx):
 
 class FieldsFDEM(Problem.Fields):
     """Fancy Field Storage for a FDEM survey."""
-    knownFields = {'b': 'F', 'e': 'E'}
+    knownFields = {'b': 'F', 'e': 'E', 'j': 'F', 'h': 'E'}
     dtype = complex
 
 

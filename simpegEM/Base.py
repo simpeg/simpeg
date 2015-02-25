@@ -7,7 +7,7 @@ class BaseEMProblem(Problem.BaseProblem):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
     solType = None
-    storeTheseFields = ['e', 'b']
+    storeTheseFields = ['e', 'b', 'j', 'h']
 
     surveyPair = Survey.BaseSurvey
     dataPair = Survey.Data
@@ -30,6 +30,8 @@ class BaseEMProblem(Problem.BaseProblem):
     def mu(self, value):
         if getattr(self, '_MfMui', None) is not None:
             del self._MfMui
+        if getattr(self, '_MeMui', None) is not None:
+            del self._MeMui
         self._mu = value
         
 
@@ -45,11 +47,11 @@ class BaseEMProblem(Problem.BaseProblem):
         return self._MfMui
 
     @property
-    def MeMuI(self):
+    def MeMui(self):
         #TODO: assuming constant mu
-        if getattr(self, '_MeMuI', None) is None:
-            self._MeMuI = self.mesh.getEdgeInnerProduct(1/mu_0)
-        return self._MeMuI
+        if getattr(self, '_MeMui', None) is None:
+            self._MeMui = self.mesh.getEdgeInnerProduct(1/mu_0)
+        return self._MeMui
 
     @property
     def Me(self):
@@ -74,14 +76,15 @@ class BaseEMProblem(Problem.BaseProblem):
         return self._MeSigmaI
 
     @property
-    def MfSigmaI(self):
+    def MfSigmai(self):
         #TODO: hardcoded to sigma as the model
-        if getattr(self, '_MfSigmaI', None) is None:
+        #TODO: hardcoded to sigma diagonal 
+        if getattr(self, '_MfSigmai', None) is None:
             sigma = self.curModel.transform
-            self._MfSigmaI = self.mesh.getFaceInnerProduct(sigma, invMat=True)
-        return self._MfSigmaI
+            self._MfSigmai = self.mesh.getFaceInnerProduct(1/sigma)
+        return self._MfSigmai
 
-    deleteTheseOnModelUpdate = ['_MeSigma', '_MeSigmaI','_MfSigmaI']
+    deleteTheseOnModelUpdate = ['_MeSigma', '_MeSigmaI','_MfSigmai']
 
     def fields(self, m):
         self.curModel = m
