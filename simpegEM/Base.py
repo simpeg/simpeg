@@ -47,7 +47,8 @@ class BaseEMProblem(Problem.BaseProblem):
         return self._MfMui
 
     @property
-    def MeMui(self):
+    def MeMuI(self):
+        # Assuming isotropic mu! 
         if getattr(self, '_MeMui', None) is None:
             self._MeMui = self.mesh.getEdgeInnerProduct(1/self.mu)
         return self._MeMui

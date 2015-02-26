@@ -386,12 +386,12 @@ class ProblemFDEM_j(BaseFDEMProblem):
             :return: A
         """
 
-        MeMui = self.MeMui
+        MeMuI = self.MeMuI
         MfSigi = self.MfSigmai
         C = self.mesh.edgeCurl
         iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
 
-        return C * MeMui * C.T * MfSigi + iomega
+        return C * MeMuI * C.T * MfSigi + iomega
 
 
     def getADeriv(self, freq, u, v, adjoint=False):
@@ -399,10 +399,10 @@ class ProblemFDEM_j(BaseFDEMProblem):
             In this case, we assume that electrical conductivity, \(\\sigma\) is the physical property of interest (i.e. \(\sigma\) = model.transform). Then we want
             .. math:: 
                 \\frac{\mathbf{A(\\sigma)} \mathbf{v}}{d \\mathbf{m}} &= \\mathbf{C}  \\mathbf{M^e_{mu^{-1}}} \\mathbf{C^T} \\frac{d \\mathbf{M^f_{\\sigma^{-1}}}}{d \\mathbf{m}}
-                &= \\mathbf{C}  \\mathbf{M^e_{mu^{-1}}} \\mathbf{C^T} \\frac{d \\mathbf{M^f_{\\sigma^{-1}}}}{d \\mathbf{\\sigma^{-1}}} \\frac{d \\mathbf{\\sigma^{-1}}}{d \\mathbf{\\sigma}} \\frac{d \\mathbf{\\sigma}}{d \\mathbf{m}}
+                &= \\mathbf{C}  \\mathbf{M^e_{mu}^{-1}} \\mathbf{C^T} \\frac{d \\mathbf{M^f_{\\sigma^{-1}}}}{d \\mathbf{\\sigma^{-1}}} \\frac{d \\mathbf{\\sigma^{-1}}}{d \\mathbf{\\sigma}} \\frac{d \\mathbf{\\sigma}}{d \\mathbf{m}}
         """
 
-        MeMui = self.MeMui
+        MeMuI = self.MeMuI
         C = self.mesh.edgeCurl
         sig = self.curModel.transform
         sigi = 1/sig
@@ -411,9 +411,9 @@ class ProblemFDEM_j(BaseFDEMProblem):
         dMf_dsigi = self.mesh.getFaceInnerProductDeriv(sigi)(u)
 
         if adjoint:
-            return dsig_dm.T * ( dsigi_dsig.T *( dMf_dsigi.T * ( C * ( MeMui.T * ( C.T * v ) ) ) ) )
+            return dsig_dm.T * ( dsigi_dsig.T *( dMf_dsigi.T * ( C * ( MeMuI.T * ( C.T * v ) ) ) ) )
 
-        return C * ( MeMui * ( C.T * ( dMf_dsigi * ( dsigi_dsig * ( dsig_dm * v ) ) ) ) ) 
+        return C * ( MeMuI * ( C.T * ( dMf_dsigi * ( dsigi_dsig * ( dsig_dm * v ) ) ) ) ) 
 
 
     def getRHS(self, freq):
@@ -442,10 +442,10 @@ class ProblemFDEM_j(BaseFDEMProblem):
 
         a = np.concatenate(rhs).reshape((self.mesh.nF, len(Txs)), order='F')
         a = Utils.mkvc(a)
-        MeMui = self.MeMui
+        MeMuI = self.MeMuI
         C = self.mesh.edgeCurl
 
-        j_s = C*MeMui*C.T*a
+        j_s = C*MeMuI*C.T*a
         return -1j*omega(freq)*j_s
 
     def calcFields(self, sol, freq, fieldType, adjoint=False):
@@ -453,7 +453,7 @@ class ProblemFDEM_j(BaseFDEMProblem):
         if fieldType == 'j':
             return j
         elif fieldType == 'h':
-            mui = self.MeMui
+            mui = self.MeMuI
             C = self.mesh.edgeCurl
             MfSigi = self.MfSigmai
             if not adjoint:
@@ -468,7 +468,7 @@ class ProblemFDEM_j(BaseFDEMProblem):
         if fieldType == 'j':
             return None
         elif fieldType == 'h':
-            MeMui = self.MeMui
+            MeMuI = self.MeMuI
             C = self.mesh.edgeCurl
             sig = self.curModel.transform 
             sigi = 1/sig
@@ -477,9 +477,9 @@ class ProblemFDEM_j(BaseFDEMProblem):
             dMf_dsigi = self.mesh.getFaceInnerProductDeriv(sigi)(j)
             sigi = self.MfSigmai
             if not adjoint: 
-                return -(1./(1j*omega(freq))) * MeMui * ( C.T * ( dMf_dsigi * ( dsigi_dsig * ( dsig_dm * v ) ) ) )
+                return -(1./(1j*omega(freq))) * MeMuI * ( C.T * ( dMf_dsigi * ( dsigi_dsig * ( dsig_dm * v ) ) ) )
             else:
-                return -(1./(1j*omega(freq))) * dsig_dm.T * ( dsigi_dsig.T * ( dMf_dsigi.T * ( C * ( MeMui.T * v ) ) ) )       
+                return -(1./(1j*omega(freq))) * dsig_dm.T * ( dsigi_dsig.T * ( dMf_dsigi.T * ( C * ( MeMuI.T * v ) ) ) )       
         raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
 
 
@@ -500,6 +500,11 @@ class ProblemFDEM_h(BaseFDEMProblem):
 
         .. math::
             \\nabla \\times \\sigma^{-1} \\nabla \\times \\vec{H} + i\\omega\\mu\\vec{H} = \\nabla \\times \\sigma^{-1} \\vec{J_s}
+
+        We discretize and solve
+
+        .. math::
+            (\\mathbf{C^T} \\mathbf{M^f_{\\sigma^{-1}}} \\mathbf{C} + i\\omega \\mathbf{M_{\mu}} ) \\mathbf{h} = \\mathbf{C^T} \\mathbf{M^f_{\\sigma^{-1}}} \\vec{J_s}
 
         .. note::
             This implementation does not yet work with full anisotropy!!
@@ -568,10 +573,10 @@ class ProblemFDEM_h(BaseFDEMProblem):
         a = np.concatenate(rhs).reshape((self.mesh.nF, len(Txs)), order='F')
         a = Utils.mkvc(a)
 
-        MeMui = self.MeMui
+        MeMuI = self.MeMuI
         C = self.mesh.edgeCurl
 
-        return C*MeMui*C.T*a
+        return C*MeMuI*C.T*a
 
     def getRHS(self, freq):
         """
@@ -629,7 +634,7 @@ class ProblemFDEM_h(BaseFDEMProblem):
             # MfSigi = self.MfSigmai
             # MfSigmaiinv = self.Solver(MfSigi, **self.solverOpts)
             # CTinv = self.Solver(C.T, **self.solverOpts)
-            # hDeriv = self.calcFieldsDeriv(h,freq,'h',v,adjoint)
+            # hDeriv = self.calcFieldsDeriv(h,freq,'h',v,adjoint=False)
 
             # pt1 = -1j * omega(freq) * (MfSigmaiinv * (CTinv * (MeMu * hDeriv)))
 
@@ -642,7 +647,7 @@ class ProblemFDEM_h(BaseFDEMProblem):
 
             # dMf_dsigi = self.mesh.getFaceInnerProductDeriv(sigi)(v1)
 
-            # pt2 = 1j * omega(freq) * (MfSigmaiinv * (dMf_dsigi * v1))
+            # pt2 = 1j * omega(freq) * (MfSigmaiinv * (dMf_dsigi * (dsigi_dsig * (dsig_dm * v))))
 
             # return pt1+pt2
 
@@ -651,7 +656,10 @@ class ProblemFDEM_h(BaseFDEMProblem):
             #     MfSigmaiTinv = self.Solver(MfSigi.T, **self.solverOpts)
             #     Cinv = self.Solver(C, **self.solverOpts)
             #     MeMu.T * (Cinv * (MfSigmaiTinv * h))
-            #     pt1 = -1j * omega(freq) * hDeriv.T * MeMu.T * Cinv *(MfSigmaiTinv * v)
+            #     v1 = MeMu.T *( Cinv *(MfSigmaiTinv * v))
+            #     pt1 = -1j * omega(freq) * self.calcFieldsDeriv(h,freq,'h',v,adjoint=True)
+
+            #     pt2 =  
             raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
 
         elif fieldType == 'h':
