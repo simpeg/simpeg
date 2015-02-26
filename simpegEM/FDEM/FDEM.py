@@ -359,6 +359,11 @@ class ProblemFDEM_j(BaseFDEMProblem):
         .. math::
             \\nabla \\times ( \\mu^{-1} \\nabla \\times \\sigma^{-1} \\vec{J} ) + i\\omega \\vec{J} = - i\\omega\\vec{J_s}
     
+        We discretize this to:
+
+        .. math::
+            (\\mathbf{C}  \\mathbf{M^e_{mu^{-1}}} \\mathbf{C^T} \\mathbf{M^f_{\\sigma^{-1}}}  + i\\omega ) \\mathbf{j} = - i\\omega \\mathbf{j_s}
+
         .. note::
             This implementation does not yet work with full anisotropy!!
 
@@ -372,6 +377,10 @@ class ProblemFDEM_j(BaseFDEMProblem):
 
     def getA(self, freq):
         """
+            Here, we form the operator \(\\mathbf{A}\) to solce 
+            .. math::
+                    \\mathbf{A} = \\mathbf{C}  \\mathbf{M^e_{mu^{-1}}} \\mathbf{C^T} \\mathbf{M^f_{\\sigma^{-1}}}  + i\\omega
+
             :param float freq: Frequency
             :rtype: scipy.sparse.csr_matrix
             :return: A
@@ -384,7 +393,14 @@ class ProblemFDEM_j(BaseFDEMProblem):
 
         return C * MeMui * C.T * MfSigi + iomega
 
+
     def getADeriv(self, freq, u, v, adjoint=False):
+        """
+            In this case, we assume that electrical conductivity, \(\\sigma\) is the physical property of interest (i.e. \(\sigma\) = model.transform). Then we want
+            .. math:: 
+                \\frac{\mathbf{A(\\sigma)} \mathbf{v}}{d \\mathbf{m}} &= \\mathbf{C}  \\mathbf{M^e_{mu^{-1}}} \\mathbf{C^T} \\frac{d \\mathbf{M^f_{\\sigma^{-1}}}}{d \\mathbf{m}}
+                &= \\mathbf{C}  \\mathbf{M^e_{mu^{-1}}} \\mathbf{C^T} \\frac{d \\mathbf{M^f_{\\sigma^{-1}}}}{d \\mathbf{\\sigma^{-1}}} \\frac{d \\mathbf{\\sigma^{-1}}}{d \\mathbf{\\sigma}} \\frac{d \\mathbf{\\sigma}}{d \\mathbf{m}}
+        """
 
         MeMui = self.MeMui
         C = self.mesh.edgeCurl
