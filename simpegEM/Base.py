@@ -30,8 +30,10 @@ class BaseEMProblem(Problem.BaseProblem):
     def mu(self, value):
         if getattr(self, '_MfMui', None) is not None:
             del self._MfMui
-        if getattr(self, '_MeMui', None) is not None:
-            del self._MeMui
+        if getattr(self, '_MeMu', None) is not None:
+            del delf._MeMu 
+        if getattr(self, '_MeMuI', None) is not None:
+            del self._MeMuI
         self._mu = value
         
 
