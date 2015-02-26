@@ -48,10 +48,16 @@ class BaseEMProblem(Problem.BaseProblem):
 
     @property
     def MeMui(self):
-        #TODO: assuming constant mu
         if getattr(self, '_MeMui', None) is None:
-            self._MeMui = self.mesh.getEdgeInnerProduct(1/mu_0)
+            self._MeMui = self.mesh.getEdgeInnerProduct(1/self.mu)
         return self._MeMui
+
+    @property
+    def MeMu(self):
+        #TODO: assuming constant mu
+        if getattr(self, '_MeMu', None) is None:
+            self._MeMu = self.mesh.getEdgeInnerProduct(self.mu)
+        return self._MeMu
 
     @property
     def Me(self):
