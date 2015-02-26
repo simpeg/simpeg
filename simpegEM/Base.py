@@ -7,7 +7,7 @@ class BaseEMProblem(Problem.BaseProblem):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
     solType = None
-    storeTheseFields = ['e', 'b', 'j', 'h']
+    storeTheseFields = ['e', 'b']
 
     surveyPair = Survey.BaseSurvey
     dataPair = Survey.Data

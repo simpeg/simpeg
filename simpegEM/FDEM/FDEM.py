@@ -105,6 +105,9 @@ class BaseFDEMProblem(BaseEMProblem):
 
         return Jtv
 
+##########################################################################################
+################################ E-B Formulation #########################################
+##########################################################################################
 
 class ProblemFDEM_e(BaseFDEMProblem):
     """
@@ -335,6 +338,10 @@ class ProblemFDEM_b(BaseFDEMProblem):
             return None
         raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
 
+##########################################################################################
+################################ H-J Formulation #########################################
+##########################################################################################
+
 
 class ProblemFDEM_j(BaseFDEMProblem):
     """
@@ -360,6 +367,7 @@ class ProblemFDEM_j(BaseFDEMProblem):
 
     def __init__(self, model, **kwargs):
         BaseFDEMProblem.__init__(self, model, **kwargs)
+        BaseFDEMProblem.storeTheseFields = ['j','h']
 
     def getA(self, freq):
         """
@@ -377,17 +385,18 @@ class ProblemFDEM_j(BaseFDEMProblem):
 
     def getADeriv(self, freq, u, v, adjoint=False):
 
-        mui = self.MeMui
+        MeMui = self.MeMui
         C = self.mesh.edgeCurl
         sig = self.curModel.transform
+        sigi = 1/sig
         dsig_dm = self.curModel.transformDeriv
-        dMf_dsig = self.mesh.getFaceInnerProductDeriv(sig)(u)
-        dMfSigi_di = - self.MfSigmai**2
+        dsigi_dsig = -Utils.sdiag(sigi)**2
+        dMf_dsigi = self.mesh.getFaceInnerProductDeriv(sigi)(u)
 
         if adjoint:
-            return dsig_dm.T * ( dMf_dsig.T * ( dMfSigi_di.T * ( C * ( mui.T * ( C.T * v ) ) ) ) )
+            return dsig_dm.T * ( dsigi_dsig.T *( dMf_dsigi.T * ( C * ( MeMui.T * ( C.T * v ) ) ) ) )
 
-        return C * ( mui * ( C.T * ( dMfSigi_di * ( dMf_dsig * ( dsig_dm * v ) ) ) ) )
+        return C * ( MeMui * ( C.T * ( dMf_dsigi * ( dsigi_dsig * ( dsig_dm * v ) ) ) ) ) 
 
 
     def getRHS(self, freq):
@@ -428,10 +437,11 @@ class ProblemFDEM_j(BaseFDEMProblem):
         elif fieldType == 'h':
             mui = self.MeMui
             C = self.mesh.edgeCurl
+            MfSigi = self.MfSigmai
             if not adjoint:
-                h = -(1./(1j*omega(freq))) * mui * ( C.T * j )
+                h = -(1./(1j*omega(freq))) * mui * ( C.T * ( MfSigi * j ) )
             else:
-                h = -(1./(1j*omega(freq))) * C * ( mui.T * j )
+                h = -(1./(1j*omega(freq))) * MfSigi * ( C * ( mui.T * j ) ) 
             return h
         raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
 
@@ -440,5 +450,16 @@ class ProblemFDEM_j(BaseFDEMProblem):
         if fieldType == 'j':
             return None
         elif fieldType == 'h':
-            return None
+            MeMui = self.MeMui
+            C = self.mesh.edgeCurl
+            sig = self.curModel.transform 
+            sigi = 1/sig
+            dsig_dm = self.curModel.transformDeriv
+            dsigi_dsig = -Utils.sdiag(sigi)**2
+            dMf_dsigi = self.mesh.getFaceInnerProductDeriv(sigi)(j)
+            sigi = self.MfSigmai
+            if not adjoint: 
+                return -(1./(1j*omega(freq))) * MeMui * ( C.T * ( dMf_dsigi * ( dsigi_dsig * ( dsig_dm * v ) ) ) )
+            else:
+                return -(1./(1j*omega(freq))) * dsig_dm.T * ( dsigi_dsig.T * ( dMf_dsigi.T * ( C * ( MeMui.T * v ) ) ) )       
         raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
