@@ -18,7 +18,6 @@ class BaseFDEMProblem(BaseEMProblem):
             \\nabla \\times \\mu^{-1} \\vec{B} - \\sigma \\vec{E} = \\vec{J_s}
 
     """
-
     surveyPair = SurveyFDEM
 
     def forward(self, m, RHS, CalcFields):
@@ -338,6 +337,7 @@ class ProblemFDEM_b(BaseFDEMProblem):
             return None
         raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
 
+
 ##########################################################################################
 ################################ H-J Formulation #########################################
 ##########################################################################################
@@ -353,7 +353,7 @@ class ProblemFDEM_j(BaseFDEMProblem):
 
         Since \(\\vec{J}\) is a flux and \(\\vec{H}\) is a field, we discretize \(\\vec{J}\) on faces and \(\\vec{H}\) on edges.
 
-        For this implementation, we solve for J, using \( \\vec{H} = - (i\\omega\\mu)^{-1} \\nabla \\times \\sigma^{-1} \\vec{J} \) :
+        For this implementation, we solve for J using \( \\vec{H} = - (i\\omega\\mu)^{-1} \\nabla \\times \\sigma^{-1} \\vec{J} \) :
 
         .. math::
             \\nabla \\times ( \\mu^{-1} \\nabla \\times \\sigma^{-1} \\vec{J} ) + i\\omega \\vec{J} = - i\\omega\\vec{J_s}
@@ -364,10 +364,10 @@ class ProblemFDEM_j(BaseFDEMProblem):
     """
 
     solType = 'j'
+    storeTheseFields = ['j','h']
 
     def __init__(self, model, **kwargs):
         BaseFDEMProblem.__init__(self, model, **kwargs)
-        BaseFDEMProblem.storeTheseFields = ['j','h']
 
     def getA(self, freq):
         """
@@ -376,12 +376,12 @@ class ProblemFDEM_j(BaseFDEMProblem):
             :return: A
         """
 
-        mui = self.MeMui
-        sigi = self.MfSigmai
+        MeMui = self.MeMui
+        MfSigi = self.MfSigmai
         C = self.mesh.edgeCurl
         iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
 
-        return C * mui * C.T * sigi + iomega
+        return C * MeMui * C.T * MfSigi + iomega
 
     def getADeriv(self, freq, u, v, adjoint=False):
 
@@ -424,10 +424,10 @@ class ProblemFDEM_j(BaseFDEMProblem):
             rhs[i] = np.concatenate((SRCx, SRCy, SRCz))
 
         a = np.concatenate(rhs).reshape((self.mesh.nF, len(Txs)), order='F')
-        mui = self.MeMui
+        MeMui = self.MeMui
         C = self.mesh.edgeCurl
 
-        j_s = C*mui*C.T*a
+        j_s = C*MeMui*C.T*a
         return -1j*omega(freq)*j_s
 
     def calcFields(self, sol, freq, fieldType, adjoint=False):
