@@ -610,16 +610,16 @@ class ProblemFDEM_h(BaseFDEMProblem):
     def calcFields(self, sol, freq, fieldType, adjoint=False):
         h = sol
         if fieldType == 'j':
-            NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
-            # C = self.mesh.edgeCurl
-            # j_s = self.getjs(freq)
-            # if adjoint: 
-            #     MeMu = self.MeMu
-            #     MfSigi = self.MfSigmai
-            #     MfSigmaiinv = self.Solver(MfSigi.T, **self.solverOpts)
-            #     Cinv = self.Solver(C, **self.solverOpts)
-            #     return  -1j * omega(freq) * MeMu.T * (MfSigmaiinv * (CTinv * h))
-            # return C*h - j_s # -iomega(freq) inv(MfSigmai) inv(C.T) MeMu
+            # NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
+            C = self.mesh.edgeCurl
+            j_s = self.getjs(freq)
+            if adjoint: 
+                # MeMuI = self.MeMuI
+                # MfSigi = self.MfSigmai
+                
+                return C.T*h
+                # return  -1j * omega(freq) * MeMu.T * (MfSigmaiinv * (CTinv * h))
+            return C*h #- j_s # -iomega(freq) inv(MfSigmai) inv(C.T) MeMu
         elif fieldType == 'h':
             return h
         raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
@@ -629,37 +629,41 @@ class ProblemFDEM_h(BaseFDEMProblem):
         A = self.getA(freq)
 
         if fieldType == 'j':
-            # C = self.mesh.edgeCurl
-            # MeMu = self.MeMu
-            # MfSigi = self.MfSigmai
-            # MfSigmaiinv = self.Solver(MfSigi, **self.solverOpts)
-            # CTinv = self.Solver(C.T, **self.solverOpts)
-            # hDeriv = self.calcFieldsDeriv(h,freq,'h',v,adjoint=False)
+            C = self.mesh.edgeCurl
+        #     MeMu = self.MeMu
+        #     MfSigi = self.MfSigmai
 
-            # pt1 = -1j * omega(freq) * (MfSigmaiinv * (CTinv * (MeMu * hDeriv)))
+        #     if adjoint:
+        #         MfSigiTCinv = self.Solver(MfSigi.T*C, **self.solverOpts)
+        #         MeMu.T * (Cinv * (MfSigmaiTinv * h))
+        #         v1 = MeMu.T *( Cinv *(MfSigmaiTinv * v))
+        #         pt1 = -1j * omega(freq) * self.calcFieldsDeriv(h,freq,'h',v,adjoint=True)
 
-            # sig = self.curModel.transform
-            # sigi = 1/sig
-            # dsig_dm = self.curModel.transformDeriv
-            # dsigi_dsig = -Utils.sdiag(sigi)**2
+        #         pt2 =  1j * omega(freq) * dsig_dm.T * ( dsigi_dsig.T * ( dMf_dsigi.T * ( MfSigiTCinv * v) )  )
+        #         return pt1 + pt2 
 
-            # v1 = MfSigmaiinv *(CTinv * (MeMu * h))
+        #     CTMfSigiinv = self.Solver(C.T*MfSigi, **self.solverOpts)
+        #     hDeriv = self.calcFieldsDeriv(h,freq,'h',v,adjoint=False)
 
-            # dMf_dsigi = self.mesh.getFaceInnerProductDeriv(sigi)(v1)
+        #     pt1 = -1j * omega(freq) * (CTMfSigiinv * (MeMu * hDeriv))
 
-            # pt2 = 1j * omega(freq) * (MfSigmaiinv * (dMf_dsigi * (dsigi_dsig * (dsig_dm * v))))
+        #     sig = self.curModel.transform
+        #     sigi = 1/sig
+        #     dsig_dm = self.curModel.transformDeriv
+        #     dsigi_dsig = -Utils.sdiag(sigi)**2
 
-            # return pt1+pt2
+        #     v1 = CTMfSigiinv * (MeMu * h)
 
+        #     dMf_dsigi = self.mesh.getFaceInnerProductDeriv(sigi)(v1)
 
-            # if adjoint:
-            #     MfSigmaiTinv = self.Solver(MfSigi.T, **self.solverOpts)
-            #     Cinv = self.Solver(C, **self.solverOpts)
-            #     MeMu.T * (Cinv * (MfSigmaiTinv * h))
-            #     v1 = MeMu.T *( Cinv *(MfSigmaiTinv * v))
-            #     pt1 = -1j * omega(freq) * self.calcFieldsDeriv(h,freq,'h',v,adjoint=True)
+        #     pt2 = 1j * omega(freq) * (CTMfSigiinv * (dMf_dsigi * (dsigi_dsig * (dsig_dm * v))))
 
-            #     pt2 =  
+        #     return pt1+pt2
+            if adjoint:
+                dh = self.calcFieldsDeriv(h,freq,'h',C.T*v,adjoint=True)
+                return dh
+            dh = self.calcFieldsDeriv(h,freq,'h',v)
+            return C*dh
             raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
 
         elif fieldType == 'h':
