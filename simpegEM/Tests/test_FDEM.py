@@ -8,6 +8,7 @@ TOL = 1e-4
 FLR = 1e-15 # "zero", so if residual below this --> pass regardless of order
 CONDUCTIVITY = 1e1
 MU = mu_0
+freq = 1
 addrandoms = True # important to addrandoms if testing HJ formulation with VMD source! (or else jz ~ 0)
 
 def getProblem(fdemType, comp):
@@ -24,7 +25,7 @@ def getProblem(fdemType, comp):
     x = np.linspace(-30,30,6)
     XYZ = Utils.ndgrid(x,x,np.r_[0])
     Rx0 = EM.FDEM.RxFDEM(XYZ, comp)
-    Tx0 = EM.FDEM.TxFDEM(np.r_[0.,0.,0.], 'VMD', 1, [Rx0])
+    Tx0 = EM.FDEM.TxFDEM(np.r_[0.,0.,0.], 'VMD', freq, [Rx0])
 
     survey = EM.FDEM.SurveyFDEM([Tx0])
 
@@ -36,6 +37,8 @@ def getProblem(fdemType, comp):
         prb = EM.FDEM.ProblemFDEM_b(mesh, mapping=mapping)
     elif fdemType == 'j':
         prb = EM.FDEM.ProblemFDEM_j(mesh, mapping=mapping)
+    elif fdemType == 'h':
+        prb = EM.FDEM.ProblemFDEM_h(mesh, mapping=mapping)
     else:
         raise NotImplementedError()
     prb.pair(survey)
@@ -83,7 +86,7 @@ def derivTest(fdemType, comp):
         x0  = x0 + np.random.randn(prb.mesh.nC)*CONDUCTIVITY*1e-1 
         mu = mu + np.random.randn(prb.mesh.nC)*MU*1e-1
 
-    prb.mu = mu 
+    prb.mu = mu
     survey = prb.survey
     def fun(x):
         return survey.dpred(x), lambda x: prb.Jvec(x0, x)
@@ -221,6 +224,32 @@ class FDEM_DerivTests(unittest.TestCase):
     def test_Jvec_hzi_Jform(self):
         self.assertTrue(derivTest('j', 'hzi'))
 
+    # def test_Jvec_hxr_Hform(self):
+    #     self.assertTrue(derivTest('h', 'hxr'))
+    # def test_Jvec_hyr_Hform(self):
+    #     self.assertTrue(derivTest('h', 'hyr'))
+    # def test_Jvec_hzr_Hform(self):
+    #     self.assertTrue(derivTest('h', 'hzr'))
+    # def test_Jvec_hxi_Hform(self):
+    #     self.assertTrue(derivTest('h', 'hxi'))
+    # def test_Jvec_hyi_Hform(self):
+    #     self.assertTrue(derivTest('h', 'hyi'))
+    # def test_Jvec_hzi_Hform(self):
+    #     self.assertTrue(derivTest('h', 'hzi'))
+
+    # def test_Jvec_hxr_Hform(self):
+    #     self.assertTrue(derivTest('h', 'jxr'))
+    # def test_Jvec_hyr_Hform(self):
+    #     self.assertTrue(derivTest('h', 'jyr'))
+    # def test_Jvec_hzr_Hform(self):
+    #     self.assertTrue(derivTest('h', 'jzr'))
+    # def test_Jvec_hxi_Hform(self):
+    #     self.assertTrue(derivTest('h', 'jxi'))
+    # def test_Jvec_hyi_Hform(self):
+    #     self.assertTrue(derivTest('h', 'jyi'))
+    # def test_Jvec_hzi_Hform(self):
+    #     self.assertTrue(derivTest('h', 'jzi'))
+
     def test_Jtvec_adjointTest_jxr_Jform(self):
         self.assertTrue(adjointTest('j', 'jxr'))
     def test_Jtvec_adjointTest_jyr_Jform(self):
@@ -246,6 +275,33 @@ class FDEM_DerivTests(unittest.TestCase):
         self.assertTrue(adjointTest('j', 'hyi'))
     def test_Jtvec_adjointTest_hzi_Jform(self):
         self.assertTrue(adjointTest('j', 'hzi'))
+
+    # def test_Jtvec_adjointTest_hxr_Hform(self):
+    #     self.assertTrue(adjointTest('h', 'hxr'))
+    # def test_Jtvec_adjointTest_hyr_Hform(self):
+    #     self.assertTrue(adjointTest('h', 'hyr'))
+    # def test_Jtvec_adjointTest_hzr_Hform(self):
+    #     self.assertTrue(adjointTest('h', 'hzr'))
+    # def test_Jtvec_adjointTest_hxi_Hform(self):
+    #     self.assertTrue(adjointTest('h', 'hxi'))
+    # def test_Jtvec_adjointTest_hyi_Hform(self):
+    #     self.assertTrue(adjointTest('h', 'hyi'))
+    # def test_Jtvec_adjointTest_hzi_Hform(self):
+    #     self.assertTrue(adjointTest('h', 'hzi'))
+
+    # def test_Jtvec_adjointTest_hxr_Hform(self):
+    #     self.assertTrue(adjointTest('h', 'jxr'))
+    # def test_Jtvec_adjointTest_hyr_Hform(self):
+    #     self.assertTrue(adjointTest('h', 'jyr'))
+    # def test_Jtvec_adjointTest_hzr_Hform(self):
+    #     self.assertTrue(adjointTest('h', 'jzr'))
+    # def test_Jtvec_adjointTest_hxi_Hform(self):
+    #     self.assertTrue(adjointTest('h', 'jxi'))
+    # def test_Jtvec_adjointTest_hyi_Hform(self):
+    #     self.assertTrue(adjointTest('h', 'jyi'))
+    # def test_Jtvec_adjointTest_hzi_Hform(self):
+    #     self.assertTrue(adjointTest('h', 'jzi'))
+
 
 
 if __name__ == '__main__':
