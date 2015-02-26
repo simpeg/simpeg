@@ -267,7 +267,7 @@ def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None, expectedOrder=2, tole
     # Ensure we are about precision
     order0 = order0[E0[1:] > eps]
     order1 = order1[E1[1:] > eps]
-    belowTol = order1.size == 0 and order0.size > 0
+    belowTol = (order1.size == 0 and order0.size >= 0)
     # Make sure we get the correct order
     correctOrder = order1.size > 0 and np.mean(order1) > tolerance * expectedOrder
 
