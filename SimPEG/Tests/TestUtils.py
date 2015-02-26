@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from numpy.linalg import norm
-from SimPEG.Utils import mkvc, sdiag
+from SimPEG.Utils import mkvc, sdiag, diagEst
 from SimPEG import Utils
 from SimPEG.Mesh import TensorMesh, LogicallyRectMesh, CylMesh
 import numpy as np
