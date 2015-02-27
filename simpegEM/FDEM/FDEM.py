@@ -415,12 +415,11 @@ class ProblemFDEM_j(BaseFDEMProblem):
 
         return C * ( MeMuI * ( C.T * ( dMf_dsigi * ( dsigi_dsig * ( dsig_dm * v ) ) ) ) ) 
 
-
-    def getRHS(self, freq):
+    def getjs(self,freq):
         """
             :param float freq: Frequency
             :rtype: numpy.ndarray (nE, nTx)
-            :return: RHS
+            :return: j_s
         """
         Txs = self.survey.getTransmitters(freq)
         rhs = range(len(Txs))
@@ -445,7 +444,15 @@ class ProblemFDEM_j(BaseFDEMProblem):
         MeMuI = self.MeMuI
         C = self.mesh.edgeCurl
 
-        j_s = C*MeMuI*C.T*a
+        return C*MeMuI*C.T*a
+
+    def getRHS(self, freq):
+        """
+            :param float freq: Frequency
+            :rtype: numpy.ndarray (nE, nTx)
+            :return: RHS
+        """
+        j_s = self.getjs(freq)
         return -1j*omega(freq)*j_s
 
     def calcFields(self, sol, freq, fieldType, adjoint=False):
