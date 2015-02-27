@@ -453,13 +453,13 @@ class ProblemFDEM_j(BaseFDEMProblem):
         if fieldType == 'j':
             return j
         elif fieldType == 'h':
-            mui = self.MeMuI
+            MeMuI = self.MeMuI
             C = self.mesh.edgeCurl
             MfSigi = self.MfSigmai
             if not adjoint:
-                h = -(1./(1j*omega(freq))) * mui * ( C.T * ( MfSigi * j ) )
+                h = -(1./(1j*omega(freq))) * MeMuI * ( C.T * ( MfSigi * j ) )
             else:
-                h = -(1./(1j*omega(freq))) * MfSigi * ( C * ( mui.T * j ) ) 
+                h = -(1./(1j*omega(freq))) * MfSigi.T * ( C * ( MeMuI.T * j ) ) 
             return h
         raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
 
@@ -618,8 +618,7 @@ class ProblemFDEM_h(BaseFDEMProblem):
                 # MfSigi = self.MfSigmai
                 
                 return C.T*h
-                # return  -1j * omega(freq) * MeMu.T * (MfSigmaiinv * (CTinv * h))
-            return C*h #- j_s # -iomega(freq) inv(MfSigmai) inv(C.T) MeMu
+            return C*h - j_s 
         elif fieldType == 'h':
             return h
         raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
@@ -630,41 +629,12 @@ class ProblemFDEM_h(BaseFDEMProblem):
 
         if fieldType == 'j':
             C = self.mesh.edgeCurl
-        #     MeMu = self.MeMu
-        #     MfSigi = self.MfSigmai
-
-        #     if adjoint:
-        #         MfSigiTCinv = self.Solver(MfSigi.T*C, **self.solverOpts)
-        #         MeMu.T * (Cinv * (MfSigmaiTinv * h))
-        #         v1 = MeMu.T *( Cinv *(MfSigmaiTinv * v))
-        #         pt1 = -1j * omega(freq) * self.calcFieldsDeriv(h,freq,'h',v,adjoint=True)
-
-        #         pt2 =  1j * omega(freq) * dsig_dm.T * ( dsigi_dsig.T * ( dMf_dsigi.T * ( MfSigiTCinv * v) )  )
-        #         return pt1 + pt2 
-
-        #     CTMfSigiinv = self.Solver(C.T*MfSigi, **self.solverOpts)
-        #     hDeriv = self.calcFieldsDeriv(h,freq,'h',v,adjoint=False)
-
-        #     pt1 = -1j * omega(freq) * (CTMfSigiinv * (MeMu * hDeriv))
-
-        #     sig = self.curModel.transform
-        #     sigi = 1/sig
-        #     dsig_dm = self.curModel.transformDeriv
-        #     dsigi_dsig = -Utils.sdiag(sigi)**2
-
-        #     v1 = CTMfSigiinv * (MeMu * h)
-
-        #     dMf_dsigi = self.mesh.getFaceInnerProductDeriv(sigi)(v1)
-
-        #     pt2 = 1j * omega(freq) * (CTMfSigiinv * (dMf_dsigi * (dsigi_dsig * (dsig_dm * v))))
-
-        #     return pt1+pt2
+            j_s = self.getjs(freq)
             if adjoint:
                 dh = self.calcFieldsDeriv(h,freq,'h',C.T*v,adjoint=True)
                 return dh
             dh = self.calcFieldsDeriv(h,freq,'h',v)
-            return C*dh
-            raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
+            return C*dh - j_s
 
         elif fieldType == 'h':
             if adjoint:
