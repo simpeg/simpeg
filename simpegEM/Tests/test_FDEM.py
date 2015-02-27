@@ -43,11 +43,11 @@ def getProblem(fdemType, comp):
         raise NotImplementedError()
     prb.pair(survey)
 
-    # try:
-    #     from pymatsolver import MumpsSolver
-    #     prb.Solver = MumpsSolver
-    # except ImportError, e:
-    #     pass
+    try:
+        from pymatsolver import MumpsSolver
+        prb.Solver = MumpsSolver
+    except ImportError, e:
+        pass
 
     return prb
 
@@ -93,216 +93,317 @@ def derivTest(fdemType, comp):
     return Tests.checkDerivative(fun, x0, num=3, plotIt=False, eps=FLR)
 
 
+def crossCheckTest(fdemType, comp):
+
+    l2norm = lambda r: np.sqrt(r.dot(r))
+
+    prb1 = getProblem(fdemType, comp)
+    mesh = prb1.mesh
+    print '%s formulation - %s' % (fdemType, comp)
+    m = np.log(np.ones(mesh.nC)*CONDUCTIVITY)
+    mu = np.log(np.ones(mesh.nC)*MU)
+
+    if addrandoms is True:
+        m  = m + np.random.randn(mesh.nC)*CONDUCTIVITY*1e-1 
+        mu = mu + np.random.randn(mesh.nC)*MU*1e-1
+
+    prb1.mu = mu
+    survey1 = prb1.survey
+
+    u1 = prb1.fields(m)
+    d1 = Utils.mkvc(survey1.projectFields(u1))
+
+    prb1.unpair
+
+    if fdemType == 'e':
+        prb2 = getProblem('b', comp)
+    elif fdemType == 'b':
+        prb2 = getProblem('e', comp)
+    elif fdemType == 'j':
+        prb2 = getProblem('h', comp)
+    elif fdemType == 'h':
+        prb2 = getProblem('j', comp)
+    else:
+        raise NotImplementedError()
+    
+    prb2.mu = mu
+    survey2 = prb2.survey
+
+    u2 = prb2.fields(m)
+    d2 = Utils.mkvc(survey2.projectFields(u2))
+
+    r = d2-d1
+    l2r = l2norm(r) 
+
+    tol = np.max([TOL*(10**int(np.log10(l2norm(d1)))),FLR]) 
+    print l2norm(d1), l2norm(d2),  l2r , tol, l2r < tol
+    return l2r < tol    
+
+
+
+
+
 class FDEM_DerivTests(unittest.TestCase):
 
-    def test_Jvec_exr_Eform(self):
-        self.assertTrue(derivTest('e', 'exr'))
-    def test_Jvec_exr_Bform(self):
-        self.assertTrue(derivTest('b', 'exr'))
-    def test_Jvec_eyr_Eform(self):
-        self.assertTrue(derivTest('e', 'eyr'))
-    def test_Jvec_eyr_Bform(self):
-        self.assertTrue(derivTest('b', 'eyr'))
-    def test_Jvec_ezr_Eform(self):
-        self.assertTrue(derivTest('e', 'ezr'))
-    def test_Jvec_ezr_Bform(self):
-        self.assertTrue(derivTest('b', 'ezr'))
-    def test_Jvec_exi_Eform(self):
-        self.assertTrue(derivTest('e', 'exi'))
-    def test_Jvec_exi_Bform(self):
-        self.assertTrue(derivTest('b', 'exi'))
-    def test_Jvec_eyi_Eform(self):
-        self.assertTrue(derivTest('e', 'eyi'))
-    def test_Jvec_eyi_Bform(self):
-        self.assertTrue(derivTest('b', 'eyi'))
-    def test_Jvec_ezi_Eform(self):
-        self.assertTrue(derivTest('e', 'ezi'))
-    def test_Jvec_ezi_Bform(self):
-        self.assertTrue(derivTest('b', 'ezi'))
+    # def test_Jvec_exr_Eform(self):
+    #     self.assertTrue(derivTest('e', 'exr'))
+    # def test_Jvec_exr_Bform(self):
+    #     self.assertTrue(derivTest('b', 'exr'))
+    # def test_Jvec_eyr_Eform(self):
+    #     self.assertTrue(derivTest('e', 'eyr'))
+    # def test_Jvec_eyr_Bform(self):
+    #     self.assertTrue(derivTest('b', 'eyr'))
+    # def test_Jvec_ezr_Eform(self):
+    #     self.assertTrue(derivTest('e', 'ezr'))
+    # def test_Jvec_ezr_Bform(self):
+    #     self.assertTrue(derivTest('b', 'ezr'))
+    # def test_Jvec_exi_Eform(self):
+    #     self.assertTrue(derivTest('e', 'exi'))
+    # def test_Jvec_exi_Bform(self):
+    #     self.assertTrue(derivTest('b', 'exi'))
+    # def test_Jvec_eyi_Eform(self):
+    #     self.assertTrue(derivTest('e', 'eyi'))
+    # def test_Jvec_eyi_Bform(self):
+    #     self.assertTrue(derivTest('b', 'eyi'))
+    # def test_Jvec_ezi_Eform(self):
+    #     self.assertTrue(derivTest('e', 'ezi'))
+    # def test_Jvec_ezi_Bform(self):
+    #     self.assertTrue(derivTest('b', 'ezi'))
 
-    def test_Jvec_bxr_Eform(self):
-        self.assertTrue(derivTest('e', 'bxr'))
-    def test_Jvec_bxr_Bform(self):
-        self.assertTrue(derivTest('b', 'bxr'))
-    def test_Jvec_byr_Eform(self):
-        self.assertTrue(derivTest('e', 'byr'))
-    def test_Jvec_byr_Bform(self):
-        self.assertTrue(derivTest('b', 'byr'))
-    def test_Jvec_bzr_Eform(self):
-        self.assertTrue(derivTest('e', 'bzr'))
-    def test_Jvec_bzr_Bform(self):
-        self.assertTrue(derivTest('b', 'bzr'))
-    def test_Jvec_bxi_Eform(self):
-        self.assertTrue(derivTest('e', 'bxi'))
-    def test_Jvec_bxi_Bform(self):
-        self.assertTrue(derivTest('b', 'bxi'))
-    def test_Jvec_byi_Eform(self):
-        self.assertTrue(derivTest('e', 'byi'))
-    def test_Jvec_byi_Bform(self):
-        self.assertTrue(derivTest('b', 'byi'))
-    def test_Jvec_bzi_Eform(self):
-        self.assertTrue(derivTest('e', 'bzi'))
-    def test_Jvec_bzi_Bform(self):
-        self.assertTrue(derivTest('b', 'bzi'))
-
-
-
-    def test_Jtvec_adjointTest_exr_Eform(self):
-        self.assertTrue(adjointTest('e', 'exr'))
-    def test_Jtvec_adjointTest_exr_Bform(self):
-        self.assertTrue(adjointTest('b', 'exr'))
-    def test_Jtvec_adjointTest_eyr_Eform(self):
-        self.assertTrue(adjointTest('e', 'eyr'))
-    def test_Jtvec_adjointTest_eyr_Bform(self):
-        self.assertTrue(adjointTest('b', 'eyr'))
-    def test_Jtvec_adjointTest_ezr_Eform(self):
-        self.assertTrue(adjointTest('e', 'ezr'))
-    def test_Jtvec_adjointTest_ezr_Bform(self):
-        self.assertTrue(adjointTest('b', 'ezr'))
-    def test_Jtvec_adjointTest_exi_Eform(self):
-        self.assertTrue(adjointTest('e', 'exi'))
-    def test_Jtvec_adjointTest_exi_Bform(self):
-        self.assertTrue(adjointTest('b', 'exi'))
-    def test_Jtvec_adjointTest_eyi_Eform(self):
-        self.assertTrue(adjointTest('e', 'eyi'))
-    def test_Jtvec_adjointTest_eyi_Bform(self):
-        self.assertTrue(adjointTest('b', 'eyi'))
-    def test_Jtvec_adjointTest_ezi_Eform(self):
-        self.assertTrue(adjointTest('e', 'ezi'))
-    def test_Jtvec_adjointTest_ezi_Bform(self):
-        self.assertTrue(adjointTest('b', 'ezi'))
-
-    def test_Jtvec_adjointTest_bxr_Eform(self):
-        self.assertTrue(adjointTest('e', 'bxr'))
-    def test_Jtvec_adjointTest_bxr_Bform(self):
-        self.assertTrue(adjointTest('b', 'bxr'))
-    def test_Jtvec_adjointTest_byr_Eform(self):
-        self.assertTrue(adjointTest('e', 'byr'))
-    def test_Jtvec_adjointTest_byr_Bform(self):
-        self.assertTrue(adjointTest('b', 'byr'))
-    def test_Jtvec_adjointTest_bzr_Eform(self):
-        self.assertTrue(adjointTest('e', 'bzr'))
-    def test_Jtvec_adjointTest_bzr_Bform(self):
-        self.assertTrue(adjointTest('b', 'bzr'))
-    def test_Jtvec_adjointTest_bxi_Eform(self):
-        self.assertTrue(adjointTest('e', 'bxi'))
-    def test_Jtvec_adjointTest_bxi_Bform(self):
-        self.assertTrue(adjointTest('b', 'bxi'))
-    def test_Jtvec_adjointTest_byi_Eform(self):
-        self.assertTrue(adjointTest('e', 'byi'))
-    def test_Jtvec_adjointTest_byi_Bform(self):
-        self.assertTrue(adjointTest('b', 'byi'))
-    def test_Jtvec_adjointTest_bzi_Eform(self):
-        self.assertTrue(adjointTest('e', 'bzi'))
-    def test_Jtvec_adjointTest_bzi_Bform(self):
-        self.assertTrue(adjointTest('b', 'bzi'))
+    # def test_Jvec_bxr_Eform(self):
+    #     self.assertTrue(derivTest('e', 'bxr'))
+    # def test_Jvec_bxr_Bform(self):
+    #     self.assertTrue(derivTest('b', 'bxr'))
+    # def test_Jvec_byr_Eform(self):
+    #     self.assertTrue(derivTest('e', 'byr'))
+    # def test_Jvec_byr_Bform(self):
+    #     self.assertTrue(derivTest('b', 'byr'))
+    # def test_Jvec_bzr_Eform(self):
+    #     self.assertTrue(derivTest('e', 'bzr'))
+    # def test_Jvec_bzr_Bform(self):
+    #     self.assertTrue(derivTest('b', 'bzr'))
+    # def test_Jvec_bxi_Eform(self):
+    #     self.assertTrue(derivTest('e', 'bxi'))
+    # def test_Jvec_bxi_Bform(self):
+    #     self.assertTrue(derivTest('b', 'bxi'))
+    # def test_Jvec_byi_Eform(self):
+    #     self.assertTrue(derivTest('e', 'byi'))
+    # def test_Jvec_byi_Bform(self):
+    #     self.assertTrue(derivTest('b', 'byi'))
+    # def test_Jvec_bzi_Eform(self):
+    #     self.assertTrue(derivTest('e', 'bzi'))
+    # def test_Jvec_bzi_Bform(self):
+    #     self.assertTrue(derivTest('b', 'bzi'))
 
 
-    def test_Jvec_jxr_Jform(self):
-        self.assertTrue(derivTest('j', 'jxr'))
-    def test_Jvec_jyr_Jform(self):
-        self.assertTrue(derivTest('j', 'jyr'))
-    def test_Jvec_jzr_Jform(self):
-        self.assertTrue(derivTest('j', 'jzr'))
-    def test_Jvec_jxi_Jform(self):
-        self.assertTrue(derivTest('j', 'jxi'))
-    def test_Jvec_jyi_Jform(self):
-        self.assertTrue(derivTest('j', 'jyi'))
-    def test_Jvec_jzi_Jform(self):
-        self.assertTrue(derivTest('j', 'jzi'))
 
-    def test_Jvec_hxr_Jform(self):
-        self.assertTrue(derivTest('j', 'hxr'))
-    def test_Jvec_hyr_Jform(self):
-        self.assertTrue(derivTest('j', 'hyr'))
-    def test_Jvec_hzr_Jform(self):
-        self.assertTrue(derivTest('j', 'hzr'))
-    def test_Jvec_hxi_Jform(self):
-        self.assertTrue(derivTest('j', 'hxi'))
-    def test_Jvec_hyi_Jform(self):
-        self.assertTrue(derivTest('j', 'hyi'))
-    def test_Jvec_hzi_Jform(self):
-        self.assertTrue(derivTest('j', 'hzi'))
+    # def test_Jtvec_adjointTest_exr_Eform(self):
+    #     self.assertTrue(adjointTest('e', 'exr'))
+    # def test_Jtvec_adjointTest_exr_Bform(self):
+    #     self.assertTrue(adjointTest('b', 'exr'))
+    # def test_Jtvec_adjointTest_eyr_Eform(self):
+    #     self.assertTrue(adjointTest('e', 'eyr'))
+    # def test_Jtvec_adjointTest_eyr_Bform(self):
+    #     self.assertTrue(adjointTest('b', 'eyr'))
+    # def test_Jtvec_adjointTest_ezr_Eform(self):
+    #     self.assertTrue(adjointTest('e', 'ezr'))
+    # def test_Jtvec_adjointTest_ezr_Bform(self):
+    #     self.assertTrue(adjointTest('b', 'ezr'))
+    # def test_Jtvec_adjointTest_exi_Eform(self):
+    #     self.assertTrue(adjointTest('e', 'exi'))
+    # def test_Jtvec_adjointTest_exi_Bform(self):
+    #     self.assertTrue(adjointTest('b', 'exi'))
+    # def test_Jtvec_adjointTest_eyi_Eform(self):
+    #     self.assertTrue(adjointTest('e', 'eyi'))
+    # def test_Jtvec_adjointTest_eyi_Bform(self):
+    #     self.assertTrue(adjointTest('b', 'eyi'))
+    # def test_Jtvec_adjointTest_ezi_Eform(self):
+    #     self.assertTrue(adjointTest('e', 'ezi'))
+    # def test_Jtvec_adjointTest_ezi_Bform(self):
+    #     self.assertTrue(adjointTest('b', 'ezi'))
 
-    def test_Jvec_hxr_Hform(self):
-        self.assertTrue(derivTest('h', 'hxr'))
-    def test_Jvec_hyr_Hform(self):
-        self.assertTrue(derivTest('h', 'hyr'))
-    def test_Jvec_hzr_Hform(self):
-        self.assertTrue(derivTest('h', 'hzr'))
-    def test_Jvec_hxi_Hform(self):
-        self.assertTrue(derivTest('h', 'hxi'))
-    def test_Jvec_hyi_Hform(self):
-        self.assertTrue(derivTest('h', 'hyi'))
-    def test_Jvec_hzi_Hform(self):
-        self.assertTrue(derivTest('h', 'hzi'))
-
-    def test_Jvec_hxr_Hform(self):
-        self.assertTrue(derivTest('h', 'jxr'))
-    def test_Jvec_hyr_Hform(self):
-        self.assertTrue(derivTest('h', 'jyr'))
-    def test_Jvec_hzr_Hform(self):
-        self.assertTrue(derivTest('h', 'jzr'))
-    def test_Jvec_hxi_Hform(self):
-        self.assertTrue(derivTest('h', 'jxi'))
-    def test_Jvec_hyi_Hform(self):
-        self.assertTrue(derivTest('h', 'jyi'))
-    def test_Jvec_hzi_Hform(self):
-        self.assertTrue(derivTest('h', 'jzi'))
-
-    def test_Jtvec_adjointTest_jxr_Jform(self):
-        self.assertTrue(adjointTest('j', 'jxr'))
-    def test_Jtvec_adjointTest_jyr_Jform(self):
-        self.assertTrue(adjointTest('j', 'jyr'))
-    def test_Jtvec_adjointTest_jzr_Jform(self):
-        self.assertTrue(adjointTest('j', 'jzr'))
-    def test_Jtvec_adjointTest_jxi_Jform(self):
-        self.assertTrue(adjointTest('j', 'jxi'))
-    def test_Jtvec_adjointTest_jyi_Jform(self):
-        self.assertTrue(adjointTest('j', 'jyi'))
-    def test_Jtvec_adjointTest_jzi_Jform(self):
-        self.assertTrue(adjointTest('j', 'jzi'))
-
-    def test_Jtvec_adjointTest_hxr_Jform(self):
-        self.assertTrue(adjointTest('j', 'hxr'))
-    def test_Jtvec_adjointTest_hyr_Jform(self):
-        self.assertTrue(adjointTest('j', 'hyr'))
-    def test_Jtvec_adjointTest_hzr_Jform(self):
-        self.assertTrue(adjointTest('j', 'hzr'))
-    def test_Jtvec_adjointTest_hxi_Jform(self):
-        self.assertTrue(adjointTest('j', 'hxi'))
-    def test_Jtvec_adjointTest_hyi_Jform(self):
-        self.assertTrue(adjointTest('j', 'hyi'))
-    def test_Jtvec_adjointTest_hzi_Jform(self):
-        self.assertTrue(adjointTest('j', 'hzi'))
-
-    def test_Jtvec_adjointTest_hxr_Hform(self):
-        self.assertTrue(adjointTest('h', 'hxr'))
-    def test_Jtvec_adjointTest_hyr_Hform(self):
-        self.assertTrue(adjointTest('h', 'hyr'))
-    def test_Jtvec_adjointTest_hzr_Hform(self):
-        self.assertTrue(adjointTest('h', 'hzr'))
-    def test_Jtvec_adjointTest_hxi_Hform(self):
-        self.assertTrue(adjointTest('h', 'hxi'))
-    def test_Jtvec_adjointTest_hyi_Hform(self):
-        self.assertTrue(adjointTest('h', 'hyi'))
-    def test_Jtvec_adjointTest_hzi_Hform(self):
-        self.assertTrue(adjointTest('h', 'hzi'))
-
-    def test_Jtvec_adjointTest_hxr_Hform(self):
-        self.assertTrue(adjointTest('h', 'jxr'))
-    def test_Jtvec_adjointTest_hyr_Hform(self):
-        self.assertTrue(adjointTest('h', 'jyr'))
-    def test_Jtvec_adjointTest_hzr_Hform(self):
-        self.assertTrue(adjointTest('h', 'jzr'))
-    def test_Jtvec_adjointTest_hxi_Hform(self):
-        self.assertTrue(adjointTest('h', 'jxi'))
-    def test_Jtvec_adjointTest_hyi_Hform(self):
-        self.assertTrue(adjointTest('h', 'jyi'))
-    def test_Jtvec_adjointTest_hzi_Hform(self):
-        self.assertTrue(adjointTest('h', 'jzi'))
+    # def test_Jtvec_adjointTest_bxr_Eform(self):
+    #     self.assertTrue(adjointTest('e', 'bxr'))
+    # def test_Jtvec_adjointTest_bxr_Bform(self):
+    #     self.assertTrue(adjointTest('b', 'bxr'))
+    # def test_Jtvec_adjointTest_byr_Eform(self):
+    #     self.assertTrue(adjointTest('e', 'byr'))
+    # def test_Jtvec_adjointTest_byr_Bform(self):
+    #     self.assertTrue(adjointTest('b', 'byr'))
+    # def test_Jtvec_adjointTest_bzr_Eform(self):
+    #     self.assertTrue(adjointTest('e', 'bzr'))
+    # def test_Jtvec_adjointTest_bzr_Bform(self):
+    #     self.assertTrue(adjointTest('b', 'bzr'))
+    # def test_Jtvec_adjointTest_bxi_Eform(self):
+    #     self.assertTrue(adjointTest('e', 'bxi'))
+    # def test_Jtvec_adjointTest_bxi_Bform(self):
+    #     self.assertTrue(adjointTest('b', 'bxi'))
+    # def test_Jtvec_adjointTest_byi_Eform(self):
+    #     self.assertTrue(adjointTest('e', 'byi'))
+    # def test_Jtvec_adjointTest_byi_Bform(self):
+    #     self.assertTrue(adjointTest('b', 'byi'))
+    # def test_Jtvec_adjointTest_bzi_Eform(self):
+    #     self.assertTrue(adjointTest('e', 'bzi'))
+    # def test_Jtvec_adjointTest_bzi_Bform(self):
+    #     self.assertTrue(adjointTest('b', 'bzi'))
 
 
+    # def test_Jvec_jxr_Jform(self):
+    #     self.assertTrue(derivTest('j', 'jxr'))
+    # def test_Jvec_jyr_Jform(self):
+    #     self.assertTrue(derivTest('j', 'jyr'))
+    # def test_Jvec_jzr_Jform(self):
+    #     self.assertTrue(derivTest('j', 'jzr'))
+    # def test_Jvec_jxi_Jform(self):
+    #     self.assertTrue(derivTest('j', 'jxi'))
+    # def test_Jvec_jyi_Jform(self):
+    #     self.assertTrue(derivTest('j', 'jyi'))
+    # def test_Jvec_jzi_Jform(self):
+    #     self.assertTrue(derivTest('j', 'jzi'))
+
+    # def test_Jvec_hxr_Jform(self):
+    #     self.assertTrue(derivTest('j', 'hxr'))
+    # def test_Jvec_hyr_Jform(self):
+    #     self.assertTrue(derivTest('j', 'hyr'))
+    # def test_Jvec_hzr_Jform(self):
+    #     self.assertTrue(derivTest('j', 'hzr'))
+    # def test_Jvec_hxi_Jform(self):
+    #     self.assertTrue(derivTest('j', 'hxi'))
+    # def test_Jvec_hyi_Jform(self):
+    #     self.assertTrue(derivTest('j', 'hyi'))
+    # def test_Jvec_hzi_Jform(self):
+    #     self.assertTrue(derivTest('j', 'hzi'))
+
+    # def test_Jvec_hxr_Hform(self):
+    #     self.assertTrue(derivTest('h', 'hxr'))
+    # def test_Jvec_hyr_Hform(self):
+    #     self.assertTrue(derivTest('h', 'hyr'))
+    # def test_Jvec_hzr_Hform(self):
+    #     self.assertTrue(derivTest('h', 'hzr'))
+    # def test_Jvec_hxi_Hform(self):
+    #     self.assertTrue(derivTest('h', 'hxi'))
+    # def test_Jvec_hyi_Hform(self):
+    #     self.assertTrue(derivTest('h', 'hyi'))
+    # def test_Jvec_hzi_Hform(self):
+    #     self.assertTrue(derivTest('h', 'hzi'))
+
+    # def test_Jvec_hxr_Hform(self):
+    #     self.assertTrue(derivTest('h', 'jxr'))
+    # def test_Jvec_hyr_Hform(self):
+    #     self.assertTrue(derivTest('h', 'jyr'))
+    # def test_Jvec_hzr_Hform(self):
+    #     self.assertTrue(derivTest('h', 'jzr'))
+    # def test_Jvec_hxi_Hform(self):
+    #     self.assertTrue(derivTest('h', 'jxi'))
+    # def test_Jvec_hyi_Hform(self):
+    #     self.assertTrue(derivTest('h', 'jyi'))
+    # def test_Jvec_hzi_Hform(self):
+    #     self.assertTrue(derivTest('h', 'jzi'))
+
+    # def test_Jtvec_adjointTest_jxr_Jform(self):
+    #     self.assertTrue(adjointTest('j', 'jxr'))
+    # def test_Jtvec_adjointTest_jyr_Jform(self):
+    #     self.assertTrue(adjointTest('j', 'jyr'))
+    # def test_Jtvec_adjointTest_jzr_Jform(self):
+    #     self.assertTrue(adjointTest('j', 'jzr'))
+    # def test_Jtvec_adjointTest_jxi_Jform(self):
+    #     self.assertTrue(adjointTest('j', 'jxi'))
+    # def test_Jtvec_adjointTest_jyi_Jform(self):
+    #     self.assertTrue(adjointTest('j', 'jyi'))
+    # def test_Jtvec_adjointTest_jzi_Jform(self):
+    #     self.assertTrue(adjointTest('j', 'jzi'))
+
+    # def test_Jtvec_adjointTest_hxr_Jform(self):
+    #     self.assertTrue(adjointTest('j', 'hxr'))
+    # def test_Jtvec_adjointTest_hyr_Jform(self):
+    #     self.assertTrue(adjointTest('j', 'hyr'))
+    # def test_Jtvec_adjointTest_hzr_Jform(self):
+    #     self.assertTrue(adjointTest('j', 'hzr'))
+    # def test_Jtvec_adjointTest_hxi_Jform(self):
+    #     self.assertTrue(adjointTest('j', 'hxi'))
+    # def test_Jtvec_adjointTest_hyi_Jform(self):
+    #     self.assertTrue(adjointTest('j', 'hyi'))
+    # def test_Jtvec_adjointTest_hzi_Jform(self):
+    #     self.assertTrue(adjointTest('j', 'hzi'))
+
+    # def test_Jtvec_adjointTest_hxr_Hform(self):
+    #     self.assertTrue(adjointTest('h', 'hxr'))
+    # def test_Jtvec_adjointTest_hyr_Hform(self):
+    #     self.assertTrue(adjointTest('h', 'hyr'))
+    # def test_Jtvec_adjointTest_hzr_Hform(self):
+    #     self.assertTrue(adjointTest('h', 'hzr'))
+    # def test_Jtvec_adjointTest_hxi_Hform(self):
+    #     self.assertTrue(adjointTest('h', 'hxi'))
+    # def test_Jtvec_adjointTest_hyi_Hform(self):
+    #     self.assertTrue(adjointTest('h', 'hyi'))
+    # def test_Jtvec_adjointTest_hzi_Hform(self):
+    #     self.assertTrue(adjointTest('h', 'hzi'))
+
+    # def test_Jtvec_adjointTest_hxr_Hform(self):
+    #     self.assertTrue(adjointTest('h', 'jxr'))
+    # def test_Jtvec_adjointTest_hyr_Hform(self):
+    #     self.assertTrue(adjointTest('h', 'jyr'))
+    # def test_Jtvec_adjointTest_hzr_Hform(self):
+    #     self.assertTrue(adjointTest('h', 'jzr'))
+    # def test_Jtvec_adjointTest_hxi_Hform(self):
+    #     self.assertTrue(adjointTest('h', 'jxi'))
+    # def test_Jtvec_adjointTest_hyi_Hform(self):
+    #     self.assertTrue(adjointTest('h', 'jyi'))
+    # def test_Jtvec_adjointTest_hzi_Hform(self):
+    #     self.assertTrue(adjointTest('h', 'jzi'))
+
+
+    def test_EB_CrossCheck_exr_Eform(self):
+        self.assertTrue(crossCheckTest('e', 'exr'))
+    def test_EB_CrossCheck_eyr_Eform(self):
+        self.assertTrue(crossCheckTest('e', 'eyr'))
+    def test_EB_CrossCheck_ezr_Eform(self):
+        self.assertTrue(crossCheckTest('e', 'ezr'))
+    def test_EB_CrossCheck_exi_Eform(self):
+        self.assertTrue(crossCheckTest('e', 'exi'))
+    def test_EB_CrossCheck_eyi_Eform(self):
+        self.assertTrue(crossCheckTest('e', 'eyi'))
+    def test_EB_CrossCheck_ezi_Eform(self):
+        self.assertTrue(crossCheckTest('e', 'ezi'))
+
+    def test_EB_CrossCheck_bxr_Eform(self):
+        self.assertTrue(crossCheckTest('e', 'bxr'))
+    def test_EB_CrossCheck_byr_Eform(self):
+        self.assertTrue(crossCheckTest('e', 'byr'))
+    def test_EB_CrossCheck_bzr_Eform(self):
+        self.assertTrue(crossCheckTest('e', 'bzr'))
+    def test_EB_CrossCheck_bxi_Eform(self):
+        self.assertTrue(crossCheckTest('e', 'bxi'))
+    def test_EB_CrossCheck_byi_Eform(self):
+        self.assertTrue(crossCheckTest('e', 'byi'))
+    def test_EB_CrossCheck_bzi_Eform(self):
+        self.assertTrue(crossCheckTest('e', 'bzi'))
+
+    def test_HJ_CrossCheck_jxr_Jform(self):
+        self.assertTrue(crossCheckTest('j', 'jxr'))
+    def test_HJ_CrossCheck_jyr_Jform(self):
+        self.assertTrue(crossCheckTest('j', 'jyr'))
+    def test_HJ_CrossCheck_jzr_Jform(self):
+        self.assertTrue(crossCheckTest('j', 'jzr'))
+    def test_HJ_CrossCheck_jxi_Jform(self):
+        self.assertTrue(crossCheckTest('j', 'jxi'))
+    def test_HJ_CrossCheck_jyi_Jform(self):
+        self.assertTrue(crossCheckTest('j', 'jyi'))
+    def test_HJ_CrossCheck_jzi_Jform(self):
+        self.assertTrue(crossCheckTest('j', 'jzi'))
+
+    def test_HJ_CrossCheck_hxr_Jform(self):
+        self.assertTrue(crossCheckTest('j', 'hxr'))
+    def test_HJ_CrossCheck_hyr_Jform(self):
+        self.assertTrue(crossCheckTest('j', 'hyr'))
+    def test_HJ_CrossCheck_hzr_Jform(self):
+        self.assertTrue(crossCheckTest('j', 'hzr'))
+    def test_HJ_CrossCheck_hxi_Jform(self):
+        self.assertTrue(crossCheckTest('j', 'hxi'))
+    def test_HJ_CrossCheck_hyi_Jform(self):
+        self.assertTrue(crossCheckTest('j', 'hyi'))
+    def test_HJ_CrossCheck_hzi_Jform(self):
+        self.assertTrue(crossCheckTest('j', 'hzi'))
 
 if __name__ == '__main__':
     unittest.main()
