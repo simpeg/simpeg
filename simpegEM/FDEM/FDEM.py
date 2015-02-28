@@ -223,8 +223,9 @@ class ProblemFDEM_b(BaseFDEMProblem):
         mui = self.MfMui
         sigI = self.MeSigmaI
         C = self.mesh.edgeCurl
+        iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
 
-        return mui*C*sigI*C.T*mui + 1j*omega(freq)*mui
+        return C*sigI*C.T*mui + iomega
 
     def getADeriv(self, freq, u, v, adjoint=False):
 
@@ -301,7 +302,7 @@ class ProblemFDEM_b(BaseFDEMProblem):
             C = self.mesh.edgeCurl
             b_0 = C*a
 
-        return -1j*omega(freq)*mui*b_0
+        return -1j*omega(freq)*b_0
 
     def calcFields(self, sol, freq, fieldType, adjoint=False):
         b = sol
@@ -492,7 +493,7 @@ class ProblemFDEM_j(BaseFDEMProblem):
 
 
 
-# Solving for h! - NOTE: WE ARE GOING TO NEED dRHS / dm !
+# Solving for h! - using primary- secondary approach 
 class ProblemFDEM_h(BaseFDEMProblem):
     """
         Using the H-J formulation of Maxwell's equations
@@ -583,7 +584,7 @@ class ProblemFDEM_h(BaseFDEMProblem):
         MeMuI = self.MeMuI
         C = self.mesh.edgeCurl
 
-        return C*MeMuI*C.T*a
+        return MeMuI*C.T*a #C*MeMuI*C.T*a
 
     def getRHS(self, freq):
         """
@@ -591,64 +592,62 @@ class ProblemFDEM_h(BaseFDEMProblem):
             :rtype: numpy.ndarray (nE, nTx)
             :return: RHS
         """
+        MeMu = self.MeMu
         MfSigi = self.MfSigmai
         C = self.mesh.edgeCurl
-        j_s = self.getjs(freq)
-        return C.T*MfSigi*j_s
+        Hp = self.getjs(freq)
+        return -1j*omega(freq)*MeMu*Hp #C.T*MfSigi*j_s
 
-    def getRHSDeriv(self, freq, v, adjoint=False):
-        """
-            :param float freq: Frequency
-            :rtype: numpy.ndarray (nE, nTx)
-            :return: RHSDeriv
-        """
-        C = self.mesh.edgeCurl
-        sig = self.curModel.transform
-        sigi = 1/sig
-        j_s = self.getjs(freq)
-        dMf_dsigi = self.mesh.getFaceInnerProductDeriv(sigi)(j_s)
-        dsig_dm = self.curModel.transformDeriv
-        dsigi_dsig = -Utils.sdiag(sigi)**2 # only works for diagonal matrices 
+    # def getRHSDeriv(self, freq, v, adjoint=False):
+    #     """
+    #         :param float freq: Frequency
+    #         :rtype: numpy.ndarray (nE, nTx)
+    #         :return: RHSDeriv
+    #     """
+    #     C = self.mesh.edgeCurl
+    #     sig = self.curModel.transform
+    #     sigi = 1/sig
+    #     j_s = self.getjs(freq)
+    #     dMf_dsigi = self.mesh.getFaceInnerProductDeriv(sigi)(j_s)
+    #     dsig_dm = self.curModel.transformDeriv
+    #     dsigi_dsig = -Utils.sdiag(sigi)**2 # only works for diagonal matrices 
 
-        if adjoint:
-            return dsig_dm.T * dsigi_dsig.T * dMf_dsigi.T * C * v
-        return C.T * dMf_dsigi * dsigi_dsig * dsig_dm * v
+    #     if adjoint:
+    #         return dsig_dm.T * dsigi_dsig.T * dMf_dsigi.T * C * v
+    #     return C.T * dMf_dsigi * dsigi_dsig * dsig_dm * v
         
     def calcFields(self, sol, freq, fieldType, adjoint=False):
         h = sol
         if fieldType == 'j':
-            # NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
             C = self.mesh.edgeCurl
-            j_s = self.getjs(freq)
-            if adjoint: 
-                # MeMuI = self.MeMuI
-                # MfSigi = self.MfSigmai
-                
+            # j_s = self.getjs(freq)
+            if adjoint:
                 return C.T*h
-            return C*h - j_s 
+            return C*h #- j_s 
         elif fieldType == 'h':
             return h
         raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
 
     def calcFieldsDeriv(self, sol, freq, fieldType, v, adjoint=False):
-        h = sol
-        A = self.getA(freq)
+        return None
+        # h = sol
+        # A = self.getA(freq)
 
-        if fieldType == 'j':
-            C = self.mesh.edgeCurl
-            j_s = self.getjs(freq)
-            if adjoint:
-                dh = self.calcFieldsDeriv(h,freq,'h',C.T*v,adjoint=True)
-                return dh
-            dh = self.calcFieldsDeriv(h,freq,'h',v)
-            return C*dh - j_s
+        # if fieldType == 'j':
+        #     C = self.mesh.edgeCurl
+        #     j_s = self.getjs(freq)
+        #     if adjoint:
+        #         dh = self.calcFieldsDeriv(h,freq,'h',C.T*v,adjoint=True)
+        #         return dh
+        #     dh = self.calcFieldsDeriv(h,freq,'h',v)
+        #     return C*dh - j_s
 
-        elif fieldType == 'h':
-            if adjoint:
-                ATinv = self.Solver(A.T, **self.solverOpts)
-                ATinvv = ATinv*v
-                return self.getRHSDeriv(freq,ATinvv,adjoint=True) 
-            dRHSh = self.getRHSDeriv(freq,v,adjoint)
-            Ainv = self.Solver(A, **self.solverOpts)
-            return Ainv*dRHSh
-        raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
+        # elif fieldType == 'h':
+        #     if adjoint:
+        #         ATinv = self.Solver(A.T, **self.solverOpts)
+        #         ATinvv = ATinv*v
+        #         return self.getRHSDeriv(freq,ATinvv,adjoint=True) 
+        #     dRHSh = self.getRHSDeriv(freq,v,adjoint)
+        #     Ainv = self.Solver(A, **self.solverOpts)
+        #     return Ainv*dRHSh
+        # raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
