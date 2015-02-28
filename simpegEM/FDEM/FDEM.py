@@ -240,9 +240,10 @@ class ProblemFDEM_b(BaseFDEMProblem):
         dMe_dsig = self.mesh.getEdgeInnerProductDeriv(sig)(vec)
 
         if adjoint:
-            return dsig_dm.T * ( dMe_dsig.T * ( dMeSigmaI_dI.T * ( C.T * ( mui.T * v ) ) ) )
+            return dsig_dm.T * ( dMe_dsig.T * ( dMeSigmaI_dI.T * ( C.T * v ) ) )
 
-        return mui * ( C * ( dMeSigmaI_dI * ( dMe_dsig * ( dsig_dm * v ) ) ) )
+        return C * ( dMeSigmaI_dI * ( dMe_dsig * ( dsig_dm * v ) ) )
+
 
     def getRHS(self, freq):
         """
