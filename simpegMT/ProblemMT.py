@@ -1,4 +1,4 @@
-from SimPEG import Survey, Problem, Utils, Models, np, sp, Solver as SimpegSolver
+from SimPEG import Survey, Problem, Utils, Models, np, sp, SolverLU as SimpegSolver
 from scipy.constants import mu_0
 from SurveyMT import SurveyMT, FieldsMT
 
@@ -120,7 +120,8 @@ class MTProblem(Problem.BaseProblem):
             # Store the fields
             F[Src, 'e_px'] = e[:,0]
             F[Src, 'e_py'] = e[:,1]
-            b = self.mesh.edgeCurl * e     
+            # Note curl e = -iwb so b = -curl/iw
+            b = -( self.mesh.edgeCurl * e )/( 1j*omega(freq) )
             F[Src, 'b_px'] = b[:,0]
             F[Src, 'b_py'] = b[:,1]
         return F
@@ -138,7 +139,7 @@ class MTProblem(Problem.BaseProblem):
         sig = self.MeSigma
         C = self.mesh.edgeCurl
 
-        return C.T*mui*C + 1j*omega(freq)*sig
+        return C.T*mui*C - 1j*omega(freq)*sig
 
     def getAbg(self, freq):
         """
@@ -152,7 +153,7 @@ class MTProblem(Problem.BaseProblem):
         sigBG = self.MeSigmaBG
         C = self.mesh.edgeCurl
 
-        return C.T*mui*C + 1j*omega(freq)*sigBG
+        return C.T*mui*C - 1j*omega(freq)*sigBG
 
     def getADeriv(self, freq, u, v, adjoint=False):
         sig = self.curTModel
@@ -181,7 +182,7 @@ class MTProblem(Problem.BaseProblem):
         eBG_bp = homo1DModelSource(self.mesh,freq,backSigma)
         Abg = self.getAbg(freq)
 
-        return Abg*eBG_bp
+        return -Abg*eBG_bp
 
     ##################################################################
     # Inversion stuff
