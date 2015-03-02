@@ -17,6 +17,14 @@ class BaseEMProblem(Problem.BaseProblem):
 
     verbose = False
 
+    ####################################################
+    # Make A Symmetric
+    ####################################################
+    @property
+    def _makeASymmetric(self):
+        if getattr(self, '__makeASymmetric', None) is None:
+            self.__makeASymmetric = True
+        return self.__makeASymmetric
 
     ####################################################
     # Mu Model

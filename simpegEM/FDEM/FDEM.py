@@ -242,6 +242,7 @@ class ProblemFDEM_e(BaseFDEMProblem):
 
         return C.T*mui*C + 1j*omega(freq)*sig
 
+
     def getADeriv(self, freq, u, v, adjoint=False):
         sig = self.curModel.transform
         dsig_dm = self.curModel.transformDeriv
@@ -259,7 +260,7 @@ class ProblemFDEM_e(BaseFDEMProblem):
             :return: RHS
         """
 
-        j_s = getSource(self,freq) #C.T*mui*C*a
+        j_s = getSource(self,freq)
         return -1j*omega(freq)*j_s
 
     def calcFields(self, sol, freq, fieldType, adjoint=False):
@@ -303,7 +304,11 @@ class ProblemFDEM_b(BaseFDEMProblem):
         C = self.mesh.edgeCurl
         iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
 
-        return C*sigI*C.T*mui + iomega
+        A = C*sigI*C.T*mui + iomega
+
+        if self._makeASymmetric is True:
+            return mui.T*A
+        return A 
 
     def getADeriv(self, freq, u, v, adjoint=False):
 
@@ -332,7 +337,11 @@ class ProblemFDEM_b(BaseFDEMProblem):
     
         b_0 = getSource(self,freq)
 
-        return -1j*omega(freq)*b_0
+        rhs = -1j*omega(freq)*b_0
+        if self._makeASymmetric is True:
+            mui = self.MfMui
+            return mui.T*rhs
+        return rhs
 
     def calcFields(self, sol, freq, fieldType, adjoint=False):
         b = sol
@@ -421,7 +430,11 @@ class ProblemFDEM_j(BaseFDEMProblem):
         C = self.mesh.edgeCurl
         iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
 
-        return C * MeMuI * C.T * MfSigi + iomega
+        A = C * MeMuI * C.T * MfSigi + iomega
+
+        if self._makeASymmetric is True:
+            return MfSigi.T*A 
+        return A 
 
 
     def getADeriv(self, freq, u, v, adjoint=False):
@@ -453,7 +466,12 @@ class ProblemFDEM_j(BaseFDEMProblem):
             :return: RHS
         """
         j_s = getSource(self,freq)
-        return -1j*omega(freq)*j_s
+        rhs = -1j*omega(freq)*j_s
+
+        if self._makeASymmetric is True:
+            MfSigi = self.MfSigmai
+            return MfSigi.T*rhs 
+        return rhs
 
     def calcFields(self, sol, freq, fieldType, adjoint=False):
         j = sol
