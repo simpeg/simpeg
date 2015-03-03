@@ -323,8 +323,12 @@ class ProblemFDEM_b(BaseFDEMProblem):
         dMe_dsig = self.mesh.getEdgeInnerProductDeriv(sig)(vec)
 
         if adjoint:
+            if self._makeASymmetric is True:
+                v = mui * v
             return dsig_dm.T * ( dMe_dsig.T * ( dMeSigmaI_dI.T * ( C.T * v ) ) )
 
+        if self._makeASymmetric is True:
+            return mui.T * ( C * ( dMeSigmaI_dI * ( dMe_dsig * ( dsig_dm * v ) ) ) ) 
         return C * ( dMeSigmaI_dI * ( dMe_dsig * ( dsig_dm * v ) ) )
 
 
@@ -446,6 +450,7 @@ class ProblemFDEM_j(BaseFDEMProblem):
         """
 
         MeMuI = self.MeMuI
+        MfSigi = self.MfSigmai
         C = self.mesh.edgeCurl
         sig = self.curModel.transform
         sigi = 1/sig
@@ -454,8 +459,12 @@ class ProblemFDEM_j(BaseFDEMProblem):
         dMf_dsigi = self.mesh.getFaceInnerProductDeriv(sigi)(u)
 
         if adjoint:
+            if self._makeASymmetric is True:
+                v = MfSigi * v
             return dsig_dm.T * ( dsigi_dsig.T *( dMf_dsigi.T * ( C * ( MeMuI.T * ( C.T * v ) ) ) ) )
 
+        if self._makeASymmetric is True: 
+            return MfSigi.T * ( C * ( MeMuI * ( C.T * ( dMf_dsigi * ( dsigi_dsig * ( dsig_dm * v ) ) ) ) ) )
         return C * ( MeMuI * ( C.T * ( dMf_dsigi * ( dsigi_dsig * ( dsig_dm * v ) ) ) ) ) 
 
 
@@ -578,21 +587,16 @@ class ProblemFDEM_h(BaseFDEMProblem):
             :rtype: numpy.ndarray (nE, nTx)
             :return: RHS
         """
-        # MeMu = self.MeMu
-        # MfSigi = self.MfSigmai
-        # C = self.mesh.edgeCurl
-        # Hp = self.getjs(freq)
         b_0 = getSource(self,freq)
-        return -1j*omega(freq)*b_0 #C.T*MfSigi*j_s
+        return -1j*omega(freq)*b_0 
         
     def calcFields(self, sol, freq, fieldType, adjoint=False):
         h = sol
         if fieldType == 'j':
             C = self.mesh.edgeCurl
-            # j_s = self.getjs(freq)
             if adjoint:
                 return C.T*h
-            return C*h #- j_s 
+            return C*h
         elif fieldType == 'h':
             return h
         raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
