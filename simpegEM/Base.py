@@ -17,6 +17,14 @@ class BaseEMProblem(Problem.BaseProblem):
 
     verbose = False
 
+    ####################################################
+    # Make A Symmetric
+    ####################################################
+    @property
+    def _makeASymmetric(self):
+        if getattr(self, '__makeASymmetric', None) is None:
+            self.__makeASymmetric = True
+        return self.__makeASymmetric
 
     ####################################################
     # Mu Model
@@ -30,6 +38,10 @@ class BaseEMProblem(Problem.BaseProblem):
     def mu(self, value):
         if getattr(self, '_MfMui', None) is not None:
             del self._MfMui
+        if getattr(self, '_MeMu', None) is not None:
+            del delf._MeMu 
+        if getattr(self, '_MeMuI', None) is not None:
+            del self._MeMuI
         self._mu = value
         
 
@@ -43,6 +55,20 @@ class BaseEMProblem(Problem.BaseProblem):
         if getattr(self, '_MfMui', None) is None:
             self._MfMui = self.mesh.getFaceInnerProduct(1/self.mu)
         return self._MfMui
+
+    @property
+    def MeMuI(self):
+        # TODO: Assuming isotropic mu 
+        if getattr(self, '_MeMuI', None) is None:
+            self._MeMuI = self.mesh.getEdgeInnerProduct(self.mu, invMat=True)
+        return self._MeMuI
+
+    @property
+    def MeMu(self):
+        #TODO: Assuming isotropic mu 
+        if getattr(self, '_MeMu', None) is None:
+            self._MeMu = self.mesh.getEdgeInnerProduct(self.mu)
+        return self._MeMu
 
     @property
     def Me(self):
@@ -66,7 +92,16 @@ class BaseEMProblem(Problem.BaseProblem):
             self._MeSigmaI = self.mesh.getEdgeInnerProduct(sigma, invMat=True)
         return self._MeSigmaI
 
-    deleteTheseOnModelUpdate = ['_MeSigma', '_MeSigmaI']
+    @property
+    def MfSigmai(self):
+        #TODO: hardcoded to sigma as the model
+        #TODO: hardcoded to sigma diagonal 
+        if getattr(self, '_MfSigmai', None) is None:
+            sigma = self.curModel.transform
+            self._MfSigmai = self.mesh.getFaceInnerProduct(1/sigma)
+        return self._MfSigmai
+
+    deleteTheseOnModelUpdate = ['_MeSigma', '_MeSigmaI','_MfSigmai']
 
     def fields(self, m):
         self.curModel = m
