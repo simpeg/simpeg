@@ -437,19 +437,7 @@ class BaseTimeProblem(BaseProblem):
             del self.timeMesh
             return
 
-        if type(value) is not list:
-            raise Exception('timeSteps must be a np.ndarray or a list of scalars and tuples.')
-
-        proposed = []
-        for v in value:
-            if Utils.isScalar(v):
-                proposed += [float(v)]
-            elif type(v) is tuple and len(v) == 2:
-                proposed += [float(v[0])]*int(v[1])
-            else:
-                raise Exception('timeSteps list must contain only scalars and len(2) tuples.')
-
-        self._timeSteps = np.array(proposed)
+        self._timeSteps = Utils.meshTensor(value)
         del self.timeMesh
 
     @property
