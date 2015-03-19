@@ -109,6 +109,10 @@ class TensorView(object):
                 vc = (self.aveN2CC*v).reshape(self.vnC, order='F')
             elif vType in ['Fx', 'Fy', 'Fz', 'Ex', 'Ey', 'Ez']:
                 aveOp = 'ave' + vType[0] + '2CCV'
+                # n = getattr(self,'vn'+vType[0])
+                # if 'x' in vType: v = np.r_[v,np.zeros(n[1]),np.zeros(n[2])]
+                # if 'y' in vType: v = np.r_[np.zeros(n[0]),v,np.zeros(n[2])]
+                # if 'z' in vType: v = np.r_[np.zeros(n[0]),np.zeros(n[1]),v]
                 v = getattr(self,aveOp)*v # average to cell centers
                 ind_xyz = {'x':0,'y':1,'z':2}[vType[1]]
                 vc = self.r(v.reshape((self.nC,-1),order='F'), 'CC','CC','M')[ind_xyz]
@@ -190,9 +194,16 @@ class TensorView(object):
             M.plotSlice(M.cellGrad*b, 'F', view='vec', grid=True, showIt=True, pcolorOpts={'alpha':0.8})
 
         """
+        if type(vType) in [list, tuple]:
+            assert ax is None, "cannot specify an axis to plot on with this function."
+            fig, axs = plt.subplots(1,len(vType))
+            out = []
+            for vTypeI, ax in zip(vType, axs):
+                out += [self.plotSlice(v,vType=vTypeI, normal=normal, ind=ind, grid=grid, view=view, ax=ax, clim=clim, showIt=False, pcolorOpts=pcolorOpts, streamOpts=streamOpts, gridOpts=gridOpts)]
+            return out
         viewOpts = ['real','imag','abs','vec']
         normalOpts = ['X', 'Y', 'Z']
-        vTypeOpts = ['CC', 'CCv','F','E']
+        vTypeOpts = ['CC', 'CCv','F','E','Fx','Fy','Fz','E','Ex','Ey','Ez']
 
         # Some user error checking
         assert vType in vTypeOpts, "vType must be in ['%s']" % "','".join(vTypeOpts)
@@ -219,9 +230,15 @@ class TensorView(object):
             elif vType == 'CCv':
                 assert view == 'vec', 'Other types for CCv not supported'
             else:
-                # Now just deal with 'F' and 'E'
+                # Now just deal with 'F' and 'E' (x,y,z, maybe...)
                 aveOp = 'ave' + vType + ('2CCV' if view == 'vec' else '2CC')
-                v = getattr(self,aveOp)*v # average to cell centers (might be a vector)
+                Av = getattr(self,aveOp)
+                if v.size == Av.shape[1]:
+                    v = Av * v
+                else:
+                    v = self.r(v,vType[0],vType) # get specific component
+                    v = Av * v
+                # we should now be averaged to cell centers (might be a vector)
             v = self.r(v.reshape((self.nC,-1),order='F'),'CC','CC','M')
             if view == 'vec':
                 outSlice = []
