@@ -27,11 +27,14 @@ class CylMesh(BaseTensorMesh, InnerProducts, CylView):
 
     _unitDimensions = [1, 2*np.pi, 1]
 
-    def __init__(self, h, x0=None):
+    def __init__(self, h, x0=None, cartesianOrigin=None):
         BaseTensorMesh.__init__(self, h, x0)
         assert self.hy.sum() == 2*np.pi, "The 2nd dimension must sum to 2*pi"
         if self.dim == 2:
             print 'Warning, a disk mesh has not been tested thoroughly.'
+        cartesianOrigin = np.zeros(self.dim) if cartesianOrigin is None else cartesianOrigin
+        assert len(cartesianOrigin) == self.dim, "cartesianOrigin must be the same length as the dimension of the mesh."
+        self.cartesianOrigin = np.array(cartesianOrigin, dtype=float)
 
 
     @property
