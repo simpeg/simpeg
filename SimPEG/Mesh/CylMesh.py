@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
 from scipy.constants import pi
-from SimPEG.Utils import mkvc, ndgrid, sdiag, kron3, speye, ddx, av, avExtrap
+from SimPEG.Utils import mkvc, ndgrid, sdiag, kron3, speye, spzeros, ddx, av, avExtrap
 from TensorMesh import BaseTensorMesh
 from InnerProducts import InnerProducts
 from View import CylView
@@ -27,11 +27,14 @@ class CylMesh(BaseTensorMesh, InnerProducts, CylView):
 
     _unitDimensions = [1, 2*np.pi, 1]
 
-    def __init__(self, h, x0=None):
+    def __init__(self, h, x0=None, cartesianOrigin=None):
         BaseTensorMesh.__init__(self, h, x0)
         assert self.hy.sum() == 2*np.pi, "The 2nd dimension must sum to 2*pi"
         if self.dim == 2:
             print 'Warning, a disk mesh has not been tested thoroughly.'
+        cartesianOrigin = np.zeros(self.dim) if cartesianOrigin is None else cartesianOrigin
+        assert len(cartesianOrigin) == self.dim, "cartesianOrigin must be the same length as the dimension of the mesh."
+        self.cartesianOrigin = np.array(cartesianOrigin, dtype=float)
 
 
     @property
@@ -326,6 +329,62 @@ class CylMesh(BaseTensorMesh, InnerProducts, CylView):
             else:
                 raise NotImplementedError('wrapping in the averaging is not yet implemented')
         return self._aveF2CCV
+
+    def getInterpolationMatCartMesh(self, Mrect, locType='CC'):
+        """
+            Takes a cartesian mesh and returns a projection to translate onto the cartesian grid.
+        """
+
+        assert self.isSymmetric, "Currently we have not taken into account other projections for more complicated CylMeshes"
+
+
+        if locType == 'F':
+            # do this three times for each component
+            X = self.getInterpolationMatCartMesh(Mrect, locType='Fx')
+            Y = self.getInterpolationMatCartMesh(Mrect, locType='Fy')
+            Z = self.getInterpolationMatCartMesh(Mrect, locType='Fz')
+            return sp.vstack((X,Y,Z))
+        if locType == 'E':
+            X = self.getInterpolationMatCartMesh(Mrect, locType='Ex')
+            Y = self.getInterpolationMatCartMesh(Mrect, locType='Ey')
+            Z = spzeros(Mrect.nEz, self.nE)
+            return sp.vstack((X,Y,Z))
+
+        grid = getattr(Mrect, 'grid' + locType)
+        # This is unit circle stuff, 0 to 2*pi, starting at x-axis, rotating counter clockwise in an x-y slice
+        theta = - np.arctan2(grid[:,0] - self.cartesianOrigin[0], grid[:,1] - self.cartesianOrigin[1]) + np.pi/2
+        theta[theta < 0] += np.pi*2.0
+        r = ((grid[:,0] - self.cartesianOrigin[0])**2 + (grid[:,1] - self.cartesianOrigin[1])**2)**0.5
+
+        if locType in ['CC', 'N', 'Fz', 'Ez']:
+            G, proj = np.c_[r, theta, grid[:,2]], np.ones(r.size)
+        else:
+            dotMe = {
+                        'Fx': Mrect.normals[:Mrect.nFx,:],
+                        'Fy': Mrect.normals[Mrect.nFx:(Mrect.nFx+Mrect.nFy),:],
+                        'Fz': Mrect.normals[-Mrect.nFz:,:],
+                        'Ex': Mrect.tangents[:Mrect.nEx,:],
+                        'Ey': Mrect.tangents[Mrect.nEx:(Mrect.nEx+Mrect.nEy),:],
+                        'Ez': Mrect.tangents[-Mrect.nEz:,:],
+                    }[locType]
+            if 'F' in locType:
+                normals = np.c_[np.cos(theta), np.sin(theta), np.zeros(theta.size)]
+                proj = ( normals * dotMe ).sum(axis=1)
+            if 'E' in locType:
+                tangents = np.c_[-np.sin(theta), np.cos(theta), np.zeros(theta.size)]
+                proj = ( tangents * dotMe ).sum(axis=1)
+            G = np.c_[r, theta, grid[:,2]]
+
+        interpType = locType
+        if interpType == 'Fy':
+            interpType = 'Fx'
+        elif interpType == 'Ex':
+            interpType = 'Ey'
+
+        Pc2r = self.getInterpolationMat(G, interpType)
+        Proj = sdiag(proj)
+        return Proj * Pc2r
+
 
 
 if __name__ == '__main__':

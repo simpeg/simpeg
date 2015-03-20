@@ -133,6 +133,80 @@ class TestCyl2DMesh(unittest.TestCase):
     def test_lightOperators(self):
         self.assertTrue(self.mesh.nodalGrad is None)
 
+    def test_getInterpMatCartMesh_Cells(self):
+
+        Mr = Mesh.TensorMesh([100,100,2], x0='CC0')
+        Mc = Mesh.CylMesh([np.ones(10)/5,1,10],x0='0C0',cartesianOrigin=[-0.2,-0.2,0])
+
+        mc = np.arange(Mc.nC)
+        xr = np.linspace(0,0.4,50)
+        xc = np.linspace(0,0.4,50) + 0.2
+        Pr = Mr.getInterpolationMat(np.c_[xr,np.ones(50)*-0.2,np.ones(50)*0.5],'CC')
+        Pc = Mc.getInterpolationMat(np.c_[xc,np.zeros(50),np.ones(50)*0.5],'CC')
+        Pc2r = Mc.getInterpolationMatCartMesh(Mr, 'CC')
+
+        assert np.abs(Pr*(Pc2r*mc) - Pc*mc).max() < 1e-3
+
+    def test_getInterpMatCartMesh_Faces(self):
+
+        Mr = Mesh.TensorMesh([100,100,2], x0='CC0')
+        Mc = Mesh.CylMesh([np.ones(10)/5,1,10],x0='0C0',cartesianOrigin=[-0.2,-0.2,0])
+
+        Pf = Mc.getInterpolationMatCartMesh(Mr, 'F')
+        mf = np.ones(Mc.nF)
+
+        frect = Pf * mf
+
+        fxcc = Mr.aveFx2CC*Mr.r(frect, 'F', 'Fx')
+        fycc = Mr.aveFy2CC*Mr.r(frect, 'F', 'Fy')
+        fzcc = Mr.r(frect, 'F', 'Fz')
+
+        indX = Utils.closestPoints(Mr, [0.45, -0.2, 0.5])
+        indY = Utils.closestPoints(Mr, [-0.2, 0.45, 0.5])
+
+        TOL = 1e-2
+        assert np.abs(float(fxcc[indX]) - 1) < TOL
+        assert np.abs(float(fxcc[indY]) - 0) < TOL
+        assert np.abs(float(fycc[indX]) - 0) < TOL
+        assert np.abs(float(fycc[indY]) - 1) < TOL
+        assert np.abs((fzcc - 1).sum()) < TOL
+
+        mag = (fxcc**2 + fycc**2)**0.5
+        dist = ((Mr.gridCC[:,0] + 0.2)**2  + (Mr.gridCC[:,1] + 0.2)**2)**0.5
+
+        assert np.abs(mag[dist > 0.1].max() - 1) < TOL
+        assert np.abs(mag[dist > 0.1].min() - 1) < TOL
+
+
+    def test_getInterpMatCartMesh_Edges(self):
+
+        Mr = Mesh.TensorMesh([100,100,2], x0='CC0')
+        Mc = Mesh.CylMesh([np.ones(10)/5,1,10],x0='0C0',cartesianOrigin=[-0.2,-0.2,0])
+
+        Pe = Mc.getInterpolationMatCartMesh(Mr, 'E')
+        me = np.ones(Mc.nE)
+
+        erect = Pe * me
+
+        excc = Mr.aveEx2CC*Mr.r(erect, 'E', 'Ex')
+        eycc = Mr.aveEy2CC*Mr.r(erect, 'E', 'Ey')
+        ezcc = Mr.r(erect, 'E', 'Ez')
+
+        indX = Utils.closestPoints(Mr, [0.45, -0.2, 0.5])
+        indY = Utils.closestPoints(Mr, [-0.2, 0.45, 0.5])
+
+        TOL = 1e-2
+        assert np.abs(float(excc[indX]) - 0) < TOL
+        assert np.abs(float(excc[indY]) + 1) < TOL
+        assert np.abs(float(eycc[indX]) - 1) < TOL
+        assert np.abs(float(eycc[indY]) - 0) < TOL
+        assert np.abs(ezcc.sum()) < TOL
+
+        mag = (excc**2 + eycc**2)**0.5
+        dist = ((Mr.gridCC[:,0] + 0.2)**2  + (Mr.gridCC[:,1] + 0.2)**2)**0.5
+
+        assert np.abs(mag[dist > 0.1].max() - 1) < TOL
+        assert np.abs(mag[dist > 0.1].min() - 1) < TOL
 
 
 MESHTYPES = ['uniformCylMesh']
