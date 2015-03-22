@@ -82,12 +82,13 @@ class RxFDEM(Survey.BaseRx):
 
 
 class TxFDEM(Survey.BaseTx):
+    #TODO: Break these out into Classes of Sources.
 
     freq = None #: Frequency (float)
 
     rxPair = RxFDEM
 
-    knownTxTypes = ['VMD', 'VMD_B', 'CircularLoop']
+    knownTxTypes = ['VMD', 'VMD_B', 'CircularLoop', 'Simple']
 
     radius = None
 
@@ -183,6 +184,16 @@ class TxFDEM(Survey.BaseTx):
             return b_0
         elif solType == 'e' or solType == 'j':
             return C.T*mui*b_0
+
+class SimpleTxFDEM(TxFDEM):
+
+    def __init__(self, vec, freq, rxList):
+        self.vec = vec
+        self.freq = float(freq)
+        TxFDEM.__init__(self, None, 'Simple', rxList)
+
+    def getSource(self, prob):
+        return self.vec
 
 
 
