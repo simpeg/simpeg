@@ -1,2 +1,2 @@
 from SurveyFDEM import *
-from FDEM import ProblemFDEM_e, ProblemFDEM_b, ProblemFDEM_j, ProblemFDEM_h
+from FDEM import BaseFDEMProblem, ProblemFDEM_e, ProblemFDEM_b, ProblemFDEM_j, ProblemFDEM_h, omega
