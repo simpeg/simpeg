@@ -1,108 +1,12 @@
 from SimPEG import Survey, Problem, Utils, np, sp, Solver as SimpegSolver
 from scipy.constants import mu_0
 from SurveyFDEM import SurveyFDEM, FieldsFDEM
-from simpegEM import Sources
 from simpegEM.Base import BaseEMProblem
 
 def omega(freq):
     """Change frequency to angular frequency, omega"""
     return 2.*np.pi*freq
 
-def getSource(self,freq):
-        """
-            :param float freq: Frequency
-            :rtype: numpy.ndarray (nE, nTx)
-            :return: RHS
-        """
-        Txs = self.survey.getTransmitters(freq)
-        rhs = range(len(Txs))
-
-        solType = self.solType
-
-        if solType == 'e' or solType == 'b':
-            gridEJx = self.mesh.gridEx
-            gridEJy = self.mesh.gridEy
-            gridEJz = self.mesh.gridEz
-            nEJ = self.mesh.nE
-
-            gridBHx = self.mesh.gridFx
-            gridBHy = self.mesh.gridFy
-            gridBHz = self.mesh.gridFz
-            nBH = self.mesh.nF
-
-
-            C = self.mesh.edgeCurl
-            mui = self.MfMui
-
-        elif solType == 'h' or solType == 'j':
-            gridEJx = self.mesh.gridFx
-            gridEJy = self.mesh.gridFy
-            gridEJz = self.mesh.gridFz
-            nEJ = self.mesh.nF
-
-            gridBHx = self.mesh.gridEx
-            gridBHy = self.mesh.gridEy
-            gridBHz = self.mesh.gridEz
-            nBH = self.mesh.nE
-
-            C = self.mesh.edgeCurl.T
-            mui = self.MeMuI
-
-        else:
-            NotImplementedError('Only E or F sources')
-
-        for i, tx in enumerate(Txs):
-            if self.mesh._meshType is 'CYL':
-                if self.mesh.isSymmetric:
-                    if tx.txType == 'VMD':
-                        SRC = Sources.MagneticDipoleVectorPotential(tx.loc, gridEJy, 'y')
-                    elif tx.txType =='CircularLoop':
-                        SRC = Sources.MagneticLoopVectorPotential(tx.loc, gridEJy, 'y', tx.radius)
-                    else:
-                        raise NotImplementedError('Only VMD and CircularLoop')
-                else:
-                    raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
-
-            elif self.mesh._meshType is 'TENSOR':
-
-                if tx.txType == 'VMD':
-                    src = Sources.MagneticDipoleVectorPotential
-                    SRCx = src(tx.loc, gridEJx, 'x')
-                    SRCy = src(tx.loc, gridEJy, 'y')
-                    SRCz = src(tx.loc, gridEJz, 'z')
-
-                elif tx.txType == 'VMD_B':
-                    src = Sources.MagneticDipoleFields
-                    SRCx = src(tx.loc, gridBHx, 'x')
-                    SRCy = src(tx.loc, gridBHy, 'y')
-                    SRCz = src(tx.loc, gridBHz, 'z')
-
-                elif tx.txType == 'CircularLoop':
-                    src = Sources.MagneticLoopVectorPotential
-                    SRCx = src(tx.loc, gridEJx, 'x', tx.radius)
-                    SRCy = src(tx.loc, gridEJy, 'y', tx.radius)
-                    SRCz = src(tx.loc, gridEJz, 'z', tx.radius)
-                else:
-
-                    raise NotImplemented('%s txType is not implemented' % tx.txType)
-                SRC = np.concatenate((SRCx, SRCy, SRCz))
-
-            else:
-                raise Exception('Unknown mesh for VMD')
-
-            rhs[i] = SRC
-
-        # b-forumlation
-        if tx.txType == 'VMD_B':
-            b_0 = np.concatenate(rhs).reshape((nBH, len(Txs)), order='F')
-        else:
-            a = np.concatenate(rhs).reshape((nEJ, len(Txs)), order='F')
-            b_0 = C*a
-
-        if solType == 'b' or solType == 'h':
-            return b_0
-        elif solType == 'e' or solType == 'j':
-            return C.T*mui*b_0
 
 class BaseFDEMProblem(BaseEMProblem):
     """
@@ -200,8 +104,19 @@ class BaseFDEMProblem(BaseEMProblem):
 
         return Jtv
 
-    def getSource(self,freq):
-        return self.getSource(freq)
+    def getSource(self, freq):
+        """
+            :param float freq: Frequency
+            :rtype: numpy.ndarray (nE or nF, nTx)
+            :return: RHS
+        """
+        Txs = self.survey.getTransmitters(freq)
+        rhs = range(len(Txs))
+
+        for i, tx in enumerate(Txs):
+            rhs[i] = tx.getSource(self)
+
+        return np.concatenate(rhs).reshape((-1, len(Txs)), order='F')
 
 ##########################################################################################
 ################################ E-B Formulation #########################################
@@ -260,7 +175,7 @@ class ProblemFDEM_e(BaseFDEMProblem):
             :return: RHS
         """
 
-        j_s = getSource(self,freq)
+        j_s = self.getSource(freq)
         return -1j*omega(freq)*j_s
 
     def calcFields(self, sol, freq, fieldType, adjoint=False):
@@ -339,7 +254,7 @@ class ProblemFDEM_b(BaseFDEMProblem):
             :return: RHS
         """
 
-        b_0 = getSource(self,freq)
+        b_0 = self.getSource(freq)
 
         rhs = -1j*omega(freq)*b_0
         if self._makeASymmetric is True:
@@ -474,7 +389,7 @@ class ProblemFDEM_j(BaseFDEMProblem):
             :rtype: numpy.ndarray (nE, nTx)
             :return: RHS
         """
-        j_s = getSource(self,freq)
+        j_s = self.getSource(freq)
         rhs = -1j*omega(freq)*j_s
 
         if self._makeASymmetric is True:
@@ -587,7 +502,7 @@ class ProblemFDEM_h(BaseFDEMProblem):
             :rtype: numpy.ndarray (nE, nTx)
             :return: RHS
         """
-        b_0 = getSource(self,freq)
+        b_0 = self.getSource(freq)
         return -1j*omega(freq)*b_0
 
     def calcFields(self, sol, freq, fieldType, adjoint=False):

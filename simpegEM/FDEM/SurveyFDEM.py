@@ -1,4 +1,5 @@
 from SimPEG import Survey, Problem, Utils, np, sp
+from simpegEM import Sources
 
 class RxFDEM(Survey.BaseRx):
 
@@ -93,6 +94,95 @@ class TxFDEM(Survey.BaseTx):
     def __init__(self, loc, txType, freq, rxList):
         self.freq = float(freq)
         Survey.BaseTx.__init__(self, loc, txType, rxList)
+
+    def getSource(self, prob):
+
+        tx = self
+
+        solType = prob.solType
+
+        if solType == 'e' or solType == 'b':
+            gridEJx = prob.mesh.gridEx
+            gridEJy = prob.mesh.gridEy
+            gridEJz = prob.mesh.gridEz
+            nEJ = prob.mesh.nE
+
+            gridBHx = prob.mesh.gridFx
+            gridBHy = prob.mesh.gridFy
+            gridBHz = prob.mesh.gridFz
+            nBH = prob.mesh.nF
+
+
+            C = prob.mesh.edgeCurl
+            mui = prob.MfMui
+
+        elif solType == 'h' or solType == 'j':
+            gridEJx = prob.mesh.gridFx
+            gridEJy = prob.mesh.gridFy
+            gridEJz = prob.mesh.gridFz
+            nEJ = prob.mesh.nF
+
+            gridBHx = prob.mesh.gridEx
+            gridBHy = prob.mesh.gridEy
+            gridBHz = prob.mesh.gridEz
+            nBH = prob.mesh.nE
+
+            C = prob.mesh.edgeCurl.T
+            mui = prob.MeMuI
+
+        else:
+            NotImplementedError('Only E or F sources')
+
+
+        if prob.mesh._meshType is 'CYL':
+            if not prob.mesh.isSymmetric:
+                raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
+
+            if tx.txType == 'VMD':
+                SRC = Sources.MagneticDipoleVectorPotential(tx.loc, gridEJy, 'y')
+            elif tx.txType == 'CircularLoop':
+                SRC = Sources.MagneticLoopVectorPotential(tx.loc, gridEJy, 'y', tx.radius)
+            else:
+                raise NotImplementedError('Only VMD and CircularLoop')
+
+        elif prob.mesh._meshType is 'TENSOR':
+
+            if tx.txType == 'VMD':
+                src = Sources.MagneticDipoleVectorPotential
+                SRCx = src(tx.loc, gridEJx, 'x')
+                SRCy = src(tx.loc, gridEJy, 'y')
+                SRCz = src(tx.loc, gridEJz, 'z')
+
+            elif tx.txType == 'VMD_B':
+                src = Sources.MagneticDipoleFields
+                SRCx = src(tx.loc, gridBHx, 'x')
+                SRCy = src(tx.loc, gridBHy, 'y')
+                SRCz = src(tx.loc, gridBHz, 'z')
+
+            elif tx.txType == 'CircularLoop':
+                src = Sources.MagneticLoopVectorPotential
+                SRCx = src(tx.loc, gridEJx, 'x', tx.radius)
+                SRCy = src(tx.loc, gridEJy, 'y', tx.radius)
+                SRCz = src(tx.loc, gridEJz, 'z', tx.radius)
+            else:
+
+                raise NotImplemented('%s txType is not implemented' % tx.txType)
+            SRC = np.concatenate((SRCx, SRCy, SRCz))
+
+        else:
+            raise Exception('Unknown mesh for VMD')
+
+        # b-forumlation
+        if tx.txType == 'VMD_B':
+            b_0 = SRC
+        else:
+            a = SRC
+            b_0 = C*a
+
+        if solType == 'b' or solType == 'h':
+            return b_0
+        elif solType == 'e' or solType == 'j':
+            return C.T*mui*b_0
 
 
 
