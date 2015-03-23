@@ -190,7 +190,7 @@ class SimpleTxFDEM(TxFDEM):
     def __init__(self, vec, freq, rxList):
         self.vec = vec
         self.freq = float(freq)
-        TxFDEM.__init__(self, None, 'Simple', rxList)
+        TxFDEM.__init__(self, None, 'Simple', freq, rxList)
 
     def getSource(self, prob):
         return self.vec
