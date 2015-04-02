@@ -269,7 +269,7 @@ class DataMT(Survey.Data):
                 from numpy.lib import recfunctions as recFunc
                 dt = dtCP 
                 for uniFL in uniFLmarr:
-                    mTemp = simpeg.mkvc(rec2ndarr(mArrRec[np.ma.where(mArrRec[['freq','x','y','z']].data == np.array(uniFL))][impList]).sum(axis=0),2).T
+                    mTemp = mkvc(rec2ndarr(mArrRec[np.ma.where(mArrRec[['freq','x','y','z']].data == np.array(uniFL))][impList]).sum(axis=0),2).T
                     compBlock = np.sum(mTemp.data.reshape((4,2))*np.array([[1,1j],[1,1j],[1,1j],[1,1j]]),axis=1).copy().view(dt[4::])
                     dataBlock = mkvc(recFunc.merge_arrays((np.array(uniFL),compBlock),flatten=True),2).T
                     try:

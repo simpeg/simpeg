@@ -20,10 +20,12 @@ def get1DEfields(m1d,sigma,freq,sourceAmp=1.0):
     Aio = A[1:-1,[0,-1]]
 
     # Set the boundary conditions
-    Ed_low, Eu_low, Hd_low, Hu_low = getEHfields(m1d,sigma,freq,np.array([m1d.vectorNx[0]]))
-    Etot_low = Ed_low + Eu_low
+    Ed, Eu, Hd, Hu = getEHfields(m1d,sigma,freq,m1d.vectorNx)
+    Etot = Ed + Eu
+    if sourceAmp is not None:
+        Etot = ((Etot/Etot[-1])*sourceAmp) # Scale the fields to be equal to sourceAmp at the top
     ## Note: need to use conjugate of the analytic solution. It is derived with e^iwt
-    bc = np.r_[Etot_low.conj(),sourceAmp]
+    bc = np.r_[Etot[0],Etot[-1]]
     # The right hand side
     rhs = -Aio*bc
     # Solve the system

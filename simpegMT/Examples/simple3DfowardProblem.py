@@ -26,12 +26,12 @@ for loc in rx_loc:
         rxList.append(simpegmt.SurveyMT.RxMT(simpeg.mkvc(loc,2).T,rxType))
 # Source list
 srcList =[]
-for freq in np.logspace(3,-1,5):
+for freq in np.logspace(3,-3,7):
     srcList.append(simpegmt.SurveyMT.srcMT(freq,rxList))
 # Survey MT 
 survey = simpegmt.SurveyMT.SurveyMT(srcList)
 
-## Setup the problem objec
+## Setup the problem object
 problem = simpegmt.ProblemMT.MTProblem(M)
 problem.pair(survey)
 

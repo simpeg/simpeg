@@ -47,12 +47,19 @@ def getEHfields(m1d,sigma,freq,zd):
         UDp[:,lnr+1] = elamh.dot(Pjinv.dot(Pj1)).dot(UDp[:,lnr])
 
     # Calculate the fields
-    Ed = np.zeros((zd.size,),dtype=complex)
-    Eu = np.zeros((zd.size,),dtype=complex)
-    Hd = np.zeros((zd.size,),dtype=complex)
-    Hu = np.zeros((zd.size,),dtype=complex)
+    Ed = np.empty((zd.size,),dtype=complex)
+    Eu = np.empty((zd.size,),dtype=complex)
+    Hd = np.empty((zd.size,),dtype=complex)
+    Hu = np.empty((zd.size,),dtype=complex)
 
     # Loop over the layers and calculate the fields
+    # In the halfspace below the mesh
+    dup = m1d.vectorNx[0] 
+    dind = dup >= zd
+    Ed[dind] = UDp[1,0]*np.exp(-1j*k[0]*(dup-zd[dind]))
+    Eu[dind] = UDp[0,0]*np.exp(1j*k[0]*(dup-zd[dind]))
+    Hd[dind] = (k[0]/(w*mu[0]))*UDp[1,0]*np.exp(-1j*k[0]*(dup-zd[dind]))
+    Hu[dind] = -(k[0]/(w*mu[0]))*UDp[0,0]*np.exp(1j*k[0]*(dup-zd[dind]))
     for ki,mui,epsi,dlow,dup,Up,Dp in zip(k[1::],mu[1::],eps[1::],m1d.vectorNx[:-1],m1d.vectorNx[1::],UDp[0,1::],UDp[1,1::]):
         dind = np.logical_and(dup >= zd, zd > dlow)
         Ed[dind] = Dp*np.exp(-1j*ki*(dup-zd[dind]))
