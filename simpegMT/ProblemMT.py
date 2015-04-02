@@ -1,7 +1,7 @@
 from SimPEG import Survey, Problem, Utils, Models, np, sp, Solver as SimpegSolver
 from scipy.constants import mu_0
 from SurveyMT import SurveyMT, FieldsMT
-
+import multiprocessing
 
 def omega(freq):
     """Change frequency to angular frequency, omega"""
@@ -96,7 +96,7 @@ class MTProblem(Problem.BaseProblem):
             self._MeSigmaBG = self.mesh.getEdgeInnerProduct(sigmaBG)
         return self._MeSigmaBG
 
-    def fields(self, m, m_back):
+    def fields(self, m, m_back,nrProc=None):
         '''
         Function to calculate all the fields for the model m.
 
@@ -108,8 +108,9 @@ class MTProblem(Problem.BaseProblem):
         # RHS, CalcFields = self.getRHS(freq,m_back), self.calcFields
 
         F = FieldsMT(self.mesh, self.survey)
-        #NOTE: add print status statements.
-        for freq in self.survey.freqs:
+        def solveAtFreq(self,F,freq):
+            print 'Starting work for {:.3e}'.format(freq)
+            sys.stdout.flush()
             A = self.getA(freq)
             rhs = self.getRHS(freq,m_back)
             Ainv = self.Solver(A, **self.solverOpts)
@@ -117,12 +118,23 @@ class MTProblem(Problem.BaseProblem):
 
             # Store the fields
             Src = self.survey.getSources(freq)
-            # Store the fields
+            # Store the fieldss
             F[Src, 'e_px'] = e[:,0]
             F[Src, 'e_py'] = e[:,1]
             b = self.mesh.edgeCurl * e     
             F[Src, 'b_px'] = b[:,0]
             F[Src, 'b_py'] = b[:,1]
+            return F
+        #NOTE: add print status statements.
+        if nrProc is None:
+            for freq in self.survey.freqs:
+                F = solveAtFreq(self,F,freq)
+        else:
+            pool = multiprocessing.Pool(processes=nrProc)
+            pool.map(solveAtFreq,self.survey.freqs)
+            pool.close()
+            pool.join()
+
         return F
 
 
