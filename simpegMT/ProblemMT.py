@@ -1,7 +1,7 @@
 from SimPEG import Survey, Problem, Utils, Models, np, sp, SolverLU as SimpegSolver
 from scipy.constants import mu_0
 from SurveyMT import SurveyMT, FieldsMT
-import multiprocessing
+import multiprocessing, sys
 
 def omega(freq):
     """Change frequency to angular frequency, omega"""

@@ -21,7 +21,7 @@ def get1DEfields(m1d,sigma,freq,sourceAmp=1.0):
 
     # Set the boundary conditions
     Ed, Eu, Hd, Hu = getEHfields(m1d,sigma,freq,m1d.vectorNx)
-    Etot = Ed + Eu
+    Etot = (Ed + Eu).conj()
     if sourceAmp is not None:
         Etot = ((Etot/Etot[-1])*sourceAmp) # Scale the fields to be equal to sourceAmp at the top
     ## Note: need to use conjugate of the analytic solution. It is derived with e^iwt
