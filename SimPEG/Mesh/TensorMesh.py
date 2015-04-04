@@ -168,21 +168,21 @@ class BaseTensorMesh(BaseRectangularMesh):
 
         """
 
-        if   key is 'Fx':
+        if   key == 'Fx':
             ten = [self.vectorNx , self.vectorCCy, self.vectorCCz]
-        elif key is 'Fy':
+        elif key == 'Fy':
             ten = [self.vectorCCx, self.vectorNy , self.vectorCCz]
-        elif key is 'Fz':
+        elif key == 'Fz':
             ten = [self.vectorCCx, self.vectorCCy, self.vectorNz ]
-        elif key is 'Ex':
+        elif key == 'Ex':
             ten = [self.vectorCCx, self.vectorNy , self.vectorNz ]
-        elif key is 'Ey':
+        elif key == 'Ey':
             ten = [self.vectorNx , self.vectorCCy, self.vectorNz ]
-        elif key is 'Ez':
+        elif key == 'Ez':
             ten = [self.vectorNx , self.vectorNy , self.vectorCCz]
-        elif key is 'CC':
+        elif key == 'CC':
             ten = [self.vectorCCx, self.vectorCCy, self.vectorCCz]
-        elif key is 'N':
+        elif key == 'N':
             ten = [self.vectorNx , self.vectorNy , self.vectorNz ]
 
         return [t for t in ten if t is not None]
@@ -204,10 +204,12 @@ class BaseTensorMesh(BaseRectangularMesh):
         if locType == 'N' and self._meshType == 'CYL':
             #NOTE: for a CYL mesh we add a node to check if we are inside in the radial direction!
             tensors[0] = np.r_[0.,tensors[0]]
+            tensors[1] = np.r_[tensors[1], 2.0*np.pi]
 
         inside = np.ones(pts.shape[0],dtype=bool)
         for i, tensor in enumerate(tensors):
-            inside = inside & (pts[:,i] >= tensor.min()) & (pts[:,i] <= tensor.max())
+            TOL = np.diff(tensor).min() * 1.0e-10
+            inside = inside & (pts[:,i] >= tensor.min()-TOL) & (pts[:,i] <= tensor.max()+TOL)
         return inside
 
     def getInterpolationMat(self, loc, locType, zerosOutside=False):
