@@ -210,6 +210,8 @@ class SurveyMT(Survey.BaseSurvey):
     def projectFields(self, u):
         data = DataMT(self)
         for src in self.srcList:
+            print 'Project at freq: {:.3e}'.format(src.freq)
+            sys.stdout.flush()
             for rx in src.rxList:
                 data[src, rx] = rx.projectFields(src, self.mesh, u)
         return data
