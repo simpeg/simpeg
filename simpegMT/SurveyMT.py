@@ -247,12 +247,16 @@ class DataMT(Survey.Data):
         impList = ['zxxr','zxxi','zxyr','zxyi','zyxr','zyxi','zyyr','zyyi']
         for src in self.survey.srcList:
             # Temp array for all the receivers of the source.
-            tArrRec = np.array([(src.freq,rx.locs[0,0],rx.locs[0,1],rx.locs[0,2],np.nan ,np.nan ,np.nan ,np.nan ,np.nan ,np.nan ,np.nan ,np.nan ) for rx in src.rxList],dtype=dtRI)
+            # Note: needs to be written more generally, using diffterent rxTypes and not all the data at the locaitons
+            # Assume the same locs for all RX
+            locs = src.rxList[0].locs
+            tArrRec = np.concatenate((src.freq*np.ones((locs.shape[0],1)),locs,np.nan*np.ones((10,8))),axis=1).view(dtRI)
+            # np.array([(src.freq,rx.locs[0,0],rx.locs[0,1],rx.locs[0,2],np.nan ,np.nan ,np.nan ,np.nan ,np.nan ,np.nan ,np.nan ,np.nan ) for rx in src.rxList],dtype=dtRI)
             # Get the type and the value for the DataMT object as a list
             typeList = [[rx.rxType,self[src,rx][0]] for rx in src.rxList]
             # Insert the values to the temp array
             for nr,(key,val) in enumerate(typeList):
-                tArrRec[key][nr] = val
+                tArrRec[key] = val
             # Masked array 
             mArrRec = np.ma.MaskedArray(rec2ndarr(tArrRec),mask=np.isnan(rec2ndarr(tArrRec))).view(dtype=tArrRec.dtype)
             # Unique freq and loc of the masked array
