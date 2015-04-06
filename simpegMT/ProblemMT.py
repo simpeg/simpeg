@@ -137,6 +137,7 @@ class MTProblem(Problem.BaseProblem):
             pool.close()
             pool.join()
         print 'Ran for {:f} seconds'.format(time.time()-startTime)
+        sys.stdout.flush()
         return F
 
 
