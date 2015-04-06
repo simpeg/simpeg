@@ -143,6 +143,28 @@ class TreeFace(TreeIndexer):
         V = 0.25 * (4.0*(p**2)*(q**2) - (a**2 + c**2 - b**2 - d**2)**2)**0.5
         return V
 
+    @property
+    def children(self):
+        if self.isleaf: return None
+        ind = int(self.index) # can not get children of a fancy slice at the moment.
+        subInds = np.argwhere(self.F[:,PARENT] == ind).flatten()
+        return TreeFace(self.M, subInds)
+
+
+    def refine(self, function, level):
+
+        int(self.index) # should only be able to refine one at a time.
+
+        toLevel = function(self)
+
+        if toLevel < level+1:
+            return
+
+        inds, rows = self.M.refineFace(self.index)
+        for i in inds:
+            TreeFace(self.M, i).refine(function, level + 1)
+
+
 class TreeCell(TreeIndexer):
     _SubTree = TreeFace
     _pointer = '_cells'
@@ -240,6 +262,9 @@ class TreeCell(TreeIndexer):
     @property
     def n7(self): return self.fZp.n3
     @property
+    def nodes(self):
+        return [self.n0, self.n1, self.n2, self.n3, self.n4, self.n5, self.n6, self.n7]
+    @property
     def center(self):
         return (self.n0.vec + self.n1.vec + self.n2.vec + self.n3.vec +
                 self.n4.vec + self.n5.vec + self.n6.vec + self.n7.vec)/8.0
@@ -278,6 +303,26 @@ class TreeCell(TreeIndexer):
                 volTetra(self.M._nodes[:,NX:], n1, n3, n2, n7))   # cut edge bottom
 
         return (vol1 + vol2)/2.0
+
+    @property
+    def children(self):
+        if self.isleaf: return None
+        ind = int(self.index) # can not get children of a fancy slice at the moment.
+        subInds = np.argwhere(self.C[:,PARENT] == ind).flatten()
+        return TreeCell(self.M, subInds)
+
+    def refine(self, function, level):
+
+        int(self.index) # should only be able to refine one at a time.
+
+        toLevel = function(self)
+
+        if toLevel < level+1:
+            return
+
+        inds, rows = self.M.refineCell(self.index)
+        for i in inds:
+            TreeCell(self.M, i).refine(function, level + 1)
 
 
 class TreeMesh(InnerProducts, BaseMesh):
@@ -687,7 +732,7 @@ class TreeMesh(InnerProducts, BaseMesh):
         E2i, E2 = self.refineEdge(f[FEDGE2])
         E3i, E3 = self.refineEdge(f[FEDGE3])
 
-        nodeNums = self._edges[f[[FEDGE0, FEDGE1]],:][:,[ENODE0, ENODE1]]
+        nodeNums = [n.index for n in TreeFace(self, index).nodes]
         newNode, node = self.addNode(nodeNums)
 
         # Refine the inner edges
@@ -1043,6 +1088,12 @@ class TreeMesh(InnerProducts, BaseMesh):
             return sp.vstack((xP, yP, zP))
         return Pxxx
 
+    def refine(self, function):
+        if self.dim == 3:
+            TreeCell(self, 0).refine(function, 0)
+        elif self.dim == 2:
+            TreeFace(self, 0).refine(function, 0)
+
     def plotGrid(self, ax=None, text=True, showIt=False):
         import matplotlib.pyplot as plt
 
@@ -1050,22 +1101,63 @@ class TreeMesh(InnerProducts, BaseMesh):
         axOpts = {'projection':'3d'} if self.dim == 3 else {}
         if ax is None: ax = plt.subplot(111, **axOpts)
 
+        if self.dim == 3:
+            C = TreeCell(self, 'active')
+
+
+            #                      fZp
+            #                       |
+            #                 6 ------eX3------ 7
+            #                /|     |         / |
+            #               /eZ2    .        / eZ3
+            #             eY2 |        fYp eY3  |
+            #             /   |            / fXp|
+            #            4 ------eX2----- 5     |
+            #            |fXm 2 -----eX1--|---- 3          z
+            #           eZ0  /            |  eY1           ^   y
+            #            | eY0   .  fYm  eZ1 /             |  /
+            #            | /     |        | /              | /
+            #            0 ------eX0------1                o----> x
+            #                    |
+            #                   fZm
+            #
+
+            n1, n2, n3, n4, n5 = 0, 1, 3, 2, 0
+            eX = np.c_[C.nodes[n1].x, C.nodes[n2].x, C.nodes[n3].x, C.nodes[n4].x, C.nodes[n5].x, [np.nan]*self.nC]
+            eY = np.c_[C.nodes[n1].y, C.nodes[n2].y, C.nodes[n3].y, C.nodes[n4].y, C.nodes[n5].y, [np.nan]*self.nC]
+            eZ = np.c_[C.nodes[n1].z, C.nodes[n2].z, C.nodes[n3].z, C.nodes[n4].z, C.nodes[n5].z, [np.nan]*self.nC]
+            ax.plot(eX.flatten(), eY.flatten(), 'b-', zs=eZ.flatten())
+
+            n1, n2, n3, n4, n5 = 4, 5, 7, 6, 4
+            eX = np.c_[C.nodes[n1].x, C.nodes[n2].x, C.nodes[n3].x, C.nodes[n4].x, C.nodes[n5].x, [np.nan]*self.nC]
+            eY = np.c_[C.nodes[n1].y, C.nodes[n2].y, C.nodes[n3].y, C.nodes[n4].y, C.nodes[n5].y, [np.nan]*self.nC]
+            eZ = np.c_[C.nodes[n1].z, C.nodes[n2].z, C.nodes[n3].z, C.nodes[n4].z, C.nodes[n5].z, [np.nan]*self.nC]
+            ax.plot(eX.flatten(), eY.flatten(), 'r-', zs=eZ.flatten())
+
+            ax.plot(self.gridN[:,0], self.gridN[:,1], 'bs', zs=self.gridN[:,2])
+
+            ax.set_xlabel('x')
+            ax.set_ylabel('y')
+            ax.set_zlabel('z')
+            if showIt: plt.show()
+            return ax
+
         N = self._nodes
         E = self._edges
         C = self._faces
 
-        plt.plot(N[:,1], N[:,2], 'b.')
+        ax.plot(N[:,1], N[:,2], 'b.')
         activeCells = C[:,ACTIVE] == 1
         for FEDGE in [FEDGE0, FEDGE1, FEDGE2, FEDGE3]:
             nInds = E[C[activeCells,FEDGE],:][:,[ENODE0,ENODE1]]
             eX = np.c_[N[nInds[:,0],NX], N[nInds[:,1],NX], [np.nan]*nInds.shape[0]]
             eY = np.c_[N[nInds[:,0],NY], N[nInds[:,1],NY], [np.nan]*nInds.shape[0]]
-            plt.plot(eX.flatten(), eY.flatten(), 'b-')
+            ax.plot(eX.flatten(), eY.flatten(), 'b-')
 
         gridCC = self.gridCC
         if text:
             [ax.text(cc[0], cc[1],i) for i, cc in enumerate(gridCC)]
-        plt.plot(gridCC[:,0], gridCC[:,1], 'r.')
+        ax.plot(gridCC[:,0], gridCC[:,1], 'r.')
         gridFx = self.gridFx
         gridFy = self.gridFy
         if text:
@@ -1092,32 +1184,44 @@ if __name__ == '__main__':
     from SimPEG import Mesh, Utils
     import matplotlib.pyplot as plt
 
-    tM = TreeMesh([np.ones(3),np.ones(2)])
+    # tM = TreeMesh([np.ones(3),np.ones(2)])
+    tM = TreeMesh([1,1,1])
 
-    tM.refineFace(0)
-    tM.refineFace(1)
-    tM.refineFace(3)
-    tM.refineFace(9)
+    tM.refine(lambda c:2)
+    # tM.refineCell(4)
+
+    M = Mesh.TensorMesh([4,4,4])
+    print tM.gridN - M.gridN
+    tM.plotGrid()
+
+    plt.show()
+
+
+
+    # tM.refineFace(0)
+    # tM.refineFace(1)
+    # tM.refineFace(3)
+    # tM.refineFace(9)
 
     # print tM._nodes[:,NUM]
-    tM.number()
+    # tM.number()
     # print tM._nodes[:,NUM]
     # print tM._edges[:,NUM]
 
-    print TreeFace(tM,'active').e3.n1.index
+    # print TreeFace(tM,'active').e3.n1.index
 
-    Mr = TreeMesh([2,1,1])
-    Mr.refineCell(0)
+    # Mr = TreeMesh([2,1,1])
+    # Mr.refineCell(0)
 
-    print Mr.vol
+    # print Mr.vol
 
-    M = TreeMesh([2,2,2])
-    M.number()
-    M.refineCell(0)
-    M.refineCell(3)
-    assert M.isNumbered is False
-    C = TreeCell(M, 'active')
-    M.getEdgeInnerProduct()
+    # M = TreeMesh([2,2,2])
+    # M.number()
+    # M.refineCell(0)
+    # M.refineCell(3)
+    # assert M.isNumbered is False
+    # C = TreeCell(M, 'active')
+    # M.getEdgeInnerProduct()
 
     # tM = TreeMesh([100,100,100])
     # print tM.vol
@@ -1141,3 +1245,18 @@ if __name__ == '__main__':
     # plt.figure(2)
     # plt.plot(SortByX0(tM.gridCC),'b.')
     # plt.show()
+
+
+    # M = TreeMesh([1,1,1])
+
+    # def refFunc(cell):
+    #     n = 3 - np.sum((cell.center.flatten() - np.r_[0.5, 0.5, 0.5])**2)**0.5 * 2
+    #     print n, cell.center
+    #     return n
+    #     return 1
+    # M.refine(refFunc)
+
+    # M.plotGrid(text=False)
+    # plt.show()
+
+    # print M.nC

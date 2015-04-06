@@ -1,5 +1,5 @@
 from SimPEG.Mesh import TensorMesh
-from SimPEG.Mesh.NewTreeMesh import TreeMesh
+from SimPEG.Mesh.NewTreeMesh import TreeMesh, TreeCell
 import numpy as np
 import unittest
 import matplotlib.pyplot as plt
@@ -75,6 +75,85 @@ class TestQuadTreeMesh(unittest.TestCase):
         ay = np.r_[0.5,0.5,1,1,0.5,0.5,0.5,0.5,1,1,1,1,1]
         self.assertTrue(np.linalg.norm((np.r_[ax,ay]-self.M.area)) < TOL)
 
+class TestOcTreeConnectivity(unittest.TestCase):
+
+    def setUp(self):
+        self.oM = TreeMesh([1,1,1])
+        self.oM.refine(lambda c: 1)
+
+    def test_setup(self):
+        C = TreeCell(self.oM, 0)
+        children = C.children
+        assert not C.isleaf
+        assert len(children.index) == 8
+        # assert not TreeCell(self.oM, 0).isleaf
+        c0, c1, c2, c3, c4, c5, c6, c7 = [TreeCell(self.oM, i) for i in range(1,9)]
+
+
+        #                                                                      .----------------.----------------.
+        #                                                                     /|               /|               /|
+        #                                                                    / |              / |              / |
+        #                                                                   /  |     c6      /  |    c7       /  |
+        #                                                                  /   |            /   |            /   |
+        #                                                                 .----------------.----+-----------.    |
+        #                                                                /|    . ---------/|----.----------/|----.
+        #                      fZp                                      / |   /|         / |   /|         / |   /|
+        #                       |                                      /  |  / | c4     /  |  / |  c5    /  |  X |
+        #                 6 ------eX3------ 7                         /   | /  |       /   | /  |       /   | /  |
+        #                /|     |         / |                        . -------------- .----------------.    |/   |
+        #               /eZ2    .        / eZ3                       |    . ---+------|----.----+------|----.    |
+        #             eY2 |        fYp eY3  |                        |   /|    .______|___/|____.______|___/|____.
+        #             /   |            / fXp|                        |  / |   /   c2  |  / |   /    c3 |  / |   /
+        #            4 ------eX2----- 5     |                        | /  |  /        | /  |  /        | /  |  /
+        #            |fXm 2 -----eX1--|---- 3          z             . ---+---------- . ---+---------- .    | /
+        #           eZ0  /            |  eY1           ^   y         |    |/          |    |/          |    |/
+        #            | eY0   .  fYm  eZ1 /             |  /          |    . ----------|----.-----------|----.
+        #            | /     |        | /              | /           |   /    c0      |   /     c1     |   /
+        #            0 ------eX0------1                o----> x      |  /             |  /             |  /
+        #                    |                                       | /              | /              | /
+        #                   fZm                                      . -------------- . -------------- .
+        #
+        #
+        #            fX                                  fY                                 fZ
+        #      2___________3                       2___________3                      2___________3
+        #      |     e1    |                       |     e1    |                      |     e1    |
+        #      |           |                       |           |                      |           |
+        #   e2 |     x     | e3      z          e2 |     x     | e3      z         e2 |     x     | e3      y
+        #      |           |         ^             |           |         ^            |           |         ^
+        #      |___________|         |___> y       |___________|         |___> x      |___________|         |___> x
+        #      0    e0     1                       0    e0     1                      0    e0     1
+        #
+
+
+        # there are two faces for each edge
+        for ii, c in enumerate([c0, c1, c2, c3, c4, c5, c6, c7]):
+            assert c.fZm.e0.index == c.fYm.e0.index, "Cell %d: fZm.e0 and fYm.e0"%ii
+            assert c.fZm.e1.index == c.fYp.e0.index, "Cell %d: fZm.e1 and fYp.e0"%ii
+            assert c.fZp.e0.index == c.fYm.e1.index, "Cell %d: fZp.e0 and fYm.e1"%ii
+            assert c.fZp.e1.index == c.fYp.e1.index, "Cell %d: fZp.e1 and fYp.e1"%ii
+            assert c.fZm.e2.index == c.fXm.e0.index, "Cell %d: fZm.e2 and fXm.e0"%ii
+            assert c.fZm.e3.index == c.fXp.e0.index, "Cell %d: fZm.e3 and fXp.e0"%ii
+            assert c.fZp.e2.index == c.fXm.e1.index, "Cell %d: fZp.e2 and fXm.e1"%ii
+            assert c.fZp.e3.index == c.fXp.e1.index, "Cell %d: fZp.e3 and fXp.e1"%ii
+            assert c.fYm.e2.index == c.fXm.e2.index, "Cell %d: fYm.e2 and fXm.e2"%ii
+            assert c.fYm.e3.index == c.fXp.e2.index, "Cell %d: fYm.e3 and fXp.e2"%ii
+            assert c.fYp.e2.index == c.fXm.e3.index, "Cell %d: fYp.e2 and fXm.e3"%ii
+            assert c.fYp.e3.index == c.fXp.e3.index, "Cell %d: fYp.e3 and fXp.e3"%ii
+
+        assert c0.eZ1.index == c1.eZ0.index
+        assert c0.eZ3.index == c1.eZ2.index
+        assert c2.eZ1.index == c3.eZ0.index
+        assert c2.eZ3.index == c3.eZ2.index
+
+        assert c4.eZ1.index == c5.eZ0.index
+        assert c4.eZ3.index == c5.eZ2.index
+        assert c6.eZ1.index == c7.eZ0.index
+        assert c6.eZ3.index == c7.eZ2.index
+
+        assert c0.n7.index == c7.n0.index
+
+
+
 
 
 class SimpleOctreeOperatorTests(unittest.TestCase):
@@ -107,6 +186,18 @@ class SimpleOctreeOperatorTests(unittest.TestCase):
     #     self.assertAlmostEqual((self.tM2.getFaceInnerProduct() - self.oM2.getFaceInnerProduct()).toarray().sum(), 0)
     #     self.assertAlmostEqual((self.tM2.getEdgeInnerProduct() - self.oM2.getEdgeInnerProduct()).toarray().sum(), 0)
 
+    def test_grids(self):
+        tM = TreeMesh([1,1,1])
+        tM.refine(lambda c:2)
+        M = TensorMesh([4,4,4])
+        self.assertAlmostEqual((tM.gridN - M.gridN).sum(), 0)
+        self.assertAlmostEqual((tM.gridCC - M.gridCC).sum(), 0)
+        self.assertAlmostEqual((tM.gridFx - M.gridFx).sum(), 0)
+        self.assertAlmostEqual((tM.gridFy - M.gridFy).sum(), 0)
+        self.assertAlmostEqual((tM.gridFz - M.gridFz).sum(), 0)
+        self.assertAlmostEqual((tM.gridEx - M.gridEx).sum(), 0)
+        self.assertAlmostEqual((tM.gridEy - M.gridEy).sum(), 0)
+        self.assertAlmostEqual((tM.gridEz - M.gridEz).sum(), 0)
 
 
 class TestOcTreeObjects(unittest.TestCase):
