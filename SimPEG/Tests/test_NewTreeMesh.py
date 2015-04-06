@@ -186,18 +186,58 @@ class SimpleOctreeOperatorTests(unittest.TestCase):
     #     self.assertAlmostEqual((self.tM2.getFaceInnerProduct() - self.oM2.getFaceInnerProduct()).toarray().sum(), 0)
     #     self.assertAlmostEqual((self.tM2.getEdgeInnerProduct() - self.oM2.getEdgeInnerProduct()).toarray().sum(), 0)
 
+
+class SimpleOctreeOperatorTestsRefined(unittest.TestCase):
+    def setUp(self):
+        self.tM = TreeMesh([1,1,1])
+        self.tM.refine(lambda c:2)
+        self.M = TensorMesh([4,4,4])
+
+        self.tM2 = TreeMesh([1,1])
+        self.tM2.refine(lambda c:2)
+        self.M2 = TensorMesh([4,4])
+
     def test_grids(self):
-        tM = TreeMesh([1,1,1])
-        tM.refine(lambda c:2)
-        M = TensorMesh([4,4,4])
-        self.assertAlmostEqual((tM.gridN - M.gridN).sum(), 0)
-        self.assertAlmostEqual((tM.gridCC - M.gridCC).sum(), 0)
-        self.assertAlmostEqual((tM.gridFx - M.gridFx).sum(), 0)
-        self.assertAlmostEqual((tM.gridFy - M.gridFy).sum(), 0)
-        self.assertAlmostEqual((tM.gridFz - M.gridFz).sum(), 0)
-        self.assertAlmostEqual((tM.gridEx - M.gridEx).sum(), 0)
-        self.assertAlmostEqual((tM.gridEy - M.gridEy).sum(), 0)
-        self.assertAlmostEqual((tM.gridEz - M.gridEz).sum(), 0)
+        self.assertAlmostEqual((self.tM2.gridN - self.M2.gridN).sum(), 0)
+        self.assertAlmostEqual((self.tM2.gridCC - self.M2.gridCC).sum(), 0)
+        self.assertAlmostEqual((self.tM2.gridFx - self.M2.gridFx).sum(), 0)
+        self.assertAlmostEqual((self.tM2.gridFy - self.M2.gridFy).sum(), 0)
+        self.assertAlmostEqual((self.tM2.gridEx - self.M2.gridEx).sum(), 0)
+        self.assertAlmostEqual((self.tM2.gridEy - self.M2.gridEy).sum(), 0)
+
+        self.assertAlmostEqual((self.tM.gridN - self.M.gridN).sum(), 0)
+        self.assertAlmostEqual((self.tM.gridCC - self.M.gridCC).sum(), 0)
+        self.assertAlmostEqual((self.tM.gridFx - self.M.gridFx).sum(), 0)
+        self.assertAlmostEqual((self.tM.gridFy - self.M.gridFy).sum(), 0)
+        self.assertAlmostEqual((self.tM.gridFz - self.M.gridFz).sum(), 0)
+        self.assertAlmostEqual((self.tM.gridEx - self.M.gridEx).sum(), 0)
+        self.assertAlmostEqual((self.tM.gridEy - self.M.gridEy).sum(), 0)
+        self.assertAlmostEqual((self.tM.gridEz - self.M.gridEz).sum(), 0)
+
+    def test_InnerProducts(self):
+        self.assertAlmostEqual((self.tM.getFaceInnerProduct() - self.M.getFaceInnerProduct()).toarray().sum(), 0)
+        self.assertAlmostEqual((self.tM.getEdgeInnerProduct() - self.M.getEdgeInnerProduct()).toarray().sum(), 0)
+
+        # self.assertAlmostEqual((self.tM2.getFaceInnerProduct() - self.M2.getFaceInnerProduct()).toarray().sum(), 0)
+        # self.assertAlmostEqual((self.tM2.getEdgeInnerProduct() - self.M2.getEdgeInnerProduct()).toarray().sum(), 0)
+
+    def test_faceDiv(self):
+        self.assertAlmostEqual((self.tM2.faceDiv - self.M2.faceDiv).toarray().sum(), 0)
+        self.assertAlmostEqual((self.tM.faceDiv - self.M.faceDiv).toarray().sum(), 0)
+
+    def test_nodalGrad(self):
+        self.assertAlmostEqual((self.tM2.nodalGrad - self.M2.nodalGrad).toarray().sum(), 0)
+        self.assertAlmostEqual((self.tM.nodalGrad - self.M.nodalGrad).toarray().sum(), 0)
+
+    def test_edgeCurl(self):
+        self.assertAlmostEqual((self.tM.edgeCurl - self.M.edgeCurl).toarray().sum(), 0)
+        # self.assertAlmostEqual((self.tM2.edgeCurl - self.M2.edgeCurl).toarray().sum(), 0)
+
+    def test_InnerProducts(self):
+        self.assertAlmostEqual((self.tM.getFaceInnerProduct() - self.M.getFaceInnerProduct()).toarray().sum(), 0)
+        self.assertAlmostEqual((self.tM.getEdgeInnerProduct() - self.M.getEdgeInnerProduct()).toarray().sum(), 0)
+        # self.assertAlmostEqual((self.tM2.getFaceInnerProduct() - self.M2.getFaceInnerProduct()).toarray().sum(), 0)
+        # self.assertAlmostEqual((self.tM2.getEdgeInnerProduct() - self.M2.getEdgeInnerProduct()).toarray().sum(), 0)
 
 
 class TestOcTreeObjects(unittest.TestCase):
