@@ -825,8 +825,8 @@ class TreeMesh(InnerProducts, BaseMesh):
 
         nF[8, feInds] = [rfYm[0, FEDGE1], nEi[0], rfXm[0, FEDGE1], nEi[2]]
         nF[9, feInds] = [rfYm[1, FEDGE1], nEi[1], nEi[2], rfXp[0, FEDGE1]]
-        nF[10,feInds] = [nEi[0], rfYp[0, FEDGE1], rfXm[2, FEDGE1], nEi[3]]
-        nF[11,feInds] = [nEi[1], rfYp[1, FEDGE1], nEi[3], rfXp[2, FEDGE1]]
+        nF[10,feInds] = [nEi[0], rfYp[0, FEDGE1], rfXm[1, FEDGE1], nEi[3]]
+        nF[11,feInds] = [nEi[1], rfYp[1, FEDGE1], nEi[3], rfXp[1, FEDGE1]]
 
         nFi, nF = self._push('_faces', nF)
 
