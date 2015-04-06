@@ -1,7 +1,7 @@
 from SimPEG import Survey, Problem, Utils, Models, np, sp, SolverLU as SimpegSolver
 from scipy.constants import mu_0
 from SurveyMT import SurveyMT, FieldsMT
-import multiprocessing, sys
+import multiprocessing, sys, time
 
 def omega(freq):
     """Change frequency to angular frequency, omega"""
@@ -108,6 +108,7 @@ class MTProblem(Problem.BaseProblem):
         # RHS, CalcFields = self.getRHS(freq,m_back), self.calcFields
 
         F = FieldsMT(self.mesh, self.survey)
+        startTime = time.time()
         def solveAtFreq(self,F,freq):
             print 'Starting work for {:.3e}'.format(freq)
             sys.stdout.flush()
@@ -135,7 +136,7 @@ class MTProblem(Problem.BaseProblem):
             pool.map(solveAtFreq,self.survey.freqs)
             pool.close()
             pool.join()
-
+        print 'Ran for {:f} seconds'.format(time.time()-startTime)
         return F
 
 
