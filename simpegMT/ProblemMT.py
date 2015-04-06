@@ -126,6 +126,8 @@ class MTProblem(Problem.BaseProblem):
             b = -( self.mesh.edgeCurl * e )/( 1j*omega(freq) )
             F[Src, 'b_px'] = b[:,0]
             F[Src, 'b_py'] = b[:,1]
+            print 'Ran for {:f} seconds'.format(time.time()-startTime)
+            sys.stdout.flush()
             return F
         #NOTE: add print status statements.
         if nrProc is None:
@@ -136,8 +138,7 @@ class MTProblem(Problem.BaseProblem):
             pool.map(solveAtFreq,self.survey.freqs)
             pool.close()
             pool.join()
-        print 'Ran for {:f} seconds'.format(time.time()-startTime)
-        sys.stdout.flush()
+
         return F
 
 
