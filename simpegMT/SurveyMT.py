@@ -1,5 +1,6 @@
 from SimPEG import Survey, Utils, Problem, np, sp, mkvc
 from scipy.constants import mu_0
+import sys
 
 class RxMT(Survey.BaseRx):
 

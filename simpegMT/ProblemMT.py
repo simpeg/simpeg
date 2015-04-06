@@ -108,8 +108,9 @@ class MTProblem(Problem.BaseProblem):
         # RHS, CalcFields = self.getRHS(freq,m_back), self.calcFields
 
         F = FieldsMT(self.mesh, self.survey)
-        startTime = time.time()
+
         def solveAtFreq(self,F,freq):
+            startTime = time.time()
             print 'Starting work for {:.3e}'.format(freq)
             sys.stdout.flush()
             A = self.getA(freq)
