@@ -1,6 +1,7 @@
 from SimPEG import Survey, Utils, Problem, np, sp, mkvc
 from scipy.constants import mu_0
 import sys
+from numpy.lib import recfunctions as recFunc
 
 class RxMT(Survey.BaseRx):
 
@@ -251,7 +252,7 @@ class DataMT(Survey.Data):
             # Note: needs to be written more generally, using diffterent rxTypes and not all the data at the locaitons
             # Assume the same locs for all RX
             locs = src.rxList[0].locs
-            tArrRec = np.concatenate((src.freq*np.ones((locs.shape[0],1)),locs,np.nan*np.ones((10,8))),axis=1).view(dtRI)
+            tArrRec = np.concatenate((src.freq*np.ones((locs.shape[0],1)),locs,np.nan*np.ones((locs.shape[0],8))),axis=1).view(dtRI)
             # np.array([(src.freq,rx.locs[0,0],rx.locs[0,1],rx.locs[0,2],np.nan ,np.nan ,np.nan ,np.nan ,np.nan ,np.nan ,np.nan ,np.nan ) for rx in src.rxList],dtype=dtRI)
             # Get the type and the value for the DataMT object as a list
             typeList = [[rx.rxType,self[src,rx][0]] for rx in src.rxList]
@@ -262,30 +263,31 @@ class DataMT(Survey.Data):
             mArrRec = np.ma.MaskedArray(rec2ndarr(tArrRec),mask=np.isnan(rec2ndarr(tArrRec))).view(dtype=tArrRec.dtype)
             # Unique freq and loc of the masked array
             uniFLmarr = np.unique(mArrRec[['freq','x','y','z']])
+
+            try:
+                outTemp = recFunc.stack_arrays((outTemp,mArrRec))
+                #outTemp = np.concatenate((outTemp,dataBlock),axis=0)
+            except NameError as e:
+                outTemp = mArrRec
+
             if 'RealImag' in returnType:
-                dt = dtRI
-                for uniFL in uniFLmarr:
-                    mTemp = rec2ndarr(mArrRec[np.ma.where(mArrRec[['freq','x','y','z']].data == np.array(uniFL))][impList]).sum(axis=0)
-                    dataBlock = mkvc(np.concatenate((rec2ndarr(uniFL),mTemp.data)),2).T
-                    try:
-                        outArr = np.concatenate((outArr,dataBlock),axis=0)
-                    except NameError as e:
-                        outArr = dataBlock
-            elif 'Complex' in returnType:
+                outArr = outTemp
+            if 'Complex' in returnType:
                 # Add the real and imaginary to a complex number
-                from numpy.lib import recfunctions as recFunc
-                dt = dtCP 
-                for uniFL in uniFLmarr:
-                    mTemp = mkvc(rec2ndarr(mArrRec[np.ma.where(mArrRec[['freq','x','y','z']].data == np.array(uniFL))][impList]).sum(axis=0),2).T
-                    compBlock = np.sum(mTemp.data.reshape((4,2))*np.array([[1,1j],[1,1j],[1,1j],[1,1j]]),axis=1).copy().view(dt[4::])
-                    dataBlock = mkvc(recFunc.merge_arrays((np.array(uniFL),compBlock),flatten=True),2).T
-                    try:
-                        outArr = recFunc.stack_arrays((outArr,dataBlock),usemask=False)
-                    except NameError as e:
-                        outArr = dataBlock
+
+                outArr = np.empty(outTemp.shape,dtype=dtCP)
+                for comp in ['freq','x','y','z']:
+                    outArr[comp] = outTemp[comp].copy()
+                for comp in ['zxx','zxy','zyx','zyy']:
+                    outArr[comp] = outTemp[comp+'r'].copy() + 1j*outTemp[comp+'i'].copy()
+                # for uniFL in uniFLmarr:
+                #     mTemp = mkvc(rec2ndarr(mArrRec[np.ma.where(mArrRec[['freq','x','y','z']].data == np.array(uniFL))][impList]).sum(axis=0),2).T
+                #     compBlock = np.sum(mTemp.data.reshape((4,2))*np.array([[1,1j],[1,1j],[1,1j],[1,1j]]),axis=1).copy().view(dt[4::])
+                #     dataBlock = mkvc(recFunc.merge_arrays((np.array(uniFL),compBlock),flatten=True),2).T
+                #     try:
+                #         outArr = recFunc.stack_arrays((outArr,dataBlock),usemask=False)
+                #     except NameError as e:
+                #         outArr = dataBlock
 
         # Return 
-        if 'RealImag' in returnType:
-            return outArr.view(dt)
-        elif 'Complex' in returnType:
-            return outArr
+        return outArr
