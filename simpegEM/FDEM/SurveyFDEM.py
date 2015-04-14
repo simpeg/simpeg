@@ -1,5 +1,10 @@
 from SimPEG import Survey, Problem, Utils, np, sp
 from simpegEM import Sources
+from simpegEM.Utils.EMUtils import omega
+
+def omega(freq):
+    """Change frequency to angular frequency, omega"""
+    return 2.*np.pi*freq
 
 class RxFDEM(Survey.BaseRx):
 
@@ -99,7 +104,7 @@ class TxFDEM(Survey.BaseTx):
     def getSource(self, prob):
 
         tx = self
-
+        freq = tx.freq
         solType = prob.solType
 
         if solType == 'e' or solType == 'b':
@@ -180,12 +185,12 @@ class TxFDEM(Survey.BaseTx):
             a = SRC
             b_0 = C*a
 
-        if solType == 'b' or solType == 'h':
-            return b_0
-        elif solType == 'e' or solType == 'j':
-            return C.T*mui*b_0
+        # if solType == 'b' or solType == 'h':
+        return -1j*omega(freq)*b_0, None
+        # elif solType == 'e' or solType == 'j':
+        #     return -1j*omega(freq)*C.T*mui*b_0, None
 
-class SimpleTxFDEM(TxFDEM):
+class SimpleTxFDEM_g(TxFDEM):
 
     def __init__(self, vec, freq, rxList):
         self.vec = vec
@@ -193,8 +198,18 @@ class SimpleTxFDEM(TxFDEM):
         TxFDEM.__init__(self, None, 'Simple', freq, rxList)
 
     def getSource(self, prob):
-        return self.vec
+        return None, self.vec
 
+
+class SimpleTxFDEM_m(TxFDEM):
+
+    def __init__(self, vec, freq, rxList):
+        self.vec = vec
+        self.freq = float(freq)
+        TxFDEM.__init__(self, None, 'Simple', freq, rxList)
+
+    def getSource(self, prob):
+        return self.vec, None
 
 
 class FieldsFDEM(Problem.Fields):
