@@ -2,10 +2,53 @@ from SimPEG import Survey, Problem, Utils, np, sp, Solver as SimpegSolver
 from scipy.constants import mu_0
 from SurveyFDEM import SurveyFDEM, FieldsFDEM
 from simpegEM.Base import BaseEMProblem
+from simpegEM.Utils.EMUtils import omega
 
-def omega(freq):
-    """Change frequency to angular frequency, omega"""
-    return 2.*np.pi*freq
+
+
+# class FieldsTDEM_e_from_b(FieldsFDEM):
+#     """Fancy Field Storage for a TDEM survey."""
+#     knownFields = {'b_sec': 'F'}
+#     aliasFields = {
+#                     'b': ['b_sec','F','b_from_bsec'],
+#                     'e': ['b','E','e_from_b']
+#                   }
+
+#     def startup(self):
+#         self.MeSigmaI  = self.survey.prob.MeSigmaI
+#         self.edgeCurlT = self.survey.prob.mesh.edgeCurl.T
+#         self.MfMui     = self.survey.prob.MfMui
+
+#     def e_from_b(self, b, txInd, timeInd):
+#         # TODO: implement non-zero js
+#         return self.MeSigmaI*(self.edgeCurlT*(self.MfMui*b))
+
+#     def e_from_bDeriv(self, b, txInd, timeInd):
+#         # TODO: implement non-zero js
+#         return self.MeSigmaI*(self.edgeCurlT*(self.MfMui*b))
+
+
+#     def calcFields(self, sol, freq, fieldType, adjoint=False):
+#         e = sol
+#         if fieldType == 'e':
+#             return e
+#         elif fieldType == 'b':
+#             if not adjoint:
+#                 b = - self.mesh.edgeCurl * e 
+#                 b = 1./(1j*omega(freq)) * b
+#             else:
+#                 b = -(1./(1j*omega(freq))) * ( self.mesh.edgeCurl.T * e )
+#             return b
+#         raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
+
+#     def calcFieldsDeriv(self, sol, freq, fieldType, v, adjoint=False):
+#         e = sol
+#         if fieldType == 'e':
+#             return None
+#         elif fieldType == 'b':
+#             return None
+#         raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
+
 
 
 class BaseFDEMProblem(BaseEMProblem):
@@ -19,8 +62,11 @@ class BaseFDEMProblem(BaseEMProblem):
 
     """
     surveyPair = SurveyFDEM
+    # fieldsPair = FieldsFDEM
 
     def forward(self, m, RHS, CalcFields):
+
+        # F = self.fieldsPair(self.mesh, self.survey)
 
         F = FieldsFDEM(self.mesh, self.survey)
 
@@ -32,6 +78,10 @@ class BaseFDEMProblem(BaseEMProblem):
             for fieldType in self.storeTheseFields:
                 Txs = self.survey.getTransmitters(freq)
                 F[Txs, fieldType] = CalcFields(sol, freq, fieldType)
+
+
+            # Txs = self.survey.getTransmitters(freq)
+            # F[Txs, 'e_sec'] = sol
 
         return F
 
@@ -55,11 +105,11 @@ class BaseFDEMProblem(BaseEMProblem):
                     fAinvw = self.calcFields(Ainvw, freq, rx.projField)
                     P = lambda v: rx.projectFieldsDeriv(tx, self.mesh, u, v)
 
+                    Jv[tx, rx] = - P(fAinvw)
+
                     df_dm = self.calcFieldsDeriv(u_tx, freq, rx.projField, v)
-                    if df_dm is None:
-                        Jv[tx, rx] = - P(fAinvw)
-                    else:
-                        Jv[tx, rx] = - P(fAinvw) + P(df_dm)
+                    if df_dm is not None:
+                        Jv[tx, rx] += P(df_dm)
 
         return Utils.mkvc(Jv)
 
@@ -111,12 +161,13 @@ class BaseFDEMProblem(BaseEMProblem):
             :return: RHS
         """
         Txs = self.survey.getTransmitters(freq)
-        rhs = range(len(Txs))
-
+        j_m = range(len(Txs)) 
+        j_e = range(len(Txs)) 
         for i, tx in enumerate(Txs):
-            rhs[i] = tx.getSource(self)
+            j_m[i], j_e[i] = tx.getSource(self)
 
-        return np.concatenate(rhs).reshape((-1, len(Txs)), order='F')
+        return j_m, j_e
+        # return np.concatenate(rhs).reshape((-1, len(Txs)), order='F') #, np.concatenate(j_e).reshape((-1, len(Txs)), order='F')
 
 ##########################################################################################
 ################################ E-B Formulation #########################################
@@ -141,6 +192,8 @@ class ProblemFDEM_e(BaseFDEMProblem):
 
     """
     solType = 'e'
+    # _fieldType = 'e'
+    # fieldsPair = FieldsFDEM_e
 
     def __init__(self, model, **kwargs):
         BaseFDEMProblem.__init__(self, model, **kwargs)
@@ -175,8 +228,23 @@ class ProblemFDEM_e(BaseFDEMProblem):
             :return: RHS
         """
 
-        j_s = self.getSource(freq)
-        return -1j*omega(freq)*j_s
+        j_m, j_g = self.getSource(freq)
+        nTx_freq = self.survey.nTxByFreq[freq]
+        RHS = 1j*np.zeros([self.mesh.nE, nTx_freq])
+
+        C = self.mesh.edgeCurl
+        MfMui = self.MfMui
+
+        for ii in range(nTx_freq):
+            if j_m[ii] is not None:
+
+                RHS[:, ii] += C.T * (MfMui * j_m[ii])
+
+            if j_g[ii] is not None:
+                RHS[:, ii] += -1j*omega(freq)*j_g[ii]
+
+        return RHS
+
 
     def calcFields(self, sol, freq, fieldType, adjoint=False):
         e = sol
@@ -184,7 +252,8 @@ class ProblemFDEM_e(BaseFDEMProblem):
             return e
         elif fieldType == 'b':
             if not adjoint:
-                b = -(1./(1j*omega(freq))) * ( self.mesh.edgeCurl * e )
+                b = - self.mesh.edgeCurl * e 
+                b = 1./(1j*omega(freq)) * b
             else:
                 b = -(1./(1j*omega(freq))) * ( self.mesh.edgeCurl.T * e )
             return b
@@ -254,13 +323,27 @@ class ProblemFDEM_b(BaseFDEMProblem):
             :return: RHS
         """
 
-        b_0 = self.getSource(freq)
+        j_m, j_g = self.getSource(freq)
+        nTx_freq = self.survey.nTxByFreq[freq]
+        RHS = 1j*np.zeros([self.mesh.nF, nTx_freq])
 
-        rhs = -1j*omega(freq)*b_0
+        C = self.mesh.edgeCurl
+        MfSigmai = self.MfSigmai
+
+        for ii in range(nTx_freq):
+            if j_m[ii] is not None:
+                RHS[:,ii] += j_m[ii]
+
+            if j_g[ii] is not None:
+                RHS[:,ii] += C * ( MfSigmai * j_g[ii] )
+
+
         if self._makeASymmetric is True:
             mui = self.MfMui
-            return mui.T*rhs
-        return rhs
+            return mui.T*RHS
+
+        return RHS
+
 
     def calcFields(self, sol, freq, fieldType, adjoint=False):
         b = sol
@@ -273,6 +356,7 @@ class ProblemFDEM_b(BaseFDEMProblem):
         elif fieldType == 'b':
             return b
         raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
+
 
     def calcFieldsDeriv(self, sol, freq, fieldType, v, adjoint=False):
         b = sol
@@ -389,13 +473,28 @@ class ProblemFDEM_j(BaseFDEMProblem):
             :rtype: numpy.ndarray (nE, nTx)
             :return: RHS
         """
-        j_s = self.getSource(freq)
-        rhs = -1j*omega(freq)*j_s
+
+        j_m, j_g = self.getSource(freq)
+        nTx_freq = self.survey.nTxByFreq[freq]
+        RHS = 1j*np.zeros([self.mesh.nF, nTx_freq])
+
+        C = self.mesh.edgeCurl
+        MeMuI = self.MeMuI   
+
+        for ii in range(nTx_freq):
+            if j_m[ii] is not None:
+                RHS[:,ii] += C * (MeMuI * j_m[ii])
+
+            if j_g[ii] is not None:
+                RHS[:,ii] += -1j * omega(freq) * j_g[ii]
+
 
         if self._makeASymmetric is True:
             MfSigi = self.MfSigmai
-            return MfSigi.T*rhs
-        return rhs
+            return MfSigi.T*RHS
+
+        return RHS
+
 
     def calcFields(self, sol, freq, fieldType, adjoint=False):
         j = sol
@@ -495,15 +594,29 @@ class ProblemFDEM_h(BaseFDEMProblem):
         return  (C.T  * (dMf_dsigi * (dsigi_dsig * (dsig_dm * v))))
 
 
-
     def getRHS(self, freq):
         """
             :param float freq: Frequency
             :rtype: numpy.ndarray (nE, nTx)
             :return: RHS
         """
-        b_0 = self.getSource(freq)
-        return -1j*omega(freq)*b_0
+
+        j_m, j_g = self.getSource(freq)
+        nTx_freq = self.survey.nTxByFreq[freq]
+        RHS = 1j*np.zeros([self.mesh.nE, nTx_freq])
+
+        C = self.mesh.edgeCurl
+        MfSigmai  = self.MfSigmai
+
+        for ii in range(nTx_freq):
+            if j_m[ii] is not None:
+                RHS[:,ii] += j_m[ii]
+
+            if j_g[ii] is not None:
+                RHS[:,ii] += C.T * ( MfSigmai * j_g[ii] )
+
+        return RHS
+
 
     def calcFields(self, sol, freq, fieldType, adjoint=False):
         h = sol
