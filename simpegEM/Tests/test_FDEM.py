@@ -10,6 +10,8 @@ testAdjoint = False
 testEB = True
 testHJ = False
 
+verbose = True
+
 TOL = 1e-4
 FLR = 1e-20 # "zero", so if residual below this --> pass regardless of order
 CONDUCTIVITY = 1e1
@@ -36,6 +38,9 @@ def getProblem(fdemType, comp):
 
     survey = EM.FDEM.SurveyFDEM([Tx0])
 
+
+    if verbose:
+        print '  Fetching %s problem' % (fdemType)
 
     if fdemType == 'e':
         prb = EM.FDEM.ProblemFDEM_e(mesh, mapping=mapping)
@@ -82,7 +87,9 @@ def adjointTest(fdemType, comp):
     print vJw, wJtv, vJw - wJtv, tol, np.abs(vJw - wJtv) < tol
     return np.abs(vJw - wJtv) < tol
 
+
 def derivTest(fdemType, comp):
+
     prb = getProblem(fdemType, comp)
     print '%s formulation - %s' % (fdemType, comp)
     x0 = np.log(np.ones(prb.mesh.nC)*CONDUCTIVITY)
@@ -119,6 +126,9 @@ def crossCheckTest(fdemType, comp):
     u1 = prb1.fields(m)
     d1 = Utils.mkvc(survey1.projectFields(u1))
 
+    if verbose:
+        print '  Problem 1 solved'
+
     prb1.unpair
 
     if fdemType == 'e':
@@ -137,6 +147,9 @@ def crossCheckTest(fdemType, comp):
 
     u2 = prb2.fields(m)
     d2 = Utils.mkvc(survey2.projectFields(u2))
+
+    if verbose:
+        print '  Problem 2 solved'
 
     r = d2-d1
     l2r = l2norm(r) 
@@ -368,29 +381,29 @@ class FDEM_DerivTests(unittest.TestCase):
         if testEB:
             def test_EB_CrossCheck_exr_Eform(self):
                 self.assertTrue(crossCheckTest('e', 'exr'))
-            def test_EB_CrossCheck_eyr_Eform(self):
-                self.assertTrue(crossCheckTest('e', 'eyr'))
-            def test_EB_CrossCheck_ezr_Eform(self):
-                self.assertTrue(crossCheckTest('e', 'ezr'))
-            def test_EB_CrossCheck_exi_Eform(self):
-                self.assertTrue(crossCheckTest('e', 'exi'))
-            def test_EB_CrossCheck_eyi_Eform(self):
-                self.assertTrue(crossCheckTest('e', 'eyi'))
-            def test_EB_CrossCheck_ezi_Eform(self):
-                self.assertTrue(crossCheckTest('e', 'ezi'))
+            # def test_EB_CrossCheck_eyr_Eform(self):
+            #     self.assertTrue(crossCheckTest('e', 'eyr'))
+            # def test_EB_CrossCheck_ezr_Eform(self):
+            #     self.assertTrue(crossCheckTest('e', 'ezr'))
+            # def test_EB_CrossCheck_exi_Eform(self):
+            #     self.assertTrue(crossCheckTest('e', 'exi'))
+            # def test_EB_CrossCheck_eyi_Eform(self):
+            #     self.assertTrue(crossCheckTest('e', 'eyi'))
+            # def test_EB_CrossCheck_ezi_Eform(self):
+            #     self.assertTrue(crossCheckTest('e', 'ezi'))
 
-            def test_EB_CrossCheck_bxr_Eform(self):
-                self.assertTrue(crossCheckTest('e', 'bxr'))
-            def test_EB_CrossCheck_byr_Eform(self):
-                self.assertTrue(crossCheckTest('e', 'byr'))
-            # def test_EB_CrossCheck_bzr_Eform(self):
-            #     self.assertTrue(crossCheckTest('e', 'bzr')) # Doesn't make sense to test this for p-s approach
-            def test_EB_CrossCheck_bxi_Eform(self):
-                self.assertTrue(crossCheckTest('e', 'bxi'))
-            def test_EB_CrossCheck_byi_Eform(self):
-                self.assertTrue(crossCheckTest('e', 'byi'))
-            def test_EB_CrossCheck_bzi_Eform(self):
-                self.assertTrue(crossCheckTest('e', 'bzi'))
+            # def test_EB_CrossCheck_bxr_Eform(self):
+            #     self.assertTrue(crossCheckTest('e', 'bxr'))
+            # def test_EB_CrossCheck_byr_Eform(self):
+            #     self.assertTrue(crossCheckTest('e', 'byr'))
+            # # def test_EB_CrossCheck_bzr_Eform(self):
+            # #     self.assertTrue(crossCheckTest('e', 'bzr')) # Doesn't make sense to test this for p-s approach
+            # def test_EB_CrossCheck_bxi_Eform(self):
+            #     self.assertTrue(crossCheckTest('e', 'bxi'))
+            # def test_EB_CrossCheck_byi_Eform(self):
+            #     self.assertTrue(crossCheckTest('e', 'byi'))
+            # def test_EB_CrossCheck_bzi_Eform(self):
+            #     self.assertTrue(crossCheckTest('e', 'bzi'))
 
         if testHJ:
             def test_HJ_CrossCheck_jxr_Jform(self):

@@ -4,32 +4,32 @@ from simpegEM.Utils.EMUtils import omega
 
 class FieldsFDEM(Problem.Fields):
 	"""Fancy Field Storage for a FDEM survey."""
-	knownFields = {'b': 'F', 'e': 'E', 'j': 'F', 'h': 'E'} # TODO: a, phi
+	# knownFields = {'b': 'F', 'e': 'E', 'b_sec' : 'F', 'e_sec':'E' ,'j': 'F', 'h': 'E'} # TODO: a, phi
 	dtype = complex
 
-	def calcFields(self,sol,tx,fieldType):
-		if fieldType == 'e':
-			return self._e(sol,tx)
-		elif fieldType == 'e_sec':
-			return self._e_sec(sol,tx)
-		elif fieldType == 'b':
-			return self._b(sol,tx)
-		elif fieldType == 'b_sec':
-			return self._b_sec(sol,tx)
-		else:
-			raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
+	# def calcFields(self,sol,tx,fieldType):
+	# 	if fieldType == 'e':
+	# 		return self._e(sol,tx)
+	# 	elif fieldType == 'e_sec':
+	# 		return self._e_sec(sol,tx)
+	# 	elif fieldType == 'b':
+	# 		return self._b(sol,tx)
+	# 	elif fieldType == 'b_sec':
+	# 		return self._b_sec(sol,tx)
+	# 	else:
+	# 		raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
 
-	def calcFieldsDeriv(self,sol,tx,fieldType,adjoint=False):
-		if fieldType == 'e':
-			return self._eDeriv(sol,tx,adjoint)
-		elif fieldType == 'e_sec':
-			return self._e_secDeriv(sol,tx,adjoint)
-		elif fieldType == 'b':
-			return self._bDeriv(sol,tx,adjoint,adjoint)
-		elif fieldType == 'b_sec':
-			return self._b_secDeriv(sol,tx,adjoint,adjoint)
-		else:
-			raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
+	# def calcFieldsDeriv(self,sol,tx,fieldType,adjoint=False):
+	# 	if fieldType == 'e':
+	# 		return self._eDeriv(sol,tx,adjoint)
+	# 	elif fieldType == 'e_sec':
+	# 		return self._e_secDeriv(sol,tx,adjoint)
+	# 	elif fieldType == 'b':
+	# 		return self._bDeriv(sol,tx,adjoint)
+	# 	elif fieldType == 'b_sec':
+	# 		return self._b_secDeriv(sol,tx,adjoint)
+	# 	else:
+	# 		raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
 
 
 
@@ -47,6 +47,26 @@ class FieldsFDEM_e(FieldsFDEM):
 		self.edgeCurl = self.survey.prob.mesh.edgeCurl
 		self.getSource = self.survey.prob.getSource
 		self.getSourceDeriv = self.survey.prob.getSourceDeriv 
+
+	def calcFields(self,sol,tx,fieldType):
+		if fieldType == 'e':
+			return self._e(sol,tx)
+		elif fieldType == 'b':
+			return self._b(sol,tx)
+		elif fieldType == 'b_sec':
+			return self._b_sec(sol,tx)
+		else:
+			raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
+
+	def calcFieldsDeriv(self,sol,tx,fieldType,adjoint=False):
+		if fieldType == 'e':
+			return self._eDeriv(sol,tx,adjoint)
+		elif fieldType == 'b':
+			return self._bDeriv(sol,tx,adjoint)
+		elif fieldType == 'b_sec':
+			return self._b_secDeriv(sol,tx,adjoint)
+		else:
+			raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
 
 	def _e(self, e, tx):
 		return e
@@ -89,6 +109,26 @@ class FieldsFDEM_b(FieldsFDEM):
 		self.MfMui = self.survey.prob.MfMui
 		self.getSource = self.survey.prob.getSource
 		self.getSourceDeriv = self.survey.prob.getSourceDeriv 
+
+	def calcFields(self,sol,tx,fieldType):
+		if fieldType == 'e':
+			return self._e(sol,tx)
+		elif fieldType == 'e_sec':
+			return self._e_sec(sol,tx)
+		elif fieldType == 'b':
+			return self._b(sol,tx)
+		else:
+			raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
+
+	def calcFieldsDeriv(self,sol,tx,fieldType,adjoint=False):
+		if fieldType == 'e':
+			return self._eDeriv(sol,tx,adjoint)
+		elif fieldType == 'e_sec':
+			return self._e_secDeriv(sol,tx,adjoint)
+		elif fieldType == 'b':
+			return self._bDeriv(sol,tx,adjoint)
+		else:
+			raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
 
 	def _b(self, b, tx):
 		return b
