@@ -6,8 +6,6 @@ class BaseEMProblem(Problem.BaseProblem):
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
-    solType = None
-    storeTheseFields = ['e', 'b']
 
     surveyPair = Survey.BaseSurvey
     dataPair = Survey.Data
@@ -105,5 +103,5 @@ class BaseEMProblem(Problem.BaseProblem):
 
     def fields(self, m):
         self.curModel = m
-        F = self.forward(m, self.getRHS, self.calcFields)
+        F = self.forward(m, self.getRHS)
         return F

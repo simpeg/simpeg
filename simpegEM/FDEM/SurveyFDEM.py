@@ -2,9 +2,6 @@ from SimPEG import Survey, Problem, Utils, np, sp
 from simpegEM import Sources
 from simpegEM.Utils.EMUtils import omega
 
-def omega(freq):
-    """Change frequency to angular frequency, omega"""
-    return 2.*np.pi*freq
 
 class RxFDEM(Survey.BaseRx):
 
@@ -105,7 +102,7 @@ class TxFDEM(Survey.BaseTx):
 
         tx = self
         freq = tx.freq
-        solType = prob.solType
+        solType = prob._fieldType # Hack, should just ask whether j_m, j_g are defined on edges or faces
 
         if solType == 'e' or solType == 'b':
             gridEJx = prob.mesh.gridEx
@@ -210,12 +207,6 @@ class SimpleTxFDEM_m(TxFDEM):
 
     def getSource(self, prob):
         return self.vec, None
-
-
-class FieldsFDEM(Problem.Fields):
-    """Fancy Field Storage for a FDEM survey."""
-    knownFields = {'b': 'F', 'e': 'E', 'j': 'F', 'h': 'E'}
-    dtype = complex
 
 
 class SurveyFDEM(Survey.BaseSurvey):
