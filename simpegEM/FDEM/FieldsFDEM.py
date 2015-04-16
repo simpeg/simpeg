@@ -4,7 +4,6 @@ from simpegEM.Utils.EMUtils import omega
 
 class FieldsFDEM(Problem.Fields):
 	"""Fancy Field Storage for a FDEM survey."""
-	knownFields = {'b': 'F', 'e': 'E', 'b_sec' : 'F', 'e_sec':'E' ,'j': 'F', 'h': 'E'} # TODO: a, phi
 	dtype = complex
 
 	def calcFields(self,sol,tx,fieldType):
