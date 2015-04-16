@@ -3,6 +3,7 @@ from SimPEG import *
 import simpegEM as EM
 import sys
 from scipy.constants import mu_0
+import copy
 
 testDerivs = False
 testCrossCheck = True
@@ -128,8 +129,6 @@ def crossCheckTest(fdemType, comp):
 
     if verbose:
         print '  Problem 1 solved'
-
-    prb1.unpair
 
     if fdemType == 'e':
         prb2 = getProblem('b', comp)
@@ -381,29 +380,29 @@ class FDEM_DerivTests(unittest.TestCase):
         if testEB:
             def test_EB_CrossCheck_exr_Eform(self):
                 self.assertTrue(crossCheckTest('e', 'exr'))
-            # def test_EB_CrossCheck_eyr_Eform(self):
-            #     self.assertTrue(crossCheckTest('e', 'eyr'))
-            # def test_EB_CrossCheck_ezr_Eform(self):
-            #     self.assertTrue(crossCheckTest('e', 'ezr'))
-            # def test_EB_CrossCheck_exi_Eform(self):
-            #     self.assertTrue(crossCheckTest('e', 'exi'))
-            # def test_EB_CrossCheck_eyi_Eform(self):
-            #     self.assertTrue(crossCheckTest('e', 'eyi'))
-            # def test_EB_CrossCheck_ezi_Eform(self):
-            #     self.assertTrue(crossCheckTest('e', 'ezi'))
+            def test_EB_CrossCheck_eyr_Eform(self):
+                self.assertTrue(crossCheckTest('e', 'eyr'))
+            def test_EB_CrossCheck_ezr_Eform(self):
+                self.assertTrue(crossCheckTest('e', 'ezr'))
+            def test_EB_CrossCheck_exi_Eform(self):
+                self.assertTrue(crossCheckTest('e', 'exi'))
+            def test_EB_CrossCheck_eyi_Eform(self):
+                self.assertTrue(crossCheckTest('e', 'eyi'))
+            def test_EB_CrossCheck_ezi_Eform(self):
+                self.assertTrue(crossCheckTest('e', 'ezi'))
 
-            # def test_EB_CrossCheck_bxr_Eform(self):
-            #     self.assertTrue(crossCheckTest('e', 'bxr'))
-            # def test_EB_CrossCheck_byr_Eform(self):
-            #     self.assertTrue(crossCheckTest('e', 'byr'))
-            # # def test_EB_CrossCheck_bzr_Eform(self):
-            # #     self.assertTrue(crossCheckTest('e', 'bzr')) # Doesn't make sense to test this for p-s approach
-            # def test_EB_CrossCheck_bxi_Eform(self):
-            #     self.assertTrue(crossCheckTest('e', 'bxi'))
-            # def test_EB_CrossCheck_byi_Eform(self):
-            #     self.assertTrue(crossCheckTest('e', 'byi'))
-            # def test_EB_CrossCheck_bzi_Eform(self):
-            #     self.assertTrue(crossCheckTest('e', 'bzi'))
+            def test_EB_CrossCheck_bxr_Eform(self):
+                self.assertTrue(crossCheckTest('e', 'bxr'))
+            def test_EB_CrossCheck_byr_Eform(self):
+                self.assertTrue(crossCheckTest('e', 'byr'))
+            def test_EB_CrossCheck_bzr_Eform(self):
+                self.assertTrue(crossCheckTest('e', 'bzr')) # Doesn't make sense to test this for p-s approach
+            def test_EB_CrossCheck_bxi_Eform(self):
+                self.assertTrue(crossCheckTest('e', 'bxi'))
+            def test_EB_CrossCheck_byi_Eform(self):
+                self.assertTrue(crossCheckTest('e', 'byi'))
+            def test_EB_CrossCheck_bzi_Eform(self):
+                self.assertTrue(crossCheckTest('e', 'bzi'))
 
         if testHJ:
             def test_HJ_CrossCheck_jxr_Jform(self):
