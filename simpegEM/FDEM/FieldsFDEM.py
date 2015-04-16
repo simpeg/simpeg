@@ -7,31 +7,6 @@ class FieldsFDEM(Problem.Fields):
 	knownFields = None
 	dtype = complex
 
-	# def calcFields(self,sol,tx,fieldType):
-	# 	if fieldType == 'e':
-	# 		return self._e(sol,tx)
-	# 	elif fieldType == 'e_sec':
-	# 		return self._e_sec(sol,tx)
-	# 	elif fieldType == 'b':
-	# 		return self._b(sol,tx)
-	# 	elif fieldType == 'b_sec':
-	# 		return self._b_sec(sol,tx)
-	# 	else:
-	# 		raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
-
-	# def calcFieldsDeriv(self,sol,tx,fieldType,adjoint=False):
-	# 	if fieldType == 'e':
-	# 		return self._eDeriv(sol,tx,adjoint)
-	# 	elif fieldType == 'e_sec':
-	# 		return self._e_secDeriv(sol,tx,adjoint)
-	# 	elif fieldType == 'b':
-	# 		return self._bDeriv(sol,tx,adjoint)
-	# 	elif fieldType == 'b_sec':
-	# 		return self._b_secDeriv(sol,tx,adjoint)
-	# 	else:
-	# 		raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
-
-
 
 class FieldsFDEM_e(FieldsFDEM):
 	knownFields = {'e':'E'}
@@ -48,12 +23,6 @@ class FieldsFDEM_e(FieldsFDEM):
 		self.getSource = self.survey.prob.getSource
 		self.getSourceDeriv = self.survey.prob.getSourceDeriv 
 
-	# def _e(self, e, tx):
-	# 	return e
-
-	# def _eDeriv(self, e, tx, adjoint=False):
-	# 	return None
-
 	def _b_sec(self, e, tx): #adjoint=False
 		return - 1./(1j*omega(tx.freq)) * (self.edgeCurl * e)
 
@@ -62,13 +31,12 @@ class FieldsFDEM_e(FieldsFDEM):
 
 	def _b(self, e, tx): #adjoint=False
 		b = self._b_sec(e,tx)
-		print b.shape
 		j_m,_ = self.getSource(tx.freq)
 		if j_m[0] is not None:
 			b += 1./(1j*omega(tx.freq)) * np.array([j_m[0]]).T
 		return b
 
-	def _bDreiv(self, e, tx, adjoint=False):
+	def _bDeriv(self, e, tx, adjoint=False):
 		j_mDeriv,_ = self.getSourceDeriv(tx.freq, adjoint)
 		b_secDeriv = self._b_secDeriv(e,tx.freq,adjoint)
 		if j_mDeriv is None & b_secDeriv is None:
@@ -98,12 +66,6 @@ class FieldsFDEM_b(FieldsFDEM):
 		self.getSource = self.survey.prob.getSource
 		self.getSourceDeriv = self.survey.prob.getSourceDeriv 
 
-	# def _b(self, b, tx):
-	# 	return b
-
-	# def _bDeriv(self, b, tx, adjoint=False):
-	# 	return None
-
 	def _e_sec(self, b, tx):
 		return self.MeSigmaI * ( self.edgeCurl.T * ( self.MfMui * b) )
 
@@ -129,3 +91,150 @@ class FieldsFDEM_b(FieldsFDEM):
 			return e_secDeriv
 		else:
 			return e_secDeriv - j_gDeriv
+
+
+class FieldsFDEM_j(FieldsFDEM):
+	knownFields = {'j':'F'}
+	aliasFields = {
+					'h_sec' : ['j','E','_h_sec'],
+					'h' : ['j','E','_h']
+				  }
+
+	def __init__(self,mesh,survey,**kwargs):
+		FieldsFDEM.__init__(self,mesh,survey,**kwargs)
+
+	def startup(self):
+		self.edgeCurl = self.survey.prob.mesh.edgeCurl
+		self.MeMuI = self.survey.prob.MeMuI
+		self.MfSigmai = self.survey.prob.MfSigmai
+		self.getSource = self.survey.prob.getSource
+		self.getSourceDeriv = self.survey.prob.getSourceDeriv 
+
+	def _h_sec(self, j, tx): #adjoint=False
+		return - 1./(1j*omega(tx.freq)) * self.MeMuI * (self.edgeCurl.T * (self.MfSigmai * j) ) 
+
+	def _h_secDeriv(self, j, tx, adjoint=False): 
+#         MeMuI = self.MeMuI
+#         C = self.mesh.edgeCurl
+#         sig = self.curModel.transform
+#         sigi = 1/sig
+#         dsig_dm = self.curModel.transformDeriv
+#         dsigi_dsig = -Utils.sdiag(sigi)**2
+#         dMf_dsigi = self.mesh.getFaceInnerProductDeriv(sigi)(j)
+#         sigi = self.MfSigmai
+#         if not adjoint:
+#             return -(1./(1j*omega(freq))) * MeMuI * ( C.T * ( dMf_dsigi * ( dsigi_dsig * ( dsig_dm * v ) ) ) )
+#         else:
+#             return -(1./(1j*omega(freq))) * dsig_dm.T * ( dsigi_dsig.T * ( dMf_dsigi.T * ( C * ( MeMuI.T * v ) ) ) )
+		raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
+
+	def _h(self, j, tx): #adjoint=False
+		h = self._h_sec(j,tx)
+		j_m,_ = self.getSource(tx.freq)
+		if j_m[0] is not None:
+			h += 1./(1j*omega(tx.freq)) * self.MeMuI * np.array([j_m[0]]).T
+		return h
+
+	def _hDeriv(self, j, tx, adjoint=False):
+		j_mDeriv,_ = self.getSourceDeriv(tx.freq, adjoint)
+		h_secDeriv = self._h_secDeriv(j,tx.freq,adjoint)
+		if j_mDeriv is None & h_secDeriv is None:
+			return None
+		elif h_secDeriv is None:
+			return 1./(1j*omega(tx.freq)) * j_mDeriv
+		elif j_mDeriv is None:
+			return h_secDeriv
+		else:
+			return 1./(1j*omega(tx.freq)) * j_mDeriv + h_secDeriv
+
+class FieldsFDEM_h(FieldsFDEM):
+	knownFields = {'h':'E'}
+	aliasFields = {
+					'j_sec' : ['h','F','_j_sec'],
+					'j' : ['h','F','_j']
+				  }
+
+	def __init__(self,mesh,survey,**kwargs):
+		FieldsFDEM.__init__(self,mesh,survey,**kwargs)
+
+	def startup(self):
+		self.edgeCurl = self.survey.prob.mesh.edgeCurl
+		self.MeMuI = self.survey.prob.MeMuI
+		self.MfSigmai = self.survey.prob.MfSigmai
+		self.getSource = self.survey.prob.getSource
+		self.getSourceDeriv = self.survey.prob.getSourceDeriv 
+
+	def _j_sec(self, h, tx): #adjoint=False
+		return self.edgeCurl*h
+
+	def _j_secDeriv(self, h, tx, adjoint=False): 
+		return None
+
+	def _j(self, h, tx): #adjoint=False
+		j = self._j_sec(h,tx)
+		_,j_g = self.getSource(tx.freq)
+		if j_g[0] is not None:
+			j += -np.array([j_g[0]]).T
+		return j
+
+	def _jDeriv(self, h, tx, adjoint=False):
+		_,j_gDeriv = self.getSourceDeriv(tx.freq, adjoint)
+		j_secDeriv = self._j_secDeriv(j,tx.freq,adjoint)
+		if j_gDeriv is None & j_secDeriv is None:
+			return None
+		elif j_secDeriv is None:
+			return - j_gDeriv
+		elif j_gDeriv is None:
+			return j_secDeriv
+		else:
+			return - j_gDeriv + j_secDeriv
+
+
+	# def calcFields(self, sol, freq, fieldType, adjoint=False):
+    #     j = sol
+    #     if fieldType == 'j':
+    #         return j
+    #     elif fieldType == 'h':
+    #         MeMuI = self.MeMuI
+    #         C = self.mesh.edgeCurl
+    #         MfSigmai = self.MfSigmai
+    #         if not adjoint:
+    #             h = -(1./(1j*omega(freq))) * MeMuI * ( C.T * ( MfSigmai * j ) )
+    #         else:
+    #             h = -(1./(1j*omega(freq))) * MfSigmai.T * ( C * ( MeMuI.T * j ) )
+    #         return h
+    #     raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
+
+    # def calcFieldsDeriv(self, sol, freq, fieldType, v, adjoint=False):
+    #     j = sol
+    #     if fieldType == 'j':
+    #         return None
+    #     elif fieldType == 'h':
+    #         MeMuI = self.MeMuI
+    #         C = self.mesh.edgeCurl
+    #         sig = self.curModel.transform
+    #         sigi = 1/sig
+    #         dsig_dm = self.curModel.transformDeriv
+    #         dsigi_dsig = -Utils.sdiag(sigi)**2
+    #         dMf_dsigi = self.mesh.getFaceInnerProductDeriv(sigi)(j)
+    #         sigi = self.MfSigmai
+    #         if not adjoint:
+    #             return -(1./(1j*omega(freq))) * MeMuI * ( C.T * ( dMf_dsigi * ( dsigi_dsig * ( dsig_dm * v ) ) ) )
+    #         else:
+    #             return -(1./(1j*omega(freq))) * dsig_dm.T * ( dsigi_dsig.T * ( dMf_dsigi.T * ( C * ( MeMuI.T * v ) ) ) )
+    #     raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
+
+
+    # def calcFields(self, sol, freq, fieldType, adjoint=False):
+    #     h = sol
+    #     if fieldType == 'j':
+    #         C = self.mesh.edgeCurl
+    #         if adjoint:
+    #             return C.T*h
+    #         return C*h
+    #     elif fieldType == 'h':
+    #         return h
+    #     raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
+
+    # def calcFieldsDeriv(self, sol, freq, fieldType, v, adjoint=False):
+    #     return None

@@ -1,7 +1,7 @@
 from SimPEG import Survey, Problem, Utils, np, sp, Solver as SimpegSolver
 from scipy.constants import mu_0
 from SurveyFDEM import SurveyFDEM
-from FieldsFDEM import FieldsFDEM, FieldsFDEM_e, FieldsFDEM_b
+from FieldsFDEM import FieldsFDEM, FieldsFDEM_e, FieldsFDEM_b, FieldsFDEM_h, FieldsFDEM_j
 from simpegEM.Base import BaseEMProblem
 from simpegEM.Utils.EMUtils import omega
 
@@ -12,8 +12,8 @@ class BaseFDEMProblem(BaseEMProblem):
 
         .. math::
 
-            \\nabla \\times \\vec{E} + i \\omega \\vec{B} = 0 \\\\
-            \\nabla \\times \\mu^{-1} \\vec{B} - \\sigma \\vec{E} = \\vec{J_s}
+            \\nabla \\times \\vec{E} + i \\omega \\vec{B} = \\vec{S_m} \\\\
+            \\nabla \\times \\mu^{-1} \\vec{B} - \\sigma \\vec{E} = \\vec{S_e}
 
     """
     surveyPair = SurveyFDEM
@@ -28,10 +28,6 @@ class BaseFDEMProblem(BaseEMProblem):
             rhs = RHS(freq)
             Ainv = self.Solver(A, **self.solverOpts)
             sol = Ainv * rhs
-            # for fieldType in self.storeTheseFields:
-            #     Txs = self.survey.getTransmitters(freq)
-            #     F[Txs, fieldType] = CalcFields(sol, freq, fieldType)
-
             Txs = self.survey.getTransmitters(freq)
             F[Txs, self._fieldType] = sol
 
@@ -149,6 +145,7 @@ class ProblemFDEM_e(BaseFDEMProblem):
     """
 
     _fieldType = 'e'
+    _eqLocs    = 'FE'
     fieldsPair = FieldsFDEM_e
 
     def __init__(self, model, **kwargs):
@@ -202,33 +199,12 @@ class ProblemFDEM_e(BaseFDEMProblem):
         return RHS
 
 
-    # def calcFields(self, sol, freq, fieldType, adjoint=False):
-    #     e = sol
-    #     if fieldType == 'e':
-    #         return e
-    #     elif fieldType == 'b':
-    #         if not adjoint:
-    #             b = - self.mesh.edgeCurl * e 
-    #             b = 1./(1j*omega(freq)) * b
-    #         else:
-    #             b = -(1./(1j*omega(freq))) * ( self.mesh.edgeCurl.T * e )
-    #         return b
-    #     raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
-
-    # def calcFieldsDeriv(self, sol, freq, fieldType, v, adjoint=False):
-    #     e = sol
-    #     if fieldType == 'e':
-    #         return None
-    #     elif fieldType == 'b':
-    #         return None
-    #     raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
-
-
 class ProblemFDEM_b(BaseFDEMProblem):
     """
         Solving for b!
     """
     _fieldType = 'b'
+    _eqLocs    = 'FE'
     fieldsPair = FieldsFDEM_b
 
     def __init__(self, model, **kwargs):
@@ -302,41 +278,6 @@ class ProblemFDEM_b(BaseFDEMProblem):
         return RHS
 
 
-    # def calcFields(self, sol, freq, fieldType, adjoint=False):
-    #     b = sol
-    #     if fieldType == 'e':
-    #         if not adjoint:
-    #             e = self.MeSigmaI * ( self.mesh.edgeCurl.T * ( self.MfMui * b ) )
-    #         else:
-    #             e = self.MfMui.T * ( self.mesh.edgeCurl * ( self.MeSigmaI.T * b ) )
-    #         return e
-    #     elif fieldType == 'b':
-    #         return b
-    #     raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
-
-
-    # def calcFieldsDeriv(self, sol, freq, fieldType, v, adjoint=False):
-    #     b = sol
-    #     if fieldType == 'e':
-    #         sig = self.curModel.transform
-    #         dsig_dm = self.curModel.transformDeriv
-
-    #         C = self.mesh.edgeCurl
-    #         mui = self.MfMui
-
-    #         #TODO: This only works if diagonal (no tensors)...
-    #         dMeSigmaI_dI = - self.MeSigmaI**2
-
-    #         vec = C.T * ( mui * b )
-    #         dMe_dsig = self.mesh.getEdgeInnerProductDeriv(sig)(vec)
-    #         if not adjoint:
-    #             return dMeSigmaI_dI * ( dMe_dsig * ( dsig_dm * v ) )
-    #         else:
-    #             return dsig_dm.T * ( dMe_dsig.T * ( dMeSigmaI_dI.T * v ) )
-    #     elif fieldType == 'b':
-    #         return None
-    #     raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
-
 
 ##########################################################################################
 ################################ H-J Formulation #########################################
@@ -368,8 +309,9 @@ class ProblemFDEM_j(BaseFDEMProblem):
 
     """
 
-    solType = 'j'
-    storeTheseFields = ['j','h']
+    _fieldType = 'j'
+    _eqLocs    = 'EF'
+    fieldsPair = FieldsFDEM_j
 
     def __init__(self, model, **kwargs):
         BaseFDEMProblem.__init__(self, model, **kwargs)
@@ -453,42 +395,6 @@ class ProblemFDEM_j(BaseFDEMProblem):
         return RHS
 
 
-    def calcFields(self, sol, freq, fieldType, adjoint=False):
-        j = sol
-        if fieldType == 'j':
-            return j
-        elif fieldType == 'h':
-            MeMuI = self.MeMuI
-            C = self.mesh.edgeCurl
-            MfSigi = self.MfSigmai
-            if not adjoint:
-                h = -(1./(1j*omega(freq))) * MeMuI * ( C.T * ( MfSigi * j ) )
-            else:
-                h = -(1./(1j*omega(freq))) * MfSigi.T * ( C * ( MeMuI.T * j ) )
-            return h
-        raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
-
-    def calcFieldsDeriv(self, sol, freq, fieldType, v, adjoint=False):
-        j = sol
-        if fieldType == 'j':
-            return None
-        elif fieldType == 'h':
-            MeMuI = self.MeMuI
-            C = self.mesh.edgeCurl
-            sig = self.curModel.transform
-            sigi = 1/sig
-            dsig_dm = self.curModel.transformDeriv
-            dsigi_dsig = -Utils.sdiag(sigi)**2
-            dMf_dsigi = self.mesh.getFaceInnerProductDeriv(sigi)(j)
-            sigi = self.MfSigmai
-            if not adjoint:
-                return -(1./(1j*omega(freq))) * MeMuI * ( C.T * ( dMf_dsigi * ( dsigi_dsig * ( dsig_dm * v ) ) ) )
-            else:
-                return -(1./(1j*omega(freq))) * dsig_dm.T * ( dsigi_dsig.T * ( dMf_dsigi.T * ( C * ( MeMuI.T * v ) ) ) )
-        raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
-
-
-
 
 # Solving for h! - using primary- secondary approach
 class ProblemFDEM_h(BaseFDEMProblem):
@@ -516,8 +422,9 @@ class ProblemFDEM_h(BaseFDEMProblem):
 
     """
 
-    solType = 'h'
-    storeTheseFields = ['j','h']
+    _fieldType = 'h'
+    _eqLocs    = 'EF'
+    fieldsPair = FieldsFDEM_h
 
     def __init__(self, model, **kwargs):
         BaseFDEMProblem.__init__(self, model, **kwargs)
@@ -575,16 +482,4 @@ class ProblemFDEM_h(BaseFDEMProblem):
         return RHS
 
 
-    def calcFields(self, sol, freq, fieldType, adjoint=False):
-        h = sol
-        if fieldType == 'j':
-            C = self.mesh.edgeCurl
-            if adjoint:
-                return C.T*h
-            return C*h
-        elif fieldType == 'h':
-            return h
-        raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
 
-    def calcFieldsDeriv(self, sol, freq, fieldType, v, adjoint=False):
-        return None

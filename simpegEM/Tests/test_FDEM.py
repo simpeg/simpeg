@@ -9,7 +9,7 @@ testDerivs = False
 testCrossCheck = True
 testAdjoint = False
 testEB = True
-testHJ = False
+testHJ = True
 
 verbose = False
 
