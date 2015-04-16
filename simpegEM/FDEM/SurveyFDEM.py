@@ -82,8 +82,8 @@ class RxFDEM(Survey.BaseRx):
 
         return Pv
 
-
-class TxFDEM(Survey.BaseTx):
+# SrcFDEM
+class SrcFDEM(Survey.BaseTx):
     #TODO: Break these out into Classes of Sources.
 
     freq = None #: Frequency (float)

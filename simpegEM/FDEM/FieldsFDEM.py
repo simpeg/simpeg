@@ -4,31 +4,32 @@ from simpegEM.Utils.EMUtils import omega
 
 class FieldsFDEM(Problem.Fields):
 	"""Fancy Field Storage for a FDEM survey."""
+	knownFields = None
 	dtype = complex
 
-	def calcFields(self,sol,tx,fieldType):
-		if fieldType == 'e':
-			return self._e(sol,tx)
-		elif fieldType == 'e_sec':
-			return self._e_sec(sol,tx)
-		elif fieldType == 'b':
-			return self._b(sol,tx)
-		elif fieldType == 'b_sec':
-			return self._b_sec(sol,tx)
-		else:
-			raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
+	# def calcFields(self,sol,tx,fieldType):
+	# 	if fieldType == 'e':
+	# 		return self._e(sol,tx)
+	# 	elif fieldType == 'e_sec':
+	# 		return self._e_sec(sol,tx)
+	# 	elif fieldType == 'b':
+	# 		return self._b(sol,tx)
+	# 	elif fieldType == 'b_sec':
+	# 		return self._b_sec(sol,tx)
+	# 	else:
+	# 		raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
 
-	def calcFieldsDeriv(self,sol,tx,fieldType,adjoint=False):
-		if fieldType == 'e':
-			return self._eDeriv(sol,tx,adjoint)
-		elif fieldType == 'e_sec':
-			return self._e_secDeriv(sol,tx,adjoint)
-		elif fieldType == 'b':
-			return self._bDeriv(sol,tx,adjoint)
-		elif fieldType == 'b_sec':
-			return self._b_secDeriv(sol,tx,adjoint)
-		else:
-			raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
+	# def calcFieldsDeriv(self,sol,tx,fieldType,adjoint=False):
+	# 	if fieldType == 'e':
+	# 		return self._eDeriv(sol,tx,adjoint)
+	# 	elif fieldType == 'e_sec':
+	# 		return self._e_secDeriv(sol,tx,adjoint)
+	# 	elif fieldType == 'b':
+	# 		return self._bDeriv(sol,tx,adjoint)
+	# 	elif fieldType == 'b_sec':
+	# 		return self._b_secDeriv(sol,tx,adjoint)
+	# 	else:
+	# 		raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
 
 
 
@@ -47,11 +48,11 @@ class FieldsFDEM_e(FieldsFDEM):
 		self.getSource = self.survey.prob.getSource
 		self.getSourceDeriv = self.survey.prob.getSourceDeriv 
 
-	def _e(self, e, tx):
-		return e
+	# def _e(self, e, tx):
+	# 	return e
 
-	def _eDeriv(self, e, tx, adjoint=False):
-		return None
+	# def _eDeriv(self, e, tx, adjoint=False):
+	# 	return None
 
 	def _b_sec(self, e, tx): #adjoint=False
 		return - 1./(1j*omega(tx.freq)) * (self.edgeCurl * e)
@@ -97,11 +98,11 @@ class FieldsFDEM_b(FieldsFDEM):
 		self.getSource = self.survey.prob.getSource
 		self.getSourceDeriv = self.survey.prob.getSourceDeriv 
 
-	def _b(self, b, tx):
-		return b
+	# def _b(self, b, tx):
+	# 	return b
 
-	def _bDeriv(self, b, tx, adjoint=False):
-		return None
+	# def _bDeriv(self, b, tx, adjoint=False):
+	# 	return None
 
 	def _e_sec(self, b, tx):
 		return self.MeSigmaI * ( self.edgeCurl.T * ( self.MfMui * b) )

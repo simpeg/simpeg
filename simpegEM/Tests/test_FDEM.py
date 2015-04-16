@@ -11,7 +11,7 @@ testAdjoint = False
 testEB = True
 testHJ = False
 
-verbose = True
+verbose = False
 
 TOL = 1e-4
 FLR = 1e-20 # "zero", so if residual below this --> pass regardless of order
