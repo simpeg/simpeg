@@ -79,7 +79,7 @@ class Fields(object):
                 srcTestList = [srcTestList]
             for srcTest in srcTestList:
                 if srcTest not in self.survey.srcList:
-                    raise KeyError('Invalid Transmitter, not in survey list.')
+                    raise KeyError('Invalid Source, not in survey list.')
 
             ind = np.in1d(self.survey.srcList, srcTestList)
         return ind

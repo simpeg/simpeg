@@ -170,13 +170,13 @@ class Data(object):
             if len(key) is not 2:
                 raise KeyError('Key must be [Src, Rx]')
             if key[0] not in self.survey.srcList:
-                raise KeyError('Src Key must be a transmitter in the survey.')
+                raise KeyError('Src Key must be a source in the survey.')
             if key[1] not in key[0].rxList:
-                raise KeyError('Rx Key must be a receiver for the transmitter.')
+                raise KeyError('Rx Key must be a receiver for the source.')
             return key
         elif isinstance(key, self.survey.srcPair):
             if key not in self.survey.srcList:
-                raise KeyError('Key must be a transmitter in the survey.')
+                raise KeyError('Key must be a source in the survey.')
             return key, None
         else:
             raise KeyError('Key must be [Src] or [Src,Rx]')
@@ -185,7 +185,7 @@ class Data(object):
         src, rx = self._ensureCorrectKey(key)
         assert rx is not None, 'set data using [Src, Rx]'
         assert isinstance(value, np.ndarray), 'value must by ndarray'
-        assert value.size == rx.nD, "value must have the same number of data as the transmitter."
+        assert value.size == rx.nD, "value must have the same number of data as the source."
         self._dataDict[src][rx] = Utils.mkvc(value)
 
     def __getitem__(self, key):
@@ -236,7 +236,7 @@ class BaseSurvey(object):
     @srcList.setter
     def srcList(self, value):
         assert type(value) is list, 'srcList must be a list'
-        assert np.all([isinstance(src, self.srcPair) for src in value]), 'All transmitters must be instances of %s' % self.srcPair.__name__
+        assert np.all([isinstance(src, self.srcPair) for src in value]), 'All sources must be instances of %s' % self.srcPair.__name__
         assert len(set(value)) == len(value), 'The srcList must be unique'
         self._srcList = value
 
