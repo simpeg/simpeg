@@ -22,9 +22,9 @@ class FDEM_analyticTests(unittest.TestCase):
         x = np.linspace(-10,10,5)
         XYZ = Utils.ndgrid(x,np.r_[0],np.r_[0])
         rxList = EM.FDEM.RxFDEM(XYZ, 'exi')
-        Tx0 = EM.FDEM.TxFDEM(np.r_[0.,0.,0.], 'VMD', 1e2, [rxList])
+        Src0 = EM.FDEM.SrcFDEM(np.r_[0.,0.,0.], 'VMD', 1e2, [rxList])
 
-        survey = EM.FDEM.SurveyFDEM([Tx0])
+        survey = EM.FDEM.SurveyFDEM([Src0])
 
         prb = EM.FDEM.ProblemFDEM_b(mesh, mapping=mapping)
         prb.pair(survey)
@@ -43,7 +43,7 @@ class FDEM_analyticTests(unittest.TestCase):
         self.prb = prb
         self.mesh = mesh
         self.m = m
-        self.Tx0 = Tx0
+        self.Src0 = Src0
         self.sig = sig
 
     def test_Transect(self):
@@ -51,20 +51,20 @@ class FDEM_analyticTests(unittest.TestCase):
 
         u = self.prb.fields(self.m)
 
-        bfz = self.mesh.r(u[self.Tx0, 'b'],'F','Fz','M')
+        bfz = self.mesh.r(u[self.Src0, 'b'],'F','Fz','M')
 
         x = np.linspace(-55,55,12)
         XYZ = Utils.ndgrid(x,np.r_[0],np.r_[0])
 
         P = self.mesh.getInterpolationMat(XYZ, 'Fz')
 
-        an = EM.Analytics.FDEM.hzAnalyticDipoleF(x, self.Tx0.freq, self.sig)
+        an = EM.Analytics.FDEM.hzAnalyticDipoleF(x, self.Src0.freq, self.sig)
 
-        diff = np.log10(np.abs(P*np.imag(u[self.Tx0, 'b']) - mu_0*np.imag(an)))
+        diff = np.log10(np.abs(P*np.imag(u[self.Src0, 'b']) - mu_0*np.imag(an)))
 
         if plotIt:
             import matplotlib.pyplot as plt
-            plt.plot(x,np.log10(np.abs(P*np.imag(u[self.Tx0, 'b']))))
+            plt.plot(x,np.log10(np.abs(P*np.imag(u[self.Src0, 'b']))))
             plt.plot(x,np.log10(np.abs(mu_0*np.imag(an))), 'r')
             plt.plot(x,diff,'g')
             plt.show()

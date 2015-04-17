@@ -28,8 +28,8 @@ class BaseFDEMProblem(BaseEMProblem):
             rhs = RHS(freq)
             Ainv = self.Solver(A, **self.solverOpts)
             sol = Ainv * rhs
-            Txs = self.survey.getTransmitters(freq)
-            F[Txs, self._fieldType] = sol
+            Srcs = self.survey.getSources(freq)
+            F[Srcs, self._fieldType] = sol
 
         return F
 
@@ -45,19 +45,19 @@ class BaseFDEMProblem(BaseEMProblem):
             A = self.getA(freq)
             Ainv = self.Solver(A, **self.solverOpts)
 
-            for tx in self.survey.getTransmitters(freq):
-                u_tx = u[tx, self.solType]
-                w = self.getADeriv(freq, u_tx, v)
+            for src in self.survey.getSources(freq):
+                u_src = u[src, self.solType]
+                w = self.getADeriv(freq, u_src, v)
                 Ainvw = Ainv * w
-                for rx in tx.rxList:
+                for rx in src.rxList:
                     fAinvw = self.calcFields(Ainvw, freq, rx.projField)
-                    P = lambda v: rx.projectFieldsDeriv(tx, self.mesh, u, v)
+                    P = lambda v: rx.projectFieldsDeriv(src, self.mesh, u, v)
 
-                    Jv[tx, rx] = - P(fAinvw)
+                    Jv[src, rx] = - P(fAinvw)
 
-                    df_dm = self.calcFieldsDeriv(u_tx, freq, rx.projField, v)
+                    df_dm = self.calcFieldsDeriv(u_src, freq, rx.projField, v)
                     if df_dm is not None:
-                        Jv[tx, rx] += P(df_dm)
+                        Jv[src, rx] += P(df_dm)
 
         return Utils.mkvc(Jv)
 
@@ -77,17 +77,17 @@ class BaseFDEMProblem(BaseEMProblem):
             AT = self.getA(freq).T
             ATinv = self.Solver(AT, **self.solverOpts)
 
-            for tx in self.survey.getTransmitters(freq):
-                u_tx = u[tx, self.solType]
+            for src in self.survey.getSources(freq):
+                u_src = u[src, self.solType]
 
-                for rx in tx.rxList:
-                    PTv = rx.projectFieldsDeriv(tx, self.mesh, u, v[tx, rx], adjoint=True)
+                for rx in src.rxList:
+                    PTv = rx.projectFieldsDeriv(src, self.mesh, u, v[src, rx], adjoint=True)
                     fPTv = self.calcFields(PTv, freq, rx.projField, adjoint=True)
 
                     w = ATinv * fPTv
-                    Jtv_rx = - self.getADeriv(freq, u_tx, w, adjoint=True)
+                    Jtv_rx = - self.getADeriv(freq, u_src, w, adjoint=True)
 
-                    df_dm = self.calcFieldsDeriv(u_tx, freq, rx.projField, PTv, adjoint=True)
+                    df_dm = self.calcFieldsDeriv(u_src, freq, rx.projField, PTv, adjoint=True)
 
                     if df_dm is not None:
                         Jtv_rx += df_dm
@@ -105,19 +105,19 @@ class BaseFDEMProblem(BaseEMProblem):
     def getSource(self, freq):
         """
             :param float freq: Frequency
-            :rtype: numpy.ndarray (nE or nF, nTx)
+            :rtype: numpy.ndarray (nE or nF, nSrc)
             :return: RHS
         """
-        Txs = self.survey.getTransmitters(freq)
+        Srcs = self.survey.getSources(freq)
         if self._eqLocs is 'FE':
-            S_m = 1j*np.zeros((self.mesh.nF,len(Txs))) 
-            S_e = 1j*np.zeros((self.mesh.nE,len(Txs)))
+            S_m = np.zeros((self.mesh.nF,len(Srcs)), dtype=complex) 
+            S_e = np.zeros((self.mesh.nE,len(Srcs)), dtype=complex)
         elif self._eqLocs is 'EF':
-            S_m = 1j*np.zeros((self.mesh.nE,len(Txs)))
-            S_e = 1j*np.zeros((self.mesh.nF,len(Txs))) 
+            S_m = np.zeros((self.mesh.nE,len(Srcs)), dtype=complex)
+            S_e = np.zeros((self.mesh.nF,len(Srcs)), dtype=complex) 
 
-        for i, tx in enumerate(Txs):
-            smi, sei = tx.getSource(self)
+        for i, src in enumerate(Srcs):
+            smi, sei = src.getSource(self)
             if smi is not None:
                 S_m[:,i] = smi
             if sei is not None:
@@ -185,7 +185,7 @@ class ProblemFDEM_e(BaseFDEMProblem):
     def getRHS(self, freq):
         """
             :param float freq: Frequency
-            :rtype: numpy.ndarray (nE, nTx)
+            :rtype: numpy.ndarray (nE, nSrc)
             :return: RHS
         """
 
@@ -250,7 +250,7 @@ class ProblemFDEM_b(BaseFDEMProblem):
     def getRHS(self, freq):
         """
             :param float freq: Frequency
-            :rtype: numpy.ndarray (nE, nTx)
+            :rtype: numpy.ndarray (nE, nSrc)
             :return: RHS
         """
 
@@ -358,7 +358,7 @@ class ProblemFDEM_j(BaseFDEMProblem):
     def getRHS(self, freq):
         """
             :param float freq: Frequency
-            :rtype: numpy.ndarray (nE, nTx)
+            :rtype: numpy.ndarray (nE, nSrc)
             :return: RHS
         """
 
@@ -441,7 +441,7 @@ class ProblemFDEM_h(BaseFDEMProblem):
     def getRHS(self, freq):
         """
             :param float freq: Frequency
-            :rtype: numpy.ndarray (nE, nTx)
+            :rtype: numpy.ndarray (nE, nSrc)
             :return: RHS
         """
 

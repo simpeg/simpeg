@@ -19,9 +19,9 @@ model = Model.LogModel(mesh)
 x = np.linspace(-10,10,5)
 XYZ = Utils.ndgrid(x,np.r_[0],np.r_[0])
 rxList = EM.FDEM.RxListFDEM(XYZ, 'Ex')
-Tx0 = EM.FDEM.TxFDEM(np.r_[0.,0.,0.], 'VMD', 1e2, rxList)
+Src0 = EM.FDEM.SrcFDEM(np.r_[0.,0.,0.], 'VMD', 1e2, rxList)
 
-survey = EM.FDEM.SurveyFDEM([Tx0])
+survey = EM.FDEM.SurveyFDEM([Src0])
 
 prb = EM.FDEM.ProblemFDEM_b(model)
 prb.pair(survey)
@@ -31,26 +31,26 @@ sigma = np.ones(mesh.nC)*sig
 sigma[mesh.gridCC[:,2] > 0] = 1e-8
 m = np.log(sigma)
 
-skin = 500*np.sqrt(1/(sig*Tx0.freq))
+skin = 500*np.sqrt(1/(sig*Src0.freq))
 print 'The skin depth is: %4.2f m' % skin
 
 prb.Solver = Utils.SolverUtils.DSolverWrap(sp.linalg.spsolve, factorize=False, checkAccuracy=True)
 
 u = prb.fields(m)
 
-plt.colorbar(mesh.plotImage(np.log10(np.abs(u[Tx0, 'b'].real)), 'Fz'))
+plt.colorbar(mesh.plotImage(np.log10(np.abs(u[Src0, 'b'].real)), 'Fz'))
 
-bfz = mesh.r(u[Tx0, 'b'],'F','Fz','M')
+bfz = mesh.r(u[Src0, 'b'],'F','Fz','M')
 
 x = np.linspace(-55,55,12)
 XYZ = Utils.ndgrid(x,np.r_[0],np.r_[0])
 
 P = mesh.getInterpolationMat(XYZ, 'Fz')
 
-an = EM.Utils.Ana.FEM.hzAnalyticDipoleF(x, Tx0.freq, sig)
+an = EM.Utils.Ana.FEM.hzAnalyticDipoleF(x, Src0.freq, sig)
 
 plt.figure(2)
-plt.plot(x,np.log10(np.abs(P*np.imag(u[Tx0, 'b']))))
+plt.plot(x,np.log10(np.abs(P*np.imag(u[Src0, 'b']))))
 plt.plot(x,np.log10(np.abs(mu_0*np.imag(an))), 'r')
 plt.xlabel('Distance, m')
 plt.ylabel('Log10 Response imag($B_z$)')

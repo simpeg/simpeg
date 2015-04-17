@@ -3,6 +3,10 @@ from simpegEM import Sources
 from simpegEM.Utils.EMUtils import omega
 
 
+####################################################
+# Receivers 
+####################################################
+
 class RxFDEM(Survey.BaseRx):
 
     knownRxTypes = {
@@ -54,15 +58,15 @@ class RxFDEM(Survey.BaseRx):
         """Component projection (real/imag)"""
         return self.knownRxTypes[self.rxType][2]
 
-    def projectFields(self, tx, mesh, u):
+    def projectFields(self, src, mesh, u):
         P = self.getP(mesh)
-        u_part_complex = u[tx, self.projField]
+        u_part_complex = u[src, self.projField]
         # get the real or imag component
         real_or_imag = self.projComp
         u_part = getattr(u_part_complex, real_or_imag)
         return P*u_part
 
-    def projectFieldsDeriv(self, tx, mesh, u, v, adjoint=False):
+    def projectFieldsDeriv(self, src, mesh, u, v, adjoint=False):
         P = self.getP(mesh)
 
         if not adjoint:
@@ -82,26 +86,36 @@ class RxFDEM(Survey.BaseRx):
 
         return Pv
 
-# SrcFDEM
-class TxFDEM(Survey.BaseTx):
+
+####################################################
+# Sources
+####################################################
+
+# class SrcFDEM(Survey.BaseSrc):
+#     freq = None
+#     rxPair = RxFDEM
+#     knownSrcTypes = {}
+
+
+class SrcFDEM(Survey.BaseSrc):
     #TODO: Break these out into Classes of Sources.
 
     freq = None #: Frequency (float)
 
     rxPair = RxFDEM
 
-    knownTxTypes = ['VMD', 'VMD_B', 'CircularLoop', 'Simple']
+    knownSrcTypes = ['VMD', 'VMD_B', 'CircularLoop', 'Simple']
 
     radius = None
 
-    def __init__(self, loc, txType, freq, rxList):
+    def __init__(self, loc, srcType, freq, rxList):
         self.freq = float(freq)
-        Survey.BaseTx.__init__(self, loc, txType, rxList)
+        Survey.BaseSrc.__init__(self, loc, srcType, rxList)
 
     def getSource(self, prob):
 
-        tx = self
-        freq = tx.freq
+        src = self
+        freq = src.freq
         solType = prob._fieldType # Hack, should just ask whether j_m, j_g are defined on edges or faces
 
         if solType == 'e' or solType == 'b':
@@ -141,42 +155,42 @@ class TxFDEM(Survey.BaseTx):
             if not prob.mesh.isSymmetric:
                 raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
 
-            if tx.txType == 'VMD':
-                SRC = Sources.MagneticDipoleVectorPotential(tx.loc, gridEJy, 'y')
-            elif tx.txType == 'CircularLoop':
-                SRC = Sources.MagneticLoopVectorPotential(tx.loc, gridEJy, 'y', tx.radius)
+            if src.srcType == 'VMD':
+                SRC = Sources.MagneticDipoleVectorPotential(src.loc, gridEJy, 'y')
+            elif src.srcType == 'CircularLoop':
+                SRC = Sources.MagneticLoopVectorPotential(src.loc, gridEJy, 'y', src.radius)
             else:
                 raise NotImplementedError('Only VMD and CircularLoop')
 
         elif prob.mesh._meshType is 'TENSOR':
 
-            if tx.txType == 'VMD':
-                src = Sources.MagneticDipoleVectorPotential
-                SRCx = src(tx.loc, gridEJx, 'x')
-                SRCy = src(tx.loc, gridEJy, 'y')
-                SRCz = src(tx.loc, gridEJz, 'z')
+            if src.srcType == 'VMD':
+                srcfct = Sources.MagneticDipoleVectorPotential
+                SRCx = srcfct(src.loc, gridEJx, 'x')
+                SRCy = srcfct(src.loc, gridEJy, 'y')
+                SRCz = srcfct(src.loc, gridEJz, 'z')
 
-            elif tx.txType == 'VMD_B':
-                src = Sources.MagneticDipoleFields
-                SRCx = src(tx.loc, gridBHx, 'x')
-                SRCy = src(tx.loc, gridBHy, 'y')
-                SRCz = src(tx.loc, gridBHz, 'z')
+            elif src.srcType == 'VMD_B':
+                srcfct = Sources.MagneticDipoleFields
+                SRCx = srcfct(src.loc, gridBHx, 'x')
+                SRCy = srcfct(src.loc, gridBHy, 'y')
+                SRCz = srcfct(src.loc, gridBHz, 'z')
 
-            elif tx.txType == 'CircularLoop':
-                src = Sources.MagneticLoopVectorPotential
-                SRCx = src(tx.loc, gridEJx, 'x', tx.radius)
-                SRCy = src(tx.loc, gridEJy, 'y', tx.radius)
-                SRCz = src(tx.loc, gridEJz, 'z', tx.radius)
+            elif src.srcType == 'CircularLoop':
+                srcfct = Sources.MagneticLoopVectorPotential
+                SRCx = srcfct(src.loc, gridEJx, 'x', src.radius)
+                SRCy = srcfct(src.loc, gridEJy, 'y', src.radius)
+                SRCz = srcfct(src.loc, gridEJz, 'z', src.radius)
             else:
 
-                raise NotImplemented('%s txType is not implemented' % tx.txType)
+                raise NotImplemented('%s srcType is not implemented' % src.srcType)
             SRC = np.concatenate((SRCx, SRCy, SRCz))
 
         else:
             raise Exception('Unknown mesh for VMD')
 
         # b-forumlation
-        if tx.txType == 'VMD_B':
+        if src.srcType == 'VMD_B':
             b_0 = SRC
         else:
             a = SRC
@@ -184,23 +198,23 @@ class TxFDEM(Survey.BaseTx):
 
         return -1j*omega(freq)*b_0, None
 
-class SimpleTxFDEM_g(TxFDEM):
+class SimpleSrcFDEM_e(SrcFDEM):
 
     def __init__(self, vec, freq, rxList):
         self.vec = vec
         self.freq = float(freq)
-        TxFDEM.__init__(self, None, 'Simple', freq, rxList)
+        SrcFDEM.__init__(self, None, 'Simple', freq, rxList)
 
     def getSource(self, prob):
         return None, self.vec
 
 
-class SimpleTxFDEM_m(TxFDEM):
+class SimpleSrcFDEM_m(SrcFDEM):
 
     def __init__(self, vec, freq, rxList):
         self.vec = vec
         self.freq = float(freq)
-        TxFDEM.__init__(self, None, 'Simple', freq, rxList)
+        SrcFDEM.__init__(self, None, 'Simple', freq, rxList)
 
     def getSource(self, prob):
         return self.vec, None
@@ -211,18 +225,18 @@ class SurveyFDEM(Survey.BaseSurvey):
         docstring for SurveyFDEM
     """
 
-    txPair = TxFDEM
+    srcPair = SrcFDEM
 
-    def __init__(self, txList, **kwargs):
+    def __init__(self, srcList, **kwargs):
         # Sort these by frequency
-        self.txList = txList
+        self.srcList = srcList
         Survey.BaseSurvey.__init__(self, **kwargs)
 
         _freqDict = {}
-        for tx in txList:
-            if tx.freq not in _freqDict:
-                _freqDict[tx.freq] = []
-            _freqDict[tx.freq] += [tx]
+        for src in srcList:
+            if src.freq not in _freqDict:
+                _freqDict[src.freq] = []
+            _freqDict[src.freq] += [src]
 
         self._freqDict = _freqDict
         self._freqs = sorted([f for f in self._freqDict])
@@ -238,24 +252,24 @@ class SurveyFDEM(Survey.BaseSurvey):
         return len(self._freqDict)
 
     @property
-    def nTxByFreq(self):
-        if getattr(self, '_nTxByFreq', None) is None:
-            self._nTxByFreq = {}
+    def nSrcByFreq(self):
+        if getattr(self, '_nSrcByFreq', None) is None:
+            self._nSrcByFreq = {}
             for freq in self.freqs:
-                self._nTxByFreq[freq] = len(self.getTransmitters(freq))
-        return self._nTxByFreq
+                self._nSrcByFreq[freq] = len(self.getSources(freq))
+        return self._nSrcByFreq
 
-    def getTransmitters(self, freq):
-        """Returns the transmitters associated with a specific frequency."""
+    def getSources(self, freq):
+        """Returns the sources associated with a specific frequency."""
         assert freq in self._freqDict, "The requested frequency is not in this survey."
         return self._freqDict[freq]
 
     def projectFields(self, u):
         data = Survey.Data(self)
-        for tx in self.txList:
-            for rx in tx.rxList:
-                data[tx, rx] = rx.projectFields(tx, self.mesh, u)
+        for src in self.srcList:
+            for rx in src.rxList:
+                data[src, rx] = rx.projectFields(src, self.mesh, u)
         return data
 
     def projectFieldsDeriv(self, u):
-        raise Exception('Use Transmitters to project fields deriv.')
+        raise Exception('Use Sources to project fields deriv.')

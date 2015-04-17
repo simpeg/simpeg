@@ -32,12 +32,12 @@ def getProblem(fdemType, comp):
 
     mapping = Maps.ExpMap(mesh)
 
-    x = np.array([np.linspace(-30,-15,3),np.linspace(15,30,3)]) #don't sample right by the transmitter
+    x = np.array([np.linspace(-30,-15,3),np.linspace(15,30,3)]) #don't sample right by the source
     XYZ = Utils.ndgrid(x,x,np.r_[0.])
     Rx0 = EM.FDEM.RxFDEM(XYZ, comp)
-    Tx0 = EM.FDEM.TxFDEM(np.r_[0.,0.,0.], 'VMD', freq, [Rx0])
+    Src0 = EM.FDEM.SrcFDEM(np.r_[0.,0.,0.], 'VMD', freq, [Rx0])
 
-    survey = EM.FDEM.SurveyFDEM([Tx0])
+    survey = EM.FDEM.SurveyFDEM([Src0])
 
 
     if verbose:

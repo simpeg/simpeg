@@ -28,9 +28,9 @@ def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=[1e-5,
     mapping = Maps.ExpMap(mesh) * Maps.Vertical1DMap(mesh) * actMap
 
     rx = EM.TDEM.RxTDEM(np.array([[rxOffset, 0., 0.]]), np.logspace(-5,-4, 21), 'bz')
-    tx = EM.TDEM.TxTDEM(np.array([0., 0., 0.]), 'VMD_MVP', [rx])
+    src = EM.TDEM.SrcTDEM(np.array([0., 0., 0.]), 'VMD_MVP', [rx])
 
-    survey = EM.TDEM.SurveyTDEM([tx])
+    survey = EM.TDEM.SurveyTDEM([src])
     prb = EM.TDEM.ProblemTDEM_b(mesh, mapping=mapping)
     prb.Solver = MumpsSolver
 

@@ -113,10 +113,6 @@ class BaseEMProblem(Problem.BaseProblem):
             sigma = self.curModel.transform
             self._MfSigmai = self.mesh.getFaceInnerProduct(1/sigma)
         return self._MfSigmai
-
-    @property
-    def dMfSigmai_dsig(self):
-        return self._dMfSigmai_dsig
     
 
     deleteTheseOnModelUpdate = ['_MeSigma', '_MeSigmaI','_MfSigmai']

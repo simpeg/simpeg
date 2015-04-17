@@ -1,12 +1,12 @@
 from SimPEG import *
 from scipy.special import ellipk, ellipe
 
-def MagneticLoopVectorPotential(txLoc, obsLoc, component, radius):
+def MagneticLoopVectorPotential(srcLoc, obsLoc, component, radius):
     """
         Calculate the vector potential of horizontal circular loop
         at given locations
 
-        :param numpy.ndarray txLoc: Location of the transmitter(s) (x, y, z)
+        :param numpy.ndarray srcLoc: Location of the source(s) (x, y, z)
         :param numpy.ndarray,SimPEG.Mesh obsLoc: Where the potentials will be calculated (x, y, z) or a SimPEG Mesh
         :param str,list component: The component to calculate - 'x', 'y', or 'z' if an array, or grid type if mesh, can be a list
         :param numpy.ndarray I: Input current of the loop
@@ -18,33 +18,33 @@ def MagneticLoopVectorPotential(txLoc, obsLoc, component, radius):
     if type(component) in [list, tuple]:
         out = range(len(component))
         for i, comp in enumerate(component):
-            out[i] = MagneticLoopVectorPotential(txLoc, obsLoc, comp, radius)
+            out[i] = MagneticLoopVectorPotential(srcLoc, obsLoc, comp, radius)
         return np.concatenate(out)
 
     if isinstance(obsLoc, Mesh.BaseMesh):
         mesh = obsLoc
         assert component in ['Ex','Ey','Ez','Fx','Fy','Fz'], "Components must be in: ['Ex','Ey','Ez','Fx','Fy','Fz']"
-        return MagneticLoopVectorPotential(txLoc, getattr(mesh,'grid'+component), component[1], radius)
+        return MagneticLoopVectorPotential(srcLoc, getattr(mesh,'grid'+component), component[1], radius)
 
-    txLoc = np.atleast_2d(txLoc)
+    srcLoc = np.atleast_2d(srcLoc)
     obsLoc = np.atleast_2d(obsLoc)
 
     n = obsLoc.shape[0]
-    nTx = txLoc.shape[0]
+    nSrc = srcLoc.shape[0]
 
     if component=='z':
-        A = np.zeros((n, nTx))
-        if nTx ==1:
+        A = np.zeros((n, nSrc))
+        if nSrc ==1:
             return A.flatten()
         return A
 
     else:
 
-        A = np.zeros((n, nTx))
-        for i in range (nTx):
-            x = obsLoc[:, 0] - txLoc[i, 0]
-            y = obsLoc[:, 1] - txLoc[i, 1]
-            z = obsLoc[:, 2] - txLoc[i, 2]
+        A = np.zeros((n, nSrc))
+        for i in range (nSrc):
+            x = obsLoc[:, 0] - srcLoc[i, 0]
+            y = obsLoc[:, 1] - srcLoc[i, 1]
+            z = obsLoc[:, 2] - srcLoc[i, 2]
             r = np.sqrt(x**2 + y**2)
             m = (4 * radius * r) / ((radius + r)**2 + z**2)
             m[m > 1.] = 1.
@@ -64,7 +64,7 @@ def MagneticLoopVectorPotential(txLoc, obsLoc, component, radius):
             else:
                 raise ValueError('Invalid component')
 
-        if nTx == 1:
+        if nSrc == 1:
             return A.flatten()
         return A
 
@@ -77,10 +77,10 @@ if __name__ == '__main__':
     hy = np.ones(ncy)*cs
     hz = np.ones(ncz)*cs
     mesh = Mesh.TensorMesh([hx, hy, hz], 'CCC')
-    txLoc = np.r_[0., 0., 0.]
-    Ax = MagneticLoopVectorPotential(txLoc, mesh.gridEx, 'x', 200)
-    Ay = MagneticLoopVectorPotential(txLoc, mesh.gridEy, 'y', 200)
-    Az = MagneticLoopVectorPotential(txLoc, mesh.gridEz, 'z', 200)
+    srcLoc = np.r_[0., 0., 0.]
+    Ax = MagneticLoopVectorPotential(srcLoc, mesh.gridEx, 'x', 200)
+    Ay = MagneticLoopVectorPotential(srcLoc, mesh.gridEy, 'y', 200)
+    Az = MagneticLoopVectorPotential(srcLoc, mesh.gridEz, 'z', 200)
     A = np.r_[Ax, Ay, Az]
     B0 = mesh.edgeCurl*A
     J0 = mesh.edgeCurl.T*B0

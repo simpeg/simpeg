@@ -22,9 +22,9 @@ class TDEM_bDerivTests(unittest.TestCase):
 
         rxOffset = 40.
         rx = EM.TDEM.RxTDEM(np.array([[rxOffset, 0., 0.]]), np.logspace(-4,-3, 20), 'bz')
-        tx = EM.TDEM.TxTDEM(np.array([0., 0., 0.]), 'VMD_MVP', [rx])
+        src = EM.TDEM.SrcTDEM(np.array([0., 0., 0.]), 'VMD_MVP', [rx])
 
-        survey = EM.TDEM.SurveyTDEM([tx])
+        survey = EM.TDEM.SurveyTDEM([src])
 
         self.prb = EM.TDEM.ProblemTDEM_b(mesh, mapping=mapping)
         # self.prb.timeSteps = [1e-5]

@@ -38,7 +38,7 @@ def hzAnalyticDipoleF(r, freq, sigma, secondary=True):
 
     return hz
 
-def AnalyticMagDipoleWholeSpace(XYZ, txLoc, sig, f, m=1., orientation='X'):
+def AnalyticMagDipoleWholeSpace(XYZ, srcLoc, sig, f, m=1., orientation='X'):
     """
     Analytical solution for a dipole in a whole-space.
 
@@ -67,9 +67,9 @@ def AnalyticMagDipoleWholeSpace(XYZ, txLoc, sig, f, m=1., orientation='X'):
 
     XYZ = Utils.asArray_N_x_Dim(XYZ, 3)
 
-    dx = XYZ[:,0]-txLoc[0]
-    dy = XYZ[:,1]-txLoc[1]
-    dz = XYZ[:,2]-txLoc[2]
+    dx = XYZ[:,0]-srcLoc[0]
+    dy = XYZ[:,1]-srcLoc[1]
+    dz = XYZ[:,2]-srcLoc[2]
 
     r  = np.sqrt( dx**2. + dy**2. + dz**2.)
     k  = np.sqrt( -1j*2.*np.pi*f*mu_0*sig )
