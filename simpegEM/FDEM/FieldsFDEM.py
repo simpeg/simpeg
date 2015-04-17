@@ -4,9 +4,9 @@ from simpegEM.Utils.EMUtils import omega
 
 class FieldsFDEM(Problem.Fields):
 	"""Fancy Field Storage for a FDEM survey."""
-	knownFields = None
+	knownFields = {}
 	dtype = complex
-
+	
 
 class FieldsFDEM_e(FieldsFDEM):
 	knownFields = {'e':'E'}
@@ -30,23 +30,21 @@ class FieldsFDEM_e(FieldsFDEM):
 		return None
 
 	def _b(self, e, tx): #adjoint=False
-		b = self._b_sec(e,tx)
-		j_m,_ = self.getSource(tx.freq)
-		if j_m[0] is not None:
-			b += 1./(1j*omega(tx.freq)) * np.array([j_m[0]]).T
-		return b
+		b_sec = self._b_sec(e,tx)
+		S_m,_ = self.getSource(tx.freq)
+		return b_sec + 1./(1j*omega(tx.freq)) * S_m
 
 	def _bDeriv(self, e, tx, adjoint=False):
-		j_mDeriv,_ = self.getSourceDeriv(tx.freq, adjoint)
+		S_mDeriv,_ = self.getSourceDeriv(tx.freq, adjoint)
 		b_secDeriv = self._b_secDeriv(e,tx.freq,adjoint)
-		if j_mDeriv is None & b_secDeriv is None:
+		if S_mDeriv is None & b_secDeriv is None:
 			return None
 		elif b_secDeriv is None:
-			return 1./(1j*omega(tx.freq)) * j_mDeriv
-		elif j_mDeriv is None:
+			return 1./(1j*omega(tx.freq)) * S_mDeriv
+		elif S_mDeriv is None:
 			return b_secDeriv
 		else:
-			return 1./(1j*omega(tx.freq)) * j_mDeriv + b_secDeriv
+			return 1./(1j*omega(tx.freq)) * S_mDeriv + b_secDeriv
 
 
 class FieldsFDEM_b(FieldsFDEM):
@@ -73,24 +71,22 @@ class FieldsFDEM_b(FieldsFDEM):
 		return None
 
 	def _e(self, b, tx):
-		e = self._e_sec(b,tx)
-		_, j_g = self.getSource(tx.freq)
-		if j_g[0] is not None:
-			e += -np.array([j_g[0]]).T
-		return e
+		e_sec = self._e_sec(b,tx)
+		_, S_e = self.getSource(tx.freq)
+		return e_sec + S_e
 
 	def _eDeriv(self, b, tx, adjoint=False):
-		_,j_gDeriv = self.getSourceDeriv(tx.freq, adjoint)
+		_,S_eDeriv = self.getSourceDeriv(tx.freq, adjoint)
 		e_secDeriv = self._e_secDeriv(b,tx,adjoint)
 
-		if j_gDeriv is None & e_secDeriv is None:
+		if S_eDeriv is None & e_secDeriv is None:
 			return None
 		elif e_secDeriv is None:
-			return -j_gDeriv
-		elif j_gDeriv is None:
+			return -S_eDeriv
+		elif S_eDeriv is None:
 			return e_secDeriv
 		else:
-			return e_secDeriv - j_gDeriv
+			return e_secDeriv - S_eDeriv
 
 
 class FieldsFDEM_j(FieldsFDEM):
@@ -129,23 +125,21 @@ class FieldsFDEM_j(FieldsFDEM):
 		raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
 
 	def _h(self, j, tx): #adjoint=False
-		h = self._h_sec(j,tx)
-		j_m,_ = self.getSource(tx.freq)
-		if j_m[0] is not None:
-			h += 1./(1j*omega(tx.freq)) * self.MeMuI * np.array([j_m[0]]).T
-		return h
+		h_sec = self._h_sec(j,tx)
+		S_m,_ = self.getSource(tx.freq)
+		return h_sec + 1./(1j*omega(tx.freq)) * self.MeMuI * S_m
 
 	def _hDeriv(self, j, tx, adjoint=False):
-		j_mDeriv,_ = self.getSourceDeriv(tx.freq, adjoint)
+		S_mDeriv,_ = self.getSourceDeriv(tx.freq, adjoint)
 		h_secDeriv = self._h_secDeriv(j,tx.freq,adjoint)
-		if j_mDeriv is None & h_secDeriv is None:
+		if S_mDeriv is None & h_secDeriv is None:
 			return None
 		elif h_secDeriv is None:
-			return 1./(1j*omega(tx.freq)) * j_mDeriv
-		elif j_mDeriv is None:
+			return 1./(1j*omega(tx.freq)) * S_mDeriv
+		elif S_mDeriv is None:
 			return h_secDeriv
 		else:
-			return 1./(1j*omega(tx.freq)) * j_mDeriv + h_secDeriv
+			return 1./(1j*omega(tx.freq)) * S_mDeriv + h_secDeriv
 
 class FieldsFDEM_h(FieldsFDEM):
 	knownFields = {'h':'E'}
@@ -171,23 +165,21 @@ class FieldsFDEM_h(FieldsFDEM):
 		return None
 
 	def _j(self, h, tx): #adjoint=False
-		j = self._j_sec(h,tx)
-		_,j_g = self.getSource(tx.freq)
-		if j_g[0] is not None:
-			j += -np.array([j_g[0]]).T
-		return j
+		j_sec = self._j_sec(h,tx)
+		_,S_e = self.getSource(tx.freq)
+		return j_sec - S_e
 
 	def _jDeriv(self, h, tx, adjoint=False):
-		_,j_gDeriv = self.getSourceDeriv(tx.freq, adjoint)
+		_,S_eDeriv = self.getSourceDeriv(tx.freq, adjoint)
 		j_secDeriv = self._j_secDeriv(j,tx.freq,adjoint)
-		if j_gDeriv is None & j_secDeriv is None:
+		if S_eDeriv is None & j_secDeriv is None:
 			return None
 		elif j_secDeriv is None:
-			return - j_gDeriv
-		elif j_gDeriv is None:
+			return - S_eDeriv
+		elif S_eDeriv is None:
 			return j_secDeriv
 		else:
-			return - j_gDeriv + j_secDeriv
+			return - S_eDeriv + j_secDeriv
 
 
 	# def calcFields(self, sol, freq, fieldType, adjoint=False):

@@ -109,13 +109,21 @@ class BaseFDEMProblem(BaseEMProblem):
             :return: RHS
         """
         Txs = self.survey.getTransmitters(freq)
-        j_m = range(len(Txs)) 
-        j_e = range(len(Txs)) 
-        for i, tx in enumerate(Txs):
-            j_m[i], j_e[i] = tx.getSource(self)
+        if self._eqLocs is 'FE':
+            S_m = 1j*np.zeros((self.mesh.nF,len(Txs))) 
+            S_e = 1j*np.zeros((self.mesh.nE,len(Txs)))
+        elif self._eqLocs is 'EF':
+            S_m = 1j*np.zeros((self.mesh.nE,len(Txs)))
+            S_e = 1j*np.zeros((self.mesh.nF,len(Txs))) 
 
-        return j_m, j_e
-        # return np.concatenate(rhs).reshape((-1, len(Txs)), order='F') #, np.concatenate(j_e).reshape((-1, len(Txs)), order='F')
+        for i, tx in enumerate(Txs):
+            smi, sei = tx.getSource(self)
+            if smi is not None:
+                S_m[:,i] = smi
+            if sei is not None:
+                S_e[:,i] = sei
+
+        return S_m, S_e
 
     def getSourceDeriv(self,freq,adjoint=False):
         return None, None
@@ -181,20 +189,11 @@ class ProblemFDEM_e(BaseFDEMProblem):
             :return: RHS
         """
 
-        j_m, j_g = self.getSource(freq)
-        nTx_freq = self.survey.nTxByFreq[freq]
-        RHS = 1j*np.zeros([self.mesh.nE, nTx_freq])
-
+        S_m, S_e = self.getSource(freq)
         C = self.mesh.edgeCurl
         MfMui = self.MfMui
 
-        for ii in range(nTx_freq):
-            if j_m[ii] is not None:
-
-                RHS[:, ii] += C.T * (MfMui * j_m[ii])
-
-            if j_g[ii] is not None:
-                RHS[:, ii] += -1j*omega(freq)*j_g[ii]
+        RHS = C.T * (MfMui * S_m) -1j*omega(freq)*S_e
 
         return RHS
 
@@ -256,20 +255,11 @@ class ProblemFDEM_b(BaseFDEMProblem):
             :return: RHS
         """
 
-        j_m, j_g = self.getSource(freq)
-        nTx_freq = self.survey.nTxByFreq[freq]
-        RHS = 1j*np.zeros([self.mesh.nF, nTx_freq])
-
+        S_m, S_e = self.getSource(freq)
         C = self.mesh.edgeCurl
-        MfSigmai = self.MfSigmai
+        MeSigmaI = self.MeSigmaI
 
-        for ii in range(nTx_freq):
-            if j_m[ii] is not None:
-                RHS[:,ii] += j_m[ii]
-
-            if j_g[ii] is not None:
-                RHS[:,ii] += C * ( MfSigmai * j_g[ii] )
-
+        RHS = S_m + C * ( MeSigmaI * S_e )
 
         if self._makeASymmetric is True:
             mui = self.MfMui
@@ -373,21 +363,12 @@ class ProblemFDEM_j(BaseFDEMProblem):
             :return: RHS
         """
 
-        j_m, j_g = self.getSource(freq)
-        nTx_freq = self.survey.nTxByFreq[freq]
-        RHS = 1j*np.zeros([self.mesh.nF, nTx_freq])
-
+        S_m, S_e = self.getSource(freq)
         C = self.mesh.edgeCurl
         MeMuI = self.MeMuI   
 
-        for ii in range(nTx_freq):
-            if j_m[ii] is not None:
-                RHS[:,ii] += C * (MeMuI * j_m[ii])
 
-            if j_g[ii] is not None:
-                RHS[:,ii] += -1j * omega(freq) * j_g[ii]
-
-
+        RHS = C * (MeMuI * S_m) - 1j * omega(freq) * S_e
         if self._makeASymmetric is True:
             MfSigi = self.MfSigmai
             return MfSigi.T*RHS
@@ -465,19 +446,11 @@ class ProblemFDEM_h(BaseFDEMProblem):
             :return: RHS
         """
 
-        j_m, j_g = self.getSource(freq)
-        nTx_freq = self.survey.nTxByFreq[freq]
-        RHS = 1j*np.zeros([self.mesh.nE, nTx_freq])
-
+        S_m, S_e = self.getSource(freq)
         C = self.mesh.edgeCurl
         MfSigmai  = self.MfSigmai
 
-        for ii in range(nTx_freq):
-            if j_m[ii] is not None:
-                RHS[:,ii] += j_m[ii]
-
-            if j_g[ii] is not None:
-                RHS[:,ii] += C.T * ( MfSigmai * j_g[ii] )
+        RHS = S_m + C.T * ( MfSigmai * S_e )
 
         return RHS
 

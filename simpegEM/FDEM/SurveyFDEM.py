@@ -182,10 +182,7 @@ class TxFDEM(Survey.BaseTx):
             a = SRC
             b_0 = C*a
 
-        # if solType == 'b' or solType == 'h':
         return -1j*omega(freq)*b_0, None
-        # elif solType == 'e' or solType == 'j':
-        #     return -1j*omega(freq)*C.T*mui*b_0, None
 
 class SimpleTxFDEM_g(TxFDEM):
 

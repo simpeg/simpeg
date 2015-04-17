@@ -396,7 +396,7 @@ class FDEM_DerivTests(unittest.TestCase):
             def test_EB_CrossCheck_byr_Eform(self):
                 self.assertTrue(crossCheckTest('e', 'byr'))
             def test_EB_CrossCheck_bzr_Eform(self):
-                self.assertTrue(crossCheckTest('e', 'bzr')) # Doesn't make sense to test this for p-s approach
+                self.assertTrue(crossCheckTest('e', 'bzr'))
             def test_EB_CrossCheck_bxi_Eform(self):
                 self.assertTrue(crossCheckTest('e', 'bxi'))
             def test_EB_CrossCheck_byi_Eform(self):
@@ -422,8 +422,8 @@ class FDEM_DerivTests(unittest.TestCase):
                 self.assertTrue(crossCheckTest('j', 'hxr'))
             def test_HJ_CrossCheck_hyr_Jform(self):
                 self.assertTrue(crossCheckTest('j', 'hyr'))
-            # def test_HJ_CrossCheck_hzr_Jform(self):
-            #     self.assertTrue(crossCheckTest('j', 'hzr')) # Doesn't make sense to test this for p-s approach 
+            def test_HJ_CrossCheck_hzr_Jform(self):
+                self.assertTrue(crossCheckTest('j', 'hzr')) 
             def test_HJ_CrossCheck_hxi_Jform(self):
                 self.assertTrue(crossCheckTest('j', 'hxi'))
             def test_HJ_CrossCheck_hyi_Jform(self):
