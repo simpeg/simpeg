@@ -1,7 +1,6 @@
 import Utils, Survey, Models, numpy as np, scipy.sparse as sp
 Solver = Utils.SolverUtils.Solver
 import Maps, Mesh
-import copy
 
 
 class Fields(object):
