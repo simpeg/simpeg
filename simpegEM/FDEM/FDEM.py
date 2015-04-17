@@ -232,8 +232,7 @@ class ProblemFDEM_b(BaseFDEMProblem):
         C = self.mesh.edgeCurl
         sig = self.curModel.transform
         dsig_dm = self.curModel.transformDeriv
-        #TODO: This only works if diagonal (no tensors)...
-        dMeSigmaI_dI = - self.MeSigmaI**2
+        dMeSigmaI_dI = self._dMeSigmaI_dI
 
         vec = (C.T*(mui*u))
         dMe_dsig = self.mesh.getEdgeInnerProductDeriv(sig)(vec)

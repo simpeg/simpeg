@@ -49,57 +49,82 @@ class BaseEMProblem(Problem.BaseProblem):
     ####################################################
 
     @property
-    def MfMui(self):
-        if getattr(self, '_MfMui', None) is None:
-            self._MfMui = self.mesh.getFaceInnerProduct(1/self.mu)
-        return self._MfMui
-
-    @property
-    def MeMuI(self):
-        # TODO: Assuming isotropic mu 
-        if getattr(self, '_MeMuI', None) is None:
-            self._MeMuI = self.mesh.getEdgeInnerProduct(self.mu, invMat=True)
-        return self._MeMuI
-
-    @property
-    def MeMu(self):
-        #TODO: Assuming isotropic mu 
-        if getattr(self, '_MeMu', None) is None:
-            self._MeMu = self.mesh.getEdgeInnerProduct(self.mu)
-        return self._MeMu
-
-    @property
     def Me(self):
         if getattr(self, '_Me', None) is None:
             self._Me = self.mesh.getEdgeInnerProduct()
         return self._Me
 
     @property
+    def Mf(self):
+        if getattr(self, '_Mf', None) is None:
+            self._Mf = self.mesh.getFaceInnerProduct()
+        return self._Mf
+
+
+    # ----- Magnetic Permeability ----- # 
+    @property
+    def MfMui(self):
+        # TODO: hardcoded to assume diagonal mu
+        if getattr(self, '_MfMui', None) is None:
+            self._MfMui = self.mesh.getFaceInnerProduct(1/self.mu)
+        return self._MfMui
+
+    @property
+    def MeMuI(self):
+        if getattr(self, '_MeMuI', None) is None:
+            self._MeMuI = self.mesh.getEdgeInnerProduct(self.mu, invMat=True)
+        return self._MeMuI
+
+    @property
+    def MeMu(self):
+        if getattr(self, '_MeMu', None) is None:
+            self._MeMu = self.mesh.getEdgeInnerProduct(self.mu)
+        return self._MeMu
+
+
+    # ----- Electrical Conductivity ----- # 
+    #TODO: hardcoded to sigma as the model
+    @property
     def MeSigma(self):
-        #TODO: hardcoded to sigma as the model
         if getattr(self, '_MeSigma', None) is None:
             sigma = self.curModel.transform
             self._MeSigma = self.mesh.getEdgeInnerProduct(sigma)
         return self._MeSigma
 
+    
     @property
     def MeSigmaI(self):
-        #TODO: hardcoded to sigma as the model
         if getattr(self, '_MeSigmaI', None) is None:
             sigma = self.curModel.transform
             self._MeSigmaI = self.mesh.getEdgeInnerProduct(sigma, invMat=True)
         return self._MeSigmaI
 
     @property
+    def dMeSigmaI_dI(self):
+        # TODO: hardcoded that sigma is diagonal
+        if getattr(self, '_dMeSigmaI_dI', None) is None:
+            self._dMeSigmaI_dI = - self.MeSigmaI**2
+        return self._dMeSigmaI_dI
+
+    @property
     def MfSigmai(self):
-        #TODO: hardcoded to sigma as the model
         #TODO: hardcoded to sigma diagonal 
         if getattr(self, '_MfSigmai', None) is None:
             sigma = self.curModel.transform
             self._MfSigmai = self.mesh.getFaceInnerProduct(1/sigma)
         return self._MfSigmai
 
+    @property
+    def dMfSigmai_dsig(self):
+        return self._dMfSigmai_dsig
+    
+
     deleteTheseOnModelUpdate = ['_MeSigma', '_MeSigmaI','_MfSigmai']
+
+
+    ####################################################
+    # Fields
+    ####################################################
 
     def fields(self, m):
         self.curModel = m
