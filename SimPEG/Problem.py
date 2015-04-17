@@ -1,13 +1,14 @@
 import Utils, Survey, Models, numpy as np, scipy.sparse as sp
 Solver = Utils.SolverUtils.Solver
 import Maps, Mesh
+import copy
 
 
 class Fields(object):
     """Fancy Field Storage
 
         u[:,'phi'] = phi
-        print u[tx0,'phi']
+        print u[src0,'phi']
 
     """
 
@@ -43,14 +44,14 @@ class Fields(object):
         return "%e MB"%sz
 
     def _storageShape(self, loc):
-        nTx = self.survey.nTx
+        nSrc = self.survey.nSrc
 
         nP = {'CC': self.mesh.nC,
               'N':  self.mesh.nN,
               'F':  self.mesh.nF,
               'E':  self.mesh.nE}[loc]
 
-        return (nP, nTx)
+        return (nP, nSrc)
 
     def _initStore(self, name):
         if name in self._fields:
@@ -70,17 +71,17 @@ class Fields(object):
 
         return field
 
-    def _txIndex(self, txTestList):
-        if type(txTestList) is slice:
-            ind = txTestList
+    def _srcIndex(self, srcTestList):
+        if type(srcTestList) is slice:
+            ind = srcTestList
         else:
-            if type(txTestList) is not list:
-                txTestList = [txTestList]
-            for txTest in txTestList:
-                if txTest not in self.survey.txList:
+            if type(srcTestList) is not list:
+                srcTestList = [srcTestList]
+            for srcTest in srcTestList:
+                if srcTest not in self.survey.srcList:
                     raise KeyError('Invalid Transmitter, not in survey list.')
 
-            ind = np.in1d(self.survey.txList, txTestList)
+            ind = np.in1d(self.survey.srcList, srcTestList)
         return ind
 
     def _nameIndex(self, name, accessType):
@@ -107,11 +108,11 @@ class Fields(object):
         if len(key) == 1:
             key += (None,)
 
-        assert len(key) == 2, 'must be [Tx, fieldName]'
+        assert len(key) == 2, 'must be [Src, fieldName]'
 
-        txTestList, name = key
+        srcTestList, name = key
         name = self._nameIndex(name, accessType)
-        ind = self._txIndex(txTestList)
+        ind = self._srcIndex(srcTestList)
         return ind, name
 
     def __setitem__(self, key, value):
@@ -150,16 +151,16 @@ class Fields(object):
             # Aliased fields
             alias, loc, func = self.aliasFields[name]
 
-            txII   = np.array(self.survey.txList)[ind]
-            if isinstance(txII, np.ndarray):
-                txII = txII.tolist()
-            if len(txII) == 1:
-                txII = txII[0]
+            srcII   = np.array(self.survey.srcList)[ind]
+            if isinstance(srcII, np.ndarray):
+                srcII = srcII.tolist()
+            if len(srcII) == 1:
+                srcII = srcII[0]
 
             if type(func) is str:
                 assert hasattr(self, func), 'The alias field function is a string, but it does not exist in the Fields class.'
                 func = getattr(self, func)
-            out = func(self._fields[alias][:,ind], txII)
+            out = func(self._fields[alias][:,ind], srcII)
 
         if out.shape[1] == 1:
             out = Utils.mkvc(out)
@@ -175,7 +176,7 @@ class TimeFields(Fields):
     """Fancy Field Storage for time domain problems
 
         u[:,'phi', timeInd] = phi
-        print u[tx0,'phi']
+        print u[src0,'phi']
 
     """
 
@@ -184,9 +185,9 @@ class TimeFields(Fields):
               'N':  self.mesh.nN,
               'F':  self.mesh.nF,
               'E':  self.mesh.nE}[loc]
-        nTx = self.survey.nTx
+        nSrc = self.survey.nSrc
         nT = self.survey.prob.nT + 1
-        return (nP, nTx, nT)
+        return (nP, nSrc, nT)
 
     def _indexAndNameFromKey(self, key, accessType):
         if type(key) is not tuple:
@@ -196,66 +197,66 @@ class TimeFields(Fields):
         if len(key) == 2:
             key += (slice(None,None,None),)
 
-        assert len(key) == 3, 'must be [Tx, fieldName, times]'
+        assert len(key) == 3, 'must be [Src, fieldName, times]'
 
-        txTestList, name, timeInd = key
+        srcTestList, name, timeInd = key
 
         name = self._nameIndex(name, accessType)
-        txInd = self._txIndex(txTestList)
+        srcInd = self._srcIndex(srcTestList)
 
-        return (txInd, timeInd), name
+        return (srcInd, timeInd), name
 
     def _correctShape(self, name, ind, deflate=False):
-        txInd, timeInd = ind
+        srcInd, timeInd = ind
         if name in self.knownFields:
             loc = self.knownFields[name]
         else:
             loc = self.aliasFields[name][1]
-        nP, total_nTx, total_nT = self._storageShape(loc)
-        nTx = np.ones(total_nTx, dtype=bool)[txInd].sum()
+        nP, total_nSrc, total_nT = self._storageShape(loc)
+        nSrc = np.ones(total_nSrc, dtype=bool)[srcInd].sum()
         nT  = np.ones(total_nT, dtype=bool)[timeInd].sum()
-        shape = nP, nTx, nT
+        shape = nP, nSrc, nT
         if deflate:
              shape = tuple([s for s in shape if s > 1])
         return shape
 
     def _setField(self, field, val, name, ind):
-        txInd, timeInd = ind
+        srcInd, timeInd = ind
         shape = self._correctShape(name, ind)
         if Utils.isScalar(val):
-            field[:,txInd,timeInd] = val
+            field[:,srcInd,timeInd] = val
             return
         if val.size != np.array(shape).prod():
             raise ValueError('Incorrect size for data.')
-        correctShape = field[:,txInd,timeInd].shape
-        field[:,txInd,timeInd] = val.reshape(correctShape, order='F')
+        correctShape = field[:,srcInd,timeInd].shape
+        field[:,srcInd,timeInd] = val.reshape(correctShape, order='F')
 
     def _getField(self, name, ind):
-        txInd, timeInd = ind
+        srcInd, timeInd = ind
 
         if name in self._fields:
-            out = self._fields[name][:,txInd,timeInd]
+            out = self._fields[name][:,srcInd,timeInd]
         else:
             # Aliased fields
             alias, loc, func = self.aliasFields[name]
             if type(func) is str:
                 assert hasattr(self, func), 'The alias field function is a string, but it does not exist in the Fields class.'
                 func = getattr(self, func)
-            pointerFields = self._fields[alias][:,txInd,timeInd]
+            pointerFields = self._fields[alias][:,srcInd,timeInd]
             pointerShape = self._correctShape(alias, ind)
             pointerFields = pointerFields.reshape(pointerShape, order='F')
 
             timeII = np.arange(self.survey.prob.nT + 1)[timeInd]
-            txII   = np.array(self.survey.txList)[txInd]
-            if isinstance(txII, np.ndarray):
-                txII = txII.tolist()
-            if len(txII) == 1:
-                txII = txII[0]
+            srcII   = np.array(self.survey.srcList)[srcInd]
+            if isinstance(srcII, np.ndarray):
+                srcII = srcII.tolist()
+            if len(srcII) == 1:
+                srcII = srcII[0]
 
             if timeII.size == 1:
                 pointerShapeDeflated = self._correctShape(alias, ind, deflate=True)
                 pointerFields = pointerFields.reshape(pointerShapeDeflated, order='F')
-                out = func(pointerFields, txII, timeII)
+                out = func(pointerFields, srcII, timeII)
             else: #loop over the time steps
                 nT = pointerShape[2]
                 out = range(nT)
@@ -263,7 +264,7 @@ class TimeFields(Fields):
                     fieldI = pointerFields[:,:,i]
                     if fieldI.ndim == 2 and fieldI.shape[1] == 1:
                         fieldI = Utils.mkvc(fieldI)
-                    out[i] = func(fieldI, txII, TIND_i)
+                    out[i] = func(fieldI, srcII, TIND_i)
                     if out[i].ndim == 1:
                         out[i] = out[i][:,np.newaxis,np.newaxis]
                     elif out[i].ndim == 2:
@@ -320,6 +321,7 @@ class BaseProblem(object):
         if not self.ispaired: return
         self.survey._prob = None
         self._survey = None
+
 
     deleteTheseOnModelUpdate = [] # List of strings, e.g. ['_MeSigma', '_MeSigmaI']
 
