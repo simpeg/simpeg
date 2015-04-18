@@ -35,7 +35,7 @@ class DCProblemTests(unittest.TestCase):
 
     def test_adjoint(self):
         # Adjoint Test
-        u = np.random.rand(self.mesh.nC*self.survey.nTx)
+        u = np.random.rand(self.mesh.nC*self.survey.nSrc)
         v = np.random.rand(self.mesh.nC)
         w = np.random.rand(self.survey.dobs.shape[0])
         wtJv = w.dot(self.p.Jvec(self.m0, v, u=u))

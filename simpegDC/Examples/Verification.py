@@ -23,40 +23,40 @@ def run(plotIt=False):
     #     ax.plot(xyz_rxN[:,0],xyz_rxN[:,1], 'r.', ms = 3)
 
     rx = DC.DipoleRx(xyz_rxP, xyz_rxN)
-    tx = DC.DipoleTx([-200, 0, -12.5],[+200, 0, -12.5], [rx])
-    survey = DC.SurveyDC([tx])
+    src = DC.DipoleSrc([-200, 0, -12.5],[+200, 0, -12.5], [rx])
+    survey = DC.SurveyDC([src])
     problem = DC.ProblemDC(mesh)
     problem.pair(survey)
     data = survey.dpred(sigma)
 
-    def DChalf(txlocP, txlocN, rxloc, sigma, I=1.):
-        rp = (txlocP.reshape([1,-1])).repeat(rxloc.shape[0], axis = 0)
-        rn = (txlocN.reshape([1,-1])).repeat(rxloc.shape[0], axis = 0)
+    def DChalf(srclocP, srclocN, rxloc, sigma, I=1.):
+        rp = (srclocP.reshape([1,-1])).repeat(rxloc.shape[0], axis = 0)
+        rn = (srclocN.reshape([1,-1])).repeat(rxloc.shape[0], axis = 0)
         rP = np.sqrt(((rxloc-rp)**2).sum(axis=1))
         rN = np.sqrt(((rxloc-rn)**2).sum(axis=1))
         return I/(sigma*2.*np.pi)*(1/rP-1/rN)
 
-    data_analP = DChalf(np.r_[-200, 0, 0.],np.r_[+200, 0, 0.], xyz_rxP, sighalf)
-    data_analN = DChalf(np.r_[-200, 0, 0.],np.r_[+200, 0, 0.], xyz_rxN, sighalf)
-    data_anal = data_analP-data_analN
-    Data_anal = data_anal.reshape((21, 21), order = 'F')
+    data_anaP = DChalf(np.r_[-200, 0, 0.],np.r_[+200, 0, 0.], xyz_rxP, sighalf)
+    data_anaN = DChalf(np.r_[-200, 0, 0.],np.r_[+200, 0, 0.], xyz_rxN, sighalf)
+    data_ana = data_anaP-data_anaN
+    Data_ana = data_ana.reshape((21, 21), order = 'F')
     Data = data.reshape((21, 21), order = 'F')
     X = xyz_rxM[:,0].reshape((21, 21), order = 'F')
     Y = xyz_rxM[:,1].reshape((21, 21), order = 'F')
 
     if plotIt:
         fig, ax = plt.subplots(1,2, figsize = (12, 5))
-        vmin = np.r_[data, data_anal].min()
-        vmax = np.r_[data, data_anal].max()
+        vmin = np.r_[data, data_ana].min()
+        vmax = np.r_[data, data_ana].max()
         dat1 = ax[1].contourf(X, Y, Data, 60, vmin = vmin, vmax = vmax)
-        dat0 = ax[0].contourf(X, Y, Data_anal, 60, vmin = vmin, vmax = vmax)
+        dat0 = ax[0].contourf(X, Y, Data_ana, 60, vmin = vmin, vmax = vmax)
         cb0 = plt.colorbar(dat1, orientation = 'horizontal', ax = ax[0])
         cb1 = plt.colorbar(dat1, orientation = 'horizontal', ax = ax[1])
         ax[1].set_title('Analytic')
         ax[0].set_title('Computed')
         plt.show()
 
-    return np.linalg.norm(data-data_anal)/np.linalg.norm(data_anal)
+    return np.linalg.norm(data-data_ana)/np.linalg.norm(data_ana)
 
 
 if __name__ == '__main__':
