@@ -35,15 +35,15 @@ class TestCurl(OrderTest):
         E = self.M.projectEdgeVector(Ec)
 
         Fc = cartF3(self.M, solX, solY, solZ)
-        curlE_anal = self.M.projectFaceVector(Fc)
+        curlE_ana = self.M.projectFaceVector(Fc)
 
         curlE = self.M.edgeCurl.dot(E)
         if self._meshType == 'rotateLRM':
             # Really it is the integration we should be caring about:
             # So, let us look at the l2 norm.
-            err = np.linalg.norm(self.M.area*(curlE - curlE_anal), 2)
+            err = np.linalg.norm(self.M.area*(curlE - curlE_ana), 2)
         else:
-            err = np.linalg.norm((curlE - curlE_anal), np.inf)
+            err = np.linalg.norm((curlE - curlE_ana), np.inf)
         return err
 
     def test_order(self):
@@ -63,8 +63,8 @@ class TestCurl2D(OrderTest):
 
         sol_curl2d = call2(sol, self.M.gridCC)
         Ec = cartE2(self.M, ex, ey)
-        sol_anal = self.M.edgeCurl*self.M.projectFaceVector(Ec)
-        err = np.linalg.norm((sol_curl2d-sol_anal), np.inf)
+        sol_ana = self.M.edgeCurl*self.M.projectFaceVector(Ec)
+        err = np.linalg.norm((sol_curl2d-sol_ana), np.inf)
 
         return err
 
@@ -86,13 +86,13 @@ class TestCellGrad1D_InhomogeneousDirichlet(OrderTest):
 
         xc = sol(self.M.gridCC)
 
-        gradX_anal = fx(self.M.gridFx)
+        gradX_ana = fx(self.M.gridFx)
 
         bc = np.array([1,1])
         self.M.setCellGradBC('dirichlet')
         gradX = self.M.cellGrad.dot(xc) + self.M.cellGradBC*bc
 
-        err = np.linalg.norm((gradX-gradX_anal), np.inf)
+        err = np.linalg.norm((gradX-gradX_ana), np.inf)
 
         return err
 
@@ -114,12 +114,12 @@ class TestCellGrad2D_Dirichlet(OrderTest):
         xc = call2(sol, self.M.gridCC)
 
         Fc = cartF2(self.M, fx, fy)
-        gradX_anal = self.M.projectFaceVector(Fc)
+        gradX_ana = self.M.projectFaceVector(Fc)
 
         self.M.setCellGradBC('dirichlet')
         gradX = self.M.cellGrad.dot(xc)
 
-        err = np.linalg.norm((gradX-gradX_anal), np.inf)
+        err = np.linalg.norm((gradX-gradX_ana), np.inf)
 
         return err
 
@@ -143,12 +143,12 @@ class TestCellGrad3D_Dirichlet(OrderTest):
         xc = call3(sol, self.M.gridCC)
 
         Fc = cartF3(self.M, fx, fy, fz)
-        gradX_anal = self.M.projectFaceVector(Fc)
+        gradX_ana = self.M.projectFaceVector(Fc)
 
         self.M.setCellGradBC('dirichlet')
         gradX = self.M.cellGrad.dot(xc)
 
-        err = np.linalg.norm((gradX-gradX_anal), np.inf)
+        err = np.linalg.norm((gradX-gradX_ana), np.inf)
 
         return err
 
@@ -170,12 +170,12 @@ class TestCellGrad2D_Neumann(OrderTest):
         xc = call2(sol, self.M.gridCC)
 
         Fc = cartF2(self.M, fx, fy)
-        gradX_anal = self.M.projectFaceVector(Fc)
+        gradX_ana = self.M.projectFaceVector(Fc)
 
         self.M.setCellGradBC('neumann')
         gradX = self.M.cellGrad.dot(xc)
 
-        err = np.linalg.norm((gradX-gradX_anal), np.inf)
+        err = np.linalg.norm((gradX-gradX_ana), np.inf)
 
         return err
 
@@ -199,12 +199,12 @@ class TestCellGrad3D_Neumann(OrderTest):
         xc = call3(sol, self.M.gridCC)
 
         Fc = cartF3(self.M, fx, fy, fz)
-        gradX_anal = self.M.projectFaceVector(Fc)
+        gradX_ana = self.M.projectFaceVector(Fc)
 
         self.M.setCellGradBC('neumann')
         gradX = self.M.cellGrad.dot(xc)
 
-        err = np.linalg.norm((gradX-gradX_anal), np.inf)
+        err = np.linalg.norm((gradX-gradX_ana), np.inf)
 
         return err
 
@@ -227,14 +227,14 @@ class TestFaceDiv3D(OrderTest):
         F = self.M.projectFaceVector(Fc)
 
         divF = self.M.faceDiv.dot(F)
-        divF_anal = call3(sol, self.M.gridCC)
+        divF_ana = call3(sol, self.M.gridCC)
 
         if self._meshType == 'rotateLRM':
             # Really it is the integration we should be caring about:
             # So, let us look at the l2 norm.
-            err = np.linalg.norm(self.M.vol*(divF-divF_anal), 2)
+            err = np.linalg.norm(self.M.vol*(divF-divF_ana), 2)
         else:
-            err = np.linalg.norm((divF-divF_anal), np.inf)
+            err = np.linalg.norm((divF-divF_ana), np.inf)
         return err
 
     def test_order(self):
@@ -257,9 +257,9 @@ class TestFaceDiv2D(OrderTest):
         F = self.M.projectFaceVector(Fc)
 
         divF = self.M.faceDiv.dot(F)
-        divF_anal = call2(sol, self.M.gridCC)
+        divF_ana = call2(sol, self.M.gridCC)
 
-        err = np.linalg.norm((divF-divF_anal), np.inf)
+        err = np.linalg.norm((divF-divF_ana), np.inf)
 
         return err
 
@@ -283,9 +283,9 @@ class TestNodalGrad(OrderTest):
         gradE = self.M.nodalGrad.dot(phi)
 
         Ec = cartE3(self.M, solX, solY, solZ)
-        gradE_anal = self.M.projectEdgeVector(Ec)
+        gradE_ana = self.M.projectEdgeVector(Ec)
 
-        err = np.linalg.norm((gradE-gradE_anal), np.inf)
+        err = np.linalg.norm((gradE-gradE_ana), np.inf)
 
         return err
 
@@ -309,9 +309,9 @@ class TestNodalGrad2D(OrderTest):
         gradE = self.M.nodalGrad.dot(phi)
 
         Ec = cartE2(self.M, solX, solY)
-        gradE_anal = self.M.projectEdgeVector(Ec)
+        gradE_ana = self.M.projectEdgeVector(Ec)
 
-        err = np.linalg.norm((gradE-gradE_anal), np.inf)
+        err = np.linalg.norm((gradE-gradE_ana), np.inf)
 
         return err
 

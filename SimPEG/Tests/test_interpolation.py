@@ -34,7 +34,7 @@ class TestInterpolation1D(OrderTest):
     def getError(self):
         funX = lambda x: np.cos(2*np.pi*x)
 
-        anal = call1(funX, self.LOCS)
+        ana = call1(funX, self.LOCS)
 
         if 'CC' == self.type:
             grid = call1(funX, self.M.gridCC)
@@ -43,7 +43,7 @@ class TestInterpolation1D(OrderTest):
 
         comp = self.M.getInterpolationMat(self.LOCS, self.type)*grid
 
-        err = np.linalg.norm((comp - anal), 2)
+        err = np.linalg.norm((comp - ana), 2)
         return err
 
     def test_orderCC(self):
@@ -82,11 +82,11 @@ class TestInterpolation2d(OrderTest):
         funY = lambda x, y: np.cos(2*np.pi*x)
 
         if 'x' in self.type:
-            anal = call2(funX, self.LOCS)
+            ana = call2(funX, self.LOCS)
         elif 'y' in self.type:
-            anal = call2(funY, self.LOCS)
+            ana = call2(funY, self.LOCS)
         else:
-            anal = call2(funX, self.LOCS)
+            ana = call2(funX, self.LOCS)
 
         if 'F' in self.type:
             Fc = cartF2(self.M, funX, funY)
@@ -101,7 +101,7 @@ class TestInterpolation2d(OrderTest):
 
         comp = self.M.getInterpolationMat(self.LOCS, self.type)*grid
 
-        err = np.linalg.norm((comp - anal), np.inf)
+        err = np.linalg.norm((comp - ana), np.inf)
         return err
 
     def test_orderCC(self):
@@ -165,13 +165,13 @@ class TestInterpolation2dCyl(OrderTest):
         funY = lambda x, y: np.cos(2*np.pi*x)
 
         if 'x' in self.type:
-            anal = call2(funX, self.LOCS)
+            ana = call2(funX, self.LOCS)
         elif 'y' in self.type:
-            anal = call2(funY, self.LOCS)
+            ana = call2(funY, self.LOCS)
         elif 'z' in self.type:
-            anal = call2(funY, self.LOCS)
+            ana = call2(funY, self.LOCS)
         else:
-            anal = call2(funX, self.LOCS)
+            ana = call2(funX, self.LOCS)
 
         if 'Fx' == self.type:
             Fc = cartF2Cyl(self.M, funX, funY)
@@ -192,7 +192,7 @@ class TestInterpolation2dCyl(OrderTest):
 
         comp = self.M.getInterpolationMat(self.LOCS, self.type)*grid
 
-        err = np.linalg.norm((comp - anal), np.inf)
+        err = np.linalg.norm((comp - ana), np.inf)
         return err
 
     def test_orderCC(self):
@@ -234,13 +234,13 @@ class TestInterpolation3D(OrderTest):
         funZ = lambda x, y, z: np.cos(2*np.pi*x)
 
         if 'x' in self.type:
-            anal = call3(funX, self.LOCS)
+            ana = call3(funX, self.LOCS)
         elif 'y' in self.type:
-            anal = call3(funY, self.LOCS)
+            ana = call3(funY, self.LOCS)
         elif 'z' in self.type:
-            anal = call3(funZ, self.LOCS)
+            ana = call3(funZ, self.LOCS)
         else:
-            anal = call3(funX, self.LOCS)
+            ana = call3(funX, self.LOCS)
 
         if 'F' in self.type:
             Fc = cartF3(self.M, funX, funY, funZ)
@@ -255,7 +255,7 @@ class TestInterpolation3D(OrderTest):
 
         comp = self.M.getInterpolationMat(self.LOCS, self.type)*grid
 
-        err = np.linalg.norm((comp - anal), np.inf)
+        err = np.linalg.norm((comp - ana), np.inf)
         return err
 
     def test_orderCC(self):

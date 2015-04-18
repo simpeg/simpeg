@@ -20,9 +20,9 @@ class Test1D_InhomogeneousDirichlet(OrderTest):
         j_fun = lambda x: -np.pi*np.sin(np.pi*x)
         q_fun = lambda x: -(np.pi**2)*np.cos(np.pi*x)
 
-        xc_anal = phi(self.M.gridCC)
-        q_anal = q_fun(self.M.gridCC)
-        j_anal = j_fun(self.M.gridFx)
+        xc_ana = phi(self.M.gridCC)
+        q_ana = q_fun(self.M.gridCC)
+        j_ana = j_fun(self.M.gridFx)
 
         #TODO: Check where our boundary conditions are CCx or Nx
         # vec = self.M.vectorNx
@@ -38,32 +38,32 @@ class Test1D_InhomogeneousDirichlet(OrderTest):
         V = Utils.sdiag(self.M.vol)
         G = -Pin.T*Pin*self.M.faceDiv.T * V
         D = self.M.faceDiv
-        j = McI*(G*xc_anal + P*phi_bc)
+        j = McI*(G*xc_ana + P*phi_bc)
         q = V*D*Pin.T*Pin*j + V*D*Pout.T*j_bc
 
         # Rearrange if we know q to solve for x
         A = V*D*Pin.T*Pin*McI*G
-        rhs = V*q_anal - V*D*Pin.T*Pin*McI*P*phi_bc - V*D*Pout.T*j_bc
+        rhs = V*q_ana - V*D*Pin.T*Pin*McI*P*phi_bc - V*D*Pout.T*j_bc
         # A = D*McI*G
-        # rhs = q_anal - D*McI*P*phi_bc
+        # rhs = q_ana - D*McI*P*phi_bc
 
 
         if self.myTest == 'j':
-            err = np.linalg.norm((j-j_anal), np.inf)
+            err = np.linalg.norm((j-j_ana), np.inf)
         elif self.myTest == 'q':
-            err = np.linalg.norm((q-V*q_anal), np.inf)
+            err = np.linalg.norm((q-V*q_ana), np.inf)
         elif self.myTest == 'xc':
             #TODO: fix the null space
             solver = SolverCG(A, maxiter=1000)
             xc = solver * (rhs)
             print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)
-            err = np.linalg.norm((xc-xc_anal), np.inf)
+            err = np.linalg.norm((xc-xc_ana), np.inf)
         elif self.myTest == 'xcJ':
             #TODO: fix the null space
             xc = Solver(A) * (rhs)
             print np.linalg.norm(Utils.mkvc(A*xc) - rhs)
             j = McI*(G*xc + P*phi_bc)
-            err = np.linalg.norm((j-j_anal), np.inf)
+            err = np.linalg.norm((j-j_ana), np.inf)
 
         return err
 
@@ -102,11 +102,11 @@ class Test2D_InhomogeneousDirichlet(OrderTest):
         j_funY = lambda x: -np.pi*np.cos(np.pi*x[:,0])*np.sin(np.pi*x[:,1])
         q_fun = lambda x: -2*(np.pi**2)*phi(x)
 
-        xc_anal = phi(self.M.gridCC)
-        q_anal = q_fun(self.M.gridCC)
-        jX_anal = j_funX(self.M.gridFx)
-        jY_anal = j_funY(self.M.gridFy)
-        j_anal = np.r_[jX_anal,jY_anal]
+        xc_ana = phi(self.M.gridCC)
+        q_ana = q_fun(self.M.gridCC)
+        jX_ana = j_funX(self.M.gridFx)
+        jY_ana = j_funY(self.M.gridFy)
+        j_ana = np.r_[jX_ana,jY_ana]
 
         #TODO: Check where our boundary conditions are CCx or Nx
         # fxm,fxp,fym,fyp = self.M.faceBoundaryInd
@@ -126,26 +126,26 @@ class Test2D_InhomogeneousDirichlet(OrderTest):
         McI = Utils.sdInv(self.M.getFaceInnerProduct())
         G = -self.M.faceDiv.T * Utils.sdiag(self.M.vol)
         D = self.M.faceDiv
-        j = McI*(G*xc_anal + P*bc)
+        j = McI*(G*xc_ana + P*bc)
         q = D*j
 
         # self.M.plotImage(j, 'FxFy', showIt=True)
 
         # Rearrange if we know q to solve for x
         A = D*McI*G
-        rhs = q_anal - D*McI*P*bc
+        rhs = q_ana - D*McI*P*bc
 
         if self.myTest == 'j':
-            err = np.linalg.norm((j-j_anal), np.inf)
+            err = np.linalg.norm((j-j_ana), np.inf)
         elif self.myTest == 'q':
-            err = np.linalg.norm((q-q_anal), np.inf)
+            err = np.linalg.norm((q-q_ana), np.inf)
         elif self.myTest == 'xc':
             xc = Solver(A) * (rhs)
-            err = np.linalg.norm((xc-xc_anal), np.inf)
+            err = np.linalg.norm((xc-xc_ana), np.inf)
         elif self.myTest == 'xcJ':
             xc = Solver(A) * (rhs)
             j = McI*(G*xc + P*bc)
-            err = np.linalg.norm((j-j_anal), np.inf)
+            err = np.linalg.norm((j-j_ana), np.inf)
 
         return err
 
@@ -182,9 +182,9 @@ class Test1D_InhomogeneousNeumann(OrderTest):
         j_fun = lambda x: np.pi*np.cos(np.pi*x)
         q_fun = lambda x: -(np.pi**2)*np.sin(np.pi*x)
 
-        xc_anal = phi(self.M.gridCC)
-        q_anal = q_fun(self.M.gridCC)
-        j_anal = j_fun(self.M.gridFx)
+        xc_ana = phi(self.M.gridCC)
+        q_ana = q_fun(self.M.gridCC)
+        j_ana = j_fun(self.M.gridFx)
 
         #TODO: Check where our boundary conditions are CCx or Nx
         vecN = self.M.vectorNx
@@ -200,24 +200,24 @@ class Test1D_InhomogeneousNeumann(OrderTest):
         V = Utils.sdiag(self.M.vol)
         G = -Pin.T*Pin*self.M.faceDiv.T * V
         D = self.M.faceDiv
-        j = McI*(G*xc_anal + P*phi_bc)
+        j = McI*(G*xc_ana + P*phi_bc)
         q = V*D*Pin.T*Pin*j + V*D*Pout.T*j_bc
 
         # Rearrange if we know q to solve for x
         A = V*D*Pin.T*Pin*McI*G
-        rhs = V*q_anal - V*D*Pin.T*Pin*McI*P*phi_bc - V*D*Pout.T*j_bc
+        rhs = V*q_ana - V*D*Pin.T*Pin*McI*P*phi_bc - V*D*Pout.T*j_bc
         # A = D*McI*G
-        # rhs = q_anal - D*McI*P*phi_bc
+        # rhs = q_ana - D*McI*P*phi_bc
 
 
         if self.myTest == 'j':
-            err = np.linalg.norm((Pin*j-Pin*j_anal), np.inf)
+            err = np.linalg.norm((Pin*j-Pin*j_ana), np.inf)
         elif self.myTest == 'q':
-            err = np.linalg.norm((q-V*q_anal), np.inf)
+            err = np.linalg.norm((q-V*q_ana), np.inf)
         elif self.myTest == 'xc':
             #TODO: fix the null space
             xc, info = sp.linalg.minres(A, rhs, tol = 1e-6)
-            err = np.linalg.norm((xc-xc_anal), np.inf)
+            err = np.linalg.norm((xc-xc_ana), np.inf)
             if info > 0:
                 print 'Solve does not work well'
                 print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)
@@ -225,7 +225,7 @@ class Test1D_InhomogeneousNeumann(OrderTest):
             #TODO: fix the null space
             xc, info = sp.linalg.minres(A, rhs, tol = 1e-6)
             j = McI*(G*xc + P*phi_bc)
-            err = np.linalg.norm((Pin*j-Pin*j_anal), np.inf)
+            err = np.linalg.norm((Pin*j-Pin*j_ana), np.inf)
             if info > 0:
                 print 'Solve does not work well'
                 print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)
@@ -261,11 +261,11 @@ class Test2D_InhomogeneousNeumann(OrderTest):
         j_funY = lambda x: np.pi*np.sin(np.pi*x[:,0])*np.cos(np.pi*x[:,1])
         q_fun = lambda x: -2*(np.pi**2)*phi(x)
 
-        xc_anal = phi(self.M.gridCC)
-        q_anal = q_fun(self.M.gridCC)
-        jX_anal = j_funX(self.M.gridFx)
-        jY_anal = j_funY(self.M.gridFy)
-        j_anal = np.r_[jX_anal,jY_anal]
+        xc_ana = phi(self.M.gridCC)
+        q_ana = q_fun(self.M.gridCC)
+        jX_ana = j_funX(self.M.gridFx)
+        jY_ana = j_funY(self.M.gridFy)
+        j_ana = np.r_[jX_ana,jY_ana]
 
         #TODO: Check where our boundary conditions are CCx or Nx
 
@@ -290,21 +290,21 @@ class Test2D_InhomogeneousNeumann(OrderTest):
         V = Utils.sdiag(self.M.vol)
         G = -Pin.T*Pin*self.M.faceDiv.T * V
         D = self.M.faceDiv
-        j = McI*(G*xc_anal + P*phi_bc)
+        j = McI*(G*xc_ana + P*phi_bc)
         q = V*D*Pin.T*Pin*j + V*D*Pout.T*j_bc
 
         # Rearrange if we know q to solve for x
         A = V*D*Pin.T*Pin*McI*G
-        rhs = V*q_anal - V*D*Pin.T*Pin*McI*P*phi_bc - V*D*Pout.T*j_bc
+        rhs = V*q_ana - V*D*Pin.T*Pin*McI*P*phi_bc - V*D*Pout.T*j_bc
 
         if self.myTest == 'j':
-            err = np.linalg.norm((Pin*j-Pin*j_anal), np.inf)
+            err = np.linalg.norm((Pin*j-Pin*j_ana), np.inf)
         elif self.myTest == 'q':
-            err = np.linalg.norm((q-V*q_anal), np.inf)
+            err = np.linalg.norm((q-V*q_ana), np.inf)
         elif self.myTest == 'xc':
             #TODO: fix the null space
             xc, info = sp.linalg.minres(A, rhs, tol = 1e-6)
-            err = np.linalg.norm((xc-xc_anal), np.inf)
+            err = np.linalg.norm((xc-xc_ana), np.inf)
             if info > 0:
                 print 'Solve does not work well'
                 print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)
@@ -312,7 +312,7 @@ class Test2D_InhomogeneousNeumann(OrderTest):
             #TODO: fix the null space
             xc, info = sp.linalg.minres(A, rhs, tol = 1e-6)
             j = McI*(G*xc + P*phi_bc)
-            err = np.linalg.norm((Pin*j-Pin*j_anal), np.inf)
+            err = np.linalg.norm((Pin*j-Pin*j_ana), np.inf)
             if info > 0:
                 print 'Solve does not work well'
                 print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)
@@ -346,9 +346,9 @@ class Test1D_InhomogeneousMixed(OrderTest):
         j_fun = lambda x: -0.5*np.pi*np.sin(0.5*np.pi*x)
         q_fun = lambda x: -0.25*(np.pi**2)*np.cos(0.5*np.pi*x)
 
-        xc_anal = phi(self.M.gridCC)
-        q_anal = q_fun(self.M.gridCC)
-        j_anal = j_fun(self.M.gridFx)
+        xc_ana = phi(self.M.gridCC)
+        q_ana = q_fun(self.M.gridCC)
+        j_ana = j_fun(self.M.gridFx)
 
         #TODO: Check where our boundary conditions are CCx or Nx
         vecN = self.M.vectorNx
@@ -364,24 +364,24 @@ class Test1D_InhomogeneousMixed(OrderTest):
         V = Utils.sdiag(self.M.vol)
         G = -Pin.T*Pin*self.M.faceDiv.T * V
         D = self.M.faceDiv
-        j = McI*(G*xc_anal + P*phi_bc)
+        j = McI*(G*xc_ana + P*phi_bc)
         q = V*D*Pin.T*Pin*j + V*D*Pout.T*j_bc
 
         # Rearrange if we know q to solve for x
         A = V*D*Pin.T*Pin*McI*G
-        rhs = V*q_anal - V*D*Pin.T*Pin*McI*P*phi_bc - V*D*Pout.T*j_bc
+        rhs = V*q_ana - V*D*Pin.T*Pin*McI*P*phi_bc - V*D*Pout.T*j_bc
         # A = D*McI*G
-        # rhs = q_anal - D*McI*P*phi_bc
+        # rhs = q_ana - D*McI*P*phi_bc
 
 
         if self.myTest == 'j':
-            err = np.linalg.norm((Pin*j-Pin*j_anal), np.inf)
+            err = np.linalg.norm((Pin*j-Pin*j_ana), np.inf)
         elif self.myTest == 'q':
-            err = np.linalg.norm((q-V*q_anal), np.inf)
+            err = np.linalg.norm((q-V*q_ana), np.inf)
         elif self.myTest == 'xc':
             #TODO: fix the null space
             xc, info = sp.linalg.minres(A, rhs, tol = 1e-6)
-            err = np.linalg.norm((xc-xc_anal), np.inf)
+            err = np.linalg.norm((xc-xc_ana), np.inf)
             if info > 0:
                 print 'Solve does not work well'
                 print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)
@@ -389,7 +389,7 @@ class Test1D_InhomogeneousMixed(OrderTest):
             #TODO: fix the null space
             xc, info = sp.linalg.minres(A, rhs, tol = 1e-6)
             j = McI*(G*xc + P*phi_bc)
-            err = np.linalg.norm((Pin*j-Pin*j_anal), np.inf)
+            err = np.linalg.norm((Pin*j-Pin*j_ana), np.inf)
             if info > 0:
                 print 'Solve does not work well'
                 print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)
@@ -425,11 +425,11 @@ class Test2D_InhomogeneousMixed(OrderTest):
         j_funY = lambda x: -0.5*np.pi*np.cos(0.5*np.pi*x[:,0])*np.sin(0.5*np.pi*x[:,1])
         q_fun = lambda x: -2*((0.5*np.pi)**2)*phi(x)
 
-        xc_anal = phi(self.M.gridCC)
-        q_anal = q_fun(self.M.gridCC)
-        jX_anal = j_funX(self.M.gridFx)
-        jY_anal = j_funY(self.M.gridFy)
-        j_anal = np.r_[jX_anal,jY_anal]
+        xc_ana = phi(self.M.gridCC)
+        q_ana = q_fun(self.M.gridCC)
+        jX_ana = j_funX(self.M.gridFx)
+        jY_ana = j_funY(self.M.gridFy)
+        j_ana = np.r_[jX_ana,jY_ana]
 
         #TODO: Check where our boundary conditions are CCx or Nx
 
@@ -454,21 +454,21 @@ class Test2D_InhomogeneousMixed(OrderTest):
         V = Utils.sdiag(self.M.vol)
         G = -Pin.T*Pin*self.M.faceDiv.T * V
         D = self.M.faceDiv
-        j = McI*(G*xc_anal + P*phi_bc)
+        j = McI*(G*xc_ana + P*phi_bc)
         q = V*D*Pin.T*Pin*j + V*D*Pout.T*j_bc
 
         # Rearrange if we know q to solve for x
         A = V*D*Pin.T*Pin*McI*G
-        rhs = V*q_anal - V*D*Pin.T*Pin*McI*P*phi_bc - V*D*Pout.T*j_bc
+        rhs = V*q_ana - V*D*Pin.T*Pin*McI*P*phi_bc - V*D*Pout.T*j_bc
 
         if self.myTest == 'j':
-            err = np.linalg.norm((Pin*j-Pin*j_anal), np.inf)
+            err = np.linalg.norm((Pin*j-Pin*j_ana), np.inf)
         elif self.myTest == 'q':
-            err = np.linalg.norm((q-V*q_anal), np.inf)
+            err = np.linalg.norm((q-V*q_ana), np.inf)
         elif self.myTest == 'xc':
             #TODO: fix the null space
             xc, info = sp.linalg.minres(A, rhs, tol = 1e-6)
-            err = np.linalg.norm((xc-xc_anal), np.inf)
+            err = np.linalg.norm((xc-xc_ana), np.inf)
             if info > 0:
                 print 'Solve does not work well'
                 print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)
@@ -476,7 +476,7 @@ class Test2D_InhomogeneousMixed(OrderTest):
             #TODO: fix the null space
             xc, info = sp.linalg.minres(A, rhs, tol = 1e-6)
             j = McI*(G*xc + P*phi_bc)
-            err = np.linalg.norm((Pin*j-Pin*j_anal), np.inf)
+            err = np.linalg.norm((Pin*j-Pin*j_ana), np.inf)
             if info > 0:
                 print 'Solve does not work well'
                 print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)
