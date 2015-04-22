@@ -319,7 +319,7 @@ def writeVTRFile(fileName,mesh,model=None):
     vtrWriteFilter.Update()
 
 
-def ExtractCoremesh(xyzlim, mesh, meshType='tensor'):
+def ExtractCoreMesh(xyzlim, mesh, meshType='tensor'):
     """
         Extracts Core Mesh from Global mesh
         xyzlim: 2D array [ndim x 2]
