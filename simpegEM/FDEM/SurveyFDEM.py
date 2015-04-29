@@ -1,5 +1,5 @@
 from SimPEG import Survey, Problem, Utils, np, sp
-from simpegEM import Sources
+from simpegEM.Utils import SrcUtils
 from simpegEM.Utils.EMUtils import omega
 
 
@@ -91,134 +91,207 @@ class RxFDEM(Survey.BaseRx):
 # Sources
 ####################################################
 
-# class SrcFDEM(Survey.BaseSrc):
-#     freq = None
-#     rxPair = RxFDEM
-#     knownSrcTypes = {}
-
-
 class SrcFDEM(Survey.BaseSrc):
-    #TODO: Break these out into Classes of Sources.
-
-    freq = None #: Frequency (float)
-
+    freq = None
     rxPair = RxFDEM
+    knownSrcTypes = ['Simple', 'MagDipole'] #TODO: Do we want to just classify them by Magnetic, Electric, Both? 
 
-    knownSrcTypes = ['VMD', 'VMD_B', 'CircularLoop', 'Simple']
 
-    radius = None
+class SrcFDEM_Simple_e(SrcFDEM):
+    """
+        Simple electric source. It is defined by the user provided vector S_e
 
-    def __init__(self, loc, srcType, freq, rxList):
+        :param numpy.array S_e: electric source term
+        :param float freq: frequency
+        :param rxList: receiver list
+    """
+
+    def __init__(self, S_e, freq, rxList):
+        self.S_e = S_e
         self.freq = float(freq)
-        Survey.BaseSrc.__init__(self, loc, srcType, rxList)
+        SrcFDEM.__init__(self, None, 'Simple', rxList)
 
     def getSource(self, prob):
+        return None, self.S_e
 
-        src = self
-        freq = src.freq
-        solType = prob._fieldType # Hack, should just ask whether j_m, j_g are defined on edges or faces
-
-        if solType == 'e' or solType == 'b':
-            gridEJx = prob.mesh.gridEx
-            gridEJy = prob.mesh.gridEy
-            gridEJz = prob.mesh.gridEz
-            nEJ = prob.mesh.nE
-
-            gridBHx = prob.mesh.gridFx
-            gridBHy = prob.mesh.gridFy
-            gridBHz = prob.mesh.gridFz
-            nBH = prob.mesh.nF
+    def getSourceDeriv(self, prob, v, adjoint = False):
+        return None, None
 
 
+class SrcFDEM_Simple_m(SrcFDEM):
+    """
+        Simple magnetic source. It is defined by the user provided vector S_m
+
+        :param numpy.array S_m: magnetic source term
+        :param float freq: frequency
+        :param rxList: receiver list
+    """
+
+    def __init__(self, S_m, freq, rxList):
+        self.S_m = S_m
+        self.freq = float(freq)
+        SrcFDEM.__init__(self, None, 'Simple', rxList)
+
+    def getSource(self, prob):
+        return self.S_m, None
+
+    def getSourceDeriv(self, prob, v, adjoint = False):
+        return None, None
+
+
+class SrcFDEM_Simple(SrcFDEM):
+    """
+        Simple source. It is defined by the user provided vectors S_m, S_e
+
+        :param numpy.array S_m: magnetic source term
+        :param numpy.array S_e: electric source term
+        :param float freq: frequency
+        :param rxList: receiver list
+    """
+    def __init__(self, S_m, S_e, freq, rxList):
+        self.S_m = S_m
+        self.S_e = S_e
+        SrcFDEM.__init__(self, None, 'Simple', rxList)
+
+    def getSource(self, prob):
+        return self.S_m, self.S_e
+
+    def getSourceDeriv(self, prob, v, adjoint=None):
+        return None, None
+
+
+class SrcFDEM_MagDipole(SrcFDEM):
+
+    #TODO: right now, orientation doesn't actually do anything! The methods in SrcUtils should take care of that
+    def __init__(self, loc, freq, rxList, orientation='Z'):
+        self.freq = float(freq)
+        self.orientation = orientation
+        SrcFDEM.__init__(self, loc, 'MagDipole', rxList)
+
+    def getSource(self, prob):
+        eqLocs = prob._eqLocs
+
+        if eqLocs is 'FE':
+            gridX = prob.mesh.gridEx
+            gridY = prob.mesh.gridEy
+            gridZ = prob.mesh.gridEz
             C = prob.mesh.edgeCurl
-            mui = prob.MfMui
 
-        elif solType == 'h' or solType == 'j':
-            gridEJx = prob.mesh.gridFx
-            gridEJy = prob.mesh.gridFy
-            gridEJz = prob.mesh.gridFz
-            nEJ = prob.mesh.nF
-
-            gridBHx = prob.mesh.gridEx
-            gridBHy = prob.mesh.gridEy
-            gridBHz = prob.mesh.gridEz
-            nBH = prob.mesh.nE
-
+        elif eqLocs is 'EF':
+            gridX = prob.mesh.gridFx
+            gridY = prob.mesh.gridFy
+            gridZ = prob.mesh.gridFz
             C = prob.mesh.edgeCurl.T
-            mui = prob.MeMuI
-
-        else:
-            NotImplementedError('Only E or F sources')
 
 
         if prob.mesh._meshType is 'CYL':
             if not prob.mesh.isSymmetric:
+                # TODO ?
                 raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
-
-            if src.srcType == 'VMD':
-                SRC = Sources.MagneticDipoleVectorPotential(src.loc, gridEJy, 'y')
-            elif src.srcType == 'CircularLoop':
-                SRC = Sources.MagneticLoopVectorPotential(src.loc, gridEJy, 'y', src.radius)
-            else:
-                raise NotImplementedError('Only VMD and CircularLoop')
-
-        elif prob.mesh._meshType is 'TENSOR':
-
-            if src.srcType == 'VMD':
-                srcfct = Sources.MagneticDipoleVectorPotential
-                SRCx = srcfct(src.loc, gridEJx, 'x')
-                SRCy = srcfct(src.loc, gridEJy, 'y')
-                SRCz = srcfct(src.loc, gridEJz, 'z')
-
-            elif src.srcType == 'VMD_B':
-                srcfct = Sources.MagneticDipoleFields
-                SRCx = srcfct(src.loc, gridBHx, 'x')
-                SRCy = srcfct(src.loc, gridBHy, 'y')
-                SRCz = srcfct(src.loc, gridBHz, 'z')
-
-            elif src.srcType == 'CircularLoop':
-                srcfct = Sources.MagneticLoopVectorPotential
-                SRCx = srcfct(src.loc, gridEJx, 'x', src.radius)
-                SRCy = srcfct(src.loc, gridEJy, 'y', src.radius)
-                SRCz = srcfct(src.loc, gridEJz, 'z', src.radius)
-            else:
-
-                raise NotImplemented('%s srcType is not implemented' % src.srcType)
-            SRC = np.concatenate((SRCx, SRCy, SRCz))
+            a = SrcUtils.MagneticDipoleVectorPotential(src.loc, gridY, 'y')
 
         else:
-            raise Exception('Unknown mesh for VMD')
+            srcfct = SrcUtils.MagneticDipoleVectorPotential
+            ax = srcfct(self.loc, gridX, 'x')
+            ay = srcfct(self.loc, gridY, 'y')
+            az = srcfct(self.loc, gridZ, 'z')
+            a = np.concatenate((ax, ay, az))
 
-        # b-forumlation
-        if src.srcType == 'VMD_B':
-            b_0 = SRC
+        S_m = -1j*omega(self.freq)*C*a
+
+        return S_m, None
+
+
+    def getSourceDeriv(self, prob, v, adjoint=None):
+        return None, None
+
+
+class MagDipole_Bfield(SrcFDEM):
+
+    #TODO: right now, orientation doesn't actually do anything! The methods in SrcUtils should take care of that
+    def __init__(self, loc, freq, rxList, orientation='Z'):
+        self.freq = float(freq)
+        self.orientation = orientation
+        SrcFDEM.__init__(self, loc, 'MagDipole', rxList)
+
+    def getSource(self, prob):
+        eqLocs = prob._eqLocs
+
+        if eqLocs is 'FE':
+            gridX = prob.mesh.gridFx
+            gridY = prob.mesh.gridFy
+            gridZ = prob.mesh.gridFz
+            C = prob.mesh.edgeCurl
+
+        elif eqLocs is 'EF':
+            gridX = prob.mesh.gridEx
+            gridY = prob.mesh.gridEy
+            gridZ = prob.mesh.gridEz
+            C = prob.mesh.edgeCurl.T
+
+        srcfct = SrcUtils.MagneticDipoleFields
+        if prob.mesh._meshType is 'CYL':
+            if not prob.mesh.isSymmetric:
+                # TODO ?
+                raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
+            bx = srcfct(self.loc, gridX, 'x')
+            bz = srcfct(self.loc, gridZ, 'z')
+            b = np.concatenate((bx,bz))
         else:
-            a = SRC
-            b_0 = C*a
+            bx = srcfct(self.loc, gridX, 'x')
+            by = srcfct(self.loc, gridY, 'y')
+            bz = srcfct(self.loc, gridZ, 'z')
+            b = np.concatenate((bx,by,bz))
 
-        return -1j*omega(freq)*b_0, None
+        return -1j*omega(self.freq)*b, None
 
-class SimpleSrcFDEM_e(SrcFDEM):
+    def getSourceDeriv(self, prob, v, adjoint=None):
+        return None, None
 
-    def __init__(self, vec, freq, rxList):
-        self.vec = vec
+
+class SrcFDEM_CircularLoop(SrcFDEM):
+
+    #TODO: right now, orientation doesn't actually do anything! The methods in SrcUtils should take care of that
+    def __init__(self, loc, freq, rxList, orientation='Z', radius = 1.):
         self.freq = float(freq)
-        SrcFDEM.__init__(self, None, 'Simple', freq, rxList)
+        self.orientation = orientation
+        self.radius = radius
+        SrcFDEM.__init__(self, loc, 'MagDipole', rxList)
 
     def getSource(self, prob):
-        return None, self.vec
+        eqLocs = prob._eqLocs
+
+        if eqLocs is 'FE':
+            gridX = prob.mesh.gridEx
+            gridY = prob.mesh.gridEy
+            gridZ = prob.mesh.gridEz
+            C = prob.mesh.edgeCurl
+
+        elif eqLocs is 'EF':
+            gridX = prob.mesh.gridFx
+            gridY = prob.mesh.gridFy
+            gridZ = prob.mesh.gridFz
+            C = prob.mesh.edgeCurl.T
+
+        if prob.mesh._meshType is 'CYL':
+            if not prob.mesh.isSymmetric:
+                # TODO ?
+                raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
+            a = SrcUtils.MagneticDipoleVectorPotential(src.loc, gridY, 'y', self.radius)
+
+        else:
+            srcfct = SrcUtils.MagneticDipoleVectorPotential
+            ax = srcfct(self.loc, gridX, 'x', self.radius)
+            ay = srcfct(self.loc, gridY, 'y', self.radius)
+            az = srcfct(self.loc, gridZ, 'z', self.radius)
+            a = np.concatenate((ax, ay, az))
+
+        return -1j*omega(self.freq)*C*a
 
 
-class SimpleSrcFDEM_m(SrcFDEM):
-
-    def __init__(self, vec, freq, rxList):
-        self.vec = vec
-        self.freq = float(freq)
-        SrcFDEM.__init__(self, None, 'Simple', freq, rxList)
-
-    def getSource(self, prob):
-        return self.vec, None
-
+####################################################
+# Survey
+####################################################
 
 class SurveyFDEM(Survey.BaseSurvey):
     """

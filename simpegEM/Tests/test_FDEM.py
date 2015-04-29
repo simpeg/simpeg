@@ -35,7 +35,7 @@ def getProblem(fdemType, comp):
     x = np.array([np.linspace(-30,-15,3),np.linspace(15,30,3)]) #don't sample right by the source
     XYZ = Utils.ndgrid(x,x,np.r_[0.])
     Rx0 = EM.FDEM.RxFDEM(XYZ, comp)
-    Src0 = EM.FDEM.SrcFDEM(np.r_[0.,0.,0.], 'VMD', freq, [Rx0])
+    Src0 = EM.FDEM.SrcFDEM_MagDipole(np.r_[0.,0.,0.], freq, [Rx0])
 
     survey = EM.FDEM.SurveyFDEM([Src0])
 
