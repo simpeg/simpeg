@@ -206,7 +206,7 @@ class SrcFDEM_MagDipole(SrcFDEM):
         return None, None
 
 
-class MagDipole_Bfield(SrcFDEM):
+class SrcFDEM_MagDipole_Bfield(SrcFDEM):
 
     #TODO: right now, orientation doesn't actually do anything! The methods in SrcUtils should take care of that
     def __init__(self, loc, freq, rxList, orientation='Z'):
