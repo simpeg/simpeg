@@ -1094,14 +1094,15 @@ class TreeMesh(InnerProducts, BaseMesh):
         elif self.dim == 2:
             TreeFace(self, 0).refine(function, 0)
 
-    def plotGrid(self, ax=None, text=True, showIt=False):
+    def plotGrid(self, ax=None, text=True, showIt=False, figsize=(10,8)):
         import matplotlib.pyplot as plt
 
 
-        axOpts = {'projection':'3d'} if self.dim == 3 else {}
-        if ax is None: ax = plt.subplot(111, **axOpts)
+
 
         if self.dim == 3:
+            axOpts = {'projection':'3d'}
+            if ax is None: ax = plt.subplot(111, **axOpts)
             C = TreeCell(self, 'active')
 
 
@@ -1122,19 +1123,24 @@ class TreeMesh(InnerProducts, BaseMesh):
             #                   fZm
             #
 
-            n1, n2, n3, n4, n5 = 0, 1, 3, 2, 0
-            eX = np.c_[C.nodes[n1].x, C.nodes[n2].x, C.nodes[n3].x, C.nodes[n4].x, C.nodes[n5].x, [np.nan]*self.nC]
-            eY = np.c_[C.nodes[n1].y, C.nodes[n2].y, C.nodes[n3].y, C.nodes[n4].y, C.nodes[n5].y, [np.nan]*self.nC]
-            eZ = np.c_[C.nodes[n1].z, C.nodes[n2].z, C.nodes[n3].z, C.nodes[n4].z, C.nodes[n5].z, [np.nan]*self.nC]
-            ax.plot(eX.flatten(), eY.flatten(), 'b-', zs=eZ.flatten())
 
-            n1, n2, n3, n4, n5 = 4, 5, 7, 6, 4
-            eX = np.c_[C.nodes[n1].x, C.nodes[n2].x, C.nodes[n3].x, C.nodes[n4].x, C.nodes[n5].x, [np.nan]*self.nC]
-            eY = np.c_[C.nodes[n1].y, C.nodes[n2].y, C.nodes[n3].y, C.nodes[n4].y, C.nodes[n5].y, [np.nan]*self.nC]
-            eZ = np.c_[C.nodes[n1].z, C.nodes[n2].z, C.nodes[n3].z, C.nodes[n4].z, C.nodes[n5].z, [np.nan]*self.nC]
-            ax.plot(eX.flatten(), eY.flatten(), 'r-', zs=eZ.flatten())
+
+            Es = TreeEdge(self, 'active')
+            ax.plot(np.c_[Es.n0.x, Es.n1.x, Es.n1.x+np.nan].flatten(), np.c_[Es.n0.y, Es.n1.y, Es.n1.y+np.nan].flatten(), 'b-', zs=np.c_[Es.n0.z, Es.n1.z, Es.n1.z+np.nan].flatten())
+            # n1, n2, n3, n4, n5 = 0, 1, 3, 2, 0
+            # eX = np.c_[C.nodes[n1].x, C.nodes[n2].x, C.nodes[n3].x, C.nodes[n4].x, C.nodes[n5].x, [np.nan]*self.nC]
+            # eY = np.c_[C.nodes[n1].y, C.nodes[n2].y, C.nodes[n3].y, C.nodes[n4].y, C.nodes[n5].y, [np.nan]*self.nC]
+            # eZ = np.c_[C.nodes[n1].z, C.nodes[n2].z, C.nodes[n3].z, C.nodes[n4].z, C.nodes[n5].z, [np.nan]*self.nC]
+            # ax.plot(eX.flatten(), eY.flatten(), 'b-', zs=eZ.flatten())
+
+            # n1, n2, n3, n4, n5 = 4, 5, 7, 6, 4
+            # eX = np.c_[C.nodes[n1].x, C.nodes[n2].x, C.nodes[n3].x, C.nodes[n4].x, C.nodes[n5].x, [np.nan]*self.nC]
+            # eY = np.c_[C.nodes[n1].y, C.nodes[n2].y, C.nodes[n3].y, C.nodes[n4].y, C.nodes[n5].y, [np.nan]*self.nC]
+            # eZ = np.c_[C.nodes[n1].z, C.nodes[n2].z, C.nodes[n3].z, C.nodes[n4].z, C.nodes[n5].z, [np.nan]*self.nC]
+            # ax.plot(eX.flatten(), eY.flatten(), 'r-', zs=eZ.flatten())
 
             ax.plot(self.gridN[:,0], self.gridN[:,1], 'bs', zs=self.gridN[:,2])
+            ax.plot(self.gridCC[:,0], self.gridCC[:,1], 'ro', zs=self.gridCC[:,2])
 
             ax.set_xlabel('x')
             ax.set_ylabel('y')
@@ -1146,13 +1152,12 @@ class TreeMesh(InnerProducts, BaseMesh):
         E = self._edges
         C = self._faces
 
-        ax.plot(N[:,1], N[:,2], 'b.')
-        activeCells = C[:,ACTIVE] == 1
-        for FEDGE in [FEDGE0, FEDGE1, FEDGE2, FEDGE3]:
-            nInds = E[C[activeCells,FEDGE],:][:,[ENODE0,ENODE1]]
-            eX = np.c_[N[nInds[:,0],NX], N[nInds[:,1],NX], [np.nan]*nInds.shape[0]]
-            eY = np.c_[N[nInds[:,0],NY], N[nInds[:,1],NY], [np.nan]*nInds.shape[0]]
-            ax.plot(eX.flatten(), eY.flatten(), 'b-')
+        if ax is None:f, ax = plt.subplots(1,1,figsize=figsize)
+
+        Es = TreeEdge(self, 'active')
+        ax.plot(np.c_[Es.n0.x, Es.n1.x, Es.n1.x+np.nan].flatten(), np.c_[Es.n0.y, Es.n1.y, Es.n1.y+np.nan].flatten(), 'b-')
+        Ns = TreeNode(self, 'active')
+        ax.plot(Ns.x, Ns.y, 'k.')
 
         gridCC = self.gridCC
         if text:
@@ -1185,13 +1190,15 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
     # tM = TreeMesh([np.ones(3),np.ones(2)])
-    tM = TreeMesh([1,1,1])
+    tM = TreeMesh([np.ones(2),1,1])
 
-    tM.refine(lambda c:2)
-    # tM.refineCell(4)
+    # tM.refine(lambda c:2)
+    tM.refineCell(0)
+    tM.refineCell(2)
+    # tM.refineCell(7)
 
-    M = Mesh.TensorMesh([4,4,4])
-    print tM.gridN - M.gridN
+    # M = Mesh.TensorMesh([4,4,4])
+    # print tM.gridN - M.gridN
     tM.plotGrid()
 
     plt.show()
