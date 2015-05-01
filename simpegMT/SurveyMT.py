@@ -131,10 +131,10 @@ class RxMT(Survey.BaseRx):
 
 # Call this Source or polarization or something...?
 # Note: Might need to add tests to make sure that both polarization have the same rxList. 
-class srcMT(Survey.BaseTx):
+class srcMT(Survey.BaseSrc):
     '''
     Sources for the MT problem. 
-    Use the SimPEG BaseTx, since the source fields share properties with the transmitters.
+    Use the SimPEG BaseSrc, since the source fields share properties with the transmitters.
 
     :param float freq: The frequency of the source
     :param list rxList: A list of receivers associated with the source
@@ -145,12 +145,11 @@ class srcMT(Survey.BaseTx):
 
     rxPair = RxMT
 
-    knownTxTypes = ['pol_xy','pol_x','pol_y'] # ORThogonal POLarization
+    knownSrcTypes = ['pol_xy','pol_x','pol_y'] # ORThogonal POLarization
 
-    def __init__(self, freq, rxList, srcPol = 'pol_xy'): # remove txType? hardcode to one thing. always polarizations
+    def __init__(self, freq, rxList, srcPol = 'pol_xy'): # remove rxType? hardcode to one thing. always polarizations
         self.freq = float(freq)
-        Survey.BaseTx.__init__(self, None, srcPol, rxList)
-        # Survey.BaseTx.__init__(self, loc, 'polarization', rxList)
+        Survey.BaseSrc.__init__(self, None, srcPol, rxList)
 
 
 
@@ -173,7 +172,6 @@ class SurveyMT(Survey.BaseSurvey):
     def __init__(self, srcList, **kwargs):
         # Sort these by frequency
         self.srcList = srcList
-        self.txList = self.srcList # Hack - make txList index srcList, since it is used in the backend. 
         Survey.BaseSurvey.__init__(self, **kwargs)
 
         _freqDict = {}
@@ -194,14 +192,6 @@ class SurveyMT(Survey.BaseSurvey):
     def nFreq(self):
         """Number of frequencies"""
         return len(self._freqDict)
-    # Don't need this
-    # @property
-    # def nTxByFreq(self):
-    #     if getattr(self, '_nTxByFreq', None) is None:
-    #         self._nTxByFreq = {}
-    #         for freq in self.freqs:
-    #             self._nTxByFreq[freq] = len(self.getTransmitters(freq))
-    #     return self._nTxByFreq
 
     # TODO: Rename to getSources
     def getSources(self, freq):

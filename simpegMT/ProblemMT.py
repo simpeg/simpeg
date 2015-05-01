@@ -114,7 +114,7 @@ class MTProblem(Problem.BaseProblem):
             print 'Starting work for {:.3e}'.format(freq)
             sys.stdout.flush()
             A = self.getA(freq)
-            rhs = self.getRHS(freq,m_back)
+            rhs, ep = self.getRHS(freq,m_back)
             Ainv = self.Solver(A, **self.solverOpts)
             e = Ainv * rhs 
 
@@ -198,7 +198,7 @@ class MTProblem(Problem.BaseProblem):
         eBG_bp = homo1DModelSource(self.mesh,freq,backSigma)
         Abg = self.getAbg(freq)
 
-        return -Abg*eBG_bp
+        return -Abg*eBG_bp, eBG_bp
 
     ##################################################################
     # Inversion stuff
