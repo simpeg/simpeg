@@ -234,9 +234,9 @@ class TestFaceDiv2D(OrderTest):
         F = self.M.projectFaceVector(Fc)
 
         divF = self.M.faceDiv.dot(F)
-        divF_anal = call3(sol, self.M.gridCC)
+        divF_ana = call3(sol, self.M.gridCC)
 
-        err = np.linalg.norm((divF-divF_anal), np.inf)
+        err = np.linalg.norm((divF-divF_ana), np.inf)
         return err
 
     def test_order(self):
@@ -272,9 +272,9 @@ class TestEdgeCurl2D(OrderTest):
 
         Fc = cylF2(self.M, solR, solZ)
         Fc = np.c_[Fc[:,0],np.zeros(self.M.nF),Fc[:,1]]
-        curlE_anal = self.M.projectFaceVector(Fc)
+        curlE_ana = self.M.projectFaceVector(Fc)
 
-        err = np.linalg.norm((curlE-curlE_anal), np.inf)
+        err = np.linalg.norm((curlE-curlE_ana), np.inf)
         return err
 
     def test_order(self):

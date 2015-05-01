@@ -6,7 +6,7 @@ class BaseRx(object):
 
     locs = None   #: Locations (nRx x nDim)
 
-    knownRxTypes = None  #: Set this to a list of strings to ensure that txType is known
+    knownRxTypes = None  #: Set this to a list of strings to ensure that srcType is known
 
     projGLoc = 'CC'  #: Projection grid location, default is CC
 
@@ -111,37 +111,37 @@ class BaseTimeRx(BaseRx):
         return P
 
 
-class BaseTx(object):
-    """SimPEG Transmitter Object"""
+class BaseSrc(object):
+    """SimPEG Source Object"""
 
     loc    = None #: Location [x,y,z]
 
     rxList = None #: SimPEG Receiver List
     rxPair = BaseRx
 
-    knownTxTypes = None #: Set this to a list of strings to ensure that txType is known
+    knownSrcTypes = None #: Set this to a list of strings to ensure that srcType is known
 
-    def __init__(self, loc, txType, rxList, **kwargs):
+    def __init__(self, loc, srcType, rxList, **kwargs):
         assert type(rxList) is list, 'rxList must be a list'
         for rx in rxList:
             assert isinstance(rx, self.rxPair), 'rxList must be a %s'%self.rxPair.__name__
         assert len(set(rxList)) == len(rxList), 'The rxList must be unique'
 
         self.loc    = loc
-        self.txType = txType
+        self.srcType = srcType
         self.rxList = rxList
         Utils.setKwargs(self, **kwargs)
 
     @property
-    def txType(self):
-        """Transmitter Type"""
-        return getattr(self, '_txType', None)
-    @txType.setter
-    def txType(self, value):
-        known = self.knownTxTypes
+    def srcType(self):
+        """Source Type"""
+        return getattr(self, '_srcType', None)
+    @srcType.setter
+    def srcType(self, value):
+        known = self.knownSrcTypes
         if known is not None:
-            assert value in known, "txType must be in ['%s']" % ("', '".join(known))
-        self._txType = value
+            assert value in known, "srcType must be in ['%s']" % ("', '".join(known))
+        self._srcType = value
 
     @property
     def nD(self):
@@ -155,59 +155,59 @@ class BaseTx(object):
 
 
 class Data(object):
-    """Fancy data storage by Tx and Rx"""
+    """Fancy data storage by Src and Rx"""
 
     def __init__(self, survey, v=None):
         self.survey = survey
         self._dataDict = {}
-        for tx in self.survey.txList:
-            self._dataDict[tx] = {}
+        for src in self.survey.srcList:
+            self._dataDict[src] = {}
         if v is not None:
             self.fromvec(v)
 
     def _ensureCorrectKey(self, key):
         if type(key) is tuple:
             if len(key) is not 2:
-                raise KeyError('Key must be [Tx, Rx]')
-            if key[0] not in self.survey.txList:
-                raise KeyError('Tx Key must be a transmitter in the survey.')
+                raise KeyError('Key must be [Src, Rx]')
+            if key[0] not in self.survey.srcList:
+                raise KeyError('Src Key must be a source in the survey.')
             if key[1] not in key[0].rxList:
-                raise KeyError('Rx Key must be a receiver for the transmitter.')
+                raise KeyError('Rx Key must be a receiver for the source.')
             return key
-        elif isinstance(key, self.survey.txPair):
-            if key not in self.survey.txList:
-                raise KeyError('Key must be a transmitter in the survey.')
+        elif isinstance(key, self.survey.srcPair):
+            if key not in self.survey.srcList:
+                raise KeyError('Key must be a source in the survey.')
             return key, None
         else:
-            raise KeyError('Key must be [Tx] or [Tx,Rx]')
+            raise KeyError('Key must be [Src] or [Src,Rx]')
 
     def __setitem__(self, key, value):
-        tx, rx = self._ensureCorrectKey(key)
-        assert rx is not None, 'set data using [Tx, Rx]'
+        src, rx = self._ensureCorrectKey(key)
+        assert rx is not None, 'set data using [Src, Rx]'
         assert isinstance(value, np.ndarray), 'value must by ndarray'
-        assert value.size == rx.nD, "value must have the same number of data as the transmitter."
-        self._dataDict[tx][rx] = Utils.mkvc(value)
+        assert value.size == rx.nD, "value must have the same number of data as the source."
+        self._dataDict[src][rx] = Utils.mkvc(value)
 
     def __getitem__(self, key):
-        tx, rx = self._ensureCorrectKey(key)
+        src, rx = self._ensureCorrectKey(key)
         if rx is not None:
-            if rx not in self._dataDict[tx]:
+            if rx not in self._dataDict[src]:
                 raise Exception('Data for receiver has not yet been set.')
-            return self._dataDict[tx][rx]
+            return self._dataDict[src][rx]
 
-        return np.concatenate([self[tx,rx] for rx in tx.rxList])
+        return np.concatenate([self[src,rx] for rx in src.rxList])
 
     def tovec(self):
-        return np.concatenate([self[tx] for tx in self.survey.txList])
+        return np.concatenate([self[src] for src in self.survey.srcList])
 
     def fromvec(self, v):
         v = Utils.mkvc(v)
         assert v.size == self.survey.nD, 'v must have the correct number of data.'
         indBot, indTop = 0, 0
-        for tx in self.survey.txList:
-            for rx in tx.rxList:
+        for src in self.survey.srcList:
+            for rx in src.rxList:
                 indTop += rx.nD
-                self[tx, rx] = v[indBot:indTop]
+                self[src, rx] = v[indBot:indTop]
                 indBot += rx.nD
 
 
@@ -226,19 +226,19 @@ class BaseSurvey(object):
     def __init__(self, **kwargs):
         Utils.setKwargs(self, **kwargs)
 
-    txPair = BaseTx  #: Transmitter Pair
+    srcPair = BaseSrc  #: Source Pair
 
     @property
-    def txList(self):
-        """Transmitter List"""
-        return getattr(self, '_txList', None)
+    def srcList(self):
+        """Source List"""
+        return getattr(self, '_srcList', None)
 
-    @txList.setter
-    def txList(self, value):
-        assert type(value) is list, 'txList must be a list'
-        assert np.all([isinstance(tx, self.txPair) for tx in value]), 'All transmitters must be instances of %s' % self.txPair.__name__
-        assert len(set(value)) == len(value), 'The txList must be unique'
-        self._txList = value
+    @srcList.setter
+    def srcList(self, value):
+        assert type(value) is list, 'srcList must be a list'
+        assert np.all([isinstance(src, self.srcPair) for src in value]), 'All sources must be instances of %s' % self.srcPair.__name__
+        assert len(set(value)) == len(value), 'The srcList must be unique'
+        self._srcList = value
 
     @property
     def prob(self):
@@ -282,12 +282,12 @@ class BaseSurvey(object):
     @property
     def vnD(self):
         """Vector number of data"""
-        return np.array([tx.nD for tx in self.txList])
+        return np.array([src.nD for src in self.srcList])
 
     @property
-    def nTx(self):
-        """Number of Transmitters"""
-        return len(self.txList)
+    def nSrc(self):
+        """Number of Sources"""
+        return len(self.srcList)
 
     @Utils.count
     @Utils.requires('prob')
