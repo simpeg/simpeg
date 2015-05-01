@@ -94,12 +94,12 @@ class RxFDEM(Survey.BaseRx):
 class SrcFDEM(Survey.BaseSrc):
     freq = None
     rxPair = RxFDEM
-    knownSrcTypes = ['Simple', 'MagDipole'] #TODO: Do we want to just classify them by Magnetic, Electric, Both? 
+    knownSrcTypes = ['RawVec', 'MagDipole'] #TODO: remove known source types from base simepeg 
 
 
-class SrcFDEM_Simple_e(SrcFDEM):
+class SrcFDEM_RawVec_e(SrcFDEM):
     """
-        Simple electric source. It is defined by the user provided vector S_e
+        RawVec electric source. It is defined by the user provided vector S_e
 
         :param numpy.array S_e: electric source term
         :param float freq: frequency
@@ -109,7 +109,7 @@ class SrcFDEM_Simple_e(SrcFDEM):
     def __init__(self, S_e, freq, rxList):
         self.S_e = S_e
         self.freq = float(freq)
-        SrcFDEM.__init__(self, None, 'Simple', rxList)
+        SrcFDEM.__init__(self, None, 'RawVec', rxList)
 
     def getSource(self, prob):
         return None, self.S_e
@@ -118,9 +118,9 @@ class SrcFDEM_Simple_e(SrcFDEM):
         return None, None
 
 
-class SrcFDEM_Simple_m(SrcFDEM):
+class SrcFDEM_RawVec_m(SrcFDEM):
     """
-        Simple magnetic source. It is defined by the user provided vector S_m
+        RawVec magnetic source. It is defined by the user provided vector S_m
 
         :param numpy.array S_m: magnetic source term
         :param float freq: frequency
@@ -130,7 +130,7 @@ class SrcFDEM_Simple_m(SrcFDEM):
     def __init__(self, S_m, freq, rxList):
         self.S_m = S_m
         self.freq = float(freq)
-        SrcFDEM.__init__(self, None, 'Simple', rxList)
+        SrcFDEM.__init__(self, None, 'RawVec', rxList)
 
     def getSource(self, prob):
         return self.S_m, None
@@ -139,9 +139,9 @@ class SrcFDEM_Simple_m(SrcFDEM):
         return None, None
 
 
-class SrcFDEM_Simple(SrcFDEM):
+class SrcFDEM_RawVec(SrcFDEM):
     """
-        Simple source. It is defined by the user provided vectors S_m, S_e
+        RawVec source. It is defined by the user provided vectors S_m, S_e
 
         :param numpy.array S_m: magnetic source term
         :param numpy.array S_e: electric source term
@@ -151,7 +151,7 @@ class SrcFDEM_Simple(SrcFDEM):
     def __init__(self, S_m, S_e, freq, rxList):
         self.S_m = S_m
         self.S_e = S_e
-        SrcFDEM.__init__(self, None, 'Simple', rxList)
+        SrcFDEM.__init__(self, None, 'RawVec', rxList)
 
     def getSource(self, prob):
         return self.S_m, self.S_e
@@ -163,7 +163,7 @@ class SrcFDEM_Simple(SrcFDEM):
 class SrcFDEM_MagDipole(SrcFDEM):
 
     #TODO: right now, orientation doesn't actually do anything! The methods in SrcUtils should take care of that
-    def __init__(self, loc, freq, rxList, orientation='Z'):
+    def __init__(self, loc, freq, rxList, orientation='Z', moment=1.):
         self.freq = float(freq)
         self.orientation = orientation
         SrcFDEM.__init__(self, loc, 'MagDipole', rxList)
