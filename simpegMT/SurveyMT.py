@@ -145,8 +145,6 @@ class srcMT(Survey.BaseSrc):
 
     rxPair = RxMT
 
-    knownSrcTypes = ['pol_xy','pol_x','pol_y'] # ORThogonal POLarization
-
     def __init__(self, freq, rxList, srcPol = 'pol_xy'): # remove rxType? hardcode to one thing. always polarizations
         self.freq = float(freq)
         Survey.BaseSrc.__init__(self, None, srcPol, rxList)
