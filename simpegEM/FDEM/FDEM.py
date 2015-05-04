@@ -126,6 +126,7 @@ class BaseFDEMProblem(BaseEMProblem):
         return S_m, S_e
 
     def getSourceDeriv(self,freq,adjoint=False):
+        raise NotImplementedError('getSourceDeriv not implemented yet')
         return None, None
 
 
@@ -197,6 +198,10 @@ class ProblemFDEM_e(BaseFDEMProblem):
 
         return RHS
 
+    def getRHSDeriv(self, freq, u, v, adjoint=False):
+        raise NotImplementedError('getRHSDeriv not implemented yet')
+        return None
+
 
 class ProblemFDEM_b(BaseFDEMProblem):
     """
@@ -265,6 +270,10 @@ class ProblemFDEM_b(BaseFDEMProblem):
             return mui.T*RHS
 
         return RHS
+
+    def getRHSDeriv(self, freq, u, v, adjoint=False):
+        raise NotImplementedError('getRHSDeriv not implemented yet')
+        return None
 
 
 
@@ -374,9 +383,12 @@ class ProblemFDEM_j(BaseFDEMProblem):
 
         return RHS
 
+    def getRHSDeriv(self, freq, u, v, adjoint=False):
+        raise NotImplementedError('getRHSDeriv not implemented yet')
+        return None
 
 
-# Solving for h! - using primary- secondary approach
+
 class ProblemFDEM_h(BaseFDEMProblem):
     """
         Using the H-J formulation of Maxwell's equations
@@ -453,5 +465,7 @@ class ProblemFDEM_h(BaseFDEMProblem):
 
         return RHS
 
-
+    def getRHSDeriv(self, freq, u, v, adjoint=False):
+        raise NotImplementedError('getRHSDeriv not implemented yet')
+        return None
 

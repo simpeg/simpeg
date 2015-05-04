@@ -94,7 +94,6 @@ class RxFDEM(Survey.BaseRx):
 class SrcFDEM(Survey.BaseSrc):
     freq = None
     rxPair = RxFDEM
-    knownSrcTypes = ['RawVec', 'MagDipole'] #TODO: remove known source types from base simepeg 
 
 
 class SrcFDEM_RawVec_e(SrcFDEM):

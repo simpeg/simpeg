@@ -68,7 +68,6 @@ class RxTDEM(Survey.BaseTimeRx):
 class SrcTDEM(Survey.BaseSrc):
     rxPair = RxTDEM
     radius = None
-    knownSrcTypes = ['VMD_MVP', 'CircularLoop_MVP']
 
     def getInitialFields(self, mesh):
         F0 = getattr(self, '_getInitialFields_' + self.srcType)(mesh)
