@@ -107,7 +107,7 @@ class SrcFDEM_RawVec_e(SrcFDEM):
     """
 
     def __init__(self, S_e, freq, rxList):
-        self.S_e = S_e
+        self.S_e = np.array(S_e,dtype=float)
         self.freq = float(freq)
         SrcFDEM.__init__(self, None, 'RawVec', rxList)
 
@@ -128,7 +128,7 @@ class SrcFDEM_RawVec_m(SrcFDEM):
     """
 
     def __init__(self, S_m, freq, rxList):
-        self.S_m = S_m
+        self.S_m = np.array(S_m,dtype=float)
         self.freq = float(freq)
         SrcFDEM.__init__(self, None, 'RawVec', rxList)
 
@@ -149,8 +149,9 @@ class SrcFDEM_RawVec(SrcFDEM):
         :param rxList: receiver list
     """
     def __init__(self, S_m, S_e, freq, rxList):
-        self.S_m = S_m
-        self.S_e = S_e
+        self.S_m = np.array(S_m,dtype=float)
+        self.S_e = np.array(S_e,dtype=float)
+        self.freq = float(freq)
         SrcFDEM.__init__(self, None, 'RawVec', rxList)
 
     def getSource(self, prob):
@@ -165,7 +166,9 @@ class SrcFDEM_MagDipole(SrcFDEM):
     #TODO: right now, orientation doesn't actually do anything! The methods in SrcUtils should take care of that
     def __init__(self, loc, freq, rxList, orientation='Z', moment=1.):
         self.freq = float(freq)
+        self.loc = loc
         self.orientation = orientation
+        self.moment = moment
         SrcFDEM.__init__(self, loc, 'MagDipole', rxList)
 
     def getSource(self, prob):
@@ -188,7 +191,7 @@ class SrcFDEM_MagDipole(SrcFDEM):
             if not prob.mesh.isSymmetric:
                 # TODO ?
                 raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
-            a = SrcUtils.MagneticDipoleVectorPotential(src.loc, gridY, 'y')
+            a = SrcUtils.MagneticDipoleVectorPotential(self.loc, gridY, 'y')
 
         else:
             srcfct = SrcUtils.MagneticDipoleVectorPotential
