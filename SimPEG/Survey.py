@@ -119,8 +119,6 @@ class BaseSrc(object):
     rxList = None #: SimPEG Receiver List
     rxPair = BaseRx
 
-    knownSrcTypes = None #: Set this to a list of strings to ensure that srcType is known
-
     def __init__(self, loc, srcType, rxList, **kwargs):
         assert type(rxList) is list, 'rxList must be a list'
         for rx in rxList:
@@ -132,16 +130,6 @@ class BaseSrc(object):
         self.rxList = rxList
         Utils.setKwargs(self, **kwargs)
 
-    @property
-    def srcType(self):
-        """Source Type"""
-        return getattr(self, '_srcType', None)
-    @srcType.setter
-    def srcType(self, value):
-        known = self.knownSrcTypes
-        if known is not None:
-            assert value in known, "srcType must be in ['%s']" % ("', '".join(known))
-        self._srcType = value
 
     @property
     def nD(self):
