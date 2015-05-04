@@ -28,7 +28,7 @@ class BaseFDEMProblem(BaseEMProblem):
             rhs = RHS(freq)
             Ainv = self.Solver(A, **self.solverOpts)
             sol = Ainv * rhs
-            Srcs = self.survey.getSources(freq)
+            Srcs = self.survey.getSource(freq)
             F[Srcs, self._fieldType] = sol
 
         return F
@@ -45,7 +45,7 @@ class BaseFDEMProblem(BaseEMProblem):
             A = self.getA(freq)
             Ainv = self.Solver(A, **self.solverOpts)
 
-            for src in self.survey.getSources(freq):
+            for src in self.survey.getSource(freq):
                 u_src = u[src, self.solType]
                 w = self.getADeriv(freq, u_src, v)
                 Ainvw = Ainv * w
@@ -77,7 +77,7 @@ class BaseFDEMProblem(BaseEMProblem):
             AT = self.getA(freq).T
             ATinv = self.Solver(AT, **self.solverOpts)
 
-            for src in self.survey.getSources(freq):
+            for src in self.survey.getSource(freq):
                 u_src = u[src, self.solType]
 
                 for rx in src.rxList:
@@ -108,7 +108,7 @@ class BaseFDEMProblem(BaseEMProblem):
             :rtype: numpy.ndarray (nE or nF, nSrc)
             :return: RHS
         """
-        Srcs = self.survey.getSources(freq)
+        Srcs = self.survey.getSource(freq)
         if self._eqLocs is 'FE':
             S_m = np.zeros((self.mesh.nF,len(Srcs)), dtype=complex) 
             S_e = np.zeros((self.mesh.nE,len(Srcs)), dtype=complex)
@@ -126,6 +126,21 @@ class BaseFDEMProblem(BaseEMProblem):
         return S_m, S_e
 
     def getSourceDeriv(self,freq,adjoint=False):
+        Srcs = self.survey.getSource(freq)
+        if self._eqLocs is 'FE':
+            S_m = np.zeros((self.mesh.nF,len(Srcs)), dtype=complex) 
+            S_e = np.zeros((self.mesh.nE,len(Srcs)), dtype=complex)
+        elif self._eqLocs is 'EF':
+            S_m = np.zeros((self.mesh.nE,len(Srcs)), dtype=complex)
+            S_e = np.zeros((self.mesh.nF,len(Srcs)), dtype=complex) 
+
+        for i, src in enumerate(Srcs):
+            smi, sei = src.getSourceDeriv(self)
+            if smi is not None:
+                S_m[:,i] = smi
+            if sei is not None:
+                S_e[:,i] = sei
+
         raise NotImplementedError('getSourceDeriv not implemented yet')
         return None, None
 

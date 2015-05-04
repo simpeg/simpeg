@@ -331,10 +331,10 @@ class SurveyFDEM(Survey.BaseSurvey):
         if getattr(self, '_nSrcByFreq', None) is None:
             self._nSrcByFreq = {}
             for freq in self.freqs:
-                self._nSrcByFreq[freq] = len(self.getSources(freq))
+                self._nSrcByFreq[freq] = len(self.getSource(freq))
         return self._nSrcByFreq
 
-    def getSources(self, freq):
+    def getSource(self, freq):
         """Returns the sources associated with a specific frequency."""
         assert freq in self._freqDict, "The requested frequency is not in this survey."
         return self._freqDict[freq]
