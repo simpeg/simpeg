@@ -125,7 +125,7 @@ class BaseFDEMProblem(BaseEMProblem):
 
         return S_m, S_e
 
-    def getSourceDeriv(self,freq,adjoint=False):
+    def getSourceDeriv(self,freq,m,v,u=None,adjoint=False):
         raise NotImplementedError('getSourceDeriv not implemented yet')
         return None, None
 
