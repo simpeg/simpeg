@@ -327,7 +327,9 @@ class srcMT(SrcFDEM): # Survey.BaseSrc):
     freq = None #: Frequency (float)
     rxPair = RxMT
 
+
     def __init__(self, rxList, freq):
+
         self.freq = float(freq)
         Survey.BaseSrc.__init__(self, rxList)
 
