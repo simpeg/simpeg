@@ -126,21 +126,6 @@ class BaseFDEMProblem(BaseEMProblem):
         return S_m, S_e
 
     def getSourceDeriv(self,freq,adjoint=False):
-        Srcs = self.survey.getSource(freq)
-        if self._eqLocs is 'FE':
-            S_m = np.zeros((self.mesh.nF,len(Srcs)), dtype=complex) 
-            S_e = np.zeros((self.mesh.nE,len(Srcs)), dtype=complex)
-        elif self._eqLocs is 'EF':
-            S_m = np.zeros((self.mesh.nE,len(Srcs)), dtype=complex)
-            S_e = np.zeros((self.mesh.nF,len(Srcs)), dtype=complex) 
-
-        for i, src in enumerate(Srcs):
-            smi, sei = src.getSourceDeriv(self)
-            if smi is not None:
-                S_m[:,i] = smi
-            if sei is not None:
-                S_e[:,i] = sei
-
         raise NotImplementedError('getSourceDeriv not implemented yet')
         return None, None
 
