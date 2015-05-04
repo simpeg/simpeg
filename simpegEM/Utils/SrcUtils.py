@@ -14,7 +14,7 @@ def MagneticDipoleVectorPotential(srcLoc, obsLoc, component, dipoleMoment=(0., 0
         :rtype: numpy.ndarray
         :return: The vector potential each dipole at each observation location
     """
-
+    #TODO: break this out!
     if type(component) in [list, tuple]:
         out = range(len(component))
         for i, comp in enumerate(component):
