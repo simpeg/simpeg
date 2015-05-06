@@ -64,7 +64,7 @@ class FieldsTest(unittest.TestCase):
 
     def test_assertions(self):
         freq = self.F.survey.freqs[0]
-        Srcs = self.F.survey.getSources(freq)
+        Srcs = self.F.survey.getSource(freq)
         bWrongSize = np.random.rand(self.F.mesh.nE, self.F.survey.nSrcByFreq[freq])
         def fun(): self.F[Srcs, 'b'] = bWrongSize
         self.assertRaises(ValueError, fun)

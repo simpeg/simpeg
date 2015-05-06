@@ -22,11 +22,11 @@ class TDEM_bDerivTests(unittest.TestCase):
 
         rxOffset = 40.
         rx = EM.TDEM.RxTDEM(np.array([[rxOffset, 0., 0.]]), np.logspace(-4,-3, 20), 'bz')
-        tx = EM.TDEM.TxTDEM(np.array([0., 0., 0.]), 'VMD_MVP', [rx])
+        src = EM.TDEM.SrcTDEM(np.array([0., 0., 0.]), 'VMD_MVP', [rx])
         rx2 = EM.TDEM.RxTDEM(np.array([[rxOffset-10, 0., 0.]]), np.logspace(-5,-4, 25), 'bz')
-        tx2 = EM.TDEM.TxTDEM(np.array([0., 0., 0.]), 'VMD_MVP', [rx2])
+        src2 = EM.TDEM.SrcTDEM(np.array([0., 0., 0.]), 'VMD_MVP', [rx2])
 
-        survey = EM.TDEM.SurveyTDEM([tx,tx2])
+        survey = EM.TDEM.SurveyTDEM([src,src2])
 
         self.prb = EM.TDEM.ProblemTDEM_b(mesh, mapping=mapping)
         # self.prb.timeSteps = [1e-5]
@@ -99,14 +99,14 @@ class TDEM_bDerivTests(unittest.TestCase):
     def test_projectAdjoint(self):
         prb = self.prb
         survey = prb.survey
-        nTx = survey.nTx
+        nSrc = survey.nSrc
         mesh = self.mesh
 
         # Generate random fields and data
         f = EM.TDEM.FieldsTDEM(prb.mesh, prb.survey)
         for i in range(prb.nT):
-            f[:,'b',i] = np.random.rand(mesh.nF, nTx)
-            f[:,'e',i] = np.random.rand(mesh.nE, nTx)
+            f[:,'b',i] = np.random.rand(mesh.nF, nSrc)
+            f[:,'e',i] = np.random.rand(mesh.nE, nSrc)
         d_vec = np.random.rand(survey.nD)
         d = Survey.Data(survey,v=d_vec)
 
