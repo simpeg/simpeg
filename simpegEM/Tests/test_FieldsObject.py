@@ -11,7 +11,7 @@ class FieldsTest(unittest.TestCase):
         srcLoc = np.r_[0,0,0.]
         rxList0 = EM.FDEM.RxFDEM(XYZ, 'exi')
         Src0 = EM.FDEM.SrcFDEM_MagDipole(srcLoc, 3., [rxList0])
-        rxList1 = EM.FDEM.RxFDEM(XYZ, 'bxi')
+        rxList1 = EM.FDEM.RxFDEM(XYZ, 'bxi') 
         Src1 = EM.FDEM.SrcFDEM_MagDipole(srcLoc, 3., [rxList1])
         rxList2 = EM.FDEM.RxFDEM(XYZ, 'bxi')
         Src2 = EM.FDEM.SrcFDEM_MagDipole(srcLoc, 2., [rxList2])
