@@ -19,23 +19,23 @@ class FieldsFDEM_e(FieldsFDEM):
         FieldsFDEM.__init__(self,mesh,survey,**kwargs)
 
     def startup(self):
-        self.edgeCurl = self.survey.prob.mesh.edgeCurl
-        self.getSource = self.survey.prob.getSource
-        self.getSourceDeriv = self.survey.prob.getSourceDeriv 
+        self._edgeCurl = self.survey.prob.mesh.edgeCurl
+        self._getSource = self.survey.prob.getSource
+        self._getSourceDeriv = self.survey.prob.getSourceDeriv 
 
     def _b_sec(self, e, src): #adjoint=False
-        return - 1./(1j*omega(src.freq)) * (self.edgeCurl * e)
+        return - 1./(1j*omega(src.freq)) * (self._edgeCurl * e)
 
     def _b_secDeriv(self, e, src, v, adjoint=False): 
         return None
 
     def _b(self, e, src): #adjoint=False
         b_sec = self._b_sec(e,src)
-        S_m,_ = self.getSource(src.freq)
+        S_m,_ = self._getSource(src.freq)
         return b_sec + 1./(1j*omega(src.freq)) * S_m
 
     def _bDeriv(self, e, src, v, adjoint=False):
-        S_mDeriv,_ = self.getSourceDeriv(src.freq, v, adjoint)
+        S_mDeriv,_ = self._getSourceDeriv(src.freq, v, adjoint)
         b_secDeriv = self._b_secDeriv(e, src.freq, v, adjoint)
         if S_mDeriv is None & b_secDeriv is None:
             return None
@@ -58,25 +58,25 @@ class FieldsFDEM_b(FieldsFDEM):
         FieldsFDEM.__init__(self,mesh,survey,**kwargs)
 
     def startup(self):
-        self.edgeCurl = self.survey.prob.mesh.edgeCurl
-        self.MeSigmaI = self.survey.prob.MeSigmaI
-        self.MfMui = self.survey.prob.MfMui
-        self.getSource = self.survey.prob.getSource
-        self.getSourceDeriv = self.survey.prob.getSourceDeriv 
+        self._edgeCurl = self.survey.prob.mesh.edgeCurl
+        self._MeSigmaI = self.survey.prob.MeSigmaI
+        self._MfMui = self.survey.prob.MfMui
+        self._getSource = self.survey.prob.getSource
+        self._getSourceDeriv = self.survey.prob.getSourceDeriv 
 
     def _e_sec(self, b, src):
-        return self.MeSigmaI * ( self.edgeCurl.T * ( self.MfMui * b) )
+        return self._MeSigmaI * ( self._edgeCurl.T * ( self._MfMui * b) )
 
     def _e_secDeriv(self, b, src, v, adjoint=False):
         return None
 
     def _e(self, b, src):
         e_sec = self._e_sec(b,src)
-        _, S_e = self.getSource(src.freq)
+        _, S_e = self._getSource(src.freq)
         return e_sec + S_e
 
     def _eDeriv(self, b, src, v, adjoint=False):
-        _,S_eDeriv = self.getSourceDeriv(src.freq, v, adjoint)
+        _,S_eDeriv = self._getSourceDeriv(src.freq, v, adjoint)
         e_secDeriv = self._e_secDeriv(b, src, v, adjoint)
 
         if S_eDeriv is None & e_secDeriv is None:
@@ -100,25 +100,25 @@ class FieldsFDEM_j(FieldsFDEM):
         FieldsFDEM.__init__(self,mesh,survey,**kwargs)
 
     def startup(self):
-        self.edgeCurl = self.survey.prob.mesh.edgeCurl
-        self.MeMuI = self.survey.prob.MeMuI
-        self.MfSigmai = self.survey.prob.MfSigmai
-        self.getSource = self.survey.prob.getSource
-        self.getSourceDeriv = self.survey.prob.getSourceDeriv 
-        self.curModel = self.survey.prob.curModel
+        self._edgeCurl = self.survey.prob.mesh.edgeCurl
+        self._MeMuI = self.survey.prob.MeMuI
+        self._MfSigmai = self.survey.prob.MfSigmai
+        self._getSource = self.survey.prob.getSource
+        self._getSourceDeriv = self.survey.prob.getSourceDeriv 
+        self._curModel = self.survey.prob.curModel
 
     def _h_sec(self, j, src): #v, adjoint=False
-        return - 1./(1j*omega(src.freq)) * self.MeMuI * (self.edgeCurl.T * (self.MfSigmai * j) ) 
+        return - 1./(1j*omega(src.freq)) * self._MeMuI * (self._edgeCurl.T * (self._MfSigmai * j) ) 
 
     def _h_secDeriv(self, j, src, v, adjoint=False): 
-        MeMuI = self.MeMuI
-        C = self.edgeCurl
-        sig = self.curModel.transform
+        MeMuI = self._MeMuI
+        C = self._edgeCurl
+        sig = self._curModel.transform
         sigi = 1/sig
-        dsig_dm = self.curModel.transformDeriv
+        dsig_dm = self._curModel.transformDeriv
         dsigi_dsig = -Utils.sdiag(sigi)**2
         dMf_dsigi = self.mesh.getFaceInnerProductDeriv(sigi)(j)
-        sigi = self.MfSigmai
+        sigi = self._MfSigmai
         if not adjoint:
             return -(1./(1j*omega(freq))) * MeMuI * ( C.T * ( dMf_dsigi * ( dsigi_dsig * ( dsig_dm * v ) ) ) )
         else:
@@ -126,11 +126,11 @@ class FieldsFDEM_j(FieldsFDEM):
 
     def _h(self, j, src): #v, adjoint=False
         h_sec = self._h_sec(j,src)
-        S_m,_ = self.getSource(src.freq)
-        return h_sec + 1./(1j*omega(src.freq)) * self.MeMuI * S_m
+        S_m,_ = self._getSource(src.freq)
+        return h_sec + 1./(1j*omega(src.freq)) * self._MeMuI * S_m
 
     def _hDeriv(self, j, src, v, adjoint=False):
-        S_mDeriv,_ = self.getSourceDeriv(src.freq, v, adjoint)
+        S_mDeriv,_ = self._getSourceDeriv(src.freq, v, adjoint)
         h_secDeriv = self._h_secDeriv(j,src.freq, v, adjoint)
         if S_mDeriv is None & h_secDeriv is None:
             return None
@@ -152,25 +152,25 @@ class FieldsFDEM_h(FieldsFDEM):
         FieldsFDEM.__init__(self,mesh,survey,**kwargs)
 
     def startup(self):
-        self.edgeCurl = self.survey.prob.mesh.edgeCurl
-        self.MeMuI = self.survey.prob.MeMuI
-        self.MfSigmai = self.survey.prob.MfSigmai
-        self.getSource = self.survey.prob.getSource
-        self.getSourceDeriv = self.survey.prob.getSourceDeriv 
+        self._edgeCurl = self.survey.prob.mesh.edgeCurl
+        self._MeMuI = self.survey.prob.MeMuI
+        self._MfSigmai = self.survey.prob.MfSigmai
+        self._getSource = self.survey.prob.getSource
+        self._getSourceDeriv = self.survey.prob.getSourceDeriv 
 
     def _j_sec(self, h, src): # adjoint=False
-        return self.edgeCurl*h
+        return self._edgeCurl*h
 
     def _j_secDeriv(self, h, src, v, adjoint=False): 
         return None
 
     def _j(self, h, src): # adjoint=False
         j_sec = self._j_sec(h,src)
-        _,S_e = self.getSource(src.freq)
+        _,S_e = self._getSource(src.freq)
         return j_sec - S_e
 
     def _jDeriv(self, h, src, v, adjoint=False):
-        _,S_eDeriv = self.getSourceDeriv(src.freq, v, adjoint)
+        _,S_eDeriv = self._getSourceDeriv(src.freq, v, adjoint)
         j_secDeriv = self._j_secDeriv(j,src.freq, v, adjoint)
         if S_eDeriv is None & j_secDeriv is None:
             return None
@@ -187,9 +187,9 @@ class FieldsFDEM_h(FieldsFDEM):
     #     if fieldType == 'j':
     #         return j
     #     elif fieldType == 'h':
-    #         MeMuI = self.MeMuI
+    #         MeMuI = self._MeMuI
     #         C = self.mesh.edgeCurl
-    #         MfSigmai = self.MfSigmai
+    #         MfSigmai = self._MfSigmai
     #         if not adjoint:
     #             h = -(1./(1j*omega(freq))) * MeMuI * ( C.T * ( MfSigmai * j ) )
     #         else:
@@ -202,14 +202,14 @@ class FieldsFDEM_h(FieldsFDEM):
     #     if fieldType == 'j':
     #         return None
     #     elif fieldType == 'h':
-    #         MeMuI = self.MeMuI
+    #         MeMuI = self._MeMuI
     #         C = self.mesh.edgeCurl
-    #         sig = self.curModel.transform
+    #         sig = self._curModel.transform
     #         sigi = 1/sig
-    #         dsig_dm = self.curModel.transformDeriv
+    #         dsig_dm = self._curModel.transformDeriv
     #         dsigi_dsig = -Utils.sdiag(sigi)**2
     #         dMf_dsigi = self.mesh.getFaceInnerProductDeriv(sigi)(j)
-    #         sigi = self.MfSigmai
+    #         sigi = self._MfSigmai
     #         if not adjoint:
     #             return -(1./(1j*omega(freq))) * MeMuI * ( C.T * ( dMf_dsigi * ( dsigi_dsig * ( dsig_dm * v ) ) ) )
     #         else:
