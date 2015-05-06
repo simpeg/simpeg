@@ -28,7 +28,7 @@ class BaseFDEMProblem(BaseEMProblem):
             rhs = RHS(freq)
             Ainv = self.Solver(A, **self.solverOpts)
             sol = Ainv * rhs
-            Srcs = self.survey.getSource(freq)
+            Srcs = self.survey.getSrcByFreq(freq)
             F[Srcs, self._fieldType] = sol
 
         return F
@@ -102,13 +102,13 @@ class BaseFDEMProblem(BaseEMProblem):
 
         return Jtv
 
-    def getSource(self, freq):
+    def getSourceTerm(self, freq):
         """
             :param float freq: Frequency
             :rtype: numpy.ndarray (nE or nF, nSrc)
             :return: RHS
         """
-        Srcs = self.survey.getSource(freq)
+        Srcs = self.survey.getSrcByFreq(freq)
         if self._eqLocs is 'FE':
             S_m = np.zeros((self.mesh.nF,len(Srcs)), dtype=complex) 
             S_e = np.zeros((self.mesh.nE,len(Srcs)), dtype=complex)
@@ -117,7 +117,7 @@ class BaseFDEMProblem(BaseEMProblem):
             S_e = np.zeros((self.mesh.nF,len(Srcs)), dtype=complex) 
 
         for i, src in enumerate(Srcs):
-            smi, sei = src.getSource(self)
+            smi, sei = src.eval(self)
             if smi is not None:
                 S_m[:,i] = smi
             if sei is not None:
@@ -125,8 +125,8 @@ class BaseFDEMProblem(BaseEMProblem):
 
         return S_m, S_e
 
-    def getSourceDeriv(self,freq,m,v,u=None,adjoint=False):
-        raise NotImplementedError('getSourceDeriv not implemented yet')
+    def getSourceTermDeriv(self,freq,m,v,u=None,adjoint=False):
+        raise NotImplementedError('getSourceTermDeriv not implemented yet')
         return None, None
 
 
@@ -190,7 +190,7 @@ class ProblemFDEM_e(BaseFDEMProblem):
             :return: RHS
         """
 
-        S_m, S_e = self.getSource(freq)
+        S_m, S_e = self.getSourceTerm(freq)
         C = self.mesh.edgeCurl
         MfMui = self.MfMui
 
@@ -259,7 +259,7 @@ class ProblemFDEM_b(BaseFDEMProblem):
             :return: RHS
         """
 
-        S_m, S_e = self.getSource(freq)
+        S_m, S_e = self.getSourceTerm(freq)
         C = self.mesh.edgeCurl
         MeSigmaI = self.MeSigmaI
 
@@ -371,7 +371,7 @@ class ProblemFDEM_j(BaseFDEMProblem):
             :return: RHS
         """
 
-        S_m, S_e = self.getSource(freq)
+        S_m, S_e = self.getSourceTerm(freq)
         C = self.mesh.edgeCurl
         MeMuI = self.MeMuI   
 
@@ -457,7 +457,7 @@ class ProblemFDEM_h(BaseFDEMProblem):
             :return: RHS
         """
 
-        S_m, S_e = self.getSource(freq)
+        S_m, S_e = self.getSourceTerm(freq)
         C = self.mesh.edgeCurl
         MfSigmai  = self.MfSigmai
 

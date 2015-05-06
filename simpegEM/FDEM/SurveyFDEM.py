@@ -95,6 +95,12 @@ class SrcFDEM(Survey.BaseSrc):
     freq = None
     rxPair = RxFDEM
 
+    def eval(self, prob):
+        return self._getS_m(prob), self._getS_e(prob)
+
+    def evalDeriv(self, prob, v, adjoint=None):
+        return self._getS_mDeriv(prob,v,adjoint), self._getS_eDeriv(prob,v,adjoint)
+
 
 class SrcFDEM_RawVec_e(SrcFDEM):
     """
@@ -105,16 +111,22 @@ class SrcFDEM_RawVec_e(SrcFDEM):
         :param rxList: receiver list
     """
 
-    def __init__(self, S_e, freq, rxList):
+    def __init__(self, rxList, freq, S_e):
         self.S_e = np.array(S_e,dtype=float)
         self.freq = float(freq)
-        SrcFDEM.__init__(self, None, 'RawVec', rxList)
+        SrcFDEM.__init__(self, rxList)
 
-    def getSource(self, prob):
-        return None, self.S_e
+    def _getS_m(self, prob):
+        return None 
 
-    def getSourceDeriv(self, prob, v, adjoint = False):
-        return None, None
+    def _getS_e(self, prob):
+        return self.S_e
+
+    def _getS_mDeriv(self, prob, v, adjoint = False):
+        return None
+
+    def _getS_eDeriv(self, prob, v, adjoint = False):
+        return None
 
 
 class SrcFDEM_RawVec_m(SrcFDEM):
@@ -126,16 +138,22 @@ class SrcFDEM_RawVec_m(SrcFDEM):
         :param rxList: receiver list
     """
 
-    def __init__(self, S_m, freq, rxList):
+    def __init__(self, rxList, freq, S_m):
         self.S_m = np.array(S_m,dtype=float)
         self.freq = float(freq)
-        SrcFDEM.__init__(self, None, 'RawVec', rxList)
+        SrcFDEM.__init__(self, rxList)
 
-    def getSource(self, prob):
-        return self.S_m, None
+    def _getS_m(self, prob):
+        return self.S_m
 
-    def getSourceDeriv(self, prob, v, adjoint = False):
-        return None, None
+    def _getS_e(self, prob):
+        return None
+
+    def _getS_mDeriv(self, prob, v, adjoint = False):
+        return None
+
+    def _getS_eDeriv(self, prob, v, adjoint = False):
+        return None
 
 
 class SrcFDEM_RawVec(SrcFDEM):
@@ -147,30 +165,35 @@ class SrcFDEM_RawVec(SrcFDEM):
         :param float freq: frequency
         :param rxList: receiver list
     """
-    def __init__(self, S_m, S_e, freq, rxList):
+    def __init__(self, rxList, freq, S_m, S_e):
         self.S_m = np.array(S_m,dtype=float)
         self.S_e = np.array(S_e,dtype=float)
         self.freq = float(freq)
-        SrcFDEM.__init__(self, None, 'RawVec', rxList)
+        SrcFDEM.__init__(self, rxList)
 
-    def getSource(self, prob):
-        return self.S_m, self.S_e
+    def _getS_m(self,prob):
+        return self.S_m
 
-    def getSourceDeriv(self, prob, v, adjoint=None):
-        return None, None
+    def _getS_e(self,prob):
+        return self.S_e
 
+    def _getS_mDeriv(self, prob, v, adjoint = False):
+        return None
+
+    def _getS_eDeriv(self, prob, v, adjoint = False):
+        return None
 
 class SrcFDEM_MagDipole(SrcFDEM):
 
     #TODO: right now, orientation doesn't actually do anything! The methods in SrcUtils should take care of that
-    def __init__(self, loc, freq, rxList, orientation='Z', moment=1.):
+    def __init__(self, rxList, freq, loc, orientation='Z', moment=1.):
         self.freq = float(freq)
         self.loc = loc
         self.orientation = orientation
         self.moment = moment
-        SrcFDEM.__init__(self, loc, 'MagDipole', rxList)
+        SrcFDEM.__init__(self, rxList)
 
-    def getSource(self, prob):
+    def _getS_m(self,prob):
         eqLocs = prob._eqLocs
 
         if eqLocs is 'FE':
@@ -201,8 +224,10 @@ class SrcFDEM_MagDipole(SrcFDEM):
 
         S_m = -1j*omega(self.freq)*C*a
 
-        return S_m, None
+        return S_m
 
+    def _getS_e(self,prob):
+        return None
 
     def getSourceDeriv(self, prob, v, adjoint=None):
         return None, None
@@ -211,12 +236,13 @@ class SrcFDEM_MagDipole(SrcFDEM):
 class SrcFDEM_MagDipole_Bfield(SrcFDEM):
 
     #TODO: right now, orientation doesn't actually do anything! The methods in SrcUtils should take care of that
-    def __init__(self, loc, freq, rxList, orientation='Z'):
+    #TODO: neither does moment
+    def __init__(self, rxList, freq, loc, orientation='Z', moment=1.):
         self.freq = float(freq)
         self.orientation = orientation
-        SrcFDEM.__init__(self, loc, 'MagDipole', rxList)
+        SrcFDEM.__init__(self, rxList)
 
-    def getSource(self, prob):
+    def _getS_m(self,prob):
         eqLocs = prob._eqLocs
 
         if eqLocs is 'FE':
@@ -245,20 +271,33 @@ class SrcFDEM_MagDipole_Bfield(SrcFDEM):
             bz = srcfct(self.loc, gridZ, 'z')
             b = np.concatenate((bx,by,bz))
 
-        return -1j*omega(self.freq)*b, None
+        return -1j*omega(self.freq)*b
 
-    def getSourceDeriv(self, prob, v, adjoint=None):
-        return None, None
+    def _getS_e(self,prob):
+        return None
+
+    def _getS_mDeriv(self, prob, v, adjoint = False):
+        return None
+
+    def _getS_eDeriv(self, prob, v, adjoint = False):
+        return None
 
 
 class SrcFDEM_CircularLoop(SrcFDEM):
 
     #TODO: right now, orientation doesn't actually do anything! The methods in SrcUtils should take care of that
-    def __init__(self, loc, freq, rxList, orientation='Z', radius = 1.):
+    def __init__(self, rxList, freq, loc, orientation='Z', radius = 1.):
         self.freq = float(freq)
         self.orientation = orientation
         self.radius = radius
-        SrcFDEM.__init__(self, loc, 'MagDipole', rxList)
+        SrcFDEM.__init__(self, rxList)
+
+    def _getS_mDeriv(self, prob, v, adjoint = False):
+        return None
+
+    def _getS_eDeriv(self, prob, v, adjoint = False):
+        return None
+
 
     def getSource(self, prob):
         eqLocs = prob._eqLocs
@@ -334,7 +373,7 @@ class SurveyFDEM(Survey.BaseSurvey):
                 self._nSrcByFreq[freq] = len(self.getSource(freq))
         return self._nSrcByFreq
 
-    def getSource(self, freq):
+    def getSrcByFreq(self, freq):
         """Returns the sources associated with a specific frequency."""
         assert freq in self._freqDict, "The requested frequency is not in this survey."
         return self._freqDict[freq]
