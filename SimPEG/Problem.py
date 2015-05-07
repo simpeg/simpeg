@@ -160,8 +160,8 @@ class Fields(object):
                 assert hasattr(self, func), 'The alias field function is a string, but it does not exist in the Fields class.'
                 func = getattr(self, func)
             out = func(self._fields[alias][:,ind], srcII)
-            if not out.size > out.shape[0]:
-                out = Utils.mkvc(out)
+        if out.shape[0] == out.size:
+            out = Utils.mkvc(out)
         return out
 
     def __contains__(self, other):
