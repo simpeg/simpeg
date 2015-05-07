@@ -129,7 +129,6 @@ class RxMT(Survey.BaseRx):
         return Pv
 
 
-# Call this Source or polarization or something...?
 # Note: Might need to add tests to make sure that both polarization have the same rxList. 
 class srcMT(Survey.BaseSrc):
     '''
@@ -195,7 +194,7 @@ class SurveyMT(Survey.BaseSurvey):
 
     # TODO: Rename to getSources
     def getSources(self, freq):
-        """Returns the transmitters associated with a specific frequency."""
+        """Returns the sources associated with a specific frequency."""
         assert freq in self._freqDict, "The requested frequency is not in this survey."
         return self._freqDict[freq]
 
@@ -270,14 +269,6 @@ class DataMT(Survey.Data):
                     outArr[comp] = outTemp[comp].copy()
                 for comp in ['zxx','zxy','zyx','zyy']:
                     outArr[comp] = outTemp[comp+'r'].copy() + 1j*outTemp[comp+'i'].copy()
-                # for uniFL in uniFLmarr:
-                #     mTemp = mkvc(rec2ndarr(mArrRec[np.ma.where(mArrRec[['freq','x','y','z']].data == np.array(uniFL))][impList]).sum(axis=0),2).T
-                #     compBlock = np.sum(mTemp.data.reshape((4,2))*np.array([[1,1j],[1,1j],[1,1j],[1,1j]]),axis=1).copy().view(dt[4::])
-                #     dataBlock = mkvc(recFunc.merge_arrays((np.array(uniFL),compBlock),flatten=True),2).T
-                #     try:
-                #         outArr = recFunc.stack_arrays((outArr,dataBlock),usemask=False)
-                #     except NameError as e:
-                #         outArr = dataBlock
 
         # Return 
         return outArr
