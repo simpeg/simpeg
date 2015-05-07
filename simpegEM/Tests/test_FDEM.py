@@ -11,7 +11,7 @@ testAdjoint = False
 testEB = True
 testHJ = True
 
-verbose = True
+verbose = False
 
 TOL = 1e-4
 FLR = 1e-20 # "zero", so if residual below this --> pass regardless of order
@@ -35,7 +35,7 @@ def getProblem(fdemType, comp):
     x = np.array([np.linspace(-30,-15,3),np.linspace(15,30,3)]) #don't sample right by the source
     XYZ = Utils.ndgrid(x,x,np.r_[0.])
     Rx0 = EM.FDEM.RxFDEM(XYZ, comp)
-    Src0 = EM.FDEM.SrcFDEM_MagDipole([Rx0],freq=freq, loc=np.r_[0.,0.,0.])
+    Src0 = EM.FDEM.SrcFDEM_MagDipole([Rx0], loc=np.r_[0.,0.,0.], freq=freq)
 
     survey = EM.FDEM.SurveyFDEM([Src0])
 
@@ -123,9 +123,7 @@ def crossCheckTest(fdemType, comp):
 
     prb1.mu = mu
     survey1 = prb1.survey
-
-    u1 = prb1.fields(m)
-    d1 = Utils.mkvc(survey1.projectFields(u1))
+    d1 = survey1.dpred(m)
 
     if verbose:
         print '  Problem 1 solved'
@@ -143,9 +141,7 @@ def crossCheckTest(fdemType, comp):
     
     prb2.mu = mu
     survey2 = prb2.survey
-
-    u2 = prb2.fields(m)
-    d2 = Utils.mkvc(survey2.projectFields(u2))
+    d2 = survey2.dpred(m)
 
     if verbose:
         print '  Problem 2 solved'
