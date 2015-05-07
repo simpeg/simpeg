@@ -13,7 +13,7 @@ class MTProblem(Problem.BaseProblem):
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
-    solType = 'e'
+    solType = 'e'ls
     storeTheseFields = ['e', 'b']
 
     surveyPair = SurveyMT
