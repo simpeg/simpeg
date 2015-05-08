@@ -157,8 +157,8 @@ class ProblemFDEM_e(BaseFDEMProblem):
     _eqLocs    = 'FE'
     fieldsPair = FieldsFDEM_e
 
-    def __init__(self, model, **kwargs):
-        BaseFDEMProblem.__init__(self, model, **kwargs)
+    def __init__(self, mesh, **kwargs):
+        BaseFDEMProblem.__init__(self, mesh, **kwargs)
 
     def getA(self, freq):
         """
@@ -211,8 +211,8 @@ class ProblemFDEM_b(BaseFDEMProblem):
     _eqLocs    = 'FE'
     fieldsPair = FieldsFDEM_b
 
-    def __init__(self, model, **kwargs):
-        BaseFDEMProblem.__init__(self, model, **kwargs)
+    def __init__(self, mesh, **kwargs):
+        BaseFDEMProblem.__init__(self, mesh, **kwargs)
 
     def getA(self, freq):
         """
@@ -311,8 +311,8 @@ class ProblemFDEM_j(BaseFDEMProblem):
     _eqLocs    = 'EF'
     fieldsPair = FieldsFDEM_j
 
-    def __init__(self, model, **kwargs):
-        BaseFDEMProblem.__init__(self, model, **kwargs)
+    def __init__(self, mesh, **kwargs):
+        BaseFDEMProblem.__init__(self, mesh, **kwargs)
 
     def getA(self, freq):
         """
@@ -418,8 +418,8 @@ class ProblemFDEM_h(BaseFDEMProblem):
     _eqLocs    = 'EF'
     fieldsPair = FieldsFDEM_h
 
-    def __init__(self, model, **kwargs):
-        BaseFDEMProblem.__init__(self, model, **kwargs)
+    def __init__(self, mesh, **kwargs):
+        BaseFDEMProblem.__init__(self, mesh, **kwargs)
 
     def getA(self, freq):
         """
