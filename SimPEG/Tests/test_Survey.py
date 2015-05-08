@@ -249,7 +249,7 @@ class FieldsTest_Time(unittest.TestCase):
 
         b = np.random.rand(F.mesh.nF,1,nT)
         F[self.Src0, 'b', 0] = b[:,:,0]
-        self.assertTrue(np.all(F[self.Src0, 'b', 0] == b[:,0,0]))
+        self.assertTrue(np.all(F[self.Src0, 'b', 0] == Utils.mkvc(b[:,0,0],2)))
 
         phi = np.random.rand(F.mesh.nC,2,nT)
         F[[self.Src0,self.Src1], 'phi'] = phi
@@ -265,10 +265,10 @@ class FieldsTest_Time(unittest.TestCase):
         self.assertTrue(F[self.Src0,'b'].shape == (F.mesh.nF,nT))
         self.assertTrue(np.all(F[self.Src0,'b'] == b[:,0,:]))
         self.assertTrue(np.all(F[self.Src1,'b'] == b[:,1,:]))
-        self.assertTrue(np.all(F[self.Src0,'b',1] == b[:,0,1]))
-        self.assertTrue(np.all(F[self.Src1,'b',1] == b[:,1,1]))
-        self.assertTrue(np.all(F[self.Src0,'b',4] == b[:,0,4]))
-        self.assertTrue(np.all(F[self.Src1,'b',4] == b[:,1,4]))
+        self.assertTrue(np.all(F[self.Src0,'b',1] == Utils.mkvc(b[:,0,1],2)))
+        self.assertTrue(np.all(F[self.Src1,'b',1] == Utils.mkvc(b[:,1,1],2)))
+        self.assertTrue(np.all(F[self.Src0,'b',4] == Utils.mkvc(b[:,0,4],2)))
+        self.assertTrue(np.all(F[self.Src1,'b',4] == Utils.mkvc(b[:,1,4],2)))
 
 
         b = np.random.rand(F.mesh.nF, 2, nT)
@@ -344,7 +344,7 @@ class FieldsTest_Time_Aliased(unittest.TestCase):
         self.assertTrue(np.all(F[self.Src0, 'e', :] == e[:,0,:] ))
         self.assertTrue(np.all(F[self.Src1, 'e', :] == e[:,1,:] ))
         for t in range(nT):
-            self.assertTrue(np.all(F[self.Src1, 'e', t] == e[:,1,t] ))
+            self.assertTrue(np.all(F[self.Src1, 'e', t] == Utils.mkvc(e[:,1,t],2) ))
 
         b = np.random.rand(F.mesh.nF,nT)
         F[self.Src0, 'b',:] = b
