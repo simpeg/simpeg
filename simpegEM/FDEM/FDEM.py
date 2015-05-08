@@ -119,9 +119,9 @@ class BaseFDEMProblem(BaseEMProblem):
         for i, src in enumerate(Srcs):
             smi, sei = src.eval(self)
             if smi is not None:
-                S_m[:,i] = smi
+                S_m[:,i] = Utils.mkvc(smi)
             if sei is not None:
-                S_e[:,i] = sei
+                S_e[:,i] = Utils.mkvc(sei)
 
         return S_m, S_e
 

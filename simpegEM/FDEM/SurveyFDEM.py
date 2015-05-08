@@ -96,7 +96,14 @@ class SrcFDEM(Survey.BaseSrc):
     rxPair = RxFDEM
 
     def eval(self, prob):
-        return self._getS_m(prob), self._getS_e(prob)
+        S_m = self._getS_m(prob)
+        S_e = self._getS_e(prob)
+
+        if S_m is not None:
+            if len(S_m.shape) == 1: S_m = Utils.mkvc(S_m,2)
+        if S_e is not None:
+            if len(S_e.shape) == 1: S_e = Utils.mkvc(S_e,2)
+        return S_m, S_e 
 
     def evalDeriv(self, prob, v, adjoint=None):
         return self._getS_mDeriv(prob,v,adjoint), self._getS_eDeriv(prob,v,adjoint)

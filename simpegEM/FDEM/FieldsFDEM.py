@@ -22,14 +22,14 @@ class FieldsFDEM_e(FieldsFDEM):
         self._edgeCurl = self.survey.prob.mesh.edgeCurl
 
     def _b_sec(self, e, src):
-        return - 1./(1j*omega(src.freq)) * (self._edgeCurl * Utils.mkvc(e))
+        return - 1./(1j*omega(src.freq)) * (self._edgeCurl * e)
 
     def _b_secDeriv(self, e, src, v, adjoint=False): 
         return None
 
     def _b(self, e, src):
         b = self._b_sec(e,src)
-        S_m = src._getS_m(self.survey.prob)
+        S_m, _ = src.eval(self.survey.prob)
         if S_m is not None:
             b += 1./(1j*omega(src.freq)) * S_m
         return b
@@ -65,14 +65,14 @@ class FieldsFDEM_b(FieldsFDEM):
         # self._getSourceDeriv = self.survey.prob.getSourceDeriv 
 
     def _e_sec(self, b, src):
-        return self._MeSigmaI * ( self._edgeCurl.T * ( self._MfMui * Utils.mkvc(b)))
+        return self._MeSigmaI * ( self._edgeCurl.T * ( self._MfMui * b))
 
     def _e_secDeriv(self, b, src, v, adjoint=False):
         return None
 
     def _e(self, b, src):
         e = self._e_sec(b,src)
-        S_e = src._getS_e(self.survey.prob)
+        _,S_e = src.eval(self.survey.prob)
         if S_e is not None:
             e += S_e
         return e
@@ -110,7 +110,7 @@ class FieldsFDEM_j(FieldsFDEM):
         self._curModel = self.survey.prob.curModel
 
     def _h_sec(self, j, src): #v, adjoint=False
-        return - 1./(1j*omega(src.freq)) * self._MeMuI * (self._edgeCurl.T * (self._MfSigmai * Utils.mkvc(j)) ) 
+        return - 1./(1j*omega(src.freq)) * self._MeMuI * (self._edgeCurl.T * (self._MfSigmai * j) ) 
 
     def _h_secDeriv(self, j, src, v, adjoint=False): 
         MeMuI = self._MeMuI
@@ -128,7 +128,7 @@ class FieldsFDEM_j(FieldsFDEM):
 
     def _h(self, j, src): #v, adjoint=False
         h = self._h_sec(j,src)
-        S_m = src._getS_m(self.survey.prob)
+        S_m,_ = src.eval(self.survey.prob)
         if S_m is not None:
             h += 1./(1j*omega(src.freq)) * self._MeMuI * S_m
         return h
@@ -163,14 +163,14 @@ class FieldsFDEM_h(FieldsFDEM):
         # self._getSourceDeriv = self.survey.prob.getSourceDeriv 
 
     def _j_sec(self, h, src): # adjoint=False
-        return self._edgeCurl*Utils.mkvc(h)
+        return self._edgeCurl*h
 
     def _j_secDeriv(self, h, src, v, adjoint=False): 
         return None
 
     def _j(self, h, src): # adjoint=False
         j = self._j_sec(h,src)
-        S_e = src._getS_e(self.survey.prob)
+        _,S_e = src.eval(self.survey.prob)
         if S_e is not None:
             j += -S_e
         return j
