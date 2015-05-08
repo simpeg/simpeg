@@ -98,8 +98,8 @@ class DataAndFieldsTest(unittest.TestCase):
         F[[self.Src0, self.Src1],'b'] = b
         self.assertTrue(F[self.Src0]['b'].shape == (F.mesh.nF,1))
         self.assertTrue(F[self.Src0,'b'].shape == (F.mesh.nF,1))
-        self.assertTrue(np.all(F[self.Src0,'b'] == b[:,0]))
-        self.assertTrue(np.all(F[self.Src1,'b'] == b[:,1]))
+        self.assertTrue(np.all(F[self.Src0,'b'] == Utils.mkvc(b[:,0],2)))
+        self.assertTrue(np.all(F[self.Src1,'b'] == Utils.mkvc(b[:,1],2)))
 
     def test_assertions(self):
         freq = [self.Src0, self.Src1]
