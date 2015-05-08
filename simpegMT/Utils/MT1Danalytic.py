@@ -14,7 +14,6 @@ def getEHfields(m1d,sigma,freq,zd):
 
     '''
     # Note add an error check for the mesh and sigma are the same size.
-    # Need make the solution e^-iwt dependent
 
     # Constants: Assume constant
     mu = 4*np.pi*1e-7*np.ones((m1d.nC+1))
