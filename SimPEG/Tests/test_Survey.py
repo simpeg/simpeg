@@ -80,9 +80,9 @@ class DataAndFieldsTest(unittest.TestCase):
 
         b = np.random.rand(F.mesh.nF,1)
         F[self.Src0, 'b'] = b
-        self.assertTrue(np.all(F[self.Src0, 'b'] == Utils.mkvc(b)))
+        self.assertTrue(np.all(F[self.Src0, 'b'] == b))
 
-        b = np.random.rand(F.mesh.nF)
+        b = np.random.rand(F.mesh.nF,1)
         F[self.Src0, 'b'] = b
         self.assertTrue(np.all(F[self.Src0, 'b'] == b))
 
@@ -96,8 +96,8 @@ class DataAndFieldsTest(unittest.TestCase):
 
         b = np.random.rand(F.mesh.nF, 2)
         F[[self.Src0, self.Src1],'b'] = b
-        self.assertTrue(F[self.Src0]['b'].shape == (F.mesh.nF,))
-        self.assertTrue(F[self.Src0,'b'].shape == (F.mesh.nF,))
+        self.assertTrue(F[self.Src0]['b'].shape == (F.mesh.nF,1))
+        self.assertTrue(F[self.Src0,'b'].shape == (F.mesh.nF,1))
         self.assertTrue(np.all(F[self.Src0,'b'] == b[:,0]))
         self.assertTrue(np.all(F[self.Src1,'b'] == b[:,1]))
 
@@ -158,7 +158,7 @@ class FieldsTest_Alias(unittest.TestCase):
 
         e = np.random.rand(F.mesh.nE,1)
         F[self.Src0, 'e'] = e
-        self.assertTrue(np.all(F[self.Src0, 'b'] == F.mesh.edgeCurl * Utils.mkvc(e)))
+        self.assertTrue(np.all(F[self.Src0, 'b'] == F.mesh.edgeCurl * e))
 
         def f():
             F[self.Src0, 'b'] = F[self.Src0, 'b']
