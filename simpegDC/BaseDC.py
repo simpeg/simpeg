@@ -6,8 +6,9 @@ class DipoleSrc(Survey.BaseSrc):
 
     current = 1
 
-    def __init__(self, locA, locB, rxList, **kwargs):
-        super(DipoleSrc, self).__init__((locA, locB), 'dipole', rxList, **kwargs)
+    def __init__(self, rxList, locA, locB, **kwargs):
+        super(DipoleSrc, self).__init__(rxList, **kwargs)
+        self.loc = (locA, locB)
         self._rhsDict = {}
 
     def getRhs(self, mesh):
