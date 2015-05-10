@@ -1,13 +1,13 @@
 from SimPEG import *
 
 
-class DipoleTx(Survey.BaseTx):
-    """A dipole transmitter, locA and locB are moved to the closest cell-centers"""
+class DipoleSrc(Survey.BaseSrc):
+    """A dipole source, locA and locB are moved to the closest cell-centers"""
 
     current = 1
 
     def __init__(self, locA, locB, rxList, **kwargs):
-        super(DipoleTx, self).__init__((locA, locB), 'dipole', rxList, **kwargs)
+        super(DipoleSrc, self).__init__((locA, locB), 'dipole', rxList, **kwargs)
         self._rhsDict = {}
 
     def getRhs(self, mesh):
@@ -21,7 +21,7 @@ class DipoleTx(Survey.BaseTx):
 
 
 class DipoleRx(Survey.BaseRx):
-    """A dipole transmitter, locA and locB are moved to the closest cell-centers"""
+    """A dipole source, locA and locB are moved to the closest cell-centers"""
     def __init__(self, locsM, locsN, **kwargs):
         locs = (locsM, locsN)
         assert locsM.shape == locsN.shape, 'locs must be the same shape.'
@@ -46,8 +46,8 @@ class SurveyDC(Survey.BaseSurvey):
 
     """
 
-    def __init__(self, txList, **kwargs):
-        self.txList = txList
+    def __init__(self, srcList, **kwargs):
+        self.srcList = srcList
         Survey.BaseSurvey.__init__(self, **kwargs)
         self._rhsDict = {}
         self._Ps = {}
@@ -64,7 +64,7 @@ class SurveyDC(Survey.BaseSurvey):
 
     def getRhs(self, mesh):
         if mesh not in self._rhsDict:
-            RHS = np.array([tx.getRhs(mesh) for tx in self.txList]).T
+            RHS = np.array([src.getRhs(mesh) for src in self.srcList]).T
             self._rhsDict[mesh] = RHS
         return self._rhsDict[mesh]
 
@@ -72,9 +72,9 @@ class SurveyDC(Survey.BaseSurvey):
         if mesh in self._Ps:
             return self._Ps[mesh]
 
-        P_tx = [sp.vstack([rx.getP(mesh) for rx in tx.rxList]) for tx in self.txList]
+        P_src = [sp.vstack([rx.getP(mesh) for rx in src.rxList]) for src in self.srcList]
 
-        self._Ps[mesh] = sp.block_diag(P_tx)
+        self._Ps[mesh] = sp.block_diag(P_src)
         return self._Ps[mesh]
 
 
@@ -176,7 +176,7 @@ class ProblemDC(Problem.BaseProblem):
             # Run forward simulation if $u$ not provided
             u = self.fields(self.curModel)
         else:
-            shp = (self.mesh.nC, self.survey.nTx)
+            shp = (self.mesh.nC, self.survey.nSrc)
             u = u.reshape(shp, order='F')
 
         D = self.mesh.faceDiv
@@ -186,8 +186,8 @@ class ProblemDC(Problem.BaseProblem):
 
         # Take derivative of $C(m,u)$ w.r.t. $m$
         dCdm_x_v = np.empty_like(u)
-        # loop over fields for each transmitter
-        for i in range(self.survey.nTx):
+        # loop over fields for each source
+        for i in range(self.survey.nSrc):
             # Derivative of inner product, $\left(\mathbf{M}_{1/\sigma}^f\right)^{-1}$
             dAdsig         = D * self.dMdsig( G * u[:,i] )
             dCdm_x_v[:, i] = dAdsig *  dsigdm_x_v
@@ -207,7 +207,7 @@ class ProblemDC(Problem.BaseProblem):
         if u is None:
             u = self.fields(self.curModel)
 
-        shp = (self.mesh.nC, self.survey.nTx)
+        shp = (self.mesh.nC, self.survey.nSrc)
         u = u.reshape(shp, order='F')
         P = self.survey.getP(self.mesh)
         PT_x_v = (P.T*v).reshape(shp, order='F')

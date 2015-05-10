@@ -3,7 +3,7 @@ import simpegDC as DC
 import matplotlib.pyplot as plt
 
 
-def getTxList(nElecs, aSpacing, in2D=False, plotIt=False):
+def getSrcList(nElecs, aSpacing, in2D=False, plotIt=False):
 
     elocs = np.arange(0,aSpacing*nElecs,aSpacing)
     elocs -= (nElecs*aSpacing - aSpacing)/2
@@ -24,19 +24,19 @@ def getTxList(nElecs, aSpacing, in2D=False, plotIt=False):
             plt.plot(elocs[WENNER[:,i]],s+'.')
         plt.show()
 
-    # Create transmitters and receivers
+    # Create sources and receivers
     i = 0
     if in2D:
         getLoc = lambda ii, abmn: np.r_[elocs[WENNER[ii,abmn]],0]
     else:
         getLoc = lambda ii, abmn: np.r_[elocs[WENNER[ii,abmn]],0, 0]
-    txList = []
+    srcList = []
     for i in range(WENNER.shape[0]):
         rx = DC.DipoleRx(getLoc(i,1),getLoc(i,2))
-        tx = DC.DipoleTx(getLoc(i,0),getLoc(i,3), [rx])
-        txList += [tx]
+        src = DC.DipoleSrc(getLoc(i,0),getLoc(i,3), [rx])
+        srcList += [src]
 
-    return txList
+    return srcList
 
 
 
@@ -53,8 +53,8 @@ def example(aSpacing=2.5, nElecs=10, plotIt=False):
     if plotIt:
         mesh.plotGrid(showIt=True)
 
-    txList = getTxList(nElecs, aSpacing, in2D=True)
-    survey = DC.SurveyDC(txList)
+    srcList = getSrcList(nElecs, aSpacing, in2D=True)
+    survey = DC.SurveyDC(srcList)
     problem = DC.ProblemDC(mesh)
     problem.pair(survey)
 
