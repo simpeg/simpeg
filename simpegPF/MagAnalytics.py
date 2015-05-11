@@ -15,7 +15,7 @@ def spheremodel(mesh, x0, y0, z0, r):
 
 
 
-def MagSphereAnalFun(x, y, z, R, x0, y0, z0, mu1, mu2, H0, flag):
+def MagSphereAnaFun(x, y, z, R, x0, y0, z0, mu1, mu2, H0, flag):
     """
         test
         Analytic function for Magnetics problem. The set up here is
@@ -124,7 +124,7 @@ def CongruousMagBC(mesh, Bo, chi):
     return np.r_[Bbcx, Bbcy, Bbcz], (1/gamma-1/(3+gamma))*1/V
 
 
-def MagSphereAnalFunA(x, y, z, R, xc, yc, zc, chi, Bo, flag):
+def MagSphereAnaFunA(x, y, z, R, xc, yc, zc, chi, Bo, flag):
     """
         Computing boundary condition using Congrous sphere method.
         This is designed for secondary field formulation.
@@ -210,16 +210,16 @@ if __name__ == '__main__':
     flag = 'secondary'
     Box = 1.
     H0 = Box/mu_0
-    Bbcxx, Bbcxy, Bbcxz  = MagSphereAnalFun(M3.gridFx[(indxd|indxu),0], M3.gridFx[(indxd|indxu),1], M3.gridFx[(indxd|indxu),2], 100, 0., 0., 0., mu_0, mu_0*(1+chiblk), H0, flag)
-    Bbcyx, Bbcyy, Bbcyz  = MagSphereAnalFun(M3.gridFy[(indyd|indyu),0], M3.gridFy[(indyd|indyu),1], M3.gridFy[(indyd|indyu),2], 100, 0., 0., 0., mu_0, mu_0*(1+chiblk), H0, flag)
-    Bbczx, Bbczy, Bbczz  = MagSphereAnalFun(M3.gridFz[(indzd|indzu),0], M3.gridFz[(indzd|indzu),1], M3.gridFz[(indzd|indzu),2], 100, 0., 0., 0., mu_0, mu_0*(1+chiblk), H0, flag)
-    Bbc_anal = np.r_[Bbcxx, Bbcyy, Bbczz]
+    Bbcxx, Bbcxy, Bbcxz  = MagSphereAnaFun(M3.gridFx[(indxd|indxu),0], M3.gridFx[(indxd|indxu),1], M3.gridFx[(indxd|indxu),2], 100, 0., 0., 0., mu_0, mu_0*(1+chiblk), H0, flag)
+    Bbcyx, Bbcyy, Bbcyz  = MagSphereAnaFun(M3.gridFy[(indyd|indyu),0], M3.gridFy[(indyd|indyu),1], M3.gridFy[(indyd|indyu),2], 100, 0., 0., 0., mu_0, mu_0*(1+chiblk), H0, flag)
+    Bbczx, Bbczy, Bbczz  = MagSphereAnaFun(M3.gridFz[(indzd|indzu),0], M3.gridFz[(indzd|indzu),1], M3.gridFz[(indzd|indzu),2], 100, 0., 0., 0., mu_0, mu_0*(1+chiblk), H0, flag)
+    Bbc_ana = np.r_[Bbcxx, Bbcyy, Bbczz]
 
     # fig, ax = plt.subplots(1,1, figsize = (10, 10))
-    # ax.plot(Bbc_anal)
+    # ax.plot(Bbc_ana)
     # ax.plot(Bbc)
     # plt.show()
-    err = np.linalg.norm(Bbc-Bbc_anal)/np.linalg.norm(Bbc_anal)
+    err = np.linalg.norm(Bbc-Bbc_ana)/np.linalg.norm(Bbc_ana)
 
     if err < 0.1:
         print 'Mag Boundary computation is valid, err = ', err

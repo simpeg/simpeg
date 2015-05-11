@@ -2,7 +2,7 @@
 import sys
 sys.path.append('../../')
 
-from simpegPF.MagAnalytics import MagSphereAnalFunA, IDTtoxyz
+from simpegPF.MagAnaytics import MagSphereAnaFunA, IDTtoxyz
 from SimPEG import *
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -19,7 +19,7 @@ deckr = 54. + 9/60
 btotkr = 50898.6
 Bokr = IDTtoxyz(inckr, deckr, btotkr)
 
-bx,by,bz = MagSphereAnalFunA(X, Y, Z,100.,0.,0.,0.,0.01,Bokr,'secondary')
+bx,by,bz = MagSphereAnaFunA(X, Y, Z,100.,0.,0.,0.,0.01,Bokr,'secondary')
 Bzkr = np.reshape(bz, (np.size(xr), np.size(yr)), order='F')
 
 # Bz component at Canada
@@ -28,7 +28,7 @@ decca = 70. + 19/60
 btotca = 54692.1
 Boca = IDTtoxyz(incca, decca, btotca)
 
-bx,by,bz = MagSphereAnalFunA(X, Y, Z,100.,0.,0.,0.,0.01,Boca,'secondary')
+bx,by,bz = MagSphereAnaFunA(X, Y, Z,100.,0.,0.,0.,0.01,Boca,'secondary')
 Bzca = np.reshape(bz, (np.size(xr), np.size(yr)), order='F')
 
 fig = plt.figure( figsize = (14,5) )

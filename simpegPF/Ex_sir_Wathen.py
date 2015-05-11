@@ -1,6 +1,6 @@
 from SimPEG import *
 import matplotlib.pyplot as plt
-from simpegPF.MagAnalytics import spheremodel, MagSphereAnalFun, CongruousMagBC
+from simpegPF.MagAnalytics import spheremodel, MagSphereAnaFun, CongruousMagBC
 import time
 
 # Step1: Generate 3D tensor mesh
@@ -66,7 +66,7 @@ H0 = Box/mu0
 
 flag = 'secondary'
 
-Bxra, Byra, Bzra = MagSphereAnalFun(X, Y, Z, 50., 0., 0., 0., mu0, mu0*(1+chiblk), H0, flag)
+Bxra, Byra, Bzra = MagSphereAnaFun(X, Y, Z, 50., 0., 0., 0., mu0, mu0*(1+chiblk), H0, flag)
 Bxra = np.reshape(Bxra, (np.size(xr), np.size(yr)), order='F')
 Byra = np.reshape(Byra, (np.size(xr), np.size(yr)), order='F')
 Bzra = np.reshape(Bzra, (np.size(xr), np.size(yr)), order='F')
