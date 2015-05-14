@@ -124,5 +124,5 @@ class BaseEMProblem(Problem.BaseProblem):
 
     def fields(self, m):
         self.curModel = m
-        F = self.forward(m, self.getRHS)
+        F = self.forward(m)
         return F

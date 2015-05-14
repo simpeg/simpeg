@@ -22,7 +22,9 @@ class FieldsFDEM_e(FieldsFDEM):
         self._edgeCurl = self.survey.prob.mesh.edgeCurl
 
     def _b_sec(self, e, src):
-        return - 1./(1j*omega(src.freq)) * (self._edgeCurl * e)
+        C = self._edgeCurl
+        b_sec =  - 1./(1j*omega(src.freq))*(C * e)
+        return b_sec
 
     def _b_secDeriv(self, e, src, v, adjoint=False): 
         return None

@@ -19,13 +19,13 @@ class BaseFDEMProblem(BaseEMProblem):
     surveyPair = SurveyFDEM
     fieldsPair = FieldsFDEM
 
-    def forward(self, m, RHS):
+    def forward(self, m):
 
         F = self.fieldsPair(self.mesh, self.survey)
 
         for freq in self.survey.freqs:
             A = self.getA(freq)
-            rhs = RHS(freq)
+            rhs = self.getRHS(freq)
             Ainv = self.Solver(A, **self.solverOpts)
             sol = Ainv * rhs
             Srcs = self.survey.getSrcByFreq(freq)
