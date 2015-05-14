@@ -10,9 +10,9 @@ normalize2D = lambda x: x/np.kron(np.ones((1, 2)), Utils.mkvc(length2D(x), 2))
 normalize3D = lambda x: x/np.kron(np.ones((1, 3)), Utils.mkvc(length3D(x), 2))
 
 
-class LogicallyRectMesh(BaseRectangularMesh, DiffOperators, InnerProducts):
+class CurvilinearMesh(BaseRectangularMesh, DiffOperators, InnerProducts):
     """
-    LogicallyRectMesh is a mesh class that deals with logically rectangular meshes.
+    CurvilinearMesh is a mesh class that deals with logically rectangular meshes.
 
     Example of a logically rectangular mesh:
 
@@ -21,7 +21,7 @@ class LogicallyRectMesh(BaseRectangularMesh, DiffOperators, InnerProducts):
 
             from SimPEG import Mesh, Utils
             X, Y = Utils.exampleLrmGrid([3,3],'rotate')
-            M = Mesh.LogicallyRectMesh([X, Y])
+            M = Mesh.CurvilinearMesh([X, Y])
             M.plotGrid(showIt=True)
     """
 
@@ -343,7 +343,7 @@ class LogicallyRectMesh(BaseRectangularMesh, DiffOperators, InnerProducts):
 
             from SimPEG import Mesh, Utils
             X, Y = Utils.exampleLrmGrid([3,3],'rotate')
-            M = Mesh.LogicallyRectMesh([X, Y])
+            M = Mesh.CurvilinearMesh([X, Y])
             M.plotGrid(showIt=True)
 
         """
@@ -435,9 +435,9 @@ if __name__ == '__main__':
     dee3 = True
     if dee3:
         X, Y, Z = Utils.ndgrid(h1, h2, h3, vector=False)
-        M = LogicallyRectMesh([X, Y, Z])
+        M = CurvilinearMesh([X, Y, Z])
     else:
         X, Y = Utils.ndgrid(h1, h2, vector=False)
-        M = LogicallyRectMesh([X, Y])
+        M = CurvilinearMesh([X, Y])
 
     print M.r(M.normals, 'F', 'Fx', 'V')

@@ -9,7 +9,7 @@ class TestInnerProductsDerivs(unittest.TestCase):
     def doTestFace(self, h, rep, fast, meshType, invProp=False, invMat=False):
         if meshType == 'LRM':
             hRect = Utils.exampleLrmGrid(h,'rotate')
-            mesh = Mesh.LogicallyRectMesh(hRect)
+            mesh = Mesh.CurvilinearMesh(hRect)
         elif meshType == 'Tree':
             mesh = Mesh.TreeMesh(h)
         elif meshType == 'Tensor':
@@ -26,7 +26,7 @@ class TestInnerProductsDerivs(unittest.TestCase):
     def doTestEdge(self, h, rep, fast, meshType, invProp=False, invMat=False):
         if meshType == 'LRM':
             hRect = Utils.exampleLrmGrid(h,'rotate')
-            mesh = Mesh.LogicallyRectMesh(hRect)
+            mesh = Mesh.CurvilinearMesh(hRect)
         elif meshType == 'Tree':
             mesh = Mesh.TreeMesh(h)
         elif meshType == 'Tensor':

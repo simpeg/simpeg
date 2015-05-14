@@ -21,7 +21,7 @@ Tree Mesh
 Logically Rectangular Mesh
 ==========================
 
-.. automodule:: SimPEG.Mesh.LogicallyRectMesh
+.. automodule:: SimPEG.Mesh.Curvilinear
     :show-inheritance:
     :members:
     :undoc-members:

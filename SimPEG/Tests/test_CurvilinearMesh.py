@@ -1,6 +1,6 @@
 import numpy as np
 import unittest
-from SimPEG.Mesh import TensorMesh, LogicallyRectMesh
+from SimPEG.Mesh import TensorMesh, CurvilinearMesh
 from SimPEG.Utils import ndgrid
 
 
@@ -13,10 +13,10 @@ class BasicLRMTests(unittest.TestCase):
         gridIt = lambda h: [np.cumsum(np.r_[0, x]) for x in h]
         X, Y = ndgrid(gridIt([a, b]), vector=False)
         self.TM2 = TensorMesh([a, b])
-        self.LRM2 = LogicallyRectMesh([X, Y])
+        self.LRM2 = CurvilinearMesh([X, Y])
         X, Y, Z = ndgrid(gridIt([a, b, c]), vector=False)
         self.TM3 = TensorMesh([a, b, c])
-        self.LRM3 = LogicallyRectMesh([X, Y, Z])
+        self.LRM3 = CurvilinearMesh([X, Y, Z])
 
     def test_area_3D(self):
         test_area = np.array([1, 1, 1, 1, 2, 2, 2, 2, 4, 4, 4, 4, 8, 8, 8, 8, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4, 4, 4, 4, 4, 4, 4, 4, 4, 1, 1, 1, 2, 2, 2, 1, 1, 1, 2, 2, 2, 1, 1, 1, 2, 2, 2])
