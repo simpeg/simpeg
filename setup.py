@@ -44,7 +44,7 @@ setup(
     long_description = LONG_DESCRIPTION,
     license = "MIT",
     keywords = "geophysics inverse problem",
-    url = "http://simpeg.3ptscience.com/",
+    url = "http://simpeg.xyz/",
     download_url = "http://github.com/simpeg/simpeg",
     classifiers=CLASSIFIERS,
     platforms = ["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
