@@ -12,9 +12,9 @@ normalize3D = lambda x: x/np.kron(np.ones((1, 3)), Utils.mkvc(length3D(x), 2))
 
 class CurvilinearMesh(BaseRectangularMesh, DiffOperators, InnerProducts):
     """
-    CurvilinearMesh is a mesh class that deals with logically rectangular meshes.
+    CurvilinearMesh is a mesh class that deals with curvilinear meshes.
 
-    Example of a logically rectangular mesh:
+    Example of a curvilinear mesh:
 
     .. plot::
             :include-source:
