@@ -23,7 +23,7 @@ def run(plotIt=False):
     #     ax.plot(xyz_rxN[:,0],xyz_rxN[:,1], 'r.', ms = 3)
 
     rx = DC.DipoleRx(xyz_rxP, xyz_rxN)
-    src = DC.DipoleSrc([-200, 0, -12.5],[+200, 0, -12.5], [rx])
+    src = DC.DipoleSrc([rx], [-200, 0, -12.5],[+200, 0, -12.5])
     survey = DC.SurveyDC([src])
     problem = DC.ProblemDC(mesh)
     problem.pair(survey)

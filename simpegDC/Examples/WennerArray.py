@@ -33,7 +33,7 @@ def getSrcList(nElecs, aSpacing, in2D=False, plotIt=False):
     srcList = []
     for i in range(WENNER.shape[0]):
         rx = DC.DipoleRx(getLoc(i,1),getLoc(i,2))
-        src = DC.DipoleSrc(getLoc(i,0),getLoc(i,3), [rx])
+        src = DC.DipoleSrc([rx],getLoc(i,0),getLoc(i,3))
         srcList += [src]
 
     return srcList
