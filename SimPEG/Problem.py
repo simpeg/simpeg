@@ -139,7 +139,7 @@ class Fields(object):
         return self._getField(name, ind)
 
     def _setField(self, field, val, name, ind):
-        if isinstance(val, np.ndarray) and (field.shape[1] == 1 or val.ndim == 1):
+        if isinstance(val, np.ndarray) and (field.shape[0] == field.size or val.ndim == 1):
             val = Utils.mkvc(val,2)
         field[:,ind] = val
 
@@ -160,8 +160,8 @@ class Fields(object):
                 assert hasattr(self, func), 'The alias field function is a string, but it does not exist in the Fields class.'
                 func = getattr(self, func)
             out = func(self._fields[alias][:,ind], srcII)
-        if out.shape[0] == out.size:
-            out = Utils.mkvc(out)
+        if isinstance(out, np.ndarray) and (out.shape[0] == out.size or out.ndim == 1):
+            out = Utils.mkvc(out,2)
         return out
 
     def __contains__(self, other):
@@ -216,6 +216,8 @@ class TimeFields(Fields):
         shape = nP, nSrc, nT
         if deflate:
              shape = tuple([s for s in shape if s > 1])
+        if len(shape) == 1:
+            shape = shape + (1,)
         return shape
 
     def _setField(self, field, val, name, ind):
@@ -260,8 +262,8 @@ class TimeFields(Fields):
                 out = range(nT)
                 for i, TIND_i in enumerate(timeII):
                     fieldI = pointerFields[:,:,i]
-                    if fieldI.ndim == 2 and fieldI.shape[1] == 1:
-                        fieldI = Utils.mkvc(fieldI)
+                    if fieldI.shape[0] == fieldI.size:
+                        fieldI = Utils.mkvc(fieldI,2)
                     out[i] = func(fieldI, srcII, TIND_i)
                     if out[i].ndim == 1:
                         out[i] = out[i][:,np.newaxis,np.newaxis]
