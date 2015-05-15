@@ -27,7 +27,7 @@ class CurvilinearMesh(BaseRectangularMesh, DiffOperators, InnerProducts):
 
     __metaclass__ = Utils.SimPEGMetaClass
 
-    _meshType = 'LRM'
+    _meshType = 'Curv'
 
     def __init__(self, nodes):
         assert type(nodes) == list, "'nodes' variable must be a list of np.ndarray"
@@ -38,7 +38,7 @@ class CurvilinearMesh(BaseRectangularMesh, DiffOperators, InnerProducts):
             assert nodes_i.shape == nodes[0].shape, ("nodes[%i] is not the same shape as nodes[0]" % i)
 
         assert len(nodes[0].shape) == len(nodes), "Dimension mismatch"
-        assert len(nodes[0].shape) > 1, "Not worth using LRM for a 1D mesh."
+        assert len(nodes[0].shape) > 1, "Not worth using Curv for a 1D mesh."
 
         BaseRectangularMesh.__init__(self, np.array(nodes[0].shape)-1, None)
 

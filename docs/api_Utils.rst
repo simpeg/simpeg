@@ -23,7 +23,7 @@ Solver Utilities
     :members:
     :undoc-members:
 
-LRM Utilities
+Curv Utilities
 =============
 
 .. automodule:: SimPEG.Utils.lrmutils

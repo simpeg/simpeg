@@ -115,7 +115,7 @@ class OrderTest(unittest.TestCase):
                 max_h = max([np.max(hi) for hi in self.M.h])
             return max_h
 
-        elif 'LRM' in self._meshType:
+        elif 'Curv' in self._meshType:
             if 'uniform' in self._meshType:
                 kwrd = 'rect'
             elif 'rotate' in self._meshType:
