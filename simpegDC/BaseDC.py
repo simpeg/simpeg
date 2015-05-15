@@ -1,16 +1,20 @@
 from SimPEG import *
 
 
-class DipoleSrc(Survey.BaseSrc):
+class SrcDipole(Survey.BaseSrc):
     """A dipole source, locA and locB are moved to the closest cell-centers"""
 
     current = 1
+    loc  = None
+    _rhsDict = None
 
-    def __init__(self, locA, locB, rxList, **kwargs):
-        super(DipoleSrc, self).__init__((locA, locB), 'dipole', rxList, **kwargs)
-        self._rhsDict = {}
+    def __init__(self, rxList, locA, locB, **kwargs):
+        self.loc = (locA, locB)
+        super(SrcDipole, self).__init__(rxList, **kwargs)
 
     def getRhs(self, mesh):
+        if getattr(self, '_rhsDict', None) is None:
+            self._rhsDict = {}
         if mesh not in self._rhsDict:
             pts = [self.loc[0], self.loc[1]]
             inds = Utils.closestPoints(mesh, pts)
@@ -20,12 +24,12 @@ class DipoleSrc(Survey.BaseSrc):
         return self._rhsDict[mesh]
 
 
-class DipoleRx(Survey.BaseRx):
+class RxDipole(Survey.BaseRx):
     """A dipole source, locA and locB are moved to the closest cell-centers"""
     def __init__(self, locsM, locsN, **kwargs):
         locs = (locsM, locsN)
         assert locsM.shape == locsN.shape, 'locs must be the same shape.'
-        super(DipoleRx, self).__init__(locs, 'dipole', storeProjections=False, **kwargs)
+        super(RxDipole, self).__init__(locs, 'dipole', storeProjections=False, **kwargs)
 
     @property
     def nD(self):
