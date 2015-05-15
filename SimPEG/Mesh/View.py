@@ -576,11 +576,11 @@ class CylView(object):
     def plotImage(self, *args, **kwargs):
         return self._plotCylTensorMesh('plotImage', *args, **kwargs)
 
-class LomView(object):
+class CurvView(object):
     """
-    Provides viewing functions for LogicallyOrthogonalMesh
+    Provides viewing functions for CurvilinearMesh
 
-    This class is inherited by LogicallyOrthogonalMesh
+    This class is inherited by CurvilinearMesh
 
     """
     def __init__(self):
@@ -594,8 +594,8 @@ class LomView(object):
             :include-source:
 
             from SimPEG import Mesh, Utils
-            X, Y = Utils.exampleLomGird([3,3],'rotate')
-            M = Mesh.LogicallyOrthogonalMesh([X, Y])
+            X, Y = Utils.exampleCurvGird([3,3],'rotate')
+            M = Mesh.CurvilinearMesh([X, Y])
             M.plotGrid(showIt=True)
 
         """
