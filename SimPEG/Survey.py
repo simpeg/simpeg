@@ -119,14 +119,12 @@ class BaseSrc(object):
     rxList = None #: SimPEG Receiver List
     rxPair = BaseRx
 
-    def __init__(self, loc, srcType, rxList, **kwargs):
+    def __init__(self, rxList, **kwargs):
         assert type(rxList) is list, 'rxList must be a list'
         for rx in rxList:
             assert isinstance(rx, self.rxPair), 'rxList must be a %s'%self.rxPair.__name__
         assert len(set(rxList)) == len(rxList), 'The rxList must be unique'
 
-        self.loc    = loc
-        self.srcType = srcType
         self.rxList = rxList
         Utils.setKwargs(self, **kwargs)
 
