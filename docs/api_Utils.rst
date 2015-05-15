@@ -23,10 +23,10 @@ Solver Utilities
     :members:
     :undoc-members:
 
-LRM Utilities
+Curv Utilities
 =============
 
-.. automodule:: SimPEG.Utils.lrmutils
+.. automodule:: SimPEG.Utils.curvutils
     :members:
     :undoc-members:
 

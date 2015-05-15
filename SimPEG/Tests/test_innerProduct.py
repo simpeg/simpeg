@@ -7,7 +7,7 @@ from SimPEG import Utils
 class TestInnerProducts(OrderTest):
     """Integrate an function over a unit cube domain using edgeInnerProducts and faceInnerProducts."""
 
-    meshTypes = ['uniformTensorMesh', 'uniformLRM', 'rotateLRM']
+    meshTypes = ['uniformTensorMesh', 'uniformCurv', 'rotateCurv']
     meshDimension = 3
     meshSizes = [16, 32]
 
@@ -154,7 +154,7 @@ class TestInnerProducts(OrderTest):
 class TestInnerProducts2D(OrderTest):
     """Integrate an function over a unit cube domain using edgeInnerProducts and faceInnerProducts."""
 
-    meshTypes = ['uniformTensorMesh', 'uniformLRM', 'rotateLRM']
+    meshTypes = ['uniformTensorMesh', 'uniformCurv', 'rotateCurv']
     meshDimension = 2
     meshSizes = [4, 8, 16, 32, 64, 128]
 

@@ -7,9 +7,9 @@ from TestUtils import checkDerivative
 class TestInnerProductsDerivs(unittest.TestCase):
 
     def doTestFace(self, h, rep, fast, meshType, invProp=False, invMat=False):
-        if meshType == 'LRM':
+        if meshType == 'Curv':
             hRect = Utils.exampleLrmGrid(h,'rotate')
-            mesh = Mesh.LogicallyRectMesh(hRect)
+            mesh = Mesh.CurvilinearMesh(hRect)
         elif meshType == 'Tree':
             mesh = Mesh.TreeMesh(h)
         elif meshType == 'Tensor':
@@ -24,9 +24,9 @@ class TestInnerProductsDerivs(unittest.TestCase):
         return checkDerivative(fun, sig, num=5, plotIt=False)
 
     def doTestEdge(self, h, rep, fast, meshType, invProp=False, invMat=False):
-        if meshType == 'LRM':
+        if meshType == 'Curv':
             hRect = Utils.exampleLrmGrid(h,'rotate')
-            mesh = Mesh.LogicallyRectMesh(hRect)
+            mesh = Mesh.CurvilinearMesh(hRect)
         elif meshType == 'Tree':
             mesh = Mesh.TreeMesh(h)
         elif meshType == 'Tensor':
@@ -137,65 +137,65 @@ class TestInnerProductsDerivs(unittest.TestCase):
 
 
 
-    def test_FaceIP_2D_float_LRM(self):
-        self.assertTrue(self.doTestFace([10, 4],0, False, 'LRM'))
-    def test_FaceIP_3D_float_LRM(self):
-        self.assertTrue(self.doTestFace([10, 4, 5],0, False, 'LRM'))
-    def test_FaceIP_2D_isotropic_LRM(self):
-        self.assertTrue(self.doTestFace([10, 4],1, False, 'LRM'))
-    def test_FaceIP_3D_isotropic_LRM(self):
-        self.assertTrue(self.doTestFace([10, 4, 5],1, False, 'LRM'))
-    def test_FaceIP_2D_anisotropic_LRM(self):
-        self.assertTrue(self.doTestFace([10, 4],2, False, 'LRM'))
-    def test_FaceIP_3D_anisotropic_LRM(self):
-        self.assertTrue(self.doTestFace([10, 4, 5],3, False, 'LRM'))
-    def test_FaceIP_2D_tensor_LRM(self):
-        self.assertTrue(self.doTestFace([10, 4],3, False, 'LRM'))
-    def test_FaceIP_3D_tensor_LRM(self):
-        self.assertTrue(self.doTestFace([10, 4, 5],6, False, 'LRM'))
+    def test_FaceIP_2D_float_Curv(self):
+        self.assertTrue(self.doTestFace([10, 4],0, False, 'Curv'))
+    def test_FaceIP_3D_float_Curv(self):
+        self.assertTrue(self.doTestFace([10, 4, 5],0, False, 'Curv'))
+    def test_FaceIP_2D_isotropic_Curv(self):
+        self.assertTrue(self.doTestFace([10, 4],1, False, 'Curv'))
+    def test_FaceIP_3D_isotropic_Curv(self):
+        self.assertTrue(self.doTestFace([10, 4, 5],1, False, 'Curv'))
+    def test_FaceIP_2D_anisotropic_Curv(self):
+        self.assertTrue(self.doTestFace([10, 4],2, False, 'Curv'))
+    def test_FaceIP_3D_anisotropic_Curv(self):
+        self.assertTrue(self.doTestFace([10, 4, 5],3, False, 'Curv'))
+    def test_FaceIP_2D_tensor_Curv(self):
+        self.assertTrue(self.doTestFace([10, 4],3, False, 'Curv'))
+    def test_FaceIP_3D_tensor_Curv(self):
+        self.assertTrue(self.doTestFace([10, 4, 5],6, False, 'Curv'))
 
-    def test_FaceIP_2D_float_fast_LRM(self):
-        self.assertTrue(self.doTestFace([10, 4],0, True, 'LRM'))
-    def test_FaceIP_3D_float_fast_LRM(self):
-        self.assertTrue(self.doTestFace([10, 4, 5],0, True, 'LRM'))
-    def test_FaceIP_2D_isotropic_fast_LRM(self):
-        self.assertTrue(self.doTestFace([10, 4],1, True, 'LRM'))
-    def test_FaceIP_3D_isotropic_fast_LRM(self):
-        self.assertTrue(self.doTestFace([10, 4, 5],1, True, 'LRM'))
-    def test_FaceIP_2D_anisotropic_fast_LRM(self):
-        self.assertTrue(self.doTestFace([10, 4],2, True, 'LRM'))
-    def test_FaceIP_3D_anisotropic_fast_LRM(self):
-        self.assertTrue(self.doTestFace([10, 4, 5],3, True, 'LRM'))
+    def test_FaceIP_2D_float_fast_Curv(self):
+        self.assertTrue(self.doTestFace([10, 4],0, True, 'Curv'))
+    def test_FaceIP_3D_float_fast_Curv(self):
+        self.assertTrue(self.doTestFace([10, 4, 5],0, True, 'Curv'))
+    def test_FaceIP_2D_isotropic_fast_Curv(self):
+        self.assertTrue(self.doTestFace([10, 4],1, True, 'Curv'))
+    def test_FaceIP_3D_isotropic_fast_Curv(self):
+        self.assertTrue(self.doTestFace([10, 4, 5],1, True, 'Curv'))
+    def test_FaceIP_2D_anisotropic_fast_Curv(self):
+        self.assertTrue(self.doTestFace([10, 4],2, True, 'Curv'))
+    def test_FaceIP_3D_anisotropic_fast_Curv(self):
+        self.assertTrue(self.doTestFace([10, 4, 5],3, True, 'Curv'))
 
-    def test_EdgeIP_2D_float_LRM(self):
-        self.assertTrue(self.doTestEdge([10, 4],0, False, 'LRM'))
-    def test_EdgeIP_3D_float_LRM(self):
-        self.assertTrue(self.doTestEdge([10, 4, 5],0, False, 'LRM'))
-    def test_EdgeIP_2D_isotropic_LRM(self):
-        self.assertTrue(self.doTestEdge([10, 4],1, False, 'LRM'))
-    def test_EdgeIP_3D_isotropic_LRM(self):
-        self.assertTrue(self.doTestEdge([10, 4, 5],1, False, 'LRM'))
-    def test_EdgeIP_2D_anisotropic_LRM(self):
-        self.assertTrue(self.doTestEdge([10, 4],2, False, 'LRM'))
-    def test_EdgeIP_3D_anisotropic_LRM(self):
-        self.assertTrue(self.doTestEdge([10, 4, 5],3, False, 'LRM'))
-    def test_EdgeIP_2D_tensor_LRM(self):
-        self.assertTrue(self.doTestEdge([10, 4],3, False, 'LRM'))
-    def test_EdgeIP_3D_tensor_LRM(self):
-        self.assertTrue(self.doTestEdge([10, 4, 5],6, False, 'LRM'))
+    def test_EdgeIP_2D_float_Curv(self):
+        self.assertTrue(self.doTestEdge([10, 4],0, False, 'Curv'))
+    def test_EdgeIP_3D_float_Curv(self):
+        self.assertTrue(self.doTestEdge([10, 4, 5],0, False, 'Curv'))
+    def test_EdgeIP_2D_isotropic_Curv(self):
+        self.assertTrue(self.doTestEdge([10, 4],1, False, 'Curv'))
+    def test_EdgeIP_3D_isotropic_Curv(self):
+        self.assertTrue(self.doTestEdge([10, 4, 5],1, False, 'Curv'))
+    def test_EdgeIP_2D_anisotropic_Curv(self):
+        self.assertTrue(self.doTestEdge([10, 4],2, False, 'Curv'))
+    def test_EdgeIP_3D_anisotropic_Curv(self):
+        self.assertTrue(self.doTestEdge([10, 4, 5],3, False, 'Curv'))
+    def test_EdgeIP_2D_tensor_Curv(self):
+        self.assertTrue(self.doTestEdge([10, 4],3, False, 'Curv'))
+    def test_EdgeIP_3D_tensor_Curv(self):
+        self.assertTrue(self.doTestEdge([10, 4, 5],6, False, 'Curv'))
 
-    def test_EdgeIP_2D_float_fast_LRM(self):
-        self.assertTrue(self.doTestEdge([10, 4],0, True, 'LRM'))
-    def test_EdgeIP_3D_float_fast_LRM(self):
-        self.assertTrue(self.doTestEdge([10, 4, 5],0, True, 'LRM'))
-    def test_EdgeIP_2D_isotropic_fast_LRM(self):
-        self.assertTrue(self.doTestEdge([10, 4],1, True, 'LRM'))
-    def test_EdgeIP_3D_isotropic_fast_LRM(self):
-        self.assertTrue(self.doTestEdge([10, 4, 5],1, True, 'LRM'))
-    def test_EdgeIP_2D_anisotropic_fast_LRM(self):
-        self.assertTrue(self.doTestEdge([10, 4],2, True, 'LRM'))
-    def test_EdgeIP_3D_anisotropic_fast_LRM(self):
-        self.assertTrue(self.doTestEdge([10, 4, 5],3, True, 'LRM'))
+    def test_EdgeIP_2D_float_fast_Curv(self):
+        self.assertTrue(self.doTestEdge([10, 4],0, True, 'Curv'))
+    def test_EdgeIP_3D_float_fast_Curv(self):
+        self.assertTrue(self.doTestEdge([10, 4, 5],0, True, 'Curv'))
+    def test_EdgeIP_2D_isotropic_fast_Curv(self):
+        self.assertTrue(self.doTestEdge([10, 4],1, True, 'Curv'))
+    def test_EdgeIP_3D_isotropic_fast_Curv(self):
+        self.assertTrue(self.doTestEdge([10, 4, 5],1, True, 'Curv'))
+    def test_EdgeIP_2D_anisotropic_fast_Curv(self):
+        self.assertTrue(self.doTestEdge([10, 4],2, True, 'Curv'))
+    def test_EdgeIP_3D_anisotropic_fast_Curv(self):
+        self.assertTrue(self.doTestEdge([10, 4, 5],3, True, 'Curv'))
 
 
 

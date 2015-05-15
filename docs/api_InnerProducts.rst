@@ -75,7 +75,7 @@ We multiply by  square-root of volume on each side of the tensor conductivity to
 
 .. math::
     \mathbf{J}_c = \mathbf{Q}_{(i)}\mathbf{J}_\text{TENSOR} \\
-    \mathbf{J}_c = \mathbf{N}_{(i)}^{-1}\mathbf{Q}_{(i)}\mathbf{J}_\text{LRM}
+    \mathbf{J}_c = \mathbf{N}_{(i)}^{-1}\mathbf{Q}_{(i)}\mathbf{J}_\text{Curv}
 
 Here the \\\(i\\\) index refers to where we choose to approximate this integral, as discussed in the note above.
 We will approximate this integral by taking the fluxes clustered around every node of the cell, there are 8 combinations in 3D, and 4 in 2D. We will use a projection matrix \\\( \\mathbf{Q}_{(i)} \\\) to pick the appropriate fluxes. So, now that we have 8 approximations of this integral, we will just take the average. For the TensorMesh, this looks like:
@@ -114,7 +114,7 @@ Here each \\( \\mathbf{P} \\in \\mathbb{R}^{(d*nC, nF)} \\\) is a combination of
 
 .. math::
 
-    \mathbf{P}_{(i)} =  \sqrt{ \frac{1}{2^d} \mathbf{I}^d \otimes \text{diag}(\mathbf{v})} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\text{LRM only}} \mathbf{Q}_{(i)}
+    \mathbf{P}_{(i)} =  \sqrt{ \frac{1}{2^d} \mathbf{I}^d \otimes \text{diag}(\mathbf{v})} \overbrace{\mathbf{N}_{(i)}^{-1}}^{\text{Curv only}} \mathbf{Q}_{(i)}
 
 .. note::
 

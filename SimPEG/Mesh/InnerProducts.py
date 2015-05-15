@@ -328,7 +328,7 @@ class InnerProducts(object):
         iijj = ndgrid(i, j)
         ii, jj = iijj[:, 0], iijj[:, 1]
 
-        if M._meshType == 'LRM':
+        if M._meshType == 'Curv':
             fN1 = M.r(M.normals, 'F', 'Fx', 'M')
             fN2 = M.r(M.normals, 'F', 'Fy', 'M')
 
@@ -353,7 +353,7 @@ class InnerProducts(object):
 
             PXX = sp.csr_matrix((np.ones(2*M.nC), (range(2*M.nC), IND)), shape=(2*M.nC, M.nF))
 
-            if M._meshType == 'LRM':
+            if M._meshType == 'Curv':
                 I2x2 = inv2X2BlockDiagonal(getSubArray(fN1[0], [i + posFx, j]), getSubArray(fN1[1], [i + posFx, j]),
                                            getSubArray(fN2[0], [i, j + posFy]), getSubArray(fN2[1], [i, j + posFy]))
                 PXX = I2x2 * PXX
@@ -376,7 +376,7 @@ class InnerProducts(object):
         iijjkk = ndgrid(i, j, k)
         ii, jj, kk = iijjkk[:, 0], iijjkk[:, 1], iijjkk[:, 2]
 
-        if M._meshType == 'LRM':
+        if M._meshType == 'Curv':
             fN1 = M.r(M.normals, 'F', 'Fx', 'M')
             fN2 = M.r(M.normals, 'F', 'Fy', 'M')
             fN3 = M.r(M.normals, 'F', 'Fz', 'M')
@@ -410,7 +410,7 @@ class InnerProducts(object):
 
             PXXX = sp.coo_matrix((np.ones(3*M.nC), (range(3*M.nC), IND)), shape=(3*M.nC, M.nF)).tocsr()
 
-            if M._meshType == 'LRM':
+            if M._meshType == 'Curv':
                 I3x3 = inv3X3BlockDiagonal(getSubArray(fN1[0], [i + posX, j, k]), getSubArray(fN1[1], [i + posX, j, k]), getSubArray(fN1[2], [i + posX, j, k]),
                                            getSubArray(fN2[0], [i, j + posY, k]), getSubArray(fN2[1], [i, j + posY, k]), getSubArray(fN2[2], [i, j + posY, k]),
                                            getSubArray(fN3[0], [i, j, k + posZ]), getSubArray(fN3[1], [i, j, k + posZ]), getSubArray(fN3[2], [i, j, k + posZ]))
@@ -432,7 +432,7 @@ class InnerProducts(object):
         iijj = ndgrid(i, j)
         ii, jj = iijj[:, 0], iijj[:, 1]
 
-        if M._meshType == 'LRM':
+        if M._meshType == 'Curv':
             eT1 = M.r(M.tangents, 'E', 'Ex', 'M')
             eT2 = M.r(M.tangents, 'E', 'Ey', 'M')
 
@@ -452,7 +452,7 @@ class InnerProducts(object):
 
             PXX = sp.coo_matrix((np.ones(2*M.nC), (range(2*M.nC), IND)), shape=(2*M.nC, M.nE)).tocsr()
 
-            if M._meshType == 'LRM':
+            if M._meshType == 'Curv':
                 I2x2 = inv2X2BlockDiagonal(getSubArray(eT1[0], [i, j + posX]), getSubArray(eT1[1], [i, j + posX]),
                                            getSubArray(eT2[0], [i + posY, j]), getSubArray(eT2[1], [i + posY, j]))
                 PXX = I2x2 * PXX
@@ -466,7 +466,7 @@ class InnerProducts(object):
         iijjkk = ndgrid(i, j, k)
         ii, jj, kk = iijjkk[:, 0], iijjkk[:, 1], iijjkk[:, 2]
 
-        if M._meshType == 'LRM':
+        if M._meshType == 'Curv':
             eT1 = M.r(M.tangents, 'E', 'Ex', 'M')
             eT2 = M.r(M.tangents, 'E', 'Ey', 'M')
             eT3 = M.r(M.tangents, 'E', 'Ez', 'M')
@@ -495,7 +495,7 @@ class InnerProducts(object):
 
             PXXX = sp.coo_matrix((np.ones(3*M.nC), (range(3*M.nC), IND)), shape=(3*M.nC, M.nE)).tocsr()
 
-            if M._meshType == 'LRM':
+            if M._meshType == 'Curv':
                 I3x3 = inv3X3BlockDiagonal(getSubArray(eT1[0], [i, j + posX[0], k + posX[1]]), getSubArray(eT1[1], [i, j + posX[0], k + posX[1]]), getSubArray(eT1[2], [i, j + posX[0], k + posX[1]]),
                                            getSubArray(eT2[0], [i + posY[0], j, k + posY[1]]), getSubArray(eT2[1], [i + posY[0], j, k + posY[1]]), getSubArray(eT2[2], [i + posY[0], j, k + posY[1]]),
                                            getSubArray(eT3[0], [i + posZ[0], j + posZ[1], k]), getSubArray(eT3[1], [i + posZ[0], j + posZ[1], k]), getSubArray(eT3[2], [i + posZ[0], j + posZ[1], k]))

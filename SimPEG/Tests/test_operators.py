@@ -4,7 +4,7 @@ from TestUtils import OrderTest
 import matplotlib.pyplot as plt
 
 #TODO: 'randomTensorMesh'
-MESHTYPES = ['uniformTensorMesh', 'uniformLRM', 'rotateLRM']
+MESHTYPES = ['uniformTensorMesh', 'uniformCurv', 'rotateCurv']
 call2 = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1])
 call3 = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1], xyz[:, 2])
 cart_row2 = lambda g, xfun, yfun: np.c_[call2(xfun, g), call2(yfun, g)]
@@ -38,7 +38,7 @@ class TestCurl(OrderTest):
         curlE_ana = self.M.projectFaceVector(Fc)
 
         curlE = self.M.edgeCurl.dot(E)
-        if self._meshType == 'rotateLRM':
+        if self._meshType == 'rotateCurv':
             # Really it is the integration we should be caring about:
             # So, let us look at the l2 norm.
             err = np.linalg.norm(self.M.area*(curlE - curlE_ana), 2)
@@ -229,7 +229,7 @@ class TestFaceDiv3D(OrderTest):
         divF = self.M.faceDiv.dot(F)
         divF_ana = call3(sol, self.M.gridCC)
 
-        if self._meshType == 'rotateLRM':
+        if self._meshType == 'rotateCurv':
             # Really it is the integration we should be caring about:
             # So, let us look at the l2 norm.
             err = np.linalg.norm(self.M.vol*(divF-divF_ana), 2)

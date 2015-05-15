@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from numpy.linalg import norm
 from SimPEG.Utils import mkvc, sdiag, diagEst
 from SimPEG import Utils
-from SimPEG.Mesh import TensorMesh, LogicallyRectMesh, CylMesh
+from SimPEG.Mesh import TensorMesh, CurvilinearMesh, CylMesh
 import numpy as np
 import scipy.sparse as sp
 import unittest
@@ -115,7 +115,7 @@ class OrderTest(unittest.TestCase):
                 max_h = max([np.max(hi) for hi in self.M.h])
             return max_h
 
-        elif 'LRM' in self._meshType:
+        elif 'Curv' in self._meshType:
             if 'uniform' in self._meshType:
                 kwrd = 'rect'
             elif 'rotate' in self._meshType:
@@ -126,10 +126,10 @@ class OrderTest(unittest.TestCase):
                 raise Exception('Lom not supported for 1D')
             elif self.meshDimension == 2:
                 X, Y = Utils.exampleLrmGrid([nc, nc], kwrd)
-                self.M = LogicallyRectMesh([X, Y])
+                self.M = CurvilinearMesh([X, Y])
             elif self.meshDimension == 3:
                 X, Y, Z = Utils.exampleLrmGrid([nc, nc, nc], kwrd)
-                self.M = LogicallyRectMesh([X, Y, Z])
+                self.M = CurvilinearMesh([X, Y, Z])
             return 1./nc
 
     def getError(self):
