@@ -10,7 +10,7 @@ sz = [40,40]
 # Tensor Mesh
 tM = Mesh.TensorMesh(sz)
 # Curvilinear Mesh
-rM = Mesh.LogicallyRectMesh(Utils.meshutils.exampleLrmGrid(sz,'rotate'))
+rM = Mesh.CurvilinearMesh(Utils.meshutils.exampleLrmGrid(sz,'rotate'))
 
 # Step2: Direct Current (DC) operator
 def DCfun(mesh, pts):
