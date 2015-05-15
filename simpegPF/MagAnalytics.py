@@ -192,11 +192,11 @@ def IDTtoxyz(Inc, Dec, Btot):
 
 if __name__ == '__main__':
 
-    hxind = ((0,25,1.3),(21, 12.5),(0,25,1.3))
-    hyind = ((0,25,1.3),(21, 12.5),(0,25,1.3))
-    hzind = ((0,25,1.3),(20, 12.5),(0,25,1.3))
-    hx, hy, hz = Utils.meshTensors(hxind, hyind, hzind)
-    M3 = Mesh.TensorMesh([hx, hy, hz], [-sum(hx)/2,-sum(hy)/2,-sum(hz)/2])
+    hxind = [(0,25,1.3),(21, 12.5),(0,25,1.3)]
+    hyind = [(0,25,1.3),(21, 12.5),(0,25,1.3)]
+    hzind = [(0,25,1.3),(20, 12.5),(0,25,1.3)]
+    # hx, hy, hz = Utils.meshTensors(hxind, hyind, hzind)
+    M3 = Mesh.TensorMesh([hxind, hyind, hzind], "CCC")
     indxd, indxu, indyd, indyu, indzd, indzu = M3.faceBoundaryInd
     mu0 = 4*np.pi*1e-7
     chibkg = 0.
