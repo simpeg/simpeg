@@ -26,7 +26,7 @@ Solver Utilities
 Curv Utilities
 =============
 
-.. automodule:: SimPEG.Utils.lrmutils
+.. automodule:: SimPEG.Utils.curvutils
     :members:
     :undoc-members:
 
