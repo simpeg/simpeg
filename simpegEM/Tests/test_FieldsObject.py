@@ -10,14 +10,14 @@ class FieldsTest(unittest.TestCase):
         XYZ = Utils.ndgrid(x,x,np.r_[0.])
         srcLoc = np.r_[0,0,0.]
         rxList0 = EM.FDEM.RxFDEM(XYZ, 'exi')
-        Src0 = EM.FDEM.SrcFDEM_MagDipole(srcLoc, 3., [rxList0])
+        Src0 = EM.FDEM.SrcFDEM_MagDipole([rxList0], 3., srcLoc)
         rxList1 = EM.FDEM.RxFDEM(XYZ, 'bxi') 
-        Src1 = EM.FDEM.SrcFDEM_MagDipole(srcLoc, 3., [rxList1])
+        Src1 = EM.FDEM.SrcFDEM_MagDipole([rxList1], 3., srcLoc)
         rxList2 = EM.FDEM.RxFDEM(XYZ, 'bxi')
-        Src2 = EM.FDEM.SrcFDEM_MagDipole(srcLoc, 2., [rxList2])
+        Src2 = EM.FDEM.SrcFDEM_MagDipole([rxList2], 2., srcLoc)
         rxList3 = EM.FDEM.RxFDEM(XYZ, 'bxi')
-        Src3 = EM.FDEM.SrcFDEM_MagDipole(srcLoc, 2., [rxList3])
-        Src4 = EM.FDEM.SrcFDEM_MagDipole(srcLoc, 1., [rxList0, rxList1, rxList2, rxList3])
+        Src3 = EM.FDEM.SrcFDEM_MagDipole([rxList3], 2., srcLoc)
+        Src4 = EM.FDEM.SrcFDEM_MagDipole([rxList0, rxList1, rxList2, rxList3], 1., srcLoc)
         srcList = [Src0,Src1,Src2,Src3,Src4]
         survey = EM.FDEM.SurveyFDEM(srcList)
         self.F = EM.FDEM.FieldsFDEM(mesh, survey)
@@ -30,7 +30,7 @@ class FieldsTest(unittest.TestCase):
         F = self.F
         for freq in F.survey.freqs:
             nFreq = F.survey.nSrcByFreq[freq]
-            Srcs = F.survey.getSources(freq)
+            Srcs = F.survey.getSrcByFreq(freq)
             e = np.random.rand(F.mesh.nE, nFreq)
             F[Srcs, 'e'] = e
             b = np.random.rand(F.mesh.nF, nFreq)
@@ -51,11 +51,11 @@ class FieldsTest(unittest.TestCase):
         self.assertTrue(np.all(lastFreq['b'] == b))
         self.assertTrue(np.all(lastFreq['e'] == e))
 
-        Src_f3 = F.survey.getSources(3.)
+        Src_f3 = F.survey.getSrcByFreq(3.)
         self.assertTrue(F[Src_f3,'b'].shape == (F.mesh.nF, 2))
 
         b = np.random.rand(F.mesh.nF, 2)
-        Src_f0 = F.survey.getSources(self.Src0.freq)
+        Src_f0 = F.survey.getSrcByFreq(self.Src0.freq)
         F[Src_f0,'b'] = b
         self.assertTrue(F[self.Src0]['b'].shape == (F.mesh.nF,))
         self.assertTrue(F[self.Src0,'b'].shape == (F.mesh.nF,))
@@ -64,7 +64,7 @@ class FieldsTest(unittest.TestCase):
 
     def test_assertions(self):
         freq = self.F.survey.freqs[0]
-        Srcs = self.F.survey.getSource(freq)
+        Srcs = self.F.survey.getSrcByFreq(freq)
         bWrongSize = np.random.rand(self.F.mesh.nE, self.F.survey.nSrcByFreq[freq])
         def fun(): self.F[Srcs, 'b'] = bWrongSize
         self.assertRaises(ValueError, fun)
@@ -79,12 +79,12 @@ class FieldsTest(unittest.TestCase):
         F = self.F
         for freq in F.survey.freqs:
             nFreq = F.survey.nSrcByFreq[freq]
-            Srcs = F.survey.getSources(freq)
+            Srcs = F.survey.getSrcByFreq(freq)
             e = np.random.rand(F.mesh.nE, nFreq)
             b = np.random.rand(F.mesh.nF, nFreq)
             F[Srcs] = {'b':b,'e':e}
 
-            Srcs = F.survey.getSources(freq)
+            Srcs = F.survey.getSrcByFreq(freq)
             for ii, src in enumerate(Srcs):
                 for jj, rx in enumerate(src.rxList):
                     dat = rx.projectFields(src, self.mesh, F)

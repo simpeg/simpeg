@@ -3,7 +3,7 @@ from SimPEG import *
 import simpegEM as EM
 from scipy.constants import mu_0
 
-plotIt = False
+plotIt = True
 freq = 1e2
 
 class FDEM_analyticTests(unittest.TestCase):
@@ -23,8 +23,7 @@ class FDEM_analyticTests(unittest.TestCase):
         x = np.linspace(-10,10,5)
         XYZ = Utils.ndgrid(x,np.r_[0],np.r_[0])
         rxList = EM.FDEM.RxFDEM(XYZ, 'exi')
-        # Src0 = EM.FDEM.SrcFDEM(np.r_[0.,0.,0.], 'VMD', 1e2, [rxList])
-        Src0 = EM.FDEM.SrcFDEM_MagDipole(np.r_[0.,0.,0.], freq, [rxList])
+        Src0 = EM.FDEM.SrcFDEM_MagDipole([rxList],freq,np.r_[0.,0.,0.])
 
         survey = EM.FDEM.SurveyFDEM([Src0])
 
