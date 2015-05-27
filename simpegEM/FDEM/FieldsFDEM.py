@@ -161,8 +161,6 @@ class FieldsFDEM_h(FieldsFDEM):
         self._edgeCurl = self.survey.prob.mesh.edgeCurl
         self._MeMuI = self.survey.prob.MeMuI
         self._MfSigmai = self.survey.prob.MfSigmai
-        # self._getSource = self.survey.prob.getSource
-        # self._getSourceDeriv = self.survey.prob.getSourceDeriv 
 
     def _j_sec(self, h, src): # adjoint=False
         return self._edgeCurl*h

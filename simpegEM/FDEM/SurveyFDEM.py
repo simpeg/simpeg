@@ -377,7 +377,7 @@ class SurveyFDEM(Survey.BaseSurvey):
         if getattr(self, '_nSrcByFreq', None) is None:
             self._nSrcByFreq = {}
             for freq in self.freqs:
-                self._nSrcByFreq[freq] = len(self.getSource(freq))
+                self._nSrcByFreq[freq] = len(self.getSrcByFreq(freq))
         return self._nSrcByFreq
 
     def getSrcByFreq(self, freq):
