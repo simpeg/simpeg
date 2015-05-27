@@ -246,7 +246,9 @@ class SrcFDEM_MagDipole_Bfield(SrcFDEM):
     #TODO: neither does moment
     def __init__(self, rxList, freq, loc, orientation='Z', moment=1.):
         self.freq = float(freq)
+        self.loc = loc
         self.orientation = orientation
+        self.moment = moment
         SrcFDEM.__init__(self, rxList)
 
     def _getS_m(self,prob):
