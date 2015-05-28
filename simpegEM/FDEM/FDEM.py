@@ -29,7 +29,8 @@ class BaseFDEMProblem(BaseEMProblem):
             Ainv = self.Solver(A, **self.solverOpts)
             sol = Ainv * rhs
             Srcs = self.survey.getSrcByFreq(freq)
-            F[Srcs, self._fieldType] = sol
+            ftype = self._fieldType + '_sol'
+            F[Srcs, ftype] = sol
 
         return F
 

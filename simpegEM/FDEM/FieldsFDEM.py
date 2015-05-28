@@ -9,10 +9,11 @@ class FieldsFDEM(Problem.Fields):
 
 
 class FieldsFDEM_e(FieldsFDEM):
-    knownFields = {'e':'E'}
+    knownFields = {'e_sol':'E'}
     aliasFields = {
-                    'b_sec' : ['e','F','_b_sec'],
-                    'b' : ['e','F','_b']
+                    'e' : ['e_sol','E','_e'],
+                    'b_sec' : ['e_sol','F','_b_sec'],
+                    'b' : ['e_sol','F','_b']
                   }
 
     def __init__(self,mesh,survey,**kwargs):
@@ -21,19 +22,31 @@ class FieldsFDEM_e(FieldsFDEM):
     def startup(self):
         self._edgeCurl = self.survey.prob.mesh.edgeCurl
 
-    def _b_sec(self, e, src):
+    def _e(self, e_sol, src):
+        e = e_sol
+        e_p = src.e_p(self.survey.prob)
+        if e_p is not None:
+            e += e_p     
+        return e
+
+    def _b_sec(self, e_sol, src):
         C = self._edgeCurl
-        b_sec =  - 1./(1j*omega(src.freq))*(C * e)
+        b_sec =  - 1./(1j*omega(src.freq))*(C * e_sol)
         return b_sec
 
-    def _b_secDeriv(self, e, src, v, adjoint=False): 
+    def _b_secDeriv(self,e_sol, src, v, adjoint=False): 
         return None
 
-    def _b(self, e, src):
-        b = self._b_sec(e,src)
+    def _b(self, e_sol, src):
+        b = self._b_sec(e_sol, src)
         S_m, _ = src.eval(self.survey.prob)
         if S_m is not None:
             b += 1./(1j*omega(src.freq)) * S_m
+
+        b_p = src.b_p(self.survey.prob)
+        if b_p is not None:
+            b += b_p 
+
         return b
 
     def _bDeriv(self, e, src, v, adjoint=False):
@@ -50,10 +63,11 @@ class FieldsFDEM_e(FieldsFDEM):
 
 
 class FieldsFDEM_b(FieldsFDEM):
-    knownFields = {'b':'F'}
+    knownFields = {'b_sol':'F'}
     aliasFields = {
-                    'e_sec' : ['b','E','_e_sec'],
-                    'e' : ['b','E','_e']
+                    'b' : ['b_sol','F','_b'],
+                    'e_sec' : ['b_sol','E','_e_sec'],
+                    'e' : ['b_sol','E','_e']
                   }
 
     def __init__(self,mesh,survey,**kwargs):
@@ -66,22 +80,34 @@ class FieldsFDEM_b(FieldsFDEM):
         # self._getSource = self.survey.prob.getSource
         # self._getSourceDeriv = self.survey.prob.getSourceDeriv 
 
-    def _e_sec(self, b, src):
-        return self._MeSigmaI * ( self._edgeCurl.T * ( self._MfMui * b))
+    def _b(self, b_sol, src):
+        b = b_sol
+        b_p = src.b_p(self.survey.prob)
+        if b_p is not None:
+            b += b_p
+        return b  
 
-    def _e_secDeriv(self, b, src, v, adjoint=False):
+    def _e_sec(self, b_sol, src):
+        return self._MeSigmaI * ( self._edgeCurl.T * ( self._MfMui * b_sol))
+
+    def _e_secDeriv(self, b_sol, src, v, adjoint=False):
         return None
 
-    def _e(self, b, src):
-        e = self._e_sec(b,src)
+    def _e(self, b_sol, src):
+        e = self._e_sec(b_sol,src)
         _,S_e = src.eval(self.survey.prob)
         if S_e is not None:
-            e += S_e
+            e += -self._MeSigmaI*S_e
+
+        e_p = src.e_p(self.survey.prob)
+        if e_p is not None:
+            e += e_p
+
         return e
 
-    def _eDeriv(self, b, src, v, adjoint=False):
+    def _eDeriv(self, b_sol, src, v, adjoint=False):
         _,S_eDeriv = src.getSourceDeriv(self.survey.prob, v, adjoint)
-        e_secDeriv = self._e_secDeriv(b, src, v, adjoint)
+        e_secDeriv = self._e_secDeriv(b_sol, src, v, adjoint)
 
         if S_eDeriv is None & e_secDeriv is None:
             return None
@@ -94,10 +120,11 @@ class FieldsFDEM_b(FieldsFDEM):
 
 
 class FieldsFDEM_j(FieldsFDEM):
-    knownFields = {'j':'F'}
+    knownFields = {'j_sol':'F'}
     aliasFields = {
-                    'h_sec' : ['j','E','_h_sec'],
-                    'h' : ['j','E','_h']
+                    'j' : ['j_sol','F','_j'],
+                    'h_sec' : ['j_sol','E','_h_sec'],
+                    'h' : ['j_sol','E','_h']
                   }
 
     def __init__(self,mesh,survey,**kwargs):
@@ -111,10 +138,17 @@ class FieldsFDEM_j(FieldsFDEM):
         # self._getSourceDeriv = self.survey.prob.getSourceDeriv 
         self._curModel = self.survey.prob.curModel
 
-    def _h_sec(self, j, src): #v, adjoint=False
-        return - 1./(1j*omega(src.freq)) * self._MeMuI * (self._edgeCurl.T * (self._MfSigmai * j) ) 
+    def _j(self, j_sol, src):
+        j = j_sol
+        j_p = src.j_p(self.survey.prob) 
+        if j_p is not None:
+            j += j_p
+        return j
 
-    def _h_secDeriv(self, j, src, v, adjoint=False): 
+    def _h_sec(self, j_sol, src): #v, adjoint=False
+        return - 1./(1j*omega(src.freq)) * self._MeMuI * (self._edgeCurl.T * (self._MfSigmai * j_sol) ) 
+
+    def _h_secDeriv(self, j_sol, src, v, adjoint=False): 
         MeMuI = self._MeMuI
         C = self._edgeCurl
         sig = self._curModel.transform
@@ -128,16 +162,19 @@ class FieldsFDEM_j(FieldsFDEM):
         else:
             return -(1./(1j*omega(freq))) * dsig_dm.T * ( dsigi_dsig.T * ( dMf_dsigi.T * ( C * ( MeMuI.T * v ) ) ) )
 
-    def _h(self, j, src): #v, adjoint=False
-        h = self._h_sec(j,src)
+    def _h(self, j_sol, src): #v, adjoint=False
+        h = self._h_sec(j_sol,src)
         S_m,_ = src.eval(self.survey.prob)
         if S_m is not None:
             h += 1./(1j*omega(src.freq)) * self._MeMuI * S_m
+        h_p = src.h_p(self.survey.prob)
+        if h_p is not None:
+            h += h_p 
         return h
 
-    def _hDeriv(self, j, src, v, adjoint=False):
+    def _hDeriv(self, j_sol, src, v, adjoint=False):
         S_mDeriv,_ = src.getSourceDeriv(self.survey.prob, v, adjoint)
-        h_secDeriv = self._h_secDeriv(j,src.freq, v, adjoint)
+        h_secDeriv = self._h_secDeriv(j_sol,src.freq, v, adjoint)
         if S_mDeriv is None & h_secDeriv is None:
             return None
         elif h_secDeriv is None:
@@ -147,11 +184,13 @@ class FieldsFDEM_j(FieldsFDEM):
         else:
             return 1./(1j*omega(src.freq)) * S_mDeriv + h_secDeriv
 
+
 class FieldsFDEM_h(FieldsFDEM):
-    knownFields = {'h':'E'}
+    knownFields = {'h_sol':'E'}
     aliasFields = {
-                    'j_sec' : ['h','F','_j_sec'],
-                    'j' : ['h','F','_j']
+                    'h' : ['h_sol','E','_h'],
+                    'j_sec' : ['h_sol','F','_j_sec'],
+                    'j' : ['h_sol','F','_j']
                   }
 
     def __init__(self,mesh,survey,**kwargs):
@@ -162,20 +201,30 @@ class FieldsFDEM_h(FieldsFDEM):
         self._MeMuI = self.survey.prob.MeMuI
         self._MfSigmai = self.survey.prob.MfSigmai
 
-    def _j_sec(self, h, src): # adjoint=False
-        return self._edgeCurl*h
+    def _h(self, h_sol, src):
+        h = h_sol
+        h_p = src.h_p(self.survey.prob)
+        if h_p is not None:
+            h += h_p
+        return h
 
-    def _j_secDeriv(self, h, src, v, adjoint=False): 
+    def _j_sec(self, h_sol, src): # adjoint=False
+        return self._edgeCurl*h_sol
+
+    def _j_secDeriv(self, h_sol, src, v, adjoint=False): 
         return None
 
-    def _j(self, h, src): # adjoint=False
-        j = self._j_sec(h,src)
+    def _j(self, h_sol, src): # adjoint=False
+        j = self._j_sec(h_sol,src)
         _,S_e = src.eval(self.survey.prob)
         if S_e is not None:
             j += -S_e
+        j_p = src.j_p(self.survey.prob)
+        if j_p is not None:
+            j += j_p 
         return j
 
-    def _jDeriv(self, h, src, v, adjoint=False):
+    def _jDeriv(self, h_sol, src, v, adjoint=False):
         _,S_eDeriv = src.getSourceDeriv(self.survey.prob, v, adjoint)
         j_secDeriv = self._j_secDeriv(j,src.freq, v, adjoint)
         if S_eDeriv is None & j_secDeriv is None:
