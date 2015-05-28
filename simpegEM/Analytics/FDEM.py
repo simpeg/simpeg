@@ -99,5 +99,15 @@ def AnalyticMagDipoleWholeSpace(XYZ, srcLoc, sig, f, m=1., orientation='X'):
     Bx = mu_0*Hx
     By = mu_0*Hy
     Bz = mu_0*Hz
+
+    if Bx.ndim is 1:
+        Bx = Utils.mkvc(Bx,2)
+
+    if By.ndim is 1:
+        By = Utils.mkvc(By,2)
+
+    if Bz.ndim is 1:
+        Bz = Utils.mkvc(Bz,2)
+        
     return Bx, By, Bz
 
