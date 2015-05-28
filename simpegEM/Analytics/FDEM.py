@@ -34,7 +34,10 @@ def hzAnalyticDipoleF(r, freq, sigma, secondary=True):
 
     if secondary:
         hp =-1/(4*np.pi*r**3)
-        return hz-hp
+        hz = hz-hp
+
+    if hz.ndim == 1:
+        hz = Utils.mkvc(hz,2)
 
     return hz
 
