@@ -160,7 +160,7 @@ class Fields(object):
                 assert hasattr(self, func), 'The alias field function is a string, but it does not exist in the Fields class.'
                 func = getattr(self, func)
             out = func(self._fields[alias][:,ind], srcII)
-        if isinstance(out, np.ndarray) and (out.shape[0] == out.size or out.ndim == 1):
+        if out.shape[0] == out.size or out.ndim == 1:
             out = Utils.mkvc(out,2)
         return out
 
@@ -263,7 +263,7 @@ class TimeFields(Fields):
                 for i, TIND_i in enumerate(timeII):
                     fieldI = pointerFields[:,:,i]
                     if fieldI.shape[0] == fieldI.size:
-                        fieldI = Utils.mkvc(fieldI,2)
+                        fieldI = Utils.mkvc(fieldI,1)
                     out[i] = func(fieldI, srcII, TIND_i)
                     if out[i].ndim == 1:
                         out[i] = out[i][:,np.newaxis,np.newaxis]
