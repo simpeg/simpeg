@@ -1,7 +1,8 @@
 import unittest
 from SimPEG import *
 
-class DataAndFieldsTest(unittest.TestCase):
+
+class FieldsTest(unittest.TestCase):
 
     def setUp(self):
         mesh = Mesh.TensorMesh([np.ones(n)*5 for n in [10,11,12]],[0,0,-30])
@@ -26,25 +27,6 @@ class DataAndFieldsTest(unittest.TestCase):
         self.mesh = mesh
         self.XYZ = XYZ
 
-    def test_overlappingFields(self):
-        self.assertRaises(AssertionError, Problem.Fields, self.F.mesh, self.F.survey,
-                            knownFields={'b':'F'},
-                            aliasFields={'b':['b',(lambda F, b, ind: b)]})
-
-    def test_data(self):
-        V = []
-        for src in self.D.survey.srcList:
-            for rx in src.rxList:
-                v = np.random.rand(rx.nD)
-                V += [v]
-                self.D[src, rx] = v
-                self.assertTrue(np.all(v == self.D[src, rx]))
-        V = np.concatenate(V)
-        self.assertTrue(np.all(V == Utils.mkvc(self.D)))
-
-        D2 = Survey.Data(self.D.survey, V)
-        self.assertTrue(np.all(Utils.mkvc(D2) == Utils.mkvc(self.D)))
-
     def test_contains(self):
         F = self.F
         nSrc = F.survey.nSrc
@@ -55,10 +37,10 @@ class DataAndFieldsTest(unittest.TestCase):
         self.assertTrue('b' not in F)
         self.assertTrue('e' in F)
 
-    def test_uniqueSrcs(self):
-        srcs = self.D.survey.srcList
-        srcs += [srcs[0]]
-        self.assertRaises(AssertionError, Survey.BaseSurvey, srcList=srcs)
+    def test_overlappingFields(self):
+        self.assertRaises(AssertionError, Problem.Fields, self.F.mesh, self.F.survey,
+                            knownFields={'b':'F'},
+                            aliasFields={'b':['b',(lambda F, b, ind: b)]})
 
     def test_SetGet(self):
         F = self.F
@@ -132,7 +114,6 @@ class FieldsTest_Alias(unittest.TestCase):
         Src4 = Survey.BaseSrc([rxList0, rxList1, rxList2, rxList3],loc=srcLoc)
         srcList = [Src0,Src1,Src2,Src3,Src4]
         survey = Survey.BaseSurvey(srcList=srcList)
-        self.D = Survey.Data(survey)
         self.F = Problem.Fields(mesh, survey, knownFields={'e':'E'}, aliasFields={'b':['e','F',(lambda e, ind: self.F.mesh.edgeCurl * e)]})
         self.Src0 = Src0
         self.Src1 = Src1
