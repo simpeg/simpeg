@@ -167,15 +167,15 @@ class ProblemFDEM_e(BaseFDEMProblem):
             :rtype: scipy.sparse.csr_matrix
             :return: A
         """
-        mui = self.MfMui
-        sig = self.MeSigma
+        MfMui = self.MfMui
+        MeSigma = self.MeSigma
         C = self.mesh.edgeCurl
 
-        return C.T*mui*C + 1j*omega(freq)*sig
+        return C.T*MfMui*C + 1j*omega(freq)*MeSigma
 
 
     def getADeriv(self, freq, u, v, adjoint=False):
-        sig = self.curModel.transform
+        sig = self.sigma
         dsig_dm = self.curModel.transformDeriv
         dMe_dsig = self.mesh.getEdgeInnerProductDeriv(sig)(u)
 
@@ -221,35 +221,35 @@ class ProblemFDEM_b(BaseFDEMProblem):
             :rtype: scipy.sparse.csr_matrix
             :return: A
         """
-        mui = self.MfMui
-        sigI = self.MeSigmaI
+        MfMui = self.MfMui
+        MeSigmaI = self.MeSigmaI
         C = self.mesh.edgeCurl
         iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
 
-        A = C*sigI*C.T*mui + iomega
+        A = C*MeSigmaI*C.T*MfMui + iomega
 
         if self._makeASymmetric is True:
-            return mui.T*A
+            return MfMui.T*A
         return A
 
     def getADeriv(self, freq, u, v, adjoint=False):
 
-        mui = self.MfMui
+        MfMui = self.MfMui
         C = self.mesh.edgeCurl
-        sig = self.curModel.transform
+        sig = self.sigma
         dsig_dm = self.curModel.transformDeriv
         dMeSigmaI_dI = self._dMeSigmaI_dI
 
-        vec = (C.T*(mui*u))
+        vec = (C.T*(MfMui*u))
         dMe_dsig = self.mesh.getEdgeInnerProductDeriv(sig)(vec)
 
         if adjoint:
             if self._makeASymmetric is True:
-                v = mui * v
+                v = MfMui * v
             return dsig_dm.T * ( dMe_dsig.T * ( dMeSigmaI_dI.T * ( C.T * v ) ) )
 
         if self._makeASymmetric is True:
-            return mui.T * ( C * ( dMeSigmaI_dI * ( dMe_dsig * ( dsig_dm * v ) ) ) )
+            return MfMui.T * ( C * ( dMeSigmaI_dI * ( dMe_dsig * ( dsig_dm * v ) ) ) )
         return C * ( dMeSigmaI_dI * ( dMe_dsig * ( dsig_dm * v ) ) )
 
 
@@ -267,8 +267,8 @@ class ProblemFDEM_b(BaseFDEMProblem):
         RHS = S_m + C * ( MeSigmaI * S_e )
 
         if self._makeASymmetric is True:
-            mui = self.MfMui
-            return mui.T*RHS
+            MfMui = self.MfMui
+            return MfMui.T*RHS
 
         return RHS
 
@@ -327,14 +327,14 @@ class ProblemFDEM_j(BaseFDEMProblem):
         """
 
         MeMuI = self.MeMuI
-        MfSigi = self.MfSigmai
+        MfSigmai = self.MfSigmai
         C = self.mesh.edgeCurl
         iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
 
-        A = C * MeMuI * C.T * MfSigi + iomega
+        A = C * MeMuI * C.T * MfSigmai + iomega
 
         if self._makeASymmetric is True:
-            return MfSigi.T*A
+            return MfSigmai.T*A
         return A
 
 
@@ -347,21 +347,20 @@ class ProblemFDEM_j(BaseFDEMProblem):
         """
 
         MeMuI = self.MeMuI
-        MfSigi = self.MfSigmai
+        MfSigmai = self.MfSigmai
         C = self.mesh.edgeCurl
-        sig = self.curModel.transform
-        sigi = 1/sig
+        sigi = self.sigmai
         dsig_dm = self.curModel.transformDeriv
         dsigi_dsig = -Utils.sdiag(sigi)**2
         dMf_dsigi = self.mesh.getFaceInnerProductDeriv(sigi)(u)
 
         if adjoint:
             if self._makeASymmetric is True:
-                v = MfSigi * v
+                v = MfSigmai * v
             return dsig_dm.T * ( dsigi_dsig.T *( dMf_dsigi.T * ( C * ( MeMuI.T * ( C.T * v ) ) ) ) )
 
         if self._makeASymmetric is True:
-            return MfSigi.T * ( C * ( MeMuI * ( C.T * ( dMf_dsigi * ( dsigi_dsig * ( dsig_dm * v ) ) ) ) ) )
+            return MfSigmai.T * ( C * ( MeMuI * ( C.T * ( dMf_dsigi * ( dsigi_dsig * ( dsig_dm * v ) ) ) ) ) )
         return C * ( MeMuI * ( C.T * ( dMf_dsigi * ( dsigi_dsig * ( dsig_dm * v ) ) ) ) )
 
 
@@ -379,8 +378,8 @@ class ProblemFDEM_j(BaseFDEMProblem):
 
         RHS = C * (MeMuI * S_m) - 1j * omega(freq) * S_e
         if self._makeASymmetric is True:
-            MfSigi = self.MfSigmai
-            return MfSigi.T*RHS
+            MfSigmai = self.MfSigmai
+            return MfSigmai.T*RHS
 
         return RHS
 
@@ -430,17 +429,16 @@ class ProblemFDEM_h(BaseFDEMProblem):
         """
 
         MeMu = self.MeMu
-        MfSigi = self.MfSigmai
+        MfSigmai = self.MfSigmai
         C = self.mesh.edgeCurl
 
-        return C.T * MfSigi * C + 1j*omega(freq)*MeMu
+        return C.T * MfSigmai * C + 1j*omega(freq)*MeMu
 
     def getADeriv(self, freq, u, v, adjoint=False):
 
         MeMu = self.MeMu
         C = self.mesh.edgeCurl
-        sig = self.curModel.transform
-        sigi = 1/sig
+        sigi = self.sigmai
         dsig_dm = self.curModel.transformDeriv
         dsigi_dsig = -Utils.sdiag(sigi)**2
 
