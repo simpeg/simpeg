@@ -40,6 +40,16 @@ class TestData(unittest.TestCase):
         srcs += [srcs[0]]
         self.assertRaises(AssertionError, Survey.BaseSurvey, srcList=srcs)
 
+    def test_sourceIndex(self):
+        survey = self.D.survey
+        srcs = survey.srcList
+        assert survey.getSourceIndex([srcs[1],srcs[0]]) == [1,0]
+        assert survey.getSourceIndex([srcs[1],srcs[2],srcs[2]]) == [1,2,2]
+        SrcNotThere = Survey.BaseSrc(srcs[0].rxList, loc=np.r_[0,0,0])
+        self.assertRaises(KeyError, survey.getSourceIndex, [SrcNotThere])
+        self.assertRaises(KeyError, survey.getSourceIndex, [srcs[1],srcs[2],SrcNotThere])
+
+
 
 if __name__ == '__main__':
     unittest.main()
