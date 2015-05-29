@@ -1,6 +1,6 @@
 from SimPEG import Survey, Problem, Utils, np, sp
 from simpegEM.Utils import SrcUtils
-from simpegEM.Utils.EMUtils import omega
+from simpegEM.Utils.EMUtils import omega, e_from_j, j_from_e, b_from_h, h_from_b
 
 
 ####################################################
@@ -99,14 +99,57 @@ class SrcFDEM(Survey.BaseSrc):
         S_m = self._getS_m(prob)
         S_e = self._getS_e(prob)
 
-        if S_m is not None:
-            if len(S_m.shape) == 1: S_m = Utils.mkvc(S_m,2)
-        if S_e is not None:
-            if len(S_e.shape) == 1: S_e = Utils.mkvc(S_e,2)
+        if S_m is not None and S_m.ndim == 1: S_m = Utils.mkvc(S_m,2)
+        if S_e is not None and S_e.ndim == 1: S_e = Utils.mkvc(S_e,2)
+
         return S_m, S_e 
 
     def evalDeriv(self, prob, v, adjoint=None):
         return self._getS_mDeriv(prob,v,adjoint), self._getS_eDeriv(prob,v,adjoint)
+
+    def b_p(self,prob):
+        b_p = self._getb_p(prob)
+        if b_p is not None and b_p.ndim == 1: b_p = Utils.mkvc(b_p,2)
+        return b_p 
+
+    def h_p(self,prob):
+        h_p = self._geth_p(prob)
+        if h_p is not None and h_p.ndim == 1: h_p = Utils.mkvc(h_p,2)
+        return h_p
+
+    def e_p(self,prob):
+        e_p = self._gete_p(prob)
+        if e_p is not None and e_p.ndim == 1: e_p = Utils.mkvc(e_p,2)
+        return e_p
+
+    def j_p(self,prob):
+        j_p = self._getj_p(prob)
+        if j_p is not None and j_p.ndim == 1: j_p = Utils.mkvc(j_p,2)
+        return j_p
+
+    def _getb_p(self,prob):
+        return None
+
+    def _geth_p(self,prob):
+        return None
+
+    def _gete_p(self,prob):
+        return None
+
+    def _getj_p(self,prob):
+        return None
+
+    def _getS_m(self,prob):
+        return None
+
+    def _getS_e(self,prob):
+        return None
+
+    def _getS_mDeriv(self, prob, v, adjoint = False):
+        return None
+
+    def _getS_eDeriv(self, prob, v, adjoint = False):
+        return None
 
 
 class SrcFDEM_RawVec_e(SrcFDEM):
@@ -123,17 +166,8 @@ class SrcFDEM_RawVec_e(SrcFDEM):
         self.freq = float(freq)
         SrcFDEM.__init__(self, rxList)
 
-    def _getS_m(self, prob):
-        return None 
-
     def _getS_e(self, prob):
         return self.S_e
-
-    def _getS_mDeriv(self, prob, v, adjoint = False):
-        return None
-
-    def _getS_eDeriv(self, prob, v, adjoint = False):
-        return None
 
 
 class SrcFDEM_RawVec_m(SrcFDEM):
@@ -152,15 +186,6 @@ class SrcFDEM_RawVec_m(SrcFDEM):
 
     def _getS_m(self, prob):
         return self.S_m
-
-    def _getS_e(self, prob):
-        return None
-
-    def _getS_mDeriv(self, prob, v, adjoint = False):
-        return None
-
-    def _getS_eDeriv(self, prob, v, adjoint = False):
-        return None
 
 
 class SrcFDEM_RawVec(SrcFDEM):
@@ -184,12 +209,7 @@ class SrcFDEM_RawVec(SrcFDEM):
     def _getS_e(self,prob):
         return self.S_e
 
-    def _getS_mDeriv(self, prob, v, adjoint = False):
-        return None
-
-    def _getS_eDeriv(self, prob, v, adjoint = False):
-        return None
-
+ 
 class SrcFDEM_MagDipole(SrcFDEM):
 
     #TODO: right now, orientation doesn't actually do anything! The methods in SrcUtils should take care of that
@@ -200,7 +220,7 @@ class SrcFDEM_MagDipole(SrcFDEM):
         self.moment = moment
         SrcFDEM.__init__(self, rxList)
 
-    def _getS_m(self,prob):
+    def _getb_p(self,prob):
         eqLocs = prob._eqLocs
 
         if eqLocs is 'FE':
@@ -229,15 +249,16 @@ class SrcFDEM_MagDipole(SrcFDEM):
             az = srcfct(self.loc, gridZ, 'z')
             a = np.concatenate((ax, ay, az))
 
-        S_m = -1j*omega(self.freq)*C*a
+        return C*a
 
-        return S_m
+    def _geth_p(self,prob):
+        b = self._getb_p(prob)
+        return h_from_b(prob,b)
 
-    def _getS_e(self,prob):
-        return None
+    def _getS_m(self,prob):
+        b_p = self._getb_p(prob)
+        return -1j*omega(self.freq)*b_p 
 
-    def getSourceDeriv(self, prob, v, adjoint=None):
-        return None, None
 
 
 class SrcFDEM_MagDipole_Bfield(SrcFDEM):
@@ -246,10 +267,12 @@ class SrcFDEM_MagDipole_Bfield(SrcFDEM):
     #TODO: neither does moment
     def __init__(self, rxList, freq, loc, orientation='Z', moment=1.):
         self.freq = float(freq)
+        self.loc = loc
         self.orientation = orientation
+        self.moment = moment
         SrcFDEM.__init__(self, rxList)
 
-    def _getS_m(self,prob):
+    def _getb_p(self,prob):
         eqLocs = prob._eqLocs
 
         if eqLocs is 'FE':
@@ -278,16 +301,15 @@ class SrcFDEM_MagDipole_Bfield(SrcFDEM):
             bz = srcfct(self.loc, gridZ, 'z')
             b = np.concatenate((bx,by,bz))
 
+        return b
+
+    def _geth_p(self,prob):
+        b = self._getb_p(prob)
+        return h_from_b(prob, b)
+
+    def _getS_m(self,prob):
+        b = self._getb_p(prob)
         return -1j*omega(self.freq)*b
-
-    def _getS_e(self,prob):
-        return None
-
-    def _getS_mDeriv(self, prob, v, adjoint = False):
-        return None
-
-    def _getS_eDeriv(self, prob, v, adjoint = False):
-        return None
 
 
 class SrcFDEM_CircularLoop(SrcFDEM):
@@ -299,14 +321,7 @@ class SrcFDEM_CircularLoop(SrcFDEM):
         self.radius = radius
         SrcFDEM.__init__(self, rxList)
 
-    def _getS_mDeriv(self, prob, v, adjoint = False):
-        return None
-
-    def _getS_eDeriv(self, prob, v, adjoint = False):
-        return None
-
-
-    def getSource(self, prob):
+    def _getb_p(self,prob):
         eqLocs = prob._eqLocs
 
         if eqLocs is 'FE':
@@ -334,7 +349,15 @@ class SrcFDEM_CircularLoop(SrcFDEM):
             az = srcfct(self.loc, gridZ, 'z', self.radius)
             a = np.concatenate((ax, ay, az))
 
-        return -1j*omega(self.freq)*C*a
+        return C*a
+
+    def _geth_p(self,prob):
+        b = self._getb_p(prob)
+        return h_from_b
+
+    def _getS_m(self, prob):
+        b = self._getb_p(prob)
+        return -1j*omega(self.freq)*b
 
 
 ####################################################
