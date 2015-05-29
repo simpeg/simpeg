@@ -254,7 +254,7 @@ class TimeFields(Fields):
                 for i, TIND_i in enumerate(timeII):
                     fieldI = pointerFields[:,:,i]
                     if fieldI.shape[0] == fieldI.size:
-                        fieldI = Utils.mkvc(fieldI)
+                        fieldI = Utils.mkvc(fieldI, 2)
                     out[i] = func(fieldI, srcII, TIND_i)
                     if out[i].ndim == 1:
                         out[i] = out[i][:,np.newaxis,np.newaxis]
