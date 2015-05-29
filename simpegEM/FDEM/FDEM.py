@@ -175,7 +175,7 @@ class ProblemFDEM_e(BaseFDEMProblem):
 
 
     def getADeriv(self, freq, u, v, adjoint=False):
-        sig = self.curModel.transform
+        sig = self.sigma
         dsig_dm = self.curModel.transformDeriv
         dMe_dsig = self.mesh.getEdgeInnerProductDeriv(sig)(u)
 
@@ -349,8 +349,7 @@ class ProblemFDEM_j(BaseFDEMProblem):
         MeMuI = self.MeMuI
         MfSigmai = self.MfSigmai
         C = self.mesh.edgeCurl
-        sig = self.curModel.transform
-        sigi = 1/sig
+        sigi = self.sigmai
         dsig_dm = self.curModel.transformDeriv
         dsigi_dsig = -Utils.sdiag(sigi)**2
         dMf_dsigi = self.mesh.getFaceInnerProductDeriv(sigi)(u)
@@ -439,8 +438,7 @@ class ProblemFDEM_h(BaseFDEMProblem):
 
         MeMu = self.MeMu
         C = self.mesh.edgeCurl
-        sig = self.curModel.transform
-        sigi = 1/sig
+        sigi = self.sigmai
         dsig_dm = self.curModel.transformDeriv
         dsigi_dsig = -Utils.sdiag(sigi)**2
 
