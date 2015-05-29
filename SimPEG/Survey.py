@@ -231,6 +231,11 @@ class BaseSurvey(object):
         [self._sourceOrder.setdefault(src.uid, ii) for ii, src in enumerate(self._srcList)]
 
     def getSourceIndex(self, sources):
+        if type(sources) is not list:
+            sources = [sources]
+        for src in sources:
+            if getattr(src,'uid',None) is None:
+                raise KeyError('Source does not have a uid: %s'%str(src))
         inds = map(lambda src: self._sourceOrder.get(src.uid, None), sources)
         if None in inds:
             raise KeyError('Some of the sources specified are not in this survey. %s'%str(inds))

@@ -49,7 +49,5 @@ class TestData(unittest.TestCase):
         self.assertRaises(KeyError, survey.getSourceIndex, [SrcNotThere])
         self.assertRaises(KeyError, survey.getSourceIndex, [srcs[1],srcs[2],SrcNotThere])
 
-
-
 if __name__ == '__main__':
     unittest.main()

@@ -71,13 +71,7 @@ class Fields(object):
         if type(srcTestList) is slice:
             ind = srcTestList
         else:
-            if type(srcTestList) is not list:
-                srcTestList = [srcTestList]
-            for srcTest in srcTestList:
-                if srcTest not in self.survey.srcList:
-                    raise KeyError('Invalid Source, not in survey list.')
-
-            ind = np.in1d(self.survey.srcList, srcTestList)
+            ind = self.survey.getSourceIndex(srcTestList)
         return ind
 
     def _nameIndex(self, name, accessType):
