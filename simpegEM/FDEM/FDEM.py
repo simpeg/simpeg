@@ -236,7 +236,7 @@ class ProblemFDEM_b(BaseFDEMProblem):
 
         MfMui = self.MfMui
         C = self.mesh.edgeCurl
-        sig = self.curModel.transform
+        sig = self.sigma
         dsig_dm = self.curModel.transformDeriv
         dMeSigmaI_dI = self._dMeSigmaI_dI
 
