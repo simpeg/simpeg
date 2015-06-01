@@ -52,6 +52,8 @@ class Property(object):
             if mapping is None and prop.propertyLink is not None:
                 linkName, linkMapClass = prop.propertyLink
                 linkMap = linkMapClass(None)
+                if getattr(self, '%sMap'%linkName, None) is None:
+                    return prop.defaultVal
                 m = getattr(self, '%s'%linkName)
                 return linkMap * m
 

@@ -103,6 +103,8 @@ class TestPropMaps(unittest.TestCase):
         assert pm.sigmaDeriv is not None
         assert pm.rhoDeriv is not None
 
+        assert pm.mu == mu_0
+        assert pm.mui == 1.0/mu_0
         assert pm.muMap is None
         assert pm.muDeriv is None
         assert pm.muiMap is None
