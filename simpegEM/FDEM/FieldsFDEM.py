@@ -114,7 +114,7 @@ class FieldsFDEM_j(FieldsFDEM):
     def startup(self):
         self._edgeCurl = self.survey.prob.mesh.edgeCurl
         self._MeMuI = self.survey.prob.MeMuI
-        self._MfSigmai = self.survey.prob.MfSigmai
+        self._MfRho = self.survey.prob.MfRho
         self._curModel = self.survey.prob.curModel
 
     def _j(self, j_sol, srcList):
@@ -128,9 +128,9 @@ class FieldsFDEM_j(FieldsFDEM):
     def _h(self, j_sol, srcList): 
         MeMuI = self._MeMuI
         C = self._edgeCurl
-        MfSigmai = self._MfSigmai
+        MfRho = self._MfRho
 
-        h =  MeMuI * (C.T * (MfSigmai * j_sol) ) 
+        h =  MeMuI * (C.T * (MfRho * j_sol) ) 
 
         for i, src in enumerate(srcList):
             h[:,i] *= -1./(1j*omega(src.freq))
@@ -151,7 +151,7 @@ class FieldsFDEM_j(FieldsFDEM):
         dsig_dm = self._curModel.transformDeriv
         dsigi_dsig = -Utils.sdiag(sigi)**2
         dMf_dsigi = self.mesh.getFaceInnerProductDeriv(sigi)(j)
-        sigi = self._MfSigmai
+        sigi = self._MfRho
 
         S_mDeriv,_ = src.getSourceDeriv(self.survey.prob, v, adjoint)
 
@@ -177,7 +177,7 @@ class FieldsFDEM_h(FieldsFDEM):
     def startup(self):
         self._edgeCurl = self.survey.prob.mesh.edgeCurl
         self._MeMuI = self.survey.prob.MeMuI
-        self._MfSigmai = self.survey.prob.MfSigmai
+        self._MfRho = self.survey.prob.MfRho
 
     def _h(self, h_sol, srcList):
         h = h_sol
@@ -215,11 +215,11 @@ class FieldsFDEM_h(FieldsFDEM):
     #     elif fieldType == 'h':
     #         MeMuI = self._MeMuI
     #         C = self.mesh.edgeCurl
-    #         MfSigmai = self._MfSigmai
+    #         MfRho = self._MfRho
     #         if not adjoint:
-    #             h = -(1./(1j*omega(freq))) * MeMuI * ( C.T * ( MfSigmai * j ) )
+    #             h = -(1./(1j*omega(freq))) * MeMuI * ( C.T * ( MfRho * j ) )
     #         else:
-    #             h = -(1./(1j*omega(freq))) * MfSigmai.T * ( C * ( MeMuI.T * j ) )
+    #             h = -(1./(1j*omega(freq))) * MfRho.T * ( C * ( MeMuI.T * j ) )
     #         return h
     #     raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
 
@@ -235,7 +235,7 @@ class FieldsFDEM_h(FieldsFDEM):
     #         dsig_dm = self._curModel.transformDeriv
     #         dsigi_dsig = -Utils.sdiag(sigi)**2
     #         dMf_dsigi = self.mesh.getFaceInnerProductDeriv(sigi)(j)
-    #         sigi = self._MfSigmai
+    #         sigi = self._MfRho
     #         if not adjoint:
     #             return -(1./(1j*omega(freq))) * MeMuI * ( C.T * ( dMf_dsigi * ( dsigi_dsig * ( dsig_dm * v ) ) ) )
     #         else:

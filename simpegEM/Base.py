@@ -39,101 +39,18 @@ class BaseEMProblem(Problem.BaseProblem):
             self.__makeASymmetric = True
         return self.__makeASymmetric
 
-    ####################################################
-    # Phys Props
-    ####################################################
-
-    # Mu
-    # @property
-    # def mu(self):
-    #     if getattr(self, '_mu', None) is None:
-    #         # if getattr(self, '_mui', None) is not None:
-    #         #     self._mu = sel
-    #         self._mu = mu_0
-    #     return self._mu
-    # @mu.setter
-    # def mu(self, value):
-    #     if getattr(self, '_MfMui', None) is not None:
-    #         del self._MfMui
-    #     if getattr(self, '_MfMuiI', None) is not None:
-    #         del self._MfMuiI
-    #     if getattr(self, '_MeMu', None) is not None:
-    #         del delf._MeMu 
-    #     if getattr(self, '_MeMuI', None) is not None:
-    #         del self._MeMuI
-    #     self._mu = value
-    
-    # TODO: hardcoded to assume diagonal mu
-    # @property
-    # def mui(self):
-    #     if getattr(self, '_mui', None) is None:
-    #         self._mui = 1./mu_0
-    #     return self._mui
-    # @mui.setter
-    # def mui(self, value):
-    #     if getattr(self, '_MfMui', None) is not None:
-    #         del self._MfMui
-    #     if getattr(self, '_MfMuiI', None) is not None:
-    #         del self._MfMuiI
-    #     if getattr(self, '_MeMu', None) is not None:
-    #         del delf._MeMu 
-    #     if getattr(self, '_MeMuI', None) is not None:
-    #         del self._MeMuI
-    #     self._mui = value
-
-    # Sigma
-    # @property
-    # def sigma(self):
-    #     if getattr(self, '_sigma', None) is None:
-    #         self._sigma = self.curModel.transform
-    #     return self._sigma
-    # @sigma.setter
-    # def sigma(self, value):
-    #     if getattr(self, '_MeSigma', None) is not None:
-    #         del self._MeSigma
-    #     if getattr(self, '_MeSigmaI', None) is not None:
-    #         del self._MeSigmaI
-    #     if getattr(self, '_MfSigmai', None) is not None:
-    #         del delf._MfSigmai 
-    #     if getattr(self, '_MfSigmaiI', None) is not None:
-    #         del self._MfSigmaiI 
-    #     self._sigma = value
-
-    # def dsigma_dm(self):
-    #     return self.curModel.transformDeriv
-
-
-    # TODO: hardcoded to assume diagonal sigma
-    # @property
-    # def sigmai(self):
-    #     if getattr(self, '_sigmai', None) is None:
-    #         self._sigmai = 1./self.curModel.transform
-    #     return self._sigmai
-    # @sigmai.setter
-    # def sigmai(self, value):
-    #     if getattr(self, '_MeSigma', None) is not None:
-    #         del self._MeSigma
-    #     if getattr(self, '_MeSigmaI', None) is not None:
-    #         del self._MeSigmaI
-    #     if getattr(self, '_MfSigmai', None) is not None:
-    #         del delf._MfSigmai 
-    #     if getattr(self, '_MfSigmaiI', None) is not None:
-    #         del self._MfSigmaiI 
-    #     self._sigma = value
-
 
     ####################################################
     # Mass Matrices
     ####################################################
 
-    # TODO: Link to EMPropMap 
-    # if Prop
-    # deleteTheseOnModelUpdate = ['_MeSigma', '_MeSigmaI','_MfSigmai','_MfSigmaiI']
     @property
     def deleteTheseOnModelUpdate(self):
         toDelete = []
-        if self.mapping.sigmaMap is not None:
-            toDelete += ['_MeSigma', '_MeSigmaI','_MfSigmai','_MfSigmaiI']
+        if self.mapping.sigmaMap is not None or self.mapping.rhoMap is not None:
+            toDelete += ['_MeSigma', '_MeSigmaI','_MfRho','_MfRhoI']
+        if self.mapping.muMap is not None or self.mapping.muiMap is not None:
+            toDelete += ['_MeMu', '_MeMuI','_MfMui','_MfMuiI']
         return toDelete
     
     @property
@@ -194,20 +111,20 @@ class BaseEMProblem(Problem.BaseProblem):
     # def dMeSigmaI_dsigma(self,u)
 
     @property
-    def MfSigmai(self):
-        if getattr(self, '_MfSigmai', None) is None:
-            self._MfSigmai = self.mesh.getFaceInnerProduct(self.curModel.rho)
-        return self._MfSigmai
+    def MfRho(self):
+        if getattr(self, '_MfRho', None) is None:
+            self._MfRho = self.mesh.getFaceInnerProduct(self.curModel.rho)
+        return self._MfRho
 
-    # def dMfSigmai_dsigmai(self,u)
+    # def dMfRho_dsigmai(self,u)
 
     @property
-    def MfSigmaiI(self):
-        if getattr(self, '_MfSigmaiI', None) is None:
-            self._MfSigmaiI = self.mesh.getFaceInnerProduct(self.curModel.rho, invMat=True)
-        return self._MfSigmaiI
+    def MfRhoI(self):
+        if getattr(self, '_MfRhoI', None) is None:
+            self._MfRhoI = self.mesh.getFaceInnerProduct(self.curModel.rho, invMat=True)
+        return self._MfRhoI
 
-    # def dMfSigmaiI(self,u)
+    # def dMfRhoI(self,u)
     
 
     ####################################################
