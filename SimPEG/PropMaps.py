@@ -1,4 +1,4 @@
-from SimPEG import Utils, Maps
+import Utils, Maps, numpy as np
 
 class Property(object):
 
@@ -7,7 +7,6 @@ class Property(object):
     # mappingPair    = None
 
     defaultVal     = None
-    defaultMap     = None
     defaultInvProp = False
 
     def __init__(self, doc, **kwargs):
@@ -18,7 +17,7 @@ class Property(object):
     def _getMapProperty(self):
         prop = self
         def fget(self):
-            return getattr(self, '_%sMap'%prop.name, prop.defaultMap)
+            return getattr(self, '_%sMap'%prop.name, None)
         def fset(self, val):
             # TODO: Check if the mapping can be correct
             setattr(self, '_%sMap'%prop.name, val)
@@ -65,7 +64,7 @@ class Property(object):
     def _getModelMapProperty(self):
         prop = self
         def fget(self):
-            return getattr(self.propMap, '_%sMap'%prop.name, prop.defaultMap)
+            return getattr(self.propMap, '_%sMap'%prop.name, None)
         return property(fget=fget)
 
 
@@ -128,9 +127,6 @@ class _PropMapMetaClass(type):
         return type(name.replace('PropMap', 'PropModel'), (PropModel, ), attrs)
 
 
-
-
-
 class PropMap(object):
     __metaclass__ = _PropMapMetaClass
 
@@ -141,7 +137,7 @@ class PropMap(object):
         if type(mappings) is dict:
             assert np.all([k in ['maps', 'slices'] for k in mappings]), 'Dict must only have properties "maps" and "slices"'
             self.setup(mappings['maps'], slices=mappings['slices'])
-        if type(mappings) is list:
+        elif type(mappings) is list:
             self.setup(mappings)
         elif isinstance(mappings, Maps.IdentityMap):
             self.setup([(self.defaultInvProp, mappings)])
@@ -170,7 +166,7 @@ class PropMap(object):
         else:
             assert np.all([
                 s in self._properties and
-                (type(s) in [slice, list] or isinstance(s, np.ndarray))
+                (type(slices[s]) in [slice, list] or isinstance(slices[s], np.ndarray))
                 for s in slices]), 'Slices must be for each property'
 
         self.clearMaps()
@@ -180,7 +176,6 @@ class PropMap(object):
             setattr(self, '%sMap'%name, mapping)
             setattr(self, '%sIndex'%name, slices.get(name, slice(nP, nP + mapping.nP)))
             nP += mapping.nP
-
 
     @property
     def defaultInvProp(self):
@@ -197,41 +192,3 @@ class PropMap(object):
     def __call__(self, vec):
         return self.PropModel(self, vec)
 
-
-class MyPropMap(PropMap):
-    sigma = Property("Electrical Conductivity", defaultInvProp=True)
-    mu    = Property("Electrical Conductivity", defaultVal=4e-10)
-
-
-if __name__ == '__main__':
-
-
-    from SimPEG import Mesh
-    import numpy as np
-
-    expMap = Maps.ExpMap(Mesh.TensorMesh((3,)))
-    print expMap.nP
-
-    # propMap = MyPropMap([('sigma', expMap), ('mu', IMap)], indices={'sigma':[1,2,3,4,7,8]})
-    propMap = MyPropMap([('sigma',expMap)])
-    print [n for n in dir(propMap) if n[0] is not '_']
-    # propMap = My2PropMap()
-    # print [n for n in dir(propMap) if n[0] is not '_']
-
-    propMap.sigmaMap = expMap
-
-    print propMap.defaultInvProp
-    print propMap.sigmaMap
-    print propMap.sigmaIndex
-
-    mod = propMap(np.r_[1,2,3])
-    print [n for n in dir(mod) if n[0] is not '_']
-    print mod.sigmaModel
-    print mod.sigma
-    print mod.sigmaMap
-    print mod.sigmaDeriv
-
-    print mod.mu
-    print mod.muMap
-    print mod.muModel
-    print mod.muDeriv

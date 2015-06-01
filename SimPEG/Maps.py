@@ -1,5 +1,6 @@
 import Utils, numpy as np, scipy.sparse as sp
 from Tests import checkDerivative
+from PropMaps import PropMap, Property
 
 
 class IdentityMap(object):
