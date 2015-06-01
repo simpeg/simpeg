@@ -2,11 +2,14 @@ from SimPEG import Survey, Problem, Utils, Models, Maps, PropMaps, np, sp, Solve
 from scipy.constants import mu_0
 
 class EMPropMap(Maps.PropMap):
-    sigma = Maps.Property("Electrical Conductivity", defaultInvProp = True)
-    mui = Maps.Property("Inverse Magnetic Permeability", defaultVal = 1./mu_0)
+    sigma = Maps.Property("Electrical Conductivity", defaultInvProp = True, propertyLink=('rho',Maps.ReciprocalMap))
+    mu = Maps.Property("Inverse Magnetic Permeability", defaultVal = mu_0, propertyLink=('mui',Maps.ReciprocalMap))
 
-    # rho = Maps.Property("Electrical Resistivity") 
-    # mu = Maps.Property("Inverse Magnetic Permeability", defaultVal = 1./mu_0)
+    rho = Maps.Property("Electrical Resistivity", propertyLink=('sigma', Maps.ReciprocalMap)) 
+    mui = Maps.Property("Inverse Magnetic Permeability", defaultVal = 1./mu_0, propertyLink=('mu', Maps.ReciprocalMap))
+
+    
+    
 
     # Do some error checking: only 1 of sigma, rho can be InvProp similar story with mu and mui 
     # Also ensure that sigma and rho are reciprocals of one another "" 
@@ -162,13 +165,13 @@ class BaseEMProblem(Problem.BaseProblem):
     @property
     def MeMu(self):
         if getattr(self, '_MeMu', None) is None:
-            self._MeMu = self.mesh.getEdgeInnerProduct(self.mu)
+            self._MeMu = self.mesh.getEdgeInnerProduct(self.curModel.mu)
         return self._MeMu
 
     @property
     def MeMuI(self):
         if getattr(self, '_MeMuI', None) is None:
-            self._MeMuI = self.mesh.getEdgeInnerProduct(self.mu, invMat=True)
+            self._MeMuI = self.mesh.getEdgeInnerProduct(self.curModel.mu, invMat=True)
         return self._MeMuI
 
     # ----- Electrical Conductivity ----- # 
@@ -193,7 +196,7 @@ class BaseEMProblem(Problem.BaseProblem):
     @property
     def MfSigmai(self):
         if getattr(self, '_MfSigmai', None) is None:
-            self._MfSigmai = self.mesh.getFaceInnerProduct(self.sigmai)
+            self._MfSigmai = self.mesh.getFaceInnerProduct(self.curModel.rho)
         return self._MfSigmai
 
     # def dMfSigmai_dsigmai(self,u)
@@ -201,7 +204,7 @@ class BaseEMProblem(Problem.BaseProblem):
     @property
     def MfSigmaiI(self):
         if getattr(self, '_MfSigmaiI', None) is None:
-            self._MfSigmaiI = self.mesh.getFaceInnerProduct(self.sigmai, invMat=True)
+            self._MfSigmaiI = self.mesh.getFaceInnerProduct(self.curModel.rho, invMat=True)
         return self._MfSigmaiI
 
     # def dMfSigmaiI(self,u)
