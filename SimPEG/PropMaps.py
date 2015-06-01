@@ -73,8 +73,22 @@ class PropModel(object):
     def __init__(self, propMap, vector):
         self.propMap = propMap
         self.vector  = vector
+        assert len(self.vector) == self.nP
 
-    # TODO: nP
+    @property
+    def nP(self):
+        inds = []
+        if getattr(self, '_nP', None) is None:
+            for name in self.propMap._properties:
+                index = getattr(self.propMap, '%sIndex'%name, None)
+                if index is not None:
+                    if type(index) is slice:
+                        inds += range(*index.indices(len(self.vector)))
+                    else:
+                        inds += list(index)
+            self._nP = len(set(inds))
+        return self._nP
+
 
 
 _PROPMAPCLASSREGISTRY = {}
