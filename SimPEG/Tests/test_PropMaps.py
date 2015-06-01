@@ -10,7 +10,8 @@ class MyPropMap(Maps.PropMap):
 class MyReciprocalPropMap(Maps.PropMap):
     sigma = Maps.Property("Electrical Conductivity", defaultInvProp=True, propertyLink=('rho',   Maps.ReciprocalMap))
     rho   = Maps.Property("Electrical Resistivity",                       propertyLink=('sigma', Maps.ReciprocalMap))
-    mu    = Maps.Property("Mu", defaultVal=mu_0)
+    mu    = Maps.Property("Mu", defaultVal=mu_0, propertyLink=('mui',   Maps.ReciprocalMap))
+    mui    = Maps.Property("Mu", defaultVal=1./mu_0, propertyLink=('mu',   Maps.ReciprocalMap))
 
 
 class TestPropMaps(unittest.TestCase):
@@ -101,6 +102,11 @@ class TestPropMaps(unittest.TestCase):
         assert pm.rhoMap is None
         assert pm.sigmaDeriv is not None
         assert pm.rhoDeriv is not None
+
+        assert pm.muMap is None
+        assert pm.muDeriv is None
+        assert pm.muiMap is None
+        assert pm.muiDeriv is None
 
         PM = MyReciprocalPropMap([('rho', iMap)])
         pm = PM(np.r_[1,2.,3])

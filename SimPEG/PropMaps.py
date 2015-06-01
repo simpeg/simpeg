@@ -68,7 +68,10 @@ class Property(object):
 
             if mapping is None and prop.propertyLink is not None:
                 linkName, linkMapClass = prop.propertyLink
-                linkMap = linkMapClass(None) * getattr(self, '%sMap'%linkName)
+                linkedMap = getattr(self, '%sMap'%linkName)
+                if linkedMap is None:
+                    return None
+                linkMap = linkMapClass(None) * linkedMap
                 m = getattr(self, '%s'%linkName)
                 return linkMap.deriv( m )
 
