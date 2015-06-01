@@ -5,7 +5,12 @@ from scipy.constants import mu_0
 
 class MyPropMap(Maps.PropMap):
     sigma = Maps.Property("Electrical Conductivity", defaultInvProp=True)
-    mu    = Maps.Property("Electrical Conductivity", defaultVal=mu_0)
+    mu    = Maps.Property("Mu", defaultVal=mu_0)
+
+class MyReciprocalPropMap(Maps.PropMap):
+    sigma = Maps.Property("Electrical Conductivity", defaultInvProp=True, propertyLink=('rho',   Maps.ReciprocalMap))
+    rho   = Maps.Property("Electrical Resistivity",                       propertyLink=('sigma', Maps.ReciprocalMap))
+    mu    = Maps.Property("Mu", defaultVal=mu_0)
 
 
 class TestPropMaps(unittest.TestCase):
@@ -30,15 +35,15 @@ class TestPropMaps(unittest.TestCase):
             assert PM.muMap is None
             assert PM.muIndex is None
 
-            m = PM(np.r_[1,2,3])
+            m = PM(np.r_[1.,2,3])
             assert m.mu == mu_0
             assert m.muModel is None
             assert m.muMap is None
             assert m.muDeriv is None
 
-            assert np.all(m.sigmaModel == np.r_[1,2,3])
+            assert np.all(m.sigmaModel == np.r_[1.,2,3])
             assert m.sigmaMap is expMap
-            assert np.all(m.sigma == np.exp(np.r_[1,2,3]))
+            assert np.all(m.sigma == np.exp(np.r_[1.,2,3]))
             assert m.sigmaDeriv is not None
 
             assert m.nP == 3
@@ -47,7 +52,7 @@ class TestPropMaps(unittest.TestCase):
         expMap = Maps.ExpMap(Mesh.TensorMesh((3,)))
         PM = MyPropMap({'maps':[('sigma', expMap)], 'slices':{'sigma':[2,1,0]}})
         assert PM.sigmaIndex == [2,1,0]
-        m = PM(np.r_[1,2,3])
+        m = PM(np.r_[1.,2,3])
         assert np.all(m.sigmaModel == np.r_[3,2,1])
         assert np.all(m.sigma == np.exp(np.r_[3,2,1]))
 
@@ -57,14 +62,14 @@ class TestPropMaps(unittest.TestCase):
         iMap = Maps.IdentityMap(m)
         PM = MyPropMap([('sigma', expMap), ('mu', iMap)])
 
-        pm = PM(np.r_[1,2,3,4,5,6])
+        pm = PM(np.r_[1.,2,3,4,5,6])
 
         assert pm.nP == 6
 
-        assert np.all(pm.sigmaModel == [1,2,3])
-        assert np.all(pm.sigma == np.exp([1,2,3]))
-        assert np.all(pm.muModel == [4,5,6])
-        assert np.all(pm.mu == [4,5,6])
+        assert np.all(pm.sigmaModel == [1.,2,3])
+        assert np.all(pm.sigma == np.exp([1.,2,3]))
+        assert np.all(pm.muModel == [4.,5,6])
+        assert np.all(pm.mu == [4.,5,6])
 
 
     def test_multiMapCompressed(self):
@@ -73,7 +78,7 @@ class TestPropMaps(unittest.TestCase):
         iMap = Maps.IdentityMap(m)
         PM = MyPropMap({'maps':[('sigma', expMap), ('mu', iMap)],'slices':{'mu':[0,1,2]}})
 
-        pm = PM(np.r_[1,2,3])
+        pm = PM(np.r_[1,2.,3])
 
         assert pm.nP == 3
 
@@ -81,6 +86,37 @@ class TestPropMaps(unittest.TestCase):
         assert np.all(pm.sigma == np.exp([1,2,3]))
         assert np.all(pm.muModel == [1,2,3])
         assert np.all(pm.mu == [1,2,3])
+
+    def test_Links(self):
+        m = Mesh.TensorMesh((3,))
+        expMap = Maps.ExpMap(m)
+        iMap = Maps.IdentityMap(m)
+        PM = MyReciprocalPropMap([('sigma', iMap)])
+        pm = PM(np.r_[1,2.,3])
+        # print pm.sigma
+        # print pm.sigmaMap
+        assert np.all(pm.sigma == [1,2,3])
+        assert np.all(pm.rho == 1./np.r_[1,2,3])
+        assert pm.sigmaMap is iMap
+        assert pm.rhoMap is None
+        assert pm.sigmaDeriv is not None
+        assert pm.rhoDeriv is not None
+
+        PM = MyReciprocalPropMap([('rho', iMap)])
+        pm = PM(np.r_[1,2.,3])
+        # print pm.sigma
+        # print pm.sigmaMap
+        assert np.all(pm.sigma == 1./np.r_[1,2,3])
+        assert np.all(pm.rho == [1,2,3])
+        assert pm.sigmaMap is None
+        assert pm.rhoMap is iMap
+        assert pm.sigmaDeriv is not None
+        assert pm.rhoDeriv is not None
+
+        self.assertRaises(AssertionError, MyReciprocalPropMap, [('rho', iMap), ('sigma', iMap)])
+        self.assertRaises(AssertionError, MyReciprocalPropMap, [('sigma', iMap), ('rho', iMap)])
+
+        MyReciprocalPropMap([('sigma', iMap), ('mu', iMap)]) # This should be fine
 
 if __name__ == '__main__':
     unittest.main()

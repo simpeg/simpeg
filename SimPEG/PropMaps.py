@@ -4,7 +4,6 @@ class Property(object):
 
     name           = ''
     doc            = ''
-    # mappingPair    = None
 
     defaultVal     = None
     defaultInvProp = False
@@ -14,11 +13,23 @@ class Property(object):
         self.doc = doc
         Utils.setKwargs(self, **kwargs)
 
+    @property
+    def propertyLink(self):
+        "Can be something like: ('sigma', Maps.ReciprocalMap)"
+        return getattr(self, '_propertyLink', None)
+    @propertyLink.setter
+    def propertyLink(self, value):
+        assert type(value) is tuple and len(value) == 2 and type(value[0]) is str and issubclass(value[1], Maps.IdentityMap), 'Use format: ("%s", Maps.ReciprocalMap)'%self.name
+        self._propertyLink = value
+
     def _getMapProperty(self):
         prop = self
         def fget(self):
             return getattr(self, '_%sMap'%prop.name, None)
         def fset(self, val):
+            if prop.propertyLink is not None:
+                linkName, linkMap = prop.propertyLink
+                assert getattr(self, '%sMap'%linkName, None) is None, 'Cannot set both sides of a linked property.'
             # TODO: Check if the mapping can be correct
             setattr(self, '_%sMap'%prop.name, val)
         return property(fget=fget, fset=fset, doc=prop.doc)
@@ -35,19 +46,33 @@ class Property(object):
         prop = self
         def fget(self):
             mapping = getattr(self, '%sMap'%prop.name)
-            if mapping is None:
+            if mapping is None and prop.propertyLink is None:
                 return prop.defaultVal
-            m       = getattr(self, '%sModel'%prop.name)
+
+            if mapping is None and prop.propertyLink is not None:
+                linkName, linkMapClass = prop.propertyLink
+                linkMap = linkMapClass(None)
+                m = getattr(self, '%s'%linkName)
+                return linkMap * m
+
+            m = getattr(self, '%sModel'%prop.name)
             return mapping * m
         return property(fget=fget)
 
     def _getModelDerivProperty(self):
         prop = self
         def fget(self):
-            m       = getattr(self, '%sModel'%prop.name)
             mapping = getattr(self, '%sMap'%prop.name)
-            if mapping is None:
+            if mapping is None and prop.propertyLink is None:
                 return None
+
+            if mapping is None and prop.propertyLink is not None:
+                linkName, linkMapClass = prop.propertyLink
+                linkMap = linkMapClass(None) * getattr(self, '%sMap'%linkName)
+                m = getattr(self, '%s'%linkName)
+                return linkMap.deriv( m )
+
+            m = getattr(self, '%sModel'%prop.name)
             return mapping.deriv( m )
         return property(fget=fget)
 
