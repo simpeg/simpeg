@@ -235,11 +235,8 @@ class TimeFields(Fields):
             pointerFields = pointerFields.reshape(pointerShape, order='F')
 
             timeII = np.arange(self.survey.prob.nT + 1)[timeInd]
-            srcII   = np.array(self.survey.srcList)[srcInd]
-            if isinstance(srcII, np.ndarray):
-                srcII = srcII.tolist()
-            if len(srcII) == 1:
-                srcII = srcII[0]
+            srcII  = np.array(self.survey.srcList)[srcInd]
+            srcII  = srcII.tolist()
 
             if timeII.size == 1:
                 pointerShapeDeflated = self._correctShape(alias, ind, deflate=True)

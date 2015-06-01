@@ -343,7 +343,7 @@ class FieldsTest_Time_Aliased(unittest.TestCase):
         count = [0]
         def alias(e, srcInd, timeInd):
             count[0] += 1
-            self.assertTrue(srcInd is self.Src0)
+            self.assertTrue(srcInd[0] is self.Src0)
             return self.F.mesh.edgeCurl * e
         F = Problem.TimeFields(self.F.mesh, self.F.survey, knownFields={'e':'E'}, aliasFields={'b':['e','F',alias]})
         e = np.random.rand(F.mesh.nE,1,nT)
