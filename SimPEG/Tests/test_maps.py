@@ -6,8 +6,8 @@ from scipy.sparse.linalg import dsolve
 
 TOL = 1e-14
 
-MAPS_TO_TEST_2D = ["CircleMap", "ComplexMap", "ExpMap", "IdentityMap", "Vertical1DMap", "Weighting"]
-MAPS_TO_TEST_3D = [             "ComplexMap", "ExpMap", "IdentityMap", "Vertical1DMap", "Weighting"]
+MAPS_TO_TEST_2D = ["CircleMap", "ComplexMap", "ExpMap", "IdentityMap", "Vertical1DMap", "Weighting", "ReciprocalMap"]
+MAPS_TO_TEST_3D = [             "ComplexMap", "ExpMap", "IdentityMap", "Vertical1DMap", "Weighting", "ReciprocalMap"]
 
 class MapTests(unittest.TestCase):
 

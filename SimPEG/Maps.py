@@ -221,6 +221,26 @@ class ExpMap(IdentityMap):
         """
         return Utils.sdiag(np.exp(Utils.mkvc(m)))
 
+class ReciprocalMap(IdentityMap):
+    """
+        Reciprocal mapping. For example, electrical resistivity and conductivity.
+
+        .. math::
+
+            \\rho = \\frac{1}{\sigma}
+
+    """
+    def _transform(self, m):
+        return 1.0 / Utils.mkvc(m)
+
+    def inverse(self, D):
+        return 1.0 / Utils.mkvc(m)
+
+    def deriv(self, m):
+        # TODO: if this is a tensor, you might have a problem.
+        return Utils.sdiag( - Utils.mkvc(m)**(-2) )
+
+
 
 class LogMap(IdentityMap):
     """
