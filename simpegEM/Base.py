@@ -99,8 +99,14 @@ class BaseEMProblem(Problem.BaseProblem):
             self._MeSigma = self.mesh.getEdgeInnerProduct(self.curModel.sigma)
         return self._MeSigma
 
-    # def dMeSigma_dsigma(self, u):
-    #     return self.mesh.getEdgeInnerProductDeriv(self.sigma)(u)
+    @property
+    def MeSigmaDeriv(self, u):
+        """
+        Deriv of MeSigma wrt sigma
+        """
+        if getattr(self, 'MeSigmaDeriv', None) is None:
+            self._MeSigmaDeriv = self.mesh.getEdgeInnerProductDeriv(self.curModel.sigma)(u)
+        return self._MeSigmaDeriv  
     
     @property
     def MeSigmaI(self):
