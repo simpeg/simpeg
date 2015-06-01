@@ -136,13 +136,19 @@ class _PropMapMetaClass(type):
 
         attrs['_properties'] = _properties
 
-        # You are only allowed one default inversion property.
         defaultInvProps = []
+        for p in _properties:
+            prop = _properties[p]
+            if prop.defaultInvProp:
+                defaultInvProps += [p]
+            if prop.propertyLink is not None:
+                assert prop.propertyLink[0] in _properties, "You can only link to things that exist: '%s' is trying to link to '%s'"%(prop.name, prop.propertyLink[0])
+        if len(defaultInvProps) > 1:
+            raise Exception('You have more than one default inversion property: %s' % defaultInvProps)
+
         for p in _properties:
             if _properties[p].defaultInvProp:
                 defaultInvProps += [p]
-        if len(defaultInvProps) > 1:
-            raise Exception('You have more than one default inversion property: %s' % defaultInvProps)
 
         newClass = super(_PropMapMetaClass, cls).__new__(cls, name, bases, attrs)
 
