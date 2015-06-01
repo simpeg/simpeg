@@ -17,7 +17,7 @@ TOL = 1e-4
 FLR = 1e-20 # "zero", so if residual below this --> pass regardless of order
 CONDUCTIVITY = 1e1
 MU = mu_0
-freq = 1e-1
+freq = [1e-1, 2e-1]
 addrandoms = True
 
 
@@ -35,9 +35,10 @@ def getProblem(fdemType, comp):
     x = np.array([np.linspace(-30,-15,3),np.linspace(15,30,3)]) #don't sample right by the source
     XYZ = Utils.ndgrid(x,x,np.r_[0.])
     Rx0 = EM.FDEM.RxFDEM(XYZ, comp)
-    Src0 = EM.FDEM.SrcFDEM_MagDipole([Rx0], loc=np.r_[0.,0.,0.], freq=freq)
+    Src0 = EM.FDEM.SrcFDEM_MagDipole([Rx0], loc=np.r_[0.,0.,0.], freq=freq[0])
+    Src1 = EM.FDEM.SrcFDEM_MagDipole([Rx0], loc=np.r_[0.,0.,0.], freq=freq[1])
 
-    survey = EM.FDEM.SurveyFDEM([Src0])
+    survey = EM.FDEM.SurveyFDEM([Src0, Src1])
 
 
     if verbose:

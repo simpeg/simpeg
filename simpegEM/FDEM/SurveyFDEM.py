@@ -98,10 +98,6 @@ class SrcFDEM(Survey.BaseSrc):
     def eval(self, prob):
         S_m = self._getS_m(prob)
         S_e = self._getS_e(prob)
-
-        if S_m is not None and S_m.ndim == 1: S_m = Utils.mkvc(S_m,2)
-        if S_e is not None and S_e.ndim == 1: S_e = Utils.mkvc(S_e,2)
-
         return S_m, S_e 
 
     def evalDeriv(self, prob, v, adjoint=None):
@@ -109,22 +105,18 @@ class SrcFDEM(Survey.BaseSrc):
 
     def b_p(self,prob):
         b_p = self._getb_p(prob)
-        if b_p is not None and b_p.ndim == 1: b_p = Utils.mkvc(b_p,2)
         return b_p 
 
     def h_p(self,prob):
         h_p = self._geth_p(prob)
-        if h_p is not None and h_p.ndim == 1: h_p = Utils.mkvc(h_p,2)
         return h_p
 
     def e_p(self,prob):
         e_p = self._gete_p(prob)
-        if e_p is not None and e_p.ndim == 1: e_p = Utils.mkvc(e_p,2)
         return e_p
 
     def j_p(self,prob):
         j_p = self._getj_p(prob)
-        if j_p is not None and j_p.ndim == 1: j_p = Utils.mkvc(j_p,2)
         return j_p
 
     def _getb_p(self,prob):

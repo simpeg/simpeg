@@ -21,32 +21,36 @@ class FieldsFDEM_e(FieldsFDEM):
     def startup(self):
         self._edgeCurl = self.survey.prob.mesh.edgeCurl
 
-    def _e(self, e_sol, src):
+    def _e(self, e_sol, srcList):
         e = e_sol
-        e_p = src.e_p(self.survey.prob)
-        if e_p is not None:
-            e += e_p     
+        for i, src in enumerate(srcList):
+            e_p = src.e_p(self.survey.prob)
+            if e_p is not None:
+                e[:,i] += e_p     
         return e
 
-    def _b(self, e_sol, src):
+    def _b(self, e_sol, srcList):
         C = self._edgeCurl
-        b = - 1./(1j*omega(src.freq))*(C * e_sol)
-        S_m, _ = src.eval(self.survey.prob)
-        if S_m is not None:
-            b += 1./(1j*omega(src.freq)) * S_m
+        b = (C * e_sol)
+        for i, src in enumerate(srcList):
+            b[:,i] *= - 1./(1j*omega(src.freq))
+            S_m, _ = src.eval(self.survey.prob)
+            if S_m is not None:
+                b[:,i] += 1./(1j*omega(src.freq)) * S_m
 
-        b_p = src.b_p(self.survey.prob)
-        if b_p is not None:
-            b += b_p 
+            b_p = src.b_p(self.survey.prob)
+            if b_p is not None:
+                b[:,i] += b_p 
 
         return b
 
-    def _bDeriv(self, e, src, v, adjoint=False):
-        S_mDeriv,_ = src.getSourceDeriv(self.survey.prob, v, adjoint)
-        if S_mDeriv is None:
-            return None
-        else:
-            return 1./(1j*omega(src.freq)) * S_mDeriv
+    def _bDeriv(self, e, srcList, v, adjoint=False):
+        raise NotImplementedError('Fields Derivs Not Implemented Yet')
+        # S_mDeriv,_ = src.getSourceDeriv(self.survey.prob, v, adjoint)
+        # if S_mDeriv is None:
+        #     return None
+        # else:
+        #     return 1./(1j*omega(src.freq)) * S_mDeriv
 
 
 class FieldsFDEM_b(FieldsFDEM):
@@ -64,27 +68,32 @@ class FieldsFDEM_b(FieldsFDEM):
         self._MeSigmaI = self.survey.prob.MeSigmaI
         self._MfMui = self.survey.prob.MfMui
 
-    def _b(self, b_sol, src):
+    def _b(self, b_sol, srcList):
         b = b_sol
-        b_p = src.b_p(self.survey.prob)
-        if b_p is not None:
-            b += b_p
+
+        for i, src in enumerate(srcList):
+            b_p = src.b_p(self.survey.prob)
+            if b_p is not None:
+                b[:,i] += b_p
         return b  
 
-    def _e(self, b_sol, src):
+    def _e(self, b_sol, srcList):
         e = self._MeSigmaI * ( self._edgeCurl.T * ( self._MfMui * b_sol))
-        _,S_e = src.eval(self.survey.prob)
-        if S_e is not None:
-            e += -self._MeSigmaI*S_e
 
-        e_p = src.e_p(self.survey.prob)
-        if e_p is not None:
-            e += e_p
+        for i,src in enumerate(srcList): 
+            _,S_e = src.eval(self.survey.prob)
+            if S_e is not None:
+                e += -self._MeSigmaI*S_e
+
+            e_p = src.e_p(self.survey.prob)
+            if e_p is not None:
+                e[:,i] += e_p
 
         return e
 
-    def _eDeriv(self, b_sol, src, v, adjoint=False):
-        _,S_eDeriv = src.getSourceDeriv(self.survey.prob, v, adjoint)
+    def _eDeriv(self, b_sol, srcList, v, adjoint=False):
+        raise NotImplementedError('Fields Derivs Not Implemented Yet')
+        _,S_eDeriv = src.evalDeriv(self.survey.prob, v, adjoint)
 
         if S_eDeriv is None:
             return None
@@ -108,30 +117,35 @@ class FieldsFDEM_j(FieldsFDEM):
         self._MfSigmai = self.survey.prob.MfSigmai
         self._curModel = self.survey.prob.curModel
 
-    def _j(self, j_sol, src):
+    def _j(self, j_sol, srcList):
         j = j_sol
-        j_p = src.j_p(self.survey.prob) 
-        if j_p is not None:
-            j += j_p
+        for i, src in enumerate(srcList):
+            j_p = src.j_p(self.survey.prob) 
+            if j_p is not None:
+                j[:,i] += j_p
         return j
 
-    def _h(self, j_sol, src): 
+    def _h(self, j_sol, srcList): 
         MeMuI = self._MeMuI
         C = self._edgeCurl
         MfSigmai = self._MfSigmai
 
-        h = - 1./(1j*omega(src.freq)) * MeMuI * (C.T * (MfSigmai * j_sol) ) 
-        S_m,_ = src.eval(self.survey.prob)
-        if S_m is not None:
-            h += 1./(1j*omega(src.freq)) * MeMuI * S_m
+        h =  MeMuI * (C.T * (MfSigmai * j_sol) ) 
 
-        h_p = src.h_p(self.survey.prob)
-        if h_p is not None:
-            h += h_p 
+        for i, src in enumerate(srcList):
+            h[:,i] *= -1./(1j*omega(src.freq))
+            S_m,_ = src.eval(self.survey.prob)
+            if S_m is not None:
+                h[:,i] += 1./(1j*omega(src.freq)) * MeMuI * S_m
+
+            h_p = src.h_p(self.survey.prob)
+            if h_p is not None:
+                h[:,i] += h_p 
+
         return h
 
-    def _hDeriv(self, j_sol, src, v, adjoint=False):
-
+    def _hDeriv(self, j_sol, srcList, v, adjoint=False):
+        raise NotImplementedError('Fields Derivs Not Implemented Yet')
         sig = self._curModel.transform
         sigi = 1/sig
         dsig_dm = self._curModel.transformDeriv
@@ -165,24 +179,28 @@ class FieldsFDEM_h(FieldsFDEM):
         self._MeMuI = self.survey.prob.MeMuI
         self._MfSigmai = self.survey.prob.MfSigmai
 
-    def _h(self, h_sol, src):
+    def _h(self, h_sol, srcList):
         h = h_sol
-        h_p = src.h_p(self.survey.prob)
-        if h_p is not None:
-            h += h_p
-        return h
+        for i, src in enumerate(srcList):
+            h_p = src.h_p(self.survey.prob)
+            if h_p is not None:
+                h[:,i] += h_p
+            return h
 
-    def _j(self, h_sol, src):
+    def _j(self, h_sol, srcList):
         j = self._edgeCurl*h_sol
-        _,S_e = src.eval(self.survey.prob)
-        if S_e is not None:
-            j += -S_e
-        j_p = src.j_p(self.survey.prob)
-        if j_p is not None:
-            j += j_p 
+        for i, src in enumerate(srcList):
+            _,S_e = src.eval(self.survey.prob)
+            if S_e is not None:
+                j[:,i] += -S_e
+
+            j_p = src.j_p(self.survey.prob)
+            if j_p is not None:
+                j[:,i] += j_p 
         return j
 
-    def _jDeriv(self, h_sol, src, v, adjoint=False):
+    def _jDeriv(self, h_sol, srcList, v, adjoint=False):
+        raise NotImplementedError('Fields Derivs Not Implemented Yet')
         _,S_eDeriv = src.getSourceDeriv(self.survey.prob, v, adjoint)
         if S_eDeriv is None:
             return None
