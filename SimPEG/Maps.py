@@ -1,5 +1,6 @@
 import Utils, numpy as np, scipy.sparse as sp
 from Tests import checkDerivative
+from PropMaps import PropMap, Property
 
 
 class IdentityMap(object):
@@ -22,6 +23,8 @@ class IdentityMap(object):
             :rtype: int
             :return: number of parameters in the model
         """
+        if self.mesh is None:
+            return '*'
         return self.mesh.nC
 
     @property
@@ -32,7 +35,10 @@ class IdentityMap(object):
             :rtype: (int,int)
             :return: shape of the operator as a tuple
         """
+        if self.mesh is None:
+            return ('*', self.nP)
         return (self.mesh.nC, self.nP)
+
 
     def _transform(self, m):
         """
@@ -98,17 +104,17 @@ class IdentityMap(object):
 
     def __mul__(self, val):
         if isinstance(val, IdentityMap):
-            if not self.shape[1] == val.shape[0]:
+            if not (self.shape[1] == '*' or val.shape[0] == '*') and not self.shape[1] == val.shape[0]:
                 raise ValueError('Dimension mismatch in %s and %s.' % (str(self), str(val)))
             return ComboMap([self, val])
         elif isinstance(val, np.ndarray):
-            if not self.shape[1] == val.shape[0]:
+            if not self.shape[1] == '*' and not self.shape[1] == val.shape[0]:
                 raise ValueError('Dimension mismatch in %s and np.ndarray%s.' % (str(self), str(val.shape)))
             return self._transform(val)
         raise Exception('Unrecognized data type to multiply. Try a map or a numpy.ndarray!')
 
     def __str__(self):
-        return "%s(%d,%d)" % (self.__class__.__name__, self.shape[0], self.shape[1])
+        return "%s(%s,%s)" % (self.__class__.__name__, self.shape[0], self.shape[1])
 
 class ComboMap(IdentityMap):
     """Combination of various maps."""
@@ -119,10 +125,10 @@ class ComboMap(IdentityMap):
         self.maps = []
         for ii, m in enumerate(maps):
             assert isinstance(m, IdentityMap), 'Unrecognized data type, inherit from an IdentityMap or ComboMap!'
-            if ii > 0 and not self.shape[1] == m.shape[0]:
+            if ii > 0 and not (self.shape[1] == '*' or m.shape[0] == '*') and not self.shape[1] == m.shape[0]:
                 prev = self.maps[-1]
-                errArgs = (prev.__name__, prev.shape[0], prev.shape[1], m.__name__, m.shape[0], m.shape[1])
-                raise ValueError('Dimension mismatch in map[%s] (%i, %i) and map[%s] (%i, %i).' % errArgs)
+                errArgs = (prev.__class__.__name__, prev.shape[0], prev.shape[1], m.__class__.__name__, m.shape[0], m.shape[1])
+                raise ValueError('Dimension mismatch in map[%s] (%s, %s) and map[%s] (%s, %s).' % errArgs)
 
             if isinstance(m, ComboMap):
                 self.maps += m.maps
@@ -155,7 +161,7 @@ class ComboMap(IdentityMap):
         return deriv
 
     def __str__(self):
-        return 'ComboMap[%s]%s' % (' * '.join([m.__str__() for m in self.maps]), str(self.shape))
+        return 'ComboMap[%s](%s,%s)' % (' * '.join([m.__str__() for m in self.maps]), self.shape[0], self.shape[1])
 
 
 class ExpMap(IdentityMap):
@@ -219,6 +225,26 @@ class ExpMap(IdentityMap):
                 \\frac{\partial \exp{m}}{\partial m} = \\text{sdiag}(\exp{m})
         """
         return Utils.sdiag(np.exp(Utils.mkvc(m)))
+
+class ReciprocalMap(IdentityMap):
+    """
+        Reciprocal mapping. For example, electrical resistivity and conductivity.
+
+        .. math::
+
+            \\rho = \\frac{1}{\sigma}
+
+    """
+    def _transform(self, m):
+        return 1.0 / Utils.mkvc(m)
+
+    def inverse(self, D):
+        return 1.0 / Utils.mkvc(m)
+
+    def deriv(self, m):
+        # TODO: if this is a tensor, you might have a problem.
+        return Utils.sdiag( - Utils.mkvc(m)**(-2) )
+
 
 
 class LogMap(IdentityMap):

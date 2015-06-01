@@ -31,5 +31,5 @@ class Model(np.ndarray):
     @property
     def transformDeriv(self):
         if getattr(self, '_transformDeriv', None) is None:
-            self.deriv = self.mapping.deriv(self.view(np.ndarray))
-        return self.deriv
+            self._transformDeriv = self.mapping.deriv(self.view(np.ndarray))
+        return self._transformDeriv

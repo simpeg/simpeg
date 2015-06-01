@@ -18,15 +18,27 @@ class BaseProblem(object):
     Solver = Solver   #: A SimPEG Solver class.
     solverOpts = {}   #: Sovler options as a kwarg dict
 
-    mapping = None    #: A SimPEG.Map instance.
     mesh    = None    #: A SimPEG.Mesh instance.
 
+    PropMap = None    #: A SimPEG PropertyMap class.
+
+    @property
+    def mapping(self):
+        "A SimPEG.Map instance or a property map is PropMap is not None"
+        return getattr(self, '_mapping', None)
+    @mapping.setter
+    def mapping(self, val):
+        if self.PropMap is None:
+            val._assertMatchesPair(self.mapPair)
+            self._mapping = val
+        else:
+            self._mapping = self.PropMap(val) 
+    
     def __init__(self, mesh, mapping=None, **kwargs):
         Utils.setKwargs(self, **kwargs)
         assert isinstance(mesh, Mesh.BaseMesh), "mesh must be a SimPEG.Mesh object."
         self.mesh = mesh
         self.mapping = mapping or Maps.IdentityMap(mesh)
-        self.mapping._assertMatchesPair(self.mapPair)
 
     @property
     def survey(self):
@@ -62,7 +74,10 @@ class BaseProblem(object):
     def curModel(self, value):
         if value is self.curModel:
             return # it is the same!
-        self._curModel = Models.Model(value, self.mapping)
+        if self.PropMap is not None:
+            self._curModel = self.mapping(value)
+        else:
+            self._curModel = Models.Model(value, self.mapping)
         for prop in self.deleteTheseOnModelUpdate:
             if hasattr(self, prop):
                 delattr(self, prop)
