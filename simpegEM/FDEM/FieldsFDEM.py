@@ -12,7 +12,11 @@ class FieldsFDEM_e(FieldsFDEM):
     knownFields = {'e_sol':'E'}
     aliasFields = {
                     'e' : ['e_sol','E','_e'],
-                    'b' : ['e_sol','F','_b']
+                    'ePrimary' : ['e_sol','E','_ePrimary'],
+                    'eSecondary' : ['e_sol','E','_eSecondary'],
+                    'b' : ['e_sol','F','_b'],
+                    'bPrimary' : ['e_sol','F','_bPrimary'],
+                    'bSecondary' : ['e_sol','F','_bSecondary']
                   }
 
     def __init__(self,mesh,survey,**kwargs):
@@ -21,15 +25,29 @@ class FieldsFDEM_e(FieldsFDEM):
     def startup(self):
         self._edgeCurl = self.survey.prob.mesh.edgeCurl
 
-    def _e(self, e_sol, srcList):
-        e = e_sol
+    def _ePrimary(self, e_sol, srcList):
+        ePrimary = np.zeros_like(e_sol)
         for i, src in enumerate(srcList):
-            ePrimary = src.ePrimary(self.survey.prob)
-            if ePrimary is not None:
-                e[:,i] += ePrimary     
-        return e
+            ep = src.ePrimary(self.survey.prob)
+            if ep is not None:
+                ePrimary[:,i] = ep     
+        return ePrimary
 
-    def _b(self, e_sol, srcList):
+    def _eSecondary(self, e_sol, srcList):
+        return e_sol 
+
+    def _e(self, e_sol, srcList):
+        return self._ePrimary(e_sol,srcList) + self._eSecondary(e_sol,srcList)
+
+    def _bPrimary(self, e_sol, srcList):
+        bPrimary = np.zeros([self._edgeCurl.shape[0],e_sol.shape[1]],dtype = complex)
+        for i, src in enumerate(srcList):
+            bp = src.bPrimary(self.survey.prob)
+            if bp is not None:
+                bPrimary[:,i] += bp
+        return bPrimary
+
+    def _bSecondary(self, e_sol, srcList): 
         C = self._edgeCurl
         b = (C * e_sol)
         for i, src in enumerate(srcList):
@@ -37,12 +55,10 @@ class FieldsFDEM_e(FieldsFDEM):
             S_m, _ = src.eval(self.survey.prob)
             if S_m is not None:
                 b[:,i] += 1./(1j*omega(src.freq)) * S_m
-
-            bPrimary = src.bPrimary(self.survey.prob)
-            if bPrimary is not None:
-                b[:,i] += bPrimary 
-
         return b
+
+    def _b(self, e_sol, srcList):
+        return self._bPrimary(e_sol, srcList) + self._bSecondary(e_sol, srcList)
 
     def _bDeriv(self, e, srcList, v, adjoint=False):
         raise NotImplementedError('Fields Derivs Not Implemented Yet')
@@ -57,7 +73,11 @@ class FieldsFDEM_b(FieldsFDEM):
     knownFields = {'b_sol':'F'}
     aliasFields = {
                     'b' : ['b_sol','F','_b'],
-                    'e' : ['b_sol','E','_e']
+                    'bPrimary' : ['b_sol','F','_bPrimary'],
+                    'bSecondary' : ['b_sol','F','_bSecondary'],
+                    'e' : ['b_sol','E','_e'],
+                    'ePrimary' : ['b_sol','E','_ePrimary'],
+                    'eSecondary' : ['b_sol','E','_eSecondary'],
                   }
 
     def __init__(self,mesh,survey,**kwargs):
@@ -68,28 +88,39 @@ class FieldsFDEM_b(FieldsFDEM):
         self._MeSigmaI = self.survey.prob.MeSigmaI
         self._MfMui = self.survey.prob.MfMui
 
-    def _b(self, b_sol, srcList):
-        b = b_sol
-
+    def _bPrimary(self, b_sol, srcList):
+        bPrimary = np.zeros_like(b_sol)
         for i, src in enumerate(srcList):
-            bPrimary = src.bPrimary(self.survey.prob)
-            if bPrimary is not None:
-                b[:,i] += bPrimary
-        return b  
+            bp = src.bPrimary(self.survey.prob)
+            if bp is not None:
+                bPrimary[:,i] = bp
+        return bPrimary
 
-    def _e(self, b_sol, srcList):
+    def _bSecondary(self, b_sol, srcList):
+        return b_sol
+
+    def _b(self, b_sol, srcList):
+        return self._bPrimary(b_sol, srcList) + self._bSecondary(b_sol, srcList)  
+
+    def _ePrimary(self, b_sol, srcList):
+        ePrimary = np.zeros([self._edgeCurl.shape[1],b_sol.shape[1]],dtype = complex)
+        for i,src in enumerate(srcList):
+            ep = src.ePrimary(self.survey.prob)
+            if ep is not None:
+                ePrimary[:,i] = ep
+        return ePrimary
+
+    def _eSecondary(self, b_sol, srcList):
         e = self._MeSigmaI * ( self._edgeCurl.T * ( self._MfMui * b_sol))
-
         for i,src in enumerate(srcList): 
             _,S_e = src.eval(self.survey.prob)
             if S_e is not None:
                 e += -self._MeSigmaI*S_e
 
-            ePrimary = src.ePrimary(self.survey.prob)
-            if ePrimary is not None:
-                e[:,i] += ePrimary
-
         return e
+
+    def _e(self, b_sol, srcList):
+        return self._ePrimary(b_sol, srcList) + self._eSecondary(b_sol, srcList)
 
     def _eDeriv(self, b_sol, srcList, v, adjoint=False):
         raise NotImplementedError('Fields Derivs Not Implemented Yet')
@@ -105,7 +136,11 @@ class FieldsFDEM_j(FieldsFDEM):
     knownFields = {'j_sol':'F'}
     aliasFields = {
                     'j' : ['j_sol','F','_j'],
-                    'h' : ['j_sol','E','_h']
+                    'jPrimary' : ['j_sol','F','_jPrimary'],
+                    'jSecondary' : ['j_sol','F','_jSecondary'],
+                    'h' : ['j_sol','E','_h'],
+                    'hPrimary' : ['j_sol','E','_hPrimary'],
+                    'hSecondary' : ['j_sol','E','_hSecondary'],
                   }
 
     def __init__(self,mesh,survey,**kwargs):
@@ -117,32 +152,42 @@ class FieldsFDEM_j(FieldsFDEM):
         self._MfRho = self.survey.prob.MfRho
         self._curModel = self.survey.prob.curModel
 
-    def _j(self, j_sol, srcList):
-        j = j_sol
+    def _jPrimary(self, j_sol, srcList):
+        jPrimary = np.zeros_like(j_sol)
         for i, src in enumerate(srcList):
-            jPrimary = src.jPrimary(self.survey.prob) 
-            if jPrimary is not None:
-                j[:,i] += jPrimary
-        return j
+            jp = src.jPrimary(self.survey.prob) 
+            if jp is not None:
+                jPrimary[:,i] += jp
+        return jPrimary
 
-    def _h(self, j_sol, srcList): 
+    def _jSecondary(self, j_sol, srcList):
+        return j_sol
+
+    def _j(self, j_sol, srcList):
+        return self._jPrimary(j_sol, srcList) + self._jSecondary(j_sol, srcList)
+
+    def _hPrimary(self, j_sol, srcList):
+        hPrimary = np.zeros([self._edgeCurl.shape[1],j_sol.shape[1]],dtype = complex)
+        for i, src in enumerate(srcList):
+            hp = src.hPrimary(self.survey.prob)
+            if hp is not None:
+                hPrimary[:,i] = hp 
+        return hPrimary
+
+    def _hSecondary(self, j_sol, srcList):
         MeMuI = self._MeMuI
         C = self._edgeCurl
         MfRho = self._MfRho
-
         h =  MeMuI * (C.T * (MfRho * j_sol) ) 
-
         for i, src in enumerate(srcList):
             h[:,i] *= -1./(1j*omega(src.freq))
             S_m,_ = src.eval(self.survey.prob)
             if S_m is not None:
                 h[:,i] += 1./(1j*omega(src.freq)) * MeMuI * S_m
-
-            hPrimary = src.hPrimary(self.survey.prob)
-            if hPrimary is not None:
-                h[:,i] += hPrimary 
-
         return h
+
+    def _h(self, j_sol, srcList): 
+        return self._hPrimary(j_sol, srcList) + self._hSecondary(j_sol, srcList)
 
     def _hDeriv(self, j_sol, srcList, v, adjoint=False):
         raise NotImplementedError('Fields Derivs Not Implemented Yet')
@@ -168,7 +213,11 @@ class FieldsFDEM_h(FieldsFDEM):
     knownFields = {'h_sol':'E'}
     aliasFields = {
                     'h' : ['h_sol','E','_h'],
-                    'j' : ['h_sol','F','_j']
+                    'hPrimary' : ['h_sol','E','_hPrimary'],
+                    'hSecondary' : ['h_sol','E','_hSecondary'],
+                    'j' : ['h_sol','F','_j'],
+                    'jPrimary' : ['h_sol','F','_jPrimary'],
+                    'jSecondary' : ['h_sol','F','_jSecondary']
                   }
 
     def __init__(self,mesh,survey,**kwargs):
@@ -179,25 +228,38 @@ class FieldsFDEM_h(FieldsFDEM):
         self._MeMuI = self.survey.prob.MeMuI
         self._MfRho = self.survey.prob.MfRho
 
-    def _h(self, h_sol, srcList):
-        h = h_sol
+    def _hPrimary(self, h_sol, srcList):
+        hPrimary = np.zeros_like(h_sol)
         for i, src in enumerate(srcList):
-            hPrimary = src.hPrimary(self.survey.prob)
-            if hPrimary is not None:
-                h[:,i] += hPrimary
-            return h
+            hp = src.hPrimary(self.survey.prob)
+            if hp is not None:
+                hPrimary[:,i] += hp
+            return hPrimary
 
-    def _j(self, h_sol, srcList):
+    def _hSecondary(self, h_sol, srcList):
+        return h_sol
+
+    def _h(self, h_sol, srcList):
+        return self._hPrimary(h_sol, srcList) + self._hSecondary(h_sol, srcList)
+
+    def _jPrimary(self, h_sol, srcList):
+        jPrimary = np.zeros([self._edgeCurl.shape[0], h_sol.shape[1]])
+        for i, src in enumerate(srcList):
+            jp = src.jPrimary(self.survey.prob)
+            if jp is not None:
+                jPrimary[:,i] = jp 
+        return jPrimary
+
+    def _jSecondary(self, h_sol, srcList):
         j = self._edgeCurl*h_sol
         for i, src in enumerate(srcList):
             _,S_e = src.eval(self.survey.prob)
             if S_e is not None:
                 j[:,i] += -S_e
-
-            jPrimary = src.jPrimary(self.survey.prob)
-            if jPrimary is not None:
-                j[:,i] += jPrimary 
         return j
+
+    def _j(self, h_sol, srcList):
+        return self._jPrimary(h_sol, srcList) + self._jSecondary(h_sol, srcList)
 
     def _jDeriv(self, h_sol, srcList, v, adjoint=False):
         raise NotImplementedError('Fields Derivs Not Implemented Yet')
