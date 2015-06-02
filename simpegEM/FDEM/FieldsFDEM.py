@@ -24,9 +24,9 @@ class FieldsFDEM_e(FieldsFDEM):
     def _e(self, e_sol, srcList):
         e = e_sol
         for i, src in enumerate(srcList):
-            e_p = src.e_p(self.survey.prob)
-            if e_p is not None:
-                e[:,i] += e_p     
+            ePrimary = src.ePrimary(self.survey.prob)
+            if ePrimary is not None:
+                e[:,i] += ePrimary     
         return e
 
     def _b(self, e_sol, srcList):
@@ -38,9 +38,9 @@ class FieldsFDEM_e(FieldsFDEM):
             if S_m is not None:
                 b[:,i] += 1./(1j*omega(src.freq)) * S_m
 
-            b_p = src.b_p(self.survey.prob)
-            if b_p is not None:
-                b[:,i] += b_p 
+            bPrimary = src.bPrimary(self.survey.prob)
+            if bPrimary is not None:
+                b[:,i] += bPrimary 
 
         return b
 
@@ -72,9 +72,9 @@ class FieldsFDEM_b(FieldsFDEM):
         b = b_sol
 
         for i, src in enumerate(srcList):
-            b_p = src.b_p(self.survey.prob)
-            if b_p is not None:
-                b[:,i] += b_p
+            bPrimary = src.bPrimary(self.survey.prob)
+            if bPrimary is not None:
+                b[:,i] += bPrimary
         return b  
 
     def _e(self, b_sol, srcList):
@@ -85,9 +85,9 @@ class FieldsFDEM_b(FieldsFDEM):
             if S_e is not None:
                 e += -self._MeSigmaI*S_e
 
-            e_p = src.e_p(self.survey.prob)
-            if e_p is not None:
-                e[:,i] += e_p
+            ePrimary = src.ePrimary(self.survey.prob)
+            if ePrimary is not None:
+                e[:,i] += ePrimary
 
         return e
 
@@ -114,23 +114,23 @@ class FieldsFDEM_j(FieldsFDEM):
     def startup(self):
         self._edgeCurl = self.survey.prob.mesh.edgeCurl
         self._MeMuI = self.survey.prob.MeMuI
-        self._MfSigmai = self.survey.prob.MfSigmai
+        self._MfRho = self.survey.prob.MfRho
         self._curModel = self.survey.prob.curModel
 
     def _j(self, j_sol, srcList):
         j = j_sol
         for i, src in enumerate(srcList):
-            j_p = src.j_p(self.survey.prob) 
-            if j_p is not None:
-                j[:,i] += j_p
+            jPrimary = src.jPrimary(self.survey.prob) 
+            if jPrimary is not None:
+                j[:,i] += jPrimary
         return j
 
     def _h(self, j_sol, srcList): 
         MeMuI = self._MeMuI
         C = self._edgeCurl
-        MfSigmai = self._MfSigmai
+        MfRho = self._MfRho
 
-        h =  MeMuI * (C.T * (MfSigmai * j_sol) ) 
+        h =  MeMuI * (C.T * (MfRho * j_sol) ) 
 
         for i, src in enumerate(srcList):
             h[:,i] *= -1./(1j*omega(src.freq))
@@ -138,9 +138,9 @@ class FieldsFDEM_j(FieldsFDEM):
             if S_m is not None:
                 h[:,i] += 1./(1j*omega(src.freq)) * MeMuI * S_m
 
-            h_p = src.h_p(self.survey.prob)
-            if h_p is not None:
-                h[:,i] += h_p 
+            hPrimary = src.hPrimary(self.survey.prob)
+            if hPrimary is not None:
+                h[:,i] += hPrimary 
 
         return h
 
@@ -151,7 +151,7 @@ class FieldsFDEM_j(FieldsFDEM):
         dsig_dm = self._curModel.transformDeriv
         dsigi_dsig = -Utils.sdiag(sigi)**2
         dMf_dsigi = self.mesh.getFaceInnerProductDeriv(sigi)(j)
-        sigi = self._MfSigmai
+        sigi = self._MfRho
 
         S_mDeriv,_ = src.getSourceDeriv(self.survey.prob, v, adjoint)
 
@@ -177,14 +177,14 @@ class FieldsFDEM_h(FieldsFDEM):
     def startup(self):
         self._edgeCurl = self.survey.prob.mesh.edgeCurl
         self._MeMuI = self.survey.prob.MeMuI
-        self._MfSigmai = self.survey.prob.MfSigmai
+        self._MfRho = self.survey.prob.MfRho
 
     def _h(self, h_sol, srcList):
         h = h_sol
         for i, src in enumerate(srcList):
-            h_p = src.h_p(self.survey.prob)
-            if h_p is not None:
-                h[:,i] += h_p
+            hPrimary = src.hPrimary(self.survey.prob)
+            if hPrimary is not None:
+                h[:,i] += hPrimary
             return h
 
     def _j(self, h_sol, srcList):
@@ -194,9 +194,9 @@ class FieldsFDEM_h(FieldsFDEM):
             if S_e is not None:
                 j[:,i] += -S_e
 
-            j_p = src.j_p(self.survey.prob)
-            if j_p is not None:
-                j[:,i] += j_p 
+            jPrimary = src.jPrimary(self.survey.prob)
+            if jPrimary is not None:
+                j[:,i] += jPrimary 
         return j
 
     def _jDeriv(self, h_sol, srcList, v, adjoint=False):
@@ -215,11 +215,11 @@ class FieldsFDEM_h(FieldsFDEM):
     #     elif fieldType == 'h':
     #         MeMuI = self._MeMuI
     #         C = self.mesh.edgeCurl
-    #         MfSigmai = self._MfSigmai
+    #         MfRho = self._MfRho
     #         if not adjoint:
-    #             h = -(1./(1j*omega(freq))) * MeMuI * ( C.T * ( MfSigmai * j ) )
+    #             h = -(1./(1j*omega(freq))) * MeMuI * ( C.T * ( MfRho * j ) )
     #         else:
-    #             h = -(1./(1j*omega(freq))) * MfSigmai.T * ( C * ( MeMuI.T * j ) )
+    #             h = -(1./(1j*omega(freq))) * MfRho.T * ( C * ( MeMuI.T * j ) )
     #         return h
     #     raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
 
@@ -235,7 +235,7 @@ class FieldsFDEM_h(FieldsFDEM):
     #         dsig_dm = self._curModel.transformDeriv
     #         dsigi_dsig = -Utils.sdiag(sigi)**2
     #         dMf_dsigi = self.mesh.getFaceInnerProductDeriv(sigi)(j)
-    #         sigi = self._MfSigmai
+    #         sigi = self._MfRho
     #         if not adjoint:
     #             return -(1./(1j*omega(freq))) * MeMuI * ( C.T * ( dMf_dsigi * ( dsigi_dsig * ( dsig_dm * v ) ) ) )
     #         else:

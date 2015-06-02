@@ -1,5 +1,13 @@
-from SimPEG import Survey, Problem, Utils, Models, np, sp, Solver as SimpegSolver
+from SimPEG import Survey, Problem, Utils, Models, Maps, PropMaps, np, sp, Solver as SimpegSolver
 from scipy.constants import mu_0
+
+class EMPropMap(Maps.PropMap):
+    sigma = Maps.Property("Electrical Conductivity", defaultInvProp = True, propertyLink=('rho',Maps.ReciprocalMap))
+    mu = Maps.Property("Inverse Magnetic Permeability", defaultVal = mu_0, propertyLink=('mui',Maps.ReciprocalMap))
+
+    rho = Maps.Property("Electrical Resistivity", propertyLink=('sigma', Maps.ReciprocalMap)) 
+    mui = Maps.Property("Inverse Magnetic Permeability", defaultVal = 1./mu_0, propertyLink=('mu', Maps.ReciprocalMap))
+
 
 class BaseEMProblem(Problem.BaseProblem):
 
@@ -9,6 +17,8 @@ class BaseEMProblem(Problem.BaseProblem):
 
     surveyPair = Survey.BaseSurvey
     dataPair = Survey.Data
+    
+    PropMap = EMPropMap
 
     Solver = SimpegSolver
     solverOpts = {}
@@ -24,94 +34,20 @@ class BaseEMProblem(Problem.BaseProblem):
             self.__makeASymmetric = True
         return self.__makeASymmetric
 
-    ####################################################
-    # Phys Props
-    ####################################################
-
-    # Mu
-    @property
-    def mu(self):
-        if getattr(self, '_mu', None) is None:
-            # if getattr(self, '_mui', None) is not None:
-            #     self._mu = sel
-            self._mu = mu_0
-        return self._mu
-    @mu.setter
-    def mu(self, value):
-        if getattr(self, '_MfMui', None) is not None:
-            del self._MfMui
-        if getattr(self, '_MfMuiI', None) is not None:
-            del self._MfMuiI
-        if getattr(self, '_MeMu', None) is not None:
-            del delf._MeMu 
-        if getattr(self, '_MeMuI', None) is not None:
-            del self._MeMuI
-        self._mu = value
-    
-    # TODO: hardcoded to assume diagonal mu
-    @property
-    def mui(self):
-        if getattr(self, '_mui', None) is None:
-            self._mui = 1./mu_0
-        return self._mui
-    @mui.setter
-    def mui(self, value):
-        if getattr(self, '_MfMui', None) is not None:
-            del self._MfMui
-        if getattr(self, '_MfMuiI', None) is not None:
-            del self._MfMuiI
-        if getattr(self, '_MeMu', None) is not None:
-            del delf._MeMu 
-        if getattr(self, '_MeMuI', None) is not None:
-            del self._MeMuI
-        self._mui = value
-
-    # Sigma
-    # deleteTheseOnModelUpdate = ['_MeSigma', '_MeSigmaI','_MfSigmai','_MfSigmaiI']
-    @property
-    def sigma(self):
-        if getattr(self, '_sigma', None) is None:
-            self._sigma = self.curModel.transform
-        return self._sigma
-    @sigma.setter
-    def sigma(self, value):
-        if getattr(self, '_MeSigma', None) is not None:
-            del self._MeSigma
-        if getattr(self, '_MeSigmaI', None) is not None:
-            del self._MeSigmaI
-        if getattr(self, '_MfSigmai', None) is not None:
-            del delf._MfSigmai 
-        if getattr(self, '_MfSigmaiI', None) is not None:
-            del self._MfSigmaiI 
-        self._sigma = value
-
-    # def dsigma_dm(self):
-    #     return self.curModel.transformDeriv
-
-
-    # TODO: hardcoded to assume diagonal sigma
-    @property
-    def sigmai(self):
-        if getattr(self, '_sigmai', None) is None:
-            self._sigmai = 1./self.curModel.transform
-        return self._sigmai
-    @sigmai.setter
-    def sigmai(self, value):
-        if getattr(self, '_MeSigma', None) is not None:
-            del self._MeSigma
-        if getattr(self, '_MeSigmaI', None) is not None:
-            del self._MeSigmaI
-        if getattr(self, '_MfSigmai', None) is not None:
-            del delf._MfSigmai 
-        if getattr(self, '_MfSigmaiI', None) is not None:
-            del self._MfSigmaiI 
-        self._sigma = value
-
 
     ####################################################
     # Mass Matrices
     ####################################################
 
+    @property
+    def deleteTheseOnModelUpdate(self):
+        toDelete = []
+        if self.mapping.sigmaMap is not None or self.mapping.rhoMap is not None:
+            toDelete += ['_MeSigma', '_MeSigmaI','_MfRho','_MfRhoI']
+        if self.mapping.muMap is not None or self.mapping.muiMap is not None:
+            toDelete += ['_MeMu', '_MeMuI','_MfMui','_MfMuiI']
+        return toDelete
+    
     @property
     def Me(self):
         if getattr(self, '_Me', None) is None:
@@ -129,25 +65,25 @@ class BaseEMProblem(Problem.BaseProblem):
     @property
     def MfMui(self):
         if getattr(self, '_MfMui', None) is None:
-            self._MfMui = self.mesh.getFaceInnerProduct(self.mui)
+            self._MfMui = self.mesh.getFaceInnerProduct(self.curModel.mui)
         return self._MfMui
 
     @property
     def MfMuiI(self):
         if getattr(self, '_MfMuiI', None) is None:
-            self._MfMuiI = self.mesh.getFaceInnerProduct(self.mui, invMat=True)
+            self._MfMuiI = self.mesh.getFaceInnerProduct(self.curModel.mui, invMat=True)
         return self._MfMuiI
 
     @property
     def MeMu(self):
         if getattr(self, '_MeMu', None) is None:
-            self._MeMu = self.mesh.getEdgeInnerProduct(self.mu)
+            self._MeMu = self.mesh.getEdgeInnerProduct(self.curModel.mu)
         return self._MeMu
 
     @property
     def MeMuI(self):
         if getattr(self, '_MeMuI', None) is None:
-            self._MeMuI = self.mesh.getEdgeInnerProduct(self.mu, invMat=True)
+            self._MeMuI = self.mesh.getEdgeInnerProduct(self.curModel.mu, invMat=True)
         return self._MeMuI
 
     # ----- Electrical Conductivity ----- # 
@@ -155,42 +91,43 @@ class BaseEMProblem(Problem.BaseProblem):
     @property
     def MeSigma(self):
         if getattr(self, '_MeSigma', None) is None:
-            self._MeSigma = self.mesh.getEdgeInnerProduct(self.sigma)
+            self._MeSigma = self.mesh.getEdgeInnerProduct(self.curModel.sigma)
         return self._MeSigma
 
-    # def dMeSigma_dsigma(self, u):
-    #     return self.mesh.getEdgeInnerProductDeriv(self.sigma)(u)
+    def MeSigmaDeriv(self, u):
+        """
+        Deriv of MeSigma wrt sigma
+        """ 
+        return self.mesh.getEdgeInnerProductDeriv(self.curModel.sigma)(u)
     
+
     @property
     def MeSigmaI(self):
         if getattr(self, '_MeSigmaI', None) is None:
-            self._MeSigmaI = self.mesh.getEdgeInnerProduct(self.sigma, invMat=True)
+            self._MeSigmaI = self.mesh.getEdgeInnerProduct(self.curModel.sigma, invMat=True)
         return self._MeSigmaI
 
-    # def dMeSigmaI_dsigma(self,u)
+    def MeSigmaIDeriv(self, u):
+        """
+        Deriv of MeSigma wrt sigma
+        """ 
+        return self.mesh.getEdgeInnerProductDeriv(self.curModel.sigma, invMat=True)(u)
+
 
     @property
-    def MfSigmai(self):
-        if getattr(self, '_MfSigmai', None) is None:
-            self._MfSigmai = self.mesh.getFaceInnerProduct(self.sigmai)
-        return self._MfSigmai
+    def MfRho(self):
+        if getattr(self, '_MfRho', None) is None:
+            self._MfRho = self.mesh.getFaceInnerProduct(self.curModel.rho)
+        return self._MfRho
 
-    # def dMfSigmai_dsigmai(self,u)
+    def MfRhoDeriv(self,u):
+        return self.mesh.getFaceInnerProductDeriv(self.curModel.rho)(u)
 
     @property
-    def MfSigmaiI(self):
-        if getattr(self, '_MfSigmaiI', None) is None:
-            self._MfSigmaiI = self.mesh.getFaceInnerProduct(self.sigmai, invMat=True)
-        return self._MfSigmaiI
+    def MfRhoI(self):
+        if getattr(self, '_MfRhoI', None) is None:
+            self._MfRhoI = self.mesh.getFaceInnerProduct(self.curModel.rho, invMat=True)
+        return self._MfRhoI
 
-    # def dMfSigmaiI(self,u)
-    
-
-    ####################################################
-    # Fields
-    ####################################################
-
-    def fields(self, m):
-        self.curModel = m
-        F = self.forward(m)
-        return F
+    def dMfRhoIDeriv(self,u):
+        return self.mesh.getFaceInnerProductDeriv(self.curModel.rho, invMat=True)

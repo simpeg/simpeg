@@ -96,51 +96,35 @@ class SrcFDEM(Survey.BaseSrc):
     rxPair = RxFDEM
 
     def eval(self, prob):
-        S_m = self._getS_m(prob)
-        S_e = self._getS_e(prob)
+        S_m = self.S_m(prob)
+        S_e = self.S_e(prob)
         return S_m, S_e 
 
     def evalDeriv(self, prob, v, adjoint=None):
-        return self._getS_mDeriv(prob,v,adjoint), self._getS_eDeriv(prob,v,adjoint)
+        return self.S_mDeriv(prob,v,adjoint), self.S_eDeriv(prob,v,adjoint)
 
-    def b_p(self,prob):
-        b_p = self._getb_p(prob)
-        return b_p 
+    def bPrimary(self,prob):
+        return None 
 
-    def h_p(self,prob):
-        h_p = self._geth_p(prob)
-        return h_p
-
-    def e_p(self,prob):
-        e_p = self._gete_p(prob)
-        return e_p
-
-    def j_p(self,prob):
-        j_p = self._getj_p(prob)
-        return j_p
-
-    def _getb_p(self,prob):
+    def hPrimary(self,prob):
         return None
 
-    def _geth_p(self,prob):
+    def ePrimary(self,prob):
         return None
 
-    def _gete_p(self,prob):
+    def jPrimary(self,prob):
         return None
 
-    def _getj_p(self,prob):
+    def S_m(self,prob):
         return None
 
-    def _getS_m(self,prob):
+    def S_e(self,prob):
         return None
 
-    def _getS_e(self,prob):
+    def S_mDeriv(self, prob, v, adjoint = False):
         return None
 
-    def _getS_mDeriv(self, prob, v, adjoint = False):
-        return None
-
-    def _getS_eDeriv(self, prob, v, adjoint = False):
+    def S_eDeriv(self, prob, v, adjoint = False):
         return None
 
 
@@ -154,12 +138,12 @@ class SrcFDEM_RawVec_e(SrcFDEM):
     """
 
     def __init__(self, rxList, freq, S_e):
-        self.S_e = np.array(S_e,dtype=float)
+        self._S_e = np.array(S_e,dtype=float)
         self.freq = float(freq)
         SrcFDEM.__init__(self, rxList)
 
-    def _getS_e(self, prob):
-        return self.S_e
+    def S_e(self, prob):
+        return self._S_e
 
 
 class SrcFDEM_RawVec_m(SrcFDEM):
@@ -172,12 +156,12 @@ class SrcFDEM_RawVec_m(SrcFDEM):
     """
 
     def __init__(self, rxList, freq, S_m):
-        self.S_m = np.array(S_m,dtype=float)
+        self._S_m = np.array(S_m,dtype=float)
         self.freq = float(freq)
         SrcFDEM.__init__(self, rxList)
 
-    def _getS_m(self, prob):
-        return self.S_m
+    def S_m(self, prob):
+        return self._S_m
 
 
 class SrcFDEM_RawVec(SrcFDEM):
@@ -190,16 +174,16 @@ class SrcFDEM_RawVec(SrcFDEM):
         :param rxList: receiver list
     """
     def __init__(self, rxList, freq, S_m, S_e):
-        self.S_m = np.array(S_m,dtype=float)
-        self.S_e = np.array(S_e,dtype=float)
+        self._S_m = np.array(S_m,dtype=float)
+        self._S_e = np.array(S_e,dtype=float)
         self.freq = float(freq)
         SrcFDEM.__init__(self, rxList)
 
-    def _getS_m(self,prob):
-        return self.S_m
+    def S_m(self,prob):
+        return self._S_m
 
-    def _getS_e(self,prob):
-        return self.S_e
+    def S_e(self,prob):
+        return self._S_e
 
  
 class SrcFDEM_MagDipole(SrcFDEM):
@@ -212,7 +196,7 @@ class SrcFDEM_MagDipole(SrcFDEM):
         self.moment = moment
         SrcFDEM.__init__(self, rxList)
 
-    def _getb_p(self,prob):
+    def bPrimary(self,prob):
         eqLocs = prob._eqLocs
 
         if eqLocs is 'FE':
@@ -243,12 +227,12 @@ class SrcFDEM_MagDipole(SrcFDEM):
 
         return C*a
 
-    def _geth_p(self,prob):
-        b = self._getb_p(prob)
+    def hPrimary(self,prob):
+        b = self.bPrimary(prob)
         return h_from_b(prob,b)
 
-    def _getS_m(self,prob):
-        b_p = self._getb_p(prob)
+    def S_m(self,prob):
+        b_p = self.bPrimary(prob)
         return -1j*omega(self.freq)*b_p 
 
 
@@ -264,7 +248,7 @@ class SrcFDEM_MagDipole_Bfield(SrcFDEM):
         self.moment = moment
         SrcFDEM.__init__(self, rxList)
 
-    def _getb_p(self,prob):
+    def bPrimary(self,prob):
         eqLocs = prob._eqLocs
 
         if eqLocs is 'FE':
@@ -295,12 +279,12 @@ class SrcFDEM_MagDipole_Bfield(SrcFDEM):
 
         return b
 
-    def _geth_p(self,prob):
-        b = self._getb_p(prob)
+    def hPrimary(self,prob):
+        b = self.bPrimary(prob)
         return h_from_b(prob, b)
 
-    def _getS_m(self,prob):
-        b = self._getb_p(prob)
+    def S_m(self,prob):
+        b = self.bPrimary(prob)
         return -1j*omega(self.freq)*b
 
 
@@ -313,7 +297,7 @@ class SrcFDEM_CircularLoop(SrcFDEM):
         self.radius = radius
         SrcFDEM.__init__(self, rxList)
 
-    def _getb_p(self,prob):
+    def bPrimary(self,prob):
         eqLocs = prob._eqLocs
 
         if eqLocs is 'FE':
@@ -343,12 +327,12 @@ class SrcFDEM_CircularLoop(SrcFDEM):
 
         return C*a
 
-    def _geth_p(self,prob):
-        b = self._getb_p(prob)
+    def hPrimary(self,prob):
+        b = self.bPrimary(prob)
         return h_from_b
 
-    def _getS_m(self, prob):
-        b = self._getb_p(prob)
+    def S_m(self, prob):
+        b = self.bPrimary(prob)
         return -1j*omega(self.freq)*b
 
 

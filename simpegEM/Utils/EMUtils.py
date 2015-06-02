@@ -16,7 +16,7 @@ def e_from_j(prob,j):
     if eqLocs is 'FE':
         MSigmaI = prob.MeSigmaI
     elif eqLocs is 'EF':
-        MSigmaI = prob.MfSigmai
+        MSigmaI = prob.MfRho
     return MSigmaI*j
 
 def j_from_e(prob,e):
@@ -24,13 +24,13 @@ def j_from_e(prob,e):
     if eqLocs is 'FE':
         MSigma = prob.MeSigma
     elif eqLocs is 'EF':
-        MSigma = prob.MfSigma
+        MSigma = prob.MfRhoI
     return MSigma*e
 
 def b_from_h(prob,h):
     eqLocs = prob._eqLocs
     if eqLocs is 'FE':
-        MMu = prob.MfMu
+        MMu = prob.MfMuiI
     elif eqLocs is 'EF':
         MMu = prob.MeMu
     return MMu*h
