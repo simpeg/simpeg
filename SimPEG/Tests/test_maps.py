@@ -6,8 +6,8 @@ from scipy.sparse.linalg import dsolve
 
 TOL = 1e-14
 
-MAPS_TO_TEST_2D = ["CircleMap", "ComplexMap", "ExpMap", "IdentityMap", "Vertical1DMap", "Weighting", "ReciprocalMap"]
-MAPS_TO_TEST_3D = [             "ComplexMap", "ExpMap", "IdentityMap", "Vertical1DMap", "Weighting", "ReciprocalMap"]
+MAPS_TO_TEST_2D = ["CircleMap", "ComplexMap", "ExpMap", "IdentityMap", "Vertical1DMap", "Weighting"]
+MAPS_TO_TEST_3D = [             "ComplexMap", "ExpMap", "IdentityMap", "Vertical1DMap", "Weighting"]
 
 class MapTests(unittest.TestCase):
 
@@ -30,8 +30,8 @@ class MapTests(unittest.TestCase):
             self.assertTrue(maps.test())
 
 
-    def test_transforms_logMap(self):
-        # Note that log maps can be kinda finicky, so we are being explicit about the random seed.
+    def test_transforms_logMap_reciprocalMap(self):
+        # Note that log/reciprocal maps can be kinda finicky, so we are being explicit about the random seed.
         v2 = np.r_[ 0.40077291, 0.14410044, 0.58452314, 0.96323738, 0.01198519, 0.79754415]
         dv2 = np.r_[ 0.80653921, 0.13132446, 0.4901117, 0.03358737, 0.65473762, 0.44252488]
         v3 = np.r_[ 0.96084865, 0.34385186, 0.39430044, 0.81671285, 0.65929109, 0.2235217, 0.87897526, 0.5784033, 0.96876393, 0.63535864, 0.84130763, 0.22123854]
@@ -39,6 +39,11 @@ class MapTests(unittest.TestCase):
         maps = Maps.LogMap(self.mesh2)
         self.assertTrue(maps.test(v2, dx=dv2))
         maps = Maps.LogMap(self.mesh3)
+        self.assertTrue(maps.test(v3, dx=dv3))
+
+        maps = Maps.ReciprocalMap(self.mesh2)
+        self.assertTrue(maps.test(v2, dx=dv2))
+        maps = Maps.ReciprocalMap(self.mesh3)
         self.assertTrue(maps.test(v3, dx=dv3))
 
     def test_Mesh2MeshMap(self):
