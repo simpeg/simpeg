@@ -19,8 +19,8 @@ class BaseFDEMProblem(BaseEMProblem):
     surveyPair = SurveyFDEM
     fieldsPair = FieldsFDEM
 
-    def forward(self, m):
-
+    def fields(self, m):
+        self.curModel = m
         F = self.fieldsPair(self.mesh, self.survey)
 
         for freq in self.survey.freqs:
@@ -175,9 +175,11 @@ class ProblemFDEM_e(BaseFDEMProblem):
 
 
     def getADeriv(self, freq, u, v, adjoint=False):
-        sig = self.sigma
-        dsig_dm = self.curModel.transformDeriv
-        dMe_dsig = self.mesh.getEdgeInnerProductDeriv(sig)(u)
+        # sig = self.sigma
+        # dsig_dm = self.curModel.transformDeriv
+        # dMe_dsig = self.mesh.getEdgeInnerProductDeriv(sig)(u)
+        dsig_dm = self.curModel.sigmaDeriv
+        dMe_dsig = self.MeSigmaDeriv(u)
 
         if adjoint:
             return 1j * omega(freq) * ( dsig_dm.T * ( dMe_dsig.T * v ) )

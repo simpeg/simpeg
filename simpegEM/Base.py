@@ -8,11 +8,6 @@ class EMPropMap(Maps.PropMap):
     rho = Maps.Property("Electrical Resistivity", propertyLink=('sigma', Maps.ReciprocalMap)) 
     mui = Maps.Property("Inverse Magnetic Permeability", defaultVal = 1./mu_0, propertyLink=('mu', Maps.ReciprocalMap))
 
-    
-    
-
-    # Do some error checking: only 1 of sigma, rho can be InvProp similar story with mu and mui 
-    # Also ensure that sigma and rho are reciprocals of one another "" 
 
 class BaseEMProblem(Problem.BaseProblem):
 
@@ -99,22 +94,25 @@ class BaseEMProblem(Problem.BaseProblem):
             self._MeSigma = self.mesh.getEdgeInnerProduct(self.curModel.sigma)
         return self._MeSigma
 
-    @property
     def MeSigmaDeriv(self, u):
         """
         Deriv of MeSigma wrt sigma
-        """
-        if getattr(self, 'MeSigmaDeriv', None) is None:
-            self._MeSigmaDeriv = self.mesh.getEdgeInnerProductDeriv(self.curModel.sigma)(u)
-        return self._MeSigmaDeriv  
+        """ 
+        return self.mesh.getEdgeInnerProductDeriv(self.curModel.sigma)(u)
     
+
     @property
     def MeSigmaI(self):
         if getattr(self, '_MeSigmaI', None) is None:
             self._MeSigmaI = self.mesh.getEdgeInnerProduct(self.curModel.sigma, invMat=True)
         return self._MeSigmaI
 
-    # def dMeSigmaI_dsigma(self,u)
+    def MeSigmaIDeriv(self, u):
+        """
+        Deriv of MeSigma wrt sigma
+        """ 
+        return self.mesh.getEdgeInnerProductDeriv(self.curModel.sigma, invMat=True)(u)
+
 
     @property
     def MfRho(self):
@@ -122,7 +120,8 @@ class BaseEMProblem(Problem.BaseProblem):
             self._MfRho = self.mesh.getFaceInnerProduct(self.curModel.rho)
         return self._MfRho
 
-    # def dMfRho_dsigmai(self,u)
+    def MfRhoDeriv(self,u):
+        return self.mesh.getFaceInnerProductDeriv(self.curModel.rho)(u)
 
     @property
     def MfRhoI(self):
@@ -130,14 +129,5 @@ class BaseEMProblem(Problem.BaseProblem):
             self._MfRhoI = self.mesh.getFaceInnerProduct(self.curModel.rho, invMat=True)
         return self._MfRhoI
 
-    # def dMfRhoI(self,u)
-    
-
-    ####################################################
-    # Fields
-    ####################################################
-
-    def fields(self, m):
-        self.curModel = m
-        F = self.forward(m)
-        return F
+    def dMfRhoIDeriv(self,u):
+        return self.mesh.getFaceInnerProductDeriv(self.curModel.rho, invMat=True)
