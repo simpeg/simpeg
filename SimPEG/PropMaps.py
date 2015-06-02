@@ -151,10 +151,6 @@ class _PropMapMetaClass(type):
         if len(defaultInvProps) > 1:
             raise Exception('You have more than one default inversion property: %s' % defaultInvProps)
 
-        for p in _properties:
-            if _properties[p].defaultInvProp:
-                defaultInvProps += [p]
-
         newClass = super(_PropMapMetaClass, cls).__new__(cls, name, bases, attrs)
 
         newClass.PropModel = cls.createPropModelClass(newClass, name, _properties)
