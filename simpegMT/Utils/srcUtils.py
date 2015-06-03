@@ -2,7 +2,9 @@ import SimPEG as simpeg, numpy as np
 
 def homo1DModelSource(mesh,freq,m_back):
     '''
-        Function that calculates and return background fields
+        Function that calculates and return background fields for a 3D mesh and model.
+        The calculuations use 1D field solution for a vertical slice throught model (south-western most column),
+        which is assigned at the fields everywhere for the respective polarizations.2
 
         :param Simpeg mesh object mesh: Holds information on the discretization
         :param float freq: The frequency to solve at

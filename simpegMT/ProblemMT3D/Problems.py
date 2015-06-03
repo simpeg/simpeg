@@ -1,41 +1,25 @@
 from SimPEG import Survey, Problem, Utils, Models, np, sp, SolverLU as SimpegSolver
-from simpegEM.FDEM import BaseFDEMProblem
 from simpegEM.Utils.EMUtils import omega
 from scipy.constants import mu_0
-from SurveyMT import SurveyMT, FieldsMT, DataMT
+from simpegMT.BaseMT import BaseMTProblem
+from simpegMT.SurveyMT import SurveyMT
+from simpegMT.FieldsMT import FieldsMT
+from simpegMT.DataMT import DataMT 
 import multiprocessing, sys, time
 
 
 
-class BaseMTProblem(BaseFDEMProblem):
-
-    def __init__(self, mesh, **kwargs):
-        BaseFDEMProblem.__init__(self, mesh, **kwargs)
-
-
-    surveyPair = SurveyMT
-    dataPair = DataMT
-
-    Solver = SimpegSolver
-    solverOpts = {}
-
-    verbose = False
-    # Notes:
-    # Use the forward and devs from BaseFDEMProblem
-    # Might need to add more stuff here.
-
-
-    
-class ProblemMT_eForm_ps(BaseMTProblem):
+class eForm_ps(BaseMTProblem):
     """ 
     A MT problem solving a e formulation and a primary/secondary fields decompostion.
 
     Solves the equation
     """
 
+    # From FDEMproblem: Used to project the fields. Currently not used for MTproblem.
     _fieldType = 'e'
     _eqLocs    = 'FE'
-    fieldsPair = FieldsMT
+    
 
     # Set new properties 
     # Background model
@@ -96,8 +80,8 @@ class ProblemMT_eForm_ps(BaseMTProblem):
             Function to return the right hand side for the system.
             :param float freq: Frequency
             :param numpy.ndarray (nC,) backSigma: Background conductivity model
-            :rtype: numpy.ndarray (nE, 2)
-            :return: one RHS for both polarizations
+            :rtype: numpy.ndarray (nE, 2), numpy.ndarray (nE, 2)
+            :return: RHS for both polarizations, primary fields
         """
         # Get sources for the frequency
         src = self.survey.getSources(freq)
@@ -151,9 +135,9 @@ class ProblemMT_eForm_ps(BaseMTProblem):
                 sys.stdout.flush()
         return F
         
-class ProblemMT_eForm_Tp(BaseMTProblem):
+class eForm_Tp(BaseMTProblem):
     """ 
-    A MT problem solving a e formulation and a primary/secondary fields decompostion.
+    A MT problem solving a e formulation and a total/primary fields decompostion.
 
     Solves the equation
     """
@@ -263,7 +247,7 @@ class ProblemMT_eForm_Tp(BaseMTProblem):
             rhs, e_p = self.getRHS(freq,m_back)
             Ainv = self.Solver(A, **self.solverOpts)
             e_s = Ainv * rhs 
-            e = e_p + e_s
+            e = e_s
             # Store the fields
             Src = self.survey.getSources(freq)
             # Store the fieldss

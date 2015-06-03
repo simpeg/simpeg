@@ -24,7 +24,7 @@ def get1DEfields(m1d,sigma,freq,sourceAmp=1.0):
     Etot = (Ed + Eu)
     if sourceAmp is not None:
         Etot = ((Etot/Etot[-1])*sourceAmp) # Scale the fields to be equal to sourceAmp at the top
-    ## Note: need to use conjugate of the analytic solution. It is derived with e^iwt
+    ## Note: The analytic solution is derived with e^iwt
     bc = np.r_[Etot[0],Etot[-1]]
     # The right hand side
     rhs = -Aio*bc
