@@ -132,6 +132,9 @@ class PropModel(object):
             self._nP = len(set(inds))
         return self._nP
 
+    def __contains__(self, val):
+        return val in self.propMap
+
 
 
 _PROPMAPCLASSREGISTRY = {}
