@@ -70,7 +70,8 @@ class FieldsFDEM_e(FieldsFDEM):
         return - 1./(1j*omega(src.freq)) * (C * v)
 
     def _bSecondaryDeriv_m(self, src, v, adjoint = False):
-        S_mDeriv, _ = src.evalDeriv(self.survey.prob, v, adjoint)
+        S_mDeriv, _ = src.evalDeriv(self.survey.prob, adjoint)
+        S_mDeriv = S_mDeriv(v)
         if S_mDeriv is not None:
             return 1./(1j * omega(src.freq)) * S_mDeriv
         return None
@@ -142,7 +143,8 @@ class FieldsFDEM_b(FieldsFDEM):
 
     def _eDeriv(self, bSolution, srcList, v, adjoint=False):
         raise NotImplementedError('Fields Derivs Not Implemented Yet')
-        _,S_eDeriv = src.evalDeriv(self.survey.prob, v, adjoint)
+        _,S_eDeriv = src.evalDeriv(self.survey.prob, adjoint)
+        S_eDeriv = S_eDeriv(v)
 
         if S_eDeriv is None:
             return None

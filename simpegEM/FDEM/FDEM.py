@@ -44,16 +44,16 @@ class BaseFDEMProblem(BaseEMProblem):
 
         for freq in self.survey.freqs:
             A = self.getA(freq)
-            dF_duI = self.Solver(A, **self.solverOpts)
+            Ainv = self.Solver(A, **self.solverOpts)
 
             for src in self.survey.getSrcByFreq(freq):
                 u_src = u[src, self._fieldType]
                 dF_dm = self.getADeriv(freq, u_src, v)
                 dRHS_dm = self.getRHSDeriv(src, v)
                 if dRHS_dm is None:
-                    du_dm = dF_duI * ( - dF_dm )
+                    du_dm = Ainv * ( - dF_dm )
                 else:
-                    du_dm = dF_duI * ( - dF_dm + dRHS_dm )
+                    du_dm = Ainv * ( - dF_dm + dRHS_dm )
                 for rx in src.rxList:
                     dAl_duFun = getattr(u, '_%sDeriv_u'%rx.projField, None)
                     dAl_du = dAl_duFun(src, du_dm, adjoint=False)
@@ -69,15 +69,6 @@ class BaseFDEMProblem(BaseEMProblem):
 
                     Jv[src, rx] = P(du_dm)
 
-        #             fAinvw = self.calcFields(Ainvw, freq, rx.projField)
-        #             P = lambda v: rx.projectFieldsDeriv(src, self.mesh, u, v)
-
-        #             Jv[src, rx] = - P(fAinvw)
-
-        #             df_dm = self.calcFieldsDeriv(u_src, freq, rx.projField, v)
-        #             if df_dm is not None:
-        #                 Jv[src, rx] += P(df_dm)
-
         return Utils.mkvc(Jv)
 
     def Jtvec(self, m, v, u=None):
@@ -90,32 +81,56 @@ class BaseFDEMProblem(BaseEMProblem):
         if not isinstance(v, self.dataPair):
             v = self.dataPair(self.survey, v)
 
-        Jtv = np.zeros(self.mapping.nP)
+        # Jtv = np.zeros(self.PropMap.PropModel.nP)
+        Jtv = np.zeros(m.size)
 
         for freq in self.survey.freqs:
             AT = self.getA(freq).T
             ATinv = self.Solver(AT, **self.solverOpts)
 
-            for src in self.survey.getSource(freq):
-                u_src = u[src, self.solType]
+            for src in self.survey.getSrcByFreq(freq):
+                u_src = u[src, self._fieldType]
 
                 for rx in src.rxList:
                     PTv = rx.projectFieldsDeriv(src, self.mesh, u, v[src, rx], adjoint=True)
-                    fPTv = self.calcFields(PTv, freq, rx.projField, adjoint=True)
 
-                    w = ATinv * fPTv
-                    Jtv_rx = - self.getADeriv(freq, u_src, w, adjoint=True)
+                    dAl_duTFun = getattr(u, '_%sDeriv_u'%rx.projField, None)
+                    dAl_duT = dAl_duTFun(src, PTv, adjoint=True)
+                    if dAl_duT is not None:
+                        dF_duIT = ATinv * dAl_duT
+                    else:
+                        dF_duIT = ATinv * PTv
 
-                    df_dm = self.calcFieldsDeriv(u_src, freq, rx.projField, PTv, adjoint=True)
+                    dF_dmT = self.getADeriv(freq, u_src, dF_duIT, adjoint=True)
 
-                    if df_dm is not None:
-                        Jtv_rx += df_dm
+                    dRHS_dmT = self.getRHSDeriv(src, dF_duIT, adjoint=True)
+
+                    if dRHS_dmT is None:
+                        du_dmT = - dF_dmT
+                    else:
+                        du_dmT = -dF_dmT + dRHS_dmT
+
+                    dAl_dmFun = getattr(u, '_%sDeriv_m'%rx.projField, None)
+                    dAlT_dm = dAl_dmFun(src, PTv, adjoint=True)
+                    if dAlT_dm is not None:
+                        du_dmT += dAlT_dm
+
+
+        #             fPTv = self.calcFields(PTv, freq, rx.projField, adjoint=True)
+
+        #             w = ATinv * fPTv
+        #             Jtv_rx = - self.getADeriv(freq, u_src, w, adjoint=True)
+
+        #             df_dm = self.calcFieldsDeriv(u_src, freq, rx.projField, PTv, adjoint=True)
+
+        #             if df_dm is not None:
+        #                 Jtv_rx += df_dm
 
                     real_or_imag = rx.projComp
                     if real_or_imag == 'real':
-                        Jtv +=   Jtv_rx.real
+                        Jtv +=   du_dmT.real
                     elif real_or_imag == 'imag':
-                        Jtv += - Jtv_rx.real
+                        Jtv += - du_dmT.real
                     else:
                         raise Exception('Must be real or imag')
 
@@ -220,19 +235,35 @@ class ProblemFDEM_e(BaseFDEMProblem):
         return RHS
 
     def getRHSDeriv(self, src, v, adjoint=False):
-        S_mDeriv, S_eDeriv = src.evalDeriv(self, v, adjoint)
-        if adjoint:
-            # evalDeriv(MfMui.T* C * v, adjoint = True) 
-            raise Exception('Not implemented')
+        C = self.mesh.edgeCurl
+        MfMui = self.MfMui
+        S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint)
+        #     # evalDeriv(MfMui.T* (C * v), adjoint) 
+        #     raise Exception('Not implemented')
 
-        if S_mDeriv is not None and S_eDeriv is not None:
-            return C.T * (MfMui * S_mDeriv) -1j*omega(freq)*S_eDeriv
-        elif S_mDeriv is not None:
-            return C.T * (MfMui * S_mDeriv)
-        elif S_eDeriv is not None:
-            return -1j*omega(freq)*S_eDeriv
-        else:
-            return None
+        if adjoint:
+            dRHS = MfMui * (C * v)
+            S_mDerivv = S_mDeriv(dRHS)
+            S_eDerivv = S_eDeriv(v)
+            if S_mDerivv is not None and S_eDerivv is not None:
+                return S_mDerivv - 1j*omega(freq)*S_eDerivv
+            elif S_mDerivv is not None:
+                return S_mDerivv
+            elif S_eDerivv is not None:
+                return - 1j*omega(freq)*S_eDerivv
+            else:
+                return None
+        else:   
+            S_mDerivv, S_eDerivv = S_mDeriv(v), S_eDeriv(v)
+
+            if S_mDerivv is not None and S_eDerivv is not None: 
+                return C.T * (MfMui * S_mDerivv) -1j*omega(freq)*S_eDerivv
+            elif S_mDerivv is not None:
+                return C.T * (MfMui * S_mDerivv)
+            elif S_eDerivv is not None:
+                return -1j*omega(freq)*S_eDerivv
+            else:
+                return None
 
 
 class ProblemFDEM_b(BaseFDEMProblem):

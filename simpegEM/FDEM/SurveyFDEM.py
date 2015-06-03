@@ -101,7 +101,7 @@ class SrcFDEM(Survey.BaseSrc):
         return S_m, S_e 
 
     def evalDeriv(self, prob, v, adjoint=False):
-        return self.S_mDeriv(prob,v,adjoint), self.S_eDeriv(prob,v,adjoint)
+        return lambda v: self.S_mDeriv(prob,v,adjoint), lambda v: self.S_eDeriv(prob,v,adjoint)
 
     def bPrimary(self,prob):
         return None 
