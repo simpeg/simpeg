@@ -44,21 +44,39 @@ class BaseFDEMProblem(BaseEMProblem):
 
         for freq in self.survey.freqs:
             A = self.getA(freq)
-            Ainv = self.Solver(A, **self.solverOpts)
+            dF_duI = self.Solver(A, **self.solverOpts)
 
-            for src in self.survey.getSource(freq):
-                u_src = u[src, self.solType]
-                w = self.getADeriv(freq, u_src, v)
-                Ainvw = Ainv * w
+            for src in self.survey.getSrcByFreq(freq):
+                u_src = u[src, self._fieldType]
+                dF_dm = self.getADeriv(freq, u_src, v)
+                dRHS_dm = self.getRHSDeriv(src, v)
+                if dRHS_dm is None:
+                    du_dm = dF_duI * ( - dF_dm )
+                else:
+                    du_dm = dF_duI * ( - dF_dm + dRHS_dm )
                 for rx in src.rxList:
-                    fAinvw = self.calcFields(Ainvw, freq, rx.projField)
+                    dAl_duFun = getattr(u, '_%sDeriv_u'%rx.projField, None)
+                    dAl_du = dAl_duFun(src, du_dm, adjoint=False)
+                    if dAl_du is not None:
+                        du_dm = dAl_du
+
+                    dAl_dmFun = getattr(u, '_%sDeriv_m'%rx.projField, None)
+                    dAl_dm = dAl_dmFun(src, v, adjoint=False)
+                    if dAl_dm is not None:
+                        du_dm += dAl_dm
+
                     P = lambda v: rx.projectFieldsDeriv(src, self.mesh, u, v)
 
-                    Jv[src, rx] = - P(fAinvw)
+                    Jv[src, rx] = P(du_dm)
 
-                    df_dm = self.calcFieldsDeriv(u_src, freq, rx.projField, v)
-                    if df_dm is not None:
-                        Jv[src, rx] += P(df_dm)
+        #             fAinvw = self.calcFields(Ainvw, freq, rx.projField)
+        #             P = lambda v: rx.projectFieldsDeriv(src, self.mesh, u, v)
+
+        #             Jv[src, rx] = - P(fAinvw)
+
+        #             df_dm = self.calcFieldsDeriv(u_src, freq, rx.projField, v)
+        #             if df_dm is not None:
+        #                 Jv[src, rx] += P(df_dm)
 
         return Utils.mkvc(Jv)
 
@@ -201,9 +219,20 @@ class ProblemFDEM_e(BaseFDEMProblem):
 
         return RHS
 
-    def getRHSDeriv(self, freq, u, v, adjoint=False):
-        raise NotImplementedError('getRHSDeriv not implemented yet')
-        return None
+    def getRHSDeriv(self, src, v, adjoint=False):
+        S_mDeriv, S_eDeriv = src.evalDeriv(self, v, adjoint)
+        if adjoint:
+            # evalDeriv(MfMui.T* C * v, adjoint = True) 
+            raise Exception('Not implemented')
+
+        if S_mDeriv is not None and S_eDeriv is not None:
+            return C.T * (MfMui * S_mDeriv) -1j*omega(freq)*S_eDeriv
+        elif S_mDeriv is not None:
+            return C.T * (MfMui * S_mDeriv)
+        elif S_eDeriv is not None:
+            return -1j*omega(freq)*S_eDeriv
+        else:
+            return None
 
 
 class ProblemFDEM_b(BaseFDEMProblem):
@@ -274,7 +303,7 @@ class ProblemFDEM_b(BaseFDEMProblem):
 
         return RHS
 
-    def getRHSDeriv(self, freq, u, v, adjoint=False):
+    def getRHSDeriv(self, freq, v, adjoint=False):
         raise NotImplementedError('getRHSDeriv not implemented yet')
         return None
 
@@ -385,7 +414,7 @@ class ProblemFDEM_j(BaseFDEMProblem):
 
         return RHS
 
-    def getRHSDeriv(self, freq, u, v, adjoint=False):
+    def getRHSDeriv(self, freq, v, adjoint=False):
         raise NotImplementedError('getRHSDeriv not implemented yet')
         return None
 
@@ -466,7 +495,7 @@ class ProblemFDEM_h(BaseFDEMProblem):
 
         return RHS
 
-    def getRHSDeriv(self, freq, u, v, adjoint=False):
+    def getRHSDeriv(self, freq, v, adjoint=False):
         raise NotImplementedError('getRHSDeriv not implemented yet')
         return None
 
