@@ -238,3 +238,6 @@ class PropMap(object):
     def __call__(self, vec):
         return self.PropModel(self, vec)
 
+    def __contains__(self, val):
+        activeMaps = [name for name in self._properties if getattr(self, '%sMap'%name) is not None]
+        return val in activeMaps
