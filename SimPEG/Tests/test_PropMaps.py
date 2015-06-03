@@ -100,6 +100,20 @@ class TestPropMaps(unittest.TestCase):
         assert np.all(pm.muModel == [1,2,3])
         assert np.all(pm.mu == [1,2,3])
 
+    def test_Projections(self):
+        m = Mesh.TensorMesh((3,))
+        iMap = Maps.IdentityMap(m)
+        PM = MyReciprocalPropMap([('sigma', iMap)])
+        v = np.r_[1,2.,3]
+        pm = PM(v)
+
+        assert pm.sigmaProj is not None
+        assert pm.rhoProj   is None
+        assert pm.muProj    is None
+        assert pm.muiProj   is None
+
+        assert np.all(pm.sigmaProj * v == pm.sigmaModel)
+
     def test_Links(self):
         m = Mesh.TensorMesh((3,))
         expMap = Maps.ExpMap(m)
