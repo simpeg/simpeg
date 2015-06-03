@@ -1,5 +1,5 @@
 from SimPEG import *
-import simpegDC as DC
+import simpegDCIP as DC
 import matplotlib.pyplot as plt
 
 
@@ -26,7 +26,7 @@ def run(plotIt=False):
     rx = DC.RxDipole(xyz_rxP, xyz_rxN)
     src = DC.SrcDipole([rx], [-200, 0, -12.5], [+200, 0, -12.5])
     survey = DC.SurveyDC([src])
-    problem = DC.ProblemDC(mesh)
+    problem = DC.ProblemDC_CC(mesh)
     problem.pair(survey)
     try:
         from pymatsolver import MumpsSolver

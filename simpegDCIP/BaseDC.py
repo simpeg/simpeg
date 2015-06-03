@@ -1,27 +1,70 @@
 from SimPEG import *
 
 
+
+class FieldsDC_CC(Problem.Fields):
+    knownFields = {'phi_sol':'CC'}
+    aliasFields = {
+                    'phi' : ['phi_sol','CC','_phi'],
+                    'e' : ['phi_sol','F','_e'],
+                    'j' : ['phi_sol','F','_j']
+                  }
+
+    def __init__(self,mesh,survey,**kwargs):
+        super(FieldsDC_CC, self).__init__(mesh, survey, **kwargs)
+
+    def startup(self):
+        self._cellGrad = self.survey.prob.mesh.cellGrad
+
+    def _phi(self, phi_sol, srcList):
+        phi = phi_sol
+        for i, src in enumerate(srcList):
+            phi_p = src.phi_p(self.survey.prob)
+            if phi_p is not None:
+                phi[:,i] += phi_p     
+        return phi
+
+    def _e(self, phi_sol, srcList):
+        e = -self._cellGrad*phi_sol
+        for i, src in enumerate(srcList):
+            e_p = src.e_p(self.survey.prob)
+            if e_p is not None:
+                e[:,i] += e_p     
+        return e
+    
+    def _j(self, phi_sol, srcList):
+        j = -self.survey.prob.Msig*self._cellGrad*phi_sol
+        for i, src in enumerate(srcList):
+            j_p = src.j_p(self.survey.prob)
+            if j_p is not None:
+                j[:,i] += j_p
+        return j
+
+
+
 class SrcDipole(Survey.BaseSrc):
     """A dipole source, locA and locB are moved to the closest cell-centers"""
 
     current = 1
     loc  = None
-    _rhsDict = None
+    # _rhsDict = None
 
     def __init__(self, rxList, locA, locB, **kwargs):
         self.loc = (locA, locB)
         super(SrcDipole, self).__init__(rxList, **kwargs)
 
-    def getRhs(self, mesh):
-        if getattr(self, '_rhsDict', None) is None:
-            self._rhsDict = {}
-        if mesh not in self._rhsDict:
-            pts = [self.loc[0], self.loc[1]]
-            inds = Utils.closestPoints(mesh, pts)
-            q = np.zeros(mesh.nC)
-            q[inds] = - self.current * ( np.r_[1., -1.] / mesh.vol[inds] )
-            self._rhsDict[mesh] = q
-        return self._rhsDict[mesh]
+    def eval(self, prob):
+        # Recompute rhs 
+        # if getattr(self, '_rhsDict', None) is None:
+        #     self._rhsDict = {}
+        # if mesh not in self._rhsDict:
+        pts = [self.loc[0], self.loc[1]]
+        inds = Utils.closestPoints(prob.mesh, pts)
+        q = np.zeros(prob.mesh.nC)
+        q[inds] = - self.current * ( np.r_[1., -1.] / prob.mesh.vol[inds] )
+        # self._rhsDict[mesh] = q
+        # return self._rhsDict[mesh]
+        return q
 
 
 class RxDipole(Survey.BaseRx):
@@ -53,7 +96,7 @@ class SurveyDC(Survey.BaseSurvey):
     def __init__(self, srcList, **kwargs):
         self.srcList = srcList
         Survey.BaseSurvey.__init__(self, **kwargs)
-        self._rhsDict = {}
+        # self._rhsDict = {}
         self._Ps = {}
 
     def projectFields(self, u):
@@ -64,13 +107,7 @@ class SurveyDC(Survey.BaseSurvey):
                 d_\\text{pred} = Pu(m)
         """
         P = self.getP(self.prob.mesh)
-        return P*mkvc(u)
-
-    def getRhs(self, mesh):
-        if mesh not in self._rhsDict:
-            RHS = np.array([src.getRhs(mesh) for src in self.srcList]).T
-            self._rhsDict[mesh] = RHS
-        return self._rhsDict[mesh]
+        return P*mkvc(u[self.srcList, 'phi_sol'])
 
     def getP(self, mesh):
         if mesh in self._Ps:
@@ -82,9 +119,7 @@ class SurveyDC(Survey.BaseSurvey):
         return self._Ps[mesh]
 
 
-
-
-class ProblemDC(Problem.BaseProblem):
+class ProblemDC_CC(Problem.BaseProblem):
     """
         **ProblemDC**
 
@@ -94,6 +129,8 @@ class ProblemDC(Problem.BaseProblem):
 
     surveyPair = SurveyDC
     Solver     = Solver
+    fieldsPair = FieldsDC_CC
+    Ainv = None
 
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh)
@@ -143,13 +180,25 @@ class ProblemDC(Problem.BaseProblem):
             self._A = self._A.tocsc()
         return self._A
 
+    def getRHS(self):
+        # if self.mesh not in self._rhsDict:
+        RHS = np.array([src.eval(self) for src in self.survey.srcList]).T
+        # self._rhsDict[mesh] = RHS
+        # return self._rhsDict[mesh]
+        return RHS
+
     def fields(self, m):
+
+        F = self.fieldsPair(self.mesh, self.survey)        
         self.curModel = m
         A    = self.A
-        Ainv = self.Solver(A, **self.solverOpts)
-        Q    = self.survey.getRhs(self.mesh)
-        Phi  = Ainv * Q
-        return Phi
+        self.Ainv = self.Solver(A, **self.solverOpts)
+        RHS    = self.getRHS()
+        Phi  = self.Ainv * RHS   
+        Srcs = self.survey.srcList
+        F[Srcs, 'phi_sol'] = Phi
+
+        return F
 
     def Jvec(self, m, v, u=None):
         """
@@ -178,10 +227,9 @@ class ProblemDC(Problem.BaseProblem):
         sigma = self.curModel.transform # $\sigma = \mathcal{M}(\m)$
         if u is None:
             # Run forward simulation if $u$ not provided
-            u = self.fields(self.curModel)
+            u = self.fields(self.curModel)[self.survey.srcList, 'phi_sol']
         else:
-            shp = (self.mesh.nC, self.survey.nSrc)
-            u = u.reshape(shp, order='F')
+            u = u[self.survey.srcList, 'phi_sol']
 
         D = self.mesh.faceDiv
         G = self.mesh.cellGrad
@@ -199,9 +247,12 @@ class ProblemDC(Problem.BaseProblem):
         # Take derivative of $C(m,u)$ w.r.t. $u$
         dCdu = self.A
         # Solve for $\deriv{u}{m}$
-        dCdu_inv = self.Solver(dCdu, **self.solverOpts)
+        # dCdu_inv = self.Solver(dCdu, **self.solverOpts)
+        if self.Ainv is None:
+            self.Ainv = self.Solver(dCdu, **self.solverOpts)
+
         P        = self.survey.getP(self.mesh)
-        J_x_v    = - P * mkvc( dCdu_inv * dCdm_x_v )
+        J_x_v    = - P * mkvc( self.Ainv * dCdm_x_v )
         return J_x_v
 
     def Jtvec(self, m, v, u=None):
@@ -209,10 +260,12 @@ class ProblemDC(Problem.BaseProblem):
         self.curModel = m
         sigma = self.curModel.transform # $\sigma = \mathcal{M}(\m)$
         if u is None:
-            u = self.fields(self.curModel)
+            # Run forward simulation if $u$ not provided
+            u = self.fields(self.curModel)[self.survey.srcList, 'phi_sol']
+        else:
+            u = u[self.survey.srcList, 'phi_sol']
 
-        shp = (self.mesh.nC, self.survey.nSrc)
-        u = u.reshape(shp, order='F')
+        shp = u.shape
         P = self.survey.getP(self.mesh)
         PT_x_v = (P.T*v).reshape(shp, order='F')
 
@@ -221,9 +274,13 @@ class ProblemDC(Problem.BaseProblem):
         A = self.A
         mT_dm = self.mapping.deriv(m)
 
+        # We probably always need this due to the linesearch .. (?)
         dCdu = A.T
-        Ainv = self.Solver(dCdu, **self.solverOpts)
-        w = Ainv * PT_x_v
+        self.Ainv = self.Solver(dCdu, **self.solverOpts)
+        # if self.Ainv is None:
+        #     self.Ainv = self.Solver(dCdu, **self.solverOpts)
+
+        w = self.Ainv * PT_x_v
 
         Jtv = 0
         for i, ui in enumerate(u.T):  # loop over each column

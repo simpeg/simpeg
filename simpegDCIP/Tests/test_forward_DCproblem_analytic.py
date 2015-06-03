@@ -8,6 +8,5 @@ class DCAnalyticTests(unittest.TestCase):
         self.assertTrue(DC.Examples.Verification.run() < 0.1)
 
 
-
 if __name__ == '__main__':
     unittest.main()

@@ -1,16 +1,42 @@
 import unittest
 from SimPEG import *
 import simpegDC as DC
+from pymatsolver import MumpsSolver
 
 
-class DCProblemTests(unittest.TestCase):
+
+class IPProblemTests(unittest.TestCase):
 
     def setUp(self):
 
-        mesh, survey, problem = DC.Examples.WennerArray.example()
+        cs = 12.5
+        nc = 500/cs+1
+        hx = [(cs,0, -1.3),(cs,nc),(cs,0, 1.3)]
+        hy = [(cs,0, -1.3),(cs,int(nc/2+1)),(cs,0, 1.3)]
+        hz = [(cs,0, -1.3),(cs,int(nc/2+1))]
+        mesh = Mesh.TensorMesh([hx, hy, hz], 'CCN')
+        sighalf = 1e-2
+        sigma = np.ones(mesh.nC)*sighalf
+        p0 = np.r_[-50., 50., -50.]
+        p1 = np.r_[ 50.,-50., -150.]
+        blk_ind = Utils.ModelBuilder.getIndecesBlock(p0, p1, mesh.gridCC)
+        sigma[blk_ind] = 1e-3
+        eta = np.zeros_like(sigma)
+        eta[blk_ind] = 0.1
 
+        nElecs = 5
+        x_temp = np.linspace(-250, 250, nElecs)
+        aSpacing = x_temp[1]-x_temp[0]
+        y_temp = 0.
+        xyz = Utils.ndgrid(x_temp, np.r_[y_temp], np.r_[0.])
+        srcList = DC.Examples.WennerArray.getSrcList(nElecs,aSpacing)
+        survey = DC.SurveyIP(srcList)
+        imap   = Maps.IdentityMap(mesh)
+        problem = DC.ProblemIP(mesh, sigma=sigma, mapping= imap)
+        problem.pair(survey)
+        problem.Solver = MumpsSolver
 
-        mSynth = np.ones(mesh.nC)
+        mSynth = eta
         survey.makeSyntheticData(mSynth)
 
         # Now set up the problem to do some minimization
@@ -30,7 +56,7 @@ class DCProblemTests(unittest.TestCase):
 
     def test_misfit(self):
         derChk = lambda m: [self.survey.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)]
-        passed = Tests.checkDerivative(derChk, self.m0, plotIt=False)
+        passed = Tests.checkDerivative(derChk, self.m0*0, plotIt=False)
         self.assertTrue(passed)
 
     def test_adjoint(self):
@@ -38,23 +64,14 @@ class DCProblemTests(unittest.TestCase):
         u = np.random.rand(self.mesh.nC*self.survey.nSrc)
         v = np.random.rand(self.mesh.nC)
         w = np.random.rand(self.survey.dobs.shape[0])
-        wtJv = w.dot(self.p.Jvec(self.m0, v, u=u))
-        vtJtw = v.dot(self.p.Jtvec(self.m0, w, u=u))
+        wtJv = w.dot(self.p.Jvec(self.m0, v))
+        vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-10
         print 'Adjoint Test', np.abs(wtJv - vtJtw), passed
         self.assertTrue(passed)
 
     def test_dataObj(self):
         derChk = lambda m: [self.dmis.eval(m), self.dmis.evalDeriv(m)]
-        passed = Tests.checkDerivative(derChk, self.m0, plotIt=False)
-        self.assertTrue(passed)
-
-
-    def test_massMatrices(self):
-        Gu = np.random.rand(self.mesh.nF)
-        def derChk(m):
-            self.p.curModel = m
-            return [self.p.Msig * Gu, self.p.dMdsig(Gu)]
         passed = Tests.checkDerivative(derChk, self.m0, plotIt=False)
         self.assertTrue(passed)
 
