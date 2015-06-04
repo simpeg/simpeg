@@ -87,5 +87,11 @@ def getCasingHrMagDipole(srcloc,obsloc,freq,sigma,a,b,mu=mu_0,eps=epsilon_0,mome
 def getCasingHzMagDipole(srcloc,obsloc,freq,sigma,a,b,mu=mu_0,eps=epsilon_0,moment=1):
     d2HertzZdz2 = _getCasingHertzMagDipole2Deriv_z_z(srcloc,obsloc,freq,sigma,a,b,mu,eps,moment)
     k2 = k(freq,sigma[2],mu,eps)
-    HertzZ(srcloc,obsloc,freq,sigma,a,b,mu,eps,moment)
+    HertzZ = _getCasingHertzMagDipole(srcloc,obsloc,freq,sigma,a,b,mu,eps,moment)
     return d2HertzZdz2 + k2**2 * HertzZ
+
+def getCasingBrMagDipole(srcloc,obsloc,freq,sigma,a,b,mu=mu_0,eps=epsilon_0,moment=1):
+    return mu_0 * getCasingHrMagDipole(srcloc,obsloc,freq,sigma,a,b,mu,eps,moment)
+
+def getCasingBzMagDipole(srcloc,obsloc,freq,sigma,a,b,mu=mu_0,eps=epsilon_0,moment=1):
+    return mu_0 * getCasingHzMagDipole(srcloc,obsloc,freq,sigma,a,b,mu,eps,moment)
