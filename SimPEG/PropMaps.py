@@ -1,4 +1,4 @@
-import Utils, Maps, numpy as np
+import Utils, Maps, numpy as np, scipy.sparse as sp
 
 class Property(object):
 
@@ -87,8 +87,21 @@ class Property(object):
             mapping = getattr(self, '%sMap'%prop.name)
             if mapping is None:
                 return None
-            index = getattr(self.propMap, '_%sIndex'%prop.name, slice(None))
+            index = getattr(self.propMap, '%sIndex'%prop.name)
             return self.vector[index]
+        return property(fget=fget)
+
+    def _getModelProjProperty(self):
+        prop = self
+        def fget(self):
+            mapping = getattr(self, '%sMap'%prop.name)
+            if mapping is None:
+                return None
+            inds = getattr(self.propMap, '%sIndex'%prop.name)
+            if type(inds) is slice:
+                inds = range(*inds.indices(self.nP))
+            nI, nP = len(inds),self.nP
+            return sp.csr_matrix((np.ones(nI), (range(nI), inds) ), shape=(nI, nP))
         return property(fget=fget)
 
     def _getModelMapProperty(self):
@@ -118,6 +131,9 @@ class PropModel(object):
                         inds += list(index)
             self._nP = len(set(inds))
         return self._nP
+
+    def __contains__(self, val):
+        return val in self.propMap
 
 
 
@@ -167,6 +183,7 @@ class _PropMapMetaClass(type):
 
             attrs[attr          ] = prop._getProperty()
             attrs[attr + 'Map'  ] = prop._getModelMapProperty()
+            attrs[attr + 'Proj' ] = prop._getModelProjProperty()
             attrs[attr + 'Model'] = prop._getModelProperty()
             attrs[attr + 'Deriv'] = prop._getModelDerivProperty()
 
@@ -238,3 +255,6 @@ class PropMap(object):
     def __call__(self, vec):
         return self.PropModel(self, vec)
 
+    def __contains__(self, val):
+        activeMaps = [name for name in self._properties if getattr(self, '%sMap'%name) is not None]
+        return val in activeMaps

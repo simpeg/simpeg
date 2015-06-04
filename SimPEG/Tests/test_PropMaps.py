@@ -36,7 +36,16 @@ class TestPropMaps(unittest.TestCase):
             assert PM.muMap is None
             assert PM.muIndex is None
 
+            assert 'sigma' in PM
+            assert 'mu' not in PM
+            assert 'mui' not in PM
+
             m = PM(np.r_[1.,2,3])
+
+            assert 'sigma' in m
+            assert 'mu' not in m
+            assert 'mui' not in m
+
             assert m.mu == mu_0
             assert m.muModel is None
             assert m.muMap is None
@@ -67,6 +76,14 @@ class TestPropMaps(unittest.TestCase):
 
         assert pm.nP == 6
 
+        assert 'sigma' in PM
+        assert 'mu' in PM
+        assert 'mui' not in PM
+
+        assert 'sigma' in pm
+        assert 'mu' in pm
+        assert 'mui' not in pm
+
         assert np.all(pm.sigmaModel == [1.,2,3])
         assert np.all(pm.sigma == np.exp([1.,2,3]))
         assert np.all(pm.muModel == [4.,5,6])
@@ -83,10 +100,32 @@ class TestPropMaps(unittest.TestCase):
 
         assert pm.nP == 3
 
+        assert 'sigma' in PM
+        assert 'mu' in PM
+        assert 'mui' not in PM
+
+        assert 'sigma' in pm
+        assert 'mu' in pm
+        assert 'mui' not in pm
+
         assert np.all(pm.sigmaModel == [1,2,3])
         assert np.all(pm.sigma == np.exp([1,2,3]))
         assert np.all(pm.muModel == [1,2,3])
         assert np.all(pm.mu == [1,2,3])
+
+    def test_Projections(self):
+        m = Mesh.TensorMesh((3,))
+        iMap = Maps.IdentityMap(m)
+        PM = MyReciprocalPropMap([('sigma', iMap)])
+        v = np.r_[1,2.,3]
+        pm = PM(v)
+
+        assert pm.sigmaProj is not None
+        assert pm.rhoProj   is None
+        assert pm.muProj    is None
+        assert pm.muiProj   is None
+
+        assert np.all(pm.sigmaProj * v == pm.sigmaModel)
 
     def test_Links(self):
         m = Mesh.TensorMesh((3,))
@@ -102,6 +141,17 @@ class TestPropMaps(unittest.TestCase):
         assert pm.rhoMap is None
         assert pm.sigmaDeriv is not None
         assert pm.rhoDeriv is not None
+
+        assert 'sigma' in PM
+        assert 'rho' not in PM
+        assert 'mu' not in PM
+        assert 'mui' not in PM
+
+
+        assert 'sigma' in pm
+        assert 'rho' not in pm
+        assert 'mu' not in pm
+        assert 'mui' not in pm
 
         assert pm.mu == mu_0
         assert pm.mui == 1.0/mu_0
@@ -120,6 +170,17 @@ class TestPropMaps(unittest.TestCase):
         assert pm.rhoMap is iMap
         assert pm.sigmaDeriv is not None
         assert pm.rhoDeriv is not None
+
+        assert 'sigma' not in PM
+        assert 'rho' in PM
+        assert 'mu' not in PM
+        assert 'mui' not in PM
+
+
+        assert 'sigma' not in pm
+        assert 'rho' in pm
+        assert 'mu' not in pm
+        assert 'mui' not in pm
 
         self.assertRaises(AssertionError, MyReciprocalPropMap, [('rho', iMap), ('sigma', iMap)])
         self.assertRaises(AssertionError, MyReciprocalPropMap, [('sigma', iMap), ('rho', iMap)])
