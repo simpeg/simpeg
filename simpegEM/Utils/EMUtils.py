@@ -7,8 +7,11 @@ def omega(freq):
     return 2.*np.pi*freq
 
 def k(freq, sigma, mu=mu_0, eps=epsilon_0):
+    """ Eq 1.47 - 1.49 in Ward and Hohmann """
     w = omega(freq)
-    return np.sqrt(mu * eps * w**2 - 1j * w* mu * sigma)
+    alp  = w * np.sqrt( mu*eps/2 * ( np.sqrt(1. + (sigma / (eps*w))**2 ) + 1) ) 
+    beta = w * np.sqrt( mu*eps/2 * ( np.sqrt(1. + (sigma / (eps*w))**2 ) - 1) ) 
+    return alp - 1j*beta
 
 # Constitutive relations
 def e_from_j(prob,j):
