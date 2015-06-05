@@ -146,21 +146,52 @@ class BetaSchedule(InversionDirective):
 
 
 
-class SaveModelEveryIteration(InversionDirective):
-    """SaveModelEveryIteration"""
+class _SaveEveryIteration(InversionDirective):
+    @property
+    def name(self):
+        if getattr(self, '_name', None) is None:
+            self._name = 'InversionModel'
+        return self._name
+    @name.setter
+    def name(self, value):
+        self._name = value
 
     @property
-    def modelName(self):
-        if getattr(self, '_modelName', None) is None:
+    def fileName(self):
+        if getattr(self, '_fileName', None) is None:
             from datetime import datetime
-            self._modelName = 'inversionModel-%s'%datetime.now().strftime('%Y-%m-%d')
-        return self._modelName
-    @modelName.setter
-    def modelName(self, value):
-        self._modelName = value
+            self._fileName = '%s-%s'%(self.name, datetime.now().strftime('%Y-%m-%d-%H-%M'))
+        return self._fileName
+    @fileName.setter
+    def fileName(self, value):
+        self._fileName = value
+
+
+class SaveModelEveryIteration(_SaveEveryIteration):
+    """SaveModelEveryIteration"""
+
+    def initialize(self):
+        print "SimPEG.SaveModelEveryIteration will save your models as: '###-%s.npy'"%self.fileName
 
     def endIter(self):
-        np.save('%03d-%s' % (self.opt.iter, self.modelName), self.opt.xc)
+        np.save('%03d-%s' % (self.opt.iter, self.fileName), self.opt.xc)
+
+
+class SaveOutputEveryIteration(_SaveEveryIteration):
+    """SaveModelEveryIteration"""
+
+    def initialize(self):
+        print "SimPEG.SaveOutputEveryIteration will save your inversion progress as: '###-%s.txt'"%self.fileName
+        f = open(self.fileName+'.txt', 'w')
+        f.write("  #     beta     phi_d     phi_m       f\n")
+        f.close()
+
+    def endIter(self):
+        f = open(self.fileName+'.txt', 'a')
+        f.write(' %3d %1.4e %1.4e %1.4e %1.4e\n'%(self.opt.iter, self.invProb.beta, self.invProb.phi_d, self.invProb.phi_m, self.opt.f))
+        f.close()
+
+
 
 
 # class UpdateReferenceModel(Parameter):
