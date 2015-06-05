@@ -144,6 +144,21 @@ class BetaSchedule(InversionDirective):
             if self.debug: print 'BetaSchedule is cooling Beta. Iteration: %d' % self.opt.iter
             self.invProb.beta /= self.coolingFactor
 
+class TargetMisfit(InversionDirective):
+
+    @property
+    def target(self):
+        if getattr(self, '_target', None) is None:
+            self._target = self.survey.nD
+        return self._target
+    @target.setter
+    def target(self, val):
+        self._target = val
+
+    def endIter(self):
+        if self.invProb.phi_d < self.target:
+            self.opt.stopNextIteration = True
+
 
 
 class _SaveEveryIteration(InversionDirective):

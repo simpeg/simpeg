@@ -97,6 +97,8 @@ class Minimize(object):
     tolG = 1e-1        #: Tolerance on gradient norm
     eps = 1e-5         #: Small value
 
+    stopNextIteration = False #: Stops the optimization program nicely.
+
     debug   = False    #: Print debugging information
     debugLS = False    #: Print debugging information for the line-search
 
@@ -186,6 +188,7 @@ class Minimize(object):
                 xt, caught = self.modifySearchDirectionBreak(p)
                 if not caught: return self.xc
             self.doEndIteration(xt)
+            if self.stopNextIteration: break
 
         self.printDone()
         self.finish()
@@ -210,6 +213,7 @@ class Minimize(object):
 
         self.iter = 0
         self.iterLS = 0
+        self.stopNextIteration = False
 
         x0 = self.projection(x0)  # ensure that we start of feasible.
         self.x0 = x0
