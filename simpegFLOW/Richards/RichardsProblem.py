@@ -1,5 +1,6 @@
 from SimPEG import *
 from Empirical import RichardsMap
+import time
 
 
 class RichardsRx(Survey.BaseTimeRx):
@@ -119,22 +120,28 @@ class RichardsProblem(Problem.BaseTimeProblem):
 
     maxIterRootFinder = Utils.dependentProperty('_maxIterRootFinder', 30, ['_rootFinder'],
                 "Maximum iterations for rootFinder iteration.")
+    tolRootFinder = Utils.dependentProperty('_tolRootFinder', 1e-4, ['_rootFinder'],
+                "Maximum iterations for rootFinder iteration.")
 
     @property
     def rootFinder(self):
         """Root-finding Algorithm"""
         if getattr(self, '_rootFinder', None) is None:
-            self._rootFinder = Optimization.NewtonRoot(doLS=self.doNewton, maxIter=self.maxIterRootFinder, Solver=self.Solver)
+            self._rootFinder = Optimization.NewtonRoot(doLS=self.doNewton, maxIter=self.maxIterRootFinder, tol=self.tolRootFinder, Solver=self.Solver)
         return self._rootFinder
 
+    @Utils.timeIt
     def fields(self, m):
+        tic = time.time()
         u = range(self.nT+1)
         u[0] = self.initialConditions
         for ii, dt in enumerate(self.timeSteps):
             bc = self.getBoundaryConditions(ii, u[ii])
             u[ii+1] = self.rootFinder.root(lambda hn1m, return_g=True: self.getResidual(m, u[ii], hn1m, dt, bc, return_g=return_g), u[ii])
+            print "Solving Fields (%4d/%d - %3.1f%% Done) %d Iterations, %4.2f seconds"%(ii, self.nT, 100.0*ii/self.nT, self.rootFinder.iter, time.time() - tic)
         return u
 
+    @Utils.timeIt
     def diagsJacobian(self, m, hn, hn1, dt, bc):
 
         DIV  = self.mesh.faceDiv
@@ -184,6 +191,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
 
         return Asub, Adiag, B
 
+    @Utils.timeIt
     def getResidual(self, m, hn, h, dt, bc, return_g=True):
         """
             Where h is the proposed value for the next time iterate (h_{n+1})
@@ -222,6 +230,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
 
         return r, J
 
+    @Utils.timeIt
     def Jfull(self, m, u=None):
         if u is None:
             u = self.fields(m)
@@ -247,6 +256,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
         J = P * zAinvB
         return J
 
+    @Utils.timeIt
     def Jvec(self, m, v, u=None):
         if u is None:
             u = self.fields(m)
@@ -268,6 +278,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
         P = self.survey.projectFieldsDeriv(u, m)
         return P * np.concatenate([np.zeros(self.mesh.nC)] + JvC)
 
+    @Utils.timeIt
     def Jtvec(self, m, v, u=None):
         if u is None:
             u = self.field(m)
