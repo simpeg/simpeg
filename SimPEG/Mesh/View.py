@@ -328,6 +328,7 @@ class TensorView(object):
             v = getattr(np,view)(v) # e.g. np.real(v)
             if clim is None:
                 clim = [v.min(),v.max()]
+            v = np.ma.masked_where(np.isnan(v), v)
             out += (ax.pcolormesh(self.vectorNx, self.vectorNy, v.T, vmin=clim[0], vmax=clim[1], **pcolorOpts),)
         elif view in ['vec']:
             U, V = self.r(v.reshape((self.nC,-1), order='F'), 'CC', 'CC', 'M')
