@@ -79,7 +79,7 @@ class RichardsTests1D(unittest.TestCase):
         bc = np.array([-61.5,-20.7])
         h = np.zeros(M.nC) + bc[0]
 
-        prob = Richards.RichardsProblem(M, mapping=E, timeSteps=[(40,3),(60,3)],
+        prob = Richards.RichardsProblem(M, mapping=E, timeSteps=[(40,3),(60,3)], tolRootFinder=1e-6, debug=False,
                                     boundaryConditions=bc, initialConditions=h,
                                     doNewton=False, method='mixed')
         prob.Solver = Solver
@@ -153,7 +153,7 @@ class RichardsTests2D(unittest.TestCase):
         bc = np.array([-61.5,-20.7])
         bc = np.r_[np.zeros(M.nCy*2),np.ones(M.nCx)*bc[0],np.ones(M.nCx)*bc[1]]
         h = np.zeros(M.nC) + bc[0]
-        prob = Richards.RichardsProblem(M,E, timeSteps=[(40,3),(60,3)], boundaryConditions=bc, initialConditions=h, doNewton=False, method='mixed')
+        prob = Richards.RichardsProblem(M,E, timeSteps=[(40,3),(60,3)], boundaryConditions=bc, initialConditions=h, doNewton=False, method='mixed', tolRootFinder=1e-6, debug=False)
         prob.Solver = Solver
 
         locs = Utils.ndgrid(np.array([5,7.]),np.array([5,15,25.]))
@@ -225,7 +225,7 @@ class RichardsTests3D(unittest.TestCase):
         bc = np.array([-61.5,-20.7])
         bc = np.r_[np.zeros(M.nCy*M.nCz*2),np.zeros(M.nCx*M.nCz*2),np.ones(M.nCx*M.nCy)*bc[0],np.ones(M.nCx*M.nCy)*bc[1]]
         h = np.zeros(M.nC) + bc[0]
-        prob = Richards.RichardsProblem(M,E, timeSteps=[(40,3),(60,3)], boundaryConditions=bc, initialConditions=h, doNewton=False, method='mixed')
+        prob = Richards.RichardsProblem(M,E, timeSteps=[(40,3),(60,3)], boundaryConditions=bc, initialConditions=h, doNewton=False, method='mixed', tolRootFinder=1e-6, debug=False)
         prob.Solver = Solver
 
         locs = Utils.ndgrid(np.r_[5,7.],np.r_[5,15.],np.r_[6,8.])
