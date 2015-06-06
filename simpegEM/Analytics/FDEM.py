@@ -111,3 +111,30 @@ def AnalyticMagDipoleWholeSpace(XYZ, srcLoc, sig, f, m=1., orientation='X'):
         
     return Bx, By, Bz
 
+
+def ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, m=1., orientation='X'):
+    XYZ = Utils.asArray_N_x_Dim(XYZ, 3)
+
+    dx = XYZ[:,0]-srcLoc[0]
+    dy = XYZ[:,1]-srcLoc[1]
+    dz = XYZ[:,2]-srcLoc[2]
+
+    r  = np.sqrt( dx**2. + dy**2. + dz**2.)
+    k  = np.sqrt( -1j*2.*np.pi*f*mu_0*sig )
+    kr = k*r 
+
+    front = moment / (4. * np.pi * sig * r**3) * exp(-1j*k*r)
+    mid   = -k**2 * r**2 + 3*1j*k*r + 3 
+
+    Ex = front*((dx**2 / r**2)*mid + (k**2 * r**2 -1j*k*r))
+    Ey = front*(dx*dy  / r**2)*mid
+    Ez = front*(dx*dz  / r**2)*mid
+
+    if orientation.upper() == 'X':
+        return Ex, Ey, Ez
+
+    elif orientation.upper() == 'Y':
+        return Ez, Ex, Ey 
+
+    elif orientation.upper() == 'Z':
+        return Ey, Ez, Ex 
