@@ -25,6 +25,10 @@ class FieldsFDEM_e(FieldsFDEM):
     def startup(self):
         self._edgeCurl = self.survey.prob.mesh.edgeCurl
 
+    # def getDeriv_u(self, fieldsList, src, v, adjoint=False):
+
+    # def getDeriv_m(self, fieldsList, src, v, adjoint=False):
+
     def _ePrimary(self, eSolution, srcList):
         ePrimary = np.zeros_like(eSolution)
         for i, src in enumerate(srcList):
@@ -43,6 +47,7 @@ class FieldsFDEM_e(FieldsFDEM):
         return None
 
     def _eDeriv_m(self, src, v, adjoint = False):
+        # assuming primary does not depend on the model
         return None
 
     def _bPrimary(self, eSolution, srcList):
@@ -106,6 +111,7 @@ class FieldsFDEM_b(FieldsFDEM):
         self._edgeCurl = self.survey.prob.mesh.edgeCurl
         self._MeSigmaI = self.survey.prob.MeSigmaI
         self._MfMui = self.survey.prob.MfMui
+        self._MeSigmaIDeriv = self.survey.prob.MeSigmaIDeriv
 
     def _bPrimary(self, bSolution, srcList):
         bPrimary = np.zeros_like(bSolution)
@@ -121,6 +127,13 @@ class FieldsFDEM_b(FieldsFDEM):
     def _b(self, bSolution, srcList):
         return self._bPrimary(bSolution, srcList) + self._bSecondary(bSolution, srcList)  
 
+    def _bDeriv_u(self, src, v, adjoint=False):
+        return None
+
+    def _bDeriv_m(self, src, v, adjoint=False):
+        # assuming primary does not depend on the model
+        return None
+
     def _ePrimary(self, bSolution, srcList):
         ePrimary = np.zeros([self._edgeCurl.shape[1],bSolution.shape[1]],dtype = complex)
         for i,src in enumerate(srcList):
@@ -135,21 +148,44 @@ class FieldsFDEM_b(FieldsFDEM):
             _,S_e = src.eval(self.survey.prob)
             if S_e is not None:
                 e += -self._MeSigmaI*S_e
-
         return e
+
+    def _eSecondaryDeriv_u(self, src, v, adjoint=False):
+        if not adjoint:
+            return self._MeSigmaI * ( self._edgeCurl.T * ( self._MfMui * v) ) 
+        else:
+            return self._MfMui.T * (self._edgeCurl * (self._MeSigmaI.T * v))
+
+    def _eSecondaryDeriv_m(self, src, v, adjoint=False):
+        bsol = self[[src],'bSolution']
+        _,S_e = src.eval(self.survey.prob)
+
+        w = self._edgeCurl.T * (self._MfMui * bsol)
+        if S_e is not None:
+            w += -S_e
+
+        if not adjoint:
+            de_dm = self._MeSigmaIDeriv(w) * v
+        elif adjoint: 
+            de_dm = self._MeSigmaIDeriv(w).T * v
+
+        _, S_eDeriv = src.evalDeriv(self.survey.prob, adjoint)
+        Se_Deriv = S_eDeriv(v)
+
+        if Se_Deriv is not None:
+            de_dm += -self._MeSigmaI * Se_Deriv
+
+        return de_dm
 
     def _e(self, bSolution, srcList):
         return self._ePrimary(bSolution, srcList) + self._eSecondary(bSolution, srcList)
 
-    def _eDeriv(self, bSolution, srcList, v, adjoint=False):
-        raise NotImplementedError('Fields Derivs Not Implemented Yet')
-        _,S_eDeriv = src.evalDeriv(self.survey.prob, adjoint)
-        S_eDeriv = S_eDeriv(v)
+    def _eDeriv_u(self, src, v, adjoint=False):
+        return self._eSecondaryDeriv_u(src, v, adjoint)
 
-        if S_eDeriv is None:
-            return None
-        else:
-            return -S_eDeriv
+    def _eDeriv_m(self, src, v, adjoint=False):
+        # assuming primary doesn't depend on model
+        return self._eSecondaryDeriv_m(src, v, adjoint)
 
 
 class FieldsFDEM_j(FieldsFDEM):

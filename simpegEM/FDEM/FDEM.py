@@ -34,46 +34,49 @@ class BaseFDEMProblem(BaseEMProblem):
 
         return F
 
-    def Jvec(self, m, v, u=None):
-        if u is None:
-           u = self.fields(m)
+    def Jvec(self, m, v, f=None):
+        if f is None:
+           f = self.fields(m) # rename to f?
 
         self.curModel = m
 
         Jv = self.dataPair(self.survey)
 
         for freq in self.survey.freqs:
-            A = self.getA(freq)
-            Ainv = self.Solver(A, **self.solverOpts)
+            dA_du = self.getA(freq) #
+            dA_duI = self.Solver(dA_du, **self.solverOpts) 
 
             for src in self.survey.getSrcByFreq(freq):
-                u_src = u[src, self._fieldType]
-                dF_dm = self.getADeriv(freq, u_src, v)
+                ftype = self._fieldType + 'Solution'
+                u_src = f[src, ftype]
+                dA_dm = self.getADeriv(freq, u_src, v)
                 dRHS_dm = self.getRHSDeriv(src, v)
                 if dRHS_dm is None:
-                    du_dm = Ainv * ( - dF_dm )
+                    du_dm = dA_duI * ( - dA_dm )
                 else:
-                    du_dm = Ainv * ( - dF_dm + dRHS_dm )
+                    du_dm = dA_duI * ( - dA_dm + dRHS_dm )
                 for rx in src.rxList:
-                    dAl_duFun = getattr(u, '_%sDeriv_u'%rx.projField, None)
-                    dAl_du = dAl_duFun(src, du_dm, adjoint=False)
-                    if dAl_du is not None:
-                        du_dm = dAl_du
+                    # df_duFun = u.deriv_u(rx.fieldsUsed, m)
+                    df_duFun = getattr(f, '_%sDeriv_u'%rx.projField, None)
+                    df_du = df_duFun(src, du_dm, adjoint=False)
+                    if df_du is not None:
+                        du_dm = df_du
 
-                    dAl_dmFun = getattr(u, '_%sDeriv_m'%rx.projField, None)
-                    dAl_dm = dAl_dmFun(src, v, adjoint=False)
-                    if dAl_dm is not None:
-                        du_dm += dAl_dm
+                    df_dmFun = getattr(f, '_%sDeriv_m'%rx.projField, None)
+                    df_dm = df_dmFun(src, v, adjoint=False)
+                    if df_dm is not None:
+                        du_dm += df_dm
 
-                    P = lambda v: rx.projectFieldsDeriv(src, self.mesh, u, v)
+                    P = lambda v: rx.projectFieldsDeriv(src, self.mesh, f, v) # wrt u, also have wrt m
+
 
                     Jv[src, rx] = P(du_dm)
 
         return Utils.mkvc(Jv)
 
-    def Jtvec(self, m, v, u=None):
-        if u is None:
-            u = self.fields(m)
+    def Jtvec(self, m, v, f=None): 
+        if f is None:
+            f = self.fields(m)
 
         self.curModel = m
 
@@ -81,7 +84,6 @@ class BaseFDEMProblem(BaseEMProblem):
         if not isinstance(v, self.dataPair):
             v = self.dataPair(self.survey, v)
 
-        # Jtv = np.zeros(self.PropMap.PropModel.nP)
         Jtv = np.zeros(m.size)
 
         for freq in self.survey.freqs:
@@ -89,31 +91,32 @@ class BaseFDEMProblem(BaseEMProblem):
             ATinv = self.Solver(AT, **self.solverOpts)
 
             for src in self.survey.getSrcByFreq(freq):
-                u_src = u[src, self._fieldType]
+                ftype = self._fieldType + 'Solution'
+                u_src = f[src, ftype]
 
                 for rx in src.rxList:
-                    PTv = rx.projectFieldsDeriv(src, self.mesh, u, v[src, rx], adjoint=True)
+                    PTv = rx.projectFieldsDeriv(src, self.mesh, f, v[src, rx], adjoint=True) # wrt u, need possibility wrt m
 
-                    dAl_duTFun = getattr(u, '_%sDeriv_u'%rx.projField, None)
-                    dAl_duT = dAl_duTFun(src, PTv, adjoint=True)
-                    if dAl_duT is not None:
-                        dF_duIT = ATinv * dAl_duT
+                    df_duTFun = getattr(f, '_%sDeriv_u'%rx.projField, None)
+                    df_duT = df_duTFun(src, PTv, adjoint=True)
+                    if df_duT is not None:
+                        dA_duIT = ATinv * df_duT
                     else:
-                        dF_duIT = ATinv * PTv
+                        dA_duIT = ATinv * PTv
 
-                    dF_dmT = self.getADeriv(freq, u_src, dF_duIT, adjoint=True)
+                    dA_dmT = self.getADeriv(freq, u_src, dA_duIT, adjoint=True)
 
-                    dRHS_dmT = self.getRHSDeriv(src, dF_duIT, adjoint=True)
+                    dRHS_dmT = self.getRHSDeriv(src, dA_duIT, adjoint=True)
 
                     if dRHS_dmT is None:
-                        du_dmT = - dF_dmT
+                        du_dmT = - dA_dmT
                     else:
-                        du_dmT = -dF_dmT + dRHS_dmT
+                        du_dmT = -dA_dmT + dRHS_dmT
 
-                    dAl_dmFun = getattr(u, '_%sDeriv_m'%rx.projField, None)
-                    dAlT_dm = dAl_dmFun(src, PTv, adjoint=True)
-                    if dAlT_dm is not None:
-                        du_dmT += dAlT_dm
+                    df_dmFun = getattr(f, '_%sDeriv_m'%rx.projField, None)
+                    dfT_dm = df_dmFun(src, PTv, adjoint=True)
+                    if dfT_dm is not None:
+                        du_dmT += dfT_dm
 
 
         #             fPTv = self.calcFields(PTv, freq, rx.projField, adjoint=True)
@@ -207,17 +210,14 @@ class ProblemFDEM_e(BaseFDEMProblem):
         return C.T*MfMui*C + 1j*omega(freq)*MeSigma
 
 
-    def getADeriv(self, freq, u, v, adjoint=False):
-        # sig = self.sigma
-        # dsig_dm = self.curModel.transformDeriv
-        # dMe_dsig = self.mesh.getEdgeInnerProductDeriv(sig)(u)
+    def getADeriv(self, freq, u, v, adjoint=False): # getADeriv_m 
         dsig_dm = self.curModel.sigmaDeriv
         dMe_dsig = self.MeSigmaDeriv(u)
 
         if adjoint:
-            return 1j * omega(freq) * ( dsig_dm.T * ( dMe_dsig.T * v ) )
+            return 1j * omega(freq) * ( dMe_dsig.T * v )
 
-        return 1j * omega(freq) * ( dMe_dsig * ( dsig_dm * v ) )
+        return 1j * omega(freq) * ( dMe_dsig * v )
 
     def getRHS(self, freq):
         """
@@ -234,7 +234,7 @@ class ProblemFDEM_e(BaseFDEMProblem):
 
         return RHS
 
-    def getRHSDeriv(self, src, v, adjoint=False):
+    def getRHSDeriv(self, src, v, adjoint=False): #getRHSDeriv_m
         C = self.mesh.edgeCurl
         MfMui = self.MfMui
         S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint)
@@ -298,21 +298,24 @@ class ProblemFDEM_b(BaseFDEMProblem):
 
         MfMui = self.MfMui
         C = self.mesh.edgeCurl
-        sig = self.sigma
-        dsig_dm = self.curModel.transformDeriv
-        dMeSigmaI_dI = self._dMeSigmaI_dI
+        MeSigmaIDeriv = self.MeSigmaIDeriv
+        vec = C.T*(MfMui*u)
 
-        vec = (C.T*(MfMui*u))
-        dMe_dsig = self.mesh.getEdgeInnerProductDeriv(sig)(vec)
+        MeSigmaIDeriv = MeSigmaIDeriv(vec)
+
+        # dMe_dsig = self.mesh.getEdgeInnerProductDeriv(sig)(vec)
 
         if adjoint:
             if self._makeASymmetric is True:
                 v = MfMui * v
-            return dsig_dm.T * ( dMe_dsig.T * ( dMeSigmaI_dI.T * ( C.T * v ) ) )
+            return MeSigmaIDeriv.T * (C.T * v)
+            # dsig_dm.T * ( dMe_dsig.T * ( dMeSigmaI_dI.T * ( C.T * v ) ) )
 
         if self._makeASymmetric is True:
-            return MfMui.T * ( C * ( dMeSigmaI_dI * ( dMe_dsig * ( dsig_dm * v ) ) ) )
-        return C * ( dMeSigmaI_dI * ( dMe_dsig * ( dsig_dm * v ) ) )
+            # return MfMui.T * ( C * ( dMeSigmaI_dI * ( dMe_dsig * ( dsig_dm * v ) ) ) )
+            return MfMui.T * ( C * ( MeSigmaIDeriv * v ) ) 
+        return C * ( MeSigmaIDeriv * v ) 
+        # C * ( dMeSigmaI_dI * ( dMe_dsig * ( dsig_dm * v ) ) )
 
 
     def getRHS(self, freq):
@@ -334,9 +337,58 @@ class ProblemFDEM_b(BaseFDEMProblem):
 
         return RHS
 
-    def getRHSDeriv(self, freq, v, adjoint=False):
-        raise NotImplementedError('getRHSDeriv not implemented yet')
-        return None
+    def getRHSDeriv(self, src, v, adjoint=False):
+        C = self.mesh.edgeCurl
+        S_m, S_e = self.getSourceTerm(src.freq)
+        MfMui = self.MfMui
+
+        if self._makeASymmetric and adjoint:
+            v = self.MfMui * v
+
+        if S_e is not None:
+            MeSigmaIDeriv = self.MeSigmaIDeriv(S_e)
+            if not adjoint:
+                RHSderiv = C * (MeSigmaIDeriv * v)
+            elif adjoint:
+                RHSderiv = MeSigmaIDeriv.T * (C.T * v)
+        else:
+            RHSderiv = None
+
+        S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint)
+        S_mDeriv, S_eDeriv = S_mDeriv(v), S_eDeriv(v)
+        if S_mDeriv is not None and S_eDeriv is not None:
+            if not adjoint:
+                SrcDeriv = S_mDeriv + C * (self.MeSigmaI * S_eDeriv)
+            elif adjoint:
+                SrcDeriv = S_mDeriv + Self.MeSigmaI.T * ( C.T * S_eDeriv)
+        elif S_mDeriv is not None:
+            SrcDeriv = S_mDeriv
+        elif S_eDeriv is not None:
+            if not adjoint:
+                SrcDeriv = C * (self.MeSigmaI * S_eDeriv)
+            elif adjoint:
+                SrcDeriv = self.MeSigmaI.T * ( C.T * S_eDeriv)
+        else: 
+            SrcDeriv = None
+
+        if RHSderiv is not None and SrcDeriv is not None:
+            RHSderiv += SrcDeriv
+        # elif RHSderiv is not None:
+        #     # if self._makeASymmetric is True:
+        #     #     return MfMui.T * RHSderiv
+        #     # return RHSderiv
+        elif SrcDeriv is not None:
+            # if self._makeASymmetric is True:
+            #     return MfMui.T * SrcDeriv
+            RHSderiv = SrcDeriv
+        # else:
+        #     return None
+
+        if self._makeASymmetric is True and not adjoint:
+            return MfMui.T * RHSderiv
+            # elif adjoint:
+            #     return 
+        return RHSderiv
 
 
 

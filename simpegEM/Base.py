@@ -98,7 +98,7 @@ class BaseEMProblem(Problem.BaseProblem):
         """
         Deriv of MeSigma wrt sigma
         """ 
-        return self.mesh.getEdgeInnerProductDeriv(self.curModel.sigma)(u)
+        return self.mesh.getEdgeInnerProductDeriv(self.curModel.sigma)(u) * self.curModel.sigmaDeriv
     
 
     @property
@@ -111,7 +111,13 @@ class BaseEMProblem(Problem.BaseProblem):
         """
         Deriv of MeSigma wrt sigma
         """ 
-        return self.mesh.getEdgeInnerProductDeriv(self.curModel.sigma, invMat=True)(u)
+        # TODO: only works for diagonal tensors. getEdgeInnerProductDeriv, invMat=True should be implemented in SimPEG
+
+        dMeSigmaI_dI = -self.MeSigmaI**2
+        dMe_dsig = self.mesh.getEdgeInnerProductDeriv(self.curModel.sigma)(u)
+        dsig_dm = self.curModel.sigmaDeriv
+        return dMeSigmaI_dI * ( dMe_dsig * ( dsig_dm))
+        # return self.mesh.getEdgeInnerProductDeriv(self.curModel.sigma, invMat=True)(u)
 
 
     @property
