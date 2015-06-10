@@ -373,21 +373,12 @@ class ProblemFDEM_b(BaseFDEMProblem):
 
         if RHSderiv is not None and SrcDeriv is not None:
             RHSderiv += SrcDeriv
-        # elif RHSderiv is not None:
-        #     # if self._makeASymmetric is True:
-        #     #     return MfMui.T * RHSderiv
-        #     # return RHSderiv
         elif SrcDeriv is not None:
-            # if self._makeASymmetric is True:
-            #     return MfMui.T * SrcDeriv
             RHSderiv = SrcDeriv
-        # else:
-        #     return None
 
         if self._makeASymmetric is True and not adjoint:
             return MfMui.T * RHSderiv
-            # elif adjoint:
-            #     return 
+
         return RHSderiv
 
 
@@ -463,10 +454,11 @@ class ProblemFDEM_j(BaseFDEMProblem):
         MeMuI = self.MeMuI
         MfRho = self.MfRho
         C = self.mesh.edgeCurl
-        sigi = self.sigmai
-        dsig_dm = self.curModel.transformDeriv
-        dsigi_dsig = -Utils.sdiag(sigi)**2
-        dMf_dsigi = self.mesh.getFaceInnerProductDeriv(sigi)(u)
+        MfRhoDeriv = self.MfRhoDeriv
+        # sigi = self.sigmai
+        # dsig_dm = self.curModel.transformDeriv
+        # dsigi_dsig = -Utils.sdiag(sigi)**2
+        # dMf_dsigi = self.mesh.getFaceInnerProductDeriv(sigi)(u)
 
         if adjoint:
             if self._makeASymmetric is True:
