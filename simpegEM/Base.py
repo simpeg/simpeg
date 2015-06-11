@@ -94,6 +94,7 @@ class BaseEMProblem(Problem.BaseProblem):
             self._MeSigma = self.mesh.getEdgeInnerProduct(self.curModel.sigma)
         return self._MeSigma
 
+    # TODO: This should take a vector 
     def MeSigmaDeriv(self, u):
         """
         Deriv of MeSigma wrt sigma
@@ -107,6 +108,7 @@ class BaseEMProblem(Problem.BaseProblem):
             self._MeSigmaI = self.mesh.getEdgeInnerProduct(self.curModel.sigma, invMat=True)
         return self._MeSigmaI
 
+    # TODO: This should take a vector
     def MeSigmaIDeriv(self, u):
         """
         Deriv of MeSigma wrt sigma
@@ -126,8 +128,9 @@ class BaseEMProblem(Problem.BaseProblem):
             self._MfRho = self.mesh.getFaceInnerProduct(self.curModel.rho)
         return self._MfRho
 
+    # TODO: This should take a vector
     def MfRhoDeriv(self,u):
-        return self.mesh.getFaceInnerProductDeriv(self.curModel.rho)(u)
+        return self.mesh.getFaceInnerProductDeriv(self.curModel.rho)(u) * self.curModel.rhoDeriv
 
     @property
     def MfRhoI(self):
@@ -135,5 +138,7 @@ class BaseEMProblem(Problem.BaseProblem):
             self._MfRhoI = self.mesh.getFaceInnerProduct(self.curModel.rho, invMat=True)
         return self._MfRhoI
 
+    # TODO: This isn't going to work yet
+    # TODO: This should take a vector
     def dMfRhoIDeriv(self,u):
-        return self.mesh.getFaceInnerProductDeriv(self.curModel.rho, invMat=True)
+        return self.mesh.getFaceInnerProductDeriv(self.curModel.rho, invMat=True)(u) * self.curModel.rhoDeriv
