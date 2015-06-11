@@ -32,7 +32,7 @@ def setupSurvey(sigmaHalf):
     # Source list
     srcList =[]
     for freq in freqs:
-        srcList.append(simpegmt.SurveyMT.srcMT(freq,rxList))
+        srcList.append(simpegmt.SurveyMT.srcMT_polxy_1DhomotD(rxList,freq))
     survey = simpegmt.SurveyMT.SurveyMT(srcList)
     return survey, sigma, m1d
 

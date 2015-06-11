@@ -1,8 +1,11 @@
-from SimPEG import Survey, Utils, Problem, np, sp, mkvc
+from SimPEG import Survey, Utils, Problem, Maps, np, sp, mkvc
+from simpegEM.FDEM.SurveyFDEM import SrcFDEM
+from simpegEM.Utils.EMUtils import omega
 from scipy.constants import mu_0
 import sys
 from numpy.lib import recfunctions as recFunc
 from DataMT import DataMT
+from simpegMT.Sources import homo1DModelSource
 #################
 ### Receivers ###
 #################
@@ -45,7 +48,7 @@ class RxMT(Survey.BaseRx):
         """
         Field Type projection (e.g. e b ...)
         :param str fracPos: Position of the field in the data ratio
-        
+
         """
         if 'numerator' in fracPos:
             return self.knownRxTypes[self.rxType][0][0]
@@ -59,7 +62,7 @@ class RxMT(Survey.BaseRx):
         """
         Grid Location projection (e.g. Ex Fy ...)
         :param str fracPos: Position of the field in the data ratio
-        
+
         """
         if 'numerator' in fracPos:
             return self.knownRxTypes[self.rxType][0][1]
@@ -74,7 +77,7 @@ class RxMT(Survey.BaseRx):
 
         """
         return self.knownRxTypes[self.rxType][0]
-    
+
     @property
     def projComp(self):
         """Component projection (real/imag)"""
@@ -82,12 +85,12 @@ class RxMT(Survey.BaseRx):
 
     def projectFields(self, src, mesh, u):
         '''
-        Project the fields and return the 
+        Project the fields and return the
         '''
 
         if self.projType is 'Z1D':
             Pex = mesh.getInterpolationMat(self.locs,'Fx')
-            Pbx = mesh.getInterpolationMat(self.locs,'Ex')   
+            Pbx = mesh.getInterpolationMat(self.locs,'Ex')
             ex = Pex*mkvc(u[src,'e_1d'],2)
             bx = Pbx*mkvc(u[src,'b_1d'],2)/mu_0
             f_part_complex = ex/bx
@@ -144,30 +147,82 @@ class RxMT(Survey.BaseRx):
         return Pv
 
 
-# Note: Might need to add tests to make sure that both polarization have the same rxList. 
+# Note: Might need to add tests to make sure that both polarization have the same rxList.
 
 ###############
 ### Sources ###
 ###############
 class srcMT(Survey.BaseSrc):
     '''
-    Sources for the MT problem. 
+    Sources for the MT problem.
     Use the SimPEG BaseSrc, since the source fields share properties with the transmitters.
 
     :param float freq: The frequency of the source
     :param list rxList: A list of receivers associated with the source
-    :param str srcPol: The polarization of the source
     '''
 
     freq = None #: Frequency (float)
-
     rxPair = RxMT
 
-    knownSrcTypes = ['pol_xy','pol_x','pol_y'] # ORThogonal POLarization
-
-    def __init__(self, freq, rxList, srcPol = 'pol_xy'): # remove rxType? hardcode to one thing. always polarizations
+    def __init__(self, rxList, freq):
         self.freq = float(freq)
-        Survey.BaseSrc.__init__(self, None, srcPol, rxList)
+        Survey.BaseSrc.__init__(self, rxList)
+
+# 1D sources
+class srcMT_polxy_1DhomotD(srcMT):
+    """
+    MT source for both polarizations (x and y) for the total Domain. It calculates fields calculated based on conditions on the boundary of the domain.
+    """
+    def __init__(self, rxList, freq):
+        srcMT.__init__(self, rxList, freq)
+
+
+    # TODO: need to add the  primary fields calc and source terms into the problem.
+
+
+# Need to implement such that it works for all dims.
+class srcMT_polxy_1Dprimary(srcMT):
+    """
+    MT source for both polarizations (x and y) given a 1D primary models. It assigns fields calculated from the 1D model
+    as fields in the full space of the problem.
+    """
+    def __init__(self, rxList, freq, sigma1d):
+        assert mkvc(self.mesh.hz.shape,1) == mkvc(sigma1d.shape,1),'The number of values in the 1D background model does not match the number of vertical cells (hz).'
+        self.sigma1d = sigma1d
+        srcMT.__init__(self, rxList, freq)
+
+
+
+    def ePrimary(self,problem):
+        # Get primary fields for both polarizations
+        eBG_bp = homo1DModelSource(problem.mesh,self.freq,self.sigma1d)
+        return eBG_bp
+
+    def bPrimary(self,problem):
+        # Project ePrimary to bPrimary
+        # Satisfies the primary(background) field conditions
+        bBG_bp = (- self.mesh.edgeCurl * self.ePrimary )/( 1j*omega(freq) )
+        return bBG_bp
+
+    def S_e(self,problem):
+        """
+        Get the electrical field source
+        """
+        e_p = self.ePrimary(problem)
+        Map_sigma_p = Maps.Vertical1DMap(problem.mesh)
+        sigma_p = Map_sigma_p._transform(self.sigma1d)
+        # Make mass matrix
+        # Note: M(sig) - M(sig_p) = M(sig - sig_p)
+        Mesigma = problem.MeSigma
+        Mesigma_p = problem.mesh.getEdgeInnerProduct(sigma_p)
+        return (Mesigma - Mesigma_p) * e_p
+
+    def S_eDeriv(self, problem, v, adjoint = False):
+        MesigmaDeriv = problem.MeSigmaDeriv(self.ePrimary(problem))
+        if adjoint:
+            return MesigmaDeriv.T * v
+        else:
+            return MesigmaDeriv * v
 
 
 ##############
@@ -208,7 +263,7 @@ class SurveyMT(Survey.BaseSurvey):
         return len(self._freqDict)
 
     # TODO: Rename to getSources
-    def getSources(self, freq):
+    def getSrcByFreq(self, freq):
         """Returns the sources associated with a specific frequency."""
         assert freq in self._freqDict, "The requested frequency is not in this survey."
         return self._freqDict[freq]

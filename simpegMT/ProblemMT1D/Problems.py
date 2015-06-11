@@ -10,8 +10,11 @@ import numpy as np
 import multiprocessing, sys, time
 
 
+# class eForm_ps(BaseMTProblem):
+
+
 class eForm_TotalField(BaseMTProblem):
-    """ 
+    """
     A MT problem solving a e formulation and a primary/secondary fields decompostion.
 
     Solves the equation:
@@ -21,8 +24,8 @@ class eForm_TotalField(BaseMTProblem):
 
     # From FDEMproblem: Used to project the fields. Currently not used for MTproblem.
     _fieldType = 'e'
-    _eqLocs    = 'FE'
-    
+    _eqLocs    = 'EF'
+
 
     def __init__(self, mesh, **kwargs):
         BaseMTProblem.__init__(self, mesh, **kwargs)
@@ -36,8 +39,14 @@ class eForm_TotalField(BaseMTProblem):
             :rtype: scipy.sparse.csr_matrix
             :return: A
         """
+
         Mmui = self.mesh.getEdgeInnerProduct(1.0/mu_0)
-        Msig = self.mesh.getFaceInnerProduct(self.curModel)
+        Msig = self.mesh.getFaceInnerProduct(self.curModel.sigma)
+        # Note: need to use the code above since in the 1D problem I want
+        # e to live on Faces(nodes) and h on edges(cells). Might need to rethink this
+        # Possible that _fieldType and _eqLocs can fix this
+        # Mmui = self.MfMui
+        # Msig = self.MeSigma
         C = self.mesh.nodalGrad
         # Make A
         A = C.T*Mmui*C + 1j*omega(freq)*Msig
@@ -66,12 +75,12 @@ class eForm_TotalField(BaseMTProblem):
         """
         # Get sources for the frequency
         # NOTE: Need to use the source information, doesn't really apply in 1D
-        src = self.survey.getSources(freq)
+        src = self.survey.getSrcByFreq(freq)
         # Get the full A
         A = self.getA(freq,full=True)
         # Define the outer part of the solution matrix
         Aio = A[1:-1,[0,-1]]
-        Ed, Eu, Hd, Hu = getEHfields(self.mesh,self.curModel,freq,self.mesh.vectorNx)
+        Ed, Eu, Hd, Hu = getEHfields(self.mesh,self.curModel.sigma,freq,self.mesh.vectorNx)
         Etot = (Ed + Eu)
         sourceAmp = 1.0
         Etot = ((Etot/Etot[-1])*sourceAmp) # Scale the fields to be equal to sourceAmp at the top
@@ -104,12 +113,12 @@ class eForm_TotalField(BaseMTProblem):
             A = self.getA(freq)
             rhs, e_o = self.getRHS(freq)
             Ainv = self.Solver(A, **self.solverOpts)
-            e_i = Ainv * rhs 
+            e_i = Ainv * rhs
             e = mkvc(np.r_[e_o[0], e_i, e_o[1]],2)
             # Store the fields
-            Src = self.survey.getSources(freq)
+            Src = self.survey.getSrcByFreq(freq)
             # Store the fields
-            # NOTE: only store 
+            # NOTE: only store
             F[Src, 'e_1d'] = e
             # F[Src, 'e_py'] = 0*e[:,0]
             # Note curl e = -iwb so b = -curl e /iw
@@ -120,4 +129,3 @@ class eForm_TotalField(BaseMTProblem):
                 print 'Ran for {:f} seconds'.format(time.time()-startTime)
                 sys.stdout.flush()
         return F
-        

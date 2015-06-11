@@ -71,8 +71,9 @@ def runSimpegMTfwd_eForm_ps(inputsProblem):
             rxList.append(simpegmt.SurveyMT.RxMT(rx_loc,rxType))
     # Source list
     srcList =[]
+    sigma1d = M.r(sigBG,'CC','CC','M')[0,0,:]
     for freq in freqs:
-        srcList.append(simpegmt.SurveyMT.srcMT(freq,rxList))
+        srcList.append(simpegmt.SurveyMT.srcMT_polxy_1Dprimary(rxList,freq,sigma1d))
     # Survey MT
     survey = simpegmt.SurveyMT.SurveyMT(srcList)
 
@@ -83,7 +84,7 @@ def runSimpegMTfwd_eForm_ps(inputsProblem):
     problem.Solver = MumpsSolver
     problem.pair(survey)
 
-    fields = problem.fields(sig,sigBG)
+    fields = problem.fields(sig)
     mtData = survey.projectFields(fields)
 
     return (survey, problem, fields, mtData)
@@ -93,7 +94,7 @@ def getAppResPhs(MTdata):
     # Make impedance
     def appResPhs(freq,z):
         app_res = ((1./(8e-7*np.pi**2))/freq)*np.abs(z)**2
-        app_phs = np.arctan2(-z.imag,z.real)*(180/np.pi)
+        app_phs = np.arctan2(z.imag,z.real)*(180/np.pi)
         return app_res, app_phs
     recData = MTdata.toRecArray('Complex')
     return appResPhs(recData['freq'],recData['zxy']), appResPhs(recData['freq'],recData['zyx'])
@@ -107,7 +108,7 @@ def appResPhsHalfspace_eFrom_ps_Norm(sigmaHalf,appR=True):
     if appR:
         return np.linalg.norm(np.abs(app_rpxy[0,:] - np.ones(survey.nFreq)/sigmaHalf) * sigmaHalf)
     else:
-        return np.linalg.norm(np.abs(app_rpxy[1,:] - np.ones(survey.nFreq)/135) * 135)
+        return np.linalg.norm(np.abs(app_rpxy[1,:] + np.ones(survey.nFreq)*135) / 135)
 
 class TestAnalytics(unittest.TestCase):
 
