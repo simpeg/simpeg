@@ -5,7 +5,8 @@ from simpegEM.Utils.EMUtils import k
 def getKc(freq,sigma,a,b,mu=mu_0,eps=epsilon_0):
     a = float(a)
     b = float(b)
-    return 2./np.pi * np.sqrt(b / a) * np.exp(-1j*k(freq,sigma,mu,eps)*(b-a))
+    # return 1./(2*np.pi) * np.sqrt(b / a) * np.exp(-1j*k(freq,sigma,mu,eps)*(b-a))
+    return np.sqrt(b / a) * np.exp(-1j*k(freq,sigma,mu,eps)*(b-a))
 
 def _r2(xyz):
     return np.sum(xyz**2,1)
