@@ -130,7 +130,8 @@ class BaseEMProblem(Problem.BaseProblem):
 
     # TODO: This should take a vector
     def MfRhoDeriv(self,u):
-        return self.mesh.getFaceInnerProductDeriv(self.curModel.rho)(u) * self.curModel.rhoDeriv
+        return self.mesh.getFaceInnerProductDeriv(self.curModel.rho)(u) * -Utils.sdiag(self.curModel.rho**2) * self.curModel.sigmaDeriv
+        # self.curModel.rhoDeriv
 
     @property
     def MfRhoI(self):

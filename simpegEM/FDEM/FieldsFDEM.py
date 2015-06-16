@@ -206,11 +206,10 @@ class FieldsFDEM_j(FieldsFDEM):
         self._edgeCurl = self.survey.prob.mesh.edgeCurl
         self._MeMuI = self.survey.prob.MeMuI
         self._MfRho = self.survey.prob.MfRho
-        self._curModel = self.survey.prob.curModel
         self._MfRhoDeriv = self.survey.prob.MfRhoDeriv
 
     def _jPrimary(self, jSolution, srcList):
-        jPrimary = np.zeros_like(jSolution)
+        jPrimary = np.zeros_like(jSolution,dtype = complex)
         for i, src in enumerate(srcList):
             jp = src.jPrimary(self.survey.prob) 
             if jp is not None:
@@ -257,7 +256,7 @@ class FieldsFDEM_j(FieldsFDEM):
         if not adjoint: 
             return  -1./(1j*omega(src.freq)) * MeMuI * (C.T * (MfRho * v) )
         elif adjoint:
-            return  -1./(1j*omega(src.freq)) * MfRho * (C * ( MeMuI .T * v))
+            return  -1./(1j*omega(src.freq)) * MfRho.T * (C * ( MeMuI.T * v))
 
     def _hSecondaryDeriv_m(self, src, v, adjoint=False):
         jSolution = self[[src],'jSolution']
@@ -281,36 +280,18 @@ class FieldsFDEM_j(FieldsFDEM):
             S_mDeriv = S_mDeriv(MeMuI.T * v)
             if S_mDeriv is not None:
                 hDeriv_m += 1./(1j*omega(src.freq)) * S_mDeriv
-        return h
+        return hDeriv_m
 
 
     def _h(self, jSolution, srcList): 
         return self._hPrimary(jSolution, srcList) + self._hSecondary(jSolution, srcList)
 
-        # raise NotImplementedError('Fields Derivs Not Implemented Yet')
-        # sig = self._curModel.transform
-        # sigi = 1/sig
-        # dsig_dm = self._curModel.transformDeriv
-        # dsigi_dsig = -Utils.sdiag(sigi)**2
-        # dMf_dsigi = self.mesh.getFaceInnerProductDeriv(sigi)(j)
-        # sigi = self._MfRho
-
-        # S_mDeriv,_ = src.getSourceDeriv(self.survey.prob, v, adjoint)
-
-        # if not adjoint:
-        #     h_Deriv= -(1./(1j*omega(freq))) * MeMuI * ( C.T * ( dMf_dsigi * ( dsigi_dsig * ( dsig_dm * v ) ) ) )
-        # else:
-        #     h_Deriv= -(1./(1j*omega(freq))) * dsig_dm.T * ( dsigi_dsig.T * ( dMf_dsigi.T * ( C * ( MeMuI.T * v ) ) ) )
-
-        # if S_mDeriv is not None:
-        #     return 1./(1j*omega(src.freq)) * S_mDeriv + h_Deriv
-
     def _hDeriv_u(self, src, v, adjoint=False):
-        return _hSecondaryDeriv_u(self, src, v, adjoint)
+        return self._hSecondaryDeriv_u(src, v, adjoint)
 
     def _hDeriv_m(self, src, v, adjoint=False):
         # assuming the primary doesn't depend on the model 
-        return _hSecondaryDeriv_u(self, src, v, adjoint)
+        return self._hSecondaryDeriv_m(src, v, adjoint)
 
 
 class FieldsFDEM_h(FieldsFDEM):
@@ -333,7 +314,7 @@ class FieldsFDEM_h(FieldsFDEM):
         self._MfRho = self.survey.prob.MfRho
 
     def _hPrimary(self, hSolution, srcList):
-        hPrimary = np.zeros_like(hSolution)
+        hPrimary = np.zeros_like(hSolution,dtype = complex)
         for i, src in enumerate(srcList):
             hp = src.hPrimary(self.survey.prob)
             if hp is not None:
@@ -369,63 +350,25 @@ class FieldsFDEM_h(FieldsFDEM):
                 j[:,i] += -S_e
         return j
 
+    def _jSecondaryDeriv_u(self, src, v, adjoint=False):
+        if not adjoint:
+            return self._edgeCurl*v
+        elif adjoint:
+            return self._edgeCurl.T*v
+
+    def _jSecondaryDeriv_m(self, src, v, adjoint=False):
+        _,S_eDeriv = src.evalDeriv(self.survey.prob, adjoint)
+        S_eDeriv = S_eDeriv(v)
+        if S_eDeriv is not None:
+            return -S_eDeriv
+        return None
+
     def _j(self, hSolution, srcList):
         return self._jPrimary(hSolution, srcList) + self._jSecondary(hSolution, srcList)
 
-    def _jDeriv(self, hSolution, srcList, v, adjoint=False):
-        raise NotImplementedError('Fields Derivs Not Implemented Yet')
-        _,S_eDeriv = src.getSourceDeriv(self.survey.prob, v, adjoint)
-        if S_eDeriv is None:
-            return None
-        else:
-            return - S_eDeriv
+    def _jDeriv_u(self, src, v, adjoint=False):
+        return self._jSecondaryDeriv_u(src,v,adjoint)
 
-
-    # def calcFields(self, Solution, freq, fieldType, adjoint=False):
-    #     j = Solution
-    #     if fieldType == 'j':
-    #         return j
-    #     elif fieldType == 'h':
-    #         MeMuI = self._MeMuI
-    #         C = self.mesh.edgeCurl
-    #         MfRho = self._MfRho
-    #         if not adjoint:
-    #             h = -(1./(1j*omega(freq))) * MeMuI * ( C.T * ( MfRho * j ) )
-    #         else:
-    #             h = -(1./(1j*omega(freq))) * MfRho.T * ( C * ( MeMuI.T * j ) )
-    #         return h
-    #     raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
-
-    # def calcFieldsDeriv(self, Solution, freq, fieldType, v, adjoint=False):
-    #     j = Solution
-    #     if fieldType == 'j':
-    #         return None
-    #     elif fieldType == 'h':
-    #         MeMuI = self._MeMuI
-    #         C = self.mesh.edgeCurl
-    #         sig = self._curModel.transform
-    #         sigi = 1/sig
-    #         dsig_dm = self._curModel.transformDeriv
-    #         dsigi_dsig = -Utils.sdiag(sigi)**2
-    #         dMf_dsigi = self.mesh.getFaceInnerProductDeriv(sigi)(j)
-    #         sigi = self._MfRho
-    #         if not adjoint:
-    #             return -(1./(1j*omega(freq))) * MeMuI * ( C.T * ( dMf_dsigi * ( dsigi_dsig * ( dsig_dm * v ) ) ) )
-    #         else:
-    #             return -(1./(1j*omega(freq))) * dsig_dm.T * ( dsigi_dsig.T * ( dMf_dsigi.T * ( C * ( MeMuI.T * v ) ) ) )
-    #     raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
-
-
-    # def calcFields(self, Solution, freq, fieldType, adjoint=False):
-    #     h = Solution
-    #     if fieldType == 'j':
-    #         C = self.mesh.edgeCurl
-    #         if adjoint:
-    #             return C.T*h
-    #         return C*h
-    #     elif fieldType == 'h':
-    #         return h
-    #     raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
-
-    # def calcFieldsDeriv(self, Solution, freq, fieldType, v, adjoint=False):
-    #     return None
+    def _jDeriv_m(self, src, v, adjoint=False):
+        # assuming the primary does not depend on the model 
+        return self._jSecondaryDeriv_m(src,v,adjoint)

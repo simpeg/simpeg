@@ -36,7 +36,7 @@ class BaseFDEMProblem(BaseEMProblem):
 
     def Jvec(self, m, v, f=None):
         if f is None:
-           f = self.fields(m) # rename to f?
+           f = self.fields(m) 
 
         self.curModel = m
 
@@ -238,8 +238,6 @@ class ProblemFDEM_e(BaseFDEMProblem):
         C = self.mesh.edgeCurl
         MfMui = self.MfMui
         S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint)
-        #     # evalDeriv(MfMui.T* (C * v), adjoint) 
-        #     raise Exception('Not implemented')
 
         if adjoint:
             dRHS = MfMui * (C * v)
@@ -303,19 +301,14 @@ class ProblemFDEM_b(BaseFDEMProblem):
 
         MeSigmaIDeriv = MeSigmaIDeriv(vec)
 
-        # dMe_dsig = self.mesh.getEdgeInnerProductDeriv(sig)(vec)
-
         if adjoint:
             if self._makeASymmetric is True:
                 v = MfMui * v
             return MeSigmaIDeriv.T * (C.T * v)
-            # dsig_dm.T * ( dMe_dsig.T * ( dMeSigmaI_dI.T * ( C.T * v ) ) )
 
         if self._makeASymmetric is True:
-            # return MfMui.T * ( C * ( dMeSigmaI_dI * ( dMe_dsig * ( dsig_dm * v ) ) ) )
             return MfMui.T * ( C * ( MeSigmaIDeriv * v ) ) 
         return C * ( MeSigmaIDeriv * v ) 
-        # C * ( dMeSigmaI_dI * ( dMe_dsig * ( dsig_dm * v ) ) )
 
 
     def getRHS(self, freq):
@@ -456,22 +449,13 @@ class ProblemFDEM_j(BaseFDEMProblem):
         C = self.mesh.edgeCurl
         MfRhoDeriv_m = self.MfRhoDeriv(u)
 
-        # sigi = self.curModel.rho
-        # dsig_dm = self.curModel.rhoDeriv
-        # dsigi_dsig = -Utils.sdiag(sigi)**2
-        # dMf_dsigi = self.mesh.getFaceInnerProductDeriv(sigi)(u)
-        # MfRhoDeriv_m = (dMf_dsigi * ( dsigi_dsig * ( dsig_dm)))
-
         if adjoint:
             if self._makeASymmetric is True:
                 v = MfRho * v
-            # return dsig_dm.T * ( dsigi_dsig.T *( dMf_dsigi.T * ( C * ( MeMuI.T * ( C.T * v ) ) ) ) )
-            return MfRhoDeriv_m.T * (C * (MeMuI.T * v))
+            return MfRhoDeriv_m.T * (C * (MeMuI.T * (C.T * v)))
 
         if self._makeASymmetric is True:
-            # return MfRho.T * ( C * ( MeMuI * ( C.T * ( dMf_dsigi * ( dsigi_dsig * ( dsig_dm * v ) ) ) ) ) )
             return MfRho.T * (C * ( MeMuI * (C.T * (MfRhoDeriv_m * v) )))
-        # return C * ( MeMuI * ( C.T * ( dMf_dsigi * ( dsigi_dsig * ( dsig_dm * v ) ) ) ) )
         return C * (MeMuI * (C.T * (MfRhoDeriv_m * v)))
 
 
@@ -501,6 +485,7 @@ class ProblemFDEM_j(BaseFDEMProblem):
 
         if adjoint:
             if self._makeASymmetric:
+                MfRho = self.MfRho
                 v = MfRho*v
             S_mDerivv = S_mDeriv(MeMuI.T * (C.T * v))
             S_eDerivv = S_eDeriv(v)
@@ -525,6 +510,7 @@ class ProblemFDEM_j(BaseFDEMProblem):
                 return None
 
             if self._makeASymmetric:
+                MfRho = self.MfRho
                 return MfRho.T * RHSDeriv
             return RHSDeriv
 
@@ -580,17 +566,10 @@ class ProblemFDEM_h(BaseFDEMProblem):
 
         MeMu = self.MeMu
         C = self.mesh.edgeCurl
-        # sigi = self.sigmai
-        # dsig_dm = self.curModel.transformDeriv
-        # dsigi_dsig = -Utils.sdiag(sigi)**2
-
         MfRhoDeriv_m = self.MfRhoDeriv(C*u)
-        # dMf_dsigi = self.mesh.getFaceInnerProductDeriv(sigi)(C*u)
 
         if adjoint:
-            # return (dsig_dm.T * (dsigi_dsig.T * (dMf_dsigi.T * (C * v))))
             return MfRhoDeriv_m.T * (C * v)
-        # return  (C.T  * (dMf_dsigi * (dsigi_dsig * (dsig_dm * v))))
         return C.T * (MfRhoDeriv_m * v)
 
     def getRHS(self, freq):
@@ -623,8 +602,10 @@ class ProblemFDEM_h(BaseFDEMProblem):
 
         S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint)
 
-        RHSDeriv = C.T * (MfRhoDeriv * v)
-         # = S_m + C.T * ( MfRho * S_e )
+        if not adjoint:
+            RHSDeriv = C.T * (MfRhoDeriv * v)
+        elif adjoint:
+            RHSDeriv = MfRhoDeriv.T * (C * v)
 
         S_mDeriv = S_mDeriv(v)
         S_eDeriv = S_eDeriv(v)

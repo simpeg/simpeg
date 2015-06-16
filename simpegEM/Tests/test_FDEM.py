@@ -1,7 +1,7 @@
 import unittest
 from SimPEG import *
 import simpegEM as EM
-import sys
+import sys  
 from scipy.constants import mu_0
 import copy
 
@@ -9,7 +9,7 @@ testDerivs = True
 testCrossCheck = True
 testAdjoint = True
 testEB = True
-testHJ = False
+testHJ = True
 
 verbose = False
 
@@ -35,8 +35,8 @@ def getProblem(fdemType, comp):
     x = np.array([np.linspace(-30,-15,3),np.linspace(15,30,3)]) #don't sample right by the source
     XYZ = Utils.ndgrid(x,x,np.r_[0.])
     Rx0 = EM.FDEM.RxFDEM(XYZ, comp)
-    Src0 = EM.FDEM.SrcFDEM_MagDipole([Rx0], loc=np.r_[0.,0.,0.], freq=freq[0])
-    Src1 = EM.FDEM.SrcFDEM_MagDipole([Rx0], loc=np.r_[0.,0.,0.], freq=freq[1])
+    Src0 = EM.FDEM.SrcFDEM_MagDipole([Rx0], freq=freq[0], loc=np.r_[0.,0.,0.])
+    Src1 = EM.FDEM.SrcFDEM_MagDipole([Rx0], freq=freq[1], loc=np.r_[0.,0.,0.])
 
     survey = EM.FDEM.SurveyFDEM([Src0, Src1])
 
@@ -69,7 +69,7 @@ def adjointTest(fdemType, comp):
     print 'Adjoint %s formulation - %s' % (fdemType, comp)
 
     m  = np.log(np.ones(prb.mesh.nC)*CONDUCTIVITY)
-    mu = np.log(np.ones(prb.mesh.nC)*MU)
+    mu = np.log(np.ones(prb.mesh.nC))*MU
 
     if addrandoms is True:
         m  = m + np.random.randn(prb.mesh.nC)*CONDUCTIVITY*1e-1 
