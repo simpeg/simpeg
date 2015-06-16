@@ -49,8 +49,8 @@ class BaseFDEMProblem(BaseEMProblem):
             for src in self.survey.getSrcByFreq(freq):
                 ftype = self._fieldType + 'Solution'
                 u_src = f[src, ftype]
-                dA_dm = self.getADeriv(freq, u_src, v)
-                dRHS_dm = self.getRHSDeriv(src, v)
+                dA_dm = self.getADeriv_m(freq, u_src, v)
+                dRHS_dm = self.getRHSDeriv_m(src, v)
                 if dRHS_dm is None:
                     du_dm = dA_duI * ( - dA_dm )
                 else:
@@ -104,9 +104,9 @@ class BaseFDEMProblem(BaseEMProblem):
                     else:
                         dA_duIT = ATinv * PTv
 
-                    dA_dmT = self.getADeriv(freq, u_src, dA_duIT, adjoint=True)
+                    dA_dmT = self.getADeriv_m(freq, u_src, dA_duIT, adjoint=True)
 
-                    dRHS_dmT = self.getRHSDeriv(src, dA_duIT, adjoint=True)
+                    dRHS_dmT = self.getRHSDeriv_m(src, dA_duIT, adjoint=True)
 
                     if dRHS_dmT is None:
                         du_dmT = - dA_dmT
@@ -117,17 +117,6 @@ class BaseFDEMProblem(BaseEMProblem):
                     dfT_dm = df_dmFun(src, PTv, adjoint=True)
                     if dfT_dm is not None:
                         du_dmT += dfT_dm
-
-
-        #             fPTv = self.calcFields(PTv, freq, rx.projField, adjoint=True)
-
-        #             w = ATinv * fPTv
-        #             Jtv_rx = - self.getADeriv(freq, u_src, w, adjoint=True)
-
-        #             df_dm = self.calcFieldsDeriv(u_src, freq, rx.projField, PTv, adjoint=True)
-
-        #             if df_dm is not None:
-        #                 Jtv_rx += df_dm
 
                     real_or_imag = rx.projComp
                     if real_or_imag == 'real':
@@ -210,7 +199,7 @@ class ProblemFDEM_e(BaseFDEMProblem):
         return C.T*MfMui*C + 1j*omega(freq)*MeSigma
 
 
-    def getADeriv(self, freq, u, v, adjoint=False): # getADeriv_m 
+    def getADeriv_m(self, freq, u, v, adjoint=False):
         dsig_dm = self.curModel.sigmaDeriv
         dMe_dsig = self.MeSigmaDeriv(u)
 
@@ -234,7 +223,7 @@ class ProblemFDEM_e(BaseFDEMProblem):
 
         return RHS
 
-    def getRHSDeriv(self, src, v, adjoint=False): #getRHSDeriv_m
+    def getRHSDeriv_m(self, src, v, adjoint=False):
         C = self.mesh.edgeCurl
         MfMui = self.MfMui
         S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint)
@@ -292,7 +281,7 @@ class ProblemFDEM_b(BaseFDEMProblem):
             return MfMui.T*A
         return A
 
-    def getADeriv(self, freq, u, v, adjoint=False):
+    def getADeriv_m(self, freq, u, v, adjoint=False):
 
         MfMui = self.MfMui
         C = self.mesh.edgeCurl
@@ -330,7 +319,7 @@ class ProblemFDEM_b(BaseFDEMProblem):
 
         return RHS
 
-    def getRHSDeriv(self, src, v, adjoint=False):
+    def getRHSDeriv_m(self, src, v, adjoint=False):
         C = self.mesh.edgeCurl
         S_m, S_e = self.getSourceTerm(src.freq)
         MfMui = self.MfMui
@@ -436,7 +425,7 @@ class ProblemFDEM_j(BaseFDEMProblem):
         return A
 
 
-    def getADeriv(self, freq, u, v, adjoint=False):
+    def getADeriv_m(self, freq, u, v, adjoint=False):
         """
             In this case, we assume that electrical conductivity, \(\\sigma\) is the physical property of interest (i.e. \(\sigma\) = model.transform). Then we want
             .. math::
@@ -478,7 +467,7 @@ class ProblemFDEM_j(BaseFDEMProblem):
 
         return RHS
 
-    def getRHSDeriv(self, src, v, adjoint=False):
+    def getRHSDeriv_m(self, src, v, adjoint=False):
         C = self.mesh.edgeCurl
         MeMuI = self.MeMuI  
         S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint)
@@ -562,7 +551,7 @@ class ProblemFDEM_h(BaseFDEMProblem):
 
         return C.T * MfRho * C + 1j*omega(freq)*MeMu
 
-    def getADeriv(self, freq, u, v, adjoint=False):
+    def getADeriv_m(self, freq, u, v, adjoint=False):
 
         MeMu = self.MeMu
         C = self.mesh.edgeCurl
@@ -587,19 +576,11 @@ class ProblemFDEM_h(BaseFDEMProblem):
 
         return RHS
 
-    def getRHSDeriv(self, src, v, adjoint=False):
-        # raise NotImplementedError('getRHSDeriv not implemented yet')
-        # return None
+    def getRHSDeriv_m(self, src, v, adjoint=False):
         _, S_e = self.getSourceTerm(src.freq)
         C = self.mesh.edgeCurl
         MfRho  = self.MfRho
         MfRhoDeriv = self.MfRhoDeriv(S_e)
-
-        # if not adjoint:
-        MfRhoDeriv_m = self.MfRhoDeriv(S_e)
-        # elif adjoint:
-        #     MfRhoDeriv_m = self.MfRhoDeriv
-
         S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint)
 
         if not adjoint:
