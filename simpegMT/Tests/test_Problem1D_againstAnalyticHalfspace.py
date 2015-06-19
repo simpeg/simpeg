@@ -8,7 +8,7 @@ TOLr = 5e-2
 TOLp = 5e-2
 
 
-def setupSurvey(sigmaHalf):
+def setupSurvey(sigmaHalf,tD=True):
 
     # Frequency
     nFreq = 33
@@ -31,8 +31,13 @@ def setupSurvey(sigmaHalf):
         rxList.append(simpegmt.SurveyMT.RxMT(simpeg.mkvc(np.array([0.0]),2).T,rxType))
     # Source list
     srcList =[]
-    for freq in freqs:
-        srcList.append(simpegmt.SurveyMT.srcMT_polxy_1DhomotD(rxList,freq))
+    if tD:
+        for freq in freqs:
+            srcList.append(simpegmt.SurveyMT.srcMT_polxy_1DhomotD(rxList,freq))
+    else:
+        for freq in freqs:
+            srcList.append(simpegmt.SurveyMT.srcMT_polxy_1Dprimary(rxList,freq,sigma))
+
     survey = simpegmt.SurveyMT.SurveyMT(srcList)
     return survey, sigma, m1d
 
@@ -90,23 +95,68 @@ def appPhs_TotalFieldNorm(sigmaHalf):
 
     return np.linalg.norm(np.abs(app_p - np.ones(survey.nFreq)*135)/ 135)
 
+def appRes_psFieldNorm(sigmaHalf):
+
+    # Make the survey
+    survey, sigma, mesh = setupSurvey(sigmaHalf,False)
+    problem = simpegmt.ProblemMT1D.eForm_psField(mesh)
+    problem.pair(survey)
+
+    # Get the fields
+    fields = problem.fields(sigma)
+
+    # Project the data
+    data = survey.projectFields(fields)
+
+    # Calculate the app res and phs
+    app_r = np.array(getAppResPhs(data))[:,0]
+
+    return np.linalg.norm(np.abs(app_r - np.ones(survey.nFreq)/sigmaHalf)*sigmaHalf)
+
+def appPhs_psFieldNorm(sigmaHalf):
+
+    # Make the survey
+    survey, sigma, mesh = setupSurvey(sigmaHalf,False)
+    problem = simpegmt.ProblemMT1D.eForm_psField(mesh)
+    problem.pair(survey)
+
+    # Get the fields
+    fields = problem.fields(sigma)
+
+    # Project the data
+    data = survey.projectFields(fields)
+
+    # Calculate the app  phs
+    app_p = np.array(getAppResPhs(data))[:,1]
+
+    return np.linalg.norm(np.abs(app_p - np.ones(survey.nFreq)*135)/ 135)
+
 class TestAnalytics(unittest.TestCase):
 
     def setUp(self):
         pass
-    def test_appRes2en1(self):self.assertLess(appRes_TotalFieldNorm(2e-1), TOLr)
-    def test_appRes2en2(self):self.assertLess(appRes_TotalFieldNorm(2e-2), TOLr)
-    def test_appRes2en3(self):self.assertLess(appRes_TotalFieldNorm(2e-3), TOLr)
-    def test_appRes2en4(self):self.assertLess(appRes_TotalFieldNorm(2e-4), TOLr)
-    def test_appRes2en5(self):self.assertLess(appRes_TotalFieldNorm(2e-5), TOLr)
-    def test_appRes2en6(self):self.assertLess(appRes_TotalFieldNorm(2e-6), TOLr)
-    def test_appPhs2en1(self):self.assertLess(appPhs_TotalFieldNorm(2e-1), TOLp)
-    def test_appPhs2en2(self):self.assertLess(appPhs_TotalFieldNorm(2e-2), TOLp)
-    def test_appPhs2en3(self):self.assertLess(appPhs_TotalFieldNorm(2e-3), TOLp)
-    def test_appPhs2en4(self):self.assertLess(appPhs_TotalFieldNorm(2e-4), TOLp)
-    def test_appPhs2en5(self):self.assertLess(appPhs_TotalFieldNorm(2e-5), TOLp)
-    def test_appPhs2en6(self):self.assertLess(appPhs_TotalFieldNorm(2e-6), TOLp)
+    # Total Fields
+    # def test_appRes2en1(self):self.assertLess(appRes_TotalFieldNorm(2e-1), TOLr)
+    # def test_appPhs2en1(self):self.assertLess(appPhs_TotalFieldNorm(2e-1), TOLp)
 
+    def test_appRes2en2(self):self.assertLess(appRes_TotalFieldNorm(2e-2), TOLr)
+    def test_appPhs2en2(self):self.assertLess(appPhs_TotalFieldNorm(2e-2), TOLp)
+
+    # def test_appRes2en3(self):self.assertLess(appRes_TotalFieldNorm(2e-3), TOLr)
+    # def test_appPhs2en3(self):self.assertLess(appPhs_TotalFieldNorm(2e-3), TOLp)
+
+    # def test_appRes2en4(self):self.assertLess(appRes_TotalFieldNorm(2e-4), TOLr)
+    # def test_appPhs2en4(self):self.assertLess(appPhs_TotalFieldNorm(2e-4), TOLp)
+
+    # def test_appRes2en5(self):self.assertLess(appRes_TotalFieldNorm(2e-5), TOLr)
+    # def test_appPhs2en5(self):self.assertLess(appPhs_TotalFieldNorm(2e-5), TOLp)
+
+    # def test_appRes2en6(self):self.assertLess(appRes_TotalFieldNorm(2e-6), TOLr)
+    # def test_appPhs2en6(self):self.assertLess(appPhs_TotalFieldNorm(2e-6), TOLp)
+
+    # Primary/secondary
+    def test_appRes2en2_ps(self):self.assertLess(appRes_psFieldNorm(2e-2), TOLr)
+    def test_appPhs2en2_ps(self):self.assertLess(appPhs_psFieldNorm(2e-2), TOLp)
 
 if __name__ == '__main__':
     unittest.main()

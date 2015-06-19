@@ -74,7 +74,7 @@ class eForm_ps(BaseMTProblem):
     def getADeriv(self, freq, u, v, adjoint=False):
 
         dsig_dm = self.curModel.sigmaDeriv
-        dMe_dsig = self.MeSimgaDeriv( v=u)
+        dMe_dsig = self.MeSigmaDeriv( v=u)
 
         if adjoint:
             return 1j * omega(freq) * ( dsig_dm.T * ( dMe_dsig.T * v ) )

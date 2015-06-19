@@ -94,6 +94,7 @@ class RxMT(Survey.BaseRx):
             ex = Pex*mkvc(u[src,'e_1d'],2)
             bx = Pbx*mkvc(u[src,'b_1d'],2)/mu_0
             f_part_complex = ex/bx
+        # elif self.projType is 'Z2D':
         elif self.projType is 'Z3D':
             # Get the projection
             Pex = mesh.getInterpolationMat(self.locs,'Ex')
@@ -124,25 +125,28 @@ class RxMT(Survey.BaseRx):
         # Get the real or imag component
         real_or_imag = self.projComp
         f_part = getattr(f_part_complex, real_or_imag)
+        # print f_part
         return f_part
 
-    def projectFieldsDeriv(self, src, mesh, u, v, adjoint=False):
-        P = self.getP(mesh)
+    def projectFieldsDeriv(self, src, mesh, f, v, adjoint=False):
+        """
+        The derivative of the projection wrt u
+        """
 
+        real_or_imag = self.projComp
         if not adjoint:
-            Pv_complex = P * v
-            real_or_imag = self.projComp
-            Pv = getattr(Pv_complex, real_or_imag)
+            if self.projType is 'Z1D':
+                Pex = mesh.getInterpolationMat(self.locs,'Fx')
+                Pbx = mesh.getInterpolationMat(self.locs,'Ex')
+                # ex = Pex*mkvc(f[src,'e_1d'],2)
+                # bx = Pbx*mkvc(f[src,'b_1d'],2)/mu_0
+                deriv_complex = Utils.sdiag(1/(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))*(Pex*v) - Utils.sdiag(1/(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)).T*Utils.sdiag(1/(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))*(Pbx*f._b_1dDeriv_u(src,v)/mu_0)
+            # elif self.projType is 'Z2D
+            elif self.projType is 'Z3D':
+                pass
+            Pv = getattr(deriv_complex, real_or_imag)
         elif adjoint:
-            Pv_real = P.T * v
-
-            real_or_imag = self.projComp
-            if real_or_imag == 'imag':
-                Pv = 1j*Pv_real
-            elif real_or_imag == 'real':
-                Pv = Pv_real.astype(complex)
-            else:
-                raise NotImplementedError('must be real or imag')
+            raise NotImplementedError('must be real or imag')
 
         return Pv
 
@@ -187,7 +191,7 @@ class srcMT_polxy_1Dprimary(srcMT):
     as fields in the full space of the problem.
     """
     def __init__(self, rxList, freq, sigma1d):
-        assert mkvc(self.mesh.hz.shape,1) == mkvc(sigma1d.shape,1),'The number of values in the 1D background model does not match the number of vertical cells (hz).'
+        # assert mkvc(self.mesh.hz.shape,1) == mkvc(sigma1d.shape,1),'The number of values in the 1D background model does not match the number of vertical cells (hz).'
         self.sigma1d = sigma1d
         srcMT.__init__(self, rxList, freq)
 
@@ -201,7 +205,7 @@ class srcMT_polxy_1Dprimary(srcMT):
     def bPrimary(self,problem):
         # Project ePrimary to bPrimary
         # Satisfies the primary(background) field conditions
-        bBG_bp = (- self.mesh.edgeCurl * self.ePrimary )/( 1j*omega(freq) )
+        bBG_bp = (- problem.mesh.edgeCurl * self.ePrimary )/( 1j*omega(freq) )
         return bBG_bp
 
     def S_e(self,problem):
@@ -213,12 +217,25 @@ class srcMT_polxy_1Dprimary(srcMT):
         sigma_p = Map_sigma_p._transform(self.sigma1d)
         # Make mass matrix
         # Note: M(sig) - M(sig_p) = M(sig - sig_p)
-        Mesigma = problem.MeSigma
-        Mesigma_p = problem.mesh.getEdgeInnerProduct(sigma_p)
+        # Need to deal with the edge/face discrepencies between 1d/2d/3d
+        if problem.mesh.dim == 1:
+            Mesigma = problem.mesh.getFaceInnerProduct(problem.curModel.sigma)
+            Mesigma_p = problem.mesh.getFaceInnerProduct(sigma_p)
+        if problem.mesh.dim == 2:
+            pass
+        if problem.mesh.dim == 3:
+            Mesigma = problem.MeSigma
+            Mesigma_p = problem.mesh.getEdgeInnerProduct(sigma_p)
         return (Mesigma - Mesigma_p) * e_p
 
     def S_eDeriv(self, problem, v, adjoint = False):
-        MesigmaDeriv = problem.MeSigmaDeriv(self.ePrimary(problem))
+        # Need to deal with
+        if problem.mesh.dim == 1:
+            pass
+        if problem.mesh.dim == 2:
+            pass
+        if problem.mesh.dim == 3:
+            MesigmaDeriv = problem.MeSigmaDeriv(self.ePrimary(problem))
         if adjoint:
             return MesigmaDeriv.T * v
         else:
