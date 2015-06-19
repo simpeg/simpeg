@@ -17,4 +17,7 @@ class FieldsMT(Problem.Fields):
     	"""
     	The derivative of b_1d wrt u
     	"""
-    	return -( self.mesh.nodalGrad * v)/( 1j*omega(src.freq) )
+    	nG = self.mesh.nodalGrad
+    	if adjoint:
+    		return - 1./( 1j*omega(src.freq) ) * ( nG.T * v)
+    	return - 1./( 1j*omega(src.freq) ) * ( nG * v)

@@ -140,7 +140,7 @@ class RxMT(Survey.BaseRx):
                 Pbx = mesh.getInterpolationMat(self.locs,'Ex')
                 # ex = Pex*mkvc(f[src,'e_1d'],2)
                 # bx = Pbx*mkvc(f[src,'b_1d'],2)/mu_0
-                deriv_complex = Utils.sdiag(1/(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))*(Pex*v) - Utils.sdiag(1/(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)).T*Utils.sdiag(1/(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))*(Pbx*f._b_1dDeriv_u(src,v)/mu_0)
+                deriv_complex = Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))*(Pex*v) - Utils.sdiag(Pex*mkvc(f[src,'e_1d'],2))*(Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)).T*Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)))*(Pbx*f._b_1dDeriv_u(src,v)/mu_0)
             # elif self.projType is 'Z2D
             elif self.projType is 'Z3D':
                 pass
