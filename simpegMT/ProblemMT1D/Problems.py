@@ -3,7 +3,7 @@ from SimPEG import mkvc
 from scipy.constants import mu_0
 from simpegMT.BaseMT import BaseMTProblem
 from simpegMT.SurveyMT import SurveyMT
-from simpegMT.FieldsMT import FieldsMT
+from simpegMT.FieldsMT import FieldsMT_1D
 from simpegMT.DataMT  import DataMT
 from simpegMT.Utils.MT1Danalytic import getEHfields
 import numpy as np
@@ -18,19 +18,19 @@ class eForm_psField(BaseMTProblem):
 
     """
     # From FDEMproblem: Used to project the fields. Currently not used for MTproblem.
-    _fieldType = 'e'
+    _fieldType = 'e_1d'
     _eqLocs    = 'EF'
 
 
     def __init__(self, mesh, **kwargs):
         BaseMTProblem.__init__(self, mesh, **kwargs)
+        self.fieldsPair = FieldsMT_1D
 
-    def getA(self, freq,):
+    def getA(self, freq):
         """
             Function to get the A matrix.
 
             :param float freq: Frequency
-            :param logic full: Return full A or the inner part
             :rtype: scipy.sparse.csr_matrix
             :return: A
         """
@@ -54,11 +54,13 @@ class eForm_psField(BaseMTProblem):
         """
 
         dsig_dm = self.curModel.sigmaDeriv
+        MeMui = self.mesh.getEdgeInnerProduct(1.0/mu_0)
+        # Need to make the dMf_dsig symmetirc (nN,nN), don't know how to do this
         dMf_dsig = self.mesh.getFaceInnerProductDeriv(self.curModel.sigma)(u) * self.curModel.sigmaDeriv
         if adjoint:
-            return 1j * omega(freq) * ( dsig_dm.T * ( dMf_dsig.T * v ) )
-
-        return 1j * omega(freq) * ( dMf_dsig * ( dsig_dm * v ) )
+            return 1j * omega(freq) * (  dMf_dsig.T * v )
+        # Note: output has to be nN/nF, not nC/nE.
+        return 1j * omega(freq) * (  (dMf_dsig * dMf_dsig.T)**(1/2) * v)
 
     def getRHS(self, freq):
         """
@@ -73,7 +75,7 @@ class eForm_psField(BaseMTProblem):
         S_e = Src.S_e(self)
         return -1j * omega(freq) * S_e
 
-    def getRHSderiv_m(self, freq, u, v, adjoint=False):
+    def getRHSDeriv_m(self, freq, v, adjoint=False):
         """
         The derivative of the RHS wrt sigma
         """
@@ -91,7 +93,7 @@ class eForm_psField(BaseMTProblem):
         # Set the current model
         self.curModel = m
 
-        F = FieldsMT(self.mesh, self.survey)
+        F = FieldsMT_1D(self.mesh, self.survey)
         for freq in self.survey.freqs:
             if self.verbose:
                 startTime = time.time()
@@ -110,12 +112,12 @@ class eForm_psField(BaseMTProblem):
 
             # Store the fields
             # NOTE: only store
-            F[Src, 'e_1d'] = e[:,1] # Only storing the yx polarization as 1d
+            F[Src, 'e_1dSolution'] = e[:,1] # Only storing the yx polarization as 1d
             # F[Src, 'e_py'] = 0*e[:,0]
             # Note curl e = -iwb so b = -curl e /iw
-            b = -( self.mesh.nodalGrad * e )/( 1j*omega(freq) )
+            # b = -( self.mesh.nodalGrad * e )/( 1j*omega(freq) )
             # F[Src, 'b_px'] = 0*b[:,0]
-            F[Src, 'b_1d'] = b[:,1]
+            # F[Src, 'b_1d'] = b[:,1]
             if self.verbose:
                 print 'Ran for {:f} seconds'.format(time.time()-startTime)
                 sys.stdout.flush()

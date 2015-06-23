@@ -83,7 +83,7 @@ class RxMT(Survey.BaseRx):
         """Component projection (real/imag)"""
         return self.knownRxTypes[self.rxType][1]
 
-    def projectFields(self, src, mesh, u):
+    def projectFields(self, src, mesh, f):
         '''
         Project the fields and return the
         '''
@@ -91,8 +91,8 @@ class RxMT(Survey.BaseRx):
         if self.projType is 'Z1D':
             Pex = mesh.getInterpolationMat(self.locs,'Fx')
             Pbx = mesh.getInterpolationMat(self.locs,'Ex')
-            ex = Pex*mkvc(u[src,'e_1d'],2)
-            bx = Pbx*mkvc(u[src,'b_1d'],2)/mu_0
+            ex = Pex*mkvc(f[src,'e_1d'],2)
+            bx = Pbx*mkvc(f[src,'b_1d'],2)/mu_0
             f_part_complex = ex/bx
         # elif self.projType is 'Z2D':
         elif self.projType is 'Z3D':
@@ -103,14 +103,14 @@ class RxMT(Survey.BaseRx):
             Pby = mesh.getInterpolationMat(self.locs,'Fy')
             # Get the fields at location
             # px: x-polaration and py: y-polaration.
-            ex_px = Pex*u[src,'e_px']
-            ey_px = Pey*u[src,'e_px']
-            ex_py = Pex*u[src,'e_py']
-            ey_py = Pey*u[src,'e_py']
-            hx_px = Pbx*u[src,'b_px']/mu_0
-            hy_px = Pby*u[src,'b_px']/mu_0
-            hx_py = Pbx*u[src,'b_py']/mu_0
-            hy_py = Pby*u[src,'b_py']/mu_0
+            ex_px = Pex*f[src,'e_px']
+            ey_px = Pey*f[src,'e_px']
+            ex_py = Pex*f[src,'e_py']
+            ey_py = Pey*f[src,'e_py']
+            hx_px = Pbx*f[src,'b_px']/mu_0
+            hy_px = Pby*f[src,'b_px']/mu_0
+            hx_py = Pbx*f[src,'b_py']/mu_0
+            hy_py = Pby*f[src,'b_py']/mu_0
             # Make the complex data
             if 'zxx' in self.rxType:
                 f_part_complex = (ex_px*hy_py - ex_py*hy_px)/(hx_px*hy_py - hx_py*hy_px)
@@ -140,7 +140,7 @@ class RxMT(Survey.BaseRx):
                 Pbx = mesh.getInterpolationMat(self.locs,'Ex')
                 # ex = Pex*mkvc(f[src,'e_1d'],2)
                 # bx = Pbx*mkvc(f[src,'b_1d'],2)/mu_0
-                deriv_complex = Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))*(Pex*v) - Utils.sdiag(Pex*mkvc(f[src,'e_1d'],2))*(Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)).T*Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)))*(Pbx*f._b_1dDeriv_u(src,v)/mu_0)
+                deriv_complex = Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))*(Pex*v) - Utils.sdiag(Pex*mkvc(f[src,'e_1d'],2))*(Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)).T*Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)))*(Pbx*f._bDeriv_u(src,v)/mu_0)
             # elif self.projType is 'Z2D
             elif self.projType is 'Z3D':
                 pass
@@ -156,7 +156,8 @@ class RxMT(Survey.BaseRx):
 ###############
 ### Sources ###
 ###############
-class srcMT(Survey.BaseSrc):
+# Note: Should like inheret from FDEM
+class srcMT(SrcFDEM): # Survey.BaseSrc):
     '''
     Sources for the MT problem.
     Use the SimPEG BaseSrc, since the source fields share properties with the transmitters.
@@ -205,7 +206,11 @@ class srcMT_polxy_1Dprimary(srcMT):
     def bPrimary(self,problem):
         # Project ePrimary to bPrimary
         # Satisfies the primary(background) field conditions
-        bBG_bp = (- problem.mesh.edgeCurl * self.ePrimary )/( 1j*omega(freq) )
+        if problem.mesh.dim == 1:
+            C = problem.mesh.nodalGrad
+        elif problem.mesh.dim == 3:
+            C = problem.mesh.edgeCurl
+        bBG_bp = (- C * self.ePrimary(problem) )/( 1j*omega(self.freq) )
         return bBG_bp
 
     def S_e(self,problem):
@@ -231,15 +236,18 @@ class srcMT_polxy_1Dprimary(srcMT):
     def S_eDeriv(self, problem, v, adjoint = False):
         # Need to deal with
         if problem.mesh.dim == 1:
-            pass
+            # Need to use the faceInnerProduct
+            MsigmaDeriv = problem.mesh.getFaceInnerProductDeriv(problem.curModel.sigma)(self.ePrimary(problem)[:,-1]) * problem.curModel.sigmaDeriv
+            MsigmaDeriv = ( MsigmaDeriv * MsigmaDeriv.T)**2
         if problem.mesh.dim == 2:
             pass
         if problem.mesh.dim == 3:
-            MesigmaDeriv = problem.MeSigmaDeriv(self.ePrimary(problem))
+            MsigmaDeriv = problem.MeSigmaDeriv(self.ePrimary(problem))
         if adjoint:
-            return MesigmaDeriv.T * v
+            return MsigmaDeriv.T * v
         else:
-            return MesigmaDeriv * v
+            # Moved the v in front to make the multi work
+            return MsigmaDeriv * v
 
 
 ##############
