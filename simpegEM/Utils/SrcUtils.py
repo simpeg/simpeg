@@ -2,7 +2,7 @@ from SimPEG import *
 from scipy.special import ellipk, ellipe
 from scipy.constants import mu_0, pi
 
-def MagneticDipoleVectorPotential(srcLoc, obsLoc, component, dipoleMoment=(0., 0., 1.)):
+def MagneticDipoleVectorPotential(srcLoc, obsLoc, component, dipoleMoment=(0., 0., 1.), mu = mu_0):
     """
         Calculate the vector potential of a set of magnetic dipoles
         at given locations 'ref. <http://en.wikipedia.org/wiki/Dipole#Magnetic_vector_potential>'
@@ -48,13 +48,13 @@ def MagneticDipoleVectorPotential(srcLoc, obsLoc, component, dipoleMoment=(0., 0
         dR = obsLoc - srcLoc[i, np.newaxis].repeat(nEdges, axis=0)
         mCr = np.cross(m, dR)
         r = np.sqrt((dR**2).sum(axis=1))
-        A[:, i] = +(mu_0/(4*pi)) * mCr[:,dimInd]/(r**3)
+        A[:, i] = +(mu/(4*pi)) * mCr[:,dimInd]/(r**3)
     if nSrc == 1:
         return A.flatten()
     return A
 
 
-def MagneticDipoleFields(srcLoc, obsLoc, component, dipoleMoment=1.):
+def MagneticDipoleFields(srcLoc, obsLoc, component, dipoleMoment=1., mu = mu_0):
     """
         Calculate the vector potential of a set of magnetic dipoles
         at given locations 'ref. <http://en.wikipedia.org/wiki/Dipole#Magnetic_vector_potential>'
@@ -89,11 +89,11 @@ def MagneticDipoleFields(srcLoc, obsLoc, component, dipoleMoment=1.):
         dR = obsLoc - srcLoc[i, np.newaxis].repeat(nFaces, axis=0)
         r = np.sqrt((dR**2).sum(axis=1))
         if dimInd == 0:
-            B[:, i] = +(mu_0/(4*pi)) /(r**3) * (3*dR[:,2]*dR[:,0]/r**2)
+            B[:, i] = +(mu/(4*pi)) /(r**3) * (3*dR[:,2]*dR[:,0]/r**2)
         elif dimInd == 1:
-            B[:, i] = +(mu_0/(4*pi)) /(r**3) * (3*dR[:,2]*dR[:,1]/r**2)
+            B[:, i] = +(mu/(4*pi)) /(r**3) * (3*dR[:,2]*dR[:,1]/r**2)
         elif dimInd == 2:
-            B[:, i] = +(mu_0/(4*pi)) /(r**3) * (3*dR[:,2]**2/r**2-1)
+            B[:, i] = +(mu/(4*pi)) /(r**3) * (3*dR[:,2]**2/r**2-1)
         else:
             raise Exception("Not Implemented")
     if nSrc == 1:
