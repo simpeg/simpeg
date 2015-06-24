@@ -80,10 +80,11 @@ class FieldsMT_1D(FieldsMT):
         return - 1./(1j*omega(src.freq)) * (C * v)
 
     def _bSecondaryDeriv_m(self, src, v, adjoint = False):
-        S_mDeriv, _ = src.evalDeriv(self.survey.prob, adjoint)
-        S_mDeriv = S_mDeriv(v)
-        if S_mDeriv is not None:
-            return 1./(1j * omega(src.freq)) * S_mDeriv
+        # Doesn't depend on m
+        # _, S_eDeriv = src.evalDeriv(self.survey.prob, adjoint)
+        # S_eDeriv = S_eDeriv(v)
+        # if S_eDeriv is not None:
+        #     return 1./(1j * omega(src.freq)) * S_eDeriv
         return None
 
     def _bDeriv_u(self, src, v, adjoint=False):
@@ -94,3 +95,27 @@ class FieldsMT_1D(FieldsMT):
         # Assuming the primary does not depend on the model
         return self._bSecondaryDeriv_m(src, v, adjoint)
 
+    def _fDeriv_u(self, src, v, adjoint=False):
+        """
+        Derivative of the fields object wrt u.
+
+        :param MTsrc src: MT source
+        :param numpy.ndarray v: random vector of f_sol.size
+        This function stacks the fields derivatives appropriately
+
+        return a vector of size (nreEle+nrbEle)
+        """
+
+        de_du = v #Utils.spdiag(np.ones((self.nF,)))
+        db_du = self._bDeriv_u(src, v, adjoint)
+        # Return the stack
+        # This doesn't work...
+        return np.vstack((de_du,db_du))
+
+    def _fDeriv_m(self, src, v, adjoint=False):
+        """
+        Derivative of the fields object wrt m.
+
+        This function stacks the fields derivatives appropriately
+        """
+        return None

@@ -60,7 +60,8 @@ class eForm_psField(BaseMTProblem):
         if adjoint:
             return 1j * omega(freq) * (  dMf_dsig.T * v )
         # Note: output has to be nN/nF, not nC/nE.
-        return 1j * omega(freq) * (  (dMf_dsig * dMf_dsig.T)**(1/2) * v)
+        # v should be nC
+        return 1j * omega(freq) * ( dMf_dsig * v )
 
     def getRHS(self, freq):
         """
@@ -106,17 +107,11 @@ class eForm_psField(BaseMTProblem):
 
             # Store the fields
             Src = self.survey.getSrcByFreq(freq)[0]
-            # Calculate total e
+            # NOTE: only store the e_solution(secondary), all other components calculated in the fields object
+            F[Src, 'e_1dSolution'] = e_s[:,1] # Only storing the yx polarization as 1d
 
-            e = Src.ePrimary(self) + e_s
-
-            # Store the fields
-            # NOTE: only store
-            F[Src, 'e_1dSolution'] = e[:,1] # Only storing the yx polarization as 1d
-            # F[Src, 'e_py'] = 0*e[:,0]
             # Note curl e = -iwb so b = -curl e /iw
             # b = -( self.mesh.nodalGrad * e )/( 1j*omega(freq) )
-            # F[Src, 'b_px'] = 0*b[:,0]
             # F[Src, 'b_1d'] = b[:,1]
             if self.verbose:
                 print 'Ran for {:f} seconds'.format(time.time()-startTime)

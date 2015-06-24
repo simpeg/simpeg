@@ -85,7 +85,7 @@ class RxMT(Survey.BaseRx):
 
     def projectFields(self, src, mesh, f):
         '''
-        Project the fields and return the
+        Project the fields and return the correct data.
         '''
 
         if self.projType is 'Z1D':
@@ -131,32 +131,48 @@ class RxMT(Survey.BaseRx):
     def projectFieldsDeriv(self, src, mesh, f, v, adjoint=False):
         """
         The derivative of the projection wrt u
+
+        :param MTsrc src: MT source
+        :param TensorMesh mesh: Mesh defining the topology of the problem
+        :param MTfields f: MT fields object of the source
+        :param numpy.ndarray v: Random vector of size
         """
 
         real_or_imag = self.projComp
+
         if not adjoint:
             if self.projType is 'Z1D':
                 Pex = mesh.getInterpolationMat(self.locs,'Fx')
                 Pbx = mesh.getInterpolationMat(self.locs,'Ex')
                 # ex = Pex*mkvc(f[src,'e_1d'],2)
                 # bx = Pbx*mkvc(f[src,'b_1d'],2)/mu_0
-                deriv_complex = Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))*(Pex*v) - Utils.sdiag(Pex*mkvc(f[src,'e_1d'],2))*(Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)).T*Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)))*(Pbx*f._bDeriv_u(src,v)/mu_0)
+                dP_de = Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))*(Pex*v)
+                dP_db = - Utils.sdiag(Pex*mkvc(f[src,'e_1d'],2))*(Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)).T*Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)))*(Pbx*f._bDeriv_u(src,v)/mu_0)
+                PDeriv_complex = np.sum((dP_de,dP_db))
             # elif self.projType is 'Z2D
             elif self.projType is 'Z3D':
-                pass
-            Pv = getattr(deriv_complex, real_or_imag)
+                raise NotImplementedError('Has not be implement for full impedance tensor')
+            Pv = np.array(getattr(PDeriv_complex, real_or_imag))
         elif adjoint:
-            raise NotImplementedError('must be real or imag')
-
+            if self.projType is 'Z1D':
+                Pex = mesh.getInterpolationMat(self.locs,'Fx')
+                Pbx = mesh.getInterpolationMat(self.locs,'Ex')
+                # ex = Pex*mkvc(f[src,'e_1d'],2)
+                # bx = Pbx*mkvc(f[src,'b_1d'],2)/mu_0
+                dP_deTv = mkvc(Pex.T*Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)).T*v,2)
+                db_duv = Pbx.T/mu_0*Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))*(Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))).T*Utils.sdiag(Pex*mkvc(f[src,'e_1d'],2)).T
+                dP_dbTv = -mkvc(f._bDeriv_u(src,db_duv,adjoint=True)*v,2)
+                PDeriv_complex = np.sum((dP_deTv,dP_dbTv))
+            elif self.projType is 'Z3D':
+                raise NotImplementedError('must be real or imag')
+            Pv = np.array(getattr(PDeriv_complex, real_or_imag))
         return Pv
 
-
-# Note: Might need to add tests to make sure that both polarization have the same rxList.
 
 ###############
 ### Sources ###
 ###############
-# Note: Should like inheret from FDEM
+
 class srcMT(SrcFDEM): # Survey.BaseSrc):
     '''
     Sources for the MT problem.
@@ -238,15 +254,16 @@ class srcMT_polxy_1Dprimary(srcMT):
         if problem.mesh.dim == 1:
             # Need to use the faceInnerProduct
             MsigmaDeriv = problem.mesh.getFaceInnerProductDeriv(problem.curModel.sigma)(self.ePrimary(problem)[:,-1]) * problem.curModel.sigmaDeriv
-            MsigmaDeriv = ( MsigmaDeriv * MsigmaDeriv.T)**2
+            # MsigmaDeriv = ( MsigmaDeriv * MsigmaDeriv.T)**2
         if problem.mesh.dim == 2:
             pass
         if problem.mesh.dim == 3:
             MsigmaDeriv = problem.MeSigmaDeriv(self.ePrimary(problem))
         if adjoint:
+            #
             return MsigmaDeriv.T * v
         else:
-            # Moved the v in front to make the multi work
+            # v should be nC size
             return MsigmaDeriv * v
 
 

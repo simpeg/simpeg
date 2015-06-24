@@ -2,7 +2,8 @@ from simpegEM.FDEM import BaseFDEMProblem
 from SurveyMT import SurveyMT
 from DataMT import DataMT
 from FieldsMT import FieldsMT
-from SimPEG import SolverLU as SimpegSolver
+from SimPEG import SolverLU as SimpegSolver, mkvc
+import numpy as np
 
 class BaseMTProblem(BaseFDEMProblem):
 
@@ -24,18 +25,32 @@ class BaseMTProblem(BaseFDEMProblem):
     # Might need to add more stuff here.
 
     def Jvec(self, m, v, f=None):
+        """
+        Function to calculate the data sensitivities dD/dm times a vector.
+
+            :param numpy.ndarray (nC, 1) - conductive model
+            :param numpy.ndarray (nC, 1) - random vector
+            :param MTfields object (optional) - MT fields object, if not given it is calculated
+            :rtype: MTdata object
+            :return: Data sensitivities wrt m
+        """
+
+        # Calculate the fields
         if f is None:
            f = self.fields(m)
-
+        # Set current model
         self.curModel = m
-
+        # Initiate the Jv object
         Jv = self.dataPair(self.survey)
 
+        # Loop all the frequenies
         for freq in self.survey.freqs:
             dA_du = self.getA(freq) #
             dA_duI = self.Solver(dA_du, **self.solverOpts)
 
             for src in self.survey.getSrcByFreq(freq):
+                # We need fDeriv_m = df/du*du/dm + df/dm
+                # Construct du/dm, it requires a solve
                 ftype = self._fieldType + 'Solution'
                 u_src = f[src, ftype]
                 dA_dm = self.getADeriv_m(freq, u_src, v)
@@ -44,28 +59,23 @@ class BaseMTProblem(BaseFDEMProblem):
                     du_dm = dA_duI * ( - dA_dm )
                 else:
                     du_dm = dA_duI * ( - dA_dm + dRHS_dm )
+                # Calculate the projection derivatives
                 for rx in src.rxList:
-                    # df_duFun = u.deriv_u(rx.fieldsUsed, m)
-                    if 'e' in self._fieldType:
-                        projField = 'b'
-                    elif 'b' in self._fieldType:
-                        projField = 'e'
-                    df_duFun = getattr(f, '_%sDeriv_u'%projField, None)
-                    df_du = df_duFun(src, du_dm, adjoint=False)
-                    if df_du is not None:
-                        du_dm = df_du
+                    # Get the stacked derivative
+                    # df_duFun = getattr(f, '_fDeriv_u', None)
+                    # df_dmFun = getattr(f, '_fDeriv_m', None)
+                    # df_dm = df_dmFun(src,v,adjoint=False)
+                    # if df_dm is None:
+                    #     fDeriv_m = df_duFun(src, du_dm, adjoint=False)
+                    # else:
+                    #     fDeriv_m = df_duFun(src, du_dm, adjoint=False) + df_dm
+                    # Not needed for now. Since PDeriv does this currently.
 
-                    df_dmFun = getattr(f, '_%sDeriv_m'%projField, None)
-                    df_dm = df_dmFun(src, v, adjoint=False)
-                    if df_dm is not None:
-                        du_dm += df_dm
-
-                    P = lambda v: rx.projectFieldsDeriv(src, self.mesh, f, v) # wrt u, also have wrt m
-
-
-                    Jv[src, rx] = P(du_dm)
-
-        return Utils.mkvc(Jv)
+                    # Get the projection derivative
+                    PDeriv = lambda v: rx.projectFieldsDeriv(src, self.mesh, f, v) # wrt u, also have wrt m
+                    Jv[src, rx] = PDeriv(du_dm)
+        # Return the vectorized sensitivities
+        return mkvc(Jv)
 
     def Jtvec(self, m, v, f=None):
         if f is None:
@@ -88,29 +98,18 @@ class BaseMTProblem(BaseFDEMProblem):
                 u_src = f[src, ftype]
 
                 for rx in src.rxList:
+                    # Get the adjoint projectFieldsDeriv
                     PTv = rx.projectFieldsDeriv(src, self.mesh, f, v[src, rx], adjoint=True) # wrt u, need possibility wrt m
-
-                    df_duTFun = getattr(f, '_%sDeriv_u'%rx.projField, None)
-                    df_duT = df_duTFun(src, PTv, adjoint=True)
-                    if df_duT is not None:
-                        dA_duIT = ATinv * df_duT
-                    else:
-                        dA_duIT = ATinv * PTv
-
+                    # Get the
+                    dA_duIT = ATinv * PTv
                     dA_dmT = self.getADeriv_m(freq, u_src, dA_duIT, adjoint=True)
-
                     dRHS_dmT = self.getRHSDeriv_m(src, dA_duIT, adjoint=True)
-
+                    # Make du_dmT
                     if dRHS_dmT is None:
                         du_dmT = - dA_dmT
                     else:
                         du_dmT = -dA_dmT + dRHS_dmT
-
-                    df_dmFun = getattr(f, '_%sDeriv_m'%rx.projField, None)
-                    dfT_dm = df_dmFun(src, PTv, adjoint=True)
-                    if dfT_dm is not None:
-                        du_dmT += dfT_dm
-
+                    # Select the correct component
                     real_or_imag = rx.projComp
                     if real_or_imag == 'real':
                         Jtv +=   du_dmT.real
