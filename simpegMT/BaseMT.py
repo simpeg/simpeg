@@ -103,7 +103,7 @@ class BaseMTProblem(BaseFDEMProblem):
                     # Get the
                     dA_duIT = ATinv * PTv
                     dA_dmT = self.getADeriv_m(freq, u_src, dA_duIT, adjoint=True)
-                    dRHS_dmT = self.getRHSDeriv_m(src, dA_duIT, adjoint=True)
+                    dRHS_dmT = self.getRHSDeriv_m(freq, dA_duIT, adjoint=True)
                     # Make du_dmT
                     if dRHS_dmT is None:
                         du_dmT = - dA_dmT
