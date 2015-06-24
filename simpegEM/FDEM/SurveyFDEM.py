@@ -1,7 +1,7 @@
 from SimPEG import Survey, Problem, Utils, np, sp
 from simpegEM.Utils import SrcUtils
 from simpegEM.Utils.EMUtils import omega, e_from_j, j_from_e, b_from_h, h_from_b
-
+from scipy.constants import mu_0
 
 ####################################################
 # Receivers 
@@ -189,11 +189,12 @@ class SrcFDEM_RawVec(SrcFDEM):
 class SrcFDEM_MagDipole(SrcFDEM):
 
     #TODO: right now, orientation doesn't actually do anything! The methods in SrcUtils should take care of that
-    def __init__(self, rxList, freq, loc, orientation='Z', moment=1.):
+    def __init__(self, rxList, freq, loc, orientation='Z', moment=1., mu = mu_0):
         self.freq = float(freq)
         self.loc = loc
         self.orientation = orientation
         self.moment = moment
+        self.mu = mu 
         SrcFDEM.__init__(self, rxList)
 
     def bPrimary(self,prob):
@@ -216,13 +217,13 @@ class SrcFDEM_MagDipole(SrcFDEM):
             if not prob.mesh.isSymmetric:
                 # TODO ?
                 raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
-            a = SrcUtils.MagneticDipoleVectorPotential(self.loc, gridY, 'y')
+            a = SrcUtils.MagneticDipoleVectorPotential(self.loc, gridY, 'y', mu=self.mu)
 
         else:
             srcfct = SrcUtils.MagneticDipoleVectorPotential
-            ax = srcfct(self.loc, gridX, 'x')
-            ay = srcfct(self.loc, gridY, 'y')
-            az = srcfct(self.loc, gridZ, 'z')
+            ax = srcfct(self.loc, gridX, 'x', mu=self.mu)
+            ay = srcfct(self.loc, gridY, 'y', mu=self.mu)
+            az = srcfct(self.loc, gridZ, 'z', mu=self.mu)
             a = np.concatenate((ax, ay, az))
 
         return C*a
@@ -235,17 +236,34 @@ class SrcFDEM_MagDipole(SrcFDEM):
         b_p = self.bPrimary(prob)
         return -1j*omega(self.freq)*b_p 
 
+    def S_e(self,prob):
+        if all(np.r_[self.mu] == np.r_[prob.curModel.mu]):
+            return None
+        else:
+            eqLocs = prob._eqLocs
+
+            if eqLocs is 'FE':
+                mui_s = prob.curModel.mui - 1./self.mu
+                MMui_s = prob.mesh.getFaceInnerProduct(mui_s)
+                C = prob.mesh.edgeCurl
+            elif eqLocs is 'EF':
+                mu_s = prob.curModel.mu - self.mu
+                MMui_s = prob.mesh.getEdgeInnerProduct(mu_s,invMat=True)
+                C = prob.mesh.edgeCurl.T
+
+            return -C.T * (MMui_s * self.bPrimary(prob))
 
 
 class SrcFDEM_MagDipole_Bfield(SrcFDEM):
 
     #TODO: right now, orientation doesn't actually do anything! The methods in SrcUtils should take care of that
     #TODO: neither does moment
-    def __init__(self, rxList, freq, loc, orientation='Z', moment=1.):
+    def __init__(self, rxList, freq, loc, orientation='Z', moment=1., mu = mu_0):
         self.freq = float(freq)
         self.loc = loc
         self.orientation = orientation
         self.moment = moment
+        self.mu = mu
         SrcFDEM.__init__(self, rxList)
 
     def bPrimary(self,prob):
@@ -268,13 +286,13 @@ class SrcFDEM_MagDipole_Bfield(SrcFDEM):
             if not prob.mesh.isSymmetric:
                 # TODO ?
                 raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
-            bx = srcfct(self.loc, gridX, 'x')
-            bz = srcfct(self.loc, gridZ, 'z')
+            bx = srcfct(self.loc, gridX, 'x', mu=self.mu)
+            bz = srcfct(self.loc, gridZ, 'z', mu=self.mu)
             b = np.concatenate((bx,bz))
         else:
-            bx = srcfct(self.loc, gridX, 'x')
-            by = srcfct(self.loc, gridY, 'y')
-            bz = srcfct(self.loc, gridZ, 'z')
+            bx = srcfct(self.loc, gridX, 'x', mu=self.mu)
+            by = srcfct(self.loc, gridY, 'y', mu=self.mu)
+            bz = srcfct(self.loc, gridZ, 'z', mu=self.mu)
             b = np.concatenate((bx,by,bz))
 
         return b

@@ -19,7 +19,7 @@ class BaseFDEMProblem(BaseEMProblem):
     surveyPair = SurveyFDEM
     fieldsPair = FieldsFDEM
 
-    def fields(self, m):
+    def fields(self, m=None):
         self.curModel = m
         F = self.fieldsPair(self.mesh, self.survey)
 
@@ -150,10 +150,6 @@ class BaseFDEMProblem(BaseEMProblem):
                 S_e[:,i] = Utils.mkvc(sei)
 
         return S_m, S_e
-
-    def getSourceTermDeriv(self,freq,m,v,u=None,adjoint=False):
-        raise NotImplementedError('getSourceTermDeriv not implemented yet')
-        return None, None
 
 
 ##########################################################################################
@@ -321,14 +317,14 @@ class ProblemFDEM_b(BaseFDEMProblem):
 
     def getRHSDeriv_m(self, src, v, adjoint=False):
         C = self.mesh.edgeCurl
-        S_m, S_e = self.getSourceTerm(src.freq)
+        S_m, S_e = src.eval(self)
         MfMui = self.MfMui
 
         if self._makeASymmetric and adjoint:
             v = self.MfMui * v
 
         if S_e is not None:
-            MeSigmaIDeriv = self.MeSigmaIDeriv(S_e)
+            MeSigmaIDeriv = self.MeSigmaIDeriv(Utils.mkvc(S_e))
             if not adjoint:
                 RHSderiv = C * (MeSigmaIDeriv * v)
             elif adjoint:
@@ -577,7 +573,7 @@ class ProblemFDEM_h(BaseFDEMProblem):
         return RHS
 
     def getRHSDeriv_m(self, src, v, adjoint=False):
-        _, S_e = self.getSourceTerm(src.freq)
+        _, S_e = src.eval(self)
         C = self.mesh.edgeCurl
         MfRho  = self.MfRho
         MfRhoDeriv = self.MfRhoDeriv(S_e)

@@ -36,21 +36,42 @@ def getProblem(fdemType, comp):
     XYZ = Utils.ndgrid(x,x,np.r_[0.])
     Rx0 = EM.FDEM.RxFDEM(XYZ, comp)
     Src0 = EM.FDEM.SrcFDEM_MagDipole([Rx0], freq=freq[0], loc=np.r_[0.,0.,0.])
-    Src1 = EM.FDEM.SrcFDEM_MagDipole([Rx0], freq=freq[1], loc=np.r_[0.,0.,0.])
-
-    survey = EM.FDEM.SurveyFDEM([Src0, Src1])
 
 
     if verbose:
         print '  Fetching %s problem' % (fdemType)
 
     if fdemType == 'e':
+        S_m = np.zeros(mesh.nF)
+        S_e = np.zeros(mesh.nE)
+        S_m[Utils.closestPoints(mesh,[0.,0.,0.],'Fz') + np.sum(mesh.vnF[:1])] = 1.
+        S_e[Utils.closestPoints(mesh,[0.,0.,0.],'Ez') + np.sum(mesh.vnE[:1])] = 1.
+        Src1 = EM.FDEM.SrcFDEM_RawVec([Rx0], freq[0], S_m, S_e)
+        survey = EM.FDEM.SurveyFDEM([Src0,Src1])
         prb = EM.FDEM.ProblemFDEM_e(mesh, mapping=mapping)
     elif fdemType == 'b':
+        S_m = np.zeros(mesh.nF)
+        S_e = np.zeros(mesh.nE)
+        S_m[Utils.closestPoints(mesh,[0.,0.,0.],'Fz') + np.sum(mesh.vnF[:1])] = 1.
+        S_e[Utils.closestPoints(mesh,[0.,0.,0.],'Ez') + np.sum(mesh.vnE[:1])] = 1.
+        Src1 = EM.FDEM.SrcFDEM_RawVec([Rx0], freq[0], S_m, S_e)
+        survey = EM.FDEM.SurveyFDEM([Src0,Src1])
         prb = EM.FDEM.ProblemFDEM_b(mesh, mapping=mapping)
     elif fdemType == 'j':
+        S_m = np.zeros(mesh.nE)
+        S_e = np.zeros(mesh.nF)
+        S_m[Utils.closestPoints(mesh,[0.,0.,0.],'Ez') + np.sum(mesh.vnE[:1])] = 1.
+        S_e[Utils.closestPoints(mesh,[0.,0.,0.],'Fz') + np.sum(mesh.vnF[:1])] = 1.
+        Src1 = EM.FDEM.SrcFDEM_RawVec([Rx0], freq[0], S_m, S_e)
+        survey = EM.FDEM.SurveyFDEM([Src0,Src1])
         prb = EM.FDEM.ProblemFDEM_j(mesh, mapping=mapping)
     elif fdemType == 'h':
+        S_m = np.zeros(mesh.nE)
+        S_e = np.zeros(mesh.nF)
+        S_m[Utils.closestPoints(mesh,[0.,0.,0.],'Ez') + np.sum(mesh.vnE[:1])] = 1.
+        S_e[Utils.closestPoints(mesh,[0.,0.,0.],'Fz') + np.sum(mesh.vnF[:1])] = 1.
+        Src1 = EM.FDEM.SrcFDEM_RawVec([Rx0], freq[0], S_m, S_e)
+        survey = EM.FDEM.SurveyFDEM([Src0,Src1])
         prb = EM.FDEM.ProblemFDEM_h(mesh, mapping=mapping)
     else:
         raise NotImplementedError()
@@ -69,15 +90,15 @@ def adjointTest(fdemType, comp):
     print 'Adjoint %s formulation - %s' % (fdemType, comp)
 
     m  = np.log(np.ones(prb.mesh.nC)*CONDUCTIVITY)
-    mu = np.log(np.ones(prb.mesh.nC))*MU
+    mu = np.ones(prb.mesh.nC)*MU
 
     if addrandoms is True:
-        m  = m + np.random.randn(prb.mesh.nC)*CONDUCTIVITY*1e-1 
+        m  = m + np.random.randn(prb.mesh.nC)*np.log(CONDUCTIVITY)*1e-1 
         mu = mu + np.random.randn(prb.mesh.nC)*MU*1e-1
 
-    prb.mu = mu 
     survey = prb.survey
-
+    prb.PropMap.PropModel.mu = mu
+    prb.PropMap.PropModel.mui = 1./mu
     u = prb.fields(m)
 
     v = np.random.rand(survey.nD)
@@ -99,10 +120,12 @@ def derivTest(fdemType, comp):
     mu = np.log(np.ones(prb.mesh.nC)*MU)
 
     if addrandoms is True:
-        x0  = x0 + np.random.randn(prb.mesh.nC)*CONDUCTIVITY*1e-1 
+        x0 = x0 + np.random.randn(prb.mesh.nC)*np.log(CONDUCTIVITY)*1e-1 
         mu = mu + np.random.randn(prb.mesh.nC)*MU*1e-1
 
-    prb.mu = mu
+    prb.PropMap.PropModel.mu = mu
+    prb.PropMap.PropModel.mui = 1./mu
+
     survey = prb.survey
     def fun(x):
         return survey.dpred(x), lambda x: prb.Jvec(x0, x)
@@ -120,10 +143,11 @@ def crossCheckTest(fdemType, comp):
     mu = np.log(np.ones(mesh.nC)*MU)
 
     if addrandoms is True:
-        m  = m + np.random.randn(mesh.nC)*CONDUCTIVITY*1e-1 
+        m  = m + np.random.randn(mesh.nC)*np.log(CONDUCTIVITY)*1e-1 
         mu = mu + np.random.randn(mesh.nC)*MU*1e-1
 
-    prb1.mu = mu
+    prb1.PropMap.PropModel.mu = mu
+    prb1.PropMap.PropModel.mui = 1./mu
     survey1 = prb1.survey
     d1 = survey1.dpred(m)
 
