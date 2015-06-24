@@ -17,8 +17,10 @@ TOL = 1e-4
 FLR = 1e-20 # "zero", so if residual below this --> pass regardless of order
 CONDUCTIVITY = 1e1
 MU = mu_0
-freq = [1e-1, 2e-1]
+freq = 1e-1
 addrandoms = True
+
+SrcType = 'MagDipole' #or 'MAgDipole_Bfield', 'CircularLoop', 'RawVec'
 
 
 def getProblem(fdemType, comp):
@@ -35,45 +37,61 @@ def getProblem(fdemType, comp):
     x = np.array([np.linspace(-30,-15,3),np.linspace(15,30,3)]) #don't sample right by the source
     XYZ = Utils.ndgrid(x,x,np.r_[0.])
     Rx0 = EM.FDEM.RxFDEM(XYZ, comp)
-    Src0 = EM.FDEM.SrcFDEM_MagDipole([Rx0], freq=freq[0], loc=np.r_[0.,0.,0.])
-    Src1 = EM.FDEM.SrcFDEM_MagDipole_Bfield([Rx0], freq=freq[0], loc=np.r_[0.,0.,0.])
-    Src2 = EM.FDEM.SrcFDEM_CircularLoop([Rx0], freq=freq[0], loc=np.r_[0.,0.,0.])
+
+    if SrcType is 'MagDipole':
+        Src = EM.FDEM.SrcFDEM_MagDipole([Rx0], freq=freq, loc=np.r_[0.,0.,0.])
+    elif SrcType is 'MagDipole_Bfield':
+        Src = EM.FDEM.SrcFDEM_MagDipole_Bfield([Rx0], freq=freq, loc=np.r_[0.,0.,0.])
+    elif SrcType is 'CircularLoop':
+        Src2 = EM.FDEM.SrcFDEM_CircularLoop([Rx0], freq=freq, loc=np.r_[0.,0.,0.])
 
     if verbose:
         print '  Fetching %s problem' % (fdemType)
 
     if fdemType == 'e':
-        S_m = np.zeros(mesh.nF)
-        S_e = np.zeros(mesh.nE)
-        S_m[Utils.closestPoints(mesh,[0.,0.,0.],'Fz') + np.sum(mesh.vnF[:1])] = 1.
-        S_e[Utils.closestPoints(mesh,[0.,0.,0.],'Ez') + np.sum(mesh.vnE[:1])] = 1.
-        Src3 = EM.FDEM.SrcFDEM_RawVec([Rx0], freq[0], S_m, S_e)
-        survey = EM.FDEM.SurveyFDEM([Src0,Src1,Src2,Src3])
+        if SrcType is 'RawVec':
+            S_m = np.zeros(mesh.nF)
+            S_e = np.zeros(mesh.nE)
+            S_m[Utils.closestPoints(mesh,[0.,0.,0.],'Fz') + np.sum(mesh.vnF[:1])] = 1.
+            S_e[Utils.closestPoints(mesh,[0.,0.,0.],'Ez') + np.sum(mesh.vnE[:1])] = 1.
+            Src = EM.FDEM.SrcFDEM_RawVec([Rx0], freq, S_m, S_e)
+
+        survey = EM.FDEM.SurveyFDEM([Src])
         prb = EM.FDEM.ProblemFDEM_e(mesh, mapping=mapping)
+
     elif fdemType == 'b':
-        S_m = np.zeros(mesh.nF)
-        S_e = np.zeros(mesh.nE)
-        S_m[Utils.closestPoints(mesh,[0.,0.,0.],'Fz') + np.sum(mesh.vnF[:1])] = 1.
-        S_e[Utils.closestPoints(mesh,[0.,0.,0.],'Ez') + np.sum(mesh.vnE[:1])] = 1.
-        Src3 = EM.FDEM.SrcFDEM_RawVec([Rx0], freq[0], S_m, S_e)
-        survey = EM.FDEM.SurveyFDEM([Src0,Src1,Src2,Src3])
+        if SrcType is 'RawVec':
+            S_m = np.zeros(mesh.nF)
+            S_e = np.zeros(mesh.nE)
+            S_m[Utils.closestPoints(mesh,[0.,0.,0.],'Fz') + np.sum(mesh.vnF[:1])] = 1.
+            S_e[Utils.closestPoints(mesh,[0.,0.,0.],'Ez') + np.sum(mesh.vnE[:1])] = 1.
+            Src = EM.FDEM.SrcFDEM_RawVec([Rx0], freq, S_m, S_e)
+
+        survey = EM.FDEM.SurveyFDEM([Src])
         prb = EM.FDEM.ProblemFDEM_b(mesh, mapping=mapping)
+
     elif fdemType == 'j':
-        S_m = np.zeros(mesh.nE)
-        S_e = np.zeros(mesh.nF)
-        S_m[Utils.closestPoints(mesh,[0.,0.,0.],'Ez') + np.sum(mesh.vnE[:1])] = 1.
-        S_e[Utils.closestPoints(mesh,[0.,0.,0.],'Fz') + np.sum(mesh.vnF[:1])] = 1.
-        Src3 = EM.FDEM.SrcFDEM_RawVec([Rx0], freq[0], S_m, S_e)
-        survey = EM.FDEM.SurveyFDEM([Src0,Src1,Src2,Src3])
+        if SrcType is 'RawVec': 
+            S_m = np.zeros(mesh.nE)
+            S_e = np.zeros(mesh.nF)
+            S_m[Utils.closestPoints(mesh,[0.,0.,0.],'Ez') + np.sum(mesh.vnE[:1])] = 1.
+            S_e[Utils.closestPoints(mesh,[0.,0.,0.],'Fz') + np.sum(mesh.vnF[:1])] = 1.
+            Src = EM.FDEM.SrcFDEM_RawVec([Rx0], freq, S_m, S_e)
+
+        survey = EM.FDEM.SurveyFDEM([Src])
         prb = EM.FDEM.ProblemFDEM_j(mesh, mapping=mapping)
+
     elif fdemType == 'h':
-        S_m = np.zeros(mesh.nE)
-        S_e = np.zeros(mesh.nF)
-        S_m[Utils.closestPoints(mesh,[0.,0.,0.],'Ez') + np.sum(mesh.vnE[:1])] = 1.
-        S_e[Utils.closestPoints(mesh,[0.,0.,0.],'Fz') + np.sum(mesh.vnF[:1])] = 1.
-        Src3 = EM.FDEM.SrcFDEM_RawVec([Rx0], freq[0], S_m, S_e)
-        survey = EM.FDEM.SurveyFDEM([Src0,Src1,Src2,Src3])
+        if SrcType is 'RawVec':
+            S_m = np.zeros(mesh.nE)
+            S_e = np.zeros(mesh.nF)
+            S_m[Utils.closestPoints(mesh,[0.,0.,0.],'Ez') + np.sum(mesh.vnE[:1])] = 1.
+            S_e[Utils.closestPoints(mesh,[0.,0.,0.],'Fz') + np.sum(mesh.vnF[:1])] = 1.
+            Src = EM.FDEM.SrcFDEM_RawVec([Rx0], freq, S_m, S_e)
+
+        survey = EM.FDEM.SurveyFDEM([Src])
         prb = EM.FDEM.ProblemFDEM_h(mesh, mapping=mapping)
+
     else:
         raise NotImplementedError()
     prb.pair(survey)
