@@ -217,13 +217,13 @@ class SrcFDEM_MagDipole(SrcFDEM):
             if not prob.mesh.isSymmetric:
                 # TODO ?
                 raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
-            a = SrcUtils.MagneticDipoleVectorPotential(self.loc, gridY, 'y', mu=self.mu)
+            a = SrcUtils.MagneticDipoleVectorPotential(self.loc, gridY, 'y', mu=self.mu, moment=self.moment)
 
         else:
             srcfct = SrcUtils.MagneticDipoleVectorPotential
-            ax = srcfct(self.loc, gridX, 'x', mu=self.mu)
-            ay = srcfct(self.loc, gridY, 'y', mu=self.mu)
-            az = srcfct(self.loc, gridZ, 'z', mu=self.mu)
+            ax = srcfct(self.loc, gridX, 'x', mu=self.mu, moment=self.moment)
+            ay = srcfct(self.loc, gridY, 'y', mu=self.mu, moment=self.moment)
+            az = srcfct(self.loc, gridZ, 'z', mu=self.mu, moment=self.moment)
             a = np.concatenate((ax, ay, az))
 
         return C*a
@@ -286,13 +286,13 @@ class SrcFDEM_MagDipole_Bfield(SrcFDEM):
             if not prob.mesh.isSymmetric:
                 # TODO ?
                 raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
-            bx = srcfct(self.loc, gridX, 'x', mu=self.mu)
-            bz = srcfct(self.loc, gridZ, 'z', mu=self.mu)
+            bx = srcfct(self.loc, gridX, 'x', mu=self.mu, moment=self.moment)
+            bz = srcfct(self.loc, gridZ, 'z', mu=self.mu, moment=self.moment)
             b = np.concatenate((bx,bz))
         else:
-            bx = srcfct(self.loc, gridX, 'x', mu=self.mu)
-            by = srcfct(self.loc, gridY, 'y', mu=self.mu)
-            bz = srcfct(self.loc, gridZ, 'z', mu=self.mu)
+            bx = srcfct(self.loc, gridX, 'x', mu=self.mu, moment=self.moment)
+            by = srcfct(self.loc, gridY, 'y', mu=self.mu, moment=self.moment)
+            bz = srcfct(self.loc, gridZ, 'z', mu=self.mu, moment=self.moment)
             b = np.concatenate((bx,by,bz))
 
         return b
@@ -305,14 +305,33 @@ class SrcFDEM_MagDipole_Bfield(SrcFDEM):
         b = self.bPrimary(prob)
         return -1j*omega(self.freq)*b
 
+    def S_e(self,prob):
+        if all(np.r_[self.mu] == np.r_[prob.curModel.mu]):
+            return None
+        else:
+            eqLocs = prob._eqLocs
+
+            if eqLocs is 'FE':
+                mui_s = prob.curModel.mui - 1./self.mu
+                MMui_s = prob.mesh.getFaceInnerProduct(mui_s)
+                C = prob.mesh.edgeCurl
+            elif eqLocs is 'EF':
+                mu_s = prob.curModel.mu - self.mu
+                MMui_s = prob.mesh.getEdgeInnerProduct(mu_s,invMat=True)
+                C = prob.mesh.edgeCurl.T
+
+            return -C.T * (MMui_s * self.bPrimary(prob))
+
 
 class SrcFDEM_CircularLoop(SrcFDEM):
 
     #TODO: right now, orientation doesn't actually do anything! The methods in SrcUtils should take care of that
-    def __init__(self, rxList, freq, loc, orientation='Z', radius = 1.):
+    def __init__(self, rxList, freq, loc, orientation='Z', radius = 1., mu=mu_0):
         self.freq = float(freq)
         self.orientation = orientation
         self.radius = radius
+        self.mu = mu
+        self.loc = loc
         SrcFDEM.__init__(self, rxList)
 
     def bPrimary(self,prob):
@@ -334,24 +353,41 @@ class SrcFDEM_CircularLoop(SrcFDEM):
             if not prob.mesh.isSymmetric:
                 # TODO ?
                 raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
-            a = SrcUtils.MagneticDipoleVectorPotential(src.loc, gridY, 'y', self.radius)
+            a = SrcUtils.MagneticDipoleVectorPotential(self.loc, gridY, 'y', moment=self.radius, mu=self.mu)
 
         else:
             srcfct = SrcUtils.MagneticDipoleVectorPotential
-            ax = srcfct(self.loc, gridX, 'x', self.radius)
-            ay = srcfct(self.loc, gridY, 'y', self.radius)
-            az = srcfct(self.loc, gridZ, 'z', self.radius)
+            ax = srcfct(self.loc, gridX, 'x', self.radius, mu=self.mu)
+            ay = srcfct(self.loc, gridY, 'y', self.radius, mu=self.mu)
+            az = srcfct(self.loc, gridZ, 'z', self.radius, mu=self.mu)
             a = np.concatenate((ax, ay, az))
 
         return C*a
 
     def hPrimary(self,prob):
         b = self.bPrimary(prob)
-        return h_from_b
+        return 1./self.mu*b
 
     def S_m(self, prob):
         b = self.bPrimary(prob)
         return -1j*omega(self.freq)*b
+
+    def S_e(self,prob):
+        if all(np.r_[self.mu] == np.r_[prob.curModel.mu]):
+            return None
+        else:
+            eqLocs = prob._eqLocs
+
+            if eqLocs is 'FE':
+                mui_s = prob.curModel.mui - 1./self.mu
+                MMui_s = prob.mesh.getFaceInnerProduct(mui_s)
+                C = prob.mesh.edgeCurl
+            elif eqLocs is 'EF':
+                mu_s = prob.curModel.mu - self.mu
+                MMui_s = prob.mesh.getEdgeInnerProduct(mu_s,invMat=True)
+                C = prob.mesh.edgeCurl.T
+
+            return -C.T * (MMui_s * self.bPrimary(prob))
 
 
 ####################################################
