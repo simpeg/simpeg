@@ -161,8 +161,8 @@ class RxMT(Survey.BaseRx):
                 # ex = Pex*mkvc(f[src,'e_1d'],2)
                 # bx = Pbx*mkvc(f[src,'b_1d'],2)/mu_0
                 dP_deTv = mkvc(Pex.T*Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)).T*v,2)
-                db_duv = Pbx.T/mu_0*Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))*(Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))).T*Utils.sdiag(Pex*mkvc(f[src,'e_1d'],2)).T*v
-                dP_dbTv = -mkvc(f._bDeriv_u(src,db_duv,adjoint=True),2)
+                db_duv = -Pbx.T/mu_0*Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))*(Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))).T*Utils.sdiag(Pex*mkvc(f[src,'e_1d'],2)).T*v
+                dP_dbTv = mkvc(f._bDeriv_u(src,db_duv,adjoint=True),2)
                 PDeriv_complex = np.sum(np.hstack((dP_deTv,dP_dbTv)),1)
                 # raise Exception('Debug error')
             elif self.projType is 'Z3D':

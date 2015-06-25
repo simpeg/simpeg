@@ -106,15 +106,15 @@ class BaseMTProblem(BaseFDEMProblem):
                     dRHS_dmT = self.getRHSDeriv_m(freq, dA_duIT, adjoint=True)
                     # Make du_dmT
                     if dRHS_dmT is None:
-                        du_dmT = - dA_dmT
+                        du_dmT = -dA_dmT
                     else:
                         du_dmT = -dA_dmT + dRHS_dmT
                     # Select the correct component
                     real_or_imag = rx.projComp
                     if real_or_imag == 'real':
-                        Jtv +=   du_dmT.real
+                        Jtv +=  du_dmT.real
                     elif real_or_imag == 'imag':
-                        Jtv += - du_dmT.real
+                        Jtv +=  -du_dmT.real
                     else:
                         raise Exception('Must be real or imag')
 
