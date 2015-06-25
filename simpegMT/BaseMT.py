@@ -61,16 +61,6 @@ class BaseMTProblem(BaseFDEMProblem):
                     du_dm = dA_duI * ( - dA_dm + dRHS_dm )
                 # Calculate the projection derivatives
                 for rx in src.rxList:
-                    # Get the stacked derivative
-                    # df_duFun = getattr(f, '_fDeriv_u', None)
-                    # df_dmFun = getattr(f, '_fDeriv_m', None)
-                    # df_dm = df_dmFun(src,v,adjoint=False)
-                    # if df_dm is None:
-                    #     fDeriv_m = df_duFun(src, du_dm, adjoint=False)
-                    # else:
-                    #     fDeriv_m = df_duFun(src, du_dm, adjoint=False) + df_dm
-                    # Not needed for now. Since PDeriv does this currently.
-
                     # Get the projection derivative
                     PDeriv = lambda v: rx.projectFieldsDeriv(src, self.mesh, f, v) # wrt u, also have wrt m
                     Jv[src, rx] = PDeriv(du_dm)
