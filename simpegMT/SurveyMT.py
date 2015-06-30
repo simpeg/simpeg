@@ -93,7 +93,9 @@ class RxMT(Survey.BaseRx):
             Pbx = mesh.getInterpolationMat(self.locs,'Ex')
             ex = Pex*mkvc(f[src,'e_1d'],2)
             bx = Pbx*mkvc(f[src,'b_1d'],2)/mu_0
-            f_part_complex = ex/bx
+            # Note: Has a minus sign in front, to comply with quadrant calculations.
+            # Can be derived from zyx case for the 3D case.
+            f_part_complex = -ex/bx
         # elif self.projType is 'Z2D':
         elif self.projType is 'Z3D':
             # Get the projection
@@ -146,8 +148,8 @@ class RxMT(Survey.BaseRx):
                 Pbx = mesh.getInterpolationMat(self.locs,'Ex')
                 # ex = Pex*mkvc(f[src,'e_1d'],2)
                 # bx = Pbx*mkvc(f[src,'b_1d'],2)/mu_0
-                dP_de = mkvc(Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))*(Pex*v),2)
-                dP_db = mkvc(- Utils.sdiag(Pex*mkvc(f[src,'e_1d'],2))*(Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)).T*Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)))*(Pbx*f._bDeriv_u(src,v)/mu_0),2)
+                dP_de = -mkvc(Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))*(Pex*v),2)
+                dP_db = mkvc( Utils.sdiag(Pex*mkvc(f[src,'e_1d'],2))*(Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)).T*Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)))*(Pbx*f._bDeriv_u(src,v)/mu_0),2)
                 PDeriv_complex = np.sum(np.hstack((dP_de,dP_db)),1)
             elif self.projType is 'Z2D':
                 raise NotImplementedError('Has not be implement for 2D impedance tensor')
@@ -162,8 +164,8 @@ class RxMT(Survey.BaseRx):
                 Pbx = mesh.getInterpolationMat(self.locs,'Ex')
                 # ex = Pex*mkvc(f[src,'e_1d'],2)
                 # bx = Pbx*mkvc(f[src,'b_1d'],2)/mu_0
-                dP_deTv = mkvc(Pex.T*Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)).T*v,2)
-                db_duv = -Pbx.T/mu_0*Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))*(Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))).T*Utils.sdiag(Pex*mkvc(f[src,'e_1d'],2)).T*v
+                dP_deTv = -mkvc(Pex.T*Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)).T*v,2)
+                db_duv = Pbx.T/mu_0*Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))*(Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))).T*Utils.sdiag(Pex*mkvc(f[src,'e_1d'],2)).T*v
                 dP_dbTv = mkvc(f._bDeriv_u(src,db_duv,adjoint=True),2)
                 PDeriv_real = np.sum(np.hstack((dP_deTv,dP_dbTv)),1)
             elif self.projType is 'Z2D':
@@ -323,7 +325,6 @@ class SurveyMT(Survey.BaseSurvey):
     def projectFields(self, u):
         data = DataMT(self)
         for src in self.srcList:
-            print 'Project at freq: {:.3e}'.format(src.freq)
             sys.stdout.flush()
             for rx in src.rxList:
                 data[src, rx] = rx.projectFields(src, self.mesh, u)

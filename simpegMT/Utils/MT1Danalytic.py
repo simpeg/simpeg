@@ -53,7 +53,7 @@ def getEHfields(m1d,sigma,freq,zd):
 
     # Loop over the layers and calculate the fields
     # In the halfspace below the mesh
-    dup = m1d.vectorNx[0] 
+    dup = m1d.vectorNx[0]
     dind = dup >= zd
     Ed[dind] = UDp[1,0]*np.exp(-1j*k[0]*(dup-zd[dind]))
     Eu[dind] = UDp[0,0]*np.exp(1j*k[0]*(dup-zd[dind]))

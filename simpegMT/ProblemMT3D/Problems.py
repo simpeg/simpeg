@@ -3,7 +3,7 @@ from simpegEM.Utils.EMUtils import omega
 from scipy.constants import mu_0
 from simpegMT.BaseMT import BaseMTProblem
 from simpegMT.SurveyMT import SurveyMT
-from simpegMT.FieldsMT import FieldsMT
+from simpegMT.FieldsMT import FieldsMT_3D
 from simpegMT.DataMT import DataMT
 import multiprocessing, sys, time
 
@@ -22,7 +22,7 @@ class eForm_ps(BaseMTProblem):
     # From FDEMproblem: Used to project the fields. Currently not used for MTproblem.
     _fieldType = 'e'
     _eqLocs    = 'FE'
-
+    fieldsPair = FieldsMT_3D
     # Need to add the src ....
 
 
@@ -112,7 +112,7 @@ class eForm_ps(BaseMTProblem):
         # Set the current model
         self.curModel = m
 
-        F = FieldsMT(self.mesh, self.survey)
+        F = FieldsMT_3D(self.mesh, self.survey)
         for freq in self.survey.freqs:
             if self.verbose:
                 startTime = time.time()
@@ -149,7 +149,7 @@ class eForm_Tp(BaseMTProblem):
 
     _fieldType = 'e'
     _eqLocs    = 'FE'
-    fieldsPair = FieldsMT
+    fieldsPair = FieldsMT_3D
 
     # Set new properties
     # Background model
@@ -242,7 +242,7 @@ class eForm_Tp(BaseMTProblem):
         self.backModel = m_back
         # RHS, CalcFields = self.getRHS(freq,m_back), self.calcFields
 
-        F = FieldsMT(self.mesh, self.survey)
+        F = FieldsMT_3D(self.mesh, self.survey)
         for freq in self.survey.freqs:
             if self.verbose:
                 startTime = time.time()

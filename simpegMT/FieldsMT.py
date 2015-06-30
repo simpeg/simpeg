@@ -119,3 +119,17 @@ class FieldsMT_1D(FieldsMT):
         This function stacks the fields derivatives appropriately
         """
         return None
+
+class FieldsMT_3D(FieldsMT):
+    """
+    Fields storage for the 3D MT solution.
+    """
+    knownFields = {'e_px':'E','e_py':'E','b_px':'F','b_py':'F'}
+    aliasFields = { }
+                  #   'e_1d' : ['e_1dSolution','F','_e'],
+                  #   'e_1dPrimary' : ['e_1dSolution','F','_ePrimary'],
+                  #   'e_1dSecondary' : ['e_1dSolution','F','_eSecondary'],
+                  #   'b_1d' : ['e_1dSolution','E','_b'],
+                  #   'b_1dPrimary' : ['e_1dSolution','E','_bPrimary'],
+                  #   'b_1dSecondary' : ['e_1dSolution','E','_bSecondary']
+                  # }

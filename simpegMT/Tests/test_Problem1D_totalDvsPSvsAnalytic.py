@@ -19,12 +19,18 @@ def setupSurvey(sigmaHalf,tD=True):
     # coreT0 = meshTensor([(ct,15,1.2)])
     # coreT1 = np.kron(meshTensor([(coreT0[-1],15,1.3)]),np.ones((7,)))
     core = np.concatenate( (  np.kron(meshTensor([(ct,15,-1.2)]),np.ones((10,))) , meshTensor([(ct,20)]) ) )
-    bot = meshTensor([(core[0],10,-1.3)])
+    bot = meshTensor([(core[0],15,-1.3)])
     x0 = -np.array([np.sum(np.concatenate((core,bot)))])
     m1d = simpeg.Mesh.TensorMesh([np.concatenate((bot,core,air))], x0=x0)
     # Make the model
     sigma = np.zeros(m1d.nC) + sigmaHalf
     sigma[m1d.gridCC > 0 ] = 1e-8
+    sigmaBack = sigma.copy()
+    # Add structure
+    shallow = (m1d.gridCC < -200) * (m1d.gridCC > -600)
+    deep = (m1d.gridCC < -3000) * (m1d.gridCC > -5000)
+    sigma[shallow] = 1
+    sigma[deep] = 0.1
 
     rxList = []
     for rxType in ['z1dr','z1di']:
@@ -36,7 +42,7 @@ def setupSurvey(sigmaHalf,tD=True):
             srcList.append(simpegmt.SurveyMT.srcMT_polxy_1DhomotD(rxList,freq))
     else:
         for freq in freqs:
-            srcList.append(simpegmt.SurveyMT.srcMT_polxy_1Dprimary(rxList,freq,sigma))
+            srcList.append(simpegmt.SurveyMT.srcMT_polxy_1Dprimary(rxList,freq,sigmaBack))
 
     survey = simpegmt.SurveyMT.SurveyMT(srcList)
     return survey, sigma, m1d
@@ -59,79 +65,66 @@ def getAppResPhs(MTdata):
         zList.append(zc)
     return [appResPhs(zList[i][0],np.sum(zList[i][1:3])) for i in np.arange(len(zList))]
 
-def appRes_TotalFieldNorm(sigmaHalf):
+def calculateAnalyticSolution(srcList,mesh,model):
+    surveyAna = simpegmt.SurveyMT.SurveyMT(srcList)
+    data1D = simpegmt.DataMT.DataMT(surveyAna)
+    for src in surveyAna.srcList:
+        elev = src.rxList[0].locs[0]
+        anaEd, anaEu, anaHd, anaHu = simpegmt.Utils.MT1Danalytic.getEHfields(mesh,model,src.freq,elev)
+        anaE = anaEd+anaEu
+        anaH = anaHd+anaHu
+        # Scale the solution
+        # anaE = (anaEtemp/anaEtemp[-1])#.conj()
+        # anaH = (anaHtemp/anaEtemp[-1])#.conj()
+        anaZ = anaE/anaH
+        for rx in src.rxList:
+            data1D[src,rx] = getattr(anaZ, rx.projComp)
+    return data1D
+
+def dataMis_AnalyticTotalDomain(sigmaHalf):
 
     # Make the survey
-    survey, sigma, mesh = setupSurvey(sigmaHalf)
-    problem = simpegmt.ProblemMT1D.eForm_TotalField(mesh)
-    problem.pair(survey)
 
-    # Get the fields
-    fields = problem.fields(sigma)
+    # Total domain solution
+    surveyTD, sigma, mesh = setupSurvey(sigmaHalf)
+    problemTD = simpegmt.ProblemMT1D.eForm_TotalField(mesh)
+    problemTD.pair(surveyTD)
+    # Analytic data
+    dataAnaObj = calculateAnalyticSolution(surveyTD.srcList,mesh,sigma)
+    # dataTDObj = simpegmt.DataMT.DataMT(surveyTD, surveyTD.dpred(sigma))
+    dataTD = surveyTD.dpred(sigma)
+    dataAna = simpeg.mkvc(dataAnaObj)
+    return np.all((dataTD - dataAna)/dataAna < 2.)
+    # surveyTD.dtrue = -simpeg.mkvc(dataAna,2)
+    # surveyTD.dobs = -simpeg.mkvc(dataAna,2)
+    # surveyTD.Wd = np.ones(surveyTD.dtrue.shape) #/(np.abs(surveyTD.dtrue)*0.01)
+    # # Setup the data misfit
+    # dmis = simpeg.DataMisfit.l2_DataMisfit(surveyTD)
+    # dmis.Wd = surveyTD.Wd
+    # return dmis.eval(sigma)
 
-    # Project the data
-    data = survey.projectFields(fields)
 
-    # Calculate the app res and phs
-    app_r = np.array(getAppResPhs(data))[:,0]
-
-    return np.linalg.norm(np.abs(app_r - np.ones(survey.nFreq)/sigmaHalf)*sigmaHalf)
-
-def appPhs_TotalFieldNorm(sigmaHalf):
-
-    # Make the survey
-    survey, sigma, mesh = setupSurvey(sigmaHalf)
-    problem = simpegmt.ProblemMT1D.eForm_TotalField(mesh)
-    problem.pair(survey)
-
-    # Get the fields
-    fields = problem.fields(sigma)
-
-    # Project the data
-    data = survey.projectFields(fields)
-
-    # Calculate the app  phs
-    app_p = np.array(getAppResPhs(data))[:,1]
-
-    return np.linalg.norm(np.abs(app_p - np.ones(survey.nFreq)*45)/ 45)
-
-def appRes_psFieldNorm(sigmaHalf):
+def dataMis_AnalyticPrimarySecondary(sigmaHalf):
 
     # Make the survey
-    survey, sigma, mesh = setupSurvey(sigmaHalf,False)
-    problem = simpegmt.ProblemMT1D.eForm_psField(mesh)
-    problem.pair(survey)
+    # Primary secondary
+    surveyPS, sigmaPS, mesh = setupSurvey(sigmaHalf,False)
+    problemPS = simpegmt.ProblemMT1D.eForm_psField(mesh)
+    problemPS.pair(surveyPS)
+    # Analytic data
+    dataAna = calculateAnalyticSolution(surveyPS.srcList,mesh,sigma)
 
-    # Get the fields
-    fields = problem.fields(sigma)
-
+    surveyPS.dtrue = dataAna
     # Project the data
-    data = survey.projectFields(fields)
+    data = surveyPS.dpred(sigmaPS)
 
-    # Calculate the app res and phs
-    app_r = np.array(getAppResPhs(data))[:,0]
+    # Setup the data misfit
+    dmis = simpeg.DataMisfit.l2_DataMisfit(survey)
+    return dmis.eval(sigma)
 
-    return np.linalg.norm(np.abs(app_r - np.ones(survey.nFreq)/sigmaHalf)*sigmaHalf)
 
-def appPhs_psFieldNorm(sigmaHalf):
 
-    # Make the survey
-    survey, sigma, mesh = setupSurvey(sigmaHalf,False)
-    problem = simpegmt.ProblemMT1D.eForm_psField(mesh)
-    problem.pair(survey)
-
-    # Get the fields
-    fields = problem.fields(sigma)
-
-    # Project the data
-    data = survey.projectFields(fields)
-
-    # Calculate the app  phs
-    app_p = np.array(getAppResPhs(data))[:,1]
-
-    return np.linalg.norm(np.abs(app_p - np.ones(survey.nFreq)*45)/ 45)
-
-class TestAnalytics(unittest.TestCase):
+class TestNumericVsAnalytics(unittest.TestCase):
 
     def setUp(self):
         pass
@@ -139,8 +132,8 @@ class TestAnalytics(unittest.TestCase):
     # def test_appRes2en1(self):self.assertLess(appRes_TotalFieldNorm(2e-1), TOLr)
     # def test_appPhs2en1(self):self.assertLess(appPhs_TotalFieldNorm(2e-1), TOLp)
 
-    def test_appRes2en2(self):self.assertLess(appRes_TotalFieldNorm(2e-2), TOLr)
-    def test_appPhs2en2(self):self.assertLess(appPhs_TotalFieldNorm(2e-2), TOLp)
+    def test_appRes2en2(self):self.assertTrue(dataMis_AnalyticTotalDomain(2e-2))
+    # def test_appPhs2en2(self):self.assert(appPhs_TotalFieldNorm(2e-2), TOLp)
 
     # def test_appRes2en3(self):self.assertLess(appRes_TotalFieldNorm(2e-3), TOLr)
     # def test_appPhs2en3(self):self.assertLess(appPhs_TotalFieldNorm(2e-3), TOLp)
@@ -155,8 +148,8 @@ class TestAnalytics(unittest.TestCase):
     # def test_appPhs2en6(self):self.assertLess(appPhs_TotalFieldNorm(2e-6), TOLp)
 
     # Primary/secondary
-    def test_appRes2en2_ps(self):self.assertLess(appRes_psFieldNorm(2e-2), TOLr)
-    def test_appPhs2en2_ps(self):self.assertLess(appPhs_psFieldNorm(2e-2), TOLp)
+    # def test_appRes2en2_ps(self):self.assertLess(appRes_psFieldNorm(2e-2), TOLr)
+    # def test_appPhs2en2_ps(self):self.assertLess(appPhs_psFieldNorm(2e-2), TOLp)
 
 if __name__ == '__main__':
     unittest.main()

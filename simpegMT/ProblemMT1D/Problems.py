@@ -108,7 +108,7 @@ class eForm_psField(BaseMTProblem):
             # Store the fields
             Src = self.survey.getSrcByFreq(freq)[0]
             # NOTE: only store the e_solution(secondary), all other components calculated in the fields object
-            F[Src, 'e_1dSolution'] = e_s[:,1] # Only storing the yx polarization as 1d
+            F[Src, 'e_1dSolution'] = e_s[:,-1] # Only storing the yx polarization as 1d
 
             # Note curl e = -iwb so b = -curl e /iw
             # b = -( self.mesh.nodalGrad * e )/( 1j*omega(freq) )
@@ -195,7 +195,7 @@ class eForm_TotalField(BaseMTProblem):
         eBC = np.r_[Etot[0],Etot[-1]]
         # The right hand side
 
-        return Aio*eBC, eBC
+        return -Aio*eBC, eBC
 
     def getRHSderiv(self, freq, backSigma, u, v, adjoint=False):
         raise NotImplementedError('getRHSDeriv not implemented yet')
@@ -211,7 +211,7 @@ class eForm_TotalField(BaseMTProblem):
         self.curModel = m
         # RHS, CalcFields = self.getRHS(freq,m_back), self.calcFields
 
-        F = FieldsMT(self.mesh, self.survey)
+        F = FieldsMT_1D(self.mesh, self.survey)
         for freq in self.survey.freqs:
             if self.verbose:
                 startTime = time.time()
@@ -224,14 +224,8 @@ class eForm_TotalField(BaseMTProblem):
             e = mkvc(np.r_[e_o[0], e_i, e_o[1]],2)
             # Store the fields
             Src = self.survey.getSrcByFreq(freq)
-            # Store the fields
-            # NOTE: only store
-            F[Src, 'e_1d'] = e
-            # F[Src, 'e_py'] = 0*e[:,0]
-            # Note curl e = -iwb so b = -curl e /iw
-            b = -( self.mesh.nodalGrad * e )/( 1j*omega(freq) )
-            # F[Src, 'b_px'] = 0*b[:,0]
-            F[Src, 'b_1d'] = b
+            # NOTE: only store e fields
+            F[Src, 'e_1dSolution'] = e[:,0]
             if self.verbose:
                 print 'Ran for {:f} seconds'.format(time.time()-startTime)
                 sys.stdout.flush()

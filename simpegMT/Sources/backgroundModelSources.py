@@ -23,8 +23,8 @@ def homo1DModelSource(mesh,freq,sigma_1d):
     # # Note: Everything is using e^iwt
     e0_1d = get1DEfields(mesh1d,sigma_1d,freq)
     if mesh.dim == 1:
-        eBG_px = -simpeg.mkvc(e0_1d,2)
-        eBG_py =  simpeg.mkvc(e0_1d,2)
+        eBG_px = simpeg.mkvc(e0_1d,2)
+        eBG_py = -simpeg.mkvc(e0_1d,2) # added a minus to make the results in the correct quadrents.
     elif mesh.dim == 2:
         ex_px = np.zeros(mesh.vnEx,dtype=complex)
         ey_px = np.zeros((mesh.nEy,1),dtype=complex)

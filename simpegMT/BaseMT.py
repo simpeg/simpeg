@@ -24,7 +24,7 @@ class BaseMTProblem(BaseFDEMProblem):
     # Use the forward and devs from BaseFDEMProblem
     # Might need to add more stuff here.
 
-    def Jvec(self, m, v, f=None):
+    def Jvec(self, m, v, u=None):
         """
         Function to calculate the data sensitivities dD/dm times a vector.
 
@@ -36,8 +36,8 @@ class BaseMTProblem(BaseFDEMProblem):
         """
 
         # Calculate the fields
-        if f is None:
-           f = self.fields(m)
+        if u is None:
+           u = self.fields(m)
         # Set current model
         self.curModel = m
         # Initiate the Jv object
@@ -52,7 +52,7 @@ class BaseMTProblem(BaseFDEMProblem):
                 # We need fDeriv_m = df/du*du/dm + df/dm
                 # Construct du/dm, it requires a solve
                 ftype = self._fieldType + 'Solution'
-                u_src = f[src, ftype]
+                u_src = u[src, ftype]
                 dA_dm = self.getADeriv_m(freq, u_src, v)
                 dRHS_dm = self.getRHSDeriv_m(freq, v)
                 if dRHS_dm is None:
@@ -62,14 +62,14 @@ class BaseMTProblem(BaseFDEMProblem):
                 # Calculate the projection derivatives
                 for rx in src.rxList:
                     # Get the projection derivative
-                    PDeriv = lambda v: rx.projectFieldsDeriv(src, self.mesh, f, v) # wrt u, also have wrt m
+                    PDeriv = lambda v: rx.projectFieldsDeriv(src, self.mesh, u, v) # wrt u, also have wrt m
                     Jv[src, rx] = PDeriv(du_dm)
         # Return the vectorized sensitivities
         return mkvc(Jv)
 
-    def Jtvec(self, m, v, f=None):
-        if f is None:
-            f = self.fields(m)
+    def Jtvec(self, m, v, u=None):
+        if u is None:
+            u = self.fields(m)
 
         self.curModel = m
 
@@ -85,11 +85,11 @@ class BaseMTProblem(BaseFDEMProblem):
 
             for src in self.survey.getSrcByFreq(freq):
                 ftype = self._fieldType + 'Solution'
-                u_src = f[src, ftype]
+                u_src = u[src, ftype]
 
                 for rx in src.rxList:
                     # Get the adjoint projectFieldsDeriv
-                    PTv = rx.projectFieldsDeriv(src, self.mesh, f, v[src, rx], adjoint=True) # wrt u, need possibility wrt m
+                    PTv = rx.projectFieldsDeriv(src, self.mesh, u, v[src, rx], adjoint=True) # wrt u, need possibility wrt m
                     # Get the
                     dA_duIT = ATinv * PTv
                     dA_dmT = self.getADeriv_m(freq, u_src, dA_duIT, adjoint=True)
