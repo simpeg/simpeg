@@ -25,7 +25,11 @@ install:
   - python setup.py build_ext --inplace
   - cd ../
   - echo export PYTHONPATH=$PYTHONPATH:/home/travis/build/simpeg/simpeg >> .bashrc
-  - source .bashrc
+  - git clone https://github.com/simpegem/simpegem.git
+  - cd simpegem/
+  - python setup.py build_ext --inplace
+  - cd ../
+  - echo export PYTHONPATH=$PYTHONPATH:/home/travis/build/simpegem/simpegem >> .bashrc- source .bashrc
   - cd simpegmt
 
 # Run test
