@@ -5,7 +5,8 @@ from scipy.special import erf
 import matplotlib.pyplot as plt
 from SimPEG import Utils
 
-def hzAnalyticDipoleF(r, freq, sigma, secondary=True):
+
+def hzAnalyticDipoleF(r, freq, sigma, secondary=True, mu=mu_0):
     """
     4.56 in Ward and Hohmann
 
@@ -25,7 +26,7 @@ def hzAnalyticDipoleF(r, freq, sigma, secondary=True):
 
     """
     r = np.abs(r)
-    k = np.sqrt(-1j*2.*np.pi*freq*mu_0*sigma)
+    k = np.sqrt(-1j*2.*np.pi*freq*mu*sigma)
 
     m = 1
     front = m / (2. * np.pi * (k**2) * (r**5) )
@@ -41,7 +42,7 @@ def hzAnalyticDipoleF(r, freq, sigma, secondary=True):
 
     return hz
 
-def AnalyticMagDipoleWholeSpace(XYZ, srcLoc, sig, f, m=1., orientation='X'):
+def AnalyticMagDipoleWholeSpace(XYZ, srcLoc, sig, f, moment=1., orientation='X', mu = mu_0):
     """
     Analytical solution for a dipole in a whole-space.
 
@@ -75,10 +76,10 @@ def AnalyticMagDipoleWholeSpace(XYZ, srcLoc, sig, f, m=1., orientation='X'):
     dz = XYZ[:,2]-srcLoc[2]
 
     r  = np.sqrt( dx**2. + dy**2. + dz**2.)
-    k  = np.sqrt( -1j*2.*np.pi*f*mu_0*sig )
+    k  = np.sqrt( -1j*2.*np.pi*f*mu*sig )
     kr = k*r
 
-    front = m / (4.*pi * r**3.) * np.exp(-1j*kr)
+    front = moment / (4.*pi * r**3.) * np.exp(-1j*kr)
     mid   = -kr**2. + 3.*1j*kr + 3.
 
     if orientation.upper() == 'X':
@@ -96,9 +97,9 @@ def AnalyticMagDipoleWholeSpace(XYZ, srcLoc, sig, f, m=1., orientation='X'):
         Hy = front*( (dy*dz/r**2.) * mid )
         Hz = front*( (dz/r)**2. * mid + (kr**2. - 1j*kr - 1.) )
 
-    Bx = mu_0*Hx
-    By = mu_0*Hy
-    Bz = mu_0*Hz
+    Bx = mu*Hx
+    By = mu*Hy
+    Bz = mu*Hz
 
     if Bx.ndim is 1:
         Bx = Utils.mkvc(Bx,2)
@@ -112,7 +113,7 @@ def AnalyticMagDipoleWholeSpace(XYZ, srcLoc, sig, f, m=1., orientation='X'):
     return Bx, By, Bz
 
 
-def ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, m=1., orientation='X'):
+def ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', mu=mu_0):
     XYZ = Utils.asArray_N_x_Dim(XYZ, 3)
 
     dx = XYZ[:,0]-srcLoc[0]
@@ -120,21 +121,33 @@ def ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, m=1., orientation='X'):
     dz = XYZ[:,2]-srcLoc[2]
 
     r  = np.sqrt( dx**2. + dy**2. + dz**2.)
-    k  = np.sqrt( -1j*2.*np.pi*f*mu_0*sig )
+    k  = np.sqrt( -1j*2.*np.pi*f*mu*sig )
     kr = k*r 
 
-    front = moment / (4. * np.pi * sig * r**3) * exp(-1j*k*r)
+    front = current * length / (4. * np.pi * sig * r**3) * np.exp(-1j*k*r)
     mid   = -k**2 * r**2 + 3*1j*k*r + 3 
 
-    Ex = front*((dx**2 / r**2)*mid + (k**2 * r**2 -1j*k*r))
-    Ey = front*(dx*dy  / r**2)*mid
-    Ez = front*(dx*dz  / r**2)*mid
+    # Ex = front*((dx**2 / r**2)*mid + (k**2 * r**2 -1j*k*r))
+    # Ey = front*(dx*dy  / r**2)*mid
+    # Ez = front*(dx*dz  / r**2)*mid
 
     if orientation.upper() == 'X':
+        Ex = front*((dx**2 / r**2)*mid + (k**2 * r**2 -1j*k*r-1.))
+        Ey = front*(dx*dy  / r**2)*mid
+        Ez = front*(dx*dz  / r**2)*mid   
         return Ex, Ey, Ez
 
     elif orientation.upper() == 'Y':
-        return Ez, Ex, Ey 
+        #  x--> y, y--> z, z-->x
+        Ey = front*((dy**2 / r**2)*mid + (k**2 * r**2 -1j*k*r-1.))
+        Ez = front*(dy*dz  / r**2)*mid
+        Ex = front*(dy*dx  / r**2)*mid   
+        return Ex, Ey, Ez
 
     elif orientation.upper() == 'Z':
-        return Ey, Ez, Ex 
+        # x --> z, y --> x, z --> y 
+        Ez = front*((dz**2 / r**2)*mid + (k**2 * r**2 -1j*k*r-1.))
+        Ex = front*(dz*dx  / r**2)*mid
+        Ey = front*(dz*dy  / r**2)*mid   
+        return Ex, Ey, Ez
+        # return Ey, Ez, Ex 

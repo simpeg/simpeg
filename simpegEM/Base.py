@@ -141,5 +141,5 @@ class BaseEMProblem(Problem.BaseProblem):
 
     # TODO: This isn't going to work yet
     # TODO: This should take a vector
-    def dMfRhoIDeriv(self,u):
+    def MfRhoIDeriv(self,u):
         return self.mesh.getFaceInnerProductDeriv(self.curModel.rho, invMat=True)(u) * self.curModel.rhoDeriv
