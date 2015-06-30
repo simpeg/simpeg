@@ -4,9 +4,9 @@ import scipy.sparse as sp
 from matutils import mkvc
 
 
-def getIndecesBlock(p0,p1,ccMesh):
+def getIndicesBlock(p0,p1,ccMesh):
     """
-        Creates a vector containing the block indexes in the cell centerd mesh.
+        Creates a vector containing the block indices in the cell centers mesh.
         Returns a tuple
 
         The block is defined by the points
