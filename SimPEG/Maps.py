@@ -285,6 +285,37 @@ class LogMap(IdentityMap):
     def inverse(self, m):
         return np.exp(Utils.mkvc(m))
 
+class FullMap(IdentityMap):
+    """
+    FullMap
+
+    Given a scalar, the FullMap maps the value to the 
+    full model space.
+    """
+
+    def __init__(self,mesh,**kwargs):
+        IdentityMap.__init__(self, mesh,**kwargs)
+
+    @property
+    def nP(self):
+        return 1
+
+    def _transform(self, m):
+        """
+            :param m: model (scalar)
+            :rtype: numpy.array
+            :return: transformed model
+        """
+        return np.ones(self.mesh.nC)*m
+
+    def deriv(self, m):
+        """
+            :param numpy.array m: model
+            :rtype: numpy.array
+            :return: derivative of transformed model
+        """
+        return np.ones([self.mesh.nC,1])     
+      
 
 class Vertical1DMap(IdentityMap):
     """Vertical1DMap
