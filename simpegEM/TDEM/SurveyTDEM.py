@@ -73,36 +73,51 @@ class SrcTDEM(Survey.BaseSrc):
         F0 = getattr(self, '_getInitialFields_' + self.srcType)(mesh)
         return F0
 
-    def _getInitialFields_VMD_MVP(self, mesh):
+    def getJs(self, mesh, time):
+        return None
+
+
+class SrcTDEM_VMD_MVP(SrcTDEM):
+
+    def __init__(self,rxList,loc):
+        self.loc = loc
+        SrcTDEM.__init__(self,rxList)
+
+    def getInitialFields(self, mesh):
         """Vertical magnetic dipole, magnetic vector potential"""
         if mesh._meshType is 'CYL':
             if mesh.isSymmetric:
-                MVP = Sources.MagneticDipoleVectorPotential(self.loc, mesh, 'Ey')
+                MVP = SrcUtils.MagneticDipoleVectorPotential(self.loc, mesh, 'Ey')
             else:
                 raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
         elif mesh._meshType is 'TENSOR':
-            MVP = Sources.MagneticDipoleVectorPotential(self.loc, mesh, ['Ex','Ey','Ez'])
+            MVP = SrcUtils.MagneticDipoleVectorPotential(self.loc, mesh, ['Ex','Ey','Ez'])
         else:
             raise Exception('Unknown mesh for VMD')
 
         return {"b": mesh.edgeCurl*MVP}
 
-    def _getInitialFields_CircularLoop_MVP(self, mesh):
+
+class SrcTDEM_CircularLoop_MVP(SrcTDEM):
+
+    def __init__(self,rxList,loc):
+        self.loc = loc
+        SrcTDEM.__init__(self,rxList)
+
+    def getInitialFields_(self, mesh):
         """Circular Loop, magnetic vector potential"""
         if mesh._meshType is 'CYL':
             if mesh.isSymmetric:
-                MVP = Sources.MagneticLoopVectorPotential(self.loc, mesh, 'Ey', self.radius)
+                MVP = SrcUtils.MagneticLoopVectorPotential(self.loc, mesh, 'Ey', self.radius)
             else:
                 raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
         elif mesh._meshType is 'TENSOR':
-            MVP = Sources.MagneticLoopVectorPotential(self.loc, mesh, ['Ex','Ey','Ez'], self.radius)
+            MVP = SrcUtils.MagneticLoopVectorPotential(self.loc, mesh, ['Ex','Ey','Ez'], self.radius)
         else:
             raise Exception('Unknown mesh for CircularLoop')
 
         return {"b": mesh.edgeCurl*MVP}
 
-    def getJs(self, mesh, time):
-        return None
 
 class SurveyTDEM(Survey.BaseSurvey):
     """

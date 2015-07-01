@@ -74,7 +74,7 @@ class ProblemTDEM_b(BaseTDEMProblem):
     def getRHS(self, tInd, F):
         dt = self.timeSteps[tInd]
         B_n = np.c_[[F[src,'b',tInd] for src in self.survey.srcList]].T
-        RHS = (1.0/dt)*self.MfMui*B_n
+        RHS = (1.0/dt)*self.MfMui*mkvc(B_n)
         return RHS
 
     ####################################################
