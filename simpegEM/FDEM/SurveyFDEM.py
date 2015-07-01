@@ -103,22 +103,22 @@ class SrcFDEM(Survey.BaseSrc):
     def evalDeriv(self, prob, v, adjoint=False):
         return lambda v: self.S_mDeriv(prob,v,adjoint), lambda v: self.S_eDeriv(prob,v,adjoint)
 
-    def bPrimary(self,prob):
+    def bPrimary(self, prob):
         return None 
 
-    def hPrimary(self,prob):
+    def hPrimary(self, prob):
         return None
 
-    def ePrimary(self,prob):
+    def ePrimary(self, prob):
         return None
 
-    def jPrimary(self,prob):
+    def jPrimary(self, prob):
         return None
 
-    def S_m(self,prob):
+    def S_m(self, prob):
         return None
 
-    def S_e(self,prob):
+    def S_e(self, prob):
         return None
 
     def S_mDeriv(self, prob, v, adjoint = False):
@@ -179,10 +179,10 @@ class SrcFDEM_RawVec(SrcFDEM):
         self.freq = float(freq)
         SrcFDEM.__init__(self, rxList)
 
-    def S_m(self,prob):
+    def S_m(self, prob):
         return self._S_m
 
-    def S_e(self,prob):
+    def S_e(self, prob):
         return self._S_e
 
  
@@ -197,7 +197,7 @@ class SrcFDEM_MagDipole(SrcFDEM):
         self.mu = mu 
         SrcFDEM.__init__(self, rxList)
 
-    def bPrimary(self,prob):
+    def bPrimary(self, prob):
         eqLocs = prob._eqLocs
 
         if eqLocs is 'FE':
@@ -228,15 +228,15 @@ class SrcFDEM_MagDipole(SrcFDEM):
 
         return C*a
 
-    def hPrimary(self,prob):
+    def hPrimary(self, prob):
         b = self.bPrimary(prob)
         return h_from_b(prob,b)
 
-    def S_m(self,prob):
+    def S_m(self, prob):
         b_p = self.bPrimary(prob)
         return -1j*omega(self.freq)*b_p 
 
-    def S_e(self,prob):
+    def S_e(self, prob):
         if all(np.r_[self.mu] == np.r_[prob.curModel.mu]):
             return None
         else:
@@ -266,7 +266,7 @@ class SrcFDEM_MagDipole_Bfield(SrcFDEM):
         self.mu = mu
         SrcFDEM.__init__(self, rxList)
 
-    def bPrimary(self,prob):
+    def bPrimary(self, prob):
         eqLocs = prob._eqLocs
 
         if eqLocs is 'FE':
@@ -297,15 +297,15 @@ class SrcFDEM_MagDipole_Bfield(SrcFDEM):
 
         return b
 
-    def hPrimary(self,prob):
+    def hPrimary(self, prob):
         b = self.bPrimary(prob)
         return h_from_b(prob, b)
 
-    def S_m(self,prob):
+    def S_m(self, prob):
         b = self.bPrimary(prob)
         return -1j*omega(self.freq)*b
 
-    def S_e(self,prob):
+    def S_e(self, prob):
         if all(np.r_[self.mu] == np.r_[prob.curModel.mu]):
             return None
         else:
@@ -334,7 +334,7 @@ class SrcFDEM_CircularLoop(SrcFDEM):
         self.loc = loc
         SrcFDEM.__init__(self, rxList)
 
-    def bPrimary(self,prob):
+    def bPrimary(self, prob):
         eqLocs = prob._eqLocs
 
         if eqLocs is 'FE':
@@ -364,7 +364,7 @@ class SrcFDEM_CircularLoop(SrcFDEM):
 
         return C*a
 
-    def hPrimary(self,prob):
+    def hPrimary(self, prob):
         b = self.bPrimary(prob)
         return 1./self.mu*b
 
@@ -372,7 +372,7 @@ class SrcFDEM_CircularLoop(SrcFDEM):
         b = self.bPrimary(prob)
         return -1j*omega(self.freq)*b
 
-    def S_e(self,prob):
+    def S_e(self, prob):
         if all(np.r_[self.mu] == np.r_[prob.curModel.mu]):
             return None
         else:
