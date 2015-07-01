@@ -239,6 +239,7 @@ class PropMap(object):
             setattr(self, '%sMap'%name, mapping)
             setattr(self, '%sIndex'%name, slices.get(name, slice(nP, nP + mapping.nP)))
             nP += mapping.nP
+        self.nP = nP 
 
     @property
     def defaultInvProp(self):
