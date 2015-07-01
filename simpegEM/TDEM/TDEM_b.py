@@ -74,7 +74,9 @@ class ProblemTDEM_b(BaseTDEMProblem):
     def getRHS(self, tInd, F):
         dt = self.timeSteps[tInd]
         B_n = np.c_[[F[src,'b',tInd] for src in self.survey.srcList]].T
-        RHS = (1.0/dt)*self.MfMui*mkvc(B_n)
+        if B_n.shape[0] is not 1:
+            raise NotImplementedError('getRHS not implemented for this shape of B_n')
+        RHS = (1.0/dt)*self.MfMui*B_n[0,:,:] #TODO: This is a hack
         return RHS
 
     ####################################################
@@ -106,15 +108,17 @@ class ProblemTDEM_b(BaseTDEMProblem):
 
         # fake initial 'e' fields
         p[:, 'e', 0] = 0.0
-        dMdsig = self.mesh.getEdgeInnerProductDeriv(self.curModel.transform)
-        dsigdm_x_v = self.curModel.transformDeriv*vec
+        dMdsig = self.MeSigmaDeriv
+        # self.mesh.getEdgeInnerProductDeriv(self.curModel.transform)
+        # dsigdm_x_v = self.curModel.sigmaDeriv*vec
+        # dsigdm_x_v = self.curModel.transformDeriv*vec
         for i in range(1,self.nT+1):
             # TODO: G[1] may be dependent on the model
             #       for a galvanic source (deriv of the dc problem)
             #
             # Do multiplication for all src in self.survey.srcList
             for src in self.survey.srcList:
-                p[src, 'e', i] = - dMdsig(u[src,'e',i]) *  dsigdm_x_v
+                p[src, 'e', i] = - dMdsig(u[src,'e',i]) *  vec
         return p
 
     def Gtvec(self, m, vec, u=None):
@@ -130,8 +134,9 @@ class ProblemTDEM_b(BaseTDEMProblem):
         if u is None:
             u = self.fields(m)
         self.curModel = m
-        dMdsig = self.mesh.getEdgeInnerProductDeriv(self.curModel.transform)
-        dsigdm = self.curModel.transformDeriv
+        # dMdsig = self.mesh.getEdgeInnerProductDeriv(self.curModel.transform)
+        # dsigdm = self.curModel.transformDeriv
+        MeSigmaDeriv = self.MeSigmaDeriv
 
         nSrc = self.survey.nSrc
         VUs = None
@@ -139,11 +144,11 @@ class ProblemTDEM_b(BaseTDEMProblem):
         for i in range(1,self.nT+1):
             vu = None
             for src in self.survey.srcList:
-                vusrc = dMdsig(u[src,'e',i]).T * vec[src,'e',i]
+                vusrc = MeSigmaDeriv(u[src,'e',i]).T * vec[src,'e',i]
                 vu = vusrc if vu is None else vu + vusrc
             VUs = vu if VUs is None else VUs + vu
-        p = -dsigdm.T*VUs
-        return p
+        # p = -dsigdm.T*VUs
+        return -VUs
 
     def solveAh(self, m, p):
         """
@@ -242,7 +247,7 @@ class ProblemTDEM_b(BaseTDEMProblem):
 
         def AhtRHS(tInd, y):
             nSrc, nF = self.survey.nSrc, self.mesh.nF
-            rhs = np.zeros(nF if nSrc == 1 else (nF, nSrc))
+            rhs = np.zeros((nF,1) if nSrc == 1 else (nF, nSrc))
 
             if 'e' in p:
                 rhs += self.MfMui*(self.mesh.edgeCurl*(self.MeSigmaI*p[:,'e',tInd+1]))

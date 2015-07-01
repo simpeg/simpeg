@@ -36,7 +36,7 @@ if plotIt:
 
 rxOffset=1e-3
 rx = EM.TDEM.RxTDEM(np.array([[rxOffset, 0., 30]]), np.logspace(-5,-3, 31), 'bz')
-src = EM.TDEM.SrcTDEM(np.array([0., 0., 80]), 'VMD_MVP', [rx])
+src = EM.TDEM.SrcTDEM_VMD_MVP([rx], np.array([0., 0., 80]))
 survey = EM.TDEM.SurveyTDEM([src])
 prb = EM.TDEM.ProblemTDEM_b(mesh, mapping=mapping)
 

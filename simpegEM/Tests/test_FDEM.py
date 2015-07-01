@@ -108,11 +108,11 @@ def adjointTest(fdemType, comp):
     prb = getProblem(fdemType, comp)
     print 'Adjoint %s formulation - %s' % (fdemType, comp)
 
-    m  = np.log(np.ones(prb.mesh.nC)*CONDUCTIVITY)
+    m  = np.log(np.ones(prb.mapping.nP)*CONDUCTIVITY)
     mu = np.ones(prb.mesh.nC)*MU
 
     if addrandoms is True:
-        m  = m + np.random.randn(prb.mesh.nC)*np.log(CONDUCTIVITY)*1e-1 
+        m  = m + np.random.randn(prb.mapping.nP)*np.log(CONDUCTIVITY)*1e-1 
         mu = mu + np.random.randn(prb.mesh.nC)*MU*1e-1
 
     survey = prb.survey
@@ -121,7 +121,6 @@ def adjointTest(fdemType, comp):
     u = prb.fields(m)
 
     v = np.random.rand(survey.nD)
-    # print prb.PropMap.PropModel.nP
     w = np.random.rand(prb.mesh.nC)
 
     vJw = v.dot(prb.Jvec(m, w, u))
@@ -135,12 +134,12 @@ def derivTest(fdemType, comp):
 
     prb = getProblem(fdemType, comp)
     print '%s formulation - %s' % (fdemType, comp)
-    x0 = np.log(np.ones(prb.mesh.nC)*CONDUCTIVITY)
+    x0 = np.log(np.ones(prb.mapping.nP)*CONDUCTIVITY)
     mu = np.log(np.ones(prb.mesh.nC)*MU)
 
     if addrandoms is True:
-        x0 = x0 + np.random.randn(prb.mesh.nC)*np.log(CONDUCTIVITY)*1e-1 
-        mu = mu + np.random.randn(prb.mesh.nC)*MU*1e-1
+        x0 = x0 + np.random.randn(prb.mapping.nP)*np.log(CONDUCTIVITY)*1e-1 
+        mu = mu + np.random.randn(prb.mapping.nP)*MU*1e-1
 
     prb.PropMap.PropModel.mu = mu
     prb.PropMap.PropModel.mui = 1./mu

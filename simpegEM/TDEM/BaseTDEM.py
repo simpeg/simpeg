@@ -14,20 +14,20 @@ class FieldsTDEM(Problem.TimeFields):
 
     def tovec(self):
         nSrc, nF, nE = self.survey.nSrc, self.mesh.nF, self.mesh.nE
-        u = np.empty(0 if nSrc == 1 else (0, nSrc))
+        u = np.empty((0,nSrc)) #((0,1) if nSrc == 1 else (0, nSrc))
 
         for i in range(self.survey.prob.nT):
             if 'b' in self:
                 b = self[:,'b',i+1]
             else:
-                b = np.zeros(nF if nSrc == 1 else (nF, nSrc))
+                b = np.zeros((nF,nSrc)) # if nSrc == 1 else (nF, nSrc))
 
             if 'e' in self:
                 e = self[:,'e',i+1]
             else:
-                e = np.zeros(nE if nSrc == 1 else (nE, nSrc))
+                e = np.zeros((nE,nSrc)) # if nSrc == 1 else (nE, nSrc))
             u = np.concatenate((u, b, e))
-        return Utils.mkvc(u)
+        return Utils.mkvc(u,nSrc)
 
 
 class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):

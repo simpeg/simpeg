@@ -22,7 +22,7 @@ def getProb(meshType='CYL',rxTypes='bx,bz',nSrc=1):
     srcs = []
     for ii in range(nSrc):
         rxs = [EM.TDEM.RxTDEM(np.array([[rxOffset, 0., 0.]]), np.logspace(-4,-3, 20 + ii), rxType) for rxType in rxTypes.split(',')]
-        srcs += [EM.TDEM.SrcTDEM(np.array([0., 0., 0.]), 'VMD_MVP', rxs)]
+        srcs += [EM.TDEM.SrcTDEM_VMD_MVP(rxs,np.array([0., 0., 0.]))]
 
     survey = EM.TDEM.SurveyTDEM(srcs)
 

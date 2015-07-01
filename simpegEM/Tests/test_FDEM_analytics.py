@@ -76,6 +76,7 @@ class FDEM_analyticTests(unittest.TestCase):
         orderMag = 1.6
         passed = np.abs(np.mean(diff - np.log10(np.abs(mu_0*np.imag(an))))) > orderMag
         self.assertTrue(passed)
+        return passed
 
 
 if __name__ == '__main__':
