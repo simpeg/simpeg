@@ -25,7 +25,7 @@ install:
   - python setup.py build_ext --inplace
   - cd ../
   - echo export PYTHONPATH=$PYTHONPATH:/home/travis/build/simpeg/simpeg >> .bashrc
-  - git clone https://github.com/simpegem/simpegem.git
+  - git clone https://github.com/simpeg/simpegem.git
   - cd simpegem/
   - python setup.py build_ext --inplace
   - cd ../
