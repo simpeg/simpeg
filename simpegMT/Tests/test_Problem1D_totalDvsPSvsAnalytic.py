@@ -109,7 +109,7 @@ def dataMis_AnalyticPrimarySecondary(sigmaHalf):
     # Make the survey
     # Primary secondary
     surveyPS, sigmaPS, mesh = setupSurvey(sigmaHalf,False)
-    problemPS = simpegmt.ProblemMT1D.eForm_psField(mesh)
+    problemPS = simpegmt.ProblemMT1D.eForm_psField(mesh,sigma)
     problemPS.pair(surveyPS)
     # Analytic data
     dataAna = calculateAnalyticSolution(surveyPS.srcList,mesh,sigma)

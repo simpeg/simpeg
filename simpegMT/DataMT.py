@@ -1,7 +1,10 @@
 from SimPEG import Survey, Utils, Problem, np, sp, mkvc
+from simpegMT.Utils import rec2ndarr
+import simpegMT
 from scipy.constants import mu_0
 import sys
 from numpy.lib import recfunctions as recFunc
+
 
 ############
 ### Data ###
@@ -18,6 +21,11 @@ class DataMT(Survey.Data):
         # Pass the variables to the "parent" method
         Survey.Data.__init__(self, survey, v)
 
+    # # Import data
+    # @classmethod
+    # def fromEDIFiles():
+    #     pass
+
     def toRecArray(self,returnType='RealImag'):
         '''
         Function that returns a numpy.recarray for a SimpegMT impedance data object.
@@ -26,8 +34,6 @@ class DataMT(Survey.Data):
 
         '''
 
-        def rec2ndarr(x,dt=float):
-            return x.view((dt, len(x.dtype.names)))
         # Define the record fields
         dtRI = [('freq',float),('x',float),('y',float),('z',float),('zxxr',float),('zxxi',float),('zxyr',float),('zxyi',float),('zyxr',float),('zyxi',float),('zyyr',float),('zyyi',float)]
         dtCP = [('freq',float),('x',float),('y',float),('z',float),('zxx',complex),('zxy',complex),('zyx',complex),('zyy',complex)]
@@ -61,14 +67,55 @@ class DataMT(Survey.Data):
 
             if 'RealImag' in returnType:
                 outArr = outTemp
-            if 'Complex' in returnType:
+            elif 'Complex' in returnType:
                 # Add the real and imaginary to a complex number
-
                 outArr = np.empty(outTemp.shape,dtype=dtCP)
                 for comp in ['freq','x','y','z']:
                     outArr[comp] = outTemp[comp].copy()
                 for comp in ['zxx','zxy','zyx','zyy']:
                     outArr[comp] = outTemp[comp+'r'].copy() + 1j*outTemp[comp+'i'].copy()
+            else:
+                raise NotImplementedError('{:s} is not implemented, as to be RealImag or Complex.')
 
         # Return
         return outArr
+
+    @classmethod
+    def fromRecArray(cls, recArray, srcType='primary'):
+        """
+        Class method that reads in a numpy record array to MTdata object.
+
+        Only imports the impedance data.
+
+        """
+        if srcType=='primary':
+            src = simpegMT.SurveyMT.srcMT_polxy_1Dprimary
+        elif srcType=='total':
+            simpegMT.SurveyMT.srcMT_polxy_1DhomotD
+        else:
+            raise NotImplementedError('{:s} is not a valid source type for MTdata')
+
+        # Find all the frequencies in recArray
+        uniFreq = np.unique(recArray['freq'])
+        srcList = []
+        dataList = []
+        for freq in uniFreq:
+            # Initiate rxList
+            rxList = []
+            # Find that data for freq
+            dFreq = recArray[recArray['freq'] == freq]
+            # Find the impedance rxTypes in the recArray.
+            rxTypes = [ comp for comp in recArray.dtype.names if len(comp)==4 and 'z' in comp and 'r' in comp or 'i' in comp]
+            for rxType in rxTypes:
+                # Find index of not nan values in rxType
+                notNaNind = ~np.isnan(dFreq[rxType])
+
+                locs = rec2ndarr(dFreq[['x','y','z']][notNaNind].copy())
+                rxList.append(simpegMT.SurveyMT.RxMT(locs,rxType))
+                dataList.append(dFreq[rxType][notNaNind].data)
+            srcList.append(src(rxList,freq))
+
+        # Make a survey
+        survey = simpegMT.SurveyMT.SurveyMT(srcList)
+        dataVec = np.hstack(dataList)
+        return cls(survey,dataVec)

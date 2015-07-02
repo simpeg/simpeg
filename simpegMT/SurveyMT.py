@@ -219,15 +219,16 @@ class srcMT_polxy_1Dprimary(srcMT):
     MT source for both polarizations (x and y) given a 1D primary models. It assigns fields calculated from the 1D model
     as fields in the full space of the problem.
     """
-    def __init__(self, rxList, freq, sigma1d):
+    def __init__(self, rxList, freq):
         # assert mkvc(self.mesh.hz.shape,1) == mkvc(sigma1d.shape,1),'The number of values in the 1D background model does not match the number of vertical cells (hz).'
-        self.sigma1d = sigma1d
+        self.sigma1d = None
         srcMT.__init__(self, rxList, freq)
 
 
 
     def ePrimary(self,problem):
         # Get primary fields for both polarizations
+        self.sigma1d = problem._sigmaPrimary
         eBG_bp = homo1DModelSource(problem.mesh,self.freq,self.sigma1d)
         return eBG_bp
 

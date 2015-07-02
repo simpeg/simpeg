@@ -17,5 +17,8 @@ def getAppRes(MTdata):
 
 def appResPhs(freq,z):
     app_res = ((1./(8e-7*np.pi**2))/freq)*np.abs(z)**2
-    app_phs = np.arctan2(-z.imag,z.real)*(180/np.pi)
+    app_phs = np.arctan2(z.imag,z.real)*(180/np.pi)
     return app_res, app_phs
+
+def rec2ndarr(x,dt=float):
+    return x.view((dt, len(x.dtype.names)))

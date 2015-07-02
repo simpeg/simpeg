@@ -20,11 +20,18 @@ class eForm_psField(BaseMTProblem):
     # From FDEMproblem: Used to project the fields. Currently not used for MTproblem.
     _fieldType = 'e_1d'
     _eqLocs    = 'EF'
+    _sigmaPrimary = None
 
 
     def __init__(self, mesh, **kwargs):
         BaseMTProblem.__init__(self, mesh, **kwargs)
         self.fieldsPair = FieldsMT_1D
+        # self._sigmaPrimary = sigmaPrimary
+
+    @property
+    def sigmaPrimary(self):
+        return self._sigmaPrimary
+
 
     def getA(self, freq):
         """

@@ -63,7 +63,7 @@ def appRes_TotalFieldNorm(sigmaHalf):
 
     # Make the survey
     survey, sigma, mesh = setupSurvey(sigmaHalf)
-    problem = simpegmt.ProblemMT1D.eForm_TotalField(mesh)
+    problem = simpegmt.ProblemMT1D.eForm_TotalField(mesh,sigma)
     problem.pair(survey)
 
     # Get the fields
