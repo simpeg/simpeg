@@ -2,14 +2,14 @@ from simpegEM.FDEM import BaseFDEMProblem
 from SurveyMT import SurveyMT
 from DataMT import DataMT
 from FieldsMT import FieldsMT
-from SimPEG import SolverLU as SimpegSolver, mkvc
+from SimPEG import SolverLU as SimpegSolver, Utils, mkvc
 import numpy as np
 
 class BaseMTProblem(BaseFDEMProblem):
 
     def __init__(self, mesh, **kwargs):
         BaseFDEMProblem.__init__(self, mesh, **kwargs)
-
+        Utils.setKwargs(self, **kwargs)
     # Set the default pairs of the problem
     surveyPair = SurveyMT
     dataPair = DataMT

@@ -31,7 +31,10 @@ class eForm_psField(BaseMTProblem):
     @property
     def sigmaPrimary(self):
         return self._sigmaPrimary
-
+    @sigmaPrimary.setter
+    def sigmaPrimary(self, val):
+        # Note: TODO add logic for val, make sure it is the correct size.
+        self._sigmaPrimary = val
 
     def getA(self, freq):
         """

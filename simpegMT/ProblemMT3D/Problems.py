@@ -71,7 +71,7 @@ class eForm_ps(BaseMTProblem):
 
         return C.T*Mmui*C + 1j*omega(freq)*Msig
 
-    def getADeriv(self, freq, u, v, adjoint=False):
+    def getADeriv_m(self, freq, u, v, adjoint=False):
 
         dsig_dm = self.curModel.sigmaDeriv
         dMe_dsig = self.MeSigmaDeriv( v=u)
@@ -94,7 +94,7 @@ class eForm_ps(BaseMTProblem):
         S_e = Src.S_e(self)
         return -1j * omega(freq) * S_e
 
-    def getRHSderiv(self, freq, u, v, adjoint=False):
+    def getRHSderiv_m(self, freq, u, v, adjoint=False):
         """
         The derivative of the RHS with respect to sigma
         """
@@ -227,6 +227,7 @@ class eForm_Tp(BaseMTProblem):
         Abg = C.T*mui*C + 1j*omega(freq)*MeBack
 
         return Abg*eBG_bp, eBG_bp
+
     def getRHSderiv(self, freq, backSigma, u, v, adjoint=False):
         raise NotImplementedError('getRHSDeriv not implemented yet')
         return None
