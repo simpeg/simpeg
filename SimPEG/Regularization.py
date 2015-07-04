@@ -261,21 +261,33 @@ class Tikhonov(BaseRegularization):
         return self._Wzz
 
     @property
-    def W(self):
-        """Full regularization matrix W"""
-        if getattr(self, '_W', None) is None:
-            wlist = (self.Ws, self.Wx, self.Wxx)
+    def Wsmooth(self):
+        """Full smoothness regularization matrix W"""
+        if getattr(self, '_Wsmooth', None) is None:
+            wlist = (self.Wx, self.Wxx)
             if self.mesh.dim > 1:
                 wlist += (self.Wy, self.Wyy)
             if self.mesh.dim > 2:
                 wlist += (self.Wz, self.Wzz)
+            self._Wsmooth = sp.vstack(wlist)
+        return self._Wsmooth
+
+    @property
+    def W(self):
+        """Full regularization matrix W"""
+        if getattr(self, '_W', None) is None:
+            wlist = (self.Ws, self.Wsmooth)
+            # if self.mesh.dim > 1:
+            #     wlist += (self.Wy, self.Wyy)
+            # if self.mesh.dim > 2:
+            #     wlist += (self.Wz, self.Wzz)
             self._W = sp.vstack(wlist)
         return self._W
 
     @Utils.timeIt
     def eval(self, m):
         if self.smoothModel == True:
-            r1 = self.W * ( self.mapping * (m - self.mref) )
+            r1 = self.Wsmooth * ( self.mapping * (m) )
             r2 = self.Ws * ( self.mapping * (m - self.mref) )
             return 0.5*(r1.dot(r1)+r2.dot(r2))
         elif self.smoothModel == False:
@@ -303,9 +315,9 @@ class Tikhonov(BaseRegularization):
         if self.smoothModel == True:
             mD1 = self.mapping.deriv(m)
             mD2 = self.mapping.deriv(self.mref)
-            r1 = self.W * ( self.mapping * (m - self.mref) )
+            r1 = self.Wsmooth * ( self.mapping * (m)) 
             r2 = self.Ws * ( self.mapping * (m - self.mref) )
-            out1 = mD1.T * ( self.W.T * r1 )
+            out1 = mD1.T * ( self.Wsmooth.T * r1 )
             out2 = mD2.T * ( self.Ws.T * r2 )
             out = out1-out2
         elif self.smoothModel == False:
