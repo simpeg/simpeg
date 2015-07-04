@@ -275,7 +275,7 @@ class Tikhonov(BaseRegularization):
     @Utils.timeIt
     def eval(self, m):
         if self.smoothModel == True:
-            r1 = self.W * ( self.mapping * (m- self.mref) )
+            r1 = self.W * ( self.mapping * (m - self.mref) )
             r2 = self.Ws * ( self.mapping * (m - self.mref) )
             return 0.5*(r1.dot(r1)+r2.dot(r2))
         elif self.smoothModel == False:
