@@ -277,10 +277,6 @@ class Tikhonov(BaseRegularization):
         """Full regularization matrix W"""
         if getattr(self, '_W', None) is None:
             wlist = (self.Ws, self.Wsmooth)
-            # if self.mesh.dim > 1:
-            #     wlist += (self.Wy, self.Wyy)
-            # if self.mesh.dim > 2:
-            #     wlist += (self.Wz, self.Wzz)
             self._W = sp.vstack(wlist)
         return self._W
 
@@ -314,12 +310,12 @@ class Tikhonov(BaseRegularization):
         """
         if self.smoothModel == True:
             mD1 = self.mapping.deriv(m)
-            mD2 = self.mapping.deriv(self.mref)
+            mD2 = self.mapping.deriv(m - self.mref)
             r1 = self.Wsmooth * ( self.mapping * (m)) 
             r2 = self.Ws * ( self.mapping * (m - self.mref) )
             out1 = mD1.T * ( self.Wsmooth.T * r1 )
             out2 = mD2.T * ( self.Ws.T * r2 )
-            out = out1-out2
+            out = out1+out2
         elif self.smoothModel == False:
             mD = self.mapping.deriv(m - self.mref)
             r = self.W * ( self.mapping * (m - self.mref) )
