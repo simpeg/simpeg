@@ -14,7 +14,7 @@ class FieldsTDEM_e_from_b(FieldsTDEM):
         self.edgeCurlT = self.survey.prob.mesh.edgeCurl.T
         self.MfMui     = self.survey.prob.MfMui
 
-    def e_from_b(self, b, txInd, timeInd):
+    def e_from_b(self, b, srcInd, timeInd):
         # TODO: implement non-zero js
         return self.MeSigmaI*(self.edgeCurlT*(self.MfMui*b))
 
@@ -32,10 +32,10 @@ class FieldsTDEM_e_from_b_Ah(FieldsTDEM):
         self.edgeCurlT = self.survey.prob.mesh.edgeCurl.T
         self.MfMui     = self.survey.prob.MfMui
 
-    def e_from_b(self, y_b, txInd, tInd):
+    def e_from_b(self, y_b, srcInd, tInd):
         y_e = self.MeSigmaI*(self.edgeCurlT*(self.MfMui*y_b))
         if 'e' in self.p:
-            y_e = y_e - self.MeSigmaI*self.p[txInd,'e',tInd]
+            y_e = y_e - self.MeSigmaI*self.p[srcInd,'e',tInd]
         return y_e
 
 class ProblemTDEM_b(BaseTDEMProblem):
@@ -73,8 +73,10 @@ class ProblemTDEM_b(BaseTDEMProblem):
 
     def getRHS(self, tInd, F):
         dt = self.timeSteps[tInd]
-        B_n = np.c_[[F[tx,'b',tInd] for tx in self.survey.txList]].T
-        RHS = (1.0/dt)*self.MfMui*B_n
+        B_n = np.c_[[F[src,'b',tInd] for src in self.survey.srcList]].T
+        if B_n.shape[0] is not 1:
+            raise NotImplementedError('getRHS not implemented for this shape of B_n')
+        RHS = (1.0/dt)*self.MfMui*B_n[0,:,:] #TODO: This is a hack
         return RHS
 
     ####################################################
@@ -95,7 +97,7 @@ class ProblemTDEM_b(BaseTDEMProblem):
             u = self.fields(m)
         self.curModel = m
 
-        # Note: Fields has shape (nF/E, nTx, nT+1)
+        # Note: Fields has shape (nF/E, nSrc, nT+1)
         #       However, p will only really fill (:,:,1:nT+1)
         #       meaning the 'initial fields' are zero (:,:,0)
         p = FieldsTDEM(self.mesh, self.survey)
@@ -106,15 +108,17 @@ class ProblemTDEM_b(BaseTDEMProblem):
 
         # fake initial 'e' fields
         p[:, 'e', 0] = 0.0
-        dMdsig = self.mesh.getEdgeInnerProductDeriv(self.curModel.transform)
-        dsigdm_x_v = self.curModel.transformDeriv*vec
+        dMdsig = self.MeSigmaDeriv
+        # self.mesh.getEdgeInnerProductDeriv(self.curModel.transform)
+        # dsigdm_x_v = self.curModel.sigmaDeriv*vec
+        # dsigdm_x_v = self.curModel.transformDeriv*vec
         for i in range(1,self.nT+1):
             # TODO: G[1] may be dependent on the model
             #       for a galvanic source (deriv of the dc problem)
             #
-            # Do multiplication for all tx in self.survey.txList
-            for tx in self.survey.txList:
-                p[tx, 'e', i] = - dMdsig(u[tx,'e',i]) *  dsigdm_x_v
+            # Do multiplication for all src in self.survey.srcList
+            for src in self.survey.srcList:
+                p[src, 'e', i] = - dMdsig(u[src,'e',i]) *  vec
         return p
 
     def Gtvec(self, m, vec, u=None):
@@ -130,20 +134,21 @@ class ProblemTDEM_b(BaseTDEMProblem):
         if u is None:
             u = self.fields(m)
         self.curModel = m
-        dMdsig = self.mesh.getEdgeInnerProductDeriv(self.curModel.transform)
-        dsigdm = self.curModel.transformDeriv
+        # dMdsig = self.mesh.getEdgeInnerProductDeriv(self.curModel.transform)
+        # dsigdm = self.curModel.transformDeriv
+        MeSigmaDeriv = self.MeSigmaDeriv
 
-        nTx = self.survey.nTx
+        nSrc = self.survey.nSrc
         VUs = None
         # Here we can do internal multiplications of Gt*v and then multiply by MsigDeriv.T in one go.
         for i in range(1,self.nT+1):
             vu = None
-            for tx in self.survey.txList:
-                vutx = dMdsig(u[tx,'e',i]).T * vec[tx,'e',i]
-                vu = vutx if vu is None else vu + vutx
+            for src in self.survey.srcList:
+                vusrc = MeSigmaDeriv(u[src,'e',i]).T * vec[src,'e',i]
+                vu = vusrc if vu is None else vu + vusrc
             VUs = vu if VUs is None else VUs + vu
-        p = -dsigdm.T*VUs
-        return p
+        # p = -dsigdm.T*VUs
+        return -VUs
 
     def solveAh(self, m, p):
         """
@@ -241,8 +246,8 @@ class ProblemTDEM_b(BaseTDEMProblem):
         #                1                (tInd=1 uses fields 2 and 3)
 
         def AhtRHS(tInd, y):
-            nTx, nF = self.survey.nTx, self.mesh.nF
-            rhs = np.zeros(nF if nTx == 1 else (nF, nTx))
+            nSrc, nF = self.survey.nSrc, self.mesh.nF
+            rhs = np.zeros((nF,1) if nSrc == 1 else (nF, nSrc))
 
             if 'e' in p:
                 rhs += self.MfMui*(self.mesh.edgeCurl*(self.MeSigmaI*p[:,'e',tInd+1]))

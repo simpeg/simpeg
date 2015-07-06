@@ -1,6 +1,6 @@
 from SimPEG import Utils, Survey, np
 from SimPEG.Survey import BaseSurvey
-from simpegEM import Sources
+from simpegEM.Utils import SrcUtils
 from BaseTDEM import FieldsTDEM
 
 
@@ -51,76 +51,90 @@ class RxTDEM(Survey.BaseTimeRx):
         else:
             return timeMesh.getInterpolationMat(self.times, self.projTLoc)
 
-    def projectFields(self, tx, mesh, timeMesh, u):
+    def projectFields(self, src, mesh, timeMesh, u):
         P = self.getP(mesh, timeMesh)
-        u_part = Utils.mkvc(u[tx, self.projField, :])
+        u_part = Utils.mkvc(u[src, self.projField, :])
         return P*u_part
 
-    def projectFieldsDeriv(self, tx, mesh, timeMesh, u, v, adjoint=False):
+    def projectFieldsDeriv(self, src, mesh, timeMesh, u, v, adjoint=False):
         P = self.getP(mesh, timeMesh)
 
         if not adjoint:
-            return P * Utils.mkvc(v[tx, self.projField, :])
+            return P * Utils.mkvc(v[src, self.projField, :])
         elif adjoint:
-            return P.T * v[tx, self]
+            return P.T * v[src, self]
 
 
-class TxTDEM(Survey.BaseTx):
+class SrcTDEM(Survey.BaseSrc):
     rxPair = RxTDEM
     radius = None
-    knownTxTypes = ['VMD_MVP', 'CircularLoop_MVP']
 
     def getInitialFields(self, mesh):
-        F0 = getattr(self, '_getInitialFields_' + self.txType)(mesh)
+        F0 = getattr(self, '_getInitialFields_' + self.srcType)(mesh)
         return F0
 
-    def _getInitialFields_VMD_MVP(self, mesh):
+    def getJs(self, mesh, time):
+        return None
+
+
+class SrcTDEM_VMD_MVP(SrcTDEM):
+
+    def __init__(self,rxList,loc):
+        self.loc = loc
+        SrcTDEM.__init__(self,rxList)
+
+    def getInitialFields(self, mesh):
         """Vertical magnetic dipole, magnetic vector potential"""
         if mesh._meshType is 'CYL':
             if mesh.isSymmetric:
-                MVP = Sources.MagneticDipoleVectorPotential(self.loc, mesh, 'Ey')
+                MVP = SrcUtils.MagneticDipoleVectorPotential(self.loc, mesh, 'Ey')
             else:
                 raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
         elif mesh._meshType is 'TENSOR':
-            MVP = Sources.MagneticDipoleVectorPotential(self.loc, mesh, ['Ex','Ey','Ez'])
+            MVP = SrcUtils.MagneticDipoleVectorPotential(self.loc, mesh, ['Ex','Ey','Ez'])
         else:
             raise Exception('Unknown mesh for VMD')
 
         return {"b": mesh.edgeCurl*MVP}
 
-    def _getInitialFields_CircularLoop_MVP(self, mesh):
+
+class SrcTDEM_CircularLoop_MVP(SrcTDEM):
+
+    def __init__(self,rxList,loc):
+        self.loc = loc
+        SrcTDEM.__init__(self,rxList)
+
+    def getInitialFields_(self, mesh):
         """Circular Loop, magnetic vector potential"""
         if mesh._meshType is 'CYL':
             if mesh.isSymmetric:
-                MVP = Sources.MagneticLoopVectorPotential(self.loc, mesh, 'Ey', self.radius)
+                MVP = SrcUtils.MagneticLoopVectorPotential(self.loc, mesh, 'Ey', self.radius)
             else:
                 raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
         elif mesh._meshType is 'TENSOR':
-            MVP = Sources.MagneticLoopVectorPotential(self.loc, mesh, ['Ex','Ey','Ez'], self.radius)
+            MVP = SrcUtils.MagneticLoopVectorPotential(self.loc, mesh, ['Ex','Ey','Ez'], self.radius)
         else:
             raise Exception('Unknown mesh for CircularLoop')
 
         return {"b": mesh.edgeCurl*MVP}
 
-    def getJs(self, mesh, time):
-        return None
 
 class SurveyTDEM(Survey.BaseSurvey):
     """
         docstring for SurveyTDEM
     """
-    txPair = TxTDEM
+    srcPair = SrcTDEM
 
-    def __init__(self, txList, **kwargs):
+    def __init__(self, srcList, **kwargs):
         # Sort these by frequency
-        self.txList = txList
+        self.srcList = srcList
         Survey.BaseSurvey.__init__(self, **kwargs)
 
     def projectFields(self, u):
         data = Survey.Data(self)
-        for tx in self.txList:
-            for rx in tx.rxList:
-                data[tx, rx] = rx.projectFields(tx, self.mesh, self.prob.timeMesh, u)
+        for src in self.srcList:
+            for rx in src.rxList:
+                data[src, rx] = rx.projectFields(src, self.mesh, self.prob.timeMesh, u)
         return data
 
     def projectFieldsDeriv(self, u, v=None, adjoint=False):
@@ -128,20 +142,20 @@ class SurveyTDEM(Survey.BaseSurvey):
 
         if not adjoint:
             data = Survey.Data(self)
-            for tx in self.txList:
-                for rx in tx.rxList:
-                    data[tx, rx] = rx.projectFieldsDeriv(tx, self.mesh, self.prob.timeMesh, u, v)
+            for src in self.srcList:
+                for rx in src.rxList:
+                    data[src, rx] = rx.projectFieldsDeriv(src, self.mesh, self.prob.timeMesh, u, v)
             return data
         else:
             f = FieldsTDEM(self.mesh, self)
-            for tx in self.txList:
-                for rx in tx.rxList:
-                    Ptv = rx.projectFieldsDeriv(tx, self.mesh, self.prob.timeMesh, u, v, adjoint=True)
+            for src in self.srcList:
+                for rx in src.rxList:
+                    Ptv = rx.projectFieldsDeriv(src, self.mesh, self.prob.timeMesh, u, v, adjoint=True)
                     Ptv = Ptv.reshape((-1, self.prob.timeMesh.nN), order='F')
                     if rx.projField not in f: # first time we are projecting
-                        f[tx, rx.projField, :] = Ptv
+                        f[src, rx.projField, :] = Ptv
                     else: # there are already fields, so let's add to them!
-                        f[tx, rx.projField, :] += Ptv
+                        f[src, rx.projField, :] += Ptv
             return f
 
 

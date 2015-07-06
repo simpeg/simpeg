@@ -1,6 +1,6 @@
 from SimPEG import Solver, Problem
 from SimPEG.Problem import BaseTimeProblem
-from simpegEM import Sources
+from simpegEM.Utils import SrcUtils
 from scipy.constants import mu_0
 from SimPEG.Utils import sdiag, mkvc
 from SimPEG import Utils, Mesh
@@ -13,21 +13,21 @@ class FieldsTDEM(Problem.TimeFields):
     knownFields = {'b': 'F', 'e': 'E'}
 
     def tovec(self):
-        nTx, nF, nE = self.survey.nTx, self.mesh.nF, self.mesh.nE
-        u = np.empty(0 if nTx == 1 else (0, nTx))
+        nSrc, nF, nE = self.survey.nSrc, self.mesh.nF, self.mesh.nE
+        u = np.empty((0,nSrc)) #((0,1) if nSrc == 1 else (0, nSrc))
 
         for i in range(self.survey.prob.nT):
             if 'b' in self:
                 b = self[:,'b',i+1]
             else:
-                b = np.zeros(nF if nTx == 1 else (nF, nTx))
+                b = np.zeros((nF,nSrc)) # if nSrc == 1 else (nF, nSrc))
 
             if 'e' in self:
                 e = self[:,'e',i+1]
             else:
-                e = np.zeros(nE if nTx == 1 else (nE, nTx))
+                e = np.zeros((nE,nSrc)) # if nSrc == 1 else (nE, nSrc))
             u = np.concatenate((u, b, e))
-        return Utils.mkvc(u)
+        return Utils.mkvc(u,nSrc)
 
 
 class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
@@ -42,9 +42,9 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
         self.curModel = m
         # Create a fields storage object
         F = self._FieldsForward_pair(self.mesh, self.survey)
-        for tx in self.survey.txList:
+        for src in self.survey.srcList:
             # Set the initial conditions
-            F[tx,:,0] = tx.getInitialFields(self.mesh)
+            F[src,:,0] = src.getInitialFields(self.mesh)
         F = self.forward(m, self.getRHS, F=F)
         if self.verbose: print '%s\nDone calculating fields(m)\n%s'%('*'*50,'*'*50)
         return F

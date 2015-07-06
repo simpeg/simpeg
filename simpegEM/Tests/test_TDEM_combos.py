@@ -4,7 +4,7 @@ import simpegEM as EM
 
 plotIt = False
 
-def getProb(meshType='CYL',rxTypes='bx,bz',nTx=1):
+def getProb(meshType='CYL',rxTypes='bx,bz',nSrc=1):
     cs = 5.
     ncx = 20
     ncy = 6
@@ -19,12 +19,12 @@ def getProb(meshType='CYL',rxTypes='bx,bz',nTx=1):
 
     rxOffset = 40.
 
-    txs = []
-    for ii in range(nTx):
+    srcs = []
+    for ii in range(nSrc):
         rxs = [EM.TDEM.RxTDEM(np.array([[rxOffset, 0., 0.]]), np.logspace(-4,-3, 20 + ii), rxType) for rxType in rxTypes.split(',')]
-        txs += [EM.TDEM.TxTDEM(np.array([0., 0., 0.]), 'VMD_MVP', rxs)]
+        srcs += [EM.TDEM.SrcTDEM_VMD_MVP(rxs,np.array([0., 0., 0.]))]
 
-    survey = EM.TDEM.SurveyTDEM(txs)
+    survey = EM.TDEM.SurveyTDEM(srcs)
 
     prb = EM.TDEM.ProblemTDEM_b(mesh, mapping=mapping)
     # prb.timeSteps = [1e-5]
@@ -68,8 +68,8 @@ class TDEM_bDerivTests(unittest.TestCase):
     def test_Jvec_bxbz(self): self.assertTrue(dotestJvec(*getProb(rxTypes='bx,bz')))
     def test_Adjoint_bxbz(self): self.assertLess(*dotestAdjoint(*getProb(rxTypes='bx,bz')))
 
-    def test_Jvec_bxbz_2tx(self): self.assertTrue(dotestJvec(*getProb(rxTypes='bx,bz',nTx=2)))
-    def test_Adjoint_bxbz_2tx(self): self.assertLess(*dotestAdjoint(*getProb(rxTypes='bx,bz',nTx=2)))
+    def test_Jvec_bxbz_2src(self): self.assertTrue(dotestJvec(*getProb(rxTypes='bx,bz',nSrc=2)))
+    def test_Adjoint_bxbz_2src(self): self.assertLess(*dotestAdjoint(*getProb(rxTypes='bx,bz',nSrc=2)))
 
     def test_Jvec_bxbzbz(self): self.assertTrue(dotestJvec(*getProb(rxTypes='bx,bz,bz')))
     def test_Adjoint_bxbzbz(self): self.assertLess(*dotestAdjoint(*getProb(rxTypes='bx,bz,bz')))

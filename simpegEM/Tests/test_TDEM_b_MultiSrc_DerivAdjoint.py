@@ -22,11 +22,11 @@ class TDEM_bDerivTests(unittest.TestCase):
 
         rxOffset = 40.
         rx = EM.TDEM.RxTDEM(np.array([[rxOffset, 0., 0.]]), np.logspace(-4,-3, 20), 'bz')
-        tx = EM.TDEM.TxTDEM(np.array([0., 0., 0.]), 'VMD_MVP', [rx])
+        src = EM.TDEM.SrcTDEM_VMD_MVP( [rx], loc=np.array([0., 0., 0.]))
         rx2 = EM.TDEM.RxTDEM(np.array([[rxOffset-10, 0., 0.]]), np.logspace(-5,-4, 25), 'bz')
-        tx2 = EM.TDEM.TxTDEM(np.array([0., 0., 0.]), 'VMD_MVP', [rx2])
+        src2 = EM.TDEM.SrcTDEM_VMD_MVP( [rx2], loc=np.array([0., 0., 0.]))
 
-        survey = EM.TDEM.SurveyTDEM([tx,tx2])
+        survey = EM.TDEM.SurveyTDEM([src,src2])
 
         self.prb = EM.TDEM.ProblemTDEM_b(mesh, mapping=mapping)
         # self.prb.timeSteps = [1e-5]
@@ -60,8 +60,7 @@ class TDEM_bDerivTests(unittest.TestCase):
 
         derChk = lambda m: [self.prb._AhVec(m, f).tovec(), lambda mx: self.prb.Gvec(sigma, mx, u=f).tovec()]
         print '\ntest_DerivG'
-        passed = Tests.checkDerivative(derChk, sigma, plotIt=False, dx=dm, num=4, eps=1e-20)
-        self.assertTrue(passed)
+        Tests.checkDerivative(derChk, sigma, plotIt=False, dx=dm, num=4, eps=1e-20)
 
     def test_Deriv_dUdM(self):
 
@@ -76,8 +75,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         derChk = lambda m: [self.prb.fields(m).tovec(), lambda mx: -prb.solveAh(sigma, prb.Gvec(sigma, mx, u=f)).tovec()]
         print '\n'
         print 'test_Deriv_dUdM'
-        passed = Tests.checkDerivative(derChk, sigma, plotIt=False, dx=dm, num=4, eps=1e-20)
-        self.assertTrue(passed)
+        Tests.checkDerivative(derChk, sigma, plotIt=False, dx=dm, num=4, eps=1e-20)
 
     def test_Deriv_J(self):
 
@@ -93,28 +91,27 @@ class TDEM_bDerivTests(unittest.TestCase):
         derChk = lambda m: [prb.survey.dpred(m), lambda mx: prb.Jvec(sigma, mx)]
         print '\n'
         print 'test_Deriv_J'
-        passed = Tests.checkDerivative(derChk, sigma, plotIt=False, dx=d_sig, num=4, eps=1e-20)
-        self.assertTrue(passed)
+        Tests.checkDerivative(derChk, sigma, plotIt=False, dx=d_sig, num=4, eps=1e-20)
 
     def test_projectAdjoint(self):
         prb = self.prb
         survey = prb.survey
-        nTx = survey.nTx
+        nSrc = survey.nSrc
         mesh = self.mesh
 
         # Generate random fields and data
         f = EM.TDEM.FieldsTDEM(prb.mesh, prb.survey)
         for i in range(prb.nT):
-            f[:,'b',i] = np.random.rand(mesh.nF, nTx)
-            f[:,'e',i] = np.random.rand(mesh.nE, nTx)
+            f[:,'b',i] = np.random.rand(mesh.nF, nSrc)
+            f[:,'e',i] = np.random.rand(mesh.nE, nSrc)
         d_vec = np.random.rand(survey.nD)
         d = Survey.Data(survey,v=d_vec)
 
         # Check that d.T*Q*f = f.T*Q.T*d
         V1 = d_vec.dot(survey.projectFieldsDeriv(None, v=f).tovec())
-        V2 = f.tovec().dot(survey.projectFieldsDeriv(None, v=d, adjoint=True).tovec())
+        V2 = np.sum((f.tovec())*(survey.projectFieldsDeriv(None, v=d, adjoint=True).tovec()))
 
-        self.assertLess((V1-V2)/np.abs(V1), 1e-6)
+        self.assertTrue((V1-V2)/np.abs(V1) < 1e-6)
 
     def test_adjointGvecVsGtvec(self):
         mesh = self.mesh
@@ -134,8 +131,8 @@ class TDEM_bDerivTests(unittest.TestCase):
             v[:,'e',i] = np.random.rand(mesh.nE, 2)
 
         V1 = m.dot(prb.Gtvec(sigma, v, u))
-        V2 = v.tovec().dot(prb.Gvec(sigma, m, u).tovec())
-        self.assertLess(np.abs(V1-V2)/np.abs(V1), 1e-6)
+        V2 = np.sum(v.tovec()*prb.Gvec(sigma, m, u).tovec())
+        self.assertTrue(np.abs(V1-V2)/np.abs(V1) <1e-6)
 
     def test_adjointJvecVsJtvec(self):
         mesh = self.mesh
@@ -148,7 +145,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         V1 = d.dot(prb.Jvec(sigma, m))
         V2 = m.dot(prb.Jtvec(sigma, d))
         print 'AdjointTest', V1, V2
-        self.assertLess(np.abs(V1-V2)/np.abs(V1), 1e-6)
+        self.assertTrue(np.abs(V1-V2)/np.abs(V1) < 1e-6)
 
 
 

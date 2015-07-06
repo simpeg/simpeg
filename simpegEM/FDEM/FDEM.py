@@ -1,108 +1,10 @@
 from SimPEG import Survey, Problem, Utils, np, sp, Solver as SimpegSolver
 from scipy.constants import mu_0
-from SurveyFDEM import SurveyFDEM, FieldsFDEM
-from simpegEM import Sources
+from SurveyFDEM import SurveyFDEM
+from FieldsFDEM import FieldsFDEM, FieldsFDEM_e, FieldsFDEM_b, FieldsFDEM_h, FieldsFDEM_j
 from simpegEM.Base import BaseEMProblem
+from simpegEM.Utils.EMUtils import omega
 
-def omega(freq):
-    """Change frequency to angular frequency, omega"""
-    return 2.*np.pi*freq
-
-def getSource(self,freq):
-        """
-            :param float freq: Frequency
-            :rtype: numpy.ndarray (nE, nTx)
-            :return: RHS
-        """
-        Txs = self.survey.getTransmitters(freq)
-        rhs = range(len(Txs))
-
-        solType = self.solType
-        
-        if solType == 'e' or solType == 'b':
-            gridEJx = self.mesh.gridEx
-            gridEJy = self.mesh.gridEy
-            gridEJz = self.mesh.gridEz
-            nEJ = self.mesh.nE
-
-            gridBHx = self.mesh.gridFx
-            gridBHy = self.mesh.gridFy
-            gridBHz = self.mesh.gridFz
-            nBH = self.mesh.nF
-
-
-            C = self.mesh.edgeCurl
-            mui = self.MfMui
-
-        elif solType == 'h' or solType == 'j':
-            gridEJx = self.mesh.gridFx
-            gridEJy = self.mesh.gridFy
-            gridEJz = self.mesh.gridFz
-            nEJ = self.mesh.nF
-
-            gridBHx = self.mesh.gridEx
-            gridBHy = self.mesh.gridEy
-            gridBHz = self.mesh.gridEz
-            nBH = self.mesh.nE
-
-            C = self.mesh.edgeCurl.T
-            mui = self.MeMuI
-
-        else:
-            NotImplementedError('Only E or F sources')
-
-        for i, tx in enumerate(Txs):
-            if self.mesh._meshType is 'CYL':
-                if self.mesh.isSymmetric:
-                    if tx.txType == 'VMD':                    
-                        SRC = Sources.MagneticDipoleVectorPotential(tx.loc, gridEJy, 'y')
-                    elif tx.txType =='CircularLoop':
-                        SRC = Sources.MagneticLoopVectorPotential(tx.loc, gridEJy, 'y', tx.radius)
-                    else:
-                        raise NotImplementedError('Only VMD and CircularLoop')
-                else:
-                    raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
-
-            elif self.mesh._meshType is 'TENSOR':
-
-                if tx.txType == 'VMD':
-                    src = Sources.MagneticDipoleVectorPotential
-                    SRCx = src(tx.loc, gridEJx, 'x')
-                    SRCy = src(tx.loc, gridEJy, 'y')
-                    SRCz = src(tx.loc, gridEJz, 'z')
-
-                elif tx.txType == 'VMD_B':
-                    src = Sources.MagneticDipoleFields
-                    SRCx = src(tx.loc, gridBHx, 'x')
-                    SRCy = src(tx.loc, gridBHy, 'y')
-                    SRCz = src(tx.loc, gridBHz, 'z')
-
-                elif tx.txType == 'CircularLoop':
-                    src = Sources.MagneticLoopVectorPotential                
-                    SRCx = src(tx.loc, gridEJx, 'x', tx.radius)
-                    SRCy = src(tx.loc, gridEJy, 'y', tx.radius)
-                    SRCz = src(tx.loc, gridEJz, 'z', tx.radius)
-                else:
-
-                    raise NotImplemented('%s txType is not implemented' % tx.txType)
-                SRC = np.concatenate((SRCx, SRCy, SRCz))                                    
-
-            else:
-                raise Exception('Unknown mesh for VMD')           
-            
-            rhs[i] = SRC
-        
-        # b-forumlation              
-        if tx.txType == 'VMD_B':
-            b_0 = np.concatenate(rhs).reshape((nBH, len(Txs)), order='E')
-        else:            
-            a = np.concatenate(rhs).reshape((nEJ, len(Txs)), order='F')
-            b_0 = C*a
-
-        if solType == 'b' or solType == 'h':
-            return b_0
-        elif solType == 'e' or solType == 'j':
-            return C.T*mui*b_0
 
 class BaseFDEMProblem(BaseEMProblem):
     """
@@ -110,58 +12,71 @@ class BaseFDEMProblem(BaseEMProblem):
 
         .. math::
 
-            \\nabla \\times \\vec{E} + i \\omega \\vec{B} = 0 \\\\
-            \\nabla \\times \\mu^{-1} \\vec{B} - \\sigma \\vec{E} = \\vec{J_s}
+            \\nabla \\times \\vec{E} + i \\omega \\vec{B} = \\vec{S_m} \\\\
+            \\nabla \\times \\mu^{-1} \\vec{B} - \\sigma \\vec{E} = \\vec{S_e}
 
     """
     surveyPair = SurveyFDEM
+    fieldsPair = FieldsFDEM
 
-    def forward(self, m, RHS, CalcFields):
-
-        F = FieldsFDEM(self.mesh, self.survey)
+    def fields(self, m=None):
+        self.curModel = m
+        F = self.fieldsPair(self.mesh, self.survey)
 
         for freq in self.survey.freqs:
             A = self.getA(freq)
-            rhs = RHS(freq)
+            rhs = self.getRHS(freq)
             Ainv = self.Solver(A, **self.solverOpts)
             sol = Ainv * rhs
-            for fieldType in self.storeTheseFields:
-                Txs = self.survey.getTransmitters(freq)
-                F[Txs, fieldType] = CalcFields(sol, freq, fieldType)
+            Srcs = self.survey.getSrcByFreq(freq)
+            ftype = self._fieldType + 'Solution'
+            F[Srcs, ftype] = sol
 
         return F
 
-    def Jvec(self, m, v, u=None):
-        if u is None:
-           u = self.fields(m)
+    def Jvec(self, m, v, f=None):
+        if f is None:
+           f = self.fields(m) 
 
         self.curModel = m
 
         Jv = self.dataPair(self.survey)
 
         for freq in self.survey.freqs:
-            A = self.getA(freq)
-            Ainv = self.Solver(A, **self.solverOpts)
+            dA_du = self.getA(freq) #
+            dA_duI = self.Solver(dA_du, **self.solverOpts) 
 
-            for tx in self.survey.getTransmitters(freq):
-                u_tx = u[tx, self.solType]
-                w = self.getADeriv(freq, u_tx, v)
-                Ainvw = Ainv * w
-                for rx in tx.rxList:
-                    fAinvw = self.calcFields(Ainvw, freq, rx.projField)
-                    P = lambda v: rx.projectFieldsDeriv(tx, self.mesh, u, v)
+            for src in self.survey.getSrcByFreq(freq):
+                ftype = self._fieldType + 'Solution'
+                u_src = f[src, ftype]
+                dA_dm = self.getADeriv_m(freq, u_src, v)
+                dRHS_dm = self.getRHSDeriv_m(src, v)
+                if dRHS_dm is None:
+                    du_dm = dA_duI * ( - dA_dm )
+                else:
+                    du_dm = dA_duI * ( - dA_dm + dRHS_dm )
+                for rx in src.rxList:
+                    # df_duFun = u.deriv_u(rx.fieldsUsed, m)
+                    df_duFun = getattr(f, '_%sDeriv_u'%rx.projField, None)
+                    df_du = df_duFun(src, du_dm, adjoint=False)
+                    if df_du is not None:
+                        du_dm = df_du
 
-                    df_dm = self.calcFieldsDeriv(u_tx, freq, rx.projField, v)
-                    if df_dm is None:
-                        Jv[tx, rx] = - P(fAinvw)
-                    else:
-                        Jv[tx, rx] = - P(fAinvw) + P(df_dm)
+                    df_dmFun = getattr(f, '_%sDeriv_m'%rx.projField, None)
+                    df_dm = df_dmFun(src, v, adjoint=False)
+                    if df_dm is not None:
+                        du_dm += df_dm
+
+                    P = lambda v: rx.projectFieldsDeriv(src, self.mesh, f, v) # wrt u, also have wrt m
+
+
+                    Jv[src, rx] = P(du_dm)
 
         return Utils.mkvc(Jv)
 
-    def Jtvec(self, m, v, u=None):
-        if u is None:
-            u = self.fields(m)
+    def Jtvec(self, m, v, f=None): 
+        if f is None:
+            f = self.fields(m)
 
         self.curModel = m
 
@@ -169,39 +84,73 @@ class BaseFDEMProblem(BaseEMProblem):
         if not isinstance(v, self.dataPair):
             v = self.dataPair(self.survey, v)
 
-        Jtv = np.zeros(self.mapping.nP)
+        Jtv = np.zeros(m.size)
 
         for freq in self.survey.freqs:
             AT = self.getA(freq).T
             ATinv = self.Solver(AT, **self.solverOpts)
 
-            for tx in self.survey.getTransmitters(freq):
-                u_tx = u[tx, self.solType]
+            for src in self.survey.getSrcByFreq(freq):
+                ftype = self._fieldType + 'Solution'
+                u_src = f[src, ftype]
 
-                for rx in tx.rxList:
-                    PTv = rx.projectFieldsDeriv(tx, self.mesh, u, v[tx, rx], adjoint=True)
-                    fPTv = self.calcFields(PTv, freq, rx.projField, adjoint=True)
+                for rx in src.rxList:
+                    PTv = rx.projectFieldsDeriv(src, self.mesh, f, v[src, rx], adjoint=True) # wrt u, need possibility wrt m
 
-                    w = ATinv * fPTv
-                    Jtv_rx = - self.getADeriv(freq, u_tx, w, adjoint=True)
+                    df_duTFun = getattr(f, '_%sDeriv_u'%rx.projField, None)
+                    df_duT = df_duTFun(src, PTv, adjoint=True)
+                    if df_duT is not None:
+                        dA_duIT = ATinv * df_duT
+                    else:
+                        dA_duIT = ATinv * PTv
 
-                    df_dm = self.calcFieldsDeriv(u_tx, freq, rx.projField, PTv, adjoint=True)
+                    dA_dmT = self.getADeriv_m(freq, u_src, dA_duIT, adjoint=True)
 
-                    if df_dm is not None:
-                        Jtv_rx += df_dm
+                    dRHS_dmT = self.getRHSDeriv_m(src, dA_duIT, adjoint=True)
+
+                    if dRHS_dmT is None:
+                        du_dmT = - dA_dmT
+                    else:
+                        du_dmT = -dA_dmT + dRHS_dmT
+
+                    df_dmFun = getattr(f, '_%sDeriv_m'%rx.projField, None)
+                    dfT_dm = df_dmFun(src, PTv, adjoint=True)
+                    if dfT_dm is not None:
+                        du_dmT += dfT_dm
 
                     real_or_imag = rx.projComp
                     if real_or_imag == 'real':
-                        Jtv +=   Jtv_rx.real
+                        Jtv +=   du_dmT.real
                     elif real_or_imag == 'imag':
-                        Jtv += - Jtv_rx.real
+                        Jtv += - du_dmT.real
                     else:
                         raise Exception('Must be real or imag')
 
         return Jtv
 
-    def getSource(self,freq):
-        return self.getSource(freq)
+    def getSourceTerm(self, freq):
+        """
+            :param float freq: Frequency
+            :rtype: numpy.ndarray (nE or nF, nSrc)
+            :return: RHS
+        """
+        Srcs = self.survey.getSrcByFreq(freq)
+        if self._eqLocs is 'FE':
+            S_m = np.zeros((self.mesh.nF,len(Srcs)), dtype=complex) 
+            S_e = np.zeros((self.mesh.nE,len(Srcs)), dtype=complex)
+        elif self._eqLocs is 'EF':
+            S_m = np.zeros((self.mesh.nE,len(Srcs)), dtype=complex)
+            S_e = np.zeros((self.mesh.nF,len(Srcs)), dtype=complex) 
+
+        for i, src in enumerate(Srcs):
+            smi, sei = src.eval(self)
+            if smi is not None:
+                S_m[:,i] = Utils.mkvc(smi)
+            if sei is not None:
+                S_e[:,i] = Utils.mkvc(sei)
+
+        return S_m, S_e
+
 
 ##########################################################################################
 ################################ E-B Formulation #########################################
@@ -225,10 +174,13 @@ class ProblemFDEM_e(BaseFDEMProblem):
 
 
     """
-    solType = 'e'
 
-    def __init__(self, model, **kwargs):
-        BaseFDEMProblem.__init__(self, model, **kwargs)
+    _fieldType = 'e'
+    _eqLocs    = 'FE'
+    fieldsPair = FieldsFDEM_e
+
+    def __init__(self, mesh, **kwargs):
+        BaseFDEMProblem.__init__(self, mesh, **kwargs)
 
     def getA(self, freq):
         """
@@ -236,62 +188,77 @@ class ProblemFDEM_e(BaseFDEMProblem):
             :rtype: scipy.sparse.csr_matrix
             :return: A
         """
-        mui = self.MfMui
-        sig = self.MeSigma
+        MfMui = self.MfMui
+        MeSigma = self.MeSigma
         C = self.mesh.edgeCurl
 
-        return C.T*mui*C + 1j*omega(freq)*sig
+        return C.T*MfMui*C + 1j*omega(freq)*MeSigma
 
 
-    def getADeriv(self, freq, u, v, adjoint=False):
-        sig = self.curModel.transform
-        dsig_dm = self.curModel.transformDeriv
-        dMe_dsig = self.mesh.getEdgeInnerProductDeriv(sig)(u)
+    def getADeriv_m(self, freq, u, v, adjoint=False):
+        dsig_dm = self.curModel.sigmaDeriv
+        dMe_dsig = self.MeSigmaDeriv(u)
 
         if adjoint:
-            return 1j * omega(freq) * ( dsig_dm.T * ( dMe_dsig.T * v ) )
+            return 1j * omega(freq) * ( dMe_dsig.T * v )
 
-        return 1j * omega(freq) * ( dMe_dsig * ( dsig_dm * v ) )
+        return 1j * omega(freq) * ( dMe_dsig * v )
 
     def getRHS(self, freq):
         """
             :param float freq: Frequency
-            :rtype: numpy.ndarray (nE, nTx)
+            :rtype: numpy.ndarray (nE, nSrc)
             :return: RHS
         """
 
-        j_s = getSource(self,freq)
-        return -1j*omega(freq)*j_s
+        S_m, S_e = self.getSourceTerm(freq)
+        C = self.mesh.edgeCurl
+        MfMui = self.MfMui
 
-    def calcFields(self, sol, freq, fieldType, adjoint=False):
-        e = sol
-        if fieldType == 'e':
-            return e
-        elif fieldType == 'b':
-            if not adjoint:
-                b = -(1./(1j*omega(freq))) * ( self.mesh.edgeCurl * e )
+        RHS = C.T * (MfMui * S_m) -1j*omega(freq)*S_e
+
+        return RHS
+
+    def getRHSDeriv_m(self, src, v, adjoint=False):
+        C = self.mesh.edgeCurl
+        MfMui = self.MfMui
+        S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint)
+
+        if adjoint:
+            dRHS = MfMui * (C * v)
+            S_mDerivv = S_mDeriv(dRHS)
+            S_eDerivv = S_eDeriv(v)
+            if S_mDerivv is not None and S_eDerivv is not None:
+                return S_mDerivv - 1j*omega(freq)*S_eDerivv
+            elif S_mDerivv is not None:
+                return S_mDerivv
+            elif S_eDerivv is not None:
+                return - 1j*omega(freq)*S_eDerivv
             else:
-                b = -(1./(1j*omega(freq))) * ( self.mesh.edgeCurl.T * e )
-            return b
-        raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
+                return None
+        else:   
+            S_mDerivv, S_eDerivv = S_mDeriv(v), S_eDeriv(v)
 
-    def calcFieldsDeriv(self, sol, freq, fieldType, v, adjoint=False):
-        e = sol
-        if fieldType == 'e':
-            return None
-        elif fieldType == 'b':
-            return None
-        raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
+            if S_mDerivv is not None and S_eDerivv is not None: 
+                return C.T * (MfMui * S_mDerivv) -1j*omega(freq)*S_eDerivv
+            elif S_mDerivv is not None:
+                return C.T * (MfMui * S_mDerivv)
+            elif S_eDerivv is not None:
+                return -1j*omega(freq)*S_eDerivv
+            else:
+                return None
 
 
 class ProblemFDEM_b(BaseFDEMProblem):
     """
         Solving for b!
     """
-    solType = 'b'
+    _fieldType = 'b'
+    _eqLocs    = 'FE'
+    fieldsPair = FieldsFDEM_b
 
-    def __init__(self, model, **kwargs):
-        BaseFDEMProblem.__init__(self, model, **kwargs)
+    def __init__(self, mesh, **kwargs):
+        BaseFDEMProblem.__init__(self, mesh, **kwargs)
 
     def getA(self, freq):
         """
@@ -299,87 +266,100 @@ class ProblemFDEM_b(BaseFDEMProblem):
             :rtype: scipy.sparse.csr_matrix
             :return: A
         """
-        mui = self.MfMui
-        sigI = self.MeSigmaI
+        MfMui = self.MfMui
+        MeSigmaI = self.MeSigmaI
         C = self.mesh.edgeCurl
         iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
 
-        A = C*sigI*C.T*mui + iomega
+        A = C*MeSigmaI*C.T*MfMui + iomega
 
         if self._makeASymmetric is True:
-            return mui.T*A
-        return A 
+            return MfMui.T*A
+        return A
 
-    def getADeriv(self, freq, u, v, adjoint=False):
+    def getADeriv_m(self, freq, u, v, adjoint=False):
 
-        mui = self.MfMui
+        MfMui = self.MfMui
         C = self.mesh.edgeCurl
-        sig = self.curModel.transform
-        dsig_dm = self.curModel.transformDeriv
-        #TODO: This only works if diagonal (no tensors)...
-        dMeSigmaI_dI = - self.MeSigmaI**2
+        MeSigmaIDeriv = self.MeSigmaIDeriv
+        vec = C.T*(MfMui*u)
 
-        vec = (C.T*(mui*u))
-        dMe_dsig = self.mesh.getEdgeInnerProductDeriv(sig)(vec)
+        MeSigmaIDeriv = MeSigmaIDeriv(vec)
 
         if adjoint:
             if self._makeASymmetric is True:
-                v = mui * v
-            return dsig_dm.T * ( dMe_dsig.T * ( dMeSigmaI_dI.T * ( C.T * v ) ) )
+                v = MfMui * v
+            return MeSigmaIDeriv.T * (C.T * v)
 
         if self._makeASymmetric is True:
-            return mui.T * ( C * ( dMeSigmaI_dI * ( dMe_dsig * ( dsig_dm * v ) ) ) ) 
-        return C * ( dMeSigmaI_dI * ( dMe_dsig * ( dsig_dm * v ) ) )
+            return MfMui.T * ( C * ( MeSigmaIDeriv * v ) ) 
+        return C * ( MeSigmaIDeriv * v ) 
 
 
     def getRHS(self, freq):
         """
             :param float freq: Frequency
-            :rtype: numpy.ndarray (nE, nTx)
+            :rtype: numpy.ndarray (nE, nSrc)
             :return: RHS
         """
-    
-        b_0 = getSource(self,freq)
 
-        rhs = -1j*omega(freq)*b_0
+        S_m, S_e = self.getSourceTerm(freq)
+        C = self.mesh.edgeCurl
+        MeSigmaI = self.MeSigmaI
+
+        RHS = S_m + C * ( MeSigmaI * S_e )
+
         if self._makeASymmetric is True:
-            mui = self.MfMui
-            return mui.T*rhs
-        return rhs
+            MfMui = self.MfMui
+            return MfMui.T*RHS
 
-    def calcFields(self, sol, freq, fieldType, adjoint=False):
-        b = sol
-        if fieldType == 'e':
+        return RHS
+
+    def getRHSDeriv_m(self, src, v, adjoint=False):
+        C = self.mesh.edgeCurl
+        S_m, S_e = src.eval(self)
+        MfMui = self.MfMui
+
+        if self._makeASymmetric and adjoint:
+            v = self.MfMui * v
+
+        if S_e is not None:
+            MeSigmaIDeriv = self.MeSigmaIDeriv(Utils.mkvc(S_e))
             if not adjoint:
-                e = self.MeSigmaI * ( self.mesh.edgeCurl.T * ( self.MfMui * b ) )
-            else:
-                e = self.MfMui.T * ( self.mesh.edgeCurl * ( self.MeSigmaI.T * b ) )
-            return e
-        elif fieldType == 'b':
-            return b
-        raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
+                RHSderiv = C * (MeSigmaIDeriv * v)
+            elif adjoint:
+                RHSderiv = MeSigmaIDeriv.T * (C.T * v)
+        else:
+            RHSderiv = None
 
-    def calcFieldsDeriv(self, sol, freq, fieldType, v, adjoint=False):
-        b = sol
-        if fieldType == 'e':
-            sig = self.curModel.transform
-            dsig_dm = self.curModel.transformDeriv
-
-            C = self.mesh.edgeCurl
-            mui = self.MfMui
-
-            #TODO: This only works if diagonal (no tensors)...
-            dMeSigmaI_dI = - self.MeSigmaI**2
-
-            vec = C.T * ( mui * b )
-            dMe_dsig = self.mesh.getEdgeInnerProductDeriv(sig)(vec)
+        S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint)
+        S_mDeriv, S_eDeriv = S_mDeriv(v), S_eDeriv(v)
+        if S_mDeriv is not None and S_eDeriv is not None:
             if not adjoint:
-                return dMeSigmaI_dI * ( dMe_dsig * ( dsig_dm * v ) )
-            else:
-                return dsig_dm.T * ( dMe_dsig.T * ( dMeSigmaI_dI.T * v ) )
-        elif fieldType == 'b':
-            return None
-        raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
+                SrcDeriv = S_mDeriv + C * (self.MeSigmaI * S_eDeriv)
+            elif adjoint:
+                SrcDeriv = S_mDeriv + Self.MeSigmaI.T * ( C.T * S_eDeriv)
+        elif S_mDeriv is not None:
+            SrcDeriv = S_mDeriv
+        elif S_eDeriv is not None:
+            if not adjoint:
+                SrcDeriv = C * (self.MeSigmaI * S_eDeriv)
+            elif adjoint:
+                SrcDeriv = self.MeSigmaI.T * ( C.T * S_eDeriv)
+        else: 
+            SrcDeriv = None
+
+        if RHSderiv is not None and SrcDeriv is not None:
+            RHSderiv += SrcDeriv
+        elif SrcDeriv is not None:
+            RHSderiv = SrcDeriv
+
+        if RHSderiv is not None: 
+            if self._makeASymmetric is True and not adjoint:
+                return MfMui.T * RHSderiv
+
+        return RHSderiv
+
 
 
 ##########################################################################################
@@ -401,7 +381,7 @@ class ProblemFDEM_j(BaseFDEMProblem):
 
         .. math::
             \\nabla \\times ( \\mu^{-1} \\nabla \\times \\sigma^{-1} \\vec{J} ) + i\\omega \\vec{J} = - i\\omega\\vec{J_s}
-    
+
         We discretize this to:
 
         .. math::
@@ -412,15 +392,16 @@ class ProblemFDEM_j(BaseFDEMProblem):
 
     """
 
-    solType = 'j'
-    storeTheseFields = ['j','h']
+    _fieldType = 'j'
+    _eqLocs    = 'EF'
+    fieldsPair = FieldsFDEM_j
 
-    def __init__(self, model, **kwargs):
-        BaseFDEMProblem.__init__(self, model, **kwargs)
+    def __init__(self, mesh, **kwargs):
+        BaseFDEMProblem.__init__(self, mesh, **kwargs)
 
     def getA(self, freq):
         """
-            Here, we form the operator \(\\mathbf{A}\) to solce 
+            Here, we form the operator \(\\mathbf{A}\) to solce
             .. math::
                     \\mathbf{A} = \\mathbf{C}  \\mathbf{M^e_{mu^{-1}}} \\mathbf{C^T} \\mathbf{M^f_{\\sigma^{-1}}}  + i\\omega
 
@@ -430,96 +411,98 @@ class ProblemFDEM_j(BaseFDEMProblem):
         """
 
         MeMuI = self.MeMuI
-        MfSigi = self.MfSigmai
+        MfRho = self.MfRho
         C = self.mesh.edgeCurl
         iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
 
-        A = C * MeMuI * C.T * MfSigi + iomega
+        A = C * MeMuI * C.T * MfRho + iomega
 
         if self._makeASymmetric is True:
-            return MfSigi.T*A 
-        return A 
+            return MfRho.T*A
+        return A
 
 
-    def getADeriv(self, freq, u, v, adjoint=False):
+    def getADeriv_m(self, freq, u, v, adjoint=False):
         """
             In this case, we assume that electrical conductivity, \(\\sigma\) is the physical property of interest (i.e. \(\sigma\) = model.transform). Then we want
-            .. math:: 
+            .. math::
                 \\frac{\mathbf{A(\\sigma)} \mathbf{v}}{d \\mathbf{m}} &= \\mathbf{C}  \\mathbf{M^e_{mu^{-1}}} \\mathbf{C^T} \\frac{d \\mathbf{M^f_{\\sigma^{-1}}}}{d \\mathbf{m}}
                 &= \\mathbf{C}  \\mathbf{M^e_{mu}^{-1}} \\mathbf{C^T} \\frac{d \\mathbf{M^f_{\\sigma^{-1}}}}{d \\mathbf{\\sigma^{-1}}} \\frac{d \\mathbf{\\sigma^{-1}}}{d \\mathbf{\\sigma}} \\frac{d \\mathbf{\\sigma}}{d \\mathbf{m}}
         """
 
         MeMuI = self.MeMuI
-        MfSigi = self.MfSigmai
+        MfRho = self.MfRho
         C = self.mesh.edgeCurl
-        sig = self.curModel.transform
-        sigi = 1/sig
-        dsig_dm = self.curModel.transformDeriv
-        dsigi_dsig = -Utils.sdiag(sigi)**2
-        dMf_dsigi = self.mesh.getFaceInnerProductDeriv(sigi)(u)
+        MfRhoDeriv_m = self.MfRhoDeriv(u)
 
         if adjoint:
             if self._makeASymmetric is True:
-                v = MfSigi * v
-            return dsig_dm.T * ( dsigi_dsig.T *( dMf_dsigi.T * ( C * ( MeMuI.T * ( C.T * v ) ) ) ) )
+                v = MfRho * v
+            return MfRhoDeriv_m.T * (C * (MeMuI.T * (C.T * v)))
 
-        if self._makeASymmetric is True: 
-            return MfSigi.T * ( C * ( MeMuI * ( C.T * ( dMf_dsigi * ( dsigi_dsig * ( dsig_dm * v ) ) ) ) ) )
-        return C * ( MeMuI * ( C.T * ( dMf_dsigi * ( dsigi_dsig * ( dsig_dm * v ) ) ) ) ) 
+        if self._makeASymmetric is True:
+            return MfRho.T * (C * ( MeMuI * (C.T * (MfRhoDeriv_m * v) )))
+        return C * (MeMuI * (C.T * (MfRhoDeriv_m * v)))
 
 
     def getRHS(self, freq):
         """
             :param float freq: Frequency
-            :rtype: numpy.ndarray (nE, nTx)
+            :rtype: numpy.ndarray (nE, nSrc)
             :return: RHS
         """
-        j_s = getSource(self,freq)
-        rhs = -1j*omega(freq)*j_s
 
+        S_m, S_e = self.getSourceTerm(freq)
+        C = self.mesh.edgeCurl
+        MeMuI = self.MeMuI   
+
+
+        RHS = C * (MeMuI * S_m) - 1j * omega(freq) * S_e
         if self._makeASymmetric is True:
-            MfSigi = self.MfSigmai
-            return MfSigi.T*rhs 
-        return rhs
+            MfRho = self.MfRho
+            return MfRho.T*RHS
 
-    def calcFields(self, sol, freq, fieldType, adjoint=False):
-        j = sol
-        if fieldType == 'j':
-            return j
-        elif fieldType == 'h':
-            MeMuI = self.MeMuI
-            C = self.mesh.edgeCurl
-            MfSigi = self.MfSigmai
-            if not adjoint:
-                h = -(1./(1j*omega(freq))) * MeMuI * ( C.T * ( MfSigi * j ) )
+        return RHS
+
+    def getRHSDeriv_m(self, src, v, adjoint=False):
+        C = self.mesh.edgeCurl
+        MeMuI = self.MeMuI  
+        S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint)
+
+        if adjoint:
+            if self._makeASymmetric:
+                MfRho = self.MfRho
+                v = MfRho*v
+            S_mDerivv = S_mDeriv(MeMuI.T * (C.T * v))
+            S_eDerivv = S_eDeriv(v)
+            if S_mDerivv is not None and S_eDerivv is not None:
+                return S_mDerivv - 1j*omega(freq)*S_eDerivv
+            elif S_mDerivv is not None:
+                return S_mDerivv
+            elif S_eDerivv is not None:
+                return - 1j*omega(freq)*S_eDerivv
             else:
-                h = -(1./(1j*omega(freq))) * MfSigi.T * ( C * ( MeMuI.T * j ) ) 
-            return h
-        raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
+                return None
+        else:   
+            S_mDerivv, S_eDerivv = S_mDeriv(v), S_eDeriv(v)
 
-    def calcFieldsDeriv(self, sol, freq, fieldType, v, adjoint=False):
-        j = sol
-        if fieldType == 'j':
-            return None
-        elif fieldType == 'h':
-            MeMuI = self.MeMuI
-            C = self.mesh.edgeCurl
-            sig = self.curModel.transform 
-            sigi = 1/sig
-            dsig_dm = self.curModel.transformDeriv
-            dsigi_dsig = -Utils.sdiag(sigi)**2
-            dMf_dsigi = self.mesh.getFaceInnerProductDeriv(sigi)(j)
-            sigi = self.MfSigmai
-            if not adjoint: 
-                return -(1./(1j*omega(freq))) * MeMuI * ( C.T * ( dMf_dsigi * ( dsigi_dsig * ( dsig_dm * v ) ) ) )
+            if S_mDerivv is not None and S_eDerivv is not None: 
+                RHSDeriv = C * (MeMuI * S_mDerivv) - 1j * omega(freq) * S_eDerivv
+            elif S_mDerivv is not None:
+                RHSDeriv = C * (MeMuI * S_mDerivv)
+            elif S_eDerivv is not None:
+                RHSDeriv = - 1j * omega(freq) * S_eDerivv
             else:
-                return -(1./(1j*omega(freq))) * dsig_dm.T * ( dsigi_dsig.T * ( dMf_dsigi.T * ( C * ( MeMuI.T * v ) ) ) )       
-        raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
+                return None
+
+            if self._makeASymmetric:
+                MfRho = self.MfRho
+                return MfRho.T * RHSDeriv
+            return RHSDeriv
 
 
 
 
-# Solving for h! - using primary- secondary approach 
 class ProblemFDEM_h(BaseFDEMProblem):
     """
         Using the H-J formulation of Maxwell's equations
@@ -545,11 +528,12 @@ class ProblemFDEM_h(BaseFDEMProblem):
 
     """
 
-    solType = 'h'
-    storeTheseFields = ['j','h']
+    _fieldType = 'h'
+    _eqLocs    = 'EF'
+    fieldsPair = FieldsFDEM_h
 
-    def __init__(self, model, **kwargs):
-        BaseFDEMProblem.__init__(self, model, **kwargs)
+    def __init__(self, mesh, **kwargs):
+        BaseFDEMProblem.__init__(self, mesh, **kwargs)
 
     def getA(self, freq):
         """
@@ -559,47 +543,64 @@ class ProblemFDEM_h(BaseFDEMProblem):
         """
 
         MeMu = self.MeMu
-        MfSigi = self.MfSigmai
+        MfRho = self.MfRho
         C = self.mesh.edgeCurl
 
-        return C.T * MfSigi * C + 1j*omega(freq)*MeMu
+        return C.T * MfRho * C + 1j*omega(freq)*MeMu
 
-    def getADeriv(self, freq, u, v, adjoint=False):
+    def getADeriv_m(self, freq, u, v, adjoint=False):
 
         MeMu = self.MeMu
         C = self.mesh.edgeCurl
-        sig = self.curModel.transform
-        sigi = 1/sig
-        dsig_dm = self.curModel.transformDeriv
-        dsigi_dsig = -Utils.sdiag(sigi)**2
-
-        dMf_dsigi = self.mesh.getFaceInnerProductDeriv(sigi)(C*u)
+        MfRhoDeriv_m = self.MfRhoDeriv(C*u)
 
         if adjoint:
-            return (dsig_dm.T * (dsigi_dsig.T * (dMf_dsigi.T * (C * v))))
-        return  (C.T  * (dMf_dsigi * (dsigi_dsig * (dsig_dm * v))))
-
-
+            return MfRhoDeriv_m.T * (C * v)
+        return C.T * (MfRhoDeriv_m * v)
 
     def getRHS(self, freq):
         """
             :param float freq: Frequency
-            :rtype: numpy.ndarray (nE, nTx)
+            :rtype: numpy.ndarray (nE, nSrc)
             :return: RHS
         """
-        b_0 = getSource(self,freq)
-        return -1j*omega(freq)*b_0 
-        
-    def calcFields(self, sol, freq, fieldType, adjoint=False):
-        h = sol
-        if fieldType == 'j':
-            C = self.mesh.edgeCurl
-            if adjoint:
-                return C.T*h
-            return C*h
-        elif fieldType == 'h':
-            return h
-        raise NotImplementedError('fieldType "%s" is not implemented.' % fieldType)
 
-    def calcFieldsDeriv(self, sol, freq, fieldType, v, adjoint=False):
-        return None
+        S_m, S_e = self.getSourceTerm(freq)
+        C = self.mesh.edgeCurl
+        MfRho  = self.MfRho
+
+        RHS = S_m + C.T * ( MfRho * S_e )
+
+        return RHS
+
+    def getRHSDeriv_m(self, src, v, adjoint=False):
+        _, S_e = src.eval(self)
+        C = self.mesh.edgeCurl
+        MfRho  = self.MfRho
+
+        RHSDeriv = None
+
+        if S_e is not None:
+            MfRhoDeriv = self.MfRhoDeriv(S_e)
+            if not adjoint:
+                RHSDeriv = C.T * (MfRhoDeriv * v)
+            elif adjoint:
+                RHSDeriv = MfRhoDeriv.T * (C * v)
+
+        S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint)
+
+        S_mDeriv = S_mDeriv(v)
+        S_eDeriv = S_eDeriv(v)
+        if S_mDeriv is not None:
+            if RHSDeriv is not None: 
+                RHSDeriv += S_mDeriv(v)
+            else: 
+                RHSDeriv = S_mDeriv(v)
+        if S_eDeriv is not None:
+            if RHSDeriv is not None: 
+                RHSDeriv += C.T * (MfRho * S_e)
+            else:
+                RHSDeriv = C.T * (MfRho * S_e)
+
+        return RHSDeriv
+
