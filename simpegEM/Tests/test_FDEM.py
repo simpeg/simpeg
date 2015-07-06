@@ -3,7 +3,6 @@ from SimPEG import *
 import simpegEM as EM
 import sys  
 from scipy.constants import mu_0
-import copy
 
 testDerivs = True
 testCrossCheck = True
@@ -116,8 +115,8 @@ def adjointTest(fdemType, comp):
         mu = mu + np.random.randn(prb.mesh.nC)*MU*1e-1
 
     survey = prb.survey
-    prb.PropMap.PropModel.mu = mu
-    prb.PropMap.PropModel.mui = 1./mu
+    # prb.PropMap.PropModel.mu = mu
+    # prb.PropMap.PropModel.mui = 1./mu
     u = prb.fields(m)
 
     v = np.random.rand(survey.nD)
@@ -141,8 +140,8 @@ def derivTest(fdemType, comp):
         x0 = x0 + np.random.randn(prb.mapping.nP)*np.log(CONDUCTIVITY)*1e-1 
         mu = mu + np.random.randn(prb.mapping.nP)*MU*1e-1
 
-    prb.PropMap.PropModel.mu = mu
-    prb.PropMap.PropModel.mui = 1./mu
+    # prb.PropMap.PropModel.mu = mu
+    # prb.PropMap.PropModel.mui = 1./mu
 
     survey = prb.survey
     def fun(x):
@@ -164,8 +163,8 @@ def crossCheckTest(fdemType, comp):
         m  = m + np.random.randn(mesh.nC)*np.log(CONDUCTIVITY)*1e-1 
         mu = mu + np.random.randn(mesh.nC)*MU*1e-1
 
-    prb1.PropMap.PropModel.mu = mu
-    prb1.PropMap.PropModel.mui = 1./mu
+    # prb1.PropMap.PropModel.mu = mu
+    # prb1.PropMap.PropModel.mui = 1./mu
     survey1 = prb1.survey
     d1 = survey1.dpred(m)
 
@@ -183,7 +182,7 @@ def crossCheckTest(fdemType, comp):
     else:
         raise NotImplementedError()
     
-    prb2.mu = mu
+    # prb2.mu = mu
     survey2 = prb2.survey
     d2 = survey2.dpred(m)
 
