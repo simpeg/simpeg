@@ -3,6 +3,23 @@ import scipy.ndimage as ndi
 import scipy.sparse as sp
 from matutils import mkvc
 
+def addBlock(gridCC, modelCC, p0, p1, blockProp):
+    """
+        Add a block to an exsisting cell centered model, modelCC
+
+        :param numpy.array, gridCC: mesh.gridCC is the cell centered grid
+        :param numpy.array, modelCC: cell centered model
+        :param numpy.array, p0: bottom, southwest corner of block
+        :param numpy.array, p1: top, northeast corner of block
+        :blockProp float, blockProp: property to assign to the model 
+
+        :return numpy.array, modelBlock: model with block
+    """
+    ind = getIndicesBlock(p0, p1, gridCC)
+    modelBlock = modelCC.copy()
+    modelBlock[ind] = blockProp
+    return modelBlock
+
 
 def getIndicesBlock(p0,p1,ccMesh):
     """
@@ -78,7 +95,7 @@ def defineBlock(ccMesh,p0,p1,vals=[0,1]):
         vals[1]  conductivity of the ground
     """
     sigma = np.zeros(ccMesh.shape[0]) + vals[1]
-    ind   = getIndecesBlock(p0,p1,ccMesh)
+    ind   = getIndicesBlock(p0,p1,ccMesh)
 
     sigma[ind] = vals[0]
 
@@ -132,7 +149,7 @@ def defineTwoLayers(ccMesh,depth,vals=[0,1]):
     # The depth is always defined on the last one.
     p1[len(p1)-1] -= depth
 
-    ind   = getIndecesBlock(p0,p1,ccMesh)
+    ind   = getIndicesBlock(p0,p1,ccMesh)
 
     sigma[ind] = vals[0];
 
