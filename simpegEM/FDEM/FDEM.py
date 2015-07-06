@@ -354,8 +354,9 @@ class ProblemFDEM_b(BaseFDEMProblem):
         elif SrcDeriv is not None:
             RHSderiv = SrcDeriv
 
-        if self._makeASymmetric is True and not adjoint:
-            return MfMui.T * RHSderiv
+        if RHSderiv is not None: 
+            if self._makeASymmetric is True and not adjoint:
+                return MfMui.T * RHSderiv
 
         return RHSderiv
 
@@ -576,20 +577,30 @@ class ProblemFDEM_h(BaseFDEMProblem):
         _, S_e = src.eval(self)
         C = self.mesh.edgeCurl
         MfRho  = self.MfRho
-        MfRhoDeriv = self.MfRhoDeriv(S_e)
-        S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint)
 
-        if not adjoint:
-            RHSDeriv = C.T * (MfRhoDeriv * v)
-        elif adjoint:
-            RHSDeriv = MfRhoDeriv.T * (C * v)
+        RHSDeriv = None
+
+        if S_e is not None:
+            MfRhoDeriv = self.MfRhoDeriv(S_e)
+            if not adjoint:
+                RHSDeriv = C.T * (MfRhoDeriv * v)
+            elif adjoint:
+                RHSDeriv = MfRhoDeriv.T * (C * v)
+
+        S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint)
 
         S_mDeriv = S_mDeriv(v)
         S_eDeriv = S_eDeriv(v)
         if S_mDeriv is not None:
-            RHSDeriv += S_mDeriv(v)
+            if RHSDeriv is not None: 
+                RHSDeriv += S_mDeriv(v)
+            else: 
+                RHSDeriv = S_mDeriv(v)
         if S_eDeriv is not None:
-            RHSDeriv += C.T * (MfRho * S_e)
+            if RHSDeriv is not None: 
+                RHSDeriv += C.T * (MfRho * S_e)
+            else:
+                RHSDeriv = C.T * (MfRho * S_e)
 
         return RHSDeriv
 

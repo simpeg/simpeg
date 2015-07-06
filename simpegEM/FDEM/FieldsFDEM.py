@@ -25,10 +25,6 @@ class FieldsFDEM_e(FieldsFDEM):
         self.prob = self.survey.prob
         self._edgeCurl = self.survey.prob.mesh.edgeCurl
 
-    # def getDeriv_u(self, fieldsList, src, v, adjoint=False):
-
-    # def getDeriv_m(self, fieldsList, src, v, adjoint=False):
-
     def _ePrimary(self, eSolution, srcList):
         ePrimary = np.zeros_like(eSolution)
         for i, src in enumerate(srcList):
