@@ -31,9 +31,9 @@ class BaseFDEMProblem(BaseEMProblem):
     fieldsPair = FieldsFDEM
 
     def fields(self, m=None):
-    """
-        Solve the forward problem for the fields. 
-    """
+        """
+            Solve the forward problem for the fields. 
+        """
 
         self.curModel = m
         F = self.fieldsPair(self.mesh, self.survey)
