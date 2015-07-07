@@ -8,23 +8,27 @@ from simpegEM.Utils.EMUtils import omega
 
 class BaseFDEMProblem(BaseEMProblem):
     """
-        We start by looking at Maxwell's equations in the electric field \\(\\mathbf{e}\\) and the magnetic flux density \\(\\mathbf{b}\\):
+        We start by looking at Maxwell's equations in the electric 
+        field \\\(\\\mathbf{e}\\\) and the magnetic flux 
+        density \\\(\\\mathbf{b}\\\)
 
         .. math ::
 
-            \\mathbf{C} \\mathbf{e} + i \\omega \\mathbf{b} = \\mathbf{s_m} \\\\
-            \\mathbf{C}^T \\mathbf{M^f_{\\mu^{-1}} \\mathbf{b} - \\mathbf{M^e_{\\sigma}} \\mathbf{e} = \\mathbf{s_e}
-
-        if using the E-B formulation (:code:`ProblemFDEM_e` or :code:`ProblemFDEM_b`) or the magnetic field \\(\\mathbf{h}\\) and current density \\(\\mathbf{j}\\)
+            \mathbf{C} \mathbf{e} + i \omega \mathbf{b} = \mathbf{s_m} \\\\
+            {\mathbf{C}^T \mathbf{M_{\mu^{-1}}^f} \mathbf{b} - \mathbf{M_{\sigma}^e} \mathbf{e} = \mathbf{s_e}}
+        
+        if using the E-B formulation (:code:`ProblemFDEM_e` 
+        or :code:`ProblemFDEM_b`) or the magnetic field 
+        \\\(\\\mathbf{h}\\\) and current density \\\(\\\mathbf{j}\\\)
 
         .. math :: 
 
-            \\mathbf{C}^T \\mathbf{M^f_{\\rho}} \\mathbf{j} + i \\omega \\mathbf{M^e_{\\mu}} \\mathbf{h} = \\mathbf{s_m} \\\\
-            \\mathbf{C} \\mathbf{h} - \\mathbf{j} = \\mathbf{s_e}
+            \mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{j} + i \omega \mathbf{M_{\mu}^e} \mathbf{h} = \mathbf{s_m} \\\\
+            \mathbf{C} \mathbf{h} - \mathbf{j} = \mathbf{s_e}
 
         if using the H-J formulation (:code:`ProblemFDEM_j` or :code:`ProblemFDEM_h`).
 
-        The problem performs the elimination so that we are solving the system for \\(\\mathbf{e},\\mathbf{b},\\mathbf{j} or \\mathbf{h}\\) 
+        The problem performs the elimination so that we are solving the system for \\\(\\\mathbf{e},\\\mathbf{b},\\\mathbf{j} \\\) or \\\(\\\mathbf{h}\\\) 
     """
 
     surveyPair = SurveyFDEM
@@ -187,17 +191,16 @@ class ProblemFDEM_e(BaseFDEMProblem):
 
             .. math ::
 
-            \\mathbf{b} = \\frac{1}{i \\omega}\\left(-\\mathbf{C} \\mathbf{e} + \\mathbf{s_m}\\right) \\\\
+                \mathbf{b} = \\frac{1}{i \omega}\\left(-\mathbf{C} \mathbf{e} + \mathbf{s_m}\\right)
 
 
-        we can write Maxwell's equations as a second order system in \\(\\mathbf{e}\\) only:
+        we can write Maxwell's equations as a second order system in \\\(\\\mathbf{e}\\\) only:
 
         .. math ::
 
-            \\left(\\mathbf{C}^T \\mathbf{M^f_{\\mu^{-1}} \\mathbf{C} + i \\omega \\mathbf{M^e_{\\sigma}} \\right)\\mathbf{e}
-             = \\mathbf{C}^T \\mathbf{M^f_{\\mu^{-1}}\\mathbf{s_m} -i\\omega\\mathbf{s_e} \\\\
+            \\left(\mathbf{C}^T \mathbf{M_{\mu^{-1}}^f} \mathbf{C}+ i \omega \mathbf{M^e_{\sigma}} \\right)\mathbf{e} = \mathbf{C}^T \mathbf{M_{\mu^{-1}}^f}\mathbf{s_m} -i\omega\mathbf{s_e}  
 
-        which we solve for \\(\\mathbf{e}\\). 
+        which we solve for \\\(\\\mathbf{e}\\\). 
     """
 
     _fieldType = 'e'
@@ -210,7 +213,7 @@ class ProblemFDEM_e(BaseFDEMProblem):
     def getA(self, freq):
         """
             .. math ::
-                \\mathbf{A} = \\mathbf{C}^T \\mathbf{M^f_{\\mu^{-1}} \\mathbf{C} + i \\omega \\mathbf{M^e_{\\sigma}}
+                \mathbf{A} = \mathbf{C}^T \mathbf{M_{\mu^{-1}}^f} \mathbf{C} + i \omega \mathbf{M^e_{\sigma}}
 
             :param float freq: Frequency
             :rtype: scipy.sparse.csr_matrix
@@ -235,7 +238,7 @@ class ProblemFDEM_e(BaseFDEMProblem):
     def getRHS(self, freq):
         """
             .. math ::
-                \\mathbf{RHS} = \\mathbf{C}^T \\mathbf{M^f_{\\mu^{-1}}\\mathbf{s_m} -i\\omega\\mathbf{s_e}
+                \mathbf{RHS} = \mathbf{C}^T \mathbf{M_{\mu^{-1}}^f}\mathbf{s_m} -i\omega\mathbf{s_e}
 
             :param float freq: Frequency
             :rtype: numpy.ndarray (nE, nSrc)
@@ -282,15 +285,17 @@ class ProblemFDEM_e(BaseFDEMProblem):
 
 class ProblemFDEM_b(BaseFDEMProblem):
     """
-        We eliminate \\(\\mathbf{e}\\) using
+        We eliminate \\\(\\\mathbf{e}\\\) using
 
         .. math ::
-             \\mathbf{e} = \\mathbf{M^e_{\\sigma}}^{-1} \\left(\\mathbf{C}^T \\mathbf{M^f_{\\mu^{-1}} \\mathbf{b} - \\mathbf{s_e}\\right)
+             
+             \mathbf{e} = \mathbf{M^e_{\sigma}}^{-1} \\left(\mathbf{C}^T \mathbf{M_{\mu^{-1}}^f} \mathbf{b} - \mathbf{s_e}\\right)
 
-        and solve for \\(\\mathbf{b}\\) using:
+        and solve for \\\(\\\mathbf{b}\\\) using:
 
         .. math ::
-            \\left(\\mathbf{C} \\mathbf{M^e_{\\sigma}}^{-1} \\mathbf{C}^T \\mathbf{M^f_{\\mu^{-1}}  + i \\omega \\right)\\mathbf{b} = \\mathbf{s_m} + \\mathbf{M^e_{\\sigma}}^{-1}\\mathbf{s_e} 
+            
+            \\left(\mathbf{C} \mathbf{M^e_{\sigma}}^{-1} \mathbf{C}^T \mathbf{M_{\mu^{-1}}^f}  + i \omega \\right)\mathbf{b} = \mathbf{s_m} + \mathbf{M^e_{\sigma}}^{-1}\mathbf{s_e} 
     
         .. note ::
             The inverse problem will not work with full anisotropy 
@@ -306,7 +311,7 @@ class ProblemFDEM_b(BaseFDEMProblem):
     def getA(self, freq):
         """
             .. math ::
-                \\mathbf{A} = \\mathbf{C} \\mathbf{M^e_{\\sigma}}^{-1} \\mathbf{C}^T \\mathbf{M^f_{\\mu^{-1}}  + i \\omega
+                \mathbf{A} = \mathbf{C} \mathbf{M^e_{\sigma}}^{-1} \mathbf{C}^T \mathbf{M_{\mu^{-1}}^f}  + i \omega
 
             :param float freq: Frequency
             :rtype: scipy.sparse.csr_matrix
@@ -346,7 +351,7 @@ class ProblemFDEM_b(BaseFDEMProblem):
     def getRHS(self, freq):
         """
             .. math ::
-                \\mathbf{RHS} = \\mathbf{s_m} + \\mathbf{M^e_{\\sigma}}^{-1}\\mathbf{s_e} 
+                \mathbf{RHS} = \mathbf{s_m} + \mathbf{M^e_{\sigma}}^{-1}\mathbf{s_e} 
 
             :param float freq: Frequency
             :rtype: numpy.ndarray (nE, nSrc)
@@ -419,16 +424,17 @@ class ProblemFDEM_b(BaseFDEMProblem):
 
 class ProblemFDEM_j(BaseFDEMProblem):
     """
-        We eliminate \\(\\mathbf{h}\\) using 
+        We eliminate \\\(\\\mathbf{h}\\\) using 
 
         .. math :: 
 
-            \\mathbf{h} = \\frac{1}{i \\omega} \\mathbf{M^e_{\\mu}}^{-1} \\left(- \\mathbf{C}^T \\mathbf{M^f_{\\rho}} \\mathbf{j}  + \\mathbf{s_m} \\right)
+            \mathbf{h} = \\frac{1}{i \omega} \mathbf{M_{\mu}^e}^{-1} \\left(-\mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{j}  + \mathbf{s_m} \\right)
 
-        and solve for \\(\\mathbf{j}\\) using 
+        and solve for \\\(\\\mathbf{j}\\\) using 
 
-            .. math ::
-                \\left(\\mathbf{C} \\mathbf{M^e_{\\mu}}^{-1} \\mathbf{C}^T \\mathbf{M^f_{\\rho}} + i \\omega\\right))\\mathbf{j} = \\mathbf{C} \\mathbf{M^e_{\\mu}}^{-1}\\mathbf{s_m} -i\\omega\\mathbf{s_e}
+        .. math ::
+
+            \\left(\mathbf{C} \mathbf{M_{\mu}^e}^{-1} \mathbf{C}^T \mathbf{M_{\\rho}^f} + i \omega\\right)\mathbf{j} = \mathbf{C} \mathbf{M_{\mu}^e}^{-1}\mathbf{s_m} -i\omega\mathbf{s_e}
 
         .. note::
             This implementation does not yet work with full anisotropy!!
@@ -466,9 +472,11 @@ class ProblemFDEM_j(BaseFDEMProblem):
 
     def getADeriv_m(self, freq, u, v, adjoint=False):
         """
-            In this case, we assume that electrical conductivity, \(\\sigma\) is the physical property of interest (i.e. \(\sigma\) = model.transform). Then we want
+            In this case, we assume that electrical conductivity, \\\(\\\sigma\\\) is the physical property of interest (i.e. \\\(\\\sigma\\\) = model.transform). Then we want
+
             .. math ::
-                \\frac{\mathbf{A(\\sigma)} \mathbf{v}}{d \\mathbf{m}} &= \\mathbf{C}  \\mathbf{M^e_{mu^{-1}}} \\mathbf{C^T} \\frac{d \\mathbf{M^f_{\\sigma^{-1}}}}{d \\mathbf{m}}
+
+                \\frac{\mathbf{A(\sigma)} \mathbf{v}}{d \\mathbf{m}} &= \\mathbf{C}  \\mathbf{M^e_{mu^{-1}}} \\mathbf{C^T} \\frac{d \\mathbf{M^f_{\\sigma^{-1}}}}{d \\mathbf{m}}
                 &= \\mathbf{C}  \\mathbf{M^e_{mu}^{-1}} \\mathbf{C^T} \\frac{d \\mathbf{M^f_{\\sigma^{-1}}}}{d \\mathbf{\\sigma^{-1}}} \\frac{d \\mathbf{\\sigma^{-1}}}{d \\mathbf{\\sigma}} \\frac{d \\mathbf{\\sigma}}{d \\mathbf{m}}
         """
 
@@ -490,7 +498,8 @@ class ProblemFDEM_j(BaseFDEMProblem):
     def getRHS(self, freq):
         """
             .. math ::
-                \\mathbf{RHS} = \\mathbf{C} \\mathbf{M^e_{\\mu}}^{-1}\\mathbf{s_m} -i\\omega\\mathbf{s_e}
+
+                \mathbf{RHS} = \mathbf{C} \mathbf{M_{\mu}^e}^{-1}\mathbf{s_m} -i\omega \mathbf{s_e}
             :param float freq: Frequency
             :rtype: numpy.ndarray (nE, nSrc)
             :return: RHS
@@ -549,15 +558,17 @@ class ProblemFDEM_j(BaseFDEMProblem):
 
 class ProblemFDEM_h(BaseFDEMProblem):
     """
-        We eliminate \\(\\mathbf{j}\\) using 
-
-        .. math :: 
-            \\mathbf{j} = \\mathbf{C} \\mathbf{h} - \\mathbf{s_e}
-
-        and solve for \\(\\mathbf{h}\\) using 
+        We eliminate \\\(\\\mathbf{j}\\\) using 
 
         .. math ::
-            \\left(\\mathbf{C}^T \\mathbf{M^f_{\\rho}} \\mathbf{C} + i \\omega \\mathbf{M^e_{\\mu}}\\right) \\mathbf{h} = \\mathbf{s_m} + \\mathbf{C}^T \\mathbf{M^f_{\\rho}} \\mathbf{s_e} 
+
+            \mathbf{j} = \mathbf{C} \mathbf{h} - \mathbf{s_e}
+
+        and solve for \\\(\\\mathbf{h}\\\) using 
+
+        .. math ::
+
+            \\left(\mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{C} + i \omega \mathbf{M_{\mu}^e}\\right) \mathbf{h} = \mathbf{s_m} + \mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{s_e} 
 
     """
 
@@ -571,7 +582,9 @@ class ProblemFDEM_h(BaseFDEMProblem):
     def getA(self, freq):
         """
             .. math ::
-                \\mathbf{A} = \\mathbf{C}^T \\mathbf{M^f_{\\rho}} \\mathbf{C} + i \\omega \\mathbf{M^e_{\\mu}}
+
+                \mathbf{A} = \mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{C} + i \omega \mathbf{M_{\mu}^e}
+
             :param float freq: Frequency
             :rtype: scipy.sparse.csr_matrix
             :return: A
@@ -596,7 +609,8 @@ class ProblemFDEM_h(BaseFDEMProblem):
     def getRHS(self, freq):
         """
             .. math ::
-                \\mathbf{RHS} = \\mathbf{s_m} + \\mathbf{C}^T \\mathbf{M^f_{\\rho}} \\mathbf{s_e} 
+
+                \mathbf{RHS} = \mathbf{s_m} + \mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{s_e} 
 
             :param float freq: Frequency
             :rtype: numpy.ndarray (nE, nSrc)

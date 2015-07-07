@@ -44,12 +44,13 @@ In the frequency domain, Maxwell's equations are given by
 
 where:
 
-- \\(\\vec{E}\\) : electric field (\\(V/m\\))
-- \\(\\vec{H}\\) : magnetic field (\\(A/m\\))
-- \\(\\vec{B}\\) : magnetic flux density (\\(Wb/m^2\\))
-- \\(\\vec{D}\\) : electric displacement / electric flux density (\\(C/m^2\\))
-- \\(\\vec{J}\\) : electric current density (\\(A/m^2\\))
-- \\(\\rho_f\\) : free charge density
+	- \\(\\vec{E}\\) : electric field (\\(V/m\\))
+	- \\(\\vec{H}\\) : magnetic field (\\(A/m\\))
+	- \\(\\vec{B}\\) : magnetic flux density (\\(Wb/m^2\\))
+	- \\(\\vec{D}\\) : electric displacement / electric flux density (\\(C/m^2\\))
+	- \\(\\vec{J}\\) : electric current density (\\(A/m^2\\))
+	- \\(\\rho_f\\) : free charge density
+	
 The source term is \\(\\vec{S}\\)
 
 
