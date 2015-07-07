@@ -1,8 +1,11 @@
 ## Script to run 3D forward model
 ## Forward model a data
-import SimPEG as simpeg
-import simpegMT as simpegmt
-
+import numpy as np, sys, os, time, gzip, cPickle as pickle
+sys.path.append('/tera_raid/gudni/gitCodes/simpegmt')
+sys.path.append('/tera_raid/gudni/gitCodes/simpegem')
+sys.path.append('/tera_raid/gudni/gitCodes/simpeg')
+import simpegMT as simpegmt, SimPEG as simpeg
+import numpy as np, scipy
 ## Setup the forward modeling
 # Read the model
 modelname = "simpegTDmodel.con"
