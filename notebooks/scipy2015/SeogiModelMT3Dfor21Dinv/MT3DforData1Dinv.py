@@ -4,6 +4,8 @@ import numpy as np, sys, os, time, gzip, cPickle as pickle
 sys.path.append('/tera_raid/gudni/gitCodes/simpegmt')
 sys.path.append('/tera_raid/gudni/gitCodes/simpegem')
 sys.path.append('/tera_raid/gudni/gitCodes/simpeg')
+sys.path.append('/tera_raid/gudni')
+from pymatsolver import MumpsSolver
 import simpegMT as simpegmt, SimPEG as simpeg
 import numpy as np, scipy
 ## Setup the forward modeling
@@ -31,13 +33,10 @@ mesh3d = simpeg.Mesh.TensorMesh([hxPad,hyPad,hzPad],x0Pad)
 
 # Load the model to the uniform cell mesh
 modelUniCell = simpeg.Utils.meshutils.readUBCTensorModel(modelname,mesh3dCons)
-# Save as a vtk file
-simpeg.Utils.meshutils.writeVTRFile('modelTDuniMesh.vtr',mesh3dCons,{'S/m':modelUniCell})
 
 # Load the model to the mesh with padding cells
 modelTD = simpeg.Utils.meshutils.readUBCTensorModel(modelname,mesh3d)
-# Save as a vtk file
-simpeg.Utils.meshutils.writeVTRFile('modelTDpaddedMesh.vtr',mesh3d,{'S/m':modelTD})
+
 
 # Define the data locations
 xG,yG = np.meshgrid(np.linspace(-700,700,8),np.linspace(-700,700,8))
