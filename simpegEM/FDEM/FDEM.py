@@ -8,18 +8,33 @@ from simpegEM.Utils.EMUtils import omega
 
 class BaseFDEMProblem(BaseEMProblem):
     """
-        We start by looking at Maxwell's equations in the electric field \\(\\vec{E}\\) and the magnetic flux density \\(\\vec{B}\\):
+        We start by looking at Maxwell's equations in the electric field \\(\\mathbf{e}\\) and the magnetic flux density \\(\\mathbf{b}\\):
 
-        .. math::
+        .. math ::
 
-            \\nabla \\times \\vec{E} + i \\omega \\vec{B} = \\vec{S_m} \\\\
-            \\nabla \\times \\mu^{-1} \\vec{B} - \\sigma \\vec{E} = \\vec{S_e}
+            \\mathbf{C} \\mathbf{e} + i \\omega \\mathbf{b} = \\mathbf{s_m} \\\\
+            \\mathbf{C}^T \\mathbf{M^f_{\\mu^{-1}} \\mathbf{b} - \\mathbf{M^e_{\\sigma}} \\mathbf{e} = \\mathbf{s_e}
 
+        if using the E-B formulation (:code:`ProblemFDEM_e` or :code:`ProblemFDEM_b`) or the magnetic field \\(\\mathbf{h}\\) and current density \\(\\mathbf{j}\\)
+
+        .. math :: 
+
+            \\mathbf{C}^T \\mathbf{M^f_{\\rho}} \\mathbf{j} + i \\omega \\mathbf{M^e_{\\mu}} \\mathbf{h} = \\mathbf{s_m} \\\\
+            \\mathbf{C} \\mathbf{h} - \\mathbf{j} = \\mathbf{s_e}
+
+        if using the H-J formulation (:code:`ProblemFDEM_j` or :code:`ProblemFDEM_h`).
+
+        The problem performs the elimination so that we are solving the system for \\(\\mathbf{e},\\mathbf{b},\\mathbf{j} or \\mathbf{h}\\) 
     """
+
     surveyPair = SurveyFDEM
     fieldsPair = FieldsFDEM
 
     def fields(self, m=None):
+    """
+        Solve the forward problem for the fields. 
+    """
+
         self.curModel = m
         F = self.fieldsPair(self.mesh, self.survey)
 
@@ -35,6 +50,10 @@ class BaseFDEMProblem(BaseEMProblem):
         return F
 
     def Jvec(self, m, v, f=None):
+        """
+            Sensitivity times a vector
+        """
+
         if f is None:
            f = self.fields(m) 
 
@@ -75,6 +94,10 @@ class BaseFDEMProblem(BaseEMProblem):
         return Utils.mkvc(Jv)
 
     def Jtvec(self, m, v, f=None): 
+        """
+            Sensitivity transpose times a vector
+        """
+
         if f is None:
             f = self.fields(m)
 
@@ -130,9 +153,11 @@ class BaseFDEMProblem(BaseEMProblem):
 
     def getSourceTerm(self, freq):
         """
+            Evaluates the sources for a given frequency and puts them in matrix form 
+
             :param float freq: Frequency
             :rtype: numpy.ndarray (nE or nF, nSrc)
-            :return: RHS
+            :return: S_m, S_e
         """
         Srcs = self.survey.getSrcByFreq(freq)
         if self._eqLocs is 'FE':
@@ -160,19 +185,19 @@ class ProblemFDEM_e(BaseFDEMProblem):
     """
         By eliminating the magnetic flux density using
 
-        .. math::
+            .. math ::
 
-            \\vec{B} = \\frac{-1}{i\\omega}\\nabla\\times\\vec{E},
-
-        we can write Maxwell's equations as a second order system in \\ \\vec{E} \\ only:
-
-        .. math::
-
-            \\nabla \\times \\mu^{-1} \\nabla \\times \\vec{E} + i \\omega \\sigma \\vec{E} = \\vec{J_s}
-
-        This is the definition of the Forward Problem using the E-formulation of Maxwell's equations.
+            \\mathbf{b} = \\frac{1}{i \\omega}\\left(-\\mathbf{C} \\mathbf{e} + \\mathbf{s_m}\\right) \\\\
 
 
+        we can write Maxwell's equations as a second order system in \\(\\mathbf{e}\\) only:
+
+        .. math ::
+
+            \\left(\\mathbf{C}^T \\mathbf{M^f_{\\mu^{-1}} \\mathbf{C} + i \\omega \\mathbf{M^e_{\\sigma}} \\right)\\mathbf{e}
+             = \\mathbf{C}^T \\mathbf{M^f_{\\mu^{-1}}\\mathbf{s_m} -i\\omega\\mathbf{s_e} \\\\
+
+        which we solve for \\(\\mathbf{e}\\). 
     """
 
     _fieldType = 'e'
@@ -184,6 +209,9 @@ class ProblemFDEM_e(BaseFDEMProblem):
 
     def getA(self, freq):
         """
+            .. math ::
+                \\mathbf{A} = \\mathbf{C}^T \\mathbf{M^f_{\\mu^{-1}} \\mathbf{C} + i \\omega \\mathbf{M^e_{\\sigma}}
+
             :param float freq: Frequency
             :rtype: scipy.sparse.csr_matrix
             :return: A
@@ -206,6 +234,9 @@ class ProblemFDEM_e(BaseFDEMProblem):
 
     def getRHS(self, freq):
         """
+            .. math ::
+                \\mathbf{RHS} = \\mathbf{C}^T \\mathbf{M^f_{\\mu^{-1}}\\mathbf{s_m} -i\\omega\\mathbf{s_e}
+
             :param float freq: Frequency
             :rtype: numpy.ndarray (nE, nSrc)
             :return: RHS
@@ -251,8 +282,20 @@ class ProblemFDEM_e(BaseFDEMProblem):
 
 class ProblemFDEM_b(BaseFDEMProblem):
     """
-        Solving for b!
+        We eliminate \\(\\mathbf{e}\\) using
+
+        .. math ::
+             \\mathbf{e} = \\mathbf{M^e_{\\sigma}}^{-1} \\left(\\mathbf{C}^T \\mathbf{M^f_{\\mu^{-1}} \\mathbf{b} - \\mathbf{s_e}\\right)
+
+        and solve for \\(\\mathbf{b}\\) using:
+
+        .. math ::
+            \\left(\\mathbf{C} \\mathbf{M^e_{\\sigma}}^{-1} \\mathbf{C}^T \\mathbf{M^f_{\\mu^{-1}}  + i \\omega \\right)\\mathbf{b} = \\mathbf{s_m} + \\mathbf{M^e_{\\sigma}}^{-1}\\mathbf{s_e} 
+    
+        .. note ::
+            The inverse problem will not work with full anisotropy 
     """
+
     _fieldType = 'b'
     _eqLocs    = 'FE'
     fieldsPair = FieldsFDEM_b
@@ -262,10 +305,14 @@ class ProblemFDEM_b(BaseFDEMProblem):
 
     def getA(self, freq):
         """
+            .. math ::
+                \\mathbf{A} = \\mathbf{C} \\mathbf{M^e_{\\sigma}}^{-1} \\mathbf{C}^T \\mathbf{M^f_{\\mu^{-1}}  + i \\omega
+
             :param float freq: Frequency
             :rtype: scipy.sparse.csr_matrix
             :return: A
         """
+
         MfMui = self.MfMui
         MeSigmaI = self.MeSigmaI
         C = self.mesh.edgeCurl
@@ -298,6 +345,9 @@ class ProblemFDEM_b(BaseFDEMProblem):
 
     def getRHS(self, freq):
         """
+            .. math ::
+                \\mathbf{RHS} = \\mathbf{s_m} + \\mathbf{M^e_{\\sigma}}^{-1}\\mathbf{s_e} 
+
             :param float freq: Frequency
             :rtype: numpy.ndarray (nE, nSrc)
             :return: RHS
@@ -369,23 +419,16 @@ class ProblemFDEM_b(BaseFDEMProblem):
 
 class ProblemFDEM_j(BaseFDEMProblem):
     """
-        Using the H-J formulation of Maxwell's equations
+        We eliminate \\(\\mathbf{h}\\) using 
 
-        .. math::
-            \\nabla \\times \\sigma^{-1} \\vec{J} + i\\omega\\mu\\vec{H} = 0
-            \\nabla \\times \\vec{H} - \\vec{J} = \\vec{J_s}
+        .. math :: 
 
-        Since \(\\vec{J}\) is a flux and \(\\vec{H}\) is a field, we discretize \(\\vec{J}\) on faces and \(\\vec{H}\) on edges.
+            \\mathbf{h} = \\frac{1}{i \\omega} \\mathbf{M^e_{\\mu}}^{-1} \\left(- \\mathbf{C}^T \\mathbf{M^f_{\\rho}} \\mathbf{j}  + \\mathbf{s_m} \\right)
 
-        For this implementation, we solve for J using \( \\vec{H} = - (i\\omega\\mu)^{-1} \\nabla \\times \\sigma^{-1} \\vec{J} \) :
+        and solve for \\(\\mathbf{j}\\) using 
 
-        .. math::
-            \\nabla \\times ( \\mu^{-1} \\nabla \\times \\sigma^{-1} \\vec{J} ) + i\\omega \\vec{J} = - i\\omega\\vec{J_s}
-
-        We discretize this to:
-
-        .. math::
-            (\\mathbf{C}  \\mathbf{M^e_{mu^{-1}}} \\mathbf{C^T} \\mathbf{M^f_{\\sigma^{-1}}}  + i\\omega ) \\mathbf{j} = - i\\omega \\mathbf{j_s}
+            .. math ::
+                \\left(\\mathbf{C} \\mathbf{M^e_{\\mu}}^{-1} \\mathbf{C}^T \\mathbf{M^f_{\\rho}} + i \\omega\\right))\\mathbf{j} = \\mathbf{C} \\mathbf{M^e_{\\mu}}^{-1}\\mathbf{s_m} -i\\omega\\mathbf{s_e}
 
         .. note::
             This implementation does not yet work with full anisotropy!!
@@ -401,9 +444,8 @@ class ProblemFDEM_j(BaseFDEMProblem):
 
     def getA(self, freq):
         """
-            Here, we form the operator \(\\mathbf{A}\) to solce
-            .. math::
-                    \\mathbf{A} = \\mathbf{C}  \\mathbf{M^e_{mu^{-1}}} \\mathbf{C^T} \\mathbf{M^f_{\\sigma^{-1}}}  + i\\omega
+            .. math ::
+                    \\mathbf{A} = \\mathbf{C}  \\mathbf{M^e_{mu^{-1}}} \\mathbf{C}^T \\mathbf{M^f_{\\sigma^{-1}}}  + i\\omega
 
             :param float freq: Frequency
             :rtype: scipy.sparse.csr_matrix
@@ -425,7 +467,7 @@ class ProblemFDEM_j(BaseFDEMProblem):
     def getADeriv_m(self, freq, u, v, adjoint=False):
         """
             In this case, we assume that electrical conductivity, \(\\sigma\) is the physical property of interest (i.e. \(\sigma\) = model.transform). Then we want
-            .. math::
+            .. math ::
                 \\frac{\mathbf{A(\\sigma)} \mathbf{v}}{d \\mathbf{m}} &= \\mathbf{C}  \\mathbf{M^e_{mu^{-1}}} \\mathbf{C^T} \\frac{d \\mathbf{M^f_{\\sigma^{-1}}}}{d \\mathbf{m}}
                 &= \\mathbf{C}  \\mathbf{M^e_{mu}^{-1}} \\mathbf{C^T} \\frac{d \\mathbf{M^f_{\\sigma^{-1}}}}{d \\mathbf{\\sigma^{-1}}} \\frac{d \\mathbf{\\sigma^{-1}}}{d \\mathbf{\\sigma}} \\frac{d \\mathbf{\\sigma}}{d \\mathbf{m}}
         """
@@ -447,6 +489,8 @@ class ProblemFDEM_j(BaseFDEMProblem):
 
     def getRHS(self, freq):
         """
+            .. math ::
+                \\mathbf{RHS} = \\mathbf{C} \\mathbf{M^e_{\\mu}}^{-1}\\mathbf{s_m} -i\\omega\\mathbf{s_e}
             :param float freq: Frequency
             :rtype: numpy.ndarray (nE, nSrc)
             :return: RHS
@@ -505,26 +549,15 @@ class ProblemFDEM_j(BaseFDEMProblem):
 
 class ProblemFDEM_h(BaseFDEMProblem):
     """
-        Using the H-J formulation of Maxwell's equations
+        We eliminate \\(\\mathbf{j}\\) using 
 
-        .. math::
-            \\nabla \\times \\sigma^{-1} \\vec{J} + i\\omega\\mu\\vec{H} = 0
-            \\nabla \\times \\vec{H} - \\vec{J} = \\vec{J_s}
+        .. math :: 
+            \\mathbf{j} = \\mathbf{C} \\mathbf{h} - \\mathbf{s_e}
 
-        Since \(\\vec{J}\) is a flux and \(\\vec{H}\) is a field, we discretize \(\\vec{J}\) on faces and \(\\vec{H}\) on edges.
+        and solve for \\(\\mathbf{h}\\) using 
 
-        For this implementation, we solve for J using \( \\vec{J} =  \\nabla \\times \\vec{H} - \\vec{J_s} \)
-
-        .. math::
-            \\nabla \\times \\sigma^{-1} \\nabla \\times \\vec{H} + i\\omega\\mu\\vec{H} = \\nabla \\times \\sigma^{-1} \\vec{J_s}
-
-        We discretize and solve
-
-        .. math::
-            (\\mathbf{C^T} \\mathbf{M^f_{\\sigma^{-1}}} \\mathbf{C} + i\\omega \\mathbf{M_{\mu}} ) \\mathbf{h} = \\mathbf{C^T} \\mathbf{M^f_{\\sigma^{-1}}} \\vec{J_s}
-
-        .. note::
-            This implementation does not yet work with full anisotropy!!
+        .. math ::
+            \\left(\\mathbf{C}^T \\mathbf{M^f_{\\rho}} \\mathbf{C} + i \\omega \\mathbf{M^e_{\\mu}}\\right) \\mathbf{h} = \\mathbf{s_m} + \\mathbf{C}^T \\mathbf{M^f_{\\rho}} \\mathbf{s_e} 
 
     """
 
@@ -537,6 +570,8 @@ class ProblemFDEM_h(BaseFDEMProblem):
 
     def getA(self, freq):
         """
+            .. math ::
+                \\mathbf{A} = \\mathbf{C}^T \\mathbf{M^f_{\\rho}} \\mathbf{C} + i \\omega \\mathbf{M^e_{\\mu}}
             :param float freq: Frequency
             :rtype: scipy.sparse.csr_matrix
             :return: A
@@ -560,6 +595,9 @@ class ProblemFDEM_h(BaseFDEMProblem):
 
     def getRHS(self, freq):
         """
+            .. math ::
+                \\mathbf{RHS} = \\mathbf{s_m} + \\mathbf{C}^T \\mathbf{M^f_{\\rho}} \\mathbf{s_e} 
+
             :param float freq: Frequency
             :rtype: numpy.ndarray (nE, nSrc)
             :return: RHS
