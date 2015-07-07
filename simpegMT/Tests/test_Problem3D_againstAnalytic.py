@@ -18,7 +18,7 @@ def getInputs():
     # M = simpeg.Mesh.TensorMesh([[(100,5,-1.5),(100.,10),(100,5,1.5)],[(100,5,-1.5),(100.,10),(100,5,1.5)],[(100,5,1.6),(100.,10),(100,3,2)]], x0=['C','C',-3529.5360])
     M = simpeg.Mesh.TensorMesh([[(1000,6,-1.5),(1000.,6),(1000,6,1.5)],[(1000,6,-1.5),(1000.,2),(1000,6,1.5)],[(1000,10,-1.3),(1000.,2),(1000,10,1.3)]], x0=['C','C','C'])# Setup the model
     # Set the frequencies
-    freqs = np.logspace(3,-3,7)
+    freqs = np.logspace(1,-3,5)
     elev = 0
 
     ## Setup the the survey object
@@ -73,12 +73,12 @@ def runSimpegMTfwd_eForm_ps(inputsProblem):
     srcList =[]
     sigma1d = M.r(sigBG,'CC','CC','M')[0,0,:]
     for freq in freqs:
-        srcList.append(simpegmt.SurveyMT.srcMT_polxy_1Dprimary(rxList,freq,sigma1d))
+        srcList.append(simpegmt.SurveyMT.srcMT_polxy_1Dprimary(rxList,freq))
     # Survey MT
     survey = simpegmt.SurveyMT.SurveyMT(srcList)
 
     ## Setup the problem object
-    problem = simpegmt.ProblemMT3D.eForm_ps(M)
+    problem = simpegmt.ProblemMT3D.eForm_ps(M,sigmaPrimary=sigma1d)
     problem.verbose = False
     from pymatsolver import MumpsSolver
     problem.Solver = MumpsSolver
@@ -106,19 +106,19 @@ def appResPhsHalfspace_eFrom_ps_Norm(sigmaHalf,appR=True):
     # Calculate the app  phs
     app_rpxy, app_rpyx = np.array(getAppResPhs(data))
     if appR:
-        return np.linalg.norm(np.abs(app_rpxy[0,:] - np.ones(survey.nFreq)/sigmaHalf) * sigmaHalf)
+        return np.all(np.abs(app_rpxy[0,:] - np.ones(survey.nFreq)/sigmaHalf) * sigmaHalf < .35)
     else:
-        return np.linalg.norm(np.abs(app_rpxy[1,:] + np.ones(survey.nFreq)*135) / 135)
+        return np.all(np.abs(app_rpxy[1,:] + np.ones(survey.nFreq)*135) / 135 < .35)
 
 class TestAnalytics(unittest.TestCase):
 
     def setUp(self):
         pass
-    def test_appRes2en1(self):self.assertLess(appResPhsHalfspace_eFrom_ps_Norm(2e-1), TOLr)
-    def test_appRes2en2(self):self.assertLess(appResPhsHalfspace_eFrom_ps_Norm(2e-2), TOLr)
-    def test_appRes2en3(self):self.assertLess(appResPhsHalfspace_eFrom_ps_Norm(2e-3), TOLr)
-    def test_appRes2en1(self):self.assertLess(appResPhsHalfspace_eFrom_ps_Norm(2e-1,False), TOLr)
-    def test_appRes2en2(self):self.assertLess(appResPhsHalfspace_eFrom_ps_Norm(2e-2,False), TOLr)
-    def test_appRes2en3(self):self.assertLess(appResPhsHalfspace_eFrom_ps_Norm(2e-3,False), TOLr)
+    # def test_appRes2en1(self):self.assertTrue(appResPhsHalfspace_eFrom_ps_Norm(2e-1))
+    def test_appRes1en2(self):self.assertTrue(appResPhsHalfspace_eFrom_ps_Norm(1e-2))
+    def test_appRes1en3(self):self.assertTrue(appResPhsHalfspace_eFrom_ps_Norm(1e-3))
+    # def test_appRes2en1(self):self.assertTrue(appResPhsHalfspace_eFrom_ps_Norm(2e-1,False))
+    def test_appPhs1en2(self):self.assertTrue(appResPhsHalfspace_eFrom_ps_Norm(1e-2,False))
+    def test_appPhs1en3(self):self.assertTrue(appResPhsHalfspace_eFrom_ps_Norm(1e-3,False))
 if __name__ == '__main__':
     unittest.main()
