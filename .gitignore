@@ -42,3 +42,4 @@ nosetests.xml
 *.sublime-workspace
 docs/_build/
 *.ipynb_checkpoints
+notebooks/scipy2015/001-Inversion_NoStopping.npy
