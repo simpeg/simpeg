@@ -80,8 +80,11 @@ def runSimpegMTfwd_eForm_ps(inputsProblem):
     ## Setup the problem object
     problem = simpegmt.ProblemMT3D.eForm_ps(M,sigmaPrimary=sigma1d)
     problem.verbose = False
-    from pymatsolver import MumpsSolver
-    problem.Solver = MumpsSolver
+    try:
+        from pymatsolver import MumpsSolver
+        problem.Solver = MumpsSolver
+    except:
+        pass
     problem.pair(survey)
 
     fields = problem.fields(sig)
