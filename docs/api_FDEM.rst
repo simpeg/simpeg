@@ -36,7 +36,7 @@ In the frequency domain, Maxwell's equations are given by
 .. math ::
 	\curl \vec{E} = - i \omega \vec{B} \\
 
-	\curl \vec{H} = \vec{J} + i \omega \vec{D} + \vec{J}_s \\
+	\curl \vec{H} = \vec{J} + i \omega \vec{D} + \vec{S} \\
 
 	\div \vec{B} = 0 \\
 
@@ -50,7 +50,7 @@ where:
 - \\(\\vec{D}\\) : electric displacement / electric flux density (\\(C/m^2\\))
 - \\(\\vec{J}\\) : electric current density (\\(A/m^2\\))
 - \\(\\rho_f\\) : free charge density
-The source term is \\(\\vec{J}_s\\)
+The source term is \\(\\vec{S}\\)
 
 
 Constitutive Relations
@@ -71,7 +71,6 @@ where:
 - \\(\\varepsilon\\) : dielectric permittivity \\(F/m\\)
 
 \\(\\sigma\\), \\(\\mu\\), \\(\\varepsilon\\) are physical properties which depend on the material. \\(\\sigma\\) describes how easily electric current passes through a material, \\(\\mu\\) describes how easily a material is magnetized, and \\(\\varepsilon\\) describes how easily a material is electrically polarized. In most geophysical applications of EM, \\(\\sigma\\) is the the primary physical property of interest, and \\(\\mu\\), \\(\\varepsilon\\) are assumed to have their free-space values \\(\\mu_0 = 4\\pi \\times 10^{-7} H/m \\), \\(\\varepsilon_0 = 8.85 \\times 10^{-12} F/m\\)
-For a more complete discussion of physical properties see `GPG <http://www.eos.ubc.ca/courses/eosc350/content/index.htm>`_
 
 
 Quasi-static Approximation
@@ -80,17 +79,65 @@ For the frequency range typical of most geophysical surveys, the contribution of
 
 .. math ::
 	\nabla \times \vec{E} = -i \omega \vec{B} \\
-	\nabla \times \vec{H} = \vec{J} + \vec{J}_s
+	\nabla \times \vec{H} = \vec{J} + \vec{S}
 
 
-Fields from a Dipole
---------------------
+Implementation in simpegEM
+==========================
+We consider two formulations in simpegEM, both first-order and both in terms of one field and one flux. We allow for the definition of magnetic and electric sources (see for example: Ward and Hohmann, starting on page 144). The E-B formulation is in terms of the electric field and the magnetic flux:
 
-Forward Problem
-===============
+.. math ::
+	\nabla \times \vec{E} + i \omega \vec{B} = \vec{S}_m \\
+	\nabla \times \mu^{-1} \vec{B} - \sigma \vec{E} = \vec{S}_e
 
-Inverse Problem
-===============
+The H-J formulation is in terms of the current density and the magnetic field:
+
+.. math ::
+	\nabla \times \sigma^{-1} \vec{J} + i \omega \mu \vec{H} = \vec{S}_m \\
+	\nabla \times \vec{H} - \vec{J} = \vec{S}_e
+
+
+Discretizing
+------------
+For both formulations, we use a finite volume discretization 
+and discretize fields on cell edges, fluxes on cell faces and 
+physical properties in cell centers. This is particularly 
+important when using symmetry to reduce the dimensionality of a problem
+(for instance on a 2D CylMesh, there are \\(r\\), \\(z\\) faces and \\(\\theta\\) edges) 
+
+.. figure:: ./images/finitevolrealestate.png
+	:align: center
+	:scale: 60 %
+
+For the two formulations, the discretization of the physical properties, fields and fluxes are summarized below. 
+
+.. figure:: ./images/ebjhdiscretizations.png
+	:align: center
+	:scale: 60 %
+
+Note that resistivity is the inverse of conductivity, \\(\\rho = \\sigma^{-1}\\). 
+
+
+E-B Formulation:
+****************
+
+.. math ::
+	\mathbf{C} \mathbf{e} + i \omega \mathbf{b} = \mathbf{s_m} \\
+	\mathbf{C^T} \mathbf{M^f_{\mu^{-1}}} \mathbf{b} - \mathbf{M^e_\sigma} \mathbf{e} = \mathbf{s_e}
+
+H-J Formulation:
+****************
+
+.. math ::
+	\mathbf{C^T} \mathbf{M^f_\rho} \mathbf{j} + i \omega \mathbf{M^e_\mu} \mathbf{h} = \mathbf{s_m} \\
+	\mathbf{C} \mathbf{h} - \mathbf{j} = \mathbf{s_e}
+
+
+.. Forward Problem
+.. ===============
+
+.. Inverse Problem
+.. ===============
 
 API
 ===
