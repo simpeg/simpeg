@@ -2,3 +2,4 @@ numpy
 scipy
 ipython
 matplotlib
+SimPEG
