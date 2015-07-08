@@ -23,39 +23,18 @@ class eForm_ps(BaseMTProblem):
     _fieldType = 'e'
     _eqLocs    = 'FE'
     fieldsPair = FieldsMT_3D
-    # Need to add the src ....
-
-
-    # Set new properties
-    # Background model
-    # Shouldn't need the commented block.
-    # @property
-    # def backModel(self):
-    #     """
-    #         Sets the model, and removes dependent mass matrices.
-    #     """
-    #     return getattr(self, '_backModel', None)
-
-    # @backModel.setter
-    # def backModel(self, value):
-    #     if value is self.backModel:
-    #         return # it is the same!
-    #     self._backModel = Models.Model(value, self.mapping)
-    #     for prop in self.deleteTheseOnModelUpdate:
-    #         if hasattr(self, prop):
-    #             delattr(self, prop)
-
-    # @property
-    # def MeDeltaSigma(self):
-    #     #TODO: hardcoded to sigma as the model
-    #     if getattr(self, '_MeDeltaSigma', None) is None:
-    #         sigma = self.curModel
-    #         sigmaBG = self.backModel
-    #         self._MeDeltaSigma = self.mesh.getEdgeInnerProduct(sigma - sigmaBG)
-    #     return self._MeDeltaSigma
+    _sigmaPrimary = None
 
     def __init__(self, mesh, **kwargs):
         BaseMTProblem.__init__(self, mesh, **kwargs)
+
+    @property
+    def sigmaPrimary(self):
+        return self._sigmaPrimary
+    @sigmaPrimary.setter
+    def sigmaPrimary(self, val):
+        # Note: TODO add logic for val, make sure it is the correct size.
+        self._sigmaPrimary = val
 
     def getA(self, freq):
         """

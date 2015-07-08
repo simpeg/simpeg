@@ -7,7 +7,12 @@ from simpegMT.Utils.dataUtils import rec2ndarr
 
 # Import modules
 import numpy as np
-import os, osr, sys, re
+import os, sys, re
+try:
+    import osr
+except ImportError as e:
+    print 'Could not import osr, missing the gdal package'
+    pass
 
 class EDIimporter:
     """

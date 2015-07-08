@@ -36,7 +36,7 @@ def setupSurvey(sigmaHalf,tD=True):
             srcList.append(simpegmt.SurveyMT.srcMT_polxy_1DhomotD(rxList,freq))
     else:
         for freq in freqs:
-            srcList.append(simpegmt.SurveyMT.srcMT_polxy_1Dprimary(rxList,freq,sigma))
+            srcList.append(simpegmt.SurveyMT.srcMT_polxy_1Dprimary(rxList,freq))
 
     survey = simpegmt.SurveyMT.SurveyMT(srcList)
     return survey, sigma, m1d
@@ -63,7 +63,7 @@ def appRes_TotalFieldNorm(sigmaHalf):
 
     # Make the survey
     survey, sigma, mesh = setupSurvey(sigmaHalf)
-    problem = simpegmt.ProblemMT1D.eForm_TotalField(mesh,sigma)
+    problem = simpegmt.ProblemMT1D.eForm_TotalField(mesh)
     problem.pair(survey)
 
     # Get the fields
@@ -99,7 +99,7 @@ def appRes_psFieldNorm(sigmaHalf):
 
     # Make the survey
     survey, sigma, mesh = setupSurvey(sigmaHalf,False)
-    problem = simpegmt.ProblemMT1D.eForm_psField(mesh)
+    problem = simpegmt.ProblemMT1D.eForm_psField(mesh, sigmaPrimary = sigma)
     problem.pair(survey)
 
     # Get the fields
@@ -117,7 +117,7 @@ def appPhs_psFieldNorm(sigmaHalf):
 
     # Make the survey
     survey, sigma, mesh = setupSurvey(sigmaHalf,False)
-    problem = simpegmt.ProblemMT1D.eForm_psField(mesh)
+    problem = simpegmt.ProblemMT1D.eForm_psField(mesh, sigmaPrimary = sigma)
     problem.pair(survey)
 
     # Get the fields

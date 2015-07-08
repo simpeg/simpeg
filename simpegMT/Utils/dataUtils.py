@@ -65,7 +65,6 @@ def plotMT1DModelData(problem,models,symList=None):
 
     # if not symList:
     #   symList = ['x']*len(models)
-    sys.path.append('/home/gudni/Dropbox/code/python/MTview')
     import plotDataTypes as pDt
     # Loop through the models.
     modelList = [problem.survey.mtrue]
@@ -123,3 +122,7 @@ def plotMT1DModelData(problem,models,symList=None):
         ax.xaxis.set_tick_params(labelsize=fontSize)
         ax.yaxis.set_tick_params(labelsize=fontSize)
     return fig
+
+def printTime():
+    import time
+    print time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.localtime())
