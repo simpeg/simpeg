@@ -131,9 +131,9 @@ class EDIimporter:
 
 # Hidden functions
 def _findLatLong(fileLines):
-    latDMS = np.array(fileLines[_findLine(' LAT=',fileLines)[0]].split('=')[1].split()[0].split(':'),float)
-    longDMS = np.array(fileLines[_findLine(' LONG=',fileLines)[0]].split('=')[1].split()[0].split(':'),float)
-    elevM = np.array([fileLines[_findLine(' ELEV=',fileLines)[0]].split('=')[1].split()[0]],float)
+    latDMS = np.array(fileLines[_findLine('LAT=',fileLines)[0]].split('=')[1].split()[0].split(':'),float)
+    longDMS = np.array(fileLines[_findLine('LONG=',fileLines)[0]].split('=')[1].split()[0].split(':'),float)
+    elevM = np.array([fileLines[_findLine('ELEV=',fileLines)[0]].split('=')[1].split()[0]],float)
     # Convert to D.ddddd values
     latS = np.sign(latDMS[0])
     longS = np.sign(longDMS[0])

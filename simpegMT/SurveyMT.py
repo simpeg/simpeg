@@ -89,8 +89,8 @@ class RxMT(Survey.BaseRx):
         '''
 
         if self.projType is 'Z1D':
-            Pex = mesh.getInterpolationMat(self.locs,'Fx')
-            Pbx = mesh.getInterpolationMat(self.locs,'Ex')
+            Pex = mesh.getInterpolationMat(self.locs[:,-1],'Fx')
+            Pbx = mesh.getInterpolationMat(self.locs[:,-1],'Ex')
             ex = Pex*mkvc(f[src,'e_1d'],2)
             bx = Pbx*mkvc(f[src,'b_1d'],2)/mu_0
             # Note: Has a minus sign in front, to comply with quadrant calculations.
@@ -144,8 +144,8 @@ class RxMT(Survey.BaseRx):
 
         if not adjoint:
             if self.projType is 'Z1D':
-                Pex = mesh.getInterpolationMat(self.locs,'Fx')
-                Pbx = mesh.getInterpolationMat(self.locs,'Ex')
+                Pex = mesh.getInterpolationMat(self.locs[:,-1],'Fx')
+                Pbx = mesh.getInterpolationMat(self.locs[:,-1],'Ex')
                 # ex = Pex*mkvc(f[src,'e_1d'],2)
                 # bx = Pbx*mkvc(f[src,'b_1d'],2)/mu_0
                 dP_de = -mkvc(Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))*(Pex*v),2)
@@ -160,8 +160,8 @@ class RxMT(Survey.BaseRx):
         elif adjoint:
             # Note: The v vector is real and the return should be complex
             if self.projType is 'Z1D':
-                Pex = mesh.getInterpolationMat(self.locs,'Fx')
-                Pbx = mesh.getInterpolationMat(self.locs,'Ex')
+                Pex = mesh.getInterpolationMat(self.locs[:,-1],'Fx')
+                Pbx = mesh.getInterpolationMat(self.locs[:,-1],'Ex')
                 # ex = Pex*mkvc(f[src,'e_1d'],2)
                 # bx = Pbx*mkvc(f[src,'b_1d'],2)/mu_0
                 dP_deTv = -mkvc(Pex.T*Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)).T*v,2)
@@ -223,14 +223,15 @@ class srcMT_polxy_1Dprimary(srcMT):
         # assert mkvc(self.mesh.hz.shape,1) == mkvc(sigma1d.shape,1),'The number of values in the 1D background model does not match the number of vertical cells (hz).'
         self.sigma1d = None
         srcMT.__init__(self, rxList, freq)
-
-
+        # Hidden property of the ePrimary
+        self._ePrimary = None
 
     def ePrimary(self,problem):
         # Get primary fields for both polarizations
         self.sigma1d = problem._sigmaPrimary
-        eBG_bp = homo1DModelSource(problem.mesh,self.freq,self.sigma1d)
-        return eBG_bp
+        if self._ePrimary is None:
+            self._ePrimary = homo1DModelSource(problem.mesh,self.freq,self.sigma1d)
+        return self._ePrimary
 
     def bPrimary(self,problem):
         # Project ePrimary to bPrimary

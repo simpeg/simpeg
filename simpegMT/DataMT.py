@@ -91,7 +91,7 @@ class DataMT(Survey.Data):
         if srcType=='primary':
             src = simpegMT.SurveyMT.srcMT_polxy_1Dprimary
         elif srcType=='total':
-            simpegMT.SurveyMT.srcMT_polxy_1DhomotD
+            src = simpegMT.SurveyMT.srcMT_polxy_1DhomotD
         else:
             raise NotImplementedError('{:s} is not a valid source type for MTdata')
 

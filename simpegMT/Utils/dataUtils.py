@@ -1,6 +1,7 @@
 # Utils used for the data,
 import numpy as np, matplotlib.pyplot as plt, sys
 import SimPEG as simpeg
+import simpegMT as simpegmt
 
 def getAppRes(MTdata):
     # Make impedance
@@ -78,7 +79,7 @@ def plotMT1DModelData(problem,models,symList=None):
         else:
             data1D = problem.dataPair(problem.survey,problem.survey.dpred(model)).toRecArray('Complex')
         # Plot the data and the model
-        colRat = nr/((len(modelList)-2)*1.)
+        colRat = nr/((len(modelList)-1.999)*1.)
         if colRat > 1.:
             col = 'k'
         else:
@@ -126,3 +127,42 @@ def plotMT1DModelData(problem,models,symList=None):
 def printTime():
     import time
     print time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.localtime())
+
+def convert3Dto1Dobject(MTdata,rxType3D='zyx'):
+    # Find the unique locations
+    # Need to find the locations
+    recData = MTdata.toRecArray()
+    uniLocs = rec2ndarr(np.unique(recData[['x','y','z']])).data
+    mtData1DList = []
+    if 'zxy' in rxType3D:
+        corr = -1 # Shift the data to comply with the quadtrature of the 1d problem
+    else:
+        corr = 1
+    for loc in uniLocs:
+        # Make the receiver list
+        rx1DList = []
+        for rxType in ['z1dr','z1di']:
+            rx1DList.append(simpegmt.SurveyMT.RxMT(simpeg.mkvc(loc,2).T,rxType))
+        # Source list
+        locrecData = recData[np.sqrt(np.sum( (rec2ndarr(recData[['x','y','z']]).data - loc )**2,axis=1)) < 1e-5]
+        dat1DList = []
+        src1DList = []
+        for src in MTdata.survey.srcList:
+            src1DList.append(simpegmt.SurveyMT.srcMT_polxy_1Dprimary(rx1DList,src.freq))
+            for comp  in ['r','i']:
+                dat1DList.append( corr * locrecData[rxType3D+comp][locrecData['freq']== src.freq].data )
+
+        # Make the survey
+        sur1D = simpegmt.SurveyMT.SurveyMT(src1DList)
+
+        # Make the data
+        dataVec = np.hstack(dat1DList)
+        dat1D = simpegmt.DataMT.DataMT(sur1D,dataVec)
+        sur1D.dobs = dataVec
+        # Need to take MTdata.survey.std and split it as well.
+        std=0.05
+        sur1D.std =  np.abs(sur1D.dobs*std) + 0.01*np.linalg.norm(sur1D.dobs)
+        mtData1DList.append(dat1D)
+
+    # Return the the list of data.
+    return mtData1DList
