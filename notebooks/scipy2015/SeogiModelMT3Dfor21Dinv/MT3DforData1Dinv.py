@@ -54,7 +54,7 @@ for rxType in ['zxxr','zxxi','zxyr','zxyi','zyxr','zyxi','zyyr','zyyi']:
     rxList.append(simpegmt.SurveyMT.RxMT(locs,rxType))
 # Source list
 srcList =[]
-freqs = np.logspace(3,0,13)
+freqs = np.logspace(4,0,17)
 for freq in freqs:
     srcList.append(simpegmt.SurveyMT.srcMT_polxy_1Dprimary(rxList,freq))
 # Survey MT
