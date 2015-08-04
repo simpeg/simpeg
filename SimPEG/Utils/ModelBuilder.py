@@ -170,16 +170,58 @@ def scalarConductivity(ccMesh,pFunction):
 
     return mkvc(sigma)
 
+def layeredModel(ccMesh, layerTops, layerValues):
+    """
+        Define a layered model from layerTops (z-positive up)
+
+        :param numpy.array ccMesh: cell-centered mesh
+        :param numpy.array layerTops: z-locations of the tops of each layer
+        :param numpy.array layerValue: values of the property to assign for each layer (starting at the top) 
+        :rtype: numpy.array
+        :return: M, layered model on the mesh 
+    """
+
+    descending = np.linalg.norm(sorted(layerTops, reverse=True) - layerTops) < 1e-20
+
+    # TODO: put an error check to make sure that there is an ordering... needs to work with inf elts 
+    # assert ascending or descending, "Layers must be listed in either ascending or descending order"
+
+    # start from bottom up
+    if not descending:
+        zprop = np.hstack([mkvc(layerTops,2),mkvc(layerValues,2)])
+        zprop.sort(axis=0)
+        layerTops, layerValues  = zprop[::-1,0], zprop[::-1,1]
+
+    # put in vector form
+    layerTops, layerValues = mkvc(layerTops), mkvc(layerValues)
+
+    # initialize with bottom layer
+    dim = ccMesh.shape[1]
+    if dim == 3:
+        z = ccMesh[:,2]
+    elif dim == 2:
+        z = ccMesh[:,1]
+    elif dim == 1:
+        z = ccMesh[:,0]
+
+    model = np.zeros(ccMesh.shape[0])
+
+    for i, top in enumerate(layerTops):
+        zind = z <= top 
+        model[zind] = layerValues[i]
+
+    return model 
+
 
 
 def randomModel(shape, seed=None, anisotropy=None, its=100, bounds=[0,1]):
     """
-        Create a random model by convolving a kernal with a
+        Create a random model by convolving a kernel with a
         uniformly distributed model.
 
         :param int,tuple shape: shape of the model.
         :param int seed: pick which model to produce, prints the seed if you don't choose.
-        :param numpy.ndarray,list anisotropy: this is the (3 x n) blurring kernal that is used.
+        :param numpy.ndarray,list anisotropy: this is the (3 x n) blurring kernel that is used.
         :param int its: number of smoothing iterations
         :param list bounds: bounds on the model, len(list) == 2
         :rtype: numpy.ndarray
