@@ -91,7 +91,7 @@ class DataMT(Survey.Data):
         if srcType=='primary':
             src = simpegMT.SurveyMT.srcMT_polxy_1Dprimary
         elif srcType=='total':
-            src = simpegMT.SurveyMT.srcMT_polxy_1DhomotD
+            src = sdsimpegMT.SurveyMT.srcMT_polxy_1DhomotD
         else:
             raise NotImplementedError('{:s} is not a valid source type for MTdata')
 
@@ -105,14 +105,14 @@ class DataMT(Survey.Data):
             # Find that data for freq
             dFreq = recArray[recArray['freq'] == freq]
             # Find the impedance rxTypes in the recArray.
-            rxTypes = [ comp for comp in recArray.dtype.names if len(comp)==4 and 'z' in comp and 'r' in comp or 'i' in comp]
+            rxTypes = [ comp for comp in recArray.dtype.names if len(comp)==4 and 'z' in comp and ('r' in comp or 'i' in comp)]
             for rxType in rxTypes:
                 # Find index of not nan values in rxType
                 notNaNind = ~np.isnan(dFreq[rxType])
-
-                locs = rec2ndarr(dFreq[['x','y','z']][notNaNind].copy())
-                rxList.append(simpegMT.SurveyMT.RxMT(locs,rxType))
-                dataList.append(dFreq[rxType][notNaNind].data)
+                if np.any(notNaNind): # Make sure that there is any data to add.
+                    locs = rec2ndarr(dFreq[['x','y','z']][notNaNind].copy())
+                    rxList.append(simpegMT.SurveyMT.RxMT(locs,rxType))
+                    dataList.append(dFreq[rxType][notNaNind])
             srcList.append(src(rxList,freq))
 
         # Make a survey
