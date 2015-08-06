@@ -194,11 +194,11 @@ def IDTtoxyz(Inc, Dec, Btot):
 
 if __name__ == '__main__':
 
-    hxind = ((0,25,1.3),(21, 12.5),(0,25,1.3))
-    hyind = ((0,25,1.3),(21, 12.5),(0,25,1.3))
-    hzind = ((0,25,1.3),(20, 12.5),(0,25,1.3))
-    hx, hy, hz = Utils.meshTensors(hxind, hyind, hzind)
-    M3 = Mesh.TensorMesh([hx, hy, hz], [-sum(hx)/2,-sum(hy)/2,-sum(hz)/2])
+    hxind = [(0,25,1.3),(21, 12.5),(0,25,1.3)]
+    hyind = [(0,25,1.3),(21, 12.5),(0,25,1.3)]
+    hzind = [(0,25,1.3),(20, 12.5),(0,25,1.3)]
+    # hx, hy, hz = Utils.meshTensors(hxind, hyind, hzind)
+    M3 = Mesh.TensorMesh([hxind, hyind, hzind], "CCC")
     indxd, indxu, indyd, indyu, indzd, indzu = M3.faceBoundaryInd
     mu0 = 4*np.pi*1e-7
     chibkg = 0.
@@ -215,13 +215,13 @@ if __name__ == '__main__':
     Bbcxx, Bbcxy, Bbcxz  = MagSphereAnaFun(M3.gridFx[(indxd|indxu),0], M3.gridFx[(indxd|indxu),1], M3.gridFx[(indxd|indxu),2], 100, 0., 0., 0., mu_0, mu_0*(1+chiblk), H0, flag)
     Bbcyx, Bbcyy, Bbcyz  = MagSphereAnaFun(M3.gridFy[(indyd|indyu),0], M3.gridFy[(indyd|indyu),1], M3.gridFy[(indyd|indyu),2], 100, 0., 0., 0., mu_0, mu_0*(1+chiblk), H0, flag)
     Bbczx, Bbczy, Bbczz  = MagSphereAnaFun(M3.gridFz[(indzd|indzu),0], M3.gridFz[(indzd|indzu),1], M3.gridFz[(indzd|indzu),2], 100, 0., 0., 0., mu_0, mu_0*(1+chiblk), H0, flag)
-    Bbc_anal = np.r_[Bbcxx, Bbcyy, Bbczz]
+    Bbc_ana = np.r_[Bbcxx, Bbcyy, Bbczz]
 
     # fig, ax = plt.subplots(1,1, figsize = (10, 10))
-    # ax.plot(Bbc_anal)
+    # ax.plot(Bbc_ana)
     # ax.plot(Bbc)
     # plt.show()
-    err = np.linalg.norm(Bbc-Bbc_anal)/np.linalg.norm(Bbc_anal)
+    err = np.linalg.norm(Bbc-Bbc_ana)/np.linalg.norm(Bbc_ana)
 
     if err < 0.1:
         print 'Mag Boundary computation is valid, err = ', err
