@@ -15,11 +15,11 @@ def spheremodel(mesh, x0, y0, z0, r):
 
 
 
-def MagSphereAnalFun(x, y, z, R, x0, y0, z0, mu1, mu2, H0, flag):
+def MagSphereAnaFun(x, y, z, R, x0, y0, z0, mu1, mu2, H0, flag='total'):
     """
         test
         Analytic function for Magnetics problem. The set up here is
-        magnetic sphere in whole-space.
+        magnetic sphere in whole-space assuming that the inducing field is oriented in the x-direction. 
 
         * (x0,y0,z0)
         * (x0, y0, z0 ): is the center location of sphere
@@ -31,6 +31,8 @@ def MagSphereAnalFun(x, y, z, R, x0, y0, z0, mu1, mu2, H0, flag):
 
 
     """
+    print H0
+
     if (~np.size(x)==np.size(y)==np.size(z)):
         print "Specify same size of x, y, z"
         return
@@ -47,7 +49,7 @@ def MagSphereAnalFun(x, y, z, R, x0, y0, z0, mu1, mu2, H0, flag):
 
     # Inside of the sphere
     rf2 = 3*mu1/(mu2+2*mu1)
-    if (flag == 'total'):
+    if flag is 'total' and any(ind):
         Bx[ind] = mu2*H0*(rf2)
     elif (flag == 'secondary'):
         Bx[ind] = mu2*H0*(rf2)-mu1*H0
@@ -57,12 +59,12 @@ def MagSphereAnalFun(x, y, z, R, x0, y0, z0, mu1, mu2, H0, flag):
     # Outside of the sphere
     rf1 = (mu2-mu1)/(mu2+2*mu1)
     if (flag == 'total'):
-        Bx[~ind] = mu1*(H0+H0/r[~ind]**5*(R**3)*rf1*(2*x[~ind]**2-y[~ind]**2-z[~ind]**2))
+        Bx[~ind] = mu1*(H0+H0/r[~ind]**5*(R**3)*rf1*(2*(x[~ind]-x0)**2-(y[~ind]-y0)**2-(z[~ind]-z0)**2))
     elif (flag == 'secondary'):
-        Bx[~ind] = mu1*(H0/r[~ind]**5*(R**3)*rf1*(2*x[~ind]**2-y[~ind]**2-z[~ind]**2))
+        Bx[~ind] = mu1*(H0/r[~ind]**5*(R**3)*rf1*(2*(x[~ind]-x0)**2-(y[~ind]-y0)**2-(z[~ind]-z0)**2))
 
-    By[~ind] = mu1*(H0/r[~ind]**5*(R**3)*rf1*(3*x[~ind]*y[~ind]))
-    Bz[~ind] = mu1*(H0/r[~ind]**5*(R**3)*rf1*(3*x[~ind]*z[~ind]))
+    By[~ind] = mu1*(H0/r[~ind]**5*(R**3)*rf1*(3*(x[~ind]-x0)*(y[~ind]-y0)))
+    Bz[~ind] = mu1*(H0/r[~ind]**5*(R**3)*rf1*(3*(x[~ind]-x0)*(z[~ind]-z0)))
     return np.reshape(Bx, x.shape, order='F'), np.reshape(By, x.shape, order='F'), np.reshape(Bz, x.shape, order='F')
 
 
@@ -124,7 +126,7 @@ def CongruousMagBC(mesh, Bo, chi):
     return np.r_[Bbcx, Bbcy, Bbcz], (1/gamma-1/(3+gamma))*1/V
 
 
-def MagSphereAnalFunA(x, y, z, R, xc, yc, zc, chi, Bo, flag):
+def MagSphereAnaFunA(x, y, z, R, xc, yc, zc, chi, Bo, flag):
     """
         Computing boundary condition using Congrous sphere method.
         This is designed for secondary field formulation.
@@ -210,9 +212,9 @@ if __name__ == '__main__':
     flag = 'secondary'
     Box = 1.
     H0 = Box/mu_0
-    Bbcxx, Bbcxy, Bbcxz  = MagSphereAnalFun(M3.gridFx[(indxd|indxu),0], M3.gridFx[(indxd|indxu),1], M3.gridFx[(indxd|indxu),2], 100, 0., 0., 0., mu_0, mu_0*(1+chiblk), H0, flag)
-    Bbcyx, Bbcyy, Bbcyz  = MagSphereAnalFun(M3.gridFy[(indyd|indyu),0], M3.gridFy[(indyd|indyu),1], M3.gridFy[(indyd|indyu),2], 100, 0., 0., 0., mu_0, mu_0*(1+chiblk), H0, flag)
-    Bbczx, Bbczy, Bbczz  = MagSphereAnalFun(M3.gridFz[(indzd|indzu),0], M3.gridFz[(indzd|indzu),1], M3.gridFz[(indzd|indzu),2], 100, 0., 0., 0., mu_0, mu_0*(1+chiblk), H0, flag)
+    Bbcxx, Bbcxy, Bbcxz  = MagSphereAnaFun(M3.gridFx[(indxd|indxu),0], M3.gridFx[(indxd|indxu),1], M3.gridFx[(indxd|indxu),2], 100, 0., 0., 0., mu_0, mu_0*(1+chiblk), H0, flag)
+    Bbcyx, Bbcyy, Bbcyz  = MagSphereAnaFun(M3.gridFy[(indyd|indyu),0], M3.gridFy[(indyd|indyu),1], M3.gridFy[(indyd|indyu),2], 100, 0., 0., 0., mu_0, mu_0*(1+chiblk), H0, flag)
+    Bbczx, Bbczy, Bbczz  = MagSphereAnaFun(M3.gridFz[(indzd|indzu),0], M3.gridFz[(indzd|indzu),1], M3.gridFz[(indzd|indzu),2], 100, 0., 0., 0., mu_0, mu_0*(1+chiblk), H0, flag)
     Bbc_anal = np.r_[Bbcxx, Bbcyy, Bbczz]
 
     # fig, ax = plt.subplots(1,1, figsize = (10, 10))

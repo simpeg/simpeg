@@ -26,7 +26,7 @@ class MagFwdProblemTests(unittest.TestCase):
         self.chi = chi
 
 
-    def test_anal_forward(self):
+    def test_ana_forward(self):
 
         survey = PF.BaseMag.BaseMagSurvey()
 
@@ -47,7 +47,7 @@ class MagFwdProblemTests(unittest.TestCase):
         u = self.prob.fields(self.chi)
         B = u['B']
 
-        bxa,bya,bza = PF.MagAnalytics.MagSphereAnalFunA(rxLoc[:,0],rxLoc[:,1],rxLoc[:,2],100.,0.,0.,0.,0.01, b0,'secondary')
+        bxa,bya,bza = PF.MagAnalytics.MagSphereAnaFunA(rxLoc[:,0],rxLoc[:,1],rxLoc[:,2],100.,0.,0.,0.,0.01, b0,'secondary')
 
         dpred = survey.projectFieldsAsVector(B)
         err = np.linalg.norm(dpred-np.r_[bxa, bya, bza])/np.linalg.norm(np.r_[bxa, bya, bza])
