@@ -147,10 +147,10 @@ def convert3Dto1Dobject(MTdata,rxType3D='zyx'):
         locrecData = recData[np.sqrt(np.sum( (rec2ndarr(recData[['x','y','z']]).data - loc )**2,axis=1)) < 1e-5]
         dat1DList = []
         src1DList = []
-        for src in MTdata.survey.srcList:
-            src1DList.append(simpegmt.SurveyMT.srcMT_polxy_1Dprimary(rx1DList,src.freq))
+        for freq in locrecData['freq']:
+            src1DList.append(simpegmt.SurveyMT.srcMT_polxy_1Dprimary(rx1DList,freq))
             for comp  in ['r','i']:
-                dat1DList.append( corr * locrecData[rxType3D+comp][locrecData['freq']== src.freq].data )
+                dat1DList.append( corr * locrecData[rxType3D+comp][locrecData['freq']== freq].data )
 
         # Make the survey
         sur1D = simpegmt.SurveyMT.SurveyMT(src1DList)
