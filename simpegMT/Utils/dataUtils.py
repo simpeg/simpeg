@@ -2,7 +2,7 @@
 import numpy as np, matplotlib.pyplot as plt, sys
 import SimPEG as simpeg
 import simpegMT as simpegmt
-
+import numpy.lib.recfunctions as recFunc
 def getAppRes(MTdata):
     # Make impedance
     zList = []
@@ -131,7 +131,16 @@ def printTime():
 def convert3Dto1Dobject(MTdata,rxType3D='zyx'):
     # Find the unique locations
     # Need to find the locations
-    recData = MTdata.toRecArray()
+    recDataTemp = MTdata.toRecArray()
+    # Calculte and add the DET of the tensor to the recArray
+    if 'det' in rxType3D:
+        Zon = (recDataTemp['zxxr']+1j*recDataTemp['zxxi'])*(recDataTemp['zyyr']+1j*recDataTemp['zyyi'])
+        Zoff = (recDataTemp['zxyr']+1j*recDataTemp['zxyi'])*(recDataTemp['zyxr']+1j*recDataTemp['zyxi'])
+        det = np.sqrt(Zon.data - Zoff.data)
+        recData = recFunc.append_fields(recDataTemp,['zdetr','zdeti'],[det.real,det.imag] )
+    else:
+        recData = recDataTemp
+
     uniLocs = rec2ndarr(np.unique(recData[['x','y','z']])).data
     mtData1DList = []
     if 'zxy' in rxType3D:
