@@ -57,7 +57,7 @@ class DataMT(Survey.Data):
             # Masked array
             mArrRec = np.ma.MaskedArray(rec2ndarr(tArrRec),mask=np.isnan(rec2ndarr(tArrRec))).view(dtype=tArrRec.dtype)
             # Unique freq and loc of the masked array
-            uniFLmarr = np.unique(mArrRec[['freq','x','y','z']])
+            uniFLmarr = np.unique(mArrRec[['freq','x','y','z']]).copy()
 
             try:
                 outTemp = recFunc.stack_arrays((outTemp,mArrRec))
@@ -103,7 +103,7 @@ class DataMT(Survey.Data):
             # Initiate rxList
             rxList = []
             # Find that data for freq
-            dFreq = recArray[recArray['freq'] == freq]
+            dFreq = recArray[recArray['freq'] == freq].copy()
             # Find the impedance rxTypes in the recArray.
             rxTypes = [ comp for comp in recArray.dtype.names if len(comp)==4 and 'z' in comp and ('r' in comp or 'i' in comp)]
             for rxType in rxTypes:
@@ -112,7 +112,7 @@ class DataMT(Survey.Data):
                 if np.any(notNaNind): # Make sure that there is any data to add.
                     locs = rec2ndarr(dFreq[['x','y','z']][notNaNind].copy())
                     rxList.append(simpegMT.SurveyMT.RxMT(locs,rxType))
-                    dataList.append(dFreq[rxType][notNaNind])
+                    dataList.append(dFreq[rxType][notNaNind].copy())
             srcList.append(src(rxList,freq))
 
         # Make a survey

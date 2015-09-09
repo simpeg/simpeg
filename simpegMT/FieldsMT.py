@@ -133,3 +133,14 @@ class FieldsMT_3D(FieldsMT):
                   #   'b_1dPrimary' : ['e_1dSolution','E','_bPrimary'],
                   #   'b_1dSecondary' : ['e_1dSolution','E','_bSecondary']
                   # }
+
+
+    # knownFields = {'e_pxSolution':'E','e_pySoluiton':'E'}
+    # aliasFields = {
+    #                 'e_px' : ['e_pxSolution','E','_epx'],
+    #                 'e_pxPrimary' : ['e_pxSolution','E','_epxPrimary'],
+    #                 'e_pxSecondary' : ['e_pxSolution','E','_epxSecondary'],
+    #                 'b_px' : ['e_pxSolution','F','_bpx'],
+    #                 'b_pxPrimary' : ['e_pxSolution','F','_bpxPrimary'],
+    #                 'b_pxSecondary' : ['e_pxSolution','F','_bpxSecondary']
+    #               }

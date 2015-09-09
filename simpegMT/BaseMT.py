@@ -2,7 +2,7 @@ from simpegEM.FDEM import BaseFDEMProblem
 from SurveyMT import SurveyMT
 from DataMT import DataMT
 from FieldsMT import FieldsMT
-from SimPEG import SolverLU as SimpegSolver, Utils, mkvc
+from SimPEG import SolverLU as SimpegSolver, PropMaps, Utils, mkvc
 import numpy as np
 
 class BaseMTProblem(BaseFDEMProblem):
@@ -14,6 +14,36 @@ class BaseMTProblem(BaseFDEMProblem):
     surveyPair = SurveyMT
     dataPair = DataMT
     fieldsPair = FieldsMT
+
+    # Pickleing support methods
+    def __getstate__(self):
+        '''
+        Method that makes the dictionary of the object pickleble, removes non-pickleble elements of the object.
+
+        Used when doing:
+            pickle.dump(pickleFile,object)
+        '''
+        odict = self.__dict__.copy()
+        # Remove fields that are not needed
+        del odict['hook']
+        del odict['setKwargs']
+        del odict['PropMap']
+        # Return the dict
+        return odict
+
+    def __setstate__(self,odict):
+        '''
+        Function that sets a pickle dictionary in to an object.
+
+        Used when doing:
+            object = pickle.load(pickleFile)
+        '''
+        # Update the dict
+        self.__dict__.update(odict)
+        # Re-hook the methods to the object
+        Utils.codeutils.hook(self,Utils.codeutils.hook)
+        Utils.codeutils.hook(self,Utils.codeutils.setKwargs)
+        self.
 
     # Set the solver
     Solver = SimpegSolver

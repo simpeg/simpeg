@@ -132,6 +132,8 @@ def convert3Dto1Dobject(MTdata,rxType3D='zyx'):
     # Find the unique locations
     # Need to find the locations
     recDataTemp = MTdata.toRecArray()
+    # Check if survey.std has been assigned.
+    ## NEED TO: write this...
     # Calculte and add the DET of the tensor to the recArray
     if 'det' in rxType3D:
         Zon = (recDataTemp['zxxr']+1j*recDataTemp['zxxi'])*(recDataTemp['zyyr']+1j*recDataTemp['zyyi'])
@@ -170,7 +172,7 @@ def convert3Dto1Dobject(MTdata,rxType3D='zyx'):
         sur1D.dobs = dataVec
         # Need to take MTdata.survey.std and split it as well.
         std=0.05
-        sur1D.std =  np.abs(sur1D.dobs*std) + 0.01*np.linalg.norm(sur1D.dobs)
+        sur1D.std =  np.abs(sur1D.dobs*std) #+ 0.01*np.linalg.norm(sur1D.dobs)
         mtData1DList.append(dat1D)
 
     # Return the the list of data.

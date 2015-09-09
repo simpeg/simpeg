@@ -28,16 +28,11 @@ class RxMT(Survey.BaseRx):
                     'z1dr':['Z1D', 'real'],
                     'z1di':['Z1D', 'imag']
                     #TODO: Add tipper fractions as well. Bz/B(x|y)
-                    # 'exi':['e', 'Ex', 'imag'],
-                    # 'eyi':['e', 'Ey', 'imag'],
-                    # 'ezi':['e', 'Ez', 'imag'],
-
-                    # 'bxr':['b', 'Fx', 'real'],
-                    # 'byr':['b', 'Fy', 'real'],
-                    # 'bzr':['b', 'Fz', 'real'],
-                    # 'bxi':['b', 'Fx', 'imag'],
-                    # 'byi':['b', 'Fy', 'imag'],
-                    # 'bzi':['b', 'Fz', 'imag'],
+                    # Tipper
+                    'tzxr':['T3D','real'],
+                    'tzxi':['T3D','imag'],
+                    'tzyr':['T3D','real'],
+                    'tzyi':['T3D','imag']
                    }
     # TODO: Have locs as single or double coordinates for both or numerator and denominator separately, respectively.
     def __init__(self, locs, rxType):
@@ -122,6 +117,21 @@ class RxMT(Survey.BaseRx):
                 f_part_complex  = (ey_px*hy_py - ey_py*hy_px)/(hx_px*hy_py - hx_py*hy_px)
             elif 'zyy' in self.rxType:
                 f_part_complex  = (-ey_px*hx_py + ey_py*hx_px)/(hx_px*hy_py - hx_py*hy_px)
+        elif self.projType is 'T3D':
+            Pbx = mesh.getInterpolationMat(self.locs,'Fx')
+            Pby = mesh.getInterpolationMat(self.locs,'Fy')
+            Pbz = mesh.getInterpolationMat(self.locs,'Fz')
+            bx_px = Pbx*f[src,'b_px']
+            by_px = Pby*f[src,'b_px']
+            bz_px = Pbz*f[src,'b_px']
+            bx_py = Pbx*f[src,'b_py']
+            by_py = Pby*f[src,'b_py']
+            bz_py = Pbz*f[src,'b_py']
+            if 'tzx' in self.rxType:
+                f_part_complex = (- by_px*bz_py + by_py*bz_px)/(bx_px*by_py - bx_py*by_px)
+            if 'tzy' in self.rxType:
+                f_part_complex = (  bx_px*bz_py + bx_py*bz_px)/(bx_px*by_py - bx_py*by_px)
+
         else:
             NotImplementedError('Projection of {:s} receiver type is not implemented.'.format(self.rxType))
         # Get the real or imag component
