@@ -342,10 +342,10 @@ def invPropertyTensor(M, tensor, returnMatrix=False):
 
 
 def diagEst(matFun, n, k=None, approach='Probing'):
-    """ 
+    """
     Estimate the diagonal of a matrix, A. Note that the matrix may be a function which returns A times a vector.
 
-    Three different approaches have been implemented, 
+    Three different approaches have been implemented,
         1. Probing : uses cyclic permutations of vectors with ones and zeros (default)
         2. Ones : random +/- 1 entries
         3. Random : random vectors
@@ -362,7 +362,7 @@ def diagEst(matFun, n, k=None, approach='Probing'):
 
     if type(matFun).__name__=='ndarray':
         A = matFun
-        matFun = lambda v: A.dot(v) 
+        matFun = lambda v: A.dot(v)
 
     if k is None:
         k = np.floor(n/10.)
@@ -397,10 +397,3 @@ def diagEst(matFun, n, k=None, approach='Probing'):
     return d
 
 
-from scipy.sparse.linalg import LinearOperator
-
-class SimPEGLinearOperator(LinearOperator):
-    """Extends scipy.sparse.linalg.LinearOperator to have a .T function."""
-    @property
-    def T(self):
-        return self.__class__((self.shape[1],self.shape[0]),self.rmatvec,rmatvec=self.matvec,matmat=self.matmat)

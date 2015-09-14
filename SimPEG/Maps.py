@@ -1,4 +1,5 @@
 import Utils, numpy as np, scipy.sparse as sp
+from scipy.sparse.linalg import LinearOperator
 from Tests import checkDerivative
 from PropMaps import PropMap, Property
 
@@ -289,7 +290,7 @@ class FullMap(IdentityMap):
     """
     FullMap
 
-    Given a scalar, the FullMap maps the value to the 
+    Given a scalar, the FullMap maps the value to the
     full model space.
     """
 
@@ -314,8 +315,8 @@ class FullMap(IdentityMap):
             :rtype: numpy.array
             :return: derivative of transformed model
         """
-        return np.ones([self.mesh.nC,1])     
-      
+        return np.ones([self.mesh.nC,1])
+
 
 class Vertical1DMap(IdentityMap):
     """Vertical1DMap
@@ -639,7 +640,7 @@ class ComplexMap(IdentityMap):
             return v[:nC] + v[nC:]*1j
         def adj(v):
             return np.r_[v.real,v.imag]
-        return Utils.SimPEGLinearOperator(shp,fwd,adj)
+        return LinearOperator(shp,matvec=fwd,rmatvec=adj)
 
     inverse = deriv
 

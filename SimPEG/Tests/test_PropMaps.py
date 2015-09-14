@@ -8,9 +8,9 @@ class MyPropMap(Maps.PropMap):
     mu    = Maps.Property("Mu", defaultVal=mu_0)
 
 class MyReciprocalPropMap(Maps.PropMap):
-    sigma = Maps.Property("Electrical Conductivity", defaultInvProp=True, propertyLink=('rho',   Maps.ReciprocalMap))
-    rho   = Maps.Property("Electrical Resistivity",                       propertyLink=('sigma', Maps.ReciprocalMap))
-    mu    = Maps.Property("Mu", defaultVal=mu_0, propertyLink=('mui',   Maps.ReciprocalMap))
+    sigma  = Maps.Property("Electrical Conductivity", defaultInvProp=True, propertyLink=('rho',   Maps.ReciprocalMap))
+    rho    = Maps.Property("Electrical Resistivity",                       propertyLink=('sigma', Maps.ReciprocalMap))
+    mu     = Maps.Property("Mu", defaultVal=mu_0,    propertyLink=('mui',  Maps.ReciprocalMap))
     mui    = Maps.Property("Mu", defaultVal=1./mu_0, propertyLink=('mu',   Maps.ReciprocalMap))
 
 
