@@ -1,5 +1,5 @@
 import unittest
-import simpegDC as DC
+import simpegDCIP as DC
 from SimPEG import *
 from pymatsolver import MumpsSolver
 

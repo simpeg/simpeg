@@ -245,15 +245,15 @@ class ProblemDC_CC(Problem.BaseProblem):
             dCdm_x_v[:, i] = dAdsig *  dsigdm_x_v
 
         # Take derivative of $C(m,u)$ w.r.t. $u$
-        dCdu = self.A
+        dA_du = self.A
         # Solve for $\deriv{u}{m}$
         # dCdu_inv = self.Solver(dCdu, **self.solverOpts)
         if self.Ainv is None:
-            self.Ainv = self.Solver(dCdu, **self.solverOpts)
+            self.Ainv = self.Solver(dA_du, **self.solverOpts)
 
         P        = self.survey.getP(self.mesh)
-        J_x_v    = - P * mkvc( self.Ainv * dCdm_x_v )
-        return J_x_v
+        Jv    = - P * mkvc( self.Ainv * dCdm_x_v )
+        return Jv
 
     def Jtvec(self, m, v, u=None):
 
@@ -271,12 +271,11 @@ class ProblemDC_CC(Problem.BaseProblem):
 
         D = self.mesh.faceDiv
         G = self.mesh.cellGrad
-        A = self.A
+        dA_du = self.A
         mT_dm = self.mapping.deriv(m)
 
         # We probably always need this due to the linesearch .. (?)
-        dCdu = A.T
-        self.Ainv = self.Solver(dCdu, **self.solverOpts)
+        self.Ainv = self.Solver(dA_du.T, **self.solverOpts)
         # if self.Ainv is None:
         #     self.Ainv = self.Solver(dCdu, **self.solverOpts)
 

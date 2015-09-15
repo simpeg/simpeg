@@ -1,6 +1,6 @@
 import unittest
 from SimPEG import *
-import simpegDC as DC
+import simpegDCIP as DC
 
 
 class DCProblemTests(unittest.TestCase):

@@ -1,5 +1,5 @@
 import unittest
-import simpegDC as DC
+import simpegDCIP as DC
 
 
 class DCAnalyticTests(unittest.TestCase):
