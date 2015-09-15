@@ -149,7 +149,7 @@ class TargetMisfit(InversionDirective):
     @property
     def target(self):
         if getattr(self, '_target', None) is None:
-            self._target = self.survey.nD
+            self._target = self.survey.nD*0.5
         return self._target
     @target.setter
     def target(self, val):

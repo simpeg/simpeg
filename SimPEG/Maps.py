@@ -2,7 +2,7 @@ import Utils, numpy as np, scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
 from Tests import checkDerivative
 from PropMaps import PropMap, Property
-
+from numpy.polynomial import polynomial
 
 class IdentityMap(object):
     """
@@ -697,4 +697,63 @@ class CircleMap(IdentityMap):
         g3 = a*(-X + x)*(-sig1 + sig2)/(np.pi*(a**2*(-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1)*np.sqrt((X - x)**2 + (Y - y)**2))
         g4 = a*(-Y + y)*(-sig1 + sig2)/(np.pi*(a**2*(-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1)*np.sqrt((X - x)**2 + (Y - y)**2))
         g5 = -a*(-sig1 + sig2)/(np.pi*(a**2*(-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1))
-        return np.c_[g1,g2,g3,g4,g5]
+        return sp.csr_matrix(np.c_[g1,g2,g3,g4,g5])
+
+
+class PolyMap(IdentityMap):
+
+    """PolyMap
+
+        Parameterize the model space using a polynomials in a wholespace.
+
+        ..math::
+            
+            y = \mathbf{V} c
+
+        Define the model as:
+
+        ..math::
+
+            m = [\sigma_1, \sigma_2, c]
+
+    """
+    def __init__(self, mesh, order, logSigma=True):
+        assert mesh.dim == 2, "Working for a 2D mesh only right now. But it isn't that hard to change.. :)"
+        IdentityMap.__init__(self, mesh)
+        self.logSigma = logSigma
+        self.order = order
+    
+    slope = 1e4
+
+    @property
+    def nP(self):
+        return self.order+3
+
+    def _transform(self, m):
+        alpha = self.slope
+        sig1,sig2 = m[0],m[1]
+        c = m[2:]
+        if self.logSigma:
+            sig1, sig2 = np.exp(sig1), np.exp(sig2)
+        X = self.mesh.gridCC[:,0]
+        Y = self.mesh.gridCC[:,1]
+        f = polynomial.polyval(X, c) - Y
+        return sig1+(sig2-sig1)*(np.arctan(alpha*f)/np.pi+0.5)
+    
+    def deriv(self, m):
+        alpha = self.slope
+        sig1,sig2, c = m[0],m[1],m[2:]
+        if self.logSigma:
+            sig1, sig2 = np.exp(sig1), np.exp(sig2)
+        X = self.mesh.gridCC[:,0]
+        Y = self.mesh.gridCC[:,1]
+        f = polynomial.polyval(X, c) - Y
+        V = polynomial.polyvander(X, len(c)-1)        
+        if self.logSigma:
+            g1 = -(np.arctan(alpha*f)/np.pi + 0.5)*sig1 + sig1
+            g2 = (np.arctan(alpha*f)/np.pi + 0.5)*sig2
+        else:
+            g1 = -(np.arctan(alpha*f)/np.pi + 0.5) + 1.0
+            g2 = (np.arctan(alpha*f)/np.pi + 0.5)
+        g3 = Utils.sdiag(alpha*(sig2-sig1)/(1.+(alpha*f)**2)/np.pi)*V
+        return sp.csr_matrix(np.c_[g1,g2,g3])    
