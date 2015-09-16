@@ -717,27 +717,56 @@ class PolyMap(IdentityMap):
             m = [\sigma_1, \sigma_2, c]
 
     """
-    def __init__(self, mesh, order, logSigma=True):
-        assert mesh.dim == 2, "Working for a 2D mesh only right now. But it isn't that hard to change.. :)"
+    def __init__(self, mesh, order, logSigma=True, normal='X'):
         IdentityMap.__init__(self, mesh)
         self.logSigma = logSigma
         self.order = order
-    
+        self.normal = normal
+
     slope = 1e4
 
     @property
     def nP(self):
-        return self.order+3
+        if np.isscalar(self.order):
+            nP = self.order+3
+        else:
+            nP =(self.order[0]+1)*(self.order[1]+1)+2
+        return nP
 
     def _transform(self, m):
+        # Set model parameters
         alpha = self.slope
         sig1,sig2 = m[0],m[1]
         c = m[2:]
         if self.logSigma:
             sig1, sig2 = np.exp(sig1), np.exp(sig2)
-        X = self.mesh.gridCC[:,0]
-        Y = self.mesh.gridCC[:,1]
-        f = polynomial.polyval(X, c) - Y
+        #2D
+        if self.mesh.dim == 2:
+            X = self.mesh.gridCC[:,0]
+            Y = self.mesh.gridCC[:,1]
+            if self.normal =='X':
+                f = polynomial.polyval(Y, c) - X
+            elif self.normal =='Y':
+                f = polynomial.polyval(X, c) - Y
+            else:
+                raise(Exception("Input for normal = X or Y or Z"))
+        #3D
+        elif self.mesh.dim == 3: 
+            X = self.mesh.gridCC[:,0]
+            Y = self.mesh.gridCC[:,1]            
+            Z = self.mesh.gridCC[:,1]            
+            if self.normal =='X':
+                f = polynomial.polyval2d(Y, Z, c.reshape((self.order[0]+1,self.order[1]+1))) - X
+            elif self.normal =='Y':
+                f = polynomial.polyval2d(X, Z, c.reshape((self.order[0]+1,self.order[1]+1))) - Y
+            elif self.normal =='Z':
+                f = polynomial.polyval2d(X, Y, c.reshape((self.order[0]+1,self.order[1]+1))) - Z
+            else:
+                raise(Exception("Input for normal = X or Y or Z"))
+        else:
+            raise(Exception("Only supports 2D and 3D"))
+                    
+
         return sig1+(sig2-sig1)*(np.arctan(alpha*f)/np.pi+0.5)
     
     def deriv(self, m):
@@ -745,15 +774,45 @@ class PolyMap(IdentityMap):
         sig1,sig2, c = m[0],m[1],m[2:]
         if self.logSigma:
             sig1, sig2 = np.exp(sig1), np.exp(sig2)
-        X = self.mesh.gridCC[:,0]
-        Y = self.mesh.gridCC[:,1]
-        f = polynomial.polyval(X, c) - Y
-        V = polynomial.polyvander(X, len(c)-1)        
+        #2D
+        if self.mesh.dim == 2:            
+            X = self.mesh.gridCC[:,0]
+            Y = self.mesh.gridCC[:,1]
+
+            if self.normal =='X':
+                f = polynomial.polyval(Y, c) - X
+                V = polynomial.polyvander(Y, len(c)-1)        
+            elif self.normal =='Y':
+                f = polynomial.polyval(X, c) - Y
+                V = polynomial.polyvander(X, len(c)-1)        
+            else:
+                raise(Exception("Input for normal = X or Y or Z"))            
+        #3D
+        elif self.mesh.dim == 3: 
+            X = self.mesh.gridCC[:,0]
+            Y = self.mesh.gridCC[:,1]
+            Z = self.mesh.gridCC[:,1]
+
+            if self.normal =='X':
+
+                f = polynomial.polyval2d(Y, Z, c.reshape((self.order[0]+1,self.order[1]+1))) - X
+                V = polynomial.polyvander2d(Y, Z, self.order)        
+            elif self.normal =='Y':
+                f = polynomial.polyval2d(X, Z, c.reshape((self.order[0]+1,self.order[1]+1))) - Y
+                V = polynomial.polyvander2d(X, Z, self.order)        
+            elif self.normal =='Z':
+                f = polynomial.polyval2d(X, Y, c.reshape((self.order[0]+1,self.order[1]+1))) - Z
+                V = polynomial.polyvander2d(X, Y, self.order)        
+            else:
+                raise(Exception("Input for normal = X or Y or Z"))
+
         if self.logSigma:
             g1 = -(np.arctan(alpha*f)/np.pi + 0.5)*sig1 + sig1
             g2 = (np.arctan(alpha*f)/np.pi + 0.5)*sig2
         else:
             g1 = -(np.arctan(alpha*f)/np.pi + 0.5) + 1.0
             g2 = (np.arctan(alpha*f)/np.pi + 0.5)
+
         g3 = Utils.sdiag(alpha*(sig2-sig1)/(1.+(alpha*f)**2)/np.pi)*V
-        return sp.csr_matrix(np.c_[g1,g2,g3])    
+
+        return sp.csr_matrix(np.c_[g1,g2,g3])  
