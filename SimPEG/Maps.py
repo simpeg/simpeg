@@ -470,11 +470,11 @@ class ActiveCells(IdentityMap):
         self.indActive = indActive
         self.indInactive = np.logical_not(indActive)
         if Utils.isScalar(valInactive):
-            valInactive = np.ones(self.nC)*float(valInactive)
-
-        valInactive[self.indActive] = 0
-        self.valInactive = valInactive
-
+            self.valInactive = np.ones(self.nC)*float(valInactive)
+        
+        self.valInactive = valInactive.copy()
+        self.valInactive[self.indActive] = 0
+        
         inds = np.nonzero(self.indActive)[0]
         self.P = sp.csr_matrix((np.ones(inds.size),(inds, range(inds.size))), shape=(self.nC, self.nP))
 
