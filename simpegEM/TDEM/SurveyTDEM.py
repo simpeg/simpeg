@@ -100,11 +100,12 @@ class SrcTDEM_VMD_MVP(SrcTDEM):
 
 class SrcTDEM_CircularLoop_MVP(SrcTDEM):
 
-    def __init__(self,rxList,loc):
+    def __init__(self,rxList,loc,radius):
         self.loc = loc
+        self.radius =radius
         SrcTDEM.__init__(self,rxList)
 
-    def getInitialFields_(self, mesh):
+    def getInitialFields(self, mesh):
         """Circular Loop, magnetic vector potential"""
         if mesh._meshType is 'CYL':
             if mesh.isSymmetric:
