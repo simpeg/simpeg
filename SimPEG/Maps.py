@@ -471,8 +471,8 @@ class ActiveCells(IdentityMap):
         self.indInactive = np.logical_not(indActive)
         if Utils.isScalar(valInactive):
             self.valInactive = np.ones(self.nC)*float(valInactive)
-        
-        self.valInactive = valInactive.copy()
+        else:
+            self.valInactive = valInactive.copy()
         self.valInactive[self.indActive] = 0
         
         inds = np.nonzero(self.indActive)[0]
