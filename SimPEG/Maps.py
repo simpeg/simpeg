@@ -992,3 +992,10 @@ class SplineMap(IdentityMap):
                     g3[:,i] = Utils.sdiag(alpha*(sig2-sig1)/(1.+(alpha*f)**2)/np.pi)*fderiv
         else :
             raise(Exception("Not Implemented for Y and Z, your turn :)"))
+        return sp.csr_matrix(np.c_[g1,g2,g3])  
+
+
+
+
+
+            
