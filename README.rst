@@ -35,6 +35,7 @@ The vision is to create a package for finite volume simulation with applications
 * supports 1D, 2D and 3D problems
 * designed for large-scale inversions
 
+.. include:: CITATION.rst
 
 Website:
 http://simpeg.xyz
@@ -57,4 +58,4 @@ https://github.com/simpeg/simpeg/issues
 
 
 Code Snippets & Tutorials:
-http://www.row1.ca/simpeg
+http://simpeg.xyz/Journal
