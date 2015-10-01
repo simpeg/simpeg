@@ -11,6 +11,7 @@ BibTex:
 -------
 
 .. code::
+
     @article{cockett2015simpeg,
       title={SimPEG: An open source framework for simulation and gradient based parameter estimation in geophysical applications},
       author={Cockett, Rowan and Kang, Seogi and Heagy, Lindsey J and Pidlisecky, Adam and Oldenburg, Douglas W},
