@@ -109,6 +109,7 @@ class FieldsFDEM_b(FieldsFDEM):
         self._MeSigmaI = self.survey.prob.MeSigmaI
         self._MfMui = self.survey.prob.MfMui
         self._MeSigmaIDeriv = self.survey.prob.MeSigmaIDeriv
+        self._Me = self.survey.prob.Me
 
     def _bPrimary(self, bSolution, srcList):
         bPrimary = np.zeros_like(bSolution)
@@ -144,7 +145,7 @@ class FieldsFDEM_b(FieldsFDEM):
         for i,src in enumerate(srcList): 
             _,S_e = src.eval(self.prob)
             if S_e is not None:
-                e[:,i] += -self._MeSigmaI*S_e
+                e[:,i] += -self._MeSigmaI * (self._Me * S_e)
         return e
 
     def _eSecondaryDeriv_u(self, src, v, adjoint=False):
@@ -156,10 +157,14 @@ class FieldsFDEM_b(FieldsFDEM):
     def _eSecondaryDeriv_m(self, src, v, adjoint=False):
         bSolution = self[[src],'bSolution']
         _,S_e = src.eval(self.prob)
+        Me = self._Me
+
+        if adjoint:
+            Me = Me.T
 
         w = self._edgeCurl.T * (self._MfMui * bSolution)
         if S_e is not None:
-            w += -Utils.mkvc(S_e,2)
+            w += -Utils.mkvc(Me * S_e,2)
 
         if not adjoint:
             de_dm = self._MeSigmaIDeriv(w) * v
@@ -170,7 +175,7 @@ class FieldsFDEM_b(FieldsFDEM):
         Se_Deriv = S_eDeriv(v)
 
         if Se_Deriv is not None:
-            de_dm += -self._MeSigmaI * Se_Deriv
+            de_dm += -self._MeSigmaI * (self._Me * Se_Deriv)
 
         return de_dm
 
@@ -205,6 +210,7 @@ class FieldsFDEM_j(FieldsFDEM):
         self._MeMuI = self.survey.prob.MeMuI
         self._MfRho = self.survey.prob.MfRho
         self._MfRhoDeriv = self.survey.prob.MfRhoDeriv
+        self._Me = self.survey.prob.Me
 
     def _jPrimary(self, jSolution, srcList):
         jPrimary = np.zeros_like(jSolution,dtype = complex)
@@ -236,25 +242,19 @@ class FieldsFDEM_j(FieldsFDEM):
         return hPrimary
 
     def _hSecondary(self, jSolution, srcList):
-        MeMuI = self._MeMuI
-        C = self._edgeCurl
-        MfRho = self._MfRho
-        h =  MeMuI * (C.T * (MfRho * jSolution) ) 
+        h =  self._MeMuI * (self._edgeCurl.T * (self._MfRho * jSolution) ) 
         for i, src in enumerate(srcList):
             h[:,i] *= -1./(1j*omega(src.freq))
             S_m,_ = src.eval(self.prob)
             if S_m is not None:
-                h[:,i] += 1./(1j*omega(src.freq)) * MeMuI * S_m
+                h[:,i] += 1./(1j*omega(src.freq)) * self._MeMuI * (self._Me * S_m)
         return h
 
     def _hSecondaryDeriv_u(self, src, v, adjoint=False):
-        MeMuI = self._MeMuI
-        C = self._edgeCurl
-        MfRho = self._MfRho
         if not adjoint: 
-            return  -1./(1j*omega(src.freq)) * MeMuI * (C.T * (MfRho * v) )
+            return  -1./(1j*omega(src.freq)) * self._MeMuI * (self._edgeCurl.T * (self._MfRho * v) )
         elif adjoint:
-            return  -1./(1j*omega(src.freq)) * MfRho.T * (C * ( MeMuI.T * v))
+            return  -1./(1j*omega(src.freq)) * self._MfRho.T * (self._edgeCurl * ( self._MeMuI.T * v))
 
     def _hSecondaryDeriv_m(self, src, v, adjoint=False):
         jSolution = self[[src],'jSolution']
@@ -262,6 +262,7 @@ class FieldsFDEM_j(FieldsFDEM):
         C = self._edgeCurl
         MfRho = self._MfRho
         MfRhoDeriv = self._MfRhoDeriv
+        Me = self._Me
 
         if not adjoint: 
             hDeriv_m =  -1./(1j*omega(src.freq)) * MeMuI * (C.T * (MfRhoDeriv(jSolution)*v ) ) 
@@ -273,9 +274,9 @@ class FieldsFDEM_j(FieldsFDEM):
         if not adjoint:
             S_mDeriv = S_mDeriv(v)
             if S_mDeriv is not None:
-                hDeriv_m += 1./(1j*omega(src.freq)) * MeMuI * S_mDeriv
+                hDeriv_m += 1./(1j*omega(src.freq)) * MeMuI * (Me * S_mDeriv)
         elif adjoint:
-            S_mDeriv = S_mDeriv(MeMuI.T * v)
+            S_mDeriv = S_mDeriv(Me.T * (MeMuI.T * v))
             if S_mDeriv is not None:
                 hDeriv_m += 1./(1j*omega(src.freq)) * S_mDeriv
         return hDeriv_m

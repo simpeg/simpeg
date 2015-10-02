@@ -12,14 +12,14 @@ testHJ = True
 
 verbose = False
 
-TOL = 1e-4
+TOL = 1e-6
 FLR = 1e-20 # "zero", so if residual below this --> pass regardless of order
 CONDUCTIVITY = 1e1
 MU = mu_0
 freq = 1e-1
 addrandoms = True
 
-SrcType = 'MagDipole' #or 'MAgDipole_Bfield', 'CircularLoop', 'RawVec'
+SrcType = 'RawVec' #or 'MAgDipole_Bfield', 'CircularLoop', 'RawVec'
 
 
 def getProblem(fdemType, comp):

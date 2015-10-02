@@ -15,7 +15,7 @@ class BaseFDEMProblem(BaseEMProblem):
         .. math ::
 
             \mathbf{C} \mathbf{e} + i \omega \mathbf{b} = \mathbf{s_m} \\\\
-            {\mathbf{C}^T \mathbf{M_{\mu^{-1}}^f} \mathbf{b} - \mathbf{M_{\sigma}^e} \mathbf{e} = \mathbf{s_e}}
+            {\mathbf{C}^T \mathbf{M_{\mu^{-1}}^f} \mathbf{b} - \mathbf{M_{\sigma}^e} \mathbf{e} = \mathbf{M^e} \mathbf{s_e}}
         
         if using the E-B formulation (:code:`ProblemFDEM_e` 
         or :code:`ProblemFDEM_b`) or the magnetic field 
@@ -23,7 +23,7 @@ class BaseFDEMProblem(BaseEMProblem):
 
         .. math :: 
 
-            \mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{j} + i \omega \mathbf{M_{\mu}^e} \mathbf{h} = \mathbf{s_m} \\\\
+            \mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{j} + i \omega \mathbf{M_{\mu}^e} \mathbf{h} = \mathbf{M^e} \mathbf{s_m} \\\\
             \mathbf{C} \mathbf{h} - \mathbf{j} = \mathbf{s_e}
 
         if using the H-J formulation (:code:`ProblemFDEM_j` or :code:`ProblemFDEM_h`).
@@ -198,7 +198,7 @@ class ProblemFDEM_e(BaseFDEMProblem):
 
         .. math ::
 
-            \\left(\mathbf{C}^T \mathbf{M_{\mu^{-1}}^f} \mathbf{C}+ i \omega \mathbf{M^e_{\sigma}} \\right)\mathbf{e} = \mathbf{C}^T \mathbf{M_{\mu^{-1}}^f}\mathbf{s_m} -i\omega\mathbf{s_e}  
+            \\left(\mathbf{C}^T \mathbf{M_{\mu^{-1}}^f} \mathbf{C}+ i \omega \mathbf{M^e_{\sigma}} \\right)\mathbf{e} = \mathbf{C}^T \mathbf{M_{\mu^{-1}}^f}\mathbf{s_m} -i\omega\mathbf{M^e}\mathbf{s_e}  
 
         which we solve for \\\(\\\mathbf{e}\\\). 
     """
@@ -238,7 +238,7 @@ class ProblemFDEM_e(BaseFDEMProblem):
     def getRHS(self, freq):
         """
             .. math ::
-                \mathbf{RHS} = \mathbf{C}^T \mathbf{M_{\mu^{-1}}^f}\mathbf{s_m} -i\omega\mathbf{s_e}
+                \mathbf{RHS} = \mathbf{C}^T \mathbf{M_{\mu^{-1}}^f}\mathbf{s_m} -i\omega\mathbf{M_e}\mathbf{s_e}
 
             :param float freq: Frequency
             :rtype: numpy.ndarray (nE, nSrc)
@@ -246,16 +246,18 @@ class ProblemFDEM_e(BaseFDEMProblem):
         """
 
         S_m, S_e = self.getSourceTerm(freq)
+        Me = self.Me
         C = self.mesh.edgeCurl
         MfMui = self.MfMui
 
-        RHS = C.T * (MfMui * S_m) -1j*omega(freq)*S_e
+        RHS = C.T * (MfMui * S_m) -1j * omega(freq) * Me * S_e
 
         return RHS
 
     def getRHSDeriv_m(self, src, v, adjoint=False):
         C = self.mesh.edgeCurl
         MfMui = self.MfMui
+        Me = self.Me
         S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint)
 
         if adjoint:
@@ -263,22 +265,22 @@ class ProblemFDEM_e(BaseFDEMProblem):
             S_mDerivv = S_mDeriv(dRHS)
             S_eDerivv = S_eDeriv(v)
             if S_mDerivv is not None and S_eDerivv is not None:
-                return S_mDerivv - 1j*omega(freq)*S_eDerivv
+                return S_mDerivv - 1j * omega(freq) * Me.T * S_eDerivv
             elif S_mDerivv is not None:
                 return S_mDerivv
             elif S_eDerivv is not None:
-                return - 1j*omega(freq)*S_eDerivv
+                return - 1j * omega(freq) * Me.T * S_eDerivv
             else:
                 return None
         else:   
             S_mDerivv, S_eDerivv = S_mDeriv(v), S_eDeriv(v)
 
             if S_mDerivv is not None and S_eDerivv is not None: 
-                return C.T * (MfMui * S_mDerivv) -1j*omega(freq)*S_eDerivv
+                return C.T * (MfMui * S_mDerivv) -1j * omega(freq) * Me * S_eDerivv
             elif S_mDerivv is not None:
                 return C.T * (MfMui * S_mDerivv)
             elif S_eDerivv is not None:
-                return -1j*omega(freq)*S_eDerivv
+                return -1j * omega(freq) * Me * S_eDerivv
             else:
                 return None
 
@@ -295,7 +297,7 @@ class ProblemFDEM_b(BaseFDEMProblem):
 
         .. math ::
             
-            \\left(\mathbf{C} \mathbf{M^e_{\sigma}}^{-1} \mathbf{C}^T \mathbf{M_{\mu^{-1}}^f}  + i \omega \\right)\mathbf{b} = \mathbf{s_m} + \mathbf{M^e_{\sigma}}^{-1}\mathbf{s_e} 
+            \\left(\mathbf{C} \mathbf{M^e_{\sigma}}^{-1} \mathbf{C}^T \mathbf{M_{\mu^{-1}}^f}  + i \omega \\right)\mathbf{b} = \mathbf{s_m} + \mathbf{M^e_{\sigma}}^{-1}\mathbf{M^e}\mathbf{s_e} 
     
         .. note ::
             The inverse problem will not work with full anisotropy 
@@ -323,7 +325,7 @@ class ProblemFDEM_b(BaseFDEMProblem):
         C = self.mesh.edgeCurl
         iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
 
-        A = C*MeSigmaI*C.T*MfMui + iomega
+        A = C * (MeSigmaI * (C.T * MfMui)) + iomega
 
         if self._makeASymmetric is True:
             return MfMui.T*A
@@ -334,7 +336,7 @@ class ProblemFDEM_b(BaseFDEMProblem):
         MfMui = self.MfMui
         C = self.mesh.edgeCurl
         MeSigmaIDeriv = self.MeSigmaIDeriv
-        vec = C.T*(MfMui*u)
+        vec = C.T * (MfMui * u)
 
         MeSigmaIDeriv = MeSigmaIDeriv(vec)
 
@@ -361,12 +363,13 @@ class ProblemFDEM_b(BaseFDEMProblem):
         S_m, S_e = self.getSourceTerm(freq)
         C = self.mesh.edgeCurl
         MeSigmaI = self.MeSigmaI
+        Me = self.Me
 
-        RHS = S_m + C * ( MeSigmaI * S_e )
+        RHS = S_m + C * ( MeSigmaI * Me * S_e )
 
         if self._makeASymmetric is True:
             MfMui = self.MfMui
-            return MfMui.T*RHS
+            return MfMui.T * RHS
 
         return RHS
 
@@ -374,12 +377,13 @@ class ProblemFDEM_b(BaseFDEMProblem):
         C = self.mesh.edgeCurl
         S_m, S_e = src.eval(self)
         MfMui = self.MfMui
+        Me = self.Me
 
         if self._makeASymmetric and adjoint:
             v = self.MfMui * v
 
         if S_e is not None:
-            MeSigmaIDeriv = self.MeSigmaIDeriv(Utils.mkvc(S_e))
+            MeSigmaIDeriv = self.MeSigmaIDeriv(Utils.mkvc( Me * S_e))
             if not adjoint:
                 RHSderiv = C * (MeSigmaIDeriv * v)
             elif adjoint:
@@ -391,16 +395,16 @@ class ProblemFDEM_b(BaseFDEMProblem):
         S_mDeriv, S_eDeriv = S_mDeriv(v), S_eDeriv(v)
         if S_mDeriv is not None and S_eDeriv is not None:
             if not adjoint:
-                SrcDeriv = S_mDeriv + C * (self.MeSigmaI * S_eDeriv)
+                SrcDeriv = S_mDeriv + C * (self.MeSigmaI * (Me * S_eDeriv))
             elif adjoint:
-                SrcDeriv = S_mDeriv + Self.MeSigmaI.T * ( C.T * S_eDeriv)
+                SrcDeriv = S_mDeriv + Me.T * (Self.MeSigmaI.T * ( C.T * S_eDeriv))
         elif S_mDeriv is not None:
             SrcDeriv = S_mDeriv
         elif S_eDeriv is not None:
             if not adjoint:
-                SrcDeriv = C * (self.MeSigmaI * S_eDeriv)
+                SrcDeriv = C * (self.MeSigmaI * (Me * S_eDeriv))
             elif adjoint:
-                SrcDeriv = self.MeSigmaI.T * ( C.T * S_eDeriv)
+                SrcDeriv = Me.T * (self.MeSigmaI.T * ( C.T * S_eDeriv))
         else: 
             SrcDeriv = None
 
@@ -428,13 +432,13 @@ class ProblemFDEM_j(BaseFDEMProblem):
 
         .. math :: 
 
-            \mathbf{h} = \\frac{1}{i \omega} \mathbf{M_{\mu}^e}^{-1} \\left(-\mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{j}  + \mathbf{s_m} \\right)
+            \mathbf{h} = \\frac{1}{i \omega} \mathbf{M_{\mu}^e}^{-1} \\left(-\mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{j}  + \mathbf{M^e} \mathbf{s_m} \\right)
 
         and solve for \\\(\\\mathbf{j}\\\) using 
 
         .. math ::
 
-            \\left(\mathbf{C} \mathbf{M_{\mu}^e}^{-1} \mathbf{C}^T \mathbf{M_{\\rho}^f} + i \omega\\right)\mathbf{j} = \mathbf{C} \mathbf{M_{\mu}^e}^{-1}\mathbf{s_m} -i\omega\mathbf{s_e}
+            \\left(\mathbf{C} \mathbf{M_{\mu}^e}^{-1} \mathbf{C}^T \mathbf{M_{\\rho}^f} + i \omega\\right)\mathbf{j} = \mathbf{C} \mathbf{M_{\mu}^e}^{-1} \mathbf{M^e} \mathbf{s_m} -i\omega\mathbf{s_e}
 
         .. note::
             This implementation does not yet work with full anisotropy!!
@@ -507,10 +511,11 @@ class ProblemFDEM_j(BaseFDEMProblem):
 
         S_m, S_e = self.getSourceTerm(freq)
         C = self.mesh.edgeCurl
-        MeMuI = self.MeMuI   
+        MeMuI = self.MeMuI  
+        Me = self.Me 
 
 
-        RHS = C * (MeMuI * S_m) - 1j * omega(freq) * S_e
+        RHS = C * (MeMuI * (Me * S_m)) - 1j * omega(freq) * S_e
         if self._makeASymmetric is True:
             MfRho = self.MfRho
             return MfRho.T*RHS
@@ -520,6 +525,7 @@ class ProblemFDEM_j(BaseFDEMProblem):
     def getRHSDeriv_m(self, src, v, adjoint=False):
         C = self.mesh.edgeCurl
         MeMuI = self.MeMuI  
+        Me = self.Me
         S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint)
 
         if adjoint:
@@ -529,20 +535,20 @@ class ProblemFDEM_j(BaseFDEMProblem):
             S_mDerivv = S_mDeriv(MeMuI.T * (C.T * v))
             S_eDerivv = S_eDeriv(v)
             if S_mDerivv is not None and S_eDerivv is not None:
-                return S_mDerivv - 1j*omega(freq)*S_eDerivv
+                return Me.T * S_mDerivv - 1j * omega(freq) * S_eDerivv
             elif S_mDerivv is not None:
-                return S_mDerivv
+                return Me.T * S_mDerivv
             elif S_eDerivv is not None:
-                return - 1j*omega(freq)*S_eDerivv
+                return - 1j * omega(freq) * S_eDerivv
             else:
                 return None
         else:   
             S_mDerivv, S_eDerivv = S_mDeriv(v), S_eDeriv(v)
 
             if S_mDerivv is not None and S_eDerivv is not None: 
-                RHSDeriv = C * (MeMuI * S_mDerivv) - 1j * omega(freq) * S_eDerivv
+                RHSDeriv = C * (MeMuI * (Me * S_mDerivv)) - 1j * omega(freq) * S_eDerivv
             elif S_mDerivv is not None:
-                RHSDeriv = C * (MeMuI * S_mDerivv)
+                RHSDeriv = C * (MeMuI * (Me * S_mDerivv))
             elif S_eDerivv is not None:
                 RHSDeriv = - 1j * omega(freq) * S_eDerivv
             else:
@@ -568,7 +574,7 @@ class ProblemFDEM_h(BaseFDEMProblem):
 
         .. math ::
 
-            \\left(\mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{C} + i \omega \mathbf{M_{\mu}^e}\\right) \mathbf{h} = \mathbf{s_m} + \mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{s_e} 
+            \\left(\mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{C} + i \omega \mathbf{M_{\mu}^e}\\right) \mathbf{h} = \mathbf{M^e} \mathbf{s_m} + \mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{s_e} 
 
     """
 
@@ -594,7 +600,7 @@ class ProblemFDEM_h(BaseFDEMProblem):
         MfRho = self.MfRho
         C = self.mesh.edgeCurl
 
-        return C.T * MfRho * C + 1j*omega(freq)*MeMu
+        return C.T * (MfRho * C) + 1j*omega(freq)*MeMu
 
     def getADeriv_m(self, freq, u, v, adjoint=False):
 
@@ -610,7 +616,7 @@ class ProblemFDEM_h(BaseFDEMProblem):
         """
             .. math ::
 
-                \mathbf{RHS} = \mathbf{s_m} + \mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{s_e} 
+                \mathbf{RHS} = \mathbf{M^e} \mathbf{s_m} + \mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{s_e} 
 
             :param float freq: Frequency
             :rtype: numpy.ndarray (nE, nSrc)
@@ -620,8 +626,9 @@ class ProblemFDEM_h(BaseFDEMProblem):
         S_m, S_e = self.getSourceTerm(freq)
         C = self.mesh.edgeCurl
         MfRho  = self.MfRho
+        Me = self.Me
 
-        RHS = S_m + C.T * ( MfRho * S_e )
+        RHS = Me * S_m + C.T * ( MfRho * S_e )
 
         return RHS
 
@@ -629,6 +636,7 @@ class ProblemFDEM_h(BaseFDEMProblem):
         _, S_e = src.eval(self)
         C = self.mesh.edgeCurl
         MfRho  = self.MfRho
+        Me = self.Me
 
         RHSDeriv = None
 
@@ -643,11 +651,15 @@ class ProblemFDEM_h(BaseFDEMProblem):
 
         S_mDeriv = S_mDeriv(v)
         S_eDeriv = S_eDeriv(v)
+
+        if adjoint:
+            Me = Me.T
+
         if S_mDeriv is not None:
             if RHSDeriv is not None: 
-                RHSDeriv += S_mDeriv(v)
+                RHSDeriv += Me * S_mDeriv(v)
             else: 
-                RHSDeriv = S_mDeriv(v)
+                RHSDeriv = Me * S_mDeriv(v)
         if S_eDeriv is not None:
             if RHSDeriv is not None: 
                 RHSDeriv += C.T * (MfRho * S_e)
