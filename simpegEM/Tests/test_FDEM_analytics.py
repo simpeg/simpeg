@@ -4,7 +4,11 @@ import simpegEM as EM
 from scipy.constants import mu_0
 
 plotIt = False
-freq = 1e2
+tol_Edipole = 1e-2
+
+if plotIt:
+    import matplotlib.pylab
+
 
 class FDEM_analyticTests(unittest.TestCase):
 
@@ -13,6 +17,8 @@ class FDEM_analyticTests(unittest.TestCase):
         cs = 10.
         ncx, ncy, ncz = 10, 10, 10
         npad = 4
+        freq = 1e2
+
         hx = [(cs,npad,-1.3), (cs,ncx), (cs,npad,1.3)]
         hy = [(cs,npad,-1.3), (cs,ncy), (cs,npad,1.3)]
         hz = [(cs,npad,-1.3), (cs,ncz), (cs,npad,1.3)]
@@ -76,6 +82,106 @@ class FDEM_analyticTests(unittest.TestCase):
         orderMag = 1.6
         passed = np.abs(np.mean(diff - np.log10(np.abs(mu_0*np.imag(an))))) > orderMag
         self.assertTrue(passed)
+
+
+    def test_CylMeshEDipole(self):
+        print 'Testing CylMesh E Dipole in a wholespace- Analytic: J-formulation'
+        sigmaback = 1.
+        freq = 1.
+        skdpth = 500./np.sqrt(sigmaback*freq)
+
+        csx, ncx, npadx = 5, 50, 25
+        csz, ncz, npadz = 5, 50, 25
+        hx = Utils.meshTensor([(csx,ncx), (csx,npadx,1.3)])
+        hz = Utils.meshTensor([(csz,npadz,-1.3), (csz,ncz), (csz,npadz,1.3)])
+        mesh = Mesh.CylMesh([hx,1,hz], [0.,0.,-hz.sum()/2]) # define the cylindrical mesh
+
+        if plotIt: 
+            mesh.plotGrid()
+
+        # make sure mesh is big enough 
+        self.assertTrue(mesh.hz.sum() > skdpth*2.)
+        self.assertTrue(mesh.hx.sum() > skdpth*2.)
+
+        SigmaBack = sigmaback*np.ones((mesh.nC))
+
+        # set up source
+        # test electric dipole
+        src_loc = np.r_[0.,0.,0.]
+        s_ind = Utils.closestPoints(mesh,src_loc,'Fz') + mesh.nFx
+
+        de = np.zeros(mesh.nF,dtype=complex)
+        de[s_ind] = 1./csz
+        de_p = [EM.FDEM.SrcFDEM_RawVec_e([],freq,de/mesh.area)]
+
+        # Pair the problem and survey
+        surveye = EM.FDEM.SurveyFDEM(de_p) #+deg_p) # set survey
+        mapping = [('sigma', Maps.IdentityMap(mesh))]
+        prbe = EM.FDEM.ProblemFDEM_j(mesh, mapping=mapping)
+        prbe.pair(surveye) # pair problem and survey
+
+        # solve
+        fieldsBack = prbe.fields(np.r_[SigmaBack]) # Done
+
+        rlim = [20.,500.]
+        lookAtTx = de_p
+        r = mesh.vectorCCx[np.argmin(np.abs(mesh.vectorCCx-rlim[0])):np.argmin(np.abs(mesh.vectorCCx-rlim[1]))]
+        z = 100. 
+
+        # where we choose to measure
+        XYZ = Utils.ndgrid(r, np.r_[0.], np.r_[z])
+
+        Pf = mesh.getInterpolationMat(XYZ, 'CC')
+        Zero = sp.csr_matrix(Pf.shape)
+        Pfx,Pfz = sp.hstack([Pf,Zero]),sp.hstack([Zero,Pf])
+
+        jn = fieldsBack[lookAtTx,'j']
+        Rho = Utils.sdiag(1./SigmaBack)
+        Rho = sp.block_diag([Rho,Rho])
+
+        en = Rho*mesh.aveF2CCV*jn
+
+        ex,ez = Pfx*en, Pfz*en
+
+        # get analytic solution
+        exa, eya, eza = EM.Analytics.FDEM.ElectricDipoleWholeSpace(XYZ, src_loc, sigmaback, freq,orientation='Z')
+        exa, eya, eza = Utils.mkvc(exa,2), Utils.mkvc(eya,2), Utils.mkvc(eza,2)
+
+        print '  ex:', np.linalg.norm(exa), np.linalg.norm(ex), np.linalg.norm(exa-ex)
+        print '  ez:', np.linalg.norm(eza), np.linalg.norm(ez), np.linalg.norm(eza-ez)
+
+        if plotIt:
+            if plotit:
+                plt.subplot(221)
+                plt.plot(r,ex.real,'o',r,exa.real,linewidth=2)
+                plt.grid(which='both')
+                plt.title('Ex Real')
+                plt.xlabel('r (m)')
+
+                plt.subplot(222)
+                plt.plot(r,ex.imag,'o',r,exa.imag,linewidth=2)
+                plt.grid(which='both')
+                plt.title('Ex Imag')
+                plt.legend(['Num','Ana'],bbox_to_anchor=(1.5,0.5))
+                plt.xlabel('r (m)')
+
+                plt.subplot(223)
+                plt.plot(r,ez.real,'o',r,eza.real,linewidth=2)
+                plt.grid(which='both')
+                plt.title('Ez Real')
+                plt.xlabel('r (m)')
+
+                plt.subplot(224)
+                plt.plot(r,ez.imag,'o',r,eza.imag,linewidth=2)
+                plt.grid(which='both')
+                plt.title('Ez Imag')
+                plt.xlabel('r (m)')
+
+                plt.tight_layout()
+
+        self.assertTrue(np.linalg.norm(exa-ex)/np.linalg.norm(exa) < tol_Edipole)
+        self.assertTrue(np.linalg.norm(eza-ez)/np.linalg.norm(eza) < tol_Edipole)
+
 
 
 if __name__ == '__main__':
