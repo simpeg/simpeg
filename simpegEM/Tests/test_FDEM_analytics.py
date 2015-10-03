@@ -4,7 +4,7 @@ import simpegEM as EM
 from scipy.constants import mu_0
 
 plotIt = False
-tol_Edipole = 1e-2
+tol_EBdipole = 1e-2
 
 if plotIt:
     import matplotlib.pylab
@@ -84,8 +84,8 @@ class FDEM_analyticTests(unittest.TestCase):
         self.assertTrue(passed)
 
 
-    def test_CylMeshEDipole(self):
-        print 'Testing CylMesh E Dipole in a wholespace- Analytic: J-formulation'
+    def test_CylMeshEBDipoles(self):
+        print 'Testing CylMesh Electric and Magnetic Dipoles in a wholespace- Analytic: J-formulation'
         sigmaback = 1.
         freq = 1.
         skdpth = 500./np.sqrt(sigmaback*freq)
@@ -114,14 +114,25 @@ class FDEM_analyticTests(unittest.TestCase):
         de[s_ind] = 1./csz
         de_p = [EM.FDEM.SrcFDEM_RawVec_e([],freq,de/mesh.area)]
 
+        dm_p = [EM.FDEM.SrcFDEM_MagDipole([],freq,src_loc)]
+
+
         # Pair the problem and survey
-        surveye = EM.FDEM.SurveyFDEM(de_p) #+deg_p) # set survey
+        surveye = EM.FDEM.SurveyFDEM(de_p)
+        surveym = EM.FDEM.SurveyFDEM(dm_p)
+
         mapping = [('sigma', Maps.IdentityMap(mesh))]
-        prbe = EM.FDEM.ProblemFDEM_j(mesh, mapping=mapping)
+
+        prbe = EM.FDEM.ProblemFDEM_h(mesh, mapping=mapping)
+        prbm = EM.FDEM.ProblemFDEM_e(mesh, mapping=mapping)
+
         prbe.pair(surveye) # pair problem and survey
+        prbm.pair(surveym)
 
         # solve
-        fieldsBack = prbe.fields(np.r_[SigmaBack]) # Done
+        fieldsBackE = prbe.fields(np.r_[SigmaBack]) # Done
+        fieldsBackM = prbm.fields(np.r_[SigmaBack]) # Done
+
 
         rlim = [20.,500.]
         lookAtTx = de_p
@@ -135,52 +146,94 @@ class FDEM_analyticTests(unittest.TestCase):
         Zero = sp.csr_matrix(Pf.shape)
         Pfx,Pfz = sp.hstack([Pf,Zero]),sp.hstack([Zero,Pf])
 
-        jn = fieldsBack[lookAtTx,'j']
+        jn = fieldsBackE[de_p,'j']
+        bn = fieldsBackM[dm_p,'b']
+
         Rho = Utils.sdiag(1./SigmaBack)
         Rho = sp.block_diag([Rho,Rho])
 
         en = Rho*mesh.aveF2CCV*jn
+        bn = mesh.aveF2CCV*bn
 
         ex,ez = Pfx*en, Pfz*en
+        bx,bz = Pfx*bn, Pfz*bn
 
         # get analytic solution
         exa, eya, eza = EM.Analytics.FDEM.ElectricDipoleWholeSpace(XYZ, src_loc, sigmaback, freq,orientation='Z')
         exa, eya, eza = Utils.mkvc(exa,2), Utils.mkvc(eya,2), Utils.mkvc(eza,2)
 
-        print '  ex:', np.linalg.norm(exa), np.linalg.norm(ex), np.linalg.norm(exa-ex)
-        print '  ez:', np.linalg.norm(eza), np.linalg.norm(ez), np.linalg.norm(eza-ez)
+        bxa, bya, bza = EM.Analytics.FDEM.MagneticDipoleWholeSpace(XYZ, src_loc, sigmaback, freq,orientation='Z')
+        bxa, bya, bza = Utils.mkvc(bxa,2), Utils.mkvc(bya,2), Utils.mkvc(bza,2)
+
+        print ' comp,       anayltic,       numeric,       num - ana,       (num - ana)/ana'
+        print '  ex:', np.linalg.norm(exa), np.linalg.norm(ex), np.linalg.norm(exa-ex), np.linalg.norm(exa-ex)/np.linalg.norm(exa)
+        print '  ez:', np.linalg.norm(eza), np.linalg.norm(ez), np.linalg.norm(eza-ez), np.linalg.norm(eza-ez)/np.linalg.norm(eza)
+
+        print '  bx:', np.linalg.norm(bxa), np.linalg.norm(bx), np.linalg.norm(bxa-bx), np.linalg.norm(bxa-bx)/np.linalg.norm(bxa)
+        print '  bz:', np.linalg.norm(bza), np.linalg.norm(bz), np.linalg.norm(bza-bz), np.linalg.norm(bza-bz)/np.linalg.norm(bza)
 
         if plotIt:
-            if plotit:
-                plt.subplot(221)
-                plt.plot(r,ex.real,'o',r,exa.real,linewidth=2)
-                plt.grid(which='both')
-                plt.title('Ex Real')
-                plt.xlabel('r (m)')
+            # Edipole
+            plt.subplot(221)
+            plt.plot(r,ex.real,'o',r,exa.real,linewidth=2)
+            plt.grid(which='both')
+            plt.title('Ex Real')
+            plt.xlabel('r (m)')
 
-                plt.subplot(222)
-                plt.plot(r,ex.imag,'o',r,exa.imag,linewidth=2)
-                plt.grid(which='both')
-                plt.title('Ex Imag')
-                plt.legend(['Num','Ana'],bbox_to_anchor=(1.5,0.5))
-                plt.xlabel('r (m)')
+            plt.subplot(222)
+            plt.plot(r,ex.imag,'o',r,exa.imag,linewidth=2)
+            plt.grid(which='both')
+            plt.title('Ex Imag')
+            plt.legend(['Num','Ana'],bbox_to_anchor=(1.5,0.5))
+            plt.xlabel('r (m)')
 
-                plt.subplot(223)
-                plt.plot(r,ez.real,'o',r,eza.real,linewidth=2)
-                plt.grid(which='both')
-                plt.title('Ez Real')
-                plt.xlabel('r (m)')
+            plt.subplot(223)
+            plt.plot(r,ez.real,'o',r,eza.real,linewidth=2)
+            plt.grid(which='both')
+            plt.title('Ez Real')
+            plt.xlabel('r (m)')
 
-                plt.subplot(224)
-                plt.plot(r,ez.imag,'o',r,eza.imag,linewidth=2)
-                plt.grid(which='both')
-                plt.title('Ez Imag')
-                plt.xlabel('r (m)')
+            plt.subplot(224)
+            plt.plot(r,ez.imag,'o',r,eza.imag,linewidth=2)
+            plt.grid(which='both')
+            plt.title('Ez Imag')
+            plt.xlabel('r (m)')
 
-                plt.tight_layout()
+            plt.tight_layout()
 
-        self.assertTrue(np.linalg.norm(exa-ex)/np.linalg.norm(exa) < tol_Edipole)
-        self.assertTrue(np.linalg.norm(eza-ez)/np.linalg.norm(eza) < tol_Edipole)
+            # Bdipole
+            plt.subplot(221)
+            plt.plot(r,bx.real,'o',r,bxa.real,linewidth=2)
+            plt.grid(which='both')
+            plt.title('Bx Real')
+            plt.xlabel('r (m)')
+
+            plt.subplot(222)
+            plt.plot(r,bx.imag,'o',r,bxa.imag,linewidth=2)
+            plt.grid(which='both')
+            plt.title('Bx Imag')
+            plt.legend(['Num','Ana'],bbox_to_anchor=(1.5,0.5))
+            plt.xlabel('r (m)')
+
+            plt.subplot(223)
+            plt.plot(r,bz.real,'o',r,bza.real,linewidth=2)
+            plt.grid(which='both')
+            plt.title('Bz Real')
+            plt.xlabel('r (m)')
+
+            plt.subplot(224)
+            plt.plot(r,bz.imag,'o',r,bza.imag,linewidth=2)
+            plt.grid(which='both')
+            plt.title('Bz Imag')
+            plt.xlabel('r (m)')
+
+            plt.tight_layout()
+
+        self.assertTrue(np.linalg.norm(exa-ex)/np.linalg.norm(exa) < tol_EBdipole)
+        self.assertTrue(np.linalg.norm(eza-ez)/np.linalg.norm(eza) < tol_EBdipole)
+
+        self.assertTrue(np.linalg.norm(bxa-bx)/np.linalg.norm(bxa) < tol_EBdipole)
+        self.assertTrue(np.linalg.norm(bza-bz)/np.linalg.norm(bza) < tol_EBdipole)
 
 
 
