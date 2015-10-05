@@ -145,7 +145,7 @@ class FieldsFDEM_b(FieldsFDEM):
         for i,src in enumerate(srcList): 
             _,S_e = src.eval(self.prob)
             if S_e is not None:
-                e[:,i] += -self._MeSigmaI * (self._Me * S_e)
+                e[:,i] += -self._MeSigmaI * S_e
         return e
 
     def _eSecondaryDeriv_u(self, src, v, adjoint=False):
@@ -175,7 +175,7 @@ class FieldsFDEM_b(FieldsFDEM):
         Se_Deriv = S_eDeriv(v)
 
         if Se_Deriv is not None:
-            de_dm += -self._MeSigmaI * (self._Me * Se_Deriv)
+            de_dm += -self._MeSigmaI * Se_Deriv
 
         return de_dm
 
@@ -247,7 +247,7 @@ class FieldsFDEM_j(FieldsFDEM):
             h[:,i] *= -1./(1j*omega(src.freq))
             S_m,_ = src.eval(self.prob)
             if S_m is not None:
-                h[:,i] += 1./(1j*omega(src.freq)) * self._MeMuI * (self._Me * S_m)
+                h[:,i] += 1./(1j*omega(src.freq)) * self._MeMuI * (S_m)
         return h
 
     def _hSecondaryDeriv_u(self, src, v, adjoint=False):

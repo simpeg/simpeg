@@ -87,6 +87,7 @@ class FDEM_analyticTests(unittest.TestCase):
     def test_CylMeshEBDipoles(self):
         print 'Testing CylMesh Electric and Magnetic Dipoles in a wholespace- Analytic: J-formulation'
         sigmaback = 1.
+        mur = 2. 
         freq = 1.
         skdpth = 500./np.sqrt(sigmaback*freq)
 
@@ -104,6 +105,7 @@ class FDEM_analyticTests(unittest.TestCase):
         self.assertTrue(mesh.hx.sum() > skdpth*2.)
 
         SigmaBack = sigmaback*np.ones((mesh.nC))
+        MuBack = mur*mu_0*np.ones((mesh.nC))
 
         # set up source
         # test electric dipole
@@ -121,7 +123,7 @@ class FDEM_analyticTests(unittest.TestCase):
         surveye = EM.FDEM.SurveyFDEM(de_p)
         surveym = EM.FDEM.SurveyFDEM(dm_p)
 
-        mapping = [('sigma', Maps.IdentityMap(mesh))]
+        mapping = [('sigma', Maps.IdentityMap(mesh)),('mu', Maps.IdentityMap(mesh))]
 
         prbe = EM.FDEM.ProblemFDEM_h(mesh, mapping=mapping)
         prbm = EM.FDEM.ProblemFDEM_e(mesh, mapping=mapping)
@@ -130,8 +132,8 @@ class FDEM_analyticTests(unittest.TestCase):
         prbm.pair(surveym)
 
         # solve
-        fieldsBackE = prbe.fields(np.r_[SigmaBack]) # Done
-        fieldsBackM = prbm.fields(np.r_[SigmaBack]) # Done
+        fieldsBackE = prbe.fields(np.r_[SigmaBack, MuBack]) # Done
+        fieldsBackM = prbm.fields(np.r_[SigmaBack, MuBack]) # Done
 
 
         rlim = [20.,500.]
@@ -159,10 +161,10 @@ class FDEM_analyticTests(unittest.TestCase):
         bx,bz = Pfx*bn, Pfz*bn
 
         # get analytic solution
-        exa, eya, eza = EM.Analytics.FDEM.ElectricDipoleWholeSpace(XYZ, src_loc, sigmaback, freq,orientation='Z')
+        exa, eya, eza = EM.Analytics.FDEM.ElectricDipoleWholeSpace(XYZ, src_loc, sigmaback, freq,orientation='Z',mu= mur*mu_0)
         exa, eya, eza = Utils.mkvc(exa,2), Utils.mkvc(eya,2), Utils.mkvc(eza,2)
 
-        bxa, bya, bza = EM.Analytics.FDEM.MagneticDipoleWholeSpace(XYZ, src_loc, sigmaback, freq,orientation='Z')
+        bxa, bya, bza = EM.Analytics.FDEM.MagneticDipoleWholeSpace(XYZ, src_loc, sigmaback, freq,orientation='Z',mu= mur*mu_0)
         bxa, bya, bza = Utils.mkvc(bxa,2), Utils.mkvc(bya,2), Utils.mkvc(bza,2)
 
         print ' comp,       anayltic,       numeric,       num - ana,       (num - ana)/ana'
