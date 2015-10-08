@@ -246,8 +246,6 @@ class ProblemFDEM_e(BaseFDEMProblem):
         """
 
         S_m, S_e = self.getSourceTerm(freq)
-        # if self.survey.
-        # Me = self.Me
         C = self.mesh.edgeCurl
         MfMui = self.MfMui
 
@@ -259,7 +257,6 @@ class ProblemFDEM_e(BaseFDEMProblem):
     def getRHSDeriv_m(self, src, v, adjoint=False):
         C = self.mesh.edgeCurl
         MfMui = self.MfMui
-        # Me = self.Me
         S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint)
 
         if adjoint:
@@ -514,8 +511,6 @@ class ProblemFDEM_j(BaseFDEMProblem):
         S_m, S_e = self.getSourceTerm(freq)
         C = self.mesh.edgeCurl
         MeMuI = self.MeMuI  
-        # Me = self.Me 
-
 
         RHS = C * (MeMuI * S_m) - 1j * omega(freq) * S_e
         if self._makeASymmetric is True:
@@ -527,7 +522,6 @@ class ProblemFDEM_j(BaseFDEMProblem):
     def getRHSDeriv_m(self, src, v, adjoint=False):
         C = self.mesh.edgeCurl
         MeMuI = self.MeMuI  
-        # Me = self.Me
         S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint)
 
         if adjoint:
@@ -628,7 +622,6 @@ class ProblemFDEM_h(BaseFDEMProblem):
         S_m, S_e = self.getSourceTerm(freq)
         C = self.mesh.edgeCurl
         MfRho  = self.MfRho
-        # Me = self.Me
 
         RHS = S_m + C.T * ( MfRho * S_e )
 
@@ -638,7 +631,6 @@ class ProblemFDEM_h(BaseFDEMProblem):
         _, S_e = src.eval(self)
         C = self.mesh.edgeCurl
         MfRho  = self.MfRho
-        Me = self.Me
 
         RHSDeriv = None
 
@@ -653,9 +645,6 @@ class ProblemFDEM_h(BaseFDEMProblem):
 
         S_mDeriv = S_mDeriv(v)
         S_eDeriv = S_eDeriv(v)
-
-        if adjoint:
-            Me = Me.T
 
         if S_mDeriv is not None:
             if RHSDeriv is not None: 
