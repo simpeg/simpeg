@@ -94,6 +94,7 @@ class RxFDEM(Survey.BaseRx):
 class SrcFDEM(Survey.BaseSrc):
     freq = None
     rxPair = RxFDEM
+    integrate = True
 
     def eval(self, prob):
         S_m = self.S_m(prob)
@@ -155,9 +156,10 @@ class SrcFDEM_RawVec_m(SrcFDEM):
         :param rxList: receiver list
     """
 
-    def __init__(self, rxList, freq, S_m):
+    def __init__(self, rxList, freq, S_m, integrate = True):
         self._S_m = np.array(S_m,dtype=complex)
         self.freq = float(freq)
+        self.integrate = integrate
         SrcFDEM.__init__(self, rxList)
 
     def S_m(self, prob):
@@ -173,16 +175,21 @@ class SrcFDEM_RawVec(SrcFDEM):
         :param float freq: frequency
         :param rxList: receiver list
     """
-    def __init__(self, rxList, freq, S_m, S_e):
+    def __init__(self, rxList, freq, S_m, S_e, integrate = True):
         self._S_m = np.array(S_m,dtype=complex)
         self._S_e = np.array(S_e,dtype=complex)
         self.freq = float(freq)
+        self.integrate = integrate
         SrcFDEM.__init__(self, rxList)
 
     def S_m(self, prob):
+        if prob._eqLocs is 'EF' and self.integrate is True:
+            return prob.Me * self._S_m
         return self._S_m
 
     def S_e(self, prob):
+        if prob._eqLocs is 'FE' and self.integrate is True:
+            return prob.Me * self._S_e
         return self._S_e
 
  
@@ -194,7 +201,8 @@ class SrcFDEM_MagDipole(SrcFDEM):
         self.loc = loc
         self.orientation = orientation
         self.moment = moment
-        self.mu = mu 
+        self.mu = mu
+        self.integrate = False
         SrcFDEM.__init__(self, rxList)
 
     def bPrimary(self, prob):
@@ -332,6 +340,7 @@ class SrcFDEM_CircularLoop(SrcFDEM):
         self.radius = radius
         self.mu = mu
         self.loc = loc
+        self.integrate = False
         SrcFDEM.__init__(self, rxList)
 
     def bPrimary(self, prob):

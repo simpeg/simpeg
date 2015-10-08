@@ -102,7 +102,7 @@ class SrcTDEM_CircularLoop_MVP(SrcTDEM):
 
     def __init__(self,rxList,loc,radius):
         self.loc = loc
-        self.radius =radius
+        self.radius = radius
         SrcTDEM.__init__(self,rxList)
 
     def getInitialFields(self, mesh):
