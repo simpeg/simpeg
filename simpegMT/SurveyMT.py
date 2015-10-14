@@ -26,8 +26,7 @@ class RxMT(Survey.BaseRx):
                     # TODO:
                     # 1D impedance
                     'z1dr':['Z1D', 'real'],
-                    'z1di':['Z1D', 'imag']
-                    #TODO: Add tipper fractions as well. Bz/B(x|y)
+                    'z1di':['Z1D', 'imag'],
                     # Tipper
                     'tzxr':['T3D','real'],
                     'tzxi':['T3D','imag'],
@@ -93,11 +92,17 @@ class RxMT(Survey.BaseRx):
             f_part_complex = -ex/bx
         # elif self.projType is 'Z2D':
         elif self.projType is 'Z3D':
+            if self.locs.ndim == 3:
+                eFLocs = self.locs[:,:,0]
+                bFLocs = self.locs[:,:,1]
+            else:
+                eFLocs = self.locs
+                bFLocs = self.locs
             # Get the projection
-            Pex = mesh.getInterpolationMat(self.locs,'Ex')
-            Pey = mesh.getInterpolationMat(self.locs,'Ey')
-            Pbx = mesh.getInterpolationMat(self.locs,'Fx')
-            Pby = mesh.getInterpolationMat(self.locs,'Fy')
+            Pex = mesh.getInterpolationMat(eFLocs,'Ex')
+            Pey = mesh.getInterpolationMat(eFLocs,'Ey')
+            Pbx = mesh.getInterpolationMat(bFLocs,'Fx')
+            Pby = mesh.getInterpolationMat(bFLocs,'Fy')
             # Get the fields at location
             # px: x-polaration and py: y-polaration.
             ex_px = Pex*f[src,'e_px']
@@ -110,17 +115,23 @@ class RxMT(Survey.BaseRx):
             hy_py = Pby*f[src,'b_py']/mu_0
             # Make the complex data
             if 'zxx' in self.rxType:
-                f_part_complex = (ex_px*hy_py - ex_py*hy_px)/(hx_px*hy_py - hx_py*hy_px)
+                f_part_complex = ( ex_px*hy_py - ex_py*hy_px)/(hx_px*hy_py - hx_py*hy_px)
             elif 'zxy' in self.rxType:
-                f_part_complex  = (-ex_px*hx_py + ex_py*hx_px)/(hx_px*hy_py - hx_py*hy_px)
+                f_part_complex = (-ex_px*hx_py + ex_py*hx_px)/(hx_px*hy_py - hx_py*hy_px)
             elif 'zyx' in self.rxType:
-                f_part_complex  = (ey_px*hy_py - ey_py*hy_px)/(hx_px*hy_py - hx_py*hy_px)
+                f_part_complex = ( ey_px*hy_py - ey_py*hy_px)/(hx_px*hy_py - hx_py*hy_px)
             elif 'zyy' in self.rxType:
-                f_part_complex  = (-ey_px*hx_py + ey_py*hx_px)/(hx_px*hy_py - hx_py*hy_px)
+                f_part_complex = (-ey_px*hx_py + ey_py*hx_px)/(hx_px*hy_py - hx_py*hy_px)
         elif self.projType is 'T3D':
-            Pbx = mesh.getInterpolationMat(self.locs,'Fx')
-            Pby = mesh.getInterpolationMat(self.locs,'Fy')
-            Pbz = mesh.getInterpolationMat(self.locs,'Fz')
+            if self.locs.ndim == 3:
+                horLoc = self.locs[:,:,0]
+                vertLoc = self.locs[:,:,1]
+            else:
+                horLoc = self.locs
+                vertLoc = self.locs
+            Pbx = mesh.getInterpolationMat(horLoc,'Fx')
+            Pby = mesh.getInterpolationMat(horLoc,'Fy')
+            Pbz = mesh.getInterpolationMat(vertLoc,'Fz')
             bx_px = Pbx*f[src,'b_px']
             by_px = Pby*f[src,'b_px']
             bz_px = Pbz*f[src,'b_px']
@@ -130,7 +141,7 @@ class RxMT(Survey.BaseRx):
             if 'tzx' in self.rxType:
                 f_part_complex = (- by_px*bz_py + by_py*bz_px)/(bx_px*by_py - bx_py*by_px)
             if 'tzy' in self.rxType:
-                f_part_complex = (  bx_px*bz_py + bx_py*bz_px)/(bx_px*by_py - bx_py*by_px)
+                f_part_complex = (  bx_px*bz_py - bx_py*bz_px)/(bx_px*by_py - bx_py*by_px)
 
         else:
             NotImplementedError('Projection of {:s} receiver type is not implemented.'.format(self.rxType))
@@ -238,7 +249,13 @@ class srcMT_polxy_1Dprimary(srcMT):
 
     def ePrimary(self,problem):
         # Get primary fields for both polarizations
-        self.sigma1d = problem._sigmaPrimary
+        if self.sigma1d is None:
+            # Set the sigma1d as the 1st column in the background model
+            if len(problem._sigmaPrimary) == problem.mesh.nC:
+                self.sigma1d = problem.mesh.r(problem._sigmaPrimary,'CC','CC','M')[0,0,:]
+            elif len(problem._sigmaPrimary) == problem.mesh.nCz:
+                self.sigma1d = problem._sigmaPrimary
+
         if self._ePrimary is None:
             self._ePrimary = homo1DModelSource(problem.mesh,self.freq,self.sigma1d)
         return self._ePrimary

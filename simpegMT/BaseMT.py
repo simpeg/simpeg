@@ -43,7 +43,6 @@ class BaseMTProblem(BaseFDEMProblem):
         # Re-hook the methods to the object
         Utils.codeutils.hook(self,Utils.codeutils.hook)
         Utils.codeutils.hook(self,Utils.codeutils.setKwargs)
-        self.
 
     # Set the solver
     Solver = SimpegSolver

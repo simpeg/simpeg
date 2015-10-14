@@ -42,7 +42,7 @@ def setupSurvey(sigmaHalf,tD=True):
             srcList.append(simpegmt.SurveyMT.srcMT_polxy_1DhomotD(rxList,freq))
     else:
         for freq in freqs:
-            srcList.append(simpegmt.SurveyMT.srcMT_polxy_1Dprimary(rxList,freq,sigmaBack))
+            srcList.append(simpegmt.SurveyMT.srcMT_polxy_1Dprimary(rxList,freq))
 
     survey = simpegmt.SurveyMT.SurveyMT(srcList)
     return survey, sigma, m1d
@@ -108,19 +108,16 @@ def dataMis_AnalyticPrimarySecondary(sigmaHalf):
 
     # Make the survey
     # Primary secondary
-    surveyPS, sigmaPS, mesh = setupSurvey(sigmaHalf,False)
-    problemPS = simpegmt.ProblemMT1D.eForm_psField(mesh,sigmaPS)
+    surveyPS, sigmaPS, mesh = setupSurvey(sigmaHalf,tD=False)
+    problemPS = simpegmt.ProblemMT1D.eForm_psField(mesh)
+    problemPS.sigmaPrimary = sigmaPS
     problemPS.pair(surveyPS)
     # Analytic data
-    dataAna = calculateAnalyticSolution(surveyPS.srcList,mesh,sigma)
+    dataAnaObj = calculateAnalyticSolution(surveyPS.srcList,mesh,sigmaPS)
 
-    surveyPS.dtrue = dataAna
-    # Project the data
-    data = surveyPS.dpred(sigmaPS)
-
-    # Setup the data misfit
-    dmis = simpeg.DataMisfit.l2_DataMisfit(survey)
-    return dmis.eval(sigma)
+    dataPS = surveyPS.dpred(sigmaPS)
+    dataAna = simpeg.mkvc(dataAnaObj)
+    return np.all((dataPS - dataAna)/dataAna < 2.)
 
 
 
@@ -129,27 +126,10 @@ class TestNumericVsAnalytics(unittest.TestCase):
     def setUp(self):
         pass
     # Total Fields
-    # def test_appRes2en1(self):self.assertLess(appRes_TotalFieldNorm(2e-1), TOLr)
-    # def test_appPhs2en1(self):self.assertLess(appPhs_TotalFieldNorm(2e-1), TOLp)
-
     def test_appRes2en2(self):self.assertTrue(dataMis_AnalyticTotalDomain(2e-2))
-    # def test_appPhs2en2(self):self.assert(appPhs_TotalFieldNorm(2e-2), TOLp)
-
-    # def test_appRes2en3(self):self.assertLess(appRes_TotalFieldNorm(2e-3), TOLr)
-    # def test_appPhs2en3(self):self.assertLess(appPhs_TotalFieldNorm(2e-3), TOLp)
-
-    # def test_appRes2en4(self):self.assertLess(appRes_TotalFieldNorm(2e-4), TOLr)
-    # def test_appPhs2en4(self):self.assertLess(appPhs_TotalFieldNorm(2e-4), TOLp)
-
-    # def test_appRes2en5(self):self.assertLess(appRes_TotalFieldNorm(2e-5), TOLr)
-    # def test_appPhs2en5(self):self.assertLess(appPhs_TotalFieldNorm(2e-5), TOLp)
-
-    # def test_appRes2en6(self):self.assertLess(appRes_TotalFieldNorm(2e-6), TOLr)
-    # def test_appPhs2en6(self):self.assertLess(appPhs_TotalFieldNorm(2e-6), TOLp)
 
     # Primary/secondary
-    # def test_appRes2en2_ps(self):self.assertLess(appRes_psFieldNorm(2e-2), TOLr)
-    # def test_appPhs2en2_ps(self):self.assertLess(appPhs_psFieldNorm(2e-2), TOLp)
+    def test_appRes2en2_ps(self):self.assertTrue(dataMis_AnalyticPrimarySecondary(2e-2))
 
 if __name__ == '__main__':
     unittest.main()

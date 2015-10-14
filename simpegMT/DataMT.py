@@ -35,8 +35,9 @@ class DataMT(Survey.Data):
         '''
 
         # Define the record fields
-        dtRI = [('freq',float),('x',float),('y',float),('z',float),('zxxr',float),('zxxi',float),('zxyr',float),('zxyi',float),('zyxr',float),('zyxi',float),('zyyr',float),('zyyi',float)]
-        dtCP = [('freq',float),('x',float),('y',float),('z',float),('zxx',complex),('zxy',complex),('zyx',complex),('zyy',complex)]
+        dtRI = [('freq',float),('x',float),('y',float),('z',float),('zxxr',float),('zxxi',float),('zxyr',float),('zxyi',float),
+        ('zyxr',float),('zyxi',float),('zyyr',float),('zyyi',float),('tzxr',float),('tzxi',float),('tzyr',float),('tzyi',float)]
+        dtCP = [('freq',float),('x',float),('y',float),('z',float),('zxx',complex),('zxy',complex),('zyx',complex),('zyy',complex),('tzx',complex),('tzy',complex)]
         impList = ['zxxr','zxxi','zxyr','zxyi','zyxr','zyxi','zyyr','zyyi']
         for src in self.survey.srcList:
             # Temp array for all the receivers of the source.
@@ -47,7 +48,7 @@ class DataMT(Survey.Data):
                 locs = np.hstack((np.array([[0.0,0.0]]),locs))
             elif locs.shape[1] == 2:
                 locs = np.hstack((np.array([[0.0]]),locs))
-            tArrRec = np.concatenate((src.freq*np.ones((locs.shape[0],1)),locs,np.nan*np.ones((locs.shape[0],8))),axis=1).view(dtRI)
+            tArrRec = np.concatenate((src.freq*np.ones((locs.shape[0],1)),locs,np.nan*np.ones((locs.shape[0],12))),axis=1).view(dtRI)
             # np.array([(src.freq,rx.locs[0,0],rx.locs[0,1],rx.locs[0,2],np.nan ,np.nan ,np.nan ,np.nan ,np.nan ,np.nan ,np.nan ,np.nan ) for rx in src.rxList],dtype=dtRI)
             # Get the type and the value for the DataMT object as a list
             typeList = [[rx.rxType.replace('z1d','zyx'),self[src,rx]] for rx in src.rxList]
@@ -72,7 +73,7 @@ class DataMT(Survey.Data):
                 outArr = np.empty(outTemp.shape,dtype=dtCP)
                 for comp in ['freq','x','y','z']:
                     outArr[comp] = outTemp[comp].copy()
-                for comp in ['zxx','zxy','zyx','zyy']:
+                for comp in ['zxx','zxy','zyx','zyy','tzx','tzy']:
                     outArr[comp] = outTemp[comp+'r'].copy() + 1j*outTemp[comp+'i'].copy()
             else:
                 raise NotImplementedError('{:s} is not implemented, as to be RealImag or Complex.')
