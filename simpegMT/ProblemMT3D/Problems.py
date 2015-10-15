@@ -104,16 +104,13 @@ class eForm_ps(BaseMTProblem):
 
             # Store the fields
             Src = self.survey.getSrcByFreq(freq)[0]
-            # Calculate total e
-
-            e = Src.ePrimary(self) + e_s
             # Store the fieldss
-            F[Src, 'e_px'] = e[:,0]
-            F[Src, 'e_py'] = e[:,1]
+            F[Src, 'e_pxSolution'] = e_s[:,0]
+            F[Src, 'e_pySolution'] = e_s[:,1]
             # Note curl e = -iwb so b = -curl/iw
-            b = -( self.mesh.edgeCurl * e )/( 1j*omega(freq) )
-            F[Src, 'b_px'] = b[:,0]
-            F[Src, 'b_py'] = b[:,1]
+            # b = -( self.mesh.edgeCurl * e )/( 1j*omega(freq) )
+            # F[Src, 'b_px'] = b[:,0]
+            # F[Src, 'b_py'] = b[:,1]
             if self.verbose:
                 print 'Ran for {:f} seconds'.format(time.time()-startTime)
                 sys.stdout.flush()
