@@ -127,14 +127,20 @@ class FieldsMT_3D(FieldsMT):
     # Define the known the alias fields
     # Assume that the solution of e on the E.
     ## NOTE: Need to make this more general, to allow for other solutions formats.
-    knownFields = {'e_pxSolution':'E','e_pySoluiton':'E'}
+    knownFields = {'e_pxSolution':'E','e_pySolution':'E'}
     aliasFields = {
                     'e_px' : ['e_pxSolution','E','_e_px'],
                     'e_pxPrimary' : ['e_pxSolution','E','_e_pxPrimary'],
                     'e_pxSecondary' : ['e_pxSolution','E','_e_pxSecondary'],
+                    'e_py' : ['e_pySolution','E','_e_py'],
+                    'e_pyPrimary' : ['e_pySolution','E','_e_pyPrimary'],
+                    'e_pySecondary' : ['e_pySolution','E','_e_pySecondary'],
                     'b_px' : ['e_pxSolution','F','_b_px'],
                     'b_pxPrimary' : ['e_pxSolution','F','_b_pxPrimary'],
-                    'b_pxSecondary' : ['e_pxSolution','F','_b_pxSecondary']
+                    'b_pxSecondary' : ['e_pxSolution','F','_b_pxSecondary'],
+                    'b_py' : ['e_pySolution','F','_b_py'],
+                    'b_pyPrimary' : ['e_pySolution','F','_b_pyPrimary'],
+                    'b_pySecondary' : ['e_pySolution','F','_b_pySecondary']
                   }
 
     def __init__(self,mesh,survey,**kwargs):
@@ -182,19 +188,19 @@ class FieldsMT_3D(FieldsMT):
         return None
 
     def _b_pxPrimary(self, e_pxSolution, srcList):
-        b_pxPrimary = np.zeros([self.survey.mesh.nE,e_pxSolution.shape[1]], dtype = complex)
+        b_pxPrimary = np.zeros([self.survey.mesh.nF,e_pxSolution.shape[1]], dtype = complex)
         for i, src in enumerate(srcList):
             bp = src.bPrimary(self.survey.prob)
             if bp is not None:
-                b_pxPrimary[:,i] += bp[:,-1]
+                b_pxPrimary[:,i] += bp[:,0]
         return b_pxPrimary
 
     def _b_pyPrimary(self, e_pySolution, srcList):
-        b_pyPrimary = np.zeros([self.survey.mesh.nE,e_pySolution.shape[1]], dtype = complex)
+        b_pyPrimary = np.zeros([self.survey.mesh.nF,e_pySolution.shape[1]], dtype = complex)
         for i, src in enumerate(srcList):
             bp = src.bPrimary(self.survey.prob)
             if bp is not None:
-                b_pyPrimary[:,i] += bp[:,-1]
+                b_pyPrimary[:,i] += bp[:,1]
         return b_pyPrimary
 
     def _b_pxSecondary(self, e_pxSolution, srcList):
@@ -220,7 +226,7 @@ class FieldsMT_3D(FieldsMT):
         return b
 
     def _b_px(self, eSolution, srcList):
-        return self._bPrimary(eSolution, srcList) + self._bSecondary(eSolution, srcList)
+        return self._b_pxPrimary(eSolution, srcList) + self._b_pxSecondary(eSolution, srcList)
 
     def _b_pxSecondaryDeriv_u(self, src, v, adjoint = False):
         C = self.mesh.edgeCurl
@@ -237,7 +243,13 @@ class FieldsMT_3D(FieldsMT):
             return - 1./(1j*omega(src.freq)) * (C.T * v)
         return - 1./(1j*omega(src.freq)) * (C * v)
 
-    def _b_pySecondaryDeriv_m(self, src, v, adjoint = False):
+    def _b_pySecondaryDeriv_u(self, src, v, adjoint = False):
+        C = self.mesh.edgeCurl
+        if adjoint:
+            return - 1./(1j*omega(src.freq)) * (C.T * v)
+        return - 1./(1j*omega(src.freq)) * (C * v)
+
+    def _b_pxSecondaryDeriv_m(self, src, v, adjoint = False):
         # Doesn't depend on m
         # _, S_eDeriv = src.evalDeriv(self.survey.prob, adjoint)
         # S_eDeriv = S_eDeriv(v)
@@ -245,7 +257,7 @@ class FieldsMT_3D(FieldsMT):
         #     return 1./(1j * omega(src.freq)) * S_eDeriv
         return None
 
-    def _b_pxSecondaryDeriv_m(self, src, v, adjoint = False):
+    def _b_pySecondaryDeriv_m(self, src, v, adjoint = False):
         # Doesn't depend on m
         # _, S_eDeriv = src.evalDeriv(self.survey.prob, adjoint)
         # S_eDeriv = S_eDeriv(v)

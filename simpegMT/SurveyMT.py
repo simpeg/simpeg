@@ -208,20 +208,20 @@ class RxMT(Survey.BaseRx):
 
                 # Define the components of the derivative
                 Hd = (hx_px*hy_py - hx_py*hy_px)
-                Hd_uV = hx_px_u(hy_py)*v - hx_py*hy_px_u(v) + hx_px*hy_py_u(v) - hx_py_u(hy_px)
+                Hd_uV = hx_px_u(hy_py*v) - hx_py*hy_px_u(v) + hx_px*hy_py_u(v) - hx_py_u(hy_px*v)
 
                 if 'zxx' in self.rxType:
                     Zij = ( ex_px*hy_py - ex_py*hy_px)/Hd
-                    ZijN_uV = ex_px_u(hy_py)*v - ex_py*hy_px_u(v) + ex_px*hy_py_u(v) - ex_py_u(hy_px)*v
+                    ZijN_uV = ex_px_u(hy_py*v) - ex_py*hy_px_u(v) + ex_px*hy_py_u(v) - ex_py_u(hy_px*v)
                 elif 'zxy' in self.rxType:
                     Zij = (-ex_px*hx_py + ex_py*hx_px)/Hd
-                    ZijN_uV = -ex_px_u(hx_py)*v + ex_py*hx_px_u(v) - ex_px*hx_py_u(v) + ex_py_u(hx_px)*v
+                    ZijN_uV = -ex_px_u(hx_py*v) + ex_py*hx_px_u(v) - ex_px*hx_py_u(v) + ex_py_u(hx_px*v)
                 elif 'zyx' in self.rxType:
                     Zij = ( ey_px*hy_py - ey_py*hy_px)/Hd
-                    ZijN_uV = ey_px_u(hy_py)*v - ey_py*hy_px_u(v) + ey_px*hy_py_u(v) - ey_py_u(hy_px)*v
+                    ZijN_uV = ey_px_u(hy_py*v) - ey_py*hy_px_u(v) + ey_px*hy_py_u(v) - ey_py_u(hy_px*v)
                 elif 'zyy' in self.rxType:
                     Zij = (-ey_px*hx_py + ey_py*hx_px)/Hd
-                    ZijN_uV = -ey_px_u(hx_py)*v + ey_py*hx_px_u(v) - ey_px*hx_py_u(v) +ey_py_u(hx_px)*v
+                    ZijN_uV = -ey_px_u(hx_py*v) + ey_py*hx_px_u(v) - ey_px*hx_py_u(v) +ey_py_u(hx_px*v)
 
                 # Calculate the complex derivative
                 PDeriv_complex = ZijN_uV/Hd + Zij * (Hd_uV/Hd)
@@ -255,43 +255,43 @@ class RxMT(Survey.BaseRx):
                 Pby = mesh.getInterpolationMat(bFLocs,'Fy')
                 # Get the fields at location
                 # px: x-polaration and py: y-polaration.
-                ex_px = Pex*f[src,'e_px']
-                ey_px = Pey*f[src,'e_px']
-                ex_py = Pex*f[src,'e_py']
-                ey_py = Pey*f[src,'e_py']
-                hx_px = Pbx*f[src,'b_px']/mu_0
-                hy_px = Pby*f[src,'b_px']/mu_0
-                hx_py = Pbx*f[src,'b_py']/mu_0
-                hy_py = Pby*f[src,'b_py']/mu_0
+                aex_px = f[src,'e_px'].T*Pex.T
+                aey_px = f[src,'e_px'].T*Pey.T
+                aex_py = f[src,'e_py'].T*Pex.T
+                aey_py = f[src,'e_py'].T*Pey.T
+                ahx_px = f[src,'b_px'].T/mu_0*Pbx.T
+                ahy_px = f[src,'b_px'].T/mu_0*Pby.T
+                ahx_py = f[src,'b_py'].T/mu_0*Pbx.T
+                ahy_py = f[src,'b_py'].T/mu_0*Pby.T
                 # Derivatives as lambda functions
-                ex_px_u = lambda vec: Pex*f._e_pxDeriv_u(src,vec)
-                ey_px_u = lambda vec: Pey*f._e_pxDeriv_u(src,vec)
-                ex_py_u = lambda vec: Pex*f._e_pyDeriv_u(src,vec)
-                ey_py_u = lambda vec: Pey*f._e_pyDeriv_u(src,vec)
-                hx_px_u = lambda vec: Pbx*f._b_pxDeriv_u(src,vec)/mu_0
-                hy_px_u = lambda vec: Pby*f._b_pxDeriv_u(src,vec)/mu_0
-                hx_py_u = lambda vec: Pbx*f._b_pyDeriv_u(src,vec)/mu_0
-                hy_py_u = lambda vec: Pby*f._b_pyDeriv_u(src,vec)/mu_0
+                aex_px_u = lambda vec: f._e_pxDeriv_u(src,Pex*vec,adjoint=True)
+                aey_px_u = lambda vec: f._e_pxDeriv_u(src,Pey*vec,adjoint=True)
+                aex_py_u = lambda vec: f._e_pyDeriv_u(src,Pex*vec,adjoint=True)
+                aey_py_u = lambda vec: f._e_pyDeriv_u(src,Pey*vec,adjoint=True)
+                ahx_px_u = lambda vec: f._b_pxDeriv_u(src,Pbx*vec,adjoint=True)/mu_0
+                ahy_px_u = lambda vec: f._b_pxDeriv_u(src,Pby*vec,adjoint=True)/mu_0
+                ahx_py_u = lambda vec: f._b_pyDeriv_u(src,Pbx*vec,adjoint=True)/mu_0
+                ahy_py_u = lambda vec: f._b_pyDeriv_u(src,Pby*vec,adjoint=True)/mu_0
 
                 # Define the components of the derivative
-                Hd = (hx_px*hy_py - hx_py*hy_px)
-                Hd_uV = hx_px_u(hy_py)*v - hx_py*hy_px_u(v) + hx_px*hy_py_u(v) - hx_py_u(hy_px)
+                aHd = (ahy_py*ahx_px - ahy_px*ahx_py)
+                aHd_uV = ahx_px_u(ahy_py*v) - ahx_py*ahy_px_u(v) + ahx_py_u(ahy_py*v) - ahx_py_u(ahy_px*v)
                 # Need to fix this to reflect the adjoint
                 if 'zxx' in self.rxType:
-                    Zij = ( ex_px*hy_py - ex_py*hy_px)/Hd
-                    ZijN_uV = ex_px_u(hy_py)*v - ex_py*hy_px_u(v) + ex_px*hy_py_u(v) - ex_py_u(hy_px)*v
+                    Zij = ( ahy_py*aex_px - ahy_px*aex_py)/aHd
+                    ZijN_uV =  ahy_py*aex_px_u(v) - ahy_px_u(aex_py*v) + ahy_py_u(aex_px*v) - ahy_px*aex_py_u(v)
                 elif 'zxy' in self.rxType:
-                    Zij = (-ex_px*hx_py + ex_py*hx_px)/Hd
-                    ZijN_uV = -ex_px_u(hx_py)*v + ex_py*hx_px_u(v) - ex_px*hx_py_u(v) + ex_py_u(hx_px)*v
+                    Zij = (-ahx_py*aex_px + ahx_px*aex_py)/aHd
+                    ZijN_uV = -ahx_py*aex_px_u(v) + ahx_px_u(aex_py*v) - ahx_py_u(aex_px*v) + ahx_px*aex_py_u(v)
                 elif 'zyx' in self.rxType:
-                    Zij = ( ey_px*hy_py - ey_py*hy_px)/Hd
-                    ZijN_uV = ey_px_u(hy_py)*v - ey_py*hy_px_u(v) + ey_px*hy_py_u(v) - ey_py_u(hy_px)*v
+                    Zij = ( ahy_py*aey_px - ahy_px*aey_py)/aHd
+                    ZijN_uV =  ahy_py*aey_px_u(v) - ahy_px_u(aey_py*v) + ahy_py_u(aey_px*v) - ahy_px*aey_py_u(v)
                 elif 'zyy' in self.rxType:
-                    Zij = (-ey_px*hx_py + ey_py*hx_px)/Hd
-                    ZijN_uV = -ey_px_u(hx_py)*v + ey_py*hx_px_u(v) - ey_px*hx_py_u(v) +ey_py_u(hx_px)*v
+                    Zij = (-ahx_py*aey_px + ahx_px*aey_py)/aHd
+                    ZijN_uV = -ahx_py*aey_px_u(v) + ahx_px_u(aey_py*v) - ahx_py_u(aey_px*v) + ahx_px*aey_py_u(v)
 
                 # Calculate the complex derivative
-                PDeriv_real = ZijN_uV/Hd + (Hd_uV/Hd)*Zij^T
+                PDeriv_real = ZijN_uV/aHd + (aHd_uV/aHd)*Zij^T
             # Extract the data
             if real_or_imag == 'imag':
                 Pv = 1j*PDeriv_real
