@@ -173,13 +173,30 @@ class SrcFDEM_RawVec_m(SrcFDEM):
     """
 
     def __init__(self, rxList, freq, S_m, integrate = True):
-        self._S_m = np.array(S_m,dtype=complex)
+        self._S_m = np.array(S_m,dtype=complex, ePrimary=None, bPrimary=None, hPrimary=None, jPrimary=None)
         self.freq = float(freq)
         self.integrate = integrate
+        self._ePrimary = ePrimary
+        self._bPrimary = bPrimary
+        self._hPrimary = hPrimary
+        self._jPrimary = jPrimary
+
         SrcFDEM.__init__(self, rxList)
 
     def S_m(self, prob):
         return self._S_m
+
+    def ePrimary(self, prob):
+        return self._ePrimary
+
+    def bPrimary(self, prob):
+        return self._bPrimary
+
+    def hPrimary(self, prob):
+        return self._hPrimary
+
+    def jPrimary(self, prob):
+        return self._jPrimary
 
 
 class SrcFDEM_RawVec(SrcFDEM):
