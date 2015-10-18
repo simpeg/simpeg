@@ -138,13 +138,29 @@ class SrcFDEM_RawVec_e(SrcFDEM):
         :param rxList: receiver list
     """
 
-    def __init__(self, rxList, freq, S_e):
+    def __init__(self, rxList, freq, S_e, ePrimary=None, bPrimary=None, hPrimary=None, jPrimary=None):
         self._S_e = np.array(S_e,dtype=complex)
+        self._ePrimary = ePrimary
+        self._bPrimary = bPrimary
+        self._hPrimary = hPrimary
+        self._jPrimary = jPrimary
         self.freq = float(freq)
         SrcFDEM.__init__(self, rxList)
 
     def S_e(self, prob):
         return self._S_e
+
+    def ePrimary(self, prob):
+        return self._ePrimary
+
+    def bPrimary(self, prob):
+        return self._bPrimary
+
+    def hPrimary(self, prob):
+        return self._hPrimary
+
+    def jPrimary(self, prob):
+        return self._jPrimary
 
 
 class SrcFDEM_RawVec_m(SrcFDEM):
