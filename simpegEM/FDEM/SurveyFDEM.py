@@ -172,8 +172,8 @@ class SrcFDEM_RawVec_m(SrcFDEM):
         :param rxList: receiver list
     """
 
-    def __init__(self, rxList, freq, S_m, integrate = True):
-        self._S_m = np.array(S_m,dtype=complex, ePrimary=None, bPrimary=None, hPrimary=None, jPrimary=None)
+    def __init__(self, rxList, freq, S_m, integrate = True, ePrimary=None, bPrimary=None, hPrimary=None, jPrimary=None):
+        self._S_m = np.array(S_m,dtype=complex)
         self.freq = float(freq)
         self.integrate = integrate
         self._ePrimary = ePrimary
