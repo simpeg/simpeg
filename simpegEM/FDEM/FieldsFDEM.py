@@ -335,7 +335,7 @@ class FieldsFDEM_h(FieldsFDEM):
         return None
 
     def _jPrimary(self, hSolution, srcList):
-        jPrimary = np.zeros([self._edgeCurl.shape[0], hSolution.shape[1]])
+        jPrimary = np.zeros([self._edgeCurl.shape[0], hSolution.shape[1]], dtype = complex)
         for i, src in enumerate(srcList):
             jp = src.jPrimary(self.prob)
             if jp is not None:
