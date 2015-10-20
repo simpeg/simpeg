@@ -20,7 +20,7 @@ class eForm_ps(BaseMTProblem):
     """
 
     # From FDEMproblem: Used to project the fields. Currently not used for MTproblem.
-    _fieldType = 'e'
+    _fieldType = 'e_px'
     _eqLocs    = 'FE'
     fieldsPair = FieldsMT_3D
     _sigmaPrimary = None
@@ -53,7 +53,7 @@ class eForm_ps(BaseMTProblem):
     def getADeriv_m(self, freq, u, v, adjoint=False):
 
         dsig_dm = self.curModel.sigmaDeriv
-        dMe_dsig = self.MeSigmaDeriv( v=u)
+        dMe_dsig = self.MeSigmaDeriv( u=u)
 
         if adjoint:
             return 1j * omega(freq) * ( dsig_dm.T * ( dMe_dsig.T * v ) )
@@ -73,7 +73,7 @@ class eForm_ps(BaseMTProblem):
         S_e = Src.S_e(self)
         return -1j * omega(freq) * S_e
 
-    def getRHSderiv_m(self, freq, u, v, adjoint=False):
+    def getRHSDeriv_m(self, freq, v, adjoint=False):
         """
         The derivative of the RHS with respect to sigma
         """

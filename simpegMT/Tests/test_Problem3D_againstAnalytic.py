@@ -63,7 +63,7 @@ def twoLayer():
 
     return (M, freqs, sig, sigBG, rx_loc)
 
-def runSimpegMTfwd_eForm_ps(inputsProblem):
+def runSimpegMTfwd_eForm_ps(inputsProblem,singleFreq=False):
     M,freqs,sig,sigBG,rx_loc = inputsProblem
     # Make a receiver list
     rxList = []
@@ -72,8 +72,11 @@ def runSimpegMTfwd_eForm_ps(inputsProblem):
     # Source list
     srcList =[]
     sigma1d = M.r(sigBG,'CC','CC','M')[0,0,:]
-    for freq in freqs:
-        srcList.append(simpegmt.SurveyMT.srcMT_polxy_1Dprimary(rxList,freq))
+    if singleFreq:
+        srcList.append(simpegmt.SurveyMT.srcMT_polxy_1Dprimary(rxList,freqs[-1]))
+    else:
+        for freq in freqs:
+            srcList.append(simpegmt.SurveyMT.srcMT_polxy_1Dprimary(rxList,freq))
     # Survey MT
     survey = simpegmt.SurveyMT.SurveyMT(srcList)
 

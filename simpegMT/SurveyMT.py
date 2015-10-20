@@ -188,14 +188,14 @@ class RxMT(Survey.BaseRx):
                 Pby = mesh.getInterpolationMat(bFLocs,'Fy')
                 # Get the fields at location
                 # px: x-polaration and py: y-polaration.
-                ex_px = Pex*f[src,'e_px']
-                ey_px = Pey*f[src,'e_px']
-                ex_py = Pex*f[src,'e_py']
-                ey_py = Pey*f[src,'e_py']
-                hx_px = Pbx*f[src,'b_px']/mu_0
-                hy_px = Pby*f[src,'b_px']/mu_0
-                hx_py = Pbx*f[src,'b_py']/mu_0
-                hy_py = Pby*f[src,'b_py']/mu_0
+                ex_px = Pex*mkvc(f[src,'e_px'],2)
+                ey_px = Pey*mkvc(f[src,'e_px'],2)
+                ex_py = Pex*mkvc(f[src,'e_py'],2)
+                ey_py = Pey*mkvc(f[src,'e_py'],2)
+                hx_px = Pbx*mkvc(f[src,'b_px']/mu_0,2)
+                hy_px = Pby*mkvc(f[src,'b_px']/mu_0,2)
+                hx_py = Pbx*mkvc(f[src,'b_py']/mu_0,2)
+                hy_py = Pby*mkvc(f[src,'b_py']/mu_0,2)
                 # Derivatives as lambda functions
                 ex_px_u = lambda vec: Pex*f._e_pxDeriv_u(src,vec)
                 ey_px_u = lambda vec: Pey*f._e_pxDeriv_u(src,vec)
@@ -206,25 +206,27 @@ class RxMT(Survey.BaseRx):
                 hx_py_u = lambda vec: Pbx*f._b_pyDeriv_u(src,vec)/mu_0
                 hy_py_u = lambda vec: Pby*f._b_pyDeriv_u(src,vec)/mu_0
 
+                # Update the input vector
+                v = mkvc(v,2) # Make v into a column vector
                 # Define the components of the derivative
-                Hd = (hx_px*hy_py - hx_py*hy_px)
+                Hd = Utils.sdiag(1/(hx_px*hy_py - hx_py*hy_px))
                 Hd_uV = hx_px_u(hy_py*v) - hx_py*hy_px_u(v) + hx_px*hy_py_u(v) - hx_py_u(hy_px*v)
-
+                # Calculate components
                 if 'zxx' in self.rxType:
-                    Zij = ( ex_px*hy_py - ex_py*hy_px)/Hd
+                    Zij = ( ex_px*hy_py - ex_py*hy_px)*Hd
                     ZijN_uV = ex_px_u(hy_py*v) - ex_py*hy_px_u(v) + ex_px*hy_py_u(v) - ex_py_u(hy_px*v)
                 elif 'zxy' in self.rxType:
-                    Zij = (-ex_px*hx_py + ex_py*hx_px)/Hd
+                    Zij = (-ex_px*hx_py + ex_py*hx_px)*Hd
                     ZijN_uV = -ex_px_u(hx_py*v) + ex_py*hx_px_u(v) - ex_px*hx_py_u(v) + ex_py_u(hx_px*v)
                 elif 'zyx' in self.rxType:
-                    Zij = ( ey_px*hy_py - ey_py*hy_px)/Hd
+                    Zij = ( ey_px*hy_py - ey_py*hy_px)*Hd
                     ZijN_uV = ey_px_u(hy_py*v) - ey_py*hy_px_u(v) + ey_px*hy_py_u(v) - ey_py_u(hy_px*v)
                 elif 'zyy' in self.rxType:
-                    Zij = (-ey_px*hx_py + ey_py*hx_px)/Hd
+                    Zij = (-ey_px*hx_py + ey_py*hx_px)*Hd
                     ZijN_uV = -ey_px_u(hx_py*v) + ey_py*hx_px_u(v) - ey_px*hx_py_u(v) +ey_py_u(hx_px*v)
 
                 # Calculate the complex derivative
-                PDeriv_complex = ZijN_uV/Hd + Zij * (Hd_uV/Hd)
+                PDeriv_complex = ZijN_uV*Hd - Zij * (Hd_uV*Hd)
 
             # Extract the real number for the real/imag components.
             Pv = np.array(getattr(PDeriv_complex, real_or_imag))
@@ -255,48 +257,52 @@ class RxMT(Survey.BaseRx):
                 Pby = mesh.getInterpolationMat(bFLocs,'Fy')
                 # Get the fields at location
                 # px: x-polaration and py: y-polaration.
-                aex_px = f[src,'e_px'].T*Pex.T
-                aey_px = f[src,'e_px'].T*Pey.T
-                aex_py = f[src,'e_py'].T*Pex.T
-                aey_py = f[src,'e_py'].T*Pey.T
-                ahx_px = f[src,'b_px'].T/mu_0*Pbx.T
-                ahy_px = f[src,'b_px'].T/mu_0*Pby.T
-                ahx_py = f[src,'b_py'].T/mu_0*Pbx.T
-                ahy_py = f[src,'b_py'].T/mu_0*Pby.T
+                aex_px = mkvc(f[src,'e_px'],2).T*Pex.T
+                aey_px = mkvc(f[src,'e_px'],2).T*Pey.T
+                aex_py = mkvc(f[src,'e_py'],2).T*Pex.T
+                aey_py = mkvc(f[src,'e_py'],2).T*Pey.T
+                ahx_px = mkvc(f[src,'b_px'],2).T/mu_0*Pbx.T
+                ahy_px = mkvc(f[src,'b_px'],2).T/mu_0*Pby.T
+                ahx_py = mkvc(f[src,'b_py'],2).T/mu_0*Pbx.T
+                ahy_py = mkvc(f[src,'b_py'],2).T/mu_0*Pby.T
                 # Derivatives as lambda functions
-                aex_px_u = lambda vec: f._e_pxDeriv_u(src,Pex*vec,adjoint=True)
-                aey_px_u = lambda vec: f._e_pxDeriv_u(src,Pey*vec,adjoint=True)
-                aex_py_u = lambda vec: f._e_pyDeriv_u(src,Pex*vec,adjoint=True)
-                aey_py_u = lambda vec: f._e_pyDeriv_u(src,Pey*vec,adjoint=True)
-                ahx_px_u = lambda vec: f._b_pxDeriv_u(src,Pbx*vec,adjoint=True)/mu_0
-                ahy_px_u = lambda vec: f._b_pxDeriv_u(src,Pby*vec,adjoint=True)/mu_0
-                ahx_py_u = lambda vec: f._b_pyDeriv_u(src,Pbx*vec,adjoint=True)/mu_0
-                ahy_py_u = lambda vec: f._b_pyDeriv_u(src,Pby*vec,adjoint=True)/mu_0
+                aex_px_u = lambda vec: f._e_pxDeriv_u(src,Pex.T*vec,adjoint=True)
+                aey_px_u = lambda vec: f._e_pxDeriv_u(src,Pey.T*vec,adjoint=True)
+                aex_py_u = lambda vec: f._e_pyDeriv_u(src,Pex.T*vec,adjoint=True)
+                aey_py_u = lambda vec: f._e_pyDeriv_u(src,Pey.T*vec,adjoint=True)
+                ahx_px_u = lambda vec: f._b_pxDeriv_u(src,Pbx.T*vec,adjoint=True)/mu_0
+                ahy_px_u = lambda vec: f._b_pxDeriv_u(src,Pby.T*vec,adjoint=True)/mu_0
+                ahx_py_u = lambda vec: f._b_pyDeriv_u(src,Pbx.T*vec,adjoint=True)/mu_0
+                ahy_py_u = lambda vec: f._b_pyDeriv_u(src,Pby.T*vec,adjoint=True)/mu_0
 
+                # Update the input vector
+                v = mkvc(v,2) # Make v into a column vector
                 # Define the components of the derivative
-                aHd = (ahy_py*ahx_px - ahy_px*ahx_py)
-                aHd_uV = ahx_px_u(ahy_py*v) - ahx_py*ahy_px_u(v) + ahx_py_u(ahy_py*v) - ahx_py_u(ahy_px*v)
+                aHd = Utils.sdiag(1/(ahy_py*ahx_px - ahy_px*ahx_py))
+                aHd_uV = Utils.sp.csr_matrix(ahx_px_u(ahy_py*v) - ahx_py*ahy_px_u(v) + ahx_py_u(ahy_py*v) - ahx_py_u(ahy_px*v) )
                 # Need to fix this to reflect the adjoint
                 if 'zxx' in self.rxType:
-                    Zij = ( ahy_py*aex_px - ahy_px*aex_py)/aHd
-                    ZijN_uV =  ahy_py*aex_px_u(v) - ahy_px_u(aex_py*v) + ahy_py_u(aex_px*v) - ahy_px*aex_py_u(v)
+                    Zij = Utils.sp.csr_matrix( ahy_py*aex_px - ahy_px*aex_py)*aHd
+                    ZijN_uV =  Utils.sp.csr_matrix(ahy_py*aex_px_u(v) - ahy_px_u(aex_py*v) + ahy_py_u(aex_px*v) - ahy_px*aex_py_u(v))
                 elif 'zxy' in self.rxType:
-                    Zij = (-ahx_py*aex_px + ahx_px*aex_py)/aHd
-                    ZijN_uV = -ahx_py*aex_px_u(v) + ahx_px_u(aex_py*v) - ahx_py_u(aex_px*v) + ahx_px*aex_py_u(v)
+                    Zij = Utils.sp.csr_matrix(-ahx_py*aex_px + ahx_px*aex_py)*aHd
+                    ZijN_uV = Utils.sp.csr_matrix(-ahx_py*aex_px_u(v) + ahx_px_u(aex_py*v) - ahx_py_u(aex_px*v) + ahx_px*aex_py_u(v))
                 elif 'zyx' in self.rxType:
-                    Zij = ( ahy_py*aey_px - ahy_px*aey_py)/aHd
-                    ZijN_uV =  ahy_py*aey_px_u(v) - ahy_px_u(aey_py*v) + ahy_py_u(aey_px*v) - ahy_px*aey_py_u(v)
+                    Zij = Utils.sp.csr_matrix( ahy_py*aey_px - ahy_px*aey_py)*aHd
+                    ZijN_uV =  Utils.sp.csr_matrix(ahy_py*aey_px_u(v) - ahy_px_u(aey_py*v) + ahy_py_u(aey_px*v) - ahy_px*aey_py_u(v))
                 elif 'zyy' in self.rxType:
-                    Zij = (-ahx_py*aey_px + ahx_px*aey_py)/aHd
-                    ZijN_uV = -ahx_py*aey_px_u(v) + ahx_px_u(aey_py*v) - ahx_py_u(aey_px*v) + ahx_px*aey_py_u(v)
+                    Zij = Utils.sp.csr_matrix(-ahx_py*aey_px + ahx_px*aey_py)*aHd
+                    ZijN_uV = Utils.sp.csr_matrix(-ahx_py*aey_px_u(v) + ahx_px_u(aey_py*v) - ahx_py_u(aey_px*v) + ahx_px*aey_py_u(v))
 
                 # Calculate the complex derivative
-                PDeriv_real = ZijN_uV/aHd + (aHd_uV/aHd)*Zij^T
+                PDeriv_real = (ZijN_uV*aHd - (aHd_uV*aHd)*Zij.T).toarray() #
+                # NOTE: .toarray() is to return a non-sparse array which is needed for for Ainv* operation. Might want to take care of this elsewhere.
             # Extract the data
             if real_or_imag == 'imag':
                 Pv = 1j*PDeriv_real
             elif real_or_imag == 'real':
                 Pv = PDeriv_real.astype(complex)
+
 
         return Pv
 
@@ -351,7 +357,11 @@ class srcMT_polxy_1Dprimary(srcMT):
         if self.sigma1d is None:
             # Set the sigma1d as the 1st column in the background model
             if len(problem._sigmaPrimary) == problem.mesh.nC:
-                self.sigma1d = problem.mesh.r(problem._sigmaPrimary,'CC','CC','M')[0,0,:]
+                if problem.mesh.dim == 1:
+                    self.sigma1d = problem.mesh.r(problem._sigmaPrimary,'CC','CC','M')[:]
+                elif problem.mesh.dim == 3:
+                    self.sigma1d = problem.mesh.r(problem._sigmaPrimary,'CC','CC','M')[0,0,:]
+            # Or as the 1D model that matches the vertical cell number
             elif len(problem._sigmaPrimary) == problem.mesh.nCz:
                 self.sigma1d = problem._sigmaPrimary
 
@@ -390,6 +400,9 @@ class srcMT_polxy_1Dprimary(srcMT):
         return (Mesigma - Mesigma_p) * e_p
 
     def S_eDeriv(self, problem, v, adjoint = False):
+        '''
+        Get the derivative of S_e wrt to sigma (m)
+        '''
         # Need to deal with
         if problem.mesh.dim == 1:
             # Need to use the faceInnerProduct
@@ -398,7 +411,9 @@ class srcMT_polxy_1Dprimary(srcMT):
         if problem.mesh.dim == 2:
             pass
         if problem.mesh.dim == 3:
-            MsigmaDeriv = problem.MeSigmaDeriv(self.ePrimary(problem))
+            # Need to take the derivative of both u_px and u_py
+            ePri = self.ePrimary(problem)
+            MsigmaDeriv = problem.MeSigmaDeriv(ePri[:,0]) + problem.MeSigmaDeriv(ePri[:,1])
         if adjoint:
             #
             return MsigmaDeriv.T * v
