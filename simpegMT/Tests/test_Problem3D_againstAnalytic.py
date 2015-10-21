@@ -6,9 +6,16 @@ import unittest
 import SimPEG as simpeg
 import simpegMT as simpegmt
 from SimPEG.Utils import meshTensor
-
+from scipy.constants import mu_0
 
 TOLr = 5e-2
+TOL = 1e-4
+FLR = 1e-20 # "zero", so if residual below this --> pass regardless of order
+CONDUCTIVITY = 1e1
+MU = mu_0
+freq = [1e-1, 2e-1]
+addrandoms = True
+
 
 def getInputs():
     """
@@ -30,7 +37,7 @@ def getInputs():
 
 
 def halfSpace(conds):
-
+    ''' Returns a halfspace model based on the inputs'''
     M, freqs, rx_loc, elev = getInputs()
 
     # Model
@@ -45,12 +52,12 @@ def halfSpace(conds):
 
     return (M, freqs, sig, sigBG, rx_loc)
 
-def twoLayer():
+def twoLayer(conds):
+    ''' Returns a 2 layer model based on the conductivity values given'''
     M, freqs, rx_loc, elev = getInputs()
 
     # Model
     ccM = M.gridCC
-    conds = [1e-2,1]
     groundInd = ccM[:,2] < elev
     botInd = ccM[:,2] < -3000
     sig = np.zeros(M.nC) + 1e-8
@@ -63,17 +70,20 @@ def twoLayer():
 
     return (M, freqs, sig, sigBG, rx_loc)
 
-def runSimpegMTfwd_eForm_ps(inputsProblem,singleFreq=False):
-    M,freqs,sig,sigBG,rx_loc = inputsProblem
+def setupSimpegMTfwd_eForm_ps(inputSetup,comp='All',singleFreq=False):
+    M,freqs,sig,sigBG,rx_loc = inputSetup
     # Make a receiver list
     rxList = []
-    for rxType in ['zxyr','zxyi','zyxr','zyxi']:
-            rxList.append(simpegmt.SurveyMT.RxMT(rx_loc,rxType))
+    if comp == 'All':
+        for rxType in ['zxyr','zxyi','zyxr','zyxi']:
+                rxList.append(simpegmt.SurveyMT.RxMT(rx_loc,rxType))
+    else:
+        rxList.append(simpegmt.SurveyMT.RxMT(rx_loc,comp))
     # Source list
     srcList =[]
     sigma1d = M.r(sigBG,'CC','CC','M')[0,0,:]
     if singleFreq:
-        srcList.append(simpegmt.SurveyMT.srcMT_polxy_1Dprimary(rxList,freqs[-1]))
+        srcList.append(simpegmt.SurveyMT.srcMT_polxy_1Dprimary(rxList,freqs[2]))
     else:
         for freq in freqs:
             srcList.append(simpegmt.SurveyMT.srcMT_polxy_1Dprimary(rxList,freq))
@@ -89,12 +99,10 @@ def runSimpegMTfwd_eForm_ps(inputsProblem,singleFreq=False):
     except:
         pass
     problem.pair(survey)
+    problem.curMod = sig
+    problem.mapping = simpeg.Maps.ExpMap(problem.mesh)
 
-    fields = problem.fields(sig)
-    mtData = survey.projectFields(fields)
-
-    return (survey, problem, fields, mtData)
-
+    return (survey, problem)
 
 def getAppResPhs(MTdata):
     # Make impedance
@@ -105,10 +113,61 @@ def getAppResPhs(MTdata):
     recData = MTdata.toRecArray('Complex')
     return appResPhs(recData['freq'],recData['zxy']), appResPhs(recData['freq'],recData['zyx'])
 
-def appResPhsHalfspace_eFrom_ps_Norm(sigmaHalf,appR=True):
+def adjointTest(inputSetup):
 
-    # Make the survey
-    survey, problem, fields, data = runSimpegMTfwd_eForm_ps(halfSpace(sigmaHalf))
+    survey, problem = setupSimpegMTfwd_eForm_ps(inputSetup)
+    print 'Adjoint test of eForm primary/secondary\n'
+
+    m  = problem.curMod
+
+    # if addrandoms is True:
+    #     m  = m + np.random.randn(problem.mesh.nC)*CONDUCTIVITY*1e-1
+
+    u = problem.fields(m)
+
+    v = np.random.rand(survey.nD)
+    # print problem.PropMap.PropModel.nP
+    w = np.random.rand(problem.mesh.nC)
+
+    vJw = v.dot(problem.Jvec(m, w, u))
+    wJtv = w.dot(problem.Jtvec(m, v, u))
+    tol = np.max([TOL*(10**int(np.log10(np.abs(vJw)))),FLR])
+    print ' vJw   wJtv  vJw - wJtv     tol    abs(vJw - wJtv) < tol'
+    print vJw, wJtv, vJw - wJtv, tol, np.abs(vJw - wJtv) < tol
+    return np.abs(vJw - wJtv) < tol
+
+
+def derivProjfields(inputSetup):
+
+    survey, problem = setupSimpegMTfwd_eForm_ps(inputSetup)
+    print 'Derivative test of data projection for eFormulation primary/secondary\n\n'
+
+    # Define a src and rx
+    src = survey.srcList[-1]
+    rx = src.rxList[1]
+    u0 = np.random.randn(survey.mesh.nE)+np.random.randn(survey.mesh.nE)*1j
+    f0 = problem.fieldsPair(survey.mesh,survey)
+    f0[src,'e_pxSolution'] = u0
+    f0[src,'e_pySolution'] = u0
+    def fun(u):
+        f = problem.fieldsPair(survey.mesh,survey)
+        f[src,'e_pxSolution'] = u.ravel()
+        f[src,'e_pySolution'] = u.ravel()
+        return rx.projectFields(src,survey.mesh,f), lambda t: rx.projectFieldsDeriv(src,survey.mesh,f0,simpeg.mkvc(t,2))
+
+    return simpeg.Tests.checkDerivative(fun, u0, num=3, plotIt=False, eps=FLR)
+
+
+def appResPhsHalfspace_eFrom_ps_Norm(sigmaHalf,appR=True):
+    if appR:
+        label = 'resistivity'
+    else:
+        label = 'phase'
+    # Make the survey and the problem
+    survey, problem = setupSimpegMTfwd_eForm_ps(halfSpace(sigmaHalf))
+    print 'Apperent {:s} test of eFormulation primary/secondary at {:g}\n\n'.format(label,sigmaHalf)
+
+    data = problem.dataPair(survey,survey.dpred(problem.curMod))
     # Calculate the app  phs
     app_rpxy, app_rpyx = np.array(getAppResPhs(data))
     if appR:
@@ -122,9 +181,16 @@ class TestAnalytics(unittest.TestCase):
         pass
     # def test_appRes2en1(self):self.assertTrue(appResPhsHalfspace_eFrom_ps_Norm(2e-1))
     def test_appRes1en2(self):self.assertTrue(appResPhsHalfspace_eFrom_ps_Norm(1e-2))
-    def test_appRes1en3(self):self.assertTrue(appResPhsHalfspace_eFrom_ps_Norm(1e-3))
-    # def test_appRes2en1(self):self.assertTrue(appResPhsHalfspace_eFrom_ps_Norm(2e-1,False))
     def test_appPhs1en2(self):self.assertTrue(appResPhsHalfspace_eFrom_ps_Norm(1e-2,False))
+
+    def test_appRes1en3(self):self.assertTrue(appResPhsHalfspace_eFrom_ps_Norm(1e-3))
     def test_appPhs1en3(self):self.assertTrue(appResPhsHalfspace_eFrom_ps_Norm(1e-3,False))
+
+    # Do a derivative test
+    def test_deriv1(self):self.assertTrue(derivProjfields(halfSpace(1e-3)))
+
+    # Test the adjoint of Jvec and Jtvec
+    def test_adjointDeriv1(self):self.assertTrue(adjointTest(halfSpace(1e-3)))
+
 if __name__ == '__main__':
     unittest.main()

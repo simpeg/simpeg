@@ -406,7 +406,7 @@ class srcMT_polxy_1Dprimary(srcMT):
         # Need to deal with
         if problem.mesh.dim == 1:
             # Need to use the faceInnerProduct
-            MsigmaDeriv = problem.mesh.getFaceInnerProductDeriv(problem.curModel.sigma)(self.ePrimary(problem)[:,-1]) * problem.curModel.sigmaDeriv
+            MsigmaDeriv = problem.mesh.getFaceInnerProductDeriv(problem.curModel.sigma)(self.ePrimary(problem)[:,1]) * problem.curModel.sigmaDeriv
             # MsigmaDeriv = ( MsigmaDeriv * MsigmaDeriv.T)**2
         if problem.mesh.dim == 2:
             pass

@@ -52,13 +52,14 @@ class eForm_ps(BaseMTProblem):
 
     def getADeriv_m(self, freq, u, v, adjoint=False):
 
-        dsig_dm = self.curModel.sigmaDeriv
-        dMe_dsig = self.MeSigmaDeriv( u=u)
+        dMe_dsig = self.MeSigmaDeriv( u )
 
         if adjoint:
-            return 1j * omega(freq) * ( dsig_dm.T * ( dMe_dsig.T * v ) )
+            return 1j * omega(freq) * ( dMe_dsig.T * v ) # As in simpegEM
+            # return 1j * omega(freq) * ( dsig_dm.T * ( dMe_dsig.T * v ) )
 
-        return 1j * omega(freq) * ( dMe_dsig * ( dsig_dm * v ) )
+        return 1j * omega(freq) * ( dMe_dsig * v ) # As in simpegEM
+        # return 1j * omega(freq) * ( dMe_dsig * ( dsig_dm * v ) )
 
     def getRHS(self, freq):
         """
