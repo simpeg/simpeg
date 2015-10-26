@@ -3,6 +3,8 @@ import numpy as np, matplotlib.pyplot as plt, sys
 import SimPEG as simpeg
 import simpegMT as simpegmt
 import numpy.lib.recfunctions as recFunc
+from scipy.constants import mu_0
+
 def getAppRes(MTdata):
     # Make impedance
     zList = []
@@ -22,6 +24,10 @@ def appResPhs(freq,z):
     app_res = ((1./(8e-7*np.pi**2))/freq)*np.abs(z)**2
     app_phs = np.arctan2(z.imag,z.real)*(180/np.pi)
     return app_res, app_phs
+
+def skindepth(rho,freq):
+    ''' Function to calculate the skindepth of EM waves'''
+    return np.sqrt( (rho*((1/(freq * mu_0 * np.pi )))))
 
 def rec2ndarr(x,dt=float):
     return x.view((dt, len(x.dtype.names)))

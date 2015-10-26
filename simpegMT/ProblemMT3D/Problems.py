@@ -1,4 +1,4 @@
-from SimPEG import Survey, Problem, Utils, Models, np, sp, SolverLU as SimpegSolver
+from SimPEG import Survey, Problem, Utils, Models, np, sp, mkvc, SolverLU as SimpegSolver
 from simpegEM.Utils.EMUtils import omega
 from scipy.constants import mu_0
 from simpegMT.BaseMT import BaseMTProblem
@@ -20,7 +20,7 @@ class eForm_ps(BaseMTProblem):
     """
 
     # From FDEMproblem: Used to project the fields. Currently not used for MTproblem.
-    _fieldType = 'e_px'
+    _fieldType = 'e'
     _eqLocs    = 'FE'
     fieldsPair = FieldsMT_3D
     _sigmaPrimary = None
@@ -52,14 +52,32 @@ class eForm_ps(BaseMTProblem):
 
     def getADeriv_m(self, freq, u, v, adjoint=False):
 
-        dMe_dsig = self.MeSigmaDeriv( u )
+        # Nee to account for both the polarizations
+        # dMe_dsig = (self.MeSigmaDeriv( u['e_pxSolution'] ) + self.MeSigmaDeriv( u['e_pySolution'] ))
+        # dMe_dsig = (self.MeSigmaDeriv( u['e_pxSolution'] +  u['e_pySolution'] ))
 
+        # # dMe_dsig = self.MeSigmaDeriv( u )
+        # if adjoint:
+        #     return 1j * omega(freq) * ( dMe_dsig.T * v ) # As in simpegEM
+
+        # return 1j * omega(freq) * ( dMe_dsig * v ) # As in simpegEM
+
+        # This considers both polarizations and returns a nE,2 matrix for each polarization
         if adjoint:
-            return 1j * omega(freq) * ( dMe_dsig.T * v ) # As in simpegEM
-            # return 1j * omega(freq) * ( dsig_dm.T * ( dMe_dsig.T * v ) )
+            dMe_dsigV = sp.hstack(( self.MeSigmaDeriv( u['e_pxSolution'] ).T, self.MeSigmaDeriv(u['e_pySolution'] ).T ))*v
+        else:
+            # Need a nE,2 matrix to be returned
+            dMe_dsigV = np.hstack(( mkvc(self.MeSigmaDeriv( u['e_pxSolution'] )*v,2), mkvc( self.MeSigmaDeriv(u['e_pySolution'] )*v,2) ))
+        return 1j * omega(freq) * dMe_dsigV
+        # Stacking them
 
-        return 1j * omega(freq) * ( dMe_dsig * v ) # As in simpegEM
-        # return 1j * omega(freq) * ( dMe_dsig * ( dsig_dm * v ) )
+        # if adjoint:
+        #     dMe_dsig = sp.vstack((self.MeSigmaDeriv( u['e_pxSolution'] ), self.MeSigmaDeriv( u['e_pxSolution'] ) )).T
+        #         # self.MeSigmaDeriv(u['e_pySolution'] ).T*v,2) ))
+        # else:
+        #     dMe_dsig = sp.vstack((self.MeSigmaDeriv( u['e_pxSolution'] ), self.MeSigmaDeriv( u['e_pxSolution'] ) ))
+        # return 1j * omega(freq) * dMe_dsig*v
+
 
     def getRHS(self, freq):
         """
@@ -80,7 +98,7 @@ class eForm_ps(BaseMTProblem):
         """
 
         Src = self.survey.getSrcByFreq(freq)[0]
-        S_eDeriv = Src.S_eDeriv(self, v, adjoint)
+        S_eDeriv = Src.S_eDeriv_m(self, v, adjoint)
         return -1j * omega(freq) * S_eDeriv
 
     def fields(self, m):

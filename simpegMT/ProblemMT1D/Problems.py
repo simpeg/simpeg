@@ -92,7 +92,7 @@ class eForm_psField(BaseMTProblem):
         """
 
         Src = self.survey.getSrcByFreq(freq)[0]
-        S_eDeriv = Src.S_eDeriv(self, v, adjoint)
+        S_eDeriv = Src.S_eDeriv_m(self, v, adjoint)
         return -1j * omega(freq) * S_eDeriv
 
     def fields(self, m):

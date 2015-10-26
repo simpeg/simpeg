@@ -2,8 +2,7 @@ from simpegEM.FDEM import BaseFDEMProblem
 from SurveyMT import SurveyMT
 from DataMT import DataMT
 from FieldsMT import FieldsMT
-from SimPEG import SolverLU as SimpegSolver, PropMaps, Utils, mkvc
-import numpy as np
+from SimPEG import SolverLU as SimpegSolver, PropMaps, Utils, mkvc, sp, np
 
 class BaseMTProblem(BaseFDEMProblem):
 
@@ -75,24 +74,27 @@ class BaseMTProblem(BaseFDEMProblem):
         # Loop all the frequenies
         for freq in self.survey.freqs:
             dA_du = self.getA(freq) #
+
             dA_duI = self.Solver(dA_du, **self.solverOpts)
 
             for src in self.survey.getSrcByFreq(freq):
                 # We need fDeriv_m = df/du*du/dm + df/dm
                 # Construct du/dm, it requires a solve
-                ftype = self._fieldType + 'Solution'
-                u_src = u[src, ftype]
-                dA_dm = self.getADeriv_m(freq, u_src, v)
-                dRHS_dm = self.getRHSDeriv_m(freq, v)
+                # NOTE: need to account for the 2 polarizations in the derivatives.
+                u_src = u[src,:]
+                # dA_dm and dRHS_dm should be of size nE,2, so that we can multiply by dA_duI. The 2 columns are each of the polarizations.
+                dA_dm = self.getADeriv_m(freq, u_src, v) # Size: nE,2 (u_px,u_py) in the columns.
+                dRHS_dm = self.getRHSDeriv_m(freq, v) # Size: nE,2 (u_px,u_py) in the columns.
                 if dRHS_dm is None:
-                    du_dm = dA_duI * ( - dA_dm )
+                    du_dm = dA_duI * ( -dA_dm )
                 else:
-                    du_dm = dA_duI * ( - dA_dm + dRHS_dm )
+                    du_dm = dA_duI * ( -dA_dm + dRHS_dm )
                 # Calculate the projection derivatives
                 for rx in src.rxList:
                     # Get the projection derivative
-                    PDeriv_u = lambda v: rx.projectFieldsDeriv(src, self.mesh, u, v) # wrt u, also have wrt m
-                    Jv[src, rx] = PDeriv_u(du_dm)
+                    # v should be of size nE,2 (each column for 2 polarizations)
+                    PDeriv_u = lambda v: rx.projectFieldsDeriv(src, self.mesh, u, v) # wrt u, we don't have have PDeriv wrt m
+                    Jv[src, rx] = PDeriv_u(mkvc(du_dm))
         # Return the vectorized sensitivities
         return mkvc(Jv)
 
@@ -110,25 +112,28 @@ class BaseMTProblem(BaseFDEMProblem):
 
         for freq in self.survey.freqs:
             AT = self.getA(freq).T
+
             ATinv = self.Solver(AT, **self.solverOpts)
 
             for src in self.survey.getSrcByFreq(freq):
                 ftype = self._fieldType + 'Solution'
-                u_src = u[src, ftype]
+                u_src = u[src, :]
 
                 for rx in src.rxList:
                     # Get the adjoint projectFieldsDeriv
-                    PTv = rx.projectFieldsDeriv(src, self.mesh, u, v[src, rx], adjoint=True) # wrt u, need possibility wrt m
+                    # PTv needs to be nE,
+                    PTv = rx.projectFieldsDeriv(src, self.mesh, u, mkvc(v[src, rx],2), adjoint=True) # wrt u, need possibility wrt m
                     # Get the
                     dA_duIT = ATinv * PTv
-                    dA_dmT = self.getADeriv_m(freq, u_src, dA_duIT, adjoint=True)
-                    dRHS_dmT = self.getRHSDeriv_m(freq, dA_duIT, adjoint=True)
+                    dA_dmT = self.getADeriv_m(freq, u_src, mkvc(dA_duIT), adjoint=True)
+                    dRHS_dmT = self.getRHSDeriv_m(freq, mkvc(dA_duIT), adjoint=True)
                     # Make du_dmT
                     if dRHS_dmT is None:
                         du_dmT = -dA_dmT
                     else:
                         du_dmT = -dA_dmT + dRHS_dmT
                     # Select the correct component
+                    # du_dmT needs to be of size nC,
                     real_or_imag = rx.projComp
                     if real_or_imag == 'real':
                         Jtv +=  du_dmT.real

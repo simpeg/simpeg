@@ -173,7 +173,7 @@ class RxMT(Survey.BaseRx):
                 dP_db = mkvc( Utils.sdiag(Pex*mkvc(f[src,'e_1d'],2))*(Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)).T*Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)))*(Pbx*f._bDeriv_u(src,v)/mu_0),2)
                 PDeriv_complex = np.sum(np.hstack((dP_de,dP_db)),1)
             elif self.projType is 'Z2D':
-                raise NotImplementedError('Has not be implement for 2D impedance tensor')
+                raise NotImplementedError('Has not been implement for 2D impedance tensor')
             elif self.projType is 'Z3D':
                 if self.locs.ndim == 3:
                     eFLocs = self.locs[:,:,0]
@@ -197,14 +197,15 @@ class RxMT(Survey.BaseRx):
                 hx_py = Pbx*mkvc(f[src,'b_py']/mu_0,2)
                 hy_py = Pby*mkvc(f[src,'b_py']/mu_0,2)
                 # Derivatives as lambda functions
-                ex_px_u = lambda vec: Pex*f._e_pxDeriv_u(src,vec)
-                ey_px_u = lambda vec: Pey*f._e_pxDeriv_u(src,vec)
-                ex_py_u = lambda vec: Pex*f._e_pyDeriv_u(src,vec)
-                ey_py_u = lambda vec: Pey*f._e_pyDeriv_u(src,vec)
-                hx_px_u = lambda vec: Pbx*f._b_pxDeriv_u(src,vec)/mu_0
-                hy_px_u = lambda vec: Pby*f._b_pxDeriv_u(src,vec)/mu_0
-                hx_py_u = lambda vec: Pbx*f._b_pyDeriv_u(src,vec)/mu_0
-                hy_py_u = lambda vec: Pby*f._b_pyDeriv_u(src,vec)/mu_0
+                ex_px_u = lambda vec: sp.hstack((Pex,Pex))*f._e_pxDeriv_u(src,vec)
+                ey_px_u = lambda vec: sp.hstack((Pey,Pey))*f._e_pxDeriv_u(src,vec)
+                ex_py_u = lambda vec: sp.hstack((Pex,Pex))*f._e_pyDeriv_u(src,vec)
+                ey_py_u = lambda vec: sp.hstack((Pey,Pey))*f._e_pyDeriv_u(src,vec)
+                # NOTE: Think b_p?Deriv_u should return a 2*nF size matrix
+                hx_px_u = lambda vec: sp.hstack((Pbx,Pbx))*f._b_pxDeriv_u(src,vec)/mu_0
+                hy_px_u = lambda vec: sp.hstack((Pby,Pby))*f._b_pxDeriv_u(src,vec)/mu_0
+                hx_py_u = lambda vec: sp.hstack((Pbx,Pbx))*f._b_pyDeriv_u(src,vec)/mu_0
+                hy_py_u = lambda vec: sp.hstack((Pby,Pby))*f._b_pyDeriv_u(src,vec)/mu_0
 
                 # Update the input vector
                 v = mkvc(v,2) # Make v into a column vector
@@ -226,7 +227,7 @@ class RxMT(Survey.BaseRx):
                     ZijN_uV = -ey_px_u(hx_py*v) + ey_py*hx_px_u(v) - ey_px*hx_py_u(v) +ey_py_u(hx_px*v)
 
                 # Calculate the complex derivative
-                PDeriv_complex = ZijN_uV*Hd - Zij * (Hd_uV*Hd)
+                PDeriv_complex = ZijN_uV*Hd.toarray() - Zij * (Hd_uV*Hd.toarray())
 
             # Extract the real number for the real/imag components.
             Pv = np.array(getattr(PDeriv_complex, real_or_imag))
@@ -266,14 +267,14 @@ class RxMT(Survey.BaseRx):
                 ahx_py = mkvc(f[src,'b_py'],2).T/mu_0*Pbx.T
                 ahy_py = mkvc(f[src,'b_py'],2).T/mu_0*Pby.T
                 # Derivatives as lambda functions
-                aex_px_u = lambda vec: f._e_pxDeriv_u(src,Pex.T*vec,adjoint=True)
-                aey_px_u = lambda vec: f._e_pxDeriv_u(src,Pey.T*vec,adjoint=True)
-                aex_py_u = lambda vec: f._e_pyDeriv_u(src,Pex.T*vec,adjoint=True)
-                aey_py_u = lambda vec: f._e_pyDeriv_u(src,Pey.T*vec,adjoint=True)
-                ahx_px_u = lambda vec: f._b_pxDeriv_u(src,Pbx.T*vec,adjoint=True)/mu_0
-                ahy_px_u = lambda vec: f._b_pxDeriv_u(src,Pby.T*vec,adjoint=True)/mu_0
-                ahx_py_u = lambda vec: f._b_pyDeriv_u(src,Pbx.T*vec,adjoint=True)/mu_0
-                ahy_py_u = lambda vec: f._b_pyDeriv_u(src,Pby.T*vec,adjoint=True)/mu_0
+                aex_px_u = lambda vec: f._e_pxDeriv_u(src,sp.hstack((Pex,Pex)).T*vec,adjoint=True)
+                aey_px_u = lambda vec: f._e_pxDeriv_u(src,sp.hstack((Pey,Pey)).T*vec,adjoint=True)
+                aex_py_u = lambda vec: f._e_pyDeriv_u(src,sp.hstack((Pex,Pex)).T*vec,adjoint=True)
+                aey_py_u = lambda vec: f._e_pyDeriv_u(src,sp.hstack((Pey,Pey)).T*vec,adjoint=True)
+                ahx_px_u = lambda vec: f._b_pxDeriv_u(src,sp.hstack((Pbx,Pbx)).T*vec,adjoint=True)/mu_0
+                ahy_px_u = lambda vec: f._b_pxDeriv_u(src,sp.hstack((Pby,Pby)).T*vec,adjoint=True)/mu_0
+                ahx_py_u = lambda vec: f._b_pyDeriv_u(src,sp.hstack((Pbx,Pbx)).T*vec,adjoint=True)/mu_0
+                ahy_py_u = lambda vec: f._b_pyDeriv_u(src,sp.hstack((Pby,Pby)).T*vec,adjoint=True)/mu_0
 
                 # Update the input vector
                 v = mkvc(v,2) # Make v into a column vector
@@ -376,7 +377,7 @@ class srcMT_polxy_1Dprimary(srcMT):
             C = problem.mesh.nodalGrad
         elif problem.mesh.dim == 3:
             C = problem.mesh.edgeCurl
-        bBG_bp = (- C * self.ePrimary(problem) )/( 1j*omega(self.freq) )
+        bBG_bp = (- C * self.ePrimary(problem) )*(1/( 1j*omega(self.freq) ))
         return bBG_bp
 
     def S_e(self,problem):
@@ -399,7 +400,7 @@ class srcMT_polxy_1Dprimary(srcMT):
             Mesigma_p = problem.mesh.getEdgeInnerProduct(sigma_p)
         return (Mesigma - Mesigma_p) * e_p
 
-    def S_eDeriv(self, problem, v, adjoint = False):
+    def S_eDeriv_m(self, problem, v, adjoint = False):
         '''
         Get the derivative of S_e wrt to sigma (m)
         '''
@@ -413,7 +414,12 @@ class srcMT_polxy_1Dprimary(srcMT):
         if problem.mesh.dim == 3:
             # Need to take the derivative of both u_px and u_py
             ePri = self.ePrimary(problem)
-            MsigmaDeriv = problem.MeSigmaDeriv(ePri[:,0]) + problem.MeSigmaDeriv(ePri[:,1])
+            # MsigmaDeriv = problem.MeSigmaDeriv(ePri[:,0]) + problem.MeSigmaDeriv(ePri[:,1])
+            # MsigmaDeriv = problem.MeSigmaDeriv(np.sum(ePri,axis=1))
+            if adjoint:
+                return sp.hstack(( problem.MeSigmaDeriv(ePri[:,0]).T, problem.MeSigmaDeriv(ePri[:,1]).T ))*v
+            else:
+                return np.hstack(( mkvc(problem.MeSigmaDeriv(ePri[:,0]) * v,2), mkvc(problem.MeSigmaDeriv(ePri[:,1])*v,2) ))
         if adjoint:
             #
             return MsigmaDeriv.T * v
