@@ -1,8 +1,7 @@
 import numpy as np
 import unittest
 from SimPEG.Mesh import TensorMesh
-from TestUtils import OrderTest
-from SimPEG import Solver
+from SimPEG import Solver, Tests
 
 TOL = 1e-10
 
@@ -91,7 +90,7 @@ class BasicTensorMeshTests(unittest.TestCase):
         M = TensorMesh([[(10.,2)]])
         self.assertLess(np.abs(M.hx - np.r_[10.,10.]).sum(), TOL)
 
-class TestPoissonEqn(OrderTest):
+class TestPoissonEqn(Tests.OrderTest):
     name = "Poisson Equation"
     meshSizes = [10, 16, 20]
 

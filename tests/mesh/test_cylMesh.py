@@ -1,7 +1,6 @@
 import unittest
 import sys
 from SimPEG import *
-from TestUtils import OrderTest
 
 
 class TestCyl2DMesh(unittest.TestCase):
@@ -217,7 +216,7 @@ cyl_row3 = lambda g, xfun, yfun, zfun: np.c_[call3(xfun, g), call3(yfun, g), cal
 cylF2 = lambda M, fx, fy: np.vstack((cyl_row2(M.gridFx, fx, fy), cyl_row2(M.gridFz, fx, fy)))
 
 
-class TestFaceDiv2D(OrderTest):
+class TestFaceDiv2D(Tests.OrderTest):
     name = "FaceDiv"
     meshTypes = MESHTYPES
     meshDimension = 2
@@ -242,7 +241,7 @@ class TestFaceDiv2D(OrderTest):
     def test_order(self):
         self.orderTest()
 
-class TestEdgeCurl2D(OrderTest):
+class TestEdgeCurl2D(Tests.OrderTest):
     name = "EdgeCurl"
     meshTypes = MESHTYPES
     meshDimension = 2
@@ -281,7 +280,7 @@ class TestEdgeCurl2D(OrderTest):
         self.orderTest()
 
 
-# class TestInnerProducts2D(OrderTest):
+# class TestInnerProducts2D(Tests.OrderTest):
 #     """Integrate an function over a unit cube domain using edgeInnerProducts and faceInnerProducts."""
 
 #     meshTypes = MESHTYPES

@@ -1,8 +1,7 @@
 import numpy as np
 import unittest
-from TestUtils import OrderTest
 from SimPEG.Utils import mkvc
-from SimPEG import Mesh
+from SimPEG import Mesh, Tests
 import unittest
 
 
@@ -23,7 +22,7 @@ cartE3 = lambda M, ex, ey, ez: np.vstack((cart_row3(M.gridEx, ex, ey, ez), cart_
 TOL = 1e-7
 
 
-class TestInterpolation1D(OrderTest):
+class TestInterpolation1D(Tests.OrderTest):
     LOCS = np.random.rand(50)*0.6+0.2
     name = "Interpolation 1D"
     meshTypes = MESHTYPES
@@ -69,7 +68,7 @@ class TestOutliersInterp1D(unittest.TestCase):
         Q = M.getInterpolationMat(np.array([[-1],[0.126],[0.127]]),'CC',zerosOutside=True)
         self.assertTrue(np.linalg.norm(Q*x - np.r_[0,1.004,1.008]) < TOL)
 
-class TestInterpolation2d(OrderTest):
+class TestInterpolation2d(Tests.OrderTest):
     name = "Interpolation 2D"
     LOCS = np.random.rand(50,2)*0.6+0.2
     meshTypes = MESHTYPES
@@ -152,7 +151,7 @@ class TestInterpolation2dCyl_Simple(unittest.TestCase):
         self.assertRaises(Exception,lambda:M.getInterpolationMat(locs, 'Ez'))
 
 
-class TestInterpolation2dCyl(OrderTest):
+class TestInterpolation2dCyl(Tests.OrderTest):
     name = "Interpolation 2D"
     LOCS = np.c_[np.random.rand(4)*0.6+0.2, np.zeros(4), np.random.rand(4)*0.6+0.2]
     meshTypes = ['uniformCylMesh'] # MESHTYPES +
@@ -220,7 +219,7 @@ class TestInterpolation2dCyl(OrderTest):
         self.name = 'Interpolation 2D CYLMESH: Ey'
         self.orderTest()
 
-class TestInterpolation3D(OrderTest):
+class TestInterpolation3D(Tests.OrderTest):
     name = "Interpolation"
     LOCS = np.random.rand(50,3)*0.6+0.2
     meshTypes = MESHTYPES

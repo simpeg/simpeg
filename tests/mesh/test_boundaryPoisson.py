@@ -1,13 +1,12 @@
 import numpy as np
 import scipy.sparse as sp
 import unittest
-from TestUtils import OrderTest
 import matplotlib.pyplot as plt
 from SimPEG import *
 
 MESHTYPES = ['uniformTensorMesh']
 
-class Test1D_InhomogeneousDirichlet(OrderTest):
+class Test1D_InhomogeneousDirichlet(Tests.OrderTest):
     name = "1D - Dirichlet"
     meshTypes = MESHTYPES
     meshDimension = 1
@@ -88,7 +87,7 @@ class Test1D_InhomogeneousDirichlet(OrderTest):
         self.orderTest()
 
 
-class Test2D_InhomogeneousDirichlet(OrderTest):
+class Test2D_InhomogeneousDirichlet(Tests.OrderTest):
     name = "2D - Dirichlet"
     meshTypes = MESHTYPES
     meshDimension = 2
@@ -169,7 +168,7 @@ class Test2D_InhomogeneousDirichlet(OrderTest):
         self.myTest = 'xcJ'
         self.orderTest()
 
-class Test1D_InhomogeneousNeumann(OrderTest):
+class Test1D_InhomogeneousNeumann(Tests.OrderTest):
     name = "1D - Neumann"
     meshTypes = MESHTYPES
     meshDimension = 1
@@ -246,7 +245,7 @@ class Test1D_InhomogeneousNeumann(OrderTest):
         self.myTest = 'xcJ'
         self.orderTest()
 
-class Test2D_InhomogeneousNeumann(OrderTest):
+class Test2D_InhomogeneousNeumann(Tests.OrderTest):
     name = "2D - Neumann"
     meshTypes = MESHTYPES
     meshDimension = 2
@@ -333,7 +332,7 @@ class Test2D_InhomogeneousNeumann(OrderTest):
         self.myTest = 'xcJ'
         self.orderTest()
 
-class Test1D_InhomogeneousMixed(OrderTest):
+class Test1D_InhomogeneousMixed(Tests.OrderTest):
     name = "1D - Mixed"
     meshTypes = MESHTYPES
     meshDimension = 1
@@ -410,7 +409,7 @@ class Test1D_InhomogeneousMixed(OrderTest):
         self.myTest = 'xcJ'
         self.orderTest()
 
-class Test2D_InhomogeneousMixed(OrderTest):
+class Test2D_InhomogeneousMixed(Tests.OrderTest):
     name = "2D - Mixed"
     meshTypes = MESHTYPES
     meshDimension = 2

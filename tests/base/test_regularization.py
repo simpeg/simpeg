@@ -1,7 +1,6 @@
 import numpy as np
 import unittest
 from SimPEG import *
-from TestUtils import checkDerivative
 from scipy.sparse.linalg import dsolve
 import inspect
 
@@ -18,12 +17,16 @@ class RegularizationTests(unittest.TestCase):
             if not issubclass(r, Regularization.BaseRegularization):
                 continue
             # if 'Regularization' not in R: continue
-            print 'Check:', R
             mapping = r.mapPair(self.mesh2)
             reg = r(self.mesh2, mapping=mapping)
             m = np.random.rand(mapping.nP)
             reg.mref = m[:]*np.mean(m)
-            passed = checkDerivative(lambda m : [reg.eval(m), reg.evalDeriv(m)], m, plotIt=False)
+
+            print 'Check:', R
+            passed = Tests.checkDerivative(lambda m : [reg.eval(m), reg.evalDeriv(m)], m, plotIt=False)
+            self.assertTrue(passed)
+            print 'Check 2 Deriv:', R
+            passed = Tests.checkDerivative(lambda m : [reg.evalDeriv(m), reg.eval2Deriv(m)], m, plotIt=False)
             self.assertTrue(passed)
 
 

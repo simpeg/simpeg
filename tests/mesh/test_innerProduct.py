@@ -1,10 +1,9 @@
 import numpy as np
 import unittest
-from TestUtils import OrderTest
-from SimPEG import Utils
+from SimPEG import Utils, Tests
 
 
-class TestInnerProducts(OrderTest):
+class TestInnerProducts(Tests.OrderTest):
     """Integrate an function over a unit cube domain using edgeInnerProducts and faceInnerProducts."""
 
     meshTypes = ['uniformTensorMesh', 'uniformCurv', 'rotateCurv']
@@ -151,7 +150,7 @@ class TestInnerProducts(OrderTest):
         self.orderTest()
 
 
-class TestInnerProducts2D(OrderTest):
+class TestInnerProducts2D(Tests.OrderTest):
     """Integrate an function over a unit cube domain using edgeInnerProducts and faceInnerProducts."""
 
     meshTypes = ['uniformTensorMesh', 'uniformCurv', 'rotateCurv']
@@ -293,7 +292,7 @@ class TestInnerProducts2D(OrderTest):
 
 
 
-class TestInnerProducts1D(OrderTest):
+class TestInnerProducts1D(Tests.OrderTest):
     """Integrate an function over a unit cube domain using edgeInnerProducts and faceInnerProducts."""
 
     meshTypes = ['uniformTensorMesh']
