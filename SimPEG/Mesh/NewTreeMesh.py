@@ -327,15 +327,20 @@ class TreeCell(TreeIndexer):
 
 class TreeMesh(InnerProducts, BaseMesh):
 
+    _meshType = 'TREEMESH'
+    _unitDimensions = [1, 1, 1]
+
     def __init__(self, h_in, x0=None):
         assert type(h_in) in [list, tuple], 'h_in must be a list'
         assert len(h_in) > 1, "len(h_in) must be greater than 1"
 
         h = range(len(h_in))
         for i, h_i in enumerate(h_in):
-            if type(h_i) in [int, long, float]:
+            if Utils.isScalar(h_i) and type(h_i) is not np.ndarray:
                 # This gives you something over the unit cube.
-                h_i = np.ones(int(h_i))/int(h_i)
+                h_i = self._unitDimensions[i] * np.ones(int(h_i))/int(h_i)
+            elif type(h_i) is list:
+                h_i = Utils.meshTensor(h_i)
             assert isinstance(h_i, np.ndarray), ("h[%i] is not a numpy array." % i)
             assert len(h_i.shape) == 1, ("h[%i] must be a 1D numpy array." % i)
             h[i] = h_i[:] # make a copy.
@@ -1201,7 +1206,7 @@ if __name__ == '__main__':
     # print tM.gridN - M.gridN
     tM.plotGrid()
 
-    plt.show()
+    # plt.show()
 
 
 
@@ -1254,16 +1259,16 @@ if __name__ == '__main__':
     # plt.show()
 
 
-    # M = TreeMesh([1,1,1])
+    M = TreeMesh([[(1,3)],[(1,3)],[(1,3)]])
 
-    # def refFunc(cell):
-    #     n = 3 - np.sum((cell.center.flatten() - np.r_[0.5, 0.5, 0.5])**2)**0.5 * 2
-    #     print n, cell.center
-    #     return n
-    #     return 1
-    # M.refine(refFunc)
+    def refFunc(cell):
+        n = 5 - np.sum((cell.center.flatten() - np.r_[1.5, 1.5, 1.5])**2)**0.5 * 2
+        print n, cell.center
+        return n
+        return 1
+    M.refine(refFunc)
+    print M.nC
 
-    # M.plotGrid(text=False)
-    # plt.show()
+    M.plotGrid(text=False)
+    plt.show()
 
-    # print M.nC
