@@ -36,7 +36,8 @@ setup(
     version = "0.1.3",
     packages = find_packages(),
     install_requires = ['numpy>=1.7',
-                        'scipy>=0.13'
+                        'scipy>=0.13',
+                        'Cython'
                        ],
     author = "Rowan Cockett",
     author_email = "rowan@3ptscience.com",
