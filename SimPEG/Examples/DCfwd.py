@@ -38,6 +38,7 @@ def run(plotIt=True):
     AinvrM = SolverLU(ArM)
     phirM = AinvrM*rhsrM
 
+    if not plotIt: return
     #Step4: Making Figure
     fig, axes = plt.subplots(1,2,figsize=(12*1.2,4*1.2))
     label = ["(a)", "(b)"]
@@ -69,7 +70,6 @@ def run(plotIt=True):
             axes[i].set_ylabel(" ")
         axes[i].set_xlabel("x")
 
-    if plotIt: plt.show()
 
 if __name__ == '__main__':
     run()

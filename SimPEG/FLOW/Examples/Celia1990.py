@@ -27,6 +27,7 @@ def run(plotIt=True):
     Hs_H30 = getFields(30., 'head')
     Hs_H120= getFields(120.,'head')
 
+    if not plotIt:return
     plt.figure(figsize=(13,5))
     plt.subplot(121)
     plt.plot(40-M.gridCC, Hs_M10[-1],'b-')
@@ -46,7 +47,6 @@ def run(plotIt=True):
     plt.xlabel('Depth, cm')
     plt.ylabel('Pressure Head, cm')
     plt.legend(('$\Delta t$ = 10 sec','$\Delta t$ = 30 sec','$\Delta t$ = 120 sec'))
-    if plotIt:plt.show()
 
 if __name__ == '__main__':
     run()
