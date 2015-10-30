@@ -9,6 +9,7 @@ env:
     - TEST_DIR=tests/mesh
     - TEST_DIR=tests/base
     - TEST_DIR=tests/examples
+    - TEST_DIR=tests/flow
 
 # Setup anaconda
 before_install:
