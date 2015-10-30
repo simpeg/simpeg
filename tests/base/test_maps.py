@@ -1,7 +1,6 @@
 import numpy as np
 import unittest
 from SimPEG import *
-from TestUtils import checkDerivative
 from scipy.sparse.linalg import dsolve
 
 TOL = 1e-14

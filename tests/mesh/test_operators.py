@@ -1,6 +1,6 @@
 import numpy as np
 import unittest
-from TestUtils import OrderTest
+from SimPEG.Tests import OrderTest
 import matplotlib.pyplot as plt
 
 #TODO: 'randomTensorMesh'

@@ -1,7 +1,6 @@
 import numpy as np
 import unittest
 from SimPEG import *
-from TestUtils import checkDerivative
 
 
 class TestInnerProductsDerivs(unittest.TestCase):
@@ -21,7 +20,7 @@ class TestInnerProductsDerivs(unittest.TestCase):
             Md = mesh.getFaceInnerProductDeriv(sig, invProp=invProp, invMat=invMat, doFast=fast)
             return M*v, Md(v)
         print meshType, 'Face', h, rep, fast, ('harmonic' if invProp and invMat else 'standard')
-        return checkDerivative(fun, sig, num=5, plotIt=False)
+        return Tests.checkDerivative(fun, sig, num=5, plotIt=False)
 
     def doTestEdge(self, h, rep, fast, meshType, invProp=False, invMat=False):
         if meshType == 'Curv':
@@ -38,7 +37,7 @@ class TestInnerProductsDerivs(unittest.TestCase):
             Md = mesh.getEdgeInnerProductDeriv(sig, invProp=invProp, invMat=invMat, doFast=fast)
             return M*v, Md(v)
         print meshType, 'Edge', h, rep, fast, ('harmonic' if invProp and invMat else 'standard')
-        return checkDerivative(fun, sig, num=5, plotIt=False)
+        return Tests.checkDerivative(fun, sig, num=5, plotIt=False)
 
     def test_FaceIP_1D_float(self):
         self.assertTrue(self.doTestFace([10],0, False, 'Tensor'))

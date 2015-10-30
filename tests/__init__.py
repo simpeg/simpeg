@@ -1,6 +1,3 @@
-from TestUtils import checkDerivative, Rosenbrock, OrderTest, getQuadratic
-
-
 if __name__ == '__main__':
     import os
     import glob
