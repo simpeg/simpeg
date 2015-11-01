@@ -188,46 +188,48 @@ class RxMT(Survey.BaseRx):
                 Pby = mesh.getInterpolationMat(bFLocs,'Fy')
                 # Get the fields at location
                 # px: x-polaration and py: y-polaration.
-                ex_px = Pex*mkvc(f[src,'e_px'],2)
-                ey_px = Pey*mkvc(f[src,'e_px'],2)
-                ex_py = Pex*mkvc(f[src,'e_py'],2)
-                ey_py = Pey*mkvc(f[src,'e_py'],2)
-                hx_px = Pbx*mkvc(f[src,'b_px']/mu_0,2)
-                hy_px = Pby*mkvc(f[src,'b_px']/mu_0,2)
-                hx_py = Pbx*mkvc(f[src,'b_py']/mu_0,2)
-                hy_py = Pby*mkvc(f[src,'b_py']/mu_0,2)
+                ex_px = Utils.sdiag(mkvc(Pex*f[src,'e_px'],2))
+                ey_px = Utils.sdiag(mkvc(Pey*f[src,'e_px'],2))
+                ex_py = Utils.sdiag(mkvc(Pex*f[src,'e_py'],2))
+                ey_py = Utils.sdiag(mkvc(Pey*f[src,'e_py'],2))
+                hx_px = Utils.sdiag(mkvc(Pbx*f[src,'b_px']/mu_0,2))
+                hy_px = Utils.sdiag(mkvc(Pby*f[src,'b_px']/mu_0,2))
+                hx_py = Utils.sdiag(mkvc(Pbx*f[src,'b_py']/mu_0,2))
+                hy_py = Utils.sdiag(mkvc(Pby*f[src,'b_py']/mu_0,2))
                 # Derivatives as lambda functions
-                ex_px_u = lambda vec: sp.hstack((Pex,Pex))*f._e_pxDeriv_u(src,vec)
-                ey_px_u = lambda vec: sp.hstack((Pey,Pey))*f._e_pxDeriv_u(src,vec)
-                ex_py_u = lambda vec: sp.hstack((Pex,Pex))*f._e_pyDeriv_u(src,vec)
-                ey_py_u = lambda vec: sp.hstack((Pey,Pey))*f._e_pyDeriv_u(src,vec)
+                spPe = Utils.spzeros(self.nD,mesh.nE)
+                spPb = Utils.spzeros(self.nD,mesh.nF)
+                # The size of the diratives should be nD,nU
+                ex_px_u = lambda vec: Utils.sdiag(mkvc(sp.hstack((Pex,spPe))*f._e_pxDeriv_u(src,vec),2))
+                ey_px_u = lambda vec: Utils.sdiag(mkvc(sp.hstack((Pey,spPe))*f._e_pxDeriv_u(src,vec),2))
+                ex_py_u = lambda vec: Utils.sdiag(mkvc(sp.hstack((spPe,Pex))*f._e_pyDeriv_u(src,vec),2))
+                ey_py_u = lambda vec: Utils.sdiag(mkvc(sp.hstack((spPe,Pey))*f._e_pyDeriv_u(src,vec),2))
                 # NOTE: Think b_p?Deriv_u should return a 2*nF size matrix
-                hx_px_u = lambda vec: sp.hstack((Pbx,Pbx))*f._b_pxDeriv_u(src,vec)/mu_0
-                hy_px_u = lambda vec: sp.hstack((Pby,Pby))*f._b_pxDeriv_u(src,vec)/mu_0
-                hx_py_u = lambda vec: sp.hstack((Pbx,Pbx))*f._b_pyDeriv_u(src,vec)/mu_0
-                hy_py_u = lambda vec: sp.hstack((Pby,Pby))*f._b_pyDeriv_u(src,vec)/mu_0
-
+                hx_px_u = lambda vec: Utils.sdiag(mkvc(sp.hstack((Pbx,spPb))*f._b_pxDeriv_u(src,vec)/mu_0,2))
+                hy_px_u = lambda vec: Utils.sdiag(mkvc(sp.hstack((Pby,spPb))*f._b_pxDeriv_u(src,vec)/mu_0,2))
+                hx_py_u = lambda vec: Utils.sdiag(mkvc(sp.hstack((spPb,Pbx))*f._b_pyDeriv_u(src,vec)/mu_0,2))
+                hy_py_u = lambda vec: Utils.sdiag(mkvc(sp.hstack((spPb,Pby))*f._b_pyDeriv_u(src,vec)/mu_0,2))
                 # Update the input vector
-                v = mkvc(v,2) # Make v into a column vector
+                # v = mkvc(v,2) # Make v into a column vector
                 # Define the components of the derivative
-                Hd = Utils.sdiag(1/(hx_px*hy_py - hx_py*hy_px))
-                Hd_uV = hx_px_u(hy_py*v) - hx_py*hy_px_u(v) + hx_px*hy_py_u(v) - hx_py_u(hy_px*v)
+                Hd = Utils.sdiag(mkvc(1./(hx_px*hy_py - hx_py*hy_px).data,2))
+                Hd_uV = hx_px_u(v)*hy_py + hx_px*hy_py_u(v) - hx_py*hy_px_u(v) - hx_py_u(v)*hy_px
                 # Calculate components
                 if 'zxx' in self.rxType:
                     Zij = ( ex_px*hy_py - ex_py*hy_px)*Hd
-                    ZijN_uV = ex_px_u(hy_py*v) - ex_py*hy_px_u(v) + ex_px*hy_py_u(v) - ex_py_u(hy_px*v)
+                    ZijN_uV =  ex_px_u(v)*hy_py + ex_px*hy_py_u(v) - ex_py*hy_px_u(v) - ex_py_u(v)*hy_px
                 elif 'zxy' in self.rxType:
                     Zij = (-ex_px*hx_py + ex_py*hx_px)*Hd
-                    ZijN_uV = -ex_px_u(hx_py*v) + ex_py*hx_px_u(v) - ex_px*hx_py_u(v) + ex_py_u(hx_px*v)
+                    ZijN_uV = -ex_px_u(v)*hx_py - ex_px*hx_py_u(v) + ex_py*hx_px_u(v) + ex_py_u(v)*hx_px
                 elif 'zyx' in self.rxType:
                     Zij = ( ey_px*hy_py - ey_py*hy_px)*Hd
-                    ZijN_uV = ey_px_u(hy_py*v) - ey_py*hy_px_u(v) + ey_px*hy_py_u(v) - ey_py_u(hy_px*v)
+                    ZijN_uV =  ey_px_u(v)*hy_py + ey_px*hy_py_u(v) - ey_py*hy_px_u(v) - ey_py_u(v)*hy_px
                 elif 'zyy' in self.rxType:
                     Zij = (-ey_px*hx_py + ey_py*hx_px)*Hd
-                    ZijN_uV = -ey_px_u(hx_py*v) + ey_py*hx_px_u(v) - ey_px*hx_py_u(v) +ey_py_u(hx_px*v)
+                    ZijN_uV = -ey_px_u(v)*hx_py - ey_px*hx_py_u(v) + ey_py*hx_px_u(v) + ey_py_u(v)*hx_px
 
                 # Calculate the complex derivative
-                PDeriv_complex = ZijN_uV*Hd.toarray() - Zij * (Hd_uV*Hd.toarray())
+                PDeriv_complex = Hd * (ZijN_uV - Zij * Hd_uV )
 
             # Extract the real number for the real/imag components.
             Pv = np.array(getattr(PDeriv_complex, real_or_imag))

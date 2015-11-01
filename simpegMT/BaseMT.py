@@ -92,8 +92,8 @@ class BaseMTProblem(BaseFDEMProblem):
                 # Calculate the projection derivatives
                 for rx in src.rxList:
                     # Get the projection derivative
-                    # v should be of size nE,2 (each column for 2 polarizations)
-                    PDeriv_u = lambda v: rx.projectFieldsDeriv(src, self.mesh, u, v) # wrt u, we don't have have PDeriv wrt m
+                    # v should be of size 2*nE (for 2 polarizations)
+                    PDeriv_u = lambda t: rx.projectFieldsDeriv(src, self.mesh, u, t) # wrt u, we don't have have PDeriv wrt m
                     Jv[src, rx] = PDeriv_u(mkvc(du_dm))
         # Return the vectorized sensitivities
         return mkvc(Jv)

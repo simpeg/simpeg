@@ -173,18 +173,22 @@ def test_DerivProjfields(inputSetup,comp='All',freq=False):
     survey, problem = setupSimpegMTfwd_eForm_ps(inputSetup,comp,freq)
     print 'Derivative test of data projection for eFormulation primary/secondary\n\n'
     # problem.mapping = simpeg.Maps.ExpMap(problem.mesh)
+    # Initate things for the derivs Test
+    src = survey.srcList[0]
+    rx = src.rxList[0]
 
-    # Define a src and rx
-    src = survey.srcList[-1]
-    rx = src.rxList[1]
-    u0 = np.random.randn(survey.mesh.nE)+np.random.randn(survey.mesh.nE)*1j
+    u0x = np.random.randn(survey.mesh.nE)+np.random.randn(survey.mesh.nE)*1j
+    u0y = np.random.randn(survey.mesh.nE)+np.random.randn(survey.mesh.nE)*1j
+    u0 = np.vstack((simpeg.mkvc(u0x,2),simpeg.mkvc(u0y,2)))
     f0 = problem.fieldsPair(survey.mesh,survey)
-    f0[src,'e_pxSolution'] = u0
-    f0[src,'e_pySolution'] = u0
+    # u0 = np.hstack((simpeg.mkvc(u0_px,2),simpeg.mkvc(u0_py,2)))
+    f0[src,'e_pxSolution'] =  u0[:len(u0)/2]#u0x
+    f0[src,'e_pySolution'] = u0[len(u0)/2::]#u0y
+
     def fun(u):
         f = problem.fieldsPair(survey.mesh,survey)
-        f[src,'e_pxSolution'] = u.ravel()
-        f[src,'e_pySolution'] = u.ravel()
+        f[src,'e_pxSolution'] = u[:len(u)/2]
+        f[src,'e_pySolution'] = u[len(u)/2::]
         return rx.projectFields(src,survey.mesh,f), lambda t: rx.projectFieldsDeriv(src,survey.mesh,f0,simpeg.mkvc(t,2))
 
     return simpeg.Tests.checkDerivative(fun, u0, num=3, plotIt=False, eps=FLR)

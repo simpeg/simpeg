@@ -233,13 +233,13 @@ class FieldsMT_3D(FieldsMT):
 
     # NOTE: v needs to be length 2*nE to account for both polarizations
     def _b_pxSecondaryDeriv_u(self, src, v, adjoint = False):
-        C = sp.kron(self.mesh.edgeCurl,[[1,0],[0,1]])
+        C = sp.kron(self.mesh.edgeCurl,[[1,0],[0,0]])
         if adjoint:
             return - 1./(1j*omega(src.freq)) * (C.T * v)
         return - 1./(1j*omega(src.freq)) * (C * v)
 
     def _b_pySecondaryDeriv_u(self, src, v, adjoint = False):
-        C = sp.kron(self.mesh.edgeCurl,[[1,0],[0,1]])
+        C = sp.kron(self.mesh.edgeCurl,[[0,0],[0,1]])
         if adjoint:
             return - 1./(1j*omega(src.freq)) * (C.T * v)
         return - 1./(1j*omega(src.freq)) * (C * v)

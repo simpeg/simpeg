@@ -65,8 +65,9 @@ class eForm_psField(BaseMTProblem):
 
         dsig_dm = self.curModel.sigmaDeriv
         MeMui = self.mesh.getEdgeInnerProduct(1.0/mu_0)
-        # Need to make the dMf_dsig symmetirc (nN,nN), don't know how to do this
-        dMf_dsig = self.mesh.getFaceInnerProductDeriv(self.curModel.sigma)(u) * self.curModel.sigmaDeriv
+        #
+        u_src = u['e_1dSolution']
+        dMf_dsig = self.mesh.getFaceInnerProductDeriv(self.curModel.sigma)(u_src) * self.curModel.sigmaDeriv
         if adjoint:
             return 1j * omega(freq) * (  dMf_dsig.T * v )
         # Note: output has to be nN/nF, not nC/nE.
