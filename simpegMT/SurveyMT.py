@@ -188,31 +188,31 @@ class RxMT(Survey.BaseRx):
                 Pby = mesh.getInterpolationMat(bFLocs,'Fy')
                 # Get the fields at location
                 # px: x-polaration and py: y-polaration.
-                ex_px = Utils.sdiag(mkvc(Pex*f[src,'e_px'],2))
-                ey_px = Utils.sdiag(mkvc(Pey*f[src,'e_px'],2))
-                ex_py = Utils.sdiag(mkvc(Pex*f[src,'e_py'],2))
-                ey_py = Utils.sdiag(mkvc(Pey*f[src,'e_py'],2))
-                hx_px = Utils.sdiag(mkvc(Pbx*f[src,'b_px']/mu_0,2))
-                hy_px = Utils.sdiag(mkvc(Pby*f[src,'b_px']/mu_0,2))
-                hx_py = Utils.sdiag(mkvc(Pbx*f[src,'b_py']/mu_0,2))
-                hy_py = Utils.sdiag(mkvc(Pby*f[src,'b_py']/mu_0,2))
+                ex_px = Pex*f[src,'e_px']
+                ey_px = Pey*f[src,'e_px']
+                ex_py = Pex*f[src,'e_py']
+                ey_py = Pey*f[src,'e_py']
+                hx_px = Pbx*f[src,'b_px']/mu_0
+                hy_px = Pby*f[src,'b_px']/mu_0
+                hx_py = Pbx*f[src,'b_py']/mu_0
+                hy_py = Pby*f[src,'b_py']/mu_0
                 # Derivatives as lambda functions
                 spPe = Utils.spzeros(self.nD,mesh.nE)
                 spPb = Utils.spzeros(self.nD,mesh.nF)
                 # The size of the diratives should be nD,nU
-                ex_px_u = lambda vec: Utils.sdiag(mkvc(sp.hstack((Pex,spPe))*f._e_pxDeriv_u(src,vec),2))
-                ey_px_u = lambda vec: Utils.sdiag(mkvc(sp.hstack((Pey,spPe))*f._e_pxDeriv_u(src,vec),2))
-                ex_py_u = lambda vec: Utils.sdiag(mkvc(sp.hstack((spPe,Pex))*f._e_pyDeriv_u(src,vec),2))
-                ey_py_u = lambda vec: Utils.sdiag(mkvc(sp.hstack((spPe,Pey))*f._e_pyDeriv_u(src,vec),2))
+                ex_px_u = lambda vec: sp.hstack((Pex,spPe))*f._e_pxDeriv_u(src,vec)
+                ey_px_u = lambda vec: sp.hstack((Pey,spPe))*f._e_pxDeriv_u(src,vec)
+                ex_py_u = lambda vec: sp.hstack((spPe,Pex))*f._e_pyDeriv_u(src,vec)
+                ey_py_u = lambda vec: sp.hstack((spPe,Pey))*f._e_pyDeriv_u(src,vec)
                 # NOTE: Think b_p?Deriv_u should return a 2*nF size matrix
-                hx_px_u = lambda vec: Utils.sdiag(mkvc(sp.hstack((Pbx,spPb))*f._b_pxDeriv_u(src,vec)/mu_0,2))
-                hy_px_u = lambda vec: Utils.sdiag(mkvc(sp.hstack((Pby,spPb))*f._b_pxDeriv_u(src,vec)/mu_0,2))
-                hx_py_u = lambda vec: Utils.sdiag(mkvc(sp.hstack((spPb,Pbx))*f._b_pyDeriv_u(src,vec)/mu_0,2))
-                hy_py_u = lambda vec: Utils.sdiag(mkvc(sp.hstack((spPb,Pby))*f._b_pyDeriv_u(src,vec)/mu_0,2))
+                hx_px_u = lambda vec: sp.hstack((Pbx,spPb))*f._b_pxDeriv_u(src,vec)/mu_0
+                hy_px_u = lambda vec: sp.hstack((Pby,spPb))*f._b_pxDeriv_u(src,vec)/mu_0
+                hx_py_u = lambda vec: sp.hstack((spPb,Pbx))*f._b_pyDeriv_u(src,vec)/mu_0
+                hy_py_u = lambda vec: sp.hstack((spPb,Pby))*f._b_pyDeriv_u(src,vec)/mu_0
                 # Update the input vector
                 # v = mkvc(v,2) # Make v into a column vector
                 # Define the components of the derivative
-                Hd = Utils.sdiag(mkvc(1./(hx_px*hy_py - hx_py*hy_px).data,2))
+                Hd = 1./(hx_px*hy_py - hx_py*hy_px)
                 Hd_uV = hx_px_u(v)*hy_py + hx_px*hy_py_u(v) - hx_py*hy_px_u(v) - hx_py_u(v)*hy_px
                 # Calculate components
                 if 'zxx' in self.rxType:
