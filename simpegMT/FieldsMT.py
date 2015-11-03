@@ -174,10 +174,27 @@ class FieldsMT_3D(FieldsMT):
     def _e_py(self, e_pySolution, srcList):
         return self._e_pyPrimary(e_pySolution,srcList) + self._e_pySecondary(e_pySolution,srcList)
 
+    #NOTE: For e_p?Deriv_u,
+    # v has to be u(2*nE) long for the not adjoint and nE long for adjoint.
+    # Returns nE long for not adjoint and 2*nE long for adjoint
     def _e_pxDeriv_u(self, src, v, adjoint = False):
+        '''
+        Takes the derivative of e_px wrt u
+        '''
+        if adjoint:
+            # adjoint: returns a 2*nE long vector with zero's for py
+            return np.vstack((v,np.zeros_like(v)))
+        # Not adjoint: return only the px part of the vector
         return v[:len(v)/2]
 
     def _e_pyDeriv_u(self, src, v, adjoint = False):
+        '''
+        Takes the derivative of e_py wrt u
+        '''
+        if adjoint:
+            # adjoint: returns a 2*nE long vector with zero's for px
+            return np.vstack((np.zeros_like(v),v))
+        # Not adjoint: return only the px part of the vector
         return v[len(v)/2::]
 
     def _e_pxDeriv_m(self, src, v, adjoint = False):

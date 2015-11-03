@@ -267,36 +267,38 @@ class RxMT(Survey.BaseRx):
                 ahx_py = mkvc(f[src,'b_py'],2).T/mu_0*Pbx.T
                 ahy_py = mkvc(f[src,'b_py'],2).T/mu_0*Pby.T
                 # Derivatives as lambda functions
-                aex_px_u = lambda vec: f._e_pxDeriv_u(src,sp.hstack((Pex,Pex)).T*vec,adjoint=True)
-                aey_px_u = lambda vec: f._e_pxDeriv_u(src,sp.hstack((Pey,Pey)).T*vec,adjoint=True)
-                aex_py_u = lambda vec: f._e_pyDeriv_u(src,sp.hstack((Pex,Pex)).T*vec,adjoint=True)
-                aey_py_u = lambda vec: f._e_pyDeriv_u(src,sp.hstack((Pey,Pey)).T*vec,adjoint=True)
-                ahx_px_u = lambda vec: f._b_pxDeriv_u(src,sp.hstack((Pbx,Pbx)).T*vec,adjoint=True)/mu_0
-                ahy_px_u = lambda vec: f._b_pxDeriv_u(src,sp.hstack((Pby,Pby)).T*vec,adjoint=True)/mu_0
-                ahx_py_u = lambda vec: f._b_pyDeriv_u(src,sp.hstack((Pbx,Pbx)).T*vec,adjoint=True)/mu_0
-                ahy_py_u = lambda vec: f._b_pyDeriv_u(src,sp.hstack((Pby,Pby)).T*vec,adjoint=True)/mu_0
+                aex_px_u = lambda vec: f._e_pxDeriv_u(src,Pex.T*vec,adjoint=True)
+                aey_px_u = lambda vec: f._e_pxDeriv_u(src,Pey.T*vec,adjoint=True)
+                aex_py_u = lambda vec: f._e_pyDeriv_u(src,Pex.T*vec,adjoint=True)
+                aey_py_u = lambda vec: f._e_pyDeriv_u(src,Pey.T*vec,adjoint=True)
+                ahx_px_u = lambda vec: f._b_pxDeriv_u(src,Pbx.T*vec,adjoint=True)/mu_0
+                ahy_px_u = lambda vec: f._b_pxDeriv_u(src,Pby.T*vec,adjoint=True)/mu_0
+                ahx_py_u = lambda vec: f._b_pyDeriv_u(src,Pbx.T*vec,adjoint=True)/mu_0
+                ahy_py_u = lambda vec: f._b_pyDeriv_u(src,Pby.T*vec,adjoint=True)/mu_0
 
                 # Update the input vector
-                v = mkvc(v,2) # Make v into a column vector
+                # Define shortcuts
+                sDiag = lambda t: Utils.sdiag(mkvc(t,2))
+                sVec = lambda t: Utils.sp.csr_matrix(mkvc(t,2))
                 # Define the components of the derivative
-                aHd = Utils.sdiag(1/(ahy_py*ahx_px - ahy_px*ahx_py))
-                aHd_uV = Utils.sp.csr_matrix(ahx_px_u(ahy_py*v) - ahx_py*ahy_px_u(v) + ahx_py_u(ahy_py*v) - ahx_py_u(ahy_px*v) )
+                aHd = sDiag(1./(sDiag(ahy_py)*ahx_px - sDiag(ahy_px)*ahx_py))
+                aHd_uV = lambda x: ahx_px_u(sDiag(ahy_py)*x) + ahx_px_u(sDiag(ahy_py)*x) - ahy_px_u(sDiag(ahx_py)*x) - ahx_py_u(sDiag(ahy_px)*x)
                 # Need to fix this to reflect the adjoint
                 if 'zxx' in self.rxType:
-                    Zij = Utils.sp.csr_matrix( ahy_py*aex_px - ahy_px*aex_py)*aHd
-                    ZijN_uV =  Utils.sp.csr_matrix(ahy_py*aex_px_u(v) - ahy_px_u(aex_py*v) + ahy_py_u(aex_px*v) - ahy_px*aex_py_u(v))
+                    Zij = sDiag(aHd*( sDiag(ahy_py)*aex_px - sDiag(ahy_px)*aex_py))
+                    ZijN_uV = lambda x: aex_px_u(sDiag(ahy_py)*x) + ahy_py_u(sDiag(aex_px)*x) - ahy_px_u(sDiag(aex_py)*x) - aex_py_u(sDiag(ahy_px)*x)
                 elif 'zxy' in self.rxType:
-                    Zij = Utils.sp.csr_matrix(-ahx_py*aex_px + ahx_px*aex_py)*aHd
-                    ZijN_uV = Utils.sp.csr_matrix(-ahx_py*aex_px_u(v) + ahx_px_u(aex_py*v) - ahx_py_u(aex_px*v) + ahx_px*aex_py_u(v))
+                    Zij = sDiag(aHd*(-sDiag(ahx_py)*aex_px + sDiag(ahx_px)*aex_py))
+                    ZijN_uV = lambda x:-aex_px_u(sDiag(ahx_py)*x) - ahx_py_u(sDiag(aex_px)*x) + ahx_px_u(sDiag(aex_py)*x) + aex_py_u(sDiag(ahx_px)*x)
                 elif 'zyx' in self.rxType:
-                    Zij = Utils.sp.csr_matrix( ahy_py*aey_px - ahy_px*aey_py)*aHd
-                    ZijN_uV =  Utils.sp.csr_matrix(ahy_py*aey_px_u(v) - ahy_px_u(aey_py*v) + ahy_py_u(aey_px*v) - ahy_px*aey_py_u(v))
+                    Zij = sDiag(aHd*( sDiag(ahy_py)*aey_px - sDiag(ahy_px)*aey_py))
+                    ZijN_uV = lambda x: aey_px_u(sDiag(ahy_py)*x) + ahy_py_u(sDiag(aey_px)*x) - ahy_px_u(sDiag(aey_py)*x) - aey_py_u(sDiag(ahy_px)*x)
                 elif 'zyy' in self.rxType:
-                    Zij = Utils.sp.csr_matrix(-ahx_py*aey_px + ahx_px*aey_py)*aHd
-                    ZijN_uV = Utils.sp.csr_matrix(-ahx_py*aey_px_u(v) + ahx_px_u(aey_py*v) - ahx_py_u(aey_px*v) + ahx_px*aey_py_u(v))
+                    Zij = sDiag(aHd*(-sDiag(ahx_py)*aey_px + sDiag(ahx_px)*aey_py))
+                    ZijN_uV = lambda x:-aey_px_u(sDiag(ahx_py)*x) - ahx_py_u(sDiag(aey_px)*x) + ahx_px_u(sDiag(aey_py)*x) + aey_py_u(sDiag(ahx_px)*x)
 
                 # Calculate the complex derivative
-                PDeriv_real = (ZijN_uV*aHd - (aHd_uV*aHd)*Zij.T).toarray() #
+                PDeriv_real = ZijN_uV(aHd*v) - aHd_uV(Zij.T*aHd*v)#
                 # NOTE: .toarray() is to return a non-sparse array which is needed for for Ainv* operation. Might want to take care of this elsewhere.
             # Extract the data
             if real_or_imag == 'imag':
