@@ -175,10 +175,10 @@ class FieldsMT_3D(FieldsMT):
         return self._e_pyPrimary(e_pySolution,srcList) + self._e_pySecondary(e_pySolution,srcList)
 
     def _e_pxDeriv_u(self, src, v, adjoint = False):
-        return v
+        return v[:len(v)/2]
 
     def _e_pyDeriv_u(self, src, v, adjoint = False):
-        return v
+        return v[len(v)/2::]
 
     def _e_pxDeriv_m(self, src, v, adjoint = False):
         # assuming primary does not depend on the model
@@ -233,13 +233,15 @@ class FieldsMT_3D(FieldsMT):
 
     # NOTE: v needs to be length 2*nE to account for both polarizations
     def _b_pxSecondaryDeriv_u(self, src, v, adjoint = False):
-        C = sp.kron(self.mesh.edgeCurl,[[1,0],[0,0]])
+        # C = sp.kron(self.mesh.edgeCurl,[[1,0],[0,0]])
+        C = sp.hstack((self.mesh.edgeCurl,Utils.spzeros(self.mesh.nF,self.mesh.nE))) # This works for adjoint = None
         if adjoint:
             return - 1./(1j*omega(src.freq)) * (C.T * v)
         return - 1./(1j*omega(src.freq)) * (C * v)
 
     def _b_pySecondaryDeriv_u(self, src, v, adjoint = False):
-        C = sp.kron(self.mesh.edgeCurl,[[0,0],[0,1]])
+        # C = sp.kron(self.mesh.edgeCurl,[[0,0],[0,1]])
+        C = sp.hstack((Utils.spzeros(self.mesh.nF,self.mesh.nE),self.mesh.edgeCurl)) # This works for adjoint = None
         if adjoint:
             return - 1./(1j*omega(src.freq)) * (C.T * v)
         return - 1./(1j*omega(src.freq)) * (C * v)
