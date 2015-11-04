@@ -198,7 +198,7 @@ class RichardsTests2D(unittest.TestCase):
         mTrue = self.Ks*np.ones(self.M.nC)
         derChk = lambda m: [self.survey.dpred(m), lambda v: self.prob.Jvec(m, v)]
         print '2D: Testing Richards Derivative'
-        passed = checkDerivative(derChk, mTrue, num=4, plotIt=False)
+        passed = checkDerivative(derChk, mTrue, num=3, plotIt=False)
         self.assertTrue(passed,True)
 
     def test_Sensitivity_full(self):
