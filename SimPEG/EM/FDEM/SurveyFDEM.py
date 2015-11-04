@@ -1,10 +1,10 @@
 from SimPEG import Survey, Problem, Utils, np, sp
-from simpegEM.Utils import SrcUtils
-from simpegEM.Utils.EMUtils import omega, e_from_j, j_from_e, b_from_h, h_from_b
+from SimPEG.EM.Utils import SrcUtils
+from SimPEG.EM.Utils.EMUtils import omega, e_from_j, j_from_e, b_from_h, h_from_b
 from scipy.constants import mu_0
 
 ####################################################
-# Receivers 
+# Receivers
 ####################################################
 
 class RxFDEM(Survey.BaseRx):
@@ -99,13 +99,13 @@ class SrcFDEM(Survey.BaseSrc):
     def eval(self, prob):
         S_m = self.S_m(prob)
         S_e = self.S_e(prob)
-        return S_m, S_e 
+        return S_m, S_e
 
     def evalDeriv(self, prob, v, adjoint=False):
         return lambda v: self.S_mDeriv(prob,v,adjoint), lambda v: self.S_eDeriv(prob,v,adjoint)
 
     def bPrimary(self, prob):
-        return None 
+        return None
 
     def hPrimary(self, prob):
         return None
@@ -225,7 +225,7 @@ class SrcFDEM_RawVec(SrcFDEM):
             return prob.Me * self._S_e
         return self._S_e
 
- 
+
 class SrcFDEM_MagDipole(SrcFDEM):
 
     #TODO: right now, orientation doesn't actually do anything! The methods in SrcUtils should take care of that
@@ -275,7 +275,7 @@ class SrcFDEM_MagDipole(SrcFDEM):
 
     def S_m(self, prob):
         b_p = self.bPrimary(prob)
-        return -1j*omega(self.freq)*b_p 
+        return -1j*omega(self.freq)*b_p
 
     def S_e(self, prob):
         if all(np.r_[self.mu] == np.r_[prob.curModel.mu]):

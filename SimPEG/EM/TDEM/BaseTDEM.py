@@ -1,10 +1,10 @@
 from SimPEG import Solver, Problem
 from SimPEG.Problem import BaseTimeProblem
-from simpegEM.Utils import SrcUtils
+from SimPEG.EM.Utils import SrcUtils
 from scipy.constants import mu_0
 from SimPEG.Utils import sdiag, mkvc
 from SimPEG import Utils, Mesh
-from simpegEM.Base import BaseEMProblem
+from SimPEG.EM.Base import BaseEMProblem
 import numpy as np
 
 

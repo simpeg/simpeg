@@ -2,33 +2,33 @@ from SimPEG import Survey, Problem, Utils, np, sp, Solver as SimpegSolver
 from scipy.constants import mu_0
 from SurveyFDEM import SurveyFDEM
 from FieldsFDEM import FieldsFDEM, FieldsFDEM_e, FieldsFDEM_b, FieldsFDEM_h, FieldsFDEM_j
-from simpegEM.Base import BaseEMProblem
-from simpegEM.Utils.EMUtils import omega
+from SimPEG.EM.Base import BaseEMProblem
+from SimPEG.EM.Utils.EMUtils import omega
 
 
 class BaseFDEMProblem(BaseEMProblem):
     """
-        We start by looking at Maxwell's equations in the electric 
-        field \\\(\\\mathbf{e}\\\) and the magnetic flux 
+        We start by looking at Maxwell's equations in the electric
+        field \\\(\\\mathbf{e}\\\) and the magnetic flux
         density \\\(\\\mathbf{b}\\\)
 
         .. math ::
 
             \mathbf{C} \mathbf{e} + i \omega \mathbf{b} = \mathbf{s_m} \\\\
             {\mathbf{C}^T \mathbf{M_{\mu^{-1}}^f} \mathbf{b} - \mathbf{M_{\sigma}^e} \mathbf{e} = \mathbf{M^e} \mathbf{s_e}}
-        
-        if using the E-B formulation (:code:`ProblemFDEM_e` 
-        or :code:`ProblemFDEM_b`) or the magnetic field 
+
+        if using the E-B formulation (:code:`ProblemFDEM_e`
+        or :code:`ProblemFDEM_b`) or the magnetic field
         \\\(\\\mathbf{h}\\\) and current density \\\(\\\mathbf{j}\\\)
 
-        .. math :: 
+        .. math ::
 
             \mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{j} + i \omega \mathbf{M_{\mu}^e} \mathbf{h} = \mathbf{M^e} \mathbf{s_m} \\\\
             \mathbf{C} \mathbf{h} - \mathbf{j} = \mathbf{s_e}
 
         if using the H-J formulation (:code:`ProblemFDEM_j` or :code:`ProblemFDEM_h`).
 
-        The problem performs the elimination so that we are solving the system for \\\(\\\mathbf{e},\\\mathbf{b},\\\mathbf{j} \\\) or \\\(\\\mathbf{h}\\\) 
+        The problem performs the elimination so that we are solving the system for \\\(\\\mathbf{e},\\\mathbf{b},\\\mathbf{j} \\\) or \\\(\\\mathbf{h}\\\)
     """
 
     surveyPair = SurveyFDEM
@@ -36,7 +36,7 @@ class BaseFDEMProblem(BaseEMProblem):
 
     def fields(self, m=None):
         """
-            Solve the forward problem for the fields. 
+            Solve the forward problem for the fields.
         """
 
         self.curModel = m
@@ -59,7 +59,7 @@ class BaseFDEMProblem(BaseEMProblem):
         """
 
         if f is None:
-           f = self.fields(m) 
+           f = self.fields(m)
 
         self.curModel = m
 
@@ -67,7 +67,7 @@ class BaseFDEMProblem(BaseEMProblem):
 
         for freq in self.survey.freqs:
             dA_du = self.getA(freq) #
-            dA_duI = self.Solver(dA_du, **self.solverOpts) 
+            dA_duI = self.Solver(dA_du, **self.solverOpts)
 
             for src in self.survey.getSrcByFreq(freq):
                 ftype = self._fieldType + 'Solution'
@@ -97,7 +97,7 @@ class BaseFDEMProblem(BaseEMProblem):
 
         return Utils.mkvc(Jv)
 
-    def Jtvec(self, m, v, f=None): 
+    def Jtvec(self, m, v, f=None):
         """
             Sensitivity transpose times a vector
         """
@@ -157,7 +157,7 @@ class BaseFDEMProblem(BaseEMProblem):
 
     def getSourceTerm(self, freq):
         """
-            Evaluates the sources for a given frequency and puts them in matrix form 
+            Evaluates the sources for a given frequency and puts them in matrix form
 
             :param float freq: Frequency
             :rtype: numpy.ndarray (nE or nF, nSrc)
@@ -165,11 +165,11 @@ class BaseFDEMProblem(BaseEMProblem):
         """
         Srcs = self.survey.getSrcByFreq(freq)
         if self._eqLocs is 'FE':
-            S_m = np.zeros((self.mesh.nF,len(Srcs)), dtype=complex) 
+            S_m = np.zeros((self.mesh.nF,len(Srcs)), dtype=complex)
             S_e = np.zeros((self.mesh.nE,len(Srcs)), dtype=complex)
         elif self._eqLocs is 'EF':
             S_m = np.zeros((self.mesh.nE,len(Srcs)), dtype=complex)
-            S_e = np.zeros((self.mesh.nF,len(Srcs)), dtype=complex) 
+            S_e = np.zeros((self.mesh.nF,len(Srcs)), dtype=complex)
 
         for i, src in enumerate(Srcs):
             smi, sei = src.eval(self)
@@ -198,9 +198,9 @@ class ProblemFDEM_e(BaseFDEMProblem):
 
         .. math ::
 
-            \\left(\mathbf{C}^T \mathbf{M_{\mu^{-1}}^f} \mathbf{C}+ i \omega \mathbf{M^e_{\sigma}} \\right)\mathbf{e} = \mathbf{C}^T \mathbf{M_{\mu^{-1}}^f}\mathbf{s_m} -i\omega\mathbf{M^e}\mathbf{s_e}  
+            \\left(\mathbf{C}^T \mathbf{M_{\mu^{-1}}^f} \mathbf{C}+ i \omega \mathbf{M^e_{\sigma}} \\right)\mathbf{e} = \mathbf{C}^T \mathbf{M_{\mu^{-1}}^f}\mathbf{s_m} -i\omega\mathbf{M^e}\mathbf{s_e}
 
-        which we solve for \\\(\\\mathbf{e}\\\). 
+        which we solve for \\\(\\\mathbf{e}\\\).
     """
 
     _fieldType = 'e'
@@ -271,10 +271,10 @@ class ProblemFDEM_e(BaseFDEMProblem):
                 return - 1j * omega(freq) * S_eDerivv
             else:
                 return None
-        else:   
+        else:
             S_mDerivv, S_eDerivv = S_mDeriv(v), S_eDeriv(v)
 
-            if S_mDerivv is not None and S_eDerivv is not None: 
+            if S_mDerivv is not None and S_eDerivv is not None:
                 return C.T * (MfMui * S_mDerivv) -1j * omega(freq) * S_eDerivv
             elif S_mDerivv is not None:
                 return C.T * (MfMui * S_mDerivv)
@@ -289,17 +289,17 @@ class ProblemFDEM_b(BaseFDEMProblem):
         We eliminate \\\(\\\mathbf{e}\\\) using
 
         .. math ::
-             
+
              \mathbf{e} = \mathbf{M^e_{\sigma}}^{-1} \\left(\mathbf{C}^T \mathbf{M_{\mu^{-1}}^f} \mathbf{b} - \mathbf{s_e}\\right)
 
         and solve for \\\(\\\mathbf{b}\\\) using:
 
         .. math ::
-            
-            \\left(\mathbf{C} \mathbf{M^e_{\sigma}}^{-1} \mathbf{C}^T \mathbf{M_{\mu^{-1}}^f}  + i \omega \\right)\mathbf{b} = \mathbf{s_m} + \mathbf{M^e_{\sigma}}^{-1}\mathbf{M^e}\mathbf{s_e} 
-    
+
+            \\left(\mathbf{C} \mathbf{M^e_{\sigma}}^{-1} \mathbf{C}^T \mathbf{M_{\mu^{-1}}^f}  + i \omega \\right)\mathbf{b} = \mathbf{s_m} + \mathbf{M^e_{\sigma}}^{-1}\mathbf{M^e}\mathbf{s_e}
+
         .. note ::
-            The inverse problem will not work with full anisotropy 
+            The inverse problem will not work with full anisotropy
     """
 
     _fieldType = 'b'
@@ -345,14 +345,14 @@ class ProblemFDEM_b(BaseFDEMProblem):
             return MeSigmaIDeriv.T * (C.T * v)
 
         if self._makeASymmetric is True:
-            return MfMui.T * ( C * ( MeSigmaIDeriv * v ) ) 
-        return C * ( MeSigmaIDeriv * v ) 
+            return MfMui.T * ( C * ( MeSigmaIDeriv * v ) )
+        return C * ( MeSigmaIDeriv * v )
 
 
     def getRHS(self, freq):
         """
             .. math ::
-                \mathbf{RHS} = \mathbf{s_m} + \mathbf{M^e_{\sigma}}^{-1}\mathbf{s_e} 
+                \mathbf{RHS} = \mathbf{s_m} + \mathbf{M^e_{\sigma}}^{-1}\mathbf{s_e}
 
             :param float freq: Frequency
             :rtype: numpy.ndarray (nE, nSrc)
@@ -404,7 +404,7 @@ class ProblemFDEM_b(BaseFDEMProblem):
                 SrcDeriv = C * (self.MeSigmaI * S_eDeriv)
             elif adjoint:
                 SrcDeriv = self.MeSigmaI.T * ( C.T * S_eDeriv)
-        else: 
+        else:
             SrcDeriv = None
 
         if RHSderiv is not None and SrcDeriv is not None:
@@ -412,7 +412,7 @@ class ProblemFDEM_b(BaseFDEMProblem):
         elif SrcDeriv is not None:
             RHSderiv = SrcDeriv
 
-        if RHSderiv is not None: 
+        if RHSderiv is not None:
             if self._makeASymmetric is True and not adjoint:
                 return MfMui.T * RHSderiv
 
@@ -427,13 +427,13 @@ class ProblemFDEM_b(BaseFDEMProblem):
 
 class ProblemFDEM_j(BaseFDEMProblem):
     """
-        We eliminate \\\(\\\mathbf{h}\\\) using 
+        We eliminate \\\(\\\mathbf{h}\\\) using
 
-        .. math :: 
+        .. math ::
 
             \mathbf{h} = \\frac{1}{i \omega} \mathbf{M_{\mu}^e}^{-1} \\left(-\mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{j}  + \mathbf{M^e} \mathbf{s_m} \\right)
 
-        and solve for \\\(\\\mathbf{j}\\\) using 
+        and solve for \\\(\\\mathbf{j}\\\) using
 
         .. math ::
 
@@ -510,7 +510,7 @@ class ProblemFDEM_j(BaseFDEMProblem):
 
         S_m, S_e = self.getSourceTerm(freq)
         C = self.mesh.edgeCurl
-        MeMuI = self.MeMuI  
+        MeMuI = self.MeMuI
 
         RHS = C * (MeMuI * S_m) - 1j * omega(freq) * S_e
         if self._makeASymmetric is True:
@@ -521,7 +521,7 @@ class ProblemFDEM_j(BaseFDEMProblem):
 
     def getRHSDeriv_m(self, src, v, adjoint=False):
         C = self.mesh.edgeCurl
-        MeMuI = self.MeMuI  
+        MeMuI = self.MeMuI
         S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint)
 
         if adjoint:
@@ -538,10 +538,10 @@ class ProblemFDEM_j(BaseFDEMProblem):
                 return - 1j * omega(freq) * S_eDerivv
             else:
                 return None
-        else:   
+        else:
             S_mDerivv, S_eDerivv = S_mDeriv(v), S_eDeriv(v)
 
-            if S_mDerivv is not None and S_eDerivv is not None: 
+            if S_mDerivv is not None and S_eDerivv is not None:
                 RHSDeriv = C * (MeMuI * S_mDerivv) - 1j * omega(freq) * S_eDerivv
             elif S_mDerivv is not None:
                 RHSDeriv = C * (MeMuI * S_mDerivv)
@@ -560,17 +560,17 @@ class ProblemFDEM_j(BaseFDEMProblem):
 
 class ProblemFDEM_h(BaseFDEMProblem):
     """
-        We eliminate \\\(\\\mathbf{j}\\\) using 
+        We eliminate \\\(\\\mathbf{j}\\\) using
 
         .. math ::
 
             \mathbf{j} = \mathbf{C} \mathbf{h} - \mathbf{s_e}
 
-        and solve for \\\(\\\mathbf{h}\\\) using 
+        and solve for \\\(\\\mathbf{h}\\\) using
 
         .. math ::
 
-            \\left(\mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{C} + i \omega \mathbf{M_{\mu}^e}\\right) \mathbf{h} = \mathbf{M^e} \mathbf{s_m} + \mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{s_e} 
+            \\left(\mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{C} + i \omega \mathbf{M_{\mu}^e}\\right) \mathbf{h} = \mathbf{M^e} \mathbf{s_m} + \mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{s_e}
 
     """
 
@@ -612,7 +612,7 @@ class ProblemFDEM_h(BaseFDEMProblem):
         """
             .. math ::
 
-                \mathbf{RHS} = \mathbf{M^e} \mathbf{s_m} + \mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{s_e} 
+                \mathbf{RHS} = \mathbf{M^e} \mathbf{s_m} + \mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{s_e}
 
             :param float freq: Frequency
             :rtype: numpy.ndarray (nE, nSrc)
@@ -647,12 +647,12 @@ class ProblemFDEM_h(BaseFDEMProblem):
         S_eDeriv = S_eDeriv(v)
 
         if S_mDeriv is not None:
-            if RHSDeriv is not None: 
+            if RHSDeriv is not None:
                 RHSDeriv += S_mDeriv(v)
-            else: 
+            else:
                 RHSDeriv =  S_mDeriv(v)
         if S_eDeriv is not None:
-            if RHSDeriv is not None: 
+            if RHSDeriv is not None:
                 RHSDeriv += C.T * (MfRho * S_e)
             else:
                 RHSDeriv = C.T * (MfRho * S_e)
