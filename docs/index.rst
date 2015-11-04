@@ -85,6 +85,7 @@ Packages
 .. toctree::
    :maxdepth: 3
 
+   em/index
    flow/index
 
 Developer's Documentation
