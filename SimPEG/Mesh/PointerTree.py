@@ -391,6 +391,13 @@ class Tree(object):
             self.number()
         return self._gridFy
 
+    @property
+    def gridFz(self):
+        if self.dim < 3: return None
+        if getattr(self, '_gridFz', None) is None:
+            self.number()
+        return self._gridFz
+
     def _onSameLevel(self, i0, i1):
         p0 = self._asPointer(i0)
         p1 = self._asPointer(i1)
@@ -399,12 +406,12 @@ class Tree(object):
     def number(self, force=False):
         if not self.__dirty__ and not force: return
 
-        facesX, facesY = [], []
-        areaX, areaY = [], []
-        hangingFacesX, hangingFacesY = [], []
-        faceXCount, faceYCount = -1, -1
+        facesX, facesY, facesZ = [], [], []
+        areaX, areaY, areaZ = [], [], []
+        hangingFacesX, hangingFacesY, hangingFacesZ = [], [], []
+        faceXCount, faceYCount, faceZCount = -1, -1, -1
         fXm,fXp,fYm,fYp,fZm,fZp = range(6)
-        vol = []
+        vol, nodes = [], []
 
         def addXFace(count, p, positive=True):
             n = self._cellN(p)
@@ -423,6 +430,12 @@ class Tree(object):
                 facesY.append([n[0] + w[0]/2.0, n[1] + (w[1] if positive else 0)])
             elif self.dim == 3:
                 facesY.append([n[0] + w[0]/2.0, n[1] + (w[1] if positive else 0), n[2] + w[2]/2.0])
+            return count + 1
+        def addZFace(count, p, positive=True):
+            n = self._cellN(p)
+            w = self._cellH(p)
+            areaZ.append(w[0]*w[1])
+            facesZ.append([n[0] + w[0]/2.0, n[1] + w[1]/2.0, n[2] + (w[2] if positive else 0)])
             return count + 1
 
         # c2cn = dict()
@@ -482,19 +495,25 @@ class Tree(object):
             vol.append(np.prod(self._cellH(ind)))
             faceXCount = processCell(ind, faceXCount, addXFace, hangingFacesX, DIR=0)
             faceYCount = processCell(ind, faceYCount, addYFace, hangingFacesY, DIR=1)
+            if self.dim == 3:
+                faceZCount = processCell(ind, faceZCount, addZFace, hangingFacesZ, DIR=2)
 
         self._c2f = c2f
-        self._area = np.array(areaX + areaY)
+        self._area = np.array(areaX + areaY + (areaZ if self.dim == 3 else []))
         self._vol = np.array(vol)
         self._gridFx = np.array(facesX)
         self._gridFy = np.array(facesY)
+        self._hangingFacesX = hangingFacesX
+        self._hangingFacesY = hangingFacesY
+        if self.dim == 3:
+            self._gridFz = np.array(facesZ)
+            self._nFz = self._gridFz.shape[0]
+            self._hangingFacesZ = hangingFacesZ
+
         self._nC = len(self._sortedInds)
         self._nFx = self._gridFx.shape[0]
         self._nFy = self._gridFy.shape[0]
-        self._nF = self._nFx + self._nFy
-
-        self._hangingFacesX = hangingFacesX
-        self._hangingFacesY = hangingFacesY
+        self._nF = self._nFx + self._nFy + (self._nFz if self.dim == 3 else 0)
 
         self.__dirty__ = False
 
@@ -506,7 +525,7 @@ class Tree(object):
             # TODO: Preallocate!
             I, J, V = [], [], []
             PM = [-1,1]*self.dim # plus / minus
-            offset = [0,0,self.nFx,self.nFx]
+            offset = [0,0,self.nFx,self.nFx,self.nFx+self.nFy,self.nFx+self.nFy]
 
             for ii, ind in enumerate(self._sortedInds):
                 faces = self._c2f[ind]
@@ -556,10 +575,13 @@ class Tree(object):
         ax.plot(self.gridCC[:,0], self.gridCC[:,1], 'r.', zs=None if self.dim == 2 else self.gridCC[:,2])
         ax.plot(self.gridCC[:,0], self.gridCC[:,1], 'r:', zs=None if self.dim == 2 else self.gridCC[:,2])
 
-        ax.plot(self.gridFx[self._hangingFacesX,0], self.gridFx[self._hangingFacesX,1], 'gs', ms=10, mfc='none', mec='green', zs=None if self.dim == 2 else self.gridFx[self._hangingFacesX,2])
-        ax.plot(self.gridFx[:,0], self.gridFx[:,1], 'g>', zs=None if self.dim == 2 else self.gridFx[:,2])
-        ax.plot(self.gridFy[self._hangingFacesY,0], self.gridFy[self._hangingFacesY,1], 'gs', ms=10, mfc='none', mec='green', zs=None if self.dim == 2 else self.gridFy[self._hangingFacesY,2])
-        ax.plot(self.gridFy[:,0], self.gridFy[:,1], 'g^', zs=None if self.dim == 2 else self.gridFy[:,2])
+        # ax.plot(self.gridFx[self._hangingFacesX,0], self.gridFx[self._hangingFacesX,1], 'gs', ms=10, mfc='none', mec='green', zs=None if self.dim == 2 else self.gridFx[self._hangingFacesX,2])
+        # ax.plot(self.gridFx[:,0], self.gridFx[:,1], 'g>', zs=None if self.dim == 2 else self.gridFx[:,2])
+        # ax.plot(self.gridFy[self._hangingFacesY,0], self.gridFy[self._hangingFacesY,1], 'gs', ms=10, mfc='none', mec='green', zs=None if self.dim == 2 else self.gridFy[self._hangingFacesY,2])
+        # ax.plot(self.gridFy[:,0], self.gridFy[:,1], 'g^', zs=None if self.dim == 2 else self.gridFy[:,2])
+        if self.dim == 3:
+            ax.plot(self.gridFz[self._hangingFacesZ,0], self.gridFz[self._hangingFacesZ,1], 'gs', ms=10, mfc='none', mec='green', zs=self.gridFz[self._hangingFacesZ,2])
+            ax.plot(self.gridFz[:,0], self.gridFz[:,1], 'g^', zs=self.gridFz[:,2])
 
         if showIt:plt.show()
 

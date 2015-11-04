@@ -59,7 +59,7 @@ class TestOperatorsQuadTree(unittest.TestCase):
         hx, hy = np.r_[1.,2,3,4], np.r_[5.,6,7,8]
         T = Tree([hx, hy], levels=2)
         T.refine(lambda xc:2)
-        T.plotGrid(showIt=True)
+        # T.plotGrid(showIt=True)
         M = Mesh.TensorMesh([hx, hy])
         assert M.nC == T.nC
         assert M.nF == T.nF
@@ -70,6 +70,33 @@ class TestOperatorsQuadTree(unittest.TestCase):
         assert M.nEy == T.nEy
         assert np.allclose(M.area, T.permuteF*T.area)
         assert np.allclose(M.edge, T.permuteE*T.edge)
+        assert np.allclose(M.vol, T.permuteCC*T.vol)
+
+        # plt.subplot(211).spy(M.faceDiv)
+        # plt.subplot(212).spy(T.permuteCC.T*T.faceDiv*T.permuteF)
+        # plt.show()
+
+        assert (M.faceDiv - T.permuteCC*T.faceDiv*T.permuteF.T).nnz == 0
+
+
+class TestOperatorsOcTree(unittest.TestCase):
+
+    def test_counts(self):
+
+        hx, hy, hz = np.r_[1.,2,3,4], np.r_[5.,6,7,8], np.r_[9.,10,11,12]
+        T = Tree([hx, hy, hz], levels=2)
+        T.refine(lambda xc:2)
+        # T.plotGrid(showIt=True)
+        M = Mesh.TensorMesh([hx, hy, hz])
+        assert M.nC == T.nC
+        assert M.nF == T.nF
+        assert M.nFx == T.nFx
+        assert M.nFy == T.nFy
+        # assert M.nE == T.nE
+        # assert M.nEx == T.nEx
+        # assert M.nEy == T.nEy
+        assert np.allclose(M.area, T.permuteF*T.area)
+        # assert np.allclose(M.edge, T.permuteE*T.edge)
         assert np.allclose(M.vol, T.permuteCC*T.vol)
 
         # plt.subplot(211).spy(M.faceDiv)
