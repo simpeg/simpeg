@@ -446,7 +446,7 @@ class Tree(object):
             c2f[ind] = c2f_ind
             return c2f_ind
 
-        def processCell(ind, faceCount, addFace, hangingFaces, DIR=0):
+        def processCellFace(ind, faceCount, addFace, hangingFaces, DIR=0):
 
             fM,fP=(0,1) if DIR == 0 else (2,3) if DIR == 1 else (4,5)
             p = self._asPointer(ind)
@@ -493,10 +493,10 @@ class Tree(object):
         for ii, ind in enumerate(self._sortedInds):
             # c2cn[ind] = ii
             vol.append(np.prod(self._cellH(ind)))
-            faceXCount = processCell(ind, faceXCount, addXFace, hangingFacesX, DIR=0)
-            faceYCount = processCell(ind, faceYCount, addYFace, hangingFacesY, DIR=1)
+            faceXCount = processCellFace(ind, faceXCount, addXFace, hangingFacesX, DIR=0)
+            faceYCount = processCellFace(ind, faceYCount, addYFace, hangingFacesY, DIR=1)
             if self.dim == 3:
-                faceZCount = processCell(ind, faceZCount, addZFace, hangingFacesZ, DIR=2)
+                faceZCount = processCellFace(ind, faceZCount, addZFace, hangingFacesZ, DIR=2)
 
         self._c2f = c2f
         self._area = np.array(areaX + areaY + (areaZ if self.dim == 3 else []))
@@ -557,10 +557,10 @@ class Tree(object):
             h = self._cellH(p)
             x = [n[0]    , n[0] + h[0], n[0] + h[0], n[0]       , n[0]]
             y = [n[1]    , n[1]       , n[1] + h[1], n[1] + h[1], n[1]]
-            z = [n[2]    , n[2]       , n[2]       , n[2]       , n[2]]
-            ax.plot(x,y, 'b-', zs=None if self.dim == 2 else z)
-
-            if self.dim == 3:
+            if self.dim == 2:
+                ax.plot(x,y, 'b-')
+            elif self.dim == 3:
+                ax.plot(x,y, 'b-', zs=[n[2]]*5)
                 z = [n[2] + h[2], n[2] + h[2], n[2] + h[2], n[2] + h[2], n[2] + h[2]]
                 ax.plot(x,y, 'b-', zs=z)
                 sides = [0,0], [h[0],0], [0,h[1]], [h[0],h[1]]
@@ -571,15 +571,22 @@ class Tree(object):
                     ax.plot(x,y, 'b-', zs=z)
 
 
-        ax.plot(self.gridCC[[0,-1],0], self.gridCC[[0,-1],1], 'ro', zs=None if self.dim == 2 else self.gridCC[[0,-1],2])
-        ax.plot(self.gridCC[:,0], self.gridCC[:,1], 'r.', zs=None if self.dim == 2 else self.gridCC[:,2])
-        ax.plot(self.gridCC[:,0], self.gridCC[:,1], 'r:', zs=None if self.dim == 2 else self.gridCC[:,2])
-
-        # ax.plot(self.gridFx[self._hangingFacesX,0], self.gridFx[self._hangingFacesX,1], 'gs', ms=10, mfc='none', mec='green', zs=None if self.dim == 2 else self.gridFx[self._hangingFacesX,2])
-        # ax.plot(self.gridFx[:,0], self.gridFx[:,1], 'g>', zs=None if self.dim == 2 else self.gridFx[:,2])
-        # ax.plot(self.gridFy[self._hangingFacesY,0], self.gridFy[self._hangingFacesY,1], 'gs', ms=10, mfc='none', mec='green', zs=None if self.dim == 2 else self.gridFy[self._hangingFacesY,2])
-        # ax.plot(self.gridFy[:,0], self.gridFy[:,1], 'g^', zs=None if self.dim == 2 else self.gridFy[:,2])
-        if self.dim == 3:
+        if self.dim == 2:
+            ax.plot(self.gridCC[[0,-1],0], self.gridCC[[0,-1],1], 'ro')
+            ax.plot(self.gridCC[:,0], self.gridCC[:,1], 'r.')
+            ax.plot(self.gridCC[:,0], self.gridCC[:,1], 'r:')
+            ax.plot(self.gridFx[self._hangingFacesX,0], self.gridFx[self._hangingFacesX,1], 'gs', ms=10, mfc='none', mec='green')
+            ax.plot(self.gridFx[:,0], self.gridFx[:,1], 'g>')
+            ax.plot(self.gridFy[self._hangingFacesY,0], self.gridFy[self._hangingFacesY,1], 'gs', ms=10, mfc='none', mec='green')
+            ax.plot(self.gridFy[:,0], self.gridFy[:,1], 'g^')
+        elif self.dim == 3:
+            ax.plot(self.gridCC[[0,-1],0], self.gridCC[[0,-1],1], 'ro', zs=None if self.dim == 2 else self.gridCC[[0,-1],2])
+            ax.plot(self.gridCC[:,0], self.gridCC[:,1], 'r.', zs=None if self.dim == 2 else self.gridCC[:,2])
+            ax.plot(self.gridCC[:,0], self.gridCC[:,1], 'r:', zs=None if self.dim == 2 else self.gridCC[:,2])
+            ax.plot(self.gridFx[self._hangingFacesX,0], self.gridFx[self._hangingFacesX,1], 'gs', ms=10, mfc='none', mec='green', zs=None if self.dim == 2 else self.gridFx[self._hangingFacesX,2])
+            ax.plot(self.gridFx[:,0], self.gridFx[:,1], 'g>', zs=None if self.dim == 2 else self.gridFx[:,2])
+            ax.plot(self.gridFy[self._hangingFacesY,0], self.gridFy[self._hangingFacesY,1], 'gs', ms=10, mfc='none', mec='green', zs=None if self.dim == 2 else self.gridFy[self._hangingFacesY,2])
+            ax.plot(self.gridFy[:,0], self.gridFy[:,1], 'g^', zs=None if self.dim == 2 else self.gridFy[:,2])
             ax.plot(self.gridFz[self._hangingFacesZ,0], self.gridFz[self._hangingFacesZ,1], 'gs', ms=10, mfc='none', mec='green', zs=self.gridFz[self._hangingFacesZ,2])
             ax.plot(self.gridFz[:,0], self.gridFz[:,1], 'g^', zs=self.gridFz[:,2])
 
@@ -604,8 +611,8 @@ if __name__ == '__main__':
         else:
             return 0
 
-    T = Tree([4,4,4],levels=2)
+    T = Tree([4,4],levels=2)
     T.refine(lambda xc:1)
-    T._refineCell([0,0,0,1])
+    T._refineCell([0,0,1])
     T.plotGrid(showIt=True)
 
