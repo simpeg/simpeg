@@ -259,7 +259,6 @@ class Tree(object):
             self.refine(function=function, recursive=True, cells=recurse)
         return recurse
 
-
     def _refineCell(self, pointer):
         self._structureChange()
         pointer = self._asPointer(pointer)
@@ -355,9 +354,13 @@ class Tree(object):
                 hw = self._levelWidth(pointer[-1]) / 2
                 nextCell = np.array([p if ii is not direction else p + (step/2 if positive else 0) for ii, p in enumerate(pointer)])
 
-                if self.dim == 3: raise Exception
-                if direction == 0: children = [0,0,1], [0,hw,1]
-                if direction == 1: children = [0,0,1], [hw,0,1]
+                if self.dim == 2:
+                    if direction == 0: children = [0,0,1], [0,hw,1]
+                    if direction == 1: children = [0,0,1], [hw,0,1]
+                elif self.dim == 3:
+                    if direction == 0: children = [0,0,0,1], [0,hw,0,1], [0,0,hw,1], [0,hw,hw,1]
+                    if direction == 1: children = [0,0,0,1], [hw,0,0,1], [0,0,hw,1], [hw,0,hw,1]
+                    if direction == 2: children = [0,0,0,1], [hw,0,0,1], [0,hw,0,1], [hw,hw,0,1]
                 nextCells = []
                 for child in children:
                     nextCells.append(self._getNextCell(nextCell + child, direction=direction,positive=positive))
@@ -366,36 +369,6 @@ class Tree(object):
         # it might be bigger than me?
         return self._getNextCell(self._parentPointer(pointer),
                 direction=direction, positive=positive)
-
-
-    def plotGrid(self, ax=None, showIt=False):
-
-        if ax is None:
-            fig = plt.figure()
-            ax = plt.subplot(111)
-        else:
-            assert isinstance(ax,matplotlib.axes.Axes), "ax must be an Axes!"
-            fig = ax.figure
-
-        for ind in self._sortedInds:
-            p = self._asPointer(ind)
-            n = self._cellN(p)
-            h = self._cellH(p)
-            x = [n[0]    , n[0] + h[0], n[0] + h[0], n[0]       , n[0]]
-            y = [n[1]    , n[1]       , n[1] + h[1], n[1] + h[1], n[1]]
-            ax.plot(x,y, 'b-')
-
-        ax.plot(self.gridCC[[0,-1],0], self.gridCC[[0,-1],1], 'ro')
-        ax.plot(self.gridCC[:,0], self.gridCC[:,1], 'r.')
-        ax.plot(self.gridCC[:,0], self.gridCC[:,1], 'r:')
-
-        ax.plot(self.gridFx[self._hangingFacesX,0], self.gridFx[self._hangingFacesX,1], 'gs', ms=10, mfc='none', mec='green')
-        ax.plot(self.gridFx[:,0], self.gridFx[:,1], 'g>')
-        ax.plot(self.gridFy[self._hangingFacesY,0], self.gridFy[self._hangingFacesY,1], 'gs', ms=10, mfc='none', mec='green')
-        ax.plot(self.gridFy[:,0], self.gridFy[:,1], 'g^')
-
-        if showIt:plt.show()
-
 
     @property
     def gridCC(self):
@@ -437,13 +410,19 @@ class Tree(object):
             n = self._cellN(p)
             w = self._cellH(p)
             areaX.append(w[1] if self.dim == 2 else w[1]*w[2])
-            facesX.append([n[0] + (w[0] if positive else 0), n[1] + w[1]/2.0])
+            if self.dim == 2:
+                facesX.append([n[0] + (w[0] if positive else 0), n[1] + w[1]/2.0])
+            elif self.dim == 3:
+                facesX.append([n[0] + (w[0] if positive else 0), n[1] + w[1]/2.0, n[2] + w[2]/2.0])
             return count + 1
         def addYFace(count, p, positive=True):
             n = self._cellN(p)
             w = self._cellH(p)
             areaY.append(w[0] if self.dim == 2 else w[0]*w[2])
-            facesY.append([n[0] + w[0]/2.0, n[1] + (w[1] if positive else 0)])
+            if self.dim == 2:
+                facesY.append([n[0] + w[0]/2.0, n[1] + (w[1] if positive else 0)])
+            elif self.dim == 3:
+                facesY.append([n[0] + w[0]/2.0, n[1] + (w[1] if positive else 0), n[2] + w[2]/2.0])
             return count + 1
 
         # c2cn = dict()
@@ -543,6 +522,47 @@ class Tree(object):
             self._faceDiv = Utils.sdiag(1.0/VOL)*D*Utils.sdiag(S)
         return self._faceDiv
 
+    def plotGrid(self, ax=None, showIt=False):
+
+
+        axOpts = {'projection':'3d'} if self.dim == 3 else {}
+        if ax is None:
+            ax = plt.subplot(111, **axOpts)
+        else:
+            assert isinstance(ax,matplotlib.axes.Axes), "ax must be an Axes!"
+            fig = ax.figure
+
+        for ind in self._sortedInds:
+            p = self._asPointer(ind)
+            n = self._cellN(p)
+            h = self._cellH(p)
+            x = [n[0]    , n[0] + h[0], n[0] + h[0], n[0]       , n[0]]
+            y = [n[1]    , n[1]       , n[1] + h[1], n[1] + h[1], n[1]]
+            z = [n[2]    , n[2]       , n[2]       , n[2]       , n[2]]
+            ax.plot(x,y, 'b-', zs=None if self.dim == 2 else z)
+
+            if self.dim == 3:
+                z = [n[2] + h[2], n[2] + h[2], n[2] + h[2], n[2] + h[2], n[2] + h[2]]
+                ax.plot(x,y, 'b-', zs=z)
+                sides = [0,0], [h[0],0], [0,h[1]], [h[0],h[1]]
+                for s in sides:
+                    x = [n[0] + s[0], n[0] + s[0]]
+                    y = [n[1] + s[1], n[1] + s[1]]
+                    z = [n[2]       , n[2] + h[2]]
+                    ax.plot(x,y, 'b-', zs=z)
+
+
+        ax.plot(self.gridCC[[0,-1],0], self.gridCC[[0,-1],1], 'ro', zs=None if self.dim == 2 else self.gridCC[[0,-1],2])
+        ax.plot(self.gridCC[:,0], self.gridCC[:,1], 'r.', zs=None if self.dim == 2 else self.gridCC[:,2])
+        ax.plot(self.gridCC[:,0], self.gridCC[:,1], 'r:', zs=None if self.dim == 2 else self.gridCC[:,2])
+
+        ax.plot(self.gridFx[self._hangingFacesX,0], self.gridFx[self._hangingFacesX,1], 'gs', ms=10, mfc='none', mec='green', zs=None if self.dim == 2 else self.gridFx[self._hangingFacesX,2])
+        ax.plot(self.gridFx[:,0], self.gridFx[:,1], 'g>', zs=None if self.dim == 2 else self.gridFx[:,2])
+        ax.plot(self.gridFy[self._hangingFacesY,0], self.gridFy[self._hangingFacesY,1], 'gs', ms=10, mfc='none', mec='green', zs=None if self.dim == 2 else self.gridFy[self._hangingFacesY,2])
+        ax.plot(self.gridFy[:,0], self.gridFy[:,1], 'g^', zs=None if self.dim == 2 else self.gridFy[:,2])
+
+        if showIt:plt.show()
+
 
 
 if __name__ == '__main__':
@@ -562,7 +582,8 @@ if __name__ == '__main__':
         else:
             return 0
 
-    # T = Tree([16,16],levels=4)
-    # T.refine(function,recursive=True)
-    # T.plotGrid(showIt=True)
-    # BREAK
+    T = Tree([4,4,4],levels=2)
+    T.refine(lambda xc:1)
+    T._refineCell([0,0,0,1])
+    T.plotGrid(showIt=True)
+
