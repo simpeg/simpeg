@@ -47,6 +47,45 @@ class ZCurve(object):
         p.reverse()
         return p
 
+def SortGrid(grid, offset=0):
+    """
+        Sorts a grid by the x0 location.
+    """
+
+    eps = 1e-7
+    def mycmp(c1,c2):
+        c1 = grid[c1-offset]
+        c2 = grid[c2-offset]
+        if c1.size == 2:
+            if np.abs(c1[1] - c2[1]) < eps:
+                return c1[0] - c2[0]
+            return c1[1] - c2[1]
+        elif c1.size == 3:
+            if np.abs(c1[2] - c2[2]) < eps:
+                if np.abs(c1[1] - c2[1]) < eps:
+                    return c1[0] - c2[0]
+                return c1[1] - c2[1]
+            return c1[2] - c2[2]
+
+    class K(object):
+        def __init__(self, obj, *args):
+            self.obj = obj
+        def __lt__(self, other):
+            return mycmp(self.obj, other.obj) < 0
+        def __gt__(self, other):
+            return mycmp(self.obj, other.obj) > 0
+        def __eq__(self, other):
+            return mycmp(self.obj, other.obj) == 0
+        def __le__(self, other):
+            return mycmp(self.obj, other.obj) <= 0
+        def __ge__(self, other):
+            return mycmp(self.obj, other.obj) >= 0
+        def __ne__(self, other):
+            return mycmp(self.obj, other.obj) != 0
+
+    return sorted(range(offset,grid.shape[0]+offset), key=K)
+
+
 class Tree(object):
     def __init__(self, h_in, levels=3):
         assert type(h_in) is list, 'h_in must be a list'
@@ -63,19 +102,92 @@ class Tree(object):
             h[i] = h_i[:] # make a copy.
         self.h = h
 
-
         self._levels = levels
         self._levelBits = int(np.ceil(np.sqrt(levels)))+1
 
-
+        self.__dirty__ = True #: The numbering is dirty!
         self._z = ZCurve(self.dim, 20)
         self._treeInds = set()
         self._treeInds.add(0)
 
     @property
-    def dim(self): return len(self.h)
-    @property
     def levels(self): return self._levels
+
+    @property
+    def dim(self): return len(self.h)
+
+    @property
+    def nC(self): return len(self._treeInds)
+
+    @property
+    def nN(self):
+        self.number()
+        return self._nN
+
+    @property
+    def nF(self):
+        self.number()
+        return self._nF
+
+    @property
+    def nFx(self):
+        self.number()
+        return self._nFx
+
+    @property
+    def nFy(self):
+        self.number()
+        return self._nFy
+
+    @property
+    def nFz(self):
+        self.number()
+        return None if self.dim < 3 else self._nFz
+
+    @property
+    def nE(self):
+        self.number()
+        if self.dim == 2:
+            return self.nF
+        elif self.dim == 3:
+            return len(self.edges)
+
+    @property
+    def nEx(self):
+        self.number()
+        if self.dim == 2:
+            return self._nFy
+        elif self.dim == 3:
+            return self._nEx
+
+    @property
+    def nEy(self):
+        self.number()
+        if self.dim == 2:
+            return self._nFx
+        elif self.dim == 3:
+            return self._nEy
+
+    @property
+    def nEz(self):
+        self.number()
+        return None if self.dim < 3 else self._nEz
+
+    @property
+    def vol(self):
+        self.number()
+        return self._vol
+
+    @property
+    def area(self):
+        self.number()
+        return self._area
+
+    @property
+    def edge(self):
+        self.number()
+        if self.dim == 2:
+            return np.r_[self._area[self.nFx:], self._area[:self.nFx]]
 
     @property
     def _sortedInds(self):
@@ -83,10 +195,38 @@ class Tree(object):
             self.__sortedInds = sorted(self._treeInds)
         return self.__sortedInds
 
+    @property
+    def permuteCC(self):
+        #TODO: cache these?
+        P  = SortGrid(self.gridCC)
+        return sp.identity(self.nC).tocsr()[P,:]
+
+    @property
+    def permuteF(self):
+        #TODO: cache these?
+        P = SortGrid(self.gridFx)
+        P += SortGrid(self.gridFy, offset=self.nFx)
+        if self.dim == 3:
+            P += SortGrid(self.gridFz, offset=self.nFx+self.nFy)
+        return sp.identity(self.nF).tocsr()[P,:]
+
+    @property
+    def permuteE(self):
+        #TODO: cache these?
+        if self.dim == 2:
+            P = SortGrid(self.gridFy)
+            P += SortGrid(self.gridFx, offset=self.nEx)
+            return sp.identity(self.nE).tocsr()[P,:]
+        if self.dim == 3:
+            raise Exception()
+
     def _structureChange(self):
+        if self.__dirty__: return
+
         deleteThese = ['__sortedInds', '_gridCC', '_gridFx']
         for p in deleteThese:
             if hasattr(self, p): delattr(self, p)
+        self.__dirty__ = True
 
     def _index(self, pointer):
         assert len(pointer) is self.dim+1
@@ -98,7 +238,12 @@ class Tree(object):
         assert type(index) in [int, long]
         n = index & (2**self._levelBits-1)
         p = self._z.point(index >> self._levelBits)
-        return p + [n] #[p[1],p[0],p[2]]
+        return p + [n]
+
+    def __contains__(self, v):
+        if type(v) in [int, long]:
+            return v in self._treeInds
+        return self._index(v) in self._treeInds
 
     def refine(self, function=None, recursive=True, cells=None):
 
@@ -165,6 +310,18 @@ class Tree(object):
         mod = self._levelWidth(pointer[-1]-1)
         return [p - (p % mod) for p in pointer[:-1]] + [pointer[-1]-1]
 
+    def _cellN(self, p):
+        p = self._asPointer(p)
+        return [hi[:p[ii]].sum() for ii, hi in enumerate(self.h)]
+
+    def _cellH(self, p):
+        p = self._asPointer(p)
+        w = self._levelWidth(p[-1])
+        return [hi[p[ii]:p[ii]+w].sum() for ii, hi in enumerate(self.h)]
+
+    def _cellC(self, p):
+        return (np.array(self._cellH(p))/2.0 + self._cellN(p)).tolist()
+
     def _levelWidth(self, level):
         return 2**(self.levels - level)
 
@@ -210,10 +367,6 @@ class Tree(object):
         return self._getNextCell(self._parentPointer(pointer),
                 direction=direction, positive=positive)
 
-    def __contains__(self, v):
-        if type(v) in [int, long]:
-            return v in self._treeInds
-        return self._index(v) in self._treeInds
 
     def plotGrid(self, ax=None, showIt=False):
 
@@ -243,15 +396,6 @@ class Tree(object):
 
         if showIt:plt.show()
 
-    def _cellN(self, p):
-        p = self._asPointer(p)
-        return [hi[:p[ii]].sum() for ii, hi in enumerate(self.h)]
-    def _cellH(self, p):
-        p = self._asPointer(p)
-        w = self._levelWidth(p[-1])
-        return [hi[p[ii]:p[ii]+w].sum() for ii, hi in enumerate(self.h)]
-    def _cellC(self, p):
-        return (np.array(self._cellH(p))/2.0 + self._cellN(p)).tolist()
 
     @property
     def gridCC(self):
@@ -279,25 +423,26 @@ class Tree(object):
         p1 = self._asPointer(i1)
         return p0[-1] == p1[-1]
 
-
-    def number(self):
+    def number(self, force=False):
+        if not self.__dirty__ and not force: return
 
         facesX, facesY = [], []
+        areaX, areaY = [], []
         hangingFacesX, hangingFacesY = [], []
         faceXCount, faceYCount = -1, -1
         fXm,fXp,fYm,fYp,fZm,fZp = range(6)
-        area, vol = [], []
+        vol = []
 
         def addXFace(count, p, positive=True):
             n = self._cellN(p)
             w = self._cellH(p)
-            area.append(w[1] if self.dim == 2 else w[1]*w[2])
+            areaX.append(w[1] if self.dim == 2 else w[1]*w[2])
             facesX.append([n[0] + (w[0] if positive else 0), n[1] + w[1]/2.0])
             return count + 1
         def addYFace(count, p, positive=True):
             n = self._cellN(p)
             w = self._cellH(p)
-            area.append(w[0] if self.dim == 2 else w[0]*w[2])
+            areaY.append(w[0] if self.dim == 2 else w[0]*w[2])
             facesY.append([n[0] + w[0]/2.0, n[1] + (w[1] if positive else 0)])
             return count + 1
 
@@ -360,20 +505,23 @@ class Tree(object):
             faceYCount = processCell(ind, faceYCount, addYFace, hangingFacesY, DIR=1)
 
         self._c2f = c2f
-        self.area = np.array(area)
-        self.vol = np.array(vol)
+        self._area = np.array(areaX + areaY)
+        self._vol = np.array(vol)
         self._gridFx = np.array(facesX)
         self._gridFy = np.array(facesY)
-        self.nC = len(self._sortedInds)
-        self.nFx = self._gridFx.shape[0]
-        self.nFy = self._gridFy.shape[0]
-        self.nF = self.nFx + self.nFy
+        self._nC = len(self._sortedInds)
+        self._nFx = self._gridFx.shape[0]
+        self._nFy = self._gridFy.shape[0]
+        self._nF = self._nFx + self._nFy
+
         self._hangingFacesX = hangingFacesX
         self._hangingFacesY = hangingFacesY
 
+        self.__dirty__ = False
+
     @property
     def faceDiv(self):
-        print self._c2f
+        # print self._c2f
         if getattr(self, '_faceDiv', None) is None:
             self.number()
             # TODO: Preallocate!

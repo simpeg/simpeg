@@ -1,10 +1,14 @@
+from SimPEG import Mesh
 from SimPEG.Mesh.PointerTree import Tree
 import numpy as np
+import matplotlib.pyplot as plt
 import unittest
 
 TOL = 1e-10
 
-class TestOcTreeObjects(unittest.TestCase):
+
+
+class TestSimpleQuadTree(unittest.TestCase):
 
     def test_counts(self):
 
@@ -13,7 +17,9 @@ class TestOcTreeObjects(unittest.TestCase):
         T._refineCell([4,4,1])
         T._refineCell([0,0,1])
         T._refineCell([2,2,2])
+
         T.number()
+        # T.plotGrid(showIt=True)
         assert sorted(T._treeInds) == [2, 34, 66, 99, 107, 115, 123, 129, 257, 386, 418, 450, 482]
         assert len(T._hangingFacesX) == 7
         assert T.nFx == 18
@@ -45,6 +51,32 @@ class TestOcTreeObjects(unittest.TestCase):
         assert T._getNextCell([0,2,2], direction=1) == T._index([0,4,1])
         assert T._getNextCell([0,4,1], direction=1, positive=False) ==  [T._index([0,2,2]), [T._index([2,3,3]), T._index([3,3,3])]]
 
+
+class TestOperatorsQuadTree(unittest.TestCase):
+
+    def test_counts(self):
+
+        hx, hy = np.r_[1.,2,3,4], np.r_[5.,6,7,8]
+        T = Tree([hx, hy], levels=2)
+        T.refine(lambda xc:2)
+        T.plotGrid(showIt=True)
+        M = Mesh.TensorMesh([hx, hy])
+        assert M.nC == T.nC
+        assert M.nF == T.nF
+        assert M.nFx == T.nFx
+        assert M.nFy == T.nFy
+        assert M.nE == T.nE
+        assert M.nEx == T.nEx
+        assert M.nEy == T.nEy
+        assert np.allclose(M.area, T.permuteF*T.area)
+        assert np.allclose(M.edge, T.permuteE*T.edge)
+        assert np.allclose(M.vol, T.permuteCC*T.vol)
+
+        # plt.subplot(211).spy(M.faceDiv)
+        # plt.subplot(212).spy(T.permuteCC.T*T.faceDiv*T.permuteF)
+        # plt.show()
+
+        assert (M.faceDiv - T.permuteCC*T.faceDiv*T.permuteF.T).nnz == 0
 
 
 
