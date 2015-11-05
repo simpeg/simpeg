@@ -3,8 +3,8 @@ from SimPEG import *
 from SimPEG import EM
 import sys
 from scipy.constants import mu_0
+from SimPEG.EM.Utils.testingUtils import getFDEMProblem
 
-testCrossCheck = True
 testEB = True
 testHJ = True
 
@@ -20,82 +20,11 @@ addrandoms = True
 SrcList = ['RawVec', 'MagDipole_Bfield', 'MagDipole', 'CircularLoop']
 
 
-def getProblem(fdemType, comp):
-    cs = 5.
-    ncx, ncy, ncz = 6, 6, 6
-    npad = 3
-    hx = [(cs,npad,-1.3), (cs,ncx), (cs,npad,1.3)]
-    hy = [(cs,npad,-1.3), (cs,ncy), (cs,npad,1.3)]
-    hz = [(cs,npad,-1.3), (cs,ncz), (cs,npad,1.3)]
-    mesh = Mesh.TensorMesh([hx,hy,hz],['C','C','C'])
-
-    mapping = Maps.ExpMap(mesh)
-
-    x = np.array([np.linspace(-30,-15,3),np.linspace(15,30,3)]) #don't sample right by the source
-    XYZ = Utils.ndgrid(x,x,np.r_[0.])
-    Rx0 = EM.FDEM.RxFDEM(XYZ, comp)
-
-    Src = []
-
-    for SrcType in SrcList:
-        if SrcType is 'MagDipole':
-            Src.append(EM.FDEM.SrcFDEM_MagDipole([Rx0], freq=freq, loc=np.r_[0.,0.,0.]))
-        elif SrcType is 'MagDipole_Bfield':
-            Src.append(EM.FDEM.SrcFDEM_MagDipole_Bfield([Rx0], freq=freq, loc=np.r_[0.,0.,0.]))
-        elif SrcType is 'CircularLoop':
-            Src.append(EM.FDEM.SrcFDEM_CircularLoop([Rx0], freq=freq, loc=np.r_[0.,0.,0.]))
-        elif SrcType is 'RawVec':
-            if fdemType is 'e' or fdemType is 'b':
-                S_m = np.zeros(mesh.nF)
-                S_e = np.zeros(mesh.nE)
-                S_m[Utils.closestPoints(mesh,[0.,0.,0.],'Fz') + np.sum(mesh.vnF[:1])] = 1.
-                S_e[Utils.closestPoints(mesh,[0.,0.,0.],'Ez') + np.sum(mesh.vnE[:1])] = 1.
-                Src.append(EM.FDEM.SrcFDEM_RawVec([Rx0], freq, S_m, S_e))
-
-            elif fdemType is 'h' or fdemType is 'j':
-                S_m = np.zeros(mesh.nE)
-                S_e = np.zeros(mesh.nF)
-                S_m[Utils.closestPoints(mesh,[0.,0.,0.],'Ez') + np.sum(mesh.vnE[:1])] = 1.
-                S_e[Utils.closestPoints(mesh,[0.,0.,0.],'Fz') + np.sum(mesh.vnF[:1])] = 1.
-                Src.append(EM.FDEM.SrcFDEM_RawVec([Rx0], freq, S_m, S_e))
-
-    if verbose:
-        print '  Fetching %s problem' % (fdemType)
-
-    if fdemType == 'e':
-        survey = EM.FDEM.SurveyFDEM(Src)
-        prb = EM.FDEM.ProblemFDEM_e(mesh, mapping=mapping)
-
-    elif fdemType == 'b':
-        survey = EM.FDEM.SurveyFDEM(Src)
-        prb = EM.FDEM.ProblemFDEM_b(mesh, mapping=mapping)
-
-    elif fdemType == 'j':
-        survey = EM.FDEM.SurveyFDEM(Src)
-        prb = EM.FDEM.ProblemFDEM_j(mesh, mapping=mapping)
-
-    elif fdemType == 'h':
-        survey = EM.FDEM.SurveyFDEM(Src)
-        prb = EM.FDEM.ProblemFDEM_h(mesh, mapping=mapping)
-
-    else:
-        raise NotImplementedError()
-    prb.pair(survey)
-
-    try:
-        from pymatsolver import MumpsSolver
-        prb.Solver = MumpsSolver
-    except ImportError, e:
-        pass
-
-    return prb
-
-
 def crossCheckTest(fdemType, comp):
 
     l2norm = lambda r: np.sqrt(r.dot(r))
 
-    prb1 = getProblem(fdemType, comp)
+    prb1 = getFDEMProblem(fdemType, comp, SrcList, freq, verbose)
     mesh = prb1.mesh
     print 'Cross Checking Forward: %s formulation - %s' % (fdemType, comp)
     m = np.log(np.ones(mesh.nC)*CONDUCTIVITY)
@@ -114,13 +43,13 @@ def crossCheckTest(fdemType, comp):
         print '  Problem 1 solved'
 
     if fdemType == 'e':
-        prb2 = getProblem('b', comp)
+        prb2 = getFDEMProblem('b', comp, SrcList, freq, verbose)
     elif fdemType == 'b':
-        prb2 = getProblem('e', comp)
+        prb2 = getFDEMProblem('e', comp, SrcList, freq, verbose)
     elif fdemType == 'j':
-        prb2 = getProblem('h', comp)
+        prb2 = getFDEMProblem('h', comp, SrcList, freq, verbose)
     elif fdemType == 'h':
-        prb2 = getProblem('j', comp)
+        prb2 = getFDEMProblem('j', comp, SrcList, freq, verbose)
     else:
         raise NotImplementedError()
 
@@ -140,60 +69,59 @@ def crossCheckTest(fdemType, comp):
 
 
 class FDEM_CrossCheck(unittest.TestCase):
-    if testCrossCheck:
-        if testEB:
-            def test_EB_CrossCheck_exr_Eform(self):
-                self.assertTrue(crossCheckTest('e', 'exr'))
-            def test_EB_CrossCheck_eyr_Eform(self):
-                self.assertTrue(crossCheckTest('e', 'eyr'))
-            def test_EB_CrossCheck_ezr_Eform(self):
-                self.assertTrue(crossCheckTest('e', 'ezr'))
-            def test_EB_CrossCheck_exi_Eform(self):
-                self.assertTrue(crossCheckTest('e', 'exi'))
-            def test_EB_CrossCheck_eyi_Eform(self):
-                self.assertTrue(crossCheckTest('e', 'eyi'))
-            def test_EB_CrossCheck_ezi_Eform(self):
-                self.assertTrue(crossCheckTest('e', 'ezi'))
+    if testEB:
+        def test_EB_CrossCheck_exr_Eform(self):
+            self.assertTrue(crossCheckTest('e', 'exr'))
+        def test_EB_CrossCheck_eyr_Eform(self):
+            self.assertTrue(crossCheckTest('e', 'eyr'))
+        def test_EB_CrossCheck_ezr_Eform(self):
+            self.assertTrue(crossCheckTest('e', 'ezr'))
+        def test_EB_CrossCheck_exi_Eform(self):
+            self.assertTrue(crossCheckTest('e', 'exi'))
+        def test_EB_CrossCheck_eyi_Eform(self):
+            self.assertTrue(crossCheckTest('e', 'eyi'))
+        def test_EB_CrossCheck_ezi_Eform(self):
+            self.assertTrue(crossCheckTest('e', 'ezi'))
 
-            def test_EB_CrossCheck_bxr_Eform(self):
-                self.assertTrue(crossCheckTest('e', 'bxr'))
-            def test_EB_CrossCheck_byr_Eform(self):
-                self.assertTrue(crossCheckTest('e', 'byr'))
-            def test_EB_CrossCheck_bzr_Eform(self):
-                self.assertTrue(crossCheckTest('e', 'bzr'))
-            def test_EB_CrossCheck_bxi_Eform(self):
-                self.assertTrue(crossCheckTest('e', 'bxi'))
-            def test_EB_CrossCheck_byi_Eform(self):
-                self.assertTrue(crossCheckTest('e', 'byi'))
-            def test_EB_CrossCheck_bzi_Eform(self):
-                self.assertTrue(crossCheckTest('e', 'bzi'))
+        def test_EB_CrossCheck_bxr_Eform(self):
+            self.assertTrue(crossCheckTest('e', 'bxr'))
+        def test_EB_CrossCheck_byr_Eform(self):
+            self.assertTrue(crossCheckTest('e', 'byr'))
+        def test_EB_CrossCheck_bzr_Eform(self):
+            self.assertTrue(crossCheckTest('e', 'bzr'))
+        def test_EB_CrossCheck_bxi_Eform(self):
+            self.assertTrue(crossCheckTest('e', 'bxi'))
+        def test_EB_CrossCheck_byi_Eform(self):
+            self.assertTrue(crossCheckTest('e', 'byi'))
+        def test_EB_CrossCheck_bzi_Eform(self):
+            self.assertTrue(crossCheckTest('e', 'bzi'))
 
-        if testHJ:
-            def test_HJ_CrossCheck_jxr_Jform(self):
-                self.assertTrue(crossCheckTest('j', 'jxr'))
-            def test_HJ_CrossCheck_jyr_Jform(self):
-                self.assertTrue(crossCheckTest('j', 'jyr'))
-            def test_HJ_CrossCheck_jzr_Jform(self):
-                self.assertTrue(crossCheckTest('j', 'jzr'))
-            def test_HJ_CrossCheck_jxi_Jform(self):
-                self.assertTrue(crossCheckTest('j', 'jxi'))
-            def test_HJ_CrossCheck_jyi_Jform(self):
-                self.assertTrue(crossCheckTest('j', 'jyi'))
-            def test_HJ_CrossCheck_jzi_Jform(self):
-                self.assertTrue(crossCheckTest('j', 'jzi'))
+    if testHJ:
+        def test_HJ_CrossCheck_jxr_Jform(self):
+            self.assertTrue(crossCheckTest('j', 'jxr'))
+        def test_HJ_CrossCheck_jyr_Jform(self):
+            self.assertTrue(crossCheckTest('j', 'jyr'))
+        def test_HJ_CrossCheck_jzr_Jform(self):
+            self.assertTrue(crossCheckTest('j', 'jzr'))
+        def test_HJ_CrossCheck_jxi_Jform(self):
+            self.assertTrue(crossCheckTest('j', 'jxi'))
+        def test_HJ_CrossCheck_jyi_Jform(self):
+            self.assertTrue(crossCheckTest('j', 'jyi'))
+        def test_HJ_CrossCheck_jzi_Jform(self):
+            self.assertTrue(crossCheckTest('j', 'jzi'))
 
-            def test_HJ_CrossCheck_hxr_Jform(self):
-                self.assertTrue(crossCheckTest('j', 'hxr'))
-            def test_HJ_CrossCheck_hyr_Jform(self):
-                self.assertTrue(crossCheckTest('j', 'hyr'))
-            def test_HJ_CrossCheck_hzr_Jform(self):
-                self.assertTrue(crossCheckTest('j', 'hzr'))
-            def test_HJ_CrossCheck_hxi_Jform(self):
-                self.assertTrue(crossCheckTest('j', 'hxi'))
-            def test_HJ_CrossCheck_hyi_Jform(self):
-                self.assertTrue(crossCheckTest('j', 'hyi'))
-            def test_HJ_CrossCheck_hzi_Jform(self):
-                self.assertTrue(crossCheckTest('j', 'hzi'))
+        def test_HJ_CrossCheck_hxr_Jform(self):
+            self.assertTrue(crossCheckTest('j', 'hxr'))
+        def test_HJ_CrossCheck_hyr_Jform(self):
+            self.assertTrue(crossCheckTest('j', 'hyr'))
+        def test_HJ_CrossCheck_hzr_Jform(self):
+            self.assertTrue(crossCheckTest('j', 'hzr'))
+        def test_HJ_CrossCheck_hxi_Jform(self):
+            self.assertTrue(crossCheckTest('j', 'hxi'))
+        def test_HJ_CrossCheck_hyi_Jform(self):
+            self.assertTrue(crossCheckTest('j', 'hyi'))
+        def test_HJ_CrossCheck_hzi_Jform(self):
+            self.assertTrue(crossCheckTest('j', 'hzi'))
 
 if __name__ == '__main__':
     unittest.main()
