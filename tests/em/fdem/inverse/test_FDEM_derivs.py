@@ -5,7 +5,6 @@ import sys
 from scipy.constants import mu_0
 
 testDerivs = True
-testCrossCheck = True
 testAdjoint = True
 testEB = True
 testHJ = True
@@ -147,57 +146,6 @@ def derivTest(fdemType, comp):
     def fun(x):
         return survey.dpred(x), lambda x: prb.Jvec(x0, x)
     return Tests.checkDerivative(fun, x0, num=3, plotIt=False, eps=FLR)
-
-
-def crossCheckTest(fdemType, comp):
-
-    l2norm = lambda r: np.sqrt(r.dot(r))
-
-    prb1 = getProblem(fdemType, comp)
-    mesh = prb1.mesh
-    print 'Cross Checking Forward: %s formulation - %s' % (fdemType, comp)
-    m = np.log(np.ones(mesh.nC)*CONDUCTIVITY)
-    mu = np.log(np.ones(mesh.nC)*MU)
-
-    if addrandoms is True:
-        m  = m + np.random.randn(mesh.nC)*np.log(CONDUCTIVITY)*1e-1
-        mu = mu + np.random.randn(mesh.nC)*MU*1e-1
-
-    # prb1.PropMap.PropModel.mu = mu
-    # prb1.PropMap.PropModel.mui = 1./mu
-    survey1 = prb1.survey
-    d1 = survey1.dpred(m)
-
-    if verbose:
-        print '  Problem 1 solved'
-
-    if fdemType == 'e':
-        prb2 = getProblem('b', comp)
-    elif fdemType == 'b':
-        prb2 = getProblem('e', comp)
-    elif fdemType == 'j':
-        prb2 = getProblem('h', comp)
-    elif fdemType == 'h':
-        prb2 = getProblem('j', comp)
-    else:
-        raise NotImplementedError()
-
-    # prb2.mu = mu
-    survey2 = prb2.survey
-    d2 = survey2.dpred(m)
-
-    if verbose:
-        print '  Problem 2 solved'
-
-    r = d2-d1
-    l2r = l2norm(r)
-
-    tol = np.max([TOL*(10**int(np.log10(l2norm(d1)))),FLR])
-    print l2norm(d1), l2norm(d2),  l2r , tol, l2r < tol
-    return l2r < tol
-
-
-
 
 
 class FDEM_DerivTests(unittest.TestCase):
