@@ -150,60 +150,61 @@ def crossCheckTest(fdemType, comp):
     return l2r < tol
 
 
-if testCrossCheck:
-    if testEB:
-        def test_EB_CrossCheck_exr_Eform(self):
-            self.assertTrue(crossCheckTest('e', 'exr'))
-        def test_EB_CrossCheck_eyr_Eform(self):
-            self.assertTrue(crossCheckTest('e', 'eyr'))
-        def test_EB_CrossCheck_ezr_Eform(self):
-            self.assertTrue(crossCheckTest('e', 'ezr'))
-        def test_EB_CrossCheck_exi_Eform(self):
-            self.assertTrue(crossCheckTest('e', 'exi'))
-        def test_EB_CrossCheck_eyi_Eform(self):
-            self.assertTrue(crossCheckTest('e', 'eyi'))
-        def test_EB_CrossCheck_ezi_Eform(self):
-            self.assertTrue(crossCheckTest('e', 'ezi'))
+class FDEM_CrossCheck(unittest.TestCase):
+    if testCrossCheck:
+        if testEB:
+            def test_EB_CrossCheck_exr_Eform(self):
+                self.assertTrue(crossCheckTest('e', 'exr'))
+            def test_EB_CrossCheck_eyr_Eform(self):
+                self.assertTrue(crossCheckTest('e', 'eyr'))
+            def test_EB_CrossCheck_ezr_Eform(self):
+                self.assertTrue(crossCheckTest('e', 'ezr'))
+            def test_EB_CrossCheck_exi_Eform(self):
+                self.assertTrue(crossCheckTest('e', 'exi'))
+            def test_EB_CrossCheck_eyi_Eform(self):
+                self.assertTrue(crossCheckTest('e', 'eyi'))
+            def test_EB_CrossCheck_ezi_Eform(self):
+                self.assertTrue(crossCheckTest('e', 'ezi'))
 
-        def test_EB_CrossCheck_bxr_Eform(self):
-            self.assertTrue(crossCheckTest('e', 'bxr'))
-        def test_EB_CrossCheck_byr_Eform(self):
-            self.assertTrue(crossCheckTest('e', 'byr'))
-        def test_EB_CrossCheck_bzr_Eform(self):
-            self.assertTrue(crossCheckTest('e', 'bzr'))
-        def test_EB_CrossCheck_bxi_Eform(self):
-            self.assertTrue(crossCheckTest('e', 'bxi'))
-        def test_EB_CrossCheck_byi_Eform(self):
-            self.assertTrue(crossCheckTest('e', 'byi'))
-        def test_EB_CrossCheck_bzi_Eform(self):
-            self.assertTrue(crossCheckTest('e', 'bzi'))
+            def test_EB_CrossCheck_bxr_Eform(self):
+                self.assertTrue(crossCheckTest('e', 'bxr'))
+            def test_EB_CrossCheck_byr_Eform(self):
+                self.assertTrue(crossCheckTest('e', 'byr'))
+            def test_EB_CrossCheck_bzr_Eform(self):
+                self.assertTrue(crossCheckTest('e', 'bzr'))
+            def test_EB_CrossCheck_bxi_Eform(self):
+                self.assertTrue(crossCheckTest('e', 'bxi'))
+            def test_EB_CrossCheck_byi_Eform(self):
+                self.assertTrue(crossCheckTest('e', 'byi'))
+            def test_EB_CrossCheck_bzi_Eform(self):
+                self.assertTrue(crossCheckTest('e', 'bzi'))
 
-    if testHJ:
-        def test_HJ_CrossCheck_jxr_Jform(self):
-            self.assertTrue(crossCheckTest('j', 'jxr'))
-        def test_HJ_CrossCheck_jyr_Jform(self):
-            self.assertTrue(crossCheckTest('j', 'jyr'))
-        def test_HJ_CrossCheck_jzr_Jform(self):
-            self.assertTrue(crossCheckTest('j', 'jzr'))
-        def test_HJ_CrossCheck_jxi_Jform(self):
-            self.assertTrue(crossCheckTest('j', 'jxi'))
-        def test_HJ_CrossCheck_jyi_Jform(self):
-            self.assertTrue(crossCheckTest('j', 'jyi'))
-        def test_HJ_CrossCheck_jzi_Jform(self):
-            self.assertTrue(crossCheckTest('j', 'jzi'))
+        if testHJ:
+            def test_HJ_CrossCheck_jxr_Jform(self):
+                self.assertTrue(crossCheckTest('j', 'jxr'))
+            def test_HJ_CrossCheck_jyr_Jform(self):
+                self.assertTrue(crossCheckTest('j', 'jyr'))
+            def test_HJ_CrossCheck_jzr_Jform(self):
+                self.assertTrue(crossCheckTest('j', 'jzr'))
+            def test_HJ_CrossCheck_jxi_Jform(self):
+                self.assertTrue(crossCheckTest('j', 'jxi'))
+            def test_HJ_CrossCheck_jyi_Jform(self):
+                self.assertTrue(crossCheckTest('j', 'jyi'))
+            def test_HJ_CrossCheck_jzi_Jform(self):
+                self.assertTrue(crossCheckTest('j', 'jzi'))
 
-        def test_HJ_CrossCheck_hxr_Jform(self):
-            self.assertTrue(crossCheckTest('j', 'hxr'))
-        def test_HJ_CrossCheck_hyr_Jform(self):
-            self.assertTrue(crossCheckTest('j', 'hyr'))
-        def test_HJ_CrossCheck_hzr_Jform(self):
-            self.assertTrue(crossCheckTest('j', 'hzr'))
-        def test_HJ_CrossCheck_hxi_Jform(self):
-            self.assertTrue(crossCheckTest('j', 'hxi'))
-        def test_HJ_CrossCheck_hyi_Jform(self):
-            self.assertTrue(crossCheckTest('j', 'hyi'))
-        def test_HJ_CrossCheck_hzi_Jform(self):
-            self.assertTrue(crossCheckTest('j', 'hzi'))
+            def test_HJ_CrossCheck_hxr_Jform(self):
+                self.assertTrue(crossCheckTest('j', 'hxr'))
+            def test_HJ_CrossCheck_hyr_Jform(self):
+                self.assertTrue(crossCheckTest('j', 'hyr'))
+            def test_HJ_CrossCheck_hzr_Jform(self):
+                self.assertTrue(crossCheckTest('j', 'hzr'))
+            def test_HJ_CrossCheck_hxi_Jform(self):
+                self.assertTrue(crossCheckTest('j', 'hxi'))
+            def test_HJ_CrossCheck_hyi_Jform(self):
+                self.assertTrue(crossCheckTest('j', 'hyi'))
+            def test_HJ_CrossCheck_hzi_Jform(self):
+                self.assertTrue(crossCheckTest('j', 'hzi'))
 
 if __name__ == '__main__':
     unittest.main()
