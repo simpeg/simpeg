@@ -32,7 +32,7 @@ def getInputs():
     ## Setup the the survey object
     # Receiver locations
     rx_x, rx_y = np.meshgrid(np.arange(-3000,3001,500),np.arange(-1000,1001,500))
-    rx_loc = np.array([[0, 0, 0]]) #np.hstack((simpeg.Utils.mkvc(rx_x,2),simpeg.Utils.mkvc(rx_y,2),elev+np.zeros((np.prod(rx_x.shape),1))))
+    rx_loc = np.array([[0, 0, 0]]) #,[-100,-100,0],[100,100,0]]) #np.hstack((simpeg.Utils.mkvc(rx_x,2),simpeg.Utils.mkvc(rx_y,2),elev+np.zeros((np.prod(rx_x.shape),1))))
 
     return M, freqs, rx_loc, elev
 
@@ -87,7 +87,7 @@ def setupSimpegMTfwd_eForm_ps(inputSetup,comp='All',singleFreq=False,expMap=True
     # Make a receiver list
     rxList = []
     if comp == 'All':
-        for rxType in ['zxyr','zxyi','zyxr','zyxi']:
+        for rxType in ['zxxr','zxxi','zxyr','zxyi','zyxr','zyxi','zyyr','zyyi',]:
                 rxList.append(simpegmt.SurveyMT.RxMT(rx_loc,rxType))
     else:
         rxList.append(simpegmt.SurveyMT.RxMT(rx_loc,comp))
@@ -121,6 +121,46 @@ def setupSimpegMTfwd_eForm_ps(inputSetup,comp='All',singleFreq=False,expMap=True
 
     return (survey, problem)
 
+def setupSimpegMTfwd_eForm_ps_multiRx(inputSetup,comp='All',singleFreq=False,expMap=True):
+    M,freqs,sig,sigBG,rx_loc = inputSetup
+    # Add to the receiver list
+    rx_loc = np.vstack((rx_loc,np.array([[-100,100,0]])))# ,[-100,-100,0],[100,-100,0],[100,100,0]])))
+    # Make a receiver list
+    rxList = []
+    if comp == 'All':
+        for rxType in ['zxxr','zxxi','zxyr','zxyi','zyxr','zyxi','zyyr','zyyi',]:
+                rxList.append(simpegmt.SurveyMT.RxMT(rx_loc,rxType))
+    else:
+        rxList.append(simpegmt.SurveyMT.RxMT(rx_loc,comp))
+    # Source list
+    srcList =[]
+
+    if singleFreq:
+        srcList.append(simpegmt.SurveyMT.srcMT_polxy_1Dprimary(rxList,singleFreq))
+    else:
+        for freq in freqs:
+            srcList.append(simpegmt.SurveyMT.srcMT_polxy_1Dprimary(rxList,freq))
+    # Survey MT
+    survey = simpegmt.SurveyMT.SurveyMT(srcList)
+
+    ## Setup the problem object
+    sigma1d = M.r(sigBG,'CC','CC','M')[0,0,:]
+    if expMap:
+        problem = simpegmt.ProblemMT3D.eForm_ps(M,sigmaPrimary= np.log(sigma1d) )
+        problem.mapping = simpeg.Maps.ExpMap(problem.mesh)
+        problem.curModel = np.log(sig)
+    else:
+        problem = simpegmt.ProblemMT3D.eForm_ps(M,sigmaPrimary= sigma1d)
+        problem.curModel = sig
+    problem.pair(survey)
+    problem.verbose = False
+    try:
+        from pymatsolver import MumpsSolver
+        problem.Solver = MumpsSolver
+    except:
+        pass
+
+    return (survey, problem)
 def getAppResPhs(MTdata):
     # Make impedance
     def appResPhs(freq,z):

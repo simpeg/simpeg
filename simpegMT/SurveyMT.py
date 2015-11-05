@@ -211,7 +211,7 @@ class RxMT(Survey.BaseRx):
                 sDiag = lambda t: Utils.sdiag(mkvc(t,2))
                 # Define the components of the derivative
                 Hd = sDiag(1./(sDiag(hx_px)*hy_py - sDiag(hx_py)*hy_px))
-                Hd_uV = hx_px_u(v)*hy_py + hx_px*hy_py_u(v) - hx_py*hy_px_u(v) - hx_py_u(v)*hy_px
+                Hd_uV = sDiag(hy_py)*hx_px_u(v) + sDiag(hx_px)*hy_py_u(v) - sDiag(hx_py)*hy_px_u(v) - sDiag(hy_px)*hx_py_u(v)
                 # Calculate components
                 if 'zxx' in self.rxType:
                     Zij = sDiag(Hd*( sDiag(ex_px)*hy_py - sDiag(ex_py)*hy_px ))
@@ -228,7 +228,7 @@ class RxMT(Survey.BaseRx):
 
                 # Calculate the complex derivative
                 PDeriv_complex = Hd * (ZijN_uV - Zij * Hd_uV )
-
+                # ero
             # Extract the real number for the real/imag components.
             Pv = np.array(getattr(PDeriv_complex, real_or_imag))
         elif adjoint:
@@ -258,14 +258,14 @@ class RxMT(Survey.BaseRx):
                 Pby = mesh.getInterpolationMat(bFLocs,'Fy')
                 # Get the fields at location
                 # px: x-polaration and py: y-polaration.
-                aex_px = mkvc(f[src,'e_px'],2).T*Pex.T
-                aey_px = mkvc(f[src,'e_px'],2).T*Pey.T
-                aex_py = mkvc(f[src,'e_py'],2).T*Pex.T
-                aey_py = mkvc(f[src,'e_py'],2).T*Pey.T
-                ahx_px = mkvc(f[src,'b_px'],2).T/mu_0*Pbx.T
-                ahy_px = mkvc(f[src,'b_px'],2).T/mu_0*Pby.T
-                ahx_py = mkvc(f[src,'b_py'],2).T/mu_0*Pbx.T
-                ahy_py = mkvc(f[src,'b_py'],2).T/mu_0*Pby.T
+                aex_px = mkvc(mkvc(f[src,'e_px'],2).T*Pex.T)
+                aey_px = mkvc(mkvc(f[src,'e_px'],2).T*Pey.T)
+                aex_py = mkvc(mkvc(f[src,'e_py'],2).T*Pex.T)
+                aey_py = mkvc(mkvc(f[src,'e_py'],2).T*Pey.T)
+                ahx_px = mkvc(mkvc(f[src,'b_px'],2).T/mu_0*Pbx.T)
+                ahy_px = mkvc(mkvc(f[src,'b_px'],2).T/mu_0*Pby.T)
+                ahx_py = mkvc(mkvc(f[src,'b_py'],2).T/mu_0*Pbx.T)
+                ahy_py = mkvc(mkvc(f[src,'b_py'],2).T/mu_0*Pby.T)
                 # Derivatives as lambda functions
                 aex_px_u = lambda vec: f._e_pxDeriv_u(src,Pex.T*vec,adjoint=True)
                 aey_px_u = lambda vec: f._e_pxDeriv_u(src,Pey.T*vec,adjoint=True)
@@ -281,7 +281,7 @@ class RxMT(Survey.BaseRx):
                 sDiag = lambda t: Utils.sdiag(mkvc(t,2))
                 sVec = lambda t: Utils.sp.csr_matrix(mkvc(t,2))
                 # Define the components of the derivative
-                aHd = sDiag(1./(sDiag(ahy_py)*ahx_px - sDiag(ahy_px)*ahx_py))
+                aHd = sDiag(1./(sDiag(ahx_px)*ahy_py - sDiag(ahx_py)*ahy_px))
                 aHd_uV = lambda x: ahx_px_u(sDiag(ahy_py)*x) + ahx_px_u(sDiag(ahy_py)*x) - ahy_px_u(sDiag(ahx_py)*x) - ahx_py_u(sDiag(ahy_px)*x)
                 # Need to fix this to reflect the adjoint
                 if 'zxx' in self.rxType:
