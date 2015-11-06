@@ -6,11 +6,6 @@ tol = 1e-15
 
 class coorUtilsTest(unittest.TestCase):
 
-    def test_crossProd(self):
-        self.assertTrue(np.linalg.norm(Utils.coordutils.crossProd(np.r_[1.,0.,0.],np.r_[0.,1.,0.]) - np.r_[0.,0.,1.]) < tol)
-        self.assertTrue(np.linalg.norm(Utils.coordutils.crossProd(np.r_[0.,1.,0.],np.r_[0.,0.,1.]) - np.r_[1.,0.,0.]) < tol)
-        self.assertTrue(np.linalg.norm(Utils.coordutils.crossProd(np.r_[0.,0.,1.],np.r_[1.,0.,0.]) - np.r_[0.,1.,0.]) < tol)
-
     def test_rotationMatrixFromNormals(self):
         v0 = np.random.rand(3)
         v0 *= 1./np.linalg.norm(v0)
