@@ -19,7 +19,7 @@ class TestSimpleQuadTree(unittest.TestCase):
         T._refineCell([2,2,2])
 
         T.number()
-        # T.plotGrid(showIt=True)
+        T.plotGrid(showIt=True)
         assert sorted(T._treeInds) == [2, 34, 66, 99, 107, 115, 123, 129, 257, 386, 418, 450, 482]
         assert len(T._hangingFacesX) == 7
         assert T.nFx == 18
