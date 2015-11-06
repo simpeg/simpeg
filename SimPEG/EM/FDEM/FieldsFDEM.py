@@ -145,8 +145,8 @@ class FieldsFDEM_b(FieldsFDEM):
         e = self._MeSigmaI * ( self._edgeCurl.T * ( self._MfMui * bSolution))
         for i,src in enumerate(srcList):
             _,S_e = src.eval(self.prob)
-            if S_e is not None:
-                e[:,i] += -self._MeSigmaI * S_e
+            # if S_e is not None:
+            e[:,i] += -self._MeSigmaI * S_e
         return e
 
     def _eSecondaryDeriv_u(self, src, v, adjoint=False):
@@ -164,8 +164,8 @@ class FieldsFDEM_b(FieldsFDEM):
             Me = Me.T
 
         w = self._edgeCurl.T * (self._MfMui * bSolution)
-        if S_e is not None:
-            w += -Utils.mkvc(Me * S_e,2)
+        # if S_e is not None:
+        w += -Utils.mkvc(Me * S_e,2)
 
         if not adjoint:
             de_dm = self._MeSigmaIDeriv(w) * v

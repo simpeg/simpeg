@@ -383,40 +383,40 @@ class ProblemFDEM_b(BaseFDEMProblem):
         if self._makeASymmetric and adjoint:
             v = self.MfMui * v
 
-        if S_e is not None:
-            MeSigmaIDeriv = self.MeSigmaIDeriv(S_e)
-            if not adjoint:
-                RHSderiv = C * (MeSigmaIDeriv * v)
-            elif adjoint:
-                RHSderiv = MeSigmaIDeriv.T * (C.T * v)
-        else:
-            RHSderiv = None
+        # if S_e is not None:
+        MeSigmaIDeriv = self.MeSigmaIDeriv(S_e)
+        if not adjoint:
+            RHSderiv = C * (MeSigmaIDeriv * v)
+        elif adjoint:
+            RHSderiv = MeSigmaIDeriv.T * (C.T * v)
+        # else:
+        #     RHSderiv = None
 
         S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint)
         S_mDeriv, S_eDeriv = S_mDeriv(v), S_eDeriv(v)
-        if S_mDeriv is not None and S_eDeriv is not None:
-            if not adjoint:
-                SrcDeriv = S_mDeriv + C * (self.MeSigmaI * S_eDeriv)
-            elif adjoint:
-                SrcDeriv = S_mDeriv + Self.MeSigmaI.T * ( C.T * S_eDeriv)
-        elif S_mDeriv is not None:
-            SrcDeriv = S_mDeriv
-        elif S_eDeriv is not None:
-            if not adjoint:
-                SrcDeriv = C * (self.MeSigmaI * S_eDeriv)
-            elif adjoint:
-                SrcDeriv = self.MeSigmaI.T * ( C.T * S_eDeriv)
-        else:
-            SrcDeriv = None
+        # if S_mDeriv is not None and S_eDeriv is not None:
+        if not adjoint:
+            SrcDeriv = S_mDeriv + C * (self.MeSigmaI * S_eDeriv)
+        elif adjoint:
+            SrcDeriv = S_mDeriv + Self.MeSigmaI.T * ( C.T * S_eDeriv)
+        # elif S_mDeriv is not None:
+        #     SrcDeriv = S_mDeriv
+        # elif S_eDeriv is not None:
+        #     if not adjoint:
+        #         SrcDeriv = C * (self.MeSigmaI * S_eDeriv)
+        #     elif adjoint:
+        #         SrcDeriv = self.MeSigmaI.T * ( C.T * S_eDeriv)
+        # else:
+        #     SrcDeriv = None
 
-        if RHSderiv is not None and SrcDeriv is not None:
-            RHSderiv += SrcDeriv
-        elif SrcDeriv is not None:
-            RHSderiv = SrcDeriv
+        # if RHSderiv is not None and SrcDeriv is not None:
+        RHSderiv += SrcDeriv
+        # elif SrcDeriv is not None:
+        #     RHSderiv = SrcDeriv
 
-        if RHSderiv is not None:
-            if self._makeASymmetric is True and not adjoint:
-                return MfMui.T * RHSderiv
+        # if RHSderiv is not None:
+        if self._makeASymmetric is True and not adjoint:
+            return MfMui.T * RHSderiv
 
         return RHSderiv
 
