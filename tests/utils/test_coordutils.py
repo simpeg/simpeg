@@ -23,7 +23,22 @@ class coorUtilsTest(unittest.TestCase):
         v1 = np.random.rand(3) 
         v1*= 1./np.linalg.norm(v1)   
 
-        self.assertTrue(np.linalg.norm(Utils.mkvc(Utils.coordutils.rotatePointsFromNormals(Utils.mkvc(v0,2).T,v0,v1))-v1) < tol)
+        v2 = Utils.mkvc(Utils.coordutils.rotatePointsFromNormals(Utils.mkvc(v0,2).T,v0,v1)) 
+        
+        self.assertTrue(np.linalg.norm(v2-v1) < tol)
+
+    def test_rotateMatrixFromNormals(self):
+        n0 = np.random.rand(3)
+        n0*= 1./np.linalg.norm(n0)
+        n1 = np.random.rand(3) 
+        n1*= 1./np.linalg.norm(n1) 
+
+        scale =  np.random.rand(100,1)
+        XYZ0 = scale * n0
+        XYZ1 = scale * n1
+
+        XYZ2 = Utils.coordutils.rotatePointsFromNormals(XYZ0,n0,n1)
+        self.assertTrue(np.linalg.norm(Utils.mkvc(XYZ1) - Utils.mkvc(XYZ2))/np.linalg.norm(Utils.mkvc(XYZ1)) < tol)
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,4 +1,5 @@
 import numpy as np
+from SimPEG.Utils import mkvc
 
 def rotationMatrixFromNormals(v0,v1,tol=1e-20):
     """
@@ -56,4 +57,6 @@ def rotatePointsFromNormals(XYZ,n0,n1,x0=np.r_[0.,0.,0.]):
     assert XYZ.shape[1] == 3, "Grid XYZ should be 3 wide"
     assert len(x0) == 3, "x0 should have length 3"
 
-    return (XYZ - x0).dot(R.T) + x0 
+    X0 = np.ones([XYZ.shape[0],1])*mkvc(x0)
+
+    return (XYZ - X0).dot(R.T) + X0 # equivalent to (R*(XYZ - X0)).T + X0
