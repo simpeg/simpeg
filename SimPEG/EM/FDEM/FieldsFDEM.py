@@ -228,11 +228,11 @@ class FieldsFDEM_j(FieldsFDEM):
         return self._jPrimary(jSolution, srcList) + self._jSecondary(jSolution, srcList)
 
     def _jDeriv_u(self, src, v, adjoint=False):
-        return None
+        return Identity()*v
 
     def _jDeriv_m(self, src, v, adjoint=False):
         # assuming primary does not depend on the model
-        return None
+        return Zero()
 
     def _hPrimary(self, jSolution, srcList):
         hPrimary = np.zeros([self._edgeCurl.shape[1],jSolution.shape[1]],dtype = complex)
@@ -274,12 +274,12 @@ class FieldsFDEM_j(FieldsFDEM):
 
         if not adjoint:
             S_mDeriv = S_mDeriv(v)
-            if S_mDeriv is not None:
-                hDeriv_m += 1./(1j*omega(src.freq)) * MeMuI * (Me * S_mDeriv)
+            # if S_mDeriv is not None:
+            hDeriv_m += 1./(1j*omega(src.freq)) * MeMuI * (Me * S_mDeriv)
         elif adjoint:
             S_mDeriv = S_mDeriv(Me.T * (MeMuI.T * v))
-            if S_mDeriv is not None:
-                hDeriv_m += 1./(1j*omega(src.freq)) * S_mDeriv
+            # if S_mDeriv is not None:
+            hDeriv_m += 1./(1j*omega(src.freq)) * S_mDeriv
         return hDeriv_m
 
 
@@ -329,11 +329,11 @@ class FieldsFDEM_h(FieldsFDEM):
         return self._hPrimary(hSolution, srcList) + self._hSecondary(hSolution, srcList)
 
     def _hDeriv_u(self, src, v, adjoint=False):
-        return None
+        return Identity()*v
 
     def _hDeriv_m(self, src, v, adjoint=False):
         # assuming primary does not depend on the model
-        return None
+        return Zero()
 
     def _jPrimary(self, hSolution, srcList):
         jPrimary = np.zeros([self._edgeCurl.shape[0], hSolution.shape[1]], dtype = complex)
@@ -360,9 +360,9 @@ class FieldsFDEM_h(FieldsFDEM):
     def _jSecondaryDeriv_m(self, src, v, adjoint=False):
         _,S_eDeriv = src.evalDeriv(self.prob, adjoint)
         S_eDeriv = S_eDeriv(v)
-        if S_eDeriv is not None:
-            return -S_eDeriv
-        return None
+        # if S_eDeriv is not None:
+        return -S_eDeriv
+        # return None
 
     def _j(self, hSolution, srcList):
         return self._jPrimary(hSolution, srcList) + self._jSecondary(hSolution, srcList)

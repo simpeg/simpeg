@@ -4,6 +4,7 @@ from SurveyFDEM import SurveyFDEM
 from FieldsFDEM import FieldsFDEM, FieldsFDEM_e, FieldsFDEM_b, FieldsFDEM_h, FieldsFDEM_j
 from SimPEG.EM.Base import BaseEMProblem
 from SimPEG.EM.Utils.EMUtils import omega
+from SimPEG.Utils import Zero, Identity
 
 
 class BaseFDEMProblem(BaseEMProblem):
@@ -73,7 +74,7 @@ class BaseFDEMProblem(BaseEMProblem):
                 ftype = self._fieldType + 'Solution'
                 u_src = f[src, ftype]
                 dA_dm = self.getADeriv_m(freq, u_src, v)
-                dRHS_dm = self.getRHSDeriv_m(freq, src, v)
+                dRHS_dm = self.getRHSDeriv_m(freq, src, v) 
                 # if dRHS_dm is None:
                     # du_dm = dA_duI * ( - dA_dm )
                 # else:
@@ -532,25 +533,25 @@ class ProblemFDEM_j(BaseFDEMProblem):
                 v = MfRho*v
             S_mDerivv = S_mDeriv(MeMuI.T * (C.T * v))
             S_eDerivv = S_eDeriv(v)
-            if S_mDerivv is not None and S_eDerivv is not None:
-                return S_mDerivv - 1j * omega(freq) * S_eDerivv
-            elif S_mDerivv is not None:
-                return S_mDerivv
-            elif S_eDerivv is not None:
-                return - 1j * omega(freq) * S_eDerivv
-            else:
-                return None
+            # if S_mDerivv is not None and S_eDerivv is not None:
+            return S_mDerivv - 1j * omega(freq) * S_eDerivv
+            # elif S_mDerivv is not None:
+            #     return S_mDerivv
+            # elif S_eDerivv is not None:
+            #     return - 1j * omega(freq) * S_eDerivv
+            # else:
+            #     return None
         else:
             S_mDerivv, S_eDerivv = S_mDeriv(v), S_eDeriv(v)
 
-            if S_mDerivv is not None and S_eDerivv is not None:
-                RHSDeriv = C * (MeMuI * S_mDerivv) - 1j * omega(freq) * S_eDerivv
-            elif S_mDerivv is not None:
-                RHSDeriv = C * (MeMuI * S_mDerivv)
-            elif S_eDerivv is not None:
-                RHSDeriv = - 1j * omega(freq) * S_eDerivv
-            else:
-                return None
+            # if S_mDerivv is not None and S_eDerivv is not None:
+            RHSDeriv = C * (MeMuI * S_mDerivv) - 1j * omega(freq) * S_eDerivv
+            # elif S_mDerivv is not None:
+            #     RHSDeriv = C * (MeMuI * S_mDerivv)
+            # elif S_eDerivv is not None:
+            #     RHSDeriv = - 1j * omega(freq) * S_eDerivv
+            # else:
+            #     return None
 
             if self._makeASymmetric:
                 MfRho = self.MfRho
@@ -634,30 +635,34 @@ class ProblemFDEM_h(BaseFDEMProblem):
         C = self.mesh.edgeCurl
         MfRho  = self.MfRho
 
-        RHSDeriv = None
+        # RHSDeriv = Zero()
 
-        if S_e is not None:
-            MfRhoDeriv = self.MfRhoDeriv(S_e)
-            if not adjoint:
-                RHSDeriv = C.T * (MfRhoDeriv * v)
-            elif adjoint:
-                RHSDeriv = MfRhoDeriv.T * (C * v)
+        # if S_e is not None:
+        MfRhoDeriv = self.MfRhoDeriv(S_e)
+        if not adjoint:
+            RHSDeriv = C.T * (MfRhoDeriv * v)
+        elif adjoint:
+            RHSDeriv = MfRhoDeriv.T * (C * v)
+
+        # print S_e, RHSDeriv
 
         S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint)
 
         S_mDeriv = S_mDeriv(v)
         S_eDeriv = S_eDeriv(v)
 
-        if S_mDeriv is not None:
-            if RHSDeriv is not None:
-                RHSDeriv += S_mDeriv(v)
-            else:
-                RHSDeriv =  S_mDeriv(v)
-        if S_eDeriv is not None:
-            if RHSDeriv is not None:
-                RHSDeriv += C.T * (MfRho * S_e)
-            else:
-                RHSDeriv = C.T * (MfRho * S_e)
+        # if S_mDeriv is not None:
+            # if RHSDeriv is not None:
+        RHSDeriv += S_mDeriv
 
-        return RHSDeriv
+            # else:
+                # RHSDeriv =  S_mDeriv(v)
+        # if S_eDeriv is not None:
+            # if RHSDeriv is not None:
+        return RHSDeriv + C.T * (MfRho * S_eDeriv)
+        # print RHSDeriv
+        #     # else:
+        #     #     RHSDeriv = C.T * (MfRho * S_e)
+        # print RHSDeriv
+        # return RHSDeriv
 
