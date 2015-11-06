@@ -978,6 +978,25 @@ class Tree(object):
 
         # self.__dirty__ = False
 
+
+    def _deflationMatrix(self, theSet, theHang, theIndex):
+        reducedInd = dict() # final reduced index
+        ii = 0
+        I,J,V = [],[],[]
+        for fx in sorted(theSet):
+            if theIndex[fx] not in theHang:
+                reducedInd[theIndex[fx]] = ii
+                I += [theIndex[fx]]
+                J += [ii]
+                V += [1.0]
+                ii += 1
+        for hfkey in theHang.keys():
+            hf = theHang[hfkey]
+            I += [hfkey]*len(hf)
+            J += [_[0] for _ in hf]
+            V += [_[1] for _ in hf]
+        return sp.csr_matrix((V,(I,J)), shape=(len(theSet), len(reducedInd)))
+
     @property
     def faceDiv(self):
         # print self._c2f
@@ -989,17 +1008,46 @@ class Tree(object):
             offset = [0,0,self.nFx,self.nFx,self.nFx+self.nFy,self.nFx+self.nFy]
 
             for ii, ind in enumerate(self._sortedInds):
-                faces = self._c2f[ind]
-                for off, pm, face in zip(offset,PM,faces):
-                    j = [_ + off for _ in face]
-                    I += [ii]*len(j)
-                    J += j
-                    V += [pm]*len(j)
 
-            VOL = self.vol
-            D = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.nF))
-            S = self.area
-            self._faceDiv = Utils.sdiag(1.0/VOL)*D*Utils.sdiag(S)
+                p = self._pointer(ind)
+                w = self._levelWidth(p[-1])
+
+                if self.dim == 2:
+                    faces = [
+                                self._fx2i[self._index([ p[0]    , p[1]    , p[2]])],
+                                self._fx2i[self._index([ p[0] + w, p[1]    , p[2]])],
+                                self._fy2i[self._index([ p[0]    , p[1]    , p[2]])],
+                                self._fy2i[self._index([ p[0]    , p[1] + w, p[2]])]
+                            ]
+                elif self.dim == 3:
+                    faces = [
+                                self._fx2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                                self._fx2i[self._index([ p[0] + w, p[1]    , p[2]    , p[3]])],
+                                self._fy2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                                self._fy2i[self._index([ p[0]    , p[1] + w, p[2]    , p[3]])],
+                                self._fz2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                                self._fz2i[self._index([ p[0]    , p[1]    , p[2] + w, p[3]])]
+                            ]
+
+                for off, pm, face in zip(offset,PM,faces):
+                    I += [ii]
+                    J += [face + off]
+                    V += [pm]
+
+            # total number of faces
+            tnF = len(self._facesX) + len(self._facesY) + (0 if self.dim == 2 else len(self._facesZ))
+
+            D = sp.csr_matrix((V,(I,J)), shape=(self.nC, tnF))
+            Rlist = [0]*self.dim
+            Rlist[0] = self._deflationMatrix(self._facesX, self._hangingFx, self._fx2i)
+            Rlist[1] = self._deflationMatrix(self._facesY, self._hangingFy, self._fy2i)
+            if self.dim == 3:
+                Rlist[2] = self._deflationMatrix(self._facesZ, self._hangingFz, self._fz2i)
+            R = sp.block_diag(Rlist)
+            # VOL = self.vol
+            # S = self.area
+            self._faceDiv = D * R
+            # self._faceDiv = Utils.sdiag(1.0/VOL)*D*Utils.sdiag(S)
         return self._faceDiv
 
     def plotGrid(self, ax=None, showIt=False, grid=True):
@@ -1122,14 +1170,31 @@ if __name__ == '__main__':
         else:
             return 0
 
-    T = Tree([[(1,8)],[(1,8)],[(1,8)]],levels=3)
-    # T = Tree([[(1,16)],[(1,16)]],levels=4)
+    # T = Tree([[(1,8)],[(1,8)],[(1,8)]],levels=3)
+    T = Tree([[(1,16)],[(1,16)]],levels=4)
     T.refine(lambda xc:1)
-    # T._refineCell([4,4,2])
-    T._refineCell([4,4,4,1])
+    T._refineCell([0,0,1])
+    T._refineCell([8,8,1])
+    # T._refineCell([4,4,4,1])
+
+    ax = plt.subplot(211)
+    ax.spy(T.faceDiv)
 
 
-    T.plotGrid(grid=False)
+
+    # R = deflationMatrix(T._facesX, T._hangingFx, T._fx2i)
+    # print R
+
+    ax = plt.subplot(212)
+    # ax.spy(R)
+
+    # ax = plt.subplot(313)
+    # ax.spy(T.faceDiv[:,:T.nFx] * R)
+
+
+
+    T.plotGrid(ax=ax)
+
 
 
 
