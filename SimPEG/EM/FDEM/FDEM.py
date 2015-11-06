@@ -73,25 +73,28 @@ class BaseFDEMProblem(BaseEMProblem):
                 ftype = self._fieldType + 'Solution'
                 u_src = f[src, ftype]
                 dA_dm = self.getADeriv_m(freq, u_src, v)
-                dRHS_dm = self.getRHSDeriv_m(src, v)
-                if dRHS_dm is None:
-                    du_dm = dA_duI * ( - dA_dm )
-                else:
-                    du_dm = dA_duI * ( - dA_dm + dRHS_dm )
+                dRHS_dm = self.getRHSDeriv_m(freq, src, v)
+                # if dRHS_dm is None:
+                    # du_dm = dA_duI * ( - dA_dm )
+                # else:
+                du_dm = dA_duI * ( - dA_dm + dRHS_dm )
+                
+
                 for rx in src.rxList:
                     # df_duFun = u.deriv_u(rx.fieldsUsed, m)
                     df_duFun = getattr(f, '_%sDeriv_u'%rx.projField, None)
                     df_du = df_duFun(src, du_dm, adjoint=False)
-                    if df_du is not None:
-                        du_dm = df_du
+                    # if df_du is not None:
+
+                    du_dm = df_du
 
                     df_dmFun = getattr(f, '_%sDeriv_m'%rx.projField, None)
                     df_dm = df_dmFun(src, v, adjoint=False)
-                    if df_dm is not None:
-                        du_dm += df_dm
+                    # if df_dm is not None:
+                    
+                    du_dm += df_dm
 
                     P = lambda v: rx.projectFieldsDeriv(src, self.mesh, f, v) # wrt u, also have wrt m
-
 
                     Jv[src, rx] = P(du_dm)
 
@@ -249,12 +252,11 @@ class ProblemFDEM_e(BaseFDEMProblem):
         C = self.mesh.edgeCurl
         MfMui = self.MfMui
 
-        # RHS = C.T * (MfMui * S_m) -1j * omega(freq) * Me * S_e
         RHS = C.T * (MfMui * S_m) -1j * omega(freq) * S_e
 
         return RHS
 
-    def getRHSDeriv_m(self, src, v, adjoint=False):
+    def getRHSDeriv_m(self, freq, src, v, adjoint=False):
         C = self.mesh.edgeCurl
         MfMui = self.MfMui
         S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint)
@@ -263,25 +265,25 @@ class ProblemFDEM_e(BaseFDEMProblem):
             dRHS = MfMui * (C * v)
             S_mDerivv = S_mDeriv(dRHS)
             S_eDerivv = S_eDeriv(v)
-            if S_mDerivv is not None and S_eDerivv is not None:
-                return S_mDerivv - 1j * omega(freq) * S_eDerivv
-            elif S_mDerivv is not None:
-                return S_mDerivv
-            elif S_eDerivv is not None:
-                return - 1j * omega(freq) * S_eDerivv
-            else:
-                return None
+            # if S_mDerivv is not None and S_eDerivv is not None:
+            return S_mDerivv - 1j * omega(freq) * S_eDerivv
+            # elif S_mDerivv is not None:
+            #     return S_mDerivv
+            # elif S_eDerivv is not None:
+            #     return - 1j * omega(freq) * S_eDerivv
+            # else:
+            #     return None
         else:
             S_mDerivv, S_eDerivv = S_mDeriv(v), S_eDeriv(v)
 
-            if S_mDerivv is not None and S_eDerivv is not None:
-                return C.T * (MfMui * S_mDerivv) -1j * omega(freq) * S_eDerivv
-            elif S_mDerivv is not None:
-                return C.T * (MfMui * S_mDerivv)
-            elif S_eDerivv is not None:
-                return -1j * omega(freq) * S_eDerivv
-            else:
-                return None
+            # if S_mDerivv is not None and S_eDerivv is not None:
+            return C.T * (MfMui * S_mDerivv) -1j * omega(freq) * S_eDerivv
+            # elif S_mDerivv is not None:
+            #     return C.T * (MfMui * S_mDerivv)
+            # elif S_eDerivv is not None:
+            #     return -1j * omega(freq) * S_eDerivv
+            # else:
+            #     return None
 
 
 class ProblemFDEM_b(BaseFDEMProblem):
@@ -372,7 +374,7 @@ class ProblemFDEM_b(BaseFDEMProblem):
 
         return RHS
 
-    def getRHSDeriv_m(self, src, v, adjoint=False):
+    def getRHSDeriv_m(self, freq, src, v, adjoint=False):
         C = self.mesh.edgeCurl
         S_m, S_e = src.eval(self)
         MfMui = self.MfMui
@@ -519,7 +521,7 @@ class ProblemFDEM_j(BaseFDEMProblem):
 
         return RHS
 
-    def getRHSDeriv_m(self, src, v, adjoint=False):
+    def getRHSDeriv_m(self, freq, src, v, adjoint=False):
         C = self.mesh.edgeCurl
         MeMuI = self.MeMuI
         S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint)
@@ -627,7 +629,7 @@ class ProblemFDEM_h(BaseFDEMProblem):
 
         return RHS
 
-    def getRHSDeriv_m(self, src, v, adjoint=False):
+    def getRHSDeriv_m(self, freq, src, v, adjoint=False):
         _, S_e = src.eval(self)
         C = self.mesh.edgeCurl
         MfRho  = self.MfRho

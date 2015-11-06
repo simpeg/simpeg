@@ -2,6 +2,7 @@ from SimPEG import Survey, Problem, Utils, np, sp
 from SimPEG.EM.Utils import SrcUtils
 from SimPEG.EM.Utils.EMUtils import omega, e_from_j, j_from_e, b_from_h, h_from_b
 from scipy.constants import mu_0
+from SimPEG.Utils import Zero, Identity
 
 ####################################################
 # Receivers
@@ -123,10 +124,10 @@ class SrcFDEM(Survey.BaseSrc):
         return None
 
     def S_mDeriv(self, prob, v, adjoint = False):
-        return None
+        return Zero()
 
     def S_eDeriv(self, prob, v, adjoint = False):
-        return None
+        return Zero()
 
 
 class SrcFDEM_RawVec_e(SrcFDEM):

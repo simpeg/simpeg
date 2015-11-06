@@ -1,5 +1,6 @@
 from SimPEG import Survey, Problem, Utils, np, sp
 from SimPEG.EM.Utils.EMUtils import omega
+from SimPEG.Utils import Zero, Identity
 
 
 class FieldsFDEM(Problem.Fields):
@@ -40,11 +41,11 @@ class FieldsFDEM_e(FieldsFDEM):
         return self._ePrimary(eSolution,srcList) + self._eSecondary(eSolution,srcList)
 
     def _eDeriv_u(self, src, v, adjoint = False):
-        return None
+        return Identity()*v
 
     def _eDeriv_m(self, src, v, adjoint = False):
         # assuming primary does not depend on the model
-        return None
+        return Zero()
 
     def _bPrimary(self, eSolution, srcList):
         bPrimary = np.zeros([self._edgeCurl.shape[0],eSolution.shape[1]],dtype = complex)
@@ -73,9 +74,9 @@ class FieldsFDEM_e(FieldsFDEM):
     def _bSecondaryDeriv_m(self, src, v, adjoint = False):
         S_mDeriv, _ = src.evalDeriv(self.prob, adjoint)
         S_mDeriv = S_mDeriv(v)
-        if S_mDeriv is not None:
-            return 1./(1j * omega(src.freq)) * S_mDeriv
-        return None
+        # if S_mDeriv is not None:
+        return 1./(1j * omega(src.freq)) * S_mDeriv
+        # return None
 
     def _b(self, eSolution, srcList):
         return self._bPrimary(eSolution, srcList) + self._bSecondary(eSolution, srcList)
@@ -126,11 +127,11 @@ class FieldsFDEM_b(FieldsFDEM):
         return self._bPrimary(bSolution, srcList) + self._bSecondary(bSolution, srcList)
 
     def _bDeriv_u(self, src, v, adjoint=False):
-        return None
+        return Identity()*v
 
     def _bDeriv_m(self, src, v, adjoint=False):
         # assuming primary does not depend on the model
-        return None
+        return Zero()
 
     def _ePrimary(self, bSolution, srcList):
         ePrimary = np.zeros([self._edgeCurl.shape[1],bSolution.shape[1]],dtype = complex)
