@@ -537,14 +537,14 @@ class Tree(object):
         self._numberFaces()
         self._numberEdges()
 
-        self._hangingNodes  = dict()
-        self._hangingFacesX = dict()
-        self._hangingFacesY = dict()
+        self._hangingN  = dict()
+        self._hangingFx = dict()
+        self._hangingFy = dict()
         if self.dim == 3:
-            self._hangingFacesZ = dict()
-            self._hangingEdgesX = dict()
-            self._hangingEdgesY = dict()
-            self._hangingEdgesZ = dict()
+            self._hangingFz = dict()
+            self._hangingEx = dict()
+            self._hangingEy = dict()
+            self._hangingEz = dict()
 
         # Compute from x faces
         for fx in self._facesX:
@@ -558,13 +558,13 @@ class Tree(object):
             w = self._levelWidth(sl)
 
             if self.dim == 2:
-                self._hangingFacesX[self._fx2i[test                                 ]] = ([self._fx2i[fx], 0.5], )
-                self._hangingFacesX[self._fx2i[self._index([p[0]    , p[1] + w, sl])]] = ([self._fx2i[fx], 0.5], )
+                self._hangingFx[self._fx2i[test                                 ]] = ([self._fx2i[fx], 0.5], )
+                self._hangingFx[self._fx2i[self._index([p[0]    , p[1] + w, sl])]] = ([self._fx2i[fx], 0.5], )
 
                 n0, n1 = fx, self._index([p[0], p[1] + 2*w, p[-1]])
-                self._hangingNodes[self._n2i[test                                   ]] = ([self._n2i[n0], 1.0], )
-                self._hangingNodes[self._n2i[self._index([p[0]    , p[1] +   w, sl])]] = ([self._n2i[n0], 0.5], [self._n2i[n1], 0.5])
-                self._hangingNodes[self._n2i[self._index([p[0]    , p[1] + 2*w, sl])]] = ([self._n2i[n1], 1.0], )
+                self._hangingN[self._n2i[test                                   ]] = ([self._n2i[n0], 1.0], )
+                self._hangingN[self._n2i[self._index([p[0]    , p[1] +   w, sl])]] = ([self._n2i[n0], 0.5], [self._n2i[n1], 0.5])
+                self._hangingN[self._n2i[self._index([p[0]    , p[1] + 2*w, sl])]] = ([self._n2i[n1], 1.0], )
 
             elif self.dim == 3:
                 ey0 = fx
@@ -577,34 +577,34 @@ class Tree(object):
                 n2  = self._index([p[0], p[1]      , p[2] + 2*w, p[-1]])
                 n3  = self._index([p[0], p[1] + 2*w, p[2] + 2*w, p[-1]])
 
-                self._hangingFacesX[self._fx2i[test                                           ]] = ([self._fx2i[fx], 0.25], )
-                self._hangingFacesX[self._fx2i[self._index([p[0], p[1] +   w, p[2]      , sl])]] = ([self._fx2i[fx], 0.25], )
-                self._hangingFacesX[self._fx2i[self._index([p[0], p[1]      , p[2] +   w, sl])]] = ([self._fx2i[fx], 0.25], )
-                self._hangingFacesX[self._fx2i[self._index([p[0], p[1] +   w, p[2] +   w, sl])]] = ([self._fx2i[fx], 0.25], )
+                self._hangingFx[self._fx2i[test                                           ]] = ([self._fx2i[fx], 0.25], )
+                self._hangingFx[self._fx2i[self._index([p[0], p[1] +   w, p[2]      , sl])]] = ([self._fx2i[fx], 0.25], )
+                self._hangingFx[self._fx2i[self._index([p[0], p[1]      , p[2] +   w, sl])]] = ([self._fx2i[fx], 0.25], )
+                self._hangingFx[self._fx2i[self._index([p[0], p[1] +   w, p[2] +   w, sl])]] = ([self._fx2i[fx], 0.25], )
 
-                self._hangingEdgesY[self._ey2i[test                                           ]] = ([self._ey2i[ey0], 0.5], )
-                self._hangingEdgesY[self._ey2i[self._index([p[0], p[1] +   w, p[2]      , sl])]] = ([self._ey2i[ey0], 0.5], )
-                self._hangingEdgesY[self._ey2i[self._index([p[0], p[1]      , p[2] +   w, sl])]] = ([self._ey2i[ey0], 0.25], [self._ey2i[ey1], 0.25])
-                self._hangingEdgesY[self._ey2i[self._index([p[0], p[1] +   w, p[2] +   w, sl])]] = ([self._ey2i[ey0], 0.25], [self._ey2i[ey1], 0.25])
-                self._hangingEdgesY[self._ey2i[self._index([p[0], p[1]      , p[2] + 2*w, sl])]] = ([self._ey2i[ey1], 0.5], )
-                self._hangingEdgesY[self._ey2i[self._index([p[0], p[1] +   w, p[2] + 2*w, sl])]] = ([self._ey2i[ey1], 0.5], )
+                self._hangingEy[self._ey2i[test                                           ]] = ([self._ey2i[ey0], 0.5], )
+                self._hangingEy[self._ey2i[self._index([p[0], p[1] +   w, p[2]      , sl])]] = ([self._ey2i[ey0], 0.5], )
+                self._hangingEy[self._ey2i[self._index([p[0], p[1]      , p[2] +   w, sl])]] = ([self._ey2i[ey0], 0.25], [self._ey2i[ey1], 0.25])
+                self._hangingEy[self._ey2i[self._index([p[0], p[1] +   w, p[2] +   w, sl])]] = ([self._ey2i[ey0], 0.25], [self._ey2i[ey1], 0.25])
+                self._hangingEy[self._ey2i[self._index([p[0], p[1]      , p[2] + 2*w, sl])]] = ([self._ey2i[ey1], 0.5], )
+                self._hangingEy[self._ey2i[self._index([p[0], p[1] +   w, p[2] + 2*w, sl])]] = ([self._ey2i[ey1], 0.5], )
 
-                self._hangingEdgesZ[self._ez2i[test                                           ]] = ([self._ez2i[ez0], 0.5], )
-                self._hangingEdgesZ[self._ez2i[self._index([p[0], p[1]      , p[2] +   w, sl])]] = ([self._ez2i[ez0], 0.5], )
-                self._hangingEdgesZ[self._ez2i[self._index([p[0], p[1] +   w, p[2]      , sl])]] = ([self._ez2i[ez0], 0.25], [self._ez2i[ez1], 0.25])
-                self._hangingEdgesZ[self._ez2i[self._index([p[0], p[1] +   w, p[2] +   w, sl])]] = ([self._ez2i[ez0], 0.25], [self._ez2i[ez1], 0.25])
-                self._hangingEdgesZ[self._ez2i[self._index([p[0], p[1] + 2*w, p[2]      , sl])]] = ([self._ez2i[ez1], 0.5], )
-                self._hangingEdgesZ[self._ez2i[self._index([p[0], p[1] + 2*w, p[2] +   w, sl])]] = ([self._ez2i[ez1], 0.5], )
+                self._hangingEz[self._ez2i[test                                           ]] = ([self._ez2i[ez0], 0.5], )
+                self._hangingEz[self._ez2i[self._index([p[0], p[1]      , p[2] +   w, sl])]] = ([self._ez2i[ez0], 0.5], )
+                self._hangingEz[self._ez2i[self._index([p[0], p[1] +   w, p[2]      , sl])]] = ([self._ez2i[ez0], 0.25], [self._ez2i[ez1], 0.25])
+                self._hangingEz[self._ez2i[self._index([p[0], p[1] +   w, p[2] +   w, sl])]] = ([self._ez2i[ez0], 0.25], [self._ez2i[ez1], 0.25])
+                self._hangingEz[self._ez2i[self._index([p[0], p[1] + 2*w, p[2]      , sl])]] = ([self._ez2i[ez1], 0.5], )
+                self._hangingEz[self._ez2i[self._index([p[0], p[1] + 2*w, p[2] +   w, sl])]] = ([self._ez2i[ez1], 0.5], )
 
-                self._hangingNodes[ self._n2i[ test                                           ]] = ([self._n2i[n0],   1.0], )
-                self._hangingNodes[ self._n2i[ self._index([p[0], p[1] +   w, p[2]      , sl])]] = ([self._n2i[n0],   0.5], [self._n2i[n1], 0.5])
-                self._hangingNodes[ self._n2i[ self._index([p[0], p[1] + 2*w, p[2]      , sl])]] = ([self._n2i[n1],   1.0], )
-                self._hangingNodes[ self._n2i[ self._index([p[0], p[1]      , p[2] +   w, sl])]] = ([self._n2i[n0],   0.5], [self._n2i[n2], 0.5])
-                self._hangingNodes[ self._n2i[ self._index([p[0], p[1] +   w, p[2] +   w, sl])]] = ([self._n2i[n0],   0.25], [self._n2i[n1], 0.25], [self._n2i[n2], 0.25], [self._n2i[n3], 0.25])
-                self._hangingNodes[ self._n2i[ self._index([p[0], p[1] + 2*w, p[2] +   w, sl])]] = ([self._n2i[n1],   0.5], [self._n2i[n3], 0.5])
-                self._hangingNodes[ self._n2i[ self._index([p[0], p[1]      , p[2] + 2*w, sl])]] = ([self._n2i[n2],   1.0], )
-                self._hangingNodes[ self._n2i[ self._index([p[0], p[1] +   w, p[2] + 2*w, sl])]] = ([self._n2i[n2],   0.5], [self._n2i[n3], 0.5])
-                self._hangingNodes[ self._n2i[ self._index([p[0], p[1] + 2*w, p[2] + 2*w, sl])]] = ([self._n2i[n3],   1.0], )
+                self._hangingN[ self._n2i[ test                                           ]] = ([self._n2i[n0],   1.0], )
+                self._hangingN[ self._n2i[ self._index([p[0], p[1] +   w, p[2]      , sl])]] = ([self._n2i[n0],   0.5], [self._n2i[n1], 0.5])
+                self._hangingN[ self._n2i[ self._index([p[0], p[1] + 2*w, p[2]      , sl])]] = ([self._n2i[n1],   1.0], )
+                self._hangingN[ self._n2i[ self._index([p[0], p[1]      , p[2] +   w, sl])]] = ([self._n2i[n0],   0.5], [self._n2i[n2], 0.5])
+                self._hangingN[ self._n2i[ self._index([p[0], p[1] +   w, p[2] +   w, sl])]] = ([self._n2i[n0],   0.25], [self._n2i[n1], 0.25], [self._n2i[n2], 0.25], [self._n2i[n3], 0.25])
+                self._hangingN[ self._n2i[ self._index([p[0], p[1] + 2*w, p[2] +   w, sl])]] = ([self._n2i[n1],   0.5], [self._n2i[n3], 0.5])
+                self._hangingN[ self._n2i[ self._index([p[0], p[1]      , p[2] + 2*w, sl])]] = ([self._n2i[n2],   1.0], )
+                self._hangingN[ self._n2i[ self._index([p[0], p[1] +   w, p[2] + 2*w, sl])]] = ([self._n2i[n2],   0.5], [self._n2i[n3], 0.5])
+                self._hangingN[ self._n2i[ self._index([p[0], p[1] + 2*w, p[2] + 2*w, sl])]] = ([self._n2i[n3],   1.0], )
 
         # Compute from y faces
         for fy in self._facesY:
@@ -618,13 +618,13 @@ class Tree(object):
             w = self._levelWidth(sl)
 
             if self.dim == 2:
-                self._hangingFacesY[self._fy2i[test                                 ]] = ([self._fy2i[fy], 0.5], )
-                self._hangingFacesY[self._fy2i[self._index([p[0] + w, p[1]    , sl])]] = ([self._fy2i[fy], 0.5], )
+                self._hangingFy[self._fy2i[test                                 ]] = ([self._fy2i[fy], 0.5], )
+                self._hangingFy[self._fy2i[self._index([p[0] + w, p[1]    , sl])]] = ([self._fy2i[fy], 0.5], )
 
                 n0, n1 = fy, self._index([p[0] + 2*w, p[1], p[-1]])
-                self._hangingNodes[self._n2i[test                                   ]] = ([self._n2i[n0], 1.0], )
-                self._hangingNodes[self._n2i[self._index([p[0] +   w, p[1]    , sl])]] = ([self._n2i[n0], 0.5], [self._n2i[n1], 0.5])
-                self._hangingNodes[self._n2i[self._index([p[0] + 2*w, p[1]    , sl])]] = ([self._n2i[n1], 1.0], )
+                self._hangingN[self._n2i[test                                   ]] = ([self._n2i[n0], 1.0], )
+                self._hangingN[self._n2i[self._index([p[0] +   w, p[1]    , sl])]] = ([self._n2i[n0], 0.5], [self._n2i[n1], 0.5])
+                self._hangingN[self._n2i[self._index([p[0] + 2*w, p[1]    , sl])]] = ([self._n2i[n1], 1.0], )
 
             elif self.dim == 3:
                 ex0 = fy
@@ -637,34 +637,34 @@ class Tree(object):
                 n2  = self._index([p[0]      , p[1], p[2] + 2*w, p[-1]])
                 n3  = self._index([p[0] + 2*w, p[1], p[2] + 2*w, p[-1]])
 
-                self._hangingFacesY[self._fy2i[test                                           ]] = ([self._fy2i[fy], 0.25], )
-                self._hangingFacesY[self._fy2i[self._index([p[0] +   w, p[1], p[2]      , sl])]] = ([self._fy2i[fy], 0.25], )
-                self._hangingFacesY[self._fy2i[self._index([p[0]      , p[1], p[2] +   w, sl])]] = ([self._fy2i[fy], 0.25], )
-                self._hangingFacesY[self._fy2i[self._index([p[0] +   w, p[1], p[2] +   w, sl])]] = ([self._fy2i[fy], 0.25], )
+                self._hangingFy[self._fy2i[test                                           ]] = ([self._fy2i[fy], 0.25], )
+                self._hangingFy[self._fy2i[self._index([p[0] +   w, p[1], p[2]      , sl])]] = ([self._fy2i[fy], 0.25], )
+                self._hangingFy[self._fy2i[self._index([p[0]      , p[1], p[2] +   w, sl])]] = ([self._fy2i[fy], 0.25], )
+                self._hangingFy[self._fy2i[self._index([p[0] +   w, p[1], p[2] +   w, sl])]] = ([self._fy2i[fy], 0.25], )
 
-                self._hangingEdgesX[self._ex2i[test                                           ]] = ([self._ex2i[ex0], 0.5], )
-                self._hangingEdgesX[self._ex2i[self._index([p[0] +   w, p[1], p[2]      , sl])]] = ([self._ex2i[ex0], 0.5], )
-                self._hangingEdgesX[self._ex2i[self._index([p[0]      , p[1], p[2] +   w, sl])]] = ([self._ex2i[ex0], 0.25], [self._ex2i[ex1], 0.25])
-                self._hangingEdgesX[self._ex2i[self._index([p[0] +   w, p[1], p[2] +   w, sl])]] = ([self._ex2i[ex0], 0.25], [self._ex2i[ex1], 0.25])
-                self._hangingEdgesX[self._ex2i[self._index([p[0]      , p[1], p[2] + 2*w, sl])]] = ([self._ex2i[ex1], 0.5], )
-                self._hangingEdgesX[self._ex2i[self._index([p[0] +   w, p[1], p[2] + 2*w, sl])]] = ([self._ex2i[ex1], 0.5], )
+                self._hangingEx[self._ex2i[test                                           ]] = ([self._ex2i[ex0], 0.5], )
+                self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1], p[2]      , sl])]] = ([self._ex2i[ex0], 0.5], )
+                self._hangingEx[self._ex2i[self._index([p[0]      , p[1], p[2] +   w, sl])]] = ([self._ex2i[ex0], 0.25], [self._ex2i[ex1], 0.25])
+                self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1], p[2] +   w, sl])]] = ([self._ex2i[ex0], 0.25], [self._ex2i[ex1], 0.25])
+                self._hangingEx[self._ex2i[self._index([p[0]      , p[1], p[2] + 2*w, sl])]] = ([self._ex2i[ex1], 0.5], )
+                self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1], p[2] + 2*w, sl])]] = ([self._ex2i[ex1], 0.5], )
 
-                self._hangingEdgesZ[self._ez2i[test                                           ]] = ([self._ez2i[ez0], 0.5], )
-                self._hangingEdgesZ[self._ez2i[self._index([p[0]      , p[1], p[2] +   w, sl])]] = ([self._ez2i[ez0], 0.5], )
-                self._hangingEdgesZ[self._ez2i[self._index([p[0] +   w, p[1], p[2]      , sl])]] = ([self._ez2i[ez0], 0.25], [self._ez2i[ez1], 0.25])
-                self._hangingEdgesZ[self._ez2i[self._index([p[0] +   w, p[1], p[2] +   w, sl])]] = ([self._ez2i[ez0], 0.25], [self._ez2i[ez1], 0.25])
-                self._hangingEdgesZ[self._ez2i[self._index([p[0] + 2*w, p[1], p[2]      , sl])]] = ([self._ez2i[ez1], 0.5], )
-                self._hangingEdgesZ[self._ez2i[self._index([p[0] + 2*w, p[1], p[2] +   w, sl])]] = ([self._ez2i[ez1], 0.5], )
+                self._hangingEz[self._ez2i[test                                           ]] = ([self._ez2i[ez0], 0.5], )
+                self._hangingEz[self._ez2i[self._index([p[0]      , p[1], p[2] +   w, sl])]] = ([self._ez2i[ez0], 0.5], )
+                self._hangingEz[self._ez2i[self._index([p[0] +   w, p[1], p[2]      , sl])]] = ([self._ez2i[ez0], 0.25], [self._ez2i[ez1], 0.25])
+                self._hangingEz[self._ez2i[self._index([p[0] +   w, p[1], p[2] +   w, sl])]] = ([self._ez2i[ez0], 0.25], [self._ez2i[ez1], 0.25])
+                self._hangingEz[self._ez2i[self._index([p[0] + 2*w, p[1], p[2]      , sl])]] = ([self._ez2i[ez1], 0.5], )
+                self._hangingEz[self._ez2i[self._index([p[0] + 2*w, p[1], p[2] +   w, sl])]] = ([self._ez2i[ez1], 0.5], )
 
-                self._hangingNodes[ self._n2i[ test                                           ]] = ([self._n2i[n0],   1.0], )
-                self._hangingNodes[ self._n2i[ self._index([p[0] +   w, p[1], p[2]      , sl])]] = ([self._n2i[n0],   0.5], [self._n2i[n1], 0.5])
-                self._hangingNodes[ self._n2i[ self._index([p[0] + 2*w, p[1], p[2]      , sl])]] = ([self._n2i[n1],   1.0], )
-                self._hangingNodes[ self._n2i[ self._index([p[0]      , p[1], p[2] +   w, sl])]] = ([self._n2i[n0],   0.5], [self._n2i[n2], 0.5])
-                self._hangingNodes[ self._n2i[ self._index([p[0] +   w, p[1], p[2] +   w, sl])]] = ([self._n2i[n0],   0.25], [self._n2i[n1], 0.25], [self._n2i[n2], 0.25], [self._n2i[n3], 0.25])
-                self._hangingNodes[ self._n2i[ self._index([p[0] + 2*w, p[1], p[2] +   w, sl])]] = ([self._n2i[n1],   0.5], [self._n2i[n3], 0.5])
-                self._hangingNodes[ self._n2i[ self._index([p[0]      , p[1], p[2] + 2*w, sl])]] = ([self._n2i[n2],   1.0], )
-                self._hangingNodes[ self._n2i[ self._index([p[0] +   w, p[1], p[2] + 2*w, sl])]] = ([self._n2i[n2],   0.5], [self._n2i[n3], 0.5])
-                self._hangingNodes[ self._n2i[ self._index([p[0] + 2*w, p[1], p[2] + 2*w, sl])]] = ([self._n2i[n3],   1.0], )
+                self._hangingN[ self._n2i[ test                                           ]] = ([self._n2i[n0],   1.0], )
+                self._hangingN[ self._n2i[ self._index([p[0] +   w, p[1], p[2]      , sl])]] = ([self._n2i[n0],   0.5], [self._n2i[n1], 0.5])
+                self._hangingN[ self._n2i[ self._index([p[0] + 2*w, p[1], p[2]      , sl])]] = ([self._n2i[n1],   1.0], )
+                self._hangingN[ self._n2i[ self._index([p[0]      , p[1], p[2] +   w, sl])]] = ([self._n2i[n0],   0.5], [self._n2i[n2], 0.5])
+                self._hangingN[ self._n2i[ self._index([p[0] +   w, p[1], p[2] +   w, sl])]] = ([self._n2i[n0],   0.25], [self._n2i[n1], 0.25], [self._n2i[n2], 0.25], [self._n2i[n3], 0.25])
+                self._hangingN[ self._n2i[ self._index([p[0] + 2*w, p[1], p[2] +   w, sl])]] = ([self._n2i[n1],   0.5], [self._n2i[n3], 0.5])
+                self._hangingN[ self._n2i[ self._index([p[0]      , p[1], p[2] + 2*w, sl])]] = ([self._n2i[n2],   1.0], )
+                self._hangingN[ self._n2i[ self._index([p[0] +   w, p[1], p[2] + 2*w, sl])]] = ([self._n2i[n2],   0.5], [self._n2i[n3], 0.5])
+                self._hangingN[ self._n2i[ self._index([p[0] + 2*w, p[1], p[2] + 2*w, sl])]] = ([self._n2i[n3],   1.0], )
 
         if self.dim == 2:
             self.__dirtyHanging__ = False
@@ -691,35 +691,34 @@ class Tree(object):
             n2  = self._index([p[0]      , p[1] + 2*w, p[2], p[-1]])
             n3  = self._index([p[0] + 2*w, p[1] + 2*w, p[2], p[-1]])
 
-            self._hangingFacesY[self._fz2i[test                                           ]] = ([self._fz2i[fz], 0.25], )
-            self._hangingFacesY[self._fz2i[self._index([p[0] +   w, p[1]      , p[2], sl])]] = ([self._fz2i[fz], 0.25], )
-            self._hangingFacesY[self._fz2i[self._index([p[0]      , p[1] +   w, p[2], sl])]] = ([self._fz2i[fz], 0.25], )
-            self._hangingFacesY[self._fz2i[self._index([p[0] +   w, p[1] +   w, p[2], sl])]] = ([self._fz2i[fz], 0.25], )
+            self._hangingFz[self._fz2i[test                                           ]] = ([self._fz2i[fz], 0.25], )
+            self._hangingFz[self._fz2i[self._index([p[0] +   w, p[1]      , p[2], sl])]] = ([self._fz2i[fz], 0.25], )
+            self._hangingFz[self._fz2i[self._index([p[0]      , p[1] +   w, p[2], sl])]] = ([self._fz2i[fz], 0.25], )
+            self._hangingFz[self._fz2i[self._index([p[0] +   w, p[1] +   w, p[2], sl])]] = ([self._fz2i[fz], 0.25], )
 
-            self._hangingEdgesX[self._ex2i[test                                           ]] = ([self._ex2i[ex0], 0.5], )
-            self._hangingEdgesX[self._ex2i[self._index([p[0] +   w, p[1]      , p[2], sl])]] = ([self._ex2i[ex0], 0.5], )
-            self._hangingEdgesX[self._ex2i[self._index([p[0]      , p[1] +   w, p[2], sl])]] = ([self._ex2i[ex0], 0.25], [self._ex2i[ex1], 0.25])
-            self._hangingEdgesX[self._ex2i[self._index([p[0] +   w, p[1] +   w, p[2], sl])]] = ([self._ex2i[ex0], 0.25], [self._ex2i[ex1], 0.25])
-            self._hangingEdgesX[self._ex2i[self._index([p[0]      , p[1] + 2*w, p[2], sl])]] = ([self._ex2i[ex1], 0.5], )
-            self._hangingEdgesX[self._ex2i[self._index([p[0] +   w, p[1] + 2*w, p[2], sl])]] = ([self._ex2i[ex1], 0.5], )
+            self._hangingEx[self._ex2i[test                                           ]] = ([self._ex2i[ex0], 0.5], )
+            self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1]      , p[2], sl])]] = ([self._ex2i[ex0], 0.5], )
+            self._hangingEx[self._ex2i[self._index([p[0]      , p[1] +   w, p[2], sl])]] = ([self._ex2i[ex0], 0.25], [self._ex2i[ex1], 0.25])
+            self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1] +   w, p[2], sl])]] = ([self._ex2i[ex0], 0.25], [self._ex2i[ex1], 0.25])
+            self._hangingEx[self._ex2i[self._index([p[0]      , p[1] + 2*w, p[2], sl])]] = ([self._ex2i[ex1], 0.5], )
+            self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1] + 2*w, p[2], sl])]] = ([self._ex2i[ex1], 0.5], )
 
-            self._hangingEdgesY[self._ey2i[test                                           ]] = ([self._ey2i[ey0], 0.5], )
-            self._hangingEdgesY[self._ey2i[self._index([p[0]      , p[1] +   w, p[2], sl])]] = ([self._ey2i[ey0], 0.5], )
-            self._hangingEdgesY[self._ey2i[self._index([p[0] +   w, p[1]      , p[2], sl])]] = ([self._ey2i[ey0], 0.25], [self._ey2i[ey1], 0.25])
-            self._hangingEdgesY[self._ey2i[self._index([p[0] +   w, p[1] +   w, p[2], sl])]] = ([self._ey2i[ey0], 0.25], [self._ey2i[ey1], 0.25])
-            self._hangingEdgesY[self._ey2i[self._index([p[0] + 2*w, p[1]      , p[2], sl])]] = ([self._ey2i[ey1], 0.5], )
-            self._hangingEdgesY[self._ey2i[self._index([p[0] + 2*w, p[1] +   w, p[2], sl])]] = ([self._ey2i[ey1], 0.5], )
+            self._hangingEy[self._ey2i[test                                           ]] = ([self._ey2i[ey0], 0.5], )
+            self._hangingEy[self._ey2i[self._index([p[0]      , p[1] +   w, p[2], sl])]] = ([self._ey2i[ey0], 0.5], )
+            self._hangingEy[self._ey2i[self._index([p[0] +   w, p[1]      , p[2], sl])]] = ([self._ey2i[ey0], 0.25], [self._ey2i[ey1], 0.25])
+            self._hangingEy[self._ey2i[self._index([p[0] +   w, p[1] +   w, p[2], sl])]] = ([self._ey2i[ey0], 0.25], [self._ey2i[ey1], 0.25])
+            self._hangingEy[self._ey2i[self._index([p[0] + 2*w, p[1]      , p[2], sl])]] = ([self._ey2i[ey1], 0.5], )
+            self._hangingEy[self._ey2i[self._index([p[0] + 2*w, p[1] +   w, p[2], sl])]] = ([self._ey2i[ey1], 0.5], )
 
-            self._hangingNodes[ self._n2i[ test                                           ]] = ([self._n2i[n0],   1.0], )
-            self._hangingNodes[ self._n2i[ self._index([p[0] +   w, p[1]      , p[2], sl])]] = ([self._n2i[n0],   0.5], [self._n2i[n1], 0.5])
-            self._hangingNodes[ self._n2i[ self._index([p[0] + 2*w, p[1]      , p[2], sl])]] = ([self._n2i[n1],   1.0], )
-            self._hangingNodes[ self._n2i[ self._index([p[0]      , p[1] +   w, p[2], sl])]] = ([self._n2i[n0],   0.5], [self._n2i[n2], 0.5])
-            self._hangingNodes[ self._n2i[ self._index([p[0] +   w, p[1] +   w, p[2], sl])]] = ([self._n2i[n0],   0.25], [self._n2i[n1], 0.25], [self._n2i[n2], 0.25], [self._n2i[n3], 0.25])
-            self._hangingNodes[ self._n2i[ self._index([p[0] + 2*w, p[1] +   w, p[2], sl])]] = ([self._n2i[n1],   0.5], [self._n2i[n3], 0.5])
-            self._hangingNodes[ self._n2i[ self._index([p[0]      , p[1] + 2*w, p[2], sl])]] = ([self._n2i[n2],   1.0], )
-            self._hangingNodes[ self._n2i[ self._index([p[0] +   w, p[1] + 2*w, p[2], sl])]] = ([self._n2i[n2],   0.5], [self._n2i[n3], 0.5])
-            self._hangingNodes[ self._n2i[ self._index([p[0] + 2*w, p[1] + 2*w, p[2], sl])]] = ([self._n2i[n3],   1.0], )
-
+            self._hangingN[ self._n2i[ test                                           ]] = ([self._n2i[n0],   1.0], )
+            self._hangingN[ self._n2i[ self._index([p[0] +   w, p[1]      , p[2], sl])]] = ([self._n2i[n0],   0.5], [self._n2i[n1], 0.5])
+            self._hangingN[ self._n2i[ self._index([p[0] + 2*w, p[1]      , p[2], sl])]] = ([self._n2i[n1],   1.0], )
+            self._hangingN[ self._n2i[ self._index([p[0]      , p[1] +   w, p[2], sl])]] = ([self._n2i[n0],   0.5], [self._n2i[n2], 0.5])
+            self._hangingN[ self._n2i[ self._index([p[0] +   w, p[1] +   w, p[2], sl])]] = ([self._n2i[n0],   0.25], [self._n2i[n1], 0.25], [self._n2i[n2], 0.25], [self._n2i[n3], 0.25])
+            self._hangingN[ self._n2i[ self._index([p[0] + 2*w, p[1] +   w, p[2], sl])]] = ([self._n2i[n1],   0.5], [self._n2i[n3], 0.5])
+            self._hangingN[ self._n2i[ self._index([p[0]      , p[1] + 2*w, p[2], sl])]] = ([self._n2i[n2],   1.0], )
+            self._hangingN[ self._n2i[ self._index([p[0] +   w, p[1] + 2*w, p[2], sl])]] = ([self._n2i[n2],   0.5], [self._n2i[n3], 0.5])
+            self._hangingN[ self._n2i[ self._index([p[0] + 2*w, p[1] + 2*w, p[2], sl])]] = ([self._n2i[n3],   1.0], )
 
         self.__dirtyHanging__ = False
 
@@ -964,12 +963,12 @@ class Tree(object):
         self._gridFx = np.array(facesX)
         self._gridFy = np.array(facesY)
         self._gridN = np.array(nodes)
-        self._hangingFacesX = hangingFacesX
-        self._hangingFacesY = hangingFacesY
+        self._hangingFx = hangingFacesX
+        self._hangingFy = hangingFacesY
         if self.dim == 3:
             self._gridFz = np.array(facesZ)
             self._nFz = self._gridFz.shape[0]
-            self._hangingFacesZ = hangingFacesZ
+            self._hangingFz = hangingFacesZ
 
         self._nC = len(self._sortedInds)
         self._nN = self._gridN.shape[0]
@@ -1039,10 +1038,10 @@ class Tree(object):
             ax.plot(self.gridCC[:,0], self.gridCC[:,1], 'r.')
             ax.plot(self.gridCC[:,0], self.gridCC[:,1], 'r:')
             ax.plot(self.gridN[:,0], self.gridN[:,1], 'ms')
-            ax.plot(self.gridN[self._hangingNodes.keys(),0], self.gridN[self._hangingNodes.keys(),1], 'ms', ms=10, mfc='none', mec='m')
-            ax.plot(self.gridFx[self._hangingFacesX.keys(),0], self.gridFx[self._hangingFacesX.keys(),1], 'gs', ms=10, mfc='none', mec='g')
+            ax.plot(self.gridN[self._hangingN.keys(),0], self.gridN[self._hangingN.keys(),1], 'ms', ms=10, mfc='none', mec='m')
+            ax.plot(self.gridFx[self._hangingFx.keys(),0], self.gridFx[self._hangingFx.keys(),1], 'gs', ms=10, mfc='none', mec='g')
             ax.plot(self.gridFx[:,0], self.gridFx[:,1], 'g>')
-            ax.plot(self.gridFy[self._hangingFacesY.keys(),0], self.gridFy[self._hangingFacesY.keys(),1], 'gs', ms=10, mfc='none', mec='g')
+            ax.plot(self.gridFy[self._hangingFy.keys(),0], self.gridFy[self._hangingFy.keys(),1], 'gs', ms=10, mfc='none', mec='g')
             ax.plot(self.gridFy[:,0], self.gridFy[:,1], 'g^')
         elif self.dim == 3:
             ax.plot(self.gridCC[[0,-1],0], self.gridCC[[0,-1],1], 'ro', zs=self.gridCC[[0,-1],2])
@@ -1050,36 +1049,53 @@ class Tree(object):
             ax.plot(self.gridCC[:,0], self.gridCC[:,1], 'r:', zs=self.gridCC[:,2])
 
             ax.plot(self.gridN[:,0], self.gridN[:,1], 'ms', zs=self.gridN[:,2])
-            ax.plot(self.gridN[self._hangingNodes.keys(),0], self.gridN[self._hangingNodes.keys(),1], 'ms', ms=10, mfc='none', mec='m', zs=self.gridN[self._hangingNodes.keys(),2])
+            ax.plot(self.gridN[self._hangingN.keys(),0], self.gridN[self._hangingN.keys(),1], 'ms', ms=10, mfc='none', mec='m', zs=self.gridN[self._hangingN.keys(),2])
+            for key in self._hangingN.keys():
+                for hf in self._hangingN[key]:
+                    ind = [key, hf[0]]
+                    ax.plot(self.gridN[ind,0], self.gridN[ind,1], 'm:', zs=self.gridN[ind,2])
 
-            ax.plot(self.gridFx[self._hangingFacesX.keys(),0], self.gridFx[self._hangingFacesX.keys(),1], 'gs', ms=10, mfc='none', mec='g', zs=self.gridFx[self._hangingFacesX.keys(),2])
             ax.plot(self.gridFx[:,0], self.gridFx[:,1], 'g>', zs=self.gridFx[:,2])
+            ax.plot(self.gridFx[self._hangingFx.keys(),0], self.gridFx[self._hangingFx.keys(),1], 'gs', ms=10, mfc='none', mec='g', zs=self.gridFx[self._hangingFx.keys(),2])
+            for key in self._hangingFx.keys():
+                for hf in self._hangingFx[key]:
+                    ind = [key, hf[0]]
+                    ax.plot(self.gridFx[ind,0], self.gridFx[ind,1], 'g:', zs=self.gridFx[ind,2])
 
-            ax.plot(self.gridFy[self._hangingFacesY.keys(),0], self.gridFy[self._hangingFacesY.keys(),1], 'gs', ms=10, mfc='none', mec='g', zs=self.gridFy[self._hangingFacesY.keys(),2])
             ax.plot(self.gridFy[:,0], self.gridFy[:,1], 'g^', zs=self.gridFy[:,2])
+            ax.plot(self.gridFy[self._hangingFy.keys(),0], self.gridFy[self._hangingFy.keys(),1], 'gs', ms=10, mfc='none', mec='g', zs=self.gridFy[self._hangingFy.keys(),2])
+            for key in self._hangingFy.keys():
+                for hf in self._hangingFy[key]:
+                    ind = [key, hf[0]]
+                    ax.plot(self.gridFy[ind,0], self.gridFy[ind,1], 'g:', zs=self.gridFy[ind,2])
 
-            ax.plot(self.gridFz[self._hangingFacesZ.keys(),0], self.gridFz[self._hangingFacesZ.keys(),1], 'gs', ms=10, mfc='none', mec='g', zs=self.gridFz[self._hangingFacesZ.keys(),2])
             ax.plot(self.gridFz[:,0], self.gridFz[:,1], 'g^', zs=self.gridFz[:,2])
+            ax.plot(self.gridFz[self._hangingFz.keys(),0], self.gridFz[self._hangingFz.keys(),1], 'gs', ms=10, mfc='none', mec='g', zs=self.gridFz[self._hangingFz.keys(),2])
+            for key in self._hangingFz.keys():
+                for hf in self._hangingFz[key]:
+                    ind = [key, hf[0]]
+                    ax.plot(self.gridFz[ind,0], self.gridFz[ind,1], 'g:', zs=self.gridFz[ind,2])
+
 
             ax.plot(self.gridEx[:,0], self.gridEx[:,1], 'k>', zs=self.gridEx[:,2])
-            ax.plot(self.gridEx[self._hangingEdgesX.keys(),0], self.gridEx[self._hangingEdgesX.keys(),1], 'ks', ms=10, mfc='none', mec='k', zs=self.gridEx[self._hangingEdgesX.keys(),2])
-            for key in self._hangingEdgesX.keys():
-                for hf in self._hangingEdgesX[key]:
+            ax.plot(self.gridEx[self._hangingEx.keys(),0], self.gridEx[self._hangingEx.keys(),1], 'ks', ms=10, mfc='none', mec='k', zs=self.gridEx[self._hangingEx.keys(),2])
+            for key in self._hangingEx.keys():
+                for hf in self._hangingEx[key]:
                     ind = [key, hf[0]]
                     ax.plot(self.gridEx[ind,0], self.gridEx[ind,1], 'k:', zs=self.gridEx[ind,2])
 
 
             ax.plot(self.gridEy[:,0], self.gridEy[:,1], 'k<', zs=self.gridEy[:,2])
-            ax.plot(self.gridEy[self._hangingEdgesY.keys(),0], self.gridEy[self._hangingEdgesY.keys(),1], 'ks', ms=10, mfc='none', mec='k', zs=self.gridEy[self._hangingEdgesY.keys(),2])
-            for key in self._hangingEdgesY.keys():
-                for hf in self._hangingEdgesY[key]:
+            ax.plot(self.gridEy[self._hangingEy.keys(),0], self.gridEy[self._hangingEy.keys(),1], 'ks', ms=10, mfc='none', mec='k', zs=self.gridEy[self._hangingEy.keys(),2])
+            for key in self._hangingEy.keys():
+                for hf in self._hangingEy[key]:
                     ind = [key, hf[0]]
                     ax.plot(self.gridEy[ind,0], self.gridEy[ind,1], 'k:', zs=self.gridEy[ind,2])
 
             ax.plot(self.gridEz[:,0], self.gridEz[:,1], 'k^', zs=self.gridEz[:,2])
-            ax.plot(self.gridEz[self._hangingEdgesZ.keys(),0], self.gridEz[self._hangingEdgesZ.keys(),1], 'ks', ms=10, mfc='none', mec='k', zs=self.gridEz[self._hangingEdgesZ.keys(),2])
-            for key in self._hangingEdgesZ.keys():
-                for hf in self._hangingEdgesZ[key]:
+            ax.plot(self.gridEz[self._hangingEz.keys(),0], self.gridEz[self._hangingEz.keys(),1], 'ks', ms=10, mfc='none', mec='k', zs=self.gridEz[self._hangingEz.keys(),2])
+            for key in self._hangingEz.keys():
+                for hf in self._hangingEz[key]:
                     ind = [key, hf[0]]
                     ax.plot(self.gridEz[ind,0], self.gridEz[ind,1], 'k:', zs=self.gridEz[ind,2])
 
@@ -1110,7 +1126,7 @@ if __name__ == '__main__':
     # T = Tree([[(1,16)],[(1,16)]],levels=4)
     T.refine(lambda xc:1)
     # T._refineCell([4,4,2])
-    T._refineCell([0,0,0,1])
+    T._refineCell([4,4,4,1])
 
 
     T.plotGrid(grid=False)
