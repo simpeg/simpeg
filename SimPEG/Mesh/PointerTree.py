@@ -185,22 +185,6 @@ class Tree(object):
         return len(self._edgesZ)
 
     @property
-    def vol(self):
-        self.number()
-        return self._vol
-
-    @property
-    def area(self):
-        self.number()
-        return self._area
-
-    @property
-    def edge(self):
-        self.number()
-        if self.dim == 2:
-            return np.r_[self._area[self.nFx:], self._area[:self.nFx]]
-
-    @property
     def _sortedInds(self):
         if getattr(self, '__sortedInds', None) is None:
             self.__sortedInds = sorted(self._treeInds)
@@ -234,7 +218,7 @@ class Tree(object):
     def _structureChange(self):
         if self.__dirty__: return
 
-        deleteThese = ['__sortedInds', '_gridCC', '_gridFx']
+        deleteThese = ['__sortedInds', '_gridCC', '_gridN', '_gridFx', '_gridFy', '_gridFz', '_gridEx', '_gridEy', '_gridEz', '_area', '_edge', '_vol']
         for p in deleteThese:
             if hasattr(self, p): delattr(self, p)
         self.__dirty__ = True
@@ -256,7 +240,7 @@ class Tree(object):
             return v in self._treeInds
         return self._index(v) in self._treeInds
 
-    def refine(self, function=None, recursive=True, cells=None):
+    def refine(self, function=None, recursive=True, cells=None, balance=True):
 
         cells = cells if cells is not None else sorted(self._treeInds)
         recurse = []
@@ -267,7 +251,10 @@ class Tree(object):
                 recurse += self._refineCell(cell)
 
         if recursive and len(recurse) > 0:
-            self.refine(function=function, recursive=True, cells=recurse)
+            recurse += self.refine(function=function, recursive=True, cells=recurse, balance=balance)
+
+        if balance:
+            recurse += self.balance(recursive=True)
         return recurse
 
     def _refineCell(self, pointer):
@@ -304,6 +291,8 @@ class Tree(object):
         if type(ind) in [int, long]:
             return self._pointer(ind)
         if type(ind) is list:
+            assert len(ind) == (self.dim + 1), str(ind) +' is not valid pointer'
+            assert ind[-1] <= self.levels, str(ind) +' is not valid pointer'
             return ind
         if isinstance(ind, np.ndarray):
             return ind.tolist()
@@ -316,8 +305,41 @@ class Tree(object):
             return self._index(pointer)
         raise Exception
 
+
+    def _childPointers(self, pointer, direction=0, positive=True):
+        l = self._levelWidth(pointer[-1] + 1)
+
+        if self.dim == 2:
+
+            children = [
+                            [pointer[0]    , pointer[1]    , pointer[-1] + 1],
+                            [pointer[0] + l, pointer[1]    , pointer[-1] + 1],
+                            [pointer[0]    , pointer[1] + l, pointer[-1] + 1],
+                            [pointer[0] + l, pointer[1] + l, pointer[-1] + 1]
+                       ]
+
+        elif self.dim == 3:
+
+            children = [
+                            [pointer[0]    , pointer[1]    , pointer[2]    , pointer[-1] + 1],
+                            [pointer[0] + l, pointer[1]    , pointer[2]    , pointer[-1] + 1],
+                            [pointer[0]    , pointer[1] + l, pointer[2]    , pointer[-1] + 1],
+                            [pointer[0] + l, pointer[1] + l, pointer[2]    , pointer[-1] + 1],
+                            [pointer[0]    , pointer[1]    , pointer[2] + l, pointer[-1] + 1],
+                            [pointer[0] + l, pointer[1]    , pointer[2] + l, pointer[-1] + 1],
+                            [pointer[0]    , pointer[1] + l, pointer[2] + l, pointer[-1] + 1],
+                            [pointer[0] + l, pointer[1] + l, pointer[2] + l, pointer[-1] + 1]
+                       ]
+
+        if direction == 0: ind = [0,2,4,6] if not positive else [1,3,5,7]
+        if direction == 1: ind = [0,1,4,5] if not positive else [2,3,6,7]
+        if direction == 2: ind = [0,1,2,3] if not positive else [4,5,6,7]
+
+        return [children[_] for _ in ind[:(self.dim-1)*2]]
+
+
     def _parentPointer(self, pointer):
-        mod = self._levelWidth(pointer[-1]-1)
+        mod = self._levelWidth(pointer[-1] - 1)
         return [p - (p % mod) for p in pointer[:-1]] + [pointer[-1]-1]
 
     def _cellN(self, p):
@@ -341,45 +363,61 @@ class Tree(object):
             inside = inside and p >= 0 and p < 2**self.levels
         return inside
 
-    def _getNextCell(self, ind, direction=0, positive=True):
+    def _getNextCell(self, ind, direction=0, positive=True, _lookUp=True):
         """
             Returns a None, int, list, or nested list
             The int is the cell number.
 
         """
+        if direction >= self.dim: return None
         pointer = self._asPointer(ind)
+        if pointer[-1] > self.levels: return None
 
         step = (1 if positive else -1) * self._levelWidth(pointer[-1])
         nextCell = [p if ii is not direction else p + step for ii, p in enumerate(pointer)]
+        # raise Exception(pointer, nextCell)
         if not self._isInsideMesh(nextCell): return None
 
         # it might be the same size as me?
         if nextCell in self: return self._index(nextCell)
-        # it might be smaller than me?
+
         if nextCell[-1] + 1 <= self.levels: # if I am not the smallest.
-            nextCell[-1] += 1
-            if not positive:
-                nextCell[direction] -= step/2 # Get the closer one
-            if nextCell in self: # there is at least one
-
-                hw = self._levelWidth(pointer[-1]) / 2
-                nextCell = np.array([p if ii is not direction else p + (step/2 if positive else 0) for ii, p in enumerate(pointer)])
-
-                if self.dim == 2:
-                    if direction == 0: children = [0,0,1], [0,hw,1]
-                    if direction == 1: children = [0,0,1], [hw,0,1]
-                elif self.dim == 3:
-                    if direction == 0: children = [0,0,0,1], [0,hw,0,1], [0,0,hw,1], [0,hw,hw,1]
-                    if direction == 1: children = [0,0,0,1], [hw,0,0,1], [0,0,hw,1], [hw,0,hw,1]
-                    if direction == 2: children = [0,0,0,1], [hw,0,0,1], [0,hw,0,1], [hw,hw,0,1]
-                nextCells = []
-                for child in children:
-                    nextCells.append(self._getNextCell(nextCell + child, direction=direction,positive=positive))
+            children  = self._childPointers(pointer, direction=direction, positive=positive)
+            nextCells = [self._getNextCell(child, direction=direction, positive=positive, _lookUp=False) for child in children]
+            if nextCells[0] is not None:
                 return nextCells
+
+        if not _lookUp: return None
 
         # it might be bigger than me?
         return self._getNextCell(self._parentPointer(pointer),
                 direction=direction, positive=positive)
+
+    def balance(self, recursive=True):
+
+        recurse = []
+        for cell in sorted(self._treeInds):
+            cs = range(6)
+            cs[0] = self._getNextCell(cell, direction=0, positive=False)
+            cs[1] = self._getNextCell(cell, direction=0, positive=True)
+            cs[2] = self._getNextCell(cell, direction=1, positive=False)
+            cs[3] = self._getNextCell(cell, direction=1, positive=True)
+            cs[4] = self._getNextCell(cell, direction=2, positive=False) # this will be None if in 2D
+            cs[5] = self._getNextCell(cell, direction=2, positive=True)  # this will be None if in 2D
+
+            do = np.any([
+                        type(c) is list and np.any([type(_) is list for _ in c])
+                        for c in cs
+                        if c is not None
+                   ])
+            # print cs, do
+            if do:
+                recurse += self._refineCell(cell)
+
+        if recursive and len(recurse) > 0:
+            # print 'here'
+            recurse += self.balance()
+        return recurse
 
     @property
     def gridCC(self):
@@ -392,42 +430,73 @@ class Tree(object):
 
     @property
     def gridN(self):
-        self._numberNodes()
+        self.number()
         return self._gridN
 
     @property
     def gridFx(self):
-        self._numberFaces()
+        self.number()
         return self._gridFx
 
     @property
     def gridFy(self):
-        self._numberFaces()
+        self.number()
         return self._gridFy
 
     @property
     def gridFz(self):
         if self.dim < 3: return None
-        self._numberFaces()
+        self.number()
         return self._gridFz
 
     @property
     def gridEx(self):
         if self.dim == 2: return self.gridFy
-        self._numberEdges()
+        self.number()
         return self._gridEx
 
     @property
     def gridEy(self):
         if self.dim == 2: return self.gridFx
-        self._numberEdges()
+        self.number()
         return self._gridEy
 
     @property
     def gridEz(self):
         if self.dim < 3: return None
-        self._numberEdges()
+        self.number()
         return self._gridEz
+
+    @property
+    def vol(self):
+        if getattr(self, '_vol', None) is None:
+            self._vol = np.zeros(len(self._treeInds))
+            for ii, ind in enumerate(self._sortedInds):
+                p = self._asPointer(ind)
+                self._vol[ii] = np.prod(self._cellH(p))
+        return self._vol
+
+    @property
+    def area(self):
+        self.number()
+        if getattr(self, '_area', None) is None:
+            Rlist = [0]*self.dim
+            Rlist[0] = self._deflationMatrix(self._facesX, self._hangingFx, self._fx2i, withHanging=False)
+            Rlist[1] = self._deflationMatrix(self._facesY, self._hangingFy, self._fy2i, withHanging=False)
+            if self.dim == 3:
+                Rlist[2] = self._deflationMatrix(self._facesZ, self._hangingFz, self._fz2i, withHanging=False)
+            R = sp.block_diag(Rlist)
+            self._area = R.T * (
+                                    np.r_[self._areaFxFull, self._areaFyFull] if self.dim == 2 else
+                                    np.r_[self._areaFxFull, self._areaFyFull, self._areaFzFull]
+                               )
+        return self._area
+
+    @property
+    def edge(self):
+        self.number()
+        if self.dim == 2:
+            return np.r_[self._area[self.nFx:], self._area[:self.nFx]]
 
     def _onSameLevel(self, i0, i1):
         p0 = self._asPointer(i0)
@@ -460,7 +529,7 @@ class Tree(object):
         self._n2i = dict()
         for ii, n in enumerate(sorted(self._nodes)):
             self._n2i[n] = ii
-            gridN.append( self._cellN( self._pointer(n)[:-1] ) )
+            gridN.append( self._cellN( self._pointer(n) ) )
         self._gridN = np.array(gridN)
 
         self.__dirtyNodes__ = False
@@ -491,6 +560,7 @@ class Tree(object):
                 self._facesZ.add(self._index([p[0]    , p[1]    , p[2] + w, p[3]]))
 
         gridFx = []
+        areaFx = []
         self._fx2i = dict()
         for ii, fx in enumerate(sorted(self._facesX)):
             self._fx2i[fx] = ii
@@ -498,11 +568,15 @@ class Tree(object):
             n, h = self._cellN(p), self._cellH(p)
             if self.dim == 2:
                 gridFx.append( [n[0], n[1] + h[1]/2.0] )
+                areaFx.append( h[1] )
             elif self.dim == 3:
                 gridFx.append( [n[0], n[1] + h[1]/2.0, n[2] + h[2]/2.0] )
+                areaFx.append( h[1]*h[2] )
         self._gridFx = np.array(gridFx)
+        self._areaFxFull = np.array(areaFx)
 
         gridFy = []
+        areaFy = []
         self._fy2i = dict()
         for ii, fy in enumerate(sorted(self._facesY)):
             self._fy2i[fy] = ii
@@ -510,25 +584,85 @@ class Tree(object):
             n, h = self._cellN(p), self._cellH(p)
             if self.dim == 2:
                 gridFy.append( [n[0] + h[0]/2.0, n[1]] )
+                areaFy.append( h[0] )
             elif self.dim == 3:
                 gridFy.append( [n[0] + h[0]/2.0, n[1], n[2] + h[2]/2.0] )
+                areaFy.append( h[0]*h[2] )
         self._gridFy = np.array(gridFy)
+        self._areaFyFull = np.array(areaFy)
 
         if self.dim == 2:
             self.__dirtyFaces__ = False
             return
 
         gridFz = []
+        areaFz = []
         self._fz2i = dict()
         for ii, fz in enumerate(sorted(self._facesZ)):
             self._fz2i[fz] = ii
             p = self._pointer(fz)
             n, h = self._cellN(p), self._cellH(p)
             gridFz.append( [n[0] + h[0]/2.0, n[1] + h[1]/2.0, n[2]] )
+            areaFz.append(h[0]*h[1])
         self._gridFz = np.array(gridFz)
+        self._areaFzFull = np.array(areaFz)
 
         self.__dirtyFaces__ = False
 
+    def _numberEdges(self, force=False):
+        if self.dim == 2: return
+        if not self.__dirtyEdges__ and not force: return
+
+        self._edgesX = set()
+        self._edgesY = set()
+        self._edgesZ = set()
+
+        for ind in self._treeInds:
+            p = self._asPointer(ind)
+            w = self._levelWidth(p[-1])
+            self._edgesX.add(self._index([p[0]    , p[1]    , p[2]    , p[3]]))
+            self._edgesX.add(self._index([p[0]    , p[1] + w, p[2]    , p[3]]))
+            self._edgesX.add(self._index([p[0]    , p[1]    , p[2] + w, p[3]]))
+            self._edgesX.add(self._index([p[0]    , p[1] + w, p[2] + w, p[3]]))
+
+            self._edgesY.add(self._index([p[0]    , p[1]    , p[2]    , p[3]]))
+            self._edgesY.add(self._index([p[0] + w, p[1]    , p[2]    , p[3]]))
+            self._edgesY.add(self._index([p[0]    , p[1]    , p[2] + w, p[3]]))
+            self._edgesY.add(self._index([p[0] + w, p[1]    , p[2] + w, p[3]]))
+
+            self._edgesZ.add(self._index([p[0]    , p[1]    , p[2]    , p[3]]))
+            self._edgesZ.add(self._index([p[0] + w, p[1]    , p[2]    , p[3]]))
+            self._edgesZ.add(self._index([p[0]    , p[1] + w, p[2]    , p[3]]))
+            self._edgesZ.add(self._index([p[0] + w, p[1] + w, p[2]    , p[3]]))
+
+        gridEx = []
+        self._ex2i = dict()
+        for ii, ex in enumerate(sorted(self._edgesX)):
+            self._ex2i[ex] = ii
+            p = self._pointer(ex)
+            n, h = self._cellN(p), self._cellH(p)
+            gridEx.append( [n[0] + h[0]/2.0, n[1], n[2]] )
+        self._gridEx = np.array(gridEx)
+
+        gridEy = []
+        self._ey2i = dict()
+        for ii, ey in enumerate(sorted(self._edgesY)):
+            self._ey2i[ey] = ii
+            p = self._pointer(ey)
+            n, h = self._cellN(p), self._cellH(p)
+            gridEy.append( [n[0], n[1] + h[1]/2.0, n[2]] )
+        self._gridEy = np.array(gridEy)
+
+        gridEz = []
+        self._ez2i = dict()
+        for ii, ez in enumerate(sorted(self._edgesZ)):
+            self._ez2i[ez] = ii
+            p = self._pointer(ez)
+            n, h = self._cellN(p), self._cellH(p)
+            gridEz.append( [n[0], n[1], n[2] + h[2]/2.0] )
+        self._gridEz = np.array(gridEz)
+
+        self.__dirtyEdges__ = False
 
     def _hanging(self, force=False):
         if not self.__dirtyHanging__ and not force: return
@@ -722,264 +856,12 @@ class Tree(object):
 
         self.__dirtyHanging__ = False
 
-
-    def _numberEdges(self, force=False):
-        if self.dim == 2: return
-        if not self.__dirtyEdges__ and not force: return
-
-        self._edgesX = set()
-        self._edgesY = set()
-        self._edgesZ = set()
-
-        for ind in self._treeInds:
-            p = self._asPointer(ind)
-            w = self._levelWidth(p[-1])
-            self._edgesX.add(self._index([p[0]    , p[1]    , p[2]    , p[3]]))
-            self._edgesX.add(self._index([p[0]    , p[1] + w, p[2]    , p[3]]))
-            self._edgesX.add(self._index([p[0]    , p[1]    , p[2] + w, p[3]]))
-            self._edgesX.add(self._index([p[0]    , p[1] + w, p[2] + w, p[3]]))
-
-            self._edgesY.add(self._index([p[0]    , p[1]    , p[2]    , p[3]]))
-            self._edgesY.add(self._index([p[0] + w, p[1]    , p[2]    , p[3]]))
-            self._edgesY.add(self._index([p[0]    , p[1]    , p[2] + w, p[3]]))
-            self._edgesY.add(self._index([p[0] + w, p[1]    , p[2] + w, p[3]]))
-
-            self._edgesZ.add(self._index([p[0]    , p[1]    , p[2]    , p[3]]))
-            self._edgesZ.add(self._index([p[0] + w, p[1]    , p[2]    , p[3]]))
-            self._edgesZ.add(self._index([p[0]    , p[1] + w, p[2]    , p[3]]))
-            self._edgesZ.add(self._index([p[0] + w, p[1] + w, p[2]    , p[3]]))
-
-        gridEx = []
-        self._ex2i = dict()
-        for ii, ex in enumerate(sorted(self._edgesX)):
-            self._ex2i[ex] = ii
-            p = self._pointer(ex)
-            n, h = self._cellN(p), self._cellH(p)
-            gridEx.append( [n[0] + h[0]/2.0, n[1], n[2]] )
-        self._gridEx = np.array(gridEx)
-
-        gridEy = []
-        self._ey2i = dict()
-        for ii, ey in enumerate(sorted(self._edgesY)):
-            self._ey2i[ey] = ii
-            p = self._pointer(ey)
-            n, h = self._cellN(p), self._cellH(p)
-            gridEy.append( [n[0], n[1] + h[1]/2.0, n[2]] )
-        self._gridEy = np.array(gridEy)
-
-        gridEz = []
-        self._ez2i = dict()
-        for ii, ez in enumerate(sorted(self._edgesZ)):
-            self._ez2i[ez] = ii
-            p = self._pointer(ez)
-            n, h = self._cellN(p), self._cellH(p)
-            gridEz.append( [n[0], n[1], n[2] + h[2]/2.0] )
-        self._gridEz = np.array(gridEz)
-
-        self.__dirtyEdges__ = False
-
-
     def number(self, force=False):
         if not self.__dirty__ and not force: return
         self._hanging()
         return
 
-        facesX, facesY, facesZ = [], [], []
-        areaX, areaY, areaZ = [], [], []
-        hangingFacesX, hangingFacesY, hangingFacesZ = [], [], []
-        hangingNodes = []
-        faceXCount, faceYCount, faceZCount = -1, -1, -1
-        nodeCount = -1
-        fXm,fXp,fYm,fYp,fZm,fZp = range(6)
-        vol, nodes = [], []
-
-        def addXFace(count, p, positive=True):
-            n = self._cellN(p)
-            w = self._cellH(p)
-            areaX.append(w[1] if self.dim == 2 else w[1]*w[2])
-            if self.dim == 2:
-                facesX.append([n[0] + (w[0] if positive else 0), n[1] + w[1]/2.0])
-            elif self.dim == 3:
-                facesX.append([n[0] + (w[0] if positive else 0), n[1] + w[1]/2.0, n[2] + w[2]/2.0])
-            return count + 1
-        def addYFace(count, p, positive=True):
-            n = self._cellN(p)
-            w = self._cellH(p)
-            areaY.append(w[0] if self.dim == 2 else w[0]*w[2])
-            if self.dim == 2:
-                facesY.append([n[0] + w[0]/2.0, n[1] + (w[1] if positive else 0)])
-            elif self.dim == 3:
-                facesY.append([n[0] + w[0]/2.0, n[1] + (w[1] if positive else 0), n[2] + w[2]/2.0])
-            return count + 1
-        def addZFace(count, p, positive=True):
-            n = self._cellN(p)
-            w = self._cellH(p)
-            areaZ.append(w[0]*w[1])
-            facesZ.append([n[0] + w[0]/2.0, n[1] + w[1]/2.0, n[2] + (w[2] if positive else 0)])
-            return count + 1
-
-        def addNode(count, p, loc=[0,0,0]):
-            """loc=[0,0]"""
-            n = self._cellN(p)
-            w = self._cellH(p)
-            if self.dim == 2:
-                nodes.append([n[0] + w[0]*loc[0], n[1] + w[1]*loc[1]])
-            elif self.dim == 3:
-                nodes.append([n[0] + w[0]*loc[0], n[1] + w[1]*loc[1], n[2] + w[2]*loc[2]])
-            return count + 1
-        # c2cn = dict()
-        c2f = dict()
-        def gc2f(ind):
-            if ind in c2f: return c2f[ind]
-            c2f_ind = [list() for _ in xrange(2*self.dim)]
-            c2f[ind] = c2f_ind
-            return c2f_ind
-        c2n = dict()
-        def gc2n(ind):
-            if ind in c2n: return c2n[ind]
-            c2n_ind = [list() for _ in xrange(2**self.dim)]
-            c2n[ind] = c2n_ind
-            return c2n_ind
-
-        def processCellFace(ind, faceCount, addFace, hangingFaces, DIR=0):
-
-            fM,fP=(0,1) if DIR == 0 else (2,3) if DIR == 1 else (4,5)
-            p = self._asPointer(ind)
-            if self._getNextCell(p, direction=DIR, positive=False) is None:
-                faceCount = addFace(faceCount, p, positive=False)
-                gc2f(ind)[fM] += [faceCount]
-
-            nextCell = self._getNextCell(p, direction=DIR)
-
-            # Add the next Xface
-            if nextCell is None:
-                # on the boundary
-                faceCount = addFace(faceCount, p)
-                gc2f(ind)[fP] += [faceCount]
-            elif type(nextCell) in [int, long] and self._onSameLevel(p,nextCell):
-                # same sized cell
-                faceCount = addFace(faceCount, p)
-                gc2f(ind)[fP]      += [faceCount]
-                gc2f(nextCell)[fM] += [faceCount]
-            elif type(nextCell) in [int, long] and not self._onSameLevel(p,nextCell):
-                # the cell is bigger than me
-                faceCount = addFace(faceCount, p)
-                gc2f(ind)[fP]      += [faceCount]
-                gc2f(nextCell)[fM] += [faceCount]
-                hangingFaces.append(faceCount)
-            elif type(nextCell) is list:
-                # the cell is smaller than me
-
-                # TODO: ensure that things are balanced.
-                p0 = self._pointer(nextCell[0])
-                p1 = self._pointer(nextCell[1])
-
-                faceCount = addFace(faceCount, p0, positive=False)
-                gc2f(nextCell[0])[fM] += [faceCount]
-                faceCount = addFace(faceCount, p1, positive=False)
-                gc2f(nextCell[1])[fM] += [faceCount]
-
-                gc2f(ind)[fP] += [faceCount-1,faceCount]
-
-                hangingFaces += [faceCount-1, faceCount]
-
-            return faceCount
-
-
-        def processCellNode(ind, nodeCount):
-
-            MMM, PMM, MPM, PPM, MMP, PMP, MPP, PPP = range(8)
-            p = self._asPointer(ind)
-
-            xM = self._getNextCell(p, direction=0, positive=False)
-            yM = self._getNextCell(p, direction=1, positive=False)
-            zM = None if self.dim == 2 else self._getNextCell(p, direction=2, positive=False)
-
-            xP = self._getNextCell(p, direction=0, positive=True)
-            yP = self._getNextCell(p, direction=1, positive=True)
-            zP = None if self.dim == 2 else self._getNextCell(p, direction=2, positive=True)
-
-            if xM is None and yM is None and zM is None:
-                nodeCount = addNode(nodeCount, p, loc=[0,0,0])
-                gc2n(ind)[MMM] += [nodeCount]
-            if yM is None:
-                nodeCount = addNode(nodeCount, p, loc=[1,0,0])
-                gc2n(ind)[PMM] += [nodeCount]
-            if xM is None:
-                nodeCount = addNode(nodeCount, p, loc=[0,1,0])
-                gc2n(ind)[MPM] += [nodeCount]
-
-            # Add the next Xface
-            if nextCell is None:
-                # on the boundary
-                pass
-                # nodeCount = addFace(nodeCount, p)
-                # gc2f(ind)[fP] += [nodeCount]
-            elif type(nextCell) in [int, long] and self._onSameLevel(p,nextCell):
-                # same sized cell
-                pass
-                # nodeCount = addFace(nodeCount, p)
-                # gc2f(ind)[fP]      += [nodeCount]
-                # gc2f(nextCell)[fM] += [nodeCount]
-            elif type(nextCell) in [int, long] and not self._onSameLevel(p,nextCell):
-                # the cell is bigger than me
-                pass
-                # nodeCount = addFace(nodeCount, p)
-                # gc2f(ind)[fP]      += [nodeCount]
-                # gc2f(nextCell)[fM] += [nodeCount]
-                # hangingFaces.append(nodeCount)
-            elif type(nextCell) is list:
-                # the cell is smaller than me
-                pass
-                # TODO: ensure that things are balanced.
-                # p0 = self._pointer(nextCell[0])
-                # p1 = self._pointer(nextCell[1])
-
-                # nodeCount = addFace(nodeCount, p0, positive=False)
-                # gc2f(nextCell[0])[fM] += [nodeCount]
-                # nodeCount = addFace(nodeCount, p1, positive=False)
-                # gc2f(nextCell[1])[fM] += [nodeCount]
-
-                # gc2f(ind)[fP] += [nodeCount-1,nodeCount]
-
-                # hangingFaces += [nodeCount-1, nodeCount]
-
-            return nodeCount
-
-        for ii, ind in enumerate(self._sortedInds):
-            # c2cn[ind] = ii
-            vol.append(np.prod(self._cellH(ind)))
-
-            # nodeCount = processCellNode(ind, nodeCount)
-
-            faceXCount = processCellFace(ind, faceXCount, addXFace, hangingFacesX, DIR=0)
-            faceYCount = processCellFace(ind, faceYCount, addYFace, hangingFacesY, DIR=1)
-            if self.dim == 3:
-                faceZCount = processCellFace(ind, faceZCount, addZFace, hangingFacesZ, DIR=2)
-
-        self._c2f = c2f
-        self._area = np.array(areaX + areaY + (areaZ if self.dim == 3 else []))
-        self._vol = np.array(vol)
-        self._gridFx = np.array(facesX)
-        self._gridFy = np.array(facesY)
-        self._gridN = np.array(nodes)
-        self._hangingFx = hangingFacesX
-        self._hangingFy = hangingFacesY
-        if self.dim == 3:
-            self._gridFz = np.array(facesZ)
-            self._nFz = self._gridFz.shape[0]
-            self._hangingFz = hangingFacesZ
-
-        self._nC = len(self._sortedInds)
-        self._nN = self._gridN.shape[0]
-        self._nFx = self._gridFx.shape[0]
-        self._nFy = self._gridFy.shape[0]
-        self._nF = self._nFx + self._nFy + (self._nFz if self.dim == 3 else 0)
-
-        # self.__dirty__ = False
-
-
-    def _deflationMatrix(self, theSet, theHang, theIndex):
+    def _deflationMatrix(self, theSet, theHang, theIndex, withHanging=True):
         reducedInd = dict() # final reduced index
         ii = 0
         I,J,V = [],[],[]
@@ -990,16 +872,16 @@ class Tree(object):
                 J += [ii]
                 V += [1.0]
                 ii += 1
-        for hfkey in theHang.keys():
-            hf = theHang[hfkey]
-            I += [hfkey]*len(hf)
-            J += [_[0] for _ in hf]
-            V += [_[1] for _ in hf]
+        if withHanging:
+            for hfkey in theHang.keys():
+                hf = theHang[hfkey]
+                I += [hfkey]*len(hf)
+                J += [reducedInd[_[0]] for _ in hf]
+                V += [_[1] for _ in hf]
         return sp.csr_matrix((V,(I,J)), shape=(len(theSet), len(reducedInd)))
 
     @property
     def faceDiv(self):
-        # print self._c2f
         if getattr(self, '_faceDiv', None) is None:
             self.number()
             # TODO: Preallocate!
@@ -1044,13 +926,40 @@ class Tree(object):
             if self.dim == 3:
                 Rlist[2] = self._deflationMatrix(self._facesZ, self._hangingFz, self._fz2i)
             R = sp.block_diag(Rlist)
-            # VOL = self.vol
-            # S = self.area
-            self._faceDiv = D * R
-            # self._faceDiv = Utils.sdiag(1.0/VOL)*D*Utils.sdiag(S)
+            VOL = self.vol
+            S = self.area
+            self._faceDiv = Utils.sdiag(1.0/VOL)*D*R*Utils.sdiag(S)
         return self._faceDiv
 
-    def plotGrid(self, ax=None, showIt=False, grid=True):
+    @property
+    def edgeCurl(self):
+        """Construct the 3D curl operator."""
+        assert self.dim > 2, "Edge Curl only programed for 3D."
+
+        if getattr(self, '_edgeCurl', None) is None:
+            self.number()
+            # TODO: Preallocate!
+            I, J, V = [], [], []
+            for face in self.faces:
+                for ii, edge in enumerate([face.edge0, face.edge1, face.edge2, face.edge3]):
+                    j = edge.index
+                    I += [face.num]*len(j)
+                    J += j
+                    isNeg = [True, False, True, False]
+                    V += [-1 if isNeg[ii] else 1]*len(j)
+            C = sp.csr_matrix((V,(I,J)), shape=(self.nF, self.nE))
+            S = self.area
+            L = self.edge
+            self._edgeCurl = Utils.sdiag(1/S)*C*Utils.sdiag(L)
+        return self._edgeCurl
+
+
+    def plotGrid(self, ax=None, showIt=False,
+                grid=True,
+                cells=True, cellLine=False,
+                nodes=False,
+                facesX=False, facesY=False, facesZ=False,
+                edgesX=False, edgesY=False, edgesZ=False):
 
         self.number()
 
@@ -1082,70 +991,83 @@ class Tree(object):
                         ax.plot(x,y, 'b-', zs=z)
 
         if self.dim == 2:
-            ax.plot(self.gridCC[[0,-1],0], self.gridCC[[0,-1],1], 'ro')
-            ax.plot(self.gridCC[:,0], self.gridCC[:,1], 'r.')
-            ax.plot(self.gridCC[:,0], self.gridCC[:,1], 'r:')
-            ax.plot(self.gridN[:,0], self.gridN[:,1], 'ms')
-            ax.plot(self.gridN[self._hangingN.keys(),0], self.gridN[self._hangingN.keys(),1], 'ms', ms=10, mfc='none', mec='m')
-            ax.plot(self.gridFx[self._hangingFx.keys(),0], self.gridFx[self._hangingFx.keys(),1], 'gs', ms=10, mfc='none', mec='g')
-            ax.plot(self.gridFx[:,0], self.gridFx[:,1], 'g>')
-            ax.plot(self.gridFy[self._hangingFy.keys(),0], self.gridFy[self._hangingFy.keys(),1], 'gs', ms=10, mfc='none', mec='g')
-            ax.plot(self.gridFy[:,0], self.gridFy[:,1], 'g^')
+            if cells:
+                ax.plot(self.gridCC[:,0], self.gridCC[:,1], 'r.')
+            if cellLine:
+                ax.plot(self.gridCC[:,0], self.gridCC[:,1], 'r:')
+                ax.plot(self.gridCC[[0,-1],0], self.gridCC[[0,-1],1], 'ro')
+            if nodes:
+                ax.plot(self.gridN[:,0], self.gridN[:,1], 'ms')
+                ax.plot(self.gridN[self._hangingN.keys(),0], self.gridN[self._hangingN.keys(),1], 'ms', ms=10, mfc='none', mec='m')
+            if facesX:
+                ax.plot(self.gridFx[self._hangingFx.keys(),0], self.gridFx[self._hangingFx.keys(),1], 'gs', ms=10, mfc='none', mec='g')
+                ax.plot(self.gridFx[:,0], self.gridFx[:,1], 'g>')
+            if facesY:
+                ax.plot(self.gridFy[self._hangingFy.keys(),0], self.gridFy[self._hangingFy.keys(),1], 'gs', ms=10, mfc='none', mec='g')
+                ax.plot(self.gridFy[:,0], self.gridFy[:,1], 'g^')
         elif self.dim == 3:
-            ax.plot(self.gridCC[[0,-1],0], self.gridCC[[0,-1],1], 'ro', zs=self.gridCC[[0,-1],2])
-            ax.plot(self.gridCC[:,0], self.gridCC[:,1], 'r.', zs=self.gridCC[:,2])
-            ax.plot(self.gridCC[:,0], self.gridCC[:,1], 'r:', zs=self.gridCC[:,2])
+            if cells:
+                ax.plot(self.gridCC[:,0], self.gridCC[:,1], 'r.', zs=self.gridCC[:,2])
+            if cellLine:
+                ax.plot(self.gridCC[:,0], self.gridCC[:,1], 'r:', zs=self.gridCC[:,2])
+                ax.plot(self.gridCC[[0,-1],0], self.gridCC[[0,-1],1], 'ro', zs=self.gridCC[[0,-1],2])
 
-            ax.plot(self.gridN[:,0], self.gridN[:,1], 'ms', zs=self.gridN[:,2])
-            ax.plot(self.gridN[self._hangingN.keys(),0], self.gridN[self._hangingN.keys(),1], 'ms', ms=10, mfc='none', mec='m', zs=self.gridN[self._hangingN.keys(),2])
-            for key in self._hangingN.keys():
-                for hf in self._hangingN[key]:
-                    ind = [key, hf[0]]
-                    ax.plot(self.gridN[ind,0], self.gridN[ind,1], 'm:', zs=self.gridN[ind,2])
+            if nodes:
+                ax.plot(self.gridN[:,0], self.gridN[:,1], 'ms', zs=self.gridN[:,2])
+                ax.plot(self.gridN[self._hangingN.keys(),0], self.gridN[self._hangingN.keys(),1], 'ms', ms=10, mfc='none', mec='m', zs=self.gridN[self._hangingN.keys(),2])
+                for key in self._hangingN.keys():
+                    for hf in self._hangingN[key]:
+                        ind = [key, hf[0]]
+                        ax.plot(self.gridN[ind,0], self.gridN[ind,1], 'm:', zs=self.gridN[ind,2])
 
-            ax.plot(self.gridFx[:,0], self.gridFx[:,1], 'g>', zs=self.gridFx[:,2])
-            ax.plot(self.gridFx[self._hangingFx.keys(),0], self.gridFx[self._hangingFx.keys(),1], 'gs', ms=10, mfc='none', mec='g', zs=self.gridFx[self._hangingFx.keys(),2])
-            for key in self._hangingFx.keys():
-                for hf in self._hangingFx[key]:
-                    ind = [key, hf[0]]
-                    ax.plot(self.gridFx[ind,0], self.gridFx[ind,1], 'g:', zs=self.gridFx[ind,2])
+            if facesX:
+                ax.plot(self.gridFx[:,0], self.gridFx[:,1], 'g>', zs=self.gridFx[:,2])
+                ax.plot(self.gridFx[self._hangingFx.keys(),0], self.gridFx[self._hangingFx.keys(),1], 'gs', ms=10, mfc='none', mec='g', zs=self.gridFx[self._hangingFx.keys(),2])
+                for key in self._hangingFx.keys():
+                    for hf in self._hangingFx[key]:
+                        ind = [key, hf[0]]
+                        ax.plot(self.gridFx[ind,0], self.gridFx[ind,1], 'g:', zs=self.gridFx[ind,2])
 
-            ax.plot(self.gridFy[:,0], self.gridFy[:,1], 'g^', zs=self.gridFy[:,2])
-            ax.plot(self.gridFy[self._hangingFy.keys(),0], self.gridFy[self._hangingFy.keys(),1], 'gs', ms=10, mfc='none', mec='g', zs=self.gridFy[self._hangingFy.keys(),2])
-            for key in self._hangingFy.keys():
-                for hf in self._hangingFy[key]:
-                    ind = [key, hf[0]]
-                    ax.plot(self.gridFy[ind,0], self.gridFy[ind,1], 'g:', zs=self.gridFy[ind,2])
+            if facesY:
+                ax.plot(self.gridFy[:,0], self.gridFy[:,1], 'g^', zs=self.gridFy[:,2])
+                ax.plot(self.gridFy[self._hangingFy.keys(),0], self.gridFy[self._hangingFy.keys(),1], 'gs', ms=10, mfc='none', mec='g', zs=self.gridFy[self._hangingFy.keys(),2])
+                for key in self._hangingFy.keys():
+                    for hf in self._hangingFy[key]:
+                        ind = [key, hf[0]]
+                        ax.plot(self.gridFy[ind,0], self.gridFy[ind,1], 'g:', zs=self.gridFy[ind,2])
 
-            ax.plot(self.gridFz[:,0], self.gridFz[:,1], 'g^', zs=self.gridFz[:,2])
-            ax.plot(self.gridFz[self._hangingFz.keys(),0], self.gridFz[self._hangingFz.keys(),1], 'gs', ms=10, mfc='none', mec='g', zs=self.gridFz[self._hangingFz.keys(),2])
-            for key in self._hangingFz.keys():
-                for hf in self._hangingFz[key]:
-                    ind = [key, hf[0]]
-                    ax.plot(self.gridFz[ind,0], self.gridFz[ind,1], 'g:', zs=self.gridFz[ind,2])
+            if facesZ:
+                ax.plot(self.gridFz[:,0], self.gridFz[:,1], 'g^', zs=self.gridFz[:,2])
+                ax.plot(self.gridFz[self._hangingFz.keys(),0], self.gridFz[self._hangingFz.keys(),1], 'gs', ms=10, mfc='none', mec='g', zs=self.gridFz[self._hangingFz.keys(),2])
+                for key in self._hangingFz.keys():
+                    for hf in self._hangingFz[key]:
+                        ind = [key, hf[0]]
+                        ax.plot(self.gridFz[ind,0], self.gridFz[ind,1], 'g:', zs=self.gridFz[ind,2])
+
+            if edgesX:
+                ax.plot(self.gridEx[:,0], self.gridEx[:,1], 'k>', zs=self.gridEx[:,2])
+                ax.plot(self.gridEx[self._hangingEx.keys(),0], self.gridEx[self._hangingEx.keys(),1], 'ks', ms=10, mfc='none', mec='k', zs=self.gridEx[self._hangingEx.keys(),2])
+                for key in self._hangingEx.keys():
+                    for hf in self._hangingEx[key]:
+                        ind = [key, hf[0]]
+                        ax.plot(self.gridEx[ind,0], self.gridEx[ind,1], 'k:', zs=self.gridEx[ind,2])
 
 
-            ax.plot(self.gridEx[:,0], self.gridEx[:,1], 'k>', zs=self.gridEx[:,2])
-            ax.plot(self.gridEx[self._hangingEx.keys(),0], self.gridEx[self._hangingEx.keys(),1], 'ks', ms=10, mfc='none', mec='k', zs=self.gridEx[self._hangingEx.keys(),2])
-            for key in self._hangingEx.keys():
-                for hf in self._hangingEx[key]:
-                    ind = [key, hf[0]]
-                    ax.plot(self.gridEx[ind,0], self.gridEx[ind,1], 'k:', zs=self.gridEx[ind,2])
+            if edgesY:
+                ax.plot(self.gridEy[:,0], self.gridEy[:,1], 'k<', zs=self.gridEy[:,2])
+                ax.plot(self.gridEy[self._hangingEy.keys(),0], self.gridEy[self._hangingEy.keys(),1], 'ks', ms=10, mfc='none', mec='k', zs=self.gridEy[self._hangingEy.keys(),2])
+                for key in self._hangingEy.keys():
+                    for hf in self._hangingEy[key]:
+                        ind = [key, hf[0]]
+                        ax.plot(self.gridEy[ind,0], self.gridEy[ind,1], 'k:', zs=self.gridEy[ind,2])
 
-
-            ax.plot(self.gridEy[:,0], self.gridEy[:,1], 'k<', zs=self.gridEy[:,2])
-            ax.plot(self.gridEy[self._hangingEy.keys(),0], self.gridEy[self._hangingEy.keys(),1], 'ks', ms=10, mfc='none', mec='k', zs=self.gridEy[self._hangingEy.keys(),2])
-            for key in self._hangingEy.keys():
-                for hf in self._hangingEy[key]:
-                    ind = [key, hf[0]]
-                    ax.plot(self.gridEy[ind,0], self.gridEy[ind,1], 'k:', zs=self.gridEy[ind,2])
-
-            ax.plot(self.gridEz[:,0], self.gridEz[:,1], 'k^', zs=self.gridEz[:,2])
-            ax.plot(self.gridEz[self._hangingEz.keys(),0], self.gridEz[self._hangingEz.keys(),1], 'ks', ms=10, mfc='none', mec='k', zs=self.gridEz[self._hangingEz.keys(),2])
-            for key in self._hangingEz.keys():
-                for hf in self._hangingEz[key]:
-                    ind = [key, hf[0]]
-                    ax.plot(self.gridEz[ind,0], self.gridEz[ind,1], 'k:', zs=self.gridEz[ind,2])
+            if edgesZ:
+                ax.plot(self.gridEz[:,0], self.gridEz[:,1], 'k^', zs=self.gridEz[:,2])
+                ax.plot(self.gridEz[self._hangingEz.keys(),0], self.gridEz[self._hangingEz.keys(),1], 'ks', ms=10, mfc='none', mec='k', zs=self.gridEz[self._hangingEz.keys(),2])
+                for key in self._hangingEz.keys():
+                    for hf in self._hangingEz[key]:
+                        ind = [key, hf[0]]
+                        ax.plot(self.gridEz[ind,0], self.gridEz[ind,1], 'k:', zs=self.gridEz[ind,2])
 
 
         ax.axis('equal')
@@ -1157,24 +1079,30 @@ if __name__ == '__main__':
 
 
     def function(xc):
-        r = xc - np.r_[0.5,0.5]
+        r = xc - np.r_[0.5*128,0.5*128]
         dist = np.sqrt(r.dot(r))
         # if dist < 0.05:
         #     return 5
-        if dist < 0.1:
-            return 4
-        if dist < 0.3:
+        if dist < 0.1*128:
+            return 5
+        if dist < 0.3*128:
             return 3
-        if dist < 1.0:
-            return 2
+        # if dist < 1.0*128:
+        #     return 2
         else:
             return 0
 
     # T = Tree([[(1,8)],[(1,8)],[(1,8)]],levels=3)
-    T = Tree([[(1,16)],[(1,16)]],levels=4)
-    T.refine(lambda xc:1)
-    T._refineCell([0,0,1])
-    T._refineCell([8,8,1])
+    # T = Tree([[(1,16)],[(1,16)]],levels=4)
+    T = Tree([[(1,128)],[(1,128)]],levels=7)
+    T.refine(lambda xc:2, balance=False)
+    T.refine(function)
+    # T._refineCell([8,0,1])
+    # T._refineCell([8,0,2])
+    # T._refineCell([12,0,2])
+    # T._refineCell([8,4,2])
+    # T._refineCell([6,0,3])
+    # T._refineCell([8,8,1])
     # T._refineCell([4,4,4,1])
 
     ax = plt.subplot(211)
@@ -1185,7 +1113,7 @@ if __name__ == '__main__':
     # R = deflationMatrix(T._facesX, T._hangingFx, T._fx2i)
     # print R
 
-    ax = plt.subplot(212)
+    ax = plt.subplot(212)#, projection='3d')
     # ax.spy(R)
 
     # ax = plt.subplot(313)
@@ -1194,6 +1122,24 @@ if __name__ == '__main__':
 
 
     T.plotGrid(ax=ax)
+
+    # cx = T._getNextCell([0,0,1],direction=0,positive=True)
+    # print cx
+    # # print [T._asPointer(_) for _ in cx]
+    # cx = T._getNextCell([8,0,3],direction=0,positive=False)
+    # print T._asPointer(cx)
+    # cx = T._getNextCell([8,8,1],direction=1,positive=False)
+    # print cx, #[T._asPointer(_) for _ in cx]
+    # cm = T._getNextCell([64,80,4],direction=0,positive=False)
+    # cy = T._getNextCell([64,80,4],direction=1,positive=True)
+    # cp = T._getNextCell([64,80,4],direction=1,positive=False)
+
+    # ax.plot( T._cellN([4,0,1])[0],T._cellN([4,0,1])[1], 'yd')
+    # ax.plot( T._cellN(cx)[0],T._cellN(cx)[1], 'ys')
+    # ax.plot( T._cellN(cm)[0],T._cellN(cm)[1], 'ys')
+    # ax.plot( T._cellN(cy)[0],T._cellN(cy)[1], 'ys')
+    # ax.plot( T._cellN(cp[0])[0],T._cellN(cp[0])[1], 'ys')
+    # ax.plot( T._cellN(cp[1])[0],T._cellN(cp[1])[1], 'ys')
 
 
 
