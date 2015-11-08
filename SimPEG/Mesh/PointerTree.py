@@ -86,6 +86,15 @@ class Tree(object):
         self.__dirtyNodes__ = True
         self.__dirtyHanging__ = True
 
+        deleteThese = [
+                        '__sortedCells',
+                        '_gridCC', '_gridN', '_gridFx', '_gridFy', '_gridFz', '_gridEx', '_gridEy', '_gridEz',
+                        '_area', '_edge', '_vol',
+                        '_faceDiv', '_edgeCurl', '_nodalGrad'
+                      ]
+        for p in deleteThese:
+            if hasattr(self, p): delattr(self, p)
+
     @property
     def levels(self): return self._levels
 
@@ -173,17 +182,6 @@ class Tree(object):
         if self.dim == 3:
             raise Exception()
 
-    def _structureChange(self):
-        deleteThese = [
-                        '__sortedCells',
-                        '_gridCC', '_gridN', '_gridFx', '_gridFy', '_gridFz', '_gridEx', '_gridEy', '_gridEz',
-                        '_area', '_edge', '_vol',
-                        '_faceDiv', '_edgeCurl', '_nodalGrad'
-                      ]
-        for p in deleteThese:
-            if hasattr(self, p): delattr(self, p)
-        self.__dirty__ = True
-
     def _index(self, pointer):
         assert len(pointer) is self.dim+1
         assert pointer[-1] <= self.levels
@@ -201,7 +199,7 @@ class Tree(object):
     def refine(self, function=None, recursive=True, cells=None, balance=True, _inRecursion=False):
 
         if not _inRecursion:
-            self._structureChange()
+            self.__dirty__ = True
             print 'Refining Mesh'
 
         cells = cells if cells is not None else sorted(self._cells)
@@ -248,7 +246,7 @@ class Tree(object):
         return added
 
     def corsen(self, function=None):
-        self._structureChange()
+        self.__dirty__ = True
         raise Exception('Not yet implemented')
 
     def _corsenCell(self, pointer):
@@ -364,7 +362,7 @@ class Tree(object):
 
         tic = time.time()
         if not _inRecursion:
-            self._structureChange()
+            self.__dirty__ = True
             print 'Balancing Mesh:'
 
         cells = cells if cells is not None else sorted(self._cells)
@@ -488,7 +486,7 @@ class Tree(object):
     def edge(self):
         self.number()
         if self.dim == 2:
-            return np.r_[self._area[self.nFx:], self._area[:self.nFx]]
+            return np.r_[self.area[self.nFx:], self.area[:self.nFx]]
         if getattr(self, '_edge', None) is None:
             R = sp.block_diag([
                 self._deflationMatrix(self._edgesX, self._hangingEx, self._ex2i, withHanging=False),
