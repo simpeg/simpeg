@@ -118,10 +118,10 @@ class SrcFDEM(Survey.BaseSrc):
         return None
 
     def S_m(self, prob):
-        return Zero()
+        return None
 
     def S_e(self, prob):
-        return Zero()
+        return None
 
     def S_mDeriv(self, prob, v, adjoint = False):
         return Zero()

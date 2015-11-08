@@ -130,30 +130,30 @@ class BaseFDEMProblem(BaseEMProblem):
 
                     df_duTFun = getattr(f, '_%sDeriv_u'%rx.projField, None)
                     df_duT = df_duTFun(src, PTv, adjoint=True)
-                    if df_duT is not None:
-                        dA_duIT = ATinv * df_duT
-                    else:
-                        dA_duIT = ATinv * PTv
+                    # if df_duT is not None:
+                    dA_duIT = ATinv * df_duT
+                    # else:
+                    #     dA_duIT = ATinv * PTv
 
                     dA_dmT = self.getADeriv_m(freq, u_src, dA_duIT, adjoint=True)
 
-                    dRHS_dmT = self.getRHSDeriv_m(src, dA_duIT, adjoint=True)
+                    dRHS_dmT = self.getRHSDeriv_m(freq,src, dA_duIT, adjoint=True)
 
-                    if dRHS_dmT is None:
-                        du_dmT = - dA_dmT
-                    else:
-                        du_dmT = -dA_dmT + dRHS_dmT
+                    # if dRHS_dmT is None:
+                    # du_dmT = - dA_dmT
+                    # else:
+                    du_dmT = -dA_dmT + dRHS_dmT
 
                     df_dmFun = getattr(f, '_%sDeriv_m'%rx.projField, None)
                     dfT_dm = df_dmFun(src, PTv, adjoint=True)
-                    if dfT_dm is not None:
-                        du_dmT += dfT_dm
+                    # if dfT_dm is not None:
+                    du_dmT += dfT_dm
 
                     real_or_imag = rx.projComp
-                    if real_or_imag == 'real':
-                        Jtv +=   du_dmT.real
-                    elif real_or_imag == 'imag':
-                        Jtv += - du_dmT.real
+                    if real_or_imag is 'real':
+                        Jtv +=   np.array(du_dmT,dtype=complex).real
+                    elif real_or_imag is 'imag':
+                        Jtv += - np.array(du_dmT,dtype=complex).real
                     else:
                         raise Exception('Must be real or imag')
 
@@ -399,7 +399,7 @@ class ProblemFDEM_b(BaseFDEMProblem):
         if not adjoint:
             SrcDeriv = S_mDeriv + C * (self.MeSigmaI * S_eDeriv)
         elif adjoint:
-            SrcDeriv = S_mDeriv + Self.MeSigmaI.T * ( C.T * S_eDeriv)
+            SrcDeriv = S_mDeriv + self.MeSigmaI.T * ( C.T * S_eDeriv)
         # elif S_mDeriv is not None:
         #     SrcDeriv = S_mDeriv
         # elif S_eDeriv is not None:
