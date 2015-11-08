@@ -656,7 +656,9 @@ class Tree(object):
         self.__dirtyFaces__ = False
 
     def _numberEdges(self, force=False):
-        if self.dim == 2: return
+        if self.dim == 2:
+            self.__dirtyEdges__ = False
+            return
         if not self.__dirtyEdges__ and not force: return
 
         self._edgesX = set()
@@ -913,8 +915,8 @@ class Tree(object):
 
     def number(self, force=False):
         if not self.__dirty__ and not force: return
+        self.balance()
         self._hanging(force=force)
-        return
 
     def _deflationMatrix(self, theSet, theHang, theIndex, withHanging=True):
         reducedInd = dict() # final reduced index
