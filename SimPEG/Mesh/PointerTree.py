@@ -152,6 +152,53 @@ class Tree(object):
         return len(self._edgesZ) - len(self._hangingEz)
 
     @property
+    def nhN(self):
+        self.number()
+        return len(self._hangingN)
+
+    @property
+    def nhF(self):
+        return self.nhFx + self.nhFy + (0 if self.dim == 2 else self.nhFz)
+
+    @property
+    def nhFx(self):
+        self.number()
+        return len(self._hangingFx)
+
+    @property
+    def nhFy(self):
+        self.number()
+        return len(self._hangingFy)
+
+    @property
+    def nhFz(self):
+        if self.dim == 2: return None
+        self.number()
+        return len(self._hangingFz)
+
+    @property
+    def nhE(self):
+        return self.nhEx + self.nhEy + (0 if self.dim == 2 else self.nhEz)
+
+    @property
+    def nhEx(self):
+        if self.dim == 2:return self.nhFy
+        self.number()
+        return len(self._hangingEx)
+
+    @property
+    def nhEy(self):
+        if self.dim == 2:return self.nhFx
+        self.number()
+        return len(self._hangingEy)
+
+    @property
+    def nhEz(self):
+        if self.dim == 2: return None
+        self.number()
+        return len(self._hangingEz)
+
+    @property
     def _sortedCells(self):
         if getattr(self, '__sortedCells', None) is None:
             self.__sortedCells = sorted(self._cells)
