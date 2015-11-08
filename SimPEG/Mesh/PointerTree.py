@@ -97,8 +97,8 @@ class Tree(object):
 
     @property
     def nN(self):
-        self._numberNodes()
-        return len(self._nodes)
+        self.number()
+        return len(self._nodes) - len(self._hangingN)
 
     @property
     def nF(self):
@@ -106,19 +106,19 @@ class Tree(object):
 
     @property
     def nFx(self):
-        self._numberFaces()
-        return len(self._facesX)
+        self.number()
+        return len(self._facesX) - len(self._hangingFx)
 
     @property
     def nFy(self):
-        self._numberFaces()
-        return len(self._facesY)
+        self.number()
+        return len(self._facesY) - len(self._hangingFy)
 
     @property
     def nFz(self):
         if self.dim == 2: return None
-        self._numberFaces()
-        return len(self._facesZ)
+        self.number()
+        return len(self._facesZ) - len(self._hangingFz)
 
     @property
     def nE(self):
@@ -127,20 +127,20 @@ class Tree(object):
     @property
     def nEx(self):
         if self.dim == 2:return self.nFy
-        self._numberEdges()
-        return len(self._edgesX)
+        self.number()
+        return len(self._edgesX) - len(self._hangingEx)
 
     @property
     def nEy(self):
         if self.dim == 2:return self.nFx
-        self._numberEdges()
-        return len(self._edgesY)
+        self.number()
+        return len(self._edgesY) - len(self._hangingEy)
 
     @property
     def nEz(self):
         if self.dim == 2: return None
-        self._numberEdges()
-        return len(self._edgesZ)
+        self.number()
+        return len(self._edgesZ) - len(self._hangingEz)
 
     @property
     def _sortedCells(self):
@@ -404,8 +404,6 @@ class Tree(object):
         if recursive and len(recurse) > 0:
             self.balance(cells=sorted(recurse), _inRecursion=True)
 
-
-
     @property
     def gridCC(self):
         if getattr(self, '_gridCC', None) is None:
@@ -418,41 +416,48 @@ class Tree(object):
     @property
     def gridN(self):
         self.number()
-        return self._gridN
+        R = self._deflationMatrix(self._nodes, self._hangingN, self._n2i, withHanging=False)
+        return R.T * self._gridN
 
     @property
     def gridFx(self):
         self.number()
-        return self._gridFx
+        R = self._deflationMatrix(self._facesX, self._hangingFx, self._fx2i, withHanging=False)
+        return R.T * self._gridFx
 
     @property
     def gridFy(self):
         self.number()
-        return self._gridFy
+        R = self._deflationMatrix(self._facesY, self._hangingFy, self._fy2i, withHanging=False)
+        return R.T * self._gridFy
 
     @property
     def gridFz(self):
         if self.dim < 3: return None
         self.number()
-        return self._gridFz
+        R = self._deflationMatrix(self._facesZ, self._hangingFz, self._fz2i, withHanging=False)
+        return R.T * self._gridFz
 
     @property
     def gridEx(self):
         if self.dim == 2: return self.gridFy
         self.number()
-        return self._gridEx
+        R = self._deflationMatrix(self._edgesX, self._hangingEx, self._ex2i, withHanging=False)
+        return R.T * self._gridEx
 
     @property
     def gridEy(self):
         if self.dim == 2: return self.gridFx
         self.number()
-        return self._gridEy
+        R = self._deflationMatrix(self._edgesY, self._hangingEy, self._ey2i, withHanging=False)
+        return R.T * self._gridEy
 
     @property
     def gridEz(self):
         if self.dim < 3: return None
         self.number()
-        return self._gridEz
+        R = self._deflationMatrix(self._edgesZ, self._hangingEz, self._ez2i, withHanging=False)
+        return R.T * self._gridEz
 
     @property
     def vol(self):
@@ -1170,7 +1175,7 @@ if __name__ == '__main__':
     T = Tree([128,128,128],levels=7)
     # T = Tree([[(1,16)],[(1,16)]],levels=4)
     # T = Tree([[(1,128)],[(1,128)]],levels=7)
-    # T.refine(lambda xc:6, balance=False)
+    T.refine(lambda xc:1, balance=False)
     # T._index([0,0,0])
     # T._pointer(0)
 
@@ -1180,6 +1185,8 @@ if __name__ == '__main__':
     print time.time() - tic
     print T.nC
 
+    print T.gridFz
+
 
     # T._refineCell([8,0,1])
     # T._refineCell([8,0,2])
@@ -1187,25 +1194,29 @@ if __name__ == '__main__':
     # T._refineCell([8,4,2])
     # T._refineCell([6,0,3])
     # T._refineCell([8,8,1])
-    # T._refineCell([0,0,0,1])
+    T._refineCell([0,0,0,1])
+    T.__dirty__ = True
+
+
+    print T.gridFx.shape[0], T.nFx
 
 
     ax = plt.subplot(211)
     ax.spy(T.edgeCurl)
 
-    print Mesh.TensorMesh([1,1,1]).edgeCurl.todense()
-    print T.edgeCurl.todense()
-    print Mesh.TensorMesh([1,1,1]).edgeCurl.todense() - T.edgeCurl.todense()
-    print T.gridEy - Mesh.TensorMesh([1,1,1]).gridEy
+    # print Mesh.TensorMesh([2,2,2]).edgeCurl.todense()
+    # print T.edgeCurl.todense()
+    # print Mesh.TensorMesh([2,2,2]).edgeCurl.todense() - T.edgeCurl.todense()
+    # print T.gridEy - Mesh.TensorMesh([2,2,2]).gridEy
 
-    print T.edge
+    # print T.edge
     # T.plotGrid(ax=ax)
 
     # R = deflationMatrix(T._facesX, T._hangingFx, T._fx2i)
     # print R
 
     ax = plt.subplot(212)#, projection='3d')
-    ax.spy(Mesh.TensorMesh([1,1,1]).edgeCurl)
+    ax.spy(Mesh.TensorMesh([2,2,2]).edgeCurl)
 
     # ax = plt.subplot(313)
     # ax.spy(T.faceDiv[:,:T.nFx] * R)
