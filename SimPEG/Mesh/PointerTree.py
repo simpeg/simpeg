@@ -1,4 +1,4 @@
-from SimPEG import np, sp, Utils, Solver
+from SimPEG import np, sp, Utils, Solver, Mesh
 import matplotlib.pyplot as plt
 import matplotlib
 import TreeUtils
@@ -174,7 +174,12 @@ class Tree(object):
             raise Exception()
 
     def _structureChange(self):
-        deleteThese = ['__sortedCells', '_gridCC', '_gridN', '_gridFx', '_gridFy', '_gridFz', '_gridEx', '_gridEy', '_gridEz', '_area', '_edge', '_vol']
+        deleteThese = [
+                        '__sortedCells',
+                        '_gridCC', '_gridN', '_gridFx', '_gridFy', '_gridFz', '_gridEx', '_gridEy', '_gridEz',
+                        '_area', '_edge', '_vol',
+                        '_faceDiv', '_edgeCurl', '_nodalGrad'
+                      ]
         for p in deleteThese:
             if hasattr(self, p): delattr(self, p)
         self.__dirty__ = True
@@ -479,6 +484,15 @@ class Tree(object):
         self.number()
         if self.dim == 2:
             return np.r_[self._area[self.nFx:], self._area[:self.nFx]]
+        if getattr(self, '_edge', None) is None:
+            R = sp.block_diag([
+                self._deflationMatrix(self._edgesX, self._hangingEx, self._ex2i, withHanging=False),
+                self._deflationMatrix(self._edgesY, self._hangingEy, self._ey2i, withHanging=False),
+                self._deflationMatrix(self._edgesZ, self._hangingEz, self._ez2i, withHanging=False)
+            ])
+            self._edge = R.T * np.r_[self._edgeExFull, self._edgeEyFull, self._edgeEzFull]
+
+        return self._edge
 
     def _onSameLevel(self, i0, i1):
         p0 = self._asPointer(i0)
@@ -618,31 +632,40 @@ class Tree(object):
             self._edgesZ.add(self._index([p[0] + w, p[1] + w, p[2]    , p[3]]))
 
         gridEx = []
+        edgeEx = []
         self._ex2i = dict()
         for ii, ex in enumerate(sorted(self._edgesX)):
             self._ex2i[ex] = ii
             p = self._pointer(ex)
             n, h = self._cellN(p), self._cellH(p)
             gridEx.append( [n[0] + h[0]/2.0, n[1], n[2]] )
+            edgeEx.append( h[0] )
         self._gridEx = np.array(gridEx)
+        self._edgeExFull = np.array(edgeEx)
 
         gridEy = []
+        edgeEy = []
         self._ey2i = dict()
         for ii, ey in enumerate(sorted(self._edgesY)):
             self._ey2i[ey] = ii
             p = self._pointer(ey)
             n, h = self._cellN(p), self._cellH(p)
             gridEy.append( [n[0], n[1] + h[1]/2.0, n[2]] )
+            edgeEy.append( h[1] )
         self._gridEy = np.array(gridEy)
+        self._edgeEyFull = np.array(edgeEx)
 
         gridEz = []
+        edgeEz = []
         self._ez2i = dict()
         for ii, ez in enumerate(sorted(self._edgesZ)):
             self._ez2i[ez] = ii
             p = self._pointer(ez)
             n, h = self._cellN(p), self._cellH(p)
             gridEz.append( [n[0], n[1], n[2] + h[2]/2.0] )
+            edgeEz.append( h[2] )
         self._gridEz = np.array(gridEz)
+        self._edgeEzFull = np.array(edgeEx)
 
         self.__dirtyEdges__ = False
 
@@ -866,6 +889,7 @@ class Tree(object):
     def faceDiv(self):
         if getattr(self, '_faceDiv', None) is None:
             self.number()
+
             # TODO: Preallocate!
             I, J, V = [], [], []
             PM = [-1,1]*self.dim # plus / minus
@@ -922,17 +946,85 @@ class Tree(object):
             self.number()
             # TODO: Preallocate!
             I, J, V = [], [], []
-            for face in self.faces:
-                for ii, edge in enumerate([face.edge0, face.edge1, face.edge2, face.edge3]):
-                    j = edge.index
-                    I += [face.num]*len(j)
-                    J += j
-                    isNeg = [True, False, True, False]
-                    V += [-1 if isNeg[ii] else 1]*len(j)
-            C = sp.csr_matrix((V,(I,J)), shape=(self.nF, self.nE))
+            faceOffset = 0
+            offset = [self.nEx]*2 + [self.nEx+self.nEy]*2
+            PM = [1, -1, -1, 1]
+            for ii, fx in  enumerate(sorted(self._facesX)):
+
+                p = self._pointer(fx)
+                w = self._levelWidth(p[-1])
+
+                edges = [
+                            self._ey2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                            self._ey2i[self._index([ p[0]    , p[1]    , p[2] + w, p[3]])],
+                            self._ez2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                            self._ez2i[self._index([ p[0]    , p[1] + w, p[2]    , p[3]])],
+                        ]
+
+                for off, pm, edge in zip(offset,PM,edges):
+                    I += [ii + faceOffset]
+                    J += [edge + off]
+                    V += [pm]
+
+            faceOffset = self.nFx
+            offset = [0]*2 + [self.nEx+self.nEy]*2
+            PM = [-1, 1, 1, -1]
+            for ii, fy in  enumerate(sorted(self._facesY)):
+
+                p = self._pointer(fy)
+                w = self._levelWidth(p[-1])
+
+                edges = [
+                            self._ex2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                            self._ex2i[self._index([ p[0]    , p[1]    , p[2] + w, p[3]])],
+                            self._ez2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                            self._ez2i[self._index([ p[0] + w, p[1]    , p[2]    , p[3]])],
+                        ]
+
+                for off, pm, edge in zip(offset,PM,edges):
+                    I += [ii + faceOffset]
+                    J += [edge + off]
+                    V += [pm]
+
+            faceOffset = self.nFx + self.nFy
+            offset = [0]*2 + [self.nEx]*2
+            PM = [1, -1, -1, 1]
+            for ii, fz in  enumerate(sorted(self._facesZ)):
+
+                p = self._pointer(fz)
+                w = self._levelWidth(p[-1])
+
+                edges = [
+                            self._ex2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                            self._ex2i[self._index([ p[0]    , p[1] + w, p[2]    , p[3]])],
+                            self._ey2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                            self._ey2i[self._index([ p[0] + w, p[1]    , p[2]    , p[3]])],
+                        ]
+
+                for off, pm, edge in zip(offset,PM,edges):
+                    I += [ii + faceOffset]
+                    J += [edge + off]
+                    V += [pm]
+
+            tnF = len(self._facesX) + len(self._facesY) + len(self._facesZ)
+            tnE = len(self._edgesX) + len(self._edgesY) + len(self._edgesZ)
+
+            Rf = sp.block_diag([
+                        self._deflationMatrix(self._facesX, self._hangingFx, self._fx2i),
+                        self._deflationMatrix(self._facesY, self._hangingFy, self._fy2i),
+                        self._deflationMatrix(self._facesZ, self._hangingFz, self._fz2i)
+                    ])
+
+            Re = sp.block_diag([
+                        self._deflationMatrix(self._edgesX, self._hangingEx, self._ex2i),
+                        self._deflationMatrix(self._edgesY, self._hangingEy, self._ey2i),
+                        self._deflationMatrix(self._edgesZ, self._hangingEz, self._ez2i)
+                    ])
+
+            C = sp.csr_matrix((V,(I,J)), shape=(tnF, tnE))
             S = self.area
             L = self.edge
-            self._edgeCurl = Utils.sdiag(1/S)*C*Utils.sdiag(L)
+            self._edgeCurl = Utils.sdiag(1/S)*Rf.T*C*Re*Utils.sdiag(L)
         return self._edgeCurl
 
 
@@ -1075,6 +1167,7 @@ if __name__ == '__main__':
             return 0
 
     T = Tree([[(1,128)],[(1,128)],[(1,128)]],levels=7)
+    T = Tree([128,128,128],levels=7)
     # T = Tree([[(1,16)],[(1,16)]],levels=4)
     # T = Tree([[(1,128)],[(1,128)]],levels=7)
     # T.refine(lambda xc:6, balance=False)
@@ -1083,11 +1176,11 @@ if __name__ == '__main__':
 
 
     tic = time.time()
-    T.refine(function)#, balance=False)
+    # T.refine(function)#, balance=False)
     print time.time() - tic
     print T.nC
 
-    asdf
+
     # T._refineCell([8,0,1])
     # T._refineCell([8,0,2])
     # T._refineCell([12,0,2])
@@ -1098,23 +1191,28 @@ if __name__ == '__main__':
 
 
     ax = plt.subplot(211)
-    # ax.spy(T.faceDiv)
+    ax.spy(T.edgeCurl)
 
+    print Mesh.TensorMesh([1,1,1]).edgeCurl.todense()
+    print T.edgeCurl.todense()
+    print Mesh.TensorMesh([1,1,1]).edgeCurl.todense() - T.edgeCurl.todense()
+    print T.gridEy - Mesh.TensorMesh([1,1,1]).gridEy
 
-    T.plotGrid(ax=ax)
+    print T.edge
+    # T.plotGrid(ax=ax)
 
     # R = deflationMatrix(T._facesX, T._hangingFx, T._fx2i)
     # print R
 
     ax = plt.subplot(212)#, projection='3d')
-    # ax.spy(R)
+    ax.spy(Mesh.TensorMesh([1,1,1]).edgeCurl)
 
     # ax = plt.subplot(313)
     # ax.spy(T.faceDiv[:,:T.nFx] * R)
 
 
-    T.balance()
-    T.plotGrid(ax=ax)
+    # T.balance()
+    # T.plotGrid(ax=ax)
 
     # cx = T._getNextCell([0,0,1],direction=0,positive=True)
     # print cx
