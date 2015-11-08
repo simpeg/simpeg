@@ -675,9 +675,9 @@ class Tree(object):
     def _hanging(self, force=False):
         if not self.__dirtyHanging__ and not force: return
 
-        self._numberNodes()
-        self._numberFaces()
-        self._numberEdges()
+        self._numberNodes(force=force)
+        self._numberFaces(force=force)
+        self._numberEdges(force=force)
 
         self._hangingN  = dict()
         self._hangingFx = dict()
@@ -866,7 +866,7 @@ class Tree(object):
 
     def number(self, force=False):
         if not self.__dirty__ and not force: return
-        self._hanging()
+        self._hanging(force=force)
         return
 
     def _deflationMatrix(self, theSet, theHang, theIndex, withHanging=True):
