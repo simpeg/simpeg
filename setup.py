@@ -51,5 +51,5 @@ setup(
     platforms = ["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
     use_2to3 = False,
     include_dirs=[np.get_include()],
-    ext_modules = cythonize('SimPEG/Utils/interputils_cython.pyx')
+    ext_modules = cythonize(['SimPEG/Utils/interputils_cython.pyx', 'SimPEG/Mesh/TreeUtils.pyx'])
 )

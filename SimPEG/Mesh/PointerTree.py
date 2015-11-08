@@ -227,7 +227,10 @@ class Tree(object):
             P += SortGrid(self.gridFx, offset=self.nEx)
             return sp.identity(self.nE).tocsr()[P,:]
         if self.dim == 3:
-            raise Exception()
+            P = SortGrid(self.gridEx)
+            P += SortGrid(self.gridEy, offset=self.nEx)
+            P += SortGrid(self.gridEz, offset=self.nEx+self.nEy)
+            return sp.identity(self.nE).tocsr()[P,:]
 
     def _index(self, pointer):
         assert len(pointer) is self.dim+1
@@ -705,7 +708,7 @@ class Tree(object):
             gridEy.append( [n[0], n[1] + h[1]/2.0, n[2]] )
             edgeEy.append( h[1] )
         self._gridEy = np.array(gridEy)
-        self._edgeEyFull = np.array(edgeEx)
+        self._edgeEyFull = np.array(edgeEy)
 
         gridEz = []
         edgeEz = []
@@ -717,7 +720,7 @@ class Tree(object):
             gridEz.append( [n[0], n[1], n[2] + h[2]/2.0] )
             edgeEz.append( h[2] )
         self._gridEz = np.array(gridEz)
-        self._edgeEzFull = np.array(edgeEx)
+        self._edgeEzFull = np.array(edgeEz)
 
         self.__dirtyEdges__ = False
 
@@ -1123,14 +1126,14 @@ class Tree(object):
                 ax.plot(self.gridCC[:,0], self.gridCC[:,1], 'r:')
                 ax.plot(self.gridCC[[0,-1],0], self.gridCC[[0,-1],1], 'ro')
             if nodes:
-                ax.plot(self.gridN[:,0], self.gridN[:,1], 'ms')
-                ax.plot(self.gridN[self._hangingN.keys(),0], self.gridN[self._hangingN.keys(),1], 'ms', ms=10, mfc='none', mec='m')
+                ax.plot(self._gridN[:,0], self._gridN[:,1], 'ms')
+                ax.plot(self._gridN[self._hangingN.keys(),0], self._gridN[self._hangingN.keys(),1], 'ms', ms=10, mfc='none', mec='m')
             if facesX:
-                ax.plot(self.gridFx[self._hangingFx.keys(),0], self.gridFx[self._hangingFx.keys(),1], 'gs', ms=10, mfc='none', mec='g')
-                ax.plot(self.gridFx[:,0], self.gridFx[:,1], 'g>')
+                ax.plot(self._gridFx[self._hangingFx.keys(),0], self._gridFx[self._hangingFx.keys(),1], 'gs', ms=10, mfc='none', mec='g')
+                ax.plot(self._gridFx[:,0], self._gridFx[:,1], 'g>')
             if facesY:
-                ax.plot(self.gridFy[self._hangingFy.keys(),0], self.gridFy[self._hangingFy.keys(),1], 'gs', ms=10, mfc='none', mec='g')
-                ax.plot(self.gridFy[:,0], self.gridFy[:,1], 'g^')
+                ax.plot(self._gridFy[self._hangingFy.keys(),0], self._gridFy[self._hangingFy.keys(),1], 'gs', ms=10, mfc='none', mec='g')
+                ax.plot(self._gridFy[:,0], self._gridFy[:,1], 'g^')
         elif self.dim == 3:
             if cells:
                 ax.plot(self.gridCC[:,0], self.gridCC[:,1], 'r.', zs=self.gridCC[:,2])
@@ -1139,61 +1142,61 @@ class Tree(object):
                 ax.plot(self.gridCC[[0,-1],0], self.gridCC[[0,-1],1], 'ro', zs=self.gridCC[[0,-1],2])
 
             if nodes:
-                ax.plot(self.gridN[:,0], self.gridN[:,1], 'ms', zs=self.gridN[:,2])
-                ax.plot(self.gridN[self._hangingN.keys(),0], self.gridN[self._hangingN.keys(),1], 'ms', ms=10, mfc='none', mec='m', zs=self.gridN[self._hangingN.keys(),2])
+                ax.plot(self._gridN[:,0], self._gridN[:,1], 'ms', zs=self._gridN[:,2])
+                ax.plot(self._gridN[self._hangingN.keys(),0], self._gridN[self._hangingN.keys(),1], 'ms', ms=10, mfc='none', mec='m', zs=self._gridN[self._hangingN.keys(),2])
                 for key in self._hangingN.keys():
                     for hf in self._hangingN[key]:
                         ind = [key, hf[0]]
-                        ax.plot(self.gridN[ind,0], self.gridN[ind,1], 'm:', zs=self.gridN[ind,2])
+                        ax.plot(self._gridN[ind,0], self._gridN[ind,1], 'm:', zs=self._gridN[ind,2])
 
             if facesX:
-                ax.plot(self.gridFx[:,0], self.gridFx[:,1], 'g>', zs=self.gridFx[:,2])
-                ax.plot(self.gridFx[self._hangingFx.keys(),0], self.gridFx[self._hangingFx.keys(),1], 'gs', ms=10, mfc='none', mec='g', zs=self.gridFx[self._hangingFx.keys(),2])
+                ax.plot(self._gridFx[:,0], self._gridFx[:,1], 'g>', zs=self._gridFx[:,2])
+                ax.plot(self._gridFx[self._hangingFx.keys(),0], self._gridFx[self._hangingFx.keys(),1], 'gs', ms=10, mfc='none', mec='g', zs=self._gridFx[self._hangingFx.keys(),2])
                 for key in self._hangingFx.keys():
                     for hf in self._hangingFx[key]:
                         ind = [key, hf[0]]
-                        ax.plot(self.gridFx[ind,0], self.gridFx[ind,1], 'g:', zs=self.gridFx[ind,2])
+                        ax.plot(self._gridFx[ind,0], self._gridFx[ind,1], 'g:', zs=self._gridFx[ind,2])
 
             if facesY:
-                ax.plot(self.gridFy[:,0], self.gridFy[:,1], 'g^', zs=self.gridFy[:,2])
-                ax.plot(self.gridFy[self._hangingFy.keys(),0], self.gridFy[self._hangingFy.keys(),1], 'gs', ms=10, mfc='none', mec='g', zs=self.gridFy[self._hangingFy.keys(),2])
+                ax.plot(self._gridFy[:,0], self._gridFy[:,1], 'g^', zs=self._gridFy[:,2])
+                ax.plot(self._gridFy[self._hangingFy.keys(),0], self._gridFy[self._hangingFy.keys(),1], 'gs', ms=10, mfc='none', mec='g', zs=self._gridFy[self._hangingFy.keys(),2])
                 for key in self._hangingFy.keys():
                     for hf in self._hangingFy[key]:
                         ind = [key, hf[0]]
-                        ax.plot(self.gridFy[ind,0], self.gridFy[ind,1], 'g:', zs=self.gridFy[ind,2])
+                        ax.plot(self._gridFy[ind,0], self._gridFy[ind,1], 'g:', zs=self._gridFy[ind,2])
 
             if facesZ:
-                ax.plot(self.gridFz[:,0], self.gridFz[:,1], 'g^', zs=self.gridFz[:,2])
-                ax.plot(self.gridFz[self._hangingFz.keys(),0], self.gridFz[self._hangingFz.keys(),1], 'gs', ms=10, mfc='none', mec='g', zs=self.gridFz[self._hangingFz.keys(),2])
+                ax.plot(self._gridFz[:,0], self._gridFz[:,1], 'g^', zs=self._gridFz[:,2])
+                ax.plot(self._gridFz[self._hangingFz.keys(),0], self._gridFz[self._hangingFz.keys(),1], 'gs', ms=10, mfc='none', mec='g', zs=self._gridFz[self._hangingFz.keys(),2])
                 for key in self._hangingFz.keys():
                     for hf in self._hangingFz[key]:
                         ind = [key, hf[0]]
-                        ax.plot(self.gridFz[ind,0], self.gridFz[ind,1], 'g:', zs=self.gridFz[ind,2])
+                        ax.plot(self._gridFz[ind,0], self._gridFz[ind,1], 'g:', zs=self._gridFz[ind,2])
 
             if edgesX:
-                ax.plot(self.gridEx[:,0], self.gridEx[:,1], 'k>', zs=self.gridEx[:,2])
-                ax.plot(self.gridEx[self._hangingEx.keys(),0], self.gridEx[self._hangingEx.keys(),1], 'ks', ms=10, mfc='none', mec='k', zs=self.gridEx[self._hangingEx.keys(),2])
+                ax.plot(self._gridEx[:,0], self._gridEx[:,1], 'k>', zs=self._gridEx[:,2])
+                ax.plot(self._gridEx[self._hangingEx.keys(),0], self._gridEx[self._hangingEx.keys(),1], 'ks', ms=10, mfc='none', mec='k', zs=self._gridEx[self._hangingEx.keys(),2])
                 for key in self._hangingEx.keys():
                     for hf in self._hangingEx[key]:
                         ind = [key, hf[0]]
-                        ax.plot(self.gridEx[ind,0], self.gridEx[ind,1], 'k:', zs=self.gridEx[ind,2])
+                        ax.plot(self._gridEx[ind,0], self._gridEx[ind,1], 'k:', zs=self._gridEx[ind,2])
 
 
             if edgesY:
-                ax.plot(self.gridEy[:,0], self.gridEy[:,1], 'k<', zs=self.gridEy[:,2])
-                ax.plot(self.gridEy[self._hangingEy.keys(),0], self.gridEy[self._hangingEy.keys(),1], 'ks', ms=10, mfc='none', mec='k', zs=self.gridEy[self._hangingEy.keys(),2])
+                ax.plot(self._gridEy[:,0], self._gridEy[:,1], 'k<', zs=self._gridEy[:,2])
+                ax.plot(self._gridEy[self._hangingEy.keys(),0], self._gridEy[self._hangingEy.keys(),1], 'ks', ms=10, mfc='none', mec='k', zs=self._gridEy[self._hangingEy.keys(),2])
                 for key in self._hangingEy.keys():
                     for hf in self._hangingEy[key]:
                         ind = [key, hf[0]]
-                        ax.plot(self.gridEy[ind,0], self.gridEy[ind,1], 'k:', zs=self.gridEy[ind,2])
+                        ax.plot(self._gridEy[ind,0], self._gridEy[ind,1], 'k:', zs=self._gridEy[ind,2])
 
             if edgesZ:
-                ax.plot(self.gridEz[:,0], self.gridEz[:,1], 'k^', zs=self.gridEz[:,2])
-                ax.plot(self.gridEz[self._hangingEz.keys(),0], self.gridEz[self._hangingEz.keys(),1], 'ks', ms=10, mfc='none', mec='k', zs=self.gridEz[self._hangingEz.keys(),2])
+                ax.plot(self._gridEz[:,0], self._gridEz[:,1], 'k^', zs=self._gridEz[:,2])
+                ax.plot(self._gridEz[self._hangingEz.keys(),0], self._gridEz[self._hangingEz.keys(),1], 'ks', ms=10, mfc='none', mec='k', zs=self._gridEz[self._hangingEz.keys(),2])
                 for key in self._hangingEz.keys():
                     for hf in self._hangingEz[key]:
                         ind = [key, hf[0]]
-                        ax.plot(self.gridEz[ind,0], self.gridEz[ind,1], 'k:', zs=self.gridEz[ind,2])
+                        ax.plot(self._gridEz[ind,0], self._gridEz[ind,1], 'k:', zs=self._gridEz[ind,2])
 
 
         # ax.axis('equal')
