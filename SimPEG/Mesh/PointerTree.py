@@ -71,8 +71,8 @@ class Tree(object):
 
         self.__dirty__ = True #: The numbering is dirty!
 
-        self._treeInds = set()
-        self._treeInds.add(0)
+        self._cells = set()
+        self._cells.add(0)
 
     @property
     def __dirty__(self):
@@ -93,7 +93,7 @@ class Tree(object):
     def dim(self): return len(self.h)
 
     @property
-    def nC(self): return len(self._treeInds)
+    def nC(self): return len(self._cells)
 
     @property
     def nN(self):
@@ -143,10 +143,10 @@ class Tree(object):
         return len(self._edgesZ)
 
     @property
-    def _sortedInds(self):
-        if getattr(self, '__sortedInds', None) is None:
-            self.__sortedInds = sorted(self._treeInds)
-        return self.__sortedInds
+    def _sortedCells(self):
+        if getattr(self, '__sortedCells', None) is None:
+            self.__sortedCells = sorted(self._cells)
+        return self.__sortedCells
 
     @property
     def permuteCC(self):
@@ -174,7 +174,7 @@ class Tree(object):
             raise Exception()
 
     def _structureChange(self):
-        deleteThese = ['__sortedInds', '_gridCC', '_gridN', '_gridFx', '_gridFy', '_gridFz', '_gridEx', '_gridEy', '_gridEz', '_area', '_edge', '_vol']
+        deleteThese = ['__sortedCells', '_gridCC', '_gridN', '_gridFx', '_gridFy', '_gridFz', '_gridEx', '_gridEy', '_gridEz', '_area', '_edge', '_vol']
         for p in deleteThese:
             if hasattr(self, p): delattr(self, p)
         self.__dirty__ = True
@@ -190,8 +190,8 @@ class Tree(object):
 
     def __contains__(self, v):
         if type(v) in [int, long]:
-            return v in self._treeInds
-        return self._index(v) in self._treeInds
+            return v in self._cells
+        return self._index(v) in self._cells
 
     def refine(self, function=None, recursive=True, cells=None, balance=True, _inRecursion=False):
 
@@ -199,7 +199,7 @@ class Tree(object):
             self._structureChange()
             print 'Refining Mesh'
 
-        cells = cells if cells is not None else sorted(self._treeInds)
+        cells = cells if cells is not None else sorted(self._cells)
         recurse = []
         tic = time.time()
         for cell in cells:
@@ -227,7 +227,7 @@ class Tree(object):
         added = []
         def addCell(p):
             i = self._index(p+[nL])
-            self._treeInds.add(i)
+            self._cells.add(i)
             added.append(i)
 
         addCell(map(add, zip(pointer[:-1], [0,0,0][:self.dim])))
@@ -239,7 +239,7 @@ class Tree(object):
             addCell(map(add, zip(pointer[:-1], [h,0,h])))
             addCell(map(add, zip(pointer[:-1], [0,h,h])))
             addCell(map(add, zip(pointer[:-1], [h,h,h])))
-        self._treeInds.remove(ind)
+        self._cells.remove(ind)
         return added
 
     def corsen(self, function=None):
@@ -362,7 +362,7 @@ class Tree(object):
             self._structureChange()
             print 'Balancing Mesh:'
 
-        cells = cells if cells is not None else sorted(self._treeInds)
+        cells = cells if cells is not None else sorted(self._cells)
 
         # calcDepth = lambda i: lambda A: i if type(A) is not list else max(map(calcDepth(i+1), A))
         # flatten   = lambda A: A if calcDepth(0)(A) == 1 else flatten([_ for __ in A for _ in (__ if type(__) is list else [__])])
@@ -404,8 +404,8 @@ class Tree(object):
     @property
     def gridCC(self):
         if getattr(self, '_gridCC', None) is None:
-            self._gridCC = np.zeros((len(self._treeInds),self.dim))
-            for ii, ind in enumerate(self._sortedInds):
+            self._gridCC = np.zeros((len(self._cells),self.dim))
+            for ii, ind in enumerate(self._sortedCells):
                 p = self._asPointer(ind)
                 self._gridCC[ii, :] = self._cellC(p)
         return self._gridCC
@@ -452,8 +452,8 @@ class Tree(object):
     @property
     def vol(self):
         if getattr(self, '_vol', None) is None:
-            self._vol = np.zeros(len(self._treeInds))
-            for ii, ind in enumerate(self._sortedInds):
+            self._vol = np.zeros(len(self._cells))
+            for ii, ind in enumerate(self._sortedCells):
                 p = self._asPointer(ind)
                 self._vol[ii] = np.prod(self._cellH(p))
         return self._vol
@@ -490,7 +490,7 @@ class Tree(object):
 
         self._nodes = set()
 
-        for ind in self._treeInds:
+        for ind in self._cells:
             p = self._asPointer(ind)
             w = self._levelWidth(p[-1])
             if self.dim == 2:
@@ -524,7 +524,7 @@ class Tree(object):
         if self.dim == 3:
             self._facesZ = set()
 
-        for ind in self._treeInds:
+        for ind in self._cells:
             p = self._asPointer(ind)
             w = self._levelWidth(p[-1])
 
@@ -599,7 +599,7 @@ class Tree(object):
         self._edgesY = set()
         self._edgesZ = set()
 
-        for ind in self._treeInds:
+        for ind in self._cells:
             p = self._asPointer(ind)
             w = self._levelWidth(p[-1])
             self._edgesX.add(self._index([p[0]    , p[1]    , p[2]    , p[3]]))
@@ -871,7 +871,7 @@ class Tree(object):
             PM = [-1,1]*self.dim # plus / minus
             offset = [0,0,self.nFx,self.nFx,self.nFx+self.nFy,self.nFx+self.nFy]
 
-            for ii, ind in enumerate(self._sortedInds):
+            for ii, ind in enumerate(self._sortedCells):
 
                 p = self._pointer(ind)
                 w = self._levelWidth(p[-1])
@@ -953,7 +953,7 @@ class Tree(object):
             fig = ax.figure
 
         if grid:
-            for ind in self._sortedInds:
+            for ind in self._sortedCells:
                 p = self._asPointer(ind)
                 n = self._cellN(p)
                 h = self._cellH(p)
