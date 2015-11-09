@@ -103,6 +103,21 @@ class TestOperatorsOcTree(unittest.TestCase):
         assert (Mr.faceDiv - M.permuteCC*M.faceDiv*M.permuteF.T).nnz == 0
 
 
+    def test_edgeCurl(self):
+
+        hx, hy, hz = np.r_[1.,2,3,4], np.r_[5.,6,7,8], np.r_[9.,10,11,12]
+        M = Tree([hx, hy, hz], levels=2)
+        M.refine(lambda xc:2)
+        # M.plotGrid(showIt=True)
+        Mr = Mesh.TensorMesh([hx, hy, hz])
+
+        # plt.subplot(211).spy(Mr.faceDiv)
+        # plt.subplot(212).spy(M.permuteCC.T*M.faceDiv*M.permuteF)
+        # plt.show()
+
+        assert (Mr.edgeCurl - M.permuteF*M.edgeCurl*M.permuteE.T).nnz == 0
+
+
 
 if __name__ == '__main__':
     unittest.main()
