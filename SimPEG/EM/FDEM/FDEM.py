@@ -360,7 +360,7 @@ class ProblemFDEM_b(BaseFDEMProblem):
             SrcDeriv = S_mDeriv(v) + self.MeSigmaI.T * (C.T * S_eDeriv(v))
 
         if self._makeASymmetric is True and not adjoint:
-            return MfMui.T * (RHSderiv + SrcDeriv)
+            return MfMui.T * (SrcDeriv + RHSderiv)
 
         return RHSderiv + SrcDeriv
 
