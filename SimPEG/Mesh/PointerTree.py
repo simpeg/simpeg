@@ -198,6 +198,54 @@ class Tree(object):
         self.number()
         return len(self._hangingEz)
 
+
+    @property
+    def ntN(self):
+        self.number()
+        return len(self._nodes)
+
+    @property
+    def ntF(self):
+        return self.ntFx + self.ntFy + (0 if self.dim == 2 else self.ntFz)
+
+    @property
+    def ntFx(self):
+        self.number()
+        return len(self._facesX)
+
+    @property
+    def ntFy(self):
+        self.number()
+        return len(self._facesY)
+
+    @property
+    def ntFz(self):
+        if self.dim == 2: return None
+        self.number()
+        return len(self._facesZ)
+
+    @property
+    def ntE(self):
+        return self.ntEx + self.ntEy + (0 if self.dim == 2 else self.ntEz)
+
+    @property
+    def ntEx(self):
+        if self.dim == 2:return self.ntFy
+        self.number()
+        return len(self._edgesX)
+
+    @property
+    def ntEy(self):
+        if self.dim == 2:return self.ntFx
+        self.number()
+        return len(self._edgesY)
+
+    @property
+    def ntEz(self):
+        if self.dim == 2: return None
+        self.number()
+        return len(self._edgesZ)
+
     @property
     def _sortedCells(self):
         if getattr(self, '__sortedCells', None) is None:
@@ -948,7 +996,9 @@ class Tree(object):
             # TODO: Preallocate!
             I, J, V = [], [], []
             PM = [-1,1]*self.dim # plus / minus
-            offset = [0,0,self.nFx,self.nFx,self.nFx+self.nFy,self.nFx+self.nFy]
+
+            # TODO total number of faces?
+            offset = [0]*2 + [self.ntFx]*2 + [self.ntFx+self.ntFy]*2
 
             for ii, ind in enumerate(self._sortedCells):
 
@@ -977,10 +1027,7 @@ class Tree(object):
                     J += [face + off]
                     V += [pm]
 
-            # total number of faces
-            tnF = len(self._facesX) + len(self._facesY) + (0 if self.dim == 2 else len(self._facesZ))
-
-            D = sp.csr_matrix((V,(I,J)), shape=(self.nC, tnF))
+            D = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.ntF))
             Rlist = [0]*self.dim
             Rlist[0] = self._deflationMatrix(self._facesX, self._hangingFx, self._fx2i)
             Rlist[1] = self._deflationMatrix(self._facesY, self._hangingFy, self._fy2i)
@@ -1002,7 +1049,7 @@ class Tree(object):
             # TODO: Preallocate!
             I, J, V = [], [], []
             faceOffset = 0
-            offset = [self.nEx]*2 + [self.nEx+self.nEy]*2
+            offset = [self.ntEx]*2 + [self.ntEx+self.ntEy]*2
             PM = [1, -1, -1, 1]
             for ii, fx in  enumerate(sorted(self._facesX)):
 
@@ -1022,7 +1069,7 @@ class Tree(object):
                     V += [pm]
 
             faceOffset = self.nFx
-            offset = [0]*2 + [self.nEx+self.nEy]*2
+            offset = [0]*2 + [self.ntEx+self.ntEy]*2
             PM = [-1, 1, 1, -1]
             for ii, fy in  enumerate(sorted(self._facesY)):
 
@@ -1042,7 +1089,7 @@ class Tree(object):
                     V += [pm]
 
             faceOffset = self.nFx + self.nFy
-            offset = [0]*2 + [self.nEx]*2
+            offset = [0]*2 + [self.ntEx]*2
             PM = [1, -1, -1, 1]
             for ii, fz in  enumerate(sorted(self._facesZ)):
 
@@ -1061,9 +1108,6 @@ class Tree(object):
                     J += [edge + off]
                     V += [pm]
 
-            tnF = len(self._facesX) + len(self._facesY) + len(self._facesZ)
-            tnE = len(self._edgesX) + len(self._edgesY) + len(self._edgesZ)
-
             Rf = sp.block_diag([
                         self._deflationMatrix(self._facesX, self._hangingFx, self._fx2i),
                         self._deflationMatrix(self._facesY, self._hangingFy, self._fy2i),
@@ -1076,7 +1120,7 @@ class Tree(object):
                         self._deflationMatrix(self._edgesZ, self._hangingEz, self._ez2i)
                     ])
 
-            C = sp.csr_matrix((V,(I,J)), shape=(tnF, tnE))
+            C = sp.csr_matrix((V,(I,J)), shape=(self.ntF, self.ntE))
             S = self.area
             L = self.edge
             self._edgeCurl = Utils.sdiag(1/S)*Rf.T*C*Re*Utils.sdiag(L)
@@ -1222,16 +1266,16 @@ if __name__ == '__main__':
             return 0
 
     T = Tree([[(1,128)],[(1,128)],[(1,128)]],levels=7)
-    T = Tree([128,128,128],levels=7)
+    # T = Tree([128,128,128],levels=7)
     # T = Tree([[(1,16)],[(1,16)]],levels=4)
     # T = Tree([[(1,128)],[(1,128)]],levels=7)
-    T.refine(lambda xc:1, balance=False)
+    # T.refine(lambda xc:1, balance=False)
     # T._index([0,0,0])
     # T._pointer(0)
 
 
     tic = time.time()
-    # T.refine(function)#, balance=False)
+    T.refine(function)#, balance=False)
     print time.time() - tic
     print T.nC
 
