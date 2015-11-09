@@ -2,6 +2,7 @@ from SimPEG import np, sp, Utils, Solver, Mesh
 import matplotlib.pyplot as plt
 import matplotlib
 import TreeUtils
+from SimPEG.Mesh.InnerProducts import InnerProducts
 import time
 
 MAX_BITS = 20
@@ -48,7 +49,7 @@ def SortGrid(grid, offset=0):
 class NotBalancedException(Exception):
     pass
 
-class Tree(object):
+class Tree(InnerProducts):
     def __init__(self, h_in, levels=3):
         assert type(h_in) is list, 'h_in must be a list'
         assert len(h_in) > 1, "len(h_in) must be greater than 1"
@@ -512,47 +513,47 @@ class Tree(object):
     @property
     def gridN(self):
         self.number()
-        R = self._deflationMatrix(self._nodes, self._hangingN, self._n2i, withHanging=False)
+        R = self._deflationMatrix('N', withHanging=False)
         return R.T * self._gridN
 
     @property
     def gridFx(self):
         self.number()
-        R = self._deflationMatrix(self._facesX, self._hangingFx, self._fx2i, withHanging=False)
+        R = self._deflationMatrix('Fx', withHanging=False)
         return R.T * self._gridFx
 
     @property
     def gridFy(self):
         self.number()
-        R = self._deflationMatrix(self._facesY, self._hangingFy, self._fy2i, withHanging=False)
+        R = self._deflationMatrix('Fy', withHanging=False)
         return R.T * self._gridFy
 
     @property
     def gridFz(self):
         if self.dim < 3: return None
         self.number()
-        R = self._deflationMatrix(self._facesZ, self._hangingFz, self._fz2i, withHanging=False)
+        R = self._deflationMatrix('Fz', withHanging=False)
         return R.T * self._gridFz
 
     @property
     def gridEx(self):
         if self.dim == 2: return self.gridFy
         self.number()
-        R = self._deflationMatrix(self._edgesX, self._hangingEx, self._ex2i, withHanging=False)
+        R = self._deflationMatrix('Ex', withHanging=False)
         return R.T * self._gridEx
 
     @property
     def gridEy(self):
         if self.dim == 2: return self.gridFx
         self.number()
-        R = self._deflationMatrix(self._edgesY, self._hangingEy, self._ey2i, withHanging=False)
+        R = self._deflationMatrix('Ey', withHanging=False)
         return R.T * self._gridEy
 
     @property
     def gridEz(self):
         if self.dim < 3: return None
         self.number()
-        R = self._deflationMatrix(self._edgesZ, self._hangingEz, self._ez2i, withHanging=False)
+        R = self._deflationMatrix('Ez', withHanging=False)
         return R.T * self._gridEz
 
     @property
@@ -568,13 +569,8 @@ class Tree(object):
     def area(self):
         self.number()
         if getattr(self, '_area', None) is None:
-            Rlist = [0]*self.dim
-            Rlist[0] = self._deflationMatrix(self._facesX, self._hangingFx, self._fx2i, withHanging=False)
-            Rlist[1] = self._deflationMatrix(self._facesY, self._hangingFy, self._fy2i, withHanging=False)
-            if self.dim == 3:
-                Rlist[2] = self._deflationMatrix(self._facesZ, self._hangingFz, self._fz2i, withHanging=False)
-            R = sp.block_diag(Rlist)
-            self._area = R.T * (
+            Rf = self._deflationMatrix('F', withHanging=False)
+            self._area = Rf.T * (
                                     np.r_[self._areaFxFull, self._areaFyFull] if self.dim == 2 else
                                     np.r_[self._areaFxFull, self._areaFyFull, self._areaFzFull]
                                )
@@ -586,12 +582,8 @@ class Tree(object):
         if self.dim == 2:
             return np.r_[self.area[self.nFx:], self.area[:self.nFx]]
         if getattr(self, '_edge', None) is None:
-            R = sp.block_diag([
-                self._deflationMatrix(self._edgesX, self._hangingEx, self._ex2i, withHanging=False),
-                self._deflationMatrix(self._edgesY, self._hangingEy, self._ey2i, withHanging=False),
-                self._deflationMatrix(self._edgesZ, self._hangingEz, self._ez2i, withHanging=False)
-            ])
-            self._edge = R.T * np.r_[self._edgeExFull, self._edgeEyFull, self._edgeEzFull]
+            Re = self._deflationMatrix('E', withHanging=False)
+            self._edge = Re.T * np.r_[self._edgeExFull, self._edgeEyFull, self._edgeEzFull]
 
         return self._edge
 
@@ -969,7 +961,24 @@ class Tree(object):
         self.balance()
         self._hanging(force=force)
 
-    def _deflationMatrix(self, theSet, theHang, theIndex, withHanging=True):
+    def _deflationMatrix(self, location, withHanging=True):
+        assert location in ['N','F','Fx','Fy'] + (['Fz','E','Ex','Ey','Ez'] if self.dim == 3 else [])
+
+        args = dict()
+        args['N'] =  (self._nodes,  self._hangingN,  self._n2i )
+        args['Fx'] = (self._facesX, self._hangingFx, self._fx2i)
+        args['Fy'] = (self._facesY, self._hangingFy, self._fy2i)
+        if self.dim == 3:
+            args['Fz'] = (self._facesZ, self._hangingFz, self._fz2i)
+            args['Ex'] = (self._edgesX, self._hangingEx, self._ex2i)
+            args['Ey'] = (self._edgesY, self._hangingEy, self._ey2i)
+            args['Ez'] = (self._edgesZ, self._hangingEz, self._ez2i)
+        if location in ['F', 'E']:
+            Rlist = [self._deflationMatrix(location + subLoc, withHanging=withHanging) for subLoc in ['x','y','z'][:self.dim]]
+            return sp.block_diag(Rlist)
+        return self.__deflationMatrix(*args[location], withHanging=withHanging)
+
+    def __deflationMatrix(self, theSet, theHang, theIndex, withHanging=True):
         reducedInd = dict() # final reduced index
         ii = 0
         I,J,V = [],[],[]
@@ -1028,12 +1037,7 @@ class Tree(object):
                     V += [pm]
 
             D = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.ntF))
-            Rlist = [0]*self.dim
-            Rlist[0] = self._deflationMatrix(self._facesX, self._hangingFx, self._fx2i)
-            Rlist[1] = self._deflationMatrix(self._facesY, self._hangingFy, self._fy2i)
-            if self.dim == 3:
-                Rlist[2] = self._deflationMatrix(self._facesZ, self._hangingFz, self._fz2i)
-            R = sp.block_diag(Rlist)
+            R = self._deflationMatrix('F')
             VOL = self.vol
             S = self.area
             self._faceDiv = Utils.sdiag(1.0/VOL)*D*R*Utils.sdiag(S)
@@ -1108,23 +1112,86 @@ class Tree(object):
                     J += [edge + off]
                     V += [pm]
 
-            Rf = sp.block_diag([
-                        self._deflationMatrix(self._facesX, self._hangingFx, self._fx2i),
-                        self._deflationMatrix(self._facesY, self._hangingFy, self._fy2i),
-                        self._deflationMatrix(self._facesZ, self._hangingFz, self._fz2i)
-                    ])
-
-            Re = sp.block_diag([
-                        self._deflationMatrix(self._edgesX, self._hangingEx, self._ex2i),
-                        self._deflationMatrix(self._edgesY, self._hangingEy, self._ey2i),
-                        self._deflationMatrix(self._edgesZ, self._hangingEz, self._ez2i)
-                    ])
+            Rf = self._deflationMatrix('F')
+            Re = self._deflationMatrix('E')
 
             C = sp.csr_matrix((V,(I,J)), shape=(self.ntF, self.ntE))
             S = self.area
             L = self.edge
             self._edgeCurl = Utils.sdiag(1/S)*Rf.T*C*Re*Utils.sdiag(L)
         return self._edgeCurl
+
+
+    def _getFaceP(self, xFace, yFace, zFace):
+        ind1, ind2, ind3 = [], [], []
+        for ind in self._sortedCells:
+            p = self._pointer(ind)
+            w = self._levelWidth(p[-1])
+
+            posX = 0 if xFace == 'fXm' else w
+            posY = 0 if yFace == 'fYm' else w
+            if self.dim == 3:
+                posZ = 0 if zFace == 'fZm' else w
+
+            ind1.append( self._fx2i[self._index([ p[0] + posX, p[1]] +  p[2:])]                   )
+            ind2.append( self._fy2i[self._index([ p[0], p[1] + posY] +  p[2:])] + self.ntFx       )
+            if self.dim == 3:
+                ind3.append( self._fz2i[self._index([ p[0], p[1], p[2] + posZ, p[3]])] + self.ntFx + self.ntFy )
+
+        if self.dim == 2:
+            IND = np.r_[ind1, ind2]
+        if self.dim == 3:
+            IND = np.r_[ind1, ind2, ind3]
+
+        PXXX = sp.coo_matrix((np.ones(self.dim*self.nC), (range(self.dim*self.nC), IND)), shape=(self.dim*self.nC, self.ntF)).tocsr()
+
+        Rf = self._deflationMatrix('F', withHanging=True)
+
+        return PXXX * Rf
+
+    def _getFacePxx(self):
+        self.number()
+        def Pxx(xFace, yFace):
+            return self._getFaceP(xFace, yFace, None)
+        return Pxx
+
+    def _getFacePxxx(self):
+        self.number()
+        def Pxxx(xFace, yFace, zFace):
+            return self._getFaceP(xFace, yFace, zFace)
+        return Pxxx
+
+    def _getEdgeP(self, xEdge, yEdge, zEdge):
+        if self.dim == 2: raise Exception('Not implemented') # this should be a reordering of the face inner product?
+
+        ind1, ind2, ind3 = [], [], []
+        for ind in self._sortedCells:
+            p = self._pointer(ind)
+            w = self._levelWidth(p[-1])
+
+            posX = [0,0] if xEdge == 'eX0' else [1, 0] if xEdge == 'eX1' else [0,1] if xEdge == 'eX2' else [1,1]
+            posY = [0,0] if yEdge == 'eY0' else [1, 0] if yEdge == 'eY1' else [0,1] if yEdge == 'eY2' else [1,1]
+            posZ = [0,0] if zEdge == 'eZ0' else [1, 0] if zEdge == 'eZ1' else [0,1] if zEdge == 'eZ2' else [1,1]
+
+            ind1.append( self._ex2i[self._index([ p[0]          , p[1] + posX[0], p[2] + posX[1], p[3]])]                         )
+            ind2.append( self._ey2i[self._index([ p[0] + posY[0], p[1]          , p[2] + posY[1], p[3]])] + self.ntEx             )
+            ind3.append( self._ez2i[self._index([ p[0] + posZ[0], p[1] + posZ[1], p[2]          , p[3]])] + self.ntEx + self.ntEy )
+
+        IND = np.r_[ind1, ind2, ind3]
+
+        PXXX = sp.coo_matrix((np.ones(self.dim*self.nC), (range(self.dim*self.nC), IND)), shape=(self.dim*self.nC, self.ntE)).tocsr()
+
+        Rf = self._deflationMatrix('E', withHanging=False)
+
+        return PXXX * Rf
+
+    def _getEdgePxx(self):
+        raise Exception('Not implemented') # this should be a reordering of the face inner product?
+    def _getEdgePxxx(self):
+        self.number()
+        def Pxxx(xEdge, yEdge, zEdge):
+            return self._getEdgeP(xEdge, yEdge, zEdge)
+        return Pxxx
 
 
     def plotGrid(self, ax=None, showIt=False,
@@ -1257,9 +1324,9 @@ if __name__ == '__main__':
         # if dist < 0.05:
         #     return 5
         if dist < 0.1*128:
-            return 7
+            return 4
         if dist < 0.3*128:
-            return 5
+            return 3
         if dist < 1.0*128:
             return 2
         else:
@@ -1279,7 +1346,8 @@ if __name__ == '__main__':
     print time.time() - tic
     print T.nC
 
-    print T.gridFz
+    print T.getFaceInnerProduct()
+    # print T.gridFz
 
 
     # T._refineCell([8,0,1])
@@ -1288,11 +1356,12 @@ if __name__ == '__main__':
     # T._refineCell([8,4,2])
     # T._refineCell([6,0,3])
     # T._refineCell([8,8,1])
-    T._refineCell([0,0,0,1])
-    T.__dirty__ = True
+    # T._refineCell([0,0,0,1])
+    # T.__dirty__ = True
 
 
     print T.gridFx.shape[0], T.nFx
+
 
 
     ax = plt.subplot(211)

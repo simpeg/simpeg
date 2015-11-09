@@ -70,7 +70,7 @@ class TestOperatorsQuadTree(unittest.TestCase):
         assert np.allclose(M.vol, T.permuteCC*T.vol)
 
         # plt.subplot(211).spy(M.faceDiv)
-        # plt.subplot(212).spy(T.permuteCC.T*T.faceDiv*T.permuteF)
+        # plt.subplot(212).spy(T.permuteCC*T.faceDiv*T.permuteF.T)
         # plt.show()
 
         assert (M.faceDiv - T.permuteCC*T.faceDiv*T.permuteF.T).nnz == 0
@@ -97,7 +97,7 @@ class TestOperatorsOcTree(unittest.TestCase):
         assert np.allclose(Mr.vol, M.permuteCC*M.vol)
 
         # plt.subplot(211).spy(Mr.faceDiv)
-        # plt.subplot(212).spy(M.permuteCC.T*M.faceDiv*M.permuteF)
+        # plt.subplot(212).spy(M.permuteCC*M.faceDiv*M.permuteF.T)
         # plt.show()
 
         assert (Mr.faceDiv - M.permuteCC*M.faceDiv*M.permuteF.T).nnz == 0
@@ -116,6 +116,25 @@ class TestOperatorsOcTree(unittest.TestCase):
         # plt.show()
 
         assert (Mr.edgeCurl - M.permuteF*M.edgeCurl*M.permuteE.T).nnz == 0
+
+    def test_faceInnerProduct(self):
+
+        hx, hy, hz = np.r_[1.,2,3,4], np.r_[5.,6,7,8], np.r_[9.,10,11,12]
+        # hx, hy, hz = [[(1,4)], [(1,4)], [(1,4)]]
+
+        M = Tree([hx, hy, hz], levels=2)
+        M.refine(lambda xc:2)
+        # M.plotGrid(showIt=True)
+        Mr = Mesh.TensorMesh([hx, hy, hz])
+
+        # plt.subplot(211).spy(Mr.getFaceInnerProduct())
+        # plt.subplot(212).spy(M.getFaceInnerProduct())
+        # plt.show()
+
+        # print M.nC, M.nF, M.getFaceInnerProduct().shape, M.permuteF.shape
+
+        assert np.allclose(Mr.getFaceInnerProduct().todense(), (M.permuteF * M.getFaceInnerProduct() * M.permuteF.T).todense())
+        assert np.allclose(Mr.getEdgeInnerProduct().todense(), (M.permuteE * M.getEdgeInnerProduct() * M.permuteE.T).todense())
 
 
 
