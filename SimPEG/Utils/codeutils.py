@@ -3,10 +3,7 @@ import time
 import numpy as np
 from functools import wraps
 
-
-class SimPEGMetaClass(type):
-    def __new__(cls, name, bases, attrs):
-        return super(SimPEGMetaClass, cls).__new__(cls, name, bases, attrs)
+SimPEGMetaClass = type
 
 def memProfileWrapper(towrap, *funNames):
     """
