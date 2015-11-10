@@ -12,21 +12,21 @@ def read_MAG_obs(obs_file):
 
     # First line has the declination, inclination and amplitude of B0
     line = fid.readline()
-    line = line.split(' ')
+    line = line.split()
     Incl = float(line[0]) 
     Decl = float(line[1])
     B0   = float(line[2])
 
     # Second line has the magnetization orientation and a flag 
     line = fid.readline()
-    line = line.split(' ')
+    line = line.split()
     Minc = float(line[0])
     Mdec = float(line[1])
     FLAG = float(line[2])
 
     # Third line has the number of rows
     line = fid.readline()
-    line = line.split(' ')
+    line = line.split()
     ndat = int(line[0])
 
     # Pre-allocate space for obsx, obsy, obsz, data, uncert
@@ -39,7 +39,7 @@ def read_MAG_obs(obs_file):
     for ii in range(ndat):
 
         line = fid.readline()
-        line = line.split(' ')  
+        line = line.split()  
 
         obsx[ii] = line[0]
         obsy[ii] = line[1]

@@ -142,3 +142,49 @@ class WeightMap(Maps.IdentityMap):
 
     def deriv(self, m):
         return Utils.sdiag(self.weight)    
+
+
+    
+
+def readUBCmagObs(obs_file):
+    
+    """
+    Read and write UBC mag file format
+    
+    INPUT:
+    :param fileName, path to the UBC obs mag file
+    
+    OUTPUT:
+    :param dobs, observation in (x y z [data] [wd])
+    :param B, primary field information (BI, BD, B0)
+    :param M, magnetization orentiaton (MI, MD)
+    
+    """
+
+    fid = open(obs_file,'r') 
+
+    # First line has the inclination,declination and amplitude of B0
+    line = fid.readline()
+    B = np.array(line.split(),dtype=float)
+
+    # Second line has the magnetization orientation and a flag 
+    line = fid.readline()
+    M = np.array(line.split(),dtype=float)
+
+    # Third line has the number of rows
+    line = fid.readline()
+    ndat = np.array(line.split(),dtype=int)
+
+    # Pre-allocate space for obsx, obsy, obsz, data, uncert
+    line = fid.readline()
+    temp = np.array(line.split(),dtype=float) 
+        
+    dobs = np.zeros((ndat,len(temp)), dtype=float)
+    
+    
+    for ii in range(ndat):
+        
+        dobs[ii,:] = np.array(line.split(),dtype=float) 
+        line = fid.readline()
+        
+    return B, M, dobs
