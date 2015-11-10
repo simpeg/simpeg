@@ -1,8 +1,13 @@
 from SimPEG import np, sp, Utils, Solver, Mesh
 import matplotlib.pyplot as plt
 import matplotlib
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.colors as colors
+import matplotlib.cm as cmx
+
 import TreeUtils
 from SimPEG.Mesh.InnerProducts import InnerProducts
+from SimPEG.Mesh.BaseMesh import BaseMesh
 import time
 
 MAX_BITS = 20
@@ -49,8 +54,8 @@ def SortGrid(grid, offset=0):
 class NotBalancedException(Exception):
     pass
 
-class Tree(InnerProducts):
-    def __init__(self, h_in, levels=3):
+class Tree(BaseMesh, InnerProducts):
+    def __init__(self, h_in, x0_in=None, levels=3):
         assert type(h_in) is list, 'h_in must be a list'
         assert len(h_in) > 1, "len(h_in) must be greater than 1"
 
@@ -66,6 +71,24 @@ class Tree(InnerProducts):
             assert len(h_i) == 2**levels, "must make h and levels match"
             h[i] = h_i[:] # make a copy.
         self.h = h
+
+        x0 = np.zeros(len(h))
+        if x0_in is not None:
+            assert len(h) == len(x0_in), "Dimension mismatch. x0 != len(h)"
+            for i in range(len(h)):
+                x_i, h_i = x0_in[i], h[i]
+                if Utils.isScalar(x_i):
+                    x0[i] = x_i
+                elif x_i == '0':
+                    x0[i] = 0.0
+                elif x_i == 'C':
+                    x0[i] = -h_i.sum()*0.5
+                elif x_i == 'N':
+                    x0[i] = -h_i.sum()
+                else:
+                    raise Exception("x0[%i] must be a scalar or '0' to be zero, 'C' to center, or 'N' to be negative." % i)
+
+        BaseMesh.__init__(self, [len(_) for _ in h], x0)
 
         self._levels = levels
         self._levelBits = int(np.ceil(np.sqrt(levels)))+1
@@ -295,11 +318,11 @@ class Tree(InnerProducts):
             return v in self._cells
         return self._index(v) in self._cells
 
-    def refine(self, function=None, recursive=True, cells=None, balance=True, _inRecursion=False):
+    def refine(self, function=None, recursive=True, cells=None, balance=True, verbose=False, _inRecursion=False):
 
         if not _inRecursion:
             self.__dirty__ = True
-            print 'Refining Mesh'
+            if verbose: print 'Refining Mesh'
 
         cells = cells if cells is not None else sorted(self._cells)
         recurse = []
@@ -310,7 +333,7 @@ class Tree(InnerProducts):
             if do:
                 recurse += self._refineCell(cell)
 
-        print '   ', time.time() - tic
+        if verbose: print '   ', time.time() - tic
 
         if recursive and len(recurse) > 0:
             recurse += self.refine(function=function, recursive=True, cells=recurse, balance=balance, _inRecursion=True)
@@ -457,12 +480,12 @@ class Tree(InnerProducts):
         return self._getNextCell(self._parentPointer(pointer),
                 direction=direction, positive=positive)
 
-    def balance(self, recursive=True, cells=None, _inRecursion=False):
+    def balance(self, recursive=True, cells=None, verbose=False, _inRecursion=False):
 
         tic = time.time()
         if not _inRecursion:
             self.__dirty__ = True
-            print 'Balancing Mesh:'
+            if verbose: print 'Balancing Mesh:'
 
         cells = cells if cells is not None else sorted(self._cells)
 
@@ -497,7 +520,7 @@ class Tree(InnerProducts):
                 recurse.update([_ for _ in cs if type(_) in [int, long]]) # only add the bigger ones!
                 recurse.update(newCells)
 
-        print '   ', len(cells), time.time() - tic
+        if verbose: print '   ', len(cells), time.time() - tic
         if recursive and len(recurse) > 0:
             self.balance(cells=sorted(recurse), _inRecursion=True)
 
@@ -792,15 +815,28 @@ class Tree(InnerProducts):
             w = self._levelWidth(sl)
 
             if self.dim == 2:
-                self._hangingFx[self._fx2i[test                                 ]] = ([self._fx2i[fx], 0.5], )
-                self._hangingFx[self._fx2i[self._index([p[0]    , p[1] + w, sl])]] = ([self._fx2i[fx], 0.5], )
+                chy0 = self._cellH([p[0]    , p[1]    , sl])[1]
+                chy1 = self._cellH([p[0]    , p[1] + w, sl])[1]
+                A = (chy0 + chy1)
+
+                self._hangingFx[self._fx2i[test                                 ]] = ([self._fx2i[fx], chy0 / A], )
+                self._hangingFx[self._fx2i[self._index([p[0]    , p[1] + w, sl])]] = ([self._fx2i[fx], chy1 / A], )
 
                 n0, n1 = fx, self._index([p[0], p[1] + 2*w, p[-1]])
                 self._hangingN[self._n2i[test                                   ]] = ([self._n2i[n0], 1.0], )
-                self._hangingN[self._n2i[self._index([p[0]    , p[1] +   w, sl])]] = ([self._n2i[n0], 0.5], [self._n2i[n1], 0.5])
+                self._hangingN[self._n2i[self._index([p[0]    , p[1] +   w, sl])]] = ([self._n2i[n0], 1.0 - chy0 / A], [self._n2i[n1], 1.0 - chy1 / A])
                 self._hangingN[self._n2i[self._index([p[0]    , p[1] + 2*w, sl])]] = ([self._n2i[n1], 1.0], )
 
             elif self.dim == 3:
+
+                chy0 = self._cellH([p[0]    , p[1]    , p[2]    , sl])[1]
+                chy1 = self._cellH([p[0]    , p[1] + w, p[2]    , sl])[1]
+                chz0 = self._cellH([p[0]    , p[1]    , p[2]    , sl])[2]
+                chz1 = self._cellH([p[0]    , p[1]    , p[2] + w, sl])[2]
+                lenY = chy0 + chy1
+                lenZ = chz0 + chz1
+                A = lenY * lenZ
+
                 ey0 = fx
                 ey1 = self._index([p[0], p[1]      , p[2] + 2*w, p[-1]])
                 ez0 = fx
@@ -811,24 +847,38 @@ class Tree(InnerProducts):
                 n2  = self._index([p[0], p[1]      , p[2] + 2*w, p[-1]])
                 n3  = self._index([p[0], p[1] + 2*w, p[2] + 2*w, p[-1]])
 
-                self._hangingFx[self._fx2i[test                                           ]] = ([self._fx2i[fx], 0.25], )
-                self._hangingFx[self._fx2i[self._index([p[0], p[1] +   w, p[2]      , sl])]] = ([self._fx2i[fx], 0.25], )
-                self._hangingFx[self._fx2i[self._index([p[0], p[1]      , p[2] +   w, sl])]] = ([self._fx2i[fx], 0.25], )
-                self._hangingFx[self._fx2i[self._index([p[0], p[1] +   w, p[2] +   w, sl])]] = ([self._fx2i[fx], 0.25], )
+                self._hangingFx[self._fx2i[test                                           ]] = ([self._fx2i[fx], chy0*chz0 / A ], )
+                self._hangingFx[self._fx2i[self._index([p[0], p[1] +   w, p[2]      , sl])]] = ([self._fx2i[fx], chy1*chz0 / A ], )
+                self._hangingFx[self._fx2i[self._index([p[0], p[1]      , p[2] +   w, sl])]] = ([self._fx2i[fx], chy0*chz1 / A ], )
+                self._hangingFx[self._fx2i[self._index([p[0], p[1] +   w, p[2] +   w, sl])]] = ([self._fx2i[fx], chy1*chz1 / A ], )
 
-                self._hangingEy[self._ey2i[test                                           ]] = ([self._ey2i[ey0], 0.5], )
-                self._hangingEy[self._ey2i[self._index([p[0], p[1] +   w, p[2]      , sl])]] = ([self._ey2i[ey0], 0.5], )
-                self._hangingEy[self._ey2i[self._index([p[0], p[1]      , p[2] +   w, sl])]] = ([self._ey2i[ey0], 0.25], [self._ey2i[ey1], 0.25])
-                self._hangingEy[self._ey2i[self._index([p[0], p[1] +   w, p[2] +   w, sl])]] = ([self._ey2i[ey0], 0.25], [self._ey2i[ey1], 0.25])
-                self._hangingEy[self._ey2i[self._index([p[0], p[1]      , p[2] + 2*w, sl])]] = ([self._ey2i[ey1], 0.5], )
-                self._hangingEy[self._ey2i[self._index([p[0], p[1] +   w, p[2] + 2*w, sl])]] = ([self._ey2i[ey1], 0.5], )
+                self._hangingEy[self._ey2i[test                                           ]] = ([self._ey2i[ey0], 1.0], )
+                self._hangingEy[self._ey2i[self._index([p[0], p[1] +   w, p[2]      , sl])]] = ([self._ey2i[ey0], 1.0], )
+                self._hangingEy[self._ey2i[self._index([p[0], p[1]      , p[2] +   w, sl])]] = ([self._ey2i[ey0], 0.5], [self._ey2i[ey1], 0.5])
+                self._hangingEy[self._ey2i[self._index([p[0], p[1] +   w, p[2] +   w, sl])]] = ([self._ey2i[ey0], 0.5], [self._ey2i[ey1], 0.5])
+                self._hangingEy[self._ey2i[self._index([p[0], p[1]      , p[2] + 2*w, sl])]] = ([self._ey2i[ey1], 1.0], )
+                self._hangingEy[self._ey2i[self._index([p[0], p[1] +   w, p[2] + 2*w, sl])]] = ([self._ey2i[ey1], 1.0], )
 
-                self._hangingEz[self._ez2i[test                                           ]] = ([self._ez2i[ez0], 0.5], )
-                self._hangingEz[self._ez2i[self._index([p[0], p[1]      , p[2] +   w, sl])]] = ([self._ez2i[ez0], 0.5], )
-                self._hangingEz[self._ez2i[self._index([p[0], p[1] +   w, p[2]      , sl])]] = ([self._ez2i[ez0], 0.25], [self._ez2i[ez1], 0.25])
-                self._hangingEz[self._ez2i[self._index([p[0], p[1] +   w, p[2] +   w, sl])]] = ([self._ez2i[ez0], 0.25], [self._ez2i[ez1], 0.25])
-                self._hangingEz[self._ez2i[self._index([p[0], p[1] + 2*w, p[2]      , sl])]] = ([self._ez2i[ez1], 0.5], )
-                self._hangingEz[self._ez2i[self._index([p[0], p[1] + 2*w, p[2] +   w, sl])]] = ([self._ez2i[ez1], 0.5], )
+                self._hangingEz[self._ez2i[test                                           ]] = ([self._ez2i[ez0], 1.0], )
+                self._hangingEz[self._ez2i[self._index([p[0], p[1]      , p[2] +   w, sl])]] = ([self._ez2i[ez0], 1.0], )
+                self._hangingEz[self._ez2i[self._index([p[0], p[1] +   w, p[2]      , sl])]] = ([self._ez2i[ez0], 0.5], [self._ez2i[ez1], 0.5])
+                self._hangingEz[self._ez2i[self._index([p[0], p[1] +   w, p[2] +   w, sl])]] = ([self._ez2i[ez0], 0.5], [self._ez2i[ez1], 0.5])
+                self._hangingEz[self._ez2i[self._index([p[0], p[1] + 2*w, p[2]      , sl])]] = ([self._ez2i[ez1], 1.0], )
+                self._hangingEz[self._ez2i[self._index([p[0], p[1] + 2*w, p[2] +   w, sl])]] = ([self._ez2i[ez1], 1.0], )
+
+                # self._hangingEy[self._ey2i[test                                           ]] = ([self._ey2i[ey0], chy0 / lenY], )
+                # self._hangingEy[self._ey2i[self._index([p[0], p[1] +   w, p[2]      , sl])]] = ([self._ey2i[ey0], chy1 / lenY], )
+                # self._hangingEy[self._ey2i[self._index([p[0], p[1]      , p[2] +   w, sl])]] = ([self._ey2i[ey0], chy0 / lenY / 2.0], [self._ey2i[ey1], chy0 / lenY / 2.0])
+                # self._hangingEy[self._ey2i[self._index([p[0], p[1] +   w, p[2] +   w, sl])]] = ([self._ey2i[ey0], chy1 / lenY / 2.0], [self._ey2i[ey1], chy1 / lenY / 2.0])
+                # self._hangingEy[self._ey2i[self._index([p[0], p[1]      , p[2] + 2*w, sl])]] = ([self._ey2i[ey1], chy0 / lenY], )
+                # self._hangingEy[self._ey2i[self._index([p[0], p[1] +   w, p[2] + 2*w, sl])]] = ([self._ey2i[ey1], chy1 / lenY], )
+
+                # self._hangingEz[self._ez2i[test                                           ]] = ([self._ez2i[ez0], chz0 / lenZ], )
+                # self._hangingEz[self._ez2i[self._index([p[0], p[1]      , p[2] +   w, sl])]] = ([self._ez2i[ez0], chz1 / lenZ], )
+                # self._hangingEz[self._ez2i[self._index([p[0], p[1] +   w, p[2]      , sl])]] = ([self._ez2i[ez0], chz0 / lenZ / 2.0], [self._ez2i[ez1], chz0 / lenZ / 2.0])
+                # self._hangingEz[self._ez2i[self._index([p[0], p[1] +   w, p[2] +   w, sl])]] = ([self._ez2i[ez0], chz1 / lenZ / 2.0], [self._ez2i[ez1], chz1 / lenZ / 2.0])
+                # self._hangingEz[self._ez2i[self._index([p[0], p[1] + 2*w, p[2]      , sl])]] = ([self._ez2i[ez1], chz0 / lenZ], )
+                # self._hangingEz[self._ez2i[self._index([p[0], p[1] + 2*w, p[2] +   w, sl])]] = ([self._ez2i[ez1], chz1 / lenZ], )
 
                 self._hangingN[ self._n2i[ test                                           ]] = ([self._n2i[n0],   1.0], )
                 self._hangingN[ self._n2i[ self._index([p[0], p[1] +   w, p[2]      , sl])]] = ([self._n2i[n0],   0.5], [self._n2i[n1], 0.5])
@@ -852,8 +902,11 @@ class Tree(InnerProducts):
             w = self._levelWidth(sl)
 
             if self.dim == 2:
-                self._hangingFy[self._fy2i[test                                 ]] = ([self._fy2i[fy], 0.5], )
-                self._hangingFy[self._fy2i[self._index([p[0] + w, p[1]    , sl])]] = ([self._fy2i[fy], 0.5], )
+                chx0 = self._cellH([p[0]    , p[1]    , sl])[0]
+                chx1 = self._cellH([p[0] + w, p[1]    , sl])[0]
+
+                self._hangingFy[self._fy2i[test                                 ]] = ([self._fy2i[fy], chx0 / (chx0 + chx1)], )
+                self._hangingFy[self._fy2i[self._index([p[0] + w, p[1]    , sl])]] = ([self._fy2i[fy], chx1 / (chx0 + chx1)], )
 
                 n0, n1 = fy, self._index([p[0] + 2*w, p[1], p[-1]])
                 self._hangingN[self._n2i[test                                   ]] = ([self._n2i[n0], 1.0], )
@@ -861,6 +914,15 @@ class Tree(InnerProducts):
                 self._hangingN[self._n2i[self._index([p[0] + 2*w, p[1]    , sl])]] = ([self._n2i[n1], 1.0], )
 
             elif self.dim == 3:
+
+                chx0 = self._cellH([p[0]    , p[1]    , p[2]    , sl])[0]
+                chx1 = self._cellH([p[0] + w, p[1]    , p[2]    , sl])[0]
+                chz0 = self._cellH([p[0]    , p[1]    , p[2]    , sl])[2]
+                chz1 = self._cellH([p[0]    , p[1]    , p[2] + w, sl])[2]
+                lenX = chx0 + chx1
+                lenZ = chz0 + chz1
+                A = lenX * lenZ
+
                 ex0 = fy
                 ex1 = self._index([p[0]      , p[1], p[2] + 2*w, p[-1]])
                 ez0 = fy
@@ -871,24 +933,38 @@ class Tree(InnerProducts):
                 n2  = self._index([p[0]      , p[1], p[2] + 2*w, p[-1]])
                 n3  = self._index([p[0] + 2*w, p[1], p[2] + 2*w, p[-1]])
 
-                self._hangingFy[self._fy2i[test                                           ]] = ([self._fy2i[fy], 0.25], )
-                self._hangingFy[self._fy2i[self._index([p[0] +   w, p[1], p[2]      , sl])]] = ([self._fy2i[fy], 0.25], )
-                self._hangingFy[self._fy2i[self._index([p[0]      , p[1], p[2] +   w, sl])]] = ([self._fy2i[fy], 0.25], )
-                self._hangingFy[self._fy2i[self._index([p[0] +   w, p[1], p[2] +   w, sl])]] = ([self._fy2i[fy], 0.25], )
+                self._hangingFy[self._fy2i[test                                           ]] = ([self._fy2i[fy], chx0*chz0 / A ], )
+                self._hangingFy[self._fy2i[self._index([p[0] +   w, p[1], p[2]      , sl])]] = ([self._fy2i[fy], chx1*chz0 / A ], )
+                self._hangingFy[self._fy2i[self._index([p[0]      , p[1], p[2] +   w, sl])]] = ([self._fy2i[fy], chx0*chz1 / A ], )
+                self._hangingFy[self._fy2i[self._index([p[0] +   w, p[1], p[2] +   w, sl])]] = ([self._fy2i[fy], chx1*chz1 / A ], )
 
-                self._hangingEx[self._ex2i[test                                           ]] = ([self._ex2i[ex0], 0.5], )
-                self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1], p[2]      , sl])]] = ([self._ex2i[ex0], 0.5], )
-                self._hangingEx[self._ex2i[self._index([p[0]      , p[1], p[2] +   w, sl])]] = ([self._ex2i[ex0], 0.25], [self._ex2i[ex1], 0.25])
-                self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1], p[2] +   w, sl])]] = ([self._ex2i[ex0], 0.25], [self._ex2i[ex1], 0.25])
-                self._hangingEx[self._ex2i[self._index([p[0]      , p[1], p[2] + 2*w, sl])]] = ([self._ex2i[ex1], 0.5], )
-                self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1], p[2] + 2*w, sl])]] = ([self._ex2i[ex1], 0.5], )
+                self._hangingEx[self._ex2i[test                                           ]] = ([self._ex2i[ex0], 1.0], )
+                self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1], p[2]      , sl])]] = ([self._ex2i[ex0], 1.0], )
+                self._hangingEx[self._ex2i[self._index([p[0]      , p[1], p[2] +   w, sl])]] = ([self._ex2i[ex0], 0.5], [self._ex2i[ex1], 0.5])
+                self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1], p[2] +   w, sl])]] = ([self._ex2i[ex0], 0.5], [self._ex2i[ex1], 0.5])
+                self._hangingEx[self._ex2i[self._index([p[0]      , p[1], p[2] + 2*w, sl])]] = ([self._ex2i[ex1], 1.0], )
+                self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1], p[2] + 2*w, sl])]] = ([self._ex2i[ex1], 1.0], )
 
-                self._hangingEz[self._ez2i[test                                           ]] = ([self._ez2i[ez0], 0.5], )
-                self._hangingEz[self._ez2i[self._index([p[0]      , p[1], p[2] +   w, sl])]] = ([self._ez2i[ez0], 0.5], )
-                self._hangingEz[self._ez2i[self._index([p[0] +   w, p[1], p[2]      , sl])]] = ([self._ez2i[ez0], 0.25], [self._ez2i[ez1], 0.25])
-                self._hangingEz[self._ez2i[self._index([p[0] +   w, p[1], p[2] +   w, sl])]] = ([self._ez2i[ez0], 0.25], [self._ez2i[ez1], 0.25])
-                self._hangingEz[self._ez2i[self._index([p[0] + 2*w, p[1], p[2]      , sl])]] = ([self._ez2i[ez1], 0.5], )
-                self._hangingEz[self._ez2i[self._index([p[0] + 2*w, p[1], p[2] +   w, sl])]] = ([self._ez2i[ez1], 0.5], )
+                self._hangingEz[self._ez2i[test                                           ]] = ([self._ez2i[ez0], 1.0], )
+                self._hangingEz[self._ez2i[self._index([p[0]      , p[1], p[2] +   w, sl])]] = ([self._ez2i[ez0], 1.0], )
+                self._hangingEz[self._ez2i[self._index([p[0] +   w, p[1], p[2]      , sl])]] = ([self._ez2i[ez0], 0.5], [self._ez2i[ez1], 0.5])
+                self._hangingEz[self._ez2i[self._index([p[0] +   w, p[1], p[2] +   w, sl])]] = ([self._ez2i[ez0], 0.5], [self._ez2i[ez1], 0.5])
+                self._hangingEz[self._ez2i[self._index([p[0] + 2*w, p[1], p[2]      , sl])]] = ([self._ez2i[ez1], 1.0], )
+                self._hangingEz[self._ez2i[self._index([p[0] + 2*w, p[1], p[2] +   w, sl])]] = ([self._ez2i[ez1], 1.0], )
+
+                # self._hangingEx[self._ex2i[test                                           ]] = ([self._ex2i[ex0], chx0 / lenX], )
+                # self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1], p[2]      , sl])]] = ([self._ex2i[ex0], chx1 / lenX], )
+                # self._hangingEx[self._ex2i[self._index([p[0]      , p[1], p[2] +   w, sl])]] = ([self._ex2i[ex0], chx0 / lenX / 2.0], [self._ex2i[ex1], chx0 / lenX / 2.0])
+                # self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1], p[2] +   w, sl])]] = ([self._ex2i[ex0], chx1 / lenX / 2.0], [self._ex2i[ex1], chx1 / lenX / 2.0])
+                # self._hangingEx[self._ex2i[self._index([p[0]      , p[1], p[2] + 2*w, sl])]] = ([self._ex2i[ex1], chx0 / lenX], )
+                # self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1], p[2] + 2*w, sl])]] = ([self._ex2i[ex1], chx1 / lenX], )
+
+                # self._hangingEz[self._ez2i[test                                           ]] = ([self._ez2i[ez0], chz0 / lenZ], )
+                # self._hangingEz[self._ez2i[self._index([p[0]      , p[1], p[2] +   w, sl])]] = ([self._ez2i[ez0], chz1 / lenZ], )
+                # self._hangingEz[self._ez2i[self._index([p[0] +   w, p[1], p[2]      , sl])]] = ([self._ez2i[ez0], chz0 / lenZ / 2.0], [self._ez2i[ez1], chz0 / lenZ / 2.0])
+                # self._hangingEz[self._ez2i[self._index([p[0] +   w, p[1], p[2] +   w, sl])]] = ([self._ez2i[ez0], chz1 / lenZ / 2.0], [self._ez2i[ez1], chz1 / lenZ / 2.0])
+                # self._hangingEz[self._ez2i[self._index([p[0] + 2*w, p[1], p[2]      , sl])]] = ([self._ez2i[ez1], chz0 / lenZ], )
+                # self._hangingEz[self._ez2i[self._index([p[0] + 2*w, p[1], p[2] +   w, sl])]] = ([self._ez2i[ez1], chz1 / lenZ], )
 
                 self._hangingN[ self._n2i[ test                                           ]] = ([self._n2i[n0],   1.0], )
                 self._hangingN[ self._n2i[ self._index([p[0] +   w, p[1], p[2]      , sl])]] = ([self._n2i[n0],   0.5], [self._n2i[n1], 0.5])
@@ -915,6 +991,14 @@ class Tree(InnerProducts):
                 continue
             w = self._levelWidth(sl)
 
+            chx0 = self._cellH([p[0]    , p[1]    , p[2]    , sl])[0]
+            chx1 = self._cellH([p[0] + w, p[1]    , p[2]    , sl])[0]
+            chy0 = self._cellH([p[0]    , p[1]    , p[2]    , sl])[1]
+            chy1 = self._cellH([p[0]    , p[1] + w, p[2]    , sl])[1]
+            lenX = chx0 + chx1
+            lenY = chy0 + chy1
+            A = lenX * lenY
+
             ex0 = fz
             ex1 = self._index([p[0]      , p[1] + 2*w, p[2], p[-1]])
             ey0 = fz
@@ -925,24 +1009,38 @@ class Tree(InnerProducts):
             n2  = self._index([p[0]      , p[1] + 2*w, p[2], p[-1]])
             n3  = self._index([p[0] + 2*w, p[1] + 2*w, p[2], p[-1]])
 
-            self._hangingFz[self._fz2i[test                                           ]] = ([self._fz2i[fz], 0.25], )
-            self._hangingFz[self._fz2i[self._index([p[0] +   w, p[1]      , p[2], sl])]] = ([self._fz2i[fz], 0.25], )
-            self._hangingFz[self._fz2i[self._index([p[0]      , p[1] +   w, p[2], sl])]] = ([self._fz2i[fz], 0.25], )
-            self._hangingFz[self._fz2i[self._index([p[0] +   w, p[1] +   w, p[2], sl])]] = ([self._fz2i[fz], 0.25], )
+            self._hangingFz[self._fz2i[test                                           ]] = ([self._fz2i[fz], chx0*chy0 / A ], )
+            self._hangingFz[self._fz2i[self._index([p[0] +   w, p[1]      , p[2], sl])]] = ([self._fz2i[fz], chx1*chy0 / A ], )
+            self._hangingFz[self._fz2i[self._index([p[0]      , p[1] +   w, p[2], sl])]] = ([self._fz2i[fz], chx0*chy1 / A ], )
+            self._hangingFz[self._fz2i[self._index([p[0] +   w, p[1] +   w, p[2], sl])]] = ([self._fz2i[fz], chx1*chy1 / A ], )
 
-            self._hangingEx[self._ex2i[test                                           ]] = ([self._ex2i[ex0], 0.5], )
-            self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1]      , p[2], sl])]] = ([self._ex2i[ex0], 0.5], )
-            self._hangingEx[self._ex2i[self._index([p[0]      , p[1] +   w, p[2], sl])]] = ([self._ex2i[ex0], 0.25], [self._ex2i[ex1], 0.25])
-            self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1] +   w, p[2], sl])]] = ([self._ex2i[ex0], 0.25], [self._ex2i[ex1], 0.25])
-            self._hangingEx[self._ex2i[self._index([p[0]      , p[1] + 2*w, p[2], sl])]] = ([self._ex2i[ex1], 0.5], )
-            self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1] + 2*w, p[2], sl])]] = ([self._ex2i[ex1], 0.5], )
+            self._hangingEx[self._ex2i[test                                           ]] = ([self._ex2i[ex0], 1.0], )
+            self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1]      , p[2], sl])]] = ([self._ex2i[ex0], 1.0], )
+            self._hangingEx[self._ex2i[self._index([p[0]      , p[1] +   w, p[2], sl])]] = ([self._ex2i[ex0], 0.5], [self._ex2i[ex1], 0.5])
+            self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1] +   w, p[2], sl])]] = ([self._ex2i[ex0], 0.5], [self._ex2i[ex1], 0.5])
+            self._hangingEx[self._ex2i[self._index([p[0]      , p[1] + 2*w, p[2], sl])]] = ([self._ex2i[ex1], 1.0], )
+            self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1] + 2*w, p[2], sl])]] = ([self._ex2i[ex1], 1.0], )
 
-            self._hangingEy[self._ey2i[test                                           ]] = ([self._ey2i[ey0], 0.5], )
-            self._hangingEy[self._ey2i[self._index([p[0]      , p[1] +   w, p[2], sl])]] = ([self._ey2i[ey0], 0.5], )
-            self._hangingEy[self._ey2i[self._index([p[0] +   w, p[1]      , p[2], sl])]] = ([self._ey2i[ey0], 0.25], [self._ey2i[ey1], 0.25])
-            self._hangingEy[self._ey2i[self._index([p[0] +   w, p[1] +   w, p[2], sl])]] = ([self._ey2i[ey0], 0.25], [self._ey2i[ey1], 0.25])
-            self._hangingEy[self._ey2i[self._index([p[0] + 2*w, p[1]      , p[2], sl])]] = ([self._ey2i[ey1], 0.5], )
-            self._hangingEy[self._ey2i[self._index([p[0] + 2*w, p[1] +   w, p[2], sl])]] = ([self._ey2i[ey1], 0.5], )
+            self._hangingEy[self._ey2i[test                                           ]] = ([self._ey2i[ey0], 1.0], )
+            self._hangingEy[self._ey2i[self._index([p[0]      , p[1] +   w, p[2], sl])]] = ([self._ey2i[ey0], 1.0], )
+            self._hangingEy[self._ey2i[self._index([p[0] +   w, p[1]      , p[2], sl])]] = ([self._ey2i[ey0], 0.5], [self._ey2i[ey1], 0.5])
+            self._hangingEy[self._ey2i[self._index([p[0] +   w, p[1] +   w, p[2], sl])]] = ([self._ey2i[ey0], 0.5], [self._ey2i[ey1], 0.5])
+            self._hangingEy[self._ey2i[self._index([p[0] + 2*w, p[1]      , p[2], sl])]] = ([self._ey2i[ey1], 1.0], )
+            self._hangingEy[self._ey2i[self._index([p[0] + 2*w, p[1] +   w, p[2], sl])]] = ([self._ey2i[ey1], 1.0], )
+
+            # self._hangingEx[self._ex2i[test                                           ]] = ([self._ex2i[ex0], chx0 / lenX], )
+            # self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1]      , p[2], sl])]] = ([self._ex2i[ex0], chx1 / lenX], )
+            # self._hangingEx[self._ex2i[self._index([p[0]      , p[1] +   w, p[2], sl])]] = ([self._ex2i[ex0], chx0 / lenX / 2.0], [self._ex2i[ex1], chx0 / lenX / 2.0])
+            # self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1] +   w, p[2], sl])]] = ([self._ex2i[ex0], chx1 / lenX / 2.0], [self._ex2i[ex1], chx1 / lenX / 2.0])
+            # self._hangingEx[self._ex2i[self._index([p[0]      , p[1] + 2*w, p[2], sl])]] = ([self._ex2i[ex1], chx0 / lenX], )
+            # self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1] + 2*w, p[2], sl])]] = ([self._ex2i[ex1], chx1 / lenX], )
+
+            # self._hangingEy[self._ey2i[test                                           ]] = ([self._ey2i[ey0], chy0 / lenY], )
+            # self._hangingEy[self._ey2i[self._index([p[0]      , p[1] +   w, p[2], sl])]] = ([self._ey2i[ey0], chy1 / lenY], )
+            # self._hangingEy[self._ey2i[self._index([p[0] +   w, p[1]      , p[2], sl])]] = ([self._ey2i[ey0], chy0 / lenY / 2.0], [self._ey2i[ey1], chy0 / lenY / 2.0])
+            # self._hangingEy[self._ey2i[self._index([p[0] +   w, p[1] +   w, p[2], sl])]] = ([self._ey2i[ey0], chy1 / lenY / 2.0], [self._ey2i[ey1], chy1 / lenY / 2.0])
+            # self._hangingEy[self._ey2i[self._index([p[0] + 2*w, p[1]      , p[2], sl])]] = ([self._ey2i[ey1], chy0 / lenY], )
+            # self._hangingEy[self._ey2i[self._index([p[0] + 2*w, p[1] +   w, p[2], sl])]] = ([self._ey2i[ey1], chy1 / lenY], )
 
             self._hangingN[ self._n2i[ test                                           ]] = ([self._n2i[n0],   1.0], )
             self._hangingN[ self._n2i[ self._index([p[0] +   w, p[1]      , p[2], sl])]] = ([self._n2i[n0],   0.5], [self._n2i[n1], 0.5])
@@ -956,12 +1054,12 @@ class Tree(InnerProducts):
 
         self.__dirtyHanging__ = False
 
-    def number(self, force=False):
+    def number(self, balance=True, force=False):
         if not self.__dirty__ and not force: return
-        self.balance()
+        if balance: self.balance()
         self._hanging(force=force)
 
-    def _deflationMatrix(self, location, withHanging=True):
+    def _deflationMatrix(self, location, withHanging=True, asOnes=False):
         assert location in ['N','F','Fx','Fy'] + (['Fz','E','Ex','Ey','Ez'] if self.dim == 3 else [])
 
         args = dict()
@@ -974,11 +1072,11 @@ class Tree(InnerProducts):
             args['Ey'] = (self._edgesY, self._hangingEy, self._ey2i)
             args['Ez'] = (self._edgesZ, self._hangingEz, self._ez2i)
         if location in ['F', 'E']:
-            Rlist = [self._deflationMatrix(location + subLoc, withHanging=withHanging) for subLoc in ['x','y','z'][:self.dim]]
+            Rlist = [self._deflationMatrix(location + subLoc, withHanging=withHanging, asOnes=asOnes) for subLoc in ['x','y','z'][:self.dim]]
             return sp.block_diag(Rlist)
-        return self.__deflationMatrix(*args[location], withHanging=withHanging)
+        return self.__deflationMatrix(*args[location], withHanging=withHanging, asOnes=asOnes)
 
-    def __deflationMatrix(self, theSet, theHang, theIndex, withHanging=True):
+    def __deflationMatrix(self, theSet, theHang, theIndex, withHanging=True, asOnes=False):
         reducedInd = dict() # final reduced index
         ii = 0
         I,J,V = [],[],[]
@@ -994,7 +1092,10 @@ class Tree(InnerProducts):
                 hf = theHang[hfkey]
                 I += [hfkey]*len(hf)
                 J += [reducedInd[_[0]] for _ in hf]
-                V += [_[1] for _ in hf]
+                if asOnes:
+                    V += [1.0]*len(hf)
+                else:
+                    V += [_[1] for _ in hf]
         return sp.csr_matrix((V,(I,J)), shape=(len(theSet), len(reducedInd)))
 
     @property
@@ -1037,10 +1138,13 @@ class Tree(InnerProducts):
                     V += [pm]
 
             D = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.ntF))
-            R = self._deflationMatrix('F')
+            R = self._deflationMatrix('F',asOnes=True)
             VOL = self.vol
-            S = self.area
-            self._faceDiv = Utils.sdiag(1.0/VOL)*D*R*Utils.sdiag(S)
+            if self.dim == 2:
+                S = np.r_[self._areaFxFull, self._areaFyFull]
+            elif self.dim == 3:
+                S = np.r_[self._areaFxFull, self._areaFyFull, self._areaFzFull]
+            self._faceDiv = Utils.sdiag(1.0/VOL)*D*Utils.sdiag(S)*R
         return self._faceDiv
 
     @property
@@ -1072,7 +1176,7 @@ class Tree(InnerProducts):
                     J += [edge + off]
                     V += [pm]
 
-            faceOffset = self.nFx
+            faceOffset = self.ntFx
             offset = [0]*2 + [self.ntEx+self.ntEy]*2
             PM = [-1, 1, 1, -1]
             for ii, fy in  enumerate(sorted(self._facesY)):
@@ -1092,7 +1196,7 @@ class Tree(InnerProducts):
                     J += [edge + off]
                     V += [pm]
 
-            faceOffset = self.nFx + self.nFy
+            faceOffset = self.ntFx + self.ntFy
             offset = [0]*2 + [self.ntEx]*2
             PM = [1, -1, -1, 1]
             for ii, fz in  enumerate(sorted(self._facesZ)):
@@ -1112,15 +1216,19 @@ class Tree(InnerProducts):
                     J += [edge + off]
                     V += [pm]
 
-            Rf = self._deflationMatrix('F')
+            Rf = self._deflationMatrix('F', withHanging=False, asOnes=False)
             Re = self._deflationMatrix('E')
 
-            C = sp.csr_matrix((V,(I,J)), shape=(self.ntF, self.ntE))
-            S = self.area
-            L = self.edge
-            self._edgeCurl = Utils.sdiag(1/S)*Rf.T*C*Re*Utils.sdiag(L)
-        return self._edgeCurl
+            Rf_ave = Utils.sdiag(1./Rf.sum(axis=0)) * Rf.T
 
+            # print Rf_ave
+
+            C = sp.csr_matrix((V,(I,J)), shape=(self.ntF, self.ntE))
+            S = np.r_[self._areaFxFull, self._areaFyFull, self._areaFzFull]
+            L = np.r_[self._edgeExFull, self._edgeEyFull, self._edgeEzFull]
+            # self._edgeCurl = Rf.T*Utils.sdiag(1.0/S)*C*Utils.sdiag(L)*Re
+            self._edgeCurl = Rf_ave*Utils.sdiag(1.0/S)*C*Utils.sdiag(L)*Re
+        return self._edgeCurl
 
     def _getFaceP(self, xFace, yFace, zFace):
         ind1, ind2, ind3 = [], [], []
@@ -1145,7 +1253,7 @@ class Tree(InnerProducts):
 
         PXXX = sp.coo_matrix((np.ones(self.dim*self.nC), (range(self.dim*self.nC), IND)), shape=(self.dim*self.nC, self.ntF)).tocsr()
 
-        Rf = self._deflationMatrix('F', withHanging=True)
+        Rf = self._deflationMatrix('F', withHanging=True, asOnes=True)
 
         return PXXX * Rf
 
@@ -1169,9 +1277,9 @@ class Tree(InnerProducts):
             p = self._pointer(ind)
             w = self._levelWidth(p[-1])
 
-            posX = [0,0] if xEdge == 'eX0' else [1, 0] if xEdge == 'eX1' else [0,1] if xEdge == 'eX2' else [1,1]
-            posY = [0,0] if yEdge == 'eY0' else [1, 0] if yEdge == 'eY1' else [0,1] if yEdge == 'eY2' else [1,1]
-            posZ = [0,0] if zEdge == 'eZ0' else [1, 0] if zEdge == 'eZ1' else [0,1] if zEdge == 'eZ2' else [1,1]
+            posX = [0,0] if xEdge == 'eX0' else [w, 0] if xEdge == 'eX1' else [0,w] if xEdge == 'eX2' else [w,w]
+            posY = [0,0] if yEdge == 'eY0' else [w, 0] if yEdge == 'eY1' else [0,w] if yEdge == 'eY2' else [w,w]
+            posZ = [0,0] if zEdge == 'eZ0' else [w, 0] if zEdge == 'eZ1' else [0,w] if zEdge == 'eZ2' else [w,w]
 
             ind1.append( self._ex2i[self._index([ p[0]          , p[1] + posX[0], p[2] + posX[1], p[3]])]                         )
             ind2.append( self._ey2i[self._index([ p[0] + posY[0], p[1]          , p[2] + posY[1], p[3]])] + self.ntEx             )
@@ -1181,9 +1289,9 @@ class Tree(InnerProducts):
 
         PXXX = sp.coo_matrix((np.ones(self.dim*self.nC), (range(self.dim*self.nC), IND)), shape=(self.dim*self.nC, self.ntE)).tocsr()
 
-        Rf = self._deflationMatrix('E', withHanging=False)
+        Re = self._deflationMatrix('E')
 
-        return PXXX * Rf
+        return PXXX * Re
 
     def _getEdgePxx(self):
         raise Exception('Not implemented') # this should be a reordering of the face inner product?
@@ -1314,6 +1422,24 @@ class Tree(InnerProducts):
         if showIt:plt.show()
 
 
+    def plotImage(self, I, ax=None, showIt=True):
+        if self.dim == 3: raise Exception()
+
+        if ax is None: ax = plt.subplot(111)
+        jet = cm = plt.get_cmap('jet')
+        cNorm  = colors.Normalize(vmin=I.min(), vmax=I.max())
+        scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=jet)
+        ax.set_xlim((self.x0[0], self.h[0].sum()))
+        ax.set_ylim((self.x0[1], self.h[1].sum()))
+        for ii, node in enumerate(self._sortedCells):
+            x0, sz = self._cellN(node), self._cellH(node)
+            ax.add_patch(plt.Rectangle((x0[0], x0[1]), sz[0], sz[1], facecolor=scalarMap.to_rgba(I[ii]), edgecolor='k'))
+            # if text: ax.text(self.center[0],self.center[1],self.num)
+        scalarMap._A = []  # http://stackoverflow.com/questions/8342549/matplotlib-add-colorbar-to-a-sequence-of-line-plots
+        plt.colorbar(scalarMap)
+        if showIt: plt.show()
+
+
 
 if __name__ == '__main__':
 
@@ -1332,9 +1458,9 @@ if __name__ == '__main__':
         else:
             return 0
 
-    T = Tree([[(1,128)],[(1,128)],[(1,128)]],levels=7)
+    # T = Tree([[(1,128)],[(1,128)],[(1,128)]],levels=7)
     # T = Tree([128,128,128],levels=7)
-    # T = Tree([[(1,16)],[(1,16)]],levels=4)
+    T = Tree([[(1,16)],[(1,16)]],levels=4)
     # T = Tree([[(1,128)],[(1,128)]],levels=7)
     # T.refine(lambda xc:1, balance=False)
     # T._index([0,0,0])
@@ -1345,6 +1471,8 @@ if __name__ == '__main__':
     T.refine(function)#, balance=False)
     print time.time() - tic
     print T.nC
+
+    T.plotImage(np.random.rand(T.nC),showIt=True)
 
     print T.getFaceInnerProduct()
     # print T.gridFz

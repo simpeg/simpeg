@@ -4,6 +4,7 @@ from numpy.linalg import norm
 from SimPEG.Utils import mkvc, sdiag, diagEst
 from SimPEG import Utils
 from SimPEG.Mesh import TensorMesh, CurvilinearMesh, CylMesh
+from SimPEG.Mesh.PointerTree import Tree
 import numpy as np
 import scipy.sparse as sp
 import unittest
@@ -131,6 +132,32 @@ class OrderTest(unittest.TestCase):
                 X, Y, Z = Utils.exampleLrmGrid([nc, nc, nc], kwrd)
                 self.M = CurvilinearMesh([X, Y, Z])
             return 1./nc
+
+        elif 'Tree' in self._meshType:
+            nc *= 2
+            if 'uniform' in self._meshType:
+                h = [nc, nc, nc]
+            elif 'random' in self._meshType:
+                h1 = np.random.rand(nc)*nc*0.5 + nc*0.5
+                h2 = np.random.rand(nc)*nc*0.5 + nc*0.5
+                h3 = np.random.rand(nc)*nc*0.5 + nc*0.5
+                h = [hi/np.sum(hi) for hi in [h1, h2, h3]]  # normalize
+            else:
+                raise Exception('Unexpected meshType')
+
+            levels = int(np.log(nc)/np.log(2))
+            self.M = Tree(h[:self.meshDimension], levels=levels)
+            def function(xc):
+                r = xc - np.array([0.5]*len(xc))
+                dist = np.sqrt(r.dot(r))
+                if dist < 0.3:
+                    return levels
+                return levels-1
+            self.M.refine(function,balance=False)
+            self.M.number(balance=False)
+            # self.M.plotGrid(showIt=True)
+            max_h = max([np.max(hi) for hi in self.M.h])
+            return max_h
 
     def getError(self):
         """For given h, generate A[h], f and A(f) and return norm of error."""

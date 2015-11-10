@@ -11,16 +11,21 @@ TOL = 1e-10
 class TestSimpleQuadTree(unittest.TestCase):
 
     def test_counts(self):
-
-        M = Tree([8,8])
+        nc = 8
+        h1 = np.random.rand(nc)*nc*0.5 + nc*0.5
+        h2 = np.random.rand(nc)*nc*0.5 + nc*0.5
+        h = [hi/np.sum(hi) for hi in [h1, h2]]  # normalize
+        M = Tree(h)
         M._refineCell([0,0,0])
         M._refineCell([0,0,1])
         M.number()
         # M.plotGrid(showIt=True)
-        # assert sorted(M._cells) == [2, 34, 66, 99, 107, 115, 123, 129, 257, 386, 418, 450, 482]
         assert M.nhFx == 2
         assert M.nFx == 9
-        assert M.vol.sum() == 1.0
+
+        assert np.allclose(M.vol.sum(), 1.0)
+
+        assert np.allclose(np.r_[M._areaFxFull, M._areaFyFull], M._deflationMatrix('F') * M.area)
 
 
     # def test_connectivity(self):
@@ -48,10 +53,7 @@ class TestSimpleQuadTree(unittest.TestCase):
     #     assert T._getNextCell([0,2,2], direction=1) == T._index([0,4,1])
     #     assert T._getNextCell([0,4,1], direction=1, positive=False) ==  [T._index([0,2,2]), [T._index([2,3,3]), T._index([3,3,3])]]
 
-
-class TestOperatorsQuadTree(unittest.TestCase):
-
-    def test_counts(self):
+    def test_faceDiv(self):
 
         hx, hy = np.r_[1.,2,3,4], np.r_[5.,6,7,8]
         T = Tree([hx, hy], levels=2)
@@ -76,7 +78,31 @@ class TestOperatorsQuadTree(unittest.TestCase):
         assert (M.faceDiv - T.permuteCC*T.faceDiv*T.permuteF.T).nnz == 0
 
 
-class TestOperatorsOcTree(unittest.TestCase):
+class TestOcTree(unittest.TestCase):
+
+    def test_counts(self):
+        nc = 8
+        h1 = np.random.rand(nc)*nc*0.5 + nc*0.5
+        h2 = np.random.rand(nc)*nc*0.5 + nc*0.5
+        h3 = np.random.rand(nc)*nc*0.5 + nc*0.5
+        h = [hi/np.sum(hi) for hi in [h1, h2, h3]]  # normalize
+        M = Tree(h, levels=3)
+        M._refineCell([0,0,0,0])
+        M._refineCell([0,0,0,1])
+        M.number()
+        # M.plotGrid(showIt=True)
+        # assert M.nhFx == 2
+        # assert M.nFx == 9
+
+        assert np.allclose(M.vol.sum(), 1.0)
+
+        # assert np.allclose(M._areaFxFull, (M._deflationMatrix('F') * M.area)[:M.ntFx])
+        # assert np.allclose(M._areaFyFull, (M._deflationMatrix('F') * M.area)[M.ntFx:(M.ntFx+M.ntFy)])
+        # assert np.allclose(M._areaFzFull, (M._deflationMatrix('F') * M.area)[(M.ntFx+M.ntFy):])
+
+        # assert np.allclose(M._edgeExFull, (M._deflationMatrix('E') * M.edge)[:M.ntEx])
+        # assert np.allclose(M._edgeEyFull, (M._deflationMatrix('E') * M.edge)[M.ntEx:(M.ntEx+M.ntEy)])
+        # assert np.allclose(M._edgeEzFull, (M._deflationMatrix('E') * M.edge)[(M.ntEx+M.ntEy):])
 
     def test_faceDiv(self):
 
@@ -135,6 +161,23 @@ class TestOperatorsOcTree(unittest.TestCase):
 
         assert np.allclose(Mr.getFaceInnerProduct().todense(), (M.permuteF * M.getFaceInnerProduct() * M.permuteF.T).todense())
         assert np.allclose(Mr.getEdgeInnerProduct().todense(), (M.permuteE * M.getEdgeInnerProduct() * M.permuteE.T).todense())
+
+    def test_VectorIdenties(self):
+        hx, hy, hz = [[(1,4)], [(1,4)], [(1,4)]]
+
+        M = Tree([hx, hy, hz], levels=2)
+        Mr = Mesh.TensorMesh([hx, hy, hz])
+
+        assert (M.faceDiv * M.edgeCurl).nnz == 0
+        assert (Mr.faceDiv * Mr.edgeCurl).nnz == 0
+
+        hx, hy, hz = np.r_[1.,2,3,4], np.r_[5.,6,7,8], np.r_[9.,10,11,12]
+
+        M = Tree([hx, hy, hz], levels=2)
+        Mr = Mesh.TensorMesh([hx, hy, hz])
+
+        assert np.max(np.abs((M.faceDiv * M.edgeCurl).todense().flatten())) < TOL
+        assert np.max(np.abs((Mr.faceDiv * Mr.edgeCurl).todense().flatten())) < TOL
 
 
 
