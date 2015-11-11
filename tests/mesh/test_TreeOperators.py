@@ -14,7 +14,7 @@ cartF3 = lambda M, fx, fy, fz: np.vstack((cart_row3(M.gridFx, fx, fy, fz), cart_
 cartE3 = lambda M, ex, ey, ez: np.vstack((cart_row3(M.gridEx, ex, ey, ez), cart_row3(M.gridEy, ex, ey, ez), cart_row3(M.gridEz, ex, ey, ez)))
 
 
-plotit = False
+plotIt = False
 
 class TestFaceDiv2D(Tests.OrderTest):
     name = "Face Divergence 2D"
@@ -252,7 +252,7 @@ class TestTreeInnerProducts(Tests.OrderTest):
 class TestTreeInnerProducts2D(Tests.OrderTest):
     """Integrate an function over a unit cube domain using edgeInnerProducts and faceInnerProducts."""
 
-    meshTypes = ['uniformTree', 'randomTree'] #['uniformTensorMesh', 'uniformCurv', 'rotateCurv']
+    meshTypes = ['uniformTree']
     meshDimension = 2
     meshSizes = [4, 8]
 
@@ -393,23 +393,24 @@ class TestTreeInnerProducts2D(Tests.OrderTest):
 class TestTreeAveraging2D(Tests.OrderTest):
     """Integrate an function over a unit cube domain using edgeInnerProducts and faceInnerProducts."""
 
-    meshTypes = ['uniformTree', 'randomTree']
+    meshTypes = ['notatreeTree', 'uniformTree']#, 'randomTree']
     meshDimension = 2
     meshSizes = [4,8,16,32]
+    expectedOrders = [2,1]
 
     def getError(self):
-        if plotit:
+        if plotIt:
             plt.spy(self.getAve(self.M))
             plt.show()
 
         num = self.getAve(self.M) * self.getHere(self.M)
         err = np.linalg.norm((self.getThere(self.M)-num), np.inf)
-        
-        if plotit:
+
+        if plotIt:
             self.M.plotImage(self.getThere(self.M)-num)
             plt.show()
             plt.tight_layout
-        
+
         return err
 
     # def test_orderN2CC(self):
@@ -483,9 +484,10 @@ class TestTreeAveraging2D(Tests.OrderTest):
 
 class TestAveraging3D(Tests.OrderTest):
     name = "Averaging 3D"
-    meshTypes = ['uniformTree', 'randomTree']
+    meshTypes = ['notatreeTree', 'uniformTree']#, 'randomTree']
     meshDimension = 3
     meshSizes = [8,16]
+    expectedOrders = [2,1]
 
     def getError(self):
         num = self.getAve(self.M) * self.getHere(self.M)

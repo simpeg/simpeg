@@ -135,7 +135,7 @@ class OrderTest(unittest.TestCase):
 
         elif 'Tree' in self._meshType:
             nc *= 2
-            if 'uniform' in self._meshType:
+            if 'uniform' in self._meshType or 'notatree' in self._meshType:
                 h = [nc, nc, nc]
             elif 'random' in self._meshType:
                 h1 = np.random.rand(nc)*nc*0.5 + nc*0.5
@@ -148,11 +148,13 @@ class OrderTest(unittest.TestCase):
             levels = int(np.log(nc)/np.log(2))
             self.M = Tree(h[:self.meshDimension], levels=levels)
             def function(xc):
+                if 'notatree' in self._meshType:
+                    return levels - 1
                 r = xc - np.array([0.5]*len(xc))
                 dist = np.sqrt(r.dot(r))
                 if dist < 0.2:
                     return levels
-                return levels-1
+                return levels - 1
             self.M.refine(function,balance=False)
             self.M.number(balance=False)
             # self.M.plotGrid(showIt=True)
