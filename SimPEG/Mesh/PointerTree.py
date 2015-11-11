@@ -1,3 +1,95 @@
+#      ___                     ___          ___          ___          ___
+#     /\  \         ___       /\__\        /\  \        /\  \        /\  \
+#    /::\  \       /\  \     /::|  |      /::\  \      /::\  \      /::\  \
+#   /:/\ \  \      \:\  \   /:|:|  |     /:/\:\  \    /:/\:\  \    /:/\:\  \
+#  _\:\~\ \  \     /::\__\ /:/|:|__|__  /::\~\:\  \  /::\~\:\  \  /:/  \:\  \
+# /\ \:\ \ \__\ __/:/\/__//:/ |::::\__\/:/\:\ \:\__\/:/\:\ \:\__\/:/__/_\:\__\
+# \:\ \:\ \/__//\/:/  /   \/__/~~/:/  /\/__\:\/:/  /\:\~\:\ \/__/\:\  /\ \/__/
+#  \:\ \:\__\  \::/__/          /:/  /      \::/  /  \:\ \:\__\   \:\ \:\__\
+#   \:\/:/  /   \:\__\         /:/  /        \/__/    \:\ \/__/    \:\/:/  /
+#    \::/  /     \/__/        /:/  /                   \:\__\       \::/  /
+#     \/__/                   \/__/                     \/__/        \/__/
+#      ___          ___       ___          ___          ___          ___
+#     /\  \        /\  \     /\  \        /\  \        /\  \        /\  \
+#    /::\  \      /::\  \    \:\  \      /::\  \      /::\  \      /::\  \
+#   /:/\:\  \    /:/\:\  \    \:\  \    /:/\:\  \    /:/\:\  \    /:/\:\  \
+#  /:/  \:\  \  /:/  \:\  \   /::\  \  /::\~\:\  \  /::\~\:\  \  /::\~\:\  \
+# /:/__/ \:\__\/:/__/ \:\__\ /:/\:\__\/:/\:\ \:\__\/:/\:\ \:\__\/:/\:\ \:\__\
+# \:\  \ /:/  /\:\  \  \/__//:/  \/__/\/_|::\/:/  /\:\~\:\ \/__/\:\~\:\ \/__/
+#  \:\  /:/  /  \:\  \     /:/  /        |:|::/  /  \:\ \:\__\   \:\ \:\__\
+#   \:\/:/  /    \:\  \    \/__/         |:|\/__/    \:\ \/__/    \:\ \/__/
+#    \::/  /      \:\__\                 |:|  |       \:\__\       \:\__\
+#     \/__/        \/__/                  \|__|        \/__/        \/__/
+#
+#
+#   @rowanc1, Nov. 10, 2015
+#
+#                      .----------------.----------------.
+#                     /|               /|               /|
+#                    / |              / |              / |
+#                   /  |     011     /  |    111      /  |
+#                  /   |            /   |            /   |
+#                 .----------------.----+-----------.    |
+#                /|    . ---------/|----.----------/|----.
+#               / |   /|         / |   /|         / |   /|
+#              /  |  / | 001    /  |  / |  101   /  |  / |
+#             /   | /  |       /   | /  |       /   | /  |
+#            . -------------- .----------------.    |/   |
+#            |    . ---+------|----.----+------|----.    |
+#            |   /|    .______|___/|____.______|___/|____.
+#            |  / |   /   010 |  / |   /    110|  / |   /
+#            | /  |  /        | /  |  /        | /  |  /
+#            . ---+---------- . ---+---------- .    | /
+#            |    |/          |    |/          |    |/             z
+#            |    . ----------|----.-----------|----.              ^   y
+#            |   /    000     |   /     100    |   /               |  /
+#            |  /             |  /             |  /                | /
+#            | /              | /              | /                 o----> x
+#            . -------------- . -------------- .
+#
+#
+# Face Refinement:
+#
+#      2_______________3                    _______________
+#      |               |                   |       |       |
+#   ^  |               |                   | (0,1) | (1,1) |
+#   |  |               |                   |       |       |
+#   |  |       x       |        --->       |-------+-------|
+#   t1 |               |                   |       |       |
+#      |               |                   | (0,0) | (1,0) |
+#      |_______________|                   |_______|_______|
+#      0      t0-->    1
+#
+#
+# Face and Edge naming conventions:
+#
+#                      fZp
+#                       |
+#                 6 ------eX3------ 7
+#                /|     |         / |
+#               /eZ2    .        / eZ3
+#             eY2 |        fYp eY3  |
+#             /   |            / fXp|
+#            4 ------eX2----- 5     |
+#            |fXm 2 -----eX1--|---- 3          z
+#           eZ0  /            |  eY1           ^   y
+#            | eY0   .  fYm  eZ1 /             |  /
+#            | /     |        | /              | /
+#            0 ------eX0------1                o----> x
+#                    |
+#                   fZm
+#
+#
+#            fX                                  fY                                 fZ
+#      2___________3                       2___________3                      2___________3
+#      |     e1    |                       |     e1    |                      |     e1    |
+#      |           |                       |           |                      |           |
+#   e2 |     x     | e3      z          e2 |     x     | e3      z         e2 |     x     | e3      y
+#      |           |         ^             |           |         ^            |           |         ^
+#      |___________|         |___> y       |___________|         |___> x      |___________|         |___> x
+#      0    e0     1                       0    e0     1                      0    e0     1
+#
+
 from SimPEG import np, sp, Utils, Solver, Mesh
 import matplotlib.pyplot as plt
 import matplotlib
@@ -11,48 +103,6 @@ from SimPEG.Mesh.BaseMesh import BaseMesh
 import time
 
 MAX_BITS = 20
-
-def SortGrid(grid, offset=0):
-    """
-        Sorts a grid by the x0 location.
-    """
-
-    eps = 1e-7
-    def mycmp(c1,c2):
-        c1 = grid[c1-offset]
-        c2 = grid[c2-offset]
-        if c1.size == 2:
-            if np.abs(c1[1] - c2[1]) < eps:
-                return c1[0] - c2[0]
-            return c1[1] - c2[1]
-        elif c1.size == 3:
-            if np.abs(c1[2] - c2[2]) < eps:
-                if np.abs(c1[1] - c2[1]) < eps:
-                    return c1[0] - c2[0]
-                return c1[1] - c2[1]
-            return c1[2] - c2[2]
-
-    class K(object):
-        def __init__(self, obj, *args):
-            self.obj = obj
-        def __lt__(self, other):
-            return mycmp(self.obj, other.obj) < 0
-        def __gt__(self, other):
-            return mycmp(self.obj, other.obj) > 0
-        def __eq__(self, other):
-            return mycmp(self.obj, other.obj) == 0
-        def __le__(self, other):
-            return mycmp(self.obj, other.obj) <= 0
-        def __ge__(self, other):
-            return mycmp(self.obj, other.obj) >= 0
-        def __ne__(self, other):
-            return mycmp(self.obj, other.obj) != 0
-
-    return sorted(range(offset,grid.shape[0]+offset), key=K)
-
-
-class NotBalancedException(Exception):
-    pass
 
 class Tree(BaseMesh, InnerProducts):
     def __init__(self, h_in, x0_in=None, levels=3):
@@ -314,9 +364,7 @@ class Tree(BaseMesh, InnerProducts):
         return TreeUtils.point(self.dim, MAX_BITS, self._levelBits, index)
 
     def __contains__(self, v):
-        if type(v) in [int, long]:
-            return v in self._cells
-        return self._index(v) in self._cells
+        return self._asIndex(v) in self._cells
 
     def refine(self, function=None, recursive=True, cells=None, balance=True, verbose=False, _inRecursion=False):
 
@@ -371,8 +419,23 @@ class Tree(BaseMesh, InnerProducts):
         self.__dirty__ = True
         raise Exception('Not yet implemented')
 
+
     def _corsenCell(self, pointer):
         raise Exception('Not yet implemented')
+
+        # something like this: ??
+        pointer = self._asPointer(pointer)
+        ind = self._asIndex(pointer)
+        assert ind in self
+
+        parent = self._parentPointer(ind)
+        children = _childPointers(parent)
+        for child in children:
+            self._cells.remove(self._asIndex(child))
+
+        parentInd = self._asIndex(parent)
+        self._cells.add(parentInd)
+        return parentInd
 
     def _asPointer(self, ind):
         if type(ind) in [int, long]:
@@ -393,7 +456,7 @@ class Tree(BaseMesh, InnerProducts):
         raise Exception
 
 
-    def _childPointers(self, pointer, direction=0, positive=True):
+    def _childPointers(self, pointer, direction=0, positive=True, returnAll=False):
         l = self._levelWidth(pointer[-1] + 1)
 
         if self.dim == 2:
@@ -417,11 +480,12 @@ class Tree(BaseMesh, InnerProducts):
                             [pointer[0]    , pointer[1] + l, pointer[2] + l, pointer[-1] + 1],
                             [pointer[0] + l, pointer[1] + l, pointer[2] + l, pointer[-1] + 1]
                        ]
-
         if direction == 0: ind = [0,2,4,6] if not positive else [1,3,5,7]
         if direction == 1: ind = [0,1,4,5] if not positive else [2,3,6,7]
         if direction == 2: ind = [0,1,2,3] if not positive else [4,5,6,7]
 
+        if returnAll:
+            return children
         return [children[_] for _ in ind[:(self.dim-1)*2]]
 
 
@@ -1227,6 +1291,31 @@ class Tree(BaseMesh, InnerProducts):
             self._edgeCurl = Rf_ave*Utils.sdiag(1.0/S)*C*Utils.sdiag(L)*Re
         return self._edgeCurl
 
+
+    @property
+    def nodalGrad(self):
+        raise Exception('Not yet implemented!')
+        # if getattr(self, '_nodalGrad', None) is None:
+        #     self.number()
+        #     # TODO: Preallocate!
+        #     I, J, V = [], [], []
+        #     # kinda a hack for the 2D gradient
+        #     # because edges are not stored
+        #     edges = self.faces if self.dim == 2 else self.edges
+        #     for edge in edges:
+        #         if self.dim == 3:
+        #             I += [edge.num, edge.num]
+        #         elif self.dim == 2 and edge.faceType == 'x':
+        #             I += [edge.num + self.nFy, edge.num + self.nFy]
+        #         elif self.dim == 2 and edge.faceType == 'y':
+        #             I += [edge.num - self.nFx, edge.num - self.nFx]
+        #         J += [edge.node0.num, edge.node1.num]
+        #         V += [-1, 1]
+        #     G = sp.csr_matrix((V,(I,J)), shape=(self.nE, self.nN))
+        #     L = self.edge
+        #     self._nodalGrad = Utils.sdiag(1/L)*G
+        # return self._nodalGrad
+
     def _getFaceP(self, xFace, yFace, zFace):
         ind1, ind2, ind3 = [], [], []
         for ind in self._sortedCells:
@@ -1414,8 +1503,6 @@ class Tree(BaseMesh, InnerProducts):
                         ind = [key, hf[0]]
                         ax.plot(self._gridEz[ind,0], self._gridEz[ind,1], 'k:', zs=self._gridEz[ind,2])
 
-
-        # ax.axis('equal')
         if showIt:plt.show()
 
 
@@ -1437,6 +1524,47 @@ class Tree(BaseMesh, InnerProducts):
         if showIt: plt.show()
 
 
+def SortGrid(grid, offset=0):
+    """
+        Sorts a grid by the x0 location.
+    """
+
+    eps = 1e-7
+    def mycmp(c1,c2):
+        c1 = grid[c1-offset]
+        c2 = grid[c2-offset]
+        if c1.size == 2:
+            if np.abs(c1[1] - c2[1]) < eps:
+                return c1[0] - c2[0]
+            return c1[1] - c2[1]
+        elif c1.size == 3:
+            if np.abs(c1[2] - c2[2]) < eps:
+                if np.abs(c1[1] - c2[1]) < eps:
+                    return c1[0] - c2[0]
+                return c1[1] - c2[1]
+            return c1[2] - c2[2]
+
+    class K(object):
+        def __init__(self, obj, *args):
+            self.obj = obj
+        def __lt__(self, other):
+            return mycmp(self.obj, other.obj) < 0
+        def __gt__(self, other):
+            return mycmp(self.obj, other.obj) > 0
+        def __eq__(self, other):
+            return mycmp(self.obj, other.obj) == 0
+        def __le__(self, other):
+            return mycmp(self.obj, other.obj) <= 0
+        def __ge__(self, other):
+            return mycmp(self.obj, other.obj) >= 0
+        def __ne__(self, other):
+            return mycmp(self.obj, other.obj) != 0
+
+    return sorted(range(offset,grid.shape[0]+offset), key=K)
+
+
+class NotBalancedException(Exception):
+    pass
 
 if __name__ == '__main__':
 
