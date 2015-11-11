@@ -1329,6 +1329,62 @@ class TreeMesh(BaseMesh, InnerProducts):
     @property
     def aveF2CC(self):
         "Construct the averaging operator on cell faces to cell centers."
+        if getattr(self, '_aveF2CC', None) is None:
+           # TODO: Preallocate!
+            I, J, V = [], [], []
+            PM = [1./(2*self.dim)]*2*self.dim # plus / plus
+
+            # TODO total number of faces?
+            offset = [0]*2 + [self.ntFx]*2 +  [self.ntFx+self.ntFy]*2
+
+            for ii, ind in enumerate(self._sortedCells):
+
+                p = self._pointer(ind)
+                w = self._levelWidth(p[-1])
+
+                if self.dim == 2:
+                    faces = [
+                                self._fx2i[self._index([ p[0]    , p[1]    , p[2]])],
+                                self._fx2i[self._index([ p[0] + w, p[1]    , p[2]])],
+                                self._fy2i[self._index([ p[0]    , p[1]    , p[2]])],
+                                self._fy2i[self._index([ p[0]    , p[1] + w, p[2]])]
+                            ]
+                elif self.dim == 3:
+                    faces = [
+                                self._fx2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                                self._fx2i[self._index([ p[0] + w, p[1]    , p[2]    , p[3]])],
+                                self._fy2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                                self._fy2i[self._index([ p[0]    , p[1] + w, p[2]    , p[3]])],
+                                self._fz2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                                self._fz2i[self._index([ p[0]    , p[1]    , p[2] + w, p[3]])]
+                            ]
+
+                for off, pm, face in zip(offset,PM,faces):
+                    I += [ii]
+                    J += [face + off]
+                    V += [pm]
+
+
+            Av = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.ntF))
+            R = self._deflationMatrix('F',asOnes=True,withHanging=True)
+
+        #     VOL = self.vol
+        #     if self.dim == 2:
+        #         S = np.r_[self._areaFxFull, self._areaFyFull]
+        #     elif self.dim == 3:
+        #         S = np.r_[self._areaFxFull, self._areaFyFull, self._areaFzFull]
+        #     self._faceDiv = Utils.sdiag(1.0/VOL)*D*Utils.sdiag(S)*R
+        # return self._faceDiv
+
+        # raise Exception('Not yet implemented!')
+            self._aveF2CC = Av*R
+        return self._aveF2CC
+        
+
+
+    @property
+    def aveF2CCV(self):
+        "Construct the averaging operator on cell faces to cell centers."
         raise Exception('Not yet implemented!')
 
 

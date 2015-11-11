@@ -14,6 +14,8 @@ cartF3 = lambda M, fx, fy, fz: np.vstack((cart_row3(M.gridFx, fx, fy, fz), cart_
 cartE3 = lambda M, ex, ey, ez: np.vstack((cart_row3(M.gridEx, ex, ey, ez), cart_row3(M.gridEy, ex, ey, ez), cart_row3(M.gridEz, ex, ey, ez)))
 
 
+plotit = False
+
 class TestFaceDiv2D(Tests.OrderTest):
     name = "Face Divergence 2D"
     meshTypes = MESHTYPES
@@ -388,6 +390,176 @@ class TestTreeInnerProducts2D(Tests.OrderTest):
         self.orderTest()
 
 
+class TestTreeAveraging2D(Tests.OrderTest):
+    """Integrate an function over a unit cube domain using edgeInnerProducts and faceInnerProducts."""
 
+    meshTypes = ['uniformTree', 'randomTree']
+    meshDimension = 2
+    meshSizes = [4,8,16,32]
+
+    def getError(self):
+        if plotit:
+            plt.spy(self.getAve(self.M))
+            plt.show()
+
+        num = self.getAve(self.M) * self.getHere(self.M)
+        err = np.linalg.norm((self.getThere(self.M)-num), np.inf)
+        
+        if plotit:
+            self.M.plotImage(self.getThere(self.M)-num)
+            plt.show()
+            plt.tight_layout
+        
+        return err
+
+    # def test_orderN2CC(self):
+    #     self.name = "Averaging 2D: N2CC"
+    #     fun = lambda x, y: (np.cos(x)+np.sin(y))
+    #     self.getHere = lambda M: call2(fun, M.gridN)
+    #     self.getThere = lambda M: call2(fun, M.gridCC)
+    #     self.getAve = lambda M: M.aveN2CC
+    #     self.orderTest()
+
+    # def test_orderN2F(self):
+    #     self.name = "Averaging 2D: N2F"
+    #     fun = lambda x, y: (np.cos(x)+np.sin(y))
+    #     self.getHere = lambda M: call2(fun, M.gridN)
+    #     self.getThere = lambda M: np.r_[call2(fun, M.gridFx), call2(fun, M.gridFy)]
+    #     self.getAve = lambda M: M.aveN2F
+    #     self.orderTest()
+
+    # def test_orderN2E(self):
+    #     self.name = "Averaging 2D: N2E"
+    #     fun = lambda x, y: (np.cos(x)+np.sin(y))
+    #     self.getHere = lambda M: call2(fun, M.gridN)
+    #     self.getThere = lambda M: np.r_[call2(fun, M.gridEx), call2(fun, M.gridEy)]
+    #     self.getAve = lambda M: M.aveN2E
+    #     self.orderTest()
+
+
+    def test_orderF2CC(self):
+        self.name = "Averaging 2D: F2CC"
+        fun = lambda x, y: (np.cos(x)+np.sin(y))
+        self.getHere = lambda M: np.r_[call2(fun, np.r_[M.gridFx, M.gridFy])]
+        self.getThere = lambda M: call2(fun, M.gridCC)
+        self.getAve = lambda M: M.aveF2CC
+        self.orderTest()
+
+    # def test_orderF2CCV(self):
+    #     self.name = "Averaging 2D: F2CCV"
+    #     funX = lambda x, y: (np.cos(x)+np.sin(y))
+    #     funY = lambda x, y: (np.cos(y)*np.sin(x))
+    #     self.getHere = lambda M: np.r_[call2(funX, M.gridFx), call2(funY, M.gridFy)]
+    #     self.getThere = lambda M: np.r_[call2(funX, M.gridCC), call2(funY, M.gridCC)]
+    #     self.getAve = lambda M: M.aveF2CCV
+    #     self.orderTest()
+
+    # def test_orderCC2F(self):
+    #     self.name = "Averaging 2D: CC2F"
+    #     fun = lambda x, y: (np.cos(x)+np.sin(y))
+    #     self.getHere = lambda M: call2(fun, M.gridCC)
+    #     self.getThere = lambda M: np.r_[call2(fun, M.gridFx), call2(fun, M.gridFy)]
+    #     self.getAve = lambda M: M.aveCC2F
+    #     self.expectedOrders = 1
+    #     self.orderTest()
+    #     self.expectedOrders = 2
+
+    # def test_orderE2CC(self):
+    #     self.name = "Averaging 2D: E2CC"
+    #     fun = lambda x, y: (np.cos(x)+np.sin(y))
+    #     self.getHere = lambda M: np.r_[call2(fun, M.gridEx), call2(fun, M.gridEy)]
+    #     self.getThere = lambda M: call2(fun, M.gridCC)
+    #     self.getAve = lambda M: M.aveE2CC
+    #     self.orderTest()
+
+    # def test_orderE2CCV(self):
+    #     self.name = "Averaging 2D: E2CCV"
+    #     funX = lambda x, y: (np.cos(x)+np.sin(y))
+    #     funY = lambda x, y: (np.cos(y)*np.sin(x))
+    #     self.getHere  = lambda M: np.r_[call2(funX, M.gridEx), call2(funY, M.gridEy)]
+    #     self.getThere = lambda M: np.r_[call2(funX, M.gridCC), call2(funY, M.gridCC)]
+    #     self.getAve = lambda M: M.aveE2CCV
+    #     self.orderTest()
+
+class TestAveraging3D(Tests.OrderTest):
+    name = "Averaging 3D"
+    meshTypes = ['uniformTree', 'randomTree']
+    meshDimension = 3
+    meshSizes = [8,16]
+
+    def getError(self):
+        num = self.getAve(self.M) * self.getHere(self.M)
+        err = np.linalg.norm((self.getThere(self.M)-num), np.inf)
+        return err
+
+#     def test_orderN2CC(self):
+#         self.name = "Averaging 3D: N2CC"
+#         fun = lambda x, y, z: (np.cos(x)+np.sin(y)+np.exp(z))
+#         self.getHere = lambda M: call3(fun, M.gridN)
+#         self.getThere = lambda M: call3(fun, M.gridCC)
+#         self.getAve = lambda M: M.aveN2CC
+#         self.orderTest()
+
+#     def test_orderN2F(self):
+#         self.name = "Averaging 3D: N2F"
+#         fun = lambda x, y, z: (np.cos(x)+np.sin(y)+np.exp(z))
+#         self.getHere = lambda M: call3(fun, M.gridN)
+#         self.getThere = lambda M: np.r_[call3(fun, M.gridFx), call3(fun, M.gridFy), call3(fun, M.gridFz)]
+#         self.getAve = lambda M: M.aveN2F
+#         self.orderTest()
+
+#     def test_orderN2E(self):
+#         self.name = "Averaging 3D: N2E"
+#         fun = lambda x, y, z: (np.cos(x)+np.sin(y)+np.exp(z))
+#         self.getHere = lambda M: call3(fun, M.gridN)
+#         self.getThere = lambda M: np.r_[call3(fun, M.gridEx), call3(fun, M.gridEy), call3(fun, M.gridEz)]
+#         self.getAve = lambda M: M.aveN2E
+#         self.orderTest()
+
+    def test_orderF2CC(self):
+        self.name = "Averaging 3D: F2CC"
+        fun = lambda x, y, z: (np.cos(x)+np.sin(y)+np.exp(z))
+        self.getHere = lambda M: np.r_[call3(fun, M.gridFx), call3(fun, M.gridFy), call3(fun, M.gridFz)]
+        self.getThere = lambda M: call3(fun, M.gridCC)
+        self.getAve = lambda M: M.aveF2CC
+        self.orderTest()
+
+#     def test_orderF2CCV(self):
+#         self.name = "Averaging 3D: F2CCV"
+#         funX = lambda x, y, z: (np.cos(x)+np.sin(y)+np.exp(z))
+#         funY = lambda x, y, z: (np.cos(x)+np.sin(y)*np.exp(z))
+#         funZ = lambda x, y, z: (np.cos(x)*np.sin(y)+np.exp(z))
+#         self.getHere = lambda M: np.r_[call3(funX, M.gridFx), call3(funY, M.gridFy), call3(funZ, M.gridFz)]
+#         self.getThere = lambda M: np.r_[call3(funX, M.gridCC), call3(funY, M.gridCC), call3(funZ, M.gridCC)]
+#         self.getAve = lambda M: M.aveF2CCV
+#         self.orderTest()
+
+#     def test_orderE2CC(self):
+#         self.name = "Averaging 3D: E2CC"
+#         fun = lambda x, y, z: (np.cos(x)+np.sin(y)+np.exp(z))
+#         self.getHere = lambda M: np.r_[call3(fun, M.gridEx), call3(fun, M.gridEy), call3(fun, M.gridEz)]
+#         self.getThere = lambda M: call3(fun, M.gridCC)
+#         self.getAve = lambda M: M.aveE2CC
+#         self.orderTest()
+
+#     def test_orderE2CCV(self):
+#         self.name = "Averaging 3D: E2CCV"
+#         funX = lambda x, y, z: (np.cos(x)+np.sin(y)+np.exp(z))
+#         funY = lambda x, y, z: (np.cos(x)+np.sin(y)*np.exp(z))
+#         funZ = lambda x, y, z: (np.cos(x)*np.sin(y)+np.exp(z))
+#         self.getHere = lambda M: np.r_[call3(funX, M.gridEx), call3(funY, M.gridEy), call3(funZ, M.gridEz)]
+#         self.getThere = lambda M: np.r_[call3(funX, M.gridCC), call3(funY, M.gridCC), call3(funZ, M.gridCC)]
+#         self.getAve = lambda M: M.aveE2CCV
+#         self.orderTest()
+
+#     def test_orderCC2F(self):
+#         self.name = "Averaging 3D: CC2F"
+#         fun = lambda x, y, z: (np.cos(x)+np.sin(y)+np.exp(z))
+#         self.getHere = lambda M: call3(fun, M.gridCC)
+#         self.getThere = lambda M: np.r_[call3(fun, M.gridFx), call3(fun, M.gridFy), call3(fun, M.gridFz)]
+#         self.getAve = lambda M: M.aveCC2F
+#         self.expectedOrders = 1
+#         self.orderTest()
+#         self.expectedOrders = 2
 if __name__ == '__main__':
     unittest.main()
