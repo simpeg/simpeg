@@ -1,9 +1,8 @@
 import numpy as np
 import unittest
-from SimPEG.Tests import OrderTest
+from SimPEG import Utils, Tests
 import matplotlib.pyplot as plt
 
-#TODO: 'randomTensorMesh'
 MESHTYPES = ['uniformTree'] #['randomTree', 'uniformTree']
 call2 = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1])
 call3 = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1], xyz[:, 2])
@@ -15,7 +14,7 @@ cartF3 = lambda M, fx, fy, fz: np.vstack((cart_row3(M.gridFx, fx, fy, fz), cart_
 cartE3 = lambda M, ex, ey, ez: np.vstack((cart_row3(M.gridEx, ex, ey, ez), cart_row3(M.gridEy, ex, ey, ez), cart_row3(M.gridEz, ex, ey, ez)))
 
 
-class TestFaceDiv2D(OrderTest):
+class TestFaceDiv2D(Tests.OrderTest):
     name = "Face Divergence 2D"
     meshTypes = MESHTYPES
     meshDimension = 2
@@ -42,13 +41,12 @@ class TestFaceDiv2D(OrderTest):
     def test_order(self):
         self.orderTest()
 
-class TestFaceDiv3D(OrderTest):
+class TestFaceDiv3D(Tests.OrderTest):
     name = "Face Divergence 3D"
     meshTypes = MESHTYPES
     meshSizes = [8, 16]
 
     def getError(self):
-        #Test function
         fx = lambda x, y, z: np.sin(2*np.pi*x)
         fy = lambda x, y, z: np.sin(2*np.pi*y)
         fz = lambda x, y, z: np.sin(2*np.pi*z)
@@ -67,10 +65,11 @@ class TestFaceDiv3D(OrderTest):
         self.orderTest()
 
 
-class TestCurl(OrderTest):
+class TestCurl(Tests.OrderTest):
     name = "Curl"
     meshTypes = MESHTYPES
-    meshSizes = [4, 8, 16, 32]
+    meshSizes = [8, 16]#, 32]
+    expectedOrders = 1 # This is due to linear interpolation in the Re projection
 
     def getError(self):
         # fun: i (cos(y)) + j (cos(z)) + k (cos(x))
@@ -93,11 +92,302 @@ class TestCurl(OrderTest):
         curlE = self.M.edgeCurl.dot(E)
 
         err = np.linalg.norm((curlE - curlE_ana), np.inf)
+        # err = np.linalg.norm((curlE - curlE_ana)*self.M.area, 2)
 
         return err
 
     def test_order(self):
         self.orderTest()
+
+
+class TestTreeInnerProducts(Tests.OrderTest):
+    """Integrate an function over a unit cube domain using edgeInnerProducts and faceInnerProducts."""
+
+    meshTypes = ['uniformTree'] #['uniformTensorMesh', 'uniformCurv', 'rotateCurv']
+    meshDimension = 3
+    meshSizes = [4, 8]
+
+    def getError(self):
+
+        call = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1], xyz[:, 2])
+
+        ex = lambda x, y, z: x**2+y*z
+        ey = lambda x, y, z: (z**2)*x+y*z
+        ez = lambda x, y, z: y**2+x*z
+
+        sigma1 = lambda x, y, z: x*y+1
+        sigma2 = lambda x, y, z: x*z+2
+        sigma3 = lambda x, y, z: 3+z*y
+        sigma4 = lambda x, y, z: 0.1*x*y*z
+        sigma5 = lambda x, y, z: 0.2*x*y
+        sigma6 = lambda x, y, z: 0.1*z
+
+        Gc = self.M.gridCC
+        if self.sigmaTest == 1:
+            sigma = np.c_[call(sigma1, Gc)]
+            analytic = 647./360  # Found using sympy.
+        elif self.sigmaTest == 3:
+            sigma = np.r_[call(sigma1, Gc), call(sigma2, Gc), call(sigma3, Gc)]
+            analytic = 37./12  # Found using sympy.
+        elif self.sigmaTest == 6:
+            sigma = np.c_[call(sigma1, Gc), call(sigma2, Gc), call(sigma3, Gc),
+                          call(sigma4, Gc), call(sigma5, Gc), call(sigma6, Gc)]
+            analytic = 69881./21600  # Found using sympy.
+
+        if self.location == 'edges':
+            cart = lambda g: np.c_[call(ex, g), call(ey, g), call(ez, g)]
+            Ec = np.vstack((cart(self.M.gridEx),
+                            cart(self.M.gridEy),
+                            cart(self.M.gridEz)))
+            E = self.M.projectEdgeVector(Ec)
+
+            if self.invProp:
+                A = self.M.getEdgeInnerProduct(Utils.invPropertyTensor(self.M, sigma), invProp=True)
+            else:
+                A = self.M.getEdgeInnerProduct(sigma)
+            numeric = E.T.dot(A.dot(E))
+        elif self.location == 'faces':
+            cart = lambda g: np.c_[call(ex, g), call(ey, g), call(ez, g)]
+            Fc = np.vstack((cart(self.M.gridFx),
+                            cart(self.M.gridFy),
+                            cart(self.M.gridFz)))
+            F = self.M.projectFaceVector(Fc)
+
+            if self.invProp:
+                A = self.M.getFaceInnerProduct(Utils.invPropertyTensor(self.M, sigma), invProp=True)
+            else:
+                A = self.M.getFaceInnerProduct(sigma)
+            numeric = F.T.dot(A.dot(F))
+
+        err = np.abs(numeric - analytic)
+        return err
+
+    def test_order1_edges(self):
+        self.name = "Edge Inner Product - Isotropic"
+        self.location = 'edges'
+        self.sigmaTest = 1
+        self.invProp = False
+        self.orderTest()
+
+    def test_order1_edges_invProp(self):
+        self.name = "Edge Inner Product - Isotropic - invProp"
+        self.location = 'edges'
+        self.sigmaTest = 1
+        self.invProp = True
+        self.orderTest()
+
+    def test_order3_edges(self):
+        self.name = "Edge Inner Product - Anisotropic"
+        self.location = 'edges'
+        self.sigmaTest = 3
+        self.invProp = False
+        self.orderTest()
+
+    def test_order3_edges_invProp(self):
+        self.name = "Edge Inner Product - Anisotropic - invProp"
+        self.location = 'edges'
+        self.sigmaTest = 3
+        self.invProp = True
+        self.orderTest()
+
+    def test_order6_edges(self):
+        self.name = "Edge Inner Product - Full Tensor"
+        self.location = 'edges'
+        self.sigmaTest = 6
+        self.invProp = False
+        self.orderTest()
+
+    def test_order6_edges_invProp(self):
+        self.name = "Edge Inner Product - Full Tensor - invProp"
+        self.location = 'edges'
+        self.sigmaTest = 6
+        self.invProp = True
+        self.orderTest()
+
+    def test_order1_faces(self):
+        self.name = "Face Inner Product - Isotropic"
+        self.location = 'faces'
+        self.sigmaTest = 1
+        self.invProp = False
+        self.orderTest()
+
+    def test_order1_faces_invProp(self):
+        self.name = "Face Inner Product - Isotropic - invProp"
+        self.location = 'faces'
+        self.sigmaTest = 1
+        self.invProp = True
+        self.orderTest()
+
+    def test_order3_faces(self):
+        self.name = "Face Inner Product - Anisotropic"
+        self.location = 'faces'
+        self.sigmaTest = 3
+        self.invProp = False
+        self.orderTest()
+
+    def test_order3_faces_invProp(self):
+        self.name = "Face Inner Product - Anisotropic - invProp"
+        self.location = 'faces'
+        self.sigmaTest = 3
+        self.invProp = True
+        self.orderTest()
+
+    def test_order6_faces(self):
+        self.name = "Face Inner Product - Full Tensor"
+        self.location = 'faces'
+        self.sigmaTest = 6
+        self.invProp = False
+        self.orderTest()
+
+    def test_order6_faces_invProp(self):
+        self.name = "Face Inner Product - Full Tensor - invProp"
+        self.location = 'faces'
+        self.sigmaTest = 6
+        self.invProp = True
+        self.orderTest()
+
+
+class TestTreeInnerProducts2D(Tests.OrderTest):
+    """Integrate an function over a unit cube domain using edgeInnerProducts and faceInnerProducts."""
+
+    meshTypes = ['uniformTree', 'randomTree'] #['uniformTensorMesh', 'uniformCurv', 'rotateCurv']
+    meshDimension = 2
+    meshSizes = [4, 8]
+
+    def getError(self):
+
+        z = 5  # Because 5 is just such a great number.
+
+        call = lambda fun, xy: fun(xy[:, 0], xy[:, 1])
+
+        ex = lambda x, y: x**2+y*z
+        ey = lambda x, y: (z**2)*x+y*z
+
+        sigma1 = lambda x, y: x*y+1
+        sigma2 = lambda x, y: x*z+2
+        sigma3 = lambda x, y: 3+z*y
+
+        Gc = self.M.gridCC
+        if self.sigmaTest == 1:
+            sigma = np.c_[call(sigma1, Gc)]
+            analytic = 144877./360  # Found using sympy. z=5
+        elif self.sigmaTest == 2:
+            sigma = np.c_[call(sigma1, Gc), call(sigma2, Gc)]
+            analytic = 189959./120  # Found using sympy. z=5
+        elif self.sigmaTest == 3:
+            sigma = np.r_[call(sigma1, Gc), call(sigma2, Gc), call(sigma3, Gc)]
+            analytic = 781427./360  # Found using sympy. z=5
+
+        if self.location == 'edges':
+            cart = lambda g: np.c_[call(ex, g), call(ey, g)]
+            Ec = np.vstack((cart(self.M.gridEx),
+                            cart(self.M.gridEy)))
+            E = self.M.projectEdgeVector(Ec)
+            if self.invProp:
+                A = self.M.getEdgeInnerProduct(Utils.invPropertyTensor(self.M, sigma), invProp=True)
+            else:
+                A = self.M.getEdgeInnerProduct(sigma)
+            numeric = E.T.dot(A.dot(E))
+        elif self.location == 'faces':
+            cart = lambda g: np.c_[call(ex, g), call(ey, g)]
+            Fc = np.vstack((cart(self.M.gridFx),
+                            cart(self.M.gridFy)))
+            F = self.M.projectFaceVector(Fc)
+
+            if self.invProp:
+                A = self.M.getFaceInnerProduct(Utils.invPropertyTensor(self.M, sigma), invProp=True)
+            else:
+                A = self.M.getFaceInnerProduct(sigma)
+            numeric = F.T.dot(A.dot(F))
+
+        err = np.abs(numeric - analytic)
+        return err
+
+    # def test_order1_edges(self):
+    #     self.name = "2D Edge Inner Product - Isotropic"
+    #     self.location = 'edges'
+    #     self.sigmaTest = 1
+    #     self.invProp = False
+    #     self.orderTest()
+
+    # def test_order1_edges_invProp(self):
+    #     self.name = "2D Edge Inner Product - Isotropic - invProp"
+    #     self.location = 'edges'
+    #     self.sigmaTest = 1
+    #     self.invProp = True
+    #     self.orderTest()
+
+    # def test_order3_edges(self):
+    #     self.name = "2D Edge Inner Product - Anisotropic"
+    #     self.location = 'edges'
+    #     self.sigmaTest = 2
+    #     self.invProp = False
+    #     self.orderTest()
+
+    # def test_order3_edges_invProp(self):
+    #     self.name = "2D Edge Inner Product - Anisotropic - invProp"
+    #     self.location = 'edges'
+    #     self.sigmaTest = 2
+    #     self.invProp = True
+    #     self.orderTest()
+
+    # def test_order6_edges(self):
+    #     self.name = "2D Edge Inner Product - Full Tensor"
+    #     self.location = 'edges'
+    #     self.sigmaTest = 3
+    #     self.invProp = False
+    #     self.orderTest()
+
+    # def test_order6_edges_invProp(self):
+    #     self.name = "2D Edge Inner Product - Full Tensor - invProp"
+    #     self.location = 'edges'
+    #     self.sigmaTest = 3
+    #     self.invProp = True
+    #     self.orderTest()
+
+    def test_order1_faces(self):
+        self.name = "2D Face Inner Product - Isotropic"
+        self.location = 'faces'
+        self.sigmaTest = 1
+        self.invProp = False
+        self.orderTest()
+
+    def test_order1_faces_invProp(self):
+        self.name = "2D Face Inner Product - Isotropic - invProp"
+        self.location = 'faces'
+        self.sigmaTest = 1
+        self.invProp = True
+        self.orderTest()
+
+    def test_order2_faces(self):
+        self.name = "2D Face Inner Product - Anisotropic"
+        self.location = 'faces'
+        self.sigmaTest = 2
+        self.invProp = False
+        self.orderTest()
+
+    def test_order2_faces_invProp(self):
+        self.name = "2D Face Inner Product - Anisotropic - invProp"
+        self.location = 'faces'
+        self.sigmaTest = 2
+        self.invProp = True
+        self.orderTest()
+
+    def test_order3_faces(self):
+        self.name = "2D Face Inner Product - Full Tensor"
+        self.location = 'faces'
+        self.sigmaTest = 3
+        self.invProp = False
+        self.orderTest()
+
+    def test_order3_faces_invProp(self):
+        self.name = "2D Face Inner Product - Full Tensor - invProp"
+        self.location = 'faces'
+        self.sigmaTest = 3
+        self.invProp = True
+        self.orderTest()
+
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -28,31 +28,6 @@ class TestSimpleQuadTree(unittest.TestCase):
         assert np.allclose(np.r_[M._areaFxFull, M._areaFyFull], M._deflationMatrix('F') * M.area)
 
 
-    # def test_connectivity(self):
-    #     T = Tree([8,8])
-    #     T._refineCell([0,0,0])
-    #     T._refineCell([4,4,1])
-    #     T._refineCell([0,0,1])
-    #     T._refineCell([2,2,2])
-    #     T.number()
-    #     assert T._getNextCell([4,0,1]) is None
-    #     assert T._getNextCell([0,4,1]) == [T._index([4,4,2]), T._index([4,6,2])]
-    #     assert T._getNextCell([0,2,2]) == [T._index([2,2,3]), T._index([2,3,3])]
-    #     assert T._getNextCell([4,4,2]) == T._index([6,4,2])
-    #     assert T._getNextCell([6,4,2]) is None
-    #     assert T._getNextCell([2,0,2]) == T._index([4,0,1])
-    #     assert T._getNextCell([4,0,1], positive=False) == [T._index([2,0,2]), [T._index([3,2,3]), T._index([3,3,3])]]
-    #     assert T._getNextCell([3,3,3]) == T._index([4,0,1])
-    #     assert T._getNextCell([3,2,3]) == T._index([4,0,1])
-    #     assert T._getNextCell([2,2,3]) == T._index([3,2,3])
-    #     assert T._getNextCell([3,2,3], positive=False) == T._index([2,2,3])
-
-
-    #     assert T._getNextCell([0,0,2], direction=1) == T._index([0,2,2])
-    #     assert T._getNextCell([0,2,2], direction=1, positive=False) == T._index([0,0,2])
-    #     assert T._getNextCell([0,2,2], direction=1) == T._index([0,4,1])
-    #     assert T._getNextCell([0,4,1], direction=1, positive=False) ==  [T._index([0,2,2]), [T._index([2,3,3]), T._index([3,3,3])]]
-
     def test_faceDiv(self):
 
         hx, hy = np.r_[1.,2,3,4], np.r_[5.,6,7,8]

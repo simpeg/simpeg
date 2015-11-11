@@ -150,7 +150,7 @@ class OrderTest(unittest.TestCase):
             def function(xc):
                 r = xc - np.array([0.5]*len(xc))
                 dist = np.sqrt(r.dot(r))
-                if dist < 0.3:
+                if dist < 0.2:
                     return levels
                 return levels-1
             self.M.refine(function,balance=False)

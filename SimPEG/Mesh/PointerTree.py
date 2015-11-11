@@ -1216,17 +1216,14 @@ class Tree(BaseMesh, InnerProducts):
                     J += [edge + off]
                     V += [pm]
 
-            Rf = self._deflationMatrix('F', withHanging=False, asOnes=False)
+            Rf = self._deflationMatrix('F', withHanging=True, asOnes=False)
             Re = self._deflationMatrix('E')
 
             Rf_ave = Utils.sdiag(1./Rf.sum(axis=0)) * Rf.T
 
-            # print Rf_ave
-
             C = sp.csr_matrix((V,(I,J)), shape=(self.ntF, self.ntE))
             S = np.r_[self._areaFxFull, self._areaFyFull, self._areaFzFull]
             L = np.r_[self._edgeExFull, self._edgeEyFull, self._edgeEzFull]
-            # self._edgeCurl = Rf.T*Utils.sdiag(1.0/S)*C*Utils.sdiag(L)*Re
             self._edgeCurl = Rf_ave*Utils.sdiag(1.0/S)*C*Utils.sdiag(L)*Re
         return self._edgeCurl
 
