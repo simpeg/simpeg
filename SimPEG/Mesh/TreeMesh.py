@@ -1316,6 +1316,22 @@ class TreeMesh(BaseMesh, InnerProducts):
         #     self._nodalGrad = Utils.sdiag(1/L)*G
         # return self._nodalGrad
 
+    @property
+    def aveE2CC(self):
+        "Construct the averaging operator on cell edges to cell centers."
+        raise Exception('Not yet implemented!')
+
+    @property
+    def aveE2CCV(self):
+        "Construct the averaging operator on cell edges to cell centers."
+        raise Exception('Not yet implemented!')
+
+    @property
+    def aveF2CC(self):
+        "Construct the averaging operator on cell faces to cell centers."
+        raise Exception('Not yet implemented!')
+
+
     def _getFaceP(self, xFace, yFace, zFace):
         ind1, ind2, ind3 = [], [], []
         for ind in self._sortedCells:
