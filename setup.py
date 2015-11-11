@@ -7,7 +7,7 @@ parameter estimation in the context of geophysical applications.
 
 from distutils.core import setup
 from setuptools import find_packages
-from Cython.Build import cythonize
+from distutils.extension import Extension
 import numpy as np
 
 CLASSIFIERS = [
@@ -25,6 +25,27 @@ CLASSIFIERS = [
 'Operating System :: MacOS',
 'Natural Language :: English',
 ]
+
+
+from distutils.core import setup
+
+try:
+    from Cython.Build import cythonize
+    USE_CYTHON = True
+except Exception, e:
+    USE_CYTHON = False
+
+ext = '.pyx' if USE_CYTHON else '.c'
+
+cython_files = [
+                    "SimPEG/Utils/interputils_cython",
+                    "SimPEG/Mesh/TreeUtils"
+               ]
+extensions = [Extension(f, [f+ext]) for f in cython_files]
+
+if USE_CYTHON:
+    from Cython.Build import cythonize
+    extensions = cythonize(extensions)
 
 import os, os.path
 
@@ -51,5 +72,5 @@ setup(
     platforms = ["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
     use_2to3 = False,
     include_dirs=[np.get_include()],
-    ext_modules = cythonize(['SimPEG/Utils/interputils_cython.pyx', 'SimPEG/Mesh/TreeUtils.pyx'])
+    ext_modules = extensions
 )
