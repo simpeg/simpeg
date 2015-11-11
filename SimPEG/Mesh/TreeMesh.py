@@ -22,7 +22,6 @@
 #     \/__/        \/__/                  \|__|        \/__/        \/__/
 #
 #
-#   @rowanc1, Nov. 10, 2015
 #
 #                      .----------------.----------------.
 #                     /|               /|               /|
@@ -164,7 +163,8 @@ class TreeMesh(BaseMesh, InnerProducts):
                         '__sortedCells',
                         '_gridCC', '_gridN', '_gridFx', '_gridFy', '_gridFz', '_gridEx', '_gridEy', '_gridEz',
                         '_area', '_edge', '_vol',
-                        '_faceDiv', '_edgeCurl', '_nodalGrad'
+                        '_faceDiv', '_edgeCurl', '_nodalGrad',
+                        '_aveF2CC', '_aveF2CCV', '_aveE2CC', '_aveE2CCV','_aveN2CC'
                       ]
         for p in deleteThese:
             if hasattr(self, p): delattr(self, p)
@@ -1379,7 +1379,7 @@ class TreeMesh(BaseMesh, InnerProducts):
         # raise Exception('Not yet implemented!')
             self._aveF2CC = Av*R
         return self._aveF2CC
-        
+
 
 
     @property
