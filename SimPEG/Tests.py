@@ -4,7 +4,7 @@ from numpy.linalg import norm
 from SimPEG.Utils import mkvc, sdiag, diagEst
 from SimPEG import Utils
 from SimPEG.Mesh import TensorMesh, CurvilinearMesh, CylMesh
-from SimPEG.Mesh.PointerTree import Tree
+from SimPEG.Mesh.TreeMesh import TreeMesh
 import numpy as np
 import scipy.sparse as sp
 import unittest
