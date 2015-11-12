@@ -1320,8 +1320,73 @@ class TreeMesh(BaseMesh, InnerProducts):
     def aveE2CC(self):
         "Construct the averaging operator on cell edges to cell centers."
         if getattr(self, '_aveE2CC', None) is None:
+            
+            # TODO: preallocate
+            I, J, V = [], [], []
+            
             if self.dim == 2:
-                self._aveE2CC = self.aveF2CC
+                raise NotImplementedError('aveE2CC not implemented yet')
+                # PM = [1./(2.*self.dim)]*self.dim # plus / plus
+                # offset = [0]*2 + [self.ntEx]*2
+
+                # for ii, ind in enumerate(self._sortedCells):
+                #     p = self._pointer(ind)
+                #     w = self._levelWidth(p[-1])
+
+                #     edges = [
+                #                 self._ex2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                #                 self._ex2i[self._index([ p[0]    , p[1] + w, p[2]    , p[3]])],
+                #                 self._ex2i[self._index([ p[0]    , p[1]    , p[2] + w, p[3]])],
+                #                 self._ex2i[self._index([ p[0]    , p[1] + w, p[2] + w, p[3]])],
+                #                 self._ey2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                #                 self._ey2i[self._index([ p[0] + w, p[1]    , p[2]    , p[3]])],
+                #                 self._ey2i[self._index([ p[0]    , p[1]    , p[2] + w, p[3]])],
+                #                 self._ey2i[self._index([ p[0] + w, p[1]    , p[2] + w, p[3]])],
+                #                 self._ez2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                #                 self._ez2i[self._index([ p[0] + w, p[1]    , p[2]    , p[3]])],
+                #                 self._ez2i[self._index([ p[0]    , p[1] + w, p[2]    , p[3]])],
+                #                 self._ez2i[self._index([ p[0] + w, p[1] + w, p[2]    , p[3]])]
+                #             ]
+
+                #     for off, pm, edge in zip(offset,PM,edges):
+                #         I += [ii]
+                #         J += [edge + off]
+                #         V += [pm]
+            
+            if self.dim == 3:
+                PM = [1./(4.*self.dim)]*4*self.dim # plus / plus
+                offset = [0]*4 + [self.ntEx]*4 + [self.ntEx+self.ntEy]*4
+
+                for ii, ind in enumerate(self._sortedCells):
+                    p = self._pointer(ind)
+                    w = self._levelWidth(p[-1])
+
+                    edges = [
+                                self._ex2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                                self._ex2i[self._index([ p[0]    , p[1] + w, p[2]    , p[3]])],
+                                self._ex2i[self._index([ p[0]    , p[1]    , p[2] + w, p[3]])],
+                                self._ex2i[self._index([ p[0]    , p[1] + w, p[2] + w, p[3]])],
+                                self._ey2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                                self._ey2i[self._index([ p[0] + w, p[1]    , p[2]    , p[3]])],
+                                self._ey2i[self._index([ p[0]    , p[1]    , p[2] + w, p[3]])],
+                                self._ey2i[self._index([ p[0] + w, p[1]    , p[2] + w, p[3]])],
+                                self._ez2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                                self._ez2i[self._index([ p[0] + w, p[1]    , p[2]    , p[3]])],
+                                self._ez2i[self._index([ p[0]    , p[1] + w, p[2]    , p[3]])],
+                                self._ez2i[self._index([ p[0] + w, p[1] + w, p[2]    , p[3]])]
+                            ]
+
+                    for off, pm, edge in zip(offset,PM,edges):
+                        I += [ii]
+                        J += [edge + off]
+                        V += [pm]
+
+
+            Av = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.ntE))
+            Re = self._deflationMatrix('E',asOnes=False,withHanging=True)
+
+            self._aveE2CC = Av*Re
+
         return self._aveE2CC
 
     @property
@@ -1335,7 +1400,7 @@ class TreeMesh(BaseMesh, InnerProducts):
         if getattr(self, '_aveF2CC', None) is None:
            # TODO: Preallocate!
             I, J, V = [], [], []
-            PM = [1./(2*self.dim)]*2*self.dim # plus / plus
+            PM = [1./(2.*self.dim)]*2*self.dim # plus / plus
 
             # TODO total number of faces?
             offset = [0]*2 + [self.ntFx]*2 +  [self.ntFx+self.ntFy]*2
@@ -1451,7 +1516,7 @@ class TreeMesh(BaseMesh, InnerProducts):
 
             Av = sp.csr_matrix((V,(I,J)), shape=(self.nC*self.dim, self.ntF))
             Rf = self._deflationMatrix('F',asOnes=True,withHanging=True)
-            
+
             self._aveF2CCV = Av*Rf
         return self._aveF2CCV
 
