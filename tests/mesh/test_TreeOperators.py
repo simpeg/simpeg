@@ -485,7 +485,7 @@ class TestAveraging3D(Tests.OrderTest):
     name = "Averaging 3D"
     meshTypes = ['notatreeTree', 'uniformTree']#, 'randomTree']
     meshDimension = 3
-    meshSizes = [4,8,16]
+    meshSizes = [8,16,32]
     expectedOrders = [2,1]
 
     def getError(self):
