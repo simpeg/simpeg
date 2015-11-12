@@ -1319,7 +1319,10 @@ class TreeMesh(BaseMesh, InnerProducts):
     @property
     def aveE2CC(self):
         "Construct the averaging operator on cell edges to cell centers."
-        raise Exception('Not yet implemented!')
+        if getattr(self, '_aveE2CC', None) is None:
+            if self.dim == 2:
+                self._aveE2CC = self.aveF2CC
+        return self._aveE2CC
 
     @property
     def aveE2CCV(self):
@@ -1366,26 +1369,91 @@ class TreeMesh(BaseMesh, InnerProducts):
 
 
             Av = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.ntF))
-            R = self._deflationMatrix('F',asOnes=True,withHanging=True)
+            Rf = self._deflationMatrix('F',asOnes=True,withHanging=True)
 
-        #     VOL = self.vol
-        #     if self.dim == 2:
-        #         S = np.r_[self._areaFxFull, self._areaFyFull]
-        #     elif self.dim == 3:
-        #         S = np.r_[self._areaFxFull, self._areaFyFull, self._areaFzFull]
-        #     self._faceDiv = Utils.sdiag(1.0/VOL)*D*Utils.sdiag(S)*R
-        # return self._faceDiv
-
-        # raise Exception('Not yet implemented!')
-            self._aveF2CC = Av*R
+            self._aveF2CC = Av*Rf
         return self._aveF2CC
-
 
 
     @property
     def aveF2CCV(self):
         "Construct the averaging operator on cell faces to cell centers."
-        raise Exception('Not yet implemented!')
+        if getattr(self, '_aveF2CCV', None) is None:
+           # TODO: Preallocate!
+            I, J, V = [], [], []
+            PM = [1./2.]*2 # 0.5, 0.5
+
+            offsetx = [0]*2
+            offsety = [self.ntFx]*2
+
+            if self.dim == 2: 
+                for ii, ind in enumerate(self._sortedCells):
+                    p = self._pointer(ind)
+                    w = self._levelWidth(p[-1])
+
+                    facesx = [
+                                self._fx2i[self._index([ p[0]    , p[1]    , p[2]])],
+                                self._fx2i[self._index([ p[0] + w, p[1]    , p[2]])],
+                            ]
+
+                    facesy = [
+                                self._fy2i[self._index([ p[0]    , p[1]    , p[2]])],
+                                self._fy2i[self._index([ p[0]    , p[1] + w, p[2]])],
+                            ]
+            
+                    for off, pm, face in zip(offsetx,PM,facesx):
+                        I += [ii]
+                        J += [face + off]
+                        V += [pm]
+
+                    for off, pm, face in zip(offsety,PM,facesy):
+                        I += [ii + self.nC]
+                        J += [face + off]
+                        V += [pm]
+
+                    
+
+            if self.dim == 3:
+                offsetz = [self.ntFx + self.ntFy]*2
+
+                for ii, ind in enumerate(self._sortedCells):
+                    p = self._pointer(ind)
+                    w = self._levelWidth(p[-1])
+
+                    facesx = [
+                                self._fx2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                                self._fx2i[self._index([ p[0] + w, p[1]    , p[2]    , p[3]])],
+                            ]
+
+                    facesy = [
+                                self._fy2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                                self._fy2i[self._index([ p[0]    , p[1] + w, p[2]    , p[3]])],
+                            ]
+                    facesz = [
+                                self._fz2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                                self._fz2i[self._index([ p[0]    , p[1]    , p[2] + w, p[3]])]
+                            ]
+
+                    for off, pm, face in zip(offsetx,PM,facesx):
+                        I += [ii]
+                        J += [face + off]
+                        V += [pm]
+
+                    for off, pm, face in zip(offsety,PM,facesy):
+                        I += [ii + self.nC]
+                        J += [face + off]
+                        V += [pm]
+
+                    for off, pm, face in zip(offsetz,PM,facesz):
+                        I += [ii + self.nC*2]
+                        J += [face + off]
+                        V += [pm]
+
+            Av = sp.csr_matrix((V,(I,J)), shape=(self.nC*self.dim, self.ntF))
+            Rf = self._deflationMatrix('F',asOnes=True,withHanging=True)
+            
+            self._aveF2CCV = Av*Rf
+        return self._aveF2CCV
 
 
     def _getFaceP(self, xFace, yFace, zFace):
