@@ -23,25 +23,25 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, verbose=False):
 
     for SrcType in SrcList:
         if SrcType is 'MagDipole':
-            Src.append(EM.FDEM.SrcFDEM_MagDipole([Rx0], freq=freq, loc=np.r_[0.,0.,0.]))
+            Src.append(EM.FDEM.Src.MagDipole([Rx0], freq=freq, loc=np.r_[0.,0.,0.]))
         elif SrcType is 'MagDipole_Bfield':
-            Src.append(EM.FDEM.SrcFDEM_MagDipole_Bfield([Rx0], freq=freq, loc=np.r_[0.,0.,0.]))
+            Src.append(EM.FDEM.Src.MagDipole_Bfield([Rx0], freq=freq, loc=np.r_[0.,0.,0.]))
         elif SrcType is 'CircularLoop':
-            Src.append(EM.FDEM.SrcFDEM_CircularLoop([Rx0], freq=freq, loc=np.r_[0.,0.,0.]))
+            Src.append(EM.FDEM.Src.CircularLoop([Rx0], freq=freq, loc=np.r_[0.,0.,0.]))
         elif SrcType is 'RawVec':
             if fdemType is 'e' or fdemType is 'b':
                 S_m = np.zeros(mesh.nF)
                 S_e = np.zeros(mesh.nE)
                 S_m[Utils.closestPoints(mesh,[0.,0.,0.],'Fz') + np.sum(mesh.vnF[:1])] = 1.
                 S_e[Utils.closestPoints(mesh,[0.,0.,0.],'Ez') + np.sum(mesh.vnE[:1])] = 1.
-                Src.append(EM.FDEM.SrcFDEM_RawVec([Rx0], freq, S_m, S_e))
+                Src.append(EM.FDEM.Src.RawVec([Rx0], freq, S_m, S_e))
 
             elif fdemType is 'h' or fdemType is 'j':
                 S_m = np.zeros(mesh.nE)
                 S_e = np.zeros(mesh.nF)
                 S_m[Utils.closestPoints(mesh,[0.,0.,0.],'Ez') + np.sum(mesh.vnE[:1])] = 1.
                 S_e[Utils.closestPoints(mesh,[0.,0.,0.],'Fz') + np.sum(mesh.vnF[:1])] = 1.
-                Src.append(EM.FDEM.SrcFDEM_RawVec([Rx0], freq, S_m, S_e))
+                Src.append(EM.FDEM.Src.RawVec([Rx0], freq, S_m, S_e))
 
     if verbose:
         print '  Fetching %s problem' % (fdemType)
