@@ -547,15 +547,15 @@ class TestAveraging3D(Tests.OrderTest):
         self.getAve = lambda M: M.aveE2CC
         self.orderTest()
 
-#     def test_orderE2CCV(self):
-#         self.name = "Averaging 3D: E2CCV"
-#         funX = lambda x, y, z: (np.cos(x)+np.sin(y)+np.exp(z))
-#         funY = lambda x, y, z: (np.cos(x)+np.sin(y)*np.exp(z))
-#         funZ = lambda x, y, z: (np.cos(x)*np.sin(y)+np.exp(z))
-#         self.getHere = lambda M: np.r_[call3(funX, M.gridEx), call3(funY, M.gridEy), call3(funZ, M.gridEz)]
-#         self.getThere = lambda M: np.r_[call3(funX, M.gridCC), call3(funY, M.gridCC), call3(funZ, M.gridCC)]
-#         self.getAve = lambda M: M.aveE2CCV
-#         self.orderTest()
+    def test_orderE2CCV(self):
+        self.name = "Averaging 3D: E2CCV"
+        funX = lambda x, y, z: (np.cos(x)+np.sin(y)+np.exp(z))
+        funY = lambda x, y, z: (np.cos(x)+np.sin(y)*np.exp(z))
+        funZ = lambda x, y, z: (np.cos(x)*np.sin(y)+np.exp(z))
+        self.getHere = lambda M: np.r_[call3(funX, M.gridEx), call3(funY, M.gridEy), call3(funZ, M.gridEz)]
+        self.getThere = lambda M: np.r_[call3(funX, M.gridCC), call3(funY, M.gridCC), call3(funZ, M.gridCC)]
+        self.getAve = lambda M: M.aveE2CCV
+        self.orderTest()
 
 #     def test_orderCC2F(self):
 #         self.name = "Averaging 3D: CC2F"
