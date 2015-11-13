@@ -1,5 +1,5 @@
 from SimPEG import Survey, Problem, Utils, np, sp
-from SimPEG.EM.Utils.EMUtils import omega
+from SimPEG.EM.Utils import omega
 
 
 class FieldsFDEM(Problem.Fields):

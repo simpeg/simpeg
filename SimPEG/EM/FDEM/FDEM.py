@@ -3,7 +3,7 @@ from scipy.constants import mu_0
 from SurveyFDEM import SurveyFDEM
 from FieldsFDEM import FieldsFDEM, FieldsFDEM_e, FieldsFDEM_b, FieldsFDEM_h, FieldsFDEM_j
 from SimPEG.EM.Base import BaseEMProblem
-from SimPEG.EM.Utils.EMUtils import omega
+from SimPEG.EM.Utils import omega
 
 
 class BaseFDEMProblem(BaseEMProblem):

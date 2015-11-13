@@ -1,6 +1,5 @@
 from SimPEG import Survey, Problem, Utils, np, sp
-from SimPEG.EM.Utils import SrcUtils
-from SimPEG.EM.Utils.EMUtils import omega, e_from_j, j_from_e, b_from_h, h_from_b
+from SimPEG.EM.Utils import *
 from scipy.constants import mu_0
 
 ####################################################
@@ -258,10 +257,10 @@ class SrcFDEM_MagDipole(SrcFDEM):
             if not prob.mesh.isSymmetric:
                 # TODO ?
                 raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
-            a = SrcUtils.MagneticDipoleVectorPotential(self.loc, gridY, 'y', mu=self.mu, moment=self.moment)
+            a = MagneticDipoleVectorPotential(self.loc, gridY, 'y', mu=self.mu, moment=self.moment)
 
         else:
-            srcfct = SrcUtils.MagneticDipoleVectorPotential
+            srcfct = MagneticDipoleVectorPotential
             ax = srcfct(self.loc, gridX, 'x', mu=self.mu, moment=self.moment)
             ay = srcfct(self.loc, gridY, 'y', mu=self.mu, moment=self.moment)
             az = srcfct(self.loc, gridZ, 'z', mu=self.mu, moment=self.moment)
@@ -322,7 +321,7 @@ class SrcFDEM_MagDipole_Bfield(SrcFDEM):
             gridZ = prob.mesh.gridEz
             C = prob.mesh.edgeCurl.T
 
-        srcfct = SrcUtils.MagneticDipoleFields
+        srcfct = MagneticDipoleFields
         if prob.mesh._meshType is 'CYL':
             if not prob.mesh.isSymmetric:
                 # TODO ?
@@ -395,10 +394,10 @@ class SrcFDEM_CircularLoop(SrcFDEM):
             if not prob.mesh.isSymmetric:
                 # TODO ?
                 raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
-            a = SrcUtils.MagneticDipoleVectorPotential(self.loc, gridY, 'y', moment=self.radius, mu=self.mu)
+            a = MagneticDipoleVectorPotential(self.loc, gridY, 'y', moment=self.radius, mu=self.mu)
 
         else:
-            srcfct = SrcUtils.MagneticDipoleVectorPotential
+            srcfct = MagneticDipoleVectorPotential
             ax = srcfct(self.loc, gridX, 'x', self.radius, mu=self.mu)
             ay = srcfct(self.loc, gridY, 'y', self.radius, mu=self.mu)
             az = srcfct(self.loc, gridZ, 'z', self.radius, mu=self.mu)
