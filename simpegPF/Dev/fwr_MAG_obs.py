@@ -1,4 +1,4 @@
-def fwr_MAG_obs(xn,yn,zn,B,M,rxLoc,model):
+def fwr_MAG_obs(mesh,B,M,rxLoc,model):
     """ 
     Forward model magnetic data using integral equation
     
@@ -20,6 +20,11 @@ def fwr_MAG_obs(xn,yn,zn,B,M,rxLoc,model):
     #%%
     from SimPEG import np, Utils, sp, mkvc
     from get_T_mat import get_T_mat
+    
+    
+    xn = mesh.vectorNx;
+    yn = mesh.vectorNy;
+    zn = mesh.vectorNz;
     
     mcell = (len(xn)-1) * (len(yn)-1) * (len(zn)-1)
       

@@ -1,6 +1,6 @@
 import os
 
-home_dir = 'C:\Users\dominiquef.MIRAGEOSCIENCE\Documents\GIT\Research\SimPeg'
+home_dir = 'C:\Users\dominiquef.MIRAGEOSCIENCE\Documents\GIT\SimPEG\simpegpf\simpegPF\Dev'
 
 os.chdir(home_dir)
 
@@ -15,12 +15,10 @@ from fwr_MAG_obs import fwr_MAG_obs
 
 #%% Create survey
 
-B[0] = 90.
-B[1] = 00.
-B[2] = 50000.
+B = np.array(([90.,0.,50000.]))
   
-M[0] = 90.
-M[1] = 0.  
+M = np.array(([90.,0.]))
+ 
        
 # # Or create juste a plane grid
 xr = np.linspace(-1./2., 1./2., 10)
@@ -55,13 +53,13 @@ model = np.ones(mcell)*chibkg
 model[sph_ind] = chiblk
 
 #%% Forward mode ldata
-d = fwr_MAG_obs(xn,yn,zn,B,M,rxLoc,model)
+d = fwr_MAG_obs(mesh,B,M,rxLoc,model)
 
 #%% Get the analystical answer and compute the residual
 bxa,bya,bza = PF.MagAnalytics.MagSphereAnaFunA(rxLoc[:,0],rxLoc[:,1],rxLoc[:,2],.25,0.,0.,0.,chiblk, np.array(([0.,0.,B[2]])),'secondary')
 
 r_Bz = mkvc(d) - bza
-lrl = sum( dBz**2 ) **0.5
+lrl = sum( r_Bz**2 ) **0.5
 
 print "Residual between analytical and integral= " + str(lrl)
 #%% Plot fields
@@ -95,6 +93,6 @@ plt.scatter(X,Y, c='k', s=5)
 #%% Compare fields
 
 plt.subplot(122)
-plt.imshow(np.reshape(dBz,X.shape), interpolation="bicubic", extent=[xr.min(), xr.max(), yr.min(), yr.max()])
+plt.imshow(np.reshape(r_Bz,X.shape), interpolation="bicubic", extent=[xr.min(), xr.max(), yr.min(), yr.max()])
 plt.contour(X,Y, np.reshape(dBz,X.shape),10)
 plt.scatter(X,Y, c='k', s=5)

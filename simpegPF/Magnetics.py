@@ -3,6 +3,10 @@ import BaseMag
 from scipy.constants import mu_0
 from MagAnalytics import spheremodel, CongruousMagBC
 
+class MagneticIntegral(Problem.BaseProblem):
+    """
+         approach using IE
+    """
 
 
 class MagneticsDiffSecondary(Problem.BaseProblem):

@@ -1,6 +1,6 @@
 import os
 
-home_dir = 'C:\Users\dominiquef.MIRAGEOSCIENCE\Documents\GIT\Research\SimPeg'
+home_dir = 'C:\Users\dominiquef.MIRAGEOSCIENCE\Documents\GIT\SimPEG\simpegpf\simpegPF\Dev'
 
 inpfile = 'MAG3Cfwr.inp'
 
@@ -28,9 +28,10 @@ model = Utils.meshutils.readUBCTensorModel(modfile,mesh)
 [B,M,dobs] = BaseMag.readUBCmagObs(obsfile)
 
 rxLoc = dobs[:,0:3]
+ndata = rxLoc.shape[0]
 
 # Compute forward model using integral equation
-d = fwr_MAG_obs(xn,yn,zn,B,M,rxLoc,model)
+d = fwr_MAG_obs(mesh,B,M,rxLoc,model)
 
 # Form data object with coordinates and write to file
 data = np.c_[rxLoc , d , np.zeros((ndata,1))]
