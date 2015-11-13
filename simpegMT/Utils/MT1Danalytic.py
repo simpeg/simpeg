@@ -1,14 +1,16 @@
 # Analytic solution of EM fields due to a plane wave
 
 import numpy as np, SimPEG as simpeg
+from IPython.core.debugger import Tracer
 
-def getEHfields(m1d,sigma,freq,zd):
+def getEHfields(m1d,sigma,freq,zd,scaleUD=True):
     '''Analytic solution for MT 1D layered earth. Returns E and H fields.
 
     :param SimPEG.mesh, object m1d: Mesh object with the 1D spatial information.
     :param numpy.array, vector sigma: Physical property of conductivity corresponding with the mesh.
     :param float, freq: Frequency to calculate data at.
     :param numpy array, vector zd: location to calculate EH fields at
+    :param bollean, scaleUD: scales the output to be 1 at the top, increases numeracal stability.
 
     Assumes a halfspace with the same conductive as the last cell below.
 
@@ -27,7 +29,7 @@ def getEHfields(m1d,sigma,freq,zd):
 
     # Initiate the propagation matrix, in the order down up.
     UDp = np.zeros((2,m1d.nC+1),dtype=complex)
-    UDp[1,0] = 1 # Set the wave amplitude as 1 into the half-space at the bottom of the mesh
+    UDp[1,0] = 1. # Set the wave amplitude as 1 into the half-space at the bottom of the mesh
     # Loop over all the layers, starting at the bottom layer
     for lnr, h in enumerate(m1d.hx): # lnr-number of layer, h-thickness of the layer
         # Calculate
@@ -44,6 +46,9 @@ def getEHfields(m1d,sigma,freq,zd):
 
         # The down and up component in current layer.
         UDp[:,lnr+1] = elamh.dot(Pjinv.dot(Pj1)).dot(UDp[:,lnr])
+
+        if scaleUD:
+             UDp[:,lnr+1::-1] = UDp[:,lnr+1::-1]/UDp[1,lnr+1]
 
     # Calculate the fields
     Ed = np.empty((zd.size,),dtype=complex)
