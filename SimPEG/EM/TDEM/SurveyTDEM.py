@@ -1,6 +1,6 @@
 from SimPEG import Utils, Survey, np
 from SimPEG.Survey import BaseSurvey
-from SimPEG.EM.Utils import SrcUtils
+from SimPEG.EM.Utils import *
 from BaseTDEM import FieldsTDEM
 
 
