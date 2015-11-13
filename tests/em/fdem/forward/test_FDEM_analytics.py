@@ -29,7 +29,7 @@ class FDEM_analyticTests(unittest.TestCase):
         x = np.linspace(-10,10,5)
         XYZ = Utils.ndgrid(x,np.r_[0],np.r_[0])
         rxList = EM.FDEM.RxFDEM(XYZ, 'exi')
-        Src0 = EM.FDEM.SrcFDEM_MagDipole([rxList],loc=np.r_[0.,0.,0.], freq=freq)
+        Src0 = EM.FDEM.Src.MagDipole([rxList],loc=np.r_[0.,0.,0.], freq=freq)
 
         survey = EM.FDEM.SurveyFDEM([Src0])
 
@@ -114,9 +114,9 @@ class FDEM_analyticTests(unittest.TestCase):
 
         de = np.zeros(mesh.nF,dtype=complex)
         de[s_ind] = 1./csz
-        de_p = [EM.FDEM.SrcFDEM_RawVec_e([],freq,de/mesh.area)]
+        de_p = [EM.FDEM.Src.RawVec_e([],freq,de/mesh.area)]
 
-        dm_p = [EM.FDEM.SrcFDEM_MagDipole([],freq,src_loc)]
+        dm_p = [EM.FDEM.Src.MagDipole([],freq,src_loc)]
 
 
         # Pair the problem and survey
