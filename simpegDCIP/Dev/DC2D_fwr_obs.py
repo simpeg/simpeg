@@ -13,6 +13,7 @@ import pylab as plt
 
 from readUBC_DC2DMesh import readUBC_DC2DMesh
 from readUBC_DC2DModel import readUBC_DC2DModel
+from readUBC_DC2DLoc import readUBC_DC2DLoc
 
 # Load UBC mesh 2D
 mesh = readUBC_DC2DMesh('mesh2d.txt')
@@ -21,6 +22,7 @@ mesh = readUBC_DC2DMesh('mesh2d.txt')
 model = readUBC_DC2DModel('model2d.con')
 
 # load obs file
+[tx,rx] = readUBC_DC2DLoc('obs2d_East.loc')
 
 #%% Plot model
 fig, axs = plt.subplots(1,1, figsize=(10,7))
