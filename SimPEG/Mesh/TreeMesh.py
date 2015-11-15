@@ -1316,236 +1316,289 @@ class TreeMesh(BaseMesh, InnerProducts):
         #     self._nodalGrad = Utils.sdiag(1/L)*G
         # return self._nodalGrad
 
-    @property
-    def aveE2CC(self):
-        "Construct the averaging operator on cell edges to cell centers."
-        if getattr(self, '_aveE2CC', None) is None:
+    # @property
+    # def aveE2CC(self):
+    #     "Construct the averaging operator on cell edges to cell centers."
+    #     if getattr(self, '_aveE2CC', None) is None:
             
-            # TODO: preallocate
+    #         # TODO: preallocate
+    #         I, J, V = [], [], []
+            
+    #         if self.dim == 2:
+    #             raise NotImplementedError('aveE2CC not implemented yet')
+
+    #         if self.dim == 3:
+    #             PM = [1./(4.*self.dim)]*4*self.dim # plus / plus
+    #             offset = [0]*4 + [self.ntEx]*4 + [self.ntEx+self.ntEy]*4
+
+    #             for ii, ind in enumerate(self._sortedCells):
+    #                 p = self._pointer(ind)
+    #                 w = self._levelWidth(p[-1])
+
+    #                 edges = [
+    #                             self._ex2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+    #                             self._ex2i[self._index([ p[0]    , p[1] + w, p[2]    , p[3]])],
+    #                             self._ex2i[self._index([ p[0]    , p[1]    , p[2] + w, p[3]])],
+    #                             self._ex2i[self._index([ p[0]    , p[1] + w, p[2] + w, p[3]])],
+    #                             self._ey2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+    #                             self._ey2i[self._index([ p[0] + w, p[1]    , p[2]    , p[3]])],
+    #                             self._ey2i[self._index([ p[0]    , p[1]    , p[2] + w, p[3]])],
+    #                             self._ey2i[self._index([ p[0] + w, p[1]    , p[2] + w, p[3]])],
+    #                             self._ez2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+    #                             self._ez2i[self._index([ p[0] + w, p[1]    , p[2]    , p[3]])],
+    #                             self._ez2i[self._index([ p[0]    , p[1] + w, p[2]    , p[3]])],
+    #                             self._ez2i[self._index([ p[0] + w, p[1] + w, p[2]    , p[3]])]
+    #                         ]
+
+    #                 for off, pm, edge in zip(offset,PM,edges):
+    #                     I += [ii]
+    #                     J += [edge + off]
+    #                     V += [pm]
+
+
+    #         Av = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.ntE))
+    #         Re = self._deflationMatrix('E',asOnes=False,withHanging=True)
+
+    #         self._aveE2CC = Av*Re
+
+    #     return self._aveE2CC
+
+    @property
+    def aveEx2CC(self):
+        if getattr(self, '_aveEx2CC', None) is None:
             I, J, V = [], [], []
             
             if self.dim == 2:
-                raise NotImplementedError('aveE2CC not implemented yet')
+                raise Exception('aveEx2CC not implemented in 2D')
 
             if self.dim == 3:
-                PM = [1./(4.*self.dim)]*4*self.dim # plus / plus
-                offset = [0]*4 + [self.ntEx]*4 + [self.ntEx+self.ntEy]*4
+                PM = [1./4.]*4 
 
                 for ii, ind in enumerate(self._sortedCells):
                     p = self._pointer(ind)
                     w = self._levelWidth(p[-1])
 
-                    edges = [
+                    edgesx = [
                                 self._ex2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
                                 self._ex2i[self._index([ p[0]    , p[1] + w, p[2]    , p[3]])],
                                 self._ex2i[self._index([ p[0]    , p[1]    , p[2] + w, p[3]])],
                                 self._ex2i[self._index([ p[0]    , p[1] + w, p[2] + w, p[3]])],
+                            ]
+
+                    for pm, edge in zip(PM,edgesx):
+                        I += [ii]
+                        J += [edge]
+                        V += [pm]
+
+            Av = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.ntEx))
+            Re = self._deflationMatrix('Ex',asOnes=False,withHanging=True)
+
+            self._aveEx2CC = Av*Re
+        return self._aveEx2CC
+    
+    @property
+    def aveEy2CC(self):
+        "Construct the averaging operator on cell edges to cell centers."
+        if getattr(self, '_aveEy2CC', None) is None:
+            I, J, V = [], [], []
+            
+            if self.dim == 2:
+                raise NotImplementedError('aveEy2CC not implemented in 2D')
+
+            if self.dim == 3:
+                PM = [1./4.]*4 # plus / plus
+
+                for ii, ind in enumerate(self._sortedCells):
+                    p = self._pointer(ind)
+                    w = self._levelWidth(p[-1])
+
+                    edgesy = [
                                 self._ey2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
                                 self._ey2i[self._index([ p[0] + w, p[1]    , p[2]    , p[3]])],
                                 self._ey2i[self._index([ p[0]    , p[1]    , p[2] + w, p[3]])],
                                 self._ey2i[self._index([ p[0] + w, p[1]    , p[2] + w, p[3]])],
+                            ]
+
+                    for pm, edge in zip(PM,edgesy):
+                        I += [ii]
+                        J += [edge]
+                        V += [pm]
+
+            Av = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.ntEy))
+            Re = self._deflationMatrix('Ey',asOnes=False,withHanging=True)
+
+            self._aveEy2CC = Av*Re
+        return self._aveEy2CC
+
+    @property
+    def aveEz2CC(self):
+        "Construct the averaging operator on cell edges to cell centers."
+        # raise Exception('Not yet implemented!')
+        if getattr(self, '_aveEz2CC', None) is None:
+            I, J, V = [], [], []
+            
+            if self.dim == 2:
+                raise Exception('There are no z edges in 2D')
+
+            if self.dim == 3:
+                PM = [1./4.]*4 # plus / plus
+
+                for ii, ind in enumerate(self._sortedCells):
+                    p = self._pointer(ind)
+                    w = self._levelWidth(p[-1])
+
+                    edgesz = [
                                 self._ez2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
                                 self._ez2i[self._index([ p[0] + w, p[1]    , p[2]    , p[3]])],
                                 self._ez2i[self._index([ p[0]    , p[1] + w, p[2]    , p[3]])],
-                                self._ez2i[self._index([ p[0] + w, p[1] + w, p[2]    , p[3]])]
+                                self._ez2i[self._index([ p[0] + w, p[1] + w, p[2]    , p[3]])],
                             ]
 
-                    for off, pm, edge in zip(offset,PM,edges):
+                    for pm, edge in zip(PM,edgesz):
                         I += [ii]
-                        J += [edge + off]
+                        J += [edge]
                         V += [pm]
 
 
-            Av = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.ntE))
-            Re = self._deflationMatrix('E',asOnes=False,withHanging=True)
+            Av = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.ntEz))
+            Re = self._deflationMatrix('Ez',asOnes=False,withHanging=True)
 
-            self._aveE2CC = Av*Re
+            self._aveEz2CC = Av*Re
 
+        return self._aveEz2CC
+
+    @property
+    def aveE2CC(self):
+        "Construct the averaging operator on cell edges to cell centers."
+        if getattr(self, '_aveE2CC', None) is None:
+            if self.dim == 2:
+                raise Exception('aveE2CC not implemented in 2D')
+            elif self.dim == 3:            
+                self._aveE2CC = 1./self.dim*sp.hstack([self.aveEx2CC, self.aveEy2CC, self.aveEz2CC])
         return self._aveE2CC
 
     @property
     def aveE2CCV(self):
         "Construct the averaging operator on cell edges to cell centers."
         # raise Exception('Not yet implemented!')
+        if getattr(self, '_aveE2CCV', None) is None:
+            if self.dim == 2:
+                raise Exception('aveE2CC not implemented in 2D')
+            elif self.dim == 3:
+                self._aveE2CCV = sp.block_diag([self.aveEx2CC, self.aveEy2CC, self.aveEz2CC])
+        return self._aveE2CCV
 
-        I, J, V = [], [], []
-        
-        if self.dim == 2:
-            raise NotImplementedError('aveE2CC not implemented yet')
+    @property 
+    def aveFx2CC(self):
+        if getattr(self, '_aveFx2CC', None) is None:
+            I, J, V = [], [], []
+            PM = [1./2.]*self.dim # 0.5, 0.5
+         
+            for ii, ind in enumerate(self._sortedCells):
+                p = self._pointer(ind)
+                w = self._levelWidth(p[-1])
 
-        if self.dim == 3:
-            PM = [1./4.]*4 # plus / plus
-            offsetx,offsety,offsetz = [0]*4, [self.ntEx]*4 , [self.ntEx+self.ntEy]*4
+                if self.dim == 2:
+                    facesx = [
+                                self._fx2i[self._index([ p[0]    , p[1]    , p[2]])],
+                                self._fx2i[self._index([ p[0] + w, p[1]    , p[2]])],
+                            ]
+            
+                elif self.dim == 3:
+                    facesx = [
+                                self._fx2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                                self._fx2i[self._index([ p[0] + w, p[1]    , p[2]    , p[3]])],
+                            ]
+
+                for pm, face in zip(PM,facesx):
+                    I += [ii]
+                    J += [face]
+                    V += [pm]
+           
+            Av = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.ntFx))
+            Rf = self._deflationMatrix('Fx',asOnes=True,withHanging=True)
+
+            self._aveFx2CC = Av*Rf
+        return self._aveFx2CC
+
+    @property 
+    def aveFy2CC(self):
+        if getattr(self, '_aveFy2CC', None) is None:
+            I, J, V = [], [], []
+            PM = [1./2.]*2 # 0.5, 0.5
+  
+            for ii, ind in enumerate(self._sortedCells):
+                p = self._pointer(ind)
+                w = self._levelWidth(p[-1])
+
+                if self.dim == 2:
+                    facesy = [
+                                self._fy2i[self._index([ p[0]    , p[1]    , p[2]])],
+                                self._fy2i[self._index([ p[0]    , p[1] + w, p[2]])],
+                            ]
+                elif self.dim == 3:
+                    facesy = [
+                                self._fy2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                                self._fy2i[self._index([ p[0]    , p[1] + w, p[2]    , p[3]])],
+                            ]
+
+                for pm, face in zip(PM,facesy):
+                    I += [ii]
+                    J += [face]
+                    V += [pm]
+
+            Av = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.ntFy))
+            Rf = self._deflationMatrix('Fy',asOnes=True,withHanging=True)
+
+            self._aveFy2CC = Av*Rf
+        return self._aveFy2CC
+
+    @property 
+    def aveFz2CC(self):
+        if getattr(self, '_aveFz2CC', None) is None:
+            I, J, V = [], [], []
+            PM = [1./2.]*2 # 0.5, 0.5
 
             for ii, ind in enumerate(self._sortedCells):
                 p = self._pointer(ind)
                 w = self._levelWidth(p[-1])
 
-                edgesx = [
-                            self._ex2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
-                            self._ex2i[self._index([ p[0]    , p[1] + w, p[2]    , p[3]])],
-                            self._ex2i[self._index([ p[0]    , p[1]    , p[2] + w, p[3]])],
-                            self._ex2i[self._index([ p[0]    , p[1] + w, p[2] + w, p[3]])],
-                        ]
-                edgesy = [
-                            self._ey2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
-                            self._ey2i[self._index([ p[0] + w, p[1]    , p[2]    , p[3]])],
-                            self._ey2i[self._index([ p[0]    , p[1]    , p[2] + w, p[3]])],
-                            self._ey2i[self._index([ p[0] + w, p[1]    , p[2] + w, p[3]])],
-                        ]
-                edgesz = [
-                            self._ez2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
-                            self._ez2i[self._index([ p[0] + w, p[1]    , p[2]    , p[3]])],
-                            self._ez2i[self._index([ p[0]    , p[1] + w, p[2]    , p[3]])],
-                            self._ez2i[self._index([ p[0] + w, p[1] + w, p[2]    , p[3]])]
-                        ]
+                if self.dim == 2: 
+                    raise Exception('There are no z-faces in 2D')
+                elif self.dim == 3:
+                    facesz = [
+                                self._fz2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                                self._fz2i[self._index([ p[0]    , p[1]    , p[2] + w, p[3]])],
+                            ]
 
-                for off, pm, edge in zip(offsetx,PM,edgesx):
+                for pm, face in zip(PM,facesz):
                     I += [ii]
-                    J += [edge + off]
+                    J += [face]
                     V += [pm]
-
-                for off, pm, edge in zip(offsety,PM,edgesy):
-                    I += [ii + self.nC]
-                    J += [edge + off]
-                    V += [pm]
-
-                for off, pm, edge in zip(offsetz,PM,edgesz):
-                    I += [ii + self.nC*2.]
-                    J += [edge + off]
-                    V += [pm]
-
-
-            Av = sp.csr_matrix((V,(I,J)), shape=(self.nC*self.dim, self.ntE))
-            Re = self._deflationMatrix('E',asOnes=False,withHanging=True)
-
-            self._aveE2CCV = Av*Re
-        return self._aveE2CCV
+           
+            Av = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.ntFz))
+            Rf = self._deflationMatrix('Fz',asOnes=True,withHanging=True)
+            self._aveFz2CC = Av*Rf
+        return self._aveFz2CC
 
     @property
     def aveF2CC(self):
         "Construct the averaging operator on cell faces to cell centers."
         if getattr(self, '_aveF2CC', None) is None:
-           # TODO: Preallocate!
-            I, J, V = [], [], []
-            PM = [1./(2.*self.dim)]*2*self.dim # plus / plus
-
-            # TODO total number of faces?
-            offset = [0]*2 + [self.ntFx]*2 +  [self.ntFx+self.ntFy]*2
-
-            for ii, ind in enumerate(self._sortedCells):
-
-                p = self._pointer(ind)
-                w = self._levelWidth(p[-1])
-
-                if self.dim == 2:
-                    faces = [
-                                self._fx2i[self._index([ p[0]    , p[1]    , p[2]])],
-                                self._fx2i[self._index([ p[0] + w, p[1]    , p[2]])],
-                                self._fy2i[self._index([ p[0]    , p[1]    , p[2]])],
-                                self._fy2i[self._index([ p[0]    , p[1] + w, p[2]])]
-                            ]
-                elif self.dim == 3:
-                    faces = [
-                                self._fx2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
-                                self._fx2i[self._index([ p[0] + w, p[1]    , p[2]    , p[3]])],
-                                self._fy2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
-                                self._fy2i[self._index([ p[0]    , p[1] + w, p[2]    , p[3]])],
-                                self._fz2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
-                                self._fz2i[self._index([ p[0]    , p[1]    , p[2] + w, p[3]])]
-                            ]
-
-                for off, pm, face in zip(offset,PM,faces):
-                    I += [ii]
-                    J += [face + off]
-                    V += [pm]
-
-
-            Av = sp.csr_matrix((V,(I,J)), shape=(self.nC*self.dim, self.ntF))
-            Rf = self._deflationMatrix('F',asOnes=True,withHanging=True)
-
-            self._aveF2CC = Av*Rf
+            if self.dim == 2:
+                self._aveF2CC = 1./self.dim*sp.hstack([self.aveFx2CC, self.aveFy2CC])
+            elif self.dim == 3:
+                self._aveF2CC = 1./self.dim*sp.hstack([self.aveFx2CC, self.aveFy2CC, self.aveFz2CC])
         return self._aveF2CC
-
 
     @property
     def aveF2CCV(self):
         "Construct the averaging operator on cell faces to cell centers."
         if getattr(self, '_aveF2CCV', None) is None:
-           # TODO: Preallocate!
-            I, J, V = [], [], []
-            PM = [1./2.]*2 # 0.5, 0.5
-
-            offsetx = [0]*2
-            offsety = [self.ntFx]*2
-
-            if self.dim == 2: 
-                for ii, ind in enumerate(self._sortedCells):
-                    p = self._pointer(ind)
-                    w = self._levelWidth(p[-1])
-
-                    facesx = [
-                                self._fx2i[self._index([ p[0]    , p[1]    , p[2]])],
-                                self._fx2i[self._index([ p[0] + w, p[1]    , p[2]])],
-                            ]
-
-                    facesy = [
-                                self._fy2i[self._index([ p[0]    , p[1]    , p[2]])],
-                                self._fy2i[self._index([ p[0]    , p[1] + w, p[2]])],
-                            ]
-            
-                    for off, pm, face in zip(offsetx,PM,facesx):
-                        I += [ii]
-                        J += [face + off]
-                        V += [pm]
-
-                    for off, pm, face in zip(offsety,PM,facesy):
-                        I += [ii + self.nC]
-                        J += [face + off]
-                        V += [pm]
-
-                    
-
-            if self.dim == 3:
-                offsetz = [self.ntFx + self.ntFy]*2
-
-                for ii, ind in enumerate(self._sortedCells):
-                    p = self._pointer(ind)
-                    w = self._levelWidth(p[-1])
-
-                    facesx = [
-                                self._fx2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
-                                self._fx2i[self._index([ p[0] + w, p[1]    , p[2]    , p[3]])],
-                            ]
-
-                    facesy = [
-                                self._fy2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
-                                self._fy2i[self._index([ p[0]    , p[1] + w, p[2]    , p[3]])],
-                            ]
-                    facesz = [
-                                self._fz2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
-                                self._fz2i[self._index([ p[0]    , p[1]    , p[2] + w, p[3]])]
-                            ]
-
-                    for off, pm, face in zip(offsetx,PM,facesx):
-                        I += [ii]
-                        J += [face + off]
-                        V += [pm]
-
-                    for off, pm, face in zip(offsety,PM,facesy):
-                        I += [ii + self.nC]
-                        J += [face + off]
-                        V += [pm]
-
-                    for off, pm, face in zip(offsetz,PM,facesz):
-                        I += [ii + self.nC*2]
-                        J += [face + off]
-                        V += [pm]
-
-            Av = sp.csr_matrix((V,(I,J)), shape=(self.nC*self.dim, self.ntF))
-            Rf = self._deflationMatrix('F',asOnes=True,withHanging=True)
-
-            self._aveF2CCV = Av*Rf
+            if self.dim == 2:
+                self._aveF2CCV = sp.block_diag([self.aveFx2CC, self.aveFy2CC])
+            elif self.dim == 3:
+                self._aveF2CCV = sp.block_diag([self.aveFx2CC, self.aveFy2CC, self.aveFz2CC])
         return self._aveF2CCV
 
 
