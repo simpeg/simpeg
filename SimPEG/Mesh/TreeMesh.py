@@ -380,7 +380,7 @@ class TreeMesh(BaseMesh, InnerProducts):
             if p[-1] >= self.levels: continue
             do = function(Cell(self, cell, p)) > p[-1]
             if do:
-                recurse += self._refineCell(cell)
+                recurse += self._refineCell(cell, p)
 
         if verbose: print '   ', time.time() - tic
 
@@ -391,9 +391,9 @@ class TreeMesh(BaseMesh, InnerProducts):
             self.balance()
         return recurse
 
-    def _refineCell(self, pointer):
-        pointer = self._asPointer(pointer)
-        ind = self._asIndex(pointer)
+    def _refineCell(self, ind, pointer=None):
+        ind = self._asIndex(ind)
+        pointer = self._asPointer(pointer if pointer is not None else ind)
         assert ind in self
         h = self._levelWidth(pointer[-1])/2 # halfWidth
         nL = pointer[-1] + 1 # new level
