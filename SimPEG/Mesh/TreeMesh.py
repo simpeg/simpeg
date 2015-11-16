@@ -103,6 +103,44 @@ import time
 
 MAX_BITS = 20
 
+class Cell(object):
+    def __init__(self, mesh, index, pointer):
+        self.mesh     = mesh
+        self._index   = index
+        self._pointer = pointer
+
+    # @property
+    # def nodes(self):
+    #                         REFACTOR WITH self.x0 and self.h, mesh is not currently numbered!!
+    #     p = self._pointer
+    #     w = self.mesh._levelWidth(p[-1])
+    #     if self.dim == 2:
+    #         return [self._n2i[self.mesh._index([p[0]    , p[1]    , p[2]])],
+    #                 self._n2i[self.mesh._index([p[0] + w, p[1]    , p[2]])],
+    #                 self._n2i[self.mesh._index([p[0]    , p[1] + w, p[2]])],
+    #                 self._n2i[self.mesh._index([p[0] + w, p[1] + w, p[2]])]]
+    #     elif self.dim == 3:
+    #         return [self._n2i[self.mesh._index([p[0]    , p[1]    , p[2]    , p[3]])],
+    #                 self._n2i[self.mesh._index([p[0] + w, p[1]    , p[2]    , p[3]])],
+    #                 self._n2i[self.mesh._index([p[0]    , p[1] + w, p[2]    , p[3]])],
+    #                 self._n2i[self.mesh._index([p[0] + w, p[1] + w, p[2]    , p[3]])],
+    #                 self._n2i[self.mesh._index([p[0]    , p[1]    , p[2] + w, p[3]])],
+    #                 self._n2i[self.mesh._index([p[0] + w, p[1]    , p[2] + w, p[3]])],
+    #                 self._n2i[self.mesh._index([p[0]    , p[1] + w, p[2] + w, p[3]])],
+    #                 self._n2i[self.mesh._index([p[0] + w, p[1] + w, p[2] + w, p[3]])]]
+
+    @property
+    def center(self):
+        if getattr(self, '_center', None) is None:
+            self._center = self.mesh._cellC(self._pointer)
+        return self._center
+    @property
+    def h(self): return self.mesh._cellH(self._pointer)
+    @property
+    def x0(self): return self.mesh._cellN(self._pointer)
+    @property
+    def dim(self): return self.mesh.dim
+
 class TreeMesh(BaseMesh, InnerProducts):
     def __init__(self, h_in, x0_in=None, levels=3):
         assert type(h_in) is list, 'h_in must be a list'
@@ -149,7 +187,7 @@ class TreeMesh(BaseMesh, InnerProducts):
 
     @property
     def __dirty__(self):
-        return self.__dirtyFaces__ or self.__dirtyEdges__ or self.__dirtyNodes__ or self.__dirtyHanging__
+        return self.__dirtyFaces__ or self.__dirtyEdges__ or self.__dirtyNodes__ or self.__dirtyHanging__ or self.__dirtySets__
 
     @__dirty__.setter
     def __dirty__(self, val):
@@ -158,6 +196,7 @@ class TreeMesh(BaseMesh, InnerProducts):
         self.__dirtyEdges__ = True
         self.__dirtyNodes__ = True
         self.__dirtyHanging__ = True
+        self.__dirtySets__ = True
 
         deleteThese = [
                         '__sortedCells',
@@ -171,9 +210,6 @@ class TreeMesh(BaseMesh, InnerProducts):
 
     @property
     def levels(self): return self._levels
-
-    @property
-    def dim(self): return len(self.h)
 
     @property
     def nC(self): return len(self._cells)
@@ -377,7 +413,8 @@ class TreeMesh(BaseMesh, InnerProducts):
         tic = time.time()
         for cell in cells:
             p = self._pointer(cell)
-            do = function(self._cellC(cell)) > p[-1]
+            if p[-1] >= self.levels: continue
+            do = function(Cell(self, cell, p)) > p[-1]
             if do:
                 recurse += self._refineCell(cell)
 
@@ -679,28 +716,89 @@ class TreeMesh(BaseMesh, InnerProducts):
         p1 = self._asPointer(i1)
         return p0[-1] == p1[-1]
 
-    def _numberNodes(self, force=False):
-        if not self.__dirtyNodes__ and not force: return
+    def _createNumberingSets(self, force=False):
+        if not self.__dirtySets__ and not force: return
 
         self._nodes = set()
+
+        self._facesX = set()
+        self._facesY = set()
+        if self.dim == 3:
+            self._facesZ = set()
+            self._edgesX = set()
+            self._edgesY = set()
+            self._edgesZ = set()
+
 
         for ind in self._cells:
             p = self._asPointer(ind)
             w = self._levelWidth(p[-1])
             if self.dim == 2:
-                self._nodes.add(self._index([p[0]    , p[1]    , p[2]]))
-                self._nodes.add(self._index([p[0] + w, p[1]    , p[2]]))
-                self._nodes.add(self._index([p[0]    , p[1] + w, p[2]]))
-                self._nodes.add(self._index([p[0] + w, p[1] + w, p[2]]))
+                i00 = ind
+                iw0 = self._index([p[0] + w, p[1]    , p[2]])
+                i0w = self._index([p[0]    , p[1] + w, p[2]])
+                iww = self._index([p[0] + w, p[1] + w, p[2]])
+
+                self._nodes.add(i00)
+                self._nodes.add(iw0)
+                self._nodes.add(i0w)
+                self._nodes.add(iww)
+
+                self._facesX.add(i00)
+                self._facesX.add(iw0)
+
+                self._facesY.add(i00)
+                self._facesY.add(i0w)
+
+
             elif self.dim == 3:
-                self._nodes.add(self._index([p[0]    , p[1]    , p[2]    , p[3]]))
-                self._nodes.add(self._index([p[0] + w, p[1]    , p[2]    , p[3]]))
-                self._nodes.add(self._index([p[0]    , p[1] + w, p[2]    , p[3]]))
-                self._nodes.add(self._index([p[0] + w, p[1] + w, p[2]    , p[3]]))
-                self._nodes.add(self._index([p[0]    , p[1]    , p[2] + w, p[3]]))
-                self._nodes.add(self._index([p[0] + w, p[1]    , p[2] + w, p[3]]))
-                self._nodes.add(self._index([p[0]    , p[1] + w, p[2] + w, p[3]]))
-                self._nodes.add(self._index([p[0] + w, p[1] + w, p[2] + w, p[3]]))
+                i000 = ind
+                iw00 = self._index([p[0] + w, p[1]    , p[2]    , p[3]])
+                i0w0 = self._index([p[0]    , p[1] + w, p[2]    , p[3]])
+                i00w = self._index([p[0]    , p[1]    , p[2] + w, p[3]])
+                iww0 = self._index([p[0] + w, p[1] + w, p[2]    , p[3]])
+                iw0w = self._index([p[0] + w, p[1]    , p[2] + w, p[3]])
+                i0ww = self._index([p[0]    , p[1] + w, p[2] + w, p[3]])
+                iwww = self._index([p[0] + w, p[1] + w, p[2] + w, p[3]])
+
+                self._nodes.add(i000)
+                self._nodes.add(iw00)
+                self._nodes.add(i0w0)
+                self._nodes.add(iww0)
+                self._nodes.add(i00w)
+                self._nodes.add(iw0w)
+                self._nodes.add(i0ww)
+                self._nodes.add(iwww)
+
+                self._facesX.add(i000)
+                self._facesX.add(iw00)
+
+                self._facesY.add(i000)
+                self._facesY.add(i0w0)
+
+                self._facesZ.add(i000)
+                self._facesZ.add(i00w)
+
+                self._edgesX.add(i000)
+                self._edgesX.add(i0w0)
+                self._edgesX.add(i00w)
+                self._edgesX.add(i0ww)
+
+                self._edgesY.add(i000)
+                self._edgesY.add(iw00)
+                self._edgesY.add(i00w)
+                self._edgesY.add(iw0w)
+
+                self._edgesZ.add(i000)
+                self._edgesZ.add(iw00)
+                self._edgesZ.add(i0w0)
+                self._edgesZ.add(iww0)
+
+        self.__dirtySets__ = False
+
+    def _numberNodes(self, force=False):
+        if not self.__dirtyNodes__ and not force: return
+        self._createNumberingSets(force=force)
         gridN = []
         self._n2i = dict()
         for ii, n in enumerate(sorted(self._nodes)):
@@ -712,28 +810,11 @@ class TreeMesh(BaseMesh, InnerProducts):
 
     def _numberFaces(self, force=False):
         if not self.__dirtyFaces__ and not force: return
-
-        self._facesX = set()
-        self._facesY = set()
-        if self.dim == 3:
-            self._facesZ = set()
+        self._createNumberingSets(force=force)
 
         for ind in self._cells:
             p = self._asPointer(ind)
             w = self._levelWidth(p[-1])
-
-            if self.dim == 2:
-                self._facesX.add(self._index([p[0]    , p[1]    , p[2]]))
-                self._facesX.add(self._index([p[0] + w, p[1]    , p[2]]))
-                self._facesY.add(self._index([p[0]    , p[1]    , p[2]]))
-                self._facesY.add(self._index([p[0]    , p[1] + w, p[2]]))
-            elif self.dim == 3:
-                self._facesX.add(self._index([p[0]    , p[1]    , p[2]    , p[3]]))
-                self._facesX.add(self._index([p[0] + w, p[1]    , p[2]    , p[3]]))
-                self._facesY.add(self._index([p[0]    , p[1]    , p[2]    , p[3]]))
-                self._facesY.add(self._index([p[0]    , p[1] + w, p[2]    , p[3]]))
-                self._facesZ.add(self._index([p[0]    , p[1]    , p[2]    , p[3]]))
-                self._facesZ.add(self._index([p[0]    , p[1]    , p[2] + w, p[3]]))
 
         gridFx = []
         areaFx = []
@@ -790,28 +871,7 @@ class TreeMesh(BaseMesh, InnerProducts):
             self.__dirtyEdges__ = False
             return
         if not self.__dirtyEdges__ and not force: return
-
-        self._edgesX = set()
-        self._edgesY = set()
-        self._edgesZ = set()
-
-        for ind in self._cells:
-            p = self._asPointer(ind)
-            w = self._levelWidth(p[-1])
-            self._edgesX.add(self._index([p[0]    , p[1]    , p[2]    , p[3]]))
-            self._edgesX.add(self._index([p[0]    , p[1] + w, p[2]    , p[3]]))
-            self._edgesX.add(self._index([p[0]    , p[1]    , p[2] + w, p[3]]))
-            self._edgesX.add(self._index([p[0]    , p[1] + w, p[2] + w, p[3]]))
-
-            self._edgesY.add(self._index([p[0]    , p[1]    , p[2]    , p[3]]))
-            self._edgesY.add(self._index([p[0] + w, p[1]    , p[2]    , p[3]]))
-            self._edgesY.add(self._index([p[0]    , p[1]    , p[2] + w, p[3]]))
-            self._edgesY.add(self._index([p[0] + w, p[1]    , p[2] + w, p[3]]))
-
-            self._edgesZ.add(self._index([p[0]    , p[1]    , p[2]    , p[3]]))
-            self._edgesZ.add(self._index([p[0] + w, p[1]    , p[2]    , p[3]]))
-            self._edgesZ.add(self._index([p[0]    , p[1] + w, p[2]    , p[3]]))
-            self._edgesZ.add(self._index([p[0] + w, p[1] + w, p[2]    , p[3]]))
+        self._createNumberingSets(force=force)
 
         gridEx = []
         edgeEx = []
@@ -911,48 +971,58 @@ class TreeMesh(BaseMesh, InnerProducts):
                 n2  = self._index([p[0], p[1]      , p[2] + 2*w, p[-1]])
                 n3  = self._index([p[0], p[1] + 2*w, p[2] + 2*w, p[-1]])
 
-                self._hangingFx[self._fx2i[test                                           ]] = ([self._fx2i[fx], chy0*chz0 / A ], )
-                self._hangingFx[self._fx2i[self._index([p[0], p[1] +   w, p[2]      , sl])]] = ([self._fx2i[fx], chy1*chz0 / A ], )
-                self._hangingFx[self._fx2i[self._index([p[0], p[1]      , p[2] +   w, sl])]] = ([self._fx2i[fx], chy0*chz1 / A ], )
-                self._hangingFx[self._fx2i[self._index([p[0], p[1] +   w, p[2] +   w, sl])]] = ([self._fx2i[fx], chy1*chz1 / A ], )
+                i000 = test
+                i010 = self._index([p[0], p[1] +   w, p[2]      , sl])
+                i001 = self._index([p[0], p[1]      , p[2] +   w, sl])
+                i011 = self._index([p[0], p[1] +   w, p[2] +   w, sl])
+                i020 = self._index([p[0], p[1] + 2*w, p[2]      , sl])
+                i021 = self._index([p[0], p[1] + 2*w, p[2] +   w, sl])
+                i002 = self._index([p[0], p[1]      , p[2] + 2*w, sl])
+                i012 = self._index([p[0], p[1] +   w, p[2] + 2*w, sl])
+                i022 = self._index([p[0], p[1] + 2*w, p[2] + 2*w, sl])
 
-                self._hangingEy[self._ey2i[test                                           ]] = ([self._ey2i[ey0], 1.0], )
-                self._hangingEy[self._ey2i[self._index([p[0], p[1] +   w, p[2]      , sl])]] = ([self._ey2i[ey0], 1.0], )
-                self._hangingEy[self._ey2i[self._index([p[0], p[1]      , p[2] +   w, sl])]] = ([self._ey2i[ey0], 0.5], [self._ey2i[ey1], 0.5])
-                self._hangingEy[self._ey2i[self._index([p[0], p[1] +   w, p[2] +   w, sl])]] = ([self._ey2i[ey0], 0.5], [self._ey2i[ey1], 0.5])
-                self._hangingEy[self._ey2i[self._index([p[0], p[1]      , p[2] + 2*w, sl])]] = ([self._ey2i[ey1], 1.0], )
-                self._hangingEy[self._ey2i[self._index([p[0], p[1] +   w, p[2] + 2*w, sl])]] = ([self._ey2i[ey1], 1.0], )
+                self._hangingFx[self._fx2i[i000]] = ([self._fx2i[fx], chy0*chz0 / A ], )
+                self._hangingFx[self._fx2i[i010]] = ([self._fx2i[fx], chy1*chz0 / A ], )
+                self._hangingFx[self._fx2i[i001]] = ([self._fx2i[fx], chy0*chz1 / A ], )
+                self._hangingFx[self._fx2i[i011]] = ([self._fx2i[fx], chy1*chz1 / A ], )
 
-                self._hangingEz[self._ez2i[test                                           ]] = ([self._ez2i[ez0], 1.0], )
-                self._hangingEz[self._ez2i[self._index([p[0], p[1]      , p[2] +   w, sl])]] = ([self._ez2i[ez0], 1.0], )
-                self._hangingEz[self._ez2i[self._index([p[0], p[1] +   w, p[2]      , sl])]] = ([self._ez2i[ez0], 0.5], [self._ez2i[ez1], 0.5])
-                self._hangingEz[self._ez2i[self._index([p[0], p[1] +   w, p[2] +   w, sl])]] = ([self._ez2i[ez0], 0.5], [self._ez2i[ez1], 0.5])
-                self._hangingEz[self._ez2i[self._index([p[0], p[1] + 2*w, p[2]      , sl])]] = ([self._ez2i[ez1], 1.0], )
-                self._hangingEz[self._ez2i[self._index([p[0], p[1] + 2*w, p[2] +   w, sl])]] = ([self._ez2i[ez1], 1.0], )
+                self._hangingEy[self._ey2i[i000]] = ([self._ey2i[ey0], 1.0], )
+                self._hangingEy[self._ey2i[i010]] = ([self._ey2i[ey0], 1.0], )
+                self._hangingEy[self._ey2i[i001]] = ([self._ey2i[ey0], 0.5], [self._ey2i[ey1], 0.5])
+                self._hangingEy[self._ey2i[i011]] = ([self._ey2i[ey0], 0.5], [self._ey2i[ey1], 0.5])
+                self._hangingEy[self._ey2i[i002]] = ([self._ey2i[ey1], 1.0], )
+                self._hangingEy[self._ey2i[i012]] = ([self._ey2i[ey1], 1.0], )
 
-                # self._hangingEy[self._ey2i[test                                           ]] = ([self._ey2i[ey0], chy0 / lenY], )
-                # self._hangingEy[self._ey2i[self._index([p[0], p[1] +   w, p[2]      , sl])]] = ([self._ey2i[ey0], chy1 / lenY], )
-                # self._hangingEy[self._ey2i[self._index([p[0], p[1]      , p[2] +   w, sl])]] = ([self._ey2i[ey0], chy0 / lenY / 2.0], [self._ey2i[ey1], chy0 / lenY / 2.0])
-                # self._hangingEy[self._ey2i[self._index([p[0], p[1] +   w, p[2] +   w, sl])]] = ([self._ey2i[ey0], chy1 / lenY / 2.0], [self._ey2i[ey1], chy1 / lenY / 2.0])
-                # self._hangingEy[self._ey2i[self._index([p[0], p[1]      , p[2] + 2*w, sl])]] = ([self._ey2i[ey1], chy0 / lenY], )
-                # self._hangingEy[self._ey2i[self._index([p[0], p[1] +   w, p[2] + 2*w, sl])]] = ([self._ey2i[ey1], chy1 / lenY], )
+                self._hangingEz[self._ez2i[i000]] = ([self._ez2i[ez0], 1.0], )
+                self._hangingEz[self._ez2i[i001]] = ([self._ez2i[ez0], 1.0], )
+                self._hangingEz[self._ez2i[i010]] = ([self._ez2i[ez0], 0.5], [self._ez2i[ez1], 0.5])
+                self._hangingEz[self._ez2i[i011]] = ([self._ez2i[ez0], 0.5], [self._ez2i[ez1], 0.5])
+                self._hangingEz[self._ez2i[i020]] = ([self._ez2i[ez1], 1.0], )
+                self._hangingEz[self._ez2i[i021]] = ([self._ez2i[ez1], 1.0], )
 
-                # self._hangingEz[self._ez2i[test                                           ]] = ([self._ez2i[ez0], chz0 / lenZ], )
-                # self._hangingEz[self._ez2i[self._index([p[0], p[1]      , p[2] +   w, sl])]] = ([self._ez2i[ez0], chz1 / lenZ], )
-                # self._hangingEz[self._ez2i[self._index([p[0], p[1] +   w, p[2]      , sl])]] = ([self._ez2i[ez0], chz0 / lenZ / 2.0], [self._ez2i[ez1], chz0 / lenZ / 2.0])
-                # self._hangingEz[self._ez2i[self._index([p[0], p[1] +   w, p[2] +   w, sl])]] = ([self._ez2i[ez0], chz1 / lenZ / 2.0], [self._ez2i[ez1], chz1 / lenZ / 2.0])
-                # self._hangingEz[self._ez2i[self._index([p[0], p[1] + 2*w, p[2]      , sl])]] = ([self._ez2i[ez1], chz0 / lenZ], )
-                # self._hangingEz[self._ez2i[self._index([p[0], p[1] + 2*w, p[2] +   w, sl])]] = ([self._ez2i[ez1], chz1 / lenZ], )
+                # self._hangingEy[self._ey2i[i000]] = ([self._ey2i[ey0], chy0 / lenY], )
+                # self._hangingEy[self._ey2i[i010]] = ([self._ey2i[ey0], chy1 / lenY], )
+                # self._hangingEy[self._ey2i[i001]] = ([self._ey2i[ey0], chy0 / lenY / 2.0], [self._ey2i[ey1], chy0 / lenY / 2.0])
+                # self._hangingEy[self._ey2i[i011]] = ([self._ey2i[ey0], chy1 / lenY / 2.0], [self._ey2i[ey1], chy1 / lenY / 2.0])
+                # self._hangingEy[self._ey2i[i002]] = ([self._ey2i[ey1], chy0 / lenY], )
+                # self._hangingEy[self._ey2i[i012]] = ([self._ey2i[ey1], chy1 / lenY], )
 
-                self._hangingN[ self._n2i[ test                                           ]] = ([self._n2i[n0],   1.0], )
-                self._hangingN[ self._n2i[ self._index([p[0], p[1] +   w, p[2]      , sl])]] = ([self._n2i[n0],   0.5], [self._n2i[n1], 0.5])
-                self._hangingN[ self._n2i[ self._index([p[0], p[1] + 2*w, p[2]      , sl])]] = ([self._n2i[n1],   1.0], )
-                self._hangingN[ self._n2i[ self._index([p[0], p[1]      , p[2] +   w, sl])]] = ([self._n2i[n0],   0.5], [self._n2i[n2], 0.5])
-                self._hangingN[ self._n2i[ self._index([p[0], p[1] +   w, p[2] +   w, sl])]] = ([self._n2i[n0],   0.25], [self._n2i[n1], 0.25], [self._n2i[n2], 0.25], [self._n2i[n3], 0.25])
-                self._hangingN[ self._n2i[ self._index([p[0], p[1] + 2*w, p[2] +   w, sl])]] = ([self._n2i[n1],   0.5], [self._n2i[n3], 0.5])
-                self._hangingN[ self._n2i[ self._index([p[0], p[1]      , p[2] + 2*w, sl])]] = ([self._n2i[n2],   1.0], )
-                self._hangingN[ self._n2i[ self._index([p[0], p[1] +   w, p[2] + 2*w, sl])]] = ([self._n2i[n2],   0.5], [self._n2i[n3], 0.5])
-                self._hangingN[ self._n2i[ self._index([p[0], p[1] + 2*w, p[2] + 2*w, sl])]] = ([self._n2i[n3],   1.0], )
+                # self._hangingEz[self._ez2i[i000]] = ([self._ez2i[ez0], chz0 / lenZ], )
+                # self._hangingEz[self._ez2i[i001]] = ([self._ez2i[ez0], chz1 / lenZ], )
+                # self._hangingEz[self._ez2i[i010]] = ([self._ez2i[ez0], chz0 / lenZ / 2.0], [self._ez2i[ez1], chz0 / lenZ / 2.0])
+                # self._hangingEz[self._ez2i[i011]] = ([self._ez2i[ez0], chz1 / lenZ / 2.0], [self._ez2i[ez1], chz1 / lenZ / 2.0])
+                # self._hangingEz[self._ez2i[i020]] = ([self._ez2i[ez1], chz0 / lenZ], )
+                # self._hangingEz[self._ez2i[i021]] = ([self._ez2i[ez1], chz1 / lenZ], )
+
+                self._hangingN[ self._n2i[ i000]] = ([self._n2i[n0],   1.0], )
+                self._hangingN[ self._n2i[ i010]] = ([self._n2i[n0],   0.5], [self._n2i[n1], 0.5])
+                self._hangingN[ self._n2i[ i020]] = ([self._n2i[n1],   1.0], )
+                self._hangingN[ self._n2i[ i001]] = ([self._n2i[n0],   0.5], [self._n2i[n2], 0.5])
+                self._hangingN[ self._n2i[ i011]] = ([self._n2i[n0],   0.25], [self._n2i[n1], 0.25], [self._n2i[n2], 0.25], [self._n2i[n3], 0.25])
+                self._hangingN[ self._n2i[ i021]] = ([self._n2i[n1],   0.5], [self._n2i[n3], 0.5])
+                self._hangingN[ self._n2i[ i002]] = ([self._n2i[n2],   1.0], )
+                self._hangingN[ self._n2i[ i012]] = ([self._n2i[n2],   0.5], [self._n2i[n3], 0.5])
+                self._hangingN[ self._n2i[ i022]] = ([self._n2i[n3],   1.0], )
 
         # Compute from y faces
         for fy in self._facesY:
@@ -997,48 +1067,58 @@ class TreeMesh(BaseMesh, InnerProducts):
                 n2  = self._index([p[0]      , p[1], p[2] + 2*w, p[-1]])
                 n3  = self._index([p[0] + 2*w, p[1], p[2] + 2*w, p[-1]])
 
-                self._hangingFy[self._fy2i[test                                           ]] = ([self._fy2i[fy], chx0*chz0 / A ], )
-                self._hangingFy[self._fy2i[self._index([p[0] +   w, p[1], p[2]      , sl])]] = ([self._fy2i[fy], chx1*chz0 / A ], )
-                self._hangingFy[self._fy2i[self._index([p[0]      , p[1], p[2] +   w, sl])]] = ([self._fy2i[fy], chx0*chz1 / A ], )
-                self._hangingFy[self._fy2i[self._index([p[0] +   w, p[1], p[2] +   w, sl])]] = ([self._fy2i[fy], chx1*chz1 / A ], )
+                i000 = test
+                i100 = self._index([p[0] +   w, p[1], p[2]      , sl])
+                i001 = self._index([p[0]      , p[1], p[2] +   w, sl])
+                i101 = self._index([p[0] +   w, p[1], p[2] +   w, sl])
+                i200 = self._index([p[0] + 2*w, p[1], p[2]      , sl])
+                i201 = self._index([p[0] + 2*w, p[1], p[2] +   w, sl])
+                i002 = self._index([p[0]      , p[1], p[2] + 2*w, sl])
+                i102 = self._index([p[0] +   w, p[1], p[2] + 2*w, sl])
+                i202 = self._index([p[0] + 2*w, p[1], p[2] + 2*w, sl])
 
-                self._hangingEx[self._ex2i[test                                           ]] = ([self._ex2i[ex0], 1.0], )
-                self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1], p[2]      , sl])]] = ([self._ex2i[ex0], 1.0], )
-                self._hangingEx[self._ex2i[self._index([p[0]      , p[1], p[2] +   w, sl])]] = ([self._ex2i[ex0], 0.5], [self._ex2i[ex1], 0.5])
-                self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1], p[2] +   w, sl])]] = ([self._ex2i[ex0], 0.5], [self._ex2i[ex1], 0.5])
-                self._hangingEx[self._ex2i[self._index([p[0]      , p[1], p[2] + 2*w, sl])]] = ([self._ex2i[ex1], 1.0], )
-                self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1], p[2] + 2*w, sl])]] = ([self._ex2i[ex1], 1.0], )
+                self._hangingFy[self._fy2i[i000]] = ([self._fy2i[fy], chx0*chz0 / A ], )
+                self._hangingFy[self._fy2i[i100]] = ([self._fy2i[fy], chx1*chz0 / A ], )
+                self._hangingFy[self._fy2i[i001]] = ([self._fy2i[fy], chx0*chz1 / A ], )
+                self._hangingFy[self._fy2i[i101]] = ([self._fy2i[fy], chx1*chz1 / A ], )
 
-                self._hangingEz[self._ez2i[test                                           ]] = ([self._ez2i[ez0], 1.0], )
-                self._hangingEz[self._ez2i[self._index([p[0]      , p[1], p[2] +   w, sl])]] = ([self._ez2i[ez0], 1.0], )
-                self._hangingEz[self._ez2i[self._index([p[0] +   w, p[1], p[2]      , sl])]] = ([self._ez2i[ez0], 0.5], [self._ez2i[ez1], 0.5])
-                self._hangingEz[self._ez2i[self._index([p[0] +   w, p[1], p[2] +   w, sl])]] = ([self._ez2i[ez0], 0.5], [self._ez2i[ez1], 0.5])
-                self._hangingEz[self._ez2i[self._index([p[0] + 2*w, p[1], p[2]      , sl])]] = ([self._ez2i[ez1], 1.0], )
-                self._hangingEz[self._ez2i[self._index([p[0] + 2*w, p[1], p[2] +   w, sl])]] = ([self._ez2i[ez1], 1.0], )
+                self._hangingEx[self._ex2i[i000]] = ([self._ex2i[ex0], 1.0], )
+                self._hangingEx[self._ex2i[i100]] = ([self._ex2i[ex0], 1.0], )
+                self._hangingEx[self._ex2i[i001]] = ([self._ex2i[ex0], 0.5], [self._ex2i[ex1], 0.5])
+                self._hangingEx[self._ex2i[i101]] = ([self._ex2i[ex0], 0.5], [self._ex2i[ex1], 0.5])
+                self._hangingEx[self._ex2i[i002]] = ([self._ex2i[ex1], 1.0], )
+                self._hangingEx[self._ex2i[i102]] = ([self._ex2i[ex1], 1.0], )
 
-                # self._hangingEx[self._ex2i[test                                           ]] = ([self._ex2i[ex0], chx0 / lenX], )
-                # self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1], p[2]      , sl])]] = ([self._ex2i[ex0], chx1 / lenX], )
-                # self._hangingEx[self._ex2i[self._index([p[0]      , p[1], p[2] +   w, sl])]] = ([self._ex2i[ex0], chx0 / lenX / 2.0], [self._ex2i[ex1], chx0 / lenX / 2.0])
-                # self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1], p[2] +   w, sl])]] = ([self._ex2i[ex0], chx1 / lenX / 2.0], [self._ex2i[ex1], chx1 / lenX / 2.0])
-                # self._hangingEx[self._ex2i[self._index([p[0]      , p[1], p[2] + 2*w, sl])]] = ([self._ex2i[ex1], chx0 / lenX], )
-                # self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1], p[2] + 2*w, sl])]] = ([self._ex2i[ex1], chx1 / lenX], )
+                self._hangingEz[self._ez2i[i000]] = ([self._ez2i[ez0], 1.0], )
+                self._hangingEz[self._ez2i[i001]] = ([self._ez2i[ez0], 1.0], )
+                self._hangingEz[self._ez2i[i100]] = ([self._ez2i[ez0], 0.5], [self._ez2i[ez1], 0.5])
+                self._hangingEz[self._ez2i[i101]] = ([self._ez2i[ez0], 0.5], [self._ez2i[ez1], 0.5])
+                self._hangingEz[self._ez2i[i200]] = ([self._ez2i[ez1], 1.0], )
+                self._hangingEz[self._ez2i[i201]] = ([self._ez2i[ez1], 1.0], )
 
-                # self._hangingEz[self._ez2i[test                                           ]] = ([self._ez2i[ez0], chz0 / lenZ], )
-                # self._hangingEz[self._ez2i[self._index([p[0]      , p[1], p[2] +   w, sl])]] = ([self._ez2i[ez0], chz1 / lenZ], )
-                # self._hangingEz[self._ez2i[self._index([p[0] +   w, p[1], p[2]      , sl])]] = ([self._ez2i[ez0], chz0 / lenZ / 2.0], [self._ez2i[ez1], chz0 / lenZ / 2.0])
-                # self._hangingEz[self._ez2i[self._index([p[0] +   w, p[1], p[2] +   w, sl])]] = ([self._ez2i[ez0], chz1 / lenZ / 2.0], [self._ez2i[ez1], chz1 / lenZ / 2.0])
-                # self._hangingEz[self._ez2i[self._index([p[0] + 2*w, p[1], p[2]      , sl])]] = ([self._ez2i[ez1], chz0 / lenZ], )
-                # self._hangingEz[self._ez2i[self._index([p[0] + 2*w, p[1], p[2] +   w, sl])]] = ([self._ez2i[ez1], chz1 / lenZ], )
+                # self._hangingEx[self._ex2i[i000]] = ([self._ex2i[ex0], chx0 / lenX], )
+                # self._hangingEx[self._ex2i[i100]] = ([self._ex2i[ex0], chx1 / lenX], )
+                # self._hangingEx[self._ex2i[i001]] = ([self._ex2i[ex0], chx0 / lenX / 2.0], [self._ex2i[ex1], chx0 / lenX / 2.0])
+                # self._hangingEx[self._ex2i[i101]] = ([self._ex2i[ex0], chx1 / lenX / 2.0], [self._ex2i[ex1], chx1 / lenX / 2.0])
+                # self._hangingEx[self._ex2i[i002]] = ([self._ex2i[ex1], chx0 / lenX], )
+                # self._hangingEx[self._ex2i[i102]] = ([self._ex2i[ex1], chx1 / lenX], )
 
-                self._hangingN[ self._n2i[ test                                           ]] = ([self._n2i[n0],   1.0], )
-                self._hangingN[ self._n2i[ self._index([p[0] +   w, p[1], p[2]      , sl])]] = ([self._n2i[n0],   0.5], [self._n2i[n1], 0.5])
-                self._hangingN[ self._n2i[ self._index([p[0] + 2*w, p[1], p[2]      , sl])]] = ([self._n2i[n1],   1.0], )
-                self._hangingN[ self._n2i[ self._index([p[0]      , p[1], p[2] +   w, sl])]] = ([self._n2i[n0],   0.5], [self._n2i[n2], 0.5])
-                self._hangingN[ self._n2i[ self._index([p[0] +   w, p[1], p[2] +   w, sl])]] = ([self._n2i[n0],   0.25], [self._n2i[n1], 0.25], [self._n2i[n2], 0.25], [self._n2i[n3], 0.25])
-                self._hangingN[ self._n2i[ self._index([p[0] + 2*w, p[1], p[2] +   w, sl])]] = ([self._n2i[n1],   0.5], [self._n2i[n3], 0.5])
-                self._hangingN[ self._n2i[ self._index([p[0]      , p[1], p[2] + 2*w, sl])]] = ([self._n2i[n2],   1.0], )
-                self._hangingN[ self._n2i[ self._index([p[0] +   w, p[1], p[2] + 2*w, sl])]] = ([self._n2i[n2],   0.5], [self._n2i[n3], 0.5])
-                self._hangingN[ self._n2i[ self._index([p[0] + 2*w, p[1], p[2] + 2*w, sl])]] = ([self._n2i[n3],   1.0], )
+                # self._hangingEz[self._ez2i[i000]] = ([self._ez2i[ez0], chz0 / lenZ], )
+                # self._hangingEz[self._ez2i[i001]] = ([self._ez2i[ez0], chz1 / lenZ], )
+                # self._hangingEz[self._ez2i[i100]] = ([self._ez2i[ez0], chz0 / lenZ / 2.0], [self._ez2i[ez1], chz0 / lenZ / 2.0])
+                # self._hangingEz[self._ez2i[i101]] = ([self._ez2i[ez0], chz1 / lenZ / 2.0], [self._ez2i[ez1], chz1 / lenZ / 2.0])
+                # self._hangingEz[self._ez2i[i200]] = ([self._ez2i[ez1], chz0 / lenZ], )
+                # self._hangingEz[self._ez2i[i201]] = ([self._ez2i[ez1], chz1 / lenZ], )
+
+                self._hangingN[ self._n2i[ i000]] = ([self._n2i[n0],   1.0], )
+                self._hangingN[ self._n2i[ i100]] = ([self._n2i[n0],   0.5], [self._n2i[n1], 0.5])
+                self._hangingN[ self._n2i[ i200]] = ([self._n2i[n1],   1.0], )
+                self._hangingN[ self._n2i[ i001]] = ([self._n2i[n0],   0.5], [self._n2i[n2], 0.5])
+                self._hangingN[ self._n2i[ i101]] = ([self._n2i[n0],   0.25], [self._n2i[n1], 0.25], [self._n2i[n2], 0.25], [self._n2i[n3], 0.25])
+                self._hangingN[ self._n2i[ i201]] = ([self._n2i[n1],   0.5], [self._n2i[n3], 0.5])
+                self._hangingN[ self._n2i[ i002]] = ([self._n2i[n2],   1.0], )
+                self._hangingN[ self._n2i[ i102]] = ([self._n2i[n2],   0.5], [self._n2i[n3], 0.5])
+                self._hangingN[ self._n2i[ i202]] = ([self._n2i[n3],   1.0], )
 
         if self.dim == 2:
             self.__dirtyHanging__ = False
@@ -1073,48 +1153,58 @@ class TreeMesh(BaseMesh, InnerProducts):
             n2  = self._index([p[0]      , p[1] + 2*w, p[2], p[-1]])
             n3  = self._index([p[0] + 2*w, p[1] + 2*w, p[2], p[-1]])
 
-            self._hangingFz[self._fz2i[test                                           ]] = ([self._fz2i[fz], chx0*chy0 / A ], )
-            self._hangingFz[self._fz2i[self._index([p[0] +   w, p[1]      , p[2], sl])]] = ([self._fz2i[fz], chx1*chy0 / A ], )
-            self._hangingFz[self._fz2i[self._index([p[0]      , p[1] +   w, p[2], sl])]] = ([self._fz2i[fz], chx0*chy1 / A ], )
-            self._hangingFz[self._fz2i[self._index([p[0] +   w, p[1] +   w, p[2], sl])]] = ([self._fz2i[fz], chx1*chy1 / A ], )
+            i000 = test
+            i100 = self._index([p[0] +   w, p[1]      , p[2], sl])
+            i010 = self._index([p[0]      , p[1] +   w, p[2], sl])
+            i110 = self._index([p[0] +   w, p[1] +   w, p[2], sl])
+            i200 = self._index([p[0] + 2*w, p[1]      , p[2], sl])
+            i210 = self._index([p[0] + 2*w, p[1] +   w, p[2], sl])
+            i020 = self._index([p[0]      , p[1] + 2*w, p[2], sl])
+            i120 = self._index([p[0] +   w, p[1] + 2*w, p[2], sl])
+            i220 = self._index([p[0] + 2*w, p[1] + 2*w, p[2], sl])
 
-            self._hangingEx[self._ex2i[test                                           ]] = ([self._ex2i[ex0], 1.0], )
-            self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1]      , p[2], sl])]] = ([self._ex2i[ex0], 1.0], )
-            self._hangingEx[self._ex2i[self._index([p[0]      , p[1] +   w, p[2], sl])]] = ([self._ex2i[ex0], 0.5], [self._ex2i[ex1], 0.5])
-            self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1] +   w, p[2], sl])]] = ([self._ex2i[ex0], 0.5], [self._ex2i[ex1], 0.5])
-            self._hangingEx[self._ex2i[self._index([p[0]      , p[1] + 2*w, p[2], sl])]] = ([self._ex2i[ex1], 1.0], )
-            self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1] + 2*w, p[2], sl])]] = ([self._ex2i[ex1], 1.0], )
+            self._hangingFz[self._fz2i[i000]] = ([self._fz2i[fz], chx0*chy0 / A ], )
+            self._hangingFz[self._fz2i[i100]] = ([self._fz2i[fz], chx1*chy0 / A ], )
+            self._hangingFz[self._fz2i[i010]] = ([self._fz2i[fz], chx0*chy1 / A ], )
+            self._hangingFz[self._fz2i[i110]] = ([self._fz2i[fz], chx1*chy1 / A ], )
 
-            self._hangingEy[self._ey2i[test                                           ]] = ([self._ey2i[ey0], 1.0], )
-            self._hangingEy[self._ey2i[self._index([p[0]      , p[1] +   w, p[2], sl])]] = ([self._ey2i[ey0], 1.0], )
-            self._hangingEy[self._ey2i[self._index([p[0] +   w, p[1]      , p[2], sl])]] = ([self._ey2i[ey0], 0.5], [self._ey2i[ey1], 0.5])
-            self._hangingEy[self._ey2i[self._index([p[0] +   w, p[1] +   w, p[2], sl])]] = ([self._ey2i[ey0], 0.5], [self._ey2i[ey1], 0.5])
-            self._hangingEy[self._ey2i[self._index([p[0] + 2*w, p[1]      , p[2], sl])]] = ([self._ey2i[ey1], 1.0], )
-            self._hangingEy[self._ey2i[self._index([p[0] + 2*w, p[1] +   w, p[2], sl])]] = ([self._ey2i[ey1], 1.0], )
+            self._hangingEx[self._ex2i[i000]] = ([self._ex2i[ex0], 1.0], )
+            self._hangingEx[self._ex2i[i100]] = ([self._ex2i[ex0], 1.0], )
+            self._hangingEx[self._ex2i[i010]] = ([self._ex2i[ex0], 0.5], [self._ex2i[ex1], 0.5])
+            self._hangingEx[self._ex2i[i110]] = ([self._ex2i[ex0], 0.5], [self._ex2i[ex1], 0.5])
+            self._hangingEx[self._ex2i[i020]] = ([self._ex2i[ex1], 1.0], )
+            self._hangingEx[self._ex2i[i120]] = ([self._ex2i[ex1], 1.0], )
 
-            # self._hangingEx[self._ex2i[test                                           ]] = ([self._ex2i[ex0], chx0 / lenX], )
-            # self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1]      , p[2], sl])]] = ([self._ex2i[ex0], chx1 / lenX], )
-            # self._hangingEx[self._ex2i[self._index([p[0]      , p[1] +   w, p[2], sl])]] = ([self._ex2i[ex0], chx0 / lenX / 2.0], [self._ex2i[ex1], chx0 / lenX / 2.0])
-            # self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1] +   w, p[2], sl])]] = ([self._ex2i[ex0], chx1 / lenX / 2.0], [self._ex2i[ex1], chx1 / lenX / 2.0])
-            # self._hangingEx[self._ex2i[self._index([p[0]      , p[1] + 2*w, p[2], sl])]] = ([self._ex2i[ex1], chx0 / lenX], )
-            # self._hangingEx[self._ex2i[self._index([p[0] +   w, p[1] + 2*w, p[2], sl])]] = ([self._ex2i[ex1], chx1 / lenX], )
+            self._hangingEy[self._ey2i[i000]] = ([self._ey2i[ey0], 1.0], )
+            self._hangingEy[self._ey2i[i010]] = ([self._ey2i[ey0], 1.0], )
+            self._hangingEy[self._ey2i[i100]] = ([self._ey2i[ey0], 0.5], [self._ey2i[ey1], 0.5])
+            self._hangingEy[self._ey2i[i110]] = ([self._ey2i[ey0], 0.5], [self._ey2i[ey1], 0.5])
+            self._hangingEy[self._ey2i[i200]] = ([self._ey2i[ey1], 1.0], )
+            self._hangingEy[self._ey2i[i210]] = ([self._ey2i[ey1], 1.0], )
 
-            # self._hangingEy[self._ey2i[test                                           ]] = ([self._ey2i[ey0], chy0 / lenY], )
-            # self._hangingEy[self._ey2i[self._index([p[0]      , p[1] +   w, p[2], sl])]] = ([self._ey2i[ey0], chy1 / lenY], )
-            # self._hangingEy[self._ey2i[self._index([p[0] +   w, p[1]      , p[2], sl])]] = ([self._ey2i[ey0], chy0 / lenY / 2.0], [self._ey2i[ey1], chy0 / lenY / 2.0])
-            # self._hangingEy[self._ey2i[self._index([p[0] +   w, p[1] +   w, p[2], sl])]] = ([self._ey2i[ey0], chy1 / lenY / 2.0], [self._ey2i[ey1], chy1 / lenY / 2.0])
-            # self._hangingEy[self._ey2i[self._index([p[0] + 2*w, p[1]      , p[2], sl])]] = ([self._ey2i[ey1], chy0 / lenY], )
-            # self._hangingEy[self._ey2i[self._index([p[0] + 2*w, p[1] +   w, p[2], sl])]] = ([self._ey2i[ey1], chy1 / lenY], )
+            # self._hangingEx[self._ex2i[i000]] = ([self._ex2i[ex0], chx0 / lenX], )
+            # self._hangingEx[self._ex2i[i100]] = ([self._ex2i[ex0], chx1 / lenX], )
+            # self._hangingEx[self._ex2i[i010]] = ([self._ex2i[ex0], chx0 / lenX / 2.0], [self._ex2i[ex1], chx0 / lenX / 2.0])
+            # self._hangingEx[self._ex2i[i110]] = ([self._ex2i[ex0], chx1 / lenX / 2.0], [self._ex2i[ex1], chx1 / lenX / 2.0])
+            # self._hangingEx[self._ex2i[i020]] = ([self._ex2i[ex1], chx0 / lenX], )
+            # self._hangingEx[self._ex2i[i120]] = ([self._ex2i[ex1], chx1 / lenX], )
 
-            self._hangingN[ self._n2i[ test                                           ]] = ([self._n2i[n0],   1.0], )
-            self._hangingN[ self._n2i[ self._index([p[0] +   w, p[1]      , p[2], sl])]] = ([self._n2i[n0],   0.5], [self._n2i[n1], 0.5])
-            self._hangingN[ self._n2i[ self._index([p[0] + 2*w, p[1]      , p[2], sl])]] = ([self._n2i[n1],   1.0], )
-            self._hangingN[ self._n2i[ self._index([p[0]      , p[1] +   w, p[2], sl])]] = ([self._n2i[n0],   0.5], [self._n2i[n2], 0.5])
-            self._hangingN[ self._n2i[ self._index([p[0] +   w, p[1] +   w, p[2], sl])]] = ([self._n2i[n0],   0.25], [self._n2i[n1], 0.25], [self._n2i[n2], 0.25], [self._n2i[n3], 0.25])
-            self._hangingN[ self._n2i[ self._index([p[0] + 2*w, p[1] +   w, p[2], sl])]] = ([self._n2i[n1],   0.5], [self._n2i[n3], 0.5])
-            self._hangingN[ self._n2i[ self._index([p[0]      , p[1] + 2*w, p[2], sl])]] = ([self._n2i[n2],   1.0], )
-            self._hangingN[ self._n2i[ self._index([p[0] +   w, p[1] + 2*w, p[2], sl])]] = ([self._n2i[n2],   0.5], [self._n2i[n3], 0.5])
-            self._hangingN[ self._n2i[ self._index([p[0] + 2*w, p[1] + 2*w, p[2], sl])]] = ([self._n2i[n3],   1.0], )
+            # self._hangingEy[self._ey2i[i000]] = ([self._ey2i[ey0], chy0 / lenY], )
+            # self._hangingEy[self._ey2i[i010]] = ([self._ey2i[ey0], chy1 / lenY], )
+            # self._hangingEy[self._ey2i[i100]] = ([self._ey2i[ey0], chy0 / lenY / 2.0], [self._ey2i[ey1], chy0 / lenY / 2.0])
+            # self._hangingEy[self._ey2i[i110]] = ([self._ey2i[ey0], chy1 / lenY / 2.0], [self._ey2i[ey1], chy1 / lenY / 2.0])
+            # self._hangingEy[self._ey2i[i200]] = ([self._ey2i[ey1], chy0 / lenY], )
+            # self._hangingEy[self._ey2i[i210]] = ([self._ey2i[ey1], chy1 / lenY], )
+
+            self._hangingN[ self._n2i[ i000]] = ([self._n2i[n0],   1.0], )
+            self._hangingN[ self._n2i[ i100]] = ([self._n2i[n0],   0.5], [self._n2i[n1], 0.5])
+            self._hangingN[ self._n2i[ i200]] = ([self._n2i[n1],   1.0], )
+            self._hangingN[ self._n2i[ i010]] = ([self._n2i[n0],   0.5], [self._n2i[n2], 0.5])
+            self._hangingN[ self._n2i[ i110]] = ([self._n2i[n0],   0.25], [self._n2i[n1], 0.25], [self._n2i[n2], 0.25], [self._n2i[n3], 0.25])
+            self._hangingN[ self._n2i[ i210]] = ([self._n2i[n1],   0.5], [self._n2i[n3], 0.5])
+            self._hangingN[ self._n2i[ i020]] = ([self._n2i[n2],   1.0], )
+            self._hangingN[ self._n2i[ i120]] = ([self._n2i[n2],   0.5], [self._n2i[n3], 0.5])
+            self._hangingN[ self._n2i[ i220]] = ([self._n2i[n3],   1.0], )
 
         self.__dirtyHanging__ = False
 
@@ -1316,289 +1406,208 @@ class TreeMesh(BaseMesh, InnerProducts):
         #     self._nodalGrad = Utils.sdiag(1/L)*G
         # return self._nodalGrad
 
-    # @property
-    # def aveE2CC(self):
-    #     "Construct the averaging operator on cell edges to cell centers."
-    #     if getattr(self, '_aveE2CC', None) is None:
-            
-    #         # TODO: preallocate
-    #         I, J, V = [], [], []
-            
-    #         if self.dim == 2:
-    #             raise NotImplementedError('aveE2CC not implemented yet')
-
-    #         if self.dim == 3:
-    #             PM = [1./(4.*self.dim)]*4*self.dim # plus / plus
-    #             offset = [0]*4 + [self.ntEx]*4 + [self.ntEx+self.ntEy]*4
-
-    #             for ii, ind in enumerate(self._sortedCells):
-    #                 p = self._pointer(ind)
-    #                 w = self._levelWidth(p[-1])
-
-    #                 edges = [
-    #                             self._ex2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
-    #                             self._ex2i[self._index([ p[0]    , p[1] + w, p[2]    , p[3]])],
-    #                             self._ex2i[self._index([ p[0]    , p[1]    , p[2] + w, p[3]])],
-    #                             self._ex2i[self._index([ p[0]    , p[1] + w, p[2] + w, p[3]])],
-    #                             self._ey2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
-    #                             self._ey2i[self._index([ p[0] + w, p[1]    , p[2]    , p[3]])],
-    #                             self._ey2i[self._index([ p[0]    , p[1]    , p[2] + w, p[3]])],
-    #                             self._ey2i[self._index([ p[0] + w, p[1]    , p[2] + w, p[3]])],
-    #                             self._ez2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
-    #                             self._ez2i[self._index([ p[0] + w, p[1]    , p[2]    , p[3]])],
-    #                             self._ez2i[self._index([ p[0]    , p[1] + w, p[2]    , p[3]])],
-    #                             self._ez2i[self._index([ p[0] + w, p[1] + w, p[2]    , p[3]])]
-    #                         ]
-
-    #                 for off, pm, edge in zip(offset,PM,edges):
-    #                     I += [ii]
-    #                     J += [edge + off]
-    #                     V += [pm]
-
-
-    #         Av = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.ntE))
-    #         Re = self._deflationMatrix('E',asOnes=False,withHanging=True)
-
-    #         self._aveE2CC = Av*Re
-
-    #     return self._aveE2CC
-
-    @property
-    def aveEx2CC(self):
-        if getattr(self, '_aveEx2CC', None) is None:
-            I, J, V = [], [], []
-            
-            if self.dim == 2:
-                raise Exception('aveEx2CC not implemented in 2D')
-
-            if self.dim == 3:
-                PM = [1./4.]*4 
-
-                for ii, ind in enumerate(self._sortedCells):
-                    p = self._pointer(ind)
-                    w = self._levelWidth(p[-1])
-
-                    edgesx = [
-                                self._ex2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
-                                self._ex2i[self._index([ p[0]    , p[1] + w, p[2]    , p[3]])],
-                                self._ex2i[self._index([ p[0]    , p[1]    , p[2] + w, p[3]])],
-                                self._ex2i[self._index([ p[0]    , p[1] + w, p[2] + w, p[3]])],
-                            ]
-
-                    for pm, edge in zip(PM,edgesx):
-                        I += [ii]
-                        J += [edge]
-                        V += [pm]
-
-            Av = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.ntEx))
-            Re = self._deflationMatrix('Ex',asOnes=False,withHanging=True)
-
-            self._aveEx2CC = Av*Re
-        return self._aveEx2CC
-    
-    @property
-    def aveEy2CC(self):
-        "Construct the averaging operator on cell edges to cell centers."
-        if getattr(self, '_aveEy2CC', None) is None:
-            I, J, V = [], [], []
-            
-            if self.dim == 2:
-                raise NotImplementedError('aveEy2CC not implemented in 2D')
-
-            if self.dim == 3:
-                PM = [1./4.]*4 # plus / plus
-
-                for ii, ind in enumerate(self._sortedCells):
-                    p = self._pointer(ind)
-                    w = self._levelWidth(p[-1])
-
-                    edgesy = [
-                                self._ey2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
-                                self._ey2i[self._index([ p[0] + w, p[1]    , p[2]    , p[3]])],
-                                self._ey2i[self._index([ p[0]    , p[1]    , p[2] + w, p[3]])],
-                                self._ey2i[self._index([ p[0] + w, p[1]    , p[2] + w, p[3]])],
-                            ]
-
-                    for pm, edge in zip(PM,edgesy):
-                        I += [ii]
-                        J += [edge]
-                        V += [pm]
-
-            Av = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.ntEy))
-            Re = self._deflationMatrix('Ey',asOnes=False,withHanging=True)
-
-            self._aveEy2CC = Av*Re
-        return self._aveEy2CC
-
-    @property
-    def aveEz2CC(self):
-        "Construct the averaging operator on cell edges to cell centers."
-        # raise Exception('Not yet implemented!')
-        if getattr(self, '_aveEz2CC', None) is None:
-            I, J, V = [], [], []
-            
-            if self.dim == 2:
-                raise Exception('There are no z edges in 2D')
-
-            if self.dim == 3:
-                PM = [1./4.]*4 # plus / plus
-
-                for ii, ind in enumerate(self._sortedCells):
-                    p = self._pointer(ind)
-                    w = self._levelWidth(p[-1])
-
-                    edgesz = [
-                                self._ez2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
-                                self._ez2i[self._index([ p[0] + w, p[1]    , p[2]    , p[3]])],
-                                self._ez2i[self._index([ p[0]    , p[1] + w, p[2]    , p[3]])],
-                                self._ez2i[self._index([ p[0] + w, p[1] + w, p[2]    , p[3]])],
-                            ]
-
-                    for pm, edge in zip(PM,edgesz):
-                        I += [ii]
-                        J += [edge]
-                        V += [pm]
-
-
-            Av = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.ntEz))
-            Re = self._deflationMatrix('Ez',asOnes=False,withHanging=True)
-
-            self._aveEz2CC = Av*Re
-
-        return self._aveEz2CC
-
     @property
     def aveE2CC(self):
         "Construct the averaging operator on cell edges to cell centers."
         if getattr(self, '_aveE2CC', None) is None:
+
+            # TODO: preallocate
+            I, J, V = [], [], []
+
             if self.dim == 2:
-                raise Exception('aveE2CC not implemented in 2D')
-            elif self.dim == 3:            
-                self._aveE2CC = 1./self.dim*sp.hstack([self.aveEx2CC, self.aveEy2CC, self.aveEz2CC])
+                raise NotImplementedError('aveE2CC not implemented yet')
+                # PM = [1./(2.*self.dim)]*self.dim # plus / plus
+                # offset = [0]*2 + [self.ntEx]*2
+
+                # for ii, ind in enumerate(self._sortedCells):
+                #     p = self._pointer(ind)
+                #     w = self._levelWidth(p[-1])
+
+                #     edges = [
+                #                 self._ex2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                #                 self._ex2i[self._index([ p[0]    , p[1] + w, p[2]    , p[3]])],
+                #                 self._ex2i[self._index([ p[0]    , p[1]    , p[2] + w, p[3]])],
+                #                 self._ex2i[self._index([ p[0]    , p[1] + w, p[2] + w, p[3]])],
+                #                 self._ey2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                #                 self._ey2i[self._index([ p[0] + w, p[1]    , p[2]    , p[3]])],
+                #                 self._ey2i[self._index([ p[0]    , p[1]    , p[2] + w, p[3]])],
+                #                 self._ey2i[self._index([ p[0] + w, p[1]    , p[2] + w, p[3]])],
+                #                 self._ez2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                #                 self._ez2i[self._index([ p[0] + w, p[1]    , p[2]    , p[3]])],
+                #                 self._ez2i[self._index([ p[0]    , p[1] + w, p[2]    , p[3]])],
+                #                 self._ez2i[self._index([ p[0] + w, p[1] + w, p[2]    , p[3]])]
+                #             ]
+
+                #     for off, pm, edge in zip(offset,PM,edges):
+                #         I += [ii]
+                #         J += [edge + off]
+                #         V += [pm]
+
+            if self.dim == 3:
+                PM = [1./(4.*self.dim)]*4*self.dim # plus / plus
+                offset = [0]*4 + [self.ntEx]*4 + [self.ntEx+self.ntEy]*4
+
+                for ii, ind in enumerate(self._sortedCells):
+                    p = self._pointer(ind)
+                    w = self._levelWidth(p[-1])
+
+                    edges = [
+                                self._ex2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                                self._ex2i[self._index([ p[0]    , p[1] + w, p[2]    , p[3]])],
+                                self._ex2i[self._index([ p[0]    , p[1]    , p[2] + w, p[3]])],
+                                self._ex2i[self._index([ p[0]    , p[1] + w, p[2] + w, p[3]])],
+                                self._ey2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                                self._ey2i[self._index([ p[0] + w, p[1]    , p[2]    , p[3]])],
+                                self._ey2i[self._index([ p[0]    , p[1]    , p[2] + w, p[3]])],
+                                self._ey2i[self._index([ p[0] + w, p[1]    , p[2] + w, p[3]])],
+                                self._ez2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                                self._ez2i[self._index([ p[0] + w, p[1]    , p[2]    , p[3]])],
+                                self._ez2i[self._index([ p[0]    , p[1] + w, p[2]    , p[3]])],
+                                self._ez2i[self._index([ p[0] + w, p[1] + w, p[2]    , p[3]])]
+                            ]
+
+                    for off, pm, edge in zip(offset,PM,edges):
+                        I += [ii]
+                        J += [edge + off]
+                        V += [pm]
+
+
+            Av = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.ntE))
+            Re = self._deflationMatrix('E',asOnes=False,withHanging=True)
+
+            self._aveE2CC = Av*Re
+
         return self._aveE2CC
 
     @property
     def aveE2CCV(self):
         "Construct the averaging operator on cell edges to cell centers."
-        # raise Exception('Not yet implemented!')
-        if getattr(self, '_aveE2CCV', None) is None:
-            if self.dim == 2:
-                raise Exception('aveE2CC not implemented in 2D')
-            elif self.dim == 3:
-                self._aveE2CCV = sp.block_diag([self.aveEx2CC, self.aveEy2CC, self.aveEz2CC])
-        return self._aveE2CCV
-
-    @property 
-    def aveFx2CC(self):
-        if getattr(self, '_aveFx2CC', None) is None:
-            I, J, V = [], [], []
-            PM = [1./2.]*self.dim # 0.5, 0.5
-         
-            for ii, ind in enumerate(self._sortedCells):
-                p = self._pointer(ind)
-                w = self._levelWidth(p[-1])
-
-                if self.dim == 2:
-                    facesx = [
-                                self._fx2i[self._index([ p[0]    , p[1]    , p[2]])],
-                                self._fx2i[self._index([ p[0] + w, p[1]    , p[2]])],
-                            ]
-            
-                elif self.dim == 3:
-                    facesx = [
-                                self._fx2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
-                                self._fx2i[self._index([ p[0] + w, p[1]    , p[2]    , p[3]])],
-                            ]
-
-                for pm, face in zip(PM,facesx):
-                    I += [ii]
-                    J += [face]
-                    V += [pm]
-           
-            Av = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.ntFx))
-            Rf = self._deflationMatrix('Fx',asOnes=True,withHanging=True)
-
-            self._aveFx2CC = Av*Rf
-        return self._aveFx2CC
-
-    @property 
-    def aveFy2CC(self):
-        if getattr(self, '_aveFy2CC', None) is None:
-            I, J, V = [], [], []
-            PM = [1./2.]*2 # 0.5, 0.5
-  
-            for ii, ind in enumerate(self._sortedCells):
-                p = self._pointer(ind)
-                w = self._levelWidth(p[-1])
-
-                if self.dim == 2:
-                    facesy = [
-                                self._fy2i[self._index([ p[0]    , p[1]    , p[2]])],
-                                self._fy2i[self._index([ p[0]    , p[1] + w, p[2]])],
-                            ]
-                elif self.dim == 3:
-                    facesy = [
-                                self._fy2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
-                                self._fy2i[self._index([ p[0]    , p[1] + w, p[2]    , p[3]])],
-                            ]
-
-                for pm, face in zip(PM,facesy):
-                    I += [ii]
-                    J += [face]
-                    V += [pm]
-
-            Av = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.ntFy))
-            Rf = self._deflationMatrix('Fy',asOnes=True,withHanging=True)
-
-            self._aveFy2CC = Av*Rf
-        return self._aveFy2CC
-
-    @property 
-    def aveFz2CC(self):
-        if getattr(self, '_aveFz2CC', None) is None:
-            I, J, V = [], [], []
-            PM = [1./2.]*2 # 0.5, 0.5
-
-            for ii, ind in enumerate(self._sortedCells):
-                p = self._pointer(ind)
-                w = self._levelWidth(p[-1])
-
-                if self.dim == 2: 
-                    raise Exception('There are no z-faces in 2D')
-                elif self.dim == 3:
-                    facesz = [
-                                self._fz2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
-                                self._fz2i[self._index([ p[0]    , p[1]    , p[2] + w, p[3]])],
-                            ]
-
-                for pm, face in zip(PM,facesz):
-                    I += [ii]
-                    J += [face]
-                    V += [pm]
-           
-            Av = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.ntFz))
-            Rf = self._deflationMatrix('Fz',asOnes=True,withHanging=True)
-            self._aveFz2CC = Av*Rf
-        return self._aveFz2CC
+        raise Exception('Not yet implemented!')
 
     @property
     def aveF2CC(self):
         "Construct the averaging operator on cell faces to cell centers."
         if getattr(self, '_aveF2CC', None) is None:
-            if self.dim == 2:
-                self._aveF2CC = 1./self.dim*sp.hstack([self.aveFx2CC, self.aveFy2CC])
-            elif self.dim == 3:
-                self._aveF2CC = 1./self.dim*sp.hstack([self.aveFx2CC, self.aveFy2CC, self.aveFz2CC])
+           # TODO: Preallocate!
+            I, J, V = [], [], []
+            PM = [1./(2.*self.dim)]*2*self.dim # plus / plus
+
+            # TODO total number of faces?
+            offset = [0]*2 + [self.ntFx]*2 +  [self.ntFx+self.ntFy]*2
+
+            for ii, ind in enumerate(self._sortedCells):
+
+                p = self._pointer(ind)
+                w = self._levelWidth(p[-1])
+
+                if self.dim == 2:
+                    faces = [
+                                self._fx2i[self._index([ p[0]    , p[1]    , p[2]])],
+                                self._fx2i[self._index([ p[0] + w, p[1]    , p[2]])],
+                                self._fy2i[self._index([ p[0]    , p[1]    , p[2]])],
+                                self._fy2i[self._index([ p[0]    , p[1] + w, p[2]])]
+                            ]
+                elif self.dim == 3:
+                    faces = [
+                                self._fx2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                                self._fx2i[self._index([ p[0] + w, p[1]    , p[2]    , p[3]])],
+                                self._fy2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                                self._fy2i[self._index([ p[0]    , p[1] + w, p[2]    , p[3]])],
+                                self._fz2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                                self._fz2i[self._index([ p[0]    , p[1]    , p[2] + w, p[3]])]
+                            ]
+
+                for off, pm, face in zip(offset,PM,faces):
+                    I += [ii]
+                    J += [face + off]
+                    V += [pm]
+
+
+            Av = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.ntF))
+            Rf = self._deflationMatrix('F',asOnes=True,withHanging=True)
+
+            self._aveF2CC = Av*Rf
         return self._aveF2CC
+
 
     @property
     def aveF2CCV(self):
         "Construct the averaging operator on cell faces to cell centers."
         if getattr(self, '_aveF2CCV', None) is None:
+           # TODO: Preallocate!
+            I, J, V = [], [], []
+            PM = [1./2.]*2 # 0.5, 0.5
+
+            offsetx = [0]*2
+            offsety = [self.ntFx]*2
+
             if self.dim == 2:
-                self._aveF2CCV = sp.block_diag([self.aveFx2CC, self.aveFy2CC])
-            elif self.dim == 3:
-                self._aveF2CCV = sp.block_diag([self.aveFx2CC, self.aveFy2CC, self.aveFz2CC])
+                for ii, ind in enumerate(self._sortedCells):
+                    p = self._pointer(ind)
+                    w = self._levelWidth(p[-1])
+
+                    facesx = [
+                                self._fx2i[self._index([ p[0]    , p[1]    , p[2]])],
+                                self._fx2i[self._index([ p[0] + w, p[1]    , p[2]])],
+                            ]
+
+                    facesy = [
+                                self._fy2i[self._index([ p[0]    , p[1]    , p[2]])],
+                                self._fy2i[self._index([ p[0]    , p[1] + w, p[2]])],
+                            ]
+
+                    for off, pm, face in zip(offsetx,PM,facesx):
+                        I += [ii]
+                        J += [face + off]
+                        V += [pm]
+
+                    for off, pm, face in zip(offsety,PM,facesy):
+                        I += [ii + self.nC]
+                        J += [face + off]
+                        V += [pm]
+
+
+
+            if self.dim == 3:
+                offsetz = [self.ntFx + self.ntFy]*2
+
+                for ii, ind in enumerate(self._sortedCells):
+                    p = self._pointer(ind)
+                    w = self._levelWidth(p[-1])
+
+                    facesx = [
+                                self._fx2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                                self._fx2i[self._index([ p[0] + w, p[1]    , p[2]    , p[3]])],
+                            ]
+
+                    facesy = [
+                                self._fy2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                                self._fy2i[self._index([ p[0]    , p[1] + w, p[2]    , p[3]])],
+                            ]
+                    facesz = [
+                                self._fz2i[self._index([ p[0]    , p[1]    , p[2]    , p[3]])],
+                                self._fz2i[self._index([ p[0]    , p[1]    , p[2] + w, p[3]])]
+                            ]
+
+                    for off, pm, face in zip(offsetx,PM,facesx):
+                        I += [ii]
+                        J += [face + off]
+                        V += [pm]
+
+                    for off, pm, face in zip(offsety,PM,facesy):
+                        I += [ii + self.nC]
+                        J += [face + off]
+                        V += [pm]
+
+                    for off, pm, face in zip(offsetz,PM,facesz):
+                        I += [ii + self.nC*2]
+                        J += [face + off]
+                        V += [pm]
+
+            Av = sp.csr_matrix((V,(I,J)), shape=(self.nC*self.dim, self.ntF))
+            Rf = self._deflationMatrix('F',asOnes=True,withHanging=True)
+
+            self._aveF2CCV = Av*Rf
         return self._aveF2CCV
 
 

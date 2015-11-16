@@ -147,10 +147,10 @@ class OrderTest(unittest.TestCase):
 
             levels = int(np.log(nc)/np.log(2))
             self.M = Tree(h[:self.meshDimension], levels=levels)
-            def function(xc):
+            def function(cell):
                 if 'notatree' in self._meshType:
                     return levels - 1
-                r = xc - np.array([0.5]*len(xc))
+                r = cell.center - np.array([0.5]*len(cell.center))
                 dist = np.sqrt(r.dot(r))
                 if dist < 0.2:
                     return levels
