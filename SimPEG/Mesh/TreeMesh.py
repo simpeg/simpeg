@@ -1864,24 +1864,24 @@ class NotBalancedException(Exception):
 if __name__ == '__main__':
 
 
-    def function(xc):
-        r = xc - np.array([0.5*128]*len(xc))
+    def function(cell):
+        r = cell.center - np.array([0.5]*len(cell.center))
         dist = np.sqrt(r.dot(r))
         # if dist < 0.05:
         #     return 5
-        if dist < 0.1*128:
+        if dist < 0.1:
             return 4
-        if dist < 0.3*128:
+        if dist < 0.3:
             return 3
-        if dist < 1.0*128:
+        if dist < 1.0:
             return 2
         else:
             return 0
 
-    # T = Tree([[(1,128)],[(1,128)],[(1,128)]],levels=7)
-    # T = Tree([128,128,128],levels=7)
-    T = Tree([[(1,16)],[(1,16)]],levels=4)
-    # T = Tree([[(1,128)],[(1,128)]],levels=7)
+    # T = TreeMesh([[(1,128)],[(1,128)],[(1,128)]],levels=7)
+    # T = TreeMesh([128,128,128],levels=7)
+    T = TreeMesh([16,16],levels=4)
+    # T = TreeMesh([[(1,128)],[(1,128)]],levels=7)
     # T.refine(lambda xc:1, balance=False)
     # T._index([0,0,0])
     # T._pointer(0)
@@ -1894,7 +1894,7 @@ if __name__ == '__main__':
 
     T.plotImage(np.random.rand(T.nC),showIt=True)
 
-    print T.getFaceInnerProduct()
+    # print T.getFaceInnerProduct()
     # print T.gridFz
 
 
