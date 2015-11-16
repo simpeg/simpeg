@@ -413,13 +413,13 @@ class TestTreeAveraging2D(Tests.OrderTest):
 
         return err
 
-    # def test_orderN2CC(self):
-    #     self.name = "Averaging 2D: N2CC"
-    #     fun = lambda x, y: (np.cos(x)+np.sin(y))
-    #     self.getHere = lambda M: call2(fun, M.gridN)
-    #     self.getThere = lambda M: call2(fun, M.gridCC)
-    #     self.getAve = lambda M: M.aveN2CC
-    #     self.orderTest()
+    def test_orderN2CC(self):
+        self.name = "Averaging 2D: N2CC"
+        fun = lambda x, y: (np.cos(x)+np.sin(y))
+        self.getHere = lambda M: call2(fun, M.gridN)
+        self.getThere = lambda M: call2(fun, M.gridCC)
+        self.getAve = lambda M: M.aveN2CC
+        self.orderTest()
 
     # def test_orderN2F(self):
     #     self.name = "Averaging 2D: N2F"
@@ -496,13 +496,13 @@ class TestAveraging3D(Tests.OrderTest):
         err = np.linalg.norm((self.getThere(self.M)-num), np.inf)
         return err
 
-#     def test_orderN2CC(self):
-#         self.name = "Averaging 3D: N2CC"
-#         fun = lambda x, y, z: (np.cos(x)+np.sin(y)+np.exp(z))
-#         self.getHere = lambda M: call3(fun, M.gridN)
-#         self.getThere = lambda M: call3(fun, M.gridCC)
-#         self.getAve = lambda M: M.aveN2CC
-#         self.orderTest()
+    def test_orderN2CC(self):
+        self.name = "Averaging 3D: N2CC"
+        fun = lambda x, y, z: (np.cos(x)+np.sin(y)+np.exp(z))
+        self.getHere = lambda M: call3(fun, M.gridN)
+        self.getThere = lambda M: call3(fun, M.gridCC)
+        self.getAve = lambda M: M.aveN2CC
+        self.orderTest()
 
 #     def test_orderN2F(self):
 #         self.name = "Averaging 3D: N2F"

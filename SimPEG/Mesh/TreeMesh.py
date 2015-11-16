@@ -1608,6 +1608,48 @@ class TreeMesh(BaseMesh, InnerProducts):
                 self._aveF2CCV = sp.block_diag([self.aveFx2CC, self.aveFy2CC, self.aveFz2CC])
         return self._aveF2CCV
 
+    @property
+    def aveN2CC(self):
+        if getattr(self, '_aveN2CC', None) is None:
+            I, J, V = [], [], []
+            PM = [1./2.**self.dim] * 2**self.dim
+
+            for ii, ind in enumerate(self._sortedCells):
+                p = self._pointer(ind)
+                w = self._levelWidth(p[-1])
+
+                if self.dim == 2:
+                    nodes = [
+                                self._n2i[self._index([ p[0]    , p[1]    , p[2] ])],
+                                self._n2i[self._index([ p[0] + w, p[1]    , p[2] ])],
+                                self._n2i[self._index([ p[0]    , p[1] + w, p[2] ])],
+                                self._n2i[self._index([ p[0] + w, p[1] + w, p[2] ])],
+                            ]
+
+
+                if self.dim == 3:
+                    nodes = [
+                                self._n2i[self._index([ p[0]    , p[1]    , p[2]    , p[3] ])],
+                                self._n2i[self._index([ p[0] + w, p[1]    , p[2]    , p[3] ])],
+                                self._n2i[self._index([ p[0]    , p[1] + w, p[2]    , p[3] ])],
+                                self._n2i[self._index([ p[0] + w, p[1] + w, p[2]    , p[3] ])],
+                                self._n2i[self._index([ p[0]    , p[1]    , p[2] + w, p[3] ])],
+                                self._n2i[self._index([ p[0] + w, p[1]    , p[2] + w, p[3] ])],
+                                self._n2i[self._index([ p[0]    , p[1] + w, p[2] + w, p[3] ])],
+                                self._n2i[self._index([ p[0] + w, p[1] + w, p[2] + w, p[3] ])],
+                            ]
+
+                for pm, node in zip(PM,nodes):
+                    I += [ii]
+                    J += [node]
+                    V += [pm]
+
+            Av = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.ntN))
+            Re = self._deflationMatrix('N',asOnes=False,withHanging=True)
+
+            self._aveN2CC = Av*Re
+        return self._aveN2CC
+    
 
     def _getFaceP(self, xFace, yFace, zFace):
         ind1, ind2, ind3 = [], [], []
