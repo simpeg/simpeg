@@ -103,44 +103,6 @@ import time
 
 MAX_BITS = 20
 
-class Cell(object):
-    def __init__(self, mesh, index, pointer):
-        self.mesh     = mesh
-        self._index   = index
-        self._pointer = pointer
-
-    # @property
-    # def nodes(self):
-    #                         REFACTOR WITH self.x0 and self.h, mesh is not currently numbered!!
-    #     p = self._pointer
-    #     w = self.mesh._levelWidth(p[-1])
-    #     if self.dim == 2:
-    #         return [self._n2i[self.mesh._index([p[0]    , p[1]    , p[2]])],
-    #                 self._n2i[self.mesh._index([p[0] + w, p[1]    , p[2]])],
-    #                 self._n2i[self.mesh._index([p[0]    , p[1] + w, p[2]])],
-    #                 self._n2i[self.mesh._index([p[0] + w, p[1] + w, p[2]])]]
-    #     elif self.dim == 3:
-    #         return [self._n2i[self.mesh._index([p[0]    , p[1]    , p[2]    , p[3]])],
-    #                 self._n2i[self.mesh._index([p[0] + w, p[1]    , p[2]    , p[3]])],
-    #                 self._n2i[self.mesh._index([p[0]    , p[1] + w, p[2]    , p[3]])],
-    #                 self._n2i[self.mesh._index([p[0] + w, p[1] + w, p[2]    , p[3]])],
-    #                 self._n2i[self.mesh._index([p[0]    , p[1]    , p[2] + w, p[3]])],
-    #                 self._n2i[self.mesh._index([p[0] + w, p[1]    , p[2] + w, p[3]])],
-    #                 self._n2i[self.mesh._index([p[0]    , p[1] + w, p[2] + w, p[3]])],
-    #                 self._n2i[self.mesh._index([p[0] + w, p[1] + w, p[2] + w, p[3]])]]
-
-    @property
-    def center(self):
-        if getattr(self, '_center', None) is None:
-            self._center = self.mesh._cellC(self._pointer)
-        return self._center
-    @property
-    def h(self): return self.mesh._cellH(self._pointer)
-    @property
-    def x0(self): return self.mesh._cellN(self._pointer)
-    @property
-    def dim(self): return self.mesh.dim
-
 class TreeMesh(BaseMesh, InnerProducts):
     def __init__(self, h_in, x0_in=None, levels=3):
         assert type(h_in) is list, 'h_in must be a list'
@@ -1854,6 +1816,23 @@ class TreeMesh(BaseMesh, InnerProducts):
         plt.colorbar(scalarMap)
         if showIt: plt.show()
 
+class Cell(object):
+    def __init__(self, mesh, index, pointer):
+        self.mesh     = mesh
+        self._index   = index
+        self._pointer = pointer
+
+    @property
+    def center(self):
+        if getattr(self, '_center', None) is None:
+            self._center = self.mesh._cellC(self._pointer)
+        return self._center
+    @property
+    def h(self): return self.mesh._cellH(self._pointer)
+    @property
+    def x0(self): return self.mesh._cellN(self._pointer)
+    @property
+    def dim(self): return self.mesh.dim
 
 def SortGrid(grid, offset=0):
     """
@@ -1899,24 +1878,31 @@ class NotBalancedException(Exception):
 
 if __name__ == '__main__':
 
+    def topo(x):
+        return np.sin(x*(2.*np.pi))*0.3 + 0.5
 
     def function(cell):
         r = cell.center - np.array([0.5]*len(cell.center))
-        dist = np.sqrt(r.dot(r))
+        dist1 = np.sqrt(r.dot(r)) - 0.08
+        dist2 = np.abs(cell.center[-1] - topo(cell.center[0]))
+
+        dist = min([dist1,dist2])
         # if dist < 0.05:
         #     return 5
-        if dist < 0.1:
-            return 4
+        if dist < 0.05:
+            return 6
+        if dist < 0.2:
+            return 5
         if dist < 0.3:
-            return 3
+            return 4
         if dist < 1.0:
-            return 2
+            return 3
         else:
             return 0
 
     # T = TreeMesh([[(1,128)],[(1,128)],[(1,128)]],levels=7)
     # T = TreeMesh([128,128,128],levels=7)
-    T = TreeMesh([16,16],levels=4)
+    T = TreeMesh([64,64],levels=6)
     # T = TreeMesh([[(1,128)],[(1,128)]],levels=7)
     # T.refine(lambda xc:1, balance=False)
     # T._index([0,0,0])
@@ -1928,7 +1914,7 @@ if __name__ == '__main__':
     print time.time() - tic
     print T.nC
 
-    T.plotImage(np.random.rand(T.nC),showIt=True)
+    T.plotImage(T.vol,showIt=True)
 
     # print T.getFaceInnerProduct()
     # print T.gridFz
