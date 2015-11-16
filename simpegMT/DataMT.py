@@ -106,14 +106,20 @@ class DataMT(Survey.Data):
             # Find that data for freq
             dFreq = recArray[recArray['freq'] == freq].copy()
             # Find the impedance rxTypes in the recArray.
-            rxTypes = [ comp for comp in recArray.dtype.names if len(comp)==4 and 'z' in comp and ('r' in comp or 'i' in comp)]
+            rxTypes = [ comp for comp in recArray.dtype.names if (len(comp)==4 or len(comp)==3) and 'z' in comp]
             for rxType in rxTypes:
                 # Find index of not nan values in rxType
                 notNaNind = ~np.isnan(dFreq[rxType])
                 if np.any(notNaNind): # Make sure that there is any data to add.
                     locs = rec2ndarr(dFreq[['x','y','z']][notNaNind].copy())
-                    rxList.append(simpegMT.SurveyMT.RxMT(locs,rxType))
-                    dataList.append(dFreq[rxType][notNaNind].copy())
+                    if dFreq[rxType].dtype.name in 'complex128':
+                        rxList.append(simpegMT.SurveyMT.RxMT(locs,rxType+'r'))
+                        dataList.append(dFreq[rxType][notNaNind].real.copy())
+                        rxList.append(simpegMT.SurveyMT.RxMT(locs,rxType+'i'))
+                        dataList.append(dFreq[rxType][notNaNind].imag.copy())
+                    else:
+                        rxList.append(simpegMT.SurveyMT.RxMT(locs,rxType))
+                        dataList.append(dFreq[rxType][notNaNind].copy())
             srcList.append(src(rxList,freq))
 
         # Make a survey
