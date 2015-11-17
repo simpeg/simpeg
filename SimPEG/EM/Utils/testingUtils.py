@@ -17,7 +17,7 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, verbose=False):
 
     x = np.array([np.linspace(-30,-15,3),np.linspace(15,30,3)]) #don't sample right by the source
     XYZ = Utils.ndgrid(x,x,np.r_[0.])
-    Rx0 = EM.FDEM.RxFDEM(XYZ, comp)
+    Rx0 = EM.FDEM.Rx(XYZ, comp)
 
     Src = []
 
