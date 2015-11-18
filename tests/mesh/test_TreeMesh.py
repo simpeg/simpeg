@@ -1,9 +1,9 @@
-from SimPEG import Mesh
+from SimPEG import Mesh, Tests
 import numpy as np
 import matplotlib.pyplot as plt
 import unittest
 
-TOL = 1e-10
+TOL = 1e-8
 
 
 
@@ -153,6 +153,95 @@ class TestOcTree(unittest.TestCase):
         assert np.max(np.abs((M.faceDiv * M.edgeCurl).todense().flatten())) < TOL
         assert np.max(np.abs((Mr.faceDiv * Mr.edgeCurl).todense().flatten())) < TOL
 
+class Test2DInterpolation(unittest.TestCase):
+
+    def setUp(self):
+        def topo(x):
+            return np.sin(x*(2.*np.pi))*0.3 + 0.5
+
+        def function(cell):
+            r = cell.center - np.array([0.5]*len(cell.center))
+            dist1 = np.sqrt(r.dot(r)) - 0.08
+            dist2 = np.abs(cell.center[-1] - topo(cell.center[0]))
+
+            dist = min([dist1,dist2])
+            # if dist < 0.05:
+            #     return 5
+            if dist < 0.05:
+                return 6
+            if dist < 0.2:
+                return 5
+            if dist < 0.3:
+                return 4
+            if dist < 1.0:
+                return 3
+            else:
+                return 0
+
+        M = Mesh.TreeMesh([64,64],levels=6)
+        M.refine(function)
+        self.M = M
+
+    def test_fx(self):
+        r = np.random.rand(self.M.nFx)
+        P = self.M.getInterpolationMat(self.M.gridFx, 'Fx')
+        assert np.abs(P[:,:self.M.nFx]*r - r).max() < TOL
+
+    def test_fy(self):
+        r = np.random.rand(self.M.nFy)
+        P = self.M.getInterpolationMat(self.M.gridFy, 'Fy')
+        assert np.abs(P[:,self.M.nFx:]*r - r).max() < TOL
+
+
+class Test3DInterpolation(unittest.TestCase):
+
+    def setUp(self):
+        def function(cell):
+            r = cell.center - np.array([0.5]*len(cell.center))
+            dist = np.sqrt(r.dot(r))
+            if dist < 0.2:
+                return 4
+            if dist < 0.3:
+                return 3
+            if dist < 1.0:
+                return 2
+            else:
+                return 0
+
+        M = Mesh.TreeMesh([16,16,16],levels=4)
+        M.refine(function)
+        # M.plotGrid(showIt=True)
+        self.M = M
+
+    def test_Fx(self):
+        r = np.random.rand(self.M.nFx)
+        P = self.M.getInterpolationMat(self.M.gridFx, 'Fx')
+        assert np.abs(P[:,:self.M.nFx]*r - r).max() < TOL
+
+    def test_Fy(self):
+        r = np.random.rand(self.M.nFy)
+        P = self.M.getInterpolationMat(self.M.gridFy, 'Fy')
+        assert np.abs(P[:,self.M.nFx:(self.M.nFx+self.M.nFy)]*r - r).max() < TOL
+
+    def test_Fz(self):
+        r = np.random.rand(self.M.nFz)
+        P = self.M.getInterpolationMat(self.M.gridFz, 'Fz')
+        assert np.abs(P[:,(self.M.nFx+self.M.nFy):]*r - r).max() < TOL
+
+    def test_Ex(self):
+        r = np.random.rand(self.M.nEx)
+        P = self.M.getInterpolationMat(self.M.gridEx, 'Ex')
+        assert np.abs(P[:,:self.M.nEx]*r - r).max() < TOL
+
+    def test_Ey(self):
+        r = np.random.rand(self.M.nEy)
+        P = self.M.getInterpolationMat(self.M.gridEy, 'Ey')
+        assert np.abs(P[:,self.M.nEx:(self.M.nEx+self.M.nEy)]*r - r).max() < TOL
+
+    def test_Ez(self):
+        r = np.random.rand(self.M.nEz)
+        P = self.M.getInterpolationMat(self.M.gridEz, 'Ez')
+        assert np.abs(P[:,(self.M.nEx+self.M.nEy):]*r - r).max() < TOL
 
 
 if __name__ == '__main__':

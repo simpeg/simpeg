@@ -2546,7 +2546,7 @@ static PyObject *__pyx_pf_6SimPEG_5Utils_18interputils_cython_4_interpmat2D(CYTH
  *         ind_x1, ind_x2, wx1, wx2 = _interp_point_1D(x, locs[i, 0])
  *         ind_y1, ind_y2, wy1, wy2 = _interp_point_1D(y, locs[i, 1])             # <<<<<<<<<<<<<<
  * 
- *         inds += [( ind_x1,  ind_y2),
+ *         inds += [( ind_x1,  ind_y1),
  */
     __pyx_t_9 = __Pyx_GetModuleGlobalName(__pyx_n_s_interp_point_1D); if (unlikely(!__pyx_t_9)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 72; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_9);
@@ -2669,8 +2669,8 @@ static PyObject *__pyx_pf_6SimPEG_5Utils_18interputils_cython_4_interpmat2D(CYTH
     /* "SimPEG/Utils/interputils_cython.pyx":74
  *         ind_y1, ind_y2, wy1, wy2 = _interp_point_1D(y, locs[i, 1])
  * 
- *         inds += [( ind_x1,  ind_y2),             # <<<<<<<<<<<<<<
- *                  ( ind_x1,  ind_y1),
+ *         inds += [( ind_x1,  ind_y1),             # <<<<<<<<<<<<<<
+ *                  ( ind_x1,  ind_y2),
  *                  ( ind_x2,  ind_y1),
  */
     __pyx_t_3 = PyTuple_New(2); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 74; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
@@ -2678,14 +2678,14 @@ static PyObject *__pyx_pf_6SimPEG_5Utils_18interputils_cython_4_interpmat2D(CYTH
     __Pyx_INCREF(__pyx_v_ind_x1);
     __Pyx_GIVEREF(__pyx_v_ind_x1);
     PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_v_ind_x1);
-    __Pyx_INCREF(__pyx_v_ind_y2);
-    __Pyx_GIVEREF(__pyx_v_ind_y2);
-    PyTuple_SET_ITEM(__pyx_t_3, 1, __pyx_v_ind_y2);
+    __Pyx_INCREF(__pyx_v_ind_y1);
+    __Pyx_GIVEREF(__pyx_v_ind_y1);
+    PyTuple_SET_ITEM(__pyx_t_3, 1, __pyx_v_ind_y1);
 
     /* "SimPEG/Utils/interputils_cython.pyx":75
  * 
- *         inds += [( ind_x1,  ind_y2),
- *                  ( ind_x1,  ind_y1),             # <<<<<<<<<<<<<<
+ *         inds += [( ind_x1,  ind_y1),
+ *                  ( ind_x1,  ind_y2),             # <<<<<<<<<<<<<<
  *                  ( ind_x2,  ind_y1),
  *                  ( ind_x2,  ind_y2)]
  */
@@ -2694,13 +2694,13 @@ static PyObject *__pyx_pf_6SimPEG_5Utils_18interputils_cython_4_interpmat2D(CYTH
     __Pyx_INCREF(__pyx_v_ind_x1);
     __Pyx_GIVEREF(__pyx_v_ind_x1);
     PyTuple_SET_ITEM(__pyx_t_11, 0, __pyx_v_ind_x1);
-    __Pyx_INCREF(__pyx_v_ind_y1);
-    __Pyx_GIVEREF(__pyx_v_ind_y1);
-    PyTuple_SET_ITEM(__pyx_t_11, 1, __pyx_v_ind_y1);
+    __Pyx_INCREF(__pyx_v_ind_y2);
+    __Pyx_GIVEREF(__pyx_v_ind_y2);
+    PyTuple_SET_ITEM(__pyx_t_11, 1, __pyx_v_ind_y2);
 
     /* "SimPEG/Utils/interputils_cython.pyx":76
- *         inds += [( ind_x1,  ind_y2),
- *                  ( ind_x1,  ind_y1),
+ *         inds += [( ind_x1,  ind_y1),
+ *                  ( ind_x1,  ind_y2),
  *                  ( ind_x2,  ind_y1),             # <<<<<<<<<<<<<<
  *                  ( ind_x2,  ind_y2)]
  * 
@@ -2715,11 +2715,11 @@ static PyObject *__pyx_pf_6SimPEG_5Utils_18interputils_cython_4_interpmat2D(CYTH
     PyTuple_SET_ITEM(__pyx_t_8, 1, __pyx_v_ind_y1);
 
     /* "SimPEG/Utils/interputils_cython.pyx":77
- *                  ( ind_x1,  ind_y1),
+ *                  ( ind_x1,  ind_y2),
  *                  ( ind_x2,  ind_y1),
  *                  ( ind_x2,  ind_y2)]             # <<<<<<<<<<<<<<
  * 
- *         vals += [wx1*wy2, wx1*wy1, wx2*wy1, wx2*wy2]
+ *         vals += [wx1*wy1, wx1*wy2, wx2*wy1, wx2*wy2]
  */
     __pyx_t_1 = PyTuple_New(2); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 77; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_1);
@@ -2733,8 +2733,8 @@ static PyObject *__pyx_pf_6SimPEG_5Utils_18interputils_cython_4_interpmat2D(CYTH
     /* "SimPEG/Utils/interputils_cython.pyx":74
  *         ind_y1, ind_y2, wy1, wy2 = _interp_point_1D(y, locs[i, 1])
  * 
- *         inds += [( ind_x1,  ind_y2),             # <<<<<<<<<<<<<<
- *                  ( ind_x1,  ind_y1),
+ *         inds += [( ind_x1,  ind_y1),             # <<<<<<<<<<<<<<
+ *                  ( ind_x1,  ind_y2),
  *                  ( ind_x2,  ind_y1),
  */
     __pyx_t_9 = PyList_New(4); if (unlikely(!__pyx_t_9)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 74; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
@@ -2760,13 +2760,13 @@ static PyObject *__pyx_pf_6SimPEG_5Utils_18interputils_cython_4_interpmat2D(CYTH
     /* "SimPEG/Utils/interputils_cython.pyx":79
  *                  ( ind_x2,  ind_y2)]
  * 
- *         vals += [wx1*wy2, wx1*wy1, wx2*wy1, wx2*wy2]             # <<<<<<<<<<<<<<
+ *         vals += [wx1*wy1, wx1*wy2, wx2*wy1, wx2*wy2]             # <<<<<<<<<<<<<<
  * 
  *     return inds, vals
  */
-    __pyx_t_1 = PyNumber_Multiply(__pyx_v_wx1, __pyx_v_wy2); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 79; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_1 = PyNumber_Multiply(__pyx_v_wx1, __pyx_v_wy1); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 79; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_1);
-    __pyx_t_9 = PyNumber_Multiply(__pyx_v_wx1, __pyx_v_wy1); if (unlikely(!__pyx_t_9)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 79; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_9 = PyNumber_Multiply(__pyx_v_wx1, __pyx_v_wy2); if (unlikely(!__pyx_t_9)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 79; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_9);
     __pyx_t_8 = PyNumber_Multiply(__pyx_v_wx2, __pyx_v_wy1); if (unlikely(!__pyx_t_8)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 79; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_8);
@@ -2794,7 +2794,7 @@ static PyObject *__pyx_pf_6SimPEG_5Utils_18interputils_cython_4_interpmat2D(CYTH
   }
 
   /* "SimPEG/Utils/interputils_cython.pyx":81
- *         vals += [wx1*wy2, wx1*wy1, wx2*wy1, wx2*wy2]
+ *         vals += [wx1*wy1, wx1*wy2, wx2*wy1, wx2*wy2]
  * 
  *     return inds, vals             # <<<<<<<<<<<<<<
  * 
@@ -3376,7 +3376,7 @@ static PyObject *__pyx_pf_6SimPEG_5Utils_18interputils_cython_6_interpmat3D(CYTH
  *         ind_y1, ind_y2, wy1, wy2 = _interp_point_1D(y, locs[i, 1])
  *         ind_z1, ind_z2, wz1, wz2 = _interp_point_1D(z, locs[i, 2])             # <<<<<<<<<<<<<<
  * 
- *         inds += [( ind_x1,  ind_y2,  ind_z1),
+ *         inds += [( ind_x1,  ind_y1,  ind_z1),
  */
     __pyx_t_11 = __Pyx_GetModuleGlobalName(__pyx_n_s_interp_point_1D); if (unlikely(!__pyx_t_11)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 99; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_11);
@@ -3499,8 +3499,8 @@ static PyObject *__pyx_pf_6SimPEG_5Utils_18interputils_cython_6_interpmat3D(CYTH
     /* "SimPEG/Utils/interputils_cython.pyx":101
  *         ind_z1, ind_z2, wz1, wz2 = _interp_point_1D(z, locs[i, 2])
  * 
- *         inds += [( ind_x1,  ind_y2,  ind_z1),             # <<<<<<<<<<<<<<
- *                  ( ind_x1,  ind_y1,  ind_z1),
+ *         inds += [( ind_x1,  ind_y1,  ind_z1),             # <<<<<<<<<<<<<<
+ *                  ( ind_x1,  ind_y2,  ind_z1),
  *                  ( ind_x2,  ind_y1,  ind_z1),
  */
     __pyx_t_3 = PyTuple_New(3); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 101; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
@@ -3508,17 +3508,17 @@ static PyObject *__pyx_pf_6SimPEG_5Utils_18interputils_cython_6_interpmat3D(CYTH
     __Pyx_INCREF(__pyx_v_ind_x1);
     __Pyx_GIVEREF(__pyx_v_ind_x1);
     PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_v_ind_x1);
-    __Pyx_INCREF(__pyx_v_ind_y2);
-    __Pyx_GIVEREF(__pyx_v_ind_y2);
-    PyTuple_SET_ITEM(__pyx_t_3, 1, __pyx_v_ind_y2);
+    __Pyx_INCREF(__pyx_v_ind_y1);
+    __Pyx_GIVEREF(__pyx_v_ind_y1);
+    PyTuple_SET_ITEM(__pyx_t_3, 1, __pyx_v_ind_y1);
     __Pyx_INCREF(__pyx_v_ind_z1);
     __Pyx_GIVEREF(__pyx_v_ind_z1);
     PyTuple_SET_ITEM(__pyx_t_3, 2, __pyx_v_ind_z1);
 
     /* "SimPEG/Utils/interputils_cython.pyx":102
  * 
- *         inds += [( ind_x1,  ind_y2,  ind_z1),
- *                  ( ind_x1,  ind_y1,  ind_z1),             # <<<<<<<<<<<<<<
+ *         inds += [( ind_x1,  ind_y1,  ind_z1),
+ *                  ( ind_x1,  ind_y2,  ind_z1),             # <<<<<<<<<<<<<<
  *                  ( ind_x2,  ind_y1,  ind_z1),
  *                  ( ind_x2,  ind_y2,  ind_z1),
  */
@@ -3527,16 +3527,16 @@ static PyObject *__pyx_pf_6SimPEG_5Utils_18interputils_cython_6_interpmat3D(CYTH
     __Pyx_INCREF(__pyx_v_ind_x1);
     __Pyx_GIVEREF(__pyx_v_ind_x1);
     PyTuple_SET_ITEM(__pyx_t_1, 0, __pyx_v_ind_x1);
-    __Pyx_INCREF(__pyx_v_ind_y1);
-    __Pyx_GIVEREF(__pyx_v_ind_y1);
-    PyTuple_SET_ITEM(__pyx_t_1, 1, __pyx_v_ind_y1);
+    __Pyx_INCREF(__pyx_v_ind_y2);
+    __Pyx_GIVEREF(__pyx_v_ind_y2);
+    PyTuple_SET_ITEM(__pyx_t_1, 1, __pyx_v_ind_y2);
     __Pyx_INCREF(__pyx_v_ind_z1);
     __Pyx_GIVEREF(__pyx_v_ind_z1);
     PyTuple_SET_ITEM(__pyx_t_1, 2, __pyx_v_ind_z1);
 
     /* "SimPEG/Utils/interputils_cython.pyx":103
- *         inds += [( ind_x1,  ind_y2,  ind_z1),
- *                  ( ind_x1,  ind_y1,  ind_z1),
+ *         inds += [( ind_x1,  ind_y1,  ind_z1),
+ *                  ( ind_x1,  ind_y2,  ind_z1),
  *                  ( ind_x2,  ind_y1,  ind_z1),             # <<<<<<<<<<<<<<
  *                  ( ind_x2,  ind_y2,  ind_z1),
  *                  ( ind_x1,  ind_y1,  ind_z2),
@@ -3554,7 +3554,7 @@ static PyObject *__pyx_pf_6SimPEG_5Utils_18interputils_cython_6_interpmat3D(CYTH
     PyTuple_SET_ITEM(__pyx_t_8, 2, __pyx_v_ind_z1);
 
     /* "SimPEG/Utils/interputils_cython.pyx":104
- *                  ( ind_x1,  ind_y1,  ind_z1),
+ *                  ( ind_x1,  ind_y2,  ind_z1),
  *                  ( ind_x2,  ind_y1,  ind_z1),
  *                  ( ind_x2,  ind_y2,  ind_z1),             # <<<<<<<<<<<<<<
  *                  ( ind_x1,  ind_y1,  ind_z2),
@@ -3634,7 +3634,7 @@ static PyObject *__pyx_pf_6SimPEG_5Utils_18interputils_cython_6_interpmat3D(CYTH
  *                  ( ind_x2,  ind_y1,  ind_z2),
  *                  ( ind_x2,  ind_y2,  ind_z2)]             # <<<<<<<<<<<<<<
  * 
- *         vals += [wx1*wy2*wz1,
+ *         vals += [wx1*wy1*wz1,
  */
     __pyx_t_19 = PyTuple_New(3); if (unlikely(!__pyx_t_19)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 108; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_19);
@@ -3651,8 +3651,8 @@ static PyObject *__pyx_pf_6SimPEG_5Utils_18interputils_cython_6_interpmat3D(CYTH
     /* "SimPEG/Utils/interputils_cython.pyx":101
  *         ind_z1, ind_z2, wz1, wz2 = _interp_point_1D(z, locs[i, 2])
  * 
- *         inds += [( ind_x1,  ind_y2,  ind_z1),             # <<<<<<<<<<<<<<
- *                  ( ind_x1,  ind_y1,  ind_z1),
+ *         inds += [( ind_x1,  ind_y1,  ind_z1),             # <<<<<<<<<<<<<<
+ *                  ( ind_x1,  ind_y2,  ind_z1),
  *                  ( ind_x2,  ind_y1,  ind_z1),
  */
     __pyx_t_20 = PyList_New(8); if (unlikely(!__pyx_t_20)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 101; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
@@ -3690,11 +3690,11 @@ static PyObject *__pyx_pf_6SimPEG_5Utils_18interputils_cython_6_interpmat3D(CYTH
     /* "SimPEG/Utils/interputils_cython.pyx":110
  *                  ( ind_x2,  ind_y2,  ind_z2)]
  * 
- *         vals += [wx1*wy2*wz1,             # <<<<<<<<<<<<<<
- *                  wx1*wy1*wz1,
+ *         vals += [wx1*wy1*wz1,             # <<<<<<<<<<<<<<
+ *                  wx1*wy2*wz1,
  *                  wx2*wy1*wz1,
  */
-    __pyx_t_19 = PyNumber_Multiply(__pyx_v_wx1, __pyx_v_wy2); if (unlikely(!__pyx_t_19)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 110; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_19 = PyNumber_Multiply(__pyx_v_wx1, __pyx_v_wy1); if (unlikely(!__pyx_t_19)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 110; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_19);
     __pyx_t_20 = PyNumber_Multiply(__pyx_t_19, __pyx_v_wz1); if (unlikely(!__pyx_t_20)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 110; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_20);
@@ -3702,20 +3702,20 @@ static PyObject *__pyx_pf_6SimPEG_5Utils_18interputils_cython_6_interpmat3D(CYTH
 
     /* "SimPEG/Utils/interputils_cython.pyx":111
  * 
- *         vals += [wx1*wy2*wz1,
- *                  wx1*wy1*wz1,             # <<<<<<<<<<<<<<
+ *         vals += [wx1*wy1*wz1,
+ *                  wx1*wy2*wz1,             # <<<<<<<<<<<<<<
  *                  wx2*wy1*wz1,
  *                  wx2*wy2*wz1,
  */
-    __pyx_t_19 = PyNumber_Multiply(__pyx_v_wx1, __pyx_v_wy1); if (unlikely(!__pyx_t_19)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 111; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_19 = PyNumber_Multiply(__pyx_v_wx1, __pyx_v_wy2); if (unlikely(!__pyx_t_19)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 111; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_19);
     __pyx_t_18 = PyNumber_Multiply(__pyx_t_19, __pyx_v_wz1); if (unlikely(!__pyx_t_18)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 111; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_18);
     __Pyx_DECREF(__pyx_t_19); __pyx_t_19 = 0;
 
     /* "SimPEG/Utils/interputils_cython.pyx":112
- *         vals += [wx1*wy2*wz1,
- *                  wx1*wy1*wz1,
+ *         vals += [wx1*wy1*wz1,
+ *                  wx1*wy2*wz1,
  *                  wx2*wy1*wz1,             # <<<<<<<<<<<<<<
  *                  wx2*wy2*wz1,
  *                  wx1*wy1*wz2,
@@ -3727,7 +3727,7 @@ static PyObject *__pyx_pf_6SimPEG_5Utils_18interputils_cython_6_interpmat3D(CYTH
     __Pyx_DECREF(__pyx_t_19); __pyx_t_19 = 0;
 
     /* "SimPEG/Utils/interputils_cython.pyx":113
- *                  wx1*wy1*wz1,
+ *                  wx1*wy2*wz1,
  *                  wx2*wy1*wz1,
  *                  wx2*wy2*wz1,             # <<<<<<<<<<<<<<
  *                  wx1*wy1*wz2,
@@ -3794,8 +3794,8 @@ static PyObject *__pyx_pf_6SimPEG_5Utils_18interputils_cython_6_interpmat3D(CYTH
     /* "SimPEG/Utils/interputils_cython.pyx":110
  *                  ( ind_x2,  ind_y2,  ind_z2)]
  * 
- *         vals += [wx1*wy2*wz1,             # <<<<<<<<<<<<<<
- *                  wx1*wy1*wz1,
+ *         vals += [wx1*wy1*wz1,             # <<<<<<<<<<<<<<
+ *                  wx1*wy2*wz1,
  *                  wx2*wy1*wz1,
  */
     __pyx_t_19 = PyList_New(8); if (unlikely(!__pyx_t_19)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 110; __pyx_clineno = __LINE__; goto __pyx_L1_error;}

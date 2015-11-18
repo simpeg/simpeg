@@ -104,9 +104,12 @@ import time
 MAX_BITS = 20
 
 class TreeMesh(BaseMesh, InnerProducts):
+
+    _meshType = 'TREE'
+
     def __init__(self, h_in, x0_in=None, levels=3):
         assert type(h_in) is list, 'h_in must be a list'
-        assert len(h_in) > 1, "len(h_in) must be greater than 1"
+        assert len(h_in) in [2,3], "There is only support for TreeMesh in 2D or 3D."
 
         h = range(len(h_in))
         for i, h_i in enumerate(h_in):
@@ -119,7 +122,7 @@ class TreeMesh(BaseMesh, InnerProducts):
             assert len(h_i.shape) == 1, ("h[%i] must be a 1D numpy array." % i)
             assert len(h_i) == 2**levels, "must make h and levels match"
             h[i] = h_i[:] # make a copy.
-        self.h = h
+        self._h = h
 
         x0 = np.zeros(len(h))
         if x0_in is not None:
@@ -149,7 +152,12 @@ class TreeMesh(BaseMesh, InnerProducts):
 
     @property
     def __dirty__(self):
-        return self.__dirtyFaces__ or self.__dirtyEdges__ or self.__dirtyNodes__ or self.__dirtyHanging__ or self.__dirtySets__
+        return (self.__dirtyFaces__ or
+                self.__dirtyEdges__ or
+                self.__dirtyNodes__ or
+                self.__dirtyCells__ or
+                self.__dirtyHanging__ or
+                self.__dirtySets__)
 
     @__dirty__.setter
     def __dirty__(self, val):
@@ -157,6 +165,7 @@ class TreeMesh(BaseMesh, InnerProducts):
         self.__dirtyFaces__ = True
         self.__dirtyEdges__ = True
         self.__dirtyNodes__ = True
+        self.__dirtyCells__ = True
         self.__dirtyHanging__ = True
         self.__dirtySets__ = True
 
@@ -174,6 +183,95 @@ class TreeMesh(BaseMesh, InnerProducts):
 
     @property
     def levels(self): return self._levels
+
+    @property
+    def h(self):
+        """h is a list containing the cell widths of the tensor mesh in each dimension."""
+        return self._h
+
+    @property
+    def hx(self):
+        "Width of cells in the x direction"
+        return self._h[0]
+
+    @property
+    def hy(self):
+        "Width of cells in the y direction"
+        return self._h[1]
+
+    @property
+    def hz(self):
+        "Width of cells in the z direction"
+        return None if self.dim < 3 else self._h[2]
+
+    @property
+    def vectorNx(self):
+        """Nodal grid vector (1D) in the x direction."""
+        return np.r_[0., self.hx.cumsum()] + self.x0[0]
+
+    @property
+    def vectorNy(self):
+        """Nodal grid vector (1D) in the y direction."""
+        return np.r_[0., self.hy.cumsum()] + self.x0[1]
+
+    @property
+    def vectorNz(self):
+        """Nodal grid vector (1D) in the z direction."""
+        return None if self.dim < 3 else np.r_[0., self.hz.cumsum()] + self.x0[2]
+
+    @property
+    def vectorCCx(self):
+        """Cell-centered grid vector (1D) in the x direction."""
+        return np.r_[0, self.hx[:-1].cumsum()] + self.hx*0.5 + self.x0[0]
+
+    @property
+    def vectorCCy(self):
+        """Cell-centered grid vector (1D) in the y direction."""
+        return np.r_[0, self.hy[:-1].cumsum()] + self.hy*0.5 + self.x0[1]
+
+    @property
+    def vectorCCz(self):
+        """Cell-centered grid vector (1D) in the z direction."""
+        return None if self.dim < 3 else np.r_[0, self.hz[:-1].cumsum()] + self.hz*0.5 + self.x0[2]
+
+    def getTensor(self, key):
+        """ Returns a tensor list.
+
+        :param str key: What tensor (see below)
+        :rtype: list
+        :return: list of the tensors that make up the mesh.
+
+        key can be::
+
+            'CC'    -> scalar field defined on cell centers
+            'N'     -> scalar field defined on nodes
+            'Fx'    -> x-component of field defined on faces
+            'Fy'    -> y-component of field defined on faces
+            'Fz'    -> z-component of field defined on faces
+            'Ex'    -> x-component of field defined on edges
+            'Ey'    -> y-component of field defined on edges
+            'Ez'    -> z-component of field defined on edges
+
+        """
+
+        if   key == 'Fx':
+            ten = [self.vectorNx , self.vectorCCy, self.vectorCCz]
+        elif key == 'Fy':
+            ten = [self.vectorCCx, self.vectorNy , self.vectorCCz]
+        elif key == 'Fz':
+            ten = [self.vectorCCx, self.vectorCCy, self.vectorNz ]
+        elif key == 'Ex':
+            ten = [self.vectorCCx, self.vectorNy , self.vectorNz ]
+        elif key == 'Ey':
+            ten = [self.vectorNx , self.vectorCCy, self.vectorNz ]
+        elif key == 'Ez':
+            ten = [self.vectorNx , self.vectorNy , self.vectorCCz]
+        elif key == 'CC':
+            ten = [self.vectorCCx, self.vectorCCy, self.vectorCCz]
+        elif key == 'N':
+            ten = [self.vectorNx , self.vectorNy , self.vectorNz ]
+
+        return [t for t in ten if t is not None]
 
     @property
     def nC(self): return len(self._cells)
@@ -283,6 +381,10 @@ class TreeMesh(BaseMesh, InnerProducts):
         return self.ntFx + self.ntFy + (0 if self.dim == 2 else self.ntFz)
 
     @property
+    def vntF(self):
+        return [self.ntFx, self.ntFy] + ([] if self.dim == 2 else [self.ntFz])
+
+    @property
     def ntFx(self):
         self.number()
         return len(self._facesX)
@@ -301,6 +403,10 @@ class TreeMesh(BaseMesh, InnerProducts):
     @property
     def ntE(self):
         return self.ntEx + self.ntEy + (0 if self.dim == 2 else self.ntEz)
+
+    @property
+    def vntE(self):
+        return [self.ntEx, self.ntEy] + ([] if self.dim == 2 else [self.ntEz])
 
     @property
     def ntEx(self):
@@ -491,6 +597,7 @@ class TreeMesh(BaseMesh, InnerProducts):
 
 
     def _parentPointer(self, pointer):
+        if pointer[-1] == 0: return None
         mod = self._levelWidth(pointer[-1] - 1)
         return [p - (p % mod) for p in pointer[:-1]] + [pointer[-1]-1]
 
@@ -760,6 +867,14 @@ class TreeMesh(BaseMesh, InnerProducts):
 
         self.__dirtySets__ = False
 
+
+    def _numberCells(self, force=False):
+        if not self.__dirtyCells__ and not force: return
+        self._cc2i = dict()
+        for ii, c in enumerate(sorted(self._cells)):
+            self._cc2i[c] = ii
+        self.__dirtyCells__ = False
+
     def _numberNodes(self, force=False):
         if not self.__dirtyNodes__ and not force: return
         self._createNumberingSets(force=force)
@@ -878,6 +993,7 @@ class TreeMesh(BaseMesh, InnerProducts):
     def _hanging(self, force=False):
         if not self.__dirtyHanging__ and not force: return
 
+        self._numberCells(force=force)
         self._numberNodes(force=force)
         self._numberFaces(force=force)
         self._numberEdges(force=force)
@@ -1649,7 +1765,7 @@ class TreeMesh(BaseMesh, InnerProducts):
 
             self._aveN2CC = Av*Re
         return self._aveN2CC
-    
+
 
     def _getFaceP(self, xFace, yFace, zFace):
         ind1, ind2, ind3 = [], [], []
@@ -1723,12 +1839,165 @@ class TreeMesh(BaseMesh, InnerProducts):
         return Pxxx
 
 
+    def isInside(self, pts, locType='N'):
+        """
+        Determines if a set of points are inside a mesh.
+
+        :param numpy.ndarray pts: Location of points to test
+        :rtype numpy.ndarray
+        :return inside, numpy array of booleans
+        """
+        pts = Utils.asArray_N_x_Dim(pts, self.dim)
+
+        tensors = self.getTensor(locType)
+
+        if locType == 'N' and self._meshType == 'CYL':
+            #NOTE: for a CYL mesh we add a node to check if we are inside in the radial direction!
+            tensors[0] = np.r_[0.,tensors[0]]
+            tensors[1] = np.r_[tensors[1], 2.0*np.pi]
+
+        inside = np.ones(pts.shape[0],dtype=bool)
+        for i, tensor in enumerate(tensors):
+            TOL = np.diff(tensor).min() * 1.0e-10
+            inside = inside & (pts[:,i] >= tensor.min()-TOL) & (pts[:,i] <= tensor.max()+TOL)
+        return inside
+
+    def point2index(self, locs):
+        locs = Utils.asArray_N_x_Dim(locs, self.dim)
+
+        TOL = 1e-10
+
+        Nx = self.vectorNx
+        Ny = self.vectorNy
+        Nz = self.vectorNz
+
+        pointers = range(self.dim)
+        Nx = np.r_[Nx[0] - TOL, Nx[1:-1], Nx[-1] + TOL]
+        pointers[0] = np.searchsorted(Nx, locs[:,0])
+        Ny = np.r_[Ny[0] - TOL, Ny[1:-1], Ny[-1] + TOL]
+        pointers[1] = np.searchsorted(Ny, locs[:,1])
+        if self.dim == 3:
+            Nz = np.r_[Nz[0] - TOL, Nz[1:-1], Nz[-1] + TOL]
+            pointers[2] = np.searchsorted(Nz, locs[:,2])
+
+        if np.any([np.any(P == len(N)) or np.any(P == 0) for P,N in zip(pointers,[Nx,Ny,Nz])]):
+            raise Exception('There are points outside of the mesh.')
+
+        out = []
+        for pointer in zip(*pointers):
+            for level in range(self.levels+1):
+                width = self._levelWidth(level)
+                testPointer = [((p-1)//width)*width for p in pointer] + [level]
+                test = self._index(testPointer)
+                if test in self:
+                    out += [test]
+                    break
+        return out
+
+
+    def getInterpolationMat(self, locs, locType, zerosOutside=False):
+        """ Produces interpolation matrix
+
+        :param numpy.ndarray locs: Location of points to interpolate to
+        :param str locType: What to interpolate (see below)
+        :rtype: scipy.sparse.csr.csr_matrix
+        :return: M, the interpolation matrix
+
+        locType can be::
+
+            'Ex'    -> x-component of field defined on edges
+            'Ey'    -> y-component of field defined on edges
+            'Ez'    -> z-component of field defined on edges
+            'Fx'    -> x-component of field defined on faces
+            'Fy'    -> y-component of field defined on faces
+            'Fz'    -> z-component of field defined on faces
+            'N'     -> scalar field defined on nodes
+            'CC'    -> scalar field defined on cell centers
+        """
+        if 'E' in locType and self.dim == 2: raise Exception('Interpolation for edges is not supported in 2D.')
+        locs = Utils.asArray_N_x_Dim(locs, self.dim)
+
+        TOL = 1e-10
+        self.number()
+
+        cells = self.point2index(locs)
+        I,J,V=[],[],[]
+        numberer = getattr(self, '_'+locType.lower()+'2i')
+
+        if zerosOutside is False:
+            assert np.all(self.isInside(locs)), "Points outside of mesh"
+        else:
+            indZeros = np.logical_not(self.isInside(locs))
+            locs[indZeros, :] = np.array([v.mean() for v in self.getTensor('CC')])
+
+        if locType in ['Fx','Fy','Fz','Ex','Ey','Ez']:
+            ind = {'x':0, 'y':1, 'z':2}[locType[1]]
+            assert self.dim >= ind, 'mesh is not high enough dimension.'
+            antiInd = {'x':[1,2], 'y':[0,2], 'z':[0,1]}[locType[1]][:self.dim-1]
+            nF_nE = self.vntF if 'F' in locType else self.vntE
+            components = [Utils.spzeros(locs.shape[0], n) for n in nF_nE]
+
+            for ii, cell in enumerate(cells):
+                loc = locs[ii,:]
+                p = self._asPointer(cell)
+                h, n = self._cellH(p), self._cellN(p)
+                w = self._levelWidth(p[-1])
+                if 'E' in locType:
+                    iLocs, weights = Utils.interputils._interpmat2D(np.array([(loc-n-self.x0)[antiInd]]),np.r_[0.,h[antiInd[0]]+TOL],np.r_[0.,h[antiInd[1]]+TOL])
+                    newJ = [numberer[self._index([__+w*iLocs[IND][0] if _ == antiInd[0] else __+w*iLocs[IND][1] if _ == antiInd[1] else __ for _, __ in enumerate(p[:-1])] + [p[-1]])] for IND in range(4)] #sorry
+                elif 'F' in locType:
+                    _, weights = Utils.interputils._interpmat1D(np.r_[(loc-n-self.x0)[ind]],np.r_[0.,h[ind]+TOL])
+                    plusFace = self._index([__+w if _ == ind else __ for _, __ in enumerate(p[:-1])] + [p[-1]])
+                    newJ = [numberer[cell], numberer[plusFace]]
+                I += [ii]*len(newJ)
+                J += newJ
+                V += weights
+
+            components[ind] = sp.csr_matrix((V,(I,J)), shape=(locs.shape[0], nF_nE[ind]))
+            # remove any zero blocks (hstack complains)
+            components = [comp for comp in components if comp.shape[1] > 0]
+            Q = sp.hstack(components).tocsr()
+            if 'E' in locType:
+                R = self._deflationMatrix(locType[0],asOnes=False,withHanging=True)
+            else: # faces
+                R = self._deflationMatrix(locType[0],asOnes=True,withHanging=True)
+        elif locType == 'N':
+            for ii, cell in enumerate(cells):
+                loc = locs[ii,:]
+                p = self._asPointer(cell)
+                h, n = self._cellH(p), self._cellN(p)
+                w = self._levelWidth(p[-1])
+
+                iLocs, weights = Utils.interputils._interpmat3D(np.array([(loc-n-self.x0)]),*[np.r_[0.,h[_]+TOL] for _ in range(3)])
+                newJ = [numberer[self._index([__+w*iLocs[IND][_] for _, __ in enumerate(p[:-1])] + [p[-1]])] for IND in range(8)] #sorry
+
+                I += [ii]*len(newJ)
+                J += newJ
+                V += weights
+
+            Q = sp.csr_matrix((V,(I,J)), shape=(locs.shape[0], self.ntN))
+            R = self._deflationMatrix('N',withHanging=True)
+        elif locType == 'CC':
+            for ii, cell in enumerate(cells):
+                I += [ii]
+                J += [numberer[cell]]
+                V += [1.0]
+            Q = sp.csr_matrix((V,(I,J)), shape=(locs.shape[0], self.nC))
+            R = Utils.Identity()
+        else:
+            raise NotImplementedError('getInterpolationMat: locType=='+locType+' and mesh.dim=='+str(self.dim))
+
+        if zerosOutside:
+            Q[indZeros, :] = 0
+
+        return Q * R
+
     def plotGrid(self, ax=None, showIt=False,
-                grid=True,
-                cells=True, cellLine=False,
-                nodes=False,
-                facesX=False, facesY=False, facesZ=False,
-                edgesX=False, edgesY=False, edgesZ=False):
+        grid=True,
+        cells=True, cellLine=False,
+        nodes=False,
+        facesX=False, facesY=False, facesZ=False,
+        edgesX=False, edgesY=False, edgesZ=False):
 
         # self.number()
 
@@ -1840,7 +2109,6 @@ class TreeMesh(BaseMesh, InnerProducts):
 
         if showIt:plt.show()
 
-
     def plotImage(self, I, ax=None, showIt=True):
         if self.dim == 3: raise Exception()
 
@@ -1914,7 +2182,6 @@ def SortGrid(grid, offset=0):
 
     return sorted(range(offset,grid.shape[0]+offset), key=K)
 
-
 class NotBalancedException(Exception):
     pass
 
@@ -1944,19 +2211,26 @@ if __name__ == '__main__':
 
     # T = TreeMesh([[(1,128)],[(1,128)],[(1,128)]],levels=7)
     # T = TreeMesh([128,128,128],levels=7)
-    T = TreeMesh([64,64],levels=6)
+    # T = TreeMesh([64,64],levels=6)
+    T = TreeMesh([4,4,4],levels=2)
     # T = TreeMesh([[(1,128)],[(1,128)]],levels=7)
-    # T.refine(lambda xc:1, balance=False)
+    # T.refine(lambda xc:2, balance=False)
     # T._index([0,0,0])
     # T._pointer(0)
 
 
-    tic = time.time()
-    T.refine(function)#, balance=False)
-    print time.time() - tic
+    # tic = time.time()
+    # T.refine(function)#, balance=False)
+    # print time.time() - tic
+    # print T.nC
+
     print T.nC
 
-    T.plotImage(T.vol,showIt=True)
+    P = T.getInterpolationMat([0.2,0,0], 'Ex')
+    print P.todense()
+    blah
+
+    # T.plotImage(np.arange(len(T.vol)),showIt=True)
 
     # print T.getFaceInnerProduct()
     # print T.gridFz
@@ -1972,7 +2246,7 @@ if __name__ == '__main__':
     # T.__dirty__ = True
 
 
-    print T.gridFx.shape[0], T.nFx
+    # print T.gridFx.shape[0], T.nFx
 
 
 
