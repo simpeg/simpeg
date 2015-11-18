@@ -1,13 +1,11 @@
 from SimPEG import Survey, Problem, Utils, np, sp
-# import SimPEG.EM as EM
-from SimPEG.EM.Utils import *
 from scipy.constants import mu_0
-# from SurveyFDEM import RxFDEM
+# from SurveyFDEM import Rx
  
 
 class BaseSrc(Survey.BaseSrc):
     freq = None
-    # rxPair = EM.FDEM.RxFDEM
+    # rxPair = Rx
     integrate = True
 
     def eval(self, prob):
