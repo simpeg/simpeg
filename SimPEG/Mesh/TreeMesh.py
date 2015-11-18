@@ -1231,7 +1231,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
         self._hanging(force=force)
 
     def _deflationMatrix(self, location, withHanging=True, asOnes=False):
-        assert location in ['N','F','Fx','Fy'] + (['Fz','E','Ex','Ey','Ez'] if self.dim == 3 else [])
+        assert location in ['N','F','Fx','Fy','E','Ex','Ey'] + (['Fz','Ez'] if self.dim == 3 else [])
 
         args = dict()
         args['N'] =  (self._nodes,  self._hangingN,  self._n2i )
@@ -1242,6 +1242,9 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
             args['Ex'] = (self._edgesX, self._hangingEx, self._ex2i)
             args['Ey'] = (self._edgesY, self._hangingEy, self._ey2i)
             args['Ez'] = (self._edgesZ, self._hangingEz, self._ez2i)
+        elif self.dim == 2:
+            args['Ex'] = (self._facesY, self._hangingFy, self._fy2i)
+            args['Ey'] = (self._facesX, self._hangingFx, self._fx2i)
         if location in ['F', 'E']:
             Rlist = [self._deflationMatrix(location + subLoc, withHanging=withHanging, asOnes=asOnes) for subLoc in ['x','y','z'][:self.dim]]
             return sp.block_diag(Rlist)
@@ -1401,27 +1404,64 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
 
     @property
     def nodalGrad(self):
-        raise Exception('Not yet implemented!')
-        # if getattr(self, '_nodalGrad', None) is None:
-        #     self.number()
-        #     # TODO: Preallocate!
-        #     I, J, V = [], [], []
-        #     # kinda a hack for the 2D gradient
-        #     # because edges are not stored
-        #     edges = self.faces if self.dim == 2 else self.edges
-        #     for edge in edges:
-        #         if self.dim == 3:
-        #             I += [edge.num, edge.num]
-        #         elif self.dim == 2 and edge.faceType == 'x':
-        #             I += [edge.num + self.nFy, edge.num + self.nFy]
-        #         elif self.dim == 2 and edge.faceType == 'y':
-        #             I += [edge.num - self.nFx, edge.num - self.nFx]
-        #         J += [edge.node0.num, edge.node1.num]
-        #         V += [-1, 1]
-        #     G = sp.csr_matrix((V,(I,J)), shape=(self.nE, self.nN))
-        #     L = self.edge
-        #     self._nodalGrad = Utils.sdiag(1/L)*G
-        # return self._nodalGrad
+        if getattr(self, '_nodalGrad', None) is None:
+            self.number()
+            # TODO: Preallocate!
+            I, J, V = [], [], []
+            # kinda a hack for the 2D gradient
+            # because edges are not stored
+            edgesX = self._facesY if self.dim == 2 else self._edgesX
+            offset = 0
+            for ex in edgesX:
+                p = self._pointer(ex)
+                w = self._levelWidth(p[-1])
+                if self.dim == 2:
+                    I += [self._fy2i[ex] + offset]*2
+                    nodePlus = self._index([ p[0] + w, p[1], p[2]])
+                elif self.dim == 3:
+                    I += [self._ex2i[ex] + offset]*2
+                    nodePlus = self._index([ p[0] + w, p[1], p[2], p[3]])
+                J += [self._n2i[ex], self._n2i[nodePlus]]
+                V += [-1, 1]
+
+            edgesY = self._facesX if self.dim == 2 else self._edgesY
+            offset = self.ntFy    if self.dim == 2 else self.ntEx
+            for ey in edgesY:
+                p = self._pointer(ey)
+                w = self._levelWidth(p[-1])
+                if self.dim == 2:
+                    I += [self._fx2i[ey] + offset]*2
+                    nodePlus = self._index([ p[0], p[1] + w, p[2]])
+                elif self.dim == 3:
+                    I += [self._ey2i[ey] + offset]*2
+                    nodePlus = self._index([ p[0], p[1] + w, p[2], p[3]])
+                J += [self._n2i[ey], self._n2i[nodePlus]]
+                V += [-1, 1]
+            if self.dim == 3:
+
+                edgesZ = self._edgesZ
+                offset = self.ntEx + self.ntEy
+                for ez in edgesZ:
+                    p = self._pointer(ez)
+                    w = self._levelWidth(p[-1])
+                    I += [self._ez2i[ez] + offset]*2
+                    nodePlus = self._index([ p[0], p[1], p[2] + w, p[3]])
+                    J += [self._n2i[ez], self._n2i[nodePlus]]
+                    V += [-1, 1]
+
+            G = sp.csr_matrix((V,(I,J)), shape=(self.ntE, self.ntN))
+            if self.dim == 2:
+                L = np.r_[self._areaFyFull, self._areaFxFull]
+            elif self.dim == 3:
+                L = np.r_[self._edgeExFull, self._edgeEyFull, self._edgeEzFull]
+
+            Rn = self._deflationMatrix('N')
+            Re = self._deflationMatrix('E', withHanging=True, asOnes=False)
+
+            Re_ave = Utils.sdiag(1./Re.sum(axis=0)) * Re.T
+
+            self._nodalGrad = Re_ave*Utils.sdiag(1/L)*G*Rn
+        return self._nodalGrad
 
     @property
     def aveEx2CC(self):

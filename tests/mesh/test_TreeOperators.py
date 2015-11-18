@@ -69,9 +69,9 @@ class TestFaceDiv3D(Tests.OrderTest):
 
 class TestCurl(Tests.OrderTest):
     name = "Curl"
-    meshTypes = MESHTYPES
+    meshTypes = ['notatreeTree', 'uniformTree'] #, 'randomTree']#, 'uniformTree']
     meshSizes = [8, 16]#, 32]
-    expectedOrders = 1 # This is due to linear interpolation in the Re projection
+    expectedOrders = [2,1] # This is due to linear interpolation in the Re projection
 
     def getError(self):
         # fun: i (cos(y)) + j (cos(z)) + k (cos(x))
@@ -95,6 +95,62 @@ class TestCurl(Tests.OrderTest):
 
         err = np.linalg.norm((curlE - curlE_ana), np.inf)
         # err = np.linalg.norm((curlE - curlE_ana)*self.M.area, 2)
+
+        return err
+
+    def test_order(self):
+        self.orderTest()
+
+
+class TestNodalGrad(Tests.OrderTest):
+    name = "Nodal Gradient"
+    meshTypes = ['notatreeTree', 'uniformTree'] #['randomTree', 'uniformTree']
+    meshSizes = [8, 16]#, 32]
+    expectedOrders = [2,1]
+
+    def getError(self):
+        #Test function
+        fun = lambda x, y, z: (np.cos(x)+np.cos(y)+np.cos(z))
+        # i (sin(x)) + j (sin(y)) + k (sin(z))
+        solX = lambda x, y, z: -np.sin(x)
+        solY = lambda x, y, z: -np.sin(y)
+        solZ = lambda x, y, z: -np.sin(z)
+
+        phi = call3(fun, self.M.gridN)
+        gradE = self.M.nodalGrad.dot(phi)
+
+        Ec = cartE3(self.M, solX, solY, solZ)
+        gradE_ana = self.M.projectEdgeVector(Ec)
+
+        err = np.linalg.norm((gradE-gradE_ana), np.inf)
+
+        return err
+
+    def test_order(self):
+        self.orderTest()
+
+
+class TestNodalGrad2D(Tests.OrderTest):
+    name = "Nodal Gradient 2D"
+    meshTypes = ['notatreeTree', 'uniformTree'] #['randomTree', 'uniformTree']
+    meshSizes = [8, 16]#, 32]
+    expectedOrders = [2,1]
+    meshDimension = 2
+
+    def getError(self):
+        #Test function
+        fun = lambda x, y: (np.cos(x)+np.cos(y))
+        # i (sin(x)) + j (sin(y)) + k (sin(z))
+        solX = lambda x, y: -np.sin(x)
+        solY = lambda x, y: -np.sin(y)
+
+        phi = call2(fun, self.M.gridN)
+        gradE = self.M.nodalGrad.dot(phi)
+
+        Ec = cartE2(self.M, solX, solY)
+        gradE_ana = self.M.projectEdgeVector(Ec)
+
+        err = np.linalg.norm((gradE-gradE_ana), np.inf)
 
         return err
 
@@ -613,5 +669,7 @@ class TestAveraging3D(Tests.OrderTest):
 #         self.expectedOrders = 1
 #         self.orderTest()
 #         self.expectedOrders = 2
+
+
 if __name__ == '__main__':
     unittest.main()
