@@ -1,5 +1,6 @@
 from SimPEG import Survey, Problem, Utils, np, sp
 from scipy.constants import mu_0
+from SimPEG.EM.Utils import *
 # from SurveyFDEM import Rx
  
 
