@@ -105,7 +105,7 @@ class TestCurl(Tests.OrderTest):
 class TestTreeInnerProducts(Tests.OrderTest):
     """Integrate an function over a unit cube domain using edgeInnerProducts and faceInnerProducts."""
 
-    meshTypes = ['uniformTree'] #['uniformTensorMesh', 'uniformCurv', 'rotateCurv']
+    meshTypes = ['uniformTree', 'notatreeTree'] #['uniformTensorMesh', 'uniformCurv', 'rotateCurv']
     meshDimension = 3
     meshSizes = [4, 8]
 

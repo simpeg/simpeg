@@ -218,18 +218,18 @@ class TestInnerProductsDerivs(unittest.TestCase):
     def test_FaceIP_3D_tensor_Tree(self):
         self.assertTrue(self.doTestFace([8, 8, 8],6, False, 'Tree'))
 
-    # def test_FaceIP_2D_float_fast_Tree(self):
-    #     self.assertTrue(self.doTestFace([8, 8],0, True, 'Tree'))
-    # def test_FaceIP_3D_float_fast_Tree(self):
-    #     self.assertTrue(self.doTestFace([8, 8, 8],0, True, 'Tree'))
-    # def test_FaceIP_2D_isotropic_fast_Tree(self):
-    #     self.assertTrue(self.doTestFace([8, 8],1, True, 'Tree'))
-    # def test_FaceIP_3D_isotropic_fast_Tree(self):
-    #     self.assertTrue(self.doTestFace([8, 8, 8],1, True, 'Tree'))
-    # def test_FaceIP_2D_anisotropic_fast_Tree(self):
-    #     self.assertTrue(self.doTestFace([8, 8],2, True, 'Tree'))
-    # def test_FaceIP_3D_anisotropic_fast_Tree(self):
-    #     self.assertTrue(self.doTestFace([8, 8, 8],3, True, 'Tree'))
+    def test_FaceIP_2D_float_fast_Tree(self):
+        self.assertTrue(self.doTestFace([8, 8],0, True, 'Tree'))
+    def test_FaceIP_3D_float_fast_Tree(self):
+        self.assertTrue(self.doTestFace([8, 8, 8],0, True, 'Tree'))
+    def test_FaceIP_2D_isotropic_fast_Tree(self):
+        self.assertTrue(self.doTestFace([8, 8],1, True, 'Tree'))
+    def test_FaceIP_3D_isotropic_fast_Tree(self):
+        self.assertTrue(self.doTestFace([8, 8, 8],1, True, 'Tree'))
+    def test_FaceIP_2D_anisotropic_fast_Tree(self):
+        self.assertTrue(self.doTestFace([8, 8],2, True, 'Tree'))
+    def test_FaceIP_3D_anisotropic_fast_Tree(self):
+        self.assertTrue(self.doTestFace([8, 8, 8],3, True, 'Tree'))
 
     # def test_EdgeIP_2D_float_Tree(self):
     #     self.assertTrue(self.doTestEdge([8, 8],0, False, 'Tree'))
@@ -250,16 +250,16 @@ class TestInnerProductsDerivs(unittest.TestCase):
 
     # def test_EdgeIP_2D_float_fast_Tree(self):
     #     self.assertTrue(self.doTestEdge([8, 8],0, True, 'Tree'))
-    # def test_EdgeIP_3D_float_fast_Tree(self):
-    #     self.assertTrue(self.doTestEdge([8, 8, 8],0, True, 'Tree'))
+    def test_EdgeIP_3D_float_fast_Tree(self):
+        self.assertTrue(self.doTestEdge([8, 8, 8],0, True, 'Tree'))
     # def test_EdgeIP_2D_isotropic_fast_Tree(self):
     #     self.assertTrue(self.doTestEdge([8, 8],1, True, 'Tree'))
-    # def test_EdgeIP_3D_isotropic_fast_Tree(self):
-    #     self.assertTrue(self.doTestEdge([8, 8, 8],1, True, 'Tree'))
+    def test_EdgeIP_3D_isotropic_fast_Tree(self):
+        self.assertTrue(self.doTestEdge([8, 8, 8],1, True, 'Tree'))
     # def test_EdgeIP_2D_anisotropic_fast_Tree(self):
     #     self.assertTrue(self.doTestEdge([8, 8],2, True, 'Tree'))
-    # def test_EdgeIP_3D_anisotropic_fast_Tree(self):
-    #     self.assertTrue(self.doTestEdge([8, 8, 8],3, True, 'Tree'))
+    def test_EdgeIP_3D_anisotropic_fast_Tree(self):
+        self.assertTrue(self.doTestEdge([8, 8, 8],3, True, 'Tree'))
 
 if __name__ == '__main__':
     unittest.main()

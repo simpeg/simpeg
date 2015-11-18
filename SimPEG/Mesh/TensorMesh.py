@@ -1,10 +1,10 @@
 from SimPEG import Utils, np, sp
-from BaseMesh import BaseRectangularMesh
+from BaseMesh import BaseMesh, BaseRectangularMesh
 from View import TensorView
 from DiffOperators import DiffOperators
 from InnerProducts import InnerProducts
 
-class BaseTensorMesh(BaseRectangularMesh):
+class BaseTensorMesh(BaseMesh):
 
     __metaclass__ = Utils.SimPEGMetaClass
 
@@ -42,7 +42,10 @@ class BaseTensorMesh(BaseRectangularMesh):
                 else:
                     raise Exception("x0[%i] must be a scalar or '0' to be zero, 'C' to center, or 'N' to be negative." % i)
 
-        BaseRectangularMesh.__init__(self, np.array([x.size for x in h]), x0)
+        if isinstance(self, BaseRectangularMesh):
+            BaseRectangularMesh.__init__(self, np.array([x.size for x in h]), x0)
+        else:
+            BaseMesh.__init__(self, np.array([x.size for x in h]), x0)
 
         # Ensure h contains 1D vectors
         self._h = [Utils.mkvc(x.astype(float)) for x in h]
@@ -356,7 +359,7 @@ class BaseTensorMesh(BaseRectangularMesh):
 
 
 
-class TensorMesh(BaseTensorMesh, TensorView, DiffOperators, InnerProducts):
+class TensorMesh(BaseTensorMesh, BaseRectangularMesh, TensorView, DiffOperators, InnerProducts):
     """
     TensorMesh is a mesh class that deals with tensor product meshes.
 

@@ -2,12 +2,12 @@ import numpy as np
 import scipy.sparse as sp
 from scipy.constants import pi
 from SimPEG.Utils import mkvc, ndgrid, sdiag, kron3, speye, spzeros, ddx, av, avExtrap
-from TensorMesh import BaseTensorMesh
+from TensorMesh import BaseTensorMesh, BaseRectangularMesh
 from InnerProducts import InnerProducts
 from View import CylView
 
 
-class CylMesh(BaseTensorMesh, InnerProducts, CylView):
+class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
     """
         CylMesh is a mesh class for cylindrical problems
 
