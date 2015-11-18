@@ -63,7 +63,7 @@ cython_files = [
                     "SimPEG/Utils/interputils_cython",
                     "SimPEG/Mesh/TreeUtils"
                ]
-extensions = [Extension(f, [f+ext], include_dirs=[np.get_include()]) for f in cython_files]
+extensions = [Extension(f, [f+ext]) for f in cython_files]
 
 if USE_CYTHON and "cleanall" not in args:
     from Cython.Build import cythonize
@@ -93,6 +93,7 @@ setup(
     classifiers=CLASSIFIERS,
     platforms = ["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
     use_2to3 = False,
+    include_dirs=[np.get_include()],
     ext_modules = extensions,
     **cythonKwargs
 )
