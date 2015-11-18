@@ -1,9 +1,9 @@
-from SimPEG import Survey, Problem, Utils, np, sp, Solver as SimpegSolver
+from SimPEG import Problem, Utils, np, sp, Solver as SimpegSolver
 from scipy.constants import mu_0
-from SurveyFDEM import SurveyFDEM
-from FieldsFDEM import FieldsFDEM, FieldsFDEM_e, FieldsFDEM_b, FieldsFDEM_h, FieldsFDEM_j
+from SurveyFDEM import Survey as SurveyFDEM
+from FieldsFDEM import Fields, Fields_e, Fields_b, Fields_h, Fields_j
 from SimPEG.EM.Base import BaseEMProblem
-from SimPEG.EM.Utils.EMUtils import omega
+from SimPEG.EM.Utils import omega
 
 
 class BaseFDEMProblem(BaseEMProblem):
@@ -17,8 +17,8 @@ class BaseFDEMProblem(BaseEMProblem):
             \mathbf{C} \mathbf{e} + i \omega \mathbf{b} = \mathbf{s_m} \\\\
             {\mathbf{C}^T \mathbf{M_{\mu^{-1}}^f} \mathbf{b} - \mathbf{M_{\sigma}^e} \mathbf{e} = \mathbf{M^e} \mathbf{s_e}}
 
-        if using the E-B formulation (:code:`ProblemFDEM_e`
-        or :code:`ProblemFDEM_b`) or the magnetic field
+        if using the E-B formulation (:code:`Problem_e`
+        or :code:`Problem_b`) or the magnetic field
         \\\(\\\mathbf{h}\\\) and current density \\\(\\\mathbf{j}\\\)
 
         .. math ::
@@ -26,13 +26,13 @@ class BaseFDEMProblem(BaseEMProblem):
             \mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{j} + i \omega \mathbf{M_{\mu}^e} \mathbf{h} = \mathbf{M^e} \mathbf{s_m} \\\\
             \mathbf{C} \mathbf{h} - \mathbf{j} = \mathbf{s_e}
 
-        if using the H-J formulation (:code:`ProblemFDEM_j` or :code:`ProblemFDEM_h`).
+        if using the H-J formulation (:code:`Problem_j` or :code:`Problem_h`).
 
         The problem performs the elimination so that we are solving the system for \\\(\\\mathbf{e},\\\mathbf{b},\\\mathbf{j} \\\) or \\\(\\\mathbf{h}\\\)
     """
 
     surveyPair = SurveyFDEM
-    fieldsPair = FieldsFDEM
+    fieldsPair = Fields
 
     def fields(self, m=None):
         """
@@ -185,7 +185,7 @@ class BaseFDEMProblem(BaseEMProblem):
 ################################ E-B Formulation #########################################
 ##########################################################################################
 
-class ProblemFDEM_e(BaseFDEMProblem):
+class Problem_e(BaseFDEMProblem):
     """
         By eliminating the magnetic flux density using
 
@@ -205,7 +205,7 @@ class ProblemFDEM_e(BaseFDEMProblem):
 
     _fieldType = 'e'
     _eqLocs    = 'FE'
-    fieldsPair = FieldsFDEM_e
+    fieldsPair = Fields_e
 
     def __init__(self, mesh, **kwargs):
         BaseFDEMProblem.__init__(self, mesh, **kwargs)
@@ -284,7 +284,7 @@ class ProblemFDEM_e(BaseFDEMProblem):
                 return None
 
 
-class ProblemFDEM_b(BaseFDEMProblem):
+class Problem_b(BaseFDEMProblem):
     """
         We eliminate \\\(\\\mathbf{e}\\\) using
 
@@ -304,7 +304,7 @@ class ProblemFDEM_b(BaseFDEMProblem):
 
     _fieldType = 'b'
     _eqLocs    = 'FE'
-    fieldsPair = FieldsFDEM_b
+    fieldsPair = Fields_b
 
     def __init__(self, mesh, **kwargs):
         BaseFDEMProblem.__init__(self, mesh, **kwargs)
@@ -425,7 +425,7 @@ class ProblemFDEM_b(BaseFDEMProblem):
 ##########################################################################################
 
 
-class ProblemFDEM_j(BaseFDEMProblem):
+class Problem_j(BaseFDEMProblem):
     """
         We eliminate \\\(\\\mathbf{h}\\\) using
 
@@ -446,7 +446,7 @@ class ProblemFDEM_j(BaseFDEMProblem):
 
     _fieldType = 'j'
     _eqLocs    = 'EF'
-    fieldsPair = FieldsFDEM_j
+    fieldsPair = Fields_j
 
     def __init__(self, mesh, **kwargs):
         BaseFDEMProblem.__init__(self, mesh, **kwargs)
@@ -558,7 +558,7 @@ class ProblemFDEM_j(BaseFDEMProblem):
 
 
 
-class ProblemFDEM_h(BaseFDEMProblem):
+class Problem_h(BaseFDEMProblem):
     """
         We eliminate \\\(\\\mathbf{j}\\\) using
 
@@ -576,7 +576,7 @@ class ProblemFDEM_h(BaseFDEMProblem):
 
     _fieldType = 'h'
     _eqLocs    = 'EF'
-    fieldsPair = FieldsFDEM_h
+    fieldsPair = Fields_h
 
     def __init__(self, mesh, **kwargs):
         BaseFDEMProblem.__init__(self, mesh, **kwargs)

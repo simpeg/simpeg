@@ -1,13 +1,16 @@
-from SimPEG import Survey, Problem, Utils, np, sp
-from SimPEG.EM.Utils.EMUtils import omega
+import numpy as np
+import scipy.sparse as sp
+import SimPEG
+from SimPEG import Utils
+from SimPEG.EM.Utils import omega
 
 
-class FieldsFDEM(Problem.Fields):
+class Fields(SimPEG.Problem.Fields):
     """Fancy Field Storage for a FDEM survey."""
     knownFields = {}
     dtype = complex
 
-class FieldsFDEM_e(FieldsFDEM):
+class Fields_e(Fields):
     knownFields = {'eSolution':'E'}
     aliasFields = {
                     'e' : ['eSolution','E','_e'],
@@ -19,7 +22,7 @@ class FieldsFDEM_e(FieldsFDEM):
                   }
 
     def __init__(self,mesh,survey,**kwargs):
-        FieldsFDEM.__init__(self,mesh,survey,**kwargs)
+        Fields.__init__(self,mesh,survey,**kwargs)
 
     def startup(self):
         self.prob = self.survey.prob
@@ -89,7 +92,7 @@ class FieldsFDEM_e(FieldsFDEM):
         return self._bSecondaryDeriv_m(src, v, adjoint)
 
 
-class FieldsFDEM_b(FieldsFDEM):
+class Fields_b(Fields):
     knownFields = {'bSolution':'F'}
     aliasFields = {
                     'b' : ['bSolution','F','_b'],
@@ -101,7 +104,7 @@ class FieldsFDEM_b(FieldsFDEM):
                   }
 
     def __init__(self,mesh,survey,**kwargs):
-        FieldsFDEM.__init__(self,mesh,survey,**kwargs)
+        Fields.__init__(self,mesh,survey,**kwargs)
 
     def startup(self):
         self.prob = self.survey.prob
@@ -190,7 +193,7 @@ class FieldsFDEM_b(FieldsFDEM):
         return self._eSecondaryDeriv_m(src, v, adjoint)
 
 
-class FieldsFDEM_j(FieldsFDEM):
+class Fields_j(Fields):
     knownFields = {'jSolution':'F'}
     aliasFields = {
                     'j' : ['jSolution','F','_j'],
@@ -202,7 +205,7 @@ class FieldsFDEM_j(FieldsFDEM):
                   }
 
     def __init__(self,mesh,survey,**kwargs):
-        FieldsFDEM.__init__(self,mesh,survey,**kwargs)
+        Fields.__init__(self,mesh,survey,**kwargs)
 
     def startup(self):
         self.prob = self.survey.prob
@@ -293,7 +296,7 @@ class FieldsFDEM_j(FieldsFDEM):
         return self._hSecondaryDeriv_m(src, v, adjoint)
 
 
-class FieldsFDEM_h(FieldsFDEM):
+class Fields_h(Fields):
     knownFields = {'hSolution':'E'}
     aliasFields = {
                     'h' : ['hSolution','E','_h'],
@@ -305,7 +308,7 @@ class FieldsFDEM_h(FieldsFDEM):
                   }
 
     def __init__(self,mesh,survey,**kwargs):
-        FieldsFDEM.__init__(self,mesh,survey,**kwargs)
+        Fields.__init__(self,mesh,survey,**kwargs)
 
     def startup(self):
         self.prob = self.survey.prob
