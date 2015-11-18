@@ -5,7 +5,7 @@ from scipy.constants import mu_0
 # from SurveyFDEM import RxFDEM
  
 
-class BaseSrcFDEM(Survey.BaseSrc):
+class BaseSrc(Survey.BaseSrc):
     freq = None
     # rxPair = EM.FDEM.RxFDEM
     integrate = True
@@ -43,7 +43,7 @@ class BaseSrcFDEM(Survey.BaseSrc):
         return None
 
 
-class RawVec_e(BaseSrcFDEM):
+class RawVec_e(BaseSrc):
     """
         RawVec electric source. It is defined by the user provided vector S_e
 
@@ -59,7 +59,7 @@ class RawVec_e(BaseSrcFDEM):
         self._hPrimary = hPrimary
         self._jPrimary = jPrimary
         self.freq = float(freq)
-        BaseSrcFDEM.__init__(self, rxList)
+        BaseSrc.__init__(self, rxList)
 
     def S_e(self, prob):
         return self._S_e
@@ -77,7 +77,7 @@ class RawVec_e(BaseSrcFDEM):
         return self._jPrimary
 
 
-class RawVec_m(BaseSrcFDEM):
+class RawVec_m(BaseSrc):
     """
         RawVec magnetic source. It is defined by the user provided vector S_m
 
@@ -95,7 +95,7 @@ class RawVec_m(BaseSrcFDEM):
         self._hPrimary = np.array(hPrimary,dtype=complex)
         self._jPrimary = np.array(jPrimary,dtype=complex)
 
-        BaseSrcFDEM.__init__(self, rxList)
+        BaseSrc.__init__(self, rxList)
 
     def S_m(self, prob):
         return self._S_m
@@ -113,7 +113,7 @@ class RawVec_m(BaseSrcFDEM):
         return self._jPrimary
 
 
-class RawVec(BaseSrcFDEM):
+class RawVec(BaseSrc):
     """
         RawVec source. It is defined by the user provided vectors S_m, S_e
 
@@ -127,7 +127,7 @@ class RawVec(BaseSrcFDEM):
         self._S_e = np.array(S_e,dtype=complex)
         self.freq = float(freq)
         self.integrate = integrate
-        BaseSrcFDEM.__init__(self, rxList)
+        BaseSrc.__init__(self, rxList)
 
     def S_m(self, prob):
         if prob._eqLocs is 'EF' and self.integrate is True:
@@ -140,7 +140,7 @@ class RawVec(BaseSrcFDEM):
         return self._S_e
 
 
-class MagDipole(BaseSrcFDEM):
+class MagDipole(BaseSrc):
 
     #TODO: right now, orientation doesn't actually do anything! The methods in SrcUtils should take care of that
     def __init__(self, rxList, freq, loc, orientation='Z', moment=1., mu = mu_0):
@@ -150,7 +150,7 @@ class MagDipole(BaseSrcFDEM):
         self.moment = moment
         self.mu = mu
         self.integrate = False
-        BaseSrcFDEM.__init__(self, rxList)
+        BaseSrc.__init__(self, rxList)
 
     def bPrimary(self, prob):
         eqLocs = prob._eqLocs
@@ -209,7 +209,7 @@ class MagDipole(BaseSrcFDEM):
             return -C.T * (MMui_s * self.bPrimary(prob))
 
 
-class MagDipole_Bfield(BaseSrcFDEM):
+class MagDipole_Bfield(BaseSrc):
 
     #TODO: right now, orientation doesn't actually do anything! The methods in SrcUtils should take care of that
     #TODO: neither does moment
@@ -219,7 +219,7 @@ class MagDipole_Bfield(BaseSrcFDEM):
         self.orientation = orientation
         self.moment = moment
         self.mu = mu
-        BaseSrcFDEM.__init__(self, rxList)
+        BaseSrc.__init__(self, rxList)
 
     def bPrimary(self, prob):
         eqLocs = prob._eqLocs
@@ -278,7 +278,7 @@ class MagDipole_Bfield(BaseSrcFDEM):
             return -C.T * (MMui_s * self.bPrimary(prob))
 
 
-class CircularLoop(BaseSrcFDEM):
+class CircularLoop(BaseSrc):
 
     #TODO: right now, orientation doesn't actually do anything! The methods in SrcUtils should take care of that
     def __init__(self, rxList, freq, loc, orientation='Z', radius = 1., mu=mu_0):
@@ -288,7 +288,7 @@ class CircularLoop(BaseSrcFDEM):
         self.mu = mu
         self.loc = loc
         self.integrate = False
-        BaseSrcFDEM.__init__(self, rxList)
+        BaseSrc.__init__(self, rxList)
 
     def bPrimary(self, prob):
         eqLocs = prob._eqLocs

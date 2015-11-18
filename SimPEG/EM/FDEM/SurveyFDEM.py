@@ -96,7 +96,7 @@ class SurveyFDEM(Survey.BaseSurvey):
         docstring for SurveyFDEM
     """
 
-    srcPair = Src.BaseSrcFDEM
+    srcPair = Src.BaseSrc
 
     def __init__(self, srcList, **kwargs):
         # Sort these by frequency
