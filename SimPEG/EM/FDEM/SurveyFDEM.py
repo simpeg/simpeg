@@ -1,4 +1,4 @@
-from SimPEG import Survey, Problem, Utils, np, sp
+import SimPEG
 from SimPEG.EM.Utils import *
 from scipy.constants import mu_0
 import SrcFDEM as Src
@@ -7,7 +7,7 @@ import SrcFDEM as Src
 # Receivers
 ####################################################
 
-class Rx(Survey.BaseRx):
+class Rx(SimPEG.Survey.BaseRx):
 
     knownRxTypes = {
                     'exr':['e', 'Ex', 'real'],
@@ -41,7 +41,7 @@ class Rx(Survey.BaseRx):
     radius = None
 
     def __init__(self, locs, rxType):
-        Survey.BaseRx.__init__(self, locs, rxType)
+        SimPEG.Survey.BaseRx.__init__(self, locs, rxType)
 
     @property
     def projField(self):
@@ -91,7 +91,7 @@ class Rx(Survey.BaseRx):
 # Survey
 ####################################################
 
-class SurveyFDEM(Survey.BaseSurvey):
+class Survey(SimPEG.Survey.BaseSurvey):
     """
         docstring for SurveyFDEM
     """
@@ -101,7 +101,7 @@ class SurveyFDEM(Survey.BaseSurvey):
     def __init__(self, srcList, **kwargs):
         # Sort these by frequency
         self.srcList = srcList
-        Survey.BaseSurvey.__init__(self, **kwargs)
+        SimPEG.Survey.BaseSurvey.__init__(self, **kwargs)
 
         _freqDict = {}
         for src in srcList:
@@ -136,7 +136,7 @@ class SurveyFDEM(Survey.BaseSurvey):
         return self._freqDict[freq]
 
     def projectFields(self, u):
-        data = Survey.Data(self)
+        data = SimPEG.Survey.Data(self)
         for src in self.srcList:
             for rx in src.rxList:
                 data[src, rx] = rx.projectFields(src, self.mesh, u)

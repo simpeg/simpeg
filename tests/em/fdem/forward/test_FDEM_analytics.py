@@ -31,9 +31,9 @@ class FDEM_analyticTests(unittest.TestCase):
         rxList = EM.FDEM.Rx(XYZ, 'exi')
         Src0 = EM.FDEM.Src.MagDipole([rxList],loc=np.r_[0.,0.,0.], freq=freq)
 
-        survey = EM.FDEM.SurveyFDEM([Src0])
+        survey = EM.FDEM.Survey([Src0])
 
-        prb = EM.FDEM.ProblemFDEM_b(mesh, mapping=mapping)
+        prb = EM.FDEM.Problem_b(mesh, mapping=mapping)
         prb.pair(survey)
 
         try:
@@ -120,13 +120,13 @@ class FDEM_analyticTests(unittest.TestCase):
 
 
         # Pair the problem and survey
-        surveye = EM.FDEM.SurveyFDEM(de_p)
-        surveym = EM.FDEM.SurveyFDEM(dm_p)
+        surveye = EM.FDEM.Survey(de_p)
+        surveym = EM.FDEM.Survey(dm_p)
 
         mapping = [('sigma', Maps.IdentityMap(mesh)),('mu', Maps.IdentityMap(mesh))]
 
-        prbe = EM.FDEM.ProblemFDEM_h(mesh, mapping=mapping)
-        prbm = EM.FDEM.ProblemFDEM_e(mesh, mapping=mapping)
+        prbe = EM.FDEM.Problem_h(mesh, mapping=mapping)
+        prbm = EM.FDEM.Problem_e(mesh, mapping=mapping)
 
         prbe.pair(surveye) # pair problem and survey
         prbm.pair(surveym)
