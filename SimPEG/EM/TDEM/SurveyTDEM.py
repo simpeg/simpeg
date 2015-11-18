@@ -1,6 +1,6 @@
 from SimPEG import Utils, Survey, np
 from SimPEG.Survey import BaseSurvey
-from SimPEG.EM.Utils import SrcUtils
+from SimPEG.EM.Utils import *
 from BaseTDEM import FieldsTDEM
 
 
@@ -87,11 +87,11 @@ class SrcTDEM_VMD_MVP(SrcTDEM):
         """Vertical magnetic dipole, magnetic vector potential"""
         if mesh._meshType is 'CYL':
             if mesh.isSymmetric:
-                MVP = SrcUtils.MagneticDipoleVectorPotential(self.loc, mesh, 'Ey')
+                MVP = MagneticDipoleVectorPotential(self.loc, mesh, 'Ey')
             else:
                 raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
         elif mesh._meshType is 'TENSOR':
-            MVP = SrcUtils.MagneticDipoleVectorPotential(self.loc, mesh, ['Ex','Ey','Ez'])
+            MVP = MagneticDipoleVectorPotential(self.loc, mesh, ['Ex','Ey','Ez'])
         else:
             raise Exception('Unknown mesh for VMD')
 
@@ -109,11 +109,11 @@ class SrcTDEM_CircularLoop_MVP(SrcTDEM):
         """Circular Loop, magnetic vector potential"""
         if mesh._meshType is 'CYL':
             if mesh.isSymmetric:
-                MVP = SrcUtils.MagneticLoopVectorPotential(self.loc, mesh, 'Ey', self.radius)
+                MVP = MagneticLoopVectorPotential(self.loc, mesh, 'Ey', self.radius)
             else:
                 raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
         elif mesh._meshType is 'TENSOR':
-            MVP = SrcUtils.MagneticLoopVectorPotential(self.loc, mesh, ['Ex','Ey','Ez'], self.radius)
+            MVP = MagneticLoopVectorPotential(self.loc, mesh, ['Ex','Ey','Ez'], self.radius)
         else:
             raise Exception('Unknown mesh for CircularLoop')
 

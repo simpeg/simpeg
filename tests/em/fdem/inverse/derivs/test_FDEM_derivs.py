@@ -3,6 +3,7 @@ from SimPEG import *
 from SimPEG import EM
 import sys
 from scipy.constants import mu_0
+from SimPEG.EM.Utils.testingUtils import getFDEMProblem
 
 testDerivs = True
 testEB = True
@@ -20,91 +21,9 @@ addrandoms = True
 SrcType = 'RawVec' #or 'MAgDipole_Bfield', 'CircularLoop', 'RawVec'
 
 
-def getProblem(fdemType, comp):
-    cs = 5.
-    ncx, ncy, ncz = 6, 6, 6
-    npad = 3
-    hx = [(cs,npad,-1.3), (cs,ncx), (cs,npad,1.3)]
-    hy = [(cs,npad,-1.3), (cs,ncy), (cs,npad,1.3)]
-    hz = [(cs,npad,-1.3), (cs,ncz), (cs,npad,1.3)]
-    mesh = Mesh.TensorMesh([hx,hy,hz],['C','C','C'])
-
-    mapping = Maps.ExpMap(mesh)
-
-    x = np.array([np.linspace(-30,-15,3),np.linspace(15,30,3)]) #don't sample right by the source
-    XYZ = Utils.ndgrid(x,x,np.r_[0.])
-    Rx0 = EM.FDEM.RxFDEM(XYZ, comp)
-
-    if SrcType is 'MagDipole':
-        Src = EM.FDEM.SrcFDEM_MagDipole([Rx0], freq=freq, loc=np.r_[0.,0.,0.])
-    elif SrcType is 'MagDipole_Bfield':
-        Src = EM.FDEM.SrcFDEM_MagDipole_Bfield([Rx0], freq=freq, loc=np.r_[0.,0.,0.])
-    elif SrcType is 'CircularLoop':
-        Src2 = EM.FDEM.SrcFDEM_CircularLoop([Rx0], freq=freq, loc=np.r_[0.,0.,0.])
-
-    if verbose:
-        print '  Fetching %s problem' % (fdemType)
-
-    if fdemType == 'e':
-        if SrcType is 'RawVec':
-            S_m = np.zeros(mesh.nF)
-            S_e = np.zeros(mesh.nE)
-            S_m[Utils.closestPoints(mesh,[0.,0.,0.],'Fz') + np.sum(mesh.vnF[:1])] = 1.
-            S_e[Utils.closestPoints(mesh,[0.,0.,0.],'Ez') + np.sum(mesh.vnE[:1])] = 1.
-            Src = EM.FDEM.SrcFDEM_RawVec([Rx0], freq, S_m, S_e)
-
-        survey = EM.FDEM.SurveyFDEM([Src])
-        prb = EM.FDEM.ProblemFDEM_e(mesh, mapping=mapping)
-
-    elif fdemType == 'b':
-        if SrcType is 'RawVec':
-            S_m = np.zeros(mesh.nF)
-            S_e = np.zeros(mesh.nE)
-            S_m[Utils.closestPoints(mesh,[0.,0.,0.],'Fz') + np.sum(mesh.vnF[:1])] = 1.
-            S_e[Utils.closestPoints(mesh,[0.,0.,0.],'Ez') + np.sum(mesh.vnE[:1])] = 1.
-            Src = EM.FDEM.SrcFDEM_RawVec([Rx0], freq, S_m, S_e)
-
-        survey = EM.FDEM.SurveyFDEM([Src])
-        prb = EM.FDEM.ProblemFDEM_b(mesh, mapping=mapping)
-
-    elif fdemType == 'j':
-        if SrcType is 'RawVec':
-            S_m = np.zeros(mesh.nE)
-            S_e = np.zeros(mesh.nF)
-            S_m[Utils.closestPoints(mesh,[0.,0.,0.],'Ez') + np.sum(mesh.vnE[:1])] = 1.
-            S_e[Utils.closestPoints(mesh,[0.,0.,0.],'Fz') + np.sum(mesh.vnF[:1])] = 1.
-            Src = EM.FDEM.SrcFDEM_RawVec([Rx0], freq, S_m, S_e)
-
-        survey = EM.FDEM.SurveyFDEM([Src])
-        prb = EM.FDEM.ProblemFDEM_j(mesh, mapping=mapping)
-
-    elif fdemType == 'h':
-        if SrcType is 'RawVec':
-            S_m = np.zeros(mesh.nE)
-            S_e = np.zeros(mesh.nF)
-            S_m[Utils.closestPoints(mesh,[0.,0.,0.],'Ez') + np.sum(mesh.vnE[:1])] = 1.
-            S_e[Utils.closestPoints(mesh,[0.,0.,0.],'Fz') + np.sum(mesh.vnF[:1])] = 1.
-            Src = EM.FDEM.SrcFDEM_RawVec([Rx0], freq, S_m, S_e)
-
-        survey = EM.FDEM.SurveyFDEM([Src])
-        prb = EM.FDEM.ProblemFDEM_h(mesh, mapping=mapping)
-
-    else:
-        raise NotImplementedError()
-    prb.pair(survey)
-
-    try:
-        from pymatsolver import MumpsSolver
-        prb.Solver = MumpsSolver
-    except ImportError, e:
-        pass
-
-    return prb
-
-
 def derivTest(fdemType, comp):
 
-    prb = getProblem(fdemType, comp)
+    prb = getFDEMProblem(fdemType, comp, [SrcType], freq)
     print '%s formulation - %s' % (fdemType, comp)
     x0 = np.log(np.ones(prb.mapping.nP)*CONDUCTIVITY)
     mu = np.log(np.ones(prb.mesh.nC)*MU)
