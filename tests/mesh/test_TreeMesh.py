@@ -1,11 +1,10 @@
 from SimPEG import Mesh, Tests
+from SimPEG.Mesh.TreeMesh import CellLookUpException
 import numpy as np
 import matplotlib.pyplot as plt
 import unittest
 
 TOL = 1e-8
-
-
 
 class TestSimpleQuadTree(unittest.TestCase):
 
@@ -19,6 +18,7 @@ class TestSimpleQuadTree(unittest.TestCase):
         M._refineCell([0,0,1])
         M.number()
         # M.plotGrid(showIt=True)
+        print M
         assert M.nhFx == 2
         assert M.nFx == 9
 
@@ -26,6 +26,64 @@ class TestSimpleQuadTree(unittest.TestCase):
 
         assert np.allclose(np.r_[M._areaFxFull, M._areaFyFull], M._deflationMatrix('F') * M.area)
 
+    def test_refine(self):
+        M = Mesh.TreeMesh([4,4,4])
+        M.refine(1)
+        assert M.nC == 8
+        M.refine(0)
+        assert M.nC == 8
+        M.corsen(0)
+        assert M.nC == 1
+
+    def test_corsen(self):
+        nc = 8
+        h1 = np.random.rand(nc)*nc*0.5 + nc*0.5
+        h2 = np.random.rand(nc)*nc*0.5 + nc*0.5
+        h = [hi/np.sum(hi) for hi in [h1, h2]]  # normalize
+        M = Mesh.TreeMesh(h)
+        M._refineCell([0,0,0])
+        M._refineCell([0,0,1])
+        self.assertRaises(CellLookUpException, M._refineCell, [0,0,1])
+        assert M._index([0,0,1]) not in M
+        assert M._index([0,0,2]) in M
+        assert M._index([2,0,2]) in M
+        assert M._index([0,2,2]) in M
+        assert M._index([2,2,2]) in M
+
+        self.assertRaises(CellLookUpException, M._corsenCell, [0,0,1])
+        M._corsenCell([0,0,2])
+        assert M._index([0,0,1]) in M
+        assert M._index([0,0,2]) not in M
+        assert M._index([2,0,2]) not in M
+        assert M._index([0,2,2]) not in M
+        assert M._index([2,2,2]) not in M
+        M._refineCell([0,0,1])
+
+        self.assertRaises(CellLookUpException, M._corsenCell, [0,0,1])
+        M._corsenCell([2,0,2])
+        assert M._index([0,0,1]) in M
+        assert M._index([0,0,2]) not in M
+        assert M._index([2,0,2]) not in M
+        assert M._index([0,2,2]) not in M
+        assert M._index([2,2,2]) not in M
+        M._refineCell([0,0,1])
+
+        self.assertRaises(CellLookUpException, M._corsenCell, [0,0,1])
+        M._corsenCell([0,2,2])
+        assert M._index([0,0,1]) in M
+        assert M._index([0,0,2]) not in M
+        assert M._index([2,0,2]) not in M
+        assert M._index([0,2,2]) not in M
+        assert M._index([2,2,2]) not in M
+        M._refineCell([0,0,1])
+
+        self.assertRaises(CellLookUpException, M._corsenCell, [0,0,1])
+        M._corsenCell([2,2,2])
+        assert M._index([0,0,1]) in M
+        assert M._index([0,0,2]) not in M
+        assert M._index([2,0,2]) not in M
+        assert M._index([0,2,2]) not in M
+        assert M._index([2,2,2]) not in M
 
     def test_faceDiv(self):
 
