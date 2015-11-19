@@ -160,10 +160,12 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
 
     @property
     def fill(self):
+        """How filled is the mesh compared to a TensorMesh? As a fraction: [0,1]."""
         return float(self.nC)/((2**self.maxLevel)**self.dim)
 
     @property
     def maxLevel(self):
+        """The maximum level used, which may be less than `levels`."""
         l = 0
         for cell in self._cells:
             p = self._pointer(cell)
@@ -306,7 +308,6 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
         if self.dim == 2: return None
         self.number()
         return len(self._hangingEz)
-
 
     @property
     def ntN(self):
