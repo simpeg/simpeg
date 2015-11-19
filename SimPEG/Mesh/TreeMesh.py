@@ -639,54 +639,54 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
             self._gridCC = np.zeros((len(self._cells),self.dim))
             for ii, ind in enumerate(self._sortedCells):
                 p = self._asPointer(ind)
-                self._gridCC[ii, :] = self._cellC(p)
+                self._gridCC[ii, :] = self._cellC(p) + self.x0
         return self._gridCC
 
     @property
     def gridN(self):
         self.number()
         R = self._deflationMatrix('N', withHanging=False)
-        return R.T * self._gridN
+        return R.T * self._gridN + np.repeat([self.x0],self.nN,axis=0)
 
     @property
     def gridFx(self):
         self.number()
         R = self._deflationMatrix('Fx', withHanging=False)
-        return R.T * self._gridFx
+        return R.T * self._gridFx + np.repeat([self.x0],self.nFx,axis=0)
 
     @property
     def gridFy(self):
         self.number()
         R = self._deflationMatrix('Fy', withHanging=False)
-        return R.T * self._gridFy
+        return R.T * self._gridFy + np.repeat([self.x0],self.nFy,axis=0)
 
     @property
     def gridFz(self):
         if self.dim < 3: return None
         self.number()
         R = self._deflationMatrix('Fz', withHanging=False)
-        return R.T * self._gridFz
+        return R.T * self._gridFz + np.repeat([self.x0],self.nFz,axis=0)
 
     @property
     def gridEx(self):
         if self.dim == 2: return self.gridFy
         self.number()
         R = self._deflationMatrix('Ex', withHanging=False)
-        return R.T * self._gridEx
+        return R.T * self._gridEx + np.repeat([self.x0],self.nEx,axis=0)
 
     @property
     def gridEy(self):
         if self.dim == 2: return self.gridFx
         self.number()
         R = self._deflationMatrix('Ey', withHanging=False)
-        return R.T * self._gridEy
+        return R.T * self._gridEy + np.repeat([self.x0],self.nEy,axis=0)
 
     @property
     def gridEz(self):
         if self.dim < 3: return None
         self.number()
         R = self._deflationMatrix('Ez', withHanging=False)
-        return R.T * self._gridEz
+        return R.T * self._gridEz + np.repeat([self.x0],self.nEz,axis=0)
 
     @property
     def vol(self):
