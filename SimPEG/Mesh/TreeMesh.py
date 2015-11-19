@@ -480,8 +480,6 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
             self.balance()
         return recurse
 
-        if verbose: print '   ', time.time() - tic
-
     def _refineCell(self, ind, pointer=None):
         ind = self._asIndex(ind)
         pointer = self._asPointer(pointer if pointer is not None else ind)
@@ -524,7 +522,6 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
             return self._index(pointer)
         raise Exception
 
-
     def _childPointers(self, pointer, direction=0, positive=True, returnAll=False):
         l = self._levelWidth(pointer[-1] + 1)
 
@@ -556,7 +553,6 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
         if returnAll:
             return children
         return [children[_] for _ in ind[:(self.dim-1)*2]]
-
 
     def _parentPointer(self, pointer):
         if pointer[-1] == 0: return None
