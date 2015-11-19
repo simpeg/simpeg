@@ -741,11 +741,6 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
 
         return self._edge
 
-    def _onSameLevel(self, i0, i1):
-        p0 = self._asPointer(i0)
-        p1 = self._asPointer(i1)
-        return p0[-1] == p1[-1]
-
     def _createNumberingSets(self, force=False):
         if not self.__dirtySets__ and not force: return
 
