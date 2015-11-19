@@ -176,7 +176,7 @@ class ProblemDC_CC(Problem.BaseProblem):
             G = self.mesh.cellGrad
             self._A = D*self.Msig*G
             # Remove the null space from the matrix.
-            self._A[-1,-1] /= self.mesh.vol[-1]
+            self._A[-1,-1] = 1. #self.mesh.vol[-1]
             self._A = self._A.tocsc()
         return self._A
 
