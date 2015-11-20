@@ -821,7 +821,6 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
 
         self.__dirtySets__ = False
 
-
     def _numberCells(self, force=False):
         if not self.__dirtyCells__ and not force: return
         self._cc2i = dict()
@@ -1418,7 +1417,6 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
             self._edgeCurl = Rf_ave*Utils.sdiag(1.0/S)*C*Utils.sdiag(L)*Re
         return self._edgeCurl
 
-
     @property
     def nodalGrad(self):
         if getattr(self, '_nodalGrad', None) is None:
@@ -1760,7 +1758,6 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
             self._aveN2CC = Av*Re
         return self._aveN2CC
 
-
     def _getFaceP(self, xFace, yFace, zFace):
         ind1, ind2, ind3 = [], [], []
         for ind in self._sortedCells:
@@ -1863,7 +1860,6 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
                     out += [test]
                     break
         return out
-
 
     def getInterpolationMat(self, locs, locType, zerosOutside=False):
         """ Produces interpolation matrix
@@ -2101,7 +2097,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
         ax=None, clim=None, showIt=False,
         pcolorOpts={},
         streamOpts={'color':'k'},
-        gridOpts={'color':'k'}):
+        gridOpts={'color':'k', 'alpha':0.5}):
 
         assert vType in ['CC','F','E']
         assert self.dim == 3

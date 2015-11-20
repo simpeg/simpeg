@@ -173,7 +173,7 @@ class TensorView(object):
                   ax=None, clim=None, showIt=False,
                   pcolorOpts={},
                   streamOpts={'color':'k'},
-                  gridOpts={'color':'k'}
+                  gridOpts={'color':'k', 'alpha':0.5}
                   ):
 
         """
