@@ -280,3 +280,11 @@ notebooks/MT3D_dobs.npy
 notebooks/MT3D_dtrue.npy
 notebooks/trueModel.vtr
 notebooks/018-InversionModel-2015-11-13-10-29.npy
+notebooks/scipy2015/SeogiModelMT3Dfor21Dinv/xyzmod*
+notebooks/scipy2015/SeogiModelMT3Dfor21Dinv/seogiModel_dobs.npy
+notebooks/MT Script-3D_InversionTest-Copy1.ipynb
+notebooks/scipy2015/SeogiModelMT3Dfor21Dinv/model3D_zdet1Dinv_paddedMesh.vtr
+notebooks/scipy2015/SeogiModelMT3Dfor21Dinv/model3D_zxy1Dinv_paddedMesh.vtr
+notebooks/scipy2015/SeogiModelMT3Dfor21Dinv/model3D_zyx1Dinv_paddedMesh.vtr
+notebooks/scipy2015/SeogiModelMT3Dfor21Dinv/modelTDpaddedMesh.vtr
+notebooks/scipy2015/SeogiModelMT3Dfor21Dinv/modelTDuniMesh.vtr

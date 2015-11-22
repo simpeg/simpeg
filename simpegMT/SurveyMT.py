@@ -228,7 +228,6 @@ class RxMT(Survey.BaseRx):
 
                 # Calculate the complex derivative
                 PDeriv_complex = Hd * (ZijN_uV - Zij * Hd_uV )
-                # ero
             # Extract the real number for the real/imag components.
             Pv = np.array(getattr(PDeriv_complex, real_or_imag))
         elif adjoint:
@@ -299,7 +298,8 @@ class RxMT(Survey.BaseRx):
 
                 # Calculate the complex derivative
                 PDeriv_real = ZijN_uV(aHd*v) - aHd_uV(Zij.T*aHd*v)#
-                # NOTE: .toarray() is to return a non-sparse array which is needed for for Ainv* operation. Might want to take care of this elsewhere.
+                # NOTE: Need to reshape the output to go from 2*nU array to a (nU,2) matrix for each polarization
+                PDeriv_real = PDeriv_real.reshape((mesh.nE,2))
             # Extract the data
             if real_or_imag == 'imag':
                 Pv = 1j*PDeriv_real

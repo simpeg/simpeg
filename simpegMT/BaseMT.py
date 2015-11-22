@@ -26,7 +26,6 @@ class BaseMTProblem(BaseFDEMProblem):
         # Remove fields that are not needed
         del odict['hook']
         del odict['setKwargs']
-        del odict['PropMap']
         # Return the dict
         return odict
 
@@ -123,8 +122,6 @@ class BaseMTProblem(BaseFDEMProblem):
                     # Get the adjoint projectFieldsDeriv
                     # PTv needs to be nE,
                     PTv = rx.projectFieldsDeriv(src, self.mesh, u, mkvc(v[src, rx],2), adjoint=True) # wrt u, need possibility wrt m
-                    # Need to reshape PTv
-                    PTv = np.hstack((mkvc(PTv[:len(PTv)/2],2),mkvc(PTv[len(PTv)/2::],2)))
                     # Get the
                     dA_duIT = ATinv * PTv
                     dA_dmT = self.getADeriv_m(freq, u_src, mkvc(dA_duIT), adjoint=True)
