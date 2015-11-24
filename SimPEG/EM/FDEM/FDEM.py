@@ -161,8 +161,8 @@ class BaseFDEMProblem(BaseEMProblem):
 
         for i, src in enumerate(Srcs):
             smi, sei = src.eval(self)
-            S_m[:,i] += smi
-            S_e[:,i] += sei
+            S_m[:,i] = S_m[:,i] + smi
+            S_e[:,i] = S_e[:,i] + sei
 
         return S_m, S_e
 
