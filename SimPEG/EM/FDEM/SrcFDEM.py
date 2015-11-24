@@ -52,29 +52,13 @@ class RawVec_e(BaseSrc):
         :param rxList: receiver list
     """
 
-    def __init__(self, rxList, freq, S_e, ePrimary=None, bPrimary=None, hPrimary=None, jPrimary=None):
+    def __init__(self, rxList, freq, S_e): #, ePrimary=None, bPrimary=None, hPrimary=None, jPrimary=None):
         self._S_e = np.array(S_e,dtype=complex)
-        self._ePrimary = ePrimary
-        self._bPrimary = bPrimary
-        self._hPrimary = hPrimary
-        self._jPrimary = jPrimary
         self.freq = float(freq)
         BaseSrc.__init__(self, rxList)
 
     def S_e(self, prob):
         return self._S_e
-
-    def ePrimary(self, prob):
-        return self._ePrimary
-
-    def bPrimary(self, prob):
-        return self._bPrimary
-
-    def hPrimary(self, prob):
-        return self._hPrimary
-
-    def jPrimary(self, prob):
-        return self._jPrimary
 
 
 class RawVec_m(BaseSrc):
@@ -86,31 +70,15 @@ class RawVec_m(BaseSrc):
         :param rxList: receiver list
     """
 
-    def __init__(self, rxList, freq, S_m, integrate = True, ePrimary=None, bPrimary=None, hPrimary=None, jPrimary=None):
+    def __init__(self, rxList, freq, S_m, integrate = True):  #ePrimary=Zero(), bPrimary=Zero(), hPrimary=Zero(), jPrimary=Zero()):
         self._S_m = np.array(S_m,dtype=complex)
         self.freq = float(freq)
         self.integrate = integrate
-        self._ePrimary = np.array(ePrimary,dtype=complex)
-        self._bPrimary = np.array(bPrimary,dtype=complex)
-        self._hPrimary = np.array(hPrimary,dtype=complex)
-        self._jPrimary = np.array(jPrimary,dtype=complex)
 
         BaseSrc.__init__(self, rxList)
 
     def S_m(self, prob):
         return self._S_m
-
-    def ePrimary(self, prob):
-        return self._ePrimary
-
-    def bPrimary(self, prob):
-        return self._bPrimary
-
-    def hPrimary(self, prob):
-        return self._hPrimary
-
-    def jPrimary(self, prob):
-        return self._jPrimary
 
 
 class RawVec(BaseSrc):

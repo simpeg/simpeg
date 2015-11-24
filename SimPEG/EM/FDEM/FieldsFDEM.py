@@ -53,8 +53,7 @@ class Fields_e(Fields):
         bPrimary = np.zeros([self._edgeCurl.shape[0],eSolution.shape[1]],dtype = complex)
         for i, src in enumerate(srcList):
             bp = src.bPrimary(self.prob)
-            if bp is not None:
-                bPrimary[:,i] += bp
+            bPrimary[:,i] += bp
         return bPrimary
 
     def _bSecondary(self, eSolution, srcList):
@@ -147,7 +146,6 @@ class Fields_b(Fields):
         e = self._MeSigmaI * ( self._edgeCurl.T * ( self._MfMui * bSolution))
         for i,src in enumerate(srcList):
             _,S_e = src.eval(self.prob)
-            # if S_e is not None:
             e[:,i] += -self._MeSigmaI * S_e
         return e
 
@@ -316,7 +314,7 @@ class Fields_h(Fields):
         for i, src in enumerate(srcList):
             hp = src.hPrimary(self.prob)
             hPrimary[:,i] += hp
-            return hPrimary
+        return hPrimary
 
     def _hSecondary(self, hSolution, srcList):
         return hSolution
