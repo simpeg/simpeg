@@ -159,7 +159,7 @@ class Fields_b(Fields):
             Me = Me.T
 
         w = self._edgeCurl.T * (self._MfMui * bSolution)
-        w += -Utils.mkvc(Me * S_e,2)
+        w = w - Utils.mkvc(Me * S_e,2)
 
         if not adjoint:
             de_dm = self._MeSigmaIDeriv(w) * v
@@ -169,8 +169,7 @@ class Fields_b(Fields):
         _, S_eDeriv = src.evalDeriv(self.prob, adjoint)
         Se_Deriv = S_eDeriv(v)
 
-        if Se_Deriv is not None:
-            de_dm = de_dm-self._MeSigmaI * Se_Deriv
+        de_dm = de_dm - self._MeSigmaI * Se_Deriv
 
         return de_dm
 
