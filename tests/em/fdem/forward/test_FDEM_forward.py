@@ -6,7 +6,7 @@ from scipy.constants import mu_0
 from SimPEG.EM.Utils.testingUtils import getFDEMProblem
 
 testEB = True
-testHJ = True
+testHJ = False
 
 verbose = False
 

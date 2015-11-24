@@ -28,12 +28,12 @@ class FDEM_analyticTests(unittest.TestCase):
 
         x = np.linspace(-10,10,5)
         XYZ = Utils.ndgrid(x,np.r_[0],np.r_[0])
-        rxList = EM.FDEM.RxFDEM(XYZ, 'exi')
-        Src0 = EM.FDEM.SrcFDEM_MagDipole([rxList],loc=np.r_[0.,0.,0.], freq=freq)
+        rxList = EM.FDEM.Rx(XYZ, 'exi')
+        Src0 = EM.FDEM.Src.MagDipole([rxList],loc=np.r_[0.,0.,0.], freq=freq)
 
-        survey = EM.FDEM.SurveyFDEM([Src0])
+        survey = EM.FDEM.Survey([Src0])
 
-        prb = EM.FDEM.ProblemFDEM_b(mesh, mapping=mapping)
+        prb = EM.FDEM.Problem_b(mesh, mapping=mapping)
         prb.pair(survey)
 
         try:
@@ -114,19 +114,19 @@ class FDEM_analyticTests(unittest.TestCase):
 
         de = np.zeros(mesh.nF,dtype=complex)
         de[s_ind] = 1./csz
-        de_p = [EM.FDEM.SrcFDEM_RawVec_e([],freq,de/mesh.area)]
+        de_p = [EM.FDEM.Src.RawVec_e([],freq,de/mesh.area)]
 
-        dm_p = [EM.FDEM.SrcFDEM_MagDipole([],freq,src_loc)]
+        dm_p = [EM.FDEM.Src.MagDipole([],freq,src_loc)]
 
 
         # Pair the problem and survey
-        surveye = EM.FDEM.SurveyFDEM(de_p)
-        surveym = EM.FDEM.SurveyFDEM(dm_p)
+        surveye = EM.FDEM.Survey(de_p)
+        surveym = EM.FDEM.Survey(dm_p)
 
         mapping = [('sigma', Maps.IdentityMap(mesh)),('mu', Maps.IdentityMap(mesh))]
 
-        prbe = EM.FDEM.ProblemFDEM_h(mesh, mapping=mapping)
-        prbm = EM.FDEM.ProblemFDEM_e(mesh, mapping=mapping)
+        prbe = EM.FDEM.Problem_h(mesh, mapping=mapping)
+        prbm = EM.FDEM.Problem_e(mesh, mapping=mapping)
 
         prbe.pair(surveye) # pair problem and survey
         prbm.pair(surveym)
