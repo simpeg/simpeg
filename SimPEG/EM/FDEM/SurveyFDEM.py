@@ -1,7 +1,9 @@
 import SimPEG
 from SimPEG.EM.Utils import *
 from scipy.constants import mu_0
+from SimPEG.Utils import Zero, Identity
 import SrcFDEM as Src
+
 
 ####################################################
 # Receivers
