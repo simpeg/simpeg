@@ -38,5 +38,4 @@ nosetests.xml
 *.sublime-project
 *.sublime-workspace
 docs/_build/
-*_cython.c
 Makefile

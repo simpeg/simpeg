@@ -110,9 +110,10 @@ def SolverWrapI(fun, checkAccuracy=True, accuracyTol=1e-5):
     return type(fun.__name__+'_Wrapped', (object,), {"__init__": __init__, "clean": clean, "__mul__": __mul__})
 
 
-Solver   = SolverWrapD(sp.linalg.spsolve, factorize=False)
-SolverLU = SolverWrapD(sp.linalg.splu, factorize=True)
-SolverCG = SolverWrapI(sp.linalg.cg)
+from scipy.sparse import linalg
+Solver   = SolverWrapD(linalg.spsolve, factorize=False)
+SolverLU = SolverWrapD(linalg.splu, factorize=True)
+SolverCG = SolverWrapI(linalg.cg)
 
 
 class SolverDiag(object):

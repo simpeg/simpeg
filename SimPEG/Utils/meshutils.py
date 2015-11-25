@@ -149,7 +149,7 @@ def readUBCTensorModel(fileName, mesh):
 
         Input:
         :param fileName, path to the UBC GIF mesh file to read
-        :param mesh, TensorMesh object, mesh that coresponds to the model 
+        :param mesh, TensorMesh object, mesh that coresponds to the model
 
         Output:
         :return numpy array, model with TensorMesh ordered
@@ -170,7 +170,7 @@ def writeUBCTensorMesh(fileName, mesh):
 
         :param str fileName: File to write to
         :param simpeg.Mesh.TensorMesh mesh: The mesh
-        
+
     """
     assert mesh.dim == 3
     s = ''
@@ -216,7 +216,7 @@ def readVTRFile(fileName):
         Output:
         :return SimPEG TensorMesh object
         :return SimPEG model dictionary
-        
+
     """
     # Import
     from vtk import vtkXMLRectilinearGridReader as vtrFileReader
@@ -324,56 +324,56 @@ def ExtractCoreMesh(xyzlim, mesh, meshType='tensor'):
         Extracts Core Mesh from Global mesh
         xyzlim: 2D array [ndim x 2]
         mesh: SimPEG mesh
-        This function ouputs: 
+        This function ouputs:
             - actind: corresponding boolean index from global to core
-            - meshcore: core SimPEG mesh  
+            - meshcore: core SimPEG mesh
         Warning: 1D and 2D has not been tested
     """
     from SimPEG import Mesh
     if mesh.dim ==1:
         xyzlim = xyzlim.flatten()
         xmin, xmax = xyzlim[0], xyzlim[1]
-        
-        xind = np.logical_and(mesh.vectorCCx>xmin, mesh.vectorCCx<xmax)        
-        
+
+        xind = np.logical_and(mesh.vectorCCx>xmin, mesh.vectorCCx<xmax)
+
         xc = mesh.vectorCCx[xind]
 
         hx = mesh.hx[xind]
-        
+
         x0 = [xc[0]-hx[0]*0.5, yc[0]-hy[0]*0.5]
-        
+
         meshCore = Mesh.TensorMesh([hx, hy] ,x0=x0)
-        
+
         actind = (mesh.gridCC[:,0]>xmin) & (mesh.gridCC[:,0]<xmax)
-        
+
     elif mesh.dim ==2:
         xmin, xmax = xyzlim[0,0], xyzlim[0,1]
         ymin, ymax = xyzlim[1,0], xyzlim[1,1]
 
         yind = np.logical_and(mesh.vectorCCy>ymin, mesh.vectorCCy<ymax)
-        zind = np.logical_and(mesh.vectorCCz>zmin, mesh.vectorCCz<zmax)        
+        zind = np.logical_and(mesh.vectorCCz>zmin, mesh.vectorCCz<zmax)
 
         xc = mesh.vectorCCx[xind]
         yc = mesh.vectorCCy[yind]
 
         hx = mesh.hx[xind]
         hy = mesh.hy[yind]
-        
+
         x0 = [xc[0]-hx[0]*0.5, yc[0]-hy[0]*0.5]
-        
+
         meshCore = Mesh.TensorMesh([hx, hy] ,x0=x0)
-        
+
         actind = (mesh.gridCC[:,0]>xmin) & (mesh.gridCC[:,0]<xmax) \
                & (mesh.gridCC[:,1]>ymin) & (mesh.gridCC[:,1]<ymax) \
-        
+
     elif mesh.dim==3:
         xmin, xmax = xyzlim[0,0], xyzlim[0,1]
         ymin, ymax = xyzlim[1,0], xyzlim[1,1]
         zmin, zmax = xyzlim[2,0], xyzlim[2,1]
-        
+
         xind = np.logical_and(mesh.vectorCCx>xmin, mesh.vectorCCx<xmax)
         yind = np.logical_and(mesh.vectorCCy>ymin, mesh.vectorCCy<ymax)
-        zind = np.logical_and(mesh.vectorCCz>zmin, mesh.vectorCCz<zmax)        
+        zind = np.logical_and(mesh.vectorCCz>zmin, mesh.vectorCCz<zmax)
 
         xc = mesh.vectorCCx[xind]
         yc = mesh.vectorCCy[yind]
@@ -382,19 +382,19 @@ def ExtractCoreMesh(xyzlim, mesh, meshType='tensor'):
         hx = mesh.hx[xind]
         hy = mesh.hy[yind]
         hz = mesh.hz[zind]
-        
+
         x0 = [xc[0]-hx[0]*0.5, yc[0]-hy[0]*0.5, zc[0]-hz[0]*0.5]
-        
+
         meshCore = Mesh.TensorMesh([hx, hy, hz] ,x0=x0)
-        
+
         actind = (mesh.gridCC[:,0]>xmin) & (mesh.gridCC[:,0]<xmax) \
                & (mesh.gridCC[:,1]>ymin) & (mesh.gridCC[:,1]<ymax) \
                & (mesh.gridCC[:,2]>zmin) & (mesh.gridCC[:,2]<zmax)
-                
+
     else:
         raise(Exception("Not implemented!"))
-    
-    
+
+
     return actind, meshCore
 
 

@@ -1,10 +1,10 @@
 from SimPEG import Utils, np, sp
-from BaseMesh import BaseRectangularMesh
+from BaseMesh import BaseMesh, BaseRectangularMesh
 from View import TensorView
 from DiffOperators import DiffOperators
 from InnerProducts import InnerProducts
 
-class BaseTensorMesh(BaseRectangularMesh):
+class BaseTensorMesh(BaseMesh):
 
     __metaclass__ = Utils.SimPEGMetaClass
 
@@ -42,7 +42,10 @@ class BaseTensorMesh(BaseRectangularMesh):
                 else:
                     raise Exception("x0[%i] must be a scalar or '0' to be zero, 'C' to center, or 'N' to be negative." % i)
 
-        BaseRectangularMesh.__init__(self, np.array([x.size for x in h]), x0)
+        if isinstance(self, BaseRectangularMesh):
+            BaseRectangularMesh.__init__(self, np.array([x.size for x in h]), x0)
+        else:
+            BaseMesh.__init__(self, np.array([x.size for x in h]), x0)
 
         # Ensure h contains 1D vectors
         self._h = [Utils.mkvc(x.astype(float)) for x in h]
@@ -356,7 +359,7 @@ class BaseTensorMesh(BaseRectangularMesh):
 
 
 
-class TensorMesh(BaseTensorMesh, TensorView, DiffOperators, InnerProducts):
+class TensorMesh(BaseTensorMesh, BaseRectangularMesh, TensorView, DiffOperators, InnerProducts):
     """
     TensorMesh is a mesh class that deals with tensor product meshes.
 
@@ -413,34 +416,34 @@ class TensorMesh(BaseTensorMesh, TensorView, DiffOperators, InnerProducts):
                         break
 
                 if n == 1:
-                    outStr = outStr + ' {0:.2f},'.format(h)
+                    outStr += ' {0:.2f},'.format(h)
                 else:
-                    outStr = outStr + ' {0:d}*{1:.2f},'.format(n,h)
+                    outStr += ' {0:d}*{1:.2f},'.format(n,h)
 
             return outStr[:-1]
 
         if self.dim == 1:
-            outStr = outStr + '\n   x0: {0:.2f}'.format(self.x0[0])
-            outStr = outStr + '\n  nCx: {0:d}'.format(self.nCx)
-            outStr = outStr + printH(self.hx, outStr='\n   hx:')
+            outStr += '\n   x0: {0:.2f}'.format(self.x0[0])
+            outStr += '\n  nCx: {0:d}'.format(self.nCx)
+            outStr += printH(self.hx, outStr='\n   hx:')
             pass
         elif self.dim == 2:
-            outStr = outStr + '\n   x0: {0:.2f}'.format(self.x0[0])
-            outStr = outStr + '\n   y0: {0:.2f}'.format(self.x0[1])
-            outStr = outStr + '\n  nCx: {0:d}'.format(self.nCx)
-            outStr = outStr + '\n  nCy: {0:d}'.format(self.nCy)
-            outStr = outStr + printH(self.hx, outStr='\n   hx:')
-            outStr = outStr + printH(self.hy, outStr='\n   hy:')
+            outStr += '\n   x0: {0:.2f}'.format(self.x0[0])
+            outStr += '\n   y0: {0:.2f}'.format(self.x0[1])
+            outStr += '\n  nCx: {0:d}'.format(self.nCx)
+            outStr += '\n  nCy: {0:d}'.format(self.nCy)
+            outStr += printH(self.hx, outStr='\n   hx:')
+            outStr += printH(self.hy, outStr='\n   hy:')
         elif self.dim == 3:
-            outStr = outStr + '\n   x0: {0:.2f}'.format(self.x0[0])
-            outStr = outStr + '\n   y0: {0:.2f}'.format(self.x0[1])
-            outStr = outStr + '\n   z0: {0:.2f}'.format(self.x0[2])
-            outStr = outStr + '\n  nCx: {0:d}'.format(self.nCx)
-            outStr = outStr + '\n  nCy: {0:d}'.format(self.nCy)
-            outStr = outStr + '\n  nCz: {0:d}'.format(self.nCz)
-            outStr = outStr + printH(self.hx, outStr='\n   hx:')
-            outStr = outStr + printH(self.hy, outStr='\n   hy:')
-            outStr = outStr + printH(self.hz, outStr='\n   hz:')
+            outStr += '\n   x0: {0:.2f}'.format(self.x0[0])
+            outStr += '\n   y0: {0:.2f}'.format(self.x0[1])
+            outStr += '\n   z0: {0:.2f}'.format(self.x0[2])
+            outStr += '\n  nCx: {0:d}'.format(self.nCx)
+            outStr += '\n  nCy: {0:d}'.format(self.nCy)
+            outStr += '\n  nCz: {0:d}'.format(self.nCz)
+            outStr += printH(self.hx, outStr='\n   hx:')
+            outStr += printH(self.hy, outStr='\n   hy:')
+            outStr += printH(self.hz, outStr='\n   hz:')
 
         return outStr
 

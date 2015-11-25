@@ -342,10 +342,10 @@ def invPropertyTensor(M, tensor, returnMatrix=False):
 
 
 def diagEst(matFun, n, k=None, approach='Probing'):
-    """ 
+    """
     Estimate the diagonal of a matrix, A. Note that the matrix may be a function which returns A times a vector.
 
-    Three different approaches have been implemented, 
+    Three different approaches have been implemented,
         1. Probing : uses cyclic permutations of vectors with ones and zeros (default)
         2. Ones : random +/- 1 entries
         3. Random : random vectors
@@ -362,7 +362,7 @@ def diagEst(matFun, n, k=None, approach='Probing'):
 
     if type(matFun).__name__=='ndarray':
         A = matFun
-        matFun = lambda v: A.dot(v) 
+        matFun = lambda v: A.dot(v)
 
     if k is None:
         k = np.floor(n/10.)
@@ -396,11 +396,60 @@ def diagEst(matFun, n, k=None, approach='Probing'):
 
     return d
 
+class Zero(object):
+    def __add__(self, v):return v
+    def __radd__(self, v):return v
+    def __sub__(self, v):return -v
+    def __rsub__(self, v):return v
+    def __mul__(self, v):return self
+    def __rmul__(self, v):return self
+    def __div__(self, v): return self
+    def __truediv__(self, v): return self
+    def __rdiv__(self, v): raise ZeroDivisionError('Cannot divide by zero.')
+    def __pos__(self):return self
+    def __neg__(self):return self
+    def __lt__(self, v):return 0 < v
+    def __le__(self, v):return 0 <= v
+    def __eq__(self, v):return v == 0
+    def __ne__(self, v):return not (0 == v)
+    def __ge__(self, v):return 0 >= v
+    def __gt__(self, v):return 0 > v
 
-from scipy.sparse.linalg import LinearOperator
+class Identity(object):
+    _positive = True
+    def __init__(self, positive=True):
+        self._positive = positive is True
 
-class SimPEGLinearOperator(LinearOperator):
-    """Extends scipy.sparse.linalg.LinearOperator to have a .T function."""
-    @property
-    def T(self):
-        return self.__class__((self.shape[1],self.shape[0]),self.rmatvec,rmatvec=self.matvec,matmat=self.matmat)
+    def __pos__(self):return self
+    def __neg__(self):return Identity(not self._positive)
+
+    def __add__(self, v):
+        if sp.issparse(v):
+            return v + speye(v.shape[0]) if self._positive else v - speye(v.shape[0])
+        return v + 1 if self._positive else v - 1
+    def __radd__(self, v):
+        return self.__add__(v)
+
+    def __sub__(self, v): return self+-v
+    def __rsub__(self, v):return -self+v
+
+    def __mul__(self, v): return v if self._positive else -v
+    def __rmul__(self, v):return v if self._positive else -v
+
+    def __div__(self, v):
+        if sp.issparse(v): raise NotImplementedError('Sparse arrays not divisibile.')
+        return 1/v if self._positive else -1/v
+    def __truediv__(self, v):
+        if sp.issparse(v): raise NotImplementedError('Sparse arrays not divisibile.')
+        return 1.0/v if self._positive else -1.0/v
+    def __rdiv__(self, v):
+        return v if self._positive else -v
+
+    def __lt__(self, v):return 1 <  v if self._positive else -1 <  v
+    def __le__(self, v):return 1 <= v if self._positive else -1 <= v
+    def __eq__(self, v):return v == 1 if self._positive else v == -1
+    def __ne__(self, v):return (not (1 == v))if self._positive else (not (-1 == v))
+    def __ge__(self, v):return 1 >= v if self._positive else -1 >= v
+    def __gt__(self, v):return 1 >  v if self._positive else -1 >  v
+
+

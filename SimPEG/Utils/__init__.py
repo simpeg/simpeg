@@ -7,4 +7,4 @@ from ipythonutils import easyAnimate as animate
 from CounterUtils import *
 import ModelBuilder
 import SolverUtils
-
+from coordutils import *

@@ -27,6 +27,7 @@ class BaseMesh(object):
         # Ensure x0 & n are 1D vectors
         self._n = np.array(n, dtype=int).ravel()
         self._x0 = np.array(x0, dtype=float).ravel()
+        self._dim = len(self._x0)
 
     @property
     def x0(self):
@@ -46,7 +47,7 @@ class BaseMesh(object):
         :rtype: int
         :return: dim
         """
-        return len(self._n)
+        return self._dim
 
     @property
     def nC(self):

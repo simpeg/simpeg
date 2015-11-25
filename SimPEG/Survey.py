@@ -367,7 +367,7 @@ class BaseSurvey(object):
 
         """
         if getattr(self, 'dobs', None) is not None and not force:
-            raise Exception('Survey already has dobs.')
+            raise Exception('Survey already has dobs. You can use force=True to override this exception.')
         self.mtrue = m
         self.dtrue = self.dpred(m, u=u)
         noise = std*abs(self.dtrue)*np.random.randn(*self.dtrue.shape)

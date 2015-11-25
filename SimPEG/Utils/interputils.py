@@ -124,13 +124,13 @@ if not _interpCython:
             ind_x1, ind_x2, wx1, wx2 = _interp_point_1D(x, locs[i, 0])
             ind_y1, ind_y2, wy1, wy2 = _interp_point_1D(y, locs[i, 1])
 
-            inds += [( ind_x1,  ind_y2),
-                     ( ind_x1,  ind_y1),
+            inds += [( ind_x1,  ind_y1),
+                     ( ind_x1,  ind_y2),
                      ( ind_x2,  ind_y1),
                      ( ind_x2,  ind_y2)]
 
-            vals += [wx1*wy2,
-                     wx1*wy1,
+            vals += [wx1*wy1,
+                     wx1*wy2,
                      wx2*wy1,
                      wx2*wy2]
 
@@ -152,8 +152,8 @@ if not _interpCython:
             ind_y1, ind_y2, wy1, wy2 = _interp_point_1D(y, locs[i, 1])
             ind_z1, ind_z2, wz1, wz2 = _interp_point_1D(z, locs[i, 2])
 
-            inds += [( ind_x1,  ind_y2,  ind_z1),
-                     ( ind_x1,  ind_y1,  ind_z1),
+            inds += [( ind_x1,  ind_y1,  ind_z1),
+                     ( ind_x1,  ind_y2,  ind_z1),
                      ( ind_x2,  ind_y1,  ind_z1),
                      ( ind_x2,  ind_y2,  ind_z1),
                      ( ind_x1,  ind_y1,  ind_z2),
@@ -161,8 +161,8 @@ if not _interpCython:
                      ( ind_x2,  ind_y1,  ind_z2),
                      ( ind_x2,  ind_y2,  ind_z2)]
 
-            vals += [wx1*wy2*wz1,
-                     wx1*wy1*wz1,
+            vals += [wx1*wy1*wz1,
+                     wx1*wy2*wz1,
                      wx2*wy1*wz1,
                      wx2*wy2*wz1,
                      wx1*wy1*wz2,

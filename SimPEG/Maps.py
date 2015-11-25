@@ -1,7 +1,9 @@
 import Utils, numpy as np, scipy.sparse as sp
+from scipy.sparse.linalg import LinearOperator
 from Tests import checkDerivative
 from PropMaps import PropMap, Property
-
+from numpy.polynomial import polynomial
+from scipy.interpolate import UnivariateSpline
 
 class IdentityMap(object):
     """
@@ -289,7 +291,7 @@ class FullMap(IdentityMap):
     """
     FullMap
 
-    Given a scalar, the FullMap maps the value to the 
+    Given a scalar, the FullMap maps the value to the
     full model space.
     """
 
@@ -314,8 +316,8 @@ class FullMap(IdentityMap):
             :rtype: numpy.array
             :return: derivative of transformed model
         """
-        return np.ones([self.mesh.nC,1])     
-      
+        return np.ones([self.mesh.nC,1])
+
 
 class Vertical1DMap(IdentityMap):
     """Vertical1DMap
@@ -469,11 +471,11 @@ class ActiveCells(IdentityMap):
         self.indActive = indActive
         self.indInactive = np.logical_not(indActive)
         if Utils.isScalar(valInactive):
-            valInactive = np.ones(self.nC)*float(valInactive)
-
-        valInactive[self.indActive] = 0
-        self.valInactive = valInactive
-
+            self.valInactive = np.ones(self.nC)*float(valInactive)
+        else:
+            self.valInactive = valInactive.copy()
+        self.valInactive[self.indActive] = 0
+        
         inds = np.nonzero(self.indActive)[0]
         self.P = sp.csr_matrix((np.ones(inds.size),(inds, range(inds.size))), shape=(self.nC, self.nP))
 
@@ -639,7 +641,7 @@ class ComplexMap(IdentityMap):
             return v[:nC] + v[nC:]*1j
         def adj(v):
             return np.r_[v.real,v.imag]
-        return Utils.SimPEGLinearOperator(shp,fwd,adj)
+        return LinearOperator(shp,matvec=fwd,rmatvec=adj)
 
     inverse = deriv
 
@@ -696,4 +698,304 @@ class CircleMap(IdentityMap):
         g3 = a*(-X + x)*(-sig1 + sig2)/(np.pi*(a**2*(-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1)*np.sqrt((X - x)**2 + (Y - y)**2))
         g4 = a*(-Y + y)*(-sig1 + sig2)/(np.pi*(a**2*(-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1)*np.sqrt((X - x)**2 + (Y - y)**2))
         g5 = -a*(-sig1 + sig2)/(np.pi*(a**2*(-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1))
-        return np.c_[g1,g2,g3,g4,g5]
+        return sp.csr_matrix(np.c_[g1,g2,g3,g4,g5])
+
+
+class PolyMap(IdentityMap):
+
+    """PolyMap
+
+        Parameterize the model space using a polynomials in a wholespace.
+
+        ..math::
+            
+            y = \mathbf{V} c
+
+        Define the model as:
+
+        ..math::
+
+            m = [\sigma_1, \sigma_2, c]
+
+    """
+    def __init__(self, mesh, order, logSigma=True, normal='X'):
+        IdentityMap.__init__(self, mesh)
+        self.logSigma = logSigma
+        self.order = order
+        self.normal = normal
+
+    slope = 1e4
+
+    @property
+    def nP(self):
+        if np.isscalar(self.order):
+            nP = self.order+3
+        else:
+            nP =(self.order[0]+1)*(self.order[1]+1)+2
+        return nP
+
+    def _transform(self, m):
+        # Set model parameters
+        alpha = self.slope
+        sig1,sig2 = m[0],m[1]
+        c = m[2:]
+        if self.logSigma:
+            sig1, sig2 = np.exp(sig1), np.exp(sig2)
+        #2D
+        if self.mesh.dim == 2:
+            X = self.mesh.gridCC[:,0]
+            Y = self.mesh.gridCC[:,1]
+            if self.normal =='X':
+                f = polynomial.polyval(Y, c) - X
+            elif self.normal =='Y':
+                f = polynomial.polyval(X, c) - Y
+            else:
+                raise(Exception("Input for normal = X or Y or Z"))
+        #3D
+        elif self.mesh.dim == 3: 
+            X = self.mesh.gridCC[:,0]
+            Y = self.mesh.gridCC[:,1]            
+            Z = self.mesh.gridCC[:,2]            
+            if self.normal =='X':
+                f = polynomial.polyval2d(Y, Z, c.reshape((self.order[0]+1,self.order[1]+1))) - X
+            elif self.normal =='Y':
+                f = polynomial.polyval2d(X, Z, c.reshape((self.order[0]+1,self.order[1]+1))) - Y
+            elif self.normal =='Z':
+                f = polynomial.polyval2d(X, Y, c.reshape((self.order[0]+1,self.order[1]+1))) - Z
+            else:
+                raise(Exception("Input for normal = X or Y or Z"))
+        else:
+            raise(Exception("Only supports 2D"))
+                    
+
+        return sig1+(sig2-sig1)*(np.arctan(alpha*f)/np.pi+0.5)
+    
+    def deriv(self, m):
+        alpha = self.slope
+        sig1,sig2, c = m[0],m[1],m[2:]
+        if self.logSigma:
+            sig1, sig2 = np.exp(sig1), np.exp(sig2)
+        #2D
+        if self.mesh.dim == 2:            
+            X = self.mesh.gridCC[:,0]
+            Y = self.mesh.gridCC[:,1]
+
+            if self.normal =='X':
+                f = polynomial.polyval(Y, c) - X
+                V = polynomial.polyvander(Y, len(c)-1)        
+            elif self.normal =='Y':
+                f = polynomial.polyval(X, c) - Y
+                V = polynomial.polyvander(X, len(c)-1)        
+            else:
+                raise(Exception("Input for normal = X or Y or Z"))            
+        #3D
+        elif self.mesh.dim == 3: 
+            X = self.mesh.gridCC[:,0]
+            Y = self.mesh.gridCC[:,1]
+            Z = self.mesh.gridCC[:,2]
+
+            if self.normal =='X':
+                f = polynomial.polyval2d(Y, Z, c.reshape((self.order[0]+1,self.order[1]+1))) - X
+                V = polynomial.polyvander2d(Y, Z, self.order)        
+            elif self.normal =='Y':
+                f = polynomial.polyval2d(X, Z, c.reshape((self.order[0]+1,self.order[1]+1))) - Y
+                V = polynomial.polyvander2d(X, Z, self.order)        
+            elif self.normal =='Z':
+                f = polynomial.polyval2d(X, Y, c.reshape((self.order[0]+1,self.order[1]+1))) - Z
+                V = polynomial.polyvander2d(X, Y, self.order)        
+            else:
+                raise(Exception("Input for normal = X or Y or Z"))
+
+        if self.logSigma:
+            g1 = -(np.arctan(alpha*f)/np.pi + 0.5)*sig1 + sig1
+            g2 = (np.arctan(alpha*f)/np.pi + 0.5)*sig2
+        else:
+            g1 = -(np.arctan(alpha*f)/np.pi + 0.5) + 1.0
+            g2 = (np.arctan(alpha*f)/np.pi + 0.5)
+
+        g3 = Utils.sdiag(alpha*(sig2-sig1)/(1.+(alpha*f)**2)/np.pi)*V
+
+        return sp.csr_matrix(np.c_[g1,g2,g3])  
+
+class SplineMap(IdentityMap):
+
+    """SplineMap
+
+        Parameterize the boundary of two geological units using a spline interpolation 
+
+        ..math::
+            
+            g = f(x)-y
+
+        Define the model as:
+
+        ..math::
+
+            m = [\sigma_1, \sigma_2, y]
+
+    """
+    def __init__(self, mesh, pts, ptsv=None,order=3, logSigma=True, normal='X'):
+        IdentityMap.__init__(self, mesh)
+        self.logSigma = logSigma
+        self.order = order
+        self.normal = normal
+        self.pts= pts
+        self.npts = np.size(pts)
+        self.ptsv = ptsv
+        self.spl = None
+
+    slope = 1e4
+    @property
+    def nP(self):
+        if self.mesh.dim == 2:
+            return np.size(self.pts)+2
+        elif self.mesh.dim == 3: 
+            return np.size(self.pts)*2+2
+        else:
+            raise(Exception("Only supports 2D and 3D"))
+
+    def _transform(self, m):
+        # Set model parameters
+        alpha = self.slope
+        sig1,sig2 = m[0],m[1]
+        c = m[2:]
+        if self.logSigma:
+            sig1, sig2 = np.exp(sig1), np.exp(sig2)
+        #2D
+        if self.mesh.dim == 2:
+            X = self.mesh.gridCC[:,0]
+            Y = self.mesh.gridCC[:,1]
+            self.spl = UnivariateSpline(self.pts, c, k=self.order, s=0)
+            if self.normal =='X':                
+                f = self.spl(Y) - X
+            elif self.normal =='Y':
+                f = self.spl(X) - Y
+            else:
+                raise(Exception("Input for normal = X or Y or Z"))
+
+        # 3D: 
+        # Comments: 
+        # Make two spline functions and link them using linear interpolation.
+        # This is not quite direct extension of 2D to 3D case
+        # Using 2D interpolation  is possible
+
+        elif self.mesh.dim == 3: 
+            X = self.mesh.gridCC[:,0]
+            Y = self.mesh.gridCC[:,1]            
+            Z = self.mesh.gridCC[:,2]
+
+            npts = np.size(self.pts)            
+            if np.mod(c.size, 2):
+                raise(Exception("Put even points!"))
+            
+            self.spl = {"splb":UnivariateSpline(self.pts, c[:npts], k=self.order, s=0),
+                        "splt":UnivariateSpline(self.pts, c[npts:], k=self.order, s=0)}
+
+            if self.normal =='X':
+                zb = self.ptsv[0]
+                zt = self.ptsv[1]
+                flines = (self.spl["splt"](Y)-self.spl["splb"](Y))*(Z-zb)/(zt-zb) + self.spl["splb"](Y)
+                f = flines - X
+            # elif self.normal =='Y':
+            # elif self.normal =='Z':
+            else:
+                raise(Exception("Input for normal = X or Y or Z"))
+        else:
+            raise(Exception("Only supports 2D and 3D"))
+                    
+
+        return sig1+(sig2-sig1)*(np.arctan(alpha*f)/np.pi+0.5)
+
+    def deriv(self, m):
+        alpha = self.slope
+        sig1,sig2, c = m[0],m[1],m[2:]
+        if self.logSigma:
+            sig1, sig2 = np.exp(sig1), np.exp(sig2)
+        #2D
+        if self.mesh.dim == 2:            
+            X = self.mesh.gridCC[:,0]
+            Y = self.mesh.gridCC[:,1]
+
+            if self.normal =='X':
+                f = self.spl(Y) - X
+            elif self.normal =='Y':
+                f = self.spl(X) - Y
+            else:
+                raise(Exception("Input for normal = X or Y or Z"))            
+        #3D
+        elif self.mesh.dim == 3: 
+            X = self.mesh.gridCC[:,0]
+            Y = self.mesh.gridCC[:,1]
+            Z = self.mesh.gridCC[:,2]
+            if self.normal =='X':
+                zb = self.ptsv[0]
+                zt = self.ptsv[1]
+                flines = (self.spl["splt"](Y)-self.spl["splb"](Y))*(Z-zb)/(zt-zb) + self.spl["splb"](Y)
+                f = flines - X            
+            # elif self.normal =='Y':
+            # elif self.normal =='Z':
+            else:
+                raise(Exception("Not Implemented for Y and Z, your turn :)"))
+
+        if self.logSigma:
+            g1 = -(np.arctan(alpha*f)/np.pi + 0.5)*sig1 + sig1
+            g2 = (np.arctan(alpha*f)/np.pi + 0.5)*sig2
+        else:
+            g1 = -(np.arctan(alpha*f)/np.pi + 0.5) + 1.0
+            g2 = (np.arctan(alpha*f)/np.pi + 0.5)
+
+        
+        if self.mesh.dim ==2:
+            g3 = np.zeros((self.mesh.nC, self.npts))
+            if self.normal =='Y':
+                # Here we use perturbation to compute sensitivity
+                # TODO: bit more generalization of this ...
+                # Modfications for X and Z directions ...
+                for i in range(np.size(self.pts)):
+                    ctemp = c[i]
+                    ind = np.argmin(abs(self.mesh.vectorCCy-ctemp))
+                    ca = c.copy()
+                    cb = c.copy()
+                    dy = self.mesh.hy[ind]*1.5
+                    ca[i] = ctemp+dy
+                    cb[i] = ctemp-dy                
+                    spla = UnivariateSpline(self.pts, ca, k=self.order, s=0)
+                    splb = UnivariateSpline(self.pts, cb, k=self.order, s=0)
+                    fderiv = (spla(X)-splb(X))/(2*dy)
+                    g3[:,i] = Utils.sdiag(alpha*(sig2-sig1)/(1.+(alpha*f)**2)/np.pi)*fderiv
+
+        elif self.mesh.dim==3:
+            g3 = np.zeros((self.mesh.nC, self.npts*2))
+            if self.normal =='X':
+                # Here we use perturbation to compute sensitivity
+                for i in range(self.npts*2):                    
+                    ctemp = c[i]
+                    ind = np.argmin(abs(self.mesh.vectorCCy-ctemp))
+                    ca = c.copy()
+                    cb = c.copy()
+                    dy = self.mesh.hy[ind]*1.5
+                    ca[i] = ctemp+dy
+                    cb[i] = ctemp-dy
+                    #treat bottom boundary
+                    if i< self.npts:
+                        splba = UnivariateSpline(self.pts, ca[:self.npts], k=self.order, s=0)
+                        splbb = UnivariateSpline(self.pts, cb[:self.npts], k=self.order, s=0)
+                        flinesa = (self.spl["splt"](Y)-splba(Y))*(Z-zb)/(zt-zb) + splba(Y) - X
+                        flinesb = (self.spl["splt"](Y)-splbb(Y))*(Z-zb)/(zt-zb) + splbb(Y) - X
+                    #treat top boundary                        
+                    else:
+                        splta = UnivariateSpline(self.pts, ca[self.npts:], k=self.order, s=0)
+                        spltb = UnivariateSpline(self.pts, ca[self.npts:], k=self.order, s=0)
+                        flinesa = (self.spl["splt"](Y)-splta(Y))*(Z-zb)/(zt-zb) + splta(Y) - X
+                        flinesb = (self.spl["splt"](Y)-spltb(Y))*(Z-zb)/(zt-zb) + spltb(Y) - X                        
+                    fderiv = (flinesa-flinesb)/(2*dy)                                
+                    g3[:,i] = Utils.sdiag(alpha*(sig2-sig1)/(1.+(alpha*f)**2)/np.pi)*fderiv
+        else :
+            raise(Exception("Not Implemented for Y and Z, your turn :)"))
+        return sp.csr_matrix(np.c_[g1,g2,g3])  
+
+
+
+
+
+            
