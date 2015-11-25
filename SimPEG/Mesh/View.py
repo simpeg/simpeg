@@ -173,7 +173,7 @@ class TensorView(object):
                   ax=None, clim=None, showIt=False,
                   pcolorOpts={},
                   streamOpts={'color':'k'},
-                  gridOpts={'color':'k'}
+                  gridOpts={'color':'k', 'alpha':0.5}
                   ):
 
         """
@@ -216,6 +216,7 @@ class TensorView(object):
         if ind is None: ind = int(szSliceDim/2)
         assert type(ind) in [int, long], 'ind must be an integer'
 
+        assert not (v.dtype == complex and view == 'vec'), 'Can not plot a complex vector.'
         # The slicing and plotting code!!
 
         def getIndSlice(v):
