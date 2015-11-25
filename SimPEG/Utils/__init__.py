@@ -1,5 +1,6 @@
 from matutils import *
 from codeutils import *
+from codeutils import _makeExample
 from meshutils import exampleLrmGrid, meshTensor, closestPoints, readUBCTensorMesh, writeUBCTensorMesh, writeUBCTensorModel, readVTRFile, writeVTRFile
 from curvutils import volTetra, faceInfo, indexCube
 from interputils import interpmat

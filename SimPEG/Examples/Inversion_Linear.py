@@ -23,7 +23,9 @@ class LinearProblem(Problem.BaseProblem):
         return self.G.T.dot(v)
 
 
-def run(N, plotIt=True):
+def run(N=100, plotIt=True):
+    np.random.seed(1)
+
     mesh = Mesh.TensorMesh([N])
 
     nk = 20
@@ -52,7 +54,7 @@ def run(N, plotIt=True):
 
     reg = Regularization.Tikhonov(mesh)
     dmis = DataMisfit.l2_DataMisfit(survey)
-    opt = Optimization.InexactGaussNewton(maxIter=20)
+    opt = Optimization.InexactGaussNewton(maxIter=35)
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
     beta = Directives.BetaSchedule()
     betaest = Directives.BetaEstimate_ByEig()
@@ -63,16 +65,19 @@ def run(N, plotIt=True):
 
     if plotIt:
         import matplotlib.pyplot as plt
-        plt.figure(1)
-        for i in range(prob.G.shape[0]):
-            plt.plot(prob.G[i,:])
 
-        plt.figure(2)
-        plt.plot(M.vectorCCx, survey.mtrue, 'b-')
-        plt.plot(M.vectorCCx, mrec, 'r-')
+        fig, axes = plt.subplots(1,2,figsize=(12*1.2,4*1.2))
+        for i in range(prob.G.shape[0]):
+            axes[0].plot(prob.G[i,:])
+        axes[0].set_title('Columns of matrix G')
+
+        axes[1].plot(M.vectorCCx, survey.mtrue, 'b-')
+        axes[1].plot(M.vectorCCx, mrec, 'r-')
+        axes[1].legend(('True Model', 'Recovered Model'))
         plt.show()
 
     return prob, survey, mesh, mrec
 
 if __name__ == '__main__':
-    run(100)
+    Utils._makeExample(__file__)
+    run()

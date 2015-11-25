@@ -1960,7 +1960,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
 
     def plotGrid(self, ax=None, showIt=False,
         grid=True,
-        cells=True, cellLine=False,
+        cells=False, cellLine=False,
         nodes=False,
         facesX=False, facesY=False, facesZ=False,
         edgesX=False, edgesY=False, edgesZ=False):
@@ -2009,6 +2009,8 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
             if facesY:
                 ax.plot(self._gridFy[self._hangingFy.keys(),0], self._gridFy[self._hangingFy.keys(),1], 'gs', ms=10, mfc='none', mec='g')
                 ax.plot(self._gridFy[:,0], self._gridFy[:,1], 'g^')
+            ax.set_xlabel('x1')
+            ax.set_ylabel('x2')
         elif self.dim == 3:
             if cells:
                 ax.plot(self.gridCC[:,0], self.gridCC[:,1], 'r.', zs=self.gridCC[:,2])
@@ -2056,7 +2058,6 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
                         ind = [key, hf[0]]
                         ax.plot(self._gridEx[ind,0], self._gridEx[ind,1], 'k:', zs=self._gridEx[ind,2])
 
-
             if edgesY:
                 ax.plot(self._gridEy[:,0], self._gridEy[:,1], 'k<', zs=self._gridEy[:,2])
                 ax.plot(self._gridEy[self._hangingEy.keys(),0], self._gridEy[self._hangingEy.keys(),1], 'ks', ms=10, mfc='none', mec='k', zs=self._gridEy[self._hangingEy.keys(),2])
@@ -2072,7 +2073,10 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
                     for hf in self._hangingEz[key]:
                         ind = [key, hf[0]]
                         ax.plot(self._gridEz[ind,0], self._gridEz[ind,1], 'k:', zs=self._gridEz[ind,2])
-
+            ax.set_xlabel('x1')
+            ax.set_ylabel('x2')
+            ax.set_zlabel('x3')
+        ax.grid(True)
         if showIt:plt.show()
 
     def plotImage(self, I, ax=None, showIt=True, grid=False):
@@ -2191,7 +2195,7 @@ class Cell(object):
     @property
     def center(self):
         if getattr(self, '_center', None) is None:
-            self._center = self.mesh._cellC(self._pointer)
+            self._center = np.array(self.mesh._cellC(self._pointer))
         return self._center
     @property
     def h(self): return self.mesh._cellH(self._pointer)
