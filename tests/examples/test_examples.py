@@ -3,7 +3,7 @@ import sys
 from SimPEG import Examples
 import numpy as np
 
-def get_test(test):
+def get(test):
     def func(self):
         print '\nTesting %s.run(plotIt=False)\n'%test
         getattr(Examples, test).run(plotIt=False)
@@ -12,8 +12,8 @@ def get_test(test):
 attrs = dict()
 tests = [_ for _ in dir(Examples) if not _.startswith('_')]
 for test in tests:
-    attrs['test_'+test] = get_test(test)
-
+    attrs['test_'+test] = get(test)
+del get, tests, _
 
 TestExamples = type('TestExamples', (unittest.TestCase,), attrs)
 
