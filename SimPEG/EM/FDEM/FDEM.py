@@ -3,7 +3,6 @@ from scipy.constants import mu_0
 from SurveyFDEM import Survey as SurveyFDEM
 from FieldsFDEM import Fields, Fields_e, Fields_b, Fields_h, Fields_j
 from SimPEG.EM.Base import BaseEMProblem
-from SimPEG.Utils import Zero, Identity
 from SimPEG.EM.Utils import omega
 
 
