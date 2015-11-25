@@ -3,6 +3,7 @@ import scipy.sparse as sp
 import SimPEG
 from SimPEG import Utils
 from SimPEG.EM.Utils import omega
+from SimPEG.Utils import Zero, Identity
 
 
 class Fields(SimPEG.Problem.Fields):
@@ -32,8 +33,7 @@ class Fields_e(Fields):
         ePrimary = np.zeros_like(eSolution)
         for i, src in enumerate(srcList):
             ep = src.ePrimary(self.prob)
-            if ep is not None:
-                ePrimary[:,i] = ep
+            ePrimary[:,i] = ePrimary[:,i] + ep
         return ePrimary
 
     def _eSecondary(self, eSolution, srcList):
@@ -43,18 +43,17 @@ class Fields_e(Fields):
         return self._ePrimary(eSolution,srcList) + self._eSecondary(eSolution,srcList)
 
     def _eDeriv_u(self, src, v, adjoint = False):
-        return None
+        return Identity()*v
 
     def _eDeriv_m(self, src, v, adjoint = False):
         # assuming primary does not depend on the model
-        return None
+        return Zero()
 
     def _bPrimary(self, eSolution, srcList):
         bPrimary = np.zeros([self._edgeCurl.shape[0],eSolution.shape[1]],dtype = complex)
         for i, src in enumerate(srcList):
             bp = src.bPrimary(self.prob)
-            if bp is not None:
-                bPrimary[:,i] += bp
+            bPrimary[:,i] = bPrimary[:,i] + bp
         return bPrimary
 
     def _bSecondary(self, eSolution, srcList):
@@ -63,8 +62,7 @@ class Fields_e(Fields):
         for i, src in enumerate(srcList):
             b[:,i] *= - 1./(1j*omega(src.freq))
             S_m, _ = src.eval(self.prob)
-            if S_m is not None:
-                b[:,i] += 1./(1j*omega(src.freq)) * S_m
+            b[:,i] = b[:,i]+ 1./(1j*omega(src.freq)) * S_m
         return b
 
     def _bSecondaryDeriv_u(self, src, v, adjoint = False):
@@ -76,9 +74,7 @@ class Fields_e(Fields):
     def _bSecondaryDeriv_m(self, src, v, adjoint = False):
         S_mDeriv, _ = src.evalDeriv(self.prob, adjoint)
         S_mDeriv = S_mDeriv(v)
-        if S_mDeriv is not None:
-            return 1./(1j * omega(src.freq)) * S_mDeriv
-        return None
+        return 1./(1j * omega(src.freq)) * S_mDeriv
 
     def _b(self, eSolution, srcList):
         return self._bPrimary(eSolution, srcList) + self._bSecondary(eSolution, srcList)
@@ -118,8 +114,7 @@ class Fields_b(Fields):
         bPrimary = np.zeros_like(bSolution)
         for i, src in enumerate(srcList):
             bp = src.bPrimary(self.prob)
-            if bp is not None:
-                bPrimary[:,i] = bp
+            bPrimary[:,i] = bPrimary[:,i] + bp
         return bPrimary
 
     def _bSecondary(self, bSolution, srcList):
@@ -129,26 +124,24 @@ class Fields_b(Fields):
         return self._bPrimary(bSolution, srcList) + self._bSecondary(bSolution, srcList)
 
     def _bDeriv_u(self, src, v, adjoint=False):
-        return None
+        return Identity()*v
 
     def _bDeriv_m(self, src, v, adjoint=False):
         # assuming primary does not depend on the model
-        return None
+        return Zero()
 
     def _ePrimary(self, bSolution, srcList):
         ePrimary = np.zeros([self._edgeCurl.shape[1],bSolution.shape[1]],dtype = complex)
         for i,src in enumerate(srcList):
             ep = src.ePrimary(self.prob)
-            if ep is not None:
-                ePrimary[:,i] = ep
+            ePrimary[:,i] = ePrimary[:,i] + ep
         return ePrimary
 
     def _eSecondary(self, bSolution, srcList):
         e = self._MeSigmaI * ( self._edgeCurl.T * ( self._MfMui * bSolution))
         for i,src in enumerate(srcList):
             _,S_e = src.eval(self.prob)
-            if S_e is not None:
-                e[:,i] += -self._MeSigmaI * S_e
+            e[:,i] = e[:,i]+ -self._MeSigmaI * S_e
         return e
 
     def _eSecondaryDeriv_u(self, src, v, adjoint=False):
@@ -166,8 +159,7 @@ class Fields_b(Fields):
             Me = Me.T
 
         w = self._edgeCurl.T * (self._MfMui * bSolution)
-        if S_e is not None:
-            w += -Utils.mkvc(Me * S_e,2)
+        w = w - Utils.mkvc(Me * S_e,2)
 
         if not adjoint:
             de_dm = self._MeSigmaIDeriv(w) * v
@@ -177,8 +169,7 @@ class Fields_b(Fields):
         _, S_eDeriv = src.evalDeriv(self.prob, adjoint)
         Se_Deriv = S_eDeriv(v)
 
-        if Se_Deriv is not None:
-            de_dm += -self._MeSigmaI * Se_Deriv
+        de_dm = de_dm - self._MeSigmaI * Se_Deriv
 
         return de_dm
 
@@ -219,8 +210,7 @@ class Fields_j(Fields):
         jPrimary = np.zeros_like(jSolution,dtype = complex)
         for i, src in enumerate(srcList):
             jp = src.jPrimary(self.prob)
-            if jp is not None:
-                jPrimary[:,i] += jp
+            jPrimary[:,i] = jPrimary[:,i] + jp
         return jPrimary
 
     def _jSecondary(self, jSolution, srcList):
@@ -230,18 +220,17 @@ class Fields_j(Fields):
         return self._jPrimary(jSolution, srcList) + self._jSecondary(jSolution, srcList)
 
     def _jDeriv_u(self, src, v, adjoint=False):
-        return None
+        return Identity()*v
 
     def _jDeriv_m(self, src, v, adjoint=False):
         # assuming primary does not depend on the model
-        return None
+        return Zero()
 
     def _hPrimary(self, jSolution, srcList):
         hPrimary = np.zeros([self._edgeCurl.shape[1],jSolution.shape[1]],dtype = complex)
         for i, src in enumerate(srcList):
             hp = src.hPrimary(self.prob)
-            if hp is not None:
-                hPrimary[:,i] = hp
+            hPrimary[:,i] = hPrimary[:,i] + hp
         return hPrimary
 
     def _hSecondary(self, jSolution, srcList):
@@ -249,8 +238,7 @@ class Fields_j(Fields):
         for i, src in enumerate(srcList):
             h[:,i] *= -1./(1j*omega(src.freq))
             S_m,_ = src.eval(self.prob)
-            if S_m is not None:
-                h[:,i] += 1./(1j*omega(src.freq)) * self._MeMuI * (S_m)
+            h[:,i] = h[:,i]+ 1./(1j*omega(src.freq)) * self._MeMuI * (S_m)
         return h
 
     def _hSecondaryDeriv_u(self, src, v, adjoint=False):
@@ -276,12 +264,10 @@ class Fields_j(Fields):
 
         if not adjoint:
             S_mDeriv = S_mDeriv(v)
-            if S_mDeriv is not None:
-                hDeriv_m += 1./(1j*omega(src.freq)) * MeMuI * (Me * S_mDeriv)
+            hDeriv_m = hDeriv_m + 1./(1j*omega(src.freq)) * MeMuI * (Me * S_mDeriv)
         elif adjoint:
             S_mDeriv = S_mDeriv(Me.T * (MeMuI.T * v))
-            if S_mDeriv is not None:
-                hDeriv_m += 1./(1j*omega(src.freq)) * S_mDeriv
+            hDeriv_m = hDeriv_m + 1./(1j*omega(src.freq)) * S_mDeriv
         return hDeriv_m
 
 
@@ -320,9 +306,8 @@ class Fields_h(Fields):
         hPrimary = np.zeros_like(hSolution,dtype = complex)
         for i, src in enumerate(srcList):
             hp = src.hPrimary(self.prob)
-            if hp is not None:
-                hPrimary[:,i] += hp
-            return hPrimary
+            hPrimary[:,i] = hPrimary[:,i] + hp
+        return hPrimary
 
     def _hSecondary(self, hSolution, srcList):
         return hSolution
@@ -331,26 +316,24 @@ class Fields_h(Fields):
         return self._hPrimary(hSolution, srcList) + self._hSecondary(hSolution, srcList)
 
     def _hDeriv_u(self, src, v, adjoint=False):
-        return None
+        return Identity()*v
 
     def _hDeriv_m(self, src, v, adjoint=False):
         # assuming primary does not depend on the model
-        return None
+        return Zero()
 
     def _jPrimary(self, hSolution, srcList):
         jPrimary = np.zeros([self._edgeCurl.shape[0], hSolution.shape[1]], dtype = complex)
         for i, src in enumerate(srcList):
             jp = src.jPrimary(self.prob)
-            if jp is not None:
-                jPrimary[:,i] = jp
+            jPrimary[:,i] = jPrimary[:,i] + jp
         return jPrimary
 
     def _jSecondary(self, hSolution, srcList):
         j = self._edgeCurl*hSolution
         for i, src in enumerate(srcList):
             _,S_e = src.eval(self.prob)
-            if S_e is not None:
-                j[:,i] += -S_e
+            j[:,i] = j[:,i]+ -S_e
         return j
 
     def _jSecondaryDeriv_u(self, src, v, adjoint=False):
@@ -362,9 +345,7 @@ class Fields_h(Fields):
     def _jSecondaryDeriv_m(self, src, v, adjoint=False):
         _,S_eDeriv = src.evalDeriv(self.prob, adjoint)
         S_eDeriv = S_eDeriv(v)
-        if S_eDeriv is not None:
-            return -S_eDeriv
-        return None
+        return -S_eDeriv
 
     def _j(self, hSolution, srcList):
         return self._jPrimary(hSolution, srcList) + self._jSecondary(hSolution, srcList)

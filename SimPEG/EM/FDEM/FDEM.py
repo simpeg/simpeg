@@ -66,34 +66,28 @@ class BaseFDEMProblem(BaseEMProblem):
         Jv = self.dataPair(self.survey)
 
         for freq in self.survey.freqs:
-            dA_du = self.getA(freq) #
-            dA_duI = self.Solver(dA_du, **self.solverOpts)
+            A = self.getA(freq) #
+            Ainv = self.Solver(A, **self.solverOpts)
 
             for src in self.survey.getSrcByFreq(freq):
                 ftype = self._fieldType + 'Solution'
                 u_src = f[src, ftype]
                 dA_dm = self.getADeriv_m(freq, u_src, v)
-                dRHS_dm = self.getRHSDeriv_m(src, v)
-                if dRHS_dm is None:
-                    du_dm = dA_duI * ( - dA_dm )
-                else:
-                    du_dm = dA_duI * ( - dA_dm + dRHS_dm )
+                dRHS_dm = self.getRHSDeriv_m(freq, src, v) 
+                du_dm = Ainv * ( - dA_dm + dRHS_dm )
+                
                 for rx in src.rxList:
-                    # df_duFun = u.deriv_u(rx.fieldsUsed, m)
                     df_duFun = getattr(f, '_%sDeriv_u'%rx.projField, None)
-                    df_du = df_duFun(src, du_dm, adjoint=False)
-                    if df_du is not None:
-                        du_dm = df_du
+                    df_dudu_dm = df_duFun(src, du_dm, adjoint=False)
 
                     df_dmFun = getattr(f, '_%sDeriv_m'%rx.projField, None)
                     df_dm = df_dmFun(src, v, adjoint=False)
-                    if df_dm is not None:
-                        du_dm += df_dm
+
+                    Df_Dm = np.array(df_dudu_dm + df_dm,dtype=complex)
 
                     P = lambda v: rx.projectFieldsDeriv(src, self.mesh, f, v) # wrt u, also have wrt m
 
-
-                    Jv[src, rx] = P(du_dm)
+                    Jv[src, rx] = P(Df_Dm)
 
         return Utils.mkvc(Jv)
 
@@ -126,30 +120,23 @@ class BaseFDEMProblem(BaseEMProblem):
 
                     df_duTFun = getattr(f, '_%sDeriv_u'%rx.projField, None)
                     df_duT = df_duTFun(src, PTv, adjoint=True)
-                    if df_duT is not None:
-                        dA_duIT = ATinv * df_duT
-                    else:
-                        dA_duIT = ATinv * PTv
+                    
+                    ATinvdf_duT = ATinv * df_duT
 
-                    dA_dmT = self.getADeriv_m(freq, u_src, dA_duIT, adjoint=True)
-
-                    dRHS_dmT = self.getRHSDeriv_m(src, dA_duIT, adjoint=True)
-
-                    if dRHS_dmT is None:
-                        du_dmT = - dA_dmT
-                    else:
-                        du_dmT = -dA_dmT + dRHS_dmT
+                    dA_dmT = self.getADeriv_m(freq, u_src, ATinvdf_duT, adjoint=True)
+                    dRHS_dmT = self.getRHSDeriv_m(freq,src, ATinvdf_duT, adjoint=True)
+                    du_dmT = -dA_dmT + dRHS_dmT
 
                     df_dmFun = getattr(f, '_%sDeriv_m'%rx.projField, None)
                     dfT_dm = df_dmFun(src, PTv, adjoint=True)
-                    if dfT_dm is not None:
-                        du_dmT += dfT_dm
+
+                    du_dmT += dfT_dm
 
                     real_or_imag = rx.projComp
-                    if real_or_imag == 'real':
-                        Jtv +=   du_dmT.real
-                    elif real_or_imag == 'imag':
-                        Jtv += - du_dmT.real
+                    if real_or_imag is 'real':
+                        Jtv +=   np.array(du_dmT,dtype=complex).real
+                    elif real_or_imag is 'imag':
+                        Jtv += - np.array(du_dmT,dtype=complex).real
                     else:
                         raise Exception('Must be real or imag')
 
@@ -173,10 +160,8 @@ class BaseFDEMProblem(BaseEMProblem):
 
         for i, src in enumerate(Srcs):
             smi, sei = src.eval(self)
-            if smi is not None:
-                S_m[:,i] = Utils.mkvc(smi)
-            if sei is not None:
-                S_e[:,i] = Utils.mkvc(sei)
+            S_m[:,i] = S_m[:,i] + smi
+            S_e[:,i] = S_e[:,i] + sei
 
         return S_m, S_e
 
@@ -249,39 +234,21 @@ class Problem_e(BaseFDEMProblem):
         C = self.mesh.edgeCurl
         MfMui = self.MfMui
 
-        # RHS = C.T * (MfMui * S_m) -1j * omega(freq) * Me * S_e
         RHS = C.T * (MfMui * S_m) -1j * omega(freq) * S_e
 
         return RHS
 
-    def getRHSDeriv_m(self, src, v, adjoint=False):
+    def getRHSDeriv_m(self, freq, src, v, adjoint=False):
         C = self.mesh.edgeCurl
         MfMui = self.MfMui
         S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint)
 
         if adjoint:
             dRHS = MfMui * (C * v)
-            S_mDerivv = S_mDeriv(dRHS)
-            S_eDerivv = S_eDeriv(v)
-            if S_mDerivv is not None and S_eDerivv is not None:
-                return S_mDerivv - 1j * omega(freq) * S_eDerivv
-            elif S_mDerivv is not None:
-                return S_mDerivv
-            elif S_eDerivv is not None:
-                return - 1j * omega(freq) * S_eDerivv
-            else:
-                return None
-        else:
-            S_mDerivv, S_eDerivv = S_mDeriv(v), S_eDeriv(v)
+            return S_mDeriv(dRHS) - 1j * omega(freq) * S_eDeriv(v)
 
-            if S_mDerivv is not None and S_eDerivv is not None:
-                return C.T * (MfMui * S_mDerivv) -1j * omega(freq) * S_eDerivv
-            elif S_mDerivv is not None:
-                return C.T * (MfMui * S_mDerivv)
-            elif S_eDerivv is not None:
-                return -1j * omega(freq) * S_eDerivv
-            else:
-                return None
+        else:
+            return C.T * (MfMui * S_mDeriv(v)) -1j * omega(freq) * S_eDeriv(v)
 
 
 class Problem_b(BaseFDEMProblem):
@@ -362,7 +329,6 @@ class Problem_b(BaseFDEMProblem):
         S_m, S_e = self.getSourceTerm(freq)
         C = self.mesh.edgeCurl
         MeSigmaI = self.MeSigmaI
-        # Me = self.Me
 
         RHS = S_m + C * ( MeSigmaI * S_e )
 
@@ -372,51 +338,28 @@ class Problem_b(BaseFDEMProblem):
 
         return RHS
 
-    def getRHSDeriv_m(self, src, v, adjoint=False):
+    def getRHSDeriv_m(self, freq, src, v, adjoint=False):
         C = self.mesh.edgeCurl
         S_m, S_e = src.eval(self)
         MfMui = self.MfMui
-        # Me = self.Me
 
         if self._makeASymmetric and adjoint:
             v = self.MfMui * v
 
-        if S_e is not None:
-            MeSigmaIDeriv = self.MeSigmaIDeriv(S_e)
-            if not adjoint:
-                RHSderiv = C * (MeSigmaIDeriv * v)
-            elif adjoint:
-                RHSderiv = MeSigmaIDeriv.T * (C.T * v)
-        else:
-            RHSderiv = None
-
+        MeSigmaIDeriv = self.MeSigmaIDeriv(S_e)
         S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint)
-        S_mDeriv, S_eDeriv = S_mDeriv(v), S_eDeriv(v)
-        if S_mDeriv is not None and S_eDeriv is not None:
-            if not adjoint:
-                SrcDeriv = S_mDeriv + C * (self.MeSigmaI * S_eDeriv)
-            elif adjoint:
-                SrcDeriv = S_mDeriv + Self.MeSigmaI.T * ( C.T * S_eDeriv)
-        elif S_mDeriv is not None:
-            SrcDeriv = S_mDeriv
-        elif S_eDeriv is not None:
-            if not adjoint:
-                SrcDeriv = C * (self.MeSigmaI * S_eDeriv)
-            elif adjoint:
-                SrcDeriv = self.MeSigmaI.T * ( C.T * S_eDeriv)
-        else:
-            SrcDeriv = None
 
-        if RHSderiv is not None and SrcDeriv is not None:
-            RHSderiv += SrcDeriv
-        elif SrcDeriv is not None:
-            RHSderiv = SrcDeriv
+        if not adjoint:
+            RHSderiv = C * (MeSigmaIDeriv * v)
+            SrcDeriv = S_mDeriv(v) + C * (self.MeSigmaI * S_eDeriv(v))
+        elif adjoint:
+            RHSderiv = MeSigmaIDeriv.T * (C.T * v)
+            SrcDeriv = S_mDeriv(v) + self.MeSigmaI.T * (C.T * S_eDeriv(v))
 
-        if RHSderiv is not None:
-            if self._makeASymmetric is True and not adjoint:
-                return MfMui.T * RHSderiv
+        if self._makeASymmetric is True and not adjoint:
+            return MfMui.T * (SrcDeriv + RHSderiv)
 
-        return RHSderiv
+        return RHSderiv + SrcDeriv
 
 
 
@@ -519,7 +462,7 @@ class Problem_j(BaseFDEMProblem):
 
         return RHS
 
-    def getRHSDeriv_m(self, src, v, adjoint=False):
+    def getRHSDeriv_m(self, freq, src, v, adjoint=False):
         C = self.mesh.edgeCurl
         MeMuI = self.MeMuI
         S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint)
@@ -528,27 +471,10 @@ class Problem_j(BaseFDEMProblem):
             if self._makeASymmetric:
                 MfRho = self.MfRho
                 v = MfRho*v
-            S_mDerivv = S_mDeriv(MeMuI.T * (C.T * v))
-            S_eDerivv = S_eDeriv(v)
-            if S_mDerivv is not None and S_eDerivv is not None:
-                return S_mDerivv - 1j * omega(freq) * S_eDerivv
-            elif S_mDerivv is not None:
-                return S_mDerivv
-            elif S_eDerivv is not None:
-                return - 1j * omega(freq) * S_eDerivv
-            else:
-                return None
-        else:
-            S_mDerivv, S_eDerivv = S_mDeriv(v), S_eDeriv(v)
+            return S_mDeriv(MeMuI.T * (C.T * v)) - 1j * omega(freq) * S_eDeriv(v)
 
-            if S_mDerivv is not None and S_eDerivv is not None:
-                RHSDeriv = C * (MeMuI * S_mDerivv) - 1j * omega(freq) * S_eDerivv
-            elif S_mDerivv is not None:
-                RHSDeriv = C * (MeMuI * S_mDerivv)
-            elif S_eDerivv is not None:
-                RHSDeriv = - 1j * omega(freq) * S_eDerivv
-            else:
-                return None
+        else:
+            RHSDeriv = C * (MeMuI * S_mDeriv(v)) - 1j * omega(freq) * S_eDeriv(v)
 
             if self._makeASymmetric:
                 MfRho = self.MfRho
@@ -627,35 +553,18 @@ class Problem_h(BaseFDEMProblem):
 
         return RHS
 
-    def getRHSDeriv_m(self, src, v, adjoint=False):
+    def getRHSDeriv_m(self, freq, src, v, adjoint=False):
         _, S_e = src.eval(self)
         C = self.mesh.edgeCurl
         MfRho  = self.MfRho
 
-        RHSDeriv = None
-
-        if S_e is not None:
-            MfRhoDeriv = self.MfRhoDeriv(S_e)
-            if not adjoint:
-                RHSDeriv = C.T * (MfRhoDeriv * v)
-            elif adjoint:
-                RHSDeriv = MfRhoDeriv.T * (C * v)
+        MfRhoDeriv = self.MfRhoDeriv(S_e)
+        if not adjoint:
+            RHSDeriv = C.T * (MfRhoDeriv * v)
+        elif adjoint:
+            RHSDeriv = MfRhoDeriv.T * (C * v)
 
         S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint)
 
-        S_mDeriv = S_mDeriv(v)
-        S_eDeriv = S_eDeriv(v)
-
-        if S_mDeriv is not None:
-            if RHSDeriv is not None:
-                RHSDeriv += S_mDeriv(v)
-            else:
-                RHSDeriv =  S_mDeriv(v)
-        if S_eDeriv is not None:
-            if RHSDeriv is not None:
-                RHSDeriv += C.T * (MfRho * S_e)
-            else:
-                RHSDeriv = C.T * (MfRho * S_e)
-
-        return RHSDeriv
+        return RHSDeriv + S_mDeriv(v) + C.T * (MfRho * S_eDeriv(v))
 

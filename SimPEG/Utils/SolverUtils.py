@@ -37,12 +37,20 @@ def SolverWrapD(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6):
         if len(b.shape) == 1 or b.shape[1] == 1:
             b = b.flatten()
             # Just one RHS
+
+            if b.dtype is np.dtype('O'):
+                b = b.astype(type(b[0]))
+
             if factorize:
                 X = self.solver.solve(b, **self.kwargs)
             else:
                 X = fun(self.A, b, **self.kwargs)
         else: # Multiple RHSs
+            if b.dtype is np.dtype('O'):
+                b = b.astype(type(b[0,0]))
+
             X = np.empty_like(b)
+
             for i in range(b.shape[1]):
                 if factorize:
                     X[:,i] = self.solver.solve(b[:,i])
