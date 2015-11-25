@@ -1,7 +1,6 @@
 # Analytic solution of EM fields due to a plane wave
 
 import numpy as np, SimPEG as simpeg
-from IPython.core.debugger import Tracer
 
 def getEHfields(m1d,sigma,freq,zd,scaleUD=True):
     '''Analytic solution for MT 1D layered earth. Returns E and H fields.
