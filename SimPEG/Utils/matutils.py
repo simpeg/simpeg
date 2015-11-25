@@ -399,8 +399,10 @@ def diagEst(matFun, n, k=None, approach='Probing'):
 class Zero(object):
     def __add__(self, v):return v
     def __radd__(self, v):return v
+    def __iadd__(self, v):return v
     def __sub__(self, v):return -v
     def __rsub__(self, v):return v
+    def __isub__(self, v):return v
     def __mul__(self, v):return self
     def __rmul__(self, v):return self
     def __div__(self, v): return self
