@@ -15,29 +15,31 @@ class FieldsDC_CC(Problem.Fields):
 
     def startup(self):
         self._cellGrad = self.survey.prob.mesh.cellGrad
+        self._Mfinv = self.survey.prob.mesh.getFaceInnerProduct(invMat=True)
 
     def _phi(self, phi_sol, srcList):
         phi = phi_sol
-        for i, src in enumerate(srcList):
-            phi_p = src.phi_p(self.survey.prob)
-            if phi_p is not None:
-                phi[:,i] += phi_p     
+        # for i, src in enumerate(srcList):
+        #     phi_p = src.phi_p(self.survey.prob)
+        #     if phi_p is not None:
+        #         phi[:,i] += phi_p     
         return phi
 
     def _e(self, phi_sol, srcList):
         e = -self._cellGrad*phi_sol
-        for i, src in enumerate(srcList):
-            e_p = src.e_p(self.survey.prob)
-            if e_p is not None:
-                e[:,i] += e_p     
+        # for i, src in enumerate(srcList):
+        #     e_p = src.e_p(self.survey.prob)
+        #     if e_p is not None:
+        #         e[:,i] += e_p     
         return e
     
     def _j(self, phi_sol, srcList):
-        j = -self.survey.prob.Msig*self._cellGrad*phi_sol
-        for i, src in enumerate(srcList):
-            j_p = src.j_p(self.survey.prob)
-            if j_p is not None:
-                j[:,i] += j_p
+
+        j = -self._Mfinv*self.survey.prob.Msig*self._cellGrad*phi_sol
+        # for i, src in enumerate(srcList):
+        #     j_p = src.j_p(self.survey.prob)
+        #     if j_p is not None:
+        #         j[:,i] += j_p
         return j
 
 
@@ -176,7 +178,7 @@ class ProblemDC_CC(Problem.BaseProblem):
             G = self.mesh.cellGrad
             self._A = D*self.Msig*G
             # Remove the null space from the matrix.
-            self._A[-1,-1] /= self.mesh.vol[-1]
+            self._A[0,0] /= self.mesh.vol[0]
             self._A = self._A.tocsc()
         return self._A
 
