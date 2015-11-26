@@ -1,4 +1,4 @@
-.. _examples_Forward_BasicDirectCurrent:
+.. _examples_EM_FDEM_1D_Inversion:
 
 .. --------------------------------- ..
 ..                                   ..
@@ -8,14 +8,19 @@
 ..                                   ..
 .. --------------------------------- ..
 
-Forward BasicDirectCurrent
-==========================
+
+EM: FDEM: 1D: Inversion
+=======================
+
+Here we will create and run a FDEM 1D inversion.
+
+
 
 .. plot::
 
     from SimPEG import Examples
-    Examples.Forward_BasicDirectCurrent.run()
+    Examples.EM_FDEM_1D_Inversion.run()
 
-.. literalinclude:: ../../SimPEG/Examples/Forward_BasicDirectCurrent.py
+.. literalinclude:: ../../SimPEG/Examples/EM_FDEM_1D_Inversion.py
     :language: python
     :linenos:

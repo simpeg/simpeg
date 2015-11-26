@@ -1,29 +1,37 @@
 from SimPEG import *
 
-class LinearSurvey(Survey.BaseSurvey):
-    def projectFields(self, u):
-        return u
-
-class LinearProblem(Problem.BaseProblem):
-    """docstring for LinearProblem"""
-
-    surveyPair = LinearSurvey
-
-    def __init__(self, mesh, G, **kwargs):
-        Problem.BaseProblem.__init__(self, mesh, **kwargs)
-        self.G = G
-
-    def fields(self, m, u=None):
-        return self.G.dot(m)
-
-    def Jvec(self, m, v, u=None):
-        return self.G.dot(v)
-
-    def Jtvec(self, m, v, u=None):
-        return self.G.T.dot(v)
-
 
 def run(N=100, plotIt=True):
+    """
+        Inversion: Linear Problem
+        =========================
+
+        Here we go over the basics of creating a linear problem and inversion.
+
+    """
+
+    class LinearSurvey(Survey.BaseSurvey):
+        def projectFields(self, u):
+            return u
+
+    class LinearProblem(Problem.BaseProblem):
+
+        surveyPair = LinearSurvey
+
+        def __init__(self, mesh, G, **kwargs):
+            Problem.BaseProblem.__init__(self, mesh, **kwargs)
+            self.G = G
+
+        def fields(self, m, u=None):
+            return self.G.dot(m)
+
+        def Jvec(self, m, v, u=None):
+            return self.G.dot(v)
+
+        def Jtvec(self, m, v, u=None):
+            return self.G.T.dot(v)
+
+
     np.random.seed(1)
 
     mesh = Mesh.TensorMesh([N])
@@ -79,5 +87,4 @@ def run(N=100, plotIt=True):
     return prob, survey, mesh, mrec
 
 if __name__ == '__main__':
-    Utils._makeExample(__file__)
     run()

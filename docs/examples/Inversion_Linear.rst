@@ -1,11 +1,20 @@
 .. _examples_Inversion_Linear:
 
-.. ------------------------------ ..
-..  THIS FILE IS AUTO GENEREATED  ..
-.. ------------------------------ ..
+.. --------------------------------- ..
+..                                   ..
+..    THIS FILE IS AUTO GENEREATED   ..
+..                                   ..
+..    SimPEG/Examples/__init__.py    ..
+..                                   ..
+.. --------------------------------- ..
 
-Inversion Linear
-================
+
+Inversion: Linear Problem
+=========================
+
+Here we go over the basics of creating a linear problem and inversion.
+
+
 
 .. plot::
 

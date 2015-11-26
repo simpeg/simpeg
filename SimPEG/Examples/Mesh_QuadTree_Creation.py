@@ -1,7 +1,18 @@
 from SimPEG import *
 
 def run(plotIt=True):
-    from SimPEG import Mesh, np
+    """
+        Mesh: QuadTree: Creation
+        ========================
+
+        You can give the refine method a function, which is evaluated on every cell
+        of the TreeMesh.
+
+        Occasionally it is useful to initially refine to a constant level
+        (e.g. 3 in this 32x32 mesh). This means the function is first evaluated
+        on an 8x8 mesh (2^3).
+
+    """
     M = Mesh.TreeMesh([32,32])
     M.refine(3)
     def function(cell):
@@ -14,5 +25,4 @@ def run(plotIt=True):
     if plotIt: M.plotGrid(showIt=True)
 
 if __name__ == '__main__':
-    Utils._makeExample(__file__)
     run()

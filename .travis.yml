@@ -5,7 +5,6 @@ python:
 sudo: false
 
 env:
-    - TEST_DIR=tests/em/examples
     - TEST_DIR=tests/em/fdem/forward
     - TEST_DIR=tests/em/fdem/inverse/derivs
     - TEST_DIR=tests/em/fdem/inverse/adjoint

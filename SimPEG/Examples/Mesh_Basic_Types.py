@@ -1,6 +1,13 @@
 from SimPEG import *
 
 def run(plotIt=True):
+    """
+        Mesh: Basic: Types
+        ==================
+
+        Here we show SimPEG used to create three different types of meshes.
+
+    """
     sz = [16,16]
     tM = Mesh.TensorMesh(sz)
     qM = Mesh.TreeMesh(sz)
@@ -20,5 +27,4 @@ def run(plotIt=True):
         plt.show()
 
 if __name__ == '__main__':
-    Utils._makeExample(__file__)
     run()

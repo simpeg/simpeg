@@ -73,5 +73,4 @@ def run(plotIt=True):
 
 
 if __name__ == '__main__':
-    Utils._makeExample(__file__)
     run()

@@ -227,35 +227,3 @@ def requires(var):
 
         return requiresVarWrapper
     return requiresVar
-
-def _makeExample(filePath):
-
-    import os
-    name = filePath.split(os.path.sep)[-1][:-3]
-    out = """.. _examples_%s:
-
-.. ------------------------------ ..
-..  THIS FILE IS AUTO GENEREATED  ..
-.. ------------------------------ ..
-
-%s
-%s
-
-.. plot::
-
-    from SimPEG import Examples
-    Examples.%s.run()
-
-.. literalinclude:: ../../SimPEG/Examples/%s.py
-    :language: python
-    :linenos:
-"""%(name,name.replace('_',' '),'='*len(name),name,name)
-
-    rst = os.path.sep.join((filePath.split(os.path.sep)[:-3] + ['docs', 'examples', name + '.rst']))
-
-    f = open(rst, 'w')
-    f.write(out)
-    f.close()
-
-
-

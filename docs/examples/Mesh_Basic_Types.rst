@@ -1,4 +1,4 @@
-.. _examples_Forward_BasicDirectCurrent:
+.. _examples_Mesh_Basic_Types:
 
 .. --------------------------------- ..
 ..                                   ..
@@ -8,14 +8,19 @@
 ..                                   ..
 .. --------------------------------- ..
 
-Forward BasicDirectCurrent
-==========================
+
+Mesh: Basic: Types
+==================
+
+Here we show SimPEG used to create three different types of meshes.
+
+
 
 .. plot::
 
     from SimPEG import Examples
-    Examples.Forward_BasicDirectCurrent.run()
+    Examples.Mesh_Basic_Types.run()
 
-.. literalinclude:: ../../SimPEG/Examples/Forward_BasicDirectCurrent.py
+.. literalinclude:: ../../SimPEG/Examples/Mesh_Basic_Types.py
     :language: python
     :linenos:

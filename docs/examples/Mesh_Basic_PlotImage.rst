@@ -1,4 +1,4 @@
-.. _examples_Forward_BasicDirectCurrent:
+.. _examples_Mesh_Basic_PlotImage:
 
 .. --------------------------------- ..
 ..                                   ..
@@ -8,14 +8,20 @@
 ..                                   ..
 .. --------------------------------- ..
 
-Forward BasicDirectCurrent
-==========================
+
+Mesh: Basic: PlotImage
+======================
+
+You can use M.PlotImage to plot images on all of the Meshes.
+
+
+
 
 .. plot::
 
     from SimPEG import Examples
-    Examples.Forward_BasicDirectCurrent.run()
+    Examples.Mesh_Basic_PlotImage.run()
 
-.. literalinclude:: ../../SimPEG/Examples/Forward_BasicDirectCurrent.py
+.. literalinclude:: ../../SimPEG/Examples/Mesh_Basic_PlotImage.py
     :language: python
     :linenos:
