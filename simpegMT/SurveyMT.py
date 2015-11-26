@@ -299,7 +299,8 @@ class RxMT(Survey.BaseRx):
                 # Calculate the complex derivative
                 PDeriv_real = ZijN_uV(aHd*v) - aHd_uV(Zij.T*aHd*v)#
                 # NOTE: Need to reshape the output to go from 2*nU array to a (nU,2) matrix for each polarization
-                PDeriv_real = PDeriv_real.reshape((mesh.nE,2))
+                # PDeriv_real = np.hstack((mkvc(PDeriv_real[:len(PDeriv_real)/2],2),mkvc(PDeriv_real[len(PDeriv_real)/2::],2)))
+                PDeriv_real = PDeriv_real.reshape((2,mesh.nE)).T
             # Extract the data
             if real_or_imag == 'imag':
                 Pv = 1j*PDeriv_real
