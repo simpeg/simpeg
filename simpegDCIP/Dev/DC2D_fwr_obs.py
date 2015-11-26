@@ -46,20 +46,22 @@ xx = mesh_sub.vectorCCx
 yy = mesh_sub.vectorCCy
 
 #%% Solve
-txii = range(100,1900,20)
+txii = range(50,1950,100)
 #jx_CC_sub = np.zeros((len(txii),mesh_sub.nCx,mesh_sub.nCy))
 #jy_CC_sub = np.zeros((len(txii),mesh_sub.nCx,mesh_sub.nCy))
 
-fig = plt.figure(figsize=(14,7))
-axs = plt.axes(ylim=(-800,0), xlim=(25,2000))
+fig = plt.figure(figsize=(10,5))
+axs = plt.axes(ylim=(-800,50), xlim=(25,2000))
+plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
 im1 = axs.imshow([[],[]], alpha=0.75,extent = (xx[0],xx[-1],yy[-1],yy[0]),interpolation='nearest',vmin=-1e-2, vmax=1e-2)
 im2 = axs.imshow([[],[]],alpha=0.2,extent = (xx[0],xx[-1],yy[-1],yy[0]),interpolation='nearest',cmap='gray')
-#im3 = axs.streamplot(mesh_sub.vectorCCx, mesh_sub.vectorCCy, np.zeros((mesh_sub.nCy,mesh_sub.nCx)), np.zeros((mesh_sub.nCy,mesh_sub.nCx)),color='k')
-
+im3 = axs.streamplot(mesh_sub.vectorCCx, mesh_sub.vectorCCy, np.zeros((mesh_sub.nCy,mesh_sub.nCx)), np.zeros((mesh_sub.nCy,mesh_sub.nCx)),color='k')
+im4 = axs.scatter([],[], c='r', s=200)
 
 def init():
     im1.set_data([[],[]])
     im2.set_data([[],[]])
+    
     return [im1]+[im2]
 
 def animate(ii):
@@ -68,7 +70,7 @@ def animate(ii):
 
 #for ii in range(len(txii)):
     
-    
+    removeStream()
     
     tx = DC.SrcDipole([rx],txii[ii],txii[ii])
     
@@ -81,11 +83,11 @@ def animate(ii):
     
     Msig1 = Utils.sdiag(1./(mesh.aveF2CC.T*(1./model)))
     
-    j = Msig1*mesh.cellGrad*u1[tx, 'phi_sol']
+    j = -Msig1*mesh.cellGrad*u1[tx, 'phi_sol']
     j_CC = mesh.aveF2CCV*j
     
     # Compute charge density solving div*grad*phi
-    Q = mesh.faceDiv*mesh.cellGrad*u1[tx, 'phi_sol']
+    Q = -mesh.faceDiv*mesh.cellGrad*u1[tx, 'phi_sol']
     
     jx_CC = j_CC[0:mesh.nC].reshape(mesh.nCy,mesh.nCx).T
     jy_CC = j_CC[mesh.nC:].reshape(mesh.nCy,mesh.nCx).T
@@ -101,16 +103,28 @@ def animate(ii):
     
     #axs.imshow(Q_sub,alpha=0.75,extent = (xx[0],xx[-1],yy[-1],yy[0]),interpolation='nearest',vmin=-1e-2, vmax=1e-2)    
     #axs.imshow(np.log10(model_sub.reshape(mesh_sub.nCy,mesh_sub.nCx)),alpha=0.2,extent = (xx[0],xx[-1],yy[-1],yy[0]),interpolation='nearest',cmap='gray')     
-    #im3 = axs.streamplot(mesh_sub.vectorCCx, mesh_sub.vectorCCy, jx_CC_sub.T, jy_CC_sub.T,color='k',linewidth = lw.T)
+    
 
+    global im3
+    im3 = axs.streamplot(mesh_sub.vectorCCx, mesh_sub.vectorCCy, jx_CC_sub.T, jy_CC_sub.T,color='k',linewidth = lw.T,density=1.25)
+    
+    global im4
+    im4 = axs.scatter(txii[ii],10, c='r', s=60, marker='+' )
+    
     #plt.show()
     im1.set_array(Q_sub)
     im2.set_array(np.log10(model_sub.reshape(mesh_sub.nCy,mesh_sub.nCx)))
     #im2.set_array(mesh_sub.vectorCCx, mesh_sub.vectorCCy,jx_CC_sub.T,jy_CC_sub.T)
     
-    return [im1] + [im2] 
+    return [im1] + [im2]
 #%% Create widget
-
+def removeStream():
+    global im3
+    im3.lines.remove()
+    axs.patches = []
+    
+    global im4
+    im4.remove()
 #def viewInv(msh,iteration):
 
 
