@@ -96,7 +96,13 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.colors as colors
 import matplotlib.cm as cmx
 
-import TreeUtils
+try:
+    import TreeUtils
+    _IMPORT_TREEUTILS = True
+except Exception, e:
+    _IMPORT_TREEUTILS = False
+
+
 from InnerProducts import InnerProducts
 from TensorMesh import TensorMesh, BaseTensorMesh
 import time
@@ -108,6 +114,8 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
     _meshType = 'TREE'
 
     def __init__(self, h, x0=None, levels=None):
+        if not _IMPORT_TREEUTILS:
+            raise Exception('Could not import the Cython code to run the TreeMesh Try:.\n\npython setup.py build_ext --inplace')
         assert type(h) is list, 'h must be a list'
         assert len(h) in [2,3], "There is only support for TreeMesh in 2D or 3D."
 
