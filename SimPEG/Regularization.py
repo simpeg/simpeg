@@ -20,12 +20,13 @@ class BaseRegularization(object):
     mesh    = None    #: A SimPEG.Mesh instance.
     mref = None       #: Reference model.
 
-    def __init__(self, mesh, mapping=None, **kwargs):
+    def __init__(self, mesh, mapping=None, indActive=None, **kwargs):
         Utils.setKwargs(self, **kwargs)
         self.mesh = mesh
         assert isinstance(mesh, Mesh.BaseMesh), "mesh must be a SimPEG.Mesh object."
         self.mapping = mapping or Maps.IdentityMap(mesh)
         self.mapping._assertMatchesPair(self.mapPair)
+        self.indActive = indActive
 
     @property
     def parent(self):
@@ -110,8 +111,6 @@ class BaseRegularization(object):
             return mD.T * self.W.T * self.W * mD
 
         return mD.T * ( self.W.T * ( self.W * ( mD * v) ) )
-
-
 
 
 class Tikhonov(BaseRegularization):
@@ -205,14 +204,18 @@ class Tikhonov(BaseRegularization):
     alpha_yy = Utils.dependentProperty('_alpha_yy', 0.0, ['_W', '_Wyy'], "Weight for the second derivative in the y direction")
     alpha_zz = Utils.dependentProperty('_alpha_zz', 0.0, ['_W', '_Wzz'], "Weight for the second derivative in the z direction")
 
-    def __init__(self, mesh, mapping=None, **kwargs):
+    def __init__(self, mesh, mapping=None, indActive = None, **kwargs):
         BaseRegularization.__init__(self, mesh, mapping=mapping, **kwargs)
+        self.indActive = indActive
 
     @property
     def Ws(self):
         """Regularization matrix Ws"""
         if getattr(self,'_Ws', None) is None:
-                self._Ws = Utils.sdiag((self.mesh.vol*self.alpha_s)**0.5)
+            self._Ws = Utils.sdiag((self.mesh.vol*self.alpha_s)**0.5)
+            if self.indActive is not None:
+                Pac = Utils.speye(self.mesh.nC)[:,self.indActive]
+                self._Ws = Pac.T * self._Ws * Pac
         return self._Ws
 
     @property
@@ -221,6 +224,13 @@ class Tikhonov(BaseRegularization):
         if getattr(self, '_Wx', None) is None:
             Ave_x_vol = self.mesh.aveF2CC[:,:self.mesh.nFx].T*self.mesh.vol
             self._Wx = Utils.sdiag((Ave_x_vol*self.alpha_x)**0.5)*self.mesh.cellGradx
+
+            if self.indActive is not None:
+                indActive_Fx = (self.mesh.aveFx2CC.T * self.indActive) == 1
+                Pac = Utils.speye(self.mesh.nC)[:,self.indActive]
+                Pafx = Utils.speye(self.mesh.nFx)[:,indActive_Fx]
+                self._Wx = Pafx.T*self._Wx*Pac
+
         return self._Wx
 
     @property
@@ -229,6 +239,13 @@ class Tikhonov(BaseRegularization):
         if getattr(self, '_Wy', None) is None:
             Ave_y_vol = self.mesh.aveF2CC[:,self.mesh.nFx:np.sum(self.mesh.vnF[:2])].T*self.mesh.vol
             self._Wy = Utils.sdiag((Ave_y_vol*self.alpha_y)**0.5)*self.mesh.cellGrady
+
+            if self.indActive is not None:
+                indActive_Fy = (self.mesh.aveFy2CC.T * self.indActive) == 1
+                Pac = Utils.speye(self.mesh.nC)[:,self.indActive]
+                Pafy = Utils.speye(self.mesh.nFy)[:,indActive_Fy]
+                self._Wy = Pafy.T*self._Wy*Pac
+
         return self._Wy
 
     @property
@@ -237,6 +254,13 @@ class Tikhonov(BaseRegularization):
         if getattr(self, '_Wz', None) is None:
             Ave_z_vol = self.mesh.aveF2CC[:,np.sum(self.mesh.vnF[:2]):].T*self.mesh.vol
             self._Wz = Utils.sdiag((Ave_z_vol*self.alpha_z)**0.5)*self.mesh.cellGradz
+
+            if self.indActive is not None:
+                indActive_Fz = (self.mesh.aveFz2CC.T * self.indActive) == 1
+                Pac = Utils.speye(self.mesh.nC)[:,self.indActive]
+                Pafz = Utils.speye(self.mesh.nFz)[:,indActive_Fz]
+                self._Wz = Pafz.T*self._Wz*Pac
+
         return self._Wz
 
     @property
@@ -244,6 +268,11 @@ class Tikhonov(BaseRegularization):
         """Regularization matrix Wxx"""
         if getattr(self, '_Wxx', None) is None:
             self._Wxx = Utils.sdiag((self.mesh.vol*self.alpha_xx)**0.5)*self.mesh.faceDivx*self.mesh.cellGradx
+
+            if self.indActive is not None:
+                Pac = Utils.speye(self.mesh.nC)[:,self.indActive]
+                self._Wxx = Pac.T*self._Wxx*Pac
+
         return self._Wxx
 
     @property
@@ -251,6 +280,11 @@ class Tikhonov(BaseRegularization):
         """Regularization matrix Wyy"""
         if getattr(self, '_Wyy', None) is None:
             self._Wyy = Utils.sdiag((self.mesh.vol*self.alpha_yy)**0.5)*self.mesh.faceDivy*self.mesh.cellGrady
+
+            if self.indActive is not None:
+                Pac = Utils.speye(self.mesh.nC)[:,self.indActive]
+                self._Wyy = Pac.T*self._Wyy*Pac
+
         return self._Wyy
 
     @property
@@ -258,6 +292,11 @@ class Tikhonov(BaseRegularization):
         """Regularization matrix Wzz"""
         if getattr(self, '_Wzz', None) is None:
             self._Wzz = Utils.sdiag((self.mesh.vol*self.alpha_zz)**0.5)*self.mesh.faceDivz*self.mesh.cellGradz
+
+            if self.indActive is not None:
+                Pac = Utils.speye(self.mesh.nC)[:,self.indActive]
+                self._Wzz = Pac.T*self._Wzz*Pac
+
         return self._Wzz
 
     @property

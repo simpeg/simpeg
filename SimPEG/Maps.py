@@ -118,6 +118,78 @@ class IdentityMap(object):
     def __str__(self):
         return "%s(%s,%s)" % (self.__class__.__name__, self.shape[0], self.shape[1])
 
+
+class IdentityMap_Meshless(IdentityMap):
+
+    def __init__(self, nP=None, **kwargs):
+        IdentityMap.__init__(self, None, **kwargs)
+        self._nP = nP
+
+    @property
+    def nP(self):
+        """
+            :rtype: int
+            :return: number of parameters in the model
+        """
+        if self._nP is None:
+            return '*'
+        return self._nP
+
+    @property
+    def shape(self):
+        """
+            The default shape is (mesh.nC, nP).
+
+            :rtype: (int,int)
+            :return: shape of the operator as a tuple
+        """
+        if self._nP is None:
+            return ('*', '*')
+        return (self.nP, self.nP)
+
+
+    def _transform(self, m):
+        """
+            Changes the model into the physical property.
+
+            .. note::
+
+                This can be called by the __mul__ property against a numpy.ndarray.
+
+            :param numpy.array m: model
+            :rtype: numpy.array
+            :return: transformed model
+
+        """
+        return m
+
+    def inverse(self, D):
+        """
+            Changes the physical property into the model.
+
+            .. note::
+
+                The *transformInverse* may not be easy to create in general.
+
+            :param numpy.array D: physical property
+            :rtype: numpy.array
+            :return: model
+
+        """
+        raise NotImplementedError('The transformInverse is not implemented.')
+
+    def deriv(self, m):
+        """
+            The derivative of the transformation.
+
+            :param numpy.array m: model
+            :rtype: scipy.csr_matrix
+            :return: derivative of transformed model
+
+        """
+        return sp.identity(self.nP)
+
+
 class ComboMap(IdentityMap):
     """Combination of various maps."""
 
