@@ -26,6 +26,27 @@ class TestSimpleQuadTree(unittest.TestCase):
 
         assert np.allclose(np.r_[M._areaFxFull, M._areaFyFull], M._deflationMatrix('F') * M.area)
 
+    def test_getitem(self):
+        M = Mesh.TreeMesh([4,4])
+        M.refine(1)
+        assert M.nC == 4
+        assert len(M) == M.nC
+        assert np.allclose(M[0].center, [0.25,0.25])
+        actual = [[0,0],[0.5,0],[0,0.5],[0.5,0.5]]
+        for i, n in enumerate(M[0].nodes):
+            assert np.allclose(M._gridN[n,:], actual[i])
+
+    def test_getitem3D(self):
+        M = Mesh.TreeMesh([4,4,4])
+        M.refine(1)
+        assert M.nC == 8
+        assert len(M) == M.nC
+        assert np.allclose(M[0].center, [0.25,0.25,0.25])
+        actual = [[0,0,0],[0.5,0,0],[0,0.5,0],[0.5,0.5,0],
+                  [0,0,0.5],[0.5,0,0.5],[0,0.5,0.5],[0.5,0.5,0.5]]
+        for i, n in enumerate(M[0].nodes):
+            assert np.allclose(M._gridN[n,:], actual[i])
+
     def test_refine(self):
         M = Mesh.TreeMesh([4,4,4])
         M.refine(1)
