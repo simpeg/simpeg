@@ -2214,6 +2214,7 @@ class Cell(object):
 
     @property
     def nodes(self):
+        """The node index in _gridN (this may include hanging nodes)."""
         M = self.mesh
         M._numberNodes()
         p = self._pointer
