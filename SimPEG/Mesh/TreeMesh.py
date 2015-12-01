@@ -561,15 +561,18 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
         return [p - (p % mod) for p in pointer[:-1]] + [pointer[-1]-1]
 
     def _cellN(self, p):
+        """Node location [x,y(,z)] of a single cell, closest to origin, given a pointer."""
         p = self._asPointer(p)
         return [hi[:p[ii]].sum() for ii, hi in enumerate(self.h)]
 
     def _cellH(self, p):
+        """Widths of a single cell given a pointer."""
         p = self._asPointer(p)
         w = self._levelWidth(p[-1])
         return [hi[p[ii]:p[ii]+w].sum() for ii, hi in enumerate(self.h)]
 
     def _cellC(self, p):
+        """Cell center of a single cell (without origin correction), given a pointer."""
         return (np.array(self._cellH(p))/2.0 + self._cellN(p)).tolist()
 
     def _levelWidth(self, level):
