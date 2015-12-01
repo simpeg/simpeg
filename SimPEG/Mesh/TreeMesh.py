@@ -824,8 +824,10 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
     def _numberCells(self, force=False):
         if not self.__dirtyCells__ and not force: return
         self._cc2i = dict()
+        self._i2cc = dict()
         for ii, c in enumerate(sorted(self._cells)):
             self._cc2i[c] = ii
+            self._i2cc[ii] = c
         self.__dirtyCells__ = False
 
     def _numberNodes(self, force=False):
@@ -2181,12 +2183,59 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
         if showIt: plt.show()
         return tuple(out)
 
+    def __len__(self): return self.nC
+
+    def __getitem__(self, key):
+        if isinstance( key, slice ) :
+            #Get the start, stop, and step from the slice
+            return [self[ii] for ii in xrange(*key.indices(len(self)))]
+        elif isinstance( key, int ) :
+            if key < 0 : #Handle negative indices
+                key += len( self )
+            if key >= len( self ) :
+                raise IndexError, "The index (%d) is out of range."%key
+
+            self._numberCells() # no-op if numbered
+            index   = self._i2cc[key]
+            pointer = self._asPointer(index)
+            return Cell(self, index, pointer)
+        else:
+            raise TypeError, "Invalid argument type."
+
 
 class Cell(object):
     def __init__(self, mesh, index, pointer):
         self.mesh     = mesh
         self._index   = index
         self._pointer = pointer
+
+    @property
+    def nodes(self):
+        M = self.mesh
+        M._numberNodes()
+        p = self._pointer
+        i = self._index
+        w = M._levelWidth(p[-1])
+
+        if M.dim == 2:
+            n = [
+                    i,
+                    M._index([ p[0] + w, p[1]   , p[2]]),
+                    M._index([ p[0]    , p[1]+ w, p[2]]),
+                    M._index([ p[0] + w, p[1]+ w, p[2]]),
+                ]
+        elif self.dim == 3:
+            n = [
+                    i,
+                    M._index([ p[0] + w, p[1]    , p[2]    ,p[3]]),
+                    M._index([ p[0]    , p[1] + w, p[2]    ,p[3]]),
+                    M._index([ p[0] + w, p[1] + w, p[2]    ,p[3]]),
+                    M._index([ p[0]    , p[1]    , p[2] + w,p[3]]),
+                    M._index([ p[0] + w, p[1]    , p[2] + w,p[3]]),
+                    M._index([ p[0]    , p[1] + w, p[2] + w,p[3]]),
+                    M._index([ p[0] + w, p[1] + w, p[2] + w,p[3]]),
+                ]
+        return [M._n2i[_] for _ in n]
 
     @property
     def center(self):
@@ -2270,7 +2319,7 @@ if __name__ == '__main__':
     # T = TreeMesh([[(1,128)],[(1,128)],[(1,128)]],levels=7)
     # T = TreeMesh([128,128,128])
     # T = TreeMesh([64,64],levels=6)
-    T = TreeMesh([4,4,4])
+    T = TreeMesh([8,8])
     # T = TreeMesh([[(1,128)],[(1,128)]],levels=7)
     # T.refine(lambda xc:2, balance=False)
     # T._index([0,0,0])
@@ -2281,8 +2330,15 @@ if __name__ == '__main__':
     T.refine(function)#, balance=False)
     # print time.time() - tic
     # print T.nC
-    T.plotSlice(np.log(T.vol))#np.random.rand(T.nC))
-
+    # T.plotSlice(np.log(T.vol))#np.random.rand(T.nC))
+    T.plotGrid()
+    # print [c for c in T]
+    c = T[0]
+    plt.plot(c.center[0],c.center[1],'r.')
+    nodes = c.nodes
+    for n in nodes:
+        _ = T._gridN[n,:]
+        plt.plot(_[0],_[1],'gs')
     plt.show()
     blah
 
