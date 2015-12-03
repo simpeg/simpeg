@@ -205,11 +205,13 @@ def writeUBCTensorModel(fileName, mesh, model):
 
     np.savetxt(fileName, modelMatTR.ravel())
 
-def writeUBCocTreeFiles(fileName,mesh,modelDict=None,):
+def writeUBCocTreeFiles(fileName,mesh,modelDict=None):
     '''
         Write UBC ocTree mesh and model files from a simpeg ocTree mesh and model.
 
-        :param
+        :param str fileName: File to write to
+        :param simpeg.Mesh.TreeMesh mesh: The mesh
+        :param dictionary modelDict: The models in a dictionary, where the keys is the name of the of the model file
 
     '''
 
@@ -255,6 +257,66 @@ def writeUBCocTreeFiles(fileName,mesh,modelDict=None,):
         for item in modelDict.iteritems():
             # Save the data
             np.savetxt(item[0],item[1][ubcReorder],fmt='%3.5e')
+
+def readUBCocTreeFiles(meshFile,modelFiles=None):
+    """
+        Read UBC 3D OcTree mesh and/or modelFiles
+
+        Input:
+        :param str meshFile: path to the UBC GIF OcTree mesh file to read
+        :param list of str modelFiles: list of paths modelFiles
+
+        Output:
+        :return SimPEG.Mesh.TreeMesh mesh: The octree mesh
+        :return list of ndarray's: models as a list of numpy array's
+    """
+
+    ## Read the file lines
+    fileLines = np.genfromtxt(meshFile,dtype=str,delimiter='\n')
+    # Extract the data
+    nCunderMesh = np.array(fileLines[0].split(),dtype=float)
+    # I think this is the case?
+    if np.unique(nCunderMesh).size >1:
+        raise Exception('SimPEG TreeMeshes have the same number of cell in all directions')
+    tswCorn = np.array(fileLines[1].split(),dtype=float)
+    smallCell = np.array(fileLines[2].split(),dtype=float)
+    nrCells = np.array(fileLines[3].split(),dtype=float)
+    # Read the index array
+    indArr = np.genfromtxt(fileLines[4::],dtype=np.int)
+
+    ## Calculate simpeg parameters
+    h1,h2,h3 = [np.ones(nr)*sz for nr,sz in zip(nCunderMesh,smallCell)]
+    x0 = tswCorn - np.sum(h3)
+    # Need to convert the index array to a points list that complies with SimPEG TreeMesh.
+    # Shift to start at 0
+    simpegCellPt = indArr[:,0:-1].copy() - np.array([1.,1.,1.])
+    # Need reindex the z index to be from the bottom-left-close corner and to be from the global bottom.
+    simpegCellPt[:,2] = ( nCunderMesh[-1] + 2) - (simpegCellPt[:,2] - indArr[:,3])
+    # Figure out the reordering
+    simpegReorder = np.argsort(simpegCellPt.view(','.join(3*['float'])),axis=0,order=['f2','f1','f0'])[:,0]
+
+    # Calculate the cell level
+    simpegLevel = np.log2(np.min(nCunderMesh)) - np.log2(indArr[:,3])
+    # Make a pointer matrix
+    simpegPointers = np.concatenate((simpegCellPt[simpegReorder,:],simpegLevel[simpegReorder].reshape((-1,1))),axis=1)
+    # Make an index set
+
+    ## Make the tree mesh
+    from SimPEG.Mesh import TreeMesh
+    mesh = TreeMesh([h1,h2,h3],x0)
+    mesh._cells = set([mesh._index(p) for p in simpegPointers.tolist()])
+
+    if modelFiles is None:
+        return mesh
+    else:
+        modList = []
+        for modFile in modelFiles:
+            modArr = np.loadtxt(modFile)
+            if len(modArr.shape) == 1:
+                modList.append(modArr[simpegReorder])
+            else:
+                modList.append(modArr[simpegReorder,:])
+        return mesh, modList
 
 def readVTRFile(fileName):
     """
