@@ -205,6 +205,57 @@ def writeUBCTensorModel(fileName, mesh, model):
 
     np.savetxt(fileName, modelMatTR.ravel())
 
+def writeUBCocTreeFiles(fileName,mesh,modelDict=None,):
+    '''
+        Write UBC ocTree mesh and model files from a simpeg ocTree mesh and model.
+
+        :param
+
+    '''
+
+    # Calculate information to write in the file.
+    # Number of cells in the underlying mesh
+    nCunderMesh = np.array([h.size for h in mesh.h],dtype=np.int64)
+    # The top-south-west most corner of the mesh
+    tswCorn = mesh.x0 + np.array([0,0,np.sum(mesh.h[2])])
+    # Smallest cell size
+    smallCell = np.array([h.min() for h in mesh.h])
+    # Number of cells
+    nrCells = mesh.nC
+
+    ## Extract iformation about the cells.
+    # cell pointers
+    cellPointers = np.array([c._pointer for c in mesh])
+    # cell with
+    cellW = np.array([ mesh._levelWidth(i) for i in cellPointers[:,-1] ])
+    # Need to shift the pointers to work with UBC indexing
+    # UBC Octree indexes always the top-left-close (top-south-west) corner first and orders the cells in z(top-down),x,y vs x,y,z(bottom-up).
+    # Shift index up by 1
+    ubcCellPt = cellPointers[:,0:-1].copy() + np.array([1.,1.,1.])
+    # Need reindex the z index to be from the top-left-close corner and to be from the global top.
+    ubcCellPt[:,2] = ( nCunderMesh[-1] + 2) - (ubcCellPt[:,2] + cellW)
+
+    # Reorder the ubcCellPt
+    ubcReorder = np.argsort(ubcCellPt.view(','.join(3*['float'])),axis=0,order=['f2','f1','f0'])[:,0]
+    # Make a array with the pointers and the withs, that are order in the ubc ordering
+    indArr = np.concatenate((ubcCellPt[ubcReorder,:],cellW[ubcReorder].reshape((-1,1)) ),axis=1)
+
+    ## Write the UBC octree mesh file
+    with open(fileName,'w') as mshOut:
+        mshOut.write('{:.0f} {:.0f} {:.0f}\n'.format(nCunderMesh[0],nCunderMesh[1],nCunderMesh[2]))
+        mshOut.write('{:.4f} {:.4f} {:.4f}\n'.format(tswCorn[0],tswCorn[1],tswCorn[2]))
+        mshOut.write('{:.3f} {:.3f} {:.3f}\n'.format(smallCell[0],smallCell[1],smallCell[2]))
+        mshOut.write('{:.0f} \n'.format(nrCells))
+        np.savetxt(mshOut,indArr,fmt='%i')
+
+    ## Print the models
+    # Assign the model('s) to the object
+    if modelDict is not None:
+        # indUBCvector = np.argsort(cX0[np.argsort(np.concatenate((cX0[:,0:2],cX0[:,2:3].max() - cX0[:,2:3]),axis=1).view(','.join(3*['float'])),axis=0,order=('f2','f1','f0'))[:,0]].view(','.join(3*['float'])),axis=0,order=('f2','f1','f0'))[:,0]
+        for item in modelDict.iteritems():
+            # Save the data
+            np.savetxt(item[0],item[1][ubcReorder],fmt='%3.5e')
+
 def readVTRFile(fileName):
     """
         Read VTK Rectilinear (vtr xml file) and return SimPEG Tensor mesh and model
