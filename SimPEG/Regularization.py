@@ -24,7 +24,7 @@ class BaseRegularization(object):
         Utils.setKwargs(self, **kwargs)
         self.mesh = mesh
         assert isinstance(mesh, Mesh.BaseMesh), "mesh must be a SimPEG.Mesh object."
-        self.mapping = mapping or Maps.IdentityMap(mesh)
+        self.mapping = mapping or self.mapPair(mesh)
         self.mapping._assertMatchesPair(self.mapPair)
 
     @property
