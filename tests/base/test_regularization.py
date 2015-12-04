@@ -22,7 +22,7 @@ class RegularizationTests(unittest.TestCase):
             if not inspect.isclass(r): continue
             if not issubclass(r, Regularization.BaseRegularization):
                 continue
-            
+
             for i, mesh in enumerate(self.meshlist):
 
                 print 'Testing %iD'%mesh.dim
@@ -32,7 +32,7 @@ class RegularizationTests(unittest.TestCase):
                 m = np.random.rand(mapping.nP)
                 reg.mref = np.ones_like(m)*np.mean(m)
 
-                print 'Check: phi_m (mref) = %f' %reg.eval(reg.mref) 
+                print 'Check: phi_m (mref) = %f' %reg.eval(reg.mref)
                 passed = reg.eval(reg.mref) < TOL
                 self.assertTrue(passed)
 
@@ -50,7 +50,7 @@ class RegularizationTests(unittest.TestCase):
             if not inspect.isclass(r): continue
             if not issubclass(r, Regularization.BaseRegularization):
                 continue
-            
+
             for i, mesh in enumerate(self.meshlist):
 
                 print 'Testing Active Cells %iD'%(mesh.dim)
@@ -62,7 +62,7 @@ class RegularizationTests(unittest.TestCase):
                 elif mesh.dim == 3:
                     indAct = Utils.mkvc(mesh.gridCC[:,-1] <= 2*np.sin(2*np.pi*mesh.gridCC[:,0])+0.5 * 2*np.sin(2*np.pi*mesh.gridCC[:,1])+0.5)
 
-                mapping = Maps.IdentityMap_Meshless(nP=indAct.nonzero()[0].size)
+                mapping = Maps.IdentityMap(nP=indAct.nonzero()[0].size)
 
                 reg = r(mesh, mapping=mapping, indActive=indAct)
                 m = np.random.rand(mesh.nC)[indAct]
