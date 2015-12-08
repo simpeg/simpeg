@@ -16,12 +16,12 @@ import numpy.matlib as npm
 #from scipy.linalg import solve_banded
 
 # Load UBC mesh 3D
-#mesh = Utils.meshutils.readUBCTensorMesh('Mesh_20m.msh')
-mesh = Utils.meshutils.readUBCTensorMesh('Mesh_40m.msh')
+mesh = Utils.meshutils.readUBCTensorMesh('Mesh_20m.msh')
+#mesh = Utils.meshutils.readUBCTensorMesh('Mesh_40m.msh')
 
 # Load model
-#model = Utils.meshutils.readUBCTensorModel('MtIsa_3D.con',mesh)
-model = Utils.meshutils.readUBCTensorModel('Synthetic.con',mesh)
+model = Utils.meshutils.readUBCTensorModel('MtIsa_3D.con',mesh)
+#model = Utils.meshutils.readUBCTensorModel('Synthetic.con',mesh)
 
 #%% Create system
 #Set boundary conditions
@@ -51,7 +51,7 @@ mesh.plotSlice(model, ind=top, normal='Z', grid=True, pcolorOpts={'alpha':0.8})
 
 
 # Takes two points from ginput and create survey
-temp = plt.ginput(2)
+temp = plt.ginput(2, timeout = 0)
 
 # Add z coordinate
 nz = mesh.vectorNz
@@ -106,8 +106,12 @@ for ii in range(0, int(nstn)-2):
     problem.pair(survey)
 
     # Get the righthand side
-    RHS = problem.getRHS()
+    RHS_v1 = problem.getRHS()
 
+    inds = Utils.closestPoints(mesh, np.c_[M[ii,:],N[ii,:]].T)
+    RHS = mesh.getInterpolationMat(np.c_[M[ii,:],N[ii,:]].T, 'CC').T*( [-1,1] / mesh.vol[inds] )
+    
+    
     # Solve for phi
     P1 = mesh.getInterpolationMat(rxloc_M, 'CC')
     P2 = mesh.getInterpolationMat(rxloc_N, 'CC')
@@ -120,7 +124,7 @@ for ii in range(0, int(nstn)-2):
     #phi = mkvc(Ainvb[0])
     
     # Compute potential at each electrode
-    d = P1*phi - P2*phi     
+    d = (P1*phi - P2*phi)*np.pi     
     
     # Convert 3D location to distance along survey line for 2D
     # Plot pseudo section along line
@@ -148,10 +152,17 @@ for ii in range(0, int(nstn)-2):
      #   mkvc(d) , np.ones(nrx)*1e-2]
         
 
+# Modification for 2D problem
+data[:,0:4] = data[:,0:4] + endp[0,0]
 
 fid = open(home_dir + '\FWR_data.dat','w')
 fid.write('SIMPEG FORWARD\n')   
 np.savetxt(fid, data, fmt='%e',delimiter=' ',newline='\n')
+fid.close()
+
+fid = open(home_dir + '\OBS_LOC.dat','w')
+fid.write('SIMPEG FORWARD\n')   
+np.savetxt(fid, data[:,0:4], fmt='%e',delimiter=' ',newline='\n')
 fid.close()
 
 #%% Plot pseudo section
@@ -173,9 +184,31 @@ midz = -np.abs(Cmid-Pmid)
 
 # Grid points
 grid_x, grid_z = np.mgrid[np.min(midp):np.max(midp), np.min(midz):np.max(midz)]
-grid_rho = griddata(np.c_[midp,midz], np.log10(abs(rho.T)), (grid_x, grid_z), method='linear')
+grid_rho = griddata(np.c_[midp,midz], np.log10(abs(1/rho.T)), (grid_x, grid_z), method='linear')
 plt.imshow(grid_rho.T, extent = (np.min(midp),np.max(midp),np.min(midz),np.max(midz)), origin='lower')
 plt.colorbar()
 
 # Plot apparent resistivity
-plt.scatter(midp,midz,s=50,c=np.log10(abs(rho.T)))
+plt.scatter(midp,midz,s=50,c=np.log10(abs(1/rho.T)))
+
+#%% Export 2D mesh from section
+fid = open(home_dir + '\Mesh_2D.msh','w')
+fid.write('%i\n'% mesh.nCx)
+fid.write('%f %f 1\n'% (mesh.vectorNx[0],mesh.vectorNx[1]))  
+np.savetxt(fid, np.c_[mesh.vectorNx[2:],np.ones(mesh.nCx-1)], fmt='\t %e %i',delimiter=' ',newline='\n')
+fid.write('\n')
+fid.write('%i\n'% mesh.nCz)
+fid.write('%f %f 1\n'%( -mesh.vectorNz[-1],-mesh.vectorNz[-2]))   
+np.savetxt(fid, np.c_[-mesh.vectorNz[-3::-1],np.ones(mesh.nCz-1)], fmt='\t %e %i',delimiter=' ',newline='\n')
+fid.close()
+
+# Grab slice of model
+m = np.reshape(model, (mesh.nCz, mesh.nCy, mesh.nCx))
+m2D = m[::-1,9,:]
+plt.figure()
+plt.imshow(m2D)
+
+fid = open(home_dir + '\MtIsa_2D.con','w')
+fid.write('%i %i\n'% (mesh.nCx,mesh.nCz))
+np.savetxt(fid, mkvc(m2D.T), fmt='%e',delimiter=' ',newline='\n')
+fid.close()
