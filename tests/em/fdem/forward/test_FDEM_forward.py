@@ -7,16 +7,17 @@ from SimPEG.EM.Utils.testingUtils import getFDEMProblem
 
 testEB = True
 testHJ = True
-testEJ = False
+testEJ = True
 verbose = False
 
 TOLEBHJ = 1e-5
-TOLEJHB = 1e-1
+TOLEJHB = 1 # averaging and more sensitive to boundary condition violations (ie. the impact of violating the boundary conditions in each case is different.)
+#TODO: choose better testing parameters to lower this 
 
 FLR = 1e-20 # "zero", so if residual below this --> pass regardless of order
 CONDUCTIVITY = 1e1
 MU = mu_0
-freq = 1e-1
+freq = 5e-1
 addrandoms = False
 
 SrcList = ['RawVec', 'MagDipole_Bfield', 'MagDipole', 'CircularLoop']
@@ -28,7 +29,7 @@ def crossCheckTest(fdemType1, fdemType2, comp, TOL=TOLEBHJ):
 
     prb1 = getFDEMProblem(fdemType1, comp, SrcList, freq, verbose)
     mesh = prb1.mesh
-    print 'Cross Checking Forward: %s formulation - %s' % (fdemType1, comp)
+    print 'Cross Checking Forward: %s, %s formulations - %s' % (fdemType1, fdemType2, comp)
     m = np.log(np.ones(mesh.nC)*CONDUCTIVITY)
     mu = np.log(np.ones(mesh.nC)*MU)
 
@@ -118,31 +119,31 @@ class FDEM_CrossCheck(unittest.TestCase):
             self.assertTrue(crossCheckTest('j', 'h', 'hzi'))
 
     if testEJ:
-        # def test_EJ_CrossCheck_jxr_Jform(self):
-        #     self.assertTrue(crossCheckTest('e', 'j', 'jxr'))
-        # def test_EJ_CrossCheck_jyr_Jform(self):
-        #     self.assertTrue(crossCheckTest('e', 'j', 'jyr'))
-        # def test_EJ_CrossCheck_jzr_Jform(self):
-        #     self.assertTrue(crossCheckTest('e', 'j', 'jzr'))
-        # def test_EJ_CrossCheck_jxi_Jform(self):
-        #     self.assertTrue(crossCheckTest('e', 'j', 'jxi'))
-        # def test_EJ_CrossCheck_jyi_Jform(self):
-        #     self.assertTrue(crossCheckTest('e', 'j', 'jyi'))
-        # def test_EJ_CrossCheck_jzi_Jform(self):
-        #     self.assertTrue(crossCheckTest('e', 'j', 'jzi'))
-
         def test_EJ_CrossCheck_jxr_Jform(self):
+            self.assertTrue(crossCheckTest('e', 'j', 'jxr', TOL=TOLEJHB))
+        def test_EJ_CrossCheck_jyr_Jform(self):
+            self.assertTrue(crossCheckTest('e', 'j', 'jyr', TOL=TOLEJHB))
+        def test_EJ_CrossCheck_jzr_Jform(self):
+            self.assertTrue(crossCheckTest('e', 'j', 'jzr', TOL=TOLEJHB))
+        def test_EJ_CrossCheck_jxi_Jform(self):
+            self.assertTrue(crossCheckTest('e', 'j', 'jxi', TOL=TOLEJHB))
+        def test_EJ_CrossCheck_jyi_Jform(self):
+            self.assertTrue(crossCheckTest('e', 'j', 'jyi', TOL=TOLEJHB))
+        def test_EJ_CrossCheck_jzi_Jform(self):
+            self.assertTrue(crossCheckTest('e', 'j', 'jzi', TOL=TOLEJHB))
+
+        def test_EJ_CrossCheck_exr_Jform(self):
             self.assertTrue(crossCheckTest('e', 'j', 'exr', TOL=TOLEJHB))
-        # def test_EJ_CrossCheck_jyr_Jform(self):
-        #     self.assertTrue(crossCheckTest('e', 'j', 'eyr'))
-        # def test_EJ_CrossCheck_jzr_Jform(self):
-        #     self.assertTrue(crossCheckTest('e', 'j', 'ezr'))
-        # def test_EJ_CrossCheck_jxi_Jform(self):
-        #     self.assertTrue(crossCheckTest('e', 'j', 'exi'))
-        # def test_EJ_CrossCheck_jyi_Jform(self):
-        #     self.assertTrue(crossCheckTest('e', 'j', 'eyi'))
-        # def test_EJ_CrossCheck_jzi_Jform(self):
-        #     self.assertTrue(crossCheckTest('e', 'j', 'ezi'))
+        def test_EJ_CrossCheck_eyr_Jform(self):
+            self.assertTrue(crossCheckTest('e', 'j', 'eyr', TOL=TOLEJHB))
+        def test_EJ_CrossCheck_ezr_Jform(self):
+            self.assertTrue(crossCheckTest('e', 'j', 'ezr', TOL=TOLEJHB))
+        def test_EJ_CrossCheck_exi_Jform(self):
+            self.assertTrue(crossCheckTest('e', 'j', 'exi', TOL=TOLEJHB))
+        def test_EJ_CrossCheck_eyi_Jform(self):
+            self.assertTrue(crossCheckTest('e', 'j', 'eyi', TOL=TOLEJHB))
+        def test_EJ_CrossCheck_ezi_Jform(self):
+            self.assertTrue(crossCheckTest('e', 'j', 'ezi', TOL=TOLEJHB))
 
 if __name__ == '__main__':
     unittest.main()

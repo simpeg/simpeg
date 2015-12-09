@@ -365,7 +365,7 @@ class Fields_j(Fields):
 
         j = self._j(jSolution, srcList)
 
-        return  Rho * (aveF2CCV * j) 
+        return  1./self.survey.prob.mesh.dim * Rho * (aveF2CCV * j) 
 
     def _eDeriv_u(self, src, v, adjoint=False):
         raise NotImplementedError
@@ -393,6 +393,16 @@ class Fields_h(Fields):
         self._edgeCurl = self.survey.prob.mesh.edgeCurl
         self._MeMuI = self.survey.prob.MeMuI
         self._MfRho = self.survey.prob.MfRho
+
+    def _GLoc(self,fieldType):
+        if fieldType == 'h':
+            return 'E'
+        elif fieldType == 'j':
+            return 'F'
+        elif (fieldType == 'e') or (fieldType == 'b'):
+            return 'CC'
+        else:
+            raise Exception('Field type must be e, b, h, j')
 
     def _hPrimary(self, hSolution, srcList):
         hPrimary = np.zeros_like(hSolution,dtype = complex)
