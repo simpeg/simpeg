@@ -206,6 +206,32 @@ class SaveOutputEveryIteration(_SaveEveryIteration):
         f.write(' %3d %1.4e %1.4e %1.4e %1.4e\n'%(self.opt.iter, self.invProb.beta, self.invProb.phi_d, self.invProb.phi_m, self.opt.f))
         f.close()
 
+class SaveOutputDictEveryIteration(_SaveEveryIteration):
+    """SaveOutputDictEveryIteration"""
+
+    def initialize(self):
+        print "SimPEG.SaveOutputDictEveryIteration will save your inversion pro
+
+    def endIter(self):
+        # Save the data.
+        ms = self.reg.Ws * ( self.reg.mapping * (self.invProb.curModel - self.r
+        phi_ms = 0.5*ms.dot(ms)
+        if self.reg.smoothModel == True:
+            mref = self.reg.mref
+        else:
+            mref = 0
+        mx = self.reg.Wx * ( self.reg.mapping * (self.invProb.curModel - mref)
+        phi_mx = 0.5 * mx.dot(mx)
+        if self.prob.mesh.dim==2:
+            my = self.reg.Wy * ( self.reg.mapping * (self.invProb.curModel - mr
+            phi_my = 0.5 * my.dot(my)
+        else:
+            phi_my = 'NaN'
+        if self.prob.mesh.dim==3:
+            mz = self.reg.Wz * ( self.reg.mapping * (self.invProb.curModel - mr
+            phi_mz = 0.5 * mz.dot(mz)
+        else:
+            phi_mz = 'NaN'
 
 
 
