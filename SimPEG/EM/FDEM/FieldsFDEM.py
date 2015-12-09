@@ -34,6 +34,7 @@ class Fields_e(Fields):
         self._aveF2CCV = self.survey.prob.mesh.aveF2CCV
         self._sigma = self.survey.prob.curModel.sigma
         self._sigmaDeriv = self.survey.prob.curModel.sigmaDeriv
+        self._mui = self.survey.prob.curModel.mui
         self._nC = self.survey.prob.mesh.nC
 
     def _GLoc(self,fieldType):
@@ -108,12 +109,25 @@ class Fields_e(Fields):
         sigma = self._sigma
         aveE2CCV = self._aveE2CCV
         n = int(aveE2CCV.shape[0] / self._nC) #TODO: This is a bit sloppy
+        # Sigma = sdiag(np.kron(np.ones(n), sigma))
+        Sigma = self.prob.MeSigma
         VI = sdiag(1./np.kron(np.ones(n), self.prob.mesh.vol))
-        Sigma = sdiag(np.kron(np.ones(n), sigma))
 
         e = self._e(eSolution, srcList)
 
-        return  Sigma * (aveE2CCV * e) 
+        return VI * (aveE2CCV * (Sigma *e) )
+
+    def _h(self, eolution, srcList):
+        b = self._b(eSolution, srcList)
+        Mui = self.survey.prob.MfMui
+        aveF2CCV = self._aveF2CCV
+        n = int(aveF2CCV.shape[0] / self._nC) #TODO: This is a bit sloppy
+        # Mui = sdiag(sp.kron(np.ones(n), mui))
+        VI = sdiag(1./np.kron(np.ones(n), self.prob.mesh.vol))
+
+
+        return VI * (aveF2CCV * (Mui * b))
+
 
     def _jDeriv_u(self, src, v, adjoint=False):
         raise NotImplementedError
@@ -149,6 +163,8 @@ class Fields_b(Fields):
                     'e' : ['bSolution','E','_e'],
                     'ePrimary' : ['bSolution','E','_ePrimary'],
                     'eSecondary' : ['bSolution','E','_eSecondary'],
+                    'j' : ['bSolution','C','_j'],
+                    'h' : ['bSolution','C','_h'],
                   }
 
     def __init__(self,mesh,survey,**kwargs):
@@ -161,6 +177,13 @@ class Fields_b(Fields):
         self._MfMui = self.survey.prob.MfMui
         self._MeSigmaIDeriv = self.survey.prob.MeSigmaIDeriv
         self._Me = self.survey.prob.Me
+        self._aveF2CCV = self.survey.prob.mesh.aveF2CCV
+        self._aveE2CCV = self.survey.prob.mesh.aveE2CCV
+        self._sigma = self.survey.prob.curModel.sigma
+        self._mui = self.survey.prob.curModel.mui
+        self._nC = self.survey.prob.mesh.nC
+
+
 
     def _GLoc(self,fieldType):
         if fieldType == 'e':
@@ -245,6 +268,29 @@ class Fields_b(Fields):
         # assuming primary doesn't depend on model
         return self._eSecondaryDeriv_m(src, v, adjoint)
 
+    def _j(self, bSolution, srcList):
+        sigma = self._sigma
+        aveE2CCV = self._aveE2CCV
+        n = int(aveE2CCV.shape[0] / self._nC) #TODO: This is a bit sloppy
+        # Sigma = sdiag(np.kron(np.ones(n), sigma))
+        Sigma = self.prob.MeSigma
+        VI = sdiag(1./np.kron(np.ones(n), self.prob.mesh.vol))
+
+        e = self._e(bSolution, srcList)
+
+        return VI * (aveE2CCV * (Sigma *e) )
+
+    def _h(self, bSolution, srcList):
+        b = self._b(bSolution, srcList)
+        Mui = self.survey.prob.MfMui
+        aveF2CCV = self._aveF2CCV
+        n = int(aveF2CCV.shape[0] / self._nC) #TODO: This is a bit sloppy
+        # Mui = sdiag(sp.kron(np.ones(n), mui))
+        VI = sdiag(1./np.kron(np.ones(n), self.prob.mesh.vol))
+
+
+        return VI * (aveF2CCV * (Mui * b))
+
 
 class Fields_j(Fields):
     knownFields = {'jSolution':'F'}
@@ -256,6 +302,7 @@ class Fields_j(Fields):
                     'hPrimary' : ['jSolution','E','_hPrimary'],
                     'hSecondary' : ['jSolution','E','_hSecondary'],
                     'e' : ['jSolution','C','_e'],
+                    'b' : ['jSolution','C','_b'],
                   }
 
     def __init__(self,mesh,survey,**kwargs):
@@ -269,7 +316,9 @@ class Fields_j(Fields):
         self._MfRhoDeriv = self.survey.prob.MfRhoDeriv
         self._Me = self.survey.prob.Me
         self._rho = self.survey.prob.curModel.rho
+        self._mu = self.survey.prob.curModel.mui
         self._aveF2CCV = self.survey.prob.mesh.aveF2CCV
+        self._aveE2CCV = self.survey.prob.mesh.aveE2CCV
         self._nC = self.survey.prob.mesh.nC
 
     def _GLoc(self,fieldType):
@@ -361,17 +410,30 @@ class Fields_j(Fields):
         rho = self._rho
         aveF2CCV = self._aveF2CCV
         n = int(aveF2CCV.shape[0] / self._nC) #TODO: This is a bit sloppy
-        Rho = sdiag(np.kron(np.ones(n), rho))
+        
+        Rho = self.prob.MfRho
+        VI = sdiag(1./np.kron(np.ones(n), self.prob.mesh.vol))
+
 
         j = self._j(jSolution, srcList)
 
-        return  1./self.survey.prob.mesh.dim * Rho * (aveF2CCV * j) 
+        return VI * (aveF2CCV * (Rho *  j)) 
 
     def _eDeriv_u(self, src, v, adjoint=False):
         raise NotImplementedError
 
     def _eDeriv_m(self, src, v, adjoint=False):
         raise NotImplementedError
+
+    def _b(self, jSolution, srcList):
+        h = self._h(jSolution, srcList)
+        Mu = self.prob.MeMu
+        aveE2CCV = self._aveE2CCV
+        n = int(aveE2CCV.shape[0] / self._nC) #TODO: This is a bit sloppy
+        # Mu = sdiag(sp.kron(np.ones(n), mu))
+        VI = sdiag(1./np.kron(np.ones(n), self.prob.mesh.vol))
+
+        return VI * (aveE2CCV * (Mu * h))
 
 
 class Fields_h(Fields):
@@ -382,7 +444,9 @@ class Fields_h(Fields):
                     'hSecondary' : ['hSolution','E','_hSecondary'],
                     'j' : ['hSolution','F','_j'],
                     'jPrimary' : ['hSolution','F','_jPrimary'],
-                    'jSecondary' : ['hSolution','F','_jSecondary']
+                    'jSecondary' : ['hSolution','F','_jSecondary'],
+                    'e' : ['hSolution','C','_e'],
+                    'b' : ['hSolution','C','_b'],
                   }
 
     def __init__(self,mesh,survey,**kwargs):
@@ -393,6 +457,11 @@ class Fields_h(Fields):
         self._edgeCurl = self.survey.prob.mesh.edgeCurl
         self._MeMuI = self.survey.prob.MeMuI
         self._MfRho = self.survey.prob.MfRho
+        self._rho = self.survey.prob.curModel.rho
+        self._mu = self.survey.prob.curModel.mui
+        self._aveF2CCV = self.survey.prob.mesh.aveF2CCV
+        self._aveE2CCV = self.survey.prob.mesh.aveE2CCV
+        self._nC = self.survey.prob.mesh.nC
 
     def _GLoc(self,fieldType):
         if fieldType == 'h':
@@ -458,3 +527,32 @@ class Fields_h(Fields):
     def _jDeriv_m(self, src, v, adjoint=False):
         # assuming the primary does not depend on the model
         return self._jSecondaryDeriv_m(src,v,adjoint)
+    
+    def _e(self, hSolution, srcList):
+        rho = self._rho
+        aveF2CCV = self._aveF2CCV
+        n = int(aveF2CCV.shape[0] / self._nC) #TODO: This is a bit sloppy
+        
+        Rho = self.prob.MfRho
+        VI = sdiag(1./np.kron(np.ones(n), self.prob.mesh.vol))
+
+
+        j = self._j(hSolution, srcList)
+
+        return VI * (aveF2CCV * (Rho *  j)) 
+
+    def _eDeriv_u(self, src, v, adjoint=False):
+        raise NotImplementedError
+
+    def _eDeriv_m(self, src, v, adjoint=False):
+        raise NotImplementedError
+
+    def _b(self, hSolution, srcList):
+        h = self._h(hSolution, srcList)
+        Mu = self.prob.MeMu
+        aveE2CCV = self._aveE2CCV
+        n = int(aveE2CCV.shape[0] / self._nC) #TODO: This is a bit sloppy
+        # Mu = sdiag(sp.kron(np.ones(n), mu))
+        VI = sdiag(1./np.kron(np.ones(n), self.prob.mesh.vol))
+
+        return VI * (aveE2CCV * (Mu * h))

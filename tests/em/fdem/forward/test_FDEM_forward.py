@@ -8,6 +8,7 @@ from SimPEG.EM.Utils.testingUtils import getFDEMProblem
 testEB = True
 testHJ = True
 testEJ = True
+testBH = True
 verbose = False
 
 TOLEBHJ = 1e-5
@@ -144,6 +145,85 @@ class FDEM_CrossCheck(unittest.TestCase):
             self.assertTrue(crossCheckTest('e', 'j', 'eyi', TOL=TOLEJHB))
         def test_EJ_CrossCheck_ezi_Jform(self):
             self.assertTrue(crossCheckTest('e', 'j', 'ezi', TOL=TOLEJHB))
+
+        def test_EJ_CrossCheck_bxr_Jform(self):
+            self.assertTrue(crossCheckTest('e', 'j', 'bxr', TOL=TOLEJHB))
+        def test_EJ_CrossCheck_byr_Jform(self):
+            self.assertTrue(crossCheckTest('e', 'j', 'byr', TOL=TOLEJHB))
+        def test_EJ_CrossCheck_bzr_Jform(self):
+            self.assertTrue(crossCheckTest('e', 'j', 'bzr', TOL=TOLEJHB))
+        def test_EJ_CrossCheck_bxi_Jform(self):
+            self.assertTrue(crossCheckTest('e', 'j', 'bxi', TOL=TOLEJHB))
+        def test_EJ_CrossCheck_byi_Jform(self):
+            self.assertTrue(crossCheckTest('e', 'j', 'byi', TOL=TOLEJHB))
+        def test_EJ_CrossCheck_bzi_Jform(self):
+            self.assertTrue(crossCheckTest('e', 'j', 'bzi', TOL=TOLEJHB))
+
+        def test_EJ_CrossCheck_hxr_Jform(self):
+            self.assertTrue(crossCheckTest('e', 'j', 'hxr', TOL=TOLEJHB))
+        def test_EJ_CrossCheck_hyr_Jform(self):
+            self.assertTrue(crossCheckTest('e', 'j', 'hyr', TOL=TOLEJHB))
+        def test_EJ_CrossCheck_hzr_Jform(self):
+            self.assertTrue(crossCheckTest('e', 'j', 'hzr', TOL=TOLEJHB))
+        def test_EJ_CrossCheck_hxi_Jform(self):
+            self.assertTrue(crossCheckTest('e', 'j', 'hxi', TOL=TOLEJHB))
+        def test_EJ_CrossCheck_hyi_Jform(self):
+            self.assertTrue(crossCheckTest('e', 'j', 'hyi', TOL=TOLEJHB))
+        def test_EJ_CrossCheck_hzi_Jform(self):
+            self.assertTrue(crossCheckTest('e', 'j', 'hzi', TOL=TOLEJHB))
+
+    if testBH:
+        def test_BH_CrossCheck_jxr_Jform(self):
+            self.assertTrue(crossCheckTest('b', 'h', 'jxr', TOL=TOLEJHB))
+        def test_BH_CrossCheck_jyr_Jform(self):
+            self.assertTrue(crossCheckTest('b', 'h', 'jyr', TOL=TOLEJHB))
+        def test_BH_CrossCheck_jzr_Jform(self):
+            self.assertTrue(crossCheckTest('b', 'h', 'jzr', TOL=TOLEJHB))
+        def test_BH_CrossCheck_jxi_Jform(self):
+            self.assertTrue(crossCheckTest('b', 'h', 'jxi', TOL=TOLEJHB))
+        def test_BH_CrossCheck_jyi_Jform(self):
+            self.assertTrue(crossCheckTest('b', 'h', 'jyi', TOL=TOLEJHB))
+        def test_BH_CrossCheck_jzi_Jform(self):
+            self.assertTrue(crossCheckTest('b', 'h', 'jzi', TOL=TOLEJHB))
+
+        def test_BH_CrossCheck_exr_Jform(self):
+            self.assertTrue(crossCheckTest('b', 'h', 'exr', TOL=TOLEJHB))
+        def test_BH_CrossCheck_eyr_Jform(self):
+            self.assertTrue(crossCheckTest('b', 'h', 'eyr', TOL=TOLEJHB))
+        def test_BH_CrossCheck_ezr_Jform(self):
+            self.assertTrue(crossCheckTest('b', 'h', 'ezr', TOL=TOLEJHB))
+        def test_BH_CrossCheck_exi_Jform(self):
+            self.assertTrue(crossCheckTest('b', 'h', 'exi', TOL=TOLEJHB))
+        def test_BH_CrossCheck_eyi_Jform(self):
+            self.assertTrue(crossCheckTest('b', 'h', 'eyi', TOL=TOLEJHB))
+        def test_BH_CrossCheck_ezi_Jform(self):
+            self.assertTrue(crossCheckTest('b', 'h', 'ezi', TOL=TOLEJHB))
+
+        def test_BH_CrossCheck_bxr_Jform(self):
+            self.assertTrue(crossCheckTest('b', 'h', 'bxr', TOL=TOLEJHB))
+        def test_BH_CrossCheck_byr_Jform(self):
+            self.assertTrue(crossCheckTest('b', 'h', 'byr', TOL=TOLEJHB))
+        def test_BH_CrossCheck_bzr_Jform(self):
+            self.assertTrue(crossCheckTest('b', 'h', 'bzr', TOL=TOLEJHB))
+        def test_BH_CrossCheck_bxi_Jform(self):
+            self.assertTrue(crossCheckTest('b', 'h', 'bxi', TOL=TOLEJHB))
+        def test_BH_CrossCheck_byi_Jform(self):
+            self.assertTrue(crossCheckTest('b', 'h', 'byi', TOL=TOLEJHB))
+        def test_BH_CrossCheck_bzi_Jform(self):
+            self.assertTrue(crossCheckTest('b', 'h', 'bzi', TOL=TOLEJHB))
+
+        def test_BH_CrossCheck_hxr_Jform(self):
+            self.assertTrue(crossCheckTest('b', 'h', 'hxr', TOL=TOLEJHB))
+        def test_BH_CrossCheck_hyr_Jform(self):
+            self.assertTrue(crossCheckTest('b', 'h', 'hyr', TOL=TOLEJHB))
+        def test_BH_CrossCheck_hzr_Jform(self):
+            self.assertTrue(crossCheckTest('b', 'h', 'hzr', TOL=TOLEJHB))
+        def test_BH_CrossCheck_hxi_Jform(self):
+            self.assertTrue(crossCheckTest('b', 'h', 'hxi', TOL=TOLEJHB))
+        def test_BH_CrossCheck_hyi_Jform(self):
+            self.assertTrue(crossCheckTest('b', 'h', 'hyi', TOL=TOLEJHB))
+        def test_BH_CrossCheck_hzi_Jform(self):
+            self.assertTrue(crossCheckTest('b', 'h', 'hzi', TOL=TOLEJHB))
 
 if __name__ == '__main__':
     unittest.main()
