@@ -14,33 +14,33 @@ class BaseMTProblem(BaseFDEMProblem):
     dataPair = DataMT
     fieldsPair = FieldsMT
 
-    # Pickleing support methods
-    def __getstate__(self):
-        '''
-        Method that makes the dictionary of the object pickleble, removes non-pickleble elements of the object.
+    # # Pickleing support methods
+    # def __getstate__(self):
+    #     '''
+    #     Method that makes the dictionary of the object pickleble, removes non-pickleble elements of the object.
 
-        Used when doing:
-            pickle.dump(pickleFile,object)
-        '''
-        odict = self.__dict__.copy()
-        # Remove fields that are not needed
-        del odict['hook']
-        del odict['setKwargs']
-        # Return the dict
-        return odict
+    #     Used when doing:
+    #         pickle.dump(pickleFile,object)
+    #     '''
+    #     odict = self.__dict__.copy()
+    #     # Remove fields that are not needed
+    #     del odict['hook']
+    #     del odict['setKwargs']
+    #     # Return the dict
+    #     return odict
 
-    def __setstate__(self,odict):
-        '''
-        Function that sets a pickle dictionary in to an object.
+    # def __setstate__(self,odict):
+    #     '''
+    #     Function that sets a pickle dictionary in to an object.
 
-        Used when doing:
-            object = pickle.load(pickleFile)
-        '''
-        # Update the dict
-        self.__dict__.update(odict)
-        # Re-hook the methods to the object
-        Utils.codeutils.hook(self,Utils.codeutils.hook)
-        Utils.codeutils.hook(self,Utils.codeutils.setKwargs)
+    #     Used when doing:
+    #         object = pickle.load(pickleFile)
+    #     '''
+    #     # Update the dict
+    #     self.__dict__.update(odict)
+    #     # Re-hook the methods to the object
+    #     Utils.codeutils.hook(self,Utils.codeutils.hook)
+    #     Utils.codeutils.hook(self,Utils.codeutils.setKwargs)
 
     # Set the solver
     Solver = SimpegSolver
