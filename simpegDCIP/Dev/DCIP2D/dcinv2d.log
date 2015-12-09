@@ -1,0 +1,271 @@
+
+Parallelized with OpenMP.  # of threads:  4
+
+DCIP2D - Version 5  (BETA) 20110811:  DCINV2D
+
+Developed by University of British Columbia 
+Geophysical Inversion Facility  (UBC-GIF)
+
+(C) Copyright 1992 - 2011, UBC-GIF,
+Department of Earth and Ocean Sciences, UBC
+http://www.eos.ubc.ca/research/ubcgif/
+
+Distributed by:
+Mira Geoscience Ltd.
+
+
+ DCINV2D started on:12/08/2015  17:11:12
+
+
+Reading input file: dcinv2d.inp
+
+----------------------------------------------
+OBS LOC_X FWR_3D_2_2D.dat
+MESH FILE Mesh_2D.msh
+CHIFACT 10
+TOPO DEFAULT
+INIT_MOD DEFAULT
+REF_MOD VALUE 1e-1
+ALPHA DEFAULT
+WEIGHT DEFAULT
+STORE_ALL_MODELS TRUE
+INVMODE SVD
+USE_MREF TRUE
+----------------------------------------------
+
+      maximum # of iterations: 100
+data were read from: FWR_3D_2_2D.dat
+       # of current locations:   29
+                    # of data:  182
+                      chifact: 1.00000E+01
+                target misfit: 1.82000E+03
+
+mesh was read from: Mesh_2D.msh
+                      # of cells:   91 x   45
+                total # of cells:  4095
+               # of active cells:  4095
+
+   # of unique data locations:   29
+# of wave values:  13
+  2.5000E-04  4.9901E-04  9.9606E-04  1.9882E-03  3.9685E-03  7.9213E-03  1.5811E-02  3.1560E-02  6.2996E-02  1.2574E-01  2.5099E-01  5.0099E-01  1.0000E+00
+
+reference conductivity model is set to a constant: 1.000000E-01
+initial model is set to the reference model.
+
+using default length scales (Lx, Lz): ( 8.00000E+01, 8.00000E+01)
+corresponding alpha (a_s, a_x, a_z): ( 1.56250E-04, 1.0000E+00, 1.0000E+00)
+
+Using basis vectors and SVD.
+reference model will be used in the derivative terms.
+number of basis vectors:  57 + 3 + 1 =   61
+
+init cpu time:   0:00:00.19
+
+ 
+   initial misfit =  1.20080E+05
+ init. model norm =  0.00000E+00
+    norm comp Ws  =  0.00000E+00
+    norm comp Wx  =  0.00000E+00
+    norm comp Wz  =  0.00000E+00
+
+
+Iteration    1
+
+  beta vs. misfit:
+     beta         misfit
+  5.39457E+02  5.41076E+04
+  6.78941E+02  6.29718E+04
+  1.49367E+03  8.32498E+04
+  2.98734E+03  9.37811E+04
+
+      chosen beta =  6.31603E+02
+    target misfit =  6.00398E+04
+  achieved misfit =  6.03730E+04
+       model norm =  1.88364E+01
+    misfit change =  4.97226E-01
+model norm change =  0.00000E+00
+
+    norm comp Ws  =  8.27046E+00
+    norm comp Wx  =  5.77044E+00
+    norm comp Wz  =  4.79552E+00
+
+iter cpu time:   0:00:01.81
+
+
+Iteration    2
+
+  beta vs. misfit:
+     beta         misfit
+  1.57901E+02  1.71638E+05
+  3.15802E+02  2.71289E+04
+  6.31603E+02  2.38219E+04
+  7.86032E+02  3.17368E+04
+  1.26321E+03  5.04487E+04
+
+      chosen beta =  7.56581E+02
+    target misfit =  3.01865E+04
+  achieved misfit =  3.02637E+04
+       model norm =  3.81202E+01
+    misfit change =  4.98721E-01
+model norm change =  1.02375E+00
+
+    norm comp Ws  =  1.70820E+01
+    norm comp Wx  =  1.13965E+01
+    norm comp Wz  =  9.64173E+00
+
+iter cpu time:   0:00:01.86
+
+
+Iteration    3
+
+  beta vs. misfit:
+     beta         misfit
+  1.89145E+02  4.58243E+03
+  3.78290E+02  1.03135E+04
+  5.24901E+02  1.46009E+04
+  5.42867E+02  1.51069E+04
+  5.43753E+02  1.51317E+04
+  1.35938E+03  3.42157E+04
+
+      chosen beta =  5.43758E+02
+    target misfit =  1.51319E+04
+  achieved misfit =  1.51319E+04
+       model norm =  5.40288E+01
+    misfit change =  4.99999E-01
+model norm change =  4.17327E-01
+
+    norm comp Ws  =  2.41470E+01
+    norm comp Wx  =  1.73570E+01
+    norm comp Wz  =  1.25248E+01
+
+iter cpu time:   0:00:02.34
+
+
+Iteration    4
+
+  beta vs. misfit:
+     beta         misfit
+  1.35940E+02  2.80648E+03
+  2.71879E+02  6.12611E+03
+  3.27929E+02  7.46284E+03
+  3.32230E+02  7.56392E+03
+  3.32316E+02  7.56593E+03
+  8.30790E+02  1.78551E+04
+
+      chosen beta =  3.32316E+02
+    target misfit =  7.56594E+03
+  achieved misfit =  7.56594E+03
+       model norm =  6.83143E+01
+    misfit change =  5.00000E-01
+model norm change =  2.64406E-01
+
+    norm comp Ws  =  2.94508E+01
+    norm comp Wx  =  2.36755E+01
+    norm comp Wz  =  1.51880E+01
+
+iter cpu time:   0:00:02.17
+
+
+Iteration    5
+
+  beta vs. misfit:
+     beta         misfit
+  8.30790E+01  1.98945E+03
+  1.66158E+02  3.60086E+03
+  1.76017E+02  3.78526E+03
+
+      chosen beta =  1.75894E+02
+    target misfit =  3.78297E+03
+  achieved misfit =  3.78297E+03
+       model norm =  8.19887E+01
+    misfit change =  5.00000E-01
+model norm change =  2.00169E-01
+
+    norm comp Ws  =  3.30274E+01
+    norm comp Wx  =  3.06964E+01
+    norm comp Wz  =  1.82648E+01
+
+iter cpu time:   0:00:01.77
+
+
+Iteration    6
+
+  beta vs. misfit:
+     beta         misfit
+  4.39734E+01  8.68659E+02
+  8.79468E+01  1.63366E+03
+  1.03290E+02  1.90175E+03
+
+      chosen beta =  1.02701E+02
+    target misfit =  1.89148E+03
+  achieved misfit =  1.89146E+03
+       model norm =  9.38829E+01
+    misfit change =  5.00006E-01
+model norm change =  1.45071E-01
+
+    norm comp Ws  =  3.64720E+01
+    norm comp Wx  =  3.54646E+01
+    norm comp Wz  =  2.19464E+01
+
+iter cpu time:   0:00:01.96
+
+
+Iteration    7
+
+  beta vs. misfit:
+     beta         misfit
+  9.50870E+01  1.65955E+03
+  9.88206E+01  1.72560E+03
+  1.04154E+02  1.81997E+03
+  2.60385E+02  4.50983E+03
+
+      chosen beta =  1.04156E+02
+    target misfit =  1.82000E+03
+  achieved misfit =  1.82000E+03
+       model norm =  9.41343E+01
+    misfit change =  3.77808E-02
+model norm change =  2.67721E-03
+
+    norm comp Ws  =  3.58106E+01
+    norm comp Wx  =  3.57249E+01
+    norm comp Wz  =  2.25988E+01
+
+iter cpu time:   0:00:02.14
+
+
+Target misfit achieved.  Minimizing model norm.
+
+
+Iteration    8
+
+  beta vs. misfit:
+     beta         misfit
+  1.04156E+02  1.70980E+03
+  1.04156E+02  1.70981E+03
+  1.10515E+02  1.81990E+03
+  1.10521E+02  1.82000E+03
+  2.76302E+02  4.63990E+03
+
+      chosen beta =  1.10521E+02
+    target misfit =  1.82000E+03
+  achieved misfit =  1.82000E+03
+       model norm =  9.39651E+01
+    misfit change =  3.30759E-07
+model norm change = -1.79735E-03
+
+    norm comp Ws  =  3.63303E+01
+    norm comp Wx  =  3.53890E+01
+    norm comp Wz  =  2.22458E+01
+
+iter cpu time:   0:00:02.03
+
+
+   Exit at convergence.
+
+
+ Iterations performed:    8
+
+total cpu time:   0:00:16.31
+
+ DCINV2D ended on:12/08/2015  17:11:28
+

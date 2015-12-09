@@ -16,16 +16,19 @@ def readUBC_DC3Dobs(fileName):
         @author: dominiquef
     
     """
+       
     # Load file
     obsfile = np.genfromtxt(fileName,delimiter=' \n',dtype=np.str,comments='!')
-
-    tx  = []
-    rx  = []
-    d   = []
-    wd  = []
-        
+    
+    # Pre-allocate
+    Tx = []
+    Rx = []
+    d = []
+    wd = []
+    
+    # Countdown for number of obs/tx
     count = 0
-    for ii in range(1, obsfile.shape[0]):
+    for ii in range(obsfile.shape[0]):
         
         if not obsfile[ii]:
             continue
@@ -33,25 +36,34 @@ def readUBC_DC3Dobs(fileName):
         # First line is transmitter with number of receivers
         if count==0:
     
-            tx.append(np.fromstring(obsfile[ii], dtype=float,sep=' ').T)
-            count = int(tx[-1][-1])           
-    
+            temp = (np.fromstring(obsfile[ii], dtype=float,sep=' ').T)
+            count = int(temp[-1])
+            temp = np.reshape(temp[0:-1],[2,3]).T
+            
+            Tx.append(temp)
+            rx = []
             continue
         
         temp = np.fromstring(obsfile[ii], dtype=float,sep=' ')
         
             
-        rx.append(temp[0:6])
-    
-        if len(temp)==8:
-            d.append(temp[6])
-            wd.append(temp[7])
+        rx.append(temp)          
+        
+        count = count -1        
+        
+        # Reach the end of  
+        if count == 0:
+            temp = np.asarray(rx)
+            Rx.append(temp[:,0:6])
             
-        elif len(temp)==7:
-            d.append(temp[6])
+            # Check for data + uncertainties
+            if temp.shape[1]==8:
+                d.append(temp[:,6])
+                wd.append(temp[:,7])
                 
-        count = count - 1
-                
-                
-    return tx, rx, d, wd
+            # Check for data only    
+            elif temp.shape[1]==7:
+                d.append(temp[:,6])
             
+    return Tx, Rx, d, wd
+                

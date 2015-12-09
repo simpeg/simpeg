@@ -15,16 +15,17 @@ import numpy.matlib as npm
 from readUBC_DC3Dobs import readUBC_DC3Dobs
 from writeUBC_DC3Dobs import writeUBC_DC3Dobs
 import scipy.interpolate as interpolation
+from plot_pseudoSection import plot_pseudoSection
 
 #from scipy.linalg import solve_banded
 
 # Load UBC mesh 3D
-#mesh = Utils.meshutils.readUBCTensorMesh(home_dir + '\Mesh_20m.msh')
-mesh = Utils.meshutils.readUBCTensorMesh('Mesh_40m.msh')
+mesh = Utils.meshutils.readUBCTensorMesh(home_dir + '\Mesh_20m.msh')
+#mesh = Utils.meshutils.readUBCTensorMesh('Mesh_40m.msh')
 
 # Load model
-#model = Utils.meshutils.readUBCTensorModel(home_dir + '\MtIsa_3D.con',mesh)
-model = Utils.meshutils.readUBCTensorModel('Synthetic.con',mesh)
+model = Utils.meshutils.readUBCTensorModel(home_dir + '\MtIsa_3D.con',mesh)
+#model = Utils.meshutils.readUBCTensorModel('Synthetic.con',mesh)
 
 #%% Create system
 #Set boundary conditions
@@ -37,7 +38,7 @@ Msig = Utils.sdiag(1./(mesh.aveF2CC.T*(1./model)))
 A = Div*Msig*Grad
 
 # Change one corner to deal with nullspace
-A[0,0] = 1.
+A[0,0] = 1/mesh.vol[0]
 A = sp.csc_matrix(A)
 
 start_time = time.time()
@@ -50,14 +51,19 @@ print("LU DECOMP--- %s seconds ---" % (time.time() - start_time))
 #%% Create survey
 # Display top section 
 top = int(mesh.nCz)-1
-mesh.plotSlice(model, ind=top, normal='Z', grid=True, pcolorOpts={'alpha':0.8})
+mesh.plotSlice(model, ind=12, normal='Z', grid=True, pcolorOpts={'alpha':0.8})
 
 # Add z coordinate
 nz = mesh.vectorNz
 
 # Takes two points from ginput and create survey
 temp = plt.ginput(2, timeout = 0)
-endl = np.c_[np.asarray(temp),np.ones(2).T*nz[-1]]
+temp = np.c_[np.asarray(temp),np.ones(2).T*nz[-1]]
+
+indx = Utils.closestPoints(mesh, temp )
+endl = np.c_[mesh.gridCC[indx,0],mesh.gridCC[indx,1],np.ones(2).T*nz[-1]]
+
+#endl = np.c_[np.asarray(temp),np.ones(2).T*nz[-1]]
 
 
 #endl = np.c_[np.c_[[mesh.vectorCCx[21],mesh.vectorCCx[-21]],[mesh.vectorCCy[10],mesh.vectorCCy[10]]],np.ones(2).T*nz[-1]]
@@ -80,8 +86,8 @@ stn_x = endl[0,0] + np.cumsum( np.ones(nstn)*dl_x*a )
 stn_y = endl[0,1] + np.cumsum( np.ones(nstn)*dl_y*a )
 
 # Create line of pole locations
-M = np.c_[stn_x-a*dl_x/2, stn_y-a*dl_y/2, np.ones(nstn).T*nz[-1]]
-N = np.c_[stn_x+a*dl_x/2, stn_y+a*dl_y/2, np.ones(nstn).T*nz[-1]]
+M = np.c_[stn_x, stn_y, np.ones(nstn).T*nz[-1]]
+N = np.c_[stn_x+a*dl_x, stn_y+a*dl_y, np.ones(nstn).T*nz[-1]]
 
 Tx = []
 Rx = []
@@ -118,16 +124,6 @@ for ii in range(len(Tx)):
     
     
     nrx = rxloc_M.shape[0]
-    
-    #Rx = DC.RxDipole(rxloc_M,rxloc_N)
-    
-    #Tx = DC.SrcDipole([Rx], M[ii,:],N[ii,:])
-    #survey = DC.SurveyDC([Tx])
-
-    #problem.pair(survey)
-
-    # Get the righthand side
-    #RHS_v1 = problem.getRHS()
 
     inds = Utils.closestPoints(mesh, np.asarray(Tx[ii]).T )
     RHS = mesh.getInterpolationMat(np.asarray(Tx[ii]).T, 'CC').T*( [-1,1] / mesh.vol[inds] )
@@ -147,10 +143,6 @@ for ii in range(len(Tx)):
     # Compute potential at each electrode
     data.append((P1*phi - P2*phi)*np.pi)     
     unct.append(np.ones(nrx))
-    # Convert 3D location to distance along survey line for 2D and plot pseudo
-    # section along line
-    
-
 
     #data.append(np.c_[np.ones(nrx)*rP1, np.ones(nrx)*rP2, rC1, rC2, mkvc(d), np.ones(nrx)*1e-2])
     
@@ -168,87 +160,113 @@ for ii in range(len(Tx)):
 
 writeUBC_DC3Dobs(home_dir+'\FWR_data3D.dat',Tx,Rx,data,unct)     
 
-# Create a 2D mesh along axis of end points and keep z-discretization
-dx = np.min( [ np.min(mesh.hx), np.min(mesh.hy) ])
-nc = np.ceil(dl_len/dx)
 
-h1 = [(dx, 10, -1.3), (dx, nc), (dx, 10, 1.3)]
-mesh2d = Mesh.TensorMesh([h1, mesh.hz], x0='CN')
-
-# Create array of points for 2D mesh in space
-x2d = mesh2d.vectorCCx + dx*nc/2 - dx/2
-xx = endl[0,0] + x2d * np.cos(azm)
-yy = endl[0,1] + x2d * np.sin(azm)
-zz = mesh2d.vectorCCz
-
-plt.scatter(xx,yy,s=20,c='y')
+#%% Load 3D data
+[Tx, Rx, d, wd] = readUBC_DC3Dobs(home_dir + '\FWR_data3D.dat')
 
 
-F = interpolation.NearestNDInterpolator(mesh.gridCC,model)
-m2D = F(mesh2d.gridCC)
-
+#%% Convert 3D obs to 2D and write to file
 #data[:,0:4] = data[:,0:4] + endl[0,0]
-fid = open(home_dir + '\FWR_data.dat','w')
-fid.write('SIMPEG FORWARD\n')  
+#fid = open(home_dir + '\FWR_data2D.dat','w')
+#fid.write('SIMPEG FORWARD\n')  
 
 # Change coordinate system to distance along line
+# Assume all data is acquired along line, and first transmitter pole is 
+# at the origin
+
+d2D = []
 
 for ii in range(len(Tx)):
     
- 
-    rP1 = np.sqrt( np.sum( ( endl[0,:] - Tx[ii][:,0] )**2 , axis=0))
-    rP2 = np.sqrt( np.sum( ( endl[0,:] - Tx[ii][:,1] )**2 , axis=0))
-    rC1 = np.sqrt( np.sum( ( npm.repmat(endl[0,:],nrx, 1) - rxloc_M )**2 , axis=1))
-    rC2 = np.sqrt( np.sum( ( npm.repmat(endl[0,:],nrx, 1) - rxloc_N )**2 , axis=1))
-    np.savetxt(fid, data, fmt='%e',delimiter=' ',newline='\n')
-    fid.close()
-
-fid = open(home_dir + '\OBS_LOC.dat','w')
+    if ii == 0:
+        endp = Tx[0][0:2,0]
+    
+    nrx = Rx[ii].shape[0]
+    
+    for jj in range(nrx):
+        
+        rP1 = np.sqrt( np.sum( ( endp - Tx[ii][0:2,0] )**2 , axis=0))
+        rP2 = np.sqrt( np.sum( ( endp - Tx[ii][0:2,1] )**2 , axis=0))
+        rC1 = np.sqrt( np.sum( ( endp - Rx[ii][jj,0:2] )**2 , axis=0))
+        rC2 = np.sqrt( np.sum( ( endp - Rx[ii][jj,3:5] )**2 , axis=0))
+        
+        d2D.append( np.r_[rP1, rP2, rC1, rC2, d[ii][jj], wd[ii][jj]] )
+        #np.savetxt(fid, data, fmt='%e',delimiter=' ',newline='\n')
+        
+#%%
+fid = open(home_dir + '\FWR_3D_2_2D.dat','w')
 fid.write('SIMPEG FORWARD\n')   
-np.savetxt(fid, data[:,0:4], fmt='%e',delimiter=' ',newline='\n')
+for ii in range(len(d2D)): 
+    fid.write('\n') 
+    
+    for jj in range(d2D[ii].shape[0]): 
+        fid.write('%e ' % d2D[ii][jj])
+        
 fid.close()
 
+#%% Create a 2D mesh along axis of end points and keep z-discretization
+#==============================================================================
+# dx = np.min( [ np.min(mesh.hx), np.min(mesh.hy) ])
+# nc = np.ceil(dl_len/dx)+1
+# 
+# padx = dx*np.power(1.4,range(1,15))
+# 
+# # Creating padding cells
+# h1 = np.r_[padx[::-1], np.ones(nc)*dx , padx]
+# 
+# # Create mesh with 0 coordinate centerer on the ginput points in cell center
+# mesh2d = Mesh.TensorMesh([h1, mesh.hz], x0=(-np.sum(padx)-dx/2,mesh.x0[2]))
+# 
+# # Create array of points for interpolating from 3D to 2D mesh
+# xx = endl[0,0] + mesh2d.vectorCCx * np.cos(azm)
+# yy = endl[0,1] + mesh2d.vectorCCx * np.sin(azm)
+# zz = mesh2d.vectorCCy
+# 
+# [XX,ZZ] = np.meshgrid(xx,zz)
+# [YY,ZZ] = np.meshgrid(yy,zz)
+# 
+# xyz2d = np.c_[mkvc(XX),mkvc(YY),mkvc(ZZ)]
+# 
+# plt.scatter(xx,yy,s=20,c='y')
+# 
+# 
+# F = interpolation.NearestNDInterpolator(mesh.gridCC,model)
+# m2D = np.reshape(F(xyz2d),[mesh2d.nCx,mesh2d.nCy])
+# 
+
+#==============================================================================
+ 
+# Create mesh with 0 coordinate centerer on the ginput points in cell center
+mesh2d = Mesh.TensorMesh([mesh.hx, mesh.hz], x0=(mesh.x0[0]-endl[0,0],mesh.x0[2]))
+m3D = np.reshape(model, (mesh.nCz, mesh.nCy, mesh.nCx))
+m2D = m3D[:,1,:]
+
+plt.figure()
+axs = plt.subplot(1,1,1)
+plt.pcolormesh(mesh2d.vectorNx,mesh2d.vectorNy,np.log10(m2D),alpha=0.5, cmap='gray')#axes = [mesh2d.vectorNx[0],mesh2d.vectorNx[-1],mesh2d.vectorNy[0],mesh2d.vectorNy[-1]])
+#mesh2d.plotImage(mkvc(m2D), grid=True, ax=axs)
+
 #%% Plot pseudo section
-   
-# Get distances between each poles
-rC1P1 = data[:,0] - data[:,2] 
-rC2P1 = data[:,0] - data[:,3]
-rC1P2 = data[:,1] - data[:,2]
-rC2P2 = data[:,1] - data[:,3]
 
-# Compute apparent resistivity
-rho = data[:,4] * 2*np.pi / ( 1/rC1P1 - 1/rC2P1 - 1/rC1P2 + 1/rC2P2 )
+plot_pseudoSection(d2D,nz[-1])
+#axs.axis([0,dl_len,mesh2d.vectorNy[-1]-dl_len/2,mesh2d.vectorNy[-1]])
 
-Cmid = (data[:,0] + data[:,1])/2
-Pmid = (data[:,2] + data[:,3])/2
-
-midl = ( Cmid + Pmid )/2
-midz = -np.abs(Cmid-Pmid)
-
-# Grid points
-grid_x, grid_z = np.mgrid[np.min(midl):np.max(midl), np.min(midz):np.max(midz)]
-grid_rho = griddata(np.c_[midl,midz], np.log10(abs(1/rho.T)), (grid_x, grid_z), method='linear')
-plt.imshow(grid_rho.T, extent = (np.min(midl),np.max(midl),np.min(midz),np.max(midz)), origin='lower')
-plt.colorbar()
-
-# Plot apparent resistivity
-plt.scatter(midl,midz,s=50,c=np.log10(abs(1/rho.T)))
 
 #%% Export 2D mesh from section
 fid = open(home_dir + '\Mesh_2D.msh','w')
-fid.write('%i\n'% mesh.nCx)
-fid.write('%f %f 1\n'% (mesh.vectorNx[0],mesh.vectorNx[1]))  
-np.savetxt(fid, np.c_[mesh.vectorNx[2:],np.ones(mesh.nCx-1)], fmt='\t %e %i',delimiter=' ',newline='\n')
+fid.write('%i\n'% mesh2d.nCx)
+fid.write('%f %f 1\n'% (mesh2d.vectorNx[0],mesh2d.vectorNx[1]))  
+np.savetxt(fid, np.c_[mesh2d.vectorNx[2:],np.ones(mesh2d.nCx-1)], fmt='\t %e %i',delimiter=' ',newline='\n')
 fid.write('\n')
-fid.write('%i\n'% mesh.nCz)
-fid.write('%f %f 1\n'%( -mesh.vectorNz[-1],-mesh.vectorNz[-2]))   
-np.savetxt(fid, np.c_[-mesh.vectorNz[-3::-1],np.ones(mesh.nCz-1)], fmt='\t %e %i',delimiter=' ',newline='\n')
+fid.write('%i\n'% mesh2d.nCy)
+fid.write('%f %f 1\n'%( 0,mesh2d.hy[-1]))   
+np.savetxt(fid, np.c_[np.cumsum(mesh2d.hy[-2::-1])+mesh2d.hy[-1],np.ones(mesh2d.nCy-1)], fmt='\t %e %i',delimiter=' ',newline='\n')
 fid.close()
 
 # Export 2D model
 fid = open(home_dir + '\MtIsa_2D.con','w')
-fid.write('%i %i\n'% (mesh.nCx,mesh.nCz))
-np.savetxt(fid, mkvc(m2D.T), fmt='%e',delimiter=' ',newline='\n')
+fid.write('%i %i\n'% (mesh2d.nCx,mesh2d.nCy))
+np.savetxt(fid, mkvc(m2D[::-1,:].T), fmt='%e',delimiter=' ',newline='\n')
 fid.close()
 #==============================================================================
 # # Grab slice of model
@@ -257,6 +275,3 @@ fid.close()
 # plt.figure()
 # plt.imshow(m2D)
 #==============================================================================
-
-#%%
-tx, rx, d, wd = readUBC_DC3Dobs(home_dir + '\OBS_LOC_3D.dat')

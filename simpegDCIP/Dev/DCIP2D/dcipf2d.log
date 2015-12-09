@@ -14,7 +14,7 @@ Distributed by:
 Mira Geoscience Ltd.
 
 
- DCIPF2D started on:12/07/2015  10:27:39
+ DCIPF2D started on:12/08/2015  17:04:14
 
 
 Reading input file: dcipf2d.inp
@@ -22,27 +22,27 @@ Reading input file: dcipf2d.inp
 ----------------------------------------------
 FWD DC
 MESH FILE Mesh_2D.msh
-LOC LOC_X OBS_LOC.dat
+LOC LOC_X FWR_3D_2_2D.dat
 TOPO DEFAULT
 COND FILE MtIsa_2D.con
 ----------------------------------------------
 
-electrode locations were read from: OBS_LOC.dat
+electrode locations were read from: FWR_3D_2_2D.dat
        # of current locations:   29
                     # of data:  182
 
 mesh was read from: Mesh_2D.msh
-                      # of cells:  104 x   57
-                total # of cells:  5928
-               # of active cells:  5928
+                      # of cells:   91 x   45
+                total # of cells:  4095
+               # of active cells:  4095
 
 # of wave values:  13
   2.5000E-04  4.9901E-04  9.9606E-04  1.9882E-03  3.9685E-03  7.9213E-03  1.5811E-02  3.1560E-02  6.2996E-02  1.2574E-01  2.5099E-01  5.0099E-01  1.0000E+00
 
 conductivity was read from file: MtIsa_2D.con
-dc fwd cpu time:   0:00:00.53
+dc fwd cpu time:   0:00:00.17
 
-total cpu time:   0:00:00.53
+total cpu time:   0:00:00.17
 
- DCIPF2D ended on:12/07/2015  10:27:40
+ DCIPF2D ended on:12/08/2015  17:04:14
 

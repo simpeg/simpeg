@@ -17,7 +17,7 @@ def writeUBC_DC3Dobs(fileName,Tx,Rx,d,wd):
     
     """
     fid = open(fileName,'w')
-    fid.write('GENERAL FORMAT\n')    
+    fid.write('! GENERAL FORMAT\n')    
     
     for ii in range(len(Tx)):
         
