@@ -3,7 +3,7 @@ import scipy.sparse as sp
 import SimPEG
 from SimPEG import Utils
 from SimPEG.EM.Utils import omega
-from SimPEG.Utils import Zero, Identity
+from SimPEG.Utils import Zero, Identity, sdiag
 
 
 class Fields(SimPEG.Problem.Fields):
@@ -19,7 +19,9 @@ class Fields_e(Fields):
                     'eSecondary' : ['eSolution','E','_eSecondary'],
                     'b' : ['eSolution','F','_b'],
                     'bPrimary' : ['eSolution','F','_bPrimary'],
-                    'bSecondary' : ['eSolution','F','_bSecondary']
+                    'bSecondary' : ['eSolution','F','_bSecondary'],
+                    'j' : ['eSolution','CC','_j'],
+                    'h' : ['eSolution','CC','_h'],
                   }
 
     def __init__(self,mesh,survey,**kwargs):
@@ -28,6 +30,21 @@ class Fields_e(Fields):
     def startup(self):
         self.prob = self.survey.prob
         self._edgeCurl = self.survey.prob.mesh.edgeCurl
+        self._aveE2CCV = self.survey.prob.mesh.aveE2CCV
+        self._aveF2CCV = self.survey.prob.mesh.aveF2CCV
+        self._sigma = self.survey.prob.curModel.sigma
+        self._sigmaDeriv = self.survey.prob.curModel.sigmaDeriv
+        self._nC = self.survey.prob.mesh.nC
+
+    def _GLoc(self,fieldType):
+        if fieldType == 'e':
+            return 'E'
+        elif fieldType == 'b':
+            return 'F'
+        elif (fieldType == 'h') or (fieldType == 'j'):
+            return 'CC'
+        else:
+            raise Exception('Field type must be e, b, h, j')
 
     def _ePrimary(self, eSolution, srcList):
         ePrimary = np.zeros_like(eSolution)
@@ -87,6 +104,41 @@ class Fields_e(Fields):
         # Assuming the primary does not depend on the model
         return self._bSecondaryDeriv_m(src, v, adjoint)
 
+    def _j(self, eSolution, srcList):
+        sigma = self._sigma
+        aveE2CCV = self._aveE2CCV
+        n = int(aveE2CCV.shape[0] / self._nC) #TODO: This is a bit sloppy
+        VI = sdiag(1./np.kron(np.ones(n), self.prob.mesh.vol))
+        Sigma = sdiag(np.kron(np.ones(n), sigma))
+
+        e = self._e(eSolution, srcList)
+
+        return  Sigma * (aveE2CCV * e) 
+
+    def _jDeriv_u(self, src, v, adjoint=False):
+        raise NotImplementedError
+        sigma = self._sigma
+        aveE2CCV = self._aveE2CCV
+        n = int(aveE2CCV.shape[0] / self._nC) #TODO: This is a bit sloppy
+        Sigma = sdiag(sp.kron(np.ones(n), sigma))
+
+        if not adjoint: 
+            return Sigma * (aveE2CCV * (v + self._eDeriv_u(src, v, adjoint)))
+        return aveE2CCV.T * Sigma.T * v 
+
+    def _jDeriv_m(self, src, v, adjoint=False):
+        raise NotImplementedError
+        sigma = self._sigma
+        aveE2CCV = self._aveE2CCV
+        n = int(aveE2CCV.shape[0] / self._nC) #TODO: This is a bit sloppy
+        Sigma = sdiag(sp.kron(np.ones(n), sigma))
+        
+        if not adjoint:
+            dsigma_dm = self._sigmaDeriv(v)
+            dSigma_dm = sdiag(sp.kron(np.ones(n), dsigma_dm))
+
+
+
 
 class Fields_b(Fields):
     knownFields = {'bSolution':'F'}
@@ -109,6 +161,16 @@ class Fields_b(Fields):
         self._MfMui = self.survey.prob.MfMui
         self._MeSigmaIDeriv = self.survey.prob.MeSigmaIDeriv
         self._Me = self.survey.prob.Me
+
+    def _GLoc(self,fieldType):
+        if fieldType == 'e':
+            return 'E'
+        elif fieldType == 'b':
+            return 'F'
+        elif (fieldType == 'h') or (fieldType == 'j'):
+            return'CC'
+        else:
+            raise Exception('Field type must be e, b, h, j')
 
     def _bPrimary(self, bSolution, srcList):
         bPrimary = np.zeros_like(bSolution)
@@ -193,6 +255,7 @@ class Fields_j(Fields):
                     'h' : ['jSolution','E','_h'],
                     'hPrimary' : ['jSolution','E','_hPrimary'],
                     'hSecondary' : ['jSolution','E','_hSecondary'],
+                    'e' : ['jSolution','C','_e'],
                   }
 
     def __init__(self,mesh,survey,**kwargs):
@@ -205,6 +268,19 @@ class Fields_j(Fields):
         self._MfRho = self.survey.prob.MfRho
         self._MfRhoDeriv = self.survey.prob.MfRhoDeriv
         self._Me = self.survey.prob.Me
+        self._rho = self.survey.prob.curModel.rho
+        self._aveF2CCV = self.survey.prob.mesh.aveF2CCV
+        self._nC = self.survey.prob.mesh.nC
+
+    def _GLoc(self,fieldType):
+        if fieldType == 'h':
+            return 'E'
+        elif fieldType == 'j':
+            return 'F'
+        elif (fieldType == 'e') or (fieldType == 'b'):
+            return 'CC'
+        else:
+            raise Exception('Field type must be e, b, h, j')
 
     def _jPrimary(self, jSolution, srcList):
         jPrimary = np.zeros_like(jSolution,dtype = complex)
@@ -280,6 +356,22 @@ class Fields_j(Fields):
     def _hDeriv_m(self, src, v, adjoint=False):
         # assuming the primary doesn't depend on the model
         return self._hSecondaryDeriv_m(src, v, adjoint)
+
+    def _e(self, jSolution, srcList):
+        rho = self._rho
+        aveF2CCV = self._aveF2CCV
+        n = int(aveF2CCV.shape[0] / self._nC) #TODO: This is a bit sloppy
+        Rho = sdiag(np.kron(np.ones(n), rho))
+
+        j = self._j(jSolution, srcList)
+
+        return  Rho * (aveF2CCV * j) 
+
+    def _eDeriv_u(self, src, v, adjoint=False):
+        raise NotImplementedError
+
+    def _eDeriv_m(self, src, v, adjoint=False):
+        raise NotImplementedError
 
 
 class Fields_h(Fields):

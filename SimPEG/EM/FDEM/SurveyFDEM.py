@@ -3,6 +3,7 @@ from SimPEG.EM.Utils import *
 from scipy.constants import mu_0
 from SimPEG.Utils import Zero, Identity
 import SrcFDEM as Src
+from SimPEG import sp
 
 
 ####################################################
@@ -12,33 +13,33 @@ import SrcFDEM as Src
 class Rx(SimPEG.Survey.BaseRx):
 
     knownRxTypes = {
-                    'exr':['e', 'Ex', 'real'],
-                    'eyr':['e', 'Ey', 'real'],
-                    'ezr':['e', 'Ez', 'real'],
-                    'exi':['e', 'Ex', 'imag'],
-                    'eyi':['e', 'Ey', 'imag'],
-                    'ezi':['e', 'Ez', 'imag'],
+                    'exr':['e', 'x', 'real'],
+                    'eyr':['e', 'y', 'real'],
+                    'ezr':['e', 'z', 'real'],
+                    'exi':['e', 'x', 'imag'],
+                    'eyi':['e', 'y', 'imag'],
+                    'ezi':['e', 'z', 'imag'],
 
-                    'bxr':['b', 'Fx', 'real'],
-                    'byr':['b', 'Fy', 'real'],
-                    'bzr':['b', 'Fz', 'real'],
-                    'bxi':['b', 'Fx', 'imag'],
-                    'byi':['b', 'Fy', 'imag'],
-                    'bzi':['b', 'Fz', 'imag'],
+                    'bxr':['b', 'x', 'real'],
+                    'byr':['b', 'y', 'real'],
+                    'bzr':['b', 'z', 'real'],
+                    'bxi':['b', 'x', 'imag'],
+                    'byi':['b', 'y', 'imag'],
+                    'bzi':['b', 'z', 'imag'],
 
-                    'jxr':['j', 'Fx', 'real'],
-                    'jyr':['j', 'Fy', 'real'],
-                    'jzr':['j', 'Fz', 'real'],
-                    'jxi':['j', 'Fx', 'imag'],
-                    'jyi':['j', 'Fy', 'imag'],
-                    'jzi':['j', 'Fz', 'imag'],
+                    'jxr':['j', 'x', 'real'],
+                    'jyr':['j', 'y', 'real'],
+                    'jzr':['j', 'z', 'real'],
+                    'jxi':['j', 'x', 'imag'],
+                    'jyi':['j', 'y', 'imag'],
+                    'jzi':['j', 'z', 'imag'],
 
-                    'hxr':['h', 'Ex', 'real'],
-                    'hyr':['h', 'Ey', 'real'],
-                    'hzr':['h', 'Ez', 'real'],
-                    'hxi':['h', 'Ex', 'imag'],
-                    'hyi':['h', 'Ey', 'imag'],
-                    'hzi':['h', 'Ez', 'imag'],
+                    'hxr':['h', 'x', 'real'],
+                    'hyr':['h', 'y', 'real'],
+                    'hzr':['h', 'z', 'real'],
+                    'hxi':['h', 'x', 'imag'],
+                    'hyi':['h', 'y', 'imag'],
+                    'hzi':['h', 'z', 'imag'],
                    }
     radius = None
 
@@ -50,10 +51,11 @@ class Rx(SimPEG.Survey.BaseRx):
         """Field Type projection (e.g. e b ...)"""
         return self.knownRxTypes[self.rxType][0]
 
-    @property
-    def projGLoc(self):
-        """Grid Location projection (e.g. Ex Fy ...)"""
-        return self.knownRxTypes[self.rxType][1]
+    # @property
+    # def projGLoc(self, u):
+    #     """Grid Location projection (e.g. Ex Fy ...)"""
+    #     return u._GLoc(self.rxType[0])
+        # return self.knownRxTypes[self.rxType][1]
 
     @property
     def projComp(self):
@@ -61,15 +63,46 @@ class Rx(SimPEG.Survey.BaseRx):
         return self.knownRxTypes[self.rxType][2]
 
     def projectFields(self, src, mesh, u):
-        P = self.getP(mesh)
+
         u_part_complex = u[src, self.projField]
         # get the real or imag component
         real_or_imag = self.projComp
         u_part = getattr(u_part_complex, real_or_imag)
+
+        projGLoc = u._GLoc(self.knownRxTypes[self.rxType][0])
+
+        if projGLoc == 'CC':
+            P = self.getP(mesh, projGLoc)
+            Z = 0.*P
+            if mesh.dim == 3:
+                if mesh._meshType == 'CYL' and mesh.isSymmetric and u_part.size > mesh.nC: # TODO: there must be a better way to do this!
+                    if self.knownRxTypes[self.rxType][1] == 'x':
+                        P = sp.hstack([P,Z])
+                    elif self.knownRxTypes[self.rxType][1] == 'z':
+                        P = sp.hstack([Z,P])
+                    elif self.knownRxTypes[self.rxType][1] == 'y':
+                        raise Exception('Symmetric CylMesh does not support y interpolation, as this variable does not exist.')
+                else:
+                    if self.knownRxTypes[self.rxType][1] == 'x':
+                        P = sp.hstack([P,Z,Z])
+                    elif self.knownRxTypes[self.rxType][1] == 'y':
+                        P = sp.hstack([Z,P,Z])
+                    elif self.knownRxTypes[self.rxType][1] == 'z':
+                        P = sp.hstack([Z,Z,P])
+        else: 
+            projGLoc += self.knownRxTypes[self.rxType][1]
+            P = self.getP(mesh, projGLoc)
+        
         return P*u_part
 
     def projectFieldsDeriv(self, src, mesh, u, v, adjoint=False):
-        P = self.getP(mesh)
+
+        projGLoc = u._GLoc(self.knownRxTypes[self.rxType][0])
+
+        if projGLoc != 'CC': 
+            projGLoc += self.knownRxTypes[self.rxType][1]
+
+        P = self.getP(mesh, projGLoc)
 
         if not adjoint:
             Pv_complex = P * v

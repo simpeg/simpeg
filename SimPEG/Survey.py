@@ -35,7 +35,7 @@ class BaseRx(object):
         """Number of data in the receiver."""
         return self.locs.shape[0]
 
-    def getP(self, mesh):
+    def getP(self, mesh, projGLoc=None):
         """
             Returns the projection matrices as a
             list for all components collected by
@@ -48,7 +48,10 @@ class BaseRx(object):
         if mesh in self._Ps:
             return self._Ps[mesh]
 
-        P = mesh.getInterpolationMat(self.locs, self.projGLoc)
+        if projGLoc is None:
+            projGLoc = self.projGLoc
+
+        P = mesh.getInterpolationMat(self.locs, projGLoc)
         if self.storeProjections:
             self._Ps[mesh] = P
         return P

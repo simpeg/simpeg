@@ -5,9 +5,9 @@ import sys
 from scipy.constants import mu_0
 
 def getFDEMProblem(fdemType, comp, SrcList, freq, verbose=False):
-    cs = 5.
+    cs = 10.
     ncx, ncy, ncz = 6, 6, 6
-    npad = 3
+    npad = 5
     hx = [(cs,npad,-1.3), (cs,ncx), (cs,npad,1.3)]
     hy = [(cs,npad,-1.3), (cs,ncy), (cs,npad,1.3)]
     hz = [(cs,npad,-1.3), (cs,ncz), (cs,npad,1.3)]
