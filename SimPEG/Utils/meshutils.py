@@ -458,7 +458,7 @@ def simpegOcTree2vtuObj(simpegOcTreeMesh,modelDict=None):
 
     '''
     import vtk
-    from vtk.util.numpy_support import numpy_to_vtk
+    from vtk.util.numpy_support import numpy_to_vtk, numpy_to_vtkIdTypeArray
 
     if str(type(simpegOcTreeMesh)).split()[-1][1:-2] not in 'SimPEG.Mesh.TreeMesh.TreeMesh':
         raise IOError('simpegOcTreeMesh is not a SimPEG TreeMesh.')
@@ -467,14 +467,14 @@ def simpegOcTree2vtuObj(simpegOcTreeMesh,modelDict=None):
     # Points
     ptsMat = simpegOcTreeMesh._gridN + simpegOcTreeMesh.x0
     vtkPts = vtk.vtkPoints()
-    vtkPts.SetData(npsup.numpy_to_vtk(ptsMat,deep=True))
+    vtkPts.SetData(numpy_to_vtk(ptsMat,deep=True))
     # Cells
     cellConn = np.array([c.nodes for c in simpegOcTreeMesh],dtype=np.int64)
 
     cellsMat = np.concatenate((np.ones((cellConn.shape[0],1),dtype=np.int64)*cellConn.shape[1],cellConn),axis=1).ravel()
     cellsArr = vtk.vtkCellArray()
     cellsArr.SetNumberOfCells(cellConn.shape[0])
-    cellsArr.SetCells(cellConn.shape[0],npsup.numpy_to_vtkIdTypeArray(cellsMat,deep=True))
+    cellsArr.SetCells(cellConn.shape[0],numpy_to_vtkIdTypeArray(cellsMat,deep=True))
 
     # Make the object
     vtuObj = vtk.vtkUnstructuredGrid()
@@ -483,14 +483,14 @@ def simpegOcTree2vtuObj(simpegOcTreeMesh,modelDict=None):
     # Add the level of refinement as a cell array
     cellSides = np.array([np.array(vtuObj.GetCell(i).GetBounds()).reshape((3,2)).dot(np.array([-1, 1])) for i in np.arange(vtuObj.GetNumberOfCells())])
     uniqueLevel, indLevel = np.unique(np.prod(cellSides,axis=1),return_inverse=True)
-    refineLevelArr = npsup.numpy_to_vtk(indLevel.max() - indLevel,deep=1)
+    refineLevelArr = numpy_to_vtk(indLevel.max() - indLevel,deep=1)
     refineLevelArr.SetName('octreeLevel')
     vtuObj.GetCellData().AddArray(refineLevelArr)
     # Assign the model('s) to the object
     if modelDict is not None:
         for item in modelDict.iteritems():
             # Convert numpy array
-            vtkDoubleArr = npsup.numpy_to_vtk(item[1],deep=1)
+            vtkDoubleArr = numpy_to_vtk(item[1],deep=1)
             vtkDoubleArr.SetName(item[0])
             vtuObj.GetCellData().AddArray(vtkDoubleArr)
 
