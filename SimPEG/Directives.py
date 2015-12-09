@@ -210,7 +210,8 @@ class SaveOutputDictEveryIteration(_SaveEveryIteration):
     """SaveOutputDictEveryIteration"""
 
     def initialize(self):
-        print "SimPEG.SaveOutputDictEveryIteration will save your inversion pro
+        print "SimPEG.SaveOutputDictEveryIteration will save your inversion progress as dictionary: '###-%s.npz'"
+
 
     def endIter(self):
         # Save the data.
