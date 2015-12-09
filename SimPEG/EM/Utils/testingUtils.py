@@ -6,17 +6,17 @@ from scipy.constants import mu_0
 
 def getFDEMProblem(fdemType, comp, SrcList, freq, verbose=False):
     cs = 10.
-    ncx, ncy, ncz = 2, 2, 2
+    ncx, ncy, ncz = 0, 0, 0
     npad = 8
-    hx = [(cs,npad,-1.5), (cs,ncx), (cs,npad,1.5)]
-    hy = [(cs,npad,-1.5), (cs,ncy), (cs,npad,1.5)]
-    hz = [(cs,npad,-1.5), (cs,ncz), (cs,npad,1.5)]
+    hx = [(cs,npad,-1.3), (cs,ncx), (cs,npad,1.3)]
+    hy = [(cs,npad,-1.3), (cs,ncy), (cs,npad,1.3)]
+    hz = [(cs,npad,-1.3), (cs,ncz), (cs,npad,1.3)]
     mesh = Mesh.TensorMesh([hx,hy,hz],['C','C','C'])
 
     mapping = Maps.ExpMap(mesh)
 
-    x = np.array([np.linspace(-5.5*cs,-2.5*cs,4),np.linspace(3.5*cs,2.5*cs,4)]) #don't sample right by the source
-    XYZ = Utils.ndgrid(x,x,np.linspace(-2.25*cs,2.25*cs,5))
+    x = np.array([np.linspace(-5.*cs,-2.*cs,3),np.linspace(5.*cs,2.*cs,3)]) #don't sample right by the source
+    XYZ = Utils.ndgrid(x,x,np.linspace(-2.*cs,2.*cs,5))
     Rx0 = EM.FDEM.Rx(XYZ, comp)
 
     Src = []
@@ -70,6 +70,6 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, verbose=False):
         from pymatsolver import MumpsSolver
         prb.Solver = MumpsSolver
     except ImportError, e:
-        pass
+        prb.Solver = SolverLU
 
     return prb
