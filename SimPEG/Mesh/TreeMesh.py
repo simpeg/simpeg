@@ -1706,9 +1706,9 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
         "Construct the averaging operator on cell faces to cell centers."
         if getattr(self, '_aveF2CC', None) is None:
             if self.dim == 2:
-                self._aveF2CC = 1./self.dim*sp.hstack([self.aveFx2CC, self.aveFy2CC])
+                self._aveF2CC = 1./self.dim*sp.hstack([self.aveFx2CC, self.aveFy2CC]).tocsr()
             elif self.dim == 3:
-                self._aveF2CC = 1./self.dim*sp.hstack([self.aveFx2CC, self.aveFy2CC, self.aveFz2CC])
+                self._aveF2CC = 1./self.dim*sp.hstack([self.aveFx2CC, self.aveFy2CC, self.aveFz2CC]).tocsr()
         return self._aveF2CC
 
     @property
@@ -1716,9 +1716,9 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
         "Construct the averaging operator on cell faces to cell centers."
         if getattr(self, '_aveF2CCV', None) is None:
             if self.dim == 2:
-                self._aveF2CCV = sp.block_diag([self.aveFx2CC, self.aveFy2CC])
+                self._aveF2CCV = sp.block_diag([self.aveFx2CC, self.aveFy2CC]).tocsr()
             elif self.dim == 3:
-                self._aveF2CCV = sp.block_diag([self.aveFx2CC, self.aveFy2CC, self.aveFz2CC])
+                self._aveF2CCV = sp.block_diag([self.aveFx2CC, self.aveFy2CC, self.aveFz2CC]).tocsr()
         return self._aveF2CCV
 
     @property
