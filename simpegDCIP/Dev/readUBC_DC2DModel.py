@@ -18,19 +18,30 @@ def readUBC_DC2DModel(fileName):
     """
     
     # Open fileand skip header... assume that we know the mesh already
-    fopen = open(fileName,'r')
-    lines = fopen.readlines()[:]
-    fopen.close()
 
-    dim = np.array(lines[0].split(),dtype=float)
+    obsfile = np.genfromtxt(fileName,delimiter=' \n',dtype=np.str,comments='!')
     
-    model = np.array(lines[1:],dtype=float)
+    dim = np.array(obsfile[0].split(),dtype=float)
     
-    # Permute the second dimension to flip the order
-    model = model.reshape(dim[1],dim[0])
+    temp = np.array(obsfile[1].split(),dtype=float)
     
-    model = model[::-1,:]
-    model = np.transpose(model, (1, 0))
+    if len(temp) > 1:
+        model = np.zeros(dim)
+        
+        for ii in range(len(obsfile)-1):
+            mm = np.array(obsfile[ii+1].split(),dtype=float)
+            model[:,ii] = mm
+            
+        model = model[:,::-1]
+        
+    else:
+        mm = np.array(obsfile[1:].split(),dtype=float)
+        # Permute the second dimension to flip the order
+        model = mm.reshape(dim[1],dim[0])
+    
+        model = model[::-1,:]
+        model = np.transpose(model, (1, 0))
+        
     model = mkvc(model)
 
 

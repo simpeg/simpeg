@@ -1,31 +1,65 @@
-import os
+"""
+        Experimental script for the forward modeling of DC resistivity data 
+        along survey lines defined by the user. The program loads in a 3D mesh
+        and model which is used to design pole-dipole or dipole-dipole survey
+        lines.
+        
+        Uses SimPEG to generate the forward problem and compute the LU
+        factorization.
+        
+        Calls DCIP2D for the inversion of a projected 2D section from the full
+        3D model.
 
-home_dir = 'C:\Users\dominiquef.MIRAGEOSCIENCE\Documents\GIT\SimPEG\simpegdc\simpegDCIP\Dev'
-
-#os.chdir(home_dir)
+        Assumes flat topo for now...
+            
+        Created on Mon December 7th, 2015
+    
+        @author: dominiquef
+    
+"""
 
 
 #%%
-from SimPEG import np, Utils, Mesh, mkvc, SolverLU, sp
+from SimPEG import np, Utils, Mesh, mkvc, sp
 import simpegDCIP as DC
 import pylab as plt
+from pylab import get_current_fig_manager
 import time
-from scipy.interpolate import griddata
-import numpy.matlib as npm
+import re
 from readUBC_DC3Dobs import readUBC_DC3Dobs
-from writeUBC_DC3Dobs import writeUBC_DC3Dobs
+from readUBC_DC2DModel import readUBC_DC2DModel
+from writeUBC_DCobs import writeUBC_DCobs
 import scipy.interpolate as interpolation
 from plot_pseudoSection import plot_pseudoSection
+from gen_DCIPsurvey import gen_DCIPsurvey
+from convertObs_DC3D_to_2D import convertObs_DC3D_to_2D
+import os
 
+
+home_dir = 'C:\Users\dominiquef.MIRAGEOSCIENCE\Documents\GIT\SimPEG\simpegdc\simpegDCIP\Dev'
+dsep = '\\'
 #from scipy.linalg import solve_banded
 
 # Load UBC mesh 3D
 mesh = Utils.meshutils.readUBCTensorMesh(home_dir + '\Mesh_20m.msh')
-#mesh = Utils.meshutils.readUBCTensorMesh('Mesh_40m.msh')
+#mesh = Utils.meshutils.readUBCTensorMesh(home_dir + '\MtIsa_20m.msh')
 
 # Load model
-model = Utils.meshutils.readUBCTensorModel(home_dir + '\MtIsa_3D.con',mesh)
-#model = Utils.meshutils.readUBCTensorModel('Synthetic.con',mesh)
+#model = Utils.meshutils.readUBCTensorModel(home_dir + '\MtIsa_3D.con',mesh)
+model = Utils.meshutils.readUBCTensorModel(home_dir + '\Synthetic.con',mesh)
+
+# Specify survey type
+stype = 'pdp'
+
+# Survey parameters
+a = 40
+n = 10
+
+# Inversion parameter
+pct = 0.01
+flr = 1e-4
+chifact = 100
+ref_mod = 1e-3
 
 #%% Create system
 #Set boundary conditions
@@ -51,227 +85,233 @@ print("LU DECOMP--- %s seconds ---" % (time.time() - start_time))
 #%% Create survey
 # Display top section 
 top = int(mesh.nCz)-1
-mesh.plotSlice(model, ind=12, normal='Z', grid=True, pcolorOpts={'alpha':0.8})
-
-# Add z coordinate
-nz = mesh.vectorNz
-
-# Takes two points from ginput and create survey
-temp = plt.ginput(2, timeout = 0)
-temp = np.c_[np.asarray(temp),np.ones(2).T*nz[-1]]
-
-indx = Utils.closestPoints(mesh, temp )
-endl = np.c_[mesh.gridCC[indx,0],mesh.gridCC[indx,1],np.ones(2).T*nz[-1]]
-
-#endl = np.c_[np.asarray(temp),np.ones(2).T*nz[-1]]
-
-
-#endl = np.c_[np.c_[[mesh.vectorCCx[21],mesh.vectorCCx[-21]],[mesh.vectorCCy[10],mesh.vectorCCy[10]]],np.ones(2).T*nz[-1]]
-
-# Create dipole survey receivers and plot
-a = 40
-n = 8
-
-# Evenly distribute transmitters for now and put on surface
-dl_len = np.sqrt( np.sum((endl[1,:] - endl[0,:])**2) ) 
-dl_x = ( endl[1,0] - endl[0,0] ) / dl_len
-dl_y = ( endl[1,1] - endl[0,1] ) / dl_len
-azm =  np.arctan(dl_y/dl_x)
-
-nstn = np.floor( dl_len / a )
-nrx = nstn-1
-
-# Create dipole center location
-stn_x = endl[0,0] + np.cumsum( np.ones(nstn)*dl_x*a )
-stn_y = endl[0,1] + np.cumsum( np.ones(nstn)*dl_y*a )
-
-# Create line of pole locations
-M = np.c_[stn_x, stn_y, np.ones(nstn).T*nz[-1]]
-N = np.c_[stn_x+a*dl_x, stn_y+a*dl_y, np.ones(nstn).T*nz[-1]]
-
-Tx = []
-Rx = []
-
-for ii in range(0, int(nstn)-2):
-    
-    Tx.append(np.c_[M[ii,:],N[ii,:]])
-    Rx.append(np.c_[M[ii+2:ii+n+1,:],N[ii+2:ii+n+1,:]])
-
-
-# Plot stations along line   
-#plt.scatter(stn_x,stn_y,s=100, c='w')
-
-
-
-plt.scatter(M[:,0],M[:,1],s=10,c='r')
-plt.scatter(N[:,0],N[:,1],s=10,c='b')
-
-
-
-#%% Forward model data
-data = []#np.zeros( nstn*nrx )
-unct = []
-problem = DC.ProblemDC_CC(mesh)
-    
-for ii in range(len(Tx)):
-    start_time = time.time()
-    
-    # Select dipole locations for receiver: n || end of line
-    
-    idx = int( np.min([ii+n+1,nstn+1]) )
-    rxloc_M = np.asarray(Rx[ii][:,0:3])#np.r_[M[0:ii,:],M[ii+1:,:]]
-    rxloc_N = np.asarray(Rx[ii][:,3:])#np.r_[N[0:ii,:],N[ii+1:,:]]
-    
-    
-    nrx = rxloc_M.shape[0]
-
-    inds = Utils.closestPoints(mesh, np.asarray(Tx[ii]).T )
-    RHS = mesh.getInterpolationMat(np.asarray(Tx[ii]).T, 'CC').T*( [-1,1] / mesh.vol[inds] )
-    
-    
-    # Solve for phi
-    P1 = mesh.getInterpolationMat(rxloc_M, 'CC')
-    P2 = mesh.getInterpolationMat(rxloc_N, 'CC')
-
-    #Direct Solve
-    phi = Ainv.solve(RHS) 
-    
-    # Iterative Solve
-    #Ainvb = sp.linalg.bicgstab(A,RHS, tol=1e-5)
-    #phi = mkvc(Ainvb[0])
-    
-    # Compute potential at each electrode
-    data.append((P1*phi - P2*phi)*np.pi)     
-    unct.append(np.ones(nrx))
-
-    #data.append(np.c_[np.ones(nrx)*rP1, np.ones(nrx)*rP2, rC1, rC2, mkvc(d), np.ones(nrx)*1e-2])
-    
-    print("--- %s seconds ---" % (time.time() - start_time))
-    
-    #fid.writelines("%e " % ii for ii in np.r_[M[ii,:],N[ii,:]] )
-    #fid.write('%i\n'% nrx)
-    #np.savetxt(fid, np.c_[rxloc_M,rxloc_N,mkvc(d)], fmt='%e',delimiter=' ',newline='\n')  
-
-
-    # Write data to UBC-2D format 
-    #temp = np.c_[np.ones(nrx)*txmid-a/2, np.ones(nrx)*txmid+a/2,
-    #    rxmid-a/2, rxmid+a/2, 
-     #   mkvc(d) , np.ones(nrx)*1e-2]
-
-writeUBC_DC3Dobs(home_dir+'\FWR_data3D.dat',Tx,Rx,data,unct)     
-
-
-#%% Load 3D data
-[Tx, Rx, d, wd] = readUBC_DC3Dobs(home_dir + '\FWR_data3D.dat')
-
-
-#%% Convert 3D obs to 2D and write to file
-#data[:,0:4] = data[:,0:4] + endl[0,0]
-#fid = open(home_dir + '\FWR_data2D.dat','w')
-#fid.write('SIMPEG FORWARD\n')  
-
-# Change coordinate system to distance along line
-# Assume all data is acquired along line, and first transmitter pole is 
-# at the origin
-
-d2D = []
-
-for ii in range(len(Tx)):
-    
-    if ii == 0:
-        endp = Tx[0][0:2,0]
-    
-    nrx = Rx[ii].shape[0]
-    
-    for jj in range(nrx):
-        
-        rP1 = np.sqrt( np.sum( ( endp - Tx[ii][0:2,0] )**2 , axis=0))
-        rP2 = np.sqrt( np.sum( ( endp - Tx[ii][0:2,1] )**2 , axis=0))
-        rC1 = np.sqrt( np.sum( ( endp - Rx[ii][jj,0:2] )**2 , axis=0))
-        rC2 = np.sqrt( np.sum( ( endp - Rx[ii][jj,3:5] )**2 , axis=0))
-        
-        d2D.append( np.r_[rP1, rP2, rC1, rC2, d[ii][jj], wd[ii][jj]] )
-        #np.savetxt(fid, data, fmt='%e',delimiter=' ',newline='\n')
-        
-#%%
-fid = open(home_dir + '\FWR_3D_2_2D.dat','w')
-fid.write('SIMPEG FORWARD\n')   
-for ii in range(len(d2D)): 
-    fid.write('\n') 
-    
-    for jj in range(d2D[ii].shape[0]): 
-        fid.write('%e ' % d2D[ii][jj])
-        
-fid.close()
-
-#%% Create a 2D mesh along axis of end points and keep z-discretization
-#==============================================================================
-# dx = np.min( [ np.min(mesh.hx), np.min(mesh.hy) ])
-# nc = np.ceil(dl_len/dx)+1
-# 
-# padx = dx*np.power(1.4,range(1,15))
-# 
-# # Creating padding cells
-# h1 = np.r_[padx[::-1], np.ones(nc)*dx , padx]
-# 
-# # Create mesh with 0 coordinate centerer on the ginput points in cell center
-# mesh2d = Mesh.TensorMesh([h1, mesh.hz], x0=(-np.sum(padx)-dx/2,mesh.x0[2]))
-# 
-# # Create array of points for interpolating from 3D to 2D mesh
-# xx = endl[0,0] + mesh2d.vectorCCx * np.cos(azm)
-# yy = endl[0,1] + mesh2d.vectorCCx * np.sin(azm)
-# zz = mesh2d.vectorCCy
-# 
-# [XX,ZZ] = np.meshgrid(xx,zz)
-# [YY,ZZ] = np.meshgrid(yy,zz)
-# 
-# xyz2d = np.c_[mkvc(XX),mkvc(YY),mkvc(ZZ)]
-# 
-# plt.scatter(xx,yy,s=20,c='y')
-# 
-# 
-# F = interpolation.NearestNDInterpolator(mesh.gridCC,model)
-# m2D = np.reshape(F(xyz2d),[mesh2d.nCx,mesh2d.nCy])
-# 
-
-#==============================================================================
- 
-# Create mesh with 0 coordinate centerer on the ginput points in cell center
-mesh2d = Mesh.TensorMesh([mesh.hx, mesh.hz], x0=(mesh.x0[0]-endl[0,0],mesh.x0[2]))
-m3D = np.reshape(model, (mesh.nCz, mesh.nCy, mesh.nCx))
-m2D = m3D[:,1,:]
 
 plt.figure()
-axs = plt.subplot(1,1,1)
-plt.pcolormesh(mesh2d.vectorNx,mesh2d.vectorNy,np.log10(m2D),alpha=0.5, cmap='gray')#axes = [mesh2d.vectorNx[0],mesh2d.vectorNx[-1],mesh2d.vectorNy[0],mesh2d.vectorNy[-1]])
-#mesh2d.plotImage(mkvc(m2D), grid=True, ax=axs)
+ax_prim = plt.subplot(1,1,1)
+mesh.plotSlice(model, ind=top, normal='Z', grid=True, pcolorOpts={'alpha':0.8}, ax =ax_prim)
+plt.show()
+cfm1=get_current_fig_manager().window
+gin=[1]
 
-#%% Plot pseudo section
+# Keep creating sections until returns an empty ginput (press enter on figure)
+while bool(gin)==True:
+    
+    # Bring back the plan view figure and pick points     
+    cfm1.activateWindow()
+    plt.sca(ax_prim)
+        
+    # Takes two points from ginput and create survey
+    gin = plt.ginput(2, timeout = 0)
+    
+    if not gin:
+        print 'SimPED - Simulation has ended with return'
+        break
+        
+    #gin = [(465.9879032258068, 12141.34375), (1648.0443548387098, 12149.083333333334)]
+    
+    # Add z coordinate to all survey... assume flat
+    nz = mesh.vectorNz
+    var = np.c_[np.asarray(gin),np.ones(2).T*nz[-1]]
+    
+    # Snap the endpoints to the grid. Easier to create 2D section.
+    indx = Utils.closestPoints(mesh, var )
+    endl = np.c_[mesh.gridCC[indx,0],mesh.gridCC[indx,1],np.ones(2).T*nz[-1]]
+     
+    [Tx, Rx] = gen_DCIPsurvey(endl, mesh, stype, a, n)
+     
+    dl_len = np.sqrt( np.sum((Tx[0][0:2,0] - Tx[-1][0:2,1])**2) ) 
+    dl_x = ( Tx[-1][0,1] - Tx[0][0,0] ) / dl_len
+    dl_y = ( Tx[-1][1,1] - Tx[0][1,0]  ) / dl_len
+    azm =  np.arctan(dl_y/dl_x)
+      
+    # Plot stations along line   
+    plt.scatter(Tx[0][0,:],Tx[0][1,:],s=10,c='r')
+    plt.scatter(Rx[0][:,0::3],Rx[0][:,1::3],s=10,c='b')
+    
+    #%% Forward model data
+    data = []#np.zeros( nstn*nrx )
+    unct = []
+    problem = DC.ProblemDC_CC(mesh)
+        
+    for ii in range(len(Tx)):
+        start_time = time.time()
+        
+        # Select dipole locations for receiver
+        rxloc_M = np.asarray(Rx[ii][:,0:3])
+        rxloc_N = np.asarray(Rx[ii][:,3:])
+        
+        # Number of receivers
+        nrx = rxloc_M.shape[0]
+    
+        
+        
+        if re.match(stype,'dpdp'):
+            inds = Utils.closestPoints(mesh, np.asarray(Tx[ii]).T )
+            RHS = mesh.getInterpolationMat(np.asarray(Tx[ii]).T, 'CC').T*( [-1,1] / mesh.vol[inds] )   
+            
+        elif re.match(stype,'pdp'): 
+            
+            # Create an "inifinity" pole
+            tx =  np.squeeze(Tx[ii][:,0:1])
+            tinf = tx + np.array([dl_x,dl_y,0])*dl_len*2
+            inds = Utils.closestPoints(mesh, np.c_[tx,tinf].T)
+            RHS = mesh.getInterpolationMat(np.asarray(Tx[ii]).T, 'CC').T*( [-1] / mesh.vol[inds] )  
+        
+        # Solve for phi on pole locations
+        P1 = mesh.getInterpolationMat(rxloc_M, 'CC')
+        P2 = mesh.getInterpolationMat(rxloc_N, 'CC')
+    
+        #Direct Solve
+        phi = Ainv.solve(RHS) 
+        
+        # Iterative Solve
+        #Ainvb = sp.linalg.bicgstab(A,RHS, tol=1e-5)
+        #phi = mkvc(Ainvb[0])
+        
+        # Compute potential at each electrode
+        dtemp = (P1*phi - P2*phi)*np.pi
+        
+        data.append( dtemp )     
+        unct.append( np.abs(dtemp) * pct + flr)
+       
+        print("--- %s seconds ---" % (time.time() - start_time))
+        
+        
+    # Write data file in UBC-DCIP3D format
+    writeUBC_DCobs(home_dir+'\FWR_data3D.dat',Tx,Rx,data,unct,'3D')     
+    
+    
+    #%% Load 3D data
+    [Tx, Rx, data, wd] = readUBC_DC3Dobs(home_dir + '\FWR_data3D.dat')
+    
+    
+    #%% Convert 3D obs to 2D and write to file
+    [Tx2d, Rx2d] = convertObs_DC3D_to_2D(Tx,Rx)
+    
+    writeUBC_DCobs(home_dir+'\FWR_3D_2_2D.dat',Tx2d,Rx2d,data,unct,'2D')        
+    
+    #%% Create a 2D mesh along axis of Tx end points and keep z-discretization    
+    dx = np.min( [ np.min(mesh.hx), np.min(mesh.hy) ])
+    nc = np.ceil(dl_len/dx)+3
+    
+    padx = dx*np.power(1.4,range(1,15))
+    
+    # Creating padding cells
+    h1 = np.r_[padx[::-1], np.ones(nc)*dx , padx]
+    
+    # Create mesh with 0 coordinate centerer on the ginput points in cell center
+    mesh2d = Mesh.TensorMesh([h1, mesh.hz], x0=(-np.sum(padx)-dx/2,mesh.x0[2]))
+    
+    # Create array of points for interpolating from 3D to 2D mesh
+    xx = Tx[0][0,0] + mesh2d.vectorCCx * np.cos(azm)
+    yy = Tx[0][1,0] + mesh2d.vectorCCx * np.sin(azm)
+    zz = mesh2d.vectorCCy
+    
+    [XX,ZZ] = np.meshgrid(xx,zz)
+    [YY,ZZ] = np.meshgrid(yy,zz)
+    
+    xyz2d = np.c_[mkvc(XX),mkvc(YY),mkvc(ZZ)]
+    
+    #plt.scatter(xx,yy,s=20,c='y')
+    
+    
+    F = interpolation.NearestNDInterpolator(mesh.gridCC,model)
+    m2D = np.reshape(F(xyz2d),[mesh2d.nCx,mesh2d.nCy]).T
+    
+     
+    #==============================================================================
+    # mesh2d = Mesh.TensorMesh([mesh.hx, mesh.hz], x0=(mesh.x0[0]-endl[0,0],mesh.x0[2]))
+    # m3D = np.reshape(model, (mesh.nCz, mesh.nCy, mesh.nCx))
+    # m2D = m3D[:,1,:]
+    #==============================================================================
+    
+    plt.figure()
+    axs = plt.subplot(2,1,1)
+    
+    plt.xlim([0,nc*dx])
+    plt.ylim([mesh2d.vectorNy[-1]-dl_len/2,mesh2d.vectorNy[-1]])
+    plt.gca().set_aspect('equal', adjustable='box')
+    
+    plt.pcolormesh(mesh2d.vectorNx,mesh2d.vectorNy,np.log10(m2D),alpha=0.5, cmap='gray')#axes = [mesh2d.vectorNx[0],mesh2d.vectorNx[-1],mesh2d.vectorNy[0],mesh2d.vectorNy[-1]])
+    #mesh2d.plotImage(mkvc(m2D), grid=True, ax=axs)
+    
+    #%% Plot pseudo section
+    
+    plot_pseudoSection(Tx2d,Rx2d,data,nz[-1],stype)
+    plt.colorbar
+    plt.show()
+    #==============================================================================
+    # # Grab slice of model
+    # m = np.reshape(model, (mesh.nCz, mesh.nCy, mesh.nCx))
+    # m2D = m[::-1,9,:]
+    # plt.figure()
+    # plt.imshow(m2D)
+    #==============================================================================
+    
+    #%% Create dcin2d inversion files and run
+    inv_dir = home_dir + '\Inv2D' 
+    if not os.path.exists(inv_dir):
+        os.makedirs(inv_dir)
+        
+    mshfile2d = 'Mesh_2D.msh'
+    modfile2d = 'MtIsa_2D.con'
+    obsfile2d = 'FWR_3D_2_2D.dat'
+    inp_file = 'dcinv2d.inp'
+    
+    
+    # Export 2D mesh
+    fid = open(inv_dir + dsep + mshfile2d,'w')
+    fid.write('%i\n'% mesh2d.nCx)
+    fid.write('%f %f 1\n'% (mesh2d.vectorNx[0],mesh2d.vectorNx[1]))  
+    np.savetxt(fid, np.c_[mesh2d.vectorNx[2:],np.ones(mesh2d.nCx-1)], fmt='\t %e %i',delimiter=' ',newline='\n')
+    fid.write('\n')
+    fid.write('%i\n'% mesh2d.nCy)
+    fid.write('%f %f 1\n'%( 0,mesh2d.hy[-1]))   
+    np.savetxt(fid, np.c_[np.cumsum(mesh2d.hy[-2::-1])+mesh2d.hy[-1],np.ones(mesh2d.nCy-1)], fmt='\t %e %i',delimiter=' ',newline='\n')
+    fid.close()
+    
+    # Export 2D model
+    fid = open(inv_dir + dsep + modfile2d,'w')
+    fid.write('%i %i\n'% (mesh2d.nCx,mesh2d.nCy))
+    np.savetxt(fid, mkvc(m2D[::-1,:].T), fmt='%e',delimiter=' ',newline='\n')
+    fid.close()
+    
+    # Export data file
+    writeUBC_DCobs(inv_dir + dsep + obsfile2d,Tx2d,Rx2d,data,unct,'2D') 
+    
+    # Write input file
+    fid = open(inv_dir + dsep + inp_file,'w')
+    fid.write('OBS LOC_X %s \n'% obsfile2d)
+    fid.write('MESH FILE %s \n'% mshfile2d)
+    fid.write('CHIFACT 1 %f\n'% chifact)
+    fid.write('TOPO DEFAULT  %s \n')
+    fid.write('INIT_MOD DEFAULT\n')
+    fid.write('REF_MOD VALUE %e\n'% ref_mod)
+    fid.write('ALPHA DEFAULT\n')
+    fid.write('WEIGHT DEFAULT\n')
+    fid.write('STORE_ALL_MODELS FALSE\n')
+    fid.write('INVMODE SVD\n')
+    fid.write('USE_MREF TRUE\n')
+    fid.close()
+    
+    os.chdir(inv_dir)
+    os.system('dcinv2d ' + inp_file)
+    
+    #%%
+    #Load model
+    minv = readUBC_DC2DModel(inv_dir + dsep + 'dcinv2d.con')
+    #plt.figure()
+    axs = plt.subplot(2,1,2)
+    
+    plt.xlim([0,nc*dx])
+    plt.ylim([mesh2d.vectorNy[-1]-dl_len/2,mesh2d.vectorNy[-1]])
+    plt.gca().set_aspect('equal', adjustable='box')
+    
+    minv = np.reshape(minv,(mesh2d.nCy,mesh2d.nCx))
+    plt.pcolormesh(mesh2d.vectorNx,mesh2d.vectorNy,np.log10(m2D),alpha=0.5, cmap='gray')
+    plt.pcolormesh(mesh2d.vectorNx,mesh2d.vectorNy,np.log10(minv),alpha=0.5, clim=(np.min(np.log10(m2D)),np.max(np.log10(m2D))))
+    plt.colorbar
 
-plot_pseudoSection(d2D,nz[-1])
-#axs.axis([0,dl_len,mesh2d.vectorNy[-1]-dl_len/2,mesh2d.vectorNy[-1]])
+#%%
 
-
-#%% Export 2D mesh from section
-fid = open(home_dir + '\Mesh_2D.msh','w')
-fid.write('%i\n'% mesh2d.nCx)
-fid.write('%f %f 1\n'% (mesh2d.vectorNx[0],mesh2d.vectorNx[1]))  
-np.savetxt(fid, np.c_[mesh2d.vectorNx[2:],np.ones(mesh2d.nCx-1)], fmt='\t %e %i',delimiter=' ',newline='\n')
-fid.write('\n')
-fid.write('%i\n'% mesh2d.nCy)
-fid.write('%f %f 1\n'%( 0,mesh2d.hy[-1]))   
-np.savetxt(fid, np.c_[np.cumsum(mesh2d.hy[-2::-1])+mesh2d.hy[-1],np.ones(mesh2d.nCy-1)], fmt='\t %e %i',delimiter=' ',newline='\n')
-fid.close()
-
-# Export 2D model
-fid = open(home_dir + '\MtIsa_2D.con','w')
-fid.write('%i %i\n'% (mesh2d.nCx,mesh2d.nCy))
-np.savetxt(fid, mkvc(m2D[::-1,:].T), fmt='%e',delimiter=' ',newline='\n')
-fid.close()
-#==============================================================================
-# # Grab slice of model
-# m = np.reshape(model, (mesh.nCz, mesh.nCy, mesh.nCx))
-# m2D = m[::-1,9,:]
-# plt.figure()
-# plt.imshow(m2D)
-#==============================================================================
+    

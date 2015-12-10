@@ -1,15 +1,18 @@
-def plot_pseudoSection(d2D,z0):
+def plot_pseudoSection(Tx,Rx,data,z0, stype):
     
-    from SimPEG import np
+    from SimPEG import np, mkvc
     from scipy.interpolate import griddata
     import pylab as plt
-    
+    import re
     """
-        Read list of 2D tx-rx location and plot a speudo-section
-        Only implemented for flat topo
+        Read list of 2D tx-rx location and plot a speudo-section of apparent
+        resistivity.
+        
+        Assumes flat topo for now...
     
         Input:
         :param d2D, z0
+        :switch stype -> Either 'pdp' (pole-dipole) | 'dpdp' (dipole-dipole)
     
         Output:
         :figure scatter plot overlayed on image
@@ -19,23 +22,34 @@ def plot_pseudoSection(d2D,z0):
         @author: dominiquef
     
     """
-    d2D = np.asarray(d2D)
-  
-    # Get distances between each poles
-    rC1P1 = d2D[:,0] - d2D[:,2] 
-    rC2P1 = d2D[:,0] - d2D[:,3]
-    rC1P2 = d2D[:,1] - d2D[:,2]
-    rC2P2 = d2D[:,1] - d2D[:,3]
+    #d2D = np.asarray(d2D)
     
-    # Compute apparent resistivity
-    rho = d2D[:,4] * 2*np.pi / ( 1/rC1P1 - 1/rC2P1 - 1/rC1P2 + 1/rC2P2 )
+    midl = []
+    midz = []
+    rho = []
     
-    Cmid = (d2D[:,0] + d2D[:,1])/2
-    Pmid = (d2D[:,2] + d2D[:,3])/2
+    for ii in range(len(Tx)):
+        # Get distances between each poles
+        rC1P1 = np.abs(Tx[ii][0] - Rx[ii][:,0]) 
+        rC2P1 = np.abs(Tx[ii][1] - Rx[ii][:,0])
+        rC1P2 = np.abs(Tx[ii][1] - Rx[ii][:,1])
+        rC2P2 = np.abs(Tx[ii][0] - Rx[ii][:,1])
+        rP1P2 = np.abs(Rx[ii][:,1] - Rx[ii][:,0])    
     
-    midl = ( Cmid + Pmid )/2
-    midz = -np.abs(Cmid-Pmid) + z0
+        # Compute apparent resistivity
+        if re.match(stype,'pdp'):
+            rho = np.hstack([rho, data[ii] * 2*np.pi  * rC1P1 * ( rC1P1 + rP1P2 ) / rP1P2] )
+            
+        elif re.match(stype,'dpdp'):
+            rho = np.hstack([rho, data[ii] * 2*np.pi / ( 1/rC1P1 - 1/rC2P1 - 1/rC1P2 + 1/rC2P2 ) ])
     
+        Cmid = (Tx[ii][0] + Tx[ii][1])/2
+        Pmid = (Rx[ii][:,0] + Rx[ii][:,1])/2
+    
+        midl = np.hstack([midl, ( Cmid + Pmid )/2 ])
+        midz = np.hstack([midz, -np.abs(Cmid-Pmid)/2 + z0 ])
+    
+   
     # Grid points
     grid_x, grid_z = np.mgrid[np.min(midl):np.max(midl), np.min(midz):np.max(midz)]
     grid_rho = griddata(np.c_[midl,midz], np.log10(abs(1/rho.T)), (grid_x, grid_z), method='linear')
