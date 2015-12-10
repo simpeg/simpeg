@@ -32,10 +32,9 @@ class Fields_e(Fields):
         self._edgeCurl = self.survey.prob.mesh.edgeCurl
         self._aveE2CCV = self.survey.prob.mesh.aveE2CCV
         self._aveF2CCV = self.survey.prob.mesh.aveF2CCV
-        self._sigma = self.survey.prob.curModel.sigma
-        self._sigmaDeriv = self.survey.prob.curModel.sigmaDeriv
-        self._mui = self.survey.prob.curModel.mui
         self._nC = self.survey.prob.mesh.nC
+        self._MeSigma = self.survey.prob.MeSigma
+        self._MeSigmaDeriv = self.survey.prob.MeSigmaDeriv
 
     def _GLoc(self,fieldType):
         if fieldType == 'e':
@@ -60,10 +59,10 @@ class Fields_e(Fields):
     def _e(self, eSolution, srcList):
         return self._ePrimary(eSolution,srcList) + self._eSecondary(eSolution,srcList)
 
-    def _eDeriv_u(self, src, v, adjoint = False):
+    def _eDeriv_u(self, src, v, eSolution, adjoint = False):
         return Identity()*v
 
-    def _eDeriv_m(self, src, v, adjoint = False):
+    def _eDeriv_m(self, src, v, eSolution, adjoint = False):
         # assuming primary does not depend on the model
         return Zero()
 
@@ -83,13 +82,13 @@ class Fields_e(Fields):
             b[:,i] = b[:,i]+ 1./(1j*omega(src.freq)) * S_m
         return b
 
-    def _bSecondaryDeriv_u(self, src, v, adjoint = False):
+    def _bSecondaryDeriv_u(self, src, v, eSolution, adjoint = False):
         C = self._edgeCurl
         if adjoint:
             return - 1./(1j*omega(src.freq)) * (C.T * v)
         return - 1./(1j*omega(src.freq)) * (C * v)
 
-    def _bSecondaryDeriv_m(self, src, v, adjoint = False):
+    def _bSecondaryDeriv_m(self, src, v, eSolution, adjoint = False):
         S_mDeriv, _ = src.evalDeriv(self.prob, adjoint)
         S_mDeriv = S_mDeriv(v)
         return 1./(1j * omega(src.freq)) * S_mDeriv
@@ -97,27 +96,50 @@ class Fields_e(Fields):
     def _b(self, eSolution, srcList):
         return self._bPrimary(eSolution, srcList) + self._bSecondary(eSolution, srcList)
 
-    def _bDeriv_u(self, src, v, adjoint=False):
+    def _bDeriv_u(self, src, v, eSolution, adjoint = False):
         # Primary does not depend on u
         return self._bSecondaryDeriv_u(src, v, adjoint)
 
-    def _bDeriv_m(self, src, v, adjoint=False):
+    def _bDeriv_m(self, src, v, eSolution, adjoint = False):
         # Assuming the primary does not depend on the model
         return self._bSecondaryDeriv_m(src, v, adjoint)
 
     def _j(self, eSolution, srcList):
-        sigma = self._sigma
         aveE2CCV = self._aveE2CCV
         n = int(aveE2CCV.shape[0] / self._nC) #TODO: This is a bit sloppy
-        # Sigma = sdiag(np.kron(np.ones(n), sigma))
-        Sigma = self.prob.MeSigma
+        Sigma = self._MeSigma
         VI = sdiag(1./np.kron(np.ones(n), self.prob.mesh.vol))
 
         e = self._e(eSolution, srcList)
-
         return VI * (aveE2CCV * (Sigma *e) )
 
-    def _h(self, eolution, srcList):
+    def _jDeriv_u(self, src, eSolution, v, adjoint = False):
+        aveE2CCV = self._aveE2CCV
+        n = int(aveE2CCV.shape[0] / self._nC) #TODO: This is a bit sloppy
+        Sigma = self._MeSigma
+
+        VI = sdiag(1./np.kron(np.ones(n), self.prob.mesh.vol))
+
+        if not adjoint: 
+            return VI * (aveE2CCV * (Sigma * (self._eDeriv_u(src, v, adjoint) ) ) )
+        return  self._eDeriv_u(src, Sigma.T * (aveE2CCV.T * (VI.T * v) ), adjoint)
+
+    def _jDeriv_m(self, src, v, eSolution, adjoint = False):
+        aveE2CCV = self._aveE2CCV
+        Sigma = self._MeSigma
+        SigmaDeriv = self._MeSigmaDeriv
+        e = self._e(eSolution, [src])
+
+        n = int(aveE2CCV.shape[0] / self._nC) #TODO: This is a bit sloppy
+        
+        VI = sdiag(1./np.kron(np.ones(n), self.prob.mesh.vol))
+
+        if not adjoint:
+            return VI * (aveE2CCV * ( SigmaDeriv(e) * v + self._eDeriv_m(src, v, adjoint) ))
+        return SigmaDeriv(aveE2CCV.T * (VI.T * e), adjoint) * v + self._eDeriv_m(src, aveE2CCV.T * (VI.T * v), adjoint)
+
+
+    def _h(self, eSolution, srcList):
         b = self._b(eSolution, srcList)
         Mui = self.survey.prob.MfMui
         aveF2CCV = self._aveF2CCV
@@ -127,30 +149,6 @@ class Fields_e(Fields):
 
 
         return VI * (aveF2CCV * (Mui * b))
-
-
-    def _jDeriv_u(self, src, v, adjoint=False):
-        raise NotImplementedError
-        sigma = self._sigma
-        aveE2CCV = self._aveE2CCV
-        n = int(aveE2CCV.shape[0] / self._nC) #TODO: This is a bit sloppy
-        Sigma = sdiag(sp.kron(np.ones(n), sigma))
-
-        if not adjoint: 
-            return Sigma * (aveE2CCV * (v + self._eDeriv_u(src, v, adjoint)))
-        return aveE2CCV.T * Sigma.T * v 
-
-    def _jDeriv_m(self, src, v, adjoint=False):
-        raise NotImplementedError
-        sigma = self._sigma
-        aveE2CCV = self._aveE2CCV
-        n = int(aveE2CCV.shape[0] / self._nC) #TODO: This is a bit sloppy
-        Sigma = sdiag(sp.kron(np.ones(n), sigma))
-        
-        if not adjoint:
-            dsigma_dm = self._sigmaDeriv(v)
-            dSigma_dm = sdiag(sp.kron(np.ones(n), dsigma_dm))
-
 
 
 

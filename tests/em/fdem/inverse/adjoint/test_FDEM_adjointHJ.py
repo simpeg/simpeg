@@ -45,58 +45,6 @@ def adjointTest(fdemType, comp):
     return np.abs(vJw - wJtv) < tol
 
 class FDEM_AdjointTests(unittest.TestCase):
-    if testEB:
-        def test_Jtvec_adjointTest_exr_Eform(self):
-            self.assertTrue(adjointTest('e', 'exr'))
-        def test_Jtvec_adjointTest_eyr_Eform(self):
-            self.assertTrue(adjointTest('e', 'eyr'))
-        def test_Jtvec_adjointTest_ezr_Eform(self):
-            self.assertTrue(adjointTest('e', 'ezr'))
-        def test_Jtvec_adjointTest_exi_Eform(self):
-            self.assertTrue(adjointTest('e', 'exi'))
-        def test_Jtvec_adjointTest_eyi_Eform(self):
-            self.assertTrue(adjointTest('e', 'eyi'))
-        def test_Jtvec_adjointTest_ezi_Eform(self):
-            self.assertTrue(adjointTest('e', 'ezi'))
-
-        def test_Jtvec_adjointTest_bxr_Eform(self):
-            self.assertTrue(adjointTest('e', 'bxr'))
-        def test_Jtvec_adjointTest_byr_Eform(self):
-            self.assertTrue(adjointTest('e', 'byr'))
-        def test_Jtvec_adjointTest_bzr_Eform(self):
-            self.assertTrue(adjointTest('e', 'bzr'))
-        def test_Jtvec_adjointTest_bxi_Eform(self):
-            self.assertTrue(adjointTest('e', 'bxi'))
-        def test_Jtvec_adjointTest_byi_Eform(self):
-            self.assertTrue(adjointTest('e', 'byi'))
-        def test_Jtvec_adjointTest_bzi_Eform(self):
-            self.assertTrue(adjointTest('e', 'bzi'))
-
-        def test_Jtvec_adjointTest_exr_Bform(self):
-            self.assertTrue(adjointTest('b', 'exr'))
-        def test_Jtvec_adjointTest_eyr_Bform(self):
-            self.assertTrue(adjointTest('b', 'eyr'))
-        def test_Jtvec_adjointTest_ezr_Bform(self):
-            self.assertTrue(adjointTest('b', 'ezr'))
-        def test_Jtvec_adjointTest_exi_Bform(self):
-            self.assertTrue(adjointTest('b', 'exi'))
-        def test_Jtvec_adjointTest_eyi_Bform(self):
-            self.assertTrue(adjointTest('b', 'eyi'))
-        def test_Jtvec_adjointTest_ezi_Bform(self):
-            self.assertTrue(adjointTest('b', 'ezi'))
-        def test_Jtvec_adjointTest_bxr_Bform(self):
-            self.assertTrue(adjointTest('b', 'bxr'))
-        def test_Jtvec_adjointTest_byr_Bform(self):
-            self.assertTrue(adjointTest('b', 'byr'))
-        def test_Jtvec_adjointTest_bzr_Bform(self):
-            self.assertTrue(adjointTest('b', 'bzr'))
-        def test_Jtvec_adjointTest_bxi_Bform(self):
-            self.assertTrue(adjointTest('b', 'bxi'))
-        def test_Jtvec_adjointTest_byi_Bform(self):
-            self.assertTrue(adjointTest('b', 'byi'))
-        def test_Jtvec_adjointTest_bzi_Bform(self):
-            self.assertTrue(adjointTest('b', 'bzi'))
-
 
     if testHJ:
         def test_Jtvec_adjointTest_jxr_Jform(self):

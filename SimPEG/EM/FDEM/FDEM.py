@@ -78,10 +78,10 @@ class BaseFDEMProblem(BaseEMProblem):
                 
                 for rx in src.rxList:
                     df_duFun = getattr(f, '_%sDeriv_u'%rx.projField, None)
-                    df_dudu_dm = df_duFun(src, du_dm, adjoint=False)
+                    df_dudu_dm = df_duFun(src, du_dm, u_src, adjoint=False)
 
                     df_dmFun = getattr(f, '_%sDeriv_m'%rx.projField, None)
-                    df_dm = df_dmFun(src, v, adjoint=False)
+                    df_dm = df_dmFun(src, v, u_src, adjoint=False)
 
                     Df_Dm = np.array(df_dudu_dm + df_dm,dtype=complex)
 

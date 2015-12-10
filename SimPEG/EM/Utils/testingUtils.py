@@ -4,6 +4,13 @@ from SimPEG import EM
 import sys
 from scipy.constants import mu_0
 
+FLR = 1e-20 # "zero", so if residual below this --> pass regardless of order
+CONDUCTIVITY = 1e1
+MU = mu_0
+freq = 5e-1
+addrandoms = False
+
+
 def getFDEMProblem(fdemType, comp, SrcList, freq, verbose=False):
     cs = 10.
     ncx, ncy, ncz = 0, 0, 0
@@ -73,3 +80,42 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, verbose=False):
         prb.Solver = SolverLU
 
     return prb
+
+def crossCheckTest(SrcList, fdemType1, fdemType2, comp, TOL=1e-5, verbose=False):
+
+    l2norm = lambda r: np.sqrt(r.dot(r))
+
+    prb1 = getFDEMProblem(fdemType1, comp, SrcList, freq, verbose)
+    mesh = prb1.mesh
+    print 'Cross Checking Forward: %s, %s formulations - %s' % (fdemType1, fdemType2, comp)
+    m = np.log(np.ones(mesh.nC)*CONDUCTIVITY)
+    mu = np.log(np.ones(mesh.nC)*MU)
+
+    if addrandoms is True:
+        m  = m + np.random.randn(mesh.nC)*np.log(CONDUCTIVITY)*1e-1
+        mu = mu + np.random.randn(mesh.nC)*MU*1e-1
+
+    # prb1.PropMap.PropModel.mu = mu
+    # prb1.PropMap.PropModel.mui = 1./mu
+    survey1 = prb1.survey
+    d1 = survey1.dpred(m)
+
+    if verbose:
+        print '  Problem 1 solved'
+
+
+    prb2 = getFDEMProblem(fdemType2, comp, SrcList, freq, verbose)
+
+    # prb2.mu = mu
+    survey2 = prb2.survey
+    d2 = survey2.dpred(m)
+
+    if verbose:
+        print '  Problem 2 solved'
+
+    r = d2-d1
+    l2r = l2norm(r)
+
+    tol = np.max([TOL*(10**int(np.log10(l2norm(d1)))),FLR])
+    print l2norm(d1), l2norm(d2),  l2r , tol, l2r < tol
+    return l2r < tol
