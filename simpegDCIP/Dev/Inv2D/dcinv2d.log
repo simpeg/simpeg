@@ -14,7 +14,7 @@ Distributed by:
 Mira Geoscience Ltd.
 
 
- DCINV2D started on:12/10/2015  14:20:13
+ DCINV2D started on:12/11/2015  11:26:38
 
 
 Reading input file: dcinv2d.inp
@@ -35,17 +35,17 @@ USE_MREF TRUE
 
       maximum # of iterations: 100
 data were read from: FWR_3D_2_2D.dat
-       # of current locations:   10
-                    # of data:   54
+       # of current locations:    9
+                    # of data:   45
                       chifact: 1.00000E+00
-                target misfit: 5.40000E+01
+                target misfit: 4.50000E+01
 
 mesh was read from: Mesh_2D.msh
-                      # of cells:   50 x   30
-                total # of cells:  1500
-               # of active cells:  1500
+                      # of cells:   47 x   30
+                total # of cells:  1410
+               # of active cells:  1410
 
-   # of unique data locations:   10
+   # of unique data locations:    9
 # of wave values:  13
   2.5000E-04  4.9901E-04  9.9606E-04  1.9882E-03  3.9685E-03  7.9213E-03  1.5811E-02  3.1560E-02  6.2996E-02  1.2574E-01  2.5099E-01  5.0099E-01  1.0000E+00
 
@@ -57,12 +57,12 @@ corresponding alpha (a_s, a_x, a_z): ( 1.56250E-04, 1.0000E+00, 1.0000E+00)
 
 Using basis vectors and SVD.
 reference model will be used in the derivative terms.
-number of basis vectors:  19 + 3 + 1 =   23
+number of basis vectors:  17 + 3 + 1 =   21
 
-init cpu time:   0:00:00.04
+init cpu time:   0:00:00.06
 
  
-   initial misfit =  2.87480E+04
+   initial misfit =  5.86595E+04
  init. model norm =  0.00000E+00
     norm comp Ws  =  0.00000E+00
     norm comp Wx  =  0.00000E+00
@@ -73,263 +73,263 @@ Iteration    1
 
   beta vs. misfit:
      beta         misfit
-  1.05827E+04  7.91147E+03
-  2.11653E+04  9.97641E+03
-  5.29133E+04  1.42234E+04
-  5.43732E+04  1.43748E+04
+  1.14011E+04  1.55434E+04
+  2.28022E+04  1.97701E+04
+  5.70054E+04  2.80956E+04
+  6.37666E+04  2.93408E+04
 
-      chosen beta =  5.43657E+04
-    target misfit =  1.43740E+04
-  achieved misfit =  1.43740E+04
-       model norm =  1.00462E-01
-    misfit change =  5.00000E-01
+      chosen beta =  6.37044E+04
+    target misfit =  2.93298E+04
+  achieved misfit =  2.93298E+04
+       model norm =  1.78131E-01
+    misfit change =  4.99999E-01
 model norm change =  0.00000E+00
 
-    norm comp Ws  =  5.19270E-02
-    norm comp Wx  =  2.47955E-02
-    norm comp Wz  =  2.37393E-02
+    norm comp Ws  =  9.36044E-02
+    norm comp Wx  =  5.21598E-02
+    norm comp Wz  =  3.23664E-02
 
-iter cpu time:   0:00:00.64
+iter cpu time:   0:00:00.54
 
 
 Iteration    2
 
   beta vs. misfit:
      beta         misfit
-  8.89064E+03  7.03214E+03
-  1.35914E+04  8.23443E+03
-  2.71829E+04  1.09665E+04
+  1.13370E+04  1.41481E+04
+  1.59261E+04  1.63158E+04
+  3.18522E+04  2.20755E+04
 
-      chosen beta =  9.42699E+03
-    target misfit =  7.18700E+03
-  achieved misfit =  7.18162E+03
-       model norm =  4.48909E-01
-    misfit change =  5.00374E-01
-model norm change =  3.46846E+00
+      chosen beta =  1.23494E+04
+    target misfit =  1.46649E+04
+  achieved misfit =  1.46622E+04
+       model norm =  7.62402E-01
+    misfit change =  5.00094E-01
+model norm change =  3.28002E+00
 
-    norm comp Ws  =  1.84955E-01
-    norm comp Wx  =  1.65870E-01
-    norm comp Wz  =  9.80840E-02
+    norm comp Ws  =  3.10519E-01
+    norm comp Wx  =  3.26120E-01
+    norm comp Wz  =  1.25764E-01
 
-iter cpu time:   0:00:00.40
+iter cpu time:   0:00:00.17
 
 
 Iteration    3
 
   beta vs. misfit:
      beta         misfit
-  1.30271E+03  3.38723E+03
-  2.35675E+03  4.32491E+03
-  4.71349E+03  5.60434E+03
+  3.08734E+03  7.25168E+03
+  6.17468E+03  1.04745E+04
 
-      chosen beta =  1.50085E+03
-    target misfit =  3.59081E+03
-  achieved misfit =  3.60067E+03
-       model norm =  1.47576E+00
-    misfit change =  4.98627E-01
-model norm change =  2.28744E+00
+      chosen beta =  3.15138E+03
+    target misfit =  7.33109E+03
+  achieved misfit =  7.33827E+03
+       model norm =  1.97756E+00
+    misfit change =  4.99510E-01
+model norm change =  1.59385E+00
 
-    norm comp Ws  =  4.08324E-01
-    norm comp Wx  =  8.20762E-01
-    norm comp Wz  =  2.46674E-01
+    norm comp Ws  =  5.74759E-01
+    norm comp Wx  =  1.07019E+00
+    norm comp Wz  =  3.32607E-01
 
-iter cpu time:   0:00:00.49
+iter cpu time:   0:00:00.14
 
 
 Iteration    4
 
   beta vs. misfit:
      beta         misfit
-  3.75212E+02  1.34820E+03
-  7.50424E+02  2.29809E+03
+  7.87844E+02  2.34933E+03
+  1.57569E+03  4.17369E+03
 
-      chosen beta =  5.46411E+02
-    target misfit =  1.80034E+03
-  achieved misfit =  1.83379E+03
-       model norm =  3.31412E+00
-    misfit change =  4.90710E-01
-model norm change =  1.24570E+00
+      chosen beta =  1.34889E+03
+    target misfit =  3.66914E+03
+  achieved misfit =  3.69116E+03
+       model norm =  3.63935E+00
+    misfit change =  4.96999E-01
+model norm change =  8.40325E-01
 
-    norm comp Ws  =  6.83124E-01
-    norm comp Wx  =  2.07548E+00
-    norm comp Wz  =  5.55519E-01
+    norm comp Ws  =  9.31633E-01
+    norm comp Wx  =  2.00929E+00
+    norm comp Wz  =  6.98426E-01
 
-iter cpu time:   0:00:00.20
+iter cpu time:   0:00:00.43
 
 
 Iteration    5
 
   beta vs. misfit:
      beta         misfit
-  1.36603E+02  5.05265E+02
-  2.73206E+02  9.48634E+02
+  3.37223E+02  1.15980E+03
+  6.74446E+02  1.95927E+03
 
-      chosen beta =  2.63165E+02
-    target misfit =  9.16894E+02
-  achieved misfit =  9.16736E+02
-       model norm =  5.54836E+00
-    misfit change =  5.00086E-01
-model norm change =  6.74157E-01
+      chosen beta =  6.23201E+02
+    target misfit =  1.84558E+03
+  achieved misfit =  1.83831E+03
+       model norm =  5.55702E+00
+    misfit change =  5.01969E-01
+model norm change =  5.26927E-01
 
-    norm comp Ws  =  8.54281E-01
-    norm comp Wx  =  3.70325E+00
-    norm comp Wz  =  9.90823E-01
+    norm comp Ws  =  1.39116E+00
+    norm comp Wx  =  2.97085E+00
+    norm comp Wz  =  1.19501E+00
 
-iter cpu time:   0:00:00.17
+iter cpu time:   0:00:00.13
 
 
 Iteration    6
 
   beta vs. misfit:
      beta         misfit
-  6.57912E+01  2.23512E+02
-  1.31582E+02  4.05775E+02
-  1.51607E+02  4.68975E+02
+  1.55800E+02  7.04026E+02
+  3.11600E+02  1.03301E+03
 
-      chosen beta =  1.48251E+02
-    target misfit =  4.58368E+02
-  achieved misfit =  4.58273E+02
-       model norm =  7.68792E+00
-    misfit change =  5.00103E-01
-model norm change =  3.85621E-01
+      chosen beta =  2.52300E+02
+    target misfit =  9.19156E+02
+  achieved misfit =  9.06295E+02
+       model norm =  7.76502E+00
+    misfit change =  5.06996E-01
+model norm change =  3.97336E-01
 
-    norm comp Ws  =  1.03639E+00
-    norm comp Wx  =  5.25876E+00
-    norm comp Wz  =  1.39277E+00
+    norm comp Ws  =  1.93177E+00
+    norm comp Wx  =  4.15601E+00
+    norm comp Wz  =  1.67723E+00
 
-iter cpu time:   0:00:00.29
+iter cpu time:   0:00:00.14
 
 
 Iteration    7
 
   beta vs. misfit:
      beta         misfit
-  3.70626E+01  1.66504E+02
-  7.41253E+01  2.51726E+02
+  5.45665E+01  4.43592E+02
+  6.30749E+01  4.61153E+02
+  1.26150E+02  5.89041E+02
 
-      chosen beta =  6.33124E+01
-    target misfit =  2.29137E+02
-  achieved misfit =  2.25244E+02
-       model norm =  1.00149E+01
-    misfit change =  5.08495E-01
-model norm change =  3.02681E-01
+      chosen beta =  5.90843E+01
+    target misfit =  4.53148E+02
+  achieved misfit =  4.52929E+02
+       model norm =  1.10434E+01
+    misfit change =  5.00242E-01
+model norm change =  4.22194E-01
 
-    norm comp Ws  =  1.04755E+00
-    norm comp Wx  =  6.91957E+00
-    norm comp Wz  =  2.04778E+00
+    norm comp Ws  =  2.44126E+00
+    norm comp Wx  =  6.33488E+00
+    norm comp Wz  =  2.26722E+00
 
-iter cpu time:   0:00:00.34
+iter cpu time:   0:00:00.15
 
 
 Iteration    8
 
   beta vs. misfit:
      beta         misfit
-  1.58281E+01  1.02052E+02
-  3.16562E+01  1.24062E+02
+  1.76205E+00  2.33067E+02
+  3.87651E+00  2.33770E+02
+  8.52832E+00  2.36313E+02
+  1.47711E+01  2.41686E+02
+  2.95422E+01  2.66924E+02
 
-      chosen beta =  2.24560E+01
-    target misfit =  1.12622E+02
-  achieved misfit =  1.09408E+02
-       model norm =  1.25018E+01
-    misfit change =  5.14267E-01
-model norm change =  2.48315E-01
+      chosen beta =  3.87651E+00
+    target misfit =  2.26464E+02
+  achieved misfit =  2.33770E+02
+       model norm =  1.57679E+01
+    misfit change =  4.83870E-01
+model norm change =  4.27818E-01
 
-    norm comp Ws  =  1.21846E+00
-    norm comp Wx  =  9.04398E+00
-    norm comp Wz  =  2.23932E+00
+    norm comp Ws  =  3.91956E+00
+    norm comp Wx  =  8.05061E+00
+    norm comp Wz  =  3.79775E+00
 
-iter cpu time:   0:00:00.17
+iter cpu time:   0:00:00.54
 
 
 Iteration    9
 
   beta vs. misfit:
      beta         misfit
-  1.15992E+00  7.28154E+01
-  2.55182E+00  7.30977E+01
-  5.61400E+00  7.44520E+01
-  1.12280E+01  7.91248E+01
+  9.69127E-01  1.25628E+02
+  1.93825E+00  1.25177E+02
+  3.87651E+00  1.26747E+02
 
-      chosen beta =  2.55182E+00
-    target misfit =  5.47041E+01
-  achieved misfit =  7.30977E+01
-       model norm =  1.46799E+01
-    misfit change =  3.31881E-01
-model norm change =  1.74228E-01
+      chosen beta =  1.93825E+00
+    target misfit =  1.16885E+02
+  achieved misfit =  1.25177E+02
+       model norm =  2.02946E+01
+    misfit change =  4.64529E-01
+model norm change =  2.87081E-01
 
-    norm comp Ws  =  1.27978E+00
-    norm comp Wx  =  1.03955E+01
-    norm comp Wz  =  3.00464E+00
+    norm comp Ws  =  5.14918E+00
+    norm comp Wx  =  1.04854E+01
+    norm comp Wz  =  4.66004E+00
 
-iter cpu time:   0:00:00.17
+iter cpu time:   0:00:00.14
 
 
 Iteration   10
 
   beta vs. misfit:
      beta         misfit
-  1.39261E+00  4.80711E+01
-  1.88512E+00  4.83598E+01
-  4.71280E+00  5.04589E+01
-  1.17820E+01  5.88251E+01
+  4.84563E-01  8.59120E+01
+  9.69127E-01  8.56434E+01
+  1.93825E+00  8.63895E+01
 
-      chosen beta =  7.06669E+00
-    target misfit =  5.40000E+01
-  achieved misfit =  5.27458E+01
-       model norm =  1.48886E+01
-    misfit change =  2.78420E-01
-model norm change =  1.42172E-02
+      chosen beta =  9.69127E-01
+    target misfit =  6.25885E+01
+  achieved misfit =  8.56434E+01
+       model norm =  2.27540E+01
+    misfit change =  3.15821E-01
+model norm change =  1.21187E-01
 
-    norm comp Ws  =  1.42273E+00
-    norm comp Wx  =  1.05086E+01
-    norm comp Wz  =  2.95727E+00
+    norm comp Ws  =  6.37929E+00
+    norm comp Wx  =  1.05750E+01
+    norm comp Wz  =  5.79974E+00
 
-iter cpu time:   0:00:00.39
+iter cpu time:   0:00:00.13
 
 
 Iteration   11
 
   beta vs. misfit:
      beta         misfit
-  7.23472E+00  4.12130E+01
-  7.40675E+00  4.14256E+01
-  1.85169E+01  5.95740E+01
+  2.67558E-01  5.36200E+01
+  5.09212E-01  5.36850E+01
 
-      chosen beta =  1.44535E+01
-    target misfit =  5.40000E+01
-  achieved misfit =  5.20734E+01
-       model norm =  1.45035E+01
-    misfit change =  1.27476E-02
-model norm change = -2.58673E-02
+      chosen beta =  5.09212E-01
+    target misfit =  4.50000E+01
+  achieved misfit =  5.36850E+01
+       model norm =  2.65060E+01
+    misfit change =  3.73156E-01
+model norm change =  1.64894E-01
 
-    norm comp Ws  =  1.38232E+00
-    norm comp Wx  =  1.04192E+01
-    norm comp Wz  =  2.70198E+00
+    norm comp Ws  =  7.06440E+00
+    norm comp Wx  =  1.17778E+01
+    norm comp Wz  =  7.66382E+00
 
-iter cpu time:   0:00:00.26
+iter cpu time:   0:00:00.12
 
 
 Iteration   12
 
   beta vs. misfit:
      beta         misfit
-  1.49882E+01  5.14497E+01
-  1.55427E+01  5.22662E+01
-  1.67582E+01  5.41032E+01
+  3.57781E-01  4.27021E+01
+  4.26833E-01  4.27304E+01
+  1.06708E+00  4.32906E+01
+  2.66771E+00  4.58497E+01
 
-      chosen beta =  1.66886E+01
-    target misfit =  5.40000E+01
-  achieved misfit =  5.39963E+01
-       model norm =  1.42758E+01
-    misfit change = -3.69261E-02
-model norm change = -1.56990E-02
+      chosen beta =  1.97938E+00
+    target misfit =  4.50000E+01
+  achieved misfit =  4.46230E+01
+       model norm =  2.75984E+01
+    misfit change =  1.68800E-01
+model norm change =  4.12137E-02
 
-    norm comp Ws  =  1.40497E+00
-    norm comp Wx  =  1.00935E+01
-    norm comp Wz  =  2.77734E+00
+    norm comp Ws  =  7.60316E+00
+    norm comp Wx  =  1.17705E+01
+    norm comp Wz  =  8.22479E+00
 
-iter cpu time:   0:00:00.17
+iter cpu time:   0:00:00.51
 
 
 Target misfit achieved.  Minimizing model norm.
@@ -339,30 +339,52 @@ Iteration   13
 
   beta vs. misfit:
      beta         misfit
-  1.66898E+01  5.35819E+01
-  1.66909E+01  5.35835E+01
-  1.69863E+01  5.40047E+01
+  1.99610E+00  3.93953E+01
+  2.01297E+00  3.94209E+01
+  5.03242E+00  4.59121E+01
 
-      chosen beta =  1.69830E+01
-    target misfit =  5.40000E+01
-  achieved misfit =  5.39999E+01
-       model norm =  1.42353E+01
-    misfit change = -6.75492E-05
-model norm change = -2.83385E-03
+      chosen beta =  4.46061E+00
+    target misfit =  4.50000E+01
+  achieved misfit =  4.44143E+01
+       model norm =  2.65756E+01
+    misfit change =  4.67734E-03
+model norm change = -3.70618E-02
 
-    norm comp Ws  =  1.36827E+00
-    norm comp Wx  =  1.00376E+01
-    norm comp Wz  =  2.82945E+00
+    norm comp Ws  =  7.28818E+00
+    norm comp Wx  =  1.16493E+01
+    norm comp Wz  =  7.63807E+00
 
-iter cpu time:   0:00:00.18
+iter cpu time:   0:00:00.15
+
+
+Iteration   14
+
+  beta vs. misfit:
+     beta         misfit
+  4.51943E+00  4.42228E+01
+  4.57903E+00  4.43808E+01
+  4.81808E+00  4.50262E+01
+
+      chosen beta =  4.80820E+00
+    target misfit =  4.50000E+01
+  achieved misfit =  4.49992E+01
+       model norm =  2.59337E+01
+    misfit change = -1.31690E-02
+model norm change = -2.41533E-02
+
+    norm comp Ws  =  7.05571E+00
+    norm comp Wx  =  1.14342E+01
+    norm comp Wz  =  7.44373E+00
+
+iter cpu time:   0:00:00.15
 
 
    Exit at convergence.
 
 
- Iterations performed:   13
+ Iterations performed:   14
 
-total cpu time:   0:00:03.96
+total cpu time:   0:00:03.57
 
- DCINV2D ended on:12/10/2015  14:20:17
+ DCINV2D ended on:12/11/2015  11:26:42
 

@@ -34,7 +34,7 @@ from plot_pseudoSection import plot_pseudoSection
 from gen_DCIPsurvey import gen_DCIPsurvey
 from convertObs_DC3D_to_2D import convertObs_DC3D_to_2D
 import os
-
+import sys
 
 home_dir = 'C:\Users\dominiquef.MIRAGEOSCIENCE\Documents\GIT\SimPEG\simpegdc\simpegDCIP\Dev'
 dsep = '\\'
@@ -55,6 +55,9 @@ stype = 'pdp'
 a = 40
 n = 10
 
+# Forward solver
+slvr = 'BiCGStab' #'LU'
+
 # Inversion parameter
 pct = 0.01
 flr = 1e-4
@@ -72,15 +75,20 @@ Msig = Utils.sdiag(1./(mesh.aveF2CC.T*(1./model)))
 A = Div*Msig*Grad
 
 # Change one corner to deal with nullspace
-A[0,0] = 1/mesh.vol[0]
+A[0,0] = 1
 A = sp.csc_matrix(A)
 
 start_time = time.time()
 
-# Factor A matrix
-Ainv = sp.linalg.splu(A)
+if re.match(slvr,'BiCGStab'):
+    # Create Jacobi Preconditioner
+    dA = A.diagonal()
+    P = sp.spdiags(1/dA,0,A.shape[0],A.shape[0])
 
-print("LU DECOMP--- %s seconds ---" % (time.time() - start_time))
+elif re.match(slvr,'LU'):
+    # Factor A matrix
+    Ainv = sp.linalg.splu(A)    
+    print("LU DECOMP--- %s seconds ---" % (time.time() - start_time))
 
 #%% Create survey
 # Display top section 
@@ -89,6 +97,10 @@ top = int(mesh.nCz)-1
 plt.figure()
 ax_prim = plt.subplot(1,1,1)
 mesh.plotSlice(model, ind=top, normal='Z', grid=True, pcolorOpts={'alpha':0.8}, ax =ax_prim)
+plt.xlim([423000,424000])
+plt.ylim([546200,547200])
+plt.gca().set_aspect('equal', adjustable='box')
+    
 plt.show()
 cfm1=get_current_fig_manager().window
 gin=[1]
@@ -102,6 +114,8 @@ while bool(gin)==True:
         
     # Takes two points from ginput and create survey
     gin = plt.ginput(2, timeout = 0)
+    # gin = [(423393.22916666663, 546431.77083333337), (423588.54166666663, 546864.0625)]
+    
     
     if not gin:
         print 'SimPED - Simulation has ended with return'
@@ -116,7 +130,7 @@ while bool(gin)==True:
     # Snap the endpoints to the grid. Easier to create 2D section.
     indx = Utils.closestPoints(mesh, var )
     endl = np.c_[mesh.gridCC[indx,0],mesh.gridCC[indx,1],np.ones(2).T*nz[-1]]
-     
+          
     [Tx, Rx] = gen_DCIPsurvey(endl, mesh, stype, a, n)
      
     dl_len = np.sqrt( np.sum((Tx[0][0:2,0] - Tx[-1][0:2,1])**2) ) 
@@ -125,8 +139,8 @@ while bool(gin)==True:
     azm =  np.arctan(dl_y/dl_x)
       
     # Plot stations along line   
-    plt.scatter(Tx[0][0,:],Tx[0][1,:],s=10,c='r')
-    plt.scatter(Rx[0][:,0::3],Rx[0][:,1::3],s=10,c='b')
+    plt.scatter(Tx[0][0,:],Tx[0][1,:],s=20,c='g')
+    plt.scatter(Rx[0][:,0::3],Rx[0][:,1::3],s=20,c='y')
     
     #%% Forward model data
     data = []#np.zeros( nstn*nrx )
@@ -161,12 +175,18 @@ while bool(gin)==True:
         P1 = mesh.getInterpolationMat(rxloc_M, 'CC')
         P2 = mesh.getInterpolationMat(rxloc_N, 'CC')
     
-        #Direct Solve
-        phi = Ainv.solve(RHS) 
+        if re.match(slvr,'BiCGStab'):
+            # Create Jacobi Preconditioner
+            dA = A.diagonal()
+            P = sp.spdiags(1/dA,0,A.shape[0],A.shape[0])        
+                   
+        elif re.match(slvr,'LU'):
+            #Direct Solve
+            phi = Ainv.solve(RHS)        
         
         # Iterative Solve
-        #Ainvb = sp.linalg.bicgstab(A,RHS, tol=1e-5)
-        #phi = mkvc(Ainvb[0])
+        Ainvb = sp.linalg.bicgstab(P*A,P*RHS, tol=1e-5)
+        phi = mkvc(Ainvb[0])
         
         # Compute potential at each electrode
         dtemp = (P1*phi - P2*phi)*np.pi
@@ -174,10 +194,10 @@ while bool(gin)==True:
         data.append( dtemp )     
         unct.append( np.abs(dtemp) * pct + flr)
        
-        print("--- %s seconds ---" % (time.time() - start_time))
+        print("--- %s seconds ---" % (time.time() - start_time))  
         
         
-    # Write data file in UBC-DCIP3D format
+    #%% Write data file in UBC-DCIP3D format
     writeUBC_DCobs(home_dir+'\FWR_data3D.dat',Tx,Rx,data,unct,'3D')     
     
     
@@ -229,7 +249,7 @@ while bool(gin)==True:
     axs = plt.subplot(2,1,1)
     
     plt.xlim([0,nc*dx])
-    plt.ylim([mesh2d.vectorNy[-1]-dl_len/2,mesh2d.vectorNy[-1]])
+    plt.ylim([mesh2d.vectorNy[-1]-dl_len,mesh2d.vectorNy[-1]])
     plt.gca().set_aspect('equal', adjustable='box')
     
     plt.pcolormesh(mesh2d.vectorNx,mesh2d.vectorNy,np.log10(m2D),alpha=0.5, cmap='gray')#axes = [mesh2d.vectorNx[0],mesh2d.vectorNx[-1],mesh2d.vectorNy[0],mesh2d.vectorNy[-1]])
@@ -240,14 +260,7 @@ while bool(gin)==True:
     plot_pseudoSection(Tx2d,Rx2d,data,nz[-1],stype)
     plt.colorbar
     plt.show()
-    #==============================================================================
-    # # Grab slice of model
-    # m = np.reshape(model, (mesh.nCz, mesh.nCy, mesh.nCx))
-    # m2D = m[::-1,9,:]
-    # plt.figure()
-    # plt.imshow(m2D)
-    #==============================================================================
-    
+
     #%% Create dcin2d inversion files and run
     inv_dir = home_dir + '\Inv2D' 
     if not os.path.exists(inv_dir):
@@ -304,13 +317,14 @@ while bool(gin)==True:
     axs = plt.subplot(2,1,2)
     
     plt.xlim([0,nc*dx])
-    plt.ylim([mesh2d.vectorNy[-1]-dl_len/2,mesh2d.vectorNy[-1]])
+    plt.ylim([mesh2d.vectorNy[-1]-dl_len,mesh2d.vectorNy[-1]])
     plt.gca().set_aspect('equal', adjustable='box')
     
     minv = np.reshape(minv,(mesh2d.nCy,mesh2d.nCx))
     plt.pcolormesh(mesh2d.vectorNx,mesh2d.vectorNy,np.log10(m2D),alpha=0.5, cmap='gray')
     plt.pcolormesh(mesh2d.vectorNx,mesh2d.vectorNy,np.log10(minv),alpha=0.5, clim=(np.min(np.log10(m2D)),np.max(np.log10(m2D))))
     plt.colorbar
+
 
 #%%
 
