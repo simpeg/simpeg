@@ -24,8 +24,10 @@ from SimPEG import np, Utils, Mesh, mkvc, sp
 import simpegDCIP as DC
 import pylab as plt
 from pylab import get_current_fig_manager
+from scipy.interpolate import griddata
 import time
 import re
+import numpy.matlib as npm
 from readUBC_DC3Dobs import readUBC_DC3Dobs
 from readUBC_DC2DModel import readUBC_DC2DModel
 from writeUBC_DCobs import writeUBC_DCobs
@@ -34,7 +36,6 @@ from plot_pseudoSection import plot_pseudoSection
 from gen_DCIPsurvey import gen_DCIPsurvey
 from convertObs_DC3D_to_2D import convertObs_DC3D_to_2D
 import os
-import sys
 
 home_dir = 'C:\Users\dominiquef.MIRAGEOSCIENCE\Documents\GIT\SimPEG\simpegdc\simpegDCIP\Dev'
 dsep = '\\'
@@ -48,8 +49,9 @@ mesh = Utils.meshutils.readUBCTensorMesh(home_dir + '\Mesh_20m.msh')
 #model = Utils.meshutils.readUBCTensorModel(home_dir + '\MtIsa_3D.con',mesh)
 model = Utils.meshutils.readUBCTensorModel(home_dir + '\Synthetic.con',mesh)
 
+model = model**0 * 1e-2
 # Specify survey type
-stype = 'pdp'
+stype = 'gradient'
 
 # Survey parameters
 a = 40
@@ -96,7 +98,7 @@ top = int(mesh.nCz)-1
 
 plt.figure()
 ax_prim = plt.subplot(1,1,1)
-mesh.plotSlice(model, ind=top, normal='Z', grid=True, pcolorOpts={'alpha':0.8}, ax =ax_prim)
+mesh.plotSlice(model, ind=top, normal='Z', grid=False, pcolorOpts={'alpha':0.5}, ax =ax_prim)
 plt.xlim([423000,424000])
 plt.ylim([546200,547200])
 plt.gca().set_aspect('equal', adjustable='box')
@@ -106,97 +108,103 @@ cfm1=get_current_fig_manager().window
 gin=[1]
 
 # Keep creating sections until returns an empty ginput (press enter on figure)
-while bool(gin)==True:
+#while bool(gin)==True:
     
-    # Bring back the plan view figure and pick points     
-    cfm1.activateWindow()
-    plt.sca(ax_prim)
-        
-    # Takes two points from ginput and create survey
-    gin = plt.ginput(2, timeout = 0)
-    # gin = [(423393.22916666663, 546431.77083333337), (423588.54166666663, 546864.0625)]
+# Bring back the plan view figure and pick points     
+cfm1.activateWindow()
+plt.sca(ax_prim)
     
+# Takes two points from ginput and create survey
+#gin = plt.ginput(2, timeout = 0)
+gin = [(423187.  ,  546311.), (423867.  ,  546991.)]
+
+
+#==============================================================================
+# if not gin:
+#     print 'SimPED - Simulation has ended with return'
+#     break
+#==============================================================================
     
-    if not gin:
-        print 'SimPED - Simulation has ended with return'
-        break
-        
-    #gin = [(465.9879032258068, 12141.34375), (1648.0443548387098, 12149.083333333334)]
-    
-    # Add z coordinate to all survey... assume flat
-    nz = mesh.vectorNz
-    var = np.c_[np.asarray(gin),np.ones(2).T*nz[-1]]
-    
-    # Snap the endpoints to the grid. Easier to create 2D section.
-    indx = Utils.closestPoints(mesh, var )
-    endl = np.c_[mesh.gridCC[indx,0],mesh.gridCC[indx,1],np.ones(2).T*nz[-1]]
-          
-    [Tx, Rx] = gen_DCIPsurvey(endl, mesh, stype, a, n)
-     
-    dl_len = np.sqrt( np.sum((Tx[0][0:2,0] - Tx[-1][0:2,1])**2) ) 
-    dl_x = ( Tx[-1][0,1] - Tx[0][0,0] ) / dl_len
-    dl_y = ( Tx[-1][1,1] - Tx[0][1,0]  ) / dl_len
-    azm =  np.arctan(dl_y/dl_x)
+#gin = [(465.9879032258068, 12141.34375), (1648.0443548387098, 12149.083333333334)]
+
+# Add z coordinate to all survey... assume flat
+nz = mesh.vectorNz
+var = np.c_[np.asarray(gin),np.ones(2).T*nz[-1]]
+
+# Snap the endpoints to the grid. Easier to create 2D section.
+indx = Utils.closestPoints(mesh, var )
+endl = np.c_[mesh.gridCC[indx,0],mesh.gridCC[indx,1],np.ones(2).T*nz[-1]]
       
-    # Plot stations along line   
-    plt.scatter(Tx[0][0,:],Tx[0][1,:],s=20,c='g')
-    plt.scatter(Rx[0][:,0::3],Rx[0][:,1::3],s=20,c='y')
+[Tx, Rx] = gen_DCIPsurvey(endl, mesh, stype, a, n)
+ 
+dl_len = np.sqrt( np.sum((Tx[0][0:2,0] - Tx[-1][0:2,1])**2) ) 
+dl_x = ( Tx[-1][0,1] - Tx[0][0,0] ) / dl_len
+dl_y = ( Tx[-1][1,1] - Tx[0][1,0]  ) / dl_len
+azm =  np.arctan(dl_y/dl_x)
+  
+# Plot stations along line   
+plt.scatter(Tx[0][0,:],Tx[0][1,:],s=20,c='g')
+plt.scatter(Rx[0][:,0::3],Rx[0][:,1::3],s=20,c='y')
+
+#%% Forward model data
+data = []#np.zeros( nstn*nrx )
+unct = []
+problem = DC.ProblemDC_CC(mesh)
     
-    #%% Forward model data
-    data = []#np.zeros( nstn*nrx )
-    unct = []
-    problem = DC.ProblemDC_CC(mesh)
-        
-    for ii in range(len(Tx)):
-        start_time = time.time()
-        
-        # Select dipole locations for receiver
-        rxloc_M = np.asarray(Rx[ii][:,0:3])
-        rxloc_N = np.asarray(Rx[ii][:,3:])
-        
-        # Number of receivers
-        nrx = rxloc_M.shape[0]
+for ii in range(len(Tx)):
+    start_time = time.time()
     
-        
-        
-        if re.match(stype,'dpdp'):
-            inds = Utils.closestPoints(mesh, np.asarray(Tx[ii]).T )
-            RHS = mesh.getInterpolationMat(np.asarray(Tx[ii]).T, 'CC').T*( [-1,1] / mesh.vol[inds] )   
-            
-        elif re.match(stype,'pdp'): 
-            
-            # Create an "inifinity" pole
-            tx =  np.squeeze(Tx[ii][:,0:1])
-            tinf = tx + np.array([dl_x,dl_y,0])*dl_len*2
-            inds = Utils.closestPoints(mesh, np.c_[tx,tinf].T)
-            RHS = mesh.getInterpolationMat(np.asarray(Tx[ii]).T, 'CC').T*( [-1] / mesh.vol[inds] )  
-        
-        # Solve for phi on pole locations
-        P1 = mesh.getInterpolationMat(rxloc_M, 'CC')
-        P2 = mesh.getInterpolationMat(rxloc_N, 'CC')
+    # Select dipole locations for receiver
+    rxloc_M = np.asarray(Rx[ii][:,0:3])
+    rxloc_N = np.asarray(Rx[ii][:,3:])
     
-        if re.match(slvr,'BiCGStab'):
-            # Create Jacobi Preconditioner
-            dA = A.diagonal()
-            P = sp.spdiags(1/dA,0,A.shape[0],A.shape[0])        
-                   
-        elif re.match(slvr,'LU'):
-            #Direct Solve
-            phi = Ainv.solve(RHS)        
+    # Number of receivers
+    nrx = rxloc_M.shape[0]
+
+    
+    
+    if not re.match(stype,'pdp'):
+        inds = Utils.closestPoints(mesh, np.asarray(Tx[ii]).T )
+        RHS = mesh.getInterpolationMat(np.asarray(Tx[ii]).T, 'CC').T*( [-1,1] / mesh.vol[inds] )   
         
-        # Iterative Solve
-        Ainvb = sp.linalg.bicgstab(P*A,P*RHS, tol=1e-5)
-        phi = mkvc(Ainvb[0])
+    else: 
         
-        # Compute potential at each electrode
-        dtemp = (P1*phi - P2*phi)*np.pi
-        
-        data.append( dtemp )     
-        unct.append( np.abs(dtemp) * pct + flr)
-       
-        print("--- %s seconds ---" % (time.time() - start_time))  
-        
-        
+        # Create an "inifinity" pole
+        tx =  np.squeeze(Tx[ii][:,0:1])
+        tinf = tx + np.array([dl_x,dl_y,0])*dl_len*2
+        inds = Utils.closestPoints(mesh, np.c_[tx,tinf].T)
+        RHS = mesh.getInterpolationMat(np.asarray(Tx[ii]).T, 'CC').T*( [-1] / mesh.vol[inds] )  
+    
+    # Solve for phi on pole locations
+    P1 = mesh.getInterpolationMat(rxloc_M, 'CC')
+    P2 = mesh.getInterpolationMat(rxloc_N, 'CC')
+
+    if re.match(slvr,'BiCGStab'):
+        # Create Jacobi Preconditioner
+        dA = A.diagonal()
+        P = sp.spdiags(1/dA,0,A.shape[0],A.shape[0])        
+               
+    elif re.match(slvr,'LU'):
+        #Direct Solve
+        phi = Ainv.solve(RHS)        
+    
+    # Iterative Solve
+    Ainvb = sp.linalg.bicgstab(P*A,P*RHS, tol=1e-5)
+    phi = mkvc(Ainvb[0])
+    
+    # Compute potential at each electrode
+    dtemp = (P1*phi - P2*phi)*np.pi
+    
+    data.append( dtemp )     
+    unct.append( np.abs(dtemp) * pct + flr)
+   
+    print("--- %s seconds ---" % (time.time() - start_time))  
+    
+
+#%% Run 2D inversion if pdp or dpdp survey
+# Otherwise just plot and apparent susceptibility map
+if not re.match(stype,'gradient'):
+    
     #%% Write data file in UBC-DCIP3D format
     writeUBC_DCobs(home_dir+'\FWR_data3D.dat',Tx,Rx,data,unct,'3D')     
     
@@ -326,6 +334,27 @@ while bool(gin)==True:
     plt.colorbar
 
 
-#%%
-
+#%% Othrwise it is a gradient array, plot surface of apparent resisitivty
+elif re.match(stype,'gradient'):
     
+    rC1P1 = np.sqrt( np.sum( (npm.repmat(Tx[0][0:2,0],Rx[0].shape[0], 1) - Rx[0][:,0:2])**2, axis=1 ))
+    rC2P1 = np.sqrt( np.sum( (npm.repmat(Tx[0][0:2,1],Rx[0].shape[0], 1) - Rx[0][:,0:2])**2, axis=1 ))
+    rC1P2 = np.sqrt( np.sum( (npm.repmat(Tx[0][0:2,1],Rx[0].shape[0], 1) - Rx[0][:,3:5])**2, axis=1 ))
+    rC2P2 = np.sqrt( np.sum( (npm.repmat(Tx[0][0:2,0],Rx[0].shape[0], 1) - Rx[0][:,3:5])**2, axis=1 )) 
+    
+    rC1C2 = np.sqrt( np.sum( (npm.repmat(Tx[0][0:2,0]-Tx[0][0:2,1],Rx[0].shape[0], 1) )**2, axis=1 ))
+    rP1P2 = np.sqrt( np.sum( (Rx[0][:,0:2] - Rx[0][:,3:5])**2, axis=1 ))
+    
+    rho = np.abs(data[0])# * 2*np.pi / ((rC1C2/2.)**2 - (rP1P2/2.)**2) / rP1P2
+
+    Pmid = (Rx[0][:,0:2] + Rx[0][:,3:5])/2  
+ 
+    # Grid points
+    grid_x, grid_z = np.mgrid[np.min(Rx[0][:,[0,3]]):np.max(Rx[0][:,[0,3]]), np.min(Rx[0][:,[1,4]]):np.max(Rx[0][:,[1,4]])]
+    grid_rho = griddata(np.c_[Pmid[:,0],Pmid[:,1]], np.log10(abs(1/rho.T)), (grid_x, grid_z), method='linear')
+    
+    
+    #plt.subplot(2,1,2)
+    plt.imshow(grid_rho.T, extent = (np.min(grid_x),np.max(grid_x),np.min(grid_z),np.max(grid_z))  ,origin='lower')
+    var = 'Gradient Array - Ratio (max-min)/max % =' + str(np.round((np.max(rho)-np.min(rho))/np.max(rho)*100.))
+    plt.title(var)
