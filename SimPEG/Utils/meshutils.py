@@ -286,25 +286,26 @@ def readUBCocTreeFiles(meshFile,modelFiles=None):
 
     ## Calculate simpeg parameters
     h1,h2,h3 = [np.ones(nr)*sz for nr,sz in zip(nCunderMesh,smallCell)]
-    x0 = tswCorn - np.sum(h3)
+    x0 = tswCorn - np.array([0,0,np.sum(h3)])
     # Need to convert the index array to a points list that complies with SimPEG TreeMesh.
     # Shift to start at 0
-    simpegCellPt = indArr[:,0:-1].copy() - np.array([1.,1.,1.])
+    simpegCellPt = indArr[:,0:-1].copy()
+    simpegCellPt[:,2] = ( nCunderMesh[-1] + 2) - (simpegCellPt[:,2] + indArr[:,3])
     # Need reindex the z index to be from the bottom-left-close corner and to be from the global bottom.
-    simpegCellPt[:,2] = ( nCunderMesh[-1] + 2) - (simpegCellPt[:,2] - indArr[:,3])
-    # Figure out the reordering
-    simpegReorder = np.argsort(simpegCellPt.view(','.join(3*['float'])),axis=0,order=['f2','f1','f0'])[:,0]
+    simpegCellPt = simpegCellPt - np.array([1.,1.,1.])
 
     # Calculate the cell level
     simpegLevel = np.log2(np.min(nCunderMesh)) - np.log2(indArr[:,3])
     # Make a pointer matrix
-    simpegPointers = np.concatenate((simpegCellPt[simpegReorder,:],simpegLevel[simpegReorder].reshape((-1,1))),axis=1)
-    # Make an index set
+    simpegPointers = np.concatenate((simpegCellPt,simpegLevel.reshape((-1,1))),axis=1)
+
+    # Figure out the reordering
+    simpegReorder = np.argsort((np.array([[1,1,1,-1]])*simpegPointers).view(','.join(4*['float'])),axis=0,order=['f3','f2','f1','f0'])[:,0]
 
     ## Make the tree mesh
     from SimPEG.Mesh import TreeMesh
     mesh = TreeMesh([h1,h2,h3],x0)
-    mesh._cells = set([mesh._index(p) for p in simpegPointers.tolist()])
+    mesh._cells = set([mesh._index(p) for p in simpegPointers[simpegReorder,:].tolist()])
 
     if modelFiles is None:
         return mesh
@@ -427,7 +428,10 @@ def writeVTRFile(fileName,mesh,model=None):
         raise IOError('{:s} is an incorrect extension, has to be .vtr')
     # Write the file.
     vtrWriteFilter = rectWriter()
-    vtrWriteFilter.SetInput(vtkObj)
+    if float(VTK_VERSION.split('.')[0]) >=6:
+        vtrWriteFilter.SetInputData(vtkObj)
+    else:
+        vtuWriteFilter.SetInput(vtuObj)
     vtrWriteFilter.SetFileName(fileName)
     vtrWriteFilter.Update()
 
@@ -435,7 +439,7 @@ def writeVTUFile(fileName,ocTreeMesh,modelDict=None):
     '''
     Function to write a VTU file from a SimPEG TreeMesh and model.
     '''
-    from vtk import vtkXMLUnstructuredGridWriter as Writer
+    from vtk import vtkXMLUnstructuredGridWriter as Writer, VTK_VERSION
     from vtk.util.numpy_support import numpy_to_vtk
 
     # Make the object
@@ -443,11 +447,10 @@ def writeVTUFile(fileName,ocTreeMesh,modelDict=None):
 
     # Make the writer
     vtuWriteFilter = Writer()
-    if float(vtk.VTK_VERSION.split('.')[0]) >=6:
+    if float(VTK_VERSION.split('.')[0]) >=6:
         vtuWriteFilter.SetInputData(vtuObj)
     else:
         vtuWriteFilter.SetInput(vtuObj)
-    vtuWriteFilter.SetInput(vtuObj)
     vtuWriteFilter.SetFileName(fileName)
     # Write the file
     vtuWriteFilter.Update()
@@ -465,7 +468,11 @@ def simpegOcTree2vtuObj(simpegOcTreeMesh,modelDict=None):
 
     # Make the data parts for the vtu object
     # Points
-    ptsMat = simpegOcTreeMesh._gridN + simpegOcTreeMesh.x0
+    try:
+        ptsMat = simpegOcTreeMesh._gridN + simpegOcTreeMesh.x0
+    except:
+        simpegOcTreeMesh.number()
+        ptsMat = simpegOcTreeMesh._gridN + simpegOcTreeMesh.x0
     vtkPts = vtk.vtkPoints()
     vtkPts.SetData(numpy_to_vtk(ptsMat,deep=True))
     # Cells
