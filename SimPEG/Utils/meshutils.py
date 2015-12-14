@@ -299,13 +299,14 @@ def readUBCocTreeFiles(meshFile,modelFiles=None):
     # Make a pointer matrix
     simpegPointers = np.concatenate((simpegCellPt,simpegLevel.reshape((-1,1))),axis=1)
 
-    # Figure out the reordering
-    simpegReorder = np.argsort((np.array([[1,1,1,-1]])*simpegPointers).view(','.join(4*['float'])),axis=0,order=['f3','f2','f1','f0'])[:,0]
-
     ## Make the tree mesh
     from SimPEG.Mesh import TreeMesh
     mesh = TreeMesh([h1,h2,h3],x0)
-    mesh._cells = set([mesh._index(p) for p in simpegPointers[simpegReorder,:].tolist()])
+    mesh._cells = set([mesh._index(p) for p in simpegPointers.tolist()])
+
+    # Figure out the reordering
+    simpegReorder = np.argsort(np.array([mesh._index(i) for i in simpegPointers.tolist()]))
+    # simpegReorder = np.argsort((np.array([[1,1,1,-1]])*simpegPointers).view(','.join(4*['float'])),axis=0,order=['f3','f2','f1','f0'])[:,0]
 
     if modelFiles is None:
         return mesh
