@@ -2,6 +2,7 @@ def plot_pseudoSection(Tx,Rx,data,z0, stype):
     
     from SimPEG import np, mkvc
     from scipy.interpolate import griddata
+    from matplotlib.colors import LogNorm
     import pylab as plt
     import re
     """
@@ -57,7 +58,10 @@ def plot_pseudoSection(Tx,Rx,data,z0, stype):
     
     #plt.subplot(2,1,2)
     plt.imshow(grid_rho.T, extent = (np.min(midl),np.max(midl),np.min(midz),np.max(midz)), origin='lower', alpha=0.8)
-    #plt.colorbar()
+    cbar = plt.colorbar(format = '%.2f',fraction=0.02)
+    cmin,cmax = cbar.get_clim()
+    ticks = np.linspace(cmin,cmax,3)
+    cbar.set_ticks(ticks)
     
     # Plot apparent resistivity
     plt.scatter(midl,midz,s=50,c=np.log10(abs(1/rho.T)))

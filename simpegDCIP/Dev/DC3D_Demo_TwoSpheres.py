@@ -35,6 +35,7 @@ import scipy.interpolate as interpolation
 from plot_pseudoSection import plot_pseudoSection
 from gen_DCIPsurvey import gen_DCIPsurvey
 from convertObs_DC3D_to_2D import convertObs_DC3D_to_2D
+from matplotlib.colors import LogNorm
 import os
 
 home_dir = 'C:\\Users\\dominiquef.MIRAGEOSCIENCE\\ownCloud\\Research\\Modelling\\Synthetic\\Two_Sphere'
@@ -129,9 +130,9 @@ plt.sca(ax_prim)
     
 # Takes two points from ginput and create survey
 #if re.match(stype,'gradient'):
-#    gin = [(423187.  ,  546311.), (423867.  ,  546991.)]
+gin = [(423230.  ,  546440.), (423715.  ,  546440.)]
 #else:
-gin = plt.ginput(2, timeout = 0)
+#gin = plt.ginput(2, timeout = 0)
 
 
 
@@ -277,19 +278,41 @@ if not re.match(stype,'gradient'):
     #==============================================================================
     
     plt.figure()
-    axs = plt.subplot(2,1,1)
+    axs = plt.subplot(1,1,1)
     
-    plt.xlim([0,nc*dx])
-    plt.ylim([mesh2d.vectorNy[-1]-dl_len/2,mesh2d.vectorNy[-1]])
+    plt.xlim([-dx,nc*dx+dx])
+    plt.ylim([mesh2d.vectorNy[-1]-dl_len/2,mesh2d.vectorNy[-1]+2*dx])
     plt.gca().set_aspect('equal', adjustable='box')
     
-    plt.pcolormesh(mesh2d.vectorNx,mesh2d.vectorNy,np.log10(m2D),alpha=0.5, cmap='gray')#axes = [mesh2d.vectorNx[0],mesh2d.vectorNx[-1],mesh2d.vectorNy[0],mesh2d.vectorNy[-1]])
+    circle1=plt.Circle((150,1500),50,color='w',fill=False, lw=3)
+    circle2=plt.Circle((325,1500),50,color='k',fill=False, lw=3)
+    axs.add_artist(circle1)
+    axs.add_artist(circle2)
+    plt.pcolormesh(mesh2d.vectorNx,mesh2d.vectorNy,np.log10(m2D))#axes = [mesh2d.vectorNx[0],mesh2d.vectorNx[-1],mesh2d.vectorNy[0],mesh2d.vectorNy[-1]])
+    cbar = plt.colorbar(format = '%.2f',fraction=0.02)
+    cmin,cmax = cbar.get_clim()
+    ticks = np.linspace(cmin,cmax,3)
+    cbar.set_ticks(ticks) 
+    
+    # Plot poles
+    plt.scatter(Tx2d[0][0],mesh2d.vectorNy[-1]+dx,s=50,c='r',marker='v')
+    plt.scatter(Tx2d[0][1],mesh2d.vectorNy[-1]+dx,s=50,c='b',marker='v')
+    plt.scatter(Rx2d[0][:,0],np.ones(Rx2d[0].shape[0])*mesh2d.vectorNy[-1]+dx,s=50,c='g')    
     #mesh2d.plotImage(mkvc(m2D), grid=True, ax=axs)
     
     #%% Plot pseudo section
+    plt.figure()
+    axs = plt.subplot(1,1,1)
+    plt.xlim([-dx,nc*dx+dx])
+    plt.ylim([mesh2d.vectorNy[-1]-dl_len/2,mesh2d.vectorNy[-1]+2*dx])
+    plt.gca().set_aspect('equal', adjustable='box')
+    
+    circle1=plt.Circle((150,1500),50,color='w',fill=False, lw=3)
+    circle2=plt.Circle((325,1500),50,color='k',fill=False, lw=3)
+    axs.add_artist(circle1)
+    axs.add_artist(circle2)
     
     plot_pseudoSection(Tx2d,Rx2d,data,nz[-1],stype)
-    plt.colorbar
     plt.show()
 
     #%% Create dcin2d inversion files and run
@@ -344,18 +367,28 @@ if not re.match(stype,'gradient'):
     #%%
     #Load model
     minv = readUBC_DC2DModel(inv_dir + dsep + 'dcinv2d.con')
-    #plt.figure()
-    axs = plt.subplot(2,1,2)
+    plt.figure()
+    axs = plt.subplot(1,1,1)
     
-    plt.xlim([0,nc*dx])
-    plt.ylim([mesh2d.vectorNy[-1]-dl_len/2,mesh2d.vectorNy[-1]])
+    plt.xlim([-dx,nc*dx+dx])
+    plt.ylim([mesh2d.vectorNy[-1]-dl_len/2,mesh2d.vectorNy[-1]+2*dx])
     plt.gca().set_aspect('equal', adjustable='box')
     
     minv = np.reshape(minv,(mesh2d.nCy,mesh2d.nCx))
-    plt.pcolormesh(mesh2d.vectorNx,mesh2d.vectorNy,np.log10(m2D),alpha=0.5, cmap='gray')
-    plt.pcolormesh(mesh2d.vectorNx,mesh2d.vectorNy,np.log10(minv),alpha=0.5, clim=(np.min(np.log10(m2D)),np.max(np.log10(m2D))))
-    plt.colorbar
-
+    #plt.pcolormesh(mesh2d.vectorNx,mesh2d.vectorNy,np.log10(m2D),alpha=0.5, cmap='gray')
+    
+    circle1=plt.Circle((150,1500),50,color='w',fill=False, lw=3)
+    circle2=plt.Circle((325,1500),50,color='k',fill=False, lw=3)
+    axs.add_artist(circle1)
+    axs.add_artist(circle2)
+    
+    axp = plt.pcolormesh(mesh2d.vectorNx,mesh2d.vectorNy,np.log10(minv),alpha=1,vmin = np.min(np.log10(minv)), vmax = np.max(np.log10(minv)))
+    #t = [-3, -2, -1]
+    cbar = plt.colorbar(format = '%.2f',fraction=0.02)
+    cmin,cmax = cbar.get_clim()
+    ticks = np.linspace(cmin,cmax,3)
+    cbar.set_ticks(ticks)
+    #cbar.set_ticklabels('%.2f')
 
 #%% Othrwise it is a gradient array, plot surface of apparent resisitivty
 elif re.match(stype,'gradient'):

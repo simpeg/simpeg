@@ -1,7 +1,6 @@
-def gen_DCIPsurvey(endl, mesh, stype, a, n):
+def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
     
     from SimPEG import np
-    import pylab as plt
     import re
     """
         Load in endpoints and survey specifications to generate Tx, Rx location
@@ -24,14 +23,17 @@ def gen_DCIPsurvey(endl, mesh, stype, a, n):
         @author: dominiquef
     
     """
-         
+    def xy_2_r(x1,x2,y1,y2):
+        r = np.sqrt( np.sum((x2 - x1)**2 + (y2 - y1)**2) )
+        return r 
+        
     ## Evenly distribute electrodes and put on surface
     # Mesure survey length and direction
-    dl_len = np.sqrt( np.sum((endl[1,:] - endl[0,:])**2) ) 
+    dl_len = xy_2_r(endl[0,0],endl[1,0],endl[0,1],endl[1,1])
+    
     dl_x = ( endl[1,0] - endl[0,0] ) / dl_len
     dl_y = ( endl[1,1] - endl[0,1] ) / dl_len
-    azm =  np.arctan(dl_y/dl_x)
-    
+       
     nstn = np.floor( dl_len / a )
     
     # Compute discrete pole location along line
@@ -50,22 +52,51 @@ def gen_DCIPsurvey(endl, mesh, stype, a, n):
     Tx = []
     Rx = []
     
-    if re.match(stype,'pdp'):
+    if not re.match(stype,'gradient'):
         
         for ii in range(0, int(nstn)-1): 
             
-            indx = np.min([ii+n,nstn])
-            Tx.append(np.c_[M[ii,:],M[ii,:]])
-            Rx.append(np.c_[M[ii+1:indx,:],N[ii+1:indx,:]])
-        
-        
-    elif re.match(stype,'dpdp'):
-        
-        for ii in range(0, int(nstn)-2):  
             
-            indx = np.min([ii+n+1,nstn])
-            Tx.append(np.c_[M[ii,:],N[ii,:]])
-            Rx.append(np.c_[M[ii+2:indx,:],N[ii+2:indx,:]])
+            if re.match(stype,'dpdp'):
+                tx = np.c_[M[ii,:],N[ii,:]]
+            elif re.match(stype,'pdp'):
+                tx = np.c_[M[ii,:],M[ii,:]]
+                
+            #Rx.append(np.c_[M[ii+1:indx,:],N[ii+1:indx,:]])
+            
+            # Current elctrode seperation
+            AB = xy_2_r(tx[0,1],endl[1,0],tx[1,1],endl[1,1])
+            
+            # Number of receivers to fit
+            nstn = np.min([np.floor( (AB - b) / a ) , n])
+            
+            # Check if there is enough space, else break the loop
+            if nstn <= 0:
+                continue
+            
+            # Compute discrete pole location along line
+            stn_x = N[ii,0] + dl_x*b + np.array(range(int(nstn)))*dl_x*a
+            stn_y = N[ii,1] + dl_y*b + np.array(range(int(nstn)))*dl_y*a
+            
+            # Create receiver poles
+            # Create line of P1 locations
+            P1 = np.c_[stn_x, stn_y, np.ones(nstn).T*mesh.vectorNz[-1]]
+            
+            # Create line of P2 locations
+            P2 = np.c_[stn_x+a*dl_x, stn_y+a*dl_y, np.ones(nstn).T*mesh.vectorNz[-1]]
+            
+            Rx.append(np.c_[P1,P2])
+            Tx.append(tx)            
+            
+#==============================================================================
+#     elif re.match(stype,'dpdp'):
+#         
+#         for ii in range(0, int(nstn)-2):  
+#             
+#             indx = np.min([ii+n+1,nstn])
+#             Tx.append(np.c_[M[ii,:],N[ii,:]])
+#             Rx.append(np.c_[M[ii+2:indx,:],N[ii+2:indx,:]])
+#==============================================================================
             
     elif re.match(stype,'gradient'):
         
@@ -74,11 +105,11 @@ def gen_DCIPsurvey(endl, mesh, stype, a, n):
         Tx.append(np.c_[M[0,:],N[-1,:]])
               
         # Get the edge limit of survey area
-        min_x = endl[0,0] + dl_x * 300.
-        min_y = endl[0,1] + dl_y * 300.
+        min_x = endl[0,0] + dl_x * b
+        min_y = endl[0,1] + dl_y * b
             
-        max_x = endl[1,0] - dl_x * 300.
-        max_y = endl[1,1] - dl_y * 300.
+        max_x = endl[1,0] - dl_x * b
+        max_y = endl[1,1] - dl_y * b
         
         box_l = np.sqrt( (min_x - max_x)**2 + (min_y - max_y)**2 )
         box_w = box_l/2.
@@ -102,7 +133,6 @@ def gen_DCIPsurvey(endl, mesh, stype, a, n):
             lxx = stn_x - lind[ii]*a*dl_y
             lyy = stn_y + lind[ii]*a*dl_x
             
-            indx = ii*nlin*lind
             
             M = np.c_[ lxx, lyy , np.ones(nstn).T*mesh.vectorNz[-1]]
             N = np.c_[ lxx+a*dl_x, lyy+a*dl_y, np.ones(nstn).T*mesh.vectorNz[-1]]
@@ -112,7 +142,7 @@ def gen_DCIPsurvey(endl, mesh, stype, a, n):
         Rx.append(rx)
         
     else:
-        print """stype must be either 'pdp' or 'dpdp'. """
+        print """stype must be either 'pdp', 'dpdp' or 'gradient'. """
 
         
    
