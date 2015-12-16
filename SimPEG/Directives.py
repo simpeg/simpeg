@@ -235,7 +235,7 @@ class SaveOutputDictEveryIteration(_SaveEveryIteration):
 
 
         # Save the file as a npz
-        np.savez('{:03d}-{:s}'.format(self.opt.iter,self.fileName), iter=self.opt.iter, beta=self.invProb.beta, phi_d=self.invProb.phi_d, phi_m=self.invProb.phi_m, phi_ms=phi_ms, phi_mx=phi_mx, phi_my=phi_my, phi_mz=phi_mz,f=self.opt.f, m=self.invProb.curModel)
+        np.savez('{:03d}-{:s}'.format(self.opt.iter,self.fileName), iter=self.opt.iter, beta=self.invProb.beta, phi_d=self.invProb.phi_d, phi_m=self.invProb.phi_m, phi_ms=phi_ms, phi_mx=phi_mx, phi_my=phi_my, phi_mz=phi_mz,f=self.opt.f, m=self.invProb.curModel,dpred=self.invProb.dpred)
 
 
 
