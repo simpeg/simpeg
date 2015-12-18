@@ -219,7 +219,7 @@ def resampleMTdataAtFreq(MTdata,freqs):
     uniLoc = np.unique(MTrec[['x','y','z']])
     uniFreq = MTdata.survey.freqs
     # Get the comps
-    dNames = KraEDIrec.dtype
+    dNames = MTrec.dtype
 
     # Loop over all the locations and interpolate
     for loc in uniLoc:
