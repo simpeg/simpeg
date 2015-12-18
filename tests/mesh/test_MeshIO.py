@@ -1,5 +1,5 @@
 import numpy as np
-import unittest
+import unittest, os
 import SimPEG as simpeg
 from SimPEG.Mesh import TensorMesh, TreeMesh
 
@@ -29,17 +29,20 @@ class TestOcTreeIO(unittest.TestCase):
         assert np.sum(vec - vecUBC) == 0
         assert np.all(np.array(mesh.h) - np.array(meshUBC.h) == 0)
         print 'IO of UBC octree files is working'
+        os.remove('temp.msh')
+        os.remove('arange.txt')
 
     def test_VTUfiles(self):
         mesh = self.mesh
         vec = np.arange(mesh.nC)
         try:
-            simpeg.Utils.meshutils.writeVTUFile('test.vtu',mesh,{'arange':vec})
+            simpeg.Utils.meshutils.writeVTUFile('temp.vtu',mesh,{'arange':vec})
             run = True
         except:
             run = False
         assert run
         print 'Writing of VTU files is working'
+        os.remove('temp.vtu')
 
 
 
