@@ -8,15 +8,15 @@ os.chdir(home_dir)
 
 #%%
 from SimPEG import np, Utils
-from simpegPF import BaseMag
+import simpegPF as PF
 
 ## New scripts to be added to basecode
-from fwr_MAG_data import fwr_MAG_data
-from read_MAGfwr_inp import read_MAGfwr_inp
+#from fwr_MAG_data import fwr_MAG_data
+#from read_MAGfwr_inp import read_MAGfwr_inp
 
 #%%
 # Read input file
-[mshfile, obsfile, modfile, magfile, topofile] = read_MAGfwr_inp(inpfile)
+[mshfile, obsfile, modfile, magfile, topofile] = PF.BaseMag.read_MAGfwr_inp(inpfile)
 
 # Load mesh file
 mesh = Utils.meshutils.readUBCTensorMesh(mshfile)
@@ -25,13 +25,13 @@ mesh = Utils.meshutils.readUBCTensorMesh(mshfile)
 model = Utils.meshutils.readUBCTensorModel(modfile,mesh)
     
 # Load in observation file
-[B,M,dobs] = BaseMag.readUBCmagObs(obsfile)
+[B,M,dobs] = PF.BaseMag.readUBCmagObs(obsfile)
 
 rxLoc = dobs[:,0:3]
 ndata = rxLoc.shape[0]
 
 # Compute forward model using integral equation
-d = fwr_MAG_data(mesh,B,M,rxLoc,model,'tmi')
+d = PF.Magnetics.Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,'tmi')
 
 # Form data object with coordinates and write to file
 data = np.c_[rxLoc , d , np.zeros((ndata,1))]
@@ -42,6 +42,7 @@ with file('FWR_data.dat','w') as fid:
     fid.write('%6.2f %6.2f %6.2f\n' %(M[0], M[1], 1) )  
     fid.write('%i\n' %(ndata) ) 
     np.savetxt(fid, data, fmt='%e',delimiter=' ',newline='\n')
+
 
 print "Observation file saved to " + home_dir + '\FWR_data.dat'
 

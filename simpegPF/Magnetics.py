@@ -409,10 +409,347 @@ if __name__ == '__main__':
     # plt.show()
 
 
+def Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,flag):
+    """ 
+    Forward model magnetic data using integral equation
+    
+    INPUT:
+    xn, yn, zn  = Mesh nodes location
+    B           = Inducing field parameter [Binc, Bdecl, B0]
+    M           = Magnetization matrix [Minc, Mdecl]
+    rxLox       = Observation location informat [obsx, obsy, obsz]
+    model       = Model associated with mesh
+    flag        = Data type "tmi" | "xyz"
 
+    OUTPUT:
+    dobs        =Observation array in format [obsx, obsy, obsz, data]
 
+    Created on Oct 7, 2015
 
+    @author: dominiquef
+     """    
+    
+    xn = mesh.vectorNx;
+    yn = mesh.vectorNy;
+    zn = mesh.vectorNz;
+    
+    mcell = (len(xn)-1) * (len(yn)-1) * (len(zn)-1)
+      
+    ndata = rxLoc.shape[0]    
+    
+    # Convert declination from north to cartesian
+    Md = (450.-float(M[1]))%360.
+    
+    # Create magnetization matrix
+    mx = np.cos(np.deg2rad(M[0])) * np.cos(np.deg2rad(Md))
+    my = np.cos(np.deg2rad(M[0])) * np.sin(np.deg2rad(Md))
+    mz = np.sin(np.deg2rad(M[0]))
+    
+    Mx = Utils.sdiag(np.ones([mcell])*mx*B[2])
+    My = Utils.sdiag(np.ones([mcell])*my*B[2])
+    Mz = Utils.sdiag(np.ones([mcell])*mz*B[2])
+    
+    #matplotlib.pyplot.spy(scipy.sparse.csr_matrix(Mx))
+    #plt.show()
+    Mxyz = sp.vstack((Mx,My,Mz));
+    
+    #%% Create TMI projector
+    
+    # Convert Bdecination from north to cartesian 
+    D = (450.-float(B[1]))%360.
+    
+    Ptmi = mkvc(np.r_[np.cos(np.deg2rad(B[0]))*np.cos(np.deg2rad(D)),np.cos(np.deg2rad(B[0]))*np.sin(np.deg2rad(D)),np.sin(np.deg2rad(B[0]))],2).T;
+    
+    if flag=='tmi':
+        d = np.zeros(ndata)
+        
+    elif flag=='xyz':
+        d = np.zeros(int(3*ndata))
+        
+    # Loop through all observations and create forward operator (ndata-by-mcell)
+    print "Begin forward modeling " +str(int(ndata)) + " data points..."
+    
+    # Add counter to dsiplay progress.
+    count = -1
 
+    for ii in range(ndata):
+    
+        tx, ty, tz = get_T_mat(xn,yn,zn,rxLoc[ii,:])  
+        Gxyz = np.vstack((tx,ty,tz))*Mxyz
+        
+        if flag=='xyz':
+            d[ii::ndata] = mkvc(Gxyz.dot(model))
+            
+        elif flag=='tmi':
+            d[ii] = Ptmi.dot(Gxyz.dot(model))
+        
+        # Display progress
+        count = progress(ii,count,ndata)
+        
+    
+    print "Done 100% ...forward modeling completed!!\n"
+    
+    return d
+
+def Intrgl_Fwr_Op(mesh,B,M,rxLoc,flag):
+    """ 
+    Magnetic forward operator in integral form
+    
+    INPUT:
+    mesh        = Mesh in SimPEG format
+    B           = Inducing field parameter [Binc, Bdecl, B0]
+    M           = Magnetization information 
+    [OPTIONS]
+      1- [Minc, Mdecl] : Assumes uniform magnetization orientation
+      2- [mx1,mx2,..., my1,...,mz1] : cell-based defined magnetization direction
+      3- diag(M): Block diagonal matrix with [Mx, My, Mz] along the diagonal
+        
+    rxLox       = Observation location informat [obsx, obsy, obsz]
+    
+    flag        = 'tmi' | 'xyz' | 'full'
+    [OPTIONS]
+      1- tmi : Magnetization direction used and data are projected onto the
+                inducing field direction F.shape([ndata, nc])
+                
+      2- xyz : Magnetization direction used and data are given in 3-components
+                F.shape([3*ndata, nc])
+                
+      3- full: Full tensor matrix stored with shape([3*ndata, 3*nc])
+        
+    OUTPUT:
+    F        = Linear forward modeling operation
+
+    Created on Dec, 20th 2015
+
+    @author: dominiquef
+     """    
+    
+    xn = mesh.vectorNx;
+    yn = mesh.vectorNy;
+    zn = mesh.vectorNz;
+    
+    mcell = (len(xn)-1) * (len(yn)-1) * (len(zn)-1)
+      
+    ndata = rxLoc.shape[0]    
+    
+    
+    # Convert Bdecination from north to cartesian 
+    D = (450.-float(B[1]))%360.
+    
+    
+    # Pre-allocate space and create magnetization matrix if required
+    if (flag=='tmi') | (flag == 'xyz'):
+        
+        # If assumes uniform magnetization direction
+        if len(M) == 3:
+            
+            # Convert declination from north to cartesian
+            Md = (450.-float(M[1]))%360.
+            
+            # Create magnetization matrix
+            mx = np.cos(np.deg2rad(M[0])) * np.cos(np.deg2rad(Md))
+            my = np.cos(np.deg2rad(M[0])) * np.sin(np.deg2rad(Md))
+            mz = np.sin(np.deg2rad(M[0]))
+            
+            Mx = Utils.sdiag(np.ones([mcell])*mx*B[2])
+            My = Utils.sdiag(np.ones([mcell])*my*B[2])
+            Mz = Utils.sdiag(np.ones([mcell])*mz*B[2])
+            
+            Mxyz = sp.vstack((Mx,My,Mz));
+        
+        # Otherwise if given a vector 3*ncells
+        elif len(M) == mesh.nC * 3:
+            
+            Mxyz = sp.spdiags(M,0,mesh.nC * 3,mesh.nC * 3)
+        
+        if flag == 'tmi':
+            F = np.zeros((ndata, mesh.nC))
+
+            # Projection matrix
+            Ptmi = mkvc(np.r_[np.cos(np.deg2rad(B[0]))*np.cos(np.deg2rad(D)),
+                      np.cos(np.deg2rad(B[0]))*np.sin(np.deg2rad(D)),
+                        np.sin(np.deg2rad(B[0]))],2).T;
+            
+        elif flag == 'xyz':
+            F = np.zeros((int(3*ndata), mesh.nC))
+        
+    elif flag == 'full':       
+        F = np.zeros((int(3*ndata), int(3*mesh.nC)))
+        
+    else:
+        print """Flag must be either 'tmi' | 'xyz' | 'full', please revised"""
+        return
+        
+    
+    # Loop through all observations and create forward operator (ndata-by-mcell)
+    print "Begin calculation of forward operator: " + flag
+    
+    # Add counter to dsiplay progress. Good for large problems
+    count = -1;
+    for ii in range(ndata):
+    
+        tx, ty, tz = get_T_mat(xn,yn,zn,rxLoc[ii,:])  
+        
+        if flag=='tmi':
+            F[ii,:] = Ptmi.dot(np.vstack((tx,ty,tz)))*Mxyz
+            
+        elif flag == 'xyz':
+            F[ii,:] = tx*Mxyz
+            F[ii+ndata,:] = ty*Mxyz
+            F[ii+2*ndata,:] = tz*Mxyz
+            
+        elif flag == 'full':       
+            F[ii,:] = tx
+            F[ii+ndata,:] = ty
+            F[ii+2*ndata,:] = tz
+            
+    
+    # Display progress
+        count = progress(ii,count,ndata)
+    
+    
+    print "Done 100% ...forward modeling completed!!\n"
+    
+    return F
+
+def get_T_mat(xn,yn,zn,rxLoc):
+    """ 
+    Load in the nodes of a tensor mesh and computes the magnetic tensor 
+    for a given observation location rxLoc[obsx, obsy, obsz]
+    OUTPUT:
+    Tx = [Txx Txy Txz]
+    Ty = [Tyx Tyy Tyz]
+    Tz = [Tzx Tzy Tzz]
+
+    where each elements have dimension 1-by-mcell.
+    Only the upper half 5 elements have to be computed since symetric.
+    Currently done as for-loops but will eventually be changed to vector
+    indexing, once the topography has been figured out.
+     """ 
+    
+    ncx = len(xn)-1
+    ncy = len(yn)-1
+    ncz = len(zn)-1
+    
+    mcell = ncx*ncy*ncz
+        
+    # Pre-allocate space for 1D array
+    Tx = np.zeros((1,3*mcell))
+    Ty = np.zeros((1,3*mcell))
+    Tz = np.zeros((1,3*mcell))
+    
+    yn2,xn2,zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
+    yn1,xn1,zn1 = np.meshgrid(yn[0:ncy], xn[0:ncx], zn[0:ncz])
+    
+    yn2 = mkvc(yn2)
+    yn1 = mkvc(yn1)
+    
+    zn2 = mkvc(zn2)
+    zn1 = mkvc(zn1)
+    
+    xn2 = mkvc(xn2)
+    xn1 = mkvc(xn1)
+    #%%
+    #==============================================================================
+
+    
+    dz2 = rxLoc[2] - zn1;
+    dz1 = rxLoc[2] - zn2;
+     
+    
+    dy2 = yn2 - rxLoc[1];
+    dy1 = yn1 - rxLoc[1];
+    
+    
+    dx2 = xn2 - rxLoc[0];
+    dx1 = xn1 - rxLoc[0];
+    
+    R1 = ( dy2**2 + dx2**2 );
+    R2 = ( dy2**2 + dx1**2 );
+    R3 = ( dy1**2 + dx2**2 );
+    R4 = ( dy1**2 + dx1**2 );
+    
+    
+    arg1 = np.sqrt( dz2**2 + R2 );
+    arg2 = np.sqrt( dz2**2 + R1 );
+    arg3 = np.sqrt( dz1**2 + R1 );
+    arg4 = np.sqrt( dz1**2 + R2 );
+    arg5 = np.sqrt( dz2**2 + R3 );
+    arg6 = np.sqrt( dz2**2 + R4 );
+    arg7 = np.sqrt( dz1**2 + R4 );
+    arg8 = np.sqrt( dz1**2 + R3 );
+    
+            
+    
+    Tx[0,0:mcell] = np.arctan2( dy1 * dz2 , ( dx2 * arg5 ) ) +\
+                - np.arctan2( dy2 * dz2 , ( dx2 * arg2 ) ) +\
+                np.arctan2( dy2 * dz1 , ( dx2 * arg3 ) ) +\
+                - np.arctan2( dy1 * dz1 , ( dx2 * arg8 ) ) +\
+                np.arctan2( dy2 * dz2  , ( dx1 * arg1 ) ) +\
+                - np.arctan2( dy1 * dz2 , ( dx1 * arg6 ) ) +\
+                np.arctan2( dy1 * dz1 , ( dx1 * arg7 ) ) +\
+                - np.arctan2( dy2 * dz1 , ( dx1 * arg4 ) );
+    
+    
+    Ty[0,0:mcell] = np.log( ( dz2 + arg2 ) / (dz1 + arg3 ) ) +\
+                -np.log( ( dz2 + arg1 ) / (dz1 + arg4 ) ) +\
+                np.log( ( dz2 + arg6 ) / (dz1 + arg7 ) ) +\
+                -np.log( ( dz2 + arg5 ) / (dz1 + arg8 ) );
+    
+    Ty[0,mcell:2*mcell] = np.arctan2( dx1 * dz2 , ( dy2 * arg1 ) ) +\
+                    - np.arctan2( dx2 * dz2 , ( dy2 * arg2 ) ) +\
+                    np.arctan2( dx2 * dz1 , ( dy2 * arg3 ) ) +\
+                    - np.arctan2( dx1 * dz1 , ( dy2 * arg4 ) ) +\
+                    np.arctan2( dx2 * dz2 , ( dy1 * arg5 ) ) +\
+                    - np.arctan2( dx1 * dz2 , ( dy1 * arg6 ) ) +\
+                    np.arctan2( dx1 * dz1 , ( dy1 * arg7 ) ) +\
+                    - np.arctan2( dx2 * dz1 , ( dy1 * arg8 ) );
+    
+    R1 = (dy2**2 + dz1**2);
+    R2 = (dy2**2 + dz2**2);
+    R3 = (dy1**2 + dz1**2);
+    R4 = (dy1**2 + dz2**2);
+    
+    Ty[0,2*mcell:] = np.log( ( dx1 + np.sqrt( dx1**2 + R1 ) ) / (dx2 + np.sqrt( dx2**2 + R1 ) ) ) +\
+                        -np.log( ( dx1 + np.sqrt( dx1**2 + R2 ) ) / (dx2 + np.sqrt( dx2**2 + R2 ) ) ) +\
+                        np.log( ( dx1 + np.sqrt( dx1**2 + R4 ) ) / (dx2 + np.sqrt( dx2**2 + R4 ) ) ) +\
+                        -np.log( ( dx1 + np.sqrt( dx1**2 + R3 ) ) / (dx2 + np.sqrt( dx2**2 + R3 ) ) );
+    
+    R1 = (dx2**2 + dz1**2);
+    R2 = (dx2**2 + dz2**2);
+    R3 = (dx1**2 + dz1**2);
+    R4 = (dx1**2 + dz2**2);
+    
+    Tx[0,2*mcell:] = np.log( ( dy1 + np.sqrt( dy1**2 + R1 ) ) / (dy2 + np.sqrt( dy2**2 + R1 ) ) ) +\
+                        -np.log( ( dy1 + np.sqrt( dy1**2 + R2 ) ) / (dy2 + np.sqrt( dy2**2 + R2 ) ) ) +\
+                        np.log( ( dy1 + np.sqrt( dy1**2 + R4 ) ) / (dy2 + np.sqrt( dy2**2 + R4 ) ) ) +\
+                        -np.log( ( dy1 + np.sqrt( dy1**2 + R3 ) ) / (dy2 + np.sqrt( dy2**2 + R3 ) ) );
+    
+    Tz[0,2*mcell:] = -( Ty[0,mcell:2*mcell] + Tx[0,0:mcell] );
+    Tz[0,mcell:2*mcell] = Ty[0,2*mcell:];
+    Tx[0,mcell:2*mcell] = Ty[0,0:mcell];
+    Tz[0,0:mcell] = Tx[0,2*mcell:];
+    
+    
+    
+    Tx = Tx/(4*np.pi);
+    Ty = Ty/(4*np.pi);
+    Tz = Tz/(4*np.pi);   
+       
+                   
+    return Tx,Ty,Tz
+
+def progress(iter,prog,final):
+
+    arg = np.floor(float(iter)/float(final)*10.);
+        
+    if  arg > prog:
+        
+        strg = "Done " + str(arg*10) + " %" 
+        print strg
+        prog = arg;
+
+    return prog
 
 
 

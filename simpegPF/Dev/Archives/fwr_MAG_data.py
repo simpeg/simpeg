@@ -57,7 +57,7 @@ def fwr_MAG_data(mesh,B,M,rxLoc,model,flag):
         d = np.zeros(ndata)
         
     elif flag=='xyz':
-        d = np.zeros((3,ndata))
+        d = np.zeros(int(3*ndata))
         
     # Loop through all observations and create forward operator (ndata-by-mcell)
     print "Begin forward modeling " +str(int(ndata)) + " data points..."
@@ -70,7 +70,7 @@ def fwr_MAG_data(mesh,B,M,rxLoc,model,flag):
         Gxyz = np.vstack((tx,ty,tz))*Mxyz
         
         if flag=='xyz':
-            d[:,ii] = Gxyz.dot(model)
+            d[ii:ndata:] = mkvc(Gxyz.dot(model))
             
         elif flag=='tmi':
             d[ii] = Ptmi.dot(Gxyz.dot(model))

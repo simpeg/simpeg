@@ -79,13 +79,13 @@ def fwr_MAG_F(mesh,B,M,rxLoc,flag):
             Mxyz = sp.spdiags(M,0,mesh.nC * 3,mesh.nC * 3)
         
         if flag == 'tmi':
-            F = np.zeros(ndata, mesh.nC)
+            F = np.zeros((ndata, mesh.nC))
             
         elif flag == 'xyz':
-            F = np.zeros(int(3*ndata), mesh.nC)
+            F = np.zeros((int(3*ndata), mesh.nC))
         
     elif flag == 'full':       
-        F = np.zeros(int(3*ndata), int(3*mesh.nC))
+        F = np.zeros((int(3*ndata), int(3*mesh.nC)))
         
     else:
         print """Flag must be either 'tmi' | 'xyz' | 'full', please revised"""

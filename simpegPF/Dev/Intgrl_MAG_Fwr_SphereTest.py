@@ -8,10 +8,8 @@ os.chdir(home_dir)
 from SimPEG import *
 import matplotlib.pyplot as plt
 import simpegPF as PF
-from simpegPF import BaseMag
-import matplotlib
 
-from fwr_MAG_obs import fwr_MAG_obs
+#from fwr_MAG_data import fwr_MAG_data
 
 plt.close('all')
 
@@ -39,7 +37,7 @@ lrl = np.zeros(d_iter)
 # Create mesh using simpeg and write out in GIF format
 
 for ii in range(d_iter):
-    
+       
     nc = 3**(ii+1)
     
     hxind = [(1./nc, nc)]
@@ -54,6 +52,8 @@ for ii in range(d_iter):
     
     mcell = mesh.nC
     
+    print 'Mesh size: ' + str(mcell)
+    
     sph_ind = PF.MagAnalytics.spheremodel(mesh, 0, 0, 0, R)
     
     chibkg = 0.
@@ -62,10 +62,10 @@ for ii in range(d_iter):
     model[sph_ind] = chiblk
     
     #%% Forward mode ldata
-    d = fwr_MAG_obs(mesh,B,M,rxLoc,model)
-    fwr_x = mkvc(d[0,:])
-    fwr_y = mkvc(d[1,:])
-    fwr_z = mkvc(d[2,:])
+    d = PF.Magnetics.Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,'xyz')
+    fwr_x = d[0:ndata]
+    fwr_y = d[ndata:2*ndata]
+    fwr_z = d[2*ndata:]
     
     #%% Get the analystical answer and compute the residual
     bxa,bya,bza = PF.MagAnalytics.MagSphereAnaFunA(rxLoc[:,0],rxLoc[:,1],rxLoc[:,2],R,0.,0.,0.,chiblk, np.array(([0.,0.,B[2]])),'secondary')
@@ -90,30 +90,32 @@ for ii in range(d_iter):
 
     
 #%% Plot results
+print 'Residual between analytical sphere and integral forward' 
 for ii in range(d_iter):
     nc = 3**(ii+1)
-    print "Residual= " + str(lrl[ii]) + "\t dx= " + str(1./nc)
+
+    print "||r||= " + str(lrl[ii]) + "\t dx= " + str(1./nc)
     
 #%% Plot fields
 
 plt.figure(1)
-ax = plt.subplot(131)
+ax = plt.subplot(221)
 plt.imshow(np.reshape(bxa,X.shape).T, interpolation="bicubic", extent=[xr.min(), xr.max(), yr.min(), yr.max()], origin = 'lower')
-plt.colorbar()
+plt.colorbar(fraction=0.04)
 plt.contour(X,Y, np.reshape(bxa,X.shape).T,10)
 plt.scatter(X,Y, c=np.reshape(bxa,X.shape).T, s=20)
 ax.set_title('Sphere Ana Bx')
 
-ax = plt.subplot(132)
+ax = plt.subplot(222)
 plt.imshow(np.reshape(bya,X.shape).T, interpolation="bicubic", extent=[xr.min(), xr.max(), yr.min(), yr.max()], origin = 'lower')
-plt.colorbar()
+plt.colorbar(fraction=0.04)
 plt.contour(X,Y, np.reshape(bya,X.shape).T,10)
 plt.scatter(X,Y, c=np.reshape(bya,X.shape).T, s=20)
 ax.set_title('Sphere Ana By')
 
-ax = plt.subplot(133)
+ax = plt.subplot(212)
 plt.imshow(np.reshape(bza,X.shape).T, interpolation="bicubic", extent=[xr.min(), xr.max(), yr.min(), yr.max()], origin = 'lower')
-plt.colorbar()
+plt.colorbar(fraction=0.04)
 plt.contour(X,Y, np.reshape(bza,X.shape).T,10)
 plt.scatter(X,Y, c=np.reshape(bza,X.shape).T, s=20)
 ax.set_title('Sphere Ana Bz')
@@ -121,23 +123,23 @@ ax.set_title('Sphere Ana Bz')
 #%% Plot the forward solution from integral
 
 plt.figure(2)
-ax = plt.subplot(131)
+ax = plt.subplot(221)
 plt.imshow(np.reshape(fwr_x,X.shape).T, interpolation="bicubic", extent=[xr.min(), xr.max(), yr.min(), yr.max() ], origin = 'lower')
-plt.colorbar()
+plt.colorbar(fraction=0.04)
 plt.contour(X,Y, np.reshape(fwr_x,X.shape).T,10)
 plt.scatter(X,Y, c=np.reshape(fwr_x,X.shape).T, s=20)
 ax.set_title('Sphere Ana Bx')
 
-ax = plt.subplot(132)
+ax = plt.subplot(222)
 plt.imshow(np.reshape(fwr_y,X.shape).T, interpolation="bicubic", extent=[xr.min(), xr.max(), yr.min(), yr.max()], origin = 'lower')
-plt.colorbar()
+plt.colorbar(fraction=0.04)
 plt.contour(X,Y, np.reshape(fwr_y,X.shape).T,10)
 plt.scatter(X,Y, c=np.reshape(fwr_y,X.shape).T, s=20)
 ax.set_title('Sphere Ana By')
 
-ax = plt.subplot(133)
+ax = plt.subplot(212)
 plt.imshow(np.reshape(fwr_z,X.shape).T, interpolation="bicubic", extent=[xr.min(), xr.max(), yr.min(), yr.max()], origin = 'lower')
-plt.colorbar()
+plt.colorbar(fraction=0.04)
 plt.contour(X,Y, np.reshape(fwr_z,X.shape).T,10)
 plt.scatter(X,Y, c=np.reshape(fwr_z,X.shape).T, s=20)
 ax.set_title('Sphere Ana Bz')
@@ -145,23 +147,23 @@ ax.set_title('Sphere Ana Bz')
 
 #%% Plot foward data
 plt.figure(3)
-ax = plt.subplot(131)
+ax = plt.subplot(221)
 plt.imshow(np.reshape(r_Bx,X.shape).T, interpolation="bicubic", extent=[xr.min(), xr.max(), yr.min(), yr.max()], origin = 'lower')
-plt.colorbar()
+plt.colorbar(fraction=0.04)
 plt.contour(X,Y, np.reshape(r_Bx,X.shape).T,10)
 plt.scatter(X,Y, c=np.reshape(r_Bx,X.shape).T, s=20)
 ax.set_title('Sphere Ana Bx')
 
-ax = plt.subplot(132)
+ax = plt.subplot(222)
 plt.imshow(np.reshape(r_By,X.shape).T, interpolation="bicubic", extent=[xr.min(), xr.max(), yr.min(), yr.max()], origin = 'lower')
-plt.colorbar()
+plt.colorbar(fraction=0.04)
 plt.contour(X,Y, np.reshape(r_By,X.shape).T,10)
 plt.scatter(X,Y, c=np.reshape(r_By,X.shape).T, s=20)
 ax.set_title('Sphere Ana By')
 
-ax = plt.subplot(133)
+ax = plt.subplot(212)
 plt.imshow(np.reshape(r_Bz,X.shape).T, interpolation="bicubic", extent=[xr.min(), xr.max(), yr.min(), yr.max()], origin = 'lower')
-plt.colorbar()
+plt.colorbar(fraction=0.04)
 plt.contour(X,Y, np.reshape(r_Bz,X.shape).T,10)
 plt.scatter(X,Y, c=np.reshape(r_Bz,X.shape).T, s=20)
 ax.set_title('Sphere Ana Bz')
