@@ -43,7 +43,7 @@ dsep = '\\'
 #from scipy.linalg import solve_banded
 
 # Load UBC mesh 3D
-mesh = Utils.meshutils.readUBCTensorMesh(home_dir + '\Mesh_10m.msh')
+mesh = Utils.meshutils.readUBCTensorMesh(home_dir + '\Mesh_5m.msh')
 #mesh = Utils.meshutils.readUBCTensorMesh(home_dir + '\MtIsa_20m.msh')
 #mesh = Utils.meshutils.readUBCTensorMesh(home_dir + '\Mesh_50m.msh')
 
@@ -73,6 +73,9 @@ pct = 0.01
 flr = 1e-4
 chifact = 100
 ref_mod = 1e-2
+
+# DOI threshold
+cutoff = 0.8
 
 #%% Create system
 #Set boundary conditions
@@ -276,7 +279,7 @@ if not re.match(stype,'gradient'):
     # m3D = np.reshape(model, (mesh.nCz, mesh.nCy, mesh.nCx))
     # m2D = m3D[:,1,:]
     #==============================================================================
-    
+    #%%   
     plt.figure()
     axs = plt.subplot(1,1,1)
     
@@ -284,8 +287,8 @@ if not re.match(stype,'gradient'):
     plt.ylim([mesh2d.vectorNy[-1]-dl_len/2,mesh2d.vectorNy[-1]+2*dx])
     plt.gca().set_aspect('equal', adjustable='box')
     
-    circle1=plt.Circle((150,1500),50,color='w',fill=False, lw=3)
-    circle2=plt.Circle((325,1500),50,color='k',fill=False, lw=3)
+    circle1=plt.Circle((144,1500),50,color='w',fill=False, lw=3)
+    circle2=plt.Circle((344,1500),50,color='k',fill=False, lw=3)
     axs.add_artist(circle1)
     axs.add_artist(circle2)
     plt.pcolormesh(mesh2d.vectorNx,mesh2d.vectorNy,np.log10(m2D))#axes = [mesh2d.vectorNx[0],mesh2d.vectorNx[-1],mesh2d.vectorNy[0],mesh2d.vectorNy[-1]])
@@ -307,66 +310,130 @@ if not re.match(stype,'gradient'):
     plt.ylim([mesh2d.vectorNy[-1]-dl_len/2,mesh2d.vectorNy[-1]+2*dx])
     plt.gca().set_aspect('equal', adjustable='box')
     
-    circle1=plt.Circle((150,1500),50,color='w',fill=False, lw=3)
-    circle2=plt.Circle((325,1500),50,color='k',fill=False, lw=3)
+    circle1=plt.Circle((144,1500),50,color='w',fill=False, lw=3)
+    circle2=plt.Circle((344,1500),50,color='k',fill=False, lw=3)
     axs.add_artist(circle1)
     axs.add_artist(circle2)
     
     plot_pseudoSection(Tx2d,Rx2d,data,nz[-1],stype)
     plt.show()
 
-    #%% Create dcin2d inversion files and run
-    inv_dir = home_dir + '\Inv2D' 
-    if not os.path.exists(inv_dir):
-        os.makedirs(inv_dir)
+    #%% Run two inversions with different reference models and compute a DOI
+
+    invmod = []
+    refmod = []
+    plt.figure()
+    
+    for jj in range(2):
+ 
+        # Create dcin2d inversion files and run
+        inv_dir = home_dir + '\Inv2D' 
+        if not os.path.exists(inv_dir):
+            os.makedirs(inv_dir)
+            
+        mshfile2d = 'Mesh_2D.msh'
+        modfile2d = 'Model_2D.con'
+        obsfile2d = 'FWR_3D_2_2D.dat'
+        inp_file = 'dcinv2d.inp'
         
-    mshfile2d = 'Mesh_2D.msh'
-    modfile2d = 'MtIsa_2D.con'
-    obsfile2d = 'FWR_3D_2_2D.dat'
-    inp_file = 'dcinv2d.inp'
+        
+        # Export 2D mesh
+        fid = open(inv_dir + dsep + mshfile2d,'w')
+        fid.write('%i\n'% mesh2d.nCx)
+        fid.write('%f %f 1\n'% (mesh2d.vectorNx[0],mesh2d.vectorNx[1]))  
+        np.savetxt(fid, np.c_[mesh2d.vectorNx[2:],np.ones(mesh2d.nCx-1)], fmt='\t %e %i',delimiter=' ',newline='\n')
+        fid.write('\n')
+        fid.write('%i\n'% mesh2d.nCy)
+        fid.write('%f %f 1\n'%( 0,mesh2d.hy[-1]))   
+        np.savetxt(fid, np.c_[np.cumsum(mesh2d.hy[-2::-1])+mesh2d.hy[-1],np.ones(mesh2d.nCy-1)], fmt='\t %e %i',delimiter=' ',newline='\n')
+        fid.close()
+        
+        # Export 2D model
+        fid = open(inv_dir + dsep + modfile2d,'w')
+        fid.write('%i %i\n'% (mesh2d.nCx,mesh2d.nCy))
+        np.savetxt(fid, mkvc(m2D[::-1,:].T), fmt='%e',delimiter=' ',newline='\n')
+        fid.close()
+        
+        # Export data file
+        writeUBC_DCobs(inv_dir + dsep + obsfile2d,Tx2d,Rx2d,data,unct,'2D') 
+        
+        # Write input file
+        fid = open(inv_dir + dsep + inp_file,'w')
+        fid.write('OBS LOC_X %s \n'% obsfile2d)
+        fid.write('MESH FILE %s \n'% mshfile2d)
+        fid.write('CHIFACT 1 %f\n'% chifact)
+        fid.write('TOPO DEFAULT  %s \n')
+        fid.write('INIT_MOD DEFAULT\n')
+        fid.write('REF_MOD VALUE %e\n'% (ref_mod*(jj+1)))
+        fid.write('ALPHA DEFAULT\n')
+        fid.write('WEIGHT DEFAULT\n')
+        fid.write('STORE_ALL_MODELS FALSE\n')
+        fid.write('INVMODE SVD\n')
+        fid.write('USE_MREF TRUE\n')
+        fid.close()
+        
+        os.chdir(inv_dir)
+        os.system('dcinv2d ' + inp_file)
+        
+        
+        #Load model
+        minv = readUBC_DC2DModel(inv_dir + dsep + 'dcinv2d.con')
+        
+        axs = plt.subplot(2,1,jj+1)
+        
+        plt.xlim([-dx,nc*dx+dx])
+        plt.ylim([mesh2d.vectorNy[-1]-dl_len/2,mesh2d.vectorNy[-1]+2*dx])
+        plt.gca().set_aspect('equal', adjustable='box')
+        
+        minv = np.reshape(minv,(mesh2d.nCy,mesh2d.nCx))
+        #plt.pcolormesh(mesh2d.vectorNx,mesh2d.vectorNy,np.log10(m2D),alpha=0.5, cmap='gray')
+        
+        circle1=plt.Circle((144,1500),50,color='w',fill=False, lw=3)
+        circle2=plt.Circle((344,1500),50,color='k',fill=False, lw=3)
+        axs.add_artist(circle1)
+        axs.add_artist(circle2)
+        
+        
+        axp = plt.pcolormesh(mesh2d.vectorNx,mesh2d.vectorNy,np.log10(minv),alpha=1,vmin = -2.25, vmax = -1.5)
+            
+        plt.show()
+        
+        if jj == 1:
+ 
+            plt.ylabel('(b)',rotation=360)
+            plt.xlabel('Distance (m)')
+            
+        else:
+            plt.ylabel('(a)',rotation=360)
+            
+            
+        cbar = plt.colorbar(format = '%.2f',fraction=0.05,orientation='vertical',pad=0.02)
+        cmin,cmax = cbar.get_clim()
+        ticks = np.linspace(cmin,cmax,3)
+        cbar.set_ticks(ticks)
+        #cbar.set_ticklabels('%.2f')
+        
+        invmod.append(minv)
+        refmod.append(ref_mod*(jj+1))
+        
+    #%% Compute DOI
+    DOI = np.abs(invmod[0] - invmod[1]) / np.abs(refmod[0] - refmod[1])
+    # Normalize between [0 1]
+    DOI = DOI - np.min(DOI)
+    DOI = (1.- DOI/np.max(DOI))
+    DOI[DOI > cutoff] = 1     
     
+    plt.figure()
+    plt.xlim([-dx,nc*dx+dx])
+    plt.ylim([mesh2d.vectorNy[-1]-dl_len/2,mesh2d.vectorNy[-1]+2*dx])
+    plt.gca().set_aspect('equal', adjustable='box')
     
-    # Export 2D mesh
-    fid = open(inv_dir + dsep + mshfile2d,'w')
-    fid.write('%i\n'% mesh2d.nCx)
-    fid.write('%f %f 1\n'% (mesh2d.vectorNx[0],mesh2d.vectorNx[1]))  
-    np.savetxt(fid, np.c_[mesh2d.vectorNx[2:],np.ones(mesh2d.nCx-1)], fmt='\t %e %i',delimiter=' ',newline='\n')
-    fid.write('\n')
-    fid.write('%i\n'% mesh2d.nCy)
-    fid.write('%f %f 1\n'%( 0,mesh2d.hy[-1]))   
-    np.savetxt(fid, np.c_[np.cumsum(mesh2d.hy[-2::-1])+mesh2d.hy[-1],np.ones(mesh2d.nCy-1)], fmt='\t %e %i',delimiter=' ',newline='\n')
-    fid.close()
+    plt.pcolormesh(mesh2d.vectorNx,mesh2d.vectorNy,DOI,alpha=1)
+    cbar = plt.colorbar(format = '%.2f',fraction=0.02)
     
-    # Export 2D model
-    fid = open(inv_dir + dsep + modfile2d,'w')
-    fid.write('%i %i\n'% (mesh2d.nCx,mesh2d.nCy))
-    np.savetxt(fid, mkvc(m2D[::-1,:].T), fmt='%e',delimiter=' ',newline='\n')
-    fid.close()
-    
-    # Export data file
-    writeUBC_DCobs(inv_dir + dsep + obsfile2d,Tx2d,Rx2d,data,unct,'2D') 
-    
-    # Write input file
-    fid = open(inv_dir + dsep + inp_file,'w')
-    fid.write('OBS LOC_X %s \n'% obsfile2d)
-    fid.write('MESH FILE %s \n'% mshfile2d)
-    fid.write('CHIFACT 1 %f\n'% chifact)
-    fid.write('TOPO DEFAULT  %s \n')
-    fid.write('INIT_MOD DEFAULT\n')
-    fid.write('REF_MOD VALUE %e\n'% ref_mod)
-    fid.write('ALPHA DEFAULT\n')
-    fid.write('WEIGHT DEFAULT\n')
-    fid.write('STORE_ALL_MODELS FALSE\n')
-    fid.write('INVMODE SVD\n')
-    fid.write('USE_MREF TRUE\n')
-    fid.close()
-    
-    os.chdir(inv_dir)
-    os.system('dcinv2d ' + inp_file)
-    
-    #%%
-    #Load model
-    minv = readUBC_DC2DModel(inv_dir + dsep + 'dcinv2d.con')
+    #%% Replace alpha values from inversion
+    #rgba_plt = axp.get_facecolor()
+    #rgba_plt[:,3] = mkvc(DOI)/2    
     plt.figure()
     axs = plt.subplot(1,1,1)
     
@@ -374,22 +441,20 @@ if not re.match(stype,'gradient'):
     plt.ylim([mesh2d.vectorNy[-1]-dl_len/2,mesh2d.vectorNy[-1]+2*dx])
     plt.gca().set_aspect('equal', adjustable='box')
     
-    minv = np.reshape(minv,(mesh2d.nCy,mesh2d.nCx))
-    #plt.pcolormesh(mesh2d.vectorNx,mesh2d.vectorNy,np.log10(m2D),alpha=0.5, cmap='gray')
-    
-    circle1=plt.Circle((150,1500),50,color='w',fill=False, lw=3)
-    circle2=plt.Circle((325,1500),50,color='k',fill=False, lw=3)
+    circle1=plt.Circle((144,1500),50,color='w',fill=False, lw=3)
+    circle2=plt.Circle((344,1500),50,color='k',fill=False, lw=3)
     axs.add_artist(circle1)
     axs.add_artist(circle2)
     
-    axp = plt.pcolormesh(mesh2d.vectorNx,mesh2d.vectorNy,np.log10(minv),alpha=1,vmin = np.min(np.log10(minv)), vmax = np.max(np.log10(minv)))
-    #t = [-3, -2, -1]
+    axs = plt.pcolor(mesh2d.vectorNx,mesh2d.vectorNy,np.log10(invmod[0]),edgecolor="none")
+    plt.draw()
     cbar = plt.colorbar(format = '%.2f',fraction=0.02)
-    cmin,cmax = cbar.get_clim()
-    ticks = np.linspace(cmin,cmax,3)
-    cbar.set_ticks(ticks)
-    #cbar.set_ticklabels('%.2f')
-
+    aa = axs.get_facecolors()
+    aa[:,3] = mkvc(DOI.T)
+    axs.set_facecolor(aa)
+    
+    plt.draw()    
+    
 #%% Othrwise it is a gradient array, plot surface of apparent resisitivty
 elif re.match(stype,'gradient'):
     

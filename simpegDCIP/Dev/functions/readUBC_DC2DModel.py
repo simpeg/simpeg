@@ -35,7 +35,13 @@ def readUBC_DC2DModel(fileName):
         model = model[:,::-1]
         
     else:
-        mm = np.array(obsfile[1:].split(),dtype=float)
+        
+        if len(obsfile[1:])==1:
+            mm = np.array(obsfile[1:].split(),dtype=float)
+            
+        else:
+            mm = np.array(obsfile[1:],dtype=float)
+            
         # Permute the second dimension to flip the order
         model = mm.reshape(dim[1],dim[0])
     

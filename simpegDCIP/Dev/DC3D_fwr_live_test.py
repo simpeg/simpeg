@@ -37,29 +37,30 @@ from gen_DCIPsurvey import gen_DCIPsurvey
 from convertObs_DC3D_to_2D import convertObs_DC3D_to_2D
 import os
 
-home_dir = 'C:\\Users\\dominiquef.MIRAGEOSCIENCE\\ownCloud\\Research\\Modelling\\Synthetic\\Two_Sphere'
+#home_dir = 'C:\\Users\\dominiquef.MIRAGEOSCIENCE\\ownCloud\\Research\\Modelling\\Synthetic\\Two_Sphere'
+home_dir ='C:\\LC\Private\\dominiquef\\Projects\\4414_Minsim\\Model'
 dsep = '\\'
 #from scipy.linalg import solve_banded
 
 # Load UBC mesh 3D
-mesh = Utils.meshutils.readUBCTensorMesh(home_dir + '\Mesh_10m.msh')
+#mesh = Utils.meshutils.readUBCTensorMesh(home_dir + '\Mesh_10m.msh')
 #mesh = Utils.meshutils.readUBCTensorMesh(home_dir + '\MtIsa_20m.msh')
-#mesh = Utils.meshutils.readUBCTensorMesh(home_dir + '\Mesh_50m.msh')
+mesh = Utils.meshutils.readUBCTensorMesh(home_dir + '\Mesh_50m.msh')
 
 # Load model
 #model = Utils.meshutils.readUBCTensorModel(home_dir + '\MtIsa_3D.con',mesh)
 #model = Utils.meshutils.readUBCTensorModel(home_dir + '\Synthetic.con',mesh)
-#model = Utils.meshutils.readUBCTensorModel(home_dir + '\Lalor_model_50m.con',mesh)
-model = Utils.meshutils.readUBCTensorModel(home_dir + '\TwoSpheres.con',mesh)
+model = Utils.meshutils.readUBCTensorModel(home_dir + '\Lalor_model_50m.con',mesh)
+#model = Utils.meshutils.readUBCTensorModel(home_dir + '\TwoSpheres.con',mesh)
 
 #model = model**0 * 1e-2
 # Specify survey type
-stype = 'dpdp'
+stype = 'pdp'
 
 # Survey parameters
-a = 30
-b = 30
-n = 20
+a = 150
+b = 150
+n = 40
 
 # Forward solver
 slvr = 'BiCGStab' #'LU'
@@ -71,7 +72,7 @@ pcdr = 'Jacobi'#'Gauss-Seidel'#
 pct = 0.01
 flr = 1e-4
 chifact = 100
-ref_mod = 1e-2
+ref_mod = 1e-3
 
 #%% Create system
 #Set boundary conditions
@@ -112,8 +113,8 @@ top = int(mesh.nCz)-1
 plt.figure()
 ax_prim = plt.subplot(1,1,1)
 mesh.plotSlice(model, ind=top, normal='Z', grid=False, pcolorOpts={'alpha':0.5}, ax =ax_prim)
-plt.xlim([423000,424000])
-plt.ylim([546200,547000])
+#plt.xlim([423000,424000])
+#plt.ylim([546200,547000])
 plt.gca().set_aspect('equal', adjustable='box')
     
 plt.show()
@@ -129,7 +130,7 @@ plt.sca(ax_prim)
     
 # Takes two points from ginput and create survey
 #if re.match(stype,'gradient'):
-#    gin = [(423187.  ,  546311.), (423867.  ,  546991.)]
+#gin = [(425347, 6079766), (427792, 6081806)]
 #else:
 gin = plt.ginput(2, timeout = 0)
 
@@ -280,7 +281,7 @@ if not re.match(stype,'gradient'):
     axs = plt.subplot(2,1,1)
     
     plt.xlim([0,nc*dx])
-    plt.ylim([mesh2d.vectorNy[-1]-dl_len/2,mesh2d.vectorNy[-1]])
+    plt.ylim([mesh2d.vectorNy[-1]-dl_len,mesh2d.vectorNy[-1]])
     plt.gca().set_aspect('equal', adjustable='box')
     
     plt.pcolormesh(mesh2d.vectorNx,mesh2d.vectorNy,np.log10(m2D),alpha=0.5, cmap='gray')#axes = [mesh2d.vectorNx[0],mesh2d.vectorNx[-1],mesh2d.vectorNy[0],mesh2d.vectorNy[-1]])
@@ -348,27 +349,29 @@ if not re.match(stype,'gradient'):
     axs = plt.subplot(2,1,2)
     
     plt.xlim([0,nc*dx])
-    plt.ylim([mesh2d.vectorNy[-1]-dl_len/2,mesh2d.vectorNy[-1]])
+    plt.ylim([mesh2d.vectorNy[-1]-dl_len,mesh2d.vectorNy[-1]])
     plt.gca().set_aspect('equal', adjustable='box')
     
     minv = np.reshape(minv,(mesh2d.nCy,mesh2d.nCx))
     plt.pcolormesh(mesh2d.vectorNx,mesh2d.vectorNy,np.log10(m2D),alpha=0.5, cmap='gray')
     plt.pcolormesh(mesh2d.vectorNx,mesh2d.vectorNy,np.log10(minv),alpha=0.5, clim=(np.min(np.log10(m2D)),np.max(np.log10(m2D))))
-    plt.colorbar
-
+    cbar = plt.colorbar(format = '%.2f',fraction=0.02)
+    cmin,cmax = cbar.get_clim()
+    ticks = np.linspace(cmin,cmax,3)
+    cbar.set_ticks(ticks)
 
 #%% Othrwise it is a gradient array, plot surface of apparent resisitivty
 elif re.match(stype,'gradient'):
     
     rC1P1 = np.sqrt( np.sum( (npm.repmat(Tx[0][0:2,0],Rx[0].shape[0], 1) - Rx[0][:,0:2])**2, axis=1 ))
     rC2P1 = np.sqrt( np.sum( (npm.repmat(Tx[0][0:2,1],Rx[0].shape[0], 1) - Rx[0][:,0:2])**2, axis=1 ))
-    rC1P2 = np.sqrt( np.sum( (npm.repmat(Tx[0][0:2,1],Rx[0].shape[0], 1) - Rx[0][:,3:5])**2, axis=1 ))
-    rC2P2 = np.sqrt( np.sum( (npm.repmat(Tx[0][0:2,0],Rx[0].shape[0], 1) - Rx[0][:,3:5])**2, axis=1 )) 
+    rC1P2 = np.sqrt( np.sum( (npm.repmat(Tx[0][0:2,0],Rx[0].shape[0], 1) - Rx[0][:,3:5])**2, axis=1 ))
+    rC2P2 = np.sqrt( np.sum( (npm.repmat(Tx[0][0:2,1],Rx[0].shape[0], 1) - Rx[0][:,3:5])**2, axis=1 )) 
     
     rC1C2 = np.sqrt( np.sum( (npm.repmat(Tx[0][0:2,0]-Tx[0][0:2,1],Rx[0].shape[0], 1) )**2, axis=1 ))
     rP1P2 = np.sqrt( np.sum( (Rx[0][:,0:2] - Rx[0][:,3:5])**2, axis=1 ))
     
-    rho = np.abs(data[0]) * np.pi *((rC1P1)**2 / rP1P2)#/ ( 1/rC1P1 - 1/rC2P1 - 1/rC1P2 + 1/rC2P2 )
+    rho = np.abs(data[0]) *np.pi *2. / ( 1/rC1P1 - 1/rC2P1 - 1/rC1P2 + 1/rC2P2 )#*((rC1P1)**2 / rP1P2)#
 
     Pmid = (Rx[0][:,0:2] + Rx[0][:,3:5])/2  
  
@@ -378,7 +381,10 @@ elif re.match(stype,'gradient'):
     
     
     #plt.subplot(2,1,2)
+    plt.figure()
     plt.imshow(grid_rho.T, extent = (np.min(grid_x),np.max(grid_x),np.min(grid_z),np.max(grid_z))  ,origin='lower')
+    
     var = 'Gradient Array - a-spacing: ' + str(a) + ' m'
     plt.title(var)
     plt.colorbar()
+    plt.contour(grid_x,grid_z,grid_rho, colors='k')
