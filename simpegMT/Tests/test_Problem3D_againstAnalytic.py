@@ -170,7 +170,7 @@ def getAppResPhs(MTdata):
     recData = MTdata.toRecArray('Complex')
     return appResPhs(recData['freq'],recData['zxy']), appResPhs(recData['freq'],recData['zyx'])
 
-def test_JvecAdjoint(inputSetup,comp='All',freq=False):
+def JvecAdjointTest(inputSetup,comp='All',freq=False):
     (M, freqs, sig, sigBG, rx_loc) = inputSetup
     survey, problem = setupSimpegMTfwd_eForm_ps(inputSetup,comp='All',singleFreq=freq)
     print 'Adjoint test of eForm primary/secondary for {:s} comp at {:s}\n'.format(comp,str(survey.freqs))
@@ -190,7 +190,7 @@ def test_JvecAdjoint(inputSetup,comp='All',freq=False):
     return np.abs(vJw - wJtv) < tol
 
 # Test the Jvec derivative
-def test_DerivJvec(inputSetup,comp='All',freq=False,expMap=True):
+def DerivJvecTest(inputSetup,comp='All',freq=False,expMap=True):
     (M, freqs, sig, sigBG, rx_loc) = inputSetup
     survey, problem = setupSimpegMTfwd_eForm_ps(inputSetup,comp=comp,singleFreq=freq,expMap=expMap)
     print 'Derivative test of Jvec for eForm primary/secondary for {:s} comp at {:s}\n'.format(comp,survey.freqs)
@@ -208,7 +208,7 @@ def test_DerivJvec(inputSetup,comp='All',freq=False,expMap=True):
     return simpeg.Tests.checkDerivative(fun, x0, num=3, plotIt=False, eps=FLR)
 
 
-def test_DerivProjfields(inputSetup,comp='All',freq=False):
+def DerivProjfieldsTest(inputSetup,comp='All',freq=False):
 
     survey, problem = setupSimpegMTfwd_eForm_ps(inputSetup,comp,freq)
     print 'Derivative test of data projection for eFormulation primary/secondary\n\n'
@@ -263,29 +263,29 @@ class TestAnalytics(unittest.TestCase):
     def test_appPhs1en3(self):self.assertTrue(appResPhsHalfspace_eFrom_ps_Norm(1e-3,False))
 
     # Do a derivative test
-    def test_derivProj1(self):self.assertTrue(test_DerivProjfields(halfSpace(1e-2)))
+    def test_derivProj1(self):self.assertTrue(DerivProjfieldsTest(halfSpace(1e-2)))
 
     # Do a derivative test of Jvec
-    # def test_derivJvec_zxxr(self):self.assertTrue(test_DerivJvec(random(1e-2),'zxxr',.1))
-    # def test_derivJvec_zxxi(self):self.assertTrue(test_DerivJvec(random(1e-2),'zxxi',.1))
-    # def test_derivJvec_zxyr(self):self.assertTrue(test_DerivJvec(random(1e-2),'zxyr',.1))
-    # def test_derivJvec_zxyi(self):self.assertTrue(test_DerivJvec(random(1e-2),'zxyi',.1))
-    # def test_derivJvec_zyxr(self):self.assertTrue(test_DerivJvec(random(1e-2),'zyxr',.1))
-    # def test_derivJvec_zyxi(self):self.assertTrue(test_DerivJvec(random(1e-2),'zyxi',.1))
-    # def test_derivJvec_zyyr(self):self.assertTrue(test_DerivJvec(random(1e-2),'zyyr',.1))
-    # def test_derivJvec_zyyi(self):self.assertTrue(test_DerivJvec(random(1e-2),'zyyi',.1))
-    def test_derivJvec_All(self):self.assertTrue(test_DerivJvec(random(1e-2),'All',.1))
+    # def test_derivJvec_zxxr(self):self.assertTrue(DerivJvecTest(random(1e-2),'zxxr',.1))
+    # def test_derivJvec_zxxi(self):self.assertTrue(DerivJvecTest(random(1e-2),'zxxi',.1))
+    # def test_derivJvec_zxyr(self):self.assertTrue(DerivJvecTest(random(1e-2),'zxyr',.1))
+    # def test_derivJvec_zxyi(self):self.assertTrue(DerivJvecTest(random(1e-2),'zxyi',.1))
+    # def test_derivJvec_zyxr(self):self.assertTrue(DerivJvecTest(random(1e-2),'zyxr',.1))
+    # def test_derivJvec_zyxi(self):self.assertTrue(DerivJvecTest(random(1e-2),'zyxi',.1))
+    # def test_derivJvec_zyyr(self):self.assertTrue(DerivJvecTest(random(1e-2),'zyyr',.1))
+    # def test_derivJvec_zyyi(self):self.assertTrue(DerivJvecTest(random(1e-2),'zyyi',.1))
+    def test_derivJvec_All(self):self.assertTrue(DerivJvecTest(random(1e-2),'All',.1))
 
     # Test the adjoint of Jvec and Jtvec
-    # def test_JvecAdjoint_zxxr(self):self.assertTrue(test_JvecAdjoint(random(1e-2),'zxxr',.1))
-    # def test_JvecAdjoint_zxxi(self):self.assertTrue(test_JvecAdjoint(random(1e-2),'zxxi',.1))
-    # def test_JvecAdjoint_zxyr(self):self.assertTrue(test_JvecAdjoint(random(1e-2),'zxyr',.1))
-    # def test_JvecAdjoint_zxyi(self):self.assertTrue(test_JvecAdjoint(random(1e-2),'zxyi',.1))
-    # def test_JvecAdjoint_zyxr(self):self.assertTrue(test_JvecAdjoint(random(1e-2),'zyxr',.1))
-    # def test_JvecAdjoint_zyxi(self):self.assertTrue(test_JvecAdjoint(random(1e-2),'zyxi',.1))
-    # def test_JvecAdjoint_zyyr(self):self.assertTrue(test_JvecAdjoint(random(1e-2),'zyyr',.1))
-    # def test_JvecAdjoint_zyyi(self):self.assertTrue(test_JvecAdjoint(random(1e-2),'zyyi',.1))
-    def test_JvecAdjoint_All(self):self.assertTrue(test_JvecAdjoint(random(1e-2),'All',.1))
+    # def test_JvecAdjoint_zxxr(self):self.assertTrue(JvecAdjointTest(random(1e-2),'zxxr',.1))
+    # def test_JvecAdjoint_zxxi(self):self.assertTrue(JvecAdjointTest(random(1e-2),'zxxi',.1))
+    # def test_JvecAdjoint_zxyr(self):self.assertTrue(JvecAdjointTest(random(1e-2),'zxyr',.1))
+    # def test_JvecAdjoint_zxyi(self):self.assertTrue(JvecAdjointTest(random(1e-2),'zxyi',.1))
+    # def test_JvecAdjoint_zyxr(self):self.assertTrue(JvecAdjointTest(random(1e-2),'zyxr',.1))
+    # def test_JvecAdjoint_zyxi(self):self.assertTrue(JvecAdjointTest(random(1e-2),'zyxi',.1))
+    # def test_JvecAdjoint_zyyr(self):self.assertTrue(JvecAdjointTest(random(1e-2),'zyyr',.1))
+    # def test_JvecAdjoint_zyyi(self):self.assertTrue(JvecAdjointTest(random(1e-2),'zyyi',.1))
+    def test_JvecAdjoint_All(self):self.assertTrue(JvecAdjointTest(random(1e-2),'All',.1))
 
 if __name__ == '__main__':
     unittest.main()
