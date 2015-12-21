@@ -11,7 +11,7 @@ from SimPEG import np, Utils
 from simpegPF import BaseMag
 
 ## New scripts to be added to basecode
-from fwr_MAG_obs import fwr_MAG_obs
+from fwr_MAG_data import fwr_MAG_data
 from read_MAGfwr_inp import read_MAGfwr_inp
 
 #%%
@@ -31,7 +31,7 @@ rxLoc = dobs[:,0:3]
 ndata = rxLoc.shape[0]
 
 # Compute forward model using integral equation
-d = fwr_MAG_obs(mesh,B,M,rxLoc,model)
+d = fwr_MAG_data(mesh,B,M,rxLoc,model,'tmi')
 
 # Form data object with coordinates and write to file
 data = np.c_[rxLoc , d , np.zeros((ndata,1))]

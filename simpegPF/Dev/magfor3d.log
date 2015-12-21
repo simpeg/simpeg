@@ -15,7 +15,7 @@ This program is licensed to:
  For internal use within UBC-GIF.
 
 
-MAGFOR3D started on: 11/05/2015  14:43:03
+MAGFOR3D started on: 12/21/2015  08:35:38
 
 
 magfor3d  Mesh.msh Obs_loc.dat Model.dat
@@ -25,7 +25,7 @@ magfor3d  Mesh.msh Obs_loc.dat Model.dat
  
               model was read from file: Model.dat
  
-     TOTAL cpu time:   0:00:01.49
+     TOTAL cpu time:   0:00:00.16
 
-MAGFOR3D ended on: 11/05/2015  14:43:04
+MAGFOR3D ended on: 12/21/2015  08:35:39
 
