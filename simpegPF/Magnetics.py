@@ -527,9 +527,7 @@ def Intrgl_Fwr_Op(mesh,B,M,rxLoc,flag):
     xn = mesh.vectorNx;
     yn = mesh.vectorNy;
     zn = mesh.vectorNz;
-    
-    mcell = (len(xn)-1) * (len(yn)-1) * (len(zn)-1)
-      
+          
     ndata = rxLoc.shape[0]    
     
     
@@ -539,28 +537,20 @@ def Intrgl_Fwr_Op(mesh,B,M,rxLoc,flag):
     
     # Pre-allocate space and create magnetization matrix if required
     if (flag=='tmi') | (flag == 'xyz'):
-        
         # If assumes uniform magnetization direction
-        if len(M) == 3:
+        if M.shape != (mesh.nC,3):
+
+            print 'Magnetization vector must be 3*Ncells'
+            return
             
-            # Convert declination from north to cartesian
-            Md = (450.-float(M[1]))%360.
-            
-            # Create magnetization matrix
-            mx = np.cos(np.deg2rad(M[0])) * np.cos(np.deg2rad(Md))
-            my = np.cos(np.deg2rad(M[0])) * np.sin(np.deg2rad(Md))
-            mz = np.sin(np.deg2rad(M[0]))
-            
-            Mx = Utils.sdiag(np.ones([mcell])*mx*B[2])
-            My = Utils.sdiag(np.ones([mcell])*my*B[2])
-            Mz = Utils.sdiag(np.ones([mcell])*mz*B[2])
-            
-            Mxyz = sp.vstack((Mx,My,Mz));
         
-        # Otherwise if given a vector 3*ncells
-        elif len(M) == mesh.nC * 3:
-            
-            Mxyz = sp.spdiags(M,0,mesh.nC * 3,mesh.nC * 3)
+        Mx = Utils.sdiag(M[:,0]*B[2])
+        My = Utils.sdiag(M[:,1]*B[2])
+        Mz = Utils.sdiag(M[:,2]*B[2])
+        
+        Mxyz = sp.vstack((Mx,My,Mz))
+        
+
         
         if flag == 'tmi':
             F = np.zeros((ndata, mesh.nC))
@@ -614,7 +604,7 @@ def Intrgl_Fwr_Op(mesh,B,M,rxLoc,flag):
 
 def get_T_mat(xn,yn,zn,rxLoc):
     """ 
-    Load in the nodes of a tensor mesh and computes the magnetic tensor 
+    Load in the active nodes of a tensor mesh and computes the magnetic tensor 
     for a given observation location rxLoc[obsx, obsy, obsz]
     OUTPUT:
     Tx = [Txx Txy Txz]
@@ -625,6 +615,10 @@ def get_T_mat(xn,yn,zn,rxLoc):
     Only the upper half 5 elements have to be computed since symetric.
     Currently done as for-loops but will eventually be changed to vector
     indexing, once the topography has been figured out.
+    
+    Created on Oct, 20th 2015
+
+    @author: dominiquef
      """ 
     
     ncx = len(xn)-1
@@ -649,18 +643,13 @@ def get_T_mat(xn,yn,zn,rxLoc):
     
     xn2 = mkvc(xn2)
     xn1 = mkvc(xn1)
-    #%%
-    #==============================================================================
-
-    
+  
     dz2 = rxLoc[2] - zn1;
     dz1 = rxLoc[2] - zn2;
-     
-    
+         
     dy2 = yn2 - rxLoc[1];
     dy1 = yn1 - rxLoc[1];
-    
-    
+        
     dx2 = xn2 - rxLoc[0];
     dx1 = xn1 - rxLoc[0];
     
@@ -740,7 +729,16 @@ def get_T_mat(xn,yn,zn,rxLoc):
     return Tx,Ty,Tz
 
 def progress(iter,prog,final):
+    """ 
+    progress(iter,prog,final)
+    
+    Function measuring the progress of a process and print to screen the %.
+    Useful to estimate the remaining runtime of a large problem.
+    
+    Created on Dec, 20th 2015
 
+    @author: dominiquef
+    """
     arg = np.floor(float(iter)/float(final)*10.);
         
     if  arg > prog:
@@ -751,6 +749,103 @@ def progress(iter,prog,final):
 
     return prog
 
+def dipazm_2_xyz(dip,azm_N):
+    """
+    dipazm_2_xyz(dip,azm_N)
+    
+    Function converting degree angles for dip and azimuth from north to a
+    3-components in cartesian coordinates.
+    
+    INPUT
+    dip     : Value or vector of dip from horizontal in DEGREE
+    azm_N   : Value or vector of azimuth from north in DEGREE
+    
+    OUTPUT
+    M       : [n-by-3] Array of xyz components of a unit vector in cartesian
+    
+    Created on Dec, 20th 2015
 
+    @author: dominiquef
+    """
+    mcell = len(azm_N)
+    
+    M = np.zeros((mcell,3))
+       
+    # Modify azimuth from North to Cartesian-X
+    azm_X = (450.- azm_N) % 360.
+    
+    D = np.deg2rad(dip)
+    I = np.deg2rad(azm_X)
+    
+    M[:,0] = np.cos(D) * np.cos(I) ;
+    M[:,1] = np.cos(D) * np.sin(I) ;
+    M[:,2] = np.sin(D) ;
+    
+    return M
 
+def get_dist_wgt(mesh,rxLoc,R,R0):
+    """
+    get_dist_wgt(xn,yn,zn,rxLoc,R,R0)
+    
+    Function creating a distance weighting function required for the magnetic
+    inverse problem.
+    
+    INPUT
+    xn, yn, zn : Node location
+    rxLoc       : Observation locations [obsx, obsy, obsz]
+    R           : Decay factor (mag=3, grav =2)
+    R0          : Small factor added (default=dx/4)
+    
+    OUTPUT
+    wr       : [mcell] Vector of distance weighting
+    
+    Created on Dec, 20th 2015
 
+    @author: dominiquef
+    """
+    
+    p = 1/np.sqrt(3);
+    
+    # Create cell center location
+    Ym,Xm,Zm = np.meshgrid(mesh.vectorCCy, mesh.vectorCCx, mesh.vectorCCz)
+    hY,hX,hZ = np.meshgrid(mesh.hy, mesh.hx, mesh.hz)    
+    
+    V = np.reshape(mesh.vol,hY.shape)
+    wr = np.zeros(hY.shape)
+    
+    ndata = rxLoc.shape[0]
+    count = -1;
+    print "Begin calculation of distance weighting for R= " + str(R)
+    
+    for dd in range(ndata):
+        
+        nx1 = (Xm - hX * p - rxLoc[dd,0])**2
+        nx2 = (Xm + hX * p - rxLoc[dd,0])**2
+
+        ny1 = (Ym - hY * p - rxLoc[dd,1])**2
+        ny2 = (Ym + hY * p - rxLoc[dd,1])**2
+
+        nz1 = (Zm - hZ * p - rxLoc[dd,2])**2
+        nz2 = (Zm + hZ * p - rxLoc[dd,2])**2
+
+        R1 = np.sqrt(nx1 + ny1 + nz1)
+        R2 = np.sqrt(nx1 + ny1 + nz2)
+        R3 = np.sqrt(nx2 + ny1 + nz1)
+        R4 = np.sqrt(nx2 + ny1 + nz2)
+        R5 = np.sqrt(nx1 + ny2 + nz1)
+        R6 = np.sqrt(nx1 + ny2 + nz2)
+        R7 = np.sqrt(nx2 + ny2 + nz1)
+        R8 = np.sqrt(nx2 + ny2 + nz2)
+        
+        temp = (R1 + R0)**-R  + (R2 + R0)**-R  + (R3 + R0)**-R  + (R4 + R0)**-R  + (R5 + R0)**-R  + (R6 + R0)**-R  + (R7 + R0)**-R  + (R8 + R0)**-R
+
+        wr = wr + (V*temp/8.)**2
+        
+        count = progress(dd,count,ndata)
+    
+    
+    wr = np.sqrt(wr)/V
+    wr = mkvc(wr)
+    wr = np.sqrt(wr/(np.max(wr)))
+    
+    return wr

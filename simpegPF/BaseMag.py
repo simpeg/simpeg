@@ -1,6 +1,6 @@
 from SimPEG import Maps, Survey, Utils, np, sp
 from scipy.constants import mu_0
-
+import re
 
 class BaseMagSurvey(Survey.BaseSurvey):
     """Base Magnetics Survey"""
@@ -190,6 +190,7 @@ def readUBCmagObs(obs_file):
     return B, M, dobs
 
 def read_MAGfwr_inp(input_file):
+
     """Read input files for forward modeling MAG data with integral form
     INPUT:
     input_file: File name containing the forward parameter
@@ -241,3 +242,122 @@ def read_MAGfwr_inp(input_file):
         topofile = l_input[0].rstrip()
       
     return mshfile, obsfile, modfile, magfile, topofile
+
+def read_MAGinv_inp(input_file):
+    """Read input files for forward modeling MAG data with integral form
+    INPUT:
+    input_file: File name containing the forward parameter
+    
+    OUTPUT:
+    mshfile
+    obsfile
+    topofile
+    start model
+    ref model
+    mag model
+    weightfile
+    chi_target
+    as, ax ,ay, az
+    upper, lower bounds
+    lp, lqx, lqy, lqz
+
+    # All files should be in the working directory, otherwise the path must
+    # be specified.
+
+    Created on Dec 21th, 2015
+    
+    @author: dominiquef
+    """
+
+    
+    fid = open(input_file,'r')
+    
+    # Line 1
+    line = fid.readline()
+    l_input  = line.split('!')
+    mshfile = l_input[0].rstrip()
+    
+    # Line 2
+    line = fid.readline()
+    l_input  = line.split('!')
+    obsfile = l_input[0].rstrip()       
+    
+    # Line 3  
+    line = fid.readline()
+    l_input = re.split('[!\s]',line)
+    if l_input=='null':
+        topofile = []
+        
+    else:
+        topofile = l_input[0].rstrip()
+
+
+    # Line 4
+    line = fid.readline()
+    l_input = re.split('[!\s]',line) 
+    if l_input[0]=='VALUE':
+        mstart = float(l_input[1])
+        
+    else:
+        mstart = l_input[0].rstrip()
+
+    # Line 5
+    line = fid.readline()
+    l_input = re.split('[!\s]',line) 
+    if l_input[0]=='VALUE':
+        mref = float(l_input[1])
+        
+    else:
+        mref = l_input[0].rstrip()
+    
+    
+    # Line 6   
+    line = fid.readline()
+    l_input = re.split('[!\s]',line) 
+    if l_input=='DEFAULT':
+        magfile = []
+        
+    else:
+        magfile = l_input[0].rstrip()
+
+    # Line 7
+    line = fid.readline()
+    l_input = re.split('[!\s]',line) 
+    if l_input=='DEFAULT':
+        wgtfile = []
+        
+    else:
+        wgtfile = l_input[0].rstrip()
+
+    # Line 8
+    line = fid.readline()
+    l_input = re.split('[!\s]',line) 
+    chi = float(l_input[0])
+
+    # Line 9
+    line = fid.readline()
+    l_input = re.split('[!\s]',line) 
+    val = np.array(l_input[0:4])
+    alphas = val.astype(np.float)
+
+    # Line 10
+    line = fid.readline()
+    l_input = re.split('[!\s]',line) 
+    if l_input[0]=='VALUE':
+        val   = np.array(l_input[1:3])
+        bounds = val.astype(np.float)
+        
+    else:
+        bounds = l_input[0].rstrip()
+
+    # Line 11
+    line = fid.readline()
+    l_input = re.split('[!\s]',line) 
+    if l_input[0]=='VALUE':
+        val   = np.array(l_input[1:6])
+        lpnorms = val.astype(np.float)
+        
+    else:
+        lpnorms = l_input[0].rstrip()
+
+    return mshfile, obsfile, topofile, mstart, mref, magfile, wgtfile, chi, alphas, bounds, lpnorms
