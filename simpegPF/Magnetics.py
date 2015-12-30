@@ -409,7 +409,7 @@ if __name__ == '__main__':
     # plt.show()
 
 
-def Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,flag):
+def Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,actv,flag):
     """ 
     Forward model magnetic data using integral equation
     
@@ -419,6 +419,7 @@ def Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,flag):
     M           = Magnetization matrix [Minc, Mdecl]
     rxLox       = Observation location informat [obsx, obsy, obsz]
     model       = Model associated with mesh
+    actv        = Active cells from topo (from getActiveTopo)
     flag        = Data type "tmi" | "xyz"
 
     OUTPUT:
@@ -429,11 +430,21 @@ def Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,flag):
     @author: dominiquef
      """    
     
+    inds = np.nonzero(actv)[0]
+    P = sp.csr_matrix((np.ones(inds.size),(inds, range(inds.size))), shape=(mesh.nC, len(inds)))
+
     xn = mesh.vectorNx;
     yn = mesh.vectorNy;
     zn = mesh.vectorNz;
     
-    mcell = (len(xn)-1) * (len(yn)-1) * (len(zn)-1)
+    yn2,xn2,zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
+    yn1,xn1,zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
+    
+    Yn = P.T*np.c_[mkvc(yn1), mkvc(yn2)]
+    Xn = P.T*np.c_[mkvc(xn1), mkvc(xn2)]
+    Zn = P.T*np.c_[mkvc(zn1), mkvc(zn2)]
+    
+    mcell = len(inds)
       
     ndata = rxLoc.shape[0]    
     
@@ -474,14 +485,14 @@ def Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,flag):
 
     for ii in range(ndata):
     
-        tx, ty, tz = get_T_mat(xn,yn,zn,rxLoc[ii,:])  
+        tx, ty, tz = get_T_mat(Xn,Yn,Zn,rxLoc[ii,:])  
         Gxyz = np.vstack((tx,ty,tz))*Mxyz
         
         if flag=='xyz':
-            d[ii::ndata] = mkvc(Gxyz.dot(model))
+            d[ii::ndata] = mkvc(Gxyz.dot(P.T*model))
             
         elif flag=='tmi':
-            d[ii] = Ptmi.dot(Gxyz.dot(model))
+            d[ii] = Ptmi.dot(Gxyz.dot(P.T*model))
         
         # Display progress
         count = progress(ii,count,ndata)
@@ -602,10 +613,15 @@ def Intrgl_Fwr_Op(mesh,B,M,rxLoc,flag):
     
     return F
 
-def get_T_mat(xn,yn,zn,rxLoc):
+def get_T_mat(Xn,Yn,Zn,rxLoc):
     """ 
     Load in the active nodes of a tensor mesh and computes the magnetic tensor 
     for a given observation location rxLoc[obsx, obsy, obsz]
+    
+    INPUT:
+    Xn, Yn, Zn: Node location matrix for the lower and upper most corners of 
+                all cells in the mesh shape[nC,2]
+    M
     OUTPUT:
     Tx = [Txx Txy Txz]
     Ty = [Tyx Tyy Tyz]
@@ -621,37 +637,21 @@ def get_T_mat(xn,yn,zn,rxLoc):
     @author: dominiquef
      """ 
     
-    ncx = len(xn)-1
-    ncy = len(yn)-1
-    ncz = len(zn)-1
-    
-    mcell = ncx*ncy*ncz
+    mcell = Xn.shape[0]
         
     # Pre-allocate space for 1D array
     Tx = np.zeros((1,3*mcell))
     Ty = np.zeros((1,3*mcell))
     Tz = np.zeros((1,3*mcell))
-    
-    yn2,xn2,zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
-    yn1,xn1,zn1 = np.meshgrid(yn[0:ncy], xn[0:ncx], zn[0:ncz])
-    
-    yn2 = mkvc(yn2)
-    yn1 = mkvc(yn1)
-    
-    zn2 = mkvc(zn2)
-    zn1 = mkvc(zn1)
-    
-    xn2 = mkvc(xn2)
-    xn1 = mkvc(xn1)
   
-    dz2 = rxLoc[2] - zn1;
-    dz1 = rxLoc[2] - zn2;
+    dz2 = rxLoc[2] - Zn[:,0];
+    dz1 = rxLoc[2] - Zn[:,1];
          
-    dy2 = yn2 - rxLoc[1];
-    dy1 = yn1 - rxLoc[1];
+    dy2 = Yn[:,1] - rxLoc[1];
+    dy1 = Yn[:,0] - rxLoc[1];
         
-    dx2 = xn2 - rxLoc[0];
-    dx1 = xn1 - rxLoc[0];
+    dx2 = Xn[:,1] - rxLoc[0];
+    dx1 = Xn[:,0] - rxLoc[0];
     
     R1 = ( dy2**2 + dx2**2 );
     R2 = ( dy2**2 + dx1**2 );
@@ -849,3 +849,100 @@ def get_dist_wgt(mesh,rxLoc,R,R0):
     wr = np.sqrt(wr/(np.max(wr)))
     
     return wr
+    
+def writeUBCobs(filename,B,M,rxLoc,d,wd):
+    """
+    writeUBCobs(filename,B,M,rxLoc,d,wd)
+    
+    Function writing an observation file in UBC-MAG3D format.
+    
+    INPUT
+    filename    : Name of out file including directory
+    B           : Inducing field parameters [Inc, Decl, Intensity]
+    M           : Magnetization orientation [Inc, Decl, dtype]
+    rxLoc       : Observation locations [obsx, obsy, obsz]
+    d           : Data vector
+    wd          : Uncertainty vector
+    
+    OUTPUT
+    Obsfile     
+    
+    Created on Dec, 27th 2015
+
+    @author: dominiquef
+    """
+    
+    data = np.c_[rxLoc , d , wd]
+
+    with file(filename,'w') as fid:
+        fid.write('%6.2f %6.2f %6.2f\n' %(B[0], B[1], B[2]) )
+        fid.write('%6.2f %6.2f %6.2f\n' %(M[0], M[1], 1) )  
+        fid.write('%i\n' %len(d) ) 
+        np.savetxt(fid, data, fmt='%e',delimiter=' ',newline='\n')
+    
+    
+    print "Observation file saved to: " + filename
+    
+def getActiveTopo(mesh,topo,flag):
+    """
+    getActiveTopo(mesh,topo)
+    
+    Function creates an active cell model from topography
+    
+    INPUT
+    mesh        : Mesh in SimPEG format
+    topo        : Scatter points defining topography [x,y,z]
+    
+    OUTPUT
+    actv        : Active cell model     
+    
+    Created on Dec, 27th 2015
+
+    @author: dominiquef
+    """   
+    import scipy.interpolate as interpolation
+
+    if (flag=='N'):
+        Zn      = np.zeros((mesh.nNx,mesh.nNy))
+        # wght    = np.zeros((mesh.nNx,mesh.nNy))
+        cx      = mesh.vectorNx
+        cy      = mesh.vectorNy
+    
+    F = interpolation.NearestNDInterpolator(topo[:,0:2],topo[:,2])
+    [Y,X] = np.meshgrid(cy,cx)
+    
+    Zn = F(X,Y)
+#==============================================================================
+#     for ii in range(topo.shape[0]):
+#         dx = topo[ii,0] - cx + 1e-8
+#         dy = topo[ii,1] - cy + 1e-8
+#     
+#         [Wx,Wy] = np.meshgrid(dx**2.,dy**2.)
+#     
+#         W = np.sqrt(Wx + Wy)**-1.
+#         
+#         wght    = wght + W
+#         Zn  = Zn + topo[ii,2]*W
+#     
+#     Zn = Zn/wght
+#==============================================================================
+       
+    actv = np.zeros((mesh.nCx, mesh.nCy, mesh.nCz))
+    
+    if (flag=='N'):
+        Nz = mesh.vectorNz[1:]
+        
+        
+    for jj in range(mesh.nCy): 
+        
+        for ii in range(mesh.nCx):
+        
+            temp = [kk for kk in range(len(Nz)) if np.all(Zn[ii:(ii+2),jj:(jj+2)] > Nz[kk]) ]
+            actv[ii,jj,temp] = 1
+    
+    
+    actv = mkvc(actv)
+    
+    return actv
+    
+    

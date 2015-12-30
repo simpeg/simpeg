@@ -1,8 +1,9 @@
 import os
 
-home_dir = 'C:\Users\dominiquef.MIRAGEOSCIENCE\Documents\GIT\SimPEG\simpegpf\simpegPF\Dev'
+#home_dir = 'C:\Users\dominiquef.MIRAGEOSCIENCE\Documents\GIT\SimPEG\simpegpf\simpegPF\Dev'
+home_dir = 'C:\\Users\\dominiquef.MIRAGEOSCIENCE\\ownCloud\\Research\\Modelling\\Synthetic\\Block_Gaussian_topo'
 
-inpfile = 'MAG3D_inv.inp'
+inpfile = 'PYMAG3D_inv.inp'
 
 dsep = '\\'
 os.chdir(home_dir)
@@ -27,18 +28,23 @@ mesh = Utils.meshutils.readUBCTensorMesh(mshfile)
 [B,M,dobs] = PF.BaseMag.readUBCmagObs(obsfile)
 
 rxLoc = dobs[:,0:3]
+d = dobs[:,3]
+wd = dobs[:,4]
+
 ndata = rxLoc.shape[0]
 
 
 # Load in topofile or create flat surface
-#==============================================================================
-# if topofile == 'null':
-#     
-#     Nx,Ny = np.meshgrid(mesh.vectorNx,mesh.vectorNy)
-#     Nz = np.ones(Nx.shape) * mesh.vectorNz[-1]
-#     
-#     topo = np.c_[mkvc(Nx),mkvc(Ny),mkvc(Nz)]    
-#==============================================================================
+if topofile == 'null':
+    
+    Nx,Ny = np.meshgrid(mesh.vectorNx,mesh.vectorNy)
+    Nz = np.ones(Nx.shape) * mesh.vectorNz[-1]
+    
+    topo = np.c_[mkvc(Nx),mkvc(Ny),mkvc(Nz)]   
+    
+else: 
+    topofile = np.genfromtxt(topofile,delimiter=' \n',dtype=np.str,skip_header=0)
+
 # Work with flat topogrphy for now
 nullcell = np.ones(mesh.nC)
 
@@ -64,3 +70,8 @@ F = PF.Magnetics.Intrgl_Fwr_Op(mesh,B,M_xyz,rxLoc,'tmi')
 # Get distance weighting function
 wr = PF.Magnetics.get_dist_wgt(mesh,rxLoc,3.,np.min(mesh.hx)/4)
 Utils.writeUBCTensorModel(home_dir+dsep+'wr.dat',mesh,wr)
+
+# Write out the predicted
+pred = F.dot(mstart)
+PF.Magnetics.writeUBCobs(home_dir + dsep + 'Pred.dat',B,M,rxLoc,pred,wd)
+

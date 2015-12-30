@@ -1,14 +1,17 @@
 import os
 
-home_dir = 'C:\Users\dominiquef.MIRAGEOSCIENCE\Documents\GIT\SimPEG\simpegpf\simpegPF\Dev'
+home_dir = 'C:\Users\dominiquef.MIRAGEOSCIENCE\ownCloud\Research\Modelling\Synthetic\Block_Gaussian_topo'
 
-inpfile = 'MAG3Cfwr.inp'
+inpfile = 'PYMAG3C_fwr.inp'
+
+dsep = '\\'
 
 os.chdir(home_dir)
 
 #%%
-from SimPEG import np, Utils
+from SimPEG import np, sp, Utils, mkvc, Maps
 import simpegPF as PF
+import pylab as plt
 
 ## New scripts to be added to basecode
 #from fwr_MAG_data import fwr_MAG_data
@@ -23,27 +26,34 @@ mesh = Utils.meshutils.readUBCTensorMesh(mshfile)
 
 # Load model file
 model = Utils.meshutils.readUBCTensorModel(modfile,mesh)
+  
+# Load in topofile or create flat surface
+if topofile == 'null':
+ 
+    actv = np.ones(mesh.nC)   
     
+else: 
+    topo = np.genfromtxt(topofile,skip_header=1)
+    actv = PF.Magnetics.getActiveTopo(mesh,topo,'N')
+
+
+Utils.writeUBCTensorModel('nullcell.dat',mesh,actv)
+         
 # Load in observation file
 [B,M,dobs] = PF.BaseMag.readUBCmagObs(obsfile)
 
 rxLoc = dobs[:,0:3]
+#rxLoc[:,2] += 5 # Temporary change for test
 ndata = rxLoc.shape[0]
 
+#%% Run forward modeling
 # Compute forward model using integral equation
-d = PF.Magnetics.Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,'tmi')
+d = PF.Magnetics.Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,actv,'tmi')
 
 # Form data object with coordinates and write to file
-data = np.c_[rxLoc , d , np.zeros((ndata,1))]
+wd =  np.zeros((ndata,1))
 
 # Save forward data to file
-with file('FWR_data.dat','w') as fid:
-    fid.write('%6.2f %6.2f %6.2f\n' %(B[0], B[1], B[2]) )
-    fid.write('%6.2f %6.2f %6.2f\n' %(M[0], M[1], 1) )  
-    fid.write('%i\n' %(ndata) ) 
-    np.savetxt(fid, data, fmt='%e',delimiter=' ',newline='\n')
-
-
-print "Observation file saved to " + home_dir + '\FWR_data.dat'
+PF.Magnetics.writeUBCobs(home_dir + dsep + 'FWR_data.dat',B,M,rxLoc,d,wd)
 
 
