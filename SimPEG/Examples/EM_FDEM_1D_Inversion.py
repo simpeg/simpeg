@@ -4,6 +4,13 @@ from scipy.constants import mu_0
 import matplotlib.pyplot as plt
 
 def run(plotIt=True):
+    """
+        EM: FDEM: 1D: Inversion
+        =======================
+
+        Here we will create and run a FDEM 1D inversion.
+
+    """
 
     cs, ncx, ncz, npad = 5., 25, 15, 15
     hx = [(cs,ncx), (cs,npad,1.3)]
