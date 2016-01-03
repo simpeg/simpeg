@@ -12,6 +12,9 @@ import Mesh_QuadTree_Creation
 import Mesh_QuadTree_FaceDiv
 import Mesh_QuadTree_HangingNodes
 import Mesh_Tensor_Creation
+
+__examples__ = ["EM_FDEM_1D_Inversion", "FLOW_Richards_1D_Celia1990", "Forward_BasicDirectCurrent", "Inversion_Linear", "Mesh_Basic_PlotImage", "Mesh_Basic_Types", "Mesh_Operators_CahnHilliard", "Mesh_QuadTree_Creation", "Mesh_QuadTree_FaceDiv", "Mesh_QuadTree_HangingNodes", "Mesh_Tensor_Creation"]
+
 ##### AUTOIMPORTS #####
 
 if __name__ == '__main__':
@@ -30,8 +33,8 @@ if __name__ == '__main__':
     os.makedirs(docExamplesDir)
 
     # Get all the python examples in this folder
-    thispath  = os.path.sep.join(__file__.split(os.path.sep)[:-1])
-    onlyfiles = [f[:-3] for f in os.listdir(thispath) if os.path.isfile(os.path.join(thispath, f)) and f.endswith('.py') and not f.startswith('_')]
+    thispath = os.path.sep.join(__file__.split(os.path.sep)[:-1])
+    exfiles  = [f[:-3] for f in os.listdir(thispath) if os.path.isfile(os.path.join(thispath, f)) and f.endswith('.py') and not f.startswith('_')]
 
     # Add the imports to the top in the AUTOIMPORTS section
     f = file(__file__, 'r')
@@ -44,7 +47,8 @@ if __name__ == '__main__':
         if line == "##### AUTOIMPORTS #####\n":
             inimports = not inimports
             if inimports:
-                out += '\n'.join(["import %s"%_ for _ in onlyfiles])
+                out += '\n'.join(["import %s"%_ for _ in exfiles])
+                out += '\n\n__examples__ = ["' + '", "'.join(exfiles)+ '"]\n'
                 out += '\n##### AUTOIMPORTS #####\n'
     f.close()
 

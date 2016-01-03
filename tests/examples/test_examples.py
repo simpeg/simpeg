@@ -10,10 +10,8 @@ def get(test):
         self.assertTrue(True)
     return func
 attrs = dict()
-tests = [_ for _ in dir(Examples) if not _.startswith('_')]
-for test in tests:
+for test in Examples.__examples__:
     attrs['test_'+test] = get(test)
-del get, tests, _
 
 TestExamples = type('TestExamples', (unittest.TestCase,), attrs)
 
