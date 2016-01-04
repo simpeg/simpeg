@@ -38,7 +38,7 @@ def derivTest(fdemType, comp):
     survey = prb.survey
     def fun(x):
         return survey.dpred(x), lambda x: prb.Jvec(x0, x)
-    return Tests.checkDerivative(fun, x0, num=3, plotIt=False, eps=FLR)
+    return Tests.checkDerivative(fun, x0, num=2, plotIt=False, eps=FLR)
 
 
 class FDEM_DerivTests(unittest.TestCase):
