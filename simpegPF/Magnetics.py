@@ -637,6 +637,7 @@ def get_T_mat(Xn,Yn,Zn,rxLoc):
     @author: dominiquef
      """ 
     
+    
     mcell = Xn.shape[0]
         
     # Pre-allocate space for 1D array
@@ -644,29 +645,29 @@ def get_T_mat(Xn,Yn,Zn,rxLoc):
     Ty = np.zeros((1,3*mcell))
     Tz = np.zeros((1,3*mcell))
   
-    dz2 = rxLoc[2] - Zn[:,0];
-    dz1 = rxLoc[2] - Zn[:,1];
+    dz2 = rxLoc[2] - Zn[:,0]
+    dz1 = rxLoc[2] - Zn[:,1]
          
-    dy2 = Yn[:,1] - rxLoc[1];
-    dy1 = Yn[:,0] - rxLoc[1];
+    dy2 = Yn[:,1] - rxLoc[1]
+    dy1 = Yn[:,0] - rxLoc[1]
         
-    dx2 = Xn[:,1] - rxLoc[0];
-    dx1 = Xn[:,0] - rxLoc[0];
+    dx2 = Xn[:,1] - rxLoc[0]
+    dx1 = Xn[:,0] - rxLoc[0]
     
-    R1 = ( dy2**2 + dx2**2 );
-    R2 = ( dy2**2 + dx1**2 );
-    R3 = ( dy1**2 + dx2**2 );
-    R4 = ( dy1**2 + dx1**2 );
+    R1 = ( dy2**2 + dx2**2 )
+    R2 = ( dy2**2 + dx1**2 )
+    R3 = ( dy1**2 + dx2**2 )
+    R4 = ( dy1**2 + dx1**2 )
     
     
-    arg1 = np.sqrt( dz2**2 + R2 );
-    arg2 = np.sqrt( dz2**2 + R1 );
-    arg3 = np.sqrt( dz1**2 + R1 );
-    arg4 = np.sqrt( dz1**2 + R2 );
-    arg5 = np.sqrt( dz2**2 + R3 );
-    arg6 = np.sqrt( dz2**2 + R4 );
-    arg7 = np.sqrt( dz1**2 + R4 );
-    arg8 = np.sqrt( dz1**2 + R3 );
+    arg1 = np.sqrt( dz2**2 + R2 )
+    arg2 = np.sqrt( dz2**2 + R1 )
+    arg3 = np.sqrt( dz1**2 + R1 )
+    arg4 = np.sqrt( dz1**2 + R2 )
+    arg5 = np.sqrt( dz2**2 + R3 )
+    arg6 = np.sqrt( dz2**2 + R4 )
+    arg7 = np.sqrt( dz1**2 + R4 )
+    arg8 = np.sqrt( dz1**2 + R3 )
     
             
     
