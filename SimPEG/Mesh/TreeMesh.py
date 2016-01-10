@@ -90,13 +90,14 @@
 #
 
 from SimPEG import np, sp, Utils, Solver
-import matplotlib.pyplot as plt
-import matplotlib
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib.colors as colors
-import matplotlib.cm as cmx
 
-import TreeUtils
+try:
+    import TreeUtils
+    _IMPORT_TREEUTILS = True
+except Exception, e:
+    _IMPORT_TREEUTILS = False
+
+
 from InnerProducts import InnerProducts
 from TensorMesh import TensorMesh, BaseTensorMesh
 import time
@@ -108,6 +109,8 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
     _meshType = 'TREE'
 
     def __init__(self, h, x0=None, levels=None):
+        if not _IMPORT_TREEUTILS:
+            raise Exception('Could not import the Cython code to run the TreeMesh Try:.\n\npython setup.py build_ext --inplace')
         assert type(h) is list, 'h must be a list'
         assert len(h) in [2,3], "There is only support for TreeMesh in 2D or 3D."
 
@@ -1960,10 +1963,17 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
 
     def plotGrid(self, ax=None, showIt=False,
         grid=True,
-        cells=True, cellLine=False,
+        cells=False, cellLine=False,
         nodes=False,
         facesX=False, facesY=False, facesZ=False,
         edgesX=False, edgesY=False, edgesZ=False):
+
+
+        import matplotlib.pyplot as plt
+        import matplotlib
+        from mpl_toolkits.mplot3d import Axes3D
+        import matplotlib.colors as colors
+        import matplotlib.cm as cmx
 
         # self.number()
 
@@ -1975,24 +1985,28 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
             fig = ax.figure
 
         if grid:
+            X, Y, Z = [], [], []
             for ind in self._sortedCells:
                 p = self._asPointer(ind)
                 n = self._cellN(p)
                 h = self._cellH(p)
-                x = [n[0]    , n[0] + h[0], n[0] + h[0], n[0]       , n[0]]
-                y = [n[1]    , n[1]       , n[1] + h[1], n[1] + h[1], n[1]]
                 if self.dim == 2:
-                    ax.plot(x,y, 'b-')
+                    X += [n[0]    , n[0] + h[0], n[0] + h[0], n[0]       , n[0], np.nan]
+                    Y += [n[1]    , n[1]       , n[1] + h[1], n[1] + h[1], n[1], np.nan]
                 elif self.dim == 3:
-                    ax.plot(x,y, 'b-', zs=[n[2]]*5)
-                    z = [n[2] + h[2], n[2] + h[2], n[2] + h[2], n[2] + h[2], n[2] + h[2]]
-                    ax.plot(x,y, 'b-', zs=z)
+                    X += [n[0]    , n[0] + h[0], n[0] + h[0], n[0]       , n[0], np.nan]*2
+                    Y += [n[1]    , n[1]       , n[1] + h[1], n[1] + h[1], n[1], np.nan]*2
+                    Z += [n[2]]*5+[np.nan]
+                    Z += [n[2] + h[2], n[2] + h[2], n[2] + h[2], n[2] + h[2], n[2] + h[2], np.nan]
                     sides = [0,0], [h[0],0], [0,h[1]], [h[0],h[1]]
                     for s in sides:
-                        x = [n[0] + s[0], n[0] + s[0]]
-                        y = [n[1] + s[1], n[1] + s[1]]
-                        z = [n[2]       , n[2] + h[2]]
-                        ax.plot(x,y, 'b-', zs=z)
+                        X += [n[0] + s[0], n[0] + s[0]]
+                        Y += [n[1] + s[1], n[1] + s[1]]
+                        Z += [n[2]       , n[2] + h[2]]
+            if self.dim == 2:
+                ax.plot(X,Y, 'b-')
+            elif self.dim == 3:
+                ax.plot(X,Y, 'b-', zs=Z)
 
         if self.dim == 2:
             if cells:
@@ -2004,11 +2018,13 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
                 ax.plot(self._gridN[:,0], self._gridN[:,1], 'ms')
                 ax.plot(self._gridN[self._hangingN.keys(),0], self._gridN[self._hangingN.keys(),1], 'ms', ms=10, mfc='none', mec='m')
             if facesX:
-                ax.plot(self._gridFx[self._hangingFx.keys(),0], self._gridFx[self._hangingFx.keys(),1], 'gs', ms=10, mfc='none', mec='g')
                 ax.plot(self._gridFx[:,0], self._gridFx[:,1], 'g>')
+                ax.plot(self._gridFx[self._hangingFx.keys(),0], self._gridFx[self._hangingFx.keys(),1], 'gs', ms=10, mfc='none', mec='g')
             if facesY:
-                ax.plot(self._gridFy[self._hangingFy.keys(),0], self._gridFy[self._hangingFy.keys(),1], 'gs', ms=10, mfc='none', mec='g')
                 ax.plot(self._gridFy[:,0], self._gridFy[:,1], 'g^')
+                ax.plot(self._gridFy[self._hangingFy.keys(),0], self._gridFy[self._hangingFy.keys(),1], 'gs', ms=10, mfc='none', mec='g')
+            ax.set_xlabel('x1')
+            ax.set_ylabel('x2')
         elif self.dim == 3:
             if cells:
                 ax.plot(self.gridCC[:,0], self.gridCC[:,1], 'r.', zs=self.gridCC[:,2])
@@ -2056,7 +2072,6 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
                         ind = [key, hf[0]]
                         ax.plot(self._gridEx[ind,0], self._gridEx[ind,1], 'k:', zs=self._gridEx[ind,2])
 
-
             if edgesY:
                 ax.plot(self._gridEy[:,0], self._gridEy[:,1], 'k<', zs=self._gridEy[:,2])
                 ax.plot(self._gridEy[self._hangingEy.keys(),0], self._gridEy[self._hangingEy.keys(),1], 'ks', ms=10, mfc='none', mec='k', zs=self._gridEy[self._hangingEy.keys(),2])
@@ -2072,15 +2087,28 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
                     for hf in self._hangingEz[key]:
                         ind = [key, hf[0]]
                         ax.plot(self._gridEz[ind,0], self._gridEz[ind,1], 'k:', zs=self._gridEz[ind,2])
-
+            ax.set_xlabel('x1')
+            ax.set_ylabel('x2')
+            ax.set_zlabel('x3')
+        ax.grid(True)
         if showIt:plt.show()
 
-    def plotImage(self, I, ax=None, showIt=True, grid=False):
+    def plotImage(self, I, ax=None, showIt=False, grid=False, clim=None):
         if self.dim == 3: raise Exception('Use plot slice?')
+
+
+        import matplotlib.pyplot as plt
+        import matplotlib
+        from mpl_toolkits.mplot3d import Axes3D
+        import matplotlib.colors as colors
+        import matplotlib.cm as cmx
 
         if ax is None: ax = plt.subplot(111)
         jet = cm = plt.get_cmap('jet')
-        cNorm  = colors.Normalize(vmin=I.min(), vmax=I.max())
+        cNorm  = colors.Normalize(
+            vmin=I.min() if clim is None else clim[0],
+            vmax=I.max() if clim is None else clim[1])
+
         scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=jet)
         ax.set_xlim((self.x0[0], self.h[0].sum()))
         ax.set_ylim((self.x0[1], self.h[1].sum()))
@@ -2089,8 +2117,10 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
             ax.add_patch(plt.Rectangle((x0[0], x0[1]), sz[0], sz[1], facecolor=scalarMap.to_rgba(I[ii]), edgecolor='k' if grid else 'none'))
             # if text: ax.text(self.center[0],self.center[1],self.num)
         scalarMap._A = []  # http://stackoverflow.com/questions/8342549/matplotlib-add-colorbar-to-a-sequence-of-line-plots
-        plt.colorbar(scalarMap)
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
         if showIt: plt.show()
+        return [scalarMap]
 
     def plotSlice(self, v, vType='CC',
         normal='Z', ind=None, grid=True, view='real',
@@ -2101,6 +2131,13 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
 
         assert vType in ['CC','F','E']
         assert self.dim == 3
+
+
+        import matplotlib.pyplot as plt
+        import matplotlib
+        from mpl_toolkits.mplot3d import Axes3D
+        import matplotlib.colors as colors
+        import matplotlib.cm as cmx
 
         szSliceDim = len(getattr(self, 'h'+normal.lower())) #: Size of the sliced dimension
         if ind is None: ind = int(szSliceDim/2)
@@ -2191,7 +2228,7 @@ class Cell(object):
     @property
     def center(self):
         if getattr(self, '_center', None) is None:
-            self._center = self.mesh._cellC(self._pointer)
+            self._center = np.array(self.mesh._cellC(self._pointer))
         return self._center
     @property
     def h(self): return self.mesh._cellH(self._pointer)
@@ -2247,6 +2284,13 @@ class CellLookUpException(TreeException):
     pass
 
 if __name__ == '__main__':
+
+
+    import matplotlib.pyplot as plt
+    import matplotlib
+    from mpl_toolkits.mplot3d import Axes3D
+    import matplotlib.colors as colors
+    import matplotlib.cm as cmx
 
     def topo(x):
         return np.sin(x*(2.*np.pi))*0.3 + 0.5

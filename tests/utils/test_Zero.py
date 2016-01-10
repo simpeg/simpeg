@@ -20,6 +20,13 @@ class Tests(unittest.TestCase):
         assert 3*z == 0
         assert z*3 == 0
         assert z/3 == 0
+
+        a = 1
+        a += z
+        assert a == 1
+        a = 1
+        a += z
+        assert a == 1
         self.assertRaises(ZeroDivisionError, lambda:3/z)
 
     def test_mat_zero(self):

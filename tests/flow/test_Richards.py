@@ -12,6 +12,8 @@ except Exception, e:
 
 TOL = 1E-8
 
+np.random.seed(0)
+
 class TestModels(unittest.TestCase):
 
     def test_BaseHaverkamp_Theta(self):
