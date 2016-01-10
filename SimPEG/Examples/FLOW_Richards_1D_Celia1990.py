@@ -1,6 +1,5 @@
 from SimPEG import *
 from SimPEG.FLOW import Richards
-import matplotlib.pyplot as plt
 
 def run(plotIt=True):
     """
@@ -61,6 +60,7 @@ def run(plotIt=True):
     Hs_H120= getFields(120.,'head')
 
     if not plotIt:return
+    import matplotlib.pyplot as plt
     plt.figure(figsize=(13,5))
     plt.subplot(121)
     plt.plot(40-M.gridCC, Hs_M10[-1],'b-')

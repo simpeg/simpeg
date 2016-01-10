@@ -1,7 +1,7 @@
 from SimPEG import *
 import SimPEG.EM as EM
 from scipy.constants import mu_0
-import matplotlib.pyplot as plt
+
 
 def run(plotIt=True):
     """
@@ -31,6 +31,7 @@ def run(plotIt=True):
 
 
     if plotIt:
+        import matplotlib.pyplot as plt
         fig, ax = plt.subplots(1,1, figsize = (3, 6))
         plt.semilogx(sigma[active], mesh.vectorCCz[active])
         ax.set_ylim(-600, 0)
@@ -60,6 +61,7 @@ def run(plotIt=True):
     survey.Wd = 1/(abs(survey.dobs)*std)
 
     if plotIt:
+        import matplotlib.pyplot as plt
         fig, ax = plt.subplots(1,1, figsize = (10, 6))
         ax.loglog(rx.times, dtrue, 'b.-')
         ax.loglog(rx.times, survey.dobs, 'r.-')
@@ -88,6 +90,7 @@ def run(plotIt=True):
     mopt = inv.run(m0)
 
     if plotIt:
+        import matplotlib.pyplot as plt
         fig, ax = plt.subplots(1,1, figsize = (3, 6))
         plt.semilogx(sigma[active], mesh.vectorCCz[active])
         plt.semilogx(np.exp(mopt), mesh.vectorCCz[active])

@@ -1,7 +1,4 @@
 from SimPEG import Mesh, Utils, np, SolverLU
-import matplotlib.pyplot as plt
-import matplotlib
-from matplotlib.mlab import griddata
 
 ## 2D DC forward modeling example with Tensor and Curvilinear Meshes
 
@@ -38,6 +35,10 @@ def run(plotIt=True):
     phirM = AinvrM*rhsrM
 
     if not plotIt: return
+
+    import matplotlib.pyplot as plt
+    import matplotlib
+    from matplotlib.mlab import griddata
 
     #Step4: Making Figure
     fig, axes = plt.subplots(1,2,figsize=(12*1.2,4*1.2))

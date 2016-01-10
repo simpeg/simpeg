@@ -1,8 +1,11 @@
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib
-from mpl_toolkits.mplot3d import Axes3D
-from SimPEG.Utils import mkvc, animate
+from SimPEG.Utils import mkvc
+try:
+    import matplotlib.pyplot as plt
+    import matplotlib
+    from mpl_toolkits.mplot3d import Axes3D
+except ImportError, e:
+    print 'Trouble importing matplotlib.'
 
 
 class TensorView(object):
@@ -479,63 +482,6 @@ class TensorView(object):
         ax.grid(True)
         if showIt: plt.show()
 
-    def slicer(mesh, var, imageType='CC', normal='z', index=0, ax=None, clim=None):
-        assert normal in 'xyz', 'normal must be x, y, or z'
-        if ax is None: ax = plt.subplot(111)
-        I = mesh.r(var,'CC','CC','M')
-        axes = [p for p in 'xyz' if p not in normal.lower()]
-        if normal is 'x': I = I[index,:,:]
-        if normal is 'y': I = I[:,index,:]
-        if normal is 'z': I = I[:,:,index]
-        if clim is None: clim = [I.min(),I.max()]
-        p = ax.pcolormesh(getattr(mesh,'vectorN'+axes[0]),getattr(mesh,'vectorN'+axes[1]),I.T,vmin=clim[0],vmax=clim[1])
-        ax.axis('tight')
-        ax.set_xlabel(axes[0])
-        ax.set_ylabel(axes[1])
-        return p
-
-    def videoSlicer(mesh,var,imageType='CC',normal='z',figsize=(10,8)):
-        assert mesh.dim > 2, 'This is for 3D meshes only.'
-        # First set up the figure, the axis, and the plot element we want to animate
-        fig = plt.figure(figsize=figsize)
-        ax = plt.axes()
-        clim = [var.min(),var.max()]
-        plt.colorbar(mesh.slicer(var, imageType=imageType, normal=normal, index=0, ax=ax, clim=clim))
-        tlt = plt.title(normal)
-
-        def animateFrame(i):
-            mesh.slicer(var, imageType=imageType, normal=normal, index=i, ax=ax, clim=clim)
-            tlt.set_text(normal.upper()+('-Slice: %d, %4.4f' % (i,getattr(mesh,'vectorCC'+normal)[i])))
-
-        return animate(fig, animateFrame, frames=mesh.vnC['xyz'.index(normal)])
-
-    def video(mesh, var, function, figsize=(10, 8), colorbar=True, skip=1):
-        """
-        Call a function for a list of models to create a video.
-
-        ::
-
-            def function(var, ax, clim, tlt, i):
-                tlt.set_text('%d'%i)
-                return mesh.plotImage(var, imageType='CC', ax=ax, clim=clim)
-
-            mesh.video([model1, model2, ..., modeln],function)
-        """
-        # First set up the figure, the axis, and the plot element we want to animate
-        fig = plt.figure(figsize=figsize)
-        ax = plt.axes()
-        VAR = np.concatenate(var)
-        clim = [VAR.min(),VAR.max()]
-        tlt = plt.title('')
-        if colorbar:
-            plt.colorbar(function(var[0],ax,clim,tlt,0))
-
-        frames = np.arange(0,len(var),skip)
-        def animateFrame(j):
-            i = frames[j]
-            function(var[i],ax,clim,tlt,i)
-
-        return animate(fig, animateFrame, frames=len(frames))
 
 class CylView(object):
 

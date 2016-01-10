@@ -90,11 +90,6 @@
 #
 
 from SimPEG import np, sp, Utils, Solver
-import matplotlib.pyplot as plt
-import matplotlib
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib.colors as colors
-import matplotlib.cm as cmx
 
 try:
     import TreeUtils
@@ -1973,6 +1968,13 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
         facesX=False, facesY=False, facesZ=False,
         edgesX=False, edgesY=False, edgesZ=False):
 
+
+        import matplotlib.pyplot as plt
+        import matplotlib
+        from mpl_toolkits.mplot3d import Axes3D
+        import matplotlib.colors as colors
+        import matplotlib.cm as cmx
+
         # self.number()
 
         axOpts = {'projection':'3d'} if self.dim == 3 else {}
@@ -2094,6 +2096,13 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
     def plotImage(self, I, ax=None, showIt=False, grid=False, clim=None):
         if self.dim == 3: raise Exception('Use plot slice?')
 
+
+        import matplotlib.pyplot as plt
+        import matplotlib
+        from mpl_toolkits.mplot3d import Axes3D
+        import matplotlib.colors as colors
+        import matplotlib.cm as cmx
+
         if ax is None: ax = plt.subplot(111)
         jet = cm = plt.get_cmap('jet')
         cNorm  = colors.Normalize(
@@ -2122,6 +2131,13 @@ class TreeMesh(BaseTensorMesh, InnerProducts):
 
         assert vType in ['CC','F','E']
         assert self.dim == 3
+
+
+        import matplotlib.pyplot as plt
+        import matplotlib
+        from mpl_toolkits.mplot3d import Axes3D
+        import matplotlib.colors as colors
+        import matplotlib.cm as cmx
 
         szSliceDim = len(getattr(self, 'h'+normal.lower())) #: Size of the sliced dimension
         if ind is None: ind = int(szSliceDim/2)
@@ -2268,6 +2284,13 @@ class CellLookUpException(TreeException):
     pass
 
 if __name__ == '__main__':
+
+
+    import matplotlib.pyplot as plt
+    import matplotlib
+    from mpl_toolkits.mplot3d import Axes3D
+    import matplotlib.colors as colors
+    import matplotlib.cm as cmx
 
     def topo(x):
         return np.sin(x*(2.*np.pi))*0.3 + 0.5
