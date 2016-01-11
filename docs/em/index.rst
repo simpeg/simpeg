@@ -9,7 +9,7 @@ Time Domian Electromagnetics
 ----------------------------
 
 .. toctree::
-   :maxdepth: 2
+    :maxdepth: 2
 
     api_TDEM_derivation
 
@@ -18,7 +18,7 @@ Code for Time Domian Electromagnetics
 -------------------------------------
 
 .. toctree::
-   :maxdepth: 2
+    :maxdepth: 2
 
     api_TDEM
 
@@ -28,7 +28,6 @@ Frequency Domian Electromagnetics
 .. toctree::
    :maxdepth: 2
 
-   api_ForwardProblem
    api_FDEM
 
 

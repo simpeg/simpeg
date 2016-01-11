@@ -24,8 +24,7 @@ the implementations.
 .. plot::
 
     from SimPEG import Examples
-    Examples.Mesh_ThreeMeshes.run()
-
+    Examples.Mesh_Basic_Types.run()
 
 
 Variable Locations and Terminology
