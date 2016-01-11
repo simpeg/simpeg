@@ -61,11 +61,6 @@ If the forward problem is invertible, then we can rearrange for \\(\\frac{\\part
 This can often be computed given a vector (i.e. \\(J(v)\\)) rather than stored, as \\(J\\) is a large dense matrix.
 
 
-.. math::
-
-    u(m)
-
-
 
 The API
 =======
@@ -78,7 +73,7 @@ Problem
 
 Survey
 ------
-
 .. automodule:: SimPEG.Survey
     :members:
+    :undoc-members:
 
