@@ -115,86 +115,7 @@ class BaseRegularization(object):
 
 
 class Tikhonov(BaseRegularization):
-    """**Tikhonov Regularization**
-
-        Here we will define regularization of a model, m, in general however, this should be thought of as (m-m_ref) but otherwise it is exactly the same:
-
-        .. math::
-
-            R(m) = \int_\Omega \\frac{\\alpha_x}{2}\left(\\frac{\partial m}{\partial x}\\right)^2 + \\frac{\\alpha_y}{2}\left(\\frac{\partial m}{\partial y}\\right)^2 \partial v
-
-        Our discrete gradient operator works on cell centers and gives the derivative on the cell faces, which is not where we want to be evaluating this integral. We need to average the values back to the cell-centers before we integrate. To avoid null spaces, we square first and then average. In 2D with ij notation it looks like this:
-
-        .. math::
-
-            R(m) \\approx \sum_{ij} \left[\\frac{\\alpha_x}{2}\left[\left(\\frac{m_{i+1,j} - m_{i,j}}{h}\\right)^2 + \left(\\frac{m_{i,j} - m_{i-1,j}}{h}\\right)^2\\right]
-            + \\frac{\\alpha_y}{2}\left[\left(\\frac{m_{i,j+1} - m_{i,j}}{h}\\right)^2 + \left(\\frac{m_{i,j} - m_{i,j-1}}{h}\\right)^2\\right]
-            \\right]h^2
-
-        If we let D_1 be the derivative matrix in the x direction
-
-        .. math::
-
-            \mathbf{D}_1 = \mathbf{I}_2\otimes\mathbf{d}_1
-
-        .. math::
-
-            \mathbf{D}_2 = \mathbf{d}_2\otimes\mathbf{I}_1
-
-        Where d_1 is the one dimensional derivative:
-
-        .. math::
-
-            \mathbf{d}_1 = \\frac{1}{h} \left[ \\begin{array}{cccc}
-            -1 & 1 & & \\\\
-             & \ddots & \ddots&\\\\
-             &  & -1 & 1\end{array} \\right]
-
-        .. math::
-
-            R(m) \\approx \mathbf{v}^\\top \left[\\frac{\\alpha_x}{2}\mathbf{A}_1 (\mathbf{D}_1 m) \odot (\mathbf{D}_1 m) + \\frac{\\alpha_y}{2}\mathbf{A}_2 (\mathbf{D}_2 m) \odot (\mathbf{D}_2 m) \\right]
-
-        Recall that this is really a just point wise multiplication, or a diagonal matrix times a vector. When we multiply by something in a diagonal we can interchange and it gives the same results (i.e. it is point wise)
-
-        .. math::
-
-            \mathbf{a\odot b} = \\text{diag}(\mathbf{a})\mathbf{b} = \\text{diag}(\mathbf{b})\mathbf{a} = \mathbf{b\odot a}
-
-        and the transpose also is true (but the sizes have to make sense...):
-
-        .. math::
-
-            \mathbf{a}^\\top\\text{diag}(\mathbf{b}) = \mathbf{b}^\\top\\text{diag}(\mathbf{a})
-
-        So R(m) can simplify to:
-
-        .. math::
-
-            R(m) \\approx  \mathbf{m}^\\top \left[\\frac{\\alpha_x}{2}\mathbf{D}_1^\\top \\text{diag}(\mathbf{A}_1^\\top\mathbf{v}) \mathbf{D}_1 +  \\frac{\\alpha_y}{2}\mathbf{D}_2^\\top \\text{diag}(\mathbf{A}_2^\\top \mathbf{v}) \mathbf{D}_2 \\right] \mathbf{m}
-
-        We will define W_x as:
-
-        .. math::
-
-            \mathbf{W}_x = \sqrt{\\alpha_x}\\text{diag}\left(\sqrt{\mathbf{A}_1^\\top\mathbf{v}}\\right) \mathbf{D}_1
-
-
-        And then W as a tall matrix of all of the different regularization terms:
-
-        .. math::
-
-            \mathbf{W} = \left[ \\begin{array}{c}
-            \mathbf{W}_s\\\\
-            \mathbf{W}_x\\\\
-            \mathbf{W}_y\end{array} \\right]
-
-        Then we can write
-
-        .. math::
-
-            R(m) \\approx \\frac{1}{2}\mathbf{m^\\top W^\\top W m}
-
-
+    """
     """
     smoothModel = True  #: SMOOTH and SMOOTH_MOD_DIF options
     alpha_s  = Utils.dependentProperty('_alpha_s', 1e-6, ['_W', '_Ws'], "Smallness weight")
@@ -311,7 +232,7 @@ class Tikhonov(BaseRegularization):
         if self.smoothModel == True:
             mD1 = self.mapping.deriv(m)
             mD2 = self.mapping.deriv(m - self.mref)
-            r1 = self.Wsmooth * ( self.mapping * (m)) 
+            r1 = self.Wsmooth * ( self.mapping * (m))
             r2 = self.Ws * ( self.mapping * (m - self.mref) )
             out1 = mD1.T * ( self.Wsmooth.T * r1 )
             out2 = mD2.T * ( self.Ws.T * r2 )

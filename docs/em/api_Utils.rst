@@ -7,7 +7,7 @@ sources, and analytic functions.
 Analytic Functions - Time
 =========================
 
-.. automodule:: SimPEG.EM.Utils.Ana.TEM
+.. automodule:: SimPEG.EM.Analytics.TDEM
     :show-inheritance:
     :members:
     :undoc-members:
@@ -17,7 +17,7 @@ Analytic Functions - Time
 Analytic Functions - Frequency
 ==============================
 
-.. automodule:: SimPEG.EM.Utils.Ana.FEM
+.. automodule:: SimPEG.EM.Analytics.FDEM
     :show-inheritance:
     :members:
     :undoc-members:
@@ -27,8 +27,7 @@ Analytic Functions - Frequency
 Sources
 =======
 
-.. automodule:: SimPEG.EM.Utils.Sources.magneticDipole
+.. autoclass:: SimPEG.EM.FDEM.SrcFDEM.MagDipole
     :show-inheritance:
     :members:
     :undoc-members:
-    :inherited-members:

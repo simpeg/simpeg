@@ -58,8 +58,9 @@ def MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, moment=1., orientation='X', mu
 
         from SimPEG import EM
         import matplotlib.pyplot as plt
+        from scipy.constants import mu_0
         freqs = np.logspace(-2,5,100)
-        Bx, By, Bz = EM.Analytics.FDEM.AnalyticMagDipoleWholeSpace([0,100,0], [0,0,0], 1e-2, freqs, m=1, orientation='Z')
+        Bx, By, Bz = EM.Analytics.FDEM.MagneticDipoleWholeSpace([0,100,0], [0,0,0], 1e-2, freqs, moment=1, orientation='Z')
         plt.loglog(freqs, np.abs(Bz.real)/mu_0, 'b')
         plt.loglog(freqs, np.abs(Bz.imag)/mu_0, 'r')
         plt.legend(('real','imag'))

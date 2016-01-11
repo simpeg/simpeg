@@ -1,8 +1,5 @@
-.. _api_Utils:
-
-
-Utilities
-*********
+Utils
+*****
 
 .. automodule:: SimPEG.Utils
     :members:
@@ -52,7 +49,7 @@ Interpolation Utilities
     :undoc-members:
 
 Counter Utilities
-=======================
+=================
 
 ::
     class MyClass(object):
