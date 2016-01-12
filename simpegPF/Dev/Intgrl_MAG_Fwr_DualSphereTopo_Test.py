@@ -9,6 +9,7 @@ from SimPEG import *
 import matplotlib.pyplot as plt
 import simpegPF as PF
 import scipy.interpolate as interpolation
+import time
 
 #from fwr_MAG_data import fwr_MAG_data
 
@@ -39,23 +40,32 @@ xr = np.linspace(-99., 99., 40)
 yr = np.linspace(-49., 49., 20)
 X, Y = np.meshgrid(xr, yr)
 
-d_iter = 1
-lrl = np.zeros(d_iter)
+
+
 sclx = 100.
-dx = 5
+dx = np.asarray([15., 10., 5., 2.5])
+ 
+d_iter = len(dx)
+l1_r = np.zeros(d_iter)
+l2_r = np.zeros(d_iter)
+linf_r = np.zeros(d_iter)
+timer = np.zeros(d_iter)
+mcell = np.zeros(d_iter)
 #%% Loop through decreasing meshes and measure the residual
 # Create mesh using simpeg and write out in GIF format
 
 for ii in range(d_iter):
     
     
-    nc = int(sclx/dx)
+    nc = int(sclx/dx[ii])
     
-    hxind = [(dx, 2*nc)]
-    hyind = [(dx, nc)]
-    hzind = [(dx, nc)]
+    hxind = [(dx[ii], 2*nc)]
+    hyind = [(dx[ii], nc)]
+    hzind = [(dx[ii], nc)]
     
     mesh = Mesh.TensorMesh([hxind, hyind, hzind], 'CCN')
+    
+    mcell[ii] = mesh.nC
     
     actv = PF.Magnetics.getActiveTopo(mesh,topo,'N')
     
@@ -74,15 +84,13 @@ for ii in range(d_iter):
     xn = mesh.vectorNx
     yn = mesh.vectorNy
     zn = mesh.vectorNz
-    
-    mcell = mesh.nC
-    
-    print 'Mesh size: ' + str(mcell)
+        
+    print 'Mesh size: ' + str(mcell[ii])
     
     #%% Create model
     chibkg = 0.
     chiblk = 0.01
-    model = np.ones(mcell)*chibkg
+    model = np.ones(mcell[ii])*chibkg
     
     # Do a three sphere problem for more frequencies 
     sph_ind = PF.MagAnalytics.spheremodel(mesh, 0., 0., -sclx/3, R)
@@ -98,7 +106,13 @@ for ii in range(d_iter):
     Utils.writeUBCTensorModel('Model.sus',mesh,model)
     actv = np.ones(mesh.nC)
     #%% Forward mode ldata
+    
+    start_time = time.time()
+    
     d = PF.Magnetics.Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,actv,'tmi')
+    
+    timer[ii] = (time.time() - start_time)
+    
     #fwr_tmi = d[0:ndata]
     #fwr_y = d[ndata:2*ndata]
     #fwr_z = d[2*ndata:]
@@ -130,8 +144,9 @@ for ii in range(d_iter):
     #r_By = fwr_y - bya
     #r_Bz = fwr_z - bza
     
-    lrl[ii] = sum( r_tmi**2 ) **0.5
-    
+    l2_r[ii] = np.sum( r_tmi**2 ) **0.5
+    l1_r[ii] = np.sum( np.abs( r_tmi ) )
+    linf_r[ii] = np.max( np.abs( r_tmi ) )
 
 #%% Write predicted to file
 
@@ -139,34 +154,34 @@ PF.Magnetics.writeUBCobs('Obsloc.loc',B,M,rxLoc,d,np.ones(len(d)))
 
 #%% Plot results
 print 'Residual between analytical sphere and integral forward' 
+print "dx \t nc \t l1 \t l2 \t linf \t Runtime"
 for ii in range(d_iter):
-    nc = 3**(ii+1)
 
-    print "||r||= " + str(lrl[ii]) + "\t dx= " + str(1./nc)
+    print str(dx[ii]) + "\t" + str(mcell[ii]) + "\t" + str(l1_r[ii]) + "\t" + str(l2_r[ii]) + "\t" + str(linf_r[ii]) + "\t" + str(timer[ii])
     
 #%% Plot fields
 plt.figure(1)
-#ax = plt.subplot(221)
+ax = plt.subplot()
 plt.imshow(np.reshape(b_tmi,X.shape), interpolation="bicubic", extent=[xr.min(), xr.max(), yr.min(), yr.max()], origin = 'lower')
-plt.colorbar(fraction=0.04)
+plt.colorbar(fraction=0.02)
 plt.contour(X,Y, np.reshape(b_tmi,X.shape),10)
 plt.scatter(X,Y, c=np.reshape(b_tmi,X.shape), s=20)
 ax.set_title('Analytical')
 
 #%% Plot the forward solution from integral
 plt.figure(2)
-#ax = plt.subplot(222)
+ax = plt.subplot()
 plt.imshow(np.reshape(d,X.shape), interpolation="bicubic", extent=[xr.min(), xr.max(), yr.min(), yr.max() ], origin = 'lower')
-plt.colorbar(fraction=0.04)
+plt.colorbar(fraction=0.02)
 plt.contour(X,Y, np.reshape(d,X.shape),10)
 plt.scatter(X,Y, c=np.reshape(d,X.shape), s=20)
 ax.set_title('Numerical')
 
 #%% Plot residual data
 plt.figure(3)
-#ax = plt.subplot(212)
+ax = plt.subplot()
 plt.imshow(np.reshape(r_tmi,X.shape), interpolation="bicubic", extent=[xr.min(), xr.max(), yr.min(), yr.max()], origin = 'lower')
-plt.colorbar(fraction=0.04)
+plt.colorbar(fraction=0.02)
 plt.contour(X,Y, np.reshape(r_tmi,X.shape),10)
 plt.scatter(X,Y, c=np.reshape(r_tmi,X.shape), s=20)
 ax.set_title('Sphere Ana Bx')

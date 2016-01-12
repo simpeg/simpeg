@@ -61,8 +61,10 @@ for ii in range(d_iter):
     model = np.ones(mcell)*chibkg
     model[sph_ind] = chiblk
     
+    actv = np.ones(mcell)
+    
     #%% Forward mode ldata
-    d = PF.Magnetics.Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,'xyz')
+    d = PF.Magnetics.Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,actv,'xyz')
     fwr_x = d[0:ndata]
     fwr_y = d[ndata:2*ndata]
     fwr_z = d[2*ndata:]
