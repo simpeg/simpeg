@@ -1,4 +1,4 @@
-from simpegEM.Utils.EMUtils import omega
+from SimPEG.EM.Utils import omega
 from SimPEG import mkvc
 from scipy.constants import mu_0
 from simpegMT.BaseMT import BaseMTProblem

@@ -1,6 +1,6 @@
 from SimPEG import Survey, Utils, Problem, Maps, np, sp, mkvc
-from simpegEM.FDEM.SurveyFDEM import SrcFDEM
-from simpegEM.Utils.EMUtils import omega
+from SimPEG.EM.FDEM.SrcFDEM import BaseSrc as FDEMBaseSrc
+from SimPEG.EM.Utils import omega
 from scipy.constants import mu_0
 import sys
 from numpy.lib import recfunctions as recFunc
@@ -315,7 +315,7 @@ class RxMT(Survey.BaseRx):
 ### Sources ###
 ###############
 
-class srcMT(SrcFDEM): # Survey.BaseSrc):
+class srcMT(FDEMBaseSrc): # Survey.BaseSrc):
     '''
     Sources for the MT problem.
     Use the SimPEG BaseSrc, since the source fields share properties with the transmitters.

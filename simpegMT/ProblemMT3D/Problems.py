@@ -1,5 +1,5 @@
 from SimPEG import Survey, Problem, Utils, Models, np, sp, mkvc, SolverLU as SimpegSolver
-from simpegEM.Utils.EMUtils import omega
+from SimPEG.EM.Utils import omega
 from scipy.constants import mu_0
 from simpegMT.BaseMT import BaseMTProblem
 from simpegMT.SurveyMT import SurveyMT

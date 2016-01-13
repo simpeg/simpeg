@@ -2,7 +2,7 @@ from SimPEG import Survey, Utils, Problem, np, sp, mkvc
 from scipy.constants import mu_0
 import sys
 from numpy.lib import recfunctions as recFunc
-from simpegEM.Utils.EMUtils import omega
+from SimPEG.EM.Utils import omega
 
 ##############
 ### Fields ###
