@@ -87,7 +87,7 @@ def dataMis_AnalyticTotalDomain(sigmaHalf):
 
     # Total domain solution
     surveyTD, sigma, mesh = setupSurvey(sigmaHalf)
-    problemTD = simpegmt.ProblemMT1D.eForm_TotalField(mesh)
+    problemTD = simpegmt.Problem1D.eForm_TotalField(mesh)
     problemTD.pair(surveyTD)
     # Analytic data
     dataAnaObj = calculateAnalyticSolution(surveyTD.srcList,mesh,sigma)
@@ -109,7 +109,7 @@ def dataMis_AnalyticPrimarySecondary(sigmaHalf):
     # Make the survey
     # Primary secondary
     surveyPS, sigmaPS, mesh = setupSurvey(sigmaHalf,tD=False)
-    problemPS = simpegmt.ProblemMT1D.eForm_psField(mesh)
+    problemPS = simpegmt.Problem1D.eForm_psField(mesh)
     problemPS.sigmaPrimary = sigmaPS
     problemPS.pair(surveyPS)
     # Analytic data

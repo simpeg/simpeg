@@ -105,11 +105,11 @@ def setupSimpegMTfwd_eForm_ps(inputSetup,comp='All',singleFreq=False,expMap=True
     ## Setup the problem object
     sigma1d = M.r(sigBG,'CC','CC','M')[0,0,:]
     if expMap:
-        problem = simpegmt.ProblemMT3D.eForm_ps(M,sigmaPrimary= np.log(sigma1d) )
+        problem = simpegmt.Problem3D.eForm_ps(M,sigmaPrimary= np.log(sigma1d) )
         problem.mapping = simpeg.Maps.ExpMap(problem.mesh)
         problem.curModel = np.log(sig)
     else:
-        problem = simpegmt.ProblemMT3D.eForm_ps(M,sigmaPrimary= sigma1d)
+        problem = simpegmt.Problem3D.eForm_ps(M,sigmaPrimary= sigma1d)
         problem.curModel = sig
     problem.pair(survey)
     problem.verbose = False
@@ -146,11 +146,11 @@ def setupSimpegMTfwd_eForm_ps_multiRx(inputSetup,comp='All',singleFreq=False,exp
     ## Setup the problem object
     sigma1d = M.r(sigBG,'CC','CC','M')[0,0,:]
     if expMap:
-        problem = simpegmt.ProblemMT3D.eForm_ps(M,sigmaPrimary= np.log(sigma1d) )
+        problem = simpegmt.Problem3D.eForm_ps(M,sigmaPrimary= np.log(sigma1d) )
         problem.mapping = simpeg.Maps.ExpMap(problem.mesh)
         problem.curModel = np.log(sig)
     else:
-        problem = simpegmt.ProblemMT3D.eForm_ps(M,sigmaPrimary= sigma1d)
+        problem = simpegmt.Problem3D.eForm_ps(M,sigmaPrimary= sigma1d)
         problem.curModel = sig
     problem.pair(survey)
     problem.verbose = False

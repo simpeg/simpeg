@@ -63,7 +63,7 @@ def appRes_TotalFieldNorm(sigmaHalf):
 
     # Make the survey
     survey, sigma, mesh = setupSurvey(sigmaHalf)
-    problem = simpegmt.ProblemMT1D.eForm_TotalField(mesh)
+    problem = simpegmt.Problems.1D.eForm_TotalField(mesh)
     problem.pair(survey)
 
     # Get the fields
@@ -81,7 +81,7 @@ def appPhs_TotalFieldNorm(sigmaHalf):
 
     # Make the survey
     survey, sigma, mesh = setupSurvey(sigmaHalf)
-    problem = simpegmt.ProblemMT1D.eForm_TotalField(mesh)
+    problem = simpegmt.Problems.1D.eForm_TotalField(mesh)
     problem.pair(survey)
 
     # Get the fields
@@ -99,7 +99,7 @@ def appRes_psFieldNorm(sigmaHalf):
 
     # Make the survey
     survey, sigma, mesh = setupSurvey(sigmaHalf,False)
-    problem = simpegmt.ProblemMT1D.eForm_psField(mesh, sigmaPrimary = sigma)
+    problem = simpegmt.Problems.1D.eForm_psField(mesh, sigmaPrimary = sigma)
     problem.pair(survey)
 
     # Get the fields
@@ -117,7 +117,7 @@ def appPhs_psFieldNorm(sigmaHalf):
 
     # Make the survey
     survey, sigma, mesh = setupSurvey(sigmaHalf,False)
-    problem = simpegmt.ProblemMT1D.eForm_psField(mesh, sigmaPrimary = sigma)
+    problem = simpegmt.Problems.1D.eForm_psField(mesh, sigmaPrimary = sigma)
     problem.pair(survey)
 
     # Get the fields
