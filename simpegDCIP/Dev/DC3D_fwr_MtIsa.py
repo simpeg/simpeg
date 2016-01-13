@@ -58,9 +58,9 @@ model = Utils.meshutils.readUBCTensorModel(home_dir + '\MtIsa_3D.con',mesh)
 stype = 'pdp'
 
 # Survey parameters
-a = 150
-b = 150
-n = 40
+a = 100
+b = 100
+n = 20
 
 # Forward solver
 slvr = 'BiCGStab' #'LU'
@@ -72,7 +72,7 @@ pcdr = 'Jacobi'#'Gauss-Seidel'#
 pct = 0.01
 flr = 1e-4
 chifact = 100
-ref_mod = 1e-3
+ref_mod = 1e-2
 
 #%% Create system
 #Set boundary conditions
@@ -130,9 +130,9 @@ plt.sca(ax_prim)
     
 # Takes two points from ginput and create survey
 #if re.match(stype,'gradient'):
-#gin = [(425347, 6079766), (427792, 6081806)]
+gin = [(400.,12200.), (1400.,12200.)]
 #else:
-gin = plt.ginput(2, timeout = 0)
+#gin = plt.ginput(2, timeout = 0)
 
 
 
@@ -150,7 +150,7 @@ var = np.c_[np.asarray(gin),np.ones(2).T*nz[-1]]
 indx = Utils.closestPoints(mesh, var )
 endl = np.c_[mesh.gridCC[indx,0],mesh.gridCC[indx,1],np.ones(2).T*nz[-1]]
       
-[Tx, Rx] = gen_DCIPsurvey(endl, mesh, stype, a, b, n)
+[Tx, Rx] = DC.gen_DCIPsurvey(endl, mesh, stype, a, b, n)
  
 dl_len = np.sqrt( np.sum((endl[0,:] - endl[1,:])**2) ) 
 dl_x = ( Tx[-1][0,1] - Tx[0][0,0] ) / dl_len
@@ -230,17 +230,17 @@ for ii in range(len(Tx)):
 if not re.match(stype,'gradient'):
     
     #%% Write data file in UBC-DCIP3D format
-    writeUBC_DCobs(home_dir+'\FWR_data3D.dat',Tx,Rx,data,unct,'3D')     
+    DC.writeUBC_DCobs(home_dir+'\FWR_data3D.dat',Tx,Rx,data,unct,'3D')     
     
     
     #%% Load 3D data
-    [Tx, Rx, data, wd] = readUBC_DC3Dobs(home_dir + '\FWR_data3D.dat')
+    [Tx, Rx, data, wd] = DC.readUBC_DC3Dobs(home_dir + '\FWR_data3D.dat')
     
     
     #%% Convert 3D obs to 2D and write to file
-    [Tx2d, Rx2d] = convertObs_DC3D_to_2D(Tx,Rx)
+    [Tx2d, Rx2d] = DC.convertObs_DC3D_to_2D(Tx,Rx)
     
-    writeUBC_DCobs(home_dir+'\FWR_3D_2_2D.dat',Tx2d,Rx2d,data,unct,'2D')        
+    DC.writeUBC_DCobs(home_dir+'\FWR_3D_2_2D.dat',Tx2d,Rx2d,data,unct,'2D')        
     
     #%% Create a 2D mesh along axis of Tx end points and keep z-discretization    
     dx = np.min( [ np.min(mesh.hx), np.min(mesh.hy) ])
@@ -278,7 +278,7 @@ if not re.match(stype,'gradient'):
     #==============================================================================
     
     plt.figure()
-    axs = plt.subplot(2,1,1)
+    axs = plt.subplot()
     
     plt.xlim([0,nc*dx])
     plt.ylim([mesh2d.vectorNy[-1]-dl_len,mesh2d.vectorNy[-1]])
@@ -289,7 +289,7 @@ if not re.match(stype,'gradient'):
     
     #%% Plot pseudo section
     
-    plot_pseudoSection(Tx2d,Rx2d,data,nz[-1],stype)
+    DC.plot_pseudoSection(Tx2d,Rx2d,data,nz[-1],stype)
     plt.colorbar
     plt.show()
 
@@ -322,7 +322,7 @@ if not re.match(stype,'gradient'):
     fid.close()
     
     # Export data file
-    writeUBC_DCobs(inv_dir + dsep + obsfile2d,Tx2d,Rx2d,data,unct,'2D') 
+    DC.writeUBC_DCobs(inv_dir + dsep + obsfile2d,Tx2d,Rx2d,data,unct,'2D') 
     
     # Write input file
     fid = open(inv_dir + dsep + inp_file,'w')
@@ -344,9 +344,9 @@ if not re.match(stype,'gradient'):
     
     #%%
     #Load model
-    minv = readUBC_DC2DModel(inv_dir + dsep + 'dcinv2d.con')
-    #plt.figure()
-    axs = plt.subplot(2,1,2)
+    minv = DC.readUBC_DC2DModel(inv_dir + dsep + 'dcinv2d.con')
+    plt.figure()
+    axs = plt.subplot()
     
     plt.xlim([0,nc*dx])
     plt.ylim([mesh2d.vectorNy[-1]-dl_len,mesh2d.vectorNy[-1]])
