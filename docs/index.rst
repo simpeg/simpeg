@@ -51,6 +51,7 @@ Packages
    :maxdepth: 3
 
    em/index
+   mt/index
    flow/index
 
 Examples
