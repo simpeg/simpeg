@@ -2,9 +2,8 @@ from SimPEG.EM.Utils import omega
 from SimPEG import mkvc
 from scipy.constants import mu_0
 from simpegMT.BaseMT import BaseMTProblem
-from simpegMT.SurveyMT import SurveyMT
-from simpegMT.FieldsMT import FieldsMT_1D
-from simpegMT.DataMT  import DataMT
+from simpegMT.SurveyMT import Survey, Data
+from simpegMT.FieldsMT import Fields1D_e
 from simpegMT.Utils.MT1Danalytic import getEHfields
 import numpy as np
 import multiprocessing, sys, time
@@ -25,7 +24,7 @@ class eForm_psField(BaseMTProblem):
 
     def __init__(self, mesh, **kwargs):
         BaseMTProblem.__init__(self, mesh, **kwargs)
-        self.fieldsPair = FieldsMT_1D
+        self.fieldsPair = Fields1D_e
         # self._sigmaPrimary = sigmaPrimary
 
     @property
@@ -105,7 +104,7 @@ class eForm_psField(BaseMTProblem):
         # Set the current model
         self.curModel = m
 
-        F = FieldsMT_1D(self.mesh, self.survey)
+        F = Fields1D_e(self.mesh, self.survey)
         for freq in self.survey.freqs:
             if self.verbose:
                 startTime = time.time()
@@ -222,7 +221,7 @@ class eForm_TotalField(BaseMTProblem):
         self.curModel = m
         # RHS, CalcFields = self.getRHS(freq,m_back), self.calcFields
 
-        F = FieldsMT_1D(self.mesh, self.survey)
+        F = Fields1D_e(self.mesh, self.survey)
         for freq in self.survey.freqs:
             if self.verbose:
                 startTime = time.time()

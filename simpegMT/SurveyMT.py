@@ -1,16 +1,17 @@
-from SimPEG import Survey, Utils, Problem, Maps, np, sp, mkvc
+from SimPEG import Survey as SimPEGsurvey, Utils, Problem, Maps, np, sp, mkvc
 from SimPEG.EM.FDEM.SrcFDEM import BaseSrc as FDEMBaseSrc
 from SimPEG.EM.Utils import omega
 from scipy.constants import mu_0
-import sys
 from numpy.lib import recfunctions as recFunc
-from DataMT import DataMT
-from simpegMT.Sources import homo1DModelSource
+from Sources import homo1DModelSource
+from Utils import rec2ndarr
+
+import sys
+
 #################
 ### Receivers ###
 #################
-
-class RxMT(Survey.BaseRx):
+class Rx(SimPEGsurvey.BaseRx):
 
     knownRxTypes = {
                     # 3D impedance
@@ -35,7 +36,7 @@ class RxMT(Survey.BaseRx):
                    }
     # TODO: Have locs as single or double coordinates for both or numerator and denominator separately, respectively.
     def __init__(self, locs, rxType):
-        Survey.BaseRx.__init__(self, locs, rxType)
+        SimPEGsurvey.BaseRx.__init__(self, locs, rxType)
 
     @property
     def projField(self):
@@ -64,6 +65,7 @@ class RxMT(Survey.BaseRx):
             return self.knownRxTypes[self.rxType][0][1]
         else:
             raise Exception('{s} is an unknown option. Use numerator or denominator.')
+
     @property
     def projType(self):
         """
@@ -310,222 +312,23 @@ class RxMT(Survey.BaseRx):
 
         return Pv
 
-
-###############
-### Sources ###
-###############
-
-class srcMT(FDEMBaseSrc): # Survey.BaseSrc):
-    '''
-    Sources for the MT problem.
-    Use the SimPEG BaseSrc, since the source fields share properties with the transmitters.
-
-    :param float freq: The frequency of the source
-    :param list rxList: A list of receivers associated with the source
-    '''
-
-    freq = None #: Frequency (float)
-    rxPair = RxMT
-
-
-    def __init__(self, rxList, freq):
-
-        self.freq = float(freq)
-        Survey.BaseSrc.__init__(self, rxList)
-
-# 1D sources
-class srcMT_polxy_1DhomotD(srcMT):
-    """
-    MT source for both polarizations (x and y) for the total Domain. It calculates fields calculated based on conditions on the boundary of the domain.
-    """
-    def __init__(self, rxList, freq):
-        srcMT.__init__(self, rxList, freq)
-
-
-    # TODO: need to add the  primary fields calc and source terms into the problem.
-
-
-# Need to implement such that it works for all dims.
-class srcMT_polxy_1Dprimary(srcMT):
-    """
-    MT source for both polarizations (x and y) given a 1D primary models. It assigns fields calculated from the 1D model
-    as fields in the full space of the problem.
-    """
-    def __init__(self, rxList, freq):
-        # assert mkvc(self.mesh.hz.shape,1) == mkvc(sigma1d.shape,1),'The number of values in the 1D background model does not match the number of vertical cells (hz).'
-        self.sigma1d = None
-        srcMT.__init__(self, rxList, freq)
-        # Hidden property of the ePrimary
-        self._ePrimary = None
-
-    def ePrimary(self,problem):
-        # Get primary fields for both polarizations
-        if self.sigma1d is None:
-            # Set the sigma1d as the 1st column in the background model
-            if len(problem._sigmaPrimary) == problem.mesh.nC:
-                if problem.mesh.dim == 1:
-                    self.sigma1d = problem.mesh.r(problem._sigmaPrimary,'CC','CC','M')[:]
-                elif problem.mesh.dim == 3:
-                    self.sigma1d = problem.mesh.r(problem._sigmaPrimary,'CC','CC','M')[0,0,:]
-            # Or as the 1D model that matches the vertical cell number
-            elif len(problem._sigmaPrimary) == problem.mesh.nCz:
-                self.sigma1d = problem._sigmaPrimary
-
-        if self._ePrimary is None:
-            self._ePrimary = homo1DModelSource(problem.mesh,self.freq,self.sigma1d)
-        return self._ePrimary
-
-    def bPrimary(self,problem):
-        # Project ePrimary to bPrimary
-        # Satisfies the primary(background) field conditions
-        if problem.mesh.dim == 1:
-            C = problem.mesh.nodalGrad
-        elif problem.mesh.dim == 3:
-            C = problem.mesh.edgeCurl
-        bBG_bp = (- C * self.ePrimary(problem) )*(1/( 1j*omega(self.freq) ))
-        return bBG_bp
-
-    def S_e(self,problem):
-        """
-        Get the electrical field source
-        """
-        e_p = self.ePrimary(problem)
-        Map_sigma_p = Maps.Vertical1DMap(problem.mesh)
-        sigma_p = Map_sigma_p._transform(self.sigma1d)
-        # Make mass matrix
-        # Note: M(sig) - M(sig_p) = M(sig - sig_p)
-        # Need to deal with the edge/face discrepencies between 1d/2d/3d
-        if problem.mesh.dim == 1:
-            Mesigma = problem.mesh.getFaceInnerProduct(problem.curModel.sigma)
-            Mesigma_p = problem.mesh.getFaceInnerProduct(sigma_p)
-        if problem.mesh.dim == 2:
-            pass
-        if problem.mesh.dim == 3:
-            Mesigma = problem.MeSigma
-            Mesigma_p = problem.mesh.getEdgeInnerProduct(sigma_p)
-        return (Mesigma - Mesigma_p) * e_p
-
-    def S_eDeriv_m(self, problem, v, adjoint = False):
-        '''
-        Get the derivative of S_e wrt to sigma (m)
-        '''
-        # Need to deal with
-        if problem.mesh.dim == 1:
-            # Need to use the faceInnerProduct
-            MsigmaDeriv = problem.mesh.getFaceInnerProductDeriv(problem.curModel.sigma)(self.ePrimary(problem)[:,1]) * problem.curModel.sigmaDeriv
-            # MsigmaDeriv = ( MsigmaDeriv * MsigmaDeriv.T)**2
-        if problem.mesh.dim == 2:
-            pass
-        if problem.mesh.dim == 3:
-            # Need to take the derivative of both u_px and u_py
-            ePri = self.ePrimary(problem)
-            # MsigmaDeriv = problem.MeSigmaDeriv(ePri[:,0]) + problem.MeSigmaDeriv(ePri[:,1])
-            # MsigmaDeriv = problem.MeSigmaDeriv(np.sum(ePri,axis=1))
-            if adjoint:
-                return sp.hstack(( problem.MeSigmaDeriv(ePri[:,0]).T, problem.MeSigmaDeriv(ePri[:,1]).T ))*v
-            else:
-                return np.hstack(( mkvc(problem.MeSigmaDeriv(ePri[:,0]) * v,2), mkvc(problem.MeSigmaDeriv(ePri[:,1])*v,2) ))
-        if adjoint:
-            #
-            return MsigmaDeriv.T * v
-        else:
-            # v should be nC size
-            return MsigmaDeriv * v
-
-class srcMT_polxy_3Dprimary(srcMT):
-    """
-    MT source for both polarizations (x and y) given a 3D primary model. It assigns fields calculated from the 1D model
-    as fields in the full space of the problem.
-    """
-    def __init__(self, rxList, freq):
-        # assert mkvc(self.mesh.hz.shape,1) == mkvc(sigma1d.shape,1),'The number of values in the 1D background model does not match the number of vertical cells (hz).'
-        self.sigmaPrimary = None
-        srcMT.__init__(self, rxList, freq)
-        # Hidden property of the ePrimary
-        self._ePrimary = None
-
-    def ePrimary(self,problem):
-        # Get primary fields for both polarizations
-        self.sigmaPrimary = problem._sigmaPrimary
-
-        if self._ePrimary is None:
-            self._ePrimary = homo3DModelSource(problem.mesh,self.sigmaPrimary,self.freq)
-        return self._ePrimary
-
-    def bPrimary(self,problem):
-        # Project ePrimary to bPrimary
-        # Satisfies the primary(background) field conditions
-        if problem.mesh.dim == 1:
-            C = problem.mesh.nodalGrad
-        elif problem.mesh.dim == 3:
-            C = problem.mesh.edgeCurl
-        bBG_bp = (- C * self.ePrimary(problem) )*(1/( 1j*omega(self.freq) ))
-        return bBG_bp
-
-    def S_e(self,problem):
-        """
-        Get the electrical field source
-        """
-        e_p = self.ePrimary(problem)
-        Map_sigma_p = Maps.Vertical1DMap(problem.mesh)
-        sigma_p = Map_sigma_p._transform(self.sigma1d)
-        # Make mass matrix
-        # Note: M(sig) - M(sig_p) = M(sig - sig_p)
-        # Need to deal with the edge/face discrepencies between 1d/2d/3d
-        if problem.mesh.dim == 1:
-            Mesigma = problem.mesh.getFaceInnerProduct(problem.curModel.sigma)
-            Mesigma_p = problem.mesh.getFaceInnerProduct(sigma_p)
-        if problem.mesh.dim == 2:
-            pass
-        if problem.mesh.dim == 3:
-            Mesigma = problem.MeSigma
-            Mesigma_p = problem.mesh.getEdgeInnerProduct(sigma_p)
-        return (Mesigma - Mesigma_p) * e_p
-
-    def S_eDeriv_m(self, problem, v, adjoint = False):
-        '''
-        Get the derivative of S_e wrt to sigma (m)
-        '''
-        # Need to deal with
-        if problem.mesh.dim == 1:
-            # Need to use the faceInnerProduct
-            MsigmaDeriv = problem.mesh.getFaceInnerProductDeriv(problem.curModel.sigma)(self.ePrimary(problem)[:,1]) * problem.curModel.sigmaDeriv
-            # MsigmaDeriv = ( MsigmaDeriv * MsigmaDeriv.T)**2
-        if problem.mesh.dim == 2:
-            pass
-        if problem.mesh.dim == 3:
-            # Need to take the derivative of both u_px and u_py
-            ePri = self.ePrimary(problem)
-            # MsigmaDeriv = problem.MeSigmaDeriv(ePri[:,0]) + problem.MeSigmaDeriv(ePri[:,1])
-            # MsigmaDeriv = problem.MeSigmaDeriv(np.sum(ePri,axis=1))
-            if adjoint:
-                return sp.hstack(( problem.MeSigmaDeriv(ePri[:,0]).T, problem.MeSigmaDeriv(ePri[:,1]).T ))*v
-            else:
-                return np.hstack(( mkvc(problem.MeSigmaDeriv(ePri[:,0]) * v,2), mkvc(problem.MeSigmaDeriv(ePri[:,1])*v,2) ))
-        if adjoint:
-            #
-            return MsigmaDeriv.T * v
-        else:
-            # v should be nC size
-            return MsigmaDeriv * v
-
-##############
-### Survey ###
-##############
-class SurveyMT(Survey.BaseSurvey):
+#################
+###  Survey   ###
+#################
+class Survey(SimPEGsurvey.BaseSurvey):
     """
         Survey class for MT. Contains all the sources associated with the survey.
 
         :param list srcList: List of sources associated with the survey
 
     """
-
-    srcPair = srcMT
+    import SrcMT
+    srcPair = SrcMT.BaseMTSrc
 
     def __init__(self, srcList, **kwargs):
         # Sort these by frequency
         self.srcList = srcList
-        Survey.BaseSurvey.__init__(self, **kwargs)
+        SimPEGsurvey.BaseSurvey.__init__(self, **kwargs)
 
         _freqDict = {}
         for src in srcList:
@@ -553,7 +356,7 @@ class SurveyMT(Survey.BaseSurvey):
         return self._freqDict[freq]
 
     def projectFields(self, u):
-        data = DataMT(self)
+        data = Data(self)
         for src in self.srcList:
             sys.stdout.flush()
             for rx in src.rxList:
@@ -562,4 +365,125 @@ class SurveyMT(Survey.BaseSurvey):
 
     def projectFieldsDeriv(self, u):
         raise Exception('Use Transmitters to project fields deriv.')
+
+#################
+###   Data    ###
+#################
+class Data(SimPEGsurvey.Data):
+    '''
+    Data class for MTdata
+
+    :param SimPEG survey object survey:
+    :param v vector with data
+
+    '''
+    def __init__(self, survey, v=None):
+        # Pass the variables to the "parent" method
+        SimPEGsurvey.Data.__init__(self, survey, v)
+
+    # # Import data
+    # @classmethod
+    # def fromEDIFiles():
+    #     pass
+
+    def toRecArray(self,returnType='RealImag'):
+        '''
+        Function that returns a numpy.recarray for a SimpegMT impedance data object.
+
+        :param str returnType: Switches between returning a rec array where the impedance is split to real and imaginary ('RealImag') or is a complex ('Complex')
+
+        '''
+
+        # Define the record fields
+        dtRI = [('freq',float),('x',float),('y',float),('z',float),('zxxr',float),('zxxi',float),('zxyr',float),('zxyi',float),
+        ('zyxr',float),('zyxi',float),('zyyr',float),('zyyi',float),('tzxr',float),('tzxi',float),('tzyr',float),('tzyi',float)]
+        dtCP = [('freq',float),('x',float),('y',float),('z',float),('zxx',complex),('zxy',complex),('zyx',complex),('zyy',complex),('tzx',complex),('tzy',complex)]
+        impList = ['zxxr','zxxi','zxyr','zxyi','zyxr','zyxi','zyyr','zyyi']
+        for src in self.survey.srcList:
+            # Temp array for all the receivers of the source.
+            # Note: needs to be written more generally, using diffterent rxTypes and not all the data at the locaitons
+            # Assume the same locs for all RX
+            locs = src.rxList[0].locs
+            if locs.shape[1] == 1:
+                locs = np.hstack((np.array([[0.0,0.0]]),locs))
+            elif locs.shape[1] == 2:
+                locs = np.hstack((np.array([[0.0]]),locs))
+            tArrRec = np.concatenate((src.freq*np.ones((locs.shape[0],1)),locs,np.nan*np.ones((locs.shape[0],12))),axis=1).view(dtRI)
+            # np.array([(src.freq,rx.locs[0,0],rx.locs[0,1],rx.locs[0,2],np.nan ,np.nan ,np.nan ,np.nan ,np.nan ,np.nan ,np.nan ,np.nan ) for rx in src.rxList],dtype=dtRI)
+            # Get the type and the value for the DataMT object as a list
+            typeList = [[rx.rxType.replace('z1d','zyx'),self[src,rx]] for rx in src.rxList]
+            # Insert the values to the temp array
+            for nr,(key,val) in enumerate(typeList):
+                tArrRec[key] = mkvc(val,2)
+            # Masked array
+            mArrRec = np.ma.MaskedArray(rec2ndarr(tArrRec),mask=np.isnan(rec2ndarr(tArrRec))).view(dtype=tArrRec.dtype)
+            # Unique freq and loc of the masked array
+            uniFLmarr = np.unique(mArrRec[['freq','x','y','z']]).copy()
+
+            try:
+                outTemp = recFunc.stack_arrays((outTemp,mArrRec))
+                #outTemp = np.concatenate((outTemp,dataBlock),axis=0)
+            except NameError as e:
+                outTemp = mArrRec
+
+            if 'RealImag' in returnType:
+                outArr = outTemp
+            elif 'Complex' in returnType:
+                # Add the real and imaginary to a complex number
+                outArr = np.empty(outTemp.shape,dtype=dtCP)
+                for comp in ['freq','x','y','z']:
+                    outArr[comp] = outTemp[comp].copy()
+                for comp in ['zxx','zxy','zyx','zyy','tzx','tzy']:
+                    outArr[comp] = outTemp[comp+'r'].copy() + 1j*outTemp[comp+'i'].copy()
+            else:
+                raise NotImplementedError('{:s} is not implemented, as to be RealImag or Complex.')
+
+        # Return
+        return outArr
+
+    @classmethod
+    def fromRecArray(cls, recArray, srcType='primary'):
+        """
+        Class method that reads in a numpy record array to MTdata object.
+
+        Only imports the impedance data.
+
+        """
+        if srcType=='primary':
+            src = SrcMT.src_polxy_1Dprimary
+        elif srcType=='total':
+            src = SrcMT.src_polxy_1DhomotD
+        else:
+            raise NotImplementedError('{:s} is not a valid source type for MTdata')
+
+        # Find all the frequencies in recArray
+        uniFreq = np.unique(recArray['freq'])
+        srcList = []
+        dataList = []
+        for freq in uniFreq:
+            # Initiate rxList
+            rxList = []
+            # Find that data for freq
+            dFreq = recArray[recArray['freq'] == freq].copy()
+            # Find the impedance rxTypes in the recArray.
+            rxTypes = [ comp for comp in recArray.dtype.names if (len(comp)==4 or len(comp)==3) and 'z' in comp]
+            for rxType in rxTypes:
+                # Find index of not nan values in rxType
+                notNaNind = ~np.isnan(dFreq[rxType])
+                if np.any(notNaNind): # Make sure that there is any data to add.
+                    locs = rec2ndarr(dFreq[['x','y','z']][notNaNind].copy())
+                    if dFreq[rxType].dtype.name in 'complex128':
+                        rxList.append(Rx(locs,rxType+'r'))
+                        dataList.append(dFreq[rxType][notNaNind].real.copy())
+                        rxList.append(Rx(locs,rxType+'i'))
+                        dataList.append(dFreq[rxType][notNaNind].imag.copy())
+                    else:
+                        rxList.append(Rx(locs,rxType))
+                        dataList.append(dFreq[rxType][notNaNind].copy())
+            srcList.append(src(rxList,freq))
+
+        # Make a survey
+        survey = Survey(srcList)
+        dataVec = np.hstack(dataList)
+        return cls(survey,dataVec)
 

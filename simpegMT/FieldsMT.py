@@ -7,13 +7,13 @@ from SimPEG.EM.Utils import omega
 ##############
 ### Fields ###
 ##############
-class FieldsMT(Problem.Fields):
+class BaseMTFields(Problem.Fields):
     """Field Storage for a MT survey."""
     knownFields = {}
     dtype = complex
 
 
-class FieldsMT_1D(FieldsMT):
+class Fields1D_e(BaseMTFields):
     """
     Fields storage for the 1D MT solution.
     """
@@ -28,7 +28,7 @@ class FieldsMT_1D(FieldsMT):
                   }
 
     def __init__(self,mesh,survey,**kwargs):
-        FieldsMT.__init__(self,mesh,survey,**kwargs)
+        BaseMTFields.__init__(self,mesh,survey,**kwargs)
 
     def _ePrimary(self, eSolution, srcList):
         ePrimary = np.zeros_like(eSolution)
@@ -120,7 +120,7 @@ class FieldsMT_1D(FieldsMT):
         """
         return None
 
-class FieldsMT_3D(FieldsMT):
+class Fields3D_e(BaseMTFields):
     """
     Fields storage for the 3D MT solution.
     """
@@ -144,7 +144,7 @@ class FieldsMT_3D(FieldsMT):
                   }
 
     def __init__(self,mesh,survey,**kwargs):
-        FieldsMT.__init__(self,mesh,survey,**kwargs)
+        BaseMTFields.__init__(self,mesh,survey,**kwargs)
 
     def _e_pxPrimary(self, e_pxSolution, srcList):
         e_pxPrimary = np.zeros_like(e_pxSolution)

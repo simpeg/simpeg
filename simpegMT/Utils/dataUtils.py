@@ -40,7 +40,7 @@ def rotateData(MTdata,rotAngle):
     outRec = recData.copy()
     for nr,comp in enumerate(['zxx','zxy','zyx','zyy']):
         outRec[comp] = rotData[:,nr]
-    return simpegmt.DataMT.DataMT.fromRecArray(outRec)
+    return simpegmt.Data.fromRecArray(outRec)
 
 
 def appResPhs(freq,z):
@@ -182,22 +182,22 @@ def convert3Dto1Dobject(MTdata,rxType3D='zyx'):
         # Make the receiver list
         rx1DList = []
         for rxType in ['z1dr','z1di']:
-            rx1DList.append(simpegmt.SurveyMT.RxMT(simpeg.mkvc(loc,2).T,rxType))
+            rx1DList.append(simpegmt.Rx(simpeg.mkvc(loc,2).T,rxType))
         # Source list
         locrecData = recData[np.sqrt(np.sum( (rec2ndarr(recData[['x','y','z']]).data - loc )**2,axis=1)) < 1e-5]
         dat1DList = []
         src1DList = []
         for freq in locrecData['freq']:
-            src1DList.append(simpegmt.SurveyMT.srcMT_polxy_1Dprimary(rx1DList,freq))
+            src1DList.append(simpegmt.SrcMT.src_polxy_1Dprimary(rx1DList,freq))
             for comp  in ['r','i']:
                 dat1DList.append( corr * locrecData[rxType3D+comp][locrecData['freq']== freq].data )
 
         # Make the survey
-        sur1D = simpegmt.SurveyMT.SurveyMT(src1DList)
+        sur1D = simpegmt.Survey(src1DList)
 
         # Make the data
         dataVec = np.hstack(dat1DList)
-        dat1D = simpegmt.DataMT.DataMT(sur1D,dataVec)
+        dat1D = simpegmt.Data(sur1D,dataVec)
         sur1D.dobs = dataVec
         # Need to take MTdata.survey.std and split it as well.
         std=0.05
@@ -238,4 +238,4 @@ def resampleMTdataAtFreq(MTdata,freqs):
             outRecArr = tArrRec
 
     # Make the MTdata and return
-    return simpegmt.DataMT.DataMT.fromRecArray(outRecArr)
+    return simpegmt.Data.fromRecArray(outRecArr)

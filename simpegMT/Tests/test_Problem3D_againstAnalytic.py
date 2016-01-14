@@ -88,19 +88,19 @@ def setupSimpegMTfwd_eForm_ps(inputSetup,comp='All',singleFreq=False,expMap=True
     rxList = []
     if comp == 'All':
         for rxType in ['zxxr','zxxi','zxyr','zxyi','zyxr','zyxi','zyyr','zyyi',]:
-                rxList.append(simpegmt.SurveyMT.RxMT(rx_loc,rxType))
+                rxList.append(simpegmt.Rx(rx_loc,rxType))
     else:
-        rxList.append(simpegmt.SurveyMT.RxMT(rx_loc,comp))
+        rxList.append(simpegmt.Rx(rx_loc,comp))
     # Source list
     srcList =[]
 
     if singleFreq:
-        srcList.append(simpegmt.SurveyMT.srcMT_polxy_1Dprimary(rxList,singleFreq))
+        srcList.append(simpegmt.SrcMT.polxy_1Dprimary(rxList,singleFreq))
     else:
         for freq in freqs:
-            srcList.append(simpegmt.SurveyMT.srcMT_polxy_1Dprimary(rxList,freq))
+            srcList.append(simpegmt.SrcMT.polxy_1Dprimary(rxList,freq))
     # Survey MT
-    survey = simpegmt.SurveyMT.SurveyMT(srcList)
+    survey = simpegmt.Survey(srcList)
 
     ## Setup the problem object
     sigma1d = M.r(sigBG,'CC','CC','M')[0,0,:]
@@ -129,17 +129,17 @@ def setupSimpegMTfwd_eForm_ps_multiRx(inputSetup,comp='All',singleFreq=False,exp
     rxList = []
     if comp == 'All':
         for rxType in ['zxxr','zxxi','zxyr','zxyi','zyxr','zyxi','zyyr','zyyi',]:
-                rxList.append(simpegmt.SurveyMT.RxMT(rx_loc,rxType))
+                rxList.append(simpegmt.Rx(rx_loc,rxType))
     else:
-        rxList.append(simpegmt.SurveyMT.RxMT(rx_loc,comp))
+        rxList.append(simpegmt.Rx(rx_loc,comp))
     # Source list
     srcList =[]
 
     if singleFreq:
-        srcList.append(simpegmt.SurveyMT.srcMT_polxy_1Dprimary(rxList,singleFreq))
+        srcList.append(simpegmt.SrcMT.polxy_1Dprimary(rxList,singleFreq))
     else:
         for freq in freqs:
-            srcList.append(simpegmt.SurveyMT.srcMT_polxy_1Dprimary(rxList,freq))
+            srcList.append(simpegmt.SrcMT.polxy_1Dprimary(rxList,freq))
     # Survey MT
     survey = simpegmt.SurveyMT.SurveyMT(srcList)
 

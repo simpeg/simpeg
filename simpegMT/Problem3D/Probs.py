@@ -2,9 +2,8 @@ from SimPEG import Survey, Problem, Utils, Models, np, sp, mkvc, SolverLU as Sim
 from SimPEG.EM.Utils import omega
 from scipy.constants import mu_0
 from simpegMT.BaseMT import BaseMTProblem
-from simpegMT.SurveyMT import SurveyMT
-from simpegMT.FieldsMT import FieldsMT_3D
-from simpegMT.DataMT import DataMT
+from simpegMT.SurveyMT import Survey, Data
+from simpegMT.FieldsMT import Fields3D_e
 import multiprocessing, sys, time
 
 
@@ -22,7 +21,7 @@ class eForm_ps(BaseMTProblem):
     # From FDEMproblem: Used to project the fields. Currently not used for MTproblem.
     _fieldType = 'e'
     _eqLocs    = 'FE'
-    fieldsPair = FieldsMT_3D
+    fieldsPair = Fields3D_e
     _sigmaPrimary = None
 
     def __init__(self, mesh, **kwargs):
@@ -110,7 +109,7 @@ class eForm_ps(BaseMTProblem):
         # Set the current model
         self.curModel = m
 
-        F = FieldsMT_3D(self.mesh, self.survey)
+        F = Fields3D_e(self.mesh, self.survey)
         for freq in self.survey.freqs:
             if self.verbose:
                 startTime = time.time()
@@ -144,7 +143,7 @@ class eForm_Tp(BaseMTProblem):
 
     _fieldType = 'e'
     _eqLocs    = 'FE'
-    fieldsPair = FieldsMT_3D
+    fieldsPair = Fields3D_e
 
     # Set new properties
     # Background model
@@ -238,7 +237,7 @@ class eForm_Tp(BaseMTProblem):
         self.backModel = m_back
         # RHS, CalcFields = self.getRHS(freq,m_back), self.calcFields
 
-        F = FieldsMT_3D(self.mesh, self.survey)
+        F = Fields3D_e(self.mesh, self.survey)
         for freq in self.survey.freqs:
             if self.verbose:
                 startTime = time.time()

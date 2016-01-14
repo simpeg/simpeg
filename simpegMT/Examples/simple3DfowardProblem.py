@@ -1,7 +1,7 @@
 # Test script to use simpegMT platform to forward model synthetic data.
 
-# Import 
-import simpegMT as simpegmt, SimPEG as simpeg 
+# Import
+import simpegMT as simpegmt, SimPEG as simpeg
 import numpy as np
 
 # Make a mesh
@@ -23,13 +23,13 @@ rxList = []
 for loc in rx_loc:
     # NOTE: loc has to be a (1,3) np.ndarray otherwise errors accure
     for rxType in ['zxxr','zxxi','zxyr','zxyi','zyxr','zyxi','zyyr','zyyi']:
-        rxList.append(simpegmt.SurveyMT.RxMT(simpeg.mkvc(loc,2).T,rxType))
+        rxList.append(simpegmt.RxMT(simpeg.mkvc(loc,2).T,rxType))
 # Source list
 srcList =[]
 for freq in np.logspace(3,-3,7):
     srcList.append(simpegmt.SurveyMT.srcMT(freq,rxList))
-# Survey MT 
-survey = simpegmt.SurveyMT.SurveyMT(srcList)
+# Survey MT
+survey = simpegmt.Survey(srcList)
 
 ## Setup the problem object
 problem = simpegmt.ProblemMT.MTProblem(M)

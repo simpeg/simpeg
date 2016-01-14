@@ -28,17 +28,17 @@ def setupSurvey(sigmaHalf,tD=True):
 
     rxList = []
     for rxType in ['z1dr','z1di']:
-        rxList.append(simpegmt.SurveyMT.RxMT(simpeg.mkvc(np.array([0.0]),2).T,rxType))
+        rxList.append(simpegmt.Rx(simpeg.mkvc(np.array([0.0]),2).T,rxType))
     # Source list
     srcList =[]
     if tD:
         for freq in freqs:
-            srcList.append(simpegmt.SurveyMT.srcMT_polxy_1DhomotD(rxList,freq))
+            srcList.append(simpegmt.SrcMT.src_polxy_1DhomotD(rxList,freq))
     else:
         for freq in freqs:
-            srcList.append(simpegmt.SurveyMT.srcMT_polxy_1Dprimary(rxList,freq))
+            srcList.append(simpegmt.SrcMT.src_polxy_1Dprimary(rxList,freq))
 
-    survey = simpegmt.SurveyMT.SurveyMT(srcList)
+    survey = simpegmt.Survey(srcList)
     return survey, sigma, m1d
 
 def getAppResPhs(MTdata):
