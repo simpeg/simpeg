@@ -33,10 +33,10 @@ def setupSurvey(sigmaHalf,tD=True):
     srcList =[]
     if tD:
         for freq in freqs:
-            srcList.append(simpegmt.SrcMT.src_polxy_1DhomotD(rxList,freq))
+            srcList.append(simpegmt.SrcMT.polxy_1DhomotD(rxList,freq))
     else:
         for freq in freqs:
-            srcList.append(simpegmt.SrcMT.src_polxy_1Dprimary(rxList,freq))
+            srcList.append(simpegmt.SrcMT.polxy_1Dprimary(rxList,freq))
 
     survey = simpegmt.Survey(srcList)
     return survey, sigma, m1d
@@ -63,7 +63,7 @@ def appRes_TotalFieldNorm(sigmaHalf):
 
     # Make the survey
     survey, sigma, mesh = setupSurvey(sigmaHalf)
-    problem = simpegmt.Problems.1D.eForm_TotalField(mesh)
+    problem = simpegmt.Problem1D.eForm_TotalField(mesh)
     problem.pair(survey)
 
     # Get the fields
@@ -81,7 +81,7 @@ def appPhs_TotalFieldNorm(sigmaHalf):
 
     # Make the survey
     survey, sigma, mesh = setupSurvey(sigmaHalf)
-    problem = simpegmt.Problems.1D.eForm_TotalField(mesh)
+    problem = simpegmt.Problem1D.eForm_TotalField(mesh)
     problem.pair(survey)
 
     # Get the fields
@@ -99,7 +99,7 @@ def appRes_psFieldNorm(sigmaHalf):
 
     # Make the survey
     survey, sigma, mesh = setupSurvey(sigmaHalf,False)
-    problem = simpegmt.Problems.1D.eForm_psField(mesh, sigmaPrimary = sigma)
+    problem = simpegmt.Problem1D.eForm_psField(mesh, sigmaPrimary = sigma)
     problem.pair(survey)
 
     # Get the fields
@@ -117,7 +117,7 @@ def appPhs_psFieldNorm(sigmaHalf):
 
     # Make the survey
     survey, sigma, mesh = setupSurvey(sigmaHalf,False)
-    problem = simpegmt.Problems.1D.eForm_psField(mesh, sigmaPrimary = sigma)
+    problem = simpegmt.Problem1D.eForm_psField(mesh, sigmaPrimary = sigma)
     problem.pair(survey)
 
     # Get the fields
@@ -139,8 +139,8 @@ class TestAnalytics(unittest.TestCase):
     # def test_appRes2en1(self):self.assertLess(appRes_TotalFieldNorm(2e-1), TOLr)
     # def test_appPhs2en1(self):self.assertLess(appPhs_TotalFieldNorm(2e-1), TOLp)
 
-    def test_appRes2en2(self):self.assertLess(appRes_TotalFieldNorm(2e-2), TOLr)
-    def test_appPhs2en2(self):self.assertLess(appPhs_TotalFieldNorm(2e-2), TOLp)
+    # def test_appRes2en2(self):self.assertLess(appRes_TotalFieldNorm(2e-2), TOLr)
+    # def test_appPhs2en2(self):self.assertLess(appPhs_TotalFieldNorm(2e-2), TOLp)
 
     # def test_appRes2en3(self):self.assertLess(appRes_TotalFieldNorm(2e-3), TOLr)
     # def test_appPhs2en3(self):self.assertLess(appPhs_TotalFieldNorm(2e-3), TOLp)
