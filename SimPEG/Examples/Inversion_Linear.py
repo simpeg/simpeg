@@ -1,29 +1,39 @@
 from SimPEG import *
 
-class LinearSurvey(Survey.BaseSurvey):
-    def projectFields(self, u):
-        return u
 
-class LinearProblem(Problem.BaseProblem):
-    """docstring for LinearProblem"""
+def run(N=100, plotIt=True):
+    """
+        Inversion: Linear Problem
+        =========================
 
-    surveyPair = LinearSurvey
+        Here we go over the basics of creating a linear problem and inversion.
 
-    def __init__(self, mesh, G, **kwargs):
-        Problem.BaseProblem.__init__(self, mesh, **kwargs)
-        self.G = G
+    """
 
-    def fields(self, m, u=None):
-        return self.G.dot(m)
+    class LinearSurvey(Survey.BaseSurvey):
+        def projectFields(self, u):
+            return u
 
-    def Jvec(self, m, v, u=None):
-        return self.G.dot(v)
+    class LinearProblem(Problem.BaseProblem):
 
-    def Jtvec(self, m, v, u=None):
-        return self.G.T.dot(v)
+        surveyPair = LinearSurvey
+
+        def __init__(self, mesh, G, **kwargs):
+            Problem.BaseProblem.__init__(self, mesh, **kwargs)
+            self.G = G
+
+        def fields(self, m, u=None):
+            return self.G.dot(m)
+
+        def Jvec(self, m, v, u=None):
+            return self.G.dot(v)
+
+        def Jtvec(self, m, v, u=None):
+            return self.G.T.dot(v)
 
 
-def run(N, plotIt=True):
+    np.random.seed(1)
+
     mesh = Mesh.TensorMesh([N])
 
     nk = 20
@@ -52,7 +62,7 @@ def run(N, plotIt=True):
 
     reg = Regularization.Tikhonov(mesh)
     dmis = DataMisfit.l2_DataMisfit(survey)
-    opt = Optimization.InexactGaussNewton(maxIter=20)
+    opt = Optimization.InexactGaussNewton(maxIter=35)
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
     beta = Directives.BetaSchedule()
     betaest = Directives.BetaEstimate_ByEig()
@@ -63,16 +73,18 @@ def run(N, plotIt=True):
 
     if plotIt:
         import matplotlib.pyplot as plt
-        plt.figure(1)
-        for i in range(prob.G.shape[0]):
-            plt.plot(prob.G[i,:])
 
-        plt.figure(2)
-        plt.plot(M.vectorCCx, survey.mtrue, 'b-')
-        plt.plot(M.vectorCCx, mrec, 'r-')
+        fig, axes = plt.subplots(1,2,figsize=(12*1.2,4*1.2))
+        for i in range(prob.G.shape[0]):
+            axes[0].plot(prob.G[i,:])
+        axes[0].set_title('Columns of matrix G')
+
+        axes[1].plot(M.vectorCCx, survey.mtrue, 'b-')
+        axes[1].plot(M.vectorCCx, mrec, 'r-')
+        axes[1].legend(('True Model', 'Recovered Model'))
         plt.show()
 
     return prob, survey, mesh, mrec
 
 if __name__ == '__main__':
-    run(100)
+    run()

@@ -1,17 +1,20 @@
 import unittest
 import sys
-from SimPEG.Examples import Linear, DCfwd
+from SimPEG import Examples
 import numpy as np
 
-class TestLinear(unittest.TestCase):
-    def test_running(self):
-        Linear.run(100, plotIt=False)
+def get(test):
+    def test_func(self):
+        print '\nTesting %s.run(plotIt=False)\n'%test
+        getattr(Examples, test).run(plotIt=False)
         self.assertTrue(True)
+    return test_func
+attrs = dict()
+for test in Examples.__examples__:
+    attrs['test_'+test] = get(test)
 
-class TestDCfwd(unittest.TestCase):
-    def test_running(self):
-        DCfwd.run(plotIt=False)
-        self.assertTrue(True)
+TestExamples = type('TestExamples', (unittest.TestCase,), attrs)
+
 
 if __name__ == '__main__':
     unittest.main()

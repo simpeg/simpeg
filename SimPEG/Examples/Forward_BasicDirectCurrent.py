@@ -1,7 +1,4 @@
 from SimPEG import Mesh, Utils, np, SolverLU
-import matplotlib.pyplot as plt
-import matplotlib
-from matplotlib.mlab import griddata
 
 ## 2D DC forward modeling example with Tensor and Curvilinear Meshes
 
@@ -12,7 +9,6 @@ def run(plotIt=True):
     tM = Mesh.TensorMesh(sz)
     # Curvilinear Mesh
     rM = Mesh.CurvilinearMesh(Utils.meshutils.exampleLrmGrid(sz,'rotate'))
-
     # Step2: Direct Current (DC) operator
     def DCfun(mesh, pts):
         D = mesh.faceDiv
@@ -39,6 +35,11 @@ def run(plotIt=True):
     phirM = AinvrM*rhsrM
 
     if not plotIt: return
+
+    import matplotlib.pyplot as plt
+    import matplotlib
+    from matplotlib.mlab import griddata
+
     #Step4: Making Figure
     fig, axes = plt.subplots(1,2,figsize=(12*1.2,4*1.2))
     label = ["(a)", "(b)"]
@@ -69,6 +70,7 @@ def run(plotIt=True):
         else:
             axes[i].set_ylabel(" ")
         axes[i].set_xlabel("x")
+    plt.show()
 
 
 if __name__ == '__main__':
