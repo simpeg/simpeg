@@ -43,29 +43,31 @@ if topofile == 'null':
     topo = np.c_[mkvc(Nx),mkvc(Ny),mkvc(Nz)]   
     
 else: 
-    topofile = np.genfromtxt(topofile,delimiter=' \n',dtype=np.str,skip_header=0)
+    topo = np.genfromtxt(topofile,skip_header=1)
 
 # Work with flat topogrphy for now
-nullcell = np.ones(mesh.nC)
+actv = PF.Magnetics.getActiveTopo(mesh,topo,'N')
+
+nC = int(sum(actv))
 
 # Load model file
 if isinstance(mstart, float):
-    mstart = np.ones(mesh.nC) * mstart
+    mstart = np.ones(nC) * mstart
 else:
     mstart = Utils.meshutils.readUBCTensorModel(mstart,mesh)
-    
+    mstart = mstart[actv==1]
 
 # Get magnetization vector for MOF
 if magfile=='DEFAULT':
     
-    M_xyz = PF.Magnetics.dipazm_2_xyz(np.ones(mesh.nC) * M[0], np.ones(mesh.nC) * M[1])
+    M_xyz = PF.Magnetics.dipazm_2_xyz(np.ones(nC) * M[0], np.ones(nC) * M[1])
     
 else:
     M_xyz = np.genfromtxt(magfile,delimiter=' \n',dtype=np.str,comments='!')
 
 
 # Create forward operator
-F = PF.Magnetics.Intrgl_Fwr_Op(mesh,B,M_xyz,rxLoc,'tmi')
+F = PF.Magnetics.Intrgl_Fwr_Op(mesh,B,M_xyz,rxLoc,actv,'tmi')
 
 # Get distance weighting function
 wr = PF.Magnetics.get_dist_wgt(mesh,rxLoc,3.,np.min(mesh.hx)/4)

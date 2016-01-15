@@ -502,7 +502,7 @@ def Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,actv,flag):
     
     return d
 
-def Intrgl_Fwr_Op(mesh,B,M,rxLoc,flag):
+def Intrgl_Fwr_Op(mesh,B,M,rxLoc,actv,flag):
     """ 
     Magnetic forward operator in integral form
     
@@ -534,13 +534,30 @@ def Intrgl_Fwr_Op(mesh,B,M,rxLoc,flag):
 
     @author: dominiquef
      """    
+    # Find non-zero cells
+    inds = np.nonzero(actv)[0]
     
+    # Create active cell projector
+    P = sp.csr_matrix((np.ones(inds.size),(inds, range(inds.size))),
+                      shape=(mesh.nC, len(inds)))
+    
+    mcell = len(inds)
+    
+    # Create vectors of nodal location (lower and upper coners for each cell)
     xn = mesh.vectorNx;
     yn = mesh.vectorNy;
     zn = mesh.vectorNz;
+    
+    yn2,xn2,zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
+    yn1,xn1,zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
+    
+    Yn = P.T*np.c_[mkvc(yn1), mkvc(yn2)]
+    Xn = P.T*np.c_[mkvc(xn1), mkvc(xn2)]
+    Zn = P.T*np.c_[mkvc(zn1), mkvc(zn2)]
           
     ndata = rxLoc.shape[0]    
     
+
     
     # Convert Bdecination from north to cartesian 
     D = (450.-float(B[1]))%360.
@@ -549,9 +566,9 @@ def Intrgl_Fwr_Op(mesh,B,M,rxLoc,flag):
     # Pre-allocate space and create magnetization matrix if required
     if (flag=='tmi') | (flag == 'xyz'):
         # If assumes uniform magnetization direction
-        if M.shape != (mesh.nC,3):
+        if M.shape != (mcell,3):
 
-            print 'Magnetization vector must be 3*Ncells'
+            print 'Magnetization vector must be Nc x 3'
             return
             
         
@@ -564,7 +581,7 @@ def Intrgl_Fwr_Op(mesh,B,M,rxLoc,flag):
 
         
         if flag == 'tmi':
-            F = np.zeros((ndata, mesh.nC))
+            F = np.zeros((ndata, mcell))
 
             # Projection matrix
             Ptmi = mkvc(np.r_[np.cos(np.deg2rad(B[0]))*np.cos(np.deg2rad(D)),
@@ -572,10 +589,10 @@ def Intrgl_Fwr_Op(mesh,B,M,rxLoc,flag):
                         np.sin(np.deg2rad(B[0]))],2).T;
             
         elif flag == 'xyz':
-            F = np.zeros((int(3*ndata), mesh.nC))
+            F = np.zeros((int(3*ndata), mcell))
         
     elif flag == 'full':       
-        F = np.zeros((int(3*ndata), int(3*mesh.nC)))
+        F = np.zeros((int(3*ndata), int(3*mcell)))
         
     else:
         print """Flag must be either 'tmi' | 'xyz' | 'full', please revised"""
@@ -589,7 +606,7 @@ def Intrgl_Fwr_Op(mesh,B,M,rxLoc,flag):
     count = -1;
     for ii in range(ndata):
     
-        tx, ty, tz = get_T_mat(xn,yn,zn,rxLoc[ii,:])  
+        tx, ty, tz = get_T_mat(Xn,Yn,Zn,rxLoc[ii,:])  
         
         if flag=='tmi':
             F[ii,:] = Ptmi.dot(np.vstack((tx,ty,tz)))*Mxyz
@@ -609,7 +626,7 @@ def Intrgl_Fwr_Op(mesh,B,M,rxLoc,flag):
         count = progress(ii,count,ndata)
     
     
-    print "Done 100% ...forward modeling completed!!\n"
+    print "Done 100% ...forward operator completed!!\n"
     
     return F
 
@@ -637,6 +654,7 @@ def get_T_mat(Xn,Yn,Zn,rxLoc):
     @author: dominiquef
      """ 
     
+    eps = 1e-10 # add a small value to the locations to avoid /0
     
     mcell = Xn.shape[0]
         
@@ -644,15 +662,15 @@ def get_T_mat(Xn,Yn,Zn,rxLoc):
     Tx = np.zeros((1,3*mcell))
     Ty = np.zeros((1,3*mcell))
     Tz = np.zeros((1,3*mcell))
-  
-    dz2 = rxLoc[2] - Zn[:,0]
-    dz1 = rxLoc[2] - Zn[:,1]
+    
+    dz2 = rxLoc[2] - Zn[:,0] + eps
+    dz1 = rxLoc[2] - Zn[:,1] + eps
          
-    dy2 = Yn[:,1] - rxLoc[1]
-    dy1 = Yn[:,0] - rxLoc[1]
+    dy2 = Yn[:,1] - rxLoc[1] + eps
+    dy1 = Yn[:,0] - rxLoc[1] + eps
         
-    dx2 = Xn[:,1] - rxLoc[0]
-    dx1 = Xn[:,0] - rxLoc[0]
+    dx2 = Xn[:,1] - rxLoc[0] + eps
+    dx1 = Xn[:,0] - rxLoc[0] + eps
     
     R1 = ( dy2**2 + dx2**2 )
     R2 = ( dy2**2 + dx1**2 )
