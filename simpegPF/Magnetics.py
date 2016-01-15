@@ -874,6 +874,8 @@ def get_dist_wgt(mesh,rxLoc,R,R0):
     wr = mkvc(wr)
     wr = np.sqrt(wr/(np.max(wr)))
 
+    print "Done 100% ...distance weighting completed!!\n"
+    
     return wr
 
 def writeUBCobs(filename,B,M,rxLoc,d,wd):

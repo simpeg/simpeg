@@ -361,3 +361,37 @@ def read_MAGinv_inp(input_file):
         lpnorms = l_input[0].rstrip()
 
     return mshfile, obsfile, topofile, mstart, mref, magfile, wgtfile, chi, alphas, bounds, lpnorms
+
+def read_GOCAD_ts(tsfile):
+    """Read GOCAD triangulated surface (*.ts) file
+    INPUT:
+    tsfile: Triangulated surface
+    
+    OUTPUT:
+    vrts : Array of vertices in XYZ coordinates [n x 3]
+    trgl : Array of index for triangles [m x 3]. The order of the vertices 
+            is important and describes the normal
+            n = cross( (P2 - P1 ) , (P3 - P1) )
+
+
+    Created on Jan 13th, 2016
+    
+    Author: @fourndo
+    """
+
+    
+    fid = open(tsfile,'r')
+    line = fid.readline()
+    
+    # Skip all the lines until the vertices
+    while re.match('TFACE',line)==None:
+        line = fid.readline()
+    
+    line = fid.readline()
+    vrtx = []
+    # Run down all the vertices and save in array
+    while re.match('VRTX',line):
+        l_input  = line.split('\s')
+        vrtx = np.vstack([vrtx,l_input[1]])
+    
+    return vrtx
