@@ -503,13 +503,10 @@ def Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,actv,flag):
 
     return d
 
-<<<<<<< HEAD
+
 def Intrgl_Fwr_Op(mesh,B,M,rxLoc,actv,flag):
     """ 
-=======
-def Intrgl_Fwr_Op(mesh,B,M,rxLoc,flag):
-    """
->>>>>>> dbcd57bc4e5d0d6258a10b760966b58419e0a9d2
+
     Magnetic forward operator in integral form
 
     INPUT:
@@ -539,7 +536,7 @@ def Intrgl_Fwr_Op(mesh,B,M,rxLoc,flag):
     Created on Dec, 20th 2015
 
     @author: dominiquef
-<<<<<<< HEAD
+
      """    
     # Find non-zero cells
     inds = np.nonzero(actv)[0]
@@ -563,22 +560,8 @@ def Intrgl_Fwr_Op(mesh,B,M,rxLoc,flag):
     Zn = P.T*np.c_[mkvc(zn1), mkvc(zn2)]
           
     ndata = rxLoc.shape[0]    
-    
-
-    
-    # Convert Bdecination from north to cartesian 
-=======
-     """
-
-    xn = mesh.vectorNx;
-    yn = mesh.vectorNy;
-    zn = mesh.vectorNz;
-
-    ndata = rxLoc.shape[0]
-
 
     # Convert Bdecination from north to cartesian
->>>>>>> dbcd57bc4e5d0d6258a10b760966b58419e0a9d2
     D = (450.-float(B[1]))%360.
 
 
@@ -608,19 +591,13 @@ def Intrgl_Fwr_Op(mesh,B,M,rxLoc,flag):
                         np.sin(np.deg2rad(B[0]))],2).T;
 
         elif flag == 'xyz':
-<<<<<<< HEAD
+
             F = np.zeros((int(3*ndata), mcell))
         
     elif flag == 'full':       
         F = np.zeros((int(3*ndata), int(3*mcell)))
         
-=======
-            F = np.zeros((int(3*ndata), mesh.nC))
 
-    elif flag == 'full':
-        F = np.zeros((int(3*ndata), int(3*mesh.nC)))
-
->>>>>>> dbcd57bc4e5d0d6258a10b760966b58419e0a9d2
     else:
         print """Flag must be either 'tmi' | 'xyz' | 'full', please revised"""
         return
@@ -632,15 +609,10 @@ def Intrgl_Fwr_Op(mesh,B,M,rxLoc,flag):
     # Add counter to dsiplay progress. Good for large problems
     count = -1;
     for ii in range(ndata):
-<<<<<<< HEAD
+
     
         tx, ty, tz = get_T_mat(Xn,Yn,Zn,rxLoc[ii,:])  
         
-=======
-
-        tx, ty, tz = get_T_mat(xn,yn,zn,rxLoc[ii,:])
-
->>>>>>> dbcd57bc4e5d0d6258a10b760966b58419e0a9d2
         if flag=='tmi':
             F[ii,:] = Ptmi.dot(np.vstack((tx,ty,tz)))*Mxyz
 
@@ -657,17 +629,9 @@ def Intrgl_Fwr_Op(mesh,B,M,rxLoc,flag):
 
     # Display progress
         count = progress(ii,count,ndata)
-<<<<<<< HEAD
-    
-    
+
     print "Done 100% ...forward operator completed!!\n"
     
-=======
-
-
-    print "Done 100% ...forward modeling completed!!\n"
-
->>>>>>> dbcd57bc4e5d0d6258a10b760966b58419e0a9d2
     return F
 
 def get_T_mat(Xn,Yn,Zn,rxLoc):
@@ -692,23 +656,18 @@ def get_T_mat(Xn,Yn,Zn,rxLoc):
     Created on Oct, 20th 2015
 
     @author: dominiquef
-<<<<<<< HEAD
+
      """ 
     
     eps = 1e-10 # add a small value to the locations to avoid /0
     
-=======
-     """
-
-
->>>>>>> dbcd57bc4e5d0d6258a10b760966b58419e0a9d2
     mcell = Xn.shape[0]
 
     # Pre-allocate space for 1D array
     Tx = np.zeros((1,3*mcell))
     Ty = np.zeros((1,3*mcell))
     Tz = np.zeros((1,3*mcell))
-<<<<<<< HEAD
+
     
     dz2 = rxLoc[2] - Zn[:,0] + eps
     dz1 = rxLoc[2] - Zn[:,1] + eps
@@ -719,18 +678,7 @@ def get_T_mat(Xn,Yn,Zn,rxLoc):
     dx2 = Xn[:,1] - rxLoc[0] + eps
     dx1 = Xn[:,0] - rxLoc[0] + eps
     
-=======
 
-    dz2 = rxLoc[2] - Zn[:,0]
-    dz1 = rxLoc[2] - Zn[:,1]
-
-    dy2 = Yn[:,1] - rxLoc[1]
-    dy1 = Yn[:,0] - rxLoc[1]
-
-    dx2 = Xn[:,1] - rxLoc[0]
-    dx1 = Xn[:,0] - rxLoc[0]
-
->>>>>>> dbcd57bc4e5d0d6258a10b760966b58419e0a9d2
     R1 = ( dy2**2 + dx2**2 )
     R2 = ( dy2**2 + dx1**2 )
     R3 = ( dy1**2 + dx2**2 )
