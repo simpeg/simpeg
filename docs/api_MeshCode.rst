@@ -9,6 +9,15 @@ Tensor Mesh
     :undoc-members:
 
 
+Cylindrical Mesh
+================
+
+.. automodule:: SimPEG.Mesh.CylMesh
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+
 Tree Mesh
 =========
 
@@ -21,16 +30,7 @@ Tree Mesh
 Curvilinear Mesh
 ================
 
-.. automodule:: SimPEG.Mesh.Curvilinear
-    :show-inheritance:
-    :members:
-    :undoc-members:
-
-
-Cylindrical Mesh
-================
-
-.. automodule:: SimPEG.Mesh.CylMesh
+.. automodule:: SimPEG.Mesh.CurvilinearMesh
     :show-inheritance:
     :members:
     :undoc-members:

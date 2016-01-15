@@ -1,7 +1,7 @@
 .. _api_installing:
 
-Installation
-************
+Getting Started with SimPEG
+***************************
 
 Dependencies
 ============

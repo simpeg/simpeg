@@ -64,6 +64,7 @@ cython_files = [
                     "SimPEG/Mesh/TreeUtils"
                ]
 extensions = [Extension(f, [f+ext]) for f in cython_files]
+scripts = [f+'.pyx' for f in cython_files]
 
 if USE_CYTHON and "cleanall" not in args:
     from Cython.Build import cythonize
@@ -76,7 +77,7 @@ with open("README.rst") as f:
 
 setup(
     name = "SimPEG",
-    version = "0.1.3",
+    version = "0.1.9",
     packages = find_packages(),
     install_requires = ['numpy>=1.7',
                         'scipy>=0.13',
@@ -95,5 +96,6 @@ setup(
     use_2to3 = False,
     include_dirs=[np.get_include()],
     ext_modules = extensions,
+    scripts=scripts,
     **cythonKwargs
 )

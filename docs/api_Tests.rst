@@ -3,6 +3,6 @@
 Testing SimPEG
 ==============
 
-.. automodule:: SimPEG.Tests.TestUtils
+.. automodule:: SimPEG.Tests
     :members:
     :undoc-members:

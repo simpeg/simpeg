@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from numpy.linalg import norm
 from SimPEG.Utils import mkvc, sdiag, diagEst
 from SimPEG import Utils
@@ -311,6 +310,7 @@ def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None, expectedOrder=2, tole
 
 
     if plotIt:
+        import matplotlib.pyplot as plt
         ax = ax or plt.subplot(111)
         ax.loglog(h, E0, 'b')
         ax.loglog(h, E1, 'g--')
