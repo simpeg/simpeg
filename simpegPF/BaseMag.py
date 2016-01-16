@@ -389,9 +389,87 @@ def read_GOCAD_ts(tsfile):
     
     line = fid.readline()
     vrtx = []
+    
     # Run down all the vertices and save in array
     while re.match('VRTX',line):
-        l_input  = line.split('\s')
-        vrtx = np.vstack([vrtx,l_input[1]])
+        l_input  = re.split('[\s*]',line)
+        temp = np.array(l_input[2:5])
+        vrtx.append(temp.astype(np.float))
+        
+        # Read next line
+        line = fid.readline()
     
-    return vrtx
+    vrtx = np.asarray(vrtx)
+    
+    # Run down the list of triangles
+    trgl = []
+    
+    # Run down all the vertices and save in array
+    while re.match('TRGL',line):
+        l_input  = re.split('[\s*]',line)
+        temp = np.array(l_input[1:4])
+        trgl.append(temp.astype(np.int))
+        
+        # Read next line
+        line = fid.readline()
+     
+    trgl = np.asarray(trgl)
+    
+    return vrtx, trgl
+    
+def gocad2vtk(gcFile,mesh):
+    """"
+    Function to read gocad polystructure file and output indexes of mesh with in the structure.
+    
+    """
+    import vtk, vtk.util.numpy_support as npsup
+    
+    vrtx, trgl = read_GOCAD_ts(gcFile)
+    # Adjust the index
+    trgl = trgl - 1
+    
+    # Make vtk pts
+    ptsvtk = vtk.vtkPoints()
+    ptsvtk.SetData(npsup.numpy_to_vtk(vrtx,deep=1))
+    
+    # Make the polygon connection
+    polys = vtk.vtkCellArray()
+    for face in trgl:
+        poly = vtk.vtkPolygon()
+        poly.GetPointIds().SetNumberOfIds(len(face))
+        for nrv, vert in enumerate(face):
+            poly.GetPointIds().SetId(nrv,vert)
+        polys.InsertNextCell(poly)
+        
+    # Make the polydata, structure of connections and vrtx
+    polyData = vtk.vtkPolyData()
+    polyData.SetPoints(ptsvtk)
+    polyData.SetPolys(polys)
+    
+    # Make implicit func
+    ImpDistFunc = vtk.vtkImplicitPolyDataDistance()
+    ImpDistFunc.SetInput(polyData)
+    
+    # Convert the mesh
+    vtkMesh = vtk.vtkRectilinearGrid()
+    vtkMesh.SetDimensions(mesh.nNx,mesh.nNy,mesh.nNz)
+    vtkMesh.SetXCoordinates(npsup.numpy_to_vtk(mesh.vectorNx,deep=1))    
+    vtkMesh.SetYCoordinates(npsup.numpy_to_vtk(mesh.vectorNy,deep=1))    
+    vtkMesh.SetZCoordinates(npsup.numpy_to_vtk(mesh.vectorNz,deep=1)) 
+    # Add indexes
+    vtkInd = npsup.numpy_to_vtk(np.arange(mesh.nC),deep=1)
+    vtkInd.SetName('Index')
+    vtkMesh.GetCellData().AddArray(vtkInd)
+    
+    extractImpDistRectGridFilt = vtk.vtkExtractGeometry() # Object constructor
+    extractImpDistRectGridFilt.SetImplicitFunction(ImpDistFunc) #
+    extractImpDistRectGridFilt.SetInputData(vtkMesh)
+    extractImpDistRectGridFilt.ExtractBoundaryCellsOn()
+    extractImpDistRectGridFilt.ExtractInsideOn()
+    
+    # Executing the pipe
+    extractImpDistRectGridFilt.Update()
+    
+    insideGrid = extractImpDistRectGridFilt.GetOutput()
+    # Return the indexes inside
+    return npsup.vtk_to_numpy(insideGrid.GetCellData().GetArray('Index'))

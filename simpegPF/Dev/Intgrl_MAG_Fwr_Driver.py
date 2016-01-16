@@ -48,7 +48,8 @@ ndata = rxLoc.shape[0]
 
 # Load GOCAD surf
 tsfile = 'SphereA.ts'
-vrtx = PF.BaseMag.read_GOCAD_ts(tsfile)
+[vrtx, trgl] = PF.BaseMag.read_GOCAD_ts(tsfile)
+
 #%% Run forward modeling
 # Compute forward model using integral equation
 d = PF.Magnetics.Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,actv,'tmi')
