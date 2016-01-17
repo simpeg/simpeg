@@ -64,30 +64,36 @@ class BaseFDEMProblem(BaseEMProblem):
         self.curModel = m
 
         Jv = self.dataPair(self.survey)
+        utype = self._fieldType + 'Solution'
 
         for freq in self.survey.freqs:
             A = self.getA(freq) #
             Ainv = self.Solver(A, **self.solverOpts)
 
             for src in self.survey.getSrcByFreq(freq):
-                ftype = self._fieldType + 'Solution'
-                u_src = f[src, ftype]
+                u_src = f[src, utype]
                 dA_dm = self.getADeriv_m(freq, u_src, v)
                 dRHS_dm = self.getRHSDeriv_m(freq, src, v) 
                 du_dm = Ainv * ( - dA_dm + dRHS_dm )
                 
                 for rx in src.rxList:
                     df_duFun = getattr(f, '_%sDeriv_u'%rx.projField, None)
-                    df_dudu_dm = df_duFun(src, du_dm, u_src, adjoint=False)
+                    df_dudu_dm = df_duFun(src, u_src, du_dm, adjoint=False)
 
                     df_dmFun = getattr(f, '_%sDeriv_m'%rx.projField, None)
-                    df_dm = df_dmFun(src, v, u_src, adjoint=False)
+                    df_dm = df_dmFun(src, u_src, v, adjoint=False)
+
+                    # print df_dudu_dm.shape, df_dm.shape, du_dm.shape
 
                     Df_Dm = np.array(df_dudu_dm + df_dm,dtype=complex)
 
-                    P = lambda v: rx.projectFieldsDeriv(src, self.mesh, f, v) # wrt u, also have wrt m
+                    print 'getting to P', u_src.shape
+                    # P = lambda v: rx.projectFieldsDeriv(src, self.mesh, f, v) # wrt u, also have wrt m
 
-                    Jv[src, rx] = P(Df_Dm)
+                    # Jv[src, rx] = P(Df_Dm)
+                    print Df_Dm.shape
+                    print 'should be', m.shape
+                    Jv[src,rx] = rx.projectFieldsDeriv(src, self.mesh, f, Df_Dm)
 
             Ainv.clean()
         return Utils.mkvc(Jv)

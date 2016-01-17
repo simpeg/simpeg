@@ -260,9 +260,15 @@ class BaseTensorMesh(BaseMesh):
             Q = sp.hstack(components)
         elif locType in ['CC', 'N']:
             Q = Utils.interpmat(loc, *self.getTensor(locType))
-        # elif locType in ['CCVx', 'CCVy', 'CCVz']:
-        #     Q = Utils.interpmat(loc, 'CC')
-        #     Zero = 0.*Q
+        elif locType in ['CCVx', 'CCVy', 'CCVz']:
+            Q = Utils.interpmat(loc, *self.getTensor('CC'))
+            Zero = 0.*Q
+            if locType == 'CCVx':
+                Q = np.r_[Q,Zero,Zero]
+            elif locType == 'CCVy':
+                Q = np.r_[Zero,Q,Zero]
+            elif locType == 'CCVz':
+                Q = np.r_[Zero,Zero,Q]
 
             
 
