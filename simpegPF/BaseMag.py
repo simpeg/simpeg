@@ -417,13 +417,14 @@ def read_GOCAD_ts(tsfile):
     
     return vrtx, trgl
     
-def gocad2vtk(gcFile,mesh):
+def gocad2vtk(gcFile,mesh,bcflag,inflag):
     """"
     Function to read gocad polystructure file and output indexes of mesh with in the structure.
     
     """
     import vtk, vtk.util.numpy_support as npsup
     
+    print "Reading GOCAD ts file..."
     vrtx, trgl = read_GOCAD_ts(gcFile)
     # Adjust the index
     trgl = trgl - 1
@@ -464,12 +465,34 @@ def gocad2vtk(gcFile,mesh):
     extractImpDistRectGridFilt = vtk.vtkExtractGeometry() # Object constructor
     extractImpDistRectGridFilt.SetImplicitFunction(ImpDistFunc) #
     extractImpDistRectGridFilt.SetInputData(vtkMesh)
-    extractImpDistRectGridFilt.ExtractBoundaryCellsOn()
-    extractImpDistRectGridFilt.ExtractInsideOn()
     
+    if bcflag is True:
+        extractImpDistRectGridFilt.ExtractBoundaryCellsOn()
+        
+    else:
+        extractImpDistRectGridFilt.ExtractBoundaryCellsOff()
+    
+    if inflag is True:
+        extractImpDistRectGridFilt.ExtractInsideOn()
+        
+    else:
+        extractImpDistRectGridFilt.ExtractInsideOff()
+    
+    print "Extracting indices from grid..."
     # Executing the pipe
     extractImpDistRectGridFilt.Update()
     
+    # Get index inside
     insideGrid = extractImpDistRectGridFilt.GetOutput()
+    insideGrid = npsup.vtk_to_numpy(insideGrid.GetCellData().GetArray('Index'))
+    
+    # Get index surface intersect
+    extractImpDistRectGridFilt.ExtractBoundaryCellsOn()
+    extractImpDistRectGridFilt.ExtractInsideOff()
+    extractImpDistRectGridFilt.Update()
+    
+    bcGrid = extractImpDistRectGridFilt.GetOutput()
+    bcGrid = npsup.vtk_to_numpy(bcGrid.GetCellData().GetArray('Index'))
+    
     # Return the indexes inside
-    return npsup.vtk_to_numpy(insideGrid.GetCellData().GetArray('Index'))
+    return insideGrid, bcGrid

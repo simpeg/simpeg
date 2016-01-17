@@ -104,7 +104,7 @@ for ii in range(d_iter):
     
     Utils.writeUBCTensorMesh('Mesh.msh',mesh)
     Utils.writeUBCTensorModel('Model.sus',mesh,model)
-    actv = np.ones(mesh.nC)
+    #actv = np.ones(mesh.nC)
     #%% Forward mode ldata
     
     start_time = time.time()
