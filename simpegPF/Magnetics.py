@@ -4,9 +4,22 @@ from scipy.constants import mu_0
 from MagAnalytics import spheremodel, CongruousMagBC
 
 class MagneticIntegral(Problem.BaseProblem):
-    """
-         approach using IE
-    """
+    
+    surveyPair = Survey.LinearSurvey
+
+    def __init__(self, mesh, G, **kwargs):
+        Problem.BaseProblem.__init__(self, mesh, **kwargs)
+        self.G = G
+
+    def fields(self, m):
+        return self.G.dot(m)
+
+    def Jvec(self, m, v, u=None):
+        return self.G.dot(v)
+
+    def Jtvec(self, m, v, u=None):
+        return self.G.T.dot(v)
+
 
 
 class MagneticsDiffSecondary(Problem.BaseProblem):
@@ -809,7 +822,7 @@ def dipazm_2_xyz(dip,azm_N):
 
     return M
 
-def get_dist_wgt(mesh,rxLoc,R,R0):
+def get_dist_wgt(mesh,rxLoc,actv,R,R0):
     """
     get_dist_wgt(xn,yn,zn,rxLoc,R,R0)
 
@@ -819,6 +832,7 @@ def get_dist_wgt(mesh,rxLoc,R,R0):
     INPUT
     xn, yn, zn : Node location
     rxLoc       : Observation locations [obsx, obsy, obsz]
+    actv        : Active cell vector [0:air , 1: ground]
     R           : Decay factor (mag=3, grav =2)
     R0          : Small factor added (default=dx/4)
 
@@ -830,17 +844,34 @@ def get_dist_wgt(mesh,rxLoc,R,R0):
     @author: dominiquef
     """
 
+    # Find non-zero cells
+    inds = np.nonzero(actv)[0]
+    
+    # Create active cell projector
+    P = sp.csr_matrix((np.ones(inds.size),(inds, range(inds.size))),
+                      shape=(mesh.nC, len(inds)))
+            
+    # Geometrical constant
     p = 1/np.sqrt(3);
 
     # Create cell center location
     Ym,Xm,Zm = np.meshgrid(mesh.vectorCCy, mesh.vectorCCx, mesh.vectorCCz)
     hY,hX,hZ = np.meshgrid(mesh.hy, mesh.hx, mesh.hz)
-
-    V = np.reshape(mesh.vol,hY.shape)
-    wr = np.zeros(hY.shape)
+    
+    # Rmove air cells
+    Xm = P.T*mkvc(Xm)
+    Ym = P.T*mkvc(Ym)
+    Zm = P.T*mkvc(Zm)
+    
+    hX = P.T*mkvc(hX)
+    hY = P.T*mkvc(hY)
+    hZ = P.T*mkvc(hZ)
+       
+    V = P.T * mkvc(mesh.vol)
+    wr = np.zeros(np.sum(actv))
 
     ndata = rxLoc.shape[0]
-    count = -1;
+    count = -1
     print "Begin calculation of distance weighting for R= " + str(R)
 
     for dd in range(ndata):
@@ -926,7 +957,7 @@ def getActiveTopo(mesh,topo,flag):
 
     Created on Dec, 27th 2015
 
-    @author: dominiquef
+    @founrdo
     """
     import scipy.interpolate as interpolation
 
@@ -959,4 +990,43 @@ def getActiveTopo(mesh,topo,flag):
 
     return actv
 
+def plot_obs_2D(rxLoc,d,wd,varstr):   
+    """ Function plot_obs(rxLoc,d,wd)
+    Generate a 2d interpolated plot from scatter points of data
+    
+    INPUT
+    rxLoc       : Observation locations [x,y,z]
+    d           : Data vector
+    wd          : Uncertainty vector
 
+    OUTPUT
+    figure()
+
+    Created on Dec, 27th 2015
+
+    @author: dominiquef
+    
+    """ 
+        
+    from scipy.interpolate import griddata
+    import pylab as plt
+    
+    # Create grid of points
+    x = np.linspace(rxLoc[:,0].min(), rxLoc[:,0].max(), 100)
+    y = np.linspace(rxLoc[:,1].min(), rxLoc[:,1].max(), 100)
+    
+    X, Y = np.meshgrid(x,y)
+    
+    # Interpolate
+    d_grid = griddata(rxLoc[:,0:2],d,(X,Y), method ='linear')
+    
+    # Plot result
+    plt.figure()
+    plt.subplot()
+    plt.imshow(d_grid, extent=[x.min(), x.max(), y.min(), y.max()],origin = 'lower')
+    plt.colorbar(fraction=0.02)
+    plt.contour(X,Y, d_grid,10)
+    plt.scatter(rxLoc[:,0],rxLoc[:,1], c=d, s=20)
+    plt.title(varstr)
+    plt.gca().set_aspect('equal', adjustable='box')
+    

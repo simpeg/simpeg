@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import simpegPF as PF
 import scipy.interpolate as interpolation
 import time
-from interpFFT import interpFFT
+#from interpFFT import interpFFT
 #from fwr_MAG_data import fwr_MAG_data
 
 import os
