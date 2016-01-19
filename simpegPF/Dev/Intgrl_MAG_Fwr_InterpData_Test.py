@@ -222,12 +222,15 @@ for ii in range(d_iter):
     
 
 #%% Plot the forward solution from integral
-plt.figure()
+plt.figure(figsize=[8,4])
 ax = plt.subplot()
 plt.imshow(d2d, interpolation="bicubic", extent=[xr.min(), xr.max(), yr.min(), yr.max() ], origin = 'lower')
-plt.colorbar(fraction=0.04)
+plt.colorbar(fraction=0.02)
+plt.contour(X,Y, d2d,10)
+plt.scatter(X,Y, s=5)
 
-plt.figure()
+
+plt.figure(figsize=[8,4])
 plt.contour(X,Y, np.reshape(d,X.shape),10)
 plt.scatter(X,Y, c=np.reshape(d,X.shape), s=10)
 plt.scatter(xx,yy, c='k', s=20, marker='o')
@@ -236,26 +239,29 @@ ax.set_title('Numerical')
 
 #%%
 
-plt.figure()
+plt.figure(figsize=[7,9])
 ax = plt.subplot()
 plt.plot(xx,d_line,c='r', linewidth=3)
-plt.plot(xx,d_i2d_lin,c='b')
-plt.plot(xx,d_i2d_cub,c='g')
-plt.plot(xx,d_i2d_qui,c='m')
-plt.plot(xx,d_i2d_nnb,c='k')
-plt.plot(xx,d_i2d_CTI,c='c')
+plt.plot(xx,d_i2d_lin)
+plt.plot(xx,d_i2d_cub)
+plt.plot(xx,d_i2d_qui)
+plt.plot(xx,d_i2d_nnb)
+plt.plot(xx,d_i2d_CTI)
+plt.xlim(xx.min(),xx.max())
 
+plt.legend(['True','linear','Cubic','Quintic','NearestN','CloughTorcher'],bbox_to_anchor=(0.75, 0.25))
 # Plot interpolation from true value on line
 F = interpolation.interp1d(xx,d_line)
 dtrue = F(xr[::indx])
 plt.plot(xr[::indx],dtrue,c='r',linewidth=0.,marker='o')
-ax.set_title('Analytical')
+ax.set_title('Interpolated data profile')
 
 #%% Write result to file
-with file('l2_residual.dat','w') as fid:
-    fid.write('NearestN \t Linear \t Cubic \t Quintic \t FFT\n')
-    np.savetxt(fid, l2_r, fmt='%e',delimiter=' ',newline='\n')
-
-with file('l1_residual.dat','w') as fid:
-    fid.write('NearestN \t Linear \t Cubic \t Quintic \t FFT\n')
-    np.savetxt(fid, l1_r, fmt='%e',delimiter=' ',newline='\n')
+with file('Interp_residual.dat','w') as fid:
+    fid.write('NearestN\tLinear\tCubic\tQuintic\tCloughTocher\n')
+    fid.write('\nL2-norm\n')
+    np.savetxt(fid, l2_r, fmt='%5.3e',delimiter='\t',newline='\n')
+    fid.write('\nL1-norm\n')
+    np.savetxt(fid, l1_r, fmt='%5.3e',delimiter='\t',newline='\n')
+    fid.write('\nLinf-norm\n')
+    np.savetxt(fid, linf_r, fmt='%5.3e',delimiter='\t',newline='\n')

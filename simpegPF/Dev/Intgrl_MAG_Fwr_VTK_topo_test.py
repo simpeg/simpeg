@@ -60,9 +60,10 @@ dx = 10
 
 nc = int(sclx/dx)
 
-hxind = [(dx, 2*nc)]
-hyind = [(dx, nc)]
-hzind = [(dx, nc)]
+
+hxind = np.ones(2*nc)*dx
+hyind = np.ones(nc)*dx
+hzind = np.ones(nc)*dx
 
 mesh = Mesh.TensorMesh([hxind, hyind, hzind], 'CCN')
     
@@ -91,49 +92,88 @@ d = PF.Magnetics.Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,actv,'tmi')
 timer = (tm.time() - start_time)
 
 #%% Plot data
-plt.figure(1)
+plt.figure()
 ax = plt.subplot()
 plt.imshow(np.reshape(d,X.shape), interpolation="bicubic", extent=[xr.min(), xr.max(), yr.min(), yr.max()], origin = 'lower')
+plt.clim(0,25)
 plt.colorbar(fraction=0.02)
 plt.contour(X,Y, np.reshape(d,X.shape),10)
 plt.scatter(X,Y, c=np.reshape(d,X.shape), s=20)
+
 ax.set_title('Forward data')
 
-# Load model file
-#model = Utils.meshutils.readUBCTensorModel(modfile,mesh)
-  
-# Load in topofile or create flat surface
-#==============================================================================
-# if topofile == 'null':
-#  
-#     actv = np.ones(mesh.nC)   
-#     
-# else: 
-#     topo = np.genfromtxt(topofile,skip_header=1)
-#     actv = PF.Magnetics.getActiveTopo(mesh,topo,'N')
-# 
-# 
-# Utils.writeUBCTensorModel('nullcell.dat',mesh,actv)
-#          
-# # Load in observation file
-# [B,M,dobs] = PF.BaseMag.readUBCmagObs(obsfile)
-# 
-# rxLoc = dobs[:,0:3]
-# #rxLoc[:,2] += 5 # Temporary change for test
-# ndata = rxLoc.shape[0]
-#==============================================================================
+#%% First test, just brake the intersecting cells
 
+ii = 1
+ddata = 9999.
 
-#%% Run forward modeling
-# Compute forward model using integral equation
-#==============================================================================
-# d = PF.Magnetics.Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,actv,'tmi')
-# 
-# # Form data object with coordinates and write to file
-# wd =  np.zeros((ndata,1))
-# 
-# # Save forward data to file
-# PF.Magnetics.writeUBCobs(home_dir + dsep + 'FWR_data.dat',B,M,rxLoc,d,wd)
-#==============================================================================
-
-
+while ddata > 2.:
+    
+    ii += 1
+    
+    indx = np.unravel_index(bc,(mesh.nCx,mesh.nCy,mesh.nCz), order = 'F')
+    
+    xbreak = np.unique(indx[0])
+    ybreak = np.unique(indx[1])
+    zbreak = np.unique(indx[2])
+    
+    
+    # Compute the new distance
+    dl = np.sum(hxind[xbreak])
+    dx = float(hxind[xbreak].min()/2)
+    nx = dl/dx
+    
+    hxind = np.r_[hxind[0:xbreak.min()],np.ones(nx)*dx,hxind[xbreak.max():]]
+    
+    dl = np.sum(hyind[ybreak])
+    dy = float(hyind[ybreak].min()/2)
+    ny = dl/dy
+    
+    hyind = np.r_[hyind[0:ybreak.min()],np.ones(ny)*dy,hyind[ybreak.max():]]
+    
+    dl = np.sum(hzind[zbreak])
+    dz = float(hzind[zbreak].min()/2)
+    nz = dl/dz
+    
+    hzind = np.r_[hzind[0:zbreak.min()],np.ones(nz)*dz,hzind[zbreak.max():]]
+    
+    mesh = Mesh.TensorMesh([hxind, hyind, hzind], 'CCN')
+        
+    # Load GOCAD surf
+    #[vrtx, trgl] = PF.BaseMag.read_GOCAD_ts(tsfile)
+    # Find active cells from surface
+    tin = tm.time()
+    print "Computing indices with VTK: "
+    [indx, bc] = PF.BaseMag.gocad2vtk(tsfile,mesh, bcflag = False, inflag = True)
+    print "VTK operation completed in " + str(tm.time() - tin)
+    
+    actv = np.zeros(mesh.nC)
+    actv[indx] = 1
+    
+    model= np.zeros(mesh.nC)
+    model[indx]= chibkg
+    
+    Utils.meshutils.writeUBCTensorModel('VTKout' + str(ii) + '.dat',mesh,model)
+    
+    Utils.meshutils.writeUBCTensorMesh('Mesh_temp' + str(ii) + '.msh',mesh)
+    
+    start_time = tm.time()
+        
+    d_temp = PF.Magnetics.Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,actv,'tmi')
+    
+    timer = (tm.time() - start_time)
+    
+    ddata = np.max(abs(d-d_temp))
+    
+    d = d_temp
+    
+    #%% Plot data
+    plt.figure()
+    ax = plt.subplot()
+    plt.imshow(np.reshape(d,X.shape), interpolation="bicubic", extent=[xr.min(), xr.max(), yr.min(), yr.max()], origin = 'lower')
+    plt.clim(0,25)    
+    plt.colorbar(fraction=0.02)
+    plt.contour(X,Y, np.reshape(d,X.shape),10)
+    plt.scatter(X,Y, c=np.reshape(d,X.shape), s=20)
+    
+    ax.set_title('Forward data')

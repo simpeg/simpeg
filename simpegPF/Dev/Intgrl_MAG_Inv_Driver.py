@@ -65,15 +65,29 @@ if magfile=='DEFAULT':
 else:
     M_xyz = np.genfromtxt(magfile,delimiter=' \n',dtype=np.str,comments='!')
 
+# Get index of the center
+midx = int(mesh.nCx/2)
+midy = int(mesh.nCy/2)
 
 # Create forward operator
 F = PF.Magnetics.Intrgl_Fwr_Op(mesh,B,M_xyz,rxLoc,actv,'tmi')
 
 # Get distance weighting function
 wr = PF.Magnetics.get_dist_wgt(mesh,rxLoc,3.,np.min(mesh.hx)/4)
+wrMap = PF.BaseMag.WeightMap(mesh, wr)
+
 Utils.writeUBCTensorModel(home_dir+dsep+'wr.dat',mesh,wr)
 
 # Write out the predicted
 pred = F.dot(mstart)
 PF.Magnetics.writeUBCobs(home_dir + dsep + 'Pred.dat',B,M,rxLoc,pred,wd)
+
+#%%
+plt.figure()
+ax = plt.subplot()
+mesh.plotSlice(wr, ax = ax, normal = 'Y', ind=midx)
+plt.title('Distance weighting')
+plt.xlabel('x');plt.ylabel('z')
+plt.gca().set_aspect('equal', adjustable='box')
+
 

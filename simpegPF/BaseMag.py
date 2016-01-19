@@ -401,6 +401,10 @@ def read_GOCAD_ts(tsfile):
     
     vrtx = np.asarray(vrtx)
     
+    # Skip lines to the triangles
+    while re.match('TRGL',line)==None:
+        line = fid.readline()
+        
     # Run down the list of triangles
     trgl = []
     
@@ -486,13 +490,6 @@ def gocad2vtk(gcFile,mesh,bcflag,inflag):
     insideGrid = extractImpDistRectGridFilt.GetOutput()
     insideGrid = npsup.vtk_to_numpy(insideGrid.GetCellData().GetArray('Index'))
     
-    # Get index surface intersect
-    extractImpDistRectGridFilt.ExtractBoundaryCellsOn()
-    extractImpDistRectGridFilt.ExtractInsideOff()
-    extractImpDistRectGridFilt.Update()
-    
-    bcGrid = extractImpDistRectGridFilt.GetOutput()
-    bcGrid = npsup.vtk_to_numpy(bcGrid.GetCellData().GetArray('Index'))
     
     # Return the indexes inside
-    return insideGrid, bcGrid
+    return insideGrid
