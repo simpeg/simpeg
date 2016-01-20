@@ -1,4 +1,4 @@
-.. _examples_EM_FDEM_1D_Inversion:
+.. _examples_EM_TDEM_1D_Inversion:
 
 .. --------------------------------- ..
 ..                                   ..
@@ -9,18 +9,18 @@
 .. --------------------------------- ..
 
 
-EM: FDEM: 1D: Inversion
+EM: TDEM: 1D: Inversion
 =======================
 
-Here we will create and run a FDEM 1D inversion.
+Here we will create and run a TDEM 1D inversion.
 
 
 
 .. plot::
 
     from SimPEG import Examples
-    Examples.EM_FDEM_1D_Inversion.run()
+    Examples.EM_TDEM_1D_Inversion.run()
 
-.. literalinclude:: ../../SimPEG/Examples/EM_FDEM_1D_Inversion.py
+.. literalinclude:: ../../SimPEG/Examples/EM_TDEM_1D_Inversion.py
     :language: python
     :linenos:
