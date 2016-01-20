@@ -1,33 +1,29 @@
 from SimPEG import *
 import SimPEG.EM as EM
 
-import matplotlib.pyplot as plt  
-from matplotlib.colors import LogNorm
-
-x = np.arange(-100.5,100.5,step = 1.) #(avoid putting measurement points where source is located)
-y = np.r_[0]
-z = x
-
-sig = 1.
-freq = 1. 
-
-XYZ = Utils.ndgrid(x,y,z)
-
-
-def run(XYZ=XYZ,sig=sig,freq=freq,orientation='Z', plotIt=True):
+def run(XYZ=None, sig=1.0, freq=1.0, orientation='Z', plotIt=True):
     """
         EM: Magnetic Dipole in a Whole-Space
         ====================================
 
-        Here we plot the magnetic flux density from a harmonic dipole in a wholespace. 
+        Here we plot the magnetic flux density from a harmonic dipole in a wholespace.
 
     """
 
-    Bx, By, Bz = EM.Analytics.FDEM.MagneticDipoleWholeSpace(XYZ, np.r_[0.,0.,0.], sig, freq,orientation=orientation)
+    if XYZ is None:
+        x = np.arange(-100.5,100.5,step = 1.) #(avoid putting measurement points where source is located)
+        y = np.r_[0]
+        z = x
+        XYZ = Utils.ndgrid(x,y,z)
+
+
+    Bx, By, Bz = EM.Analytics.FDEM.MagneticDipoleWholeSpace(XYZ, np.r_[0.,0.,0.], sig, freq, orientation=orientation)
     absB = np.sqrt(Bx*Bx.conj()+By*By.conj()+Bz*Bz.conj()).real
 
 
-    if plotIt: 
+    if plotIt:
+        import matplotlib.pyplot as plt
+        from matplotlib.colors import LogNorm
         fig, ax = plt.subplots(1,1,figsize=(6,5))
         bxplt = Bx.reshape(x.size,z.size)
         bzplt = Bz.reshape(x.size,z.size)
