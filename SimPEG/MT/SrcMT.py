@@ -28,7 +28,7 @@ class BaseMTSrc(FDEMBaseSrc):
     def __init__(self, rxList, freq):
 
         self.freq = float(freq)
-        Survey.BaseSrc.__init__(self, rxList)
+        FDEMBaseSrc.__init__(self, rxList)
 
 # 1D sources
 class polxy_1DhomotD(BaseMTSrc):

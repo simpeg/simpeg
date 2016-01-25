@@ -5,7 +5,7 @@ from scipy.constants import mu_0
 from numpy.lib import recfunctions as recFunc
 from Sources import homo1DModelSource
 from Utils import rec2ndarr
-
+import SrcMT
 import sys
 
 #################
@@ -322,7 +322,6 @@ class Survey(SimPEGsurvey.BaseSurvey):
         :param list srcList: List of sources associated with the survey
 
     """
-    import SrcMT
     srcPair = SrcMT.BaseMTSrc
 
     def __init__(self, srcList, **kwargs):

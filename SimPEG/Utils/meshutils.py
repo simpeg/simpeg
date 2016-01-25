@@ -303,7 +303,6 @@ def writeVTRFile(fileName,mesh,model=None):
         vtkObj.GetCellData().AddArray(vtkDoubleArr)
     # Set the active scalar
     vtkObj.GetCellData().SetActiveScalars(model.keys()[0])
-    vtkObj.Update()
 
 
     # Check the extension of the fileName
@@ -314,7 +313,7 @@ def writeVTRFile(fileName,mesh,model=None):
         raise IOError('{:s} is an incorrect extension, has to be .vtr')
     # Write the file.
     vtrWriteFilter = rectWriter()
-    vtrWriteFilter.SetInput(vtkObj)
+    vtrWriteFilter.SetInputData(vtkObj)
     vtrWriteFilter.SetFileName(fileName)
     vtrWriteFilter.Update()
 
