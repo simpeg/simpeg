@@ -1,4 +1,4 @@
-.. _examples_EM_FDEM_1D_Inversion:
+.. _examples_EM_FDEM_Analytic_MagDipoleWholespace:
 
 .. --------------------------------- ..
 ..                                   ..
@@ -9,18 +9,18 @@
 .. --------------------------------- ..
 
 
-EM: FDEM: 1D: Inversion
-=======================
+EM: Magnetic Dipole in a Whole-Space
+====================================
 
-Here we will create and run a FDEM 1D inversion.
+Here we plot the magnetic flux density from a harmonic dipole in a wholespace.
 
 
 
 .. plot::
 
     from SimPEG import Examples
-    Examples.EM_FDEM_1D_Inversion.run()
+    Examples.EM_FDEM_Analytic_MagDipoleWholespace.run()
 
-.. literalinclude:: ../../SimPEG/Examples/EM_FDEM_1D_Inversion.py
+.. literalinclude:: ../../SimPEG/Examples/EM_FDEM_Analytic_MagDipoleWholespace.py
     :language: python
     :linenos:
