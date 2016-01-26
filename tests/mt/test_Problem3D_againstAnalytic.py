@@ -30,11 +30,10 @@ def getInputs():
 
     ## Setup the the survey object
     # Receiver locations
-    rx_x, rx_y = np.meshgrid(np.arange(-3000,3001,500),np.arange(-1000,1001,500))
-    rx_loc = np.array([[0, 0, 0]]) #,[-100,-100,0],[100,100,0]]) #np.hstack((simpeg.Utils.mkvc(rx_x,2),simpeg.Utils.mkvc(rx_y,2),elev+np.zeros((np.prod(rx_x.shape),1))))
+    rx_x, rx_y = np.meshgrid(np.arange(-1000,1001,500),np.arange(-1000,1001,500))
+    rx_loc = np.hstack((simpeg.Utils.mkvc(rx_x,2),simpeg.Utils.mkvc(rx_y,2),elev+np.zeros((np.prod(rx_x.shape),1))))
 
     return M, freqs, rx_loc, elev
-
 
 def random(conds):
     ''' Returns a halfspace model based on the inputs'''
@@ -63,6 +62,22 @@ def halfSpace(conds):
 
     return (M, freqs, sig, sigBG, rx_loc)
 
+def blockInhalfSpace(conds):
+    ''' Returns a halfspace model based on the inputs'''
+    M, freqs, rx_loc, elev = getInputs()
+
+    # Model
+    ccM = M.gridCC
+    # conds = [1e-2]
+    groundInd = ccM[:,2] < elev
+    sig = simpeg.Utils.ModelBuilder.defineBlock(M.gridCC,np.array([-1000,-1000,-1500]),np.array([1000,1000,-1000]),conds)
+    sig[~groundInd] = 1e-8
+    # Set the background, not the same as the model
+    sigBG = np.zeros(M.nC) + 1e-8
+    sigBG[groundInd] = conds[1]
+
+    return (M, freqs, sig, sigBG, rx_loc)
+
 def twoLayer(conds):
     ''' Returns a 2 layer model based on the conductivity values given'''
     M, freqs, rx_loc, elev = getInputs()
@@ -81,13 +96,21 @@ def twoLayer(conds):
 
     return (M, freqs, sig, sigBG, rx_loc)
 
-def setupSimpegMTfwd_eForm_ps(inputSetup,comp='All',singleFreq=False,expMap=True):
+
+
+def setupSimpegMTfwd_eForm_ps(inputSetup,comp='Imp',singleFreq=False,expMap=True):
     M,freqs,sig,sigBG,rx_loc = inputSetup
     # Make a receiver list
     rxList = []
     if comp == 'All':
-        for rxType in ['zxxr','zxxi','zxyr','zxyi','zyxr','zyxi','zyyr','zyyi',]:
-                rxList.append(MT.Rx(rx_loc,rxType))
+        for rxType in ['zxxr','zxxi','zxyr','zxyi','zyxr','zyxi','zyyr','zyyi','tzxr','tzxi','tzyr','tzyi']:
+            rxList.append(MT.Rx(rx_loc,rxType))
+    elif comp == 'Imp':
+        for rxType in ['zxxr','zxxi','zxyr','zxyi','zyxr','zyxi','zyyr','zyyi']:
+            rxList.append(MT.Rx(rx_loc,rxType))
+    elif comp == 'Tip':
+        for rxType in ['tzxr','tzxi','tzyr','tzyi']:
+            rxList.append(MT.Rx(rx_loc,rxType))
     else:
         rxList.append(MT.Rx(rx_loc,comp))
     # Source list
@@ -120,46 +143,6 @@ def setupSimpegMTfwd_eForm_ps(inputSetup,comp='All',singleFreq=False,expMap=True
 
     return (survey, problem)
 
-def setupSimpegMTfwd_eForm_ps_multiRx(inputSetup,comp='All',singleFreq=False,expMap=True):
-    M,freqs,sig,sigBG,rx_loc = inputSetup
-    # Add to the receiver list
-    rx_loc = np.vstack((rx_loc,np.array([[-100,100,0]])))# ,[-100,-100,0],[100,-100,0],[100,100,0]])))
-    # Make a receiver list
-    rxList = []
-    if comp == 'All':
-        for rxType in ['zxxr','zxxi','zxyr','zxyi','zyxr','zyxi','zyyr','zyyi',]:
-                rxList.append(MT.Rx(rx_loc,rxType))
-    else:
-        rxList.append(MT.Rx(rx_loc,comp))
-    # Source list
-    srcList =[]
-
-    if singleFreq:
-        srcList.append(MT.SrcMT.polxy_1Dprimary(rxList,singleFreq))
-    else:
-        for freq in freqs:
-            srcList.append(MT.SrcMT.polxy_1Dprimary(rxList,freq))
-    # Survey MT
-    survey = MT.SurveyMT.SurveyMT(srcList)
-
-    ## Setup the problem object
-    sigma1d = M.r(sigBG,'CC','CC','M')[0,0,:]
-    if expMap:
-        problem = MT.Problem3D.eForm_ps(M,sigmaPrimary= np.log(sigma1d) )
-        problem.mapping = simpeg.Maps.ExpMap(problem.mesh)
-        problem.curModel = np.log(sig)
-    else:
-        problem = MT.Problem3D.eForm_ps(M,sigmaPrimary= sigma1d)
-        problem.curModel = sig
-    problem.pair(survey)
-    problem.verbose = False
-    try:
-        from pymatsolver import MumpsSolver
-        problem.Solver = MumpsSolver
-    except:
-        pass
-
-    return (survey, problem)
 def getAppResPhs(MTdata):
     # Make impedance
     def appResPhs(freq,z):
@@ -206,7 +189,6 @@ def DerivJvecTest(inputSetup,comp='All',freq=False,expMap=True):
         return survey.dpred(x), lambda x: problem.Jvec(x0, x)
     return simpeg.Tests.checkDerivative(fun, x0, num=3, plotIt=False, eps=FLR)
 
-
 def DerivProjfieldsTest(inputSetup,comp='All',freq=False):
 
     survey, problem = setupSimpegMTfwd_eForm_ps(inputSetup,comp,freq)
@@ -231,7 +213,6 @@ def DerivProjfieldsTest(inputSetup,comp='All',freq=False):
         return rx.projectFields(src,survey.mesh,f), lambda t: rx.projectFieldsDeriv(src,survey.mesh,f0,simpeg.mkvc(t,2))
 
     return simpeg.Tests.checkDerivative(fun, u0, num=3, plotIt=False, eps=FLR)
-
 
 def appResPhsHalfspace_eFrom_ps_Norm(sigmaHalf,appR=True,expMap=False):
     if appR:
