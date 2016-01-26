@@ -230,6 +230,9 @@ class Rx(SimPEGsurvey.BaseRx):
 
                 # Calculate the complex derivative
                 PDeriv_complex = Hd * (ZijN_uV - Zij * Hd_uV )
+            elif self.projTyep is 'T3D':
+                raise NotImplementedError('Has not been implement for 3D tipper tensor')
+
             # Extract the real number for the real/imag components.
             Pv = np.array(getattr(PDeriv_complex, real_or_imag))
         elif adjoint:
