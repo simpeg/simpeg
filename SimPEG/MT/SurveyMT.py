@@ -231,7 +231,46 @@ class Rx(SimPEGsurvey.BaseRx):
                 # Calculate the complex derivative
                 PDeriv_complex = Hd * (ZijN_uV - Zij * Hd_uV )
             elif self.projTyep is 'T3D':
-                raise NotImplementedError('Has not been implement for 3D tipper tensor')
+                if self.locs.ndim == 3:
+                    eFLocs = self.locs[:,:,0]
+                    bFLocs = self.locs[:,:,1]
+                else:
+                    eFLocs = self.locs
+                    bFLocs = self.locs
+                # Get the projection
+                Pbx = mesh.getInterpolationMat(bFLocs,'Fx')
+                Pby = mesh.getInterpolationMat(bFLocs,'Fy')
+                Pbz = mesh.getInterpolationMat(bFLocs,'Fz')
+
+                # Get the fields at location
+                # px: x-polaration and py: y-polaration.
+                hx_px = Pbx*f[src,'b_px']/mu_0
+                hy_px = Pby*f[src,'b_px']/mu_0
+                hz_px = Pbz*f[src,'b_px']/mu_0
+                hx_py = Pbx*f[src,'b_py']/mu_0
+                hy_py = Pby*f[src,'b_py']/mu_0
+                hz_py = Pbz*f[src,'b_py']/mu_0
+                # Derivatives as lambda functions
+                # NOTE: Think b_p?Deriv_u should return a 2*nF size matrix
+                hx_px_u = lambda vec: Pbx*f._b_pxDeriv_u(src,vec)/mu_0
+                hy_px_u = lambda vec: Pby*f._b_pxDeriv_u(src,vec)/mu_0
+                hz_px_u = lambda vec: Pbz*f._b_pxDeriv_u(src,vec)/mu_0
+                hx_py_u = lambda vec: Pbx*f._b_pyDeriv_u(src,vec)/mu_0
+                hy_py_u = lambda vec: Pby*f._b_pyDeriv_u(src,vec)/mu_0
+                hz_py_u = lambda vec: Pbz*f._b_pyDeriv_u(src,vec)/mu_0
+                # Update the input vector
+                sDiag = lambda t: Utils.sdiag(mkvc(t,2))
+                # Define the components of the derivative
+                Hd = sDiag(1./(sDiag(hx_px)*hy_py - sDiag(hx_py)*hy_px))
+                Hd_uV = sDiag(hy_py)*hx_px_u(v) + sDiag(hx_px)*hy_py_u(v) - sDiag(hx_py)*hy_px_u(v) - sDiag(hy_px)*hx_py_u(v)
+                if 'zxx' in self.rxType:
+                    Tij = sDiag(Hd*( sDiag(hy_px)*hz_py + sDiag(hy_py)*hz_px ))
+                    TijN_uV =  sDiag(hy_px)*hz_py_u(v) + sDiag(hz_py)*hy_px_u(v) + sDiag(hy_py)*hz_px_u(v) + sDiag(hz_px)*hy_py_u(v)
+                elif 'zxy' in self.rxType:
+                    Tij = sDiag(Hd*( sDiag(hx_px)*hz_py + sDiag(hx_py)*hz_px ))
+                    TijN_uV = sDiag(hz_py)*hx_px_u(v) - sDiag(hx_px)*hz_py_u(v) + sDiag(hx_py)*hz_px_u(v) + sDiag(hz_px)*hx_py_u(v)
+                # Calculate the complex derivative
+                PDeriv_complex = Hd * (TijN_uV - Tij * Hd_uV )
 
             # Extract the real number for the real/imag components.
             Pv = np.array(getattr(PDeriv_complex, real_or_imag))
@@ -303,6 +342,51 @@ class Rx(SimPEGsurvey.BaseRx):
 
                 # Calculate the complex derivative
                 PDeriv_real = ZijN_uV(aHd*v) - aHd_uV(Zij.T*aHd*v)#
+                # NOTE: Need to reshape the output to go from 2*nU array to a (nU,2) matrix for each polarization
+                # PDeriv_real = np.hstack((mkvc(PDeriv_real[:len(PDeriv_real)/2],2),mkvc(PDeriv_real[len(PDeriv_real)/2::],2)))
+                PDeriv_real = PDeriv_real.reshape((2,mesh.nE)).T
+
+            elif self.projType is 'T3D':
+                if self.locs.ndim == 3:
+                    bFLocs = self.locs[:,:,1]
+                else:
+                    bFLocs = self.locs
+                # Get the projection
+                Pbx = mesh.getInterpolationMat(bFLocs,'Fx')
+                Pby = mesh.getInterpolationMat(bFLocs,'Fy')
+                Pbz = mesh.getInterpolationMat(bFLocs,'Fz')
+                # Get the fields at location
+                # px: x-polaration and py: y-polaration.
+                ahx_px = mkvc(mkvc(f[src,'b_px'],2).T/mu_0*Pbx.T)
+                ahy_px = mkvc(mkvc(f[src,'b_px'],2).T/mu_0*Pby.T)
+                ahz_px = mkvc(mkvc(f[src,'b_px'],2).T/mu_0*Pbz.T)
+                ahx_py = mkvc(mkvc(f[src,'b_py'],2).T/mu_0*Pbx.T)
+                ahy_py = mkvc(mkvc(f[src,'b_py'],2).T/mu_0*Pby.T)
+                ahz_py = mkvc(mkvc(f[src,'b_py'],2).T/mu_0*Pbz.T)
+                # Derivatives as lambda functions
+                ahx_px_u = lambda vec: f._b_pxDeriv_u(src,Pbx.T*vec,adjoint=True)/mu_0
+                ahy_px_u = lambda vec: f._b_pxDeriv_u(src,Pby.T*vec,adjoint=True)/mu_0
+                ahz_px_u = lambda vec: f._b_pxDeriv_u(src,Pbz.T*vec,adjoint=True)/mu_0
+                ahx_py_u = lambda vec: f._b_pyDeriv_u(src,Pbx.T*vec,adjoint=True)/mu_0
+                ahy_py_u = lambda vec: f._b_pyDeriv_u(src,Pby.T*vec,adjoint=True)/mu_0
+                ahz_py_u = lambda vec: f._b_pyDeriv_u(src,Pbz.T*vec,adjoint=True)/mu_0
+
+                # Update the input vector
+                # Define shortcuts
+                sDiag = lambda t: Utils.sdiag(mkvc(t,2))
+                sVec = lambda t: Utils.sp.csr_matrix(mkvc(t,2))
+                # Define the components of the derivative
+                aHd = sDiag(1./(sDiag(ahx_px)*ahy_py - sDiag(ahx_py)*ahy_px))
+                aHd_uV = lambda x: ahx_px_u(sDiag(ahy_py)*x) + ahx_px_u(sDiag(ahy_py)*x) - ahy_px_u(sDiag(ahx_py)*x) - ahx_py_u(sDiag(ahy_px)*x)
+                # Need to fix this to reflect the adjoint
+                if 'tzx' in self.rxType:
+                    Tij = sDiag(aHd*( sDiag(ahz_py)*ahy_px - sDiag(ahz_px)*ahy_py))
+                    TijN_uV = lambda x: ahz_px_u(sDiag(ahy_px)*x) + ahy_px_u(sDiag(ahz_px)*x) + ahy_py_u(sDiag(ahz_px)*x) + ahz_px_u(sDiag(ahy_py)*x)
+                elif 'tzy' in self.rxType:
+                    Tij = sDiag(aHd*( sDiag(ahz_py)*ahx_px + sDiag(ahz_px)*ahx_py))
+                    TijN_uV = lambda x: ahx_px_u(sDiag(ahz_py)*x) + ahz_py_u(sDiag(ahx_px)*x) + ahx_py_u(sDiag(ahz_px)*x) + ahz_px_u(sDiag(ahx_py)*x)
+                # Calculate the complex derivative
+                PDeriv_real = TijN_uV(aHd*v) - aHd_uV(Tij.T*aHd*v)#
                 # NOTE: Need to reshape the output to go from 2*nU array to a (nU,2) matrix for each polarization
                 # PDeriv_real = np.hstack((mkvc(PDeriv_real[:len(PDeriv_real)/2],2),mkvc(PDeriv_real[len(PDeriv_real)/2::],2)))
                 PDeriv_real = PDeriv_real.reshape((2,mesh.nE)).T
