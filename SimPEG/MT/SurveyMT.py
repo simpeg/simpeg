@@ -536,9 +536,9 @@ class Data(SimPEGsurvey.Data):
 
         """
         if srcType=='primary':
-            src = SrcMT.src_polxy_1Dprimary
+            src = SrcMT.polxy_1Dprimary
         elif srcType=='total':
-            src = SrcMT.src_polxy_1DhomotD
+            src = SrcMT.polxy_1DhomotD
         else:
             raise NotImplementedError('{:s} is not a valid source type for MTdata')
 
