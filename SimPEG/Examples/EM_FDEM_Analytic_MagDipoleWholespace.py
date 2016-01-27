@@ -1,7 +1,7 @@
 from SimPEG import *
 import SimPEG.EM as EM
 
-def run(XYZ=None, sig=1.0, freq=1.0, orientation='Z', plotIt=True):
+def run(XYZ=None, loc=np.r_[0.,0.,0.], sig=1.0, freq=1.0, orientation='Z', plotIt=True):
     """
         EM: Magnetic Dipole in a Whole-Space
         ====================================
@@ -17,7 +17,7 @@ def run(XYZ=None, sig=1.0, freq=1.0, orientation='Z', plotIt=True):
         XYZ = Utils.ndgrid(x,y,z)
 
 
-    Bx, By, Bz = EM.Analytics.FDEM.MagneticDipoleWholeSpace(XYZ, np.r_[0.,0.,0.], sig, freq, orientation=orientation)
+    Bx, By, Bz = EM.Analytics.FDEM.MagneticDipoleWholeSpace(XYZ, loc, sig, freq, orientation=orientation)
     absB = np.sqrt(Bx*Bx.conj()+By*By.conj()+Bz*Bz.conj()).real
 
 
