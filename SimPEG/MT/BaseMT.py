@@ -66,6 +66,7 @@ class BaseMTProblem(BaseFDEMProblem):
                     # v should be of size 2*nE (for 2 polarizations)
                     PDeriv_u = lambda t: rx.projectFieldsDeriv(src, self.mesh, u, t) # wrt u, we don't have have PDeriv wrt m
                     Jv[src, rx] = PDeriv_u(mkvc(du_dm))
+            dA_duI.clean()
         # Return the vectorized sensitivities
         return mkvc(Jv)
 
@@ -112,5 +113,6 @@ class BaseMTProblem(BaseFDEMProblem):
                         Jtv +=  -du_dmT.real
                     else:
                         raise Exception('Must be real or imag')
-
+            # Clean the factorization, clear memory.
+            ATinv.clean()
         return Jtv
