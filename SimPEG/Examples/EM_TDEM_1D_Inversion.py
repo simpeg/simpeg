@@ -50,20 +50,15 @@ def run(plotIt=True):
     prb.Solver = SolverLU
     prb.timeSteps = [(1e-06, 20),(1e-05, 20), (0.0001, 20)]
     prb.pair(survey)
-    dtrue = survey.dpred(mtrue)
 
-
-    survey.dtrue = dtrue
+    # create observed data
     std = 0.05
-    noise = std*abs(survey.dtrue)*np.random.randn(*survey.dtrue.shape)
-    survey.dobs = survey.dtrue+noise
-    survey.std = survey.dobs*0 + std
-    survey.Wd = 1/(abs(survey.dobs)*std)
+    survey.dobs = survey.makeSyntheticData(mtrue,std)
 
     if plotIt:
         import matplotlib.pyplot as plt
         fig, ax = plt.subplots(1,1, figsize = (10, 6))
-        ax.loglog(rx.times, dtrue, 'b.-')
+        ax.loglog(rx.times, survey.dtrue, 'b.-')
         ax.loglog(rx.times, survey.dobs, 'r.-')
         ax.legend(('Noisefree', '$d^{obs}$'), fontsize = 16)
         ax.set_xlabel('Time (s)', fontsize = 14)
@@ -76,6 +71,7 @@ def run(plotIt=True):
     reg = Regularization.Tikhonov(regMesh)
     opt = Optimization.InexactGaussNewton(maxIter = 5)
     invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
+
     # Create an inversion object
     beta = Directives.BetaSchedule(coolingFactor=5, coolingRate=2)
     betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1e0)
