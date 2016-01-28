@@ -35,12 +35,7 @@ class TestOcTreeIO(unittest.TestCase):
     def test_VTUfiles(self):
         mesh = self.mesh
         vec = np.arange(mesh.nC)
-        try:
-            simpeg.Utils.meshutils.writeVTUFile('temp.vtu',mesh,{'arange':vec})
-            run = True
-        except:
-            run = False
-        assert run
+        simpeg.Utils.meshutils.writeVTUFile('temp.vtu',mesh,{'arange':vec})
         print 'Writing of VTU files is working'
         os.remove('temp.vtu')
 
