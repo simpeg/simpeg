@@ -26,7 +26,7 @@ before_install:
 
 # Install packages
 install:
-  - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython
+  - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython vtk
   - pip install nose-cov python-coveralls
   # - pip install -r requirements.txt
   - python setup.py install
