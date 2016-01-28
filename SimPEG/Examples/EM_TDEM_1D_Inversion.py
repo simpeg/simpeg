@@ -53,7 +53,10 @@ def run(plotIt=True):
 
     # create observed data
     std = 0.05
+    
     survey.dobs = survey.makeSyntheticData(mtrue,std)
+    survey.std = std 
+    survey.eps = 1e-5*np.linalg.norm(survey.dobs)
 
     if plotIt:
         import matplotlib.pyplot as plt
