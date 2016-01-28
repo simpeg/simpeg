@@ -227,9 +227,9 @@ def appResPhsHalfspace_eFrom_ps_Norm(sigmaHalf,appR=True,expMap=False):
     # Calculate the app  phs
     app_rpxy, app_rpyx = np.array(getAppResPhs(data))
     if appR:
-        return np.all(np.abs(app_rpxy[0,:] - np.ones(survey.nFreq)/sigmaHalf) * sigmaHalf < .4)
+        return np.all(np.abs(app_rpxy[0,:] - 1./sigmaHalf) * sigmaHalf < .4)
     else:
-        return np.all(np.abs(app_rpxy[1,:] + np.ones(survey.nFreq)*135) / 135 < .4)
+        return np.all(np.abs(app_rpxy[1,:] + 135) / 135 < .4)
 
 class TestAnalytics(unittest.TestCase):
 
