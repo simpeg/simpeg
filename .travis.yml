@@ -4,17 +4,24 @@ python:
 
 sudo: false
 
+addons:
+  apt:
+    packages:
+    - gcc
+    - gfortran
+    - libopenmpi-dev
+    - libmumps-seq-dev
+    - libblas-dev
+    - liblapack-dev
+
 env:
-    - TEST_DIR=tests/em/examples
-    - TEST_DIR=tests/em/fdem/forward
+    - TEST_DIR="tests/mesh tests/base tests/utils"
     - TEST_DIR=tests/em/fdem/inverse/derivs
-    - TEST_DIR=tests/em/fdem/inverse/adjoint
     - TEST_DIR=tests/em/tdem
-    - TEST_DIR=tests/mesh
     - TEST_DIR=tests/flow
-    - TEST_DIR=tests/utils
-    - TEST_DIR=tests/base
     - TEST_DIR=tests/examples
+    - TEST_DIR=tests/em/fdem/inverse/adjoint
+    - TEST_DIR=tests/em/fdem/forward
 
 # Setup anaconda
 before_install:
@@ -26,9 +33,12 @@ before_install:
 
 # Install packages
 install:
-  - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython vtk
+  - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython nose vtk
   - pip install nose-cov python-coveralls
-  # - pip install -r requirements.txt
+
+  - git clone https://github.com/rowanc1/pymatsolver.git
+  - cd pymatsolver; python setup.py install; cd ..
+
   - python setup.py install
   - python setup.py build_ext --inplace
 

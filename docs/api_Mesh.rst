@@ -23,23 +23,8 @@ the implementations.
 
 .. plot::
 
-    from SimPEG import Mesh, Utils, np
-    import matplotlib.pyplot as plt
-    sz = [10,10]
-    tM = Mesh.TensorMesh(sz)
-    qM = Mesh.TreeMesh(sz)
-    qM.refine(lambda X: 1 if np.sqrt(((X-0.5)**2).sum()) < 0.3 else 0)
-    rM = Mesh.CurvilinearMesh(Utils.meshutils.exampleLrmGrid(sz,'rotate'))
-
-    fig, axes = plt.subplots(1,3,figsize=(14,5))
-    opts = {}
-    tM.plotGrid(ax=axes[0], **opts)
-    axes[0].set_title('TensorMesh')
-    qM.plotGrid(ax=axes[1], **opts)
-    axes[1].set_title('TreeMesh')
-    rM.plotGrid(ax=axes[2], **opts)
-    axes[2].set_title('CurvilinearMesh')
-    plt.show()
+    from SimPEG import Examples
+    Examples.Mesh_Basic_Types.run()
 
 
 Variable Locations and Terminology
