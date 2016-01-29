@@ -100,11 +100,12 @@ except Exception, e:
 
 from InnerProducts import InnerProducts
 from TensorMesh import TensorMesh, BaseTensorMesh
+from MeshIO import TreeMeshIO
 import time
 
 MAX_BITS = 20
 
-class TreeMesh(BaseTensorMesh, InnerProducts):
+class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
 
     _meshType = 'TREE'
 
