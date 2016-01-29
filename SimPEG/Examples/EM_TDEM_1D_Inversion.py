@@ -5,10 +5,10 @@ from scipy.constants import mu_0
 
 def run(plotIt=True):
     """
-        EM: FDEM: 1D: Inversion
+        EM: TDEM: 1D: Inversion
         =======================
 
-        Here we will create and run a FDEM 1D inversion.
+        Here we will create and run a TDEM 1D inversion.
 
     """
 

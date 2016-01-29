@@ -158,6 +158,9 @@ class BaseProblem(object):
 
 class BaseTimeProblem(BaseProblem):
     """Sets up that basic needs of a time domain problem."""
+    
+    waveformType = "STEPOFF"    
+    current = None
 
     @property
     def timeSteps(self):
@@ -183,6 +186,11 @@ class BaseTimeProblem(BaseProblem):
 
         self._timeSteps = Utils.meshTensor(value)
         del self.timeMesh
+
+    def currentwaveform(self, wave):
+        self._timeSteps = np.diff(wave[:,0])
+        self.current = wave[:,1]
+        self.waveformType = "GENERAL"
 
     @property
     def nT(self):
