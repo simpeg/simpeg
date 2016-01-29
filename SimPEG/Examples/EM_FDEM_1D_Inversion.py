@@ -1,6 +1,6 @@
 from SimPEG import *
 import SimPEG.EM as EM
-from scipy.constants import mu_0
+from SimPEG.EM import mu_0
 
 
 def run(plotIt=True):
@@ -59,7 +59,7 @@ def run(plotIt=True):
         prb.Solver = MumpsSolver
     except ImportError, e:
         prb.Solver = SolverLU
-    
+
     prb.pair(survey)
 
     std = 0.05

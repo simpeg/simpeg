@@ -1,6 +1,6 @@
 from SimPEG import *
 import SimPEG.EM as EM
-from scipy.constants import mu_0
+from SimPEG.EM import mu_0
 
 
 def run(plotIt=True):

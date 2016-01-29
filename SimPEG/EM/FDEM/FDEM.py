@@ -142,7 +142,7 @@ class BaseFDEMProblem(BaseEMProblem):
                         raise Exception('Must be real or imag')
             
             ATinv.clean()
-            
+
         return Utils.mkvc(Jtv)
 
     def getSourceTerm(self, freq):
