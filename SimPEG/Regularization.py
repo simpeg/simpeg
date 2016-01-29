@@ -245,9 +245,9 @@ class Tikhonov(BaseRegularization):
 
 class Simple(BaseRegularization):
     """
-        Only for tensor mesh
-    """     
-    
+        Only for a 3D tensor mesh
+    """
+
     smoothModel = True  #: SMOOTH and SMOOTH_MOD_DIF options
     alpha_s  = Utils.dependentProperty('_alpha_s', 1.0, ['_W', '_Ws'], "Smallness weight")
     alpha_x  = Utils.dependentProperty('_alpha_x', 1.0, ['_W', '_Wx'], "Weight for the first derivative in the x direction")
@@ -258,41 +258,43 @@ class Simple(BaseRegularization):
     alpha_zz = Utils.dependentProperty('_alpha_zz', 0.0, ['_W', '_Wzz'], "Weight for the second derivative in the z direction")
 
     def __init__(self, mesh, mapping=None, **kwargs):
+        assert isinstance(mesh, Mesh.TensorMesh)
+        assert mesh.dim == 3
         BaseRegularization.__init__(self, mesh, mapping=mapping, **kwargs)
 
     @property
     def Gx(self):
-        
+
         n = self.mesh.vnC
         gx = Utils.ddx(n[0]-1)
         gx_square = sp.vstack((gx,gx[-1,:]*-1), format="csr")
-        
+
         self._Gx = Utils.kron3(Utils.speye(n[2]), Utils.speye(n[1]), gx_square)
-        
+
         return self._Gx
-        
+
     @property
     def Gy(self):
-        
+
         n = self.mesh.vnC
         gy = Utils.ddx(n[1]-1)
         gy_square = sp.vstack((gy,gy[-1,:]*-1), format="csr")
-        
+
         self._Gy = Utils.kron3(Utils.speye(n[2]), gy_square, Utils.speye(n[0]))
-        
+
         return self._Gy
-        
+
     @property
     def Gz(self):
-        
+
         n = self.mesh.vnC
         gz = Utils.ddx(n[2]-1)
         gz_square = sp.vstack((gz,gz[-1,:]*-1), format="csr")
-        
+
         self._Gz = Utils.kron3( gz_square , Utils.speye(n[1]), Utils.speye(n[0]))
-        
+
         return self._Gz
-        
+
     @property
     def Ws(self):
         """Regularization matrix Ws"""
