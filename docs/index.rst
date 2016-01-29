@@ -44,6 +44,13 @@ About SimPEG
    api_bigPicture
    api_installing
 
+Examples
+********
+
+.. toctree::
+   :maxdepth: 2
+   api_Examples
+
 Packages
 ********
 
@@ -53,15 +60,6 @@ Packages
    em/index
    mt/index
    flow/index
-
-Examples
-********
-
-.. toctree::
-   :maxdepth: 2
-
-   api_Examples
-
 
 Finite Volume
 *************
