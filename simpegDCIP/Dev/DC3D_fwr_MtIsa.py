@@ -38,7 +38,7 @@ import scipy.interpolate as interpolation
 import os
 
 #home_dir = 'C:\\Users\\dominiquef.MIRAGEOSCIENCE\\ownCloud\\Research\\Modelling\\Synthetic\\Two_Sphere'
-home_dir ='C:\Users\dominiquef.MIRAGEOSCIENCE\Documents\GIT\SimPEG\simpegdc\simpegDCIP\Dev'
+home_dir ='C:\Users\dominiquef.MIRAGEOSCIENCE\ownCloud\Research\MtIsa\Modeling'
 dsep = '\\'
 #from scipy.linalg import solve_banded
 
@@ -48,10 +48,12 @@ mesh = Utils.meshutils.readUBCTensorMesh(home_dir + '\MtIsa_20m.msh')
 #mesh = Utils.meshutils.readUBCTensorMesh(home_dir + '\Mesh_50m.msh')
 
 # Load model
-model = Utils.meshutils.readUBCTensorModel(home_dir + '\MtIsa_3D.con',mesh)
+model = Utils.meshutils.readUBCTensorModel(home_dir + '\MtIsa_20m.con',mesh)
 #model = Utils.meshutils.readUBCTensorModel(home_dir + '\Synthetic.con',mesh)
 #model = Utils.meshutils.readUBCTensorModel(home_dir + '\Lalor_model_50m.con',mesh)
 #model = Utils.meshutils.readUBCTensorModel(home_dir + '\TwoSpheres.con',mesh)
+
+#model[model>1] = 0.08
 
 #model = model**0 * 1e-2
 # Specify survey type
@@ -60,7 +62,7 @@ stype = 'pdp'
 # Survey parameters
 a = 100
 b = 100
-n = 20
+n = 15
 
 # Forward solver
 slvr = 'BiCGStab' #'LU'
@@ -130,7 +132,7 @@ plt.sca(ax_prim)
     
 # Takes two points from ginput and create survey
 #if re.match(stype,'gradient'):
-gin = [(400.,12200.), (1400.,12200.)]
+gin = [(400.,12200.), (1800.,12200.)]
 #else:
 #gin = plt.ginput(2, timeout = 0)
 
@@ -278,10 +280,10 @@ if not re.match(stype,'gradient'):
     #==============================================================================
     
     plt.figure()
-    axs = plt.subplot()
+    axs = plt.subplot(2,1,1)
     
     plt.xlim([0,nc*dx])
-    plt.ylim([mesh2d.vectorNy[-1]-dl_len,mesh2d.vectorNy[-1]])
+    plt.ylim([mesh2d.vectorNy[-1]-dl_len/2,mesh2d.vectorNy[-1]])
     plt.gca().set_aspect('equal', adjustable='box')
     
     plt.pcolormesh(mesh2d.vectorNx,mesh2d.vectorNy,np.log10(m2D),alpha=0.5, cmap='gray')#axes = [mesh2d.vectorNx[0],mesh2d.vectorNx[-1],mesh2d.vectorNy[0],mesh2d.vectorNy[-1]])
@@ -345,11 +347,11 @@ if not re.match(stype,'gradient'):
     #%%
     #Load model
     minv = DC.readUBC_DC2DModel(inv_dir + dsep + 'dcinv2d.con')
-    plt.figure()
-    axs = plt.subplot()
+    #plt.figure()
+    axs = plt.subplot(2,1,2)
     
     plt.xlim([0,nc*dx])
-    plt.ylim([mesh2d.vectorNy[-1]-dl_len,mesh2d.vectorNy[-1]])
+    plt.ylim([mesh2d.vectorNy[-1]-dl_len/2,mesh2d.vectorNy[-1]])
     plt.gca().set_aspect('equal', adjustable='box')
     
     minv = np.reshape(minv,(mesh2d.nCy,mesh2d.nCx))
@@ -388,3 +390,14 @@ elif re.match(stype,'gradient'):
     plt.title(var)
     plt.colorbar()
     plt.contour(grid_x,grid_z,grid_rho, colors='k')
+    
+#%% Load tight model and plot
+mesh = Utils.meshutils.readUBCTensorMesh(home_dir + '\MtIsa_5m.msh')
+
+# Load model
+model = Utils.meshutils.readUBCTensorModel(home_dir + '\MtIsa_5m.con',mesh)
+model = model.reshape((mesh.nCz,mesh.nCx))
+plt.figure()
+plt.imshow(np.log10(model),extent = (125,375,0,75),origin='lower')
+plt.colorbar(fraction=0.015)
+    

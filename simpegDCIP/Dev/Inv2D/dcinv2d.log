@@ -14,7 +14,7 @@ Distributed by:
 Mira Geoscience Ltd.
 
 
- DCINV2D started on: 1/12/2016  16:42:18
+ DCINV2D started on: 1/12/2016  21:07:02
 
 
 Reading input file: dcinv2d.inp
@@ -93,7 +93,7 @@ model norm change =  0.00000E+00
     norm comp Wx  =  3.70226E-01
     norm comp Wz  =  3.77603E-01
 
-iter cpu time:   0:00:01.20
+iter cpu time:   0:00:01.81
 
 
 Iteration    2
@@ -114,7 +114,7 @@ model norm change =  2.77567E+00
     norm comp Wx  =  1.61088E+00
     norm comp Wz  =  1.40814E+00
 
-iter cpu time:   0:00:00.78
+iter cpu time:   0:00:00.83
 
 
 Iteration    3
@@ -135,7 +135,7 @@ model norm change =  1.12370E+00
     norm comp Wx  =  4.11507E+00
     norm comp Wz  =  3.02271E+00
 
-iter cpu time:   0:00:01.00
+iter cpu time:   0:00:00.64
 
 
 Iteration    4
@@ -156,7 +156,7 @@ model norm change =  6.62554E-01
     norm comp Wx  =  8.32898E+00
     norm comp Wz  =  5.18098E+00
 
-iter cpu time:   0:00:00.86
+iter cpu time:   0:00:01.47
 
 
 Iteration    5
@@ -177,7 +177,7 @@ model norm change =  4.40344E-01
     norm comp Wx  =  1.43993E+01
     norm comp Wz  =  7.86671E+00
 
-iter cpu time:   0:00:00.88
+iter cpu time:   0:00:01.41
 
 
 Iteration    6
@@ -199,7 +199,7 @@ model norm change =  2.84090E-01
     norm comp Wx  =  2.11440E+01
     norm comp Wz  =  1.08731E+01
 
-iter cpu time:   0:00:00.81
+iter cpu time:   0:00:01.02
 
 
 Iteration    7
@@ -221,7 +221,7 @@ model norm change =  1.89686E-01
     norm comp Wx  =  2.69488E+01
     norm comp Wz  =  1.38454E+01
 
-iter cpu time:   0:00:00.89
+iter cpu time:   0:00:01.00
 
 
 Iteration    8
@@ -243,7 +243,7 @@ model norm change =  1.53314E-01
     norm comp Wx  =  3.20341E+01
     norm comp Wz  =  1.68852E+01
 
-iter cpu time:   0:00:00.91
+iter cpu time:   0:00:01.08
 
 
 Iteration    9
@@ -264,7 +264,7 @@ model norm change =  1.48742E-01
     norm comp Wx  =  3.78831E+01
     norm comp Wz  =  2.05954E+01
 
-iter cpu time:   0:00:00.78
+iter cpu time:   0:00:00.62
 
 
 Iteration   10
@@ -285,7 +285,7 @@ model norm change =  1.81682E-01
     norm comp Wx  =  4.67077E+01
     norm comp Wz  =  2.57538E+01
 
-iter cpu time:   0:00:00.66
+iter cpu time:   0:00:01.14
 
 
 Iteration   11
@@ -306,7 +306,7 @@ model norm change =  2.42021E-01
     norm comp Wx  =  6.50107E+01
     norm comp Wz  =  3.14941E+01
 
-iter cpu time:   0:00:00.81
+iter cpu time:   0:00:01.18
 
 
 Iteration   12
@@ -327,7 +327,7 @@ model norm change =  1.55454E-01
     norm comp Wx  =  7.90861E+01
     norm comp Wz  =  3.81319E+01
 
-iter cpu time:   0:00:00.72
+iter cpu time:   0:00:01.10
 
 
 Iteration   13
@@ -349,7 +349,7 @@ model norm change = -6.98309E-03
     norm comp Wx  =  7.63269E+01
     norm comp Wz  =  3.53536E+01
 
-iter cpu time:   0:00:01.02
+iter cpu time:   0:00:00.88
 
 
 Iteration   14
@@ -371,7 +371,7 @@ model norm change = -3.03571E-02
     norm comp Wx  =  7.21243E+01
     norm comp Wz  =  3.19461E+01
 
-iter cpu time:   0:00:01.21
+iter cpu time:   0:00:00.89
 
 
 Target misfit achieved.  Minimizing model norm.
@@ -396,7 +396,7 @@ model norm change = -6.88525E-03
     norm comp Wx  =  6.90749E+01
     norm comp Wz  =  3.41159E+01
 
-iter cpu time:   0:00:00.76
+iter cpu time:   0:00:00.95
 
 
    Exit at convergence.
@@ -404,7 +404,7 @@ iter cpu time:   0:00:00.76
 
  Iterations performed:   15
 
-total cpu time:   0:00:13.54
+total cpu time:   0:00:16.25
 
- DCINV2D ended on: 1/12/2016  16:42:31
+ DCINV2D ended on: 1/12/2016  21:07:18
 
