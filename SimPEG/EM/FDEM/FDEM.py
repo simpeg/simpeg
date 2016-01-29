@@ -50,7 +50,7 @@ class BaseFDEMProblem(BaseEMProblem):
             Srcs = self.survey.getSrcByFreq(freq)
             ftype = self._fieldType + 'Solution'
             F[Srcs, ftype] = sol
-
+            Ainv.clean()
         return F
 
     def Jvec(self, m, v, u=None):
@@ -89,6 +89,7 @@ class BaseFDEMProblem(BaseEMProblem):
 
                     Jv[src, rx] = P(Df_Dm)
 
+            Ainv.clean()
         return Utils.mkvc(Jv)
 
     def Jtvec(self, m, v, u=None):
@@ -139,7 +140,9 @@ class BaseFDEMProblem(BaseEMProblem):
                         Jtv += - np.array(du_dmT,dtype=complex).real
                     else:
                         raise Exception('Must be real or imag')
-
+            
+            ATinv.clean()
+            
         return Utils.mkvc(Jtv)
 
     def getSourceTerm(self, freq):
