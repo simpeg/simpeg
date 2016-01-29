@@ -32,8 +32,8 @@ class BaseProblem(object):
             val._assertMatchesPair(self.mapPair)
             self._mapping = val
         else:
-            self._mapping = self.PropMap(val) 
-    
+            self._mapping = self.PropMap(val)
+
     def __init__(self, mesh, mapping=None, **kwargs):
         Utils.setKwargs(self, **kwargs)
         assert isinstance(mesh, Mesh.BaseMesh), "mesh must be a SimPEG.Mesh object."
@@ -158,8 +158,8 @@ class BaseProblem(object):
 
 class BaseTimeProblem(BaseProblem):
     """Sets up that basic needs of a time domain problem."""
-    
-    waveformType = "STEPOFF"    
+
+    waveformType = "STEPOFF"
     current = None
 
     @property
@@ -222,11 +222,11 @@ class BaseTimeProblem(BaseProblem):
             del self._timeMesh
 
 class LinearProblem(BaseProblem):
-    
+
     surveyPair = Survey.LinearSurvey
 
     def __init__(self, mesh, G, **kwargs):
-        Problem.BaseProblem.__init__(self, mesh, **kwargs)
+        BaseProblem.__init__(self, mesh, **kwargs)
         self.G = G
 
     def fields(self, m):

@@ -245,9 +245,9 @@ class Tikhonov(BaseRegularization):
 
 class Simple(BaseRegularization):
     """
-        Only for tensor mesh
-    """     
-    
+        Only for a 3D tensor mesh
+    """
+
     smoothModel = True  #: SMOOTH and SMOOTH_MOD_DIF options
     alpha_s  = Utils.dependentProperty('_alpha_s', 1.0, ['_W', '_Ws'], "Smallness weight")
     alpha_x  = Utils.dependentProperty('_alpha_x', 1.0, ['_W', '_Wx'], "Weight for the first derivative in the x direction")
@@ -258,10 +258,10 @@ class Simple(BaseRegularization):
     alpha_zz = Utils.dependentProperty('_alpha_zz', 0.0, ['_W', '_Wzz'], "Weight for the second derivative in the z direction")
 
     def __init__(self, mesh, mapping=None, **kwargs):
+        assert isinstance(mesh, Mesh.TensorMesh)
+        assert mesh.dim == 3
         BaseRegularization.__init__(self, mesh, mapping=mapping, **kwargs)
 
-    
-        
     @property
     def Ws(self):
         """Regularization matrix Ws"""

@@ -26,7 +26,14 @@ def SolverWrapD(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6):
 
     def __init__(self, A, **kwargs):
         self.A = A.tocsc()
+
+        self.checkAccuracy = kwargs.get("checkAccuracy", checkAccuracy)
+        if kwargs.has_key("checkAccuracy"): del kwargs["checkAccuracy"]
+        self.accuracyTol = kwargs.get("accuracyTol", accuracyTol)
+        if kwargs.has_key("accuracyTol"): del kwargs["accuracyTol"]
+
         self.kwargs = kwargs
+
         if factorize:
             self.solver = fun(self.A, **kwargs)
 
@@ -57,8 +64,8 @@ def SolverWrapD(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6):
                 else:
                     X[:,i] = fun(self.A, b[:,i], **self.kwargs)
 
-        if checkAccuracy:
-            _checkAccuracy(self.A, b, X, accuracyTol)
+        if self.checkAccuracy:
+            _checkAccuracy(self.A, b, X, self.accuracyTol)
         return X
 
     def clean(self):
@@ -81,6 +88,12 @@ def SolverWrapI(fun, checkAccuracy=True, accuracyTol=1e-5):
 
     def __init__(self, A, **kwargs):
         self.A = A
+
+        self.checkAccuracy = kwargs.get("checkAccuracy", checkAccuracy)
+        if kwargs.has_key("checkAccuracy"): del kwargs["checkAccuracy"]
+        self.accuracyTol = kwargs.get("accuracyTol", accuracyTol)
+        if kwargs.has_key("accuracyTol"): del kwargs["accuracyTol"]
+
         self.kwargs = kwargs
 
     def __mul__(self, b):
@@ -108,8 +121,8 @@ def SolverWrapI(fun, checkAccuracy=True, accuracyTol=1e-5):
                 else:
                     X[:,i] = out
 
-        if checkAccuracy:
-            _checkAccuracy(self.A, b, X, accuracyTol)
+        if self.checkAccuracy:
+            _checkAccuracy(self.A, b, X, self.accuracyTol)
         return X
 
     def clean(self):

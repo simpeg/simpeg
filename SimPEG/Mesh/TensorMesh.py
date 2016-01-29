@@ -215,7 +215,7 @@ class BaseTensorMesh(BaseMesh):
             inside = inside & (pts[:,i] >= tensor.min()-TOL) & (pts[:,i] <= tensor.max()+TOL)
         return inside
 
-    def getInterpolationMat(self, loc, locType, zerosOutside=False):
+    def getInterpolationMat(self, loc, locType='CC', zerosOutside=False):
         """ Produces interpolation matrix
 
         :param numpy.ndarray loc: Location of points to interpolate to
