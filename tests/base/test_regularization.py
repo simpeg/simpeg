@@ -4,14 +4,29 @@ from SimPEG import *
 from scipy.sparse.linalg import dsolve
 import inspect
 
+TOL = 1e-20
 
-DO_NOT_TEST_REG2 = ['Simple']
-DO_NOT_TEST_REG3 = []
+DO_NOT_TEST_REG = [
+                    ['SparseRegularization','Simple'], # 1D
+                    ['SparseRegularization','Simple'], # 2D
+                    [], #3D
+                  ]
 
-class RegularizationTests(unittest.TestCase):
+DO_NOT_TEST_REG_ACT = [
+                    ['SparseRegularization','Simple'], # 1D
+                    ['SparseRegularization','Simple'], # 2D
+                    ['SparseRegularization','Simple'], #3D
+                  ]
+
+class TestRegularizationTensorMesh(unittest.TestCase):
 
     def setUp(self):
-        self.mesh2 = Mesh.TensorMesh([3, 2])
+        hx, hy, hz = np.random.rand(10), np.random.rand(9), np.random.rand(8)
+        hx, hy, hz = hx/hx.sum(), hy/hy.sum(), hz/hz.sum()
+        mesh1 = Mesh.TensorMesh([hx])
+        mesh2 = Mesh.TensorMesh([hx, hy])
+        mesh3 = Mesh.TensorMesh([hx, hy, hz])
+        self.meshlist = [mesh1, mesh2, mesh3]
 
     def test_regularization(self):
         for R in dir(Regularization):
@@ -19,43 +34,66 @@ class RegularizationTests(unittest.TestCase):
             if not inspect.isclass(r): continue
             if not issubclass(r, Regularization.BaseRegularization):
                 continue
-            if r.__name__ in DO_NOT_TEST_REG2: continue
-            mapping = r.mapPair(self.mesh2)
-            reg = r(self.mesh2, mapping=mapping)
-            m = np.random.rand(mapping.nP)
-            reg.mref = m[:]*np.mean(m)
 
-            print 'Check:', R
-            passed = Tests.checkDerivative(lambda m : [reg.eval(m), reg.evalDeriv(m)], m, plotIt=False)
-            self.assertTrue(passed)
-            print 'Check 2 Deriv:', R
-            passed = Tests.checkDerivative(lambda m : [reg.evalDeriv(m), reg.eval2Deriv(m)], m, plotIt=False)
-            self.assertTrue(passed)
+            for i, mesh in enumerate(self.meshlist):
 
+                if r.__name__ in DO_NOT_TEST_REG[i]: continue
+                print 'Check in %dD:'%mesh.dim, R
 
-class RegularizationTests3D(unittest.TestCase):
+                mapping = r.mapPair(mesh)
+                reg = r(mesh, mapping=mapping)
+                m = np.random.rand(mapping.nP)
+                reg.mref = np.ones_like(m)*np.mean(m)
 
-    def setUp(self):
-        self.mesh3 = Mesh.TensorMesh([3, 2, 5])
+                print 'Check: phi_m (mref) = %f' %reg.eval(reg.mref)
+                passed = reg.eval(reg.mref) < TOL
+                self.assertTrue(passed)
 
-    def test_regularization(self):
+                print 'Check Deriv:', R
+                passed = Tests.checkDerivative(lambda m : [reg.eval(m), reg.evalDeriv(m)], m, plotIt=False)
+                self.assertTrue(passed)
+
+                print 'Check 2 Deriv:', R
+                passed = Tests.checkDerivative(lambda m : [reg.evalDeriv(m), reg.eval2Deriv(m)], m, plotIt=False)
+                self.assertTrue(passed)
+
+    def test_regularization_ActiveCells(self):
         for R in dir(Regularization):
             r = getattr(Regularization, R)
             if not inspect.isclass(r): continue
             if not issubclass(r, Regularization.BaseRegularization):
                 continue
-            if r.__name__ in DO_NOT_TEST_REG3: continue
-            mapping = r.mapPair(self.mesh3)
-            reg = r(self.mesh3, mapping=mapping)
-            m = np.random.rand(mapping.nP)
-            reg.mref = m[:]*np.mean(m)
 
-            print 'Check:', R
-            passed = Tests.checkDerivative(lambda m : [reg.eval(m), reg.evalDeriv(m)], m, plotIt=False)
-            self.assertTrue(passed)
-            print 'Check 2 Deriv:', R
-            passed = Tests.checkDerivative(lambda m : [reg.evalDeriv(m), reg.eval2Deriv(m)], m, plotIt=False)
-            self.assertTrue(passed)
+            for i, mesh in enumerate(self.meshlist):
+
+                if r.__name__ in DO_NOT_TEST_REG_ACT[i]: continue
+                print 'Check in %dD:'%mesh.dim, R
+
+                if mesh.dim == 1:
+                    indAct = Utils.mkvc(mesh.gridCC <= 0.8)
+                elif mesh.dim == 2:
+                    indAct = Utils.mkvc(mesh.gridCC[:,-1] <= 2*np.sin(2*np.pi*mesh.gridCC[:,0])+0.5)
+                elif mesh.dim == 3:
+                    indAct = Utils.mkvc(mesh.gridCC[:,-1] <= 2*np.sin(2*np.pi*mesh.gridCC[:,0])+0.5 * 2*np.sin(2*np.pi*mesh.gridCC[:,1])+0.5)
+
+                mapping = Maps.IdentityMap(nP=indAct.nonzero()[0].size)
+
+                reg = r(mesh, mapping=mapping, indActive=indAct)
+                m = np.random.rand(mesh.nC)[indAct]
+                reg.mref = np.ones_like(m)*np.mean(m)
+
+                print 'Check: phi_m (mref) = %f' %reg.eval(reg.mref)
+                passed = reg.eval(reg.mref) < TOL
+                self.assertTrue(passed)
+
+                print 'Check Deriv:', R
+                passed = Tests.checkDerivative(lambda m : [reg.eval(m), reg.evalDeriv(m)], m, plotIt=False)
+                self.assertTrue(passed)
+
+                print 'Check 2 Deriv:', R
+                passed = Tests.checkDerivative(lambda m : [reg.evalDeriv(m), reg.eval2Deriv(m)], m, plotIt=False)
+                self.assertTrue(passed)
+
 
 
 if __name__ == '__main__':
