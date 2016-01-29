@@ -115,21 +115,29 @@ survey.dobs=d
 diagA = np.sum(F**2.,axis=0) + beta_in*np.ones(nC)
 PC     = sp.spdiags(diagA**-1., 0, nC, nC);
 
-reg = Regularization.Tikhonov(mesh, mapping=wrMap)
+# Create mesh with unit cells to remove dimensions from regularization
+hx = np.ones(mesh.nCx)
+hy = np.ones(mesh.nCy)
+hz = np.ones(mesh.nCz)
+meshreg = Mesh.TensorMesh([hx,hy,hz], mesh.x0)
+
+reg = Regularization.Simple(mesh, mapping=wrMap)
 reg.mref = mref
+#reg.alpha_s = 1.
 
 dmis = DataMisfit.l2_DataMisfit(survey)
 dmis.Wd = wd
-#opt = Optimization.ProjectedGNCG(maxIter=6,lower=-1.,upper=1.)
+opt = Optimization.ProjectedGNCG(maxIter=10,lower=0.,upper=1.)
 opt.approxHinv = PC
 
-opt = Optimization.InexactGaussNewton(maxIter=6)
+# opt = Optimization.InexactGaussNewton(maxIter=6)
 invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta = beta_in)
 beta = Directives.BetaSchedule(coolingFactor=8, coolingRate=2)
 #betaest = Directives.BetaEstimate_ByEig()
 target = Directives.TargetMisfit()
-inv = Inversion.BaseInversion(invProb, directiveList=[beta, target])
-reg.alpha_s =0.0025
+
+inv = Inversion.BaseInversion(invProb, directiveList=[beta,target])
+
 m0 = mstart
 
 # Run inversion
@@ -147,3 +155,18 @@ PF.Magnetics.plot_obs_2D(rxLoc,pred,wd,'Predicted Data')
 PF.Magnetics.plot_obs_2D(rxLoc,(d-pred),wd,'Residual Data')
 
 print "Final misfit:" + str(np.sum( ((d-pred)/wd)**2. ) ) 
+
+#%% Plot out a section of the model
+plt.figure()
+ax = plt.subplot(211)
+mesh.plotSlice(m_out, ax = ax, normal = 'Z', ind=-5)
+plt.title('Inverted model')
+plt.xlabel('x');plt.ylabel('z')
+plt.gca().set_aspect('equal', adjustable='box')
+
+
+ax = plt.subplot(212)
+mesh.plotSlice(m_out, ax = ax, normal = 'Y', ind=midx-12)
+plt.title('Inverted model')
+plt.xlabel('x');plt.ylabel('z')
+plt.gca().set_aspect('equal', adjustable='box')

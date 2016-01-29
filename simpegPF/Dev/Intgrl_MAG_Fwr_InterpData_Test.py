@@ -179,7 +179,8 @@ for ii in range(d_iter):
     linf_r[ii,4] = np.max( np.abs(d_line - d_i2d_CTI) )
     timer[ii,4] = (time.time() - start_time)
     
-
+    # Minimum curvature
+    
     
 #==============================================================================
 #     #%% FFT interpolation

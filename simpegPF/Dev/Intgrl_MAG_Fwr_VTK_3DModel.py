@@ -32,8 +32,15 @@ mesh = Utils.meshutils.readUBCTensorMesh(mshfile)
 topsurf = "Topography_Local.ts"
 geosurf = [['_Top_Bollock_Rhyodacite_SUB.ts',False,True],
 ['_Top_Bollock_Rhyodacite_SUB_B.ts',False,True],
-['_Top_Mafic_Intrusion.ts',False,True],
-['_Top_Mafic_Volcaniclastic.ts',False,True]]
+['_Top_Mafic_Intrusion.ts',True,True],
+['_Top_Mafic_Volcaniclastic.ts',False,True],
+['UnitA.ts',True,True],
+['UnitB.ts',True,True],
+['UnitC.ts',True,True],
+['UnitD.ts',True,True],
+['UnitE.ts',True,True],
+['UnitF.ts',True,True],
+]
 
 vals = np.asarray([0.005,0.005,0.01,0.0025])
 
@@ -49,8 +56,8 @@ zoffset = 2
 #xr = np.linspace(mesh.vectorCCx[0], mesh.vectorCCx[-1], 99)
 #yr = np.linspace(mesh.vectorCCy[0], mesh.vectorCCy[-1], 74)
 
-xr = mesh.vectorCCx[::2]
-yr = mesh.vectorCCy[::2]
+xr = mesh.vectorCCx[::3]
+yr = mesh.vectorCCy[::3]
 X, Y = np.meshgrid(xr, yr)
 
 topo = np.genfromtxt(topofile,skip_header=1)
