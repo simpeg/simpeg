@@ -31,7 +31,7 @@ class FieldsTDEM(Problem.TimeFields):
 
 
 class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
-    """docstring for ProblemTDEM1D"""
+    """docstring for BaseTDEMProblem"""
     def __init__(self, mesh, mapping=None, **kwargs):
         BaseTimeProblem.__init__(self, mesh, mapping=mapping, **kwargs)
 
@@ -43,7 +43,7 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
         # Create a fields storage object
         F = self._FieldsForward_pair(self.mesh, self.survey)
         for src in self.survey.srcList:
-            # Set the initial conditions
+            # Set the initial conditions            
             F[src,:,0] = src.getInitialFields(self.mesh)
         F = self.forward(m, self.getRHS, F=F)
         if self.verbose: print '%s\nDone calculating fields(m)\n%s'%('*'*50,'*'*50)
