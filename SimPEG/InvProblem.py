@@ -66,8 +66,8 @@ class BaseInvProblem(object):
         self.curModel = m0
 
         print """SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
-                    ***Done using same solver as the problem***"""
-        self.opt.bfgsH0 = self.prob.Solver(self.reg.eval2Deriv(self.curModel))
+                    ***Done using same Solver and solverOpts as the problem***"""
+        self.opt.bfgsH0 = self.prob.Solver(self.reg.eval2Deriv(self.curModel), **self.prob.solverOpts)
 
     @property
     def warmstart(self):
