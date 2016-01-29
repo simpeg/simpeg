@@ -1,7 +1,7 @@
 # Run this file to add imports.
 
 ##### AUTOIMPORTS #####
-import EM_FDEM_1D_Inversion
+import EM_TDEM_1D_Inversion
 import FLOW_Richards_1D_Celia1990
 import Forward_BasicDirectCurrent
 import Inversion_Linear
@@ -13,7 +13,7 @@ import Mesh_QuadTree_FaceDiv
 import Mesh_QuadTree_HangingNodes
 import Mesh_Tensor_Creation
 
-__examples__ = ["EM_FDEM_1D_Inversion", "FLOW_Richards_1D_Celia1990", "Forward_BasicDirectCurrent", "Inversion_Linear", "Mesh_Basic_PlotImage", "Mesh_Basic_Types", "Mesh_Operators_CahnHilliard", "Mesh_QuadTree_Creation", "Mesh_QuadTree_FaceDiv", "Mesh_QuadTree_HangingNodes", "Mesh_Tensor_Creation"]
+__examples__ = ["EM_TDEM_1D_Inversion", "FLOW_Richards_1D_Celia1990", "Forward_BasicDirectCurrent", "Inversion_Linear", "Mesh_Basic_PlotImage", "Mesh_Basic_Types", "Mesh_Operators_CahnHilliard", "Mesh_QuadTree_Creation", "Mesh_QuadTree_FaceDiv", "Mesh_QuadTree_HangingNodes", "Mesh_Tensor_Creation"]
 
 ##### AUTOIMPORTS #####
 
