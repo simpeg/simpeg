@@ -132,6 +132,7 @@ class eForm_ps(BaseMTProblem):
             if self.verbose:
                 print 'Ran for {:f} seconds'.format(time.time()-startTime)
                 sys.stdout.flush()
+            Ainv.clean()
         return F
 
 class eForm_Tp(BaseMTProblem):
