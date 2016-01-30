@@ -34,7 +34,7 @@ before_install:
 
 # Install packages
 install:
-  - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython nose
+  - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython nose vtk
   - pip install nose-cov python-coveralls
 
   - git clone https://github.com/rowanc1/pymatsolver.git
