@@ -16,7 +16,7 @@ class InnerProducts(object):
             :param bool invProp: inverts the material property
             :param bool invMat: inverts the matrix
             :param bool doFast: do a faster implementation if available.
-            :rtype: scipy.csr_matrix
+            :rtype: scipy.sparse.csr_matrix
             :return: M, the inner product matrix (nF, nF)
         """
         return self._getInnerProduct('F', prop=prop, invProp=invProp, invMat=invMat, doFast=doFast)
@@ -27,7 +27,7 @@ class InnerProducts(object):
             :param bool invProp: inverts the material property
             :param bool invMat: inverts the matrix
             :param bool doFast: do a faster implementation if available.
-            :rtype: scipy.csr_matrix
+            :rtype: scipy.sparse.csr_matrix
             :return: M, the inner product matrix (nE, nE)
         """
         return self._getInnerProduct('E', prop=prop, invProp=invProp, invMat=invMat, doFast=doFast)
@@ -39,7 +39,7 @@ class InnerProducts(object):
             :param bool invProp: inverts the material property
             :param bool invMat: inverts the matrix
             :param bool doFast: do a faster implementation if available.
-            :rtype: scipy.csr_matrix
+            :rtype: scipy.sparse.csr_matrix
             :return: M, the inner product matrix (nE, nE)
         """
         assert projType in ['F', 'E'], "projType must be 'F' for faces or 'E' for edges"
@@ -121,7 +121,7 @@ class InnerProducts(object):
             Given u, dMdmu returns (nF, nC*nA)
 
             :param np.ndarray u: vector that multiplies dMdmu
-            :rtype: scipy.csr_matrix
+            :rtype: scipy.sparse.csr_matrix
             :return: dMdmu, the derivative of the inner product matrix for a certain u
         """
         return self._getInnerProductDeriv(prop, 'F', doFast=doFast, invProp=invProp, invMat=invMat)
@@ -133,7 +133,7 @@ class InnerProducts(object):
             :param bool doFast: do a faster implementation if available.
             :param bool invProp: inverts the material property
             :param bool invMat: inverts the matrix
-            :rtype: scipy.csr_matrix
+            :rtype: scipy.sparse.csr_matrix
             :return: dMdm, the derivative of the inner product matrix (nE, nC*nA)
         """
         return self._getInnerProductDeriv(prop, 'E', doFast=doFast, invProp=invProp, invMat=invMat)
@@ -145,7 +145,7 @@ class InnerProducts(object):
             :param bool doFast: do a faster implementation if available.
             :param bool invProp: inverts the material property
             :param bool invMat: inverts the matrix
-            :rtype: scipy.csr_matrix
+            :rtype: scipy.sparse.csr_matrix
             :return: dMdm, the derivative of the inner product matrix (nE, nC*nA)
         """
         fast = None
@@ -169,7 +169,7 @@ class InnerProducts(object):
             :param numpy.array v: vector to multiply (required in the general implementation)
             :param list P: list of projection matrices
             :param str projType: 'F' for faces 'E' for edges
-            :rtype: scipy.csr_matrix
+            :rtype: scipy.sparse.csr_matrix
             :return: dMdm, the derivative of the inner product matrix (n, nC*nA)
         """
         assert projType in ['F', 'E'], "projType must be 'F' for faces or 'E' for edges"
