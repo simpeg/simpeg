@@ -454,7 +454,7 @@ class SparseRegularization(Simple):
         
         #iteration = self.opt.iter
         #dec = (self.coolrate)**iteration
-        self.Rs = self.R(self.parent.curModel, Utils.speye(self.mesh.nC), self.p, self.eps)
+        self.Rs = self.R(self.m, Utils.speye(self.mesh.nC), self.p, self.eps)
         
         if getattr(self,'_Ws', None) is None:
                 self._Ws = Utils.sdiag((self.mesh.vol*self.alpha_s)**0.5)*self.Rs
@@ -465,7 +465,7 @@ class SparseRegularization(Simple):
         """Regularization matrix Wx"""
         #iteration = self.opt.iter
         #dec = (self.coolrate)**iteration
-        self.Rx = self.R(self.parent.curModel, self.mesh.unitCellGradx, self.qx, self.eps)
+        self.Rx = self.R(self.m, self.mesh.unitCellGradx, self.qx, self.eps)
         
         if getattr(self, '_Wx', None) is None:
             self._Wx = Utils.sdiag((self.mesh.vol*self.alpha_x)**0.5)*self.Rx*self.mesh.unitCellGradx
@@ -476,7 +476,7 @@ class SparseRegularization(Simple):
         """Regularization matrix Wy"""
         #iteration = self.opt.iter
         #dec = (self.coolrate)**iteration
-        self.Ry = self.R(self.parent.curModel, self.mesh.unitCellGrady, self.qy, self.eps)
+        self.Ry = self.R(self.m, self.mesh.unitCellGrady, self.qy, self.eps)
         
         if getattr(self, '_Wy', None) is None:
             self._Wy = Utils.sdiag((self.mesh.vol*self.alpha_y)**0.5)*self.Ry*self.mesh.unitCellGrady
@@ -487,7 +487,7 @@ class SparseRegularization(Simple):
         """Regularization matrix Wz"""
         #iteration = self.opt.iter
         #dec = (self.rate)**iteration
-        self.Rz = self.R(self.parent.curModel, self.mesh.unitCellGradz, self.qz, self.eps)
+        self.Rz = self.R(self.m, self.mesh.unitCellGradz, self.qz, self.eps)
         
         if getattr(self, '_Wz', None) is None:
             self._Wz = Utils.sdiag((self.mesh.vol*self.alpha_z)**0.5)*self.Rz*self.mesh.unitCellGradz
