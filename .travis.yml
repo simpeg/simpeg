@@ -45,6 +45,11 @@ install:
 # Run test
 script:
   - nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s
+  # test docs
+  - cd docs 
+  - sphinx-build -nW -b html -d _build/doctrees . _build/html
+  - sphinx-build docs -nW -b latex -d _build/doctrees . _build/latex
+  - sphinx-build docs -nW -b linkcheck -d _build/doctrees   . _build/linkcheck
 
 # Calculate coverage
 after_success:
