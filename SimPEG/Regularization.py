@@ -414,11 +414,10 @@ class Simple(BaseRegularization):
 
 class SparseRegularization(Simple):
     
-    eps0 = None
-    eps = 1e-4
-    coolrate = 2.
+    eps = 1e-1
+
     m = None
-    phim_before = None
+    gamma = 1.
     p = 0.
     qx = 2.
     qy = 2.
@@ -456,10 +455,12 @@ class SparseRegularization(Simple):
             
         else:
             f_m = self.m
-            self.Rs = self.R(f_m , self.p, self.eps)
-        
-        if getattr(self,'_Ws', None) is None:
-                self._Ws = Utils.sdiag((self.mesh.vol*self.alpha_s)**0.5)*self.Rs
+            self.rs = self.R(f_m , self.p, self.eps)
+            #print "Min rs: " + str(np.max(self.rs)) + "Max rs: " + str(np.min(self.rs))
+            self.Rs = Utils.sdiag( self.rs )
+            
+        self._Ws = Utils.sdiag((self.mesh.vol*self.alpha_s*self.gamma)**0.5)*self.Rs
+            
         return self._Ws
 
     @property
@@ -471,10 +472,11 @@ class SparseRegularization(Simple):
             
         else:
             f_m = self.mesh.unitCellGradx * self.m
-            self.Rx = self.R( f_m , self.qx, self.eps)
-        
+            self.rx = self.R( f_m , self.qx, self.eps)
+            self.Rx = Utils.sdiag( self.rx )
+            
         if getattr(self, '_Wx', None) is None:
-            self._Wx = Utils.sdiag((self.mesh.vol*self.alpha_x)**0.5)*self.Rx*self.mesh.unitCellGradx
+            self._Wx = Utils.sdiag((self.mesh.vol*self.alpha_x*self.gamma)**0.5)*self.Rx*self.mesh.unitCellGradx
         return self._Wx
 
     @property
@@ -486,10 +488,11 @@ class SparseRegularization(Simple):
             
         else:
             f_m = self.mesh.unitCellGrady * self.m
-            self.Ry = self.R( f_m , self.qy, self.eps)
-        
+            self.ry = self.R( f_m , self.qy, self.eps)
+            self.Ry = Utils.sdiag( self.ry )
+            
         if getattr(self, '_Wy', None) is None:
-            self._Wy = Utils.sdiag((self.mesh.vol*self.alpha_y)**0.5)*self.Ry*self.mesh.unitCellGrady
+            self._Wy = Utils.sdiag((self.mesh.vol*self.alpha_y*self.gamma)**0.5)*self.Ry*self.mesh.unitCellGrady
         return self._Wy
 
     @property
@@ -501,17 +504,17 @@ class SparseRegularization(Simple):
             
         else:
             f_m = self.mesh.unitCellGradz * self.m
-            self.Rz = self.R( f_m , self.qz, self.eps)
+            self.rz = self.R( f_m , self.qz, self.eps)
+            self.Rz = Utils.sdiag( self.rz )
         
         if getattr(self, '_Wz', None) is None:
-            self._Wz = Utils.sdiag((self.mesh.vol*self.alpha_z)**0.5)*self.Rz*self.mesh.unitCellGradz
+            self._Wz = Utils.sdiag((self.mesh.vol*self.alpha_z*self.gamma)**0.5)*self.Rz*self.mesh.unitCellGradz
         return self._Wz    
 
     
     def R(self, f_m , p, dec):
 
-        #self.eps = self.eps0*dec
-        # Scaling to assure equal contribution of all norms
-        eta = (self.eps**(1-p/2))**0.5
-        R = Utils.sdiag( eta / (((f_m**2+self.eps**2)**(1-p/2) ) )**0.5 )
-        return R
+        eta = (self.eps**(1-p/2.))**0.5
+        r = eta / (f_m**2.+self.eps**2.)**((1-p/2.)/2.)
+
+        return r
