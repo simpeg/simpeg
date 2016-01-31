@@ -144,7 +144,7 @@ m_out = np.ones(mesh.nC)
 m_out[actv==1] = mrec
 
 # Write result
-Mesh.TensorMesh.writeModelUBC(mesh,'SimPEG_inv.sus',m_out)
+Mesh.TensorMesh.writeModelUBC(mesh,'SimPEG_inv_l2l2.sus',m_out)
 #Utils.meshutils.writeUBCTensorModel(home_dir+dsep+'wr.dat',mesh,wr_out)
 
 # Plot predicted
@@ -185,7 +185,7 @@ phim = invProb.phi_m_last
 reg = Regularization.SparseRegularization(mesh, mapping=wrMap)
 reg.m = mrec
 reg.mref = mref
-reg.eps = 1e-1
+reg.eps = 1e-4
 
 
 diagA = np.sum(F**2.,axis=0) + beta_in*(reg.W.T*reg.W).diagonal()*(wr**2.0)
@@ -195,7 +195,7 @@ PC     = Utils.sdiag(diagA**-1.)
 
 dmis = DataMisfit.l2_DataMisfit(survey)
 dmis.Wd = wd
-opt = Optimization.ProjectedGNCG(maxIter=20 ,lower=0.,upper=1.)
+opt = Optimization.ProjectedGNCG(maxIter=50 ,lower=0.,upper=1.)
 opt.approxHinv = PC
 #opt.phim_last = reg.eval(mrec)
 
@@ -204,7 +204,7 @@ invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta = invProb.beta)
 beta = Directives.BetaSchedule(coolingFactor=1, coolingRate=1)
 #betaest = Directives.BetaEstimate_ByEig()
 target = Directives.TargetMisfit()
-IRLS =Directives.update_IRLS(factor = 2, eps_min=1e-3, phi_m_last = phim )
+IRLS =Directives.update_IRLS(factor = 2, eps_min=1e-4, phi_m_last = phim )
 
 inv = Inversion.BaseInversion(invProb, directiveList=[beta,IRLS])
 
@@ -215,6 +215,7 @@ mrec = inv.run(m0)
 
 m_out[actv==1] = mrec
 
+Mesh.TensorMesh.writeModelUBC(mesh,'SimPEG_inv_l0l2.sus',m_out)
 #%% Plot out a section of the model
 
 yslice = midx-7
