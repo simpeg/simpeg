@@ -17,7 +17,7 @@ def memProfileWrapper(towrap, *funNames):
 
         For example::
 
-            foo_mem = memProfile(foo,'my_func')
+            foo_mem = memProfileWrapper(foo,['my_func'])
             fooi = foo_mem()
             for i in range(5):
                 fooi.my_func()

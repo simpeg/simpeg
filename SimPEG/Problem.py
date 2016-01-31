@@ -32,8 +32,8 @@ class BaseProblem(object):
             val._assertMatchesPair(self.mapPair)
             self._mapping = val
         else:
-            self._mapping = self.PropMap(val) 
-    
+            self._mapping = self.PropMap(val)
+
     def __init__(self, mesh, mapping=None, **kwargs):
         Utils.setKwargs(self, **kwargs)
         assert isinstance(mesh, Mesh.BaseMesh), "mesh must be a SimPEG.Mesh object."
@@ -158,9 +158,6 @@ class BaseProblem(object):
 
 class BaseTimeProblem(BaseProblem):
     """Sets up that basic needs of a time domain problem."""
-    
-    waveformType = "STEPOFF"    
-    current = None
 
     @property
     def timeSteps(self):
@@ -186,11 +183,6 @@ class BaseTimeProblem(BaseProblem):
 
         self._timeSteps = Utils.meshTensor(value)
         del self.timeMesh
-
-    def currentwaveform(self, wave):
-        self._timeSteps = np.diff(wave[:,0])
-        self.current = wave[:,1]
-        self.waveformType = "GENERAL"
 
     @property
     def nT(self):

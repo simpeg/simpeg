@@ -37,13 +37,21 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
 
     _FieldsForward_pair = FieldsTDEM  #: used for the forward calculation only
 
+    waveformType = "STEPOFF"
+    current = None
+
+    def currentwaveform(self, wave):
+        self._timeSteps = np.diff(wave[:,0])
+        self.current = wave[:,1]
+        self.waveformType = "GENERAL"
+
     def fields(self, m):
         if self.verbose: print '%s\nCalculating fields(m)\n%s'%('*'*50,'*'*50)
         self.curModel = m
         # Create a fields storage object
         F = self._FieldsForward_pair(self.mesh, self.survey)
         for src in self.survey.srcList:
-            # Set the initial conditions            
+            # Set the initial conditions
             F[src,:,0] = src.getInitialFields(self.mesh)
         F = self.forward(m, self.getRHS, F=F)
         if self.verbose: print '%s\nDone calculating fields(m)\n%s'%('*'*50,'*'*50)
