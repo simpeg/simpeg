@@ -47,8 +47,8 @@ script:
   # test docs
   - cd docs 
   - sphinx-build -nW -b html -d _build/doctrees . _build/html
-  - sphinx-build docs -nW -b latex -d _build/doctrees . _build/latex
-  - sphinx-build docs -nW -b linkcheck -d _build/doctrees   . _build/linkcheck
+  - sphinx-build -nW -b latex -d _build/doctrees . _build/latex
+  - sphinx-build -nW -b linkcheck -d _build/doctrees   . _build/linkcheck
   - cd ../
 
   - nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s
