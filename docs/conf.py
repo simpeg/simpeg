@@ -251,3 +251,15 @@ texinfo_documents = [
 #texinfo_show_urls = 'footnote'
 
 autodoc_member_order = 'bysource'
+
+
+# -- User Defined ------------------------------------------------
+import sphinx.environment
+from docutils.utils import get_source_line
+
+# supress nonlocal image warn
+def _supress_nonlocal_image_warn(self, msg, node):
+    if not msg.startswith('nonlocal image URI found:'):
+        self._warnfunc(msg, '%s:%s' % get_source_line(node)) 
+
+sphinx.environment.BuildEnvironment.warn_node = _supress_nonlocal_image_warn
