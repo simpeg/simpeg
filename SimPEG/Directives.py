@@ -239,19 +239,14 @@ class SaveOutputDictEveryIteration(_SaveEveryIteration):
 
 
 
-#==============================================================================
-# class update_IRLS(InversionDirective):
-# 
-#      m_iter = None
-#      eps0 = None
-#      epsEnd = None
-#      phi_m = None
-#      
-#      def endIter(self):
-#          
-#          if getattr(self,'m_iter', None) is None:
-#              
-#              self._reg.m = self.invProb.curModel
-# 
-#==============================================================================
+# class UpdateReferenceModel(Parameter):
 
+#     mref0 = None
+
+#     def nextIter(self):
+#         mref = getattr(self, 'm_prev', None)
+#         if mref is None:
+#             if self.debug: print 'UpdateReferenceModel is using mref0'
+#             mref = self.mref0
+#         self.m_prev = self.invProb.m_current
+#         return mref
