@@ -197,9 +197,10 @@ class BaseTensorMesh(BaseMesh):
         Determines if a set of points are inside a mesh.
 
         :param numpy.ndarray pts: Location of points to test
-        :rtype numpy.ndarray
-        :return inside, numpy array of booleans
+        :rtype numpy.ndarray:
+        :return inside, numpy array of booleans:
         """
+
         pts = Utils.asArray_N_x_Dim(pts, self.dim)
 
         tensors = self.getTensor(locType)
@@ -234,6 +235,7 @@ class BaseTensorMesh(BaseMesh):
             'N'     -> scalar field defined on nodes
             'CC'    -> scalar field defined on cell centers
         """
+
         if self._meshType == 'CYL' and self.isSymmetric and locType in ['Ex','Ez','Fy']:
             raise Exception('Symmetric CylMesh does not support %s interpolation, as this variable does not exist.' % locType)
 

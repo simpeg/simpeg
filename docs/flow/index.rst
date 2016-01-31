@@ -35,13 +35,14 @@ Here we reproduce the results from Celia et al. (1990):
 
 .. plot::
 
-    from SimPEG.FLOW.Examples import Celia1990
+    from SimPEG.Examples import FLOW_Richards_1D_Celia1990 as Celia1990
     Celia1990.run()
+
 
 Richards
 ========
 
-.. automodule:: simpegFLOW.Richards.Empirical
+.. automodule:: SimPEG.FLOW.Richards.Empirical
     :show-inheritance:
     :members:
     :undoc-members:

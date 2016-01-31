@@ -321,13 +321,15 @@ def writeVTRFile(fileName,mesh,model=None):
 
 def ExtractCoreMesh(xyzlim, mesh, meshType='tensor'):
     """
-        Extracts Core Mesh from Global mesh
-        xyzlim: 2D array [ndim x 2]
-        mesh: SimPEG mesh
-        This function ouputs:
-            - actind: corresponding boolean index from global to core
-            - meshcore: core SimPEG mesh
-        Warning: 1D and 2D has not been tested
+    Extracts Core Mesh from Global mesh
+    xyzlim: 2D array [ndim x 2]
+    mesh: SimPEG mesh
+    
+    This function ouputs:
+    - actind: corresponding boolean index from global to core
+    - meshcore: core SimPEG mesh
+
+    Warning: 1D and 2D has not been tested
     """
     from SimPEG import Mesh
     if mesh.dim ==1:
