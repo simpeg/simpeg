@@ -424,7 +424,7 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
         Input:
         :param endl -> input endpoints [x1, y1, z1, x2, y2, z2]
         :object mesh -> SimPEG mesh object
-        :switch stype -> "dpdp" (dipole-dipole) | "pdp" (pole-dipole)
+        :switch stype -> "dpdp" (dipole-dipole) | "pdp" (pole-dipole) | 'gradient'
         : param a, n -> pole seperation, number of rx dipoles per tx
         
         Output:

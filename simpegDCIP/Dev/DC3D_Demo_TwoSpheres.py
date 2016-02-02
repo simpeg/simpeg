@@ -20,7 +20,7 @@
 
 
 #%%
-from SimPEG import np, Utils, Mesh, mkvc, sp
+from SimPEG import *
 import simpegDCIP as DC
 import pylab as plt
 from pylab import get_current_fig_manager
@@ -28,13 +28,16 @@ from scipy.interpolate import griddata
 import time
 import re
 import numpy.matlib as npm
-from readUBC_DC3Dobs import readUBC_DC3Dobs
-from readUBC_DC2DModel import readUBC_DC2DModel
-from writeUBC_DCobs import writeUBC_DCobs
 import scipy.interpolate as interpolation
-from plot_pseudoSection import plot_pseudoSection
-from gen_DCIPsurvey import gen_DCIPsurvey
-from convertObs_DC3D_to_2D import convertObs_DC3D_to_2D
+#==============================================================================
+# from readUBC_DC3Dobs import readUBC_DC3Dobs
+# from readUBC_DC2DModel import readUBC_DC2DModel
+# from writeUBC_DCobs import writeUBC_DCobs
+
+# from plot_pseudoSection import plot_pseudoSection
+# from gen_DCIPsurvey import gen_DCIPsurvey
+# from convertObs_DC3D_to_2D import convertObs_DC3D_to_2D
+#==============================================================================
 from matplotlib.colors import LogNorm
 import os
 
@@ -43,7 +46,7 @@ dsep = '\\'
 #from scipy.linalg import solve_banded
 
 # Load UBC mesh 3D
-mesh = Utils.meshutils.readUBCTensorMesh(home_dir + '\Mesh_5m.msh')
+mesh = Mesh.TensorMesh.readUBC(home_dir + '\Mesh_5m.msh')
 #mesh = Utils.meshutils.readUBCTensorMesh(home_dir + '\MtIsa_20m.msh')
 #mesh = Utils.meshutils.readUBCTensorMesh(home_dir + '\Mesh_50m.msh')
 
@@ -51,7 +54,7 @@ mesh = Utils.meshutils.readUBCTensorMesh(home_dir + '\Mesh_5m.msh')
 #model = Utils.meshutils.readUBCTensorModel(home_dir + '\MtIsa_3D.con',mesh)
 #model = Utils.meshutils.readUBCTensorModel(home_dir + '\Synthetic.con',mesh)
 #model = Utils.meshutils.readUBCTensorModel(home_dir + '\Lalor_model_50m.con',mesh)
-model = Utils.meshutils.readUBCTensorModel(home_dir + '\TwoSpheres.con',mesh)
+model = Mesh.TensorMesh.readModelUBC(mesh,home_dir + '\TwoSpheres.con')
 
 #model = model**0 * 1e-2
 # Specify survey type
@@ -66,7 +69,7 @@ n = 20
 slvr = 'BiCGStab' #'LU'
 
 # Preconditioner
-pcdr = 'Jacobi'#'Gauss-Seidel'#
+pcdr = 'Jacobi'#
 
 # Inversion parameter
 pct = 0.01
@@ -99,9 +102,6 @@ if re.match(slvr,'BiCGStab'):
         dA = A.diagonal()
         P = sp.spdiags(1/dA,0,A.shape[0],A.shape[0])
     
-    # Create Gauss-Seidel Preconditioner
-    elif re.match(pcdr,'Gauss-Seidel'):
-        LD = sp.tril(A,k=0)
         #LDinv = sp.linalg.splu(LD)
 
 elif re.match(slvr,'LU'):
@@ -116,8 +116,8 @@ top = int(mesh.nCz)-1
 plt.figure()
 ax_prim = plt.subplot(1,1,1)
 mesh.plotSlice(model, ind=top, normal='Z', grid=False, pcolorOpts={'alpha':0.5}, ax =ax_prim)
-plt.xlim([423000,424000])
-plt.ylim([546200,547000])
+plt.xlim([423200,423750])
+plt.ylim([546350,546650])
 plt.gca().set_aspect('equal', adjustable='box')
     
 plt.show()
@@ -153,7 +153,7 @@ var = np.c_[np.asarray(gin),np.ones(2).T*nz[-1]]
 indx = Utils.closestPoints(mesh, var )
 endl = np.c_[mesh.gridCC[indx,0],mesh.gridCC[indx,1],np.ones(2).T*nz[-1]]
       
-[Tx, Rx] = gen_DCIPsurvey(endl, mesh, stype, a, b, n)
+[Tx, Rx] = DC.gen_DCIPsurvey(endl, mesh, stype, a, b, n)
  
 dl_len = np.sqrt( np.sum((endl[0,:] - endl[1,:])**2) ) 
 dl_x = ( Tx[-1][0,1] - Tx[0][0,0] ) / dl_len
@@ -206,10 +206,6 @@ for ii in range(len(Tx)):
             # Iterative Solve
             Ainvb = sp.linalg.bicgstab(P*A,P*RHS, tol=1e-5)
             
-        # Create Gauss-Seidel Preconditioner
-        elif re.match(pcdr,'Gauss-Seidel'):
-            LD = sp.tril(A,k=0)
-            
 
         phi = mkvc(Ainvb[0])
                
@@ -233,17 +229,17 @@ for ii in range(len(Tx)):
 if not re.match(stype,'gradient'):
     
     #%% Write data file in UBC-DCIP3D format
-    writeUBC_DCobs(home_dir+'\FWR_data3D.dat',Tx,Rx,data,unct,'3D')     
+    DC.writeUBC_DCobs(home_dir+'\FWR_data3D.dat',Tx,Rx,data,unct,'3D')     
     
     
     #%% Load 3D data
-    [Tx, Rx, data, wd] = readUBC_DC3Dobs(home_dir + '\FWR_data3D.dat')
+    [Tx, Rx, data, wd] = DC.readUBC_DC3Dobs(home_dir + '\FWR_data3D.dat')
     
     
     #%% Convert 3D obs to 2D and write to file
-    [Tx2d, Rx2d] = convertObs_DC3D_to_2D(Tx,Rx)
+    [Tx2d, Rx2d] = DC.convertObs_DC3D_to_2D(Tx,Rx)
     
-    writeUBC_DCobs(home_dir+'\FWR_3D_2_2D.dat',Tx2d,Rx2d,data,unct,'2D')        
+    DC.writeUBC_DCobs(home_dir+'\FWR_3D_2_2D.dat',Tx2d,Rx2d,data,unct,'2D')        
     
     #%% Create a 2D mesh along axis of Tx end points and keep z-discretization    
     dx = np.min( [ np.min(mesh.hx), np.min(mesh.hy) ])
@@ -315,7 +311,7 @@ if not re.match(stype,'gradient'):
     axs.add_artist(circle1)
     axs.add_artist(circle2)
     
-    plot_pseudoSection(Tx2d,Rx2d,data,nz[-1],stype)
+    DC.plot_pseudoSection(Tx2d,Rx2d,data,nz[-1],stype)
     plt.show()
 
     #%% Run two inversions with different reference models and compute a DOI
@@ -355,7 +351,7 @@ if not re.match(stype,'gradient'):
         fid.close()
         
         # Export data file
-        writeUBC_DCobs(inv_dir + dsep + obsfile2d,Tx2d,Rx2d,data,unct,'2D') 
+        DC.writeUBC_DCobs(inv_dir + dsep + obsfile2d,Tx2d,Rx2d,data,unct,'2D') 
         
         # Write input file
         fid = open(inv_dir + dsep + inp_file,'w')
@@ -377,7 +373,7 @@ if not re.match(stype,'gradient'):
         
         
         #Load model
-        minv = readUBC_DC2DModel(inv_dir + dsep + 'dcinv2d.con')
+        minv = DC.readUBC_DC2DModel(inv_dir + dsep + 'dcinv2d.con')
         
         axs = plt.subplot(2,1,jj+1)
         

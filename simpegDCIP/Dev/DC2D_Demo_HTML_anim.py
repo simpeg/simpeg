@@ -1,17 +1,16 @@
 import os
-from SimPEG import np, sp, Utils, Mesh, mkvc
+from SimPEG import *
 import simpegDCIP as DC
 import pylab as plt
-#from ipywidgets import interact, IntSlider
 from matplotlib import animation
 from JSAnimation import HTMLWriter
 import time
 import re
-from readUBC_DC2DMesh import readUBC_DC2DMesh
-from readUBC_DC2DModel import readUBC_DC2DModel
-from readUBC_DC2DLoc import readUBC_DC2DLoc
-from convertObs_DC3D_to_2D import convertObs_DC3D_to_2D
-from readUBC_DC3Dobs import readUBC_DC3Dobs
+#from readUBC_DC2DMesh import readUBC_DC2DMesh
+#from readUBC_DC2DModel import readUBC_DC2DModel
+#from readUBC_DC2DLoc import readUBC_DC2DLoc
+#from convertObs_DC3D_to_2D import convertObs_DC3D_to_2D
+#from readUBC_DC3Dobs import readUBC_DC3Dobs
 
 #%%
 home_dir = 'C:\\Users\\dominiquef.MIRAGEOSCIENCE\\ownCloud\\Research\\Modelling\\Synthetic\\Two_Sphere'
@@ -25,20 +24,20 @@ dsep = '\\'
 slvr = 'BiCGStab' #'LU'
 
 # Preconditioner
-pcdr = 'Jacobi'#'Gauss-Seidel'#
+pcdr = 'Jacobi' #'Gauss-Seidel'#
 
 # Number of padding cells to remove from plotting
 padc = 15
 
 # Load UBC mesh 2D
-mesh = readUBC_DC2DMesh(home_dir + dsep + msh_file)
+mesh = DC.readUBC_DC2DMesh(home_dir + dsep + msh_file)
 
 # Load model
-model = readUBC_DC2DModel(home_dir + dsep + mod_file)
+model = DC.readUBC_DC2DModel(home_dir + dsep + mod_file)
 
 # load obs file
-[Tx,Rx,d,wd] = readUBC_DC3Dobs(home_dir + dsep + obs_file)
-[Tx, Rx] = convertObs_DC3D_to_2D(Tx,Rx)
+[Tx,Rx,d,wd] = DC.readUBC_DC3Dobs(home_dir + dsep + obs_file)
+[Tx, Rx] = DC.convertObs_DC3D_to_2D(Tx,Rx)
 #%% Create system
 #Set boundary conditions
 mesh.setCellGradBC('neumann')
