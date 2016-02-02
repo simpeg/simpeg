@@ -31,11 +31,19 @@ class FieldsTDEM(Problem.TimeFields):
 
 
 class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
-    """docstring for ProblemTDEM1D"""
+    """docstring for BaseTDEMProblem"""
     def __init__(self, mesh, mapping=None, **kwargs):
         BaseTimeProblem.__init__(self, mesh, mapping=mapping, **kwargs)
 
     _FieldsForward_pair = FieldsTDEM  #: used for the forward calculation only
+
+    waveformType = "STEPOFF"
+    current = None
+
+    def currentwaveform(self, wave):
+        self._timeSteps = np.diff(wave[:,0])
+        self.current = wave[:,1]
+        self.waveformType = "GENERAL"
 
     def fields(self, m):
         if self.verbose: print '%s\nCalculating fields(m)\n%s'%('*'*50,'*'*50)

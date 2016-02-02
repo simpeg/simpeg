@@ -17,7 +17,7 @@ SimPEG
     :target: https://github.com/simpeg/simpeg/blob/master/LICENSE
     :alt: BSD 3 clause license.
 
-.. image:: https://img.shields.io/travis/simpeg/simpeg.svg
+.. image:: https://api.travis-ci.org/simpeg/simpeg.svg?branch=master
     :target: https://travis-ci.org/simpeg/simpeg
     :alt: Travis CI build status
 
