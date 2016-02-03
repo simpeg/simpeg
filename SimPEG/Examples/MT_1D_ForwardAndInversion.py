@@ -76,9 +76,9 @@ def run(plotIt=True):
     survey.dobs = survey.dtrue + 0.025*abs(survey.dtrue)*np.random.randn(*survey.dtrue.shape)
 
     if plotIt:
-        fig = MT.Utils.dataUtils.plotMT1DModelData(problem,[m_true])
+        fig = MT.Utils.dataUtils.plotMT1DModelData(problem)
         fig.suptitle('Target - smooth true')
-        plt.show()
+
 
     # Assign uncertainties
     std = 0.05 # 5% std
