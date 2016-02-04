@@ -1,7 +1,24 @@
 import unittest
 import sys
+import os
 from SimPEG import Examples
 import numpy as np
+
+class compareInitFiles(unittest.TestCase):
+    def test_compareInitFiles(self):
+        print 'Checking that __init__.py up-to-date in SimPEG/Examples'
+        fName = os.path.realpath(__file__)
+        ExamplesDir = os.path.sep.join(fName.split(os.path.sep)[:-3] + ['SimPEG', 'Examples'])
+
+        files = os.listdir(ExamplesDir)
+
+        pyfiles = []
+        [pyfiles.append(py.rstrip('.py')) for py in files if py.endswith('.py') and py != '__init__.py']
+
+
+        didpass = pyfiles == Examples.__examples__
+
+        self.assertTrue(didpass, "Examples not up to date, run 'python __init__.py' from SimPEG/Examples to update")
 
 def get(test):
     def test_func(self):
@@ -10,11 +27,11 @@ def get(test):
         self.assertTrue(True)
     return test_func
 attrs = dict()
+
 for test in Examples.__examples__:
     attrs['test_'+test] = get(test)
 
 TestExamples = type('TestExamples', (unittest.TestCase,), attrs)
-
 
 if __name__ == '__main__':
     unittest.main()
