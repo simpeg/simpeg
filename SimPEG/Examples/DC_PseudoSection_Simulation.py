@@ -16,6 +16,43 @@ def run(loc=np.c_[[-50.,0.,-50.],[50.,0.,-50.]], sig=np.r_[1e-2,1e-1,1e-3], radi
     @fourndo
     """
     
+    def getIndicesSphere(center,radius,ccMesh):
+        """
+            Creates a vector containing the sphere indices in the cell centers mesh.
+            Returns a tuple
+    
+            The sphere is defined by the points
+    
+            p0, describe the position of the center of the cell
+    
+            r, describe the radius of the sphere.
+    
+            ccMesh represents the cell-centered mesh
+    
+            The points p0 must live in the the same dimensional space as the mesh.
+    
+        """
+    
+        # Validation: mesh and point (p0) live in the same dimensional space
+        dimMesh = np.size(ccMesh[0,:])
+        assert len(center) == dimMesh, "Dimension mismatch. len(p0) != dimMesh"
+    
+        if dimMesh == 1:
+           # Define the reference points
+            
+            ind  = np.abs(center[0] - ccMesh[:,0]) < radius
+    
+        elif dimMesh == 2:
+           # Define the reference points
+    
+            ind = np.sqrt( ( center[0] - ccMesh[:,0] )**2 + ( center[1] - ccMesh[:,1] )**2 ) < radius
+    
+        elif dimMesh == 3:
+            # Define the points
+            ind = np.sqrt( ( center[0] - ccMesh[:,0] )**2 + ( center[1] - ccMesh[:,1] )**2 + ( center[2] - ccMesh[:,2] )**2 ) < radius
+    
+        # Return a tuple
+        return ind
     # First we need to create a mesh and a model.
     
     # This is our mesh
@@ -32,11 +69,11 @@ def run(loc=np.c_[[-50.,0.,-50.],[50.,0.,-50.]], sig=np.r_[1e-2,1e-1,1e-3], radi
     model = np.ones(mesh.nC) * sig[0]
     
     # First anomaly
-    ind = Utils.ModelBuilder.getIndicesSphere(loc[:,0],radi[0],mesh.gridCC)
+    ind = getIndicesSphere(loc[:,0],radi[0],mesh.gridCC)
     model[ind] = sig[1]
     
     # Second anomaly
-    ind = Utils.ModelBuilder.getIndicesSphere(loc[:,1],radi[1],mesh.gridCC)
+    ind = getIndicesSphere(loc[:,1],radi[1],mesh.gridCC)
     model[ind] = sig[2]
     
     # Get index of the center
