@@ -15,8 +15,11 @@ class compareInitFiles(unittest.TestCase):
         pyfiles = []
         [pyfiles.append(py.rstrip('.py')) for py in files if py.endswith('.py') and py != '__init__.py']
 
+        setdiff = set(pyfiles) - set(Examples.__examples__)
 
-        didpass = pyfiles == Examples.__examples__
+        print ' Any missing files? ', setdiff 
+
+        didpass = (setdiff == set())
 
         self.assertTrue(didpass, "Examples not up to date, run 'python __init__.py' from SimPEG/Examples to update")
 
