@@ -19,7 +19,7 @@ class IPProblemTests(unittest.TestCase):
         sigma = np.ones(mesh.nC)*sighalf
         p0 = np.r_[-50., 50., -50.]
         p1 = np.r_[ 50.,-50., -150.]
-        blk_ind = Utils.ModelBuilder.getIndecesBlock(p0, p1, mesh.gridCC)
+        blk_ind = Utils.ModelBuilder.getIndicesBlock(p0, p1, mesh.gridCC)
         sigma[blk_ind] = 1e-3
         eta = np.zeros_like(sigma)
         eta[blk_ind] = 0.1

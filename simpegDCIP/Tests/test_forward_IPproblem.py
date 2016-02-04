@@ -6,7 +6,7 @@ from pymatsolver import MumpsSolver
 class IPforwardTests(unittest.TestCase):
 
     def test_IPforward(self):
- 
+
 		cs = 12.5
 		nc = 500/cs+1
 		hx = [(cs,7, -1.3),(cs,nc),(cs,7, 1.3)]
@@ -17,7 +17,7 @@ class IPforwardTests(unittest.TestCase):
 		sigma = np.ones(mesh.nC)*sighalf
 		p0 = np.r_[-50., 50., -50.]
 		p1 = np.r_[ 50.,-50., -150.]
-		blk_ind = Utils.ModelBuilder.getIndecesBlock(p0, p1, mesh.gridCC)
+		blk_ind = Utils.ModelBuilder.getIndicesBlock(p0, p1, mesh.gridCC)
 		sigma[blk_ind] = 1e-3
 		eta = np.zeros_like(sigma)
 		eta[blk_ind] = 0.1
@@ -36,7 +36,7 @@ class IPforwardTests(unittest.TestCase):
 		problem = DC.ProblemDC_CC(mesh, mapping= imap )
 		problem.Solver = MumpsSolver
 		problem.pair(survey)
-		
+
 		phi0 = survey.dpred(sigma0)
 		phiInf = survey.dpred(sigmaInf)
 
@@ -49,7 +49,7 @@ class IPforwardTests(unittest.TestCase):
 		phiIP_approx = surveyIP.dpred(eta)
 
 		err =  np.linalg.norm(phiIP_true-phiIP_approx) / np.linalg.norm(phiIP_true)
-		
+
 		self.assertTrue(err < 0.02)
 
 
