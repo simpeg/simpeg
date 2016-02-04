@@ -1,5 +1,5 @@
 from SimPEG import *
-import simpegDC as DC
+import simpegDCIP as DC
 import matplotlib.pyplot as plt
 
 
@@ -55,7 +55,7 @@ def example(aSpacing=2.5, nElecs=10, plotIt=False):
 
     srcList = getSrcList(nElecs, aSpacing, in2D=True)
     survey = DC.SurveyDC(srcList)
-    problem = DC.ProblemDC(mesh)
+    problem = DC.ProblemDC_CC(mesh)
     problem.pair(survey)
 
     return mesh, survey, problem
