@@ -7,7 +7,7 @@ import numpy as np
 class compareInitFiles(unittest.TestCase):
     def test_compareInitFiles(self):
         print 'Checking that __init__.py up-to-date in SimPEG/Examples'
-        fName = os.path.realpath(__file__)
+        fName = os.path.abspath(__file__)
         ExamplesDir = os.path.sep.join(fName.split(os.path.sep)[:-3] + ['SimPEG', 'Examples'])
 
         files = os.listdir(ExamplesDir)
