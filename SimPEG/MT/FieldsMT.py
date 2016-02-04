@@ -122,7 +122,10 @@ class Fields1D_e(BaseMTFields):
 
 class Fields3D_e(BaseMTFields):
     """
-    Fields storage for the 3D MT solution.
+    Fields storage for the 3D MT solution. Labels polarizations by px and py.
+
+        :param SimPEG object mesh: The solution mesh
+        :param SimPEG object survey: A survey object
     """
     # Define the known the alias fields
     # Assume that the solution of e on the E.

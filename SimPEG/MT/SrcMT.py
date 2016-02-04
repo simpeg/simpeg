@@ -3,7 +3,7 @@ from SimPEG.EM.FDEM.SrcFDEM import BaseSrc as FDEMBaseSrc
 from SimPEG.EM.Utils import omega
 from scipy.constants import mu_0
 from numpy.lib import recfunctions as recFunc
-from Sources import homo1DModelSource
+from Utils.sourceUtils import homo1DModelSource
 from Utils import rec2ndarr
 import sys
 
@@ -31,7 +31,9 @@ class BaseMTSrc(FDEMBaseSrc):
 # 1D sources
 class polxy_1DhomotD(BaseMTSrc):
     """
-    MT source for both polarizations (x and y) for the total Domain. It calculates fields calculated based on conditions on the boundary of the domain.
+    MT source for both polarizations (x and y) for the total Domain.
+
+    It calculates fields calculated based on conditions on the boundary of the domain.
     """
     def __init__(self, rxList, freq):
         BaseMTSrc.__init__(self, rxList, freq)
@@ -42,8 +44,8 @@ class polxy_1DhomotD(BaseMTSrc):
 # Need to implement such that it works for all dims.
 class polxy_1Dprimary(BaseMTSrc):
     """
-    MT source for both polarizations (x and y) given a 1D primary models. It assigns fields calculated from the 1D model
-    as fields in the full space of the problem.
+    MT source for both polarizations (x and y) given a 1D primary models.
+    It assigns fields calculated from the 1D model as fields in the full space of the problem.
     """
     def __init__(self, rxList, freq):
         # assert mkvc(self.mesh.hz.shape,1) == mkvc(sigma1d.shape,1),'The number of values in the 1D background model does not match the number of vertical cells (hz).'

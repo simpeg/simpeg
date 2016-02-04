@@ -13,7 +13,21 @@ class eForm_psField(BaseMTProblem):
     """
     A MT problem soving a e formulation and primary/secondary fields decomposion.
 
-    Solves the equation
+    By eliminating the magnetic flux density using
+
+        .. math ::
+
+            \mathbf{b} = \\frac{1}{i \omega}\\left(-\mathbf{C} \mathbf{e} \\right)
+
+
+    we can write Maxwell's equations as a second order system in \\\(\\\mathbf{e}\\\) only:
+
+    .. math ::
+        \\left(\mathbf{C}^T \mathbf{M^f_{\mu^{-1}}} \mathbf{C} + i \omega \mathbf{M^e_\sigma}] \mathbf{e}_{s} =& i \omega \mathbf{M^e_{\delta \sigma}} \mathbf{e}_{p}
+    which we solve for \\\(\\\mathbf{e_s}\\\). The total field \\\mathbf{e}\\ = \\\mathbf{e_p}\\ + \\\mathbf{e_s}\\.
+
+    The primary field is estimated from a background model (commonly half space ).
+
 
     """
     # From FDEMproblem: Used to project the fields. Currently not used for MTproblem.
@@ -29,6 +43,10 @@ class eForm_psField(BaseMTProblem):
 
     @property
     def sigmaPrimary(self):
+        """
+        A background model, use for the calculation of the primary fields.
+
+        """
         return self._sigmaPrimary
     @sigmaPrimary.setter
     def sigmaPrimary(self, val):
@@ -128,6 +146,11 @@ class eForm_psField(BaseMTProblem):
                 sys.stdout.flush()
         return F
 
+# Note this is not fully functional.
+# Missing:
+# Fields class corresponding to the fields
+# Update Jvec and Jtvec to include all the derivatives components
+# Other things ...
 class eForm_TotalField(BaseMTProblem):
     """
     A MT problem solving a e formulation and a Total bondary domain decompostion.

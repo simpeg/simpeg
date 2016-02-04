@@ -3,7 +3,6 @@ from SimPEG.EM.FDEM.SrcFDEM import BaseSrc as FDEMBaseSrc
 from SimPEG.EM.Utils import omega
 from scipy.constants import mu_0
 from numpy.lib import recfunctions as recFunc
-from Sources import homo1DModelSource
 from Utils import rec2ndarr
 import SrcMT
 import sys
@@ -12,6 +11,15 @@ import sys
 ### Receivers ###
 #################
 class Rx(SimPEGsurvey.BaseRx):
+    """
+        Class that defines natural source receivers.
+
+        See knownRxTypes for types of allowed receivers.
+
+        :param ndArray locs: Locations of the receivers
+        :param str rxType: The type of receiver
+
+    """
 
     knownRxTypes = {
                     # 3D impedance
@@ -81,9 +89,14 @@ class Rx(SimPEGsurvey.BaseRx):
 
     def projectFields(self, src, mesh, f):
         '''
-        Project the fields and return the correct data.
+        Project the fields to natural source data.
+
+            :param SrcMT src: The source of the fields to project
+            :param SimPEG.Mesh mesh:
+            :param FieldsMT f: Natural source fields object to project
         '''
 
+        ## NOTE: Assumes that e is on t
         if self.projType is 'Z1D':
             Pex = mesh.getInterpolationMat(self.locs[:,-1],'Fx')
             Pbx = mesh.getInterpolationMat(self.locs[:,-1],'Ex')
@@ -94,6 +107,7 @@ class Rx(SimPEGsurvey.BaseRx):
             f_part_complex = -ex/bx
         # elif self.projType is 'Z2D':
         elif self.projType is 'Z3D':
+            ## NOTE: Assumes that e is on edges and b on the faces. Need to generalize that or use a prop of fields to determine that.
             if self.locs.ndim == 3:
                 eFLocs = self.locs[:,:,0]
                 bFLocs = self.locs[:,:,1]

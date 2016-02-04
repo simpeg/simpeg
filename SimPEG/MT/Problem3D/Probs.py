@@ -12,9 +12,20 @@ class eForm_ps(BaseMTProblem):
     """
     A MT problem solving a e formulation and a primary/secondary fields decompostion.
 
-    Solves the equation:
+    By eliminating the magnetic flux density using
+
+        .. math ::
+
+            \mathbf{b} = \\frac{1}{i \omega}\\left(-\mathbf{C} \mathbf{e} \\right)
 
 
+    we can write Maxwell's equations as a second order system in \\\(\\\mathbf{e}\\\) only:
+
+    .. math ::
+        \\left(\mathbf{C}^T \mathbf{M^f_{\mu^{-1}}} \mathbf{C} + i \omega \mathbf{M^e_\sigma}] \mathbf{e}_{s} =& i \omega \mathbf{M^e_{\delta \sigma}} \mathbf{e}_{p}
+    which we solve for \\\(\\\mathbf{e_s}\\\). The total field \\\mathbf{e}\\ = \\\mathbf{e_p}\\ + \\\mathbf{e_s}\\.
+
+    The primary field is estimated from a background model (commonly as a 1D model).
 
     """
 
@@ -29,6 +40,10 @@ class eForm_ps(BaseMTProblem):
 
     @property
     def sigmaPrimary(self):
+        """
+        A background model, use for the calculation of the primary fields.
+
+        """
         return self._sigmaPrimary
     @sigmaPrimary.setter
     def sigmaPrimary(self, val):
@@ -37,7 +52,7 @@ class eForm_ps(BaseMTProblem):
 
     def getA(self, freq):
         """
-            Function to get the A matrix.
+            Function to get the A system.
 
             :param float freq: Frequency
             :rtype: scipy.sparse.csr_matrix
@@ -50,16 +65,10 @@ class eForm_ps(BaseMTProblem):
         return C.T*Mmui*C + 1j*omega(freq)*Msig
 
     def getADeriv_m(self, freq, u, v, adjoint=False):
+        """
+        Calculate the derivative of A wrt m.
 
-        # Nee to account for both the polarizations
-        # dMe_dsig = (self.MeSigmaDeriv( u['e_pxSolution'] ) + self.MeSigmaDeriv( u['e_pySolution'] ))
-        # dMe_dsig = (self.MeSigmaDeriv( u['e_pxSolution'] +  u['e_pySolution'] ))
-
-        # # dMe_dsig = self.MeSigmaDeriv( u )
-        # if adjoint:
-        #     return 1j * omega(freq) * ( dMe_dsig.T * v ) # As in simpegEM
-
-        # return 1j * omega(freq) * ( dMe_dsig * v ) # As in simpegEM
+        """
 
         # This considers both polarizations and returns a nE,2 matrix for each polarization
         if adjoint:
@@ -68,19 +77,12 @@ class eForm_ps(BaseMTProblem):
             # Need a nE,2 matrix to be returned
             dMe_dsigV = np.hstack(( mkvc(self.MeSigmaDeriv( u['e_pxSolution'] )*v,2), mkvc( self.MeSigmaDeriv(u['e_pySolution'] )*v,2) ))
         return 1j * omega(freq) * dMe_dsigV
-        # Stacking them
-
-        # if adjoint:
-        #     dMe_dsig = sp.vstack((self.MeSigmaDeriv( u['e_pxSolution'] ), self.MeSigmaDeriv( u['e_pxSolution'] ) )).T
-        #         # self.MeSigmaDeriv(u['e_pySolution'] ).T*v,2) ))
-        # else:
-        #     dMe_dsig = sp.vstack((self.MeSigmaDeriv( u['e_pxSolution'] ), self.MeSigmaDeriv( u['e_pxSolution'] ) ))
-        # return 1j * omega(freq) * dMe_dsig*v
 
 
     def getRHS(self, freq):
         """
-            Function to return the right hand side for the system.
+        Function to return the right hand side for the system.
+
             :param float freq: Frequency
             :rtype: numpy.ndarray (nE, 2), numpy.ndarray (nE, 2)
             :return: RHS for both polarizations, primary fields
@@ -117,6 +119,7 @@ class eForm_ps(BaseMTProblem):
                 sys.stdout.flush()
             A = self.getA(freq)
             rhs  = self.getRHS(freq)
+            # Solve the system
             Ainv = self.Solver(A, **self.solverOpts)
             e_s = Ainv * rhs
 
@@ -126,140 +129,10 @@ class eForm_ps(BaseMTProblem):
             F[Src, 'e_pxSolution'] = e_s[:,0]
             F[Src, 'e_pySolution'] = e_s[:,1]
             # Note curl e = -iwb so b = -curl/iw
-            # b = -( self.mesh.edgeCurl * e )/( 1j*omega(freq) )
-            # F[Src, 'b_px'] = b[:,0]
-            # F[Src, 'b_py'] = b[:,1]
+
             if self.verbose:
                 print 'Ran for {:f} seconds'.format(time.time()-startTime)
                 sys.stdout.flush()
             Ainv.clean()
-        return F
-
-class eForm_Tp(BaseMTProblem):
-    """
-    A MT problem solving a e formulation and a total/primary fields decompostion.
-
-    Solves the equation
-    """
-
-    _fieldType = 'e'
-    _eqLocs    = 'FE'
-    fieldsPair = Fields3D_e
-
-    # Set new properties
-    # Background model
-    @property
-    def backModel(self):
-        """
-            Sets the model, and removes dependent mass matrices.
-        """
-        return getattr(self, '_backModel', None)
-
-    @backModel.setter
-    def backModel(self, value):
-        if value is self.backModel:
-            return # it is the same!
-        self._backModel = Models.Model(value, self.mapping)
-        for prop in self.deleteTheseOnModelUpdate:
-            if hasattr(self, prop):
-                delattr(self, prop)
-
-    @property
-    def MeSigmaBack(self):
-        #TODO: hardcoded to sigma as the model
-        if getattr(self, '_MeSigmaBack', None) is None:
-            sigma = self.curModel
-            sigmaBG = self.backModel
-            self._MeSigmaBack = self.mesh.getEdgeInnerProduct(sigmaBG)
-        return self._MeSigmaBack
-
-    def __init__(self, mesh, **kwargs):
-        BaseMTProblem.__init__(self, mesh, **kwargs)
-
-    def getA(self, freq):
-        """
-            Function to get the A matrix.
-
-            :param float freq: Frequency
-            :rtype: scipy.sparse.csr_matrix
-            :return: A
-        """
-        mui = self.MfMui
-        sig = self.MeSigma
-        C = self.mesh.edgeCurl
-
-        return C.T*mui*C + 1j*omega(freq)*sig
-
-    def getADeriv(self, freq, u, v, adjoint=False):
-        sig = self.curTModel
-        dsig_dm = self.curTModelDeriv
-        dMe_dsig = self.mesh.getEdgeInnerProductDeriv(sig, v=u)
-
-        if adjoint:
-            return 1j * omega(freq) * ( dsig_dm.T * ( dMe_dsig.T * v ) )
-
-        return 1j * omega(freq) * ( dMe_dsig * ( dsig_dm * v ) )
-
-    def getRHS(self, freq, backSigma):
-        """
-            Function to return the right hand side for the system.
-            :param float freq: Frequency
-            :param numpy.ndarray (nC,) backSigma: Background conductivity model
-            :rtype: numpy.ndarray (nE, 2)
-            :return: one RHS for both polarizations
-        """
-        # Get sources for the frequency
-        src = self.survey.getSources(freq)
-        # Make sure that there is 2 polarizations.
-        # assert len()
-        # Get the background electric fields
-        from SimPEG.MT.Sources import homo1DModelSource
-        eBG_bp = homo1DModelSource(self.mesh,freq,backSigma)
-        MeBack = self.MeSigmaBack
-        # Set up the A system
-        mui = self.MfMui
-        C = self.mesh.edgeCurl
-        Abg = C.T*mui*C + 1j*omega(freq)*MeBack
-
-        return Abg*eBG_bp, eBG_bp
-
-    def getRHSderiv(self, freq, backSigma, u, v, adjoint=False):
-        raise NotImplementedError('getRHSDeriv not implemented yet')
-        return None
-
-    def fields(self, m, m_back):
-        '''
-        Function to calculate all the fields for the model m.
-
-        :param np.ndarray (nC,) m: Conductivity model
-        :param np.ndarray (nC,) m_back: Background conductivity model
-        '''
-        self.curModel = m
-        self.backModel = m_back
-        # RHS, CalcFields = self.getRHS(freq,m_back), self.calcFields
-
-        F = Fields3D_e(self.mesh, self.survey)
-        for freq in self.survey.freqs:
-            if self.verbose:
-                startTime = time.time()
-                print 'Starting work for {:.3e}'.format(freq)
-                sys.stdout.flush()
-            A = self.getA(freq)
-            rhs, e_p = self.getRHS(freq,m_back)
-            Ainv = self.Solver(A, **self.solverOpts)
-            e_s = Ainv * rhs
-            e = e_s
-            # Store the fields
-            Src = self.survey.getSources(freq)
-            # Store the fieldss
-            F[Src, 'e_px'] = e[:,0]
-            F[Src, 'e_py'] = e[:,1]
-            # Note curl e = -iwb so b = -curl/iw
-            b = -( self.mesh.edgeCurl * e )/( 1j*omega(freq) )
-            F[Src, 'b_px'] = b[:,0]
-            F[Src, 'b_py'] = b[:,1]
-            if self.verbose:
-                print 'Ran for {:f} seconds'.format(time.time()-startTime)
-                sys.stdout.flush()
         return F
 
