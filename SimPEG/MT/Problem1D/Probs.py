@@ -83,7 +83,7 @@ class eForm_psField(BaseMTProblem):
         # Note: need to use the code above since in the 1D problem I want
         # e to live on Faces(nodes) and h on edges(cells). Might need to rethink this
         # Possible that _fieldType and _eqLocs can fix this
-        MeMui = self.MfMui
+        MeMui = self.MeMui
         MfSigma = self.MfSigma
         C = self.mesh.nodalGrad
         # Make A
