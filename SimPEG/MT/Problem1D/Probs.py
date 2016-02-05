@@ -23,7 +23,7 @@ class eForm_psField(BaseMTProblem):
     we can write Maxwell's equations as a second order system in \\\(\\\mathbf{e}\\\) only:
 
     .. math ::
-        \\left(\mathbf{C}^T \mathbf{M^f_{\mu^{-1}}} \mathbf{C} + i \omega \mathbf{M^e_\sigma}] \mathbf{e}_{s} =& i \omega \mathbf{M^e_{\delta \sigma}} \mathbf{e}_{p}
+        \\left(\mathbf{C}^T \mathbf{M^e_{\mu^{-1}}} \mathbf{C} + i \omega \mathbf{M^f_\sigma}] \mathbf{e}_{s} =& i \omega \mathbf{M^f_{\delta \sigma}} \mathbf{e}_{p}
     which we solve for \\\(\\\mathbf{e_s}\\\). The total field \\\mathbf{e}\\ = \\\mathbf{e_p}\\ + \\\mathbf{e_s}\\.
 
     The primary field is estimated from a background model (commonly half space ).
@@ -40,6 +40,23 @@ class eForm_psField(BaseMTProblem):
         BaseMTProblem.__init__(self, mesh, **kwargs)
         self.fieldsPair = Fields1D_e
         # self._sigmaPrimary = sigmaPrimary
+    @property
+    def MeMui(self):
+        """
+            Edge inner product matrix
+        """
+        if getattr(self, '_MeMui', None) is None:
+            self._MeMui = self.mesh.getEdgeInnerProduct(1.0/mu_0)
+        return self._MeMui
+
+    @property
+    def MfSigma(self):
+        """
+            Edge inner product matrix
+        """
+        if getattr(self, '_MfSigma', None) is None:
+            self._MfSigma = self.mesh.getFaceInnerProduct(self.curModel.sigma)
+        return self._MfSigma
 
     @property
     def sigmaPrimary(self):
@@ -48,6 +65,7 @@ class eForm_psField(BaseMTProblem):
 
         """
         return self._sigmaPrimary
+
     @sigmaPrimary.setter
     def sigmaPrimary(self, val):
         # Note: TODO add logic for val, make sure it is the correct size.
@@ -62,16 +80,14 @@ class eForm_psField(BaseMTProblem):
             :return: A
         """
 
-        Mmui = self.mesh.getEdgeInnerProduct(1.0/mu_0)
-        Msig = self.mesh.getFaceInnerProduct(self.curModel.sigma)
         # Note: need to use the code above since in the 1D problem I want
         # e to live on Faces(nodes) and h on edges(cells). Might need to rethink this
         # Possible that _fieldType and _eqLocs can fix this
-        # Mmui = self.MfMui
-        # Msig = self.MeSigma
+        MeMui = self.MfMui
+        MfSigma = self.MfSigma
         C = self.mesh.nodalGrad
         # Make A
-        A = C.T*Mmui*C + 1j*omega(freq)*Msig
+        A = C.T*MeMui*C + 1j*omega(freq)*MfSigma
         # Either return full or only the inner part of A
         return A
 
@@ -81,15 +97,15 @@ class eForm_psField(BaseMTProblem):
         """
 
         dsig_dm = self.curModel.sigmaDeriv
-        MeMui = self.mesh.getEdgeInnerProduct(1.0/mu_0)
+        MeMui = self.MeMui
         #
         u_src = u['e_1dSolution']
-        dMf_dsig = self.mesh.getFaceInnerProductDeriv(self.curModel.sigma)(u_src) * self.curModel.sigmaDeriv
+        dMfSigma_dm = self.mesh.getFaceInnerProductDeriv(self.curModel.sigma)(u_src) * self.curModel.sigmaDeriv
         if adjoint:
-            return 1j * omega(freq) * (  dMf_dsig.T * v )
+            return 1j * omega(freq) * (  dMfSigma_dm.T * v )
         # Note: output has to be nN/nF, not nC/nE.
         # v should be nC
-        return 1j * omega(freq) * ( dMf_dsig * v )
+        return 1j * omega(freq) * ( dMfSigma_dm * v )
 
     def getRHS(self, freq):
         """
@@ -169,6 +185,23 @@ class eForm_TotalField(BaseMTProblem):
 
     def __init__(self, mesh, **kwargs):
         BaseMTProblem.__init__(self, mesh, **kwargs)
+    @property
+    def MeMui(self):
+        """
+            Edge inner product matrix
+        """
+        if getattr(self, '_MeMui', None) is None:
+            self._MeMui = self.mesh.getEdgeInnerProduct(1.0/mu_0)
+        return self._MeMui
+
+    @property
+    def MfSigma(self):
+        """
+            Edge inner product matrix
+        """
+        if getattr(self, '_MfSigma', None) is None:
+            self._MfSigma = self.mesh.getFaceInnerProduct(self.curModel.sigma)
+        return self._MfSigma
 
     def getA(self, freq, full=False):
         """
@@ -180,31 +213,24 @@ class eForm_TotalField(BaseMTProblem):
             :return: A
         """
 
-        Mmui = self.mesh.getEdgeInnerProduct(1.0/mu_0)
-        Msig = self.mesh.getFaceInnerProduct(self.curModel.sigma)
+        MeMui = self.MeMui
+        MfSigma = self.MfSigma
         # Note: need to use the code above since in the 1D problem I want
         # e to live on Faces(nodes) and h on edges(cells). Might need to rethink this
         # Possible that _fieldType and _eqLocs can fix this
-        # Mmui = self.MfMui
-        # Msig = self.MeSigma
+        # MeMui = self.MfMui
+        # MfSigma = self.MfSigma
         C = self.mesh.nodalGrad
         # Make A
-        A = C.T*Mmui*C + 1j*omega(freq)*Msig
+        A = C.T*MeMui*C + 1j*omega(freq)*MfSigma
         # Either return full or only the inner part of A
         if full:
             return A
         else:
             return A[1:-1,1:-1]
 
-    def getADeriv(self, freq, u, v, adjoint=False):
-        sig = self.curTModel
-        dsig_dm = self.curTModelDeriv
-        dMe_dsig = self.mesh.getEdgeInnerProductDeriv(sig, v=u)
-
-        if adjoint:
-            return 1j * omega(freq) * ( dsig_dm.T * ( dMe_dsig.T * v ) )
-
-        return 1j * omega(freq) * ( dMe_dsig * ( dsig_dm * v ) )
+    def getADeriv_m(self, freq, u, v, adjoint=False):
+        raise NotImplementedError('getADeriv is not implemented')
 
     def getRHS(self, freq):
         """
@@ -230,7 +256,7 @@ class eForm_TotalField(BaseMTProblem):
 
         return -Aio*eBC, eBC
 
-    def getRHSderiv(self, freq, backSigma, u, v, adjoint=False):
+    def getRHSderiv_m(self, freq, backSigma, u, v, adjoint=False):
         raise NotImplementedError('getRHSDeriv not implemented yet')
         return None
 
