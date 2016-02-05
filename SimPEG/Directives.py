@@ -239,14 +239,51 @@ class SaveOutputDictEveryIteration(_SaveEveryIteration):
 
 
 
-# class UpdateReferenceModel(Parameter):
+class update_IRLS(InversionDirective):
 
-#     mref0 = None
+     m = None
+     eps_min = None
+     factor = None
+     gamma = None
+     phi_m_last = None
+     
+     def initialize(self):
+        
+         # Scale the regularization for changes in norm
+         if getattr(self, 'phi_m_last', None) is not None:
+             self.reg.gamma = 1.
+             phim_new = self.reg.eval(self.invProb.curModel)
+             self.gamma = self.phi_m_last / phim_new
+         
+         self.reg.gamma = self.gamma
+         
+     def endIter(self):
+         # Cool the threshold parameter 
+         if getattr(self, 'factor', None) is not None:
+             eps = self.reg.eps / self.factor
+             
+             if getattr(self, 'eps_min', None) is not None:
+                 self.reg.eps = np.max([self.eps_min,eps])
+             else:
+                 self.reg.eps = eps
+                 
+         
+         # Update the model used for the IRLS weights
+         if getattr(self, 'm', None) is None:
+             self.reg.m = self.invProb.curModel
+         
+         # Update the pre-conditioner
+         diagA = np.sum(self.prob.G**2.,axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() * (self.reg.mapping * np.ones(self.prob.mesh.nC))**2.
+         PC     = Utils.sdiag(diagA**-1.)
 
-#     def nextIter(self):
-#         mref = getattr(self, 'm_prev', None)
-#         if mref is None:
-#             if self.debug: print 'UpdateReferenceModel is using mref0'
-#             mref = self.mref0
-#         self.m_prev = self.invProb.m_current
-#         return mref
+         self.opt.approxHinv = PC
+         
+         phim_new = self.reg.eval(self.invProb.curModel)
+         self.reg.gamma = self.reg.gamma * self.invProb.phi_m_last / phim_new
+
+#==============================================================================
+#          import pylab as plt
+#          plt.figure()
+#          ax = plt.subplot(221)
+#          self.prob.mesh.plotSlice(self.invProb.curModel, ax = ax, normal = 'Z', ind=-5, clim = (0, 0.005))
+#==============================================================================

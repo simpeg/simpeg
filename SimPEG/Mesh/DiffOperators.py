@@ -565,7 +565,58 @@ class DiffOperators(object):
 
         return Pbc, Pin, Pout
 
-
+    
+    def unitCellGradx():
+        doc = """Cell centered Gradient in the x dimension used for 
+                regularization. The gradient operator is square (nC-by-nC)"""
+        def fget(self):
+            if self.dim < 3: return None
+            if getattr(self, '_unitCellGradx', None) is None:
+                
+                n = self.vnC
+                gx = ddx(n[0]-1)
+                gx_square = sp.vstack((gx,gx[-1,:]*-1), format="csr")
+                
+                self._unitCellGradx = kron3(speye(n[2]), speye(n[1]), gx_square)
+        
+            return self._unitCellGradx
+        return locals()
+    unitCellGradx = property(**unitCellGradx())
+    
+    def unitCellGrady():
+        doc = """Cell centered Gradient in they dimension used for 
+                regularization. The gradient operator is square (nC-by-nC)"""
+        def fget(self):
+            if self.dim < 3: return None
+            if getattr(self, '_unitCellGrady', None) is None:
+        
+                n = self.vnC
+                gy = ddx(n[1]-1)
+                gy_square = sp.vstack((gy,gy[-1,:]*-1), format="csr")
+                
+                self._unitCellGrady = kron3(speye(n[2]), gy_square, speye(n[0]))
+            
+            return self._unitCellGrady
+        return locals()
+    unitCellGrady = property(**unitCellGrady())
+        
+    def unitCellGradz():
+        doc = """Cell centered Gradient in they dimension used for 
+                regularization. The gradient operator is square (nC-by-nC)"""
+        def fget(self):
+            if self.dim < 3: return None
+            if getattr(self, '_unitCellGradz', None) is None:
+        
+                n = self.vnC
+                gz = ddx(n[2]-1)
+                gz_square = sp.vstack((gz,gz[-1,:]*-1), format="csr")
+                
+                self._unitCellGradz = kron3( gz_square , speye(n[1]), speye(n[0]))
+            
+            return self._unitCellGradz
+        return locals()
+    unitCellGradz = property(**unitCellGradz())        
+        
     # --------------- Averaging ---------------------
 
     @property
