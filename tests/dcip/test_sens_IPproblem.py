@@ -1,7 +1,7 @@
 import unittest
 from SimPEG import *
-import simpegDCIP as DC
-from pymatsolver import MumpsSolver
+import SimPEG.DCIP as DC
+
 
 
 
@@ -29,12 +29,17 @@ class IPProblemTests(unittest.TestCase):
         aSpacing = x_temp[1]-x_temp[0]
         y_temp = 0.
         xyz = Utils.ndgrid(x_temp, np.r_[y_temp], np.r_[0.])
-        srcList = DC.Examples.WennerArray.getSrcList(nElecs,aSpacing)
+        srcList = DC.Utils.WennerSrcList(nElecs,aSpacing)
         survey = DC.SurveyIP(srcList)
         imap   = Maps.IdentityMap(mesh)
         problem = DC.ProblemIP(mesh, sigma=sigma, mapping= imap)
         problem.pair(survey)
-        problem.Solver = MumpsSolver
+
+        try:
+            from pymatsolver import MumpsSolver
+            problem.Solver = MumpsSolver
+        except Exception, e:
+            pass
 
         mSynth = eta
         survey.makeSyntheticData(mSynth)

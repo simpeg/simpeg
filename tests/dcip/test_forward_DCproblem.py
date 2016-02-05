@@ -1,14 +1,28 @@
 import unittest
 from SimPEG import *
-import simpegDCIP as DC
+import SimPEG.DCIP as DC
 
 
 class DCProblemTests(unittest.TestCase):
 
     def setUp(self):
 
-        mesh, survey, problem = DC.Examples.WennerArray.example()
+        aSpacing=2.5
+        nElecs=10
 
+        surveySize = nElecs*aSpacing - aSpacing
+        cs = surveySize/nElecs/4
+
+        mesh = Mesh.TensorMesh([
+                [(cs,10, -1.3),(cs,surveySize/cs),(cs,10, 1.3)],
+                [(cs,3, -1.3),(cs,3,1.3)],
+        #         [(cs,5, -1.3),(cs,10)]
+            ],'CN')
+
+        srcList = DC.Utils.WennerSrcList(nElecs, aSpacing, in2D=True)
+        survey = DC.SurveyDC(srcList)
+        problem = DC.ProblemDC_CC(mesh)
+        problem.pair(survey)
 
         mSynth = np.ones(mesh.nC)
         survey.makeSyntheticData(mSynth)

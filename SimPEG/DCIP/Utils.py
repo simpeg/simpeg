@@ -1,9 +1,8 @@
-from SimPEG import *
-import SimPEG.DCIP as DC
-import matplotlib.pyplot as plt
+import numpy as np
 
+def WennerSrcList(nElecs, aSpacing, in2D=False, plotIt=False):
 
-def getSrcList(nElecs, aSpacing, in2D=False, plotIt=False):
+    import SimPEG.DCIP as DC
 
     elocs = np.arange(0,aSpacing*nElecs,aSpacing)
     elocs -= (nElecs*aSpacing - aSpacing)/2
@@ -37,29 +36,3 @@ def getSrcList(nElecs, aSpacing, in2D=False, plotIt=False):
         srcList += [src]
 
     return srcList
-
-
-
-def run(plotIt=False,aSpacing=2.5, nElecs=10):
-
-    surveySize = nElecs*aSpacing - aSpacing
-    cs = surveySize/nElecs/4
-
-    mesh = Mesh.TensorMesh([
-            [(cs,10, -1.3),(cs,surveySize/cs),(cs,10, 1.3)],
-            [(cs,3, -1.3),(cs,3,1.3)],
-    #         [(cs,5, -1.3),(cs,10)]
-        ],'CN')
-    if plotIt:
-        mesh.plotGrid(showIt=True)
-
-    srcList = getSrcList(nElecs, aSpacing, in2D=True)
-    survey = DC.SurveyDC(srcList)
-    problem = DC.ProblemDC_CC(mesh)
-    problem.pair(survey)
-
-    return mesh, survey, problem
-
-
-if __name__ == '__main__':
-    run(plotIt=True)
