@@ -2,6 +2,8 @@
 
 ##### AUTOIMPORTS #####
 import EM_FDEM_1D_Inversion
+import EM_FDEM_Analytic_MagDipoleWholespace
+import EM_TDEM_1D_Inversion
 import FLOW_Richards_1D_Celia1990
 import Forward_BasicDirectCurrent
 import Inversion_Linear
@@ -13,7 +15,7 @@ import Mesh_QuadTree_FaceDiv
 import Mesh_QuadTree_HangingNodes
 import Mesh_Tensor_Creation
 
-__examples__ = ["EM_FDEM_1D_Inversion", "FLOW_Richards_1D_Celia1990", "Forward_BasicDirectCurrent", "Inversion_Linear", "Mesh_Basic_PlotImage", "Mesh_Basic_Types", "Mesh_Operators_CahnHilliard", "Mesh_QuadTree_Creation", "Mesh_QuadTree_FaceDiv", "Mesh_QuadTree_HangingNodes", "Mesh_Tensor_Creation"]
+__examples__ = ["EM_FDEM_1D_Inversion", "EM_FDEM_Analytic_MagDipoleWholespace", "EM_TDEM_1D_Inversion", "FLOW_Richards_1D_Celia1990", "Forward_BasicDirectCurrent", "Inversion_Linear", "Mesh_Basic_PlotImage", "Mesh_Basic_Types", "Mesh_Operators_CahnHilliard", "Mesh_QuadTree_Creation", "Mesh_QuadTree_FaceDiv", "Mesh_QuadTree_HangingNodes", "Mesh_Tensor_Creation"]
 
 ##### AUTOIMPORTS #####
 
@@ -28,16 +30,17 @@ if __name__ == '__main__':
     from SimPEG import Examples
 
     # Create the examples dir in the docs folder.
-    docExamplesDir = os.path.sep.join(os.path.realpath(__file__).split(os.path.sep)[:-3] + ['docs', 'examples'])
+    fName = os.path.realpath(__file__)
+    docExamplesDir = os.path.sep.join(fName.split(os.path.sep)[:-3] + ['docs', 'examples'])
     shutil.rmtree(docExamplesDir)
     os.makedirs(docExamplesDir)
 
     # Get all the python examples in this folder
-    thispath = os.path.sep.join(__file__.split(os.path.sep)[:-1])
+    thispath = os.path.sep.join(fName.split(os.path.sep)[:-1])
     exfiles  = [f[:-3] for f in os.listdir(thispath) if os.path.isfile(os.path.join(thispath, f)) and f.endswith('.py') and not f.startswith('_')]
 
     # Add the imports to the top in the AUTOIMPORTS section
-    f = file(__file__, 'r')
+    f = file(fName, 'r')
     inimports = False
     out = ''
     for line in f:
@@ -52,7 +55,7 @@ if __name__ == '__main__':
                 out += '\n##### AUTOIMPORTS #####\n'
     f.close()
 
-    f = file(__file__, 'w')
+    f = file(fName, 'w')
     f.write(out)
     f.close()
 

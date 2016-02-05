@@ -1,5 +1,5 @@
 import unittest
-from SimPEG.Utils import Zero, Identity, sdiag
+from SimPEG.Utils import Zero, Identity, sdiag, mkvc
 from SimPEG import np, sp
 
 class Tests(unittest.TestCase):
@@ -28,6 +28,11 @@ class Tests(unittest.TestCase):
         a += z
         assert a == 1
         self.assertRaises(ZeroDivisionError, lambda:3/z)
+
+        assert mkvc(z) == 0
+        assert sdiag(z)*a == 0
+        assert z.T == 0
+        assert z.transpose == 0
 
     def test_mat_zero(self):
         z = Zero()

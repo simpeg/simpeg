@@ -3,6 +3,7 @@ from BaseMesh import BaseMesh, BaseRectangularMesh
 from View import TensorView
 from DiffOperators import DiffOperators
 from InnerProducts import InnerProducts
+from MeshIO import TensorMeshIO
 
 class BaseTensorMesh(BaseMesh):
 
@@ -215,7 +216,7 @@ class BaseTensorMesh(BaseMesh):
             inside = inside & (pts[:,i] >= tensor.min()-TOL) & (pts[:,i] <= tensor.max()+TOL)
         return inside
 
-    def getInterpolationMat(self, loc, locType, zerosOutside=False):
+    def getInterpolationMat(self, loc, locType='CC', zerosOutside=False):
         """ Produces interpolation matrix
 
         :param numpy.ndarray loc: Location of points to interpolate to
@@ -233,10 +234,6 @@ class BaseTensorMesh(BaseMesh):
             'Fz'    -> z-component of field defined on faces
             'N'     -> scalar field defined on nodes
             'CC'    -> scalar field defined on cell centers
-            # 'CCVx'  -> x-component of a field defined on cell centers
-            # 'CCVy'  -> y-component of a field defined on cell centers
-            # 'CCVz'  -> z-component of a field defined on cell centers
-
         """
         if self._meshType == 'CYL' and self.isSymmetric and locType in ['Ex','Ez','Fy']:
             raise Exception('Symmetric CylMesh does not support %s interpolation, as this variable does not exist.' % locType)
@@ -260,18 +257,6 @@ class BaseTensorMesh(BaseMesh):
             Q = sp.hstack(components)
         elif locType in ['CC', 'N']:
             Q = Utils.interpmat(loc, *self.getTensor(locType))
-        elif locType in ['CCVx', 'CCVy', 'CCVz']:
-            Q = Utils.interpmat(loc, *self.getTensor('CC'))
-            Zero = 0.*Q
-            if locType == 'CCVx':
-                Q = np.r_[Q,Zero,Zero]
-            elif locType == 'CCVy':
-                Q = np.r_[Zero,Q,Zero]
-            elif locType == 'CCVz':
-                Q = np.r_[Zero,Zero,Q]
-
-            
-
         else:
             raise NotImplementedError('getInterpolationMat: locType=='+locType+' and mesh.dim=='+str(self.dim))
 
@@ -375,7 +360,7 @@ class BaseTensorMesh(BaseMesh):
 
 
 
-class TensorMesh(BaseTensorMesh, BaseRectangularMesh, TensorView, DiffOperators, InnerProducts):
+class TensorMesh(BaseTensorMesh, BaseRectangularMesh, TensorView, DiffOperators, InnerProducts, TensorMeshIO):
     """
     TensorMesh is a mesh class that deals with tensor product meshes.
 
