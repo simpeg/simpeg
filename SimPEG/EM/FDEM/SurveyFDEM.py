@@ -58,7 +58,6 @@ class Rx(SimPEG.Survey.BaseRx):
 
     def projGLoc(self, u):
         """Grid Location projection (e.g. Ex Fy ...)"""
-        print 'here', u._GLoc(self.rxType[0]) + self.knownRxTypes[self.rxType][1]
         return u._GLoc(self.rxType[0]) + self.knownRxTypes[self.rxType][1]
 
     def projectFields(self, src, mesh, u):
@@ -72,30 +71,6 @@ class Rx(SimPEG.Survey.BaseRx):
         # get the real or imag component
         real_or_imag = self.projComp
         u_part = getattr(u_part_complex, real_or_imag)
-
-        
-
-        # if projGLoc == 'CC':
-        #     P = self.getP(mesh, projGLoc)
-        #     Z = 0.*P
-        #     if mesh.dim == 3:
-        #         if mesh._meshType == 'CYL' and mesh.isSymmetric and u_part.size > mesh.nC: # TODO: there must be a better way to do this!
-        #             if self.knownRxTypes[self.rxType][1] == 'x':
-        #                 P = sp.hstack([P,Z])
-        #             elif self.knownRxTypes[self.rxType][1] == 'z':
-        #                 P = sp.hstack([Z,P])
-        #             elif self.knownRxTypes[self.rxType][1] == 'y':
-        #                 raise Exception('Symmetric CylMesh does not support y interpolation, as this variable does not exist.')
-        #         else:
-        #             if self.knownRxTypes[self.rxType][1] == 'x':
-        #                 P = sp.hstack([P,Z,Z])
-        #             elif self.knownRxTypes[self.rxType][1] == 'y':
-        #                 P = sp.hstack([Z,P,Z])
-        #             elif self.knownRxTypes[self.rxType][1] == 'z':
-        #                 P = sp.hstack([Z,Z,P])
-        # else: 
-        #     projGLoc += self.knownRxTypes[self.rxType][1]
-        #     P = self.getP(mesh, projGLoc)
         
         return P*u_part
 
@@ -106,12 +81,6 @@ class Rx(SimPEG.Survey.BaseRx):
         print self.knownRxTypes[self.rxType][:2], 'Deriv', projGLoc
         projGLoc += self.knownRxTypes[self.rxType][1]
 
-        # if projGLoc = 'CC':
-        #     P = self.getP(mesh)
-        #     if sel
-
-        # else projGLoc != 'CC': 
-        # projGLoc += self.knownRxTypes[self.rxType][1]
         P = self.getP(mesh)
 
         if not adjoint:
@@ -185,9 +154,7 @@ class Survey(SimPEG.Survey.BaseSurvey):
         data = SimPEG.Survey.Data(self)
         for src in self.srcList:
             for rx in src.rxList:
-                print rx.nD
                 dat = rx.projectFields(src, self.mesh, u)
-                print dat.shape
                 data[src, rx] = rx.projectFields(src, self.mesh, u)
         return data
 

@@ -20,8 +20,8 @@ class Fields_e(Fields):
                     'b' : ['eSolution','F','_b'],
                     'bPrimary' : ['eSolution','F','_bPrimary'],
                     'bSecondary' : ['eSolution','F','_bSecondary'],
-                    'j' : ['eSolution','CC','_j'],
-                    'h' : ['eSolution','CC','_h'],
+                    'j' : ['eSolution','CCV','_j'],
+                    'h' : ['eSolution','CCV','_h'],
                   }
 
     def __init__(self,mesh,survey,**kwargs):
@@ -189,7 +189,7 @@ class Fields_b(Fields):
         elif fieldType == 'b':
             return 'F'
         elif (fieldType == 'h') or (fieldType == 'j'):
-            return'CC'
+            return'CCV'
         else:
             raise Exception('Field type must be e, b, h, j')
 
@@ -325,7 +325,7 @@ class Fields_j(Fields):
         elif fieldType == 'j':
             return 'F'
         elif (fieldType == 'e') or (fieldType == 'b'):
-            return 'CC'
+            return 'CCV'
         else:
             raise Exception('Field type must be e, b, h, j')
 
@@ -467,7 +467,7 @@ class Fields_h(Fields):
         elif fieldType == 'j':
             return 'F'
         elif (fieldType == 'e') or (fieldType == 'b'):
-            return 'CC'
+            return 'CCV'
         else:
             raise Exception('Field type must be e, b, h, j')
 
