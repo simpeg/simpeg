@@ -214,11 +214,11 @@ class BaseTimeProblem(BaseProblem):
             del self._timeMesh
 
 class LinearProblem(BaseProblem):
-    
+
     surveyPair = Survey.LinearSurvey
 
     def __init__(self, mesh, G, **kwargs):
-        Problem.BaseProblem.__init__(self, mesh, **kwargs)
+        BaseProblem.__init__(self, mesh, **kwargs)
         self.G = G
 
     def fields(self, m):
