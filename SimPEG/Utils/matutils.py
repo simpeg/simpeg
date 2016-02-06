@@ -2,7 +2,6 @@ import numpy as np
 import scipy.sparse as sp
 from codeutils import isScalar
 
-
 def mkvc(x, numDims=1):
     """Creates a vector with the number of dimension specified
 
@@ -26,6 +25,9 @@ def mkvc(x, numDims=1):
     if hasattr(x, 'tovec'):
         x = x.tovec()
 
+    if isinstance(x, Zero):
+        return x
+    
     assert isinstance(x, np.ndarray), "Vector must be a numpy array"
 
     if numDims == 1:
@@ -37,6 +39,9 @@ def mkvc(x, numDims=1):
 
 def sdiag(h):
     """Sparse diagonal matrix"""
+    if isinstance(h, Zero):
+        return Zero()
+
     return sp.spdiags(mkvc(h), 0, h.size, h.size, format="csr")
 
 def sdInv(M):
@@ -416,6 +421,12 @@ class Zero(object):
     def __ne__(self, v):return not (0 == v)
     def __ge__(self, v):return 0 >= v
     def __gt__(self, v):return 0 > v
+
+    @property 
+    def transpose(self): return Zero()
+    
+    @property
+    def T(self): return Zero()
 
 class Identity(object):
     _positive = True

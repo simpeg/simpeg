@@ -205,6 +205,7 @@ class BaseSurvey(object):
     __metaclass__ = Utils.SimPEGMetaClass
 
     std = None       #: Estimated Standard Deviations
+    eps = None       #: Estimated Noise Floor
     dobs = None      #: Observed data
     dtrue = None     #: True data, if data is synthetic
     mtrue = None     #: True model, if data is synthetic

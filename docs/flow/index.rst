@@ -41,7 +41,7 @@ Here we reproduce the results from Celia et al. (1990):
 Richards
 ========
 
-.. automodule:: simpegFLOW.Richards.Empirical
+.. automodule:: SimPEG.FLOW.Richards.Empirical
     :show-inheritance:
     :members:
     :undoc-members:

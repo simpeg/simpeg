@@ -10,21 +10,25 @@ class IdentityMap(object):
     SimPEG Map
 
     """
-
     __metaclass__ = Utils.SimPEGMetaClass
 
-    mesh = None      #: A SimPEG Mesh
-
-    def __init__(self, mesh, **kwargs):
+    def __init__(self, mesh=None, nP=None, **kwargs):
         Utils.setKwargs(self, **kwargs)
+
+        if nP is not None:
+            assert type(nP) in [int, long], ' Number of parameters must be an integer.'
+
         self.mesh = mesh
+        self._nP  = nP
 
     @property
     def nP(self):
         """
             :rtype: int
-            :return: number of parameters in the model
+            :return: number of parameters that the mapping accepts
         """
+        if self._nP is not None:
+            return self._nP
         if self.mesh is None:
             return '*'
         return self.mesh.nC
@@ -32,11 +36,15 @@ class IdentityMap(object):
     @property
     def shape(self):
         """
-            The default shape is (mesh.nC, nP).
+            The default shape is (mesh.nC, nP) if the mesh is defined.
+            If this is a meshless mapping (i.e. nP is defined independently)
+            the shape will be the the shape (nP,nP).
 
             :rtype: (int,int)
             :return: shape of the operator as a tuple
         """
+        if self._nP is not None:
+            return (self.nP, self.nP)
         if self.mesh is None:
             return ('*', self.nP)
         return (self.mesh.nC, self.nP)
@@ -117,6 +125,7 @@ class IdentityMap(object):
 
     def __str__(self):
         return "%s(%s,%s)" % (self.__class__.__name__, self.shape[0], self.shape[1])
+
 
 class ComboMap(IdentityMap):
     """Combination of various maps."""
@@ -475,7 +484,7 @@ class ActiveCells(IdentityMap):
         else:
             self.valInactive = valInactive.copy()
         self.valInactive[self.indActive] = 0
-        
+
         inds = np.nonzero(self.indActive)[0]
         self.P = sp.csr_matrix((np.ones(inds.size),(inds, range(inds.size))), shape=(self.nC, self.nP))
 
@@ -708,7 +717,7 @@ class PolyMap(IdentityMap):
         Parameterize the model space using a polynomials in a wholespace.
 
         ..math::
-            
+
             y = \mathbf{V} c
 
         Define the model as:
@@ -752,10 +761,10 @@ class PolyMap(IdentityMap):
             else:
                 raise(Exception("Input for normal = X or Y or Z"))
         #3D
-        elif self.mesh.dim == 3: 
+        elif self.mesh.dim == 3:
             X = self.mesh.gridCC[:,0]
-            Y = self.mesh.gridCC[:,1]            
-            Z = self.mesh.gridCC[:,2]            
+            Y = self.mesh.gridCC[:,1]
+            Z = self.mesh.gridCC[:,2]
             if self.normal =='X':
                 f = polynomial.polyval2d(Y, Z, c.reshape((self.order[0]+1,self.order[1]+1))) - X
             elif self.normal =='Y':
@@ -766,43 +775,43 @@ class PolyMap(IdentityMap):
                 raise(Exception("Input for normal = X or Y or Z"))
         else:
             raise(Exception("Only supports 2D"))
-                    
+
 
         return sig1+(sig2-sig1)*(np.arctan(alpha*f)/np.pi+0.5)
-    
+
     def deriv(self, m):
         alpha = self.slope
         sig1,sig2, c = m[0],m[1],m[2:]
         if self.logSigma:
             sig1, sig2 = np.exp(sig1), np.exp(sig2)
         #2D
-        if self.mesh.dim == 2:            
+        if self.mesh.dim == 2:
             X = self.mesh.gridCC[:,0]
             Y = self.mesh.gridCC[:,1]
 
             if self.normal =='X':
                 f = polynomial.polyval(Y, c) - X
-                V = polynomial.polyvander(Y, len(c)-1)        
+                V = polynomial.polyvander(Y, len(c)-1)
             elif self.normal =='Y':
                 f = polynomial.polyval(X, c) - Y
-                V = polynomial.polyvander(X, len(c)-1)        
+                V = polynomial.polyvander(X, len(c)-1)
             else:
-                raise(Exception("Input for normal = X or Y or Z"))            
+                raise(Exception("Input for normal = X or Y or Z"))
         #3D
-        elif self.mesh.dim == 3: 
+        elif self.mesh.dim == 3:
             X = self.mesh.gridCC[:,0]
             Y = self.mesh.gridCC[:,1]
             Z = self.mesh.gridCC[:,2]
 
             if self.normal =='X':
                 f = polynomial.polyval2d(Y, Z, c.reshape((self.order[0]+1,self.order[1]+1))) - X
-                V = polynomial.polyvander2d(Y, Z, self.order)        
+                V = polynomial.polyvander2d(Y, Z, self.order)
             elif self.normal =='Y':
                 f = polynomial.polyval2d(X, Z, c.reshape((self.order[0]+1,self.order[1]+1))) - Y
-                V = polynomial.polyvander2d(X, Z, self.order)        
+                V = polynomial.polyvander2d(X, Z, self.order)
             elif self.normal =='Z':
                 f = polynomial.polyval2d(X, Y, c.reshape((self.order[0]+1,self.order[1]+1))) - Z
-                V = polynomial.polyvander2d(X, Y, self.order)        
+                V = polynomial.polyvander2d(X, Y, self.order)
             else:
                 raise(Exception("Input for normal = X or Y or Z"))
 
@@ -815,16 +824,16 @@ class PolyMap(IdentityMap):
 
         g3 = Utils.sdiag(alpha*(sig2-sig1)/(1.+(alpha*f)**2)/np.pi)*V
 
-        return sp.csr_matrix(np.c_[g1,g2,g3])  
+        return sp.csr_matrix(np.c_[g1,g2,g3])
 
 class SplineMap(IdentityMap):
 
     """SplineMap
 
-        Parameterize the boundary of two geological units using a spline interpolation 
+        Parameterize the boundary of two geological units using a spline interpolation
 
         ..math::
-            
+
             g = f(x)-y
 
         Define the model as:
@@ -849,7 +858,7 @@ class SplineMap(IdentityMap):
     def nP(self):
         if self.mesh.dim == 2:
             return np.size(self.pts)+2
-        elif self.mesh.dim == 3: 
+        elif self.mesh.dim == 3:
             return np.size(self.pts)*2+2
         else:
             raise(Exception("Only supports 2D and 3D"))
@@ -866,28 +875,28 @@ class SplineMap(IdentityMap):
             X = self.mesh.gridCC[:,0]
             Y = self.mesh.gridCC[:,1]
             self.spl = UnivariateSpline(self.pts, c, k=self.order, s=0)
-            if self.normal =='X':                
+            if self.normal =='X':
                 f = self.spl(Y) - X
             elif self.normal =='Y':
                 f = self.spl(X) - Y
             else:
                 raise(Exception("Input for normal = X or Y or Z"))
 
-        # 3D: 
-        # Comments: 
+        # 3D:
+        # Comments:
         # Make two spline functions and link them using linear interpolation.
         # This is not quite direct extension of 2D to 3D case
         # Using 2D interpolation  is possible
 
-        elif self.mesh.dim == 3: 
+        elif self.mesh.dim == 3:
             X = self.mesh.gridCC[:,0]
-            Y = self.mesh.gridCC[:,1]            
+            Y = self.mesh.gridCC[:,1]
             Z = self.mesh.gridCC[:,2]
 
-            npts = np.size(self.pts)            
+            npts = np.size(self.pts)
             if np.mod(c.size, 2):
                 raise(Exception("Put even points!"))
-            
+
             self.spl = {"splb":UnivariateSpline(self.pts, c[:npts], k=self.order, s=0),
                         "splt":UnivariateSpline(self.pts, c[npts:], k=self.order, s=0)}
 
@@ -902,7 +911,7 @@ class SplineMap(IdentityMap):
                 raise(Exception("Input for normal = X or Y or Z"))
         else:
             raise(Exception("Only supports 2D and 3D"))
-                    
+
 
         return sig1+(sig2-sig1)*(np.arctan(alpha*f)/np.pi+0.5)
 
@@ -912,7 +921,7 @@ class SplineMap(IdentityMap):
         if self.logSigma:
             sig1, sig2 = np.exp(sig1), np.exp(sig2)
         #2D
-        if self.mesh.dim == 2:            
+        if self.mesh.dim == 2:
             X = self.mesh.gridCC[:,0]
             Y = self.mesh.gridCC[:,1]
 
@@ -921,9 +930,9 @@ class SplineMap(IdentityMap):
             elif self.normal =='Y':
                 f = self.spl(X) - Y
             else:
-                raise(Exception("Input for normal = X or Y or Z"))            
+                raise(Exception("Input for normal = X or Y or Z"))
         #3D
-        elif self.mesh.dim == 3: 
+        elif self.mesh.dim == 3:
             X = self.mesh.gridCC[:,0]
             Y = self.mesh.gridCC[:,1]
             Z = self.mesh.gridCC[:,2]
@@ -931,7 +940,7 @@ class SplineMap(IdentityMap):
                 zb = self.ptsv[0]
                 zt = self.ptsv[1]
                 flines = (self.spl["splt"](Y)-self.spl["splb"](Y))*(Z-zb)/(zt-zb) + self.spl["splb"](Y)
-                f = flines - X            
+                f = flines - X
             # elif self.normal =='Y':
             # elif self.normal =='Z':
             else:
@@ -944,7 +953,7 @@ class SplineMap(IdentityMap):
             g1 = -(np.arctan(alpha*f)/np.pi + 0.5) + 1.0
             g2 = (np.arctan(alpha*f)/np.pi + 0.5)
 
-        
+
         if self.mesh.dim ==2:
             g3 = np.zeros((self.mesh.nC, self.npts))
             if self.normal =='Y':
@@ -958,7 +967,7 @@ class SplineMap(IdentityMap):
                     cb = c.copy()
                     dy = self.mesh.hy[ind]*1.5
                     ca[i] = ctemp+dy
-                    cb[i] = ctemp-dy                
+                    cb[i] = ctemp-dy
                     spla = UnivariateSpline(self.pts, ca, k=self.order, s=0)
                     splb = UnivariateSpline(self.pts, cb, k=self.order, s=0)
                     fderiv = (spla(X)-splb(X))/(2*dy)
@@ -968,7 +977,7 @@ class SplineMap(IdentityMap):
             g3 = np.zeros((self.mesh.nC, self.npts*2))
             if self.normal =='X':
                 # Here we use perturbation to compute sensitivity
-                for i in range(self.npts*2):                    
+                for i in range(self.npts*2):
                     ctemp = c[i]
                     ind = np.argmin(abs(self.mesh.vectorCCy-ctemp))
                     ca = c.copy()
@@ -982,20 +991,20 @@ class SplineMap(IdentityMap):
                         splbb = UnivariateSpline(self.pts, cb[:self.npts], k=self.order, s=0)
                         flinesa = (self.spl["splt"](Y)-splba(Y))*(Z-zb)/(zt-zb) + splba(Y) - X
                         flinesb = (self.spl["splt"](Y)-splbb(Y))*(Z-zb)/(zt-zb) + splbb(Y) - X
-                    #treat top boundary                        
+                    #treat top boundary
                     else:
                         splta = UnivariateSpline(self.pts, ca[self.npts:], k=self.order, s=0)
                         spltb = UnivariateSpline(self.pts, ca[self.npts:], k=self.order, s=0)
                         flinesa = (self.spl["splt"](Y)-splta(Y))*(Z-zb)/(zt-zb) + splta(Y) - X
-                        flinesb = (self.spl["splt"](Y)-spltb(Y))*(Z-zb)/(zt-zb) + spltb(Y) - X                        
-                    fderiv = (flinesa-flinesb)/(2*dy)                                
+                        flinesb = (self.spl["splt"](Y)-spltb(Y))*(Z-zb)/(zt-zb) + spltb(Y) - X
+                    fderiv = (flinesa-flinesb)/(2*dy)
                     g3[:,i] = Utils.sdiag(alpha*(sig2-sig1)/(1.+(alpha*f)**2)/np.pi)*fderiv
         else :
             raise(Exception("Not Implemented for Y and Z, your turn :)"))
-        return sp.csr_matrix(np.c_[g1,g2,g3])  
+        return sp.csr_matrix(np.c_[g1,g2,g3])
 
 
 
 
 
-            
+

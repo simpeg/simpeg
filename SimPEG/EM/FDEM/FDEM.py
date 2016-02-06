@@ -50,16 +50,16 @@ class BaseFDEMProblem(BaseEMProblem):
             Srcs = self.survey.getSrcByFreq(freq)
             ftype = self._fieldType + 'Solution'
             F[Srcs, ftype] = sol
-
+            Ainv.clean()
         return F
 
-    def Jvec(self, m, v, f=None):
+    def Jvec(self, m, v, u=None):
         """
             Sensitivity times a vector
         """
 
-        if f is None:
-           f = self.fields(m)
+        if u is None:
+           u = self.fields(m)
 
         self.curModel = m
 
@@ -71,33 +71,34 @@ class BaseFDEMProblem(BaseEMProblem):
 
             for src in self.survey.getSrcByFreq(freq):
                 ftype = self._fieldType + 'Solution'
-                u_src = f[src, ftype]
+                u_src = u[src, ftype]
                 dA_dm = self.getADeriv_m(freq, u_src, v)
                 dRHS_dm = self.getRHSDeriv_m(freq, src, v) 
                 du_dm = Ainv * ( - dA_dm + dRHS_dm )
                 
                 for rx in src.rxList:
-                    df_duFun = getattr(f, '_%sDeriv_u'%rx.projField, None)
+                    df_duFun = getattr(u, '_%sDeriv_u'%rx.projField, None)
                     df_dudu_dm = df_duFun(src, du_dm, adjoint=False)
 
-                    df_dmFun = getattr(f, '_%sDeriv_m'%rx.projField, None)
+                    df_dmFun = getattr(u, '_%sDeriv_m'%rx.projField, None)
                     df_dm = df_dmFun(src, v, adjoint=False)
 
                     Df_Dm = np.array(df_dudu_dm + df_dm,dtype=complex)
 
-                    P = lambda v: rx.projectFieldsDeriv(src, self.mesh, f, v) # wrt u, also have wrt m
+                    P = lambda v: rx.projectFieldsDeriv(src, self.mesh, u, v) # wrt u, also have wrt m
 
                     Jv[src, rx] = P(Df_Dm)
 
+            Ainv.clean()
         return Utils.mkvc(Jv)
 
-    def Jtvec(self, m, v, f=None):
+    def Jtvec(self, m, v, u=None):
         """
             Sensitivity transpose times a vector
         """
 
-        if f is None:
-            f = self.fields(m)
+        if u is None:
+            u = self.fields(m)
 
         self.curModel = m
 
@@ -113,12 +114,12 @@ class BaseFDEMProblem(BaseEMProblem):
 
             for src in self.survey.getSrcByFreq(freq):
                 ftype = self._fieldType + 'Solution'
-                u_src = f[src, ftype]
+                u_src = u[src, ftype]
 
                 for rx in src.rxList:
-                    PTv = rx.projectFieldsDeriv(src, self.mesh, f, v[src, rx], adjoint=True) # wrt u, need possibility wrt m
+                    PTv = rx.projectFieldsDeriv(src, self.mesh, u, v[src, rx], adjoint=True) # wrt u, need possibility wrt m
 
-                    df_duTFun = getattr(f, '_%sDeriv_u'%rx.projField, None)
+                    df_duTFun = getattr(u, '_%sDeriv_u'%rx.projField, None)
                     df_duT = df_duTFun(src, PTv, adjoint=True)
                     
                     ATinvdf_duT = ATinv * df_duT
@@ -127,7 +128,7 @@ class BaseFDEMProblem(BaseEMProblem):
                     dRHS_dmT = self.getRHSDeriv_m(freq,src, ATinvdf_duT, adjoint=True)
                     du_dmT = -dA_dmT + dRHS_dmT
 
-                    df_dmFun = getattr(f, '_%sDeriv_m'%rx.projField, None)
+                    df_dmFun = getattr(u, '_%sDeriv_m'%rx.projField, None)
                     dfT_dm = df_dmFun(src, PTv, adjoint=True)
 
                     du_dmT += dfT_dm
@@ -139,8 +140,10 @@ class BaseFDEMProblem(BaseEMProblem):
                         Jtv += - np.array(du_dmT,dtype=complex).real
                     else:
                         raise Exception('Must be real or imag')
+            
+            ATinv.clean()
 
-        return Jtv
+        return Utils.mkvc(Jtv)
 
     def getSourceTerm(self, freq):
         """
