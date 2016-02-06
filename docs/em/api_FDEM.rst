@@ -121,15 +121,15 @@ For the two formulations, the discretization of the physical properties, fields 
 Note that resistivity is the inverse of conductivity, \\(\\rho = \\sigma^{-1}\\).
 
 
-E-B Formulation:
-****************
+E-B Formulation
+---------------
 
 .. math ::
 	\mathbf{C} \mathbf{e} + i \omega \mathbf{b} = \mathbf{s_m} \\
 	\mathbf{C^T} \mathbf{M^f_{\mu^{-1}}} \mathbf{b} - \mathbf{M^e_\sigma} \mathbf{e} = \mathbf{M^e} \mathbf{s_e}
 
-H-J Formulation:
-****************
+H-J Formulation
+---------------
 
 .. math ::
 	\mathbf{C^T} \mathbf{M^f_\rho} \mathbf{j} + i \omega \mathbf{M^e_\mu} \mathbf{h} = \mathbf{M^e} \mathbf{s_m} \\
