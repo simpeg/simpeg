@@ -144,6 +144,10 @@ H-J Formulation
 
 API
 ===
+
+FDEM Problem
+------------
+
 .. automodule:: SimPEG.EM.FDEM.FDEM
     :show-inheritance:
     :members:
@@ -157,3 +161,17 @@ FDEM Survey
     :show-inheritance:
     :members:
     :undoc-members:
+
+.. automodule:: SimPEG.EM.FDEM.SrcFDEM
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+FDEM Fields
+-----------
+
+.. automodule:: SimPEG.EM.FDEM.FieldsFDEM
+    :show-inheritance:
+    :members:
+    :undoc-members:
+

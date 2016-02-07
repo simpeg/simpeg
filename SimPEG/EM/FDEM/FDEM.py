@@ -15,18 +15,20 @@ class BaseFDEMProblem(BaseEMProblem):
         .. math ::
 
             \mathbf{C} \mathbf{e} + i \omega \mathbf{b} = \mathbf{s_m} \\\\
-            {\mathbf{C}^T \mathbf{M_{\mu^{-1}}^f} \mathbf{b} - \mathbf{M_{\sigma}^e} \mathbf{e} = \mathbf{M^e} \mathbf{s_e}}
+            {\mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b} - \mathbf{M_{\sigma}^e} \mathbf{e} = \mathbf{s_e}}
 
         if using the E-B formulation (:code:`Problem_e`
-        or :code:`Problem_b`) or the magnetic field
+        or :code:`Problem_b`). Note that in this case, :math:`\mathbf{s_e}` is an integrated quantity. 
+
+        If we write Maxwell's equations in terms of 
         \\\(\\\mathbf{h}\\\) and current density \\\(\\\mathbf{j}\\\)
 
         .. math ::
 
-            \mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{j} + i \omega \mathbf{M_{\mu}^e} \mathbf{h} = \mathbf{M^e} \mathbf{s_m} \\\\
+            \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{j} + i \omega \mathbf{M_{\mu}^e} \mathbf{h} = \mathbf{s_m} \\\\
             \mathbf{C} \mathbf{h} - \mathbf{j} = \mathbf{s_e}
 
-        if using the H-J formulation (:code:`Problem_j` or :code:`Problem_h`).
+        if using the H-J formulation (:code:`Problem_j` or :code:`Problem_h`). Note that here, :math:`\mathbf{s_m}` is an integrated quantity. 
 
         The problem performs the elimination so that we are solving the system for \\\(\\\mathbf{e},\\\mathbf{b},\\\mathbf{j} \\\) or \\\(\\\mathbf{h}\\\)
     """
@@ -204,7 +206,7 @@ class Problem_e(BaseFDEMProblem):
 
     .. math ::
 
-        \\left(\mathbf{C}^T \mathbf{M_{\mu^{-1}}^f} \mathbf{C}+ i \omega \mathbf{M^e_{\sigma}} \\right)\mathbf{e} = \mathbf{C}^T \mathbf{M_{\mu^{-1}}^f}\mathbf{s_m} -i\omega\mathbf{M^e}\mathbf{s_e}
+        \\left(\mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{C}+ i \omega \mathbf{M^e_{\sigma}} \\right)\mathbf{e} = \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f}\mathbf{s_m} -i\omega\mathbf{M^e}\mathbf{s_e}
 
     which we solve for :math:`\mathbf{e}`.
 
@@ -223,7 +225,7 @@ class Problem_e(BaseFDEMProblem):
         System matrix
         
         .. math ::
-            \mathbf{A} = \mathbf{C}^T \mathbf{M_{\mu^{-1}}^f} \mathbf{C} + i \omega \mathbf{M^e_{\sigma}}
+            \mathbf{A} = \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{C} + i \omega \mathbf{M^e_{\sigma}}
 
         :param float freq: Frequency
         :rtype: scipy.sparse.csr_matrix
@@ -265,7 +267,7 @@ class Problem_e(BaseFDEMProblem):
         Right hand side for the system 
 
         .. math ::
-            \mathbf{RHS} = \mathbf{C}^T \mathbf{M_{\mu^{-1}}^f}\mathbf{s_m} -i\omega\mathbf{M_e}\mathbf{s_e}
+            \mathbf{RHS} = \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f}\mathbf{s_m} -i\omega\mathbf{M_e}\mathbf{s_e}
 
         :param float freq: Frequency
         :rtype: numpy.ndarray 
@@ -294,7 +296,7 @@ class Problem_e(BaseFDEMProblem):
 
         C = self.mesh.edgeCurl
         MfMui = self.MfMui
-        S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint)
+        S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint=adjoint)
 
         if adjoint:
             dRHS = MfMui * (C * v)
@@ -310,13 +312,13 @@ class Problem_b(BaseFDEMProblem):
 
     .. math ::
 
-         \mathbf{e} = \mathbf{M^e_{\sigma}}^{-1} \\left(\mathbf{C}^T \mathbf{M_{\mu^{-1}}^f} \mathbf{b} - \mathbf{s_e}\\right)
+         \mathbf{e} = \mathbf{M^e_{\sigma}}^{-1} \\left(\mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b} - \mathbf{s_e}\\right)
 
     and solve for :math:`\mathbf{b}` using:
 
     .. math ::
 
-        \\left(\mathbf{C} \mathbf{M^e_{\sigma}}^{-1} \mathbf{C}^T \mathbf{M_{\mu^{-1}}^f}  + i \omega \\right)\mathbf{b} = \mathbf{s_m} + \mathbf{M^e_{\sigma}}^{-1}\mathbf{M^e}\mathbf{s_e}
+        \\left(\mathbf{C} \mathbf{M^e_{\sigma}}^{-1} \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f}  + i \omega \\right)\mathbf{b} = \mathbf{s_m} + \mathbf{M^e_{\sigma}}^{-1}\mathbf{M^e}\mathbf{s_e}
 
     .. note ::
         The inverse problem will not work with full anisotropy
@@ -336,7 +338,7 @@ class Problem_b(BaseFDEMProblem):
         System matrix
 
         .. math ::
-            \mathbf{A} = \mathbf{C} \mathbf{M^e_{\sigma}}^{-1} \mathbf{C}^T \mathbf{M_{\mu^{-1}}^f}  + i \omega
+            \mathbf{A} = \mathbf{C} \mathbf{M^e_{\sigma}}^{-1} \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f}  + i \omega
 
         :param float freq: Frequency
         :rtype: scipy.sparse.csr_matrix
@@ -431,7 +433,7 @@ class Problem_b(BaseFDEMProblem):
             v = self.MfMui * v
 
         MeSigmaIDeriv = self.MeSigmaIDeriv(S_e)
-        S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint)
+        S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint=adjoint)
 
         if not adjoint:
             RHSderiv = C * (MeSigmaIDeriv * v)
@@ -458,13 +460,13 @@ class Problem_j(BaseFDEMProblem):
 
     .. math ::
 
-        \mathbf{h} = \\frac{1}{i \omega} \mathbf{M_{\mu}^e}^{-1} \\left(-\mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{j}  + \mathbf{M^e} \mathbf{s_m} \\right)
+        \mathbf{h} = \\frac{1}{i \omega} \mathbf{M_{\mu}^e}^{-1} \\left(-\mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{j}  + \mathbf{M^e} \mathbf{s_m} \\right)
 
     and solve for \\\(\\\mathbf{j}\\\) using
 
     .. math ::
 
-        \\left(\mathbf{C} \mathbf{M_{\mu}^e}^{-1} \mathbf{C}^T \mathbf{M_{\\rho}^f} + i \omega\\right)\mathbf{j} = \mathbf{C} \mathbf{M_{\mu}^e}^{-1} \mathbf{M^e} \mathbf{s_m} -i\omega\mathbf{s_e}
+        \\left(\mathbf{C} \mathbf{M_{\mu}^e}^{-1} \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} + i \omega\\right)\mathbf{j} = \mathbf{C} \mathbf{M_{\mu}^e}^{-1} \mathbf{M^e} \mathbf{s_m} -i\omega\mathbf{s_e}
 
     .. note::
         This implementation does not yet work with full anisotropy!!
@@ -484,7 +486,7 @@ class Problem_j(BaseFDEMProblem):
         System matrix
 
         .. math ::
-                \\mathbf{A} = \\mathbf{C}  \\mathbf{M^e_{\\mu^{-1}}} \\mathbf{C}^T \\mathbf{M^f_{\\sigma^{-1}}}  + i\\omega
+                \\mathbf{A} = \\mathbf{C}  \\mathbf{M^e_{\\mu^{-1}}} \\mathbf{C}^{\\top} \\mathbf{M^f_{\\sigma^{-1}}}  + i\\omega
 
         :param float freq: Frequency
         :rtype: scipy.sparse.csr_matrix
@@ -511,7 +513,7 @@ class Problem_j(BaseFDEMProblem):
 
         .. math ::
 
-            \\frac{\mathbf{A(\sigma)} \mathbf{v}}{d \mathbf{m}} = \mathbf{C}  \mathbf{M^e_{mu^{-1}}} \mathbf{C^T} \\frac{d \mathbf{M^f_{\sigma^{-1}}}\mathbf{v} }{d \mathbf{m}}
+            \\frac{\mathbf{A(\sigma)} \mathbf{v}}{d \mathbf{m}} = \mathbf{C}  \mathbf{M^e_{mu^{-1}}} \mathbf{C^{\\top}} \\frac{d \mathbf{M^f_{\sigma^{-1}}}\mathbf{v} }{d \mathbf{m}}
 
         :param float freq: frequency 
         :param numpy.ndarray u: solution vector (nF,) 
@@ -543,6 +545,7 @@ class Problem_j(BaseFDEMProblem):
         .. math ::
 
             \mathbf{RHS} = \mathbf{C} \mathbf{M_{\mu}^e}^{-1}\mathbf{s_m} -i\omega \mathbf{s_e}
+
         :param float freq: Frequency
         :rtype: numpy.ndarray (nE, nSrc)
         :return: RHS
@@ -573,7 +576,7 @@ class Problem_j(BaseFDEMProblem):
 
         C = self.mesh.edgeCurl
         MeMuI = self.MeMuI
-        S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint)
+        S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint=adjoint)
 
         if adjoint:
             if self._makeASymmetric:
@@ -604,7 +607,7 @@ class Problem_h(BaseFDEMProblem):
 
     .. math ::
 
-        \\left(\mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{C} + i \omega \mathbf{M_{\mu}^e}\\right) \mathbf{h} = \mathbf{M^e} \mathbf{s_m} + \mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{s_e}
+        \\left(\mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{C} + i \omega \mathbf{M_{\mu}^e}\\right) \mathbf{h} = \mathbf{M^e} \mathbf{s_m} + \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{s_e}
 
     :param SimPEG.Mesh mesh: mesh
     """
@@ -620,9 +623,8 @@ class Problem_h(BaseFDEMProblem):
         """
         System matrix
 
-        .. math ::
-
-            \mathbf{A} = \mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{C} + i \omega \mathbf{M_{\mu}^e}
+        .. math::
+            \mathbf{A} = \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{C} + i \omega \mathbf{M_{\mu}^e}
 
         :param float freq: Frequency
         :rtype: scipy.sparse.csr_matrix
@@ -640,7 +642,7 @@ class Problem_h(BaseFDEMProblem):
         Product of the derivative of our system matrix with respect to the model and a vector
 
         .. math::
-            \\frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}} = \mathbf{C}^{\\top} \\frac{d \mathbf{M^f_{\\rho}}\mathbf{v} }{d\mathbf{m}}
+            \\frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}} = \mathbf{C}^{\\top}\\frac{d \mathbf{M^f_{\\rho}}\mathbf{v} }{d\mathbf{m}}
 
         :param float freq: frequency 
         :param numpy.ndarray u: solution vector (nE,) 
@@ -664,7 +666,7 @@ class Problem_h(BaseFDEMProblem):
 
         .. math ::
 
-            \mathbf{RHS} = \mathbf{M^e} \mathbf{s_m} + \mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{s_e}
+            \mathbf{RHS} = \mathbf{M^e} \mathbf{s_m} + \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{s_e}
 
         :param float freq: Frequency
         :rtype: numpy.ndarray 
@@ -701,7 +703,7 @@ class Problem_h(BaseFDEMProblem):
         elif adjoint:
             RHSDeriv = MfRhoDeriv.T * (C * v)
 
-        S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint)
+        S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint=adjoint)
 
         return RHSDeriv + S_mDeriv(v) + C.T * (MfRho * S_eDeriv(v))
 

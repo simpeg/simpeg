@@ -186,8 +186,7 @@ class Fields_e(Fields):
         :return: product of the secondary magnetic flux density derivative with respect to the inversion model with a vector
         """
 
-        S_mDeriv, _ = src.evalDeriv(self.prob, adjoint)
-        S_mDeriv = S_mDeriv(v)
+        S_mDeriv, _ = src.evalDeriv(self.prob, v, adjoint)
         return 1./(1j * omega(src.freq)) * S_mDeriv
 
     def _b(self, eSolution, srcList):
@@ -401,10 +400,9 @@ class Fields_b(Fields):
         elif adjoint:
             de_dm = self._MeSigmaIDeriv(w).T * v
 
-        _, S_eDeriv = src.evalDeriv(self.prob, adjoint)
-        Se_Deriv = S_eDeriv(v)
+        _, S_eDeriv = src.evalDeriv(self.prob, v, adjoint)
 
-        de_dm = de_dm - self._MeSigmaI * Se_Deriv
+        de_dm = de_dm - self._MeSigmaI * S_eDeriv
 
         return de_dm
 
@@ -616,7 +614,7 @@ class Fields_j(Fields):
         elif adjoint:
             hDeriv_m =  -1./(1j*omega(src.freq)) * MfRhoDeriv(jSolution).T * ( C * (MeMuI.T * v ) )
 
-        S_mDeriv,_ = src.evalDeriv(self.prob, adjoint)
+        S_mDeriv,_ = src.evalDeriv(self.prob, adjoint = adjoint)
 
         if not adjoint:
             S_mDeriv = S_mDeriv(v)
@@ -821,8 +819,7 @@ class Fields_h(Fields):
         :return: product of the secondary current density derivative with respect to the inversion model with a vector
         """
 
-        _,S_eDeriv = src.evalDeriv(self.prob, adjoint)
-        S_eDeriv = S_eDeriv(v)
+        _,S_eDeriv = src.evalDeriv(self.prob, v, adjoint)
         return -S_eDeriv
 
     def _j(self, hSolution, srcList):
