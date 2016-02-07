@@ -233,13 +233,13 @@ class MagDipole(BaseSrc):
 
     .. math:: 
         \mathbf{e^P} =  0 \\\\
-            {\mathbf{C}^T \mathbf{M_{\mu^{-1}}^f^P} \mathbf{b^P} = \mathbf{s_e^P}}
+            {\mathbf{C}^T \mathbf{{M_{\mu^{-1}}^f}^P} \mathbf{b^P} = \mathbf{s_e^P}}
 
     Our secondary problem is then 
 
     .. math::
         \mathbf{C} \mathbf{e^S} + i \omega \mathbf{b^S} = - i \omega \mathbf{b^P} \\\\
-            {\mathbf{C}^T \mathbf{M_{\mu^{-1}}^f} \mathbf{b^S} - \mathbf{M_{\sigma}^e} \mathbf{e^S} = -\mathbf{C}^T \mathbf{M_{\mu^{-1}^S}^f} \mathbf{b^P}}
+            {\mathbf{C}^T \mathbf{M_{\mu^{-1}}^f} \mathbf{b^S} - \mathbf{M_{\sigma}^e} \mathbf{e^S} = -\mathbf{C}^T \mathbf{{M_{\mu^{-1}}^f}^S} \mathbf{b^P}}
 
     :param list rxList: receiver list
     :param float freq: frequency

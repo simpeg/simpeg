@@ -166,7 +166,7 @@ class Survey(SimPEG.Survey.BaseSurvey):
         Returns the sources associated with a specific frequency.
         :param float freq: frequency for which we look up sources
         :rtype: dictionary
-        :returns: sources at the sepcified frequency 
+        :return: sources at the sepcified frequency 
         """
         assert freq in self._freqDict, "The requested frequency is not in this survey."
         return self._freqDict[freq]
@@ -176,7 +176,7 @@ class Survey(SimPEG.Survey.BaseSurvey):
         Project fields to receiver locations
         :param Fields u: fields object
         :rtype: numpy.ndarray
-        :returns: data
+        :return: data
         """
         data = SimPEG.Survey.Data(self)
         for src in self.srcList:
