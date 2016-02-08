@@ -237,9 +237,7 @@ class Problem_e(BaseFDEMProblem):
         C = self.mesh.edgeCurl
         MfMui = self.MfMui
 
-        RHS = C.T * (MfMui * S_m) -1j * omega(freq) * S_e
-
-        return RHS
+        return C.T * (MfMui * S_m) -1j * omega(freq) * S_e
 
     def getRHSDeriv_m(self, freq, src, v, adjoint=False):
         C = self.mesh.edgeCurl
@@ -552,9 +550,7 @@ class Problem_h(BaseFDEMProblem):
         C = self.mesh.edgeCurl
         MfRho  = self.MfRho
 
-        RHS = S_m + C.T * ( MfRho * S_e )
-
-        return RHS
+        return S_m + C.T * ( MfRho * S_e )
 
     def getRHSDeriv_m(self, freq, src, v, adjoint=False):
         _, S_e = src.eval(self)
