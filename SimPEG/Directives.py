@@ -243,7 +243,7 @@ class SaveOutputDictEveryIteration(_SaveEveryIteration):
     """
 
     def initialize(self):
-        print "SimPEG.SaveOutputDictEveryIteration will save your inversion progress as dictionary: '###-%s.npz'"%self.fileName
+        print "SimPEG.SaveOutputDictEveryIteration will save your inversion progress as dictionary: '%s-###.npz'"%self.fileName
 
     def endIter(self):
         # Save the data.
@@ -260,7 +260,7 @@ class SaveOutputDictEveryIteration(_SaveEveryIteration):
             phi_my = 0.5 * my.dot(my)
         else:
             phi_my = 'NaN'
-        if self.prob.mesh.dim==3:
+        if self.prob.mesh.dim==3 and 'CYL' not in self.prob.mesh._meshType:
             mz = self.reg.Wz * ( self.reg.mapping * (self.invProb.curModel - mref) )
             phi_mz = 0.5 * mz.dot(mz)
         else:
@@ -268,7 +268,7 @@ class SaveOutputDictEveryIteration(_SaveEveryIteration):
 
 
         # Save the file as a npz
-        np.savez('{:03d}-{:s}'.format(self.opt.iter,self.fileName), iter=self.opt.iter, beta=self.invProb.beta, phi_d=self.invProb.phi_d, phi_m=self.invProb.phi_m, phi_ms=phi_ms, phi_mx=phi_mx, phi_my=phi_my, phi_mz=phi_mz,f=self.opt.f, m=self.invProb.curModel,dpred=self.invProb.dpred)
+        np.savez('{:s}-{:03d}'.format(self.fileName,self.opt.iter), iter=self.opt.iter, beta=self.invProb.beta, phi_d=self.invProb.phi_d, phi_m=self.invProb.phi_m, phi_ms=phi_ms, phi_mx=phi_mx, phi_my=phi_my, phi_mz=phi_mz,f=self.opt.f, m=self.invProb.curModel,dpred=self.invProb.dpred)
 
 
 
