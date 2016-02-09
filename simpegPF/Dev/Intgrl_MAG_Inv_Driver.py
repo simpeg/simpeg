@@ -182,10 +182,10 @@ plt.gca().set_aspect('equal', adjustable='box')
 #%% Run one more round for sparsity
 phim = invProb.phi_m_last
 
-reg = Regularization.SparseRegularization(mesh, mapping=wrMap)
+reg = Regularization.SparseRegularization(mesh, mapping=wrMap, eps=1e-4)
 reg.m = mrec
 reg.mref = mref
-reg.eps = 1e-4
+
 
 
 diagA = np.sum(F**2.,axis=0) + beta_in*(reg.W.T*reg.W).diagonal()*(wr**2.0)
@@ -195,7 +195,7 @@ PC     = Utils.sdiag(diagA**-1.)
 
 dmis = DataMisfit.l2_DataMisfit(survey)
 dmis.Wd = wd
-opt = Optimization.ProjectedGNCG(maxIter=50 ,lower=0.,upper=1.)
+opt = Optimization.ProjectedGNCG(maxIter=8 ,maxIterLS=10, maxIterCG = 20,tolCG = 1e-4,lower=0.,upper=1.)
 opt.approxHinv = PC
 #opt.phim_last = reg.eval(mrec)
 
@@ -204,7 +204,7 @@ invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta = invProb.beta)
 beta = Directives.BetaSchedule(coolingFactor=1, coolingRate=1)
 #betaest = Directives.BetaEstimate_ByEig()
 target = Directives.TargetMisfit()
-IRLS =Directives.update_IRLS(factor = 2, eps_min=1e-4, phi_m_last = phim )
+IRLS =Directives.update_IRLS( eps_min=1e-3, phi_m_last = phim )
 
 inv = Inversion.BaseInversion(invProb, directiveList=[beta,IRLS])
 

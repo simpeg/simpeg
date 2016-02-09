@@ -6,19 +6,22 @@ from MagAnalytics import spheremodel, CongruousMagBC
 class MagneticIntegral(Problem.BaseProblem):
     
     surveyPair = Survey.LinearSurvey
-
-    def __init__(self, mesh, G, **kwargs):
-        Problem.BaseProblem.__init__(self, mesh, **kwargs)
+    
+    def __init__(self, mesh, G, mapping=None, **kwargs):
+        Problem.BaseProblem.__init__(self, mesh, mapping=mapping, **kwargs)
         self.G = G
 
     def fields(self, m):
-        return self.G.dot(m)
-
+                
+        return self.G.dot(self.mapping*(m))
+            
     def Jvec(self, m, v, u=None):
-        return self.G.dot(v)
+        dmudm = self.mapping.deriv(m)
+        return self.G.dot(dmudm*v)
 
     def Jtvec(self, m, v, u=None):
-        return self.G.T.dot(v)
+        dmudm = self.mapping.deriv(m)
+        return dmudm.T * (self.G.T.dot(v))
 
 
 
