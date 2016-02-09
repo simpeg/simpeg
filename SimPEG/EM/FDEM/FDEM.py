@@ -170,16 +170,9 @@ class BaseFDEMProblem(BaseEMProblem):
         """
         Evaluates the sources for a given frequency and puts them in matrix form
 
-<<<<<<< HEAD
-            :param float freq: Frequency
-            :rtype: numpy.ndarray (nE or nF, nSrc)
-            :return: S_m, S_e
-
-=======
         :param float freq: Frequency
         :rtype: (numpy.ndarray, numpy.ndarray)  
         :return: S_m, S_e (nE or nF, nSrc)
->>>>>>> dev
         """
         Srcs = self.survey.getSrcByFreq(freq)
         if self._eqLocs is 'FE':
@@ -218,12 +211,7 @@ class Problem_e(BaseFDEMProblem):
 
     which we solve for :math:`\mathbf{e}`.
 
-<<<<<<< HEAD
-        which we solve for \\\(\\\mathbf{e}\\\).
-
-=======
     :param SimPEG.Mesh mesh: mesh
->>>>>>> dev
     """
 
     _fieldType = 'e'
@@ -277,15 +265,6 @@ class Problem_e(BaseFDEMProblem):
 
     def getRHS(self, freq):
         """
-<<<<<<< HEAD
-        .. math ::
-            \mathbf{RHS} = \mathbf{C}^T \mathbf{M_{\mu^{-1}}^f}\mathbf{s_m} -i\omega\mathbf{M_e}\mathbf{s_e}
-
-        :param float freq: Frequency
-        :rtype: numpy.ndarray (nE, nSrc)
-        :return: RHS
-
-=======
         Right hand side for the system 
 
         .. math ::
@@ -294,7 +273,6 @@ class Problem_e(BaseFDEMProblem):
         :param float freq: Frequency
         :rtype: numpy.ndarray 
         :return: RHS (nE, nSrc)
->>>>>>> dev
         """
 
         S_m, S_e = self.getSourceTerm(freq)
@@ -481,21 +459,14 @@ class Problem_j(BaseFDEMProblem):
 
     .. math ::
 
-<<<<<<< HEAD
-        \mathbf{h} = \\frac{1}{i \omega} \mathbf{M_{\mu}^e}^{-1} \\left(-\mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{j}  + \mathbf{M^e} \mathbf{s_m} \\right)
-=======
         \mathbf{h} = \\frac{1}{i \omega} \mathbf{M_{\mu}^e}^{-1} \\left(-\mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{j}  + \mathbf{M^e} \mathbf{s_m} \\right)
->>>>>>> dev
+
 
     and solve for \\\(\\\mathbf{j}\\\) using
 
     .. math ::
 
-<<<<<<< HEAD
-        \\left(\mathbf{C} \mathbf{M_{\mu}^e}^{-1} \mathbf{C}^T \mathbf{M_{\\rho}^f} + i \omega\\right)\mathbf{j} = \mathbf{C} \mathbf{M_{\mu}^e}^{-1} \mathbf{M^e} \mathbf{s_m} -i\omega\mathbf{s_e}
-=======
         \\left(\mathbf{C} \mathbf{M_{\mu}^e}^{-1} \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} + i \omega\\right)\mathbf{j} = \mathbf{C} \mathbf{M_{\mu}^e}^{-1} \mathbf{M^e} \mathbf{s_m} -i\omega\mathbf{s_e}
->>>>>>> dev
 
     .. note::
         This implementation does not yet work with full anisotropy!!
@@ -517,16 +488,9 @@ class Problem_j(BaseFDEMProblem):
         .. math ::
                 \\mathbf{A} = \\mathbf{C}  \\mathbf{M^e_{\\mu^{-1}}} \\mathbf{C}^{\\top} \\mathbf{M^f_{\\sigma^{-1}}}  + i\\omega
 
-<<<<<<< HEAD
-            :param float freq: Frequency
-            :rtype: scipy.sparse.csr_matrix
-            :return: A
-
-=======
         :param float freq: Frequency
         :rtype: scipy.sparse.csr_matrix
         :return: A
->>>>>>> dev
         """
 
         MeMuI = self.MeMuI
@@ -543,15 +507,6 @@ class Problem_j(BaseFDEMProblem):
 
     def getADeriv_m(self, freq, u, v, adjoint=False):
         """
-<<<<<<< HEAD
-        In this case, we assume that electrical conductivity, \\\(\\\sigma\\\) is the physical property of interest (i.e. \\\(\\\sigma\\\) = model.transform). Then we want
-
-        .. math ::
-
-            \\frac{\mathbf{A(\sigma)} \mathbf{v}}{d \\mathbf{m}} &= \\mathbf{C}  \\mathbf{M^e_{mu^{-1}}} \\mathbf{C^T} \\frac{d \\mathbf{M^f_{\\sigma^{-1}}}}{d \\mathbf{m}}
-            &= \\mathbf{C}  \\mathbf{M^e_{mu}^{-1}} \\mathbf{C^T} \\frac{d \\mathbf{M^f_{\\sigma^{-1}}}}{d \\mathbf{\\sigma^{-1}}} \\frac{d \\mathbf{\\sigma^{-1}}}{d \\mathbf{\\sigma}} \\frac{d \\mathbf{\\sigma}}{d \\mathbf{m}}
-
-=======
         Product of the derivative of our system matrix with respect to the model and a vector
 
         In this case, we assume that electrical conductivity, :math:`\sigma` is the physical property of interest (i.e. :math:`\sigma` = model.transform). Then we want
@@ -566,7 +521,6 @@ class Problem_j(BaseFDEMProblem):
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
         :return: derivative of the system matrix times a vector (nP,) or adjoint (nD,)  
->>>>>>> dev
         """
 
         MeMuI = self.MeMuI
@@ -586,15 +540,6 @@ class Problem_j(BaseFDEMProblem):
 
     def getRHS(self, freq):
         """
-<<<<<<< HEAD
-        .. math ::
-            \mathbf{RHS} = \mathbf{C} \mathbf{M_{\mu}^e}^{-1}\mathbf{s_m} -i\omega \mathbf{s_e}
-
-        :param float freq: Frequency
-        :rtype: numpy.ndarray (nE, nSrc)
-        :return: RHS
-
-=======
         Right hand side for the system 
 
         .. math ::
@@ -604,7 +549,6 @@ class Problem_j(BaseFDEMProblem):
         :param float freq: Frequency
         :rtype: numpy.ndarray (nE, nSrc)
         :return: RHS
->>>>>>> dev
         """
 
         S_m, S_e = self.getSourceTerm(freq)
@@ -663,11 +607,7 @@ class Problem_h(BaseFDEMProblem):
 
     .. math ::
 
-<<<<<<< HEAD
-        \\left(\mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{C} + i \omega \mathbf{M_{\mu}^e}\\right) \mathbf{h} = \mathbf{M^e} \mathbf{s_m} + \mathbf{C}^T \mathbf{M_{\\rho}^f} \mathbf{s_e}
-=======
         \\left(\mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{C} + i \omega \mathbf{M_{\mu}^e}\\right) \mathbf{h} = \mathbf{M^e} \mathbf{s_m} + \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{s_e}
->>>>>>> dev
 
     :param SimPEG.Mesh mesh: mesh
     """
@@ -686,16 +626,11 @@ class Problem_h(BaseFDEMProblem):
         .. math::
             \mathbf{A} = \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{C} + i \omega \mathbf{M_{\mu}^e}
 
-<<<<<<< HEAD
-            :param float freq: Frequency
-            :rtype: scipy.sparse.csr_matrix
-            :return: A
 
-=======
         :param float freq: Frequency
         :rtype: scipy.sparse.csr_matrix
         :return: A
->>>>>>> dev
+
         """
 
         MeMu = self.MeMu
@@ -735,16 +670,10 @@ class Problem_h(BaseFDEMProblem):
 
             \mathbf{RHS} = \mathbf{M^e} \mathbf{s_m} + \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{s_e}
 
-<<<<<<< HEAD
-            :param float freq: Frequency
-            :rtype: numpy.ndarray (nE, nSrc)
-            :return: RHS
-
-=======
         :param float freq: Frequency
         :rtype: numpy.ndarray 
         :return: RHS (nE, nSrc)
->>>>>>> dev
+
         """
 
         S_m, S_e = self.getSourceTerm(freq)
