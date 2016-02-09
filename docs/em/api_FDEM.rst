@@ -19,14 +19,14 @@ Electromagnetic phenomena are governed by Maxwell's equations. They describe the
 
 Fourier Transform Convention
 ----------------------------
-In order to examine Maxwell's equations in the frequency domain, we must first define our choice of harmonic time-dependence by choosing a Fourier transform convention. We use the \\(e^{i \\omega t} \\) convention, so we define our Fourier Transform pair as
+In order to examine Maxwell's equations in the frequency domain, we must first define our choice of harmonic time-dependence by choosing a Fourier transform convention. We use the :math:`e^{i \omega t}` convention, so we define our Fourier Transform pair as
 
 .. math ::
-	F(\omega) = \int_{-\infty}^{\infty} f(t) e^{- i \omega t} dt \\
+    F(\omega) = \int_{-\infty}^{\infty} f(t) e^{- i \omega t} dt \\
 
-	f(t) = \frac{1}{2\pi}\int_{-\infty}^{\infty} F(\omega) e^{i \omega t} d \omega
+    f(t) = \frac{1}{2\pi}\int_{-\infty}^{\infty} F(\omega) e^{i \omega t} d \omega
 
-where \\(\\omega\\) is angular frequency, \\(t\\) is time, \\(F(\\omega)\\) is the function defined in the frequency domain and \\(f(t)\\) is the function defined in the time domain.
+where :math:`\omega` is angular frequency, :math:`t` is time, :math:`F(\omega)` is the function defined in the frequency domain and :math:`f(t)` is the function defined in the time domain.
 
 
 Maxwell's Equations
@@ -34,44 +34,46 @@ Maxwell's Equations
 In the frequency domain, Maxwell's equations are given by
 
 .. math ::
-	\curl \vec{E} = - i \omega \vec{B} \\
+    \curl \vec{E} + i \omega \vec{B} = \vec{S_m}\\
 
-	\curl \vec{H} = \vec{J} + i \omega \vec{D} + \vec{S} \\
+    \curl \vec{H} - \vec{J} - i \omega \vec{D} = \vec{S_e} \\
 
-	\div \vec{B} = 0 \\
+    \div \vec{B} = 0 \\
 
-	\div \vec{D} = \rho_f
+    \div \vec{D} = \rho_f
 
 where:
 
-	- \\(\\vec{E}\\) : electric field (\\(V/m\\))
-	- \\(\\vec{H}\\) : magnetic field (\\(A/m\\))
-	- \\(\\vec{B}\\) : magnetic flux density (\\(Wb/m^2\\))
-	- \\(\\vec{D}\\) : electric displacement / electric flux density (\\(C/m^2\\))
-	- \\(\\vec{J}\\) : electric current density (\\(A/m^2\\))
-	- \\(\\rho_f\\) : free charge density
+    - :math:`\vec{E}`   : electric field (:math:`V/m` )
+    - :math:`\vec{H}`   : magnetic field (:math:`A/m` )
+    - :math:`\vec{B}`   : magnetic flux density (:math:`Wb/m^2` )
+    - :math:`\vec{D}`   : electric displacement / electric flux density (:math:`C/m^2` )
+    - :math:`\vec{J}`   : electric current density (:math:`A/m^2` )
+    - :math:`\vec{S_m}` : magnetic source term (:math:`V/m^2` )
+    - :math:`\vec{S_e}` : electric source term (:math:`A/m^2` )
+    - :math:`\rho_f`   : free charge density (:math:`\Omega m` )
 
-The source term is \\(\\vec{S}\\)
 
 
 Constitutive Relations
 ----------------------
+
 The fields and fluxes are related through the constitutive relations. At each frequency, they are given by
 
 .. math ::
-	\vec{J} = \sigma \vec{E} \\
+    \vec{J} = \sigma \vec{E} \\
 
-	\vec{B} = \mu \vec{H} \\
+    \vec{B} = \mu \vec{H} \\
 
-	\vec{D} = \varepsilon \vec{E}
+    \vec{D} = \varepsilon \vec{E}
 
 where:
 
-- \\(\\sigma\\) : electrical conductivity \\(S/m\\)
-- \\(\\mu\\) : magnetic permeability \\(H/m\\)
-- \\(\\varepsilon\\) : dielectric permittivity \\(F/m\\)
+- :math:`\sigma` : electrical conductivity (:math:`S/m`)
+- :math:`\mu` : magnetic permeability (:math:`H/m`)
+- :math:`\varepsilon` : dielectric permittivity (:math:`F/m`)
 
-\\(\\sigma\\), \\(\\mu\\), \\(\\varepsilon\\) are physical properties which depend on the material. \\(\\sigma\\) describes how easily electric current passes through a material, \\(\\mu\\) describes how easily a material is magnetized, and \\(\\varepsilon\\) describes how easily a material is electrically polarized. In most geophysical applications of EM, \\(\\sigma\\) is the the primary physical property of interest, and \\(\\mu\\), \\(\\varepsilon\\) are assumed to have their free-space values \\(\\mu_0 = 4\\pi \\times 10^{-7} H/m \\), \\(\\varepsilon_0 = 8.85 \\times 10^{-12} F/m\\)
+:math:`\sigma`, :math:`\mu`, :math:`\varepsilon` are physical properties which depend on the material. :math:`\sigma` describes how easily electric current passes through a material, :math:`\mu` describes how easily a material is magnetized, and :math:`\varepsilon` describes how easily a material is electrically polarized. In most geophysical applications of EM, :math:`\sigma` is the the primary physical property of interest, and :math:`\mu`, :math:`\varepsilon` are assumed to have their free-space values :math:`\mu_0 = 4\pi \times 10^{-7} H/m` , :math:`\varepsilon_0 = 8.85 \times 10^{-12} F/m`
 
 
 Quasi-static Approximation
@@ -80,8 +82,8 @@ Quasi-static Approximation
 For the frequency range typical of most geophysical surveys, the contribution of the electric displacement is negligible compared to the electric current density. In this case, we use the Quasi-static approximation and assume that this term can be neglected, giving
 
 .. math ::
-	\nabla \times \vec{E} = -i \omega \vec{B} \\
-	\nabla \times \vec{H} = \vec{J} + \vec{S}
+    \nabla \times \vec{E} + i \omega \vec{B} = \vec{S_m} \\
+    \nabla \times \vec{H} - \vec{J} = \vec{S_e}
 
 
 Implementation in SimPEG.EM
@@ -90,14 +92,14 @@ Implementation in SimPEG.EM
 We consider two formulations in SimPEG.EM, both first-order and both in terms of one field and one flux. We allow for the definition of magnetic and electric sources (see for example: Ward and Hohmann, starting on page 144). The E-B formulation is in terms of the electric field and the magnetic flux:
 
 .. math ::
-	\nabla \times \vec{E} + i \omega \vec{B} = \vec{S}_m \\
-	\nabla \times \mu^{-1} \vec{B} - \sigma \vec{E} = \vec{S}_e
+    \nabla \times \vec{E} + i \omega \vec{B} = \vec{S}_m \\
+    \nabla \times \mu^{-1} \vec{B} - \sigma \vec{E} = \vec{S}_e
 
 The H-J formulation is in terms of the current density and the magnetic field:
 
 .. math ::
-	\nabla \times \sigma^{-1} \vec{J} + i \omega \mu \vec{H} = \vec{S}_m \\
-	\nabla \times \vec{H} - \vec{J} = \vec{S}_e
+    \nabla \times \sigma^{-1} \vec{J} + i \omega \mu \vec{H} = \vec{S}_m \\
+    \nabla \times \vec{H} - \vec{J} = \vec{S}_e
 
 
 Discretizing
@@ -106,34 +108,34 @@ For both formulations, we use a finite volume discretization
 and discretize fields on cell edges, fluxes on cell faces and
 physical properties in cell centers. This is particularly
 important when using symmetry to reduce the dimensionality of a problem
-(for instance on a 2D CylMesh, there are \\(r\\), \\(z\\) faces and \\(\\theta\\) edges)
+(for instance on a 2D CylMesh, there are :math:`r`, :math:`z` faces and :math:`\theta` edges)
 
 .. figure:: ../images/finitevolrealestate.png
-	:align: center
-	:scale: 60 %
+    :align: center
+    :scale: 60 %
 
 For the two formulations, the discretization of the physical properties, fields and fluxes are summarized below.
 
 .. figure:: ../images/ebjhdiscretizations.png
-	:align: center
-	:scale: 60 %
+    :align: center
+    :scale: 60 %
 
-Note that resistivity is the inverse of conductivity, \\(\\rho = \\sigma^{-1}\\).
+Note that resistivity is the inverse of conductivity, :math:`\rho = \sigma^{-1}`.
 
 
-E-B Formulation:
-****************
-
-.. math ::
-	\mathbf{C} \mathbf{e} + i \omega \mathbf{b} = \mathbf{s_m} \\
-	\mathbf{C^T} \mathbf{M^f_{\mu^{-1}}} \mathbf{b} - \mathbf{M^e_\sigma} \mathbf{e} = \mathbf{M^e} \mathbf{s_e}
-
-H-J Formulation:
-****************
+E-B Formulation
+---------------
 
 .. math ::
-	\mathbf{C^T} \mathbf{M^f_\rho} \mathbf{j} + i \omega \mathbf{M^e_\mu} \mathbf{h} = \mathbf{M^e} \mathbf{s_m} \\
-	\mathbf{C} \mathbf{h} - \mathbf{j} = \mathbf{s_e}
+    \mathbf{C} \mathbf{e} + i \omega \mathbf{b} = \mathbf{s_m} \\
+    \mathbf{C^T} \mathbf{M^f_{\mu^{-1}}} \mathbf{b} - \mathbf{M^e_\sigma} \mathbf{e} = \mathbf{M^e} \mathbf{s_e}
+
+H-J Formulation
+---------------
+
+.. math ::
+    \mathbf{C^T} \mathbf{M^f_\rho} \mathbf{j} + i \omega \mathbf{M^e_\mu} \mathbf{h} = \mathbf{M^e} \mathbf{s_m} \\
+    \mathbf{C} \mathbf{h} - \mathbf{j} = \mathbf{s_e}
 
 
 .. Forward Problem
@@ -144,6 +146,10 @@ H-J Formulation:
 
 API
 ===
+
+FDEM Problem
+------------
+
 .. automodule:: SimPEG.EM.FDEM.FDEM
     :show-inheritance:
     :members:
@@ -157,3 +163,17 @@ FDEM Survey
     :show-inheritance:
     :members:
     :undoc-members:
+
+.. automodule:: SimPEG.EM.FDEM.SrcFDEM
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+FDEM Fields
+-----------
+
+.. automodule:: SimPEG.EM.FDEM.FieldsFDEM
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
