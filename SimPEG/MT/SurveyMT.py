@@ -47,34 +47,6 @@ class Rx(SimPEGsurvey.BaseRx):
         SimPEGsurvey.BaseRx.__init__(self, locs, rxType)
 
     @property
-    def projField(self):
-        """
-        Field Type projection (e.g. e b ...)
-        :param str fracPos: Position of the field in the data ratio
-
-        """
-        if 'numerator' in fracPos:
-            return self.knownRxTypes[self.rxType][0][0]
-        elif 'denominator' in fracPos:
-            return self.knownRxTypes[self.rxType][1][0]
-        else:
-            raise Exception('{s} is an unknown option. Use numerator or denominator.')
-
-    @property
-    def projGLoc(self):
-        """
-        Grid Location projection (e.g. Ex Fy ...)
-        :param str fracPos: Position of the field in the data ratio
-
-        """
-        if 'numerator' in fracPos:
-            return self.knownRxTypes[self.rxType][0][1]
-        elif 'denominator' in fracPos:
-            return self.knownRxTypes[self.rxType][0][1]
-        else:
-            raise Exception('{s} is an unknown option. Use numerator or denominator.')
-
-    @property
     def projType(self):
         """
         Receiver type for projection.
@@ -471,10 +443,11 @@ class Survey(SimPEGsurvey.BaseSurvey):
 #################
 class Data(SimPEGsurvey.Data):
     '''
-    Data class for MTdata
+    Data class for MTdata. Stores the data vector indexed by the survey.
 
     :param SimPEG survey object survey:
-    :param v vector with data
+    :param v vector of the data in order matching of the survey
+
 
     '''
     def __init__(self, survey, v=None):
