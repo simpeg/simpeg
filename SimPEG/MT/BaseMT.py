@@ -56,7 +56,7 @@ class BaseMTProblem(BaseFDEMProblem):
                 # We need fDeriv_m = df/du*du/dm + df/dm
                 # Construct du/dm, it requires a solve
                 # NOTE: need to account for the 2 polarizations in the derivatives.
-                u = u[src,:]
+                u_src = u[src,:]
                 # dA_dm and dRHS_dm should be of size nE,2, so that we can multiply by dA_duI. The 2 columns are each of the polarizations.
                 dA_dm = self.getADeriv_m(freq, u_src, v) # Size: nE,2 (u_px,u_py) in the columns.
                 dRHS_dm = self.getRHSDeriv_m(freq, v) # Size: nE,2 (u_px,u_py) in the columns.
