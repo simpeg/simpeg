@@ -13,7 +13,7 @@ class SurveyIP(SurveyDC):
         self.srcList = srcList
         Survey.BaseSurvey.__init__(self, **kwargs)
         self._Ps = {}
-    
+
     def dpred(self, m, u=None):
         """
             Predicted data.
@@ -99,7 +99,7 @@ class ProblemIP(Problem.BaseProblem):
         if self.u is None:
 	        A    = self.A
 	        if self.Ainv == None:
-	        	self.Ainv = self.Solver(A, **self.solverOpts)	        	
+	        	self.Ainv = self.Solver(A, **self.solverOpts)
 	        Q    = self.getRHS()
 	        self.u  = self.Ainv * Q
         return self.u
