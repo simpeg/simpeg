@@ -9,14 +9,14 @@
 .. --------------------------------- ..
 
 
-FDEM: Effects of susceptibility
+EM: FDEM: Effects of susceptibility
 ===============================
 
 When airborne freqeuncy domain EM (AFEM) survey is flown over
 the earth including significantly susceptible bodies (magnetite-rich rocks),
 negative data is often observed in the real part of the lowest frequency
 (e.g. Dighem system 900 Hz). This phenomenon mostly based upon magnetization
-occurs due to a susceptible body when the magnetic field applied.
+occurs due to a susceptible body when the magnetic field is applied.
 
 To clarify what is happening in the earth when we are exciting the earth with
 a loop source in the frequency domain we run three forward modelling:
@@ -27,7 +27,7 @@ a loop source in the frequency domain we run three forward modelling:
 
 We plot vector magnetic fields in the earth. For secondary fields we provide
 F[:math:`\sigma`, :math:`\mu`]-F[:math:`\sigma`, :math:`\mu_0`]. Following
-figure show only real part, since that is our interest.
+figure show both real and parts.
 
 
 

@@ -12,7 +12,7 @@ def run(plotIt=True):
         the earth including significantly susceptible bodies (magnetite-rich rocks),
         negative data is often observed in the real part of the lowest frequency
         (e.g. Dighem system 900 Hz). This phenomenon mostly based upon magnetization
-        occurs due to a susceptible body when the magnetic field applied.
+        occurs due to a susceptible body when the magnetic field is applied.
 
         To clarify what is happening in the earth when we are exciting the earth with
         a loop source in the frequency domain we run three forward modelling:
@@ -23,7 +23,7 @@ def run(plotIt=True):
 
         We plot vector magnetic fields in the earth. For secondary fields we provide
         F[:math:`\sigma`, :math:`\mu`]-F[:math:`\sigma`, :math:`\mu_0`]. Following
-        figure show only real part, since that is our interest.
+        figure show both real and parts.
 
     """
     # Generate Cylindrical mesh
@@ -128,6 +128,7 @@ def run(plotIt=True):
             ax = [ax1, ax2, ax3]
             ax3.text(30, 50, ("Frequency=%5.2f Hz")%(frequency[ifreq]), color="k", fontsize=18)
             ax2.text(30, 50, primsec, color="k", fontsize=18)
+            ax1.text(30, 50, realimag, color="k", fontsize=18)
             for i, axtemp in enumerate(ax):
                 axtemp.plot(np.r_[0, 29.75], np.r_[-50, -50], 'w', lw=3)
 
@@ -141,6 +142,7 @@ def run(plotIt=True):
             return fig, ax
         fig1, ax1 = vizfields(1, primsec="primary", realimag="real")
         fig2, ax2 = vizfields(1, primsec="secondary", realimag="real")
+        fig4, ax4 = vizfields(1, primsec="secondary", realimag="imag")
 
 if __name__ == '__main__':
     run()
