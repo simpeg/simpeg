@@ -10,7 +10,7 @@
 
 
 EM: FDEM: Effects of susceptibility
-===============================
+===================================
 
 When airborne freqeuncy domain EM (AFEM) survey is flown over
 the earth including significantly susceptible bodies (magnetite-rich rocks),

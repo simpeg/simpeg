@@ -6,7 +6,7 @@ from scipy.constants import mu_0
 def run(plotIt=True):
     """
         EM: FDEM: Effects of susceptibility
-        ===============================
+        ===================================
 
         When airborne freqeuncy domain EM (AFEM) survey is flown over
         the earth including significantly susceptible bodies (magnetite-rich rocks),

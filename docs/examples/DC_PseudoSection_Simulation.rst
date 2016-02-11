@@ -9,13 +9,16 @@
 .. --------------------------------- ..
 
 
-orward Simulation
 
-ard model conductive spheres in a half-space and plot a pseudo-section
+DC Forward Simulation
+=====================
 
-ted on Mon Feb 01 19:28:06 2016
+Forward model conductive spheres in a half-space and plot a pseudo-section
 
-rndo
+Created on Mon Feb 01 19:28:06 2016
+
+@fourndo
+
 
 
 .. plot::
