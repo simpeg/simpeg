@@ -5,7 +5,7 @@ from scipy.constants import mu_0
 
 def run(plotIt=True):
     """
-        FDEM: Effects of susceptibility
+        EM: FDEM: Effects of susceptibility
         ===============================
 
         When airborne freqeuncy domain EM (AFEM) survey is flown over
@@ -138,8 +138,9 @@ def run(plotIt=True):
                 axtemp.set_xlim(10, 100.)
                 axtemp.set_title(titles[i])
             plt.show()
-        vizfields(1, primsec="primary", realimag="real")
-        vizfields(1, primsec="secondary", realimag="real")
+            return fig, ax
+        fig1, ax1 = vizfields(1, primsec="primary", realimag="real")
+        fig2, ax2 = vizfields(1, primsec="secondary", realimag="real")
 
 if __name__ == '__main__':
     run()
