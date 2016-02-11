@@ -3,6 +3,7 @@ from BaseMesh import BaseMesh, BaseRectangularMesh
 from View import TensorView
 from DiffOperators import DiffOperators
 from InnerProducts import InnerProducts
+from MeshIO import TensorMeshIO
 
 class BaseTensorMesh(BaseMesh):
 
@@ -215,7 +216,7 @@ class BaseTensorMesh(BaseMesh):
             inside = inside & (pts[:,i] >= tensor.min()-TOL) & (pts[:,i] <= tensor.max()+TOL)
         return inside
 
-    def getInterpolationMat(self, loc, locType, zerosOutside=False):
+    def getInterpolationMat(self, loc, locType='CC', zerosOutside=False):
         """ Produces interpolation matrix
 
         :param numpy.ndarray loc: Location of points to interpolate to
@@ -359,7 +360,7 @@ class BaseTensorMesh(BaseMesh):
 
 
 
-class TensorMesh(BaseTensorMesh, BaseRectangularMesh, TensorView, DiffOperators, InnerProducts):
+class TensorMesh(BaseTensorMesh, BaseRectangularMesh, TensorView, DiffOperators, InnerProducts, TensorMeshIO):
     """
     TensorMesh is a mesh class that deals with tensor product meshes.
 
