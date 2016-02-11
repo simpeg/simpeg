@@ -92,7 +92,7 @@ class SurveyDC(Survey.BaseSurvey):
         Geophysical DC resistivity data.
 
     """
-
+    uncert = None
     def __init__(self, srcList, **kwargs):
         self.srcList = srcList
         Survey.BaseSurvey.__init__(self, **kwargs)
