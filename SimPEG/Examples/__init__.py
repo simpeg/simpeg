@@ -1,10 +1,10 @@
 # Run this file to add imports.
 
 ##### AUTOIMPORTS #####
-import DC_PseudoSection_Simulation
+#import DC_PseudoSection_Simulation
 import EM_FDEM_1D_Inversion
 import EM_FDEM_Analytic_MagDipoleWholespace
-import EM_FDEM_SusEffects
+#import EM_FDEM_SusEffects
 import EM_TDEM_1D_Inversion
 import FLOW_Richards_1D_Celia1990
 import Forward_BasicDirectCurrent
