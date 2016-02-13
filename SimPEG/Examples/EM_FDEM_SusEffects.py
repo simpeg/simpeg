@@ -1,7 +1,12 @@
 from SimPEG import *
 from SimPEG import EM
-from pymatsolver import MumpsSolver
 from scipy.constants import mu_0
+
+try:
+    from pymatsolver import MumpsSolver
+    prb.Solver = MumpsSolver
+except ImportError, e:
+    prb.Solver = SolverLU
 
 def run(plotIt=True):
     """
