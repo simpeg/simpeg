@@ -91,18 +91,7 @@ class BaseFDEMProblem(BaseEMProblem):
                 for rx in src.rxList:
                     df_dmFun = getattr(u, '_%sDeriv'%rx.projField, None)
                     df_dm = df_dmFun(src, du_dm, v, adjoint=False)
-
-                    # df_duFun = getattr(u, '_%sDeriv_u'%rx.projField, None)
-                    # df_dudu_dm = df_duFun(src, du_dm, adjoint=False)
-
-                    # df_dmFun = getattr(u, '_%sDeriv_m'%rx.projField, None)
-                    # df_dm = df_dmFun(src, v, adjoint=False)
-
-
                     Df_Dm = np.array(df_dm,dtype=complex)
-
-                    # P = lambda v: 
-
                     Jv[src, rx] = rx.projectFieldsDeriv(src, self.mesh, u, Df_Dm)
 
             Ainv.clean()
@@ -141,26 +130,23 @@ class BaseFDEMProblem(BaseEMProblem):
                 for rx in src.rxList:
                     PTv = rx.projectFieldsDeriv(src, self.mesh, u, v[src, rx], adjoint=True) # wrt u, need possibility wrt m
 
-                    df_duTFun = getattr(u, '_%sDeriv_u'%rx.projField, None)
-                    df_duT = df_duTFun(src, PTv, adjoint=True)
-                    
+                    df_duTFun = getattr(u, '_%sDeriv'%rx.projField, None)
+                    df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
+
                     ATinvdf_duT = ATinv * df_duT
 
                     dA_dmT = self.getADeriv_m(freq, u_src, ATinvdf_duT, adjoint=True)
-                    dRHS_dmT = self.getRHSDeriv_m(freq,src, ATinvdf_duT, adjoint=True)
+                    dRHS_dmT = self.getRHSDeriv_m(freq, src, ATinvdf_duT, adjoint=True)
                     du_dmT = -dA_dmT + dRHS_dmT
 
-                    df_dmFun = getattr(u, '_%sDeriv_m'%rx.projField, None)
-                    dfT_dm = df_dmFun(src, PTv, adjoint=True)
+                    df_dmT += du_dmT
 
-                    du_dmT += dfT_dm
-
-                    # TODO: this should be taken care of by the reciever
+                    # TODO: this should be taken care of by the reciever?
                     real_or_imag = rx.projComp
                     if real_or_imag is 'real':
-                        Jtv +=   np.array(du_dmT,dtype=complex).real
+                        Jtv +=   np.array(df_dmT,dtype=complex).real
                     elif real_or_imag is 'imag':
-                        Jtv += - np.array(du_dmT,dtype=complex).real
+                        Jtv += - np.array(df_dmT,dtype=complex).real
                     else:
                         raise Exception('Must be real or imag')
             

@@ -89,26 +89,75 @@ class Fields(SimPEG.Problem.Fields):
         return self._jPrimary(solution, srcList) + self._jSecondary(solution, srcList)
 
     def _eDeriv(self, src, du_dm, v, adjoint = False):
+        """
+        Total derivative of e with respect to the inversion model. Returns :math:`d\mathbf{e}/d\mathbf{m}` for forward and (:math:`d\mathbf{e}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for the adjoint
+
+        :param Src src: sorce
+        :param numpy.ndarray du_dm: derivative of the solution vector with respect to the model times a vector (is None for adjoint)
+        :param numpy.ndarray v: vector to take sensitivity product with
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: derivative times a vector (or tuple for adjoint)
+        """
         if getattr(self, '_eDeriv_u', None) is None or getattr(self, '_eDeriv_m', None) is None: 
             raise NotImplementedError ('Getting eDerivs from %s is not implemented' %self.knownFields.keys()[0])
 
+        if adjoint:
+            return self._eDeriv_u(src, v, adjoint), self._eDeriv_m(src, v, adjoint)
         return self._eDeriv_u(src, du_dm, adjoint) + self._eDeriv_m(src, v, adjoint)
 
     def _bDeriv(self, src, du_dm, v, adjoint = False):
+        """
+        Total derivative of b with respect to the inversion model. Returns :math:`d\mathbf{b}/d\mathbf{m}` for forward and (:math:`d\mathbf{b}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for the adjoint
+
+        :param Src src: sorce
+        :param numpy.ndarray du_dm: derivative of the solution vector with respect to the model times a vector (is None for adjoint)
+        :param numpy.ndarray v: vector to take sensitivity product with
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: derivative times a vector (or tuple for adjoint)
+        """
         if getattr(self, '_bDeriv_u', None) is None or getattr(self, '_bDeriv_m', None) is None: 
             raise NotImplementedError ('Getting bDerivs from %s is not implemented' %self.knownFields.keys()[0])
+
+        if adjoint:
+            return self._bDeriv_u(src, v, adjoint), self._bDeriv_m(src, v, adjoint)
         return self._bDeriv_u(src, du_dm, adjoint) + self._bDeriv_m(src, v, adjoint)
 
     def _hDeriv(self, src, du_dm, v, adjoint = False):
+        """
+        Total derivative of h with respect to the inversion model. Returns :math:`d\mathbf{h}/d\mathbf{m}` for forward and (:math:`d\mathbf{h}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for the adjoint
+
+        :param Src src: sorce
+        :param numpy.ndarray du_dm: derivative of the solution vector with respect to the model times a vector (is None for adjoint)
+        :param numpy.ndarray v: vector to take sensitivity product with
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: derivative times a vector (or tuple for adjoint)
+        """
         if getattr(self, '_hDeriv_u', None) is None or getattr(self, '_hDeriv_m', None) is None: 
             raise NotImplementedError ('Getting hDerivs from %s is not implemented' %self.knownFields.keys()[0])
 
+        if adjoint: 
+            return self._hDeriv_u(src, v, adjoint), self._hDeriv_m(src, v, adjoint)
         return self._hDeriv_u(src, du_dm, adjoint) + self._hDeriv_m(src, v, adjoint)
 
     def _jDeriv(self, src, du_dm, v, adjoint = False):
+        """
+        Total derivative of j with respect to the inversion model. Returns :math:`d\mathbf{j}/d\mathbf{m}` for forward and (:math:`d\mathbf{j}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for the adjoint
+
+        :param Src src: sorce
+        :param numpy.ndarray du_dm: derivative of the solution vector with respect to the model times a vector (is None for adjoint)
+        :param numpy.ndarray v: vector to take sensitivity product with
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: derivative times a vector (or tuple for adjoint)
+        """
         if getattr(self, '_jDeriv_u', None) is None or getattr(self, '_jDeriv_m', None) is None: 
             raise NotImplementedError ('Getting jDerivs from %s is not implemented' %self.knownFields.keys()[0])
 
+        if adjoint:
+            return self._jDeriv_u(src, v, adjoint), self._jDeriv_m(src, v, adjoint)
         return self._jDeriv_u(src, du_dm, adjoint) + self._jDeriv_m(src, v, adjoint)
 
 
