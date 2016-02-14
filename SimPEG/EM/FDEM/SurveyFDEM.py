@@ -66,30 +66,29 @@ class Rx(SimPEG.Survey.BaseRx):
         """Component projection (real/imag)"""
         return self.knownRxTypes[self.rxType][2]
 
-    def projectFields(self, src, mesh, u):
+    def projectFields(self, src, mesh, f):
         """
         Project fields to recievers to get data.
 
         :param Source src: FDEM source
         :param Mesh mesh: mesh used
-        :param Fields u: fields object
+        :param Fields f: fields object
         :rtype: numpy.ndarray
         :return: fields projected to recievers
         """
-        P = self.getP(mesh)
-        u_part_complex = u[src, self.projField]
-        # get the real or imag component
-        real_or_imag = self.projComp
+        P = self.getP(mesh) # get interpolation to recievers 
+        u_part_complex = f[src, self.projField]
+        real_or_imag = self.projComp # get the real or imag component
         u_part = getattr(u_part_complex, real_or_imag)
         return P*u_part
 
-    def projectFieldsDeriv(self, src, mesh, u, v, adjoint=False):
+    def projectFieldsDeriv(self, src, mesh, f, v, adjoint=False):
         """
         Derivative of projected fields with respect to the inversion model times a vector.
 
         :param Source src: FDEM source
         :param Mesh mesh: mesh used
-        :param Fields u: fields object
+        :param Fields f: fields object
         :param numpy.ndarray v: vector to multiply
         :rtype: numpy.ndarray
         :return: fields projected to recievers
@@ -185,4 +184,4 @@ class Survey(SimPEG.Survey.BaseSurvey):
         return data
 
     def projectFieldsDeriv(self, u):
-        raise Exception('Use Sources to project fields deriv.')
+        raise Exception('Use Receivers to project fields deriv.')
