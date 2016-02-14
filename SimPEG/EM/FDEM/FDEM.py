@@ -89,18 +89,21 @@ class BaseFDEMProblem(BaseEMProblem):
                 du_dm = Ainv * ( - dA_dm + dRHS_dm )
                 
                 for rx in src.rxList:
-                    df_duFun = getattr(u, '_%sDeriv_u'%rx.projField, None)
-                    df_dudu_dm = df_duFun(src, du_dm, adjoint=False)
+                    df_dmFun = getattr(u, '_%sDeriv'%rx.projField, None)
+                    df_dm = df_dmFun(src, du_dm, v, adjoint=False)
 
-                    df_dmFun = getattr(u, '_%sDeriv_m'%rx.projField, None)
-                    df_dm = df_dmFun(src, v, adjoint=False)
+                    # df_duFun = getattr(u, '_%sDeriv_u'%rx.projField, None)
+                    # df_dudu_dm = df_duFun(src, du_dm, adjoint=False)
+
+                    # df_dmFun = getattr(u, '_%sDeriv_m'%rx.projField, None)
+                    # df_dm = df_dmFun(src, v, adjoint=False)
 
 
-                    Df_Dm = np.array(df_dudu_dm + df_dm,dtype=complex)
+                    Df_Dm = np.array(df_dm,dtype=complex)
 
-                    P = lambda v: rx.projectFieldsDeriv(src, self.mesh, u, v) # wrt u, also have wrt m
+                    # P = lambda v: 
 
-                    Jv[src, rx] = P(Df_Dm)
+                    Jv[src, rx] = rx.projectFieldsDeriv(src, self.mesh, u, Df_Dm)
 
             Ainv.clean()
         return Utils.mkvc(Jv)
