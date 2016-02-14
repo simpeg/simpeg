@@ -5,8 +5,8 @@ from scipy.sparse.linalg import dsolve
 
 TOL = 1e-14
 
-MAPS_TO_TEST_2D = ["CircleMap", "ComplexMap", "ExpMap", "IdentityMap", "Vertical1DMap", "Weighting", "FullMap"]
-MAPS_TO_TEST_3D = [             "ComplexMap", "ExpMap", "IdentityMap", "Vertical1DMap", "Weighting", "FullMap"]
+MAPS_TO_TEST_2D = ["CircleMap", "ComplexMap", "ExpMap", "IdentityMap", "SurjectVertical1D", "Weighting", "SurjectFull"]
+MAPS_TO_TEST_3D = [             "ComplexMap", "ExpMap", "IdentityMap", "SurjectVertical1D", "Weighting", "SurjectFull"]
 
 class MapTests(unittest.TestCase):
 
@@ -52,7 +52,7 @@ class MapTests(unittest.TestCase):
     def test_mapMultiplication(self):
         M = Mesh.TensorMesh([2,3])
         expMap = Maps.ExpMap(M)
-        vertMap = Maps.Vertical1DMap(M)
+        vertMap = Maps.SurjectVertical1D(M)
         combo = expMap*vertMap
         m = np.arange(3.0)
         t_true = np.exp(np.r_[0,0,1,1,2,2.])
@@ -83,8 +83,8 @@ class MapTests(unittest.TestCase):
     def test_activeCells(self):
         M = Mesh.TensorMesh([2,4],'0C')
         expMap = Maps.ExpMap(M)
-        actMap = Maps.ActiveCells(M, M.vectorCCy <=0, 10, nC=M.nCy)
-        vertMap = Maps.Vertical1DMap(M)
+        actMap = Maps.InjectActiveCells(M, M.vectorCCy <=0, 10, nC=M.nCy)
+        vertMap = Maps.SurjectVertical1D(M)
         combo = vertMap * actMap
         m = np.r_[1,2.]
         mod = Models.Model(m,combo)
@@ -97,8 +97,8 @@ class MapTests(unittest.TestCase):
     def test_tripleMultiply(self):
         M = Mesh.TensorMesh([2,4],'0C')
         expMap = Maps.ExpMap(M)
-        vertMap = Maps.Vertical1DMap(M)
-        actMap = Maps.ActiveCells(M, M.vectorCCy <=0, 10, nC=M.nCy)
+        vertMap = Maps.SurjectVertical1D(M)
+        actMap = Maps.InjectActiveCells(M, M.vectorCCy <=0, 10, nC=M.nCy)
         m = np.r_[1,2.]
         t_true = np.exp(np.r_[1,1,2,2,10,10,10,10.])
         self.assertLess(np.linalg.norm((expMap * vertMap * actMap * m)-t_true,np.inf),TOL)
@@ -115,7 +115,7 @@ class MapTests(unittest.TestCase):
         M2 = Mesh.TensorMesh([2,4])
         M3 = Mesh.TensorMesh([3,2,4])
         m = np.random.rand(M2.nC)
-        m2to3 = Maps.Map2Dto3D(M3, normal='X')
+        m2to3 = Maps.Surject2Dto3D(M3, normal='X')
         m = np.arange(m2to3.nP)
         self.assertTrue(m2to3.test())
         self.assertTrue(np.all(Utils.mkvc( (m2to3 * m).reshape(M3.vnC,order='F')[0,:,:] ) == m))
@@ -125,7 +125,7 @@ class MapTests(unittest.TestCase):
         M2 = Mesh.TensorMesh([3,4])
         M3 = Mesh.TensorMesh([3,2,4])
         m = np.random.rand(M2.nC)
-        m2to3 = Maps.Map2Dto3D(M3, normal='Y')
+        m2to3 = Maps.Surject2Dto3D(M3, normal='Y')
         m = np.arange(m2to3.nP)
         self.assertTrue(m2to3.test())
         self.assertTrue(np.all(Utils.mkvc( (m2to3 * m).reshape(M3.vnC,order='F')[:,0,:] ) == m))
@@ -134,7 +134,7 @@ class MapTests(unittest.TestCase):
         M2 = Mesh.TensorMesh([3,2])
         M3 = Mesh.TensorMesh([3,2,4])
         m = np.random.rand(M2.nC)
-        m2to3 = Maps.Map2Dto3D(M3, normal='Z')
+        m2to3 = Maps.Surject2Dto3D(M3, normal='Z')
         m = np.arange(m2to3.nP)
         self.assertTrue(m2to3.test())
         self.assertTrue(np.all(Utils.mkvc( (m2to3 * m).reshape(M3.vnC,order='F')[:,:,0] ) == m))

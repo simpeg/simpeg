@@ -21,8 +21,8 @@ def run(plotIt=True):
 
     active = mesh.vectorCCz<0.
     layer = (mesh.vectorCCz<0.) & (mesh.vectorCCz>=layerz)
-    actMap = Maps.ActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
-    mapping = Maps.ExpMap(mesh) * Maps.Vertical1DMap(mesh) * actMap
+    actMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+    mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * actMap
     sig_half = 2e-2
     sig_air = 1e-8
     sig_layer = 1e-2

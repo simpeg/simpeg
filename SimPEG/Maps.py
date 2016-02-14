@@ -296,11 +296,11 @@ class LogMap(IdentityMap):
     def inverse(self, m):
         return np.exp(Utils.mkvc(m))
 
-class FullMap(IdentityMap):
+class SurjectFull(IdentityMap):
     """
-    FullMap
+    SurjectFull
 
-    Given a scalar, the FullMap maps the value to the
+    Given a scalar, the SurjectFull maps the value to the
     full model space.
     """
 
@@ -328,8 +328,8 @@ class FullMap(IdentityMap):
         return np.ones([self.mesh.nC,1])
 
 
-class Vertical1DMap(IdentityMap):
-    """Vertical1DMap
+class SurjectVertical1D(IdentityMap):
+    """SurjectVertical1DMap
 
         Given a 1D vector through the last dimension
         of the mesh, this will extend to the full
@@ -370,7 +370,7 @@ class Vertical1DMap(IdentityMap):
         return sp.kron(sp.identity(self.nP), repVec)
 
 
-class Map2Dto3D(IdentityMap):
+class Surject2Dto3D(IdentityMap):
     """Map2Dto3D
 
         Given a 2D vector, this will extend to the full
@@ -458,7 +458,7 @@ class Mesh2Mesh(IdentityMap):
         return self.P
 
 
-class ActiveCells(IdentityMap):
+class InjectActiveCells(IdentityMap):
     """
         Active model parameters.
 
@@ -506,7 +506,7 @@ class ActiveCells(IdentityMap):
     def deriv(self, m):
         return self.P
 
-class ActiveCellsTopo(IdentityMap):
+class InjectActiveCellsTopo(IdentityMap):
     """
         Active model parameters. Extend for cells on topography to air cell (only works for tensor mesh)
 
