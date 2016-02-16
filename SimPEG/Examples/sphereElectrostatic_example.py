@@ -2,7 +2,6 @@ from scipy.constants import epsilon_0
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import numpy as np
-from ipywidgets import *
 from SimPEG.Utils import ndgrid, mkvc
 
 '''
