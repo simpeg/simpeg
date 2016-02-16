@@ -556,7 +556,7 @@ def MN_Potential_total(sig0,sig1,R,E0,start,end,nbmp,mn):
     return MP,EL,dVtMP,dVtMPn,dVsMP,dVsMPn
 
 #Compare the DC response of two configurations
-def two_configurations_comparison(XYZ,sig0,sig1,sig2,R0,R1,E0,xstart,ystart,xend,yend,nb_dipole,electrode_spacing,PlotOpt):#,linearcolor):
+def two_configurations_comparison(XYZ,sig0,sig1,sig2,R0,R1,E0,xstart,ystart,xend,yend,nb_dipole,electrode_spacing,PlotOpt,ax):
     
     #Define the mesh
     xr,yr,zr = np.unique(XYZ[:,0]),np.unique(XYZ[:,1]),np.unique(XYZ[:,2])
@@ -571,69 +571,69 @@ def two_configurations_comparison(XYZ,sig0,sig1,sig2,R0,R1,E0,xstart,ystart,xend
 
 
     # Initializing the figure
-    fig = plt.figure(figsize=(20,20))
-    ax0 = plt.subplot2grid((20,12), (0, 0),colspan=6,rowspan=6)
-    ax1 = plt.subplot2grid((20,12), (0, 6),colspan=6,rowspan=6)
-    ax2 = plt.subplot2grid((20,12), (16, 2), colspan=9,rowspan=4)
-    ax3 = plt.subplot2grid((20,12), (8, 0),colspan=6,rowspan=6)
-    ax4 = plt.subplot2grid((20,12), (8, 6),colspan=6,rowspan=6)
+    #fig = plt.figure(figsize=(20,20))
+    #ax0 = plt.subplot2grid((20,12), (0, 0),colspan=6,rowspan=6)
+    #ax1 = plt.subplot2grid((20,12), (0, 6),colspan=6,rowspan=6)
+    #ax2 = plt.subplot2grid((20,12), (16, 2), colspan=9,rowspan=4)
+    #ax3 = plt.subplot2grid((20,12), (8, 0),colspan=6,rowspan=6)
+    #ax4 = plt.subplot2grid((20,12), (8, 6),colspan=6,rowspan=6)
 
     #Plotting the Configuration 0
-    ax0 = get_Setup(XYZ,sig0,sig1,R0,E0,ax0,True,[0.6,0.1,0.1])
+    ax[0] = get_Setup(XYZ,sig0,sig1,R0,E0,ax[0],True,[0.6,0.1,0.1])
     
     #Plotting the Configuration 1
-    ax1   = get_Setup(XYZ,sig0,sig2,R1,E0,ax1,True,[0.1,0.1,0.6])
+    ax[1]   = get_Setup(XYZ,sig0,sig2,R1,E0,ax[1],True,[0.1,0.1,0.6])
     
     #Plotting the Data (Legends)
-    ax2.set_title('Potential Differences',fontsize=ftsize_title)
-    ax2.set_ylabel('Potential difference ($V$)',fontsize=ftsize_label)
-    ax2.set_xlabel('Distance from start point ($m$)',fontsize=ftsize_label)
-    ax2.tick_params(labelsize=ftsize_axis)
-    ax2.grid()
+    ax[2].set_title('Potential Differences',fontsize=ftsize_title)
+    ax[2].set_ylabel('Potential difference ($V$)',fontsize=ftsize_label)
+    ax[2].set_xlabel('Distance from start point ($m$)',fontsize=ftsize_label)
+    ax[2].tick_params(labelsize=ftsize_axis)
+    ax[2].grid()
 
     if PlotOpt == 'Total':
-        ax3= Plot_Total_Potential(XYZ,sig0,sig1,R0,E0,ax3)
-        ax4= Plot_Total_Potential(XYZ,sig0,sig2,R1,E0,ax4)
+        ax[3]= Plot_Total_Potential(XYZ,sig0,sig1,R0,E0,ax[3])
+        ax[4]= Plot_Total_Potential(XYZ,sig0,sig2,R1,E0,ax[4])
            
         #Plot the Data (from Configuration 0)    
-        gphy0 = ax2.plot(np.sqrt((MP0[0,0]-MP0[:,0])**2+(MP0[:,1]-MP0[0,1])**2),VtdMP0
+        gphy0 = ax[2].plot(np.sqrt((MP0[0,0]-MP0[:,0])**2+(MP0[:,1]-MP0[0,1])**2),VtdMP0
                          ,marker='o',color='blue',linewidth=3.,label ='Left Model Response' )
 
         #Plot the Data (from Configuration 1)
-        gphy1 = ax2.plot(np.sqrt((MP1[0,0]-MP1[:,0])**2+(MP1[:,1]-MP1[0,1])**2),VtdMP1
+        gphy1 = ax[2].plot(np.sqrt((MP1[0,0]-MP1[:,0])**2+(MP1[:,1]-MP1[0,1])**2),VtdMP1
                 ,marker='o',color='red',linewidth=2.,label ='Right Model Response' )
-        ax2.legend(('Left Model Response','Right Model Response'),loc=4)
+        ax[2].legend(('Left Model Response','Right Model Response'),loc=4)
 
     elif PlotOpt == 'Secondary':
         #plot the secondary potentials
-        ax3= Plot_Secondary_Potential(XYZ,sig0,sig1,R0,E0,ax3)
-        ax4= Plot_Secondary_Potential(XYZ,sig0,sig2,R1,E0,ax4)
+        ax[3]= Plot_Secondary_Potential(XYZ,sig0,sig1,R0,E0,ax[3])
+        ax[4]= Plot_Secondary_Potential(XYZ,sig0,sig2,R1,E0,ax[4])
                
         #Plot the data(from configuration 0)
-        gphy0 = ax2.plot(np.sqrt((MP0[0,0]-MP0[:,0])**2+(MP0[:,1]-MP0[0,1])**2),VsdMP0,color='blue'
+        gphy0 = ax[2].plot(np.sqrt((MP0[0,0]-MP0[:,0])**2+(MP0[:,1]-MP0[0,1])**2),VsdMP0,color='blue'
                 ,marker='o',linewidth=3.,label ='Left Model Response' )
 
         
         #Plot the Data (from Configuration 1)
-        gphy1 = ax2.plot(np.sqrt((MP1[0,0]-MP1[:,0])**2+(MP1[:,1]-MP1[0,1])**2),VsdMP1
+        gphy1 = ax[2].plot(np.sqrt((MP1[0,0]-MP1[:,0])**2+(MP1[:,1]-MP1[0,1])**2),VsdMP1
                  ,marker='o',color='red',linewidth=2.,label ='Right Model Response' )
-        ax2.legend(('Left Model Response','Right Model Response'),loc=4 )
+        ax[2].legend(('Left Model Response','Right Model Response'),loc=4 )
     
     else:
         print('What dont you get? Total or Secondary?')
     
     #Legends
-    ax3.plot(MP0[:,0],MP0[:,1],color='gray')           
-    Dip_Midpoint0 = ax3.scatter(MP0[:,0],MP0[:,1],color='black')
-    Electrodes0 = ax3.scatter(EL0[:,0],EL0[:,1],color='red')
-    ax3.legend([Dip_Midpoint0,Electrodes0], ["Dipole Midpoint", "Electrodes"],scatterpoints=1)
+    ax[3].plot(MP0[:,0],MP0[:,1],color='gray')           
+    Dip_Midpoint0 = ax[3].scatter(MP0[:,0],MP0[:,1],color='black')
+    Electrodes0 = ax[3].scatter(EL0[:,0],EL0[:,1],color='red')
+    ax[3].legend([Dip_Midpoint0,Electrodes0], ["Dipole Midpoint", "Electrodes"],scatterpoints=1)
     
-    ax4.plot(MP1[:,0],MP1[:,1],color='gray')           
-    Dip_Midpoint1 = ax4.scatter(MP1[:,0],MP1[:,1],color='black')
-    Electrodes1 = ax4.scatter(EL1[:,0],EL1[:,1],color='red')
-    ax4.legend([Dip_Midpoint1,Electrodes1], ["Dipole Midpoint", "Electrodes"],scatterpoints=1)
+    ax[4].plot(MP1[:,0],MP1[:,1],color='gray')           
+    Dip_Midpoint1 = ax[4].scatter(MP1[:,0],MP1[:,1],color='black')
+    Electrodes1 = ax[4].scatter(EL1[:,0],EL1[:,1],color='red')
+    ax[4].legend([Dip_Midpoint1,Electrodes1], ["Dipole Midpoint", "Electrodes"],scatterpoints=1)
         
-    return fig
+    return ax
 
 #Function to visualise and compare any two meaningful plots for the sphere in a uniform backgound with an unifom Electric Field
 def interact_conductiveSphere(R,log_sig0,log_sig1,Figure1a,Figure1b,Figure2a,Figure2b):
@@ -728,6 +728,15 @@ def interactive_two_configurations_comparison(log_sig0,log_sig1,log_sig2,R0,R1,x
     zr = np.r_[0]          # identical to saying `zr = np.array([0])`
     XYZ = ndgrid(xr,yr,zr) # Space Definition
     PlotOpt = 'Total'
+
+    #Initializing the figure
+    fig = plt.figure(figsize=(20,20))
+    ax0 = plt.subplot2grid((20,12), (0, 0),colspan=6,rowspan=6) #Configuration Conductive Sphere
+    ax1 = plt.subplot2grid((20,12), (0, 6),colspan=6,rowspan=6) #Configuration Resistive Sphere
+    ax2 = plt.subplot2grid((20,12), (16, 2), colspan=9,rowspan=4) # Data
+    ax3 = plt.subplot2grid((20,12), (8, 0),colspan=6,rowspan=6) #Potential Conductive Sphere
+    ax4 = plt.subplot2grid((20,12), (8, 6),colspan=6,rowspan=6) #Potential Resistive Potential
+    ax = [ax0,ax1,ax2,ax3,ax4]
     
     if matching_spheres_example:
         sig0 = 10.**(-3)         
@@ -736,17 +745,17 @@ def interactive_two_configurations_comparison(log_sig0,log_sig1,log_sig2,R0,R1,x
         R0   = 20.          
         R1   = 40.
 
-        two_configurations_comparison(XYZ,sig0,sig1,sig2,R0,R1,E0,xstart,ystart,xend,yend,dipole_number,electrode_spacing,PlotOpt)
+        two_configurations_comparison(XYZ,sig0,sig1,sig2,R0,R1,E0,xstart,ystart,xend,yend,dipole_number,electrode_spacing,PlotOpt,ax)
 
     else:
-        two_configurations_comparison(XYZ,sig0,sig1,sig2,R0,R1,E0,xstart,ystart,xend,yend,dipole_number,electrode_spacing,PlotOpt)
+        two_configurations_comparison(XYZ,sig0,sig1,sig2,R0,R1,E0,xstart,ystart,xend,yend,dipole_number,electrode_spacing,PlotOpt,ax)
 
     plt.tight_layout(True)
     plt.show()
 
 
 
-if __name__ == '__main__':
+def run(PlotIt=True):
     sig0 = -3.          # conductivity of the wholespace
     sig1 = -1.         # conductivity of the sphere
     sig0, sig1 = conductivity_log_wrapper(sig0,sig1)
@@ -758,18 +767,28 @@ if __name__ == '__main__':
     zr = np.r_[0]          # identical to saying `zr = np.array([0])`
     XYZ = ndgrid(xr,yr,zr) # Space Definition
 
-    fig, ax = plt.subplots(2,5,figsize=(50,10))
-    ax[0,0] = get_Setup(XYZ,sig0,sig1,R,E0,ax[0,0],True,[0.6,0.1,0.1])
-    ax[1,0] = Plot_Primary_Potential(XYZ,sig0,sig1,R,E0,ax[1,0])
-    ax[0,1] = Plot_Total_Potential(XYZ,sig0,sig1,R,E0,ax[0,1])
-    ax[1,1] = Plot_Secondary_Potential(XYZ,sig0,sig1,R,E0,ax[1,1])
-    ax[0,2] = Plot_Total_ElectricField(XYZ,sig0,sig1,R,E0,ax[0,2])
-    ax[1,2] = Plot_Secondary_ElectricField(XYZ,sig0,sig1,R,E0,ax[1,2])
-    ax[0,3] = Plot_Total_Currents(XYZ,sig0,sig1,R,E0,ax[0,3])
-    ax[1,3] = Plot_Secondary_Currents(XYZ,sig0,sig1,R,E0,ax[1,3])
-    ax[0,4] = Plot_Primary_Potential(XYZ,sig0,sig1,R,E0,ax[0,4])
-    ax[1,4] = Plot_ChargesDensity(XYZ,sig0,sig1,R,E0,ax[1,4])
+    Vt,Vp,Vs = get_Potential(XYZ,sig0,sig1,R,E0)
+    Et, Ep, Es = get_ElectricField(XYZ,sig0,sig1,R,E0)
+    Jt,Jp,Js = get_Current(XYZ,sig0,sig1,R,Et,Ep,Es)
+    rho = get_ChargesDensity(XYZ,sig0,sig1,R,Et,Ep)
+
+    if PlotIt:
+        fig, ax = plt.subplots(2,5,figsize=(50,10))
+        ax[0,0] = get_Setup(XYZ,sig0,sig1,R,E0,ax[0,0],True,[0.6,0.1,0.1])
+        ax[1,0] = Plot_Primary_Potential(XYZ,sig0,sig1,R,E0,ax[1,0])
+        ax[0,1] = Plot_Total_Potential(XYZ,sig0,sig1,R,E0,ax[0,1])
+        ax[1,1] = Plot_Secondary_Potential(XYZ,sig0,sig1,R,E0,ax[1,1])
+        ax[0,2] = Plot_Total_ElectricField(XYZ,sig0,sig1,R,E0,ax[0,2])
+        ax[1,2] = Plot_Secondary_ElectricField(XYZ,sig0,sig1,R,E0,ax[1,2])
+        ax[0,3] = Plot_Total_Currents(XYZ,sig0,sig1,R,E0,ax[0,3])
+        ax[1,3] = Plot_Secondary_Currents(XYZ,sig0,sig1,R,E0,ax[1,3])
+        ax[0,4] = Plot_Primary_Potential(XYZ,sig0,sig1,R,E0,ax[0,4])
+        ax[1,4] = Plot_ChargesDensity(XYZ,sig0,sig1,R,E0,ax[1,4])
+
+        plt.show()
+
+    return Vt,Vp,Vs,Et,Ep,Es,Jt,Jp,Js,rho
     
 
-    plt.show()
-
+if __name__ == '__main__':
+    run()
