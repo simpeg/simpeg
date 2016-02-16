@@ -1,20 +1,30 @@
-from SimPEG import *
+from SimPEG import Mesh, Utils, np, sp
 import SimPEG.DCIP as DC
-import scipy.interpolate as interpolation
-import matplotlib.pyplot as plt
 import time
-import re
 
-def run(loc=np.c_[[-50.,0.,-50.],[50.,0.,-50.]], sig=np.r_[1e-2,1e-1,1e-3], radi=np.r_[25.,25.], param = np.r_[30.,30.,5], stype = 'dpdp',  plotIt=True):
+def run(loc=None, sig=None, radi=None, param=None, stype='dpdp', plotIt=True):
     """
-    DC Forward Simulation
+        DC Forward Simulation
+        =====================
 
-    Forward model conductive spheres in a half-space and plot a pseudo-section
+        Forward model conductive spheres in a half-space and plot a pseudo-section
 
-    Created on Mon Feb 01 19:28:06 2016
+        Created by @fourndo on Mon Feb 01 19:28:06 2016
 
-    @fourndo
     """
+
+    assert stype in ['pdp', 'dpdp'], "Source type (stype) must be pdp or dpdp (pole dipole or dipole dipole)"
+
+
+    if loc is None:
+        loc = np.c_[[-50.,0.,-50.],[50.,0.,-50.]]
+    if sig is None:
+        sig = np.r_[1e-2,1e-1,1e-3]
+    if radi is None:
+        radi = np.r_[25.,25.]
+    if param is None:
+        param = np.r_[30.,30.,5]
+
 
     # First we need to create a mesh and a model.
 
@@ -104,24 +114,21 @@ def run(loc=np.c_[[-50.,0.,-50.],[50.,0.,-50.]], sig=np.r_[1e-2,1e-1,1e-3], radi
 
 
         # For usual cases "dpdp" or "gradient"
-        if not re.match(stype,'pdp'):
-            inds = Utils.closestPoints(mesh, np.asarray(Tx[ii]).T )
-            RHS = mesh.getInterpolationMat(np.asarray(Tx[ii]).T, 'CC').T*( [-1,1] / mesh.vol[inds] )
-
-        else:
-
+        if stype == 'pdp':
             # Create an "inifinity" pole
             tx =  np.squeeze(Tx[ii][:,0:1])
             tinf = tx + np.array([dl_x,dl_y,0])*dl_len*2
             inds = Utils.closestPoints(mesh, np.c_[tx,tinf].T)
             RHS = mesh.getInterpolationMat(np.asarray(Tx[ii]).T, 'CC').T*( [-1] / mesh.vol[inds] )
-
+        else:
+            inds = Utils.closestPoints(mesh, np.asarray(Tx[ii]).T )
+            RHS = mesh.getInterpolationMat(np.asarray(Tx[ii]).T, 'CC').T*( [-1,1] / mesh.vol[inds] )
 
         # Iterative Solve
         Ainvb = sp.linalg.bicgstab(P*A,P*RHS, tol=1e-5)
 
         # We now have the potential everywhere
-        phi = mkvc(Ainvb[0])
+        phi = Utils.mkvc(Ainvb[0])
 
         # Solve for phi on pole locations
         P1 = mesh.getInterpolationMat(rxloc_M, 'CC')
@@ -143,6 +150,7 @@ def run(loc=np.c_[[-50.,0.,-50.],[50.,0.,-50.]], sig=np.r_[1e-2,1e-1,1e-3], radi
 
     # Here is an example for the first tx-rx array
     if plotIt:
+        import matplotlib.pyplot as plt
         fig = plt.figure()
         ax = plt.subplot(2,1,1, aspect='equal')
         mesh.plotSlice(np.log10(model), ax =ax, normal = 'Y', ind = indy,grid=True)
