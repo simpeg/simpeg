@@ -774,7 +774,7 @@ def run(plotIt=True):
     Jt,Jp,Js = get_Current(XYZ,sig0,sig1,R,Et,Ep,Es)
     rho = get_ChargesDensity(XYZ,sig0,sig1,R,Et,Ep)
 
-    if PlotIt:
+    if plotIt:
         fig, ax = plt.subplots(2,5,figsize=(50,10))
         ax[0,0] = get_Setup(XYZ,sig0,sig1,R,E0,ax[0,0],True,[0.6,0.1,0.1])
         ax[1,0] = Plot_Primary_Potential(XYZ,sig0,sig1,R,E0,ax[1,0])
