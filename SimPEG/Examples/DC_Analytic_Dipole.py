@@ -1,7 +1,5 @@
 from SimPEG import *
 import SimPEG.DCIP as DC
-import matplotlib.pyplot as plt
-
 
 def run(plotIt=False):
     cs = 25.
@@ -51,6 +49,7 @@ def run(plotIt=False):
     Y = xyz_rxM[:,1].reshape((21, 21), order = 'F')
 
     if plotIt:
+        import matplotlib.pyplot as plt
         fig, ax = plt.subplots(1,2, figsize = (12, 5))
         vmin = np.r_[data, data_ana].min()
         vmax = np.r_[data, data_ana].max()
