@@ -757,7 +757,7 @@ def interactive_two_configurations_comparison(log_sig0,log_sig1,log_sig2,R0,R1,x
 
 
 
-def run(PlotIt=True):
+def run(plotIt=True):
     sig0 = -3.          # conductivity of the wholespace
     sig1 = -1.         # conductivity of the sphere
     sig0, sig1 = conductivity_log_wrapper(sig0,sig1)
