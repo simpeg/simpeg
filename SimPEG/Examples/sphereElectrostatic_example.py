@@ -16,6 +16,8 @@ finally the charges accumulation.
 
 Several plotting functions are defined for data visualisation.
 
+Please visit http://em.geosci.xyz/en/latest/content/maxwell2_steady_state/electrostatic_sphere.html
+for more examples using this code.
 
 '''
 
