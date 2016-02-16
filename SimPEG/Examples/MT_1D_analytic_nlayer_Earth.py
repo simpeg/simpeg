@@ -414,7 +414,7 @@ def PlotAppRes3LayersInteract(h1,h2,sigl1,sigl2,sigl3,mul1,mul2,mul3,epsl1,epsl2
     PlotAppRes(frangn,thick3,sig3,chg3_0,taux3,c3,mu3,eps3,3,F_Envelope,PlotEnvelope)
     
 
-def run(n,plotIt=True):
+def run(n=3,plotIt=True):
     # something to make a plot
 
     F = frange(-5.,5.,20)
@@ -435,7 +435,7 @@ def run(n,plotIt=True):
     return Res, Phase
 
 if __name__ == '__main__':
-    run(3)
+    run()
        
     
     

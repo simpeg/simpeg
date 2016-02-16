@@ -1,4 +1,4 @@
-.. _examples_DC_PseudoSection_Simulation:
+.. _examples_MT_1D_analytic_nlayer_Earth:
 
 .. --------------------------------- ..
 ..                                   ..
@@ -8,24 +8,14 @@
 ..                                   ..
 .. --------------------------------- ..
 
-
-
-DC Forward Simulation
-=====================
-
-Forward model conductive spheres in a half-space and plot a pseudo-section
-
-Created on Mon Feb 01 19:28:06 2016
-
-@fourndo
-
-
+MT 1D analytic nlayer Earth
+===========================
 
 .. plot::
 
     from SimPEG import Examples
-    Examples.DC_PseudoSection_Simulation.run()
+    Examples.MT_1D_analytic_nlayer_Earth.run()
 
-.. literalinclude:: ../../SimPEG/Examples/DC_PseudoSection_Simulation.py
+.. literalinclude:: ../../SimPEG/Examples/MT_1D_analytic_nlayer_Earth.py
     :language: python
     :linenos:
