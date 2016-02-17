@@ -2,7 +2,6 @@ import numpy as np
 import scipy.sparse as sp
 from codeutils import isScalar
 
-
 def mkvc(x, numDims=1):
     """Creates a vector with the number of dimension specified
 
@@ -41,7 +40,7 @@ def mkvc(x, numDims=1):
 def sdiag(h):
     """Sparse diagonal matrix"""
     if isinstance(h, Zero):
-        return h
+        return Zero()
 
     return sp.spdiags(mkvc(h), 0, h.size, h.size, format="csr")
 

@@ -79,12 +79,32 @@ class SrcTDEM(Survey.BaseSrc):
 
 class SrcTDEM_VMD_MVP(SrcTDEM):
 
-    def __init__(self,rxList,loc):
+    def __init__(self,rxList,loc,waveformType="STEPOFF"):
         self.loc = loc
+        self.waveformType = waveformType
         SrcTDEM.__init__(self,rxList)
 
     def getInitialFields(self, mesh):
         """Vertical magnetic dipole, magnetic vector potential"""
+        if self.waveformType == "STEPOFF":
+            print ">> Step waveform: Non-zero initial condition"        
+            if mesh._meshType is 'CYL':
+                if mesh.isSymmetric:
+                    MVP = MagneticDipoleVectorPotential(self.loc, mesh, 'Ey')
+                else:
+                    raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
+            elif mesh._meshType is 'TENSOR':
+                MVP = MagneticDipoleVectorPotential(self.loc, mesh, ['Ex','Ey','Ez'])
+            else:
+                raise Exception('Unknown mesh for VMD') 
+            return {"b": mesh.edgeCurl*MVP}               
+        elif self.waveformType == "GENERAL":
+            print ">> General waveform: Zero initial condition"
+            return {"b": np.zeros(mesh.nF)}
+        else:
+            raise NotImplementedError("Only use STEPOFF or GENERAL")
+
+    def getMeS(self, mesh, MfMui):
         if mesh._meshType is 'CYL':
             if mesh.isSymmetric:
                 MVP = MagneticDipoleVectorPotential(self.loc, mesh, 'Ey')
@@ -93,13 +113,12 @@ class SrcTDEM_VMD_MVP(SrcTDEM):
         elif mesh._meshType is 'TENSOR':
             MVP = MagneticDipoleVectorPotential(self.loc, mesh, ['Ex','Ey','Ez'])
         else:
-            raise Exception('Unknown mesh for VMD')
-
-        return {"b": mesh.edgeCurl*MVP}
+            raise Exception('Unknown mesh for VMD')            
+        return mesh.edgeCurl.T*MfMui*mesh.edgeCurl*MVP
 
 
 class SrcTDEM_CircularLoop_MVP(SrcTDEM):
-    def __init__(self,rxList,loc,radius,waveformType):
+    def __init__(self,rxList,loc,radius,waveformType="STEPOFF"):
         self.loc = loc
         self.radius = radius
         self.waveformType = waveformType
