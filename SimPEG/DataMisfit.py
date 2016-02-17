@@ -59,20 +59,6 @@ class BaseDataMisfit(object):
         """
         raise NotImplementedError('This method should be overwritten.')
 
-    # TODO: implement target misfit as a property, or possibly as an inversion directive.
-
-    # def target(self, forward):
-    #     """target(forward)
-
-    #         Target for data misfit. By default this is the number of data,
-    #         which satisfies the Discrepancy Principle.
-
-    #         :rtype: float
-    #         :return: data misfit target
-
-    #     """
-    #     prob, survey = self.splitForward(forward)
-    #     return survey.nD
 
 
 class l2_DataMisfit(BaseDataMisfit):
@@ -103,10 +89,18 @@ class l2_DataMisfit(BaseDataMisfit):
         """
 
         if getattr(self, '_Wd', None) is None:
-            print 'SimPEG.l2_DataMisfit is creating default weightings for Wd.'
+            
             survey = self.survey
-            eps = np.linalg.norm(Utils.mkvc(survey.dobs),2)*1e-5
-            self._Wd = Utils.sdiag(1/(abs(survey.dobs)*survey.std+eps))
+
+            if getattr(survey,'std', None) is None:
+                print 'SimPEG.DataMisfit.l2_DataMisfit assigning default std of 5%'
+                survey.std = 0.05
+
+            if getattr(survey, 'eps', None) is None:
+                print 'SimPEG.DataMisfit.l2_DataMisfit assigning default eps of 1e-5 * ||dobs||'
+                survey.eps = np.linalg.norm(Utils.mkvc(survey.dobs),2)*1e-5
+
+            self._Wd = Utils.sdiag(1/(abs(survey.dobs)*survey.std+survey.eps))
         return self._Wd
 
     @Wd.setter
