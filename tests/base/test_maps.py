@@ -5,8 +5,8 @@ from scipy.sparse.linalg import dsolve
 
 TOL = 1e-14
 
-MAPS_TO_TEST_2D = ["CircleMap", "ComplexMap", "ExpMap", "IdentityMap", "SurjectVertical1D", "Weighting", "SurjectFull"]
-MAPS_TO_TEST_3D = [             "ComplexMap", "ExpMap", "IdentityMap", "SurjectVertical1D", "Weighting", "SurjectFull"]
+MAPS_TO_TEST_2D = ["CircleMap", "ComplexMap", "ExpMap", "IdentityMap", "SurjectVertical1D", "Weighting", "SurjectFull","FullMap","Vertical1DMap"]
+MAPS_TO_TEST_3D = [             "ComplexMap", "ExpMap", "IdentityMap", "SurjectVertical1D", "Weighting", "SurjectFull","FullMap","Vertical1DMap"]
 
 class MapTests(unittest.TestCase):
 
@@ -83,16 +83,17 @@ class MapTests(unittest.TestCase):
     def test_activeCells(self):
         M = Mesh.TensorMesh([2,4],'0C')
         expMap = Maps.ExpMap(M)
-        actMap = Maps.InjectActiveCells(M, M.vectorCCy <=0, 10, nC=M.nCy)
-        vertMap = Maps.SurjectVertical1D(M)
-        combo = vertMap * actMap
-        m = np.r_[1,2.]
-        mod = Models.Model(m,combo)
-        # import matplotlib.pyplot as plt
-        # plt.colorbar(M.plotImage(mod.transform)[0])
-        # plt.show()
-        self.assertLess(np.linalg.norm(mod.transform - np.r_[1,1,2,2,10,10,10,10.]), TOL)
-        self.assertLess((mod.transformDeriv - combo.deriv(m)).toarray().sum(), TOL)
+        for actMap in [Maps.InjectActiveCells(M, M.vectorCCy <=0, 10, nC=M.nCy), Maps.ActiveCells(M, M.vectorCCy <=0, 10, nC=M.nCy)]:
+        # actMap = Maps.InjectActiveCells(M, M.vectorCCy <=0, 10, nC=M.nCy)
+            vertMap = Maps.SurjectVertical1D(M)
+            combo = vertMap * actMap
+            m = np.r_[1,2.]
+            mod = Models.Model(m,combo)
+            # import matplotlib.pyplot as plt
+            # plt.colorbar(M.plotImage(mod.transform)[0])
+            # plt.show()
+            self.assertLess(np.linalg.norm(mod.transform - np.r_[1,1,2,2,10,10,10,10.]), TOL)
+            self.assertLess((mod.transformDeriv - combo.deriv(m)).toarray().sum(), TOL)
 
     def test_tripleMultiply(self):
         M = Mesh.TensorMesh([2,4],'0C')
@@ -115,29 +116,33 @@ class MapTests(unittest.TestCase):
         M2 = Mesh.TensorMesh([2,4])
         M3 = Mesh.TensorMesh([3,2,4])
         m = np.random.rand(M2.nC)
-        m2to3 = Maps.Surject2Dto3D(M3, normal='X')
-        m = np.arange(m2to3.nP)
-        self.assertTrue(m2to3.test())
-        self.assertTrue(np.all(Utils.mkvc( (m2to3 * m).reshape(M3.vnC,order='F')[0,:,:] ) == m))
+
+        for m2to3 in [Maps.Surject2Dto3D(M3, normal='X'), Maps.Map2Dto3D(M3, normal='X')]:
+        # m2to3 = Maps.Surject2Dto3D(M3, normal='X')
+            m = np.arange(m2to3.nP)
+            self.assertTrue(m2to3.test())
+            self.assertTrue(np.all(Utils.mkvc( (m2to3 * m).reshape(M3.vnC,order='F')[0,:,:] ) == m))
 
 
     def test_map2Dto3D_y(self):
         M2 = Mesh.TensorMesh([3,4])
         M3 = Mesh.TensorMesh([3,2,4])
         m = np.random.rand(M2.nC)
-        m2to3 = Maps.Surject2Dto3D(M3, normal='Y')
-        m = np.arange(m2to3.nP)
-        self.assertTrue(m2to3.test())
-        self.assertTrue(np.all(Utils.mkvc( (m2to3 * m).reshape(M3.vnC,order='F')[:,0,:] ) == m))
+        for m2to3 in [Maps.Surject2Dto3D(M3, normal='Y'),Maps.Map2Dto3D(M3, normal='Y')]:
+        # m2to3 = Maps.Surject2Dto3D(M3, normal='Y')
+            m = np.arange(m2to3.nP)
+            self.assertTrue(m2to3.test())
+            self.assertTrue(np.all(Utils.mkvc( (m2to3 * m).reshape(M3.vnC,order='F')[:,0,:] ) == m))
 
     def test_map2Dto3D_z(self):
         M2 = Mesh.TensorMesh([3,2])
         M3 = Mesh.TensorMesh([3,2,4])
         m = np.random.rand(M2.nC)
-        m2to3 = Maps.Surject2Dto3D(M3, normal='Z')
-        m = np.arange(m2to3.nP)
-        self.assertTrue(m2to3.test())
-        self.assertTrue(np.all(Utils.mkvc( (m2to3 * m).reshape(M3.vnC,order='F')[:,:,0] ) == m))
+        for m2to3 in [Maps.Surject2Dto3D(M3, normal='Z'),Maps.Map2Dto3D(M3, normal='Z')]:
+        # m2to3 = Maps.Surject2Dto3D(M3, normal='Z')
+            m = np.arange(m2to3.nP)
+            self.assertTrue(m2to3.test())
+            self.assertTrue(np.all(Utils.mkvc( (m2to3 * m).reshape(M3.vnC,order='F')[:,:,0] ) == m))
 
 
 if __name__ == '__main__':
