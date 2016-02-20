@@ -55,7 +55,7 @@ class BaseRegularization(object):
     @property
     def W(self):
         """Full regularization weighting matrix W."""
-        return self._Pac.T * sp.identity(self.mesh.nC) * self. # or do we want sp.identity(self.mesh.nC) or even just Utils.Identity() ?
+        return self._Pac.T * sp.identity(self.mesh.nC) * self._Pac # or do we want sp.identity(self.mesh.nC) or even just Utils.Identity() ?
 
     @property
     def _Pac(self):
