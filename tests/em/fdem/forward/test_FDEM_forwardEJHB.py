@@ -5,10 +5,10 @@ import sys
 from scipy.constants import mu_0
 from SimPEG.EM.Utils.testingUtils import getFDEMProblem, crossCheckTest
 
-testEB = True
-testHJ = True
-testEJ = True
-testBH = True
+testEB = False
+testHJ = False
+testEJ = False
+testBH = False
 
 TOLEBHJ = 1e-5
 TOLEJHB = 1 # averaging and more sensitive to boundary condition violations (ie. the impact of violating the boundary conditions in each case is different.)
