@@ -84,23 +84,15 @@ class BaseFDEMProblem(BaseEMProblem):
             for src in self.survey.getSrcByFreq(freq):
                 ftype = self._fieldType + 'Solution'
                 u_src = u[src, ftype]
-                dA_dm = self.getADeriv_m(freq, u_src, v)
-                dRHS_dm = self.getRHSDeriv_m(freq, src, v) 
-                du_dm = Ainv * ( - dA_dm + dRHS_dm )
+                dA_dm_v = self.getADeriv(freq, u_src, v)
+                dRHS_dm_v = self.getRHSDeriv(freq, src, v) 
+                du_dm_v = Ainv * ( - dA_dm_v + dRHS_dm_v )
                 
                 for rx in src.rxList:
-                    df_duFun = getattr(u, '_%sDeriv_u'%rx.projField, None)
-                    df_dudu_dm = df_duFun(src, du_dm, adjoint=False)
-
-                    df_dmFun = getattr(u, '_%sDeriv_m'%rx.projField, None)
-                    df_dm = df_dmFun(src, v, adjoint=False)
-
-
-                    Df_Dm = np.array(df_dudu_dm + df_dm,dtype=complex)
-
-                    P = lambda v: rx.projectFieldsDeriv(src, self.mesh, u, v) # wrt u, also have wrt m
-
-                    Jv[src, rx] = P(Df_Dm)
+                    df_dmFun = getattr(u, '_%sDeriv'%rx.projField, None)
+                    df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
+                    df_dm_v = np.array(df_dm_v,dtype=complex)
+                    Jv[src, rx] = rx.projectFieldsDeriv(src, self.mesh, u, df_dm_v)
 
             Ainv.clean()
         return Utils.mkvc(Jv)
@@ -138,26 +130,23 @@ class BaseFDEMProblem(BaseEMProblem):
                 for rx in src.rxList:
                     PTv = rx.projectFieldsDeriv(src, self.mesh, u, v[src, rx], adjoint=True) # wrt u, need possibility wrt m
 
-                    df_duTFun = getattr(u, '_%sDeriv_u'%rx.projField, None)
-                    df_duT = df_duTFun(src, PTv, adjoint=True)
-                    
+                    df_duTFun = getattr(u, '_%sDeriv'%rx.projField, None)
+                    df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
+
                     ATinvdf_duT = ATinv * df_duT
 
-                    dA_dmT = self.getADeriv_m(freq, u_src, ATinvdf_duT, adjoint=True)
-                    dRHS_dmT = self.getRHSDeriv_m(freq,src, ATinvdf_duT, adjoint=True)
+                    dA_dmT = self.getADeriv(freq, u_src, ATinvdf_duT, adjoint=True)
+                    dRHS_dmT = self.getRHSDeriv(freq, src, ATinvdf_duT, adjoint=True)
                     du_dmT = -dA_dmT + dRHS_dmT
 
-                    df_dmFun = getattr(u, '_%sDeriv_m'%rx.projField, None)
-                    dfT_dm = df_dmFun(src, PTv, adjoint=True)
+                    df_dmT += du_dmT
 
-                    du_dmT += dfT_dm
-
-                    # TODO: this should be taken care of by the reciever
+                    # TODO: this should be taken care of by the reciever?
                     real_or_imag = rx.projComp
                     if real_or_imag is 'real':
-                        Jtv +=   np.array(du_dmT,dtype=complex).real
+                        Jtv +=   np.array(df_dmT,dtype=complex).real
                     elif real_or_imag is 'imag':
-                        Jtv += - np.array(du_dmT,dtype=complex).real
+                        Jtv += - np.array(df_dmT,dtype=complex).real
                     else:
                         raise Exception('Must be real or imag')
             
@@ -239,7 +228,7 @@ class Problem_e(BaseFDEMProblem):
         return C.T*MfMui*C + 1j*omega(freq)*MeSigma
 
 
-    def getADeriv_m(self, freq, u, v, adjoint=False):
+    def getADeriv(self, freq, u, v, adjoint=False):
         """
         Product of the derivative of our system matrix with respect to the model and a vector
 
@@ -280,7 +269,7 @@ class Problem_e(BaseFDEMProblem):
 
         return C.T * (MfMui * S_m) -1j * omega(freq) * S_e
 
-    def getRHSDeriv_m(self, freq, src, v, adjoint=False):
+    def getRHSDeriv(self, freq, src, v, adjoint=False):
         """
         Derivative of the right hand side with respect to the model 
 
@@ -354,7 +343,7 @@ class Problem_b(BaseFDEMProblem):
             return MfMui.T*A
         return A
 
-    def getADeriv_m(self, freq, u, v, adjoint=False):
+    def getADeriv(self, freq, u, v, adjoint=False):
 
         """
         Product of the derivative of our system matrix with respect to the model and a vector
@@ -411,7 +400,7 @@ class Problem_b(BaseFDEMProblem):
 
         return RHS
 
-    def getRHSDeriv_m(self, freq, src, v, adjoint=False):
+    def getRHSDeriv(self, freq, src, v, adjoint=False):
         """
         Derivative of the right hand side with respect to the model
 
@@ -503,7 +492,7 @@ class Problem_j(BaseFDEMProblem):
         return A
 
 
-    def getADeriv_m(self, freq, u, v, adjoint=False):
+    def getADeriv(self, freq, u, v, adjoint=False):
         """
         Product of the derivative of our system matrix with respect to the model and a vector
 
@@ -524,16 +513,16 @@ class Problem_j(BaseFDEMProblem):
         MeMuI = self.MeMuI
         MfRho = self.MfRho
         C = self.mesh.edgeCurl
-        MfRhoDeriv_m = self.MfRhoDeriv(u)
+        MfRhoDeriv = self.MfRhoDeriv(u)
 
         if adjoint:
             if self._makeASymmetric is True:
                 v = MfRho * v
-            return MfRhoDeriv_m.T * (C * (MeMuI.T * (C.T * v)))
+            return MfRhoDeriv.T * (C * (MeMuI.T * (C.T * v)))
 
         if self._makeASymmetric is True:
-            return MfRho.T * (C * ( MeMuI * (C.T * (MfRhoDeriv_m * v) )))
-        return C * (MeMuI * (C.T * (MfRhoDeriv_m * v)))
+            return MfRho.T * (C * ( MeMuI * (C.T * (MfRhoDeriv * v) )))
+        return C * (MeMuI * (C.T * (MfRhoDeriv * v)))
 
 
     def getRHS(self, freq):
@@ -560,7 +549,7 @@ class Problem_j(BaseFDEMProblem):
 
         return RHS
 
-    def getRHSDeriv_m(self, freq, src, v, adjoint=False):
+    def getRHSDeriv(self, freq, src, v, adjoint=False):
         """
         Derivative of the right hand side with respect to the model 
 
@@ -635,7 +624,7 @@ class Problem_h(BaseFDEMProblem):
 
         return C.T * (MfRho * C) + 1j*omega(freq)*MeMu
 
-    def getADeriv_m(self, freq, u, v, adjoint=False):
+    def getADeriv(self, freq, u, v, adjoint=False):
         """
         Product of the derivative of our system matrix with respect to the model and a vector
 
@@ -652,11 +641,11 @@ class Problem_h(BaseFDEMProblem):
 
         MeMu = self.MeMu
         C = self.mesh.edgeCurl
-        MfRhoDeriv_m = self.MfRhoDeriv(C*u)
+        MfRhoDeriv = self.MfRhoDeriv(C*u)
 
         if adjoint:
-            return MfRhoDeriv_m.T * (C * v)
-        return C.T * (MfRhoDeriv_m * v)
+            return MfRhoDeriv.T * (C * v)
+        return C.T * (MfRhoDeriv * v)
 
     def getRHS(self, freq):
         """
@@ -677,7 +666,7 @@ class Problem_h(BaseFDEMProblem):
 
         return S_m + C.T * ( MfRho * S_e )
 
-    def getRHSDeriv_m(self, freq, src, v, adjoint=False):
+    def getRHSDeriv(self, freq, src, v, adjoint=False):
         """
         Derivative of the right hand side with respect to the model 
 
