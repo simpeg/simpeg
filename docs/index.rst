@@ -17,7 +17,7 @@ SimPEG Documentation
     :alt: BSD 3 clause license.
 
 .. image:: https://img.shields.io/travis/simpeg/simpeg.svg
-    :target: https://travis-ci.org/simpeg/simpeg
+    :target: https://travis-ci.org/simpeg/simpeg?branch=master
     :alt: Travis CI build status
 
 .. image:: https://img.shields.io/coveralls/simpeg/simpeg.svg
@@ -49,9 +49,7 @@ Examples
 
 .. toctree::
    :maxdepth: 2
-
    api_Examples
-   
 
 Packages
 ********
@@ -60,8 +58,8 @@ Packages
    :maxdepth: 3
 
    em/index
+   mt/index
    flow/index
-
 
 Finite Volume
 *************
