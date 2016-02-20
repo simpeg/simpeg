@@ -55,8 +55,47 @@ class BaseRegularization(object):
     @property
     def W(self):
         """Full regularization weighting matrix W."""
-        return sp.identity(self.mapping.nP)
+        return self._Pac.T * sp.identity(self.mesh.nC) * self. # or do we want sp.identity(self.mesh.nC) or even just Utils.Identity() ?
 
+    @property
+    def _Pac(self):
+        if getattr(self, '__Pac', None) is None:
+            if self.indActive is None:
+                self.__Pac = Utils.speye(self.mesh.nC)
+            else: 
+                self.__Pac = Utils.speye(self.mesh.nC)[:,self.indActive]
+        return self.__Pac
+
+    @property
+    def _Pafx(self):
+        if getattr(self, '__Pafx', None) is None:
+            if self.indActive is None:
+                self.__Pafx = Utils.speye(self.mesh.nFx)
+            else:
+                indActive_Fx = (self.mesh.aveFx2CC.T * self.indActive) == 1
+                self.__Pafx = Utils.speye(self.mesh.nFx)[:,indActive_Fx]
+        return self.__Pafx
+
+    @property
+    def _Pafy(self):
+        if getattr(self, '__Pafy', None) is None:
+            if self.indActive is None:
+                self.__Pafy = Utils.speye(self.mesh.nFy)
+            else:
+                indActive_Fy = (self.mesh.aveFy2CC.T * self.indActive) == 1
+                self.__Pafy = Utils.speye(self.mesh.nFy)[:,indActive_Fy]
+        return self.__Pafy
+
+    @property
+    def _Pafz(self):
+        if getattr(self, '__Pafz', None) is None:
+            if self.indActive is None:
+                self.__Pafz = Utils.speye(self.mesh.nFz)
+            else:
+                indActive_Fz = (self.mesh.aveFz2CC.T * self.indActive) == 1
+                self.__Pafz = Utils.speye(self.mesh.nFz)[:,indActive_Fz]
+        return self.__Pafz
+    
 
     @Utils.timeIt
     def eval(self, m):
@@ -133,10 +172,8 @@ class Tikhonov(BaseRegularization):
     def Ws(self):
         """Regularization matrix Ws"""
         if getattr(self,'_Ws', None) is None:
-            self._Ws = Utils.sdiag((self.mesh.vol*self.alpha_s)**0.5)
-            if self.indActive is not None:
-                Pac = Utils.speye(self.mesh.nC)[:,self.indActive]
-                self._Ws = Pac.T * self._Ws * Pac
+            Ws = Utils.sdiag((self.mesh.vol*self.alpha_s)**0.5)
+            self._Ws = self._Pac.T * Ws * self._Pac
         return self._Ws
 
     @property
@@ -144,14 +181,8 @@ class Tikhonov(BaseRegularization):
         """Regularization matrix Wx"""
         if getattr(self, '_Wx', None) is None:
             Ave_x_vol = self.mesh.aveF2CC[:,:self.mesh.nFx].T*self.mesh.vol
-            self._Wx = Utils.sdiag((Ave_x_vol*self.alpha_x)**0.5)*self.mesh.cellGradx
-
-            if self.indActive is not None:
-                indActive_Fx = (self.mesh.aveFx2CC.T * self.indActive) == 1
-                Pac = Utils.speye(self.mesh.nC)[:,self.indActive]
-                Pafx = Utils.speye(self.mesh.nFx)[:,indActive_Fx]
-                self._Wx = Pafx.T*self._Wx*Pac
-
+            Wx = Utils.sdiag((Ave_x_vol*self.alpha_x)**0.5)*self.mesh.cellGradx     
+            self._Wx = self._Pafx.T*Wx*self.self._Pac
         return self._Wx
 
     @property
@@ -159,14 +190,8 @@ class Tikhonov(BaseRegularization):
         """Regularization matrix Wy"""
         if getattr(self, '_Wy', None) is None:
             Ave_y_vol = self.mesh.aveF2CC[:,self.mesh.nFx:np.sum(self.mesh.vnF[:2])].T*self.mesh.vol
-            self._Wy = Utils.sdiag((Ave_y_vol*self.alpha_y)**0.5)*self.mesh.cellGrady
-
-            if self.indActive is not None:
-                indActive_Fy = (self.mesh.aveFy2CC.T * self.indActive) == 1
-                Pac = Utils.speye(self.mesh.nC)[:,self.indActive]
-                Pafy = Utils.speye(self.mesh.nFy)[:,indActive_Fy]
-                self._Wy = Pafy.T*self._Wy*Pac
-
+            Wy = Utils.sdiag((Ave_y_vol*self.alpha_y)**0.5)*self.mesh.cellGrady
+            self._Wy = self._Pafy.T*Wy*self._Pac
         return self._Wy
 
     @property
@@ -174,50 +199,32 @@ class Tikhonov(BaseRegularization):
         """Regularization matrix Wz"""
         if getattr(self, '_Wz', None) is None:
             Ave_z_vol = self.mesh.aveF2CC[:,np.sum(self.mesh.vnF[:2]):].T*self.mesh.vol
-            self._Wz = Utils.sdiag((Ave_z_vol*self.alpha_z)**0.5)*self.mesh.cellGradz
-
-            if self.indActive is not None:
-                indActive_Fz = (self.mesh.aveFz2CC.T * self.indActive) == 1
-                Pac = Utils.speye(self.mesh.nC)[:,self.indActive]
-                Pafz = Utils.speye(self.mesh.nFz)[:,indActive_Fz]
-                self._Wz = Pafz.T*self._Wz*Pac
-
+            Wz = Utils.sdiag((Ave_z_vol*self.alpha_z)**0.5)*self.mesh.cellGradz
+            self._Wz = self._Pafz.T*Wz*self._Pac
         return self._Wz
 
     @property
     def Wxx(self):
         """Regularization matrix Wxx"""
         if getattr(self, '_Wxx', None) is None:
-            self._Wxx = Utils.sdiag((self.mesh.vol*self.alpha_xx)**0.5)*self.mesh.faceDivx*self.mesh.cellGradx
-
-            if self.indActive is not None:
-                Pac = Utils.speye(self.mesh.nC)[:,self.indActive]
-                self._Wxx = Pac.T*self._Wxx*Pac
-
+            Wxx = Utils.sdiag((self.mesh.vol*self.alpha_xx)**0.5)*self.mesh.faceDivx*self.mesh.cellGradx
+            self._Wxx = self._Pac.T*Wxx*self._Pac
         return self._Wxx
 
     @property
     def Wyy(self):
         """Regularization matrix Wyy"""
         if getattr(self, '_Wyy', None) is None:
-            self._Wyy = Utils.sdiag((self.mesh.vol*self.alpha_yy)**0.5)*self.mesh.faceDivy*self.mesh.cellGrady
-
-            if self.indActive is not None:
-                Pac = Utils.speye(self.mesh.nC)[:,self.indActive]
-                self._Wyy = Pac.T*self._Wyy*Pac
-
+            Wyy = Utils.sdiag((self.mesh.vol*self.alpha_yy)**0.5)*self.mesh.faceDivy*self.mesh.cellGrady
+            self._Wyy = self._Pac.T*self._Wyy*self._Pac
         return self._Wyy
 
     @property
     def Wzz(self):
         """Regularization matrix Wzz"""
         if getattr(self, '_Wzz', None) is None:
-            self._Wzz = Utils.sdiag((self.mesh.vol*self.alpha_zz)**0.5)*self.mesh.faceDivz*self.mesh.cellGradz
-
-            if self.indActive is not None:
-                Pac = Utils.speye(self.mesh.nC)[:,self.indActive]
-                self._Wzz = Pac.T*self._Wzz*Pac
-
+            Wzz = Utils.sdiag((self.mesh.vol*self.alpha_zz)**0.5)*self.mesh.faceDivz*self.mesh.cellGradz
+            self._Wzz = self._Pac.T*Wzz*self._Pac
         return self._Wzz
 
     @property
@@ -346,14 +353,26 @@ class Simple(BaseRegularization):
         return self._W
 
     @Utils.timeIt
-    def eval(self, m):
+    def _evalSmall(self, m):
+        r = self.W * ( self.mapping * (m - self.mref) )
+        return 0.5*r.dot(r)
+
+    @Utils.timeIt
+    def _evalSmooth(self, m):
         if self.smoothModel == True:
             r1 = self.Wsmooth * ( self.mapping * (m) )
             r2 = self.Ws * ( self.mapping * (m - self.mref) )
             return 0.5*(r1.dot(r1)+r2.dot(r2))
-        elif self.smoothModel == False:
-            r = self.W * ( self.mapping * (m - self.mref) )
-            return 0.5*r.dot(r)
+        else:
+            return None
+
+    @Utils.timeIt
+    def eval(self, m):
+        phim = self._evalSmall(m)
+        if self.smoothModel is True:
+            phim += self._evalSmooth(m)
+        return phim
+
 
 
     @Utils.timeIt
