@@ -104,7 +104,7 @@ class Rx(SimPEG.Survey.BaseRx):
         # print self.knownRxTypes[self.rxType][:2], 'Deriv', projGLoc
         # projGLoc += self.knownRxTypes[self.rxType][1]
 
-        P = self.getP(mesh)
+        P = self.getP(mesh, self.projGLoc(u))
 
         if not adjoint:
             Pv_complex = P * v

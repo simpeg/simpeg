@@ -178,7 +178,11 @@ class Fields_e(Fields):
                     'bPrimary' : ['eSolution','F','_bPrimary'],
                     'bSecondary' : ['eSolution','F','_bSecondary'],
                     'j' : ['eSolution','CCV','_j'],
+                    'jPrimary' : ['eSolution','CCV','_jPrimary'],
+                    'jSecondary' : ['eSolution','CCV','_jSecondary'],
                     'h' : ['eSolution','CCV','_h'],
+                    'hPrimary' : ['eSolution','CCV','_hPrimary'],
+                    'hSecondary' : ['eSolution','CCV','_hSecondary'],
                   }
 
     def __init__(self, mesh, survey, **kwargs):
@@ -192,6 +196,7 @@ class Fields_e(Fields):
         self._nC = self.survey.prob.mesh.nC
         self._MeSigma = self.survey.prob.MeSigma
         self._MeSigmaDeriv = self.survey.prob.MeSigmaDeriv
+        self._MfMui = self.survey.prob.MfMui
 
     def _GLoc(self, fieldType):
         if fieldType == 'e':
@@ -202,6 +207,7 @@ class Fields_e(Fields):
             return 'CCV'
         else:
             raise Exception('Field type must be e, b, h, j')
+
 
     def _ePrimary(self, eSolution, srcList):
         """
@@ -293,9 +299,9 @@ class Fields_e(Fields):
             b[:,i] = b[:,i]+ 1./(1j*omega(src.freq)) * S_m
         return b
 
-    def _bSecondaryDeriv_u(self, src, du_dm_v, adjoint = False):
+    def _bDeriv_u(self, src, du_dm_v, adjoint = False):
         """
-        Derivative of the secondary magnetic flux density with respect to the thing we solved for
+        Derivative of the magnetic flux density with respect to the thing we solved for
         
         :param SimPEG.EM.FDEM.Src src: source
         :param numpy.ndarray du_dm_v: vector to take product with
@@ -310,94 +316,80 @@ class Fields_e(Fields):
         return - 1./(1j*omega(src.freq)) * (C * du_dm_v)
 
 
-    def _bSecondaryDeriv_m(self, src, v, adjoint = False):
+    def _bDeriv_m(self, src, v, adjoint = False):
         """
-        Derivative of the secondary magnetic flux density with respect to the inversion model. 
+        Derivative of the magnetic flux density with respect to the inversion model. 
         
         :param SimPEG.EM.FDEM.Src src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
-        :return: product of the secondary magnetic flux density derivative with respect to the inversion model with a vector
+        :return: product of the magnetic flux density derivative with respect to the inversion model with a vector
         """
 
         S_mDeriv, _ = src.evalDeriv(self.prob, v, adjoint)
         return 1./(1j * omega(src.freq)) * S_mDeriv
 
 
-    def _bDeriv_u(self, src, du_dm_v, adjoint=False):
-        """
-        Partial derivative of the total magnetic flux density with respect to the thing we solved for
-        
-        :param SimPEG.EM.FDEM.Src src: source
-        :param numpy.ndarray du_dm_v: vector to take product with
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: product of the derivative of the magnetic flux density with respect to the field we solved for with a vector
-        """
-
-        return self._bSecondaryDeriv_u(src, du_dm_v, adjoint)
-
-    def _bDeriv_m(self, src, v, adjoint=False):
-        """
-        Partial derivative of the total magnetic flux density with respect to the inversion model. 
-        
-        :param SimPEG.EM.FDEM.Src src: source
-        :param numpy.ndarray v: vector to take product with
-        :param bool adjoint: adjoint?
-        :rtype: SimPEG.Utils.Zero
-        :return: product of the magnetic flux density derivative with respect to the inversion model with a vector
-        """
-
-        # Assuming the primary does not depend on the model
-        return self._bSecondaryDeriv_m(src, eSolution, v, adjoint)
-
-    def _j(self, eSolution, srcList):
+    def _jSecondary(self,  eSolution, srcList):
         aveE2CCV = self._aveE2CCV
-        n = int(aveE2CCV.shape[0] / self._nC) #TODO: This is a bit sloppy
-        Sigma = self._MeSigma
-        VI = sdiag(1./np.kron(np.ones(n), self.prob.mesh.vol))
-        return VI * (aveE2CCV * (Sigma *eSolution) )
+        n = int(aveE2CCV.shape[0] / self._nC) # number of components (instead of checking if cyl or not)
+        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        return VI * (aveE2CCV * (self._MeSigma * eSolution) )
 
-    def _jDeriv_u(self, src, v, adjoint = False):
-        eSolution = self._eSecondary
+    def _jPrimary(self, eSolution, srcList):
         aveE2CCV = self._aveE2CCV
-        n = int(aveE2CCV.shape[0] / self._nC) #TODO: This is a bit sloppy
-        Sigma = self._MeSigma
+        n = int(aveE2CCV.shape[0] / self._nC) # number of components (instead of checking if cyl or not)
+        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        return VI * (aveE2CCV * (self._MeSigma * self._ePrimary(eSolution, srcList)) )
 
-        VI = sdiag(1./np.kron(np.ones(n), self.prob.mesh.vol))
+    def _jDeriv_u(self, src, du_dm_v, adjoint = False):
+        n = int(self._aveE2CCV.shape[0] / self._nC) # number of components (instead of checking if cyl or not)
+        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
 
-        if not adjoint: 
-            return VI * (aveE2CCV * (Sigma * (self._eDeriv_u(src, v, adjoint) ) ) )
-        return  self._eDeriv_u(src, Sigma.T * (aveE2CCV.T * (VI.T * v) ), adjoint)
+        if adjoint: 
+            return  self._eDeriv_u(src, self._MeSigma.T * (self._aveE2CCV.T * (VI.T * du_dm_v) ), adjoint)
+        return VI * (self._aveE2CCV * (self._MeSigma * (self._eDeriv_u(src, du_dm_v, adjoint) ) ) )
+        
 
     def _jDeriv_m(self, src, v, adjoint = False):
-        eSolution = self._fields['eSolution']
+        e = self._e(self._fields['eSolution'], [src])
+        n = int(self._aveE2CCV.shape[0] / self._nC) #number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
 
-        aveE2CCV = self._aveE2CCV
-        Sigma = self._MeSigma
-        SigmaDeriv = self._MeSigmaDeriv
-        e = self._e(eSolution, [src])
-
-        n = int(aveE2CCV.shape[0] / self._nC) #TODO: This is a bit sloppy
+        if adjoint:
+            return self._MeSigmaDeriv(e).T * (self._aveE2CCV.T * (VI.T * v)) + self._eDeriv_m(src, self._aveE2CCV.T * (VI.T * v), adjoint=adjoint)
+        return VI * (self._aveE2CCV * ( self._eDeriv_m(src, v, adjoint=adjoint) + self._MeSigmaDeriv(e) * v))
         
-        VI = sdiag(1./np.kron(np.ones(n), self.prob.mesh.vol))
-
-        if not adjoint:
-            return VI * (aveE2CCV * ( self._eDeriv_m(src, v, adjoint=adjoint) + SigmaDeriv(e) * v))
-        return SigmaDeriv(aveE2CCV.T * (VI.T * e), adjoint=adjoint) * v + self._eDeriv_m(src, aveE2CCV.T * (VI.T * v), adjoint=adjoint)
 
 
-    def _h(self, eSolution, srcList):
-        b = self._b(eSolution, srcList)
-        Mui = self.survey.prob.MfMui
-        aveF2CCV = self._aveF2CCV
-        n = int(aveF2CCV.shape[0] / self._nC) #TODO: This is a bit sloppy
-        # Mui = sdiag(sp.kron(np.ones(n), mui))
-        VI = sdiag(1./np.kron(np.ones(n), self.prob.mesh.vol))
+    def _hPrimary(self, eSolution, srcList):
+        n = int(self._aveF2CCV.shape[0] / self._nC) # Number of Components
+        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
 
+        return VI * (self._aveF2CCV * (self._MfMui * self._bPrimary(eSolution, srcList)))
 
-        return VI * (aveF2CCV * (Mui * b))
+    def _hSecondary(self, eSolution, srcList):
+        n = int(self._aveF2CCV.shape[0] / self._nC) # Number of Components
+        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+
+        return VI * (self._aveF2CCV * (self._MfMui * self._bSecondary(eSolution, srcList)))
+
+    def _hDeriv_u(self, src, du_dm_v, adjoint = False):
+        n = int(self._aveF2CCV.shape[0] / self._nC) # Number of Components
+        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        if adjoint:
+            v =  self._MfMui.T * (self._aveF2CCV.T  * (VI.T * du_dm_v))
+            return self._bDeriv_u(src, v, adjoint=adjoint)
+        return VI * (self._aveF2CCV * (self._MfMui * self._bDeriv_u(src, du_dm_v, adjoint = adjoint)))
+
+    def _hDeriv_m(self, src, v, adjoint = False):
+        n = int(self._aveF2CCV.shape[0] / self._nC) # Number of Components
+        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        if adjoint:
+            v =  self._MfMui.T * (self._aveF2CCV.T  * (VI.T * v))
+            return self._bDeriv_m(src, v, adjoint=adjoint)
+        return VI * (self._aveF2CCV * (self._MfMui * self._bDeriv_m(src, v, adjoint = adjoint)))
 
 
 
@@ -617,7 +609,7 @@ class Fields_b(Fields):
         n = int(aveE2CCV.shape[0] / self._nC) #TODO: This is a bit sloppy
         # Sigma = sdiag(np.kron(np.ones(n), sigma))
         Sigma = self.prob.MeSigma
-        VI = sdiag(1./np.kron(np.ones(n), self.prob.mesh.vol))
+        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
 
         e = self._e(bSolution, srcList)
 
@@ -629,7 +621,7 @@ class Fields_b(Fields):
         aveF2CCV = self._aveF2CCV
         n = int(aveF2CCV.shape[0] / self._nC) #TODO: This is a bit sloppy
         # Mui = sdiag(sp.kron(np.ones(n), mui))
-        VI = sdiag(1./np.kron(np.ones(n), self.prob.mesh.vol))
+        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
 
 
         return VI * (aveF2CCV * (Mui * b))
@@ -868,7 +860,7 @@ class Fields_j(Fields):
         n = int(aveF2CCV.shape[0] / self._nC) #TODO: This is a bit sloppy
         
         Rho = self.prob.MfRho
-        VI = sdiag(1./np.kron(np.ones(n), self.prob.mesh.vol))
+        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
 
 
         j = self._j(jSolution, srcList)
@@ -887,7 +879,7 @@ class Fields_j(Fields):
         aveE2CCV = self._aveE2CCV
         n = int(aveE2CCV.shape[0] / self._nC) #TODO: This is a bit sloppy
         # Mu = sdiag(sp.kron(np.ones(n), mu))
-        VI = sdiag(1./np.kron(np.ones(n), self.prob.mesh.vol))
+        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
 
         return VI * (aveE2CCV * (Mu * h))
 
@@ -1088,7 +1080,7 @@ class Fields_h(Fields):
         n = int(aveF2CCV.shape[0] / self._nC) #TODO: This is a bit sloppy
         
         Rho = self.prob.MfRho
-        VI = sdiag(1./np.kron(np.ones(n), self.prob.mesh.vol))
+        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
 
 
         j = self._j(hSolution, srcList)
@@ -1107,6 +1099,6 @@ class Fields_h(Fields):
         aveE2CCV = self._aveE2CCV
         n = int(aveE2CCV.shape[0] / self._nC) #TODO: This is a bit sloppy
         # Mu = sdiag(sp.kron(np.ones(n), mu))
-        VI = sdiag(1./np.kron(np.ones(n), self.prob.mesh.vol))
+        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
 
         return VI * (aveE2CCV * (Mu * h))

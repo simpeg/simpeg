@@ -84,45 +84,45 @@ class FDEM_DerivTests(unittest.TestCase):
         def test_Jvec_ezi_Eform(self):
             self.assertTrue(derivTest('e', 'jzi'))
 
-        # def test_Jvec_bxr_Eform(self):
-        #     self.assertTrue(derivTest('e', 'hxr'))
-        # def test_Jvec_byr_Eform(self):
-        #     self.assertTrue(derivTest('e', 'hyr'))
-        # def test_Jvec_bzr_Eform(self):
-        #     self.assertTrue(derivTest('e', 'hzr'))
-        # def test_Jvec_bxi_Eform(self):
-        #     self.assertTrue(derivTest('e', 'hxi'))
-        # def test_Jvec_byi_Eform(self):
-        #     self.assertTrue(derivTest('e', 'hyi'))
-        # def test_Jvec_bzi_Eform(self):
-        #     self.assertTrue(derivTest('e', 'hzi'))
+        def test_Jvec_bxr_Eform(self):
+            self.assertTrue(derivTest('e', 'hxr'))
+        def test_Jvec_byr_Eform(self):
+            self.assertTrue(derivTest('e', 'hyr'))
+        def test_Jvec_bzr_Eform(self):
+            self.assertTrue(derivTest('e', 'hzr'))
+        def test_Jvec_bxi_Eform(self):
+            self.assertTrue(derivTest('e', 'hxi'))
+        def test_Jvec_byi_Eform(self):
+            self.assertTrue(derivTest('e', 'hyi'))
+        def test_Jvec_bzi_Eform(self):
+            self.assertTrue(derivTest('e', 'hzi'))
 
     if testB:
         def test_Jvec_exr_Bform(self):
             self.assertTrue(derivTest('b', 'exr'))
-        # def test_Jvec_eyr_Bform(self):
-        #     self.assertTrue(derivTest('b', 'eyr'))
-        # def test_Jvec_ezr_Bform(self):
-        #     self.assertTrue(derivTest('b', 'ezr'))
-        # def test_Jvec_exi_Bform(self):
-        #     self.assertTrue(derivTest('b', 'exi'))
-        # def test_Jvec_eyi_Bform(self):
-        #     self.assertTrue(derivTest('b', 'eyi'))
-        # def test_Jvec_ezi_Bform(self):
-        #     self.assertTrue(derivTest('b', 'ezi'))
+        def test_Jvec_eyr_Bform(self):
+            self.assertTrue(derivTest('b', 'eyr'))
+        def test_Jvec_ezr_Bform(self):
+            self.assertTrue(derivTest('b', 'ezr'))
+        def test_Jvec_exi_Bform(self):
+            self.assertTrue(derivTest('b', 'exi'))
+        def test_Jvec_eyi_Bform(self):
+            self.assertTrue(derivTest('b', 'eyi'))
+        def test_Jvec_ezi_Bform(self):
+            self.assertTrue(derivTest('b', 'ezi'))
 
-        # def test_Jvec_bxr_Bform(self):
-        #     self.assertTrue(derivTest('b', 'bxr'))
-        # def test_Jvec_byr_Bform(self):
-        #     self.assertTrue(derivTest('b', 'byr'))
-        # def test_Jvec_bzr_Bform(self):
-        #     self.assertTrue(derivTest('b', 'bzr'))
-        # def test_Jvec_bxi_Bform(self):
-        #     self.assertTrue(derivTest('b', 'bxi'))
-        # def test_Jvec_byi_Bform(self):
-        #     self.assertTrue(derivTest('b', 'byi'))
-        # def test_Jvec_bzi_Bform(self):
-        #     self.assertTrue(derivTest('b', 'bzi'))
+        def test_Jvec_bxr_Bform(self):
+            self.assertTrue(derivTest('b', 'bxr'))
+        def test_Jvec_byr_Bform(self):
+            self.assertTrue(derivTest('b', 'byr'))
+        def test_Jvec_bzr_Bform(self):
+            self.assertTrue(derivTest('b', 'bzr'))
+        def test_Jvec_bxi_Bform(self):
+            self.assertTrue(derivTest('b', 'bxi'))
+        def test_Jvec_byi_Bform(self):
+            self.assertTrue(derivTest('b', 'byi'))
+        def test_Jvec_bzi_Bform(self):
+            self.assertTrue(derivTest('b', 'bzi'))
 
     if testHJ:
         def test_Jvec_jxr_Jform(self):
