@@ -774,8 +774,12 @@ class Fields_j(Fields):
                     'h' : ['jSolution','E','_h'],
                     'hPrimary' : ['jSolution','E','_hPrimary'],
                     'hSecondary' : ['jSolution','E','_hSecondary'],
-                    'e' : ['jSolution','C','_e'],
-                    'b' : ['jSolution','C','_b'],
+                    'e' : ['jSolution','CCV','_e'],
+                    'ePrimary' : ['jSolution','CCV','_ePrimary'],
+                    'eSecondary' : ['jSolution','CCV','_eSecondary'],
+                    'b' : ['jSolution','CCV','_b'],
+                    'bPrimary' : ['jSolution','CCV','_bPrimary'],
+                    'bSecondary' : ['jSolution','CCV','_bSecondary'],
                   }
 
     def __init__(self,mesh,survey,**kwargs):
@@ -784,10 +788,10 @@ class Fields_j(Fields):
     def startup(self):
         self.prob = self.survey.prob
         self._edgeCurl = self.survey.prob.mesh.edgeCurl
+        self._MeMu = self.survey.prob.MeMu
         self._MeMuI = self.survey.prob.MeMuI
         self._MfRho = self.survey.prob.MfRho
         self._MfRhoDeriv = self.survey.prob.MfRhoDeriv
-        self._Me = self.survey.prob.Me
         self._rho = self.survey.prob.curModel.rho
         self._mu = self.survey.prob.curModel.mui
         self._aveF2CCV = self.survey.prob.mesh.aveF2CCV
@@ -907,60 +911,9 @@ class Fields_j(Fields):
         return h
 
 
-    def _hSecondaryDeriv_u(self, src, du_dm_v, adjoint=False):
-        """
-        Derivative of the secondary magnetic field with respect to the thing we solved for
-        
-        :param SimPEG.EM.FDEM.Src src: source
-        :param numpy.ndarray du_dm_v: vector to take product with
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: product of the derivative of the secondary magnetic field with respect to the field we solved for with a vector
-        """
-
-        if not adjoint:
-            return  -1./(1j*omega(src.freq)) * self._MeMuI * (self._edgeCurl.T * (self._MfRho * du_dm_v) )
-        elif adjoint:
-            return  -1./(1j*omega(src.freq)) * self._MfRho.T * (self._edgeCurl * ( self._MeMuI.T * du_dm_v))
-
-
-    def _hSecondaryDeriv_m(self, src, v, adjoint=False):
-        """
-        Derivative of the secondary magnetic field with respect to the inversion model 
-        
-        :param SimPEG.EM.FDEM.Src src: source
-        :param numpy.ndarray v: vector to take product with
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: product of the derivative of the secondary magnetic field with respect to the model with a vector
-        """
-
-        jSolution = self[[src],'jSolution']
-        MeMuI = self._MeMuI
-        C = self._edgeCurl
-        MfRho = self._MfRho
-        MfRhoDeriv = self._MfRhoDeriv
-        Me = self._Me
-
-        if not adjoint:
-            hDeriv_m =  -1./(1j*omega(src.freq)) * MeMuI * (C.T * (MfRhoDeriv(jSolution)*v ) )
-        elif adjoint:
-            hDeriv_m =  -1./(1j*omega(src.freq)) * MfRhoDeriv(jSolution).T * ( C * (MeMuI.T * v ) )
-
-        S_mDeriv,_ = src.evalDeriv(self.prob, adjoint = adjoint)
-
-        if not adjoint:
-            S_mDeriv = S_mDeriv(v)
-            hDeriv_m = hDeriv_m + 1./(1j*omega(src.freq)) * MeMuI * (Me * S_mDeriv)
-        elif adjoint:
-            S_mDeriv = S_mDeriv(Me.T * (MeMuI.T * v))
-            hDeriv_m = hDeriv_m + 1./(1j*omega(src.freq)) * S_mDeriv
-        return hDeriv_m
-
-
     def _hDeriv_u(self, src, du_dm_v, adjoint=False):
         """
-        Partial derivative of the total magnetic field with respect to the thing we solved for 
+        Derivative of the magnetic field with respect to the thing we solved for
         
         :param SimPEG.EM.FDEM.Src src: source
         :param numpy.ndarray du_dm_v: vector to take product with
@@ -969,50 +922,165 @@ class Fields_j(Fields):
         :return: product of the derivative of the magnetic field with respect to the field we solved for with a vector
         """
 
-        return self._hSecondaryDeriv_u(src, du_dm_v, adjoint)
+        if not adjoint:
+            return  -1./(1j*omega(src.freq)) * self._MeMuI * (self._edgeCurl.T * (self._MfRho * du_dm_v) )
+        return  -1./(1j*omega(src.freq)) * self._MfRho.T * (self._edgeCurl * ( self._MeMuI.T * du_dm_v))
+
 
     def _hDeriv_m(self, src, v, adjoint=False):
         """
-        Partial derivative of the total magnetic field density with respect to the inversion model. 
+        Derivative of the magnetic field with respect to the inversion model 
         
         :param SimPEG.EM.FDEM.Src src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
-        :return: product of the magnetic field derivative with respect to the inversion model with a vector
+        :return: product of the derivative of the magnetic field with respect to the model with a vector
         """
 
-        # assuming the primary doesn't depend on the model
-        return self._hSecondaryDeriv_m(src, u, v, adjoint)
+        jSolution = Utils.mkvc(self[[src],'jSolution'])
+        MeMuI = self._MeMuI
+        C = self._edgeCurl
+        MfRho = self._MfRho
+        MfRhoDeriv = self._MfRhoDeriv
+        S_mDeriv,_ = src.evalDeriv(self.prob, adjoint = adjoint)
 
-    def _e(self, jSolution, srcList):
-        rho = self._rho
-        aveF2CCV = self._aveF2CCV
-        n = int(aveF2CCV.shape[0] / self._nC) #TODO: This is a bit sloppy
+        if not adjoint:
+            hDeriv_m =  -1./(1j*omega(src.freq)) * MeMuI * (C.T * (MfRhoDeriv(jSolution)*v ) )
+            S_mDeriv = S_mDeriv(v)
+            hDeriv_m = hDeriv_m + 1./(1j*omega(src.freq)) * MeMuI * ( S_mDeriv)
+
+        elif adjoint:
+            hDeriv_m =  -1./(1j*omega(src.freq)) * MfRhoDeriv(jSolution).T * ( C * (MeMuI.T * v ) )
+
+            S_mDeriv = S_mDeriv(MeMuI.T * v)
+            hDeriv_m = hDeriv_m + 1./(1j*omega(src.freq)) * S_mDeriv
         
-        Rho = self.prob.MfRho
+        return hDeriv_m
+
+
+    def _ePrimary(self, jSolution, srcList):
+        """
+        Primary electric field
+
+        :param numpy.ndarray hSolution: field we solved for
+        :param list srcList: list of sources
+        :rtype: numpy.ndarray
+        :return: primary electric field as defined by the sources
+        """
+        n = int(self._aveF2CCV.shape[0] / self._nC) # number of components 
+        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        return VI * (self._aveF2CCV * (self._MfRho * self._jPrimary(jSolution, srcList))) 
+
+    def _eSecondary(self, jSolution, srcList):
+        """
+        Secondary electric field from jSolution
+
+        :param numpy.ndarray hSolution: field we solved for
+        :param list srcList: list of sources
+        :rtype: numpy.ndarray
+        :return: secondary electric field
+        """
+        n = int(self._aveF2CCV.shape[0] / self._nC) # number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        return VI * (self._aveF2CCV * (self._MfRho *  self._jSecondary(jSolution, srcList))) 
+
+    def _eDeriv_u(self, src, du_dm_v, adjoint=False):
+        """
+        Derivative of the electric field with respect to the thing we solved for
+        
+        :param SimPEG.EM.FDEM.Src src: source
+        :param numpy.ndarray du_dm_v: vector to take product with
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: product of the derivative of the electric field with respect to the field we solved for with a vector
+        """
+        n = int(self._aveF2CCV.shape[0] / self._nC) # number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        if adjoint:
+            return self._MfRho.T * ( self._aveF2CCV.T * ( VI.T * du_dm_v ) )
+        return VI * (self._aveF2CCV * (self._MfRho *  du_dm_v))
+
+    def _eDeriv_m(self, src, v, adjoint=False):
+        """
+        Derivative of the electric field with respect to the inversion model 
+        
+        :param SimPEG.EM.FDEM.Src src: source
+        :param numpy.ndarray v: vector to take product with
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: product of the derivative of the electric field with respect to the model with a vector
+        """
+        jSolution = Utils.mkvc(self[src,'jSolution'])
+        n = int(self._aveF2CCV.shape[0] / self._nC) # number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        if adjoint:
+            return self._MfRhoDeriv(jSolution).T * ( self._aveF2CCV.T * ( VI.T * v ) )
+        return VI * (self._aveF2CCV * (self._MfRhoDeriv(jSolution) *  v))
+
+    def _bPrimary(self, jSolution, srcList):
+        """
+        Primary magnetic flux density 
+
+        :param numpy.ndarray hSolution: field we solved for
+        :param list srcList: list of sources
+        :rtype: numpy.ndarray
+        :return: primary magnetic flux density
+        """
+        hPrimary = self._hPrimary(jSolution, srcList)
+        n = int(self._aveE2CCV.shape[0] / self._nC) # number of components
         VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
 
+        return VI * (self._aveE2CCV * (self._MeMu * hPrimary))
 
-        j = self._j(jSolution, srcList)
+    def _bSecondary(self, jSolution, srcList):
+        """
+        Secondary magnetic flux density from jSolution
 
-        return VI * (aveF2CCV * (Rho *  j)) 
-
-    def _eDeriv_u(self, src, u, v, adjoint=False):
-        raise NotImplementedError
-
-    def _eDeriv_m(self, src, u, v, adjoint=False):
-        raise NotImplementedError
-
-    def _b(self, jSolution, srcList):
-        h = self._h(jSolution, srcList)
-        Mu = self.prob.MeMu
-        aveE2CCV = self._aveE2CCV
-        n = int(aveE2CCV.shape[0] / self._nC) #TODO: This is a bit sloppy
-        # Mu = sdiag(sp.kron(np.ones(n), mu))
+        :param numpy.ndarray hSolution: field we solved for
+        :param list srcList: list of sources
+        :rtype: numpy.ndarray
+        :return: secondary magnetic flux density 
+        """
+        n = int(self._aveE2CCV.shape[0] / self._nC) # number of components
         VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
 
-        return VI * (aveE2CCV * (Mu * h))
+        return VI * (self._aveE2CCV * (self._edgeCurl.T * (self._MfRho * jSolution)))
+
+    def _bDeriv_u(self, src, du_dm_v, adjoint=False):
+        """
+        Derivative of the magnetic flux density with respect to the thing we solved for
+        
+        :param SimPEG.EM.FDEM.Src src: source
+        :param numpy.ndarray du_dm_v: vector to take product with
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: product of the derivative of the magnetic flux density with respect to the field we solved for with a vector
+        """
+        n = int(self._aveF2CCV.shape[0] / self._nC) # number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+
+        if adjoint:
+            return self._MfRho.T * ( self._edgeCurl * ( self._aveE2CCV.T * (VI.T * du_dm_v) ) )
+        return VI * (self._aveE2CCV * (self._edgeCurl.T * (self._MfRho * du_dm_v)))
+
+    def _bDeriv_m(self, src, v, adjoint=False):
+        """
+        Derivative of the magnetic flux density with respect to the inversion model 
+        
+        :param SimPEG.EM.FDEM.Src src: source
+        :param numpy.ndarray v: vector to take product with
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: product of the derivative of the magnetic flux density with respect to the model with a vector
+        """
+        jSolution = self[src,'jSolution']
+        n = int(self._aveE2CCV.shape[0] / self._nC) # number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+
+        if adjoint:
+            return self._MfRhoDeriv(jSolution).T * ( self._edgeCurl * (self._aveE2CCV.T * ( VI.T * v)) )
+        return VI * (self._aveE2CCV * (self._edgeCurl.T * (self._MfRhoDeriv(jSolution) * v )))
 
 
 class Fields_h(Fields):
@@ -1208,7 +1276,7 @@ class Fields_h(Fields):
     def _e(self, hSolution, srcList):
         rho = self._rho
         aveF2CCV = self._aveF2CCV
-        n = int(aveF2CCV.shape[0] / self._nC) #TODO: This is a bit sloppy
+        n = int(self._aveF2CCV.shape[0] / self._nC) #TODO: This is a bit sloppy
         
         Rho = self.prob.MfRho
         VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
