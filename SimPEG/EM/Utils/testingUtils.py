@@ -8,10 +8,9 @@ FLR = 1e-20 # "zero", so if residual below this --> pass regardless of order
 CONDUCTIVITY = 1e1
 MU = mu_0
 freq = 5e-1
-addrandoms = False
 
 
-def getFDEMProblem(fdemType, comp, SrcList, freq, verbose=False):
+def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
     cs = 10.
     ncx, ncy, ncz = 0, 0, 0
     npad = 8
@@ -20,9 +19,12 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, verbose=False):
     hz = [(cs,npad,-1.3), (cs,ncz), (cs,npad,1.3)]
     mesh = Mesh.TensorMesh([hx,hy,hz],['C','C','C'])
 
-    mapping = Maps.ExpMap(mesh)
+    if useMu is True:
+        mapping = [('sigma', Maps.ExpMap(mesh)), ('mu', Maps.IdentityMap(mesh))] 
+    else:
+        mapping = Maps.ExpMap(mesh)
 
-    x = np.array([np.linspace(-5.*cs,-2.*cs,3),np.linspace(5.*cs,2.*cs,3)]) #don't sample right by the source
+    x = np.array([np.linspace(-5.*cs,-2.*cs,3),np.linspace(5.*cs,2.*cs,3)]) + cs/4. #don't sample right by the source, slightly off alignment from either staggered grid
     XYZ = Utils.ndgrid(x,x,np.linspace(-2.*cs,2.*cs,5))
     Rx0 = EM.FDEM.Rx(XYZ, comp)
 
@@ -81,22 +83,26 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, verbose=False):
 
     return prb
 
-def crossCheckTest(SrcList, fdemType1, fdemType2, comp, TOL=1e-5, verbose=False):
+def crossCheckTest(SrcList, fdemType1, fdemType2, comp, addrandoms = False, useMu=False, TOL=1e-5, verbose=False):
 
     l2norm = lambda r: np.sqrt(r.dot(r))
 
-    prb1 = getFDEMProblem(fdemType1, comp, SrcList, freq, verbose)
+    prb1 = getFDEMProblem(fdemType1, comp, SrcList, freq, useMu, verbose)
     mesh = prb1.mesh
     print 'Cross Checking Forward: %s, %s formulations - %s' % (fdemType1, fdemType2, comp)
-    m = np.log(np.ones(mesh.nC)*CONDUCTIVITY)
-    mu = np.log(np.ones(mesh.nC)*MU)
+    
+    logsig = np.log(np.ones(mesh.nC)*CONDUCTIVITY)
+    mu = np.ones(mesh.nC)*MU
 
     if addrandoms is True:
-        m  = m + np.random.randn(mesh.nC)*np.log(CONDUCTIVITY)*1e-1
-        mu = mu + np.random.randn(mesh.nC)*MU*1e-1
+        logsig  += np.random.randn(mesh.nC)*np.log(CONDUCTIVITY)*1e-1
+        mu += np.random.randn(mesh.nC)*MU*1e-1
 
-    # prb1.PropMap.PropModel.mu = mu
-    # prb1.PropMap.PropModel.mui = 1./mu
+    if useMu is True:
+        m = np.r_[logsig, mu]
+    else:
+        m = logsig
+
     survey1 = prb1.survey
     d1 = survey1.dpred(m)
 
@@ -104,9 +110,8 @@ def crossCheckTest(SrcList, fdemType1, fdemType2, comp, TOL=1e-5, verbose=False)
         print '  Problem 1 solved'
 
 
-    prb2 = getFDEMProblem(fdemType2, comp, SrcList, freq, verbose)
+    prb2 = getFDEMProblem(fdemType2, comp, SrcList, freq, useMu, verbose)
 
-    # prb2.mu = mu
     survey2 = prb2.survey
     d2 = survey2.dpred(m)
 
@@ -116,6 +121,6 @@ def crossCheckTest(SrcList, fdemType1, fdemType2, comp, TOL=1e-5, verbose=False)
     r = d2-d1
     l2r = l2norm(r)
 
-    tol = np.max([TOL*(10**int(np.log10(l2norm(d1)))),FLR])
+    tol = np.max([TOL*(10**int(np.log10(0.5* (l2norm(d1) + l2norm(d2)) ))),FLR])
     print l2norm(d1), l2norm(d2),  l2r , tol, l2r < tol
     return l2r < tol

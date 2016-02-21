@@ -11,7 +11,7 @@ testBH = True
 TOLEJHB = 1 # averaging and more sensitive to boundary condition violations (ie. the impact of violating the boundary conditions in each case is different.)
 #TODO: choose better testing parameters to lower this 
 
-SrcList = ['RawVec', 'MagDipole_Bfield', 'MagDipole', 'CircularLoop']
+SrcList = ['RawVec', 'MagDipole', 'MagDipole_Bfield', 'MagDipole', 'CircularLoop']
 
 
 class FDEM_CrossCheck(unittest.TestCase):
