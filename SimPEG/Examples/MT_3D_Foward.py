@@ -52,7 +52,7 @@ def run(plotIt=True, nFreq=1):
 
     # Calculate the data
     fields = problem.fields(sig)
-    dataVec = survey.projectFields(fields)
+    dataVec = survey.eval(fields)
 
     # Make the data
     mtData = MT.Data(survey,dataVec)

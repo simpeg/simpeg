@@ -108,8 +108,8 @@ class TDEM_bDerivTests(unittest.TestCase):
         d = Survey.Data(survey,v=d_vec)
 
         # Check that d.T*Q*f = f.T*Q.T*d
-        V1 = d_vec.dot(survey.projectFieldsDeriv(None, v=f).tovec())
-        V2 = np.sum((f.tovec())*(survey.projectFieldsDeriv(None, v=d, adjoint=True).tovec()))
+        V1 = d_vec.dot(survey.evalDeriv(None, v=f).tovec())
+        V2 = np.sum((f.tovec())*(survey.evalDeriv(None, v=d, adjoint=True).tovec()))
 
         self.assertTrue((V1-V2)/np.abs(V1) < 1e-6)
 
