@@ -139,14 +139,14 @@ class BaseFDEMProblem(BaseEMProblem):
                     dRHS_dmT = self.getRHSDeriv(freq, src, ATinvdf_duT, adjoint=True)
                     du_dmT = -dA_dmT + dRHS_dmT
 
-                    df_dmT += du_dmT
+                    Df_DmT = df_dmT + du_dmT
 
                     # TODO: this should be taken care of by the reciever?
                     real_or_imag = rx.projComp
                     if real_or_imag is 'real':
-                        Jtv +=   np.array(df_dmT,dtype=complex).real
+                        Jtv +=   np.array(Df_DmT,dtype=complex).real
                     elif real_or_imag is 'imag':
-                        Jtv += - np.array(df_dmT,dtype=complex).real
+                        Jtv += - np.array(Df_DmT,dtype=complex).real
                     else:
                         raise Exception('Must be real or imag')
             

@@ -633,6 +633,8 @@ class Fields_b(Fields):
         """
         n = int(self._aveE2CCV.shape[0] / self._nC) # number of components
         VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        if adjoint:
+            return self._MfMui.T * ( self._edgeCurl * ( self._aveE2CCV.T * (VI.T * du_dm_v) ) )
         return VI * (self._aveE2CCV * (self._edgeCurl.T * ( self._MfMui * du_dm_v ) ) )
 
 
