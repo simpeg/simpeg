@@ -559,12 +559,12 @@ class Fields_b(Fields):
         :return: secondary electric field
         """
 
-        v = ( self._edgeCurl.T * ( self._MfMui * bSolution))
+        e = ( self._edgeCurl.T * ( self._MfMui * bSolution))
         for i,src in enumerate(srcList):
             _,S_e = src.eval(self.prob)
-            v[:,i] = v[:,i] + - S_e
+            e[:,i] = e[:,i] + - S_e
 
-        return self._MeSigmaI * v
+        return self._MeSigmaI * e
 
     def _eDeriv_u(self, src, du_dm_v, adjoint=False):
         """
@@ -833,12 +833,12 @@ class Fields_j(Fields):
         :return: secondary magnetic field
         """
 
-        v =  (self._edgeCurl.T * (self._MfRho * jSolution) )
+        h = (self._edgeCurl.T * (self._MfRho * jSolution) )
         for i, src in enumerate(srcList):
             h[:,i] *= -1./(1j*omega(src.freq))
             S_m,_ = src.eval(self.prob)
             h[:,i] = h[:,i]+ 1./(1j*omega(src.freq)) * (S_m)
-        return self._MeMuI * v
+        return self._MeMuI * h
 
 
     def _hDeriv_u(self, src, du_dm_v, adjoint=False):
@@ -962,9 +962,12 @@ class Fields_j(Fields):
         n = int(self._aveF2CCV.shape[0] / self._nC) # number of components
         VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
 
+        # if adjoint:
+        #     return self._MfRho.T * ( self._edgeCurl * ( self._aveE2CCV.T * (VI.T * du_dm_v) ) )
+        # return VI * (self._aveE2CCV * (self._edgeCurl.T * (self._MfRho * du_dm_v)))
         if adjoint:
-            return self._MfRho.T * ( self._edgeCurl * ( self._aveE2CCV.T * (VI.T * du_dm_v) ) )
-        return VI * (self._aveE2CCV * (self._edgeCurl.T * (self._MfRho * du_dm_v)))
+            return self._hDeriv_u(src, self._MeMu.T*(self._aveE2CCV.T * (VI.T * du_dm_v)), adjoint=adjoint)
+        return VI * (self._aveE2CCV * ( self._MeMu * self._hDeriv_u(src, du_dm_v)) )
 
     def _bDeriv_m(self, src, v, adjoint=False):
         """
