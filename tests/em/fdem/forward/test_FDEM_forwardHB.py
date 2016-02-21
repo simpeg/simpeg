@@ -5,9 +5,9 @@ import sys
 from scipy.constants import mu_0
 from SimPEG.EM.Utils.testingUtils import getFDEMProblem, crossCheckTest
 
-testEB = False
+testEB = True
 testHJ = True
-testEJ = False
+testEJ = True
 testBH = True
 verbose = False
 
