@@ -837,7 +837,7 @@ class Fields_j(Fields):
         for i, src in enumerate(srcList):
             h[:,i] *= -1./(1j*omega(src.freq))
             S_m,_ = src.eval(self.prob)
-            h[:,i] = h[:,i]+ 1./(1j*omega(src.freq)) * (S_m)
+            h[:,i] = h[:,i] + 1./(1j*omega(src.freq)) * (S_m)
         return self._MeMuI * h
 
 
@@ -962,12 +962,9 @@ class Fields_j(Fields):
         n = int(self._aveF2CCV.shape[0] / self._nC) # number of components
         VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
 
-        # if adjoint:
-        #     return self._MfRho.T * ( self._edgeCurl * ( self._aveE2CCV.T * (VI.T * du_dm_v) ) )
-        # return VI * (self._aveE2CCV * (self._edgeCurl.T * (self._MfRho * du_dm_v)))
         if adjoint:
-            return self._hDeriv_u(src, self._MeMu.T*(self._aveE2CCV.T * (VI.T * du_dm_v)), adjoint=adjoint)
-        return VI * (self._aveE2CCV * ( self._MeMu * self._hDeriv_u(src, du_dm_v)) )
+            return -1./(1j*omega(src.freq)) * self._MfRho.T * ( self._edgeCurl * ( self._aveE2CCV.T * (VI.T * du_dm_v) ) )
+        return -1./(1j*omega(src.freq)) * VI * (self._aveE2CCV * (self._edgeCurl.T * (self._MfRho * du_dm_v)))
 
     def _bDeriv_m(self, src, v, adjoint=False):
         """
@@ -982,10 +979,12 @@ class Fields_j(Fields):
         jSolution = self[src,'jSolution']
         n = int(self._aveE2CCV.shape[0] / self._nC) # number of components
         VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        S_mDeriv,_ = src.evalDeriv(self.prob, adjoint = adjoint)
 
         if adjoint:
-            return self._MfRhoDeriv(jSolution).T * ( self._edgeCurl * (self._aveE2CCV.T * ( VI.T * v)) )
-        return VI * (self._aveE2CCV * (self._edgeCurl.T * (self._MfRhoDeriv(jSolution) * v )))
+            v = self._aveE2CCV.T * ( VI.T * v)
+            return 1./(1j * omega(src.freq)) * ( S_mDeriv(v) - self._MfRhoDeriv(jSolution).T * (self._edgeCurl * v ))
+        return 1./(1j * omega(src.freq)) * VI * (self._aveE2CCV * ( S_mDeriv(v) - self._edgeCurl.T * ( self._MfRhoDeriv(jSolution) * v ) ) )
 
 
 class Fields_h(Fields):

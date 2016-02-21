@@ -17,10 +17,10 @@ MU = mu_0
 freq = 1e-1
 addrandoms = True
 
-SrcType = 'RawVec' #or 'MAgDipole_Bfield', 'CircularLoop', 'RawVec'
+SrcList = ['RawVec', 'MagDipole'] #or 'MAgDipole_Bfield', 'CircularLoop', 'RawVec'
 
 def adjointTest(fdemType, comp):
-    prb = getFDEMProblem(fdemType, comp, [SrcType], freq)
+    prb = getFDEMProblem(fdemType, comp, SrcList, freq)
     print 'Adjoint %s formulation - %s' % (fdemType, comp)
 
     m  = np.log(np.ones(prb.mapping.nP)*CONDUCTIVITY)
@@ -31,8 +31,6 @@ def adjointTest(fdemType, comp):
         mu = mu + np.random.randn(prb.mesh.nC)*MU*1e-1
 
     survey = prb.survey
-    # prb.PropMap.PropModel.mu = mu
-    # prb.PropMap.PropModel.mui = 1./mu
     u = prb.fields(m)
 
     v = np.random.rand(survey.nD)

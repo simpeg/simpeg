@@ -20,7 +20,7 @@ MU = mu_0
 freq = 1e-1
 addrandoms = True
 
-SrcType = ['RawVec', 'MagDipole'] #or 'MAgDipole_Bfield', 'CircularLoop', 'RawVec'
+SrcType = ['MagDipole', 'RawVec'] #or 'MAgDipole_Bfield', 'CircularLoop', 'RawVec'
 
 
 def derivTest(fdemType, comp):
@@ -33,9 +33,6 @@ def derivTest(fdemType, comp):
     if addrandoms is True:
         x0 = x0 + np.random.randn(prb.mapping.nP)*np.log(CONDUCTIVITY)*1e-1
         mu = mu + np.random.randn(prb.mapping.nP)*MU*1e-1
-
-    # prb.PropMap.PropModel.mu = mu
-    # prb.PropMap.PropModel.mui = 1./mu
 
     survey = prb.survey
     def fun(x):
