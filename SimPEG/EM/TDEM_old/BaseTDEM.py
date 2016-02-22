@@ -128,7 +128,7 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
             u = self.fields(m)
         p = self.Gvec(m, v, u)
         y = self.solveAh(m, p)
-        Jv = self.survey.projectFieldsDeriv(u, v=y)
+        Jv = self.survey.evalDeriv(u, v=y)
         if self.verbose: print '%s\nDone calculating J(v)\n%s'%('*'*50,'*'*50)
         return - mkvc(Jv)
 
@@ -155,7 +155,7 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
         if not isinstance(v, self.dataPair):
             v = self.dataPair(self.survey, v)
 
-        p = self.survey.projectFieldsDeriv(u, v=v, adjoint=True)
+        p = self.survey.evalDeriv(u, v=v, adjoint=True)
         y = self.solveAht(m, p)
         w = self.Gtvec(m, y, u)
         if self.verbose: print '%s\nDone calculating J^T(v)\n%s'%('*'*50,'*'*50)
