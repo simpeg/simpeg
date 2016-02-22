@@ -347,10 +347,10 @@ and
 
 
 
-TDEM - B formulation
-====================
+TDEM Problem
+============
 
-.. automodule:: SimPEG.EM.TDEM.TDEM_b
+.. automodule:: SimPEG.EM.TDEM.TDEM
     :show-inheritance:
     :members:
     :undoc-members:
@@ -359,7 +359,7 @@ TDEM - B formulation
 Field Storage
 =============
 
-.. autoclass:: SimPEG.EM.TDEM.SurveyTDEM.FieldsTDEM
+.. autoclass:: SimPEG.EM.TDEM.SurveyTDEM.Fields
     :show-inheritance:
     :members:
     :undoc-members:
@@ -369,19 +369,19 @@ Field Storage
 TDEM Survey Classes
 ===================
 
-.. autoclass:: SimPEG.EM.TDEM.SurveyTDEM.SurveyTDEM
+.. autoclass:: SimPEG.EM.TDEM.SurveyTDEM.Survey
     :show-inheritance:
     :members:
     :undoc-members:
     :inherited-members:
 
 
-Base Classes
-============
+.. Base Classes
+.. ============
 
-.. automodule:: SimPEG.EM.TDEM.BaseTDEM
-    :show-inheritance:
-    :members:
-    :undoc-members:
-    :inherited-members:
+.. .. automodule:: SimPEG.EM.TDEM.BaseTDEM
+..     :show-inheritance:
+..     :members:
+..     :undoc-members:
+..     :inherited-members:
 

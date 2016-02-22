@@ -1,3 +1,3 @@
-from SurveyTDEM import * #SurveyTDEM, RxTDEM, SrcTDEM
-from BaseTDEM import BaseTDEMProblem, FieldsTDEM
-from TDEM_b import ProblemTDEM_b
+from TDEM import BaseTDEMProblem, Problem_b
+from FieldsTDEM import Fields, Fields_b
+from SurveyTDEM import Survey, Src, Rx
