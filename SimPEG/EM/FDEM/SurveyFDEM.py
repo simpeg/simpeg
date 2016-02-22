@@ -125,7 +125,7 @@ class Survey(SimPEG.Survey.BaseSurvey):
     """
 
     srcPair = Src.BaseSrc
-    rxPaair = Rx 
+    rxPair = Rx 
 
     def __init__(self, srcList, **kwargs):
         # Sort these by frequency

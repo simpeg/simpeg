@@ -51,12 +51,12 @@ class RxTDEM(Survey.BaseTimeRx):
         else:
             return timeMesh.getInterpolationMat(self.times, self.projTLoc)
 
-    def projectFields(self, src, mesh, timeMesh, u):
+    def eval(self, src, mesh, timeMesh, u):
         P = self.getP(mesh, timeMesh)
         u_part = Utils.mkvc(u[src, self.projField, :])
         return P*u_part
 
-    def projectFieldsDeriv(self, src, mesh, timeMesh, u, v, adjoint=False):
+    def evalDeriv(self, src, mesh, timeMesh, u, v, adjoint=False):
         P = self.getP(mesh, timeMesh)
 
         if not adjoint:
