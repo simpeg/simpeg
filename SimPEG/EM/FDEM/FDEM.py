@@ -92,8 +92,7 @@ class BaseFDEMProblem(BaseEMProblem):
                     df_dmFun = getattr(u, '_%sDeriv'%rx.projField, None)
                     df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
                     df_dm_v = np.array(df_dm_v,dtype=complex)
-                    Jv[src, rx] = rx.projectFieldsDeriv(src, self.mesh, u, df_dm_v)
-
+                    Jv[src, rx] = rx.evalDeriv(src, self.mesh, u, df_dm_v)
             Ainv.clean()
         return Utils.mkvc(Jv)
 
@@ -128,7 +127,7 @@ class BaseFDEMProblem(BaseEMProblem):
                 u_src = u[src, ftype]
 
                 for rx in src.rxList:
-                    PTv = rx.projectFieldsDeriv(src, self.mesh, u, v[src, rx], adjoint=True) # wrt u, need possibility wrt m
+                    PTv = rx.evalDeriv(src, self.mesh, u, v[src, rx], adjoint=True) # wrt u, need possibility wrt m
 
                     df_duTFun = getattr(u, '_%sDeriv'%rx.projField, None)
                     df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)

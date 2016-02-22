@@ -59,7 +59,7 @@ class Rx(SimPEGsurvey.BaseRx):
         """Component projection (real/imag)"""
         return self.knownRxTypes[self.rxType][1]
 
-    def projectFields(self, src, mesh, f):
+    def eval(self, src, mesh, f):
         '''
         Project the fields to natural source data.
 
@@ -139,7 +139,7 @@ class Rx(SimPEGsurvey.BaseRx):
         # print f_part
         return f_part
 
-    def projectFieldsDeriv(self, src, mesh, f, v, adjoint=False):
+    def evalDeriv(self, src, mesh, f, v, adjoint=False):
         """
         The derivative of the projection wrt u
 
@@ -427,15 +427,15 @@ class Survey(SimPEGsurvey.BaseSurvey):
         assert freq in self._freqDict, "The requested frequency is not in this survey."
         return self._freqDict[freq]
 
-    def projectFields(self, u):
+    def eval(self, u):
         data = Data(self)
         for src in self.srcList:
             sys.stdout.flush()
             for rx in src.rxList:
-                data[src, rx] = rx.projectFields(src, self.mesh, u)
+                data[src, rx] = rx.eval(src, self.mesh, u)
         return data
 
-    def projectFieldsDeriv(self, u):
+    def evalDeriv(self, u):
         raise Exception('Use Transmitters to project fields deriv.')
 
 #################
