@@ -14,8 +14,8 @@ def getProb(meshType='CYL',rxTypes='bx,bz',nSrc=1):
     mesh = Mesh.CylMesh([hx,1,hy], '00C')
 
     active = mesh.vectorCCz<0.
-    activeMap = Maps.ActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
-    mapping = Maps.ExpMap(mesh) * Maps.Vertical1DMap(mesh) * activeMap
+    activeMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+    mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * activeMap
 
     rxOffset = 40.
 

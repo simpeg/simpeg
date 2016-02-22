@@ -11,7 +11,7 @@ def run(N=100, plotIt=True):
     """
 
     class LinearSurvey(Survey.BaseSurvey):
-        def projectFields(self, u):
+        def eval(self, u):
             return u
 
     class LinearProblem(Problem.BaseProblem):

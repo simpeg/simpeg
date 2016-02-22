@@ -68,7 +68,7 @@ class BaseMTProblem(BaseFDEMProblem):
                 for rx in src.rxList:
                     # Get the projection derivative
                     # v should be of size 2*nE (for 2 polarizations)
-                    PDeriv_u = lambda t: rx.projectFieldsDeriv(src, self.mesh, u, t) # wrt u, we don't have have PDeriv wrt m
+                    PDeriv_u = lambda t: rx.evalDeriv(src, self.mesh, u, t) # wrt u, we don't have have PDeriv wrt m
                     Jv[src, rx] = PDeriv_u(mkvc(du_dm))
             dA_duI.clean()
         # Return the vectorized sensitivities
@@ -106,9 +106,9 @@ class BaseMTProblem(BaseFDEMProblem):
                 u_src = u[src, :]
 
                 for rx in src.rxList:
-                    # Get the adjoint projectFieldsDeriv
+                    # Get the adjoint evalDeriv
                     # PTv needs to be nE,
-                    PTv = rx.projectFieldsDeriv(src, self.mesh, u, mkvc(v[src, rx],2), adjoint=True) # wrt u, need possibility wrt m
+                    PTv = rx.evalDeriv(src, self.mesh, u, mkvc(v[src, rx],2), adjoint=True) # wrt u, need possibility wrt m
                     # Get the
                     dA_duIT = ATinv * PTv
                     dA_dmT = self.getADeriv_m(freq, u_src, mkvc(dA_duIT), adjoint=True)

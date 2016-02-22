@@ -66,7 +66,7 @@ class Rx(SimPEG.Survey.BaseRx):
         """Grid Location projection (e.g. Ex Fy ...)"""
         return u._GLoc(self.rxType[0]) + self.knownRxTypes[self.rxType][1]
 
-    def projectFields(self, src, mesh, u):
+    def eval(self, src, mesh, u):
         """
         Project fields to recievers to get data.
 
@@ -87,7 +87,7 @@ class Rx(SimPEG.Survey.BaseRx):
         
         return P*u_part
 
-    def projectFieldsDeriv(self, src, mesh, u, v, adjoint=False):
+    def evalDeriv(self, src, mesh, u, v, adjoint=False):
         """
         Derivative of projected fields with respect to the inversion model times a vector.
 
@@ -181,7 +181,7 @@ class Survey(SimPEG.Survey.BaseSurvey):
         assert freq in self._freqDict, "The requested frequency is not in this survey."
         return self._freqDict[freq]
 
-    def projectFields(self, u):
+    def eval(self, u):
         """
         Project fields to receiver locations
         :param Fields u: fields object
@@ -191,10 +191,9 @@ class Survey(SimPEG.Survey.BaseSurvey):
         data = SimPEG.Survey.Data(self)
         for src in self.srcList:
             for rx in src.rxList:
-                dat = rx.projectFields(src, self.mesh, u)
-                data[src, rx] = rx.projectFields(src, self.mesh, u)
+                data[src, rx] = rx.eval(src, self.mesh, u)
         return data
 
-    def projectFieldsDeriv(self, u):
+    def evalDeriv(self, u):
         raise Exception('Use Receivers to project fields deriv.')
 
