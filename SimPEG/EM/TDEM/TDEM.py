@@ -39,9 +39,9 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         # timestep to solve forward
         Ainv = None
         for tInd, dt in enumerate(self.timeSteps):
-            print dt, self.timeSteps[tInd]
             if Ainv is not None and (tInd > 0 and dt != self.timeSteps[tInd - 1]):# keep factors if dt is the same as previous step b/c A will be the same  
                 Ainv.clean()
+                Ainv = None
 
             if Ainv is None:
                 A = self.getA(tInd)
@@ -182,12 +182,12 @@ class Problem_b(BaseTDEMProblem):
 
         S_m, S_e = self.getSourceTerm(tInd+1) 
 
-        B_n = np.c_[[F[src,'bSolution',tInd] for src in self.survey.srcList]].T
-        if B_n.shape[0] is not 1:
-            raise NotImplementedError('getRHS not implemented for this shape of B_n')
+        B_n = np.c_[[F[src,'bSolution',tInd] for src in self.survey.srcList]]
+        # if B_n.shape[0] is not 1:
+        #     raise NotImplementedError('getRHS not implemented for this shape of B_n')
 
         rhs = B_n[:,:,0].T + dt * (C * (MeSigmaI * S_e) + S_m)
-        if self._makeASymmetric:
+        if self._makeASymmetric is True:
             return MfMui.T * rhs
         return rhs
 
