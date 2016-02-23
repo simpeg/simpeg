@@ -29,20 +29,59 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
         tic = time.time()
         self.curModel = m
+
         F = self.fieldsPair(self.mesh, self.survey)
 
-        # for 
+        # set initial fields
+        for i, src in enumerate(self.survey.srcList):
+            F[src,'bSolution',0] = src.bInitial(self)
 
+        # timestep to solve forward
+        Ainv = None
+        for tInd, dt in enumerate(self.timeSteps):
+            print dt, self.timeSteps[tInd]
+            if Ainv is not None and (tInd > 0 and dt != self.timeSteps[tInd - 1]):# keep factors if dt is the same as previous step b/c A will be the same  
+                Ainv.clean()
+
+            if Ainv is None:
+                A = self.getA(tInd)
+                if self.verbose: print 'Factoring...   (dt = %e)'%dt
+                Ainv = self.Solver(A, **self.solverOpts)
+                if self.verbose: print 'Done'
+
+            rhs = self.getRHS(tInd, F)
+            if self.verbose: print '    Solving...   (tInd = %d)'%tInd
+            sol = Ainv * rhs
+            if self.verbose: print '    Done...'
+            if sol.ndim == 1:
+                sol.shape = (sol.size,1)
+            F[:,self._fieldType+'Solution',tInd+1] = sol
+        Ainv.clean()
+        return F
 
     def Jvec(self, m, v, u=None):
-        return None
+        raise NotImplementedError
 
     def Jtvec(self, m, v, u=None):
-        return None
+        raise NotImplementedError
 
     def getSourceTerm(self, tInd): 
-        return None
-        # return S_m, S_e 
+        
+        Srcs = self.survey.srcList
+
+        if self._eqLocs is 'FE':
+            S_m = np.zeros((self.mesh.nF,len(Srcs)))
+            S_e = np.zeros((self.mesh.nE,len(Srcs)))
+        elif self._eqLocs is 'EF':
+            S_m = np.zeros((self.mesh.nE,len(Srcs)))
+            S_e = np.zeros((self.mesh.nF,len(Srcs)))
+
+        for i, src in enumerate(Srcs):
+            smi, sei = src.eval(self, self.times[tInd])
+            S_m[:,i] = S_m[:,i] + smi
+            S_e[:,i] = S_e[:,i] + sei
+
+        return S_m, S_e 
 
 
 
@@ -114,7 +153,7 @@ class Problem_b(BaseTDEMProblem):
         A = I + dt * ( C * ( MeSigmaI * (C.T * MfMui ) ) )
 
         if self._makeASymmetric is True:
-            return MeMui.T * A
+            return MfMui.T * A
         return A 
 
     def getADeriv(self, freq, u, v, adjoint=False):
@@ -135,21 +174,24 @@ class Problem_b(BaseTDEMProblem):
         return ADeriv
 
 
-    def getRHS(self, tInd):
+    def getRHS(self, tInd, F):
         dt = self.timeSteps[tInd]
         C = self.mesh.edgeCurl
         MeSigmaI = self.MeSigmaI
         MfMui = self.MfMui
 
-        S_m, S_e = self.getSourceTerm(tInd+1) # I think this is tInd+1 ? 
+        S_m, S_e = self.getSourceTerm(tInd+1) 
 
-        B_n = np.c_[[F[src,'b',tInd] for src in self.survey.srcList]].T
+        B_n = np.c_[[F[src,'bSolution',tInd] for src in self.survey.srcList]].T
         if B_n.shape[0] is not 1:
             raise NotImplementedError('getRHS not implemented for this shape of B_n')
 
-        return B_n + dt * (C * (MeSigmaIDeriv * S_e) + S_m)
+        rhs = B_n[:,:,0].T + dt * (C * (MeSigmaI * S_e) + S_m)
+        if self._makeASymmetric:
+            return MfMui.T * rhs
+        return rhs
 
-    def getRHSDeriv(self, tInd, src, v, adjoint=False):
+    def getRHSDeriv(self, tInd, F, src, v, adjoint=False):
         
         raise NotImplementedError
 

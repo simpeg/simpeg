@@ -1,13 +1,14 @@
-from SimPEG import Survey, np
-from SimPEG.Survey import BaseSurvey
+import SimPEG
+from SimPEG import np, Utils
 from SimPEG.Utils import Zero, Identity 
 from scipy.constants import mu_0 
+from SimPEG.EM.Utils import * 
 
 ####################################################
 # Receivers
 ####################################################
 
-class Rx(Survey.BaseTimeRx):
+class Rx(SimPEG.Survey.BaseTimeRx):
 
     knownRxTypes = {
                     'ex':['e', 'Ex', 'N'],
@@ -24,7 +25,7 @@ class Rx(Survey.BaseTimeRx):
                    }
 
     def __init__(self, locs, times, rxType):
-        Survey.BaseTimeRx.__init__(self, locs, times, rxType)
+        SimPEG.Survey.BaseTimeRx.__init__(self, locs, times, rxType)
 
     @property
     def projField(self):
@@ -77,6 +78,10 @@ class BaseWaveform(object):
         self.offTime = offTime
         self.hasInitialFields = hasInitialFields
 
+    def _assertMatchesPair(self, pair):
+        assert (isinstance(self, pair)
+            ), "Waveform object must be an instance of a %s BaseWaveform class."%(pair.__name__)
+
     def eval(self, time):
         raise NotImplementedError 
 
@@ -91,11 +96,11 @@ class StepOffWaveform(BaseWaveform):
 
 
 
-class BaseSrc(Survey.BaseSrc):
+class BaseSrc(SimPEG.Survey.BaseSrc):
 
     rxPair = Rx
     integrate = True
-    waveformPair = StepOffWaveform
+    waveformPair = BaseWaveform
 
     @property
     def waveform(self):
@@ -103,17 +108,17 @@ class BaseSrc(Survey.BaseSrc):
         return getattr(self, '_waveform', None)
     @waveform.setter
     def waveform(self, val):
-        if self.waveform is None:
-            val._assertMatchesPair(self.waveformPair)
-            self._waveform = val
+        # if self.waveform is None:
+        val._assertMatchesPair(self.waveformPair)
+        self._waveform = val
 
 
     def __init__(self, rxList, waveform = None):
         self.waveform = waveform 
-        Survey.BaseSrc.__init__(self, rxList) 
+        SimPEG.Survey.BaseSrc.__init__(self, rxList) 
 
 
-    def bInitial(self, mesh):
+    def bInitial(self):
         return Zero()
 
     def eval(self, prob, time):
@@ -135,7 +140,7 @@ class BaseSrc(Survey.BaseSrc):
 
 
 class MagDipole(BaseSrc):
-    def __init__(self, rxList, waveform, loc, orientation='Z', moment=1., mu=mu_0, **kwargs):  
+    def __init__(self, rxList, waveform=None, loc=None, orientation='Z', moment=1., mu=mu_0):  
 
         self.loc = loc
         self.orientation = orientation
@@ -143,10 +148,98 @@ class MagDipole(BaseSrc):
         self.moment = moment
         self.mu = mu
         self.integrate = False
-        BaseSrc.__init__(self, rxList)
+        BaseSrc.__init__(self, rxList, waveform)
+
+    def _bfromVectorPotential(self, prob):
+        if prob._eqLocs is 'FE':
+            gridX = prob.mesh.gridEx
+            gridY = prob.mesh.gridEy
+            gridZ = prob.mesh.gridEz
+            C = prob.mesh.edgeCurl
+
+        elif prob._eqLocs is 'EF':
+            gridX = prob.mesh.gridFx
+            gridY = prob.mesh.gridFy
+            gridZ = prob.mesh.gridFz
+            C = prob.mesh.edgeCurl.T
 
 
+        if prob.mesh._meshType is 'CYL':
+            if not prob.mesh.isSymmetric:
+                raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
+            a = MagneticDipoleVectorPotential(self.loc, gridY, 'y', mu=self.mu, moment=self.moment)
+
+        else:
+            srcfct = MagneticDipoleVectorPotential
+            ax = srcfct(self.loc, gridX, 'x', mu=self.mu, moment=self.moment)
+            ay = srcfct(self.loc, gridY, 'y', mu=self.mu, moment=self.moment)
+            az = srcfct(self.loc, gridZ, 'z', mu=self.mu, moment=self.moment)
+            a = np.concatenate((ax, ay, az))
+
+        return C*a
 
 
+    def bInitial(self, prob):
+        eqLocs = prob._eqLocs
+
+        if self.waveform.hasInitialFields is False:
+            return Zero()
+
+        return self._bfromVectorPotential(prob)
+
+    def S_m(self, prob, time):
+        if self.waveform.hasInitialFields is False:
+            raise NotImplementedError
+        return Zero()
+
+    def S_e(self, prob, time):
+        if self.waveform.hasInitialFields is False:
+            raise NotImplementedError
+        return Zero()
+
+####################################################
+# Survey
+####################################################
+
+class Survey(SimPEG.Survey.BaseSurvey):
+    """
+    Time domain electromagnetic survey
+    """
+
+    srcPair = BaseSrc
+    rxPair = Rx
+
+    def __init__(self, srcList, **kwargs):
+        # Sort these by frequency
+        self.srcList = srcList
+        SimPEG.Survey.BaseSurvey.__init__(self, **kwargs)
+
+    def eval(self, u):
+        data = SimPEG.Survey.Data(self)
+        for src in self.srcList:
+            for rx in src.rxList:
+                data[src, rx] = rx.eval(src, self.mesh, self.prob.timeMesh, u)
+        return data
+
+    def evalDeriv(self, u, v=None, adjoint=False):
+        assert v is not None, 'v to multiply must be provided.'
+
+        if not adjoint:
+            data = SimPEG.Survey.Data(self)
+            for src in self.srcList:
+                for rx in src.rxList:
+                    data[src, rx] = rx.evalDeriv(src, self.mesh, self.prob.timeMesh, u, v)
+            return data
+        else:
+            f = FieldsTDEM(self.mesh, self)
+            for src in self.srcList:
+                for rx in src.rxList:
+                    Ptv = rx.evalDeriv(src, self.mesh, self.prob.timeMesh, u, v, adjoint=True)
+                    Ptv = Ptv.reshape((-1, self.prob.timeMesh.nN), order='F')
+                    if rx.projField not in f: # first time we are projecting
+                        f[src, rx.projField, :] = Ptv
+                    else: # there are already fields, so let's add to them!
+                        f[src, rx.projField, :] += Ptv
+            return f
 
 

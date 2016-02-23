@@ -5,7 +5,7 @@ from SimPEG import Utils
 from SimPEG.EM.Utils import omega
 from SimPEG.Utils import Zero, Identity
 
-class Fields(SimPEG.Problem.Fields):
+class Fields(SimPEG.Problem.TimeFields):
     """
     
     Fancy Field Storage for a TDEM survey. Only one field type is stored for
@@ -32,8 +32,6 @@ class Fields(SimPEG.Problem.Fields):
     dtype = float 
 
     
-
-
 class Fields_b(Fields):
     """Fancy Field Storage for a TDEM survey."""
     knownFields = {'bSolution': 'F'}
@@ -57,7 +55,11 @@ class Fields_b(Fields):
         return Zero()
 
     def _e(self, bSolution, srcList, tInd):
-        return self.MeSigmaI * ( self.edgeCurl.T * ( self.MfMui * bSolution ) )
+        e = self.MeSigmaI * ( self.edgeCurl.T * ( self.MfMui * bSolution ) )
+        for i, src in enumerate(srcList):
+            _, S_e = src.eval(self.prob, tInd) 
+            e[:,i,tInd] = e[:,i,tInd] - self.MeSigmaI * S_e
+        return e  
 
     def _eDeriv_u(self, src, du_dm_v, adjoint = False):
         raise NotImplementedError

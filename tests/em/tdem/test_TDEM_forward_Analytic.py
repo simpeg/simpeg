@@ -10,7 +10,7 @@ except ImportError, e:
     MumpsSolver = SolverLU
 
 
-def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=[1e-5,1e-3], showIt=False):
+def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=[1e-5,1e-3], showIt=True):
     if meshType == 'CYL':
         cs, ncx, ncz, npad = 5., 30, 10, 15
         hx = [(cs,ncx), (cs,npad,1.3)]
@@ -28,11 +28,11 @@ def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=[1e-5,
     mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * actMap
 
     rx = EM.TDEM.Rx(np.array([[rxOffset, 0., 0.]]), np.logspace(-5,-4, 21), 'bz')
-    src = EM.TDEM.SrcTDEM_VMD_MVP([rx], loc=np.array([0., 0., 0.]))
+    src = EM.TDEM.SurveyTDEM.MagDipole([rx], waveform= EM.TDEM.SurveyTDEM.StepOffWaveform(), loc=np.array([0., 0., 0.]))
     # src = EM.TDEM.SrcTDEM([rx], loc=np.array([0., 0., 0.]))
 
-    survey = EM.TDEM.SurveyTDEM([src])
-    prb = EM.TDEM.ProblemTDEM_b(mesh, mapping=mapping)
+    survey = EM.TDEM.Survey([src])
+    prb = EM.TDEM.Problem_b(mesh, mapping=mapping)
     prb.Solver = MumpsSolver
 
     prb.timeSteps = [(1e-06, 40), (5e-06, 40), (1e-05, 40), (5e-05, 40), (0.0001, 40), (0.0005, 40)]
@@ -48,6 +48,8 @@ def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=[1e-5,
 
     ind = np.logical_and(rx.times > bounds[0],rx.times < bounds[1])
     log10diff = np.linalg.norm(np.log10(np.abs(bz_calc[ind])) - np.log10(np.abs(bz_ana[ind])))/np.linalg.norm(np.log10(np.abs(bz_ana[ind])))
+
+    print ' |bz_ana| = ',np.linalg.norm(bz_ana), ' |bz_num| = ', np.linalg.norm(bz_calc), ' |bz_ana - bz_num| =', np.linalg.norm(bz_ana-bz_calc)
     print 'Difference: ', log10diff
 
     if showIt == True:
@@ -61,35 +63,35 @@ def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=[1e-5,
 
 class TDEM_SimpleSrcTests(unittest.TestCase):
     def test_source(self):
-        waveform = EM.TDEM.SurveyTDEM.StepOffWaveform([])
+        waveform = EM.TDEM.SurveyTDEM.StepOffWaveform()
         assert waveform.eval(0.) == 0. 
 
 
 
 
-# class TDEM_bTests(unittest.TestCase):
+class TDEM_bTests(unittest.TestCase):
 
-#     def test_analytic_p2_CYL_50m(self):
-#         self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=50., sig_half=1e+2) < 0.01)
-#     def test_analytic_p1_CYL_50m(self):
-#         self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=50., sig_half=1e+1) < 0.01)
-#     def test_analytic_p0_CYL_50m(self):
-#         self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=50., sig_half=1e+0) < 0.01)
-#     def test_analytic_m1_CYL_50m(self):
-#         self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=50., sig_half=1e-1) < 0.01)
-#     def test_analytic_m2_CYL_50m(self):
-#         self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=50., sig_half=1e-2) < 0.01)
-#     def test_analytic_m3_CYL_50m(self):
-#         self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=50., sig_half=1e-3) < 0.02)
+    def test_analytic_p2_CYL_50m(self):
+        self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=50., sig_half=1e+2) < 0.01)
+    def test_analytic_p1_CYL_50m(self):
+        self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=50., sig_half=1e+1) < 0.01)
+    def test_analytic_p0_CYL_50m(self):
+        self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=50., sig_half=1e+0) < 0.01)
+    def test_analytic_m1_CYL_50m(self):
+        self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=50., sig_half=1e-1) < 0.01)
+    def test_analytic_m2_CYL_50m(self):
+        self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=50., sig_half=1e-2) < 0.01)
+    def test_analytic_m3_CYL_50m(self):
+        self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=50., sig_half=1e-3) < 0.02)
 
-#     def test_analytic_p0_CYL_1m(self):
-#         self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=1.0, sig_half=1e+0) < 0.01)
-#     def test_analytic_m1_CYL_1m(self):
-#         self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=1.0, sig_half=1e-1) < 0.01)
-#     def test_analytic_m2_CYL_1m(self):
-#         self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=1.0, sig_half=1e-2) < 0.01)
-#     def test_analytic_m3_CYL_1m(self):
-#         self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=1.0, sig_half=1e-3) < 0.02)
+    def test_analytic_p0_CYL_1m(self):
+        self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=1.0, sig_half=1e+0) < 0.01)
+    def test_analytic_m1_CYL_1m(self):
+        self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=1.0, sig_half=1e-1) < 0.01)
+    def test_analytic_m2_CYL_1m(self):
+        self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=1.0, sig_half=1e-2) < 0.01)
+    def test_analytic_m3_CYL_1m(self):
+        self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=1.0, sig_half=1e-3) < 0.02)
 
 
 
