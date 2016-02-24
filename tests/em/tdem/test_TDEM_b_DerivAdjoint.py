@@ -40,10 +40,14 @@ class TDEM_bDerivTests(unittest.TestCase):
 
         self.sigma = np.ones(mesh.nCz)*1e-8
         self.sigma[mesh.vectorCCz<0] = 1e-1
-        self.sigma = np.log(self.sigma[active])
+        self.m = np.log(self.sigma[active])
 
         self.prb.pair(survey)
         self.mesh = mesh
+
+    def test_ADeriv(self):
+        prb = self.prb
+        m = self.m
 
     # def test_AhVec(self):
     #     """

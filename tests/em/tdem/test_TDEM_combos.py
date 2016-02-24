@@ -60,7 +60,7 @@ def dotestAdjoint(prb, mesh, sigma):
     print 'AdjointTest', V1, V2
     return np.abs(V1-V2)/np.abs(V1), 1e-6
 
-class TDEM_bDerivTests(unittest.TestCase):
+# class TDEM_bDerivTests(unittest.TestCase):
 
     # def test_Jvec_bx(self): self.assertTrue(dotestJvec(*getProb(rxTypes='bx')))
     # def test_Adjoint_bx(self): self.assertLess(*dotestAdjoint(*getProb(rxTypes='bx')))
@@ -90,5 +90,5 @@ class TDEM_bDerivTests(unittest.TestCase):
     # def test_Adjoint_eybzdbxdt(self): self.assertLess(*dotestAdjoint(*getProb(rxTypes='ey,bz,dbxdt')))
 
 
-if __name__ == '__main__':
-    unittest.main()
+# if __name__ == '__main__':
+#     unittest.main()

@@ -118,7 +118,10 @@ class BaseSrc(SimPEG.Survey.BaseSrc):
         SimPEG.Survey.BaseSrc.__init__(self, rxList) 
 
 
-    def bInitial(self):
+    def bInitial(self, prob):
+        return Zero()
+
+    def bInitialDeriv(self, prob, v=None, adjoint=False):
         return Zero()
 
     def eval(self, prob, time):
