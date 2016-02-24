@@ -169,7 +169,7 @@ def readUBC_DC2DModel(fileName):
 
     return model
 
-def plot_pseudoSection(DCsurvey,lineID,ID, stype):
+def plot_pseudoSection(DCsurvey, axs, stype):
     """
         Read list of 2D tx-rx location and plot a speudo-section of apparent
         resistivity.
@@ -188,114 +188,80 @@ def plot_pseudoSection(DCsurvey,lineID,ID, stype):
         @author: dominiquef
 
     """
-    from SimPEG import np, mkvc
+    from SimPEG import np
     from scipy.interpolate import griddata
-    from matplotlib.colors import LogNorm
     import pylab as plt
 
+    # Set depth to 0 for now
     z0 = 0.
-    for jj in range(len(ID)):
+    
+    # Pre-allocate
+    midx = []
+    midz = []
+    rho = []
+    count = 0 # Counter for data
+    for ii in range(DCsurvey.nSrc):
 
-        indx = np.where(lineID==ID[jj])[0]
+        Tx = DCsurvey.srcList[ii].loc
+        Rx = DCsurvey.srcList[ii].rxList[0].locs
 
-        # Pre-allocate
-        midx_l = []
-        midz_l = []
-        midx_r = []
-        midz_r = []
-        rho_l = []
-        rho_r = []
+        nD = DCsurvey.srcList[ii].rxList[0].nD
 
-        for ii in range(len(indx)):
+        data = DCsurvey.dobs[count:count+nD]
+        count += nD
+    
+        # Get distances between each poles A-B-M-N
+        MA = np.abs(Tx[0][0] - Rx[0][:,0])
+        MB = np.abs(Tx[1][0] - Rx[0][:,0])
+        NB = np.abs(Tx[1][0] - Rx[1][:,0])
+        NA = np.abs(Tx[0][0] - Rx[1][:,0])
+        MN = np.abs(Rx[1][:,0] - Rx[0][:,0])
 
-            Tx = DCsurvey.srcList[indx[ii]].loc
-            Rx = DCsurvey.srcList[indx[ii]].rxList[0].locs
-            data = DCsurvey.dobs[indx[ii]]
+        # Create mid-point location
+        Cmid = (Tx[0][0] + Tx[1][0])/2
+        Pmid = (Rx[0][:,0] + Rx[1][:,0])/2
+
+        # Compute pant leg of apparent rho
+        if stype == 'pdp':
+            leg =  data * 2*np.pi  * MA * ( MA + MN ) / MN
+            
+            leg = np.log10(abs(1/leg))
+
+        elif stype == 'dpdp':
+            leg = data * 2*np.pi / ( 1/MA - 1/MB - 1/NB + 1/NA )
+
+
+        midx = np.hstack([midx, ( Cmid + Pmid )/2 ])
+        midz = np.hstack([midz, -np.abs(Cmid-Pmid)/2 + z0 ])
+        rho = np.hstack([rho,leg])
+
         
-            # Get distances between each poles A-B-M-N
-            MA = np.abs(Tx[0][0] - Rx[0][:,0])
-            MB = np.abs(Tx[1][0] - Rx[0][:,0])
-            NB = np.abs(Tx[1][0] - Rx[1][:,0])
-            NA = np.abs(Tx[0][0] - Rx[1][:,0])
-            MN = np.abs(Rx[1][:,0] - Rx[0][:,0])
+    ax = axs
 
-            # Create mid-point location
-            Cmid = (Tx[0][0] + Tx[1][0])/2
-            Pmid = (Rx[0][:,0] + Rx[1][:,0])/2
-
-            # Seperate left/right tx-rx configurations
-            ileft = Pmid < Cmid
-            iright = Pmid >= Cmid
-
-            # Compute apparent resistivity
-            if stype == 'pdp':
-                rho =  data * 2*np.pi  * MA * ( MA + MN ) / MN
-                
-                rho = np.log10(abs(1/rho))
-
-            elif stype == 'dpdp':
-                rho = data * 2*np.pi / ( 1/MA - 1/MB - 1/NB + 1/NA )
-
-            if np.any(ileft):
-
-                midx_l = np.hstack([midx_l, ( Cmid + Pmid[ileft] )/2 ])
-                midz_l = np.hstack([midz_l, -np.abs(Cmid-Pmid[ileft])/2 + z0 ])
-                rho_l = np.hstack([rho_l,rho[ileft]])
-
-            if np.any(iright):
-
-                midx_r = np.hstack([midx_r, ( Cmid + Pmid[iright] )/2 ])
-                midz_r = np.hstack([midz_r, -np.abs(Cmid-Pmid[iright])/2 + z0 ])
-                rho_r = np.hstack([rho_r,rho[iright]])
-
-        # If a left survey
-        if np.any(midx_l):
-            
-            ax1 = plt.subplot(2,2,2)
-
-            # Grid points
-            grid_x, grid_z = np.mgrid[np.min(midx_l):np.max(midx_l), np.min(midz_l):np.max(midz_l)]
-            grid_rho = griddata(np.c_[midx_l,midz_l], rho_l.T, (grid_x, grid_z), method='linear')
+    # Grid points
+    grid_x, grid_z = np.mgrid[np.min(midx):np.max(midx), np.min(midz):np.max(midz)]
+    grid_rho = griddata(np.c_[midx,midz], rho.T, (grid_x, grid_z), method='linear')
 
 
-            plt.imshow(grid_rho.T, extent = (np.min(midx_l),np.max(midx_l),np.min(midz_l),np.max(midz_l)), origin='lower', alpha=0.8, vmin = np.min(np.r_[rho_l,rho_r]), vmax = np.max(np.r_[rho_l,rho_r]))
-            cbar = plt.colorbar(format = '%.2f',fraction=0.04,orientation="horizontal")
-            
-            cmin,cmax = cbar.get_clim()
-            ticks = np.linspace(cmin,cmax,3)
-            cbar.set_ticks(ticks)
-            ax1.set_title('App Cond (S/m)')            
-            
-            # Plot apparent resistivity
-            plt.scatter(midx_l,midz_l,s=50,c=rho_l.T)
-            
-            ax1.set_xticklabels([])  
-            
-            ax1.set_ylabel('Pseudo-Z')
-            ax1.yaxis.tick_right()
-            ax1.yaxis.set_label_position('right') 
+    plt.imshow(grid_rho.T, extent = (np.min(midx),np.max(midx),np.min(midz),np.max(midz)), origin='lower', alpha=0.8, vmin = np.min(rho), vmax = np.max(rho))
+    cbar = plt.colorbar(format = '%.2f',fraction=0.04,orientation="horizontal")
+    
+    cmin,cmax = cbar.get_clim()
+    ticks = np.linspace(cmin,cmax,3)
+    cbar.set_ticks(ticks)           
+    
+    # Plot apparent resistivity
+    plt.scatter(midx,midz,s=50,c=rho.T)
+    
+    ax.set_xticklabels([])  
+    
+    ax.set_ylabel('Z')
+    ax.yaxis.tick_right()
+    ax.yaxis.set_label_position('right') 
+    plt.gca().set_aspect('equal', adjustable='box')
+    
         
-        # If a right survey   
-        if np.any(midx_r):
-            ax2 = plt.subplot(2,2,4)
-
-            # Grid points
-            grid_x, grid_z = np.mgrid[np.min(midx_r):np.max(midx_r), np.min(midz_r):np.max(midz_r)]
-            grid_rho = griddata(np.c_[midx_r,midz_r], rho_r.T, (grid_x, grid_z), method='linear')
-
-
-            plt.imshow(grid_rho.T, extent = (np.min(midx_r),np.max(midx_r),np.min(midz_r),np.max(midz_r)), origin='lower', alpha=0.8, vmin = np.min(np.r_[rho_l,rho_r]), vmax = np.max(np.r_[rho_l,rho_r]))
-
-            # Plot apparent resistivity
-            plt.scatter(midx_r,midz_r,s=50,c=rho_r.T)
-                 
-            #ax2.xaxis.tick_top()
-            ax2.set_xlabel('X (m)')   
-            ax2.set_ylabel('Pseudo-Z')
-            ax2.yaxis.tick_right()
-            ax2.yaxis.set_label_position('right') 
-            
-            return ax1, ax2
+    return ax
             
 def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
     """
@@ -469,7 +435,7 @@ def writeUBC_DCobs(fileName,DCsurvey, dtype, stype):
     from SimPEG import mkvc
     
     assert (dtype=='2D') | (dtype=='3D'), "Data must be either '2D' | '3D'"
-    assert (stype=='SURFACE') | (stype=='GENERAL'), "Data must be either 'SURFACE' | 'GENERAL'"
+    assert (stype=='SURFACE') | (stype=='GENERAL') | (stype=='SIMPLE'), "Data must be either 'SURFACE' | 'GENERAL' | 'SIMPLE'"
 
     fid = open(fileName,'w')
     fid.write('! ' + stype + ' FORMAT\n')
@@ -488,31 +454,50 @@ def writeUBC_DCobs(fileName,DCsurvey, dtype, stype):
         N = rx[1]       
         
         # Adapt source-receiver location for dtype and stype
-        if (dtype=='2D') & (stype == 'SURFACE'):
+        if dtype=='2D':
             
-            fid.writelines("%e " % ii for ii in mkvc(tx[0,:]))
-            M = M[:,0]
-            N = N[:,0]
+            if stype == 'SIMPLE':
             
-            
-        if (dtype=='2D') & (stype == 'GENERAL'):
+                #fid.writelines("%e " % ii for ii in mkvc(tx[0,:]))
+                A = np.repeat(tx[0,0],M.shape[0],axis=0)
+                B = np.repeat(tx[0,1],M.shape[0],axis=0)
+                M = M[:,0]
+                N = N[:,0]
+                
+                np.savetxt(fid, np.c_[A, B, M, N , DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e',delimiter=' ',newline='\n')
 
-            fid.writelines("%e " % ii for ii in mkvc(tx[::2,:]))
-            M = M[:,0::2]
-            N = N[:,0::2]
+                
+            else:    
+            
+                if stype == 'SURFACE':
+                    
+                    fid.writelines("%e " % ii for ii in mkvc(tx[0,:]))
+                    M = M[:,0]
+                    N = N[:,0]
+                
+                if stype == 'GENERAL':
+    
+                    fid.writelines("%e " % ii for ii in mkvc(tx[::2,:]))
+                    M = M[:,0::2]
+                    N = N[:,0::2]
+                    
+                fid.write('%i\n'% nD)
+                np.savetxt(fid, np.c_[ M, N , DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e',delimiter=' ',newline='\n')
+                    
+        if dtype=='3D': 
         
-        if (dtype=='3D') & (stype == 'SURFACE'): 
+            if stype == 'SURFACE': 
 
-            fid.writelines("%e " % ii for ii in mkvc(tx[0:2,:]))
-            M = M[:,0:2]
-            N = N[:,0:2]
+                fid.writelines("%e " % ii for ii in mkvc(tx[0:2,:]))
+                M = M[:,0:2]
+                N = N[:,0:2]
             
-        if (dtype=='3D') & (stype == 'GENERAL'):  
+            if stype == 'GENERAL':  
             
-            fid.writelines("%e " % ii for ii in mkvc(tx))
+                fid.writelines("%e " % ii for ii in mkvc(tx))
             
-        fid.write('%i\n'% nD)
-        np.savetxt(fid, np.c_[ M, N , DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e',delimiter=' ',newline='\n')
+            fid.write('%i\n'% nD)
+            np.savetxt(fid, np.c_[ M, N , DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e',delimiter=' ',newline='\n')
         
         count += nD
 
