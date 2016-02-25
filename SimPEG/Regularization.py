@@ -4,6 +4,7 @@ class RegularizationMesh(object):
 
     def __init__(self, mesh, indActive=None):
         self.mesh = mesh
+        assert indActive is None or indActive.dtype == 'bool', 'indActive needs to be None or a bool'
         self.indActive = indActive
 
     @property
@@ -18,10 +19,7 @@ class RegularizationMesh(object):
             if self.indActive is None:
                 self._nC = self.mesh.nC
             else:
-                if self.indActive.dtype == 'bool':
-                    self._nC = sum(self.indActive)
-                else:
-                    self._nC = len(self.indActive) # you shouldn't pass a vector of int 0, 1 's 
+                self._nC = sum(self.indActive)
         return self._nC
 
     @property
@@ -199,6 +197,10 @@ class BaseRegularization(object):
     def __init__(self, mesh, mapping=None, indActive=None, **kwargs):
         Utils.setKwargs(self, **kwargs)
         assert isinstance(mesh, Mesh.BaseMesh), "mesh must be a SimPEG.Mesh object."
+        if indActive is not None and indActive.dtype != 'bool':
+            tmp = indActive
+            indActive = np.zeros(mesh.nC, dtype=bool)
+            indActive[tmp] = True 
         self.regmesh = RegularizationMesh(mesh,indActive)
         self.mapping = mapping or self.mapPair(mesh)
         self.mapping._assertMatchesPair(self.mapPair)

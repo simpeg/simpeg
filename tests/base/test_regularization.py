@@ -59,17 +59,18 @@ class RegularizationTests(unittest.TestCase):
                     print 'Testing Active Cells %iD'%(mesh.dim)
 
                     if mesh.dim == 1:
-                        indAct = Utils.mkvc(mesh.gridCC <= 0.8)
+                        indActive = Utils.mkvc(mesh.gridCC <= 0.8)
                     elif mesh.dim == 2:
-                        indAct = Utils.mkvc(mesh.gridCC[:,-1] <= 2*np.sin(2*np.pi*mesh.gridCC[:,0])+0.5)
+                        indActive = Utils.mkvc(mesh.gridCC[:,-1] <= 2*np.sin(2*np.pi*mesh.gridCC[:,0])+0.5)
                     elif mesh.dim == 3:
-                        indAct = Utils.mkvc(mesh.gridCC[:,-1] <= 2*np.sin(2*np.pi*mesh.gridCC[:,0])+0.5 * 2*np.sin(2*np.pi*mesh.gridCC[:,1])+0.5)
+                        indActive = Utils.mkvc(mesh.gridCC[:,-1] <= 2*np.sin(2*np.pi*mesh.gridCC[:,0])+0.5 * 2*np.sin(2*np.pi*mesh.gridCC[:,1])+0.5)
 
-                    mapping = Maps.IdentityMap(nP=indAct.nonzero()[0].size)
+                    mapping = Maps.IdentityMap(nP=indActive.nonzero()[0].size)
 
-                    reg = r(mesh, mapping=mapping, indActive=indAct)
-                    m = np.random.rand(mesh.nC)[indAct]
-                    reg.mref = np.ones_like(m)*np.mean(m)
+                    for indAct in [indActive, indActive.nonzero()[0]]: # test both bool and integers
+                        reg = r(mesh, mapping=mapping, indActive=indAct)
+                        m = np.random.rand(mesh.nC)[indAct]
+                        reg.mref = np.ones_like(m)*np.mean(m)
 
                     print 'Check: phi_m (mref) = %f' %reg.eval(reg.mref)
                     passed = reg.eval(reg.mref) < TOL
