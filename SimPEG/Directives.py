@@ -317,7 +317,7 @@ class update_IRLS(InversionDirective):
              self.reg.m = self.invProb.curModel
 
          # Update the pre-conditioner
-         diagA = np.sum(self.prob.G**2.,axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() * (self.reg.mapping * np.ones(self.prob.mesh.nC))**2.
+         diagA = np.sum(self.prob.G**2.,axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() * (self.reg.mapping * np.ones(self.reg.m.size))**2.
          PC     = Utils.sdiag(diagA**-1.)
 
          self.opt.approxHinv = PC
