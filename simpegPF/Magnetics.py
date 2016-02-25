@@ -10,7 +10,6 @@ class MagneticIntegral(Problem.BaseProblem):
     def __init__(self, mesh, G, mapping=None, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, mapping=mapping, **kwargs)
         self.G = G
-
     def fields(self, m):
                 
         return self.G.dot(self.mapping*(m))
@@ -446,8 +445,14 @@ def Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,actv,flag):
     @author: dominiquef
      """
 
-    inds = np.nonzero(actv)[0]
-    P = sp.csr_matrix((np.ones(inds.size),(inds, range(inds.size))), shape=(mesh.nC, len(inds)))
+    if actv.dtype=='bool':
+        inds = np.asarray([inds for inds, elem in enumerate(actv, 1) if elem], dtype = int) - 1
+    else:
+        inds = actv
+        
+    nC = len(inds)
+    
+    P = sp.csr_matrix((np.ones(nC),(inds, range(nC))), shape=(mesh.nC, nC))
 
     xn = mesh.vectorNx;
     yn = mesh.vectorNy;
@@ -460,7 +465,7 @@ def Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,actv,flag):
     Xn = P.T*np.c_[mkvc(xn1), mkvc(xn2)]
     Zn = P.T*np.c_[mkvc(zn1), mkvc(zn2)]
 
-    mcell = len(inds)
+    nC = len(inds)
 
     ndata = rxLoc.shape[0]
 
@@ -472,9 +477,9 @@ def Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,actv,flag):
     my = np.cos(np.deg2rad(M[0])) * np.sin(np.deg2rad(Md))
     mz = np.sin(np.deg2rad(M[0]))
 
-    Mx = Utils.sdiag(np.ones([mcell])*mx*B[2])
-    My = Utils.sdiag(np.ones([mcell])*my*B[2])
-    Mz = Utils.sdiag(np.ones([mcell])*mz*B[2])
+    Mx = Utils.sdiag(np.ones([nC])*mx*B[2])
+    My = Utils.sdiag(np.ones([nC])*my*B[2])
+    Mz = Utils.sdiag(np.ones([nC])*mz*B[2])
 
     #matplotlib.pyplot.spy(scipy.sparse.csr_matrix(Mx))
     #plt.show()
@@ -493,7 +498,7 @@ def Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,actv,flag):
     elif flag=='xyz':
         d = np.zeros(int(3*ndata))
 
-    # Loop through all observations and create forward operator (ndata-by-mcell)
+    # Loop through all observations and create forward operator (ndata-by-nC)
     print "Begin forward modeling " +str(int(ndata)) + " data points..."
 
     # Add counter to dsiplay progress.
@@ -555,14 +560,18 @@ def Intrgl_Fwr_Op(mesh,B,M,rxLoc,actv,flag):
 
      """    
     # Find non-zero cells
-    inds = np.nonzero(actv)[0]
+    #inds = np.nonzero(actv)[0]
+    if actv.dtype=='bool':
+        inds = np.asarray([inds for inds, elem in enumerate(actv, 1) if elem], dtype = int) - 1
+    else:
+        inds = actv
+
+    nC = len(inds)
     
     # Create active cell projector
-    P = sp.csr_matrix((np.ones(inds.size),(inds, range(inds.size))),
-                      shape=(mesh.nC, len(inds)))
-    
-    mcell = len(inds)
-    
+    P = sp.csr_matrix((np.ones(nC),(inds, range(nC))),
+                      shape=(mesh.nC, nC))
+        
     # Create vectors of nodal location (lower and upper coners for each cell)
     xn = mesh.vectorNx;
     yn = mesh.vectorNy;
@@ -584,7 +593,7 @@ def Intrgl_Fwr_Op(mesh,B,M,rxLoc,actv,flag):
     # Pre-allocate space and create magnetization matrix if required
     if (flag=='tmi') | (flag == 'xyz'):
         # If assumes uniform magnetization direction
-        if M.shape != (mcell,3):
+        if M.shape != (nC,3):
 
             print 'Magnetization vector must be Nc x 3'
             return
@@ -599,7 +608,7 @@ def Intrgl_Fwr_Op(mesh,B,M,rxLoc,actv,flag):
 
 
         if flag == 'tmi':
-            F = np.zeros((ndata, mcell))
+            F = np.zeros((ndata, nC))
 
             # Projection matrix
             Ptmi = mkvc(np.r_[np.cos(np.deg2rad(B[0]))*np.cos(np.deg2rad(D)),
@@ -608,10 +617,10 @@ def Intrgl_Fwr_Op(mesh,B,M,rxLoc,actv,flag):
 
         elif flag == 'xyz':
 
-            F = np.zeros((int(3*ndata), mcell))
+            F = np.zeros((int(3*ndata), nC))
         
     elif flag == 'full':       
-        F = np.zeros((int(3*ndata), int(3*mcell)))
+        F = np.zeros((int(3*ndata), int(3*nC)))
         
 
     else:
@@ -619,7 +628,7 @@ def Intrgl_Fwr_Op(mesh,B,M,rxLoc,actv,flag):
         return
 
 
-    # Loop through all observations and create forward operator (ndata-by-mcell)
+    # Loop through all observations and create forward operator (ndata-by-nC)
     print "Begin calculation of forward operator: " + flag
 
     # Add counter to dsiplay progress. Good for large problems
@@ -664,7 +673,7 @@ def get_T_mat(Xn,Yn,Zn,rxLoc):
     Ty = [Tyx Tyy Tyz]
     Tz = [Tzx Tzy Tzz]
 
-    where each elements have dimension 1-by-mcell.
+    where each elements have dimension 1-by-nC.
     Only the upper half 5 elements have to be computed since symetric.
     Currently done as for-loops but will eventually be changed to vector
     indexing, once the topography has been figured out.
@@ -677,12 +686,12 @@ def get_T_mat(Xn,Yn,Zn,rxLoc):
     
     eps = 1e-10 # add a small value to the locations to avoid /0
     
-    mcell = Xn.shape[0]
+    nC = Xn.shape[0]
 
     # Pre-allocate space for 1D array
-    Tx = np.zeros((1,3*mcell))
-    Ty = np.zeros((1,3*mcell))
-    Tz = np.zeros((1,3*mcell))
+    Tx = np.zeros((1,3*nC))
+    Ty = np.zeros((1,3*nC))
+    Tz = np.zeros((1,3*nC))
 
     
     dz2 = rxLoc[2] - Zn[:,0] + eps
@@ -712,7 +721,7 @@ def get_T_mat(Xn,Yn,Zn,rxLoc):
 
 
 
-    Tx[0,0:mcell] = np.arctan2( dy1 * dz2 , ( dx2 * arg5 ) ) +\
+    Tx[0,0:nC] = np.arctan2( dy1 * dz2 , ( dx2 * arg5 ) ) +\
                 - np.arctan2( dy2 * dz2 , ( dx2 * arg2 ) ) +\
                 np.arctan2( dy2 * dz1 , ( dx2 * arg3 ) ) +\
                 - np.arctan2( dy1 * dz1 , ( dx2 * arg8 ) ) +\
@@ -722,12 +731,12 @@ def get_T_mat(Xn,Yn,Zn,rxLoc):
                 - np.arctan2( dy2 * dz1 , ( dx1 * arg4 ) );
 
 
-    Ty[0,0:mcell] = np.log( ( dz2 + arg2 ) / (dz1 + arg3 ) ) +\
+    Ty[0,0:nC] = np.log( ( dz2 + arg2 ) / (dz1 + arg3 ) ) +\
                 -np.log( ( dz2 + arg1 ) / (dz1 + arg4 ) ) +\
                 np.log( ( dz2 + arg6 ) / (dz1 + arg7 ) ) +\
                 -np.log( ( dz2 + arg5 ) / (dz1 + arg8 ) );
 
-    Ty[0,mcell:2*mcell] = np.arctan2( dx1 * dz2 , ( dy2 * arg1 ) ) +\
+    Ty[0,nC:2*nC] = np.arctan2( dx1 * dz2 , ( dy2 * arg1 ) ) +\
                     - np.arctan2( dx2 * dz2 , ( dy2 * arg2 ) ) +\
                     np.arctan2( dx2 * dz1 , ( dy2 * arg3 ) ) +\
                     - np.arctan2( dx1 * dz1 , ( dy2 * arg4 ) ) +\
@@ -741,7 +750,7 @@ def get_T_mat(Xn,Yn,Zn,rxLoc):
     R3 = (dy1**2 + dz1**2);
     R4 = (dy1**2 + dz2**2);
 
-    Ty[0,2*mcell:] = np.log( ( dx1 + np.sqrt( dx1**2 + R1 ) ) / (dx2 + np.sqrt( dx2**2 + R1 ) ) ) +\
+    Ty[0,2*nC:] = np.log( ( dx1 + np.sqrt( dx1**2 + R1 ) ) / (dx2 + np.sqrt( dx2**2 + R1 ) ) ) +\
                         -np.log( ( dx1 + np.sqrt( dx1**2 + R2 ) ) / (dx2 + np.sqrt( dx2**2 + R2 ) ) ) +\
                         np.log( ( dx1 + np.sqrt( dx1**2 + R4 ) ) / (dx2 + np.sqrt( dx2**2 + R4 ) ) ) +\
                         -np.log( ( dx1 + np.sqrt( dx1**2 + R3 ) ) / (dx2 + np.sqrt( dx2**2 + R3 ) ) );
@@ -751,15 +760,15 @@ def get_T_mat(Xn,Yn,Zn,rxLoc):
     R3 = (dx1**2 + dz1**2);
     R4 = (dx1**2 + dz2**2);
 
-    Tx[0,2*mcell:] = np.log( ( dy1 + np.sqrt( dy1**2 + R1 ) ) / (dy2 + np.sqrt( dy2**2 + R1 ) ) ) +\
+    Tx[0,2*nC:] = np.log( ( dy1 + np.sqrt( dy1**2 + R1 ) ) / (dy2 + np.sqrt( dy2**2 + R1 ) ) ) +\
                         -np.log( ( dy1 + np.sqrt( dy1**2 + R2 ) ) / (dy2 + np.sqrt( dy2**2 + R2 ) ) ) +\
                         np.log( ( dy1 + np.sqrt( dy1**2 + R4 ) ) / (dy2 + np.sqrt( dy2**2 + R4 ) ) ) +\
                         -np.log( ( dy1 + np.sqrt( dy1**2 + R3 ) ) / (dy2 + np.sqrt( dy2**2 + R3 ) ) );
 
-    Tz[0,2*mcell:] = -( Ty[0,mcell:2*mcell] + Tx[0,0:mcell] );
-    Tz[0,mcell:2*mcell] = Ty[0,2*mcell:];
-    Tx[0,mcell:2*mcell] = Ty[0,0:mcell];
-    Tz[0,0:mcell] = Tx[0,2*mcell:];
+    Tz[0,2*nC:] = -( Ty[0,nC:2*nC] + Tx[0,0:nC] );
+    Tz[0,nC:2*nC] = Ty[0,2*nC:];
+    Tx[0,nC:2*nC] = Ty[0,0:nC];
+    Tz[0,0:nC] = Tx[0,2*nC:];
 
 
 
@@ -809,9 +818,9 @@ def dipazm_2_xyz(dip,azm_N):
 
     @author: dominiquef
     """
-    mcell = len(azm_N)
+    nC = len(azm_N)
 
-    M = np.zeros((mcell,3))
+    M = np.zeros((nC,3))
 
     # Modify azimuth from North to Cartesian-X
     azm_X = (450.- azm_N) % 360.
@@ -840,7 +849,7 @@ def get_dist_wgt(mesh,rxLoc,actv,R,R0):
     R0          : Small factor added (default=dx/4)
 
     OUTPUT
-    wr       : [mcell] Vector of distance weighting
+    wr       : [nC] Vector of distance weighting
 
     Created on Dec, 20th 2015
 
@@ -848,11 +857,16 @@ def get_dist_wgt(mesh,rxLoc,actv,R,R0):
     """
 
     # Find non-zero cells
-    inds = np.nonzero(actv)[0]
+    if actv.dtype=='bool':
+        inds = np.asarray([inds for inds, elem in enumerate(actv, 1) if elem], dtype=int) - 1
+    else:
+        inds = actv
+    
+    nC = len(inds)
     
     # Create active cell projector
-    P = sp.csr_matrix((np.ones(inds.size),(inds, range(inds.size))),
-                      shape=(mesh.nC, len(inds)))
+    P = sp.csr_matrix((np.ones(nC),(inds, range(nC))),
+                      shape=(mesh.nC, nC))
             
     # Geometrical constant
     p = 1/np.sqrt(3);
@@ -871,7 +885,7 @@ def get_dist_wgt(mesh,rxLoc,actv,R,R0):
     hZ = P.T*mkvc(hZ)
        
     V = P.T * mkvc(mesh.vol)
-    wr = np.zeros(np.sum(actv))
+    wr = np.zeros(nC)
 
     ndata = rxLoc.shape[0]
     count = -1
@@ -989,9 +1003,11 @@ def getActiveTopo(mesh,topo,flag):
             actv[ii,jj,temp] = 1
 
 
-    actv = mkvc(actv)
-
-    return actv
+    actv = mkvc(actv==1)
+    
+    inds = np.asarray([inds for inds, elem in enumerate(actv, 1) if elem], dtype = int) - 1
+        
+    return inds
 
 def plot_obs_2D(rxLoc,d,wd,varstr):   
     """ Function plot_obs(rxLoc,d,wd)

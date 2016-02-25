@@ -132,12 +132,12 @@ class BaseMagMap(Maps.IdentityMap):
 class WeightMap(Maps.IdentityMap):
     """Weighted Map for distributed parameters"""
 
-    def __init__(self, mesh, weight, **kwargs):
-        Maps.IdentityMap.__init__(self, mesh)
-        self.mesh = mesh
+    def __init__(self, nP, weight, **kwargs):
+        Maps.IdentityMap.__init__(self, nP)
+        self.mesh = None
         self.weight = weight
 
-    def _transform(self, m):        
+    def _transform(self, m): 
         return m*self.weight
 
     def deriv(self, m):
