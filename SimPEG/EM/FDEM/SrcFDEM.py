@@ -335,7 +335,7 @@ class MagDipole(BaseSrc):
         :return: primary magnetic field
         """
         b = self.bPrimary(prob)
-        return h_from_b(prob,b)
+        return 1./self.mu * b 
 
     def S_m(self, prob):
         """
@@ -347,6 +347,8 @@ class MagDipole(BaseSrc):
         """
 
         b_p = self.bPrimary(prob)
+        if prob._eqLocs is 'EF':
+            b_p = prob.Me * b_p 
         return -1j*omega(self.freq)*b_p
 
     def S_e(self, prob):
@@ -449,7 +451,7 @@ class MagDipole_Bfield(BaseSrc):
         :return: primary magnetic field
         """
         b = self.bPrimary(prob)
-        return h_from_b(prob, b)
+        return 1/self.mu * b
 
     def S_m(self, prob):
         """
@@ -460,6 +462,8 @@ class MagDipole_Bfield(BaseSrc):
         :return: primary magnetic field
         """
         b = self.bPrimary(prob)
+        if prob._eqLocs is 'EF':
+            b = prob.Me * b
         return -1j*omega(self.freq)*b
 
     def S_e(self, prob):
@@ -570,6 +574,8 @@ class CircularLoop(BaseSrc):
         :return: primary magnetic field
         """
         b = self.bPrimary(prob)
+        if prob._eqLocs is 'EF':
+            b =  prob.Me *  b
         return -1j*omega(self.freq)*b
 
     def S_e(self, prob):
@@ -589,11 +595,15 @@ class CircularLoop(BaseSrc):
                 mui_s = prob.curModel.mui - 1./self.mu
                 MMui_s = prob.mesh.getFaceInnerProduct(mui_s)
                 C = prob.mesh.edgeCurl
+
+
             elif eqLocs is 'EF':
                 mu_s = prob.curModel.mu - self.mu
                 MMui_s = prob.mesh.getEdgeInnerProduct(mu_s, invMat=True)
                 C = prob.mesh.edgeCurl.T
 
             return -C.T * (MMui_s * self.bPrimary(prob))
+
+            
 
 
