@@ -403,7 +403,7 @@ class BaseRegularization(object):
 class Tikhonov(BaseRegularization):
     """
     """
-    smoothModel = True  #: SMOOTH and SMOOTH_MOD_DIF options
+    mrefInSmooth = True  #: SMOOTH and SMOOTH_MOD_DIF options
     alpha_s  = Utils.dependentProperty('_alpha_s', 1e-6, ['_W', '_Ws'], "Smallness weight")
     alpha_x  = Utils.dependentProperty('_alpha_x', 1.0, ['_W', '_Wx'], "Weight for the first derivative in the x direction")
     alpha_y  = Utils.dependentProperty('_alpha_y', 1.0, ['_W', '_Wy'], "Weight for the first derivative in the y direction")
@@ -489,11 +489,11 @@ class Tikhonov(BaseRegularization):
 
     @Utils.timeIt
     def eval(self, m):
-        if self.smoothModel == True:
+        if self.mrefInSmooth == True:
             r1 = self.Wsmooth * ( self.mapping * (m) )
             r2 = self.Ws * ( self.mapping * (m - self.mref) )
             return 0.5*(r1.dot(r1)+r2.dot(r2))
-        elif self.smoothModel == False:
+        elif self.mrefInSmooth == False:
             r = self.W * ( self.mapping * (m - self.mref) )
             return 0.5*r.dot(r)
 
@@ -515,7 +515,7 @@ class Tikhonov(BaseRegularization):
             R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
 
         """
-        if self.smoothModel == True:
+        if self.mrefInSmooth == True:
             mD1 = self.mapping.deriv(m)
             mD2 = self.mapping.deriv(m - self.mref)
             r1 = self.Wsmooth * ( self.mapping * (m))
@@ -523,7 +523,7 @@ class Tikhonov(BaseRegularization):
             out1 = mD1.T * ( self.Wsmooth.T * r1 )
             out2 = mD2.T * ( self.Ws.T * r2 )
             out = out1+out2
-        elif self.smoothModel == False:
+        elif self.mrefInSmooth == False:
             mD = self.mapping.deriv(m - self.mref)
             r = self.W * ( self.mapping * (m - self.mref) )
             out = mD.T * ( self.W.T * r )
@@ -535,7 +535,7 @@ class Simple(BaseRegularization):
         Only for tensor mesh
     """
 
-    smoothModel = True  #: SMOOTH and SMOOTH_MOD_DIF options
+    mrefInSmooth = True  #: SMOOTH and SMOOTH_MOD_DIF options
     alpha_s     = Utils.dependentProperty('_alpha_s', 1.0, ['_W', '_Ws'], "Smallness weight")
     alpha_x     = Utils.dependentProperty('_alpha_x', 1.0, ['_W', '_Wx'], "Weight for the first derivative in the x direction")
     alpha_y     = Utils.dependentProperty('_alpha_y', 1.0, ['_W', '_Wy'], "Weight for the first derivative in the y direction")
@@ -595,11 +595,11 @@ class Simple(BaseRegularization):
 
     @Utils.timeIt
     def eval(self, m):
-        if self.smoothModel == True:
+        if self.mrefInSmooth == True:
             r1 = self.Wsmooth * ( self.mapping * (m) )
             r2 = self.Ws * ( self.mapping * (m - self.mref) )
             return 0.5*(r1.dot(r1)+r2.dot(r2))
-        elif self.smoothModel == False:
+        elif self.mrefInSmooth == False:
             r = self.W * ( self.mapping * (m - self.mref) )
             return 0.5*r.dot(r)
         return phim
@@ -623,7 +623,7 @@ class Simple(BaseRegularization):
             R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
 
         """
-        if self.smoothModel == True:
+        if self.mrefInSmooth == True:
             mD1 = self.mapping.deriv(m)
             mD2 = self.mapping.deriv(m - self.mref)
             r1 = self.Wsmooth * ( self.mapping * (m))
@@ -631,7 +631,7 @@ class Simple(BaseRegularization):
             out1 = mD1.T * ( self.Wsmooth.T * r1 )
             out2 = mD2.T * ( self.Ws.T * r2 )
             out = out1+out2
-        elif self.smoothModel == False:
+        elif self.mrefInSmooth == False:
             mD = self.mapping.deriv(m - self.mref)
             r = self.W * ( self.mapping * (m - self.mref) )
             out = mD.T * ( self.W.T * r )

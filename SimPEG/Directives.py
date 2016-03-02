@@ -216,7 +216,7 @@ class SaveOutputDictEveryIteration(_SaveEveryIteration):
         # Save the data.
         ms = self.reg.Ws * ( self.reg.mapping * (self.invProb.curModel - self.reg.mref) )
         phi_ms = 0.5*ms.dot(ms)
-        if self.reg.smoothModel == True:
+        if self.reg.mrefInSmooth == True:
             mref = self.reg.mref
         else:
             mref = 0
@@ -249,7 +249,7 @@ class SaveOutputDictEveryIteration(_SaveEveryIteration):
         # Save the data.
         ms = self.reg.Ws * ( self.reg.mapping * (self.invProb.curModel - self.reg.mref) )
         phi_ms = 0.5*ms.dot(ms)
-        if self.reg.smoothModel == True:
+        if self.reg.mrefInSmooth == True:
             mref = self.reg.mref
         else:
             mref = 0
