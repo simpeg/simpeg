@@ -299,8 +299,8 @@ class Simple(BaseRegularization):
     def __init__(self, mesh, mapping=None, **kwargs):
         BaseRegularization.__init__(self, mesh, mapping=mapping, **kwargs)
 
-    
-        
+
+
     @property
     def Ws(self):
         """Regularization matrix Ws"""
@@ -413,7 +413,7 @@ class Simple(BaseRegularization):
         return out
 
 class SparseRegularization(Simple):
-    
+
     eps = 1e-1
 
     m = None
@@ -422,11 +422,11 @@ class SparseRegularization(Simple):
     qx = 2.
     qy = 2.
     qz = 2.
-    
+
     def __init__(self, mesh, mapping=None, **kwargs):
         Simple.__init__(self, mesh, mapping=mapping, **kwargs)
-        
-    
+
+
     @property
     def Wsmooth(self):
         """Full smoothness regularization matrix W"""
@@ -446,35 +446,35 @@ class SparseRegularization(Simple):
             wlist = (self.Ws, self.Wsmooth)
             self._W = sp.vstack(wlist)
         return self._W
-    
+
     @property
     def Ws(self):
         """Regularization matrix Ws"""
         if getattr(self, 'm', None) is None:
-            self.Rs = Utils.speye(self.mesh.nC)            
-            
+            self.Rs = Utils.speye(self.mesh.nC)
+
         else:
             f_m = self.m
             self.rs = self.R(f_m , self.p, self.eps)
             #print "Min rs: " + str(np.max(self.rs)) + "Max rs: " + str(np.min(self.rs))
             self.Rs = Utils.sdiag( self.rs )
-            
+
         self._Ws = Utils.sdiag((self.mesh.vol*self.alpha_s*self.gamma)**0.5)*self.Rs
-            
+
         return self._Ws
 
     @property
     def Wx(self):
         """Regularization matrix Wx"""
-        
+
         if getattr(self, 'm', None) is None:
-            self.Rx = Utils.speye(self.mesh.unitCellGradx.shape[0])            
-            
+            self.Rx = Utils.speye(self.mesh.unitCellGradx.shape[0])
+
         else:
             f_m = self.mesh.unitCellGradx * self.m
             self.rx = self.R( f_m , self.qx, self.eps)
             self.Rx = Utils.sdiag( self.rx )
-            
+
         if getattr(self, '_Wx', None) is None:
             self._Wx = Utils.sdiag((self.mesh.vol*self.alpha_x*self.gamma)**0.5)*self.Rx*self.mesh.unitCellGradx
         return self._Wx
@@ -482,15 +482,15 @@ class SparseRegularization(Simple):
     @property
     def Wy(self):
         """Regularization matrix Wy"""
-        
+
         if getattr(self, 'm', None) is None:
-            self.Ry = Utils.speye(self.mesh.unitCellGrady.shape[0])            
-            
+            self.Ry = Utils.speye(self.mesh.unitCellGrady.shape[0])
+
         else:
             f_m = self.mesh.unitCellGrady * self.m
             self.ry = self.R( f_m , self.qy, self.eps)
             self.Ry = Utils.sdiag( self.ry )
-            
+
         if getattr(self, '_Wy', None) is None:
             self._Wy = Utils.sdiag((self.mesh.vol*self.alpha_y*self.gamma)**0.5)*self.Ry*self.mesh.unitCellGrady
         return self._Wy
@@ -500,18 +500,18 @@ class SparseRegularization(Simple):
         """Regularization matrix Wz"""
 
         if getattr(self, 'm', None) is None:
-            self.Rz = Utils.speye(self.mesh.unitCellGradz.shape[0])            
-            
+            self.Rz = Utils.speye(self.mesh.unitCellGradz.shape[0])
+
         else:
             f_m = self.mesh.unitCellGradz * self.m
             self.rz = self.R( f_m , self.qz, self.eps)
             self.Rz = Utils.sdiag( self.rz )
-        
+
         if getattr(self, '_Wz', None) is None:
             self._Wz = Utils.sdiag((self.mesh.vol*self.alpha_z*self.gamma)**0.5)*self.Rz*self.mesh.unitCellGradz
-        return self._Wz    
+        return self._Wz
 
-    
+
     def R(self, f_m , p, dec):
 
         eta = (self.eps**(1-p/2.))**0.5
