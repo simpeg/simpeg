@@ -281,243 +281,244 @@ class Tikhonov(BaseRegularization):
             r = self.W * ( self.mapping * (m - self.mref) )
             out = mD.T * ( self.W.T * r )
         return out
-<<<<<<< HEAD
 
-class Simple(BaseRegularization):
-    """
-        Only for tensor mesh
-    """     
-    
-    smoothModel = True  #: SMOOTH and SMOOTH_MOD_DIF options
-    alpha_s  = Utils.dependentProperty('_alpha_s', 1.0, ['_W', '_Ws'], "Smallness weight")
-    alpha_x  = Utils.dependentProperty('_alpha_x', 1.0, ['_W', '_Wx'], "Weight for the first derivative in the x direction")
-    alpha_y  = Utils.dependentProperty('_alpha_y', 1.0, ['_W', '_Wy'], "Weight for the first derivative in the y direction")
-    alpha_z  = Utils.dependentProperty('_alpha_z', 1.0, ['_W', '_Wz'], "Weight for the first derivative in the z direction")
-    alpha_xx = Utils.dependentProperty('_alpha_xx', 0.0, ['_W', '_Wxx'], "Weight for the second derivative in the x direction")
-    alpha_yy = Utils.dependentProperty('_alpha_yy', 0.0, ['_W', '_Wyy'], "Weight for the second derivative in the y direction")
-    alpha_zz = Utils.dependentProperty('_alpha_zz', 0.0, ['_W', '_Wzz'], "Weight for the second derivative in the z direction")
+# <<<<<<< HEAD
 
-    def __init__(self, mesh, mapping=None, **kwargs):
-        BaseRegularization.__init__(self, mesh, mapping=mapping, **kwargs)
+# class Simple(BaseRegularization):
+#     """
+#         Only for tensor mesh
+#     """
 
+#     smoothModel = True  #: SMOOTH and SMOOTH_MOD_DIF options
+#     alpha_s  = Utils.dependentProperty('_alpha_s', 1.0, ['_W', '_Ws'], "Smallness weight")
+#     alpha_x  = Utils.dependentProperty('_alpha_x', 1.0, ['_W', '_Wx'], "Weight for the first derivative in the x direction")
+#     alpha_y  = Utils.dependentProperty('_alpha_y', 1.0, ['_W', '_Wy'], "Weight for the first derivative in the y direction")
+#     alpha_z  = Utils.dependentProperty('_alpha_z', 1.0, ['_W', '_Wz'], "Weight for the first derivative in the z direction")
+#     alpha_xx = Utils.dependentProperty('_alpha_xx', 0.0, ['_W', '_Wxx'], "Weight for the second derivative in the x direction")
+#     alpha_yy = Utils.dependentProperty('_alpha_yy', 0.0, ['_W', '_Wyy'], "Weight for the second derivative in the y direction")
+#     alpha_zz = Utils.dependentProperty('_alpha_zz', 0.0, ['_W', '_Wzz'], "Weight for the second derivative in the z direction")
 
-
-    @property
-    def Ws(self):
-        """Regularization matrix Ws"""
-        if getattr(self,'_Ws', None) is None:
-                self._Ws = Utils.sdiag((self.mesh.vol*self.alpha_s)**0.5)
-        return self._Ws
-
-    @property
-    def Wx(self):
-        """Regularization matrix Wx"""
-        if getattr(self, '_Wx', None) is None:
-            self._Wx = Utils.sdiag((self.mesh.vol*self.alpha_x)**0.5)*self.mesh.unitCellGradx
-        return self._Wx
-
-    @property
-    def Wy(self):
-        """Regularization matrix Wy"""
-        if getattr(self, '_Wy', None) is None:
-            self._Wy = Utils.sdiag((self.mesh.vol*self.alpha_y)**0.5)*self.mesh.unitCellGrady
-        return self._Wy
-
-    @property
-    def Wz(self):
-        """Regularization matrix Wz"""
-        if getattr(self, '_Wz', None) is None:
-            self._Wz = Utils.sdiag((self.mesh.vol*self.alpha_z)**0.5)*self.mesh.unitCellGradz
-        return self._Wz
-
-    @property
-    def Wxx(self):
-        """Regularization matrix Wxx"""
-        if getattr(self, '_Wxx', None) is None:
-            self._Wxx = Utils.sdiag((self.mesh.vol*self.alpha_xx)**0.5)*self.mesh.faceDivx*self.mesh.cellGradx
-        return self._Wxx
-
-    @property
-    def Wyy(self):
-        """Regularization matrix Wyy"""
-        if getattr(self, '_Wyy', None) is None:
-            self._Wyy = Utils.sdiag((self.mesh.vol*self.alpha_yy)**0.5)*self.mesh.faceDivy*self.mesh.cellGrady
-        return self._Wyy
-
-    @property
-    def Wzz(self):
-        """Regularization matrix Wzz"""
-        if getattr(self, '_Wzz', None) is None:
-            self._Wzz = Utils.sdiag((self.mesh.vol*self.alpha_zz)**0.5)*self.mesh.faceDivz*self.mesh.cellGradz
-        return self._Wzz
-
-    @property
-    def Wsmooth(self):
-        """Full smoothness regularization matrix W"""
-        if getattr(self, '_Wsmooth', None) is None:
-            wlist = (self.Wx, self.Wxx)
-            if self.mesh.dim > 1:
-                wlist += (self.Wy, self.Wyy)
-            if self.mesh.dim > 2:
-                wlist += (self.Wz, self.Wzz)
-            self._Wsmooth = sp.vstack(wlist)
-        return self._Wsmooth
-
-    @property
-    def W(self):
-        """Full regularization matrix W"""
-        if getattr(self, '_W', None) is None:
-            wlist = (self.Ws, self.Wsmooth)
-            self._W = sp.vstack(wlist)
-        return self._W
-
-    @Utils.timeIt
-    def eval(self, m):
-        if self.smoothModel == True:
-            r1 = self.Wsmooth * ( self.mapping * (m) )
-            r2 = self.Ws * ( self.mapping * (m - self.mref) )
-            return 0.5*(r1.dot(r1)+r2.dot(r2))
-        elif self.smoothModel == False:
-            r = self.W * ( self.mapping * (m - self.mref) )
-            return 0.5*r.dot(r)
+#     def __init__(self, mesh, mapping=None, **kwargs):
+#         BaseRegularization.__init__(self, mesh, mapping=mapping, **kwargs)
 
 
-    @Utils.timeIt
-    def evalDeriv(self, m):
-        """
 
-        The regularization is:
+#     @property
+#     def Ws(self):
+#         """Regularization matrix Ws"""
+#         if getattr(self,'_Ws', None) is None:
+#                 self._Ws = Utils.sdiag((self.mesh.vol*self.alpha_s)**0.5)
+#         return self._Ws
 
-        .. math::
+#     @property
+#     def Wx(self):
+#         """Regularization matrix Wx"""
+#         if getattr(self, '_Wx', None) is None:
+#             self._Wx = Utils.sdiag((self.mesh.vol*self.alpha_x)**0.5)*self.mesh.unitCellGradx
+#         return self._Wx
 
-            R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top W(m-m_\\text{ref})}
+#     @property
+#     def Wy(self):
+#         """Regularization matrix Wy"""
+#         if getattr(self, '_Wy', None) is None:
+#             self._Wy = Utils.sdiag((self.mesh.vol*self.alpha_y)**0.5)*self.mesh.unitCellGrady
+#         return self._Wy
 
-        So the derivative is straight forward:
+#     @property
+#     def Wz(self):
+#         """Regularization matrix Wz"""
+#         if getattr(self, '_Wz', None) is None:
+#             self._Wz = Utils.sdiag((self.mesh.vol*self.alpha_z)**0.5)*self.mesh.unitCellGradz
+#         return self._Wz
 
-        .. math::
+#     @property
+#     def Wxx(self):
+#         """Regularization matrix Wxx"""
+#         if getattr(self, '_Wxx', None) is None:
+#             self._Wxx = Utils.sdiag((self.mesh.vol*self.alpha_xx)**0.5)*self.mesh.faceDivx*self.mesh.cellGradx
+#         return self._Wxx
 
-            R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
+#     @property
+#     def Wyy(self):
+#         """Regularization matrix Wyy"""
+#         if getattr(self, '_Wyy', None) is None:
+#             self._Wyy = Utils.sdiag((self.mesh.vol*self.alpha_yy)**0.5)*self.mesh.faceDivy*self.mesh.cellGrady
+#         return self._Wyy
 
-        """
-        if self.smoothModel == True:
-            mD1 = self.mapping.deriv(m)
-            mD2 = self.mapping.deriv(m - self.mref)
-            r1 = self.Wsmooth * ( self.mapping * (m))
-            r2 = self.Ws * ( self.mapping * (m - self.mref) )
-            out1 = mD1.T * ( self.Wsmooth.T * r1 )
-            out2 = mD2.T * ( self.Ws.T * r2 )
-            out = out1+out2
-        elif self.smoothModel == False:
-            mD = self.mapping.deriv(m - self.mref)
-            r = self.W * ( self.mapping * (m - self.mref) )
-            out = mD.T * ( self.W.T * r )
-        return out
+#     @property
+#     def Wzz(self):
+#         """Regularization matrix Wzz"""
+#         if getattr(self, '_Wzz', None) is None:
+#             self._Wzz = Utils.sdiag((self.mesh.vol*self.alpha_zz)**0.5)*self.mesh.faceDivz*self.mesh.cellGradz
+#         return self._Wzz
 
-class SparseRegularization(Simple):
+#     @property
+#     def Wsmooth(self):
+#         """Full smoothness regularization matrix W"""
+#         if getattr(self, '_Wsmooth', None) is None:
+#             wlist = (self.Wx, self.Wxx)
+#             if self.mesh.dim > 1:
+#                 wlist += (self.Wy, self.Wyy)
+#             if self.mesh.dim > 2:
+#                 wlist += (self.Wz, self.Wzz)
+#             self._Wsmooth = sp.vstack(wlist)
+#         return self._Wsmooth
 
-    eps = 1e-1
+#     @property
+#     def W(self):
+#         """Full regularization matrix W"""
+#         if getattr(self, '_W', None) is None:
+#             wlist = (self.Ws, self.Wsmooth)
+#             self._W = sp.vstack(wlist)
+#         return self._W
 
-    m = None
-    gamma = 1.
-    p = 0.
-    qx = 2.
-    qy = 2.
-    qz = 2.
-
-    def __init__(self, mesh, mapping=None, **kwargs):
-        Simple.__init__(self, mesh, mapping=mapping, **kwargs)
-
-
-    @property
-    def Wsmooth(self):
-        """Full smoothness regularization matrix W"""
-        if getattr(self, '_Wsmooth', None) is None:
-            wlist = (self.Wx, self.Wxx)
-            if self.mesh.dim > 1:
-                wlist += (self.Wy, self.Wyy)
-            if self.mesh.dim > 2:
-                wlist += (self.Wz, self.Wzz)
-            self._Wsmooth = sp.vstack(wlist)
-        return self._Wsmooth
-
-    @property
-    def W(self):
-        """Full regularization matrix W"""
-        if getattr(self, '_W', None) is None:
-            wlist = (self.Ws, self.Wsmooth)
-            self._W = sp.vstack(wlist)
-        return self._W
-
-    @property
-    def Ws(self):
-        """Regularization matrix Ws"""
-        if getattr(self, 'm', None) is None:
-            self.Rs = Utils.speye(self.mesh.nC)
-
-        else:
-            f_m = self.m
-            self.rs = self.R(f_m , self.p, self.eps)
-            #print "Min rs: " + str(np.max(self.rs)) + "Max rs: " + str(np.min(self.rs))
-            self.Rs = Utils.sdiag( self.rs )
-
-        self._Ws = Utils.sdiag((self.mesh.vol*self.alpha_s*self.gamma)**0.5)*self.Rs
-
-        return self._Ws
-
-    @property
-    def Wx(self):
-        """Regularization matrix Wx"""
-
-        if getattr(self, 'm', None) is None:
-            self.Rx = Utils.speye(self.mesh.unitCellGradx.shape[0])
-
-        else:
-            f_m = self.mesh.unitCellGradx * self.m
-            self.rx = self.R( f_m , self.qx, self.eps)
-            self.Rx = Utils.sdiag( self.rx )
-
-        if getattr(self, '_Wx', None) is None:
-            self._Wx = Utils.sdiag((self.mesh.vol*self.alpha_x*self.gamma)**0.5)*self.Rx*self.mesh.unitCellGradx
-        return self._Wx
-
-    @property
-    def Wy(self):
-        """Regularization matrix Wy"""
-
-        if getattr(self, 'm', None) is None:
-            self.Ry = Utils.speye(self.mesh.unitCellGrady.shape[0])
-
-        else:
-            f_m = self.mesh.unitCellGrady * self.m
-            self.ry = self.R( f_m , self.qy, self.eps)
-            self.Ry = Utils.sdiag( self.ry )
-
-        if getattr(self, '_Wy', None) is None:
-            self._Wy = Utils.sdiag((self.mesh.vol*self.alpha_y*self.gamma)**0.5)*self.Ry*self.mesh.unitCellGrady
-        return self._Wy
-
-    @property
-    def Wz(self):
-        """Regularization matrix Wz"""
-
-        if getattr(self, 'm', None) is None:
-            self.Rz = Utils.speye(self.mesh.unitCellGradz.shape[0])
-
-        else:
-            f_m = self.mesh.unitCellGradz * self.m
-            self.rz = self.R( f_m , self.qz, self.eps)
-            self.Rz = Utils.sdiag( self.rz )
-
-        if getattr(self, '_Wz', None) is None:
-            self._Wz = Utils.sdiag((self.mesh.vol*self.alpha_z*self.gamma)**0.5)*self.Rz*self.mesh.unitCellGradz
-        return self._Wz
+#     @Utils.timeIt
+#     def eval(self, m):
+#         if self.smoothModel == True:
+#             r1 = self.Wsmooth * ( self.mapping * (m) )
+#             r2 = self.Ws * ( self.mapping * (m - self.mref) )
+#             return 0.5*(r1.dot(r1)+r2.dot(r2))
+#         elif self.smoothModel == False:
+#             r = self.W * ( self.mapping * (m - self.mref) )
+#             return 0.5*r.dot(r)
 
 
-    def R(self, f_m , p, dec):
+#     @Utils.timeIt
+#     def evalDeriv(self, m):
+#         """
 
-        eta = (self.eps**(1-p/2.))**0.5
-        r = eta / (f_m**2.+self.eps**2.)**((1-p/2.)/2.)
+#         The regularization is:
 
-        return r
-=======
->>>>>>> 834de582844e8e1eac95819fbe03eed55dbeb001
+#         .. math::
+
+#             R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top W(m-m_\\text{ref})}
+
+#         So the derivative is straight forward:
+
+#         .. math::
+
+#             R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
+
+#         """
+#         if self.smoothModel == True:
+#             mD1 = self.mapping.deriv(m)
+#             mD2 = self.mapping.deriv(m - self.mref)
+#             r1 = self.Wsmooth * ( self.mapping * (m))
+#             r2 = self.Ws * ( self.mapping * (m - self.mref) )
+#             out1 = mD1.T * ( self.Wsmooth.T * r1 )
+#             out2 = mD2.T * ( self.Ws.T * r2 )
+#             out = out1+out2
+#         elif self.smoothModel == False:
+#             mD = self.mapping.deriv(m - self.mref)
+#             r = self.W * ( self.mapping * (m - self.mref) )
+#             out = mD.T * ( self.W.T * r )
+#         return out
+
+# class SparseRegularization(Simple):
+
+#     eps = 1e-1
+
+#     m = None
+#     gamma = 1.
+#     p = 0.
+#     qx = 2.
+#     qy = 2.
+#     qz = 2.
+
+#     def __init__(self, mesh, mapping=None, **kwargs):
+#         Simple.__init__(self, mesh, mapping=mapping, **kwargs)
+
+
+#     @property
+#     def Wsmooth(self):
+#         """Full smoothness regularization matrix W"""
+#         if getattr(self, '_Wsmooth', None) is None:
+#             wlist = (self.Wx, self.Wxx)
+#             if self.mesh.dim > 1:
+#                 wlist += (self.Wy, self.Wyy)
+#             if self.mesh.dim > 2:
+#                 wlist += (self.Wz, self.Wzz)
+#             self._Wsmooth = sp.vstack(wlist)
+#         return self._Wsmooth
+
+#     @property
+#     def W(self):
+#         """Full regularization matrix W"""
+#         if getattr(self, '_W', None) is None:
+#             wlist = (self.Ws, self.Wsmooth)
+#             self._W = sp.vstack(wlist)
+#         return self._W
+
+#     @property
+#     def Ws(self):
+#         """Regularization matrix Ws"""
+#         if getattr(self, 'm', None) is None:
+#             self.Rs = Utils.speye(self.mesh.nC)
+
+#         else:
+#             f_m = self.m
+#             self.rs = self.R(f_m , self.p, self.eps)
+#             #print "Min rs: " + str(np.max(self.rs)) + "Max rs: " + str(np.min(self.rs))
+#             self.Rs = Utils.sdiag( self.rs )
+
+#         self._Ws = Utils.sdiag((self.mesh.vol*self.alpha_s*self.gamma)**0.5)*self.Rs
+
+#         return self._Ws
+
+#     @property
+#     def Wx(self):
+#         """Regularization matrix Wx"""
+
+#         if getattr(self, 'm', None) is None:
+#             self.Rx = Utils.speye(self.mesh.unitCellGradx.shape[0])
+
+#         else:
+#             f_m = self.mesh.unitCellGradx * self.m
+#             self.rx = self.R( f_m , self.qx, self.eps)
+#             self.Rx = Utils.sdiag( self.rx )
+
+#         if getattr(self, '_Wx', None) is None:
+#             self._Wx = Utils.sdiag((self.mesh.vol*self.alpha_x*self.gamma)**0.5)*self.Rx*self.mesh.unitCellGradx
+#         return self._Wx
+
+#     @property
+#     def Wy(self):
+#         """Regularization matrix Wy"""
+
+#         if getattr(self, 'm', None) is None:
+#             self.Ry = Utils.speye(self.mesh.unitCellGrady.shape[0])
+
+#         else:
+#             f_m = self.mesh.unitCellGrady * self.m
+#             self.ry = self.R( f_m , self.qy, self.eps)
+#             self.Ry = Utils.sdiag( self.ry )
+
+#         if getattr(self, '_Wy', None) is None:
+#             self._Wy = Utils.sdiag((self.mesh.vol*self.alpha_y*self.gamma)**0.5)*self.Ry*self.mesh.unitCellGrady
+#         return self._Wy
+
+#     @property
+#     def Wz(self):
+#         """Regularization matrix Wz"""
+
+#         if getattr(self, 'm', None) is None:
+#             self.Rz = Utils.speye(self.mesh.unitCellGradz.shape[0])
+
+#         else:
+#             f_m = self.mesh.unitCellGradz * self.m
+#             self.rz = self.R( f_m , self.qz, self.eps)
+#             self.Rz = Utils.sdiag( self.rz )
+
+#         if getattr(self, '_Wz', None) is None:
+#             self._Wz = Utils.sdiag((self.mesh.vol*self.alpha_z*self.gamma)**0.5)*self.Rz*self.mesh.unitCellGradz
+#         return self._Wz
+
+
+#     def R(self, f_m , p, dec):
+
+#         eta = (self.eps**(1-p/2.))**0.5
+#         r = eta / (f_m**2.+self.eps**2.)**((1-p/2.)/2.)
+
+#         return r
+# =======
+# >>>>>>> 834de582844e8e1eac95819fbe03eed55dbeb001
