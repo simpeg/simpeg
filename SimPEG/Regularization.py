@@ -281,6 +281,7 @@ class Tikhonov(BaseRegularization):
             r = self.W * ( self.mapping * (m - self.mref) )
             out = mD.T * ( self.W.T * r )
         return out
+<<<<<<< HEAD
 
 class Simple(BaseRegularization):
     """
@@ -518,3 +519,5 @@ class SparseRegularization(Simple):
         r = eta / (f_m**2.+self.eps**2.)**((1-p/2.)/2.)
 
         return r
+=======
+>>>>>>> 834de582844e8e1eac95819fbe03eed55dbeb001

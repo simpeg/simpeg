@@ -1,4 +1,4 @@
-.. _examples_DC_Forward_WennerArra:
+.. _examples_MT_1D_ForwardAndInversion:
 
 .. --------------------------------- ..
 ..                                   ..
@@ -8,14 +8,20 @@
 ..                                   ..
 .. --------------------------------- ..
 
-DC Forward WennerArra
-=====================
+
+MT: 1D: Inversion
+=======================
+
+Forward model 1D MT data.
+Setup and run a MT 1D inversion.
+
+
 
 .. plot::
 
     from SimPEG import Examples
-    Examples.DC_Forward_WennerArra.run()
+    Examples.MT_1D_ForwardAndInversion.run()
 
-.. literalinclude:: ../../SimPEG/Examples/DC_Forward_WennerArra.py
+.. literalinclude:: ../../SimPEG/Examples/MT_1D_ForwardAndInversion.py
     :language: python
     :linenos:

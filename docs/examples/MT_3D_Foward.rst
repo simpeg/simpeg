@@ -1,4 +1,4 @@
-.. _examples_DC_PseudoSection_Simulation:
+.. _examples_MT_3D_Foward:
 
 .. --------------------------------- ..
 ..                                   ..
@@ -9,20 +9,18 @@
 .. --------------------------------- ..
 
 
-orward Simulation
+MT: 3D: Forward
+=======================
 
-ard model conductive spheres in a half-space and plot a pseudo-section
+Forward model 3D MT data.
 
-ted on Mon Feb 01 19:28:06 2016
-
-rndo
 
 
 .. plot::
 
     from SimPEG import Examples
-    Examples.DC_PseudoSection_Simulation.run()
+    Examples.MT_3D_Foward.run()
 
-.. literalinclude:: ../../SimPEG/Examples/DC_PseudoSection_Simulation.py
+.. literalinclude:: ../../SimPEG/Examples/MT_3D_Foward.py
     :language: python
     :linenos:

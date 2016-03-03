@@ -306,12 +306,12 @@ class BaseSurvey(object):
             Where P is a projection of the fields onto the data space.
         """
         if u is None: u = self.prob.fields(m)
-        return Utils.mkvc(self.projectFields(u))
+        return Utils.mkvc(self.eval(u))
 
 
     @Utils.count
-    def projectFields(self, u):
-        """projectFields(u)
+    def eval(self, u):
+        """eval(u)
 
             This function projects the fields onto the data space.
 
@@ -319,11 +319,11 @@ class BaseSurvey(object):
 
                 d_\\text{pred} = \mathbf{P} u(m)
         """
-        raise NotImplemented('projectFields is not yet implemented.')
+        raise NotImplemented('eval is not yet implemented.')
 
     @Utils.count
-    def projectFieldsDeriv(self, u):
-        """projectFieldsDeriv(u)
+    def evalDeriv(self, u):
+        """evalDeriv(u)
 
             This function s the derivative of projects the fields onto the data space.
 
@@ -331,7 +331,7 @@ class BaseSurvey(object):
 
                 \\frac{\partial d_\\text{pred}}{\partial u} = \mathbf{P}
         """
-        raise NotImplemented('projectFields is not yet implemented.')
+        raise NotImplemented('eval is not yet implemented.')
 
     @Utils.count
     def residual(self, m, u=None):
@@ -376,7 +376,7 @@ class BaseSurvey(object):
         return self.dobs
 
 class LinearSurvey(BaseSurvey):
-    def projectFields(self, u):
+    def eval(self, u):
         return u
     
     @property

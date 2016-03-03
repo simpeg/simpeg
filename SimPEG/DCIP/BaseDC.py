@@ -99,7 +99,7 @@ class SurveyDC(Survey.BaseSurvey):
         # self._rhsDict = {}
         self._Ps = {}
 
-    def projectFields(self, u):
+    def eval(self, u):
         """
             Predicted data.
 
