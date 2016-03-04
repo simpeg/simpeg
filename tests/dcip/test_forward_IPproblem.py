@@ -1,14 +1,13 @@
 import unittest
 import SimPEG.DCIP as DC
 from SimPEG import *
-from pymatsolver import MumpsSolver
 
 class IPforwardTests(unittest.TestCase):
 
     def test_IPforward(self):
 
         cs = 12.5
-        nc = 500/cs+1
+        nc = 200/cs+1
         hx = [(cs,7, -1.3),(cs,nc),(cs,7, 1.3)]
         hy = [(cs,7, -1.3),(cs,int(nc/2+1)),(cs,7, 1.3)]
         hz = [(cs,7, -1.3),(cs,int(nc/2+1))]
@@ -25,7 +24,7 @@ class IPforwardTests(unittest.TestCase):
         sigma0 = sigma*(1-eta)
 
         nElecs = 11
-        x_temp = np.linspace(-250, 250, nElecs)
+        x_temp = np.linspace(-100, 100, nElecs)
         aSpacing = x_temp[1]-x_temp[0]
         y_temp = 0.
         xyz = Utils.ndgrid(x_temp, np.r_[y_temp], np.r_[0.])
@@ -34,7 +33,12 @@ class IPforwardTests(unittest.TestCase):
 
         imap   = Maps.IdentityMap(mesh)
         problem = DC.ProblemDC_CC(mesh, mapping=imap)
-        problem.Solver = MumpsSolver
+        try:
+            from pymatsolver import MumpsSolver
+            problem.Solver = MumpsSolver
+        except ImportError, e:
+            problem.Solver = SolverLU
+
         problem.pair(survey)
 
         phi0 = survey.dpred(sigma0)
@@ -46,12 +50,16 @@ class IPforwardTests(unittest.TestCase):
         problemIP = DC.ProblemIP(mesh, sigma=sigma)
         problemIP.pair(surveyIP)
 
-        problemIP.Solver = MumpsSolver
+        try:
+            from pymatsolver import MumpsSolver
+            problemIP.Solver = MumpsSolver
+        except Exception, e:
+            pass
         phiIP_approx = surveyIP.dpred(eta)
 
         err =  np.linalg.norm(phiIP_true-phiIP_approx) / np.linalg.norm(phiIP_true)
-        passed = err < 0.02
-        self.assertTrue(passed)
+
+        self.assertTrue(err < 0.02)
 
 
 if __name__ == '__main__':

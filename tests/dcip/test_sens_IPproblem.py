@@ -2,9 +2,6 @@ import unittest
 from SimPEG import *
 import SimPEG.DCIP as DC
 
-
-
-
 class IPProblemTests(unittest.TestCase):
 
     def setUp(self):
@@ -38,8 +35,8 @@ class IPProblemTests(unittest.TestCase):
         try:
             from pymatsolver import MumpsSolver
             problem.Solver = MumpsSolver
-        except Exception, e:
-            pass
+        except ImportError, e:
+            problem.Solver = SolverLU
 
         mSynth = eta
         survey.makeSyntheticData(mSynth)
