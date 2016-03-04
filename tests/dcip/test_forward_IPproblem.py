@@ -1,6 +1,7 @@
 import unittest
 import SimPEG.DCIP as DC
 from SimPEG import *
+from pymatsolver import MumpsSolver
 
 class IPforwardTests(unittest.TestCase):
 
@@ -33,11 +34,7 @@ class IPforwardTests(unittest.TestCase):
 
         imap   = Maps.IdentityMap(mesh)
         problem = DC.ProblemDC_CC(mesh, mapping=imap)
-        try:
-            from pymatsolver import MumpsSolver
-            problem.Solver = MumpsSolver
-        except Exception, e:
-            pass
+        problem.Solver = MumpsSolver
         problem.pair(survey)
 
         phi0 = survey.dpred(sigma0)
@@ -49,16 +46,12 @@ class IPforwardTests(unittest.TestCase):
         problemIP = DC.ProblemIP(mesh, sigma=sigma)
         problemIP.pair(surveyIP)
 
-        try:
-            from pymatsolver import MumpsSolver
-            problemIP.Solver = MumpsSolver
-        except Exception, e:
-            pass
+        problemIP.Solver = MumpsSolver
         phiIP_approx = surveyIP.dpred(eta)
 
         err =  np.linalg.norm(phiIP_true-phiIP_approx) / np.linalg.norm(phiIP_true)
-
-        self.assertTrue(err < 0.02)
+        passed = err < 0.02
+        self.assertTrue(passed)
 
 
 if __name__ == '__main__':
