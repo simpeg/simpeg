@@ -267,7 +267,7 @@ class Problem_b(BaseTDEMProblem):
             return MfMui.T * rhs
         return rhs
 
-    def getRHSDeriv(self, tInd, src, v, adjoint=False):
+    def getRHSDeriv(self, tInd, src, v, dbn_dm_v, adjoint=False):
 
         dt = self.timeSteps[tInd]
         C = self.mesh.edgeCurl

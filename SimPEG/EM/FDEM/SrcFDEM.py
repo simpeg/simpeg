@@ -539,10 +539,9 @@ class CircularLoop(BaseSrc):
             if not prob.mesh.isSymmetric:
                 # TODO ?
                 raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
-            a = MagneticDipoleVectorPotential(self.loc, gridY, 'y', moment=self.radius, mu=self.mu)
-
+            a = MagneticLoopVectorPotential(self.loc, gridY, 'y', self.radius, mu=self.mu)
         else:
-            srcfct = MagneticDipoleVectorPotential
+            srcfct = MagneticLoopVectorPotential
             ax = srcfct(self.loc, gridX, 'x', self.radius, mu=self.mu)
             ay = srcfct(self.loc, gridY, 'y', self.radius, mu=self.mu)
             az = srcfct(self.loc, gridZ, 'z', self.radius, mu=self.mu)

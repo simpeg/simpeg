@@ -85,6 +85,9 @@ class BaseWaveform(object):
     def eval(self, time):
         raise NotImplementedError 
 
+    def evalDeriv(self, time):
+        raise NotImplementedError # needed for E-formulation 
+
 
 class StepOffWaveform(BaseWaveform):
 
@@ -95,12 +98,30 @@ class StepOffWaveform(BaseWaveform):
         return 0.
 
 
+class RawWaveform(BaseWaveform):
+
+    def __init__(self, offTime=0.):
+        BaseWaveform.__init__(self, offTime, hasInitialFields=True)
+
+    def eval(self, time):
+        raise NotImplementedError 'RawWaveform has not been implemented, you should write it!'
+
+
+class TriangularWaveform(BaseWaveform):
+
+    def __init__(self, offTime=0.):
+        BaseWaveform.__init__(self, offTime, hasInitialFields=True)
+
+    def eval(self, time):
+        raise NotImplementedError 'TriangularWaveform has not been implemented, you should write it!'
+
+
 
 class BaseSrc(SimPEG.Survey.BaseSrc):
 
     rxPair = Rx
     integrate = True
-    waveformPair = BaseWaveform
+    waveformPair = StepOffWaveform
 
     @property
     def waveform(self):
@@ -140,6 +161,12 @@ class BaseSrc(SimPEG.Survey.BaseSrc):
 
     def S_e(self, prob, time):
         return Zero()
+
+    def S_mDeriv(self, prob, time):
+        raise NotImplementedError
+
+    def S_eDeriv(self, prob, time):
+        raise NotImplementedError
 
 
 class MagDipole(BaseSrc):
