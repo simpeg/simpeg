@@ -70,7 +70,8 @@ def run(loc=None, sig=None, radi=None, param=None, stype='dpdp', plotIt=True):
     locs = np.c_[mesh.gridCC[indx,0],mesh.gridCC[indx,1],np.ones(2).T*mesh.vectorNz[-1]]
 
     # We will handle the geometry of the survey for you and create all the combination of tx-rx along line
-    [Tx, Rx] = DC.gen_DCIPsurvey(locs, mesh, stype, param[0], param[1], param[2])
+    # [Tx, Rx] = DC.gen_DCIPsurvey(locs, mesh, stype, param[0], param[1], param[2])
+    survey, Tx, Rx = DC.gen_DCIPsurvey(locs, mesh, stype, param[0], param[1], param[2])
 
     # Define some global geometry
     dl_len = np.sqrt( np.sum((locs[0,:] - locs[1,:])**2) )
@@ -143,11 +144,10 @@ def run(loc=None, sig=None, radi=None, param=None, stype='dpdp', plotIt=True):
     print 'Transmitter {0} of {1}'.format(ii,len(Tx))
     print 'Forward completed'
 
-
     # Let's just convert the 3D format into 2D (distance along line) and plot
-    [Tx2d, Rx2d] = DC.convertObs_DC3D_to_2D(Tx,Rx)
-
-
+    # [Tx2d, Rx2d] = DC.convertObs_DC3D_to_2D(survey, np.ones(survey.nSrc))
+    survey2D = DC.convertObs_DC3D_to_2D(survey, np.ones(survey.nSrc))
+    survey2D.dobs =np.hstack(data)
     # Here is an example for the first tx-rx array
     if plotIt:
         import matplotlib.pyplot as plt
@@ -172,11 +172,11 @@ def run(loc=None, sig=None, radi=None, param=None, stype='dpdp', plotIt=True):
         ax.add_artist(circle2)
 
         # Add the speudo section
-        DC.plot_pseudoSection(Tx2d,Rx2d,data,mesh.vectorNz[-1],stype)
+        DC.plot_pseudoSection(survey2D,ax,stype)
 
-        plt.scatter(Tx2d[0][:],Tx[0][2,:],s=40,c='g', marker='v')
-        plt.scatter(Rx2d[0][:],Rx[0][:,2::3],s=40,c='y')
-        plt.plot(np.r_[Tx2d[0][0],Rx2d[-1][-1,-1]],np.ones(2)*mesh.vectorNz[-1], color='k')
+        # plt.scatter(Tx2d[0][:],Tx[0][2,:],s=40,c='g', marker='v')
+        # plt.scatter(Rx2d[0][:],Rx[0][:,2::3],s=40,c='y')
+        # plt.plot(np.r_[Tx2d[0][0],Rx2d[-1][-1,-1]],np.ones(2)*mesh.vectorNz[-1], color='k')
         plt.ylim([-zlim,mesh.vectorNz[-1]+dx])
 
         plt.show()

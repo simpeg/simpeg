@@ -194,7 +194,7 @@ def plot_pseudoSection(DCsurvey, axs, stype):
 
     # Set depth to 0 for now
     z0 = 0.
-    
+
     # Pre-allocate
     midx = []
     midz = []
@@ -209,7 +209,7 @@ def plot_pseudoSection(DCsurvey, axs, stype):
 
         data = DCsurvey.dobs[count:count+nD]
         count += nD
-    
+
         # Get distances between each poles A-B-M-N
         MA = np.abs(Tx[0][0] - Rx[0][:,0])
         MB = np.abs(Tx[1][0] - Rx[0][:,0])
@@ -224,7 +224,7 @@ def plot_pseudoSection(DCsurvey, axs, stype):
         # Compute pant leg of apparent rho
         if stype == 'pdp':
             leg =  data * 2*np.pi  * MA * ( MA + MN ) / MN
-            
+
             leg = np.log10(abs(1/leg))
 
         elif stype == 'dpdp':
@@ -235,7 +235,7 @@ def plot_pseudoSection(DCsurvey, axs, stype):
         midz = np.hstack([midz, -np.abs(Cmid-Pmid)/2 + z0 ])
         rho = np.hstack([rho,leg])
 
-        
+
     ax = axs
 
     # Grid points
@@ -245,24 +245,24 @@ def plot_pseudoSection(DCsurvey, axs, stype):
 
     plt.imshow(grid_rho.T, extent = (np.min(midx),np.max(midx),np.min(midz),np.max(midz)), origin='lower', alpha=0.8, vmin = np.min(rho), vmax = np.max(rho))
     cbar = plt.colorbar(format = '%.2f',fraction=0.04,orientation="horizontal")
-    
+
     cmin,cmax = cbar.get_clim()
     ticks = np.linspace(cmin,cmax,3)
-    cbar.set_ticks(ticks)           
-    
+    cbar.set_ticks(ticks)
+
     # Plot apparent resistivity
     plt.scatter(midx,midz,s=50,c=rho.T)
-    
-    ax.set_xticklabels([])  
-    
+
+    ax.set_xticklabels([])
+
     ax.set_ylabel('Z')
     ax.yaxis.tick_right()
-    ax.yaxis.set_label_position('right') 
+    ax.yaxis.set_label_position('right')
     plt.gca().set_aspect('equal', adjustable='box')
-    
-        
+
+
     return ax
-            
+
 def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
     """
         Load in endpoints and survey specifications to generate Tx, Rx location
@@ -283,7 +283,7 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
         Created on Wed December 9th, 2015
 
         @author: dominiquef
-        !! Require clean up to deal with DCsurvey 
+        !! Require clean up to deal with DCsurvey
     """
 
     from SimPEG import np
@@ -316,6 +316,8 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
     # Pole-dipole: Moving pole on one end -> [A a MN1 a MN2 ... MNn a B]
     Tx = []
     Rx = []
+    SrcList = []
+
 
     if stype != 'gradient':
 
@@ -327,7 +329,7 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
             elif stype == 'pdp':
                 tx = np.c_[M[ii,:],M[ii,:]]
 
-            #Rx.append(np.c_[M[ii+1:indx,:],N[ii+1:indx,:]])
+            # Rx.append(np.c_[M[ii+1:indx,:],N[ii+1:indx,:]])
 
             # Current elctrode seperation
             AB = xy_2_r(tx[0,1],endl[1,0],tx[1,1],endl[1,1])
@@ -351,7 +353,13 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
             P2 = np.c_[stn_x+a*dl_x, stn_y+a*dl_y, np.ones(nstn).T*mesh.vectorNz[-1]]
 
             Rx.append(np.c_[P1,P2])
+            rxClass = DC.RxDipole(P1, P2)
             Tx.append(tx)
+            if stype == 'dpdp':
+                srcClass = DC.SrcDipole([rxClass], M[ii,:],N[ii,:])
+            elif stype == 'pdp':
+                srcClass = DC.SrcDipole([rxClass], M[ii,:],M[ii,:])
+            SrcList.append(srcClass)
 
 #==============================================================================
 #     elif re.match(stype,'dpdp'):
@@ -367,6 +375,7 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
 
         # Gradient survey only requires Tx at end of line and creates a square
         # grid of receivers at in the middle at a pre-set minimum distance
+
         Tx.append(np.c_[M[0,:],N[-1,:]])
 
         # Get the edge limit of survey area
@@ -405,17 +414,18 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
             rx[(ii*nstn):((ii+1)*nstn),:] = np.c_[M,N]
 
         Rx.append(rx)
-
+        rxClass = DC.RxDipole(rx[:,:3], rx[:,3:])
+        srcClass = DC.SrcDipole([rxClass], M[0,:], N[-1,:])
+        SrcList.append(srcClass)
     else:
         print """stype must be either 'pdp', 'dpdp' or 'gradient'. """
 
+    survey = DC.SurveyDC(SrcList)
+    return survey, Tx, Rx
 
-
-    return Tx, Rx
-
-def writeUBC_DCobs(fileName,DCsurvey, dtype, stype):
+def writeUBC_DCobs(fileName, DCsurvey, dtype, stype):
     """
-        Write UBC GIF DCIP 2D or 3D observation file 
+        Write UBC GIF DCIP 2D or 3D observation file
 
         Input:
         :string fileName -> including path where the file is written out
@@ -433,7 +443,7 @@ def writeUBC_DCobs(fileName,DCsurvey, dtype, stype):
 
     """
     from SimPEG import mkvc
-    
+
     assert (dtype=='2D') | (dtype=='3D'), "Data must be either '2D' | '3D'"
     assert (stype=='SURFACE') | (stype=='GENERAL') | (stype=='SIMPLE'), "Data must be either 'SURFACE' | 'GENERAL' | 'SIMPLE'"
 
@@ -451,54 +461,54 @@ def writeUBC_DCobs(fileName,DCsurvey, dtype, stype):
         nD = DCsurvey.srcList[ii].nD
 
         M = rx[0]
-        N = rx[1]       
-        
+        N = rx[1]
+
         # Adapt source-receiver location for dtype and stype
         if dtype=='2D':
-            
+
             if stype == 'SIMPLE':
-            
+
                 #fid.writelines("%e " % ii for ii in mkvc(tx[0,:]))
                 A = np.repeat(tx[0,0],M.shape[0],axis=0)
                 B = np.repeat(tx[0,1],M.shape[0],axis=0)
                 M = M[:,0]
                 N = N[:,0]
-                
+
                 np.savetxt(fid, np.c_[A, B, M, N , DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e',delimiter=' ',newline='\n')
 
-                
-            else:    
-            
+
+            else:
+
                 if stype == 'SURFACE':
-                    
+
                     fid.writelines("%e " % ii for ii in mkvc(tx[0,:]))
                     M = M[:,0]
                     N = N[:,0]
-                
+
                 if stype == 'GENERAL':
-    
+
                     fid.writelines("%e " % ii for ii in mkvc(tx[::2,:]))
                     M = M[:,0::2]
                     N = N[:,0::2]
-                    
+
                 fid.write('%i\n'% nD)
                 np.savetxt(fid, np.c_[ M, N , DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e',delimiter=' ',newline='\n')
-                    
-        if dtype=='3D': 
-        
-            if stype == 'SURFACE': 
+
+        if dtype=='3D':
+
+            if stype == 'SURFACE':
 
                 fid.writelines("%e " % ii for ii in mkvc(tx[0:2,:]))
                 M = M[:,0:2]
                 N = N[:,0:2]
-            
-            if stype == 'GENERAL':  
-            
+
+            if stype == 'GENERAL':
+
                 fid.writelines("%e " % ii for ii in mkvc(tx))
-            
+
             fid.write('%i\n'% nD)
             np.savetxt(fid, np.c_[ M, N , DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e',delimiter=' ',newline='\n')
-        
+
         count += nD
 
     fid.close()
@@ -506,7 +516,7 @@ def writeUBC_DCobs(fileName,DCsurvey, dtype, stype):
 def convertObs_DC3D_to_2D(DCsurvey,lineID):
     """
         Read DC survey and data and change
-        coordinate system to distance along line assuming 
+        coordinate system to distance along line assuming
         all data is acquired along line.
         First transmitter pole is assumed to be at the origin
 
@@ -529,9 +539,9 @@ def convertObs_DC3D_to_2D(DCsurvey,lineID):
         """
         Compute station ID along line
         """
-        
+
         dl = int(v0.dot(v1)) * r
-        
+
         return dl
 
     srcLists = []
@@ -547,35 +557,35 @@ def convertObs_DC3D_to_2D(DCsurvey,lineID):
 
         # Find origin of survey
         r = 1e+8 # Initialize to some large number
-                
+
         Tx = srcMat[indx]
 
         x0 = Tx[0][0,0:2] # Define station zero along line
-        
+
         vecTx, r1 = r_unit(x0,Tx[-1][1,0:2])
-         
+
         for ii in range(len(indx)):
 
             # Get all receivers
-            Rx = DCsurvey.srcList[indx[ii]].rxList[0].locs      
+            Rx = DCsurvey.srcList[indx[ii]].rxList[0].locs
             nrx = Rx[0].shape[0]
 
             # Find A electrode along line
             vec, r = r_unit(x0,Tx[ii][0,0:2])
             A = stn_id(vecTx,vec,r)
-            
+
             # Find B electrode along line
             vec, r = r_unit(x0,Tx[ii][1,0:2])
             B = stn_id(vecTx,vec,r)
-            
+
             M = np.zeros(nrx)
             N = np.zeros(nrx)
             for kk in range(nrx):
-                
+
                 # Find all M electrodes along line
                 vec, r = r_unit(x0,Rx[0][kk,0:2])
                 M[kk] = stn_id(vecTx,vec,r)
-                
+
                 # Find all N electrodes along line
                 vec, r = r_unit(x0,Rx[1][kk,0:2])
                 N[kk] = stn_id(vecTx,vec,r)
@@ -583,10 +593,10 @@ def convertObs_DC3D_to_2D(DCsurvey,lineID):
             Rx = DC.RxDipole(np.c_[M,np.zeros(nrx),Rx[0][:,2]],np.c_[N,np.zeros(nrx),Rx[1][:,2]])
 
             srcLists.append( DC.SrcDipole( [Rx], np.asarray([A,0,Tx[ii][0,2]]),np.asarray([B,0,Tx[ii][1,2]]) ) )
-    
 
-    DCsurvey2D = DC.SurveyDC(srcLists)  
-    
+
+    DCsurvey2D = DC.SurveyDC(srcLists)
+
     DCsurvey2D.dobs = np.asarray(DCsurvey.dobs)
     DCsurvey2D.std = np.asarray(DCsurvey.std)
 
@@ -611,7 +621,7 @@ def readUBC_DC3Dobs(fileName):
 
     # Load file
     obsfile = np.genfromtxt(fileName,delimiter=' \n',dtype=np.str,comments='!')
-    
+
     # Pre-allocate
     srcLists = []
     Rx = []
@@ -622,13 +632,13 @@ def readUBC_DC3Dobs(fileName):
     # Countdown for number of obs/tx
     count = 0
     for ii in range(obsfile.shape[0]):
-        
+
         if not obsfile[ii]:
             continue
-        
+
         # First line is transmitter with number of receivers
         if count==0:
-    
+
             temp = (np.fromstring(obsfile[ii], dtype=float,sep=' ').T)
             count = int(temp[-1])
 
@@ -642,9 +652,9 @@ def readUBC_DC3Dobs(fileName):
 
             rx = []
             continue
-        
+
         temp = np.fromstring(obsfile[ii], dtype=float,sep=' ')
-        
+
         if zflag:
 
             rx.append(temp[:-2])
@@ -653,24 +663,24 @@ def readUBC_DC3Dobs(fileName):
                 d.append(temp[-2])
                 wd.append(temp[-1])
 
-        else:    
-            rx.append(np.r_[temp[0:2],np.nan,temp[0:2],np.nan] )   
-            # Check if there is data with the location      
+        else:
+            rx.append(np.r_[temp[0:2],np.nan,temp[0:2],np.nan] )
+            # Check if there is data with the location
             if len(temp)==6:
                 d.append(temp[-2])
                 wd.append(temp[-1])
 
-        count = count -1        
-        
-        # Reach the end of transmitter block 
+        count = count -1
+
+        # Reach the end of transmitter block
         if count == 0:
             rx = np.asarray(rx)
             Rx = DC.RxDipole(rx[:,:3],rx[:,3:])
             srcLists.append( DC.SrcDipole( [Rx], tx[:3],tx[3:]) )
-    
+
     # Create survey class
-    survey = DC.SurveyDC(srcLists)  
-    
+    survey = DC.SurveyDC(srcLists)
+
     survey.dobs = np.asarray(d)
     survey.std = np.asarray(wd)
 
@@ -806,7 +816,7 @@ def xy_2_lineID(DCsurvey):
         Output:
         :param LineID Vector of integers
         :return
-        
+
         Created on Thu Feb 11, 2015
 
         @author: dominiquef
@@ -820,7 +830,7 @@ def xy_2_lineID(DCsurvey):
     lineID = np.zeros(nstn)
 
     linenum = 0
-    indx    = 0  
+    indx    = 0
 
     for ii in range(nstn):
 
@@ -833,12 +843,12 @@ def xy_2_lineID(DCsurvey):
 
             xy0 = A[:2]
             xym = xout
-            
+
             # Deal with replicate pole location
             if np.all(xy0==xym):
-                
+
                 xym[0] = xym[0] + 1e-3
-                
+
             continue
 
         A = DCsurvey.srcList[ii].loc[0]
@@ -858,7 +868,7 @@ def xy_2_lineID(DCsurvey):
         # Compute vector between mid-point and start line
         vec4, r4 = r_unit(xym,xy0)
 
-        # Compute dot product 
+        # Compute dot product
         ang1 = np.abs(vec1.dot(vec2))
         ang2 = np.abs(vec3.dot(vec4))
 
@@ -868,15 +878,15 @@ def xy_2_lineID(DCsurvey):
             # Re-initiate start and mid-point location
             xy0 = A[:2]
             xym = xin
-            
+
             # Deal with replicate pole location
             if np.all(xy0==xym):
-                
+
                 xym[0] = xym[0] + 1e-3
-                
+
             linenum += 1
             indx = ii
-            
+
         else:
             xym = np.mean([xy0,xin], axis = 0)
 
@@ -895,7 +905,7 @@ def r_unit(p1,p2):
     assert len(p1)==len(p2), 'locs must be the same shape.'
 
     dx = []
-    for ii in range(len(p1)): 
+    for ii in range(len(p1)):
         dx.append((p2[ii] - p1[ii]))
 
     # Compute length of vector
@@ -904,7 +914,7 @@ def r_unit(p1,p2):
 
     if r!=0:
         vec = dx/r
-        
+
     else:
         vec = np.zeros(len(p1))
 
@@ -912,13 +922,13 @@ def r_unit(p1,p2):
 
 def getSrc_locs(DCsurvey):
     """
-    
+
 
     """
 
     srcMat = np.zeros((DCsurvey.nSrc,2,3))
     for ii in range(DCsurvey.nSrc):
-
-        srcMat[ii][:,:] =  np.asarray(DCsurvey.srcList[ii].loc)
+        print np.asarray(DCsurvey.srcList[ii].loc).shape
+        srcMat[ii,:,:] =  np.asarray(DCsurvey.srcList[ii].loc)
 
     return srcMat
