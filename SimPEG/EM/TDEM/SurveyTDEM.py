@@ -104,7 +104,7 @@ class RawWaveform(BaseWaveform):
         BaseWaveform.__init__(self, offTime, hasInitialFields=True)
 
     def eval(self, time):
-        raise NotImplementedError 'RawWaveform has not been implemented, you should write it!'
+        raise NotImplementedError('RawWaveform has not been implemented, you should write it!')
 
 
 class TriangularWaveform(BaseWaveform):
@@ -113,7 +113,7 @@ class TriangularWaveform(BaseWaveform):
         BaseWaveform.__init__(self, offTime, hasInitialFields=True)
 
     def eval(self, time):
-        raise NotImplementedError 'TriangularWaveform has not been implemented, you should write it!'
+        raise NotImplementedError('TriangularWaveform has not been implemented, you should write it!')
 
 
 

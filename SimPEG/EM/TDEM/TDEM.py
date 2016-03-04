@@ -59,32 +59,6 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         Ainv.clean()
         return F
 
-    # @Utils.timeIt
-    # def diagsJ(self, tInd, m, u, v, adjoint = False):
-    #     # The matrix that we are computing has the form:
-    #     #
-    #     #   -                                      -   -  -     -  -
-    #     #  |  Adiag                                 | | uderiv1 |   | b1 |
-    #     #  |   Asub    Adiag                        | | uderiv2 |   | b2 |
-    #     #  |            Asub    Adiag               | | uderiv3 | = | b3 |
-    #     #  |                 ...     ...            | |   ...   |   | .. |
-    #     #  |                         Asub    Adiag  | | uderivn |   | bn |
-    #     #   -                                      -   -  -     -  -
-        
-    #     if adjoint: raise NotImplementedError
-
-    #     Adiag = self.getA(tInd)
-    #     Asub  = Utils.speye(len(u))
-
-    #     if self._makeASymmetric:
-    #         Asub = self.MfMui.T * Asub #TODO: this will only work for E-B formulation
-
-    #     dA_dm = self.getADeriv(tInd, u, v, adjoint)
-    #     dRHS_dm = self.getRHSDeriv(self, tInd, src, v, adjoint)
-
-    #     b = - dA_dm + dRHS_dm 
-
-    #     return Adiag, Asub, b 
 
     def Jvec(self, m, v, u=None):
 
@@ -115,7 +89,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         if self._makeASymmetric:
             Asub = self.MfMui.T * Asub #TODO: this will only work for E-B formulation
 
-         for tInd, dT in enumerate(self.timeSteps):
+        for tInd, dT in enumerate(self.timeSteps):
             if Adiaginv is not None and (tInd > 0 and dt != self.timeSteps[tInd - 1]):# keep factors if dt is the same as previous step b/c A will be the same  
                 Adiaginv.clean()
                 Adiaginv = None
@@ -226,25 +200,24 @@ class Problem_b(BaseTDEMProblem):
         MfMui = self.MfMui
         I = Utils.speye(self.mesh.nF)
 
-        A = I + dt * ( C * ( MeSigmaI * (C.T * MfMui ) ) )
+        A = 1./dt * I + ( C * ( MeSigmaI * (C.T * MfMui ) ) )
 
         if self._makeASymmetric is True:
             return MfMui.T * A
         return A 
 
     def getADeriv(self, tInd, u, v, adjoint=False):
-        dt = self.timeSteps[tInd]
         C = self.mesh.edgeCurl
-        MeSigmaI = self.MeSigmaIDeriv
+        MeSigmaI = lambda u: self.MeSigmaIDeriv(u)
         MfMui = self.MfMui
         I = Utils.speye(self.mesh.nF)
 
         if adjoint:
             if self._makeASymmetric is True:
                 v = MfMui * v
-            return dt * MfMui.T * ( C * ( MeSigmaIDeriv.T * ( C.T * v ) ) )
+            return MfMui.T * ( C * ( MeSigmaIDeriv.T * ( C.T * v ) ) )
 
-        ADeriv = dt * ( C * ( MeSigmaIDeriv * (C.T * ( MfMui * v ) ) ) )
+        ADeriv = ( C * ( MeSigmaIDeriv(C.T * ( MfMui * u )) * v ) )
         if self._makeASymmetric is True:
             return MeMui.T * ADeriv
         return ADeriv
@@ -262,7 +235,7 @@ class Problem_b(BaseTDEMProblem):
         # if B_n.shape[0] is not 1:
         #     raise NotImplementedError('getRHS not implemented for this shape of B_n')
 
-        rhs = B_n[:,:,0].T + dt * (C * (MeSigmaI * S_e) + S_m)
+        rhs = 1./dt * B_n[:,:,0].T   + (C * (MeSigmaI * S_e) + S_m)
         if self._makeASymmetric is True:
             return MfMui.T * rhs
         return rhs
@@ -272,7 +245,7 @@ class Problem_b(BaseTDEMProblem):
         dt = self.timeSteps[tInd]
         C = self.mesh.edgeCurl
         MeSigmaI = self.MeSigmaI
-        MeSigmaIDeriv = self.MeSigmaIDeriv
+        MeSigmaIDeriv = lambda u: self.MeSigmaIDeriv(u)
         MfMui = self.MfMui
 
         _, S_e = src.eval(tInd+1, self) # I think this is tInd+1 ? 
@@ -284,10 +257,35 @@ class Problem_b(BaseTDEMProblem):
 
         if adjoint:
             raise NotImplementedError
-        return dt * (C * (MeSigmaIDeriv * S_e + MeSigmaI * S_eDeriv) + S_mDeriv) 
+        return (C * (MeSigmaIDeriv (S_e) * v + MeSigmaI * S_eDeriv) + S_mDeriv) + bdn_dm_v / dt 
 
 
+    @Utils.timeIt
+    def diagsJ(self, tInd, m, u, v, adjoint = False):
+        # The matrix that we are computing has the form:
+        #
+        #   -                                      -   -  -     -  -
+        #  |  Adiag                                 | | uderiv1 |   | b1 |
+        #  |   Asub    Adiag                        | | uderiv2 |   | b2 |
+        #  |            Asub    Adiag               | | uderiv3 | = | b3 |
+        #  |                 ...     ...            | |   ...   |   | .. |
+        #  |                         Asub    Adiag  | | uderivn |   | bn |
+        #   -                                      -   -  -     -  -
+        
+        dt = self.timeSteps[tInd]
 
+        Adiag = self.getA(tInd)
+        Asub  = Utils.speye(len(u))
+
+        if self._makeASymmetric:
+            Asub = self.MfMui.T * Asub
+
+        dA_dm   = self.getADeriv(tInd, u, v, adjoint)
+        dRHS_dm = self.getRHSDeriv(self, tInd, src, v, dbn_dm_v, adjoint)
+
+        b = - dA_dm + dRHS_dm
+
+        return Adiag, Asub, b 
 
 
 
