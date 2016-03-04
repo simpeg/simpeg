@@ -33,12 +33,14 @@ class IPforwardTests(unittest.TestCase):
 
         imap   = Maps.IdentityMap(mesh)
         problem = DC.ProblemDC_CC(mesh, mapping=imap)
+
         try:
             from pymatsolver import MumpsSolver
-            problem.Solver = MumpsSolver
+            solver = MumpsSolver
         except ImportError, e:
-            problem.Solver = SolverLU
+            solver = SolverLU
 
+        problem.Solver = solver
         problem.pair(survey)
 
         phi0 = survey.dpred(sigma0)
@@ -50,11 +52,8 @@ class IPforwardTests(unittest.TestCase):
         problemIP = DC.ProblemIP(mesh, sigma=sigma)
         problemIP.pair(surveyIP)
 
-        try:
-            from pymatsolver import MumpsSolver
-            problemIP.Solver = MumpsSolver
-        except Exception, e:
-            pass
+        problemIP.Solver = solver
+
         phiIP_approx = surveyIP.dpred(eta)
 
         err =  np.linalg.norm(phiIP_true-phiIP_approx) / np.linalg.norm(phiIP_true)
