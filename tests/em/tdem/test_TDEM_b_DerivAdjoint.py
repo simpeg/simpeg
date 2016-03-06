@@ -21,8 +21,8 @@ class TDEM_bDerivTests(unittest.TestCase):
         activeMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
         mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * activeMap
 
-        rxOffset = 40.
-        rx = EM.TDEM.Rx(np.array([[rxOffset, 0., 0.]]), np.logspace(-4,-3, 20), 'bz')
+        rxOffset = 10.
+        rx = EM.TDEM.Rx(np.array([[rxOffset, 0., -1e-2]]), np.logspace(-4,-3, 20), 'bz')
         src = EM.TDEM.SurveyTDEM.MagDipole([rx], loc=np.array([0., 0., 0.]))
 
         survey = EM.TDEM.Survey([src])
@@ -30,6 +30,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         self.prb = EM.TDEM.Problem_b(mesh, mapping=mapping)
         # self.prb.timeSteps = [1e-5]
         self.prb.timeSteps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
+        # self.prb.__makeASymmetric = False
         # self.prb.timeSteps = [(1e-05, 100)]
 
         try:
@@ -38,9 +39,10 @@ class TDEM_bDerivTests(unittest.TestCase):
         except ImportError, e:
             self.prb.Solver = SolverLU
 
-        self.sigma = np.ones(mesh.nCz)*1e-8
-        self.sigma[mesh.vectorCCz<0] = 1e-1
-        self.m = np.log(self.sigma[active])
+        # self.sigma = np.ones(mesh.nCz)*1e-8
+        # self.sigma[active] = 1e-1 
+        # self.sigma[active] += 1e-2*np.random.rand(len(active))
+        self.m = np.log(1e-1)*np.ones(self.prb.mapping.nP) + 1e-2*np.random.randn(self.prb.mapping.nP)
 
         self.prb.pair(survey)
         self.mesh = mesh
@@ -174,21 +176,64 @@ class TDEM_bDerivTests(unittest.TestCase):
     #     print 'test_Deriv_dUdM'
     #     Tests.checkDerivative(derChk, sigma, plotIt=False, dx=dm, num=4, eps=1e-20)
 
+    def test_ADeriv(self):
+        prb = self.prb
+        tInd = 0
+
+        v = np.random.rand(self.mesh.nF)
+
+        def AderivTest(m):
+            prb.curModel = m
+            A = prb.getA(tInd)
+            Av = A*v
+            prb.curModel = self.m 
+            ADeriv_dm = lambda dm: prb.getADeriv(tInd, v, dm)
+
+            return Av, ADeriv_dm
+
+        Tests.checkDerivative(AderivTest, self.m, plotIt=False, num=4, eps=1e-20)   
+
+    def test_Fields_Deriv(self):
+        prb = self.prb
+        tInd = 0
+
+        v = np.random.rand(self.mesh.nF)
+
+        def FieldsDerivs(m):
+            prb.curModel = m
+            F = prb.fieldsPair(self.mesh, self.prb.survey)
+            # set initial fields
+            F[:,prb._fieldType+'Solution',0] = prb.getInitialFields()
+            A = prb.getA(tInd)
+            Ainv = prb.Solver(A)
+            RHS = prb.getRHS(tInd, F)
+
+            sol = Ainv * RHS
+            Ainv.clean()
+
+            prb.curModel = self.m
+            f = prb.fields(self.m)
+            deriv = lambda dm: f._bDeriv(prb.survey.srcList[0], np.zeros_like(sol), dm)
+
+            return sol, deriv
+
+        Tests.checkDerivative(FieldsDerivs, self.m, plotIt=False, num=4, eps=1e-20) 
+
     def test_Deriv_J(self):
 
         prb = self.prb
-        prb.timeSteps = [(1e-05, 10), (0.0001, 10), (0.001, 10)]
+        # prb.timeSteps = [(1e-05, 10), (0.0001, 10), (0.001, 10)]
         mesh = self.mesh
         m = self.m
 
         # d_sig = 0.8*sigma #np.random.rand(mesh.nCz)
-        d_m = np.random.rand(prb.mapping.nP)
+        # d_m = 0.1*np.random.randn(prb.mapping.nP)
 
 
         derChk = lambda m: [prb.survey.dpred(m), lambda mx: prb.Jvec(m, mx)]
         print '\n'
         print 'test_Deriv_J'
-        Tests.checkDerivative(derChk, m, plotIt=False, dx=d_m, num=4, eps=1e-20)
+        Tests.checkDerivative(derChk, m, plotIt=False, num=5, eps=1e-20)
 
     # def test_projectAdjoint(self):
     #     prb = self.prb
@@ -202,7 +247,7 @@ class TDEM_bDerivTests(unittest.TestCase):
     #         f[:,'e',i] = np.random.rand(mesh.nE, 1)
     #     d_vec = np.random.rand(survey.nD)
     #     d = Survey.Data(survey,v=d_vec)
-
+ 
     #     # Check that d.T*Q*f = f.T*Q.T*d
     #     V1 = d_vec.dot(survey.evalDeriv(None, v=f).tovec())
     #     V2 = f.tovec().dot(survey.evalDeriv(None, v=d, adjoint=True).tovec())

@@ -61,8 +61,6 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
     def Jvec(self, m, v, u=None):
 
-        # raise NotImplementedError
-
         if u is None:
            u = self.fields(m)
 
@@ -70,22 +68,19 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         self.curModel = m
 
         Jv = self.dataPair(self.survey) 
-
         dun_dm_v = self.getInitialFieldsDeriv(v) # can over-write this at each timestep
 
         df_dm = Fields_Derivs(self.mesh, self.survey)
-        # np.zeros((dun_dm_v.shape[0], self.nT, self.survey.nSrc))
-
-        Adiag, Asub = None, None
+        Ainv = None
 
         for tInd, dt in enumerate(self.timeSteps):
-            if Adiag is not None and (tInd > 0 and dt != self.timeSteps[tInd - 1]):# keep factors if dt is the same as previous step b/c A will be the same  
-                Adiaginv.clean()
-                Adiag, Asub = None, None
+            if Ainv is not None and (tInd > 0 and dt != self.timeSteps[tInd - 1]):# keep factors if dt is the same as previous step b/c A will be the same  
+                Ainv.clean()
+                Ainv = None
 
-            if Adiag is None:
-                Adiag, Asub = self.getJdiags(tInd, adjoint = False)
-                Adiaginv = self.Solver(Adiag)
+            if Ainv is None:
+                A = self.getA(tInd)
+                Ainv = self.Solver(A, **self.solverOpts)
 
             for i, src in enumerate(self.survey.srcList): 
                 # compute next du_dm_v for next timestep
@@ -98,13 +93,13 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
                 # over-write with this time-steps (if not on last timestep)
                 if tInd != len(self.timeSteps):
-                    dun_dm_v[:,i] = Adiaginv * rhs_v
+                    dun_dm_v[:,i] = Ainv * rhs_v
 
         for src in self.survey.srcList:
             for rx in src.rxList: 
                 Jv[src,rx] = rx.evalDeriv(src, self.mesh, self.timeMesh, df_dm)
 
-        Adiaginv.clean()
+        Ainv.clean()
         return Utils.mkvc(Jv)
 
 
@@ -248,9 +243,8 @@ class Problem_b(BaseTDEMProblem):
 
     def getADeriv(self, tInd, u, v, adjoint=False):
         C = self.mesh.edgeCurl
-        MeSigmaIDeriv = lambda u: self.MeSigmaIDeriv(u)
+        MeSigmaIDeriv = lambda x: self.MeSigmaIDeriv(x)
         MfMui = self.MfMui
-        I = Utils.speye(self.mesh.nF)
 
         if adjoint:
             if self._makeASymmetric is True:
