@@ -1,6 +1,5 @@
 import Utils, numpy as np, scipy.sparse as sp, uuid
 
-
 class BaseRx(object):
     """SimPEG Receiver Object"""
 
@@ -375,3 +374,11 @@ class BaseSurvey(object):
         self.dobs = self.dtrue+noise
         self.std = self.dobs*0 + std
         return self.dobs
+
+class LinearSurvey(BaseSurvey):
+    def eval(self, u):
+        return u
+    
+    @property
+    def nD(self):
+        return self.prob.G.shape[0]

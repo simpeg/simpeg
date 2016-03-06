@@ -27,6 +27,7 @@ class FieldsTDEM(Problem.TimeFields):
             else:
                 e = np.zeros((nE,nSrc)) # if nSrc == 1 else (nE, nSrc))
             u = np.concatenate((u, b, e))
+
         return Utils.mkvc(u,nSrc)
 
 
