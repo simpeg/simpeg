@@ -60,13 +60,13 @@ class Rx(SimPEG.Survey.BaseTimeRx):
         u_part = Utils.mkvc(u[src, self.projField, :])
         return P*u_part
 
-    def evalDeriv(self, src, mesh, timeMesh, u, v, adjoint=False):
+    def evalDeriv(self, src, mesh, timeMesh, df_dm, adjoint=False):
         P = self.getP(mesh, timeMesh)
 
         if not adjoint:
-            return P * Utils.mkvc(v[src, self.projField, :])
+            return P * Utils.mkvc(df_dm[src, self.projField+'Deriv', :])
         elif adjoint:
-            return P.T * v[src, self]
+            return P.T * df_dm[src, self]
 
 ####################################################
 # Sources
@@ -121,7 +121,7 @@ class BaseSrc(SimPEG.Survey.BaseSrc):
 
     rxPair = Rx
     integrate = True
-    waveformPair = StepOffWaveform
+    waveformPair = BaseWaveform
 
     @property
     def waveform(self):
@@ -134,8 +134,8 @@ class BaseSrc(SimPEG.Survey.BaseSrc):
         self._waveform = val
 
 
-    def __init__(self, rxList, waveform = None):
-        self.waveform = waveform 
+    def __init__(self, rxList, waveform = None ):
+        self.waveform = waveform or StepOffWaveform()
         SimPEG.Survey.BaseSrc.__init__(self, rxList) 
 
 
@@ -162,11 +162,11 @@ class BaseSrc(SimPEG.Survey.BaseSrc):
     def S_e(self, prob, time):
         return Zero()
 
-    def S_mDeriv(self, prob, time):
-        raise NotImplementedError
+    def S_mDeriv(self, prob, time, v=None, adjoint=False):
+        return Zero()
 
-    def S_eDeriv(self, prob, time):
-        raise NotImplementedError
+    def S_eDeriv(self, prob, time, v=None, adjoint=False):
+        return Zero()
 
 
 class MagDipole(BaseSrc):

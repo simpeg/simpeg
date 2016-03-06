@@ -33,8 +33,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         F = self.fieldsPair(self.mesh, self.survey)
 
         # set initial fields
-        for i, src in enumerate(self.survey.srcList):
-            F[src,self._fieldType+'Solution',0] = src.bInitial(self) # TODO: this will only work for b formulation 
+        F[:,self._fieldType+'Solution',0] = self.getInitialFields()
 
         # timestep to solve forward
         Ainv = None
@@ -67,50 +66,64 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         if u is None:
            u = self.fields(m)
 
+        ftype = self._fieldType + 'Solution' # the thing we solved for
         self.curModel = m
 
-        # def getb(tInd, src, u, v):
-        #     dA_dm = self.getADeriv(tInd, u, v, adjoint=False)
-        #     dRHS_dm = self.getRHSDeriv(tInd, src, v, adjoint=False)
+        Jv = self.dataPair(self.survey) 
 
-        #     b = - dA_dm + dRHS_dm
+        dun_dm_v = self.getInitialFieldsDeriv(v) # can over-write this at each timestep
 
+        df_dm = Fields_Derivs(self.mesh, self.survey)
+        # np.zeros((dun_dm_v.shape[0], self.nT, self.survey.nSrc))
 
-        Jv = self.dataPair(self.survey)
-        print Jv.shape
-        raise NotImplementedError
-        
-        Asub  = Utils.speye(len(u))
-        if self._makeASymmetric:
-            Asub = self.MfMui.T * Asub #TODO: this will only work for E-B formulation
+        Adiag, Asub = None, None
 
-        Adiaginv = None
-
-        if self._makeASymmetric:
-            Asub = self.MfMui.T * Asub #TODO: this will only work for E-B formulation
-
-        for tInd, dT in enumerate(self.timeSteps):
-            if Adiaginv is not None and (tInd > 0 and dt != self.timeSteps[tInd - 1]):# keep factors if dt is the same as previous step b/c A will be the same  
+        for tInd, dt in enumerate(self.timeSteps):
+            if Adiag is not None and (tInd > 0 and dt != self.timeSteps[tInd - 1]):# keep factors if dt is the same as previous step b/c A will be the same  
                 Adiaginv.clean()
-                Adiaginv = None
+                Adiag, Asub = None, None
 
-            if Adiaginv is None:
-                Adiag = self.getA(tInd)
+            if Adiag is None:
+                Adiag, Asub = self.getJdiags(tInd, adjoint = False)
                 Adiaginv = self.Solver(Adiag)
 
-            for src in self.survey.srcList: 
-                # just construction of RHS 
-                dRHS_dm_v = self.getRHSDeriv(tInd, src, v, adjoint=False)
-                if tInd == 0:
-                    dRHS_dm_v = dRHS_dm_v + src.bInitialDeriv(self, v, adjoint=False)
-                # else:
-                #     db_dm = Jv[]
+            for i, src in enumerate(self.survey.srcList): 
+                # compute next du_dm_v for next timestep
+                u_src = u[src,ftype,tInd]
+                rhs_v = self.getJRHS(tInd, src, u_src, v, dun_dm_v[:,i])
 
-        
+                for rx in src.rxList:
+                    df_dmFun = getattr(u, '_%sDeriv'%rx.projField, None)
+                    df_dm[src, '%sDeriv'%rx.projField , tInd] = df_dmFun(src, dun_dm_v, v)
 
-        # Adiag, Asub, b = self.diagsJ(0, m, u, v, adjoint=False)
-        # AdiagInv 
-        # Jv[]
+                # over-write with this time-steps (if not on last timestep)
+                if tInd != len(self.timeSteps):
+                    dun_dm_v[:,i] = Adiaginv * rhs_v
+
+        for src in self.survey.srcList:
+            for rx in src.rxList: 
+                Jv[src,rx] = rx.evalDeriv(src, self.mesh, self.timeMesh, df_dm)
+
+        Adiaginv.clean()
+        return Utils.mkvc(Jv)
+
+
+
+            # if tInd == 0:
+            #     dbn_dm_v = get 
+            # else: 
+
+            # rhs_v = self.getJRHS(tInd, m, u, v, dbn_dm_v)
+            
+
+    def getJRHS(self, tInd, src, u, v, dbn_dm_v, adjoint = False): 
+
+        dA_dm   = self.getADeriv(tInd, u, v, adjoint)
+        dRHS_dm = self.getRHSDeriv(tInd, src, v, dbn_dm_v, adjoint)
+
+        b = - dA_dm + dRHS_dm
+
+        return b
 
     def Jtvec(self, m, v, u=None):
         raise NotImplementedError
@@ -133,6 +146,33 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
         return S_m, S_e 
 
+    def getInitialFields(self):
+
+        Srcs = self.survey.srcList 
+
+        if self._fieldType is 'b' or self._fieldType is 'j':
+            ifields = np.zeros((self.mesh.nF, len(Srcs)))
+        elif self._fieldType is 'e' or self._fieldType is 'h':
+            ifields = np.zeros((self.mesh.nE, len(Srcs)))
+
+        for i,src in enumerate(Srcs): 
+            ifields[:,i] = ifields[:,i] + getattr(src, '%sInitial'%self._fieldType, None)(self)
+
+        return ifields
+
+    def getInitialFieldsDeriv(self, v, adjoint=False):
+        
+        Srcs = self.survey.srcList 
+
+        if self._fieldType is 'b' or self._fieldType is 'j':
+            ifieldsDeriv = np.zeros((self.mesh.nF, len(Srcs)))
+        elif self._fieldType is 'e' or self._fieldType is 'h':
+            ifieldsDeriv = np.zeros((self.mesh.nE, len(Srcs)))
+
+        for i,src in enumerate(Srcs): 
+            ifieldsDeriv[:,i] = ifieldsDeriv[:,i] + getattr(src, '%sInitialDeriv'%self._fieldType, None)(self,v,adjoint)
+
+        return ifieldsDeriv
 
 
 ##########################################################################################
@@ -208,7 +248,7 @@ class Problem_b(BaseTDEMProblem):
 
     def getADeriv(self, tInd, u, v, adjoint=False):
         C = self.mesh.edgeCurl
-        MeSigmaI = lambda u: self.MeSigmaIDeriv(u)
+        MeSigmaIDeriv = lambda u: self.MeSigmaIDeriv(u)
         MfMui = self.MfMui
         I = Utils.speye(self.mesh.nF)
 
@@ -219,7 +259,7 @@ class Problem_b(BaseTDEMProblem):
 
         ADeriv = ( C * ( MeSigmaIDeriv(C.T * ( MfMui * u )) * v ) )
         if self._makeASymmetric is True:
-            return MeMui.T * ADeriv
+            return MfMui.T * ADeriv
         return ADeriv
 
 
@@ -249,7 +289,7 @@ class Problem_b(BaseTDEMProblem):
         MfMui = self.MfMui
 
         _, S_e = src.eval(tInd+1, self) # I think this is tInd+1 ? 
-        S_mDeriv, S_eDeriv = src.evalDeriv(tInd+1, self, adjoint=adjoint) # I think this is tInd+1 ? 
+        S_mDeriv_v, S_eDeriv_v = src.evalDeriv(self.times[tInd+1], self, v=v, adjoint=adjoint) # I think this is tInd+1 ? 
 
         # B_n = np.c_[[F[src,'b',tInd] for src in self.survey.srcList]].T
         # if B_n.shape[0] is not 1:
@@ -257,38 +297,49 @@ class Problem_b(BaseTDEMProblem):
 
         if adjoint:
             raise NotImplementedError
-        return (C * (MeSigmaIDeriv (S_e) * v + MeSigmaI * S_eDeriv) + S_mDeriv) + bdn_dm_v / dt 
+
+
+        if isinstance(S_e,Utils.Zero): 
+            MeSigmaIDeriv_v = Utils.Zero()
+        else: 
+            MeSigmaIDeriv_v = MeSigmaIDeriv(S_e) * v
+
+        # if isinstance(S_eDeriv, Utils.Zero):
+        #     MeSigmaI_S_eDeriv_v = Utils.Zero()
+        # else:
+        #     MeSigmaI_S_eDeriv_v = MeSigmaI * S_eDeriv(v)
+
+        RHSDeriv = (C * (MeSigmaIDeriv_v + MeSigmaI * S_eDeriv_v) + S_mDeriv_v) + dbn_dm_v / dt  
+
+        if self._makeASymmetric is True:
+            return self.MfMui.T * RHSDeriv
+        return RHSDeriv 
 
 
     @Utils.timeIt
-    def diagsJ(self, tInd, m, u, v, adjoint = False):
+    def getJdiags(self, tInd, adjoint = False):
         # The matrix that we are computing has the form:
         #
-        #   -                                      -   -  -     -  -
+        #   -                                           -   -  -     -  -
         #  |  Adiag                                 | | uderiv1 |   | b1 |
         #  |   Asub    Adiag                        | | uderiv2 |   | b2 |
         #  |            Asub    Adiag               | | uderiv3 | = | b3 |
         #  |                 ...     ...            | |   ...   |   | .. |
         #  |                         Asub    Adiag  | | uderivn |   | bn |
-        #   -                                      -   -  -     -  -
+        #   -                                           -   -  -     -  -
         
+        if adjoint:
+            raise NotImplementedError
+
         dt = self.timeSteps[tInd]
 
         Adiag = self.getA(tInd)
-        Asub  = Utils.speye(len(u))
+        Asub  = - 1./dt * Utils.speye(self.mesh.nF)
 
         if self._makeASymmetric:
             Asub = self.MfMui.T * Asub
 
-        dA_dm   = self.getADeriv(tInd, u, v, adjoint)
-        dRHS_dm = self.getRHSDeriv(self, tInd, src, v, dbn_dm_v, adjoint)
-
-        b = - dA_dm + dRHS_dm
-
-        return Adiag, Asub, b 
-
-
-
+        return Adiag, Asub
 
 
 

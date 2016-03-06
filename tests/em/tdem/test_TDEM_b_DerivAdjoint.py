@@ -22,12 +22,12 @@ class TDEM_bDerivTests(unittest.TestCase):
         mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * activeMap
 
         rxOffset = 40.
-        rx = EM.TDEM.RxTDEM(np.array([[rxOffset, 0., 0.]]), np.logspace(-4,-3, 20), 'bz')
-        src = EM.TDEM.SrcTDEM_VMD_MVP([rx], loc=np.array([0., 0., 0.]))
+        rx = EM.TDEM.Rx(np.array([[rxOffset, 0., 0.]]), np.logspace(-4,-3, 20), 'bz')
+        src = EM.TDEM.SurveyTDEM.MagDipole([rx], loc=np.array([0., 0., 0.]))
 
-        survey = EM.TDEM.SurveyTDEM([src])
+        survey = EM.TDEM.Survey([src])
 
-        self.prb = EM.TDEM.ProblemTDEM_b(mesh, mapping=mapping)
+        self.prb = EM.TDEM.Problem_b(mesh, mapping=mapping)
         # self.prb.timeSteps = [1e-5]
         self.prb.timeSteps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
         # self.prb.timeSteps = [(1e-05, 100)]
@@ -44,10 +44,6 @@ class TDEM_bDerivTests(unittest.TestCase):
 
         self.prb.pair(survey)
         self.mesh = mesh
-
-    def test_ADeriv(self):
-        prb = self.prb
-        m = self.m
 
     # def test_AhVec(self):
     #     """
@@ -178,21 +174,21 @@ class TDEM_bDerivTests(unittest.TestCase):
     #     print 'test_Deriv_dUdM'
     #     Tests.checkDerivative(derChk, sigma, plotIt=False, dx=dm, num=4, eps=1e-20)
 
-    # def test_Deriv_J(self):
+    def test_Deriv_J(self):
 
-    #     prb = self.prb
-    #     prb.timeSteps = [(1e-05, 10), (0.0001, 10), (0.001, 10)]
-    #     mesh = self.mesh
-    #     sigma = self.sigma
+        prb = self.prb
+        prb.timeSteps = [(1e-05, 10), (0.0001, 10), (0.001, 10)]
+        mesh = self.mesh
+        m = self.m
 
-    #     # d_sig = 0.8*sigma #np.random.rand(mesh.nCz)
-    #     d_sig = 10*np.random.rand(prb.mapping.nP)
+        # d_sig = 0.8*sigma #np.random.rand(mesh.nCz)
+        d_m = np.random.rand(prb.mapping.nP)
 
 
-    #     derChk = lambda m: [prb.survey.dpred(m), lambda mx: prb.Jvec(sigma, mx)]
-    #     print '\n'
-    #     print 'test_Deriv_J'
-    #     Tests.checkDerivative(derChk, sigma, plotIt=False, dx=d_sig, num=4, eps=1e-20)
+        derChk = lambda m: [prb.survey.dpred(m), lambda mx: prb.Jvec(m, mx)]
+        print '\n'
+        print 'test_Deriv_J'
+        Tests.checkDerivative(derChk, m, plotIt=False, dx=d_m, num=4, eps=1e-20)
 
     # def test_projectAdjoint(self):
     #     prb = self.prb
