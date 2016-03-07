@@ -162,10 +162,10 @@ class BaseFDEMProblem(BaseEMProblem):
         :return: S_m, S_e (nE or nF, nSrc)
         """
         Srcs = self.survey.getSrcByFreq(freq)
-        if self._eqLocs is 'FE':
+        if self._formulation is 'EB':
             S_m = np.zeros((self.mesh.nF,len(Srcs)), dtype=complex)
             S_e = np.zeros((self.mesh.nE,len(Srcs)), dtype=complex)
-        elif self._eqLocs is 'EF':
+        elif self._formulation is 'HJ':
             S_m = np.zeros((self.mesh.nE,len(Srcs)), dtype=complex)
             S_e = np.zeros((self.mesh.nF,len(Srcs)), dtype=complex)
 
@@ -202,7 +202,7 @@ class Problem_e(BaseFDEMProblem):
     """
 
     _fieldType = 'e'
-    _eqLocs    = 'FE'
+    _formulation = 'EB'
     fieldsPair = Fields_e
 
     def __init__(self, mesh, **kwargs):
@@ -313,7 +313,7 @@ class Problem_b(BaseFDEMProblem):
     """
 
     _fieldType = 'b'
-    _eqLocs    = 'FE'
+    _formulation = 'EB'
     fieldsPair = Fields_b
 
     def __init__(self, mesh, **kwargs):
@@ -461,7 +461,7 @@ class Problem_j(BaseFDEMProblem):
     """
 
     _fieldType = 'j'
-    _eqLocs    = 'EF'
+    _formulation = 'HJ'
     fieldsPair = Fields_j
 
     def __init__(self, mesh, **kwargs):
@@ -599,7 +599,7 @@ class Problem_h(BaseFDEMProblem):
     """
 
     _fieldType = 'h'
-    _eqLocs    = 'EF'
+    _formulation = 'HJ'
     fieldsPair = Fields_h
 
     def __init__(self, mesh, **kwargs):
