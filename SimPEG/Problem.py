@@ -213,5 +213,20 @@ class BaseTimeProblem(BaseProblem):
         if hasattr(self, '_timeMesh'):
             del self._timeMesh
 
+class LinearProblem(BaseProblem):
 
+    surveyPair = Survey.LinearSurvey
+
+    def __init__(self, mesh, G, **kwargs):
+        BaseProblem.__init__(self, mesh, **kwargs)
+        self.G = G
+
+    def fields(self, m):
+        return self.G.dot(m)
+
+    def Jvec(self, m, v, u=None):
+        return self.G.dot(v)
+
+    def Jtvec(self, m, v, u=None):
+        return self.G.T.dot(v)
 

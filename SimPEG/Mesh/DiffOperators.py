@@ -765,4 +765,3 @@ class DiffOperators(object):
                                           kron3(av(n[2]), speye(n[1]+1), av(n[0])),
                                           kron3(speye(n[2]+1), av(n[1]), av(n[0]))), format="csr")
         return self._aveN2F
-
