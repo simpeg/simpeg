@@ -77,7 +77,7 @@ class BaseFDEMProblem(BaseEMProblem):
         Jv = self.dataPair(self.survey)
 
         for freq in self.survey.freqs:
-            A = self.getA(freq) #
+            A = self.getA(freq) 
             Ainv = self.Solver(A, **self.solverOpts)
 
             for src in self.survey.getSrcByFreq(freq):
@@ -89,7 +89,6 @@ class BaseFDEMProblem(BaseEMProblem):
                 for rx in src.rxList:
                     df_dmFun = getattr(u, '_%sDeriv'%rx.projField, None)
                     df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
-                    df_dm_v = np.array(df_dm_v,dtype=complex)
                     Jv[src, rx] = rx.evalDeriv(src, self.mesh, u, df_dm_v)
             Ainv.clean()
         return Utils.mkvc(Jv)
@@ -135,14 +134,14 @@ class BaseFDEMProblem(BaseEMProblem):
                     dRHS_dmT = self.getRHSDeriv(freq, src, ATinvdf_duT, adjoint=True)
                     du_dmT = -dA_dmT + dRHS_dmT
 
-                    Df_DmT = df_dmT + du_dmT
+                    df_dmT = df_dmT + du_dmT
 
                     # TODO: this should be taken care of by the reciever?
                     real_or_imag = rx.projComp
                     if real_or_imag is 'real':
-                        Jtv +=   np.array(Df_DmT,dtype=complex).real
+                        Jtv +=   np.array(df_dmT, dtype=complex).real
                     elif real_or_imag is 'imag':
-                        Jtv += - np.array(Df_DmT,dtype=complex).real
+                        Jtv += - np.array(df_dmT, dtype=complex).real
                     else:
                         raise Exception('Must be real or imag')
             

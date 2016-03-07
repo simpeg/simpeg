@@ -104,7 +104,7 @@ class Fields(SimPEG.Problem.Fields):
 
         if adjoint:
             return self._eDeriv_u(src, v, adjoint), self._eDeriv_m(src, v, adjoint)
-        return self._eDeriv_u(src, du_dm_v, adjoint) + self._eDeriv_m(src, v, adjoint)
+        return np.array(self._eDeriv_u(src, du_dm_v, adjoint) + self._eDeriv_m(src, v, adjoint), dtype = complex)
 
     def _bDeriv(self, src, du_dm_v, v, adjoint = False):
         """
@@ -122,7 +122,7 @@ class Fields(SimPEG.Problem.Fields):
 
         if adjoint:
             return self._bDeriv_u(src, v, adjoint), self._bDeriv_m(src, v, adjoint)
-        return self._bDeriv_u(src, du_dm_v, adjoint) + self._bDeriv_m(src, v, adjoint)
+        return np.array(self._bDeriv_u(src, du_dm_v, adjoint) + self._bDeriv_m(src, v, adjoint), dtype = complex) 
 
     def _hDeriv(self, src, du_dm_v, v, adjoint = False):
         """
@@ -140,7 +140,7 @@ class Fields(SimPEG.Problem.Fields):
 
         if adjoint: 
             return self._hDeriv_u(src, v, adjoint), self._hDeriv_m(src, v, adjoint)
-        return self._hDeriv_u(src, du_dm_v, adjoint) + self._hDeriv_m(src, v, adjoint)
+        return np.array(self._hDeriv_u(src, du_dm_v, adjoint) + self._hDeriv_m(src, v, adjoint), dtype = complex)
 
     def _jDeriv(self, src, du_dm_v, v, adjoint = False):
         """
@@ -158,8 +158,7 @@ class Fields(SimPEG.Problem.Fields):
 
         if adjoint:
             return self._jDeriv_u(src, v, adjoint), self._jDeriv_m(src, v, adjoint)
-        return self._jDeriv_u(src, du_dm_v, adjoint) + self._jDeriv_m(src, v, adjoint)
-
+        return np.array(self._jDeriv_u(src, du_dm_v, adjoint) + self._jDeriv_m(src, v, adjoint), dtype = complex)
 
 class Fields_e(Fields):
     """
