@@ -154,7 +154,7 @@ class RawVec_e(BaseSrc):
         :rtype: numpy.ndarray
         :return: electric source term on mesh
         """
-        if prob._eqLocs is 'FE' and self.integrate is True:
+        if prob._formulation is 'EB' and self.integrate is True:
             return prob.Me * self._S_e
         return self._S_e
 
@@ -184,7 +184,7 @@ class RawVec_m(BaseSrc):
         :rtype: numpy.ndarray
         :return: magnetic source term on mesh
         """
-        if prob._eqLocs is 'EF' and self.integrate is True:
+        if prob._formulation is 'HJ' and self.integrate is True:
             return prob.Me * self._S_m
         return self._S_m
 
@@ -214,7 +214,7 @@ class RawVec(BaseSrc):
         :rtype: numpy.ndarray
         :return: magnetic source term on mesh
         """
-        if prob._eqLocs is 'EF' and self.integrate is True:
+        if prob._formulation is 'HJ' and self.integrate is True:
             return prob.Me * self._S_m
         return self._S_m
 
@@ -226,7 +226,7 @@ class RawVec(BaseSrc):
         :rtype: numpy.ndarray
         :return: electric source term on mesh
         """
-        if prob._eqLocs is 'FE' and self.integrate is True:
+        if prob._formulation is 'EB' and self.integrate is True:
             return prob.Me * self._S_e
         return self._S_e
 
@@ -296,15 +296,15 @@ class MagDipole(BaseSrc):
         :rtype: numpy.ndarray
         :return: primary magnetic field
         """
-        eqLocs = prob._eqLocs
+        formulation = prob._formulation
 
-        if eqLocs is 'FE':
+        if formulation is 'EB':
             gridX = prob.mesh.gridEx
             gridY = prob.mesh.gridEy
             gridZ = prob.mesh.gridEz
             C = prob.mesh.edgeCurl
 
-        elif eqLocs is 'EF':
+        elif formulation is 'HJ':
             gridX = prob.mesh.gridFx
             gridY = prob.mesh.gridFy
             gridZ = prob.mesh.gridFz
@@ -347,7 +347,7 @@ class MagDipole(BaseSrc):
         """
 
         b_p = self.bPrimary(prob)
-        if prob._eqLocs is 'EF':
+        if prob._formulation is 'HJ':
             b_p = prob.Me * b_p 
         return -1j*omega(self.freq)*b_p
 
@@ -363,13 +363,13 @@ class MagDipole(BaseSrc):
         if all(np.r_[self.mu] == np.r_[prob.curModel.mu]):
             return Zero()
         else:
-            eqLocs = prob._eqLocs
+            formulation = prob._formulation
 
-            if eqLocs is 'FE':
+            if formulation is 'EB':
                 mui_s = prob.curModel.mui - 1./self.mu
                 MMui_s = prob.mesh.getFaceInnerProduct(mui_s)
                 C = prob.mesh.edgeCurl
-            elif eqLocs is 'EF':
+            elif formulation is 'HJ':
                 mu_s = prob.curModel.mu - self.mu
                 MMui_s = prob.mesh.getEdgeInnerProduct(mu_s, invMat=True)
                 C = prob.mesh.edgeCurl.T
@@ -412,15 +412,15 @@ class MagDipole_Bfield(BaseSrc):
         :return: primary magnetic field
         """
 
-        eqLocs = prob._eqLocs
+        formulation = prob._formulation
 
-        if eqLocs is 'FE':
+        if formulation is 'EB':
             gridX = prob.mesh.gridFx
             gridY = prob.mesh.gridFy
             gridZ = prob.mesh.gridFz
             C = prob.mesh.edgeCurl
 
-        elif eqLocs is 'EF':
+        elif formulation is 'HJ':
             gridX = prob.mesh.gridEx
             gridY = prob.mesh.gridEy
             gridZ = prob.mesh.gridEz
@@ -462,7 +462,7 @@ class MagDipole_Bfield(BaseSrc):
         :return: primary magnetic field
         """
         b = self.bPrimary(prob)
-        if prob._eqLocs is 'EF':
+        if prob._formulation is 'HJ':
             b = prob.Me * b
         return -1j*omega(self.freq)*b
 
@@ -477,13 +477,13 @@ class MagDipole_Bfield(BaseSrc):
         if all(np.r_[self.mu] == np.r_[prob.curModel.mu]):
             return Zero()
         else:
-            eqLocs = prob._eqLocs
+            formulation = prob._formulation
 
-            if eqLocs is 'FE':
+            if formulation is 'EB':
                 mui_s = prob.curModel.mui - 1./self.mu
                 MMui_s = prob.mesh.getFaceInnerProduct(mui_s)
                 C = prob.mesh.edgeCurl
-            elif eqLocs is 'EF':
+            elif formulation is 'HJ':
                 mu_s = prob.curModel.mu - self.mu
                 MMui_s = prob.mesh.getEdgeInnerProduct(mu_s, invMat=True)
                 C = prob.mesh.edgeCurl.T
@@ -525,15 +525,15 @@ class CircularLoop(BaseSrc):
         :rtype: numpy.ndarray
         :return: primary magnetic field
         """
-        eqLocs = prob._eqLocs
+        formulation = prob._formulation
 
-        if eqLocs is 'FE':
+        if formulation is 'EB':
             gridX = prob.mesh.gridEx
             gridY = prob.mesh.gridEy
             gridZ = prob.mesh.gridEz
             C = prob.mesh.edgeCurl
 
-        elif eqLocs is 'EF':
+        elif formulation is 'HJ':
             gridX = prob.mesh.gridFx
             gridY = prob.mesh.gridFy
             gridZ = prob.mesh.gridFz
@@ -574,7 +574,7 @@ class CircularLoop(BaseSrc):
         :return: primary magnetic field
         """
         b = self.bPrimary(prob)
-        if prob._eqLocs is 'EF':
+        if prob._formulation is 'HJ':
             b =  prob.Me *  b
         return -1j*omega(self.freq)*b
 
@@ -589,15 +589,15 @@ class CircularLoop(BaseSrc):
         if all(np.r_[self.mu] == np.r_[prob.curModel.mu]):
             return Zero()
         else:
-            eqLocs = prob._eqLocs
+            formulation = prob._formulation
 
-            if eqLocs is 'FE':
+            if formulation is 'EB':
                 mui_s = prob.curModel.mui - 1./self.mu
                 MMui_s = prob.mesh.getFaceInnerProduct(mui_s)
                 C = prob.mesh.edgeCurl
 
 
-            elif eqLocs is 'EF':
+            elif formulation is 'HJ':
                 mu_s = prob.curModel.mu - self.mu
                 MMui_s = prob.mesh.getEdgeInnerProduct(mu_s, invMat=True)
                 C = prob.mesh.edgeCurl.T
