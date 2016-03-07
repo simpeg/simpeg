@@ -92,7 +92,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
                 for rx in src.rxList:
                     df_dmFun = getattr(u, '_%sDeriv'%rx.projField, None)
-                    df_dm_v[src, '%sDeriv'%rx.projField , tInd] = df_dmFun(src, dun_dm_v[:,i], v)
+                    df_dm_v[src, '%sDeriv'%rx.projField , tInd] = df_dmFun(tInd, src, dun_dm_v[:,i], v)
 
                 # over-write with this time-steps (if not on last timestep)
                 if tInd != len(self.timeSteps):

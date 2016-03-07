@@ -49,35 +49,49 @@ class Fields_b(Fields):
                   }
 
     def startup(self):
-        self.MeSigmaI = self.survey.prob.MeSigmaI
-        self.edgeCurl = self.survey.prob.mesh.edgeCurl
-        self.MfMui    = self.survey.prob.MfMui
+        self.MeSigmaI      = self.survey.prob.MeSigmaI
+        self.MeSigmaIDeriv = self.survey.prob.MeSigmaIDeriv
+        self.edgeCurl      = self.survey.prob.mesh.edgeCurl
+        self.MfMui         = self.survey.prob.MfMui
 
     def _b(self, bSolution, srcList, tInd):
         return bSolution
 
-    def _bDeriv_u(self, src, dun_dm_v, adjoint = False):
+    def _bDeriv_u(self, tInd, src, dun_dm_v, adjoint = False):
         return Identity()*dun_dm_v
 
-    def _bDeriv_m(self, src, v, adjoint = False):
+    def _bDeriv_m(self, tInd, src, v, adjoint = False):
         return Zero()
 
-    def _bDeriv(self, src, dun_dm_v, v, adjoint=False): 
+    def _bDeriv(self, tInd, src, dun_dm_v, v, adjoint=False): 
         if adjoint is True:
             raise NotImplementedError
-        return self._bDeriv_u(src, dun_dm_v) + self._bDeriv_m(src, v)
+        return self._bDeriv_u(tInd, src, dun_dm_v) + self._bDeriv_m(tInd, src, v)
 
     def _e(self, bSolution, srcList, tInd):
         e = self.MeSigmaI * ( self.edgeCurl.T * ( self.MfMui * bSolution ) )
         for i, src in enumerate(srcList):
-            _, S_e = src.eval(self.prob, tInd) 
-            e[:,i,tInd] = e[:,i,tInd] - self.MeSigmaI * S_e
+            _, S_e = src.eval(self.survey.prob, self.survey.prob.times[tInd]) 
+            e[:,i] = e[:,i] - self.MeSigmaI * S_e
         return e  
 
-    def _eDeriv_u(self, src, dun_dm_v, adjoint = False):
-        raise NotImplementedError
+    def _eDeriv_u(self, tInd, src, dun_dm_v, adjoint = False):
+        if adjoint is True:
+            raise NotImplementedError
+        return self.MeSigmaI * ( self.edgeCurl.T * ( self.MfMui * dun_dm_v ) )
 
-    def _eDeriv_m(self, src, v, adjoint = False):
-        raise NotImplementedError
+    def _eDeriv_m(self, tInd, src, v, adjoint = False):
+        if adjoint is True:
+            raise NotImplementedError
 
+        bSolution = self[[src],'bSolution',tInd]
 
+        _, S_e = src.eval(self.survey.prob, self.survey.prob.times[tInd])
+        _, S_eDeriv = src.evalDeriv(self.survey.prob.times[tInd], self, v=v)
+
+        return self.MeSigmaIDeriv(self.edgeCurl.T * ( self.MfMui * bSolution) ) * v - self.MeSigmaIDeriv(S_e) * v - self.MeSigmaI * S_eDeriv
+
+    def _eDeriv(self, tInd, src, dun_dm_v, v, adjoint=False): 
+        if adjoint is True:
+            raise NotImplementedError
+        return self._eDeriv_u(tInd, src, dun_dm_v) + self._eDeriv_m(tInd, src, v)
