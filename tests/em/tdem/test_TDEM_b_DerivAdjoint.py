@@ -11,12 +11,12 @@ class TDEM_bDerivTests(unittest.TestCase):
 
         cs = 5.
         ncx = 20
-        ncy = 6
+        ncy = 10
         npad = 20
         hx = [(cs,ncx), (cs,npad,1.3)]
         hy = [(cs,npad,-1.3), (cs,ncy), (cs,npad,1.3)]
         mesh = Mesh.CylMesh([hx,1,hy], '00C')
-
+# 
         active = mesh.vectorCCz<0.
         activeMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
         mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * activeMap
@@ -193,31 +193,29 @@ class TDEM_bDerivTests(unittest.TestCase):
 
         Tests.checkDerivative(AderivTest, self.m, plotIt=False, num=4, eps=1e-20)   
 
-    def test_Fields_Deriv(self):
-        prb = self.prb
-        tInd = 0
+    # def test_Fields_Deriv(self):
+    #     prb = self.prb
+    #     tInd = 10
 
-        v = np.random.rand(self.mesh.nF)
+    #     v = np.random.rand(self.mesh.nF)
 
-        def FieldsDerivs(m):
-            prb.curModel = m
-            F = prb.fieldsPair(self.mesh, self.prb.survey)
-            # set initial fields
-            F[:,prb._fieldType+'Solution',0] = prb.getInitialFields()
-            A = prb.getA(tInd)
-            Ainv = prb.Solver(A)
-            RHS = prb.getRHS(tInd, F)
+    #     def FieldsDerivs(m):
 
-            sol = Ainv * RHS
-            Ainv.clean()
+    #         sol = prb.fields(m)[:,'bSolution',tInd]
 
-            prb.curModel = self.m
-            f = prb.fields(self.m)
-            deriv = lambda dm: f._bDeriv(prb.survey.srcList[0], np.zeros_like(sol), dm)
+    #         prb.curModel = self.m
+    #         f = prb.fields(self.m)
 
-            return sol, deriv
+    #         df_dm_v = EM.TDEM.FieldsTDEM.Fields_Derivs(mesh, survey)
+    #         for i in range(tInd):
+    #             Ainv = prb.Solver(prb.getA(tInd))
+    #             df_dm_v = Ainv * 
 
-        Tests.checkDerivative(FieldsDerivs, self.m, plotIt=False, num=4, eps=1e-20) 
+    #         deriv = lambda dm: f._bDeriv(prb.survey.srcList[0], f[:,'bSolution',tInd], dm)
+
+    #         return sol, deriv
+
+    #     Tests.checkDerivative(FieldsDerivs, self.m, plotIt=False, num=4, eps=1e-20) 
 
     def test_Deriv_J(self):
 
@@ -233,7 +231,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         derChk = lambda m: [prb.survey.dpred(m), lambda mx: prb.Jvec(m, mx)]
         print '\n'
         print 'test_Deriv_J'
-        Tests.checkDerivative(derChk, m, plotIt=False, num=5, eps=1e-20)
+        Tests.checkDerivative(derChk, m, plotIt=False, num=2, eps=1e-20)
 
     # def test_projectAdjoint(self):
     #     prb = self.prb

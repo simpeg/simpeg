@@ -68,9 +68,12 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         self.curModel = m
 
         Jv = self.dataPair(self.survey) 
+
+        # mat to store previous time-step's solution deriv times a vector for each source
         dun_dm_v = self.getInitialFieldsDeriv(v) # can over-write this at each timestep
 
-        df_dm = Fields_Derivs(self.mesh, self.survey)
+        df_dm_v = Fields_Derivs(self.mesh, self.survey) # store the field derivs we need to project to calc full deriv
+        
         Ainv = None
 
         for tInd, dt in enumerate(self.timeSteps):
@@ -84,12 +87,12 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
             for i, src in enumerate(self.survey.srcList): 
                 # compute next du_dm_v for next timestep
-                u_src = u[src,ftype,tInd]
+                u_src = u[src,ftype,tInd+1]
                 rhs_v = self.getJRHS(tInd, src, u_src, v, dun_dm_v[:,i])
 
                 for rx in src.rxList:
                     df_dmFun = getattr(u, '_%sDeriv'%rx.projField, None)
-                    df_dm[src, '%sDeriv'%rx.projField , tInd] = df_dmFun(src, dun_dm_v, v)
+                    df_dm_v[src, '%sDeriv'%rx.projField , tInd] = df_dmFun(src, dun_dm_v[:,i], v)
 
                 # over-write with this time-steps (if not on last timestep)
                 if tInd != len(self.timeSteps):
@@ -97,18 +100,11 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
         for src in self.survey.srcList:
             for rx in src.rxList: 
-                Jv[src,rx] = rx.evalDeriv(src, self.mesh, self.timeMesh, df_dm)
+                Jv[src,rx] = rx.evalDeriv(src, self.mesh, self.timeMesh, df_dm_v)
 
         Ainv.clean()
         return Utils.mkvc(Jv)
 
-
-
-            # if tInd == 0:
-            #     dbn_dm_v = get 
-            # else: 
-
-            # rhs_v = self.getJRHS(tInd, m, u, v, dbn_dm_v)
             
 
     def getJRHS(self, tInd, src, u, v, dbn_dm_v, adjoint = False): 
