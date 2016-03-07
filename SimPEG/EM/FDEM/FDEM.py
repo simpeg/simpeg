@@ -99,7 +99,7 @@ class BaseFDEMProblem(BaseEMProblem):
 
                     Df_Dm = np.array(df_dudu_dm + df_dm,dtype=complex)
 
-                    P = lambda v: rx.projectFieldsDeriv(src, self.mesh, u, v) # wrt u, also have wrt m
+                    P = lambda v: rx.evalDeriv(src, self.mesh, u, v) # wrt u, also have wrt m
 
                     Jv[src, rx] = P(Df_Dm)
 
@@ -137,7 +137,7 @@ class BaseFDEMProblem(BaseEMProblem):
                 u_src = u[src, ftype]
 
                 for rx in src.rxList:
-                    PTv = rx.projectFieldsDeriv(src, self.mesh, u, v[src, rx], adjoint=True) # wrt u, need possibility wrt m
+                    PTv = rx.evalDeriv(src, self.mesh, u, v[src, rx], adjoint=True) # wrt u, need possibility wrt m
 
                     df_duTFun = getattr(u, '_%sDeriv_u'%rx.projField, None)
                     df_duT = df_duTFun(src, PTv, adjoint=True)

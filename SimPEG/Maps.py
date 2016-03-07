@@ -4,6 +4,7 @@ from Tests import checkDerivative
 from PropMaps import PropMap, Property
 from numpy.polynomial import polynomial
 from scipy.interpolate import UnivariateSpline
+import warnings
 
 class IdentityMap(object):
     """
@@ -296,11 +297,11 @@ class LogMap(IdentityMap):
     def inverse(self, m):
         return np.exp(Utils.mkvc(m))
 
-class FullMap(IdentityMap):
+class SurjectFull(IdentityMap):
     """
-    FullMap
+    SurjectFull
 
-    Given a scalar, the FullMap maps the value to the
+    Given a scalar, the SurjectFull maps the value to the
     full model space.
     """
 
@@ -327,9 +328,15 @@ class FullMap(IdentityMap):
         """
         return np.ones([self.mesh.nC,1])
 
+class FullMap(SurjectFull):
+    def __init__(self,mesh,**kwargs):
+        warnings.warn(
+            "`FullMap` is deprecated and will be removed in future versions. Use `SurjectFull` instead",
+            FutureWarning)
+        SurjectFull.__init__(self,mesh,**kwargs)
 
-class Vertical1DMap(IdentityMap):
-    """Vertical1DMap
+class SurjectVertical1D(IdentityMap):
+    """SurjectVertical1DMap
 
         Given a 1D vector through the last dimension
         of the mesh, this will extend to the full
@@ -369,8 +376,14 @@ class Vertical1DMap(IdentityMap):
                     ), shape=(repNum, 1))
         return sp.kron(sp.identity(self.nP), repVec)
 
+class Vertical1DMap(SurjectVertical1D):
+    def __init__(self,mesh,**kwargs):
+        warnings.warn(
+            "`Vertical1DMap` is deprecated and will be removed in future versions. Use `SurjectVertical1D` instead",
+            FutureWarning)
+        SurjectVertical1D.__init__(self,mesh,**kwargs)
 
-class Map2Dto3D(IdentityMap):
+class Surject2Dto3D(IdentityMap):
     """Map2Dto3D
 
         Given a 2D vector, this will extend to the full
@@ -425,6 +438,13 @@ class Map2Dto3D(IdentityMap):
                 ), shape=(nC, nP))
         return P
 
+class Map2Dto3D(Surject2Dto3D):
+    def __init__(self,mesh,**kwargs):
+        warnings.warn(
+            "`Map2Dto3D` is deprecated and will be removed in future versions. Use `Surject2Dto3D` instead",
+            FutureWarning)
+        Surject2Dto3D.__init__(self,mesh,**kwargs)
+
 class Mesh2Mesh(IdentityMap):
     """
         Takes a model on one mesh are translates it to another mesh.
@@ -458,7 +478,7 @@ class Mesh2Mesh(IdentityMap):
         return self.P
 
 
-class ActiveCells(IdentityMap):
+class InjectActiveCells(IdentityMap):
     """
         Active model parameters.
 
@@ -506,7 +526,14 @@ class ActiveCells(IdentityMap):
     def deriv(self, m):
         return self.P
 
-class ActiveCellsTopo(IdentityMap):
+class ActiveCells(InjectActiveCells):
+    def __init__(self, mesh, indActive, valInactive, nC=None):
+        warnings.warn(
+            "`ActiveCells` is deprecated and will be removed in future versions. Use `InjectActiveCells` instead",
+            FutureWarning)
+        InjectActiveCells.__init__(self, mesh, indActive, valInactive, nC)
+
+class InjectActiveCellsTopo(IdentityMap):
     """
         Active model parameters. Extend for cells on topography to air cell (only works for tensor mesh)
 
@@ -577,6 +604,12 @@ class ActiveCellsTopo(IdentityMap):
     def deriv(self, m):
         return self.P
 
+class ActiveCellsTopo(InjectActiveCellsTopo):
+    def __init__(self, mesh, indActive, valInactive, nC=None):
+        warnings.warn(
+            "`ActiveCellsTopo` is deprecated and will be removed in future versions. Use `InjectActiveCellsTopo` instead",
+            FutureWarning)
+        InjectActiveCellsTopo.__init__(self, mesh, indActive, valInactive, nC)
 
 class Weighting(IdentityMap):
     """
