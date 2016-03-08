@@ -54,8 +54,7 @@ class BaseFDEMProblem(BaseEMProblem):
             Ainv = self.Solver(A, **self.solverOpts)
             sol = Ainv * rhs
             Srcs = self.survey.getSrcByFreq(freq)
-            ftype = self._fieldType + 'Solution'
-            F[Srcs, ftype] = sol
+            F[Srcs, self._solutionType] = sol
             Ainv.clean()
         return F
 
@@ -78,12 +77,11 @@ class BaseFDEMProblem(BaseEMProblem):
         Jv = self.dataPair(self.survey)
 
         for freq in self.survey.freqs:
-            A = self.getA(freq) #
+            A = self.getA(freq) 
             Ainv = self.Solver(A, **self.solverOpts)
 
             for src in self.survey.getSrcByFreq(freq):
-                ftype = self._fieldType + 'Solution'
-                u_src = u[src, ftype]
+                u_src = u[src, self._solutionType]
                 dA_dm_v = self.getADeriv(freq, u_src, v)
                 dRHS_dm_v = self.getRHSDeriv(freq, src, v) 
                 du_dm_v = Ainv * ( - dA_dm_v + dRHS_dm_v )
@@ -91,7 +89,6 @@ class BaseFDEMProblem(BaseEMProblem):
                 for rx in src.rxList:
                     df_dmFun = getattr(u, '_%sDeriv'%rx.projField, None)
                     df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
-                    df_dm_v = np.array(df_dm_v,dtype=complex)
                     Jv[src, rx] = rx.evalDeriv(src, self.mesh, u, df_dm_v)
             Ainv.clean()
         return Utils.mkvc(Jv)
@@ -123,8 +120,7 @@ class BaseFDEMProblem(BaseEMProblem):
             ATinv = self.Solver(AT, **self.solverOpts)
 
             for src in self.survey.getSrcByFreq(freq):
-                ftype = self._fieldType + 'Solution'
-                u_src = u[src, ftype]
+                u_src = u[src, self._solutionType]
 
                 for rx in src.rxList:
                     PTv = rx.evalDeriv(src, self.mesh, u, v[src, rx], adjoint=True) # wrt u, need possibility wrt m
@@ -138,14 +134,14 @@ class BaseFDEMProblem(BaseEMProblem):
                     dRHS_dmT = self.getRHSDeriv(freq, src, ATinvdf_duT, adjoint=True)
                     du_dmT = -dA_dmT + dRHS_dmT
 
-                    Df_DmT = df_dmT + du_dmT
+                    df_dmT = df_dmT + du_dmT
 
                     # TODO: this should be taken care of by the reciever?
                     real_or_imag = rx.projComp
                     if real_or_imag is 'real':
-                        Jtv +=   np.array(Df_DmT,dtype=complex).real
+                        Jtv +=   np.array(df_dmT, dtype=complex).real
                     elif real_or_imag is 'imag':
-                        Jtv += - np.array(Df_DmT,dtype=complex).real
+                        Jtv += - np.array(df_dmT, dtype=complex).real
                     else:
                         raise Exception('Must be real or imag')
             
@@ -201,9 +197,9 @@ class Problem_e(BaseFDEMProblem):
     :param SimPEG.Mesh mesh: mesh
     """
 
-    _fieldType = 'e'
-    _formulation = 'EB'
-    fieldsPair = Fields_e
+    _solutionType = 'eSolution'
+    _formulation  = 'EB'
+    fieldsPair    = Fields_e
 
     def __init__(self, mesh, **kwargs):
         BaseFDEMProblem.__init__(self, mesh, **kwargs)
@@ -312,9 +308,9 @@ class Problem_b(BaseFDEMProblem):
     :param SimPEG.Mesh mesh: mesh
     """
 
-    _fieldType = 'b'
-    _formulation = 'EB'
-    fieldsPair = Fields_b
+    _solutionType = 'bSolution'
+    _formulation  = 'EB'
+    fieldsPair    = Fields_b
 
     def __init__(self, mesh, **kwargs):
         BaseFDEMProblem.__init__(self, mesh, **kwargs)
@@ -460,9 +456,9 @@ class Problem_j(BaseFDEMProblem):
     :param SimPEG.Mesh mesh: mesh
     """
 
-    _fieldType = 'j'
-    _formulation = 'HJ'
-    fieldsPair = Fields_j
+    _solutionType = 'jSolution'
+    _formulation  = 'HJ'
+    fieldsPair    = Fields_j
 
     def __init__(self, mesh, **kwargs):
         BaseFDEMProblem.__init__(self, mesh, **kwargs)
@@ -598,9 +594,9 @@ class Problem_h(BaseFDEMProblem):
     :param SimPEG.Mesh mesh: mesh
     """
 
-    _fieldType = 'h'
-    _formulation = 'HJ'
-    fieldsPair = Fields_h
+    _solutionType = 'hSolution'
+    _formulation  = 'HJ'
+    fieldsPair    = Fields_h
 
     def __init__(self, mesh, **kwargs):
         BaseFDEMProblem.__init__(self, mesh, **kwargs)

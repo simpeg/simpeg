@@ -99,11 +99,6 @@ class Rx(SimPEG.Survey.BaseRx):
         :return: fields projected to recievers
         """
 
-        # projGLoc = u._GLoc(self.knownRxTypes[self.rxType][0])
-
-        # print self.knownRxTypes[self.rxType][:2], 'Deriv', projGLoc
-        # projGLoc += self.knownRxTypes[self.rxType][1]
-
         P = self.getP(mesh, self.projGLoc(u))
 
         if not adjoint:
