@@ -93,22 +93,22 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
             Asubdiag = self.getAsubdiag(tInd)
 
             for i, src in enumerate(self.survey.srcList): 
-                # compute next du_dm_v for next timestep
+                
                 un_src = u[src,ftype,tInd+1]
-                # rhs_v = self.getJRHS(tInd, src, un_src, v) 
 
                 dA_dm_v   = self.getAdiagDeriv(tInd, un_src, v)
                 dRHS_dm_v = self.getRHSDeriv(tInd, src, v)
+                # dAsubdiag_dm_v = 0  
 
-                JRHS = - dA_dm_v - Asubdiag * dun_dm_v[:,i] + dRHS_dm_v
+                JRHS = dRHS_dm_v - dA_dm_v  # - dAsubdiag_dm_v (which is zero) 
 
                 for rx in src.rxList:
                     df_dmFun = getattr(u, '_%sDeriv'%rx.projField, None)
                     df_dm_v[src, '%sDeriv'%rx.projField , tInd] = df_dmFun(tInd, src, dun_dm_v[:,i], v)
 
-                # over-write with this time-steps (if not on last timestep, no need to do the extra solve)
+                # step in time and overwrite 
                 if tInd != len(self.timeSteps):
-                    dun_dm_v[:,i] = Ainv * JRHS
+                    dun_dm_v[:,i] = Ainv * (JRHS - Asubdiag * dun_dm_v[:,i])
 
         for src in self.survey.srcList:
             for rx in src.rxList: 
