@@ -638,7 +638,7 @@ class Simple(BaseRegularization):
         return out
 
 
-class SparseRegularization(Simple):
+class Sparse(Simple):
 
     eps   = 1e-1
     m     = None
