@@ -1,22 +1,23 @@
 # Run this file to add imports.
 
 ##### AUTOIMPORTS #####
-import Mesh_QuadTree_Creation
-import EM_TDEM_1D_Inversion
-import Mesh_QuadTree_FaceDiv
-import Mesh_Tensor_Creation
-import FLOW_Richards_1D_Celia1990
-import Mesh_Operators_CahnHilliard
-import Mesh_Basic_Types
-import Inversion_Linear
-import MT_3D_Foward
-import MT_1D_ForwardAndInversion
-import Forward_BasicDirectCurrent
+import EM_FDEM_1D_Inversion
 import EM_FDEM_Analytic_MagDipoleWholespace
+import EM_TDEM_1D_Inversion
+import FLOW_Richards_1D_Celia1990
+import Forward_BasicDirectCurrent
+import Inversion_Linear
 import Mesh_Basic_PlotImage
+import Mesh_Basic_Types
+import Mesh_Operators_CahnHilliard
+import Mesh_QuadTree_Creation
+import Mesh_QuadTree_FaceDiv
 import Mesh_QuadTree_HangingNodes
+import Mesh_Tensor_Creation
+import MT_1D_ForwardAndInversion
+import MT_3D_Foward
 
-__examples__ = ["Mesh_QuadTree_Creation", "EM_TDEM_1D_Inversion", "Mesh_QuadTree_FaceDiv", "Mesh_Tensor_Creation", "FLOW_Richards_1D_Celia1990", "Mesh_Operators_CahnHilliard", "Mesh_Basic_Types", "Inversion_Linear", "MT_3D_Foward", "MT_1D_ForwardAndInversion", "Forward_BasicDirectCurrent", "EM_FDEM_Analytic_MagDipoleWholespace", "Mesh_Basic_PlotImage", "Mesh_QuadTree_HangingNodes"]
+__examples__ = ["EM_FDEM_1D_Inversion", "EM_FDEM_Analytic_MagDipoleWholespace", "EM_TDEM_1D_Inversion", "FLOW_Richards_1D_Celia1990", "Forward_BasicDirectCurrent", "Inversion_Linear", "Mesh_Basic_PlotImage", "Mesh_Basic_Types", "Mesh_Operators_CahnHilliard", "Mesh_QuadTree_Creation", "Mesh_QuadTree_FaceDiv", "Mesh_QuadTree_HangingNodes", "Mesh_Tensor_Creation", "MT_1D_ForwardAndInversion", "MT_3D_Foward"]
 
 ##### AUTOIMPORTS #####
 

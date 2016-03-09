@@ -9,7 +9,7 @@ try:
 except:
     from SimPEG import Solver
 
-def run(plotIt=True):
+def run(plotIt=True, nFreq=1):
     """
         MT: 3D: Forward
         =======================
@@ -40,13 +40,13 @@ def run(plotIt=True):
             rxList.append(MT.Rx(simpeg.mkvc(loc,2).T,rxType))
     # Source list
     srcList =[]
-    for freq in np.logspace(3,-3,7):
+    for freq in np.logspace(3,-3,nFreq):
         srcList.append(MT.SrcMT.polxy_1Dprimary(rxList,freq))
     # Survey MT
     survey = MT.Survey(srcList)
 
     ## Setup the problem object
-    problem = MT.Problem3D.eForm_ps(M,sigmaPrimary = sigBG)
+    problem = MT.Problem3D.eForm_ps(M, sigmaPrimary=sigBG)
     problem.pair(survey)
     problem.Solver = Solver
 
