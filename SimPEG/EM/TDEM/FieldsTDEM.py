@@ -31,6 +31,8 @@ class Fields(SimPEG.Problem.TimeFields):
     knownFields = {}
     dtype = float 
 
+
+
 class Fields_Derivs(Fields):
     knownFields = {
                     'bDeriv': 'F',
@@ -65,7 +67,7 @@ class Fields_b(Fields):
 
     def _bDeriv(self, tInd, src, dun_dm_v, v, adjoint=False): 
         if adjoint is True:
-            raise NotImplementedError
+            return self._bDeriv_u(tInd, src, v, adjoint), self._bDeriv_m(tInd, src, v, adjoint)
         return self._bDeriv_u(tInd, src, dun_dm_v) + self._bDeriv_m(tInd, src, v)
 
     def _e(self, bSolution, srcList, tInd):

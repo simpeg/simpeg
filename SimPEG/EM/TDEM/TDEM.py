@@ -16,8 +16,6 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         Problem.BaseTimeProblem.__init__(self, mesh, mapping=mapping, **kwargs)
 
 
-    # _FieldsForward_pair = FieldsTDEM  #: used for the forward calculation only
-
     def fields(self, m):
         """
         Solve the forward problem for the fields.
@@ -49,12 +47,15 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
                 if self.verbose: print 'Done'
 
             rhs = self.getRHS(tInd, F)
+            
             if self.verbose: print '    Solving...   (tInd = %d)'%tInd
             sol = Ainv * rhs
             if self.verbose: print '    Done...'
+            
             if sol.ndim == 1:
                 sol.shape = (sol.size,1)
             F[:,self._fieldType+'Solution',tInd+1] = sol
+
         Ainv.clean()
         return F
 
@@ -105,7 +106,60 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         Ainv.clean()
         return Utils.mkvc(Jv)
 
-            
+
+    def Jtvec(self, m, v, u=None):
+
+        if u is None:
+            u = self.fields(m)
+
+        self.curModel = m
+        ftype = self._fieldType + 'Solution' # the thing we solved for
+
+        # Ensure v is a data object.
+        if not isinstance(v, self.dataPair):
+            v = self.dataPair(self.survey, v)
+
+        # TODO: make this general
+        if self._fieldType is 'b':
+            dun_dmT_v = np.zeros((len(m), self.mesh.nF)) 
+
+        # df_dm_v = Fields_Derivs(self.mesh, self.survey)
+        JTv = np.zeros(m.size)
+        PT_v = Fields_Derivs(self.mesh, self.survey) #PT_v is a fields object
+
+        for src in self.survey.srcList: 
+            for rx in src.rxList: 
+                PT_v[src,'%sDeriv'%rx.projField, :] = rx.evalDeriv(src, self.mesh, self.timeMesh, v, adjoint = True) # All the fields for a given src, reciever.
+                
+
+        ATinv = None
+
+        for tInd, dt in enumerate(reversed(list(self.timeSteps))): 
+            if ATinv is not None and (tInd < self.nT and dt != self.timeSteps[tInd - 1]):# keep factors if dt is the same as previous step b/c A will be the same  
+                ATinv.clean()
+                ATinv = None
+
+            if ATinv is None:
+                A = self.getA(tInd)
+                ATinv = self.Solver(A.T, **self.solverOpts)
+
+            for i, src in enumerate(self.survey.srcList):
+
+                u_src = u[src,ftype,tInd] # fields for this source at tInd 
+
+                for rx in src.rxList: 
+
+                    df_duTFun = getattr(u, '_%sDeriv'%rx.projField, None)
+                    df_duT_v, df_dmT_v = df_duTFun(tInd, src, None, PT_v[src,'%sDeriv'%rx.projField,tInd-1], adjoint=True)
+
+                    ATinv_df_duT_v = ATinv * df_duT_v
+                    rhsT_v = self.getJRHS(tInd, src, u_src, ATinv_df_duT_v, dun_dmT_v[:,i], adjoint = True)
+
+                JTv += rhsT_v + df_dmT_v
+
+        return Utils.mkvc(JTv)
+
+         
 
     def getJRHS(self, tInd, src, u, v, dbn_dm_v, adjoint = False): 
 
@@ -115,9 +169,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         b = - dA_dm + dRHS_dm
 
         return b
-
-    def Jtvec(self, m, v, u=None):
-        raise NotImplementedError
+        
 
     def getSourceTerm(self, tInd): 
         
@@ -245,7 +297,7 @@ class Problem_b(BaseTDEMProblem):
         if adjoint:
             if self._makeASymmetric is True:
                 v = MfMui * v
-            return MfMui.T * ( C * ( MeSigmaIDeriv.T * ( C.T * v ) ) )
+            return  MeSigmaIDeriv(C.T * ( MfMui * u )).T * ( C.T * v ) 
 
         ADeriv = ( C * ( MeSigmaIDeriv(C.T * ( MfMui * u )) * v ) )
         if self._makeASymmetric is True:
@@ -279,27 +331,24 @@ class Problem_b(BaseTDEMProblem):
         MfMui = self.MfMui
 
         _, S_e = src.eval(tInd+1, self) # I think this is tInd+1 ? 
-        S_mDeriv_v, S_eDeriv_v = src.evalDeriv(self.times[tInd+1], self, v=v, adjoint=adjoint) # I think this is tInd+1 ? 
-
-        # B_n = np.c_[[F[src,'b',tInd] for src in self.survey.srcList]].T
-        # if B_n.shape[0] is not 1:
-        #     raise NotImplementedError('getRHS not implemented for this shape of B_n')
+        S_mDeriv, S_eDeriv = src.evalDeriv(self.times[tInd+1], self, adjoint=adjoint) # I think this is tInd+1 ? 
 
         if adjoint:
-            raise NotImplementedError
+            if self._makeASymmetric is True:
+                v = self.MfMui * v
+            if isinstance(S_e, Utils.Zero): 
+                MeSigmaIDerivT_v = Utils.Zero()
+            else: 
+                MeSigmaIDerivT_v = MeSigmaIDeriv(S_e).T * v
+            RHSDeriv = MeSigmaIDerivT_v + S_eDeriv( MeSigmaI.T *  ( C.T * v ) ) + S_mDeriv(v) + dbn_dm_v / dt #this will be given the transposed version
+            return RHSDeriv
 
-
-        if isinstance(S_e,Utils.Zero): 
+        if isinstance(S_e, Utils.Zero): 
             MeSigmaIDeriv_v = Utils.Zero()
         else: 
             MeSigmaIDeriv_v = MeSigmaIDeriv(S_e) * v
 
-        # if isinstance(S_eDeriv, Utils.Zero):
-        #     MeSigmaI_S_eDeriv_v = Utils.Zero()
-        # else:
-        #     MeSigmaI_S_eDeriv_v = MeSigmaI * S_eDeriv(v)
-
-        RHSDeriv = (C * (MeSigmaIDeriv_v + MeSigmaI * S_eDeriv_v) + S_mDeriv_v) + dbn_dm_v / dt  
+        RHSDeriv = (C * (MeSigmaIDeriv_v + MeSigmaI * S_eDeriv(v) + S_mDeriv(v))) + dbn_dm_v / dt  
 
         if self._makeASymmetric is True:
             return self.MfMui.T * RHSDeriv
