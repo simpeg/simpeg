@@ -4,8 +4,8 @@ from SimPEG import EM
 
 plotIt = False
 
-testDeriv   = False
-testAdjoint = True
+testDeriv   = True
+testAdjoint = False
 
 tol = 1e-6
 
@@ -56,10 +56,10 @@ class TDEM_bDerivTests(unittest.TestCase):
 
         def AderivTest(m):
             prb.curModel = m
-            A = prb.getA(tInd)
+            A = prb.getAdiag(tInd)
             Av = A*v
             prb.curModel = m0 
-            ADeriv_dm = lambda dm: prb.getADeriv(tInd, v, dm)
+            ADeriv_dm = lambda dm: prb.getAdiagDeriv(tInd, v, dm)
 
             return Av, ADeriv_dm
 
