@@ -139,21 +139,6 @@ class TestAnalytics(unittest.TestCase):
     # def test_appRes2en1(self):self.assertLess(appRes_TotalFieldNorm(2e-1), TOLr)
     # def test_appPhs2en1(self):self.assertLess(appPhs_TotalFieldNorm(2e-1), TOLp)
 
-    # def test_appRes2en2(self):self.assertLess(appRes_TotalFieldNorm(2e-2), TOLr)
-    # def test_appPhs2en2(self):self.assertLess(appPhs_TotalFieldNorm(2e-2), TOLp)
-
-    # def test_appRes2en3(self):self.assertLess(appRes_TotalFieldNorm(2e-3), TOLr)
-    # def test_appPhs2en3(self):self.assertLess(appPhs_TotalFieldNorm(2e-3), TOLp)
-
-    # def test_appRes2en4(self):self.assertLess(appRes_TotalFieldNorm(2e-4), TOLr)
-    # def test_appPhs2en4(self):self.assertLess(appPhs_TotalFieldNorm(2e-4), TOLp)
-
-    # def test_appRes2en5(self):self.assertLess(appRes_TotalFieldNorm(2e-5), TOLr)
-    # def test_appPhs2en5(self):self.assertLess(appPhs_TotalFieldNorm(2e-5), TOLp)
-
-    # def test_appRes2en6(self):self.assertLess(appRes_TotalFieldNorm(2e-6), TOLr)
-    # def test_appPhs2en6(self):self.assertLess(appPhs_TotalFieldNorm(2e-6), TOLp)
-
     # Primary/secondary
     def test_appRes2en2_ps(self):self.assertLess(appRes_psFieldNorm(2e-2), TOLr)
     def test_appPhs2en2_ps(self):self.assertLess(appPhs_psFieldNorm(2e-2), TOLp)

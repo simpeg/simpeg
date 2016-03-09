@@ -155,6 +155,61 @@ def plotMT1DModelData(problem,models,symList=None):
         ax.yaxis.set_tick_params(labelsize=fontSize)
     return fig
 
+def plotImpAppRes(dataArrays,plotLoc,textStr=[]):
+    ''' Plots amplitude impedance and phase'''
+    # fig = plt.figure(1,(7, 7))
+    import plotDataTypes as pDt
+    # axes = ImageGrid(fig, (0.05,0.05,0.875,0.875),nrows_ncols = (2, 2),axes_pad = 0.25,add_all=True,share_all=True,label_mode = "L")
+    # Make the figure and axes
+    fig,axT=plt.subplots(2,2,sharex=True)
+    axes = axT.ravel()
+    fig.set_size_inches((13.5,7.0))
+    fig.suptitle('{:s}\nStation at: {:.1f}x ; {:.1f}y'.format(textStr,plotLoc[0],plotLoc[1]))
+    # Have to deal with axes
+    # Set log
+    for ax in axes.ravel():
+        ax.set_xscale('log')
+
+    axes[0].invert_xaxis()
+    axes[0].set_yscale('log')
+    axes[2].set_yscale('log')
+    # Set labels
+    axes[2].set_xlabel('Frequency [Hz]')
+    axes[3].set_xlabel('Frequency [Hz]')
+    axes[0].set_ylabel('Apperent resistivity [Ohm m]')
+    axes[1].set_ylabel('Apperent phase [degrees]')
+    axes[1].set_ylim(-180,180)
+    axes[2].set_ylabel('Impedance amplitude [V/A]')
+    axes[3].set_ylim(-180,180)
+    axes[3].set_ylabel('Impedance angle [degrees]')
+
+
+    # Plot the data
+    for nr,dataArray in enumerate(dataArrays):
+        if nr==1:
+            parSym = '*'
+        else:
+            parSym = 's'
+        # app res
+        pDt.plotIsoStaImpedance(axes[0],plotLoc,dataArray,'zxy',par='res',pSym=parSym)
+        pDt.plotIsoStaImpedance(axes[0],plotLoc,dataArray,'zyx',par='res',pSym=parSym)
+        # app phs
+        pDt.plotIsoStaImpedance(axes[1],plotLoc,dataArray,'zxy',par='phs',pSym=parSym)
+        pDt.plotIsoStaImpedance(axes[1],plotLoc,dataArray,'zyx',par='phs',pSym=parSym)
+        # imp abs
+        pDt.plotIsoStaImpedance(axes[2],plotLoc,dataArray,'zxx',par='abs',pSym=parSym)
+        pDt.plotIsoStaImpedance(axes[2],plotLoc,dataArray,'zxy',par='abs',pSym=parSym)
+        pDt.plotIsoStaImpedance(axes[2],plotLoc,dataArray,'zyx',par='abs',pSym=parSym)
+        pDt.plotIsoStaImpedance(axes[2],plotLoc,dataArray,'zyy',par='abs',pSym=parSym)
+            # imp abs
+        pDt.plotIsoStaImpedance(axes[3],plotLoc,dataArray,'zxx',par='phs',pSym=parSym)
+        pDt.plotIsoStaImpedance(axes[3],plotLoc,dataArray,'zxy',par='phs',pSym=parSym)
+        pDt.plotIsoStaImpedance(axes[3],plotLoc,dataArray,'zyx',par='phs',pSym=parSym)
+        pDt.plotIsoStaImpedance(axes[3],plotLoc,dataArray,'zyy',par='phs',pSym=parSym)
+
+    return fig,axes
+
+
 def printTime():
     import time
     print time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.localtime())
