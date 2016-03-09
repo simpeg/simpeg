@@ -38,9 +38,9 @@ def getEHfields(m1d,sigma,freq,zd,scaleUD=True):
         # Build the propagation matrix
 
         # Convert fields to down/up going components in layer below current layer
-        Pj1 = np.array([[1,1],[yp1,-yp1]])
+        Pj1 = np.array([[1,1],[yp1[0],-yp1[0]]],dtype=complex)
         # Convert fields to down/up going components in current layer
-        Pjinv = 1./2*np.array([[1,zp],[1,-zp]])
+        Pjinv = 1./2*np.array([[1,zp[0]],[1,-zp[0]]],dtype=complex)
         # Propagate down and up components through the current layer
         elamh = np.array([[np.exp(-1j*k[lnr+1]*h),0],[0,np.exp(1j*k[lnr+1]*h)]])
 
