@@ -169,7 +169,7 @@ def readUBC_DC2DModel(fileName):
 
     return model
 
-def plot_pseudoSection(DCsurvey, axs, stype):
+def plot_pseudoSection(DCsurvey, axs, stype, dtype="voltage",clim=None):
     """
         Read list of 2D tx-rx location and plot a speudo-section of apparent
         resistivity.
@@ -230,10 +230,13 @@ def plot_pseudoSection(DCsurvey, axs, stype):
         elif stype == 'dpdp':
             leg = data * 2*np.pi / ( 1/MA - 1/MB - 1/NB + 1/NA )
 
-
         midx = np.hstack([midx, ( Cmid + Pmid )/2 ])
         midz = np.hstack([midz, -np.abs(Cmid-Pmid)/2 + z0 ])
-        rho = np.hstack([rho,leg])
+        #TODO ... let stick to list then finally convert to array.
+        if dtype =="voltage":
+            rho = np.hstack([rho,leg])
+        elif dtype =="appr":
+            rho = np.hstack([rho,data])
 
 
     ax = axs
@@ -242,8 +245,12 @@ def plot_pseudoSection(DCsurvey, axs, stype):
     grid_x, grid_z = np.mgrid[np.min(midx):np.max(midx), np.min(midz):np.max(midz)]
     grid_rho = griddata(np.c_[midx,midz], rho.T, (grid_x, grid_z), method='linear')
 
+    if clim == None:
+        vmin, vmax = rho.min(), rho.max()
+    else:
+        vmin, vmax = clim[0], clim[1]
 
-    plt.imshow(grid_rho.T, extent = (np.min(midx),np.max(midx),np.min(midz),np.max(midz)), origin='lower', alpha=0.8, vmin = np.min(rho), vmax = np.max(rho))
+    plt.imshow(grid_rho.T, extent = (np.min(midx),np.max(midx),np.min(midz),np.max(midz)), origin='lower', alpha=0.8, vmin =vmin, vmax = vmax, clim=(vmin, vmax))
     cbar = plt.colorbar(format = '%.2f',fraction=0.04,orientation="horizontal")
 
     cmin,cmax = cbar.get_clim()
@@ -252,7 +259,7 @@ def plot_pseudoSection(DCsurvey, axs, stype):
     cbar.ax.tick_params(labelsize=10)
     
     # Plot apparent resistivity
-    plt.scatter(midx,midz,s=50,c=rho.T)
+    plt.scatter(midx,midz,s=10,c=rho.T, vmin =vmin, vmax = vmax, clim=(vmin, vmax))
 
     ax.set_xticklabels([])
     ax.set_yticklabels([])
@@ -261,6 +268,7 @@ def plot_pseudoSection(DCsurvey, axs, stype):
     #ax.yaxis.tick_right()
     #ax.yaxis.set_label_position('right')
     plt.gca().set_aspect('equal', adjustable='box')
+
 
 
     return ax
