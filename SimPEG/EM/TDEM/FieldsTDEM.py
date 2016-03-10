@@ -59,10 +59,10 @@ class Fields_b(Fields):
     def _b(self, bSolution, srcList, tInd):
         return bSolution
 
-    def _bDeriv_u(self, tInd, src, dun_dm_v, adjoint = False):
+    def _bDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
         return Identity()*dun_dm_v
 
-    def _bDeriv_m(self, tInd, src, v, adjoint = False):
+    def _bDeriv_m(self, tInd, src, v, adjoint=False):
         return Zero()
 
     def _bDeriv(self, tInd, src, dun_dm_v, v, adjoint=False): 

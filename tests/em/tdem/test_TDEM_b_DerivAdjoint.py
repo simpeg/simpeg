@@ -4,8 +4,8 @@ from SimPEG import EM
 
 plotIt = False
 
-testDeriv   = True
-testAdjoint = False
+testDeriv   = False
+testAdjoint = True
 
 tol = 1e-6
 
@@ -17,7 +17,7 @@ def setUp(rxcomp='bz'):
     hx = [(cs,ncx), (cs,npad,1.3)]
     hy = [(cs,npad,-1.3), (cs,ncy), (cs,npad,1.3)]
     mesh = Mesh.CylMesh([hx,1,hy], '00C')
-# 
+#
     active = mesh.vectorCCz<0.
     activeMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
     mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * activeMap
@@ -46,7 +46,7 @@ def setUp(rxcomp='bz'):
 
 class TDEM_bDerivTests(unittest.TestCase):
 
-    
+
 
     def test_ADeriv(self):
         prb, m0, mesh = setUp()
@@ -58,15 +58,28 @@ class TDEM_bDerivTests(unittest.TestCase):
             prb.curModel = m
             A = prb.getAdiag(tInd)
             Av = A*v
-            prb.curModel = m0 
+            prb.curModel = m0
             ADeriv_dm = lambda dm: prb.getAdiagDeriv(tInd, v, dm)
 
             return Av, ADeriv_dm
 
-        Tests.checkDerivative(AderivTest, m0, plotIt=False, num=4, eps=1e-20)   
+        # def A_adjointTest():
+
+        #     m = np.random.rand(prb.mapping.nP)
+        #     d = np.random.rand(prb.survey.nD)
+        #     v = np.random.rand(prb.mesh.nF)
+
+        #     V1 = d.dot(prb.Jvec(m0, m))
+        #     V2 = m.dot(prb.Jtvec(m0, d))
+        #     passed = np.abs(V1-V2)/np.abs(V1) < tol
+        #     print 'AdjointTest', V1, V2, passed
+        #     self.assertTrue(passed)
+
+        # Tests.checkDerivative(AderivTest, m0, plotIt=False, num=4, eps=1e-20)
 
 
-    def JvecTest(self, rxcomp): 
+
+    def JvecTest(self, rxcomp):
         prb, m, mesh = setUp(rxcomp)
 
         derChk = lambda m: [prb.survey.dpred(m), lambda mx: prb.Jvec(m, mx)]
@@ -74,7 +87,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         print 'test_Jvec_%s' %(rxcomp)
         Tests.checkDerivative(derChk, m, plotIt=False, num=2, eps=1e-20)
 
-    if testDeriv: 
+    if testDeriv:
         def test_Jvec_b_bx(self):
             self.JvecTest('bx')
 
@@ -83,9 +96,9 @@ class TDEM_bDerivTests(unittest.TestCase):
 
         def test_Jvec_b_ey(self):
             self.JvecTest('ey')
-    
 
-    if testAdjoint: 
+
+    if testAdjoint:
         def test_adjointJvecVsJtvec(self):
             prb, m0, mesh = setUp()
 
