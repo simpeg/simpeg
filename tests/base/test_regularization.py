@@ -18,7 +18,7 @@ class RegularizationTests(unittest.TestCase):
         mesh3 = Mesh.TensorMesh([hx, hy, hz])
         self.meshlist = [mesh1,mesh2, mesh3]
 
-    if testReg: 
+    if testReg:
         def test_regularization(self):
             for R in dir(Regularization):
                 r = getattr(Regularization, R)

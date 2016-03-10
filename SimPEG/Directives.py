@@ -285,45 +285,43 @@ class SaveOutputDictEveryIteration(_SaveEveryIteration):
 
 class update_IRLS(InversionDirective):
 
-     m = None
-     eps_min = None
-     factor = None
-     gamma = None
-     phi_m_last = None
+    eps_min = None
+    factor = None
+    gamma = None
+    phi_m_last = None
 
-     def initialize(self):
+    def initialize(self):
 
-         # Scale the regularization for changes in norm
-         if getattr(self, 'phi_m_last', None) is not None:
-             self.reg.gamma = 1.
-             phim_new = self.reg.eval(self.invProb.curModel)
-             self.gamma = self.phi_m_last / phim_new
+        # Scale the regularization for changes in norm
+        if getattr(self, 'phi_m_last', None) is not None:
+            self.reg.gamma = 1.
+            phim_new = self.reg.eval(self.invProb.curModel)
+            self.gamma = self.phi_m_last / phim_new
 
-         self.reg.gamma = self.gamma
+        self.reg.gamma = self.gamma
 
-     def endIter(self):
-         # Cool the threshold parameter
-         if getattr(self, 'factor', None) is not None:
-             eps = self.reg.eps / self.factor
+    def endIter(self):
+        # Cool the threshold parameter
+        if getattr(self, 'factor', None) is not None:
+            eps = self.reg.eps / self.factor
 
-             if getattr(self, 'eps_min', None) is not None:
-                 self.reg.eps = np.max([self.eps_min,eps])
-             else:
-                 self.reg.eps = eps
+            if getattr(self, 'eps_min', None) is not None:
+                self.reg.eps = np.max([self.eps_min,eps])
+            else:
+                self.reg.eps = eps
 
 
          # Update the model used for the IRLS weights
-         if getattr(self, 'm', None) is None:
-             self.reg.m = self.invProb.curModel
+        self.reg.curModel = self.invProb.curModel
 
-         # Update the pre-conditioner
-         diagA = np.sum(self.prob.G**2.,axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() * (self.reg.mapping * np.ones(self.reg.m.size))**2.
-         PC     = Utils.sdiag(diagA**-1.)
+        # Update the pre-conditioner
+        diagA = np.sum(self.prob.G**2.,axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() * (self.reg.mapping * np.ones(self.reg.m.size))**2.
+        PC     = Utils.sdiag(diagA**-1.)
 
-         self.opt.approxHinv = PC
+        self.opt.approxHinv = PC
 
-         phim_new = self.reg.eval(self.invProb.curModel)
-         self.reg.gamma = self.reg.gamma * self.invProb.phi_m_last / phim_new
+        phim_new = self.reg.eval(self.invProb.curModel)
+        self.reg.gamma = self.reg.gamma * self.invProb.phi_m_last / phim_new
 
 #==============================================================================
 #          import pylab as plt
