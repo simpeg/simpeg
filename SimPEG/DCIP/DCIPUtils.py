@@ -249,15 +249,17 @@ def plot_pseudoSection(DCsurvey, axs, stype):
     cmin,cmax = cbar.get_clim()
     ticks = np.linspace(cmin,cmax,3)
     cbar.set_ticks(ticks)
-
+    cbar.ax.tick_params(labelsize=10)
+    
     # Plot apparent resistivity
     plt.scatter(midx,midz,s=50,c=rho.T)
 
     ax.set_xticklabels([])
-
-    ax.set_ylabel('Z')
-    ax.yaxis.tick_right()
-    ax.yaxis.set_label_position('right')
+    ax.set_yticklabels([])
+    
+    #ax.set_ylabel('Z')
+    #ax.yaxis.tick_right()
+    #ax.yaxis.set_label_position('right')
     plt.gca().set_aspect('equal', adjustable='box')
 
 
@@ -735,6 +737,73 @@ def readUBC_DC2Dobs(fileName):
 
     return tx, rx, d, wd
 
+def readUBC_DC2Dpre(fileName):
+    """
+        Read UBC GIF DCIP 3D observation file and generate arrays for tx-rx location
+
+        Input:
+        :param fileName, path to the UBC GIF 3D obs file
+
+        Output:
+        DCsurvey
+        :return
+
+        Created on Mon March 9th, 2016 << Doug's 70th Birthday !! >>
+
+        @author: dominiquef
+
+    """
+
+    # Load file
+    obsfile = np.genfromtxt(fileName,delimiter=' \n',dtype=np.str,comments='!')
+
+    # Pre-allocate
+    srcLists = []
+    Rx = []
+    d = []
+    zflag = True # Flag for z value provided
+
+    for ii in range(obsfile.shape[0]):
+
+        if not obsfile[ii]:
+            continue
+
+        # First line is transmitter with number of receivers
+
+
+        temp = (np.fromstring(obsfile[ii], dtype=float,sep=' ').T)
+
+
+        # Check if z value is provided, if False -> nan
+        if len(temp)==5:
+            tx = np.r_[temp[0],np.nan,np.nan,temp[1],np.nan,np.nan]
+            zflag = False
+
+        else:
+            tx = np.r_[temp[0],np.nan,temp[1],temp[2],np.nan,temp[3]]
+
+        
+        if zflag:
+            rx = np.c_[temp[4],np.nan,temp[5],temp[6],np.nan,temp[7]]
+            
+
+        else:
+            rx = np.c_[temp[2],np.nan,np.nan,temp[3],np.nan,np.nan]
+            # Check if there is data with the location
+        
+        d.append(temp[-1])
+
+
+        Rx = DC.RxDipole(rx[:,:3],rx[:,3:])
+        srcLists.append( DC.SrcDipole( [Rx], tx[:3],tx[3:]) )
+
+    # Create survey class
+    survey = DC.SurveyDC(srcLists)
+
+    survey.dobs = np.asarray(d)
+
+    return {'DCsurvey':survey}
+    
 def readUBC_DC2DMesh(fileName):
     """
         Read UBC GIF 2DTensor mesh and generate 2D Tensor mesh in simpeg
@@ -928,7 +997,6 @@ def getSrc_locs(DCsurvey):
 
     srcMat = np.zeros((DCsurvey.nSrc,2,3))
     for ii in range(DCsurvey.nSrc):
-        print np.asarray(DCsurvey.srcList[ii].loc).shape
         srcMat[ii,:,:] =  np.asarray(DCsurvey.srcList[ii].loc)
 
     return srcMat
