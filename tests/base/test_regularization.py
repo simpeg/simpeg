@@ -87,24 +87,24 @@ class RegularizationTests(unittest.TestCase):
     if testRegMesh:
         def test_regularizationMesh(self):
 
-                for i, mesh in enumerate(self.meshlist):
+            for i, mesh in enumerate(self.meshlist):
 
-                    print 'Testing %iD'%mesh.dim
+                print 'Testing %iD'%mesh.dim
 
-                    # mapping = r.mapPair(mesh)
-                    # reg = r(mesh, mapping=mapping)
-                    # m = np.random.rand(mapping.nP)
+                # mapping = r.mapPair(mesh)
+                # reg = r(mesh, mapping=mapping)
+                # m = np.random.rand(mapping.nP)
 
-                    if mesh.dim == 1:
-                        indAct = Utils.mkvc(mesh.gridCC <= 0.8)
-                    elif mesh.dim == 2:
-                        indAct = Utils.mkvc(mesh.gridCC[:,-1] <= 2*np.sin(2*np.pi*mesh.gridCC[:,0])+0.5)
-                    elif mesh.dim == 3:
-                        indAct = Utils.mkvc(mesh.gridCC[:,-1] <= 2*np.sin(2*np.pi*mesh.gridCC[:,0])+0.5 * 2*np.sin(2*np.pi*mesh.gridCC[:,1])+0.5)
+                if mesh.dim == 1:
+                    indAct = Utils.mkvc(mesh.gridCC <= 0.8)
+                elif mesh.dim == 2:
+                    indAct = Utils.mkvc(mesh.gridCC[:,-1] <= 2*np.sin(2*np.pi*mesh.gridCC[:,0])+0.5)
+                elif mesh.dim == 3:
+                    indAct = Utils.mkvc(mesh.gridCC[:,-1] <= 2*np.sin(2*np.pi*mesh.gridCC[:,0])+0.5 * 2*np.sin(2*np.pi*mesh.gridCC[:,1])+0.5)
 
-                    regmesh = Regularization.RegularizationMesh(mesh, indActive=indAct)
+                regmesh = Regularization.RegularizationMesh(mesh, indActive=indAct)
 
-                    assert (regmesh.vol == mesh.vol[indAct]).all()
+                assert (regmesh.vol == mesh.vol[indAct]).all()
 
 
 if __name__ == '__main__':
