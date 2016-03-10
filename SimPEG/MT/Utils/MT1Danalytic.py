@@ -38,9 +38,9 @@ def getEHfields(m1d,sigma,freq,zd,scaleUD=True):
         # Build the propagation matrix
 
         # Convert fields to down/up going components in layer below current layer
-        Pj1 = np.array([[1,1],[yp1,-yp1],dtype=complex)
+        Pj1 = np.array([[1,1],[yp1,-yp1]],dtype=complex)
         # Convert fields to down/up going components in current layer
-        Pjinv = 1./2*np.array([[1,zp,[1,-zp],dtype=complex)
+        Pjinv = 1./2*np.array([[1,zp],[1,-zp]],dtype=complex)
         # Propagate down and up components through the current layer
         elamh = np.array([[np.exp(-1j*k[lnr+1]*h),0],[0,np.exp(1j*k[lnr+1]*h)]])
 
@@ -48,7 +48,14 @@ def getEHfields(m1d,sigma,freq,zd,scaleUD=True):
         UDp[:,lnr+1] = elamh.dot(Pjinv.dot(Pj1)).dot(UDp[:,lnr])
 
         if scaleUD:
-             UDp[:,lnr+1::-1] = UDp[:,lnr+1::-1]/UDp[1,lnr+1]
+            # Scale the values such that 1 at the top
+            scaleVal = UDp[:,lnr+1::-1]/UDp[1,lnr+1]
+            if np.any(np.isnan(scaleVal)):
+                # If there is a nan (thickness very great), rebuild the move up cell
+                scaleVal = np.zeros_like(UDp[:,lnr+1::-1],dtype=complex)
+                scaleVal[1,0] = 1.
+
+            UDp[:,lnr+1::-1] = scaleVal
 
     # Calculate the fields
     Ed = np.empty((zd.size,),dtype=complex)
