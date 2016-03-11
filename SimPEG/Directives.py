@@ -298,6 +298,7 @@ class update_IRLS(InversionDirective):
             phim_new = self.reg.eval(self.invProb.curModel)
             self.gamma = self.phi_m_last / phim_new
 
+        self.reg.curModel = self.invProb.curModel
         self.reg.gamma = self.gamma
 
     def endIter(self):
@@ -315,13 +316,14 @@ class update_IRLS(InversionDirective):
         self.reg.curModel = self.invProb.curModel
 
         # Update the pre-conditioner
-        diagA = np.sum(self.prob.G**2.,axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() * (self.reg.mapping * np.ones(self.reg.m.size))**2.
+        diagA = np.sum(self.prob.G**2.,axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() * (self.reg.mapping * np.ones(self.reg.curModel.size))**2.
         PC     = Utils.sdiag(diagA**-1.)
 
         self.opt.approxHinv = PC
-
+        
+        self.reg.gamma = 1.
         phim_new = self.reg.eval(self.invProb.curModel)
-        self.reg.gamma = self.reg.gamma * self.invProb.phi_m_last / phim_new
+        self.reg.gamma = self.invProb.phi_m_last / phim_new
 
 #==============================================================================
 #          import pylab as plt
