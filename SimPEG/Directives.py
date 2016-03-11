@@ -289,7 +289,8 @@ class update_IRLS(InversionDirective):
     factor = None
     gamma = None
     phi_m_last = None
-
+    phi_d_last = None
+    
     def initialize(self):
 
         # Scale the regularization for changes in norm
@@ -300,7 +301,10 @@ class update_IRLS(InversionDirective):
 
         self.reg.curModel = self.invProb.curModel
         self.reg.gamma = self.gamma
-
+        
+        if getattr(self, 'phi_d_last', None) is None:
+            self.phi_d_last = self.invProb.phi_d
+            
     def endIter(self):
         # Cool the threshold parameter
         if getattr(self, 'factor', None) is not None:
@@ -311,20 +315,28 @@ class update_IRLS(InversionDirective):
             else:
                 self.reg.eps = eps
 
-
+        # Get phi_m at the end of current iteration
+        self.phi_m_last = self.invProb.phi_m_last
+        
          # Update the model used for the IRLS weights
         self.reg.curModel = self.invProb.curModel
 
         # Update the pre-conditioner
         diagA = np.sum(self.prob.G**2.,axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() * (self.reg.mapping * np.ones(self.reg.curModel.size))**2.
         PC     = Utils.sdiag(diagA**-1.)
-
         self.opt.approxHinv = PC
-        
+         
+        # Temporarely set gamma to 1.
         self.reg.gamma = 1.
+        
+        # Compute change in model objective function and update scaling
         phim_new = self.reg.eval(self.invProb.curModel)
-        self.reg.gamma = self.invProb.phi_m_last / phim_new
-
+        self.reg.gamma = self.phi_m_last / phim_new
+        print self.reg.gamma
+        
+        # TO DO: Re-scale beta if too much change in misfit
+        self.invProb.beta = self.invProb.beta * self.phi_d_last / self.invProb.phi_d
+        
 #==============================================================================
 #          import pylab as plt
 #          plt.figure()
