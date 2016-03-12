@@ -1,8 +1,8 @@
 import SimPEG
 from SimPEG import np, Utils
-from SimPEG.Utils import Zero, Identity 
-from scipy.constants import mu_0 
-from SimPEG.EM.Utils import * 
+from SimPEG.Utils import Zero, Identity
+from scipy.constants import mu_0
+from SimPEG.EM.Utils import *
 
 ####################################################
 # Receivers
@@ -60,13 +60,15 @@ class Rx(SimPEG.Survey.BaseTimeRx):
         u_part = Utils.mkvc(u[src, self.projField, :])
         return P*u_part
 
-    def evalDeriv(self, src, mesh, timeMesh, df_dm, adjoint=False):
+    def evalDeriv(self, src, mesh, timeMesh, v, adjoint=False):
         P = self.getP(mesh, timeMesh)
 
         if not adjoint:
-            return P * Utils.mkvc(df_dm[src, self.projField+'Deriv', :])
+            return P * v #Utils.mkvc(v[src, self.projField+'Deriv', :])
         elif adjoint:
-            return P.T * df_dm[src, self]
+            # dP_dF_T = P.T * v #[src, self]
+            # newshape = (len(dP_dF_T)/timeMesh.nN, timeMesh.nN )
+            return P.T * v #np.reshape(dP_dF_T, newshape, order='F')
 
 ####################################################
 # Sources
@@ -83,10 +85,10 @@ class BaseWaveform(object):
             ), "Waveform object must be an instance of a %s BaseWaveform class."%(pair.__name__)
 
     def eval(self, time):
-        raise NotImplementedError 
+        raise NotImplementedError
 
     def evalDeriv(self, time):
-        raise NotImplementedError # needed for E-formulation 
+        raise NotImplementedError # needed for E-formulation
 
 
 class StepOffWaveform(BaseWaveform):
@@ -136,7 +138,7 @@ class BaseSrc(SimPEG.Survey.BaseSrc):
 
     def __init__(self, rxList, waveform = None ):
         self.waveform = waveform or StepOffWaveform()
-        SimPEG.Survey.BaseSrc.__init__(self, rxList) 
+        SimPEG.Survey.BaseSrc.__init__(self, rxList)
 
 
     def bInitial(self, prob):
@@ -148,7 +150,7 @@ class BaseSrc(SimPEG.Survey.BaseSrc):
     def eval(self, prob, time):
         S_m = self.S_m(prob, time)
         S_e = self.S_e(prob, time)
-        return S_m, S_e 
+        return S_m, S_e
 
     def evalDeriv(self, prob, time, v=None, adjoint=False):
         if v is not None:
@@ -170,7 +172,7 @@ class BaseSrc(SimPEG.Survey.BaseSrc):
 
 
 class MagDipole(BaseSrc):
-    def __init__(self, rxList, waveform=None, loc=None, orientation='Z', moment=1., mu=mu_0):  
+    def __init__(self, rxList, waveform=None, loc=None, orientation='Z', moment=1., mu=mu_0):
 
         self.loc = loc
         self.orientation = orientation

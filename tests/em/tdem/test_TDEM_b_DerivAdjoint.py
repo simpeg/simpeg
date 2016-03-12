@@ -4,7 +4,7 @@ from SimPEG import EM
 
 plotIt = False
 
-testDeriv   = False
+testDeriv   = True
 testAdjoint = True
 
 tol = 1e-6
@@ -30,6 +30,7 @@ def setUp(rxcomp='bz'):
 
     prb = EM.TDEM.Problem_b(mesh, mapping=mapping)
     prb.timeSteps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
+    # prb.timeSteps = [(1e-05, 10), (1e-05, 50), (1e-05, 50) ] #, (2.5e-4, 10)]
 
     try:
         from pymatsolver import MumpsSolver
@@ -48,7 +49,7 @@ class TDEM_bDerivTests(unittest.TestCase):
 
 
 
-    def test_ADeriv(self):
+    def test_Deriv_Pieces(self):
         prb, m0, mesh = setUp()
         tInd = 0
 
@@ -63,19 +64,34 @@ class TDEM_bDerivTests(unittest.TestCase):
 
             return Av, ADeriv_dm
 
-        # def A_adjointTest():
+        def A_adjointTest():
+            print '\n Testing A_adjoint'
+            m = np.random.rand(prb.mapping.nP)
+            v = np.random.rand(prb.mesh.nF)
+            u = np.random.rand(prb.mesh.nF)
+            prb.curModel = m0
+
+            tInd = 0 # not actually used
+            V1 = v.dot(prb.getAdiagDeriv(tInd, u, m))
+            V2 = m.dot(prb.getAdiagDeriv(tInd, u, v, adjoint=True))
+            passed = np.abs(V1-V2)/np.abs(V1) < tol
+            print 'AdjointTest', V1, V2, passed
+            self.assertTrue(passed)
+
+        # def P_adjointTest():
+        #     print '\n Testing P_adjoint'
 
         #     m = np.random.rand(prb.mapping.nP)
-        #     d = np.random.rand(prb.survey.nD)
         #     v = np.random.rand(prb.mesh.nF)
+        #     d = np.random.rand(prb.survey.nD)
+        #     prb.curModel = m0
 
-        #     V1 = d.dot(prb.Jvec(m0, m))
-        #     V2 = m.dot(prb.Jtvec(m0, d))
-        #     passed = np.abs(V1-V2)/np.abs(V1) < tol
-        #     print 'AdjointTest', V1, V2, passed
-        #     self.assertTrue(passed)
+        #     for src in prb.survey.srcList:
+        #         for rx in src.rxList:
 
-        # Tests.checkDerivative(AderivTest, m0, plotIt=False, num=4, eps=1e-20)
+        print '\n Testing ADeriv'
+        Tests.checkDerivative(AderivTest, m0, plotIt=False, num=4, eps=1e-20)
+        A_adjointTest()
 
 
 
@@ -100,10 +116,11 @@ class TDEM_bDerivTests(unittest.TestCase):
 
     if testAdjoint:
         def test_adjointJvecVsJtvec(self):
+            print '\n Adjoint Testing Jvec, Jtvec'
             prb, m0, mesh = setUp()
 
             m = np.random.rand(prb.mapping.nP)
-            d = np.random.rand(prb.survey.nD)
+            d = np.random.randn(prb.survey.nD)
 
             V1 = d.dot(prb.Jvec(m0, m))
             V2 = m.dot(prb.Jtvec(m0, d))
