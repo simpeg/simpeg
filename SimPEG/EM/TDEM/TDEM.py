@@ -156,34 +156,27 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         if not isinstance(v, self.dataPair):
             v = self.dataPair(self.survey, v)
 
-        PT_v = Fields_Derivs(self.mesh, self.survey) #PT_v is a fields object
-
         df_duT_v = Fields_Derivs(self.mesh, self.survey)
         ATinv_df_duT_v = np.zeros((len(self.survey.srcList), len(u[self.survey.srcList[0],ftype,0]))) # same size as fields at a single timestep
 
         JTv = np.zeros(m.shape)
 
-
         # Loop over sources and receivers to create a fields object: PT_v, df_duT_v, df_dmT_v
         for src in self.survey.srcList:
-            # initialize empty fields derivs
-            for projField in set([rx.projField for rx in src.rxList]):
-                PT_v[src,'%sDeriv'%projField, :] = np.zeros_like(u[src, '%s'%projField, : ])
 
-            # loop over recievers and sum contributions to fields object
+            # initialize size
+            df_duT_v[src, '%sDeriv'%self._fieldType, :]= np.zeros_like(u[src, self._fieldType, :])
+
             for rx in src.rxList:
-            # for projField in set([rx.projField for rx in src.rxList]):
                 curPT_v = rx.evalDeriv(src, self.mesh, self.timeMesh, Utils.mkvc(v[src,rx]), adjoint=True)
-                PT_v[src,'%sDeriv'%rx.projField, :] += np.reshape(curPT_v,(len(curPT_v)/self.timeMesh.nN, self.timeMesh.nN), order='F') # All the fields for a given src, reciever.
+                PT_v = np.reshape(curPT_v,(len(curPT_v)/self.timeMesh.nN, self.timeMesh.nN), order='F')
 
-            # initialize empty fields derivs
-            for projField in set([rx.projField for rx in src.rxList]):
-                df_duTFun = getattr(u, '_%sDeriv'%projField, None)
-
-                df_duT_v_cur, df_dmT_v = df_duTFun(None, src, None, PT_v[src,'%sDeriv'%projField,:], adjoint=True)
+                df_duTFun = getattr(u, '_%sDeriv'%rx.projField, None)
+                df_duT_v_cur, df_dmT_v = df_duTFun(None, src, None, PT_v, adjoint=True)
 
                 JTv = JTv + df_dmT_v
-                df_duT_v[src, '%sDeriv'%self._fieldType, :] = df_duT_v_cur
+
+                df_duT_v[src, '%sDeriv'%self._fieldType, :] += df_duT_v_cur
 
 
         AdiagTinv = None
