@@ -6,6 +6,7 @@ plotIt = False
 testDeriv = True
 testAdjoint = True
 
+TOL = 1e-6
 
 class TDEM_bDerivTests(unittest.TestCase):
 
@@ -70,8 +71,11 @@ class TDEM_bDerivTests(unittest.TestCase):
 
             V1 = d.dot(prb.Jvec(m0, m))
             V2 = m.dot(prb.Jtvec(m0, d))
-            print 'AdjointTest', V1, V2
-            self.assertTrue(np.abs(V1-V2)/np.abs(V1) < 1e-6)
+
+            tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
+            passed = np.abs(V1-V2) < tol
+            print '    ', V1, V2, np.abs(V1-V2), tol, passed
+            self.assertTrue(passed)
 
 
 

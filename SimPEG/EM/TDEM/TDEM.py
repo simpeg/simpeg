@@ -163,20 +163,25 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
         # Loop over sources and receivers to create a fields object: PT_v, df_duT_v, df_dmT_v
         for src in self.survey.srcList:
-
+            PT_v = Fields_Derivs(self.mesh, self.survey) # initialize storage for PT_v (don't need to preserve over sources)
             # initialize size
-            df_duT_v[src, '%sDeriv'%self._fieldType, :]= np.zeros_like(u[src, self._fieldType, :])
+            df_duT_v[src, '%sDeriv'%self._fieldType, :] = np.zeros_like(u[src, self._fieldType, :])
 
             for rx in src.rxList:
-                curPT_v = rx.evalDeriv(src, self.mesh, self.timeMesh, Utils.mkvc(v[src,rx]), adjoint=True)
-                PT_v = np.reshape(curPT_v,(len(curPT_v)/self.timeMesh.nN, self.timeMesh.nN), order='F')
+                PT_v[src,'%sDeriv'%rx.projField,:] = rx.evalDeriv(src, self.mesh, self.timeMesh, Utils.mkvc(v[src,rx]), adjoint=True)
+                # PT_v = np.reshape(curPT_v,(len(curPT_v)/self.timeMesh.nN, self.timeMesh.nN), order='F')
 
                 df_duTFun = getattr(u, '_%sDeriv'%rx.projField, None)
-                df_duT_v_cur, df_dmT_v = df_duTFun(None, src, None, PT_v, adjoint=True)
 
-                JTv = JTv + df_dmT_v
+                for tInd in range(self.nT+1):
+                    cur = df_duTFun(tInd, src, None, Utils.mkvc(PT_v[src,'%sDeriv'%rx.projField,tInd]), adjoint=True)
 
-                df_duT_v[src, '%sDeriv'%self._fieldType, :] += df_duT_v_cur
+                    df_duT_v[src, '%sDeriv'%self._fieldType, tInd] = df_duT_v[src, '%sDeriv'%self._fieldType, tInd] + Utils.mkvc(cur[0],2)
+                    JTv = JTv + cur[1]
+
+
+
+        del PT_v # no longer need this
 
 
         AdiagTinv = None
@@ -212,9 +217,12 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
                 JTv = JTv + Utils.mkvc(-dAT_dm_v + dRHST_dm_v)
 
 
+        # Missing the 0 step
+
         # adding du_dm^T * dF_du^T * P^T vfor time 0 (no dRHS_dm_v at time 0)
         for src in self.survey.srcList:
-            JTv = JTv + self.getInitialFieldsDeriv(Utils.mkvc(df_duT_v[src,'%sDeriv'%self._fieldType,0]), adjoint=True)
+            for projField in set(rx.projField):
+                JTv = JTv + self.getInitialFieldsDeriv(Utils.mkvc(df_duT_v[src,'%sDeriv'%self._fieldType,0]), adjoint=True)
 
 
         return Utils.mkvc(JTv)

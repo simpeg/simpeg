@@ -7,7 +7,7 @@ from SimPEG.Utils import Zero, Identity
 
 class Fields(SimPEG.Problem.TimeFields):
     """
-    
+
     Fancy Field Storage for a TDEM survey. Only one field type is stored for
     each problem, the rest are computed. The fields obejct acts like an array and is indexed by
 
@@ -29,7 +29,7 @@ class Fields(SimPEG.Problem.TimeFields):
     """
 
     knownFields = {}
-    dtype = float 
+    dtype = float
 
 
 
@@ -40,7 +40,7 @@ class Fields_Derivs(Fields):
                     'hDeriv': 'E',
                     'jDeriv': 'F'
                   }
-                  
+
 
 class Fields_b(Fields):
     """Fancy Field Storage for a TDEM survey."""
@@ -65,7 +65,7 @@ class Fields_b(Fields):
     def _bDeriv_m(self, tInd, src, v, adjoint=False):
         return Zero()
 
-    def _bDeriv(self, tInd, src, dun_dm_v, v, adjoint=False): 
+    def _bDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
         if adjoint is True:
             return self._bDeriv_u(tInd, src, v, adjoint), self._bDeriv_m(tInd, src, v, adjoint)
         return self._bDeriv_u(tInd, src, dun_dm_v) + self._bDeriv_m(tInd, src, v)
@@ -73,27 +73,30 @@ class Fields_b(Fields):
     def _e(self, bSolution, srcList, tInd):
         e = self.MeSigmaI * ( self.edgeCurl.T * ( self.MfMui * bSolution ) )
         for i, src in enumerate(srcList):
-            _, S_e = src.eval(self.survey.prob, self.survey.prob.times[tInd]) 
+            _, S_e = src.eval(self.survey.prob, self.survey.prob.times[tInd])
             e[:,i] = e[:,i] - self.MeSigmaI * S_e
-        return e  
+        return e
 
     def _eDeriv_u(self, tInd, src, dun_dm_v, adjoint = False):
         if adjoint is True:
-            raise NotImplementedError
+            return self.MfMui.T * ( self.edgeCurl * ( self.MeSigmaI.T * dun_dm_v ) )
         return self.MeSigmaI * ( self.edgeCurl.T * ( self.MfMui * dun_dm_v ) )
 
     def _eDeriv_m(self, tInd, src, v, adjoint = False):
-        if adjoint is True:
-            raise NotImplementedError
-
+        _, S_e = src.eval(self.survey.prob, self.survey.prob.times[tInd])
         bSolution = self[[src],'bSolution',tInd]
 
-        _, S_e = src.eval(self.survey.prob, self.survey.prob.times[tInd])
-        _, S_eDeriv = src.evalDeriv(self.survey.prob.times[tInd], self, v=v)
+        if adjoint:
+            v = self.MeSigmaI.T * v
 
-        return self.MeSigmaIDeriv(self.edgeCurl.T * ( self.MfMui * bSolution) ) * v - self.MeSigmaIDeriv(S_e) * v - self.MeSigmaI * S_eDeriv
+        _, S_eDeriv_v = src.evalDeriv(self.survey.prob.times[tInd], self, v=v, adjoint=adjoint)
 
-    def _eDeriv(self, tInd, src, dun_dm_v, v, adjoint=False): 
         if adjoint is True:
-            raise NotImplementedError
+            return self.MeSigmaIDeriv(-S_e + self.edgeCurl.T * ( self.MfMui * bSolution ) ).T * v - S_eDeriv_v
+
+        return self.MeSigmaIDeriv(-S_e + self.edgeCurl.T * ( self.MfMui * bSolution)) * v - self.MeSigmaI * S_eDeriv_v
+
+    def _eDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
+        if adjoint is True:
+            return self._eDeriv_u(tInd, src, v, adjoint), self._eDeriv_m(tInd, src, v, adjoint)
         return self._eDeriv_u(tInd, src, dun_dm_v) + self._eDeriv_m(tInd, src, v)

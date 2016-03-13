@@ -4,15 +4,15 @@ from SimPEG import EM
 
 plotIt = False
 
-testDeriv   = False
+testDeriv   = True
 testAdjoint = True
 
-tol = 1e-6
+TOL = 1e-5
 
 def setUp(rxcomp='bz'):
     cs = 5.
     ncx = 20
-    ncy = 10
+    ncy = 15
     npad = 20
     hx = [(cs,ncx), (cs,npad,1.3)]
     hy = [(cs,npad,-1.3), (cs,ncy), (cs,npad,1.3)]
@@ -74,7 +74,7 @@ class TDEM_DerivTests(unittest.TestCase):
             tInd = 0 # not actually used
             V1 = v.dot(prb.getAdiagDeriv(tInd, u, m))
             V2 = m.dot(prb.getAdiagDeriv(tInd, u, v, adjoint=True))
-            passed = np.abs(V1-V2)/np.abs(V1) < tol
+            passed = np.abs(V1-V2) < TOL * (np.abs(V1) + np.abs(V2))/2.
             print 'AdjointTest', V1, V2, passed
             self.assertTrue(passed)
 
@@ -107,16 +107,18 @@ class TDEM_DerivTests(unittest.TestCase):
 # ====== TEST Jtvec ========== #
 
     def adjointJvecVsJtvecTest(self, rxcomp='bz'):
-        print '\n Adjoint Testing Jvec, Jtvec %s' %(rxcomp)
-        prb, m0, mesh = setUp(rxcomp)
 
+        print '\nAdjoint Testing Jvec, Jtvec %s' %(rxcomp)
+
+        prb, m0, mesh = setUp(rxcomp)
         m = np.random.rand(prb.mapping.nP)
         d = np.random.randn(prb.survey.nD)
-
         V1 = d.dot(prb.Jvec(m0, m))
         V2 = m.dot(prb.Jtvec(m0, d))
-        passed = np.abs(V1-V2)/np.abs(V1) < tol
-        print 'AdjointTest', V1, V2, passed
+        tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
+        passed = np.abs(V1-V2) < tol
+
+        print '    ', V1, V2, np.abs(V1-V2), tol, passed
         self.assertTrue(passed)
 
     if testAdjoint:
