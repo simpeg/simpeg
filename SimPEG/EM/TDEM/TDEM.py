@@ -158,15 +158,16 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
         PT_v = Fields_Derivs(self.mesh, self.survey) #PT_v is a fields object
 
-        if ftype is 'bSolution' or 'jSolution':
-            df_duT_v = np.zeros((self.mesh.nF,self.nT+1))
-            ATinv_df_duT_v = np.zeros((self.mesh.nF,self.nT+1))
-        elif ftype is 'eSolution' or 'hSolution':
-            df_duT_v = np.zeros((self.mesh.nE,self.nT+1))
-            ATinv_df_duT_v = np.zeros((self.mesh.nE,self.nT+1))
+        df_duT_v = Fields_Derivs(self.mesh, self.survey)
+        ATinv_df_duT_v = Fields_Derivs(self.mesh, self.survey)
+        # if ftype is 'bSolution' or 'jSolution':
+        #     # df_duT_v = np.zeros((self.mesh.nF,self.nT+1))
+        #     ATinv_df_duT_v = np.zeros((self.mesh.nF,self.nT+1))
+        # elif ftype is 'eSolution' or 'hSolution':
+        #     # df_duT_v = np.zeros((self.mesh.nE,self.nT+1))
+        #     ATinv_df_duT_v = np.zeros((self.mesh.nE,self.nT+1))
 
         JTv = np.zeros(m.shape)
-
 
 
         # Loop over sources and receivers to create a fields object: PT_v, df_duT_v, df_dmT_v
@@ -188,7 +189,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
                 df_duT_v_cur, df_dmT_v = df_duTFun(None, src, None, PT_v[src,'%sDeriv'%projField,:], adjoint=True)
 
                 JTv = JTv + df_dmT_v
-                df_duT_v = df_duT_v + df_duT_v_cur
+                df_duT_v[src, '%sDeriv'%self._fieldType, :] = df_duT_v_cur
 
 
         AdiagTinv = None
@@ -204,28 +205,32 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
                 Adiag = self.getAdiag(tInd)
                 AdiagTinv = self.Solver(Adiag.T, **self.solverOpts)
 
-            # solve against df_duT_v
-            if tInd >= self.nT-1:
-                ATinv_df_duT_v[:,tInd+1] = AdiagTinv * df_duT_v[:,tInd+1]
-            else:
+            if tInd < self.nT - 1:
                 Asubdiag = self.getAsubdiag(tInd+1)
-                ATinv_df_duT_v[:,tInd+1] = AdiagTinv * (df_duT_v[:,tInd+1] - Asubdiag.T * ATinv_df_duT_v[:,tInd+2])
+
 
             for src in self.survey.srcList:
-                un_src = u[src,ftype,tInd+1]
-                dAT_dm_v = self.getAdiagDeriv(None, un_src, ATinv_df_duT_v[:,tInd+1], adjoint=True) # cell centered on time mesh
+                # solve against df_duT_v
+                if tInd >= self.nT-1:
+                    ATinv_df_duT_v[src,'%sDeriv'%self._fieldType,tInd+1] = AdiagTinv * df_duT_v[src,'%sDeriv'%self._fieldType,tInd+1]
+                else:
+                    ATinv_df_duT_v[src,'%sDeriv'%self._fieldType,tInd+1] = AdiagTinv * (Utils.mkvc(df_duT_v[src,'%sDeriv'%self._fieldType,tInd+1]) - Asubdiag.T * Utils.mkvc(ATinv_df_duT_v[src,'%sDeriv'%self._fieldType,tInd+2]))
 
-                dRHST_dm_v = self.getRHSDeriv(tInd+1, src, ATinv_df_duT_v[:,tInd+1], adjoint=True) # on nodes of time mesh
+                un_src = u[src,ftype,tInd+1]
+                dAT_dm_v = self.getAdiagDeriv(None, un_src, ATinv_df_duT_v[src, '%sDeriv'%self._fieldType,tInd+1], adjoint=True) # cell centered on time mesh
+
+                dRHST_dm_v = self.getRHSDeriv(tInd+1, src, ATinv_df_duT_v[src, '%sDeriv'%self._fieldType,tInd+1], adjoint=True) # on nodes of time mesh
                 # dAsubdiag_dm_v = 0
 
-                JTv = JTv + (-dAT_dm_v + dRHST_dm_v)
+                JTv = JTv + Utils.mkvc(-dAT_dm_v + dRHST_dm_v)
 
-            # this doesn't include initial fields deriv
 
         # adding du_dm^T * dF_du^T * P^T vfor time 0 (no dRHS_dm_v at time 0)
-        JTv = JTv + self.getInitialFieldsDeriv(df_duT_v[:,0], adjoint=True)
+        for src in self.survey.srcList:
+            JTv = JTv + self.getInitialFieldsDeriv(Utils.mkvc(df_duT_v[src,'%sDeriv'%self._fieldType,0]), adjoint=True)
 
-        return JTv
+
+        return Utils.mkvc(JTv)
 
 
 
