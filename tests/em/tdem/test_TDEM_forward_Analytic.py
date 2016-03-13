@@ -64,7 +64,7 @@ def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=[1e-5,
 class TDEM_SimpleSrcTests(unittest.TestCase):
     def test_source(self):
         waveform = EM.TDEM.SurveyTDEM.StepOffWaveform()
-        assert waveform.eval(0.) == 0. 
+        assert waveform.eval(0.) == 0.
 
 
 

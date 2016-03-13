@@ -4,7 +4,7 @@ from SimPEG import EM
 
 plotIt = False
 
-testDeriv   = True
+testDeriv   = False
 testAdjoint = True
 
 tol = 1e-6
@@ -45,9 +45,9 @@ def setUp(rxcomp='bz'):
 
     return prb, m, mesh
 
-class TDEM_bDerivTests(unittest.TestCase):
+class TDEM_DerivTests(unittest.TestCase):
 
-
+# ====== TEST A ========== #
 
     def test_Deriv_Pieces(self):
         prb, m0, mesh = setUp()
@@ -78,22 +78,12 @@ class TDEM_bDerivTests(unittest.TestCase):
             print 'AdjointTest', V1, V2, passed
             self.assertTrue(passed)
 
-        # def P_adjointTest():
-        #     print '\n Testing P_adjoint'
-
-        #     m = np.random.rand(prb.mapping.nP)
-        #     v = np.random.rand(prb.mesh.nF)
-        #     d = np.random.rand(prb.survey.nD)
-        #     prb.curModel = m0
-
-        #     for src in prb.survey.srcList:
-        #         for rx in src.rxList:
-
         print '\n Testing ADeriv'
         Tests.checkDerivative(AderivTest, m0, plotIt=False, num=4, eps=1e-20)
         A_adjointTest()
 
 
+# ====== TEST Jvec ========== #
 
     def JvecTest(self, rxcomp):
         prb, m, mesh = setUp(rxcomp)
@@ -114,21 +104,30 @@ class TDEM_bDerivTests(unittest.TestCase):
             self.JvecTest('ey')
 
 
+# ====== TEST Jtvec ========== #
+
+    def adjointJvecVsJtvecTest(self, rxcomp='bz'):
+        print '\n Adjoint Testing Jvec, Jtvec %s' %(rxcomp)
+        prb, m0, mesh = setUp(rxcomp)
+
+        m = np.random.rand(prb.mapping.nP)
+        d = np.random.randn(prb.survey.nD)
+
+        V1 = d.dot(prb.Jvec(m0, m))
+        V2 = m.dot(prb.Jtvec(m0, d))
+        passed = np.abs(V1-V2)/np.abs(V1) < tol
+        print 'AdjointTest', V1, V2, passed
+        self.assertTrue(passed)
+
     if testAdjoint:
-        def test_adjointJvecVsJtvec(self):
-            print '\n Adjoint Testing Jvec, Jtvec'
-            prb, m0, mesh = setUp()
+        def test_Jvec_b_bx(self):
+            self.adjointJvecVsJtvecTest('bx')
 
-            m = np.random.rand(prb.mapping.nP)
-            d = np.random.randn(prb.survey.nD)
+        def test_Jvec_b_bz(self):
+            self.adjointJvecVsJtvecTest('bz')
 
-            V1 = d.dot(prb.Jvec(m0, m))
-            V2 = m.dot(prb.Jtvec(m0, d))
-            passed = np.abs(V1-V2)/np.abs(V1) < tol
-            print 'AdjointTest', V1, V2, passed
-            self.assertTrue(passed)
-
-
+        def test_Jvec_b_ey(self):
+            self.adjointJvecVsJtvecTest('ey')
 
 
 if __name__ == '__main__':
