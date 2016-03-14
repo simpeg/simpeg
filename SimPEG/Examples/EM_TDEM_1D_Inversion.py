@@ -42,10 +42,10 @@ def run(plotIt=True):
 
 
     rxOffset=1e-3
-    rx = EM.TDEM.RxTDEM(np.array([[rxOffset, 0., 30]]), np.logspace(-5,-3, 31), 'bz')
-    src = EM.TDEM.SrcTDEM_VMD_MVP([rx], np.array([0., 0., 80]))
-    survey = EM.TDEM.SurveyTDEM([src])
-    prb = EM.TDEM.ProblemTDEM_b(mesh, mapping=mapping)
+    rx = EM.TDEM.Rx(np.array([[rxOffset, 0., 30]]), np.logspace(-5,-3, 31), 'bz')
+    src = EM.TDEM.SurveyTDEM.MagDipole([rx], loc=np.array([0., 0., 80]))
+    survey = EM.TDEM.Survey([src])
+    prb = EM.TDEM.Problem_b(mesh, mapping=mapping)
 
     prb.Solver = SolverLU
     prb.timeSteps = [(1e-06, 20),(1e-05, 20), (0.0001, 20)]
@@ -53,9 +53,9 @@ def run(plotIt=True):
 
     # create observed data
     std = 0.05
-    
+
     survey.dobs = survey.makeSyntheticData(mtrue,std)
-    survey.std = std 
+    survey.std = std
     survey.eps = 1e-5*np.linalg.norm(survey.dobs)
 
     if plotIt:

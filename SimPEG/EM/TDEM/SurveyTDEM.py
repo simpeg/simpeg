@@ -131,14 +131,18 @@ class BaseSrc(SimPEG.Survey.BaseSrc):
         return getattr(self, '_waveform', None)
     @waveform.setter
     def waveform(self, val):
-        # if self.waveform is None:
-        val._assertMatchesPair(self.waveformPair)
-        self._waveform = val
+        if self.waveform is None:
+            print val
+            val._assertMatchesPair(self.waveformPair)
+            self._mapping = val
+        else:
+            self._mapping = self.PropMap(val)
 
 
-    def __init__(self, rxList, waveform = None ):
-        self.waveform = waveform or StepOffWaveform()
-        SimPEG.Survey.BaseSrc.__init__(self, rxList)
+    def __init__(self, rxList, waveform = StepOffWaveform(), **kwargs):
+        self.waveform = waveform
+        SimPEG.Survey.BaseSrc.__init__(self, rxList, **kwargs)
+
 
 
     def bInitial(self, prob):
@@ -172,15 +176,17 @@ class BaseSrc(SimPEG.Survey.BaseSrc):
 
 
 class MagDipole(BaseSrc):
-    def __init__(self, rxList, waveform=None, loc=None, orientation='Z', moment=1., mu=mu_0):
 
-        self.loc = loc
-        self.orientation = orientation
-        assert orientation in ['X','Y','Z'], "Orientation (right now) doesn't actually do anything! The methods in SrcUtils should take care of this..."
-        self.moment = moment
-        self.mu = mu
+    waveform = None
+    loc = None
+    orientation = 'Z'
+    moment = 1.
+    mu = mu_0
+
+    def __init__(self, rxList, **kwargs):
+        assert self.orientation in ['X','Y','Z'], "Orientation (right now) doesn't actually do anything! The methods in SrcUtils should take care of this..."
         self.integrate = False
-        BaseSrc.__init__(self, rxList, waveform)
+        BaseSrc.__init__(self, rxList, **kwargs)
 
     def _bfromVectorPotential(self, prob):
         if prob._eqLocs is 'FE':
