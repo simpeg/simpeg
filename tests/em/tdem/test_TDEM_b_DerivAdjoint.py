@@ -143,11 +143,15 @@ class TDEM_DerivTests(unittest.TestCase):
         def test_Jvec_b_bz(self):
             self.JvecTest('bz')
 
+        def test_Jvec_b_dbxdt(self):
+            self.JvecTest('dbxdt')
+
+        def test_Jvec_b_dbzdt(self):
+            self.JvecTest('dbzdt')
+
         def test_Jvec_b_ey(self):
             self.JvecTest('ey')
 
-    else:
-        pass
 
 
 # ====== TEST Jtvec ========== #
@@ -173,6 +177,12 @@ class TDEM_DerivTests(unittest.TestCase):
             self.JvecVsJtvecTest('bx')
 
         def test_Jvec_adjoint_b_bz(self):
+            self.JvecVsJtvecTest('bz')
+
+        def test_Jvec_adjoint_b_dbxdt(self):
+            self.JvecVsJtvecTest('bx')
+
+        def test_Jvec_adjoint_b_dbzdt(self):
             self.JvecVsJtvecTest('bz')
 
         def test_Jvec_adjoint_b_ey(self):

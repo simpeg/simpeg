@@ -413,11 +413,7 @@ class Problem_b(BaseTDEMProblem):
 
         S_m, S_e = self.getSourceTerm(tInd)
 
-        # B_n = np.c_[[F[src,'bSolution',tInd] for src in self.survey.srcList]]
-        # if B_n.shape[0] is not 1:
-        #     raise NotImplementedError('getRHS not implemented for this shape of B_n')
-
-        rhs =  (C * (MeSigmaI * S_e) + S_m) # + 1./dt * B_n[:,:,0].T
+        rhs =  (C * (MeSigmaI * S_e) + S_m)
         if self._makeASymmetric is True:
             return MfMui.T * rhs
         return rhs
@@ -439,7 +435,7 @@ class Problem_b(BaseTDEMProblem):
                 MeSigmaIDerivT_v = Utils.Zero()
             else:
                 MeSigmaIDerivT_v = MeSigmaIDeriv(S_e).T * v
-            RHSDeriv = MeSigmaIDerivT_v + S_eDeriv( MeSigmaI.T *  ( C.T * v ) ) + S_mDeriv(v) #+ dbn_dm_v / dt #this will be given the transposed version
+            RHSDeriv = MeSigmaIDerivT_v + S_eDeriv( MeSigmaI.T *  ( C.T * v ) ) + S_mDeriv(v)
             return RHSDeriv
 
         if isinstance(S_e, Utils.Zero):
@@ -447,7 +443,7 @@ class Problem_b(BaseTDEMProblem):
         else:
             MeSigmaIDeriv_v = MeSigmaIDeriv(S_e) * v
 
-        RHSDeriv = (C * (MeSigmaIDeriv_v + MeSigmaI * S_eDeriv(v) + S_mDeriv(v))) #+ dbn_dm_v / dt
+        RHSDeriv = (C * (MeSigmaIDeriv_v + MeSigmaI * S_eDeriv(v) + S_mDeriv(v)))
 
         if self._makeASymmetric is True:
             return self.MfMui.T * RHSDeriv
