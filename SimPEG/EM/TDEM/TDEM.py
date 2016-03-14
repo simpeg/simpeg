@@ -168,7 +168,8 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
             df_duT_v[src, '%sDeriv'%self._fieldType, :] = np.zeros_like(u[src, self._fieldType, :])
 
             for rx in src.rxList:
-                PT_v[src,'%sDeriv'%rx.projField,:] = rx.evalDeriv(src, self.mesh, self.timeMesh, Utils.mkvc(v[src,rx]), adjoint=True)
+                PT_v[src,'%sDeriv'%rx.projField,:] = rx.evalDeriv(src, self.mesh, self.timeMesh, Utils.mkvc(v[src,rx]), adjoint=True) # this is +=
+
                 # PT_v = np.reshape(curPT_v,(len(curPT_v)/self.timeMesh.nN, self.timeMesh.nN), order='F')
 
                 df_duTFun = getattr(u, '_%sDeriv'%rx.projField, None)
@@ -187,13 +188,14 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         AdiagTinv = None
 
         # Do the back-solve through time
-        for tInd in reversed(range(self.nT)):
+        for tIndP in reversed(range(self.nT + 1)):
+            tInd = tIndP - 1
             if AdiagTinv is not None and (tInd <= self.nT and self.timeSteps[tInd] != self.timeSteps[tInd+1]): # if the previous timestep is the same --> no need to refactor the matrix
                 AdiagTinv.clean()
                 AdiagTinv = None
 
             # refactor if we need to
-            if AdiagTinv is None:
+            if AdiagTinv is None and tInd > -1:
                 Adiag = self.getAdiag(tInd)
                 AdiagTinv = self.Solver(Adiag.T, **self.solverOpts)
 
@@ -204,25 +206,46 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
             for isrc, src in enumerate(self.survey.srcList):
                 # solve against df_duT_v
                 if tInd >= self.nT-1:
+                    # last timestep (first to be solved)
                     ATinv_df_duT_v[isrc,:] = AdiagTinv * df_duT_v[src,'%sDeriv'%self._fieldType,tInd+1]
-                else:
+                elif tInd > -1:
                     ATinv_df_duT_v[isrc,:] = AdiagTinv * (Utils.mkvc(df_duT_v[src,'%sDeriv'%self._fieldType,tInd+1]) - Asubdiag.T * Utils.mkvc(ATinv_df_duT_v[isrc,:]))
+                else:
+                    # AdiagTinv = I
+                    ATinv_df_duT_v[isrc,:] = (Utils.mkvc(df_duT_v[src,'%sDeriv'%self._fieldType,tInd+1]) - Asubdiag.T * Utils.mkvc(ATinv_df_duT_v[isrc,:]))
 
-                un_src = u[src,ftype,tInd+1]
-                dAT_dm_v = self.getAdiagDeriv(None, un_src, ATinv_df_duT_v[isrc,:], adjoint=True) # cell centered on time mesh
+                if tInd > -1:
+                    un_src = u[src,ftype,tInd+1]
+                    dAT_dm_v = self.getAdiagDeriv(tInd, un_src, ATinv_df_duT_v[isrc,:], adjoint=True) # cell centered on time mesh
+                    dRHST_dm_v = self.getRHSDeriv(tInd+1, src, ATinv_df_duT_v[isrc,:], adjoint=True) # on nodes of time mesh
+                    JTv = JTv + Utils.mkvc(-dAT_dm_v + dRHST_dm_v)
+                # else:
+                #     print 'here'
 
-                dRHST_dm_v = self.getRHSDeriv(tInd+1, src, ATinv_df_duT_v[isrc,:], adjoint=True) # on nodes of time mesh
+                    # un_src = u[src,ftype,tInd+1]
+                    # # dAT_dm_v = self.getAdiagDeriv(tInd, un_src, ATinv_df_duT_v[isrc,:], adjoint=True) # cell centered on time mesh
+                    # dRHST_dm_v0 = self.getRHSDeriv(tInd+1, src, ATinv_df_duT_v[isrc,:], adjoint=True) # on nodes of time mesh
+                    # dRHST_dm_v1 = self.getInitialFieldsDeriv( Utils.mkvc(df_duT_v[src,'%sDeriv'%self._fieldType,tInd+1]), adjoint=True)
+                    # JTv = JTv + Utils.mkvc(dRHST_dm_v0 + dRHST_dm_v1)
+
+                    # print 'here'
+                    # inFields = self.getInitialFieldsDeriv(u[src,ftype,tInd+1], Utils.mkvc(df_duT_v[src,'%sDeriv'%self._fieldType,tInd+1]), adjoint=True)
+                    #  # - Asubdiag.T * Utils.mkvc(ATinv_df_duT_v[isrc,:]), adjoint=True)
+                    # print inFields.shape
+                    # JTv = JTv + inFields
                 # dAsubdiag_dm_v = 0
 
-                JTv = JTv + Utils.mkvc(-dAT_dm_v + dRHST_dm_v)
 
 
         # Missing the 0 step
 
         # adding du_dm^T * dF_du^T * P^T vfor time 0 (no dRHS_dm_v at time 0)
-        for src in self.survey.srcList:
-            for projField in set(rx.projField):
-                JTv = JTv + self.getInitialFieldsDeriv(Utils.mkvc(df_duT_v[src,'%sDeriv'%self._fieldType,0]), adjoint=True)
+        # Asubdiag = self.getAsubdiag(0)
+        # for src in self.survey.srcList:
+        #     for projField in set(rx.projField):
+        #         v = AdiagTinv * (Utils.mkvc(df_duT_v[src,'%sDeriv'%self._fieldType,0]) - Asubdiag.T * Utils.mkvc(ATinv_df_duT_v[isrc,:]))
+        #         JTv = JTv - Utils.mkvc(self.getAdiagDeriv(0, u[src, ftype, tInd], v, adjoint = True))
+        #         # JTv = JTv + self.getInitialFieldsDeriv(Utils.mkvc(df_duT_v[src,'%sDeriv'%self._fieldType,0] - Asubdiag.T * Utils.mkvc(ATinv_df_duT_v[isrc,:])), adjoint=True)
 
 
         return Utils.mkvc(JTv)
@@ -274,7 +297,10 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
             ifieldsDeriv[:,i] = ifieldsDeriv[:,i] + getattr(src, '%sInitialDeriv'%self._fieldType, None)(self,v,adjoint)
 
         if adjoint is True:
-            ifieldsDeriv = ifieldsDeriv.sum()
+            ifieldsDeriv = np.zeros_like(self.curModel)
+            print v.shape
+            # ifieldsDeriv = self.getAdiagDeriv(None, u, v, adjoint)
+            # ifieldsDeriv = ifieldsDeriv.sum()
 
         return ifieldsDeriv
 
@@ -337,6 +363,7 @@ class Problem_b(BaseTDEMProblem):
             (\mathbf{I} + \mathbf{dt} \mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f})
 
         """
+        assert tInd >= 0 and tInd < self.nT
 
         dt = self.timeSteps[tInd]
         C = self.mesh.edgeCurl

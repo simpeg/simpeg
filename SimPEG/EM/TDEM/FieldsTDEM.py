@@ -86,15 +86,12 @@ class Fields_b(Fields):
         _, S_e = src.eval(self.survey.prob, self.survey.prob.times[tInd])
         bSolution = self[[src],'bSolution',tInd]
 
-        if adjoint:
-            v = self.MeSigmaI.T * v
-
-        _, S_eDeriv_v = src.evalDeriv(self.survey.prob.times[tInd], self, v=v, adjoint=adjoint)
+        _, S_eDeriv = src.evalDeriv(self.survey.prob.times[tInd], self, adjoint=adjoint)
 
         if adjoint is True:
-            return self.MeSigmaIDeriv(-S_e + self.edgeCurl.T * ( self.MfMui * bSolution ) ).T * v - S_eDeriv_v
+            return self.MeSigmaIDeriv(-S_e + self.edgeCurl.T * ( self.MfMui * bSolution ) ).T * v - S_eDeriv(self.MeSigmaI.T * v)
 
-        return self.MeSigmaIDeriv(-S_e + self.edgeCurl.T * ( self.MfMui * bSolution)) * v - self.MeSigmaI * S_eDeriv_v
+        return self.MeSigmaIDeriv(-S_e + self.edgeCurl.T * ( self.MfMui * bSolution)) * v - self.MeSigmaI * S_eDeriv(v)
 
     def _eDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
         if adjoint is True:

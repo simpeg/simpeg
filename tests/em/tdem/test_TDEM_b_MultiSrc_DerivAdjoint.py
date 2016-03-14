@@ -6,11 +6,9 @@ plotIt = False
 testDeriv = True
 testAdjoint = True
 
-TOL = 1e-6
+TOL = 1e-5
 
-class TDEM_bDerivTests(unittest.TestCase):
-
-    def setUp(self):
+def setUp(self, rxcomp='bz'):
 
         cs = 5.
         ncx = 20
@@ -25,46 +23,58 @@ class TDEM_bDerivTests(unittest.TestCase):
         mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * activeMap
 
         rxOffset = 40.
-        rx = EM.TDEM.Rx(np.array([[rxOffset, 0., 0.]]), np.logspace(-4,-3, 20), 'bz')
+        rx = EM.TDEM.Rx(np.array([[rxOffset, 0., 0.]]), np.logspace(-4,-3, 20), rxcomp)
         src = EM.TDEM.SurveyTDEM.MagDipole( [rx], loc=np.array([0., 0., 0.]))
-        rx2 = EM.TDEM.Rx(np.array([[rxOffset-10, 0., 0.]]), np.logspace(-5,-4, 25), 'bz')
+        rx2 = EM.TDEM.Rx(np.array([[rxOffset-10, 0., 0.]]), np.logspace(-5,-4, 25), rxcomp)
         src2 = EM.TDEM.SurveyTDEM.MagDipole( [rx2], loc=np.array([0., 0., 0.]))
 
         survey = EM.TDEM.Survey([src,src2])
 
-        self.prb = EM.TDEM.Problem_b(mesh, mapping=mapping)
-        # self.prb.timeSteps = [1e-5]
-        self.prb.timeSteps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
-        # self.prb.timeSteps = [(1e-05, 100)]
+        prb = EM.TDEM.Problem_b(mesh, mapping=mapping)
+        # prb.timeSteps = [1e-5]
+        prb.timeSteps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
+        # prb.timeSteps = [(1e-05, 100)]
 
         try:
             from pymatsolver import MumpsSolver
-            self.prb.Solver = MumpsSolver
+            prb.Solver = MumpsSolver
         except ImportError, e:
-            self.prb.Solver  = SolverLU
+            prb.Solver  = SolverLU
 
-        self.m = np.log(1e-1)*np.ones(self.prb.mapping.nP) + 1e-2*np.random.randn(self.prb.mapping.nP)
+        m = np.log(1e-1)*np.ones(prb.mapping.nP) + 1e-2*np.random.randn(prb.mapping.nP)
 
-        self.prb.pair(survey)
-        self.mesh = mesh
+        prb.pair(survey)
+
+        return mesh, prb, m
+
+class TDEM_bDerivTests(unittest.TestCase):
+
 
     if testDeriv:
-        def test_Deriv_J(self):
+        def Deriv_J(self, rxcomp='bz'):
 
-            prb = self.prb
+            mesh, prb, m0 = setUp(rxcomp)
+
             prb.timeSteps = [(1e-05, 10), (0.0001, 10), (0.001, 10)]
-            mesh = self.mesh
 
-            derChk = lambda m: [prb.survey.dpred(m), lambda mx: prb.Jvec(self.m, mx)]
+            derChk = lambda m: [prb.survey.dpred(m), lambda mx: prb.Jvec(m0, mx)]
             print '\n'
-            print 'test_Deriv_J'
-            Tests.checkDerivative(derChk, self.m, plotIt=False, num=3, eps=1e-20)
+            print 'test_Deriv_J %s'%rxcomp
+            Tests.checkDerivative(derChk, m0, plotIt=False, num=3, eps=1e-20)
+
+        def test_Jvec_bx(self):
+            self.Deriv_J('bx')
+
+        def test_Jvec_bz(self):
+            self.Deriv_J('bz')
+
+        def test_Jvec_ey(self):
+            self.Deriv_J('ey')
 
     if testAdjoint:
-        def test_adjointJvecVsJtvec(self):
-            mesh = self.mesh
-            prb = self.prb
-            m0 = self.m
+        def adjointJvecVsJtvec(self, rxcomp='bz'):
+            print ' \n Testing Adjoint %s' %rxcomp
+            mesh, prb, m0 = setUp(rxcomp)
 
             m = np.random.rand(prb.mapping.nP)
             d = np.random.rand(prb.survey.nD)
@@ -76,6 +86,15 @@ class TDEM_bDerivTests(unittest.TestCase):
             passed = np.abs(V1-V2) < tol
             print '    ', V1, V2, np.abs(V1-V2), tol, passed
             self.assertTrue(passed)
+
+        def test_JvecVsJtvec_bx(self):
+            self.adjointJvecVsJtvec('bx')
+
+        def test_JvecVsJtvec_bz(self):
+            self.adjointJvecVsJtvec('bz')
+
+        def test_JvecVsJtvec_ey(self):
+            self.adjointJvecVsJtvec('ey')
 
 
 
