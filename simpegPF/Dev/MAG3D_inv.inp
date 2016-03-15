@@ -1,0 +1,11 @@
+Mesh.msh			! Mesh file
+FWR_data.dat		! Obsfile
+null			! Topofile
+Model.dat			! Starting model
+VALUE 0.0			! Reference model
+DEFAULT !..\AzmDip.dat			! Magnetization vector model
+DEFAULT				! Cell based weight file
+1				! target chi factor | DEFAULT=1
+1 1 1 1			! alpha s, x ,y ,z
+VALUE 0 1			! Lower and Upper Bounds for p-component
+VALUE 0 2 2 2 1		! lp-norm for amplitude inversion FILE pqxqyqzr.dat  ! Norms VALUE p, qx, qy, qz, r | FILE m-by-5 matrix
