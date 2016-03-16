@@ -209,10 +209,10 @@ reg.recModel = mrec
 reg.mref = mref
 reg.wght = wr
 reg.eps = 1e-5
-reg.p   = lpnorm[0]
-reg.qx  = lpnorm[1]
-reg.qz  = lpnorm[2]
-reg.qy  = lpnorm[3]
+reg.p   = lpnorms[0]
+reg.qx  = lpnorms[1]
+reg.qz  = lpnorms[2]
+reg.qy  = lpnorms[3]
 
 diagA = np.sum(prob.G**2.,axis=0) + beta_in*(reg.W.T*reg.W).diagonal()*(wr)
 PC     = Utils.sdiag(diagA**-1.)
