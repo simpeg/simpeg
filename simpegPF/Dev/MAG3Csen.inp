@@ -1,5 +1,0 @@
-Mesh.msh		! Mesh file
-Obs_loc.dat	! Obsfile
-null			! Topofile | null
-DISTANCE			! weighting flag DISTANCE | DEPTH
-G				! Define output TxTyTz | G

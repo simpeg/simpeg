@@ -1,6 +1,6 @@
-Mesh_40m.msh			! Mesh file
-Obs_IND_GRID_TMI.obs		! Obsfile
-null			! Topofile | null
+Mesh_10m.msh			! Mesh file
+Obs_loc_TMI.obs		! Obsfile
+Gaussian.topo			! Topofile | null
 VALUE 1e-4			! Starting model
 VALUE 0			! Reference model
 DEFAULT !..\AzmDip.dat			! Magnetization vector model

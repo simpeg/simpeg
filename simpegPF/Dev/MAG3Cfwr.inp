@@ -1,5 +1,0 @@
-Mesh.msh		! Mesh file
-Obs_loc.dat		! Obsfile		
-Model.dat			! Susceptibility model
-null ! M_azm_dip.dat		! Magnetization model | null
-null				! Topography file | null
