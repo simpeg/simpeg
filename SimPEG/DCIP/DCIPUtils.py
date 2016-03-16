@@ -523,7 +523,7 @@ def writeUBC_DCobs(fileName, DCsurvey, dtype, stype):
 
     fid.close()
 
-def convertObs_DC3D_to_2D(DCsurvey,lineID):
+def convertObs_DC3D_to_2D(DCsurvey,lineID,flag):
     """
         Read DC survey and data and change
         coordinate system to distance along line assuming
@@ -580,26 +580,40 @@ def convertObs_DC3D_to_2D(DCsurvey,lineID):
             Rx = DCsurvey.srcList[indx[ii]].rxList[0].locs
             nrx = Rx[0].shape[0]
 
-            # Find A electrode along line
-            vec, r = r_unit(x0,Tx[ii][0,0:2])
-            A = stn_id(vecTx,vec,r)
-
-            # Find B electrode along line
-            vec, r = r_unit(x0,Tx[ii][1,0:2])
-            B = stn_id(vecTx,vec,r)
-
-            M = np.zeros(nrx)
-            N = np.zeros(nrx)
-            for kk in range(nrx):
-
-                # Find all M electrodes along line
-                vec, r = r_unit(x0,Rx[0][kk,0:2])
-                M[kk] = stn_id(vecTx,vec,r)
-
-                # Find all N electrodes along line
-                vec, r = r_unit(x0,Rx[1][kk,0:2])
-                N[kk] = stn_id(vecTx,vec,r)
-
+            if flag == 'local':
+                # Find A electrode along line
+                vec, r = r_unit(x0,Tx[ii][0,0:2])
+                A = stn_id(vecTx,vec,r)
+    
+                # Find B electrode along line
+                vec, r = r_unit(x0,Tx[ii][1,0:2])
+                B = stn_id(vecTx,vec,r)
+    
+                M = np.zeros(nrx)
+                N = np.zeros(nrx)
+                for kk in range(nrx):
+    
+                    # Find all M electrodes along line
+                    vec, r = r_unit(x0,Rx[0][kk,0:2])
+                    M[kk] = stn_id(vecTx,vec,r)
+    
+                    # Find all N electrodes along line
+                    vec, r = r_unit(x0,Rx[1][kk,0:2])
+                    N[kk] = stn_id(vecTx,vec,r)
+            elif flag == 'Yloc':
+                """ Flip the XY axis locs"""
+                A = Tx[ii][0,1]
+                B = Tx[ii][1,1]
+                M = Rx[0][:,1]
+                N = Rx[1][:,1]
+                
+            elif flag == 'Xloc':
+                """ Copy the rx-tx locs"""
+                A = Tx[ii][0,0]
+                B = Tx[ii][1,0]
+                M = Rx[0][:,0]
+                N = Rx[1][:,0]
+                
             Rx = DC.RxDipole(np.c_[M,np.zeros(nrx),Rx[0][:,2]],np.c_[N,np.zeros(nrx),Rx[1][:,2]])
 
             srcLists.append( DC.SrcDipole( [Rx], np.asarray([A,0,Tx[ii][0,2]]),np.asarray([B,0,Tx[ii][1,2]]) ) )
