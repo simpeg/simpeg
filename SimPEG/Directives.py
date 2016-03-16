@@ -332,7 +332,6 @@ class update_IRLS(InversionDirective):
         # Compute change in model objective function and update scaling
         phim_new = self.reg.eval(self.invProb.curModel)
         self.reg.gamma = self.phi_m_last / phim_new
-        print self.reg.gamma
         
         # TO DO: Re-scale beta if too much change in misfit
         self.invProb.beta = self.invProb.beta * self.phi_d_last / self.invProb.phi_d
