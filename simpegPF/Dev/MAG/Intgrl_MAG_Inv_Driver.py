@@ -84,26 +84,10 @@ else:
 midx = int(mesh.nCx/2)
 midy = int(mesh.nCy/2)
 
-# Create forward operator
-#F = PF.Magnetics.Intrgl_Fwr_Op(mesh,B,M_xyz,rxLoc,actv,'tmi')
-
 # Get distance weighting function
 #==============================================================================
 # wr = PF.Magnetics.get_dist_wgt(mesh,rxLoc,actv,3.,np.min(mesh.hx)/4)
 # #wrMap = PF.BaseMag.WeightMap(nC, wr)
-# 
-# 
-# wr_out = actvMap * wr
-# Mesh.TensorMesh.writeModelUBC(mesh,home_dir+dsep+'wr.dat',wr_out)
-# #Utils.meshutils.writeUBCTensorModel(home_dir+dsep+'wr.dat',mesh,wr_out)
-# 
-# #%%
-# plt.figure()
-# ax = plt.subplot()
-# mesh.plotSlice(wr_out, ax = ax, normal = 'Y', ind=midx ,clim = (-1e-3, wr.max()))
-# plt.title('Distance weighting')
-# plt.xlabel('x');plt.ylabel('z')
-# plt.gca().set_aspect('equal', adjustable='box')
 #==============================================================================
 
 #%% Plot obs data
@@ -144,7 +128,7 @@ PC     = Utils.sdiag(diagA**-1.)
 
 
 dmis = DataMisfit.l2_DataMisfit(survey)
-dmis.Wd = wd
+dmis.Wd = 1/wd
 opt = Optimization.ProjectedGNCG(maxIter=10,lower=0.,upper=1., maxIterCG= 20, tolCG = 1e-3)
 opt.approxHinv = PC
 

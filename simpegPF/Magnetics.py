@@ -169,7 +169,7 @@ class MagneticIntegral(Problem.BaseProblem):
             
 
         else:
-            print """Flag must be either 'tmi' | 'xyz' | 'full', please revised"""
+            print """Flag must be either 'ind' | 'full', please revised"""
             return
 
 
