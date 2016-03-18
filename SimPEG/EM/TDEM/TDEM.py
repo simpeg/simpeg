@@ -116,9 +116,13 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
                 dA_dm_v   = self.getAdiagDeriv(tInd, un_src, v) # cell centered on time mesh
                 dRHS_dm_v = self.getRHSDeriv(tInd+1, src, v) # on nodes of time mesh
-                # dAsubdiag_dm_v = 0
 
-                JRHS = dRHS_dm_v - dA_dm_v  # - dAsubdiag_dm_v (which is zero)
+                # if tInd >= 1:
+                dAsubdiag_dm_v = self.getAsubdiagDeriv(tInd, u[src,ftype,tInd], v)
+                # else:
+                #     dAsubdiag_dm_v = Zero()
+
+                JRHS = dRHS_dm_v - dAsubdiag_dm_v - dA_dm_v
 
                 # step in time and overwrite
                 if tInd != len(self.timeSteps+1):
@@ -179,8 +183,6 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
                     df_duT_v[src, '%sDeriv'%self._fieldType, tInd] = df_duT_v[src, '%sDeriv'%self._fieldType, tInd] + Utils.mkvc(cur[0],2)
                     JTv = JTv + cur[1]
-
-
 
         del PT_v # no longer need this
 
@@ -309,6 +311,8 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 ################################ E-B Formulation #########################################
 ##########################################################################################
 
+# ------------------------------- Problem_b -------------------------------------------- #
+
 class Problem_b(BaseTDEMProblem):
     """
     Starting from the quasi-static E-B formulation of Maxwell's equations (semi-discretized)
@@ -404,6 +408,9 @@ class Problem_b(BaseTDEMProblem):
 
         return Asubdiag
 
+    def getAsubdiagDeriv(self, tInd, u, v, adjoint=False):
+        return Zero() * v
+
 
 
     def getRHS(self, tInd):
@@ -448,6 +455,68 @@ class Problem_b(BaseTDEMProblem):
         if self._makeASymmetric is True:
             return self.MfMui.T * RHSDeriv
         return RHSDeriv
+
+
+# ------------------------------- Problem_e -------------------------------------------- #
+
+class Problem_e(BaseTDEMProblem):
+
+    _fieldType = 'e'
+    _eqLocs    = 'FE'
+    fieldsPair = Fields_e
+    surveyPair = SurveyTDEM
+
+    def __init__(self, mesh, mapping=None, **kwargs):
+        BaseTDEMProblem.__init__(self, mesh, mapping=mapping, **kwargs)
+
+    def getAdiag(self, tInd):
+        """
+        System matrix at a given time index
+
+        """
+        assert tInd >= 0 and tInd < self.nT
+
+        dt = self.timeSteps[tInd]
+        C = self.mesh.edgeCurl
+        MfMui = self.MfMui
+        MeSigma = self.MeSigma
+
+        return C.T * ( MfMui * C ) + 1./dt * MeSigma
+
+
+    def getAdiagDeriv(self, tInd, u, v, adjoint=False):
+
+        dt = self.timeSteps[tInd]
+        C = self.mesh.edgeCurl
+        MfMui = self.MfMui
+        MeSigmaDeriv = self.MeSigmaDeriv(u)
+
+        if adjoint:
+            raise 1./dt * MeSigmaDeriv.T * v
+
+        return 1./dt * MeSigmaDeriv * v
+
+
+    def getAsubdiag(self, tInd):
+        assert tInd >= 0 and tInd < self.nT
+
+        dt = self.timeSteps[tInd]
+
+        return - 1./dt * self.MeSigma
+
+    def getAsubdiagDeriv(self, tInd, u, v, adjoint=False):
+        dt = self.timeSteps[tInd]
+
+        if adjoint:
+            return - 1./dt * self.MeSigmaDeriv(u).T * v
+
+        return - 1./dt * self.MeSigmaDeriv(u) * v
+
+    def getRHS(self, tInd):
+        return Zero()
+
+    def getRHSDeriv(self, tInd, src, v, adjoint=False):
+        return Zero()
 
 
 

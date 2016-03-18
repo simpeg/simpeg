@@ -31,7 +31,15 @@ class Fields(SimPEG.Problem.TimeFields):
     knownFields = {}
     dtype = float
 
+    def _eDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
+        if adjoint is True:
+            return self._eDeriv_u(tInd, src, v, adjoint), self._eDeriv_m(tInd, src, v, adjoint)
+        return self._eDeriv_u(tInd, src, dun_dm_v) + self._eDeriv_m(tInd, src, v)
 
+    def _bDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
+        if adjoint is True:
+            return self._bDeriv_u(tInd, src, v, adjoint), self._bDeriv_m(tInd, src, v, adjoint)
+        return self._bDeriv_u(tInd, src, dun_dm_v) + self._bDeriv_m(tInd, src, v)
 
 class Fields_Derivs(Fields):
     knownFields = {
@@ -65,10 +73,10 @@ class Fields_b(Fields):
     def _bDeriv_m(self, tInd, src, v, adjoint=False):
         return Zero()
 
-    def _bDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
-        if adjoint is True:
-            return self._bDeriv_u(tInd, src, v, adjoint), self._bDeriv_m(tInd, src, v, adjoint)
-        return self._bDeriv_u(tInd, src, dun_dm_v) + self._bDeriv_m(tInd, src, v)
+    # def _bDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
+    #     if adjoint is True:
+    #         return self._bDeriv_u(tInd, src, v, adjoint), self._bDeriv_m(tInd, src, v, adjoint)
+    #     return self._bDeriv_u(tInd, src, dun_dm_v) + self._bDeriv_m(tInd, src, v)
 
     def _e(self, bSolution, srcList, tInd):
         e = self.MeSigmaI * ( self.edgeCurl.T * ( self.MfMui * bSolution ) )
@@ -93,7 +101,42 @@ class Fields_b(Fields):
 
         return self.MeSigmaIDeriv(-S_e + self.edgeCurl.T * ( self.MfMui * bSolution)) * v - self.MeSigmaI * S_eDeriv(v)
 
-    def _eDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
-        if adjoint is True:
-            return self._eDeriv_u(tInd, src, v, adjoint), self._eDeriv_m(tInd, src, v, adjoint)
-        return self._eDeriv_u(tInd, src, dun_dm_v) + self._eDeriv_m(tInd, src, v)
+
+
+class Fields_e(Fields):
+    """Fancy Field Storage for a TDEM survey."""
+    knownFields = {'eSolution': 'E'}
+    aliasFields = {
+                    'e': ['eSolution', 'E', '_e'],
+                    'b': ['eSolution', 'F', '_b'],
+                  }
+
+    def startup(self):
+        self.MeSigmaI      = self.survey.prob.MeSigmaI
+        self.MeSigmaIDeriv = self.survey.prob.MeSigmaIDeriv
+        self.edgeCurl      = self.survey.prob.mesh.edgeCurl
+        self.MfMui         = self.survey.prob.MfMui
+
+
+    def _e(self, eSolution, srcList, tInd):
+        return eSolution
+
+    def _eDeriv_u(self, tInd, src, dun_dm_v, adjoint = False):
+        return dun_dm_v
+
+    def _eDeriv_m(self, tInd, src, v, adjoint = False):
+        return Zero()
+
+    def _b(self, eSolution, srcList, tInd):
+        raise NotImplementedError
+
+    def _bDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
+        raise NotImplementedError
+
+    def _bDeriv_m(self, tInd, src, v, adjoint=False):
+        raise NotImplementedError
+
+    # def _bDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
+    #     if adjoint is True:
+    #         return self._bDeriv_u(tInd, src, v, adjoint), self._bDeriv_m(tInd, src, v, adjoint)
+    #     return self._bDeriv_u(tInd, src, dun_dm_v) + self._bDeriv_m(tInd, src, v)

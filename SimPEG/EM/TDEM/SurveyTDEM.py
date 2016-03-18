@@ -144,11 +144,16 @@ class BaseSrc(SimPEG.Survey.BaseSrc):
         SimPEG.Survey.BaseSrc.__init__(self, rxList, **kwargs)
 
 
-
     def bInitial(self, prob):
         return Zero()
 
     def bInitialDeriv(self, prob, v=None, adjoint=False):
+        return Zero()
+
+    def eInitial(self, prob):
+        return Zero()
+
+    def eInitialDeriv(self, prob, v=None, adjoint=False):
         return Zero()
 
     def eval(self, prob, time):
@@ -218,12 +223,40 @@ class MagDipole(BaseSrc):
 
 
     def bInitial(self, prob):
-        eqLocs = prob._eqLocs
 
         if self.waveform.hasInitialFields is False:
             return Zero()
 
         return self._bfromVectorPotential(prob)
+
+    def eInitial(self, prob):
+
+        if self.waveform.hasInitialFields is False:
+            return Zero()
+
+        b = self.bInitial(prob)
+        MeSigmaI = prob.MeSigmaI
+        MfMui = prob.MfMui
+        C = prob.mesh.edgeCurl
+
+        return MeSigmaI * (C.T * (MfMui * b))
+
+    def eInitialDeriv(self, prob, v=None, adjoint=False):
+
+        if self.waveform.hasInitialFields is False:
+            return Zero()
+
+        b = self.bInitial(prob)
+        MeSigmaIDeriv = prob.MeSigmaIDeriv
+        MfMui = prob.MfMui
+        C = prob.mesh.edgeCurl
+        S_e = self.S_e(prob, prob.t0)
+
+        if adjoint:
+            raise NotImplementedError
+
+        return MeSigmaIDeriv( -S_e + C.T * ( MfMui * b ) ) * v
+
 
     def S_m(self, prob, time):
         if self.waveform.hasInitialFields is False:
