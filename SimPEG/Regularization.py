@@ -667,7 +667,7 @@ class Sparse(Simple):
             self.Rs = Utils.speye(self.regmesh.nC)
 
         else:
-            f_m = self.curModel
+            f_m = self.curModel - self.reg.mref
             self.rs = self.R(f_m , self.p)
             #print "Min rs: " + str(np.max(self.rs)) + "Max rs: " + str(np.min(self.rs))
             self.Rs = Utils.sdiag( self.rs )
