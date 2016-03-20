@@ -89,7 +89,7 @@ class l2_DataMisfit(BaseDataMisfit):
         """
 
         if getattr(self, '_Wd', None) is None:
-            
+
             survey = self.survey
 
             if getattr(survey,'std', None) is None:
@@ -112,7 +112,7 @@ class l2_DataMisfit(BaseDataMisfit):
         "eval(m, u=None)"
         prob   = self.prob
         survey = self.survey
-        R = self.Wd * survey.residual(m, u=u)
+        R = self.Wd * survey.residual(m, u)
         return 0.5*np.vdot(R, R)
 
     @Utils.timeIt
@@ -121,11 +121,11 @@ class l2_DataMisfit(BaseDataMisfit):
         prob   = self.prob
         survey = self.survey
         if u is None: u = prob.fields(m)
-        return prob.Jtvec(m, self.Wd * (self.Wd * survey.residual(m, u=u)), u=u)
+        return prob.Jtvec(m, self.Wd * (self.Wd * survey.residual(m, u)), u)
 
     @Utils.timeIt
     def eval2Deriv(self, m, v, u=None):
         "eval2Deriv(m, v, u=None)"
         prob   = self.prob
         if u is None: u = prob.fields(m)
-        return prob.Jtvec_approx(m, self.Wd * (self.Wd * prob.Jvec_approx(m, v, u=u)), u=u)
+        return prob.Jtvec_approx(m, self.Wd * (self.Wd * prob.Jvec_approx(m, v, u=u)), u)
