@@ -155,22 +155,22 @@ class BaseFDEMProblem(BaseEMProblem):
 
         :param float freq: Frequency
         :rtype: (numpy.ndarray, numpy.ndarray)
-        :return: S_m, S_e (nE or nF, nSrc)
+        :return: s_m, s_e (nE or nF, nSrc)
         """
         Srcs = self.survey.getSrcByFreq(freq)
         if self._formulation is 'EB':
-            S_m = np.zeros((self.mesh.nF,len(Srcs)), dtype=complex)
-            S_e = np.zeros((self.mesh.nE,len(Srcs)), dtype=complex)
+            s_m = np.zeros((self.mesh.nF,len(Srcs)), dtype=complex)
+            s_e = np.zeros((self.mesh.nE,len(Srcs)), dtype=complex)
         elif self._formulation is 'HJ':
-            S_m = np.zeros((self.mesh.nE,len(Srcs)), dtype=complex)
-            S_e = np.zeros((self.mesh.nF,len(Srcs)), dtype=complex)
+            s_m = np.zeros((self.mesh.nE,len(Srcs)), dtype=complex)
+            s_e = np.zeros((self.mesh.nF,len(Srcs)), dtype=complex)
 
         for i, src in enumerate(Srcs):
             smi, sei = src.eval(self)
-            S_m[:,i] = S_m[:,i] + smi
-            S_e[:,i] = S_e[:,i] + sei
+            s_m[:,i] = s_m[:,i] + smi
+            s_e[:,i] = s_e[:,i] + sei
 
-        return S_m, S_e
+        return s_m, s_e
 
 
 ##########################################################################################
@@ -258,11 +258,11 @@ class Problem_e(BaseFDEMProblem):
         :return: RHS (nE, nSrc)
         """
 
-        S_m, S_e = self.getSourceTerm(freq)
+        s_m, s_e = self.getSourceTerm(freq)
         C = self.mesh.edgeCurl
         MfMui = self.MfMui
 
-        return C.T * (MfMui * S_m) -1j * omega(freq) * S_e
+        return C.T * (MfMui * s_m) -1j * omega(freq) * s_e
 
     def getRHSDeriv(self, freq, src, v, adjoint=False):
         """
@@ -278,14 +278,14 @@ class Problem_e(BaseFDEMProblem):
 
         C = self.mesh.edgeCurl
         MfMui = self.MfMui
-        S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint=adjoint)
+        s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
 
         if adjoint:
             dRHS = MfMui * (C * v)
-            return S_mDeriv(dRHS) - 1j * omega(freq) * S_eDeriv(v)
+            return s_mDeriv(dRHS) - 1j * omega(freq) * s_eDeriv(v)
 
         else:
-            return C.T * (MfMui * S_mDeriv(v)) -1j * omega(freq) * S_eDeriv(v)
+            return C.T * (MfMui * s_mDeriv(v)) -1j * omega(freq) * s_eDeriv(v)
 
 
 class Problem_b(BaseFDEMProblem):
@@ -383,11 +383,11 @@ class Problem_b(BaseFDEMProblem):
         :return: RHS (nE, nSrc)
         """
 
-        S_m, S_e = self.getSourceTerm(freq)
+        s_m, s_e = self.getSourceTerm(freq)
         C = self.mesh.edgeCurl
         MeSigmaI = self.MeSigmaI
 
-        RHS = S_m + C * ( MeSigmaI * S_e )
+        RHS = s_m + C * ( MeSigmaI * s_e )
 
         if self._makeASymmetric is True:
             MfMui = self.MfMui
@@ -408,21 +408,21 @@ class Problem_b(BaseFDEMProblem):
         """
 
         C = self.mesh.edgeCurl
-        S_m, S_e = src.eval(self)
+        s_m, s_e = src.eval(self)
         MfMui = self.MfMui
 
         if self._makeASymmetric and adjoint:
             v = self.MfMui * v
 
-        MeSigmaIDeriv = self.MeSigmaIDeriv(S_e)
-        S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint=adjoint)
+        MeSigmaIDeriv = self.MeSigmaIDeriv(s_e)
+        s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
 
         if not adjoint:
             RHSderiv = C * (MeSigmaIDeriv * v)
-            SrcDeriv = S_mDeriv(v) + C * (self.MeSigmaI * S_eDeriv(v))
+            SrcDeriv = s_mDeriv(v) + C * (self.MeSigmaI * s_eDeriv(v))
         elif adjoint:
             RHSderiv = MeSigmaIDeriv.T * (C.T * v)
-            SrcDeriv = S_mDeriv(v) + self.MeSigmaI.T * (C.T * S_eDeriv(v))
+            SrcDeriv = s_mDeriv(v) + self.MeSigmaI.T * (C.T * s_eDeriv(v))
 
         if self._makeASymmetric is True and not adjoint:
             return MfMui.T * (SrcDeriv + RHSderiv)
@@ -533,11 +533,11 @@ class Problem_j(BaseFDEMProblem):
         :return: RHS
         """
 
-        S_m, S_e = self.getSourceTerm(freq)
+        s_m, s_e = self.getSourceTerm(freq)
         C = self.mesh.edgeCurl
         MeMuI = self.MeMuI
 
-        RHS = C * (MeMuI * S_m) - 1j * omega(freq) * S_e
+        RHS = C * (MeMuI * s_m) - 1j * omega(freq) * s_e
         if self._makeASymmetric is True:
             MfRho = self.MfRho
             return MfRho.T*RHS
@@ -558,16 +558,16 @@ class Problem_j(BaseFDEMProblem):
 
         C = self.mesh.edgeCurl
         MeMuI = self.MeMuI
-        S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint=adjoint)
+        s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
 
         if adjoint:
             if self._makeASymmetric:
                 MfRho = self.MfRho
                 v = MfRho*v
-            return S_mDeriv(MeMuI.T * (C.T * v)) - 1j * omega(freq) * S_eDeriv(v)
+            return s_mDeriv(MeMuI.T * (C.T * v)) - 1j * omega(freq) * s_eDeriv(v)
 
         else:
-            RHSDeriv = C * (MeMuI * S_mDeriv(v)) - 1j * omega(freq) * S_eDeriv(v)
+            RHSDeriv = C * (MeMuI * s_mDeriv(v)) - 1j * omega(freq) * s_eDeriv(v)
 
             if self._makeASymmetric:
                 MfRho = self.MfRho
@@ -655,11 +655,11 @@ class Problem_h(BaseFDEMProblem):
         :return: RHS (nE, nSrc)
         """
 
-        S_m, S_e = self.getSourceTerm(freq)
+        s_m, s_e = self.getSourceTerm(freq)
         C = self.mesh.edgeCurl
         MfRho  = self.MfRho
 
-        return S_m + C.T * ( MfRho * S_e )
+        return s_m + C.T * ( MfRho * s_e )
 
     def getRHSDeriv(self, freq, src, v, adjoint=False):
         """
@@ -673,17 +673,17 @@ class Problem_h(BaseFDEMProblem):
         :return: product of rhs deriv with a vector
         """
 
-        _, S_e = src.eval(self)
+        _, s_e = src.eval(self)
         C = self.mesh.edgeCurl
         MfRho  = self.MfRho
 
-        MfRhoDeriv = self.MfRhoDeriv(S_e)
+        MfRhoDeriv = self.MfRhoDeriv(s_e)
         if not adjoint:
             RHSDeriv = C.T * (MfRhoDeriv * v)
         elif adjoint:
             RHSDeriv = MfRhoDeriv.T * (C * v)
 
-        S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint=adjoint)
+        s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
 
-        return RHSDeriv + S_mDeriv(v) + C.T * (MfRho * S_eDeriv(v))
+        return RHSDeriv + s_mDeriv(v) + C.T * (MfRho * s_eDeriv(v))
 
