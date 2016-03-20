@@ -18,9 +18,9 @@ class BaseFDEMProblem(BaseEMProblem):
             {\mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b} - \mathbf{M_{\sigma}^e} \mathbf{e} = \mathbf{s_e}}
 
         if using the E-B formulation (:code:`Problem_e`
-        or :code:`Problem_b`). Note that in this case, :math:`\mathbf{s_e}` is an integrated quantity. 
+        or :code:`Problem_b`). Note that in this case, :math:`\mathbf{s_e}` is an integrated quantity.
 
-        If we write Maxwell's equations in terms of 
+        If we write Maxwell's equations in terms of
         \\\(\\\mathbf{h}\\\) and current density \\\(\\\mathbf{j}\\\)
 
         .. math ::
@@ -28,7 +28,7 @@ class BaseFDEMProblem(BaseEMProblem):
             \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{j} + i \omega \mathbf{M_{\mu}^e} \mathbf{h} = \mathbf{s_m} \\\\
             \mathbf{C} \mathbf{h} - \mathbf{j} = \mathbf{s_e}
 
-        if using the H-J formulation (:code:`Problem_j` or :code:`Problem_h`). Note that here, :math:`\mathbf{s_m}` is an integrated quantity. 
+        if using the H-J formulation (:code:`Problem_j` or :code:`Problem_h`). Note that here, :math:`\mathbf{s_m}` is an integrated quantity.
 
         The problem performs the elimination so that we are solving the system for \\\(\\\mathbf{e},\\\mathbf{b},\\\mathbf{j} \\\) or \\\(\\\mathbf{h}\\\)
     """
@@ -39,7 +39,7 @@ class BaseFDEMProblem(BaseEMProblem):
     def fields(self, m=None):
         """
         Solve the forward problem for the fields.
-        
+
         :param numpy.array m: inversion model (nP,)
         :rtype numpy.array:
         :return F: forward solution
@@ -65,9 +65,9 @@ class BaseFDEMProblem(BaseEMProblem):
 
         :param numpy.array m: inversion model (nP,)
         :param numpy.array v: vector which we take sensitivity product with (nP,)
-        :param SimPEG.EM.FDEM.Fields u: fields object 
+        :param SimPEG.EM.FDEM.Fields u: fields object
         :rtype numpy.array:
-        :return: Jv (ndata,) 
+        :return: Jv (ndata,)
         """
 
         if u is None:
@@ -85,13 +85,13 @@ class BaseFDEMProblem(BaseEMProblem):
                 ftype = self._fieldType + 'Solution'
                 u_src = u[src, ftype]
                 dA_dm_v = self.getADeriv(freq, u_src, v)
-                dRHS_dm_v = self.getRHSDeriv(freq, src, v) 
+                dRHS_dm_v = self.getRHSDeriv(freq, src, v)
                 du_dm_v = Ainv * ( - dA_dm_v + dRHS_dm_v )
-                
+
                 for rx in src.rxList:
                     df_dmFun = getattr(u, '_%sDeriv'%rx.projField, None)
                     df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
-                    df_dm_v = np.array(df_dm_v,dtype=complex)
+                    df_dm_v = np.array(df_dm_v, dtype=complex)
                     Jv[src, rx] = rx.evalDeriv(src, self.mesh, u, df_dm_v)
             Ainv.clean()
         return Utils.mkvc(Jv)
@@ -102,9 +102,9 @@ class BaseFDEMProblem(BaseEMProblem):
 
         :param numpy.array m: inversion model (nP,)
         :param numpy.array v: vector which we take adjoint product with (nP,)
-        :param SimPEG.EM.FDEM.Fields u: fields object 
+        :param SimPEG.EM.FDEM.Fields u: fields object
         :rtype numpy.array:
-        :return: Jv (ndata,) 
+        :return: Jv (ndata,)
         """
 
         if u is None:
@@ -148,7 +148,7 @@ class BaseFDEMProblem(BaseEMProblem):
                         Jtv += - np.array(df_dmT,dtype=complex).real
                     else:
                         raise Exception('Must be real or imag')
-            
+
             ATinv.clean()
 
         return Utils.mkvc(Jtv)
@@ -158,7 +158,7 @@ class BaseFDEMProblem(BaseEMProblem):
         Evaluates the sources for a given frequency and puts them in matrix form
 
         :param float freq: Frequency
-        :rtype: (numpy.ndarray, numpy.ndarray)  
+        :rtype: (numpy.ndarray, numpy.ndarray)
         :return: S_m, S_e (nE or nF, nSrc)
         """
         Srcs = self.survey.getSrcByFreq(freq)
@@ -211,7 +211,7 @@ class Problem_e(BaseFDEMProblem):
     def getA(self, freq):
         """
         System matrix
-        
+
         .. math ::
             \mathbf{A} = \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{C} + i \omega \mathbf{M^e_{\sigma}}
 
@@ -234,12 +234,12 @@ class Problem_e(BaseFDEMProblem):
         .. math ::
             \\frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}} = i \omega \\frac{d \mathbf{M^e_{\sigma}}\mathbf{v} }{d\mathbf{m}}
 
-        :param float freq: frequency 
-        :param numpy.ndarray u: solution vector (nE,) 
+        :param float freq: frequency
+        :param numpy.ndarray u: solution vector (nE,)
         :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for adjoint
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
-        :return: derivative of the system matrix times a vector (nP,) or adjoint (nD,) 
+        :return: derivative of the system matrix times a vector (nP,) or adjoint (nD,)
         """
 
         dsig_dm = self.curModel.sigmaDeriv
@@ -252,13 +252,13 @@ class Problem_e(BaseFDEMProblem):
 
     def getRHS(self, freq):
         """
-        Right hand side for the system 
+        Right hand side for the system
 
         .. math ::
             \mathbf{RHS} = \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f}\mathbf{s_m} -i\omega\mathbf{M_e}\mathbf{s_e}
 
         :param float freq: Frequency
-        :rtype: numpy.ndarray 
+        :rtype: numpy.ndarray
         :return: RHS (nE, nSrc)
         """
 
@@ -270,7 +270,7 @@ class Problem_e(BaseFDEMProblem):
 
     def getRHSDeriv(self, freq, src, v, adjoint=False):
         """
-        Derivative of the right hand side with respect to the model 
+        Derivative of the right hand side with respect to the model
 
         :param float freq: frequency
         :param SimPEG.EM.FDEM.Src src: FDEM source
@@ -350,12 +350,12 @@ class Problem_b(BaseFDEMProblem):
         .. math ::
             \\frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}} = \mathbf{C} \\frac{\mathbf{M^e_{\sigma}} \mathbf{v}}{d\mathbf{m}}
 
-        :param float freq: frequency 
-        :param numpy.ndarray u: solution vector (nF,) 
+        :param float freq: frequency
+        :param numpy.ndarray u: solution vector (nF,)
         :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for adjoint
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
-        :return: derivative of the system matrix times a vector (nP,) or adjoint (nD,)  
+        :return: derivative of the system matrix times a vector (nP,) or adjoint (nD,)
         """
 
         MfMui = self.MfMui
@@ -377,13 +377,13 @@ class Problem_b(BaseFDEMProblem):
 
     def getRHS(self, freq):
         """
-        Right hand side for the system 
+        Right hand side for the system
 
         .. math ::
             \mathbf{RHS} = \mathbf{s_m} + \mathbf{M^e_{\sigma}}^{-1}\mathbf{s_e}
 
         :param float freq: Frequency
-        :rtype: numpy.ndarray 
+        :rtype: numpy.ndarray
         :return: RHS (nE, nSrc)
         """
 
@@ -501,12 +501,12 @@ class Problem_j(BaseFDEMProblem):
 
             \\frac{\mathbf{A(\sigma)} \mathbf{v}}{d \mathbf{m}} = \mathbf{C}  \mathbf{M^e_{mu^{-1}}} \mathbf{C^{\\top}} \\frac{d \mathbf{M^f_{\sigma^{-1}}}\mathbf{v} }{d \mathbf{m}}
 
-        :param float freq: frequency 
-        :param numpy.ndarray u: solution vector (nF,) 
+        :param float freq: frequency
+        :param numpy.ndarray u: solution vector (nF,)
         :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for adjoint
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
-        :return: derivative of the system matrix times a vector (nP,) or adjoint (nD,)  
+        :return: derivative of the system matrix times a vector (nP,) or adjoint (nD,)
         """
 
         MeMuI = self.MeMuI
@@ -526,7 +526,7 @@ class Problem_j(BaseFDEMProblem):
 
     def getRHS(self, freq):
         """
-        Right hand side for the system 
+        Right hand side for the system
 
         .. math ::
 
@@ -550,7 +550,7 @@ class Problem_j(BaseFDEMProblem):
 
     def getRHSDeriv(self, freq, src, v, adjoint=False):
         """
-        Derivative of the right hand side with respect to the model 
+        Derivative of the right hand side with respect to the model
 
         :param float freq: frequency
         :param SimPEG.EM.FDEM.Src src: FDEM source
@@ -630,12 +630,12 @@ class Problem_h(BaseFDEMProblem):
         .. math::
             \\frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}} = \mathbf{C}^{\\top}\\frac{d \mathbf{M^f_{\\rho}}\mathbf{v} }{d\mathbf{m}}
 
-        :param float freq: frequency 
-        :param numpy.ndarray u: solution vector (nE,) 
+        :param float freq: frequency
+        :param numpy.ndarray u: solution vector (nE,)
         :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for adjoint
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
-        :return: derivative of the system matrix times a vector (nP,) or adjoint (nD,)  
+        :return: derivative of the system matrix times a vector (nP,) or adjoint (nD,)
         """
 
         MeMu = self.MeMu
@@ -648,14 +648,14 @@ class Problem_h(BaseFDEMProblem):
 
     def getRHS(self, freq):
         """
-        Right hand side for the system 
+        Right hand side for the system
 
         .. math ::
 
             \mathbf{RHS} = \mathbf{M^e} \mathbf{s_m} + \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{s_e}
 
         :param float freq: Frequency
-        :rtype: numpy.ndarray 
+        :rtype: numpy.ndarray
         :return: RHS (nE, nSrc)
         """
 
@@ -667,7 +667,7 @@ class Problem_h(BaseFDEMProblem):
 
     def getRHSDeriv(self, freq, src, v, adjoint=False):
         """
-        Derivative of the right hand side with respect to the model 
+        Derivative of the right hand side with respect to the model
 
         :param float freq: frequency
         :param SimPEG.EM.FDEM.Src src: FDEM source

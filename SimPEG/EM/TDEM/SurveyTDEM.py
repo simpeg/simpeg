@@ -132,7 +132,6 @@ class BaseSrc(SimPEG.Survey.BaseSrc):
     @waveform.setter
     def waveform(self, val):
         if self.waveform is None:
-            print val
             val._assertMatchesPair(self.waveformPair)
             self._mapping = val
         else:
@@ -252,8 +251,10 @@ class MagDipole(BaseSrc):
         C = prob.mesh.edgeCurl
         S_e = self.S_e(prob, prob.t0)
 
+        # S_e doesn't depend on the model
+
         if adjoint:
-            raise NotImplementedError
+            return MeSigmaIDeriv( -S_e + C.T * ( MfMui * b ) ).T * v
 
         return MeSigmaIDeriv( -S_e + C.T * ( MfMui * b ) ) * v
 

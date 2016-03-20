@@ -5,7 +5,7 @@ from SimPEG import EM
 plotIt = False
 
 testDeriv   = True
-testAdjoint = False
+testAdjoint = True
 
 TOL = 1e-5
 
@@ -54,13 +54,16 @@ class TDEM_DerivTests(unittest.TestCase):
 
 # ====== TEST A ========== #
 
-    def test_AderivTest(self):
-        prb, m0, mesh = setUp()
+    def AderivTest(self, prbtype):
+        prb, m0, mesh = setUp(prbtype)
         tInd = 2
+        if prbtype == 'b':
+            nu = mesh.nF
+        elif prbtype == 'e':
+            nu = mesh.nE
+        v = np.random.rand(nu)
 
-        v = np.random.rand(mesh.nF)
-
-        def AderivTest(m):
+        def AderivFun(m):
             prb.curModel = m
             A = prb.getAdiag(tInd)
             Av = A*v
@@ -69,25 +72,40 @@ class TDEM_DerivTests(unittest.TestCase):
 
             return Av, ADeriv_dm
 
-        print '\n Testing ADeriv'
-        Tests.checkDerivative(AderivTest, m0, plotIt=False, num=4, eps=1e-20)
+        print '\n Testing ADeriv %s'%(prbtype)
+        Tests.checkDerivative(AderivFun, m0, plotIt=False, num=4, eps=1e-20)
 
-    def test_A_adjointTest(self):
-        prb, m0, mesh = setUp()
+    def A_adjointTest(self,prbtype):
+        prb, m0, mesh = setUp(prbtype)
         tInd = 2
 
         print '\n Testing A_adjoint'
         m = np.random.rand(prb.mapping.nP)
-        v = np.random.rand(prb.mesh.nF)
-        u = np.random.rand(prb.mesh.nF)
+        if prbtype == 'b':
+            nu = prb.mesh.nF
+        elif prbtype == 'e':
+            nu = prb.mesh.nE
+
+        v = np.random.rand(nu)
+        u = np.random.rand(nu)
         prb.curModel = m0
 
         tInd = 2 # not actually used
         V1 = v.dot(prb.getAdiagDeriv(tInd, u, m))
         V2 = m.dot(prb.getAdiagDeriv(tInd, u, v, adjoint=True))
         passed = np.abs(V1-V2) < TOL * (np.abs(V1) + np.abs(V2))/2.
-        print 'AdjointTest', V1, V2, passed
+        print 'AdjointTest %s'%(prbtype), V1, V2, passed
         self.assertTrue(passed)
+
+    def test_Aderiv_b(self):
+        self.AderivTest('b')
+    def test_Aderiv_e(self):
+        self.AderivTest('e')
+
+    def test_Aadjoint_b(self):
+        self.A_adjointTest('b')
+    def test_Aadjoint_e(self):
+        self.A_adjointTest('e')
 
 # ====== TEST Fields Deriv Pieces ========== #
 
@@ -193,6 +211,9 @@ class TDEM_DerivTests(unittest.TestCase):
 
         def test_Jvec_adjoint_b_ey(self):
             self.JvecVsJtvecTest('b', 'ey')
+
+        def test_Jvec_adjoint_e_ey(self):
+            self.JvecVsJtvecTest('e', 'ey')
 
 
 
