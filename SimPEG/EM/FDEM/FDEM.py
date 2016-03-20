@@ -36,7 +36,7 @@ class BaseFDEMProblem(BaseEMProblem):
     surveyPair = SurveyFDEM
     fieldsPair = Fields
 
-    def fields(self, m=None):
+    def fields(self, m):
         """
         Solve the forward problem for the fields.
 
