@@ -199,7 +199,7 @@ class BaseEMSurvey(Survey.BaseSurvey):
         :rtype: numpy.ndarray
         :return: data
         """
-        data = SimPEG.Survey.Data(self)
+        data = Survey.Data(self)
         for src in self.srcList:
             for rx in src.rxList:
                 data[src, rx] = rx.eval(src, self.mesh, u)
