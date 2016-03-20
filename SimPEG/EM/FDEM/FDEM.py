@@ -81,8 +81,8 @@ class BaseFDEMProblem(BaseEMProblem):
             Ainv = self.Solver(A, **self.solverOpts) # create the concept of Ainv (actually a solve)
 
             for src in self.survey.getSrcByFreq(freq):
-                f_src = f[src, self._solutionType]
-                dA_dm_v = self.getADeriv(freq, f_src, v)
+                u_src = f[src, self._solutionType]
+                dA_dm_v = self.getADeriv(freq, u_src, v)
                 dRHS_dm_v = self.getRHSDeriv(freq, src, v)
                 du_dm_v = Ainv * ( - dA_dm_v + dRHS_dm_v )
 
@@ -120,7 +120,7 @@ class BaseFDEMProblem(BaseEMProblem):
             ATinv = self.Solver(AT, **self.solverOpts)
 
             for src in self.survey.getSrcByFreq(freq):
-                f_src = f[src, self._solutionType]
+                u_src = f[src, self._solutionType]
 
                 for rx in src.rxList:
                     PTv = rx.evalDeriv(src, self.mesh, f, v[src, rx], adjoint=True) # wrt f, need possibility wrt m
@@ -130,7 +130,7 @@ class BaseFDEMProblem(BaseEMProblem):
 
                     ATinvdf_duT = ATinv * df_duT
 
-                    dA_dmT = self.getADeriv(freq, f_src, ATinvdf_duT, adjoint=True)
+                    dA_dmT = self.getADeriv(freq, u_src, ATinvdf_duT, adjoint=True)
                     dRHS_dmT = self.getRHSDeriv(freq, src, ATinvdf_duT, adjoint=True)
                     du_dmT = -dA_dmT + dRHS_dmT
 
