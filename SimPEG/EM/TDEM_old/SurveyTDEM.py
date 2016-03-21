@@ -2,7 +2,7 @@ from SimPEG import Utils, Survey, np
 from SimPEG.Survey import BaseSurvey
 from SimPEG.EM.Utils import *
 from BaseTDEM import FieldsTDEM
-
+import SrcTDEM as Src
 
 class RxTDEM(Survey.BaseTimeRx):
 
@@ -87,7 +87,7 @@ class SrcTDEM_VMD_MVP(SrcTDEM):
     def getInitialFields(self, mesh):
         """Vertical magnetic dipole, magnetic vector potential"""
         if self.waveformType == "STEPOFF":
-            print ">> Step waveform: Non-zero initial condition"        
+            print ">> Step waveform: Non-zero initial condition"
             if mesh._meshType is 'CYL':
                 if mesh.isSymmetric:
                     MVP = MagneticDipoleVectorPotential(self.loc, mesh, 'Ey')
@@ -96,8 +96,8 @@ class SrcTDEM_VMD_MVP(SrcTDEM):
             elif mesh._meshType is 'TENSOR':
                 MVP = MagneticDipoleVectorPotential(self.loc, mesh, ['Ex','Ey','Ez'])
             else:
-                raise Exception('Unknown mesh for VMD') 
-            return {"b": mesh.edgeCurl*MVP}               
+                raise Exception('Unknown mesh for VMD')
+            return {"b": mesh.edgeCurl*MVP}
         elif self.waveformType == "GENERAL":
             print ">> General waveform: Zero initial condition"
             return {"b": np.zeros(mesh.nF)}
@@ -113,7 +113,7 @@ class SrcTDEM_VMD_MVP(SrcTDEM):
         elif mesh._meshType is 'TENSOR':
             MVP = MagneticDipoleVectorPotential(self.loc, mesh, ['Ex','Ey','Ez'])
         else:
-            raise Exception('Unknown mesh for VMD')            
+            raise Exception('Unknown mesh for VMD')
         return mesh.edgeCurl.T*MfMui*mesh.edgeCurl*MVP
 
 
@@ -122,7 +122,7 @@ class SrcTDEM_CircularLoop_MVP(SrcTDEM):
         self.loc = loc
         self.radius = radius
         self.waveformType = waveformType
-        SrcTDEM.__init__(self,rxList)        
+        SrcTDEM.__init__(self,rxList)
 
     def getInitialFields(self, mesh):
         """Circular Loop, magnetic vector potential"""
@@ -153,7 +153,7 @@ class SrcTDEM_CircularLoop_MVP(SrcTDEM):
         elif mesh._meshType is 'TENSOR':
             MVP = MagneticLoopVectorPotential(self.loc, mesh, ['Ex','Ey','Ez'], self.radius)
         else:
-            raise Exception('Unknown mesh for CircularLoop')            
+            raise Exception('Unknown mesh for CircularLoop')
         return mesh.edgeCurl.T*MfMui*mesh.edgeCurl*MVP
 
 

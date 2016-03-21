@@ -3,6 +3,8 @@ from SimPEG import np, Utils
 from SimPEG.Utils import Zero, Identity
 from scipy.constants import mu_0
 from SimPEG.EM.Utils import *
+import SrcTDEM as Src
+
 
 ####################################################
 # Receivers
@@ -70,204 +72,6 @@ class Rx(SimPEG.Survey.BaseTimeRx):
             # newshape = (len(dP_dF_T)/timeMesh.nN, timeMesh.nN )
             return P.T * v #np.reshape(dP_dF_T, newshape, order='F')
 
-####################################################
-# Sources
-####################################################
-
-class BaseWaveform(object):
-
-    def __init__(self, offTime=0., hasInitialFields=False):
-        self.offTime = offTime
-        self.hasInitialFields = hasInitialFields
-
-    def _assertMatchesPair(self, pair):
-        assert (isinstance(self, pair)
-            ), "Waveform object must be an instance of a %s BaseWaveform class."%(pair.__name__)
-
-    def eval(self, time):
-        raise NotImplementedError
-
-    def evalDeriv(self, time):
-        raise NotImplementedError # needed for E-formulation
-
-
-class StepOffWaveform(BaseWaveform):
-
-    def __init__(self, offTime=0.):
-        BaseWaveform.__init__(self, offTime, hasInitialFields=True)
-
-    def eval(self, time):
-        return 0.
-
-
-class RawWaveform(BaseWaveform):
-
-    def __init__(self, offTime=0.):
-        BaseWaveform.__init__(self, offTime, hasInitialFields=True)
-
-    def eval(self, time):
-        raise NotImplementedError('RawWaveform has not been implemented, you should write it!')
-
-
-class TriangularWaveform(BaseWaveform):
-
-    def __init__(self, offTime=0.):
-        BaseWaveform.__init__(self, offTime, hasInitialFields=True)
-
-    def eval(self, time):
-        raise NotImplementedError('TriangularWaveform has not been implemented, you should write it!')
-
-
-
-class BaseSrc(SimPEG.Survey.BaseSrc):
-
-    rxPair = Rx
-    integrate = True
-    waveformPair = BaseWaveform
-
-    @property
-    def waveform(self):
-        "A waveform instance is not None"
-        return getattr(self, '_waveform', None)
-    @waveform.setter
-    def waveform(self, val):
-        if self.waveform is None:
-            val._assertMatchesPair(self.waveformPair)
-            self._mapping = val
-        else:
-            self._mapping = self.PropMap(val)
-
-
-    def __init__(self, rxList, waveform = StepOffWaveform(), **kwargs):
-        self.waveform = waveform
-        SimPEG.Survey.BaseSrc.__init__(self, rxList, **kwargs)
-
-
-    def bInitial(self, prob):
-        return Zero()
-
-    def bInitialDeriv(self, prob, v=None, adjoint=False):
-        return Zero()
-
-    def eInitial(self, prob):
-        return Zero()
-
-    def eInitialDeriv(self, prob, v=None, adjoint=False):
-        return Zero()
-
-    def eval(self, prob, time):
-        S_m = self.S_m(prob, time)
-        S_e = self.S_e(prob, time)
-        return S_m, S_e
-
-    def evalDeriv(self, prob, time, v=None, adjoint=False):
-        if v is not None:
-            return self.S_mDeriv(prob, time, v, adjoint), self.S_eDeriv(prob, time, v, adjoint)
-        else:
-            return lambda v: self.S_mDeriv(prob, time, v, adjoint), lambda v: self.S_eDeriv(prob, time, v, adjoint)
-
-    def S_m(self, prob, time):
-        return Zero()
-
-    def S_e(self, prob, time):
-        return Zero()
-
-    def S_mDeriv(self, prob, time, v=None, adjoint=False):
-        return Zero()
-
-    def S_eDeriv(self, prob, time, v=None, adjoint=False):
-        return Zero()
-
-
-class MagDipole(BaseSrc):
-
-    waveform = None
-    loc = None
-    orientation = 'Z'
-    moment = 1.
-    mu = mu_0
-
-    def __init__(self, rxList, **kwargs):
-        assert self.orientation in ['X','Y','Z'], "Orientation (right now) doesn't actually do anything! The methods in SrcUtils should take care of this..."
-        self.integrate = False
-        BaseSrc.__init__(self, rxList, **kwargs)
-
-    def _bfromVectorPotential(self, prob):
-        if prob._eqLocs is 'FE':
-            gridX = prob.mesh.gridEx
-            gridY = prob.mesh.gridEy
-            gridZ = prob.mesh.gridEz
-            C = prob.mesh.edgeCurl
-
-        elif prob._eqLocs is 'EF':
-            gridX = prob.mesh.gridFx
-            gridY = prob.mesh.gridFy
-            gridZ = prob.mesh.gridFz
-            C = prob.mesh.edgeCurl.T
-
-
-        if prob.mesh._meshType is 'CYL':
-            if not prob.mesh.isSymmetric:
-                raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
-            a = MagneticDipoleVectorPotential(self.loc, gridY, 'y', mu=self.mu, moment=self.moment)
-
-        else:
-            srcfct = MagneticDipoleVectorPotential
-            ax = srcfct(self.loc, gridX, 'x', mu=self.mu, moment=self.moment)
-            ay = srcfct(self.loc, gridY, 'y', mu=self.mu, moment=self.moment)
-            az = srcfct(self.loc, gridZ, 'z', mu=self.mu, moment=self.moment)
-            a = np.concatenate((ax, ay, az))
-
-        return C*a
-
-
-    def bInitial(self, prob):
-
-        if self.waveform.hasInitialFields is False:
-            return Zero()
-
-        return self._bfromVectorPotential(prob)
-
-    def eInitial(self, prob):
-
-        if self.waveform.hasInitialFields is False:
-            return Zero()
-
-        b = self.bInitial(prob)
-        MeSigmaI = prob.MeSigmaI
-        MfMui = prob.MfMui
-        C = prob.mesh.edgeCurl
-
-        return MeSigmaI * (C.T * (MfMui * b))
-
-    def eInitialDeriv(self, prob, v=None, adjoint=False):
-
-        if self.waveform.hasInitialFields is False:
-            return Zero()
-
-        b = self.bInitial(prob)
-        MeSigmaIDeriv = prob.MeSigmaIDeriv
-        MfMui = prob.MfMui
-        C = prob.mesh.edgeCurl
-        S_e = self.S_e(prob, prob.t0)
-
-        # S_e doesn't depend on the model
-
-        if adjoint:
-            return MeSigmaIDeriv( -S_e + C.T * ( MfMui * b ) ).T * v
-
-        return MeSigmaIDeriv( -S_e + C.T * ( MfMui * b ) ) * v
-
-
-    def S_m(self, prob, time):
-        if self.waveform.hasInitialFields is False:
-            raise NotImplementedError
-        return Zero()
-
-    def S_e(self, prob, time):
-        if self.waveform.hasInitialFields is False:
-            raise NotImplementedError
-        return Zero()
 
 ####################################################
 # Survey
@@ -278,7 +82,7 @@ class Survey(SimPEG.Survey.BaseSurvey):
     Time domain electromagnetic survey
     """
 
-    srcPair = BaseSrc
+    srcPair = Src.BaseSrc
     rxPair = Rx
 
     def __init__(self, srcList, **kwargs):

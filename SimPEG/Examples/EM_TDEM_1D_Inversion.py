@@ -43,7 +43,7 @@ def run(plotIt=True):
 
     rxOffset=1e-3
     rx = EM.TDEM.Rx(np.array([[rxOffset, 0., 30]]), np.logspace(-5,-3, 31), 'bz')
-    src = EM.TDEM.SurveyTDEM.MagDipole([rx], loc=np.array([0., 0., 80]))
+    src = EM.TDEM.Src.MagDipole([rx], loc=np.array([0., 0., 80]))
     survey = EM.TDEM.Survey([src])
     prb = EM.TDEM.Problem_b(mesh, mapping=mapping)
 
