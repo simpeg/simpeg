@@ -3,6 +3,7 @@ from SimPEG.EM.Utils import *
 from scipy.constants import mu_0
 from SimPEG.Utils import Zero, Identity
 import SrcFDEM as Src
+from SimPEG import sp
 
 
 ####################################################
@@ -18,33 +19,33 @@ class Rx(SimPEG.Survey.BaseRx):
     """
 
     knownRxTypes = {
-                    'exr':['e', 'Ex', 'real'],
-                    'eyr':['e', 'Ey', 'real'],
-                    'ezr':['e', 'Ez', 'real'],
-                    'exi':['e', 'Ex', 'imag'],
-                    'eyi':['e', 'Ey', 'imag'],
-                    'ezi':['e', 'Ez', 'imag'],
+                    'exr':['e', 'x', 'real'],
+                    'eyr':['e', 'y', 'real'],
+                    'ezr':['e', 'z', 'real'],
+                    'exi':['e', 'x', 'imag'],
+                    'eyi':['e', 'y', 'imag'],
+                    'ezi':['e', 'z', 'imag'],
 
-                    'bxr':['b', 'Fx', 'real'],
-                    'byr':['b', 'Fy', 'real'],
-                    'bzr':['b', 'Fz', 'real'],
-                    'bxi':['b', 'Fx', 'imag'],
-                    'byi':['b', 'Fy', 'imag'],
-                    'bzi':['b', 'Fz', 'imag'],
+                    'bxr':['b', 'x', 'real'],
+                    'byr':['b', 'y', 'real'],
+                    'bzr':['b', 'z', 'real'],
+                    'bxi':['b', 'x', 'imag'],
+                    'byi':['b', 'y', 'imag'],
+                    'bzi':['b', 'z', 'imag'],
 
-                    'jxr':['j', 'Fx', 'real'],
-                    'jyr':['j', 'Fy', 'real'],
-                    'jzr':['j', 'Fz', 'real'],
-                    'jxi':['j', 'Fx', 'imag'],
-                    'jyi':['j', 'Fy', 'imag'],
-                    'jzi':['j', 'Fz', 'imag'],
+                    'jxr':['j', 'x', 'real'],
+                    'jyr':['j', 'y', 'real'],
+                    'jzr':['j', 'z', 'real'],
+                    'jxi':['j', 'x', 'imag'],
+                    'jyi':['j', 'y', 'imag'],
+                    'jzi':['j', 'z', 'imag'],
 
-                    'hxr':['h', 'Ex', 'real'],
-                    'hyr':['h', 'Ey', 'real'],
-                    'hzr':['h', 'Ez', 'real'],
-                    'hxi':['h', 'Ex', 'imag'],
-                    'hyi':['h', 'Ey', 'imag'],
-                    'hzi':['h', 'Ez', 'imag'],
+                    'hxr':['h', 'x', 'real'],
+                    'hyr':['h', 'y', 'real'],
+                    'hzr':['h', 'z', 'real'],
+                    'hxi':['h', 'x', 'imag'],
+                    'hyi':['h', 'y', 'imag'],
+                    'hzi':['h', 'z', 'imag'],
                    }
     radius = None
 
@@ -57,33 +58,36 @@ class Rx(SimPEG.Survey.BaseRx):
         return self.knownRxTypes[self.rxType][0]
 
     @property
-    def projGLoc(self):
-        """Grid Location projection (e.g. Ex Fy ...)"""
-        return self.knownRxTypes[self.rxType][1]
-
-    @property
     def projComp(self):
         """Component projection (real/imag)"""
         return self.knownRxTypes[self.rxType][2]
 
-    def projectFields(self, src, mesh, u):
+    def projGLoc(self, u):
+        """Grid Location projection (e.g. Ex Fy ...)"""
+        return u._GLoc(self.rxType[0]) + self.knownRxTypes[self.rxType][1]
+
+    def eval(self, src, mesh, u):
         """
         Project fields to recievers to get data.
 
         :param Source src: FDEM source
         :param Mesh mesh: mesh used
-        :param Fields u: fields object
+        :param Fields f: fields object
         :rtype: numpy.ndarray
         :return: fields projected to recievers
         """
-        P = self.getP(mesh)
+        # projGLoc = u._GLoc(self.knownRxTypes[self.rxType][0])
+        # projGLoc += self.knownRxTypes[self.rxType][1]
+
+        P = self.getP(mesh, self.projGLoc(u))
         u_part_complex = u[src, self.projField]
         # get the real or imag component
         real_or_imag = self.projComp
         u_part = getattr(u_part_complex, real_or_imag)
+        
         return P*u_part
 
-    def projectFieldsDeriv(self, src, mesh, u, v, adjoint=False):
+    def evalDeriv(self, src, mesh, u, v, adjoint=False):
         """
         Derivative of projected fields with respect to the inversion model times a vector.
 
@@ -94,7 +98,8 @@ class Rx(SimPEG.Survey.BaseRx):
         :rtype: numpy.ndarray
         :return: fields projected to recievers
         """
-        P = self.getP(mesh)
+
+        P = self.getP(mesh, self.projGLoc(u))
 
         if not adjoint:
             Pv_complex = P * v
@@ -171,7 +176,7 @@ class Survey(SimPEG.Survey.BaseSurvey):
         assert freq in self._freqDict, "The requested frequency is not in this survey."
         return self._freqDict[freq]
 
-    def projectFields(self, u):
+    def eval(self, u):
         """
         Project fields to receiver locations
         :param Fields u: fields object
@@ -181,8 +186,9 @@ class Survey(SimPEG.Survey.BaseSurvey):
         data = SimPEG.Survey.Data(self)
         for src in self.srcList:
             for rx in src.rxList:
-                data[src, rx] = rx.projectFields(src, self.mesh, u)
+                data[src, rx] = rx.eval(src, self.mesh, u)
         return data
 
-    def projectFieldsDeriv(self, u):
-        raise Exception('Use Sources to project fields deriv.')
+    def evalDeriv(self, u):
+        raise Exception('Use Receivers to project fields deriv.')
+

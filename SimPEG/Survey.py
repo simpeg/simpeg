@@ -1,6 +1,5 @@
 import Utils, numpy as np, scipy.sparse as sp, uuid
 
-
 class BaseRx(object):
     """SimPEG Receiver Object"""
 
@@ -35,7 +34,7 @@ class BaseRx(object):
         """Number of data in the receiver."""
         return self.locs.shape[0]
 
-    def getP(self, mesh):
+    def getP(self, mesh, projGLoc=None):
         """
             Returns the projection matrices as a
             list for all components collected by
@@ -48,7 +47,10 @@ class BaseRx(object):
         if mesh in self._Ps:
             return self._Ps[mesh]
 
-        P = mesh.getInterpolationMat(self.locs, self.projGLoc)
+        if projGLoc is None:
+            projGLoc = self.projGLoc
+
+        P = mesh.getInterpolationMat(self.locs, projGLoc)
         if self.storeProjections:
             self._Ps[mesh] = P
         return P
@@ -307,12 +309,12 @@ class BaseSurvey(object):
             Where P is a projection of the fields onto the data space.
         """
         if u is None: u = self.prob.fields(m)
-        return Utils.mkvc(self.projectFields(u))
+        return Utils.mkvc(self.eval(u))
 
 
     @Utils.count
-    def projectFields(self, u):
-        """projectFields(u)
+    def eval(self, u):
+        """eval(u)
 
             This function projects the fields onto the data space.
 
@@ -320,11 +322,11 @@ class BaseSurvey(object):
 
                 d_\\text{pred} = \mathbf{P} u(m)
         """
-        raise NotImplemented('projectFields is not yet implemented.')
+        raise NotImplemented('eval is not yet implemented.')
 
     @Utils.count
-    def projectFieldsDeriv(self, u):
-        """projectFieldsDeriv(u)
+    def evalDeriv(self, u):
+        """evalDeriv(u)
 
             This function s the derivative of projects the fields onto the data space.
 
@@ -332,7 +334,7 @@ class BaseSurvey(object):
 
                 \\frac{\partial d_\\text{pred}}{\partial u} = \mathbf{P}
         """
-        raise NotImplemented('projectFields is not yet implemented.')
+        raise NotImplemented('eval is not yet implemented.')
 
     @Utils.count
     def residual(self, m, u=None):
@@ -375,3 +377,11 @@ class BaseSurvey(object):
         self.dobs = self.dtrue+noise
         self.std = self.dobs*0 + std
         return self.dobs
+
+class LinearSurvey(BaseSurvey):
+    def eval(self, u):
+        return u
+    
+    @property
+    def nD(self):
+        return self.prob.G.shape[0]
