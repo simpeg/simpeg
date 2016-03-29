@@ -70,7 +70,7 @@ def appRes_TotalFieldNorm(sigmaHalf):
     fields = problem.fields(sigma)
 
     # Project the data
-    data = survey.projectFields(fields)
+    data = survey.eval(fields)
 
     # Calculate the app res and phs
     app_r = np.array(getAppResPhs(data))[:,0]
@@ -88,7 +88,7 @@ def appPhs_TotalFieldNorm(sigmaHalf):
     fields = problem.fields(sigma)
 
     # Project the data
-    data = survey.projectFields(fields)
+    data = survey.eval(fields)
 
     # Calculate the app  phs
     app_p = np.array(getAppResPhs(data))[:,1]
@@ -106,7 +106,7 @@ def appRes_psFieldNorm(sigmaHalf):
     fields = problem.fields(sigma)
 
     # Project the data
-    data = survey.projectFields(fields)
+    data = survey.eval(fields)
 
     # Calculate the app res and phs
     app_r = np.array(getAppResPhs(data))[:,0]
@@ -124,7 +124,7 @@ def appPhs_psFieldNorm(sigmaHalf):
     fields = problem.fields(sigma)
 
     # Project the data
-    data = survey.projectFields(fields)
+    data = survey.eval(fields)
 
     # Calculate the app  phs
     app_p = np.array(getAppResPhs(data))[:,1]

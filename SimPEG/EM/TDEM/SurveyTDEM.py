@@ -51,12 +51,12 @@ class RxTDEM(Survey.BaseTimeRx):
         else:
             return timeMesh.getInterpolationMat(self.times, self.projTLoc)
 
-    def projectFields(self, src, mesh, timeMesh, u):
+    def eval(self, src, mesh, timeMesh, u):
         P = self.getP(mesh, timeMesh)
         u_part = Utils.mkvc(u[src, self.projField, :])
         return P*u_part
 
-    def projectFieldsDeriv(self, src, mesh, timeMesh, u, v, adjoint=False):
+    def evalDeriv(self, src, mesh, timeMesh, u, v, adjoint=False):
         P = self.getP(mesh, timeMesh)
 
         if not adjoint:
@@ -168,27 +168,27 @@ class SurveyTDEM(Survey.BaseSurvey):
         self.srcList = srcList
         Survey.BaseSurvey.__init__(self, **kwargs)
 
-    def projectFields(self, u):
+    def eval(self, u):
         data = Survey.Data(self)
         for src in self.srcList:
             for rx in src.rxList:
-                data[src, rx] = rx.projectFields(src, self.mesh, self.prob.timeMesh, u)
+                data[src, rx] = rx.eval(src, self.mesh, self.prob.timeMesh, u)
         return data
 
-    def projectFieldsDeriv(self, u, v=None, adjoint=False):
+    def evalDeriv(self, u, v=None, adjoint=False):
         assert v is not None, 'v to multiply must be provided.'
 
         if not adjoint:
             data = Survey.Data(self)
             for src in self.srcList:
                 for rx in src.rxList:
-                    data[src, rx] = rx.projectFieldsDeriv(src, self.mesh, self.prob.timeMesh, u, v)
+                    data[src, rx] = rx.evalDeriv(src, self.mesh, self.prob.timeMesh, u, v)
             return data
         else:
             f = FieldsTDEM(self.mesh, self)
             for src in self.srcList:
                 for rx in src.rxList:
-                    Ptv = rx.projectFieldsDeriv(src, self.mesh, self.prob.timeMesh, u, v, adjoint=True)
+                    Ptv = rx.evalDeriv(src, self.mesh, self.prob.timeMesh, u, v, adjoint=True)
                     Ptv = Ptv.reshape((-1, self.prob.timeMesh.nN), order='F')
                     if rx.projField not in f: # first time we are projecting
                         f[src, rx.projField, :] = Ptv

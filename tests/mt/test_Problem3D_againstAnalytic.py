@@ -210,7 +210,7 @@ def DerivProjfieldsTest(inputSetup,comp='All',freq=False):
         f = problem.fieldsPair(survey.mesh,survey)
         f[src,'e_pxSolution'] = u[:len(u)/2]
         f[src,'e_pySolution'] = u[len(u)/2::]
-        return rx.projectFields(src,survey.mesh,f), lambda t: rx.projectFieldsDeriv(src,survey.mesh,f0,simpeg.mkvc(t,2))
+        return rx.eval(src,survey.mesh,f), lambda t: rx.evalDeriv(src,survey.mesh,f0,simpeg.mkvc(t,2))
 
     return simpeg.Tests.checkDerivative(fun, u0, num=3, plotIt=False, eps=FLR)
 
