@@ -12,8 +12,10 @@
 Schenkel and Morrison Casing Model
 ==================================
 
- we will create and run a FDEM forward simulation based on the
-nkel and Morrison Casing Model
+ we create and run a FDEM forward simulation to calculate the vertical
+ent inside a steel-cased. The model is based on the Schenkel and
+ison Casing Model, and the results are used in a 2016 SEG abstract by
+ et al.
 
 chenkel, C.J., and H.F. Morrison, 1990`_, Effects of well casing on potential field measurements using downhole current sources: Geophysical prospecting, 38, 663-686.
 
