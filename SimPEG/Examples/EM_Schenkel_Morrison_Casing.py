@@ -257,11 +257,11 @@ def run(plotIt=True):
 
         ax[0].plot(z_in,np.absolute(I0), z_in,np.absolute(I1))
         ax[0].legend(['top casing', 'bottom casing'],loc='best')
-        ax[0].set_title('Magnitude of Current')
+        ax[0].set_title('Magnitude of Vertical Current in Casing')
 
         ax[1].semilogy(z_in,np.absolute(I0), z_in,np.absolute(I1))
         ax[1].legend(['top casing', 'bottom casing'],loc='best')
-        ax[1].set_title('Magnitude of Current')
+        ax[1].set_title('Magnitude of Vertical Current in Casing')
         ax[1].set_ylim([1e-2, 1.])
 
         plt.show()
