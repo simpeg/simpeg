@@ -19,9 +19,8 @@ def run(plotIt=True):
     Morrison Casing Model, and the results are used in a 2016 SEG abstract by
     Yang et al.
 
-    - `Schenkel, C.J., and H.F. Morrison, 1990`_, Effects of well casing on potential field measurements using downhole current sources: Geophysical prospecting, 38, 663-686.
+    - Schenkel, C.J., and H.F. Morrison, 1990, Effects of well casing on potential field measurements using downhole current sources: Geophysical prospecting, 38, 663-686.
 
-    .. _Schenkel, C.J., and H.F. Morrison, 1990: http://onlinelibrary.wiley.com/store/10.1111/j.1365-2478.1990.tb01868.x/asset/j.1365-2478.1990.tb01868.x.pdf?v=1&t=imdt3o85&s=38248af166c2887ed587d94c8ccafad30b480529
 
     The model consists of:
     - Air: Conductivity 1e-8 S/m, above z = 0
