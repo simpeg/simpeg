@@ -200,11 +200,11 @@ class ProblemDC_CC(Problem.BaseProblem):
 
         return F
 
-    def Jvec(self, m, v, u=None):
+    def Jvec(self, m, v, f=None):
         """
             :param numpy.array m: model
             :param numpy.array v: vector to multiply
-            :param numpy.array u: fields
+            :param Fields f: fields
             :rtype: numpy.array
             :return: Jv
 
@@ -225,11 +225,10 @@ class ProblemDC_CC(Problem.BaseProblem):
         # Set current model; clear dependent property $\mathbf{A(m)}$
         self.curModel = m
         sigma = self.curModel.transform # $\sigma = \mathcal{M}(\m)$
-        if u is None:
+        if f is None:
             # Run forward simulation if $u$ not provided
-            u = self.fields(self.curModel)[self.survey.srcList, 'phi_sol']
-        else:
-            u = u[self.survey.srcList, 'phi_sol']
+            f = self.fields(self.curModel)
+        u = f[self.survey.srcList, 'phi_sol']
 
         D = self.mesh.faceDiv
         G = self.mesh.cellGrad
@@ -251,19 +250,18 @@ class ProblemDC_CC(Problem.BaseProblem):
         if self.Ainv is None:
             self.Ainv = self.Solver(dA_du, **self.solverOpts)
 
-        P        = self.survey.getP(self.mesh)
+        P     = self.survey.getP(self.mesh)
         Jv    = - P * mkvc( self.Ainv * dCdm_x_v )
         return Jv
 
-    def Jtvec(self, m, v, u=None):
+    def Jtvec(self, m, v, f=None):
 
         self.curModel = m
         sigma = self.curModel.transform # $\sigma = \mathcal{M}(\m)$
-        if u is None:
-            # Run forward simulation if $u$ not provided
-            u = self.fields(self.curModel)[self.survey.srcList, 'phi_sol']
-        else:
-            u = u[self.survey.srcList, 'phi_sol']
+        if f is None:
+            # Run forward simulation if $f$ not provided
+            f = self.fields(self.curModel)
+        u = f[self.survey.srcList, 'phi_sol']
 
         shp = u.shape
         P = self.survey.getP(self.mesh)
