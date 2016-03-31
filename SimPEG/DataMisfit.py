@@ -123,5 +123,5 @@ class l2_DataMisfit(BaseDataMisfit):
     @Utils.timeIt
     def eval2Deriv(self, m, v, f=None):
         "eval2Deriv(m, v, f=None)"
-        if f is None: f = prob.fields(m)
-        return self.prob.Jtvec_approx(m, self.Wd * (self.Wd * prob.Jvec_approx(m, v, f=f)), f=f)
+        if f is None: f = self.prob.fields(m)
+        return self.prob.Jtvec_approx(m, self.Wd * (self.Wd * self.prob.Jvec_approx(m, v, f=f)), f=f)

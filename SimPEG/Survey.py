@@ -313,20 +313,20 @@ class BaseSurvey(object):
 
 
     @Utils.count
-    def eval(self, u):
-        """eval(u)
+    def eval(self, f):
+        """eval(f)
 
             This function projects the fields onto the data space.
 
             .. math::
 
-                d_\\text{pred} = \mathbf{P} u(m)
+                d_\\text{pred} = \mathbf{P} f(m)
         """
         raise NotImplemented('eval is not yet implemented.')
 
     @Utils.count
-    def evalDeriv(self, u):
-        """evalDeriv(u)
+    def evalDeriv(self, f):
+        """evalDeriv(f)
 
             This function s the derivative of projects the fields onto the data space.
 
@@ -379,8 +379,8 @@ class BaseSurvey(object):
         return self.dobs
 
 class LinearSurvey(BaseSurvey):
-    def eval(self, u):
-        return u
+    def eval(self, f):
+        return f
 
     @property
     def nD(self):

@@ -128,7 +128,7 @@ class BaseProblem(object):
             :rtype: numpy.array
             :return: approxJv
         """
-        return self.Jvec(m, v, u)
+        return self.Jvec(m, v, f)
 
     @Utils.timeIt
     def Jtvec_approx(self, m, v, f=None):
@@ -142,7 +142,7 @@ class BaseProblem(object):
             :rtype: numpy.array
             :return: JTv
         """
-        return self.Jtvec(m, v, u)
+        return self.Jtvec(m, v, f)
 
     def fields(self, m):
         """
