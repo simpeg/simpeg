@@ -17,9 +17,8 @@ ent inside a steel-cased. The model is based on the Schenkel and
 ison Casing Model, and the results are used in a 2016 SEG abstract by
  et al.
 
-chenkel, C.J., and H.F. Morrison, 1990`_, Effects of well casing on potential field measurements using downhole current sources: Geophysical prospecting, 38, 663-686.
+henkel, C.J., and H.F. Morrison, 1990, Effects of well casing on potential field measurements using downhole current sources: Geophysical prospecting, 38, 663-686.
 
-Schenkel, C.J., and H.F. Morrison, 1990: http://onlinelibrary.wiley.com/store/10.1111/j.1365-2478.1990.tb01868.x/asset/j.1365-2478.1990.tb01868.x.pdf?v=1&t=imdt3o85&s=38248af166c2887ed587d94c8ccafad30b480529
 
 model consists of:
 r: Conductivity 1e-8 S/m, above z = 0
@@ -41,6 +40,11 @@ valent resistor network. The solver used to produce these results and
 eve the CPU time of ~30s is Mumps, which was installed using pymatsolver_
 
 pymatsolver: https://github.com/rowanc1/pymatsolver
+
+ example is on figshare: https://dx.doi.org/10.6084/m9.figshare.3126961.v1
+
+ou would use this example for a code comparison, or build upon it, a
+tion would be much appreciated!
 
 
 

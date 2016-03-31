@@ -43,6 +43,11 @@ def run(plotIt=True):
 
     .. _pymatsolver: https://github.com/rowanc1/pymatsolver
 
+    This example is on figshare: https://dx.doi.org/10.6084/m9.figshare.3126961.v1
+
+    If you would use this example for a code comparison, or build upon it, a
+    citation would be much appreciated!
+
     """
 
     if plotIt:
