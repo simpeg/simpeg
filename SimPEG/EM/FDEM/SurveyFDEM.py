@@ -67,7 +67,7 @@ class Rx(SimPEG.Survey.BaseRx):
         """Grid Location projection (e.g. Ex Fy ...)"""
         return u._GLoc(self.rxType[0]) + self.knownRxTypes[self.rxType][1]
 
-    def eval(self, src, mesh, u):
+    def eval(self, src, mesh, f):
         """
         Project fields to recievers to get data.
 
@@ -80,27 +80,27 @@ class Rx(SimPEG.Survey.BaseRx):
         # projGLoc = u._GLoc(self.knownRxTypes[self.rxType][0])
         # projGLoc += self.knownRxTypes[self.rxType][1]
 
-        P = self.getP(mesh, self.projGLoc(u))
-        u_part_complex = u[src, self.projField]
+        P = self.getP(mesh, self.projGLoc(f))
+        f_part_complex = f[src, self.projField]
         # get the real or imag component
         real_or_imag = self.projComp
-        u_part = getattr(u_part_complex, real_or_imag)
+        f_part = getattr(f_part_complex, real_or_imag)
 
-        return P*u_part
+        return P*f_part
 
-    def evalDeriv(self, src, mesh, u, v, adjoint=False):
+    def evalDeriv(self, src, mesh, f, v, adjoint=False):
         """
         Derivative of projected fields with respect to the inversion model times a vector.
 
         :param Source src: FDEM source
         :param Mesh mesh: mesh used
-        :param Fields u: fields object
+        :param Fields f: fields object
         :param numpy.ndarray v: vector to multiply
         :rtype: numpy.ndarray
         :return: fields projected to recievers
         """
 
-        P = self.getP(mesh, self.projGLoc(u))
+        P = self.getP(mesh, self.projGLoc(f))
 
         if not adjoint:
             Pv_complex = P * v
