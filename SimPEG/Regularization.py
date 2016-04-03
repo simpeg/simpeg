@@ -646,7 +646,7 @@ class Sparse(Simple):
     eps      = 1e-1
     curModel = None # use a model to compute the weights
     gamma    = 1.
-    p        = 0.
+    norms    = [0., .2, 2., 2., 1.]
     qx       = 2.
     qy       = 2.
     qz       = 2.
@@ -666,7 +666,7 @@ class Sparse(Simple):
 
         else:
             f_m = self.curModel - self.reg.mref
-            self.rs = self.R(f_m , self.p)
+            self.rs = self.R(f_m , self.norms[0])
             #print "Min rs: " + str(np.max(self.rs)) + "Max rs: " + str(np.min(self.rs))
             self.Rs = Utils.sdiag( self.rs )
 
