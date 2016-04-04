@@ -137,8 +137,8 @@ class SrcField(Survey.BaseSrc):
 
     param = None #: Inducing field param (Amp, Incl, Decl)
 
-    def __init__(self, rxList, A, I, D, **kwargs):
-        self.param = (A,I,D)
+    def __init__(self, rxList, param = None, **kwargs):
+        self.param = param
         super(SrcField, self).__init__(rxList, **kwargs)   
 
 class RxObs(Survey.BaseRx):

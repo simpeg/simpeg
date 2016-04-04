@@ -1193,8 +1193,8 @@ def getActiveTopo(mesh,topo,flag):
         
     return inds
 
-def plot_obs_2D(rxLoc,d,wd,varstr):   
-    """ Function plot_obs(rxLoc,d,wd)
+def plot_obs_2D(rxLoc,d = None ,varstr = 'Mag Obs', vmin = None, vmax = None):   
+    """ Function plot_obs(rxLoc,d)
     Generate a 2d interpolated plot from scatter points of data
     
     INPUT
@@ -1214,22 +1214,32 @@ def plot_obs_2D(rxLoc,d,wd,varstr):
     from scipy.interpolate import griddata
     import pylab as plt
     
-    # Create grid of points
-    x = np.linspace(rxLoc[:,0].min(), rxLoc[:,0].max(), 100)
-    y = np.linspace(rxLoc[:,1].min(), rxLoc[:,1].max(), 100)
-    
-    X, Y = np.meshgrid(x,y)
-    
-    # Interpolate
-    d_grid = griddata(rxLoc[:,0:2],d,(X,Y), method ='linear')
-    
+
     # Plot result
     plt.figure()
     plt.subplot()
-    plt.imshow(d_grid, extent=[x.min(), x.max(), y.min(), y.max()],origin = 'lower')
-    plt.colorbar(fraction=0.02)
-    plt.contour(X,Y, d_grid,10)
-    plt.scatter(rxLoc[:,0],rxLoc[:,1], c=d, s=20)
+    plt.scatter(rxLoc[:,0],rxLoc[:,1], c='k', s=10)
+    
+    if d is not None:
+        
+        if (vmin is None):
+            vmin = d.min()
+            
+        if (vmax is None):
+            vmax = d.max()
+            
+        # Create grid of points
+        x = np.linspace(rxLoc[:,0].min(), rxLoc[:,0].max(), 100)
+        y = np.linspace(rxLoc[:,1].min(), rxLoc[:,1].max(), 100)
+        
+        X, Y = np.meshgrid(x,y)
+        
+        # Interpolate
+        d_grid = griddata(rxLoc[:,0:2],d,(X,Y), method ='linear')
+        plt.imshow(d_grid, extent=[x.min(), x.max(), y.min(), y.max()],origin = 'lower', vmin = vmin, vmax = vmax)
+        plt.colorbar(fraction=0.02)
+        plt.contour(X,Y, d_grid,10,vmin = vmin, vmax = vmax)
+    
     plt.title(varstr)
     plt.gca().set_aspect('equal', adjustable='box')
 
@@ -1273,12 +1283,17 @@ def readUBCmagObs(obs_file):
         
         temp = np.array(line.split(),dtype=float) 
         locXYZ[ii,:] = temp[:3]
-        d[ii] = temp[3]
-        wd[ii] = temp[4]
+        
+        if len(temp) > 3:
+            d[ii] = temp[3]
+            
+            if len(temp)==5:
+                wd[ii] = temp[4]
+                
         line = fid.readline()
     
     rxLoc = MAG.RxObs(locXYZ)
-    srcField = MAG.SrcField([rxLoc],B[2],B[0],B[1])
+    srcField = MAG.SrcField([rxLoc],(B[2],B[0],B[1]))
     survey = MAG.LinearSurvey(srcField) 
     survey.dobs =  d
     survey.std =  wd
