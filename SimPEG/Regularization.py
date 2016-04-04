@@ -643,13 +643,11 @@ class Simple(Tikhonov):
 class Sparse(Simple):
 
     # set default values
-    eps      = 1e-1
+    eps_p      = 1e-1
+    eps_q      = 1e-1
     curModel = None # use a model to compute the weights
     gamma    = 1.
-    norms    = [0., .2, 2., 2., 1.]
-    qx       = 2.
-    qy       = 2.
-    qz       = 2.
+    norms    = [0., 2., 2., 2.]
     wght     = 1.
 
     def __init__(self, mesh, mapping=None, indActive=None, **kwargs):
@@ -666,7 +664,7 @@ class Sparse(Simple):
 
         else:
             f_m = self.curModel - self.reg.mref
-            self.rs = self.R(f_m , self.norms[0])
+            self.rs = self.R(f_m , self.eps_p, self.norms[0])
             #print "Min rs: " + str(np.max(self.rs)) + "Max rs: " + str(np.min(self.rs))
             self.Rs = Utils.sdiag( self.rs )
 
@@ -682,7 +680,7 @@ class Sparse(Simple):
 
         else:
             f_m = self.regmesh.cellDiffxStencil * self.curModel
-            self.rx = self.R( f_m , self.qx)
+            self.rx = self.R( f_m , self.eps_q, self.norms[1])
             self.Rx = Utils.sdiag( self.rx )
 
         return Utils.sdiag(( (self.regmesh.aveCC2Fx * self.regmesh.vol) *self.alpha_x*self.gamma*(self.regmesh.aveCC2Fx*self.wght))**0.5)*self.Rx*self.regmesh.cellDiffxStencil
@@ -696,7 +694,7 @@ class Sparse(Simple):
 
         else:
             f_m = self.regmesh.cellDiffyStencil * self.curModel
-            self.ry = self.R( f_m , self.qy)
+            self.ry = self.R( f_m , self.eps_q, self.norms[2])
             self.Ry = Utils.sdiag( self.ry )
 
         return Utils.sdiag(((self.regmesh.aveCC2Fy * self.regmesh.vol)*self.alpha_y*self.gamma*(self.regmesh.aveCC2Fy*self.wght))**0.5)*self.Ry*self.regmesh.cellDiffyStencil
@@ -710,7 +708,7 @@ class Sparse(Simple):
 
         else:
             f_m = self.regmesh.cellDiffzStencil * self.curModel
-            self.rz = self.R( f_m , self.qz)
+            self.rz = self.R( f_m , self.eps_q, self.norms[3])
             self.Rz = Utils.sdiag( self.rz )
 
         return Utils.sdiag(((self.regmesh.aveCC2Fz * self.regmesh.vol)*self.alpha_z*self.gamma*(self.regmesh.aveCC2Fz*self.wght))**0.5)*self.Rz*self.regmesh.cellDiffzStencil
@@ -735,9 +733,9 @@ class Sparse(Simple):
         #self._W = sp.vstack(wlist)
         return sp.vstack(wlist)
 
-    def R(self, f_m , exponent):
+    def R(self, f_m , eps, exponent):
 
-        eta = (self.eps**(1-exponent/2.))**0.5
-        r = eta / (f_m**2.+self.eps**2.)**((1-exponent/2.)/2.)
+        eta = (eps**(1-exponent/2.))**0.5
+        r = eta / (f_m**2.+ eps**2.)**((1-exponent/2.)/2.)
 
         return r

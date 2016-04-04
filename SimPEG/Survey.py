@@ -372,7 +372,7 @@ class BaseSurvey(object):
         self.dtrue = self.dpred(m, u=u)
         noise = std*abs(self.dtrue)*np.random.randn(*self.dtrue.shape)
         self.dobs = self.dtrue+noise
-        self.std = self.dobs*0 + std
+        self.std = self.dobs*0. + std
         return self.dobs
 
 class LinearSurvey(BaseSurvey):
