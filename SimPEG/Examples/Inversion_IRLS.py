@@ -48,7 +48,7 @@ def run(N=200, plotIt=True):
     #M = prob.mesh
     # Distance weighting
     wr = np.sum(prob.G**2.,axis=0)**0.5 
-    wr = ( wr/np.max(wr) )**0
+    wr = ( wr/np.max(wr) )
     
     reg = Regularization.Simple(mesh)
     reg.wght = wr
