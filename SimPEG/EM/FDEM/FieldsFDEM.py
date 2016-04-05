@@ -8,7 +8,7 @@ from SimPEG.Utils import Zero, Identity
 
 class Fields(SimPEG.Problem.Fields):
     """
-    
+
     Fancy Field Storage for a FDEM survey. Only one field type is stored for
     each problem, the rest are computed. The fields obejct acts like an array and is indexed by
 
@@ -34,56 +34,56 @@ class Fields(SimPEG.Problem.Fields):
 
     def _e(self, solution, srcList):
         """
-        Total electric field is sum of primary and secondary 
-        
+        Total electric field is sum of primary and secondary
+
         :param numpy.ndarray solution: field we solved for
         :param list srcList: list of sources
         :rtype: numpy.ndarray
         :return: total electric field
         """
-        if getattr(self, '_ePrimary', None) is None or getattr(self, '_eSecondary', None) is None: 
+        if getattr(self, '_ePrimary', None) is None or getattr(self, '_eSecondary', None) is None:
             raise NotImplementedError ('Getting e from %s is not implemented' %self.knownFields.keys()[0])
 
         return self._ePrimary(solution,srcList) + self._eSecondary(solution,srcList)
 
     def _b(self, solution, srcList):
         """
-        Total magnetic flux density is sum of primary and secondary 
-        
+        Total magnetic flux density is sum of primary and secondary
+
         :param numpy.ndarray solution: field we solved for
         :param list srcList: list of sources
         :rtype: numpy.ndarray
-        :return: total magnetic flux density 
+        :return: total magnetic flux density
         """
-        if getattr(self, '_bPrimary', None) is None or getattr(self, '_bSecondary', None) is None: 
+        if getattr(self, '_bPrimary', None) is None or getattr(self, '_bSecondary', None) is None:
             raise NotImplementedError ('Getting b from %s is not implemented' %self.knownFields.keys()[0])
 
         return self._bPrimary(solution, srcList) + self._bSecondary(solution, srcList)
 
     def _h(self, solution, srcList):
         """
-        Total magnetic field is sum of primary and secondary 
-        
+        Total magnetic field is sum of primary and secondary
+
         :param numpy.ndarray solution: field we solved for
         :param list srcList: list of sources
         :rtype: numpy.ndarray
         :return: total magnetic field
         """
-        if getattr(self, '_hPrimary', None) is None or getattr(self, '_hSecondary', None) is None: 
+        if getattr(self, '_hPrimary', None) is None or getattr(self, '_hSecondary', None) is None:
             raise NotImplementedError ('Getting h from %s is not implemented' %self.knownFields.keys()[0])
 
         return self._hPrimary(solution, srcList) + self._hSecondary(solution, srcList)
 
     def _j(self, solution, srcList):
         """
-        Total current density is sum of primary and secondary 
-        
+        Total current density is sum of primary and secondary
+
         :param numpy.ndarray solution: field we solved for
         :param list srcList: list of sources
         :rtype: numpy.ndarray
-        :return: total current density 
+        :return: total current density
         """
-        if getattr(self, '_jPrimary', None) is None or getattr(self, '_jSecondary', None) is None: 
+        if getattr(self, '_jPrimary', None) is None or getattr(self, '_jSecondary', None) is None:
             raise NotImplementedError ('Getting j from %s is not implemented' %self.knownFields.keys()[0])
 
         return self._jPrimary(solution, srcList) + self._jSecondary(solution, srcList)
@@ -99,7 +99,7 @@ class Fields(SimPEG.Problem.Fields):
         :rtype: numpy.ndarray
         :return: derivative times a vector (or tuple for adjoint)
         """
-        if getattr(self, '_eDeriv_u', None) is None or getattr(self, '_eDeriv_m', None) is None: 
+        if getattr(self, '_eDeriv_u', None) is None or getattr(self, '_eDeriv_m', None) is None:
             raise NotImplementedError ('Getting eDerivs from %s is not implemented' %self.knownFields.keys()[0])
 
         if adjoint:
@@ -117,12 +117,26 @@ class Fields(SimPEG.Problem.Fields):
         :rtype: numpy.ndarray
         :return: derivative times a vector (or tuple for adjoint)
         """
-        if getattr(self, '_bDeriv_u', None) is None or getattr(self, '_bDeriv_m', None) is None: 
+        if getattr(self, '_bDeriv_u', None) is None or getattr(self, '_bDeriv_m', None) is None:
             raise NotImplementedError ('Getting bDerivs from %s is not implemented' %self.knownFields.keys()[0])
 
         if adjoint:
             return self._bDeriv_u(src, v, adjoint), self._bDeriv_m(src, v, adjoint)
         return self._bDeriv_u(src, du_dm_v, adjoint) + self._bDeriv_m(src, v, adjoint)
+
+    def _bSecondaryDeriv(self, src, du_dm_v, v, adjoint = False):
+        """
+        Total derivative of b with respect to the inversion model. Returns :math:`d\mathbf{b}/d\mathbf{m}` for forward and (:math:`d\mathbf{b}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for the adjoint
+
+        :param Src src: sorce
+        :param numpy.ndarray du_dm_v: derivative of the solution vector with respect to the model times a vector (is None for adjoint)
+        :param numpy.ndarray v: vector to take sensitivity product with
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: derivative times a vector (or tuple for adjoint)
+        """
+        return self._bDeriv(src, du_dm_v, v, adjoint)
+
 
     def _hDeriv(self, src, du_dm_v, v, adjoint = False):
         """
@@ -135,10 +149,10 @@ class Fields(SimPEG.Problem.Fields):
         :rtype: numpy.ndarray
         :return: derivative times a vector (or tuple for adjoint)
         """
-        if getattr(self, '_hDeriv_u', None) is None or getattr(self, '_hDeriv_m', None) is None: 
+        if getattr(self, '_hDeriv_u', None) is None or getattr(self, '_hDeriv_m', None) is None:
             raise NotImplementedError ('Getting hDerivs from %s is not implemented' %self.knownFields.keys()[0])
 
-        if adjoint: 
+        if adjoint:
             return self._hDeriv_u(src, v, adjoint), self._hDeriv_m(src, v, adjoint)
         return self._hDeriv_u(src, du_dm_v, adjoint) + self._hDeriv_m(src, v, adjoint)
 
@@ -153,7 +167,7 @@ class Fields(SimPEG.Problem.Fields):
         :rtype: numpy.ndarray
         :return: derivative times a vector (or tuple for adjoint)
         """
-        if getattr(self, '_jDeriv_u', None) is None or getattr(self, '_jDeriv_m', None) is None: 
+        if getattr(self, '_jDeriv_u', None) is None or getattr(self, '_jDeriv_m', None) is None:
             raise NotImplementedError ('Getting jDerivs from %s is not implemented' %self.knownFields.keys()[0])
 
         if adjoint:
@@ -163,10 +177,10 @@ class Fields(SimPEG.Problem.Fields):
 
 class Fields_e(Fields):
     """
-    Fields object for Problem_e. 
+    Fields object for Problem_e.
 
     :param Mesh mesh: mesh
-    :param Survey survey: survey 
+    :param Survey survey: survey
     """
 
     knownFields = {'eSolution':'E'}
@@ -217,9 +231,9 @@ class Fields_e(Fields):
 
     def _eDeriv_u(self, src, v, adjoint = False):
         """
-        Partial derivative of the total electric field with respect to the thing we 
+        Partial derivative of the total electric field with respect to the thing we
         solved for.
-        
+
         :param SimPEG.EM.FDEM.Src src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
@@ -231,8 +245,8 @@ class Fields_e(Fields):
 
     def _eDeriv_m(self, src, v, adjoint = False):
         """
-        Partial derivative of the total electric field with respect to the inversion model. Here, we assume that the primary does not depend on the model. Note that this also includes derivative contributions from the sources. 
-        
+        Partial derivative of the total electric field with respect to the inversion model. Here, we assume that the primary does not depend on the model. Note that this also includes derivative contributions from the sources.
+
         :param SimPEG.EM.FDEM.Src src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
@@ -280,7 +294,7 @@ class Fields_e(Fields):
     def _bSecondaryDeriv_u(self, src, du_dm_v, adjoint = False):
         """
         Derivative of the secondary magnetic flux density with respect to the thing we solved for
-        
+
         :param SimPEG.EM.FDEM.Src src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
@@ -295,8 +309,8 @@ class Fields_e(Fields):
 
     def _bSecondaryDeriv_m(self, src, v, adjoint = False):
         """
-        Derivative of the secondary magnetic flux density with respect to the inversion model. 
-        
+        Derivative of the secondary magnetic flux density with respect to the inversion model.
+
         :param SimPEG.EM.FDEM.Src src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
@@ -311,7 +325,7 @@ class Fields_e(Fields):
     def _bDeriv_u(self, src, du_dm_v, adjoint=False):
         """
         Partial derivative of the total magnetic flux density with respect to the thing we solved for
-        
+
         :param SimPEG.EM.FDEM.Src src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
@@ -323,8 +337,8 @@ class Fields_e(Fields):
 
     def _bDeriv_m(self, src, v, adjoint=False):
         """
-        Partial derivative of the total magnetic flux density with respect to the inversion model. 
-        
+        Partial derivative of the total magnetic flux density with respect to the inversion model.
+
         :param SimPEG.EM.FDEM.Src src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
@@ -338,10 +352,10 @@ class Fields_e(Fields):
 
 class Fields_b(Fields):
     """
-    Fields object for Problem_b. 
+    Fields object for Problem_b.
 
     :param Mesh mesh: mesh
-    :param Survey survey: survey 
+    :param Survey survey: survey
     """
 
     knownFields = {'bSolution':'F'}
@@ -395,9 +409,9 @@ class Fields_b(Fields):
 
     def _bDeriv_u(self, src, du_dm_v, adjoint=False):
         """
-        Partial derivative of the total magnetic flux density with respect to the thing we 
+        Partial derivative of the total magnetic flux density with respect to the thing we
         solved for.
-        
+
         :param SimPEG.EM.FDEM.Src src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
@@ -409,8 +423,8 @@ class Fields_b(Fields):
 
     def _bDeriv_m(self, src, v, adjoint=False):
         """
-        Partial derivative of the total magnetic flux density with respect to the inversion model. Here, we assume that the primary does not depend on the model. Note that this also includes derivative contributions from the sources. 
-        
+        Partial derivative of the total magnetic flux density with respect to the inversion model. Here, we assume that the primary does not depend on the model. Note that this also includes derivative contributions from the sources.
+
         :param SimPEG.EM.FDEM.Src src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
@@ -456,7 +470,7 @@ class Fields_b(Fields):
     def _eSecondaryDeriv_u(self, src, du_dm_v, adjoint=False):
         """
         Derivative of the secondary electric field with respect to the thing we solved for
-        
+
         :param SimPEG.EM.FDEM.Src src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
@@ -471,8 +485,8 @@ class Fields_b(Fields):
 
     def _eSecondaryDeriv_m(self, src, v, adjoint=False):
         """
-        Derivative of the secondary electric field with respect to the inversion model 
-        
+        Derivative of the secondary electric field with respect to the inversion model
+
         :param SimPEG.EM.FDEM.Src src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
@@ -503,8 +517,8 @@ class Fields_b(Fields):
 
     def _eDeriv_u(self, src, du_dm_v, adjoint=False):
         """
-        Partial derivative of the total electric field with respect to the thing we solved for 
-        
+        Partial derivative of the total electric field with respect to the thing we solved for
+
         :param SimPEG.EM.FDEM.Src src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
@@ -516,8 +530,8 @@ class Fields_b(Fields):
 
     def _eDeriv_m(self, src, v, adjoint=False):
         """
-        Partial derivative of the total electric field density with respect to the inversion model. 
-        
+        Partial derivative of the total electric field density with respect to the inversion model.
+
         :param SimPEG.EM.FDEM.Src src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
@@ -531,10 +545,10 @@ class Fields_b(Fields):
 
 class Fields_j(Fields):
     """
-    Fields object for Problem_j. 
+    Fields object for Problem_j.
 
     :param Mesh mesh: mesh
-    :param Survey survey: survey 
+    :param Survey survey: survey
     """
 
     knownFields = {'jSolution':'F'}
@@ -588,12 +602,12 @@ class Fields_j(Fields):
 
     def _j(self, jSolution, srcList):
         """
-        Total current density is sum of primary and secondary 
-        
+        Total current density is sum of primary and secondary
+
         :param numpy.ndarray jSolution: field we solved for
         :param list srcList: list of sources
         :rtype: numpy.ndarray
-        :return: total current density 
+        :return: total current density
         """
 
         return self._jPrimary(jSolution, srcList) + self._jSecondary(jSolution, srcList)
@@ -601,9 +615,9 @@ class Fields_j(Fields):
 
     def _jDeriv_u(self, src, du_dm_v, adjoint=False):
         """
-        Partial derivative of the total current density with respect to the thing we 
+        Partial derivative of the total current density with respect to the thing we
         solved for.
-        
+
         :param SimPEG.EM.FDEM.Src src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
@@ -616,8 +630,8 @@ class Fields_j(Fields):
 
     def _jDeriv_m(self, src, v, adjoint=False):
         """
-        Partial derivative of the total current density with respect to the inversion model. Here, we assume that the primary does not depend on the model. Note that this also includes derivative contributions from the sources. 
-        
+        Partial derivative of the total current density with respect to the inversion model. Here, we assume that the primary does not depend on the model. Note that this also includes derivative contributions from the sources.
+
         :param SimPEG.EM.FDEM.Src src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
@@ -664,7 +678,7 @@ class Fields_j(Fields):
     def _hSecondaryDeriv_u(self, src, du_dm_v, adjoint=False):
         """
         Derivative of the secondary magnetic field with respect to the thing we solved for
-        
+
         :param SimPEG.EM.FDEM.Src src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
@@ -679,8 +693,8 @@ class Fields_j(Fields):
 
     def _hSecondaryDeriv_m(self, src, v, adjoint=False):
         """
-        Derivative of the secondary magnetic field with respect to the inversion model 
-        
+        Derivative of the secondary magnetic field with respect to the inversion model
+
         :param SimPEG.EM.FDEM.Src src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
@@ -713,8 +727,8 @@ class Fields_j(Fields):
 
     def _hDeriv_u(self, src, du_dm_v, adjoint=False):
         """
-        Partial derivative of the total magnetic field with respect to the thing we solved for 
-        
+        Partial derivative of the total magnetic field with respect to the thing we solved for
+
         :param SimPEG.EM.FDEM.Src src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
@@ -726,8 +740,8 @@ class Fields_j(Fields):
 
     def _hDeriv_m(self, src, v, adjoint=False):
         """
-        Partial derivative of the total magnetic field density with respect to the inversion model. 
-        
+        Partial derivative of the total magnetic field density with respect to the inversion model.
+
         :param SimPEG.EM.FDEM.Src src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
@@ -741,10 +755,10 @@ class Fields_j(Fields):
 
 class Fields_h(Fields):
     """
-    Fields object for Problem_h. 
+    Fields object for Problem_h.
 
     :param Mesh mesh: mesh
-    :param Survey survey: survey 
+    :param Survey survey: survey
     """
 
     knownFields = {'hSolution':'E'}
@@ -797,9 +811,9 @@ class Fields_h(Fields):
 
     def _hDeriv_u(self, src, du_dm_v, adjoint=False):
         """
-        Partial derivative of the total magnetic field with respect to the thing we 
+        Partial derivative of the total magnetic field with respect to the thing we
         solved for.
-        
+
         :param SimPEG.EM.FDEM.Src src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
@@ -811,8 +825,8 @@ class Fields_h(Fields):
 
     def _hDeriv_m(self, src, v, adjoint=False):
         """
-        Partial derivative of the total magnetic field with respect to the inversion model. Here, we assume that the primary does not depend on the model. Note that this also includes derivative contributions from the sources. 
-        
+        Partial derivative of the total magnetic field with respect to the inversion model. Here, we assume that the primary does not depend on the model. Note that this also includes derivative contributions from the sources.
+
         :param SimPEG.EM.FDEM.Src src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
@@ -858,7 +872,7 @@ class Fields_h(Fields):
     def _jSecondaryDeriv_u(self, src, du_dm_v, adjoint=False):
         """
         Derivative of the secondary current density with respect to the thing we solved for
-        
+
         :param SimPEG.EM.FDEM.Src src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
@@ -873,8 +887,8 @@ class Fields_h(Fields):
 
     def _jSecondaryDeriv_m(self, src, v, adjoint=False):
         """
-        Derivative of the secondary current density with respect to the inversion model. 
-        
+        Derivative of the secondary current density with respect to the inversion model.
+
         :param SimPEG.EM.FDEM.Src src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
@@ -889,7 +903,7 @@ class Fields_h(Fields):
     def _jDeriv_u(self, src, du_dm_v, adjoint=False):
         """
         Partial derivative of the total current density with respect to the thing we solved for
-        
+
         :param SimPEG.EM.FDEM.Src src: source
         :param numpy.ndarray du_dm_v: vector to take product with
         :param bool adjoint: adjoint?
@@ -901,8 +915,8 @@ class Fields_h(Fields):
 
     def _jDeriv_m(self, src, v, adjoint=False):
         """
-        Partial derivative of the total current density with respect to the inversion model. 
-        
+        Partial derivative of the total current density with respect to the inversion model.
+
         :param SimPEG.EM.FDEM.Src src: source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?

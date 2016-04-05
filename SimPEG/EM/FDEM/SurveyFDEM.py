@@ -32,6 +32,13 @@ class Rx(SimPEG.Survey.BaseRx):
                     'byi':['b', 'Fy', 'imag'],
                     'bzi':['b', 'Fz', 'imag'],
 
+                    'bxr_sec':['bSecondary', 'Fx', 'real'],
+                    'byr_sec':['bSecondary', 'Fy', 'real'],
+                    'bzr_sec':['bSecondary', 'Fz', 'real'],
+                    'bxi_sec':['bSecondary', 'Fx', 'imag'],
+                    'byi_sec':['bSecondary', 'Fy', 'imag'],
+                    'bzi_sec':['bSecondary', 'Fz', 'imag'],
+
                     'jxr':['j', 'Fx', 'real'],
                     'jyr':['j', 'Fy', 'real'],
                     'jzr':['j', 'Fz', 'real'],
@@ -76,7 +83,7 @@ class Rx(SimPEG.Survey.BaseRx):
         :rtype: numpy.ndarray
         :return: fields projected to recievers
         """
-        P = self.getP(mesh) # get interpolation to recievers 
+        P = self.getP(mesh) # get interpolation to recievers
         u_part_complex = f[src, self.projField]
         real_or_imag = self.projComp # get the real or imag component
         u_part = getattr(u_part_complex, real_or_imag)
@@ -125,7 +132,7 @@ class Survey(SimPEG.Survey.BaseSurvey):
     """
 
     srcPair = Src.BaseSrc
-    rxPair = Rx 
+    rxPair = Rx
 
     def __init__(self, srcList, **kwargs):
         # Sort these by frequency
@@ -165,7 +172,7 @@ class Survey(SimPEG.Survey.BaseSurvey):
         Returns the sources associated with a specific frequency.
         :param float freq: frequency for which we look up sources
         :rtype: dictionary
-        :return: sources at the sepcified frequency 
+        :return: sources at the sepcified frequency
         """
         assert freq in self._freqDict, "The requested frequency is not in this survey."
         return self._freqDict[freq]
