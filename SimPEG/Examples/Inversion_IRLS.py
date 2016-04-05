@@ -68,23 +68,9 @@ def run(N=200, plotIt=True):
     
 
     mrec = inv.run(m0)
-    
+    ml2 = mrec
     print "Final misfit:" + str(invProb.dmisfit.eval(mrec)) 
-    
-    if plotIt:
-        import matplotlib.pyplot as plt
-
-        fig, axes = plt.subplots(1,2,figsize=(12*1.2,4*1.2))
-        for i in range(prob.G.shape[0]):
-            axes[0].plot(prob.G[i,:])
-        axes[0].set_title('Columns of matrix G')
-        
-        axes[1].plot(mesh.vectorCCx, mtrue, 'b-')
-        axes[1].plot(mesh.vectorCCx, mrec, 'r-')
-        #axes[1].legend(('True Model', 'Recovered Model'))
-        axes[1].set_ylim(-1.0,1.25)
-        plt.show()
-        
+            
     # Switch regularization to sparse
     phim = invProb.phi_m_last
     phid =  invProb.phi_d
@@ -105,7 +91,7 @@ def run(N=200, plotIt=True):
     reg.norms   = [0., 0., 2., 2.]
     reg.wght = wr
     
-    opt = Optimization.ProjectedGNCG(maxIter=10 ,lower=-2.,upper=2., maxIterCG= 200, tolCG = 1e-3)
+    opt = Optimization.ProjectedGNCG(maxIter=5 ,lower=-2.,upper=2., maxIterCG= 100, tolCG = 1e-3)
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta = invProb.beta*2.)
     beta = Directives.BetaSchedule(coolingFactor=1, coolingRate=1)
     #betaest = Directives.BetaEstimate_ByEig()
@@ -121,10 +107,24 @@ def run(N=200, plotIt=True):
 
     print "Final misfit:" + str(invProb.dmisfit.eval(mrec)) 
     
+    
     if plotIt:
+        import matplotlib.pyplot as plt
+
+        fig, axes = plt.subplots(1,2,figsize=(12*1.2,4*1.2))
+        for i in range(prob.G.shape[0]):
+            axes[0].plot(prob.G[i,:])
+        axes[0].set_title('Columns of matrix G')
+        
+        axes[1].plot(mesh.vectorCCx, mtrue, 'b-')
+        axes[1].plot(mesh.vectorCCx, ml2, 'r-')
+        #axes[1].legend(('True Model', 'Recovered Model'))
+        axes[1].set_ylim(-1.0,1.25)
+        
         axes[1].plot(mesh.vectorCCx, mrec, 'k-',lw = 2)
         axes[1].legend(('True Model', 'Smooth l2-l2',
         'Sparse lp:' + str(reg.norms[0]) + ', lqx:' + str(reg.norms[1]) ), fontsize = 12)
+        plt.show()
         
     return prob, survey, mesh, mrec
 
