@@ -8,7 +8,7 @@ class RichardsRx(Survey.BaseTimeRx):
 
     knownRxTypes = ['saturation','pressureHead']
 
-    def projectFields(self, U, m, mapping, mesh, timeMesh):
+    def eval(self, U, m, mapping, mesh, timeMesh):
 
         if self.rxType == 'pressureHead':
             u = np.concatenate(U)
@@ -17,7 +17,7 @@ class RichardsRx(Survey.BaseTimeRx):
 
         return self.getP(mesh, timeMesh) * u
 
-    def projectFieldsDeriv(self, U, m, mapping, mesh, timeMesh):
+    def evalDeriv(self, U, m, mapping, mesh, timeMesh):
 
         P = self.getP(mesh, timeMesh)
         if self.rxType == 'pressureHead':
@@ -45,25 +45,25 @@ class RichardsSurvey(Survey.BaseSurvey):
 
     @Utils.count
     @Utils.requires('prob')
-    def dpred(self, m, u=None):
+    def dpred(self, m, f=None):
         """
             Create the projected data from a model.
-            The field, u, (if provided) will be used for the predicted data
+            The field, f, (if provided) will be used for the predicted data
             instead of recalculating the fields (which may be expensive!).
 
             .. math::
-                d_\\text{pred} = P(u(m), m)
+                d_\\text{pred} = P(f(m), m)
 
             Where P is a projection of the fields onto the data space.
         """
-        if u is None: u = self.prob.fields(m)
-        return Utils.mkvc(self.projectFields(u, m))
+        if f is None: f = self.prob.fields(m)
+        return Utils.mkvc(self.eval(f, m))
 
     @Utils.requires('prob')
-    def projectFields(self, U, m):
+    def eval(self, U, m):
         Ds = range(len(self.rxList))
         for ii, rx in enumerate(self.rxList):
-            Ds[ii] = rx.projectFields(U, m,
+            Ds[ii] = rx.eval(U, m,
                                 self.prob.mapping,
                                 self.prob.mesh,
                                 self.prob.timeMesh)
@@ -71,11 +71,11 @@ class RichardsSurvey(Survey.BaseSurvey):
         return np.concatenate(Ds)
 
     @Utils.requires('prob')
-    def projectFieldsDeriv(self, U, m):
+    def evalDeriv(self, U, m):
         """The Derivative with respect to the fields."""
         Ds = range(len(self.rxList))
         for ii, rx in enumerate(self.rxList):
-            Ds[ii] = rx.projectFieldsDeriv(U, m,
+            Ds[ii] = rx.evalDeriv(U, m,
                                 self.prob.mapping,
                                 self.prob.mesh,
                                 self.prob.timeMesh)
@@ -233,16 +233,16 @@ class RichardsProblem(Problem.BaseTimeProblem):
         return r, J
 
     @Utils.timeIt
-    def Jfull(self, m, u=None):
-        if u is None:
-            u = self.fields(m)
+    def Jfull(self, m, f=None):
+        if f is None:
+            f = self.fields(m)
 
-        nn = len(u)-1
+        nn = len(f)-1
         Asubs, Adiags, Bs = range(nn), range(nn), range(nn)
         for ii in range(nn):
             dt = self.timeSteps[ii]
-            bc = self.getBoundaryConditions(ii, u[ii])
-            Asubs[ii], Adiags[ii], Bs[ii] = self.diagsJacobian(m, u[ii], u[ii+1], dt, bc)
+            bc = self.getBoundaryConditions(ii, f[ii])
+            Asubs[ii], Adiags[ii], Bs[ii] = self.diagsJacobian(m, f[ii], f[ii+1], dt, bc)
         Ad = sp.block_diag(Adiags)
         zRight = Utils.spzeros((len(Asubs)-1)*Asubs[0].shape[0],Adiags[0].shape[1])
         zTop = Utils.spzeros(Adiags[0].shape[0], len(Adiags)*Adiags[0].shape[1])
@@ -251,7 +251,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
         B = np.array(sp.vstack(Bs).todense())
 
         Ainv = self.Solver(A, **self.solverOpts)
-        P = self.survey.projectFieldsDeriv(u, m)
+        P = self.survey.evalDeriv(f, m)
         AinvB = Ainv * B
         z = np.zeros((self.mesh.nC, B.shape[1]))
         zAinvB = np.vstack((z, AinvB))
@@ -259,41 +259,41 @@ class RichardsProblem(Problem.BaseTimeProblem):
         return J
 
     @Utils.timeIt
-    def Jvec(self, m, v, u=None):
-        if u is None:
-            u = self.fields(m)
+    def Jvec(self, m, v, f=None):
+        if f is None:
+            f = self.fields(m)
 
-        JvC = range(len(u)-1) # Cell to hold each row of the long vector.
+        JvC = range(len(f)-1) # Cell to hold each row of the long vector.
 
         # This is done via forward substitution.
-        bc = self.getBoundaryConditions(0, u[0])
-        temp, Adiag, B = self.diagsJacobian(m, u[0], u[1], self.timeSteps[0], bc)
+        bc = self.getBoundaryConditions(0, f[0])
+        temp, Adiag, B = self.diagsJacobian(m, f[0], f[1], self.timeSteps[0], bc)
         Adiaginv = self.Solver(Adiag, **self.solverOpts)
         JvC[0] = Adiaginv * (B*v)
 
-        for ii in range(1,len(u)-1):
-            bc = self.getBoundaryConditions(ii, u[ii])
-            Asub, Adiag, B = self.diagsJacobian(m, u[ii], u[ii+1], self.timeSteps[ii], bc)
+        for ii in range(1,len(f)-1):
+            bc = self.getBoundaryConditions(ii, f[ii])
+            Asub, Adiag, B = self.diagsJacobian(m, f[ii], f[ii+1], self.timeSteps[ii], bc)
             Adiaginv = self.Solver(Adiag, **self.solverOpts)
             JvC[ii] = Adiaginv * (B*v - Asub*JvC[ii-1])
 
-        P = self.survey.projectFieldsDeriv(u, m)
+        P = self.survey.evalDeriv(f, m)
         return P * np.concatenate([np.zeros(self.mesh.nC)] + JvC)
 
     @Utils.timeIt
-    def Jtvec(self, m, v, u=None):
-        if u is None:
-            u = self.field(m)
+    def Jtvec(self, m, v, f=None):
+        if f is None:
+            f = self.field(m)
 
-        P = self.survey.projectFieldsDeriv(u, m)
+        P = self.survey.evalDeriv(f, m)
         PTv = P.T*v
 
         # This is done via backward substitution.
         minus = 0
         BJtv = 0
-        for ii in range(len(u)-1,0,-1):
-            bc = self.getBoundaryConditions(ii-1, u[ii-1])
-            Asub, Adiag, B = self.diagsJacobian(m, u[ii-1], u[ii], self.timeSteps[ii-1], bc)
+        for ii in range(len(f)-1,0,-1):
+            bc = self.getBoundaryConditions(ii-1, f[ii-1])
+            Asub, Adiag, B = self.diagsJacobian(m, f[ii-1], f[ii], self.timeSteps[ii-1], bc)
             #select the correct part of v
             vpart = range((ii)*Adiag.shape[0], (ii+1)*Adiag.shape[0])
             AdiaginvT = self.Solver(Adiag.T, **self.solverOpts)

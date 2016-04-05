@@ -82,23 +82,23 @@ class BaseInvProblem(object):
         self._warmstart = value
 
     def getFields(self, m, store=False, deleteWarmstart=True):
-        u = None
+        f = None
 
         for mtest, u_ofmtest in self.warmstart:
             if m is mtest:
-                u = u_ofmtest
+                f = u_ofmtest
                 if self.debug: print 'InvProb is Warm Starting!'
                 break
 
-        if u is None:
-            u = self.prob.fields(m)
+        if f is None:
+            f = self.prob.fields(m)
 
         if deleteWarmstart:
             self.warmstart = []
         if store:
-            self.warmstart += [(m,u)]
+            self.warmstart += [(m,f)]
 
-        return u
+        return f
 
     @Utils.timeIt
     def evalFunction(self, m, return_g=True, return_H=True):
@@ -109,21 +109,21 @@ class BaseInvProblem(object):
         gc.collect()
 
         # Store fields if doing a line-search
-        u = self.getFields(m, store=(return_g==False and return_H==False))
+        f = self.getFields(m, store=(return_g==False and return_H==False))
 
-        phi_d = self.dmisfit.eval(m, u=u)
+        phi_d = self.dmisfit.eval(m, f=f)
         phi_m = self.reg.eval(m)
 
-        self.dpred = self.survey.dpred(m, u=u)  # This is a cheap matrix vector calculation.
+        self.dpred = self.survey.dpred(m, f=f)  # This is a cheap matrix vector calculation.
 
         self.phi_d, self.phi_d_last  = phi_d, self.phi_d
         self.phi_m, self.phi_m_last  = phi_m, self.phi_m
 
-        f = phi_d + self.beta * phi_m
+        phi = phi_d + self.beta * phi_m
 
-        out = (f,)
+        out = (phi,)
         if return_g:
-            phi_dDeriv = self.dmisfit.evalDeriv(m, u=u)
+            phi_dDeriv = self.dmisfit.evalDeriv(m, f=f)
             phi_mDeriv = self.reg.evalDeriv(m)
 
             g = phi_dDeriv + self.beta * phi_mDeriv
@@ -131,7 +131,7 @@ class BaseInvProblem(object):
 
         if return_H:
             def H_fun(v):
-                phi_d2Deriv = self.dmisfit.eval2Deriv(m, v, u=u)
+                phi_d2Deriv = self.dmisfit.eval2Deriv(m, v, f=f)
                 phi_m2Deriv = self.reg.eval2Deriv(m, v=v)
 
                 return phi_d2Deriv + self.beta * phi_m2Deriv
