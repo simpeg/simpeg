@@ -237,39 +237,41 @@ class SaveOutputDictEveryIteration(_SaveEveryIteration):
         # Save the file as a npz
         np.savez('{:03d}-{:s}'.format(self.opt.iter,self.fileName), iter=self.opt.iter, beta=self.invProb.beta, phi_d=self.invProb.phi_d, phi_m=self.invProb.phi_m, phi_ms=phi_ms, phi_mx=phi_mx, phi_my=phi_my, phi_mz=phi_mz,f=self.opt.f, m=self.invProb.curModel,dpred=self.invProb.dpred)
 
-class SaveOutputDictEveryIteration(_SaveEveryIteration):
-    """SaveOutputDictEveryIteration
-    A directive that saves some relevant information from the inversion run to a numpy .npz dictionary file (see numpy.savez function for further info).
-    """
-
-    def initialize(self):
-        print "SimPEG.SaveOutputDictEveryIteration will save your inversion progress as dictionary: '%s-###.npz'"%self.fileName
-
-    def endIter(self):
-        # Save the data.
-        ms = self.reg.Ws * ( self.reg.mapping * (self.invProb.curModel - self.reg.mref) )
-        phi_ms = 0.5*ms.dot(ms)
-        if self.reg.mrefInSmooth == True:
-            mref = self.reg.mref
-        else:
-            mref = 0
-        mx = self.reg.Wx * ( self.reg.mapping * (self.invProb.curModel - mref) )
-        phi_mx = 0.5 * mx.dot(mx)
-        if self.prob.mesh.dim==2:
-            my = self.reg.Wy * ( self.reg.mapping * (self.invProb.curModel - mref) )
-            phi_my = 0.5 * my.dot(my)
-        else:
-            phi_my = 'NaN'
-        if self.prob.mesh.dim==3 and 'CYL' not in self.prob.mesh._meshType:
-            mz = self.reg.Wz * ( self.reg.mapping * (self.invProb.curModel - mref) )
-            phi_mz = 0.5 * mz.dot(mz)
-        else:
-            phi_mz = 'NaN'
-
-
-        # Save the file as a npz
-        np.savez('{:s}-{:03d}'.format(self.fileName,self.opt.iter), iter=self.opt.iter, beta=self.invProb.beta, phi_d=self.invProb.phi_d, phi_m=self.invProb.phi_m, phi_ms=phi_ms, phi_mx=phi_mx, phi_my=phi_my, phi_mz=phi_mz,f=self.opt.f, m=self.invProb.curModel,dpred=self.invProb.dpred)
-
+#==============================================================================
+# class SaveOutputDictEveryIteration(_SaveEveryIteration):
+#     """SaveOutputDictEveryIteration
+#     A directive that saves some relevant information from the inversion run to a numpy .npz dictionary file (see numpy.savez function for further info).
+#     """
+# 
+#     def initialize(self):
+#         print "SimPEG.SaveOutputDictEveryIteration will save your inversion progress as dictionary: '%s-###.npz'"%self.fileName
+# 
+#     def endIter(self):
+#         # Save the data.
+#         ms = self.reg.Ws * ( self.reg.mapping * (self.invProb.curModel - self.reg.mref) )
+#         phi_ms = 0.5*ms.dot(ms)
+#         if self.reg.mrefInSmooth == True:
+#             mref = self.reg.mref
+#         else:
+#             mref = 0
+#         mx = self.reg.Wx * ( self.reg.mapping * (self.invProb.curModel - mref) )
+#         phi_mx = 0.5 * mx.dot(mx)
+#         if self.prob.mesh.dim==2:
+#             my = self.reg.Wy * ( self.reg.mapping * (self.invProb.curModel - mref) )
+#             phi_my = 0.5 * my.dot(my)
+#         else:
+#             phi_my = 'NaN'
+#         if self.prob.mesh.dim==3 and 'CYL' not in self.prob.mesh._meshType:
+#             mz = self.reg.Wz * ( self.reg.mapping * (self.invProb.curModel - mref) )
+#             phi_mz = 0.5 * mz.dot(mz)
+#         else:
+#             phi_mz = 'NaN'
+# 
+# 
+#         # Save the file as a npz
+#         np.savez('{:s}-{:03d}'.format(self.fileName,self.opt.iter), iter=self.opt.iter, beta=self.invProb.beta, phi_d=self.invProb.phi_d, phi_m=self.invProb.phi_m, phi_ms=phi_ms, phi_mx=phi_mx, phi_my=phi_my, phi_mz=phi_mz,f=self.opt.f, m=self.invProb.curModel,dpred=self.invProb.dpred)
+# 
+#==============================================================================
 
 # class UpdateReferenceModel(Parameter):
 
@@ -295,6 +297,8 @@ class update_IRLS(InversionDirective):
 
         # Scale the regularization for changes in norm
         if getattr(self, 'phi_m_last', None) is not None:
+            
+            self.reg.curModel = self.invProb.curModel
             self.reg.gamma = 1.
             phim_new = self.reg.eval(self.invProb.curModel)
             self.gamma = self.phi_m_last / phim_new
@@ -320,25 +324,59 @@ class update_IRLS(InversionDirective):
         
          # Update the model used for the IRLS weights
         self.reg.curModel = self.invProb.curModel
-
-        # Update the pre-conditioner
-        diagA = np.sum(self.prob.G**2.,axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() * (self.reg.mapping * np.ones(self.reg.curModel.size))**2.
-        PC     = Utils.sdiag(diagA**-1.)
-        self.opt.approxHinv = PC
          
         # Temporarely set gamma to 1.
         self.reg.gamma = 1.
         
         # Compute change in model objective function and update scaling
         phim_new = self.reg.eval(self.invProb.curModel)
+
         self.reg.gamma = self.phi_m_last / phim_new
         
-        # TO DO: Re-scale beta if too much change in misfit
-        self.invProb.beta = self.invProb.beta * self.phi_d_last / self.invProb.phi_d
         
-#==============================================================================
-#          import pylab as plt
-#          plt.figure()
-#          ax = plt.subplot(221)
-#          self.prob.mesh.plotSlice(self.invProb.curModel, ax = ax, normal = 'Z', ind=-5, clim = (0, 0.005))
-#==============================================================================
+        # TO DO: Check optimization class, data misfit not matching reality        
+        #dpred = self.prob.fields(self.invProb.curModel)
+        #phid = self.invProb.dmisfit.eval(self.invProb.curModel)
+        #print self.survey.std[0]
+        #print phid
+        #print self.invProb.phi_d
+        #print self.invProb.phi_d_last
+        
+        self.invProb.beta = self.invProb.beta * self.survey.nD*0.5 / self.invProb.phi_d
+
+class update_lin_PreCond(InversionDirective):
+    
+  
+    def endIter(self):
+        # Cool the threshold parameter
+        
+        if getattr(self.opt, 'approxHinv', None) is not None:
+            # Update the pre-conditioner
+            diagA = np.sum(self.prob.G**2.,axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() * (self.reg.mapping * np.ones(self.reg.curModel.size))**2.
+            PC     = Utils.sdiag(diagA**-1.)
+            self.opt.approxHinv = PC
+            print 'Updated pre-cond'
+
+class update_Wj(InversionDirective):
+    """
+        Create approx-sensitivity base weighting
+    """
+    k = None
+    
+    def endIter(self):
+        
+        if self.opt.iter == 2:
+            m = self.invProb.curModel
+            if self.k is None:
+                self.k = int(self.survey.nD/10)
+                
+            def JtJv(v):
+
+                Jv = self.prob.Jvec(m, v)
+            
+                return self.prob.Jtvec(m,Jv)
+            
+            JtJdiag = Utils.diagEst(JtJv,len(m),k=self.k)
+            JtJdiag = JtJdiag / max(JtJdiag)
+
+            self.reg.wght = JtJdiag
