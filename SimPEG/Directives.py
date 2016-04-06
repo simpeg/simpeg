@@ -242,10 +242,10 @@ class SaveOutputDictEveryIteration(_SaveEveryIteration):
 #     """SaveOutputDictEveryIteration
 #     A directive that saves some relevant information from the inversion run to a numpy .npz dictionary file (see numpy.savez function for further info).
 #     """
-# 
+#
 #     def initialize(self):
 #         print "SimPEG.SaveOutputDictEveryIteration will save your inversion progress as dictionary: '%s-###.npz'"%self.fileName
-# 
+#
 #     def endIter(self):
 #         # Save the data.
 #         ms = self.reg.Ws * ( self.reg.mapping * (self.invProb.curModel - self.reg.mref) )
@@ -266,11 +266,11 @@ class SaveOutputDictEveryIteration(_SaveEveryIteration):
 #             phi_mz = 0.5 * mz.dot(mz)
 #         else:
 #             phi_mz = 'NaN'
-# 
-# 
+#
+#
 #         # Save the file as a npz
 #         np.savez('{:s}-{:03d}'.format(self.fileName,self.opt.iter), iter=self.opt.iter, beta=self.invProb.beta, phi_d=self.invProb.phi_d, phi_m=self.invProb.phi_m, phi_ms=phi_ms, phi_mx=phi_mx, phi_my=phi_my, phi_mz=phi_mz,f=self.opt.f, m=self.invProb.curModel,dpred=self.invProb.dpred)
-# 
+#
 #==============================================================================
 
 # class UpdateReferenceModel(Parameter):
@@ -292,12 +292,12 @@ class update_IRLS(InversionDirective):
     gamma = None
     phi_m_last = None
     phi_d_last = None
-    
+
     def initialize(self):
 
         # Scale the regularization for changes in norm
         if getattr(self, 'phi_m_last', None) is not None:
-            
+
             self.reg.curModel = self.invProb.curModel
             self.reg.gamma = 1.
             phim_new = self.reg.eval(self.invProb.curModel)
@@ -305,10 +305,10 @@ class update_IRLS(InversionDirective):
 
         self.reg.curModel = self.invProb.curModel
         self.reg.gamma = self.gamma
-        
+
         if getattr(self, 'phi_d_last', None) is None:
             self.phi_d_last = self.invProb.phi_d
-            
+
     def endIter(self):
         # Cool the threshold parameter
         if getattr(self, 'factor', None) is not None:
@@ -321,35 +321,35 @@ class update_IRLS(InversionDirective):
 
         # Get phi_m at the end of current iteration
         self.phi_m_last = self.invProb.phi_m_last
-        
+
          # Update the model used for the IRLS weights
         self.reg.curModel = self.invProb.curModel
-         
+
         # Temporarely set gamma to 1.
         self.reg.gamma = 1.
-        
+
         # Compute change in model objective function and update scaling
         phim_new = self.reg.eval(self.invProb.curModel)
 
         self.reg.gamma = self.phi_m_last / phim_new
-        
-        
-        # TO DO: Check optimization class, data misfit not matching reality        
+
+
+        # TO DO: Check optimization class, data misfit not matching reality
         #dpred = self.prob.fields(self.invProb.curModel)
         #phid = self.invProb.dmisfit.eval(self.invProb.curModel)
         #print self.survey.std[0]
         #print phid
         #print self.invProb.phi_d
         #print self.invProb.phi_d_last
-        
+
         self.invProb.beta = self.invProb.beta * self.survey.nD*0.5 / self.invProb.phi_d
 
 class update_lin_PreCond(InversionDirective):
-    
-  
+
+
     def endIter(self):
         # Cool the threshold parameter
-        
+
         if getattr(self.opt, 'approxHinv', None) is not None:
             # Update the pre-conditioner
             diagA = np.sum(self.prob.G**2.,axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() * (self.reg.mapping * np.ones(self.reg.curModel.size))**2.
@@ -362,20 +362,20 @@ class update_Wj(InversionDirective):
         Create approx-sensitivity base weighting
     """
     k = None
-    
+
     def endIter(self):
-        
+
         if self.opt.iter == 2:
             m = self.invProb.curModel
             if self.k is None:
                 self.k = int(self.survey.nD/10)
-                
+
             def JtJv(v):
 
                 Jv = self.prob.Jvec(m, v)
-            
+
                 return self.prob.Jtvec(m,Jv)
-            
+
             JtJdiag = Utils.diagEst(JtJv,len(m),k=self.k)
             JtJdiag = JtJdiag / max(JtJdiag)
 
