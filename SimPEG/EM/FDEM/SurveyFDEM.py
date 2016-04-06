@@ -1,5 +1,6 @@
 import SimPEG
 from SimPEG.EM.Utils import *
+from SimPEG.EM.Base import BaseEMSurvey
 from scipy.constants import mu_0
 from SimPEG.Utils import Zero, Identity
 import SrcFDEM as Src
@@ -66,7 +67,7 @@ class Rx(SimPEG.Survey.BaseRx):
         """Grid Location projection (e.g. Ex Fy ...)"""
         return u._GLoc(self.rxType[0]) + self.knownRxTypes[self.rxType][1]
 
-    def eval(self, src, mesh, u):
+    def eval(self, src, mesh, f):
         """
         Project fields to recievers to get data.
 
@@ -79,27 +80,27 @@ class Rx(SimPEG.Survey.BaseRx):
         # projGLoc = u._GLoc(self.knownRxTypes[self.rxType][0])
         # projGLoc += self.knownRxTypes[self.rxType][1]
 
-        P = self.getP(mesh, self.projGLoc(u))
-        u_part_complex = u[src, self.projField]
+        P = self.getP(mesh, self.projGLoc(f))
+        f_part_complex = f[src, self.projField]
         # get the real or imag component
         real_or_imag = self.projComp
-        u_part = getattr(u_part_complex, real_or_imag)
-        
-        return P*u_part
+        f_part = getattr(f_part_complex, real_or_imag)
 
-    def evalDeriv(self, src, mesh, u, v, adjoint=False):
+        return P*f_part
+
+    def evalDeriv(self, src, mesh, f, v, adjoint=False):
         """
         Derivative of projected fields with respect to the inversion model times a vector.
 
         :param Source src: FDEM source
         :param Mesh mesh: mesh used
-        :param Fields u: fields object
+        :param Fields f: fields object
         :param numpy.ndarray v: vector to multiply
         :rtype: numpy.ndarray
         :return: fields projected to recievers
         """
 
-        P = self.getP(mesh, self.projGLoc(u))
+        P = self.getP(mesh, self.projGLoc(f))
 
         if not adjoint:
             Pv_complex = P * v
@@ -123,7 +124,7 @@ class Rx(SimPEG.Survey.BaseRx):
 # Survey
 ####################################################
 
-class Survey(SimPEG.Survey.BaseSurvey):
+class Survey(BaseEMSurvey):
     """
     Frequency domain electromagnetic survey
 
@@ -131,12 +132,12 @@ class Survey(SimPEG.Survey.BaseSurvey):
     """
 
     srcPair = Src.BaseSrc
-    rxPaair = Rx 
+    rxPair = Rx
 
     def __init__(self, srcList, **kwargs):
         # Sort these by frequency
         self.srcList = srcList
-        SimPEG.Survey.BaseSurvey.__init__(self, **kwargs)
+        BaseEMSurvey.__init__(self, srcList, **kwargs)
 
         _freqDict = {}
         for src in srcList:
@@ -171,24 +172,8 @@ class Survey(SimPEG.Survey.BaseSurvey):
         Returns the sources associated with a specific frequency.
         :param float freq: frequency for which we look up sources
         :rtype: dictionary
-        :return: sources at the sepcified frequency 
+        :return: sources at the sepcified frequency
         """
         assert freq in self._freqDict, "The requested frequency is not in this survey."
         return self._freqDict[freq]
-
-    def eval(self, u):
-        """
-        Project fields to receiver locations
-        :param Fields u: fields object
-        :rtype: numpy.ndarray
-        :return: data
-        """
-        data = SimPEG.Survey.Data(self)
-        for src in self.srcList:
-            for rx in src.rxList:
-                data[src, rx] = rx.eval(src, self.mesh, u)
-        return data
-
-    def evalDeriv(self, u):
-        raise Exception('Use Receivers to project fields deriv.')
 
