@@ -356,10 +356,29 @@ class update_lin_PreCond(InversionDirective):
             PC     = Utils.sdiag(diagA**-1.)
             self.opt.approxHinv = PC
             print 'Updated pre-cond'
+
+class update_Wj(InversionDirective):
+    """
+        Create approx-sensitivity base weighting
+    """
+    k = None
     
-#==============================================================================
-#          import pylab as plt
-#          plt.figure()
-#          ax = plt.subplot(221)
-#          self.prob.mesh.plotSlice(self.invProb.curModel, ax = ax, normal = 'Z', ind=-5, clim = (0, 0.005))
-#==============================================================================
+    def endIter(self):
+        
+        if self.opt.iter == 2:
+            m = self.invProb.curModel
+            if self.k is None:
+                self.k = int(self.survey.nD/10)
+                
+            def JtJv(v):
+
+                Jv = self.prob.Jvec(m, v)
+            
+                return self.prob.Jtvec(m,Jv)
+            
+            JtJdiag = Utils.diagEst(JtJv,6,k=100)
+            JtJdiag = JtJdiag
+            JtJdiag = JtJdiag / max(JtJdiag)
+        
+
+            self.reg.wght = JtJdiag
