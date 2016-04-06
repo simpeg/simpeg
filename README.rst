@@ -80,3 +80,8 @@ https://github.com/simpeg/simpeg/issues
 
 Code Snippets & Tutorials:
 http://simpeg.xyz/Journal
+
+
+.. image:: https://badges.gitter.im/simpeg/simpeg.svg
+   :alt: Join the chat at https://gitter.im/simpeg/simpeg
+   :target: https://gitter.im/simpeg/simpeg?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
