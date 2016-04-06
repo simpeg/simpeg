@@ -376,9 +376,7 @@ class update_Wj(InversionDirective):
             
                 return self.prob.Jtvec(m,Jv)
             
-            JtJdiag = Utils.diagEst(JtJv,6,k=100)
-            JtJdiag = JtJdiag
+            JtJdiag = Utils.diagEst(JtJv,len(m),k=self.k)
             JtJdiag = JtJdiag / max(JtJdiag)
-        
 
             self.reg.wght = JtJdiag
