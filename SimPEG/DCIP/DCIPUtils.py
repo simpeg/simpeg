@@ -371,16 +371,6 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
                 srcClass = DC.SrcDipole([rxClass], M[ii,:],M[ii,:])
             SrcList.append(srcClass)
 
-#==============================================================================
-#     elif re.match(stype,'dpdp'):
-#
-#         for ii in range(0, int(nstn)-2):
-#
-#             indx = np.min([ii+n+1,nstn])
-#             Tx.append(np.c_[M[ii,:],N[ii,:]])
-#             Rx.append(np.c_[M[ii+2:indx,:],N[ii+2:indx,:]])
-#==============================================================================
-
     elif stype == 'gradient':
 
         # Gradient survey only requires Tx at end of line and creates a square
@@ -533,10 +523,10 @@ def convertObs_DC3D_to_2D(DCsurvey,lineID,flag):
         Assumes flat topo for now...
 
         Input:
-        :param Tx, Rx
+        :param survey3D
 
         Output:
-        :figure Tx2d, Rx2d
+        :figure survey2D
 
         Edited Feb 17th, 2016
 
