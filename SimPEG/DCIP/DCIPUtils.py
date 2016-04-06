@@ -513,7 +513,7 @@ def writeUBC_DCobs(fileName, DCsurvey, dtype, stype):
 
     fid.close()
 
-def convertObs_DC3D_to_2D(DCsurvey,lineID,flag):
+def convertObs_DC3D_to_2D(DCsurvey,lineID, flag = 'local'):
     """
         Read DC survey and data and change
         coordinate system to distance along line assuming
