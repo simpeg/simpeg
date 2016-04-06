@@ -169,7 +169,7 @@ def readUBC_DC2DModel(fileName):
 
     return model
 
-def plot_pseudoSection(DCsurvey, axs, stype, dtype="voltage",clim=None):
+def plot_pseudoSection(DCsurvey, axs, stype, dtype="appr",clim=None):
     """
         Read list of 2D tx-rx location and plot a speudo-section of apparent
         resistivity.
@@ -230,12 +230,14 @@ def plot_pseudoSection(DCsurvey, axs, stype, dtype="voltage",clim=None):
         elif stype == 'dpdp':
             leg = data * 2*np.pi / ( 1/MA - 1/MB - 1/NB + 1/NA )
 
+            leg = np.log10(abs(1/leg))
+
         midx = np.hstack([midx, ( Cmid + Pmid )/2 ])
         midz = np.hstack([midz, -np.abs(Cmid-Pmid)/2 + z0 ])
         #TODO ... let stick to list then finally convert to array.
-        if dtype =="voltage":
+        if dtype =="appr":
             rho = np.hstack([rho,leg])
-        elif dtype =="appr":
+        elif dtype =="voltage":
             rho = np.hstack([rho,data])
 
 
@@ -250,28 +252,27 @@ def plot_pseudoSection(DCsurvey, axs, stype, dtype="voltage",clim=None):
     else:
         vmin, vmax = clim[0], clim[1]
 
-    plt.imshow(grid_rho.T, extent = (np.min(midx),np.max(midx),np.min(midz),np.max(midz)), origin='lower', alpha=0.8, vmin =vmin, vmax = vmax, clim=(vmin, vmax))
-    cbar = plt.colorbar(format = '%.2f',fraction=0.04,orientation="horizontal")
+    grid_rho = np.ma.masked_where(np.isnan(grid_rho), grid_rho)
+    ph = plt.pcolormesh(grid_x[:,0],grid_z[0,:],grid_rho.T, clim=(vmin, vmax))
+    cbar = plt.colorbar(format="$10^{%.1f}$",fraction=0.04,orientation="horizontal")
 
     cmin,cmax = cbar.get_clim()
     ticks = np.linspace(cmin,cmax,3)
     cbar.set_ticks(ticks)
     cbar.ax.tick_params(labelsize=10)
-    
-    # Plot apparent resistivity
-    plt.scatter(midx,midz,s=10,c=rho.T, vmin =vmin, vmax = vmax, clim=(vmin, vmax))
+    cbar.set_label("App. Conductivity",size=12)
 
-    ax.set_xticklabels([])
-    ax.set_yticklabels([])
+    # Plot apparent resistivity
+    ax.scatter(midx,midz,s=10,c=rho.T, vmin =vmin, vmax = vmax, clim=(vmin, vmax))
+
+    #ax.set_xticklabels([])
+    #ax.set_yticklabels([])
     
-    #ax.set_ylabel('Z')
-    #ax.yaxis.tick_right()
-    #ax.yaxis.set_label_position('right')
     plt.gca().set_aspect('equal', adjustable='box')
 
 
 
-    return ax
+    return ph
 
 def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
     """
@@ -515,12 +516,12 @@ def writeUBC_DCobs(fileName, DCsurvey, dtype, stype):
 
 def convertObs_DC3D_to_2D(DCsurvey,lineID, flag = 'local'):
     """
-        Read DC survey and data and change
-        coordinate system to distance along line assuming
-        all data is acquired along line.
-        First transmitter pole is assumed to be at the origin
+        Read DC survey and projects the coordinate system 
+        according to the flag = 'Xloc' | 'Yloc' | 'local' (default)
+        In the 'local' system, station coordinates are referenced
+        to distance from the first srcLoc[0].loc[0]
 
-        Assumes flat topo for now...
+        The Z value is preserved, but Y coordinates zeroed.
 
         Input:
         :param survey3D
@@ -528,7 +529,7 @@ def convertObs_DC3D_to_2D(DCsurvey,lineID, flag = 'local'):
         Output:
         :figure survey2D
 
-        Edited Feb 17th, 2016
+        Edited April 6th, 2016
 
         @author: dominiquef
 
@@ -618,16 +619,16 @@ def convertObs_DC3D_to_2D(DCsurvey,lineID, flag = 'local'):
 
 def readUBC_DC3Dobs(fileName):
     """
-        Read UBC GIF DCIP 3D observation file and generate arrays for tx-rx location
+        Read UBC GIF DCIP 3D observation file and generate survey
 
         Input:
         :param fileName, path to the UBC GIF 3D obs file
 
         Output:
-        :param rx, tx, d, wd
+        :param DCIPsurvey
         :return
 
-        Created on Mon December 7th, 2015
+        Created on Mon April 6th, 2015
 
         @author: dominiquef
 
@@ -702,6 +703,7 @@ def readUBC_DC3Dobs(fileName):
 
 def readUBC_DC2Dobs(fileName):
     """
+        ------- NEEDS TO BE UPDATED ------
         Read UBC GIF 2D observation file and generate arrays for tx-rx location
 
         Input:
@@ -751,7 +753,7 @@ def readUBC_DC2Dobs(fileName):
 
 def readUBC_DC2Dpre(fileName):
     """
-        Read UBC GIF DCIP 3D observation file and generate arrays for tx-rx location
+        Read UBC GIF DCIP 2D observation file and generate arrays for tx-rx location
 
         Input:
         :param fileName, path to the UBC GIF 3D obs file
