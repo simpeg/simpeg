@@ -234,6 +234,9 @@ class BaseTensorMesh(BaseMesh):
             'Fz'    -> z-component of field defined on faces
             'N'     -> scalar field defined on nodes
             'CC'    -> scalar field defined on cell centers
+            'CCVx'  -> x-component of vector field defined on cell centers
+            'CCVy'  -> y-component of vector field defined on cell centers
+            'CCVz'  -> z-component of vector field defined on cell centers
         """
         if self._meshType == 'CYL' and self.isSymmetric and locType in ['Ex','Ez','Fy']:
             raise Exception('Symmetric CylMesh does not support %s interpolation, as this variable does not exist.' % locType)
@@ -257,6 +260,16 @@ class BaseTensorMesh(BaseMesh):
             Q = sp.hstack(components)
         elif locType in ['CC', 'N']:
             Q = Utils.interpmat(loc, *self.getTensor(locType))
+        elif locType in ['CCVx', 'CCVy', 'CCVz']:
+            Q = Utils.interpmat(loc, *self.getTensor('CC'))
+            Z = Utils.spzeros(loc.shape[0],self.nC)
+            if locType == 'CCVx':
+                Q = sp.hstack([Q,Z,Z])
+            elif locType == 'CCVy':
+                Q = sp.hstack([Z,Q,Z])
+            elif locType == 'CCVz':
+                Q = sp.hstack([Z,Z,Q])
+
         else:
             raise NotImplementedError('getInterpolationMat: locType=='+locType+' and mesh.dim=='+str(self.dim))
 

@@ -427,15 +427,15 @@ class Survey(SimPEGsurvey.BaseSurvey):
         assert freq in self._freqDict, "The requested frequency is not in this survey."
         return self._freqDict[freq]
 
-    def eval(self, u):
+    def eval(self, f):
         data = Data(self)
         for src in self.srcList:
             sys.stdout.flush()
             for rx in src.rxList:
-                data[src, rx] = rx.eval(src, self.mesh, u)
+                data[src, rx] = rx.eval(src, self.mesh, f)
         return data
 
-    def evalDeriv(self, u):
+    def evalDeriv(self, f):
         raise Exception('Use Transmitters to project fields deriv.')
 
 #################
