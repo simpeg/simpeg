@@ -315,8 +315,6 @@ def Plot_Total_ElectricField(XYZ,Et,R,ax):
 #plot the secondary electric field on ax
 def Plot_Secondary_ElectricField(XYZ,Es,R,ax):
 
-    Et, Ep, Es = get_ElectricField(XYZ,sig0,sig1,R,E0)
-
     xr,yr,zr = np.unique(XYZ[:,0]),np.unique(XYZ[:,1]),np.unique(XYZ[:,2])
 
     xcirc = xr[np.abs(xr) <= R]
@@ -377,9 +375,6 @@ def get_Current(XYZ,sig0,sig1,R,Et,Ep,Es):
 #plot the total currents density on ax
 def Plot_Total_Currents(XYZ,Jt,R,ax):
 
-    Et,Ep,Es = get_ElectricField(XYZ,sig0,sig1,R,E0)
-    Jt,Jp,Js = get_Current(XYZ,sig0,sig1,R,Et,Ep,Es)
-
     xr,yr,zr = np.unique(XYZ[:,0]),np.unique(XYZ[:,1]),np.unique(XYZ[:,2])
     xcirc = xr[np.abs(xr) <= R]
 
@@ -408,15 +403,12 @@ def Plot_Total_Currents(XYZ,Jt,R,ax):
 #plot the secondary currents density on ax
 def Plot_Secondary_Currents(XYZ,Js,R,ax):
 
-    Et,Ep,Es = get_ElectricField(XYZ,sig0,sig1,R,E0)
-    Jt,Jp,Js = get_Current(XYZ,sig0,sig1,R,Et,Ep,Es)
-
     xr,yr,zr = np.unique(XYZ[:,0]),np.unique(XYZ[:,1]),np.unique(XYZ[:,2])
     xcirc = xr[np.abs(xr) <= R]
 
     JsXr = Js[:,0].reshape(xr.size, yr.size)
     JsYr = Js[:,1].reshape(xr.size, yr.size)
-    JsAmp = np.sqrt(Js[:,1]**2+Js[:,0]**2+Jt[:,2]**2).reshape(xr.size,yr.size)
+    JsAmp = np.sqrt(Js[:,1]**2+Js[:,0]**2+Js[:,2]**2).reshape(xr.size,yr.size)
 
     ax.set_xlim([xr.min(),xr.max()])
     ax.set_ylim([yr.min(),yr.max()])
@@ -436,7 +428,7 @@ def Plot_Secondary_Currents(XYZ,Js,R,ax):
     return ax
 
 
-def get_ChargesDensity(XYZ,sig0,sig1,R,Et,Ep):
+def get_ChargesDensity(XYZ,sig0,sig1,R,Ep):
     '''
     Function that returns the charges accumulation at the background/sphere interface,
     :input: grid, outer sigma, inner sigma, radius of the sphere, total and the primary electric fields,
@@ -467,9 +459,6 @@ def Plot_ChargesDensity(XYZ,rho,R,ax):
 
     xr,yr,zr = np.unique(XYZ[:,0]),np.unique(XYZ[:,1]),np.unique(XYZ[:,2])
     xcirc = xr[np.abs(xr) <= R]
-
-    Et, Ep, Es = get_ElectricField(XYZ,sig0,sig1,R,E0)
-    rho = get_ChargesDensity(XYZ,sig0,sig1,R,Et,Ep)
 
     ax.set_xlim([xr.min(),xr.max()])
     ax.set_ylim([yr.min(),yr.max()])
@@ -641,6 +630,9 @@ def interact_conductiveSphere(R,log_sig0,log_sig1,Figure1a,Figure1b,Figure2a,Fig
     zr = np.r_[0]          # identical to saying `zr = np.array([0])`
     XYZ = ndgrid(xr,yr,zr) # Space Definition
 
+    Et,Ep,Es = get_ElectricField(XYZ,sig0,sig1,R,E0)
+
+
     fig, ax = plt.subplots(1,2,figsize=(18,6))
 
     #Setup figure 1 with options Configuration, Total or Secondary,
@@ -655,7 +647,6 @@ def interact_conductiveSphere(R,log_sig0,log_sig1,Figure1a,Figure1b,Figure2a,Fig
             ax[0] = Plot_Total_Potential(XYZ,Vt,R,ax[0])
 
         elif Figure1b == 'ElectricField':
-            Et,Ep,Es = get_ElectricField(XYZ,sig0,sig1,R,E0)
             ax[0] = Plot_Total_ElectricField(XYZ,Et,R,ax[0])
 
         elif Figure1b == 'CurrentDensity':
@@ -663,65 +654,65 @@ def interact_conductiveSphere(R,log_sig0,log_sig1,Figure1a,Figure1b,Figure2a,Fig
             ax[0] = Plot_Total_Currents(XYZ,Jt,R,ax[0])
 
         elif Figure1b == 'ChargesDensity':
-            rho = get_ChargesDensity(XYZ,sig0,sig1,R,Et,Ep)
+            rho = get_ChargesDensity(XYZ,sig0,sig1,R,Ep)
             ax[0] = Plot_ChargesDensity(XYZ,rho,R,ax[0])
 
     elif Figure1a == 'Secondary':
 
         if Figure1b == 'Potential':
             Vt,Vp,Vs = get_Potential(XYZ,sig0,sig1,R,E0)
-            ax[0] = Plot_Total_Potential(XYZ,Vs,R,ax[0])
+            ax[0] = Plot_Secondary_Potential(XYZ,Vs,R,ax[0])
 
         elif Figure1b == 'ElectricField':
-            Et,Ep,Es = get_ElectricField(XYZ,sig0,sig1,R,E0)
-            ax[0] = Plot_Total_ElectricField(XYZ,Es,R,ax[0])
+            ax[0] = Plot_Secondary_ElectricField(XYZ,Es,R,ax[0])
 
         elif Figure1b == 'CurrentDensity':
             Jt,Jp,Js, = get_Current(XYZ,sig0,sig1,R,Et,Ep,Es)
-            ax[0] = Plot_Total_Currents(XYZ,Js,R,ax[0])
+            ax[0] = Plot_Secondary_Currents(XYZ,Js,R,ax[0])
 
         elif Figure1b == 'ChargesDensity':
-            rho = get_ChargesDensity(XYZ,sig0,sig1,R,Et,Ep)
+            rho = get_ChargesDensity(XYZ,sig0,sig1,R,Ep)
             ax[0] = Plot_ChargesDensity(XYZ,rho,R,ax[0])
 
 
     if Figure1a== 'Configuration':
-        ax[1] = Plot_Primary_Potential(XYZ,sig0,sig1,R,E0,ax[1])
+        Vt,Vp,Vs = get_Potential(XYZ,sig0,sig1,R,E0)
+        ax[1] = Plot_Primary_Potential(XYZ,Vp,R,ax[1])
         print 'While figure1 is plotting Configuration, figure2 plots the primary field'
 
     elif Figure2a == 'Total':
-        if Figure1b == 'Potential':
+    
+        if Figure2b == 'Potential':
             Vt,Vp,Vs = get_Potential(XYZ,sig0,sig1,R,E0)
             ax[0] = Plot_Total_Potential(XYZ,Vt,R,ax[1])
 
-        elif Figure1b == 'ElectricField':
-            Et,Ep,Es = get_ElectricField(XYZ,sig0,sig1,R,E0)
+        elif Figure2b == 'ElectricField':
             ax[0] = Plot_Total_ElectricField(XYZ,Et,R,ax[1])
 
-        elif Figure1b == 'CurrentDensity':
+        elif Figure2b == 'CurrentDensity':
             Jt,Jp,Js, = get_Current(XYZ,sig0,sig1,R,Et,Ep,Es)
             ax[0] = Plot_Total_Currents(XYZ,Jt,R,ax[1])
 
-        elif Figure1b == 'ChargesDensity':
-            rho = get_ChargesDensity(XYZ,sig0,sig1,R,Et,Ep)
+        elif Figure2b == 'ChargesDensity':
+            rho = get_ChargesDensity(XYZ,sig0,sig1,R,Ep)
             ax[0] = Plot_ChargesDensity(XYZ,rho,R,ax[1])
 
 
     elif Figure2a == 'Secondary':
-        if Figure1b == 'Potential':
+        
+        if Figure2b == 'Potential':
             Vt,Vp,Vs = get_Potential(XYZ,sig0,sig1,R,E0)
-            ax[0] = Plot_Total_Potential(XYZ,Vs,R,ax[1])
+            ax[0] = Plot_Secondary_Potential(XYZ,Vs,R,ax[1])
 
-        elif Figure1b == 'ElectricField':
-            Et,Ep,Es = get_ElectricField(XYZ,sig0,sig1,R,E0)
-            ax[0] = Plot_Total_ElectricField(XYZ,Es,R,ax[1])
+        elif Figure2b == 'ElectricField':
+            ax[0] = Plot_Secondary_ElectricField(XYZ,Es,R,ax[1])
 
-        elif Figure1b == 'CurrentDensity':
+        elif Figure2b == 'CurrentDensity':
             Jt,Jp,Js, = get_Current(XYZ,sig0,sig1,R,Et,Ep,Es)
-            ax[0] = Plot_Total_Currents(XYZ,Js,R,ax[1])
+            ax[0] = Plot_Secondary_Currents(XYZ,Js,R,ax[1])
 
-        elif Figure1b == 'ChargesDensity':
-            rho = get_ChargesDensity(XYZ,sig0,sig1,R,Et,Ep)
+        elif Figure2b == 'ChargesDensity':
+            rho = get_ChargesDensity(XYZ,sig0,sig1,R,Ep)
             ax[0] = Plot_ChargesDensity(XYZ,rho,R,ax[1])
 
     plt.tight_layout(True)
@@ -770,7 +761,7 @@ def run(plotIt=True):
     Vt,Vp,Vs = get_Potential(XYZ,sig0,sig1,R,E0)
     Et,Ep,Es = get_ElectricField(XYZ,sig0,sig1,R,E0)
     Jt,Jp,Js, = get_Current(XYZ,sig0,sig1,R,Et,Ep,Es)
-    rho = get_ChargesDensity(XYZ,sig0,sig1,R,Et,Ep)
+    rho = get_ChargesDensity(XYZ,sig0,sig1,R,Ep)
 
     if plotIt:
         fig, ax = plt.subplots(2,5,figsize=(50,10))
