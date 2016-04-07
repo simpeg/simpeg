@@ -27,7 +27,7 @@ class BaseMTProblem(BaseFDEMProblem):
     # Might need to add more stuff here.
 
     ## NEED to clean up the Jvec and Jtvec to use Zero and Identities for None components.
-    def Jvec(self, m, v, u=None):
+    def Jvec(self, m, v, f=None):
         """
         Function to calculate the data sensitivities dD/dm times a vector.
 
@@ -39,8 +39,8 @@ class BaseMTProblem(BaseFDEMProblem):
         """
 
         # Calculate the fields
-        if u is None:
-           u = self.fields(m)
+        if f is None:
+           f= self.fields(m)
         # Set current model
         self.curModel = m
         # Initiate the Jv object
@@ -56,9 +56,9 @@ class BaseMTProblem(BaseFDEMProblem):
                 # We need fDeriv_m = df/du*du/dm + df/dm
                 # Construct du/dm, it requires a solve
                 # NOTE: need to account for the 2 polarizations in the derivatives.
-                u_src = u[src,:]
+                f_src = f[src,:]
                 # dA_dm and dRHS_dm should be of size nE,2, so that we can multiply by dA_duI. The 2 columns are each of the polarizations.
-                dA_dm = self.getADeriv_m(freq, u_src, v) # Size: nE,2 (u_px,u_py) in the columns.
+                dA_dm = self.getADeriv_m(freq, f_src, v) # Size: nE,2 (u_px,u_py) in the columns.
                 dRHS_dm = self.getRHSDeriv_m(freq, v) # Size: nE,2 (u_px,u_py) in the columns.
                 if dRHS_dm is None:
                     du_dm = dA_duI * ( -dA_dm )
@@ -68,13 +68,13 @@ class BaseMTProblem(BaseFDEMProblem):
                 for rx in src.rxList:
                     # Get the projection derivative
                     # v should be of size 2*nE (for 2 polarizations)
-                    PDeriv_u = lambda t: rx.evalDeriv(src, self.mesh, u, t) # wrt u, we don't have have PDeriv wrt m
+                    PDeriv_u = lambda t: rx.evalDeriv(src, self.mesh, f, t) # wrt u, we don't have have PDeriv wrt m
                     Jv[src, rx] = PDeriv_u(mkvc(du_dm))
             dA_duI.clean()
         # Return the vectorized sensitivities
         return mkvc(Jv)
 
-    def Jtvec(self, m, v, u=None):
+    def Jtvec(self, m, v, f=None):
         """
         Function to calculate the transpose of the data sensitivities (dD/dm)^T times a vector.
 
@@ -85,8 +85,8 @@ class BaseMTProblem(BaseFDEMProblem):
             :return: Data sensitivities wrt m
         """
 
-        if u is None:
-            u = self.fields(m)
+        if f is None:
+            f = self.fields(m)
 
         self.curModel = m
 
@@ -103,15 +103,15 @@ class BaseMTProblem(BaseFDEMProblem):
 
             for src in self.survey.getSrcByFreq(freq):
                 ftype = self._fieldType + 'Solution'
-                u_src = u[src, :]
+                f_src = f[src, :]
 
                 for rx in src.rxList:
                     # Get the adjoint evalDeriv
                     # PTv needs to be nE,
-                    PTv = rx.evalDeriv(src, self.mesh, u, mkvc(v[src, rx],2), adjoint=True) # wrt u, need possibility wrt m
+                    PTv = rx.evalDeriv(src, self.mesh, f, mkvc(v[src, rx],2), adjoint=True) # wrt u, need possibility wrt m
                     # Get the
                     dA_duIT = ATinv * PTv
-                    dA_dmT = self.getADeriv_m(freq, u_src, mkvc(dA_duIT), adjoint=True)
+                    dA_dmT = self.getADeriv_m(freq, f_src, mkvc(dA_duIT), adjoint=True)
                     dRHS_dmT = self.getRHSDeriv_m(freq, mkvc(dA_duIT), adjoint=True)
                     # Make du_dmT
                     if dRHS_dmT is None:
