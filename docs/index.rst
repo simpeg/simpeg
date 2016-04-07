@@ -49,9 +49,7 @@ Examples
 
 .. toctree::
    :maxdepth: 2
-
    api_Examples
-   
 
 Packages
 ********
@@ -60,8 +58,8 @@ Packages
    :maxdepth: 3
 
    em/index
+   mt/index
    flow/index
-
 
 Finite Volume
 *************
