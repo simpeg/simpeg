@@ -96,7 +96,7 @@ def run(N=200, plotIt=True):
     beta = Directives.BetaSchedule(coolingFactor=1, coolingRate=1)
     #betaest = Directives.BetaEstimate_ByEig()
     target = Directives.TargetMisfit()
-    IRLS =Directives.update_IRLS( phi_m_last = phim, phi_d_last = phid )
+    IRLS =Directives.Update_IRLS( phi_m_last = phim, phi_d_last = phid )
 
     inv = Inversion.BaseInversion(invProb, directiveList=[beta,IRLS])
 

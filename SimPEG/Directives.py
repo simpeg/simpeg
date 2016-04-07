@@ -285,7 +285,7 @@ class SaveOutputDictEveryIteration(_SaveEveryIteration):
 #         self.m_prev = self.invProb.m_current
 #         return mref
 
-class update_IRLS(InversionDirective):
+class Update_IRLS(InversionDirective):
 
     eps_min = None
     factor = None
@@ -333,18 +333,9 @@ class update_IRLS(InversionDirective):
 
         self.reg.gamma = self.phi_m_last / phim_new
 
-
-        # TO DO: Check optimization class, data misfit not matching reality
-        #dpred = self.prob.fields(self.invProb.curModel)
-        #phid = self.invProb.dmisfit.eval(self.invProb.curModel)
-        #print self.survey.std[0]
-        #print phid
-        #print self.invProb.phi_d
-        #print self.invProb.phi_d_last
-
         self.invProb.beta = self.invProb.beta * self.survey.nD*0.5 / self.invProb.phi_d
 
-class update_lin_PreCond(InversionDirective):
+class Update_lin_PreCond(InversionDirective):
 
 
     def endIter(self):
@@ -357,15 +348,17 @@ class update_lin_PreCond(InversionDirective):
             self.opt.approxHinv = PC
             print 'Updated pre-cond'
 
-class update_Wj(InversionDirective):
+class Update_Wj(InversionDirective):
     """
-        Create approx-sensitivity base weighting
+        Create approx-sensitivity base weighting using the probing method
     """
-    k = None
+    k = None # Number of probing cycles
+    itr = None # Iteration number to update Wj, or always update if None
 
     def endIter(self):
 
-        if self.opt.iter == 2:
+        if self.itr is None or self.itr == self.opt.iter:
+
             m = self.invProb.curModel
             if self.k is None:
                 self.k = int(self.survey.nD/10)

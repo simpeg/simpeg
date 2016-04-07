@@ -7,10 +7,10 @@ def run(loc=None, sig=None, radi=None, param=None, stype='dpdp', dtype='appc', p
         DC Forward Simulation
         =====================
 
-        Forward model two conductive spheres in a half-space and plot a 
+        Forward model two conductive spheres in a half-space and plot a
         pseudo-section. Assumes an infinite line source and measures along the
         center of the spheres.
-        
+
         INPUT:
         loc     = Location of spheres [[x1,y1,z1],[x2,y2,z2]]
         radi    = Radius of spheres [r1,r2]
