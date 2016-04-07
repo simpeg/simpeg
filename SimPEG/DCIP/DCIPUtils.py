@@ -169,7 +169,7 @@ def readUBC_DC2DModel(fileName):
 
     return model
 
-def plot_pseudoSection(DCsurvey, axs, stype, dtype="appr",clim=None):
+def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
     """
         Read list of 2D tx-rx location and plot a speudo-section of apparent
         resistivity.
@@ -179,7 +179,7 @@ def plot_pseudoSection(DCsurvey, axs, stype, dtype="appr",clim=None):
         Input:
         :param d2D, z0
         :switch stype -> Either 'pdp' (pole-dipole) | 'dpdp' (dipole-dipole)
-
+        :switch dtype=-> Either 'appr' (app. res) | 'appc' (app. con) | 'volt' (potential)
         Output:
         :figure scatter plot overlayed on image
 
@@ -221,25 +221,43 @@ def plot_pseudoSection(DCsurvey, axs, stype, dtype="appr",clim=None):
         Cmid = (Tx[0][0] + Tx[1][0])/2
         Pmid = (Rx[0][:,0] + Rx[1][:,0])/2
 
-        # Compute pant leg of apparent rho
-        if stype == 'pdp':
-            leg =  data * 2*np.pi  * MA * ( MA + MN ) / MN
+        # Change output for dtype
+        if dtype == 'volt':
 
-            leg = np.log10(abs(1/leg))
+            rho = np.hstack([rho,data])
 
-        elif stype == 'dpdp':
-            leg = data * 2*np.pi / ( 1/MA - 1/MB - 1/NB + 1/NA )
+        else:
 
-            leg = np.log10(abs(1/leg))
+            # Compute pant leg of apparent rho
+            if stype == 'pdp':
+
+                leg =  data * 2*np.pi  * MA * ( MA + MN ) / MN
+
+            elif stype == 'dpdp':
+
+                leg = data * 2*np.pi / ( 1/MA - 1/MB - 1/NB + 1/NA )
+
+            else:
+                print """dtype must be 'pdp'(pole-dipole) | 'dpdp' (dipole-dipole) """
+                break
+
+
+            if dtype == 'appc':
+
+                leg = np.log10(abs(1./leg))
+                rho = np.hstack([rho,leg])
+
+            elif dtype == 'appr':
+
+                leg = np.log10(abs(leg))
+                rho = np.hstack([rho,leg])
+
+            else:
+                print """dtype must be 'appr' | 'appc' | 'volt' """
+                break
 
         midx = np.hstack([midx, ( Cmid + Pmid )/2 ])
         midz = np.hstack([midz, -np.abs(Cmid-Pmid)/2 + z0 ])
-        #TODO ... let stick to list then finally convert to array.
-        if dtype =="appr":
-            rho = np.hstack([rho,leg])
-        elif dtype =="voltage":
-            rho = np.hstack([rho,data])
-
 
     ax = axs
 
@@ -260,14 +278,20 @@ def plot_pseudoSection(DCsurvey, axs, stype, dtype="appr",clim=None):
     ticks = np.linspace(cmin,cmax,3)
     cbar.set_ticks(ticks)
     cbar.ax.tick_params(labelsize=10)
-    cbar.set_label("App. Conductivity",size=12)
+    
+    if dtype == 'appc':
+        cbar.set_label("App.Cond",size=12)
+    elif dtype == 'appr':
+        cbar.set_label("App.Res.",size=12)
+    elif dtype == 'volt':
+        cbar.set_label("Potential (V)",size=12)
 
     # Plot apparent resistivity
     ax.scatter(midx,midz,s=10,c=rho.T, vmin =vmin, vmax = vmax, clim=(vmin, vmax))
 
     #ax.set_xticklabels([])
     #ax.set_yticklabels([])
-    
+
     plt.gca().set_aspect('equal', adjustable='box')
 
 
@@ -516,7 +540,7 @@ def writeUBC_DCobs(fileName, DCsurvey, dtype, stype):
 
 def convertObs_DC3D_to_2D(DCsurvey,lineID, flag = 'local'):
     """
-        Read DC survey and projects the coordinate system 
+        Read DC survey and projects the coordinate system
         according to the flag = 'Xloc' | 'Yloc' | 'local' (default)
         In the 'local' system, station coordinates are referenced
         to distance from the first srcLoc[0].loc[0]
@@ -575,19 +599,19 @@ def convertObs_DC3D_to_2D(DCsurvey,lineID, flag = 'local'):
                 # Find A electrode along line
                 vec, r = r_unit(x0,Tx[ii][0,0:2])
                 A = stn_id(vecTx,vec,r)
-    
+
                 # Find B electrode along line
                 vec, r = r_unit(x0,Tx[ii][1,0:2])
                 B = stn_id(vecTx,vec,r)
-    
+
                 M = np.zeros(nrx)
                 N = np.zeros(nrx)
                 for kk in range(nrx):
-    
+
                     # Find all M electrodes along line
                     vec, r = r_unit(x0,Rx[0][kk,0:2])
                     M[kk] = stn_id(vecTx,vec,r)
-    
+
                     # Find all N electrodes along line
                     vec, r = r_unit(x0,Rx[1][kk,0:2])
                     N[kk] = stn_id(vecTx,vec,r)
@@ -597,14 +621,14 @@ def convertObs_DC3D_to_2D(DCsurvey,lineID, flag = 'local'):
                 B = Tx[ii][1,1]
                 M = Rx[0][:,1]
                 N = Rx[1][:,1]
-                
+
             elif flag == 'Xloc':
                 """ Copy the rx-tx locs"""
                 A = Tx[ii][0,0]
                 B = Tx[ii][1,0]
                 M = Rx[0][:,0]
                 N = Rx[1][:,0]
-                
+
             Rx = DC.RxDipole(np.c_[M,np.zeros(nrx),Rx[0][:,2]],np.c_[N,np.zeros(nrx),Rx[1][:,2]])
 
             srcLists.append( DC.SrcDipole( [Rx], np.asarray([A,0,Tx[ii][0,2]]),np.asarray([B,0,Tx[ii][1,2]]) ) )
@@ -796,15 +820,15 @@ def readUBC_DC2Dpre(fileName):
         else:
             tx = np.r_[temp[0],np.nan,temp[1],temp[2],np.nan,temp[3]]
 
-        
+
         if zflag:
             rx = np.c_[temp[4],np.nan,temp[5],temp[6],np.nan,temp[7]]
-            
+
 
         else:
             rx = np.c_[temp[2],np.nan,np.nan,temp[3],np.nan,np.nan]
             # Check if there is data with the location
-        
+
         d.append(temp[-1])
 
 
@@ -817,7 +841,7 @@ def readUBC_DC2Dpre(fileName):
     survey.dobs = np.asarray(d)
 
     return {'DCsurvey':survey}
-    
+
 def readUBC_DC2DMesh(fileName):
     """
         Read UBC GIF 2DTensor mesh and generate 2D Tensor mesh in simpeg
