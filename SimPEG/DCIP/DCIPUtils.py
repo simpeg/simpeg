@@ -257,7 +257,7 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
                 break
 
         midx = np.hstack([midx, ( Cmid + Pmid )/2 ])
-        midz = np.hstack([midz, -np.abs(Cmid-Pmid)/2 + z0 ])
+        midz = np.hstack([midz, -np.abs(Cmid-Pmid)/2 + (Tx[0][2] + Tx[1][2])/2 ])
 
     ax = axs
 

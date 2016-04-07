@@ -3,7 +3,6 @@
 ##### AUTOIMPORTS #####
 import DC_Analytic_Dipole
 import DC_Forward_PseudoSection
-import DC_PseudoSection_Simulation
 import EM_FDEM_1D_Inversion
 import EM_FDEM_Analytic_MagDipoleWholespace
 import EM_Schenkel_Morrison_Casing
@@ -22,7 +21,7 @@ import Mesh_Tensor_Creation
 import MT_1D_ForwardAndInversion
 import MT_3D_Foward
 
-__examples__ = ["DC_Analytic_Dipole", "DC_Forward_PseudoSection", "DC_PseudoSection_Simulation", "EM_FDEM_1D_Inversion", "EM_FDEM_Analytic_MagDipoleWholespace", "EM_Schenkel_Morrison_Casing", "EM_TDEM_1D_Inversion", "FLOW_Richards_1D_Celia1990", "Forward_BasicDirectCurrent", "Inversion_IRLS", "Inversion_Linear", "Mesh_Basic_PlotImage", "Mesh_Basic_Types", "Mesh_Operators_CahnHilliard", "Mesh_QuadTree_Creation", "Mesh_QuadTree_FaceDiv", "Mesh_QuadTree_HangingNodes", "Mesh_Tensor_Creation", "MT_1D_ForwardAndInversion", "MT_3D_Foward"]
+__examples__ = ["DC_Analytic_Dipole", "DC_Forward_PseudoSection", "EM_FDEM_1D_Inversion", "EM_FDEM_Analytic_MagDipoleWholespace", "EM_Schenkel_Morrison_Casing", "EM_TDEM_1D_Inversion", "FLOW_Richards_1D_Celia1990", "Forward_BasicDirectCurrent", "Inversion_IRLS", "Inversion_Linear", "Mesh_Basic_PlotImage", "Mesh_Basic_Types", "Mesh_Operators_CahnHilliard", "Mesh_QuadTree_Creation", "Mesh_QuadTree_FaceDiv", "Mesh_QuadTree_HangingNodes", "Mesh_Tensor_Creation", "MT_1D_ForwardAndInversion", "MT_3D_Foward"]
 
 ##### AUTOIMPORTS #####
 

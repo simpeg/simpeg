@@ -17,7 +17,7 @@ def run(loc=None, sig=None, radi=None, param=None, stype='dpdp', dtype='appc', p
         param   = Conductivity of background and two spheres [m0,m1,m2]
         stype   = survey type "pdp" (pole dipole) or "dpdp" (dipole dipole)
         dtype   = Data type "appr" (app res) | "appc" (app cond) | "volt" (potential)
-        Created by @fourndo on Mon Feb 01 19:28:06 2016
+        Created by @fourndo
 
     """
 
