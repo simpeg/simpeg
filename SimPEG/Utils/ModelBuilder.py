@@ -88,12 +88,14 @@ def getIndicesBlock(p0,p1,ccMesh):
     # Return a tuple
     return ind
 
-def defineBlock(ccMesh,p0,p1,vals=[0,1]):
+def defineBlock(ccMesh,p0,p1,vals=None):
     """
         Build a block with the conductivity specified by condVal.  Returns an array.
         vals[0]  conductivity of the block
         vals[1]  conductivity of the ground
     """
+    if vals is None:
+        vals = [0,1]
     sigma = np.zeros(ccMesh.shape[0]) + vals[1]
     ind   = getIndicesBlock(p0,p1,ccMesh)
 
@@ -101,7 +103,11 @@ def defineBlock(ccMesh,p0,p1,vals=[0,1]):
 
     return mkvc(sigma)
 
-def defineElipse(ccMesh, center=[0,0,0], anisotropy=[1,1,1], slope=10., theta=0.):
+def defineElipse(ccMesh, center=None, anisotropy=None, slope=10., theta=0.):
+    if center is None:
+        center = [0,0,0]
+    if anisotropy is None:
+        anisotropy = [1,1,1]
     G = ccMesh.copy()
     dim = ccMesh.shape[1]
     for i in range(dim):
@@ -156,7 +162,7 @@ def getIndicesSphere(center,radius,ccMesh):
     # Return a tuple
     return ind
 
-def defineTwoLayers(ccMesh,depth,vals=[0,1]):
+def defineTwoLayers(ccMesh,depth,vals=None):
     """
     Define a two layered model.  Depth of the first layer must be specified.
     CondVals vector with the conductivity values of the layers.  Eg:
@@ -167,6 +173,8 @@ def defineTwoLayers(ccMesh,depth,vals=[0,1]):
         0                          depth                                 zf
              1st layer                       2nd layer
     """
+    if vals is None:
+        vals = [0,1]
     sigma = np.zeros(ccMesh.shape[0]) + vals[1]
 
     dim = np.size(ccMesh[0,:])
@@ -252,7 +260,7 @@ def layeredModel(ccMesh, layerTops, layerValues):
 
 
 
-def randomModel(shape, seed=None, anisotropy=None, its=100, bounds=[0,1]):
+def randomModel(shape, seed=None, anisotropy=None, its=100, bounds=None):
     """
         Create a random model by convolving a kernel with a
         uniformly distributed model.
@@ -276,6 +284,8 @@ def randomModel(shape, seed=None, anisotropy=None, its=100, bounds=[0,1]):
 
 
     """
+    if bounds is None:
+        bounds = [0,1]
 
     if seed is None:
         seed = np.random.randint(1e3)
