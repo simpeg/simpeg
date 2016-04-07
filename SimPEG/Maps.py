@@ -759,27 +759,29 @@ class PolyMap(IdentityMap):
 
             m = [\sigma_1, \sigma_2, c]
 
-    """    
+        Can take in an actInd vector to account for topography.
+
+    """
     def __init__(self, mesh, order, logSigma=True, normal='X', actInd = None):
         IdentityMap.__init__(self, mesh)
         self.logSigma = logSigma
         self.order = order
-        self.normal = normal  
+        self.normal = normal
         self.actInd = actInd
-          
+
         if getattr(self, 'actInd', None) is None:
             self.actInd = range(self.mesh.nC)
             self.nC = self.mesh.nC
-            
+
         else:
-            self.nC = len(self.actInd)            
-            
-    slope = 1e4   
-    
+            self.nC = len(self.actInd)
+
+    slope = 1e4
+
     @property
     def shape(self):
         return (self.nC, self.nP)
-        
+
     @property
     def nP(self):
         if np.isscalar(self.order):
@@ -818,7 +820,7 @@ class PolyMap(IdentityMap):
                 f = polynomial.polyval2d(X, Y, c.reshape((self.order[0]+1,self.order[1]+1))) - Z
             else:
                 raise(Exception("Input for normal = X or Y or Z"))
-                            
+
         else:
             raise(Exception("Only supports 2D"))
 
