@@ -39,11 +39,11 @@ class MagneticIntegral(Problem.BaseProblem):
 
         # return self.G.dot(self.mapping*(m))
             
-    def Jvec(self, m, v, u=None):
+    def Jvec(self, m, v, f=None):
         dmudm = self.mapping.deriv(m)
         return self.G.dot(dmudm*v)
 
-    def Jtvec(self, m, v, u=None):
+    def Jtvec(self, m, v, f=None):
         dmudm = self.mapping.deriv(m)
         return dmudm.T * (self.G.T.dot(v))
 
@@ -706,139 +706,139 @@ def Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,actv,flag):
     return d
 
 
-def Intrgl_Fwr_Op(mesh,B,M,rxLoc,actv,flag):
-    """ 
-
-    Magnetic forward operator in integral form
-
-    INPUT:
-    mesh        = Mesh in SimPEG format
-    B           = Inducing field parameter [Binc, Bdecl, B0]
-    M           = Magnetization information
-    [OPTIONS]
-      1- [Minc, Mdecl] : Assumes uniform magnetization orientation
-      2- [mx1,mx2,..., my1,...,mz1] : cell-based defined magnetization direction
-      3- diag(M): Block diagonal matrix with [Mx, My, Mz] along the diagonal
-
-    rxLox       = Observation location informat [obsx, obsy, obsz]
-
-    flag        = 'tmi' | 'xyz' | 'full'
-    [OPTIONS]
-      1- tmi : Magnetization direction used and data are projected onto the
-                inducing field direction F.shape([ndata, nc])
-
-      2- xyz : Magnetization direction used and data are given in 3-components
-                F.shape([3*ndata, nc])
-
-      3- full: Full tensor matrix stored with shape([3*ndata, 3*nc])
-
-    OUTPUT:
-    F        = Linear forward modeling operation
-
-    Created on Dec, 20th 2015
-
-    @author: dominiquef
-
-     """    
-    # Find non-zero cells
-    #inds = np.nonzero(actv)[0]
-    if actv.dtype=='bool':
-        inds = np.asarray([inds for inds, elem in enumerate(actv, 1) if elem], dtype = int) - 1
-    else:
-        inds = actv
-
-    nC = len(inds)
-    
-    # Create active cell projector
-    P = sp.csr_matrix((np.ones(nC),(inds, range(nC))),
-                      shape=(mesh.nC, nC))
-        
-    # Create vectors of nodal location (lower and upper coners for each cell)
-    xn = mesh.vectorNx;
-    yn = mesh.vectorNy;
-    zn = mesh.vectorNz;
-    
-    yn2,xn2,zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
-    yn1,xn1,zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
-    
-    Yn = P.T*np.c_[mkvc(yn1), mkvc(yn2)]
-    Xn = P.T*np.c_[mkvc(xn1), mkvc(xn2)]
-    Zn = P.T*np.c_[mkvc(zn1), mkvc(zn2)]
-          
-    ndata = rxLoc.shape[0]    
-
-    # Convert Bdecination from north to cartesian
-    D = (450.-float(B[1]))%360.
-
-
-    # Pre-allocate space and create magnetization matrix if required
-    if (flag=='tmi') | (flag == 'xyz'):
-        # If assumes uniform magnetization direction
-        if M.shape != (nC,3):
-
-            print 'Magnetization vector must be Nc x 3'
-            return
-
-
-        Mx = Utils.sdiag(M[:,0]*B[2])
-        My = Utils.sdiag(M[:,1]*B[2])
-        Mz = Utils.sdiag(M[:,2]*B[2])
-
-        Mxyz = sp.vstack((Mx,My,Mz))
-
-
-
-        if flag == 'tmi':
-            F = np.zeros((ndata, nC))
-
-            # Projection matrix
-            Ptmi = mkvc(np.r_[np.cos(np.deg2rad(B[0]))*np.cos(np.deg2rad(D)),
-                      np.cos(np.deg2rad(B[0]))*np.sin(np.deg2rad(D)),
-                        np.sin(np.deg2rad(B[0]))],2).T;
-
-        elif flag == 'xyz':
-
-            F = np.zeros((int(3*ndata), nC))
-        
-    elif flag == 'full':       
-        F = np.zeros((int(3*ndata), int(3*nC)))
-        
-
-    else:
-        print """Flag must be either 'tmi' | 'xyz' | 'full', please revised"""
-        return
-
-
-    # Loop through all observations and create forward operator (ndata-by-nC)
-    print "Begin calculation of forward operator: " + flag
-
-    # Add counter to dsiplay progress. Good for large problems
-    count = -1;
-    for ii in range(ndata):
-
-    
-        tx, ty, tz = get_T_mat(Xn,Yn,Zn,rxLoc[ii,:])  
-        
-        if flag=='tmi':
-            F[ii,:] = Ptmi.dot(np.vstack((tx,ty,tz)))*Mxyz
-
-        elif flag == 'xyz':
-            F[ii,:] = tx*Mxyz
-            F[ii+ndata,:] = ty*Mxyz
-            F[ii+2*ndata,:] = tz*Mxyz
-
-        elif flag == 'full':
-            F[ii,:] = tx
-            F[ii+ndata,:] = ty
-            F[ii+2*ndata,:] = tz
-
-
-    # Display progress
-        count = progress(ii,count,ndata)
-
-    print "Done 100% ...forward operator completed!!\n"
-    
-    return F
+#def Intrgl_Fwr_Op(mesh,B,M,rxLoc,actv,flag):
+#    """ 
+#
+#    Magnetic forward operator in integral form
+#
+#    INPUT:
+#    mesh        = Mesh in SimPEG format
+#    B           = Inducing field parameter [Binc, Bdecl, B0]
+#    M           = Magnetization information
+#    [OPTIONS]
+#      1- [Minc, Mdecl] : Assumes uniform magnetization orientation
+#      2- [mx1,mx2,..., my1,...,mz1] : cell-based defined magnetization direction
+#      3- diag(M): Block diagonal matrix with [Mx, My, Mz] along the diagonal
+#
+#    rxLox       = Observation location informat [obsx, obsy, obsz]
+#
+#    flag        = 'tmi' | 'xyz' | 'full'
+#    [OPTIONS]
+#      1- tmi : Magnetization direction used and data are projected onto the
+#                inducing field direction F.shape([ndata, nc])
+#
+#      2- xyz : Magnetization direction used and data are given in 3-components
+#                F.shape([3*ndata, nc])
+#
+#      3- full: Full tensor matrix stored with shape([3*ndata, 3*nc])
+#
+#    OUTPUT:
+#    F        = Linear forward modeling operation
+#
+#    Created on Dec, 20th 2015
+#
+#    @author: dominiquef
+#
+#     """    
+#    # Find non-zero cells
+#    #inds = np.nonzero(actv)[0]
+#    if actv.dtype=='bool':
+#        inds = np.asarray([inds for inds, elem in enumerate(actv, 1) if elem], dtype = int) - 1
+#    else:
+#        inds = actv
+#
+#    nC = len(inds)
+#    
+#    # Create active cell projector
+#    P = sp.csr_matrix((np.ones(nC),(inds, range(nC))),
+#                      shape=(mesh.nC, nC))
+#        
+#    # Create vectors of nodal location (lower and upper coners for each cell)
+#    xn = mesh.vectorNx;
+#    yn = mesh.vectorNy;
+#    zn = mesh.vectorNz;
+#    
+#    yn2,xn2,zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
+#    yn1,xn1,zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
+#    
+#    Yn = P.T*np.c_[mkvc(yn1), mkvc(yn2)]
+#    Xn = P.T*np.c_[mkvc(xn1), mkvc(xn2)]
+#    Zn = P.T*np.c_[mkvc(zn1), mkvc(zn2)]
+#          
+#    ndata = rxLoc.shape[0]    
+#
+#    # Convert Bdecination from north to cartesian
+#    D = (450.-float(B[1]))%360.
+#
+#
+#    # Pre-allocate space and create magnetization matrix if required
+#    if (flag=='tmi') | (flag == 'xyz'):
+#        # If assumes uniform magnetization direction
+#        if M.shape != (nC,3):
+#
+#            print 'Magnetization vector must be Nc x 3'
+#            return
+#
+#
+#        Mx = Utils.sdiag(M[:,0]*B[2])
+#        My = Utils.sdiag(M[:,1]*B[2])
+#        Mz = Utils.sdiag(M[:,2]*B[2])
+#
+#        Mxyz = sp.vstack((Mx,My,Mz))
+#
+#
+#
+#        if flag == 'tmi':
+#            F = np.zeros((ndata, nC))
+#
+#            # Projection matrix
+#            Ptmi = mkvc(np.r_[np.cos(np.deg2rad(B[0]))*np.cos(np.deg2rad(D)),
+#                      np.cos(np.deg2rad(B[0]))*np.sin(np.deg2rad(D)),
+#                        np.sin(np.deg2rad(B[0]))],2).T;
+#
+#        elif flag == 'xyz':
+#
+#            F = np.zeros((int(3*ndata), nC))
+#        
+#    elif flag == 'full':       
+#        F = np.zeros((int(3*ndata), int(3*nC)))
+#        
+#
+#    else:
+#        print """Flag must be either 'tmi' | 'xyz' | 'full', please revised"""
+#        return
+#
+#
+#    # Loop through all observations and create forward operator (ndata-by-nC)
+#    print "Begin calculation of forward operator: " + flag
+#
+#    # Add counter to dsiplay progress. Good for large problems
+#    count = -1;
+#    for ii in range(ndata):
+#
+#    
+#        tx, ty, tz = get_T_mat(Xn,Yn,Zn,rxLoc[ii,:])  
+#        
+#        if flag=='tmi':
+#            F[ii,:] = Ptmi.dot(np.vstack((tx,ty,tz)))*Mxyz
+#
+#        elif flag == 'xyz':
+#            F[ii,:] = tx*Mxyz
+#            F[ii+ndata,:] = ty*Mxyz
+#            F[ii+2*ndata,:] = tz*Mxyz
+#
+#        elif flag == 'full':
+#            F[ii,:] = tx
+#            F[ii+ndata,:] = ty
+#            F[ii+2*ndata,:] = tz
+#
+#
+#    # Display progress
+#        count = progress(ii,count,ndata)
+#
+#    print "Done 100% ...forward operator completed!!\n"
+#    
+#    return F
 
 def get_T_mat(Xn,Yn,Zn,rxLoc):
     """
@@ -1193,7 +1193,7 @@ def getActiveTopo(mesh,topo,flag):
         
     return inds
 
-def plot_obs_2D(rxLoc,d = None ,varstr = 'Mag Obs', vmin = None, vmax = None):   
+def plot_obs_2D(rxLoc,d = None ,varstr = 'Mag Obs', vmin = None, vmax = None, levels = None):   
     """ Function plot_obs(rxLoc,d)
     Generate a 2d interpolated plot from scatter points of data
     
@@ -1238,8 +1238,12 @@ def plot_obs_2D(rxLoc,d = None ,varstr = 'Mag Obs', vmin = None, vmax = None):
         d_grid = griddata(rxLoc[:,0:2],d,(X,Y), method ='linear')
         plt.imshow(d_grid, extent=[x.min(), x.max(), y.min(), y.max()],origin = 'lower', vmin = vmin, vmax = vmax)
         plt.colorbar(fraction=0.02)
-        plt.contour(X,Y, d_grid,10,vmin = vmin, vmax = vmax)
-    
+        
+        if levels is None:
+            plt.contour(X,Y, d_grid,10,vmin = vmin, vmax = vmax)
+        else:
+            plt.contour(X,Y, d_grid,levels = levels,colors = 'r', vmin = vmin, vmax = vmax)
+
     plt.title(varstr)
     plt.gca().set_aspect('equal', adjustable='box')
 
