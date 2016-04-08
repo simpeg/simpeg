@@ -222,7 +222,7 @@ class SaveOutputDictEveryIteration(_SaveEveryIteration):
             mref = 0
         mx = self.reg.Wx * ( self.reg.mapping * (self.invProb.curModel - mref) )
         phi_mx = 0.5 * mx.dot(mx)
-        if self.prob.mesh.dim < 2:
+        if self.prob.mesh.dim >= 2:
             my = self.reg.Wy * ( self.reg.mapping * (self.invProb.curModel - mref) )
             phi_my = 0.5 * my.dot(my)
         else:
