@@ -169,7 +169,7 @@ def readUBC_DC2DModel(fileName):
 
     return model
 
-def plot_pseudoSection(DCsurvey, axs, stype):
+def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
     """
         Read list of 2D tx-rx location and plot a speudo-section of apparent
         resistivity.
@@ -179,7 +179,7 @@ def plot_pseudoSection(DCsurvey, axs, stype):
         Input:
         :param d2D, z0
         :switch stype -> Either 'pdp' (pole-dipole) | 'dpdp' (dipole-dipole)
-
+        :switch dtype=-> Either 'appr' (app. res) | 'appc' (app. con) | 'volt' (potential)
         Output:
         :figure scatter plot overlayed on image
 
@@ -221,20 +221,43 @@ def plot_pseudoSection(DCsurvey, axs, stype):
         Cmid = (Tx[0][0] + Tx[1][0])/2
         Pmid = (Rx[0][:,0] + Rx[1][:,0])/2
 
-        # Compute pant leg of apparent rho
-        if stype == 'pdp':
-            leg =  data * 2*np.pi  * MA * ( MA + MN ) / MN
+        # Change output for dtype
+        if dtype == 'volt':
 
-            leg = np.log10(abs(1/leg))
+            rho = np.hstack([rho,data])
 
-        elif stype == 'dpdp':
-            leg = data * 2*np.pi / ( 1/MA - 1/MB - 1/NB + 1/NA )
+        else:
 
+            # Compute pant leg of apparent rho
+            if stype == 'pdp':
+
+                leg =  data * 2*np.pi  * MA * ( MA + MN ) / MN
+
+            elif stype == 'dpdp':
+
+                leg = data * 2*np.pi / ( 1/MA - 1/MB - 1/NB + 1/NA )
+
+            else:
+                print """dtype must be 'pdp'(pole-dipole) | 'dpdp' (dipole-dipole) """
+                break
+
+
+            if dtype == 'appc':
+
+                leg = np.log10(abs(1./leg))
+                rho = np.hstack([rho,leg])
+
+            elif dtype == 'appr':
+
+                leg = np.log10(abs(leg))
+                rho = np.hstack([rho,leg])
+
+            else:
+                print """dtype must be 'appr' | 'appc' | 'volt' """
+                break
 
         midx = np.hstack([midx, ( Cmid + Pmid )/2 ])
-        midz = np.hstack([midz, -np.abs(Cmid-Pmid)/2 + z0 ])
-        rho = np.hstack([rho,leg])
-
+        midz = np.hstack([midz, -np.abs(Cmid-Pmid)/2 + (Tx[0][2] + Tx[1][2])/2 ])
 
     ax = axs
 
@@ -242,26 +265,38 @@ def plot_pseudoSection(DCsurvey, axs, stype):
     grid_x, grid_z = np.mgrid[np.min(midx):np.max(midx), np.min(midz):np.max(midz)]
     grid_rho = griddata(np.c_[midx,midz], rho.T, (grid_x, grid_z), method='linear')
 
+    if clim == None:
+        vmin, vmax = rho.min(), rho.max()
+    else:
+        vmin, vmax = clim[0], clim[1]
 
-    plt.imshow(grid_rho.T, extent = (np.min(midx),np.max(midx),np.min(midz),np.max(midz)), origin='lower', alpha=0.8, vmin = np.min(rho), vmax = np.max(rho))
-    cbar = plt.colorbar(format = '%.2f',fraction=0.04,orientation="horizontal")
+    grid_rho = np.ma.masked_where(np.isnan(grid_rho), grid_rho)
+    ph = plt.pcolormesh(grid_x[:,0],grid_z[0,:],grid_rho.T, clim=(vmin, vmax))
+    cbar = plt.colorbar(format="$10^{%.1f}$",fraction=0.04,orientation="horizontal")
 
     cmin,cmax = cbar.get_clim()
     ticks = np.linspace(cmin,cmax,3)
     cbar.set_ticks(ticks)
+    cbar.ax.tick_params(labelsize=10)
+    
+    if dtype == 'appc':
+        cbar.set_label("App.Cond",size=12)
+    elif dtype == 'appr':
+        cbar.set_label("App.Res.",size=12)
+    elif dtype == 'volt':
+        cbar.set_label("Potential (V)",size=12)
 
     # Plot apparent resistivity
-    plt.scatter(midx,midz,s=50,c=rho.T)
+    ax.scatter(midx,midz,s=10,c=rho.T, vmin =vmin, vmax = vmax, clim=(vmin, vmax))
 
-    ax.set_xticklabels([])
+    #ax.set_xticklabels([])
+    #ax.set_yticklabels([])
 
-    ax.set_ylabel('Z')
-    ax.yaxis.tick_right()
-    ax.yaxis.set_label_position('right')
     plt.gca().set_aspect('equal', adjustable='box')
 
 
-    return ax
+
+    return ph
 
 def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
     """
@@ -360,16 +395,6 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
             elif stype == 'pdp':
                 srcClass = DC.SrcDipole([rxClass], M[ii,:],M[ii,:])
             SrcList.append(srcClass)
-
-#==============================================================================
-#     elif re.match(stype,'dpdp'):
-#
-#         for ii in range(0, int(nstn)-2):
-#
-#             indx = np.min([ii+n+1,nstn])
-#             Tx.append(np.c_[M[ii,:],N[ii,:]])
-#             Rx.append(np.c_[M[ii+2:indx,:],N[ii+2:indx,:]])
-#==============================================================================
 
     elif stype == 'gradient':
 
@@ -513,22 +538,22 @@ def writeUBC_DCobs(fileName, DCsurvey, dtype, stype):
 
     fid.close()
 
-def convertObs_DC3D_to_2D(DCsurvey,lineID):
+def convertObs_DC3D_to_2D(DCsurvey,lineID, flag = 'local'):
     """
-        Read DC survey and data and change
-        coordinate system to distance along line assuming
-        all data is acquired along line.
-        First transmitter pole is assumed to be at the origin
+        Read DC survey and projects the coordinate system
+        according to the flag = 'Xloc' | 'Yloc' | 'local' (default)
+        In the 'local' system, station coordinates are referenced
+        to distance from the first srcLoc[0].loc[0]
 
-        Assumes flat topo for now...
+        The Z value is preserved, but Y coordinates zeroed.
 
         Input:
-        :param Tx, Rx
+        :param survey3D
 
         Output:
-        :figure Tx2d, Rx2d
+        :figure survey2D
 
-        Edited Feb 17th, 2016
+        Edited April 6th, 2016
 
         @author: dominiquef
 
@@ -570,25 +595,39 @@ def convertObs_DC3D_to_2D(DCsurvey,lineID):
             Rx = DCsurvey.srcList[indx[ii]].rxList[0].locs
             nrx = Rx[0].shape[0]
 
-            # Find A electrode along line
-            vec, r = r_unit(x0,Tx[ii][0,0:2])
-            A = stn_id(vecTx,vec,r)
+            if flag == 'local':
+                # Find A electrode along line
+                vec, r = r_unit(x0,Tx[ii][0,0:2])
+                A = stn_id(vecTx,vec,r)
 
-            # Find B electrode along line
-            vec, r = r_unit(x0,Tx[ii][1,0:2])
-            B = stn_id(vecTx,vec,r)
+                # Find B electrode along line
+                vec, r = r_unit(x0,Tx[ii][1,0:2])
+                B = stn_id(vecTx,vec,r)
 
-            M = np.zeros(nrx)
-            N = np.zeros(nrx)
-            for kk in range(nrx):
+                M = np.zeros(nrx)
+                N = np.zeros(nrx)
+                for kk in range(nrx):
 
-                # Find all M electrodes along line
-                vec, r = r_unit(x0,Rx[0][kk,0:2])
-                M[kk] = stn_id(vecTx,vec,r)
+                    # Find all M electrodes along line
+                    vec, r = r_unit(x0,Rx[0][kk,0:2])
+                    M[kk] = stn_id(vecTx,vec,r)
 
-                # Find all N electrodes along line
-                vec, r = r_unit(x0,Rx[1][kk,0:2])
-                N[kk] = stn_id(vecTx,vec,r)
+                    # Find all N electrodes along line
+                    vec, r = r_unit(x0,Rx[1][kk,0:2])
+                    N[kk] = stn_id(vecTx,vec,r)
+            elif flag == 'Yloc':
+                """ Flip the XY axis locs"""
+                A = Tx[ii][0,1]
+                B = Tx[ii][1,1]
+                M = Rx[0][:,1]
+                N = Rx[1][:,1]
+
+            elif flag == 'Xloc':
+                """ Copy the rx-tx locs"""
+                A = Tx[ii][0,0]
+                B = Tx[ii][1,0]
+                M = Rx[0][:,0]
+                N = Rx[1][:,0]
 
             Rx = DC.RxDipole(np.c_[M,np.zeros(nrx),Rx[0][:,2]],np.c_[N,np.zeros(nrx),Rx[1][:,2]])
 
@@ -604,16 +643,16 @@ def convertObs_DC3D_to_2D(DCsurvey,lineID):
 
 def readUBC_DC3Dobs(fileName):
     """
-        Read UBC GIF DCIP 3D observation file and generate arrays for tx-rx location
+        Read UBC GIF DCIP 3D observation file and generate survey
 
         Input:
         :param fileName, path to the UBC GIF 3D obs file
 
         Output:
-        :param rx, tx, d, wd
+        :param DCIPsurvey
         :return
 
-        Created on Mon December 7th, 2015
+        Created on Mon April 6th, 2015
 
         @author: dominiquef
 
@@ -688,6 +727,7 @@ def readUBC_DC3Dobs(fileName):
 
 def readUBC_DC2Dobs(fileName):
     """
+        ------- NEEDS TO BE UPDATED ------
         Read UBC GIF 2D observation file and generate arrays for tx-rx location
 
         Input:
@@ -734,6 +774,73 @@ def readUBC_DC2Dobs(fileName):
     tx = np.transpose(np.array((tx_A,tx_B)))
 
     return tx, rx, d, wd
+
+def readUBC_DC2Dpre(fileName):
+    """
+        Read UBC GIF DCIP 2D observation file and generate arrays for tx-rx location
+
+        Input:
+        :param fileName, path to the UBC GIF 3D obs file
+
+        Output:
+        DCsurvey
+        :return
+
+        Created on Mon March 9th, 2016 << Doug's 70th Birthday !! >>
+
+        @author: dominiquef
+
+    """
+
+    # Load file
+    obsfile = np.genfromtxt(fileName,delimiter=' \n',dtype=np.str,comments='!')
+
+    # Pre-allocate
+    srcLists = []
+    Rx = []
+    d = []
+    zflag = True # Flag for z value provided
+
+    for ii in range(obsfile.shape[0]):
+
+        if not obsfile[ii]:
+            continue
+
+        # First line is transmitter with number of receivers
+
+
+        temp = (np.fromstring(obsfile[ii], dtype=float,sep=' ').T)
+
+
+        # Check if z value is provided, if False -> nan
+        if len(temp)==5:
+            tx = np.r_[temp[0],np.nan,np.nan,temp[1],np.nan,np.nan]
+            zflag = False
+
+        else:
+            tx = np.r_[temp[0],np.nan,temp[1],temp[2],np.nan,temp[3]]
+
+
+        if zflag:
+            rx = np.c_[temp[4],np.nan,temp[5],temp[6],np.nan,temp[7]]
+
+
+        else:
+            rx = np.c_[temp[2],np.nan,np.nan,temp[3],np.nan,np.nan]
+            # Check if there is data with the location
+
+        d.append(temp[-1])
+
+
+        Rx = DC.RxDipole(rx[:,:3],rx[:,3:])
+        srcLists.append( DC.SrcDipole( [Rx], tx[:3],tx[3:]) )
+
+    # Create survey class
+    survey = DC.SurveyDC(srcLists)
+
+    survey.dobs = np.asarray(d)
+
+    return {'DCsurvey':survey}
 
 def readUBC_DC2DMesh(fileName):
     """
@@ -928,7 +1035,6 @@ def getSrc_locs(DCsurvey):
 
     srcMat = np.zeros((DCsurvey.nSrc,2,3))
     for ii in range(DCsurvey.nSrc):
-        print np.asarray(DCsurvey.srcList[ii].loc).shape
         srcMat[ii,:,:] =  np.asarray(DCsurvey.srcList[ii].loc)
 
     return srcMat
