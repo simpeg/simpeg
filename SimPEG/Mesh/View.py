@@ -42,9 +42,9 @@ class TensorView(object):
 
     def plotImage(self, v, vType='CC', grid=False, view='real',
               ax=None, clim=None, showIt=False,
-              pcolorOpts={},
-              streamOpts={'color':'k'},
-              gridOpts={'color':'k'},
+              pcolorOpts=None,
+              streamOpts=None,
+              gridOpts=None,
               numbering=True, annotationColor='w'
               ):
         """
@@ -84,6 +84,12 @@ class TensorView(object):
             M.plotImage(v, annotationColor='k', showIt=True)
 
         """
+        if pcolorOpts is None:
+            pcolorOpts = {}
+        if streamOpts is None:
+            streamOpts = {'color':'k'}
+        if gridOpts is None:
+            gridOpts = {'color':'k'}
 
         if ax is None:
             fig = plt.figure()
@@ -174,9 +180,9 @@ class TensorView(object):
     def plotSlice(self, v, vType='CC',
                   normal='Z', ind=None, grid=False, view='real',
                   ax=None, clim=None, showIt=False,
-                  pcolorOpts={},
-                  streamOpts={'color':'k'},
-                  gridOpts={'color':'k', 'alpha':0.5}
+                  pcolorOpts=None,
+                  streamOpts=None,
+                  gridOpts=None
                   ):
 
         """
@@ -197,6 +203,12 @@ class TensorView(object):
             M.plotSlice(M.cellGrad*b, 'F', view='vec', grid=True, showIt=True, pcolorOpts={'alpha':0.8})
 
         """
+        if pcolorOpts is None:
+            pcolorOpts = {}
+        if streamOpts is None:
+            streamOpts = {'color':'k'}
+        if gridOpts is None:
+            gridOpts = {'color':'k', 'alpha':0.5}
         if type(vType) in [list, tuple]:
             assert ax is None, "cannot specify an axis to plot on with this function."
             fig, axs = plt.subplots(1,len(vType))
@@ -289,11 +301,17 @@ class TensorView(object):
 
     def _plotImage2D(self, v, vType='CC', grid=False, view='real',
               ax=None, clim=None, showIt=False,
-              pcolorOpts={},
-              streamOpts={'color':'k'},
-              gridOpts={'color':'k'}
+              pcolorOpts=None,
+              streamOpts=None,
+              gridOpts=None
               ):
 
+        if pcolorOpts is None:
+            pcolorOpts = {}
+        if streamOpts is None:
+            streamOpts = {'color':'k'}
+        if gridOpts is None:
+            gridOpts = {'color':'k'}
         vTypeOptsCC = ['N','CC','Fx','Fy','Ex','Ey']
         vTypeOptsV = ['CCv','F','E']
         vTypeOpts = vTypeOptsCC + vTypeOptsV
