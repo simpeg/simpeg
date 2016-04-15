@@ -643,16 +643,14 @@ def convertObs_DC3D_to_2D(DCsurvey,lineID, flag = 'local'):
 
 def readUBC_DC3Dobs(fileName):
     """
-        Read UBC GIF DCIP 3D observation file and generate survey
+        Read UBC GIF DC 3D observation file and generate survey
 
         Input:
         :param fileName, path to the UBC GIF 3D obs file
 
         Output:
-        :param DCIPsurvey
+        :param DCsurvey
         :return
-
-        Created on Mon April 6th, 2015
 
         @author: dominiquef
 
@@ -660,6 +658,88 @@ def readUBC_DC3Dobs(fileName):
 
     # Load file
     obsfile = np.genfromtxt(fileName,delimiter=' \n',dtype=np.str,comments='!')
+
+    # Pre-allocate
+    srcLists = []
+    Rx = []
+    d = []
+    wd = []
+    zflag = True # Flag for z value provided
+
+    # Countdown for number of obs/tx
+    count = 0
+    for ii in range(obsfile.shape[0]):
+
+        if not obsfile[ii]:
+            continue
+
+        # First line is transmitter with number of receivers
+        if count==0:
+
+            temp = (np.fromstring(obsfile[ii], dtype=float,sep=' ').T)
+            count = int(temp[-1])
+
+            # Check if z value is provided, if False -> nan
+            if len(temp)==5:
+                tx = np.r_[temp[0:2],np.nan,temp[0:2],np.nan]
+                zflag = False
+
+            else:
+                tx = temp[:-1]
+
+            rx = []
+            continue
+
+        temp = np.fromstring(obsfile[ii], dtype=float,sep=' ')
+
+        if zflag:
+
+            rx.append(temp[:-2])
+            # Check if there is data with the location
+            if len(temp)==8:
+                d.append(temp[-2])
+                wd.append(temp[-1])
+
+        else:
+            rx.append(np.r_[temp[0:2],np.nan,temp[0:2],np.nan] )
+            # Check if there is data with the location
+            if len(temp)==6:
+                d.append(temp[-2])
+                wd.append(temp[-1])
+
+        count = count -1
+
+        # Reach the end of transmitter block
+        if count == 0:
+            rx = np.asarray(rx)
+            Rx = DC.RxDipole(rx[:,:3],rx[:,3:])
+            srcLists.append( DC.SrcDipole( [Rx], tx[:3],tx[3:]) )
+
+    # Create survey class
+    survey = DC.SurveyDC(srcLists)
+
+    survey.dobs = np.asarray(d)
+    survey.std = np.asarray(wd)
+
+    return {'DCsurvey':survey}
+    
+def readUBC_IP3Dobs(fileName):
+    """
+        Read UBC GIF IP 3D observation file and generate survey
+
+        Input:
+        :param fileName, path to the UBC GIF 3D obs file
+
+        Output:
+        :param IPsurvey
+        :return
+
+        @author: dominiquef
+
+    """
+
+    # Load file
+    obsfile = np.genfromtxt(fileName,delimiter=' \n',dtype=np.str,comments='IPTYPE')
 
     # Pre-allocate
     srcLists = []
