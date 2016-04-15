@@ -63,9 +63,9 @@ class Rx(SimPEG.Survey.BaseRx):
         """Component projection (real/imag)"""
         return self.knownRxTypes[self.rxType][2]
 
-    def projGLoc(self, u):
+    def projGLoc(self, f):
         """Grid Location projection (e.g. Ex Fy ...)"""
-        return u._GLoc(self.rxType[0]) + self.knownRxTypes[self.rxType][1]
+        return f._GLoc(self.rxType[0]) + self.knownRxTypes[self.rxType][1]
 
     def eval(self, src, mesh, f):
         """

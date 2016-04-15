@@ -181,7 +181,7 @@ class Fields_e(Fields):
                   }
 
     def __init__(self, mesh, survey, **kwargs):
-        Fields.__init__(self,mesh,survey,**kwargs)
+        Fields.__init__(self, mesh, survey, **kwargs)
 
     def startup(self):
         self.prob = self.survey.prob

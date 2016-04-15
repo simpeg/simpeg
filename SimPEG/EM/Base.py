@@ -1,6 +1,7 @@
 from SimPEG import Survey, Problem, Utils, Models, Maps, PropMaps, np, sp, Solver as SimpegSolver
 from scipy.constants import mu_0
 
+
 class EMPropMap(Maps.PropMap):
     """
         Property Map for EM Problems. The electrical conductivity (\\(\\sigma\\)) is the default inversion property, and the default value of the magnetic permeability is that of free space (\\(\\mu = 4\\pi\\times 10^{-7} \\) H/m)
@@ -69,6 +70,12 @@ class BaseEMProblem(Problem.BaseProblem):
         if getattr(self, '_Mf', None) is None:
             self._Mf = self.mesh.getFaceInnerProduct()
         return self._Mf
+
+    @property
+    def Vol(self):
+        if getattr(self, '_Vol', None) is None:
+            self._Vol = Utils.sdiag(self.mesh.vol)
+        return self._Vol
 
 
     # ----- Magnetic Permeability ----- #
@@ -192,7 +199,7 @@ class BaseEMSurvey(Survey.BaseSurvey):
         self.srcList = srcList
         Survey.BaseSurvey.__init__(self, **kwargs)
 
-    def eval(self, u):
+    def eval(self, f):
         """
         Project fields to receiver locations
         :param Fields u: fields object
@@ -202,8 +209,8 @@ class BaseEMSurvey(Survey.BaseSurvey):
         data = Survey.Data(self)
         for src in self.srcList:
             for rx in src.rxList:
-                data[src, rx] = rx.eval(src, self.mesh, u)
+                data[src, rx] = rx.eval(src, self.mesh, f)
         return data
 
-    def evalDeriv(self, u):
+    def evalDeriv(self, f):
         raise Exception('Use Receivers to project fields deriv.')
