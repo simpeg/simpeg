@@ -20,7 +20,7 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
     mesh = Mesh.TensorMesh([hx,hy,hz],['C','C','C'])
 
     if useMu is True:
-        mapping = [('sigma', Maps.ExpMap(mesh)), ('mu', Maps.IdentityMap(mesh))] 
+        mapping = [('sigma', Maps.ExpMap(mesh)), ('mu', Maps.IdentityMap(mesh))]
     else:
         mapping = Maps.ExpMap(mesh)
 
@@ -43,14 +43,14 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
                 S_e = np.zeros(mesh.nE)
                 S_m[Utils.closestPoints(mesh,[0.,0.,0.],'Fz') + np.sum(mesh.vnF[:1])] = 1e-3
                 S_e[Utils.closestPoints(mesh,[0.,0.,0.],'Ez') + np.sum(mesh.vnE[:1])] = 1e-3
-                Src.append(EM.FDEM.Src.RawVec([Rx0], freq, S_m, S_e))
+                Src.append(EM.FDEM.Src.RawVec([Rx0], freq, S_m, mesh.getEdgeInnerProduct()*S_e))
 
             elif fdemType is 'h' or fdemType is 'j':
                 S_m = np.zeros(mesh.nE)
                 S_e = np.zeros(mesh.nF)
                 S_m[Utils.closestPoints(mesh,[0.,0.,0.],'Ez') + np.sum(mesh.vnE[:1])] = 1e-3
                 S_e[Utils.closestPoints(mesh,[0.,0.,0.],'Fz') + np.sum(mesh.vnF[:1])] = 1e-3
-                Src.append(EM.FDEM.Src.RawVec([Rx0], freq, S_m, S_e))
+                Src.append(EM.FDEM.Src.RawVec([Rx0], freq, mesh.getEdgeInnerProduct()*S_m, S_e))
 
     if verbose:
         print '  Fetching %s problem' % (fdemType)
@@ -90,7 +90,7 @@ def crossCheckTest(SrcList, fdemType1, fdemType2, comp, addrandoms = False, useM
     prb1 = getFDEMProblem(fdemType1, comp, SrcList, freq, useMu, verbose)
     mesh = prb1.mesh
     print 'Cross Checking Forward: %s, %s formulations - %s' % (fdemType1, fdemType2, comp)
-    
+
     logsig = np.log(np.ones(mesh.nC)*CONDUCTIVITY)
     mu = np.ones(mesh.nC)*MU
 
