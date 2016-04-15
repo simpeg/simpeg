@@ -3,7 +3,7 @@
 import numpy as np, SimPEG as simpeg
 from scipy.constants import mu_0, epsilon_0 as eps_0
 
-def getEHfields(m1d,sigma,freq,zd,scaleUD=True):
+def getEHfields(m1d,sigma,freq,zd,scaleUD=True,scaleValue=1):
     '''Analytic solution for MT 1D layered earth. Returns E and H fields.
 
     :param SimPEG.mesh, object m1d: Mesh object with the 1D spatial information.
@@ -12,7 +12,7 @@ def getEHfields(m1d,sigma,freq,zd,scaleUD=True):
     :param numpy array, vector zd: location to calculate EH fields at
     :param bollean, scaleUD: scales the output to be 1 at the top, increases numeracal stability.
 
-    Assumes a halfspace with the same conductive as the last cell below.
+    Assumes a halfspace with the same conductive as the deepest cell.
 
     '''
     # Note add an error check for the mesh and sigma are the same size.
@@ -29,7 +29,7 @@ def getEHfields(m1d,sigma,freq,zd,scaleUD=True):
 
     # Initiate the propagation matrix, in the order down up.
     UDp = np.zeros((2,m1d.nC+1),dtype=complex)
-    UDp[1,0] = 1. # Set the wave amplitude as 1 into the half-space at the bottom of the mesh
+    UDp[1,0] = scaleValue # Set the wave amplitude as 1 into the half-space at the bottom of the mesh
     # Loop over all the layers, starting at the bottom layer
     for lnr, h in enumerate(m1d.hx): # lnr-number of layer, h-thickness of the layer
         # Calculate
@@ -53,7 +53,7 @@ def getEHfields(m1d,sigma,freq,zd,scaleUD=True):
             if np.any(np.isnan(scaleVal)):
                 # If there is a nan (thickness very great), rebuild the move up cell
                 scaleVal = np.zeros_like(UDp[:,lnr+1::-1],dtype=complex)
-                scaleVal[1,0] = 1.
+                scaleVal[1,0] = scaleValue
 
             UDp[:,lnr+1::-1] = scaleVal
 
