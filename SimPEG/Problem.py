@@ -88,28 +88,28 @@ class BaseProblem(object):
         return self.survey is not None
 
     @Utils.timeIt
-    def Jvec(self, m, v, u=None):
-        """Jvec(m, v, u=None)
+    def Jvec(self, m, v, f=None):
+        """Jvec(m, v, f=None)
 
             Effect of J(m) on a vector v.
 
             :param numpy.array m: model
             :param numpy.array v: vector to multiply
-            :param numpy.array u: fields
+            :param Fields f: fields
             :rtype: numpy.array
             :return: Jv
         """
         raise NotImplementedError('J is not yet implemented.')
 
     @Utils.timeIt
-    def Jtvec(self, m, v, u=None):
-        """Jtvec(m, v, u=None)
+    def Jtvec(self, m, v, f=None):
+        """Jtvec(m, v, f=None)
 
             Effect of transpose of J(m) on a vector v.
 
             :param numpy.array m: model
             :param numpy.array v: vector to multiply
-            :param numpy.array u: fields
+            :param Fields f: fields
             :rtype: numpy.array
             :return: JTv
         """
@@ -117,32 +117,32 @@ class BaseProblem(object):
 
 
     @Utils.timeIt
-    def Jvec_approx(self, m, v, u=None):
-        """Jvec_approx(m, v, u=None)
+    def Jvec_approx(self, m, v, f=None):
+        """Jvec_approx(m, v, f=None)
 
             Approximate effect of J(m) on a vector v
 
             :param numpy.array m: model
             :param numpy.array v: vector to multiply
-            :param numpy.array u: fields
+            :param Fields f: fields
             :rtype: numpy.array
             :return: approxJv
         """
-        return self.Jvec(m, v, u)
+        return self.Jvec(m, v, f)
 
     @Utils.timeIt
-    def Jtvec_approx(self, m, v, u=None):
-        """Jtvec_approx(m, v, u=None)
+    def Jtvec_approx(self, m, v, f=None):
+        """Jtvec_approx(m, v, f=None)
 
             Approximate effect of transpose of J(m) on a vector v.
 
             :param numpy.array m: model
             :param numpy.array v: vector to multiply
-            :param numpy.array u: fields
+            :param Fields f: fields
             :rtype: numpy.array
             :return: JTv
         """
-        return self.Jtvec(m, v, u)
+        return self.Jtvec(m, v, f)
 
     def fields(self, m):
         """
@@ -224,9 +224,9 @@ class LinearProblem(BaseProblem):
     def fields(self, m):
         return self.G.dot(m)
 
-    def Jvec(self, m, v, u=None):
+    def Jvec(self, m, v, f=None):
         return self.G.dot(v)
 
-    def Jtvec(self, m, v, u=None):
+    def Jtvec(self, m, v, f=None):
         return self.G.T.dot(v)
 
