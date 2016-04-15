@@ -2,6 +2,7 @@ from SimPEG import Problem
 from SimPEG.EM.Base import BaseEMProblem
 from SurveyDC import Survey
 from FieldsDC import Fields, Fields_CC
+import numpy as np
 
 class BaseDCProblem(BaseEMProblem):
 
@@ -29,9 +30,28 @@ class BaseDCProblem(BaseEMProblem):
         """
         takes concept of source and turns it into a matrix
         """
-        raise NotImplementedError
+        """
+        Evaluates the sources for a given frequency and puts them in matrix form
 
+        :param float freq: Frequency
+        :rtype: (numpy.ndarray, numpy.ndarray)
+        :return: s_m, s_e (nE or nF, nSrc)
+        """
 
+        Srcs = self.survey.srcList
+
+        if self._formulation is 'EB':
+            n = self.mesh.nN
+            # return NotImplementedError
+
+        elif self._formulation is 'HJ':
+            n = self.mesh.nC
+
+        q = np.zeros((n, len(Srcs)))
+
+        for i, src in enumerate(Srcs):
+            q[:,i] = src.eval(self)
+        return q
 
 class Problem3D_CC(BaseDCProblem):
 
@@ -63,6 +83,8 @@ class Problem3D_CC(BaseDCProblem):
             return V.T * A
         return A
 
+    def getADeriv():
+        raise NotImplementedError
 
     def getRHS(self):
         """
@@ -75,5 +97,9 @@ class Problem3D_CC(BaseDCProblem):
         if self._makeASymmetric is True:
             return self.Vol.T * RHS
         return RHS
+
+    def getRHSDeriv():
+        raise NotImplementedError
+
 
 

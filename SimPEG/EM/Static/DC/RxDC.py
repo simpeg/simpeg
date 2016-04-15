@@ -3,7 +3,7 @@ import SimPEG
 from SimPEG.Utils import Zero, closestPoints
 
 class BaseRx(SimPEG.Survey.BaseRx):
-    loc = None
+    locs = None
     rxType = None
 
     knownRxTypes = {
@@ -16,8 +16,9 @@ class BaseRx(SimPEG.Survey.BaseRx):
                     'jz':['j','z'],
                     }
 
-    def __init__(self, **kwargs):
-        SimPEG.Survey.BaseRx.__init__(locs, rxType, **kwargs)
+    def __init__(self, locs, rxType, **kwargs):
+        SimPEG.Survey.BaseRx.__init__(self, locs, rxType, **kwargs)
+
 
     @property
     def projField(self):
@@ -28,11 +29,11 @@ class BaseRx(SimPEG.Survey.BaseRx):
         """Grid Location projection (e.g. Ex Fy ...)"""
         comp = self.knownRxTypes[self.rxType][1]
         if comp is not None:
-            return f._GLoc(self.rxType[0]) + comp
-        return f._GLoc(self.rxType[0])
+            return f._GLoc(self.rxType) + comp
+        return f._GLoc(self.rxType)
 
     def eval(self, src, mesh, f):
-        P = self.getP(self.prob.mesh)
+        P = self.getP(mesh, self.projGLoc(f))
         return P*f[src, self.projField]
 
 # DC.Rx.Dipole(locs)
@@ -40,24 +41,26 @@ class Dipole(BaseRx):
 
     def __init__(self, locsM, locsN, rxType = 'phi', **kwargs):
         assert locsM.shape == locsN.shape, 'locsM and locsN need to be the same size'
-        self.locs = [locsM, locsN]
-        BaseRx.__init__(self)
+        locs = [locsM, locsN]
+        # We may not need this ...
+        BaseRx.__init__(self, locs, rxType)
 
     @property
     def nD(self):
         """Number of data in the receiver."""
         return self.locs[0].shape[0]
 
-    def getP(self,mesh):
+    def getP(self, mesh, Gloc):
         if mesh in self._Ps:
             return self._Ps[mesh]
 
-        P0 = mesh.getInterpolationMat(self.locs[0], self.projGLoc)
-        P1 = mesh.getInterpolationMat(self.locs[1], self.projGLoc)
+        P0 = mesh.getInterpolationMat(self.locs[0], Gloc)
+        P1 = mesh.getInterpolationMat(self.locs[1], Gloc)
         P = P0 - P1
 
         if self.storeProjections:
             self._Ps[mesh] = P
+
         return P
 
 

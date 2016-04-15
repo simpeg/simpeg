@@ -1,6 +1,7 @@
 import SimPEG
 # from SimPEG.EM.Base import BaseEMSurvey
 from SimPEG.Utils import Zero, closestPoints
+import numpy as np
 
 class BaseSrc(SimPEG.Survey.BaseSrc):
 
