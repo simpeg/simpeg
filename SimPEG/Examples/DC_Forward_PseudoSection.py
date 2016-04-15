@@ -2,19 +2,27 @@ from SimPEG import Mesh, Utils, np, sp
 import SimPEG.DCIP as DC
 import time
 
-def run(loc=None, sig=None, radi=None, param=None, stype='dpdp', plotIt=True):
+def run(loc=None, sig=None, radi=None, param=None, stype='dpdp', dtype='appc', plotIt=True):
     """
         DC Forward Simulation
         =====================
 
-        Forward model conductive spheres in a half-space and plot a pseudo-section
+        Forward model two conductive spheres in a half-space and plot a
+        pseudo-section. Assumes an infinite line source and measures along the
+        center of the spheres.
 
-        Created by @fourndo on Mon Feb 01 19:28:06 2016
+        INPUT:
+        loc     = Location of spheres [[x1,y1,z1],[x2,y2,z2]]
+        radi    = Radius of spheres [r1,r2]
+        param   = Conductivity of background and two spheres [m0,m1,m2]
+        stype   = survey type "pdp" (pole dipole) or "dpdp" (dipole dipole)
+        dtype   = Data type "appr" (app res) | "appc" (app cond) | "volt" (potential)
+        Created by @fourndo
 
     """
 
     assert stype in ['pdp', 'dpdp'], "Source type (stype) must be pdp or dpdp (pole dipole or dipole dipole)"
-
+    assert dtype in ['appr', 'appc', 'volt'], "Data type (dtype) must be appr (app res) or appc (app cond) or volt (potential)"
 
     if loc is None:
         loc = np.c_[[-50.,0.,-50.],[50.,0.,-50.]]
@@ -27,7 +35,6 @@ def run(loc=None, sig=None, radi=None, param=None, stype='dpdp', plotIt=True):
 
 
     # First we need to create a mesh and a model.
-
     # This is our mesh
     dx    = 5.
 
@@ -52,14 +59,10 @@ def run(loc=None, sig=None, radi=None, param=None, stype='dpdp', plotIt=True):
     # Get index of the center
     indy = int(mesh.nCy/2)
 
-
     # Plot the model for reference
     # Define core mesh extent
     xlim = 200
-    zlim = 125
-
-    # Specify the survey type: "pdp" | "dpdp"
-
+    zlim = 100
 
     # Then specify the end points of the survey. Let's keep it simple for now and survey above the anomalies, top of the mesh
     ends = [(-175,0),(175,0)]
@@ -77,12 +80,13 @@ def run(loc=None, sig=None, radi=None, param=None, stype='dpdp', plotIt=True):
     dl_len = np.sqrt( np.sum((locs[0,:] - locs[1,:])**2) )
     dl_x = ( Tx[-1][0,1] - Tx[0][0,0] ) / dl_len
     dl_y = ( Tx[-1][1,1] - Tx[0][1,0]  ) / dl_len
-    azm =  np.arctan(dl_y/dl_x)
+    #azm =  np.arctan(dl_y/dl_x)
 
     #Set boundary conditions
     mesh.setCellGradBC('neumann')
 
-    # Define the differential operators needed for the DC problem
+    # Define the linear system needed for the DC problem. We assume an infitite
+    # line source for simplicity.
     Div = mesh.faceDiv
     Grad = mesh.cellGrad
     Msig = Utils.sdiag(1./(mesh.aveF2CC.T*(1./model)))
@@ -145,16 +149,23 @@ def run(loc=None, sig=None, radi=None, param=None, stype='dpdp', plotIt=True):
     print 'Forward completed'
 
     # Let's just convert the 3D format into 2D (distance along line) and plot
-    # [Tx2d, Rx2d] = DC.convertObs_DC3D_to_2D(survey, np.ones(survey.nSrc))
-    survey2D = DC.convertObs_DC3D_to_2D(survey, np.ones(survey.nSrc))
+    survey2D = DC.convertObs_DC3D_to_2D(survey, np.ones(survey.nSrc) , 'Xloc')
     survey2D.dobs =np.hstack(data)
-    # Here is an example for the first tx-rx array
+
     if plotIt:
         import matplotlib.pyplot as plt
-        fig = plt.figure()
+        fig = plt.figure(figsize=(7,7))
         ax = plt.subplot(2,1,1, aspect='equal')
-        mesh.plotSlice(np.log10(model), ax =ax, normal = 'Y', ind = indy,grid=True)
-        ax.set_title('E-W section at '+str(mesh.vectorCCy[indy])+' m')
+        # Plot the location of the spheres for reference
+        circle1=plt.Circle((loc[0,0],loc[2,0]),radi[0],color='w',fill=False, lw=3)
+        circle2=plt.Circle((loc[0,1],loc[2,1]),radi[1],color='k',fill=False, lw=3)
+        ax.add_artist(circle1)
+        ax.add_artist(circle2)
+
+        dat = mesh.plotSlice(np.log10(model), ax =ax, normal = 'Y',
+                             ind = indy,grid=True, clim = np.log10([sig.min(),sig.max()]))
+
+        ax.set_title('3-D model')
         plt.gca().set_aspect('equal', adjustable='box')
 
         plt.scatter(Tx[0][0,:],Tx[0][2,:],s=40,c='g', marker='v')
@@ -163,22 +174,34 @@ def run(loc=None, sig=None, radi=None, param=None, stype='dpdp', plotIt=True):
         plt.ylim([-zlim,mesh.vectorNz[-1]+dx])
 
 
-        ax = plt.subplot(2,1,2, aspect='equal')
+        pos =  ax.get_position()
+        ax.set_position([pos.x0 , pos.y0 + 0.025 ,  pos.width, pos.height])
+        pos =  ax.get_position()
+        cbarax = fig.add_axes([pos.x0 , pos.y0 + 0.025 ,  pos.width, pos.height * 0.04])  ## the parameters are the specified position you set
+        cb = fig.colorbar(dat[0],cax=cbarax, orientation="horizontal",
+                          ax = ax, ticks=np.linspace(np.log10(sig.min()),
+                         np.log10(sig.max()), 3), format="$10^{%.1f}$")
+        cb.set_label("Conductivity (S/m)",size=12)
+        cb.ax.tick_params(labelsize=12)
+
+        # Second plot for the predicted apparent resistivity data
+        ax2 = plt.subplot(2,1,2, aspect='equal')
 
         # Plot the location of the spheres for reference
-        circle1=plt.Circle((loc[0,0]-Tx[0][0,0],loc[2,0]),radi[0],color='w',fill=False, lw=3)
-        circle2=plt.Circle((loc[0,1]-Tx[0][0,0],loc[2,1]),radi[1],color='k',fill=False, lw=3)
-        ax.add_artist(circle1)
-        ax.add_artist(circle2)
+        circle1=plt.Circle((loc[0,0],loc[2,0]),radi[0],color='w',fill=False, lw=3)
+        circle2=plt.Circle((loc[0,1],loc[2,1]),radi[1],color='k',fill=False, lw=3)
+        ax2.add_artist(circle1)
+        ax2.add_artist(circle2)
 
         # Add the speudo section
-        DC.plot_pseudoSection(survey2D,ax,stype)
+        dat = DC.plot_pseudoSection(survey2D,ax2,stype=stype, dtype = dtype)
 
         # plt.scatter(Tx2d[0][:],Tx[0][2,:],s=40,c='g', marker='v')
         # plt.scatter(Rx2d[0][:],Rx[0][:,2::3],s=40,c='y')
         # plt.plot(np.r_[Tx2d[0][0],Rx2d[-1][-1,-1]],np.ones(2)*mesh.vectorNz[-1], color='k')
-        plt.ylim([-zlim,mesh.vectorNz[-1]+dx])
+        ax2.set_title('Apparent Conductivity data')
 
+        plt.ylim([-zlim,mesh.vectorNz[-1]+dx])
         plt.show()
 
         return fig, ax

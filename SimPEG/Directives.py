@@ -216,7 +216,7 @@ class SaveOutputDictEveryIteration(_SaveEveryIteration):
         # Save the data.
         ms = self.reg.Ws * ( self.reg.mapping * (self.invProb.curModel - self.reg.mref) )
         phi_ms = 0.5*ms.dot(ms)
-        if self.reg.smoothModel == True:
+        if self.reg.mrefInSmooth == True:
             mref = self.reg.mref
         else:
             mref = 0
@@ -249,3 +249,92 @@ class SaveOutputDictEveryIteration(_SaveEveryIteration):
 #             mref = self.mref0
 #         self.m_prev = self.invProb.m_current
 #         return mref
+
+class Update_IRLS(InversionDirective):
+
+    eps_min = None
+    factor = None
+    gamma = None
+    phi_m_last = None
+    phi_d_last = None
+
+    def initialize(self):
+
+        # Scale the regularization for changes in norm
+        if getattr(self, 'phi_m_last', None) is not None:
+
+            self.reg.curModel = self.invProb.curModel
+            self.reg.gamma = 1.
+            phim_new = self.reg.eval(self.invProb.curModel)
+            self.gamma = self.phi_m_last / phim_new
+
+        self.reg.curModel = self.invProb.curModel
+        self.reg.gamma = self.gamma
+
+        if getattr(self, 'phi_d_last', None) is None:
+            self.phi_d_last = self.invProb.phi_d
+
+    def endIter(self):
+        # Cool the threshold parameter
+        if getattr(self, 'factor', None) is not None:
+            eps = self.reg.eps / self.factor
+
+            if getattr(self, 'eps_min', None) is not None:
+                self.reg.eps = np.max([self.eps_min,eps])
+            else:
+                self.reg.eps = eps
+
+        # Get phi_m at the end of current iteration
+        self.phi_m_last = self.invProb.phi_m_last
+
+         # Update the model used for the IRLS weights
+        self.reg.curModel = self.invProb.curModel
+
+        # Temporarely set gamma to 1.
+        self.reg.gamma = 1.
+
+        # Compute change in model objective function and update scaling
+        phim_new = self.reg.eval(self.invProb.curModel)
+
+        self.reg.gamma = self.phi_m_last / phim_new
+
+        self.invProb.beta = self.invProb.beta * self.survey.nD*0.5 / self.invProb.phi_d
+
+class Update_lin_PreCond(InversionDirective):
+
+
+    def endIter(self):
+        # Cool the threshold parameter
+
+        if getattr(self.opt, 'approxHinv', None) is not None:
+            # Update the pre-conditioner
+            diagA = np.sum(self.prob.G**2.,axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() * (self.reg.mapping * np.ones(self.reg.curModel.size))**2.
+            PC     = Utils.sdiag(diagA**-1.)
+            self.opt.approxHinv = PC
+            print 'Updated pre-cond'
+
+class Update_Wj(InversionDirective):
+    """
+        Create approx-sensitivity base weighting using the probing method
+    """
+    k = None # Number of probing cycles
+    itr = None # Iteration number to update Wj, or always update if None
+
+    def endIter(self):
+
+        if self.itr is None or self.itr == self.opt.iter:
+
+            m = self.invProb.curModel
+            if self.k is None:
+                self.k = int(self.survey.nD/10)
+
+            def JtJv(v):
+
+                Jv = self.prob.Jvec(m, v)
+
+                return self.prob.Jtvec(m,Jv)
+
+            JtJdiag = Utils.diagEst(JtJv,len(m),k=self.k)
+            JtJdiag = JtJdiag / max(JtJdiag)
+
+            self.reg.wght = JtJdiag
