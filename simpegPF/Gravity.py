@@ -34,11 +34,11 @@ class GravityIntegral(Problem.BaseProblem):
 
         # return self.G.dot(self.mapping*(m))
             
-    def Jvec(self, m, v, u=None):
+    def Jvec(self, m, v, f=None):
         dmudm = self.mapping.deriv(m)
         return self.G.dot(dmudm*v)
 
-    def Jtvec(self, m, v, u=None):
+    def Jtvec(self, m, v, f=None):
         dmudm = self.mapping.deriv(m)
         return dmudm.T * (self.G.T.dot(v))
 
