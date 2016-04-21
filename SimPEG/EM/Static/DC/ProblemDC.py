@@ -83,8 +83,8 @@ class Problem3D_CC(BaseDCProblem):
             return V.T * A
         return A
 
-    def getADeriv():
-        raise NotImplementedError
+    def getADeriv(self, u, v, adjoint= False):
+
 
     def getRHS(self):
         """
