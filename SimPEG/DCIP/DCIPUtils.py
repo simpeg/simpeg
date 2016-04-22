@@ -169,7 +169,7 @@ def readUBC_DC2DModel(fileName):
 
     return model
 
-def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
+def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None, cblabel=True, axlabel = True, colorbar = True, contour = None):
     """
         Read list of 2D tx-rx location and plot a speudo-section of apparent
         resistivity.
@@ -191,9 +191,6 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
     from SimPEG import np
     from scipy.interpolate import griddata
     import pylab as plt
-
-    # Set depth to 0 for now
-    z0 = 0.
 
     # Pre-allocate
     midx = []
@@ -259,38 +256,53 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
         midx = np.hstack([midx, ( Cmid + Pmid )/2 ])
         midz = np.hstack([midz, -np.abs(Cmid-Pmid)/2 + (Tx[0][2] + Tx[1][2])/2 ])
 
-    ax = axs
-
     # Grid points
     grid_x, grid_z = np.mgrid[np.min(midx):np.max(midx), np.min(midz):np.max(midz)]
     grid_rho = griddata(np.c_[midx,midz], rho.T, (grid_x, grid_z), method='linear')
-
+    
+    # Scale the color scheme
     if clim == None:
         vmin, vmax = rho.min(), rho.max()
     else:
         vmin, vmax = clim[0], clim[1]
 
+    # Plot data
     grid_rho = np.ma.masked_where(np.isnan(grid_rho), grid_rho)
-    ph = plt.pcolormesh(grid_x[:,0],grid_z[0,:],grid_rho.T, clim=(vmin, vmax))
-    cbar = plt.colorbar(format="$10^{%.1f}$",fraction=0.04,orientation="horizontal")
-
-    cmin,cmax = cbar.get_clim()
-    ticks = np.linspace(cmin,cmax,3)
-    cbar.set_ticks(ticks)
-    cbar.ax.tick_params(labelsize=10)
+    ph = plt.pcolormesh(grid_x[:,0],grid_z[0,:],grid_rho.T, vmin = vmin, vmax = vmax)
+    plt.gca().tick_params(axis='both', which='major', labelsize=8)
     
-    if dtype == 'appc':
-        cbar.set_label("App.Cond",size=12)
-    elif dtype == 'appr':
-        cbar.set_label("App.Res.",size=12)
-    elif dtype == 'volt':
-        cbar.set_label("Potential (V)",size=12)
+    if contour is not None:
+        plt.contour(grid_x,grid_z,grid_rho,levels = contour,colors = 'r', vmin = vmin, vmax = vmax)
+        
+    # Add scatter points
+    axs.scatter(midx,midz,s=10,c=rho.T, vmin = vmin, vmax = vmax)
+    
+    if colorbar:
+        
+        if dtype == 'volt':
+            cbar = plt.colorbar(ph, ax = axs, format="%4.1f",fraction=0.04,orientation="horizontal")
 
-    # Plot apparent resistivity
-    ax.scatter(midx,midz,s=10,c=rho.T, vmin =vmin, vmax = vmax, clim=(vmin, vmax))
+        else:               
+            cbar = plt.colorbar(ph, ax = axs, format="$10^{%.1f}$",fraction=0.04,orientation="horizontal")
+        
+        cmin,cmax = cbar.get_clim()
+        ticks = np.linspace(cmin,cmax,3)
+        cbar.set_ticks(ticks)
+        cbar.ax.tick_params(labelsize=10)
+        
+        if cblabel:
+            if dtype == 'appc':
+                cbar.set_label("App.Cond",size=12)
+            elif dtype == 'appr':
+                cbar.set_label("App.Res.",size=12)
+            elif dtype == 'volt':
+                cbar.set_label("Potential (V)",size=12)
 
-    #ax.set_xticklabels([])
-    #ax.set_yticklabels([])
+
+
+    if not axlabel:
+        axs.set_xticklabels([])
+        axs.set_yticklabels([])
 
     plt.gca().set_aspect('equal', adjustable='box')
 
@@ -448,15 +460,15 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
     survey = DC.SurveyDC(SrcList)
     return survey, Tx, Rx
 
-def writeUBC_DCobs(fileName, DCsurvey, dtype, stype):
+def writeUBC_DCobs(fileName, DCsurvey, dtype='3D', stype='SURFACE', iptype = 0):
     """
         Write UBC GIF DCIP 2D or 3D observation file
 
         Input:
-        :string fileName -> including path where the file is written out
-        :DCsurvey -> DC survey class object
-        :string dtype ->  either '2D' | '3D'
-        :string  stype ->  either 'SURFACE' | 'GENERAL'
+        :string     fileName -> including path where the file is written out
+        :DCsurvey   DC survey class object
+        :string     dtype ->  either '2D' | '3D'
+        :string     stype ->  either 'SURFACE' | 'GENERAL'
 
         Output:
         :param UBC2D-Data file
@@ -471,10 +483,16 @@ def writeUBC_DCobs(fileName, DCsurvey, dtype, stype):
 
     assert (dtype=='2D') | (dtype=='3D'), "Data must be either '2D' | '3D'"
     assert (stype=='SURFACE') | (stype=='GENERAL') | (stype=='SIMPLE'), "Data must be either 'SURFACE' | 'GENERAL' | 'SIMPLE'"
-
+    
     fid = open(fileName,'w')
-    fid.write('! ' + stype + ' FORMAT\n')
-
+    
+    
+    if iptype!=0:
+        fid.write('IPTYPE=%i\n'%iptype)
+        
+    else:
+        fid.write('! ' + stype + ' FORMAT\n')
+        
     count = 0
 
     for ii in range(DCsurvey.nSrc):
@@ -498,7 +516,7 @@ def writeUBC_DCobs(fileName, DCsurvey, dtype, stype):
                 B = np.repeat(tx[0,1],M.shape[0],axis=0)
                 M = M[:,0]
                 N = N[:,0]
-
+                
                 np.savetxt(fid, np.c_[A, B, M, N , DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e',delimiter=' ',newline='\n')
 
 
@@ -506,18 +524,25 @@ def writeUBC_DCobs(fileName, DCsurvey, dtype, stype):
 
                 if stype == 'SURFACE':
 
-                    fid.writelines("%e " % ii for ii in mkvc(tx[0,:]))
+                    fid.writelines("%f " % ii for ii in mkvc(tx[0,:]))
                     M = M[:,0]
                     N = N[:,0]
 
                 if stype == 'GENERAL':
 
+                    # Flip sign for z-elevation to depth
+                    tx[2::2,:] = -tx[2::2,:]
+                    
                     fid.writelines("%e " % ii for ii in mkvc(tx[::2,:]))
                     M = M[:,0::2]
                     N = N[:,0::2]
 
+                    # Flip sign for z-elevation to depth
+                    M[:,1::2] = -M[:,1::2]
+                    N[:,1::2] = -N[:,1::2]
+                    
                 fid.write('%i\n'% nD)
-                np.savetxt(fid, np.c_[ M, N , DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e',delimiter=' ',newline='\n')
+                np.savetxt(fid, np.c_[ M, N , DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%f',delimiter=' ',newline='\n')
 
         if dtype=='3D':
 
@@ -529,11 +554,12 @@ def writeUBC_DCobs(fileName, DCsurvey, dtype, stype):
 
             if stype == 'GENERAL':
 
-                fid.writelines("%e " % ii for ii in mkvc(tx))
+                fid.writelines("%e " % ii for ii in mkvc(tx[0:3,:]))
 
             fid.write('%i\n'% nD)
             np.savetxt(fid, np.c_[ M, N , DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e',delimiter=' ',newline='\n')
-
+            fid.write('\n')
+            
         count += nD
 
     fid.close()
@@ -640,51 +666,59 @@ def convertObs_DC3D_to_2D(DCsurvey,lineID, flag = 'local'):
     DCsurvey2D.std = np.asarray(DCsurvey.std)
 
     return DCsurvey2D
-
-def readUBC_DC3Dobs(fileName):
+    
+def readUBC_DC3Dobs(fileName, dtype = 'DC'):
     """
-        Read UBC GIF DCIP 3D observation file and generate survey
+        Read UBC GIF IP 3D observation file and generate survey
 
         Input:
         :param fileName, path to the UBC GIF 3D obs file
 
         Output:
-        :param DCIPsurvey
+        :param IPsurvey
         :return
-
-        Created on Mon April 6th, 2015
 
         @author: dominiquef
 
     """
-
+    zflag = True # Flag for z value provided
+    
     # Load file
-    obsfile = np.genfromtxt(fileName,delimiter=' \n',dtype=np.str,comments='!')
-
+    if dtype == 'IP':
+        obsfile = np.genfromtxt(fileName,delimiter=' \n',dtype=np.str,comments='IPTYPE')
+        
+    elif dtype == 'DC':
+        obsfile = np.genfromtxt(fileName,delimiter=' \n',dtype=np.str,comments='!')
+        
+    else:
+        print "dtype must be 'DC'(default) | 'IP'"
+        
     # Pre-allocate
     srcLists = []
     Rx = []
     d = []
     wd = []
-    zflag = True # Flag for z value provided
+    
 
     # Countdown for number of obs/tx
     count = 0
     for ii in range(obsfile.shape[0]):
 
+        # Skip if blank line
         if not obsfile[ii]:
             continue
 
-        # First line is transmitter with number of receivers
+        # First line or end of a transmitter block, read transmitter info
         if count==0:
-
-            temp = (np.fromstring(obsfile[ii], dtype=float,sep=' ').T)
+            # Read the line
+            temp = (np.fromstring(obsfile[ii], dtype=float, sep=' ').T)
             count = int(temp[-1])
 
             # Check if z value is provided, if False -> nan
             if len(temp)==5:
-                tx = np.r_[temp[0:2],np.nan,temp[0:2],np.nan]
-                zflag = False
+                tx = np.r_[temp[0:2],np.nan,temp[2:4],np.nan]
+                
+                zflag = False # Pass on the flag to the receiver loc
 
             else:
                 tx = temp[:-1]
@@ -692,8 +726,16 @@ def readUBC_DC3Dobs(fileName):
             rx = []
             continue
 
-        temp = np.fromstring(obsfile[ii], dtype=float,sep=' ')
+        temp = np.fromstring(obsfile[ii], dtype=float,sep=' ') # Get the string
 
+        # Filter out negative IP
+#        if temp[-2] < 0:       
+#            count = count -1
+#            print "Negative!"
+#            
+#        else:
+            
+        # If the Z-location is provided, otherwise put nan
         if zflag:
 
             rx.append(temp[:-2])
@@ -703,7 +745,7 @@ def readUBC_DC3Dobs(fileName):
                 wd.append(temp[-1])
 
         else:
-            rx.append(np.r_[temp[0:2],np.nan,temp[0:2],np.nan] )
+            rx.append(np.r_[temp[0:2],np.nan,temp[2:4],np.nan] )
             # Check if there is data with the location
             if len(temp)==6:
                 d.append(temp[-2])
@@ -711,7 +753,7 @@ def readUBC_DC3Dobs(fileName):
 
         count = count -1
 
-        # Reach the end of transmitter block
+        # Reach the end of transmitter block, append the src, rx and continue
         if count == 0:
             rx = np.asarray(rx)
             Rx = DC.RxDipole(rx[:,:3],rx[:,3:])
