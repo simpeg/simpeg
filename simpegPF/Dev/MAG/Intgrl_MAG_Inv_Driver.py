@@ -36,7 +36,8 @@ wd = survey.std
 ndata = survey.srcField.rxList[0].locs.shape[0]
 
 beta_in = 1e+5
-
+eps_p = 1e-4
+eps_q = 1e-4
 # Load in topofile or create flat surface
 if topofile == 'null':
     
@@ -91,7 +92,7 @@ midy = int(mesh.nCy/2)
 #==============================================================================
 
 #%% Plot obs data
-PF.Magnetics.plot_obs_2D(rxLoc,d,wd,'Observed Data')
+PF.Magnetics.plot_obs_2D(rxLoc,d,'Observed Data')
 
 #%% Run inversion
 prob = PF.Magnetics.MagneticIntegral(mesh, mapping = idenMap, actInd = actv)
@@ -106,7 +107,7 @@ survey.pair(prob)
 pred = prob.fields(mstart)
 PF.Magnetics.writeUBCobs(home_dir + dsep + 'Pred.dat',survey,pred)
 
-wr = np.sum(prob.G**2.,axis=0)**0.5
+wr = np.sum(prob.G**2.,axis=0)**0.5 / mesh.vol[actv]
 wr = ( wr/np.max(wr) )
 wr_out = actvMap * wr
 
@@ -123,7 +124,7 @@ reg.wght = wr
 #reg.alpha_s = 1.
 
 # Create pre-conditioner 
-diagA = np.sum(prob.G**2.,axis=0) + beta_in*(reg.W.T*reg.W).diagonal()*wr
+diagA = np.sum(prob.G**2.,axis=0) + beta_in*(reg.W.T*reg.W).diagonal()
 PC     = Utils.sdiag(diagA**-1.)
 
 
@@ -192,13 +193,12 @@ reg = Regularization.Sparse(mesh, indActive = actv, mapping = idenMap)
 reg.recModel = mrec
 reg.mref = mref
 reg.wght = wr
-reg.eps = 1e-5
-reg.p   = lpnorms[0]
-reg.qx  = lpnorms[1]
-reg.qz  = lpnorms[2]
-reg.qy  = lpnorms[3]
+reg.eps_p = eps_p
+reg.eps_q = eps_q
+reg.norms   = lpnorms
 
-diagA = np.sum(prob.G**2.,axis=0) + beta_in*(reg.W.T*reg.W).diagonal()*(wr)
+
+diagA = np.sum(prob.G**2.,axis=0) + beta_in*(reg.W.T*reg.W).diagonal()
 PC     = Utils.sdiag(diagA**-1.)
 
 #reg.alpha_s = 1.
@@ -214,7 +214,7 @@ invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta = invProb.beta)
 beta = Directives.BetaSchedule(coolingFactor=1, coolingRate=1)
 #betaest = Directives.BetaEstimate_ByEig()
 target = Directives.TargetMisfit()
-IRLS =Directives.update_IRLS( phi_m_last = phim, phi_d_last = phid )
+IRLS =Directives.Update_IRLS( phi_m_last = phim, phi_d_last = phid )
 
 inv = Inversion.BaseInversion(invProb, directiveList=[beta,IRLS])
 
@@ -230,8 +230,8 @@ Mesh.TensorMesh.writeModelUBC(mesh,'SimPEG_inv_l0l2.sus',m_out)
 pred = prob.fields(mrec)
 
 #%% Plot obs data
-PF.Magnetics.plot_obs_2D(rxLoc,pred,wd,'Predicted Data')
-PF.Magnetics.plot_obs_2D(rxLoc,d,wd,'Observed Data')
+PF.Magnetics.plot_obs_2D(rxLoc,pred,'Predicted Data')
+PF.Magnetics.plot_obs_2D(rxLoc,d,'Observed Data')
 print "Final misfit:" + str(np.sum( ((d-pred)/wd)**2. ) ) 
 #%% Plot out a section of the model
 

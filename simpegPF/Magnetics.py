@@ -1094,7 +1094,7 @@ def get_dist_wgt(mesh,rxLoc,actv,R,R0):
 
         temp = (R1 + R0)**-R  + (R2 + R0)**-R  + (R3 + R0)**-R  + (R4 + R0)**-R  + (R5 + R0)**-R  + (R6 + R0)**-R  + (R7 + R0)**-R  + (R8 + R0)**-R
 
-        wr = wr + (V*temp/8.)**2
+        wr = wr + (V*temp/8.)**2.
 
         count = progress(dd,count,ndata)
 

@@ -460,8 +460,8 @@ def read_GRAVinv_inp(input_file):
     # Line 7
     line = fid.readline()
     l_input = re.split('[!\s]',line) 
-    if l_input=='DEFAULT':
-        wgtfile = []
+    if l_input[0]=='DEFAULT':
+        wgtfile = None
         
     else:
         wgtfile = l_input[0].rstrip()
