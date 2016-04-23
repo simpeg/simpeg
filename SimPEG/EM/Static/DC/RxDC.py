@@ -36,6 +36,10 @@ class BaseRx(SimPEG.Survey.BaseRx):
         P = self.getP(mesh, self.projGLoc(f))
         return P*f[src, self.projField]
 
+    def evalDeriv(self, src, mesh, f, v, adjoint=False):
+        P = self.getP(mesh, self.projGLoc(f))
+        return P*v
+
 # DC.Rx.Dipole(locs)
 class Dipole(BaseRx):
 
@@ -50,6 +54,10 @@ class Dipole(BaseRx):
         """Number of data in the receiver."""
         return self.locs[0].shape[0]
 
+        # Not sure why ...
+        # return int(self.locs[0].size / 2)
+
+
     def getP(self, mesh, Gloc):
         if mesh in self._Ps:
             return self._Ps[mesh]
@@ -62,7 +70,6 @@ class Dipole(BaseRx):
             self._Ps[mesh] = P
 
         return P
-
 
 # class Pole(BaseRx):
 

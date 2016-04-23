@@ -4,6 +4,7 @@ from SurveyDC import Survey
 from FieldsDC import Fields, Fields_CC, Fields_N
 from SimPEG.Utils import sdiag
 import numpy as np
+from SimPEG.Utils import Zero
 
 class BaseDCProblem(BaseEMProblem):
 
@@ -22,7 +23,30 @@ class BaseDCProblem(BaseEMProblem):
         return f
 
     def Jvec(self, m, v, f=None):
-        raise NotImplementedError
+
+        if f is None:
+            f = self.fields(m)
+
+        self.curModel = m
+
+        Jv = self.dataPair(self.survey) #same size as the data
+
+        A = self.getA()
+        Ainv = self.Solver(A, **self.solverOpts)
+
+        for src in self.survey.srcList:
+            u_src = f[src, self._solutionType] # solution vector
+            dA_dm_v = self.getADeriv(u_src, v)
+            dRHS_dm_v = self.getRHSDeriv(src, v)
+            print type(dA_dm_v + dRHS_dm_v), (dA_dm_v + dRHS_dm_v).shape
+            du_dm_v = Ainv * ( - dA_dm_v + dRHS_dm_v )
+
+            for rx in src.rxList:
+                df_dmFun = getattr(f, '_%sDeriv'%rx.projField, None)
+                df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
+                Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
+            Ainv.clean()
+        return Utils.mkvc(Jv)
 
     def Jtvec(self, m, v, f=None):
         raise NotImplementedError
@@ -126,23 +150,32 @@ class Problem3D_CC(BaseDCProblem):
 
         """
 
+        V = self.Vol
+        D = V * self.mesh.faceDiv
         # TODO: this won't work for full anisotropy
-        # V = self.Vol
-        # Div = V*self.mesh.faceDiv
         MfRhoI = self.MfRhoI
-        A = self.Div * MfRhoI * self.Div.T
+        A = D * MfRhoI * D.T
+
+        # I think we should deprecate this for DC problem.
         # if self._makeASymmetric is True:
         #     return V.T * A
         return A
 
-    def getADeriv(self, u, v, adoint=False):
-        """
+    def getADeriv(self, u, v, adjoint= False):
 
-        Product of the derivative of our system matrix with respect to the model and a vector
+        V = self.Vol
+        D = V * self.mesh.faceDiv
+        MfRhoIDeriv = self.MfRhoIDeriv
 
-        """
-        return Div*self.MfRhoIDeriv(Div.T*u)
+        if adjoint:
+            # if self._makeASymmetric is True:
+            #     v = V * v
+            return D * MfRhoIDeriv(D * v)
 
+        # I think we should deprecate this for DC problem.
+        # if self._makeASymmetric is True:
+        #     return V.T * ( D * ( MfRhoIDeriv( D.T * ( V * u ) ) * v ) )
+        return D * (MfRhoIDeriv( D.T * u ) * v)
 
     def getRHS(self):
         """
@@ -152,16 +185,21 @@ class Problem3D_CC(BaseDCProblem):
         """
 
         RHS = self.getSourceTerm()
+
+        # I think we should deprecate this for DC problem.
         # if self._makeASymmetric is True:
         #     return self.Vol.T * RHS
+
         return RHS
 
     def getRHSDeriv(self, src, v, adjoint=False):
         """
         Derivative of the right hand side with respect to the model
         """
-        qDeriv = src.evalDeriv(self, adjoint=adjoint)
-        return qDeriv
+        # TODO: add qDeriv for RHS depending on m
+        # qDeriv = src.evalDeriv(self, adjoint=adjoint)
+        # return qDeriv
+        return Zero()
 
 
 

@@ -1,5 +1,6 @@
 import SimPEG
 from SimPEG.Utils import Identity, Zero
+import numpy as np
 
 class Fields(SimPEG.Problem.Fields):
     knownFields = {}
@@ -10,8 +11,8 @@ class Fields(SimPEG.Problem.Fields):
             raise NotImplementedError ('Getting phiDerivs from %s is not implemented' %self.knownFields.keys()[0])
 
         if adjoint:
-            return self._phiDeriv_u(src, v, adjoint), self._phiDeriv_m(src, v, adjoint)
-        return np.array(self._phiDeriv_u(src, du_dm_v, adjoint) + self._phiDeriv_m(src, v, adjoint), dtype = complex)
+            return self._phiDeriv_u(src, v, adjoint=adjoint), self._phiDeriv_m(src, v, adjoint=adjoint)
+        return np.array(self._phiDeriv_u(src, du_dm_v, adjoint) + self._phiDeriv_m(src, v, adjoint), dtype = float)
 
     def _eDeriv(self, src, du_dm_v, v, adjoint=False):
         if getattr(self, '_eDeriv_u', None) is None or getattr(self, '_eDeriv_m', None) is None:
@@ -19,7 +20,7 @@ class Fields(SimPEG.Problem.Fields):
 
         if adjoint:
             return self._eDeriv_u(src, v, adjoint), self._eDeriv_m(src, v, adjoint)
-        return np.array(self._eDeriv_u(src, du_dm_v, adjoint) + self._eDeriv_m(src, v, adjoint), dtype = complex)
+        return np.array(self._eDeriv_u(src, du_dm_v, adjoint) + self._eDeriv_m(src, v, adjoint), dtype = float)
 
     def _jDeriv(self, src, du_dm_v, v, adjoint=False):
         if getattr(self, '_jDeriv_u', None) is None or getattr(self, '_jDeriv_m', None) is None:
@@ -27,7 +28,7 @@ class Fields(SimPEG.Problem.Fields):
 
         if adjoint:
             return self._jDeriv_u(src, v, adjoint), self._jDeriv_m(src, v, adjoint)
-        return np.array(self._jDeriv_u(src, du_dm_v, adjoint) + self._jDeriv_m(src, v, adjoint), dtype = complex)
+        return np.array(self._jDeriv_u(src, du_dm_v, adjoint) + self._jDeriv_m(src, v, adjoint), dtype = float)
 
 
 class Fields_CC(Fields):
@@ -57,10 +58,10 @@ class Fields_CC(Fields):
     def _phi(self, phiSolution, srcList):
         return phiSolution
 
-    def _phiDeriv_u():
+    def _phiDeriv_u(self, src, v, adjoint = False):
         return Identity()
 
-    def _phiDeriv_m():
+    def _phiDeriv_m(self, src, v, adjoint = False):
         return Zero()
 
     def _j(self, phiSolution, srcList):
@@ -96,10 +97,10 @@ class Fields_N(Fields):
     def _phi(self, phiSolution, srcList):
         return phiSolution
 
-    def _phiDeriv_u():
+    def _phiDeriv_u(self, src, v, adjoint = False):
         return Identity()
 
-    def _phiDeriv_m():
+    def _phiDeriv_m(self, src, v, adjoint = False):
         return Zero()
 
     def _j(self, phiSolution, srcList):
