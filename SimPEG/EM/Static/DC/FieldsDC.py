@@ -69,4 +69,41 @@ class Fields_CC(Fields):
     def _e(self, phiSolution, srcList):
         raise NotImplementedError
 
+class Fields_N(Fields):
+    knownFields = {'phiSolution':'N'}
+    aliasFields = {
+                    'phi': ['phiSolution','N','_phi'],
+                    'j' : ['phiSolution','E','_j'],
+                    'e' : ['phiSolution','E','_e'],
+                  }
+                  # primary - secondary
+                  # N variables
 
+    def __init__(self, mesh, survey, **kwargs):
+        Fields.__init__(self, mesh, survey, **kwargs)
+
+    def startup(self):
+        self.prob = self.survey.prob
+
+    def _GLoc(self, fieldType):
+        if fieldType == 'phi':
+            return 'N'
+        elif fieldType == 'e' or fieldType == 'j':
+            return 'E'
+        else:
+            raise Exception('Field type must be phi, e, j')
+
+    def _phi(self, phiSolution, srcList):
+        return phiSolution
+
+    def _phiDeriv_u():
+        return Identity()
+
+    def _phiDeriv_m():
+        return Zero()
+
+    def _j(self, phiSolution, srcList):
+        raise NotImplementedError
+
+    def _e(self, phiSolution, srcList):
+        raise NotImplementedError

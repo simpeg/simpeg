@@ -1,7 +1,8 @@
 from SimPEG import Problem
 from SimPEG.EM.Base import BaseEMProblem
 from SurveyDC import Survey
-from FieldsDC import Fields, Fields_CC
+from FieldsDC import Fields, Fields_CC, Fields_N
+from SimPEG.Utils import sdiag
 import numpy as np
 
 class BaseDCProblem(BaseEMProblem):
@@ -53,15 +54,14 @@ class BaseDCProblem(BaseEMProblem):
             q[:,i] = src.eval(self)
         return q
 
-class Problem3D_CC(BaseDCProblem):
+class Problem3D_N(BaseDCProblem):
 
     _solutionType = 'phiSolution'
-    _formulation  = 'HJ' # CC potentials means J is on faces
-    fieldsPair    = Fields_CC
+    _formulation  = 'EB' # N potentials means B is on faces
+    fieldsPair    = Fields_N
 
     def __init__(self, mesh, **kwargs):
         BaseDCProblem.__init__(self, mesh, **kwargs)
-
 
     def getA(self):
         """
@@ -73,18 +73,21 @@ class Problem3D_CC(BaseDCProblem):
         """
 
         # TODO: this won't work for full anisotropy
-
-        D = self.mesh.faceDiv
-        MfRhoI = self.MfRhoI
-        V = self.Vol
-        A = D * ( MfRhoI * ( D.T * V ) )
-
-        if self._makeASymmetric is True:
-            return V.T * A
+        MeSigma = self.MeSigma
+        Grad = self.mesh.nodalGrad
+        A = Grad.T * MeSigma * Grad
+        # if self._makeASymmetric is True:
+        #     return V.T * A
         return A
 
-    def getADeriv():
-        raise NotImplementedError
+    def getADeriv(self, u, v, adoint=False):
+        """
+
+        Product of the derivative of our system matrix with respect to the model and a vector
+
+        """
+        return Div*self.MfRhoIDeriv(Div.T*u)
+
 
     def getRHS(self):
         """
@@ -94,12 +97,71 @@ class Problem3D_CC(BaseDCProblem):
         """
 
         RHS = self.getSourceTerm()
-        if self._makeASymmetric is True:
-            return self.Vol.T * RHS
+        # if self._makeASymmetric is True:
+        #     return self.Vol.T * RHS
         return RHS
 
-    def getRHSDeriv():
-        raise NotImplementedError
+    def getRHSDeriv(self, src, v, adjoint=False):
+        """
+        Derivative of the right hand side with respect to the model
+        """
+        qDeriv = src.evalDeriv(self, adjoint=adjoint)
+        return qDeriv
+
+class Problem3D_CC(BaseDCProblem):
+
+    _solutionType = 'phiSolution'
+    _formulation  = 'HJ' # CC potentials means J is on faces
+    fieldsPair    = Fields_CC
+
+    def __init__(self, mesh, **kwargs):
+        BaseDCProblem.__init__(self, mesh, **kwargs)
+
+    def getA(self):
+        """
+
+        Make the A matrix for the cell centered DC resistivity problem
+
+        A = D MfRhoI D^\\top V
+
+        """
+
+        # TODO: this won't work for full anisotropy
+        # V = self.Vol
+        # Div = V*self.mesh.faceDiv
+        MfRhoI = self.MfRhoI
+        A = self.Div * MfRhoI * self.Div.T
+        # if self._makeASymmetric is True:
+        #     return V.T * A
+        return A
+
+    def getADeriv(self, u, v, adoint=False):
+        """
+
+        Product of the derivative of our system matrix with respect to the model and a vector
+
+        """
+        return Div*self.MfRhoIDeriv(Div.T*u)
+
+
+    def getRHS(self):
+        """
+        RHS for the DC problem
+
+        q
+        """
+
+        RHS = self.getSourceTerm()
+        # if self._makeASymmetric is True:
+        #     return self.Vol.T * RHS
+        return RHS
+
+    def getRHSDeriv(self, src, v, adjoint=False):
+        """
+        Derivative of the right hand side with respect to the model
+        """
+        qDeriv = src.evalDeriv(self, adjoint=adjoint)
+        return qDeriv
 
 
 
