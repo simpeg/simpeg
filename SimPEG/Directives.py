@@ -301,7 +301,7 @@ class Update_IRLS(InversionDirective):
         self.invProb.beta = self.invProb.beta * self.survey.nD*0.5 / self.invProb.phi_d
 
         self.reg._W = None
-        
+
 class Update_lin_PreCond(InversionDirective):
 
 
@@ -313,7 +313,7 @@ class Update_lin_PreCond(InversionDirective):
             diagA = np.sum(self.prob.G**2.,axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() #* (self.reg.mapping * np.ones(self.reg.curModel.size))**2.
             PC     = Utils.sdiag(diagA**-1.)
             self.opt.approxHinv = PC
-            print 'Updated pre-cond'
+
 
 class Update_Wj(InversionDirective):
     """
