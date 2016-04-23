@@ -3,6 +3,7 @@ from SimPEG.EM.Base import BaseEMProblem
 from SurveyDC import Survey
 from FieldsDC import Fields, Fields_CC
 import numpy as np
+from SimPEG.Utils import Zero
 
 class BaseDCProblem(BaseEMProblem):
 
@@ -21,7 +22,30 @@ class BaseDCProblem(BaseEMProblem):
         return f
 
     def Jvec(self, m, v, f=None):
-        raise NotImplementedError
+
+        if f is None:
+            f = self.fields(m)
+
+        self.curModel = m
+
+        Jv = self.dataPair(self.survey) #same size as the data
+
+        A = self.getA()
+        Ainv = self.Solver(A, **self.solverOpts)
+
+        for src in self.survey.srcList:
+            u_src = f[src, self._solutionType] # solution vector
+            dA_dm_v = self.getADeriv(u_src, v)
+            dRHS_dm_v = self.getRHSDeriv(src, v)
+            print type(dA_dm_v + dRHS_dm_v), (dA_dm_v + dRHS_dm_v).shape
+            du_dm_v = Ainv * ( - dA_dm_v + dRHS_dm_v )
+
+            for rx in src.rxList:
+                df_dmFun = getattr(f, '_%sDeriv'%rx.projField, None)
+                df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
+                Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
+            Ainv.clean()
+        return Utils.mkvc(Jv)
 
     def Jtvec(self, m, v, f=None):
         raise NotImplementedError
@@ -85,6 +109,18 @@ class Problem3D_CC(BaseDCProblem):
 
     def getADeriv(self, u, v, adjoint= False):
 
+        D = self.mesh.faceDiv
+        MfRhoIDeriv = self.MfRhoIDeriv
+        V = self.Vol
+
+        if adjoint:
+            if self._makeASymmetric is True:
+                v = V * v
+            return V.T * ( D * ( MfRhoIDeriv(D * v) ) )
+
+        if self._makeASymmetric is True:
+            return V.T * ( D * ( MfRhoIDeriv( * D.T * ( V * u ) ) * v ) )
+        return D * ( MfRhoIDeriv( D.T * ( V * v ) ) )
 
     def getRHS(self):
         """
@@ -98,8 +134,8 @@ class Problem3D_CC(BaseDCProblem):
             return self.Vol.T * RHS
         return RHS
 
-    def getRHSDeriv():
-        raise NotImplementedError
+    def getRHSDeriv(self, src, v, adjoint=False):
+        return Zero()
 
 
 

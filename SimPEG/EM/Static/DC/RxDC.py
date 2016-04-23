@@ -48,7 +48,7 @@ class Dipole(BaseRx):
     @property
     def nD(self):
         """Number of data in the receiver."""
-        return self.locs[0].shape[0]
+        return int(self.locs[0].size / 2)
 
     def getP(self, mesh, Gloc):
         if mesh in self._Ps:
