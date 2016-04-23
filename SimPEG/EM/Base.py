@@ -192,7 +192,7 @@ class BaseEMProblem(Problem.BaseProblem):
         """
 
         dMfRhoI_dI = -self.MfRhoI**2
-        dMf_drho = self.mesh.getFaceInnerProduct(self.curModel.rho)(u)
+        dMf_drho = self.mesh.getFaceInnerProductDeriv(self.curModel.rho)(u)
         drho_dm = self.curModel.rhoDeriv
         return dMfRhoI_dI * ( dMf_drho * ( drho_dm))
 
