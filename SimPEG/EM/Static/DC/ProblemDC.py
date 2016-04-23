@@ -44,22 +44,47 @@ class BaseDCProblem(BaseEMProblem):
                 df_dmFun = getattr(f, '_%sDeriv'%rx.projField, None)
                 df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
                 Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
-            Ainv.clean()
         return Utils.mkvc(Jv)
 
     def Jtvec(self, m, v, f=None):
-        raise NotImplementedError
+        if f is None:
+            f = self.fields(m)
+
+        self.curModel = m
+
+        # Ensure v is a data object.
+        if not isinstance(v, self.dataPair):
+            v = self.dataPair(self.survey, v)
+
+        Jtv = np.zeros(m.size)
+        AT = self.getA().T
+        ATinv = self.Solver(AT, **self.solverOpts)
+
+        for src in self.survey.srcList:
+            u_src = f[src, self._solutionType]
+            for rx in src.rxList:
+                PTv = rx.evalDeriv(src, self.mesh, f, v[src, rx], adjoint=True) # wrt f, need possibility wrt m
+                df_duTFun = getattr(f, '_%sDeriv'%rx.projField, None)
+                df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
+
+                ATinvdf_duT = ATinv * df_duT
+
+                dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
+                dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
+                du_dmT = -dA_dmT + dRHS_dmT
+                Jtv += df_dmT + du_dmT
+
+        return Utils.mkvc(Jtv)
 
     def getSourceTerm(self):
         """
         takes concept of source and turns it into a matrix
         """
         """
-        Evaluates the sources for a given frequency and puts them in matrix form
+        Evaluates the sources, and puts them in matrix form
 
-        :param float freq: Frequency
         :rtype: (numpy.ndarray, numpy.ndarray)
-        :return: s_m, s_e (nE or nF, nSrc)
+        :return: q (nC or nN, nSrc)
         """
 
         Srcs = self.survey.srcList
@@ -128,8 +153,10 @@ class Problem3D_N(BaseDCProblem):
         """
         Derivative of the right hand side with respect to the model
         """
-        qDeriv = src.evalDeriv(self, adjoint=adjoint)
-        return qDeriv
+        # TODO: add qDeriv for RHS depending on m
+        # qDeriv = src.evalDeriv(self, adjoint=adjoint)
+        # return qDeriv
+        return Zero()
 
 class Problem3D_CC(BaseDCProblem):
 
@@ -169,7 +196,7 @@ class Problem3D_CC(BaseDCProblem):
         if adjoint:
             # if self._makeASymmetric is True:
             #     v = V * v
-            return D * MfRhoIDeriv(D * v)
+            return( MfRhoIDeriv( D.T * u ).T) * ( D.T * v)
 
         # I think we should deprecate this for DC problem.
         # if self._makeASymmetric is True:

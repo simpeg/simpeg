@@ -47,31 +47,21 @@ class DCProblemTests(unittest.TestCase):
         passed = Tests.checkDerivative(derChk, self.m0, plotIt=False)
         self.assertTrue(passed)
 
-    # def test_adjoint(self):
-    #     # Adjoint Test
-    #     u = np.random.rand(self.mesh.nC*self.survey.nSrc)
-    #     v = np.random.rand(self.mesh.nC)
-    #     w = np.random.rand(self.survey.dobs.shape[0])
-    #     wtJv = w.dot(self.p.Jvec(self.m0, v))
-    #     vtJtw = v.dot(self.p.Jtvec(self.m0, w))
-    #     passed = np.abs(wtJv - vtJtw) < 1e-10
-    #     print 'Adjoint Test', np.abs(wtJv - vtJtw), passed
-    #     self.assertTrue(passed)
+    def test_adjoint(self):
+        # Adjoint Test
+        u = np.random.rand(self.mesh.nC*self.survey.nSrc)
+        v = np.random.rand(self.mesh.nC)
+        w = np.random.rand(self.survey.dobs.shape[0])
+        wtJv = w.dot(self.p.Jvec(self.m0, v))
+        vtJtw = v.dot(self.p.Jtvec(self.m0, w))
+        passed = np.abs(wtJv - vtJtw) < 1e-10
+        print 'Adjoint Test', np.abs(wtJv - vtJtw), passed
+        self.assertTrue(passed)
 
-    # def test_dataObj(self):
-    #     derChk = lambda m: [self.dmis.eval(m), self.dmis.evalDeriv(m)]
-    #     passed = Tests.checkDerivative(derChk, self.m0, plotIt=False)
-    #     self.assertTrue(passed)
-
-
-    # def test_massMatrices(self):
-    #     Gu = np.random.rand(self.mesh.nF)
-    #     def derChk(m):
-    #         self.p.curModel = m
-    #         return [self.p.Msig * Gu, self.p.dMdsig(Gu)]
-    #     passed = Tests.checkDerivative(derChk, self.m0, plotIt=False)
-    #     self.assertTrue(passed)
-
+    def test_dataObj(self):
+        derChk = lambda m: [self.dmis.eval(m), self.dmis.evalDeriv(m)]
+        passed = Tests.checkDerivative(derChk, self.m0, plotIt=False)
+        self.assertTrue(passed)
 
 if __name__ == '__main__':
     unittest.main()

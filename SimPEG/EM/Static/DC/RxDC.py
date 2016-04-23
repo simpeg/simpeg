@@ -38,7 +38,13 @@ class BaseRx(SimPEG.Survey.BaseRx):
 
     def evalDeriv(self, src, mesh, f, v, adjoint=False):
         P = self.getP(mesh, self.projGLoc(f))
-        return P*v
+        if not adjoint:
+            return P*v
+        elif adjoint:
+            return P.T*v
+
+
+
 
 # DC.Rx.Dipole(locs)
 class Dipole(BaseRx):
