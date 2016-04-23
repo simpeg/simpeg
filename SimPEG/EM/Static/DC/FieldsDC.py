@@ -12,6 +12,7 @@ class Fields(SimPEG.Problem.Fields):
 
         if adjoint:
             return self._phiDeriv_u(src, v, adjoint=adjoint), self._phiDeriv_m(src, v, adjoint=adjoint)
+
         return np.array(self._phiDeriv_u(src, du_dm_v, adjoint) + self._phiDeriv_m(src, v, adjoint), dtype = float)
 
     def _eDeriv(self, src, du_dm_v, v, adjoint=False):
@@ -59,7 +60,7 @@ class Fields_CC(Fields):
         return phiSolution
 
     def _phiDeriv_u(self, src, v, adjoint = False):
-        return Identity()
+        return Identity()*v
 
     def _phiDeriv_m(self, src, v, adjoint = False):
         return Zero()

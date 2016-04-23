@@ -1,4 +1,4 @@
-from SimPEG import Problem
+from SimPEG import Problem, Utils
 from SimPEG.EM.Base import BaseEMProblem
 from SurveyDC import Survey
 from FieldsDC import Fields, Fields_CC, Fields_N
@@ -38,7 +38,6 @@ class BaseDCProblem(BaseEMProblem):
             u_src = f[src, self._solutionType] # solution vector
             dA_dm_v = self.getADeriv(u_src, v)
             dRHS_dm_v = self.getRHSDeriv(src, v)
-            print type(dA_dm_v + dRHS_dm_v), (dA_dm_v + dRHS_dm_v).shape
             du_dm_v = Ainv * ( - dA_dm_v + dRHS_dm_v )
 
             for rx in src.rxList:
