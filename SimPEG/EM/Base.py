@@ -190,7 +190,13 @@ class BaseEMProblem(Problem.BaseProblem):
         """
             Derivative of :code:`MfRhoI` with respect to the model.
         """
-        return self.mesh.getFaceInnerProductDeriv(self.curModel.rho, invMat=True)(u) * self.curModel.rhoDeriv
+
+        dMfRhoI_dI = -self.MfRhoI**2
+        dMf_drho = self.mesh.getEdgeInnerProductDeriv(self.curModel.rho)(u)
+        drho_dm = self.curModel.rhoDeriv
+        return dMfRhoI_dI * ( dMf_drho * ( drho_dm))
+
+        # return self.mesh.getFaceInnerProductDeriv(self.curModel.rho, invMat=True)(u) * self.curModel.rhoDeriv
 
 class BaseEMSurvey(Survey.BaseSurvey):
 
