@@ -194,6 +194,7 @@ class Test1D_InhomogeneousMixed(Tests.OrderTest):
         q = q_fun(self.M.gridCC)
         M = B*self.M.aveCC2F
         G = Div.T - P_BC*Utils.sdiag(y_BC)*M
+        # Mrhoj = D.T V phi + P_BC*Utils.sdiag(y_BC)*M phi - P_BC*x_BC
         rhs = V*q + Div*MfrhoI*P_BC*x_BC
         A = Div*MfrhoI*G
 
