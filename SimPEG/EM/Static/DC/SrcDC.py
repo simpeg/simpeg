@@ -15,7 +15,7 @@ class BaseSrc(SimPEG.Survey.BaseSrc):
         raise NotImplementedError
 
     def evalDeriv(self, prob):
-        Zero()
+        return Zero()
 
 
 class Dipole(BaseSrc):

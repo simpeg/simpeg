@@ -115,12 +115,7 @@ class Problem3D_CC(BaseDCProblem):
 
     def __init__(self, mesh, **kwargs):
         BaseDCProblem.__init__(self, mesh, **kwargs)
-
-    def setBC(self):
-        self.Div = V * self.mesh.faceDiv
-        P_BC, B = self.mesh.getBCProjWF_simple()
-        M = B*self.mesh.aveCC2F
-        Grad = Div.T - P_BC*Utils.sdiag(y_BC)*M
+        self.setBC()
 
     def getA(self):
         """
@@ -131,11 +126,11 @@ class Problem3D_CC(BaseDCProblem):
 
         """
 
-        V = self.Vol
-        D = V * self.mesh.faceDiv
+        D = self.Div
+        G = self.Grad
         # TODO: this won't work for full anisotropy
         MfRhoI = self.MfRhoI
-        A = D * MfRhoI * D.T
+        A = D * MfRhoI * G
 
         # I think we should deprecate this for DC problem.
         # if self._makeASymmetric is True:
@@ -144,19 +139,19 @@ class Problem3D_CC(BaseDCProblem):
 
     def getADeriv(self, u, v, adjoint= False):
 
-        V = self.Vol
-        D = V * self.mesh.faceDiv
+        D = self.Div
+        G = self.Grad
         MfRhoIDeriv = self.MfRhoIDeriv
 
         if adjoint:
             # if self._makeASymmetric is True:
             #     v = V * v
-            return(MfRhoIDeriv( D.T * u ).T) * ( D.T * v)
+            return(MfRhoIDeriv( G * u ).T) * ( D.T * v)
 
         # I think we should deprecate this for DC problem.
         # if self._makeASymmetric is True:
         #     return V.T * ( D * ( MfRhoIDeriv( D.T * ( V * u ) ) * v ) )
-        return D * (MfRhoIDeriv( D.T * u ) * v)
+        return D * (MfRhoIDeriv( G * u ) * v)
 
     def getRHS(self):
         """
@@ -181,6 +176,69 @@ class Problem3D_CC(BaseDCProblem):
         # qDeriv = src.evalDeriv(self, adjoint=adjoint)
         # return qDeriv
         return Zero()
+
+    def setBC(self):
+        if self.mesh.dim==3:
+            fxm,fxp,fym,fyp,fzm,fzp = self.mesh.faceBoundaryInd
+            gBFxm = self.mesh.gridFx[fxm,:]
+            gBFxp = self.mesh.gridFx[fxp,:]
+            gBFym = self.mesh.gridFy[fym,:]
+            gBFyp = self.mesh.gridFy[fyp,:]
+            gBFzm = self.mesh.gridFz[fzm,:]
+            gBFzp = self.mesh.gridFz[fzp,:]
+
+            # Setup Mixed B.C (alpha, beta, gamma)
+            temp_xm, temp_xp = np.ones_like(gBFxm[:,0]), np.ones_like(gBFxp[:,0])
+            temp_ym, temp_yp = np.ones_like(gBFym[:,1]), np.ones_like(gBFyp[:,1])
+            temp_zm, temp_zp = np.ones_like(gBFzm[:,2]), np.ones_like(gBFzp[:,2])
+
+            alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
+            alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
+            alpha_zm, alpha_zp = temp_zm*0., temp_zp*0.
+
+            beta_xm, beta_xp = temp_xm, temp_xp
+            beta_ym, beta_yp = temp_ym, temp_yp
+            beta_zm, beta_zp = temp_zm, temp_zp
+
+            gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
+            gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
+            gamma_zm, gamma_zp = temp_zm*0., temp_zp*0.
+
+            alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp, alpha_zm, alpha_zp]
+            beta =  [beta_xm, beta_xp, beta_ym, beta_yp, beta_zm, beta_zp]
+            gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp, gamma_zm, gamma_zp]
+
+        elif self.mesh.dim==2:
+
+            fxm,fxp,fym,fyp = self.mesh.faceBoundaryInd
+            gBFxm = self.mesh.gridFx[fxm,:]
+            gBFxp = self.mesh.gridFx[fxp,:]
+            gBFym = self.mesh.gridFy[fym,:]
+            gBFyp = self.mesh.gridFy[fyp,:]
+
+            # Setup Mixed B.C (alpha, beta, gamma)
+            temp_xm, temp_xp = np.ones_like(gBFxm[:,0]), np.ones_like(gBFxp[:,0])
+            temp_ym, temp_yp = np.ones_like(gBFym[:,1]), np.ones_like(gBFyp[:,1])
+
+            alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
+            alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
+
+            beta_xm, beta_xp = temp_xm, temp_xp
+            beta_ym, beta_yp = temp_ym, temp_yp
+
+            gamma_xm, gamma_xp = temp_xm*0., temp_xp*0.
+            gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
+
+            alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp]
+            beta =  [beta_xm, beta_xp, beta_ym, beta_yp]
+            gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp]
+
+        x_BC, y_BC = getxBCyBC_CC(self.mesh, alpha, beta, gamma)
+        V = self.Vol
+        self.Div = V * self.mesh.faceDiv
+        P_BC, B = self.mesh.getBCProjWF_simple()
+        M = B*self.mesh.aveCC2F
+        self.Grad = self.Div.T - P_BC*Utils.sdiag(y_BC)*M
 
 
 class Problem3D_N(BaseDCProblem):

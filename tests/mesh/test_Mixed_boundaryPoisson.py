@@ -6,10 +6,23 @@ from SimPEG import *
 
 MESHTYPES = ['uniformTensorMesh']
 
-def getxBCyBC(mesh, alpha, beta, gamma):
+def getxBCyBC_CC(mesh, alpha, beta, gamma):
 # def getxBCyBC(mesh, alpha, beta, gamma):
     """
+    This is a subfunction generating mixed-boundary condition:
 
+    .. math::
+
+        \nabla \cdot \vec{j} = -\nabla \cdot \vec{j}_s = q
+
+        \rho \vec{j} = -\nabla \phi \phi
+
+        \alpha \phi + \beta \frac{\partial \phi}{\partial r} = \gamma \ at \ r = \partial \Omega
+
+        xBC = f_1(\alpha, \beta, \gamma)
+        yBC = f(\alpha, \beta, \gamma)
+
+    Computes xBC and yBC for cell-centered discretizations
     """
     if mesh.dim == 1: #1D
         if (len(alpha) != 2 or len(beta) != 2 or len(gamma) != 2):
@@ -21,7 +34,8 @@ def getxBCyBC(mesh, alpha, beta, gamma):
         alpha_xm, beta_xm, gamma_xm = alpha[0], beta[0], gamma[0]
         alpha_xp, beta_xp, gamma_xp = alpha[1], beta[1], gamma[1]
 
-        h_xm, h_xp = mesh.gridCC[fCCxm], mesh.gridCC[fCCxp]
+        # h_xm, h_xp = mesh.gridCC[fCCxm], mesh.gridCC[fCCxp]
+        h_xm, h_xp = mesh.hx[0], mesh.hx[-1]
 
         a_xm = gamma_xm/(0.5*alpha_xm-beta_xm/h_xm)
         b_xm = (0.5*alpha_xm+beta_xm/h_xm)/(0.5*alpha_xm-beta_xm/h_xm)
@@ -40,19 +54,19 @@ def getxBCyBC(mesh, alpha, beta, gamma):
         if (len(alpha) != 4 or len(beta) != 4 or len(gamma) != 4):
             raise Exception("Lenght of list, alpha should be 4")
 
-        fCCxm,fCCxp,fCCym,fCCyp = mesh.cellBoundaryInd
         fxm,fxp,fym,fyp = mesh.faceBoundaryInd
-        nBC = fCCxm.sum()+fCCxp.sum()+fCCxm.sum()+fCCxp.sum()
-        h_xm, h_xp = mesh.gridCC[fCCxm], mesh.gridCC[fCCxp]
-        h_ym, h_yp = mesh.gridCC[fCCym], mesh.gridCC[fCCyp]
+        nBC = fxm.sum()+fxp.sum()+fxm.sum()+fxp.sum()
 
         alpha_xm, beta_xm, gamma_xm = alpha[0], beta[0], gamma[0]
         alpha_xp, beta_xp, gamma_xp = alpha[1], beta[1], gamma[1]
         alpha_ym, beta_ym, gamma_ym = alpha[2], beta[2], gamma[2]
         alpha_yp, beta_yp, gamma_yp = alpha[3], beta[3], gamma[3]
 
-        h_xm, h_xp = mesh.gridCC[fCCxm,0], mesh.gridCC[fCCxp,0]
-        h_ym, h_yp = mesh.gridCC[fCCym,1], mesh.gridCC[fCCyp,1]
+        # h_xm, h_xp = mesh.gridCC[fCCxm,0], mesh.gridCC[fCCxp,0]
+        # h_ym, h_yp = mesh.gridCC[fCCym,1], mesh.gridCC[fCCyp,1]
+
+        h_xm, h_xp = mesh.hx[0]*np.ones_like(alpha_xm), mesh.hx[-1]*np.ones_like(alpha_xp)
+        h_ym, h_yp = mesh.hy[0]*np.ones_like(alpha_ym), mesh.hy[-1]*np.ones_like(alpha_yp)
 
         a_xm = gamma_xm/(0.5*alpha_xm-beta_xm/h_xm)
         b_xm = (0.5*alpha_xm+beta_xm/h_xm)/(0.5*alpha_xm-beta_xm/h_xm)
@@ -87,23 +101,24 @@ def getxBCyBC(mesh, alpha, beta, gamma):
     elif mesh.dim == 3: #3D
         if (len(alpha) != 6 or len(beta) != 6 or len(gamma) != 6):
             raise Exception("Lenght of list, alpha should be 6")
-        fCCxm,fCCxp,fCCym,fCCyp,fCCzm,fCCzp = mesh.cellBoundaryInd
+        # fCCxm,fCCxp,fCCym,fCCyp,fCCzm,fCCzp = mesh.cellBoundaryInd
         fxm,fxp,fym,fyp,fzm,fzp = mesh.faceBoundaryInd
-        nBC = fCCxm.sum()+fCCxp.sum()+fCCxm.sum()+fCCxp.sum()
-        h_xm, h_xp = mesh.gridCC[fCCxm], mesh.gridCC[fCCxp]
-        h_ym, h_yp = mesh.gridCC[fCCym], mesh.gridCC[fCCyp]
-        h_zm, h_zp = mesh.gridCC[fCCzm], mesh.gridCC[fCCzp]
+        nBC = fxm.sum()+fxp.sum()+fxm.sum()+fxp.sum()
 
         alpha_xm, beta_xm, gamma_xm = alpha[0], beta[0], gamma[0]
         alpha_xp, beta_xp, gamma_xp = alpha[1], beta[1], gamma[1]
         alpha_ym, beta_ym, gamma_ym = alpha[2], beta[2], gamma[2]
         alpha_yp, beta_yp, gamma_yp = alpha[3], beta[3], gamma[3]
-        alpha_zm, beta_zm, gamma_zm = alpha[2], beta[2], gamma[2]
-        alpha_zp, beta_zp, gamma_zp = alpha[3], beta[3], gamma[3]
+        alpha_zm, beta_zm, gamma_zm = alpha[4], beta[4], gamma[4]
+        alpha_zp, beta_zp, gamma_zp = alpha[5], beta[5], gamma[5]
 
-        h_xm, h_xp = mesh.gridCC[fCCxm,0], mesh.gridCC[fCCxp,0]
-        h_ym, h_yp = mesh.gridCC[fCCym,1], mesh.gridCC[fCCyp,1]
-        h_zm, h_zp = mesh.gridCC[fCCzm,2], mesh.gridCC[fCCzp,2]
+        # h_xm, h_xp = mesh.gridCC[fCCxm,0], mesh.gridCC[fCCxp,0]
+        # h_ym, h_yp = mesh.gridCC[fCCym,1], mesh.gridCC[fCCyp,1]
+        # h_zm, h_zp = mesh.gridCC[fCCzm,2], mesh.gridCC[fCCzp,2]
+
+        h_xm, h_xp = mesh.hx[0]*np.ones_like(alpha_xm), mesh.hx[-1]*np.ones_like(alpha_xp)
+        h_ym, h_yp = mesh.hy[0]*np.ones_like(alpha_ym), mesh.hy[-1]*np.ones_like(alpha_yp)
+        h_zm, h_zp = mesh.hz[0]*np.ones_like(alpha_zm), mesh.hz[-1]*np.ones_like(alpha_zp)
 
         a_xm = gamma_xm/(0.5*alpha_xm-beta_xm/h_xm)
         b_xm = (0.5*alpha_xm+beta_xm/h_xm)/(0.5*alpha_xm-beta_xm/h_xm)
@@ -182,7 +197,7 @@ class Test1D_InhomogeneousMixed(Tests.OrderTest):
         phi_bc = phi_fun(vecN[[0,-1]])
         phi_deriv_bc = phi_deriv(vecN[[0,-1]])
         gamma = alpha*phi_bc + beta*phi_deriv_bc
-        x_BC, y_BC = getxBCyBC(self.M, alpha, beta, gamma)
+        x_BC, y_BC = getxBCyBC_CC(self.M, alpha, beta, gamma)
 
 
         sigma = np.ones(self.M.nC)
@@ -265,7 +280,7 @@ class Test2D_InhomogeneousMixed(Tests.OrderTest):
         beta = [beta_xm, beta_xp, beta_ym, beta_yp]
         gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp]
 
-        x_BC, y_BC = getxBCyBC(self.M, alpha, beta, gamma)
+        x_BC, y_BC = getxBCyBC_CC(self.M, alpha, beta, gamma)
 
 
         sigma = np.ones(self.M.nC)
@@ -335,8 +350,8 @@ class Test3D_InhomogeneousMixed(Tests.OrderTest):
         beta_xm, beta_xp =  np.ones_like(gBFxm[:,0]), np.ones_like(gBFxp[:,0])
         alpha_ym, alpha_yp = np.ones_like(gBFym[:,1]), np.ones_like(gBFyp[:,1])
         beta_ym, beta_yp =  np.ones_like(gBFym[:,1]), np.ones_like(gBFyp[:,1])
-        alpha_zm, alpha_zp = np.ones_like(gBFzm[:,1]), np.ones_like(gBFzp[:,1])
-        beta_zm, beta_zp =  np.ones_like(gBFzm[:,1]), np.ones_like(gBFzp[:,1])
+        alpha_zm, alpha_zp = np.ones_like(gBFzm[:,2]), np.ones_like(gBFzp[:,2])
+        beta_zm, beta_zp =  np.ones_like(gBFzm[:,2]), np.ones_like(gBFzp[:,2])
 
 
         phi_bc_xm, phi_bc_xp = phi_fun(gBFxm), phi_fun(gBFxp)
@@ -345,7 +360,7 @@ class Test3D_InhomogeneousMixed(Tests.OrderTest):
 
         phiderivX_bc_xm, phiderivX_bc_xp = phideriv_funX(gBFxm), phideriv_funX(gBFxp)
         phiderivY_bc_ym, phiderivY_bc_yp = phideriv_funY(gBFym), phideriv_funY(gBFyp)
-        phiderivY_bc_zm, phiderivY_bc_zp = phideriv_funY(gBFzm), phideriv_funY(gBFzp)
+        phiderivY_bc_zm, phiderivY_bc_zp = phideriv_funZ(gBFzm), phideriv_funZ(gBFzp)
 
         gamma_fun = lambda alpha, beta, phi, phi_deriv: alpha*phi + beta*phi_deriv
         gamma_xm = gamma_fun(alpha_xm, beta_xm, phi_bc_xm, phiderivX_bc_xm)
@@ -359,7 +374,7 @@ class Test3D_InhomogeneousMixed(Tests.OrderTest):
         beta = [beta_xm, beta_xp, beta_ym, beta_yp, beta_zm, beta_zp]
         gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp, gamma_zm, gamma_zp]
 
-        x_BC, y_BC = getxBCyBC(self.M, alpha, beta, gamma)
+        x_BC, y_BC = getxBCyBC_CC(self.M, alpha, beta, gamma)
 
 
         sigma = np.ones(self.M.nC)

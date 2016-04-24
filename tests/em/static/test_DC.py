@@ -8,7 +8,7 @@ class DCProblemTestsCC(unittest.TestCase):
     def setUp(self):
 
         aSpacing=2.5
-        nElecs=10
+        nElecs=5
 
         surveySize = nElecs*aSpacing - aSpacing
         cs = surveySize/nElecs/4
@@ -16,7 +16,7 @@ class DCProblemTestsCC(unittest.TestCase):
         mesh = Mesh.TensorMesh([
                 [(cs,10, -1.3),(cs,surveySize/cs),(cs,10, 1.3)],
                 [(cs,3, -1.3),(cs,3,1.3)],
-        #         [(cs,5, -1.3),(cs,10)]
+                # [(cs,5, -1.3),(cs,10)]
             ],'CN')
 
         srcList = DC.Utils.WennerSrcList(nElecs, aSpacing, in2D=True)
@@ -44,7 +44,7 @@ class DCProblemTestsCC(unittest.TestCase):
 
     def test_misfit(self):
         derChk = lambda m: [self.survey.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)]
-        passed = Tests.checkDerivative(derChk, self.m0, plotIt=False)
+        passed = Tests.checkDerivative(derChk, self.m0, plotIt=False, num=3)
         self.assertTrue(passed)
 
     def test_adjoint(self):
@@ -60,7 +60,7 @@ class DCProblemTestsCC(unittest.TestCase):
 
     def test_dataObj(self):
         derChk = lambda m: [self.dmis.eval(m), self.dmis.evalDeriv(m)]
-        passed = Tests.checkDerivative(derChk, self.m0, plotIt=False)
+        passed = Tests.checkDerivative(derChk, self.m0, plotIt=False, num=3)
         self.assertTrue(passed)
 
 class DCProblemTestsN(unittest.TestCase):
@@ -122,5 +122,6 @@ class DCProblemTestsN(unittest.TestCase):
         derChk = lambda m: [self.dmis.eval(m), self.dmis.evalDeriv(m)]
         passed = Tests.checkDerivative(derChk, self.m0, plotIt=False)
         self.assertTrue(passed)
+
 if __name__ == '__main__':
     unittest.main()

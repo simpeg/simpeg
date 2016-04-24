@@ -28,7 +28,8 @@ def getxBCyBC_CC(mesh, alpha, beta, gamma):
         alpha_xm, beta_xm, gamma_xm = alpha[0], beta[0], gamma[0]
         alpha_xp, beta_xp, gamma_xp = alpha[1], beta[1], gamma[1]
 
-        h_xm, h_xp = mesh.gridCC[fCCxm], mesh.gridCC[fCCxp]
+        # h_xm, h_xp = mesh.gridCC[fCCxm], mesh.gridCC[fCCxp]
+        h_xm, h_xp = mesh.hx[0], mesh.hx[-1]
 
         a_xm = gamma_xm/(0.5*alpha_xm-beta_xm/h_xm)
         b_xm = (0.5*alpha_xm+beta_xm/h_xm)/(0.5*alpha_xm-beta_xm/h_xm)
@@ -47,19 +48,19 @@ def getxBCyBC_CC(mesh, alpha, beta, gamma):
         if (len(alpha) != 4 or len(beta) != 4 or len(gamma) != 4):
             raise Exception("Lenght of list, alpha should be 4")
 
-        fCCxm,fCCxp,fCCym,fCCyp = mesh.cellBoundaryInd
         fxm,fxp,fym,fyp = mesh.faceBoundaryInd
-        nBC = fCCxm.sum()+fCCxp.sum()+fCCxm.sum()+fCCxp.sum()
-        h_xm, h_xp = mesh.gridCC[fCCxm], mesh.gridCC[fCCxp]
-        h_ym, h_yp = mesh.gridCC[fCCym], mesh.gridCC[fCCyp]
+        nBC = fxm.sum()+fxp.sum()+fxm.sum()+fxp.sum()
 
         alpha_xm, beta_xm, gamma_xm = alpha[0], beta[0], gamma[0]
         alpha_xp, beta_xp, gamma_xp = alpha[1], beta[1], gamma[1]
         alpha_ym, beta_ym, gamma_ym = alpha[2], beta[2], gamma[2]
         alpha_yp, beta_yp, gamma_yp = alpha[3], beta[3], gamma[3]
 
-        h_xm, h_xp = mesh.gridCC[fCCxm,0], mesh.gridCC[fCCxp,0]
-        h_ym, h_yp = mesh.gridCC[fCCym,1], mesh.gridCC[fCCyp,1]
+        # h_xm, h_xp = mesh.gridCC[fCCxm,0], mesh.gridCC[fCCxp,0]
+        # h_ym, h_yp = mesh.gridCC[fCCym,1], mesh.gridCC[fCCyp,1]
+
+        h_xm, h_xp = mesh.hx[0]*np.ones_like(alpha_xm), mesh.hx[-1]*np.ones_like(alpha_xp)
+        h_ym, h_yp = mesh.hy[0]*np.ones_like(alpha_ym), mesh.hy[-1]*np.ones_like(alpha_yp)
 
         a_xm = gamma_xm/(0.5*alpha_xm-beta_xm/h_xm)
         b_xm = (0.5*alpha_xm+beta_xm/h_xm)/(0.5*alpha_xm-beta_xm/h_xm)
@@ -94,23 +95,24 @@ def getxBCyBC_CC(mesh, alpha, beta, gamma):
     elif mesh.dim == 3: #3D
         if (len(alpha) != 6 or len(beta) != 6 or len(gamma) != 6):
             raise Exception("Lenght of list, alpha should be 6")
-        fCCxm,fCCxp,fCCym,fCCyp,fCCzm,fCCzp = mesh.cellBoundaryInd
+        # fCCxm,fCCxp,fCCym,fCCyp,fCCzm,fCCzp = mesh.cellBoundaryInd
         fxm,fxp,fym,fyp,fzm,fzp = mesh.faceBoundaryInd
-        nBC = fCCxm.sum()+fCCxp.sum()+fCCxm.sum()+fCCxp.sum()
-        h_xm, h_xp = mesh.gridCC[fCCxm], mesh.gridCC[fCCxp]
-        h_ym, h_yp = mesh.gridCC[fCCym], mesh.gridCC[fCCyp]
-        h_zm, h_zp = mesh.gridCC[fCCzm], mesh.gridCC[fCCzp]
+        nBC = fxm.sum()+fxp.sum()+fxm.sum()+fxp.sum()
 
         alpha_xm, beta_xm, gamma_xm = alpha[0], beta[0], gamma[0]
         alpha_xp, beta_xp, gamma_xp = alpha[1], beta[1], gamma[1]
         alpha_ym, beta_ym, gamma_ym = alpha[2], beta[2], gamma[2]
         alpha_yp, beta_yp, gamma_yp = alpha[3], beta[3], gamma[3]
-        alpha_zm, beta_zm, gamma_zm = alpha[2], beta[2], gamma[2]
-        alpha_zp, beta_zp, gamma_zp = alpha[3], beta[3], gamma[3]
+        alpha_zm, beta_zm, gamma_zm = alpha[4], beta[4], gamma[4]
+        alpha_zp, beta_zp, gamma_zp = alpha[5], beta[5], gamma[5]
 
-        h_xm, h_xp = mesh.gridCC[fCCxm,0], mesh.gridCC[fCCxp,0]
-        h_ym, h_yp = mesh.gridCC[fCCym,1], mesh.gridCC[fCCyp,1]
-        h_zm, h_zp = mesh.gridCC[fCCzm,2], mesh.gridCC[fCCzp,2]
+        # h_xm, h_xp = mesh.gridCC[fCCxm,0], mesh.gridCC[fCCxp,0]
+        # h_ym, h_yp = mesh.gridCC[fCCym,1], mesh.gridCC[fCCyp,1]
+        # h_zm, h_zp = mesh.gridCC[fCCzm,2], mesh.gridCC[fCCzp,2]
+
+        h_xm, h_xp = mesh.hx[0]*np.ones_like(alpha_xm), mesh.hx[-1]*np.ones_like(alpha_xp)
+        h_ym, h_yp = mesh.hy[0]*np.ones_like(alpha_ym), mesh.hy[-1]*np.ones_like(alpha_yp)
+        h_zm, h_zp = mesh.hz[0]*np.ones_like(alpha_zm), mesh.hz[-1]*np.ones_like(alpha_zp)
 
         a_xm = gamma_xm/(0.5*alpha_xm-beta_xm/h_xm)
         b_xm = (0.5*alpha_xm+beta_xm/h_xm)/(0.5*alpha_xm-beta_xm/h_xm)
