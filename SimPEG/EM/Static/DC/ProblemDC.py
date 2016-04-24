@@ -128,6 +128,10 @@ class Problem3D_N(BaseDCProblem):
         MeSigma = self.MeSigma
         Grad = self.mesh.nodalGrad
         A = Grad.T * MeSigma * Grad
+
+        # Handling ... singularity
+        A[0,0] = A[0,0] + 1.
+
         # if self._makeASymmetric is True:
         #     return V.T * A
         return A
