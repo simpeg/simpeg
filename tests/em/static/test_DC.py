@@ -104,7 +104,7 @@ class DCProblemTestsN(unittest.TestCase):
 
     def test_misfit(self):
         derChk = lambda m: [self.survey.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)]
-        passed = Tests.checkDerivative(derChk, self.m0, plotIt=False)
+        passed = Tests.checkDerivative(derChk, self.m0, plotIt=False, num=3)
         self.assertTrue(passed)
 
     def test_adjoint(self):
@@ -114,13 +114,13 @@ class DCProblemTestsN(unittest.TestCase):
         w = np.random.rand(self.survey.dobs.shape[0])
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
-        passed = np.abs(wtJv - vtJtw) < 1e-10
+        passed = np.abs(wtJv - vtJtw) < 1e-8
         print 'Adjoint Test', np.abs(wtJv - vtJtw), passed
         self.assertTrue(passed)
 
     def test_dataObj(self):
         derChk = lambda m: [self.dmis.eval(m), self.dmis.evalDeriv(m)]
-        passed = Tests.checkDerivative(derChk, self.m0, plotIt=False)
+        passed = Tests.checkDerivative(derChk, self.m0, plotIt=False, num=3)
         self.assertTrue(passed)
 if __name__ == '__main__':
     unittest.main()

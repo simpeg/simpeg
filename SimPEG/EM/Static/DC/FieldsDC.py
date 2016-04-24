@@ -99,7 +99,7 @@ class Fields_N(Fields):
         return phiSolution
 
     def _phiDeriv_u(self, src, v, adjoint = False):
-        return Identity()
+        return Identity()*v
 
     def _phiDeriv_m(self, src, v, adjoint = False):
         return Zero()
