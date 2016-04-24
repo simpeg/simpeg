@@ -5,6 +5,7 @@ from FieldsDC import Fields, Fields_CC, Fields_N
 from SimPEG.Utils import sdiag
 import numpy as np
 from SimPEG.Utils import Zero
+from BoundaryUtils import getxBCyBC_CC
 
 class BaseDCProblem(BaseEMProblem):
 
@@ -106,71 +107,6 @@ class BaseDCProblem(BaseEMProblem):
             q[:,i] = src.eval(self)
         return q
 
-class Problem3D_N(BaseDCProblem):
-
-    _solutionType = 'phiSolution'
-    _formulation  = 'EB' # N potentials means B is on faces
-    fieldsPair    = Fields_N
-
-    def __init__(self, mesh, **kwargs):
-        BaseDCProblem.__init__(self, mesh, **kwargs)
-
-    def getA(self):
-        """
-
-        Make the A matrix for the cell centered DC resistivity problem
-
-        A = D MfRhoI D^\\top V
-
-        """
-
-        # TODO: this won't work for full anisotropy
-        MeSigma = self.MeSigma
-        Grad = self.mesh.nodalGrad
-        A = Grad.T * MeSigma * Grad
-
-        # Handling ... singularity
-        A[0,0] = A[0,0] + 1.
-
-        # if self._makeASymmetric is True:
-        #     return V.T * A
-        return A
-
-    def getADeriv(self, u, v, adjoint=False):
-        """
-
-        Product of the derivative of our system matrix with respect to the model and a vector
-
-        """
-        MeSigma = self.MeSigma
-        Grad = self.mesh.nodalGrad
-        if not adjoint:
-            return Grad.T*(self.MeSigmaDeriv(Grad*u)*v)
-        elif adjoint:
-            return self.MeSigmaDeriv(Grad*u).T * (Grad*v)
-
-
-    def getRHS(self):
-        """
-        RHS for the DC problem
-
-        q
-        """
-
-        RHS = self.getSourceTerm()
-        # if self._makeASymmetric is True:
-        #     return self.Vol.T * RHS
-        return RHS
-
-    def getRHSDeriv(self, src, v, adjoint=False):
-        """
-        Derivative of the right hand side with respect to the model
-        """
-        # TODO: add qDeriv for RHS depending on m
-        # qDeriv = src.evalDeriv(self, adjoint=adjoint)
-        # return qDeriv
-        return Zero()
-
 class Problem3D_CC(BaseDCProblem):
 
     _solutionType = 'phiSolution'
@@ -179,6 +115,12 @@ class Problem3D_CC(BaseDCProblem):
 
     def __init__(self, mesh, **kwargs):
         BaseDCProblem.__init__(self, mesh, **kwargs)
+
+    def setBC(self):
+        self.Div = V * self.mesh.faceDiv
+        P_BC, B = self.mesh.getBCProjWF_simple()
+        M = B*self.mesh.aveCC2F
+        Grad = Div.T - P_BC*Utils.sdiag(y_BC)*M
 
     def getA(self):
         """
@@ -239,6 +181,73 @@ class Problem3D_CC(BaseDCProblem):
         # qDeriv = src.evalDeriv(self, adjoint=adjoint)
         # return qDeriv
         return Zero()
+
+
+class Problem3D_N(BaseDCProblem):
+
+    _solutionType = 'phiSolution'
+    _formulation  = 'EB' # N potentials means B is on faces
+    fieldsPair    = Fields_N
+
+    def __init__(self, mesh, **kwargs):
+        BaseDCProblem.__init__(self, mesh, **kwargs)
+
+    def getA(self):
+        """
+
+        Make the A matrix for the cell centered DC resistivity problem
+
+        A = D MfRhoI D^\\top V
+
+        """
+
+        # TODO: this won't work for full anisotropy
+        MeSigma = self.MeSigma
+        Grad = self.mesh.nodalGrad
+        A = Grad.T * MeSigma * Grad
+
+        # Handling Null space of A
+        A[0,0] = A[0,0] + 1.
+
+        # if self._makeASymmetric is True:
+        #     return V.T * A
+        return A
+
+    def getADeriv(self, u, v, adjoint=False):
+        """
+
+        Product of the derivative of our system matrix with respect to the model and a vector
+
+        """
+        MeSigma = self.MeSigma
+        Grad = self.mesh.nodalGrad
+        if not adjoint:
+            return Grad.T*(self.MeSigmaDeriv(Grad*u)*v)
+        elif adjoint:
+            return self.MeSigmaDeriv(Grad*u).T * (Grad*v)
+
+
+    def getRHS(self):
+        """
+        RHS for the DC problem
+
+        q
+        """
+
+        RHS = self.getSourceTerm()
+        # if self._makeASymmetric is True:
+        #     return self.Vol.T * RHS
+        return RHS
+
+    def getRHSDeriv(self, src, v, adjoint=False):
+        """
+        Derivative of the right hand side with respect to the model
+        """
+        # TODO: add qDeriv for RHS depending on m
+        # qDeriv = src.evalDeriv(self, adjoint=adjoint)
+        # return qDeriv
+        return Zero()
+
 
 
 
