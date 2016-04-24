@@ -31,9 +31,9 @@ class Dipole(BaseSrc):
             q = np.zeros(prob.mesh.nC)
             q[inds] = self.current * np.r_[1., -1.]
         elif prob._formulation == 'EB':
-            # TODO: there is probably a faster way to do this
-            # Utils.cellNodes , Utils.cellFaces, Utils.cellEdges
-            raise NotImplementedError
+            inds = closestPoints(prob.mesh, self.loc)
+            q = np.zeros(prob.mesh.nN)
+            q[inds] = self.current * np.r_[1., -1.]
         return q
 
     # def bc_contribution
@@ -52,9 +52,9 @@ class Pole(BaseSrc):
             q = np.zeros(prob.mesh.nC)
             q[inds] = self.current * np.r_[1.]
         elif prob._formulation == 'EB':
-            # TODO: there is probably a faster way to do this
-            # Utils.cellNodes , Utils.cellFaces, Utils.cellEdges
-            raise NotImplementedError
+            inds = closestPoints(prob.mesh, self.loc)
+            q = np.zeros(prob.mesh.nN)
+            q[inds] = self.current * np.r_[1.]
         return q
 
     # def bc_contribution

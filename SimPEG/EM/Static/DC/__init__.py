@@ -1,4 +1,4 @@
-from ProblemDC import Problem3D_CC
+from ProblemDC import Problem3D_CC, Problem3D_N
 from SurveyDC import Survey
 import SrcDC as Src #Pole
 import RxDC as Rx

@@ -10,9 +10,14 @@ class BaseDCProblem(BaseEMProblem):
 
     surveyPair = Survey
     fieldsPair = Fields
+    Ainv = None
 
     def fields(self, m):
         self.curModel = m
+
+        if not self.Ainv == None:
+            self.Ainv.clean()
+
         f = self.fieldsPair(self.mesh, self.survey)
         A = self.getA()
         self.Ainv = self.Solver(A, **self.solverOpts)
@@ -32,13 +37,12 @@ class BaseDCProblem(BaseEMProblem):
         Jv = self.dataPair(self.survey) #same size as the data
 
         A = self.getA()
-        Ainv = self.Solver(A, **self.solverOpts)
 
         for src in self.survey.srcList:
             u_src = f[src, self._solutionType] # solution vector
             dA_dm_v = self.getADeriv(u_src, v)
             dRHS_dm_v = self.getRHSDeriv(src, v)
-            du_dm_v = Ainv * ( - dA_dm_v + dRHS_dm_v )
+            du_dm_v = self.Ainv * ( - dA_dm_v + dRHS_dm_v )
 
             for rx in src.rxList:
                 df_dmFun = getattr(f, '_%sDeriv'%rx.projField, None)
@@ -57,8 +61,8 @@ class BaseDCProblem(BaseEMProblem):
             v = self.dataPair(self.survey, v)
 
         Jtv = np.zeros(m.size)
-        AT = self.getA().T
-        ATinv = self.Solver(AT, **self.solverOpts)
+        AT = self.getA()
+
 
         for src in self.survey.srcList:
             u_src = f[src, self._solutionType]
@@ -67,7 +71,7 @@ class BaseDCProblem(BaseEMProblem):
                 df_duTFun = getattr(f, '_%sDeriv'%rx.projField, None)
                 df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
 
-                ATinvdf_duT = ATinv * df_duT
+                ATinvdf_duT = self.Ainv * df_duT
 
                 dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
                 dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
@@ -128,13 +132,18 @@ class Problem3D_N(BaseDCProblem):
         #     return V.T * A
         return A
 
-    def getADeriv(self, u, v, adoint=False):
+    def getADeriv(self, u, v, adjoint=False):
         """
 
         Product of the derivative of our system matrix with respect to the model and a vector
 
         """
-        return Div*self.MfRhoIDeriv(Div.T*u)
+        MeSigma = self.MeSigma
+        Grad = self.mesh.nodalGrad
+        if not adjoint:
+            return Grad.T*(self.MeSigmaDeriv(Grad*u)*v)
+        elif adjoint:
+            return self.MeSigmaDeriv(Grad*u).T * (Grad*v)
 
 
     def getRHS(self):
@@ -196,7 +205,7 @@ class Problem3D_CC(BaseDCProblem):
         if adjoint:
             # if self._makeASymmetric is True:
             #     v = V * v
-            return( MfRhoIDeriv( D.T * u ).T) * ( D.T * v)
+            return(MfRhoIDeriv( D.T * u ).T) * ( D.T * v)
 
         # I think we should deprecate this for DC problem.
         # if self._makeASymmetric is True:
