@@ -1,6 +1,6 @@
 import SimPEG
 # from SimPEG.EM.Base import BaseEMSurvey
-from SimPEG.Utils import Zero, closestPoints
+from SimPEG.Utils import Zero, closestPoints, mkvc
 import numpy as np
 
 class BaseSrc(SimPEG.Survey.BaseSrc):
@@ -27,13 +27,13 @@ class Dipole(BaseSrc):
 
     def eval(self, prob):
         if prob._formulation == 'HJ':
-            inds = closestPoints(prob.mesh, self.loc)
+            inds = closestPoints(prob.mesh, self.loc, gridLoc='CC')
             q = np.zeros(prob.mesh.nC)
             q[inds] = self.current * np.r_[1., -1.]
         elif prob._formulation == 'EB':
-            inds = closestPoints(prob.mesh, self.loc)
-            q = np.zeros(prob.mesh.nN)
-            q[inds] = self.current * np.r_[1., -1.]
+            qa = prob.mesh.getInterpolationMat(self.loc[0], locType='N').todense()
+            qb = -prob.mesh.getInterpolationMat(self.loc[1], locType='N').todense()
+            q = mkvc(qa+qb)
         return q
 
     # def bc_contribution

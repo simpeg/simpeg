@@ -1,4 +1,4 @@
 from TDEM import hzAnalyticDipoleT
 from FDEM import hzAnalyticDipoleF
 from FDEMcasing import *
-from DC import DCAnalytic
+from DC import DCAnalyticHalf, DCAnalyticSphere
