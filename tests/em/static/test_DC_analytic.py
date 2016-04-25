@@ -38,7 +38,7 @@ class DCProblemAnalyticTests(unittest.TestCase):
         except ImportError, e:
             self.Solver = SolverLU
 
-    def test_N(self):
+    def test_Problem3D_N(self):
         problem = DC.Problem3D_N(self.mesh)
         problem.Solver = self.Solver
         problem.pair(self.survey)
@@ -46,21 +46,24 @@ class DCProblemAnalyticTests(unittest.TestCase):
         err= np.linalg.norm(data-self.data_anal)/np.linalg.norm(self.data_anal)
         if err < 0.2:
             passed = True
+            print ">> DC analytic test for Problem3D_N is passed"
         else:
             passed = False
+            print ">> DC analytic test for Problem3D_N is failed"
         self.assertTrue(passed)
 
-    def test_CC(self):
-        problem = DC.Problem3D_N(self.mesh)
+    def test_Problem3D_CC(self):
+        problem = DC.Problem3D_CC(self.mesh)
         problem.Solver = self.Solver
         problem.pair(self.survey)
         data = self.survey.dpred(self.sigma)
         err= np.linalg.norm(data-self.data_anal)/np.linalg.norm(self.data_anal)
         if err < 0.2:
             passed = True
-            print ">> DC analytic test for Problem3D_CC is pased"
+            print ">> DC analytic test for Problem3D_CC is passed"
         else:
             passed = False
+            print ">> DC analytic test for Problem3D_CC is failed"
         self.assertTrue(passed)
 
 if __name__ == '__main__':
