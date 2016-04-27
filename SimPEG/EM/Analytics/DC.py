@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.constants import mu_0, pi
+from scipy import special
 
 def DCAnalyticHalf(txloc, rxlocs, sigma, flag="wholespace"):
     """
@@ -36,7 +37,7 @@ deg2rad  = lambda deg: deg/180.*np.pi
 rad2deg  = lambda rad: rad*180./np.pi
 
 def DCAnalyticSphere(txloc, rxloc, xc, radius, sigma, sigma1, \
-                 flag = "sec", order=12):
+                 flag = "sec", order=12, halfspace=False):
 # def DCSpherePointCurrent(txloc, rxloc, xc, radius, rho, rho1, \
 #                  flag = "sec", order=12):
     """
@@ -99,10 +100,15 @@ def DCAnalyticSphere(txloc, rxloc, xc, radius, sigma, sigma1, \
 
     out[~sphind] += prim[~sphind]
 
+    if halfspace:
+        scale = 2
+    else:
+        scale = 1
+
     if flag == "sec":
-        return out-prim
+        return scale*(out-prim)
     elif flag == "total":
-        return out
+        return scale*out
 
 def AnBnfun(n, radius, x0, rho, rho1, I=1.):
     const = I*rho/(4*np.pi)

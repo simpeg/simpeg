@@ -5,7 +5,7 @@ import numpy as np
 
 class BaseSrc(SimPEG.Survey.BaseSrc):
 
-    current = 1
+    current = 1.0
     loc = None
 
     def __init__(self, rxList, **kwargs):
@@ -33,7 +33,7 @@ class Dipole(BaseSrc):
         elif prob._formulation == 'EB':
             qa = prob.mesh.getInterpolationMat(self.loc[0], locType='N').todense()
             qb = -prob.mesh.getInterpolationMat(self.loc[1], locType='N').todense()
-            q = mkvc(qa+qb)
+            q = self.current * mkvc(qa+qb)
         return q
 
     # def bc_contribution
