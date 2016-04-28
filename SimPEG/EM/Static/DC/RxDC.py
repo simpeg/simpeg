@@ -1,5 +1,5 @@
 import SimPEG
-# from SimPEG.EM.Base import BaseEMSurvey
+import numpy as np
 from SimPEG.Utils import Zero, closestPoints
 
 class BaseRx(SimPEG.Survey.BaseRx):
@@ -43,9 +43,6 @@ class BaseRx(SimPEG.Survey.BaseRx):
         elif adjoint:
             return P.T*v
 
-
-
-
 # DC.Rx.Dipole(locs)
 class Dipole(BaseRx):
 
@@ -77,6 +74,56 @@ class Dipole(BaseRx):
 
         return P
 
-# class Pole(BaseRx):
 
+class Dipole_ky(BaseRx):
+
+    def __init__(self, locsM, locsN, rxType = 'phi', **kwargs):
+        assert locsM.shape == locsN.shape, 'locsM and locsN need to be the same size'
+        locs = [locsM, locsN]
+        # We may not need this ...
+        BaseRx.__init__(self, locs, rxType)
+
+    @property
+    def nD(self):
+        """Number of data in the receiver."""
+        return self.locs[0].shape[0]
+
+        # Not sure why ...
+        # return int(self.locs[0].size / 2)
+
+    def getP(self, mesh, Gloc):
+        if mesh in self._Ps:
+            return self._Ps[mesh]
+
+        P0 = mesh.getInterpolationMat(self.locs[0], Gloc)
+        P1 = mesh.getInterpolationMat(self.locs[1], Gloc)
+        P = P0 - P1
+        if self.storeProjections:
+            self._Ps[mesh] = P
+        return P
+
+    def eval(self, ky, src, mesh, f):
+        P = self.getP(mesh, self.projGLoc(f))
+        Pf = P*f[src, self.projField,:]
+        return self.IntTrapezoidal(ky, Pf, y=0.)
+
+    def evalDeriv(self, ky, src, mesh, f, v, adjoint=False):
+        P = self.getP(mesh, self.projGLoc(f))
+        if not adjoint:
+            return P*v
+        elif adjoint:
+            return P.T*v
+
+    def IntTrapezoidal(self, ky, Pf, y=0.):
+        phi = np.zeros(Pf.shape[0])
+        nky = ky.size
+        dky = np.diff(ky)
+        dky = np.r_[dky[0], dky]
+        phi0 = Pf[:,0]
+        for iky in range(nky):
+            phi1 = 2./np.pi*Pf[:,iky]/2.
+            phi += phi1*dky[iky]/2.*np.cos(ky[iky]*y)
+            phi += phi0*dky[iky]/2.*np.cos(ky[iky]*y)
+            phi0 = phi1.copy()
+        return phi
 

@@ -57,5 +57,3 @@ class Pole(BaseSrc):
             q[inds] = self.current * np.r_[1.]
         return q
 
-    # def bc_contribution
-
