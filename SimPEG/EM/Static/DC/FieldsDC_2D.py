@@ -1,5 +1,6 @@
 import SimPEG
-import Utils, numpy as np, scipy.sparse as sp
+from SimPEG.Utils import Identity, Zero
+import numpy as np
 
 class Fields_ky(SimPEG.Problem.TimeFields):
 

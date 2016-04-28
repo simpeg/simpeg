@@ -12,7 +12,7 @@ class BaseDCProblem_2D(BaseEMProblem):
     surveyPair = Survey_ky
     fieldsPair = Fields_ky
     nky = 15
-    ky = np.logspace(-4, 1, nky)
+    kys = np.logspace(-4, 1, nky)
     Ainv = [None for i in range(nky)]
     nT = nky # Only for using TimeFields
 
@@ -26,7 +26,7 @@ class BaseDCProblem_2D(BaseEMProblem):
         f = self.fieldsPair(self.mesh, self.survey)
         Srcs = self.survey.srcList
         for iky in range(self.nky):
-            ky = self.ky[iky]
+            ky = self.kys[iky]
             A = self.getA(ky)
             self.Ainv[iky] = self.Solver(A, **self.solverOpts)
             RHS = self.getRHS(ky)
@@ -34,28 +34,44 @@ class BaseDCProblem_2D(BaseEMProblem):
             f[Srcs, self._solutionType, iky] = u
         return f
 
-    # def Jvec(self, m, v, f=None):
+    def Jvec(self, m, v, f=None):
 
-    #     if f is None:
-    #         f = self.fields(m)
+        if f is None:
+            f = self.fields(m)
 
-    #     self.curModel = m
+        self.curModel = m
 
-    #     Jv = self.dataPair(self.survey) #same size as the data
+        Jv = self.dataPair(self.survey) #same size as the data
+        Jv0 = self.dataPair(self.survey)
 
-    #     A = self.getA()
+        # Assume y=0.
+        # This needs some thoughts to implement in general when src is dipole
+        dky = np.diff(self.kys)
+        dky = np.r_[dky[0], dky]
+        y = 0.
 
-    #     for src in self.survey.srcList:
-    #         u_src = f[src, self._solutionType] # solution vector
-    #         dA_dm_v = self.getADeriv(u_src, v)
-    #         dRHS_dm_v = self.getRHSDeriv(src, v)
-    #         du_dm_v = self.Ainv * ( - dA_dm_v + dRHS_dm_v )
-
-    #         for rx in src.rxList:
-    #             df_dmFun = getattr(f, '_%sDeriv'%rx.projField, None)
-    #             df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
-    #             Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
-    #     return Utils.mkvc(Jv)
+        for iky in range(self.nky):
+            ky = self.kys[iky]
+            A = self.getA(ky)
+            for src in self.survey.srcList:
+                u_src = f[src, self._solutionType, iky] # solution vector
+                dA_dm_v = self.getADeriv(ky, u_src, v)
+                dRHS_dm_v = self.getRHSDeriv(ky, src, v)
+                du_dm_v = self.Ainv[iky] * ( - dA_dm_v + dRHS_dm_v )
+                for rx in src.rxList:
+                    df_dmFun = getattr(f, '_%sDeriv'%rx.projField, None)
+                    df_dm_v = df_dmFun(iky, src, du_dm_v, v, adjoint=False)
+                    # Trapezoidal intergration
+                    Jv1_temp = 1./np.pi*rx.evalDeriv(ky, src, self.mesh, f, df_dm_v)
+                    if iky==0:
+                        #First assigment
+                        Jv[src, rx] = Jv1_temp*dky[iky]*np.cos(ky*y)
+                    else:
+                        Jv[src, rx] += Jv1_temp*dky[iky]    /2.*np.cos(ky*y)
+                        Jv[src, rx] += Jv0[src, rx]*dky[iky]/2.*np.cos(ky*y)
+                    Jv0[src, rx] = Jv1_temp.copy()
+                    JV[iky,isrc,:] = Jv1_temp.copy()
+        return Utils.mkvc(Jv)
 
     # def Jtvec(self, m, v, f=None):
     #     if f is None:
@@ -146,11 +162,13 @@ class Problem2D_CC(BaseDCProblem_2D):
 
         D = self.Div
         G = self.Grad
+        vol = self.mesh.vol
         MfRhoIDeriv = self.MfRhoIDeriv
-
+        rho = self.curModel.rho
         if adjoint:
-            return(MfRhoIDeriv( G * u ).T) * ( D.T * v) + Utils.sdiag(ky**2*mesh.vol)*v
-        return D * ((MfRhoIDeriv( G * u )) * v) + Utils.sdiag(ky**2*mesh.vol)*v
+            return(MfRhoIDeriv( G * u ).T) * ( D.T * v) + ky**2*Utils.sdiag(u.flatten()*vol*(-1./rho**2))*v
+
+        return D * ((MfRhoIDeriv( G * u )) * v) + ky**2*Utils.sdiag(u.flatten()*vol*(-1./rho**2))*v
 
     def getRHS(self, ky):
         """

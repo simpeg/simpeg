@@ -102,10 +102,10 @@ class Dipole_ky(BaseRx):
             self._Ps[mesh] = P
         return P
 
-    def eval(self, ky, src, mesh, f):
+    def eval(self, kys, src, mesh, f):
         P = self.getP(mesh, self.projGLoc(f))
         Pf = P*f[src, self.projField,:]
-        return self.IntTrapezoidal(ky, Pf, y=0.)
+        return self.IntTrapezoidal(kys, Pf, y=0.)
 
     def evalDeriv(self, ky, src, mesh, f, v, adjoint=False):
         P = self.getP(mesh, self.projGLoc(f))
@@ -114,16 +114,16 @@ class Dipole_ky(BaseRx):
         elif adjoint:
             return P.T*v
 
-    def IntTrapezoidal(self, ky, Pf, y=0.):
+    def IntTrapezoidal(self, kys, Pf, y=0.):
         phi = np.zeros(Pf.shape[0])
-        nky = ky.size
-        dky = np.diff(ky)
+        nky = kys.size
+        dky = np.diff(kys)
         dky = np.r_[dky[0], dky]
-        phi0 = Pf[:,0]
+        phi0 = 1./np.pi*Pf[:,0]
         for iky in range(nky):
-            phi1 = 2./np.pi*Pf[:,iky]/2.
-            phi += phi1*dky[iky]/2.*np.cos(ky[iky]*y)
-            phi += phi0*dky[iky]/2.*np.cos(ky[iky]*y)
+            phi1 = 1./np.pi*Pf[:,iky]
+            phi += phi1*dky[iky]/2.*np.cos(kys[iky]*y)
+            phi += phi0*dky[iky]/2.*np.cos(kys[iky]*y)
             phi0 = phi1.copy()
         return phi
 

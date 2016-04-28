@@ -29,8 +29,8 @@ class Survey_ky(BaseEMSurvey):
         :return: data
         """
         data = SimPEG.Survey.Data(self)
-        ky = self.prob.ky
+        kys = self.prob.kys
         for src in self.srcList:
             for rx in src.rxList:
-                data[src, rx] = rx.eval(ky, src, self.mesh, f)
+                data[src, rx] = rx.eval(kys, src, self.mesh, f)
         return data

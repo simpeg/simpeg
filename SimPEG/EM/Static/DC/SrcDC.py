@@ -36,11 +36,6 @@ class Dipole(BaseSrc):
             q = self.current * mkvc(qa+qb)
         return q
 
-    # def bc_contribution
-
-
-# How to treat boundary conditions here
-
 class Pole(BaseSrc):
 
     def __init__(self, rxList, loc, **kwargs):
