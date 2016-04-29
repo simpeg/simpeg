@@ -4,7 +4,7 @@ import pylab as plt
 
 import os
 
-driver = PF.MagneticsIO.MagneticsDriver_Inv('PYMAG3D_inv.inp')
+driver = PF.MagneticsDriver.MagneticsDriver_Inv('PYMAG3D_inv.inp')
 mesh = driver.mesh
 survey = driver.survey
 
@@ -27,12 +27,6 @@ actvMap = Maps.InjectActiveCells(mesh, actv, -100)
 # Creat reduced identity map
 idenMap = Maps.IdentityMap(nP = nC)
 
-# Load starting model file
-mstart = driver.m0
-
-# Load reference file
-mref = driver.mref
-
 # Get magnetization vector for MOF
 M_xyz = driver.magnetizationModel
 
@@ -47,7 +41,7 @@ midy = int(mesh.nCy/2)
 #==============================================================================
 
 #%% Plot obs data
-PF.Magnetics.plot_obs_2D(rxLoc,d,'Observed Data')
+PF.Magnetics.plot_obs_2D(rxLoc,d, 'Observed Data')
 
 #%% Run inversion
 prob = PF.Magnetics.Problem3D_Integral(mesh, mapping=idenMap, actInd=actv)
@@ -57,7 +51,7 @@ survey.pair(prob)
 #survey.dobs=d
 #survey.mtrue = model
 # Write out the predicted
-pred = prob.fields(mstart)
+pred = prob.fields(driver.m0)
 PF.Magnetics.writeUBCobs('Pred.dat', survey, pred)
 
 wr = np.sum(prob.G**2.,axis=0)**0.5 / mesh.vol[actv]
@@ -72,14 +66,13 @@ plt.xlabel('x');plt.ylabel('z')
 plt.gca().set_aspect('equal', adjustable='box')
 
 reg = Regularization.Simple(mesh, indActive=actv, mapping=idenMap)
-reg.mref = mref
+reg.mref = driver.mref
 reg.wght = wr
 #reg.alpha_s = 1.
 
 # Create pre-conditioner
-diagA = np.sum(prob.G**2.,axis=0) + beta_in*(reg.W.T*reg.W).diagonal()
+diagA  = np.sum(prob.G**2.,axis=0) + beta_in*(reg.W.T*reg.W).diagonal()
 PC     = Utils.sdiag(diagA**-1.)
-
 
 dmis = DataMisfit.l2_DataMisfit(survey)
 dmis.Wd = 1/wd
@@ -94,10 +87,8 @@ target = Directives.TargetMisfit()
 
 inv = Inversion.BaseInversion(invProb, directiveList=[beta,target])
 
-m0 = mstart
-
 # Run inversion
-mrec = inv.run(m0)
+mrec = inv.run(driver.m0)
 
 m_out = actvMap*mrec
 
@@ -145,7 +136,7 @@ phid =  invProb.phi_d
 
 reg = Regularization.Sparse(mesh, indActive = actv, mapping = idenMap)
 reg.recModel = mrec
-reg.mref = mref
+reg.mref = driver.mref
 reg.wght = wr
 reg.eps_p = eps_p
 reg.eps_q = eps_q

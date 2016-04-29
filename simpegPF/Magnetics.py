@@ -8,9 +8,9 @@ class Problem3D_Integral(Problem.BaseProblem):
 
     #surveyPair = Survey.LinearSurvey
 
-    storeG = True #: Store the forward matrix by default, otherwise just compute d
-    actInd = None #: Active cell indices provided
-    M = None #: Magnetization matrix provided, otherwise all induced
+    forwardOnly = True #: Store the forward matrix by default, otherwise just compute d
+    actInd      = None #: Active cell indices provided
+    M           = None #: Magnetization matrix provided, otherwise all induced
 
 
     def __init__(self, mesh, mapping=None, **kwargs):
