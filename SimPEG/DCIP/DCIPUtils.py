@@ -169,7 +169,7 @@ def readUBC_DC2DModel(fileName):
 
     return model
 
-def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
+def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', unitType='volt', clim=None):
     """
         Read list of 2D tx-rx location and plot a speudo-section of apparent
         resistivity.
@@ -177,15 +177,11 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
         Assumes flat topo for now...
 
         Input:
-        :param d2D, z0
-        :switch stype -> Either 'pdp' (pole-dipole) | 'dpdp' (dipole-dipole)
-        :switch dtype=-> Either 'appr' (app. res) | 'appc' (app. con) | 'volt' (potential)
+        :param DCsurvey, z0
+        :switch surveyType -> Either 'pole-dipole'  | 'dipole-dipole'
+        :switch unitType=-> Either 'appResistivity' | 'appConductivity'  | 'volt'
         Output:
         :figure scatter plot overlayed on image
-
-        Edited Feb 17th, 2016
-
-        @author: dominiquef
 
     """
     from SimPEG import np
@@ -221,39 +217,39 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
         Cmid = (Tx[0][0] + Tx[1][0])/2
         Pmid = (Rx[0][:,0] + Rx[1][:,0])/2
 
-        # Change output for dtype
-        if dtype == 'volt':
+        # Change output for unitType
+        if unitType == 'volt':
 
             rho = np.hstack([rho,data])
 
         else:
 
             # Compute pant leg of apparent rho
-            if stype == 'pdp':
+            if surveyType == 'pole-dipole':
 
                 leg =  data * 2*np.pi  * MA * ( MA + MN ) / MN
 
-            elif stype == 'dpdp':
+            elif surveyType == 'dipole-dipole':
 
                 leg = data * 2*np.pi / ( 1/MA - 1/MB - 1/NB + 1/NA )
 
             else:
-                print """dtype must be 'pdp'(pole-dipole) | 'dpdp' (dipole-dipole) """
+                print """unitType must be 'pole-dipole' | 'dipole-dipole' """
                 break
 
 
-            if dtype == 'appc':
+            if unitType == 'appConductivity':
 
                 leg = np.log10(abs(1./leg))
                 rho = np.hstack([rho,leg])
 
-            elif dtype == 'appr':
+            elif unitType == 'appResistivity':
 
                 leg = np.log10(abs(leg))
                 rho = np.hstack([rho,leg])
 
             else:
-                print """dtype must be 'appr' | 'appc' | 'volt' """
+                print """unitType must be 'appResistivity' | 'appConductivity' | 'volt' """
                 break
 
         midx = np.hstack([midx, ( Cmid + Pmid )/2 ])
@@ -278,12 +274,12 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
     ticks = np.linspace(cmin,cmax,3)
     cbar.set_ticks(ticks)
     cbar.ax.tick_params(labelsize=10)
-    
-    if dtype == 'appc':
+
+    if unitType == 'appConductivity':
         cbar.set_label("App.Cond",size=12)
-    elif dtype == 'appr':
+    elif unitType == 'appResistivity':
         cbar.set_label("App.Res.",size=12)
-    elif dtype == 'volt':
+    elif unitType == 'volt':
         cbar.set_label("Potential (V)",size=12)
 
     # Plot apparent resistivity
@@ -298,7 +294,7 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
 
     return ph
 
-def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
+def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
     """
         Load in endpoints and survey specifications to generate Tx, Rx location
         stations.
@@ -308,7 +304,7 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
         Input:
         :param endl -> input endpoints [x1, y1, z1, x2, y2, z2]
         :object mesh -> SimPEG mesh object
-        :switch stype -> "dpdp" (dipole-dipole) | "pdp" (pole-dipole) | 'gradient'
+        :switch surveyType -> 'dipole-dipole' | 'pole-dipole' | 'gradient'
         : param a, n -> pole seperation, number of rx dipoles per tx
 
         Output:
@@ -354,14 +350,14 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
     SrcList = []
 
 
-    if stype != 'gradient':
+    if surveyType != 'gradient':
 
         for ii in range(0, int(nstn)-1):
 
 
-            if stype == 'dpdp':
+            if surveyType == 'dipole-dipole':
                 tx = np.c_[M[ii,:],N[ii,:]]
-            elif stype == 'pdp':
+            elif surveyType == 'pole-dipole':
                 tx = np.c_[M[ii,:],M[ii,:]]
 
             # Rx.append(np.c_[M[ii+1:indx,:],N[ii+1:indx,:]])
@@ -390,13 +386,13 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
             Rx.append(np.c_[P1,P2])
             rxClass = DC.RxDipole(P1, P2)
             Tx.append(tx)
-            if stype == 'dpdp':
+            if surveyType == 'dipole-dipole':
                 srcClass = DC.SrcDipole([rxClass], M[ii,:],N[ii,:])
-            elif stype == 'pdp':
+            elif surveyType == 'pole-dipole':
                 srcClass = DC.SrcDipole([rxClass], M[ii,:],M[ii,:])
             SrcList.append(srcClass)
 
-    elif stype == 'gradient':
+    elif surveyType == 'gradient':
 
         # Gradient survey only requires Tx at end of line and creates a square
         # grid of receivers at in the middle at a pre-set minimum distance
@@ -443,20 +439,20 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
         srcClass = DC.SrcDipole([rxClass], M[0,:], N[-1,:])
         SrcList.append(srcClass)
     else:
-        print """stype must be either 'pdp', 'dpdp' or 'gradient'. """
+        print """surveyType must be either 'pole-dipole', 'dipole-dipole' or 'gradient'. """
 
     survey = DC.SurveyDC(SrcList)
     return survey, Tx, Rx
 
-def writeUBC_DCobs(fileName, DCsurvey, dtype, stype):
+def writeUBC_DCobs(fileName, DCsurvey, dim, surveyType):
     """
         Write UBC GIF DCIP 2D or 3D observation file
 
         Input:
         :string fileName -> including path where the file is written out
         :DCsurvey -> DC survey class object
-        :string dtype ->  either '2D' | '3D'
-        :string  stype ->  either 'SURFACE' | 'GENERAL'
+        :string dim ->  either '2D' | '3D'
+        :string  surveyType ->  either 'SURFACE' | 'GENERAL'
 
         Output:
         :param UBC2D-Data file
@@ -469,11 +465,11 @@ def writeUBC_DCobs(fileName, DCsurvey, dtype, stype):
     """
     from SimPEG import mkvc
 
-    assert (dtype=='2D') | (dtype=='3D'), "Data must be either '2D' | '3D'"
-    assert (stype=='SURFACE') | (stype=='GENERAL') | (stype=='SIMPLE'), "Data must be either 'SURFACE' | 'GENERAL' | 'SIMPLE'"
+    assert (dim=='2D') | (dim=='3D'), "Data must be either '2D' | '3D'"
+    assert (surveyType=='SURFACE') | (surveyType=='GENERAL') | (surveyType=='SIMPLE'), "Data must be either 'SURFACE' | 'GENERAL' | 'SIMPLE'"
 
     fid = open(fileName,'w')
-    fid.write('! ' + stype + ' FORMAT\n')
+    fid.write('! ' + surveyType + ' FORMAT\n')
 
     count = 0
 
@@ -488,10 +484,10 @@ def writeUBC_DCobs(fileName, DCsurvey, dtype, stype):
         M = rx[0]
         N = rx[1]
 
-        # Adapt source-receiver location for dtype and stype
-        if dtype=='2D':
+        # Adapt source-receiver location for dim and surveyType
+        if dim=='2D':
 
-            if stype == 'SIMPLE':
+            if surveyType == 'SIMPLE':
 
                 #fid.writelines("%e " % ii for ii in mkvc(tx[0,:]))
                 A = np.repeat(tx[0,0],M.shape[0],axis=0)
@@ -504,13 +500,13 @@ def writeUBC_DCobs(fileName, DCsurvey, dtype, stype):
 
             else:
 
-                if stype == 'SURFACE':
+                if surveyType == 'SURFACE':
 
                     fid.writelines("%e " % ii for ii in mkvc(tx[0,:]))
                     M = M[:,0]
                     N = N[:,0]
 
-                if stype == 'GENERAL':
+                if surveyType == 'GENERAL':
 
                     fid.writelines("%e " % ii for ii in mkvc(tx[::2,:]))
                     M = M[:,0::2]
@@ -519,15 +515,15 @@ def writeUBC_DCobs(fileName, DCsurvey, dtype, stype):
                 fid.write('%i\n'% nD)
                 np.savetxt(fid, np.c_[ M, N , DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e',delimiter=' ',newline='\n')
 
-        if dtype=='3D':
+        if dim=='3D':
 
-            if stype == 'SURFACE':
+            if surveyType == 'SURFACE':
 
                 fid.writelines("%e " % ii for ii in mkvc(tx[0:2,:]))
                 M = M[:,0:2]
                 N = N[:,0:2]
 
-            if stype == 'GENERAL':
+            if surveyType == 'GENERAL':
 
                 fid.writelines("%e " % ii for ii in mkvc(tx))
 
@@ -538,7 +534,7 @@ def writeUBC_DCobs(fileName, DCsurvey, dtype, stype):
 
     fid.close()
 
-def convertObs_DC3D_to_2D(DCsurvey,lineID, flag = 'local'):
+def convertObs_DC3D_to_2D(DCsurvey, lineID, flag='local'):
     """
         Read DC survey and projects the coordinate system
         according to the flag = 'Xloc' | 'Yloc' | 'local' (default)

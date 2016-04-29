@@ -2,7 +2,7 @@ from SimPEG import Mesh, Utils, np, sp
 import SimPEG.DCIP as DC
 import time
 
-def run(loc=None, sig=None, radi=None, param=None, stype='dpdp', dtype='appc', plotIt=True):
+def run(loc=None, sig=None, radi=None, param=None, surveyType='dipole-dipole', unitType='appConductivity', plotIt=True):
     """
         DC Forward Simulation
         =====================
@@ -15,14 +15,14 @@ def run(loc=None, sig=None, radi=None, param=None, stype='dpdp', dtype='appc', p
         loc     = Location of spheres [[x1,y1,z1],[x2,y2,z2]]
         radi    = Radius of spheres [r1,r2]
         param   = Conductivity of background and two spheres [m0,m1,m2]
-        stype   = survey type "pdp" (pole dipole) or "dpdp" (dipole dipole)
-        dtype   = Data type "appr" (app res) | "appc" (app cond) | "volt" (potential)
+        surveyType = survey type 'pole-dipole' or 'dipole-dipole'
+        unitType = Data type "appResistivity" | "appConductivity"  | "volt"
         Created by @fourndo
 
     """
 
-    assert stype in ['pdp', 'dpdp'], "Source type (stype) must be pdp or dpdp (pole dipole or dipole dipole)"
-    assert dtype in ['appr', 'appc', 'volt'], "Data type (dtype) must be appr (app res) or appc (app cond) or volt (potential)"
+    assert surveyType in ['pole-dipole', 'dipole-dipole'], "Source type (surveyType) must be pdp or dpdp (pole dipole or dipole dipole)"
+    assert unitType in ['appResistivity', 'appConductivity', 'volt'], "Unit type (unitType) must be appResistivity or appConductivity or volt (potential)"
 
     if loc is None:
         loc = np.c_[[-50.,0.,-50.],[50.,0.,-50.]]
@@ -73,8 +73,8 @@ def run(loc=None, sig=None, radi=None, param=None, stype='dpdp', dtype='appc', p
     locs = np.c_[mesh.gridCC[indx,0],mesh.gridCC[indx,1],np.ones(2).T*mesh.vectorNz[-1]]
 
     # We will handle the geometry of the survey for you and create all the combination of tx-rx along line
-    # [Tx, Rx] = DC.gen_DCIPsurvey(locs, mesh, stype, param[0], param[1], param[2])
-    survey, Tx, Rx = DC.gen_DCIPsurvey(locs, mesh, stype, param[0], param[1], param[2])
+    # [Tx, Rx] = DC.gen_DCIPsurvey(locs, mesh, surveyType, param[0], param[1], param[2])
+    survey, Tx, Rx = DC.gen_DCIPsurvey(locs, mesh, surveyType, param[0], param[1], param[2])
 
     # Define some global geometry
     dl_len = np.sqrt( np.sum((locs[0,:] - locs[1,:])**2) )
@@ -118,8 +118,8 @@ def run(loc=None, sig=None, radi=None, param=None, stype='dpdp', dtype='appc', p
         rxloc_N = np.asarray(Rx[ii][:,3:])
 
 
-        # For usual cases "dpdp" or "gradient"
-        if stype == 'pdp':
+        # For usual cases 'dipole-dipole' or "gradient"
+        if surveyType == 'pole-dipole':
             # Create an "inifinity" pole
             tx =  np.squeeze(Tx[ii][:,0:1])
             tinf = tx + np.array([dl_x,dl_y,0])*dl_len*2
@@ -157,12 +157,12 @@ def run(loc=None, sig=None, radi=None, param=None, stype='dpdp', dtype='appc', p
         fig = plt.figure(figsize=(7,7))
         ax = plt.subplot(2,1,1, aspect='equal')
         # Plot the location of the spheres for reference
-        circle1=plt.Circle((loc[0,0],loc[2,0]),radi[0],color='w',fill=False, lw=3)
-        circle2=plt.Circle((loc[0,1],loc[2,1]),radi[1],color='k',fill=False, lw=3)
+        circle1=plt.Circle((loc[0,0], loc[2,0]), radi[0], color='w', fill=False, lw=3)
+        circle2=plt.Circle((loc[0,1], loc[2,1]), radi[1], color='k', fill=False, lw=3)
         ax.add_artist(circle1)
         ax.add_artist(circle2)
 
-        dat = mesh.plotSlice(np.log10(model), ax =ax, normal = 'Y',
+        dat = mesh.plotSlice(np.log10(model), ax = ax, normal = 'Y',
                              ind = indy,grid=True, clim = np.log10([sig.min(),sig.max()]))
 
         ax.set_title('3-D model')
@@ -188,15 +188,13 @@ def run(loc=None, sig=None, radi=None, param=None, stype='dpdp', dtype='appc', p
         ax2 = plt.subplot(2,1,2, aspect='equal')
 
         # Plot the location of the spheres for reference
-        circle1=plt.Circle((loc[0,0],loc[2,0]),radi[0],color='w',fill=False, lw=3)
-        circle2=plt.Circle((loc[0,1],loc[2,1]),radi[1],color='k',fill=False, lw=3)
+        circle1=plt.Circle((loc[0,0], loc[2,0]), radi[0], color='w', fill=False, lw=3)
+        circle2=plt.Circle((loc[0,1], loc[2,1]), radi[1], color='k', fill=False, lw=3)
         ax2.add_artist(circle1)
         ax2.add_artist(circle2)
 
         # Add the speudo section
-        dat = DC.plot_pseudoSection(survey2D,ax2,stype=stype, dtype = dtype)
-
-        # plt.scatter(Tx2d[0][:],Tx[0][2,:],s=40,c='g', marker='v')
+        dat = DC.plot_pseudoSection(survey2D, ax2, surveyType=surveyType, unitType=unitType)        # plt.scatter(Tx2d[0][:],Tx[0][2,:],s=40,c='g', marker='v')
         # plt.scatter(Rx2d[0][:],Rx[0][:,2::3],s=40,c='y')
         # plt.plot(np.r_[Tx2d[0][0],Rx2d[-1][-1,-1]],np.ones(2)*mesh.vectorNz[-1], color='k')
         ax2.set_title('Apparent Conductivity data')
