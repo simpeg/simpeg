@@ -5,15 +5,16 @@ from MagAnalytics import spheremodel, CongruousMagBC
 import re
 
 class MagneticIntegral(Problem.BaseProblem):
-    
+
     #surveyPair = Survey.LinearSurvey
-    
+
     storeG = True #: Store the forward matrix by default, otherwise just compute d
     actInd = None #: Active cell indices provided
     M = None #: Magnetization matrix provided, otherwise all induced
+
+
     def __init__(self, mesh, mapping=None, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, mapping=mapping, **kwargs)
-
 
     def fwr_ind(self):
         # Add forward function
@@ -28,17 +29,17 @@ class MagneticIntegral(Problem.BaseProblem):
     def fields(self, m):
         self.curModel = m
         total = np.zeros(self.survey.nRx)
-        induced = self.fwr_ind()    
+        induced = self.fwr_ind()
         # rem = self.rem
 
         if induced is not None:
             total += induced
 
-        return total 
+        return total
 
 
         # return self.G.dot(self.mapping*(m))
-            
+
     def Jvec(self, m, v, f=None):
         dmudm = self.mapping.deriv(m)
         return self.G.dot(dmudm*v)
@@ -55,7 +56,7 @@ class MagneticIntegral(Problem.BaseProblem):
         if getattr(self,'_G', None) is None:
            self._G = self.Intrgl_Fwr_Op( 'ind' )
 
-            
+
         return self._G
 
     # @property
@@ -66,17 +67,17 @@ class MagneticIntegral(Problem.BaseProblem):
     #     if getattr(self,'_Grem', None) is None:
     #        self._Grem = Intrgl_Fwr_Op('full')
 
-            
+
     #     return self._Grem
 
     def Intrgl_Fwr_Op(self, flag):
 
-        """ 
+        """
 
         Magnetic forward operator in integral form
 
         flag        = 'ind' | 'full'
-        
+
           1- ind : Magnetization fixed by user
 
           3- full: Full tensor matrix stored with shape([3*ndata, 3*nc])
@@ -88,7 +89,7 @@ class MagneticIntegral(Problem.BaseProblem):
 
         @author: dominiquef
 
-         """    
+         """
         # Find non-zero cells
         #inds = np.nonzero(actv)[0]
         if getattr(self, 'actInd', None) is not None:
@@ -102,30 +103,30 @@ class MagneticIntegral(Problem.BaseProblem):
         else:
 
             inds = np.asarray(range(self.mesh.nC))
-        
+
         nC = len(inds)
 
         # Create active cell projector
         P = sp.csr_matrix((np.ones(nC),(inds, range(nC))),
             shape=(self.mesh.nC, nC))
-        
-        
 
-            
+
+
+
         # Create vectors of nodal location (lower and upper coners for each cell)
         xn = self.mesh.vectorNx;
         yn = self.mesh.vectorNy;
         zn = self.mesh.vectorNz;
-        
+
         yn2,xn2,zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
         yn1,xn1,zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
-        
+
         Yn = P.T*np.c_[mkvc(yn1), mkvc(yn2)]
         Xn = P.T*np.c_[mkvc(xn1), mkvc(xn2)]
         Zn = P.T*np.c_[mkvc(zn1), mkvc(zn2)]
-           
-        rxLoc = self.survey.srcField.rxList[0].locs   
-        ndata = rxLoc.shape[0]    
+
+        rxLoc = self.survey.srcField.rxList[0].locs
+        ndata = rxLoc.shape[0]
 
         survey = self.survey
 
@@ -163,10 +164,10 @@ class MagneticIntegral(Problem.BaseProblem):
             elif survey.srcField.rxList[0].rxType == 'xyz':
 
                 G = np.zeros((int(3*ndata), nC))
-            
-        elif flag == 'full':       
+
+        elif flag == 'full':
             G = np.zeros((int(3*ndata), int(3*nC)))
-            
+
 
         else:
             print """Flag must be either 'ind' | 'full', please revised"""
@@ -180,13 +181,13 @@ class MagneticIntegral(Problem.BaseProblem):
         count = -1;
         for ii in range(ndata):
 
-        
-            tx, ty, tz = get_T_mat(Xn,Yn,Zn,rxLoc[ii,:])  
+
+            tx, ty, tz = get_T_mat(Xn,Yn,Zn,rxLoc[ii,:])
             if flag == 'ind':
-            
+
                 if survey.srcField.rxList[0].rxType =='tmi':
                     G[ii,:] = Ptmi.dot(np.vstack((tx,ty,tz)))*Mxyz
-    
+
                 elif survey.srcField.rxList[0].rxType =='xyz':
                     G[ii,:] = tx*Mxyz
                     G[ii+ndata,:] = ty*Mxyz
@@ -202,7 +203,7 @@ class MagneticIntegral(Problem.BaseProblem):
             count = progress(ii,count,ndata)
 
         print "Done 100% ...forward operator completed!!\n"
-        
+
         return G
 
 class MagneticsDiffSecondary(Problem.BaseProblem):
@@ -630,9 +631,9 @@ def Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,actv,flag):
         inds = np.asarray([inds for inds, elem in enumerate(actv, 1) if elem], dtype = int) - 1
     else:
         inds = actv
-        
+
     nC = len(inds)
-    
+
     P = sp.csr_matrix((np.ones(nC),(inds, range(nC))), shape=(mesh.nC, nC))
 
     xn = mesh.vectorNx;
@@ -707,7 +708,7 @@ def Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,actv,flag):
 
 
 #def Intrgl_Fwr_Op(mesh,B,M,rxLoc,actv,flag):
-#    """ 
+#    """
 #
 #    Magnetic forward operator in integral form
 #
@@ -739,7 +740,7 @@ def Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,actv,flag):
 #
 #    @author: dominiquef
 #
-#     """    
+#     """
 #    # Find non-zero cells
 #    #inds = np.nonzero(actv)[0]
 #    if actv.dtype=='bool':
@@ -748,24 +749,24 @@ def Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,actv,flag):
 #        inds = actv
 #
 #    nC = len(inds)
-#    
+#
 #    # Create active cell projector
 #    P = sp.csr_matrix((np.ones(nC),(inds, range(nC))),
 #                      shape=(mesh.nC, nC))
-#        
+#
 #    # Create vectors of nodal location (lower and upper coners for each cell)
 #    xn = mesh.vectorNx;
 #    yn = mesh.vectorNy;
 #    zn = mesh.vectorNz;
-#    
+#
 #    yn2,xn2,zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
 #    yn1,xn1,zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
-#    
+#
 #    Yn = P.T*np.c_[mkvc(yn1), mkvc(yn2)]
 #    Xn = P.T*np.c_[mkvc(xn1), mkvc(xn2)]
 #    Zn = P.T*np.c_[mkvc(zn1), mkvc(zn2)]
-#          
-#    ndata = rxLoc.shape[0]    
+#
+#    ndata = rxLoc.shape[0]
 #
 #    # Convert Bdecination from north to cartesian
 #    D = (450.-float(B[1]))%360.
@@ -799,10 +800,10 @@ def Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,actv,flag):
 #        elif flag == 'xyz':
 #
 #            F = np.zeros((int(3*ndata), nC))
-#        
-#    elif flag == 'full':       
+#
+#    elif flag == 'full':
 #        F = np.zeros((int(3*ndata), int(3*nC)))
-#        
+#
 #
 #    else:
 #        print """Flag must be either 'tmi' | 'xyz' | 'full', please revised"""
@@ -816,9 +817,9 @@ def Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,actv,flag):
 #    count = -1;
 #    for ii in range(ndata):
 #
-#    
-#        tx, ty, tz = get_T_mat(Xn,Yn,Zn,rxLoc[ii,:])  
-#        
+#
+#        tx, ty, tz = get_T_mat(Xn,Yn,Zn,rxLoc[ii,:])
+#
 #        if flag=='tmi':
 #            F[ii,:] = Ptmi.dot(np.vstack((tx,ty,tz)))*Mxyz
 #
@@ -837,7 +838,7 @@ def Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,actv,flag):
 #        count = progress(ii,count,ndata)
 #
 #    print "Done 100% ...forward operator completed!!\n"
-#    
+#
 #    return F
 
 def get_T_mat(Xn,Yn,Zn,rxLoc):
@@ -863,10 +864,10 @@ def get_T_mat(Xn,Yn,Zn,rxLoc):
 
     @author: dominiquef
 
-     """ 
-    
+     """
+
     eps = 1e-10 # add a small value to the locations to avoid /0
-    
+
     nC = Xn.shape[0]
 
     # Pre-allocate space for 1D array
@@ -874,16 +875,16 @@ def get_T_mat(Xn,Yn,Zn,rxLoc):
     Ty = np.zeros((1,3*nC))
     Tz = np.zeros((1,3*nC))
 
-    
+
     dz2 = rxLoc[2] - Zn[:,0] + eps
     dz1 = rxLoc[2] - Zn[:,1] + eps
-         
+
     dy2 = Yn[:,1] - rxLoc[1] + eps
     dy1 = Yn[:,0] - rxLoc[1] + eps
-        
+
     dx2 = Xn[:,1] - rxLoc[0] + eps
     dx1 = Xn[:,0] - rxLoc[0] + eps
-    
+
 
     R1 = ( dy2**2 + dx2**2 )
     R2 = ( dy2**2 + dx1**2 )
@@ -1042,29 +1043,29 @@ def get_dist_wgt(mesh,rxLoc,actv,R,R0):
         inds = np.asarray([inds for inds, elem in enumerate(actv, 1) if elem], dtype=int) - 1
     else:
         inds = actv
-    
+
     nC = len(inds)
-    
+
     # Create active cell projector
     P = sp.csr_matrix((np.ones(nC),(inds, range(nC))),
                       shape=(mesh.nC, nC))
-            
+
     # Geometrical constant
     p = 1/np.sqrt(3);
 
     # Create cell center location
     Ym,Xm,Zm = np.meshgrid(mesh.vectorCCy, mesh.vectorCCx, mesh.vectorCCz)
     hY,hX,hZ = np.meshgrid(mesh.hy, mesh.hx, mesh.hz)
-    
+
     # Rmove air cells
     Xm = P.T*mkvc(Xm)
     Ym = P.T*mkvc(Ym)
     Zm = P.T*mkvc(Zm)
-    
+
     hX = P.T*mkvc(hX)
     hY = P.T*mkvc(hY)
     hZ = P.T*mkvc(hZ)
-       
+
     V = P.T * mkvc(mesh.vol)
     wr = np.zeros(nC)
 
@@ -1104,7 +1105,7 @@ def get_dist_wgt(mesh,rxLoc,actv,R,R0):
     wr = np.sqrt(wr/(np.max(wr)))
 
     print "Done 100% ...distance weighting completed!!\n"
-    
+
     return wr
 
 def writeUBCobs(filename,survey,d):
@@ -1188,15 +1189,15 @@ def getActiveTopo(mesh,topo,flag):
 
 
     actv = mkvc(actv==1)
-    
+
     inds = np.asarray([inds for inds, elem in enumerate(actv, 1) if elem], dtype = int) - 1
-        
+
     return inds
 
-def plot_obs_2D(rxLoc,d = None ,varstr = 'Mag Obs', vmin = None, vmax = None, levels = None):   
+def plot_obs_2D(rxLoc,d = None ,varstr = 'Mag Obs', vmin = None, vmax = None, levels = None):
     """ Function plot_obs(rxLoc,d)
     Generate a 2d interpolated plot from scatter points of data
-    
+
     INPUT
     rxLoc       : Observation locations [x,y,z]
     d           : Data vector
@@ -1208,37 +1209,37 @@ def plot_obs_2D(rxLoc,d = None ,varstr = 'Mag Obs', vmin = None, vmax = None, le
     Created on Dec, 27th 2015
 
     @author: dominiquef
-    
-    """ 
-        
+
+    """
+
     from scipy.interpolate import griddata
     import pylab as plt
-    
+
 
     # Plot result
     plt.figure()
     plt.subplot()
     plt.scatter(rxLoc[:,0],rxLoc[:,1], c='k', s=10)
-    
+
     if d is not None:
-        
+
         if (vmin is None):
             vmin = d.min()
-            
+
         if (vmax is None):
             vmax = d.max()
-            
+
         # Create grid of points
         x = np.linspace(rxLoc[:,0].min(), rxLoc[:,0].max(), 100)
         y = np.linspace(rxLoc[:,1].min(), rxLoc[:,1].max(), 100)
-        
+
         X, Y = np.meshgrid(x,y)
-        
+
         # Interpolate
         d_grid = griddata(rxLoc[:,0:2],d,(X,Y), method ='linear')
         plt.imshow(d_grid, extent=[x.min(), x.max(), y.min(), y.max()],origin = 'lower', vmin = vmin, vmax = vmax)
         plt.colorbar(fraction=0.02)
-        
+
         if levels is None:
             plt.contour(X,Y, d_grid,10,vmin = vmin, vmax = vmax)
         else:
@@ -1248,26 +1249,26 @@ def plot_obs_2D(rxLoc,d = None ,varstr = 'Mag Obs', vmin = None, vmax = None, le
     plt.gca().set_aspect('equal', adjustable='box')
 
 def readUBCmagObs(obs_file):
-    
+
     """
     Read and write UBC mag file format
-    
+
     INPUT:
     :param fileName, path to the UBC obs mag file
-    
+
     OUTPUT:
     :param survey
     :param M, magnetization orentiaton (MI, MD)
-    
+
     """
 
-    fid = open(obs_file,'r') 
+    fid = open(obs_file,'r')
 
     # First line has the inclination,declination and amplitude of B0
     line = fid.readline()
     B = np.array(line.split(),dtype=float)
 
-    # Second line has the magnetization orientation and a flag 
+    # Second line has the magnetization orientation and a flag
     line = fid.readline()
     M = np.array(line.split(),dtype=float)
 
@@ -1277,28 +1278,28 @@ def readUBCmagObs(obs_file):
 
     # Pre-allocate space for obsx, obsy, obsz, data, uncert
     line = fid.readline()
-    temp = np.array(line.split(),dtype=float) 
-        
+    temp = np.array(line.split(),dtype=float)
+
     d  = np.zeros(ndat, dtype=float)
     wd = np.zeros(ndat, dtype=float)
     locXYZ = np.zeros( (ndat,3), dtype=float)
-    
+
     for ii in range(ndat):
-        
-        temp = np.array(line.split(),dtype=float) 
+
+        temp = np.array(line.split(),dtype=float)
         locXYZ[ii,:] = temp[:3]
-        
+
         if len(temp) > 3:
             d[ii] = temp[3]
-            
+
             if len(temp)==5:
                 wd[ii] = temp[4]
-                
+
         line = fid.readline()
-    
+
     rxLoc = MAG.RxObs(locXYZ)
     srcField = MAG.SrcField([rxLoc],(B[2],B[0],B[1]))
-    survey = MAG.LinearSurvey(srcField) 
+    survey = MAG.LinearSurvey(srcField)
     survey.dobs =  d
     survey.std =  wd
     return survey
@@ -1308,7 +1309,7 @@ def read_MAGfwr_inp(input_file):
     """Read input files for forward modeling MAG data with integral form
     INPUT:
     input_file: File name containing the forward parameter
-    
+
     OUTPUT:
     mshfile
     obsfile
@@ -1319,49 +1320,49 @@ def read_MAGfwr_inp(input_file):
     # be specified.
 
     Created on Jul 17, 2013
-    
+
     @author: dominiquef
     """
 
-    
+
     fid = open(input_file,'r')
-    
+
     line = fid.readline()
     l_input  = line.split('!')
     mshfile = l_input[0].rstrip()
-    
+
     line = fid.readline()
     l_input  = line.split('!')
     obsfile = l_input[0].rstrip()
-    
+
     line = fid.readline()
-    l_input = line.split('!') 
+    l_input = line.split('!')
     modfile = l_input[0].rstrip()
-    
+
     line = fid.readline()
-    l_input = line.split('!') 
+    l_input = line.split('!')
     if l_input=='null':
         magfile = []
-        
+
     else:
         magfile = l_input[0].rstrip()
-        
-        
+
+
     line = fid.readline()
-    l_input = line.split('!') 
+    l_input = line.split('!')
     if l_input=='null':
         topofile = []
-        
+
     else:
         topofile = l_input[0].rstrip()
-      
+
     return mshfile, obsfile, modfile, magfile, topofile
 
 def read_MAGinv_inp(input_file):
     """Read input files for forward modeling MAG data with integral form
     INPUT:
     input_file: File name containing the forward parameter
-    
+
     OUTPUT:
     mshfile
     obsfile
@@ -1379,231 +1380,99 @@ def read_MAGinv_inp(input_file):
     # be specified.
 
     Created on Dec 21th, 2015
-    
+
     @author: dominiquef
     """
 
-    
+
     fid = open(input_file,'r')
-    
+
     # Line 1
     line = fid.readline()
     l_input  = line.split('!')
     mshfile = l_input[0].rstrip()
-    
+
     # Line 2
     line = fid.readline()
     l_input  = line.split('!')
-    obsfile = l_input[0].rstrip()       
-    
-    # Line 3  
+    obsfile = l_input[0].rstrip()
+
+    # Line 3
     line = fid.readline()
     l_input = re.split('[!\s]',line)
     if l_input=='null':
         topofile = []
-        
+
     else:
         topofile = l_input[0].rstrip()
 
 
     # Line 4
     line = fid.readline()
-    l_input = re.split('[!\s]',line) 
+    l_input = re.split('[!\s]',line)
     if l_input[0]=='VALUE':
         mstart = float(l_input[1])
-        
+
     else:
         mstart = l_input[0].rstrip()
 
     # Line 5
     line = fid.readline()
-    l_input = re.split('[!\s]',line) 
+    l_input = re.split('[!\s]',line)
     if l_input[0]=='VALUE':
         mref = float(l_input[1])
-        
+
     else:
         mref = l_input[0].rstrip()
-    
-    
-    # Line 6   
+
+
+    # Line 6
     line = fid.readline()
-    l_input = re.split('[!\s]',line) 
+    l_input = re.split('[!\s]',line)
     if l_input=='DEFAULT':
         magfile = []
-        
+
     else:
         magfile = l_input[0].rstrip()
 
     # Line 7
     line = fid.readline()
-    l_input = re.split('[!\s]',line) 
+    l_input = re.split('[!\s]',line)
     if l_input=='DEFAULT':
         wgtfile = []
-        
+
     else:
         wgtfile = l_input[0].rstrip()
 
     # Line 8
     line = fid.readline()
-    l_input = re.split('[!\s]',line) 
+    l_input = re.split('[!\s]',line)
     chi = float(l_input[0])
 
     # Line 9
     line = fid.readline()
-    l_input = re.split('[!\s]',line) 
+    l_input = re.split('[!\s]',line)
     val = np.array(l_input[0:4])
     alphas = val.astype(np.float)
 
     # Line 10
     line = fid.readline()
-    l_input = re.split('[!\s]',line) 
+    l_input = re.split('[!\s]',line)
     if l_input[0]=='VALUE':
         val   = np.array(l_input[1:3])
         bounds = val.astype(np.float)
-        
+
     else:
         bounds = l_input[0].rstrip()
 
     # Line 11
     line = fid.readline()
-    l_input = re.split('[!\s]',line) 
+    l_input = re.split('[!\s]',line)
     if l_input[0]=='VALUE':
         val   = np.array(l_input[1:6])
         lpnorms = val.astype(np.float)
-        
+
     else:
         lpnorms = l_input[0].rstrip()
 
     return mshfile, obsfile, topofile, mstart, mref, magfile, wgtfile, chi, alphas, bounds, lpnorms
-
-def read_GOCAD_ts(tsfile):
-    """Read GOCAD triangulated surface (*.ts) file
-    INPUT:
-    tsfile: Triangulated surface
-    
-    OUTPUT:
-    vrts : Array of vertices in XYZ coordinates [n x 3]
-    trgl : Array of index for triangles [m x 3]. The order of the vertices 
-            is important and describes the normal
-            n = cross( (P2 - P1 ) , (P3 - P1) )
-
-
-    Created on Jan 13th, 2016
-    
-    Author: @fourndo
-    """
-
-    
-    fid = open(tsfile,'r')
-    line = fid.readline()
-    
-    # Skip all the lines until the vertices
-    while re.match('TFACE',line)==None:
-        line = fid.readline()
-    
-    line = fid.readline()
-    vrtx = []
-    
-    # Run down all the vertices and save in array
-    while re.match('VRTX',line):
-        l_input  = re.split('[\s*]',line)
-        temp = np.array(l_input[2:5])
-        vrtx.append(temp.astype(np.float))
-        
-        # Read next line
-        line = fid.readline()
-    
-    vrtx = np.asarray(vrtx)
-    
-    # Skip lines to the triangles
-    while re.match('TRGL',line)==None:
-        line = fid.readline()
-        
-    # Run down the list of triangles
-    trgl = []
-    
-    # Run down all the vertices and save in array
-    while re.match('TRGL',line):
-        l_input  = re.split('[\s*]',line)
-        temp = np.array(l_input[1:4])
-        trgl.append(temp.astype(np.int))
-        
-        # Read next line
-        line = fid.readline()
-     
-    trgl = np.asarray(trgl)
-    
-    return vrtx, trgl
-    
-def gocad2vtk(gcFile,mesh,bcflag,inflag):
-    """"
-    Function to read gocad polystructure file and output indexes of mesh with in the structure.
-    
-    """
-    import vtk, vtk.util.numpy_support as npsup
-    
-    print "Reading GOCAD ts file..."
-    vrtx, trgl = read_GOCAD_ts(gcFile)
-    # Adjust the index
-    trgl = trgl - 1
-    
-    # Make vtk pts
-    ptsvtk = vtk.vtkPoints()
-    ptsvtk.SetData(npsup.numpy_to_vtk(vrtx,deep=1))
-    
-    # Make the polygon connection
-    polys = vtk.vtkCellArray()
-    for face in trgl:
-        poly = vtk.vtkPolygon()
-        poly.GetPointIds().SetNumberOfIds(len(face))
-        for nrv, vert in enumerate(face):
-            poly.GetPointIds().SetId(nrv,vert)
-        polys.InsertNextCell(poly)
-        
-    # Make the polydata, structure of connections and vrtx
-    polyData = vtk.vtkPolyData()
-    polyData.SetPoints(ptsvtk)
-    polyData.SetPolys(polys)
-    
-    # Make implicit func
-    ImpDistFunc = vtk.vtkImplicitPolyDataDistance()
-    ImpDistFunc.SetInput(polyData)
-    
-    # Convert the mesh
-    vtkMesh = vtk.vtkRectilinearGrid()
-    vtkMesh.SetDimensions(mesh.nNx,mesh.nNy,mesh.nNz)
-    vtkMesh.SetXCoordinates(npsup.numpy_to_vtk(mesh.vectorNx,deep=1))    
-    vtkMesh.SetYCoordinates(npsup.numpy_to_vtk(mesh.vectorNy,deep=1))    
-    vtkMesh.SetZCoordinates(npsup.numpy_to_vtk(mesh.vectorNz,deep=1)) 
-    # Add indexes
-    vtkInd = npsup.numpy_to_vtk(np.arange(mesh.nC),deep=1)
-    vtkInd.SetName('Index')
-    vtkMesh.GetCellData().AddArray(vtkInd)
-    
-    extractImpDistRectGridFilt = vtk.vtkExtractGeometry() # Object constructor
-    extractImpDistRectGridFilt.SetImplicitFunction(ImpDistFunc) #
-    extractImpDistRectGridFilt.SetInputData(vtkMesh)
-    
-    if bcflag is True:
-        extractImpDistRectGridFilt.ExtractBoundaryCellsOn()
-        
-    else:
-        extractImpDistRectGridFilt.ExtractBoundaryCellsOff()
-    
-    if inflag is True:
-        extractImpDistRectGridFilt.ExtractInsideOn()
-        
-    else:
-        extractImpDistRectGridFilt.ExtractInsideOff()
-    
-    print "Extracting indices from grid..."
-    # Executing the pipe
-    extractImpDistRectGridFilt.Update()
-    
-    # Get index inside
-    insideGrid = extractImpDistRectGridFilt.GetOutput()
-    insideGrid = npsup.vtk_to_numpy(insideGrid.GetCellData().GetArray('Index'))
-    
-    
-    # Return the indexes inside
-    return insideGrid   
