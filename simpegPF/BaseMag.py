@@ -105,6 +105,54 @@ class BaseMagSurvey(Survey.BaseSurvey):
 
         return np.r_[bfx, bfy, bfz]
 
+class LinearSurvey(Survey.BaseSurvey):
+    """Base Magnetics Survey"""
+
+    rxLoc = None #: receiver locations
+    rxType = None #: receiver type
+
+    def __init__(self, srcField, **kwargs):
+        self.srcField = srcField
+        Survey.BaseSurvey.__init__(self, **kwargs)
+
+    def eval(self, u):
+        return u
+    
+    @property
+    def nD(self):
+        return self.prob.G.shape[0]
+
+    @property
+    def nRx(self):
+        return self.srcField.rxList[0].locs.shape[0]
+    # def setBackgroundField(self, SrcField):
+
+    #     if getattr(self, 'B0', None) is None:
+    #         self._B0 = SrcField.param[0] * dipazm_2_xyz(SrcField.param[1],SrcField.param[2])
+
+    #     return self._B0
+
+class SrcField(Survey.BaseSrc):
+    """ Define the inducing field """
+
+    param = None #: Inducing field param (Amp, Incl, Decl)
+
+    def __init__(self, rxList, param = None, **kwargs):
+        self.param = param
+        super(SrcField, self).__init__(rxList, **kwargs)   
+
+class RxObs(Survey.BaseRx):
+    """A station location must have be located in 3-D"""
+    def __init__(self, locsXYZ, **kwargs):
+        locs = locsXYZ
+        assert locsXYZ.shape[1] == 3, 'locs must in 3-D (x,y,z).'
+        super(RxObs, self).__init__(locs, 'tmi', storeProjections=False, **kwargs)
+
+    @property
+    def nD(self):
+        """Number of data in the receiver."""
+        return self.locs[0].shape[0]
+
 class MagSurveyBx(object):
     """docstring for MagSurveyBx"""
     def __init__(self, **kwargs):
@@ -144,352 +192,3 @@ class WeightMap(Maps.IdentityMap):
         return Utils.sdiag(self.weight)    
 
 
-    
-
-def readUBCmagObs(obs_file):
-    
-    """
-    Read and write UBC mag file format
-    
-    INPUT:
-    :param fileName, path to the UBC obs mag file
-    
-    OUTPUT:
-    :param dobs, observation in (x y z [data] [wd])
-    :param B, primary field information (BI, BD, B0)
-    :param M, magnetization orentiaton (MI, MD)
-    
-    """
-
-    fid = open(obs_file,'r') 
-
-    # First line has the inclination,declination and amplitude of B0
-    line = fid.readline()
-    B = np.array(line.split(),dtype=float)
-
-    # Second line has the magnetization orientation and a flag 
-    line = fid.readline()
-    M = np.array(line.split(),dtype=float)
-
-    # Third line has the number of rows
-    line = fid.readline()
-    ndat = np.array(line.split(),dtype=int)
-
-    # Pre-allocate space for obsx, obsy, obsz, data, uncert
-    line = fid.readline()
-    temp = np.array(line.split(),dtype=float) 
-        
-    dobs = np.zeros((ndat,len(temp)), dtype=float)
-    
-    
-    for ii in range(ndat):
-        
-        dobs[ii,:] = np.array(line.split(),dtype=float) 
-        line = fid.readline()
-        
-    return B, M, dobs
-
-def read_MAGfwr_inp(input_file):
-
-    """Read input files for forward modeling MAG data with integral form
-    INPUT:
-    input_file: File name containing the forward parameter
-    
-    OUTPUT:
-    mshfile
-    obsfile
-    modfile
-    magfile
-    topofile
-    # All files should be in the working directory, otherwise the path must
-    # be specified.
-
-    Created on Jul 17, 2013
-    
-    @author: dominiquef
-    """
-
-    
-    fid = open(input_file,'r')
-    
-    line = fid.readline()
-    l_input  = line.split('!')
-    mshfile = l_input[0].rstrip()
-    
-    line = fid.readline()
-    l_input  = line.split('!')
-    obsfile = l_input[0].rstrip()
-    
-    line = fid.readline()
-    l_input = line.split('!') 
-    modfile = l_input[0].rstrip()
-    
-    line = fid.readline()
-    l_input = line.split('!') 
-    if l_input=='null':
-        magfile = []
-        
-    else:
-        magfile = l_input[0].rstrip()
-        
-        
-    line = fid.readline()
-    l_input = line.split('!') 
-    if l_input=='null':
-        topofile = []
-        
-    else:
-        topofile = l_input[0].rstrip()
-      
-    return mshfile, obsfile, modfile, magfile, topofile
-
-def read_MAGinv_inp(input_file):
-    """Read input files for forward modeling MAG data with integral form
-    INPUT:
-    input_file: File name containing the forward parameter
-    
-    OUTPUT:
-    mshfile
-    obsfile
-    topofile
-    start model
-    ref model
-    mag model
-    weightfile
-    chi_target
-    as, ax ,ay, az
-    upper, lower bounds
-    lp, lqx, lqy, lqz
-
-    # All files should be in the working directory, otherwise the path must
-    # be specified.
-
-    Created on Dec 21th, 2015
-    
-    @author: dominiquef
-    """
-
-    
-    fid = open(input_file,'r')
-    
-    # Line 1
-    line = fid.readline()
-    l_input  = line.split('!')
-    mshfile = l_input[0].rstrip()
-    
-    # Line 2
-    line = fid.readline()
-    l_input  = line.split('!')
-    obsfile = l_input[0].rstrip()       
-    
-    # Line 3  
-    line = fid.readline()
-    l_input = re.split('[!\s]',line)
-    if l_input=='null':
-        topofile = []
-        
-    else:
-        topofile = l_input[0].rstrip()
-
-
-    # Line 4
-    line = fid.readline()
-    l_input = re.split('[!\s]',line) 
-    if l_input[0]=='VALUE':
-        mstart = float(l_input[1])
-        
-    else:
-        mstart = l_input[0].rstrip()
-
-    # Line 5
-    line = fid.readline()
-    l_input = re.split('[!\s]',line) 
-    if l_input[0]=='VALUE':
-        mref = float(l_input[1])
-        
-    else:
-        mref = l_input[0].rstrip()
-    
-    
-    # Line 6   
-    line = fid.readline()
-    l_input = re.split('[!\s]',line) 
-    if l_input=='DEFAULT':
-        magfile = []
-        
-    else:
-        magfile = l_input[0].rstrip()
-
-    # Line 7
-    line = fid.readline()
-    l_input = re.split('[!\s]',line) 
-    if l_input=='DEFAULT':
-        wgtfile = []
-        
-    else:
-        wgtfile = l_input[0].rstrip()
-
-    # Line 8
-    line = fid.readline()
-    l_input = re.split('[!\s]',line) 
-    chi = float(l_input[0])
-
-    # Line 9
-    line = fid.readline()
-    l_input = re.split('[!\s]',line) 
-    val = np.array(l_input[0:4])
-    alphas = val.astype(np.float)
-
-    # Line 10
-    line = fid.readline()
-    l_input = re.split('[!\s]',line) 
-    if l_input[0]=='VALUE':
-        val   = np.array(l_input[1:3])
-        bounds = val.astype(np.float)
-        
-    else:
-        bounds = l_input[0].rstrip()
-
-    # Line 11
-    line = fid.readline()
-    l_input = re.split('[!\s]',line) 
-    if l_input[0]=='VALUE':
-        val   = np.array(l_input[1:6])
-        lpnorms = val.astype(np.float)
-        
-    else:
-        lpnorms = l_input[0].rstrip()
-
-    return mshfile, obsfile, topofile, mstart, mref, magfile, wgtfile, chi, alphas, bounds, lpnorms
-
-def read_GOCAD_ts(tsfile):
-    """Read GOCAD triangulated surface (*.ts) file
-    INPUT:
-    tsfile: Triangulated surface
-    
-    OUTPUT:
-    vrts : Array of vertices in XYZ coordinates [n x 3]
-    trgl : Array of index for triangles [m x 3]. The order of the vertices 
-            is important and describes the normal
-            n = cross( (P2 - P1 ) , (P3 - P1) )
-
-
-    Created on Jan 13th, 2016
-    
-    Author: @fourndo
-    """
-
-    
-    fid = open(tsfile,'r')
-    line = fid.readline()
-    
-    # Skip all the lines until the vertices
-    while re.match('TFACE',line)==None:
-        line = fid.readline()
-    
-    line = fid.readline()
-    vrtx = []
-    
-    # Run down all the vertices and save in array
-    while re.match('VRTX',line):
-        l_input  = re.split('[\s*]',line)
-        temp = np.array(l_input[2:5])
-        vrtx.append(temp.astype(np.float))
-        
-        # Read next line
-        line = fid.readline()
-    
-    vrtx = np.asarray(vrtx)
-    
-    # Skip lines to the triangles
-    while re.match('TRGL',line)==None:
-        line = fid.readline()
-        
-    # Run down the list of triangles
-    trgl = []
-    
-    # Run down all the vertices and save in array
-    while re.match('TRGL',line):
-        l_input  = re.split('[\s*]',line)
-        temp = np.array(l_input[1:4])
-        trgl.append(temp.astype(np.int))
-        
-        # Read next line
-        line = fid.readline()
-     
-    trgl = np.asarray(trgl)
-    
-    return vrtx, trgl
-    
-def gocad2vtk(gcFile,mesh,bcflag,inflag):
-    """"
-    Function to read gocad polystructure file and output indexes of mesh with in the structure.
-    
-    """
-    import vtk, vtk.util.numpy_support as npsup
-    
-    print "Reading GOCAD ts file..."
-    vrtx, trgl = read_GOCAD_ts(gcFile)
-    # Adjust the index
-    trgl = trgl - 1
-    
-    # Make vtk pts
-    ptsvtk = vtk.vtkPoints()
-    ptsvtk.SetData(npsup.numpy_to_vtk(vrtx,deep=1))
-    
-    # Make the polygon connection
-    polys = vtk.vtkCellArray()
-    for face in trgl:
-        poly = vtk.vtkPolygon()
-        poly.GetPointIds().SetNumberOfIds(len(face))
-        for nrv, vert in enumerate(face):
-            poly.GetPointIds().SetId(nrv,vert)
-        polys.InsertNextCell(poly)
-        
-    # Make the polydata, structure of connections and vrtx
-    polyData = vtk.vtkPolyData()
-    polyData.SetPoints(ptsvtk)
-    polyData.SetPolys(polys)
-    
-    # Make implicit func
-    ImpDistFunc = vtk.vtkImplicitPolyDataDistance()
-    ImpDistFunc.SetInput(polyData)
-    
-    # Convert the mesh
-    vtkMesh = vtk.vtkRectilinearGrid()
-    vtkMesh.SetDimensions(mesh.nNx,mesh.nNy,mesh.nNz)
-    vtkMesh.SetXCoordinates(npsup.numpy_to_vtk(mesh.vectorNx,deep=1))    
-    vtkMesh.SetYCoordinates(npsup.numpy_to_vtk(mesh.vectorNy,deep=1))    
-    vtkMesh.SetZCoordinates(npsup.numpy_to_vtk(mesh.vectorNz,deep=1)) 
-    # Add indexes
-    vtkInd = npsup.numpy_to_vtk(np.arange(mesh.nC),deep=1)
-    vtkInd.SetName('Index')
-    vtkMesh.GetCellData().AddArray(vtkInd)
-    
-    extractImpDistRectGridFilt = vtk.vtkExtractGeometry() # Object constructor
-    extractImpDistRectGridFilt.SetImplicitFunction(ImpDistFunc) #
-    extractImpDistRectGridFilt.SetInputData(vtkMesh)
-    
-    if bcflag is True:
-        extractImpDistRectGridFilt.ExtractBoundaryCellsOn()
-        
-    else:
-        extractImpDistRectGridFilt.ExtractBoundaryCellsOff()
-    
-    if inflag is True:
-        extractImpDistRectGridFilt.ExtractInsideOn()
-        
-    else:
-        extractImpDistRectGridFilt.ExtractInsideOff()
-    
-    print "Extracting indices from grid..."
-    # Executing the pipe
-    extractImpDistRectGridFilt.Update()
-    
-    # Get index inside
-    insideGrid = extractImpDistRectGridFilt.GetOutput()
-    insideGrid = npsup.vtk_to_numpy(insideGrid.GetCellData().GetArray('Index'))
-    
-    
-    # Return the indexes inside
-    return insideGrid
