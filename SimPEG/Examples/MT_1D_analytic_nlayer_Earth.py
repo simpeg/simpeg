@@ -41,7 +41,7 @@ The layer 0 is assumed to be the air layer.
 #Define a frquency range for a survey
 frange = lambda minfreq, maxfreq, step: np.logspace(minfreq,maxfreq,num = step, base = 10.)
 
-#Functions to create random physical Perties for a n-layered earth
+#Functions to create random physical Properties for a n-layered earth
 thick = lambda minthick, maxthick, nlayer: np.append(np.array([1.2*10.**5]),
                                                      np.ndarray.round(minthick + (maxthick-minthick)* np.random.rand(nlayer-1,1)
                                                             ,decimals =1))
