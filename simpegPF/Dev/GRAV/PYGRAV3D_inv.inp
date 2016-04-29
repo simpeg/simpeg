@@ -1,7 +1,7 @@
 Mesh_10m.msh			! Mesh file
 Grav.dat			! Obsfile
 Gaussian.topo			! Topofile | null
-VALUE 1e-4			! Starting model
+VALUE 0.0			! Starting model
 VALUE 0.0			! Reference model
 DEFAULT				! Cell based weight file
 1				! target chi factor | DEFAULT=1

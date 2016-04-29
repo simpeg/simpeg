@@ -5,18 +5,13 @@ import pylab as plt
 
 import os
 
-#home_dir = 'C:\Users\dominiquef.MIRAGEOSCIENCE\Documents\GIT\SimPEG\simpegpf\simpegPF\Dev'
-#home_dir = 'C:\\Users\\dominiquef.MIRAGEOSCIENCE\\ownCloud\\Research\\Modelling\\Synthetic\\Nut_Cracker\\Induced_MAG3C'
-home_dir = '.\\'
-#home_dir = '.\\'
+home_dir = '.'
 
 inpfile = 'PYMAG3D_inv.inp'
 
-dsep = '\\'
+dsep = os.path.sep
+
 os.chdir(home_dir)
-## New scripts to be added to basecode
-#from fwr_MAG_data import fwr_MAG_data
-#from read_MAGfwr_inp import read_MAGfwr_inp
 plt.close('all')
 #%%
 # Read input file
@@ -24,7 +19,6 @@ plt.close('all')
 
 # Load mesh file
 mesh = Mesh.TensorMesh.readUBC(mshfile)
-#mesh = Utils.meshutils.readUBCTensorMesh(mshfile) 
 
 # Load in observation file
 survey = PF.Magnetics.readUBCmagObs(obsfile)
@@ -35,7 +29,6 @@ wd = survey.std
 
 ndata = survey.srcField.rxList[0].locs.shape[0]
 
-beta_in = 1e+5
 eps_p = 1e-4
 eps_q = 1e-4
 # Load in topofile or create flat surface
@@ -53,9 +46,9 @@ else:
 nC = len(actv)
 
 # Create active map to go from reduce set to full
-actvMap = Maps.ActiveCells(mesh, actv, -100)
+actvMap = Maps.InjectActiveCells(mesh, actv, -100)
 
-# Creat reduced identity map
+# Create reduced identity map
 idenMap = Maps.IdentityMap(nP = nC)
 
 # Load starting model file
@@ -85,12 +78,6 @@ else:
 midx = int(mesh.nCx/2)
 midy = int(mesh.nCy/2)
 
-# Get distance weighting function
-#==============================================================================
-# wr = PF.Magnetics.get_dist_wgt(mesh,rxLoc,actv,3.,np.min(mesh.hx)/4)
-# #wrMap = PF.BaseMag.WeightMap(nC, wr)
-#==============================================================================
-
 #%% Plot obs data
 PF.Magnetics.plot_obs_2D(rxLoc,d,'Observed Data')
 
@@ -98,11 +85,8 @@ PF.Magnetics.plot_obs_2D(rxLoc,d,'Observed Data')
 prob = PF.Magnetics.MagneticIntegral(mesh, mapping = idenMap, actInd = actv)
 prob.solverOpts['accuracyTol'] = 1e-4
 
-#survey = Survey.LinearSurvey()
 survey.pair(prob)
-#survey.makeSyntheticData(data, std=0.01)
-#survey.dobs=d
-#survey.mtrue = model
+
 # Write out the predicted
 pred = prob.fields(mstart)
 PF.Magnetics.writeUBCobs(home_dir + dsep + 'Pred.dat',survey,pred)
@@ -121,25 +105,20 @@ plt.gca().set_aspect('equal', adjustable='box')
 reg = Regularization.Simple(mesh, indActive = actv, mapping = idenMap)
 reg.mref = mref
 reg.wght = wr
-#reg.alpha_s = 1.
-
-# Create pre-conditioner 
-diagA = np.sum(prob.G**2.,axis=0) + beta_in*(reg.W.T*reg.W).diagonal()
-PC     = Utils.sdiag(diagA**-1.)
-
 
 dmis = DataMisfit.l2_DataMisfit(survey)
 dmis.Wd = 1/wd
 opt = Optimization.ProjectedGNCG(maxIter=10,lower=0.,upper=1., maxIterCG= 20, tolCG = 1e-3)
-opt.approxHinv = PC
 
-# opt = Optimization.InexactGaussNewton(maxIter=6)
-invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta = beta_in)
+invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
+
+# Add directives to the inversion
 beta = Directives.BetaSchedule(coolingFactor=2, coolingRate=1)
-#betaest = Directives.BetaEstimate_ByEig()
+beta_init = Directives.BetaEstimate_ByEig()
 target = Directives.TargetMisfit()
+update_Jacobi = Directives.Update_lin_PreCond(onlyOnStart=True)
 
-inv = Inversion.BaseInversion(invProb, directiveList=[beta,target])
+inv = Inversion.BaseInversion(invProb, directiveList=[beta,target,beta_init,update_Jacobi])
 
 m0 = mstart
 
@@ -150,7 +129,6 @@ m_out = actvMap*mrec
 
 # Write result
 Mesh.TensorMesh.writeModelUBC(mesh,'SimPEG_inv_l2l2.sus',m_out)
-#Utils.meshutils.writeUBCTensorModel(home_dir+dsep+'wr.dat',mesh,wr_out)
 
 # Plot predicted
 pred = prob.fields(mrec)
@@ -190,6 +168,7 @@ plt.gca().set_aspect('equal', adjustable='box')
 phim = invProb.phi_m_last
 phid =  invProb.phi_d
 
+# Set parameters for sparsity
 reg = Regularization.Sparse(mesh, indActive = actv, mapping = idenMap)
 reg.recModel = mrec
 reg.mref = mref
@@ -199,25 +178,18 @@ reg.eps_q = eps_q
 reg.norms   = lpnorms
 
 
-diagA = np.sum(prob.G**2.,axis=0) + beta_in*(reg.W.T*reg.W).diagonal()
-PC     = Utils.sdiag(diagA**-1.)
-
-#reg.alpha_s = 1.
-
 dmis = DataMisfit.l2_DataMisfit(survey)
 dmis.Wd = wd
 opt = Optimization.ProjectedGNCG(maxIter=20 ,lower=0.,upper=1., maxIterCG= 10, tolCG = 1e-4)
-opt.approxHinv = PC
-#opt.phim_last = reg.eval(mrec)
 
-# opt = Optimization.InexactGaussNewton(maxIter=6)
 invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta = invProb.beta)
+
+# Create inversion directives
 beta = Directives.BetaSchedule(coolingFactor=1, coolingRate=1)
 update_beta = Directives.Scale_Beta(tol = 0.05)
-#betaest = Directives.BetaEstimate_ByEig()
 target = Directives.TargetMisfit()
 IRLS =Directives.Update_IRLS( phi_m_last = phim, phi_d_last = phid )
-update_Jacobi = Directives.Update_lin_PreCond()
+update_Jacobi = Directives.Update_lin_PreCond(onlyOnStart=False)
 save_log = Directives.SaveOutputEveryIteration()
 save_log.fileName = 'LogName_blabla'
 
@@ -230,6 +202,7 @@ mrec = inv.run(m0)
 
 m_out = actvMap*mrec
 
+# Write final model out.
 Mesh.TensorMesh.writeModelUBC(mesh,'SimPEG_inv_l0l2.sus',m_out)
 
 pred = prob.fields(mrec)
