@@ -308,7 +308,7 @@ class Update_lin_PreCond(InversionDirective):
     """
     Create a Jacobi preconditioner for the linear problem
     """
-    onlyOnStart=True
+    onlyOnStart=False
     
     def initialize(self):
     
