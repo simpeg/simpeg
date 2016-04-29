@@ -217,8 +217,11 @@ update_beta = Directives.Scale_Beta(tol = 0.05)
 #betaest = Directives.BetaEstimate_ByEig()
 target = Directives.TargetMisfit()
 IRLS =Directives.Update_IRLS( phi_m_last = phim, phi_d_last = phid )
+update_Jacobi = Directives.Update_lin_PreCond()
+save_log = Directives.SaveOutputEveryIteration()
+save_log.fileName = 'LogName_blabla'
 
-inv = Inversion.BaseInversion(invProb, directiveList=[beta,IRLS,update_beta])
+inv = Inversion.BaseInversion(invProb, directiveList=[beta,IRLS,update_beta,update_Jacobi,save_log])
 
 m0 = mrec
 
