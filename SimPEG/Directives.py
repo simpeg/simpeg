@@ -258,6 +258,7 @@ class Update_IRLS(InversionDirective):
     phi_m_last = None
     phi_d_last = None
 
+
     def initialize(self):
 
         # Scale the regularization for changes in norm
@@ -275,7 +276,7 @@ class Update_IRLS(InversionDirective):
             self.phi_d_last = self.invProb.phi_d
 
     def endIter(self):
-        # Cool the threshold parameter
+        # Cool the threshold parameter if required
         if getattr(self, 'factor', None) is not None:
             eps = self.reg.eps / self.factor
 
@@ -290,16 +291,17 @@ class Update_IRLS(InversionDirective):
          # Update the model used for the IRLS weights
         self.reg.curModel = self.invProb.curModel
 
-        # Temporarely set gamma to 1.
+        # Temporarely set gamma to 1. to get raw phi_m
         self.reg.gamma = 1.
 
-        # Compute change in model objective function and update scaling
+        # Compute new model objective function value
         phim_new = self.reg.eval(self.invProb.curModel)
 
+        # Update gamma to scale the regularization between IRLS iterations
         self.reg.gamma = self.phi_m_last / phim_new
 
-        self.invProb.beta = self.invProb.beta * self.survey.nD*0.5 / self.invProb.phi_d
-
+        # Set the weighting matrix to None so that it is recomputed next time
+        # it is called in the inversion
         self.reg._W = None
 
 class Update_lin_PreCond(InversionDirective):
@@ -340,3 +342,19 @@ class Update_Wj(InversionDirective):
             JtJdiag = JtJdiag / max(JtJdiag)
 
             self.reg.wght = JtJdiag
+
+class Scale_Beta(InversionDirective):
+    """
+        Instead of a linear cooling schedule, beta is allowed to change based
+        on the ratio between the target misfit and the current data misfit. The
+        update is done only if the misfit is outside some threshold bounds.
+    """
+    tol = 0.05
+
+    def endIter(self):
+
+        # Check if misfit is within the tolerance, otherwise adjust beta
+        val = self.invProb.phi_d / (self.survey.nD*0.5)
+
+        if np.abs(1.-val) > self.tol:
+            self.invProb.beta = self.invProb.beta * self.survey.nD*0.5 / self.invProb.phi_d
