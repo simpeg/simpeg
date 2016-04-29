@@ -50,7 +50,7 @@ midy = int(mesh.nCy/2)
 PF.Magnetics.plot_obs_2D(rxLoc,d,'Observed Data')
 
 #%% Run inversion
-prob = PF.Magnetics.MagneticIntegral(mesh, mapping=idenMap, actInd=actv)
+prob = PF.Magnetics.Problem3D_Integral(mesh, mapping=idenMap, actInd=actv)
 prob.solverOpts['accuracyTol'] = 1e-4
 survey.pair(prob)
 #survey.makeSyntheticData(data, std=0.01)

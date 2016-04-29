@@ -4,7 +4,7 @@ from scipy.constants import mu_0
 from MagAnalytics import spheremodel, CongruousMagBC
 import re
 
-class MagneticIntegral(Problem.BaseProblem):
+class Problem3D_Integral(Problem.BaseProblem):
 
     #surveyPair = Survey.LinearSurvey
 
@@ -206,7 +206,7 @@ class MagneticIntegral(Problem.BaseProblem):
 
         return G
 
-class MagneticsDiffSecondary(Problem.BaseProblem):
+class Problem3D_DiffSecondary(Problem.BaseProblem):
     """
         Secondary field approach using differential equations!
     """
