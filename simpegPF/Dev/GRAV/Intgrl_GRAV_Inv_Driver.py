@@ -3,7 +3,7 @@ from SimPEG import *
 import simpegPF as PF
 import pylab as plt
 import os
-home_dir = 'C:\\Users\\dominiquef.MIRAGEOSCIENCE\\ownCloud\\Research\\Modelling\\Synthetic\\SingleBlock\\GRAV'
+home_dir = 'C:\\Users\\dominiquef.MIRAGEOSCIENCE\\ownCloud\\Research\\CraigModel\\GRAV\\checkerboard_tests'
 inpfile = 'PYGRAV3D_inv.inp'
 dsep = '\\'
 os.chdir(home_dir)
@@ -11,15 +11,15 @@ plt.close('all')
 
 #%% User input
 # Initial beta
-beta_in = 1e+5
+beta_in = 1e-2
 
 # Treshold values for compact norm
 eps_p = 1e-3 # Small model values
 eps_q = 1e-3 # Small model gradient
 
 # Plotting parameter
-vmin = -0.05
-vmax = 0
+vmin = -0.3
+vmax = 0.3
 #%%
 # Read input file
 [mshfile, obsfile, topofile, mstart, mref, wgtfile, chi, alphas, bounds, lpnorms] = PF.Gravity.read_GRAVinv_inp(home_dir + dsep + inpfile)
@@ -160,24 +160,25 @@ print "Final misfit:" + str(np.sum( ((d-pred)/wd)**2. ) )
 #%% Plot out sections of the smooth model
 
 yslice = midx+1
+m_out[m_out==-100] = np.nan
 
 plt.figure()
 ax = plt.subplot(221)
-mesh.plotSlice(m_out, ax = ax, normal = 'Z', ind=-5, clim = (vmin,vmax))
+mesh.plotSlice(m_out, ax = ax, normal = 'Z', ind=-5, clim = (vmin,vmax), pcolorOpts = {'cmap':'bwr'})
 plt.plot(np.array([mesh.vectorCCx[0],mesh.vectorCCx[-1]]), np.array([mesh.vectorCCy[yslice],mesh.vectorCCy[yslice]]),c='w',linestyle = '--')
 plt.title('Z: ' + str(mesh.vectorCCz[-5]) + ' m')
 plt.xlabel('x');plt.ylabel('z')
 plt.gca().set_aspect('equal', adjustable='box')
 
 ax = plt.subplot(222)
-mesh.plotSlice(m_out, ax = ax, normal = 'Z', ind=-8, clim = (vmin,vmax))
+mesh.plotSlice(m_out, ax = ax, normal = 'Z', ind=-8, clim = (vmin,vmax), pcolorOpts = {'cmap':'bwr'})
 plt.plot(np.array([mesh.vectorCCx[0],mesh.vectorCCx[-1]]), np.array([mesh.vectorCCy[yslice],mesh.vectorCCy[yslice]]),c='w',linestyle = '--')
 plt.title('Z: ' + str(mesh.vectorCCz[-8]) + ' m')
 plt.xlabel('x');plt.ylabel('z')
 plt.gca().set_aspect('equal', adjustable='box')
 
 ax = plt.subplot(212)
-mesh.plotSlice(m_out, ax = ax, normal = 'Y', ind=yslice, clim = (vmin,vmax))
+mesh.plotSlice(m_out, ax = ax, normal = 'Y', ind=yslice, clim = (vmin,vmax), pcolorOpts = {'cmap':'bwr'})
 plt.title('Cross Section')
 plt.xlabel('x');plt.ylabel('z')
 plt.gca().set_aspect('equal', adjustable='box')
@@ -210,7 +211,7 @@ PC     = Utils.sdiag(diagA**-1.)
 
 dmis = DataMisfit.l2_DataMisfit(survey)
 dmis.Wd = 1./wd
-opt = Optimization.ProjectedGNCG(maxIter=10 ,lower=bounds[0],upper=bounds[1], maxIterCG= 25, tolCG = 1e-4)
+opt = Optimization.ProjectedGNCG(maxIter=20 , maxIterLS = 20,lower=bounds[0],upper=bounds[1], maxIterCG= 50, tolCG = 1e-4)
 opt.approxHinv = PC
 #opt.phim_last = reg.eval(mrec)
 
@@ -241,23 +242,24 @@ print "Final misfit:" + str(np.sum( ((d-pred)/wd)**2. ) )
 #%% Plot out a section of the model
 
 yslice = midx
+m_out[m_out==-100] = np.nan
 plt.figure()
 ax = plt.subplot(221)
-mesh.plotSlice(m_out, ax = ax, normal = 'Z', ind=-5, clim = (vmin,vmax))
+mesh.plotSlice(m_out, ax = ax, normal = 'Z', ind=-18, clim = (vmin,vmax) , pcolorOpts = {'cmap':'bwr'})
 plt.plot(np.array([mesh.vectorCCx[0],mesh.vectorCCx[-1]]), np.array([mesh.vectorCCy[yslice],mesh.vectorCCy[yslice]]),c='w',linestyle = '--')
-plt.title('Z: ' + str(mesh.vectorCCz[-5]) + ' m')
+plt.title('Z: ' + str(mesh.vectorCCz[-18]) + ' m')
 plt.xlabel('x');plt.ylabel('z')
 plt.gca().set_aspect('equal', adjustable='box')
 
 ax = plt.subplot(222)
-mesh.plotSlice(m_out, ax = ax, normal = 'Z', ind=-8, clim = (vmin,vmax))
+mesh.plotSlice(m_out, ax = ax, normal = 'Z', ind=-23, clim = (vmin,vmax), pcolorOpts = {'cmap':'bwr'})
 plt.plot(np.array([mesh.vectorCCx[0],mesh.vectorCCx[-1]]), np.array([mesh.vectorCCy[yslice],mesh.vectorCCy[yslice]]),c='w',linestyle = '--')
-plt.title('Z: ' + str(mesh.vectorCCz[-8]) + ' m')
+plt.title('Z: ' + str(mesh.vectorCCz[-23]) + ' m')
 plt.xlabel('x');plt.ylabel('z')
 plt.gca().set_aspect('equal', adjustable='box')
 
 ax = plt.subplot(212)
-mesh.plotSlice(m_out, ax = ax, normal = 'Y', ind=yslice, clim = (vmin,vmax))
+mesh.plotSlice(m_out, ax = ax, normal = 'Y', ind=yslice, clim = (vmin,vmax), pcolorOpts = {'cmap':'bwr'})
 plt.title('Cross Section')
 plt.xlabel('x');plt.ylabel('z')
 plt.gca().set_aspect('equal', adjustable='box')

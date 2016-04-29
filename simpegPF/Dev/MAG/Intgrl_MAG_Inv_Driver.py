@@ -17,7 +17,7 @@ os.chdir(home_dir)
 ## New scripts to be added to basecode
 #from fwr_MAG_data import fwr_MAG_data
 #from read_MAGfwr_inp import read_MAGfwr_inp
-
+plt.close('all')
 #%%
 # Read input file
 [mshfile, obsfile, topofile, mstart, mref, magfile, wgtfile, chi, alphas, bounds, lpnorms] = PF.Magnetics.read_MAGinv_inp(home_dir + dsep + inpfile)
@@ -162,17 +162,18 @@ print "Final misfit:" + str(np.sum( ((d-pred)/wd)**2. ) )
 #%% Plot out a section of the model
 
 yslice = midx
+m_out[m_out==-100] = np.nan
 
 plt.figure()
 ax = plt.subplot(221)
-mesh.plotSlice(m_out, ax = ax, normal = 'Z', ind=-5, clim = (-1e-3, mrec.max()))
+mesh.plotSlice(m_out, ax = ax, normal = 'Z', ind=-5, clim = (mrec.min(), mrec.max()))
 plt.plot(np.array([mesh.vectorCCx[0],mesh.vectorCCx[-1]]), np.array([mesh.vectorCCy[yslice],mesh.vectorCCy[yslice]]),c='w',linestyle = '--')
 plt.title('Z: ' + str(mesh.vectorCCz[-5]) + ' m')
 plt.xlabel('x');plt.ylabel('z')
 plt.gca().set_aspect('equal', adjustable='box')
 
 ax = plt.subplot(222)
-mesh.plotSlice(m_out, ax = ax, normal = 'Z', ind=-8, clim = (-1e-3, mrec.max()))
+mesh.plotSlice(m_out, ax = ax, normal = 'Z', ind=-8, clim = (mrec.min(), mrec.max()))
 plt.plot(np.array([mesh.vectorCCx[0],mesh.vectorCCx[-1]]), np.array([mesh.vectorCCy[yslice],mesh.vectorCCy[yslice]]),c='w',linestyle = '--')
 plt.title('Z: ' + str(mesh.vectorCCz[-8]) + ' m')
 plt.xlabel('x');plt.ylabel('z')
@@ -180,7 +181,7 @@ plt.gca().set_aspect('equal', adjustable='box')
 
 
 ax = plt.subplot(212)
-mesh.plotSlice(m_out, ax = ax, normal = 'Y', ind=yslice, clim = (-1e-3, mrec.max()))
+mesh.plotSlice(m_out, ax = ax, normal = 'Y', ind=yslice, clim = (mrec.min(), mrec.max()))
 plt.title('Cross Section')
 plt.xlabel('x');plt.ylabel('z')
 plt.gca().set_aspect('equal', adjustable='box')
@@ -205,18 +206,19 @@ PC     = Utils.sdiag(diagA**-1.)
 
 dmis = DataMisfit.l2_DataMisfit(survey)
 dmis.Wd = wd
-opt = Optimization.ProjectedGNCG(maxIter=10 ,lower=0.,upper=1., maxIterCG= 10, tolCG = 1e-4)
+opt = Optimization.ProjectedGNCG(maxIter=20 ,lower=0.,upper=1., maxIterCG= 10, tolCG = 1e-4)
 opt.approxHinv = PC
 #opt.phim_last = reg.eval(mrec)
 
 # opt = Optimization.InexactGaussNewton(maxIter=6)
 invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta = invProb.beta)
 beta = Directives.BetaSchedule(coolingFactor=1, coolingRate=1)
+update_beta = Directives.Scale_Beta(tol = 0.05)
 #betaest = Directives.BetaEstimate_ByEig()
 target = Directives.TargetMisfit()
 IRLS =Directives.Update_IRLS( phi_m_last = phim, phi_d_last = phid )
 
-inv = Inversion.BaseInversion(invProb, directiveList=[beta,IRLS])
+inv = Inversion.BaseInversion(invProb, directiveList=[beta,IRLS,update_beta])
 
 m0 = mrec
 
@@ -236,23 +238,26 @@ print "Final misfit:" + str(np.sum( ((d-pred)/wd)**2. ) )
 #%% Plot out a section of the model
 
 yslice = midx
+
+m_out[m_out==-100] = np.nan
+
 plt.figure()
 ax = plt.subplot(221)
-mesh.plotSlice(m_out, ax = ax, normal = 'Z', ind=-5, clim = (-1e-3, mrec.max()))
+mesh.plotSlice(m_out, ax = ax, normal = 'Z', ind=-5, clim = (mrec.min(), mrec.max()))
 plt.plot(np.array([mesh.vectorCCx[0],mesh.vectorCCx[-1]]), np.array([mesh.vectorCCy[yslice],mesh.vectorCCy[yslice]]),c='w',linestyle = '--')
 plt.title('Z: ' + str(mesh.vectorCCz[-5]) + ' m')
 plt.xlabel('x');plt.ylabel('z')
 plt.gca().set_aspect('equal', adjustable='box')
 
 ax = plt.subplot(222)
-mesh.plotSlice(m_out, ax = ax, normal = 'Z', ind=-8, clim = (-1e-3, mrec.max()))
+mesh.plotSlice(m_out, ax = ax, normal = 'Z', ind=-8, clim = (mrec.min(), mrec.max()))
 plt.plot(np.array([mesh.vectorCCx[0],mesh.vectorCCx[-1]]), np.array([mesh.vectorCCy[yslice],mesh.vectorCCy[yslice]]),c='w',linestyle = '--')
 plt.title('Z: ' + str(mesh.vectorCCz[-8]) + ' m')
 plt.xlabel('x');plt.ylabel('z')
 plt.gca().set_aspect('equal', adjustable='box')
 
 ax = plt.subplot(212)
-mesh.plotSlice(m_out, ax = ax, normal = 'Y', ind=yslice, clim = (-1e-3, mrec.max()))
+mesh.plotSlice(m_out, ax = ax, normal = 'Y', ind=yslice, clim = (mrec.min(), mrec.max()))
 plt.title('Cross Section')
 plt.xlabel('x');plt.ylabel('z')
 plt.gca().set_aspect('equal', adjustable='box')
