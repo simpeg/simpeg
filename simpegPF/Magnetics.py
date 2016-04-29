@@ -798,7 +798,7 @@ def Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,actv,flag):
 #
 #    return F
 
-def get_T_mat(Xn,Yn,Zn,rxLoc):
+def get_T_mat(Xn, Yn, Zn, rxLoc):
     """
     Load in the active nodes of a tensor mesh and computes the magnetic tensor
     for a given observation location rxLoc[obsx, obsy, obsz]
@@ -918,7 +918,7 @@ def get_T_mat(Xn,Yn,Zn,rxLoc):
 
     return Tx,Ty,Tz
 
-def progress(iter,prog,final):
+def progress(iter, prog, final):
     """
     progress(iter,prog,final)
 
@@ -939,7 +939,7 @@ def progress(iter,prog,final):
 
     return prog
 
-def dipazm_2_xyz(dip,azm_N):
+def dipazm_2_xyz(dip, azm_N):
     """
     dipazm_2_xyz(dip,azm_N)
 
@@ -973,7 +973,7 @@ def dipazm_2_xyz(dip,azm_N):
 
     return M
 
-def get_dist_wgt(mesh,rxLoc,actv,R,R0):
+def get_dist_wgt(mesh, rxLoc, actv, R, R0):
     """
     get_dist_wgt(xn,yn,zn,rxLoc,R,R0)
 
@@ -1065,7 +1065,7 @@ def get_dist_wgt(mesh,rxLoc,actv,R,R0):
 
     return wr
 
-def writeUBCobs(filename,survey,d):
+def writeUBCobs(filename, survey, d):
     """
     writeUBCobs(filename,B,M,rxLoc,d,wd)
 
@@ -1101,7 +1101,7 @@ def writeUBCobs(filename,survey,d):
 
     print "Observation file saved to: " + filename
 
-def getActiveTopo(mesh,topo,flag):
+def getActiveTopo(mesh, topo, flag):
     """
     getActiveTopo(mesh,topo)
 
@@ -1153,7 +1153,7 @@ def getActiveTopo(mesh,topo,flag):
 
     return inds
 
-def plot_obs_2D(rxLoc,d = None ,varstr = 'Mag Obs', vmin = None, vmax = None, levels = None):
+def plot_obs_2D(rxLoc,d=None ,varstr='Mag Obs', vmin=None, vmax=None, levels=None):
     """ Function plot_obs(rxLoc,d)
     Generate a 2d interpolated plot from scatter points of data
 
@@ -1196,13 +1196,13 @@ def plot_obs_2D(rxLoc,d = None ,varstr = 'Mag Obs', vmin = None, vmax = None, le
 
         # Interpolate
         d_grid = griddata(rxLoc[:,0:2],d,(X,Y), method ='linear')
-        plt.imshow(d_grid, extent=[x.min(), x.max(), y.min(), y.max()],origin = 'lower', vmin = vmin, vmax = vmax)
+        plt.imshow(d_grid, extent=[x.min(), x.max(), y.min(), y.max()], origin='lower', vmin=vmin, vmax=vmax)
         plt.colorbar(fraction=0.02)
 
         if levels is None:
-            plt.contour(X,Y, d_grid,10,vmin = vmin, vmax = vmax)
+            plt.contour(X,Y, d_grid, 10, vmin=vmin, vmax=vmax)
         else:
-            plt.contour(X,Y, d_grid,levels = levels,colors = 'r', vmin = vmin, vmax = vmax)
+            plt.contour(X,Y, d_grid, levels=levels, colors='r', vmin=vmin, vmax=vmax)
 
     plt.title(varstr)
     plt.gca().set_aspect('equal', adjustable='box')
