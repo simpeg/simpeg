@@ -13,13 +13,11 @@ def spheremodel(mesh, x0, y0, z0, r):
     ind = np.sqrt( (mesh.gridCC[:,0]-x0)**2+(mesh.gridCC[:,1]-y0)**2+(mesh.gridCC[:,2]-z0)**2 ) < r
     return ind
 
-
-
 def MagSphereAnaFun(x, y, z, R, x0, y0, z0, mu1, mu2, H0, flag='total'):
     """
         test
         Analytic function for Magnetics problem. The set up here is
-        magnetic sphere in whole-space assuming that the inducing field is oriented in the x-direction. 
+        magnetic sphere in whole-space assuming that the inducing field is oriented in the x-direction.
 
         * (x0,y0,z0)
         * (x0, y0, z0 ): is the center location of sphere
@@ -215,19 +213,19 @@ def MagSphereFreeSpace(x, y, z, R, xc, yc, zc, chi, Bo):
     z = Utils.mkvc(z)
 
     nobs = len(x)
-    
+
     Bot = np.sqrt(sum(Bo**2))
-    
+
     mx = np.ones([nobs]) * Bo[0,0] *  R**3 / 3. * chi
     my = np.ones([nobs]) * Bo[0,1] *  R**3 / 3. * chi
     mz = np.ones([nobs]) * Bo[0,2] *  R**3 / 3. * chi
 
     M = np.c_[mx, my, mz]
-    
+
     rx = (x - xc)
     ry = (y - yc)
     rz = (zc - z)
-    
+
     rvec = np.c_[rx, ry, rz]
     r = np.sqrt((rx)**2+(ry)**2+(rz)**2 )
 
@@ -238,7 +236,7 @@ def MagSphereFreeSpace(x, y, z, R, xc, yc, zc, chi, Bo):
     Bz = B[:,2]
 
     return Bx, By, Bz
-    
+
 if __name__ == '__main__':
 
     hxind = [(0,25,1.3),(21, 12.5),(0,25,1.3)]

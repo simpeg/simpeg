@@ -1163,6 +1163,8 @@ def getActiveTopo(mesh,topo,flag):
     """
     import scipy.interpolate as interpolation
 
+    print "Please remove this function! use SimPEG.Utils.surface2ind_topo(mesh, topo, gridLoc='CC')"
+
     if (flag=='N'):
         Zn      = np.zeros((mesh.nNx,mesh.nNy))
         # wght    = np.zeros((mesh.nNx,mesh.nNy))
@@ -1248,61 +1250,7 @@ def plot_obs_2D(rxLoc,d = None ,varstr = 'Mag Obs', vmin = None, vmax = None, le
     plt.title(varstr)
     plt.gca().set_aspect('equal', adjustable='box')
 
-def readUBCmagObs(obs_file):
 
-    """
-    Read and write UBC mag file format
-
-    INPUT:
-    :param fileName, path to the UBC obs mag file
-
-    OUTPUT:
-    :param survey
-    :param M, magnetization orentiaton (MI, MD)
-
-    """
-
-    fid = open(obs_file,'r')
-
-    # First line has the inclination,declination and amplitude of B0
-    line = fid.readline()
-    B = np.array(line.split(),dtype=float)
-
-    # Second line has the magnetization orientation and a flag
-    line = fid.readline()
-    M = np.array(line.split(),dtype=float)
-
-    # Third line has the number of rows
-    line = fid.readline()
-    ndat = np.array(line.split(),dtype=int)
-
-    # Pre-allocate space for obsx, obsy, obsz, data, uncert
-    line = fid.readline()
-    temp = np.array(line.split(),dtype=float)
-
-    d  = np.zeros(ndat, dtype=float)
-    wd = np.zeros(ndat, dtype=float)
-    locXYZ = np.zeros( (ndat,3), dtype=float)
-
-    for ii in range(ndat):
-
-        temp = np.array(line.split(),dtype=float)
-        locXYZ[ii,:] = temp[:3]
-
-        if len(temp) > 3:
-            d[ii] = temp[3]
-
-            if len(temp)==5:
-                wd[ii] = temp[4]
-
-        line = fid.readline()
-
-    rxLoc = MAG.RxObs(locXYZ)
-    srcField = MAG.SrcField([rxLoc],(B[2],B[0],B[1]))
-    survey = MAG.LinearSurvey(srcField)
-    survey.dobs =  d
-    survey.std =  wd
-    return survey
 
 def read_MAGfwr_inp(input_file):
 
@@ -1358,121 +1306,3 @@ def read_MAGfwr_inp(input_file):
 
     return mshfile, obsfile, modfile, magfile, topofile
 
-def read_MAGinv_inp(input_file):
-    """Read input files for forward modeling MAG data with integral form
-    INPUT:
-    input_file: File name containing the forward parameter
-
-    OUTPUT:
-    mshfile
-    obsfile
-    topofile
-    start model
-    ref model
-    mag model
-    weightfile
-    chi_target
-    as, ax ,ay, az
-    upper, lower bounds
-    lp, lqx, lqy, lqz
-
-    # All files should be in the working directory, otherwise the path must
-    # be specified.
-
-    Created on Dec 21th, 2015
-
-    @author: dominiquef
-    """
-
-
-    fid = open(input_file,'r')
-
-    # Line 1
-    line = fid.readline()
-    l_input  = line.split('!')
-    mshfile = l_input[0].rstrip()
-
-    # Line 2
-    line = fid.readline()
-    l_input  = line.split('!')
-    obsfile = l_input[0].rstrip()
-
-    # Line 3
-    line = fid.readline()
-    l_input = re.split('[!\s]',line)
-    if l_input=='null':
-        topofile = []
-
-    else:
-        topofile = l_input[0].rstrip()
-
-
-    # Line 4
-    line = fid.readline()
-    l_input = re.split('[!\s]',line)
-    if l_input[0]=='VALUE':
-        mstart = float(l_input[1])
-
-    else:
-        mstart = l_input[0].rstrip()
-
-    # Line 5
-    line = fid.readline()
-    l_input = re.split('[!\s]',line)
-    if l_input[0]=='VALUE':
-        mref = float(l_input[1])
-
-    else:
-        mref = l_input[0].rstrip()
-
-
-    # Line 6
-    line = fid.readline()
-    l_input = re.split('[!\s]',line)
-    if l_input=='DEFAULT':
-        magfile = []
-
-    else:
-        magfile = l_input[0].rstrip()
-
-    # Line 7
-    line = fid.readline()
-    l_input = re.split('[!\s]',line)
-    if l_input=='DEFAULT':
-        wgtfile = []
-
-    else:
-        wgtfile = l_input[0].rstrip()
-
-    # Line 8
-    line = fid.readline()
-    l_input = re.split('[!\s]',line)
-    chi = float(l_input[0])
-
-    # Line 9
-    line = fid.readline()
-    l_input = re.split('[!\s]',line)
-    val = np.array(l_input[0:4])
-    alphas = val.astype(np.float)
-
-    # Line 10
-    line = fid.readline()
-    l_input = re.split('[!\s]',line)
-    if l_input[0]=='VALUE':
-        val   = np.array(l_input[1:3])
-        bounds = val.astype(np.float)
-
-    else:
-        bounds = l_input[0].rstrip()
-
-    # Line 11
-    line = fid.readline()
-    l_input = re.split('[!\s]',line)
-    if l_input[0]=='VALUE':
-        val   = np.array(l_input[1:6])
-        lpnorms = val.astype(np.float)
-
-    else:
-        lpnorms = l_input[0].rstrip()
-
-    return mshfile, obsfile, topofile, mstart, mref, magfile, wgtfile, chi, alphas, bounds, lpnorms
