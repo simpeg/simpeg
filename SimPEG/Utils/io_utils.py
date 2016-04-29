@@ -18,6 +18,11 @@ def read_GOCAD_ts(tsfile):
 
     Author: @fourndo
 
+
+    .. note::
+
+        Remove all attributes from the GoCAD surface before exporting it!
+
     """
 
 
