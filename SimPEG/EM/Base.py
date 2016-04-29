@@ -134,7 +134,6 @@ class BaseEMProblem(Problem.BaseProblem):
         """
         return self.mesh.getEdgeInnerProductDeriv(self.curModel.sigma)(u) * self.curModel.sigmaDeriv
 
-
     @property
     def MeSigmaI(self):
         """
@@ -156,7 +155,6 @@ class BaseEMProblem(Problem.BaseProblem):
         dsig_dm = self.curModel.sigmaDeriv
         return dMeSigmaI_dI * ( dMe_dsig * ( dsig_dm))
         # return self.mesh.getEdgeInnerProductDeriv(self.curModel.sigma, invMat=True)(u)
-
 
     @property
     def MfRho(self):

@@ -105,3 +105,42 @@ class Fields_ky_CC(Fields_ky):
 
     def _e(self, phiSolution, srcList):
         raise NotImplementedError
+
+class Fields_ky_N(Fields_ky):
+    knownFields = {'phiSolution':'N'}
+    aliasFields = {
+                    'phi': ['phiSolution','N','_phi'],
+                    'j' : ['phiSolution','E','_j'],
+                    'e' : ['phiSolution','E','_e'],
+                  }
+                  # primary - secondary
+                  # CC variables
+
+    def __init__(self, mesh, survey, **kwargs):
+        Fields_ky.__init__(self, mesh, survey, **kwargs)
+
+    def startup(self):
+        self.prob = self.survey.prob
+
+    def _GLoc(self, fieldType):
+        if fieldType == 'phi':
+            return 'N'
+        elif fieldType == 'e' or fieldType == 'j':
+            return 'E'
+        else:
+            raise Exception('Field type must be phi, e, j')
+
+    def _phi(self, phiSolution, src, kyInd):
+        return phiSolution
+
+    def _phiDeriv_u(self, kyInd, src, v, adjoint = False):
+        return Identity()*v
+
+    def _phiDeriv_m(self, kyInd, src, v, adjoint = False):
+        return Zero()
+
+    def _j(self, phiSolution, srcList):
+        raise NotImplementedError
+
+    def _e(self, phiSolution, srcList):
+        raise NotImplementedError

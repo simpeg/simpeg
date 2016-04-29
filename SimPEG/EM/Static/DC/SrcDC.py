@@ -47,8 +47,7 @@ class Pole(BaseSrc):
             q = np.zeros(prob.mesh.nC)
             q[inds] = self.current * np.r_[1.]
         elif prob._formulation == 'EB':
-            inds = closestPoints(prob.mesh, self.loc)
-            q = np.zeros(prob.mesh.nN)
-            q[inds] = self.current * np.r_[1.]
+            q = prob.mesh.getInterpolationMat(self.loc, locType='N').todense()
+            q = self.current * mkvc(q)
         return q
 

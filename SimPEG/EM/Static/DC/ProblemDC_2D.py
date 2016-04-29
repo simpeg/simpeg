@@ -1,7 +1,7 @@
 from SimPEG import Problem, Utils
 from SimPEG.EM.Base import BaseEMProblem
 from SurveyDC import Survey, Survey_ky
-from FieldsDC_2D import Fields_ky, Fields_ky_CC
+from FieldsDC_2D import Fields_ky, Fields_ky_CC, Fields_ky_N
 from SimPEG.Utils import sdiag
 import numpy as np
 from SimPEG.Utils import Zero
@@ -90,14 +90,10 @@ class BaseDCProblem_2D(BaseEMProblem):
         dky = np.r_[dky[0], dky]
         y = 0.
 
-
         for src in self.survey.srcList:
-
             for rx in src.rxList:
-
                 Jtv_temp1 = np.zeros(m.size)
                 Jtv_temp0 = np.zeros(m.size)
-
                 for iky in range(self.nky):
                     u_src = f[src, self._solutionType, iky]
                     ky = self.kys[iky]
@@ -152,7 +148,7 @@ class Problem2D_CC(BaseDCProblem_2D):
 
     _solutionType = 'phiSolution'
     _formulation  = 'HJ' # CC potentials means J is on faces
-    fieldsPair    = Fields_ky_CC
+    fieldsPair    = Fields_ky_N
 
     def __init__(self, mesh, **kwargs):
         BaseDCProblem_2D.__init__(self, mesh, **kwargs)
@@ -269,3 +265,85 @@ class Problem2D_CC(BaseDCProblem_2D):
         P_BC, B = self.mesh.getBCProjWF_simple()
         M = B*self.mesh.aveCC2F
         self.Grad = self.Div.T - P_BC*Utils.sdiag(y_BC)*M
+
+class Problem2D_N(BaseDCProblem_2D):
+
+    _solutionType = 'phiSolution'
+    _formulation  = 'EB' # CC potentials means J is on faces
+    fieldsPair    = Fields_ky_N
+
+    def __init__(self, mesh, **kwargs):
+        BaseDCProblem_2D.__init__(self, mesh, **kwargs)
+        # self.setBC()
+
+    @property
+    def MnSigma(self):
+        """
+            Node inner product matrix for \\(\\sigma\\). Used in the E-B formulation
+        """
+        # TODO: only works isotropic sigma
+        sigma = self.curModel.sigma
+        vol = self.mesh.vol
+        MnSigma = Utils.sdiag(self.mesh.aveN2CC.T*(Utils.sdiag(vol)*sigma))
+
+        return MnSigma
+
+    def MnSigmaDeriv(self, u):
+        """
+            Derivative of MnSigma with respect to the model
+        """
+        sigma = self.curModel.sigma
+        sigmaderiv = self.curModel.sigmaDeriv
+        vol = self.mesh.vol
+        return Utils.sdiag(u)*self.mesh.aveN2CC.T*Utils.sdiag(vol) * self.curModel.sigmaDeriv
+
+    def getA(self, ky):
+        """
+
+        Make the A matrix for the cell centered DC resistivity problem
+
+        A = D MfRhoI D^\\top V
+
+        """
+
+        # TODO: this won't work for full anisotropy
+        MeSigma = self.MeSigma
+        MnSigma = self.MnSigma
+        Grad = self.mesh.nodalGrad
+        # Get conductivity sigma
+        sigma = self.curModel.sigma
+        A = Grad.T * MeSigma * Grad + ky**2*MnSigma
+
+        # Handling Null space of A
+        A[0,0] = A[0,0] + 1.
+        return A
+
+    def getADeriv(self, ky, u, v, adjoint= False):
+
+        MeSigma = self.MeSigma
+        Grad = self.mesh.nodalGrad
+        sigma = self.curModel.sigma
+        vol = self.mesh.vol
+
+        if adjoint:
+            return Grad.T*(self.MeSigmaDeriv(Grad*u)*v) + ky**2*self.MnSigmaDeriv(u)*v
+        return self.MeSigmaDeriv(Grad*u).T * (Grad*v) + ky**2*self.MnSigmaDeriv(u)*v
+
+    def getRHS(self, ky):
+        """
+        RHS for the DC problem
+
+        q
+        """
+
+        RHS = self.getSourceTerm(ky)
+        return RHS
+
+    def getRHSDeriv(self, ky, src, v, adjoint=False):
+        """
+        Derivative of the right hand side with respect to the model
+        """
+        # TODO: add qDeriv for RHS depending on m
+        # qDeriv = src.evalDeriv(self, ky, adjoint=adjoint)
+        # return qDeriv
+        return Zero()
