@@ -113,7 +113,7 @@ def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
     else:
         extractImpDistRectGridFilt.ExtractBoundaryCellsOff()
 
-    if internal=True is True:
+    if internal is True:
         extractImpDistRectGridFilt.ExtractInsideOn()
 
     else:
