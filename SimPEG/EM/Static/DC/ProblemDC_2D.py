@@ -70,38 +70,57 @@ class BaseDCProblem_2D(BaseEMProblem):
                         Jv[src, rx] += Jv1_temp*dky[iky]    /2.*np.cos(ky*y)
                         Jv[src, rx] += Jv0[src, rx]*dky[iky]/2.*np.cos(ky*y)
                     Jv0[src, rx] = Jv1_temp.copy()
-                    JV[iky,isrc,:] = Jv1_temp.copy()
         return Utils.mkvc(Jv)
 
-    # def Jtvec(self, m, v, f=None):
-    #     if f is None:
-    #         f = self.fields(m)
+    def Jtvec(self, m, v, f=None):
+        if f is None:
+            f = self.fields(m)
 
-    #     self.curModel = m
+        self.curModel = m
 
-    #     # Ensure v is a data object.
-    #     if not isinstance(v, self.dataPair):
-    #         v = self.dataPair(self.survey, v)
+        # Ensure v is a data object.
+        if not isinstance(v, self.dataPair):
+            v = self.dataPair(self.survey, v)
 
-    #     Jtv = np.zeros(m.size)
-    #     AT = self.getA()
+        Jtv = np.zeros(m.size)
+
+        # Assume y=0.
+        # This needs some thoughts to implement in general when src is dipole
+        dky = np.diff(self.kys)
+        dky = np.r_[dky[0], dky]
+        y = 0.
 
 
-    #     for src in self.survey.srcList:
-    #         u_src = f[src, self._solutionType]
-    #         for rx in src.rxList:
-    #             PTv = rx.evalDeriv(src, self.mesh, f, v[src, rx], adjoint=True) # wrt f, need possibility wrt m
-    #             df_duTFun = getattr(f, '_%sDeriv'%rx.projField, None)
-    #             df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
+        for src in self.survey.srcList:
 
-    #             ATinvdf_duT = self.Ainv * df_duT
+            for rx in src.rxList:
 
-    #             dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
-    #             dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
-    #             du_dmT = -dA_dmT + dRHS_dmT
-    #             Jtv += df_dmT + du_dmT
+                Jtv_temp1 = np.zeros(m.size)
+                Jtv_temp0 = np.zeros(m.size)
 
-    #     return Utils.mkvc(Jtv)
+                for iky in range(self.nky):
+                    u_src = f[src, self._solutionType, iky]
+                    ky = self.kys[iky]
+                    AT = self.getA(ky)
+                    PTv = rx.evalDeriv(ky, src, self.mesh, f, v[src, rx], adjoint=True) # wrt f, need possibility wrt m
+                    df_duTFun = getattr(f, '_%sDeriv'%rx.projField, None)
+                    df_duT, df_dmT = df_duTFun(iky, src, None, PTv, adjoint=True)
+
+                    ATinvdf_duT = self.Ainv[iky] * df_duT
+
+                    dA_dmT = self.getADeriv(ky, u_src, ATinvdf_duT, adjoint=True)
+                    dRHS_dmT = self.getRHSDeriv(ky, src, ATinvdf_duT, adjoint=True)
+                    du_dmT = -dA_dmT + dRHS_dmT
+                    Jtv_temp1 = 1./np.pi*(df_dmT + du_dmT)
+                    # Trapezoidal intergration
+                    if iky==0:
+                        #First assigment
+                        Jtv += Jtv_temp1*dky[iky]*np.cos(ky*y)
+                    else:
+                        Jtv += Jtv_temp1*dky[iky]/2.*np.cos(ky*y)
+                        Jtv += Jtv_temp0*dky[iky]/2.*np.cos(ky*y)
+                    Jtv_temp0 = Jtv_temp1.copy()
+        return Utils.mkvc(Jtv)
 
     def getSourceTerm(self, ky):
         """
@@ -167,7 +186,6 @@ class Problem2D_CC(BaseDCProblem_2D):
         rho = self.curModel.rho
         if adjoint:
             return(MfRhoIDeriv( G * u ).T) * ( D.T * v) + ky**2*Utils.sdiag(u.flatten()*vol*(-1./rho**2))*v
-
         return D * ((MfRhoIDeriv( G * u )) * v) + ky**2*Utils.sdiag(u.flatten()*vol*(-1./rho**2))*v
 
     def getRHS(self, ky):

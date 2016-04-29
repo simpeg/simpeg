@@ -24,14 +24,14 @@ class DCProblem_2DTestsCC(unittest.TestCase):
         problem = DC.Problem2D_CC(mesh, mapping=[('rho', Maps.IdentityMap(mesh))])
         problem.pair(survey)
 
-        mSynth = np.ones(mesh.nC)
+        mSynth = np.ones(mesh.nC)*1.
         survey.makeSyntheticData(mSynth)
 
         # Now set up the problem to do some minimization
         dmis = DataMisfit.l2_DataMisfit(survey)
         reg = Regularization.Tikhonov(mesh)
         opt = Optimization.InexactGaussNewton(maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6)
-        invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=1e4)
+        invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=1e0)
         inv = Inversion.BaseInversion(invProb)
 
         self.inv    = inv
@@ -47,21 +47,21 @@ class DCProblem_2DTestsCC(unittest.TestCase):
         passed = Tests.checkDerivative(derChk, self.m0, plotIt=False, num=3)
         self.assertTrue(passed)
 
-    # def test_adjoint(self):
-    #     # Adjoint Test
-    #     u = np.random.rand(self.mesh.nC*self.survey.nSrc)
-    #     v = np.random.rand(self.mesh.nC)
-    #     w = np.random.rand(self.survey.dobs.shape[0])
-    #     wtJv = w.dot(self.p.Jvec(self.m0, v))
-    #     vtJtw = v.dot(self.p.Jtvec(self.m0, w))
-    #     passed = np.abs(wtJv - vtJtw) < 1e-10
-    #     print 'Adjoint Test', np.abs(wtJv - vtJtw), passed
-    #     self.assertTrue(passed)
+    def test_adjoint(self):
+        # Adjoint Test
+        u = np.random.rand(self.mesh.nC*self.survey.nSrc)
+        v = np.random.rand(self.mesh.nC)
+        w = np.random.rand(self.survey.dobs.shape[0])
+        wtJv = w.dot(self.p.Jvec(self.m0, v))
+        vtJtw = v.dot(self.p.Jtvec(self.m0, w))
+        passed = np.abs(wtJv - vtJtw) < 1e-10
+        print 'Adjoint Test', np.abs(wtJv - vtJtw), passed
+        self.assertTrue(passed)
 
-    # def test_dataObj(self):
-    #     derChk = lambda m: [self.dmis.eval(m), self.dmis.evalDeriv(m)]
-    #     passed = Tests.checkDerivative(derChk, self.m0, plotIt=False, num=3)
-    #     self.assertTrue(passed)
+    def test_dataObj(self):
+        derChk = lambda m: [self.dmis.eval(m), self.dmis.evalDeriv(m)]
+        passed = Tests.checkDerivative(derChk, self.m0, plotIt=False, num=3)
+        self.assertTrue(passed)
 
 # class DCProblemTestsN(unittest.TestCase):
 
