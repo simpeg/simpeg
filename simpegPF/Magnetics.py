@@ -563,49 +563,6 @@ def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
     return inv, reg
 
 
-
-if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-    hxind = ((5,25,1.3),(41, 12.5),(5,25,1.3))
-    hyind = ((5,25,1.3),(41, 12.5),(5,25,1.3))
-    hzind = ((5,25,1.3),(40, 12.5),(5,25,1.3))
-    hx, hy, hz = Utils.meshTensors(hxind, hyind, hzind)
-    mesh = Mesh.TensorMesh([hx, hy, hz], [-hx.sum()/2,-hy.sum()/2,-hz.sum()/2])
-
-    chibkg = 0.
-    chiblk = 0.01
-    chi = np.ones(mesh.nC)*chibkg
-    sph_ind = spheremodel(mesh, 0., 0., 0., 100)
-    chi[sph_ind] = chiblk
-    model = BaseMag.BaseMagModel(mesh)
-    # mu = (1.+chi)*mu_0
-
-    data = BaseMag.BaseMagData()
-    Inc = 90.
-    Dec = 0.
-    Btot = 51000
-
-    data.setBackgroundField(Inc, Dec, Btot)
-
-    xr = np.linspace(-300, 300, 41)
-    yr = np.linspace(-300, 300, 41)
-    X, Y = np.meshgrid(xr, yr)
-    Z = np.ones((xr.size, yr.size))*150
-    rxLoc = np.c_[Utils.mkvc(X), Utils.mkvc(Y), Utils.mkvc(Z)]
-    data.rxLoc = rxLoc
-
-    prob = MagneticsDiffSecondary(mesh, model)
-    prob.pair(data)
-
-    dpred = data.dpred(chi)
-
-    # fig = plt.figure( figsize = (8,5) )
-    # ax = plt.subplot(111)
-    # dat = plt.imshow(np.reshape(dpred, (xr.size, yr.size), order='F'), extent=[min(xr), max(xr), min(yr), max(yr)])
-    # plt.colorbar(dat, ax = ax)
-    # plt.show()
-
-
 def Intgrl_Fwr_Data(mesh,B,M,rxLoc,model,actv,flag):
     """
     Forward model magnetic data using integral equation
@@ -1306,3 +1263,46 @@ def read_MAGfwr_inp(input_file):
 
     return mshfile, obsfile, modfile, magfile, topofile
 
+
+
+
+if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+    hxind = ((5,25,1.3),(41, 12.5),(5,25,1.3))
+    hyind = ((5,25,1.3),(41, 12.5),(5,25,1.3))
+    hzind = ((5,25,1.3),(40, 12.5),(5,25,1.3))
+    hx, hy, hz = Utils.meshTensors(hxind, hyind, hzind)
+    mesh = Mesh.TensorMesh([hx, hy, hz], [-hx.sum()/2,-hy.sum()/2,-hz.sum()/2])
+
+    chibkg = 0.
+    chiblk = 0.01
+    chi = np.ones(mesh.nC)*chibkg
+    sph_ind = spheremodel(mesh, 0., 0., 0., 100)
+    chi[sph_ind] = chiblk
+    model = BaseMag.BaseMagModel(mesh)
+    # mu = (1.+chi)*mu_0
+
+    data = BaseMag.BaseMagData()
+    Inc = 90.
+    Dec = 0.
+    Btot = 51000
+
+    data.setBackgroundField(Inc, Dec, Btot)
+
+    xr = np.linspace(-300, 300, 41)
+    yr = np.linspace(-300, 300, 41)
+    X, Y = np.meshgrid(xr, yr)
+    Z = np.ones((xr.size, yr.size))*150
+    rxLoc = np.c_[Utils.mkvc(X), Utils.mkvc(Y), Utils.mkvc(Z)]
+    data.rxLoc = rxLoc
+
+    prob = MagneticsDiffSecondary(mesh, model)
+    prob.pair(data)
+
+    dpred = data.dpred(chi)
+
+    # fig = plt.figure( figsize = (8,5) )
+    # ax = plt.subplot(111)
+    # dat = plt.imshow(np.reshape(dpred, (xr.size, yr.size), order='F'), extent=[min(xr), max(xr), min(yr), max(yr)])
+    # plt.colorbar(dat, ax = ax)
+    # plt.show()
