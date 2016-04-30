@@ -1,27 +1,12 @@
-#%%
 from SimPEG import *
 import simpegPF as PF
 import pylab as plt
 
 import os
 
-home_dir = '.'
-
-inpfile = 'PYMAG3D_inv.inp'
-
-dsep = os.path.sep
-
-os.chdir(home_dir)
-plt.close('all')
-#%%
-# Read input file
-[mshfile, obsfile, topofile, mstart, mref, magfile, wgtfile, chi, alphas, bounds, lpnorms] = PF.Magnetics.read_MAGinv_inp(home_dir + dsep + inpfile)
-
-# Load mesh file
-mesh = Mesh.TensorMesh.readUBC(mshfile)
-
-# Load in observation file
-survey = PF.Magnetics.readUBCmagObs(obsfile)
+driver = PF.MagneticsDriver.MagneticsDriver_Inv('PYMAG3D_inv.inp')
+mesh = driver.mesh
+survey = driver.survey
 
 rxLoc = survey.srcField.rxList[0].locs
 d = survey.dobs
@@ -31,65 +16,34 @@ ndata = survey.srcField.rxList[0].locs.shape[0]
 
 eps_p = 1e-4
 eps_q = 1e-4
-# Load in topofile or create flat surface
-if topofile == 'null':
-    
-    # All active
-    actv = np.asarray(range(mesh.nC))
-    
-else: 
-    
-    topo = np.genfromtxt(topofile,skip_header=1)
-    # Find the active cells
-    actv = PF.Magnetics.getActiveTopo(mesh,topo,'N')
 
+actv = driver.activeCells
 nC = len(actv)
 
 # Create active map to go from reduce set to full
 actvMap = Maps.InjectActiveCells(mesh, actv, -100)
 
 # Create reduced identity map
-idenMap = Maps.IdentityMap(nP = nC)
+idenMap = Maps.IdentityMap(nP=nC)
 
-# Load starting model file
-if isinstance(mstart, float):
-    
-    mstart = np.ones(nC) * mstart
-else:
-    mstart = Utils.meshutils.readUBCTensorModel(mstart,mesh)
-    mstart = mstart[actv]
-
-# Load reference file
-if isinstance(mref, float):
-    mref = np.ones(nC) * mref
-else:
-    mref = Utils.meshutils.readUBCTensorModel(mref,mesh)
-    mref = mref[actv]
-    
 # Get magnetization vector for MOF
-if magfile=='DEFAULT':
-    
-    M_xyz = PF.Magnetics.dipazm_2_xyz(np.ones(nC) * survey.srcField.param[1], np.ones(nC) * survey.srcField.param[2])
-    
-else:
-    M_xyz = np.genfromtxt(magfile,delimiter=' \n',dtype=np.str,comments='!')
+M_xyz = driver.magnetizationModel
 
 # Get index of the center
 midx = int(mesh.nCx/2)
 midy = int(mesh.nCy/2)
 
 #%% Plot obs data
-PF.Magnetics.plot_obs_2D(rxLoc,d,'Observed Data')
+PF.Magnetics.plot_obs_2D(rxLoc,d, 'Observed Data')
 
 #%% Run inversion
-prob = PF.Magnetics.MagneticIntegral(mesh, mapping = idenMap, actInd = actv)
+prob = PF.Magnetics.Problem3D_Integral(mesh, mapping=idenMap, actInd=actv)
 prob.solverOpts['accuracyTol'] = 1e-4
-
 survey.pair(prob)
 
 # Write out the predicted
-pred = prob.fields(mstart)
-PF.Magnetics.writeUBCobs(home_dir + dsep + 'Pred.dat',survey,pred)
+pred = prob.fields(driver.m0)
+PF.Magnetics.writeUBCobs('Pred.dat', survey, pred)
 
 wr = np.sum(prob.G**2.,axis=0)**0.5 / mesh.vol[actv]
 wr = ( wr/np.max(wr) )
@@ -97,22 +51,21 @@ wr_out = actvMap * wr
 
 plt.figure()
 ax = plt.subplot()
-mesh.plotSlice(wr_out, ax = ax, normal = 'Y', ind=midx ,clim = (-1e-3, wr.max()))
+mesh.plotSlice(wr_out, ax=ax, normal='Y', ind=midx ,clim=(-1e-3, wr.max()))
 plt.title('Distance weighting')
 plt.xlabel('x');plt.ylabel('z')
 plt.gca().set_aspect('equal', adjustable='box')
 
-reg = Regularization.Simple(mesh, indActive = actv, mapping = idenMap)
-reg.mref = mref
+reg = Regularization.Simple(mesh, indActive=actv, mapping=idenMap)
+reg.mref = driver.mref
 reg.wght = wr
 
 dmis = DataMisfit.l2_DataMisfit(survey)
 dmis.Wd = 1/wd
-opt = Optimization.ProjectedGNCG(maxIter=10,lower=0.,upper=1., maxIterCG= 20, tolCG = 1e-3)
+opt = Optimization.ProjectedGNCG(maxIter=10,lower=0.,upper=1., maxIterCG= 20, tolCG=1e-3)
 
 invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
 
-# Add directives to the inversion
 beta = Directives.BetaSchedule(coolingFactor=2, coolingRate=1)
 beta_init = Directives.BetaEstimate_ByEig()
 target = Directives.TargetMisfit()
@@ -120,10 +73,8 @@ update_Jacobi = Directives.Update_lin_PreCond(onlyOnStart=True)
 
 inv = Inversion.BaseInversion(invProb, directiveList=[beta,target,beta_init,update_Jacobi])
 
-m0 = mstart
-
 # Run inversion
-mrec = inv.run(m0)
+mrec = inv.run(driver.m0)
 
 m_out = actvMap*mrec
 
@@ -135,7 +86,7 @@ pred = prob.fields(mrec)
 #PF.Magnetics.plot_obs_2D(rxLoc,pred,wd,'Predicted Data')
 #PF.Magnetics.plot_obs_2D(rxLoc,(d-pred),wd,'Residual Data')
 
-print "Final misfit:" + str(np.sum( ((d-pred)/wd)**2. ) ) 
+print "Final misfit:" + str(np.sum( ((d-pred)/wd)**2. ) )
 
 #%% Plot out a section of the model
 
@@ -171,11 +122,11 @@ phid =  invProb.phi_d
 # Set parameters for sparsity
 reg = Regularization.Sparse(mesh, indActive = actv, mapping = idenMap)
 reg.recModel = mrec
-reg.mref = mref
+reg.mref = driver.mref
 reg.wght = wr
 reg.eps_p = eps_p
 reg.eps_q = eps_q
-reg.norms   = lpnorms
+reg.norms   = driver.lpnorms
 
 
 dmis = DataMisfit.l2_DataMisfit(survey)
@@ -210,7 +161,7 @@ pred = prob.fields(mrec)
 #%% Plot obs data
 PF.Magnetics.plot_obs_2D(rxLoc,pred,'Predicted Data')
 PF.Magnetics.plot_obs_2D(rxLoc,d,'Observed Data')
-print "Final misfit:" + str(np.sum( ((d-pred)/wd)**2. ) ) 
+print "Final misfit:" + str(np.sum( ((d-pred)/wd)**2. ) )
 #%% Plot out a section of the model
 
 yslice = midx
@@ -237,3 +188,6 @@ mesh.plotSlice(m_out, ax = ax, normal = 'Y', ind=yslice, clim = (mrec.min(), mre
 plt.title('Cross Section')
 plt.xlabel('x');plt.ylabel('z')
 plt.gca().set_aspect('equal', adjustable='box')
+
+
+plt.show()

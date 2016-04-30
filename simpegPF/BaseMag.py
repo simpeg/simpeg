@@ -117,7 +117,7 @@ class LinearSurvey(Survey.BaseSurvey):
 
     def eval(self, u):
         return u
-    
+
     @property
     def nD(self):
         return self.prob.G.shape[0]
@@ -137,9 +137,8 @@ class SrcField(Survey.BaseSrc):
 
     param = None #: Inducing field param (Amp, Incl, Decl)
 
-    def __init__(self, rxList, param = None, **kwargs):
-        self.param = param
-        super(SrcField, self).__init__(rxList, **kwargs)   
+    def __init__(self, rxList, **kwargs):
+        super(SrcField, self).__init__(rxList, **kwargs)
 
 class RxObs(Survey.BaseRx):
     """A station location must have be located in 3-D"""
@@ -185,10 +184,10 @@ class WeightMap(Maps.IdentityMap):
         self.mesh = None
         self.weight = weight
 
-    def _transform(self, m): 
+    def _transform(self, m):
         return m*self.weight
 
     def deriv(self, m):
-        return Utils.sdiag(self.weight)    
+        return Utils.sdiag(self.weight)
 
 
