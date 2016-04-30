@@ -3,16 +3,14 @@ from SimPEG import *
 import simpegPF as PF
 import pylab as plt
 import os
-home_dir = 'C:\\Users\\dominiquef.MIRAGEOSCIENCE\\ownCloud\\Research\\CraigModel\\GRAV\\checkerboard_tests'
+home_dir = '.'
+
 inpfile = 'PYGRAV3D_inv.inp'
-dsep = '\\'
-os.chdir(home_dir)
+
+dsep = os.path.sep
 plt.close('all')
 
 #%% User input
-# Initial beta
-beta_in = 1e-2
-
 # Treshold values for compact norm
 eps_p = 1e-3 # Small model values
 eps_q = 1e-3 # Small model gradient
@@ -122,22 +120,20 @@ reg.mref = mref
 reg.wght = wr
 
 
-# Create pre-conditioner 
-diagA = np.sum(prob.G**2.,axis=0) + beta_in*(reg.W.T*reg.W).diagonal()
-PC     = Utils.sdiag(diagA**-1.)
-
 # Data misfit function
 dmis = DataMisfit.l2_DataMisfit(survey)
 dmis.Wd = 1./wd
 opt = Optimization.ProjectedGNCG(maxIter=20,lower=bounds[0],upper=bounds[1], maxIterCG= 50, tolCG = 1e-4)
-opt.approxHinv = PC
 
+invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
 
-invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta = beta_in)
+# Add directives to the inversion 
 beta = Directives.BetaSchedule(coolingFactor=2, coolingRate=1)
+beta_init = Directives.BetaEstimate_ByEig()
 target = Directives.TargetMisfit()
+update_Jacobi = Directives.Update_lin_PreCond(onlyOnStart=True)
 
-inv = Inversion.BaseInversion(invProb, directiveList=[beta,target])
+inv = Inversion.BaseInversion(invProb, directiveList=[beta,target,beta_init,update_Jacobi])
 
 m0 = mstart
 
@@ -148,7 +144,6 @@ m_out = actvMap*mrec
 
 # Write result
 Mesh.TensorMesh.writeModelUBC(mesh,'SimPEG_inv_l2l2.sus',m_out)
-#Utils.meshutils.writeUBCTensorModel(home_dir+dsep+'wr.dat',mesh,wr_out)
 
 # Plot predicted
 pred = prob.fields(mrec)
@@ -204,25 +199,23 @@ reg.eps_p = eps_p
 reg.eps_q = eps_q
 reg.norms   = lpnorms
 
-diagA = np.sum(prob.G**2.,axis=0) + beta_in*(reg.W.T*reg.W).diagonal()
-PC     = Utils.sdiag(diagA**-1.)
-
-#reg.alpha_s = 1.
-
 dmis = DataMisfit.l2_DataMisfit(survey)
 dmis.Wd = 1./wd
-opt = Optimization.ProjectedGNCG(maxIter=20 , maxIterLS = 20,lower=bounds[0],upper=bounds[1], maxIterCG= 50, tolCG = 1e-4)
-opt.approxHinv = PC
-#opt.phim_last = reg.eval(mrec)
 
-# opt = Optimization.InexactGaussNewton(maxIter=6)
+opt = Optimization.ProjectedGNCG(maxIter=20 , maxIterLS = 20,lower=bounds[0],upper=bounds[1], maxIterCG= 50, tolCG = 1e-4)
+
 invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta = invProb.beta)
+
+# Add directives to the inversion
 beta = Directives.BetaSchedule(coolingFactor=1, coolingRate=1)
-#betaest = Directives.BetaEstimate_ByEig()
+update_beta = Directives.Scale_Beta(tol = 0.05)
 target = Directives.TargetMisfit()
 IRLS =Directives.Update_IRLS( phi_m_last = phim, phi_d_last = phid )
+update_Jacobi = Directives.Update_lin_PreCond(onlyOnStart=False)
+save_log = Directives.SaveOutputEveryIteration()
+save_log.fileName = 'LogName_blabla'
 
-inv = Inversion.BaseInversion(invProb, directiveList=[beta,IRLS])
+inv = Inversion.BaseInversion(invProb, directiveList=[beta,IRLS,update_beta,update_Jacobi,save_log])
 
 m0 = mrec
 
@@ -242,24 +235,26 @@ print "Final misfit:" + str(np.sum( ((d-pred)/wd)**2. ) )
 #%% Plot out a section of the model
 
 yslice = midx
+
 m_out[m_out==-100] = np.nan
+
 plt.figure()
 ax = plt.subplot(221)
-mesh.plotSlice(m_out, ax = ax, normal = 'Z', ind=-18, clim = (vmin,vmax) , pcolorOpts = {'cmap':'bwr'})
+mesh.plotSlice(m_out, ax = ax, normal = 'Z', ind=-5, clim = (mrec.min(), mrec.max()), pcolorOpts = {'cmap':'bwr'})
 plt.plot(np.array([mesh.vectorCCx[0],mesh.vectorCCx[-1]]), np.array([mesh.vectorCCy[yslice],mesh.vectorCCy[yslice]]),c='w',linestyle = '--')
-plt.title('Z: ' + str(mesh.vectorCCz[-18]) + ' m')
+plt.title('Z: ' + str(mesh.vectorCCz[-5]) + ' m')
 plt.xlabel('x');plt.ylabel('z')
 plt.gca().set_aspect('equal', adjustable='box')
 
 ax = plt.subplot(222)
-mesh.plotSlice(m_out, ax = ax, normal = 'Z', ind=-23, clim = (vmin,vmax), pcolorOpts = {'cmap':'bwr'})
+mesh.plotSlice(m_out, ax = ax, normal = 'Z', ind=-8, clim = (mrec.min(), mrec.max()), pcolorOpts = {'cmap':'bwr'})
 plt.plot(np.array([mesh.vectorCCx[0],mesh.vectorCCx[-1]]), np.array([mesh.vectorCCy[yslice],mesh.vectorCCy[yslice]]),c='w',linestyle = '--')
-plt.title('Z: ' + str(mesh.vectorCCz[-23]) + ' m')
+plt.title('Z: ' + str(mesh.vectorCCz[-8]) + ' m')
 plt.xlabel('x');plt.ylabel('z')
 plt.gca().set_aspect('equal', adjustable='box')
 
 ax = plt.subplot(212)
-mesh.plotSlice(m_out, ax = ax, normal = 'Y', ind=yslice, clim = (vmin,vmax), pcolorOpts = {'cmap':'bwr'})
+mesh.plotSlice(m_out, ax = ax, normal = 'Y', ind=yslice, clim = (mrec.min(), mrec.max()), pcolorOpts = {'cmap':'bwr'})
 plt.title('Cross Section')
 plt.xlabel('x');plt.ylabel('z')
 plt.gca().set_aspect('equal', adjustable='box')
