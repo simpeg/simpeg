@@ -148,7 +148,7 @@ class Problem2D_CC(BaseDCProblem_2D):
 
     _solutionType = 'phiSolution'
     _formulation  = 'HJ' # CC potentials means J is on faces
-    fieldsPair    = Fields_ky_N
+    fieldsPair    = Fields_ky_CC
 
     def __init__(self, mesh, **kwargs):
         BaseDCProblem_2D.__init__(self, mesh, **kwargs)
@@ -326,8 +326,8 @@ class Problem2D_N(BaseDCProblem_2D):
         vol = self.mesh.vol
 
         if adjoint:
-            return Grad.T*(self.MeSigmaDeriv(Grad*u)*v) + ky**2*self.MnSigmaDeriv(u)*v
-        return self.MeSigmaDeriv(Grad*u).T * (Grad*v) + ky**2*self.MnSigmaDeriv(u)*v
+            return self.MeSigmaDeriv(Grad*u).T * (Grad*v) + ky**2*self.MnSigmaDeriv(u).T*v
+        return Grad.T*(self.MeSigmaDeriv(Grad*u)*v) + ky**2*self.MnSigmaDeriv(u)*v
 
     def getRHS(self, ky):
         """
