@@ -1,6 +1,7 @@
 import SimPEG
 from SimPEG.Utils import Identity, Zero
 import numpy as np
+from scipy.constants import epsilon_0
 
 class Fields(SimPEG.Problem.Fields):
     knownFields = {}
@@ -38,13 +39,15 @@ class Fields_CC(Fields):
                     'phi': ['phiSolution','CC','_phi'],
                     'j' : ['phiSolution','F','_j'],
                     'e' : ['phiSolution','F','_e'],
+                    'charge' : ['phiSolution','CC','_charge'],
                   }
                   # primary - secondary
                   # CC variables
 
     def __init__(self, mesh, survey, **kwargs):
         Fields.__init__(self, mesh, survey, **kwargs)
-
+        mesh.setCellGradBC("neumann")
+        cellGrad = mesh.cellGrad
     def startup(self):
         self.prob = self.survey.prob
 
@@ -66,10 +69,26 @@ class Fields_CC(Fields):
         return Zero()
 
     def _j(self, phiSolution, srcList):
-        raise NotImplementedError
+        """
+            .. math::
+                \mathbf{j} = \mathbf{M}^{f \ -1}_{\rho} \mathbf{G} \phi
+        """
+        return self.prob.MfRhoI*self.prob.Grad*phiSolution
 
     def _e(self, phiSolution, srcList):
-        raise NotImplementedError
+        """
+            In HJ formulation e is not well-defined!!
+            .. math::
+                \vec{e} = -\nabla \phi
+        """
+        return -self.mesh.cellGrad*phiSolution
+
+    def _charge(self, phiSolution, srcList):
+        """
+            .. math::
+                \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
+        """
+        return epsilon_0*self.prob.Vol*(self.mesh.faceDiv*self._e(phiSolution, srcList))
 
 class Fields_N(Fields):
     knownFields = {'phiSolution':'N'}
@@ -77,6 +96,7 @@ class Fields_N(Fields):
                     'phi': ['phiSolution','N','_phi'],
                     'j' : ['phiSolution','E','_j'],
                     'e' : ['phiSolution','E','_e'],
+                    'charge' : ['phiSolution','N','_charge'],
                   }
                   # primary - secondary
                   # N variables
@@ -105,7 +125,24 @@ class Fields_N(Fields):
         return Zero()
 
     def _j(self, phiSolution, srcList):
-        raise NotImplementedError
+        """
+            In EB formulation j is not well-defined!!
+            .. math::
+                \mathbf{j} = - \mathbf{M}^{e}_{\sigma} \mathbf{G} \phi
+        """
+        return self.prob.MeSigma * self._e(phiSolution, srcList)
 
     def _e(self, phiSolution, srcList):
-        raise NotImplementedError
+        """
+            In HJ formulation e is not well-defined!!
+            .. math::
+                \vec{e} = -\nabla \phi
+        """
+        return -self.mesh.nodalGrad * phiSolution
+
+    def _charge(self, phiSolution, srcList):
+        """
+            .. math::
+                \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
+        """
+        return - epsilon_0*(mesh.nodalGrad.T*self._e(phiSolution, srcList))
