@@ -6,23 +6,26 @@ class DCProblemAnalyticTests(unittest.TestCase):
 
     def setUp(self):
 
-        cs = 12.5
-        hx = [(cs,7, -1.3),(cs,61),(cs,7, 1.3)]
-        hy = [(cs,7, -1.3),(cs,20)]
-        mesh = Mesh.TensorMesh([hx, hy],x0="CN")
-        sighalf = 1e-2
-        sigma = np.ones(mesh.nC)*sighalf
-        x = np.linspace(-135, 250., 20)
-        M = Utils.ndgrid(x-12.5, np.r_[0.])
-        N = Utils.ndgrid(x+12.5, np.r_[0.])
-        A0loc = np.r_[-150, 0.]
-        A1loc = np.r_[-130, 0.]
-        rxloc = [np.c_[M, np.zeros(20)], np.c_[N, np.zeros(20)]]
-        data_anal = EM.Analytics.DCAnalyticHalf(np.r_[A0loc, 0.], rxloc, sighalf, flag="halfspace")
+        cs = 25.
+        hx = [(cs,7, -1.3),(cs,21),(cs,7, 1.3)]
+        hy = [(cs,7, -1.3),(cs,21),(cs,7, 1.3)]
+        hz = [(cs,7, -1.3),(cs,20)]
+        mesh = Mesh.TensorMesh([hx, hy, hz],x0="CCN")
+        sigma = np.ones(mesh.nC)*1e-2
 
-        rx = DC.Rx.Dipole_ky(M, N)
-        src0 = DC.Src.Pole([rx], A0loc)
-        survey = DC.Survey_ky([src0])
+        x = mesh.vectorCCx[(mesh.vectorCCx>-155.)&(mesh.vectorCCx<155.)]
+        y = mesh.vectorCCx[(mesh.vectorCCy>-155.)&(mesh.vectorCCy<155.)]
+        Aloc = np.r_[-200., 0., 0.]
+        Bloc = np.r_[200., 0., 0.]
+        M = Utils.ndgrid(x-25.,y, np.r_[0.])
+        N = Utils.ndgrid(x+25.,y, np.r_[0.])
+        phiA = EM.Analytics.DCAnalyticHalf(Aloc, [M,N], 1e-2, flag="halfspace")
+        phiB = EM.Analytics.DCAnalyticHalf(Bloc, [M,N], 1e-2, flag="halfspace")
+        data_anal = phiA-phiB
+
+        rx = DC.Rx.Dipole(M, N)
+        src = DC.Src.Dipole([rx], Aloc, Bloc)
+        survey = DC.Survey([src])
 
         self.survey = survey
         self.mesh = mesh
@@ -36,13 +39,12 @@ class DCProblemAnalyticTests(unittest.TestCase):
             self.Solver = SolverLU
 
     def test_Problem3D_N(self):
-
-        problem = DC.Problem2D_N(self.mesh)
+        problem = DC.Problem3D_N(self.mesh)
         problem.Solver = self.Solver
         problem.pair(self.survey)
         data = self.survey.dpred(self.sigma)
-        err= np.linalg.norm((data-self.data_anal)/self.data_anal)**2 / self.data_anal.size
-        if err < 0.05:
+        err= np.linalg.norm(data-self.data_anal)/np.linalg.norm(self.data_anal)
+        if err < 0.2:
             passed = True
             print ">> DC analytic test for Problem3D_N is passed"
         else:
@@ -51,12 +53,12 @@ class DCProblemAnalyticTests(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_Problem3D_CC(self):
-        problem = DC.Problem2D_CC(self.mesh)
+        problem = DC.Problem3D_CC(self.mesh)
         problem.Solver = self.Solver
         problem.pair(self.survey)
         data = self.survey.dpred(self.sigma)
-        err= np.linalg.norm((data-self.data_anal)/self.data_anal)**2 / self.data_anal.size
-        if err < 0.05:
+        err= np.linalg.norm(data-self.data_anal)/np.linalg.norm(self.data_anal)
+        if err < 0.2:
             passed = True
             print ">> DC analytic test for Problem3D_CC is passed"
         else:
