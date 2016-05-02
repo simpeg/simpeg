@@ -15,22 +15,22 @@ class BaseSrc(Survey.BaseSrc):
     def eval(self, prob):
         """
         Evaluate the source terms.
-        - :math:`S_m` : magnetic source term
-        - :math:`S_e` : electric source term
+        - :math:`s_m` : magnetic source term
+        - :math:`s_e` : electric source term
 
         :param Problem prob: FDEM Problem
         :rtype: (numpy.ndarray, numpy.ndarray)
         :return: tuple with magnetic source term and electric source term
         """
-        S_m = self.S_m(prob)
-        S_e = self.S_e(prob)
-        return S_m, S_e
+        s_m = self.s_m(prob)
+        s_e = self.s_e(prob)
+        return s_m, s_e
 
     def evalDeriv(self, prob, v=None, adjoint=False):
         """
         Derivatives of the source terms with respect to the inversion model
-        - :code:`S_mDeriv` : derivative of the magnetic source term
-        - :code:`S_eDeriv` : derivative of the electric source term
+        - :code:`s_mDeriv` : derivative of the magnetic source term
+        - :code:`s_eDeriv` : derivative of the electric source term
 
         :param Problem prob: FDEM Problem
         :param numpy.ndarray v: vector to take product with
@@ -39,9 +39,9 @@ class BaseSrc(Survey.BaseSrc):
         :return: tuple with magnetic source term and electric source term derivatives times a vector
         """
         if v is not None:
-            return self.S_mDeriv(prob, v, adjoint), self.S_eDeriv(prob, v, adjoint)
+            return self.s_mDeriv(prob, v, adjoint), self.s_eDeriv(prob, v, adjoint)
         else:
-            return lambda v: self.S_mDeriv(prob, v, adjoint), lambda v: self.S_eDeriv(prob, v, adjoint)
+            return lambda v: self.s_mDeriv(prob, v, adjoint), lambda v: self.s_eDeriv(prob, v, adjoint)
 
     def bPrimary(self, prob):
         """
@@ -83,7 +83,7 @@ class BaseSrc(Survey.BaseSrc):
         """
         return Zero()
 
-    def S_m(self, prob):
+    def s_m(self, prob):
         """
         Magnetic source term
 
@@ -93,7 +93,7 @@ class BaseSrc(Survey.BaseSrc):
         """
         return Zero()
 
-    def S_e(self, prob):
+    def s_e(self, prob):
         """
         Electric source term
 
@@ -103,7 +103,7 @@ class BaseSrc(Survey.BaseSrc):
         """
         return Zero()
 
-    def S_mDeriv(self, prob, v, adjoint = False):
+    def s_mDeriv(self, prob, v, adjoint = False):
         """
         Derivative of magnetic source term with respect to the inversion model
 
@@ -116,7 +116,7 @@ class BaseSrc(Survey.BaseSrc):
 
         return Zero()
 
-    def S_eDeriv(self, prob, v, adjoint = False):
+    def s_eDeriv(self, prob, v, adjoint = False):
         """
         Derivative of electric source term with respect to the inversion model
 
@@ -131,22 +131,22 @@ class BaseSrc(Survey.BaseSrc):
 
 class RawVec_e(BaseSrc):
     """
-    RawVec electric source. It is defined by the user provided vector S_e
+    RawVec electric source. It is defined by the user provided vector s_e
 
     :param list rxList: receiver list
     :param float freq: frequency
-    :param numpy.array S_e: electric source term
+    :param numpy.array s_e: electric source term
     :param bool integrate: Integrate the source term (multiply by Me) [True]
     """
 
-    def __init__(self, rxList, freq, S_e, integrate=True): #, ePrimary=None, bPrimary=None, hPrimary=None, jPrimary=None):
-        self._S_e = np.array(S_e, dtype=complex)
+    def __init__(self, rxList, freq, s_e, integrate=True): #, ePrimary=None, bPrimary=None, hPrimary=None, jPrimary=None):
+        self._s_e = np.array(s_e, dtype=complex)
         self.freq = float(freq)
         self.integrate = integrate
 
         BaseSrc.__init__(self, rxList)
 
-    def S_e(self, prob):
+    def s_e(self, prob):
         """
         Electric source term
 
@@ -155,28 +155,28 @@ class RawVec_e(BaseSrc):
         :return: electric source term on mesh
         """
         if prob._formulation is 'EB' and self.integrate is True:
-            return prob.Me * self._S_e
-        return self._S_e
+            return prob.Me * self._s_e
+        return self._s_e
 
 
 class RawVec_m(BaseSrc):
     """
-    RawVec magnetic source. It is defined by the user provided vector S_m
+    RawVec magnetic source. It is defined by the user provided vector s_m
 
     :param float freq: frequency
     :param rxList: receiver list
-    :param numpy.array S_m: magnetic source term
+    :param numpy.array s_m: magnetic source term
     :param bool integrate: Integrate the source term (multiply by Me) [True]
     """
 
-    def __init__(self, rxList, freq, S_m, integrate=True):  #ePrimary=Zero(), bPrimary=Zero(), hPrimary=Zero(), jPrimary=Zero()):
-        self._S_m = np.array(S_m, dtype=complex)
+    def __init__(self, rxList, freq, s_m, integrate=True):  #ePrimary=Zero(), bPrimary=Zero(), hPrimary=Zero(), jPrimary=Zero()):
+        self._s_m = np.array(s_m, dtype=complex)
         self.freq = float(freq)
         self.integrate = integrate
 
         BaseSrc.__init__(self, rxList)
 
-    def S_m(self, prob):
+    def s_m(self, prob):
         """
         Magnetic source term
 
@@ -185,28 +185,28 @@ class RawVec_m(BaseSrc):
         :return: magnetic source term on mesh
         """
         if prob._formulation is 'HJ' and self.integrate is True:
-            return prob.Me * self._S_m
-        return self._S_m
+            return prob.Me * self._s_m
+        return self._s_m
 
 
 class RawVec(BaseSrc):
     """
-    RawVec source. It is defined by the user provided vectors S_m, S_e
+    RawVec source. It is defined by the user provided vectors s_m, s_e
 
     :param rxList: receiver list
     :param float freq: frequency
-    :param numpy.array S_m: magnetic source term
-    :param numpy.array S_e: electric source term
+    :param numpy.array s_m: magnetic source term
+    :param numpy.array s_e: electric source term
     :param bool integrate: Integrate the source term (multiply by Me) [True]
     """
-    def __init__(self, rxList, freq, S_m, S_e, integrate=True):
-        self._S_m = np.array(S_m, dtype=complex)
-        self._S_e = np.array(S_e, dtype=complex)
+    def __init__(self, rxList, freq, s_m, s_e, integrate=True):
+        self._s_m = np.array(s_m, dtype=complex)
+        self._s_e = np.array(s_e, dtype=complex)
         self.freq = float(freq)
         self.integrate = integrate
         BaseSrc.__init__(self, rxList)
 
-    def S_m(self, prob):
+    def s_m(self, prob):
         """
         Magnetic source term
 
@@ -215,10 +215,10 @@ class RawVec(BaseSrc):
         :return: magnetic source term on mesh
         """
         if prob._formulation is 'HJ' and self.integrate is True:
-            return prob.Me * self._S_m
-        return self._S_m
+            return prob.Me * self._s_m
+        return self._s_m
 
-    def S_e(self, prob):
+    def s_e(self, prob):
         """
         Electric source term
 
@@ -227,8 +227,8 @@ class RawVec(BaseSrc):
         :return: electric source term on mesh
         """
         if prob._formulation is 'EB' and self.integrate is True:
-            return prob.Me * self._S_e
-        return self._S_e
+            return prob.Me * self._s_e
+        return self._s_e
 
 
 class MagDipole(BaseSrc):
@@ -335,9 +335,9 @@ class MagDipole(BaseSrc):
         :return: primary magnetic field
         """
         b = self.bPrimary(prob)
-        return 1./self.mu * b 
+        return 1./self.mu * b
 
-    def S_m(self, prob):
+    def s_m(self, prob):
         """
         The magnetic source term
 
@@ -348,10 +348,10 @@ class MagDipole(BaseSrc):
 
         b_p = self.bPrimary(prob)
         if prob._formulation is 'HJ':
-            b_p = prob.Me * b_p 
+            b_p = prob.Me * b_p
         return -1j*omega(self.freq)*b_p
 
-    def S_e(self, prob):
+    def s_e(self, prob):
         """
         The electric source term
 
@@ -453,7 +453,7 @@ class MagDipole_Bfield(BaseSrc):
         b = self.bPrimary(prob)
         return 1/self.mu * b
 
-    def S_m(self, prob):
+    def s_m(self, prob):
         """
         The magnetic source term
 
@@ -466,7 +466,7 @@ class MagDipole_Bfield(BaseSrc):
             b = prob.Me * b
         return -1j*omega(self.freq)*b
 
-    def S_e(self, prob):
+    def s_e(self, prob):
         """
         The electric source term
 
@@ -565,7 +565,7 @@ class CircularLoop(BaseSrc):
         b = self.bPrimary(prob)
         return 1./self.mu*b
 
-    def S_m(self, prob):
+    def s_m(self, prob):
         """
         The magnetic source term
 
@@ -578,7 +578,7 @@ class CircularLoop(BaseSrc):
             b =  prob.Me *  b
         return -1j*omega(self.freq)*b
 
-    def S_e(self, prob):
+    def s_e(self, prob):
         """
         The electric source term
 
@@ -604,6 +604,6 @@ class CircularLoop(BaseSrc):
 
             return -C.T * (MMui_s * self.bPrimary(prob))
 
-            
+
 
 
