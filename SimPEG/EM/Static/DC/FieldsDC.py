@@ -145,4 +145,4 @@ class Fields_N(Fields):
             .. math::
                 \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
         """
-        return - epsilon_0*(mesh.nodalGrad.T*self._e(phiSolution, srcList))
+        return - epsilon_0*(self.mesh.nodalGrad.T*self.mesh.getEdgeInnerProduct()*self._e(phiSolution, srcList))
