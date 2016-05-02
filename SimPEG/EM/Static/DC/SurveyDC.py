@@ -34,3 +34,5 @@ class Survey_ky(BaseEMSurvey):
             for rx in src.rxList:
                 data[src, rx] = rx.eval(kys, src, self.mesh, f)
         return data
+
+
