@@ -1,182 +1,144 @@
-from SimPEG import *
-from BaseDC import SurveyDC, FieldsDC_CC
+from SimPEG import Problem, Utils
+from SimPEG.EM.Base import BaseEMProblem
+from SurveyDC import Survey
+from FieldsDC import Fields, Fields_CC, Fields_N
+from SimPEG.Utils import sdiag
+import numpy as np
+from SimPEG.Utils import Zero
+from BoundaryUtils import getxBCyBC_CC
 
-class SurveyIP(SurveyDC):
+class IPPropMap(Maps.PropMap):
     """
-        **SurveyDC**
-
-        Geophysical DC resistivity data.
-
-    """
-
-    def __init__(self, srcList, **kwargs):
-        self.srcList = srcList
-        Survey.BaseSurvey.__init__(self, **kwargs)
-        self._Ps = {}
-
-    def dpred(self, m, f=None):
-        """
-            Predicted data.
-
-            .. math::
-                d_\\text{pred} = Pf(m)
-        """
-
-        return self.prob.forward(m)
-
-
-class ProblemIP(BaseDCProblem):
-    """
-        **ProblemIP**
-
-        Geophysical IP resistivity problem.
-
+        Property Map for IP Problems. The electrical chargeability,
+        (\\(\\eta\\)) is the default inversion property
     """
 
-    surveyPair = SurveyDC
-    Solver     = Solver
-    sigma = None
+    eta = Maps.Property("Electrical Chargeability", defaultInvProp = True)
+    sigma = Maps.Property("Electrical Conductivity", defaultInvProp = False, propertyLink=('rho',Maps.ReciprocalMap))
+    rho = Maps.Property("Electrical Resistivity", propertyLink=('sigma', Maps.ReciprocalMap))
+
+
+class BaseIPProblem(BaseEMProblem):
+
+    surveyPair = Survey
+    fieldsPair = Fields
+    PropMap = IPPropMap
     Ainv = None
-    u = None
-
-    def __init__(self, mesh, **kwargs):
-        Problem.BaseProblem.__init__(self, mesh)
-        self.mesh.setCellGradBC('neumann')
-        Utils.setKwargs(self, **kwargs)
-
-    # deleteTheseOnModelUpdate = ['_A', '_Msig', '_dMdsig']
-
-    @property
-    def Msig(self):
-        if getattr(self, '_Msig', None) is None:
-            # sigma = self.curModel.transform
-            sigma = self.sigma
-            Av = self.mesh.aveF2CC
-            self._Msig = Utils.sdiag(1/(self.mesh.dim * Av.T * (1/sigma)))
-        return self._Msig
-
-    @property
-    def dMdsig(self):
-        if getattr(self, '_dMdsig', None) is None:
-            # sigma = self.curModel.transform
-            sigma = self.sigma
-            Av = self.mesh.aveF2CC
-            dMdprop = self.mesh.dim * Utils.sdiag(self.Msig.diagonal()**2) * Av.T * Utils.sdiag(1./sigma**2)
-            self._dMdsig = lambda Gu: Utils.sdiag(Gu) * dMdprop
-        return self._dMdsig
-
-    @property
-    def A(self):
-        """
-            Makes the matrix A(m) for the DC resistivity problem.
-
-            :param numpy.array m: model
-            :rtype: scipy.csc_matrix
-            :return: A(m)
-
-            .. math::
-                c(m,u) = A(m)u - q = G\\text{sdiag}(M(mT(m)))Du - q = 0
-
-            Where M() is the mass matrix and mT is the model transform.
-        """
-        if getattr(self, '_A', None) is None:
-            D = self.mesh.faceDiv
-            G = self.mesh.cellGrad
-            self._A = D*self.Msig*G
-            # Remove the null space from the matrix.
-            self._A[-1,-1] /= self.mesh.vol[-1]
-            self._A = self._A.tocsc()
-        return self._A
-
-    def getRHS(self):
-        # if self.mesh not in self._rhsDict:
-        RHS = np.array([src.eval(self) for src in self.survey.srcList]).T
-        # self._rhsDict[mesh] = RHS
-        # return self._rhsDict[mesh]
-        return RHS
+    f = None
 
     def fields(self, m):
-        if self.u is None:
-	        A    = self.A
-	        if self.Ainv == None:
-	        	self.Ainv = self.Solver(A, **self.solverOpts)
-	        Q    = self.getRHS()
-	        self.u  = self.Ainv * Q
-        return self.u
-
-    def forward(self, m, u=None):
-        # Set current model; clear dependent property $\mathbf{A(m)}$
         self.curModel = m
-        # sigma = self.curModel.transform # $\sigma = \mathcal{M}(\m)$
-        sigma = self.sigma
-        if self.u is None:
-            # Run forward simulation if $u$ not provided
-            u = self.fields(sigma)
 
-        shp = (self.mesh.nC, self.survey.nSrc)
-        u = self.u.reshape(shp, order='F')
-
-        D = self.mesh.faceDiv
-        G = self.mesh.cellGrad
-        # Derivative of model transform, $\deriv{\sigma}{\m}$
-        # dsigdm_x_v = self.curModel.transformDeriv * v
-
-        dsigdm_x_v = Utils.sdiag(sigma) * self.curModel.transformDeriv *  m
-
-        # Take derivative of $C(m,u)$ w.r.t. $m$
-        dCdm_x_v = np.empty_like(u)
-        # loop over fields for each source
-        for i in range(self.survey.nSrc):
-            # Derivative of inner product, $\left(\mathbf{M}_{1/\sigma}^f\right)^{-1}$
-            dAdsig         = D * self.dMdsig( G * u[:,i] )
-            dCdm_x_v[:, i] = dAdsig *  dsigdm_x_v
-
-        # Take derivative of $C(m,u)$ w.r.t. $u$
-
-        if self.Ainv == None:
-        	self.Ainv = self.Solver(A, **self.solverOpts)
-
-        # dCdu = self.A
-        # Solve for $\deriv{u}{m}$
-        # dCdu_inv = self.Solver(dCdu, **self.solverOpts)
-        P        = self.survey.getP(self.mesh)
-        J_x_v    = - P * mkvc( self.Ainv * dCdm_x_v )
-        return -J_x_v
+        if self.f is None:
+            f = self.fieldsPair(self.mesh, self.survey)
+            if self.Ainv == None:
+                A = self.getA()
+                self.Ainv = self.Solver(A, **self.solverOpts)
+            RHS = self.getRHS()
+            u = self.Ainv * RHS
+            Srcs = self.survey.srcList
+            f[Srcs, self._solutionType] = u
+        return f
 
     def Jvec(self, m, v, f=None):
-        return self.forward(v)
 
-    def Jtvec(self, m, v, f=None):
+        if f is None:
+            f = self.fields(m)
 
         self.curModel = m
-        # sigma = self.curModel.transform # $\sigma = \mathcal{M}(\m)$
-        sigma = self.sigma
-        if self.u is None:
-            u = self.fields(sigma)
-        else:
-        	u = self.u
-        shp = (self.mesh.nC, self.survey.nSrc)
-        u = u.reshape(shp, order='F')
-        P = self.survey.getP(self.mesh)
-        PT_x_v = (P.T*v).reshape(shp, order='F')
 
-        D = self.mesh.faceDiv
-        G = self.mesh.cellGrad
-        A = self.A
-        mT_dm = Utils.sdiag(sigma)*self.mapping.deriv(m)
-        # mT_dm = self.mapping.deriv(m)
+        Jv = self.dataPair(self.survey) #same size as the data
 
-        # dCdu = A.T
-        # Ainv = self.Solver(dCdu, **self.solverOpts)
-        # if self.Ainv == None:
-    	self.Ainv = self.Solver(A.T, **self.solverOpts)
+        A = self.getA()
 
-        w = self.Ainv * PT_x_v
+        for src in self.survey.srcList:
+            u_src = f[src, self._solutionType] # solution vector
+            dA_dm_v = self.getADeriv(u_src, v)
+            dRHS_dm_v = self.getRHSDeriv(src, v)
+            du_dm_v = self.Ainv * ( - dA_dm_v + dRHS_dm_v )
 
-        Jtv = 0
-        for i, ui in enumerate(u.T):  # loop over each column
-            Jtv += self.dMdsig( G * ui ).T * ( D.T * w[:,i] )
+            for rx in src.rxList:
+                df_dmFun = getattr(f, '_%sDeriv'%rx.projField, None)
+                df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
+                Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
+        return Utils.mkvc(Jv)
 
-        Jtv = - mT_dm.T * ( Jtv )
-        return -Jtv
+    def Jtvec(self, m, v, f=None):
+        if f is None:
+            f = self.fields(m)
+
+        self.curModel = m
+
+        # Ensure v is a data object.
+        if not isinstance(v, self.dataPair):
+            v = self.dataPair(self.survey, v)
+
+        Jtv = np.zeros(m.size)
+        AT = self.getA()
+
+
+        for src in self.survey.srcList:
+            u_src = f[src, self._solutionType]
+            for rx in src.rxList:
+                PTv = rx.evalDeriv(src, self.mesh, f, v[src, rx], adjoint=True) # wrt f, need possibility wrt m
+                df_duTFun = getattr(f, '_%sDeriv'%rx.projField, None)
+                df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
+                ATinvdf_duT = self.Ainv * df_duT
+                dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
+                dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
+                du_dmT = -dA_dmT + dRHS_dmT
+                Jtv += df_dmT + du_dmT
+
+        return Utils.mkvc(Jtv)
+
+    def getSourceTerm(self):
+        """
+        takes concept of source and turns it into a matrix
+        """
+        """
+        Evaluates the sources, and puts them in matrix form
+
+        :rtype: (numpy.ndarray, numpy.ndarray)
+        :return: q (nC or nN, nSrc)
+        """
+
+        Srcs = self.survey.srcList
+
+        if self._formulation is 'EB':
+            n = self.mesh.nN
+            # return NotImplementedError
+
+        elif self._formulation is 'HJ':
+            n = self.mesh.nC
+
+        q = np.zeros((n, len(Srcs)))
+
+        for i, src in enumerate(Srcs):
+            q[:,i] = src.eval(self)
+        return q
+
+    @property
+    def deleteTheseOnModelUpdate(self):
+        toDelete = []
+        return toDelete
+
+    # assume log rho or log cond
+
+    def MfRhoIDeriv(self,u):
+        """
+            Derivative of :code:`MfRhoI` with respect to the model.
+        """
+
+        dMfRhoI_dI = -self.MfRhoI**2
+        dMf_drho = self.mesh.getFaceInnerProductDeriv(self.curModel.rho)(u)
+        drho_dlogrho = Utils.sdiag(self.curModel.rho)
+        return dMfRhoI_dI * ( dMf_drho * ( drho_dlogrho))
+
+    # TODO: This should take a vector
+    def MeSigmaDeriv(self, u):
+        """
+            Derivative of MeSigma with respect to the model
+        """
+        dsigma_dlogsigma = Utils.sdiag(self.curModel.sigma)
+        return self.mesh.getEdgeInnerProductDeriv(self.curModel.sigma)(u) * dsigma_dlogsigma
 
