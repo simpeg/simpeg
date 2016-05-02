@@ -13,8 +13,6 @@ class IPPropMap(Maps.PropMap):
         (\\(\\eta\\)) is the default inversion property
     """
     eta = Maps.Property("Electrical Chargeability", defaultInvProp = True)
-    # sigma = Maps.Property("Electrical Conductivity", defaultVal=mu_0, propertyLink=('rho',Maps.ReciprocalMap))
-    # rho = Maps.Property("Electrical Resistivity", propertyLink=('sigma', Maps.ReciprocalMap))
 
 class BaseIPProblem(BaseEMProblem):
 
@@ -92,9 +90,10 @@ class BaseIPProblem(BaseEMProblem):
                 dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
                 du_dmT = -dA_dmT + dRHS_dmT
                 Jtv += df_dmT + du_dmT
-
+        # Conductivity ((d u / d log sigma).T)
         if self._formulation is 'EB':
             return -Utils.mkvc(Jtv)
+        # Conductivity ((d u / d log rho).T)
         if self._formulation is 'HJ':
             return Utils.mkvc(Jtv)
 

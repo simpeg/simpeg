@@ -2,13 +2,13 @@ import unittest
 from SimPEG import Mesh, Utils, EM, Maps, np
 import SimPEG.EM.Static.DC as DC
 
-class DCProblemAnalyticTests(unittest.TestCase):
+class IPProblemAnalyticTests(unittest.TestCase):
 
     def setUp(self):
 
         cs = 12.5
-        hx = [(cs,7, -1.3),(cs,61),(cs,7, 1.3)]
-        hy = [(cs,7, -1.3),(cs,20)]
+        hx = [(cs,2, -1.3),(cs,61),(cs,2, 1.3)]
+        hy = [(cs,2, -1.3),(cs,20)]
         mesh = Mesh.TensorMesh([hx, hy],x0="CN")
         sighalf = 1e-2
         sigma = np.ones(mesh.nC)*sighalf
@@ -18,13 +18,21 @@ class DCProblemAnalyticTests(unittest.TestCase):
         A0loc = np.r_[-150, 0.]
         A1loc = np.r_[-130, 0.]
         rxloc = [np.c_[M, np.zeros(20)], np.c_[N, np.zeros(20)]]
-        data_anal = EM.Analytics.DCAnalyticHalf(np.r_[A0loc, 0.], rxloc, sighalf, flag="halfspace")
 
-        rx = DC.Rx.Dipole(M, N)
+        blkind = Utils.ModelBuilder.getIndicesSphere(xc, radius, mesh.gridCC)
+        sigmaInf = np.ones(mesh.nC)*1e-2
+        eta = np.zeros(mesh.nC)
+        eta[blkind] = 0.1
+        sigma0 = sigmaInf*(1.-eta)
+
+        rx = DC.Rx.Dipole_ky(M, N)
         src0 = DC.Src.Pole([rx], A0loc)
-        survey = DC.Survey([src0])
+        surveyDC = DC.Survey([src0])
+        surveyIP = DC.Survey_ky([src0])
 
-        self.survey = survey
+        self.surveyDC = surveyDC
+        self.surveyIP = surveyIP
+
         self.mesh = mesh
         self.sigma = sigma
         self.data_anal = data_anal
