@@ -22,7 +22,7 @@ class DCProblemAnalyticTests(unittest.TestCase):
 
         rx = DC.Rx.Dipole(M, N)
         src0 = DC.Src.Pole([rx], A0loc)
-        survey = DC.Survey([src0])
+        survey = DC.Survey_ky([src0])
 
         self.survey = survey
         self.mesh = mesh
