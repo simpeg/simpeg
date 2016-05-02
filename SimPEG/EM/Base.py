@@ -165,7 +165,8 @@ class BaseEMProblem(Problem.BaseProblem):
         """
             Derivative of :code:`MfRho` with respect to the model.
         """
-        return self.mesh.getFaceInnerProductDeriv(self.curModel.rho)(u) * (-Utils.sdiag(self.curModel.rho**2) * self.curModel.sigmaDeriv)
+        return self.mesh.getFaceInnerProductDeriv(self.curModel.rho)(u) * self.curModel.rhoDeriv
+        # (-Utils.sdiag(self.curModel.rho**2) * self.curModel.sigmaDeriv)
         # self.curModel.rhoDeriv
 
     @property

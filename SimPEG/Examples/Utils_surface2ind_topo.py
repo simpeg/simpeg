@@ -37,6 +37,5 @@ def run(plotIt=False, nx = 5, ny = 5):
         plt.show()
 
 
-
 if __name__ == '__main__':
     run(plotIt=True)

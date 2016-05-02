@@ -1,4 +1,4 @@
-from SimPEG import np
+from SimPEG import np, Utils
 import BaseDC as DC
 import BaseDC as IP
 
@@ -118,34 +118,27 @@ def readUBC_DC3Dobstopo(filename,mesh,topo,probType="CC"):
 
 def readUBC_DC2DModel(fileName):
     """
-        Read UBC GIF 2DTensor model and generate 2D Tensor model in simpeg
+    Read UBC GIF 2DTensor model and generate 2D Tensor model in simpeg
 
-        Input:
-        :param fileName, path to the UBC GIF 2D model file
-
-        Output:
-        :param SimPEG TensorMesh 2D object
-        :return
-
-        Created on Thu Nov 12 13:14:10 2015
-
-        @author: dominiquef
+    :param string fileName: path to the UBC GIF 2D model file
+    :rtype: TensorMesh
+    :return: SimPEG TensorMesh 2D object
 
     """
     from SimPEG import np, mkvc
 
     # Open fileand skip header... assume that we know the mesh already
-    obsfile = np.genfromtxt(fileName,delimiter=' \n',dtype=np.str,comments='!')
+    obsfile = np.genfromtxt(fileName, delimiter=' \n', dtype=np.str, comments='!')
 
-    dim = np.array(obsfile[0].split(),dtype=float)
+    dim = np.array(obsfile[0].split(), dtype=float)
 
-    temp = np.array(obsfile[1].split(),dtype=float)
+    temp = np.array(obsfile[1].split(), dtype=float)
 
     if len(temp) > 1:
         model = np.zeros(dim)
 
         for ii in range(len(obsfile)-1):
-            mm = np.array(obsfile[ii+1].split(),dtype=float)
+            mm = np.array(obsfile[ii+1].split(), dtype=float)
             model[:,ii] = mm
 
         model = model[:,::-1]
@@ -153,10 +146,10 @@ def readUBC_DC2DModel(fileName):
     else:
 
         if len(obsfile[1:])==1:
-            mm = np.array(obsfile[1:].split(),dtype=float)
+            mm = np.array(obsfile[1:].split(), dtype=float)
 
         else:
-            mm = np.array(obsfile[1:],dtype=float)
+            mm = np.array(obsfile[1:], dtype=float)
 
         # Permute the second dimension to flip the order
         model = mm.reshape(dim[1],dim[0])
@@ -171,17 +164,16 @@ def readUBC_DC2DModel(fileName):
 
 def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', unitType='volt', clim=None):
     """
-        Read list of 2D tx-rx location and plot a speudo-section of apparent
-        resistivity.
+    Read list of 2D tx-rx location and plot a speudo-section of apparent
+    resistivity.
 
-        Assumes flat topo for now...
+    Assumes flat topo for now...
 
-        Input:
-        :param DCsurvey, z0
-        :switch surveyType -> Either 'pole-dipole'  | 'dipole-dipole'
-        :switch unitType=-> Either 'appResistivity' | 'appConductivity'  | 'volt'
-        Output:
-        :figure scatter plot overlayed on image
+    :param SurveyDC DCsurvey:
+    :param string surveyType: Either 'pole-dipole'  | 'dipole-dipole'
+    :param string unitType: Either 'appResistivity' | 'appConductivity'  | 'volt'
+    :rtype: matplotlib.plt
+    :return: figure scatter plot overlayed on image
 
     """
     from SimPEG import np
@@ -294,27 +286,24 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', unitType='volt
 
     return ph
 
-def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
+def gen_DCIPsurvey(endl, mesh, surveyType, AM_sep, MN_sep, nrx):
     """
-        Load in endpoints and survey specifications to generate Tx, Rx location
-        stations.
+    Load in endpoints and survey specifications to generate Tx, Rx location
+    stations.
 
-        Assumes flat topo for now...
+    Assumes flat topo for now...
 
-        Input:
-        :param endl -> input endpoints [x1, y1, z1, x2, y2, z2]
-        :object mesh -> SimPEG mesh object
-        :switch surveyType -> 'dipole-dipole' | 'pole-dipole' | 'gradient'
-        : param a, n -> pole seperation, number of rx dipoles per tx
+    :param numpy.array endl: input endpoints [[x1, y1] , [x2, y2]]
+    :param Mesh mesh: SimPEG mesh object
+    :param string surveyType: 'dipole-dipole' | 'pole-dipole' | 'gradient'
+    :param float AM_sep: transmitter (A) - receiver (M) seperation
+    :param float b: receiver dipole seperation
+    :param float nrx: pole seperation, number of rx dipoles per tx
 
-        Output:
-        :param Tx, Rx -> List objects for each tx location
-            Lines: P1x, P1y, P1z, P2x, P2y, P2z
+    :rtype: DC.Survey, Src, Rx
+    :returns: DC survey, Source
 
-        Created on Wed December 9th, 2015
-
-        @author: dominiquef
-        !! Require clean up to deal with DCsurvey
+    !! Require clean up to deal with DCsurvey
     """
 
     from SimPEG import np
@@ -330,17 +319,17 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
     dl_x = ( endl[1,0] - endl[0,0] ) / dl_len
     dl_y = ( endl[1,1] - endl[0,1] ) / dl_len
 
-    nstn = np.floor( dl_len / a )
+    nstn = np.floor( dl_len / AM_sep )
 
     # Compute discrete pole location along line
-    stn_x = endl[0,0] + np.array(range(int(nstn)))*dl_x*a
-    stn_y = endl[0,1] + np.array(range(int(nstn)))*dl_y*a
+    stn_x = endl[0,0] + np.array(range(int(nstn)))*dl_x*AM_sep
+    stn_y = endl[0,1] + np.array(range(int(nstn)))*dl_y*AM_sep
 
     # Create line of P1 locations
     M = np.c_[stn_x, stn_y, np.ones(nstn).T*mesh.vectorNz[-1]]
 
     # Create line of P2 locations
-    N = np.c_[stn_x+a*dl_x, stn_y+a*dl_y, np.ones(nstn).T*mesh.vectorNz[-1]]
+    N = np.c_[stn_x+AM_sep*dl_x, stn_y+AM_sep*dl_y, np.ones(nstn).T*mesh.vectorNz[-1]]
 
     ## Build list of Tx-Rx locations depending on survey type
     # Dipole-dipole: Moving tx with [a] spacing -> [AB a MN1 a MN2 ... a MNn]
@@ -366,22 +355,22 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
             AB = xy_2_r(tx[0,1],endl[1,0],tx[1,1],endl[1,1])
 
             # Number of receivers to fit
-            nstn = np.min([np.floor( (AB - b) / a ) , n])
+            nstn = np.min([np.floor( (AB - MN_sep) / AM_sep ) , nrx])
 
             # Check if there is enough space, else break the loop
             if nstn <= 0:
                 continue
 
             # Compute discrete pole location along line
-            stn_x = N[ii,0] + dl_x*b + np.array(range(int(nstn)))*dl_x*a
-            stn_y = N[ii,1] + dl_y*b + np.array(range(int(nstn)))*dl_y*a
+            stn_x = N[ii,0] + dl_x*MN_sep + np.array(range(int(nstn)))*dl_x*AM_sep
+            stn_y = N[ii,1] + dl_y*MN_sep + np.array(range(int(nstn)))*dl_y*AM_sep
 
             # Create receiver poles
             # Create line of P1 locations
             P1 = np.c_[stn_x, stn_y, np.ones(nstn).T*mesh.vectorNz[-1]]
 
             # Create line of P2 locations
-            P2 = np.c_[stn_x+a*dl_x, stn_y+a*dl_y, np.ones(nstn).T*mesh.vectorNz[-1]]
+            P2 = np.c_[stn_x+AM_sep*dl_x, stn_y+AM_sep*dl_y, np.ones(nstn).T*mesh.vectorNz[-1]]
 
             Rx.append(np.c_[P1,P2])
             rxClass = DC.RxDipole(P1, P2)
@@ -400,23 +389,23 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
         Tx.append(np.c_[M[0,:],N[-1,:]])
 
         # Get the edge limit of survey area
-        min_x = endl[0,0] + dl_x * b
-        min_y = endl[0,1] + dl_y * b
+        min_x = endl[0,0] + dl_x * MN_sep
+        min_y = endl[0,1] + dl_y * MN_sep
 
-        max_x = endl[1,0] - dl_x * b
-        max_y = endl[1,1] - dl_y * b
+        max_x = endl[1,0] - dl_x * MN_sep
+        max_y = endl[1,1] - dl_y * MN_sep
 
         box_l = np.sqrt( (min_x - max_x)**2 + (min_y - max_y)**2 )
         box_w = box_l/2.
 
-        nstn = np.floor( box_l / a )
+        nstn = np.floor( box_l / AM_sep )
 
         # Compute discrete pole location along line
-        stn_x = min_x + np.array(range(int(nstn)))*dl_x*a
-        stn_y = min_y + np.array(range(int(nstn)))*dl_y*a
+        stn_x = min_x + np.array(range(int(nstn)))*dl_x*AM_sep
+        stn_y = min_y + np.array(range(int(nstn)))*dl_y*AM_sep
 
         # Define number of cross lines
-        nlin = int(np.floor( box_w / a ))
+        nlin = int(np.floor( box_w / AM_sep ))
         lind = range(-nlin,nlin+1)
 
         ngrad = nstn * len(lind)
@@ -425,12 +414,12 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
         for ii in range( len(lind) ):
 
             # Move line in perpendicular direction by dipole spacing
-            lxx = stn_x - lind[ii]*a*dl_y
-            lyy = stn_y + lind[ii]*a*dl_x
+            lxx = stn_x - lind[ii]*AM_sep*dl_y
+            lyy = stn_y + lind[ii]*AM_sep*dl_x
 
 
             M = np.c_[ lxx, lyy , np.ones(nstn).T*mesh.vectorNz[-1]]
-            N = np.c_[ lxx+a*dl_x, lyy+a*dl_y, np.ones(nstn).T*mesh.vectorNz[-1]]
+            N = np.c_[ lxx+AM_sep*dl_x, lyy+AM_sep*dl_y, np.ones(nstn).T*mesh.vectorNz[-1]]
 
             rx[(ii*nstn):((ii+1)*nstn),:] = np.c_[M,N]
 
