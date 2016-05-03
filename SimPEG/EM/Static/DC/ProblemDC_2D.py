@@ -50,6 +50,7 @@ class BaseDCProblem_2D(BaseEMProblem):
         dky = np.r_[dky[0], dky]
         y = 0.
 
+        #TODO: this loop is pretty slow .. (Parellize)
         for iky in range(self.nky):
             ky = self.kys[iky]
             A = self.getA(ky)
@@ -94,6 +95,7 @@ class BaseDCProblem_2D(BaseEMProblem):
             for rx in src.rxList:
                 Jtv_temp1 = np.zeros(m.size)
                 Jtv_temp0 = np.zeros(m.size)
+                #TODO: this loop is pretty slow .. (Parellize)
                 for iky in range(self.nky):
                     u_src = f[src, self._solutionType, iky]
                     ky = self.kys[iky]
