@@ -278,7 +278,7 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
     ticks = np.linspace(cmin,cmax,3)
     cbar.set_ticks(ticks)
     cbar.ax.tick_params(labelsize=10)
-    
+
     if dtype == 'appc':
         cbar.set_label("App.Cond",size=12)
     elif dtype == 'appr':
