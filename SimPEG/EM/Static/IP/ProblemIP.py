@@ -154,7 +154,7 @@ class BaseIPProblem(BaseEMProblem):
 
         dMfRhoI_dI = -self.MfRhoI**2
         dMf_drho = self.mesh.getFaceInnerProductDeriv(self.rho)(u)
-        drho_dlogrho = Utils.sdiag(self.rho)
+        drho_dlogrho = Utils.sdiag(self.rho)*self.curModel.etaDeriv
         return dMfRhoI_dI * ( dMf_drho * ( drho_dlogrho))
 
     # TODO: This should take a vector
@@ -162,7 +162,7 @@ class BaseIPProblem(BaseEMProblem):
         """
             Derivative of MeSigma with respect to the model
         """
-        dsigma_dlogsigma = Utils.sdiag(self.sigma)
+        dsigma_dlogsigma = Utils.sdiag(self.sigma)*self.curModel.etaDeriv
         return self.mesh.getEdgeInnerProductDeriv(self.sigma)(u) * dsigma_dlogsigma
 
 class Problem3D_CC(BaseIPProblem):
