@@ -83,7 +83,7 @@ class BaseDCProblem_2D(BaseEMProblem):
         if not isinstance(v, self.dataPair):
             v = self.dataPair(self.survey, v)
 
-        Jtv = np.zeros(m.size)
+        Jtv = np.zeros(m.size, dtype=float)
 
         # Assume y=0.
         # This needs some thoughts to implement in general when src is dipole
@@ -93,8 +93,8 @@ class BaseDCProblem_2D(BaseEMProblem):
 
         for src in self.survey.srcList:
             for rx in src.rxList:
-                Jtv_temp1 = np.zeros(m.size)
-                Jtv_temp0 = np.zeros(m.size)
+                Jtv_temp1 = np.zeros(m.size, dtype=float)
+                Jtv_temp0 = np.zeros(m.size, dtype=float)
                 #TODO: this loop is pretty slow .. (Parellize)
                 for iky in range(self.nky):
                     u_src = f[src, self._solutionType, iky]
@@ -109,7 +109,7 @@ class BaseDCProblem_2D(BaseEMProblem):
                     dA_dmT = self.getADeriv(ky, u_src, ATinvdf_duT, adjoint=True)
                     dRHS_dmT = self.getRHSDeriv(ky, src, ATinvdf_duT, adjoint=True)
                     du_dmT = -dA_dmT + dRHS_dmT
-                    Jtv_temp1 = 1./np.pi*(df_dmT + du_dmT)
+                    Jtv_temp1 = 1./np.pi*(df_dmT + du_dmT).astype(float)
                     # Trapezoidal intergration
                     if iky==0:
                         #First assigment
