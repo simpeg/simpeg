@@ -315,7 +315,7 @@ class Update_lin_PreCond(InversionDirective):
         if getattr(self.opt, 'approxHinv', None) is None:
             # Update the pre-conditioner
             diagA = np.sum(self.prob.G**2.,axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() #* (self.reg.mapping * np.ones(self.reg.curModel.size))**2.
-            PC     = Utils.sdiag(diagA**-1.)
+            PC     = Utils.sdiag((self.prob.mapping.deriv(None).T *diagA)**-1.)
             self.opt.approxHinv = PC
             
     def endIter(self):
@@ -326,7 +326,7 @@ class Update_lin_PreCond(InversionDirective):
         if getattr(self.opt, 'approxHinv', None) is not None:
             # Update the pre-conditioner
             diagA = np.sum(self.prob.G**2.,axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() #* (self.reg.mapping * np.ones(self.reg.curModel.size))**2.
-            PC     = Utils.sdiag(diagA**-1.)
+            PC     = Utils.sdiag((self.prob.mapping.deriv(None).T *diagA)**-1.)
             self.opt.approxHinv = PC
 
 
