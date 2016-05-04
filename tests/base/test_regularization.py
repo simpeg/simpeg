@@ -65,10 +65,8 @@ class RegularizationTests(unittest.TestCase):
                     elif mesh.dim == 3:
                         indActive = Utils.mkvc(mesh.gridCC[:,-1] <= 2*np.sin(2*np.pi*mesh.gridCC[:,0])+0.5 * 2*np.sin(2*np.pi*mesh.gridCC[:,1])+0.5)
 
-                    mapping = Maps.IdentityMap(nP=indActive.nonzero()[0].size)
-
                     for indAct in [indActive, indActive.nonzero()[0]]: # test both bool and integers
-                        reg = r(mesh, mapping=mapping, indActive=indAct)
+                        reg = r(mesh, indActive=indAct)
                         m = np.random.rand(mesh.nC)[indAct]
                         reg.mref = np.ones_like(m)*np.mean(m)
 
