@@ -213,6 +213,7 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
     # Pole-dipole: Moving pole on one end -> [A a MN1 a MN2 ... MNn a B]
     SrcList = []
 
+
     if stype != 'gradient':
 
         for ii in range(0, int(nstn)-1):
@@ -261,7 +262,6 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
                     srcClass = DC.Src.Pole([rxClass], M[ii,:])
             SrcList.append(srcClass)
 
-    # TODO: test gradient array!
     elif stype == 'gradient':
 
         # Gradient survey only requires Tx at end of line and creates a square
