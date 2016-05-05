@@ -663,7 +663,7 @@ class Sparse(Simple):
             self.Rs = Utils.speye(self.regmesh.nC)
 
         else:
-            f_m = self.curModel - self.reg.mref
+            f_m = self.mapping * (self.curModel - self.reg.mref)
             self.rs = self.R(f_m , self.eps_p, self.norms[0])
             #print "Min rs: " + str(np.max(self.rs)) + "Max rs: " + str(np.min(self.rs))
             self.Rs = Utils.sdiag( self.rs )
@@ -679,7 +679,7 @@ class Sparse(Simple):
             self.Rx = Utils.speye(self.regmesh.cellDiffxStencil.shape[0])
 
         else:
-            f_m = self.regmesh.cellDiffxStencil * self.curModel
+            f_m = self.regmesh.cellDiffxStencil * (self.mapping * self.curModel)
             self.rx = self.R( f_m , self.eps_q, self.norms[1])
             self.Rx = Utils.sdiag( self.rx )
 
@@ -693,7 +693,7 @@ class Sparse(Simple):
             self.Ry = Utils.speye(self.regmesh.cellDiffyStencil.shape[0])
 
         else:
-            f_m = self.regmesh.cellDiffyStencil * self.curModel
+            f_m = self.regmesh.cellDiffyStencil * (self.mapping * self.curModel)
             self.ry = self.R( f_m , self.eps_q, self.norms[2])
             self.Ry = Utils.sdiag( self.ry )
 
@@ -707,7 +707,7 @@ class Sparse(Simple):
             self.Rz = Utils.speye(self.regmesh.cellDiffzStencil.shape[0])
 
         else:
-            f_m = self.regmesh.cellDiffzStencil * self.curModel
+            f_m = self.regmesh.cellDiffzStencil * (self.mapping * self.curModel)
             self.rz = self.R( f_m , self.eps_q, self.norms[3])
             self.Rz = Utils.sdiag( self.rz )
 
