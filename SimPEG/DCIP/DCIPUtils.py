@@ -1,12 +1,16 @@
 from SimPEG import np, Utils
 import BaseDC as DC
 import BaseDC as IP
+import warnings
 
 def getActiveindfromTopo(mesh, topo):
 # def genActiveindfromTopo(mesh, topo):
     """
         Get active indices from topography
     """
+    warnings.warn(
+            "`getActiveindfromTopo` is deprecated and will be removed in future versions. Use `SimPEG.Utils.surface2ind_topo` instead",
+            FutureWarning)
     from scipy.interpolate import NearestNDInterpolator
     if mesh.dim==3:
         nCxy = mesh.nCx*mesh.nCy
@@ -28,6 +32,9 @@ def gettopoCC(mesh, airind):
     """
         Get topography from active indices of mesh.
     """
+    warnings.warn(
+            "`gettopoCC` is deprecated and will be removed in future versions. Use `SimPEG.Utils.surface2ind_topo` instead",
+            FutureWarning)
     mesh2D = Mesh.TensorMesh([mesh.hx, mesh.hy], mesh.x0[:2])
     zc = mesh.gridCC[:,2]
     AIRIND = airind.reshape((mesh.vnC[0]*mesh.vnC[1],mesh.vnC[2]), order='F')
@@ -630,16 +637,9 @@ def readUBC_DC3Dobs(fileName):
     """
         Read UBC GIF DCIP 3D observation file and generate survey
 
-        Input:
-        :param fileName, path to the UBC GIF 3D obs file
-
-        Output:
-        :param DCIPsurvey
-        :return
-
-        Created on Mon April 6th, 2015
-
-        @author: dominiquef
+        :param string fileName:, path to the UBC GIF 3D obs file
+        :rtype: Survey
+        :return: DCIPsurvey
 
     """
 
