@@ -444,21 +444,14 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, surveyType):
     """
         Write UBC GIF DCIP 2D or 3D observation file
 
-        Input:
-        :string fileName -> including path where the file is written out
-        :DCsurvey -> DC survey class object
-        :string dim ->  either '2D' | '3D'
-        :string  surveyType ->  either 'SURFACE' | 'GENERAL'
-
-        Output:
-        :param UBC2D-Data file
-        :return
-
-        Last edit: February 16th, 2016
-
-        @author: dominiquef
-
+        :param string fileName: including path where the file is written out
+        :param Survey DCsurvey: DC survey class object
+        :param string dim:  either '2D' | '3D'
+        :param string surveyType:  either 'SURFACE' | 'GENERAL'
+        :rtype: file
+        :return: UBC2D-Data file
     """
+
     from SimPEG import mkvc
 
     assert (dim=='2D') | (dim=='3D'), "Data must be either '2D' | '3D'"
@@ -539,15 +532,9 @@ def convertObs_DC3D_to_2D(DCsurvey, lineID, flag='local'):
 
         The Z value is preserved, but Y coordinates zeroed.
 
-        Input:
-        :param survey3D
-
-        Output:
-        :figure survey2D
-
-        Edited April 6th, 2016
-
-        @author: dominiquef
+        :param DC.Survey survey3D: 3D simpeg DC survey
+        :rtype: DC.Survey
+        :return: survey2D
 
     """
     from SimPEG import np
@@ -715,17 +702,9 @@ def readUBC_DC2Dobs(fileName):
         ------- NEEDS TO BE UPDATED ------
         Read UBC GIF 2D observation file and generate arrays for tx-rx location
 
-        Input:
-        :param fileName, path to the UBC GIF 2D model file
-
-        Output:
-        :param rx, tx
-        :return
-
-        Created on Thu Nov 12 13:14:10 2015
-
-        @author: dominiquef
-
+        :param string fileName: path to the UBC GIF 2D model file
+        :rtype: (DC.Src, DC.Rx, ??, ??)
+        :return: source_locs, rx_locs, ??, ??
     """
 
     from SimPEG import np
@@ -765,11 +744,9 @@ def readUBC_DC2Dpre(fileName):
         Read UBC GIF DCIP 2D observation file and generate arrays for tx-rx location
 
         Input:
-        :param fileName, path to the UBC GIF 3D obs file
-
-        Output:
-        DCsurvey
-        :return
+        :param string fileName: path to the UBC GIF 3D obs file
+        :rtype: DC.Survey
+        :return: DCsurvey
 
         Created on Mon March 9th, 2016 << Doug's 70th Birthday !! >>
 
@@ -831,12 +808,9 @@ def readUBC_DC2DMesh(fileName):
     """
         Read UBC GIF 2DTensor mesh and generate 2D Tensor mesh in simpeg
 
-        Input:
-        :param fileName, path to the UBC GIF mesh file
-
-        Output:
-        :param SimPEG TensorMesh 2D object
-        :return
+        :param string fileName: path to the UBC GIF mesh file
+        :rtype: Mesh.TensorMesh
+        :return: SimPEG TensorMesh 2D object
 
         Created on Thu Nov 12 13:14:10 2015
 
@@ -902,12 +876,9 @@ def xy_2_lineID(DCsurvey):
         they were collected. May need to generalize for random
         point locations, but will be more expensive
 
-        Input:
-        :param DCdict Vectors of station location
-
-        Output:
-        :param LineID Vector of integers
-        :return
+        :param numpy.array DCdict: Vectors of station location
+        :rtype: numpy.array
+        :return: LineID Vector of integers
 
         Created on Thu Feb 11, 2015
 
