@@ -330,7 +330,7 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
                 raise NotImplementedError('wrapping in the averaging is not yet implemented')
         return self._aveF2CCV
 
-    def getInterpolationMatCartMesh(self, Mrect, locType='CC'):
+    def getInterpolationMatCartMesh(self, Mrect, locType='CC', locTypeTo=None):
         """
             Takes a cartesian mesh and returns a projection to translate onto the cartesian grid.
         """
@@ -338,19 +338,22 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         assert self.isSymmetric, "Currently we have not taken into account other projections for more complicated CylMeshes"
 
 
+        if locTypeTo is None:
+            locTypeTo = locType
+
         if locType == 'F':
             # do this three times for each component
-            X = self.getInterpolationMatCartMesh(Mrect, locType='Fx')
-            Y = self.getInterpolationMatCartMesh(Mrect, locType='Fy')
-            Z = self.getInterpolationMatCartMesh(Mrect, locType='Fz')
+            X = self.getInterpolationMatCartMesh(Mrect, locType='Fx', locTypeTo=locTypeTo+'x')
+            Y = self.getInterpolationMatCartMesh(Mrect, locType='Fy', locTypeTo=locTypeTo+'y')
+            Z = self.getInterpolationMatCartMesh(Mrect, locType='Fz', locTypeTo=locTypeTo+'z')
             return sp.vstack((X,Y,Z))
         if locType == 'E':
-            X = self.getInterpolationMatCartMesh(Mrect, locType='Ex')
-            Y = self.getInterpolationMatCartMesh(Mrect, locType='Ey')
+            X = self.getInterpolationMatCartMesh(Mrect, locType='Ex', locTypeTo=locTypeTo+'x')
+            Y = self.getInterpolationMatCartMesh(Mrect, locType='Ey', locTypeTo=locTypeTo+'y')
             Z = spzeros(Mrect.nEz, self.nE)
             return sp.vstack((X,Y,Z))
 
-        grid = getattr(Mrect, 'grid' + locType)
+        grid = getattr(Mrect, 'grid' + locTypeTo)
         # This is unit circle stuff, 0 to 2*pi, starting at x-axis, rotating counter clockwise in an x-y slice
         theta = - np.arctan2(grid[:,0] - self.cartesianOrigin[0], grid[:,1] - self.cartesianOrigin[1]) + np.pi/2
         theta[theta < 0] += np.pi*2.0
@@ -366,7 +369,7 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
                         'Ex': Mrect.tangents[:Mrect.nEx,:],
                         'Ey': Mrect.tangents[Mrect.nEx:(Mrect.nEx+Mrect.nEy),:],
                         'Ez': Mrect.tangents[-Mrect.nEz:,:],
-                    }[locType]
+                    }[locTypeTo]
             if 'F' in locType:
                 normals = np.c_[np.cos(theta), np.sin(theta), np.zeros(theta.size)]
                 proj = ( normals * dotMe ).sum(axis=1)
