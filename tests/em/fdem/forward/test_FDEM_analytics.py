@@ -33,7 +33,7 @@ class FDEM_analyticTests(unittest.TestCase):
 
         survey = EM.FDEM.Survey([Src0])
 
-        prb = EM.FDEM.Problem_b(mesh, mapping=mapping)
+        prb = EM.FDEM.Problem3D_b(mesh, mapping=mapping)
         prb.pair(survey)
 
         try:
@@ -125,8 +125,8 @@ class FDEM_analyticTests(unittest.TestCase):
 
         mapping = [('sigma', Maps.IdentityMap(mesh)),('mu', Maps.IdentityMap(mesh))]
 
-        prbe = EM.FDEM.Problem_h(mesh, mapping=mapping)
-        prbm = EM.FDEM.Problem_e(mesh, mapping=mapping)
+        prbe = EM.FDEM.Problem3D_h(mesh, mapping=mapping)
+        prbm = EM.FDEM.Problem3D_e(mesh, mapping=mapping)
 
         prbe.pair(surveye) # pair problem and survey
         prbm.pair(surveym)
