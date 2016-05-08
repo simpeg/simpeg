@@ -350,7 +350,7 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         if locType == 'E':
             X = self.getInterpolationMatCartMesh(Mrect, locType='Ex', locTypeTo=locTypeTo+'x')
             Y = self.getInterpolationMatCartMesh(Mrect, locType='Ey', locTypeTo=locTypeTo+'y')
-            Z = spzeros(Mrect.nEz, self.nE)
+            Z = spzeros(getattr(Mrect, 'n' + locTypeTo + 'z'), self.nE)
             return sp.vstack((X,Y,Z))
 
         grid = getattr(Mrect, 'grid' + locTypeTo)
