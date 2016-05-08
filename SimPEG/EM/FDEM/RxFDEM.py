@@ -1,17 +1,13 @@
 import SimPEG
-from SimPEG.EM.Utils import *
-from SimPEG.EM.Base import BaseEMSurvey
-from scipy.constants import mu_0
-from SimPEG.Utils import Zero, Identity
-import SrcFDEM as Src
-import RxFDEM as Rx
 from SimPEG import sp
 
 class BaseRx(SimPEG.Survey.BaseRx):
     """
-    Frequency domain receivers
+    Frequency domain receiver base class
 
     :param numpy.ndarray locs: receiver locations (ie. :code:`np.r_[x,y,z]`)
+    :param string orientation: receiver orientation 'x', 'y' or 'z'
+    :param string real_or_imag: real or imaginary component 'real' or 'imag'
     """
 
     def __init__(self, locs, orientation=None, real_or_imag=None):
@@ -40,8 +36,7 @@ class BaseRx(SimPEG.Survey.BaseRx):
 
         P = self.getP(mesh, self.projGLoc(f))
         f_part_complex = f[src, self.projField]
-        # get the real or imag component
-        f_part = getattr(f_part_complex, self.real_or_imag)
+        f_part = getattr(f_part_complex, self.real_or_imag) # get the real or imag component
 
         return P*f_part
 
@@ -61,12 +56,10 @@ class BaseRx(SimPEG.Survey.BaseRx):
 
         if not adjoint:
             Pv_complex = P * v
-            # real_or_imag = self.projComp
             Pv = getattr(Pv_complex, self.real_or_imag)
         elif adjoint:
             Pv_real = P.T * v
 
-            # real_or_imag = self.projComp
             if self.real_or_imag == 'imag':
                 Pv = 1j*Pv_real
             elif self.real_or_imag == 'real':
@@ -78,6 +71,13 @@ class BaseRx(SimPEG.Survey.BaseRx):
 
 
 class eField(BaseRx):
+    """
+    Electric field FDEM receiver
+
+    :param numpy.ndarray locs: receiver locations (ie. :code:`np.r_[x,y,z]`)
+    :param string orientation: receiver orientation 'x', 'y' or 'z'
+    :param string real_or_imag: real or imaginary component 'real' or 'imag'
+    """
 
     def __init__(self, locs, orientation=None, real_or_imag=None):
         self.projField = 'e'
@@ -85,6 +85,13 @@ class eField(BaseRx):
 
 
 class bField(BaseRx):
+    """
+    Magnetic flux FDEM receiver
+
+    :param numpy.ndarray locs: receiver locations (ie. :code:`np.r_[x,y,z]`)
+    :param string orientation: receiver orientation 'x', 'y' or 'z'
+    :param string real_or_imag: real or imaginary component 'real' or 'imag'
+    """
 
     def __init__(self, locs, orientation=None, real_or_imag=None):
         self.projField = 'b'
@@ -92,6 +99,13 @@ class bField(BaseRx):
 
 
 class hField(BaseRx):
+    """
+    Magnetic field FDEM receiver
+
+    :param numpy.ndarray locs: receiver locations (ie. :code:`np.r_[x,y,z]`)
+    :param string orientation: receiver orientation 'x', 'y' or 'z'
+    :param string real_or_imag: real or imaginary component 'real' or 'imag'
+    """
 
     def __init__(self, locs, orientation=None, real_or_imag=None):
         self.projField = 'h'
@@ -99,6 +113,13 @@ class hField(BaseRx):
 
 
 class jField(BaseRx):
+    """
+    Current density FDEM receiver
+
+    :param numpy.ndarray locs: receiver locations (ie. :code:`np.r_[x,y,z]`)
+    :param string orientation: receiver orientation 'x', 'y' or 'z'
+    :param string real_or_imag: real or imaginary component 'real' or 'imag'
+    """
 
     def __init__(self, locs, orientation=None, real_or_imag=None):
         self.projField = 'j'
