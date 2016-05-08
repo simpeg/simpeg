@@ -42,7 +42,7 @@ def run(plotIt=True):
         ax.grid(color='k', alpha=0.5, linestyle='dashed', linewidth=0.5)
 
 
-    rxOffset=10. 
+    rxOffset=10.
     bzi = EM.FDEM.Rx(np.array([[rxOffset, 0., 1e-3]]), 'bzi')
 
     freqs = np.logspace(1,3,10)
@@ -52,7 +52,7 @@ def run(plotIt=True):
     [srcList.append(EM.FDEM.Src.MagDipole([bzi],freq, srcLoc,orientation='Z')) for freq in freqs]
 
     survey = EM.FDEM.Survey(srcList)
-    prb = EM.FDEM.Problem_b(mesh, mapping=mapping)
+    prb = EM.FDEM.Problem3D_b(mesh, mapping=mapping)
 
     try:
         from pymatsolver import MumpsSolver
