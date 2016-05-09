@@ -62,6 +62,15 @@ class BaseEMProblem(Problem.BaseProblem):
         return self._Me
 
     @property
+    def MeI(self):
+        """
+            Edge inner product matrix
+        """
+        if getattr(self, '_MeI', None) is None:
+            self._MeI = self.mesh.getEdgeInnerProduct(invMat=True)
+        return self._MeI
+
+    @property
     def Mf(self):
         """
             Face inner product matrix
@@ -69,6 +78,15 @@ class BaseEMProblem(Problem.BaseProblem):
         if getattr(self, '_Mf', None) is None:
             self._Mf = self.mesh.getFaceInnerProduct()
         return self._Mf
+
+    @property
+    def MfI(self):
+        """
+            Face inner product matrix
+        """
+        if getattr(self, '_MfI', None) is None:
+            self._MfI = self.mesh.getFaceInnerProduct(invMat=True)
+        return self._MfI
 
 
     # ----- Magnetic Permeability ----- #
