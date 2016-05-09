@@ -10,7 +10,9 @@ except ImportError, e:
     MumpsSolver = SolverLU
 
 
-def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=[1e-5,1e-3], showIt=False):
+def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=None, showIt=False):
+    if bounds is None:
+        bounds = [1e-5,1e-3]
     if meshType == 'CYL':
         cs, ncx, ncz, npad = 5., 30, 10, 15
         hx = [(cs,ncx), (cs,npad,1.3)]

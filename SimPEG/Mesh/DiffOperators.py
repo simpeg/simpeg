@@ -307,24 +307,28 @@ class DiffOperators(object):
         return BC
     _cellGradBC_list = 'neumann'
 
+    def _cellGradStencil(self):
+        BC = self.setCellGradBC(self._cellGradBC_list)
+        n = self.vnC
+        if(self.dim == 1):
+            G = ddxCellGrad(n[0], BC[0])
+        elif(self.dim == 2):
+            G1 = sp.kron(speye(n[1]), ddxCellGrad(n[0], BC[0]))
+            G2 = sp.kron(ddxCellGrad(n[1], BC[1]), speye(n[0]))
+            G = sp.vstack((G1, G2), format="csr")
+        elif(self.dim == 3):
+            G1 = kron3(speye(n[2]), speye(n[1]), ddxCellGrad(n[0], BC[0]))
+            G2 = kron3(speye(n[2]), ddxCellGrad(n[1], BC[1]), speye(n[0]))
+            G3 = kron3(ddxCellGrad(n[2], BC[2]), speye(n[1]), speye(n[0]))
+            G = sp.vstack((G1, G2, G3), format="csr")
+        return G
+
     def cellGrad():
         doc = "The cell centered Gradient, takes you to cell faces."
 
         def fget(self):
             if(self._cellGrad is None):
-                BC = self.setCellGradBC(self._cellGradBC_list)
-                n = self.vnC
-                if(self.dim == 1):
-                    G = ddxCellGrad(n[0], BC[0])
-                elif(self.dim == 2):
-                    G1 = sp.kron(speye(n[1]), ddxCellGrad(n[0], BC[0]))
-                    G2 = sp.kron(ddxCellGrad(n[1], BC[1]), speye(n[0]))
-                    G = sp.vstack((G1, G2), format="csr")
-                elif(self.dim == 3):
-                    G1 = kron3(speye(n[2]), speye(n[1]), ddxCellGrad(n[0], BC[0]))
-                    G2 = kron3(speye(n[2]), ddxCellGrad(n[1], BC[1]), speye(n[0]))
-                    G3 = kron3(ddxCellGrad(n[2], BC[2]), speye(n[1]), speye(n[0]))
-                    G = sp.vstack((G1, G2, G3), format="csr")
+                G = self._cellGradStencil()
                 # Compute areas of cell faces & volumes
                 S = self.area
                 V = self.aveCC2F*self.vol  # Average volume between adjacent cells
@@ -361,19 +365,24 @@ class DiffOperators(object):
     _cellGradBC = None
     cellGradBC = property(**cellGradBC())
 
+    def _cellGradxStencil(self):
+        BC = ['neumann', 'neumann']
+        n = self.vnC
+        if(self.dim == 1):
+            G1 = ddxCellGrad(n[0], BC)
+        elif(self.dim == 2):
+            G1 = sp.kron(speye(n[1]), ddxCellGrad(n[0], BC))
+        elif(self.dim == 3):
+            G1 = kron3(speye(n[2]), speye(n[1]), ddxCellGrad(n[0], BC))
+        return G1
+
+
     def cellGradx():
         doc = "Cell centered Gradient in the x dimension. Has neumann boundary conditions."
 
         def fget(self):
             if getattr(self, '_cellGradx', None) is None:
-                BC = ['neumann', 'neumann']
-                n = self.vnC
-                if(self.dim == 1):
-                    G1 = ddxCellGrad(n[0], BC)
-                elif(self.dim == 2):
-                    G1 = sp.kron(speye(n[1]), ddxCellGrad(n[0], BC))
-                elif(self.dim == 3):
-                    G1 = kron3(speye(n[2]), speye(n[1]), ddxCellGrad(n[0], BC))
+                G1 = self._cellGradxStencil()
                 # Compute areas of cell faces & volumes
                 V = self.aveCC2F*self.vol
                 L = self.r(self.area/V, 'F','Fx', 'V')
@@ -382,17 +391,22 @@ class DiffOperators(object):
         return locals()
     cellGradx = property(**cellGradx())
 
+    def _cellGradyStencil(self):
+        if self.dim < 2: return None
+        BC = ['neumann', 'neumann']
+        n = self.vnC
+        if(self.dim == 2):
+            G2 = sp.kron(ddxCellGrad(n[1], BC), speye(n[0]))
+        elif(self.dim == 3):
+            G2 = kron3(speye(n[2]), ddxCellGrad(n[1], BC), speye(n[0]))
+        return G2
+
     def cellGrady():
         doc = "Cell centered Gradient in the x dimension. Has neumann boundary conditions."
         def fget(self):
             if self.dim < 2: return None
             if getattr(self, '_cellGrady', None) is None:
-                BC = ['neumann', 'neumann']
-                n = self.vnC
-                if(self.dim == 2):
-                    G2 = sp.kron(ddxCellGrad(n[1], BC), speye(n[0]))
-                elif(self.dim == 3):
-                    G2 = kron3(speye(n[2]), ddxCellGrad(n[1], BC), speye(n[0]))
+                G2 = self._cellGradyStencil()
                 # Compute areas of cell faces & volumes
                 V = self.aveCC2F*self.vol
                 L = self.r(self.area/V, 'F','Fy', 'V')
@@ -401,14 +415,19 @@ class DiffOperators(object):
         return locals()
     cellGrady = property(**cellGrady())
 
+    def _cellGradzStencil(self):
+        if self.dim < 3: return None
+        BC = ['neumann', 'neumann']
+        n = self.vnC
+        G3 = kron3(ddxCellGrad(n[2], BC), speye(n[1]), speye(n[0]))
+        return G3
+
     def cellGradz():
         doc = "Cell centered Gradient in the x dimension. Has neumann boundary conditions."
         def fget(self):
             if self.dim < 3: return None
             if getattr(self, '_cellGradz', None) is None:
-                BC = ['neumann', 'neumann']
-                n = self.vnC
-                G3 = kron3(ddxCellGrad(n[2], BC), speye(n[1]), speye(n[0]))
+                G3 = self._cellGradzStencil()
                 # Compute areas of cell faces & volumes
                 V = self.aveCC2F*self.vol
                 L = self.r(self.area/V, 'F','Fz', 'V')

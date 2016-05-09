@@ -48,8 +48,7 @@ def run(plotIt=True):
     freqs = np.logspace(1,3,10)
     srcLoc = np.array([0., 0., 10.])
 
-    srcList = []
-    [srcList.append(EM.FDEM.Src.MagDipole([bzi],freq, srcLoc,orientation='Z')) for freq in freqs]
+    srcList = [EM.FDEM.Src.MagDipole([bzi],freq, srcLoc,orientation='Z') for freq in freqs]
 
     survey = EM.FDEM.Survey(srcList)
     prb = EM.FDEM.Problem3D_b(mesh, mapping=mapping)
