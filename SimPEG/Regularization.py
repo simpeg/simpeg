@@ -1,4 +1,6 @@
-import Utils, Maps, Mesh, numpy as np, scipy.sparse as sp
+import Utils, Maps, Mesh
+import numpy as np
+import scipy.sparse as sp
 
 class RegularizationMesh(object):
     """
@@ -476,7 +478,7 @@ class Simple(BaseRegularization):
         return 0.5 * r.dot(r)
 
     @Utils.timeIt
-    def _evalSmallDeriv(self,m):
+    def _evalSmallDeriv(self, m):
         r = self.Wsmall * ( self.mapping * (m - self.mref) )
         return r.T * ( self.Wsmall * self.mapping.deriv(m - self.mref) )
 
@@ -514,7 +516,7 @@ class Simple(BaseRegularization):
         return phiSmooth
 
     @Utils.timeIt
-    def _evalSmoothxDeriv(self,m):
+    def _evalSmoothxDeriv(self, m):
         if self.mrefInSmooth == True:
             r = self.Wx * ( self.mapping * ( m - self.mref ) )
             return r.T * ( self.Wx * self.mapping.deriv(m - self.mref) )
@@ -523,7 +525,7 @@ class Simple(BaseRegularization):
             return r.T * ( self.Wx * self.mapping.deriv(m) )
 
     @Utils.timeIt
-    def _evalSmoothyDeriv(self,m):
+    def _evalSmoothyDeriv(self, m):
         if self.mrefInSmooth == True:
             r = self.Wy * ( self.mapping * ( m - self.mref ) )
             return r.T * ( self.Wy * self.mapping.deriv(m - self.mref) )
@@ -532,7 +534,7 @@ class Simple(BaseRegularization):
             return r.T * ( self.Wy * self.mapping.deriv(m) )
 
     @Utils.timeIt
-    def _evalSmoothzDeriv(self,m):
+    def _evalSmoothzDeriv(self, m):
         if self.mrefInSmooth == True:
             r = self.Wz * ( self.mapping * ( m - self.mref ) )
             return r.T * ( self.Wz * self.mapping.deriv(m - self.mref) )
@@ -541,7 +543,7 @@ class Simple(BaseRegularization):
             return r.T * ( self.Wz * self.mapping.deriv(m) )
 
     @Utils.timeIt
-    def _evalSmoothDeriv(self,m):
+    def _evalSmoothDeriv(self, m):
         deriv = self._evalSmoothxDeriv(m)
         if self.regmesh.dim > 1:
             deriv += self._evalSmoothyDeriv(m)
@@ -711,7 +713,7 @@ class Tikhonov(Simple):
         return phiSmooth2
 
     @Utils.timeIt
-    def _evalSmoothxxDeriv(self,m):
+    def _evalSmoothxxDeriv(self, m):
         if self.mrefInSmooth == True:
             r = self.Wxx * ( self.mapping * ( m - self.mref ) )
             return r.T * ( self.Wxx * self.mapping.deriv(m - self.mref) )
@@ -720,7 +722,7 @@ class Tikhonov(Simple):
             return r.T * ( self.Wxx * self.mapping.deriv(m) )
 
     @Utils.timeIt
-    def _evalSmoothyyDeriv(self,m):
+    def _evalSmoothyyDeriv(self, m):
         if self.mrefInSmooth == True:
             r = self.Wyy * ( self.mapping * ( m - self.mref ) )
             return r.T * ( self.Wyy * self.mapping.deriv(m - self.mref) )
@@ -729,7 +731,7 @@ class Tikhonov(Simple):
             return r.T * ( self.Wyy * self.mapping.deriv(m) )
 
     @Utils.timeIt
-    def _evalSmoothzzDeriv(self,m):
+    def _evalSmoothzzDeriv(self, m):
         if self.mrefInSmooth == True:
             r = self.Wzz * ( self.mapping * ( m - self.mref ) )
             return r.T * ( self.Wzz * self.mapping.deriv(m - self.mref) )
@@ -738,7 +740,7 @@ class Tikhonov(Simple):
             return r.T * ( self.Wzz * self.mapping.deriv(m) )
 
     @Utils.timeIt
-    def _evalSmooth2Deriv(self,m):
+    def _evalSmooth2Deriv(self, m):
         deriv = self._evalSmoothxxDeriv(m)
         if self.regmesh.dim > 1:
             deriv += self._evalSmoothyyDeriv(m)
@@ -774,12 +776,12 @@ class Tikhonov(Simple):
 class Sparse(Simple):
 
     # set default values
-    eps_p      = 1e-1
-    eps_q      = 1e-1
+    eps_p = 1e-1
+    eps_q = 1e-1
     curModel = None # use a model to compute the weights
-    gamma    = 1.
-    norms    = [0., 2., 2., 2.]
-    cell_weights     = 1.
+    gamma = 1.
+    norms = [0., 2., 2., 2.]
+    cell_weights = 1.
 
     def __init__(self, mesh, mapping=None, indActive=None, **kwargs):
         Simple.__init__(self, mesh, mapping=mapping, indActive=indActive, **kwargs)
