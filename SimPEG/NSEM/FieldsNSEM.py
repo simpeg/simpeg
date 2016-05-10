@@ -4,6 +4,7 @@ import sys
 from numpy.lib import recfunctions as recFunc
 from SimPEG.EM.Utils import omega
 
+
 ##############
 ### Fields ###
 ##############
@@ -12,10 +13,124 @@ class BaseNSEMFields(Problem.Fields):
     knownFields = {}
     dtype = complex
 
-
-class Fields1D_e(BaseNSEMFields):
+###########
+# 1D Fields
+###########
+class Fields1D_ePrimSec(BaseNSEMFields):
     """
     Fields storage for the 1D NSEM solution.
+    """
+    knownFields = {'e_1dSolution':'F'}
+    aliasFields = {
+                    'e_1d' : ['e_1dSolution','F','_e'],
+                    'e_1dPrimary' : ['e_1dSolution','F','_ePrimary'],
+                    'e_1dSecondary' : ['e_1dSolution','F','_eSecondary'],
+                    'b_1d' : ['e_1dSolution','E','_b'],
+                    'b_1dPrimary' : ['e_1dSolution','E','_bPrimary'],
+                    'b_1dSecondary' : ['e_1dSolution','E','_bSecondary']
+                  }
+
+    def __init__(self,mesh,survey,**kwargs):
+        BaseNSEMFields.__init__(self,mesh,survey,**kwargs)
+
+    def _ePrimary(self, eSolution, srcList):
+        ePrimary = np.zeros_like(eSolution)
+        for i, src in enumerate(srcList):
+            ep = src.ePrimary(self.survey.prob)
+            if ep is not None:
+                ePrimary[:,i] = ep[:,-1]
+        return ePrimary
+
+    def _eSecondary(self, eSolution, srcList):
+        return eSolution
+
+    def _e(self, eSolution, srcList):
+        return self._ePrimary(eSolution,srcList) + self._eSecondary(eSolution,srcList)
+
+    def _eDeriv_u(self, src, du_dm_v, adjoint = False):
+
+
+        return Utils.Identity()*du_dm_v
+
+    def _eDeriv_m(self, src, v, adjoint = False):
+        # assuming primary does not depend on the model
+        return Utils.Zero()
+
+    def _bPrimary(self, eSolution, srcList):
+        bPrimary = np.zeros([self.survey.mesh.nE,eSolution.shape[1]], dtype = complex)
+        for i, src in enumerate(srcList):
+            bp = src.bPrimary(self.survey.prob)
+            if bp is not None:
+                bPrimary[:,i] += bp[:,-1]
+        return bPrimary
+
+    def _bSecondary(self, eSolution, srcList):
+        C = self.mesh.nodalGrad
+        b = (C * eSolution)
+        for i, src in enumerate(srcList):
+            b[:,i] *= - 1./(1j*omega(src.freq))
+            # There is no magnetic source in the MT problem
+            # S_m, _ = src.eval(self.survey.prob)
+            # if S_m is not None:
+            #     b[:,i] += 1./(1j*omega(src.freq)) * S_m
+        return b
+
+    def _b(self, eSolution, srcList):
+        return self._bPrimary(eSolution, srcList) + self._bSecondary(eSolution, srcList)
+
+    def _bSecondaryDeriv_u(self, src, v, adjoint = False):
+        C = self.mesh.nodalGrad
+        if adjoint:
+            return - 1./(1j*omega(src.freq)) * (C.T * v)
+        return - 1./(1j*omega(src.freq)) * (C * v)
+
+    def _bSecondaryDeriv_m(self, src, v, adjoint = False):
+        # Doesn't depend on m
+        # _, S_eDeriv = src.evalDeriv(self.survey.prob, adjoint)
+        # S_eDeriv = S_eDeriv(v)
+        # if S_eDeriv is not None:
+        #     return 1./(1j * omega(src.freq)) * S_eDeriv
+        return None
+
+    def _bDeriv_u(self, src, v, adjoint=False):
+        # Primary does not depend on u
+        return self._bSecondaryDeriv_u(src, v, adjoint)
+
+    def _bDeriv_m(self, src, v, adjoint=False):
+        # Assuming the primary does not depend on the model
+        return self._bSecondaryDeriv_m(src, v, adjoint)
+
+    def _fDeriv_u(self, src, v, adjoint=False):
+        """
+        Derivative of the fields object wrt u.
+
+        :param NSEMsrc src: NSEM source
+        :param numpy.ndarray v: random vector of f_sol.size
+        This function stacks the fields derivatives appropriately
+
+        return a vector of size (nreEle+nrbEle)
+        """
+
+        de_du = v #Utils.spdiag(np.ones((self.nF,)))
+        db_du = self._bDeriv_u(src, v, adjoint)
+        # Return the stack
+        # This doesn't work...
+        return np.vstack((de_du,db_du))
+
+    def _fDeriv_m(self, src, v, adjoint=False):
+        """
+        Derivative of the fields object wrt m.
+
+        This function stacks the fields derivatives appropriately
+        """
+        return None
+
+
+class Fields1D_eTotal(BaseNSEMFields):
+    """
+    Fields storage for the 1D NSEM solution solved with for a total domain formulation.
+
+    Used in conjuction with Problem1D_eTotal.
     """
     knownFields = {'e_1dSolution':'F'}
     aliasFields = {
@@ -120,7 +235,16 @@ class Fields1D_e(BaseNSEMFields):
         """
         return None
 
-class Fields3D_e(BaseNSEMFields):
+
+###########
+# 2D Fields
+###########
+
+
+###########
+# 3D Fields
+###########
+class Fields3D_ePrimSec(BaseNSEMFields):
     """
     Fields storage for the 3D NSEM solution. Labels polarizations by px and py.
 
