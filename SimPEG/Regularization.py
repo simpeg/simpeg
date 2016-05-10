@@ -413,40 +413,40 @@ class Simple(BaseRegularization):
     alpha_x      = Utils.dependentProperty('_alpha_x',  1.0, ['_W', '_Wx'],     "Weight for the first derivative in the x direction")
     alpha_y      = Utils.dependentProperty('_alpha_y',  1.0, ['_W', '_Wy'],     "Weight for the first derivative in the y direction")
     alpha_z      = Utils.dependentProperty('_alpha_z',  1.0, ['_W', '_Wz'],     "Weight for the first derivative in the z direction")
-    wght        = 1.
+    cell_weights = 1.
 
     def __init__(self, mesh, mapping=None, indActive=None, **kwargs):
         BaseRegularization.__init__(self, mesh, mapping=mapping, indActive=indActive, **kwargs)
 
-        if isinstance(self.wght,float):
-            self.wght = np.ones(self.regmesh.nC) * self.wght
+        if isinstance(self.cell_weights,float):
+            self.cell_weights = np.ones(self.regmesh.nC) * self.cell_weights
 
     @property
     def Wsmall(self):
         """Regularization matrix Wsmall"""
         if getattr(self,'_Wsmall', None) is None:
-            self._Wsmall = Utils.sdiag((self.regmesh.vol*self.alpha_s*self.wght)**0.5)
+            self._Wsmall = Utils.sdiag((self.alpha_s*self.cell_weights)**0.5)
         return self._Wsmall
 
     @property
     def Wx(self):
         """Regularization matrix Wx"""
         if getattr(self, '_Wx', None) is None:
-            self._Wx = Utils.sdiag((self.regmesh.aveCC2Fx * self.regmesh.vol*self.alpha_x*(self.regmesh.aveCC2Fx*self.wght))**0.5)*self.regmesh.cellDiffxStencil
+            self._Wx = Utils.sdiag((self.alpha_x * (self.regmesh.aveCC2Fx*self.cell_weights))**0.5)*self.regmesh.cellDiffxStencil
         return self._Wx
 
     @property
     def Wy(self):
         """Regularization matrix Wy"""
         if getattr(self, '_Wy', None) is None:
-            self._Wy = Utils.sdiag((self.regmesh.aveCC2Fy * self.regmesh.vol * self.alpha_y*(self.regmesh.aveCC2Fy*self.wght))**0.5)*self.regmesh.cellDiffyStencil
+            self._Wy = Utils.sdiag((self.alpha_y * (self.regmesh.aveCC2Fy*self.cell_weights))**0.5)*self.regmesh.cellDiffyStencil
         return self._Wy
 
     @property
     def Wz(self):
         """Regularization matrix Wz"""
         if getattr(self, '_Wz', None) is None:
-            self._Wz = Utils.sdiag((self.regmesh.aveCC2Fz * self.regmesh.vol*self.alpha_z*(self.regmesh.aveCC2Fz*self.wght))**0.5)*self.regmesh.cellDiffzStencil
+            self._Wz = Utils.sdiag((self.alpha_z * (self.regmesh.aveCC2Fz*self.cell_weights))**0.5)*self.regmesh.cellDiffzStencil
         return self._Wz
 
     @property
@@ -779,13 +779,13 @@ class Sparse(Simple):
     curModel = None # use a model to compute the weights
     gamma    = 1.
     norms    = [0., 2., 2., 2.]
-    wght     = 1.
+    cell_weights     = 1.
 
     def __init__(self, mesh, mapping=None, indActive=None, **kwargs):
         Simple.__init__(self, mesh, mapping=mapping, indActive=indActive, **kwargs)
 
-        if isinstance(self.wght,float):
-            self.wght = np.ones(self.regmesh.nC) * self.wght
+        if isinstance(self.cell_weights,float):
+            self.cell_weights = np.ones(self.regmesh.nC) * self.cell_weights
 
     @property
     def Wsmall(self):
@@ -799,7 +799,7 @@ class Sparse(Simple):
             #print "Min rs: " + str(np.max(self.rs)) + "Max rs: " + str(np.min(self.rs))
             self.Rs = Utils.sdiag( self.rs )
 
-        return Utils.sdiag((self.regmesh.vol*self.alpha_s*self.gamma*self.wght)**0.5)*self.Rs
+        return Utils.sdiag((self.regmesh.vol*self.alpha_s*self.gamma*self.cell_weights)**0.5)*self.Rs
 
 
     @property
@@ -814,7 +814,7 @@ class Sparse(Simple):
             self.rx = self.R( f_m , self.eps_q, self.norms[1])
             self.Rx = Utils.sdiag( self.rx )
 
-        return Utils.sdiag(( (self.regmesh.aveCC2Fx * self.regmesh.vol) *self.alpha_x*self.gamma*(self.regmesh.aveCC2Fx*self.wght))**0.5)*self.Rx*self.regmesh.cellDiffxStencil
+        return Utils.sdiag(( (self.regmesh.aveCC2Fx * self.regmesh.vol) *self.alpha_x*self.gamma*(self.regmesh.aveCC2Fx*self.cell_weights))**0.5)*self.Rx*self.regmesh.cellDiffxStencil
 
     @property
     def Wy(self):
@@ -828,7 +828,7 @@ class Sparse(Simple):
             self.ry = self.R( f_m , self.eps_q, self.norms[2])
             self.Ry = Utils.sdiag( self.ry )
 
-        return Utils.sdiag(((self.regmesh.aveCC2Fy * self.regmesh.vol)*self.alpha_y*self.gamma*(self.regmesh.aveCC2Fy*self.wght))**0.5)*self.Ry*self.regmesh.cellDiffyStencil
+        return Utils.sdiag(((self.regmesh.aveCC2Fy * self.regmesh.vol)*self.alpha_y*self.gamma*(self.regmesh.aveCC2Fy*self.cell_weights))**0.5)*self.Ry*self.regmesh.cellDiffyStencil
 
     @property
     def Wz(self):
@@ -842,7 +842,7 @@ class Sparse(Simple):
             self.rz = self.R( f_m , self.eps_q, self.norms[3])
             self.Rz = Utils.sdiag( self.rz )
 
-        return Utils.sdiag(((self.regmesh.aveCC2Fz * self.regmesh.vol)*self.alpha_z*self.gamma*(self.regmesh.aveCC2Fz*self.wght))**0.5)*self.Rz*self.regmesh.cellDiffzStencil
+        return Utils.sdiag(((self.regmesh.aveCC2Fz * self.regmesh.vol)*self.alpha_z*self.gamma*(self.regmesh.aveCC2Fz*self.cell_weights))**0.5)*self.Rz*self.regmesh.cellDiffzStencil
 
 
     def R(self, f_m , eps, exponent):
