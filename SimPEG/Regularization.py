@@ -470,27 +470,6 @@ class Simple(BaseRegularization):
         return self._W
 
 
-    @property
-    def W(self):
-        """Full regularization matrix W"""
-        if getattr(self, '_W', None) is None:
-            wlist = (self.Wsmall, self.Wsmooth)
-            self._W = sp.vstack(wlist)
-        return self._W
-
-    @property
-    def Wsmooth(self):
-        """Full smoothness regularization matrix W"""
-        if getattr(self, '_Wsmooth', None) is None:
-            wlist = (self.Wx,)
-            if self.regmesh.dim > 1:
-                wlist += (self.Wy,)
-            if self.regmesh.dim > 2:
-                wlist += (self.Wz,)
-            self._Wsmooth = sp.vstack(wlist)
-        return self._Wsmooth
-
-
     @Utils.timeIt
     def _evalSmall(self, m):
         r = self.Wsmall * ( self.mapping * (m - self.mref) )
