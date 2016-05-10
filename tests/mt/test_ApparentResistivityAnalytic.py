@@ -1,6 +1,6 @@
 import unittest
 from SimPEG import *
-from SimPEG import MT
+from SimPEG import NSEM
 
 TOL = 1e-6
 
@@ -20,7 +20,7 @@ def appResNorm(sigmaHalf):
     freqs = np.logspace(4,-4,nFreq)
     Z = []
     for freq in freqs:
-        Ed, Eu, Hd, Hu = MT.Utils.getEHfields(m1d,sigma,freq,np.array([200]))
+        Ed, Eu, Hd, Hu = NSEM.Utils.getEHfields(m1d,sigma,freq,np.array([200]))
         Z.append((Ed + Eu)/(Hd + Hu))
 
     Zarr = np.concatenate(Z)

@@ -1,10 +1,10 @@
 from SimPEG import SolverLU as SimpegSolver, PropMaps, Utils, mkvc, sp, np
 from SimPEG.EM.FDEM.FDEM import BaseFDEMProblem
-from SurveyMT import Survey, Data
-from FieldsMT import BaseMTFields
+from SurveyNSEM import Survey, Data
+from FieldsNSEM import BaseNSEMFields
 
 
-class BaseMTProblem(BaseFDEMProblem):
+class BaseNSEMProblem(BaseFDEMProblem):
     """
         Base class for all Natural source problems.
     """
@@ -15,7 +15,7 @@ class BaseMTProblem(BaseFDEMProblem):
     # Set the default pairs of the problem
     surveyPair = Survey
     dataPair = Data
-    fieldsPair = BaseMTFields
+    fieldsPair = BaseNSEMFields
 
     # Set the solver
     Solver = SimpegSolver
@@ -33,8 +33,8 @@ class BaseMTProblem(BaseFDEMProblem):
 
             :param numpy.ndarray m (nC, 1) - conductive model
             :param numpy.ndarray v (nC, 1) - random vector
-            :param MTfields object (optional) - MT fields object, if not given it is calculated
-            :rtype: MTdata object
+            :param NSEMfields object (optional) - NSEM fields object, if not given it is calculated
+            :rtype: NSEMdata object
             :return: Data sensitivities wrt m
         """
 
@@ -80,8 +80,8 @@ class BaseMTProblem(BaseFDEMProblem):
 
             :param numpy.ndarray m (nC, 1) - conductive model
             :param numpy.ndarray v (nD, 1) - vector
-            :param MTfields object u (optional) - MT fields object, if not given it is calculated
-            :rtype: MTdata object
+            :param NSEMfields object u (optional) - NSEM fields object, if not given it is calculated
+            :rtype: NSEMdata object
             :return: Data sensitivities wrt m
         """
 

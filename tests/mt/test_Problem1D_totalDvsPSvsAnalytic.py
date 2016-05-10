@@ -1,6 +1,6 @@
 import unittest
 import SimPEG as simpeg
-from SimPEG import MT
+from SimPEG import NSEM
 from SimPEG.Utils import meshTensor
 import numpy as np
 # Define the tolerances
@@ -34,43 +34,43 @@ def setupSurvey(sigmaHalf,tD=True):
 
     rxList = []
     for rxType in ['z1dr','z1di']:
-        rxList.append(MT.Rx(simpeg.mkvc(np.array([0.0]),2).T,rxType))
+        rxList.append(NSEM.Rx(simpeg.mkvc(np.array([0.0]),2).T,rxType))
     # Source list
     srcList =[]
     if tD:
         for freq in freqs:
-            srcList.append(MT.SrcMT.polxy_1DhomotD(rxList,freq))
+            srcList.append(NSEM.SrcNSEM.polxy_1DhomotD(rxList,freq))
     else:
         for freq in freqs:
-            srcList.append(MT.SrcMT.polxy_1Dprimary(rxList,freq))
+            srcList.append(NSEM.SrcNSEM.polxy_1Dprimary(rxList,freq))
 
-    survey = MT.Survey(srcList)
+    survey = NSEM.Survey(srcList)
     return survey, sigma, m1d
 
-def getAppResPhs(MTdata):
+def getAppResPhs(NSEMdata):
     # Make impedance
     def appResPhs(freq,z):
         app_res = ((1./(8e-7*np.pi**2))/freq)*np.abs(z)**2
         app_phs = np.arctan2(z.imag,z.real)*(180/np.pi)
         return app_res, app_phs
     zList = []
-    for src in MTdata.survey.srcList:
+    for src in NSEMdata.survey.srcList:
         zc = [src.freq]
         for rx in src.rxList:
             if 'i' in rx.rxType:
                 m=1j
             else:
                 m = 1
-            zc.append(m*MTdata[src,rx])
+            zc.append(m*NSEMdata[src,rx])
         zList.append(zc)
     return [appResPhs(zList[i][0],np.sum(zList[i][1:3])) for i in np.arange(len(zList))]
 
 def calculateAnalyticSolution(srcList,mesh,model):
-    surveyAna = MT.Survey(srcList)
-    data1D = MT.Data(surveyAna)
+    surveyAna = NSEM.Survey(srcList)
+    data1D = NSEM.Data(surveyAna)
     for src in surveyAna.srcList:
         elev = src.rxList[0].locs[0]
-        anaEd, anaEu, anaHd, anaHu = MT.Utils.MT1Danalytic.getEHfields(mesh,model,src.freq,elev)
+        anaEd, anaEu, anaHd, anaHu = NSEM.Utils.NSEM1Danalytic.getEHfields(mesh,model,src.freq,elev)
         anaE = anaEd+anaEu
         anaH = anaHd+anaHu
         # Scale the solution
@@ -87,11 +87,11 @@ def dataMis_AnalyticTotalDomain(sigmaHalf):
 
     # Total domain solution
     surveyTD, sigma, mesh = setupSurvey(sigmaHalf)
-    problemTD = MT.Problem1D.eForm_TotalField(mesh)
+    problemTD = NSEM.Problem1D.eForm_TotalField(mesh)
     problemTD.pair(surveyTD)
     # Analytic data
     dataAnaObj = calculateAnalyticSolution(surveyTD.srcList,mesh,sigma)
-    # dataTDObj = MT.DataMT.DataMT(surveyTD, surveyTD.dpred(sigma))
+    # dataTDObj = NSEM.DataNSEM.DataNSEM(surveyTD, surveyTD.dpred(sigma))
     dataTD = surveyTD.dpred(sigma)
     dataAna = simpeg.mkvc(dataAnaObj)
     return np.all((dataTD - dataAna)/dataAna < 2.)
@@ -109,7 +109,7 @@ def dataMis_AnalyticPrimarySecondary(sigmaHalf):
     # Make the survey
     # Primary secondary
     surveyPS, sigmaPS, mesh = setupSurvey(sigmaHalf,tD=False)
-    problemPS = MT.Problem1D.eForm_psField(mesh)
+    problemPS = NSEM.Problem1D.eForm_psField(mesh)
     problemPS.sigmaPrimary = sigmaPS
     problemPS.pair(surveyPS)
     # Analytic data

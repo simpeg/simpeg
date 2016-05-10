@@ -1,16 +1,16 @@
 from SimPEG import Survey, Problem, Utils, Models, np, sp, mkvc, SolverLU as SimpegSolver
 from SimPEG.EM.Utils import omega
 from scipy.constants import mu_0
-from SimPEG.MT.BaseMT import BaseMTProblem
-from SimPEG.MT.SurveyMT import Survey, Data
-from SimPEG.MT.FieldsMT import Fields3D_e
+from SimPEG.NSEM.NSEM import BaseNSEMProblem
+from SimPEG.NSEM.SurveyNSEM import Survey, Data
+from SimPEG.NSEM.FieldsNSEM import Fields3D_e
 import multiprocessing, sys, time
 
 
 
-class eForm_ps(BaseMTProblem):
+class eForm_ps(BaseNSEMProblem):
     """
-    A MT problem solving a e formulation and a primary/secondary fields decompostion.
+    A NSEM problem solving a e formulation and a primary/secondary fields decompostion.
 
     By eliminating the magnetic flux density using
 
@@ -29,14 +29,14 @@ class eForm_ps(BaseMTProblem):
 
     """
 
-    # From FDEMproblem: Used to project the fields. Currently not used for MTproblem.
+    # From FDEMproblem: Used to project the fields. Currently not used for NSEMproblem.
     _fieldType = 'e'
     _eqLocs    = 'FE'
     fieldsPair = Fields3D_e
     _sigmaPrimary = None
 
     def __init__(self, mesh, **kwargs):
-        BaseMTProblem.__init__(self, mesh, **kwargs)
+        BaseNSEMProblem.__init__(self, mesh, **kwargs)
 
     @property
     def sigmaPrimary(self):

@@ -1,17 +1,17 @@
 from SimPEG.EM.Utils import omega
 from SimPEG import mkvc
 from scipy.constants import mu_0
-from SimPEG.MT.BaseMT import BaseMTProblem
-from SimPEG.MT.SurveyMT import Survey, Data
-from SimPEG.MT.FieldsMT import Fields1D_e
-from SimPEG.MT.Utils.MT1Danalytic import getEHfields
+from SimPEG.NSEM.NSEM import BaseNSEMProblem
+from SimPEG.NSEM.SurveyNSEM import Survey, Data
+from SimPEG.NSEM.FieldsNSEM import Fields1D_e
+from SimPEG.NSEM.Utils.MT1Danalytic import getEHfields
 import numpy as np
 import multiprocessing, sys, time
 
 
-class eForm_psField(BaseMTProblem):
+class eForm_psField(BaseNSEMProblem):
     """
-    A MT problem soving a e formulation and primary/secondary fields decomposion.
+    A NSEM problem soving a e formulation and primary/secondary fields decomposion.
 
     By eliminating the magnetic flux density using
 
@@ -30,14 +30,14 @@ class eForm_psField(BaseMTProblem):
 
 
     """
-    # From FDEMproblem: Used to project the fields. Currently not used for MTproblem.
+    # From FDEMproblem: Used to project the fields. Currently not used for NSEMproblem.
     _fieldType = 'e_1d'
     _eqLocs    = 'EF'
     _sigmaPrimary = None
 
 
     def __init__(self, mesh, **kwargs):
-        BaseMTProblem.__init__(self, mesh, **kwargs)
+        BaseNSEMProblem.__init__(self, mesh, **kwargs)
         self.fieldsPair = Fields1D_e
         # self._sigmaPrimary = sigmaPrimary
     @property
@@ -167,9 +167,9 @@ class eForm_psField(BaseMTProblem):
 # Fields class corresponding to the fields
 # Update Jvec and Jtvec to include all the derivatives components
 # Other things ...
-class eForm_TotalField(BaseMTProblem):
+class eForm_TotalField(BaseNSEMProblem):
     """
-    A MT problem solving a e formulation and a Total bondary domain decompostion.
+    A NSEM problem solving a e formulation and a Total bondary domain decompostion.
 
     Solves the equation:
 
@@ -178,13 +178,13 @@ class eForm_TotalField(BaseMTProblem):
 
     """
 
-    # From FDEMproblem: Used to project the fields. Currently not used for MTproblem.
+    # From FDEMproblem: Used to project the fields. Currently not used for NSEMproblem.
     _fieldType = 'e'
     _eqLocs    = 'EF'
 
 
     def __init__(self, mesh, **kwargs):
-        BaseMTProblem.__init__(self, mesh, **kwargs)
+        BaseNSEMProblem.__init__(self, mesh, **kwargs)
     @property
     def MeMui(self):
         """

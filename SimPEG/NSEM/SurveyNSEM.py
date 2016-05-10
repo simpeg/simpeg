@@ -4,7 +4,7 @@ from SimPEG.EM.Utils import omega
 from scipy.constants import mu_0
 from numpy.lib import recfunctions as recFunc
 from Utils import rec2ndarr
-import SrcMT
+import SrcNSEM
 import sys
 
 #################
@@ -63,9 +63,9 @@ class Rx(SimPEGsurvey.BaseRx):
         '''
         Project the fields to natural source data.
 
-            :param SrcMT src: The source of the fields to project
+            :param SrcNSEM src: The source of the fields to project
             :param SimPEG.Mesh mesh:
-            :param FieldsMT f: Natural source fields object to project
+            :param FieldsNSEM f: Natural source fields object to project
         '''
 
         ## NOTE: Assumes that e is on t
@@ -143,9 +143,9 @@ class Rx(SimPEGsurvey.BaseRx):
         """
         The derivative of the projection wrt u
 
-        :param MTsrc src: MT source
+        :param NSEMsrc src: NSEM source
         :param TensorMesh mesh: Mesh defining the topology of the problem
-        :param MTfields f: MT fields object of the source
+        :param NSEMfields f: NSEM fields object of the source
         :param numpy.ndarray v: Random vector of size
         """
 
@@ -390,12 +390,12 @@ class Rx(SimPEGsurvey.BaseRx):
 #################
 class Survey(SimPEGsurvey.BaseSurvey):
     """
-        Survey class for MT. Contains all the sources associated with the survey.
+        Survey class for NSEM. Contains all the sources associated with the survey.
 
         :param list srcList: List of sources associated with the survey
 
     """
-    srcPair = SrcMT.BaseMTSrc
+    srcPair = SrcNSEM.BaseNSEMSrc
 
     def __init__(self, srcList, **kwargs):
         # Sort these by frequency
@@ -443,7 +443,7 @@ class Survey(SimPEGsurvey.BaseSurvey):
 #################
 class Data(SimPEGsurvey.Data):
     '''
-    Data class for MTdata. Stores the data vector indexed by the survey.
+    Data class for NSEMdata. Stores the data vector indexed by the survey.
 
     :param SimPEG survey object survey:
     :param v vector of the data in order matching of the survey
@@ -461,7 +461,7 @@ class Data(SimPEGsurvey.Data):
 
     def toRecArray(self,returnType='RealImag'):
         '''
-        Function that returns a numpy.recarray for a SimpegMT impedance data object.
+        Function that returns a numpy.recarray for a SimpegNSEM impedance data object.
 
         :param str returnType: Switches between returning a rec array where the impedance is split to real and imaginary ('RealImag') or is a complex ('Complex')
 
@@ -483,7 +483,7 @@ class Data(SimPEGsurvey.Data):
                 locs = np.hstack((np.array([[0.0]]),locs))
             tArrRec = np.concatenate((src.freq*np.ones((locs.shape[0],1)),locs,np.nan*np.ones((locs.shape[0],12))),axis=1).view(dtRI)
             # np.array([(src.freq,rx.locs[0,0],rx.locs[0,1],rx.locs[0,2],np.nan ,np.nan ,np.nan ,np.nan ,np.nan ,np.nan ,np.nan ,np.nan ) for rx in src.rxList],dtype=dtRI)
-            # Get the type and the value for the DataMT object as a list
+            # Get the type and the value for the DataNSEM object as a list
             typeList = [[rx.rxType.replace('z1d','zyx'),self[src,rx]] for rx in src.rxList]
             # Insert the values to the temp array
             for nr,(key,val) in enumerate(typeList):
@@ -517,17 +517,17 @@ class Data(SimPEGsurvey.Data):
     @classmethod
     def fromRecArray(cls, recArray, srcType='primary'):
         """
-        Class method that reads in a numpy record array to MTdata object.
+        Class method that reads in a numpy record array to NSEMdata object.
 
         Only imports the impedance data.
 
         """
         if srcType=='primary':
-            src = SrcMT.polxy_1Dprimary
+            src = SrcNSEM.polxy_1Dprimary
         elif srcType=='total':
-            src = SrcMT.polxy_1DhomotD
+            src = SrcNSEM.polxy_1DhomotD
         else:
-            raise NotImplementedError('{:s} is not a valid source type for MTdata')
+            raise NotImplementedError('{:s} is not a valid source type for NSEMdata')
 
         # Find all the frequencies in recArray
         uniFreq = np.unique(recArray['freq'])

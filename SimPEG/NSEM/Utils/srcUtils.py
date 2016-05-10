@@ -15,7 +15,7 @@ def homo1DModelSource(mesh,freq,m_back):
     '''
 
     # import
-    from SimPEG.MT.Utils import get1DEfields
+    from SimPEG.NSEM.Utils import get1DEfields
     # Get a 1d solution for a halfspace background
     mesh1d = simpeg.Mesh.TensorMesh([mesh.hz],np.array([mesh.x0[2]]))
     # Note: Everything is using e^iwt

@@ -12,7 +12,7 @@ def homo1DModelSource(mesh,freq,sigma_1d):
 
     '''
     # import
-    from SimPEG.MT.Utils import get1DEfields
+    from SimPEG.NSEM.Utils import get1DEfields
     # Get a 1d solution for a halfspace background
     if mesh.dim == 1:
         mesh1d = mesh
@@ -77,7 +77,7 @@ def analytic1DModelSource(mesh,freq,sigma_1d):
 
     '''
     # import
-    from SimPEG.MT.Utils import getEHfields
+    from SimPEG.NSEM.Utils import getEHfields
     # Get a 1d solution for a halfspace background
     if mesh.dim == 1:
         mesh1d = mesh

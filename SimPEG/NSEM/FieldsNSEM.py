@@ -7,15 +7,15 @@ from SimPEG.EM.Utils import omega
 ##############
 ### Fields ###
 ##############
-class BaseMTFields(Problem.Fields):
-    """Field Storage for a MT survey."""
+class BaseNSEMFields(Problem.Fields):
+    """Field Storage for a NSEM survey."""
     knownFields = {}
     dtype = complex
 
 
-class Fields1D_e(BaseMTFields):
+class Fields1D_e(BaseNSEMFields):
     """
-    Fields storage for the 1D MT solution.
+    Fields storage for the 1D NSEM solution.
     """
     knownFields = {'e_1dSolution':'F'}
     aliasFields = {
@@ -28,7 +28,7 @@ class Fields1D_e(BaseMTFields):
                   }
 
     def __init__(self,mesh,survey,**kwargs):
-        BaseMTFields.__init__(self,mesh,survey,**kwargs)
+        BaseNSEMFields.__init__(self,mesh,survey,**kwargs)
 
     def _ePrimary(self, eSolution, srcList):
         ePrimary = np.zeros_like(eSolution)
@@ -99,7 +99,7 @@ class Fields1D_e(BaseMTFields):
         """
         Derivative of the fields object wrt u.
 
-        :param MTsrc src: MT source
+        :param NSEMsrc src: NSEM source
         :param numpy.ndarray v: random vector of f_sol.size
         This function stacks the fields derivatives appropriately
 
@@ -120,9 +120,9 @@ class Fields1D_e(BaseMTFields):
         """
         return None
 
-class Fields3D_e(BaseMTFields):
+class Fields3D_e(BaseNSEMFields):
     """
-    Fields storage for the 3D MT solution. Labels polarizations by px and py.
+    Fields storage for the 3D NSEM solution. Labels polarizations by px and py.
 
         :param SimPEG object mesh: The solution mesh
         :param SimPEG object survey: A survey object
@@ -147,7 +147,7 @@ class Fields3D_e(BaseMTFields):
                   }
 
     def __init__(self,mesh,survey,**kwargs):
-        BaseMTFields.__init__(self,mesh,survey,**kwargs)
+        BaseNSEMFields.__init__(self,mesh,survey,**kwargs)
 
     def _e_pxPrimary(self, e_pxSolution, srcList):
         e_pxPrimary = np.zeros_like(e_pxSolution)
@@ -228,7 +228,7 @@ class Fields3D_e(BaseMTFields):
         b = (C * e_pxSolution)
         for i, src in enumerate(srcList):
             b[:,i] *= - 1./(1j*omega(src.freq))
-            # There is no magnetic source in the MT problem
+            # There is no magnetic source in the NSEM problem
             # S_m, _ = src.eval(self.survey.prob)
             # if S_m is not None:
             #     b[:,i] += 1./(1j*omega(src.freq)) * S_m
@@ -239,7 +239,7 @@ class Fields3D_e(BaseMTFields):
         b = (C * e_pySolution)
         for i, src in enumerate(srcList):
             b[:,i] *= - 1./(1j*omega(src.freq))
-            # There is no magnetic source in the MT problem
+            # There is no magnetic source in the NSEM problem
             # S_m, _ = src.eval(self.survey.prob)
             # if S_m is not None:
             #     b[:,i] += 1./(1j*omega(src.freq)) * S_m
@@ -302,7 +302,7 @@ class Fields3D_e(BaseMTFields):
         """
         Derivative of the fields object wrt u.
 
-        :param MTsrc src: MT source
+        :param NSEMsrc src: NSEM source
         :param numpy.ndarray v: random vector of f_sol.size
         This function stacks the fields derivatives appropriately
 
@@ -319,7 +319,7 @@ class Fields3D_e(BaseMTFields):
         """
         Derivative of the fields object wrt u.
 
-        :param MTsrc src: MT source
+        :param NSEMsrc src: NSEM source
         :param numpy.ndarray v: random vector of f_sol.size
         This function stacks the fields derivatives appropriately
 

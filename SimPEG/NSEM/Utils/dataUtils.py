@@ -5,25 +5,25 @@ import numpy.lib.recfunctions as recFunc
 from scipy.constants import mu_0
 from scipy import interpolate as sciint
 
-def getAppRes(MTdata):
+def getAppRes(NSEMdata):
     # Make impedance
     zList = []
-    for src in MTdata.survey.srcList:
+    for src in NSEMdata.survey.srcList:
         zc = [src.freq]
         for rx in src.rxList:
             if 'i' in rx.rxType:
                 m=1j
             else:
                 m = 1
-            zc.append(m*MTdata[src,rx])
+            zc.append(m*NSEMdata[src,rx])
         zList.append(zc)
     return [appResPhs(zList[i][0],np.sum(zList[i][1:3])) for i in np.arange(len(zList))]
 
-def rotateData(MTdata,rotAngle):
+def rotateData(NSEMdata,rotAngle):
     '''
     Function that rotates clockwist by rotAngle (- negative for a counter-clockwise rotation)
     '''
-    recData = MTdata.toRecArray('Complex')
+    recData = NSEMdata.toRecArray('Complex')
     impData = rec2ndarr(recData[['zxx','zxy','zyx','zyy']],complex)
     # Make the rotation matrix
     # c,s,zxx,zxy,zyx,zyy = sympy.symbols('c,s,zxx,zxy,zyx,zyy')
@@ -40,8 +40,8 @@ def rotateData(MTdata,rotAngle):
     for nr,comp in enumerate(['zxx','zxy','zyx','zyy']):
         outRec[comp] = rotData[:,nr]
 
-    from SimPEG import MT
-    return MT.Data.fromRecArray(outRec)
+    from SimPEG import NSEM
+    return NSEM.Data.fromRecArray(outRec)
 
 
 def appResPhs(freq,z):
@@ -57,10 +57,10 @@ def rec2ndarr(x,dt=float):
     return x.view((dt, len(x.dtype.names)))
 
 def makeAnalyticSolution(mesh,model,elev,freqs):
-    from SimPEG import MT
+    from SimPEG import NSEM
     data1D = []
     for freq in freqs:
-        anaEd, anaEu, anaHd, anaHu = MT.Utils.MT1Danalytic.getEHfields(mesh,model,freq,elev)
+        anaEd, anaEu, anaHd, anaHu = NSEM.Utils.MT1Danalytic.getEHfields(mesh,model,freq,elev)
         anaE = anaEd+anaEu
         anaH = anaHd+anaHu
 
@@ -71,7 +71,7 @@ def makeAnalyticSolution(mesh,model,elev,freqs):
     return dataRec
 
 def plotMT1DModelData(problem,models,symList=None):
-    from SimPEG import MT
+    from SimPEG import NSEM
     # Setup the figure
     fontSize = 15
 
@@ -214,11 +214,11 @@ def printTime():
     import time
     print time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.localtime())
 
-def convert3Dto1Dobject(MTdata,rxType3D='zyx'):
-    from SimPEG import MT
+def convert3Dto1Dobject(NSEMdata,rxType3D='zyx'):
+    from SimPEG import NSEM
     # Find the unique locations
     # Need to find the locations
-    recDataTemp = MTdata.toRecArray()
+    recDataTemp = NSEMdata.toRecArray()
     # Check if survey.std has been assigned.
     ## NEED TO: write this...
     # Calculte and add the DET of the tensor to the recArray
@@ -240,24 +240,24 @@ def convert3Dto1Dobject(MTdata,rxType3D='zyx'):
         # Make the receiver list
         rx1DList = []
         for rxType in ['z1dr','z1di']:
-            rx1DList.append(MT.Rx(simpeg.mkvc(loc,2).T,rxType))
+            rx1DList.append(NSEM.Rx(simpeg.mkvc(loc,2).T,rxType))
         # Source list
         locrecData = recData[np.sqrt(np.sum( (rec2ndarr(recData[['x','y','z']]).data - loc )**2,axis=1)) < 1e-5]
         dat1DList = []
         src1DList = []
         for freq in locrecData['freq']:
-            src1DList.append(MT.SrcMT.src_polxy_1Dprimary(rx1DList,freq))
+            src1DList.append(NSEM.SrcNSEM.src_polxy_1Dprimary(rx1DList,freq))
             for comp  in ['r','i']:
                 dat1DList.append( corr * locrecData[rxType3D+comp][locrecData['freq']== freq].data )
 
         # Make the survey
-        sur1D = MT.Survey(src1DList)
+        sur1D = NSEM.Survey(src1DList)
 
         # Make the data
         dataVec = np.hstack(dat1DList)
-        dat1D = MT.Data(sur1D,dataVec)
+        dat1D = NSEM.Data(sur1D,dataVec)
         sur1D.dobs = dataVec
-        # Need to take MTdata.survey.std and split it as well.
+        # Need to take NSEMdata.survey.std and split it as well.
         std=0.05
         sur1D.std =  np.abs(sur1D.dobs*std) #+ 0.01*np.linalg.norm(sur1D.dobs)
         mtData1DList.append(dat1D)
@@ -265,29 +265,29 @@ def convert3Dto1Dobject(MTdata,rxType3D='zyx'):
     # Return the the list of data.
     return mtData1DList
 
-def resampleMTdataAtFreq(MTdata,freqs):
+def resampleNSEMdataAtFreq(NSEMdata,freqs):
     """
-    Function to resample MTdata at set of frequencies
+    Function to resample NSEMdata at set of frequencies
 
     """
-    from SimPEG import MT
+    from SimPEG import NSEM
     # Make a rec array
-    MTrec = MTdata.toRecArray().data
+    NSEMrec = NSEMdata.toRecArray().data
 
     # Find unique locations
-    uniLoc = np.unique(MTrec[['x','y','z']])
-    uniFreq = MTdata.survey.freqs
+    uniLoc = np.unique(NSEMrec[['x','y','z']])
+    uniFreq = NSEMdata.survey.freqs
     # Get the comps
-    dNames = MTrec.dtype
+    dNames = NSEMrec.dtype
 
     # Loop over all the locations and interpolate
     for loc in uniLoc:
         # Find the index of the station
-        ind = np.sqrt(np.sum((rec2ndarr(MTrec[['x','y','z']]) - rec2ndarr(loc))**2,axis=1)) < 1. # Find dist of 1 m accuracy
+        ind = np.sqrt(np.sum((rec2ndarr(NSEMrec[['x','y','z']]) - rec2ndarr(loc))**2,axis=1)) < 1. # Find dist of 1 m accuracy
         # Make a temporary recArray and interpolate all the components
         tArrRec = np.concatenate((simpeg.mkvc(freqs,2),np.ones((len(freqs),1))*rec2ndarr(loc),np.nan*np.ones((len(freqs),12))),axis=1).view(dNames)
         for comp in ['zxxr','zxxi','zxyr','zxyi','zyxr','zyxi','zyyr','zyyi','tzxr','tzxi','tzyr','tzyi']:
-            int1d = sciint.interp1d(MTrec[ind]['freq'],MTrec[ind][comp],bounds_error=False)
+            int1d = sciint.interp1d(NSEMrec[ind]['freq'],NSEMrec[ind][comp],bounds_error=False)
             tArrRec[comp] = simpeg.mkvc(int1d(freqs),2)
 
         # Join together
@@ -296,5 +296,5 @@ def resampleMTdataAtFreq(MTdata,freqs):
         except NameError as e:
             outRecArr = tArrRec
 
-    # Make the MTdata and return
-    return MT.Data.fromRecArray(outRecArr)
+    # Make the NSEMdata and return
+    return NSEM.Data.fromRecArray(outRecArr)

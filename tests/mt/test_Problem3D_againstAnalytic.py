@@ -3,7 +3,7 @@ from glob import glob
 import numpy as np, sys, os, time, scipy, subprocess
 import SimPEG as simpeg
 import unittest
-from SimPEG import MT
+from SimPEG import NSEM
 from SimPEG.Utils import meshTensor
 from scipy.constants import mu_0
 
@@ -98,40 +98,40 @@ def twoLayer(conds):
 
 
 
-def setupSimpegMTfwd_eForm_ps(inputSetup,comp='Imp',singleFreq=False,expMap=True):
+def setupSimpegNSEMfwd_eForm_ps(inputSetup,comp='Imp',singleFreq=False,expMap=True):
     M,freqs,sig,sigBG,rx_loc = inputSetup
     # Make a receiver list
     rxList = []
     if comp == 'All':
         for rxType in ['zxxr','zxxi','zxyr','zxyi','zyxr','zyxi','zyyr','zyyi','tzxr','tzxi','tzyr','tzyi']:
-            rxList.append(MT.Rx(rx_loc,rxType))
+            rxList.append(NSEM.Rx(rx_loc,rxType))
     elif comp == 'Imp':
         for rxType in ['zxxr','zxxi','zxyr','zxyi','zyxr','zyxi','zyyr','zyyi']:
-            rxList.append(MT.Rx(rx_loc,rxType))
+            rxList.append(NSEM.Rx(rx_loc,rxType))
     elif comp == 'Tip':
         for rxType in ['tzxr','tzxi','tzyr','tzyi']:
-            rxList.append(MT.Rx(rx_loc,rxType))
+            rxList.append(NSEM.Rx(rx_loc,rxType))
     else:
-        rxList.append(MT.Rx(rx_loc,comp))
+        rxList.append(NSEM.Rx(rx_loc,comp))
     # Source list
     srcList =[]
 
     if singleFreq:
-        srcList.append(MT.SrcMT.polxy_1Dprimary(rxList,singleFreq))
+        srcList.append(NSEM.SrcNSEM.polxy_1Dprimary(rxList,singleFreq))
     else:
         for freq in freqs:
-            srcList.append(MT.SrcMT.polxy_1Dprimary(rxList,freq))
-    # Survey MT
-    survey = MT.Survey(srcList)
+            srcList.append(NSEM.SrcNSEM.polxy_1Dprimary(rxList,freq))
+    # Survey NSEM
+    survey = NSEM.Survey(srcList)
 
     ## Setup the problem object
     sigma1d = M.r(sigBG,'CC','CC','M')[0,0,:]
     if expMap:
-        problem = MT.Problem3D.eForm_ps(M,sigmaPrimary= np.log(sigma1d) )
+        problem = NSEM.Problem3D.eForm_ps(M,sigmaPrimary= np.log(sigma1d) )
         problem.mapping = simpeg.Maps.ExpMap(problem.mesh)
         problem.curModel = np.log(sig)
     else:
-        problem = MT.Problem3D.eForm_ps(M,sigmaPrimary= sigma1d)
+        problem = NSEM.Problem3D.eForm_ps(M,sigmaPrimary= sigma1d)
         problem.curModel = sig
     problem.pair(survey)
     problem.verbose = False
@@ -143,18 +143,18 @@ def setupSimpegMTfwd_eForm_ps(inputSetup,comp='Imp',singleFreq=False,expMap=True
 
     return (survey, problem)
 
-def getAppResPhs(MTdata):
+def getAppResPhs(NSEMdata):
     # Make impedance
     def appResPhs(freq,z):
         app_res = ((1./(8e-7*np.pi**2))/freq)*np.abs(z)**2
         app_phs = np.arctan2(z.imag,z.real)*(180/np.pi)
         return app_res, app_phs
-    recData = MTdata.toRecArray('Complex')
+    recData = NSEMdata.toRecArray('Complex')
     return appResPhs(recData['freq'],recData['zxy']), appResPhs(recData['freq'],recData['zyx'])
 
 def JvecAdjointTest(inputSetup,comp='All',freq=False):
     (M, freqs, sig, sigBG, rx_loc) = inputSetup
-    survey, problem = setupSimpegMTfwd_eForm_ps(inputSetup,comp='All',singleFreq=freq)
+    survey, problem = setupSimpegNSEMfwd_eForm_ps(inputSetup,comp='All',singleFreq=freq)
     print 'Adjoint test of eForm primary/secondary for {:s} comp at {:s}\n'.format(comp,str(survey.freqs))
 
     m  = sig
@@ -174,7 +174,7 @@ def JvecAdjointTest(inputSetup,comp='All',freq=False):
 # Test the Jvec derivative
 def DerivJvecTest(inputSetup,comp='All',freq=False,expMap=True):
     (M, freqs, sig, sigBG, rx_loc) = inputSetup
-    survey, problem = setupSimpegMTfwd_eForm_ps(inputSetup,comp=comp,singleFreq=freq,expMap=expMap)
+    survey, problem = setupSimpegNSEMfwd_eForm_ps(inputSetup,comp=comp,singleFreq=freq,expMap=expMap)
     print 'Derivative test of Jvec for eForm primary/secondary for {:s} comp at {:s}\n'.format(comp,survey.freqs)
     # problem.mapping = simpeg.Maps.ExpMap(problem.mesh)
     # problem.sigmaPrimary = np.log(sigBG)
@@ -191,7 +191,7 @@ def DerivJvecTest(inputSetup,comp='All',freq=False,expMap=True):
 
 def DerivProjfieldsTest(inputSetup,comp='All',freq=False):
 
-    survey, problem = setupSimpegMTfwd_eForm_ps(inputSetup,comp,freq)
+    survey, problem = setupSimpegNSEMfwd_eForm_ps(inputSetup,comp,freq)
     print 'Derivative test of data projection for eFormulation primary/secondary\n\n'
     # problem.mapping = simpeg.Maps.ExpMap(problem.mesh)
     # Initate things for the derivs Test
@@ -220,7 +220,7 @@ def appResPhsHalfspace_eFrom_ps_Norm(sigmaHalf,appR=True,expMap=False):
     else:
         label = 'phase'
     # Make the survey and the problem
-    survey, problem = setupSimpegMTfwd_eForm_ps(halfSpace(sigmaHalf),expMap=expMap)
+    survey, problem = setupSimpegNSEMfwd_eForm_ps(halfSpace(sigmaHalf),expMap=expMap)
     print 'Apperent {:s} test of eFormulation primary/secondary at {:g}\n\n'.format(label,sigmaHalf)
 
     data = problem.dataPair(survey,survey.dpred(problem.curModel))
