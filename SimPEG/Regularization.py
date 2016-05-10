@@ -469,10 +469,6 @@ class Simple(BaseRegularization):
             self._W = sp.vstack(wlist)
         return self._W
 
-    @Utils.timeIt
-    def _evalSmall(self, m):
-        r = self.Wsmall * ( self.mapping * (m - self.mref) )
-        return 0.5 * r.dot(r)
 
     @property
     def W(self):
