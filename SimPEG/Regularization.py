@@ -409,7 +409,7 @@ class Simple(BaseRegularization):
     """
 
     mrefInSmooth = False  #: SMOOTH and SMOOTH_MOD_DIF options
-    alpha_s      = Utils.dependentProperty('_alpha_s', 1e-6, ['_W', '_Wsmall'], "Smallness weight")
+    alpha_s      = Utils.dependentProperty('_alpha_s', 1.0, ['_W', '_Wsmall'], "Smallness weight")
     alpha_x      = Utils.dependentProperty('_alpha_x',  1.0, ['_W', '_Wx'],     "Weight for the first derivative in the x direction")
     alpha_y      = Utils.dependentProperty('_alpha_y',  1.0, ['_W', '_Wy'],     "Weight for the first derivative in the y direction")
     alpha_z      = Utils.dependentProperty('_alpha_z',  1.0, ['_W', '_Wz'],     "Weight for the first derivative in the z direction")
