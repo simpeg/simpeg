@@ -188,6 +188,6 @@ other types of meshes in this SimPEG framework.
 The API
 =======
 
-.. automodule:: SimPEG.Mesh.BaseMesh
+.. autoclass:: SimPEG.Mesh.BaseMesh
     :members:
     :undoc-members:

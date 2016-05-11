@@ -67,13 +67,13 @@ The API
 
 Problem
 -------
-.. automodule:: SimPEG.Problem
+.. autoclass:: SimPEG.Problem
     :members:
     :undoc-members:
 
 Survey
 ------
-.. automodule:: SimPEG.Survey
+.. autoclass:: SimPEG.Survey
     :members:
     :undoc-members:
 

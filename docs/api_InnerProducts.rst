@@ -266,6 +266,6 @@ These are computed for each of the 8 projections, horizontally concatenated, and
 The API
 -------
 
-.. automodule:: SimPEG.Mesh.InnerProducts
+.. autoclass:: SimPEG.Mesh.InnerProducts
     :members:
     :undoc-members:

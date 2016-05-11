@@ -7,8 +7,8 @@ class BaseMesh(object):
     BaseMesh does all the counting you don't want to do.
     BaseMesh should be inherited by meshes with a regular structure.
 
-    :param numpy.array,list n: number of cells in each direction (dim, )
-    :param numpy.array,list x0: Origin of the mesh (dim, )
+    :param numpy.array n: (or list) number of cells in each direction (dim, )
+    :param numpy.array x0: (or list) Origin of the mesh (dim, )
 
     """
 
@@ -34,8 +34,8 @@ class BaseMesh(object):
         """
         Origin of the mesh
 
-        :rtype: numpy.array (dim, )
-        :return: x0
+        :rtype: numpy.array 
+        :return: x0, (dim, )
         """
         return self._x0
 
@@ -116,8 +116,8 @@ class BaseMesh(object):
         """
         Total number of edges in each direction
 
-        :rtype: numpy.array (dim, )
-        :return: [nEx, nEy, nEz]
+        :rtype: numpy.array 
+        :return: [nEx, nEy, nEz], (dim, )
 
         .. plot::
             :include-source:
@@ -173,8 +173,8 @@ class BaseMesh(object):
         """
         Total number of faces in each direction
 
-        :rtype: numpy.array (dim, )
-        :return: [nFx, nFy, nFz]
+        :rtype: numpy.array
+        :return: [nFx, nFy, nFz], (dim, )
 
         .. plot::
             :include-source:
@@ -200,8 +200,8 @@ class BaseMesh(object):
         """
         Face Normals
 
-        :rtype: numpy.array (sum(nF), dim)
-        :return: normals
+        :rtype: numpy.array 
+        :return: normals, (sum(nF), dim)
         """
         if self.dim == 2:
             nX = np.c_[np.ones(self.nFx), np.zeros(self.nFx)]
@@ -218,8 +218,8 @@ class BaseMesh(object):
         """
         Edge Tangents
 
-        :rtype: numpy.array (sum(nE), dim)
-        :return: normals
+        :rtype: numpy.array 
+        :return: normals, (sum(nE), dim)
         """
         if self.dim == 2:
             tX = np.c_[np.ones(self.nEx), np.zeros(self.nEx)]
@@ -236,8 +236,9 @@ class BaseMesh(object):
         Given a vector, fV, in cartesian coordinates, this will project it onto the mesh using the normals
 
         :param numpy.array fV: face vector with shape (nF, dim)
-        :rtype: numpy.array with shape (nF, )
-        :return: projected face vector
+        :rtype: numpy.array
+        :return: projected face vector, (nF, )
+
         """
         assert isinstance(fV, np.ndarray), 'fV must be an ndarray'
         assert len(fV.shape) == 2 and fV.shape[0] == self.nF and fV.shape[1] == self.dim, 'fV must be an ndarray of shape (nF x dim)'
@@ -248,8 +249,9 @@ class BaseMesh(object):
         Given a vector, eV, in cartesian coordinates, this will project it onto the mesh using the tangents
 
         :param numpy.array eV: edge vector with shape (nE, dim)
-        :rtype: numpy.array with shape (nE, )
-        :return: projected edge vector
+        :rtype: numpy.array
+        :return: projected edge vector, (nE, )
+
         """
         assert isinstance(eV, np.ndarray), 'eV must be an ndarray'
         assert len(eV.shape) == 2 and eV.shape[0] == self.nE and eV.shape[1] == self.dim, 'eV must be an ndarray of shape (nE x dim)'
