@@ -84,12 +84,12 @@ def run(N=200, plotIt=True):
 #==============================================================================
 
     #reg.recModel = mrec
-    reg.wght = np.ones(mesh.nC)
+    # reg.cell_weight = np.ones(mesh.nC)
     reg.mref = np.zeros(mesh.nC)
     reg.eps_p = 5e-2
     reg.eps_q = 1e-2
     reg.norms   = [0., 0., 2., 2.]
-    reg.wght = wr
+    reg.cell_weight = wr
 
     opt = Optimization.ProjectedGNCG(maxIter=10 ,lower=-2.,upper=2., maxIterLS = 20, maxIterCG= 20, tolCG = 1e-3)
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta = invProb.beta*2.)

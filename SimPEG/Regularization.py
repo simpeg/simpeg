@@ -410,11 +410,11 @@ class Simple(BaseRegularization):
     Simple regularization that does not include length scales in the derivatives.
     """
 
-    mrefInSmooth = False  #: SMOOTH and SMOOTH_MOD_DIF options
+    mrefInSmooth = False  #: include mref in the smoothness?
     alpha_s      = Utils.dependentProperty('_alpha_s', 1.0, ['_W', '_Wsmall'], "Smallness weight")
-    alpha_x      = Utils.dependentProperty('_alpha_x',  1.0, ['_W', '_Wx'],     "Weight for the first derivative in the x direction")
-    alpha_y      = Utils.dependentProperty('_alpha_y',  1.0, ['_W', '_Wy'],     "Weight for the first derivative in the y direction")
-    alpha_z      = Utils.dependentProperty('_alpha_z',  1.0, ['_W', '_Wz'],     "Weight for the first derivative in the z direction")
+    alpha_x      = Utils.dependentProperty('_alpha_x', 1.0, ['_W', '_Wx'],     "Weight for the first derivative in the x direction")
+    alpha_y      = Utils.dependentProperty('_alpha_y', 1.0, ['_W', '_Wy'],     "Weight for the first derivative in the y direction")
+    alpha_z      = Utils.dependentProperty('_alpha_z', 1.0, ['_W', '_Wz'],     "Weight for the first derivative in the z direction")
     cell_weights = 1.
 
     def __init__(self, mesh, mapping=None, indActive=None, **kwargs):
@@ -454,6 +454,8 @@ class Simple(BaseRegularization):
     @property
     def Wsmooth(self):
         """Full smoothness regularization matrix W"""
+        print 'wtf why are we using Wsmooth'
+        raise NotImplementedError
         if getattr(self, '_Wsmooth', None) is None:
             wlist = (self.Wx,)
             if self.regmesh.dim > 1:
@@ -481,6 +483,13 @@ class Simple(BaseRegularization):
     def _evalSmallDeriv(self, m):
         r = self.Wsmall * ( self.mapping * (m - self.mref) )
         return r.T * ( self.Wsmall * self.mapping.deriv(m - self.mref) )
+
+    @Utils.timeIt
+    def _evalSmall2Deriv(self, m, v = None):
+        rDeriv = self.Wsmall * ( self.mapping.deriv(m - self.mref) )
+        if v is not None:
+            return rDeriv.T * (rDeriv * v)
+        return rDeriv.T * rDeriv
 
     @Utils.timeIt
     def _evalSmoothx(self, m):
@@ -525,6 +534,17 @@ class Simple(BaseRegularization):
             return r.T * ( self.Wx * self.mapping.deriv(m) )
 
     @Utils.timeIt
+    def _evalSmoothx2Deriv(self, m, v=None):
+        if self.mrefInSmooth == True:
+            rDeriv = self.Wx * ( self.mapping.deriv( m - self.mref ) )
+        elif self.mrefInSmooth == False:
+            rDeriv = self.Wx * ( self.mapping.deriv(m) )
+
+        if v is not None:
+            return rDeriv.T * ( rDeriv * v )
+        return rDeriv.T * rDeriv
+
+    @Utils.timeIt
     def _evalSmoothyDeriv(self, m):
         if self.mrefInSmooth == True:
             r = self.Wy * ( self.mapping * ( m - self.mref ) )
@@ -532,6 +552,17 @@ class Simple(BaseRegularization):
         elif self.mrefInSmooth == False:
             r = self.Wy * ( self.mapping * m )
             return r.T * ( self.Wy * self.mapping.deriv(m) )
+
+    @Utils.timeIt
+    def _evalSmoothy2Deriv(self, m, v=None):
+        if self.mrefInSmooth == True:
+            rDeriv = self.Wy * ( self.mapping.deriv( m - self.mref ) )
+        elif self.mrefInSmooth == False:
+            rDeriv = self.Wy * ( self.mapping.deriv(m) )
+
+        if v is not None:
+            return rDeriv.T * ( rDeriv * v )
+        return rDeriv.T * rDeriv
 
     @Utils.timeIt
     def _evalSmoothzDeriv(self, m):
@@ -543,12 +574,32 @@ class Simple(BaseRegularization):
             return r.T * ( self.Wz * self.mapping.deriv(m) )
 
     @Utils.timeIt
+    def _evalSmoothz2Deriv(self, m, v=None):
+        if self.mrefInSmooth == True:
+            rDeriv = self.Wz * ( self.mapping.deriv( m - self.mref ) )
+        elif self.mrefInSmooth == False:
+            rDeriv = self.Wz * ( self.mapping.deriv(m) )
+
+        if v is not None:
+            return rDeriv.T * ( rDeriv * v )
+        return rDeriv.T * rDeriv
+
+    @Utils.timeIt
     def _evalSmoothDeriv(self, m):
         deriv = self._evalSmoothxDeriv(m)
         if self.regmesh.dim > 1:
             deriv += self._evalSmoothyDeriv(m)
         if self.regmesh.dim > 2:
             deriv += self._evalSmoothzDeriv(m)
+        return deriv
+
+    @Utils.timeIt
+    def _evalSmooth2Deriv(self, m, v=None):
+        deriv = self._evalSmoothx2Deriv(m, v)
+        if self.regmesh.dim > 1:
+            deriv += self._evalSmoothy2Deriv(m, v)
+        if self.regmesh.dim > 2:
+            deriv += self._evalSmoothz2Deriv(m, v)
         return deriv
 
 
@@ -573,6 +624,10 @@ class Simple(BaseRegularization):
 
         """
         return self._evalSmallDeriv(m) + self._evalSmoothDeriv(m)
+
+    @Utils.timeIt
+    def eval2Deriv(self, m, v=None):
+        return self._evalSmall2Deriv(m, v) + self._evalSmooth2Deriv(m, v)
 
 
 
@@ -740,12 +795,51 @@ class Tikhonov(Simple):
             return r.T * ( self.Wzz * self.mapping.deriv(m) )
 
     @Utils.timeIt
-    def _evalSmooth2Deriv(self, m):
+    def _evalSmoothxx2Deriv(self, m, v=None):
+        if self.mrefInSmooth == True:
+            rDeriv = self.Wxx * ( self.mapping.deriv( m - self.mref ) )
+        elif self.mrefInSmooth == False:
+            rDeriv = self.Wxx * self.mapping.deriv(m)
+        if v is not None:
+            return rDeriv.T * (rDeriv * v)
+        return rDeriv.T * rDeriv
+
+    @Utils.timeIt
+    def _evalSmoothyy2Deriv(self, m, v=None):
+        if self.mrefInSmooth == True:
+            rDeriv = self.Wyy * ( self.mapping.deriv( m - self.mref ) )
+        elif self.mrefInSmooth == False:
+            rDeriv = self.Wyy * self.mapping.deriv(m)
+        if v is not None:
+            return rDeriv.T * (rDeriv * v)
+        return rDeriv.T * rDeriv
+
+    @Utils.timeIt
+    def _evalSmoothzz2Deriv(self, m, v=None):
+        if self.mrefInSmooth == True:
+            rDeriv = self.Wzz * ( self.mapping.deriv( m - self.mref ) )
+        elif self.mrefInSmooth == False:
+            rDeriv = self.Wzz * self.mapping.deriv(m)
+        if v is not None:
+            return rDeriv.T * (rDeriv * v)
+        return rDeriv.T * rDeriv
+
+    @Utils.timeIt
+    def _evalSmoothDeriv2(self, m):
         deriv = self._evalSmoothxxDeriv(m)
         if self.regmesh.dim > 1:
             deriv += self._evalSmoothyyDeriv(m)
         if self.regmesh.dim > 2:
             deriv += self._evalSmoothzzDeriv(m)
+        return deriv
+
+    @Utils.timeIt
+    def _evalSmooth2Deriv2(self, m, v=None):
+        deriv = self._evalSmoothxx2Deriv(m, v)
+        if self.regmesh.dim > 1:
+            deriv += self._evalSmoothyy2Deriv(m, v)
+        if self.regmesh.dim > 2:
+            deriv += self._evalSmoothzz2Deriv(m, v)
         return deriv
 
 
@@ -769,7 +863,24 @@ class Tikhonov(Simple):
             R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
 
         """
-        return self._evalSmallDeriv(m) + self._evalSmoothDeriv(m) + self._evalSmooth2Deriv(m)
+        return self._evalSmallDeriv(m) + self._evalSmoothDeriv(m) + self._evalSmoothDeriv2(m)
+
+    def eval2Deriv(self, m):
+        """
+        The regularization is:
+
+        .. math::
+
+            R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top W(m-m_\\text{ref})}
+
+        So the derivative is straight forward:
+
+        .. math::
+
+            R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
+
+        """
+        return self._evalSmall2Deriv(m) + self._evalSmooth2Deriv(m) + self._evalSmooth2Deriv2(m)
 
 
 
