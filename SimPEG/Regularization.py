@@ -865,7 +865,7 @@ class Tikhonov(Simple):
         """
         return self._evalSmallDeriv(m) + self._evalSmoothDeriv(m) + self._evalSmoothDeriv2(m)
 
-    def eval2Deriv(self, m):
+    def eval2Deriv(self, m, v=None):
         """
         The regularization is:
 
@@ -880,7 +880,7 @@ class Tikhonov(Simple):
             R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
 
         """
-        return self._evalSmall2Deriv(m) + self._evalSmooth2Deriv(m) + self._evalSmooth2Deriv2(m)
+        return self._evalSmall2Deriv(m, v) + self._evalSmooth2Deriv(m, v) + self._evalSmooth2Deriv2(m, v)
 
 
 
