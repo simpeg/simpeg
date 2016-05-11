@@ -469,7 +469,11 @@ class Simple(BaseRegularization):
     def W(self):
         """Full regularization matrix W"""
         if getattr(self, '_W', None) is None:
-            wlist = (self.Wsmall, self.Wsmooth)
+            wlist = (self.Wsmall, self.Wx)
+            if self.regmesh.dim > 1:
+                wlist += (self.Wy,)
+            if self.regmesh.dim > 2:
+                wlist += (self.Wz,)
             self._W = sp.vstack(wlist)
         return self._W
 
