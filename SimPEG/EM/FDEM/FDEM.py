@@ -1,7 +1,7 @@
 from SimPEG import Problem, Utils, np, sp, Solver as SimpegSolver
 from scipy.constants import mu_0
 from SurveyFDEM import Survey as SurveyFDEM
-from FieldsFDEM import Fields, Fields_e, Fields_b, Fields_h, Fields_j
+from FieldsFDEM import Fields, Fields3D_e, Fields3D_b, Fields3D_h, Fields3D_j
 from SimPEG.EM.Base import BaseEMProblem
 from SimPEG.EM.Utils import omega
 
@@ -17,8 +17,8 @@ class BaseFDEMProblem(BaseEMProblem):
             \mathbf{C} \mathbf{e} + i \omega \mathbf{b} = \mathbf{s_m} \\\\
             {\mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b} - \mathbf{M_{\sigma}^e} \mathbf{e} = \mathbf{s_e}}
 
-        if using the E-B formulation (:code:`Problem_e`
-        or :code:`Problem_b`). Note that in this case, :math:`\mathbf{s_e}` is an integrated quantity.
+        if using the E-B formulation (:code:`Problem3D_e`
+        or :code:`Problem3D_b`). Note that in this case, :math:`\mathbf{s_e}` is an integrated quantity.
 
         If we write Maxwell's equations in terms of
         \\\(\\\mathbf{h}\\\) and current density \\\(\\\mathbf{j}\\\)
@@ -28,7 +28,7 @@ class BaseFDEMProblem(BaseEMProblem):
             \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{j} + i \omega \mathbf{M_{\mu}^e} \mathbf{h} = \mathbf{s_m} \\\\
             \mathbf{C} \mathbf{h} - \mathbf{j} = \mathbf{s_e}
 
-        if using the H-J formulation (:code:`Problem_j` or :code:`Problem_h`). Note that here, :math:`\mathbf{s_m}` is an integrated quantity.
+        if using the H-J formulation (:code:`Problem3D_j` or :code:`Problem3D_h`). Note that here, :math:`\mathbf{s_m}` is an integrated quantity.
 
         The problem performs the elimination so that we are solving the system for \\\(\\\mathbf{e},\\\mathbf{b},\\\mathbf{j} \\\) or \\\(\\\mathbf{h}\\\)
     """
@@ -36,30 +36,29 @@ class BaseFDEMProblem(BaseEMProblem):
     surveyPair = SurveyFDEM
     fieldsPair = Fields
 
-    def fields(self, m=None):
+    def fields(self, m):
         """
         Solve the forward problem for the fields.
 
         :param numpy.array m: inversion model (nP,)
         :rtype numpy.array:
-        :return F: forward solution
+        :return f: forward solution
         """
 
         self.curModel = m
-        F = self.fieldsPair(self.mesh, self.survey)
+        f = self.fieldsPair(self.mesh, self.survey)
 
         for freq in self.survey.freqs:
             A = self.getA(freq)
             rhs = self.getRHS(freq)
             Ainv = self.Solver(A, **self.solverOpts)
-            sol = Ainv * rhs
+            u = Ainv * rhs
             Srcs = self.survey.getSrcByFreq(freq)
-            ftype = self._fieldType + 'Solution'
-            F[Srcs, ftype] = sol
+            f[Srcs, self._solutionType] = u
             Ainv.clean()
-        return F
+        return f
 
-    def Jvec(self, m, v, u=None):
+    def Jvec(self, m, v, f=None):
         """
         Sensitivity times a vector.
 
@@ -70,33 +69,31 @@ class BaseFDEMProblem(BaseEMProblem):
         :return: Jv (ndata,)
         """
 
-        if u is None:
-           u = self.fields(m)
+        if f is None:
+           f = self.fields(m)
 
         self.curModel = m
 
         Jv = self.dataPair(self.survey)
 
         for freq in self.survey.freqs:
-            A = self.getA(freq) #
-            Ainv = self.Solver(A, **self.solverOpts)
+            A = self.getA(freq)
+            Ainv = self.Solver(A, **self.solverOpts) # create the concept of Ainv (actually a solve)
 
             for src in self.survey.getSrcByFreq(freq):
-                ftype = self._fieldType + 'Solution'
-                u_src = u[src, ftype]
+                u_src = f[src, self._solutionType]
                 dA_dm_v = self.getADeriv(freq, u_src, v)
                 dRHS_dm_v = self.getRHSDeriv(freq, src, v)
                 du_dm_v = Ainv * ( - dA_dm_v + dRHS_dm_v )
 
                 for rx in src.rxList:
-                    df_dmFun = getattr(u, '_%sDeriv'%rx.projField, None)
+                    df_dmFun = getattr(f, '_%sDeriv'%rx.projField, None)
                     df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
-                    df_dm_v = np.array(df_dm_v, dtype=complex)
-                    Jv[src, rx] = rx.evalDeriv(src, self.mesh, u, df_dm_v)
+                    Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
             Ainv.clean()
         return Utils.mkvc(Jv)
 
-    def Jtvec(self, m, v, u=None):
+    def Jtvec(self, m, v, f=None):
         """
         Sensitivity transpose times a vector
 
@@ -107,8 +104,8 @@ class BaseFDEMProblem(BaseEMProblem):
         :return: Jv (ndata,)
         """
 
-        if u is None:
-            u = self.fields(m)
+        if f is None:
+            f = self.fields(m)
 
         self.curModel = m
 
@@ -123,13 +120,12 @@ class BaseFDEMProblem(BaseEMProblem):
             ATinv = self.Solver(AT, **self.solverOpts)
 
             for src in self.survey.getSrcByFreq(freq):
-                ftype = self._fieldType + 'Solution'
-                u_src = u[src, ftype]
+                u_src = f[src, self._solutionType]
 
                 for rx in src.rxList:
-                    PTv = rx.evalDeriv(src, self.mesh, u, v[src, rx], adjoint=True) # wrt u, need possibility wrt m
+                    PTv = rx.evalDeriv(src, self.mesh, f, v[src, rx], adjoint=True) # wrt f, need possibility wrt m
 
-                    df_duTFun = getattr(u, '_%sDeriv'%rx.projField, None)
+                    df_duTFun = getattr(f, '_%sDeriv'%rx.projField, None)
                     df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
 
                     ATinvdf_duT = ATinv * df_duT
@@ -138,14 +134,13 @@ class BaseFDEMProblem(BaseEMProblem):
                     dRHS_dmT = self.getRHSDeriv(freq, src, ATinvdf_duT, adjoint=True)
                     du_dmT = -dA_dmT + dRHS_dmT
 
-                    df_dmT += du_dmT
+                    df_dmT = df_dmT + du_dmT
 
                     # TODO: this should be taken care of by the reciever?
-                    real_or_imag = rx.projComp
-                    if real_or_imag is 'real':
-                        Jtv +=   np.array(df_dmT,dtype=complex).real
-                    elif real_or_imag is 'imag':
-                        Jtv += - np.array(df_dmT,dtype=complex).real
+                    if rx.real_or_imag is 'real':
+                        Jtv +=   np.array(df_dmT, dtype=complex).real
+                    elif rx.real_or_imag is 'imag':
+                        Jtv += - np.array(df_dmT, dtype=complex).real
                     else:
                         raise Exception('Must be real or imag')
 
@@ -159,29 +154,29 @@ class BaseFDEMProblem(BaseEMProblem):
 
         :param float freq: Frequency
         :rtype: (numpy.ndarray, numpy.ndarray)
-        :return: S_m, S_e (nE or nF, nSrc)
+        :return: s_m, s_e (nE or nF, nSrc)
         """
         Srcs = self.survey.getSrcByFreq(freq)
-        if self._eqLocs is 'FE':
-            S_m = np.zeros((self.mesh.nF,len(Srcs)), dtype=complex)
-            S_e = np.zeros((self.mesh.nE,len(Srcs)), dtype=complex)
-        elif self._eqLocs is 'EF':
-            S_m = np.zeros((self.mesh.nE,len(Srcs)), dtype=complex)
-            S_e = np.zeros((self.mesh.nF,len(Srcs)), dtype=complex)
+        if self._formulation is 'EB':
+            s_m = np.zeros((self.mesh.nF,len(Srcs)), dtype=complex)
+            s_e = np.zeros((self.mesh.nE,len(Srcs)), dtype=complex)
+        elif self._formulation is 'HJ':
+            s_m = np.zeros((self.mesh.nE,len(Srcs)), dtype=complex)
+            s_e = np.zeros((self.mesh.nF,len(Srcs)), dtype=complex)
 
         for i, src in enumerate(Srcs):
             smi, sei = src.eval(self)
-            S_m[:,i] = S_m[:,i] + smi
-            S_e[:,i] = S_e[:,i] + sei
+            s_m[:,i] = s_m[:,i] + smi
+            s_e[:,i] = s_e[:,i] + sei
 
-        return S_m, S_e
+        return s_m, s_e
 
 
 ##########################################################################################
 ################################ E-B Formulation #########################################
 ##########################################################################################
 
-class Problem_e(BaseFDEMProblem):
+class Problem3D_e(BaseFDEMProblem):
     """
     By eliminating the magnetic flux density using
 
@@ -201,9 +196,9 @@ class Problem_e(BaseFDEMProblem):
     :param SimPEG.Mesh mesh: mesh
     """
 
-    _fieldType = 'e'
-    _eqLocs    = 'FE'
-    fieldsPair = Fields_e
+    _solutionType = 'eSolution'
+    _formulation  = 'EB'
+    fieldsPair    = Fields3D_e
 
     def __init__(self, mesh, **kwargs):
         BaseFDEMProblem.__init__(self, mesh, **kwargs)
@@ -262,11 +257,11 @@ class Problem_e(BaseFDEMProblem):
         :return: RHS (nE, nSrc)
         """
 
-        S_m, S_e = self.getSourceTerm(freq)
+        s_m, s_e = self.getSourceTerm(freq)
         C = self.mesh.edgeCurl
         MfMui = self.MfMui
 
-        return C.T * (MfMui * S_m) -1j * omega(freq) * S_e
+        return C.T * (MfMui * s_m) -1j * omega(freq) * s_e
 
     def getRHSDeriv(self, freq, src, v, adjoint=False):
         """
@@ -282,17 +277,17 @@ class Problem_e(BaseFDEMProblem):
 
         C = self.mesh.edgeCurl
         MfMui = self.MfMui
-        S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint=adjoint)
+        s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
 
         if adjoint:
             dRHS = MfMui * (C * v)
-            return S_mDeriv(dRHS) - 1j * omega(freq) * S_eDeriv(v)
+            return s_mDeriv(dRHS) - 1j * omega(freq) * s_eDeriv(v)
 
         else:
-            return C.T * (MfMui * S_mDeriv(v)) -1j * omega(freq) * S_eDeriv(v)
+            return C.T * (MfMui * s_mDeriv(v)) -1j * omega(freq) * s_eDeriv(v)
 
 
-class Problem_b(BaseFDEMProblem):
+class Problem3D_b(BaseFDEMProblem):
     """
     We eliminate :math:`\mathbf{e}` using
 
@@ -312,9 +307,9 @@ class Problem_b(BaseFDEMProblem):
     :param SimPEG.Mesh mesh: mesh
     """
 
-    _fieldType = 'b'
-    _eqLocs    = 'FE'
-    fieldsPair = Fields_b
+    _solutionType = 'bSolution'
+    _formulation  = 'EB'
+    fieldsPair    = Fields3D_b
 
     def __init__(self, mesh, **kwargs):
         BaseFDEMProblem.__init__(self, mesh, **kwargs)
@@ -387,11 +382,11 @@ class Problem_b(BaseFDEMProblem):
         :return: RHS (nE, nSrc)
         """
 
-        S_m, S_e = self.getSourceTerm(freq)
+        s_m, s_e = self.getSourceTerm(freq)
         C = self.mesh.edgeCurl
         MeSigmaI = self.MeSigmaI
 
-        RHS = S_m + C * ( MeSigmaI * S_e )
+        RHS = s_m + C * ( MeSigmaI * s_e )
 
         if self._makeASymmetric is True:
             MfMui = self.MfMui
@@ -412,21 +407,21 @@ class Problem_b(BaseFDEMProblem):
         """
 
         C = self.mesh.edgeCurl
-        S_m, S_e = src.eval(self)
+        s_m, s_e = src.eval(self)
         MfMui = self.MfMui
 
         if self._makeASymmetric and adjoint:
             v = self.MfMui * v
 
-        MeSigmaIDeriv = self.MeSigmaIDeriv(S_e)
-        S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint=adjoint)
+        MeSigmaIDeriv = self.MeSigmaIDeriv(s_e)
+        s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
 
         if not adjoint:
             RHSderiv = C * (MeSigmaIDeriv * v)
-            SrcDeriv = S_mDeriv(v) + C * (self.MeSigmaI * S_eDeriv(v))
+            SrcDeriv = s_mDeriv(v) + C * (self.MeSigmaI * s_eDeriv(v))
         elif adjoint:
             RHSderiv = MeSigmaIDeriv.T * (C.T * v)
-            SrcDeriv = S_mDeriv(v) + self.MeSigmaI.T * (C.T * S_eDeriv(v))
+            SrcDeriv = s_mDeriv(v) + self.MeSigmaI.T * (C.T * s_eDeriv(v))
 
         if self._makeASymmetric is True and not adjoint:
             return MfMui.T * (SrcDeriv + RHSderiv)
@@ -440,7 +435,7 @@ class Problem_b(BaseFDEMProblem):
 ##########################################################################################
 
 
-class Problem_j(BaseFDEMProblem):
+class Problem3D_j(BaseFDEMProblem):
     """
     We eliminate \\\(\\\mathbf{h}\\\) using
 
@@ -460,9 +455,9 @@ class Problem_j(BaseFDEMProblem):
     :param SimPEG.Mesh mesh: mesh
     """
 
-    _fieldType = 'j'
-    _eqLocs    = 'EF'
-    fieldsPair = Fields_j
+    _solutionType = 'jSolution'
+    _formulation  = 'HJ'
+    fieldsPair    = Fields3D_j
 
     def __init__(self, mesh, **kwargs):
         BaseFDEMProblem.__init__(self, mesh, **kwargs)
@@ -537,11 +532,11 @@ class Problem_j(BaseFDEMProblem):
         :return: RHS
         """
 
-        S_m, S_e = self.getSourceTerm(freq)
+        s_m, s_e = self.getSourceTerm(freq)
         C = self.mesh.edgeCurl
         MeMuI = self.MeMuI
 
-        RHS = C * (MeMuI * S_m) - 1j * omega(freq) * S_e
+        RHS = C * (MeMuI * s_m) - 1j * omega(freq) * s_e
         if self._makeASymmetric is True:
             MfRho = self.MfRho
             return MfRho.T*RHS
@@ -562,16 +557,16 @@ class Problem_j(BaseFDEMProblem):
 
         C = self.mesh.edgeCurl
         MeMuI = self.MeMuI
-        S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint=adjoint)
+        s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
 
         if adjoint:
             if self._makeASymmetric:
                 MfRho = self.MfRho
                 v = MfRho*v
-            return S_mDeriv(MeMuI.T * (C.T * v)) - 1j * omega(freq) * S_eDeriv(v)
+            return s_mDeriv(MeMuI.T * (C.T * v)) - 1j * omega(freq) * s_eDeriv(v)
 
         else:
-            RHSDeriv = C * (MeMuI * S_mDeriv(v)) - 1j * omega(freq) * S_eDeriv(v)
+            RHSDeriv = C * (MeMuI * s_mDeriv(v)) - 1j * omega(freq) * s_eDeriv(v)
 
             if self._makeASymmetric:
                 MfRho = self.MfRho
@@ -581,7 +576,7 @@ class Problem_j(BaseFDEMProblem):
 
 
 
-class Problem_h(BaseFDEMProblem):
+class Problem3D_h(BaseFDEMProblem):
     """
     We eliminate \\\(\\\mathbf{j}\\\) using
 
@@ -598,9 +593,9 @@ class Problem_h(BaseFDEMProblem):
     :param SimPEG.Mesh mesh: mesh
     """
 
-    _fieldType = 'h'
-    _eqLocs    = 'EF'
-    fieldsPair = Fields_h
+    _solutionType = 'hSolution'
+    _formulation  = 'HJ'
+    fieldsPair    = Fields3D_h
 
     def __init__(self, mesh, **kwargs):
         BaseFDEMProblem.__init__(self, mesh, **kwargs)
@@ -659,11 +654,11 @@ class Problem_h(BaseFDEMProblem):
         :return: RHS (nE, nSrc)
         """
 
-        S_m, S_e = self.getSourceTerm(freq)
+        s_m, s_e = self.getSourceTerm(freq)
         C = self.mesh.edgeCurl
         MfRho  = self.MfRho
 
-        return S_m + C.T * ( MfRho * S_e )
+        return s_m + C.T * ( MfRho * s_e )
 
     def getRHSDeriv(self, freq, src, v, adjoint=False):
         """
@@ -677,17 +672,17 @@ class Problem_h(BaseFDEMProblem):
         :return: product of rhs deriv with a vector
         """
 
-        _, S_e = src.eval(self)
+        _, s_e = src.eval(self)
         C = self.mesh.edgeCurl
         MfRho  = self.MfRho
 
-        MfRhoDeriv = self.MfRhoDeriv(S_e)
+        MfRhoDeriv = self.MfRhoDeriv(s_e)
         if not adjoint:
             RHSDeriv = C.T * (MfRhoDeriv * v)
         elif adjoint:
             RHSDeriv = MfRhoDeriv.T * (C * v)
 
-        S_mDeriv, S_eDeriv = src.evalDeriv(self, adjoint=adjoint)
+        s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
 
-        return RHSDeriv + S_mDeriv(v) + C.T * (MfRho * S_eDeriv(v))
+        return RHSDeriv + s_mDeriv(v) + C.T * (MfRho * s_eDeriv(v))
 

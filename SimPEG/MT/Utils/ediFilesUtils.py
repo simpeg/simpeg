@@ -7,17 +7,16 @@ from SimPEG.MT.Utils.dataUtils import rec2ndarr
 # Import modules
 import numpy as np
 import os, sys, re
-try:
-    import osr
-except ImportError as e:
-    print 'Could not import osr, missing the gdal package'
-    pass
+
 
 class EDIimporter:
     """
     A class to import EDIfiles.
 
     """
+
+
+    # Define data converters
     _impUnitEDI2SI = 4*np.pi*1e-4 # Convert Z[mV/km/nT] (as in EDI)to Z[V/A] SI unit
     _impUnitSI2EDI = 1./_impUnitEDI2SI # ConvertZ[V/A] SI unit to Z[mV/km/nT] (as in EDI)
 
@@ -26,8 +25,8 @@ class EDIimporter:
     comps = None
 
     # Hidden properties
-    _outEPSG = None
-    _2out = None
+    _outEPSG = None # Project info
+    _2out = None    # The projection operator
 
 
     def __init__(self, EDIfilesList, compList=None, outEPSG=None):
@@ -113,6 +112,12 @@ class EDIimporter:
     # nOutData=length(obj.data);
     # obj.data(nOutData+1:nOutData+length(TEMP.data),:) = TEMP.data;
     def _transfromPoints(self,longD,latD):
+        # Import the coordinate projections
+        try:
+            import osr
+        except ImportError as e:
+            print 'Could not import osr, missing the gdal package\nCan not project coordinates'
+            raise e
         # Coordinates convertor
         if self._2out is None:
             src = osr.SpatialReference()

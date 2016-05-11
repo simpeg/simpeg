@@ -116,8 +116,8 @@ class RichardsTests1D(unittest.TestCase):
         v = np.random.rand(self.survey.nD)
         z = np.random.rand(self.M.nC)
         Hs = self.prob.fields(self.Ks)
-        vJz = v.dot(self.prob.Jvec(self.Ks,z,u=Hs))
-        zJv = z.dot(self.prob.Jtvec(self.Ks,v,u=Hs))
+        vJz = v.dot(self.prob.Jvec(self.Ks,z,f=Hs))
+        zJv = z.dot(self.prob.Jtvec(self.Ks,v,f=Hs))
         tol = TOL*(10**int(np.log10(np.abs(zJv))))
         passed = np.abs(vJz - zJv) < tol
         print 'Richards Adjoint Test - PressureHead'
@@ -188,8 +188,8 @@ class RichardsTests2D(unittest.TestCase):
         v = np.random.rand(self.survey.nD)
         z = np.random.rand(self.M.nC)
         Hs = self.prob.fields(self.Ks)
-        vJz = v.dot(self.prob.Jvec(self.Ks,z,u=Hs))
-        zJv = z.dot(self.prob.Jtvec(self.Ks,v,u=Hs))
+        vJz = v.dot(self.prob.Jvec(self.Ks,z,f=Hs))
+        zJv = z.dot(self.prob.Jtvec(self.Ks,v,f=Hs))
         tol = TOL*(10**int(np.log10(np.abs(zJv))))
         passed = np.abs(vJz - zJv) < tol
         print '2D: Richards Adjoint Test - PressureHead'
@@ -260,8 +260,8 @@ class RichardsTests3D(unittest.TestCase):
         v = np.random.rand(self.survey.nD)
         z = np.random.rand(self.M.nC)
         Hs = self.prob.fields(self.Ks)
-        vJz = v.dot(self.prob.Jvec(self.Ks,z,u=Hs))
-        zJv = z.dot(self.prob.Jtvec(self.Ks,v,u=Hs))
+        vJz = v.dot(self.prob.Jvec(self.Ks,z,f=Hs))
+        zJv = z.dot(self.prob.Jtvec(self.Ks,v,f=Hs))
         tol = TOL*(10**int(np.log10(np.abs(zJv))))
         passed = np.abs(vJz - zJv) < tol
         print '3D: Richards Adjoint Test - PressureHead'
