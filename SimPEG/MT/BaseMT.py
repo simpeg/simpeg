@@ -1,5 +1,5 @@
 from SimPEG import SolverLU as SimpegSolver, PropMaps, Utils, mkvc, sp, np
-from SimPEG.EM.FDEM.FDEM import BaseFDEMProblem
+from SimPEG.EM.FDEM.ProblemFDEM import BaseFDEMProblem
 from SurveyMT import Survey, Data
 from FieldsMT import BaseMTFields
 
