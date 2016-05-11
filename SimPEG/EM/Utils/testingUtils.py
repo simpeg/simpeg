@@ -26,7 +26,7 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
 
     x = np.array([np.linspace(-5.*cs,-2.*cs,3),np.linspace(5.*cs,2.*cs,3)]) + cs/4. #don't sample right by the source, slightly off alignment from either staggered grid
     XYZ = Utils.ndgrid(x,x,np.linspace(-2.*cs,2.*cs,5))
-    Rx0 = getattr(EM.FDEM.Rx, comp[0] + 'Field')
+    Rx0 = getattr(EM.FDEM.Rx, 'Point_' + comp[0])
     if comp[2] == 'r':
         real_or_imag = 'real'
     elif comp[2] == 'i':

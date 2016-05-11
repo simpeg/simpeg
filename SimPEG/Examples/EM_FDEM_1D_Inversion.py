@@ -43,7 +43,7 @@ def run(plotIt=True):
 
 
     rxOffset=10.
-    bzi = EM.FDEM.Rx.bField(np.array([[rxOffset, 0., 1e-3]]), orientation='z', component='imag')
+    bzi = EM.FDEM.Rx.Point_b(np.array([[rxOffset, 0., 1e-3]]), orientation='z', component='imag')
 
     freqs = np.logspace(1,3,10)
     srcLoc = np.array([0., 0., 10.])

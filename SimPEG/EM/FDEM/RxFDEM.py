@@ -70,7 +70,7 @@ class BaseRx(SimPEG.Survey.BaseRx):
         return Pv
 
 
-class eField(BaseRx):
+class Point_e(BaseRx):
     """
     Electric field FDEM receiver
 
@@ -81,10 +81,10 @@ class eField(BaseRx):
 
     def __init__(self, locs, orientation=None, component=None):
         self.projField = 'e'
-        BaseRx.__init__(self, locs, orientation, component)
+        super(Point_e, self).__init__(locs, orientation, component)
 
 
-class bField(BaseRx):
+class Point_b(BaseRx):
     """
     Magnetic flux FDEM receiver
 
@@ -95,10 +95,10 @@ class bField(BaseRx):
 
     def __init__(self, locs, orientation=None, component=None):
         self.projField = 'b'
-        BaseRx.__init__(self, locs, orientation, component)
+        super(Point_b, self).__init__(locs, orientation, component)
 
 
-class hField(BaseRx):
+class Point_h(BaseRx):
     """
     Magnetic field FDEM receiver
 
@@ -109,10 +109,10 @@ class hField(BaseRx):
 
     def __init__(self, locs, orientation=None, component=None):
         self.projField = 'h'
-        BaseRx.__init__(self, locs, orientation, component)
+        super(Point_h, self).__init__(locs, orientation, component)
 
 
-class jField(BaseRx):
+class Point_j(BaseRx):
     """
     Current density FDEM receiver
 
@@ -123,4 +123,4 @@ class jField(BaseRx):
 
     def __init__(self, locs, orientation=None, component=None):
         self.projField = 'j'
-        BaseRx.__init__(self, locs, orientation, component)
+        super(Point_j, self).__init__(locs, orientation, component)
