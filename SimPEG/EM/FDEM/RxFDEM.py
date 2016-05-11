@@ -7,15 +7,15 @@ class BaseRx(SimPEG.Survey.BaseRx):
 
     :param numpy.ndarray locs: receiver locations (ie. :code:`np.r_[x,y,z]`)
     :param string orientation: receiver orientation 'x', 'y' or 'z'
-    :param string real_or_imag: real or imaginary component 'real' or 'imag'
+    :param string component: real or imaginary component 'real' or 'imag'
     """
 
-    def __init__(self, locs, orientation=None, real_or_imag=None):
+    def __init__(self, locs, orientation=None, component=None):
         assert(orientation in ['x','y','z']), "Orientation %s not known. Orientation must be in 'x', 'y', 'z'. Arbitrary orientations have not yet been implemented."%orientation
-        assert(real_or_imag in ['real', 'imag']), "'real_or_imag' must be 'real' or 'imag', not %s"%real_or_imag
+        assert(component in ['real', 'imag']), "'component' must be 'real' or 'imag', not %s"%component
 
         self.projComp = orientation
-        self.real_or_imag = real_or_imag
+        self.component = component
 
         SimPEG.Survey.BaseRx.__init__(self, locs, rxType=None) #TODO: remove rxType from baseRx
 
@@ -36,7 +36,7 @@ class BaseRx(SimPEG.Survey.BaseRx):
 
         P = self.getP(mesh, self.projGLoc(f))
         f_part_complex = f[src, self.projField]
-        f_part = getattr(f_part_complex, self.real_or_imag) # get the real or imag component
+        f_part = getattr(f_part_complex, self.component) # get the real or imag component
 
         return P*f_part
 
@@ -56,13 +56,13 @@ class BaseRx(SimPEG.Survey.BaseRx):
 
         if not adjoint:
             Pv_complex = P * v
-            Pv = getattr(Pv_complex, self.real_or_imag)
+            Pv = getattr(Pv_complex, self.component)
         elif adjoint:
             Pv_real = P.T * v
 
-            if self.real_or_imag == 'imag':
+            if self.component == 'imag':
                 Pv = 1j*Pv_real
-            elif self.real_or_imag == 'real':
+            elif self.component == 'real':
                 Pv = Pv_real.astype(complex)
             else:
                 raise NotImplementedError('must be real or imag')
@@ -76,12 +76,12 @@ class eField(BaseRx):
 
     :param numpy.ndarray locs: receiver locations (ie. :code:`np.r_[x,y,z]`)
     :param string orientation: receiver orientation 'x', 'y' or 'z'
-    :param string real_or_imag: real or imaginary component 'real' or 'imag'
+    :param string component: real or imaginary component 'real' or 'imag'
     """
 
-    def __init__(self, locs, orientation=None, real_or_imag=None):
+    def __init__(self, locs, orientation=None, component=None):
         self.projField = 'e'
-        BaseRx.__init__(self, locs, orientation, real_or_imag)
+        BaseRx.__init__(self, locs, orientation, component)
 
 
 class bField(BaseRx):
@@ -90,12 +90,12 @@ class bField(BaseRx):
 
     :param numpy.ndarray locs: receiver locations (ie. :code:`np.r_[x,y,z]`)
     :param string orientation: receiver orientation 'x', 'y' or 'z'
-    :param string real_or_imag: real or imaginary component 'real' or 'imag'
+    :param string component: real or imaginary component 'real' or 'imag'
     """
 
-    def __init__(self, locs, orientation=None, real_or_imag=None):
+    def __init__(self, locs, orientation=None, component=None):
         self.projField = 'b'
-        BaseRx.__init__(self, locs, orientation, real_or_imag)
+        BaseRx.__init__(self, locs, orientation, component)
 
 
 class hField(BaseRx):
@@ -104,12 +104,12 @@ class hField(BaseRx):
 
     :param numpy.ndarray locs: receiver locations (ie. :code:`np.r_[x,y,z]`)
     :param string orientation: receiver orientation 'x', 'y' or 'z'
-    :param string real_or_imag: real or imaginary component 'real' or 'imag'
+    :param string component: real or imaginary component 'real' or 'imag'
     """
 
-    def __init__(self, locs, orientation=None, real_or_imag=None):
+    def __init__(self, locs, orientation=None, component=None):
         self.projField = 'h'
-        BaseRx.__init__(self, locs, orientation, real_or_imag)
+        BaseRx.__init__(self, locs, orientation, component)
 
 
 class jField(BaseRx):
@@ -118,9 +118,9 @@ class jField(BaseRx):
 
     :param numpy.ndarray locs: receiver locations (ie. :code:`np.r_[x,y,z]`)
     :param string orientation: receiver orientation 'x', 'y' or 'z'
-    :param string real_or_imag: real or imaginary component 'real' or 'imag'
+    :param string component: real or imaginary component 'real' or 'imag'
     """
 
-    def __init__(self, locs, orientation=None, real_or_imag=None):
+    def __init__(self, locs, orientation=None, component=None):
         self.projField = 'j'
-        BaseRx.__init__(self, locs, orientation, real_or_imag)
+        BaseRx.__init__(self, locs, orientation, component)

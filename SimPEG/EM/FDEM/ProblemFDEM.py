@@ -137,9 +137,9 @@ class BaseFDEMProblem(BaseEMProblem):
                     df_dmT = df_dmT + du_dmT
 
                     # TODO: this should be taken care of by the reciever?
-                    if rx.real_or_imag is 'real':
+                    if rx.component is 'real':
                         Jtv +=   np.array(df_dmT, dtype=complex).real
-                    elif rx.real_or_imag is 'imag':
+                    elif rx.component is 'imag':
                         Jtv += - np.array(df_dmT, dtype=complex).real
                     else:
                         raise Exception('Must be real or imag')
