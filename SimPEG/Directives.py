@@ -271,6 +271,14 @@ class Update_IRLS(InversionDirective):
 
         self.reg.curModel = self.invProb.curModel
         self.reg.gamma = self.gamma
+        print "Initial gamma ", np.linalg.norm(self.reg.gamma)
+        # Reset the regularization matrices so that it is
+        # recalculated with new gamma
+        self.reg._Wsmall = None
+        self.reg._Wx = None
+        self.reg._Wy = None
+        self.reg._Wz = None
+        self.reg._W = None
 
         if getattr(self, 'phi_d_last', None) is None:
             self.phi_d_last = self.invProb.phi_d
@@ -294,16 +302,26 @@ class Update_IRLS(InversionDirective):
         # Temporarely set gamma to 1. to get raw phi_m
         self.reg.gamma = 1.
 
+        # Reset the regularization matrices so that it is
+        # recalculated for current model
+        self.reg._Wsmall = None
+        self.reg._Wx = None
+        self.reg._Wy = None
+        self.reg._Wz = None
+        self.reg._W = None
+
         # Compute new model objective function value
         phim_new = self.reg.eval(self.invProb.curModel)
 
         # Update gamma to scale the regularization between IRLS iterations
         self.reg.gamma = self.phi_m_last / phim_new
 
-        # Set the weighting matrix to None so that it is recomputed next time
-        # it is called in the inversion
+        # Reset the regularization matrices again for new gamma
+        self.reg._Wsmall = None
+        self.reg._Wx = None
+        self.reg._Wy = None
+        self.reg._Wz = None
         self.reg._W = None
-        self.reg._Wsmooth = None
 
 class Update_lin_PreCond(InversionDirective):
     """
