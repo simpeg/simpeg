@@ -451,32 +451,32 @@ class Simple(BaseRegularization):
             self._Wz = Utils.sdiag((self.alpha_z * (self.regmesh.aveCC2Fz*self.cell_weights))**0.5)*self.regmesh.cellDiffzStencil
         return self._Wz
 
-    @property
-    def Wsmooth(self):
-        """Full smoothness regularization matrix W"""
-        print 'wtf why are we using Wsmooth'
-        raise NotImplementedError
-        if getattr(self, '_Wsmooth', None) is None:
-            wlist = (self.Wx,)
-            if self.regmesh.dim > 1:
-                wlist += (self.Wy,)
-            if self.regmesh.dim > 2:
-                wlist += (self.Wz,)
-            self._Wsmooth = sp.vstack(wlist)
-        return self._Wsmooth
-
-    @property
-    def W(self):
-        """Full regularization matrix W"""
-        print 'wtf why are we using W'
-        if getattr(self, '_W', None) is None:
-            wlist = (self.Wsmall, self.Wx)
-            if self.regmesh.dim > 1:
-                wlist += (self.Wy,)
-            if self.regmesh.dim > 2:
-                wlist += (self.Wz,)
-            self._W = sp.vstack(wlist)
-        return self._W
+#    @property
+#    def Wsmooth(self):
+#        """Full smoothness regularization matrix W"""
+#        print 'wtf why are we using Wsmooth'
+#        raise NotImplementedError
+#        if getattr(self, '_Wsmooth', None) is None:
+#            wlist = (self.Wx,)
+#            if self.regmesh.dim > 1:
+#                wlist += (self.Wy,)
+#            if self.regmesh.dim > 2:
+#                wlist += (self.Wz,)
+#            self._Wsmooth = sp.vstack(wlist)
+#        return self._Wsmooth
+#
+#    @property
+#    def W(self):
+#        """Full regularization matrix W"""
+#        print 'wtf why are we using W'
+#        if getattr(self, '_W', None) is None:
+#            wlist = (self.Wsmall, self.Wx)
+#            if self.regmesh.dim > 1:
+#                wlist += (self.Wy,)
+#            if self.regmesh.dim > 2:
+#                wlist += (self.Wz,)
+#            self._W = sp.vstack(wlist)
+#        return self._W
 
 
     @Utils.timeIt
