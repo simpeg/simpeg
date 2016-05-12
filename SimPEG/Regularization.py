@@ -665,7 +665,6 @@ class Sparse(Simple):
         else:
             f_m = self.mapping * (self.curModel - self.reg.mref)
             self.rs = self.R(f_m , self.eps_p, self.norms[0])
-            #print "Min rs: " + str(np.max(self.rs)) + "Max rs: " + str(np.min(self.rs))
             self.Rs = Utils.sdiag( self.rs )
 
         return Utils.sdiag((self.regmesh.vol*self.alpha_s*self.gamma*self.wght)**0.5)*self.Rs
@@ -729,6 +728,7 @@ class Sparse(Simple):
     def W(self):
         """Full regularization matrix W"""
         if getattr(self, '_W', None) is None:
+    
             wlist = (self.Wsmall, self.Wsmooth)
             self._W = sp.vstack(wlist)
         return self._W

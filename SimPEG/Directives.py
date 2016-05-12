@@ -271,7 +271,8 @@ class Update_IRLS(InversionDirective):
 
         self.reg.curModel = self.invProb.curModel
         self.reg.gamma = self.gamma
-
+        
+        self.reg._W = None
         if getattr(self, 'phi_d_last', None) is None:
             self.phi_d_last = self.invProb.phi_d
 
@@ -287,7 +288,8 @@ class Update_IRLS(InversionDirective):
 
         # Get phi_m at the end of current iteration
         self.phi_m_last = self.invProb.phi_m_last
-
+        
+        self.reg._W = None
          # Update the model used for the IRLS weights
         self.reg.curModel = self.invProb.curModel
 
@@ -296,10 +298,10 @@ class Update_IRLS(InversionDirective):
 
         # Compute new model objective function value
         phim_new = self.reg.eval(self.invProb.curModel)
-
+        
         # Update gamma to scale the regularization between IRLS iterations
         self.reg.gamma = self.phi_m_last / phim_new
-
+        
         # Set the weighting matrix to None so that it is recomputed next time
         # it is called in the inversion
         self.reg._W = None
