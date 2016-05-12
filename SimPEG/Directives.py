@@ -144,6 +144,35 @@ class BetaSchedule(InversionDirective):
             if self.debug: print 'BetaSchedule is cooling Beta. Iteration: %d' % self.opt.iter
             self.invProb.beta /= self.coolingFactor
 
+#class BetaSchedule_PGN_CG(InversionDirective):
+#    """BetaSchedule"""
+#
+#    coolingFactor = 5.
+#    coolingRate = 1
+#    GN_step_last = None
+#    GN_step_c = None
+#    
+#    def endIter(self):
+#        
+#        """ Compute the change in GN step, and proceed with cooling if below tol"""
+#        if self.opt.iter == 1:
+#            self.GN_step_last = np.linalg.norm(self.opt.xc - self.opt.x_last)
+#            d_GN_step = 1.
+#            
+#        else:
+#            self.GN_step_c = np.linalg.norm(self.opt.xc - self.opt.x_last)
+#            d_GN_step =  self.GN_step_c / self.GN_step_last
+#            
+#            # Re-initiate last GN step
+#            self.GN_step_last = self.GN_step_c
+#            
+#        print "GN_step_last: ", self.GN_step_last
+#        print "d_GN_step: ", d_GN_step
+#        
+#        if self.opt.iter > 0 and self.opt.iter % self.coolingRate == 0:
+#            if self.debug: print 'BetaSchedule is cooling Beta. Iteration: %d' % self.opt.iter
+#            self.invProb.beta /= self.coolingFactor
+            
 class TargetMisfit(InversionDirective):
 
     @property
@@ -265,13 +294,16 @@ class Update_IRLS(InversionDirective):
         if getattr(self, 'phi_m_last', None) is not None:
 
             self.reg.curModel = self.invProb.curModel
+            self.reg._Wsmall = None
+            self.reg._Wx = None
+            self.reg._Wy = None
+            self.reg._Wz = None
             self.reg.gamma = 1.
             phim_new = self.reg.eval(self.invProb.curModel)
             self.gamma = self.phi_m_last / phim_new
 
         self.reg.curModel = self.invProb.curModel
         self.reg.gamma = self.gamma
-        print "Initial gamma ", np.linalg.norm(self.reg.gamma)
         # Reset the regularization matrices so that it is
         # recalculated with new gamma
         self.reg._Wsmall = None
@@ -295,12 +327,6 @@ class Update_IRLS(InversionDirective):
         # Get phi_m at the end of current iteration
         self.phi_m_last = self.invProb.phi_m_last
 
-         # Update the model used for the IRLS weights
-        self.reg.curModel = self.invProb.curModel
-
-        # Temporarely set gamma to 1. to get raw phi_m
-        self.reg.gamma = 1.
-
         # Reset the regularization matrices so that it is
         # recalculated for current model
         self.reg._Wsmall = None
@@ -308,13 +334,18 @@ class Update_IRLS(InversionDirective):
         self.reg._Wy = None
         self.reg._Wz = None
 
+         # Update the model used for the IRLS weights
+        self.reg.curModel = self.invProb.curModel
+
+        # Temporarely set gamma to 1. to get raw phi_m
+        self.reg.gamma = 1.
+
         # Compute new model objective function value
         phim_new = self.reg.eval(self.invProb.curModel)
 
         # Update gamma to scale the regularization between IRLS iterations
         self.reg.gamma = self.phi_m_last / phim_new
-        print "New gamma ", np.linalg.norm(self.reg.gamma)
-        
+
         # Reset the regularization matrices again for new gamma
         self.reg._Wsmall = None
         self.reg._Wx = None

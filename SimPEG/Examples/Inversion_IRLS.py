@@ -18,6 +18,8 @@ def run(N=200, plotIt=True):
     mesh = Mesh.TensorMesh([N])
 
     m0 = np.ones(mesh.nC) * 1e-4
+    mref = np.zeros(mesh.nC)
+    
     nk = 10
     jk = np.linspace(1.,nk,nk)
     p = -2.
@@ -51,12 +53,13 @@ def run(N=200, plotIt=True):
     wr = ( wr/np.max(wr) )
 
     reg = Regularization.Simple(mesh)
-    reg.wght = wr
+    reg.mref = mref
+    reg.cell_weights = wr
 
     dmis = DataMisfit.l2_DataMisfit(survey)
     dmis.Wd = 1./wd
 
-    opt = Optimization.ProjectedGNCG(maxIter=30,lower=-2.,upper=2., maxIterCG= 20, tolCG = 1e-4)
+    opt = Optimization.ProjectedGNCG(maxIter=20,lower=-2.,upper=2., maxIterCG= 10, maxIterGN=1, tolCG = 1e-4)
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
     invProb.curModel = m0
 
@@ -76,22 +79,15 @@ def run(N=200, plotIt=True):
     phid =  invProb.phi_d
 
     reg = Regularization.Sparse(mesh)
+    reg.mref = mref
+    reg.cell_weights = wr
 
-#==============================================================================
-#     fig, axes = plt.subplots(1,2,figsize=(12*1.2,4*1.2))
-#     dmdx = reg.mesh.cellDiffxStencil * mrec
-#     plt.plot(np.sort(dmdx))
-#==============================================================================
-
-    #reg.recModel = mrec
-    # reg.cell_weight = np.ones(mesh.nC)
     reg.mref = np.zeros(mesh.nC)
     reg.eps_p = 5e-2
     reg.eps_q = 1e-2
     reg.norms   = [0., 0., 2., 2.]
-    reg.cell_weight = wr
 
-    opt = Optimization.ProjectedGNCG(maxIter=10 ,lower=-2.,upper=2., maxIterLS = 20, maxIterCG= 20, tolCG = 1e-3)
+    opt = Optimization.ProjectedGNCG(maxIter=10 ,lower=-2.,upper=2., maxIterLS = 20, maxIterCG= 10, tolCG = 1e-3)
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta = invProb.beta*2.)
     beta = Directives.BetaSchedule(coolingFactor=1, coolingRate=1)
     #betaest = Directives.BetaEstimate_ByEig()
