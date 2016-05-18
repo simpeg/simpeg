@@ -5,7 +5,7 @@ from SimPEG.Utils import sdiag
 import numpy as np
 from SimPEG.Utils import Zero
 from SimPEG.EM.Static.DC import getxBCyBC_CC
-from SurveySIP import Survey
+from SurveySIP import Survey, Data
 
 class ColeColePropMap(Maps.PropMap):
     """
@@ -22,6 +22,7 @@ class BaseSIPProblem(BaseEMProblem):
 
     surveyPair = Survey
     fieldsPair = Fields
+    dataPair = Data
     PropMap = ColeColePropMap
     Ainv = None
     sigma = None
@@ -29,15 +30,17 @@ class BaseSIPProblem(BaseEMProblem):
     f = None
     Ainv = None
 
-    def DebyeTime(t):
+    def DebyeTime(self, t):
         peta = self.curModel.eta*np.exp(-self.curModel.taui*t)
         return peta
 
-    def EtaDeriv(t):
-        return np.exp(-self.curModel.taui*t)
+    def EtaDeriv(self, t, v):
+        v = np.array(v, dtype=float)
+        return np.exp(-self.curModel.taui*t) * (self.curModel.etaDeriv*v)
 
-    def TauiDeriv(t):
-        return -self.curModel.eta*t*np.exp(-self.curModel.taui*t)
+    def TauiDeriv(self, t, v):
+        v = np.array(v, dtype=float)
+        return -self.curModel.eta*t*np.exp(-self.curModel.taui*t) * (self.curModel.tauiDeriv*v)
 
     def fields(self, m):
         self.curModel = m
@@ -63,7 +66,8 @@ class BaseSIPProblem(BaseEMProblem):
         JvAll = []
         for tind in range(len(self.survey.times)):
             #Pseudo-chareability
-            v = DebyeTime(self.survey.times[tind])
+            t = self.survey.times[tind]
+            v = self.DebyeTime(t)
             for src in self.survey.srcList:
                 u_src = f[src, self._solutionType] # solution vector
                 dA_dm_v = self.getADeriv(u_src, v)
@@ -74,76 +78,88 @@ class BaseSIPProblem(BaseEMProblem):
                     if timeindex[tind]:
                         df_dmFun = getattr(f, '_%sDeriv'%rx.projField, None)
                         df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
-                        Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
-            JvAll.append(Utils.mkvc(Jv))
+                        Jv[src, rx, t] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
+
         # Conductivity (d u / d log sigma)
         if self._formulation is 'EB':
-            return -np.hstack(JvAll)
-        # Conductivity (d u / d log rho)
+            return -Utils.mkvc(Jv)
+        # Resistivity (d u / d log rho)
         if self._formulation is 'HJ':
-            return np.hstack(JvAll)
+            return Utils.mkvc(Jv)
 
-    # def Jvec(self, m, v, f=None):
+    def Jvec(self, m, v, f=None):
 
-    #     if f is None:
-    #         f = self.fields(m)
+        if f is None:
+            f = self.fields(m)
 
-    #     self.curModel = m
+        self.curModel = m
+        Jv = self.dataPair(self.survey) #same size as the data
+        # A = self.getA()
+        JvAll = []
+        #Assume only eta and tau (eta first then tau)
+        # v = [2*Mx1]
+        v = v.reshape((int(v.size/2), 2), order='F')
 
-    #     Jv = self.dataPair(self.survey) #same size as the data
-    #     x1 =
-    #     x2 =
-    #     # A = self.getA()
-    #     for src in self.survey.srcList:
-    #         u_src = f[src, self._solutionType] # solution vector
+        for tind in range(len(self.survey.times)):
+            t = self.survey.times[tind]
+            v0 = self.EtaDeriv(t, v[:,0])
+            v1 = self.TauiDeriv(t, v[:,1])
+            for src in self.survey.srcList:
+                u_src = f[src, self._solutionType] # solution vector
+                dA_dm_v0 = self.getADeriv(u_src, v0)
+                dRHS_dm_v0 = self.getRHSDeriv(src, v0)
+                du_dm_v0 = self.Ainv * ( - dA_dm_v0 + dRHS_dm_v0 )
+                dA_dm_v1 = self.getADeriv(u_src, v1)
+                dRHS_dm_v1 = self.getRHSDeriv(src, v1)
+                du_dm_v1 = self.Ainv * ( - dA_dm_v1 + dRHS_dm_v1 )
+                for rx in src.rxList:
+                    timeindex = rx.getTimeP(self.survey.times)
+                    if timeindex[tind]:
+                        df_dmFun = getattr(f, '_%sDeriv'%rx.projField, None)
+                        df_dm_v0 = df_dmFun(src, du_dm_v0, v0, adjoint=False)
+                        df_dm_v1 = df_dmFun(src, du_dm_v1, v1, adjoint=False)
+                        Jv[src, rx, t] = rx.evalDeriv(src, self.mesh, f, df_dm_v0)
+                        Jv[src, rx, t] += rx.evalDeriv(src, self.mesh, f, df_dm_v1)
+        # Conductivity (d u / d log sigma)
+        if self._formulation is 'EB':
+            return -Jv.tovec()
+        # Resistivity (d u / d log rho)
+        if self._formulation is 'HJ':
+            return Jv.tovec()
 
-    #         dA_dm_v = self.getADeriv(u_src, v)
-    #         dRHS_dm_v = self.getRHSDeriv(src, v)
-    #         du_dm_v = self.Ainv * ( - dA_dm_v + dRHS_dm_v )
+    def Jtvec(self, m, v, f=None):
+        if f is None:
+            f = self.fields(m)
 
-    #         for rx in src.rxList:
+        self.curModel = m
 
-    #             for tind in range(len(self.survey.times)):
-    #                 df_dmFun = getattr(f, '_%sDeriv'%rx.projField, None)
-    #                 df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
-    #                 Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
-    #     # Conductivity (d u / d log sigma)
-    #     if self._formulation is 'EB':
-    #         return -Utils.mkvc(Jv)
-    #     # Conductivity (d u / d log rho)
-    #     if self._formulation is 'HJ':
-    #         return Utils.mkvc(Jv)
+        # Ensure v is a data object.
+        if not isinstance(v, self.dataPair):
+            v = self.dataPair(self.survey, v)
 
-    # def Jtvec(self, m, v, f=None):
-    #     if f is None:
-    #         f = self.fields(m)
+        Jtv= np.zeros(m.size)
+        for tind in range(len(self.survey.times)):
+            t = self.survey.times[tind]
+            for src in self.survey.srcList:
+                u_src = f[src, self._solutionType]
+                for rx in src.rxList:
+                    timeindex = rx.getTimeP(self.survey.times)
+                    if timeindex[tind]:
+                        PTv = rx.evalDeriv(src, self.mesh, f, v[src, rx, t], adjoint=True) # wrt f, need possibility wrt m
+                        df_duTFun = getattr(f, '_%sDeriv'%rx.projField, None)
+                        df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
+                        ATinvdf_duT = self.Ainv * df_duT
+                        dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
+                        dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
+                        du_dmT = -dA_dmT + dRHS_dmT
+                        Jtv += np.r_[self.EtaDeriv(self.survey.times[tind], du_dmT), self.TauiDeriv(self.survey.times[tind], du_dmT)]
 
-    #     self.curModel = m
-
-    #     # Ensure v is a data object.
-    #     if not isinstance(v, self.dataPair):
-    #         v = self.dataPair(self.survey, v)
-
-    #     Jtv = np.zeros(m.size)
-    #     # AT = self.getA()
-
-    #     for src in self.survey.srcList:
-    #         u_src = f[src, self._solutionType]
-    #         for rx in src.rxList:
-    #             PTv = rx.evalDeriv(src, self.mesh, f, v[src, rx], adjoint=True) # wrt f, need possibility wrt m
-    #             df_duTFun = getattr(f, '_%sDeriv'%rx.projField, None)
-    #             df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
-    #             ATinvdf_duT = self.Ainv * df_duT
-    #             dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
-    #             dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
-    #             du_dmT = -dA_dmT + dRHS_dmT
-    #             Jtv += df_dmT + du_dmT
-    #     # Conductivity ((d u / d log sigma).T)
-    #     if self._formulation is 'EB':
-    #         return -Utils.mkvc(Jtv)
-    #     # Conductivity ((d u / d log rho).T)
-    #     if self._formulation is 'HJ':
-    #         return Utils.mkvc(Jtv)
+        # Conductivity ((d u / d log sigma).T)
+        if self._formulation is 'EB':
+            return -Jtv
+        # Conductivity ((d u / d log rho).T)
+        if self._formulation is 'HJ':
+            return Jtv
 
     def getSourceTerm(self):
         """

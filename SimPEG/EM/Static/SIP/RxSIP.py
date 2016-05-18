@@ -62,7 +62,13 @@ class Dipole(BaseRx):
     @property
     def nD(self):
         """Number of data in the receiver."""
-        return self.locs[0].shape[0] * len(self.times)
+        # return self.locs[0].shape[0] * len(self.times)
+        return self.locs[0].shape[0]
+
+    @property
+    def nRx(self):
+        """Number of data in the receiver."""
+        return self.locs[0].shape[0]
 
         # Not sure why ...
         # return int(self.locs[0].size / 2)
