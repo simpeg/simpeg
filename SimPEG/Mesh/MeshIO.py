@@ -24,7 +24,6 @@ class TensorMeshIO(object):
                     re = int(sp[0])*(' ' + sp[1])
                     line = line.replace(st,re.strip())
             return np.array(line.split(),dtype=float)
-
         # Read the file as line strings, remove lines with comment = !
         msh = np.genfromtxt(fileName,delimiter='\n',dtype=np.str,comments='!')
 

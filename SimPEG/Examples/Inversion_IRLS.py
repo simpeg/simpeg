@@ -86,12 +86,12 @@ def run(N=200, plotIt=True):
     #reg.recModel = mrec
     reg.wght = np.ones(mesh.nC)
     reg.mref = np.zeros(mesh.nC)
-    reg.eps_p = 2e-3
-    reg.eps_q = 2e-3
+    reg.eps_p = 5e-2
+    reg.eps_q = 1e-2
     reg.norms   = [0., 0., 2., 2.]
     reg.wght = wr
 
-    opt = Optimization.ProjectedGNCG(maxIter=5 ,lower=-2.,upper=2., maxIterCG= 100, tolCG = 1e-3)
+    opt = Optimization.ProjectedGNCG(maxIter=10 ,lower=-2.,upper=2., maxIterLS = 20, maxIterCG= 20, tolCG = 1e-3)
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta = invProb.beta*2.)
     beta = Directives.BetaSchedule(coolingFactor=1, coolingRate=1)
     #betaest = Directives.BetaEstimate_ByEig()
