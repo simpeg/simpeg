@@ -55,8 +55,10 @@ def hook(obj, method, name=None, overwrite=False, silent=False):
         print 'Method '+name+' was not overwritten.'
 
 
-def setKwargs(obj, ignore=[],  **kwargs):
+def setKwargs(obj, ignore=None,  **kwargs):
     """Sets key word arguments (kwargs) that are present in the object, throw an error if they don't exist."""
+    if ignore is None:
+        ignore = []
     for attr in kwargs:
         if attr in ignore:
             continue
