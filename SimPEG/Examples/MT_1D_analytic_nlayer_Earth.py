@@ -1,7 +1,6 @@
 from scipy.constants import epsilon_0, mu_0
 import matplotlib.pyplot as plt
 import numpy as np
-from ipywidgets import *
 from SimPEG.EM.Utils import k, omega
 
 """
