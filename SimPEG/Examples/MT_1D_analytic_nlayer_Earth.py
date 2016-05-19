@@ -10,7 +10,7 @@ MT1D: n layered earth problem
 
 Author: Thibaut Astic
 Contact: thast@eos.ubc.ca
-Date: January 2016
+
 
 This code compute the analytic response of a n-layered Earth to a plane wave (Magneto-Tellurics).
 

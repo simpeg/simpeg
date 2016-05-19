@@ -6,7 +6,7 @@ from SimPEG.Utils import ndgrid, mkvc
 
 '''
 Authors: Thibaut Astic, Lindsey Heagy, Sanna Tyrvainen, Ronghua Peng
-Date: December 2015
+
 
 This code defines function to resolve analytically the electrostatic sphere problem.
 We first define a problem configuration, with a conductive or resistive sphere in a
