@@ -12,8 +12,12 @@ class MultiRegularization(Simple):
 
     """
     nModels = None # Number of models
-    ratios = None
-    crossgrad = False
+    ratios = None  # Ratio for different models
+    crossgrad = False # Use cross gradient or not
+    betacross = 1.
+    wx = []
+    wy = []
+    wz = []
 
     def __init__(self, mesh, mapping=None, indActive=None, **kwargs):
         BaseRegularization.__init__(self, mesh, mapping=mapping, indActive=indActive, **kwargs)
@@ -38,7 +42,8 @@ class MultiRegularization(Simple):
         if getattr(self, '_Wx', None) is None:
             mats = []
             for imodel in range(self.nModels):
-                mats.append(Utils.sdiag((self.regmesh.aveCC2Fx * self.regmesh.vol*self.alpha_x*self.ratios[imodel]*(self.regmesh.aveCC2Fx*self.wght))**0.5)*self.regmesh.cellDiffxStencil)
+                self.wx.append(Utils.sdiag((self.regmesh.aveCC2Fx * self.regmesh.vol*self.alpha_x*self.ratios[imodel]*(self.regmesh.aveCC2Fx*self.wght))**0.5))
+                mats.append(self.wx[imodel]*self.regmesh.cellDiffxStencil)
             self._Wx = sp.block_diag(mats)
         return self._Wx
 
@@ -48,7 +53,8 @@ class MultiRegularization(Simple):
         if getattr(self, '_Wy', None) is None:
             mats = []
             for imodel in range(self.nModels):
-                mats.append(Utils.sdiag((self.regmesh.aveCC2Fy * self.regmesh.vol*self.alpha_y*self.ratios[imodel]*(self.regmesh.aveCC2Fy*self.wght))**0.5)*self.regmesh.cellDiffyStencil)
+                self.wy.append(Utils.sdiag((self.regmesh.aveCC2Fy * self.regmesh.vol*self.alpha_y*self.ratios[imodel]*(self.regmesh.aveCC2Fy*self.wght))**0.5))
+                mats.append(self.wy[imodel]*self.regmesh.cellDiffyStencil)
             self._Wy = sp.block_diag(mats)
         return self._Wy
 
@@ -58,7 +64,8 @@ class MultiRegularization(Simple):
         if getattr(self, '_Wz', None) is None:
             mats = []
             for imodel in range(self.nModels):
-                mats.append(Utils.sdiag((self.regmesh.aveCC2Fz * self.regmesh.vol*self.alpha_z*self.ratios[imodel]*(self.regmesh.aveCC2Fz*self.wght))**0.5)*self.regmesh.cellDiffzStencil)
+                self.wz.append(Utils.sdiag((self.regmesh.aveCC2Fz * self.regmesh.vol*self.alpha_z*self.ratios[imodel]*(self.regmesh.aveCC2Fz*self.wght))**0.5))
+                mats.append(self.wz[imodel]*self.regmesh.cellDiffzStencil)
             self._Wz = sp.block_diag(mats)
         return self._Wz
 
@@ -95,11 +102,27 @@ class MultiRegularization(Simple):
             r = self.Wsmooth * ( self.mapping * m)
         return 0.5 * r.dot(r)
 
-    @Utils.timeIt
-    def _evalCross(self, m):
-        if self.crossgrad == False:
-            return 0.
-        elif self.crossgrad == True:
-            r = self.Wcross * ( self.mapping * m)
-            return 0.5 * r.dot(r)
+    #  TODO: Implement Cross Gradients..
+    # @Utils.timeIt
+    # def _evalCross(self, m):
+    #     if self.crossgrad == False:
+    #         return 0.
+    #     elif self.crossgrad == True:
+    #         M = (self.mapping * m).reshape((self.regmesh.nC, self.nModels), order="F")
+
+    #         for imodel in range(self.nModels):
+    #             ux.append(self.regmesh.aveFx2CC*self.regmesh.wx[imodel]*M[:,imodel])
+    #             uy.append(self.regmesh.aveFy2CC*self.regmesh.wy[imodel]*M[:,imodel])
+    #             uz.append(self.regmesh.aveFz2CC*self.regmesh.wz[imodel]*M[:,imodel])
+
+    #         ax, ay, az = ux[0], uy[0], uz[0]
+    #         for imodel in range(1,self.nModels):
+    #             bx, by, bz = ux[imodel], uy[imodel], uz[imodel]
+    #             cx = ay*bz - az*by
+    #             cy = az*bx - ax*bz
+    #             cz = ax*by - ay*bx
+    #             ax, ay, az = cx.copy(), cy.copy(), cz.copy()
+    #         r = np.r_[ax, ay, az]*np.sqrt(self.betacross)
+
+    #         return 0.5 * r.dot(r)
 
