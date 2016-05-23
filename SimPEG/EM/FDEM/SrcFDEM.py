@@ -153,11 +153,11 @@ class RawVec_e(BaseSrc):
     :param bool integrate: Integrate the source term (multiply by Me) [False]
     """
 
-    def __init__(self, rxList, freq, s_e):
+    def __init__(self, rxList, freq, s_e, **kwargs):
         self._s_e = np.array(s_e, dtype=complex)
         self.freq = float(freq)
 
-        BaseSrc.__init__(self, rxList)
+        BaseSrc.__init__(self, rxList, **kwargs)
 
     def s_e(self, prob):
         """
@@ -182,11 +182,11 @@ class RawVec_m(BaseSrc):
     :param bool integrate: Integrate the source term (multiply by Me) [False]
     """
 
-    def __init__(self, rxList, freq, s_m, integrate=True):  #ePrimary=Zero(), bPrimary=Zero(), hPrimary=Zero(), jPrimary=Zero()):
+    def __init__(self, rxList, freq, s_m, **kwargs):  #ePrimary=Zero(), bPrimary=Zero(), hPrimary=Zero(), jPrimary=Zero()):
         self._s_m = np.array(s_m, dtype=complex)
         self.freq = float(freq)
 
-        BaseSrc.__init__(self, rxList)
+        BaseSrc.__init__(self, rxList, **kwargs)
 
     def s_m(self, prob):
         """
