@@ -1003,7 +1003,6 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
                 # perturb inactive set off of bounds so that they are included in the step
                 delx = delx + self.stepOffBoundsFact * (rhs_a * dm_i / dm_a)
 
-
             # Only keep gradients going in the right direction on the active set
             indx = ((self.xc<=self.lower) & (delx < 0)) | ((self.xc>=self.upper) & (delx > 0))
             delx[indx] = 0.
