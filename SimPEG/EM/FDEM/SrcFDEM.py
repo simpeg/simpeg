@@ -156,7 +156,6 @@ class RawVec_e(BaseSrc):
     def __init__(self, rxList, freq, s_e):
         self._s_e = np.array(s_e, dtype=complex)
         self.freq = float(freq)
-        self._ePrimary = ePrimary
 
         BaseSrc.__init__(self, rxList)
 
