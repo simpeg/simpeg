@@ -10,6 +10,10 @@ class BaseSrc(Survey.BaseSrc):
 
     freq = None
     integrate = False
+    _ePrimary = None
+    _bPrimary = None
+    _hPrimary = None
+    _jPrimary = None
 
     def __init__(self, rxList, **kwargs):
         Survey.BaseSrc.__init__(self, rxList, **kwargs)
@@ -53,7 +57,9 @@ class BaseSrc(Survey.BaseSrc):
         :rtype: numpy.ndarray
         :return: primary magnetic flux density
         """
-        return Zero()
+        if self._bPrimary is None:
+            return Zero()
+        return self._bPrimary
 
     def hPrimary(self, prob):
         """
@@ -63,7 +69,9 @@ class BaseSrc(Survey.BaseSrc):
         :rtype: numpy.ndarray
         :return: primary magnetic field
         """
-        return Zero()
+        if self._hPrimary is None:
+            return Zero()
+        return self._hPrimary
 
     def ePrimary(self, prob):
         """
@@ -73,7 +81,9 @@ class BaseSrc(Survey.BaseSrc):
         :rtype: numpy.ndarray
         :return: primary electric field
         """
-        return Zero()
+        if self._ePrimary is None:
+            return Zero()
+        return self._ePrimary
 
     def jPrimary(self, prob):
         """
@@ -83,7 +93,9 @@ class BaseSrc(Survey.BaseSrc):
         :rtype: numpy.ndarray
         :return: primary current density
         """
-        return Zero()
+        if self._jPrimary is None:
+            return Zero()
+        return self._jPrimary
 
     def s_m(self, prob):
         """
@@ -144,6 +156,7 @@ class RawVec_e(BaseSrc):
     def __init__(self, rxList, freq, s_e):
         self._s_e = np.array(s_e, dtype=complex)
         self.freq = float(freq)
+        self._ePrimary = ePrimary
 
         BaseSrc.__init__(self, rxList)
 
