@@ -89,6 +89,11 @@ class MultiRegularization(Simple):
             self._W = sp.vstack(wlist)
         return self._W
 
+
+    @Utils.timeIt
+    def eval(self, m):
+        return self._evalSmall(m) + self._evalSmooth(m)
+
     @Utils.timeIt
     def _evalSmall(self, m):
         r = self.Wsmall * ( self.mapping * (m - self.mref) )
@@ -102,27 +107,98 @@ class MultiRegularization(Simple):
             r = self.Wsmooth * ( self.mapping * m)
         return 0.5 * r.dot(r)
 
-    #  TODO: Implement Cross Gradients..
-    # @Utils.timeIt
-    # def _evalCross(self, m):
-    #     if self.crossgrad == False:
-    #         return 0.
-    #     elif self.crossgrad == True:
-    #         M = (self.mapping * m).reshape((self.regmesh.nC, self.nModels), order="F")
+    def cross(a,b):
+        ax, ay, az = a[0], a[1], a[2]
+        bx, by, bz = b[0], b[1], b[2]
+        cx = ay*bz - az*by
+        cy = az*bx - ax*bz
+        cz = ax*by - ay*bx
+        return [cx, cy, cz]
 
-    #         for imodel in range(self.nModels):
-    #             ux.append(self.regmesh.aveFx2CC*self.regmesh.wx[imodel]*M[:,imodel])
-    #             uy.append(self.regmesh.aveFy2CC*self.regmesh.wy[imodel]*M[:,imodel])
-    #             uz.append(self.regmesh.aveFz2CC*self.regmesh.wz[imodel]*M[:,imodel])
+     # TODO: Implement Cross Gradients..
+    @Utils.timeIt
+    def _evalCross(self, m):
+        if self.crossgrad == False:
+            return 0.
+        elif self.crossgrad == True:
+            M = (self.mapping * m).reshape((self.regmesh.nC, self.nModels), order="F")
 
-    #         ax, ay, az = ux[0], uy[0], uz[0]
-    #         for imodel in range(1,self.nModels):
-    #             bx, by, bz = ux[imodel], uy[imodel], uz[imodel]
-    #             cx = ay*bz - az*by
-    #             cy = az*bx - ax*bz
-    #             cz = ax*by - ay*bx
-    #             ax, ay, az = cx.copy(), cy.copy(), cz.copy()
-    #         r = np.r_[ax, ay, az]*np.sqrt(self.betacross)
+            ax = self.regmesh.aveFx2CC*self.regmesh.wx[0]*M[:,0]
+            ay = self.regmesh.aveFy2CC*self.regmesh.wy[0]*M[:,0]
+            az = self.regmesh.aveFz2CC*self.regmesh.wz[0]*M[:,0]
+            bx = self.regmesh.aveFx2CC*self.regmesh.wx[1]*M[:,1]
+            by = self.regmesh.aveFy2CC*self.regmesh.wy[1]*M[:,1]
+            bz = self.regmesh.aveFz2CC*self.regmesh.wz[1]*M[:,1]
+            #ab
+            out_ab = cross([ax, ay, az], [bx, by, bz])
+            r = np.r_[out_ab[0], out_ab[1], out_ab[2]]*np.sqrt(self.betacross)
 
-    #         return 0.5 * r.dot(r)
+            if self.nModels == 3:
+                cx = self.regmesh.aveFx2CC*self.regmesh.wx[1]*M[:,1]
+                cy = self.regmesh.aveFy2CC*self.regmesh.wy[1]*M[:,1]
+                cz = self.regmesh.aveFz2CC*self.regmesh.wz[1]*M[:,1]
+                #ac
+                out_ac = cross([ax, ay, az], [cx, cy, cz])
+                #bc
+                out_bc = cross([bx, by, bz], [cx, cy, cz])
+                r = np.r_[r, np.hstack(out_ac)*np.sqrt(self.betacross), np.hstack(out_bc)*np.sqrt(self.betacross)]
+
+            return 0.5 * r.dot(r)
+
+    @Utils.timeIt
+    def evalDeriv(self, m):
+        """
+        The regularization is:
+
+        .. math::
+
+            R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top W(m-m_\\text{ref})}
+
+        So the derivative is straight forward:
+
+        .. math::
+
+            R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
+
+        """
+        deriv = self._evalSmallDeriv(m) + self._evalSmoothDeriv(m)
+        if self.crossgrad==True:
+            deriv += self._evalCrossDeriv(m)
+        return deriv
+
+    @Utils.timeIt
+    def _evalCrossDeriv(self,m):
+        r = self.Wsmall * ( self.mapping * (m - self.mref) )
+        return r.T * ( self.Wsmall * self.mapping.deriv(m - self.mref) )
+
+    @Utils.timeIt
+    def eval2Deriv(self, m, v=None):
+        """
+        Second derivative
+
+        :param numpy.array m: geophysical model
+        :param numpy.array v: vector to multiply
+        :rtype: scipy.sparse.csr_matrix or numpy.ndarray
+        :return: WtW or WtW*v
+
+        The regularization is:
+
+        .. math::
+
+            R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top W(m-m_\\text{ref})}
+
+        So the second derivative is straight forward:
+
+        .. math::
+
+            R(m) = \mathbf{W^\\top W}
+
+        """
+        mD = self.mapping.deriv(m - self.mref)
+        if v is None:
+            return mD.T * self.W.T * self.W * mD
+
+        return mD.T * ( self.W.T * ( self.W * ( mD * v) ) )
+
+
 

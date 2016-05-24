@@ -77,7 +77,7 @@ class BaseDCProblem(BaseEMProblem):
                 dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
                 dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
                 du_dmT = -dA_dmT + dRHS_dmT
-                Jtv += df_dmT + du_dmT
+                Jtv += (df_dmT + du_dmT).astype(float)
 
         return Utils.mkvc(Jtv)
 
