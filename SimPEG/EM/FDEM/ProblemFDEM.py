@@ -1,7 +1,7 @@
 from SimPEG import Problem, Utils, np, sp, Solver as SimpegSolver
 from scipy.constants import mu_0
 from SurveyFDEM import Survey as SurveyFDEM
-from FieldsFDEM import Fields, Fields_e, Fields_b, Fields_h, Fields_j
+from FieldsFDEM import Fields, Fields3D_e, Fields3D_b, Fields3D_h, Fields3D_j
 from SimPEG.EM.Base import BaseEMProblem
 from SimPEG.EM.Utils import omega
 
@@ -17,8 +17,8 @@ class BaseFDEMProblem(BaseEMProblem):
             \mathbf{C} \mathbf{e} + i \omega \mathbf{b} = \mathbf{s_m} \\\\
             {\mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b} - \mathbf{M_{\sigma}^e} \mathbf{e} = \mathbf{s_e}}
 
-        if using the E-B formulation (:code:`Problem_e`
-        or :code:`Problem_b`). Note that in this case, :math:`\mathbf{s_e}` is an integrated quantity.
+        if using the E-B formulation (:code:`Problem3D_e`
+        or :code:`Problem3D_b`). Note that in this case, :math:`\mathbf{s_e}` is an integrated quantity.
 
         If we write Maxwell's equations in terms of
         \\\(\\\mathbf{h}\\\) and current density \\\(\\\mathbf{j}\\\)
@@ -28,7 +28,7 @@ class BaseFDEMProblem(BaseEMProblem):
             \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{j} + i \omega \mathbf{M_{\mu}^e} \mathbf{h} = \mathbf{s_m} \\\\
             \mathbf{C} \mathbf{h} - \mathbf{j} = \mathbf{s_e}
 
-        if using the H-J formulation (:code:`Problem_j` or :code:`Problem_h`). Note that here, :math:`\mathbf{s_m}` is an integrated quantity.
+        if using the H-J formulation (:code:`Problem3D_j` or :code:`Problem3D_h`). Note that here, :math:`\mathbf{s_m}` is an integrated quantity.
 
         The problem performs the elimination so that we are solving the system for \\\(\\\mathbf{e},\\\mathbf{b},\\\mathbf{j} \\\) or \\\(\\\mathbf{h}\\\)
     """
@@ -87,7 +87,7 @@ class BaseFDEMProblem(BaseEMProblem):
                 du_dm_v = Ainv * ( - dA_dm_v + dRHS_dm_v )
 
                 for rx in src.rxList:
-                    df_dmFun = getattr(f, '_%sDeriv'%rx.projField, None)
+                    df_dmFun = getattr(f, '_{0}Deriv'.format(rx.projField), None)
                     df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
                     Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
             Ainv.clean()
@@ -125,7 +125,7 @@ class BaseFDEMProblem(BaseEMProblem):
                 for rx in src.rxList:
                     PTv = rx.evalDeriv(src, self.mesh, f, v[src, rx], adjoint=True) # wrt f, need possibility wrt m
 
-                    df_duTFun = getattr(f, '_%sDeriv'%rx.projField, None)
+                    df_duTFun = getattr(f, '_{0}Deriv'.format(rx.projField), None)
                     df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
 
                     ATinvdf_duT = ATinv * df_duT
@@ -137,10 +137,9 @@ class BaseFDEMProblem(BaseEMProblem):
                     df_dmT = df_dmT + du_dmT
 
                     # TODO: this should be taken care of by the reciever?
-                    real_or_imag = rx.projComp
-                    if real_or_imag is 'real':
+                    if rx.component is 'real':
                         Jtv +=   np.array(df_dmT, dtype=complex).real
-                    elif real_or_imag is 'imag':
+                    elif rx.component is 'imag':
                         Jtv += - np.array(df_dmT, dtype=complex).real
                     else:
                         raise Exception('Must be real or imag')
@@ -177,7 +176,7 @@ class BaseFDEMProblem(BaseEMProblem):
 ################################ E-B Formulation #########################################
 ##########################################################################################
 
-class Problem_e(BaseFDEMProblem):
+class Problem3D_e(BaseFDEMProblem):
     """
     By eliminating the magnetic flux density using
 
@@ -199,7 +198,7 @@ class Problem_e(BaseFDEMProblem):
 
     _solutionType = 'eSolution'
     _formulation  = 'EB'
-    fieldsPair    = Fields_e
+    fieldsPair    = Fields3D_e
 
     def __init__(self, mesh, **kwargs):
         BaseFDEMProblem.__init__(self, mesh, **kwargs)
@@ -288,7 +287,7 @@ class Problem_e(BaseFDEMProblem):
             return C.T * (MfMui * s_mDeriv(v)) -1j * omega(freq) * s_eDeriv(v)
 
 
-class Problem_b(BaseFDEMProblem):
+class Problem3D_b(BaseFDEMProblem):
     """
     We eliminate :math:`\mathbf{e}` using
 
@@ -310,7 +309,7 @@ class Problem_b(BaseFDEMProblem):
 
     _solutionType = 'bSolution'
     _formulation  = 'EB'
-    fieldsPair    = Fields_b
+    fieldsPair    = Fields3D_b
 
     def __init__(self, mesh, **kwargs):
         BaseFDEMProblem.__init__(self, mesh, **kwargs)
@@ -436,7 +435,7 @@ class Problem_b(BaseFDEMProblem):
 ##########################################################################################
 
 
-class Problem_j(BaseFDEMProblem):
+class Problem3D_j(BaseFDEMProblem):
     """
     We eliminate \\\(\\\mathbf{h}\\\) using
 
@@ -458,7 +457,7 @@ class Problem_j(BaseFDEMProblem):
 
     _solutionType = 'jSolution'
     _formulation  = 'HJ'
-    fieldsPair    = Fields_j
+    fieldsPair    = Fields3D_j
 
     def __init__(self, mesh, **kwargs):
         BaseFDEMProblem.__init__(self, mesh, **kwargs)
@@ -577,7 +576,7 @@ class Problem_j(BaseFDEMProblem):
 
 
 
-class Problem_h(BaseFDEMProblem):
+class Problem3D_h(BaseFDEMProblem):
     """
     We eliminate \\\(\\\mathbf{j}\\\) using
 
@@ -596,7 +595,7 @@ class Problem_h(BaseFDEMProblem):
 
     _solutionType = 'hSolution'
     _formulation  = 'HJ'
-    fieldsPair    = Fields_h
+    fieldsPair    = Fields3D_h
 
     def __init__(self, mesh, **kwargs):
         BaseFDEMProblem.__init__(self, mesh, **kwargs)
