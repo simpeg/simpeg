@@ -5,25 +5,49 @@ from SimPEG.Utils import sdiag
 import numpy as np
 from SimPEG.Utils import Zero
 from SimPEG.EM.Static.DC import getxBCyBC_CC
-from SurveyIP import Survey
+from SurveySIP import Survey, Data
 
-class IPPropMap(Maps.PropMap):
+class ColeColePropMap(Maps.PropMap):
     """
-        Property Map for IP Problems. The electrical chargeability,
-        (\\(\\eta\\)) is the default inversion property
+        Property Map for EM Problems. The electrical conductivity (\\(\\sigma\\)) is the default inversion property, and the default value of the magnetic permeability is that of free space (\\(\\mu = 4\\pi\\times 10^{-7} \\) H/m)
     """
-    eta = Maps.Property("Electrical Chargeability", defaultInvProp = True)
 
-class BaseIPProblem(BaseEMProblem):
+    eta = Maps.Property("Electrical Conductivity", defaultInvProp=True)
+    tau = Maps.Property("Electrical Conductivity", defaultVal=0.1, propertyLink=('taui', Maps.ReciprocalMap))
+    taui   = Maps.Property("Electrical Conductivity", defaultVal=1., propertyLink=('tau', Maps.ReciprocalMap))
+    c   = Maps.Property("Electrical Conductivity", defaultVal=1.)
+
+
+class BaseSIPProblem(BaseEMProblem):
 
     surveyPair = Survey
     fieldsPair = Fields
-    PropMap = IPPropMap
+    dataPair = Data
+    PropMap = ColeColePropMap
     Ainv = None
     sigma = None
     rho = None
     f = None
     Ainv = None
+
+    def DebyeTime(self, t):
+        peta = self.curModel.eta*np.exp(-self.curModel.taui*t)
+        return peta
+
+    def EtaDeriv(self, t, v, adjoint=False):
+        v = np.array(v, dtype=float)
+        if adjoint:
+            return self.curModel.etaDeriv.T * (np.exp(-self.curModel.taui*t)*v)
+        else:
+            return np.exp(-self.curModel.taui*t) * (self.curModel.etaDeriv*v)
+
+
+    def TauiDeriv(self, t, v, adjoint=False):
+        v = np.array(v, dtype=float)
+        if adjoint:
+            return -self.curModel.tauiDeriv.T * (self.curModel.eta*t*np.exp(-self.curModel.taui*t)*v)
+        else:
+            return -self.curModel.eta*t*np.exp(-self.curModel.taui*t) * (self.curModel.tauiDeriv*v)
 
     def fields(self, m):
         self.curModel = m
@@ -38,33 +62,77 @@ class BaseIPProblem(BaseEMProblem):
             self.f[Srcs, self._solutionType] = u
         return self.f
 
+    def forward(self, m, f=None):
+
+        if f is None:
+            f = self.fields(m)
+
+        self.curModel = m
+        Jv = self.dataPair(self.survey) #same size as the data
+        # A = self.getA()
+        JvAll = []
+        for tind in range(len(self.survey.times)):
+            #Pseudo-chareability
+            t = self.survey.times[tind]
+            v = self.DebyeTime(t)
+            for src in self.survey.srcList:
+                u_src = f[src, self._solutionType] # solution vector
+                dA_dm_v = self.getADeriv(u_src, v)
+                dRHS_dm_v = self.getRHSDeriv(src, v)
+                du_dm_v = self.Ainv * ( - dA_dm_v + dRHS_dm_v )
+                for rx in src.rxList:
+                    timeindex = rx.getTimeP(self.survey.times)
+                    if timeindex[tind]:
+                        df_dmFun = getattr(f, '_%sDeriv'%rx.projField, None)
+                        df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
+                        Jv[src, rx, t] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
+
+        # Conductivity (d u / d log sigma)
+        if self._formulation is 'EB':
+            return -Utils.mkvc(Jv)
+        # Resistivity (d u / d log rho)
+        if self._formulation is 'HJ':
+            return Utils.mkvc(Jv)
+
     def Jvec(self, m, v, f=None):
 
         if f is None:
             f = self.fields(m)
 
         self.curModel = m
-
         Jv = self.dataPair(self.survey) #same size as the data
+        # A = self.getA()
+        JvAll = []
+        #Assume only eta and tau (eta first then tau)
+        # v = [2*Mx1]
+        v = v.reshape((int(v.size/2), 2), order='F')
 
-        A = self.getA()
-
-        for src in self.survey.srcList:
-            u_src = f[src, self._solutionType] # solution vector
-            dA_dm_v = self.getADeriv(u_src, v)
-            dRHS_dm_v = self.getRHSDeriv(src, v)
-            du_dm_v = self.Ainv * ( - dA_dm_v + dRHS_dm_v )
-
-            for rx in src.rxList:
-                df_dmFun = getattr(f, '_%sDeriv'%rx.projField, None)
-                df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
-                Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
+        for tind in range(len(self.survey.times)):
+            t = self.survey.times[tind]
+            v0 = self.EtaDeriv(t, v[:,0])
+            v1 = self.TauiDeriv(t, v[:,1])
+            for src in self.survey.srcList:
+                u_src = f[src, self._solutionType] # solution vector
+                dA_dm_v0 = self.getADeriv(u_src, v0)
+                dRHS_dm_v0 = self.getRHSDeriv(src, v0)
+                du_dm_v0 = self.Ainv * ( - dA_dm_v0 + dRHS_dm_v0 )
+                dA_dm_v1 = self.getADeriv(u_src, v1)
+                dRHS_dm_v1 = self.getRHSDeriv(src, v1)
+                du_dm_v1 = self.Ainv * ( - dA_dm_v1 + dRHS_dm_v1 )
+                for rx in src.rxList:
+                    timeindex = rx.getTimeP(self.survey.times)
+                    if timeindex[tind]:
+                        df_dmFun = getattr(f, '_%sDeriv'%rx.projField, None)
+                        df_dm_v0 = df_dmFun(src, du_dm_v0, v0, adjoint=False)
+                        df_dm_v1 = df_dmFun(src, du_dm_v1, v1, adjoint=False)
+                        Jv[src, rx, t] = rx.evalDeriv(src, self.mesh, f, df_dm_v0)
+                        Jv[src, rx, t] += rx.evalDeriv(src, self.mesh, f, df_dm_v1)
         # Conductivity (d u / d log sigma)
         if self._formulation is 'EB':
-            return -Utils.mkvc(Jv)
-        # Conductivity (d u / d log rho)
+            return -Jv.tovec()
+        # Resistivity (d u / d log rho)
         if self._formulation is 'HJ':
-            return Utils.mkvc(Jv)
+            return Jv.tovec()
 
     def Jtvec(self, m, v, f=None):
         if f is None:
@@ -76,26 +144,29 @@ class BaseIPProblem(BaseEMProblem):
         if not isinstance(v, self.dataPair):
             v = self.dataPair(self.survey, v)
 
-        Jtv = np.zeros(m.size)
-        AT = self.getA()
+        Jtv= np.zeros(m.size)
+        for tind in range(len(self.survey.times)):
+            t = self.survey.times[tind]
+            for src in self.survey.srcList:
+                u_src = f[src, self._solutionType]
+                for rx in src.rxList:
+                    timeindex = rx.getTimeP(self.survey.times)
+                    if timeindex[tind]:
+                        PTv = rx.evalDeriv(src, self.mesh, f, v[src, rx, t], adjoint=True) # wrt f, need possibility wrt m
+                        df_duTFun = getattr(f, '_%sDeriv'%rx.projField, None)
+                        df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
+                        ATinvdf_duT = self.Ainv * df_duT
+                        dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
+                        dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
+                        du_dmT = -dA_dmT + dRHS_dmT
+                        Jtv += np.r_[self.EtaDeriv(self.survey.times[tind], du_dmT, adjoint=True), self.TauiDeriv(self.survey.times[tind], du_dmT, adjoint=True)]
 
-        for src in self.survey.srcList:
-            u_src = f[src, self._solutionType]
-            for rx in src.rxList:
-                PTv = rx.evalDeriv(src, self.mesh, f, v[src, rx], adjoint=True) # wrt f, need possibility wrt m
-                df_duTFun = getattr(f, '_%sDeriv'%rx.projField, None)
-                df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
-                ATinvdf_duT = self.Ainv * df_duT
-                dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
-                dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
-                du_dmT = -dA_dmT + dRHS_dmT
-                Jtv += (df_dmT + du_dmT).astype(float)
         # Conductivity ((d u / d log sigma).T)
         if self._formulation is 'EB':
-            return -Utils.mkvc(Jtv)
+            return -Jtv
         # Conductivity ((d u / d log rho).T)
         if self._formulation is 'HJ':
-            return Utils.mkvc(Jtv)
+            return Jtv
 
     def getSourceTerm(self):
         """
@@ -154,7 +225,7 @@ class BaseIPProblem(BaseEMProblem):
 
         dMfRhoI_dI = -self.MfRhoI**2
         dMf_drho = self.mesh.getFaceInnerProductDeriv(self.rho)(u)
-        drho_dlogrho = Utils.sdiag(self.rho)*self.curModel.etaDeriv
+        drho_dlogrho = Utils.sdiag(self.rho)
         return dMfRhoI_dI * ( dMf_drho * ( drho_dlogrho))
 
     # TODO: This should take a vector
@@ -162,17 +233,17 @@ class BaseIPProblem(BaseEMProblem):
         """
             Derivative of MeSigma with respect to the model
         """
-        dsigma_dlogsigma = Utils.sdiag(self.sigma)*self.curModel.etaDeriv
+        dsigma_dlogsigma = Utils.sdiag(self.sigma)
         return self.mesh.getEdgeInnerProductDeriv(self.sigma)(u) * dsigma_dlogsigma
 
-class Problem3D_CC(BaseIPProblem):
+class Problem3D_CC(BaseSIPProblem):
 
     _solutionType = 'phiSolution'
     _formulation  = 'HJ' # CC potentials means J is on faces
     fieldsPair    = Fields_CC
 
     def __init__(self, mesh, **kwargs):
-        BaseIPProblem.__init__(self, mesh, **kwargs)
+        BaseSIPProblem.__init__(self, mesh, **kwargs)
         self.setBC()
 
     def getA(self):
@@ -186,6 +257,7 @@ class Problem3D_CC(BaseIPProblem):
 
         D = self.Div
         G = self.Grad
+        # TODO: this won't work for full anisotropy
         MfRhoI = self.MfRhoI
         A = D * MfRhoI * G
 
@@ -298,14 +370,14 @@ class Problem3D_CC(BaseIPProblem):
         self.Grad = self.Div.T - P_BC*Utils.sdiag(y_BC)*M
 
 
-class Problem3D_N(BaseIPProblem):
+class Problem3D_N(BaseSIPProblem):
 
     _solutionType = 'phiSolution'
     _formulation  = 'EB' # N potentials means B is on faces
     fieldsPair    = Fields_N
 
     def __init__(self, mesh, **kwargs):
-        BaseIPProblem.__init__(self, mesh, **kwargs)
+        BaseSIPProblem.__init__(self, mesh, **kwargs)
 
     def getA(self):
         """
@@ -316,6 +388,7 @@ class Problem3D_N(BaseIPProblem):
 
         """
 
+        # TODO: this won't work for full anisotropy
         MeSigma = self.MeSigma
         Grad = self.mesh.nodalGrad
         A = Grad.T * MeSigma * Grad
@@ -367,6 +440,6 @@ if __name__ == '__main__':
     hz = [(cs,7, -1.3),(cs,20)]
     mesh = Mesh.TensorMesh([hx, hy, hz],x0="CCN")
     sigma = np.ones(mesh.nC)
-    prob = BaseIPProblem(mesh, sigma=sigma)
+    prob = BaseSIPProblem(mesh, sigma=sigma)
 
 

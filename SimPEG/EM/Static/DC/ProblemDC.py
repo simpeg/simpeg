@@ -77,7 +77,7 @@ class BaseDCProblem(BaseEMProblem):
                 dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
                 dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
                 du_dmT = -dA_dmT + dRHS_dmT
-                Jtv += df_dmT + du_dmT
+                Jtv += (df_dmT + du_dmT).astype(float)
 
         return Utils.mkvc(Jtv)
 
@@ -122,13 +122,12 @@ class Problem3D_CC(BaseDCProblem):
 
         Make the A matrix for the cell centered DC resistivity problem
 
-        A = D MfRhoI D^\\top V
+        A = D MfRhoI G
 
         """
 
         D = self.Div
         G = self.Grad
-        # TODO: this won't work for full anisotropy
         MfRhoI = self.MfRhoI
         A = D * MfRhoI * G
 
@@ -144,13 +143,8 @@ class Problem3D_CC(BaseDCProblem):
         MfRhoIDeriv = self.MfRhoIDeriv
 
         if adjoint:
-            # if self._makeASymmetric is True:
-            #     v = V * v
             return(MfRhoIDeriv( G * u ).T) * ( D.T * v)
 
-        # I think we should deprecate this for DC problem.
-        # if self._makeASymmetric is True:
-        #     return V.T * ( D * ( MfRhoIDeriv( D.T * ( V * u ) ) * v ) )
         return D * (MfRhoIDeriv( G * u ) * v)
 
     def getRHS(self):
@@ -161,10 +155,6 @@ class Problem3D_CC(BaseDCProblem):
         """
 
         RHS = self.getSourceTerm()
-
-        # I think we should deprecate this for DC problem.
-        # if self._makeASymmetric is True:
-        #     return self.Vol.T * RHS
 
         return RHS
 
@@ -255,11 +245,10 @@ class Problem3D_N(BaseDCProblem):
 
         Make the A matrix for the cell centered DC resistivity problem
 
-        A = D MfRhoI D^\\top V
+        A = G.T MeSigma G
 
         """
 
-        # TODO: this won't work for full anisotropy
         MeSigma = self.MeSigma
         Grad = self.mesh.nodalGrad
         A = Grad.T * MeSigma * Grad

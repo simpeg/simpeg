@@ -2,7 +2,7 @@ import numpy as np
 from scipy.constants import mu_0, pi
 from scipy import special
 
-def DCAnalyticHalf(txloc, rxlocs, sigma, flag="wholespace"):
+def DCAnalyticHalf(txloc, rxlocs, sigma, earth_type="wholespace"):
     """
         Analytic solution for electric potential from a postive pole
 
@@ -15,7 +15,7 @@ def DCAnalyticHalf(txloc, rxlocs, sigma, flag="wholespace"):
                 N: xyz locations of N (-) electrode (np.c_[xnlocs, ynlocs, znlocs])
 
             sigma = conductivity (either float or complex)
-            flag = "wholsespace" or "halfspace"
+            earth_type = "wholsespace" or "halfspace"
 
     """
     M = rxlocs[0]
@@ -28,7 +28,7 @@ def DCAnalyticHalf(txloc, rxlocs, sigma, flag="wholespace"):
     phiN = 1./(4*np.pi*rN*sigma)
     phi = phiM - phiN
 
-    if flag == "halfspace":
+    if earth_type == "halfspace":
         phi *= 2
 
     return phi
@@ -37,9 +37,9 @@ deg2rad  = lambda deg: deg/180.*np.pi
 rad2deg  = lambda rad: rad*180./np.pi
 
 def DCAnalyticSphere(txloc, rxloc, xc, radius, sigma, sigma1, \
-                 flag = "sec", order=12, halfspace=False):
+                 field_type = "secondary", order=12, halfspace=False):
 # def DCSpherePointCurrent(txloc, rxloc, xc, radius, rho, rho1, \
-#                  flag = "sec", order=12):
+#                  field_type = "secondary", order=12):
     """
 
         Parameters:
@@ -51,11 +51,11 @@ def DCAnalyticSphere(txloc, rxloc, xc, radius, sigma, sigma1, \
             radius (float): radius of the sphere (m)
             rho (float)   : resistivity of the background (ohm-m)
             rho1 (float)  : resistivity of the sphere
-            flag (string) : "sec", "total", "prim"
-                              (default="sec")
-                              "sec": secondary potential only due to sphere
-                              "prim": primary potential from the point source
-                              "total": "sec"+"prim"
+            field_type (string) : "secondary", "total", "primary"
+                              (default="secondary")
+                              "secondary": secondary potential only due to sphere
+                              "primary": primary potential from the point source
+                              "total": "secondary"+"primary"
             order (float) : maximum order of Legendre polynomial
                               (default=12)
 
@@ -86,7 +86,7 @@ def DCAnalyticSphere(txloc, rxloc, xc, radius, sigma, sigma1, \
     # primary potential in a whole space
     prim = rho*1./(4*np.pi*R)
 
-    if flag =="prim":
+    if field_type =="primary":
         return prim
 
     sphind = r < radius
@@ -105,9 +105,9 @@ def DCAnalyticSphere(txloc, rxloc, xc, radius, sigma, sigma1, \
     else:
         scale = 1
 
-    if flag == "sec":
+    if field_type == "secondary":
         return scale*(out-prim)
-    elif flag == "total":
+    elif field_type == "total":
         return scale*out
 
 def AnBnfun(n, radius, x0, rho, rho1, I=1.):

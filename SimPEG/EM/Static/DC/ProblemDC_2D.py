@@ -161,14 +161,13 @@ class Problem2D_CC(BaseDCProblem_2D):
 
         Make the A matrix for the cell centered DC resistivity problem
 
-        A = D MfRhoI D^\\top V
+        A = D MfRhoI G
 
         """
 
         D = self.Div
         G = self.Grad
         vol = self.mesh.vol
-        # TODO: this won't work for full anisotropy
         MfRhoI = self.MfRhoI
         # Get resistivity rho
         rho = self.curModel.rho
@@ -304,11 +303,10 @@ class Problem2D_N(BaseDCProblem_2D):
 
         Make the A matrix for the cell centered DC resistivity problem
 
-        A = D MfRhoI D^\\top V
+        A = D MfRhoI G
 
         """
 
-        # TODO: this won't work for full anisotropy
         MeSigma = self.MeSigma
         MnSigma = self.MnSigma
         Grad = self.mesh.nodalGrad
