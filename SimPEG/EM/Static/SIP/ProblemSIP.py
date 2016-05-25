@@ -34,13 +34,20 @@ class BaseSIPProblem(BaseEMProblem):
         peta = self.curModel.eta*np.exp(-self.curModel.taui*t)
         return peta
 
-    def EtaDeriv(self, t, v):
+    def EtaDeriv(self, t, v, adjoint=False):
         v = np.array(v, dtype=float)
-        return np.exp(-self.curModel.taui*t) * (self.curModel.etaDeriv*v)
+        if adjoint:
+            return self.curModel.etaDeriv.T * (np.exp(-self.curModel.taui*t)*v)
+        else:
+            return np.exp(-self.curModel.taui*t) * (self.curModel.etaDeriv*v)
 
-    def TauiDeriv(self, t, v):
+
+    def TauiDeriv(self, t, v, adjoint=False):
         v = np.array(v, dtype=float)
-        return -self.curModel.eta*t*np.exp(-self.curModel.taui*t) * (self.curModel.tauiDeriv*v)
+        if adjoint:
+            return -self.curModel.tauiDeriv.T * (self.curModel.eta*t*np.exp(-self.curModel.taui*t)*v)
+        else:
+            return -self.curModel.eta*t*np.exp(-self.curModel.taui*t) * (self.curModel.tauiDeriv*v)
 
     def fields(self, m):
         self.curModel = m
@@ -152,7 +159,7 @@ class BaseSIPProblem(BaseEMProblem):
                         dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
                         dRHS_dmT = self.getRHSDeriv(src, ATinvdf_duT, adjoint=True)
                         du_dmT = -dA_dmT + dRHS_dmT
-                        Jtv += np.r_[self.EtaDeriv(self.survey.times[tind], du_dmT), self.TauiDeriv(self.survey.times[tind], du_dmT)]
+                        Jtv += np.r_[self.EtaDeriv(self.survey.times[tind], du_dmT, adjoint=True), self.TauiDeriv(self.survey.times[tind], du_dmT, adjoint=True)]
 
         # Conductivity ((d u / d log sigma).T)
         if self._formulation is 'EB':
