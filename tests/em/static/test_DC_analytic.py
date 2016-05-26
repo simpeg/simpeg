@@ -19,8 +19,8 @@ class DCProblemAnalyticTests(unittest.TestCase):
         Bloc = np.r_[200., 0., 0.]
         M = Utils.ndgrid(x-25.,y, np.r_[0.])
         N = Utils.ndgrid(x+25.,y, np.r_[0.])
-        phiA = EM.Analytics.DCAnalyticHalf(Aloc, [M,N], 1e-2, flag="halfspace")
-        phiB = EM.Analytics.DCAnalyticHalf(Bloc, [M,N], 1e-2, flag="halfspace")
+        phiA = EM.Analytics.DCAnalyticHalf(Aloc, [M,N], 1e-2, earth_type="halfspace")
+        phiB = EM.Analytics.DCAnalyticHalf(Bloc, [M,N], 1e-2, earth_type="halfspace")
         data_anal = phiA-phiB
 
         rx = DC.Rx.Dipole(M, N)

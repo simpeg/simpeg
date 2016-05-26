@@ -18,9 +18,9 @@ class DCProblemAnalyticTests(unittest.TestCase):
         A0loc = np.r_[-150, 0.]
         A1loc = np.r_[-130, 0.]
         rxloc = [np.c_[M, np.zeros(20)], np.c_[N, np.zeros(20)]]
-        data_anal = EM.Analytics.DCAnalyticHalf(np.r_[A0loc, 0.], rxloc, sighalf, flag="halfspace")
+        data_anal = EM.Analytics.DCAnalyticHalf(np.r_[A0loc, 0.], rxloc, sighalf, earth_type="halfspace")
 
-        rx = DC.Rx.Dipole(M, N)
+        rx = DC.Rx.Dipole_ky(M, N)
         src0 = DC.Src.Pole([rx], A0loc)
         survey = DC.Survey_ky([src0])
 
