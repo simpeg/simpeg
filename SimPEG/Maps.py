@@ -1,3 +1,4 @@
+from __future__ import division
 import Utils, numpy as np, scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
 from Tests import checkDerivative
@@ -5,6 +6,7 @@ from PropMaps import PropMap, Property
 from numpy.polynomial import polynomial
 from scipy.interpolate import UnivariateSpline
 import warnings
+from SimPEG.Utils import Zero
 
 class IdentityMap(object):
     """
@@ -1053,6 +1055,365 @@ class SplineMap(IdentityMap):
 
 
 
+
+
+# need to construct a parametrized mapping for the block in a layered space
+# m = [val_back, val_layer, val_block, layer_top, layer_bottom, x0_block, y0_block, dx_block, dy_block]
+
+class ParametrizedBlockInLayer(IdentityMap):
+
+    slope_fact = 1e3 # will be scaled by the mesh.
+    slope = None
+    indActive = None
+
+    def __init__(self, mesh, **kwargs):
+
+#         super(Parametrized_Block_in_Layer, self).__init__(mesh, **kwargs)
+
+        IdentityMap.__init__(self, mesh, **kwargs)
+
+        if self.slope is None:
+            self.slope = self.slope_fact / np.hstack(self.mesh.h).min()
+
+        self.x = [self.mesh.gridCC[:,0] if self.indActive is None else self.mesh.gridCC[indActive,0]][0]
+
+        if self.mesh.dim > 1:
+            self.y = [self.mesh.gridCC[:,1] if self.indActive is None else self.mesh.gridCC[indActive,1]][0]
+
+        if self.mesh.dim > 2:
+            self.z = [self.mesh.gridCC[:,2] if self.indActive is None else self.mesh.gridCC[indActive,2]][0]
+
+    @property
+    def nP(self):
+        if self.mesh.dim == 2:
+            return 7
+        elif self.mesh.dim == 3:
+            return 9
+
+    def _validate_m(self, m):
+        # TODO: more sanity checks here
+        if self.mesh.dim == 2:
+            assert len(m) == 7, 'm must be length 5: [val_back, val_layer, val_block, layer_bottom, layer_top, x0_block, dx_block]'
+        elif self.mesh.dim == 3:
+            assert len(m) == 9, 'm must be length 7: [val_back, val_layer, val_block, layer_bottom, layer_top, x0_block, y0_block, dx_block, dy_block]'
+        else:
+            raise NotImplementedError('Only 2D and 3D meshes are implemented for the Parametrized_Block_in_Layer Map')
+
+    def _atanfct(self, xyz, xyzi, slope):
+        return np.arctan(slope * (xyz - xyzi))/np.pi + 0.5
+
+    def _atanfctDeriv(self, xyz, xyzi, slope):
+        # d/dx(atan(x)) = 1/(1+x**2)
+        x = slope * (xyz - xyzi)
+        dx = - slope
+        return (1./(1 + x**2))/np.pi * dx
+
+    def _atanlayer(self, layer_bottom, layer_top):
+        if self.mesh.dim == 2:
+            z = self.y
+        elif self.mesh.dim == 3:
+            z = self.z
+
+        return self._atanfct(z, layer_bottom, self.slope)*self._atanfct(z, layer_top, -self.slope)
+
+    def _atanlayerDeriv_layer_bottom(self, layer_bottom, layer_top):
+        if self.mesh.dim == 2:
+            z = self.y
+        elif self.mesh.dim == 3:
+            z = self.z
+
+        return self._atanfctDeriv(z, layer_bottom, self.slope)*self._atanfct(z, layer_top, -self.slope)
+
+    def _atanlayerDeriv_layer_top(self, layer_bottom, layer_top):
+        if self.mesh.dim == 2:
+            z = self.y
+        elif self.mesh.dim == 3:
+            z = self.z
+
+        return self._atanfct(z, layer_bottom, self.slope)*self._atanfctDeriv(z, layer_top, -self.slope)
+
+    def _atanblock2d(self, layer_bottom, layer_top, x0_block, dx_block):
+
+        return (self._atanlayer(layer_bottom, layer_top)
+                          * self._atanfct(self.x, x0_block - 0.5*dx_block, self.slope)
+                          * self._atanfct(self.x, x0_block + 0.5*dx_block, -self.slope))
+
+    def _atanblock2dDeriv_layer_bottom(self, layer_bottom, layer_top, x0_block, dx_block):
+
+        return (self._atanlayerDeriv_layer_bottom(layer_bottom, layer_top)
+                          * self._atanfct(self.x, x0_block - 0.5*dx_block, self.slope)
+                          * self._atanfct(self.x, x0_block + 0.5*dx_block, -self.slope))
+
+    def _atanblock2dDeriv_layer_top(self, layer_bottom, layer_top, x0_block, dx_block):
+
+        return (self._atanlayerDeriv_layer_top(layer_bottom, layer_top)
+                          * self._atanfct(self.x, x0_block - 0.5*dx_block, self.slope)
+                          * self._atanfct(self.x, x0_block + 0.5*dx_block, -self.slope))
+
+    def _atanblock2dDeriv_x0(self, layer_bottom, layer_top, x0_block, dx_block):
+
+        return self._atanlayer(layer_bottom, layer_top) * (
+                    (self._atanfctDeriv(self.x, x0_block - 0.5*dx_block, self.slope)
+                    * self._atanfct(self.x, x0_block + 0.5*dx_block, -self.slope))
+                    +
+                    (self._atanfct(self.x, x0_block - 0.5*dx_block, self.slope)
+                    * self._atanfctDeriv(self.x, x0_block + 0.5*dx_block, -self.slope))
+                    )
+
+    def _atanblock2dDeriv_dx(self, layer_bottom, layer_top, x0_block, dx_block):
+
+        return self._atanlayer(layer_bottom, layer_top) * (
+                    (self._atanfctDeriv(self.x, x0_block - 0.5*dx_block, self.slope) * -0.5
+                    * self._atanfct(self.x, x0_block + 0.5*dx_block, -self.slope))
+                    +
+                    (self._atanfct(self.x, x0_block - 0.5*dx_block, self.slope)
+                    * self._atanfctDeriv(self.x, x0_block + 0.5*dx_block, -self.slope) * 0.5)
+                    )
+
+    def _atanblock3d(self, layer_bottom, layer_top, x0_block, y0_block, dx_block, dy_block):
+
+        return (self._atanlayer(layer_bottom, layer_top)
+                          * self._atanfct(self.x, x0_block - 0.5*dx_block, self.slope)
+                          * self._atanfct(self.x, x0_block + 0.5*dx_block, -self.slope)
+                          * self._atanfct(self.y, y0_block - 0.5*dy_block, self.slope)
+                          * self._atanfct(self.y, y0_block + 0.5*dy_block, -self.slope))
+
+
+    def _atanblock3dDeriv_layer_bottom(self, layer_bottom, layer_top, x0_block, y0_block, dx_block, dy_block):
+
+        return (self._atanlayerDeriv_layer_bottom(layer_bottom, layer_top)
+                          * self._atanfct(self.x, x0_block - 0.5*dx_block, self.slope)
+                          * self._atanfct(self.x, x0_block + 0.5*dx_block, -self.slope)
+                          * self._atanfct(self.y, y0_block - 0.5*dy_block, self.slope)
+                          * self._atanfct(self.y, y0_block + 0.5*dy_block, -self.slope))
+
+    def _atanblock3dDeriv_layer_top(self, layer_bottom, layer_top, x0_block, y0_block, dx_block, dy_block):
+
+        return (self._atanlayerDeriv_layer_top(layer_bottom, layer_top)
+                          * self._atanfct(self.x, x0_block - 0.5*dx_block, self.slope)
+                          * self._atanfct(self.x, x0_block + 0.5*dx_block, -self.slope)
+                          * self._atanfct(self.y, y0_block - 0.5*dy_block, self.slope)
+                          * self._atanfct(self.y, y0_block + 0.5*dy_block, -self.slope))
+
+
+    def _atanblock3dDeriv_x0(self, layer_bottom, layer_top, x0_block, y0_block, dx_block, dy_block):
+
+        return self._atanlayer(layer_bottom, layer_top) * (
+                    (self._atanfctDeriv(self.x, x0_block - 0.5*dx_block, self.slope)
+                    * self._atanfct(self.x, x0_block + 0.5*dx_block, -self.slope)
+                    * self._atanfct(self.y, y0_block - 0.5*dy_block, self.slope)
+                    * self._atanfct(self.y, y0_block + 0.5*dy_block, -self.slope))
+                    +
+                    (self._atanfct(self.x, x0_block - 0.5*dx_block, self.slope)
+                    * self._atanfctDeriv(self.x, x0_block + 0.5*dx_block, -self.slope)
+                    * self._atanfct(self.y, y0_block - 0.5*dy_block, self.slope)
+                    * self._atanfct(self.y, y0_block + 0.5*dy_block, -self.slope))
+                    )
+
+    def _atanblock3dDeriv_y0(self, layer_bottom, layer_top, x0_block, y0_block, dx_block, dy_block):
+
+        return self._atanlayer(layer_bottom, layer_top) * (
+                    (self._atanfct(self.x, x0_block - 0.5*dx_block, self.slope)
+                    * self._atanfct(self.x, x0_block + 0.5*dx_block, -self.slope)
+                    * self._atanfctDeriv(self.y, y0_block - 0.5*dy_block, self.slope)
+                    * self._atanfct(self.y, y0_block + 0.5*dy_block, -self.slope))
+                    +
+                    (self._atanfct(self.x, x0_block - 0.5*dx_block, self.slope)
+                    * self._atanfct(self.x, x0_block + 0.5*dx_block, -self.slope)
+                    * self._atanfct(self.y, y0_block - 0.5*dy_block, self.slope)
+                    * self._atanfctDeriv(self.y, y0_block + 0.5*dy_block, -self.slope))
+                    )
+
+    def _atanblock3dDeriv_dx(self, layer_bottom, layer_top, x0_block, y0_block, dx_block, dy_block):
+
+        return self._atanlayer(layer_bottom, layer_top) * (
+                    (self._atanfctDeriv(self.x, x0_block - 0.5*dx_block, self.slope) * -0.5
+                    * self._atanfct(self.x, x0_block + 0.5*dx_block, -self.slope)
+                    * self._atanfct(self.y, y0_block - 0.5*dy_block, self.slope)
+                    * self._atanfct(self.y, y0_block + 0.5*dy_block, -self.slope))
+                    +
+                    (self._atanfct(self.x, x0_block - 0.5*dx_block, self.slope)
+                    * self._atanfctDeriv(self.x, x0_block + 0.5*dx_block, -self.slope) * 0.5
+                    * self._atanfct(self.y, y0_block - 0.5*dy_block, self.slope)
+                    * self._atanfct(self.y, y0_block + 0.5*dy_block, -self.slope))
+                    )
+
+    def _atanblock3dDeriv_dy(self, layer_bottom, layer_top, x0_block, y0_block, dx_block, dy_block):
+
+        return self._atanlayer(layer_bottom, layer_top) * (
+                    (self._atanfct(self.x, x0_block - 0.5*dx_block, self.slope)
+                    * self._atanfct(self.x, x0_block + 0.5*dx_block, -self.slope)
+                    * self._atanfctDeriv(self.y, y0_block - 0.5*dy_block, self.slope) * -0.5
+                    * self._atanfct(self.y, y0_block + 0.5*dy_block, -self.slope))
+                    +
+                    (self._atanfct(self.x, x0_block - 0.5*dx_block, self.slope)
+                    * self._atanfct(self.x, x0_block + 0.5*dx_block, -self.slope)
+                    * self._atanfct(self.y, y0_block - 0.5*dy_block, self.slope)
+                    * self._atanfctDeriv(self.y, y0_block + 0.5*dy_block, -self.slope) * 0.5)
+                    )
+
+
+    def _transform2d(self, m):
+
+        # parse model
+        vals = m[:3]    # model values
+        layer_bottom = m[3]
+        layer_top = m[4]
+        x0_block = m[5] # x-center of the block
+        dx_block = m[6] # block width
+
+        # assemble the model
+        layer_cont = vals[0] + (vals[1]-vals[0])*self._atanlayer(layer_bottom, layer_top) # contribution from the layered background
+        block_cont = (vals[2]-layer_cont)*self._atanblock2d(layer_bottom, layer_top, x0_block, dx_block) # perturbation due to the block
+
+        return layer_cont + block_cont
+
+    def _deriv2d(self, m):
+        # [val_back, val_layer, val_block, x0_block, dx_block]
+        # parse model
+        vals = m[:3]    # model values
+        layer_bottom = m[3]
+        layer_top = m[4]
+        x0_block = m[5] # x-center of the block
+        dx_block = m[6] # block width
+
+        layer_cont = vals[0] + (vals[1]-vals[0])*self._atanlayer(layer_bottom, layer_top) # contribution to background from layer
+
+        # background value
+        d_layer_dval0 = np.ones_like(self.x) + (-1.)*self._atanlayer(layer_bottom, layer_top)
+        d_block_dval0 = (-d_layer_dval0)*self._atanblock2d(layer_bottom, layer_top, x0_block, dx_block)
+        val0_deriv = d_layer_dval0 + d_block_dval0
+
+        # layer value
+        d_layer_dval1 = self._atanlayer(layer_bottom, layer_top)
+        d_block_dval1 = (-d_layer_dval1)*self._atanblock2d(layer_bottom, layer_top, x0_block, dx_block)
+        val1_deriv = d_layer_dval1 + d_block_dval1
+
+        # block value
+        d_layer_dval2 = Zero()
+        d_block_dval2 = (1.-d_layer_dval2)*self._atanblock2d(layer_bottom, layer_top, x0_block, dx_block)
+        val2_deriv = d_layer_dval2 + d_block_dval2
+
+        # layer_bottom
+        d_layer_dlayer_bottom = (vals[1]-vals[0])*self._atanlayerDeriv_layer_bottom(layer_bottom, layer_top)
+        d_block_dlayer_bottom = ((vals[2]-layer_cont)*self._atanblock2dDeriv_layer_bottom(layer_bottom, layer_top, x0_block, dx_block)
+                                    - d_layer_dlayer_bottom*self._atanblock2d(layer_bottom, layer_top, x0_block, dx_block))
+        layer_bottom_deriv = d_layer_dlayer_bottom + d_block_dlayer_bottom
+
+        # layer_top
+        d_layer_dlayer_top = (vals[1]-vals[0])*self._atanlayerDeriv_layer_top(layer_bottom, layer_top)
+        d_block_dlayer_top = ((vals[2]-layer_cont)*self._atanblock2dDeriv_layer_top(layer_bottom, layer_top, x0_block, dx_block)
+                                - d_layer_dlayer_top*self._atanblock2d(layer_bottom, layer_top, x0_block, dx_block))
+        layer_top_deriv = d_layer_dlayer_top + d_block_dlayer_top
+
+        # x0 of the block
+        d_layer_dx0 = Zero()
+        d_block_dx0 = (vals[2]-layer_cont)*self._atanblock2dDeriv_x0(layer_bottom, layer_top, x0_block, dx_block)
+        x0_deriv = d_layer_dx0 + d_block_dx0
+
+        # dx of the block
+        d_layer_ddx = Zero()
+        d_block_ddx = (vals[2]-layer_cont)*self._atanblock2dDeriv_dx(layer_bottom, layer_top, x0_block, dx_block)
+        dx_deriv = d_layer_ddx + d_block_ddx
+
+        return np.vstack([val0_deriv, val1_deriv, val2_deriv, layer_bottom_deriv, layer_top_deriv, x0_deriv, dx_deriv]).T
+
+
+    def _transform3d(self, m):
+        # parse model
+        vals = m[:3]    # model values
+        layer_bottom = m[3]
+        layer_top = m[4]
+        x0_block = m[5] # x-center of the block
+        y0_block = m[6] # y-center of the block
+        dx_block = m[7] # block x-width
+        dy_block = m[8] # block y-width
+
+        # assemble the model
+        layer_cont = vals[0] + (vals[1]-vals[0])*self._atanlayer(layer_bottom, layer_top) # contribution from the layered background
+        block_cont = (vals[2]-layer_cont)*self._atanblock3d(layer_bottom, layer_top, x0_block, y0_block, dx_block, dy_block) # perturbation due to the block
+
+        return layer_cont + block_cont
+
+    def _deriv3d(self, m):
+
+        # parse model
+        vals = m[:3]    # model values
+        layer_bottom = m[3]
+        layer_top = m[4]
+        x0_block = m[5] # x-center of the block
+        y0_block = m[6] # y-center of the block
+        dx_block = m[7] # block x-width
+        dy_block = m[8] # block y-width
+
+        layer_cont = vals[0] + (vals[1]-vals[0])*self._atanlayer(layer_bottom, layer_top) # contribution to background from layer
+
+        # background value
+        d_layer_dval0 = np.ones_like(self.x) + (-1.)*self._atanlayer(layer_bottom, layer_top)
+        d_block_dval0 = (-d_layer_dval0)*self._atanblock3d(layer_bottom, layer_top, x0_block, y0_block, dx_block, dy_block)
+        val0_deriv = d_layer_dval0 + d_block_dval0
+
+        # layer value
+        d_layer_dval1 = self._atanlayer(layer_bottom, layer_top)
+        d_block_dval1 = (-d_layer_dval1)*self._atanblock3d(layer_bottom, layer_top, x0_block, y0_block, dx_block, dy_block)
+        val1_deriv = d_layer_dval1 + d_block_dval1
+
+        # block value
+        d_layer_dval2 = Zero()
+        d_block_dval2 = (1.-d_layer_dval2)*self._atanblock3d(layer_bottom, layer_top, x0_block, y0_block, dx_block, dy_block)
+        val2_deriv = d_layer_dval2 + d_block_dval2
+
+        # layer_bottom
+        d_layer_dlayer_bottom = (vals[1]-vals[0])*self._atanlayerDeriv_layer_bottom(layer_bottom, layer_top)
+        d_block_dlayer_bottom = ((vals[2]-layer_cont)*self._atanblock3dDeriv_layer_bottom(layer_bottom, layer_top, x0_block, y0_block, dx_block, dy_block)
+                                    - d_layer_dlayer_bottom*self._atanblock3d(layer_bottom, layer_top, x0_block, y0_block, dx_block, dy_block))
+        layer_bottom_deriv = d_layer_dlayer_bottom + d_block_dlayer_bottom
+
+        # layer_top
+        d_layer_dlayer_top = (vals[1]-vals[0])*self._atanlayerDeriv_layer_top(layer_bottom, layer_top)
+        d_block_dlayer_top = ((vals[2]-layer_cont)*self._atanblock3dDeriv_layer_top(layer_bottom, layer_top, x0_block, y0_block, dx_block, dy_block)
+                                - d_layer_dlayer_top*self._atanblock3d(layer_bottom, layer_top, x0_block, y0_block, dx_block, dy_block))
+        layer_top_deriv = d_layer_dlayer_top + d_block_dlayer_top
+
+        # x0 of the block
+        d_layer_dx0 = Zero()
+        d_block_dx0 = (vals[2]-layer_cont)*self._atanblock3dDeriv_x0(layer_bottom, layer_top, x0_block, y0_block, dx_block, dy_block)
+        x0_deriv = d_layer_dx0 + d_block_dx0
+
+        # y0 of the block
+        d_layer_dy0 = Zero()
+        d_block_dy0 = (vals[2]-layer_cont)*self._atanblock3dDeriv_y0(layer_bottom, layer_top, x0_block, y0_block, dx_block, dy_block)
+        y0_deriv = d_layer_dy0 + d_block_dy0
+
+        # dx of the block
+        d_layer_ddx = Zero()
+        d_block_ddx = (vals[2]-layer_cont)*self._atanblock3dDeriv_dx(layer_bottom, layer_top, x0_block, y0_block, dx_block, dy_block)
+        dx_deriv = d_layer_ddx + d_block_ddx
+
+        # dy of the block
+        d_layer_ddy = Zero()
+        d_block_ddy = (vals[2]-layer_cont)*self._atanblock3dDeriv_dy(layer_bottom, layer_top, x0_block, y0_block, dx_block, dy_block)
+        dy_deriv = d_layer_ddy + d_block_ddy
+
+        return np.vstack([val0_deriv, val1_deriv, val2_deriv, layer_bottom_deriv, layer_top_deriv, x0_deriv, y0_deriv, dx_deriv, dy_deriv]).T
+
+    def _transform(self, m):
+
+        self._validate_m(m) # make sure things are the right sizes
+
+        if self.mesh.dim == 2:
+            return self._transform2d(m)
+        elif self.mesh.dim == 3:
+            return self._transform3d(m)
+
+    def deriv(self, m):
+
+        self._validate_m(m) # make sure things are the right sizes
+
+        if self.mesh.dim == 2:
+            return self._deriv2d(m)
+        elif self.mesh.dim == 3:
+            return self._deriv3d(m)
 
 
 
