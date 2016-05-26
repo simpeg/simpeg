@@ -6,16 +6,16 @@ def DCAnalyticHalf(txloc, rxlocs, sigma, earth_type="wholespace"):
     """
         Analytic solution for electric potential from a postive pole
 
-        Input variables:
+        :param array txloc: a xyz location of A (+) electrode (np.r_[xa, ya, za])
+        :param list rxlocs: xyz locations of M (+) and N (-) electrodes [M, N]
 
-            txloc =  a xyz location of A (+) electrode (np.r_[xa, ya, za])
-
+            e.g.
             rxlocs = [M, N]
-                M: xyz locations of M (+) electrode (np.c_[xmlocs, ymlocs, zmlocs])
-                N: xyz locations of N (-) electrode (np.c_[xnlocs, ynlocs, znlocs])
+            M: xyz locations of M (+) electrode (np.c_[xmlocs, ymlocs, zmlocs])
+            N: xyz locations of N (-) electrode (np.c_[xnlocs, ynlocs, znlocs])
 
-            sigma = conductivity (either float or complex)
-            earth_type = "wholsespace" or "halfspace"
+        :param float or complex sigma: values of conductivity
+        :param string earth_type: values of conductivity ("wholsespace" or "halfspace")
 
     """
     M = rxlocs[0]
@@ -44,20 +44,19 @@ def DCAnalyticSphere(txloc, rxloc, xc, radius, sigma, sigma1, \
 
         Parameters:
 
-            txloc (array) : current electrode location (x,y,z)
-            xc (float)    : x center of depressed sphere
-            rxloc (array) : electrode locations
-                              (Nx3 array, # of electrodes)
-            radius (float): radius of the sphere (m)
-            rho (float)   : resistivity of the background (ohm-m)
-            rho1 (float)  : resistivity of the sphere
-            field_type (string) : "secondary", "total", "primary"
-                              (default="secondary")
-                              "secondary": secondary potential only due to sphere
-                              "primary": primary potential from the point source
-                              "total": "secondary"+"primary"
-            order (float) : maximum order of Legendre polynomial
-                              (default=12)
+            :param array txloc: A (+) current electrode location (x,y,z)
+            :param array xc: x center of depressed sphere
+            :param array rxloc: M(+) electrode locations / (Nx3 array, # of electrodes)
+
+            :param float radius: radius (float): radius of the sphere (m)
+            :param float rho: resistivity of the background (ohm-m)
+            :param float rho1: resistivity of the sphere
+            :param string field_type: : "secondary", "total", "primary"
+                  (default="secondary")
+                  "secondary": secondary potential only due to sphere
+                  "primary": primary potential from the point source
+                  "total": "secondary"+"primary"
+            :param float order: maximum order of Legendre polynomial (default=12)
 
         Written by Seogi Kang (skang@eos.ubc.ca)
         Ph.D. Candidate of University of British Columbia, Canada
