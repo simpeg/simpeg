@@ -20,7 +20,6 @@ class BaseSrc(Survey.BaseSrc):
 
     def eval(self, prob):
         """
-        Evaluate the source terms.
         - :math:`s_m` : magnetic source term
         - :math:`s_e` : electric source term
 
