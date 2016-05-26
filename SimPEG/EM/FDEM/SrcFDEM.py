@@ -9,8 +9,14 @@ class BaseSrc(Survey.BaseSrc):
     """
 
     freq = None
-    # rxPair = RxFDEM
-    integrate = True
+    integrate = False
+    _ePrimary = None
+    _bPrimary = None
+    _hPrimary = None
+    _jPrimary = None
+
+    def __init__(self, rxList, **kwargs):
+        Survey.BaseSrc.__init__(self, rxList, **kwargs)
 
     def eval(self, prob):
         """
@@ -50,7 +56,9 @@ class BaseSrc(Survey.BaseSrc):
         :rtype: numpy.ndarray
         :return: primary magnetic flux density
         """
-        return Zero()
+        if self._bPrimary is None:
+            return Zero()
+        return self._bPrimary
 
     def hPrimary(self, prob):
         """
@@ -60,7 +68,9 @@ class BaseSrc(Survey.BaseSrc):
         :rtype: numpy.ndarray
         :return: primary magnetic field
         """
-        return Zero()
+        if self._hPrimary is None:
+            return Zero()
+        return self._hPrimary
 
     def ePrimary(self, prob):
         """
@@ -70,7 +80,9 @@ class BaseSrc(Survey.BaseSrc):
         :rtype: numpy.ndarray
         :return: primary electric field
         """
-        return Zero()
+        if self._ePrimary is None:
+            return Zero()
+        return self._ePrimary
 
     def jPrimary(self, prob):
         """
@@ -80,7 +92,9 @@ class BaseSrc(Survey.BaseSrc):
         :rtype: numpy.ndarray
         :return: primary current density
         """
-        return Zero()
+        if self._jPrimary is None:
+            return Zero()
+        return self._jPrimary
 
     def s_m(self, prob):
         """
@@ -135,15 +149,14 @@ class RawVec_e(BaseSrc):
     :param list rxList: receiver list
     :param float freq: frequency
     :param numpy.array s_e: electric source term
-    :param bool integrate: Integrate the source term (multiply by Me) [True]
+    :param bool integrate: Integrate the source term (multiply by Me) [False]
     """
 
-    def __init__(self, rxList, freq, s_e, integrate=True): #, ePrimary=None, bPrimary=None, hPrimary=None, jPrimary=None):
+    def __init__(self, rxList, freq, s_e, **kwargs):
         self._s_e = np.array(s_e, dtype=complex)
         self.freq = float(freq)
-        self.integrate = integrate
 
-        BaseSrc.__init__(self, rxList)
+        BaseSrc.__init__(self, rxList, **kwargs)
 
     def s_e(self, prob):
         """
@@ -165,15 +178,14 @@ class RawVec_m(BaseSrc):
     :param float freq: frequency
     :param rxList: receiver list
     :param numpy.array s_m: magnetic source term
-    :param bool integrate: Integrate the source term (multiply by Me) [True]
+    :param bool integrate: Integrate the source term (multiply by Me) [False]
     """
 
-    def __init__(self, rxList, freq, s_m, integrate=True):  #ePrimary=Zero(), bPrimary=Zero(), hPrimary=Zero(), jPrimary=Zero()):
+    def __init__(self, rxList, freq, s_m, **kwargs):  #ePrimary=Zero(), bPrimary=Zero(), hPrimary=Zero(), jPrimary=Zero()):
         self._s_m = np.array(s_m, dtype=complex)
         self.freq = float(freq)
-        self.integrate = integrate
 
-        BaseSrc.__init__(self, rxList)
+        BaseSrc.__init__(self, rxList, **kwargs)
 
     def s_m(self, prob):
         """
@@ -196,14 +208,13 @@ class RawVec(BaseSrc):
     :param float freq: frequency
     :param numpy.array s_m: magnetic source term
     :param numpy.array s_e: electric source term
-    :param bool integrate: Integrate the source term (multiply by Me) [True]
+    :param bool integrate: Integrate the source term (multiply by Me) [False]
     """
-    def __init__(self, rxList, freq, s_m, s_e, integrate=True):
+    def __init__(self, rxList, freq, s_m, s_e, **kwargs):
         self._s_m = np.array(s_m, dtype=complex)
         self._s_e = np.array(s_e, dtype=complex)
         self.freq = float(freq)
-        self.integrate = integrate
-        BaseSrc.__init__(self, rxList)
+        BaseSrc.__init__(self, rxList, **kwargs)
 
     def s_m(self, prob):
         """
@@ -277,14 +288,13 @@ class MagDipole(BaseSrc):
     :param float mu: background magnetic permeability
     """
 
-    def __init__(self, rxList, freq, loc, orientation='Z', moment=1., mu=mu_0):
+    def __init__(self, rxList, freq, loc, orientation='Z', moment=1., mu=mu_0, **kwargs):
         self.freq = float(freq)
         self.loc = loc
         self.orientation = orientation
         assert orientation in ['X','Y','Z'], "Orientation (right now) doesn't actually do anything! The methods in SrcUtils should take care of this..."
         self.moment = moment
         self.mu = mu
-        self.integrate = False
         BaseSrc.__init__(self, rxList)
 
     def bPrimary(self, prob):
@@ -542,7 +552,7 @@ class CircularLoop(BaseSrc):
             if not prob.mesh.isSymmetric:
                 # TODO ?
                 raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
-            a = MagneticDipoleVectorPotential(self.loc, gridY, 'y', moment=self.radius, mu=self.mu)
+            a = MagneticLoopVectorPotential(self.loc, gridY, 'y', moment=self.radius, mu=self.mu)
 
         else:
             srcfct = MagneticDipoleVectorPotential

@@ -5,15 +5,16 @@ SimPEG is a python package for simulation and gradient based
 parameter estimation in the context of geophysical applications.
 """
 
-import numpy as np
-
 import os
 import sys
 import subprocess
 
 from distutils.core import setup
+from distutils.command.build_ext import build_ext
 from setuptools import find_packages
 from distutils.extension import Extension
+
+
 
 CLASSIFIERS = [
 'Development Status :: 4 - Beta',
@@ -51,11 +52,16 @@ if args.count("build_ext") > 0 and args.count("--inplace") == 0:
 try:
     from Cython.Build import cythonize
     from Cython.Distutils import build_ext
-    cythonKwargs = dict(cmdclass={'build_ext': build_ext})
     USE_CYTHON = True
 except Exception, e:
     USE_CYTHON = False
-    cythonKwargs = dict()
+
+class NumpyBuild(build_ext):
+    def finalize_options(self):
+        build_ext.finalize_options(self)
+        __builtins__.__NUMPY_SETUP__ = False
+        import numpy
+        self.include_dirs.append(numpy.get_include())
 
 ext = '.pyx' if USE_CYTHON else '.c'
 
@@ -94,8 +100,8 @@ setup(
     classifiers=CLASSIFIERS,
     platforms = ["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
     use_2to3 = False,
-    include_dirs=[np.get_include()],
+    cmdclass={'build_ext':NumpyBuild},
+    setup_requires=['numpy'],
     ext_modules = extensions,
     scripts=scripts,
-    **cythonKwargs
 )
