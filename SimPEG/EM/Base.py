@@ -1,6 +1,7 @@
 from SimPEG import Survey, Problem, Utils, Models, Maps, PropMaps, np, sp, Solver as SimpegSolver
 from scipy.constants import mu_0
 
+
 class EMPropMap(Maps.PropMap):
     """
         Property Map for EM Problems. The electrical conductivity (\\(\\sigma\\)) is the default inversion property, and the default value of the magnetic permeability is that of free space (\\(\\mu = 4\\pi\\times 10^{-7} \\) H/m)
@@ -62,6 +63,15 @@ class BaseEMProblem(Problem.BaseProblem):
         return self._Me
 
     @property
+    def MeI(self):
+        """
+            Edge inner product matrix
+        """
+        if getattr(self, '_MeI', None) is None:
+            self._MeI = self.mesh.getEdgeInnerProduct(invMat=True)
+        return self._MeI
+
+    @property
     def Mf(self):
         """
             Face inner product matrix
@@ -70,6 +80,20 @@ class BaseEMProblem(Problem.BaseProblem):
             self._Mf = self.mesh.getFaceInnerProduct()
         return self._Mf
 
+    @property
+    def MfI(self):
+        """
+            Face inner product matrix
+        """
+        if getattr(self, '_MfI', None) is None:
+            self._MfI = self.mesh.getFaceInnerProduct(invMat=True)
+        return self._MfI
+
+    @property
+    def Vol(self):
+        if getattr(self, '_Vol', None) is None:
+            self._Vol = Utils.sdiag(self.mesh.vol)
+        return self._Vol
 
     # ----- Magnetic Permeability ----- #
     @property
@@ -127,7 +151,6 @@ class BaseEMProblem(Problem.BaseProblem):
         """
         return self.mesh.getEdgeInnerProductDeriv(self.curModel.sigma)(u) * self.curModel.sigmaDeriv
 
-
     @property
     def MeSigmaI(self):
         """
@@ -146,10 +169,7 @@ class BaseEMProblem(Problem.BaseProblem):
 
         dMeSigmaI_dI = -self.MeSigmaI**2
         dMe_dsig = self.mesh.getEdgeInnerProductDeriv(self.curModel.sigma)(u)
-        dsig_dm = self.curModel.sigmaDeriv
-        return dMeSigmaI_dI * ( dMe_dsig * ( dsig_dm))
-        # return self.mesh.getEdgeInnerProductDeriv(self.curModel.sigma, invMat=True)(u)
-
+        return dMeSigmaI_dI * ( dMe_dsig * self.curModel.sigmaDeriv )
 
     @property
     def MfRho(self):
@@ -165,8 +185,7 @@ class BaseEMProblem(Problem.BaseProblem):
         """
             Derivative of :code:`MfRho` with respect to the model.
         """
-        return self.mesh.getFaceInnerProductDeriv(self.curModel.rho)(u) * (-Utils.sdiag(self.curModel.rho**2) * self.curModel.sigmaDeriv)
-        # self.curModel.rhoDeriv
+        return self.mesh.getFaceInnerProductDeriv(self.curModel.rho)(u) * self.curModel.rhoDeriv
 
     @property
     def MfRhoI(self):
@@ -183,7 +202,10 @@ class BaseEMProblem(Problem.BaseProblem):
         """
             Derivative of :code:`MfRhoI` with respect to the model.
         """
-        return self.mesh.getFaceInnerProductDeriv(self.curModel.rho, invMat=True)(u) * self.curModel.rhoDeriv
+
+        dMfRhoI_dI = -self.MfRhoI**2
+        dMf_drho = self.mesh.getFaceInnerProductDeriv(self.curModel.rho)(u)
+        return dMfRhoI_dI * ( dMf_drho * self.curModel.rhoDeriv )
 
 class BaseEMSurvey(Survey.BaseSurvey):
 
@@ -192,7 +214,7 @@ class BaseEMSurvey(Survey.BaseSurvey):
         self.srcList = srcList
         Survey.BaseSurvey.__init__(self, **kwargs)
 
-    def eval(self, u):
+    def eval(self, f):
         """
         Project fields to receiver locations
         :param Fields u: fields object
@@ -202,8 +224,8 @@ class BaseEMSurvey(Survey.BaseSurvey):
         data = Survey.Data(self)
         for src in self.srcList:
             for rx in src.rxList:
-                data[src, rx] = rx.eval(src, self.mesh, u)
+                data[src, rx] = rx.eval(src, self.mesh, f)
         return data
 
-    def evalDeriv(self, u):
+    def evalDeriv(self, f):
         raise Exception('Use Receivers to project fields deriv.')

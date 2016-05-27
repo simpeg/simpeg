@@ -74,7 +74,7 @@ class Property(object):
                 if linkedMap is None:
                     return None
                 linkMap = linkMapClass(None) * linkedMap
-                m = getattr(self, '%s'%linkName)
+                m = getattr(self, '%sModel'%linkName)
                 return linkMap.deriv( m )
 
             m = getattr(self, '%sModel'%prop.name)
@@ -239,7 +239,7 @@ class PropMap(object):
             setattr(self, '%sMap'%name, mapping)
             setattr(self, '%sIndex'%name, slices.get(name, slice(nP, nP + mapping.nP)))
             nP += mapping.nP
-        self.nP = nP 
+        self.nP = nP
 
     @property
     def defaultInvProp(self):

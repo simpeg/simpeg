@@ -22,6 +22,7 @@ radi    = Radius of spheres [r1,r2]
 param   = Conductivity of background and two spheres [m0,m1,m2]
 surveyType = survey type 'pole-dipole' or 'dipole-dipole'
 unitType = Data type "appResistivity" | "appConductivity"  | "volt"
+
 Created by @fourndo
 
 
