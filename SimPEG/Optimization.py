@@ -893,10 +893,6 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
     lower = -np.inf
     upper = np.inf
 
-    # Variables to control inner GN iterations
-    rdm_tol         = 1e-2 # Tolerance for largest change in step (Default 1%)
-    maxIterGN       = 3 # Maximum number of GN inner iterations
-
     def _startup(self, x0):
         # ensure bound vectors are the same size as the model
         if type(self.lower) is not np.ndarray:
@@ -941,72 +937,6 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
     @approxHinv.setter
     def approxHinv(self, value):
         self._approxHinv = value
-
-    @Utils.timeIt
-    def minimize(self, evalFunction, x0):
-        """minimize(evalFunction, x0)
-
-        Minimizes the function (evalFunction) starting at the location x0.
-
-        :param def evalFunction: function handle that evaluates: f, g, H = F(x)
-        :param numpy.ndarray x0: starting location
-        :rtype: numpy.ndarray
-        :return: x, the last iterate of the optimization algorithm
-
-        The GN newton steps are repeated until it the maxIterGN is reached or the
-        relative step change falls below some tolrerance.
-
-        """
-        self.evalFunction = evalFunction
-        self.startup(x0)
-        self.printInit()
-
-
-        while True:
-            self.doStartIteration()
-            self.f, self.g, self.H = evalFunction(self.xc, return_g=True, return_H=True)
-            self.printIter()
-            if self.stoppingCriteria(): break
-
-            # Inner GN iterations, stop on maximum number of iterations
-            # or on tolerance for step length change
-            GN_count = 0
-            dm0             = None # Initial GN step length
-            dmc             = None # Current GN step length
-            rdm             = 1. # Relative change in step length
-
-            while rdm > self.rdm_tol and GN_count < self.maxIterGN:
-
-                GN_count += 1
-                self.searchDirection = self.findSearchDirection()
-                p = self.scaleSearchDirection(self.searchDirection)
-                xt, passLS = self.modifySearchDirection(p)
-                if not passLS:
-                    xt, caught = self.modifySearchDirectionBreak(p)
-                    if not caught: return self.xc
-
-                if GN_count == 1:
-                    dm0 = np.linalg.norm(self.xc - xt)
-                    dmc = dm0
-
-                else:
-                    dmc = np.linalg.norm(self.xc - xt)
-
-                rdm =  dmc / dm0
-                self.xc = xt # Update current model
-
-                # Form system for next iteration
-                self.f, self.g, self.H = evalFunction(self.xc, return_g=True, return_H=True)
-
-                print "GN iter: %i,\t  dm: %8.5e,\t rdm: %8.5e"% (GN_count, dmc, rdm)
-
-            self.doEndIteration(xt)
-            if self.stopNextIteration: break
-
-        self.printDone()
-        self.finish()
-
-        return self.xc
 
     @Utils.timeIt
     def findSearchDirection(self):

@@ -890,14 +890,37 @@ class Tikhonov(Simple):
 
 
 class Sparse(Simple):
-
+    """
+        The regularization is:
+    
+        .. math::
+    
+            R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top R^\\top R W(m-m_\\text{ref})}
+    
+        where the IRLS weight
+    
+        .. math::
+    
+            R = \eta TO FINISH LATER!!!
+    
+        So the derivative is straight forward:
+    
+        .. math::
+    
+            R(m) = \mathbf{W^\\top R^\\top R W (m-m_\\text{ref})}
+    
+        The IRLS weights are recomputed after each beta solves.
+        It is strongly recommended to do a few Gauss-Newton iterations
+        before updating.
+    """
+        
     # set default values
-    eps_p = 1e-1
-    eps_q = 1e-1
-    curModel = None # use a model to compute the weights
-    gamma = 1.
-    norms = [0., 2., 2., 2.]
-    cell_weights = 1.
+    eps_p = 1e-1        # Threshold value for the model norm
+    eps_q = 1e-1        # Threshold value for the model gradient norm
+    curModel = None     # Requires model to compute the weights
+    gamma = 1.          # Model norm scaling to smooth out convergence
+    norms = [0., 2., 2., 2.] # Values for norm on (m, dmdx, dmdy, dmdz)
+    cell_weights = 1.        # Consider overwriting with sensitivity weights
 
     def __init__(self, mesh, mapping=None, indActive=None, **kwargs):
         Simple.__init__(self, mesh, mapping=mapping, indActive=indActive, **kwargs)
@@ -971,6 +994,7 @@ class Sparse(Simple):
 
     def R(self, f_m , eps, exponent):
 
+        # Eta scaling is important for mix-norms...do not mess with it
         eta = (eps**(1.-exponent/2.))**0.5
         r = eta / (f_m**2.+ eps**2.)**((1.-exponent/2.)/2.)
 

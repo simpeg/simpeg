@@ -144,34 +144,6 @@ class BetaSchedule(InversionDirective):
             if self.debug: print 'BetaSchedule is cooling Beta. Iteration: %d' % self.opt.iter
             self.invProb.beta /= self.coolingFactor
 
-#class BetaSchedule_PGN_CG(InversionDirective):
-#    """BetaSchedule"""
-#
-#    coolingFactor = 5.
-#    coolingRate = 1
-#    GN_step_last = None
-#    GN_step_c = None
-#    
-#    def endIter(self):
-#        
-#        """ Compute the change in GN step, and proceed with cooling if below tol"""
-#        if self.opt.iter == 1:
-#            self.GN_step_last = np.linalg.norm(self.opt.xc - self.opt.x_last)
-#            d_GN_step = 1.
-#            
-#        else:
-#            self.GN_step_c = np.linalg.norm(self.opt.xc - self.opt.x_last)
-#            d_GN_step =  self.GN_step_c / self.GN_step_last
-#            
-#            # Re-initiate last GN step
-#            self.GN_step_last = self.GN_step_c
-#            
-#        print "GN_step_last: ", self.GN_step_last
-#        print "d_GN_step: ", d_GN_step
-#        
-#        if self.opt.iter > 0 and self.opt.iter % self.coolingRate == 0:
-#            if self.debug: print 'BetaSchedule is cooling Beta. Iteration: %d' % self.opt.iter
-#            self.invProb.beta /= self.coolingFactor
             
 class TargetMisfit(InversionDirective):
 
@@ -286,10 +258,16 @@ class Update_IRLS(InversionDirective):
     gamma = None
     phi_m_last = None
     phi_d_last = None
-
-
+    f_old = None
+    f_min_change = 1e-1
+    coolingRate = 3
+    maxIRLSiter = 10
+            
+    
     def initialize(self):
-
+        
+        self.IRLSiter   = 0
+        
         # Scale the regularization for changes in norm
         if getattr(self, 'phi_m_last', None) is not None:
 
@@ -310,48 +288,75 @@ class Update_IRLS(InversionDirective):
         self.reg._Wx = None
         self.reg._Wy = None
         self.reg._Wz = None
-
+        
         if getattr(self, 'phi_d_last', None) is None:
             self.phi_d_last = self.invProb.phi_d
 
+        if getattr(self, 'f_last', None) is None:
+            self.f_old = self.invProb.evalFunction(self.reg.curModel, return_g=False, return_H=False)
+            print self.f_old
     def endIter(self):
-        # Cool the threshold parameter if required
-        if getattr(self, 'factor', None) is not None:
-            eps = self.reg.eps / self.factor
+        
+        
+        # Only update after GN iterations
+        if self.opt.iter % self.coolingRate == 0:
+            
+            self.IRLSiter += 1
 
-            if getattr(self, 'eps_min', None) is not None:
-                self.reg.eps = np.max([self.eps_min,eps])
-            else:
-                self.reg.eps = eps
+            self.f_change = np.abs(self.f_old - self.opt.f_last) / self.f_old
+            
+            print "Function decrease" + str(self.f_change)
+            
+            # Check for maximum number of IRLS cycles
+            if self.IRLSiter == self.maxIRLSiter:
+                self.opt.stopNextIteration = True
+                return
+                
+            # Check if the function has changed enough
+            if self.f_change < self.f_min_change:
+                self.opt.stopNextIteration = True
+                return                
+            else:          
+                self.f_old = self.opt.f_last
+                
+            # Cool the threshold parameter if required
+            if getattr(self, 'factor', None) is not None:
+                eps = self.reg.eps / self.factor
+    
+                if getattr(self, 'eps_min', None) is not None:
+                    self.reg.eps = np.max([self.eps_min,eps])
+                else:
+                    self.reg.eps = eps
+    
+            # Get phi_m at the end of current iteration
+            self.phi_m_last = self.invProb.phi_m_last
+    
+            # Reset the regularization matrices so that it is
+            # recalculated for current model
+            self.reg._Wsmall = None
+            self.reg._Wx = None
+            self.reg._Wy = None
+            self.reg._Wz = None
+    
+             # Update the model used for the IRLS weights
+            self.reg.curModel = self.invProb.curModel
+    
+            # Temporarely set gamma to 1. to get raw phi_m
+            self.reg.gamma = 1.
+    
+            # Compute new model objective function value
+            phim_new = self.reg.eval(self.invProb.curModel)
+    
+            # Update gamma to scale the regularization between IRLS iterations
+            self.reg.gamma = self.phi_m_last / phim_new
+    
+            # Reset the regularization matrices again for new gamma
+            self.reg._Wsmall = None
+            self.reg._Wx = None
+            self.reg._Wy = None
+            self.reg._Wz = None
 
-        # Get phi_m at the end of current iteration
-        self.phi_m_last = self.invProb.phi_m_last
-
-        # Reset the regularization matrices so that it is
-        # recalculated for current model
-        self.reg._Wsmall = None
-        self.reg._Wx = None
-        self.reg._Wy = None
-        self.reg._Wz = None
-
-         # Update the model used for the IRLS weights
-        self.reg.curModel = self.invProb.curModel
-
-        # Temporarely set gamma to 1. to get raw phi_m
-        self.reg.gamma = 1.
-
-        # Compute new model objective function value
-        phim_new = self.reg.eval(self.invProb.curModel)
-
-        # Update gamma to scale the regularization between IRLS iterations
-        self.reg.gamma = self.phi_m_last / phim_new
-
-        # Reset the regularization matrices again for new gamma
-        self.reg._Wsmall = None
-        self.reg._Wx = None
-        self.reg._Wy = None
-        self.reg._Wz = None
-
+            # Compute the change in 
 class Update_lin_PreCond(InversionDirective):
     """
     Create a Jacobi preconditioner for the linear problem
@@ -411,11 +416,14 @@ class Scale_Beta(InversionDirective):
         update is done only if the misfit is outside some threshold bounds.
     """
     tol = 0.05
-
+    coolingRate=5
+    
     def endIter(self):
-
-        # Check if misfit is within the tolerance, otherwise adjust beta
-        val = self.invProb.phi_d / (self.survey.nD*0.5)
-
-        if np.abs(1.-val) > self.tol:
-            self.invProb.beta = self.invProb.beta * self.survey.nD*0.5 / self.invProb.phi_d
+        
+        # Only update after GN iterations 
+        if self.opt.iter % self.coolingRate == 0:
+            # Check if misfit is within the tolerance, otherwise adjust beta
+            val = self.invProb.phi_d / (self.survey.nD*0.5)
+    
+            if np.abs(1.-val) > self.tol:
+                self.invProb.beta = self.invProb.beta * self.survey.nD*0.5 / self.invProb.phi_d
