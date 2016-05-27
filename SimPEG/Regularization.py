@@ -311,6 +311,9 @@ class BaseRegularization(object):
             tmp = indActive
             indActive = np.zeros(mesh.nC, dtype=bool)
             indActive[tmp] = True
+        if indActive is not None and mapping is None:
+            mapping = Maps.IdentityMap(nP=indActive.nonzero()[0].size)
+
         self.regmesh = RegularizationMesh(mesh,indActive)
         self.mapping = mapping or self.mapPair(mesh)
         self.mapping._assertMatchesPair(self.mapPair)
@@ -728,14 +731,14 @@ class Sparse(Simple):
     @property
     def W(self):
         """Full regularization matrix W"""
-        #if getattr(self, '_W', None) is None:
-        wlist = (self.Wsmall, self.Wsmooth)
-        #self._W = sp.vstack(wlist)
-        return sp.vstack(wlist)
+        if getattr(self, '_W', None) is None:
+            wlist = (self.Wsmall, self.Wsmooth)
+            self._W = sp.vstack(wlist)
+        return self._W
 
     def R(self, f_m , eps, exponent):
 
-        eta = (eps**(1-exponent/2.))**0.5
-        r = eta / (f_m**2.+ eps**2.)**((1-exponent/2.)/2.)
+        eta = (eps**(1.-exponent/2.))**0.5
+        r = eta / (f_m**2.+ eps**2.)**((1.-exponent/2.)/2.)
 
         return r

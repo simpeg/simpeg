@@ -146,10 +146,15 @@ class BetaSchedule(InversionDirective):
 
 class TargetMisfit(InversionDirective):
 
+    chifact = 1.
+    phi_d_star = None
+
     @property
     def target(self):
         if getattr(self, '_target', None) is None:
-            self._target = self.survey.nD*0.5
+            if self.phi_d_star is None:
+                self.phi_d_star = 0.5 * self.survey.nD
+            self._target = self.chifact * self.phi_d_star # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
         return self._target
     @target.setter
     def target(self, val):
@@ -258,6 +263,7 @@ class Update_IRLS(InversionDirective):
     phi_m_last = None
     phi_d_last = None
 
+
     def initialize(self):
 
         # Scale the regularization for changes in norm
@@ -275,7 +281,7 @@ class Update_IRLS(InversionDirective):
             self.phi_d_last = self.invProb.phi_d
 
     def endIter(self):
-        # Cool the threshold parameter
+        # Cool the threshold parameter if required
         if getattr(self, 'factor', None) is not None:
             eps = self.reg.eps / self.factor
 
@@ -290,28 +296,44 @@ class Update_IRLS(InversionDirective):
          # Update the model used for the IRLS weights
         self.reg.curModel = self.invProb.curModel
 
-        # Temporarely set gamma to 1.
+        # Temporarely set gamma to 1. to get raw phi_m
         self.reg.gamma = 1.
 
-        # Compute change in model objective function and update scaling
+        # Compute new model objective function value
         phim_new = self.reg.eval(self.invProb.curModel)
 
+        # Update gamma to scale the regularization between IRLS iterations
         self.reg.gamma = self.phi_m_last / phim_new
 
-        self.invProb.beta = self.invProb.beta * self.survey.nD*0.5 / self.invProb.phi_d
+        # Set the weighting matrix to None so that it is recomputed next time
+        # it is called in the inversion
+        self.reg._W = None
 
 class Update_lin_PreCond(InversionDirective):
+    """
+    Create a Jacobi preconditioner for the linear problem
+    """
+    onlyOnStart=False
 
+    def initialize(self):
+
+        if getattr(self.opt, 'approxHinv', None) is None:
+            # Update the pre-conditioner
+            diagA = np.sum(self.prob.G**2.,axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() #* (self.reg.mapping * np.ones(self.reg.curModel.size))**2.
+            PC     = Utils.sdiag((self.prob.mapping.deriv(None).T *diagA)**-1.)
+            self.opt.approxHinv = PC
 
     def endIter(self):
         # Cool the threshold parameter
+        if self.onlyOnStart==True:
+            return
 
         if getattr(self.opt, 'approxHinv', None) is not None:
             # Update the pre-conditioner
-            diagA = np.sum(self.prob.G**2.,axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() * (self.reg.mapping * np.ones(self.reg.curModel.size))**2.
-            PC     = Utils.sdiag(diagA**-1.)
+            diagA = np.sum(self.prob.G**2.,axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() #* (self.reg.mapping * np.ones(self.reg.curModel.size))**2.
+            PC     = Utils.sdiag((self.prob.mapping.deriv(None).T *diagA)**-1.)
             self.opt.approxHinv = PC
-            print 'Updated pre-cond'
+
 
 class Update_Wj(InversionDirective):
     """
@@ -338,3 +360,19 @@ class Update_Wj(InversionDirective):
             JtJdiag = JtJdiag / max(JtJdiag)
 
             self.reg.wght = JtJdiag
+
+class Scale_Beta(InversionDirective):
+    """
+        Instead of a linear cooling schedule, beta is allowed to change based
+        on the ratio between the target misfit and the current data misfit. The
+        update is done only if the misfit is outside some threshold bounds.
+    """
+    tol = 0.05
+
+    def endIter(self):
+
+        # Check if misfit is within the tolerance, otherwise adjust beta
+        val = self.invProb.phi_d / (self.survey.nD*0.5)
+
+        if np.abs(1.-val) > self.tol:
+            self.invProb.beta = self.invProb.beta * self.survey.nD*0.5 / self.invProb.phi_d

@@ -146,6 +146,20 @@ class TestCyl2DMesh(unittest.TestCase):
 
         assert np.abs(Pr*(Pc2r*mc) - Pc*mc).max() < 1e-3
 
+    def test_getInterpMatCartMesh_Cells2Nodes(self):
+
+        Mr = Mesh.TensorMesh([100,100,2], x0='CC0')
+        Mc = Mesh.CylMesh([np.ones(10)/5,1,10],x0='0C0',cartesianOrigin=[-0.2,-0.2,0])
+
+        mc = np.arange(Mc.nC)
+        xr = np.linspace(0,0.4,50)
+        xc = np.linspace(0,0.4,50) + 0.2
+        Pr = Mr.getInterpolationMat(np.c_[xr,np.ones(50)*-0.2,np.ones(50)*0.5],'N')
+        Pc = Mc.getInterpolationMat(np.c_[xc,np.zeros(50),np.ones(50)*0.5],'CC')
+        Pc2r = Mc.getInterpolationMatCartMesh(Mr, 'CC', locTypeTo='N')
+
+        assert np.abs(Pr*(Pc2r*mc) - Pc*mc).max() < 1e-3
+
     def test_getInterpMatCartMesh_Faces(self):
 
         Mr = Mesh.TensorMesh([100,100,2], x0='CC0')
@@ -177,6 +191,37 @@ class TestCyl2DMesh(unittest.TestCase):
         assert np.abs(mag[dist > 0.1].min() - 1) < TOL
 
 
+    def test_getInterpMatCartMesh_Faces2Edges(self):
+
+        Mr = Mesh.TensorMesh([100,100,2], x0='CC0')
+        Mc = Mesh.CylMesh([np.ones(10)/5,1,10],x0='0C0',cartesianOrigin=[-0.2,-0.2,0])
+
+        Pf2e = Mc.getInterpolationMatCartMesh(Mr, 'F', locTypeTo='E')
+        mf = np.ones(Mc.nF)
+
+        ecart = Pf2e * mf
+
+        excc = Mr.aveEx2CC*Mr.r(ecart, 'E', 'Ex')
+        eycc = Mr.aveEy2CC*Mr.r(ecart, 'E', 'Ey')
+        ezcc = Mr.r(ecart, 'E', 'Ez')
+
+        indX = Utils.closestPoints(Mr, [0.45, -0.2, 0.5])
+        indY = Utils.closestPoints(Mr, [-0.2, 0.45, 0.5])
+
+        TOL = 1e-2
+        assert np.abs(float(excc[indX]) - 1) < TOL
+        assert np.abs(float(excc[indY]) - 0) < TOL
+        assert np.abs(float(eycc[indX]) - 0) < TOL
+        assert np.abs(float(eycc[indY]) - 1) < TOL
+        assert np.abs((ezcc - 1).sum()) < TOL
+
+        mag = (excc**2 + eycc**2)**0.5
+        dist = ((Mr.gridCC[:,0] + 0.2)**2  + (Mr.gridCC[:,1] + 0.2)**2)**0.5
+
+        assert np.abs(mag[dist > 0.1].max() - 1) < TOL
+        assert np.abs(mag[dist > 0.1].min() - 1) < TOL
+
+
     def test_getInterpMatCartMesh_Edges(self):
 
         Mr = Mesh.TensorMesh([100,100,2], x0='CC0')
@@ -185,11 +230,42 @@ class TestCyl2DMesh(unittest.TestCase):
         Pe = Mc.getInterpolationMatCartMesh(Mr, 'E')
         me = np.ones(Mc.nE)
 
-        erect = Pe * me
+        ecart = Pe * me
 
-        excc = Mr.aveEx2CC*Mr.r(erect, 'E', 'Ex')
-        eycc = Mr.aveEy2CC*Mr.r(erect, 'E', 'Ey')
-        ezcc = Mr.r(erect, 'E', 'Ez')
+        excc = Mr.aveEx2CC*Mr.r(ecart, 'E', 'Ex')
+        eycc = Mr.aveEy2CC*Mr.r(ecart, 'E', 'Ey')
+        ezcc = Mr.aveEz2CC*Mr.r(ecart, 'E', 'Ez')
+
+        indX = Utils.closestPoints(Mr, [0.45, -0.2, 0.5])
+        indY = Utils.closestPoints(Mr, [-0.2, 0.45, 0.5])
+
+        TOL = 1e-2
+        assert np.abs(float(excc[indX]) - 0) < TOL
+        assert np.abs(float(excc[indY]) + 1) < TOL
+        assert np.abs(float(eycc[indX]) - 1) < TOL
+        assert np.abs(float(eycc[indY]) - 0) < TOL
+        assert np.abs(ezcc.sum()) < TOL
+
+        mag = (excc**2 + eycc**2)**0.5
+        dist = ((Mr.gridCC[:,0] + 0.2)**2  + (Mr.gridCC[:,1] + 0.2)**2)**0.5
+
+        assert np.abs(mag[dist > 0.1].max() - 1) < TOL
+        assert np.abs(mag[dist > 0.1].min() - 1) < TOL
+
+
+    def test_getInterpMatCartMesh_Edges2Faces(self):
+
+        Mr = Mesh.TensorMesh([100,100,2], x0='CC0')
+        Mc = Mesh.CylMesh([np.ones(10)/5,1,10],x0='0C0',cartesianOrigin=[-0.2,-0.2,0])
+
+        Pe2f = Mc.getInterpolationMatCartMesh(Mr, 'E', locTypeTo='F')
+        me = np.ones(Mc.nE)
+
+        frect = Pe2f * me
+
+        excc = Mr.aveFx2CC*Mr.r(frect, 'F', 'Fx')
+        eycc = Mr.aveFy2CC*Mr.r(frect, 'F', 'Fy')
+        ezcc = Mr.r(frect, 'F', 'Fz')
 
         indX = Utils.closestPoints(Mr, [0.45, -0.2, 0.5])
         indY = Utils.closestPoints(Mr, [-0.2, 0.45, 0.5])
