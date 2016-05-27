@@ -131,7 +131,15 @@ class IdentityMap(object):
 
 
 class ComboMap(IdentityMap):
-    """Combination of various maps."""
+    """
+        Combination of various maps.
+
+        The ComboMap holds the information for multiplying and combining
+        maps. It also uses the chain rule to create the derivative.
+        Remember, any time that you make your own combination of mappings
+        be sure to test that the derivative is correct.
+
+    """
 
     def __init__(self, maps, **kwargs):
         IdentityMap.__init__(self, None, **kwargs)
@@ -180,6 +188,12 @@ class ComboMap(IdentityMap):
 
 class ExpMap(IdentityMap):
     """
+        Electrical conductivity varies over many orders of magnitude, so it is a common
+        technique when solving the inverse problem to parameterize and optimize in terms
+        of log conductivity. This makes sense not only because it ensures all conductivities
+        will be positive, but because this is fundamentally the space where conductivity
+        lives (i.e. it varies logarithmically).
+
         Changes the model into the physical property.
 
         A common example of this is to invert for electrical conductivity
@@ -451,6 +465,32 @@ class Mesh2Mesh(IdentityMap):
     """
         Takes a model on one mesh are translates it to another mesh.
 
+        .. plot::
+
+            from SimPEG import *
+            import matplotlib.pyplot as plt
+            M = Mesh.TensorMesh([100,100])
+            h1 = Utils.meshTensor([(6,7,-1.5),(6,10),(6,7,1.5)])
+            h1 = h1/h1.sum()
+            M2 = Mesh.TensorMesh([h1,h1])
+            V = Utils.ModelBuilder.randomModel(M.vnC, seed=79, its=50)
+            v = Utils.mkvc(V)
+            modh = Maps.Mesh2Mesh([M,M2])
+            modH = Maps.Mesh2Mesh([M2,M])
+            H = modH * v
+            h = modh * H
+            ax = plt.subplot(131)
+            M.plotImage(v, ax=ax)
+            ax.set_title('Fine Mesh (Original)')
+            ax = plt.subplot(132)
+            M2.plotImage(H,clim=[0,1],ax=ax)
+            ax.set_title('Course Mesh')
+            ax = plt.subplot(133)
+            M.plotImage(h,clim=[0,1],ax=ax)
+            ax.set_title('Fine Mesh (Interpolated)')
+            plt.show()
+
+
     """
 
     def __init__(self, meshes, **kwargs):
@@ -695,13 +735,13 @@ class CircleMap(IdentityMap):
 
         Parameterize the model space using a circle in a wholespace.
 
-        ..math::
+        .. math::
 
             \sigma(m) = \sigma_1 + (\sigma_2 - \sigma_1)\left(\\arctan\left(100*\sqrt{(\\vec{x}-x_0)^2 + (\\vec{y}-y_0)}-r\\right) \pi^{-1} + 0.5\\right)
 
         Define the model as:
 
-        ..math::
+        .. math::
 
             m = [\sigma_1, \sigma_2, x_0, y_0, r]
 
@@ -1057,18 +1097,41 @@ class SplineMap(IdentityMap):
 
 
 
-# need to construct a parametrized mapping for the block in a layered space
-# m = [val_back, val_layer, val_block, layer_top, layer_bottom, x0_block, y0_block, dx_block, dy_block]
-
 class ParametrizedBlockInLayer(IdentityMap):
+    """
+        Parametrized Block in a Layered Space
 
-    slope_fact = 1e3 # will be scaled by the mesh.
-    slope = None
-    indActive = None
+        .. plot::
+            :include-source:
+
+            from SimPEG import Mesh, Maps, np
+            import matplotlib.pyplot as plt
+
+            fig, ax = plt.subplots(1,1,figsize=(2,3))
+
+            mesh = Mesh.TensorMesh([50,50],x0='CC')
+            mapping = Maps.ParametrizedBlockInLayer(mesh)
+            m = np.hstack(np.r_[1., 2., 3., -0.2, 0.0, 0.3, 0.2])
+            rho = mapping._transform(m)
+            mesh.plotImage(rho, ax=ax)
+
+        **Required**
+
+        :param Mesh mesh: SimPEG Mesh, 2D or 3D
+
+        **Optional**
+
+        :param float slope_fact: arctan slope factor - divided by the minimum h spacing to give the slope of the arctan functions
+        :param float slope: slope of the arctan function
+        :param numpy.ndarray indActive: bool vector with
+
+    """
+
+    slope_fact = 1e3 # slope factor of the arctan function - will be scaled by the mesh.
+    slope = None # slope of the arctan functions
+    indActive = None # bool array of the active indicies
 
     def __init__(self, mesh, **kwargs):
-
-#         super(Parametrized_Block_in_Layer, self).__init__(mesh, **kwargs)
 
         IdentityMap.__init__(self, mesh, **kwargs)
 
