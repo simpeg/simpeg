@@ -19,7 +19,7 @@ class IdentityMap(object):
         Utils.setKwargs(self, **kwargs)
 
         if nP is not None:
-            assert type(nP) in [int, long], ' Number of parameters must be an integer.'
+            assert type(nP) in [int, long, np.int64], ' Number of parameters must be an integer.'
 
         self.mesh = mesh
         self._nP  = nP
@@ -1492,7 +1492,7 @@ class ParametrizedBlockInLayer(IdentityMap):
         self._validate_m(m) # make sure things are the right sizes
 
         if self.mesh.dim == 2:
-            return self._deriv2d(m)
+            return sp.csr_matrix(self._deriv2d(m))
         elif self.mesh.dim == 3:
-            return self._deriv3d(m)
+            return sp.csr_matrix(self._deriv3d(m))
 
