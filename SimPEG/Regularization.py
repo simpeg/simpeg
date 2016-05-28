@@ -918,6 +918,7 @@ class Sparse(Simple):
     eps_p = 1e-1        # Threshold value for the model norm
     eps_q = 1e-1        # Threshold value for the model gradient norm
     curModel = None     # Requires model to compute the weights
+    l2model = None
     gamma = 1.          # Model norm scaling to smooth out convergence
     norms = [0., 2., 2., 2.] # Values for norm on (m, dmdx, dmdy, dmdz)
     cell_weights = 1.        # Consider overwriting with sensitivity weights

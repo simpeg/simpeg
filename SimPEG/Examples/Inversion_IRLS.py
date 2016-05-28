@@ -52,51 +52,49 @@ def run(N=200, plotIt=True):
     wr = np.sum(prob.G**2.,axis=0)**0.5
     wr = ( wr/np.max(wr) )
 
-    reg = Regularization.Simple(mesh)
-    reg.mref = mref
-    reg.cell_weights = wr
-
+#    reg = Regularization.Simple(mesh)
+#    reg.mref = mref
+#    reg.cell_weights = wr
+#
     dmis = DataMisfit.l2_DataMisfit(survey)
     dmis.Wd = 1./wd
-
-    opt = Optimization.ProjectedGNCG(maxIter=20,lower=-2.,upper=2., maxIterCG= 10, tolCG = 1e-4)
-    invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
-    invProb.curModel = m0
-
-    beta = Directives.BetaSchedule(coolingFactor=2, coolingRate=1)
-    target = Directives.TargetMisfit()
-
+#
+#    opt = Optimization.ProjectedGNCG(maxIter=20,lower=-2.,upper=2., maxIterCG= 10, tolCG = 1e-4)
+#    invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
+#    invProb.curModel = m0
+#
+#    beta = Directives.BetaSchedule(coolingFactor=2, coolingRate=1)
+#    target = Directives.TargetMisfit()
+#
     betaest = Directives.BetaEstimate_ByEig()
-    inv = Inversion.BaseInversion(invProb, directiveList=[beta, betaest, target])
-
-
-    mrec = inv.run(m0)
-    ml2 = mrec
-    print "Final misfit:" + str(invProb.dmisfit.eval(mrec))
-
-    # Switch regularization to sparse
-    phim = invProb.phi_m_last
-    phid =  invProb.phi_d
+#    inv = Inversion.BaseInversion(invProb, directiveList=[beta, betaest, target])
+#
+#
+#    mrec = inv.run(m0)
+#    ml2 = mrec
+#    print "Final misfit:" + str(invProb.dmisfit.eval(mrec))
+#
+#    # Switch regularization to sparse
+#    phim = invProb.phi_m_last
+#    phid =  invProb.phi_d
 
     reg = Regularization.Sparse(mesh)
     reg.mref = mref
     reg.cell_weights = wr
 
     reg.mref = np.zeros(mesh.nC)
-    reg.eps_p = 1e-3
-    reg.eps_q = 1e-2
-    reg.norms   = [0., 0., 2., 2.]
+    eps_p = 1e-3
+    eps_q = 1e-2
+    norms   = [0., 0., 2., 2.]
 
     opt = Optimization.ProjectedGNCG(maxIter=100 ,lower=-2.,upper=2., maxIterLS = 20, maxIterCG= 10, tolCG = 1e-3)
-    invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta = invProb.beta*2.)
-    beta = Directives.BetaSchedule(coolingFactor=1, coolingRate=1)
-    update_beta = Directives.Scale_Beta(tol = 0.05, coolingRate=5)
-    target = Directives.TargetMisfit()
-    IRLS = Directives.Update_IRLS( phi_m_last = phim, phi_d_last = phid, coolingRate=5 )
+    invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
+    #beta = Directives.BetaSchedule(coolingFactor=1, coolingRate=1)
+    #update_beta = Directives.Scale_Beta(tol = 0.05, coolingRate=5)
+#    target = Directives.TargetMisfit()
+    IRLS = Directives.Update_IRLS( norms=norms,  eps_p=eps_p, eps_q=eps_q)
 
-    inv = Inversion.BaseInversion(invProb, directiveList=[beta,IRLS,update_beta])
-
-    m0 = mrec
+    inv = Inversion.BaseInversion(invProb, directiveList=[IRLS,betaest])
 
     # Run inversion
     mrec = inv.run(m0)
@@ -113,7 +111,7 @@ def run(N=200, plotIt=True):
         axes[0].set_title('Columns of matrix G')
 
         axes[1].plot(mesh.vectorCCx, mtrue, 'b-')
-        axes[1].plot(mesh.vectorCCx, ml2, 'r-')
+        axes[1].plot(mesh.vectorCCx, reg.l2model, 'r-')
         #axes[1].legend(('True Model', 'Recovered Model'))
         axes[1].set_ylim(-1.0,1.25)
 
