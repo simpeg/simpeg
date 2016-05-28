@@ -11,11 +11,8 @@ survey = driver.survey
 rxLoc = survey.srcField.rxList[0].locs
 d = survey.dobs
 wd = survey.std
-
+    
 ndata = survey.srcField.rxList[0].locs.shape[0]
-
-eps_p = 1e-4
-eps_q = 1e-4
 
 actv = driver.activeCells
 nC = len(actv)
@@ -41,11 +38,14 @@ prob = PF.Magnetics.Problem3D_Integral(mesh, mapping=idenMap, actInd=actv)
 prob.solverOpts['accuracyTol'] = 1e-4
 survey.pair(prob)
 
+dmis = DataMisfit.l2_DataMisfit(survey)
+dmis.Wd = 1./wd
+
 # Write out the predicted
 pred = prob.fields(driver.m0)
 PF.Magnetics.writeUBCobs('Pred.dat', survey, pred)
 
-wr = np.sum(prob.G**2.,axis=0)**0.5 / mesh.vol[actv]
+wr = np.sum(prob.G**2.,axis=0)**0.5
 wr = ( wr/np.max(wr) )
 wr_out = actvMap * wr
 
@@ -55,106 +55,26 @@ mesh.plotSlice(wr_out, ax=ax, normal='Y', ind=midx ,clim=(-1e-3, wr.max()))
 plt.title('Distance weighting')
 plt.xlabel('x');plt.ylabel('z')
 plt.gca().set_aspect('equal', adjustable='box')
-
-reg = Regularization.Simple(mesh, indActive=actv, mapping=idenMap)
+reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
 reg.mref = driver.mref
-reg.wght = wr
+reg.cell_weights = wr
+    
+#reg.mref = np.zeros(mesh.nC)
+eps_p = 2e-4
+eps_q = 5e-5
+norms   = [0., 2., 2., 2.]
 
-dmis = DataMisfit.l2_DataMisfit(survey)
-dmis.Wd = 1/wd
-opt = Optimization.ProjectedGNCG(maxIter=10,lower=0.,upper=1., maxIterCG= 20, tolCG=1e-3)
-
+opt = Optimization.ProjectedGNCG(maxIter=100 ,lower=-2.,upper=2., maxIterLS = 20, maxIterCG= 10, tolCG = 1e-3)
 invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
-
-beta = Directives.BetaSchedule(coolingFactor=2, coolingRate=1)
-beta_init = Directives.BetaEstimate_ByEig()
-target = Directives.TargetMisfit()
+#beta = Directives.BetaSchedule(coolingFactor=1, coolingRate=1)
+#update_beta = Directives.Scale_Beta(tol = 0.05, coolingRate=5)
+betaest = Directives.BetaEstimate_ByEig()
+IRLS = Directives.Update_IRLS( norms=norms,  eps_p=eps_p, eps_q=eps_q, f_min_change = 1e-2)
 update_Jacobi = Directives.Update_lin_PreCond(onlyOnStart=True)
-
-inv = Inversion.BaseInversion(invProb, directiveList=[beta,target,beta_init,update_Jacobi])
+inv = Inversion.BaseInversion(invProb, directiveList=[IRLS,betaest,update_Jacobi])
 
 # Run inversion
 mrec = inv.run(driver.m0)
-
-m_out = actvMap*mrec
-
-# Write result
-Mesh.TensorMesh.writeModelUBC(mesh,'SimPEG_inv_l2l2.sus',m_out)
-
-# Plot predicted
-pred = prob.fields(mrec)
-#PF.Magnetics.plot_obs_2D(rxLoc,pred,wd,'Predicted Data')
-#PF.Magnetics.plot_obs_2D(rxLoc,(d-pred),wd,'Residual Data')
-
-print "Final misfit:" + str(np.sum( ((d-pred)/wd)**2. ) )
-
-#%% Plot out a section of the model
-
-yslice = midx
-m_out[m_out==-100] = np.nan
-
-plt.figure()
-ax = plt.subplot(221)
-mesh.plotSlice(m_out, ax = ax, normal = 'Z', ind=-5, clim = (mrec.min(), mrec.max()))
-plt.plot(np.array([mesh.vectorCCx[0],mesh.vectorCCx[-1]]), np.array([mesh.vectorCCy[yslice],mesh.vectorCCy[yslice]]),c='w',linestyle = '--')
-plt.title('Z: ' + str(mesh.vectorCCz[-5]) + ' m')
-plt.xlabel('x');plt.ylabel('z')
-plt.gca().set_aspect('equal', adjustable='box')
-
-ax = plt.subplot(222)
-mesh.plotSlice(m_out, ax = ax, normal = 'Z', ind=-8, clim = (mrec.min(), mrec.max()))
-plt.plot(np.array([mesh.vectorCCx[0],mesh.vectorCCx[-1]]), np.array([mesh.vectorCCy[yslice],mesh.vectorCCy[yslice]]),c='w',linestyle = '--')
-plt.title('Z: ' + str(mesh.vectorCCz[-8]) + ' m')
-plt.xlabel('x');plt.ylabel('z')
-plt.gca().set_aspect('equal', adjustable='box')
-
-
-ax = plt.subplot(212)
-mesh.plotSlice(m_out, ax = ax, normal = 'Y', ind=yslice, clim = (mrec.min(), mrec.max()))
-plt.title('Cross Section')
-plt.xlabel('x');plt.ylabel('z')
-plt.gca().set_aspect('equal', adjustable='box')
-
-#%% Run one more round for sparsity
-phim = invProb.phi_m_last
-phid =  invProb.phi_d
-
-# Set parameters for sparsity
-reg = Regularization.Sparse(mesh, indActive = actv, mapping = idenMap)
-reg.recModel = mrec
-reg.mref = driver.mref
-reg.wght = wr
-reg.eps_p = eps_p
-reg.eps_q = eps_q
-reg.norms   = driver.lpnorms
-
-
-dmis = DataMisfit.l2_DataMisfit(survey)
-dmis.Wd = wd
-opt = Optimization.ProjectedGNCG(maxIter=20 ,lower=0.,upper=1., maxIterCG= 10, tolCG = 1e-4)
-
-invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta = invProb.beta)
-
-# Create inversion directives
-beta = Directives.BetaSchedule(coolingFactor=1, coolingRate=1)
-update_beta = Directives.Scale_Beta(tol = 0.05)
-target = Directives.TargetMisfit()
-IRLS =Directives.Update_IRLS( phi_m_last = phim, phi_d_last = phid )
-update_Jacobi = Directives.Update_lin_PreCond(onlyOnStart=False)
-save_log = Directives.SaveOutputEveryIteration()
-save_log.fileName = 'LogName_blabla'
-
-inv = Inversion.BaseInversion(invProb, directiveList=[beta,IRLS,update_beta,update_Jacobi,save_log])
-
-m0 = mrec
-
-# Run inversion
-mrec = inv.run(m0)
-
-m_out = actvMap*mrec
-
-# Write final model out.
-Mesh.TensorMesh.writeModelUBC(mesh,'SimPEG_inv_l0l2.sus',m_out)
 
 pred = prob.fields(mrec)
 
@@ -162,10 +82,55 @@ pred = prob.fields(mrec)
 PF.Magnetics.plot_obs_2D(rxLoc,pred,'Predicted Data')
 PF.Magnetics.plot_obs_2D(rxLoc,d,'Observed Data')
 print "Final misfit:" + str(np.sum( ((d-pred)/wd)**2. ) )
+
 #%% Plot out a section of the model
 
 yslice = midx
 
+
+m_out = actvMap*reg.l2model
+m_out[m_out==-100] = np.nan
+
+# Write result
+Mesh.TensorMesh.writeModelUBC(mesh,'SimPEG_inv_l2l2.sus',m_out)
+
+plt.figure()
+ax = plt.subplot(221)
+mesh.plotSlice(m_out, ax = ax, normal = 'Z', ind=-5, clim = (mrec.min(), mrec.max()))
+plt.plot(np.array([mesh.vectorCCx[0],mesh.vectorCCx[-1]]), np.array([mesh.vectorCCy[yslice],mesh.vectorCCy[yslice]]),c='w',linestyle = '--')
+plt.title('Z: ' + str(mesh.vectorCCz[-5]) + ' m')
+plt.xlabel('x');plt.ylabel('z')
+plt.gca().set_aspect('equal', adjustable='box')
+
+ax = plt.subplot(222)
+mesh.plotSlice(m_out, ax = ax, normal = 'Z', ind=-8, clim = (mrec.min(), mrec.max()))
+plt.plot(np.array([mesh.vectorCCx[0],mesh.vectorCCx[-1]]), np.array([mesh.vectorCCy[yslice],mesh.vectorCCy[yslice]]),c='w',linestyle = '--')
+plt.title('Z: ' + str(mesh.vectorCCz[-8]) + ' m')
+plt.xlabel('x');plt.ylabel('z')
+plt.gca().set_aspect('equal', adjustable='box')
+
+
+ax = plt.subplot(212)
+mesh.plotSlice(m_out, ax = ax, normal = 'Y', ind=yslice, clim = (mrec.min(), mrec.max()))
+plt.title('Cross Section')
+plt.xlabel('x');plt.ylabel('z')
+plt.gca().set_aspect('equal', adjustable='box')
+
+plt.figure()
+ax = plt.subplot(121)
+plt.hist(reg.l2model,100)
+plt.yscale('log', nonposy='clip')
+plt.title('Histogram of model values - Smooth')
+ax = plt.subplot(122)
+plt.hist(reg.regmesh.cellDiffxStencil*reg.l2model,100)
+plt.yscale('log', nonposy='clip')
+plt.title('Histogram of model gradient values - Smooth')
+
+#%% Plot out a section of the model
+
+yslice = midx
+
+m_out = actvMap*mrec
 m_out[m_out==-100] = np.nan
 
 plt.figure()
@@ -189,5 +154,14 @@ plt.title('Cross Section')
 plt.xlabel('x');plt.ylabel('z')
 plt.gca().set_aspect('equal', adjustable='box')
 
+plt.figure()
+ax = plt.subplot(121)
+plt.hist(mrec,100)
+plt.yscale('log', nonposy='clip')
+plt.title('Histogram of model values - Compact')
+ax = plt.subplot(122)
+plt.hist(reg.regmesh.cellDiffxStencil*mrec,100)
+plt.yscale('log', nonposy='clip')
+plt.title('Histogram of model gradient values - Smooth')
 
 plt.show()
