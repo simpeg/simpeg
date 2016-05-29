@@ -1164,7 +1164,7 @@ class ParametrizedBlockInLayer(IdentityMap):
     def shape(self):
         if self.indActive is not None:
             return (sum(self.indActive), self.nP)
-        return (self.nC, self.nP)
+        return (self.mesh.nC, self.nP)
 
     def _validate_m(self, m):
         # TODO: more sanity checks here
