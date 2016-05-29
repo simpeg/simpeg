@@ -218,7 +218,7 @@ class TensorView(object):
             return out
         viewOpts = ['real','imag','abs','vec']
         normalOpts = ['X', 'Y', 'Z']
-        vTypeOpts = ['CC', 'CCv','F','E','Fx','Fy','Fz','E','Ex','Ey','Ez']
+        vTypeOpts = ['CC', 'CCv','N','F','E','Fx','Fy','Fz','E','Ex','Ey','Ez']
 
         # Some user error checking
         assert vType in vTypeOpts, "vType must be in ['%s']" % "','".join(vTypeOpts)

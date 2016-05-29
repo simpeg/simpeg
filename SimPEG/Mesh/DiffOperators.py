@@ -584,7 +584,67 @@ class DiffOperators(object):
 
         return Pbc, Pin, Pout
 
+    def getBCProjWF_simple(self, discretization='CC'):
+        """
 
+        The weak form boundary condition projection matrices
+        when mixed boundary condition is used
+
+
+        """
+
+        if discretization is not 'CC':
+            raise NotImplementedError('Boundary conditions only implemented for CC discretization.')
+
+        def projBC(n):
+            ij = ([0,n], [0,1])
+            vals = [0,0]
+            vals[0] = 1
+            vals[1] = 1
+            return sp.csr_matrix((vals, ij), shape=(n+1,2))
+
+        def projDirichlet(n, bc):
+            bc = checkBC(bc)
+            ij = ([0,n], [0,1])
+            vals = [0,0]
+            if(bc[0] == 'dirichlet'):
+                vals[0] = -1
+            if(bc[1] == 'dirichlet'):
+                vals[1] = 1
+            return sp.csr_matrix((vals, ij), shape=(n+1,2))
+
+        BC = [['dirichlet','dirichlet'],['dirichlet','dirichlet'],['dirichlet','dirichlet']]
+        n = self.vnC
+        indF = self.faceBoundaryInd
+        if(self.dim == 1):
+            Pbc = projDirichlet(n[0], BC[0])
+            B = projBC(n[0])
+            indF = indF[0] | indF[1]
+            Pbc = Pbc*sdiag(self.area[indF])
+
+        elif(self.dim == 2):
+            Pbc1 = sp.kron(speye(n[1]), projDirichlet(n[0], BC[0]))
+            Pbc2 = sp.kron(projDirichlet(n[1], BC[1]), speye(n[0]))
+            Pbc = sp.block_diag((Pbc1, Pbc2), format="csr")
+            B1 = sp.kron(speye(n[1]), projBC(n[0]))
+            B2 = sp.kron(projBC(n[1]), speye(n[0]))
+            B = sp.block_diag((B1, B2), format="csr")
+            indF = np.r_[(indF[0] | indF[1]), (indF[2] | indF[3])]
+            Pbc = Pbc*sdiag(self.area[indF])
+
+        elif(self.dim == 3):
+            Pbc1 = kron3(speye(n[2]), speye(n[1]), projDirichlet(n[0], BC[0]))
+            Pbc2 = kron3(speye(n[2]), projDirichlet(n[1], BC[1]), speye(n[0]))
+            Pbc3 = kron3(projDirichlet(n[2], BC[2]), speye(n[1]), speye(n[0]))
+            Pbc = sp.block_diag((Pbc1, Pbc2, Pbc3), format="csr")
+            B1 = kron3(speye(n[2]), speye(n[1]), projBC(n[0]))
+            B2 = kron3(speye(n[2]), projBC(n[1]), speye(n[0]))
+            B3 = kron3(projBC(n[2]), speye(n[1]), speye(n[0]))
+            B = sp.block_diag((B1, B2, B3), format="csr")
+            indF = np.r_[(indF[0] | indF[1]), (indF[2] | indF[3]), (indF[4] | indF[5])]
+            Pbc = Pbc*sdiag(self.area[indF])
+
+        return Pbc, B.T
     # --------------- Averaging ---------------------
 
     @property

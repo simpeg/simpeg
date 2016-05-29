@@ -311,6 +311,9 @@ class BaseRegularization(object):
             tmp = indActive
             indActive = np.zeros(mesh.nC, dtype=bool)
             indActive[tmp] = True
+        if indActive is not None and mapping is None:
+            mapping = Maps.IdentityMap(nP=indActive.nonzero()[0].size)
+
         self.regmesh = RegularizationMesh(mesh,indActive)
         self.mapping = mapping or self.mapPair(mesh)
         self.mapping._assertMatchesPair(self.mapPair)

@@ -146,10 +146,15 @@ class BetaSchedule(InversionDirective):
 
 class TargetMisfit(InversionDirective):
 
+    chifact = 1.
+    phi_d_star = None
+
     @property
     def target(self):
         if getattr(self, '_target', None) is None:
-            self._target = self.survey.nD*0.5
+            if self.phi_d_star is None:
+                self.phi_d_star = 0.5 * self.survey.nD
+            self._target = self.chifact * self.phi_d_star # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
         return self._target
     @target.setter
     def target(self, val):
@@ -309,24 +314,24 @@ class Update_lin_PreCond(InversionDirective):
     Create a Jacobi preconditioner for the linear problem
     """
     onlyOnStart=False
-    
+
     def initialize(self):
-    
+
         if getattr(self.opt, 'approxHinv', None) is None:
             # Update the pre-conditioner
             diagA = np.sum(self.prob.G**2.,axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() #* (self.reg.mapping * np.ones(self.reg.curModel.size))**2.
-            PC     = Utils.sdiag(diagA**-1.)
+            PC     = Utils.sdiag((self.prob.mapping.deriv(None).T *diagA)**-1.)
             self.opt.approxHinv = PC
-            
+
     def endIter(self):
         # Cool the threshold parameter
         if self.onlyOnStart==True:
             return
-            
+
         if getattr(self.opt, 'approxHinv', None) is not None:
             # Update the pre-conditioner
             diagA = np.sum(self.prob.G**2.,axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() #* (self.reg.mapping * np.ones(self.reg.curModel.size))**2.
-            PC     = Utils.sdiag(diagA**-1.)
+            PC     = Utils.sdiag((self.prob.mapping.deriv(None).T *diagA)**-1.)
             self.opt.approxHinv = PC
 
 
