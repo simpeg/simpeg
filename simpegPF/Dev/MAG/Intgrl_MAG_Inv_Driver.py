@@ -60,9 +60,9 @@ reg.mref = driver.mref
 reg.cell_weights = wr
     
 #reg.mref = np.zeros(mesh.nC)
-eps_p = 2e-4
+eps_p = 5e-5
 eps_q = 5e-5
-norms   = [0., 2., 2., 2.]
+norms   = [0., 1., 1., 1.]
 
 opt = Optimization.ProjectedGNCG(maxIter=100 ,lower=-2.,upper=2., maxIterLS = 20, maxIterCG= 10, tolCG = 1e-3)
 invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
@@ -70,7 +70,7 @@ invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
 #update_beta = Directives.Scale_Beta(tol = 0.05, coolingRate=5)
 betaest = Directives.BetaEstimate_ByEig()
 IRLS = Directives.Update_IRLS( norms=norms,  eps_p=eps_p, eps_q=eps_q, f_min_change = 1e-2)
-update_Jacobi = Directives.Update_lin_PreCond(onlyOnStart=True)
+update_Jacobi = Directives.Update_lin_PreCond()
 inv = Inversion.BaseInversion(invProb, directiveList=[IRLS,betaest,update_Jacobi])
 
 # Run inversion
