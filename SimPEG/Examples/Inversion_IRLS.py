@@ -1,7 +1,7 @@
 from SimPEG import *
 
 
-def run(N=200, plotIt=True):
+def run(N=100, plotIt=True):
     """
         Inversion: Linear Problem
         =========================
@@ -19,8 +19,8 @@ def run(N=200, plotIt=True):
 
     m0 = np.ones(mesh.nC) * 1e-4
     mref = np.zeros(mesh.nC)
-    
-    nk = 15
+
+    nk = 10
     jk = np.linspace(1.,nk,nk)
     p = -2.
     q = 1.
@@ -83,18 +83,16 @@ def run(N=200, plotIt=True):
     reg.cell_weights = wr
 
     reg.mref = np.zeros(mesh.nC)
-    eps_p = 1e-3
-    eps_q = 1e-2
+    eps_p = 5e-2
+    eps_q = 5e-2
     norms   = [0., 0., 2., 2.]
 
     opt = Optimization.ProjectedGNCG(maxIter=100 ,lower=-2.,upper=2., maxIterLS = 20, maxIterCG= 10, tolCG = 1e-3)
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
-    #beta = Directives.BetaSchedule(coolingFactor=1, coolingRate=1)
-    #update_beta = Directives.Scale_Beta(tol = 0.05, coolingRate=5)
-#    target = Directives.TargetMisfit()
+    update_Jacobi = Directives.Update_lin_PreCond()
     IRLS = Directives.Update_IRLS( norms=norms,  eps_p=eps_p, eps_q=eps_q)
 
-    inv = Inversion.BaseInversion(invProb, directiveList=[IRLS,betaest])
+    inv = Inversion.BaseInversion(invProb, directiveList=[IRLS,betaest,update_Jacobi])
 
     # Run inversion
     mrec = inv.run(m0)

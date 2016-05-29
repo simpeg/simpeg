@@ -258,66 +258,39 @@ class Update_IRLS(InversionDirective):
     f_old = None
     f_min_change = 1e-2
     beta_tol = 5e-2
-    
+
     # Solving parameter for IRLS (mode:2)
     IRLSiter   = 0
-    minGNiter = 6
+    minGNiter = 5
     maxIRLSiter = 10
     iterStart = 0
-    
+
     # Beta schedule
     coolingFactor = 2.
     coolingRate = 1
-        
+
     mode = 1
-    
+
     @property
     def target(self):
         if getattr(self, '_target', None) is None:
-            self._target = self.survey.nD
+            self._target = self.survey.nD*0.5
         return self._target
     @target.setter
     def target(self, val):
         self._target = val
-  
+
     def initialize(self):
 
         if self.mode == 1:
             self.reg.norms = [2., 2., 2., 2.]
-#        # Scale the regularization for changes in norm
-#        if getattr(self, 'phi_m_last', None) is not None:
-#
-#            self.reg.curModel = self.invProb.curModel
-#            self.reg._Wsmall = None
-#            self.reg._Wx = None
-#            self.reg._Wy = None
-#            self.reg._Wz = None
-#            self.reg.gamma = 1.
-#            phim_new = self.reg.eval(self.invProb.curModel)
-#            self.gamma = self.phi_m_last / phim_new
-#
-#        self.reg.curModel = self.invProb.curModel
-#        self.reg.gamma = self.gamma
-#        # Reset the regularization matrices so that it is
-#        # recalculated with new gamma
-#        self.reg._Wsmall = None
-#        self.reg._Wx = None
-#        self.reg._Wy = None
-#        self.reg._Wz = None
 
-#        if getattr(self, 'phi_d_last', None) is None:
-#            self.phi_d_last = self.invProb.phi_d
-#
-#        if getattr(self, 'f_last', None) is None:
-#            self.f_old = self.invProb.evalFunction(self.reg.curModel, return_g=False, return_H=False)
-#            print self.f_old
-            
     def endIter(self):
 
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
         if self.invProb.phi_d < self.target and self.mode == 1:
             print "Convergence with smooth l2-norm regularization: Start IRLS steps..."
-            
+
             self.mode = 2
             print self.eps_p, self.eps_q, self.norms
             self.reg.eps_p = self.eps_p
@@ -328,17 +301,18 @@ class Update_IRLS(InversionDirective):
             self.iterStart = self.opt.iter
             self.phi_d_last = self.invProb.phi_d
             self.phi_m_last = self.invProb.phi_m_last
-            
+
             self.reg.l2model = self.invProb.curModel
             self.reg.curModel = self.invProb.curModel
-            
+
             if getattr(self, 'f_old', None) is None:
                 self.f_old = self.reg.eval(self.invProb.curModel)#self.invProb.evalFunction(self.invProb.curModel, return_g=False, return_H=False)
-            
+
+        # Beta Schedule
         if self.opt.iter > 0 and self.opt.iter % self.coolingRate == 0:
             if self.debug: print 'BetaSchedule is cooling Beta. Iteration: %d' % self.opt.iter
             self.invProb.beta /= self.coolingFactor
-            
+
 
         # Only update after GN iterations
         if (self.opt.iter-self.iterStart) % self.minGNiter == 0 and self.mode==2:
@@ -401,12 +375,12 @@ class Update_IRLS(InversionDirective):
             self.reg._Wy = None
             self.reg._Wz = None
 
-            # Check if misfit is within the tolerance, otherwise adjust beta
+            # Check if misfit is within the tolerance, otherwise scale beta
             val = self.invProb.phi_d / (self.survey.nD*0.5)
-            
+
             if np.abs(1.-val) > self.beta_tol:
                 self.invProb.beta = self.invProb.beta * self.survey.nD*0.5 / self.invProb.phi_d
-                
+
 class Update_lin_PreCond(InversionDirective):
     """
     Create a Jacobi preconditioner for the linear problem
@@ -458,16 +432,3 @@ class Update_Wj(InversionDirective):
             JtJdiag = JtJdiag / max(JtJdiag)
 
             self.reg.wght = JtJdiag
-
-#class Scale_Beta(InversionDirective):
-#    """
-#        Instead of a linear cooling schedule, beta is allowed to change based
-#        on the ratio between the target misfit and the current data misfit. The
-#        update is done only if the misfit is outside some threshold bounds.
-#    """
-#    tol = 0.05
-#    coolingRate=5
-#
-#    def endIter(self):
-#
-#        
