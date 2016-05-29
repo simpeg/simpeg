@@ -1,4 +1,4 @@
-.. _examples_Forward_BasicDirectCurrent:
+.. _examples_Mesh_Basic_ForwardDC:
 
 .. --------------------------------- ..
 ..                                   ..
@@ -8,14 +8,18 @@
 ..                                   ..
 .. --------------------------------- ..
 
-Forward BasicDirectCurrent
-==========================
+
+Mesh: Basic Forward 2D DC Resistivity
+=====================================
+
+2D DC forward modeling example with Tensor and Curvilinear Meshes
+
 
 .. plot::
 
     from SimPEG import Examples
-    Examples.Forward_BasicDirectCurrent.run()
+    Examples.Mesh_Basic_ForwardDC.run()
 
-.. literalinclude:: ../../SimPEG/Examples/Forward_BasicDirectCurrent.py
+.. literalinclude:: ../../SimPEG/Examples/Mesh_Basic_ForwardDC.py
     :language: python
     :linenos:

@@ -1,8 +1,14 @@
 from SimPEG import Mesh, Utils, np, SolverLU
 
-## 2D DC forward modeling example with Tensor and Curvilinear Meshes
-
 def run(plotIt=True):
+
+    """
+        Mesh: Basic Forward 2D DC Resistivity
+        =====================================
+
+        2D DC forward modeling example with Tensor and Curvilinear Meshes
+    """
+
     # Step1: Generate Tensor and Curvilinear Mesh
     sz = [40,40]
     tM = Mesh.TensorMesh(sz)
