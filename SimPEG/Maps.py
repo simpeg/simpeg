@@ -1145,13 +1145,13 @@ class ParametrizedBlockInLayer(IdentityMap):
         if self.slope is None:
             self.slope = self.slope_fact / np.hstack(self.mesh.h).min()
 
-        self.x = [self.mesh.gridCC[:,0] if self.indActive is None else self.mesh.gridCC[indActive,0]][0]
+        self.x = [self.mesh.gridCC[:,0] if self.indActive is None else self.mesh.gridCC[self.indActive,0]][0]
 
         if self.mesh.dim > 1:
-            self.y = [self.mesh.gridCC[:,1] if self.indActive is None else self.mesh.gridCC[indActive,1]][0]
+            self.y = [self.mesh.gridCC[:,1] if self.indActive is None else self.mesh.gridCC[self.indActive,1]][0]
 
         if self.mesh.dim > 2:
-            self.z = [self.mesh.gridCC[:,2] if self.indActive is None else self.mesh.gridCC[indActive,2]][0]
+            self.z = [self.mesh.gridCC[:,2] if self.indActive is None else self.mesh.gridCC[self.indActive,2]][0]
 
     @property
     def nP(self):
@@ -1159,6 +1159,12 @@ class ParametrizedBlockInLayer(IdentityMap):
             return 7
         elif self.mesh.dim == 3:
             return 9
+
+    @property
+    def shape(self):
+        if self.indActive is not None:
+            return (sum(self.indActive), self.nP)
+        return (self.nC, self.nP)
 
     def _validate_m(self, m):
         # TODO: more sanity checks here

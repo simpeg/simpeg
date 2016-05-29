@@ -43,7 +43,14 @@ class BaseRx(SimPEG.Survey.BaseRx):
         elif adjoint:
             return P.T*v
 
-# DC.Rx.Dipole(locs)
+# DC.Rx.Pole(locs)
+class Pole(BaseRx):
+
+    def __init__(self, locs, rxType = 'phi', **kwargs):
+        BaseRx.__init__(self, locs, rxType)
+
+
+# DC.Rx.Dipole(locsM, locsN)
 class Dipole(BaseRx):
 
     def __init__(self, locsM, locsN, rxType = 'phi', **kwargs):
