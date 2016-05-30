@@ -614,7 +614,7 @@ class CircularLoop(BaseSrc):
             return -C.T * (MMui_s * self.bPrimary(prob))
 
 
-class PrimSecSigma(FDEM.Src.BaseSrc):
+class PrimSecSigma(BaseSrc):
 
     def __init__(self, rxList, freq, sigBack, ePrimary):
         self.freq = float(freq)
