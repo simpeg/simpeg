@@ -31,6 +31,7 @@ class BaseFDEMProblem(BaseEMProblem):
         if using the H-J formulation (:code:`Problem3D_j` or :code:`Problem3D_h`). Note that here, :math:`\mathbf{s_m}` is an integrated quantity.
 
         The problem performs the elimination so that we are solving the system for \\\(\\\mathbf{e},\\\mathbf{b},\\\mathbf{j} \\\) or \\\(\\\mathbf{h}\\\)
+
     """
 
     surveyPair = SurveyFDEM
@@ -444,6 +445,7 @@ class Problem3D_j(BaseFDEMProblem):
 
         \mathbf{h} = \\frac{1}{i \omega} \mathbf{M_{\mu}^e}^{-1} \\left(-\mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{j}  + \mathbf{M^e} \mathbf{s_m} \\right)
 
+
     and solve for \\\(\\\mathbf{j}\\\) using
 
     .. math ::
@@ -608,9 +610,11 @@ class Problem3D_h(BaseFDEMProblem):
         .. math::
             \mathbf{A} = \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{C} + i \omega \mathbf{M_{\mu}^e}
 
+
         :param float freq: Frequency
         :rtype: scipy.sparse.csr_matrix
         :return: A
+
         """
 
         MeMu = self.MeMu
@@ -653,6 +657,7 @@ class Problem3D_h(BaseFDEMProblem):
         :param float freq: Frequency
         :rtype: numpy.ndarray
         :return: RHS (nE, nSrc)
+
         """
 
         s_m, s_e = self.getSourceTerm(freq)

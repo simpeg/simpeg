@@ -46,6 +46,8 @@ The API
 =======
 
 .. autofunction:: SimPEG.Utils.SolverUtils.SolverWrapD
+    :noindex:
 
 .. autofunction:: SimPEG.Utils.SolverUtils.SolverWrapI
+    :noindex:
 

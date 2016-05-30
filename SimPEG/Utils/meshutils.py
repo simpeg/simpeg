@@ -104,18 +104,17 @@ def closestPoints(mesh, pts, gridLoc='CC'):
 
 def ExtractCoreMesh(xyzlim, mesh, meshType='tensor'):
     """
-        Extracts Core Mesh from Global mesh
+    Extracts Core Mesh from Global mesh
 
-        :param numpy.ndarray xyzlim: 2D array [ndim x 2]
-        :param simpeg.Mesh.BaseMesh mesh: The mesh
+    :param numpy.ndarray xyzlim: 2D array [ndim x 2]
+    :param simpeg.Mesh.BaseMesh mesh: The mesh
 
-        This function ouputs::
+    This function ouputs::
 
-            - actind: corresponding boolean index from global to core
-            - meshcore: core SimPEG mesh
+        - actind: corresponding boolean index from global to core
+        - meshcore: core SimPEG mesh
 
-        Warning: 1D and 2D has not been tested
-
+    Warning: 1D and 2D has not been tested
     """
     from SimPEG import Mesh
     if mesh.dim == 1:

@@ -3,34 +3,31 @@
 Tensor Mesh
 ===========
 
-.. automodule:: SimPEG.Mesh.TensorMesh
-    :show-inheritance:
+.. autoclass:: SimPEG.Mesh.TensorMesh
     :members:
     :undoc-members:
-
+    :show-inheritance:
 
 Cylindrical Mesh
 ================
 
-.. automodule:: SimPEG.Mesh.CylMesh
-    :show-inheritance:
+.. autoclass:: SimPEG.Mesh.CylMesh
     :members:
     :undoc-members:
-
+    :show-inheritance:
 
 Tree Mesh
 =========
 
 .. autoclass:: SimPEG.Mesh.TreeMesh.TreeMesh
-    :show-inheritance:
     :members:
     :undoc-members:
-
+    :show-inheritance:
 
 Curvilinear Mesh
 ================
 
-.. automodule:: SimPEG.Mesh.CurvilinearMesh
-    :show-inheritance:
+.. autoclass:: SimPEG.Mesh.CurvilinearMesh
     :members:
     :undoc-members:
+    :show-inheritance:

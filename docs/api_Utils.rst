@@ -51,7 +51,6 @@ Interpolation Utilities
 Counter Utilities
 =================
 
-
 .. code-block:: python
     :linenos:
 
@@ -73,7 +72,6 @@ Counter Utilities
     c.counter.summary()
 
 
-
 .. code-block:: text
     :linenos:
 
@@ -82,6 +80,8 @@ Counter Utilities
 
     Times:                                        mean      sum
       MyClass.MySecondMethod                  : 1.70e-06, 5.10e-04,  300x
+
+
 
 The API
 -------
