@@ -83,7 +83,7 @@ def closestPoints(mesh, pts, gridLoc='CC'):
     """
         Move a list of points to the closest points on a grid.
 
-        :param simpeg.Mesh.BaseMesh mesh: The mesh
+        :param BaseMesh mesh: The mesh
         :param numpy.ndarray pts: Points to move
         :param string gridLoc: ['CC', 'N', 'Fx', 'Fy', 'Fz', 'Ex', 'Ex', 'Ey', 'Ez']
         :rtype: numpy.ndarray
@@ -107,7 +107,7 @@ def ExtractCoreMesh(xyzlim, mesh, meshType='tensor'):
     Extracts Core Mesh from Global mesh
 
     :param numpy.ndarray xyzlim: 2D array [ndim x 2]
-    :param simpeg.Mesh.BaseMesh mesh: The mesh
+    :param BaseMesh mesh: The mesh
 
     This function ouputs::
 

@@ -67,13 +67,45 @@ The API
 
 Problem
 -------
-.. autoclass:: SimPEG.Problem
+
+.. autoclass:: SimPEG.Problem.BaseProblem
+    :members:
+    :undoc-members:
+
+.. autoclass:: SimPEG.Problem.BaseTimeProblem
+    :members:
+    :undoc-members:
+
+Fields
+------
+
+.. autoclass:: SimPEG.Fields.Fields
+    :members:
+    :undoc-members:
+
+.. autoclass:: SimPEG.Fields.TimeFields
     :members:
     :undoc-members:
 
 Survey
 ------
-.. autoclass:: SimPEG.Survey
+
+.. autoclass:: SimPEG.Survey.BaseSurvey
     :members:
     :undoc-members:
 
+.. autoclass:: SimPEG.Survey.BaseSrc
+    :members:
+    :undoc-members:
+
+.. autoclass:: SimPEG.Survey.BaseRx
+    :members:
+    :undoc-members:
+
+.. autoclass:: SimPEG.Survey.BaseTimeRx
+    :members:
+    :undoc-members:
+
+.. autoclass:: SimPEG.Survey.Data
+    :members:
+    :undoc-members:

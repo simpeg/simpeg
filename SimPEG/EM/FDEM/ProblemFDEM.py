@@ -1,7 +1,7 @@
 from SimPEG import Problem, Utils, np, sp, Solver as SimpegSolver
 from scipy.constants import mu_0
 from SurveyFDEM import Survey as SurveyFDEM
-from FieldsFDEM import Fields, Fields3D_e, Fields3D_b, Fields3D_h, Fields3D_j
+from FieldsFDEM import FieldsFDEM, Fields3D_e, Fields3D_b, Fields3D_h, Fields3D_j
 from SimPEG.EM.Base import BaseEMProblem
 from SimPEG.EM.Utils import omega
 
@@ -35,7 +35,7 @@ class BaseFDEMProblem(BaseEMProblem):
     """
 
     surveyPair = SurveyFDEM
-    fieldsPair = Fields
+    fieldsPair = FieldsFDEM
 
     def fields(self, m):
         """
@@ -65,7 +65,7 @@ class BaseFDEMProblem(BaseEMProblem):
 
         :param numpy.array m: inversion model (nP,)
         :param numpy.array v: vector which we take sensitivity product with (nP,)
-        :param SimPEG.EM.FDEM.Fields u: fields object
+        :param SimPEG.EM.FDEM.FieldsFDEM.FieldsFDEM u: fields object
         :rtype numpy.array:
         :return: Jv (ndata,)
         """
@@ -100,7 +100,7 @@ class BaseFDEMProblem(BaseEMProblem):
 
         :param numpy.array m: inversion model (nP,)
         :param numpy.array v: vector which we take adjoint product with (nP,)
-        :param SimPEG.EM.FDEM.Fields u: fields object
+        :param SimPEG.EM.FDEM.FieldsFDEM.FieldsFDEM u: fields object
         :rtype numpy.array:
         :return: Jv (ndata,)
         """
@@ -154,8 +154,8 @@ class BaseFDEMProblem(BaseEMProblem):
         Evaluates the sources for a given frequency and puts them in matrix form
 
         :param float freq: Frequency
-        :rtype: (numpy.ndarray, numpy.ndarray)
-        :return: s_m, s_e (nE or nF, nSrc)
+        :rtype: tuple
+        :return: (s_m, s_e) (nE or nF, nSrc)
         """
         Srcs = self.survey.getSrcByFreq(freq)
         if self._formulation is 'EB':
@@ -195,7 +195,7 @@ class Problem3D_e(BaseFDEMProblem):
 
     which we solve for :math:`\mathbf{e}`.
 
-    :param SimPEG.Mesh mesh: mesh
+    :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: mesh
     """
 
     _solutionType = 'eSolution'
@@ -270,7 +270,7 @@ class Problem3D_e(BaseFDEMProblem):
         Derivative of the right hand side with respect to the model
 
         :param float freq: frequency
-        :param SimPEG.EM.FDEM.Src src: FDEM source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: FDEM source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -306,7 +306,7 @@ class Problem3D_b(BaseFDEMProblem):
     .. note ::
         The inverse problem will not work with full anisotropy
 
-    :param SimPEG.Mesh mesh: mesh
+    :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: mesh
     """
 
     _solutionType = 'bSolution'
@@ -401,7 +401,7 @@ class Problem3D_b(BaseFDEMProblem):
         Derivative of the right hand side with respect to the model
 
         :param float freq: frequency
-        :param SimPEG.EM.FDEM.Src src: FDEM source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: FDEM source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -455,7 +455,7 @@ class Problem3D_j(BaseFDEMProblem):
     .. note::
         This implementation does not yet work with full anisotropy!!
 
-    :param SimPEG.Mesh mesh: mesh
+    :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: mesh
     """
 
     _solutionType = 'jSolution'
@@ -531,8 +531,8 @@ class Problem3D_j(BaseFDEMProblem):
             \mathbf{RHS} = \mathbf{C} \mathbf{M_{\mu}^e}^{-1}\mathbf{s_m} -i\omega \mathbf{s_e}
 
         :param float freq: Frequency
-        :rtype: numpy.ndarray (nE, nSrc)
-        :return: RHS
+        :rtype: numpy.ndarray
+        :return: RHS (nE, nSrc)
         """
 
         s_m, s_e = self.getSourceTerm(freq)
@@ -551,7 +551,7 @@ class Problem3D_j(BaseFDEMProblem):
         Derivative of the right hand side with respect to the model
 
         :param float freq: frequency
-        :param SimPEG.EM.FDEM.Src src: FDEM source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: FDEM source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -593,7 +593,7 @@ class Problem3D_h(BaseFDEMProblem):
 
         \\left(\mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{C} + i \omega \mathbf{M_{\mu}^e}\\right) \mathbf{h} = \mathbf{M^e} \mathbf{s_m} + \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{s_e}
 
-    :param SimPEG.Mesh mesh: mesh
+    :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: mesh
     """
 
     _solutionType = 'hSolution'
@@ -671,7 +671,7 @@ class Problem3D_h(BaseFDEMProblem):
         Derivative of the right hand side with respect to the model
 
         :param float freq: frequency
-        :param SimPEG.EM.FDEM.Src src: FDEM source
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: FDEM source
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray

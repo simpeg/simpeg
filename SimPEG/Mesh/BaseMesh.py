@@ -34,7 +34,7 @@ class BaseMesh(object):
         """
         Origin of the mesh
 
-        :rtype: numpy.array 
+        :rtype: numpy.array
         :return: x0, (dim, )
         """
         return self._x0
@@ -116,7 +116,7 @@ class BaseMesh(object):
         """
         Total number of edges in each direction
 
-        :rtype: numpy.array 
+        :rtype: numpy.array
         :return: [nEx, nEy, nEz], (dim, )
 
         .. plot::
@@ -200,7 +200,7 @@ class BaseMesh(object):
         """
         Face Normals
 
-        :rtype: numpy.array 
+        :rtype: numpy.array
         :return: normals, (sum(nF), dim)
         """
         if self.dim == 2:
@@ -218,7 +218,7 @@ class BaseMesh(object):
         """
         Edge Tangents
 
-        :rtype: numpy.array 
+        :rtype: numpy.array
         :return: normals, (sum(nE), dim)
         """
         if self.dim == 2:
@@ -297,7 +297,7 @@ class BaseRectangularMesh(BaseMesh):
         """
         Total number of cells in each direction
 
-        :rtype: numpy.array (dim, )
+        :rtype: numpy.array
         :return: [nCx, nCy, nCz]
         """
         return np.array([x for x in [self.nCx, self.nCy, self.nCz] if not x is None])
@@ -337,7 +337,7 @@ class BaseRectangularMesh(BaseMesh):
         """
         Total number of nodes in each direction
 
-        :rtype: numpy.array (dim, )
+        :rtype: numpy.array
         :return: [nNx, nNy, nNz]
         """
         return np.array([x for x in [self.nNx, self.nNy, self.nNz] if not x is None])
@@ -347,7 +347,7 @@ class BaseRectangularMesh(BaseMesh):
         """
         Number of x-edges in each direction
 
-        :rtype: numpy.array (dim, )
+        :rtype: numpy.array
         :return: vnEx
         """
         return np.array([x for x in [self.nCx, self.nNy, self.nNz] if not x is None])
@@ -357,7 +357,7 @@ class BaseRectangularMesh(BaseMesh):
         """
         Number of y-edges in each direction
 
-        :rtype: numpy.array (dim, )
+        :rtype: numpy.array
         :return: vnEy or None if dim < 2
         """
         return None if self.dim < 2 else np.array([x for x in [self.nNx, self.nCy, self.nNz] if not x is None])
@@ -367,7 +367,7 @@ class BaseRectangularMesh(BaseMesh):
         """
         Number of z-edges in each direction
 
-        :rtype: numpy.array (dim, )
+        :rtype: numpy.array
         :return: vnEz or None if dim < 3
         """
         return None if self.dim < 3 else np.array([x for x in [self.nNx, self.nNy, self.nCz] if not x is None])
@@ -377,7 +377,7 @@ class BaseRectangularMesh(BaseMesh):
         """
         Number of x-faces in each direction
 
-        :rtype: numpy.array (dim, )
+        :rtype: numpy.array
         :return: vnFx
         """
         return np.array([x for x in [self.nNx, self.nCy, self.nCz] if not x is None])
@@ -387,7 +387,7 @@ class BaseRectangularMesh(BaseMesh):
         """
         Number of y-faces in each direction
 
-        :rtype: numpy.array (dim, )
+        :rtype: numpy.array
         :return: vnFy or None if dim < 2
         """
         return None if self.dim < 2 else np.array([x for x in [self.nCx, self.nNy, self.nCz] if not x is None])
@@ -397,7 +397,7 @@ class BaseRectangularMesh(BaseMesh):
         """
         Number of z-faces in each direction
 
-        :rtype: numpy.array (dim, )
+        :rtype: numpy.array
         :return: vnFz or None if dim < 3
         """
         return None if self.dim < 3 else np.array([x for x in [self.nCx, self.nCy, self.nNz] if not x is None])

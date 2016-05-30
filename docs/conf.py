@@ -269,3 +269,24 @@ def _supress_nonlocal_image_warn(self, msg, node):
         self._warnfunc(msg, '%s:%s' % get_source_line(node))
 
 supress_nonlocal_image_warn()
+
+
+nitpick_ignore = [
+    ('py:class', 'IdentityMap'),
+    ('py:class', 'BaseSurvey'),
+    ('py:class', 'BaseSrc'),
+    ('py:class', 'BaseRx'),
+    ('py:class', 'Survey'),
+    ('py:class', 'FieldsFDEM'),
+    ('py:class', 'Fields3D_e'),
+    ('py:class', 'Fields3D_b'),
+    ('py:class', 'Fields3D_j'),
+    ('py:class', 'Fields3D_h'),
+    ('py:class', 'SurveyTDEM'),
+    ('py:class', 'SrcTDEM'),
+    ('py:class', 'EMPropMap'),
+    ('py:class', 'Data'),
+    ('py:class', 'SurveyDC'),
+    ('py:class', 'BaseMTFields'),
+    ('py:class', 'SolverLU'),
+]

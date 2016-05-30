@@ -166,7 +166,7 @@ class TargetMisfit(InversionDirective):
 
 
 
-class _SaveEveryIteration(InversionDirective):
+class SaveEveryIteration(InversionDirective):
     @property
     def name(self):
         if getattr(self, '_name', None) is None:
@@ -187,7 +187,7 @@ class _SaveEveryIteration(InversionDirective):
         self._fileName = value
 
 
-class SaveModelEveryIteration(_SaveEveryIteration):
+class SaveModelEveryIteration(SaveEveryIteration):
     """SaveModelEveryIteration"""
 
     def initialize(self):
@@ -197,7 +197,7 @@ class SaveModelEveryIteration(_SaveEveryIteration):
         np.save('%03d-%s' % (self.opt.iter, self.fileName), self.opt.xc)
 
 
-class SaveOutputEveryIteration(_SaveEveryIteration):
+class SaveOutputEveryIteration(SaveEveryIteration):
     """SaveModelEveryIteration"""
 
     def initialize(self):
@@ -211,7 +211,7 @@ class SaveOutputEveryIteration(_SaveEveryIteration):
         f.write(' %3d %1.4e %1.4e %1.4e %1.4e\n'%(self.opt.iter, self.invProb.beta, self.invProb.phi_d, self.invProb.phi_m, self.opt.f))
         f.close()
 
-class SaveOutputDictEveryIteration(_SaveEveryIteration):
+class SaveOutputDictEveryIteration(SaveEveryIteration):
     """SaveOutputDictEveryIteration"""
 
     def initialize(self):

@@ -124,6 +124,8 @@ When these are used in the inverse problem, this is extremely important!!
 The API
 =======
 
+The :code:`IdentityMap` is the base class for all mappings, and it does absolutely nothing.
+
 .. autoclass:: SimPEG.Maps.IdentityMap
     :members:
     :undoc-members:
@@ -131,7 +133,6 @@ The API
 
 Common Maps
 ===========
-
 
 Exponential Map
 ---------------
@@ -198,8 +199,8 @@ Mesh to Mesh Map
     :undoc-members:
 
 
-Some Extras
-===========
+Under the Hood
+==============
 
 Combo Map
 ---------

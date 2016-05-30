@@ -359,7 +359,7 @@ TDEM - B formulation
 Field Storage
 =============
 
-.. autoclass:: SimPEG.EM.TDEM.SurveyTDEM.FieldsTDEM
+.. autoclass:: SimPEG.EM.TDEM.BaseTDEM.FieldsTDEM
     :show-inheritance:
     :members:
     :undoc-members:

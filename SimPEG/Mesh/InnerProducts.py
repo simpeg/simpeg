@@ -115,12 +115,11 @@ class InnerProducts(object):
             :param bool doFast: do a faster implementation if available.
             :param bool invProp: inverts the material property
             :param bool invMat: inverts the matrix
-            :rtype: function
             :return: dMdmu(u), the derivative of the inner product matrix (u)
 
             Given u, dMdmu returns (nF, nC*nA)
 
-            :param np.ndarray u: vector that multiplies dMdmu
+            :param numpy.ndarray u: vector that multiplies dMdmu
             :rtype: scipy.sparse.csr_matrix
             :return: dMdmu, the derivative of the inner product matrix for a certain u
         """

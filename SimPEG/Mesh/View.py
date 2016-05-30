@@ -560,7 +560,7 @@ class CurvView(object):
             :include-source:
 
             from SimPEG import Mesh, Utils
-            X, Y = Utils.exampleCurvGird([3,3],'rotate')
+            X, Y = Utils.meshutils.exampleLrmGrid([3,3],'rotate')
             M = Mesh.CurvilinearMesh([X, Y])
             M.plotGrid(showIt=True)
 
