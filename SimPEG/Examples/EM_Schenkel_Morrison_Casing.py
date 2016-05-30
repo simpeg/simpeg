@@ -215,7 +215,7 @@ def run(plotIt=True):
     # ------------ Problem and Survey ---------------
     survey = FDEM.Survey(sg_p + dg_p)
     mapping = [('sigma', Maps.IdentityMap(mesh))]
-    problem = FDEM.Problem3D_h(mesh, mapping=mapping)
+    problem = FDEM.Problem3D_h(mesh, mapping=mapping, Solver=solver)
     problem.pair(survey)
 
     # ------------- Solve ---------------------------
