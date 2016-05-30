@@ -21,7 +21,7 @@ Solver Utilities
     :undoc-members:
 
 Curv Utilities
-=============
+==============
 
 .. automodule:: SimPEG.Utils.curvutils
     :members:
@@ -51,7 +51,10 @@ Interpolation Utilities
 Counter Utilities
 =================
 
-::
+
+.. code-block:: python
+    :linenos:
+
     class MyClass(object):
         def __init__(self, url):
             self.counter = Counter()
@@ -69,7 +72,10 @@ Counter Utilities
     for i in range(300): c.MySecondMethod()
     c.counter.summary()
 
-::
+
+
+.. code-block:: text
+    :linenos:
 
     Counters:
       MyClass.MyMethod                        :      100

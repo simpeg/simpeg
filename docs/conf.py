@@ -251,3 +251,6 @@ texinfo_documents = [
 #texinfo_show_urls = 'footnote'
 
 autodoc_member_order = 'bysource'
+
+from _ext import supress_nonlocal_image_warn
+supress_nonlocal_image_warn()

@@ -27,7 +27,8 @@ back to conductivity. This is a relatively trivial example (we are just taking
 the exponential!) but by defining maps we can start to combine and manipulate
 exactly what we think about as our model, \\\(m\\\). In code, this looks like
 
-::
+.. code-block:: python
+    :linenos:
 
     M = Mesh.TensorMesh([100]) # Create a mesh
     expMap = Maps.ExpMap(M)    # Create a mapping
@@ -50,7 +51,8 @@ To do this we will introduce the vertical 1D map (:class:`SimPEG.Maps.SurjectVer
 which does the first part of what we just described. The second part will be
 done by the :class:`SimPEG.Maps.ExpMap` described above.
 
-::
+.. code-block:: python
+    :linenos:
 
     M = Mesh.TensorMesh([7,5])
     v1dMap = Maps.SurjectVertical1D(M)

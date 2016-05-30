@@ -165,7 +165,7 @@ class Fields3D_e(Fields):
     Fields object for Problem3D_e.
 
     :param Mesh mesh: mesh
-    :param Survey survey: survey
+    :param SimPEG.EM.FDEM.SurveyFDEM.Survey survey: survey
     """
 
     knownFields = {'eSolution':'E'}
@@ -431,7 +431,7 @@ class Fields3D_b(Fields):
     Fields object for Problem3D_b.
 
     :param Mesh mesh: mesh
-    :param Survey survey: survey
+    :param SimPEG.EM.FDEM.SurveyFDEM.Survey survey: survey
     """
 
     knownFields = {'bSolution':'F'}
@@ -446,8 +446,8 @@ class Fields3D_b(Fields):
                     'h' : ['bSolution','CCV','_h'],
                   }
 
-    def __init__(self,mesh,survey,**kwargs):
-        Fields.__init__(self,mesh,survey,**kwargs)
+    def __init__(self, mesh, survey, **kwargs):
+        Fields.__init__(self, mesh, survey, **kwargs)
 
     def startup(self):
         self.prob = self.survey.prob
@@ -698,7 +698,7 @@ class Fields3D_j(Fields):
     Fields object for Problem3D_j.
 
     :param Mesh mesh: mesh
-    :param Survey survey: survey
+    :param SimPEG.EM.FDEM.SurveyFDEM.Survey survey: survey
     """
 
     knownFields = {'jSolution':'F'}
@@ -713,8 +713,8 @@ class Fields3D_j(Fields):
                     'b' : ['jSolution','CCV','_b'],
                   }
 
-    def __init__(self,mesh,survey,**kwargs):
-        Fields.__init__(self,mesh,survey,**kwargs)
+    def __init__(self, mesh, survey, **kwargs):
+        Fields.__init__(self, mesh, survey, **kwargs)
 
     def startup(self):
         self.prob = self.survey.prob
@@ -993,7 +993,7 @@ class Fields3D_h(Fields):
     Fields object for Problem3D_h.
 
     :param Mesh mesh: mesh
-    :param Survey survey: survey
+    :param SimPEG.EM.FDEM.SurveyFDEM.Survey survey: survey
     """
 
     knownFields = {'hSolution':'E'}
@@ -1008,8 +1008,8 @@ class Fields3D_h(Fields):
                     'b' : ['hSolution','CCV','_b'],
                   }
 
-    def __init__(self,mesh,survey,**kwargs):
-        Fields.__init__(self,mesh,survey,**kwargs)
+    def __init__(self, mesh, survey, **kwargs):
+        Fields.__init__(self, mesh, survey, **kwargs)
 
     def startup(self):
         self.prob = self.survey.prob
