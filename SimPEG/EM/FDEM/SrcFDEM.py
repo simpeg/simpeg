@@ -618,7 +618,6 @@ class PrimSecSigma(BaseSrc):
 
     def __init__(self, rxList, freq, sigBack, ePrimary):
         self.freq = float(freq)
-        self.m = m
         self.sigBack = sigBack
         self.fields = None
 
