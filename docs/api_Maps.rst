@@ -46,14 +46,14 @@ We will use an example where we want a 1D layered earth as
 our model, but we want to map this to a 2D discretization to do our forward
 modeling. We will also assume that we are working in log conductivity still,
 so after the transformation we want to map to conductivity space.
-To do this we will introduce the vertical 1D map (:class:`SimPEG.Maps.Vertical1DMap`),
+To do this we will introduce the vertical 1D map (:class:`SimPEG.Maps.SurjectVertical1D`),
 which does the first part of what we just described. The second part will be
 done by the :class:`SimPEG.Maps.ExpMap` described above.
 
 ::
 
     M = Mesh.TensorMesh([7,5])
-    v1dMap = Maps.Vertical1DMap(M)
+    v1dMap = Maps.SurjectVertical1D(M)
     expMap = Maps.ExpMap(M)
     myMap = expMap * v1dMap
     m = np.r_[0.2,1,0.1,2,2.9] # only 5 model parameters!
@@ -64,7 +64,7 @@ done by the :class:`SimPEG.Maps.ExpMap` described above.
     from SimPEG import *
     import matplotlib.pyplot as plt
     M = Mesh.TensorMesh([7,5])
-    v1dMap = Maps.Vertical1DMap(M)
+    v1dMap = Maps.SurjectVertical1D(M)
     expMap = Maps.ExpMap(M)
     myMap = expMap * v1dMap
     m = np.r_[0.2,1,0.1,2,2.9] # only 5 model parameters!
@@ -148,7 +148,7 @@ lives (i.e. it varies logarithmically).
 Vertical 1D Map
 ---------------
 
-.. autoclass:: SimPEG.Maps.Vertical1DMap
+.. autoclass:: SimPEG.Maps.SurjectVertical1D
     :members:
     :undoc-members:
 
