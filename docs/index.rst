@@ -59,6 +59,8 @@ Packages
    :maxdepth: 3
 
    em/index
+   dc/index
+   ip/index
    mt/index
    flow/index
 
