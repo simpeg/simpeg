@@ -150,7 +150,7 @@ API
 FDEM Problem
 ------------
 
-.. automodule:: SimPEG.EM.FDEM.FDEM
+.. automodule:: SimPEG.EM.FDEM.ProblemFDEM
     :show-inheritance:
     :members:
     :undoc-members:
@@ -165,6 +165,11 @@ FDEM Survey
     :undoc-members:
 
 .. automodule:: SimPEG.EM.FDEM.SrcFDEM
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+.. automodule:: SimPEG.EM.FDEM.RxFDEM
     :show-inheritance:
     :members:
     :undoc-members:
