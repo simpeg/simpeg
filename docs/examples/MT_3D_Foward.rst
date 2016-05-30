@@ -10,7 +10,7 @@
 
 
 MT: 3D: Forward
-=======================
+===============
 
 Forward model 3D MT data.
 

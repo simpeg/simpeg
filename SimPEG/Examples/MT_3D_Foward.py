@@ -5,14 +5,14 @@ import SimPEG as simpeg
 from SimPEG import MT
 import numpy as np
 try:
-    from pymatsolver import MumpsSolver as Solver
+    from pymatsolver import MumpsSolver as solver
 except:
-    from SimPEG import Solver
+    from SimPEG import solver
 
 def run(plotIt=True, nFreq=1):
     """
         MT: 3D: Forward
-        =======================
+        ===============
 
         Forward model 3D MT data.
 
@@ -47,15 +47,14 @@ def run(plotIt=True, nFreq=1):
 
     ## Setup the problem object
     problem = MT.Problem3D.eForm_ps(M, sigmaPrimary=sigBG)
-    problem.pair(survey)
-    problem.Solver = Solver
+    problem.pair(survey, Solver=solver)
 
     # Calculate the data
     fields = problem.fields(sig)
     dataVec = survey.eval(fields)
 
     # Make the data
-    mtData = MT.Data(survey,dataVec)
+    mtData = MT.Data(survey, dataVec)
     # Add plots
     if plotIt:
         pass
