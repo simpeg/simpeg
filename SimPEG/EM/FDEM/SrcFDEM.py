@@ -555,7 +555,7 @@ class CircularLoop(BaseSrc):
             a = MagneticLoopVectorPotential(self.loc, gridY, 'y', moment=self.radius, mu=self.mu)
 
         else:
-            srcfct = MagneticDipoleVectorPotential
+            srcfct = MagneticLoopVectorPotential
             ax = srcfct(self.loc, gridX, 'x', self.radius, mu=self.mu)
             ay = srcfct(self.loc, gridY, 'y', self.radius, mu=self.mu)
             az = srcfct(self.loc, gridZ, 'z', self.radius, mu=self.mu)
@@ -614,5 +614,22 @@ class CircularLoop(BaseSrc):
             return -C.T * (MMui_s * self.bPrimary(prob))
 
 
+class PrimSecSigma(FDEM.Src.BaseSrc):
+
+    def __init__(self, rxList, freq, sigBack, ePrimary):
+        self.freq = float(freq)
+        self.m = m
+        self.sigBack = sigBack
+        self.fields = None
+
+        BaseSrc.__init__(self, rxList)
+
+    def s_e(self, prob):
+        return (prob.MeSigma -  prob.mesh.getEdgeInnerProduct(self.sigBack)) * self.ePrimary
+
+    def s_eDeriv(self, prob, v, adjoint=False):
+        if adjoint:
+            return prob.MeSigmaDeriv(self.ePrimary).T * v
+        return prob.MeSigmaDeriv(self.ePrimary).T * v
 
 
