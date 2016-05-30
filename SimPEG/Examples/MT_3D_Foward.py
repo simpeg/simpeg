@@ -46,8 +46,8 @@ def run(plotIt=True, nFreq=1):
     survey = MT.Survey(srcList)
 
     ## Setup the problem object
-    problem = MT.Problem3D.eForm_ps(M, sigmaPrimary=sigBG)
-    problem.pair(survey, Solver=solver)
+    problem = MT.Problem3D.eForm_ps(M, sigmaPrimary=sigBG, Solver=solver)
+    problem.pair(survey)
 
     # Calculate the data
     fields = problem.fields(sig)
