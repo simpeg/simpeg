@@ -616,15 +616,13 @@ class CircularLoop(BaseSrc):
 
 class PrimSecSigma(BaseSrc):
 
-    def __init__(self, rxList, freq, sigBack, ePrimary):
-        self.freq = float(freq)
+    def __init__(self, rxList, freq, sigBack, ePrimary, **kwargs):
         self.sigBack = sigBack
-        self.fields = None
 
-        BaseSrc.__init__(self, rxList)
+        BaseSrc.__init__(self, rxList, freq=freq, _ePrimary=ePrimary, **kwargs)
 
     def s_e(self, prob):
-        return (prob.MeSigma -  prob.mesh.getEdgeInnerProduct(self.sigBack)) * self.ePrimary
+        return (prob.MeSigma -  prob.mesh.getEdgeInnerProduct(self.sigBack)) * self.ePrimary(prob)
 
     def s_eDeriv(self, prob, v, adjoint=False):
         if adjoint:
