@@ -22,6 +22,6 @@ Setup and run a MT 1D inversion.
     from SimPEG import Examples
     Examples.MT_1D_ForwardAndInversion.run()
 
-.. literalinclude:: ../../../../SimPEG/Examples/MT_1D_ForwardAndInversion.py
+.. literalinclude:: ../../../SimPEG/Examples/MT_1D_ForwardAndInversion.py
     :language: python
     :linenos:

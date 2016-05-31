@@ -21,6 +21,6 @@ Mesh: QuadTree: FaceDiv
     from SimPEG import Examples
     Examples.Mesh_QuadTree_FaceDiv.run()
 
-.. literalinclude:: ../../../../SimPEG/Examples/Mesh_QuadTree_FaceDiv.py
+.. literalinclude:: ../../../SimPEG/Examples/Mesh_QuadTree_FaceDiv.py
     :language: python
     :linenos:

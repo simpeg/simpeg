@@ -21,6 +21,6 @@ Here we show SimPEG used to create three different types of meshes.
     from SimPEG import Examples
     Examples.Mesh_Basic_Types.run()
 
-.. literalinclude:: ../../../../SimPEG/Examples/Mesh_Basic_Types.py
+.. literalinclude:: ../../../SimPEG/Examples/Mesh_Basic_Types.py
     :language: python
     :linenos:

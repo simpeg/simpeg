@@ -56,6 +56,6 @@ citation would be much appreciated!
     from SimPEG import Examples
     Examples.EM_Schenkel_Morrison_Casing.run()
 
-.. literalinclude:: ../../../../SimPEG/Examples/EM_Schenkel_Morrison_Casing.py
+.. literalinclude:: ../../../SimPEG/Examples/EM_Schenkel_Morrison_Casing.py
     :language: python
     :linenos:

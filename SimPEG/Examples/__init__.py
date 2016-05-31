@@ -95,7 +95,7 @@ if __name__ == '__main__':
     from SimPEG import Examples
     Examples.%s.run()
 
-.. literalinclude:: ../../../../SimPEG/Examples/%s.py
+.. literalinclude:: ../../../SimPEG/Examples/%s.py
     :language: python
     :linenos:
 """%(name,doc,name,name)

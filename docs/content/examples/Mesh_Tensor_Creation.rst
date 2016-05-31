@@ -38,6 +38,6 @@ notation::
     from SimPEG import Examples
     Examples.Mesh_Tensor_Creation.run()
 
-.. literalinclude:: ../../../../SimPEG/Examples/Mesh_Tensor_Creation.py
+.. literalinclude:: ../../../SimPEG/Examples/Mesh_Tensor_Creation.py
     :language: python
     :linenos:

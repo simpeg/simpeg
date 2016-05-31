@@ -21,6 +21,6 @@ Here we plot the magnetic flux density from a harmonic dipole in a wholespace.
     from SimPEG import Examples
     Examples.EM_FDEM_Analytic_MagDipoleWholespace.run()
 
-.. literalinclude:: ../../../../SimPEG/Examples/EM_FDEM_Analytic_MagDipoleWholespace.py
+.. literalinclude:: ../../../SimPEG/Examples/EM_FDEM_Analytic_MagDipoleWholespace.py
     :language: python
     :linenos:

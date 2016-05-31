@@ -26,6 +26,6 @@ on an 8x8 mesh (2^3).
     from SimPEG import Examples
     Examples.Mesh_QuadTree_Creation.run()
 
-.. literalinclude:: ../../../../SimPEG/Examples/Mesh_QuadTree_Creation.py
+.. literalinclude:: ../../../SimPEG/Examples/Mesh_QuadTree_Creation.py
     :language: python
     :linenos:

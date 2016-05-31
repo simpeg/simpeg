@@ -21,6 +21,6 @@ Here we go over the basics of creating a linear problem and inversion.
     from SimPEG import Examples
     Examples.Inversion_Linear.run()
 
-.. literalinclude:: ../../../../SimPEG/Examples/Inversion_Linear.py
+.. literalinclude:: ../../../SimPEG/Examples/Inversion_Linear.py
     :language: python
     :linenos:

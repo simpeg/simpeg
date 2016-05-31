@@ -23,6 +23,6 @@ a topographic surface.
     from SimPEG import Examples
     Examples.Utils_surface2ind_topo.run()
 
-.. literalinclude:: ../../../../SimPEG/Examples/Utils_surface2ind_topo.py
+.. literalinclude:: ../../../SimPEG/Examples/Utils_surface2ind_topo.py
     :language: python
     :linenos:
