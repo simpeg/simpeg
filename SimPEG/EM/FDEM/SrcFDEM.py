@@ -630,3 +630,21 @@ class PrimSecSigma(BaseSrc):
         return prob.MeSigmaDeriv(self.ePrimary(prob)) * v
 
 
+class PrimSecSigmaProblem(BaseSrc):
+
+    def __init__(self, rxList, freq, primaryProblem, primarySurvey, map2meshs = None ,**kwargs):
+
+        self.primaryProblem = primaryProblem
+        self.primarySurvey = primarySurvey
+        self.map2meshs = map2meshs
+
+        BaseSrc.__init__(self, rxList, freq=freq, **kwargs)
+
+
+    def ePrimary(self, prob):
+
+    def ePrimaryDeriv(self, prob, v, adjoint=False):
+
+
+
+
