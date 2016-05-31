@@ -52,6 +52,6 @@ field separating as the time increases.
     from SimPEG import Examples
     Examples.Mesh_Operators_CahnHilliard.run()
 
-.. literalinclude:: ../../SimPEG/Examples/Mesh_Operators_CahnHilliard.py
+.. literalinclude:: ../../../../SimPEG/Examples/Mesh_Operators_CahnHilliard.py
     :language: python
     :linenos:

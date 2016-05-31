@@ -26,6 +26,6 @@ on an 8x8 mesh (2^3).
     from SimPEG import Examples
     Examples.Mesh_QuadTree_HangingNodes.run()
 
-.. literalinclude:: ../../SimPEG/Examples/Mesh_QuadTree_HangingNodes.py
+.. literalinclude:: ../../../../SimPEG/Examples/Mesh_QuadTree_HangingNodes.py
     :language: python
     :linenos:

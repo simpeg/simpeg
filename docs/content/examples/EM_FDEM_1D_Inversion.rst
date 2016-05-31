@@ -21,6 +21,6 @@ Here we will create and run a FDEM 1D inversion.
     from SimPEG import Examples
     Examples.EM_FDEM_1D_Inversion.run()
 
-.. literalinclude:: ../../SimPEG/Examples/EM_FDEM_1D_Inversion.py
+.. literalinclude:: ../../../../SimPEG/Examples/EM_FDEM_1D_Inversion.py
     :language: python
     :linenos:

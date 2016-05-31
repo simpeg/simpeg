@@ -20,6 +20,6 @@ Mesh: Basic Forward 2D DC Resistivity
     from SimPEG import Examples
     Examples.Mesh_Basic_ForwardDC.run()
 
-.. literalinclude:: ../../SimPEG/Examples/Mesh_Basic_ForwardDC.py
+.. literalinclude:: ../../../../SimPEG/Examples/Mesh_Basic_ForwardDC.py
     :language: python
     :linenos:

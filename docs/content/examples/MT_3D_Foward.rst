@@ -21,6 +21,6 @@ Forward model 3D MT data.
     from SimPEG import Examples
     Examples.MT_3D_Foward.run()
 
-.. literalinclude:: ../../SimPEG/Examples/MT_3D_Foward.py
+.. literalinclude:: ../../../../SimPEG/Examples/MT_3D_Foward.py
     :language: python
     :linenos:

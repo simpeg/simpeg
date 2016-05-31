@@ -31,6 +31,6 @@ Created by @fourndo
     from SimPEG import Examples
     Examples.DC_Forward_PseudoSection.run()
 
-.. literalinclude:: ../../SimPEG/Examples/DC_Forward_PseudoSection.py
+.. literalinclude:: ../../../../SimPEG/Examples/DC_Forward_PseudoSection.py
     :language: python
     :linenos:
