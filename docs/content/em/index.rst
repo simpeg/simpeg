@@ -12,7 +12,7 @@ and a source, we can solve Maxwell's equations for fields. We sample these
 fields with recievers to give us predicted data.
 
 
-.. image:: ../images/simpegEM_noMath.png
+.. image:: ../../images/simpegEM_noMath.png
     :scale: 50%
 
 

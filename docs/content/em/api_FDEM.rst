@@ -9,17 +9,28 @@
 Frequency Domain Electromagnetics
 *********************************
 
-Electromagnetic (EM) geophysical methods are used in a variety of applications from resource exploration, including for hydrocarbons and minerals, to environmental applications, such as groundwater monitoring. The primary physical property of interest in EM is electrical conductivity, which describes the ease with which electric current flows through a material.
+Electromagnetic (EM) geophysical methods are used in a variety of applications
+from resource exploration, including for hydrocarbons and minerals, to
+environmental applications, such as groundwater monitoring. The primary
+physical property of interest in EM is electrical conductivity, which
+describes the ease with which electric current flows through a material.
 
 
 Background
 ==========
 
-Electromagnetic phenomena are governed by Maxwell's equations. They describe the behavior of EM fields and fluxes. Electromagnetic theory for geophysical applications by Ward and Hohmann (1988) is a highly recommended resource on this topic.
+Electromagnetic phenomena are governed by Maxwell's equations. They describe
+the behavior of EM fields and fluxes. Electromagnetic theory for geophysical
+applications by Ward and Hohmann (1988) is a highly recommended resource on
+this topic.
 
 Fourier Transform Convention
 ----------------------------
-In order to examine Maxwell's equations in the frequency domain, we must first define our choice of harmonic time-dependence by choosing a Fourier transform convention. We use the :math:`e^{i \omega t}` convention, so we define our Fourier Transform pair as
+
+In order to examine Maxwell's equations in the frequency domain, we must first
+define our choice of harmonic time-dependence by choosing a Fourier transform
+convention. We use the :math:`e^{i \omega t}` convention, so we define our
+Fourier Transform pair as
 
 .. math ::
     F(\omega) = \int_{-\infty}^{\infty} f(t) e^{- i \omega t} dt \\
@@ -31,6 +42,7 @@ where :math:`\omega` is angular frequency, :math:`t` is time, :math:`F(\omega)` 
 
 Maxwell's Equations
 ===================
+
 In the frequency domain, Maxwell's equations are given by
 
 .. math ::
@@ -104,19 +116,20 @@ The H-J formulation is in terms of the current density and the magnetic field:
 
 Discretizing
 ------------
+
 For both formulations, we use a finite volume discretization
 and discretize fields on cell edges, fluxes on cell faces and
 physical properties in cell centers. This is particularly
 important when using symmetry to reduce the dimensionality of a problem
 (for instance on a 2D CylMesh, there are :math:`r`, :math:`z` faces and :math:`\theta` edges)
 
-.. figure:: ../images/finitevolrealestate.png
+.. figure:: ../../images/finitevolrealestate.png
     :align: center
     :scale: 60 %
 
 For the two formulations, the discretization of the physical properties, fields and fluxes are summarized below.
 
-.. figure:: ../images/ebjhdiscretizations.png
+.. figure:: ../../images/ebjhdiscretizations.png
     :align: center
     :scale: 60 %
 

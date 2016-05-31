@@ -52,13 +52,15 @@ We can take the derivative of the PDE:
 
     \nabla_m c(m, u) \partial m + \nabla_u c(m, u) \partial u = 0
 
-If the forward problem is invertible, then we can rearrange for \\(\\frac{\\partial u}{\\partial m}\\):
+If the forward problem is invertible, then we can rearrange for
+\\(\\frac{\\partial u}{\\partial m}\\):
 
 .. math::
 
     J = - P \left( \nabla_u c(m, u) \right)^{-1} \nabla_m c(m, u)
 
-This can often be computed given a vector (i.e. \\(J(v)\\)) rather than stored, as \\(J\\) is a large dense matrix.
+This can often be computed given a vector (i.e. \\(J(v)\\)) rather than
+stored, as \\(J\\) is a large dense matrix.
 
 
 

@@ -35,7 +35,7 @@ The Big Picture
 Defining a well-posed inverse problem and solving it is a complex task that requires many components that must interact. It is helpful
 to view this task as a workflow in which various elements are explicitly identified and integrated. The figure below outlines the inversion components that consists of inputs, implementation, and evaluation. The inputs are composed of the geophysical data, the equations which are a mathematical description of the governing physics, and prior knowledge or assumptions about the setting. The implementation consists of two broad categories: the forward simulation and the inversion. The **forward simulation** is the means by which we solve the governing equations given a model and the **inversion components** evaluate and update this model. We are considering a gradient based approach, which updates the model through an optimization routine. The output of this implementation is a model, which, prior to interpretation, must be evaluated. This requires considering, and often re-assessing, the choices and assumptions made in both the input and implementation stages.
 
-.. image:: InversionWorkflow-PreSimPEG.png
+.. image:: ../../images/InversionWorkflow-PreSimPEG.png
    :width: 400 px
    :alt: Components
    :align: center
@@ -46,7 +46,7 @@ A Comprehensive Framework
 
 There are an overwhelming amount of choices to be made as one works through the forward modeling and inversion process (see figure above). As a result, software implementations of this workflow often become complex and highly interdependent, making it difficult to interact with and to ask other scientists to pick up and change. Our approach to handling this complexity is to propose a framework, (see below), that compartmentalizes the implementation of inversions into various units. We present it in this specific modular style, as each unit contains a targeted subset of choices crucial to the inversion process.
 
-.. image:: InversionWorkflow.png
+.. image:: ../../images/InversionWorkflow.png
    :width: 400 px
    :alt: Framework
    :align: center
@@ -56,14 +56,14 @@ The process of obtaining an acceptable model from an inversion generally require
 The arrows in the figure above indicate what each class takes as a primary argument. For example, both the :class:`SimPEG.Problem.BaseProblem` and :class:`SimPEG.Regularization.BaseRegularization` classes take a :class:`SimPEG.Mesh.BaseMesh.BaseMesh` class as an argument. The diagram does not show class inheritance, as each of the base classes outlined have many subtypes that can be interchanged. The :class:`SimPEG.Mesh.BaseMesh.BaseMesh` class, for example, could be a regular Cartesian mesh :class:`SimPEG.Mesh.TensorMesh` or a cylindrical coordinate mesh :class:`SimPEG.Mesh.CylMesh`, which have many properties in common. These common features, such as both meshes being created from tensor products, can be exploited through inheritance of base classes, and differences can be expressed through subtype polymorphism. Please look at the documentation here for more in-depth information.
 
 
-.. include:: ../CITATION.rst
+.. include:: ../../../CITATION.rst
 
 Authors
 -------
 
-.. include:: ../AUTHORS.rst
+.. include:: ../../../AUTHORS.rst
 
 License
 -------
 
-.. include:: ../LICENSE
+.. include:: ../../../LICENSE
