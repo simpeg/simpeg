@@ -33,7 +33,9 @@ class BaseInversion(object):
         self._directiveList = value
         self._directiveList.inversion = self
 
-    def __init__(self, invProb, directiveList=[], **kwargs):
+    def __init__(self, invProb, directiveList=None, **kwargs):
+        if directiveList is None:
+            directiveList = []
         self.directiveList = directiveList
         Utils.setKwargs(self, **kwargs)
 
