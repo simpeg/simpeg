@@ -6,11 +6,10 @@ import os
 import numpy as np
 
 
-#home_dir = 'C:\Egnyte\Private\craigm\PHD\LdM\Gravity\Bouguer\SIMPEG\models\\all_models\\density_-1.2_0.3'
-home_dir = '.\\'
 
-inpfile = 'PYGRAV3D_inv_LdM_Craig.inp'
-#inpfile = 'PYGRAV3D_inv_checkerboard.inp'
+home_dir = 'C:\Egnyte\Private\craigm\PHD\LdM\Gravity\Bouguer\SIMPEG\models\surface_layer_model_-500'
+
+inpfile = 'PYGRAV3D_inv_LdM_surface_layer_fixed.inp'
 
 dsep = '\\'
 os.chdir(home_dir)
@@ -20,35 +19,85 @@ plt.close('all')
 # Initial beta
 beta_in = 1e-2
 
+# Treshold values for compact norm
+eps_p = 0.2# Compact model values #refer to histograms to choose appropriate value
+eps_q = 0.1 # Compact model gradient
+
 # Plotting parameter
-vmin = -1.2
-vmax = 1.2
+vmin = -0.5
+vmax = 0.5
 
 #weight exponent for default weighting
 wgtexp = 3.  #dont forget the "."
 
-#%%
-driver = PF.GravityDriver.GravityDriver_Inv(home_dir + dsep + 'PYGRAV3D_inv.inp')
-mesh = driver.mesh
-survey = driver.survey
+#value of fixed cells
 
+fixedcell = -0.5
+
+#%%
+# Read input file
+[mshfile, obsfile, topofile, mstart, mref, wgtfile, chi, alphas, bounds, lpnorms] = PF.Gravity.read_GRAVinv_inp(home_dir + dsep + inpfile)
+
+# Load mesh file
+mesh = Mesh.TensorMesh.readUBC(mshfile)
+
+# Load in observation file
+survey = PF.Gravity.readUBCgravObs(obsfile)
+
+# Get obs location and data
 rxLoc = survey.srcField.rxList[0].locs
 d = survey.dobs
 wd = survey.std
-    
+
 ndata = survey.srcField.rxList[0].locs.shape[0]
 
-actv = driver.activeCells
+# Load in topofile or create flat surface
+if topofile == 'null':
+    
+    # All active
+    actv = np.asarray(range(mesh.nC))
+    
+else: 
+    
+    topo = np.genfromtxt(topofile,skip_header=1)
+    # Find the active cells
+    actv = PF.Magnetics.getActiveTopo(mesh,topo,'N')
+
 nC = len(actv)
 
 # Create active map to go from reduce set to full
 actvMap = Maps.InjectActiveCells(mesh, actv, -100)
 
-# Create reduced identity map
-idenMap = Maps.IdentityMap(nP=nC)
+# Creat reduced identity map
+#idenMap = Maps.IdentityMap(nP = nC)
 
 
-# Get index of the center
+# Load starting model file
+if isinstance(mstart, float):
+    
+    mstart = np.ones(nC) * mstart
+else:
+    mstart = Mesh.TensorMesh.readModelUBC(mesh,mstart)
+    mstart = mstart[actv]
+
+# Extract cells under topography and create new index for inactive
+#m0 = Mesh.TensorMesh.readModelUBC(mesh, mstart)
+#m0 = m0[actv]
+ind_act = mstart!= fixedcell
+
+actvCells = Maps.InjectActiveCells(None, ind_act, fixedcell, nC=nC)
+mstart = mstart[ind_act]
+
+
+# Load reference file
+if isinstance(mref, float):
+    mref = np.ones(nC) * mref
+else:
+    mref = Mesh.TensorMesh.readModelUBC(mesh,mref)
+    mref = mref[actv]
+
+mref = mref[ind_act]
+# Get index of the center for plotting
 midx = int(mesh.nCx/2)
 midy = int(mesh.nCy/2)
 
@@ -57,16 +106,29 @@ midy = int(mesh.nCy/2)
 #PF.Gravity.plot_obs_2D(survey,'Observed Data')
 
 #%% Run inversion
-prob = PF.Gravity.GravityIntegral(mesh, mapping = idenMap, actInd = actv)
+prob = PF.Gravity.GravityIntegral(mesh, mapping = actvCells, actInd = actv)
 prob.solverOpts['accuracyTol'] = 1e-4
 
 survey.pair(prob)
 
 # Write out the predicted file and generate the forward operator
-pred = prob.fields(driver.m0)
+pred_start = prob.fields(mstart)
+
+#PF.Gravity.writeUBCobs(home_dir + dsep + 'Pred_start' +str(wgtexp) + '_' + str(eps_p) + '_' + str(eps_q) +'.dat',survey,pred_start)
+
+# Make depth weighting
+#wr = np.sum(prob.G**2.,axis=0)**0.5 / mesh.vol[actv]
+#wr = ( wr/np.max(wr) )
+#wr_out = actvMap * wr
+
+
+#A different weighting function from Dominic
+#wr = PF.Magnetics.get_dist_wgt(mesh, rxLoc, actv, 2., np.min(mesh.hx)/4.)
+#wr = wr**2.
+
 
 # Load weighting  file
-if driver.wgtfile == 'DEFAULT':   
+if wgtfile is None:  
     wr = PF.Magnetics.get_dist_wgt(mesh, rxLoc, actv, wgtexp, np.min(mesh.hx)/4.)
     wr = wr**2.
 else:
@@ -95,48 +157,57 @@ plt.savefig(home_dir + dsep + 'Weighting_' +str(wgtexp) +'.png', dpi=300)
 
 #%% Create inversion objects
 
-reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
-reg.mref = driver.mref
-reg.cell_weights = wr*mesh.vol[actv]
-eps_p = driver.eps[0]  
-eps_q = driver.eps[1]
+print '\nRun smooth inversion \n'
+# First start with an l2 (smooth model) regularization
+reg = Regularization.Simple(mesh, indActive = actv, mapping = actvCells)
+reg.mref = mref
+reg.wght = wr
 
-opt = Optimization.ProjectedGNCG(maxIter=100 ,lower=-2.,upper=2., maxIterLS = 20, maxIterCG= 10, tolCG = 1e-3)
+
+
+# Create pre-conditioner # should be without the *wr at the end but works better with it
+#diagA = np.sum(prob.G**2.,axis=0) + beta_in*(reg.W.T*reg.W).diagonal()
+#PC     = Utils.sdiag(diagA**-1.)
+
+# Data misfit function
 dmis = DataMisfit.l2_DataMisfit(survey)
 dmis.Wd = 1./wd
-invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
-#beta = Directives.BetaSchedule(coolingFactor=1, coolingRate=1)
-#update_beta = Directives.Scale_Beta(tol = 0.05, coolingRate=5)
-betaest = Directives.BetaEstimate_ByEig()
-IRLS = Directives.Update_IRLS( norms=driver.lpnorms,  eps_p=eps_p, eps_q=eps_q, f_min_change = 1e-2)
-update_Jacobi = Directives.Update_lin_PreCond()
-inv = Inversion.BaseInversion(invProb, directiveList=[IRLS,betaest,update_Jacobi])
+opt = Optimization.ProjectedGNCG(maxIter=20,lower=bounds[0],upper=bounds[1], maxIterCG= 20, tolCG = 1e-3)
+#opt.approxHinv = PC
+
+
+invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta = beta_in)
+beta = Directives.BetaSchedule(coolingFactor=2, coolingRate=1)
+update_beta = Directives.Scale_Beta(tol = 0.05) 
+target = Directives.TargetMisfit()
+update_Jacobi = Directives.Update_lin_PreCond(onlyOnStart=True)
+
+save_log = Directives.SaveOutputEveryIteration()
+save_log.fileName = home_dir + dsep + 'SimPEG_inv_l2l2_log_' +str(wgtexp)
+
+inv = Inversion.BaseInversion(invProb, directiveList=[beta,target,update_beta,update_Jacobi,save_log])
+#inv = Inversion.BaseInversion(invProb, directiveList=[beta,target])
+
+m0 = mstart
 
 # Run inversion
-mrec = inv.run(driver.m0)
+mrec = inv.run(m0)
 
-m_out = actvMap*reg.l2model
-
+m_out = actvMap*actvCells*mrec
 
 # Write result
 Mesh.TensorMesh.writeModelUBC(mesh,'SimPEG_inv_l2l2_' +str(wgtexp) + '.den', m_out)
 #Utils.meshutils.writeUBCTensorModel(home_dir+dsep+'wr.dat',mesh,wr_out)
 
-
-
-pred_compact = prob.fields(mrec)
-PF.Gravity.writeUBCobs(home_dir + dsep + 'Pred_compact' +str(wgtexp) + '_' + str(eps_p) + '_' + str(eps_q) +'.dat',survey,pred_compact)
-
-pred = prob.fields(mrec)
 # Plot predicted
-#pred_smooth = prob.fields(mrec)
-#PF.Gravity.writeUBCobs(home_dir + dsep + 'Pred_smooth' +str(wgtexp) + '_' + str(eps_p) + '_' + str(eps_q) +'.dat',survey,pred_smooth)
+pred_smooth = prob.fields(mrec)
+PF.Gravity.writeUBCobs(home_dir + dsep + 'Pred_smooth' +str(wgtexp) + '_' + str(eps_p) + '_' + str(eps_q) +'.dat',survey,pred_smooth)
 #PF.Magnetics.plot_obs_2D(rxLoc,pred,wd,'Predicted Data')
 #PF.Magnetics.plot_obs_2D(rxLoc,(d-pred),wd,'Residual Data')
 
-print "Final misfit:" + str(np.sum( ((d-pred)/wd)**2. ) ) 
-print "Misfit sum(obs-calc)/nobs: %.3f mGal"  %np.divide(np.sum(np.abs(d-pred)), len(d))
-print "RMS misfit: %.3f mGal" %np.sqrt(np.divide(np.sum((d-pred)**2),len(d)))
+print "Final misfit:" + str(np.sum( ((d-pred_smooth)/wd)**2. ) ) 
+print "Misfit sum(obs-calc)/nobs: %.3f mGal"  %np.divide(np.sum(np.abs(d-pred_smooth)), len(d))
+print "RMS misfit: %.3f mGal" %np.sqrt(np.divide(np.sum((d-pred_smooth)**2),len(d)))
 
 #%% Plot out sections of the smooth model
 
@@ -159,10 +230,10 @@ cb = plt.colorbar(dat1[0],orientation="vertical", ticks=np.linspace(vmin, vmax, 
 cb.set_label('Density (g/cc$^3$)')
 
 ax = plt.subplot(222)
-dat = mesh.plotSlice(m_out, ax = ax, normal = 'Z', ind=-13, clim = (vmin,vmax), pcolorOpts={'cmap':'bwr'})
+dat = mesh.plotSlice(m_out, ax = ax, normal = 'Z', ind=-25, clim = (vmin,vmax), pcolorOpts={'cmap':'bwr'})
 plt.plot(np.array([mesh.vectorCCx[0],mesh.vectorCCx[-1]]), np.array([mesh.vectorCCy[yslice],mesh.vectorCCy[yslice]]),c='gray',linestyle = '--')
 plt.scatter(rxLoc[0:,0], rxLoc[0:,1], color='k',s=1)
-plt.title('Z: ' + str(mesh.vectorCCz[-13]) + ' m')
+plt.title('Z: ' + str(mesh.vectorCCz[-25]) + ' m')
 plt.xlabel('Easting (m)');plt.ylabel('Northing (m)')
 plt.gca().set_aspect('equal', adjustable='box')
 cb = plt.colorbar(dat1[0],orientation="vertical", ticks=np.linspace(vmin, vmax, 4))
@@ -180,19 +251,78 @@ plt.savefig(home_dir + str('\Figure1_' +str(wgtexp) + '.png'), dpi=300, bb_inche
 #plot histograms
 plt.figure(figsize=(15,10))
 ax = plt.subplot(121)
-plt.hist(reg.l2model,100)
+plt.hist(mrec,100)
 plt.yscale('log', nonposy='clip')
-plt.xlim(reg.l2model.mean() - 6.*(reg.l2model.std()), reg.l2model.mean() + 6.*(reg.l2model.std()))
+plt.xlim(mrec.mean() - 6.*(mrec.std()), mrec.mean() + 6.*(mrec.std()))
 plt.xlabel('Density (g/cc$^3$)')
 plt.title('Histogram of model values - Smooth')
 
 ax = plt.subplot(122)
-plt.hist(reg.regmesh.cellDiffxStencil*reg.l2model,100)
+plt.hist(reg.regmesh.cellDiffxStencil*(actvCells*mrec),100)
 plt.yscale('log', nonposy='clip')
-plt.xlim(reg.l2model.mean() - 2.*(reg.l2model.std()), reg.l2model.mean() + 2.*(reg.l2model.std()))
+plt.xlim(mrec.mean() - 2.*(mrec.std()), mrec.mean() + 2.*(mrec.std()))
 plt.xlabel('Density (g/cc$^3$)')
 plt.title('Histogram of model gradient values - Smooth')
 plt.savefig(home_dir + str('\Figure2_' +str(wgtexp) + '.png'), dpi=300, bb_inches='tight')
+
+
+
+#%% Run one more round for sparsity (Compact model)
+print '\nRun compact inversion \n'
+phim = invProb.phi_m_last
+phid =  invProb.phi_d
+
+reg = Regularization.Sparse(mesh, indActive = actv, mapping = actvCells)
+reg.recModel = mrec
+reg.mref = mref
+reg.wght = wr
+reg.eps_p = eps_p
+reg.eps_q = eps_q
+reg.norms   = lpnorms
+
+#diagA = np.sum(prob.G**2.,axis=0) + beta_in*(reg.W.T*reg.W).diagonal()
+#PC     = Utils.sdiag(diagA**-1.)
+update_Jacobi = Directives.Update_lin_PreCond()
+
+#reg.alpha_s = 1.
+
+dmis = DataMisfit.l2_DataMisfit(survey)
+dmis.Wd = 1./wd
+opt = Optimization.ProjectedGNCG(maxIterLS=20, maxIter=20 ,lower=bounds[0],upper=bounds[1], maxIterCG= 50, tolCG = 1e-4)
+#opt.approxHinv = PC
+#opt.phim_last = reg.eval(mrec)
+
+# opt = Optimization.InexactGaussNewton(maxIter=6)
+invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta = invProb.beta)
+beta = Directives.BetaSchedule(coolingFactor=1, coolingRate=1)
+
+#update beta only if misfit is outside the tolerance
+update_beta = Directives.Scale_Beta(tol = 0.05) #Tolerance value is in % of the target
+
+#betaest = Directives.BetaEstimate_ByEig()
+target = Directives.TargetMisfit()
+IRLS =Directives.Update_IRLS( phi_m_last = phim, phi_d_last = phid )
+
+#save output to logfile
+save_log = Directives.SaveOutputEveryIteration()
+save_log.fileName = home_dir + dsep + 'SimPEG_inv_l0l2_log_' +str(wgtexp) + '_' + str(eps_p) + '_' + str(eps_q)
+
+
+inv = Inversion.BaseInversion(invProb, directiveList=[beta,IRLS,update_beta,update_Jacobi,save_log])
+
+
+
+m0 = mrec
+
+# Run inversion
+mrec = inv.run(m0)
+
+m_out = actvMap*actvCells*mrec
+
+Mesh.TensorMesh.writeModelUBC(mesh,'SimPEG_inv_l0l2_' +str(wgtexp) + '_' + str(eps_p) + '_' + str(eps_q) +'.den',m_out)
+
+pred_compact = prob.fields(mrec)
+PF.Gravity.writeUBCobs(home_dir + dsep + 'Pred_compact' +str(wgtexp) + '_' + str(eps_p) + '_' + str(eps_q) +'.dat',survey,pred_compact)
 
 
 
@@ -208,9 +338,6 @@ print "RMS misfit: %.3f mGal" %np.sqrt(np.divide(np.sum((d-pred_compact)**2),len
 
 
 #%% Plot out a section of the compact model
-m_out = actvMap*mrec
-
-Mesh.TensorMesh.writeModelUBC(mesh,'SimPEG_inv_l0l2_' +str(wgtexp) + '_' + str(eps_p) + '_' + str(eps_q) +'.den',m_out)
 
 yslice = midx
 m_out[m_out==-100]=np.nan # set "air" to nan
@@ -231,10 +358,10 @@ cb = plt.colorbar(dat[0],orientation="vertical", ticks=np.linspace(vmin, vmax, 4
 cb.set_label('Density (g/cc$^3$)')
 
 ax = plt.subplot(222)
-dat = mesh.plotSlice(m_out, ax = ax, normal = 'Z', ind=-13, clim = (vmin,vmax), pcolorOpts={'cmap':'bwr'})
+dat = mesh.plotSlice(m_out, ax = ax, normal = 'Z', ind=-25, clim = (vmin,vmax), pcolorOpts={'cmap':'bwr'})
 plt.plot(np.array([mesh.vectorCCx[0],mesh.vectorCCx[-1]]), np.array([mesh.vectorCCy[yslice],mesh.vectorCCy[yslice]]),c='gray',linestyle = '--')
 plt.scatter(rxLoc[0:,0], rxLoc[0:,1], color='k',s=1)
-plt.title('Z: ' + str(mesh.vectorCCz[-13]) + ' m')
+plt.title('Z: ' + str(mesh.vectorCCz[-25]) + ' m')
 plt.xlabel('Easting (m)');plt.ylabel('Northing (m)')
 plt.gca().set_aspect('equal', adjustable='box')
 cb = plt.colorbar(dat[0],orientation="vertical", ticks=np.linspace(vmin, vmax, 4))
@@ -257,19 +384,12 @@ plt.hist(mrec,100)
 #plt.xlim(mrec.mean() - 6.*(mrec.std()), mrec.mean() + 6.*(mrec.std()))
 plt.yscale('log', nonposy='clip')
 plt.xlabel('Density (g/cc$^3$)')
-plt.title('Histogram of model values - Sparse lp:'+str(driver.lpnorms[0]))
+plt.title('Histogram of model values - Sparse lp:'+str(lpnorms[0]))
 
 ax = plt.subplot(122)
-plt.hist(reg.regmesh.cellDiffxStencil*mrec,100)
-
+plt.hist(reg.regmesh.cellDiffxStencil*(actvCells*mrec),100)
 #plt.xlim(mrec.mean() - 4.*(mrec.std()), mrec.mean() + 4.*(mrec.std()))
 plt.xlabel('Density (g/cc$^3$)')
 plt.yscale('log', nonposy='clip')
-plt.title('Histogram of model gradient values - Sparse lqx: ' + str(driver.lpnorms[1]) + ' lqy:'+ str(driver.lpnorms[2]) + ' lqz:' + str(driver.lpnorms[3]))
+plt.title('Histogram of model gradient values - Sparse lqx: ' + str(lpnorms[1]) + ' lqy:'+ str(lpnorms[2]) + ' lqz:' + str(lpnorms[3]))
 plt.savefig(home_dir + str('\Figure6_' +str(wgtexp) + '_' + str(eps_p) + '_' + str(eps_q) +'.png'), dpi=300, bb_inches='tight')
-
-#make a plot of the obs -calc, ie residual
-plt.figure(figsize=(10,8))
-residual = d - pred_compact
-plt.hist(residual, 100)
-plt.savefig(home_dir + str('\Figure7_residuals.png'), dpi=300, bb_inches='tight')

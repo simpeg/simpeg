@@ -7,4 +7,5 @@ DEFAULT				! Cell based weight file
 1				! target chi factor | DEFAULT=1
 1 1 1 1			! alpha s, x ,y ,z
 VALUE -1 1		! Lower and Upper Bounds for p-component
-VALUE 0 1 1 1 1		! lp-norm for amplitude inversion FILE pqxqyqzr.dat  ! Norms VALUE p, qx, qy, qz, r | FILE m-by-5 matrix
+VALUE 0 1 1 1 2		! lp-norm for amplitude inversion FILE pqxqyqzr.dat  ! Norms VALUE p, qx, qy, qz, r | FILE m-by-5 matrix
+VALUE 1e-2 1e-3		! Threshold value for the norm on model and model gradient VALUE eps_p, eps_q | DEFAULT
