@@ -49,8 +49,6 @@ def run(plotIt=True):
     # Make the background model
     sigma_0 = np.ones(m1d.nCx)*sig_air
     sigma_0[active] = sig_half
-    # sigma_0[layer1] = sig_layer1
-    # sigma_0[layer2] = .002
     m_0 = np.log(sigma_0[active])
 
     # Set the mapping
@@ -119,7 +117,7 @@ def run(plotIt=True):
     beta.coolingRate = 4.
     beta.coolingFactor = 4.
     betaest = simpeg.Directives.BetaEstimate_ByEig(beta0_ratio=1.)
-    # betaest.beta0 = 1.
+    betaest.beta0 = 1.
     targmis = simpeg.Directives.TargetMisfit()
     targmis.target = survey.nD
     # Create an inversion object
