@@ -19,13 +19,13 @@ def run(plotIt=True):
     ## Setup the forward modeling
     # Setting up 1D mesh and conductivity models to forward model data.
     # Frequency
-    nFreq = 31
-    freqs = np.logspace(3,-3,nFreq)
+    nFreq = 26
+    freqs = np.logspace(2,-3,nFreq)
     # Set mesh parameters
-    ct = 20
-    air = simpeg.Utils.meshTensor([(ct,16,1.4)])
+    ct = 10
+    air = simpeg.Utils.meshTensor([(ct,25,1.4)])
     core = np.concatenate( (  np.kron(simpeg.Utils.meshTensor([(ct,10,-1.3)]),np.ones((5,))) , simpeg.Utils.meshTensor([(ct,5)]) ) )
-    bot = simpeg.Utils.meshTensor([(core[0],12,-1.4)])
+    bot = simpeg.Utils.meshTensor([(core[0],25,-1.4)])
     x0 = -np.array([np.sum(np.concatenate((core,bot)))])
     # Make the model
     m1d = simpeg.Mesh.TensorMesh([np.concatenate((bot,core,air))], x0=x0)
@@ -35,7 +35,7 @@ def run(plotIt=True):
     layer1 = (m1d.vectorCCx<-500.) & (m1d.vectorCCx>=-800.)
     layer2 = (m1d.vectorCCx<-3500.) & (m1d.vectorCCx>=-5000.)
     # Set the conductivity values
-    sig_half = 2e-3
+    sig_half = 1e-2
     sig_air = 1e-8
     sig_layer1 = .2
     sig_layer2 = .2
@@ -49,8 +49,8 @@ def run(plotIt=True):
     # Make the background model
     sigma_0 = np.ones(m1d.nCx)*sig_air
     sigma_0[active] = sig_half
-    sigma_0[layer1] = sig_layer1
-    sigma_0[layer2] = .002
+    # sigma_0[layer1] = sig_layer1
+    # sigma_0[layer2] = .002
     m_0 = np.log(sigma_0[active])
 
     # Set the mapping
@@ -61,7 +61,7 @@ def run(plotIt=True):
     # Receivers
     rxList = []
     for rxType in ['z1dr','z1di']:
-        rxList.append(NSEM.Rx(simpeg.mkvc(np.array([0.0]),2).T,rxType))
+        rxList.append(NSEM.Rx(simpeg.mkvc(np.array([-0.5]),2).T,rxType))
     # Source list
     srcList =[]
     for freq in freqs:
@@ -94,27 +94,32 @@ def run(plotIt=True):
     # Define a counter
     C =  simpeg.Utils.Counter()
     # Set the optimization
-    opt = simpeg.Optimization.InexactGaussNewton(maxIter = 30)
+    opt = simpeg.Optimization.ProjectedGNCG(maxIter = 25)
     opt.counter = C
-    opt.maxStep = m1d.nC * survey.nD
-    opt.LSshorten = 0.5
+    opt.lower = np.log(1e-4)
+    opt.upper = np.log(5)
+    opt.LSshorten = 0.1
     opt.remember('xc')
     # Data misfit
     dmis = simpeg.DataMisfit.l2_DataMisfit(survey)
     dmis.Wd = Wd
     # Regularization - with a regularization mesh
-    regMesh = simpeg.Mesh.TensorMesh([m1d.hx[problem.mapping.sigmaMap.maps[-1].indActive]],m1d.x0)
-    reg = simpeg.Regularization.Tikhonov(m1d,indActive=active)
+    regMesh = simpeg.Mesh.TensorMesh([m1d.hx[active]],m1d.x0)
+    reg = simpeg.Regularization.Tikhonov(regMesh)
+    reg.mref = m_true
     reg.mrefInSmooth = True
-    reg.alpha_s = 1e-7
+    reg.alpha_s = 1e-1
     reg.alpha_x = 1.
+
     # Inversion problem
     invProb = simpeg.InvProblem.BaseInvProblem(dmis, reg, opt)
     invProb.counter = C
     # Beta cooling
     beta = simpeg.Directives.BetaSchedule()
-    beta.coolingRate = 4
+    beta.coolingRate = 4.
+    beta.coolingFactor = 4.
     betaest = simpeg.Directives.BetaEstimate_ByEig(beta0_ratio=1.)
+    # betaest.beta0 = 1.
     targmis = simpeg.Directives.TargetMisfit()
     targmis.target = survey.nD
     # Create an inversion object
@@ -126,6 +131,7 @@ def run(plotIt=True):
     if plotIt:
         fig = NSEM.Utils.dataUtils.plotMT1DModelData(problem,[mopt])
         fig.suptitle('Target - smooth true')
+        fig.axes[0].set_ylim([-10000,500])
         plt.show()
 
 if __name__ == '__main__':
