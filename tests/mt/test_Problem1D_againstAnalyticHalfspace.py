@@ -99,7 +99,7 @@ def appRes_psFieldNorm(sigmaHalf):
 
     # Make the survey
     survey, sigma, mesh = setupSurvey(sigmaHalf,False)
-    problem = NSEM.Problem1D.eForm_psField(mesh, sigmaPrimary = sigma)
+    problem = NSEM.Problem1D_ePrimSec(mesh, sigmaPrimary = sigma)
     problem.pair(survey)
 
     # Get the fields
@@ -117,7 +117,7 @@ def appPhs_psFieldNorm(sigmaHalf):
 
     # Make the survey
     survey, sigma, mesh = setupSurvey(sigmaHalf,False)
-    problem = NSEM.Problem1D.eForm_psField(mesh, sigmaPrimary = sigma)
+    problem = NSEM.Problem1D_ePrimSec(mesh, sigmaPrimary = sigma)
     problem.pair(survey)
 
     # Get the fields

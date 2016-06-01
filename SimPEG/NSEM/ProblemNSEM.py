@@ -104,7 +104,7 @@ class BaseNSEMProblem(BaseFDEMProblem):
             ATinv = self.Solver(AT, **self.solverOpts)
 
             for src in self.survey.getSrcByFreq(freq):
-                ftype = self._fieldType + 'Solution'
+                ftype = self._solutionType
                 f_src = f[src, :] # Need to fix this...
 
                 for rx in src.rxList:

@@ -7,6 +7,8 @@ from SimPEG import NSEM
 from SimPEG.Utils import meshTensor
 from scipy.constants import mu_0
 
+np.random.seed(1100)
+
 TOLr = 5e-2
 TOL = 1e-4
 FLR = 1e-20 # "zero", so if residual below this --> pass regardless of order
@@ -127,11 +129,11 @@ def setupSimpegNSEMfwd_eForm_ps(inputSetup,comp='Imp',singleFreq=False,expMap=Tr
     ## Setup the problem object
     sigma1d = M.r(sigBG,'CC','CC','M')[0,0,:]
     if expMap:
-        problem = NSEM.Problem3D.eForm_ps(M,sigmaPrimary= np.log(sigma1d) )
+        problem = NSEM.Problem3D_ePrimSec(M,sigmaPrimary= np.log(sigma1d) )
         problem.mapping = simpeg.Maps.ExpMap(problem.mesh)
         problem.curModel = np.log(sig)
     else:
-        problem = NSEM.Problem3D.eForm_ps(M,sigmaPrimary= sigma1d)
+        problem = NSEM.Problem3D_ePrimSec(M,sigmaPrimary= sigma1d)
         problem.curModel = sig
     problem.pair(survey)
     problem.verbose = False
