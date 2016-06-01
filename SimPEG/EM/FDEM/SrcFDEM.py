@@ -709,7 +709,6 @@ class PrimSecMappedSigma(BaseSrc):
 
         BaseSrc.__init__(self, rxList, freq=freq, **kwargs)
 
-    @property
     def _ProjPrimary(self, prob):
         # if getattr(self, '__ProjPrimary', None) is None:
         return self.primaryProblem.mesh.getInterpolationMatCartMesh(prob.mesh, locType='F', locTypeTo='E')
