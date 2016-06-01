@@ -160,9 +160,9 @@ class Fields(SimPEG.Problem.Fields):
             return self._jDeriv_u(src, v, adjoint), self._jDeriv_m(src, v, adjoint)
         return np.array(self._jDeriv_u(src, du_dm_v, adjoint) + self._jDeriv_m(src, v, adjoint), dtype = complex)
 
-class Fields_e(Fields):
+class Fields3D_e(Fields):
     """
-    Fields object for Problem_e.
+    Fields object for Problem3D_e.
 
     :param Mesh mesh: mesh
     :param Survey survey: survey
@@ -181,7 +181,7 @@ class Fields_e(Fields):
                   }
 
     def __init__(self, mesh, survey, **kwargs):
-        Fields.__init__(self,mesh,survey,**kwargs)
+        Fields.__init__(self, mesh, survey, **kwargs)
 
     def startup(self):
         self.prob = self.survey.prob
@@ -426,9 +426,9 @@ class Fields_e(Fields):
 
 
 
-class Fields_b(Fields):
+class Fields3D_b(Fields):
     """
-    Fields object for Problem_b.
+    Fields object for Problem3D_b.
 
     :param Mesh mesh: mesh
     :param Survey survey: survey
@@ -693,9 +693,9 @@ class Fields_b(Fields):
         return Zero()
 
 
-class Fields_j(Fields):
+class Fields3D_j(Fields):
     """
-    Fields object for Problem_j.
+    Fields object for Problem3D_j.
 
     :param Mesh mesh: mesh
     :param Survey survey: survey
@@ -988,9 +988,9 @@ class Fields_j(Fields):
         return 1./(1j * omega(src.freq)) * VI * (self._aveE2CCV * ( s_mDeriv(v) - self._edgeCurl.T * ( self._MfRhoDeriv(jSolution) * v ) ) )
 
 
-class Fields_h(Fields):
+class Fields3D_h(Fields):
     """
-    Fields object for Problem_h.
+    Fields object for Problem3D_h.
 
     :param Mesh mesh: mesh
     :param Survey survey: survey

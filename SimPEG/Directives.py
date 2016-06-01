@@ -144,12 +144,18 @@ class BetaSchedule(InversionDirective):
             if self.debug: print 'BetaSchedule is cooling Beta. Iteration: %d' % self.opt.iter
             self.invProb.beta /= self.coolingFactor
 
+
 class TargetMisfit(InversionDirective):
+
+    chifact = 1.
+    phi_d_star = None
 
     @property
     def target(self):
         if getattr(self, '_target', None) is None:
-            self._target = self.survey.nD*0.5
+            if self.phi_d_star is None:
+                self.phi_d_star = 0.5 * self.survey.nD
+            self._target = self.chifact * self.phi_d_star # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
         return self._target
     @target.setter
     def target(self, val):
@@ -216,13 +222,13 @@ class SaveOutputDictEveryIteration(_SaveEveryIteration):
         # Save the data.
         ms = self.reg.Ws * ( self.reg.mapping * (self.invProb.curModel - self.reg.mref) )
         phi_ms = 0.5*ms.dot(ms)
-        if self.reg.smoothModel == True:
+        if self.reg.mrefInSmooth == True:
             mref = self.reg.mref
         else:
             mref = 0
         mx = self.reg.Wx * ( self.reg.mapping * (self.invProb.curModel - mref) )
         phi_mx = 0.5 * mx.dot(mx)
-        if self.prob.mesh.dim==2:
+        if self.prob.mesh.dim >= 2:
             my = self.reg.Wy * ( self.reg.mapping * (self.invProb.curModel - mref) )
             phi_my = 0.5 * my.dot(my)
         else:
@@ -237,49 +243,197 @@ class SaveOutputDictEveryIteration(_SaveEveryIteration):
         # Save the file as a npz
         np.savez('{:03d}-{:s}'.format(self.opt.iter,self.fileName), iter=self.opt.iter, beta=self.invProb.beta, phi_d=self.invProb.phi_d, phi_m=self.invProb.phi_m, phi_ms=phi_ms, phi_mx=phi_mx, phi_my=phi_my, phi_mz=phi_mz,f=self.opt.f, m=self.invProb.curModel,dpred=self.invProb.dpred)
 
-class SaveOutputDictEveryIteration(_SaveEveryIteration):
-    """SaveOutputDictEveryIteration
-    A directive that saves some relevant information from the inversion run to a numpy .npz dictionary file (see numpy.savez function for further info).
-    """
-
-    def initialize(self):
-        print "SimPEG.SaveOutputDictEveryIteration will save your inversion progress as dictionary: '%s-###.npz'"%self.fileName
-
-    def endIter(self):
-        # Save the data.
-        ms = self.reg.Ws * ( self.reg.mapping * (self.invProb.curModel - self.reg.mref) )
-        phi_ms = 0.5*ms.dot(ms)
-        if self.reg.smoothModel == True:
-            mref = self.reg.mref
-        else:
-            mref = 0
-        mx = self.reg.Wx * ( self.reg.mapping * (self.invProb.curModel - mref) )
-        phi_mx = 0.5 * mx.dot(mx)
-        if self.prob.mesh.dim==2:
-            my = self.reg.Wy * ( self.reg.mapping * (self.invProb.curModel - mref) )
-            phi_my = 0.5 * my.dot(my)
-        else:
-            phi_my = 'NaN'
-        if self.prob.mesh.dim==3 and 'CYL' not in self.prob.mesh._meshType:
-            mz = self.reg.Wz * ( self.reg.mapping * (self.invProb.curModel - mref) )
-            phi_mz = 0.5 * mz.dot(mz)
-        else:
-            phi_mz = 'NaN'
-
-
-        # Save the file as a npz
-        np.savez('{:s}-{:03d}'.format(self.fileName,self.opt.iter), iter=self.opt.iter, beta=self.invProb.beta, phi_d=self.invProb.phi_d, phi_m=self.invProb.phi_m, phi_ms=phi_ms, phi_mx=phi_mx, phi_my=phi_my, phi_mz=phi_mz,f=self.opt.f, m=self.invProb.curModel,dpred=self.invProb.dpred)
-
-
-
-# class UpdateReferenceModel(Parameter):
-
-#     mref0 = None
-
-#     def nextIter(self):
 #         mref = getattr(self, 'm_prev', None)
 #         if mref is None:
 #             if self.debug: print 'UpdateReferenceModel is using mref0'
 #             mref = self.mref0
 #         self.m_prev = self.invProb.m_current
 #         return mref
+
+class Update_IRLS(InversionDirective):
+
+    eps_min = None
+    eps_p = None
+    eps_q = None
+    norms = [2.,2.,2.,2.]
+    factor = None
+    gamma = None
+    phi_m_last = None
+    phi_d_last = None
+    f_old = None
+    f_min_change = 1e-2
+    beta_tol = 5e-2
+
+    # Solving parameter for IRLS (mode:2)
+    IRLSiter   = 0
+    minGNiter = 5
+    maxIRLSiter = 10
+    iterStart = 0
+
+    # Beta schedule
+    coolingFactor = 2.
+    coolingRate = 1
+
+    mode = 1
+
+    @property
+    def target(self):
+        if getattr(self, '_target', None) is None:
+            self._target = self.survey.nD*0.5
+        return self._target
+    @target.setter
+    def target(self, val):
+        self._target = val
+
+    def initialize(self):
+
+        if self.mode == 1:
+            self.reg.norms = [2., 2., 2., 2.]
+
+    def endIter(self):
+
+        # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
+        if self.invProb.phi_d < self.target and self.mode == 1:
+            print "Convergence with smooth l2-norm regularization: Start IRLS steps..."
+
+            self.mode = 2
+            print self.eps_p, self.eps_q, self.norms
+            self.reg.eps_p = self.eps_p
+            self.reg.eps_q = self.eps_q
+            self.reg.norms = self.norms
+            self.coolingFactor = 1.
+            self.coolingRate = 1
+            self.iterStart = self.opt.iter
+            self.phi_d_last = self.invProb.phi_d
+            self.phi_m_last = self.invProb.phi_m_last
+
+            self.reg.l2model = self.invProb.curModel
+            self.reg.curModel = self.invProb.curModel
+
+            if getattr(self, 'f_old', None) is None:
+                self.f_old = self.reg.eval(self.invProb.curModel)#self.invProb.evalFunction(self.invProb.curModel, return_g=False, return_H=False)
+
+        # Beta Schedule
+        if self.opt.iter > 0 and self.opt.iter % self.coolingRate == 0:
+            if self.debug: print 'BetaSchedule is cooling Beta. Iteration: %d' % self.opt.iter
+            self.invProb.beta /= self.coolingFactor
+
+
+        # Only update after GN iterations
+        if (self.opt.iter-self.iterStart) % self.minGNiter == 0 and self.mode==2:
+
+            self.IRLSiter += 1
+
+            phim_new = self.reg.eval(self.invProb.curModel)
+            self.f_change = np.abs(self.f_old - phim_new) / self.f_old
+
+            print "Regularization decrease: %6.3e" % (self.f_change)
+
+            # Check for maximum number of IRLS cycles
+            if self.IRLSiter == self.maxIRLSiter:
+                print "Reach maximum number of IRLS cycles: %i" % self.maxIRLSiter
+                self.opt.stopNextIteration = True
+                return
+
+            # Check if the function has changed enough
+            if self.f_change < self.f_min_change and self.IRLSiter > 1:
+                print "Minimum decrease in regularization. End of IRLS"
+                self.opt.stopNextIteration = True
+                return
+            else:
+                self.f_old = phim_new
+
+            # Cool the threshold parameter if required
+            if getattr(self, 'factor', None) is not None:
+                eps = self.reg.eps / self.factor
+
+                if getattr(self, 'eps_min', None) is not None:
+                    self.reg.eps = np.max([self.eps_min,eps])
+                else:
+                    self.reg.eps = eps
+
+            # Get phi_m at the end of current iteration
+            self.phi_m_last = self.invProb.phi_m_last
+
+            # Reset the regularization matrices so that it is
+            # recalculated for current model
+            self.reg._Wsmall = None
+            self.reg._Wx = None
+            self.reg._Wy = None
+            self.reg._Wz = None
+
+             # Update the model used for the IRLS weights
+            self.reg.curModel = self.invProb.curModel
+
+            # Temporarely set gamma to 1. to get raw phi_m
+            self.reg.gamma = 1.
+
+            # Compute new model objective function value
+            phim_new = self.reg.eval(self.invProb.curModel)
+
+            # Update gamma to scale the regularization between IRLS iterations
+            self.reg.gamma = self.phi_m_last / phim_new
+
+            # Reset the regularization matrices again for new gamma
+            self.reg._Wsmall = None
+            self.reg._Wx = None
+            self.reg._Wy = None
+            self.reg._Wz = None
+
+            # Check if misfit is within the tolerance, otherwise scale beta
+            val = self.invProb.phi_d / (self.survey.nD*0.5)
+
+            if np.abs(1.-val) > self.beta_tol:
+                self.invProb.beta = self.invProb.beta * self.survey.nD*0.5 / self.invProb.phi_d
+
+class Update_lin_PreCond(InversionDirective):
+    """
+    Create a Jacobi preconditioner for the linear problem
+    """
+    onlyOnStart=False
+
+    def initialize(self):
+
+        if getattr(self.opt, 'approxHinv', None) is None:
+            # Update the pre-conditioner
+            diagA = np.sum(self.prob.G**2.,axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() #* (self.reg.mapping * np.ones(self.reg.curModel.size))**2.
+            PC     = Utils.sdiag((self.prob.mapping.deriv(None).T *diagA)**-1.)
+            self.opt.approxHinv = PC
+
+    def endIter(self):
+        # Cool the threshold parameter
+        if self.onlyOnStart==True:
+            return
+
+        if getattr(self.opt, 'approxHinv', None) is not None:
+            # Update the pre-conditioner
+            diagA = np.sum(self.prob.G**2.,axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() #* (self.reg.mapping * np.ones(self.reg.curModel.size))**2.
+            PC     = Utils.sdiag((self.prob.mapping.deriv(None).T *diagA)**-1.)
+            self.opt.approxHinv = PC
+
+
+class Update_Wj(InversionDirective):
+    """
+        Create approx-sensitivity base weighting using the probing method
+    """
+    k = None # Number of probing cycles
+    itr = None # Iteration number to update Wj, or always update if None
+
+    def endIter(self):
+
+        if self.itr is None or self.itr == self.opt.iter:
+
+            m = self.invProb.curModel
+            if self.k is None:
+                self.k = int(self.survey.nD/10)
+
+            def JtJv(v):
+
+                Jv = self.prob.Jvec(m, v)
+
+                return self.prob.Jtvec(m,Jv)
+
+            JtJdiag = Utils.diagEst(JtJv,len(m),k=self.k)
+            JtJdiag = JtJdiag / max(JtJdiag)
+
+            self.reg.wght = JtJdiag
