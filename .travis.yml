@@ -28,6 +28,9 @@ env:
 
 # Setup anaconda
 before_install:
+  - openssl aes-256-cbc -K $encrypted_93066031461c_key -iv $encrypted_93066031461c_iv
+    -in docs/credentials.tar.gz.enc -out credentials.tar.gz -d
+
 # Install packages
   - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then wget http://repo.continuum.io/miniconda/Miniconda-3.8.3-Linux-x86_64.sh
     -O miniconda.sh; else wget http://repo.continuum.io/miniconda/Miniconda3-3.8.3-Linux-x86_64.sh
@@ -57,9 +60,7 @@ script:
 after_success:
   - coveralls --config_file .coveragerc
 
-  script:
-    - openssl aes-256-cbc -K $encrypted_93066031461c_key -iv $encrypted_93066031461c_iv
-    -in docs/credentials.tar.gz.enc -out credentials.tar.gz -d
+
 
 notifications:
   email:
