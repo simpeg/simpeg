@@ -753,7 +753,7 @@ class PrimSecMappedSigma(BaseSrc):
 
         jp = self._primaryFields(prob)[:,'j']
         ep = self.primaryProblem.MfI * (self.primaryProblem.MfRho * jp)
-        ep = self._ProjPrimary * ep
+        ep = self._ProjPrimary(prob) * ep
 
         return ep
 
@@ -764,7 +764,7 @@ class PrimSecMappedSigma(BaseSrc):
 
         jp = self._primaryFields(prob)[:,'j']
 
-        epDeriv = self._ProjPrimary * (
+        epDeriv = self._ProjPrimary(prob) * (
                     self.primaryProblem.MfI * ( self.primaryProblem.MfRhoDeriv(jp) * v )
                     +
                     self._primaryFieldsDeriv(prob, v, adjoint)
