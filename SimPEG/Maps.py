@@ -616,6 +616,37 @@ class Weighting(IdentityMap):
     def deriv(self, m):
         return self.P
 
+class Projection(IdentityMap):
+    """
+        A map to rearrange parameters
+
+    """
+
+
+    def __init__(self, indTo, indFrom, shape, mesh=None, **kwargs):
+
+        assert len(indTo) == len(indFrom)
+
+        self.P = sp.csr_matrix((np.ones(len(indTo)), (indTo, indFrom)), shape=shape)
+        self._shape = shape
+
+        super(Projection, self).__init__(mesh, **kwargs)
+
+    @property
+    def shape(self):
+        return self._shape
+
+    @property
+    def nP(self):
+        """Number of parameters in the model."""
+        return self.shape[1]
+
+    def _transform(self, m):
+        return self.P*m
+
+    def deriv(self, m):
+        return self.P
+
 
 class ComplexMap(IdentityMap):
     """ComplexMap

@@ -719,7 +719,7 @@ class PrimSecMappedSigma(BaseSrc):
     def _primaryFields(self, prob):
 
         # TODO: cache and check if prob.curModel has changed
-        return self.primaryProblem.fields(prob.curModel)
+        return self.primaryProblem.fields(prob.curModel.sigmaModel)
 
     def _primaryFieldsDeriv(self, prob, v, adjoint=False):
         if adjoint:
@@ -774,7 +774,7 @@ class PrimSecMappedSigma(BaseSrc):
 
 
     def s_e(self, prob):
-        sigmaPrimary = self.map2meshs * prob.curModel
+        sigmaPrimary = self.map2meshs * prob.curModel.sigmaModel
         return (prob.MeSigma -  prob.mesh.getEdgeInnerProduct(sigmaPrimary)) * self.ePrimary(prob)
 
 
@@ -783,8 +783,8 @@ class PrimSecMappedSigma(BaseSrc):
             raise NotImplementedError
             return prob.MeSigmaDeriv(self.ePrimary(prob)).T * v
 
-        sigmaPrimary = self.map2meshs * prob.curModel
-        sigmaPrimaryDeriv = self.map2meshs.deriv(prob.curModel)
+        sigmaPrimary = self.map2meshs * prob.curModel.sigmaModel
+        sigmaPrimaryDeriv = self.map2meshs.deriv(prob.curModel.sigmaModel)
         return (prob.MeSigmaDeriv(self.ePrimary(prob)) * v
                 - prob.mesh.getEdgeInnerProductDeriv(sigmaPrimary)(self.ePrimary(prob)) * sigmaPrimaryDeriv * v
                 + (prob.MeSigma -  prob.mesh.getEdgeInnerProduct(sigmaPrimary)) * self.ePrimaryDeriv(prob, v)
