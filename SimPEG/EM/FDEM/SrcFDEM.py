@@ -60,6 +60,18 @@ class BaseSrc(Survey.BaseSrc):
             return Zero()
         return self._bPrimary
 
+    def bPrimaryDeriv(self, prob, v, adjoint=False):
+        """
+        Derivative of the primary magnetic flux density
+
+        :param Problem prob: FDEM Problem
+        :param numpy.ndarray v: vector
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: primary magnetic flux density
+        """
+        return Zero()
+
     def hPrimary(self, prob):
         """
         Primary magnetic field
@@ -71,6 +83,18 @@ class BaseSrc(Survey.BaseSrc):
         if self._hPrimary is None:
             return Zero()
         return self._hPrimary
+
+    def hPrimaryDeriv(self, prob, v, adjoint=False):
+        """
+        Derivative of the primary magnetic field
+
+        :param Problem prob: FDEM Problem
+        :param numpy.ndarray v: vector
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: primary magnetic flux density
+        """
+        return Zero()
 
     def ePrimary(self, prob):
         """
@@ -84,6 +108,18 @@ class BaseSrc(Survey.BaseSrc):
             return Zero()
         return self._ePrimary
 
+    def ePrimaryDeriv(self, prob, v, adjoint=False):
+        """
+        Derivative of the primary electric field
+
+        :param Problem prob: FDEM Problem
+        :param numpy.ndarray v: vector
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: primary magnetic flux density
+        """
+        return Zero()
+
     def jPrimary(self, prob):
         """
         Primary current density
@@ -95,6 +131,18 @@ class BaseSrc(Survey.BaseSrc):
         if self._jPrimary is None:
             return Zero()
         return self._jPrimary
+
+    def jPrimaryDeriv(self, prob, v, adjoint=False):
+        """
+        Derivative of the primary current density
+
+        :param Problem prob: FDEM Problem
+        :param numpy.ndarray v: vector
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: primary magnetic flux density
+        """
+        return Zero()
 
     def s_m(self, prob):
         """
@@ -630,20 +678,117 @@ class PrimSecSigma(BaseSrc):
         return prob.MeSigmaDeriv(self.ePrimary(prob)) * v
 
 
-class PrimSecSigmaProblem(BaseSrc):
+class PrimSecMappedSigma(BaseSrc):
+
+    """
+    Primary-Secondary Source in which a mapping is provided to put the current model
+    onto the primary mesh. This is solved on every model update.
+
+    There are a lot of layers to the derivatives here!
+
+    **Required**
+    :param list rxList: Receiver List
+    :param float freq: frequency
+    :param ProblemFDEM primaryProblem: FDEM primary problem
+    :param SurveyFDEM primarySurvey: FDEM primary survey
+
+    **Optional**
+    :param Mapping map2meshs: mapping current model to act as primary model on the secondary mesh
+
+    """
 
     def __init__(self, rxList, freq, primaryProblem, primarySurvey, map2meshs = None ,**kwargs):
 
         self.primaryProblem = primaryProblem
         self.primarySurvey = primarySurvey
+
+        if self.primaryProblem.ispaired is False:
+            self.primaryProblem.pair(self.primarySurvey)
+
         self.map2meshs = map2meshs
 
         BaseSrc.__init__(self, rxList, freq=freq, **kwargs)
 
+    @property
+    def _ProjPrimary(self):
+        if getattr(self, '__ProjPrimary', None) is None:
+            self.__ProjPrimary = self.primaryProblem.mesh.getInterpolationMatCartMesh(meshs, locType='F', locTypeTo='E')
+        return self.__ProjPrimary
+
+
+    def _primaryFields(self, prob):
+
+        # TODO: cache and check if prob.curModel has changed
+        return self.primaryProblem.fields(prob.curModel)
+
+    def _primaryFieldsDeriv(self, prob, v, adjoint=False):
+        if adjoint:
+            raise NotImplementedError
+
+        # TODO: this should not be hard-coded for j
+        jp = self._primaryFields(prob)[:,'j']
+
+        # TODO: pull apart Jvec so that don't have to copy paste this code in
+        A = self.primaryProblem.getA(self.freq)
+        Ainv = self.primaryProblem.Solver(A, **self.primaryProblem.solverOpts) # create the concept of Ainv (actually a solve)
+
+        df_dm_v = np.zeros(self.primaryProblem.survey.nSrc,len(jp))
+
+        # TODO: this will probably break if we have more than one source
+        for i, src in enumerate(self.primaryProblem.survey.getSrcByFreq(freq)):
+            u_src = f[src, self.primaryProblem._solutionType]
+            dA_dm_v = self.primaryProblem.getADeriv(freq, u_src, v)
+            dRHS_dm_v = self.primaryProblem.getRHSDeriv(freq, src, v)
+            du_dm_v = Ainv * ( - dA_dm_v + dRHS_dm_v )
+
+            df_dmFun = getattr(f, '_{0}Deriv'.format('j'), None)
+            df_dm_v[i,:] += df_dmFun(src, du_dm_v, v, adjoint=False)
+            # Jv[src, :] = rx.evalDeriv(src, self.primaryProblem.mesh, f, df_dm_v)
+
+        Ainv.clean()
+
+        return Utils.mkvc(df_dm_v)
 
     def ePrimary(self, prob):
 
+        jp = self._primaryFields(prob)[:,'j']
+        ep = self.primaryProblem.MfI * (self.primaryProblem.MfRho * jp)
+        ep = self._ProjPrimary * ep
+
+        return ep
+
     def ePrimaryDeriv(self, prob, v, adjoint=False):
+
+        if adjoint:
+            raise NotImplementedError
+
+        jp = self._primaryFields(prob)[:,'j']
+
+        epDeriv = self._ProjPrimary * (
+                    self.primaryProblem.MfI * ( self.primaryProblem.MfRhoDeriv(jp) * v )
+                    +
+                    self._primaryFieldsDeriv(prob, v, adjoint)
+                    )
+
+        return epDeriv
+
+
+    def s_e(self, prob):
+        sigmaPrimary = self.map2meshs * prob.curModel
+        return (prob.MeSigma -  prob.mesh.getEdgeInnerProduct(sigmaPrimary)) * self.ePrimary(prob)
+
+
+    def s_eDeriv(self, prob, v, adjoint=False):
+        if adjoint:
+            raise NotImplementedError
+            return prob.MeSigmaDeriv(self.ePrimary(prob)).T * v
+
+        sigmaPrimary = self.map2meshs * prob.curModel
+        sigmaPrimaryDeriv = self.map2meshs.deriv(prob.curModel)
+        return (prob.MeSigmaDeriv(self.ePrimary(prob)) * v
+                - prob.mesh.getEdgeInnerProductDeriv(sigmaPrimary)(self.ePrimary(prob)) * sigmaPrimaryDeriv * v
+                + (prob.MeSigma -  prob.mesh.getEdgeInnerProduct(sigmaPrimary)) * self.ePrimaryDeriv(prob, v)
+                )
 
 
 

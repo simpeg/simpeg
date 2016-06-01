@@ -257,7 +257,7 @@ class Fields3D_e(Fields):
         """
 
         # assuming primary does not depend on the model
-        return Zero()
+        return src.ePrimaryDeriv(self.prob, v, adjoint) #Zero()
 
     def _bPrimary(self, eSolution, srcList):
         """
@@ -600,8 +600,8 @@ class Fields3D_b(Fields):
 
 
         if adjoint:
-            return self._MeSigmaIDeriv(w).T * v - self._MeSigmaI.T * s_eDeriv
-        return  self._MeSigmaIDeriv(w) * v - self._MeSigmaI * s_eDeriv
+            return self._MeSigmaIDeriv(w).T * v - self._MeSigmaI.T * s_eDeriv + src.ePrimaryDeriv(self.prob, v, adjoint)
+        return  self._MeSigmaIDeriv(w) * v - self._MeSigmaI * s_eDeriv + src.ePrimaryDeriv(self.prob, v, adjoint)
 
     def _j(self, bSolution, srcList):
         """
