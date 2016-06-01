@@ -1,9 +1,10 @@
-from SimPEG.EM.Utils import omega, mu_0
+from SimPEG.EM.Utils.EMUtils import omega, mu_0
 from SimPEG import SolverLU as SimpegSolver, PropMaps, Utils, mkvc, sp, np
 from SimPEG.EM.FDEM.FDEM import BaseFDEMProblem
 from SurveyNSEM import Survey, Data
-from FieldsNSEM import Fields1D_ePrimSec, Fields3D_ePrimSec
+from FieldsNSEM import BaseNSEMFields, Fields1D_ePrimSec, Fields3D_ePrimSec
 from SimPEG.NSEM.Utils.MT1Danalytic import getEHfields
+import time, sys
 
 class BaseNSEMProblem(BaseFDEMProblem):
     """
@@ -169,7 +170,6 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
 
     def __init__(self, mesh, **kwargs):
         BaseNSEMProblem.__init__(self, mesh, **kwargs)
-        self.fieldsPair = Fields1D_e
         # self._sigmaPrimary = sigmaPrimary
     @property
     def MeMui(self):
@@ -313,7 +313,7 @@ class Problem1D_eTotal(BaseNSEMProblem):
     # From FDEMproblem: Used to project the fields. Currently not used for NSEMproblem.
     _solutionType = 'e_1dSolution'
     _formulation  = 'EF'
-    fieldsPair = Fields1D_eTotal
+    # fieldsPair = Fields1D_eTotal
 
     def __init__(self, mesh, **kwargs):
         BaseNSEMProblem.__init__(self, mesh, **kwargs)
@@ -399,6 +399,8 @@ class Problem1D_eTotal(BaseNSEMProblem):
         :param np.ndarray (nC,) m: Conductivity model
         :param np.ndarray (nC,) m_back: Background conductivity model
         '''
+
+
         self.curModel = m
         # RHS, CalcFields = self.getRHS(freq,m_back), self.calcFields
 

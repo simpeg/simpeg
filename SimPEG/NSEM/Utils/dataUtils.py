@@ -79,7 +79,7 @@ def plotMT1DModelData(problem,models,symList=None):
     axM = fig.add_axes([0.075,.1,.25,.875])
     axM.set_xlabel('Resistivity [Ohm*m]',fontsize=fontSize)
     axM.set_xlim(1e-1,1e5)
-    axM.set_ylim(-10000,5000)
+    # axM.set_ylim(-10000,5000)
     axM.set_ylabel('Depth [km]',fontsize=fontSize)
     axR = fig.add_axes([0.42,.575,.5,.4])
     axR.set_xscale('log')
@@ -132,24 +132,25 @@ def plotMT1DModelData(problem,models,symList=None):
     freq = simpeg.mkvc(data1D['freq'],2)
     res, phs = appResPhs(freq,allData)
 
-    stdCol = 'gray'
-    axRtw = axR.twinx()
-    axRtw.set_ylabel('Std of log10',color=stdCol)
-    [(t.set_color(stdCol), t.set_rotation(-45)) for t in axRtw.get_yticklabels()]
-    axPtw = axP.twinx()
-    axPtw.set_ylabel('Std ',color=stdCol)
-    [t.set_color(stdCol) for t in axPtw.get_yticklabels()]
-    axRtw.plot(freq, np.std(np.log10(res),1),'--',color=stdCol)
-    axPtw.plot(freq, np.std(phs,1),'--',color=stdCol)
+    if False:
+        stdCol = 'gray'
+        axRtw = axR.twinx()
+        axRtw.set_ylabel('Std of log10',color=stdCol)
+        [(t.set_color(stdCol), t.set_rotation(-45)) for t in axRtw.get_yticklabels()]
+        axPtw = axP.twinx()
+        axPtw.set_ylabel('Std ',color=stdCol)
+        [t.set_color(stdCol) for t in axPtw.get_yticklabels()]
+        axRtw.plot(freq, np.std(np.log10(res),1),'--',color=stdCol)
+        axPtw.plot(freq, np.std(phs,1),'--',color=stdCol)
 
     # Fix labels and ticks
 
-    yMtick = [l/1000 for l in axM.get_yticks().tolist()]
-    axM.set_yticklabels(yMtick)
+    # yMtick = [l/1000 for l in axM.get_yticks().tolist()]
+    # axM.set_yticklabels(yMtick)
     [ l.set_rotation(90) for l in axM.get_yticklabels()]
     [ l.set_rotation(90) for l in axR.get_yticklabels()]
-    [(t.set_color(stdCol), t.set_rotation(-45)) for t in axRtw.get_yticklabels()]
-    [t.set_color(stdCol) for t in axPtw.get_yticklabels()]
+    # [(t.set_color(stdCol), t.set_rotation(-45)) for t in axRtw.get_yticklabels()]
+    # [t.set_color(stdCol) for t in axPtw.get_yticklabels()]
     for ax in [axM,axR,axP]:
         ax.xaxis.set_tick_params(labelsize=fontSize)
         ax.yaxis.set_tick_params(labelsize=fontSize)
