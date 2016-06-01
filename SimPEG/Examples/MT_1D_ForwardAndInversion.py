@@ -104,7 +104,6 @@ def run(plotIt=True):
     # Regularization - with a regularization mesh
     regMesh = simpeg.Mesh.TensorMesh([m1d.hx[active]],m1d.x0)
     reg = simpeg.Regularization.Tikhonov(regMesh)
-    reg.mref = m_true
     reg.mrefInSmooth = True
     reg.alpha_s = 1e-1
     reg.alpha_x = 1.
