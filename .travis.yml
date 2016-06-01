@@ -26,7 +26,7 @@ env:
     - TEST_DIR=tests/em/fdem/forward
     - TEST_DIR=tests/docs
     - GAE_PYTHONPATH=${HOME}/.cache/google_appengine PATH=$PATH:${HOME}/google-cloud-sdk/bin
-    PYTHONPATH=${PYTHONPATH}:${GAE_PYTHONPATH} CLOUDSDK_CORE_DISABLE_PROMPTS=1
+      PYTHONPATH=${PYTHONPATH}:${GAE_PYTHONPATH} CLOUDSDK_CORE_DISABLE_PROMPTS=1
 
 # Setup anaconda
 before_install:
