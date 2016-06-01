@@ -1017,18 +1017,12 @@ class SplineMap(IdentityMap):
         return sp.csr_matrix(np.c_[g1,g2,g3])
 
 
-
-
-
-class ParametrizedBlockInLayer(IdentityMap):
+class ParametrizedLayer(IdentityMap):
     """
-        Parametrized Block in a Layered Space
+        Parametrized Layer Space
 
-        For 2D:
-        m = [val_background, val_layer, val_block, layer_center, layer_thickness, block_x0, block_dx]
+        m = [val_background, val_layer, layer_center, layer_thickness]
 
-        For 3D:
-        m = [val_background, val_layer, val_block, layer_center, layer_thickness, block_x0, block_y0, block_dx, block_dy]
 
         .. plot::
             :include-source:
@@ -1039,8 +1033,8 @@ class ParametrizedBlockInLayer(IdentityMap):
             fig, ax = plt.subplots(1,1,figsize=(2,3))
 
             mesh = Mesh.TensorMesh([50,50],x0='CC')
-            mapping = Maps.ParametrizedBlockInLayer(mesh)
-            m = np.hstack(np.r_[1., 2., 3., -0.1, 0.2, 0.3, 0.2])
+            mapping = Maps.ParametrizedLayer(mesh)
+            m = np.hstack(np.r_[1., 2., -0.1, 0.2])
             rho = mapping._transform(m)
             mesh.plotImage(rho, ax=ax)
 
@@ -1062,7 +1056,7 @@ class ParametrizedBlockInLayer(IdentityMap):
 
     def __init__(self, mesh, **kwargs):
 
-        super(ParametrizedBlockInLayer, self).__init__(mesh, **kwargs)
+        super(ParametrizedLayer, self).__init__(mesh, **kwargs)
 
 
         if self.slope is None:
@@ -1078,10 +1072,7 @@ class ParametrizedBlockInLayer(IdentityMap):
 
     @property
     def nP(self):
-        if self.mesh.dim == 2:
-            return 7
-        elif self.mesh.dim == 3:
-            return 9
+        return 4
 
     @property
     def shape(self):
@@ -1091,10 +1082,8 @@ class ParametrizedBlockInLayer(IdentityMap):
 
     def _validate_m(self, m):
         # TODO: more sanity checks here
-        if self.mesh.dim == 2:
-            assert len(m) == 7, 'm must be length 7 not {0}: [val_back, val_layer, val_block, layer_center, layer_thickness, x0_block, dx_block'.format(len(m))
-        elif self.mesh.dim == 3:
-            assert len(m) == 9, 'm must be length 9 not {0}: [val_back, val_layer, val_block, layer_center, layer_thickness, x0_block, y0_block, dx_block, dy_block]'.format(len(m))
+        if self.mesh.dim == 2 or self.mesh.dim == 3:
+            assert len(m) == 4, 'm must be length 4 not {0}: [val_back, val_layer, val_block, layer_center, layer_thickness, x0_block, dx_block'.format(len(m))
         else:
             raise NotImplementedError('Only 2D and 3D meshes are implemented for the Parametrized_Block_in_Layer Map')
 
@@ -1140,6 +1129,111 @@ class ParametrizedBlockInLayer(IdentityMap):
 
         return (-0.5*self._atanfctDeriv(z, layer_bottom, self.slope)*self._atanfct(z, layer_top, -self.slope)
                 + 0.5*self._atanfct(z, layer_bottom, self.slope)*self._atanfctDeriv(z, layer_top, -self.slope))
+
+    def _transform(self, m):
+
+        self._validate_m(m) # make sure things are the right sizes
+
+        # parse model
+        vals = m[:2]    # model values
+        layer_center = m[2]
+        layer_thickness = m[3]
+
+        # assemble the model
+        layer_cont = vals[0] + (vals[1]-vals[0])*self._atanlayer(layer_center, layer_thickness) # contribution from the layered background
+
+        return layer_cont
+
+    def deriv(self, m):
+
+        self._validate_m(m) # make sure things are the right sizes
+
+        # [val_back, val_layer, val_block, x0_block, dx_block]
+        # parse model
+        vals = m[:2]    # model values
+        layer_center = m[2]
+        layer_thickness = m[3]
+
+        layer_cont = vals[0] + (vals[1]-vals[0])*self._atanlayer(layer_center, layer_thickness) # contribution to background from layer
+
+        # background value
+        val0_deriv = np.ones_like(self.x) + (-1.)*self._atanlayer(layer_center, layer_thickness)
+
+        # layer value
+        val1_deriv = self._atanlayer(layer_center, layer_thickness)
+
+        # layer_center
+        layer_center_deriv = (vals[1]-vals[0])*self._atanlayerDeriv_layer_center(layer_center, layer_thickness)
+
+        # layer_thickness
+        layer_thickness_deriv = (vals[1]-vals[0])*self._atanlayerDeriv_layer_thickness(layer_center, layer_thickness)
+
+
+        return np.vstack([val0_deriv, val1_deriv, layer_center_deriv, layer_thickness_deriv]).T
+
+
+
+class ParametrizedBlockInLayer(ParametrizedLayer):
+    """
+        Parametrized Block in a Layered Space
+
+        For 2D:
+        m = [val_background, val_layer, val_block, layer_center, layer_thickness, block_x0, block_dx]
+
+        For 3D:
+        m = [val_background, val_layer, val_block, layer_center, layer_thickness, block_x0, block_y0, block_dx, block_dy]
+
+        .. plot::
+            :include-source:
+
+            from SimPEG import Mesh, Maps, np
+            import matplotlib.pyplot as plt
+
+            fig, ax = plt.subplots(1,1,figsize=(2,3))
+
+            mesh = Mesh.TensorMesh([50,50],x0='CC')
+            mapping = Maps.ParametrizedBlockInLayer(mesh)
+            m = np.hstack(np.r_[1., 2., 3., -0.1, 0.2, 0.3, 0.2])
+            rho = mapping._transform(m)
+            mesh.plotImage(rho, ax=ax)
+
+        **Required**
+
+        :param Mesh mesh: SimPEG Mesh, 2D or 3D
+
+        **Optional**
+
+        :param float slope_fact: arctan slope factor - divided by the minimum h spacing to give the slope of the arctan functions
+        :param float slope: slope of the arctan function
+        :param numpy.ndarray indActive: bool vector with
+
+    """
+
+    def __init__(self, mesh, **kwargs):
+
+        super(ParametrizedBlockInLayer, self).__init__(mesh, **kwargs)
+
+    @property
+    def nP(self):
+        if self.mesh.dim == 2:
+            return 7
+        elif self.mesh.dim == 3:
+            return 9
+
+    @property
+    def shape(self):
+        if self.indActive is not None:
+            return (sum(self.indActive), self.nP)
+        return (self.mesh.nC, self.nP)
+
+    def _validate_m(self, m):
+        # TODO: more sanity checks here
+        if self.mesh.dim == 2:
+            assert len(m) == 7, 'm must be length 7 not {0}: [val_back, val_layer, val_block, layer_center, layer_thickness, x0_block, dx_block'.format(len(m))
+        elif self.mesh.dim == 3:
+            assert len(m) == 9, 'm must be length 9 not {0}: [val_back, val_layer, val_block, layer_center, layer_thickness, x0_block, y0_block, dx_block, dy_block]'.format(len(m))
+        else:
+            raise NotImplementedError('Only 2D and 3D meshes are implemented for the Parametrized_Block_in_Layer Map')
 
     def _atanblock2d(self, layer_center, layer_thickness, x0_block, dx_block):
 
