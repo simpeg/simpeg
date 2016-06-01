@@ -710,10 +710,10 @@ class PrimSecMappedSigma(BaseSrc):
         BaseSrc.__init__(self, rxList, freq=freq, **kwargs)
 
     @property
-    def _ProjPrimary(self):
-        if getattr(self, '__ProjPrimary', None) is None:
-            self.__ProjPrimary = self.primaryProblem.mesh.getInterpolationMatCartMesh(meshs, locType='F', locTypeTo='E')
-        return self.__ProjPrimary
+    def _ProjPrimary(self, prob):
+        # if getattr(self, '__ProjPrimary', None) is None:
+        return self.primaryProblem.mesh.getInterpolationMatCartMesh(prob.mesh, locType='F', locTypeTo='E')
+        # return self.__ProjPrimary
 
 
     def _primaryFields(self, prob):
