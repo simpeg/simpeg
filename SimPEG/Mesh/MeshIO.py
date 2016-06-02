@@ -205,19 +205,30 @@ class TensorMeshIO(object):
             :param simpeg.Mesh.TensorMesh mesh: The mesh
 
         """
-        assert mesh.dim == 3
-        s = ''
-        s += '%i %i %i\n' %tuple(mesh.vnC)
-        origin = mesh.x0 + np.array([0,0,mesh.hz.sum()]) # Have to it in the same operation or use mesh.x0.copy(), otherwise the mesh.x0 is updated.
-        origin.dtype = float
+        if mesh.dim ==3:
+            s = ''
+            s += '%i %i %i\n' %tuple(mesh.vnC)
+            origin = mesh.x0 + np.array([0,0,mesh.hz.sum()]) # Have to it in the same operation or use mesh.x0.copy(), otherwise the mesh.x0 is updated.
+            origin.dtype = float
 
-        s += '%.2f %.2f %.2f\n' %tuple(origin)
-        s += ('%.2f '*mesh.nCx+'\n')%tuple(mesh.hx)
-        s += ('%.2f '*mesh.nCy+'\n')%tuple(mesh.hy)
-        s += ('%.2f '*mesh.nCz+'\n')%tuple(mesh.hz[::-1])
-        f = open(fileName, 'w')
-        f.write(s)
-        f.close()
+            s += '%.2f %.2f %.2f\n' %tuple(origin)
+            s += ('%.2f '*mesh.nCx+'\n')%tuple(mesh.hx)
+            s += ('%.2f '*mesh.nCy+'\n')%tuple(mesh.hy)
+            s += ('%.2f '*mesh.nCz+'\n')%tuple(mesh.hz[::-1])
+            f = open(fileName, 'w')
+            f.write(s)
+            f.close()
+
+        elif mesh.dim==2:
+            fid = open(fileName,'w')
+            fid.write('%i\n'% mesh.nCx)
+            fid.write('%f %f 1\n'% (mesh.vectorNx[0],mesh.vectorNx[1]))
+            np.savetxt(fid, np.c_[mesh.vectorNx[2:],np.ones(mesh.nCx-1)], fmt='\t %e %i',delimiter=' ',newline='\n')
+            fid.write('\n')
+            fid.write('%i\n'% mesh.nCy)
+            fid.write('%f %f 1\n'%( 0,mesh.hy[-1]))
+            np.savetxt(fid, np.c_[np.cumsum(mesh.hy[-2::-1])+mesh.hy[-1],np.ones(mesh.nCy-1)], fmt='\t %e %i',delimiter=' ',newline='\n')
+            fid.close()
 
         if models is None: return
         assert type(models) is dict, 'models must be a dict'
