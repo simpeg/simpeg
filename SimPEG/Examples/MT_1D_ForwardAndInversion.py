@@ -100,7 +100,7 @@ def run(plotIt=True):
     # Regularization - with a regularization mesh
     regMesh = simpeg.Mesh.TensorMesh([m1d.hx[problem.mapping.sigmaMap.maps[-1].indActive]],m1d.x0)
     reg = simpeg.Regularization.Tikhonov(regMesh)
-    reg.smoothModel = True
+    reg.mrefInSmooth = True
     reg.alpha_s = 1e-7
     reg.alpha_x = 1.
     # Inversion problem

@@ -10,28 +10,6 @@ def run(N=100, plotIt=True):
 
     """
 
-    class LinearSurvey(Survey.BaseSurvey):
-        def eval(self, u):
-            return u
-
-    class LinearProblem(Problem.BaseProblem):
-
-        surveyPair = LinearSurvey
-
-        def __init__(self, mesh, G, **kwargs):
-            Problem.BaseProblem.__init__(self, mesh, **kwargs)
-            self.G = G
-
-        def fields(self, m, u=None):
-            return self.G.dot(m)
-
-        def Jvec(self, m, v, u=None):
-            return self.G.dot(v)
-
-        def Jtvec(self, m, v, u=None):
-            return self.G.T.dot(v)
-
-
     np.random.seed(1)
 
     mesh = Mesh.TensorMesh([N])
@@ -53,8 +31,8 @@ def run(N=100, plotIt=True):
     mtrue[mesh.vectorCCx > 0.45] = -0.5
     mtrue[mesh.vectorCCx > 0.6] = 0
 
-    prob = LinearProblem(mesh, G)
-    survey = LinearSurvey()
+    prob = Problem.LinearProblem(mesh, G)
+    survey = Survey.LinearSurvey()
     survey.pair(prob)
     survey.makeSyntheticData(mtrue, std=0.01)
 

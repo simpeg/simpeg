@@ -242,9 +242,6 @@ class TestAnalytics(unittest.TestCase):
     def test_appRes1en3(self):self.assertTrue(appResPhsHalfspace_eFrom_ps_Norm(1e-3))
     def test_appPhs1en3(self):self.assertTrue(appResPhsHalfspace_eFrom_ps_Norm(1e-3,False))
 
-    # Do a derivative test
-    def test_derivProj1(self):self.assertTrue(DerivProjfieldsTest(halfSpace(1e-2)))
-
     # Do a derivative test of Jvec
     # def test_derivJvec_zxxr(self):self.assertTrue(DerivJvecTest(random(1e-2),'zxxr',.1))
     # def test_derivJvec_zxxi(self):self.assertTrue(DerivJvecTest(random(1e-2),'zxxi',.1))

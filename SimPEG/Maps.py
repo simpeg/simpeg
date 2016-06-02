@@ -759,14 +759,28 @@ class PolyMap(IdentityMap):
 
             m = [\sigma_1, \sigma_2, c]
 
+        Can take in an actInd vector to account for topography.
+
     """
-    def __init__(self, mesh, order, logSigma=True, normal='X'):
+    def __init__(self, mesh, order, logSigma=True, normal='X', actInd = None):
         IdentityMap.__init__(self, mesh)
         self.logSigma = logSigma
         self.order = order
         self.normal = normal
+        self.actInd = actInd
+
+        if getattr(self, 'actInd', None) is None:
+            self.actInd = range(self.mesh.nC)
+            self.nC = self.mesh.nC
+
+        else:
+            self.nC = len(self.actInd)
 
     slope = 1e4
+
+    @property
+    def shape(self):
+        return (self.nC, self.nP)
 
     @property
     def nP(self):
@@ -785,8 +799,8 @@ class PolyMap(IdentityMap):
             sig1, sig2 = np.exp(sig1), np.exp(sig2)
         #2D
         if self.mesh.dim == 2:
-            X = self.mesh.gridCC[:,0]
-            Y = self.mesh.gridCC[:,1]
+            X = self.mesh.gridCC[self.actInd,0]
+            Y = self.mesh.gridCC[self.actInd,1]
             if self.normal =='X':
                 f = polynomial.polyval(Y, c) - X
             elif self.normal =='Y':
@@ -795,9 +809,9 @@ class PolyMap(IdentityMap):
                 raise(Exception("Input for normal = X or Y or Z"))
         #3D
         elif self.mesh.dim == 3:
-            X = self.mesh.gridCC[:,0]
-            Y = self.mesh.gridCC[:,1]
-            Z = self.mesh.gridCC[:,2]
+            X = self.mesh.gridCC[self.actInd,0]
+            Y = self.mesh.gridCC[self.actInd,1]
+            Z = self.mesh.gridCC[self.actInd,2]
             if self.normal =='X':
                 f = polynomial.polyval2d(Y, Z, c.reshape((self.order[0]+1,self.order[1]+1))) - X
             elif self.normal =='Y':
@@ -806,6 +820,7 @@ class PolyMap(IdentityMap):
                 f = polynomial.polyval2d(X, Y, c.reshape((self.order[0]+1,self.order[1]+1))) - Z
             else:
                 raise(Exception("Input for normal = X or Y or Z"))
+
         else:
             raise(Exception("Only supports 2D"))
 
@@ -819,8 +834,8 @@ class PolyMap(IdentityMap):
             sig1, sig2 = np.exp(sig1), np.exp(sig2)
         #2D
         if self.mesh.dim == 2:
-            X = self.mesh.gridCC[:,0]
-            Y = self.mesh.gridCC[:,1]
+            X = self.mesh.gridCC[self.actInd,0]
+            Y = self.mesh.gridCC[self.actInd,1]
 
             if self.normal =='X':
                 f = polynomial.polyval(Y, c) - X
@@ -832,9 +847,9 @@ class PolyMap(IdentityMap):
                 raise(Exception("Input for normal = X or Y or Z"))
         #3D
         elif self.mesh.dim == 3:
-            X = self.mesh.gridCC[:,0]
-            Y = self.mesh.gridCC[:,1]
-            Z = self.mesh.gridCC[:,2]
+            X = self.mesh.gridCC[self.actInd,0]
+            Y = self.mesh.gridCC[self.actInd,1]
+            Z = self.mesh.gridCC[self.actInd,2]
 
             if self.normal =='X':
                 f = polynomial.polyval2d(Y, Z, c.reshape((self.order[0]+1,self.order[1]+1))) - X
