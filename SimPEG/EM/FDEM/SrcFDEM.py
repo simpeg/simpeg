@@ -10,13 +10,16 @@ class BaseSrc(Survey.BaseSrc):
 
     freq = None
     integrate = False
+    _ePrimary = None
+    _bPrimary = None
+    _hPrimary = None
+    _jPrimary = None
 
     def __init__(self, rxList, **kwargs):
         Survey.BaseSrc.__init__(self, rxList, **kwargs)
 
     def eval(self, prob):
         """
-        Evaluate the source terms.
         - :math:`s_m` : magnetic source term
         - :math:`s_e` : electric source term
 
@@ -53,7 +56,9 @@ class BaseSrc(Survey.BaseSrc):
         :rtype: numpy.ndarray
         :return: primary magnetic flux density
         """
-        return Zero()
+        if self._bPrimary is None:
+            return Zero()
+        return self._bPrimary
 
     def hPrimary(self, prob):
         """
@@ -63,7 +68,9 @@ class BaseSrc(Survey.BaseSrc):
         :rtype: numpy.ndarray
         :return: primary magnetic field
         """
-        return Zero()
+        if self._hPrimary is None:
+            return Zero()
+        return self._hPrimary
 
     def ePrimary(self, prob):
         """
@@ -73,7 +80,9 @@ class BaseSrc(Survey.BaseSrc):
         :rtype: numpy.ndarray
         :return: primary electric field
         """
-        return Zero()
+        if self._ePrimary is None:
+            return Zero()
+        return self._ePrimary
 
     def jPrimary(self, prob):
         """
@@ -83,7 +92,9 @@ class BaseSrc(Survey.BaseSrc):
         :rtype: numpy.ndarray
         :return: primary current density
         """
-        return Zero()
+        if self._jPrimary is None:
+            return Zero()
+        return self._jPrimary
 
     def s_m(self, prob):
         """
@@ -141,11 +152,11 @@ class RawVec_e(BaseSrc):
     :param bool integrate: Integrate the source term (multiply by Me) [False]
     """
 
-    def __init__(self, rxList, freq, s_e):
+    def __init__(self, rxList, freq, s_e, **kwargs):
         self._s_e = np.array(s_e, dtype=complex)
         self.freq = float(freq)
 
-        BaseSrc.__init__(self, rxList)
+        BaseSrc.__init__(self, rxList, **kwargs)
 
     def s_e(self, prob):
         """
@@ -170,11 +181,11 @@ class RawVec_m(BaseSrc):
     :param bool integrate: Integrate the source term (multiply by Me) [False]
     """
 
-    def __init__(self, rxList, freq, s_m, integrate=True):  #ePrimary=Zero(), bPrimary=Zero(), hPrimary=Zero(), jPrimary=Zero()):
+    def __init__(self, rxList, freq, s_m, **kwargs):  #ePrimary=Zero(), bPrimary=Zero(), hPrimary=Zero(), jPrimary=Zero()):
         self._s_m = np.array(s_m, dtype=complex)
         self.freq = float(freq)
 
-        BaseSrc.__init__(self, rxList)
+        BaseSrc.__init__(self, rxList, **kwargs)
 
     def s_m(self, prob):
         """

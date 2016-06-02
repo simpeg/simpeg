@@ -87,7 +87,7 @@ class BaseFDEMProblem(BaseEMProblem):
                 du_dm_v = Ainv * ( - dA_dm_v + dRHS_dm_v )
 
                 for rx in src.rxList:
-                    df_dmFun = getattr(f, '_%sDeriv'%rx.projField, None)
+                    df_dmFun = getattr(f, '_{0}Deriv'.format(rx.projField), None)
                     df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
                     Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
             Ainv.clean()
@@ -125,7 +125,7 @@ class BaseFDEMProblem(BaseEMProblem):
                 for rx in src.rxList:
                     PTv = rx.evalDeriv(src, self.mesh, f, v[src, rx], adjoint=True) # wrt f, need possibility wrt m
 
-                    df_duTFun = getattr(f, '_%sDeriv'%rx.projField, None)
+                    df_duTFun = getattr(f, '_{0}Deriv'.format(rx.projField), None)
                     df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
 
                     ATinvdf_duT = ATinv * df_duT
@@ -137,9 +137,9 @@ class BaseFDEMProblem(BaseEMProblem):
                     df_dmT = df_dmT + du_dmT
 
                     # TODO: this should be taken care of by the reciever?
-                    if rx.real_or_imag is 'real':
+                    if rx.component is 'real':
                         Jtv +=   np.array(df_dmT, dtype=complex).real
-                    elif rx.real_or_imag is 'imag':
+                    elif rx.component is 'imag':
                         Jtv += - np.array(df_dmT, dtype=complex).real
                     else:
                         raise Exception('Must be real or imag')
@@ -166,6 +166,7 @@ class BaseFDEMProblem(BaseEMProblem):
 
         for i, src in enumerate(Srcs):
             smi, sei = src.eval(self)
+            #Why are you adding?
             s_m[:,i] = s_m[:,i] + smi
             s_e[:,i] = s_e[:,i] + sei
 

@@ -20,8 +20,8 @@ INPUT:
 loc     = Location of spheres [[x1,y1,z1],[x2,y2,z2]]
 radi    = Radius of spheres [r1,r2]
 param   = Conductivity of background and two spheres [m0,m1,m2]
-stype   = survey type "pdp" (pole dipole) or "dpdp" (dipole dipole)
-dtype   = Data type "appr" (app res) | "appc" (app cond) | "volt" (potential)
+surveyType = survey type 'pole-dipole' or 'dipole-dipole'
+unitType = Data type "appResistivity" | "appConductivity"  | "volt"
 Created by @fourndo
 
 
