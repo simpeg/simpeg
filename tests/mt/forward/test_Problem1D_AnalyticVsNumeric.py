@@ -8,45 +8,6 @@ TOLr = 5e-2
 TOLp = 5e-2
 
 
-def setupSurvey(sigmaHalf,tD=True):
-
-    # Frequency
-    nFreq = 33
-    freqs = np.logspace(3,-3,nFreq)
-    # Make the mesh
-    ct = 5
-    air = meshTensor([(ct,25,1.3)])
-    # coreT0 = meshTensor([(ct,15,1.2)])
-    # coreT1 = np.kron(meshTensor([(coreT0[-1],15,1.3)]),np.ones((7,)))
-    core = np.concatenate( (  np.kron(meshTensor([(ct,15,-1.2)]),np.ones((10,))) , meshTensor([(ct,20)]) ) )
-    bot = meshTensor([(core[0],15,-1.3)])
-    x0 = -np.array([np.sum(np.concatenate((core,bot)))])
-    m1d = simpeg.Mesh.TensorMesh([np.concatenate((bot,core,air))], x0=x0)
-    # Make the model
-    sigma = np.zeros(m1d.nC) + sigmaHalf
-    sigma[m1d.gridCC > 0 ] = 1e-8
-    sigmaBack = sigma.copy()
-    # Add structure
-    shallow = (m1d.gridCC < -200) * (m1d.gridCC > -600)
-    deep = (m1d.gridCC < -3000) * (m1d.gridCC > -5000)
-    sigma[shallow] = 1
-    sigma[deep] = 0.1
-
-    rxList = []
-    for rxType in ['z1dr','z1di']:
-        rxList.append(NSEM.Rx(simpeg.mkvc(np.array([0.0]),2).T,rxType))
-    # Source list
-    srcList =[]
-    if tD:
-        for freq in freqs:
-            srcList.append(NSEM.SrcNSEM.polxy_1DhomotD(rxList,freq))
-    else:
-        for freq in freqs:
-            srcList.append(NSEM.SrcNSEM.polxy_1Dprimary(rxList,freq))
-
-    survey = NSEM.Survey(srcList)
-    return survey, sigma, m1d
-
 def getAppResPhs(NSEMdata):
     # Make impedance
     def appResPhs(freq,z):
@@ -70,7 +31,7 @@ def calculateAnalyticSolution(srcList,mesh,model):
     data1D = NSEM.Data(surveyAna)
     for src in surveyAna.srcList:
         elev = src.rxList[0].locs[0]
-        anaEd, anaEu, anaHd, anaHu = NSEM.Utils.NSEM1Danalytic.getEHfields(mesh,model,src.freq,elev)
+        anaEd, anaEu, anaHd, anaHu = NSEM.Utils.MT1Danalytic.getEHfields(mesh,model,src.freq,elev)
         anaE = anaEd+anaEu
         anaH = anaHd+anaHu
         # Scale the solution
@@ -86,8 +47,8 @@ def dataMis_AnalyticTotalDomain(sigmaHalf):
     # Make the survey
 
     # Total domain solution
-    surveyTD, sigma, mesh = setupSurvey(sigmaHalf)
-    problemTD = NSEM.Problem1D.eForm_TotalField(mesh)
+    surveyTD, sigma, mesh = NSEM.Utils.testUtils.setup1DSurvey(sigmaHalf)
+    problemTD = NSEM.Problem1D_eTotal(mesh) # This not fully implemented
     problemTD.pair(surveyTD)
     # Analytic data
     dataAnaObj = calculateAnalyticSolution(surveyTD.srcList,mesh,sigma)
@@ -108,16 +69,16 @@ def dataMis_AnalyticPrimarySecondary(sigmaHalf):
 
     # Make the survey
     # Primary secondary
-    surveyPS, sigmaPS, mesh = setupSurvey(sigmaHalf,tD=False)
-    problemPS = NSEM.Problem1D.eForm_psField(mesh)
-    problemPS.sigmaPrimary = sigmaPS
-    problemPS.pair(surveyPS)
+    survey, sigma, mesh = NSEM.Utils.testUtils.setup1DSurvey(sigmaHalf,False,structure=True)
     # Analytic data
-    dataAnaObj = calculateAnalyticSolution(surveyPS.srcList,mesh,sigmaPS)
+    problem = NSEM.Problem1D_ePrimSec(mesh, sigmaPrimary = sigma)
+    problem.pair(survey)
 
-    dataPS = surveyPS.dpred(sigmaPS)
+    dataAnaObj = calculateAnalyticSolution(survey.srcList,mesh,sigma)
+
+    data = survey.dpred(sigma)
     dataAna = simpeg.mkvc(dataAnaObj)
-    return np.all((dataPS - dataAna)/dataAna < 2.)
+    return np.all((data - dataAna)/dataAna < 2.)
 
 
 

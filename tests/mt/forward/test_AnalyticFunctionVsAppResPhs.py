@@ -4,10 +4,7 @@ from SimPEG import NSEM
 
 TOL = 1e-6
 
-def appResPhs(freq,z):
-    app_res = ((1./(8e-7*np.pi**2))/freq)*np.abs(z)**2
-    app_phs = np.arctan2(-z.imag,z.real)*(180/np.pi)
-    return app_res, app_phs
+
 
 def appResNorm(sigmaHalf):
     nFreq = 26
@@ -25,7 +22,7 @@ def appResNorm(sigmaHalf):
 
     Zarr = np.concatenate(Z)
 
-    app_r, app_p = appResPhs(freqs,Zarr)
+    app_r, app_p = NSEM.Utils.appResPhs(freqs,Zarr)
 
     return np.linalg.norm(np.abs(app_r - np.ones(nFreq)/sigmaHalf)) / np.log10(sigmaHalf)
 
