@@ -198,8 +198,8 @@ class BaseTensorMesh(BaseMesh):
         Determines if a set of points are inside a mesh.
 
         :param numpy.ndarray pts: Location of points to test
-        :rtype numpy.ndarray
-        :return inside, numpy array of booleans
+        :rtype numpy.ndarray:
+        :return: inside, numpy array of booleans
         """
         pts = Utils.asArray_N_x_Dim(pts, self.dim)
 
@@ -221,7 +221,7 @@ class BaseTensorMesh(BaseMesh):
 
         :param numpy.ndarray loc: Location of points to interpolate to
         :param str locType: What to interpolate (see below)
-        :rtype: scipy.sparse.csr.csr_matrix
+        :rtype: scipy.sparse.csr_matrix
         :return: M, the interpolation matrix
 
         locType can be::
@@ -289,7 +289,7 @@ class BaseTensorMesh(BaseMesh):
             :param bool returnP: returns the projection matrices
             :param bool invProp: inverts the material property
             :param bool invMat: inverts the matrix
-            :rtype: scipy.csr_matrix
+            :rtype: scipy.sparse.csr_matrix
             :return: M, the inner product matrix (nF, nF)
         """
         assert projType in ['F', 'E'], "projType must be 'F' for faces or 'E' for edges"
