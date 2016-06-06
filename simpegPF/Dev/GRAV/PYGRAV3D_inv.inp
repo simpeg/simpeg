@@ -1,11 +1,12 @@
 Mesh_10m.msh			! Mesh file
 Grav.dat			! Obsfile
 Gaussian.topo			! Topofile | null
-VALUE 0.0			! Starting model
+ModelStart.den			! Starting model
 VALUE 0.0			! Reference model
+ActiveCells.dat			! [ Active file (0:Inactive | 1: Active-Dynamic | -1: Active-Static) ] || [ VALUE ### (from starting model) ] || [ DEFAULT (all Active-Dynamic)]
 DEFAULT				! Cell based weight file
 1				! target chi factor | DEFAULT=1
 1 1 1 1			! alpha s, x ,y ,z
 VALUE -1 1		! Lower and Upper Bounds for p-component
 VALUE 0 1 1 1 2		! lp-norm for amplitude inversion FILE pqxqyqzr.dat  ! Norms VALUE p, qx, qy, qz, r | FILE m-by-5 matrix
-VALUE 1e-2 1e-3		! Threshold value for the norm on model and model gradient VALUE eps_p, eps_q | DEFAULT
+DEFAULT		! Threshold value for the norm on model and model gradient VALUE eps_p, eps_q | DEFAULT

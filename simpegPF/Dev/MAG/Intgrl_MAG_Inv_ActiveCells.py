@@ -125,6 +125,8 @@ m0 = np.reshape(m0,(mesh.nCx,mesh.nCy,mesh.nCz), order = 'F')
 m0[midx-6,midy,midz+2] = val
 m0[midx+7,midy,midz+2] = val
 m0 = mkvc(m0)
+# Write result
+Mesh.TensorMesh.writeModelUBC(mesh,'ModelStart.sus',m0)
 
 # Extract cells under topography and create new index for inactive
 m0 = m0[actv]

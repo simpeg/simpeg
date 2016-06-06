@@ -7,9 +7,9 @@ import numpy as np
 
 
 
-home_dir = 'C:\Egnyte\Private\craigm\PHD\LdM\Gravity\Bouguer\SIMPEG\models\surface_layer_model_-500'
+home_dir = '.\\'
 
-inpfile = 'PYGRAV3D_inv_LdM_surface_layer_fixed.inp'
+inpfile = 'PYGRAV3D_inv.inp'
 
 dsep = '\\'
 os.chdir(home_dir)
@@ -35,57 +35,24 @@ wgtexp = 3.  #dont forget the "."
 fixedcell = -0.5
 
 #%%
-# Read input file
-[mshfile, obsfile, topofile, mstart, mref, wgtfile, chi, alphas, bounds, lpnorms] = PF.Gravity.read_GRAVinv_inp(home_dir + dsep + inpfile)
+driver = PF.GravityDriver.GravityDriver_Inv(home_dir + dsep + 'PYGRAV3D_inv.inp')
+mesh = driver.mesh
+survey = driver.survey
 
-# Load mesh file
-mesh = Mesh.TensorMesh.readUBC(mshfile)
-
-# Load in observation file
-survey = PF.Gravity.readUBCgravObs(obsfile)
-
-# Get obs location and data
 rxLoc = survey.srcField.rxList[0].locs
 d = survey.dobs
 wd = survey.std
-
+    
 ndata = survey.srcField.rxList[0].locs.shape[0]
 
-# Load in topofile or create flat surface
-if topofile == 'null':
-    
-    # All active
-    actv = np.asarray(range(mesh.nC))
-    
-else: 
-    
-    topo = np.genfromtxt(topofile,skip_header=1)
-    # Find the active cells
-    actv = PF.Magnetics.getActiveTopo(mesh,topo,'N')
-
+actv = driver.activeCells
 nC = len(actv)
 
 # Create active map to go from reduce set to full
 actvMap = Maps.InjectActiveCells(mesh, actv, -100)
 
-# Creat reduced identity map
-#idenMap = Maps.IdentityMap(nP = nC)
-
-
-# Load starting model file
-if isinstance(mstart, float):
-    
-    mstart = np.ones(nC) * mstart
-else:
-    mstart = Mesh.TensorMesh.readModelUBC(mesh,mstart)
-    mstart = mstart[actv]
-
-# Extract cells under topography and create new index for inactive
-#m0 = Mesh.TensorMesh.readModelUBC(mesh, mstart)
-#m0 = m0[actv]
-ind_act = mstart!= fixedcell
-
-actvCells = Maps.InjectActiveCells(None, ind_act, fixedcell, nC=nC)
+ind_act = driver.staticCells
+staticCells = Maps.InjectActiveCells(None, ind_act, driver.m0[ind_act==False], nC=nC)
 mstart = mstart[ind_act]
 
 
@@ -106,7 +73,7 @@ midy = int(mesh.nCy/2)
 #PF.Gravity.plot_obs_2D(survey,'Observed Data')
 
 #%% Run inversion
-prob = PF.Gravity.GravityIntegral(mesh, mapping = actvCells, actInd = actv)
+prob = PF.Gravity.GravityIntegral(mesh, mapping = staticCells, actInd = actv)
 prob.solverOpts['accuracyTol'] = 1e-4
 
 survey.pair(prob)
@@ -159,7 +126,7 @@ plt.savefig(home_dir + dsep + 'Weighting_' +str(wgtexp) +'.png', dpi=300)
 
 print '\nRun smooth inversion \n'
 # First start with an l2 (smooth model) regularization
-reg = Regularization.Simple(mesh, indActive = actv, mapping = actvCells)
+reg = Regularization.Simple(mesh, indActive = actv, mapping = staticCells)
 reg.mref = mref
 reg.wght = wr
 
@@ -193,7 +160,7 @@ m0 = mstart
 # Run inversion
 mrec = inv.run(m0)
 
-m_out = actvMap*actvCells*mrec
+m_out = actvMap*staticCells*mrec
 
 # Write result
 Mesh.TensorMesh.writeModelUBC(mesh,'SimPEG_inv_l2l2_' +str(wgtexp) + '.den', m_out)
@@ -258,7 +225,7 @@ plt.xlabel('Density (g/cc$^3$)')
 plt.title('Histogram of model values - Smooth')
 
 ax = plt.subplot(122)
-plt.hist(reg.regmesh.cellDiffxStencil*(actvCells*mrec),100)
+plt.hist(reg.regmesh.cellDiffxStencil*(staticCells*mrec),100)
 plt.yscale('log', nonposy='clip')
 plt.xlim(mrec.mean() - 2.*(mrec.std()), mrec.mean() + 2.*(mrec.std()))
 plt.xlabel('Density (g/cc$^3$)')
@@ -272,7 +239,7 @@ print '\nRun compact inversion \n'
 phim = invProb.phi_m_last
 phid =  invProb.phi_d
 
-reg = Regularization.Sparse(mesh, indActive = actv, mapping = actvCells)
+reg = Regularization.Sparse(mesh, indActive = actv, mapping = staticCells)
 reg.recModel = mrec
 reg.mref = mref
 reg.wght = wr
@@ -317,7 +284,7 @@ m0 = mrec
 # Run inversion
 mrec = inv.run(m0)
 
-m_out = actvMap*actvCells*mrec
+m_out = actvMap*staticCells*mrec
 
 Mesh.TensorMesh.writeModelUBC(mesh,'SimPEG_inv_l0l2_' +str(wgtexp) + '_' + str(eps_p) + '_' + str(eps_q) +'.den',m_out)
 
@@ -387,7 +354,7 @@ plt.xlabel('Density (g/cc$^3$)')
 plt.title('Histogram of model values - Sparse lp:'+str(lpnorms[0]))
 
 ax = plt.subplot(122)
-plt.hist(reg.regmesh.cellDiffxStencil*(actvCells*mrec),100)
+plt.hist(reg.regmesh.cellDiffxStencil*(staticCells*mrec),100)
 #plt.xlim(mrec.mean() - 4.*(mrec.std()), mrec.mean() + 4.*(mrec.std()))
 plt.xlabel('Density (g/cc$^3$)')
 plt.yscale('log', nonposy='clip')
