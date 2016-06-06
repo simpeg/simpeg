@@ -42,55 +42,33 @@ def run(N=100, plotIt=True):
     survey = Survey.LinearSurvey()
     survey.pair(prob)
     survey.dobs = prob.fields(mtrue) + std_noise * np.random.randn(nk)
-    #survey.makeSyntheticData(mtrue, std=std_noise)
 
     wd = np.ones(nk) * std_noise
 
-    #print survey.std[0]
-    #M = prob.mesh
     # Distance weighting
     wr = np.sum(prob.G**2.,axis=0)**0.5
     wr = ( wr/np.max(wr) )
 
-#    reg = Regularization.Simple(mesh)
-#    reg.mref = mref
-#    reg.cell_weights = wr
-#
     dmis = DataMisfit.l2_DataMisfit(survey)
     dmis.Wd = 1./wd
-#
-#    opt = Optimization.ProjectedGNCG(maxIter=20,lower=-2.,upper=2., maxIterCG= 10, tolCG = 1e-4)
-#    invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
-#    invProb.curModel = m0
-#
-#    beta = Directives.BetaSchedule(coolingFactor=2, coolingRate=1)
-#    target = Directives.TargetMisfit()
-#
+
     betaest = Directives.BetaEstimate_ByEig()
-#    inv = Inversion.BaseInversion(invProb, directiveList=[beta, betaest, target])
-#
-#
-#    mrec = inv.run(m0)
-#    ml2 = mrec
-#    print "Final misfit:" + str(invProb.dmisfit.eval(mrec))
-#
-#    # Switch regularization to sparse
-#    phim = invProb.phi_m_last
-#    phid =  invProb.phi_d
 
     reg = Regularization.Sparse(mesh)
     reg.mref = mref
     reg.cell_weights = wr
 
     reg.mref = np.zeros(mesh.nC)
-    eps_p = 5e-2
-    eps_q = 5e-2
-    norms   = [0., 0., 2., 2.]
+    
 
     opt = Optimization.ProjectedGNCG(maxIter=100 ,lower=-2.,upper=2., maxIterLS = 20, maxIterCG= 10, tolCG = 1e-3)
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
     update_Jacobi = Directives.Update_lin_PreCond()
-    IRLS = Directives.Update_IRLS( norms=norms,  eps_p=eps_p, eps_q=eps_q)
+    
+    # Set the IRLS directive, penalize the lowest 25 percentile of model values
+    # Start with an l2-l2, then switch to lp-norms
+    norms   = [0., 0., 2., 2.]    
+    IRLS = Directives.Update_IRLS( norms=norms, prctile = 25, maxIRLSiter = 15, minGNiter=3)
 
     inv = Inversion.BaseInversion(invProb, directiveList=[IRLS,betaest,update_Jacobi])
 
