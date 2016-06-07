@@ -1,6 +1,6 @@
 from SimPEG.EM.Utils.EMUtils import omega, mu_0
 from SimPEG import SolverLU as SimpegSolver, PropMaps, Utils, mkvc, sp, np
-from SimPEG.EM.FDEM.FDEM import BaseFDEMProblem
+from SimPEG.EM.FDEM.ProblemFDEM import BaseFDEMProblem
 from SurveyNSEM import Survey, Data
 from FieldsNSEM import BaseNSEMFields, Fields1D_ePrimSec, Fields3D_ePrimSec
 from SimPEG.NSEM.Utils.MT1Danalytic import getEHfields
