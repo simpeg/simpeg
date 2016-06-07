@@ -7,11 +7,9 @@ import EM_TDEM_1D_Inversion
 import Mesh_QuadTree_FaceDiv
 import Mesh_Tensor_Creation
 import FLOW_Richards_1D_Celia1990
-<<<<<<< HEAD
 import Inversion_IRLS
 import Inversion_Linear
 import Mesh_Basic_ForwardDC
-=======
 import DC_Forward_PseudoSection
 import Mesh_Operators_CahnHilliard
 import Mesh_Basic_Types
@@ -23,11 +21,9 @@ import MT_1D_ForwardAndInversion
 import MT_1D_analytic_nlayer_Earth
 import Forward_BasicDirectCurrent
 import EM_FDEM_Analytic_MagDipoleWholespace
->>>>>>> mt/NSEMrefact
 import Mesh_Basic_PlotImage
 import DC_Analytic_Dipole
 import Mesh_QuadTree_HangingNodes
-<<<<<<< HEAD
 import Mesh_Tensor_Creation
 import MT_1D_ForwardAndInversion
 import MT_3D_Foward

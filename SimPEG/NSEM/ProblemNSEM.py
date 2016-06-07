@@ -25,8 +25,7 @@ class BaseNSEMProblem(BaseFDEMProblem):
 
     verbose = False
     # Notes:
-    # Use the forward and devs from BaseFDEMProblem
-    # Might need to add more stuff here.
+    # Use the fields and devs methods from BaseFDEMProblem
 
     ## NEED to clean up the Jvec and Jtvec to use Zero and Identities for None components.
     def Jvec(self, m, v, f=None):
@@ -40,7 +39,7 @@ class BaseNSEMProblem(BaseFDEMProblem):
             :return: Data sensitivities wrt m
         """
 
-        # Calculate the fields
+        # Calculate the fields if not given as input
         if f is None:
            f= self.fields(m)
         # Set current model
