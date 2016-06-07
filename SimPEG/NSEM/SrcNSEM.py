@@ -11,9 +11,9 @@ import sys
 ###   Sources ###
 #################
 
-class BaseMTSrc(FDEMBaseSrc):
+class BaseNSEMSrc(FDEMBaseSrc):
     '''
-    Sources for the MT problem.
+    Sources for the NSEM problem.
     Use the SimPEG BaseSrc, since the source fields share properties with the transmitters.
 
     :param float freq: The frequency of the source
@@ -29,28 +29,28 @@ class BaseMTSrc(FDEMBaseSrc):
         FDEMBaseSrc.__init__(self, rxList)
 
 # 1D sources
-class polxy_1DhomotD(BaseMTSrc):
+class polxy_1DhomotD(BaseNSEMSrc):
     """
-    MT source for both polarizations (x and y) for the total Domain.
+    NSEM source for both polarizations (x and y) for the total Domain.
 
     It calculates fields calculated based on conditions on the boundary of the domain.
     """
     def __init__(self, rxList, freq):
-        BaseMTSrc.__init__(self, rxList, freq)
+        BaseNSEMSrc.__init__(self, rxList, freq)
 
 
     # TODO: need to add the  primary fields calc and source terms into the problem.
 
 # Need to implement such that it works for all dims.
-class polxy_1Dprimary(BaseMTSrc):
+class polxy_1Dprimary(BaseNSEMSrc):
     """
-    MT source for both polarizations (x and y) given a 1D primary models.
+    NSEM source for both polarizations (x and y) given a 1D primary models.
     It assigns fields calculated from the 1D model as fields in the full space of the problem.
     """
     def __init__(self, rxList, freq):
         # assert mkvc(self.mesh.hz.shape,1) == mkvc(sigma1d.shape,1),'The number of values in the 1D background model does not match the number of vertical cells (hz).'
         self.sigma1d = None
-        BaseMTSrc.__init__(self, rxList, freq)
+        BaseNSEMSrc.__init__(self, rxList, freq)
         # Hidden property of the ePrimary
         self._ePrimary = None
 
@@ -86,7 +86,7 @@ class polxy_1Dprimary(BaseMTSrc):
         Get the electrical field source
         """
         e_p = self.ePrimary(problem)
-        Map_sigma_p = Maps.Vertical1DMap(problem.mesh)
+        Map_sigma_p = Maps.SurjectVertical1D(problem.mesh)
         sigma_p = Map_sigma_p._transform(self.sigma1d)
         # Make mass matrix
         # Note: M(sig) - M(sig_p) = M(sig - sig_p)
@@ -128,15 +128,15 @@ class polxy_1Dprimary(BaseMTSrc):
             # v should be nC size
             return MsigmaDeriv * v
 
-class polxy_3Dprimary(BaseMTSrc):
+class polxy_3Dprimary(BaseNSEMSrc):
     """
-    MT source for both polarizations (x and y) given a 3D primary model. It assigns fields calculated from the 1D model
+    NSEM source for both polarizations (x and y) given a 3D primary model. It assigns fields calculated from the 1D model
     as fields in the full space of the problem.
     """
     def __init__(self, rxList, freq):
         # assert mkvc(self.mesh.hz.shape,1) == mkvc(sigma1d.shape,1),'The number of values in the 1D background model does not match the number of vertical cells (hz).'
         self.sigmaPrimary = None
-        BaseMTSrc.__init__(self, rxList, freq)
+        BaseNSEMSrc.__init__(self, rxList, freq)
         # Hidden property of the ePrimary
         self._ePrimary = None
 
@@ -163,7 +163,7 @@ class polxy_3Dprimary(BaseMTSrc):
         Get the electrical field source
         """
         e_p = self.ePrimary(problem)
-        Map_sigma_p = Maps.Vertical1DMap(problem.mesh)
+        Map_sigma_p = Maps.SurjectVertical1D(problem.mesh)
         sigma_p = Map_sigma_p._transform(self.sigma1d)
         # Make mass matrix
         # Note: M(sig) - M(sig_p) = M(sig - sig_p)

@@ -2,7 +2,7 @@
 
 # Import
 import SimPEG as simpeg
-from SimPEG import MT
+from SimPEG import NSEM
 import numpy as np
 try:
     from pymatsolver import MumpsSolver as Solver
@@ -37,16 +37,16 @@ def run(plotIt=True, nFreq=1):
     for loc in rx_loc:
         # NOTE: loc has to be a (1,3) np.ndarray otherwise errors accure
         for rxType in ['zxxr','zxxi','zxyr','zxyi','zyxr','zyxi','zyyr','zyyi','tzxr','tzxi','tzyr','tzyi']:
-            rxList.append(MT.Rx(simpeg.mkvc(loc,2).T,rxType))
+            rxList.append(NSEM.Rx(simpeg.mkvc(loc,2).T,rxType))
     # Source list
     srcList =[]
     for freq in np.logspace(3,-3,nFreq):
-        srcList.append(MT.SrcMT.polxy_1Dprimary(rxList,freq))
+        srcList.append(NSEM.SrcNSEM.polxy_1Dprimary(rxList,freq))
     # Survey MT
-    survey = MT.Survey(srcList)
+    survey = NSEM.Survey(srcList)
 
     ## Setup the problem object
-    problem = MT.Problem3D.eForm_ps(M, sigmaPrimary=sigBG)
+    problem = NSEM.Problem3D_ePrimSec(M, sigmaPrimary=sigBG)
     problem.pair(survey)
     problem.Solver = Solver
 
@@ -55,7 +55,7 @@ def run(plotIt=True, nFreq=1):
     dataVec = survey.eval(fields)
 
     # Make the data
-    mtData = MT.Data(survey,dataVec)
+    mtData = NSEM.Data(survey,dataVec)
     # Add plots
     if plotIt:
         pass

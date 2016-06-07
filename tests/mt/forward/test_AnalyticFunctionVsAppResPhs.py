@@ -1,13 +1,10 @@
 import unittest
 from SimPEG import *
-from SimPEG import MT
+from SimPEG import NSEM
 
 TOL = 1e-6
 
-def appResPhs(freq,z):
-    app_res = ((1./(8e-7*np.pi**2))/freq)*np.abs(z)**2
-    app_phs = np.arctan2(-z.imag,z.real)*(180/np.pi)
-    return app_res, app_phs
+
 
 def appResNorm(sigmaHalf):
     nFreq = 26
@@ -20,12 +17,12 @@ def appResNorm(sigmaHalf):
     freqs = np.logspace(4,-4,nFreq)
     Z = []
     for freq in freqs:
-        Ed, Eu, Hd, Hu = MT.Utils.getEHfields(m1d,sigma,freq,np.array([200]))
+        Ed, Eu, Hd, Hu = NSEM.Utils.getEHfields(m1d,sigma,freq,np.array([200]))
         Z.append((Ed + Eu)/(Hd + Hu))
 
     Zarr = np.concatenate(Z)
 
-    app_r, app_p = appResPhs(freqs,Zarr)
+    app_r, app_p = NSEM.Utils.appResPhs(freqs,Zarr)
 
     return np.linalg.norm(np.abs(app_r - np.ones(nFreq)/sigmaHalf)) / np.log10(sigmaHalf)
 
