@@ -49,29 +49,27 @@ class BaseNSEMProblem(BaseFDEMProblem):
 
         # Loop all the frequenies
         for freq in self.survey.freqs:
-            dA_du = self.getA(freq) #
-
-            dA_duI = self.Solver(dA_du, **self.solverOpts)
+            # Get the system
+            A = self.getA(freq)
+            # Factor
+            Ainv = self.Solver(A, **self.solverOpts)
 
             for src in self.survey.getSrcByFreq(freq):
                 # We need fDeriv_m = df/du*du/dm + df/dm
                 # Construct du/dm, it requires a solve
                 # NOTE: need to account for the 2 polarizations in the derivatives.
                 u_src = f[src,:] # u should be a vector by definition. Need to fix this...
-                # dA_dm and dRHS_dm should be of size nE,2, so that we can multiply by dA_duI. The 2 columns are each of the polarizations.
-                dA_dm = self.getADeriv_m(freq, u_src, v) # Size: nE,2 (u_px,u_py) in the columns.
-                dRHS_dm = self.getRHSDeriv_m(freq, v) # Size: nE,2 (u_px,u_py) in the columns.
-                if dRHS_dm is None:
-                    du_dm = dA_duI * ( -dA_dm )
-                else:
-                    du_dm = dA_duI * ( -dA_dm + dRHS_dm )
+                # dA_dm and dRHS_dm should be of size nE,2, so that we can multiply by Ainv.
+                # The 2 columns are each of the polarizations.
+                dA_dm_v = self.getADeriv(freq, u_src, v) # Size: nE,2 (u_px,u_py) in the columns.
+                dRHS_dm_v = self.getRHSDeriv(freq, v) # Size: nE,2 (u_px,u_py) in the columns.
+                # Calculate du/dm*v
+                du_dm_v = Ainv * ( - dA_dm_v + dRHS_dm_v)
                 # Calculate the projection derivatives
                 for rx in src.rxList:
-                    # Get the projection derivative
-                    # v should be of size 2*nE (for 2 polarizations)
-                    PDeriv_u = lambda t: rx.evalDeriv(src, self.mesh, f, t) # wrt u, we don't have have PDeriv wrt m
-                    Jv[src, rx] = PDeriv_u(mkvc(du_dm))
-            dA_duI.clean()
+                    # Calculate dP/du*du/dm*v
+                    Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, mkvc(du_dm_v)) # wrt uPDeriv_u(mkvc(du_dm))
+            Ainv.clean()
         # Return the vectorized sensitivities
         return mkvc(Jv)
 
@@ -103,22 +101,19 @@ class BaseNSEMProblem(BaseFDEMProblem):
             ATinv = self.Solver(AT, **self.solverOpts)
 
             for src in self.survey.getSrcByFreq(freq):
-                ftype = self._solutionType
-                f_src = f[src, :] # Need to fix this...
+                # u_src needs to have both polarizations
+                u_src = f[src, :]
 
                 for rx in src.rxList:
                     # Get the adjoint evalDeriv
                     # PTv needs to be nE,
-                    PTv = rx.evalDeriv(src, self.mesh, f, mkvc(v[src, rx],2), adjoint=True) # wrt u, need possibility wrt m
+                    PTv = rx.evalDeriv(src, self.mesh, f, mkvc(v[src, rx],2), adjoint=True) # wrt f, need possibility wrt m
                     # Get the
                     dA_duIT = ATinv * PTv
-                    dA_dmT = self.getADeriv_m(freq, f_src, mkvc(dA_duIT), adjoint=True)
-                    dRHS_dmT = self.getRHSDeriv_m(freq, mkvc(dA_duIT), adjoint=True)
+                    dA_dmT = self.getADeriv(freq, u_src, mkvc(dA_duIT), adjoint=True)
+                    dRHS_dmT = self.getRHSDeriv(freq, mkvc(dA_duIT), adjoint=True)
                     # Make du_dmT
-                    if dRHS_dmT is None:
-                        du_dmT = -dA_dmT
-                    else:
-                        du_dmT = -dA_dmT + dRHS_dmT
+
                     # Select the correct component
                     # du_dmT needs to be of size nC,
                     real_or_imag = rx.projComp
@@ -221,7 +216,7 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
         # Either return full or only the inner part of A
         return A
 
-    def getADeriv_m(self, freq, u, v, adjoint=False):
+    def getADeriv(self, freq, u, v, adjoint=False):
         """
         The derivative of A wrt sigma
         """
@@ -250,7 +245,7 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
         S_e = Src.S_e(self)
         return -1j * omega(freq) * S_e
 
-    def getRHSDeriv_m(self, freq, v, adjoint=False):
+    def getRHSDeriv(self, freq, v, adjoint=False):
         """
         The derivative of the RHS wrt sigma
         """
@@ -258,6 +253,7 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
         Src = self.survey.getSrcByFreq(freq)[0]
         S_eDeriv = Src.S_eDeriv_m(self, v, adjoint)
         return -1j * omega(freq) * S_eDeriv
+
 
     def fields(self, m):
         '''
@@ -485,18 +481,21 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
 
         return C.T*Mmui*C + 1j*omega(freq)*Msig
 
-    def getADeriv_m(self, freq, u, v, adjoint=False):
+    def getADeriv(self, freq, u, v, adjoint=False):
         """
         Calculate the derivative of A wrt m.
 
         """
         # Fix u to be a matrix nE,2
         # This considers both polarizations and returns a nE,2 matrix for each polarization
+        # The solution types
+        sol0, sol1 = self._solutionType
+
         if adjoint:
-            dMe_dsigV = sp.hstack(( self.MeSigmaDeriv( u['e_pxSolution'] ).T, self.MeSigmaDeriv(u['e_pySolution'] ).T ))*v
+            dMe_dsigV = sp.hstack(( self.MeSigmaDeriv( u[sol0] ).T, self.MeSigmaDeriv(u[sol1] ).T ))*v
         else:
             # Need a nE,2 matrix to be returned
-            dMe_dsigV = np.hstack(( mkvc(self.MeSigmaDeriv( u['e_pxSolution'] )*v,2), mkvc( self.MeSigmaDeriv(u['e_pySolution'] )*v,2) ))
+            dMe_dsigV = np.hstack(( mkvc(self.MeSigmaDeriv( u[sol0] )*v,2), mkvc( self.MeSigmaDeriv(u[sol1] )*v,2) ))
         return 1j * omega(freq) * dMe_dsigV
 
 
@@ -514,14 +513,17 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
         S_e = Src.S_e(self)
         return -1j * omega(freq) * S_e
 
-    def getRHSDeriv_m(self, freq, v, adjoint=False):
+    def getRHSDeriv(self, freq, v, adjoint=False):
         """
-        The derivative of the RHS with respect to sigma
+        The derivative of the RHS with respect to the model and the source
         """
 
+        # Note: the formulation of the derivative is the same for adjoint or not.
         Src = self.survey.getSrcByFreq(freq)[0]
-        S_eDeriv = Src.S_eDeriv_m(self, v, adjoint)
-        return -1j * omega(freq) * S_eDeriv
+        S_eDeriv = Src.S_eDeriv(self, v, adjoint)
+        dRHS_dm = -1j * omega(freq) * S_eDeriv
+
+        return dRHS_dm
 
     def fields(self, m):
         '''

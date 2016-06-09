@@ -42,6 +42,7 @@ class polxy_1DhomotD(BaseNSEMSrc):
     # TODO: need to add the  primary fields calc and source terms into the problem.
 
 # Need to implement such that it works for all dims.
+# Rename to be more descriptive
 class polxy_1Dprimary(BaseNSEMSrc):
     """
     NSEM source for both polarizations (x and y) given a 1D primary models.
@@ -51,8 +52,7 @@ class polxy_1Dprimary(BaseNSEMSrc):
         # assert mkvc(self.mesh.hz.shape,1) == mkvc(sigma1d.shape,1),'The number of values in the 1D background model does not match the number of vertical cells (hz).'
         self.sigma1d = None
         BaseNSEMSrc.__init__(self, rxList, freq)
-        # Hidden property of the ePrimary
-        self._ePrimary = None
+
 
     def ePrimary(self,problem):
         # Get primary fields for both polarizations
@@ -101,7 +101,14 @@ class polxy_1Dprimary(BaseNSEMSrc):
             Mesigma_p = problem.mesh.getEdgeInnerProduct(sigma_p)
         return (Mesigma - Mesigma_p) * e_p
 
-    def S_eDeriv_m(self, problem, v, adjoint = False):
+    def S_eDeriv(self, problem, v, adjoint = False):
+        """
+        The derivative of S_e with respect to
+        """
+
+        return self._S_eDeriv_m(problem, v, adjoint)
+
+    def _S_eDeriv_m(self, problem, v, adjoint = False):
         '''
         Get the derivative of S_e wrt to sigma (m)
         '''
@@ -109,24 +116,23 @@ class polxy_1Dprimary(BaseNSEMSrc):
         if problem.mesh.dim == 1:
             # Need to use the faceInnerProduct
             MsigmaDeriv = problem.mesh.getFaceInnerProductDeriv(problem.curModel.sigma)(self.ePrimary(problem)[:,1]) * problem.curModel.sigmaDeriv
-            # MsigmaDeriv = ( MsigmaDeriv * MsigmaDeriv.T)**2
+            if adjoint:
+                #
+                return MsigmaDeriv.T * v
+            else:
+                # v should be nC size
+                return MsigmaDeriv * v
         if problem.mesh.dim == 2:
             pass
         if problem.mesh.dim == 3:
             # Need to take the derivative of both u_px and u_py
-            ePri = self.ePrimary(problem)
-            # MsigmaDeriv = problem.MeSigmaDeriv(ePri[:,0]) + problem.MeSigmaDeriv(ePri[:,1])
-            # MsigmaDeriv = problem.MeSigmaDeriv(np.sum(ePri,axis=1))
+            # And stack them to be of the correct size
+            e_p = self.ePrimary(problem)
             if adjoint:
-                return sp.hstack(( problem.MeSigmaDeriv(ePri[:,0]).T, problem.MeSigmaDeriv(ePri[:,1]).T ))*v
+                return sp.hstack(( problem.MeSigmaDeriv(e_p[:,0]).T, problem.MeSigmaDeriv(e_p[:,1]).T ))*v
             else:
-                return np.hstack(( mkvc(problem.MeSigmaDeriv(ePri[:,0]) * v,2), mkvc(problem.MeSigmaDeriv(ePri[:,1])*v,2) ))
-        if adjoint:
-            #
-            return MsigmaDeriv.T * v
-        else:
-            # v should be nC size
-            return MsigmaDeriv * v
+                return np.hstack(( mkvc(problem.MeSigmaDeriv(e_p[:,0]) * v,2), mkvc(problem.MeSigmaDeriv(e_p[:,1])*v,2) ))
+
 
 class polxy_3Dprimary(BaseNSEMSrc):
     """

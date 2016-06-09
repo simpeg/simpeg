@@ -1,7 +1,8 @@
 from SimPEG import Survey, Utils, Problem, np, sp, mkvc
 from scipy.constants import mu_0
-import sys
-from numpy.lib import recfunctions as recFunc
+import numpy as np
+import scipy.sparse as sp
+from SimPEG.Utils import Zero, Identity
 from SimPEG.EM.Utils import omega
 
 
@@ -9,7 +10,7 @@ from SimPEG.EM.Utils import omega
 ### Fields ###
 ##############
 class BaseNSEMFields(Problem.Fields):
-    """Field Storage for a NSEM survey."""
+    """Field Storage for a NSEM method."""
     knownFields = {}
     dtype = complex
 
@@ -19,6 +20,8 @@ class BaseNSEMFields(Problem.Fields):
 class Fields1D_ePrimSec(BaseNSEMFields):
     """
     Fields storage for the 1D NSEM solution.
+
+    Solving for e fields, using primary/secondary formulation
     """
     knownFields = {'e_1dSolution':'F'}
     aliasFields = {
@@ -34,6 +37,14 @@ class Fields1D_ePrimSec(BaseNSEMFields):
         BaseNSEMFields.__init__(self,mesh,survey,**kwargs)
 
     def _ePrimary(self, eSolution, srcList):
+        """
+        Primary electric field from source
+
+        :param numpy.ndarray eSolution: field we solved for
+        :param list srcList: list of sources
+        :rtype: numpy.ndarray
+        :return: primary electric field as defined by the sources
+        """
         ePrimary = np.zeros_like(eSolution)
         for i, src in enumerate(srcList):
             ep = src.ePrimary(self.survey.prob)
@@ -42,19 +53,54 @@ class Fields1D_ePrimSec(BaseNSEMFields):
         return ePrimary
 
     def _eSecondary(self, eSolution, srcList):
+        """
+        Secondary electric field is the thing we solved for
+
+        :param numpy.ndarray eSolution: field we solved for
+        :param list srcList: list of sources
+        :rtype: numpy.ndarray
+        :return: secondary electric field
+        """
         return eSolution
 
+    # Overwriting a base FDEM method, could use it.
     def _e(self, eSolution, srcList):
+        """
+        Total electric field is sum of primary and secondary
+
+        :param numpy.ndarray solution: field we solved for
+        :param list srcList: list of sources
+        :rtype: numpy.ndarray
+        :return: total electric field
+        """
         return self._ePrimary(eSolution,srcList) + self._eSecondary(eSolution,srcList)
 
-    def _eDeriv_u(self, src, du_dm_v, adjoint = False):
+    def _eDeriv_u(self, src, v, adjoint = False):
+        """
+        Partial derivative of the total electric field with respect to the solution.
 
+        :param SimPEG.EM.FDEM.Src src: source
+        :param numpy.ndarray v: vector to take product with
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: product of the derivative of the electric field with respect to the field we solved for with a vector
+        """
 
-        return Utils.Identity()*du_dm_v
+        return Identity()*v
 
     def _eDeriv_m(self, src, v, adjoint = False):
+        """
+        Partial derivative of the total electric field with respect to the inversion model. Here, we assume that the primary does not depend on the model. Note that this also includes derivative contributions from the sources.
+
+        :param SimPEG.EM.FDEM.Src src: source
+        :param numpy.ndarray v: vector to take product with
+        :param bool adjoint: adjoint?
+        :rtype: SimPEG.Utils.Zero
+        :return: product of the electric field derivative with respect to the inversion model with a vector
+        """
+
         # assuming primary does not depend on the model
-        return Utils.Zero()
+        return Zero()
 
     def _bPrimary(self, eSolution, srcList):
         bPrimary = np.zeros([self.survey.mesh.nE,eSolution.shape[1]], dtype = complex)
@@ -65,65 +111,61 @@ class Fields1D_ePrimSec(BaseNSEMFields):
         return bPrimary
 
     def _bSecondary(self, eSolution, srcList):
+        """
+        Primary magnetic flux density from source
+
+        :param numpy.ndarray eSolution: field we solved for
+        :param list srcList: list of sources
+        :rtype: numpy.ndarray
+        :return: primary magnetic flux density as defined by the sources
+        """
         C = self.mesh.nodalGrad
         b = (C * eSolution)
         for i, src in enumerate(srcList):
             b[:,i] *= - 1./(1j*omega(src.freq))
-            # There is no magnetic source in the MT problem
-            # S_m, _ = src.eval(self.survey.prob)
-            # if S_m is not None:
-            #     b[:,i] += 1./(1j*omega(src.freq)) * S_m
         return b
 
     def _b(self, eSolution, srcList):
+        """
+        Total magnetic field is sum of primary and secondary
+
+        :param numpy.ndarray solution: field we solved for
+        :param list srcList: list of sources
+        :rtype: numpy.ndarray
+        :return: total magnetic field
+        """
         return self._bPrimary(eSolution, srcList) + self._bSecondary(eSolution, srcList)
 
-    def _bSecondaryDeriv_u(self, src, v, adjoint = False):
+    def _bDeriv_u(self, src, v, adjoint = False):
+        """
+        Derivative of the magnetic flux density with respect to the solution
+
+        :param SimPEG.EM.FDEM.Src src: source
+        :param numpy.ndarray du_dm_v: vector to take product with
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: product of the derivative of the magnetic flux density with respect to the field we solved for with a vector
+        """
+        # bPrimary: no model depenency
         C = self.mesh.nodalGrad
         if adjoint:
-            return - 1./(1j*omega(src.freq)) * (C.T * v)
-        return - 1./(1j*omega(src.freq)) * (C * v)
+            bSecondaryDeriv_u = - 1./(1j*omega(src.freq)) * (C.T * v)
+        else:
+            bSecondaryDeriv_u = - 1./(1j*omega(src.freq)) * (C * v)
+        return bSecondaryDeriv_u
 
-    def _bSecondaryDeriv_m(self, src, v, adjoint = False):
-        # Doesn't depend on m
-        # _, S_eDeriv = src.evalDeriv(self.survey.prob, adjoint)
-        # S_eDeriv = S_eDeriv(v)
-        # if S_eDeriv is not None:
-        #     return 1./(1j * omega(src.freq)) * S_eDeriv
-        return None
-
-    def _bDeriv_u(self, src, v, adjoint=False):
-        # Primary does not depend on u
-        return self._bSecondaryDeriv_u(src, v, adjoint)
-
-    def _bDeriv_m(self, src, v, adjoint=False):
-        # Assuming the primary does not depend on the model
-        return self._bSecondaryDeriv_m(src, v, adjoint)
-
-    def _fDeriv_u(self, src, v, adjoint=False):
+    def _bDeriv_m(self, src, v, adjoint = False):
         """
-        Derivative of the fields object wrt u.
+        Derivative of the magnetic flux density with respect to the inversion model.
 
-        :param NSEMsrc src: NSEM source
-        :param numpy.ndarray v: random vector of f_sol.size
-        This function stacks the fields derivatives appropriately
-
-        return a vector of size (nreEle+nrbEle)
+        :param SimPEG.EM.FDEM.Src src: source
+        :param numpy.ndarray v: vector to take product with
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: product of the magnetic flux density derivative with respect to the inversion model with a vector
         """
-
-        de_du = v #Utils.spdiag(np.ones((self.nF,)))
-        db_du = self._bDeriv_u(src, v, adjoint)
-        # Return the stack
-        # This doesn't work...
-        return np.vstack((de_du,db_du))
-
-    def _fDeriv_m(self, src, v, adjoint=False):
-        """
-        Derivative of the fields object wrt m.
-
-        This function stacks the fields derivatives appropriately
-        """
-        return None
+        # Neither bPrimary nor bSeconary have model dependency => return Zero
+        return Zero()
 
 
 class Fields1D_eTotal(BaseNSEMFields):
