@@ -24,9 +24,11 @@ env:
     - TEST_DIR=tests/examples
     - TEST_DIR=tests/em/fdem/inverse/adjoint
     - TEST_DIR=tests/em/fdem/forward
-    - TEST_DIR=tests/docs
-    - GAE_PYTHONPATH=${HOME}/.cache/google_appengine PATH=$PATH:${HOME}/google-cloud-sdk/bin
-      PYTHONPATH=${PYTHONPATH}:${GAE_PYTHONPATH} CLOUDSDK_CORE_DISABLE_PROMPTS=1
+    - TEST_DIR=tests/docs;
+      GAE_PYTHONPATH=${HOME}/.cache/google_appengine;
+      PATH=$PATH:${HOME}/google-cloud-sdk/bin;
+      PYTHONPATH=${PYTHONPATH}:${GAE_PYTHONPATH};
+      CLOUDSDK_CORE_DISABLE_PROMPTS=1
 
 # Setup anaconda
 before_install:
@@ -54,27 +56,23 @@ script:
   # test docs
   - nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s
 
-
 # Calculate coverage
 after_success:
   - coveralls --config_file .coveragerc
 
-  - python scripts/fetch_gae_sdk.py $(dirname "${GAE_PYTHONPATH}");
-  - openssl aes-256-cbc -K $encrypted_93066031461c_key -iv $encrypted_93066031461c_iv
-    -in docs/credentials.tar.gz.enc -out credentials.tar.gz -d
-  - if [ ! -d ${HOME}/google-cloud-sdk ]; then
-     curl https://sdk.cloud.google.com | bash;
+  - if [ ${TEST_DIR} == "tests/docs" ]; then
+    - python scripts/fetch_gae_sdk.py $(dirname "${GAE_PYTHONPATH}");
+    - openssl aes-256-cbc -K $encrypted_93066031461c_key -iv $encrypted_93066031461c_iv
+      -in docs/credentials.tar.gz.enc -out credentials.tar.gz -d ;
+    - if [ ! -d ${HOME}/google-cloud-sdk ]; then curl https://sdk.cloud.google.com | bash; fi ;
+    - tar -xzf credentials.tar.gz ;
+    - gcloud auth activate-service-account --key-file client-secret.json ;
+    - gcloud config set project simpegdocs;
+    - gcloud -q components update gae-python;
+    - gcloud -q preview app deploy ./simpegdocs/app.yaml --version 1 --promote;
     fi
-  - tar -xzf credentials.tar.gz
-  # Here we use the decrypted service account credentials to authenticate the command line tool
-  - gcloud auth activate-service-account --key-file client-secret.json
 
-  - gcloud config set project simpegdocs
-  - gcloud -q components update gae-python
-
-  # - if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then
-  - gcloud -q preview app deploy ./simpegdocs/app.yaml --version 1 --promote;
-  # fi
+#   if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then
 
 
 notifications:
