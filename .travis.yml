@@ -70,7 +70,7 @@ after_success:
         gcloud auth activate-service-account --key-file client-secret.json ;
         gcloud config set project simpegdocs;
         gcloud -q components update gae-python;
-        gcloud -q preview app deploy ./docs/app.yaml --version 1 --promote;
+        gcloud -q preview app deploy ./docs/app.yaml --version ${TRAVIS_COMMIT} --promote;
       fi;
     fi
 
