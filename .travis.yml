@@ -61,7 +61,7 @@ after_success:
   - coveralls --config_file .coveragerc
 
   - if [ ${TEST_DIR} == "tests/docs" ]; then
-    - python scripts/fetch_gae_sdk.py $(dirname "${GAE_PYTHONPATH}");
+    python scripts/fetch_gae_sdk.py $(dirname "${GAE_PYTHONPATH}");
     - openssl aes-256-cbc -K $encrypted_93066031461c_key -iv $encrypted_93066031461c_iv
       -in docs/credentials.tar.gz.enc -out credentials.tar.gz -d ;
     - if [ ! -d ${HOME}/google-cloud-sdk ]; then curl https://sdk.cloud.google.com | bash; fi ;
