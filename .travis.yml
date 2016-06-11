@@ -69,7 +69,7 @@ after_success:
     gcloud auth activate-service-account --key-file client-secret.json ;
     gcloud config set project simpegdocs;
     gcloud -q components update gae-python;
-    gcloud -q preview app deploy ./simpegdocs/app.yaml --version 1 --promote;
+    gcloud -q preview app deploy ./docs/app.yaml --version 1 --promote;
     fi
 
 #   if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then
