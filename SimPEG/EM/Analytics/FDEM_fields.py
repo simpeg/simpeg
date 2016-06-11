@@ -11,9 +11,8 @@ def E_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
 
     XYZ = Utils.asArray_N_x_Dim(XYZ, 3)
     # Check
-    if XYZ.shape[0] > 1 & f.length > 1
-        except:
-            print "I/O type error: For multiple field locations only a single frequency can be specified."
+    if XYZ.shape[0] > 1 & f.shape[0] > 1:
+        raise Exception("I/O type error: For multiple field locations only a single frequency can be specified.")
 
     dx = XYZ[:,0]-srcLoc[0]
     dy = XYZ[:,1]-srcLoc[1]
@@ -51,7 +50,7 @@ def J_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
     Jx = sig*Ex
     Jy = sig*Ey
     Jz = sig*Ez
-    return Jx, Jy, Jz        
+    return Jx, Jy, Jz
 
 
 def H_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', mu=mu_0):
@@ -60,10 +59,9 @@ def H_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
 
     XYZ = Utils.asArray_N_x_Dim(XYZ, 3)
     # Check
-    if XYZ.shape[0] > 1 & f.length > 1
-        except:
-            print "I/O type error: For multiple field locations only a single frequency can be specified."
-    
+    if XYZ.shape[0] > 1 & f.shape[0] > 1:
+        raise Exception("I/O type error: For multiple field locations only a single frequency can be specified.")
+
     dx = XYZ[:,0]-srcLoc[0]
     dy = XYZ[:,1]-srcLoc[1]
     dz = XYZ[:,2]-srcLoc[2]
@@ -99,7 +97,7 @@ def B_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
     By = mu*Hy
     Bz = mu*Hz
     return Bx, By, Bz
-      
+
 
 def A_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', mu=mu_0):
     epsilon = 8.854187817*(10.**-12)
@@ -107,9 +105,8 @@ def A_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
 
     XYZ = Utils.asArray_N_x_Dim(XYZ, 3)
     # Check
-    if XYZ.shape[0] > 1 & f.length > 1
-        except:
-            print "I/O type error: For multiple field locations only a single frequency can be specified."
+    if XYZ.shape[0] > 1 & f.shape[0] > 1:
+        raise Exception("I/O type error: For multiple field locations only a single frequency can be specified.")
 
     dx = XYZ[:,0]-srcLoc[0]
     dy = XYZ[:,1]-srcLoc[1]
