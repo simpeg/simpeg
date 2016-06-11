@@ -5,9 +5,9 @@ import SimPEG as simpeg
 from SimPEG import MT
 import numpy as np
 try:
-    from pymatsolver import MumpsSolver as solver
+    from pymatsolver import MumpsSolver as Solver
 except:
-    from SimPEG import solver
+    from SimPEG import Solver
 
 def run(plotIt=True, nFreq=1):
     """
@@ -46,7 +46,7 @@ def run(plotIt=True, nFreq=1):
     survey = MT.Survey(srcList)
 
     ## Setup the problem object
-    problem = MT.Problem3D.eForm_ps(M, sigmaPrimary=sigBG, Solver=solver)
+    problem = MT.Problem3D.eForm_ps(M, sigmaPrimary=sigBG, Solver=Solver)
     problem.pair(survey)
 
     # Calculate the data
