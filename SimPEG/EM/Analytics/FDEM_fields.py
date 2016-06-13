@@ -5,6 +5,9 @@ from scipy.special import erf
 from SimPEG import Utils
 
 
+# def E_galvanic_from_ElectricDipoleWholeSpaced
+# def E_inductive_from_ElectricDipoleWholeSpaced
+
 def E_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', mu=mu_0):
     epsilon = 8.854187817*(10.**-12)
     omega = 2.*np.pi*f
@@ -44,6 +47,10 @@ def E_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
         Ex = front*(dz*dx  / r**2)*mid
         Ey = front*(dz*dy  / r**2)*mid
         return Ex, Ey, Ez
+
+
+# def J_galvanic_from_ElectricDipoleWholeSpaced
+# def J_inductive_from_ElectricDipoleWholeSpaced
 
 def J_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', mu=mu_0):
     Ex, Ey, Ez = E_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', mu=mu_0)
