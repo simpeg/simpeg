@@ -7,6 +7,7 @@ from SimPEG import Utils
 def E_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', mu=mu_0):
     epsilon = 8.854187817*(10.**-12)
     omega = 2.*np.pi*f
+    sig_hat = sig + 1j*omega*epsilon
 
     XYZ = Utils.asArray_N_x_Dim(XYZ, 3)
     # Check
@@ -21,7 +22,7 @@ def E_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
     # k  = np.sqrt( -1j*2.*np.pi*f*mu*sig )
     k  = np.sqrt( omega**2. *mu*epsilon -1j*omega*mu*sig )
 
-    front = current * length / (4.*np.pi*sig* r**3) * np.exp(-1j*k*r)
+    front = current * length / (4.*np.pi*sig_hat* r**3) * np.exp(-1j*k*r)
     mid   = -k**2 * r**2 + 3*1j*k*r + 3
 
     if orientation.upper() == 'X':
@@ -48,6 +49,7 @@ def E_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
 def E_galvanic_from_ElectricDipoleWholeSpaced(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', mu=mu_0):
     epsilon = 8.854187817*(10.**-12)
     omega = 2.*np.pi*f
+    sig_hat = sig + 1j*omega*epsilon
 
     XYZ = Utils.asArray_N_x_Dim(XYZ, 3)
     # Check
@@ -62,7 +64,7 @@ def E_galvanic_from_ElectricDipoleWholeSpaced(XYZ, srcLoc, sig, f, current=1., l
     # k  = np.sqrt( -1j*2.*np.pi*f*mu*sig )
     k  = np.sqrt( omega**2. *mu*epsilon -1j*omega*mu*sig )
 
-    front = current * length / (4.*np.pi*sig* r**3) * np.exp(-1j*k*r)
+    front = current * length / (4.*np.pi*sig_hat* r**3) * np.exp(-1j*k*r)
     mid   = -k**2 * r**2 + 3*1j*k*r + 3
 
     if orientation.upper() == 'X':
@@ -89,6 +91,7 @@ def E_galvanic_from_ElectricDipoleWholeSpaced(XYZ, srcLoc, sig, f, current=1., l
 def E_inductive_from_ElectricDipoleWholeSpaced(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', mu=mu_0):
     epsilon = 8.854187817*(10.**-12)
     omega = 2.*np.pi*f
+    sig_hat = sig + 1j*omega*epsilon
 
     XYZ = Utils.asArray_N_x_Dim(XYZ, 3)
     # Check
@@ -103,7 +106,7 @@ def E_inductive_from_ElectricDipoleWholeSpaced(XYZ, srcLoc, sig, f, current=1., 
     # k  = np.sqrt( -1j*2.*np.pi*f*mu*sig )
     k  = np.sqrt( omega**2. *mu*epsilon -1j*omega*mu*sig )
 
-    front = current * length / (4.*np.pi*sig* r**3) * np.exp(-1j*k*r)
+    front = current * length / (4.*np.pi*sig_hat* r**3) * np.exp(-1j*k*r)
 
     if orientation.upper() == 'X':
         Ex_inductive = front*(k**2 * r**2)
