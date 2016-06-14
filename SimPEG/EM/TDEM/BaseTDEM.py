@@ -112,7 +112,7 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
         """
             :param numpy.array m: Conductivity model
             :param numpy.ndarray v: vector (model object)
-            :param simpegEM.TDEM.FieldsTDEM f: Fields resulting from m
+            :param FieldsTDEM f: Fields resulting from m
             :rtype: numpy.ndarray
             :return: w (data object)
 
@@ -136,8 +136,8 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
     def Jtvec(self, m, v, f=None):
         """
             :param numpy.array m: Conductivity model
-            :param numpy.ndarray,SimPEG.Survey.Data v: vector (data object)
-            :param simpegEM.TDEM.FieldsTDEM u: Fields resulting from m
+            :param numpy.ndarray v: vector (or a :class:`SimPEG.Survey.Data` object)
+            :param FieldsTDEM u: Fields resulting from m
             :rtype: numpy.ndarray
             :return: w (model object)
 

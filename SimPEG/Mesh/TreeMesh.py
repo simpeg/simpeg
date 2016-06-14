@@ -1875,7 +1875,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
 
         :param numpy.ndarray locs: Location of points to interpolate to
         :param str locType: What to interpolate (see below)
-        :rtype: scipy.sparse.csr.csr_matrix
+        :rtype: scipy.sparse.csr_matrix
         :return: M, the interpolation matrix
 
         locType can be::

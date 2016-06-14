@@ -31,7 +31,7 @@ class NonLinearMap(object):
         """
             :param numpy.array u: fields
             :param numpy.array m: model
-            :rtype: scipy.csr_matrix
+            :rtype: scipy.sparse.csr_matrix
             :return: derivative of transformed model
 
             The *transform* changes the model into the physical property.
@@ -44,7 +44,7 @@ class NonLinearMap(object):
         """
             :param numpy.array u: fields
             :param numpy.array m: model
-            :rtype: scipy.csr_matrix
+            :rtype: scipy.sparse.csr_matrix
             :return: derivative of transformed model
 
             The *transform* changes the model into the physical property.

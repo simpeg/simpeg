@@ -237,7 +237,7 @@ def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None, expectedOrder=2, tole
         Compares error decay of 0th and 1st order Taylor approximation at point
         x0 for a randomized search direction.
 
-        :param lambda fctn: function handle
+        :param callable fctn: function handle
         :param numpy.array x0: point at which to check derivative
         :param int num: number of times to reduce step length, h
         :param bool plotIt: if you would like to plot
