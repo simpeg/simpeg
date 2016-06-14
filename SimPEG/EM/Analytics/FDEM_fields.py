@@ -46,7 +46,7 @@ def E_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
         return Ex, Ey, Ez
 
 
-def E_galvanic_from_ElectricDipoleWholeSpaced(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', mu=mu_0):
+def E_galvanic_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', mu=mu_0):
     epsilon = 8.854187817*(10.**-12)
     omega = 2.*np.pi*f
     sig_hat = sig + 1j*omega*epsilon
@@ -88,7 +88,7 @@ def E_galvanic_from_ElectricDipoleWholeSpaced(XYZ, srcLoc, sig, f, current=1., l
         return Ex_galvanic, Ey_galvanic, Ez_galvanic
 
 
-def E_inductive_from_ElectricDipoleWholeSpaced(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', mu=mu_0):
+def E_inductive_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', mu=mu_0):
     epsilon = 8.854187817*(10.**-12)
     omega = 2.*np.pi*f
     sig_hat = sig + 1j*omega*epsilon
@@ -137,7 +137,7 @@ def J_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
     return Jx, Jy, Jz
 
 
-def J_galvanic_from_ElectricDipoleWholeSpaced(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', mu=mu_0):
+def J_galvanic_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', mu=mu_0):
     Ex_galvanic, Ey_galvanic, Ez_galvanic = E_galvanic_from_ElectricDipoleWholeSpaced(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', mu=mu_0)
     Jx_galvanic = sig*Ex_galvanic
     Jy_galvanic = sig*Ey_galvanic
@@ -145,7 +145,7 @@ def J_galvanic_from_ElectricDipoleWholeSpaced(XYZ, srcLoc, sig, f, current=1., l
     return Jx_galvanic, Jy_galvanic, Jz_galvanic
 
 
-def J_inductive_from_ElectricDipoleWholeSpaced(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', mu=mu_0):
+def J_inductive_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', mu=mu_0):
     Ex_inductive, Ey_inductive, Ez_inductive = E_inductive_from_ElectricDipoleWholeSpaced(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', mu=mu_0)
     Jx_inductive = sig*Ex_inductive
     Jy_inductive = sig*Ey_inductive
