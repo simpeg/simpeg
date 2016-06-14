@@ -4,10 +4,6 @@ from scipy.constants import mu_0, pi
 from scipy.special import erf
 from SimPEG import Utils
 
-
-# def E_galvanic_from_ElectricDipoleWholeSpaced
-# def E_inductive_from_ElectricDipoleWholeSpaced
-
 def E_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', mu=mu_0):
     epsilon = 8.854187817*(10.**-12)
     omega = 2.*np.pi*f
@@ -49,8 +45,86 @@ def E_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
         return Ex, Ey, Ez
 
 
-# def J_galvanic_from_ElectricDipoleWholeSpaced
-# def J_inductive_from_ElectricDipoleWholeSpaced
+def E_galvanic_from_ElectricDipoleWholeSpaced(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', mu=mu_0):
+    epsilon = 8.854187817*(10.**-12)
+    omega = 2.*np.pi*f
+
+    XYZ = Utils.asArray_N_x_Dim(XYZ, 3)
+    # Check
+    if XYZ.shape[0] > 1 & f.shape[0] > 1:
+        raise Exception("I/O type error: For multiple field locations only a single frequency can be specified.")
+
+    dx = XYZ[:,0]-srcLoc[0]
+    dy = XYZ[:,1]-srcLoc[1]
+    dz = XYZ[:,2]-srcLoc[2]
+
+    r  = np.sqrt( dx**2. + dy**2. + dz**2.)
+    # k  = np.sqrt( -1j*2.*np.pi*f*mu*sig )
+    k  = np.sqrt( omega**2. *mu*epsilon -1j*omega*mu*sig )
+
+    front = current * length / (4.*np.pi*sig* r**3) * np.exp(-1j*k*r)
+    mid   = -k**2 * r**2 + 3*1j*k*r + 3
+
+    if orientation.upper() == 'X':
+        Ex_galvanic = front*((dx**2 / r**2)*mid + (-1j*k*r-1.))
+        Ey_galvanic = front*(dx*dy  / r**2)*mid
+        Ez_galvanic = front*(dx*dz  / r**2)*mid
+        return Ex_galvanic, Ey_galvanic, Ez_galvanic
+
+    elif orientation.upper() == 'Y':
+        #  x--> y, y--> z, z-->x
+        Ey_galvanic = front*((dy**2 / r**2)*mid + (-1j*k*r-1.))
+        Ez_galvanic = front*(dy*dz  / r**2)*mid
+        Ex_galvanic = front*(dy*dx  / r**2)*mid
+        return Ex_galvanic, Ey_galvanic, Ez_galvanic
+
+    elif orientation.upper() == 'Z':
+        # x --> z, y --> x, z --> y
+        Ez_galvanic = front*((dz**2 / r**2)*mid + (-1j*k*r-1.))
+        Ex_galvanic = front*(dz*dx  / r**2)*mid
+        Ey_galvanic = front*(dz*dy  / r**2)*mid
+        return Ex_galvanic, Ey_galvanic, Ez_galvanic
+
+
+def E_inductive_from_ElectricDipoleWholeSpaced(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', mu=mu_0):
+    epsilon = 8.854187817*(10.**-12)
+    omega = 2.*np.pi*f
+
+    XYZ = Utils.asArray_N_x_Dim(XYZ, 3)
+    # Check
+    if XYZ.shape[0] > 1 & f.shape[0] > 1:
+        raise Exception("I/O type error: For multiple field locations only a single frequency can be specified.")
+
+    dx = XYZ[:,0]-srcLoc[0]
+    dy = XYZ[:,1]-srcLoc[1]
+    dz = XYZ[:,2]-srcLoc[2]
+
+    r  = np.sqrt( dx**2. + dy**2. + dz**2.)
+    # k  = np.sqrt( -1j*2.*np.pi*f*mu*sig )
+    k  = np.sqrt( omega**2. *mu*epsilon -1j*omega*mu*sig )
+
+    front = current * length / (4.*np.pi*sig* r**3) * np.exp(-1j*k*r)
+
+    if orientation.upper() == 'X':
+        Ex_inductive = front*(k**2 * r**2)
+        Ey_inductive = 0
+        Ez_inductive = 0
+        return Ex_inductive, Ey_inductive, Ez_inductive
+
+    elif orientation.upper() == 'Y':
+        #  x--> y, y--> z, z-->x
+        Ey_inductive = front*(k**2 * r**2)
+        Ez_inductive = 0
+        Ex_inductive = 0
+        return Ex_inductive, Ey_inductive, Ez_inductive
+
+    elif orientation.upper() == 'Z':
+        # x --> z, y --> x, z --> y
+        Ez_inductive = front*(k**2 * r**2)
+        Ex_inductive = 0
+        Ey_inductive = 0
+        return Ex_inductive, Ey_inductive, Ez_inductive
+
 
 def J_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', mu=mu_0):
     Ex, Ey, Ez = E_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', mu=mu_0)
@@ -58,6 +132,22 @@ def J_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
     Jy = sig*Ey
     Jz = sig*Ez
     return Jx, Jy, Jz
+
+
+def J_galvanic_from_ElectricDipoleWholeSpaced(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', mu=mu_0):
+    Ex_galvanic, Ey_galvanic, Ez_galvanic = E_galvanic_from_ElectricDipoleWholeSpaced(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', mu=mu_0)
+    Jx_galvanic = sig*Ex_galvanic
+    Jy_galvanic = sig*Ey_galvanic
+    Jz_galvanic = sig*Ez_galvanic
+    return Jx_galvanic, Jy_galvanic, Jz_galvanic
+
+
+def J_inductive_from_ElectricDipoleWholeSpaced(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', mu=mu_0):
+    Ex_inductive, Ey_inductive, Ez_inductive = E_inductive_from_ElectricDipoleWholeSpaced(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', mu=mu_0)
+    Jx_inductive = sig*Ex_inductive
+    Jy_inductive = sig*Ey_inductive
+    Jz_inductive = sig*Ez_inductive
+    return Jx_inductive, Jy_inductive, Jz_inductive
 
 
 def H_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', mu=mu_0):
