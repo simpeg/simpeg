@@ -110,22 +110,22 @@ def E_inductive_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., l
 
     if orientation.upper() == 'X':
         Ex_inductive = front*(k**2 * r**2)
-        Ey_inductive = 0
-        Ez_inductive = 0
+        Ey_inductive = np.zeros_like(Ex_inductive)
+        Ez_inductive = np.zeros_like(Ex_inductive)
         return Ex_inductive, Ey_inductive, Ez_inductive
 
     elif orientation.upper() == 'Y':
         #  x--> y, y--> z, z-->x
         Ey_inductive = front*(k**2 * r**2)
-        Ez_inductive = 0
-        Ex_inductive = 0
+        Ez_inductive = np.zeros_like(Ey_inductive)
+        Ex_inductive = np.zeros_like(Ey_inductive)
         return Ex_inductive, Ey_inductive, Ez_inductive
 
     elif orientation.upper() == 'Z':
         # x --> z, y --> x, z --> y
         Ez_inductive = front*(k**2 * r**2)
-        Ex_inductive = 0
-        Ey_inductive = 0
+        Ex_inductive = np.zeros_like(Ez_inductive)
+        Ey_inductive = np.zeros_like(Ez_inductive)
         return Ex_inductive, Ey_inductive, Ez_inductive
 
 
