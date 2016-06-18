@@ -30,8 +30,8 @@ def run(plotIt=True):
 
     # FDEM problem & survey
     rxlocs = Utils.ndgrid([np.r_[50.], np.r_[0], np.r_[0.]])
-    bzi = FDEM.Rx.Point_b(rxlocs, 'z', 'real')
-    bzr = FDEM.Rx.Point_b(rxlocs, 'z', 'imag')
+    bzi = FDEM.Rx.Point_bSecondary(rxlocs, 'z', 'real')
+    bzr = FDEM.Rx.Point_bSecondary(rxlocs, 'z', 'imag')
 
     freqs = np.logspace(2, 3, 5)
     srcLoc = np.array([0., 0., 0.])
@@ -45,7 +45,7 @@ def run(plotIt=True):
     surveyFD = FDEM.Survey(srcList)
     prbFD = FDEM.Problem3D_b(mesh, mapping=mapping)
     prbFD.pair(surveyFD)
-    std = 0.02
+    std = 0.03
     surveyFD.makeSyntheticData(mtrue, std)
     surveyFD.eps = np.linalg.norm(surveyFD.dtrue)*1e-5
 
@@ -54,7 +54,7 @@ def run(plotIt=True):
     dmisfit = DataMisfit.l2_DataMisfit(surveyFD)
     regMesh = Mesh.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
     reg = Regularization.Simple(regMesh)
-    opt = Optimization.InexactGaussNewton(maxIterCG=3, maxIter=7)
+    opt = Optimization.InexactGaussNewton(maxIterCG=10, maxIter=4)
     invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
     # Inversion Directives
     beta = Directives.BetaSchedule(coolingFactor=5, coolingRate=3)
@@ -64,7 +64,7 @@ def run(plotIt=True):
 
     inv = Inversion.BaseInversion(invProb, directiveList=[beta,target])
     m0 = np.log(np.ones(mtrue.size)*sig_half)
-    reg.alpha_s = 1e-1
+    reg.alpha_s = 5e-1
     reg.alpha_x = 1.
     prbFD.counter = opt.counter = Utils.Counter()
     opt.LSshorten = 0.5
@@ -85,7 +85,7 @@ def run(plotIt=True):
     prbTD.pair(surveyTD)
     prbTD.Solver = SolverLU
 
-    std = 0.05
+    std = 0.03
     surveyTD.makeSyntheticData(mtrue, std)
     surveyTD.std = std
     surveyTD.eps = np.linalg.norm(surveyTD.dtrue)*1e-5
@@ -94,7 +94,7 @@ def run(plotIt=True):
     dmisfit = DataMisfit.l2_DataMisfit(surveyTD)
     regMesh = Mesh.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
     reg = Regularization.Simple(regMesh)
-    opt = Optimization.InexactGaussNewton(maxIterCG=3, maxIter=7)
+    opt = Optimization.InexactGaussNewton(maxIterCG=10, maxIter=4)
     invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
 
     # Inversion Directives
@@ -105,7 +105,7 @@ def run(plotIt=True):
 
     inv = Inversion.BaseInversion(invProb, directiveList=[beta, target])
     m0 = np.log(np.ones(mtrue.size)*sig_half)
-    reg.alpha_s = 1e-1
+    reg.alpha_s = 5e-1
     reg.alpha_x = 1.
     prbTD.counter = opt.counter = Utils.Counter()
     opt.LSshorten = 0.5
