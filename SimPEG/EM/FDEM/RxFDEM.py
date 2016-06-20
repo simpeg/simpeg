@@ -97,6 +97,19 @@ class Point_b(BaseRx):
         self.projField = 'b'
         super(Point_b, self).__init__(locs, orientation, component)
 
+class Point_bSecondary(BaseRx):
+    """
+    Magnetic flux FDEM receiver
+
+    :param numpy.ndarray locs: receiver locations (ie. :code:`np.r_[x,y,z]`)
+    :param string orientation: receiver orientation 'x', 'y' or 'z'
+    :param string component: real or imaginary component 'real' or 'imag'
+    """
+
+    def __init__(self, locs, orientation=None, component=None):
+        self.projField = 'bSecondary'
+        super(Point_bSecondary, self).__init__(locs, orientation, component)
+
 
 class Point_h(BaseRx):
     """
