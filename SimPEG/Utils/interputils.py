@@ -25,7 +25,7 @@ def interpmat(locs, x, y=None, z=None):
         :param numpy.ndarray x: Tensor vector of 1st dimension of grid.
         :param numpy.ndarray y: Tensor vector of 2nd dimension of grid. None by default.
         :param numpy.ndarray z: Tensor vector of 3rd dimension of grid. None by default.
-        :rtype: scipy.sparse.csr.csr_matrix
+        :rtype: scipy.sparse.csr_matrix
         :return: Interpolation matrix
 
         .. plot::
