@@ -2,6 +2,7 @@ from SimPEG import Utils, np
 from BaseMesh import BaseRectangularMesh
 from DiffOperators import DiffOperators
 from InnerProducts import InnerProducts
+from View import CurvView
 
 # Some helper functions.
 length2D = lambda x: (x[:, 0]**2 + x[:, 1]**2)**0.5
@@ -10,7 +11,7 @@ normalize2D = lambda x: x/np.kron(np.ones((1, 2)), Utils.mkvc(length2D(x), 2))
 normalize3D = lambda x: x/np.kron(np.ones((1, 3)), Utils.mkvc(length3D(x), 2))
 
 
-class CurvilinearMesh(BaseRectangularMesh, DiffOperators, InnerProducts):
+class CurvilinearMesh(BaseRectangularMesh, DiffOperators, InnerProducts, CurvView):
     """
     CurvilinearMesh is a mesh class that deals with curvilinear meshes.
 
@@ -328,102 +329,6 @@ class CurvilinearMesh(BaseRectangularMesh, DiffOperators, InnerProducts):
     _tangents = None
     tangents = property(**tangents())
 
-
-
-    #############################################
-    #            Plotting Functions             #
-    #############################################
-
-    def plotGrid(self, ax=None, nodes=False, faces=False, centers=False, edges=False, lines=True,  showIt=False):
-        """Plot the nodal, cell-centered and staggered grids for 1,2 and 3 dimensions.
-
-
-        .. plot::
-            :include-source:
-
-            from SimPEG import Mesh, Utils
-            X, Y = Utils.exampleLrmGrid([3,3],'rotate')
-            M = Mesh.CurvilinearMesh([X, Y])
-            M.plotGrid(showIt=True)
-
-        """
-        import matplotlib.pyplot as plt
-        import matplotlib
-        from mpl_toolkits.mplot3d import Axes3D
-        mkvc = Utils.mkvc
-
-        axOpts = {'projection':'3d'} if self.dim == 3 else {}
-        if ax is None: ax = plt.subplot(111, **axOpts)
-
-        NN = self.r(self.gridN, 'N', 'N', 'M')
-        if self.dim == 2:
-
-            if lines:
-                X1 = np.c_[mkvc(NN[0][:-1, :]), mkvc(NN[0][1:, :]), mkvc(NN[0][:-1, :])*np.nan].flatten()
-                Y1 = np.c_[mkvc(NN[1][:-1, :]), mkvc(NN[1][1:, :]), mkvc(NN[1][:-1, :])*np.nan].flatten()
-
-                X2 = np.c_[mkvc(NN[0][:, :-1]), mkvc(NN[0][:, 1:]), mkvc(NN[0][:, :-1])*np.nan].flatten()
-                Y2 = np.c_[mkvc(NN[1][:, :-1]), mkvc(NN[1][:, 1:]), mkvc(NN[1][:, :-1])*np.nan].flatten()
-
-                X = np.r_[X1, X2]
-                Y = np.r_[Y1, Y2]
-
-                ax.plot(X, Y, 'b-')
-            if centers:
-                ax.plot(self.gridCC[:,0],self.gridCC[:,1],'ro')
-
-            # Nx = self.r(self.normals, 'F', 'Fx', 'V')
-            # Ny = self.r(self.normals, 'F', 'Fy', 'V')
-            # Tx = self.r(self.tangents, 'E', 'Ex', 'V')
-            # Ty = self.r(self.tangents, 'E', 'Ey', 'V')
-
-            # ax.plot(self.gridN[:, 0], self.gridN[:, 1], 'bo')
-
-            # nX = np.c_[self.gridFx[:, 0], self.gridFx[:, 0] + Nx[0]*length, self.gridFx[:, 0]*np.nan].flatten()
-            # nY = np.c_[self.gridFx[:, 1], self.gridFx[:, 1] + Nx[1]*length, self.gridFx[:, 1]*np.nan].flatten()
-            # ax.plot(self.gridFx[:, 0], self.gridFx[:, 1], 'rs')
-            # ax.plot(nX, nY, 'r-')
-
-            # nX = np.c_[self.gridFy[:, 0], self.gridFy[:, 0] + Ny[0]*length, self.gridFy[:, 0]*np.nan].flatten()
-            # nY = np.c_[self.gridFy[:, 1], self.gridFy[:, 1] + Ny[1]*length, self.gridFy[:, 1]*np.nan].flatten()
-            # #ax.plot(self.gridFy[:, 0], self.gridFy[:, 1], 'gs')
-            # ax.plot(nX, nY, 'g-')
-
-            # tX = np.c_[self.gridEx[:, 0], self.gridEx[:, 0] + Tx[0]*length, self.gridEx[:, 0]*np.nan].flatten()
-            # tY = np.c_[self.gridEx[:, 1], self.gridEx[:, 1] + Tx[1]*length, self.gridEx[:, 1]*np.nan].flatten()
-            # ax.plot(self.gridEx[:, 0], self.gridEx[:, 1], 'r^')
-            # ax.plot(tX, tY, 'r-')
-
-            # nX = np.c_[self.gridEy[:, 0], self.gridEy[:, 0] + Ty[0]*length, self.gridEy[:, 0]*np.nan].flatten()
-            # nY = np.c_[self.gridEy[:, 1], self.gridEy[:, 1] + Ty[1]*length, self.gridEy[:, 1]*np.nan].flatten()
-            # #ax.plot(self.gridEy[:, 0], self.gridEy[:, 1], 'g^')
-            # ax.plot(nX, nY, 'g-')
-
-        elif self.dim == 3:
-            X1 = np.c_[mkvc(NN[0][:-1, :, :]), mkvc(NN[0][1:, :, :]), mkvc(NN[0][:-1, :, :])*np.nan].flatten()
-            Y1 = np.c_[mkvc(NN[1][:-1, :, :]), mkvc(NN[1][1:, :, :]), mkvc(NN[1][:-1, :, :])*np.nan].flatten()
-            Z1 = np.c_[mkvc(NN[2][:-1, :, :]), mkvc(NN[2][1:, :, :]), mkvc(NN[2][:-1, :, :])*np.nan].flatten()
-
-            X2 = np.c_[mkvc(NN[0][:, :-1, :]), mkvc(NN[0][:, 1:, :]), mkvc(NN[0][:, :-1, :])*np.nan].flatten()
-            Y2 = np.c_[mkvc(NN[1][:, :-1, :]), mkvc(NN[1][:, 1:, :]), mkvc(NN[1][:, :-1, :])*np.nan].flatten()
-            Z2 = np.c_[mkvc(NN[2][:, :-1, :]), mkvc(NN[2][:, 1:, :]), mkvc(NN[2][:, :-1, :])*np.nan].flatten()
-
-            X3 = np.c_[mkvc(NN[0][:, :, :-1]), mkvc(NN[0][:, :, 1:]), mkvc(NN[0][:, :, :-1])*np.nan].flatten()
-            Y3 = np.c_[mkvc(NN[1][:, :, :-1]), mkvc(NN[1][:, :, 1:]), mkvc(NN[1][:, :, :-1])*np.nan].flatten()
-            Z3 = np.c_[mkvc(NN[2][:, :, :-1]), mkvc(NN[2][:, :, 1:]), mkvc(NN[2][:, :, :-1])*np.nan].flatten()
-
-            X = np.r_[X1, X2, X3]
-            Y = np.r_[Y1, Y2, Y3]
-            Z = np.r_[Z1, Z2, Z3]
-
-            ax.plot(X, Y, 'b', zs=Z)
-            ax.set_zlabel('x3')
-
-        ax.grid(True)
-        ax.set_xlabel('x1')
-        ax.set_ylabel('x2')
-
-        if showIt: plt.show()
 
 
 if __name__ == '__main__':
