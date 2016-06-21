@@ -131,7 +131,7 @@ class Minimize(object):
 
         Minimizes the function (evalFunction) starting at the location x0.
 
-        :param def evalFunction: function handle that evaluates: f, g, H = F(x)
+        :param callable evalFunction: function handle that evaluates: f, g, H = F(x)
         :param numpy.ndarray x0: starting location
         :rtype: numpy.ndarray
         :return: x, the last iterate of the optimization algorithm
@@ -372,8 +372,8 @@ class Minimize(object):
             Else, a modifySearchDirectionBreak call is preformed.
 
             :param numpy.ndarray p: searchDirection
-            :rtype: numpy.ndarray,bool
-            :return: (xt, passLS)
+            :rtype: tuple
+            :return: (xt, passLS) numpy.ndarray, bool
         """
         # Projected Armijo linesearch
         self._LS_t = 1
@@ -408,8 +408,8 @@ class Minimize(object):
             evalFunction returns a False indicating the break was not caught.
 
             :param numpy.ndarray p: searchDirection
-            :rtype: numpy.ndarray,bool
-            :return: (xt, breakCaught)
+            :rtype: tuple
+            :return: (xt, breakCaught) numpy.ndarray, bool
         """
         self.printDone(inLS=True)
         print 'The linesearch got broken. Boo.'

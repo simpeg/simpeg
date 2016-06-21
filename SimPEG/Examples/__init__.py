@@ -38,7 +38,7 @@ if __name__ == '__main__':
 
     # Create the examples dir in the docs folder.
     fName = os.path.realpath(__file__)
-    docExamplesDir = os.path.sep.join(fName.split(os.path.sep)[:-3] + ['docs', 'examples'])
+    docExamplesDir = os.path.sep.join(fName.split(os.path.sep)[:-3] + ['docs', 'content', 'examples'])
     shutil.rmtree(docExamplesDir)
     os.makedirs(docExamplesDir)
 
@@ -95,12 +95,12 @@ if __name__ == '__main__':
     from SimPEG import Examples
     Examples.%s.run()
 
-.. literalinclude:: ../../SimPEG/Examples/%s.py
+.. literalinclude:: ../../../SimPEG/Examples/%s.py
     :language: python
     :linenos:
 """%(name,doc,name,name)
 
-        rst = os.path.sep.join((filePath.split(os.path.sep)[:-3] + ['docs', 'examples', name + '.rst']))
+        rst = os.path.sep.join((filePath.split(os.path.sep)[:-3] + ['docs', 'content', 'examples', name + '.rst']))
 
         print 'Creating: %s.rst'%name
         f = open(rst, 'w')

@@ -19,10 +19,13 @@ def run(plotIt=True):
         Morrison Casing Model, and the results are used in a 2016 SEG abstract by
         Yang et al.
 
-        - Schenkel, C.J., and H.F. Morrison, 1990, Effects of well casing on potential field measurements using downhole current sources: Geophysical prospecting, 38, 663-686.
+        .. code-block:: text
+
+            Schenkel, C.J., and H.F. Morrison, 1990, Effects of well casing on potential field measurements using downhole current sources: Geophysical prospecting, 38, 663-686.
 
 
         The model consists of:
+
         - Air: Conductivity 1e-8 S/m, above z = 0
         - Background: conductivity 1e-2 S/m, below z = 0
         - Casing: conductivity 1e6 S/m
@@ -215,7 +218,7 @@ def run(plotIt=True):
     # ------------ Problem and Survey ---------------
     survey = FDEM.Survey(sg_p + dg_p)
     mapping = [('sigma', Maps.IdentityMap(mesh))]
-    problem = FDEM.Problem3D_h(mesh, mapping=mapping)
+    problem = FDEM.Problem3D_h(mesh, mapping=mapping, Solver=solver)
     problem.pair(survey)
 
     # ------------- Solve ---------------------------

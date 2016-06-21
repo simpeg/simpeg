@@ -27,7 +27,7 @@ def mkvc(x, numDims=1):
 
     if isinstance(x, Zero):
         return x
-    
+
     assert isinstance(x, np.ndarray), "Vector must be a numpy array"
 
     if numDims == 1:
@@ -355,9 +355,9 @@ def diagEst(matFun, n, k=None, approach='Probing'):
         2. Ones : random +/- 1 entries
         3. Random : random vectors
 
-    :param lambda (numpy.array) matFun: matrix to estimate the diagonal of
-    :param int64 n: size of the vector that should be used to compute matFun(v)
-    :param int64 k: number of vectors to be used to estimate the diagonal
+    :param callable matFun: takes a (numpy.array) and multiplies it by a matrix to estimate the diagonal
+    :param int n: size of the vector that should be used to compute matFun(v)
+    :param int k: number of vectors to be used to estimate the diagonal
     :param str approach: approach to be used for getting vectors
     :rtype: numpy.array
     :return: est_diag(A)
@@ -422,9 +422,9 @@ class Zero(object):
     def __ge__(self, v):return 0 >= v
     def __gt__(self, v):return 0 > v
 
-    @property 
+    @property
     def transpose(self): return Zero()
-    
+
     @property
     def T(self): return Zero()
 

@@ -28,7 +28,7 @@ sys.path.append('../')
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.todo', 'sphinx.ext.mathjax', 'sphinx.ext.viewcode', 'sphinx.ext.autodoc', 'matplotlib.sphinxext.plot_directive']
+extensions = ['sphinx.ext.todo', 'sphinx.ext.mathjax', 'sphinx.ext.viewcode', 'sphinx.ext.autodoc', 'sphinx.ext.intersphinx', 'matplotlib.sphinxext.plot_directive']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -44,7 +44,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'SimPEG'
-copyright = u'2013, SimPEG Developers'
+copyright = u'2013 - 2016, SimPEG Developers'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -124,12 +124,12 @@ except Exception, e:
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
 # pixels large.
-#html_favicon = None
+html_favicon = './images/logo-block.ico'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = []
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
@@ -229,6 +229,12 @@ man_pages = [
 # If true, show URL addresses after external links.
 #man_show_urls = False
 
+# Intersphinx
+intersphinx_mapping = {'python': ('http://docs.python.org/2', None),
+                       'numpy': ('http://docs.scipy.org/doc/numpy/', None),
+                       'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
+                       'matplotlib': ('http://matplotlib.sourceforge.net/', None)}
+
 
 # -- Options for Texinfo output ------------------------------------------------
 
@@ -251,3 +257,36 @@ texinfo_documents = [
 #texinfo_show_urls = 'footnote'
 
 autodoc_member_order = 'bysource'
+
+def supress_nonlocal_image_warn():
+    import sphinx.environment
+    sphinx.environment.BuildEnvironment.warn_node = _supress_nonlocal_image_warn
+
+def _supress_nonlocal_image_warn(self, msg, node):
+    from docutils.utils import get_source_line
+
+    if not msg.startswith('nonlocal image URI found:'):
+        self._warnfunc(msg, '%s:%s' % get_source_line(node))
+
+supress_nonlocal_image_warn()
+
+
+nitpick_ignore = [
+    ('py:class', 'IdentityMap'),
+    ('py:class', 'BaseSurvey'),
+    ('py:class', 'BaseSrc'),
+    ('py:class', 'BaseRx'),
+    ('py:class', 'Survey'),
+    ('py:class', 'FieldsFDEM'),
+    ('py:class', 'Fields3D_e'),
+    ('py:class', 'Fields3D_b'),
+    ('py:class', 'Fields3D_j'),
+    ('py:class', 'Fields3D_h'),
+    ('py:class', 'SurveyTDEM'),
+    ('py:class', 'SrcTDEM'),
+    ('py:class', 'EMPropMap'),
+    ('py:class', 'Data'),
+    ('py:class', 'SurveyDC'),
+    ('py:class', 'BaseMTFields'),
+    ('py:class', 'SolverLU'),
+]

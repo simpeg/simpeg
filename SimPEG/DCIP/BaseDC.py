@@ -162,8 +162,8 @@ class ProblemDC_CC(Problem.BaseProblem):
         """
             Makes the matrix A(m) for the DC resistivity problem.
 
-            :param numpy.array m: model
-            :rtype: scipy.csc_matrix
+            :param numpy.ndarray m: model
+            :rtype: scipy.sparse.csc_matrix
             :return: A(m)
 
             .. math::
