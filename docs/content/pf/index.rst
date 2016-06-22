@@ -142,7 +142,7 @@ Differential equation approach
 
 
 Mag Differential eq. approach
-*****************************
+=============================
 
 .. autoclass:: SimPEG.PF.Magnetics.Problem3D_DiffSecondary
     :show-inheritance:
@@ -158,10 +158,10 @@ Mag Differential eq. approach
 
 
 Mag Integral eq. approach
-*************************
+=========================
 
 Mag analytic solutions
-**********************
+----------------------
 
 .. automodule:: SimPEG.PF.MagAnalytics
     :show-inheritance:
