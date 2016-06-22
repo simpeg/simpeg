@@ -62,6 +62,7 @@ Packages
    content/dc/index
    content/ip/index
    content/mt/index
+   content/pf/index
    content/flow/index
 
 Finite Volume
