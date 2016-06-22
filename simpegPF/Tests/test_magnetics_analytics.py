@@ -4,10 +4,10 @@ import simpegPF as PF
 from scipy.constants import mu_0
 
 
-plotIt = True
+plotIt = False
 
 
-class MagFwdProblemTests(unittest.TestCase):
+class TestBoundaryConditionAnalytics(unittest.TestCase):
 
     def test_ana_boundary_computation(self):
 
@@ -40,7 +40,7 @@ class MagFwdProblemTests(unittest.TestCase):
             ax.plot(Bbc_ana)
             ax.plot(Bbc)
             plt.show()
-        err = np.linalg.norm(Bbc-Bbc_ana)/np.linalg.norm(Bbc_ana)
+        err = np.linalg.norm(Bbc-Bbc_ana) / np.linalg.norm(Bbc_ana)
 
         assert err < 0.1, 'Mag Boundary computation is wrong!!, err = {}'.format(err)
 

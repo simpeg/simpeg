@@ -9,9 +9,9 @@ class MagFwdProblemTests(unittest.TestCase):
     def setUp(self):
 
         cs = 25.
-        hxind = [(cs,5,-1.3), (cs/2.0, 41),(cs,5,1.3)]
-        hyind = [(cs,5,-1.3), (cs/2.0, 41),(cs,5,1.3)]
-        hzind = [(cs,5,-1.3), (cs/2.0, 40),(cs,5,1.3)]
+        hxind = [(cs, 5, -1.3), (cs/2.0, 41), (cs, 5, 1.3)]
+        hyind = [(cs, 5, -1.3), (cs/2.0, 41), (cs, 5, 1.3)]
+        hzind = [(cs, 5, -1.3), (cs/2.0, 40), (cs, 5, 1.3)]
         M = Mesh.TensorMesh([hxind, hyind, hzind], 'CCC')
 
         chibkg = 0.
@@ -46,7 +46,7 @@ class MagFwdProblemTests(unittest.TestCase):
         u = self.prob.fields(self.chi)
         B = u['B']
 
-        bxa,bya,bza = PF.MagAnalytics.MagSphereAnaFunA(rxLoc[:,0],rxLoc[:,1],rxLoc[:,2],100.,0.,0.,0.,0.01, b0,'secondary')
+        bxa, bya, bza = PF.MagAnalytics.MagSphereAnaFunA(rxLoc[:, 0], rxLoc[:, 1], rxLoc[:, 2], 100., 0., 0., 0., 0.01, b0, 'secondary')
 
         dpred = survey.projectFieldsAsVector(B)
         err = np.linalg.norm(dpred-np.r_[bxa, bya, bza])/np.linalg.norm(np.r_[bxa, bya, bza])
