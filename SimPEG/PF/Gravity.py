@@ -238,12 +238,11 @@ def writeUBCobs(filename, survey, d):
 
     wd = survey.std
 
-    data = np.c_[rxLoc , d , wd]
+    data = np.c_[rxLoc, d, wd]
 
-    with file(filename,'w') as fid:
-        fid.write('%i\n' %len(d) )
+    with file(filename, 'w') as fid:
+        fid.write('%i\n' % len(d))
         np.savetxt(fid, data, fmt='%e', delimiter=' ', newline='\n')
-
 
     print "Observation file saved to: " + filename
 
