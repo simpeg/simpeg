@@ -1,13 +1,15 @@
 import unittest
 from SimPEG import *
-import matplotlib.pyplot as plt
 import simpegPF as PF
 from scipy.constants import mu_0
 
 
+plotIt = True
+
+
 class MagFwdProblemTests(unittest.TestCase):
 
-    def test_ana_forward(self):
+    def test_ana_boundary_computation(self):
 
         hxind = [(0, 25, 1.3), (21, 12.5), (0, 25, 1.3)]
         hyind = [(0, 25, 1.3), (21, 12.5), (0, 25, 1.3)]
@@ -32,10 +34,12 @@ class MagFwdProblemTests(unittest.TestCase):
         Bbczx, Bbczy, Bbczz  = PF.MagAnalytics.MagSphereAnaFun(M3.gridFz[(indzd|indzu),0], M3.gridFz[(indzd|indzu),1], M3.gridFz[(indzd|indzu),2], 100, 0., 0., 0., mu_0, mu_0*(1+chiblk), H0, flag)
         Bbc_ana = np.r_[Bbcxx, Bbcyy, Bbczz]
 
-        # fig, ax = plt.subplots(1,1, figsize = (10, 10))
-        # ax.plot(Bbc_ana)
-        # ax.plot(Bbc)
-        # plt.show()
+        if plotIt:
+            import matplotlib.pyplot as plt
+            fig, ax = plt.subplots(1,1, figsize = (10, 10))
+            ax.plot(Bbc_ana)
+            ax.plot(Bbc)
+            plt.show()
         err = np.linalg.norm(Bbc-Bbc_ana)/np.linalg.norm(Bbc_ana)
 
         assert err < 0.1, 'Mag Boundary computation is wrong!!, err = {}'.format(err)
