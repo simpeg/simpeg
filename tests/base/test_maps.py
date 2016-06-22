@@ -23,11 +23,20 @@ class MapTests(unittest.TestCase):
             maps = getattr(Maps, M)(self.mesh2)
             self.assertTrue(maps.test())
 
+    def test_transforms2Dvec(self):
+        for M in MAPS_TO_TEST_2D:
+            maps = getattr(Maps, M)(self.mesh2)
+            self.assertTrue(maps.testVec())
+
     def test_transforms3D(self):
         for M in MAPS_TO_TEST_3D:
             maps = getattr(Maps, M)(self.mesh3)
             self.assertTrue(maps.test())
 
+    def test_transforms3Dvec(self):
+        for M in MAPS_TO_TEST_3D:
+            maps = getattr(Maps, M)(self.mesh3)
+            self.assertTrue(maps.test())
 
     def test_transforms_logMap_reciprocalMap(self):
         # Note that log/reciprocal maps can be kinda finicky, so we are being explicit about the random seed.
@@ -48,6 +57,11 @@ class MapTests(unittest.TestCase):
     def test_Mesh2MeshMap(self):
         maps = Maps.Mesh2Mesh([self.mesh22, self.mesh2])
         self.assertTrue(maps.test())
+
+    def test_Mesh2MeshMapVec(self):
+        maps = Maps.Mesh2Mesh([self.mesh22, self.mesh2])
+        self.assertTrue(maps.testVec())
+
 
     def test_mapMultiplication(self):
         M = Mesh.TensorMesh([2,3])
@@ -121,6 +135,7 @@ class MapTests(unittest.TestCase):
         # m2to3 = Maps.Surject2Dto3D(M3, normal='X')
             m = np.arange(m2to3.nP)
             self.assertTrue(m2to3.test())
+            self.assertTrue(m2to3.testVec())
             self.assertTrue(np.all(Utils.mkvc( (m2to3 * m).reshape(M3.vnC,order='F')[0,:,:] ) == m))
 
 
@@ -132,6 +147,7 @@ class MapTests(unittest.TestCase):
         # m2to3 = Maps.Surject2Dto3D(M3, normal='Y')
             m = np.arange(m2to3.nP)
             self.assertTrue(m2to3.test())
+            self.assertTrue(m2to3.testVec())
             self.assertTrue(np.all(Utils.mkvc( (m2to3 * m).reshape(M3.vnC,order='F')[:,0,:] ) == m))
 
     def test_map2Dto3D_z(self):
@@ -142,6 +158,7 @@ class MapTests(unittest.TestCase):
         # m2to3 = Maps.Surject2Dto3D(M3, normal='Z')
             m = np.arange(m2to3.nP)
             self.assertTrue(m2to3.test())
+            self.assertTrue(m2to3.testVec())
             self.assertTrue(np.all(Utils.mkvc( (m2to3 * m).reshape(M3.vnC,order='F')[:,:,0] ) == m))
 
 
