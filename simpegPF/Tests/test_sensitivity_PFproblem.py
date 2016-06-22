@@ -10,9 +10,9 @@ class MagSensProblemTests(unittest.TestCase):
 
     def setUp(self):
         cs = 25.
-        hxind = [(cs,5,-1.3), (cs, 21),(cs,5,1.3)]
-        hyind = [(cs,5,-1.3), (cs, 21),(cs,5,1.3)]
-        hzind = [(cs,5,-1.3), (cs, 20),(cs,5,1.3)]
+        hxind = [(cs, 5, -1.3), (cs, 21), (cs, 5, 1.3)]
+        hyind = [(cs, 5, -1.3), (cs, 21), (cs, 5, 1.3)]
+        hzind = [(cs, 5, -1.3), (cs, 20), (cs, 5, 1.3)]
         M = Mesh.TensorMesh([hxind, hyind, hzind], 'CCC')
         chibkg = 0.001
         chiblk = 0.01
@@ -37,9 +37,7 @@ class MagSensProblemTests(unittest.TestCase):
         rxLoc = np.c_[Utils.mkvc(X), Utils.mkvc(Y), Utils.mkvc(Z)]
         survey.rxLoc = rxLoc
 
-
-
-        prob = PF.Magnetics.MagneticsDiffSecondary(M, mapping=model)
+        prob = PF.Magnetics.Problem3D_DiffSecondary(M, mapping=model)
         prob.pair(survey)
         dpre = survey.dpred(chi)
 
@@ -53,11 +51,10 @@ class MagSensProblemTests(unittest.TestCase):
         self.M = M
         self.chi = chi
 
-
-
     def test_mass(self):
         print '\n >>Derivative for MfMuI works.'
         mu = self.model*self.chi
+
         def MfmuI(mu):
 
             chi = mu/mu_0-1
@@ -82,7 +79,6 @@ class MagSensProblemTests(unittest.TestCase):
         d_mu = mu*0.8
         derChk = lambda m: [MfmuI(m), lambda mx: dMfmuI(self.chi, mx)]
         passed = Tests.checkDerivative(derChk, mu, num=4, dx = d_mu, plotIt=False)
-
 
         self.assertTrue(passed)
 
@@ -118,7 +114,7 @@ class MagSensProblemTests(unittest.TestCase):
             dMfMuI = Utils.sdiag(MfMuIvec**2)*aveF2CC.T*Utils.sdiag(vol*1./mu**2)
 
             Cm_A =  A*u
-            dCdm_A = Div * ( Utils.sdiag( Div.T * u )* dMfMuI *dmudm  )
+            dCdm_A = Div * (Utils.sdiag( Div.T * u ) * dMfMuI * dmudm)
 
             return dCdm_A*v
 

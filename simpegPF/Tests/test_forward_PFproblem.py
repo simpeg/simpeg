@@ -25,7 +25,6 @@ class MagFwdProblemTests(unittest.TestCase):
         self.M = M
         self.chi = chi
 
-
     def test_ana_forward(self):
 
         survey = PF.BaseMag.BaseMagSurvey()

@@ -3,6 +3,7 @@ from SimPEG import *
 from SimPEG.Utils import kron3, speye, sdiag
 import matplotlib.pyplot as plt
 
+
 def spheremodel(mesh, x0, y0, z0, r):
     """
         Generate model indicies for sphere
@@ -12,6 +13,7 @@ def spheremodel(mesh, x0, y0, z0, r):
     """
     ind = np.sqrt( (mesh.gridCC[:,0]-x0)**2+(mesh.gridCC[:,1]-y0)**2+(mesh.gridCC[:,2]-z0)**2 ) < r
     return ind
+
 
 def MagSphereAnaFun(x, y, z, R, x0, y0, z0, mu1, mu2, H0, flag='total'):
     """
@@ -29,7 +31,6 @@ def MagSphereAnaFun(x, y, z, R, x0, y0, z0, mu1, mu2, H0, flag='total'):
 
 
     """
-    print H0
 
     if (~np.size(x)==np.size(y)==np.size(z)):
         print "Specify same size of x, y, z"
@@ -180,6 +181,7 @@ def MagSphereAnaFunA(x, y, z, R, xc, yc, zc, chi, Bo, flag):
 
     return Bx, By, Bz
 
+
 def IDTtoxyz(Inc, Dec, Btot):
     """
         Convert from Inclination, Declination, Total  intensity of earth field to x, y, z
@@ -189,6 +191,7 @@ def IDTtoxyz(Inc, Dec, Btot):
     Bz = -Btot*np.sin(Inc/180.*np.pi)
 
     return np.r_[Bx, By, Bz]
+
 
 def MagSphereFreeSpace(x, y, z, R, xc, yc, zc, chi, Bo):
     """
