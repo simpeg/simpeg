@@ -752,7 +752,7 @@ class PrimSecMappedSigma(BaseSrc):
         du_dm_v = Ainv * ( - dA_dm_v + dRHS_dm_v )
 
         df_dmFun = getattr(f, '_{0}Deriv'.format('j'), None)
-        df_dm_v[i,:] += df_dmFun(src, du_dm_v, v, adjoint=False)
+        df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
         # Jv[src, :] = rx.evalDeriv(src, self.primaryProblem.mesh, f, df_dm_v)
 
         Ainv.clean()
