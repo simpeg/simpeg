@@ -739,8 +739,11 @@ class PrimSecMappedSigma(BaseSrc):
 
         # TODO: this will probably break if we have more than one source
         # for i, src in enumerate(self.primaryProblem.survey.getSrcByFreq(freq)):
+
+        f = self._primaryFields(prob)
+
         # u_src = f[src, self.primaryProblem._solutionType]
-        u_src = self._primaryFields(prob,self.primaryProblem._solutionType)
+        u_src = f[:,self.primaryProblem._solutionType]
         dA_dm_v = self.primaryProblem.getADeriv(self.freq, u_src, v)
 
         # TODO: primary survey should only have one source ?
