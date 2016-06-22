@@ -81,7 +81,7 @@ class IdentityMap(object):
         """
         raise NotImplementedError('The transformInverse is not implemented.')
 
-    def deriv(self, m):
+    def deriv(self, m, v=None):
         """
             The derivative of the transformation.
 
@@ -90,13 +90,15 @@ class IdentityMap(object):
             :return: derivative of transformed model
 
         """
+        if v is not None:
+            return v
         return sp.identity(self.nP)
 
     def test(self, m=None, **kwargs):
         """Test the derivative of the mapping.
 
             :param numpy.array m: model
-            :param kwargs: key word arguments of :meth:`SimPEG.Tests.checkDerivative`
+            :param kwargs: key word arguments of :math:`SimPEG.Tests.checkDerivative`
             :rtype: bool
             :return: passed the test?
 
@@ -107,6 +109,22 @@ class IdentityMap(object):
         if 'plotIt' not in kwargs:
             kwargs['plotIt'] = False
         return checkDerivative(lambda m : [self * m, self.deriv(m)], m, num=4, **kwargs)
+
+    def testVec(self, m=None, **kwargs):
+        """Test the derivative of the mapping times a vector.
+
+            :param numpy.array m: model
+            :param kwargs: key word arguments of :math:`SimPEG.Tests.checkDerivative`
+            :rtype: bool
+            :return: passed the test?
+
+        """
+        print 'Testing %s' % str(self)
+        if m is None:
+            m = abs(np.random.rand(self.nP))
+        if 'plotIt' not in kwargs:
+            kwargs['plotIt'] = False
+        return checkDerivative(lambda m : [self * m, lambda x: self.deriv(m,x)], m, num=4, **kwargs)
 
     def _assertMatchesPair(self, pair):
         assert (isinstance(self, pair) or
@@ -164,8 +182,13 @@ class ComboMap(IdentityMap):
             m = map_i * m
         return m
 
-    def deriv(self, m):
-        deriv = 1
+    def deriv(self, m, v=None):
+
+        if v is not None:
+            deriv = v
+        else:
+            deriv = 1
+
         mi = m
         for map_i in reversed(self.maps):
             deriv = map_i.deriv(mi) * deriv
@@ -213,7 +236,7 @@ class ExpMap(IdentityMap):
         return np.log(Utils.mkvc(D))
 
 
-    def deriv(self, m):
+    def deriv(self, m, v=None):
         """
             :param numpy.array m: model
             :rtype: scipy.sparse.csr_matrix
@@ -236,7 +259,11 @@ class ExpMap(IdentityMap):
 
                 \\frac{\partial \exp{m}}{\partial m} = \\text{sdiag}(\exp{m})
         """
-        return Utils.sdiag(np.exp(Utils.mkvc(m)))
+        deriv = Utils.sdiag(np.exp(Utils.mkvc(m)))
+        if v is not None:
+            return deriv * v
+        return deriv
+
 
 class ReciprocalMap(IdentityMap):
     """
@@ -253,9 +280,12 @@ class ReciprocalMap(IdentityMap):
     def inverse(self, D):
         return 1.0 / Utils.mkvc(m)
 
-    def deriv(self, m):
+    def deriv(self, m, v=None):
         # TODO: if this is a tensor, you might have a problem.
-        return Utils.sdiag( - Utils.mkvc(m)**(-2) )
+        deriv = Utils.sdiag( - Utils.mkvc(m)**(-2) )
+        if v is not None:
+            return deriv * v
+        return deriv
 
 
 
@@ -286,16 +316,19 @@ class LogMap(IdentityMap):
     def _transform(self, m):
         return np.log(Utils.mkvc(m))
 
-    def deriv(self, m):
+    def deriv(self, m, v=None):
         mod = Utils.mkvc(m)
         deriv = np.zeros(mod.shape)
         tol = 1e-16 # zero
         ind = np.greater_equal(np.abs(mod),tol)
         deriv[ind] = 1.0/mod[ind]
+        if v is not None:
+            return Utils.sdiag(deriv)*v
         return Utils.sdiag(deriv)
 
     def inverse(self, m):
         return np.exp(Utils.mkvc(m))
+
 
 class SurjectFull(IdentityMap):
     """
@@ -318,15 +351,18 @@ class SurjectFull(IdentityMap):
             :rtype: numpy.array
             :return: transformed model
         """
-        return np.ones(self.mesh.nC)*m
+        return np.ones(self.mesh.nC) * m
 
-    def deriv(self, m):
+    def deriv(self, m, v=None):
         """
             :param numpy.array m: model
             :rtype: numpy.array
             :return: derivative of transformed model
         """
-        return np.ones([self.mesh.nC,1])
+        deriv = np.ones([self.mesh.nC,1])
+        if v is not None:
+            return deriv * v
+        return deriv
 
 class FullMap(SurjectFull):
     def __init__(self,mesh,**kwargs):
@@ -334,6 +370,7 @@ class FullMap(SurjectFull):
             "`FullMap` is deprecated and will be removed in future versions. Use `SurjectFull` instead",
             FutureWarning)
         SurjectFull.__init__(self,mesh,**kwargs)
+
 
 class SurjectVertical1D(IdentityMap):
     """SurjectVertical1DMap
@@ -363,7 +400,7 @@ class SurjectVertical1D(IdentityMap):
         repNum = self.mesh.vnC[:self.mesh.dim-1].prod()
         return Utils.mkvc(m).repeat(repNum)
 
-    def deriv(self, m):
+    def deriv(self, m, v=None):
         """
             :param numpy.array m: model
             :rtype: scipy.sparse.csr_matrix
@@ -374,7 +411,10 @@ class SurjectVertical1D(IdentityMap):
                     (np.ones(repNum),
                     (range(repNum), np.zeros(repNum))
                     ), shape=(repNum, 1))
-        return sp.kron(sp.identity(self.nP), repVec)
+        deriv = sp.kron(sp.identity(self.nP), repVec)
+        if v is not None:
+            return deriv * v
+        return deriv
 
 class Vertical1DMap(SurjectVertical1D):
     def __init__(self,mesh,**kwargs):
@@ -382,6 +422,7 @@ class Vertical1DMap(SurjectVertical1D):
             "`Vertical1DMap` is deprecated and will be removed in future versions. Use `SurjectVertical1D` instead",
             FutureWarning)
         SurjectVertical1D.__init__(self,mesh,**kwargs)
+
 
 class Surject2Dto3D(IdentityMap):
     """Map2Dto3D
@@ -424,7 +465,7 @@ class Surject2Dto3D(IdentityMap):
         elif self.normal == 'X':
             return Utils.mkvc(m.reshape(self.mesh.vnC[[1,2]], order='F')[np.newaxis,:,:].repeat(self.mesh.nCx,axis=0))
 
-    def deriv(self, m):
+    def deriv(self, m, v=None):
         """
             :param numpy.array m: model
             :rtype: scipy.sparse.csr_matrix
@@ -436,6 +477,8 @@ class Surject2Dto3D(IdentityMap):
                     (np.ones(nC),
                     (range(nC), inds)
                 ), shape=(nC, nP))
+        if v is not None:
+            return P * v
         return P
 
 class Map2Dto3D(Surject2Dto3D):
@@ -444,6 +487,7 @@ class Map2Dto3D(Surject2Dto3D):
             "`Map2Dto3D` is deprecated and will be removed in future versions. Use `Surject2Dto3D` instead",
             FutureWarning)
         Surject2Dto3D.__init__(self,mesh,**kwargs)
+
 
 class Mesh2Mesh(IdentityMap):
     """
@@ -472,9 +516,13 @@ class Mesh2Mesh(IdentityMap):
     def nP(self):
         """Number of parameters in the model."""
         return self.mesh2.nC
+
     def _transform(self, m):
-        return self.P*m
-    def deriv(self, m):
+        return self.P * m
+
+    def deriv(self, m, v=None):
+        if v is not None:
+            return self.P * v
         return self.P
 
 
@@ -518,13 +566,16 @@ class InjectActiveCells(IdentityMap):
         return self.indActive.sum()
 
     def _transform(self, m):
-        return self.P*m + self.valInactive
+        return self.P * m + self.valInactive
 
     def inverse(self, D):
         return self.P.T*D
 
-    def deriv(self, m):
+    def deriv(self, m, v=None):
+        if v is not None:
+            return self.P * v
         return self.P
+
 
 class ActiveCells(InjectActiveCells):
     def __init__(self, mesh, indActive, valInactive, nC=None):
@@ -571,7 +622,9 @@ class Weighting(IdentityMap):
         Pinv = Utils.sdiag(self.weights**(-1.))
         return Pinv*D
 
-    def deriv(self, m):
+    def deriv(self, m, v=None):
+        if v is not None:
+            return self.P*v
         return self.P
 
 
@@ -599,13 +652,15 @@ class ComplexMap(IdentityMap):
         nC = self.mesh.nC
         return m[:nC] + m[nC:]*1j
 
-    def deriv(self, m):
+    def deriv(self, m, v=None):
         nC = self.nP/2
         shp = (nC, nC*2)
         def fwd(v):
             return v[:nC] + v[nC:]*1j
         def adj(v):
             return np.r_[v.real,v.imag]
+        if v is not None:
+            return LinearOperator(shp,matvec=fwd,rmatvec=adj) * v
         return LinearOperator(shp,matvec=fwd,rmatvec=adj)
 
     inverse = deriv
@@ -647,7 +702,7 @@ class CircleMap(IdentityMap):
         Y = self.mesh.gridCC[:,1]
         return sig1 + (sig2 - sig1)*(np.arctan(a*(np.sqrt((X-x)**2 + (Y-y)**2) - r))/np.pi + 0.5)
 
-    def deriv(self, m):
+    def deriv(self, m, v=None):
         a = self.slope
         sig1,sig2,x,y,r = m[0],m[1],m[2],m[3],m[4]
         if self.logSigma:
@@ -663,6 +718,9 @@ class CircleMap(IdentityMap):
         g3 = a*(-X + x)*(-sig1 + sig2)/(np.pi*(a**2*(-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1)*np.sqrt((X - x)**2 + (Y - y)**2))
         g4 = a*(-Y + y)*(-sig1 + sig2)/(np.pi*(a**2*(-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1)*np.sqrt((X - x)**2 + (Y - y)**2))
         g5 = -a*(-sig1 + sig2)/(np.pi*(a**2*(-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1))
+
+        if v is not None:
+            return sp.csr_matrix(np.c_[g1,g2,g3,g4,g5]) * v
         return sp.csr_matrix(np.c_[g1,g2,g3,g4,g5])
 
 
@@ -750,7 +808,7 @@ class PolyMap(IdentityMap):
 
         return sig1+(sig2-sig1)*(np.arctan(alpha*f)/np.pi+0.5)
 
-    def deriv(self, m):
+    def deriv(self, m, v=None):
         alpha = self.slope
         sig1,sig2, c = m[0],m[1],m[2:]
         if self.logSigma:
@@ -795,7 +853,10 @@ class PolyMap(IdentityMap):
 
         g3 = Utils.sdiag(alpha*(sig2-sig1)/(1.+(alpha*f)**2)/np.pi)*V
 
+        if v is not None:
+            return sp.csr_matrix(np.c_[g1,g2,g3]) * v
         return sp.csr_matrix(np.c_[g1,g2,g3])
+
 
 class SplineMap(IdentityMap):
 
@@ -886,7 +947,7 @@ class SplineMap(IdentityMap):
 
         return sig1+(sig2-sig1)*(np.arctan(alpha*f)/np.pi+0.5)
 
-    def deriv(self, m):
+    def deriv(self, m, v=None):
         alpha = self.slope
         sig1,sig2, c = m[0],m[1],m[2:]
         if self.logSigma:
@@ -972,6 +1033,9 @@ class SplineMap(IdentityMap):
                     g3[:,i] = Utils.sdiag(alpha*(sig2-sig1)/(1.+(alpha*f)**2)/np.pi)*fderiv
         else :
             raise(Exception("Not Implemented for Y and Z, your turn :)"))
+
+        if v is not None:
+            return sp.csr_matrix(np.c_[g1,g2,g3]) * v
         return sp.csr_matrix(np.c_[g1,g2,g3])
 
 
