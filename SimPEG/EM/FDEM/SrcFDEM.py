@@ -715,53 +715,59 @@ class PrimSecMappedSigma(BaseSrc):
         # return self.__ProjPrimary
 
 
-    def _primaryFields(self, prob):
+    def _primaryFields(self, prob, fieldType=None):
 
         # TODO: cache and check if prob.curModel has changed
-        return self.primaryProblem.fields(prob.curModel.sigmaModel)
+        fields = self.primaryProblem.fields(prob.curModel.sigmaModel)
+
+        if fieldType is not None:
+            return fields[:,fieldType]
+        return fields
 
     def _primaryFieldsDeriv(self, prob, v, adjoint=False):
         if adjoint:
             raise NotImplementedError
 
         # TODO: this should not be hard-coded for j
-        jp = self._primaryFields(prob)[:,'j']
+        # jp = self._primaryFields(prob)[:,'j']
 
         # TODO: pull apart Jvec so that don't have to copy paste this code in
         A = self.primaryProblem.getA(self.freq)
         Ainv = self.primaryProblem.Solver(A, **self.primaryProblem.solverOpts) # create the concept of Ainv (actually a solve)
 
-        df_dm_v = np.zeros(self.primaryProblem.survey.nSrc,len(jp))
+        # df_dm_v = np.zeros(len(jp))
 
         # TODO: this will probably break if we have more than one source
-        for i, src in enumerate(self.primaryProblem.survey.getSrcByFreq(freq)):
-            u_src = f[src, self.primaryProblem._solutionType]
-            dA_dm_v = self.primaryProblem.getADeriv(freq, u_src, v)
-            dRHS_dm_v = self.primaryProblem.getRHSDeriv(freq, src, v)
-            du_dm_v = Ainv * ( - dA_dm_v + dRHS_dm_v )
+        # for i, src in enumerate(self.primaryProblem.survey.getSrcByFreq(freq)):
+        # u_src = f[src, self.primaryProblem._solutionType]
+        u_src = self._primaryFields(prob,self.primaryProblem._solutionType)
+        dA_dm_v = self.primaryProblem.getADeriv(self.freq, u_src, v)
 
-            df_dmFun = getattr(f, '_{0}Deriv'.format('j'), None)
-            df_dm_v[i,:] += df_dmFun(src, du_dm_v, v, adjoint=False)
-            # Jv[src, :] = rx.evalDeriv(src, self.primaryProblem.mesh, f, df_dm_v)
+        # TODO: primary survey should only have one source ?
+        dRHS_dm_v = self.primaryProblem.getRHSDeriv(self.freq, self.primaryProblem.survey.srcList[0], v)
+
+        du_dm_v = Ainv * ( - dA_dm_v + dRHS_dm_v )
+
+        df_dmFun = getattr(f, '_{0}Deriv'.format('j'), None)
+        df_dm_v[i,:] += df_dmFun(src, du_dm_v, v, adjoint=False)
+        # Jv[src, :] = rx.evalDeriv(src, self.primaryProblem.mesh, f, df_dm_v)
 
         Ainv.clean()
-
         return Utils.mkvc(df_dm_v)
 
     def ePrimary(self, prob):
-
-        jp = self._primaryFields(prob)[:,'j']
+        jp = self._primaryFields(prob,'j')
         ep = self.primaryProblem.MfI * (self.primaryProblem.MfRho * jp)
         ep = self._ProjPrimary(prob) * ep
 
-        return ep
+        return Utils.mkvc(ep)
 
     def ePrimaryDeriv(self, prob, v, adjoint=False):
 
         if adjoint:
             raise NotImplementedError
 
-        jp = self._primaryFields(prob)[:,'j']
+        jp = self._primaryFields(prob,'j')
 
         epDeriv = self._ProjPrimary(prob) * (
                     self.primaryProblem.MfI * ( self.primaryProblem.MfRhoDeriv(jp) * v )
@@ -774,7 +780,8 @@ class PrimSecMappedSigma(BaseSrc):
 
     def s_e(self, prob):
         sigmaPrimary = self.map2meshs * prob.curModel.sigmaModel
-        return (prob.MeSigma -  prob.mesh.getEdgeInnerProduct(sigmaPrimary)) * self.ePrimary(prob)
+
+        return Utils.mkvc((prob.MeSigma -  prob.mesh.getEdgeInnerProduct(sigmaPrimary)) * self.ePrimary(prob))
 
 
     def s_eDeriv(self, prob, v, adjoint=False):
@@ -784,8 +791,9 @@ class PrimSecMappedSigma(BaseSrc):
 
         sigmaPrimary = self.map2meshs * prob.curModel.sigmaModel
         sigmaPrimaryDeriv = self.map2meshs.deriv(prob.curModel.sigmaModel)
-        return (prob.MeSigmaDeriv(self.ePrimary(prob)) * v
-                - prob.mesh.getEdgeInnerProductDeriv(sigmaPrimary)(self.ePrimary(prob)) * sigmaPrimaryDeriv * v
+        ePrimary = self.ePrimary(prob)
+        return (prob.MeSigmaDeriv(ePrimary) * v
+                - prob.mesh.getEdgeInnerProductDeriv(sigmaPrimary)(ePrimary) * sigmaPrimaryDeriv * v
                 + (prob.MeSigma -  prob.mesh.getEdgeInnerProduct(sigmaPrimary)) * self.ePrimaryDeriv(prob, v)
                 )
 

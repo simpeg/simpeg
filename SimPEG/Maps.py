@@ -1200,7 +1200,7 @@ class ParametrizedLayer(IdentityMap):
         layer_thickness_deriv = (vals[1]-vals[0])*self._atanlayerDeriv_layer_thickness(layer_center, layer_thickness)
 
 
-        return np.vstack([val0_deriv, val1_deriv, layer_center_deriv, layer_thickness_deriv]).T
+        return sp.csr_matrix(np.vstack([val0_deriv, val1_deriv, layer_center_deriv, layer_thickness_deriv]).T)
 
 
 
