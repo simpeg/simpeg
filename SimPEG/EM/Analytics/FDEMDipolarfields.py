@@ -18,7 +18,7 @@ def E_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
     """
     mu = mu_0*(1+kappa)
     epsilon = epsilon_0*epsr
-    sig_hat = sig + 1j*omeg*epsilon
+    sig_hat = sig + 1j*omega(f)*epsilon
 
     XYZ = Utils.asArray_N_x_Dim(XYZ, 3)
     # Check
@@ -66,7 +66,7 @@ def E_galvanic_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., le
     """
     mu = mu_0*(1+kappa)
     epsilon = epsilon_0*epsr
-    sig_hat = sig + 1j*omeg*epsilon
+    sig_hat = sig + 1j*omega(f)*epsilon
 
     XYZ = Utils.asArray_N_x_Dim(XYZ, 3)
     # Check
