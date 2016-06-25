@@ -5,8 +5,10 @@ from scipy.sparse.linalg import dsolve
 
 TOL = 1e-14
 
-MAPS_TO_TEST_2D = ["CircleMap", "ComplexMap", "ExpMap", "IdentityMap", "SurjectVertical1D", "Weighting", "SurjectFull","FullMap","Vertical1DMap", "ParametrizedLayer", "ParametrizedBlockInLayer"]
-MAPS_TO_TEST_3D = [             "ComplexMap", "ExpMap", "IdentityMap", "SurjectVertical1D", "Weighting", "SurjectFull","FullMap","Vertical1DMap", "ParametrizedLayer", "ParametrizedBlockInLayer"]
+MAPS_TO_TEST_2D = ["CircleMap", "ComplexMap", "ExpMap", "IdentityMap", "SurjectVertical1D", "Weighting", "SurjectFull", "FullMap", "Vertical1DMap", "ParametrizedLayer", "ParametrizedBlockInLayer"]
+MAPS_TO_TEST_3D = [             "ComplexMap", "ExpMap", "IdentityMap", "SurjectVertical1D", "Weighting", "SurjectFull", "FullMap", "Vertical1DMap", "ParametrizedLayer", "ParametrizedBlockInLayer"]
+MAPS_TO_TEST_CYL = [             "ComplexMap", "ExpMap", "IdentityMap", "SurjectVertical1D", "Weighting", "SurjectFull", "FullMap", "Vertical1DMap", "ParametrizedLayer"]
+
 
 class MapTests(unittest.TestCase):
 
@@ -17,6 +19,8 @@ class MapTests(unittest.TestCase):
         self.mesh2 = Mesh.TensorMesh([a, b], x0=np.array([3, 5]))
         self.mesh3 = Mesh.TensorMesh([a, b, [3,4]], x0=np.array([3, 5, 2]))
         self.mesh22 = Mesh.TensorMesh([b, a], x0=np.array([3, 5]))
+        self.meshCyl = Mesh.CylMesh([10.,1.,10.], x0='00C')
+        print self.meshCyl._meshType
 
     def test_transforms2D(self):
         for M in MAPS_TO_TEST_2D:
@@ -28,6 +32,15 @@ class MapTests(unittest.TestCase):
             maps = getattr(Maps, M)(self.mesh3)
             self.assertTrue(maps.test())
 
+    def test_transformsCyl(self):
+        for M in MAPS_TO_TEST_CYL:
+            maps = getattr(Maps, M)(self.meshCyl)
+            self.assertTrue(maps.test())
+
+    def test_ParametricCasingAndLayer(self):
+        mapping = Maps.ParametrizedCasingAndLayer(self.meshCyl)
+        m = np.r_[-2., 1., 6., 2., -0.1, 0.2, 0.5, 0.2, -0.3, 0.1]
+        self.assertTrue(mapping.test(m))
 
     def test_transforms_logMap_reciprocalMap(self):
         # Note that log/reciprocal maps can be kinda finicky, so we are being explicit about the random seed.
