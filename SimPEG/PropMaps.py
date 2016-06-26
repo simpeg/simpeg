@@ -187,7 +187,7 @@ class _PropMapMetaClass(type):
             attrs[attr + 'Model'] = prop._getModelProperty()
             attrs[attr + 'Deriv'] = prop._getModelDerivProperty()
 
-        return type(name.replace('PropMap', 'PropModel'), (PropModel, ), attrs)
+        return type('PropModel', (PropModel, ), attrs)
 
 
 class PropMap(object):

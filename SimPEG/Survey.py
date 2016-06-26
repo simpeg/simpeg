@@ -311,7 +311,6 @@ class BaseSurvey(object):
         if f is None: f = self.prob.fields(m)
         return Utils.mkvc(self.eval(f))
 
-
     @Utils.count
     def eval(self, f):
         """eval(f)
@@ -322,7 +321,7 @@ class BaseSurvey(object):
 
                 d_\\text{pred} = \mathbf{P} f(m)
         """
-        raise NotImplemented('eval is not yet implemented.')
+        raise NotImplementedError('eval is not yet implemented.')
 
     @Utils.count
     def evalDeriv(self, f):
@@ -334,7 +333,7 @@ class BaseSurvey(object):
 
                 \\frac{\partial d_\\text{pred}}{\partial u} = \mathbf{P}
         """
-        raise NotImplemented('eval is not yet implemented.')
+        raise NotImplementedError('eval is not yet implemented.')
 
     @Utils.count
     def residual(self, m, f=None):
