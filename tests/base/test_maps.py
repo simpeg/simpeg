@@ -39,7 +39,7 @@ class MapTests(unittest.TestCase):
 
     def test_ParametricCasingAndLayer(self):
         mapping = Maps.ParametrizedCasingAndLayer(self.meshCyl)
-        m = np.r_[-2., 1., 6., 2., -0.1, 0.2, 0.5, 0.2, -0.3, 0.1]
+        m = np.r_[-2., 1., 6., 2., -0.1, 0.2, 0.5, 0.2, -0.2, 0.2]
         self.assertTrue(mapping.test(m))
 
     def test_transforms_logMap_reciprocalMap(self):
