@@ -7,7 +7,7 @@ Todo: docs for IP!
 API for IP codes
 ================
 
-.. automodule:: SimPEG.DCIP.BaseIP
+.. automodule:: SimPEG.EM.Static.IP
     :show-inheritance:
     :members:
     :undoc-members:

@@ -40,7 +40,7 @@
 Direct Current Resistivity
 **************************
 
-`SimPEG.DCIP` uses SimPEG as the framework for the forward and inverse
+`SimPEG.EM.Static.DC` and `SimPEG.EM.Static.IP` uses SimPEG as the framework for the forward and inverse
 direct current (DC) resistivity and induced polarization (IP) geophysical problems.
 
 
@@ -150,7 +150,7 @@ Comparing to the analytic function:
 API for DC codes
 ================
 
-.. automodule:: SimPEG.DCIP.BaseDC
+.. automodule:: SimPEG.EM.Static.DC
     :show-inheritance:
     :members:
     :undoc-members:
