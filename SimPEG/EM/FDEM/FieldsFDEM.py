@@ -6,11 +6,11 @@ from SimPEG.EM.Utils import omega
 from SimPEG.Utils import Zero, Identity, sdiag
 
 
-class Fields(SimPEG.Problem.Fields):
+class FieldsFDEM(SimPEG.Problem.Fields):
     """
 
     Fancy Field Storage for a FDEM survey. Only one field type is stored for
-    each problem, the rest are computed. The fields obejct acts like an array and is indexed by
+    each problem, the rest are computed. The fields object acts like an array and is indexed by
 
     .. code-block:: python
 
@@ -92,7 +92,7 @@ class Fields(SimPEG.Problem.Fields):
         """
         Total derivative of e with respect to the inversion model. Returns :math:`d\mathbf{e}/d\mathbf{m}` for forward and (:math:`d\mathbf{e}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for the adjoint
 
-        :param Src src: sorce
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: source
         :param numpy.ndarray du_dm_v: derivative of the solution vector with respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
         :param bool adjoint: adjoint?
@@ -110,7 +110,7 @@ class Fields(SimPEG.Problem.Fields):
         """
         Total derivative of b with respect to the inversion model. Returns :math:`d\mathbf{b}/d\mathbf{m}` for forward and (:math:`d\mathbf{b}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for the adjoint
 
-        :param Src src: sorce
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: source
         :param numpy.ndarray du_dm_v: derivative of the solution vector with respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
         :param bool adjoint: adjoint?
@@ -128,7 +128,7 @@ class Fields(SimPEG.Problem.Fields):
         """
         Total derivative of h with respect to the inversion model. Returns :math:`d\mathbf{h}/d\mathbf{m}` for forward and (:math:`d\mathbf{h}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for the adjoint
 
-        :param Src src: sorce
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: source
         :param numpy.ndarray du_dm_v: derivative of the solution vector with respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
         :param bool adjoint: adjoint?
@@ -146,7 +146,7 @@ class Fields(SimPEG.Problem.Fields):
         """
         Total derivative of j with respect to the inversion model. Returns :math:`d\mathbf{j}/d\mathbf{m}` for forward and (:math:`d\mathbf{j}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for the adjoint
 
-        :param Src src: sorce
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: source
         :param numpy.ndarray du_dm_v: derivative of the solution vector with respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
         :param bool adjoint: adjoint?
@@ -160,12 +160,12 @@ class Fields(SimPEG.Problem.Fields):
             return self._jDeriv_u(src, v, adjoint), self._jDeriv_m(src, v, adjoint)
         return np.array(self._jDeriv_u(src, du_dm_v, adjoint) + self._jDeriv_m(src, v, adjoint), dtype = complex)
 
-class Fields3D_e(Fields):
+class Fields3D_e(FieldsFDEM):
     """
     Fields object for Problem3D_e.
 
-    :param Mesh mesh: mesh
-    :param Survey survey: survey
+    :param BaseMesh mesh: mesh
+    :param SimPEG.EM.FDEM.SurveyFDEM.Survey survey: survey
     """
 
     knownFields = {'eSolution':'E'}
@@ -179,9 +179,6 @@ class Fields3D_e(Fields):
                     'j' : ['eSolution','CCV','_j'],
                     'h' : ['eSolution','CCV','_h'],
                   }
-
-    def __init__(self, mesh, survey, **kwargs):
-        Fields.__init__(self, mesh, survey, **kwargs)
 
     def startup(self):
         self.prob = self.survey.prob
@@ -426,12 +423,12 @@ class Fields3D_e(Fields):
 
 
 
-class Fields3D_b(Fields):
+class Fields3D_b(FieldsFDEM):
     """
     Fields object for Problem3D_b.
 
-    :param Mesh mesh: mesh
-    :param Survey survey: survey
+    :param BaseMesh mesh: mesh
+    :param SimPEG.EM.FDEM.SurveyFDEM.Survey survey: survey
     """
 
     knownFields = {'bSolution':'F'}
@@ -445,9 +442,6 @@ class Fields3D_b(Fields):
                     'j' : ['bSolution','CCV','_j'],
                     'h' : ['bSolution','CCV','_h'],
                   }
-
-    def __init__(self,mesh,survey,**kwargs):
-        Fields.__init__(self,mesh,survey,**kwargs)
 
     def startup(self):
         self.prob = self.survey.prob
@@ -693,12 +687,12 @@ class Fields3D_b(Fields):
         return Zero()
 
 
-class Fields3D_j(Fields):
+class Fields3D_j(FieldsFDEM):
     """
     Fields object for Problem3D_j.
 
-    :param Mesh mesh: mesh
-    :param Survey survey: survey
+    :param BaseMesh mesh: mesh
+    :param SimPEG.EM.FDEM.SurveyFDEM.Survey survey: survey
     """
 
     knownFields = {'jSolution':'F'}
@@ -712,9 +706,6 @@ class Fields3D_j(Fields):
                     'e' : ['jSolution','CCV','_e'],
                     'b' : ['jSolution','CCV','_b'],
                   }
-
-    def __init__(self,mesh,survey,**kwargs):
-        Fields.__init__(self,mesh,survey,**kwargs)
 
     def startup(self):
         self.prob = self.survey.prob
@@ -988,12 +979,12 @@ class Fields3D_j(Fields):
         return 1./(1j * omega(src.freq)) * VI * (self._aveE2CCV * ( s_mDeriv(v) - self._edgeCurl.T * ( self._MfRhoDeriv(jSolution) * v ) ) )
 
 
-class Fields3D_h(Fields):
+class Fields3D_h(FieldsFDEM):
     """
     Fields object for Problem3D_h.
 
-    :param Mesh mesh: mesh
-    :param Survey survey: survey
+    :param BaseMesh mesh: mesh
+    :param SimPEG.EM.FDEM.SurveyFDEM.Survey survey: survey
     """
 
     knownFields = {'hSolution':'E'}
@@ -1007,9 +998,6 @@ class Fields3D_h(Fields):
                     'e' : ['hSolution','CCV','_e'],
                     'b' : ['hSolution','CCV','_b'],
                   }
-
-    def __init__(self,mesh,survey,**kwargs):
-        Fields.__init__(self,mesh,survey,**kwargs)
 
     def startup(self):
         self.prob = self.survey.prob

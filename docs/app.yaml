@@ -1,0 +1,95 @@
+# application: simpegdocs
+# version: 1
+runtime: python27
+api_version: 1
+threadsafe: yes
+
+handlers:
+
+# favicon
+- url: /images/logo-block\.ico
+  static_files: /images/logo-block.ico
+  upload: /images/logo-block\.ico
+
+# all css
+- url: /(.*\.css)
+  mime_type: text/css
+  static_files: _build/html/\1
+  upload: _build/html/(.*\.css)
+
+# webfonts
+- url: /(.*\.(eot|svg|ttf|woff|woff2|otf))
+  static_files: _build/html/\1
+  upload: _build/html/(.*\.(eot|svg|ttf|woff|woff2|otf))
+
+# javascript
+- url: /(.*\.js)
+  mime_type: text/javascript
+  static_files: _build/html/\1
+  upload: _build/html/(.*\.js)
+
+# plain text source
+- url: /(.*\.txt)
+  mime_type: text/plain
+  static_files: _build/html/\1
+  upload: _build/html/(.*\.txt)
+
+# images
+- url: /_images/(.*\.(gif|png|jpg|ico))
+  static_files: _build/html/_images/\1
+  upload: _build/html/_images/(.*\.(gif|png|jpg|ico))
+
+# redirect en/latest traffic
+- url: /en/latest/(.*\.html)
+  script: simpegdocs.app
+
+# raw html
+- url: /(.*\.html)
+  mime_type: text/html
+  static_files: _build/html/\1
+  upload: _build/html/(.*\.html)
+
+# serve index files
+- url: /(.+)/
+  static_files: _build/html/\1/index.html
+  upload: _build/html/(.+)/index.html
+
+- url: /(.+)
+  static_files: _build/html/\1/index.html
+  upload: _build/html/(.+)/index.html
+
+- url: /
+  static_files: _build/html/index.html
+  upload: _build/html/index.html
+
+- url: .*
+  script: simpegdocs.app
+
+# Recommended file skipping declaration from the GAE tutorials
+skip_files:
+  - ^(.*/)?app\.yaml
+  - ^(.*/)?app\.yml
+  - ^(.*/)?#.*#
+  - ^(.*/)?.*~
+  - ^(.*/)?.*\.py[co]
+  - ^(.*/)?.*/RCS/.*
+  - ^(.*/)?\..*
+  - ^(.*/)?tests$
+  - ^(.*/)?test$
+  - ^test/(.*/)?
+  - ^COPYING.LESSER
+  - ^README\..*
+  - \.gitignore
+  - ^\.git/.*
+  - \.*\.lint$
+  - ^(.*/)?.*\.doctree$
+
+libraries:
+- name: webapp2
+  version: "2.5.2"
+- name: PIL
+  version: "1.1.7"
+- name: numpy
+  version: "latest"
+- name: jinja2
+  version: "latest"

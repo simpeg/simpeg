@@ -6,13 +6,11 @@ class TensorMeshIO(object):
     @classmethod
     def readUBC(TensorMesh, fileName):
         """
-            Read UBC GIF 3DTensor mesh and generate 3D Tensor mesh in simpegTD
+            Read UBC GIF 3D tensor mesh and generate 3D TensorMesh in SimPEG.
 
-            Input:
-            :param fileName, path to the UBC GIF mesh file
-
-            Output:
-            :param SimPEG TensorMesh object
+            :param string fileName: path to the UBC GIF mesh file
+            :rtype: TensorMesh
+            :return: The tensor mesh for the fileName.
         """
 
         # Interal function to read cell size lines for the UBC mesh files.
@@ -48,11 +46,9 @@ class TensorMeshIO(object):
             Read VTK Rectilinear (vtr xml file) and return SimPEG Tensor mesh and model
 
             Input:
-            :param vtrFileName, path to the vtr model file to write to
-
-            Output:
-            :return SimPEG TensorMesh object
-            :return SimPEG model dictionary
+            :param string fileName: path to the vtr model file to read
+            :rtype: tuple
+            :return: (TensorMesh, modelDictionary)
 
         """
         # Import
@@ -102,9 +98,8 @@ class TensorMeshIO(object):
         Makes and saves a VTK rectilinear file (vtr) for a simpeg Tensor mesh and model.
 
         Input:
-        :param str, path to the output vtk file
-        :param mesh, SimPEG TensorMesh object - mesh to be transfer to VTK
-        :param models, dictionary of numpy.array - Name('s) and array('s). Match number of cells
+        :param string fileName: path to the output vtk file
+        :param dict models: dictionary of numpy.array - Name('s) and array('s). Match number of cells
 
         """
         # Import
@@ -162,12 +157,9 @@ class TensorMeshIO(object):
         """
             Read UBC 3DTensor mesh model and generate 3D Tensor mesh model in simpeg
 
-            Input:
-            :param fileName, path to the UBC GIF mesh file to read
-            :param mesh, TensorMesh object, mesh that coresponds to the model
-
-            Output:
-            :return numpy array, model with TensorMesh ordered
+            :param string fileName: path to the UBC GIF mesh file to read
+            :rtype: numpy.ndarray
+            :return: model with TensorMesh ordered
         """
         f = open(fileName, 'r')
         model = np.array(map(float, f.readlines()))
@@ -183,8 +175,7 @@ class TensorMeshIO(object):
             Writes a model associated with a SimPEG TensorMesh
             to a UBC-GIF format model file.
 
-            :param str fileName: File to write to
-            :param simpeg.Mesh.TensorMesh mesh: The mesh
+            :param string fileName: File to write to
             :param numpy.ndarray model: The model
         """
 
@@ -201,8 +192,8 @@ class TensorMeshIO(object):
         """
             Writes a SimPEG TensorMesh to a UBC-GIF format mesh file.
 
-            :param str fileName: File to write to
-            :param simpeg.Mesh.TensorMesh mesh: The mesh
+            :param string fileName: File to write to
+            :param dict models: A dictionary of the models
 
         """
         assert mesh.dim == 3
@@ -231,9 +222,8 @@ class TreeMeshIO(object):
         """
             Write UBC ocTree mesh and model files from a simpeg ocTree mesh and model.
 
-            :param str fileName: File to write to
-            :param simpeg.Mesh.TreeMesh mesh: The mesh
-            :param dictionary models: The models in a dictionary, where the keys is the name of the of the model file
+            :param string fileName: File to write to
+            :param dict models: The models in a dictionary, where the keys is the name of the of the model file
         """
 
         # Calculate information to write in the file.
@@ -286,10 +276,9 @@ class TreeMeshIO(object):
 
             Input:
             :param str meshFile: path to the UBC GIF OcTree mesh file to read
+            :rtype: SimPEG.Mesh.TreeMesh
+            :return: The octree mesh
 
-            Output:
-            :return SimPEG.Mesh.TreeMesh mesh: The octree mesh
-            :return list of ndarray's: models as a list of numpy array's
         """
 
         ## Read the file lines
@@ -335,11 +324,9 @@ class TreeMeshIO(object):
         """
             Read UBC OcTree model and get vector
 
-            Input:
-            :param fileName, path to the UBC GIF model file to read
-
-            Output:
-            :return numpy array, OcTree model
+            :param string fileName: path to the UBC GIF model file to read
+            :rtype: numpy.ndarray
+            :return: OcTree model
         """
 
         if type(fileName) is list:
