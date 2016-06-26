@@ -624,7 +624,7 @@ class Weighting(IdentityMap):
 
     def deriv(self, m, v=None):
         if v is not None:
-            return self.P*v
+            return self.P * v
         return self.P
 
 
