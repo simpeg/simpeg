@@ -114,7 +114,7 @@ def E_inductive_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., l
     """
     mu = mu_0*(1+kappa)
     epsilon = epsilon_0*epsr
-    sig_hat = sig + 1j*omeg*epsilon
+    sig_hat = sig + 1j*omega(f)*epsilon
 
     XYZ = Utils.asArray_N_x_Dim(XYZ, 3)
     # Check
