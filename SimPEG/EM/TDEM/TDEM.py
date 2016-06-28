@@ -175,7 +175,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         for src in self.survey.srcList:
             PT_v = Fields_Derivs(self.mesh, self.survey) # initialize storage for PT_v (don't need to preserve over sources)
             # initialize size
-            df_duT_v[src, '%sDeriv'%self._fieldType, :] = np.zeros_like(f[src, self._fieldType, :])
+            df_duT_v[src, '%sDeriv'%self._fieldType, :] = sp.zeros_like(f[src, self._fieldType, :])
 
             for rx in src.rxList:
                 PT_v[src,'%sDeriv'%rx.projField,:] = rx.evalDeriv(src, self.mesh, self.timeMesh, Utils.mkvc(v[src,rx]), adjoint=True) # this is +=
@@ -272,7 +272,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         #         JTv = JTv - Utils.mkvc(self.getAdiagDeriv(0, f[src, ftype, tInd], v, adjoint = True))
         #         # JTv = JTv + self.getInitialFieldsDeriv(Utils.mkvc(df_duT_v[src,'%sDeriv'%self._fieldType,0] - Asubdiag.T * Utils.mkvc(ATinv_df_duT_v[isrc,:])), adjoint=True)
 
-
+        AdiagTinv.clean()
         return Utils.mkvc(JTv).astype(float)
 
 
