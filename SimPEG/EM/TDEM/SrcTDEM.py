@@ -202,3 +202,45 @@ class MagDipole(BaseSrc):
         if self.waveform.hasInitialFields is False:
             raise NotImplementedError
         return Zero()
+
+class CircularLoop(MagDipole):
+
+    waveform = None
+    loc = None
+    orientation = 'Z'
+    radius = None
+    mu = mu_0
+
+    def __init__(self, rxList, **kwargs):
+        assert self.orientation in ['X','Y','Z'], "Orientation (right now) doesn't actually do anything! The methods in SrcUtils should take care of this..."
+        self.integrate = False
+        BaseSrc.__init__(self, rxList, **kwargs)
+
+    def _bfromVectorPotential(self, prob):
+        if prob._eqLocs is 'FE':
+            gridX = prob.mesh.gridEx
+            gridY = prob.mesh.gridEy
+            gridZ = prob.mesh.gridEz
+            C = prob.mesh.edgeCurl
+
+        elif prob._eqLocs is 'EF':
+            gridX = prob.mesh.gridFx
+            gridY = prob.mesh.gridFy
+            gridZ = prob.mesh.gridFz
+            C = prob.mesh.edgeCurl.T
+
+
+        if prob.mesh._meshType is 'CYL':
+            if not prob.mesh.isSymmetric:
+                raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
+            a = MagneticLoopVectorPotential(self.loc, gridY, 'y', radius=self.radius, mu=self.mu)
+
+        else:
+            srcfct = MagneticLoopVectorPotential
+            ax = srcfct(self.loc, gridX, 'x', mu=self.mu, radius=self.radius)
+            ay = srcfct(self.loc, gridY, 'y', mu=self.mu, radius=self.radius)
+            az = srcfct(self.loc, gridZ, 'z', mu=self.mu, radius=self.radius)
+            a = np.concatenate((ax, ay, az))
+
+        return C*a
+

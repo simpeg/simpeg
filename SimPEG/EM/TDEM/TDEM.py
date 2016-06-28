@@ -49,7 +49,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
             rhs = self.getRHS(tInd+1) # this is on the nodes of the time mesh
             Asubdiag = self.getAsubdiag(tInd)
 
-            if self.verbose: print '    Solving...   (tInd = %d)'%tInd+1
+            if self.verbose: print ('    Solving...   (tInd = %i)')% (tInd+1)
             sol = Ainv * (rhs - Asubdiag * F[:,self._fieldType+'Solution',tInd]) # taking a step
 
             if self.verbose: print '    Done...'
