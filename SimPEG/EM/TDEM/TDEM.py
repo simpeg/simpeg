@@ -34,6 +34,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         F[:,self._fieldType+'Solution',0] = self.getInitialFields()
 
         # timestep to solve forward
+        if self.verbose: print '%s\nCalculating fields(m)\n%s'%('*'*50,'*'*50)
         Ainv = None
         for tInd, dt in enumerate(self.timeSteps):
             if Ainv is not None and (tInd > 0 and dt != self.timeSteps[tInd - 1]):# keep factors if dt is the same as previous step b/c A will be the same
@@ -57,7 +58,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
             if sol.ndim == 1:
                 sol.shape = (sol.size,1)
             F[:,self._fieldType+'Solution',tInd+1] = sol
-
+        if self.verbose: print '%s\nDone calculating fields(m)\n%s'%('*'*50,'*'*50)
         Ainv.clean()
         return F
 
