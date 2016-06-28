@@ -693,11 +693,11 @@ class PrimSecMappedSigma(BaseSrc):
     :param SurveyFDEM primarySurvey: FDEM primary survey
 
     **Optional**
-    :param Mapping map2meshs: mapping current model to act as primary model on the secondary mesh
+    :param Mapping map2meshSecondary: mapping current model to act as primary model on the secondary mesh
 
     """
 
-    def __init__(self, rxList, freq, primaryProblem, primarySurvey, map2meshs = None ,**kwargs):
+    def __init__(self, rxList, freq, primaryProblem, primarySurvey, map2meshSecondary = None ,**kwargs):
 
         self.primaryProblem = primaryProblem
         self.primarySurvey = primarySurvey
@@ -705,7 +705,7 @@ class PrimSecMappedSigma(BaseSrc):
         if self.primaryProblem.ispaired is False:
             self.primaryProblem.pair(self.primarySurvey)
 
-        self.map2meshs = map2meshs
+        self.map2meshSecondary = map2meshSecondary
 
         BaseSrc.__init__(self, rxList, freq=freq, **kwargs)
 
@@ -790,7 +790,7 @@ class PrimSecMappedSigma(BaseSrc):
 
 
     def s_e(self, prob):
-        sigmaPrimary = self.map2meshs * prob.curModel.sigmaModel
+        sigmaPrimary = self.map2meshSecondary * prob.curModel.sigmaModel
 
         return Utils.mkvc((prob.MeSigma -  prob.mesh.getEdgeInnerProduct(sigmaPrimary)) * self.ePrimary(prob))
 
@@ -800,8 +800,8 @@ class PrimSecMappedSigma(BaseSrc):
             raise NotImplementedError
             return prob.MeSigmaDeriv(self.ePrimary(prob)).T * v
 
-        sigmaPrimary = self.map2meshs * prob.curModel.sigmaModel
-        sigmaPrimaryDeriv = self.map2meshs.deriv(prob.curModel.sigmaModel)
+        sigmaPrimary = self.map2meshSecondary * prob.curModel.sigmaModel
+        sigmaPrimaryDeriv = self.map2meshSecondary.deriv(prob.curModel.sigmaModel)
 
         f = self._primaryFields(prob)
         ePrimary = self.ePrimary(prob,f=f)
