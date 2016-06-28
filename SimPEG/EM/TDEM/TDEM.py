@@ -15,7 +15,6 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
     def __init__(self, mesh, mapping=None, **kwargs):
         Problem.BaseTimeProblem.__init__(self, mesh, mapping=mapping, **kwargs)
 
-
     def fields(self, m):
         """
         Solve the forward problem for the fields.
@@ -139,8 +138,8 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
                 Jv[src,rx] = rx.evalDeriv(src, self.mesh, self.timeMesh, Utils.mkvc(df_dm_v[src,'%sDeriv'%rx.projField,:]))
 
         Adiaginv.clean()
+        del df_dm_v
         return Utils.mkvc(Jv)
-
 
     def Jtvec(self, m, v, f=None):
 
@@ -175,23 +174,22 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         for src in self.survey.srcList:
             PT_v = Fields_Derivs(self.mesh, self.survey) # initialize storage for PT_v (don't need to preserve over sources)
             # initialize size
+            print ('_%sDeriv')%(self._fieldType)
             df_duT_v[src, '%sDeriv'%self._fieldType, :] = np.zeros_like(f[src, self._fieldType, :])
 
             for rx in src.rxList:
+                print ('_%sDeriv')%(rx.projField)
                 PT_v[src,'%sDeriv'%rx.projField,:] = rx.evalDeriv(src, self.mesh, self.timeMesh, Utils.mkvc(v[src,rx]), adjoint=True) # this is +=
 
                 # PT_v = np.reshape(curPT_v,(len(curPT_v)/self.timeMesh.nN, self.timeMesh.nN), order='F')
-
                 df_duTFun = getattr(f, '_%sDeriv'%rx.projField, None)
 
                 for tInd in range(self.nT+1):
                     cur = df_duTFun(tInd, src, None, Utils.mkvc(PT_v[src,'%sDeriv'%rx.projField,tInd]), adjoint=True)
-
                     df_duT_v[src, '%sDeriv'%self._fieldType, tInd] = df_duT_v[src, '%sDeriv'%self._fieldType, tInd] + Utils.mkvc(cur[0],2)
                     JTv = cur[1] + JTv
 
         del PT_v # no longer need this
-
 
         AdiagTinv = None
 
@@ -272,6 +270,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         #         JTv = JTv - Utils.mkvc(self.getAdiagDeriv(0, f[src, ftype, tInd], v, adjoint = True))
         #         # JTv = JTv + self.getInitialFieldsDeriv(Utils.mkvc(df_duT_v[src,'%sDeriv'%self._fieldType,0] - Asubdiag.T * Utils.mkvc(ATinv_df_duT_v[isrc,:])), adjoint=True)
 
+        del df_duT_v
 
         return Utils.mkvc(JTv).astype(float)
 
