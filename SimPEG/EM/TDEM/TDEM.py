@@ -81,8 +81,6 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         ftype = self._fieldType + 'Solution' # the thing we solved for
         self.curModel = m
 
-        Jv = self.dataPair(self.survey)
-
         # mat to store previous time-step's solution deriv times a vector for each source
         # size: nu x nSrc
 
@@ -115,6 +113,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
                 # here, we are lagging by a timestep, so filling in as we go
                 for projField in set([rx.projField for rx in src.rxList]):
+                    # Seogi: df_duFun?
                     df_dmFun = getattr(f, '_%sDeriv'%projField, None)
                     # df_dm_v is dense, but we only need the times at (rx.P.T * ones > 0)
                     # This should be called rx.footprint
@@ -133,13 +132,18 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
                 if tInd != len(self.timeSteps+1):
                     dun_dm_v[:,i] = Adiaginv * (JRHS - Asubdiag * dun_dm_v[:,i])
 
+        # Seogi: suspcious spot
+        # Jv = self.dataPair(self.survey)
+        Jv = []
         for src in self.survey.srcList:
             for rx in src.rxList:
-                Jv[src,rx] = rx.evalDeriv(src, self.mesh, self.timeMesh, Utils.mkvc(df_dm_v[src,'%sDeriv'%rx.projField,:]))
-
+                # Looping over data class append memory as well!!
+                # Jv[src,rx] = rx.evalDeriv(src, self.mesh, self.timeMesh, Utils.mkvc(df_dm_v[src,'%sDeriv'%rx.projField,:]))
+                Jv.append(rx.evalDeriv(src, self.mesh, self.timeMesh, Utils.mkvc(df_dm_v[src,'%sDeriv'%rx.projField,:])))
         Adiaginv.clean()
-        del df_dm_v
-        return Utils.mkvc(Jv)
+        # del df_dm_v, dun_dm_v, Asubdiag
+        # return Utils.mkvc(Jv)
+        return np.hstack(Jv)
 
     def Jtvec(self, m, v, f=None):
 
@@ -166,13 +170,15 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
             v = self.dataPair(self.survey, v)
 
         df_duT_v = Fields_Derivs(self.mesh, self.survey)
-        ATinv_df_duT_v = np.zeros((len(self.survey.srcList), len(f[self.survey.srcList[0],ftype,0]))) # same size as fields at a single timestep
+        ATinv_df_duT_v = np.zeros((len(self.survey.srcList), len(f[self.survey.srcList[0],ftype,0])), dtype=float) # same size as fields at a single timestep
 
-        JTv = np.zeros(m.shape)
+        JTv = np.zeros(m.shape, dtype=float)
 
         # Loop over sources and receivers to create a fields object: PT_v, df_duT_v, df_dmT_v
+        PT_v = Fields_Derivs(self.mesh, self.survey) # initialize storage for PT_v (don't need to preserve over sources)
         for src in self.survey.srcList:
-            PT_v = Fields_Derivs(self.mesh, self.survey) # initialize storage for PT_v (don't need to preserve over sources)
+            # Looping over initializing field class is appending memory!
+            # PT_v = Fields_Derivs(self.mesh, self.survey) # initialize storage for PT_v (don't need to preserve over sources)
             # initialize size
             print ('_%sDeriv')%(self._fieldType)
             df_duT_v[src, '%sDeriv'%self._fieldType, :] = np.zeros_like(f[src, self._fieldType, :])
@@ -270,7 +276,9 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         #         JTv = JTv - Utils.mkvc(self.getAdiagDeriv(0, f[src, ftype, tInd], v, adjoint = True))
         #         # JTv = JTv + self.getInitialFieldsDeriv(Utils.mkvc(df_duT_v[src,'%sDeriv'%self._fieldType,0] - Asubdiag.T * Utils.mkvc(ATinv_df_duT_v[isrc,:])), adjoint=True)
 
-        del df_duT_v
+        # del df_duT_v, ATinv_df_duT_v, A, Asubdiag
+        if AdiagTinv is not None:
+            AdiagTinv.clean()
 
         return Utils.mkvc(JTv).astype(float)
 

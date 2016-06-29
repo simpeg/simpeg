@@ -1,4 +1,5 @@
 import Utils, numpy as np, scipy.sparse as sp, uuid
+import gc
 
 class BaseRx(object):
     """SimPEG Receiver Object"""

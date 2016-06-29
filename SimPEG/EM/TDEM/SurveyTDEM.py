@@ -64,7 +64,6 @@ class Rx(SimPEG.Survey.BaseTimeRx):
 
     def evalDeriv(self, src, mesh, timeMesh, v, adjoint=False):
         P = self.getP(mesh, timeMesh)
-
         if not adjoint:
             return P * v #Utils.mkvc(v[src, self.projField+'Deriv', :])
         elif adjoint:
