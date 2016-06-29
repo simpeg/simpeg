@@ -1,7 +1,7 @@
 from SimPEG import *
 import SimPEG.EM.Static.DC as DC
 
-def run(plotIt=False):
+def run(plotIt=True):
     cs = 25.
     hx = [(cs,7, -1.3),(cs,21),(cs,7, 1.3)]
     hy = [(cs,7, -1.3),(cs,21),(cs,7, 1.3)]
@@ -65,4 +65,4 @@ def run(plotIt=False):
 
 
 if __name__ == '__main__':
-    print run(plotIt=True)
+    print run()
