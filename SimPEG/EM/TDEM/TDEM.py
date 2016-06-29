@@ -171,7 +171,6 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
         df_duT_v = Fields_Derivs(self.mesh, self.survey)
         ATinv_df_duT_v = np.zeros((len(self.survey.srcList), len(f[self.survey.srcList[0],ftype,0])), dtype=float) # same size as fields at a single timestep
-
         JTv = np.zeros(m.shape, dtype=float)
 
         # Loop over sources and receivers to create a fields object: PT_v, df_duT_v, df_dmT_v
@@ -183,6 +182,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
             df_duT_v[src, '%sDeriv'%self._fieldType, :] = np.zeros_like(f[src, self._fieldType, :])
 
             for rx in src.rxList:
+                print ('_%sDeriv')%(rx.projField)
                 PT_v[src,'%sDeriv'%rx.projField,:] = rx.evalDeriv(src, self.mesh, self.timeMesh, Utils.mkvc(v[src,rx]), adjoint=True) # this is +=
 
                 # PT_v = np.reshape(curPT_v,(len(curPT_v)/self.timeMesh.nN, self.timeMesh.nN), order='F')

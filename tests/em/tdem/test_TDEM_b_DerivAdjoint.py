@@ -159,20 +159,20 @@ class TDEM_DerivTests(unittest.TestCase):
             print 'test_Jvec_%s_%s' %(prbtype, rxcomp)
             Tests.checkDerivative(derChk, m, plotIt=False, num=2, eps=1e-20)
 
-        def test_Jvec_b_bx(self):
-            self.JvecTest('b','bx')
+        # def test_Jvec_b_bx(self):
+        #     self.JvecTest('b','bx')
 
-        def test_Jvec_b_bz(self):
-            self.JvecTest('b','bz')
+        # def test_Jvec_b_bz(self):
+        #     self.JvecTest('b','bz')
 
-        def test_Jvec_b_dbxdt(self):
-            self.JvecTest('b','dbxdt')
+        # def test_Jvec_b_dbxdt(self):
+        #     self.JvecTest('b','dbxdt')
 
-        def test_Jvec_b_dbzdt(self):
-            self.JvecTest('b','dbzdt')
+        # def test_Jvec_b_dbzdt(self):
+        #     self.JvecTest('b','dbzdt')
 
-        def test_Jvec_b_ey(self):
-            self.JvecTest('b','ey')
+        # def test_Jvec_b_ey(self):
+        #     self.JvecTest('b','ey')
 
         def test_Jvec_e_ey(self):
             self.JvecTest('e','ey')
@@ -197,24 +197,24 @@ class TDEM_DerivTests(unittest.TestCase):
             print '    ', V1, V2, np.abs(V1-V2), tol, passed
             self.assertTrue(passed)
 
-        def test_Jvec_adjoint_b_bx(self):
-            self.JvecVsJtvecTest('b', 'bx')
+        # def test_Jvec_adjoint_b_bx(self):
+        #     self.JvecVsJtvecTest('b', 'bx')
 
-        def test_Jvec_adjoint_b_bz(self):
-            self.JvecVsJtvecTest('b', 'bz')
+        # def test_Jvec_adjoint_b_bz(self):
+        #     self.JvecVsJtvecTest('b', 'bz')
 
-        def test_Jvec_adjoint_b_dbxdt(self):
-            self.JvecVsJtvecTest('b', 'bx')
+        # def test_Jvec_adjoint_b_dbxdt(self):
+        #     self.JvecVsJtvecTest('b', 'bx')
 
-        def test_Jvec_adjoint_b_dbzdt(self):
-            self.JvecVsJtvecTest('b', 'bz')
+        # def test_Jvec_adjoint_b_dbzdt(self):
+        #     self.JvecVsJtvecTest('b', 'bz')
 
-        def test_Jvec_adjoint_b_ey(self):
-            self.JvecVsJtvecTest('b', 'ey')
+        # def test_Jvec_adjoint_b_ey(self):
+        #     self.JvecVsJtvecTest('b', 'ey')
 
         # This is not working because Problem_e has not done
-        # def test_Jvec_adjoint_e_ey(self):
-        #     self.JvecVsJtvecTest('e', 'ey')
+        def test_Jvec_adjoint_e_ey(self):
+            self.JvecVsJtvecTest('e', 'ey')
 
 
 

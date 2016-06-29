@@ -163,7 +163,6 @@ class MagDipole(BaseSrc):
         return self._bfromVectorPotential(prob)
 
     def eInitial(self, prob):
-
         if self.waveform.hasInitialFields is False:
             return Zero()
 
@@ -202,6 +201,11 @@ class MagDipole(BaseSrc):
         if self.waveform.hasInitialFields is False:
             raise NotImplementedError
         return Zero()
+        # b = self.bInitial(prob)
+        # MfMui = prob.MfMui
+        # C = prob.mesh.edgeCurl
+        # return C.T * (MfMui * b) * self.waveform.eval(time)
+
 
 class CircularLoop(MagDipole):
 
