@@ -180,7 +180,6 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
             # Looping over initializing field class is appending memory!
             # PT_v = Fields_Derivs(self.mesh, self.survey) # initialize storage for PT_v (don't need to preserve over sources)
             # initialize size
-            print ('_%sDeriv')%(self._fieldType)
             df_duT_v[src, '%sDeriv'%self._fieldType, :] = np.zeros_like(f[src, self._fieldType, :])
 
             for rx in src.rxList:
