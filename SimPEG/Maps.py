@@ -1344,14 +1344,14 @@ class ParametrizedCasingAndLayer(ParametrizedLayer):
         return d_layer_cont_dval_layer + d_casing_cont_dval_layer + d_insideCasing_cont_dval_layer
 
     def _deriv_val_casing(self, mDict):
-        d_layer_cont_dval_casing = Zero()
+        d_layer_cont_dval_casing = 0.
         d_casing_cont_dval_casing = self._atanCasing(mDict)
-        d_insideCasing_cont_dval_casing = Zero()
+        d_insideCasing_cont_dval_casing = 0.
         return d_layer_cont_dval_casing + d_casing_cont_dval_casing + d_insideCasing_cont_dval_casing
 
     def _deriv_val_insideCasing(self, mDict):
-        d_layer_cont_dval_insideCasing = Zero()
-        d_casing_cont_dval_insideCasing = Zero()
+        d_layer_cont_dval_insideCasing = 0.
+        d_casing_cont_dval_insideCasing = 0.
         d_insideCasing_cont_dval_insideCasing = self._atanInsideCasing(mDict)
         return d_layer_cont_dval_insideCasing + d_casing_cont_dval_insideCasing + d_insideCasing_cont_dval_insideCasing
 
@@ -1369,25 +1369,25 @@ class ParametrizedCasingAndLayer(ParametrizedLayer):
 
     def _deriv_casing_radius(self, mDict):
         layer = self.layer_cont(mDict)
-        d_layer_cont_dcasing_radius = Zero()
+        d_layer_cont_dcasing_radius = 0.
         d_casing_cont_dcasing_radius = (mDict['val_casing'] - layer) * self._atanCasingDeriv_casing_radius(mDict)
         d_insideCasing_cont_dcasing_radius = (mDict['val_insideCasing'] - layer) * self._atanInsideCasingDeriv_casing_radius(mDict)
         return d_layer_cont_dcasing_radius + d_casing_cont_dcasing_radius + d_insideCasing_cont_dcasing_radius
 
     def _deriv_casing_thickness(self, mDict):
-        d_layer_cont_dcasing_thickness = Zero()
+        d_layer_cont_dcasing_thickness = 0.
         d_casing_cont_dcasing_thickness = (mDict['val_casing'] - self.layer_cont(mDict)) * self._atanCasingDeriv_casing_thickness(mDict)
         d_insideCasing_cont_dcasing_thickness = (mDict['val_insideCasing'] - self.layer_cont(mDict)) * self._atanInsideCasingDeriv_casing_thickness(mDict)
         return d_layer_cont_dcasing_thickness + d_casing_cont_dcasing_thickness + d_insideCasing_cont_dcasing_thickness
 
     def _deriv_casing_bottom(self, mDict):
-        d_layer_cont_dcasing_bottom = Zero()
+        d_layer_cont_dcasing_bottom = 0.
         d_casing_cont_dcasing_bottom = (mDict['val_casing'] - self.layer_cont(mDict)) * self._atanCasingDeriv_casing_bottom(mDict)
         d_insideCasing_cont_dcasing_bottom = (mDict['val_insideCasing'] - self.layer_cont(mDict)) * self._atanInsideCasingDeriv_casing_bottom(mDict)
         return d_layer_cont_dcasing_bottom + d_casing_cont_dcasing_bottom + d_insideCasing_cont_dcasing_bottom
 
     def _deriv_casing_top(self, mDict):
-        d_layer_cont_dcasing_top = Zero()
+        d_layer_cont_dcasing_top = 0.
         d_casing_cont_dcasing_top = (mDict['val_casing'] - self.layer_cont(mDict)) * self._atanCasingDeriv_casing_top(mDict)
         d_insideCasing_cont_dcasing_top = (mDict['val_insideCasing'] - self.layer_cont(mDict)) * self._atanInsideCasingDeriv_casing_top(mDict)
         return d_layer_cont_dcasing_top + d_casing_cont_dcasing_top + d_insideCasing_cont_dcasing_top
@@ -1397,7 +1397,7 @@ class ParametrizedCasingAndLayer(ParametrizedLayer):
 
         mDict = self.mDict(m)
 
-        return np.vstack([
+        return sp.csr_matrix(np.vstack([
                 self._deriv_val_background(mDict),
                 self._deriv_val_layer(mDict),
                 self._deriv_val_casing(mDict),
@@ -1408,7 +1408,7 @@ class ParametrizedCasingAndLayer(ParametrizedLayer):
                 self._deriv_casing_thickness(mDict),
                 self._deriv_casing_bottom(mDict),
                 self._deriv_casing_top(mDict),
-                ]).T
+                ]).T)
 
 
 
@@ -1624,7 +1624,7 @@ class ParametrizedBlockInLayer(ParametrizedLayer):
         return d_layer_dval_layer + d_block_dval_layer
 
     def _deriv2d_val_block(self, mDict):
-        d_layer_dval_block = Zero()
+        d_layer_dval_block = 0.
         d_block_dval_block = (1.-d_layer_dval_block)*self._atanBlock2d(mDict)
         return d_layer_dval_block + d_block_dval_block
 
@@ -1641,12 +1641,12 @@ class ParametrizedBlockInLayer(ParametrizedLayer):
         return d_layer_dlayer_thickness + d_block_dlayer_thickness
 
     def _deriv2d_x0_block(self, mDict):
-        d_layer_dx0 = Zero()
+        d_layer_dx0 = 0.
         d_block_dx0 = (mDict['val_block']-self.layer_cont(mDict))*self._atanBlock2dDeriv_x0(mDict)
         return d_layer_dx0 + d_block_dx0
 
     def _deriv2d_dx_block(self, mDict):
-        d_layer_ddx = Zero()
+        d_layer_ddx = 0.
         d_block_ddx = (mDict['val_block']-self.layer_cont(mDict))*self._atanBlock2dDeriv_dx(mDict)
         return d_layer_ddx + d_block_ddx
 
@@ -1684,7 +1684,7 @@ class ParametrizedBlockInLayer(ParametrizedLayer):
         return d_layer_dval_layer + d_block_dval_layer
 
     def _deriv3d_val_block(self, mDict):
-        d_layer_dval_block = Zero()
+        d_layer_dval_block = 0.
         d_block_dval_block = (1.-d_layer_dval_block)*self._atanBlock3d(mDict)
         return d_layer_dval_block + d_block_dval_block
 
@@ -1701,22 +1701,22 @@ class ParametrizedBlockInLayer(ParametrizedLayer):
         return d_layer_dlayer_thickness + d_block_dlayer_thickness
 
     def _deriv3d_x0_block(self, mDict):
-        d_layer_dx0 = Zero()
+        d_layer_dx0 = 0.
         d_block_dx0 = (mDict['val_block']-self.layer_cont(mDict))*self._atanBlock3dDeriv_x0(mDict)
         return d_layer_dx0 + d_block_dx0
 
     def _deriv3d_y0_block(self, mDict):
-        d_layer_dy0 = Zero()
+        d_layer_dy0 = 0.
         d_block_dy0 = (mDict['val_block']-self.layer_cont(mDict))*self._atanBlock3dDeriv_y0(mDict)
         return d_layer_dy0 + d_block_dy0
 
     def _deriv3d_dx_block(self, mDict):
-        d_layer_ddx = Zero()
+        d_layer_ddx = 0.
         d_block_ddx = (mDict['val_block']-self.layer_cont(mDict))*self._atanBlock3dDeriv_dx(mDict)
         return d_layer_ddx + d_block_ddx
 
     def _deriv3d_dy_block(self, mDict):
-        d_layer_ddy = Zero()
+        d_layer_ddy = 0.
         d_block_ddy = (mDict['val_block']-self.layer_cont(mDict))*self._atanBlock3dDeriv_dy(mDict)
         return d_layer_ddy + d_block_ddy
 
@@ -1746,7 +1746,7 @@ class ParametrizedBlockInLayer(ParametrizedLayer):
     def deriv(self, m):
 
         if self.mesh.dim == 2:
-            return self._deriv2d(m)
+            return sp.csr_matrix(self._deriv2d(m))
         elif self.mesh.dim == 3:
-            return self._deriv3d(m)
+            return sp.csr_matrix(self._deriv3d(m))
 
