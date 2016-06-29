@@ -24,9 +24,9 @@ def setUp(self, rxcomp='bz'):
 
         rxOffset = 40.
         rx = EM.TDEM.Rx(np.array([[rxOffset, 0., 0.]]), np.logspace(-4,-3, 20), rxcomp)
-        src = EM.TDEM.SurveyTDEM.MagDipole( [rx], loc=np.array([0., 0., 0.]))
+        src = EM.TDEM.Src.MagDipole( [rx], loc=np.array([0., 0., 0.]))
         rx2 = EM.TDEM.Rx(np.array([[rxOffset-10, 0., 0.]]), np.logspace(-5,-4, 25), rxcomp)
-        src2 = EM.TDEM.SurveyTDEM.MagDipole( [rx2], loc=np.array([0., 0., 0.]))
+        src2 = EM.TDEM.Src.MagDipole( [rx2], loc=np.array([0., 0., 0.]))
 
         survey = EM.TDEM.Survey([src,src2])
 

@@ -30,7 +30,7 @@ def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=None, 
     mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * actMap
 
     rx = EM.TDEM.Rx(np.array([[rxOffset, 0., 0.]]), np.logspace(-5,-4, 21), 'bz')
-    src = EM.TDEM.SurveyTDEM.MagDipole([rx], waveform= EM.TDEM.SurveyTDEM.StepOffWaveform(), loc=np.array([0., 0., 0.]))
+    src = EM.TDEM.Src.MagDipole([rx], waveform= EM.TDEM.Src.StepOffWaveform(), loc=np.array([0., 0., 0.]))
     # src = EM.TDEM.SrcTDEM([rx], loc=np.array([0., 0., 0.]))
 
     survey = EM.TDEM.Survey([src])
@@ -63,12 +63,10 @@ def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=None, 
     return log10diff
 
 
-class TDEM_SimpleSrcTests(unittest.TestCase):
-    def test_source(self):
-        waveform = EM.TDEM.SurveyTDEM.StepOffWaveform()
-        assert waveform.eval(0.) == 0.
-
-
+# class TDEM_SimpleSrcTests(unittest.TestCase):
+#     def test_source(self):
+#         waveform = EM.TDEM.SurveyTDEM.StepOffWaveform()
+#         assert waveform.eval(0.) == 0.
 
 
 class TDEM_bTests(unittest.TestCase):
