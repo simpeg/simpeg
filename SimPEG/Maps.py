@@ -114,7 +114,7 @@ class IdentityMap(object):
         """Test the derivative of the mapping times a vector.
 
             :param numpy.array m: model
-            :param kwargs: key word arguments of :math:`SimPEG.Tests.checkDerivative`
+            :param kwargs: key word arguments of :meth:`SimPEG.Tests.checkDerivative`
             :rtype: bool
             :return: passed the test?
 
@@ -295,13 +295,13 @@ class LogMap(IdentityMap):
 
         If \\(p\\) is the physical property and \\(m\\) is the model, then
 
-        ..math::
+        .. math::
 
             p = \\log(m)
 
         and
 
-        ..math::
+        .. math::
 
             m = \\exp(p)
 
