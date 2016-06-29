@@ -98,7 +98,7 @@ class IdentityMap(object):
         """Test the derivative of the mapping.
 
             :param numpy.array m: model
-            :param kwargs: key word arguments of :math:`SimPEG.Tests.checkDerivative`
+            :param kwargs: key word arguments of :meth:`SimPEG.Tests.checkDerivative`
             :rtype: bool
             :return: passed the test?
 
