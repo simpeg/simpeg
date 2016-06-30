@@ -35,9 +35,10 @@ class BaseDCProblem(BaseEMProblem):
 
         self.curModel = m
 
-        Jv = self.dataPair(self.survey) #same size as the data
-
+        # Jv = self.dataPair(self.survey) #same size as the data
         A = self.getA()
+
+        Jv = []
 
         for src in self.survey.srcList:
             u_src = f[src, self._solutionType] # solution vector
@@ -48,8 +49,10 @@ class BaseDCProblem(BaseEMProblem):
             for rx in src.rxList:
                 df_dmFun = getattr(f, '_%sDeriv'%rx.projField, None)
                 df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
-                Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
-        return Utils.mkvc(Jv)
+                # Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
+                Jv.append(rx.evalDeriv(src, self.mesh, f, df_dm_v))
+        # return Utils.mkvc(Jv)
+        return np.hstack(Jv)
 
     def Jtvec(self, m, v, f=None):
         if f is None:
@@ -63,7 +66,6 @@ class BaseDCProblem(BaseEMProblem):
 
         Jtv = np.zeros(m.size)
         AT = self.getA()
-
 
         for src in self.survey.srcList:
             u_src = f[src, self._solutionType]
