@@ -643,48 +643,53 @@ def convertObs_DC3D_to_2D(DCsurvey,lineID, flag = 'local'):
 
     return DCsurvey2D
 
-def readUBC_DC3Dobs(fileName):
+def readUBC_DC3Dobs(fileName, rtype = 'DC'):
     """
-        Read UBC GIF DC 3D observation file and generate survey
+        Read UBC GIF IP 3D observation file and generate survey
 
-        Input:
-        :param fileName, path to the UBC GIF 3D obs file
-
-        Output:
-        :param DCsurvey
-        :return
-
-        @author: dominiquef
+        :param string fileName:, path to the UBC GIF 3D obs file
+        :rtype: Survey
+        :return: DCIPsurvey
 
     """
+    zflag = True # Flag for z value provided
 
     # Load file
-    obsfile = np.genfromtxt(fileName,delimiter=' \n',dtype=np.str,comments='!')
+    if rtype == 'IP':
+        obsfile = np.genfromtxt(fileName,delimiter=' \n',dtype=np.str,comments='IPTYPE')
+
+    elif rtype == 'DC':
+        obsfile = np.genfromtxt(fileName,delimiter=' \n',dtype=np.str,comments='!')
+
+    else:
+        print "rtype must be 'DC'(default) | 'IP'"
 
     # Pre-allocate
     srcLists = []
     Rx = []
     d = []
     wd = []
-    zflag = True # Flag for z value provided
+
 
     # Countdown for number of obs/tx
     count = 0
     for ii in range(obsfile.shape[0]):
 
+        # Skip if blank line
         if not obsfile[ii]:
             continue
 
-        # First line is transmitter with number of receivers
+        # First line or end of a transmitter block, read transmitter info
         if count==0:
-
-            temp = (np.fromstring(obsfile[ii], dtype=float,sep=' ').T)
+            # Read the line
+            temp = (np.fromstring(obsfile[ii], dtype=float, sep=' ').T)
             count = int(temp[-1])
 
             # Check if z value is provided, if False -> nan
             if len(temp)==5:
-                tx = np.r_[temp[0:2],np.nan,temp[0:2],np.nan]
-                zflag = False
+                tx = np.r_[temp[0:2],np.nan,temp[2:4],np.nan]
+
+                zflag = False # Pass on the flag to the receiver loc
 
             else:
                 tx = temp[:-1]
@@ -692,8 +697,16 @@ def readUBC_DC3Dobs(fileName):
             rx = []
             continue
 
-        temp = np.fromstring(obsfile[ii], dtype=float,sep=' ')
+        temp = np.fromstring(obsfile[ii], dtype=float,sep=' ') # Get the string
 
+        # Filter out negative IP
+#        if temp[-2] < 0:
+#            count = count -1
+#            print "Negative!"
+#
+#        else:
+
+        # If the Z-location is provided, otherwise put nan
         if zflag:
 
             rx.append(temp[:-2])
@@ -703,7 +716,7 @@ def readUBC_DC3Dobs(fileName):
                 wd.append(temp[-1])
 
         else:
-            rx.append(np.r_[temp[0:2],np.nan,temp[0:2],np.nan] )
+            rx.append(np.r_[temp[0:2],np.nan,temp[2:4],np.nan] )
             # Check if there is data with the location
             if len(temp)==6:
                 d.append(temp[-2])
@@ -711,7 +724,7 @@ def readUBC_DC3Dobs(fileName):
 
         count = count -1
 
-        # Reach the end of transmitter block
+        # Reach the end of transmitter block, append the src, rx and continue
         if count == 0:
             rx = np.asarray(rx)
             Rx = DC.RxDipole(rx[:,:3],rx[:,3:])
