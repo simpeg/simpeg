@@ -450,32 +450,31 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
     survey = DC.SurveyDC(SrcList)
     return survey, Tx, Rx
 
-def writeUBC_DCobs(fileName, DCsurvey, dtype, stype):
+def writeUBC_DCobs(fileName, DCsurvey, dim, surveyType, iptype = 0):
     """
         Write UBC GIF DCIP 2D or 3D observation file
 
-        Input:
-        :string fileName -> including path where the file is written out
-        :DCsurvey -> DC survey class object
-        :string dtype ->  either '2D' | '3D'
-        :string  stype ->  either 'SURFACE' | 'GENERAL'
-
-        Output:
-        :param UBC2D-Data file
-        :return
-
-        Last edit: February 16th, 2016
-
-        @author: dominiquef
-
+        :param string fileName: including path where the file is written out
+        :param Survey DCsurvey: DC survey class object
+        :param string dim:  either '2D' | '3D'
+        :param string surveyType:  either 'SURFACE' | 'GENERAL'
+        :rtype: file
+        :return: UBC2D-Data file
     """
+
     from SimPEG import mkvc
 
-    assert (dtype=='2D') | (dtype=='3D'), "Data must be either '2D' | '3D'"
-    assert (stype=='SURFACE') | (stype=='GENERAL') | (stype=='SIMPLE'), "Data must be either 'SURFACE' | 'GENERAL' | 'SIMPLE'"
+    assert (dim=='2D') | (dim=='3D'), "Data must be either '2D' | '3D'"
+    assert (surveyType=='SURFACE') | (surveyType=='GENERAL') | (surveyType=='SIMPLE'), "Data must be either 'SURFACE' | 'GENERAL' | 'SIMPLE'"
 
     fid = open(fileName,'w')
-    fid.write('! ' + stype + ' FORMAT\n')
+    fid.write('! ' + surveyType + ' FORMAT\n')
+
+    if iptype!=0:
+        fid.write('IPTYPE=%i\n'%iptype)
+
+    else:
+        fid.write('! ' +  surveyType + ' FORMAT\n')
 
     count = 0
 
@@ -490,10 +489,10 @@ def writeUBC_DCobs(fileName, DCsurvey, dtype, stype):
         M = rx[0]
         N = rx[1]
 
-        # Adapt source-receiver location for dtype and stype
-        if dtype=='2D':
+        # Adapt source-receiver location for dim and surveyType
+        if dim=='2D':
 
-            if stype == 'SIMPLE':
+            if surveyType == 'SIMPLE':
 
                 #fid.writelines("%e " % ii for ii in mkvc(tx[0,:]))
                 A = np.repeat(tx[0,0],M.shape[0],axis=0)
@@ -506,35 +505,43 @@ def writeUBC_DCobs(fileName, DCsurvey, dtype, stype):
 
             else:
 
-                if stype == 'SURFACE':
+                if surveyType == 'SURFACE':
 
-                    fid.writelines("%e " % ii for ii in mkvc(tx[0,:]))
+                    fid.writelines("%f " % ii for ii in mkvc(tx[0,:]))
                     M = M[:,0]
                     N = N[:,0]
 
-                if stype == 'GENERAL':
+                if surveyType == 'GENERAL':
+
+                    # Flip sign for z-elevation to depth
+                    tx[2::2,:] = -tx[2::2,:]
 
                     fid.writelines("%e " % ii for ii in mkvc(tx[::2,:]))
                     M = M[:,0::2]
                     N = N[:,0::2]
 
+                    # Flip sign for z-elevation to depth
+                    M[:,1::2] = -M[:,1::2]
+                    N[:,1::2] = -N[:,1::2]
+
                 fid.write('%i\n'% nD)
-                np.savetxt(fid, np.c_[ M, N , DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e',delimiter=' ',newline='\n')
+                np.savetxt(fid, np.c_[ M, N , DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%f',delimiter=' ',newline='\n')
 
-        if dtype=='3D':
+        if dim=='3D':
 
-            if stype == 'SURFACE':
+            if surveyType == 'SURFACE':
 
                 fid.writelines("%e " % ii for ii in mkvc(tx[0:2,:]))
                 M = M[:,0:2]
                 N = N[:,0:2]
 
-            if stype == 'GENERAL':
+            if surveyType == 'GENERAL':
 
-                fid.writelines("%e " % ii for ii in mkvc(tx))
+                fid.writelines("%e " % ii for ii in mkvc(tx[0:3,:]))
 
             fid.write('%i\n'% nD)
             np.savetxt(fid, np.c_[ M, N , DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e',delimiter=' ',newline='\n')
+            fid.write('\n')
 
         count += nD
 
