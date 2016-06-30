@@ -114,7 +114,7 @@ def E_inductive_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., l
     """
     mu = mu_0*(1+kappa)
     epsilon = epsilon_0*epsr
-    sig_hat = sig + 1j*omeg*epsilon
+    sig_hat = sig + 1j*omega(f)*epsilon
 
     XYZ = Utils.asArray_N_x_Dim(XYZ, 3)
     # Check
@@ -160,7 +160,7 @@ def J_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
             Add description of parameters
     """
 
-    Ex, Ey, Ez = E_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', kappa=1., epsr=1.)
+    Ex, Ey, Ez = E_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=current, length=length, orientation=orientation, kappa=kappa, epsr=epsr)
     Jx = sig*Ex
     Jy = sig*Ey
     Jz = sig*Ez
@@ -175,7 +175,7 @@ def J_galvanic_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., le
             Add description of parameters
     """
 
-    Ex_galvanic, Ey_galvanic, Ez_galvanic = E_galvanic_from_ElectricDipoleWholeSpaced(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', kappa=1., epsr=1.)
+    Ex_galvanic, Ey_galvanic, Ez_galvanic = E_galvanic_from_ElectricDipoleWholeSpaced(XYZ, srcLoc, sig, f, current=current, length=length, orientation=orientation, kappa=kappa, epsr=epsr)
     Jx_galvanic = sig*Ex_galvanic
     Jy_galvanic = sig*Ey_galvanic
     Jz_galvanic = sig*Ez_galvanic
@@ -190,7 +190,7 @@ def J_inductive_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., l
             Add description of parameters
     """
 
-    Ex_inductive, Ey_inductive, Ez_inductive = E_inductive_from_ElectricDipoleWholeSpaced(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', kappa=1., epsr=1.)
+    Ex_inductive, Ey_inductive, Ez_inductive = E_inductive_from_ElectricDipoleWholeSpaced(XYZ, srcLoc, sig, f, current=current, length=length, orientation=orientation, kappa=kappa, epsr=epsr)
     Jx_inductive = sig*Ex_inductive
     Jy_inductive = sig*Ey_inductive
     Jz_inductive = sig*Ez_inductive
@@ -248,7 +248,7 @@ def B_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
             Add description of parameters
     """
 
-    Hx, Hy, Hz = H_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', kappa=1., epsr=1.)
+    Hx, Hy, Hz = H_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=current, length=length, orientation=orientation, kappa=kappa, epsr=epsr)
     Bx = mu*Hx
     By = mu*Hy
     Bz = mu*Hz
