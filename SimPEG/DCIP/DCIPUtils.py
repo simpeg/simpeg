@@ -169,7 +169,7 @@ def readUBC_DC2DModel(fileName):
 
     return model
 
-def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
+def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None, colorbar = True):
     """
         Read list of 2D tx-rx location and plot a speudo-section of apparent
         resistivity.
@@ -271,20 +271,22 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
         vmin, vmax = clim[0], clim[1]
 
     grid_rho = np.ma.masked_where(np.isnan(grid_rho), grid_rho)
-    ph = plt.pcolormesh(grid_x[:,0],grid_z[0,:],grid_rho.T, clim=(vmin, vmax))
-    cbar = plt.colorbar(format="$10^{%.1f}$",fraction=0.04,orientation="horizontal")
-
-    cmin,cmax = cbar.get_clim()
-    ticks = np.linspace(cmin,cmax,3)
-    cbar.set_ticks(ticks)
-    cbar.ax.tick_params(labelsize=10)
+    ph = plt.pcolormesh(grid_x[:,0],grid_z[0,:],grid_rho.T, clim=(vmin, vmax), vmin =vmin, vmax = vmax)
     
-    if dtype == 'appc':
-        cbar.set_label("App.Cond",size=12)
-    elif dtype == 'appr':
-        cbar.set_label("App.Res.",size=12)
-    elif dtype == 'volt':
-        cbar.set_label("Potential (V)",size=12)
+    if colorbar:
+        cbar = plt.colorbar(format="$10^{%.1f}$",fraction=0.04,orientation="horizontal")
+    
+        cmin,cmax = cbar.get_clim()
+        ticks = np.linspace(cmin,cmax,3)
+        cbar.set_ticks(ticks)
+        cbar.ax.tick_params(labelsize=10)
+        
+        if dtype == 'appc':
+            cbar.set_label("App.Cond",size=12)
+        elif dtype == 'appr':
+            cbar.set_label("App.Res.",size=12)
+        elif dtype == 'volt':
+            cbar.set_label("Potential (V)",size=12)
 
     # Plot apparent resistivity
     ax.scatter(midx,midz,s=10,c=rho.T, vmin =vmin, vmax = vmax, clim=(vmin, vmax))
