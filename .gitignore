@@ -40,4 +40,4 @@ nosetests.xml
 docs/_build/
 Makefile
 docs/warnings.txt
-*.ipynb_checkpoints
+.DS_Store

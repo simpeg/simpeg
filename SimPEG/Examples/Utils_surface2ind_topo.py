@@ -2,7 +2,7 @@ from SimPEG import *
 from SimPEG.Utils import surface2ind_topo
 
 
-def run(plotIt=False, nx=5, ny=5):
+def run(plotIt=True, nx=5, ny=5):
     """
 
         Utils: surface2ind_topo
