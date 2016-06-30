@@ -253,8 +253,7 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
 class Update_IRLS(InversionDirective):
 
     eps_min = None
-    eps_p = None
-    eps_q = None
+    eps = None
     norms = [2.,2.,2.,2.]
     factor = None
     gamma = None
@@ -263,6 +262,7 @@ class Update_IRLS(InversionDirective):
     f_old = None
     f_min_change = 1e-2
     beta_tol = 5e-2
+    prctile = 95
 
     # Solving parameter for IRLS (mode:2)
     IRLSiter   = 0
@@ -297,9 +297,22 @@ class Update_IRLS(InversionDirective):
             print "Convergence with smooth l2-norm regularization: Start IRLS steps..."
 
             self.mode = 2
-            print self.eps_p, self.eps_q, self.norms
-            self.reg.eps_p = self.eps_p
-            self.reg.eps_q = self.eps_q
+
+            # Either use the supplied epsilon, or fix base on distribution of
+            # model values
+            if getattr(self, 'reg.eps', None) is None:
+                self.reg.eps_p = np.percentile(np.abs(self.invProb.curModel),self.prctile)
+            else:                 
+                self.reg.eps_p = self.eps[0]
+                
+            if getattr(self, 'reg.eps', None) is None:
+                self.reg.eps_q = np.percentile(np.abs(self.reg.regmesh.cellDiffxStencil*(self.reg.mapping * self.invProb.curModel)),self.prctile)
+            else:                 
+                self.reg.eps_q = self.eps[1]
+            
+            print "L[p qx qy qz]-norm : " + str(self.reg.norms)
+            print "eps_p: " + str(self.reg.eps_p) + " eps_q: " + str(self.reg.eps_q)
+            
             self.reg.norms = self.norms
             self.coolingFactor = 1.
             self.coolingRate = 1
@@ -343,14 +356,14 @@ class Update_IRLS(InversionDirective):
             else:
                 self.f_old = phim_new
 
-            # Cool the threshold parameter if required
-            if getattr(self, 'factor', None) is not None:
-                eps = self.reg.eps / self.factor
-
-                if getattr(self, 'eps_min', None) is not None:
-                    self.reg.eps = np.max([self.eps_min,eps])
-                else:
-                    self.reg.eps = eps
+#            # Cool the threshold parameter if required
+#            if getattr(self, 'factor', None) is not None:
+#                eps = self.reg.eps / self.factor
+#
+#                if getattr(self, 'eps_min', None) is not None:
+#                    self.reg.eps = np.max([self.eps_min,eps])
+#                else:
+#                    self.reg.eps = eps
 
             # Get phi_m at the end of current iteration
             self.phi_m_last = self.invProb.phi_m_last
