@@ -8,10 +8,10 @@ class Problem3D_Integral(Problem.BaseProblem):
 
     #surveyPair = Survey.LinearSurvey
 
-    forwardOnly = True #: Store the forward matrix by default, otherwise just compute d
+    forwardOnly = False #: Store the forward matrix by default, otherwise just compute d
     actInd      = None #: Active cell indices provided
     M           = None #: Magnetization matrix provided, otherwise all induced
-
+    rtype       = 'tmi' #: Receiver type either "tmi" | "xyz"
 
     def __init__(self, mesh, mapping=None, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, mapping=mapping, **kwargs)
@@ -20,15 +20,112 @@ class Problem3D_Integral(Problem.BaseProblem):
         # Add forward function
         # kappa = self.curModel.kappa TODO
         kappa = self.mapping*self.curModel
-        return self.G.dot(kappa)
+
+        if self.forwardOnly:
+
+            if getattr(self, 'actInd', None) is not None:
+                if self.actInd.dtype=='bool':
+                    inds = np.asarray([inds for inds, elem in enumerate(self.actInd, 1) if elem], dtype = int) - 1
+                else:
+                    inds = self.actInd
+
+            else:
+
+                inds = np.asarray(range(self.mesh.nC))
+
+            nC = len(inds)
+
+            # Create active cell projector
+            P = sp.csr_matrix((np.ones(nC),(inds, range(nC))),
+            shape=(self.mesh.nC, nC))
+
+            # Create vectors of nodal location (lower and upper coners for each cell)
+            xn = self.mesh.vectorNx;
+            yn = self.mesh.vectorNy;
+            zn = self.mesh.vectorNz;
+
+            yn2,xn2,zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
+            yn1,xn1,zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
+
+            Yn = P.T*np.c_[mkvc(yn1), mkvc(yn2)]
+            Xn = P.T*np.c_[mkvc(xn1), mkvc(xn2)]
+            Zn = P.T*np.c_[mkvc(zn1), mkvc(zn2)]
+
+
+            survey = self.survey
+            rxLoc = survey.srcField.rxList[0].locs
+            ndata = rxLoc.shape[0]
+
+            # Loop through all observations and create forward operator (ndata-by-nC)
+            print "Begin calculation forward calculations... G not stored: "
+
+            # If assumes uniform magnetization direction
+            if getattr(self, 'M', None) is None:
+                M = dipazm_2_xyz(np.ones(nC) * survey.srcField.param[1],np.ones(nC) * survey.srcField.param[2])
+
+
+            Mx = Utils.sdiag(M[:,0]*survey.srcField.param[0])
+            My = Utils.sdiag(M[:,1]*survey.srcField.param[0])
+            Mz = Utils.sdiag(M[:,2]*survey.srcField.param[0])
+
+            Mxyz = sp.vstack((Mx,My,Mz))
+
+            if self.rtype == 'tmi':
+
+                # Convert Bdecination from north to cartesian
+                D = (450.-float(survey.srcField.param[2]))%360.
+                I = survey.srcField.param[1]
+                # Projection matrix
+                Ptmi = mkvc(np.r_[np.cos(np.deg2rad(I))*np.cos(np.deg2rad(D)),
+                          np.cos(np.deg2rad(I))*np.sin(np.deg2rad(D)),
+                            np.sin(np.deg2rad(I))],2).T
+
+                fwr_d = np.zeros(self.survey.nRx)
+
+            else:
+
+                fwr_d = np.zeros(3*self.survey.nRx)
+
+
+            # Add counter to dsiplay progress. Good for large problems
+            count = -1;
+            for ii in range(ndata):
+
+
+                tx, ty, tz = get_T_mat(Xn,Yn,Zn,rxLoc[ii,:])
+
+
+                if self.rtype =='tmi':
+                    fwr_d[ii] = (Ptmi.dot(np.vstack((tx,ty,tz)))*Mxyz).dot(kappa)
+
+                elif self.rtype =='xyz':
+                    fwr_d[ii] = (tx*Mxyz).dot(kappa)
+                    fwr_d[ii+ndata] = (ty*Mxyz).dot(kappa)
+                    fwr_d[ii+2*ndata] = (tz*Mxyz).dot(kappa)
+
+
+            # Display progress
+                count = progress(ii,count,ndata)
+
+            print "Done 100% ...forward operator completed!!\n"
+
+            return fwr_d
+
+        else:
+            return self.G.dot(kappa)
 
     def fwr_rem(self):
         #TODO check if we are inverting for M
         return self.G.dot(self.mapping(m))
 
-    def fields(self, m):
+    def fields(self, m, **kwargs):
         self.curModel = m
-        total = np.zeros(self.survey.nRx)
+
+        if self.rtype == 'tmi':
+            total = np.zeros(self.survey.nRx)
+        else:
+            total = np.zeros(3*self.survey.nRx)
+
         induced = self.fwr_ind()
         # rem = self.rem
 
@@ -54,7 +151,7 @@ class Problem3D_Integral(Problem.BaseProblem):
             raise Exception('Need to pair!')
 
         if getattr(self,'_G', None) is None:
-           self._G = self.Intrgl_Fwr_Op( 'ind' )
+           self._G = self.Intrgl_Fwr_Op()
 
 
         return self._G
@@ -70,7 +167,7 @@ class Problem3D_Integral(Problem.BaseProblem):
 
     #     return self._Grem
 
-    def Intrgl_Fwr_Op(self, flag):
+    def Intrgl_Fwr_Op(self, Magnetization="ind"):
 
         """
 
@@ -90,6 +187,7 @@ class Problem3D_Integral(Problem.BaseProblem):
         @author: dominiquef
 
          """
+
         # Find non-zero cells
         #inds = np.nonzero(actv)[0]
         if getattr(self, 'actInd', None) is not None:
@@ -97,8 +195,6 @@ class Problem3D_Integral(Problem.BaseProblem):
                 inds = np.asarray([inds for inds, elem in enumerate(self.actInd, 1) if elem], dtype = int) - 1
             else:
                 inds = self.actInd
-
-
 
         else:
 
@@ -109,9 +205,6 @@ class Problem3D_Integral(Problem.BaseProblem):
         # Create active cell projector
         P = sp.csr_matrix((np.ones(nC),(inds, range(nC))),
             shape=(self.mesh.nC, nC))
-
-
-
 
         # Create vectors of nodal location (lower and upper coners for each cell)
         xn = self.mesh.vectorNx;
@@ -125,13 +218,14 @@ class Problem3D_Integral(Problem.BaseProblem):
         Xn = P.T*np.c_[mkvc(xn1), mkvc(xn2)]
         Zn = P.T*np.c_[mkvc(zn1), mkvc(zn2)]
 
-        rxLoc = self.survey.srcField.rxList[0].locs
+        survey = self.survey
+        rxLoc = survey.srcField.rxList[0].locs
         ndata = rxLoc.shape[0]
 
-        survey = self.survey
+
 
         # Pre-allocate space and create magnetization matrix if required
-        if (flag=='ind'):
+        if (Magnetization=='ind'):
 
             # # If assumes uniform magnetization direction
             # if M.shape != (nC,3):
@@ -165,7 +259,7 @@ class Problem3D_Integral(Problem.BaseProblem):
 
                 G = np.zeros((int(3*ndata), nC))
 
-        elif flag == 'full':
+        elif Magnetization == 'full':
             G = np.zeros((int(3*ndata), int(3*nC)))
 
 
@@ -175,7 +269,7 @@ class Problem3D_Integral(Problem.BaseProblem):
 
 
         # Loop through all observations and create forward operator (ndata-by-nC)
-        print "Begin calculation of forward operator: " + flag
+        print "Begin calculation of forward operator: " + Magnetization
 
         # Add counter to dsiplay progress. Good for large problems
         count = -1;
@@ -183,7 +277,7 @@ class Problem3D_Integral(Problem.BaseProblem):
 
 
             tx, ty, tz = get_T_mat(Xn,Yn,Zn,rxLoc[ii,:])
-            if flag == 'ind':
+            if Magnetization == 'ind':
 
                 if survey.srcField.rxList[0].rxType =='tmi':
                     G[ii,:] = Ptmi.dot(np.vstack((tx,ty,tz)))*Mxyz
@@ -193,7 +287,7 @@ class Problem3D_Integral(Problem.BaseProblem):
                     G[ii+ndata,:] = ty*Mxyz
                     G[ii+2*ndata,:] = tz*Mxyz
 
-            elif flag == 'full':
+            elif Magnetization == 'full':
                 G[ii,:] = tx
                 G[ii+ndata,:] = ty
                 G[ii+2*ndata,:] = tz
