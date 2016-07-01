@@ -524,6 +524,30 @@ class TensorMesh(BaseTensorMesh, BaseRectangularMesh, TensorView, DiffOperators,
         return self._edge
 
     @property
+    def edgeBoundaryInd(self):
+        """
+            Find indices of boundary edges in each direction
+        """
+        if self.dim==1:
+            indxd = (self.gridEx==min(self.gridEx))
+            indxu = (self.gridEx==max(self.gridEx))
+            return indxd, indxu
+        elif self.dim==2:
+            indxd = (self.gridEx[:,0]==min(self.gridEx[:,0]))
+            indxu = (self.gridEx[:,0]==max(self.gridEx[:,0]))
+            indyd = (self.gridEy[:,1]==min(self.gridEy[:,1]))
+            indyu = (self.gridEy[:,1]==max(self.gridEy[:,1]))
+            return indxd, indxu, indyd, indyu
+        elif self.dim==3:
+            indxd = (self.gridEx[:,0]==min(self.gridEx[:,0]))
+            indxu = (self.gridEx[:,0]==max(self.gridEx[:,0]))
+            indyd = (self.gridEy[:,1]==min(self.gridEy[:,1]))
+            indyu = (self.gridEy[:,1]==max(self.gridEy[:,1]))
+            indzd = (self.gridEz[:,2]==min(self.gridEz[:,2]))
+            indzu = (self.gridEz[:,2]==max(self.gridEz[:,2]))
+            return indxd, indxu, indyd, indyu, indzd, indzu
+
+    @property
     def faceBoundaryInd(self):
         """
             Find indices of boundary faces in each direction

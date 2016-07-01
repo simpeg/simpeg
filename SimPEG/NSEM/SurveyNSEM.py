@@ -158,7 +158,7 @@ class Rx(SimPEGsurvey.BaseRx):
                 # ex = Pex*mkvc(f[src,'e_1d'],2)
                 # bx = Pbx*mkvc(f[src,'b_1d'],2)/mu_0
                 dP_de = -mkvc(Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))*(Pex*v),2)
-                dP_db = mkvc( Utils.sdiag(Pex*mkvc(f[src,'e_1d'],2))*(Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)).T*Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)))*(Pbx*f._bDeriv_u(src,v)/mu_0),2)
+                dP_db = mkvc( Utils.sdiag(Pex*mkvc(f[src,'e_1d'],2))*(Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)).T*Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)))*(Pbx*f._bDeriv(src,v)/mu_0),2)
                 PDeriv_complex = np.sum(np.hstack((dP_de,dP_db)),1)
             elif self.projType is 'Z2D':
                 raise NotImplementedError('Has not been implement for 2D impedance tensor')
@@ -186,15 +186,15 @@ class Rx(SimPEGsurvey.BaseRx):
                 hy_py = Pby*f[src,'b_py']/mu_0
                 # Derivatives as lambda functions
                 # The size of the diratives should be nD,nU
-                ex_px_u = lambda vec: Pex*f._e_pxDeriv_u(src,vec)
-                ey_px_u = lambda vec: Pey*f._e_pxDeriv_u(src,vec)
-                ex_py_u = lambda vec: Pex*f._e_pyDeriv_u(src,vec)
-                ey_py_u = lambda vec: Pey*f._e_pyDeriv_u(src,vec)
-                # NOTE: Think b_p?Deriv_u should return a 2*nF size matrix
-                hx_px_u = lambda vec: Pbx*f._b_pxDeriv_u(src,vec)/mu_0
-                hy_px_u = lambda vec: Pby*f._b_pxDeriv_u(src,vec)/mu_0
-                hx_py_u = lambda vec: Pbx*f._b_pyDeriv_u(src,vec)/mu_0
-                hy_py_u = lambda vec: Pby*f._b_pyDeriv_u(src,vec)/mu_0
+                ex_px_u = lambda vec: Pex*f._e_pxDeriv(src,vec)
+                ey_px_u = lambda vec: Pey*f._e_pxDeriv(src,vec)
+                ex_py_u = lambda vec: Pex*f._e_pyDeriv(src,vec)
+                ey_py_u = lambda vec: Pey*f._e_pyDeriv(src,vec)
+                # NOTE: Think b_p?Deriv should return a 2*nF size matrix
+                hx_px_u = lambda vec: Pbx*f._b_pxDeriv(src,vec)/mu_0
+                hy_px_u = lambda vec: Pby*f._b_pxDeriv(src,vec)/mu_0
+                hx_py_u = lambda vec: Pbx*f._b_pyDeriv(src,vec)/mu_0
+                hy_py_u = lambda vec: Pby*f._b_pyDeriv(src,vec)/mu_0
                 # Update the input vector
                 sDiag = lambda t: Utils.sdiag(mkvc(t,2))
                 # Define the components of the derivative
@@ -237,13 +237,13 @@ class Rx(SimPEGsurvey.BaseRx):
                 by_py = Pby*f[src,'b_py']
                 bz_py = Pbz*f[src,'b_py']
                 # Derivatives as lambda functions
-                # NOTE: Think b_p?Deriv_u should return a 2*nF size matrix
-                bx_px_u = lambda vec: Pbx*f._b_pxDeriv_u(src,vec)
-                by_px_u = lambda vec: Pby*f._b_pxDeriv_u(src,vec)
-                bz_px_u = lambda vec: Pbz*f._b_pxDeriv_u(src,vec)
-                bx_py_u = lambda vec: Pbx*f._b_pyDeriv_u(src,vec)
-                by_py_u = lambda vec: Pby*f._b_pyDeriv_u(src,vec)
-                bz_py_u = lambda vec: Pbz*f._b_pyDeriv_u(src,vec)
+                # NOTE: Think b_p?Deriv should return a 2*nF size matrix
+                bx_px_u = lambda vec: Pbx*f._b_pxDeriv(src,vec)
+                by_px_u = lambda vec: Pby*f._b_pxDeriv(src,vec)
+                bz_px_u = lambda vec: Pbz*f._b_pxDeriv(src,vec)
+                bx_py_u = lambda vec: Pbx*f._b_pyDeriv(src,vec)
+                by_py_u = lambda vec: Pby*f._b_pyDeriv(src,vec)
+                bz_py_u = lambda vec: Pbz*f._b_pyDeriv(src,vec)
                 # Update the input vector
                 sDiag = lambda t: Utils.sdiag(mkvc(t,2))
                 # Define the components of the derivative
@@ -269,7 +269,7 @@ class Rx(SimPEGsurvey.BaseRx):
                 # bx = Pbx*mkvc(f[src,'b_1d'],2)/mu_0
                 dP_deTv = -mkvc(Pex.T*Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)).T*v,2)
                 db_duv = Pbx.T/mu_0*Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))*(Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))).T*Utils.sdiag(Pex*mkvc(f[src,'e_1d'],2)).T*v
-                dP_dbTv = mkvc(f._bDeriv_u(src,db_duv,adjoint=True),2)
+                dP_dbTv = mkvc(f._bDeriv(src,db_duv,adjoint=True),2)
                 PDeriv_real = np.sum(np.hstack((dP_deTv,dP_dbTv)),1)
             elif self.projType is 'Z2D':
                 raise NotImplementedError('Has not be implement for 2D impedance tensor')
@@ -296,14 +296,14 @@ class Rx(SimPEGsurvey.BaseRx):
                 ahx_py = mkvc(mkvc(f[src,'b_py'],2).T/mu_0*Pbx.T)
                 ahy_py = mkvc(mkvc(f[src,'b_py'],2).T/mu_0*Pby.T)
                 # Derivatives as lambda functions
-                aex_px_u = lambda vec: f._e_pxDeriv_u(src,Pex.T*vec,adjoint=True)
-                aey_px_u = lambda vec: f._e_pxDeriv_u(src,Pey.T*vec,adjoint=True)
-                aex_py_u = lambda vec: f._e_pyDeriv_u(src,Pex.T*vec,adjoint=True)
-                aey_py_u = lambda vec: f._e_pyDeriv_u(src,Pey.T*vec,adjoint=True)
-                ahx_px_u = lambda vec: f._b_pxDeriv_u(src,Pbx.T*vec,adjoint=True)/mu_0
-                ahy_px_u = lambda vec: f._b_pxDeriv_u(src,Pby.T*vec,adjoint=True)/mu_0
-                ahx_py_u = lambda vec: f._b_pyDeriv_u(src,Pbx.T*vec,adjoint=True)/mu_0
-                ahy_py_u = lambda vec: f._b_pyDeriv_u(src,Pby.T*vec,adjoint=True)/mu_0
+                aex_px_u = lambda vec: f._e_pxDeriv(src,Pex.T*vec,adjoint=True)
+                aey_px_u = lambda vec: f._e_pxDeriv(src,Pey.T*vec,adjoint=True)
+                aex_py_u = lambda vec: f._e_pyDeriv(src,Pex.T*vec,adjoint=True)
+                aey_py_u = lambda vec: f._e_pyDeriv(src,Pey.T*vec,adjoint=True)
+                ahx_px_u = lambda vec: f._b_pxDeriv(src,Pbx.T*vec,adjoint=True)/mu_0
+                ahy_px_u = lambda vec: f._b_pxDeriv(src,Pby.T*vec,adjoint=True)/mu_0
+                ahx_py_u = lambda vec: f._b_pyDeriv(src,Pbx.T*vec,adjoint=True)/mu_0
+                ahy_py_u = lambda vec: f._b_pyDeriv(src,Pby.T*vec,adjoint=True)/mu_0
 
                 # Update the input vector
                 # Define shortcuts
@@ -350,12 +350,12 @@ class Rx(SimPEGsurvey.BaseRx):
                 aby_py = mkvc(mkvc(f[src,'b_py'],2).T*Pby.T)
                 abz_py = mkvc(mkvc(f[src,'b_py'],2).T*Pbz.T)
                 # Derivatives as lambda functions
-                abx_px_u = lambda vec: f._b_pxDeriv_u(src,Pbx.T*vec,adjoint=True)
-                aby_px_u = lambda vec: f._b_pxDeriv_u(src,Pby.T*vec,adjoint=True)
-                abz_px_u = lambda vec: f._b_pxDeriv_u(src,Pbz.T*vec,adjoint=True)
-                abx_py_u = lambda vec: f._b_pyDeriv_u(src,Pbx.T*vec,adjoint=True)
-                aby_py_u = lambda vec: f._b_pyDeriv_u(src,Pby.T*vec,adjoint=True)
-                abz_py_u = lambda vec: f._b_pyDeriv_u(src,Pbz.T*vec,adjoint=True)
+                abx_px_u = lambda vec: f._b_pxDeriv(src,Pbx.T*vec,adjoint=True)
+                aby_px_u = lambda vec: f._b_pxDeriv(src,Pby.T*vec,adjoint=True)
+                abz_px_u = lambda vec: f._b_pxDeriv(src,Pbz.T*vec,adjoint=True)
+                abx_py_u = lambda vec: f._b_pyDeriv(src,Pbx.T*vec,adjoint=True)
+                aby_py_u = lambda vec: f._b_pyDeriv(src,Pby.T*vec,adjoint=True)
+                abz_py_u = lambda vec: f._b_pyDeriv(src,Pbz.T*vec,adjoint=True)
 
                 # Update the input vector
                 # Define shortcuts

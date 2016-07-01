@@ -2,7 +2,7 @@ from SimPEG.EM.Utils.EMUtils import omega, mu_0
 from SimPEG import SolverLU as SimpegSolver, PropMaps, Utils, mkvc, sp, np
 from SimPEG.EM.FDEM.FDEM import BaseFDEMProblem
 from SurveyNSEM import Survey, Data
-from FieldsNSEM import BaseNSEMFields, Fields1D_ePrimSec, Fields3D_ePrimSec
+from FieldsNSEM import BaseNSEMFields, Fields1D_ePrimSec, Fields1D_eTotal, Fields3D_ePrimSec
 from SimPEG.NSEM.Utils.MT1Danalytic import getEHfields
 import time, sys
 
@@ -113,7 +113,7 @@ class BaseNSEMProblem(BaseFDEMProblem):
                     dA_dmT = self.getADeriv(freq, u_src, mkvc(dA_duIT), adjoint=True)
                     dRHS_dmT = self.getRHSDeriv(freq, mkvc(dA_duIT), adjoint=True)
                     # Make du_dmT
-
+                    du_dmT = -dA_dmT + dRHS_dmT
                     # Select the correct component
                     # du_dmT needs to be of size nC,
                     real_or_imag = rx.projComp
@@ -251,7 +251,7 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
         """
 
         Src = self.survey.getSrcByFreq(freq)[0]
-        S_eDeriv = Src.S_eDeriv_m(self, v, adjoint)
+        S_eDeriv = Src.S_eDeriv(self, v, adjoint)
         return -1j * omega(freq) * S_eDeriv
 
 
@@ -308,10 +308,11 @@ class Problem1D_eTotal(BaseNSEMProblem):
     # From FDEMproblem: Used to project the fields. Currently not used for NSEMproblem.
     _solutionType = 'e_1dSolution'
     _formulation  = 'EF'
-    # fieldsPair = Fields1D_eTotal
+    fieldsPair = Fields1D_eTotal
 
     def __init__(self, mesh, **kwargs):
         BaseNSEMProblem.__init__(self, mesh, **kwargs)
+
     @property
     def MeMui(self):
         """
@@ -329,6 +330,12 @@ class Problem1D_eTotal(BaseNSEMProblem):
         if getattr(self, '_MfSigma', None) is None:
             self._MfSigma = self.mesh.getFaceInnerProduct(self.curModel.sigma)
         return self._MfSigma
+
+    @property
+    def getEdgeBoundInd(self):
+        if getattr(self, '_MfSigma_getEdgeBoundInd', None) is None:
+            self._getEdgeBoundInd = np.sum(self.mesh.edgeBoundaryInd,axis=0,dtype=bool)
+        return self._getEdgeBoundInd
 
     def getA(self, freq, full=False):
         """
@@ -351,10 +358,11 @@ class Problem1D_eTotal(BaseNSEMProblem):
         # Make A
         A = C.T*MeMui*C + 1j*omega(freq)*MfSigma
         # Either return full or only the inner part of A
+        interInd = ~self.getEdgeBoundInd
         if full:
             return A
         else:
-            return A[1:-1,1:-1]
+            return A[interIndeBind,interInd]
 
     def getADeriv_m(self, freq, u, v, adjoint=False):
         raise NotImplementedError('getADeriv is not implemented')
@@ -371,8 +379,11 @@ class Problem1D_eTotal(BaseNSEMProblem):
         src = self.survey.getSrcByFreq(freq)
         # Get the full A
         A = self.getA(freq,full=True)
+        # Get the boundary index
+        eBind = self.getEdgeBoundInd
+        interInd = ~eBind
         # Define the outer part of the solution matrix
-        Aio = A[1:-1,[0,-1]]
+        Aio = A[interInd,eBind]
         Ed, Eu, Hd, Hu = getEHfields(self.mesh,self.curModel.sigma,freq,self.mesh.vectorNx)
         Etot = (Ed + Eu)
         sourceAmp = 1.0

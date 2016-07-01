@@ -106,9 +106,9 @@ class polxy_1Dprimary(BaseNSEMSrc):
         The derivative of S_e with respect to
         """
 
-        return self._S_eDeriv_m(problem, v, adjoint)
+        return self.S_eDeriv_m(problem, v, adjoint)
 
-    def _S_eDeriv_m(self, problem, v, adjoint = False):
+    def S_eDeriv_m(self, problem, v, adjoint = False):
         '''
         Get the derivative of S_e wrt to sigma (m)
         '''

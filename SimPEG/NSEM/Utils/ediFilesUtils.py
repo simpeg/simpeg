@@ -170,7 +170,7 @@ def _findEDIcomp(comp,fileLines,dt=float):
     # Find the data
     headLine, indHead = [(st,nr) for nr,st in enumerate(fileLines) if re.search(comp,st)][0]
     # Extract the data
-    nrVec = int(headLine.split()[-1])
+    nrVec = int(headLine.split('//')[-1])
     c = 0
     dataList = []
     while c < nrVec:

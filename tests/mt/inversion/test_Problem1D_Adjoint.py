@@ -18,12 +18,17 @@ addrandoms = True
 
 
 
-def JvecAdjointTest(inputSetup,comp='All',freq=False):
-    (M, freqs, sig, sigBG, rx_loc) = inputSetup
-    survey, problem = NSEM.Utils.testUtils.setupSimpegNSEM_ePrimSec(inputSetup,comp='All',singleFreq=freq)
-    print 'Adjoint test of eForm primary/secondary for {:s} comp at {:s}\n'.format(comp,str(survey.freqs))
+def JvecAdjointTest(sigmaHalf,formulation='PrimSec'):
+    forType = 'PrimSec' not in formulation
+    survey, sigma, m1d = NSEM.Utils.testUtils.setup1DSurvey(sigmaHalf,tD=forType,structure=False)
+    print 'Adjoint test of e formulation for {:s} comp \n'.format(formulation)
 
-    m  = sig
+    if 'PrimSec' in formulation:
+        problem = NSEM.Problem1D_ePrimSec(m1d, sigmaPrimary = sigma)
+    else:
+        problem = NSEM.Problem1D_eTotal(m1d)
+    problem.pair(survey)
+    m  = sigma
     u = problem.fields(m)
 
     v = np.random.rand(survey.nD,)
@@ -38,7 +43,7 @@ def JvecAdjointTest(inputSetup,comp='All',freq=False):
     return np.abs(vJw - wJtv) < tol
 
 
-class NSEM_3D_AdjointTests(unittest.TestCase):
+class NSEM_1D_AdjointTests(unittest.TestCase):
 
     def setUp(self):
         pass
@@ -52,7 +57,7 @@ class NSEM_3D_AdjointTests(unittest.TestCase):
     # def test_JvecAdjoint_zyxi(self):self.assertTrue(JvecAdjointTest(random(1e-2),'zyxi',.1))
     # def test_JvecAdjoint_zyyr(self):self.assertTrue(JvecAdjointTest(random(1e-2),'zyyr',.1))
     # def test_JvecAdjoint_zyyi(self):self.assertTrue(JvecAdjointTest(random(1e-2),'zyyi',.1))
-    def test_JvecAdjoint_All(self):self.assertTrue(JvecAdjointTest(NSEM.Utils.testUtils.random(1e-2),'All',.1))
+    def test_JvecAdjoint_All(self):self.assertTrue(JvecAdjointTest(1e-2))
 
 if __name__ == '__main__':
     unittest.main()
