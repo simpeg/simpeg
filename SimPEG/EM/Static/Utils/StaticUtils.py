@@ -315,3 +315,107 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
 
     return SrcList
 
+
+def writeUBC_DCobs(fileName, DCsurvey, dtype='3D', stype='SURFACE', iptype = 0):
+    """
+        Write UBC GIF DCIP 2D or 3D observation file
+
+        Input:
+        :string     fileName -> including path where the file is written out
+        :DCsurvey   DC survey class object
+        :string     dtype ->  either '2D' | '3D'
+        :string     stype ->  either 'SURFACE' | 'GENERAL'
+
+        Output:
+        :param UBC2D-Data file
+        :return
+
+        Last edit: February 16th, 2016
+
+        @author: dominiquef
+
+    """
+    from SimPEG import mkvc
+
+    assert (dtype=='2D') | (dtype=='3D'), "Data must be either '2D' | '3D'"
+    assert (stype=='SURFACE') | (stype=='GENERAL') | (stype=='SIMPLE'), "Data must be either 'SURFACE' | 'GENERAL' | 'SIMPLE'"
+
+    fid = open(fileName,'w')
+
+
+    if iptype!=0:
+        fid.write('IPTYPE=%i\n'%iptype)
+
+    else:
+        fid.write('! ' + stype + ' FORMAT\n')
+
+    count = 0
+
+    for ii in range(DCsurvey.nSrc):
+
+        tx = np.c_[DCsurvey.srcList[ii].loc]
+
+        rx = DCsurvey.srcList[ii].rxList[0].locs
+
+        nD = DCsurvey.srcList[ii].nD
+
+        M = rx[0]
+        N = rx[1]
+
+        # Adapt source-receiver location for dtype and stype
+        if dtype=='2D':
+
+            if stype == 'SIMPLE':
+
+                #fid.writelines("%e " % ii for ii in mkvc(tx[0,:]))
+                A = np.repeat(tx[0,0],M.shape[0],axis=0)
+                B = np.repeat(tx[0,1],M.shape[0],axis=0)
+                M = M[:,0]
+                N = N[:,0]
+
+                np.savetxt(fid, np.c_[A, B, M, N , DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e',delimiter=' ',newline='\n')
+
+
+            else:
+
+                if stype == 'SURFACE':
+
+                    fid.writelines("%f " % ii for ii in mkvc(tx[0,:]))
+                    M = M[:,0]
+                    N = N[:,0]
+
+                if stype == 'GENERAL':
+
+                    # Flip sign for z-elevation to depth
+                    tx[2::2,:] = -tx[2::2,:]
+
+                    fid.writelines("%e " % ii for ii in mkvc(tx[::2,:]))
+                    M = M[:,0::2]
+                    N = N[:,0::2]
+
+                    # Flip sign for z-elevation to depth
+                    M[:,1::2] = -M[:,1::2]
+                    N[:,1::2] = -N[:,1::2]
+
+                fid.write('%i\n'% nD)
+                np.savetxt(fid, np.c_[ M, N , DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%f',delimiter=' ',newline='\n')
+
+        if dtype=='3D':
+
+            if stype == 'SURFACE':
+
+                fid.writelines("%e " % ii for ii in mkvc(tx[0:2,:]))
+                M = M[:,0:2]
+                N = N[:,0:2]
+
+            if stype == 'GENERAL':
+
+                fid.writelines("%e " % ii for ii in mkvc(tx[0:3,:]))
+
+            fid.write('%i\n'% nD)
+            np.savetxt(fid, np.c_[ M, N , DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e',delimiter=' ',newline='\n')
+            fid.write('\n')
+
+        count += nD
+
+    fid.close()
