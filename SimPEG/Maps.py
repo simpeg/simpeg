@@ -41,8 +41,8 @@ class IdentityMap(object):
             If this is a meshless mapping (i.e. nP is defined independently)
             the shape will be the the shape (nP,nP).
 
-            :rtype: (int,int)
-            :return: shape of the operator as a tuple
+            :rtype: tuple
+            :return: shape of the operator as a tuple (int,int)
         """
         if self._nP is not None:
             return (self.nP, self.nP)
@@ -86,7 +86,7 @@ class IdentityMap(object):
             The derivative of the transformation.
 
             :param numpy.array m: model
-            :rtype: scipy.csr_matrix
+            :rtype: scipy.sparse.csr_matrix
             :return: derivative of transformed model
 
         """
@@ -216,7 +216,7 @@ class ExpMap(IdentityMap):
     def deriv(self, m):
         """
             :param numpy.array m: model
-            :rtype: scipy.csr_matrix
+            :rtype: scipy.sparse.csr_matrix
             :return: derivative of transformed model
 
             The *transform* changes the model into the physical property.
@@ -366,7 +366,7 @@ class SurjectVertical1D(IdentityMap):
     def deriv(self, m):
         """
             :param numpy.array m: model
-            :rtype: scipy.csr_matrix
+            :rtype: scipy.sparse.csr_matrix
             :return: derivative of transformed model
         """
         repNum = self.mesh.vnC[:self.mesh.dim-1].prod()
@@ -427,7 +427,7 @@ class Surject2Dto3D(IdentityMap):
     def deriv(self, m):
         """
             :param numpy.array m: model
-            :rtype: scipy.csr_matrix
+            :rtype: scipy.sparse.csr_matrix
             :return: derivative of transformed model
         """
         inds = self * np.arange(self.nP)
@@ -502,7 +502,9 @@ class InjectActiveCells(IdentityMap):
         if Utils.isScalar(valInactive):
             self.valInactive = np.ones(self.nC)*float(valInactive)
         else:
-            self.valInactive = valInactive.copy()
+            self.valInactive = np.ones(self.nC)
+            self.valInactive[self.indInactive] = valInactive.copy()
+            
         self.valInactive[self.indActive] = 0
 
         inds = np.nonzero(self.indActive)[0]
@@ -533,83 +535,6 @@ class ActiveCells(InjectActiveCells):
             FutureWarning)
         InjectActiveCells.__init__(self, mesh, indActive, valInactive, nC)
 
-class InjectActiveCellsTopo(IdentityMap):
-    """
-        Active model parameters. Extend for cells on topography to air cell (only works for tensor mesh)
-
-    """
-
-    indActive   = None #: Active Cells
-    valInactive = None #: Values of inactive Cells
-    nC          = None #: Number of cells in the full model
-
-    def __init__(self, mesh, indActive, nC=None):
-        self.mesh  = mesh
-
-        self.nC = nC or mesh.nC
-
-        if indActive.dtype is not bool:
-            z = np.zeros(self.nC,dtype=bool)
-            z[indActive] = True
-            indActive = z
-        self.indActive = indActive
-
-        self.indInactive = np.logical_not(indActive)
-        inds = np.nonzero(self.indActive)[0]
-        self.P = sp.csr_matrix((np.ones(inds.size),(inds, range(inds.size))), shape=(self.nC, self.nP))
-
-    @property
-    def shape(self):
-        return (self.nC, self.nP)
-
-    @property
-    def nP(self):
-        """Number of parameters in the model."""
-        return self.indActive.sum()
-
-    def _transform(self, m):
-        val_temp = np.zeros(self.mesh.nC)
-        val_temp[self.indActive] = m
-        valInactive = np.zeros(self.mesh.nC)
-        #1D
-        if self.mesh.dim == 1:
-            z_temp = self.mesh.gridCC
-            val_temp[~self.indActive] = val_temp[np.argmax(z_temp[self.indActive])]
-        #2D
-        elif self.mesh.dim == 2:
-            act_temp = self.indActive.reshape((self.mesh.nCx, self.mesh.nCy), order = 'F')
-            val_temp = val_temp.reshape((self.mesh.nCx, self.mesh.nCy), order = 'F')
-            y_temp = self.mesh.gridCC[:,1].reshape((self.mesh.nCx, self.mesh.nCy), order = 'F')
-            for i in range(self.mesh.nCx):
-                act_tempx = act_temp[i,:] == 1
-                val_temp[i,~act_tempx] = val_temp[i,np.argmax(y_temp[i,act_tempx])]
-            valInactive[~self.indActive] = Utils.mkvc(val_temp)[~self.indActive]
-        #3D
-        elif self.mesh.dim == 3:
-            act_temp = self.indActive.reshape((self.mesh.nCx*self.mesh.nCy, self.mesh.nCz), order = 'F')
-            val_temp = val_temp.reshape((self.mesh.nCx*self.mesh.nCy, self.mesh.nCz), order = 'F')
-            z_temp = self.mesh.gridCC[:,2].reshape((self.mesh.nCx*self.mesh.nCy, self.mesh.nCz), order = 'F')
-            for i in range(self.mesh.nCx*self.mesh.nCy):
-                act_tempxy = act_temp[i,:] == 1
-                val_temp[i,~act_tempxy] = val_temp[i,np.argmax(z_temp[i,act_tempxy])]
-            valInactive[~self.indActive] = Utils.mkvc(val_temp)[~self.indActive]
-
-        self.valInactive = valInactive
-
-        return self.P*m + self.valInactive
-
-    def inverse(self, D):
-        return self.P.T*D
-
-    def deriv(self, m):
-        return self.P
-
-class ActiveCellsTopo(InjectActiveCellsTopo):
-    def __init__(self, mesh, indActive, valInactive, nC=None):
-        warnings.warn(
-            "`ActiveCellsTopo` is deprecated and will be removed in future versions. Use `InjectActiveCellsTopo` instead",
-            FutureWarning)
-        InjectActiveCellsTopo.__init__(self, mesh, indActive, valInactive, nC)
 
 class Weighting(IdentityMap):
     """

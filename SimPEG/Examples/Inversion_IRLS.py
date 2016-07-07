@@ -1,7 +1,7 @@
 from SimPEG import *
 
 
-def run(N=200, plotIt=True):
+def run(N=100, plotIt=True):
     """
         Inversion: Linear Problem
         =========================
@@ -18,6 +18,8 @@ def run(N=200, plotIt=True):
     mesh = Mesh.TensorMesh([N])
 
     m0 = np.ones(mesh.nC) * 1e-4
+    mref = np.zeros(mesh.nC)
+
     nk = 10
     jk = np.linspace(1.,nk,nk)
     p = -2.
@@ -40,67 +42,35 @@ def run(N=200, plotIt=True):
     survey = Survey.LinearSurvey()
     survey.pair(prob)
     survey.dobs = prob.fields(mtrue) + std_noise * np.random.randn(nk)
-    #survey.makeSyntheticData(mtrue, std=std_noise)
 
     wd = np.ones(nk) * std_noise
 
-    #print survey.std[0]
-    #M = prob.mesh
     # Distance weighting
     wr = np.sum(prob.G**2.,axis=0)**0.5
     wr = ( wr/np.max(wr) )
 
-    reg = Regularization.Simple(mesh)
-    reg.wght = wr
-
     dmis = DataMisfit.l2_DataMisfit(survey)
     dmis.Wd = 1./wd
 
-    opt = Optimization.ProjectedGNCG(maxIter=30,lower=-2.,upper=2., maxIterCG= 20, tolCG = 1e-4)
-    invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
-    invProb.curModel = m0
-
-    beta = Directives.BetaSchedule(coolingFactor=2, coolingRate=1)
-    target = Directives.TargetMisfit()
-
     betaest = Directives.BetaEstimate_ByEig()
-    inv = Inversion.BaseInversion(invProb, directiveList=[beta, betaest, target])
-
-
-    mrec = inv.run(m0)
-    ml2 = mrec
-    print "Final misfit:" + str(invProb.dmisfit.eval(mrec))
-
-    # Switch regularization to sparse
-    phim = invProb.phi_m_last
-    phid =  invProb.phi_d
 
     reg = Regularization.Sparse(mesh)
+    reg.mref = mref
+    reg.cell_weights = wr
 
-#==============================================================================
-#     fig, axes = plt.subplots(1,2,figsize=(12*1.2,4*1.2))
-#     dmdx = reg.mesh.cellDiffxStencil * mrec
-#     plt.plot(np.sort(dmdx))
-#==============================================================================
-
-    #reg.recModel = mrec
-    reg.wght = np.ones(mesh.nC)
     reg.mref = np.zeros(mesh.nC)
-    reg.eps_p = 5e-2
-    reg.eps_q = 1e-2
-    reg.norms   = [0., 0., 2., 2.]
-    reg.wght = wr
+    
 
-    opt = Optimization.ProjectedGNCG(maxIter=10 ,lower=-2.,upper=2., maxIterLS = 20, maxIterCG= 20, tolCG = 1e-3)
-    invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta = invProb.beta*2.)
-    beta = Directives.BetaSchedule(coolingFactor=1, coolingRate=1)
-    #betaest = Directives.BetaEstimate_ByEig()
-    target = Directives.TargetMisfit()
-    IRLS =Directives.Update_IRLS( phi_m_last = phim, phi_d_last = phid )
+    opt = Optimization.ProjectedGNCG(maxIter=100 ,lower=-2.,upper=2., maxIterLS = 20, maxIterCG= 10, tolCG = 1e-3)
+    invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
+    update_Jacobi = Directives.Update_lin_PreCond()
+    
+    # Set the IRLS directive, penalize the lowest 25 percentile of model values
+    # Start with an l2-l2, then switch to lp-norms
+    norms   = [0., 0., 2., 2.]    
+    IRLS = Directives.Update_IRLS( norms=norms, prctile = 25, maxIRLSiter = 15, minGNiter=3)
 
-    inv = Inversion.BaseInversion(invProb, directiveList=[beta,IRLS])
-
-    m0 = mrec
+    inv = Inversion.BaseInversion(invProb, directiveList=[IRLS,betaest,update_Jacobi])
 
     # Run inversion
     mrec = inv.run(m0)
@@ -117,7 +87,7 @@ def run(N=200, plotIt=True):
         axes[0].set_title('Columns of matrix G')
 
         axes[1].plot(mesh.vectorCCx, mtrue, 'b-')
-        axes[1].plot(mesh.vectorCCx, ml2, 'r-')
+        axes[1].plot(mesh.vectorCCx, reg.l2model, 'r-')
         #axes[1].legend(('True Model', 'Recovered Model'))
         axes[1].set_ylim(-1.0,1.25)
 

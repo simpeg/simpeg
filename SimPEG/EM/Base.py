@@ -20,10 +20,10 @@ class BaseEMProblem(Problem.BaseProblem):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
 
-    surveyPair = Survey.BaseSurvey
-    dataPair = Survey.Data
+    surveyPair = Survey.BaseSurvey #: The survey to pair with.
+    dataPair = Survey.Data #: The data to pair with.
 
-    PropMap = EMPropMap
+    PropMap = EMPropMap #: The property mapping
 
     Solver = SimpegSolver
     solverOpts = {}
@@ -169,9 +169,7 @@ class BaseEMProblem(Problem.BaseProblem):
 
         dMeSigmaI_dI = -self.MeSigmaI**2
         dMe_dsig = self.mesh.getEdgeInnerProductDeriv(self.curModel.sigma)(u)
-        dsig_dm = self.curModel.sigmaDeriv
-        return dMeSigmaI_dI * ( dMe_dsig * ( dsig_dm))
-        # return self.mesh.getEdgeInnerProductDeriv(self.curModel.sigma, invMat=True)(u)
+        return dMeSigmaI_dI * ( dMe_dsig * self.curModel.sigmaDeriv )
 
     @property
     def MfRho(self):
@@ -187,8 +185,7 @@ class BaseEMProblem(Problem.BaseProblem):
         """
             Derivative of :code:`MfRho` with respect to the model.
         """
-        return self.mesh.getFaceInnerProductDeriv(self.curModel.rho)(u) * (-Utils.sdiag(self.curModel.rho**2) * self.curModel.sigmaDeriv)
-        # self.curModel.rhoDeriv
+        return self.mesh.getFaceInnerProductDeriv(self.curModel.rho)(u) * self.curModel.rhoDeriv
 
     @property
     def MfRhoI(self):
@@ -208,9 +205,7 @@ class BaseEMProblem(Problem.BaseProblem):
 
         dMfRhoI_dI = -self.MfRhoI**2
         dMf_drho = self.mesh.getFaceInnerProductDeriv(self.curModel.rho)(u)
-        return dMfRhoI_dI * ( dMf_drho * (-Utils.sdiag(self.curModel.rho**2) * self.curModel.sigmaDeriv) )
-
-        # return self.mesh.getFaceInnerProductDeriv(self.curModel.rho, invMat=True)(u) * self.curModel.rhoDeriv
+        return dMfRhoI_dI * ( dMf_drho * self.curModel.rhoDeriv )
 
 class BaseEMSurvey(Survey.BaseSurvey):
 
@@ -222,6 +217,7 @@ class BaseEMSurvey(Survey.BaseSurvey):
     def eval(self, f):
         """
         Project fields to receiver locations
+
         :param Fields u: fields object
         :rtype: numpy.ndarray
         :return: data
