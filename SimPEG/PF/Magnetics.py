@@ -1187,8 +1187,8 @@ def writeUBCobs(filename, survey, d):
     data = np.c_[rxLoc , d , wd]
 
     with file(filename,'w') as fid:
-        fid.write('%6.2f %6.2f %6.2f\n' %(B[2], B[1], B[0]) )
-        fid.write('%6.2f %6.2f %6.2f\n' %(B[2], B[1], 1) )
+        fid.write('%6.2f %6.2f %6.2f\n' %(B[1], B[2], B[0]) )
+        fid.write('%6.2f %6.2f %6.2f\n' %(B[1], B[2], 1) )
         fid.write('%i\n' %len(d) )
         np.savetxt(fid, data, fmt='%e',delimiter=' ',newline='\n')
 
@@ -1247,7 +1247,7 @@ def getActiveTopo(mesh, topo, flag):
 
     return inds
 
-def plot_obs_2D(rxLoc,d=None ,varstr='Mag Obs', vmin=None, vmax=None, levels=None):
+def plot_obs_2D(rxLoc,d=None ,varstr='Mag Obs', vmin=None, vmax=None, levels=None, fig=None):
     """ Function plot_obs(rxLoc,d)
     Generate a 2d interpolated plot from scatter points of data
 
@@ -1270,8 +1270,10 @@ def plot_obs_2D(rxLoc,d=None ,varstr='Mag Obs', vmin=None, vmax=None, levels=Non
 
 
     # Plot result
-    plt.figure()
-    plt.subplot()
+    if fig is None:
+        fig = plt.figure()
+
+    ax = plt.subplot()
     plt.scatter(rxLoc[:,0],rxLoc[:,1], c='k', s=10)
 
     if d is not None:
@@ -1290,17 +1292,19 @@ def plot_obs_2D(rxLoc,d=None ,varstr='Mag Obs', vmin=None, vmax=None, levels=Non
 
         # Interpolate
         d_grid = griddata(rxLoc[:,0:2],d,(X,Y), method ='linear')
-        plt.imshow(d_grid, extent=[x.min(), x.max(), y.min(), y.max()], origin='lower', vmin=vmin, vmax=vmax)
+        plt.imshow(d_grid, extent=[x.min(), x.max(), y.min(), y.max()], origin='lower', vmin=vmin, vmax=vmax, cmap="plasma")
         plt.colorbar(fraction=0.02)
 
         if levels is None:
-            plt.contour(X,Y, d_grid, 10, vmin=vmin, vmax=vmax)
+            plt.contour(X,Y, d_grid, 10, vmin=vmin, vmax=vmax, cmap="plasma")
         else:
-            plt.contour(X,Y, d_grid, levels=levels, colors='r', vmin=vmin, vmax=vmax)
+            plt.contour(X,Y, d_grid, levels=levels, colors='r', vmin=vmin, vmax=vmax, cmap="plasma")
+
 
     plt.title(varstr)
     plt.gca().set_aspect('equal', adjustable='box')
 
+    return fig
 
 
 def read_MAGfwr_inp(input_file):

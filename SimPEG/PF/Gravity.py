@@ -6,9 +6,9 @@ import re
 class GravityIntegral(Problem.BaseProblem):
 
     # surveyPair = Survey.LinearSurvey
-
-    storeG = True #: Store the forward matrix by default, otherwise just compute d
+    forwardOnly = False #: Determine if the forward matrix is stored (defaut:yes)
     actInd = None #: Active cell indices provided
+    rtype       = 'z'
 
     def __init__(self, mesh, mapping=None, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, mapping=mapping, **kwargs)
@@ -16,19 +16,94 @@ class GravityIntegral(Problem.BaseProblem):
     def fwr_op(self):
         # Add forward function
         # kappa = self.curModel.kappa TODO
-        sus = self.mapping*self.curModel
-        return self.G.dot(sus)
+        rho = self.mapping*self.curModel
+
+        if self.forwardOnly:
+
+            if getattr(self, 'actInd', None) is not None:
+
+                if self.actInd.dtype=='bool':
+                    inds = np.asarray([inds for inds, elem in enumerate(self.actInd, 1) if elem], dtype = int) - 1
+                else:
+                    inds = self.actInd
+
+            else:
+
+                inds = np.asarray(range(self.mesh.nC))
+
+            nC = len(inds)
+
+            # Create active cell projector
+            P = sp.csr_matrix(
+                (np.ones(nC), (inds, range(nC))),
+                shape=(self.mesh.nC, nC)
+            )
+
+            # Create vectors of nodal location (lower and upper corners for each cell)
+            xn = self.mesh.vectorNx
+            yn = self.mesh.vectorNy
+            zn = self.mesh.vectorNz
+
+            yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
+            yn1, xn1, zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
+
+            Yn = P.T*np.c_[mkvc(yn1), mkvc(yn2)]
+            Xn = P.T*np.c_[mkvc(xn1), mkvc(xn2)]
+            Zn = P.T*np.c_[mkvc(zn1), mkvc(zn2)]
+
+            rxLoc = self.survey.srcField.rxList[0].locs
+            ndata = rxLoc.shape[0]
+
+
+            # Pre-allocate space and create magnetization matrix if required
+            # Pre-allocate space
+            if self.rtype == 'z':
+
+                fwr_d = np.zeros(self.survey.nRx)
+
+            elif self.rtype == 'xyz':
+
+                fwr_d = np.zeros(3*self.survey.nRx)
+
+            else:
+
+                print """Flag must be either 'z' | 'xyz', please revised"""
+                return
+
+
+            # Add counter to dsiplay progress. Good for large problems
+            count = -1;
+            for ii in range(ndata):
+
+
+                tx, ty, tz = get_T_mat(Xn, Yn, Zn, rxLoc[ii, :])
+
+
+                if self.rtype =='z':
+                    fwr_d[ii] =tz.dot(rho)
+
+                elif self.rtype =='xyz':
+                    fwr_d[ii] = tx.dot(rho)
+                    fwr_d[ii+ndata] = ty.dot(rho)
+                    fwr_d[ii+2*ndata] = tz.dot(rho)
+
+
+            # Display progress
+                count = progress(ii,count,ndata)
+
+            print "Done 100% ...forward operator completed!!\n"
+
+            return fwr_d
+
+        else:
+            return self.G.dot(rho)
 
     def fields(self, m):
         self.curModel = m
-        total = np.zeros(self.survey.nRx)
-        induced = self.fwr_op()
-        # rem = self.rem
 
-        if induced is not None:
-            total += induced
+        fields = self.fwr_op()
 
-        return total
+        return fields
 
         # return self.G.dot(self.mapping*(m))
 
@@ -166,7 +241,9 @@ def get_T_mat(Xn, Yn, Zn, rxLoc):
     nC = Xn.shape[0]
 
     # Pre-allocate space for 1D array
-    T = np.zeros((1,nC))
+    tx = np.zeros((1,nC))
+    ty = np.zeros((1,nC))
+    tz = np.zeros((1,nC))
 
     dz = rxLoc[2] - Zn + eps
 
@@ -185,15 +262,22 @@ def get_T_mat(Xn, Yn, Zn, rxLoc):
                         dz[:, cc] ** 2
                     ) ** (0.50)
 
-                T = T - NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
+                tx = tx - NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
+                    dy[:, bb] * np.log(dz[:, cc] + r) +
+                    dz[:, cc] * np.log(dy[:, bb] + r) -
+                    dx[:, aa] * np.arctan(dy[:, bb] * dz[:, cc] / (dx[:, aa] * r)))
+
+                ty = ty - NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
+                    dx[:, aa] * np.log(dz[:, cc] + r) +
+                    dz[:, cc] * np.log(dx[:, aa] + r) -
+                    dy[:, bb] * np.arctan(dx[:, aa] * dz[:, cc] / (dy[:, bb] * r)))
+
+                tz = tz - NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
                     dx[:, aa] * np.log(dy[:, bb] + r) +
                     dy[:, bb] * np.log(dx[:, aa] + r) -
-                    dz[:, cc] * np.arctan(
-                        dx[:, aa] * dy[:, bb] / (dz[:, cc] * r)
-                    )
-                )
+                    dz[:, cc] * np.arctan(dx[:, aa] * dy[:, bb] / (dz[:, cc] * r)))
 
-    return T
+    return tx,ty,tz
 
 
 def progress(iter, prog, final):
@@ -292,7 +376,7 @@ def getActiveTopo(mesh, topo, flag):
 
     return inds
 
-def plot_obs_2D(survey,varstr):
+def plot_obs_2D(survey,varstr, fig = None):
     """ Function plot_obs(rxLoc,d,wd)
     Generate a 2d interpolated plot from scatter points of data
 
@@ -327,9 +411,11 @@ def plot_obs_2D(survey,varstr):
     d_grid = griddata(rxLoc[:,0:2],d,(X,Y), method ='linear')
 
     # Plot result
-    plt.figure()
-    plt.subplot()
-    plt.imshow(d_grid, extent=[x.min(), x.max(), y.min(), y.max()],origin = 'lower')
+    if fig is None:
+        fig = plt.figure()
+
+    ax = plt.subplot()
+    plt.imshow(d_grid, extent=[x.min(), x.max(), y.min(), y.max()],origin = 'lower', cmap='plasma')
     plt.colorbar(fraction=0.02)
     plt.contour(X,Y, d_grid,10)
     plt.scatter(rxLoc[:,0],rxLoc[:,1], c=d, s=20)
