@@ -25,7 +25,7 @@ SimPEG Documentation
     :alt: Coverage status
 
 .. image:: https://codecov.io/gh/simpeg/simpeg/branch/master/graph/badge.svg
-  :target: https://codecov.io/gh/simpeg/simpeg
+    :target: https://codecov.io/gh/simpeg/simpeg
 
 
 Simulation and Parameter Estimation in Geophysics  -  A python package for simulation and gradient based parameter estimation in the context of geophysical applications.
