@@ -58,7 +58,6 @@ script:
 
 # Calculate coverage
 after_success:
-  - coveralls --config_file .coveragerc
   - bash <(curl -s https://codecov.io/bash)
   - if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then
       if [ ${TEST_DIR} == "tests/docs" ]; then
