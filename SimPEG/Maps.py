@@ -558,7 +558,9 @@ class InjectActiveCells(IdentityMap):
         if Utils.isScalar(valInactive):
             self.valInactive = np.ones(self.nC)*float(valInactive)
         else:
-            self.valInactive = valInactive.copy()
+            self.valInactive = np.ones(self.nC)
+            self.valInactive[self.indInactive] = valInactive.copy()
+            
         self.valInactive[self.indActive] = 0
 
         inds = np.nonzero(self.indActive)[0]
