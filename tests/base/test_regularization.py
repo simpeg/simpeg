@@ -1,3 +1,10 @@
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from past.utils import old_div
 import numpy as np
 import unittest
 from SimPEG import *
@@ -12,7 +19,7 @@ class RegularizationTests(unittest.TestCase):
 
     def setUp(self):
         hx, hy, hz = np.random.rand(10), np.random.rand(9), np.random.rand(8)
-        hx, hy, hz = hx/hx.sum(), hy/hy.sum(), hz/hz.sum()
+        hx, hy, hz = old_div(hx,hx.sum()), old_div(hy,hy.sum()), old_div(hz,hz.sum())
         mesh1 = Mesh.TensorMesh([hx])
         mesh2 = Mesh.TensorMesh([hx, hy])
         mesh3 = Mesh.TensorMesh([hx, hy, hz])
@@ -28,22 +35,22 @@ class RegularizationTests(unittest.TestCase):
 
                 for i, mesh in enumerate(self.meshlist):
 
-                    print 'Testing %iD'%mesh.dim
+                    print('Testing %iD'%mesh.dim)
 
                     mapping = r.mapPair(mesh)
                     reg = r(mesh, mapping=mapping)
                     m = np.random.rand(mapping.nP)
                     reg.mref = np.ones_like(m)*np.mean(m)
 
-                    print 'Check: phi_m (mref) = %f' %reg.eval(reg.mref)
+                    print('Check: phi_m (mref) = %f' %reg.eval(reg.mref))
                     passed = reg.eval(reg.mref) < TOL
                     self.assertTrue(passed)
 
-                    print 'Check:', R
+                    print('Check:', R)
                     passed = Tests.checkDerivative(lambda m : [reg.eval(m), reg.evalDeriv(m)], m, plotIt=False)
                     self.assertTrue(passed)
 
-                    print 'Check 2 Deriv:', R
+                    print('Check 2 Deriv:', R)
                     passed = Tests.checkDerivative(lambda m : [reg.evalDeriv(m), reg.eval2Deriv(m)], m, plotIt=False)
                     self.assertTrue(passed)
 
@@ -56,7 +63,7 @@ class RegularizationTests(unittest.TestCase):
 
                 for i, mesh in enumerate(self.meshlist):
 
-                    print 'Testing Active Cells %iD'%(mesh.dim)
+                    print('Testing Active Cells %iD'%(mesh.dim))
 
                     if mesh.dim == 1:
                         indActive = Utils.mkvc(mesh.gridCC <= 0.8)
@@ -70,15 +77,15 @@ class RegularizationTests(unittest.TestCase):
                         m = np.random.rand(mesh.nC)[indAct]
                         reg.mref = np.ones_like(m)*np.mean(m)
 
-                    print 'Check: phi_m (mref) = %f' %reg.eval(reg.mref)
+                    print('Check: phi_m (mref) = %f' %reg.eval(reg.mref))
                     passed = reg.eval(reg.mref) < TOL
                     self.assertTrue(passed)
 
-                    print 'Check:', R
+                    print('Check:', R)
                     passed = Tests.checkDerivative(lambda m : [reg.eval(m), reg.evalDeriv(m)], m, plotIt=False)
                     self.assertTrue(passed)
 
-                    print 'Check 2 Deriv:', R
+                    print('Check 2 Deriv:', R)
                     passed = Tests.checkDerivative(lambda m : [reg.evalDeriv(m), reg.eval2Deriv(m)], m, plotIt=False)
                     self.assertTrue(passed)
 
@@ -87,7 +94,7 @@ class RegularizationTests(unittest.TestCase):
 
             for i, mesh in enumerate(self.meshlist):
 
-                print 'Testing %iD'%mesh.dim
+                print('Testing %iD'%mesh.dim)
 
                 # mapping = r.mapPair(mesh)
                 # reg = r(mesh, mapping=mapping)

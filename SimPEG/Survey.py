@@ -1,4 +1,15 @@
-import Utils, numpy as np, scipy.sparse as sp, uuid
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
+from builtins import dict
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import object
+from . import Utils
+import numpy as np, scipy.sparse as sp, uuid
+from future.utils import with_metaclass
 
 class BaseRx(object):
     """SimPEG Receiver Object"""
@@ -201,10 +212,8 @@ class Data(object):
                 indBot += rx.nD
 
 
-class BaseSurvey(object):
+class BaseSurvey(with_metaclass(Utils.SimPEGMetaClass, object)):
     """Survey holds the observed data, and the standard deviations."""
-
-    __metaclass__ = Utils.SimPEGMetaClass
 
     std = None       #: Estimated Standard Deviations
     eps = None       #: Estimated Noise Floor
@@ -239,7 +248,7 @@ class BaseSurvey(object):
         for src in sources:
             if getattr(src,'uid',None) is None:
                 raise KeyError('Source does not have a uid: %s'%str(src))
-        inds = map(lambda src: self._sourceOrder.get(src.uid, None), sources)
+        inds = [self._sourceOrder.get(src.uid, None) for src in sources]
         if None in inds:
             raise KeyError('Some of the sources specified are not in this survey. %s'%str(inds))
         return inds

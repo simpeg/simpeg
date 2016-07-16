@@ -1,7 +1,15 @@
-from BaseTDEM import BaseTDEMProblem, FieldsTDEM
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
+from past.utils import old_div
+from .BaseTDEM import BaseTDEMProblem, FieldsTDEM
 from SimPEG.Utils import mkvc, sdiag
 import numpy as np
-from SurveyTDEM import SurveyTDEM
+from .SurveyTDEM import SurveyTDEM
 
 
 class FieldsTDEM_e_from_b(FieldsTDEM):
@@ -69,14 +77,14 @@ class ProblemTDEM_b(BaseTDEMProblem):
             :return: A
         """
         dt = self.timeSteps[tInd]
-        return self.MfMui*self.mesh.edgeCurl*self.MeSigmaI*self.mesh.edgeCurl.T*self.MfMui + (1.0/dt)*self.MfMui
+        return self.MfMui*self.mesh.edgeCurl*self.MeSigmaI*self.mesh.edgeCurl.T*self.MfMui + (old_div(1.0,dt))*self.MfMui
 
     def getRHS(self, tInd, F):
         dt = self.timeSteps[tInd]
         B_n = np.c_[[F[src,'b',tInd] for src in self.survey.srcList]].T
         if B_n.shape[0] is not 1:
             raise NotImplementedError('getRHS not implemented for this shape of B_n')
-        RHS = (1.0/dt)*self.MfMui*B_n[0,:,:] #TODO: This is a hack
+        RHS = (old_div(1.0,dt))*self.MfMui*B_n[0,:,:] #TODO: This is a hack
         return RHS
 
     ####################################################

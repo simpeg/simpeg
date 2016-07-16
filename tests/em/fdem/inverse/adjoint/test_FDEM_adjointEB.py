@@ -1,3 +1,10 @@
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import division
+from __future__ import absolute_import
+from builtins import int
+from future import standard_library
+standard_library.install_aliases()
 import unittest
 from SimPEG import *
 from SimPEG import EM
@@ -21,7 +28,7 @@ SrcList = ['RawVec', 'MagDipole'] #or 'MAgDipole_Bfield', 'CircularLoop', 'RawVe
 
 def adjointTest(fdemType, comp):
     prb = getFDEMProblem(fdemType, comp, SrcList, freq)
-    print 'Adjoint %s formulation - %s' % (fdemType, comp)
+    print('Adjoint %s formulation - %s' % (fdemType, comp))
 
     m  = np.log(np.ones(prb.mapping.nP)*CONDUCTIVITY)
     mu = np.ones(prb.mesh.nC)*MU
@@ -41,7 +48,7 @@ def adjointTest(fdemType, comp):
     vJw = v.dot(prb.Jvec(m, w, u))
     wJtv = w.dot(prb.Jtvec(m, v, u))
     tol = np.max([TOL*(10**int(np.log10(np.abs(vJw)))),FLR])
-    print vJw, wJtv, vJw - wJtv, tol, np.abs(vJw - wJtv) < tol
+    print(vJw, wJtv, vJw - wJtv, tol, np.abs(vJw - wJtv) < tol)
     return np.abs(vJw - wJtv) < tol
 
 class FDEM_AdjointTests(unittest.TestCase):

@@ -1,3 +1,11 @@
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
+from builtins import int
+from future import standard_library
+standard_library.install_aliases()
+from past.utils import old_div
 import unittest
 import SimPEG.DCIP as DC
 from SimPEG import *
@@ -7,10 +15,10 @@ class IPforwardTests(unittest.TestCase):
     def test_IPforward(self):
 
         cs = 12.5
-        nc = 200/cs+1
+        nc = old_div(200,cs)+1
         hx = [(cs,7, -1.3),(cs,nc),(cs,7, 1.3)]
-        hy = [(cs,7, -1.3),(cs,int(nc/2+1)),(cs,7, 1.3)]
-        hz = [(cs,7, -1.3),(cs,int(nc/2+1))]
+        hy = [(cs,7, -1.3),(cs,int(old_div(nc,2)+1)),(cs,7, 1.3)]
+        hz = [(cs,7, -1.3),(cs,int(old_div(nc,2)+1))]
         mesh = Mesh.TensorMesh([hx, hy, hz], 'CCN')
         sighalf = 1e-2
         sigma = np.ones(mesh.nC)*sighalf
@@ -37,7 +45,7 @@ class IPforwardTests(unittest.TestCase):
         try:
             from pymatsolver import MumpsSolver
             solver = MumpsSolver
-        except ImportError, e:
+        except ImportError as e:
             solver = SolverLU
 
         problem.Solver = solver
@@ -56,7 +64,7 @@ class IPforwardTests(unittest.TestCase):
 
         phiIP_approx = surveyIP.dpred(eta)
 
-        err =  np.linalg.norm(phiIP_true-phiIP_approx) / np.linalg.norm(phiIP_true)
+        err =  old_div(np.linalg.norm(phiIP_true-phiIP_approx), np.linalg.norm(phiIP_true))
 
         self.assertTrue(err < 0.02)
 

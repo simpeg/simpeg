@@ -1,3 +1,12 @@
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from builtins import int
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
+from past.utils import old_div
 from SimPEG import np
 from SimPEG.EM.Static import DC, IP
 
@@ -51,7 +60,7 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
 
             # Create mid-point location
             Cmid = Tx[0]
-            Pmid = (Rx[0][:,0] + Rx[1][:,0])/2
+            Pmid = old_div((Rx[0][:,0] + Rx[1][:,0]),2)
             if DCsurvey.mesh.dim == 2:
                 zsrc = Tx[1]
             elif DCsurvey.mesh.dim ==3:
@@ -64,12 +73,12 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
             NB = np.abs(Tx[1][0] - Rx[1][:,0])
 
             # Create mid-point location
-            Cmid = (Tx[0][0] + Tx[1][0])/2
-            Pmid = (Rx[0][:,0] + Rx[1][:,0])/2
+            Cmid = old_div((Tx[0][0] + Tx[1][0]),2)
+            Pmid = old_div((Rx[0][:,0] + Rx[1][:,0]),2)
             if DCsurvey.mesh.dim == 2:
-                zsrc = (Tx[0][1] + Tx[1][1])/2
+                zsrc = old_div((Tx[0][1] + Tx[1][1]),2)
             elif DCsurvey.mesh.dim ==3:
-                zsrc = (Tx[0][2] + Tx[1][2])/2
+                zsrc = old_div((Tx[0][2] + Tx[1][2]),2)
 
         # Change output for dtype
         if dtype == 'volt':
@@ -85,16 +94,16 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
 
             elif stype == 'dpdp':
 
-                leg = data * 2*np.pi / ( 1/MA - 1/MB + 1/NB - 1/NA )
-                LEG.append(1./(2*np.pi) *( 1/MA - 1/MB + 1/NB - 1/NA ))
+                leg = data * 2*np.pi / ( old_div(1,MA) - old_div(1,MB) + old_div(1,NB) - old_div(1,NA) )
+                LEG.append(1./(2*np.pi) *( old_div(1,MA) - old_div(1,MB) + old_div(1,NB) - old_div(1,NA) ))
             else:
-                print """dtype must be 'pdp'(pole-dipole) | 'dpdp' (dipole-dipole) """
+                print("""dtype must be 'pdp'(pole-dipole) | 'dpdp' (dipole-dipole) """)
                 break
 
 
             if dtype == 'appc':
 
-                leg = np.log10(abs(1./leg))
+                leg = np.log10(abs(old_div(1.,leg)))
                 rho = np.hstack([rho,leg])
 
             elif dtype == 'appr':
@@ -103,15 +112,15 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
                 rho = np.hstack([rho,leg])
 
             else:
-                print """dtype must be 'appr' | 'appc' | 'volt' """
+                print("""dtype must be 'appr' | 'appc' | 'volt' """)
                 break
 
 
-        midx = np.hstack([midx, ( Cmid + Pmid )/2 ])
+        midx = np.hstack([midx, old_div(( Cmid + Pmid ),2) ])
         if DCsurvey.mesh.dim==3:
-            midz = np.hstack([midz, -np.abs(Cmid-Pmid)/2 + zsrc ])
+            midz = np.hstack([midz, old_div(-np.abs(Cmid-Pmid),2) + zsrc ])
         elif DCsurvey.mesh.dim==2:
-            midz = np.hstack([midz, -np.abs(Cmid-Pmid)/2 + zsrc ])
+            midz = np.hstack([midz, old_div(-np.abs(Cmid-Pmid),2) + zsrc ])
     ax = axs
 
     # Grid points
@@ -184,14 +193,14 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
     # Mesure survey length and direction
     dl_len = xy_2_r(endl[0,0],endl[1,0],endl[0,1],endl[1,1])
 
-    dl_x = ( endl[1,0] - endl[0,0] ) / dl_len
-    dl_y = ( endl[1,1] - endl[0,1] ) / dl_len
+    dl_x = old_div(( endl[1,0] - endl[0,0] ), dl_len)
+    dl_y = old_div(( endl[1,1] - endl[0,1] ), dl_len)
 
-    nstn = np.floor( dl_len / a )
+    nstn = np.floor( old_div(dl_len, a) )
 
     # Compute discrete pole location along line
-    stn_x = endl[0,0] + np.array(range(int(nstn)))*dl_x*a
-    stn_y = endl[0,1] + np.array(range(int(nstn)))*dl_y*a
+    stn_x = endl[0,0] + np.array(list(range(int(nstn))))*dl_x*a
+    stn_y = endl[0,1] + np.array(list(range(int(nstn))))*dl_y*a
 
     if mesh.dim==2:
         ztop = mesh.vectorNy[-1]
@@ -230,15 +239,15 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
             AB = xy_2_r(tx[0,1],endl[1,0],tx[1,1],endl[1,1])
 
             # Number of receivers to fit
-            nstn = np.min([np.floor( (AB - b) / a ) , n])
+            nstn = np.min([np.floor( old_div((AB - b), a) ) , n])
 
             # Check if there is enough space, else break the loop
             if nstn <= 0:
                 continue
 
             # Compute discrete pole location along line
-            stn_x = N[ii,0] + dl_x*b + np.array(range(int(nstn)))*dl_x*a
-            stn_y = N[ii,1] + dl_y*b + np.array(range(int(nstn)))*dl_y*a
+            stn_x = N[ii,0] + dl_x*b + np.array(list(range(int(nstn))))*dl_x*a
+            stn_y = N[ii,1] + dl_y*b + np.array(list(range(int(nstn))))*dl_y*a
 
             # Create receiver poles
 
@@ -275,17 +284,17 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
         max_y = endl[1,1] - dl_y * b
 
         box_l = np.sqrt( (min_x - max_x)**2 + (min_y - max_y)**2 )
-        box_w = box_l/2.
+        box_w = old_div(box_l,2.)
 
-        nstn = np.floor( box_l / a )
+        nstn = np.floor( old_div(box_l, a) )
 
         # Compute discrete pole location along line
-        stn_x = min_x + np.array(range(int(nstn)))*dl_x*a
-        stn_y = min_y + np.array(range(int(nstn)))*dl_y*a
+        stn_x = min_x + np.array(list(range(int(nstn))))*dl_x*a
+        stn_y = min_y + np.array(list(range(int(nstn))))*dl_y*a
 
         # Define number of cross lines
-        nlin = int(np.floor( box_w / a ))
-        lind = range(-nlin,nlin+1)
+        nlin = int(np.floor( old_div(box_w, a) ))
+        lind = list(range(-nlin,nlin+1))
 
         ngrad = nstn * len(lind)
 
@@ -310,7 +319,7 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
             srcClass = DC.Src.Dipole([rxClass], M[0,:], N[-1,:])
         SrcList.append(srcClass)
     else:
-        print """stype must be either 'pdp', 'dpdp' or 'gradient'. """
+        print("""stype must be either 'pdp', 'dpdp' or 'gradient'. """)
 
 
     return SrcList

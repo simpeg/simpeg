@@ -1,3 +1,10 @@
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from past.utils import old_div
 import numpy as np
 import unittest
 from SimPEG import Utils, Tests
@@ -183,14 +190,14 @@ class TestTreeInnerProducts(Tests.OrderTest):
         Gc = self.M.gridCC
         if self.sigmaTest == 1:
             sigma = np.c_[call(sigma1, Gc)]
-            analytic = 647./360  # Found using sympy.
+            analytic = old_div(647.,360)  # Found using sympy.
         elif self.sigmaTest == 3:
             sigma = np.r_[call(sigma1, Gc), call(sigma2, Gc), call(sigma3, Gc)]
-            analytic = 37./12  # Found using sympy.
+            analytic = old_div(37.,12)  # Found using sympy.
         elif self.sigmaTest == 6:
             sigma = np.c_[call(sigma1, Gc), call(sigma2, Gc), call(sigma3, Gc),
                           call(sigma4, Gc), call(sigma5, Gc), call(sigma6, Gc)]
-            analytic = 69881./21600  # Found using sympy.
+            analytic = old_div(69881.,21600)  # Found using sympy.
 
         if self.location == 'edges':
             cart = lambda g: np.c_[call(ex, g), call(ey, g), call(ez, g)]
@@ -328,13 +335,13 @@ class TestTreeInnerProducts2D(Tests.OrderTest):
         Gc = self.M.gridCC
         if self.sigmaTest == 1:
             sigma = np.c_[call(sigma1, Gc)]
-            analytic = 144877./360  # Found using sympy. z=5
+            analytic = old_div(144877.,360)  # Found using sympy. z=5
         elif self.sigmaTest == 2:
             sigma = np.c_[call(sigma1, Gc), call(sigma2, Gc)]
-            analytic = 189959./120  # Found using sympy. z=5
+            analytic = old_div(189959.,120)  # Found using sympy. z=5
         elif self.sigmaTest == 3:
             sigma = np.r_[call(sigma1, Gc), call(sigma2, Gc), call(sigma3, Gc)]
-            analytic = 781427./360  # Found using sympy. z=5
+            analytic = old_div(781427.,360)  # Found using sympy. z=5
 
         if self.location == 'edges':
             cart = lambda g: np.c_[call(ex, g), call(ey, g)]

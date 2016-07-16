@@ -1,3 +1,10 @@
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from past.utils import old_div
 from SimPEG import Survey, Problem, Utils, np, sp
 from scipy.constants import mu_0
 from SimPEG.EM.Utils import *
@@ -375,7 +382,7 @@ class MagDipole(BaseSrc):
             formulation = prob._formulation
 
             if formulation is 'EB':
-                mui_s = prob.curModel.mui - 1./self.mu
+                mui_s = prob.curModel.mui - old_div(1.,self.mu)
                 MMui_s = prob.mesh.getFaceInnerProduct(mui_s)
                 C = prob.mesh.edgeCurl
             elif formulation is 'HJ':
@@ -489,7 +496,7 @@ class MagDipole_Bfield(BaseSrc):
             formulation = prob._formulation
 
             if formulation is 'EB':
-                mui_s = prob.curModel.mui - 1./self.mu
+                mui_s = prob.curModel.mui - old_div(1.,self.mu)
                 MMui_s = prob.mesh.getFaceInnerProduct(mui_s)
                 C = prob.mesh.edgeCurl
             elif formulation is 'HJ':
@@ -601,7 +608,7 @@ class CircularLoop(BaseSrc):
             formulation = prob._formulation
 
             if formulation is 'EB':
-                mui_s = prob.curModel.mui - 1./self.mu
+                mui_s = prob.curModel.mui - old_div(1.,self.mu)
                 MMui_s = prob.mesh.getFaceInnerProduct(mui_s)
                 C = prob.mesh.edgeCurl
 

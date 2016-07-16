@@ -1,3 +1,10 @@
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import division
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
 from SimPEG import Solver, Problem
 from SimPEG.Problem import BaseTimeProblem
 from SimPEG.EM.Utils import *
@@ -47,7 +54,7 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
         self.waveformType = "GENERAL"
 
     def fields(self, m):
-        if self.verbose: print '%s\nCalculating fields(m)\n%s'%('*'*50,'*'*50)
+        if self.verbose: print('%s\nCalculating fields(m)\n%s'%('*'*50,'*'*50))
         self.curModel = m
         # Create a fields storage object
         F = self._FieldsForward_pair(self.mesh, self.survey)
@@ -55,7 +62,7 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
             # Set the initial conditions
             F[src,:,0] = src.getInitialFields(self.mesh)
         F = self.forward(m, self.getRHS, F=F)
-        if self.verbose: print '%s\nDone calculating fields(m)\n%s'%('*'*50,'*'*50)
+        if self.verbose: print('%s\nDone calculating fields(m)\n%s'%('*'*50,'*'*50))
         return F
 
     def forward(self, m, RHS, F=None):
@@ -70,13 +77,13 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
                 if Ainv is not None:
                     Ainv.clean()
                 A = self.getA(tInd)
-                if self.verbose: print 'Factoring...   (dt = %e)'%dt
+                if self.verbose: print('Factoring...   (dt = %e)'%dt)
                 Ainv = self.Solver(A, **self.solverOpts)
-                if self.verbose: print 'Done'
+                if self.verbose: print('Done')
             rhs = RHS(tInd, F)
-            if self.verbose: print '    Solving...   (tInd = %d)'%tInd
+            if self.verbose: print('    Solving...   (tInd = %d)'%tInd)
             sol = Ainv * rhs
-            if self.verbose: print '    Done...'
+            if self.verbose: print('    Done...')
             if sol.ndim == 1:
                 sol.shape = (sol.size,1)
             F[:,self.solType,tInd+1] = sol
@@ -95,13 +102,13 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
                 if Ainv is not None:
                     Ainv.clean()
                 A = self.getA(tInd)
-                if self.verbose: print 'Factoring (Adjoint)...   (dt = %e)'%dt
+                if self.verbose: print('Factoring (Adjoint)...   (dt = %e)'%dt)
                 Ainv = self.Solver(A, **self.solverOpts)
-                if self.verbose: print 'Done'
+                if self.verbose: print('Done')
             rhs = RHS(tInd, F)
-            if self.verbose: print '    Solving (Adjoint)...   (tInd = %d)'%tInd
+            if self.verbose: print('    Solving (Adjoint)...   (tInd = %d)'%tInd)
             sol = Ainv * rhs
-            if self.verbose: print '    Done...'
+            if self.verbose: print('    Done...')
             if sol.ndim == 1:
                 sol.shape = (sol.size,1)
             F[:,self.solType,tInd+1] = sol
@@ -123,14 +130,14 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
             * Compute \\\(\\\\vec{w} = -\\\mathbf{Q} \\\\vec{y}\\\)
 
         """
-        if self.verbose: print '%s\nCalculating J(v)\n%s'%('*'*50,'*'*50)
+        if self.verbose: print('%s\nCalculating J(v)\n%s'%('*'*50,'*'*50))
         self.curModel = m
         if f is None:
             f = self.fields(m)
         p = self.Gvec(m, v, f)
         y = self.solveAh(m, p)
         Jv = self.survey.evalDeriv(f, v=y)
-        if self.verbose: print '%s\nDone calculating J(v)\n%s'%('*'*50,'*'*50)
+        if self.verbose: print('%s\nDone calculating J(v)\n%s'%('*'*50,'*'*50))
         return - mkvc(Jv)
 
     def Jtvec(self, m, v, f=None):
@@ -148,7 +155,7 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
             * Compute \\\(\\\\vec{w} = -\\\mathbf{G}^\\\\top y\\\)
 
         """
-        if self.verbose: print '%s\nCalculating J^T(v)\n%s'%('*'*50,'*'*50)
+        if self.verbose: print('%s\nCalculating J^T(v)\n%s'%('*'*50,'*'*50))
         self.curModel = m
         if f is None:
             f = self.fields(m)
@@ -159,6 +166,6 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
         p = self.survey.evalDeriv(f, v=v, adjoint=True)
         y = self.solveAht(m, p)
         w = self.Gtvec(m, y, f)
-        if self.verbose: print '%s\nDone calculating J^T(v)\n%s'%('*'*50,'*'*50)
+        if self.verbose: print('%s\nDone calculating J^T(v)\n%s'%('*'*50,'*'*50))
         return - mkvc(w)
 

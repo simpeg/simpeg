@@ -1,3 +1,10 @@
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from past.utils import old_div
 from SimPEG import Utils, np
 from scipy.constants import mu_0, epsilon_0
 from SimPEG.EM.Utils.EMUtils import k
@@ -6,7 +13,7 @@ def getKc(freq,sigma,a,b,mu=mu_0,eps=epsilon_0):
     a = float(a)
     b = float(b)
     # return 1./(2*np.pi) * np.sqrt(b / a) * np.exp(-1j*k(freq,sigma,mu,eps)*(b-a))
-    return np.sqrt(b / a) * np.exp(-1j*k(freq,sigma,mu,eps)*(b-a))
+    return np.sqrt(old_div(b, a)) * np.exp(-1j*k(freq,sigma,mu,eps)*(b-a))
 
 def _r2(xyz):
     return np.sum(xyz**2,1)
@@ -34,7 +41,7 @@ def _getCasingHertzMagDipoleDeriv_r(srcloc,obsloc,freq,sigma,a,b,mu=mu_0*np.ones
     sqrtr2z2 = np.sqrt(r2 + dxyz[:,2]**2)
     k2 = k(freq,sigma[2],mu[2],eps)
 
-    return -HertzZ * np.sqrt(r2) / sqrtr2z2 * (1j*k2 + 1./ sqrtr2z2)
+    return -HertzZ * np.sqrt(r2) / sqrtr2z2 * (1j*k2 + old_div(1., sqrtr2z2))
 
 
 def _getCasingHertzMagDipoleDeriv_z(srcloc,obsloc,freq,sigma,a,b,mu=mu_0*np.ones(3),eps=epsilon_0,moment=1.):
@@ -47,7 +54,7 @@ def _getCasingHertzMagDipoleDeriv_z(srcloc,obsloc,freq,sigma,a,b,mu=mu_0*np.ones
     sqrtr2z2 = np.sqrt(r2z2)
     k2 = k(freq,sigma[2],mu[2],eps)
 
-    return -HertzZ*dxyz[:,2] /sqrtr2z2 * (1j*k2 + 1./sqrtr2z2)
+    return -HertzZ*dxyz[:,2] /sqrtr2z2 * (1j*k2 + old_div(1.,sqrtr2z2))
 
 def _getCasingHertzMagDipole2Deriv_z_r(srcloc,obsloc,freq,sigma,a,b,mu=mu_0*np.ones(3),eps=epsilon_0,moment=1.):
     HertzZ = _getCasingHertzMagDipole(srcloc,obsloc,freq,sigma,a,b,mu,eps,moment)
@@ -62,7 +69,7 @@ def _getCasingHertzMagDipole2Deriv_z_r(srcloc,obsloc,freq,sigma,a,b,mu=mu_0*np.o
     sqrtr2z2 = np.sqrt(r2 + z**2)
     k2 = k(freq,sigma[2],mu[2],eps)
 
-    return dHertzZdr*(-z/sqrtr2z2)*(1j*k2+1./sqrtr2z2) + HertzZ*(z*r/sqrtr2z2**3)*(1j*k2 + 2./sqrtr2z2)
+    return dHertzZdr*(old_div(-z,sqrtr2z2))*(1j*k2+old_div(1.,sqrtr2z2)) + HertzZ*(z*r/sqrtr2z2**3)*(1j*k2 + old_div(2.,sqrtr2z2))
 
 def _getCasingHertzMagDipole2Deriv_z_z(srcloc,obsloc,freq,sigma,a,b,mu=mu_0*np.ones(3),eps=epsilon_0,moment=1.):
     HertzZ = _getCasingHertzMagDipole(srcloc,obsloc,freq,sigma,a,b,mu,eps,moment)
@@ -77,7 +84,7 @@ def _getCasingHertzMagDipole2Deriv_z_z(srcloc,obsloc,freq,sigma,a,b,mu=mu_0*np.o
     sqrtr2z2 = np.sqrt(r2 + z**2)
     k2 = k(freq,sigma[2],mu[2],eps)
 
-    return (dHertzZdz*z + HertzZ)/sqrtr2z2*(-1j*k2 - 1./sqrtr2z2) + HertzZ*z/sqrtr2z2**3*(1j*k2*z + 2.*z/sqrtr2z2)
+    return (dHertzZdz*z + HertzZ)/sqrtr2z2*(-1j*k2 - old_div(1.,sqrtr2z2)) + HertzZ*z/sqrtr2z2**3*(1j*k2*z + 2.*z/sqrtr2z2)
 
 def getCasingEphiMagDipole(srcloc,obsloc,freq,sigma,a,b,mu=mu_0*np.ones(3),eps=epsilon_0,moment=1.):
     return 1j * omega(freq) * mu * _getCasingHertzMagDipoleDeriv_r(srcloc,obsloc,freq,sigma,a,b,mu,eps,moment)

@@ -1,3 +1,9 @@
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import division
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
 import numpy as np
 import unittest, os
 import SimPEG as simpeg
@@ -35,7 +41,7 @@ class TestTensorMeshIO(unittest.TestCase):
         vec2UBC  = mesh.readModelUBC('arange2.txt')
         assert np.sum(vec + 1 - vec2UBC) == 0
 
-        print 'IO of UBC tensor mesh files is working'
+        print('IO of UBC tensor mesh files is working')
         os.remove('temp.msh')
         os.remove('arange.txt')
         os.remove('arange2.txt')
@@ -54,7 +60,7 @@ class TestTensorMeshIO(unittest.TestCase):
         vecVTK = models['arange.txt']
         assert np.sum(vec - vecVTK) == 0
 
-        print 'IO of VTR tensor mesh files is working'
+        print('IO of VTR tensor mesh files is working')
         os.remove('temp.vtr')
 
 
@@ -83,7 +89,7 @@ class TestOcTreeMeshIO(unittest.TestCase):
         assert np.sum(mesh.gridCC - meshUBC.gridCC) == 0
         assert np.sum(vec - vecUBC) == 0
         assert np.all(np.array(mesh.h) - np.array(meshUBC.h) == 0)
-        print 'IO of UBC octree files is working'
+        print('IO of UBC octree files is working')
         os.remove('temp.msh')
         os.remove('arange.txt')
 
@@ -91,7 +97,7 @@ class TestOcTreeMeshIO(unittest.TestCase):
         mesh = self.mesh
         vec = np.arange(mesh.nC)
         mesh.writeVTK('temp.vtu',{'arange':vec})
-        print 'Writing of VTU files is working'
+        print('Writing of VTU files is working')
         os.remove('temp.vtu')
 
 

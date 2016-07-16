@@ -1,7 +1,15 @@
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
+from past.utils import old_div
 import numpy as np
 import scipy.ndimage as ndi
 import scipy.sparse as sp
-from matutils import mkvc
+from .matutils import mkvc
 
 def addBlock(gridCC, modelCC, p0, p1, blockProp):
     """
@@ -122,7 +130,7 @@ def defineElipse(ccMesh, center=None, anisotropy=None, slope=10., theta=0.):
         G[:, i] = G[:,i]/anisotropy[i]*2.
 
     D = np.sqrt(np.sum(G**2,axis=1))
-    return -np.arctan((D-1)*slope)*(2./np.pi)/2.+0.5
+    return -np.arctan((D-1)*slope)*(old_div(2.,np.pi))/2.+0.5
 
 def getIndicesSphere(center,radius,ccMesh):
     """
@@ -289,9 +297,9 @@ def randomModel(shape, seed=None, anisotropy=None, its=100, bounds=None):
 
     if seed is None:
         seed = np.random.randint(1e3)
-        print 'Using a seed of: ', seed
+        print('Using a seed of: ', seed)
 
-    if type(shape) in [int, long, float]:
+    if type(shape) in [int, int, float]:
         shape = (shape,) # make it a tuple for consistency
 
     np.random.seed(seed)
@@ -308,13 +316,13 @@ def randomModel(shape, seed=None, anisotropy=None, its=100, bounds=None):
         assert len(anisotropy.shape) is len(shape), 'Anisotropy must be the same shape.'
         smth = np.array(anisotropy,dtype=float)
 
-    smth = smth/smth.sum() # normalize
+    smth = old_div(smth,smth.sum()) # normalize
     mi = mr
     for i in range(its):
         mi = ndi.convolve(mi, smth)
 
     # scale the model to live between the bounds.
-    mi = (mi - mi.min())/(mi.max()-mi.min()) # scaled between 0 and 1
+    mi = old_div((mi - mi.min()),(mi.max()-mi.min())) # scaled between 0 and 1
     mi = mi*(bounds[1]-bounds[0])+bounds[0]
 
 
@@ -360,9 +368,9 @@ if __name__ == '__main__':
     sigma = defineBlockConductivity(ccMesh,p0,p1,vals)
 
     # Plot sigma model
-    print sigma.shape
+    print(sigma.shape)
     M.plotImage(sigma)
-    print 'Done with block! :)'
+    print('Done with block! :)')
     plt.show()
 
     # -----------------------------------------
@@ -373,8 +381,8 @@ if __name__ == '__main__':
     sigma = defineTwoLayeredConductivity(ccMesh,depth,vals)
 
     M.plotImage(sigma)
-    print sigma
-    print 'layer model!'
+    print(sigma)
+    print('layer model!')
     plt.show()
 
     # -----------------------------------------
@@ -391,8 +399,8 @@ if __name__ == '__main__':
 
     # Plot sigma model
     M.plotImage(sigma)
-    print sigma
-    print 'Scalar conductivity defined!'
+    print(sigma)
+    print('Scalar conductivity defined!')
     plt.show()
 
     # -----------------------------------------

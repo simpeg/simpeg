@@ -1,3 +1,10 @@
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from past.utils import old_div
 from SimPEG import Survey, Utils, Problem, np, sp, mkvc
 from scipy.constants import mu_0
 import sys
@@ -63,7 +70,7 @@ class Fields1D_e(BaseMTFields):
         C = self.mesh.nodalGrad
         b = (C * eSolution)
         for i, src in enumerate(srcList):
-            b[:,i] *= - 1./(1j*omega(src.freq))
+            b[:,i] *= old_div(- 1.,(1j*omega(src.freq)))
             # There is no magnetic source in the MT problem
             # S_m, _ = src.eval(self.survey.prob)
             # if S_m is not None:
@@ -188,7 +195,7 @@ class Fields3D_e(BaseMTFields):
             # adjoint: returns a 2*nE long vector with zero's for py
             return np.vstack((v,np.zeros_like(v)))
         # Not adjoint: return only the px part of the vector
-        return v[:len(v)/2]
+        return v[:old_div(len(v),2)]
 
     def _e_pyDeriv_u(self, src, v, adjoint = False):
         '''
@@ -198,7 +205,7 @@ class Fields3D_e(BaseMTFields):
             # adjoint: returns a 2*nE long vector with zero's for px
             return np.vstack((np.zeros_like(v),v))
         # Not adjoint: return only the px part of the vector
-        return v[len(v)/2::]
+        return v[old_div(len(v),2)::]
 
     def _e_pxDeriv_m(self, src, v, adjoint = False):
         # assuming primary does not depend on the model
@@ -227,7 +234,7 @@ class Fields3D_e(BaseMTFields):
         C = self.mesh.edgeCurl
         b = (C * e_pxSolution)
         for i, src in enumerate(srcList):
-            b[:,i] *= - 1./(1j*omega(src.freq))
+            b[:,i] *= old_div(- 1.,(1j*omega(src.freq)))
             # There is no magnetic source in the MT problem
             # S_m, _ = src.eval(self.survey.prob)
             # if S_m is not None:
@@ -238,7 +245,7 @@ class Fields3D_e(BaseMTFields):
         C = self.mesh.edgeCurl
         b = (C * e_pySolution)
         for i, src in enumerate(srcList):
-            b[:,i] *= - 1./(1j*omega(src.freq))
+            b[:,i] *= old_div(- 1.,(1j*omega(src.freq)))
             # There is no magnetic source in the MT problem
             # S_m, _ = src.eval(self.survey.prob)
             # if S_m is not None:

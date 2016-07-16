@@ -1,10 +1,17 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from past.utils import old_div
 from SimPEG import Utils, Problem, Maps, np, sp, mkvc
 from SimPEG.EM.FDEM.SrcFDEM import BaseSrc as FDEMBaseSrc
 from SimPEG.EM.Utils import omega
 from scipy.constants import mu_0
 from numpy.lib import recfunctions as recFunc
-from Utils.sourceUtils import homo1DModelSource
-from Utils import rec2ndarr
+from .Utils.sourceUtils import homo1DModelSource
+from .Utils import rec2ndarr
 import sys
 
 #################
@@ -78,7 +85,7 @@ class polxy_1Dprimary(BaseMTSrc):
             C = problem.mesh.nodalGrad
         elif problem.mesh.dim == 3:
             C = problem.mesh.edgeCurl
-        bBG_bp = (- C * self.ePrimary(problem) )*(1/( 1j*omega(self.freq) ))
+        bBG_bp = (- C * self.ePrimary(problem) )*(old_div(1,( 1j*omega(self.freq) )))
         return bBG_bp
 
     def S_e(self,problem):
@@ -155,7 +162,7 @@ class polxy_3Dprimary(BaseMTSrc):
             C = problem.mesh.nodalGrad
         elif problem.mesh.dim == 3:
             C = problem.mesh.edgeCurl
-        bBG_bp = (- C * self.ePrimary(problem) )*(1/( 1j*omega(self.freq) ))
+        bBG_bp = (- C * self.ePrimary(problem) )*(old_div(1,( 1j*omega(self.freq) )))
         return bBG_bp
 
     def S_e(self,problem):

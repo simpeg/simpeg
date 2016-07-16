@@ -1,3 +1,10 @@
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from past.utils import old_div
 import unittest
 import sys
 from SimPEG import *
@@ -135,7 +142,7 @@ class TestCyl2DMesh(unittest.TestCase):
     def test_getInterpMatCartMesh_Cells(self):
 
         Mr = Mesh.TensorMesh([100,100,2], x0='CC0')
-        Mc = Mesh.CylMesh([np.ones(10)/5,1,10],x0='0C0',cartesianOrigin=[-0.2,-0.2,0])
+        Mc = Mesh.CylMesh([old_div(np.ones(10),5),1,10],x0='0C0',cartesianOrigin=[-0.2,-0.2,0])
 
         mc = np.arange(Mc.nC)
         xr = np.linspace(0,0.4,50)
@@ -149,7 +156,7 @@ class TestCyl2DMesh(unittest.TestCase):
     def test_getInterpMatCartMesh_Cells2Nodes(self):
 
         Mr = Mesh.TensorMesh([100,100,2], x0='CC0')
-        Mc = Mesh.CylMesh([np.ones(10)/5,1,10],x0='0C0',cartesianOrigin=[-0.2,-0.2,0])
+        Mc = Mesh.CylMesh([old_div(np.ones(10),5),1,10],x0='0C0',cartesianOrigin=[-0.2,-0.2,0])
 
         mc = np.arange(Mc.nC)
         xr = np.linspace(0,0.4,50)
@@ -163,7 +170,7 @@ class TestCyl2DMesh(unittest.TestCase):
     def test_getInterpMatCartMesh_Faces(self):
 
         Mr = Mesh.TensorMesh([100,100,2], x0='CC0')
-        Mc = Mesh.CylMesh([np.ones(10)/5,1,10],x0='0C0',cartesianOrigin=[-0.2,-0.2,0])
+        Mc = Mesh.CylMesh([old_div(np.ones(10),5),1,10],x0='0C0',cartesianOrigin=[-0.2,-0.2,0])
 
         Pf = Mc.getInterpolationMatCartMesh(Mr, 'F')
         mf = np.ones(Mc.nF)
@@ -194,7 +201,7 @@ class TestCyl2DMesh(unittest.TestCase):
     def test_getInterpMatCartMesh_Faces2Edges(self):
 
         Mr = Mesh.TensorMesh([100,100,2], x0='CC0')
-        Mc = Mesh.CylMesh([np.ones(10)/5,1,10],x0='0C0',cartesianOrigin=[-0.2,-0.2,0])
+        Mc = Mesh.CylMesh([old_div(np.ones(10),5),1,10],x0='0C0',cartesianOrigin=[-0.2,-0.2,0])
 
         Pf2e = Mc.getInterpolationMatCartMesh(Mr, 'F', locTypeTo='E')
         mf = np.ones(Mc.nF)
@@ -225,7 +232,7 @@ class TestCyl2DMesh(unittest.TestCase):
     def test_getInterpMatCartMesh_Edges(self):
 
         Mr = Mesh.TensorMesh([100,100,2], x0='CC0')
-        Mc = Mesh.CylMesh([np.ones(10)/5,1,10],x0='0C0',cartesianOrigin=[-0.2,-0.2,0])
+        Mc = Mesh.CylMesh([old_div(np.ones(10),5),1,10],x0='0C0',cartesianOrigin=[-0.2,-0.2,0])
 
         Pe = Mc.getInterpolationMatCartMesh(Mr, 'E')
         me = np.ones(Mc.nE)
@@ -256,7 +263,7 @@ class TestCyl2DMesh(unittest.TestCase):
     def test_getInterpMatCartMesh_Edges2Faces(self):
 
         Mr = Mesh.TensorMesh([100,100,2], x0='CC0')
-        Mc = Mesh.CylMesh([np.ones(10)/5,1,10],x0='0C0',cartesianOrigin=[-0.2,-0.2,0])
+        Mc = Mesh.CylMesh([old_div(np.ones(10),5),1,10],x0='0C0',cartesianOrigin=[-0.2,-0.2,0])
 
         Pe2f = Mc.getInterpolationMatCartMesh(Mr, 'E', locTypeTo='F')
         me = np.ones(Mc.nE)
@@ -302,7 +309,7 @@ class TestFaceDiv2D(Tests.OrderTest):
         funR = lambda r, z: np.sin(2.*np.pi*r)
         funZ = lambda r, z: np.sin(2.*np.pi*z)
 
-        sol = lambda r, t, z: (2*np.pi*r*np.cos(2*np.pi*r) + np.sin(2*np.pi*r))/r + 2*np.pi*np.cos(2*np.pi*z)
+        sol = lambda r, t, z: old_div((2*np.pi*r*np.cos(2*np.pi*r) + np.sin(2*np.pi*r)),r) + 2*np.pi*np.cos(2*np.pi*z)
 
         Fc = cylF2(self.M, funR, funZ)
         Fc = np.c_[Fc[:,0],np.zeros(self.M.nF),Fc[:,1]]
@@ -339,7 +346,7 @@ class TestEdgeCurl2D(Tests.OrderTest):
         funT = lambda r, t, z: np.sin(2.*np.pi*z)
 
         solR = lambda r, z: -2.0*np.pi*np.cos(2.0*np.pi*z)
-        solZ = lambda r, z: np.sin(2.0*np.pi*z)/r
+        solZ = lambda r, z: old_div(np.sin(2.0*np.pi*z),r)
 
         E = call3(funT, self.M.gridEy)
 
@@ -466,7 +473,7 @@ class TestCyl3DMesh(unittest.TestCase):
     def test_vectorsN(self):
         v = np.r_[0, 1, 2, 2.5]
         self.assertTrue(np.linalg.norm((v-self.mesh.vectorNx)) == 0)
-        v = np.r_[np.pi/2, 1.5*np.pi]
+        v = np.r_[old_div(np.pi,2), 1.5*np.pi]
         self.assertTrue(np.linalg.norm((v-self.mesh.vectorNy)) == 0)
         v = np.r_[0, 2, 3]
         self.assertTrue(np.linalg.norm((v-self.mesh.vectorNz)) == 0)

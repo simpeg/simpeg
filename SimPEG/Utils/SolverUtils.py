@@ -1,5 +1,14 @@
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
+from builtins import object
+from past.utils import old_div
 import numpy as np, scipy.sparse as sp
-from matutils import mkvc
+from .matutils import mkvc
 import warnings
 
 def _checkAccuracy(A, b, X, accuracyTol):
@@ -9,7 +18,7 @@ def _checkAccuracy(A, b, X, accuracyTol):
         nrm /= nrm_b
     if nrm > accuracyTol:
         msg = '### SolverWarning ###: Accuracy on solve is above tolerance: %e > %e' % (nrm, accuracyTol)
-        print msg
+        print(msg)
         warnings.warn(msg, RuntimeWarning)
 
 
@@ -28,9 +37,9 @@ def SolverWrapD(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6, name=
         self.A = A.tocsc()
 
         self.checkAccuracy = kwargs.get("checkAccuracy", checkAccuracy)
-        if kwargs.has_key("checkAccuracy"): del kwargs["checkAccuracy"]
+        if "checkAccuracy" in kwargs: del kwargs["checkAccuracy"]
         self.accuracyTol = kwargs.get("accuracyTol", accuracyTol)
-        if kwargs.has_key("accuracyTol"): del kwargs["accuracyTol"]
+        if "accuracyTol" in kwargs: del kwargs["accuracyTol"]
 
         self.kwargs = kwargs
 
@@ -90,9 +99,9 @@ def SolverWrapI(fun, checkAccuracy=True, accuracyTol=1e-5, name=None):
         self.A = A
 
         self.checkAccuracy = kwargs.get("checkAccuracy", checkAccuracy)
-        if kwargs.has_key("checkAccuracy"): del kwargs["checkAccuracy"]
+        if "checkAccuracy" in kwargs: del kwargs["checkAccuracy"]
         self.accuracyTol = kwargs.get("accuracyTol", accuracyTol)
-        if kwargs.has_key("accuracyTol"): del kwargs["accuracyTol"]
+        if "accuracyTol" in kwargs: del kwargs["accuracyTol"]
 
         self.kwargs = kwargs
 
@@ -159,12 +168,12 @@ class SolverDiag(object):
             return x.reshape((n,nrhs), order='F')
 
     def _solve1(self, rhs):
-        return rhs.flatten()/self._diagonal
+        return old_div(rhs.flatten(),self._diagonal)
 
     def _solveM(self, rhs):
         n = self.A.shape[0]
         nrhs = rhs.size // n
-        return rhs/self._diagonal.repeat(nrhs).reshape((n,nrhs))
+        return old_div(rhs,self._diagonal.repeat(nrhs).reshape((n,nrhs)))
 
     def clean(self):
         pass

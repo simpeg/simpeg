@@ -1,3 +1,11 @@
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
+from past.utils import old_div
 import unittest
 from SimPEG import *
 from SimPEG import EM
@@ -34,7 +42,7 @@ def getProb(meshType='CYL',rxTypes='bx,bz',nSrc=1):
     try:
         from pymatsolver import MumpsSolver
         prb.Solver = MumpsSolver
-    except ImportError, e:
+    except ImportError as e:
         prb.Solver  = SolverLU
 
     sigma = np.ones(mesh.nCz)*1e-8
@@ -57,8 +65,8 @@ def dotestAdjoint(prb, mesh, sigma):
 
     V1 = d.dot(prb.Jvec(sigma, m))
     V2 = m.dot(prb.Jtvec(sigma, d))
-    print 'AdjointTest', V1, V2
-    return np.abs(V1-V2)/np.abs(V1), 1e-6
+    print('AdjointTest', V1, V2)
+    return old_div(np.abs(V1-V2),np.abs(V1)), 1e-6
 
 class TDEM_bDerivTests(unittest.TestCase):
 

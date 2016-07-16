@@ -1,3 +1,10 @@
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from past.utils import old_div
 import unittest
 from SimPEG import *
 from scipy.constants import mu_0
@@ -12,7 +19,7 @@ class MyReciprocalPropMap(Maps.PropMap):
     sigma  = Maps.Property("Electrical Conductivity", defaultInvProp=True, propertyLink=('rho',   Maps.ReciprocalMap))
     rho    = Maps.Property("Electrical Resistivity",                       propertyLink=('sigma', Maps.ReciprocalMap))
     mu     = Maps.Property("Mu", defaultVal=mu_0,    propertyLink=('mui',  Maps.ReciprocalMap))
-    mui    = Maps.Property("Mu", defaultVal=1./mu_0, propertyLink=('mu',   Maps.ReciprocalMap))
+    mui    = Maps.Property("Mu", defaultVal=old_div(1.,mu_0), propertyLink=('mu',   Maps.ReciprocalMap))
 
 
 class TestPropMaps(unittest.TestCase):
@@ -137,7 +144,7 @@ class TestPropMaps(unittest.TestCase):
         # print pm.sigma
         # print pm.sigmaMap
         assert np.all(pm.sigma == [1,2,3])
-        assert np.all(pm.rho == 1./np.r_[1,2,3])
+        assert np.all(pm.rho == old_div(1.,np.r_[1,2,3]))
         assert pm.sigmaMap is iMap
         assert pm.rhoMap is None
         assert pm.sigmaDeriv is not None
@@ -155,7 +162,7 @@ class TestPropMaps(unittest.TestCase):
         assert 'mui' not in pm
 
         assert pm.mu == mu_0
-        assert pm.mui == 1.0/mu_0
+        assert pm.mui == old_div(1.0,mu_0)
         assert pm.muMap is None
         assert pm.muDeriv is None
         assert pm.muiMap is None
@@ -165,7 +172,7 @@ class TestPropMaps(unittest.TestCase):
         pm = PM(np.r_[1,2.,3])
         # print pm.sigma
         # print pm.sigmaMap
-        assert np.all(pm.sigma == 1./np.r_[1,2,3])
+        assert np.all(pm.sigma == old_div(1.,np.r_[1,2,3]))
         assert np.all(pm.rho == [1,2,3])
         assert pm.sigmaMap is None
         assert pm.rhoMap is iMap
@@ -198,8 +205,8 @@ class TestPropMaps(unittest.TestCase):
         m  = propmap(x0)
 
         # test Sigma
-        testme = lambda v: [1./(m.rhoMap*v), m.sigmaDeriv]
-        print 'Testing Rho from Sigma'
+        testme = lambda v: [old_div(1.,(m.rhoMap*v)), m.sigmaDeriv]
+        print('Testing Rho from Sigma')
         Tests.checkDerivative(testme, x0, dx=0.01*x0, num=5, plotIt=False)
 
     def test_linked_derivs_rho(self):
@@ -212,8 +219,8 @@ class TestPropMaps(unittest.TestCase):
         m  = propmap(x0)
 
         # test Sigma
-        testme = lambda v: [1./(m.sigmaMap*v), m.rhoDeriv]
-        print 'Testing Rho from Sigma'
+        testme = lambda v: [old_div(1.,(m.sigmaMap*v)), m.rhoDeriv]
+        print('Testing Rho from Sigma')
         Tests.checkDerivative(testme, x0, dx=0.01*x0, num=5, plotIt=False)
 
 if __name__ == '__main__':

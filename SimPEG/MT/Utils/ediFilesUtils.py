@@ -1,3 +1,13 @@
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from builtins import open
+from builtins import int
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
+from past.utils import old_div
 # Functions to import and export MT EDI files.
 from SimPEG import mkvc
 from scipy.constants import mu_0
@@ -9,7 +19,7 @@ import numpy as np
 import os, sys, re
 
 
-class EDIimporter:
+class EDIimporter(object):
     """
     A class to import EDIfiles.
 
@@ -18,7 +28,7 @@ class EDIimporter:
 
     # Define data converters
     _impUnitEDI2SI = 4*np.pi*1e-4 # Convert Z[mV/km/nT] (as in EDI)to Z[V/A] SI unit
-    _impUnitSI2EDI = 1./_impUnitEDI2SI # ConvertZ[V/A] SI unit to Z[mV/km/nT] (as in EDI)
+    _impUnitSI2EDI = old_div(1.,_impUnitEDI2SI) # ConvertZ[V/A] SI unit to Z[mV/km/nT] (as in EDI)
 
     # Properties
     filesList = None
@@ -116,7 +126,7 @@ class EDIimporter:
         try:
             import osr
         except ImportError as e:
-            print 'Could not import osr, missing the gdal package\nCan not project coordinates'
+            print('Could not import osr, missing the gdal package\nCan not project coordinates')
             raise e
         # Coordinates convertor
         if self._2out is None:
@@ -126,7 +136,7 @@ class EDIimporter:
             if self._outEPSG is None:
                 # Find the UTM EPSG number
                 Nnr =  700 if latD < 0.0 else 600
-                utmZ = int(1+(longD+180.0)/6.0)
+                utmZ = int(1+old_div((longD+180.0),6.0))
                 self._outEPSG = 32000 + Nnr + utmZ
             out.ImportFromEPSG(self._outEPSG)
             self._2out = osr.CoordinateTransformation(src,out)

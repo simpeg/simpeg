@@ -1,3 +1,11 @@
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
+from builtins import int
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
 import unittest
 from SimPEG import *
 
@@ -56,7 +64,7 @@ class FieldsTest(unittest.TestCase):
         self.assertTrue(np.all(F[:, 'e'] == e))
         self.assertTrue(np.all(F[:, 'b'] == b))
 
-        for s in [0,0.0,np.r_[0],long(0)]:
+        for s in [0,0.0,np.r_[0],int(0)]:
             F[:, 'b'] = s
             self.assertTrue(np.all(F[:, 'b'] == b*0))
 
@@ -220,7 +228,7 @@ class FieldsTest_Time(unittest.TestCase):
         self.assertTrue(np.all(F[:, 'e'] == e))
         self.assertTrue(np.all(F[:, 'b'] == b))
 
-        for s in [0,0.0,np.r_[0],long(0)]:
+        for s in [0,0.0,np.r_[0],int(0)]:
             F[:, 'b'] = s
             self.assertTrue(np.all(F[:, 'b'] == b*0))
 
@@ -316,7 +324,7 @@ class FieldsTest_Time_Aliased(unittest.TestCase):
         F[:, 'b', :] = b
         self.assertTrue(np.all(F[:, 'e', 0] == F.mesh.edgeCurl.T * b[:,:,0] ))
 
-        e = range(nT)
+        e = list(range(nT))
         for i in range(nT):
             e[i] = F.mesh.edgeCurl.T*b[:,:,i] + i
             e[i] = e[i][:,:,np.newaxis]

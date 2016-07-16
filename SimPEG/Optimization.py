@@ -1,5 +1,16 @@
-import Utils, numpy as np, scipy.sparse as sp
-from Utils.SolverUtils import *
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+from builtins import super
+from future import standard_library
+standard_library.install_aliases()
+from past.utils import old_div
+from builtins import object
+from . import Utils
+import numpy as np, scipy.sparse as sp
+from .Utils.SolverUtils import *
+from future.utils import with_metaclass
 norm = np.linalg.norm
 
 
@@ -78,12 +89,10 @@ class IterationPrinters(object):
     phi_m = {"title": "phi_m", "value": lambda M: M.parent.phi_m, "width": 10, "format":   "%1.2e"}
 
 
-class Minimize(object):
+class Minimize(with_metaclass(Utils.SimPEGMetaClass, object)):
     """
         Minimize is a general class for derivative based optimization.
     """
-
-    __metaclass__ = Utils.SimPEGMetaClass
 
     name = "General Optimization Algorithm"  #: The name of the optimization algorithm
 
@@ -121,7 +130,7 @@ class Minimize(object):
     @callback.setter
     def callback(self, value):
         if self.callback is not None:
-            print 'The callback on the %s Optimization was replaced.' % self.__name__
+            print('The callback on the %s Optimization was replaced.' % self.__name__)
         self._callback = value
 
 
@@ -412,7 +421,7 @@ class Minimize(object):
             :return: (xt, breakCaught) numpy.ndarray, bool
         """
         self.printDone(inLS=True)
-        print 'The linesearch got broken. Boo.'
+        print('The linesearch got broken. Boo.')
         return p, False
 
     @Utils.count
@@ -493,14 +502,14 @@ class Remember(object):
     def _doEndIterationRemember(self, *args):
         for param in self._rememberThese:
             if type(param) is str:
-                if self.debug: print 'Remember is remembering: ' + param
+                if self.debug: print('Remember is remembering: ' + param)
                 val = getattr(self, param, None)
                 if val is None and getattr(self, 'parent', None) is not None:
                     # Look to the parent for the param if not found here.
                     val = getattr(self.parent, param, None)
                 self._rememberList[param].append( val )
             elif type(param) is tuple:
-                if self.debug: print 'Remember is remembering: ' + param[0]
+                if self.debug: print('Remember is remembering: ' + param[0])
                 self._rememberList[param[0]].append( param[1](self) )
 
 
@@ -587,19 +596,19 @@ class ProjectedGradient(Minimize, Remember):
         self.aSet_prev = self.activeSet(self.xc)
         allBoundsAreActive = sum(self.aSet_prev) == self.xc.size
 
-        if self.debug: print 'findSearchDirection: stopDoingPG: ', self.stopDoingPG
-        if self.debug: print 'findSearchDirection: explorePG: ', self.explorePG
-        if self.debug: print 'findSearchDirection: exploreCG: ', self.exploreCG
-        if self.debug: print 'findSearchDirection: aSet', np.sum(self.activeSet(self.xc))
-        if self.debug: print 'findSearchDirection: bSet', np.sum(self.bindingSet(self.xc))
-        if self.debug: print 'findSearchDirection: allBoundsAreActive: ', allBoundsAreActive
+        if self.debug: print('findSearchDirection: stopDoingPG: ', self.stopDoingPG)
+        if self.debug: print('findSearchDirection: explorePG: ', self.explorePG)
+        if self.debug: print('findSearchDirection: exploreCG: ', self.exploreCG)
+        if self.debug: print('findSearchDirection: aSet', np.sum(self.activeSet(self.xc)))
+        if self.debug: print('findSearchDirection: bSet', np.sum(self.bindingSet(self.xc)))
+        if self.debug: print('findSearchDirection: allBoundsAreActive: ', allBoundsAreActive)
 
         if self.explorePG or not self.exploreCG or allBoundsAreActive:
-            if self.debug: print 'findSearchDirection.PG: doingPG'
+            if self.debug: print('findSearchDirection.PG: doingPG')
             self._itType = 'SD'
             p = -self.g
         else:
-            if self.debug: print 'findSearchDirection.CG: doingCG'
+            if self.debug: print('findSearchDirection.CG: doingCG')
             # Reset the max decrease each time you do a CG iteration
             self.f_decrease_max = -np.inf
 
@@ -611,7 +620,7 @@ class ProjectedGradient(Minimize, Remember):
             v = np.ones(shape[1])
             i = np.where(iSet)[0]
             j = np.arange(shape[1])
-            if self.debug: print 'findSearchDirection.CG: Z.shape', shape
+            if self.debug: print('findSearchDirection.CG: Z.shape', shape)
             Z = sp.csr_matrix((v, (i, j)), shape=shape)
 
             def reduceHess(v):
@@ -649,9 +658,9 @@ class ProjectedGradient(Minimize, Remember):
         # if true go to CG
         # don't do too many steps of PG in a row.
 
-        if self.debug: print 'doEndIteration.ProjGrad, f_current_decrease: ', f_current_decrease
-        if self.debug: print 'doEndIteration.ProjGrad, f_decrease_max: ', self.f_decrease_max
-        if self.debug: print 'doEndIteration.ProjGrad, stopDoingSD: ', self.stopDoingPG
+        if self.debug: print('doEndIteration.ProjGrad, f_current_decrease: ', f_current_decrease)
+        if self.debug: print('doEndIteration.ProjGrad, f_decrease_max: ', self.f_decrease_max)
+        if self.debug: print('doEndIteration.ProjGrad, stopDoingSD: ', self.stopDoingPG)
 
 
 class BFGS(Minimize, Remember):
@@ -694,10 +703,10 @@ class BFGS(Minimize, Remember):
             d = self.bfgsH0 * d   #Assume that bfgsH0 is a SimPEG.Solver
         else:
             khat    = 0 if nn is 0 else np.mod(n-nn+k,nn)
-            gamma   = np.vdot(S[:,khat],d)/np.vdot(Y[:,khat],S[:,khat])
+            gamma   = old_div(np.vdot(S[:,khat],d),np.vdot(Y[:,khat],S[:,khat]))
             d       = d - gamma*Y[:,khat]
             d       = self.bfgsrec(k-1,n,nn,S,Y,d)
-            d       = d + (gamma - np.vdot(Y[:,khat],d)/np.vdot(Y[:,khat],S[:,khat]))*S[:,khat]
+            d       = d + (gamma - old_div(np.vdot(Y[:,khat],d),np.vdot(Y[:,khat],S[:,khat])))*S[:,khat]
         return d
 
     def findSearchDirection(self):
@@ -837,7 +846,7 @@ class NewtonRoot(object):
                     return out if len(out) > 1 else out[0]
 
         """
-        if self.comments: print 'Newton Method:\n'
+        if self.comments: print('Newton Method:\n')
 
         self.iter = 0
         while True:
@@ -852,18 +861,18 @@ class NewtonRoot(object):
             xt = x + dh
             rt = fun(xt, return_g=False)
 
-            if self.comments and self.doLS: print '\tLinesearch:\n'
+            if self.comments and self.doLS: print('\tLinesearch:\n')
             # Enter Linesearch
             while True and self.doLS:
-                if self.comments: print '\t\tResid: %e\n'%norm(rt)
+                if self.comments: print('\t\tResid: %e\n'%norm(rt))
                 if norm(rt) <= norm(r) or norm(rt) < self.tol:
                     break
 
                 muLS = muLS*self.stepDcr
                 LScnt = LScnt + 1
-                print '.'
+                print('.')
                 if LScnt > self.maxLS:
-                    print 'Newton Method: Line search break.'
+                    print('Newton Method: Line search break.')
                     return None
                 xt = x + muLS*dh
                 rt = fun(xt, return_g=False)
@@ -873,7 +882,7 @@ class NewtonRoot(object):
             if norm(rt) < self.tol:
                 break
             if self.iter > self.maxIter:
-                print 'NewtonRoot stopped by maxIters (%d). norm: %4.4e' % (self.maxIter, norm(rt))
+                print('NewtonRoot stopped by maxIters (%d). norm: %4.4e' % (self.maxIter, norm(rt)))
                 break
 
         return x
@@ -975,7 +984,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
                 if cgiter == 1:
                     pc = dc
                 else:
-                    betak = rd / rdlast
+                    betak = old_div(rd, rdlast)
                     pc = dc + betak * pc
 
                 #  Form product Hessian*pc.
@@ -983,12 +992,12 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
                 Hp = (1-Active)*Hp
 
                 #  Update delx and residual.
-                alphak = rd / np.dot(pc, Hp)
+                alphak = old_div(rd, np.dot(pc, Hp))
                 delx = delx + alphak*pc
                 resid = resid - alphak*Hp
                 rdlast = rd
 
-                if np.logical_or(norm(resid)/normResid0 <= self.tolCG, cgiter == self.maxIterCG):
+                if np.logical_or(old_div(norm(resid),normResid0) <= self.tolCG, cgiter == self.maxIterCG):
                     cgFlag = 1
                 # End CG Iterations
 

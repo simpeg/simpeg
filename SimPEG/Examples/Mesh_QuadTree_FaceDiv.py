@@ -1,3 +1,11 @@
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from builtins import zip
+from builtins import range
 from SimPEG import *
 
 def run(plotIt=True, n=60):
@@ -28,15 +36,15 @@ def run(plotIt=True, n=60):
         axes[0].set_xlim([-1,17])
         axes[0].set_ylim([-1,17])
 
-        for ii, loc in zip(range(M.nC),M.gridCC):
+        for ii, loc in zip(list(range(M.nC)),M.gridCC):
             axes[0].text(loc[0]+0.2,loc[1],'%d'%ii, color='r')
 
         axes[0].plot(M.gridFx[:,0],M.gridFx[:,1], 'g>')
-        for ii, loc in zip(range(M.nFx),M.gridFx):
+        for ii, loc in zip(list(range(M.nFx)),M.gridFx):
             axes[0].text(loc[0]+0.2,loc[1],'%d'%ii, color='g')
 
         axes[0].plot(M.gridFy[:,0],M.gridFy[:,1], 'm^')
-        for ii, loc in zip(range(M.nFy),M.gridFy):
+        for ii, loc in zip(list(range(M.nFy)),M.gridFy):
             axes[0].text(loc[0]+0.2,loc[1]+0.2,'%d'%(ii+M.nFx), color='m')
 
         axes[1].spy(M.faceDiv)

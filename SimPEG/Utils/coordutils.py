@@ -1,3 +1,10 @@
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from past.utils import old_div
 import numpy as np
 from SimPEG.Utils import mkvc
 
@@ -31,9 +38,9 @@ def rotationMatrixFromNormals(v0,v1,tol=1e-20):
     if np.linalg.norm(rotAx) < tol:
         return np.eye(3,dtype=float)
 
-    rotAx *= 1./np.linalg.norm(rotAx)
+    rotAx *= old_div(1.,np.linalg.norm(rotAx))
 
-    cosT = n0dotn1/(np.linalg.norm(n0)*np.linalg.norm(n1))
+    cosT = old_div(n0dotn1,(np.linalg.norm(n0)*np.linalg.norm(n1)))
     sinT = np.sqrt(1.-n0dotn1**2)
 
     ux = np.array([[0., -rotAx[2], rotAx[1]], [rotAx[2], 0., -rotAx[0]], [-rotAx[1], rotAx[0], 0.]],dtype=float)

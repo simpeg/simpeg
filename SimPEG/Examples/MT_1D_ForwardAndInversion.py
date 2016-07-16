@@ -1,3 +1,10 @@
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from past.utils import old_div
 import SimPEG as simpeg
 import numpy as np
 import SimPEG.MT as MT
@@ -84,7 +91,7 @@ def run(plotIt=True):
     std = 0.05 # 5% std
     survey.std = np.abs(survey.dobs*std)
     # Assign the data weight
-    Wd = 1./survey.std
+    Wd = old_div(1.,survey.std)
 
     ## Setup the inversion proceedure
     # Define a counter

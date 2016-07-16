@@ -1,3 +1,10 @@
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from past.utils import old_div
 from SimPEG import *
 import SimPEG.EM.Static.DC as DC
 
@@ -29,7 +36,7 @@ def run(plotIt=True):
     try:
         from pymatsolver import MumpsSolver
         problem.Solver = MumpsSolver
-    except Exception, e:
+    except Exception as e:
         pass
     data = survey.dpred(sigma)
 
@@ -38,7 +45,7 @@ def run(plotIt=True):
         rn = (srclocN.reshape([1,-1])).repeat(rxloc.shape[0], axis = 0)
         rP = np.sqrt(((rxloc-rp)**2).sum(axis=1))
         rN = np.sqrt(((rxloc-rn)**2).sum(axis=1))
-        return I/(sigma*2.*np.pi)*(1/rP-1/rN)
+        return I/(sigma*2.*np.pi)*(old_div(1,rP)-old_div(1,rN))
 
     data_anaP = DChalf(np.r_[-200, 0, 0.],np.r_[+200, 0, 0.], xyz_rxP, sighalf)
     data_anaN = DChalf(np.r_[-200, 0, 0.],np.r_[+200, 0, 0.], xyz_rxN, sighalf)
@@ -61,8 +68,8 @@ def run(plotIt=True):
         ax[0].set_title('Computed')
         plt.show()
 
-    return np.linalg.norm(data-data_ana)/np.linalg.norm(data_ana)
+    return old_div(np.linalg.norm(data-data_ana),np.linalg.norm(data_ana))
 
 
 if __name__ == '__main__':
-    print run()
+    print(run())

@@ -1,3 +1,10 @@
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from past.utils import old_div
 from SimPEG import Survey, Problem, Utils, Models, Maps, PropMaps, np, sp, Solver as SimpegSolver
 from scipy.constants import mu_0
 
@@ -11,7 +18,7 @@ class EMPropMap(Maps.PropMap):
     mu = Maps.Property("Inverse Magnetic Permeability", defaultVal = mu_0, propertyLink=('mui',Maps.ReciprocalMap))
 
     rho = Maps.Property("Electrical Resistivity", propertyLink=('sigma', Maps.ReciprocalMap))
-    mui = Maps.Property("Inverse Magnetic Permeability", defaultVal = 1./mu_0, propertyLink=('mu', Maps.ReciprocalMap))
+    mui = Maps.Property("Inverse Magnetic Permeability", defaultVal = old_div(1.,mu_0), propertyLink=('mu', Maps.ReciprocalMap))
 
 
 class BaseEMProblem(Problem.BaseProblem):

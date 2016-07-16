@@ -1,11 +1,19 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
+from past.utils import old_div
 from SimPEG import Problem, Utils
 from SimPEG.EM.Base import BaseEMProblem
-from SurveyDC import Survey, Survey_ky
-from FieldsDC_2D import Fields_ky, Fields_ky_CC, Fields_ky_N
+from .SurveyDC import Survey, Survey_ky
+from .FieldsDC_2D import Fields_ky, Fields_ky_CC, Fields_ky_N
 from SimPEG.Utils import sdiag
 import numpy as np
 from SimPEG.Utils import Zero
-from BoundaryUtils import getxBCyBC_CC
+from .BoundaryUtils import getxBCyBC_CC
 
 class BaseDCProblem_2D(BaseEMProblem):
 
@@ -182,8 +190,8 @@ class Problem2D_CC(BaseDCProblem_2D):
         MfRhoIDeriv = self.MfRhoIDeriv
         rho = self.curModel.rho
         if adjoint:
-            return(MfRhoIDeriv( G * u ).T) * ( D.T * v) + ky**2*Utils.sdiag(u.flatten()*vol*(-1./rho**2))*v
-        return D * ((MfRhoIDeriv( G * u )) * v) + ky**2*Utils.sdiag(u.flatten()*vol*(-1./rho**2))*v
+            return(MfRhoIDeriv( G * u ).T) * ( D.T * v) + ky**2*Utils.sdiag(u.flatten()*vol*(old_div(-1.,rho**2)))*v
+        return D * ((MfRhoIDeriv( G * u )) * v) + ky**2*Utils.sdiag(u.flatten()*vol*(old_div(-1.,rho**2)))*v
 
     def getRHS(self, ky):
         """

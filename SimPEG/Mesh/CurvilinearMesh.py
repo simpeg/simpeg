@@ -1,17 +1,26 @@
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
+from past.utils import old_div
 from SimPEG import Utils, np
-from BaseMesh import BaseRectangularMesh
-from DiffOperators import DiffOperators
-from InnerProducts import InnerProducts
-from View import CurvView
+from .BaseMesh import BaseRectangularMesh
+from .DiffOperators import DiffOperators
+from .InnerProducts import InnerProducts
+from .View import CurvView
+from future.utils import with_metaclass
 
 # Some helper functions.
 length2D = lambda x: (x[:, 0]**2 + x[:, 1]**2)**0.5
 length3D = lambda x: (x[:, 0]**2 + x[:, 1]**2 + x[:, 2]**2)**0.5
-normalize2D = lambda x: x/np.kron(np.ones((1, 2)), Utils.mkvc(length2D(x), 2))
-normalize3D = lambda x: x/np.kron(np.ones((1, 3)), Utils.mkvc(length3D(x), 2))
+normalize2D = lambda x: old_div(x,np.kron(np.ones((1, 2)), Utils.mkvc(length2D(x), 2)))
+normalize3D = lambda x: old_div(x,np.kron(np.ones((1, 3)), Utils.mkvc(length3D(x), 2)))
 
 
-class CurvilinearMesh(BaseRectangularMesh, DiffOperators, InnerProducts, CurvView):
+class CurvilinearMesh(with_metaclass(Utils.SimPEGMetaClass, type('NewBase', (BaseRectangularMesh, DiffOperators, InnerProducts, CurvView), {}))):
     """
     CurvilinearMesh is a mesh class that deals with curvilinear meshes.
 
@@ -25,8 +34,6 @@ class CurvilinearMesh(BaseRectangularMesh, DiffOperators, InnerProducts, CurvVie
             M = Mesh.CurvilinearMesh([X, Y])
             M.plotGrid(showIt=True)
     """
-
-    __metaclass__ = Utils.SimPEGMetaClass
 
     _meshType = 'Curv'
 
@@ -220,7 +227,7 @@ class CurvilinearMesh(BaseRectangularMesh, DiffOperators, InnerProducts, CurvVie
                             Utils.volTetra(self.gridN, C, H, D, A) +  # cutted edge bottom
                             Utils.volTetra(self.gridN, C, G, H, F))   # cutted edge bottom
 
-                    self._vol = (vol1 + vol2)/2
+                    self._vol = old_div((vol1 + vol2),2)
             return self._vol
         return locals()
     _vol = None
@@ -282,9 +289,9 @@ class CurvilinearMesh(BaseRectangularMesh, DiffOperators, InnerProducts, CurvVie
             if self.dim == 2:
                 return normalize2D(np.r_[self._normals[0], self._normals[1]])
             elif self.dim == 3:
-                normal1 = (self._normals[0][0] + self._normals[0][1] + self._normals[0][2] + self._normals[0][3])/4
-                normal2 = (self._normals[1][0] + self._normals[1][1] + self._normals[1][2] + self._normals[1][3])/4
-                normal3 = (self._normals[2][0] + self._normals[2][1] + self._normals[2][2] + self._normals[2][3])/4
+                normal1 = old_div((self._normals[0][0] + self._normals[0][1] + self._normals[0][2] + self._normals[0][3]),4)
+                normal2 = old_div((self._normals[1][0] + self._normals[1][1] + self._normals[1][2] + self._normals[1][3]),4)
+                normal3 = old_div((self._normals[2][0] + self._normals[2][1] + self._normals[2][2] + self._normals[2][3]),4)
                 return normalize3D(np.r_[normal1, normal2, normal3])
         return locals()
     _normals = None
@@ -302,7 +309,7 @@ class CurvilinearMesh(BaseRectangularMesh, DiffOperators, InnerProducts, CurvVie
                     A, B = Utils.indexCube('AB', self.vnC+1, np.array([self.nNx, self.nCy]))
                     edge2 = xy[B, :] - xy[A, :]
                     self._edge = np.r_[Utils.mkvc(length2D(edge1)), Utils.mkvc(length2D(edge2))]
-                    self._tangents = np.r_[edge1, edge2]/np.c_[self._edge, self._edge]
+                    self._tangents = old_div(np.r_[edge1, edge2],np.c_[self._edge, self._edge])
                 elif(self.dim == 3):
                     xyz = self.gridN
                     A, D = Utils.indexCube('AD', self.vnC+1, np.array([self.nCx, self.nNy, self.nNz]))
@@ -312,7 +319,7 @@ class CurvilinearMesh(BaseRectangularMesh, DiffOperators, InnerProducts, CurvVie
                     A, E = Utils.indexCube('AE', self.vnC+1, np.array([self.nNx, self.nNy, self.nCz]))
                     edge3 = xyz[E, :] - xyz[A, :]
                     self._edge = np.r_[Utils.mkvc(length3D(edge1)), Utils.mkvc(length3D(edge2)), Utils.mkvc(length3D(edge3))]
-                    self._tangents = np.r_[edge1, edge2, edge3]/np.c_[self._edge, self._edge, self._edge]
+                    self._tangents = old_div(np.r_[edge1, edge2, edge3],np.c_[self._edge, self._edge, self._edge])
             return self._edge
         return locals()
     _edge = None
@@ -333,10 +340,10 @@ class CurvilinearMesh(BaseRectangularMesh, DiffOperators, InnerProducts, CurvVie
 
 if __name__ == '__main__':
     nc = 5
-    h1 = np.cumsum(np.r_[0, np.ones(nc)/(nc)])
+    h1 = np.cumsum(np.r_[0, old_div(np.ones(nc),(nc))])
     nc = 7
-    h2 = np.cumsum(np.r_[0, np.ones(nc)/(nc)])
-    h3 = np.cumsum(np.r_[0, np.ones(nc)/(nc)])
+    h2 = np.cumsum(np.r_[0, old_div(np.ones(nc),(nc))])
+    h3 = np.cumsum(np.r_[0, old_div(np.ones(nc),(nc))])
     dee3 = True
     if dee3:
         X, Y, Z = Utils.ndgrid(h1, h2, h3, vector=False)
@@ -345,4 +352,4 @@ if __name__ == '__main__':
         X, Y = Utils.ndgrid(h1, h2, vector=False)
         M = CurvilinearMesh([X, Y])
 
-    print M.r(M.normals, 'F', 'Fx', 'V')
+    print(M.r(M.normals, 'F', 'Fx', 'V'))

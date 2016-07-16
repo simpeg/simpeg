@@ -1,7 +1,13 @@
+from __future__ import absolute_import
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import division
+from future import standard_library
+standard_library.install_aliases()
 from SimPEG import SolverLU as SimpegSolver, PropMaps, Utils, mkvc, sp, np
 from SimPEG.EM.FDEM.ProblemFDEM import BaseFDEMProblem
-from SurveyMT import Survey, Data
-from FieldsMT import BaseMTFields
+from .SurveyMT import Survey, Data
+from .FieldsMT import BaseMTFields
 
 
 class BaseMTProblem(BaseFDEMProblem):

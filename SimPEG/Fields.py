@@ -1,4 +1,13 @@
-import Utils, numpy as np, scipy.sparse as sp
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
+from builtins import object
+from . import Utils
+import numpy as np, scipy.sparse as sp
 
 class Fields(object):
     """Fancy Field Storage
@@ -244,7 +253,7 @@ class TimeFields(Fields):
                 out = func(pointerFields, srcII, timeII)
             else: #loop over the time steps
                 nT = pointerShape[2]
-                out = range(nT)
+                out = list(range(nT))
                 for i, TIND_i in enumerate(timeII):
                     fieldI = pointerFields[:,:,i]
                     if fieldI.shape[0] == fieldI.size:

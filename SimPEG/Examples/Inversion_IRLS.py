@@ -1,3 +1,12 @@
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import range
+from past.utils import old_div
 from SimPEG import *
 
 
@@ -47,10 +56,10 @@ def run(N=100, plotIt=True):
 
     # Distance weighting
     wr = np.sum(prob.G**2.,axis=0)**0.5
-    wr = ( wr/np.max(wr) )
+    wr = ( old_div(wr,np.max(wr)) )
 
     dmis = DataMisfit.l2_DataMisfit(survey)
-    dmis.Wd = 1./wd
+    dmis.Wd = old_div(1.,wd)
 
     betaest = Directives.BetaEstimate_ByEig()
 
@@ -75,7 +84,7 @@ def run(N=100, plotIt=True):
     # Run inversion
     mrec = inv.run(m0)
 
-    print "Final misfit:" + str(invProb.dmisfit.eval(mrec))
+    print("Final misfit:" + str(invProb.dmisfit.eval(mrec)))
 
 
     if plotIt:

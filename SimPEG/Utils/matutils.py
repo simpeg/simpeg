@@ -1,6 +1,15 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
+from builtins import object
+from past.utils import old_div
 import numpy as np
 import scipy.sparse as sp
-from codeutils import isScalar
+from .codeutils import isScalar
 
 def mkvc(x, numDims=1):
     """Creates a vector with the number of dimension specified
@@ -46,7 +55,7 @@ def sdiag(h):
 
 def sdInv(M):
     "Inverse of a sparse diagonal matrix"
-    return sdiag(1/M.diagonal())
+    return sdiag(old_div(1,M.diagonal()))
 
 def speye(n):
     """Sparse identity"""
@@ -202,17 +211,17 @@ def inv3X3BlockDiagonal(a11, a12, a13, a21, a22, a23, a31, a32, a33, returnMatri
 
     detA = a31*a12*a23 - a31*a13*a22 - a21*a12*a33 + a21*a13*a32 + a11*a22*a33 - a11*a23*a32
 
-    b11 = +(a22*a33 - a23*a32)/detA
-    b12 = -(a12*a33 - a13*a32)/detA
-    b13 = +(a12*a23 - a13*a22)/detA
+    b11 = old_div(+(a22*a33 - a23*a32),detA)
+    b12 = old_div(-(a12*a33 - a13*a32),detA)
+    b13 = old_div(+(a12*a23 - a13*a22),detA)
 
-    b21 = +(a31*a23 - a21*a33)/detA
-    b22 = -(a31*a13 - a11*a33)/detA
-    b23 = +(a21*a13 - a11*a23)/detA
+    b21 = old_div(+(a31*a23 - a21*a33),detA)
+    b22 = old_div(-(a31*a13 - a11*a33),detA)
+    b23 = old_div(+(a21*a13 - a11*a23),detA)
 
-    b31 = -(a31*a22 - a21*a32)/detA
-    b32 = +(a31*a12 - a11*a32)/detA
-    b33 = -(a21*a12 - a11*a22)/detA
+    b31 = old_div(-(a31*a22 - a21*a32),detA)
+    b32 = old_div(+(a31*a12 - a11*a32),detA)
+    b33 = old_div(-(a21*a12 - a11*a22),detA)
 
     if not returnMatrix:
         return b11, b12, b13, b21, b22, b23, b31, b32, b33
@@ -243,7 +252,7 @@ def inv2X2BlockDiagonal(a11, a12, a21, a22, returnMatrix=True):
     a22 = mkvc(a22)
 
     # compute inverse of the determinant.
-    detAinv = 1./(a11*a22 - a21*a12)
+    detAinv = old_div(1.,(a11*a22 - a21*a12))
 
     b11 = +detAinv*a22
     b12 = -detAinv*a12
@@ -319,9 +328,9 @@ def invPropertyTensor(M, tensor, returnMatrix=False):
     propType = TensorType(M, tensor)
 
     if isScalar(tensor):
-        T = 1./tensor
+        T = old_div(1.,tensor)
     elif propType < 3:  # Isotropic or Diagonal
-        T = 1./mkvc(tensor)  # ensure it is a vector.
+        T = old_div(1.,mkvc(tensor))  # ensure it is a vector.
     elif M.dim == 2 and tensor.size == M.nC*3:  # Fully anisotropic, 2D
         tensor = tensor.reshape((M.nC,3), order='F')
         B = inv2X2BlockDiagonal(tensor[:,0], tensor[:,2],
@@ -370,7 +379,7 @@ def diagEst(matFun, n, k=None, approach='Probing'):
         matFun = lambda v: A.dot(v)
 
     if k is None:
-        k = np.floor(n/10.)
+        k = np.floor(old_div(n,10.))
 
     if approach =='Ones':
         def getv(n,i=None):
@@ -397,7 +406,7 @@ def diagEst(matFun, n, k=None, approach='Probing'):
         Mv += matFun(vk)*vk
         vv += vk*vk
 
-    d   = Mv/vv
+    d   = old_div(Mv,vv)
 
     return d
 
@@ -451,10 +460,10 @@ class Identity(object):
 
     def __div__(self, v):
         if sp.issparse(v): raise NotImplementedError('Sparse arrays not divisibile.')
-        return 1/v if self._positive else -1/v
+        return old_div(1,v) if self._positive else old_div(-1,v)
     def __truediv__(self, v):
         if sp.issparse(v): raise NotImplementedError('Sparse arrays not divisibile.')
-        return 1.0/v if self._positive else -1.0/v
+        return old_div(1.0,v) if self._positive else old_div(-1.0,v)
     def __rdiv__(self, v):
         return v if self._positive else -v
 

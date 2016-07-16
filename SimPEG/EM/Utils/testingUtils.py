@@ -1,3 +1,11 @@
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from builtins import int
+from future import standard_library
+standard_library.install_aliases()
+from past.utils import old_div
 import unittest
 from SimPEG import *
 from SimPEG import EM
@@ -24,7 +32,7 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
     else:
         mapping = Maps.ExpMap(mesh)
 
-    x = np.array([np.linspace(-5.*cs,-2.*cs,3),np.linspace(5.*cs,2.*cs,3)]) + cs/4. #don't sample right by the source, slightly off alignment from either staggered grid
+    x = np.array([np.linspace(-5.*cs,-2.*cs,3),np.linspace(5.*cs,2.*cs,3)]) + old_div(cs,4.) #don't sample right by the source, slightly off alignment from either staggered grid
     XYZ = Utils.ndgrid(x,x,np.linspace(-2.*cs,2.*cs,5))
     Rx0 = getattr(EM.FDEM.Rx, 'Point_' + comp[0])
     if comp[2] == 'r':
@@ -58,7 +66,7 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
                 Src.append(EM.FDEM.Src.RawVec([rx0], freq, mesh.getEdgeInnerProduct()*S_m, S_e))
 
     if verbose:
-        print '  Fetching %s problem' % (fdemType)
+        print('  Fetching %s problem' % (fdemType))
 
     if fdemType == 'e':
         survey = EM.FDEM.Survey(Src)
@@ -83,7 +91,7 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
     try:
         from pymatsolver import MumpsSolver
         prb.Solver = MumpsSolver
-    except ImportError, e:
+    except ImportError as e:
         prb.Solver = SolverLU
 
     return prb
@@ -94,7 +102,7 @@ def crossCheckTest(SrcList, fdemType1, fdemType2, comp, addrandoms = False, useM
 
     prb1 = getFDEMProblem(fdemType1, comp, SrcList, freq, useMu, verbose)
     mesh = prb1.mesh
-    print 'Cross Checking Forward: %s, %s formulations - %s' % (fdemType1, fdemType2, comp)
+    print('Cross Checking Forward: %s, %s formulations - %s' % (fdemType1, fdemType2, comp))
 
     logsig = np.log(np.ones(mesh.nC)*CONDUCTIVITY)
     mu = np.ones(mesh.nC)*MU
@@ -112,7 +120,7 @@ def crossCheckTest(SrcList, fdemType1, fdemType2, comp, addrandoms = False, useM
     d1 = survey1.dpred(m)
 
     if verbose:
-        print '  Problem 1 solved'
+        print('  Problem 1 solved')
 
 
     prb2 = getFDEMProblem(fdemType2, comp, SrcList, freq, useMu, verbose)
@@ -121,11 +129,11 @@ def crossCheckTest(SrcList, fdemType1, fdemType2, comp, addrandoms = False, useM
     d2 = survey2.dpred(m)
 
     if verbose:
-        print '  Problem 2 solved'
+        print('  Problem 2 solved')
 
     r = d2-d1
     l2r = l2norm(r)
 
     tol = np.max([TOL*(10**int(np.log10(0.5* (l2norm(d1) + l2norm(d2)) ))),FLR])
-    print l2norm(d1), l2norm(d2),  l2r , tol, l2r < tol
+    print(l2norm(d1), l2norm(d2),  l2r , tol, l2r < tol)
     return l2r < tol

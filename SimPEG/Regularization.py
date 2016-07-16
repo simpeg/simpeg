@@ -1,6 +1,15 @@
-import Utils, Maps, Mesh
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
+from past.utils import old_div
+from . import Utils, Maps, Mesh
 import numpy as np
 import scipy.sparse as sp
+from future.utils import with_metaclass
 
 class RegularizationMesh(object):
     """
@@ -134,7 +143,7 @@ class RegularizationMesh(object):
         :return: averaging matrix from active x-faces to active cell centers
         """
         if getattr(self, '_aveCC2Fx', None) is None:
-            self._aveCC2Fx =  Utils.sdiag(1./(self.aveFx2CC.T).sum(1)) * self.aveFx2CC.T
+            self._aveCC2Fx =  Utils.sdiag(old_div(1.,(self.aveFx2CC.T).sum(1))) * self.aveFx2CC.T
         return self._aveCC2Fx
 
     @property
@@ -156,7 +165,7 @@ class RegularizationMesh(object):
         :return: averaging matrix from active y-faces to active cell centers
         """
         if getattr(self, '_aveCC2Fy', None) is None:
-            self._aveCC2Fy =  Utils.sdiag(1./(self.aveFy2CC.T).sum(1)) * self.aveFy2CC.T
+            self._aveCC2Fy =  Utils.sdiag(old_div(1.,(self.aveFy2CC.T).sum(1))) * self.aveFy2CC.T
         return self._aveCC2Fy
 
     @property
@@ -178,7 +187,7 @@ class RegularizationMesh(object):
         :return: averaging matrix from active z-faces to active cell centers
         """
         if getattr(self, '_aveCC2Fz', None) is None:
-            self._aveCC2Fz =  Utils.sdiag(1./(self.aveFz2CC.T).sum(1)) * self.aveFz2CC.T
+            self._aveCC2Fz =  Utils.sdiag(old_div(1.,(self.aveFz2CC.T).sum(1))) * self.aveFz2CC.T
         return self._aveCC2Fz
 
     @property
@@ -286,7 +295,7 @@ class RegularizationMesh(object):
         return self._cellDiffzStencil
 
 
-class BaseRegularization(object):
+class BaseRegularization(with_metaclass(Utils.SimPEGMetaClass, object)):
     """
     **Base Regularization Class**
 
@@ -295,8 +304,6 @@ class BaseRegularization(object):
         reg = Regularization(mesh)
 
     """
-
-    __metaclass__ = Utils.SimPEGMetaClass
 
     counter = None
 
@@ -328,7 +335,7 @@ class BaseRegularization(object):
     @parent.setter
     def parent(self, p):
         if getattr(self,'_parent',None) is not None:
-            print 'Regularization has switched to a new parent!'
+            print('Regularization has switched to a new parent!')
         self._parent = p
 
     @property
@@ -996,7 +1003,7 @@ class Sparse(Simple):
     def R(self, f_m , eps, exponent):
 
         # Eta scaling is important for mix-norms...do not mess with it
-        eta = (eps**(1.-exponent/2.))**0.5
-        r = eta / (f_m**2.+ eps**2.)**((1.-exponent/2.)/2.)
+        eta = (eps**(1.-old_div(exponent,2.)))**0.5
+        r = old_div(eta, (f_m**2.+ eps**2.)**(old_div((1.-old_div(exponent,2.)),2.)))
 
         return r

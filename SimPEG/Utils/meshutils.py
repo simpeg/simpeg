@@ -1,8 +1,16 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from builtins import int
+from future import standard_library
+standard_library.install_aliases()
+from past.utils import old_div
 import numpy as np
 from scipy import sparse as sp
-from matutils import mkvc, ndgrid, sub2ind, sdiag
-from codeutils import asArray_N_x_Dim
-from codeutils import isScalar
+from .matutils import mkvc, ndgrid, sub2ind, sdiag
+from .codeutils import asArray_N_x_Dim
+from .codeutils import isScalar
 import os
 
 def exampleLrmGrid(nC, exType):
@@ -14,15 +22,15 @@ def exampleLrmGrid(nC, exType):
     assert exType in possibleTypes, "Not a possible example type."
 
     if exType == 'rect':
-        return list(ndgrid([np.cumsum(np.r_[0, np.ones(nx)/nx]) for nx in nC], vector=False))
+        return list(ndgrid([np.cumsum(np.r_[0, old_div(np.ones(nx),nx)]) for nx in nC], vector=False))
     elif exType == 'rotate':
         if len(nC) == 2:
-            X, Y = ndgrid([np.cumsum(np.r_[0, np.ones(nx)/nx]) for nx in nC], vector=False)
+            X, Y = ndgrid([np.cumsum(np.r_[0, old_div(np.ones(nx),nx)]) for nx in nC], vector=False)
             amt = 0.5-np.sqrt((X - 0.5)**2 + (Y - 0.5)**2)
             amt[amt < 0] = 0
             return [X + (-(Y - 0.5))*amt, Y + (+(X - 0.5))*amt]
         elif len(nC) == 3:
-            X, Y, Z = ndgrid([np.cumsum(np.r_[0, np.ones(nx)/nx]) for nx in nC], vector=False)
+            X, Y, Z = ndgrid([np.cumsum(np.r_[0, old_div(np.ones(nx),nx)]) for nx in nC], vector=False)
             amt = 0.5-np.sqrt((X - 0.5)**2 + (Y - 0.5)**2 + (Z - 0.5)**2)
             amt[amt < 0] = 0
             return [X + (-(Y - 0.5))*amt, Y + (-(Z - 0.5))*amt, Z + (-(X - 0.5))*amt]
@@ -179,7 +187,7 @@ def ExtractCoreMesh(xyzlim, mesh, meshType='tensor'):
                & (mesh.gridCC[:,2]>zmin) & (mesh.gridCC[:,2]<zmax)
 
     else:
-        raise(Exception("Not implemented!"))
+        raise Exception
 
 
     return actind, meshCore

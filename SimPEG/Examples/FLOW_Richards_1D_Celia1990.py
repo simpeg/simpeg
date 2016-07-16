@@ -1,3 +1,10 @@
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from past.utils import old_div
 from SimPEG import *
 from SimPEG.FLOW import Richards
 
@@ -46,7 +53,7 @@ def run(plotIt=True):
 
 
     def getFields(timeStep,method):
-        timeSteps = np.ones(360/timeStep)*timeStep
+        timeSteps = np.ones(old_div(360,timeStep))*timeStep
         prob = Richards.RichardsProblem(M, mapping=E, timeSteps=timeSteps,
                                         boundaryConditions=bc, initialConditions=h,
                                         doNewton=False, method=method)

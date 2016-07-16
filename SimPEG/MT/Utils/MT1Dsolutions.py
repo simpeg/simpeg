@@ -1,5 +1,12 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from past.utils import old_div
 import numpy as np, SimPEG as simpeg
-from MT1Danalytic import getEHfields
+from .MT1Danalytic import getEHfields
 from scipy.constants import mu_0
 
 def get1DEfields(m1d,sigma,freq,sourceAmp=1.0):
@@ -9,7 +16,7 @@ def get1DEfields(m1d,sigma,freq,sourceAmp=1.0):
     G = m1d.nodalGrad
     # Mass matrices
     # Magnetic permeability
-    Mmu = simpeg.Utils.sdiag(m1d.vol*(1.0/mu_0))
+    Mmu = simpeg.Utils.sdiag(m1d.vol*(old_div(1.0,mu_0)))
     # Conductivity
     Msig = m1d.getFaceInnerProduct(sigma)
     # Set up the solution matrix
@@ -23,7 +30,7 @@ def get1DEfields(m1d,sigma,freq,sourceAmp=1.0):
     Ed, Eu, Hd, Hu = getEHfields(m1d,sigma,freq,m1d.vectorNx)
     Etot = (Ed + Eu)
     if sourceAmp is not None:
-        Etot = ((Etot/Etot[-1])*sourceAmp) # Scale the fields to be equal to sourceAmp at the top
+        Etot = ((old_div(Etot,Etot[-1]))*sourceAmp) # Scale the fields to be equal to sourceAmp at the top
     ## Note: The analytic solution is derived with e^iwt
     bc = np.r_[Etot[0],Etot[-1]]
     # The right hand side

@@ -1,3 +1,11 @@
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import division
+from __future__ import absolute_import
+from builtins import int
+from future import standard_library
+standard_library.install_aliases()
+from builtins import zip
 from SimPEG import *
 
 def run(plotIt=True, n=60):
@@ -87,7 +95,7 @@ def run(plotIt=True, n=60):
         if elapsed > capture[jj]:
             PHIS += [(elapsed, phi.copy())]
             jj += 1
-        if ii % 10 == 0: print ii, elapsed
+        if ii % 10 == 0: print(ii, elapsed)
         ii += 1
 
     if plotIt:

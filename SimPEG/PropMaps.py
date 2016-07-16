@@ -1,4 +1,16 @@
-import Utils, Maps, numpy as np, scipy.sparse as sp
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
+from builtins import super
+from builtins import dict
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
+from builtins import object
+from . import Utils, Maps
+import numpy as np, scipy.sparse as sp
+from future.utils import with_metaclass
 
 class Property(object):
 
@@ -99,9 +111,9 @@ class Property(object):
                 return None
             inds = getattr(self.propMap, '%sIndex'%prop.name)
             if type(inds) is slice:
-                inds = range(*inds.indices(self.nP))
+                inds = list(range(*inds.indices(self.nP)))
             nI, nP = len(inds),self.nP
-            return sp.csr_matrix((np.ones(nI), (range(nI), inds) ), shape=(nI, nP))
+            return sp.csr_matrix((np.ones(nI), (list(range(nI)), inds) ), shape=(nI, nP))
         return property(fget=fget)
 
     def _getModelMapProperty(self):
@@ -126,7 +138,7 @@ class PropModel(object):
                 index = getattr(self.propMap, '%sIndex'%name, None)
                 if index is not None:
                     if type(index) is slice:
-                        inds += range(*index.indices(len(self.vector)))
+                        inds += list(range(*index.indices(len(self.vector))))
                     else:
                         inds += list(index)
             self._nP = len(set(inds))
@@ -190,9 +202,7 @@ class _PropMapMetaClass(type):
         return type('PropModel', (PropModel, ), attrs)
 
 
-class PropMap(object):
-    __metaclass__ = _PropMapMetaClass
-
+class PropMap(with_metaclass(_PropMapMetaClass, object)):
     def __init__(self, mappings):
         """
             PropMap takes a multi parameter model and maps it to the equivalent PropModel

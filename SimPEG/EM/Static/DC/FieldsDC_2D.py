@@ -1,3 +1,9 @@
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
 import SimPEG
 from SimPEG.Utils import Identity, Zero
 import numpy as np
@@ -32,7 +38,7 @@ class Fields_ky(SimPEG.Problem.TimeFields):
 
     def _phiDeriv(self,kyInd, src, du_dm_v, v, adjoint=False):
         if getattr(self, '_phiDeriv_u', None) is None or getattr(self, '_phiDeriv_m', None) is None:
-            raise NotImplementedError ('Getting phiDerivs from %s is not implemented' %self.knownFields.keys()[0])
+            raise NotImplementedError ('Getting phiDerivs from %s is not implemented' %list(self.knownFields.keys())[0])
 
         if adjoint:
             return self._phiDeriv_u(kyInd, src, v, adjoint=adjoint), self._phiDeriv_m(kyInd, src, v, adjoint=adjoint)
@@ -41,7 +47,7 @@ class Fields_ky(SimPEG.Problem.TimeFields):
 
     def _eDeriv(self,kyInd, src, du_dm_v, v, adjoint=False):
         if getattr(self, '_eDeriv_u', None) is None or getattr(self, '_eDeriv_m', None) is None:
-            raise NotImplementedError ('Getting eDerivs from %s is not implemented' %self.knownFields.keys()[0])
+            raise NotImplementedError ('Getting eDerivs from %s is not implemented' %list(self.knownFields.keys())[0])
 
         if adjoint:
             return self._eDeriv_u(kyInd, src, v, adjoint), self._eDeriv_m(kyInd, src, v, adjoint)
@@ -49,7 +55,7 @@ class Fields_ky(SimPEG.Problem.TimeFields):
 
     def _jDeriv(self,kyInd, src, du_dm_v, v, adjoint=False):
         if getattr(self, '_jDeriv_u', None) is None or getattr(self, '_jDeriv_m', None) is None:
-            raise NotImplementedError ('Getting jDerivs from %s is not implemented' %self.knownFields.keys()[0])
+            raise NotImplementedError ('Getting jDerivs from %s is not implemented' %list(self.knownFields.keys())[0])
 
         if adjoint:
             return self._jDeriv_u(kyInd, src, v, adjoint), self._jDeriv_m(kyInd, src, v, adjoint)

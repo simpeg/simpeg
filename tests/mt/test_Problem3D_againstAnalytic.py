@@ -1,3 +1,12 @@
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from builtins import int
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from past.utils import old_div
 # Test functions
 from glob import glob
 import numpy as np, sys, os, time, scipy, subprocess
@@ -146,8 +155,8 @@ def setupSimpegMTfwd_eForm_ps(inputSetup,comp='Imp',singleFreq=False,expMap=True
 def getAppResPhs(MTdata):
     # Make impedance
     def appResPhs(freq,z):
-        app_res = ((1./(8e-7*np.pi**2))/freq)*np.abs(z)**2
-        app_phs = np.arctan2(z.imag,z.real)*(180/np.pi)
+        app_res = (old_div((old_div(1.,(8e-7*np.pi**2))),freq))*np.abs(z)**2
+        app_phs = np.arctan2(z.imag,z.real)*(old_div(180,np.pi))
         return app_res, app_phs
     recData = MTdata.toRecArray('Complex')
     return appResPhs(recData['freq'],recData['zxy']), appResPhs(recData['freq'],recData['zyx'])
@@ -155,7 +164,7 @@ def getAppResPhs(MTdata):
 def JvecAdjointTest(inputSetup,comp='All',freq=False):
     (M, freqs, sig, sigBG, rx_loc) = inputSetup
     survey, problem = setupSimpegMTfwd_eForm_ps(inputSetup,comp='All',singleFreq=freq)
-    print 'Adjoint test of eForm primary/secondary for {:s} comp at {:s}\n'.format(comp,str(survey.freqs))
+    print('Adjoint test of eForm primary/secondary for {:s} comp at {:s}\n'.format(comp,str(survey.freqs)))
 
     m  = sig
     u = problem.fields(m)
@@ -167,15 +176,15 @@ def JvecAdjointTest(inputSetup,comp='All',freq=False):
     vJw = v.ravel().dot(problem.Jvec(m, w, u))
     wJtv = w.ravel().dot(problem.Jtvec(m, v, u))
     tol = np.max([TOL*(10**int(np.log10(np.abs(vJw)))),FLR])
-    print ' vJw   wJtv  vJw - wJtv     tol    abs(vJw - wJtv) < tol'
-    print vJw, wJtv, vJw - wJtv, tol, np.abs(vJw - wJtv) < tol
+    print(' vJw   wJtv  vJw - wJtv     tol    abs(vJw - wJtv) < tol')
+    print(vJw, wJtv, vJw - wJtv, tol, np.abs(vJw - wJtv) < tol)
     return np.abs(vJw - wJtv) < tol
 
 # Test the Jvec derivative
 def DerivJvecTest(inputSetup,comp='All',freq=False,expMap=True):
     (M, freqs, sig, sigBG, rx_loc) = inputSetup
     survey, problem = setupSimpegMTfwd_eForm_ps(inputSetup,comp=comp,singleFreq=freq,expMap=expMap)
-    print 'Derivative test of Jvec for eForm primary/secondary for {:s} comp at {:s}\n'.format(comp,survey.freqs)
+    print('Derivative test of Jvec for eForm primary/secondary for {:s} comp at {:s}\n'.format(comp,survey.freqs))
     # problem.mapping = simpeg.Maps.ExpMap(problem.mesh)
     # problem.sigmaPrimary = np.log(sigBG)
     x0 = np.log(sigBG)
@@ -192,7 +201,7 @@ def DerivJvecTest(inputSetup,comp='All',freq=False,expMap=True):
 def DerivProjfieldsTest(inputSetup,comp='All',freq=False):
 
     survey, problem = setupSimpegMTfwd_eForm_ps(inputSetup,comp,freq)
-    print 'Derivative test of data projection for eFormulation primary/secondary\n\n'
+    print('Derivative test of data projection for eFormulation primary/secondary\n\n')
     # problem.mapping = simpeg.Maps.ExpMap(problem.mesh)
     # Initate things for the derivs Test
     src = survey.srcList[0]
@@ -203,13 +212,13 @@ def DerivProjfieldsTest(inputSetup,comp='All',freq=False):
     u0 = np.vstack((simpeg.mkvc(u0x,2),simpeg.mkvc(u0y,2)))
     f0 = problem.fieldsPair(survey.mesh,survey)
     # u0 = np.hstack((simpeg.mkvc(u0_px,2),simpeg.mkvc(u0_py,2)))
-    f0[src,'e_pxSolution'] =  u0[:len(u0)/2]#u0x
-    f0[src,'e_pySolution'] = u0[len(u0)/2::]#u0y
+    f0[src,'e_pxSolution'] =  u0[:old_div(len(u0),2)]#u0x
+    f0[src,'e_pySolution'] = u0[old_div(len(u0),2)::]#u0y
 
     def fun(u):
         f = problem.fieldsPair(survey.mesh,survey)
-        f[src,'e_pxSolution'] = u[:len(u)/2]
-        f[src,'e_pySolution'] = u[len(u)/2::]
+        f[src,'e_pxSolution'] = u[:old_div(len(u),2)]
+        f[src,'e_pySolution'] = u[old_div(len(u),2)::]
         return rx.eval(src,survey.mesh,f), lambda t: rx.evalDeriv(src,survey.mesh,f0,simpeg.mkvc(t,2))
 
     return simpeg.Tests.checkDerivative(fun, u0, num=3, plotIt=False, eps=FLR)
@@ -221,15 +230,15 @@ def appResPhsHalfspace_eFrom_ps_Norm(sigmaHalf,appR=True,expMap=False):
         label = 'phase'
     # Make the survey and the problem
     survey, problem = setupSimpegMTfwd_eForm_ps(halfSpace(sigmaHalf),expMap=expMap)
-    print 'Apperent {:s} test of eFormulation primary/secondary at {:g}\n\n'.format(label,sigmaHalf)
+    print('Apperent {:s} test of eFormulation primary/secondary at {:g}\n\n'.format(label,sigmaHalf))
 
     data = problem.dataPair(survey,survey.dpred(problem.curModel))
     # Calculate the app  phs
     app_rpxy, app_rpyx = np.array(getAppResPhs(data))
     if appR:
-        return np.all(np.abs(app_rpxy[0,:] - 1./sigmaHalf) * sigmaHalf < .4)
+        return np.all(np.abs(app_rpxy[0,:] - old_div(1.,sigmaHalf)) * sigmaHalf < .4)
     else:
-        return np.all(np.abs(app_rpxy[1,:] + 135) / 135 < .4)
+        return np.all(old_div(np.abs(app_rpxy[1,:] + 135), 135) < .4)
 
 class TestAnalytics(unittest.TestCase):
 

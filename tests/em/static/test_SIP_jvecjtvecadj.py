@@ -1,3 +1,11 @@
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from builtins import int
+from future import standard_library
+standard_library.install_aliases()
+from past.utils import old_div
 import unittest
 from SimPEG import *
 import SimPEG
@@ -37,10 +45,10 @@ class IPProblemTestsCC(unittest.TestCase):
         src = SIP.Src.Dipole([rx], Aloc, Bloc)
         survey = SIP.Survey([src])
         colemap = [("eta", Maps.IdentityMap(mesh)), ("taui", Maps.IdentityMap(mesh))]
-        problem = SIP.Problem3D_CC(mesh, rho=1./sigma, mapping=colemap)
+        problem = SIP.Problem3D_CC(mesh, rho=old_div(1.,sigma), mapping=colemap)
         problem.Solver = MumpsSolver
         problem.pair(survey)
-        mSynth = np.r_[eta, 1./tau]
+        mSynth = np.r_[eta, old_div(1.,tau)]
         survey.makeSyntheticData(mSynth)
         # Now set up the problem to do some minimization
         dmis = DataMisfit.l2_DataMisfit(survey)
@@ -70,7 +78,7 @@ class IPProblemTestsCC(unittest.TestCase):
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-10
-        print 'Adjoint Test', np.abs(wtJv - vtJtw), passed
+        print('Adjoint Test', np.abs(wtJv - vtJtw), passed)
         self.assertTrue(passed)
 
     def test_dataObj(self):
@@ -112,7 +120,7 @@ class IPProblemTestsN(unittest.TestCase):
         problem = SIP.Problem3D_N(mesh, sigma=sigma, mapping=colemap)
         problem.Solver = MumpsSolver
         problem.pair(survey)
-        mSynth = np.r_[eta, 1./tau]
+        mSynth = np.r_[eta, old_div(1.,tau)]
         survey.makeSyntheticData(mSynth)
         # Now set up the problem to do some minimization
         dmis = DataMisfit.l2_DataMisfit(survey)
@@ -142,7 +150,7 @@ class IPProblemTestsN(unittest.TestCase):
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
-        print 'Adjoint Test', np.abs(wtJv - vtJtw), passed
+        print('Adjoint Test', np.abs(wtJv - vtJtw), passed)
         self.assertTrue(passed)
 
     def test_dataObj(self):
@@ -189,7 +197,7 @@ class IPProblemTestsN_air(unittest.TestCase):
         problem = SIP.Problem3D_N(mesh, sigma=sigma, mapping=colemap)
         problem.Solver = MumpsSolver
         problem.pair(survey)
-        mSynth = np.r_[eta[~airind], 1./tau[~airind]]
+        mSynth = np.r_[eta[~airind], old_div(1.,tau[~airind])]
         survey.makeSyntheticData(mSynth)
         # Now set up the problem to do some minimization
         dmis = DataMisfit.l2_DataMisfit(survey)
@@ -220,7 +228,7 @@ class IPProblemTestsN_air(unittest.TestCase):
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
-        print 'Adjoint Test', np.abs(wtJv - vtJtw), passed
+        print('Adjoint Test', np.abs(wtJv - vtJtw), passed)
         self.assertTrue(passed)
 
     def test_dataObj(self):

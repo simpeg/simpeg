@@ -1,3 +1,10 @@
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import division
+from __future__ import absolute_import
+from builtins import int
+from future import standard_library
+standard_library.install_aliases()
 import unittest
 from SimPEG import *
 from SimPEG.Tests import OrderTest, checkDerivative
@@ -6,7 +13,7 @@ from SimPEG.FLOW import Richards
 try:
     from pymatsolver import MumpsSolver
     Solver = MumpsSolver
-except Exception, e:
+except Exception as e:
     pass
 
 
@@ -120,14 +127,14 @@ class RichardsTests1D(unittest.TestCase):
         zJv = z.dot(self.prob.Jtvec(self.Ks,v,f=Hs))
         tol = TOL*(10**int(np.log10(np.abs(zJv))))
         passed = np.abs(vJz - zJv) < tol
-        print 'Richards Adjoint Test - PressureHead'
-        print '%4.4e === %4.4e, diff=%4.4e < %4.e'%(vJz, zJv,np.abs(vJz - zJv),tol)
+        print('Richards Adjoint Test - PressureHead')
+        print('%4.4e === %4.4e, diff=%4.4e < %4.e'%(vJz, zJv,np.abs(vJz - zJv),tol))
         self.assertTrue(passed,True)
 
     def test_Sensitivity(self):
         mTrue = self.Ks*np.ones(self.M.nC)
         derChk = lambda m: [self.survey.dpred(m), lambda v: self.prob.Jvec(m, v)]
-        print 'Testing Richards Derivative'
+        print('Testing Richards Derivative')
         passed = checkDerivative(derChk, mTrue, num=4, plotIt=False)
         self.assertTrue(passed,True)
 
@@ -136,7 +143,7 @@ class RichardsTests1D(unittest.TestCase):
         mTrue = self.Ks*np.ones(self.M.nC)
         J = self.prob.Jfull(mTrue)
         derChk = lambda m: [self.survey.dpred(m), J]
-        print 'Testing Richards Derivative FULL'
+        print('Testing Richards Derivative FULL')
         passed = checkDerivative(derChk, mTrue, num=4, plotIt=False)
         self.assertTrue(passed,True)
 
@@ -192,14 +199,14 @@ class RichardsTests2D(unittest.TestCase):
         zJv = z.dot(self.prob.Jtvec(self.Ks,v,f=Hs))
         tol = TOL*(10**int(np.log10(np.abs(zJv))))
         passed = np.abs(vJz - zJv) < tol
-        print '2D: Richards Adjoint Test - PressureHead'
-        print '%4.4e === %4.4e, diff=%4.4e < %4.e'%(vJz, zJv,np.abs(vJz - zJv),tol)
+        print('2D: Richards Adjoint Test - PressureHead')
+        print('%4.4e === %4.4e, diff=%4.4e < %4.e'%(vJz, zJv,np.abs(vJz - zJv),tol))
         self.assertTrue(passed,True)
 
     def test_Sensitivity(self):
         mTrue = self.Ks*np.ones(self.M.nC)
         derChk = lambda m: [self.survey.dpred(m), lambda v: self.prob.Jvec(m, v)]
-        print '2D: Testing Richards Derivative'
+        print('2D: Testing Richards Derivative')
         passed = checkDerivative(derChk, mTrue, num=3, plotIt=False)
         self.assertTrue(passed,True)
 
@@ -207,7 +214,7 @@ class RichardsTests2D(unittest.TestCase):
         mTrue = self.Ks*np.ones(self.M.nC)
         J = self.prob.Jfull(mTrue)
         derChk = lambda m: [self.survey.dpred(m), J]
-        print '2D: Testing Richards Derivative FULL'
+        print('2D: Testing Richards Derivative FULL')
         passed = checkDerivative(derChk, mTrue, num=4, plotIt=False)
         self.assertTrue(passed,True)
 
@@ -264,14 +271,14 @@ class RichardsTests3D(unittest.TestCase):
         zJv = z.dot(self.prob.Jtvec(self.Ks,v,f=Hs))
         tol = TOL*(10**int(np.log10(np.abs(zJv))))
         passed = np.abs(vJz - zJv) < tol
-        print '3D: Richards Adjoint Test - PressureHead'
-        print '%4.4e === %4.4e, diff=%4.4e < %4.e'%(vJz, zJv,np.abs(vJz - zJv),tol)
+        print('3D: Richards Adjoint Test - PressureHead')
+        print('%4.4e === %4.4e, diff=%4.4e < %4.e'%(vJz, zJv,np.abs(vJz - zJv),tol))
         self.assertTrue(passed,True)
 
     def test_Sensitivity(self):
         mTrue = self.Ks*np.ones(self.M.nC)
         derChk = lambda m: [self.survey.dpred(m), lambda v: self.prob.Jvec(m, v)]
-        print '3D: Testing Richards Derivative'
+        print('3D: Testing Richards Derivative')
         passed = checkDerivative(derChk, mTrue, num=4, plotIt=False)
         self.assertTrue(passed,True)
 

@@ -1,3 +1,10 @@
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from past.utils import old_div
 import unittest
 import SimPEG as simpeg
 from SimPEG import MT
@@ -50,8 +57,8 @@ def setupSurvey(sigmaHalf,tD=True):
 def getAppResPhs(MTdata):
     # Make impedance
     def appResPhs(freq,z):
-        app_res = ((1./(8e-7*np.pi**2))/freq)*np.abs(z)**2
-        app_phs = np.arctan2(z.imag,z.real)*(180/np.pi)
+        app_res = (old_div((old_div(1.,(8e-7*np.pi**2))),freq))*np.abs(z)**2
+        app_phs = np.arctan2(z.imag,z.real)*(old_div(180,np.pi))
         return app_res, app_phs
     zList = []
     for src in MTdata.survey.srcList:
@@ -76,7 +83,7 @@ def calculateAnalyticSolution(srcList,mesh,model):
         # Scale the solution
         # anaE = (anaEtemp/anaEtemp[-1])#.conj()
         # anaH = (anaHtemp/anaEtemp[-1])#.conj()
-        anaZ = anaE/anaH
+        anaZ = old_div(anaE,anaH)
         for rx in src.rxList:
             data1D[src,rx] = getattr(anaZ, rx.projComp)
     return data1D
@@ -94,7 +101,7 @@ def dataMis_AnalyticTotalDomain(sigmaHalf):
     # dataTDObj = MT.DataMT.DataMT(surveyTD, surveyTD.dpred(sigma))
     dataTD = surveyTD.dpred(sigma)
     dataAna = simpeg.mkvc(dataAnaObj)
-    return np.all((dataTD - dataAna)/dataAna < 2.)
+    return np.all(old_div((dataTD - dataAna),dataAna) < 2.)
     # surveyTD.dtrue = -simpeg.mkvc(dataAna,2)
     # surveyTD.dobs = -simpeg.mkvc(dataAna,2)
     # surveyTD.Wd = np.ones(surveyTD.dtrue.shape) #/(np.abs(surveyTD.dtrue)*0.01)
@@ -117,7 +124,7 @@ def dataMis_AnalyticPrimarySecondary(sigmaHalf):
 
     dataPS = surveyPS.dpred(sigmaPS)
     dataAna = simpeg.mkvc(dataAnaObj)
-    return np.all((dataPS - dataAna)/dataAna < 2.)
+    return np.all(old_div((dataPS - dataAna),dataAna) < 2.)
 
 
 

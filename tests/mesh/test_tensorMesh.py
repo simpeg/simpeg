@@ -1,3 +1,9 @@
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import division
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
 import numpy as np
 import unittest
 from SimPEG.Mesh import TensorMesh
@@ -61,9 +67,9 @@ class BasicTensorMeshTests(unittest.TestCase):
         self.assertTrue(M.nC == 1)
 
     def test_printing(self):
-        print TensorMesh([10])
-        print TensorMesh([10,10])
-        print TensorMesh([10,10,10])
+        print(TensorMesh([10]))
+        print(TensorMesh([10,10]))
+        print(TensorMesh([10,10,10]))
 
     def test_centering(self):
         M1d = TensorMesh([10], 'C')

@@ -1,6 +1,13 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from past.utils import old_div
 import numpy as np
 from scipy import sparse as sp
-from matutils import mkvc, ndgrid, sub2ind, sdiag
+from .matutils import mkvc, ndgrid, sub2ind, sdiag
 
 
 def volTetra(xyz, A, B, C, D):
@@ -27,7 +34,7 @@ def volTetra(xyz, A, B, C, D):
     CD = xyz[C, :] - xyz[D, :]
 
     V = (BD[:, 0]*CD[:, 1] - BD[:, 1]*CD[:, 0])*AD[:, 2] - (BD[:, 0]*CD[:, 2] - BD[:, 2]*CD[:, 0])*AD[:, 1] + (BD[:, 1]*CD[:, 2] - BD[:, 2]*CD[:, 1])*AD[:, 0]
-    return V/6
+    return old_div(V,6)
 
 
 def indexCube(nodes, gridSize, n=None):
@@ -163,10 +170,10 @@ def faceInfo(xyz, A, B, C, D, average=True, normalizeNormals=True):
     nD = cross(DA, CD)
 
     length = lambda x: np.sqrt(x[:, 0]**2 + x[:, 1]**2 + x[:, 2]**2)
-    normalize = lambda x: x/np.kron(np.ones((1, x.shape[1])), mkvc(length(x), 2))
+    normalize = lambda x: old_div(x,np.kron(np.ones((1, x.shape[1])), mkvc(length(x), 2)))
     if average:
         # average the normals at each vertex.
-        N = (nA + nB + nC + nD)/4  # this is intrinsically weighted by area
+        N = old_div((nA + nB + nC + nD),4)  # this is intrinsically weighted by area
         # normalize
         N = normalize(N)
     else:
@@ -183,7 +190,7 @@ def faceInfo(xyz, A, B, C, D, average=True, normalizeNormals=True):
     # So also could be viewed as the average parallelogram.
     #
     # TODO: This does not compute correctly for concave quadrilaterals
-    area = (length(nA)+length(nB)+length(nC)+length(nD))/4
+    area = old_div((length(nA)+length(nB)+length(nC)+length(nD)),4)
 
     return N, area
 
