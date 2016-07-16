@@ -18,8 +18,7 @@ class IdentityMap(object):
         Utils.setKwargs(self, **kwargs)
 
         if nP is not None:
-            assert type(nP) in [int, long],
-            ' Number of parameters must be an integer.'
+            assert type(nP) in [int, long],' Number of parameters must be an integer.'
 
         self.mesh = mesh
         self._nP = nP
@@ -560,7 +559,7 @@ class InjectActiveCells(IdentityMap):
         else:
             self.valInactive = np.ones(self.nC)
             self.valInactive[self.indInactive] = valInactive.copy()
-            
+
         self.valInactive[self.indActive] = 0
 
         inds = np.nonzero(self.indActive)[0]
