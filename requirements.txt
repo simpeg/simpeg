@@ -3,3 +3,4 @@ scipy
 ipython
 matplotlib
 cython
+future
