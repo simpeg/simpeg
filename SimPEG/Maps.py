@@ -816,7 +816,7 @@ class PolyMap(IdentityMap):
                 f = polynomial.polyval2d(Y, Z, c.reshape((self.order[0]+1,self.order[1]+1))) - X
             elif self.normal == 'Y':
                 f = polynomial.polyval2d(X, Z, c.reshape((self.order[0]+1,self.order[1]+1))) - Y
-            elif self.normal == q'Z':
+            elif self.normal == 'Z':
                 f = polynomial.polyval2d(X, Y, c.reshape((self.order[0]+1,self.order[1]+1))) - Z
             else:
                 raise(Exception("Input for normal = X or Y or Z"))
