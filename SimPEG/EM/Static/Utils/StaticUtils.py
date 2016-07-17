@@ -6,7 +6,6 @@ from builtins import int
 from future import standard_library
 standard_library.install_aliases()
 from builtins import range
-from past.utils import old_div
 from SimPEG import np
 from SimPEG.EM.Static import DC, IP
 
@@ -60,7 +59,7 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
 
             # Create mid-point location
             Cmid = Tx[0]
-            Pmid = old_div((Rx[0][:,0] + Rx[1][:,0]),2)
+            Pmid = (Rx[0][:,0] + Rx[1][:,0])/2
             if DCsurvey.mesh.dim == 2:
                 zsrc = Tx[1]
             elif DCsurvey.mesh.dim ==3:
@@ -73,12 +72,12 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
             NB = np.abs(Tx[1][0] - Rx[1][:,0])
 
             # Create mid-point location
-            Cmid = old_div((Tx[0][0] + Tx[1][0]),2)
-            Pmid = old_div((Rx[0][:,0] + Rx[1][:,0]),2)
+            Cmid = (Tx[0][0] + Tx[1][0])/2
+            Pmid = (Rx[0][:,0] + Rx[1][:,0])/2
             if DCsurvey.mesh.dim == 2:
-                zsrc = old_div((Tx[0][1] + Tx[1][1]),2)
+                zsrc = (Tx[0][1] + Tx[1][1])/2
             elif DCsurvey.mesh.dim ==3:
-                zsrc = old_div((Tx[0][2] + Tx[1][2]),2)
+                zsrc = (Tx[0][2] + Tx[1][2])/2
 
         # Change output for dtype
         if dtype == 'volt':
@@ -94,8 +93,8 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
 
             elif stype == 'dpdp':
 
-                leg = data * 2*np.pi / ( old_div(1,MA) - old_div(1,MB) + old_div(1,NB) - old_div(1,NA) )
-                LEG.append(1./(2*np.pi) *( old_div(1,MA) - old_div(1,MB) + old_div(1,NB) - old_div(1,NA) ))
+                leg = data * 2*np.pi / (1/MA - 1/MB + 1/NB - 1/NA)
+                LEG.append(1./(2*np.pi) * (1/MA - 1/MB + 1/NB - 1/NA))
             else:
                 print("""dtype must be 'pdp'(pole-dipole) | 'dpdp' (dipole-dipole) """)
                 break
@@ -103,7 +102,7 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
 
             if dtype == 'appc':
 
-                leg = np.log10(abs(old_div(1.,leg)))
+                leg = np.log10(abs(1./leg))
                 rho = np.hstack([rho,leg])
 
             elif dtype == 'appr':
@@ -116,11 +115,11 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
                 break
 
 
-        midx = np.hstack([midx, old_div(( Cmid + Pmid ),2) ])
+        midx = np.hstack([midx, ( Cmid + Pmid )/2 ])
         if DCsurvey.mesh.dim==3:
-            midz = np.hstack([midz, old_div(-np.abs(Cmid-Pmid),2) + zsrc ])
+            midz = np.hstack([midz, -np.abs(Cmid-Pmid)/2 + zsrc ])
         elif DCsurvey.mesh.dim==2:
-            midz = np.hstack([midz, old_div(-np.abs(Cmid-Pmid),2) + zsrc ])
+            midz = np.hstack([midz, -np.abs(Cmid-Pmid)/2 + zsrc ])
     ax = axs
 
     # Grid points
@@ -193,10 +192,10 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
     # Mesure survey length and direction
     dl_len = xy_2_r(endl[0,0],endl[1,0],endl[0,1],endl[1,1])
 
-    dl_x = old_div(( endl[1,0] - endl[0,0] ), dl_len)
-    dl_y = old_div(( endl[1,1] - endl[0,1] ), dl_len)
+    dl_x = (endl[1,0] - endl[0,0]) / dl_len
+    dl_y = (endl[1,1] - endl[0,1]) / dl_len
 
-    nstn = np.floor( old_div(dl_len, a) )
+    nstn = np.floor(dl_len / a)
 
     # Compute discrete pole location along line
     stn_x = endl[0,0] + np.array(list(range(int(nstn))))*dl_x*a
@@ -239,7 +238,7 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
             AB = xy_2_r(tx[0,1],endl[1,0],tx[1,1],endl[1,1])
 
             # Number of receivers to fit
-            nstn = np.min([np.floor( old_div((AB - b), a) ) , n])
+            nstn = np.min([(AB - b) // a, n])
 
             # Check if there is enough space, else break the loop
             if nstn <= 0:
@@ -284,16 +283,16 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
         max_y = endl[1,1] - dl_y * b
 
         box_l = np.sqrt( (min_x - max_x)**2 + (min_y - max_y)**2 )
-        box_w = old_div(box_l,2.)
+        box_w = box_l / 2.
 
-        nstn = np.floor( old_div(box_l, a) )
+        nstn = np.floor(box_l / a)
 
         # Compute discrete pole location along line
         stn_x = min_x + np.array(list(range(int(nstn))))*dl_x*a
         stn_y = min_y + np.array(list(range(int(nstn))))*dl_y*a
 
         # Define number of cross lines
-        nlin = int(np.floor( old_div(box_w, a) ))
+        nlin = int(box_w // a)
         lind = list(range(-nlin,nlin+1))
 
         ngrad = nstn * len(lind)

@@ -4,7 +4,6 @@ from __future__ import print_function
 from __future__ import absolute_import
 from future import standard_library
 standard_library.install_aliases()
-from past.utils import old_div
 import unittest, os
 import numpy as np
 from SimPEG import Utils
@@ -34,11 +33,11 @@ class coorUtilsTest(unittest.TestCase):
         v0*= old_div(1.,np.linalg.norm(v0))
 
         np.random.seed(15)
-        v1 = np.random.rand(3) 
-        v1*= old_div(1.,np.linalg.norm(v1))   
+        v1 = np.random.rand(3)
+        v1*= old_div(1.,np.linalg.norm(v1))
 
-        v2 = Utils.mkvc(Utils.coordutils.rotatePointsFromNormals(Utils.mkvc(v0,2).T,v0,v1)) 
-        
+        v2 = Utils.mkvc(Utils.coordutils.rotatePointsFromNormals(Utils.mkvc(v0,2).T,v0,v1))
+
         self.assertTrue(np.linalg.norm(v2-v1) < tol)
 
     def test_rotateMatrixFromNormals(self):
@@ -47,8 +46,8 @@ class coorUtilsTest(unittest.TestCase):
         n0 *= old_div(1.,np.linalg.norm(n0))
 
         np.random.seed(25)
-        n1 = np.random.rand(3) 
-        n1 *= old_div(1.,np.linalg.norm(n1)) 
+        n1 = np.random.rand(3)
+        n1 *= old_div(1.,np.linalg.norm(n1))
 
         np.random.seed(30)
         scale =  np.random.rand(100,1)

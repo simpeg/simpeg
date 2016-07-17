@@ -6,7 +6,6 @@ from builtins import int
 from future import standard_library
 standard_library.install_aliases()
 from builtins import str
-from past.utils import old_div
 # Test functions
 from glob import glob
 import numpy as np, sys, os, time, scipy, subprocess

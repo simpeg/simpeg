@@ -5,7 +5,6 @@ from __future__ import absolute_import
 from future import standard_library
 standard_library.install_aliases()
 from builtins import range
-from past.utils import old_div
 from SimPEG import *
 from scipy.special import ellipk, ellipe
 from scipy.constants import mu_0, pi
@@ -57,7 +56,7 @@ def MagneticDipoleVectorPotential(srcLoc, obsLoc, component, moment=1., dipoleMo
         dR = obsLoc - srcLoc[i, np.newaxis].repeat(nEdges, axis=0)
         mCr = np.cross(m, dR)
         r = np.sqrt((dR**2).sum(axis=1))
-        A[:, i] = +(old_div(mu,(4*pi))) * mCr[:,dimInd]/(r**3)
+        A[:, i] = +(mu/(4*pi)) * mCr[:,dimInd]/(r**3)
     if nSrc == 1:
         return A.flatten()
     return A
@@ -98,11 +97,11 @@ def MagneticDipoleFields(srcLoc, obsLoc, component, moment=1., mu = mu_0):
         dR = obsLoc - srcLoc[i, np.newaxis].repeat(nFaces, axis=0)
         r = np.sqrt((dR**2).sum(axis=1))
         if dimInd == 0:
-            B[:, i] = +(old_div(mu,(4*pi))) /(r**3) * (3*dR[:,2]*dR[:,0]/r**2)
+            B[:, i] = +(mu/(4*pi)) /(r**3) * (3*dR[:,2]*dR[:,0]/r**2)
         elif dimInd == 1:
-            B[:, i] = +(old_div(mu,(4*pi))) /(r**3) * (3*dR[:,2]*dR[:,1]/r**2)
+            B[:, i] = +(mu/(4*pi)) /(r**3) * (3*dR[:,2]*dR[:,1]/r**2)
         elif dimInd == 2:
-            B[:, i] = +(old_div(mu,(4*pi))) /(r**3) * (3*dR[:,2]**2/r**2-1)
+            B[:, i] = +(mu/(4*pi)) /(r**3) * (3*dR[:,2]**2/r**2-1)
         else:
             raise Exception("Not Implemented")
     if nSrc == 1:
@@ -156,7 +155,7 @@ def MagneticLoopVectorPotential(srcLoc, obsLoc, component, radius, mu=mu_0):
             y = obsLoc[:, 1] - srcLoc[i, 1]
             z = obsLoc[:, 2] - srcLoc[i, 2]
             r = np.sqrt(x**2 + y**2)
-            m = old_div((4 * radius * r), ((radius + r)**2 + z**2))
+            m = (4 * radius * r) / ((radius + r)**2 + z**2)
             m[m > 1.] = 1.
             # m might be slightly larger than 1 due to rounding errors
             # but ellipke requires 0 <= m <= 1
@@ -166,11 +165,11 @@ def MagneticLoopVectorPotential(srcLoc, obsLoc, component, radius, mu=mu_0):
             # % 1/r singular at r = 0 and K(m) singular at m = 1
             Aphi = np.zeros(n)
             # % Common factor is (mu * I) / pi with I = 1 and mu = 4e-7 * pi.
-            Aphi[ind] = 4e-7 / np.sqrt(m[ind])  * np.sqrt(old_div(radius, r[ind])) *((1. - old_div(m[ind], 2.)) * K[ind] - E[ind])
+            Aphi[ind] = 4e-7 / np.sqrt(m[ind])  * np.sqrt(radius/ r[ind]) *((1. - m[ind] / 2.) * K[ind] - E[ind])
             if component == 'x':
-                A[ind, i] = Aphi[ind] * (old_div(-y[ind], r[ind]) )
+                A[ind, i] = Aphi[ind] * (-y[ind] / r[ind])
             elif component == 'y':
-                A[ind, i] = Aphi[ind] * ( old_div(x[ind], r[ind]) )
+                A[ind, i] = Aphi[ind] * (x[ind] / r[ind])
             else:
                 raise ValueError('Invalid component')
 

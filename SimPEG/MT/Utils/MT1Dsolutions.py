@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 from __future__ import print_function
 from future import standard_library
 standard_library.install_aliases()
-from past.utils import old_div
 import numpy as np, SimPEG as simpeg
 from .MT1Danalytic import getEHfields
 from scipy.constants import mu_0

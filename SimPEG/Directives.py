@@ -7,7 +7,6 @@ from builtins import int
 from future import standard_library
 standard_library.install_aliases()
 from builtins import str
-from past.utils import old_div
 from builtins import object
 from . import Utils
 import numpy as np
@@ -140,7 +139,7 @@ class BetaEstimate_ByEig(InversionDirective):
         x0 = np.random.rand(*m.shape)
         t = x0.dot(self.dmisfit.eval2Deriv(m,x0,f=f))
         b = x0.dot(self.reg.eval2Deriv(m, v=x0))
-        self.beta0 = self.beta0_ratio*(old_div(t,b))
+        self.beta0 = self.beta0_ratio*(t/b)
 
         self.invProb.beta = self.beta0
 
@@ -350,7 +349,7 @@ class Update_IRLS(InversionDirective):
             self.IRLSiter += 1
 
             phim_new = self.reg.eval(self.invProb.curModel)
-            self.f_change = old_div(np.abs(self.f_old - phim_new), self.f_old)
+            self.f_change = np.abs(self.f_old - phim_new) / self.f_old
 
             print("Regularization decrease: %6.3e" % (self.f_change))
 
@@ -397,7 +396,7 @@ class Update_IRLS(InversionDirective):
             phim_new = self.reg.eval(self.invProb.curModel)
 
             # Update gamma to scale the regularization between IRLS iterations
-            self.reg.gamma = old_div(self.phi_m_last, phim_new)
+            self.reg.gamma = self.phi_m_last / phim_new
 
             # Reset the regularization matrices again for new gamma
             self.reg._Wsmall = None
@@ -406,7 +405,7 @@ class Update_IRLS(InversionDirective):
             self.reg._Wz = None
 
             # Check if misfit is within the tolerance, otherwise scale beta
-            val = old_div(self.invProb.phi_d, (self.survey.nD*0.5))
+            val = self.invProb.phi_d / (self.survey.nD*0.5)
 
             if np.abs(1.-val) > self.beta_tol:
                 self.invProb.beta = self.invProb.beta * self.survey.nD*0.5 / self.invProb.phi_d
@@ -450,7 +449,7 @@ class Update_Wj(InversionDirective):
 
             m = self.invProb.curModel
             if self.k is None:
-                self.k = int(old_div(self.survey.nD,10))
+                self.k = int(self.survey.nD/10)
 
             def JtJv(v):
 
@@ -459,6 +458,6 @@ class Update_Wj(InversionDirective):
                 return self.prob.Jtvec(m,Jv)
 
             JtJdiag = Utils.diagEst(JtJv,len(m),k=self.k)
-            JtJdiag = old_div(JtJdiag, max(JtJdiag))
+            JtJdiag = JtJdiag / max(JtJdiag)
 
             self.reg.wght = JtJdiag

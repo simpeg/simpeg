@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 from future import standard_library
 standard_library.install_aliases()
-from past.utils import old_div
 import unittest
 from SimPEG import Mesh, Utils, EM, Maps, np
 import SimPEG.EM.Static.DC as DC

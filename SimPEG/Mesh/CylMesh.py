@@ -4,7 +4,6 @@ from __future__ import division
 from __future__ import unicode_literals
 from future import standard_library
 standard_library.install_aliases()
-from past.utils import old_div
 import numpy as np
 import scipy.sparse as sp
 from scipy.constants import pi
@@ -75,7 +74,7 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         """
         Number of x-faces in each direction
 
-        :rtype: numpy.array 
+        :rtype: numpy.array
         :return: vnFx, (dim, )
         """
         return self.vnC
@@ -85,7 +84,7 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         """
         Number of y-edges in each direction
 
-        :rtype: numpy.array 
+        :rtype: numpy.array
         :return: vnEy or None if dim < 2, (dim, )
         """
         nNx = self.nNx if self.isSymmetric else self.nNx - 1
@@ -96,7 +95,7 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         """
         Number of z-edges in each direction
 
-        :rtype: numpy.array 
+        :rtype: numpy.array
         :return: vnEz or None if nCy > 1, (dim, )
         """
         if self.isSymmetric:
@@ -200,7 +199,7 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
             D1 = kron3(speye(self.nCz), speye(self.nCy), ddx(self.nCx)[:,1:])
             S = self.r(self.area, 'F', 'Fx', 'V')
             V = self.vol
-            self._faceDivx = sdiag(old_div(1,V))*D1*sdiag(S)
+            self._faceDivx = sdiag(1/V)*D1*sdiag(S)
         return self._faceDivx
 
     @property
@@ -212,7 +211,7 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
             D2 = kron3(speye(self.nCz), ddx(self.nCy), speye(self.nCx))
             S = self.r(self.area, 'F', 'Fy', 'V')
             V = self.vol
-            self._faceDivy = sdiag(old_div(1,V))*D2*sdiag(S)
+            self._faceDivy = sdiag(1/V)*D2*sdiag(S)
         return self._faceDivy
 
     @property
@@ -222,7 +221,7 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
             D3 = kron3(ddx(self.nCz), speye(self.nCy), speye(self.nCx))
             S = self.r(self.area, 'F', 'Fz', 'V')
             V = self.vol
-            self._faceDivz = sdiag(old_div(1,V))*D3*sdiag(S)
+            self._faceDivz = sdiag(1/V)*D3*sdiag(S)
         return self._faceDivz
 
 
@@ -261,7 +260,7 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
             A = self.area
             E = self.edge
             #Edge curl operator
-            self._edgeCurl = sdiag(old_div(1,A))*sp.vstack((Dz, Dr))*sdiag(E)
+            self._edgeCurl = sdiag(1/A)*sp.vstack((Dz, Dr))*sdiag(E)
         return self._edgeCurl
 
     # @property
@@ -362,7 +361,7 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
 
         grid = getattr(Mrect, 'grid' + locTypeTo)
         # This is unit circle stuff, 0 to 2*pi, starting at x-axis, rotating counter clockwise in an x-y slice
-        theta = - np.arctan2(grid[:,0] - self.cartesianOrigin[0], grid[:,1] - self.cartesianOrigin[1]) + old_div(np.pi,2)
+        theta = - np.arctan2(grid[:,0] - self.cartesianOrigin[0], grid[:,1] - self.cartesianOrigin[1]) + np.pi/2
         theta[theta < 0] += np.pi*2.0
         r = ((grid[:,0] - self.cartesianOrigin[0])**2 + (grid[:,1] - self.cartesianOrigin[1])**2)**0.5
 

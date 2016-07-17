@@ -5,7 +5,6 @@ from __future__ import absolute_import
 from future import standard_library
 standard_library.install_aliases()
 from builtins import range
-from past.utils import old_div
 from SimPEG import *
 from SimPEG.EM import FDEM, Analytics, mu_0
 import time
@@ -75,8 +74,8 @@ def run(plotIt=True):
     casing_l = 300   # length of the casing
 
     casing_r = 0.1
-    casing_a = casing_r - old_div(casing_t,2.) # inner radius
-    casing_b = casing_r + old_div(casing_t,2.) # outer radius
+    casing_a = casing_r - casing_t / 2. # inner radius
+    casing_b = casing_r + casing_t / 2. # outer radius
     casing_z = np.r_[-casing_l,0.]
 
 
@@ -86,25 +85,25 @@ def run(plotIt=True):
     src_loc = np.r_[0.,0.,dsz]
     inf_loc = np.r_[0.,0.,1e4]
 
-    print('Skin Depth: ', [(old_div(500.,np.sqrt(sigmaback*_))) for _ in freqs])
+    print('Skin Depth: ', [(500. / np.sqrt(sigmaback*_)) for _ in freqs])
 
 
     # ------------------ MESH ------------------
     # fine cells near well bore
     csx1, csx2 = 2e-3, 60.
     pfx1, pfx2 = 1.3, 1.3
-    ncx1 = np.ceil(old_div(casing_b,csx1)+2)
+    ncx1 = np.ceil(casing_b/csx1)+2
 
     # pad nicely to second cell size
-    npadx1 = np.floor(old_div(np.log(old_div(csx2,csx1)), np.log(pfx1)))
+    npadx1 = np.log(csx2/csx1) // np.log(pfx1)
     hx1a,hx1b = Utils.meshTensor([(csx1,ncx1)]),Utils.meshTensor([(csx1,npadx1,pfx1)])
     dx1 = sum(hx1a)+sum(hx1b)
-    dx1 = np.floor(old_div(dx1,csx2))
-    hx1b *= old_div((dx1*csx2 - sum(hx1a)),sum(hx1b))
+    dx1 = dx1 // csx2
+    hx1b *= (dx1*csx2 - sum(hx1a)) / sum(hx1b)
 
     # second chunk of mesh
     dx2 = 300. # uniform mesh out to here
-    ncx2 = np.ceil(old_div((dx2 - dx1),csx2))
+    ncx2 = np.ceil((dx2 - dx1) / csx2)
     npadx2 = 45
     hx2a, hx2b = Utils.meshTensor([(csx2,ncx2)]), Utils.meshTensor([(csx2,npadx2,pfx2)])
     hx = np.hstack([hx1a,hx1b,hx2a,hx2b])
@@ -112,7 +111,7 @@ def run(plotIt=True):
     # z-direction
     csz = 0.05
     nza = 10
-    ncz, npadzu, npadzd = np.int(np.ceil(old_div(np.diff(casing_z)[0],csz)))+10, 68, 68 # cell size, number of core cells, number of padding cells in the x- direction
+    ncz, npadzu, npadzd = np.int(np.ceil(np.diff(casing_z)[0]/csz))+10, 68, 68 # cell size, number of core cells, number of padding cells in the x- direction
     hz = Utils.meshTensor([(csz,npadzd,-1.3), (csz,ncz), (csz,npadzu,1.3)]) # vector of cell widths in the z-direction
 
     # Mesh
@@ -190,7 +189,7 @@ def run(plotIt=True):
 
     # assemble the source
     sg = np.hstack([sg_x,sg_y,sg_z])
-    sg_p = [FDEM.Src.RawVec_e([],_,old_div(sg,mesh.area)) for _ in freqs]
+    sg_p = [FDEM.Src.RawVec_e([],_,sg/mesh.area) for _ in freqs]
 
     # downhole source
     dg_x = np.zeros(mesh.vnF[0],dtype=complex)
@@ -199,7 +198,7 @@ def run(plotIt=True):
 
     # vertically directed wire
     dgv_indx = (mesh.gridFz[:,0] < csx1)  # go through the center of the well
-    dgv_indz = (mesh.gridFz[:,2] <= +csz*nza) & (mesh.gridFz[:,2] > dsz + old_div(csz,2.))
+    dgv_indz = (mesh.gridFz[:,2] <= +csz*nza) & (mesh.gridFz[:,2] > dsz + csz/2.)
     dgv_ind = dgv_indx & dgv_indz
     dg_z[dgv_ind] = -1.
 
@@ -221,7 +220,7 @@ def run(plotIt=True):
 
     # assemble the source
     dg = np.hstack([dg_x,dg_y,dg_z])
-    dg_p = [FDEM.Src.RawVec_e([],_,old_div(dg,mesh.area)) for _ in freqs]
+    dg_p = [FDEM.Src.RawVec_e([],_,dg/mesh.area) for _ in freqs]
 
     # ------------ Problem and Survey ---------------
     survey = FDEM.Survey(sg_p + dg_p)
@@ -259,9 +258,9 @@ def run(plotIt=True):
     in1_in = in1[np.r_[inds]]
     z_in = mesh.gridFz[inds_fz,2]
 
-    in0_in = in0_in.reshape([old_div(in0_in.shape[0],3),3])
-    in1_in = in1_in.reshape([old_div(in1_in.shape[0],3),3])
-    z_in = z_in.reshape([old_div(z_in.shape[0],3),3])
+    in0_in = in0_in.reshape([in0_in.shape[0]//3,3])
+    in1_in = in1_in.reshape([in1_in.shape[0]//3,3])
+    z_in = z_in.reshape([z_in.shape[0]//3,3])
 
     I0 = in0_in.sum(1).real
     I1 = in1_in.sum(1).real

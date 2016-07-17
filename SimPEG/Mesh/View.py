@@ -8,7 +8,6 @@ standard_library.install_aliases()
 from builtins import zip
 from builtins import range
 from builtins import object
-from past.utils import old_div
 import numpy as np
 from SimPEG.Utils import mkvc
 try:
@@ -139,7 +138,7 @@ class TensorView(object):
 
             # determine number oE slices in x and y dimension
             nX = np.ceil(np.sqrt(self.nCz))
-            nY = np.ceil(old_div(self.nCz,nX))
+            nY = np.ceil(self.nCz/nX)
 
             #  allocate space for montage
             nCx = self.nCx
@@ -239,7 +238,7 @@ class TensorView(object):
         assert type(grid) is bool, 'grid must be a boolean'
 
         szSliceDim = getattr(self, 'nC'+normal.lower()) #: Size of the sliced dimension
-        if ind is None: ind = int(old_div(szSliceDim,2))
+        if ind is None: ind = int(szSliceDim//2)
         assert type(ind) in [int, int], 'ind must be an integer'
 
         assert not (v.dtype == complex and view == 'vec'), 'Can not plot a complex vector.'
@@ -373,8 +372,8 @@ class TensorView(object):
             # spaced vectors at the moment. So we will
             # Interpolate down to a regular mesh at the
             # smallest mesh size in this 2D slice.
-            nxi = int(old_div(self.hx.sum(),self.hx.min()))
-            nyi = int(old_div(self.hy.sum(),self.hy.min()))
+            nxi = int(self.hx.sum()/self.hx.min())
+            nyi = int(self.hy.sum()/self.hy.min())
             tMi = self.__class__([np.ones(nxi)*self.hx.sum()/nxi,
                                   np.ones(nyi)*self.hy.sum()/nyi], self.x0)
             P = self.getInterpolationMat(tMi.gridCC,'CC',zerosOutside=True)

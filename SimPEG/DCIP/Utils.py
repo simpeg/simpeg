@@ -5,7 +5,6 @@ from __future__ import absolute_import
 from future import standard_library
 standard_library.install_aliases()
 from builtins import range
-from past.utils import old_div
 import numpy as np
 
 def WennerSrcList(nElecs, aSpacing, in2D=False, plotIt=False):
@@ -13,7 +12,7 @@ def WennerSrcList(nElecs, aSpacing, in2D=False, plotIt=False):
     import SimPEG.DCIP as DC
 
     elocs = np.arange(0,aSpacing*nElecs,aSpacing)
-    elocs -= old_div((nElecs*aSpacing - aSpacing),2)
+    elocs -= (nElecs*aSpacing - aSpacing) / 2
     space = 1
     WENNER = np.zeros((0,),dtype=int)
     for ii in range(nElecs):

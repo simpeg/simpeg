@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 from future import standard_library
 standard_library.install_aliases()
-from past.utils import old_div
 from builtins import object
 from . import Utils, Survey, Problem
 import numpy as np, scipy.sparse as sp, gc
@@ -108,7 +107,7 @@ class l2_DataMisfit(BaseDataMisfit):
                 print('SimPEG.DataMisfit.l2_DataMisfit assigning default eps of 1e-5 * ||dobs||')
                 survey.eps = np.linalg.norm(Utils.mkvc(survey.dobs),2)*1e-5
 
-            self._Wd = Utils.sdiag(old_div(1,(abs(survey.dobs)*survey.std+survey.eps)))
+            self._Wd = Utils.sdiag(1/(abs(survey.dobs)*survey.std+survey.eps))
         return self._Wd
 
     @Wd.setter

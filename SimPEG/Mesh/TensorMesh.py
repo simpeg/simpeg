@@ -7,7 +7,6 @@ from future import standard_library
 standard_library.install_aliases()
 from builtins import str
 from builtins import range
-from past.utils import old_div
 from SimPEG import Utils, np, sp
 from .BaseMesh import BaseMesh, BaseRectangularMesh
 from .View import TensorView
@@ -307,7 +306,7 @@ class BaseTensorMesh(with_metaclass(Utils.SimPEGMetaClass, BaseMesh)):
             prop = np.ones(self.nC)
 
         if invProp:
-            prop = old_div(1.,prop)
+            prop = 1./prop
 
         if Utils.isScalar(prop):
             prop = prop*np.ones(self.nC)
@@ -352,7 +351,7 @@ class BaseTensorMesh(with_metaclass(Utils.SimPEGMetaClass, BaseMesh)):
             if not invMat and not invProp:
                 dMdprop = self.dim * Av.T * V * ones
             elif invMat and invProp:
-                dMdprop =  self.dim * Utils.sdiag(MI.diagonal()**2) * Av.T * V * ones * Utils.sdiag(old_div(1.,prop**2))
+                dMdprop =  self.dim * Utils.sdiag(MI.diagonal()**2) * Av.T * V * ones * Utils.sdiag(1./prop**2)
 
         if tensorType == 1:
             Av = getattr(self, 'ave'+projType+'2CC')
@@ -360,7 +359,7 @@ class BaseTensorMesh(with_metaclass(Utils.SimPEGMetaClass, BaseMesh)):
             if not invMat and not invProp:
                 dMdprop = self.dim * Av.T * V
             elif invMat and invProp:
-                dMdprop =  self.dim * Utils.sdiag(MI.diagonal()**2) * Av.T * V * Utils.sdiag(old_div(1.,prop**2))
+                dMdprop =  self.dim * Utils.sdiag(MI.diagonal()**2) * Av.T * V * Utils.sdiag(1./prop**2)
 
         if tensorType == 2: # anisotropic
             Av = getattr(self, 'ave'+projType+'2CCV')
@@ -368,7 +367,7 @@ class BaseTensorMesh(with_metaclass(Utils.SimPEGMetaClass, BaseMesh)):
             if not invMat and not invProp:
                 dMdprop = Av.T * V
             elif invMat and invProp:
-                dMdprop =  Utils.sdiag(MI.diagonal()**2) * Av.T * V * Utils.sdiag(old_div(1.,prop**2))
+                dMdprop =  Utils.sdiag(MI.diagonal()**2) * Av.T * V * Utils.sdiag(1./prop**2)
 
         if dMdprop is not None:
             def innerProductDeriv(v=None):

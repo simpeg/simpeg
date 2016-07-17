@@ -6,7 +6,6 @@ from builtins import int
 from future import standard_library
 standard_library.install_aliases()
 from builtins import range
-from past.utils import old_div
 import numpy as np
 from numpy.linalg import norm
 from SimPEG.Utils import mkvc, sdiag, diagEst
@@ -102,7 +101,7 @@ class OrderTest(unittest.TestCase):
                 h1 = np.random.rand(nc)*nc*0.5 + nc*0.5
                 h2 = np.random.rand(nc)*nc*0.5 + nc*0.5
                 h3 = np.random.rand(nc)*nc*0.5 + nc*0.5
-                h = [old_div(hi,np.sum(hi)) for hi in [h1, h2, h3]]  # normalize
+                h = [hi/np.sum(hi) for hi in [h1, h2, h3]]  # normalize
             else:
                 raise Exception('Unexpected meshType')
 
@@ -139,7 +138,7 @@ class OrderTest(unittest.TestCase):
             elif self.meshDimension == 3:
                 X, Y, Z = Utils.exampleLrmGrid([nc, nc, nc], kwrd)
                 self.M = CurvilinearMesh([X, Y, Z])
-            return old_div(1.,nc)
+            return 1./nc
 
         elif 'Tree' in self._meshType:
             nc *= 2
@@ -149,11 +148,11 @@ class OrderTest(unittest.TestCase):
                 h1 = np.random.rand(nc)*nc*0.5 + nc*0.5
                 h2 = np.random.rand(nc)*nc*0.5 + nc*0.5
                 h3 = np.random.rand(nc)*nc*0.5 + nc*0.5
-                h = [old_div(hi,np.sum(hi)) for hi in [h1, h2, h3]]  # normalize
+                h = [hi/np.sum(hi) for hi in [h1, h2, h3]]  # normalize
             else:
                 raise Exception('Unexpected meshType')
 
-            levels = int(old_div(np.log(nc),np.log(2)))
+            levels = int(np.log(nc) / np.log(2))
             self.M = Tree(h[:self.meshDimension], levels=levels)
             def function(cell):
                 if 'notatree' in self._meshType:
@@ -211,8 +210,8 @@ class OrderTest(unittest.TestCase):
                     print('~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~')
                     print('%4i  |  %8.2e   |' % (nc, err))
                 else:
-                    order.append(old_div(np.log(old_div(err,err_old)),np.log(old_div(max_h,max_h_old))))
-                    print('%4i  |  %8.2e   |   %6.4f    |  %6.4f' % (nc, err, old_div(err_old,err), order[-1]))
+                    order.append(np.log(err/err_old)/np.log(max_h/max_h_old))
+                    print('%4i  |  %8.2e   |   %6.4f    |  %6.4f' % (nc, err, err_old/err, order[-1]))
                 err_old = err
                 max_h_old = max_h
             print('---------------------------------------------')
@@ -297,8 +296,8 @@ def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None, expectedOrder=2, tole
             # We assume it is a numpy.ndarray
             E1[i] = l2norm( ft - f0 - h[i]*J0.dot(dx) )
 
-        order0 = np.log10(old_div(E0[:-1],E0[1:]))
-        order1 = np.log10(old_div(E1[:-1],E1[1:]))
+        order0 = np.log10(E0[:-1]/E0[1:])
+        order1 = np.log10(E1[:-1]/E1[1:])
         print(" %d   %1.2e    %1.3e     %1.3e      %1.3f" % (i, h[i], E0[i], E1[i], np.nan if i == 0 else order1[i-1]))
 
     # Ensure we are about precision

@@ -4,7 +4,6 @@ from __future__ import print_function
 from __future__ import absolute_import
 from future import standard_library
 standard_library.install_aliases()
-from past.utils import old_div
 import numpy as np
 from SimPEG.Utils import mkvc
 
@@ -30,7 +29,7 @@ def rotationMatrixFromNormals(v0,v1,tol=1e-20):
     n0 = v0*1./np.linalg.norm(v0)
     n1 = v1*1./np.linalg.norm(v1)
 
-    n0dotn1 = n0.dot(n1) 
+    n0dotn1 = n0.dot(n1)
 
     # define the rotation axis, which is the cross product of the two vectors
     rotAx = np.cross(n0,n1)
@@ -54,7 +53,7 @@ def rotatePointsFromNormals(XYZ,n0,n1,x0=np.r_[0.,0.,0.]):
 
         :param numpy.array n0: vector of length 3, should have norm 1
         :param numpy.array n1: vector of length 3, should have norm 1
-        :param numpy.array x0: vector of length 3, point about which we perform the rotation 
+        :param numpy.array x0: vector of length 3, point about which we perform the rotation
         :rtype: numpy.array, 3x3
         :return: rotation matrix which rotates the frame so that n0 is aligned with n1
     """

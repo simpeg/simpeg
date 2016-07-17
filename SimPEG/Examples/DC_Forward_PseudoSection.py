@@ -6,7 +6,6 @@ from builtins import int
 from future import standard_library
 standard_library.install_aliases()
 from builtins import range
-from past.utils import old_div
 from SimPEG import Mesh, Utils, np, sp
 import SimPEG.DCIP as DC
 import time
@@ -66,7 +65,7 @@ def run(loc=None, sig=None, radi=None, param=None, surveyType='dipole-dipole', u
     model[ind] = sig[2]
 
     # Get index of the center
-    indy = int(old_div(mesh.nCy,2))
+    indy = int(mesh.nCy // 2)
 
     # Plot the model for reference
     # Define core mesh extent
@@ -87,8 +86,8 @@ def run(loc=None, sig=None, radi=None, param=None, surveyType='dipole-dipole', u
 
     # Define some global geometry
     dl_len = np.sqrt( np.sum((locs[0,:] - locs[1,:])**2) )
-    dl_x = old_div(( Tx[-1][0,1] - Tx[0][0,0] ), dl_len)
-    dl_y = old_div(( Tx[-1][1,1] - Tx[0][1,0]  ), dl_len)
+    dl_x = ( Tx[-1][0,1] - Tx[0][0,0] ) / dl_len
+    dl_y = ( Tx[-1][1,1] - Tx[0][1,0]  ) / dl_len
     #azm =  np.arctan(dl_y/dl_x)
 
     #Set boundary conditions
@@ -98,7 +97,7 @@ def run(loc=None, sig=None, radi=None, param=None, surveyType='dipole-dipole', u
     # line source for simplicity.
     Div = mesh.faceDiv
     Grad = mesh.cellGrad
-    Msig = Utils.sdiag(old_div(1.,(mesh.aveF2CC.T*(old_div(1.,model)))))
+    Msig = Utils.sdiag(1./(mesh.aveF2CC.T*(1./model)))
 
     A = Div*Msig*Grad
 
@@ -109,7 +108,7 @@ def run(loc=None, sig=None, radi=None, param=None, surveyType='dipole-dipole', u
     # We will solve the system iteratively, so a pre-conditioner is helpful
     # This is simply a Jacobi preconditioner (inverse of the main diagonal)
     dA = A.diagonal()
-    P = sp.spdiags(old_div(1,dA),0,A.shape[0],A.shape[0])
+    P = sp.spdiags(1/dA,0,A.shape[0],A.shape[0])
 
     # Now we can solve the system for all the transmitters
     # We want to store the data
@@ -133,10 +132,10 @@ def run(loc=None, sig=None, radi=None, param=None, surveyType='dipole-dipole', u
             tx =  np.squeeze(Tx[ii][:,0:1])
             tinf = tx + np.array([dl_x,dl_y,0])*dl_len*2
             inds = Utils.closestPoints(mesh, np.c_[tx,tinf].T)
-            RHS = mesh.getInterpolationMat(np.asarray(Tx[ii]).T, 'CC').T*( old_div([-1], mesh.vol[inds]) )
+            RHS = mesh.getInterpolationMat(np.asarray(Tx[ii]).T, 'CC').T*([-1] / mesh.vol[inds])
         else:
             inds = Utils.closestPoints(mesh, np.asarray(Tx[ii]).T )
-            RHS = mesh.getInterpolationMat(np.asarray(Tx[ii]).T, 'CC').T*( old_div([-1,1], mesh.vol[inds]) )
+            RHS = mesh.getInterpolationMat(np.asarray(Tx[ii]).T, 'CC').T*([-1,1] / mesh.vol[inds])
 
         # Iterative Solve
         Ainvb = sp.linalg.bicgstab(P*A,P*RHS, tol=1e-5)

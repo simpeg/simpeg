@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 from __future__ import print_function
 from future import standard_library
 standard_library.install_aliases()
-from past.utils import old_div
 from SimPEG import Survey as SimPEGsurvey, Utils, Problem, Maps, np, sp, mkvc
 from SimPEG.EM.FDEM.SrcFDEM import BaseSrc as FDEMBaseSrc
 from SimPEG.EM.Utils import omega

@@ -5,7 +5,6 @@ from __future__ import absolute_import
 from builtins import int
 from future import standard_library
 standard_library.install_aliases()
-from past.utils import old_div
 import unittest
 from SimPEG import *
 import SimPEG

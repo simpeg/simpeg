@@ -5,7 +5,6 @@ from __future__ import unicode_literals
 from future import standard_library
 standard_library.install_aliases()
 from builtins import object
-from past.utils import old_div
 from . import Utils, Maps, Mesh
 import numpy as np
 import scipy.sparse as sp
@@ -143,7 +142,7 @@ class RegularizationMesh(object):
         :return: averaging matrix from active x-faces to active cell centers
         """
         if getattr(self, '_aveCC2Fx', None) is None:
-            self._aveCC2Fx =  Utils.sdiag(old_div(1.,(self.aveFx2CC.T).sum(1))) * self.aveFx2CC.T
+            self._aveCC2Fx =  Utils.sdiag(1./(self.aveFx2CC.T).sum(1)) * self.aveFx2CC.T
         return self._aveCC2Fx
 
     @property
@@ -165,7 +164,7 @@ class RegularizationMesh(object):
         :return: averaging matrix from active y-faces to active cell centers
         """
         if getattr(self, '_aveCC2Fy', None) is None:
-            self._aveCC2Fy =  Utils.sdiag(old_div(1.,(self.aveFy2CC.T).sum(1))) * self.aveFy2CC.T
+            self._aveCC2Fy =  Utils.sdiag(1./(self.aveFy2CC.T).sum(1)) * self.aveFy2CC.T
         return self._aveCC2Fy
 
     @property
@@ -187,7 +186,7 @@ class RegularizationMesh(object):
         :return: averaging matrix from active z-faces to active cell centers
         """
         if getattr(self, '_aveCC2Fz', None) is None:
-            self._aveCC2Fz =  Utils.sdiag(old_div(1.,(self.aveFz2CC.T).sum(1))) * self.aveFz2CC.T
+            self._aveCC2Fz =  Utils.sdiag(1./(self.aveFz2CC.T).sum(1)) * self.aveFz2CC.T
         return self._aveCC2Fz
 
     @property
@@ -899,28 +898,28 @@ class Tikhonov(Simple):
 class Sparse(Simple):
     """
         The regularization is:
-    
+
         .. math::
-    
+
             R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top R^\\top R W(m-m_\\text{ref})}
-    
+
         where the IRLS weight
-    
+
         .. math::
-    
+
             R = \eta TO FINISH LATER!!!
-    
+
         So the derivative is straight forward:
-    
+
         .. math::
-    
+
             R(m) = \mathbf{W^\\top R^\\top R W (m-m_\\text{ref})}
-    
+
         The IRLS weights are recomputed after each beta solves.
         It is strongly recommended to do a few Gauss-Newton iterations
         before updating.
     """
-        
+
     # set default values
     eps_p = 1e-1        # Threshold value for the model norm
     eps_q = 1e-1        # Threshold value for the model gradient norm
@@ -1003,7 +1002,7 @@ class Sparse(Simple):
     def R(self, f_m , eps, exponent):
 
         # Eta scaling is important for mix-norms...do not mess with it
-        eta = (eps**(1.-old_div(exponent,2.)))**0.5
-        r = old_div(eta, (f_m**2.+ eps**2.)**(old_div((1.-old_div(exponent,2.)),2.)))
+        eta = (eps**(1.-exponent/2.))**0.5
+        r = eta / (f_m**2.+ eps**2.)**((1.-exponent/2.)/2.)
 
         return r

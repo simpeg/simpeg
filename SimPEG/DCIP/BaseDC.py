@@ -6,7 +6,6 @@ from builtins import super
 from future import standard_library
 standard_library.install_aliases()
 from builtins import range
-from past.utils import old_div
 from SimPEG import *
 
 class FieldsDC_CC(Problem.Fields):
@@ -70,7 +69,7 @@ class SrcDipole(Survey.BaseSrc):
         pts = [self.loc[0], self.loc[1]]
         inds = Utils.closestPoints(prob.mesh, pts)
         q = np.zeros(prob.mesh.nC)
-        q[inds] = - self.current * ( old_div(np.r_[1., -1.], prob.mesh.vol[inds]) )
+        q[inds] = - self.current * (np.r_[1., -1.] / prob.mesh.vol[inds])
         # self._rhsDict[mesh] = q
         # return self._rhsDict[mesh]
         return q
@@ -154,7 +153,7 @@ class ProblemDC_CC(Problem.BaseProblem):
         if getattr(self, '_Msig', None) is None:
             sigma = self.curModel.transform
             Av = self.mesh.aveF2CC
-            self._Msig = Utils.sdiag(old_div(1,(self.mesh.dim * Av.T * (old_div(1,sigma)))))
+            self._Msig = Utils.sdiag(1/(self.mesh.dim * Av.T * (1/sigma)))
         return self._Msig
 
     @property
@@ -162,7 +161,7 @@ class ProblemDC_CC(Problem.BaseProblem):
         if getattr(self, '_dMdsig', None) is None:
             sigma = self.curModel.transform
             Av = self.mesh.aveF2CC
-            dMdprop = self.mesh.dim * Utils.sdiag(self.Msig.diagonal()**2) * Av.T * Utils.sdiag(old_div(1.,sigma**2))
+            dMdprop = self.mesh.dim * Utils.sdiag(self.Msig.diagonal()**2) * Av.T * Utils.sdiag(1./sigma**2)
             self._dMdsig = lambda Gu: Utils.sdiag(Gu) * dMdprop
         return self._dMdsig
 

@@ -5,7 +5,6 @@ from __future__ import unicode_literals
 from future import standard_library
 standard_library.install_aliases()
 from builtins import range
-from past.utils import old_div
 import numpy as np
 import scipy.ndimage as ndi
 import scipy.sparse as sp

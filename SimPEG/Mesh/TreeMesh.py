@@ -10,7 +10,6 @@ from builtins import str
 from builtins import zip
 from builtins import range
 from builtins import object
-from past.utils import old_div
 #      ___                     ___          ___          ___          ___
 #     /\  \         ___       /\__\        /\  \        /\  \        /\  \
 #    /::\  \       /\  \     /::|  |      /::\  \      /::\  \      /::\  \
@@ -178,7 +177,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
     @property
     def fill(self):
         """How filled is the mesh compared to a TensorMesh? As a fraction: [0,1]."""
-        return old_div(float(self.nC),((2**self.maxLevel)**self.dim))
+        return float(self.nC)/((2**self.maxLevel)**self.dim)
 
     @property
     def maxLevel(self):
@@ -590,7 +589,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
 
     def _cellC(self, p):
         """Cell center of a single cell (without origin correction), given a pointer."""
-        return (old_div(np.array(self._cellH(p)),2.0) + self._cellN(p)).tolist()
+        return (np.array(self._cellH(p))/2.0 + self._cellN(p)).tolist()
 
     def _levelWidth(self, level):
         return 2**(self.levels - level)
@@ -878,10 +877,10 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
             p = self._pointer(fx)
             n, h = self._cellN(p), self._cellH(p)
             if self.dim == 2:
-                gridFx.append( [n[0], n[1] + old_div(h[1],2.0)] )
+                gridFx.append( [n[0], n[1] + h[1]/2.0] )
                 areaFx.append( h[1] )
             elif self.dim == 3:
-                gridFx.append( [n[0], n[1] + old_div(h[1],2.0), n[2] + old_div(h[2],2.0)] )
+                gridFx.append( [n[0], n[1] + h[1]/2.0, n[2] + h[2]/2.0] )
                 areaFx.append( h[1]*h[2] )
         self._gridFx = np.array(gridFx)
         self._areaFxFull = np.array(areaFx)
@@ -894,10 +893,10 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
             p = self._pointer(fy)
             n, h = self._cellN(p), self._cellH(p)
             if self.dim == 2:
-                gridFy.append( [n[0] + old_div(h[0],2.0), n[1]] )
+                gridFy.append( [n[0] + h[0]/2.0, n[1]] )
                 areaFy.append( h[0] )
             elif self.dim == 3:
-                gridFy.append( [n[0] + old_div(h[0],2.0), n[1], n[2] + old_div(h[2],2.0)] )
+                gridFy.append( [n[0] + h[0]/2.0, n[1], n[2] + h[2]/2.0] )
                 areaFy.append( h[0]*h[2] )
         self._gridFy = np.array(gridFy)
         self._areaFyFull = np.array(areaFy)
@@ -913,7 +912,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
             self._fz2i[fz] = ii
             p = self._pointer(fz)
             n, h = self._cellN(p), self._cellH(p)
-            gridFz.append( [n[0] + old_div(h[0],2.0), n[1] + old_div(h[1],2.0), n[2]] )
+            gridFz.append( [n[0] + h[0]/2.0, n[1] + h[1]/2.0, n[2]] )
             areaFz.append(h[0]*h[1])
         self._gridFz = np.array(gridFz)
         self._areaFzFull = np.array(areaFz)
@@ -934,7 +933,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
             self._ex2i[ex] = ii
             p = self._pointer(ex)
             n, h = self._cellN(p), self._cellH(p)
-            gridEx.append( [n[0] + old_div(h[0],2.0), n[1], n[2]] )
+            gridEx.append( [n[0] + h[0]/2.0, n[1], n[2]] )
             edgeEx.append( h[0] )
         self._gridEx = np.array(gridEx)
         self._edgeExFull = np.array(edgeEx)
@@ -946,7 +945,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
             self._ey2i[ey] = ii
             p = self._pointer(ey)
             n, h = self._cellN(p), self._cellH(p)
-            gridEy.append( [n[0], n[1] + old_div(h[1],2.0), n[2]] )
+            gridEy.append( [n[0], n[1] + h[1]/2.0, n[2]] )
             edgeEy.append( h[1] )
         self._gridEy = np.array(gridEy)
         self._edgeEyFull = np.array(edgeEy)
@@ -958,7 +957,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
             self._ez2i[ez] = ii
             p = self._pointer(ez)
             n, h = self._cellN(p), self._cellH(p)
-            gridEz.append( [n[0], n[1], n[2] + old_div(h[2],2.0)] )
+            gridEz.append( [n[0], n[1], n[2] + h[2]/2.0] )
             edgeEz.append( h[2] )
         self._gridEz = np.array(gridEz)
         self._edgeEzFull = np.array(edgeEz)
@@ -998,12 +997,12 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
                 chy1 = self._cellH([p[0]    , p[1] + w, sl])[1]
                 A = (chy0 + chy1)
 
-                self._hangingFx[self._fx2i[test                                 ]] = ([self._fx2i[fx], old_div(chy0, A)], )
-                self._hangingFx[self._fx2i[self._index([p[0]    , p[1] + w, sl])]] = ([self._fx2i[fx], old_div(chy1, A)], )
+                self._hangingFx[self._fx2i[test                                 ]] = ([self._fx2i[fx], chy0 / A], )
+                self._hangingFx[self._fx2i[self._index([p[0]    , p[1] + w, sl])]] = ([self._fx2i[fx], chy1 / A], )
 
                 n0, n1 = fx, self._index([p[0], p[1] + 2*w, p[-1]])
                 self._hangingN[self._n2i[test                                   ]] = ([self._n2i[n0], 1.0], )
-                self._hangingN[self._n2i[self._index([p[0]    , p[1] +   w, sl])]] = ([self._n2i[n0], 1.0 - old_div(chy0, A)], [self._n2i[n1], 1.0 - old_div(chy1, A)])
+                self._hangingN[self._n2i[self._index([p[0]    , p[1] +   w, sl])]] = ([self._n2i[n0], 1.0 - chy0 / A], [self._n2i[n1], 1.0 - chy1 / A])
                 self._hangingN[self._n2i[self._index([p[0]    , p[1] + 2*w, sl])]] = ([self._n2i[n1], 1.0], )
 
             elif self.dim == 3:
@@ -1094,8 +1093,8 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
                 chx0 = self._cellH([p[0]    , p[1]    , sl])[0]
                 chx1 = self._cellH([p[0] + w, p[1]    , sl])[0]
 
-                self._hangingFy[self._fy2i[test                                 ]] = ([self._fy2i[fy], old_div(chx0, (chx0 + chx1))], )
-                self._hangingFy[self._fy2i[self._index([p[0] + w, p[1]    , sl])]] = ([self._fy2i[fy], old_div(chx1, (chx0 + chx1))], )
+                self._hangingFy[self._fy2i[test                                 ]] = ([self._fy2i[fy], chx0 / (chx0 + chx1)], )
+                self._hangingFy[self._fy2i[self._index([p[0] + w, p[1]    , sl])]] = ([self._fy2i[fy], chx1 / (chx0 + chx1)], )
 
                 n0, n1 = fy, self._index([p[0] + 2*w, p[1], p[-1]])
                 self._hangingN[self._n2i[test                                   ]] = ([self._n2i[n0], 1.0], )
@@ -1356,7 +1355,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
                 S = np.r_[self._areaFxFull, self._areaFyFull]
             elif self.dim == 3:
                 S = np.r_[self._areaFxFull, self._areaFyFull, self._areaFzFull]
-            self._faceDiv = Utils.sdiag(old_div(1.0,VOL))*D*Utils.sdiag(S)*R
+            self._faceDiv = Utils.sdiag(1.0/VOL)*D*Utils.sdiag(S)*R
         return self._faceDiv
 
     @property
@@ -1431,12 +1430,12 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
             Rf = self._deflationMatrix('F', withHanging=True, asOnes=False)
             Re = self._deflationMatrix('E')
 
-            Rf_ave = Utils.sdiag(old_div(1.,Rf.sum(axis=0))) * Rf.T
+            Rf_ave = Utils.sdiag(1./Rf.sum(axis=0)) * Rf.T
 
             C = sp.csr_matrix((V,(I,J)), shape=(self.ntF, self.ntE))
             S = np.r_[self._areaFxFull, self._areaFyFull, self._areaFzFull]
             L = np.r_[self._edgeExFull, self._edgeEyFull, self._edgeEzFull]
-            self._edgeCurl = Rf_ave*Utils.sdiag(old_div(1.0,S))*C*Utils.sdiag(L)*Re
+            self._edgeCurl = Rf_ave*Utils.sdiag(1.0/S)*C*Utils.sdiag(L)*Re
         return self._edgeCurl
 
     @property
@@ -1495,9 +1494,9 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
             Rn = self._deflationMatrix('N')
             Re = self._deflationMatrix('E', withHanging=True, asOnes=False)
 
-            Re_ave = Utils.sdiag(old_div(1.,Re.sum(axis=0))) * Re.T
+            Re_ave = Utils.sdiag(1./Re.sum(axis=0)) * Re.T
 
-            self._nodalGrad = Re_ave*Utils.sdiag(old_div(1,L))*G*Rn
+            self._nodalGrad = Re_ave*Utils.sdiag(1/L)*G*Rn
         return self._nodalGrad
 
     @property
@@ -1509,7 +1508,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
                 raise Exception('aveEx2CC not implemented in 2D')
 
             if self.dim == 3:
-                PM = [old_div(1.,4.)]*4
+                PM = [0.25]*4
 
                 for ii, ind in enumerate(self._sortedCells):
                     p = self._pointer(ind)
@@ -1543,7 +1542,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
                 raise NotImplementedError('aveEy2CC not implemented in 2D')
 
             if self.dim == 3:
-                PM = [old_div(1.,4.)]*4 # plus / plus
+                PM = [0.25]*4 # plus / plus
 
                 for ii, ind in enumerate(self._sortedCells):
                     p = self._pointer(ind)
@@ -1578,7 +1577,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
                 raise Exception('There are no z edges in 2D')
 
             if self.dim == 3:
-                PM = [old_div(1.,4.)]*4 # plus / plus
+                PM = [0.25]*4 # plus / plus
 
                 for ii, ind in enumerate(self._sortedCells):
                     p = self._pointer(ind)
@@ -1629,7 +1628,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
     def aveFx2CC(self):
         if getattr(self, '_aveFx2CC', None) is None:
             I, J, V = [], [], []
-            PM = [old_div(1.,2.)]*self.dim # 0.5, 0.5
+            PM = [0.5]*self.dim # 0.5, 0.5
 
             for ii, ind in enumerate(self._sortedCells):
                 p = self._pointer(ind)
@@ -1662,7 +1661,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
     def aveFy2CC(self):
         if getattr(self, '_aveFy2CC', None) is None:
             I, J, V = [], [], []
-            PM = [old_div(1.,2.)]*2 # 0.5, 0.5
+            PM = [0.5]*2 # 0.5, 0.5
 
             for ii, ind in enumerate(self._sortedCells):
                 p = self._pointer(ind)
@@ -1694,7 +1693,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
     def aveFz2CC(self):
         if getattr(self, '_aveFz2CC', None) is None:
             I, J, V = [], [], []
-            PM = [old_div(1.,2.)]*2 # 0.5, 0.5
+            PM = [0.5]*2 # 0.5, 0.5
 
             for ii, ind in enumerate(self._sortedCells):
                 p = self._pointer(ind)
@@ -1742,7 +1741,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
     def aveN2CC(self):
         if getattr(self, '_aveN2CC', None) is None:
             I, J, V = [], [], []
-            PM = [old_div(1.,2.**self.dim)] * 2**self.dim
+            PM = [1./2.**self.dim] * 2**self.dim
 
             for ii, ind in enumerate(self._sortedCells):
                 p = self._pointer(ind)
@@ -2165,7 +2164,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
         import matplotlib.cm as cmx
 
         szSliceDim = len(getattr(self, 'h'+normal.lower())) #: Size of the sliced dimension
-        if ind is None: ind = int(old_div(szSliceDim,2))
+        if ind is None: ind = int(szSliceDim // 2)
         assert type(ind) in [int, int], 'ind must be an integer'
         indLoc = getattr(self,'vectorCC'+normal.lower())[ind]
         normalInd = {'X':0,'Y':1,'Z':2}[normal]

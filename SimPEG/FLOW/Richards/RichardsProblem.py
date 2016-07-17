@@ -5,7 +5,6 @@ from __future__ import unicode_literals
 from future import standard_library
 standard_library.install_aliases()
 from builtins import range
-from past.utils import old_div
 from SimPEG import *
 from .Empirical import RichardsMap
 import time
@@ -176,7 +175,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
         #       DIV*diag(GRAD*hn1+BC*bc)*(AV*(1.0/K))^-1
 
         DdiagGh1 = DIV*Utils.sdiag(GRAD*hn1+BC*bc)
-        diagAVk2_AVdiagK2 = Utils.sdiag((AV*(old_div(1.,K1)))**(-2)) * AV*Utils.sdiag(K1**(-2))
+        diagAVk2_AVdiagK2 = Utils.sdiag((AV*(1./K1))**(-2)) * AV*Utils.sdiag(K1**(-2))
 
         # The matrix that we are computing has the form:
         #
@@ -188,12 +187,12 @@ class RichardsProblem(Problem.BaseTimeProblem):
         #  |                         Asub    Adiag  | | hn |   | bn |
         #   -                                      -   -  -     -  -
 
-        Asub = (old_div(-1.0,dt))*dT
+        Asub = (-1.0/dt)*dT
 
         Adiag = (
-                  (old_div(1.0,dt))*dT1
+                  (1.0/dt)*dT1
                  -DdiagGh1*diagAVk2_AVdiagK2*dK1
-                 -DIV*Utils.sdiag(old_div(1.,(AV*(old_div(1.,K1)))))*GRAD
+                 -DIV*Utils.sdiag(1./(AV*(1./K1)))*GRAD
                  -Dz*diagAVk2_AVdiagK2*dK1
                 )
 
@@ -223,17 +222,17 @@ class RichardsProblem(Problem.BaseTimeProblem):
         K  = self.mapping.k(h, m)
         dK = self.mapping.kDerivU(h, m)
 
-        aveK = old_div(1.,(AV*(old_div(1.,K))))
+        aveK = 1./(AV*(1./K))
 
         RHS = DIV*Utils.sdiag(aveK)*(GRAD*h+BC*bc) + Dz*aveK
         if self.method == 'mixed':
-            r = old_div((T-Tn),dt) - RHS
+            r = (T-Tn)/dt - RHS
         elif self.method == 'head':
             r = dT*(h - hn)/dt - RHS
 
         if not return_g: return r
 
-        J = old_div(dT,dt) - DIV*Utils.sdiag(aveK)*GRAD
+        J = dT/dt - DIV*Utils.sdiag(aveK)*GRAD
         if self.doNewton:
             DDharmAve = Utils.sdiag(aveK**2)*AV*Utils.sdiag(K**(-2)) * dK
             J = J - DIV*Utils.sdiag(GRAD*h + BC*bc)*DDharmAve - Dz*DDharmAve

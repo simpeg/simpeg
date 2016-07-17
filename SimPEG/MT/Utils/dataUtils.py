@@ -4,7 +4,6 @@ from __future__ import division
 from __future__ import unicode_literals
 from future import standard_library
 standard_library.install_aliases()
-from past.utils import old_div
 # Utils used for the data,
 import numpy as np, matplotlib.pyplot as plt, sys
 import SimPEG as simpeg

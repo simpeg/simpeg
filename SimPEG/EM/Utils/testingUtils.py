@@ -5,7 +5,6 @@ from __future__ import absolute_import
 from builtins import int
 from future import standard_library
 standard_library.install_aliases()
-from past.utils import old_div
 import unittest
 from SimPEG import *
 from SimPEG import EM
@@ -32,7 +31,7 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
     else:
         mapping = Maps.ExpMap(mesh)
 
-    x = np.array([np.linspace(-5.*cs,-2.*cs,3),np.linspace(5.*cs,2.*cs,3)]) + old_div(cs,4.) #don't sample right by the source, slightly off alignment from either staggered grid
+    x = np.array([np.linspace(-5.*cs,-2.*cs,3),np.linspace(5.*cs,2.*cs,3)]) + cs/4. #don't sample right by the source, slightly off alignment from either staggered grid
     XYZ = Utils.ndgrid(x,x,np.linspace(-2.*cs,2.*cs,5))
     Rx0 = getattr(EM.FDEM.Rx, 'Point_' + comp[0])
     if comp[2] == 'r':

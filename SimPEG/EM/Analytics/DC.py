@@ -5,7 +5,6 @@ from __future__ import absolute_import
 from future import standard_library
 standard_library.install_aliases()
 from builtins import range
-from past.utils import old_div
 import numpy as np
 from scipy.constants import mu_0, pi
 from scipy import special
@@ -32,8 +31,8 @@ def DCAnalyticHalf(txloc, rxlocs, sigma, earth_type="wholespace"):
     rM = np.sqrt( (M[:,0]-txloc[0])**2 + (M[:,1]-txloc[1])**2 + (M[:,2]-txloc[1])**2 )
     rN = np.sqrt( (N[:,0]-txloc[0])**2 + (N[:,1]-txloc[1])**2 + (N[:,2]-txloc[1])**2 )
 
-    phiM = old_div(1.,(4*np.pi*rM*sigma))
-    phiN = old_div(1.,(4*np.pi*rN*sigma))
+    phiM = 1./(4*np.pi*rM*sigma)
+    phiN = 1./(4*np.pi*rN*sigma)
     phi = phiM - phiN
 
     if earth_type == "halfspace":
@@ -77,8 +76,8 @@ def DCAnalyticSphere(txloc, rxloc, xc, radius, sigma, sigma1, \
         Pleg.append(special.legendre(i, monic=0))
 
 
-    rho = old_div(1.,sigma)
-    rho1 = old_div(1.,sigma1)
+    rho = 1./sigma
+    rho1 = 1./sigma1
 
     # Center of the sphere should be aligned in txloc in y-direction
     yc = txloc[1]

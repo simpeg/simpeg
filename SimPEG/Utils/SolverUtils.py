@@ -6,7 +6,6 @@ from future import standard_library
 standard_library.install_aliases()
 from builtins import range
 from builtins import object
-from past.utils import old_div
 import numpy as np, scipy.sparse as sp
 from .matutils import mkvc
 import warnings
@@ -81,7 +80,7 @@ def SolverWrapD(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6, name=
         if factorize and hasattr(self.solver, 'clean'):
             return self.solver.clean()
 
-    return type(name if name is not None else fun.__name__, (object,), {"__init__": __init__, "clean": clean, "__mul__": __mul__})
+    return type(str(name if name is not None else fun.__name__), (object,), {"__init__": __init__, "clean": clean, "__mul__": __mul__})
 
 
 

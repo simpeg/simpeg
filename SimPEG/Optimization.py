@@ -5,7 +5,6 @@ from __future__ import unicode_literals
 from builtins import super
 from future import standard_library
 standard_library.install_aliases()
-from past.utils import old_div
 from builtins import object
 from . import Utils
 import numpy as np, scipy.sparse as sp
@@ -703,10 +702,10 @@ class BFGS(Minimize, Remember):
             d = self.bfgsH0 * d   #Assume that bfgsH0 is a SimPEG.Solver
         else:
             khat    = 0 if nn is 0 else np.mod(n-nn+k,nn)
-            gamma   = old_div(np.vdot(S[:,khat],d),np.vdot(Y[:,khat],S[:,khat]))
+            gamma   = np.vdot(S[:,khat],d)/np.vdot(Y[:,khat],S[:,khat])
             d       = d - gamma*Y[:,khat]
             d       = self.bfgsrec(k-1,n,nn,S,Y,d)
-            d       = d + (gamma - old_div(np.vdot(Y[:,khat],d),np.vdot(Y[:,khat],S[:,khat])))*S[:,khat]
+            d       = d + (gamma - np.vdot(Y[:,khat],d)/np.vdot(Y[:,khat],S[:,khat]))*S[:,khat]
         return d
 
     def findSearchDirection(self):
@@ -984,7 +983,7 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
                 if cgiter == 1:
                     pc = dc
                 else:
-                    betak = old_div(rd, rdlast)
+                    betak = rd / rdlast
                     pc = dc + betak * pc
 
                 #  Form product Hessian*pc.
@@ -992,12 +991,12 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
                 Hp = (1-Active)*Hp
 
                 #  Update delx and residual.
-                alphak = old_div(rd, np.dot(pc, Hp))
+                alphak = rd / np.dot(pc, Hp)
                 delx = delx + alphak*pc
                 resid = resid - alphak*Hp
                 rdlast = rd
 
-                if np.logical_or(old_div(norm(resid),normResid0) <= self.tolCG, cgiter == self.maxIterCG):
+                if np.logical_or(norm(resid)/normResid0 <= self.tolCG, cgiter == self.maxIterCG):
                     cgFlag = 1
                 # End CG Iterations
 

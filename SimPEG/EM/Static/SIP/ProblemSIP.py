@@ -6,7 +6,6 @@ from builtins import int
 from future import standard_library
 standard_library.install_aliases()
 from builtins import range
-from past.utils import old_div
 from SimPEG import Problem, Utils, Maps, Mesh
 from SimPEG.EM.Base import BaseEMProblem
 from SimPEG.EM.Static.DC.FieldsDC import Fields, Fields_CC, Fields_N
@@ -114,7 +113,7 @@ class BaseSIPProblem(BaseEMProblem):
         JvAll = []
         #Assume only eta and tau (eta first then tau)
         # v = [2*Mx1]
-        v = v.reshape((int(old_div(v.size,2)), 2), order='F')
+        v = v.reshape((v.size//2), 2), order='F')
 
         for tind in range(len(self.survey.times)):
             t = self.survey.times[tind]

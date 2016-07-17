@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 from future import standard_library
 standard_library.install_aliases()
-from past.utils import old_div
 import numpy as np
 import unittest
 from SimPEG import *

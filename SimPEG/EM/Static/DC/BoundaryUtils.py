@@ -4,7 +4,6 @@ from __future__ import print_function
 from __future__ import absolute_import
 from future import standard_library
 standard_library.install_aliases()
-from past.utils import old_div
 import numpy as np
 
 def getxBCyBC_CC(mesh, alpha, beta, gamma):
@@ -38,15 +37,15 @@ def getxBCyBC_CC(mesh, alpha, beta, gamma):
         # h_xm, h_xp = mesh.gridCC[fCCxm], mesh.gridCC[fCCxp]
         h_xm, h_xp = mesh.hx[0], mesh.hx[-1]
 
-        a_xm = old_div(gamma_xm,(0.5*alpha_xm-old_div(beta_xm,h_xm)))
-        b_xm = old_div((0.5*alpha_xm+old_div(beta_xm,h_xm)),(0.5*alpha_xm-old_div(beta_xm,h_xm)))
-        a_xp = old_div(gamma_xp,(0.5*alpha_xp-old_div(beta_xp,h_xp)))
-        b_xp = old_div((0.5*alpha_xp+old_div(beta_xp,h_xp)),(0.5*alpha_xp-old_div(beta_xp,h_xp)))
+        a_xm = gamma_xm/(0.5*alpha_xm-beta_xm/h_xm)
+        b_xm = (0.5*alpha_xm+beta_xm/h_xm)/(0.5*alpha_xm-beta_xm/h_xm)
+        a_xp = gamma_xp/(0.5*alpha_xp-beta_xp/h_xp)
+        b_xp = (0.5*alpha_xp+beta_xp/h_xp)/(0.5*alpha_xp-beta_xp/h_xp)
 
         xBC_xm = 0.5*a_xm
         xBC_xp = 0.5*a_xp/b_xp
         yBC_xm = 0.5*(1.-b_xm)
-        yBC_xp = 0.5*(1.-old_div(1.,b_xp))
+        yBC_xp = 0.5*(1.-1./b_xp)
 
         xBC = np.r_[xBC_xm, xBC_xp]
         yBC = np.r_[yBC_xm, yBC_xp]
@@ -69,24 +68,24 @@ def getxBCyBC_CC(mesh, alpha, beta, gamma):
         h_xm, h_xp = mesh.hx[0]*np.ones_like(alpha_xm), mesh.hx[-1]*np.ones_like(alpha_xp)
         h_ym, h_yp = mesh.hy[0]*np.ones_like(alpha_ym), mesh.hy[-1]*np.ones_like(alpha_yp)
 
-        a_xm = old_div(gamma_xm,(0.5*alpha_xm-old_div(beta_xm,h_xm)))
-        b_xm = old_div((0.5*alpha_xm+old_div(beta_xm,h_xm)),(0.5*alpha_xm-old_div(beta_xm,h_xm)))
-        a_xp = old_div(gamma_xp,(0.5*alpha_xp-old_div(beta_xp,h_xp)))
-        b_xp = old_div((0.5*alpha_xp+old_div(beta_xp,h_xp)),(0.5*alpha_xp-old_div(beta_xp,h_xp)))
+        a_xm = gamma_xm/(0.5*alpha_xm-beta_xm/h_xm)
+        b_xm = (0.5*alpha_xm+beta_xm/h_xm)/(0.5*alpha_xm-beta_xm/h_xm)
+        a_xp = gamma_xp/(0.5*alpha_xp-beta_xp/h_xp)
+        b_xp = (0.5*alpha_xp+beta_xp/h_xp)/(0.5*alpha_xp-beta_xp/h_xp)
 
-        a_ym = old_div(gamma_ym,(0.5*alpha_ym-old_div(beta_ym,h_ym)))
-        b_ym = old_div((0.5*alpha_ym+old_div(beta_ym,h_ym)),(0.5*alpha_ym-old_div(beta_ym,h_ym)))
-        a_yp = old_div(gamma_yp,(0.5*alpha_yp-old_div(beta_yp,h_yp)))
-        b_yp = old_div((0.5*alpha_yp+old_div(beta_yp,h_yp)),(0.5*alpha_yp-old_div(beta_yp,h_yp)))
+        a_ym = gamma_ym/(0.5*alpha_ym-beta_ym/h_ym)
+        b_ym = (0.5*alpha_ym+beta_ym/h_ym)/(0.5*alpha_ym-beta_ym/h_ym)
+        a_yp = gamma_yp/(0.5*alpha_yp-beta_yp/h_yp)
+        b_yp = (0.5*alpha_yp+beta_yp/h_yp)/(0.5*alpha_yp-beta_yp/h_yp)
 
         xBC_xm = 0.5*a_xm
         xBC_xp = 0.5*a_xp/b_xp
         yBC_xm = 0.5*(1.-b_xm)
-        yBC_xp = 0.5*(1.-old_div(1.,b_xp))
+        yBC_xp = 0.5*(1.-1./b_xp)
         xBC_ym = 0.5*a_ym
         xBC_yp = 0.5*a_yp/b_yp
         yBC_ym = 0.5*(1.-b_ym)
-        yBC_yp = 0.5*(1.-old_div(1.,b_yp))
+        yBC_yp = 0.5*(1.-1./b_yp)
 
         sortindsfx = np.argsort(np.r_[np.arange(mesh.nFx)[fxm], np.arange(mesh.nFx)[fxp]])
         sortindsfy = np.argsort(np.r_[np.arange(mesh.nFy)[fym], np.arange(mesh.nFy)[fyp]])
@@ -121,33 +120,33 @@ def getxBCyBC_CC(mesh, alpha, beta, gamma):
         h_ym, h_yp = mesh.hy[0]*np.ones_like(alpha_ym), mesh.hy[-1]*np.ones_like(alpha_yp)
         h_zm, h_zp = mesh.hz[0]*np.ones_like(alpha_zm), mesh.hz[-1]*np.ones_like(alpha_zp)
 
-        a_xm = old_div(gamma_xm,(0.5*alpha_xm-old_div(beta_xm,h_xm)))
-        b_xm = old_div((0.5*alpha_xm+old_div(beta_xm,h_xm)),(0.5*alpha_xm-old_div(beta_xm,h_xm)))
-        a_xp = old_div(gamma_xp,(0.5*alpha_xp-old_div(beta_xp,h_xp)))
-        b_xp = old_div((0.5*alpha_xp+old_div(beta_xp,h_xp)),(0.5*alpha_xp-old_div(beta_xp,h_xp)))
+        a_xm = gamma_xm/(0.5*alpha_xm-beta_xm/h_xm)
+        b_xm = (0.5*alpha_xm+beta_xm/h_xm)/(0.5*alpha_xm-beta_xm/h_xm)
+        a_xp = gamma_xp/(0.5*alpha_xp-beta_xp/h_xp)
+        b_xp = (0.5*alpha_xp+beta_xp/h_xp)/(0.5*alpha_xp-beta_xp/h_xp)
 
-        a_ym = old_div(gamma_ym,(0.5*alpha_ym-old_div(beta_ym,h_ym)))
-        b_ym = old_div((0.5*alpha_ym+old_div(beta_ym,h_ym)),(0.5*alpha_ym-old_div(beta_ym,h_ym)))
-        a_yp = old_div(gamma_yp,(0.5*alpha_yp-old_div(beta_yp,h_yp)))
-        b_yp = old_div((0.5*alpha_yp+old_div(beta_yp,h_yp)),(0.5*alpha_yp-old_div(beta_yp,h_yp)))
+        a_ym = gamma_ym/(0.5*alpha_ym-beta_ym/h_ym)
+        b_ym = (0.5*alpha_ym+beta_ym/h_ym)/(0.5*alpha_ym-beta_ym/h_ym)
+        a_yp = gamma_yp/(0.5*alpha_yp-beta_yp/h_yp)
+        b_yp = (0.5*alpha_yp+beta_yp/h_yp)/(0.5*alpha_yp-beta_yp/h_yp)
 
-        a_zm = old_div(gamma_zm,(0.5*alpha_zm-old_div(beta_zm,h_zm)))
-        b_zm = old_div((0.5*alpha_zm+old_div(beta_zm,h_zm)),(0.5*alpha_zm-old_div(beta_zm,h_zm)))
-        a_zp = old_div(gamma_zp,(0.5*alpha_zp-old_div(beta_zp,h_zp)))
-        b_zp = old_div((0.5*alpha_zp+old_div(beta_zp,h_zp)),(0.5*alpha_zp-old_div(beta_zp,h_zp)))
+        a_zm = gamma_zm/(0.5*alpha_zm-beta_zm/h_zm)
+        b_zm = (0.5*alpha_zm+beta_zm/h_zm)/(0.5*alpha_zm-beta_zm/h_zm)
+        a_zp = gamma_zp/(0.5*alpha_zp-beta_zp/h_zp)
+        b_zp = (0.5*alpha_zp+beta_zp/h_zp)/(0.5*alpha_zp-beta_zp/h_zp)
 
         xBC_xm = 0.5*a_xm
         xBC_xp = 0.5*a_xp/b_xp
         yBC_xm = 0.5*(1.-b_xm)
-        yBC_xp = 0.5*(1.-old_div(1.,b_xp))
+        yBC_xp = 0.5*(1.-1./b_xp)
         xBC_ym = 0.5*a_ym
         xBC_yp = 0.5*a_yp/b_yp
         yBC_ym = 0.5*(1.-b_ym)
-        yBC_yp = 0.5*(1.-old_div(1.,b_yp))
+        yBC_yp = 0.5*(1.-1./b_yp)
         xBC_zm = 0.5*a_zm
         xBC_zp = 0.5*a_zp/b_zp
         yBC_zm = 0.5*(1.-b_zm)
-        yBC_zp = 0.5*(1.-old_div(1.,b_zp))
+        yBC_zp = 0.5*(1.-1./b_zp)
 
         sortindsfx = np.argsort(np.r_[np.arange(mesh.nFx)[fxm], np.arange(mesh.nFx)[fxp]])
         sortindsfy = np.argsort(np.r_[np.arange(mesh.nFy)[fym], np.arange(mesh.nFy)[fyp]])

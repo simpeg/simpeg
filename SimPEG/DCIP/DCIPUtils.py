@@ -8,7 +8,6 @@ from future import standard_library
 standard_library.install_aliases()
 from builtins import map
 from builtins import range
-from past.utils import old_div
 from SimPEG import np, Utils
 from . import BaseDC as DC
 from . import BaseDC as IP
@@ -222,8 +221,8 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', unitType='volt
         MN = np.abs(Rx[1][:,0] - Rx[0][:,0])
 
         # Create mid-point location
-        Cmid = old_div((Tx[0][0] + Tx[1][0]),2)
-        Pmid = old_div((Rx[0][:,0] + Rx[1][:,0]),2)
+        Cmid = (Tx[0][0] + Tx[1][0])/2
+        Pmid = (Rx[0][:,0] + Rx[1][:,0])/2
 
         # Change output for unitType
         if unitType == 'volt':
@@ -239,7 +238,7 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', unitType='volt
 
             elif surveyType == 'dipole-dipole':
 
-                leg = data * 2*np.pi / ( old_div(1,MA) - old_div(1,MB) - old_div(1,NB) + old_div(1,NA) )
+                leg = data * 2*np.pi / (1/MA - 1/MB - 1/NB + 1/NA)
 
             else:
                 print("""unitType must be 'pole-dipole' | 'dipole-dipole' """)
@@ -248,7 +247,7 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', unitType='volt
 
             if unitType == 'appConductivity':
 
-                leg = np.log10(abs(old_div(1.,leg)))
+                leg = np.log10(abs(1./leg))
                 rho = np.hstack([rho,leg])
 
             elif unitType == 'appResistivity':
@@ -260,8 +259,8 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', unitType='volt
                 print("""unitType must be 'appResistivity' | 'appConductivity' | 'volt' """)
                 break
 
-        midx = np.hstack([midx, old_div(( Cmid + Pmid ),2) ])
-        midz = np.hstack([midz, old_div(-np.abs(Cmid-Pmid),2) + old_div((Tx[0][2] + Tx[1][2]),2) ])
+        midx = np.hstack([midx, (Cmid + Pmid)/2])
+        midz = np.hstack([midz, -np.abs(Cmid-Pmid)/2 + (Tx[0][2] + Tx[1][2])/2])
 
     # Grid points
     grid_x, grid_z = np.mgrid[np.min(midx):np.max(midx), np.min(midz):np.max(midz)]
@@ -348,10 +347,10 @@ def gen_DCIPsurvey(endl, mesh, surveyType, AM_sep, MN_sep, nrx):
     # Mesure survey length and direction
     dl_len = xy_2_r(endl[0,0],endl[1,0],endl[0,1],endl[1,1])
 
-    dl_x = old_div(( endl[1,0] - endl[0,0] ), dl_len)
-    dl_y = old_div(( endl[1,1] - endl[0,1] ), dl_len)
+    dl_x = ( endl[1,0] - endl[0,0] ) / dl_len
+    dl_y = ( endl[1,1] - endl[0,1] ) / dl_len
 
-    nstn = np.floor( old_div(dl_len, AM_sep) )
+    nstn = np.floor(dl_len / AM_sep)
 
     # Compute discrete pole location along line
     stn_x = endl[0,0] + np.array(list(range(int(nstn))))*dl_x*AM_sep
@@ -387,7 +386,7 @@ def gen_DCIPsurvey(endl, mesh, surveyType, AM_sep, MN_sep, nrx):
             AB = xy_2_r(tx[0,1],endl[1,0],tx[1,1],endl[1,1])
 
             # Number of receivers to fit
-            nstn = np.min([np.floor( old_div((AB - MN_sep), AM_sep) ) , nrx])
+            nstn = np.min([(AB - MN_sep) // AM_sep, nrx])
 
             # Check if there is enough space, else break the loop
             if nstn <= 0:
@@ -428,16 +427,16 @@ def gen_DCIPsurvey(endl, mesh, surveyType, AM_sep, MN_sep, nrx):
         max_y = endl[1,1] - dl_y * MN_sep
 
         box_l = np.sqrt( (min_x - max_x)**2 + (min_y - max_y)**2 )
-        box_w = old_div(box_l,2.)
+        box_w = box_l/2.
 
-        nstn = np.floor( old_div(box_l, AM_sep) )
+        nstn = box_l // AM_sep
 
         # Compute discrete pole location along line
         stn_x = min_x + np.array(list(range(int(nstn))))*dl_x*AM_sep
         stn_y = min_y + np.array(list(range(int(nstn))))*dl_y*AM_sep
 
         # Define number of cross lines
-        nlin = int(np.floor( old_div(box_w, AM_sep) ))
+        nlin = int(box_w // AM_sep)
         lind = list(range(-nlin,nlin+1))
 
         ngrad = nstn * len(lind)
@@ -994,7 +993,7 @@ def xy_2_lineID(DCsurvey):
         ang2 = np.abs(vec3.dot(vec4))
 
         # If the angles are smaller then 45d, than next point is on a new line
-        if ((ang1 < np.cos(old_div(np.pi,4.))) | (ang2 < np.cos(old_div(np.pi,4.)))) & (np.all(np.r_[r1,r2,r3,r4] > 0)):
+        if ((ang1 < np.cos(np.pi/4.)) | (ang2 < np.cos(np.pi/4.))) & (np.all(np.r_[r1,r2,r3,r4] > 0)):
 
             # Re-initiate start and mid-point location
             xy0 = A[:2]
@@ -1034,7 +1033,7 @@ def r_unit(p1,p2):
 
 
     if r!=0:
-        vec = old_div(dx,r)
+        vec = dx/r
 
     else:
         vec = np.zeros(len(p1))

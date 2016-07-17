@@ -6,7 +6,6 @@ from future import standard_library
 standard_library.install_aliases()
 from builtins import range
 from builtins import object
-from past.utils import old_div
 import numpy as np
 import scipy.sparse as sp
 from .codeutils import isScalar

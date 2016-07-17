@@ -7,7 +7,6 @@ from builtins import int
 from future import standard_library
 standard_library.install_aliases()
 from builtins import object
-from past.utils import old_div
 # Functions to import and export MT EDI files.
 from SimPEG import mkvc
 from scipy.constants import mu_0

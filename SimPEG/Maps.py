@@ -6,7 +6,6 @@ from future import standard_library
 standard_library.install_aliases()
 from builtins import str
 from builtins import range
-from past.utils import old_div
 from builtins import object
 from . import Utils
 import numpy as np, scipy.sparse as sp
@@ -259,10 +258,10 @@ class ReciprocalMap(IdentityMap):
 
     """
     def _transform(self, m):
-        return old_div(1.0, Utils.mkvc(m))
+        return 1.0 / Utils.mkvc(m)
 
     def inverse(self, D):
-        return old_div(1.0, Utils.mkvc(m))
+        return 1.0 / Utils.mkvc(m)
 
     def deriv(self, m):
         # TODO: if this is a tensor, you might have a problem.
@@ -302,7 +301,7 @@ class LogMap(IdentityMap):
         deriv = np.zeros(mod.shape)
         tol = 1e-16 # zero
         ind = np.greater_equal(np.abs(mod),tol)
-        deriv[ind] = old_div(1.0,mod[ind])
+        deriv[ind] = 1.0 / mod[ind]
         return Utils.sdiag(deriv)
 
     def inverse(self, m):
@@ -606,14 +605,14 @@ class ComplexMap(IdentityMap):
 
     @property
     def shape(self):
-        return (old_div(self.nP,2),self.nP)
+        return (self.nP // 2,self.nP)
 
     def _transform(self, m):
         nC = self.mesh.nC
         return m[:nC] + m[nC:]*1j
 
     def deriv(self, m):
-        nC = old_div(self.nP,2)
+        nC = self.nP//2
         shp = (nC, nC*2)
         def fwd(v):
             return v[:nC] + v[nC:]*1j
@@ -658,7 +657,7 @@ class CircleMap(IdentityMap):
             sig1, sig2 = np.exp(sig1), np.exp(sig2)
         X = self.mesh.gridCC[:,0]
         Y = self.mesh.gridCC[:,1]
-        return sig1 + (sig2 - sig1)*(old_div(np.arctan(a*(np.sqrt((X-x)**2 + (Y-y)**2) - r)),np.pi) + 0.5)
+        return sig1 + (sig2 - sig1)*(np.arctan(a*(np.sqrt((X-x)**2 + (Y-y)**2) - r))/np.pi + 0.5)
 
     def deriv(self, m):
         a = self.slope
@@ -668,11 +667,11 @@ class CircleMap(IdentityMap):
         X = self.mesh.gridCC[:,0]
         Y = self.mesh.gridCC[:,1]
         if self.logSigma:
-            g1 = -(old_div(np.arctan(a*(-r + np.sqrt((X - x)**2 + (Y - y)**2))),np.pi) + 0.5)*sig1 + sig1
-            g2 = (old_div(np.arctan(a*(-r + np.sqrt((X - x)**2 + (Y - y)**2))),np.pi) + 0.5)*sig2
+            g1 = -(np.arctan(a*(-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi + 0.5)*sig1 + sig1
+            g2 = (np.arctan(a*(-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi + 0.5)*sig2
         else:
-            g1 = -(old_div(np.arctan(a*(-r + np.sqrt((X - x)**2 + (Y - y)**2))),np.pi) + 0.5) + 1.0
-            g2 = (old_div(np.arctan(a*(-r + np.sqrt((X - x)**2 + (Y - y)**2))),np.pi) + 0.5)
+            g1 = -(np.arctan(a*(-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi + 0.5) + 1.0
+            g2 = (np.arctan(a*(-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi + 0.5)
         g3 = a*(-X + x)*(-sig1 + sig2)/(np.pi*(a**2*(-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1)*np.sqrt((X - x)**2 + (Y - y)**2))
         g4 = a*(-Y + y)*(-sig1 + sig2)/(np.pi*(a**2*(-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1)*np.sqrt((X - x)**2 + (Y - y)**2))
         g5 = -a*(-sig1 + sig2)/(np.pi*(a**2*(-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1))
@@ -761,7 +760,7 @@ class PolyMap(IdentityMap):
             raise Exception
 
 
-        return sig1+(sig2-sig1)*(old_div(np.arctan(alpha*f),np.pi)+0.5)
+        return sig1+(sig2-sig1)*(np.arctan(alpha*f)/np.pi+0.5)
 
     def deriv(self, m):
         alpha = self.slope
@@ -800,11 +799,11 @@ class PolyMap(IdentityMap):
                 raise Exception
 
         if self.logSigma:
-            g1 = -(old_div(np.arctan(alpha*f),np.pi) + 0.5)*sig1 + sig1
-            g2 = (old_div(np.arctan(alpha*f),np.pi) + 0.5)*sig2
+            g1 = -(np.arctan(alpha*f)/np.pi + 0.5)*sig1 + sig1
+            g2 = (np.arctan(alpha*f)/np.pi + 0.5)*sig2
         else:
-            g1 = -(old_div(np.arctan(alpha*f),np.pi) + 0.5) + 1.0
-            g2 = (old_div(np.arctan(alpha*f),np.pi) + 0.5)
+            g1 = -(np.arctan(alpha*f)/np.pi + 0.5) + 1.0
+            g2 = (np.arctan(alpha*f)/np.pi + 0.5)
 
         g3 = Utils.sdiag(alpha*(sig2-sig1)/(1.+(alpha*f)**2)/np.pi)*V
 
@@ -897,7 +896,7 @@ class SplineMap(IdentityMap):
             raise Exception
 
 
-        return sig1+(sig2-sig1)*(old_div(np.arctan(alpha*f),np.pi)+0.5)
+        return sig1+(sig2-sig1)*(np.arctan(alpha*f)/np.pi+0.5)
 
     def deriv(self, m):
         alpha = self.slope
@@ -931,11 +930,11 @@ class SplineMap(IdentityMap):
                 raise Exception
 
         if self.logSigma:
-            g1 = -(old_div(np.arctan(alpha*f),np.pi) + 0.5)*sig1 + sig1
-            g2 = (old_div(np.arctan(alpha*f),np.pi) + 0.5)*sig2
+            g1 = -(np.arctan(alpha*f)/np.pi + 0.5)*sig1 + sig1
+            g2 = (np.arctan(alpha*f)/np.pi + 0.5)*sig2
         else:
-            g1 = -(old_div(np.arctan(alpha*f),np.pi) + 0.5) + 1.0
-            g2 = (old_div(np.arctan(alpha*f),np.pi) + 0.5)
+            g1 = -(np.arctan(alpha*f)/np.pi + 0.5) + 1.0
+            g2 = (np.arctan(alpha*f)/np.pi + 0.5)
 
 
         if self.mesh.dim ==2:
@@ -954,7 +953,7 @@ class SplineMap(IdentityMap):
                     cb[i] = ctemp-dy
                     spla = UnivariateSpline(self.pts, ca, k=self.order, s=0)
                     splb = UnivariateSpline(self.pts, cb, k=self.order, s=0)
-                    fderiv = old_div((spla(X)-splb(X)),(2*dy))
+                    fderiv = (spla(X)-splb(X))/(2*dy)
                     g3[:,i] = Utils.sdiag(alpha*(sig2-sig1)/(1.+(alpha*f)**2)/np.pi)*fderiv
 
         elif self.mesh.dim==3:
@@ -981,7 +980,7 @@ class SplineMap(IdentityMap):
                         spltb = UnivariateSpline(self.pts, ca[self.npts:], k=self.order, s=0)
                         flinesa = (self.spl["splt"](Y)-splta(Y))*(Z-zb)/(zt-zb) + splta(Y) - X
                         flinesb = (self.spl["splt"](Y)-spltb(Y))*(Z-zb)/(zt-zb) + spltb(Y) - X
-                    fderiv = old_div((flinesa-flinesb),(2*dy))
+                    fderiv = (flinesa-flinesb)/(2*dy)
                     g3[:,i] = Utils.sdiag(alpha*(sig2-sig1)/(1.+(alpha*f)**2)/np.pi)*fderiv
         else :
             raise Exception

@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 from __future__ import print_function
 from future import standard_library
 standard_library.install_aliases()
-from past.utils import old_div
 import numpy as np
 from scipy import sparse as sp
 from .matutils import mkvc, ndgrid, sub2ind, sdiag
