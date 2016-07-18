@@ -1,4 +1,6 @@
-import Utils, numpy as np, scipy.sparse as sp
+import Utils
+import numpy as np
+import scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
 from Tests import checkDerivative
 from PropMaps import PropMap, Property
@@ -18,7 +20,8 @@ class IdentityMap(object):
         Utils.setKwargs(self, **kwargs)
 
         if nP is not None:
-            assert type(nP) in [int, long],' Number of parameters must be an integer.'
+            assert type(nP) in [int, long], 'Number of parameters '
+            'must be an integer.'
 
         self.mesh = mesh
         self._nP = nP
@@ -57,7 +60,8 @@ class IdentityMap(object):
 
             .. note::
 
-                This can be called by the __mul__ property against a numpy.ndarray.
+                This can be called by the __mul__ property against a
+                :meth:numpy.ndarray.
 
             :param numpy.array m: model
             :rtype: numpy.array
@@ -98,7 +102,8 @@ class IdentityMap(object):
         """Test the derivative of the mapping.
 
             :param numpy.array m: model
-            :param kwargs: key word arguments of :meth:`SimPEG.Tests.checkDerivative`
+            :param kwargs: key word arguments of
+                           :meth:`SimPEG.Tests.checkDerivative`
             :rtype: bool
             :return: passed the test?
 
@@ -108,13 +113,15 @@ class IdentityMap(object):
             m = abs(np.random.rand(self.nP))
         if 'plotIt' not in kwargs:
             kwargs['plotIt'] = False
-        return checkDerivative(lambda m : [self * m, self.deriv(m)], m, num=4, **kwargs)
+        return checkDerivative(lambda m : [self * m, self.deriv(m)], m, num=4,
+                               **kwargs)
 
     def testVec(self, m=None, **kwargs):
         """Test the derivative of the mapping times a vector.
 
             :param numpy.array m: model
-            :param kwargs: key word arguments of :meth:`SimPEG.Tests.checkDerivative`
+            :param kwargs: key word arguments of
+                           :meth:`SimPEG.Tests.checkDerivative`
             :rtype: bool
             :return: passed the test?
 
@@ -124,26 +131,34 @@ class IdentityMap(object):
             m = abs(np.random.rand(self.nP))
         if 'plotIt' not in kwargs:
             kwargs['plotIt'] = False
-        return checkDerivative(lambda m : [self * m, lambda x: self.deriv(m, x)], m, num=4, **kwargs)
+        return checkDerivative(lambda m: [self*m, lambda x: self.deriv(m, x)],
+                               m, num=4, **kwargs)
 
     def _assertMatchesPair(self, pair):
         assert (isinstance(self, pair) or
-            isinstance(self, ComboMap) and isinstance(self.maps[0], pair)
-            ), "Mapping object must be an instance of a %s class."%(pair.__name__)
+                isinstance(self, ComboMap) and isinstance(self.maps[0], pair)
+                ), ("Mapping object must be an instance of a %s"
+                    " class."% (pair.__name__))
 
     def __mul__(self, val):
         if isinstance(val, IdentityMap):
-            if not (self.shape[1] == '*' or val.shape[0] == '*') and not self.shape[1] == val.shape[0]:
-                raise ValueError('Dimension mismatch in %s and %s.' % (str(self), str(val)))
+            if (not (self.shape[1] == '*' or val.shape[0] == '*') and not
+                self.shape[1] == val.shape[0]):
+                raise ValueError('Dimension mismatch in %s and %s.'
+                                 % (str(self), str(val)))
             return ComboMap([self, val])
+
         elif isinstance(val, np.ndarray):
             if not self.shape[1] == '*' and not self.shape[1] == val.shape[0]:
-                raise ValueError('Dimension mismatch in %s and np.ndarray%s.' % (str(self), str(val.shape)))
+                raise ValueError('Dimension mismatch in %s and np.ndarray%s.'
+                                 % (str(self), str(val.shape)))
             return self._transform(val)
-        raise Exception('Unrecognized data type to multiply. Try a map or a numpy.ndarray!')
+        raise Exception('Unrecognized data type to multiply. '
+                        'Try a map or a numpy.ndarray!')
 
     def __str__(self):
-        return "%s(%s,%s)" % (self.__class__.__name__, self.shape[0], self.shape[1])
+        return "%s(%s,%s)" % (self.__class__.__name__, self.shape[0],
+                              self.shape[1])
 
 
 class ComboMap(IdentityMap):
@@ -154,11 +169,17 @@ class ComboMap(IdentityMap):
 
         self.maps = []
         for ii, m in enumerate(maps):
-            assert isinstance(m, IdentityMap), 'Unrecognized data type, inherit from an IdentityMap or ComboMap!'
-            if ii > 0 and not (self.shape[1] == '*' or m.shape[0] == '*') and not self.shape[1] == m.shape[0]:
+            assert isinstance(m, IdentityMap), "Unrecognized data type, "
+            "inherit from an IdentityMap or ComboMap!"
+
+            if (ii > 0 and not (self.shape[1] == '*' or m.shape[0] == '*') and
+                not self.shape[1] == m.shape[0]):
                 prev = self.maps[-1]
-                errArgs = (prev.__class__.__name__, prev.shape[0], prev.shape[1], m.__class__.__name__, m.shape[0], m.shape[1])
-                raise ValueError('Dimension mismatch in map[%s] (%s, %s) and map[%s] (%s, %s).' % errArgs)
+                errArgs = (prev.__class__.__name__, prev.shape[0],
+                           prev.shape[1], m.__class__.__name__, m.shape[0],
+                           m.shape[1])
+                raise ValueError('Dimension mismatch in map[%s] (%s, %s) '
+                                 'and map[%s] (%s, %s).' % errArgs)
 
             if isinstance(m, ComboMap):
                 self.maps += m.maps
@@ -594,7 +615,8 @@ class ActiveCells(InjectActiveCells):
 
     def __init__(self, mesh, indActive, valInactive, nC=None):
         warnings.warn(
-            "`ActiveCells` is deprecated and will be removed in future versions. Use `InjectActiveCells` instead",
+            "`ActiveCells` is deprecated and will be removed in future "
+            "versions. Use `InjectActiveCells` instead",
             FutureWarning)
         InjectActiveCells.__init__(self, mesh, indActive, valInactive, nC)
 
@@ -681,14 +703,16 @@ class ComplexMap(IdentityMap):
     inverse = deriv
 
 
-class CircleMap(IdentityMap):
-    """CircleMap
+class ParametricCircleMap(IdentityMap):
+    """ParametricCircleMap
 
         Parameterize the model space using a circle in a wholespace.
 
         ..math::
 
-            \sigma(m) = \sigma_1 + (\sigma_2 - \sigma_1)\left(\\arctan\left(100*\sqrt{(\\vec{x}-x_0)^2 + (\\vec{y}-y_0)}-r\\right) \pi^{-1} + 0.5\\right)
+            \sigma(m) = \sigma_1 + (\sigma_2 - \sigma_1)\left(
+            \\arctan\left(100*\sqrt{(\\vec{x}-x_0)^2 + (\\vec{y}-y_0)}-r
+            \\right) \pi^{-1} + 0.5\\right)
 
         Define the model as:
 
@@ -697,12 +721,15 @@ class CircleMap(IdentityMap):
             m = [\sigma_1, \sigma_2, x_0, y_0, r]
 
     """
-    def __init__(self, mesh, logSigma=True):
-        assert mesh.dim == 2, "Working for a 2D mesh only right now. But it isn't that hard to change.. :)"
-        IdentityMap.__init__(self, mesh)
-        self.logSigma = logSigma
 
     slope = 1e-1
+
+    def __init__(self, mesh, logSigma=True):
+        assert mesh.dim == 2, "Working for a 2D mesh only right now. "
+        "But it isn't that hard to change.. :)"
+        IdentityMap.__init__(self, mesh)
+        # TODO: this should be done through a composition with and ExpMap
+        self.logSigma = logSigma
 
     @property
     def nP(self):
@@ -715,7 +742,8 @@ class CircleMap(IdentityMap):
             sig1, sig2 = np.exp(sig1), np.exp(sig2)
         X = self.mesh.gridCC[:, 0]
         Y = self.mesh.gridCC[:, 1]
-        return sig1 + (sig2 - sig1)*(np.arctan(a*(np.sqrt((X-x)**2 + (Y-y)**2) - r))/np.pi + 0.5)
+        return sig1 + (sig2 - sig1)*(np.arctan(a*(np.sqrt((X-x)**2 +
+                                     (Y-y)**2) - r))/np.pi + 0.5)
 
     def deriv(self, m, v=None):
         a = self.slope
@@ -725,11 +753,15 @@ class CircleMap(IdentityMap):
         X = self.mesh.gridCC[:, 0]
         Y = self.mesh.gridCC[:, 1]
         if self.logSigma:
-            g1 = -(np.arctan(a*(-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi + 0.5)*sig1 + sig1
-            g2 = (np.arctan(a*(-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi + 0.5)*sig2
+            g1 = -(np.arctan(a*(-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi +
+                   0.5)*sig1 + sig1
+            g2 = (np.arctan(a*(-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi +
+                  0.5)*sig2
         else:
-            g1 = -(np.arctan(a*(-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi + 0.5) + 1.0
-            g2 = (np.arctan(a*(-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi + 0.5)
+            g1 = -(np.arctan(a*(-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi +
+                   0.5) + 1.0
+            g2 = (np.arctan(a*(-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi +
+                  0.5)
         g3 = a*(-X + x)*(-sig1 + sig2)/(np.pi*(a**2*(-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1)*np.sqrt((X - x)**2 + (Y - y)**2))
         g4 = a*(-Y + y)*(-sig1 + sig2)/(np.pi*(a**2*(-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1)*np.sqrt((X - x)**2 + (Y - y)**2))
         g5 = -a*(-sig1 + sig2)/(np.pi*(a**2*(-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1))
@@ -739,7 +771,19 @@ class CircleMap(IdentityMap):
         return sp.csr_matrix(np.c_[g1, g2, g3, g4, g5])
 
 
-class PolyMap(IdentityMap):
+class CircleMap(ParametricCircleMap):
+    """CircleMap is depreciated. Use ParametricCircleMap instead.
+    """
+
+    def __init__(self, mesh, logSigma=True):
+        warnings.warn(
+            "`CircleMap` is deprecated and will be removed in future "
+            "versions. Use `ParametricCircleMap` instead",
+            FutureWarning)
+        ParametricCircleMap.__init__(self, mesh, logSigma)
+
+
+class ParametricPolyMap(IdentityMap):
 
     """PolyMap
 
@@ -813,23 +857,25 @@ class PolyMap(IdentityMap):
             Z = self.mesh.gridCC[self.actInd, 2]
 
             if self.normal == 'X':
-                f = polynomial.polyval2d(Y, Z, c.reshape((self.order[0]+1,self.order[1]+1))) - X
+                f = (polynomial.polyval2d(Y, Z, c.reshape((self.order[0]+1,
+                     self.order[1]+1))) - X)
             elif self.normal == 'Y':
-                f = polynomial.polyval2d(X, Z, c.reshape((self.order[0]+1,self.order[1]+1))) - Y
+                f = (polynomial.polyval2d(X, Z, c.reshape((self.order[0]+1,
+                     self.order[1]+1))) - Y)
             elif self.normal == 'Z':
-                f = polynomial.polyval2d(X, Y, c.reshape((self.order[0]+1,self.order[1]+1))) - Z
+                f = (polynomial.polyval2d(X, Y, c.reshape((self.order[0]+1,
+                     self.order[1]+1))) - Z)
             else:
                 raise(Exception("Input for normal = X or Y or Z"))
 
         else:
             raise(Exception("Only supports 2D"))
 
-
         return sig1+(sig2-sig1)*(np.arctan(alpha*f)/np.pi+0.5)
 
     def deriv(self, m, v=None):
         alpha = self.slope
-        sig1,sig2, c = m[0],m[1],m[2:]
+        sig1, sig2, c = m[0], m[1], m[2:]
         if self.logSigma:
             sig1, sig2 = np.exp(sig1), np.exp(sig2)
 
@@ -854,13 +900,16 @@ class PolyMap(IdentityMap):
             Z = self.mesh.gridCC[self.actInd, 2]
 
             if self.normal == 'X':
-                f = polynomial.polyval2d(Y, Z, c.reshape((self.order[0]+1, self.order[1]+1))) - X
+                f = (polynomial.polyval2d(Y, Z, c.reshape((self.order[0]+1,
+                     self.order[1]+1))) - X)
                 V = polynomial.polyvander2d(Y, Z, self.order)
             elif self.normal == 'Y':
-                f = polynomial.polyval2d(X, Z, c.reshape((self.order[0]+1, self.order[1]+1))) - Y
+                f = (polynomial.polyval2d(X, Z, c.reshape((self.order[0]+1,
+                     self.order[1]+1))) - Y)
                 V = polynomial.polyvander2d(X, Z, self.order)
             elif self.normal == 'Z':
-                f = polynomial.polyval2d(X, Y, c.reshape((self.order[0]+1, self.order[1]+1))) - Z
+                f = (polynomial.polyval2d(X, Y, c.reshape((self.order[0]+1,
+                     self.order[1]+1))) - Z)
                 V = polynomial.polyvander2d(X, Y, self.order)
             else:
                 raise(Exception("Input for normal = X or Y or Z"))
@@ -879,11 +928,12 @@ class PolyMap(IdentityMap):
         return sp.csr_matrix(np.c_[g1, g2, g3])
 
 
-class SplineMap(IdentityMap):
+class ParametricSplineMap(IdentityMap):
 
     """SplineMap
 
-        Parameterize the boundary of two geological units using a spline interpolation
+        Parameterize the boundary of two geological units using
+        a spline interpolation
 
         ..math::
 
@@ -1060,4 +1110,18 @@ class SplineMap(IdentityMap):
         if v is not None:
             return sp.csr_matrix(np.c_[g1, g2, g3]) * v
         return sp.csr_matrix(np.c_[g1, g2, g3])
+
+
+class SplineMap(ParametricSplineMap):
+    """SplineMap is depreciated. Use ParametricSplineMap instead.
+    """
+
+    def __init__(self, mesh, pts, ptsv=None, order=3, logSigma=True,
+                 normal='X'):
+        warnings.warn(
+            "`SplineMap` is deprecated and will be removed in future "
+            "versions. Use `ParametricSplineMap` instead",
+            FutureWarning)
+        ParametricSplineMap.__init__(self, mesh, pts, ptsv, order, logSigma,
+                                     normal)
 

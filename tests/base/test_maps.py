@@ -120,7 +120,8 @@ class MapTests(unittest.TestCase):
         M = Mesh.TensorMesh([2, 4], '0C')
         expMap = Maps.ExpMap(M)
         for actMap in [Maps.InjectActiveCells(M, M.vectorCCy <= 0, 10,
-            nC=M.nCy), Maps.ActiveCells(M, M.vectorCCy <= 0, 10, nC=M.nCy)]:
+                       nC=M.nCy), Maps.ActiveCells(M, M.vectorCCy <= 0, 10,
+                       nC=M.nCy)]:
 
             # actMap = Maps.InjectActiveCells(M, M.vectorCCy <=0, 10, nC=M.nCy)
             vertMap = Maps.SurjectVertical1D(M)
@@ -169,8 +170,8 @@ class MapTests(unittest.TestCase):
             m = np.arange(m2to3.nP)
             self.assertTrue(m2to3.test())
             self.assertTrue(m2to3.testVec())
-            self.assertTrue(np.all(Utils.mkvc( (m2to3 * m).reshape(M3.vnC ,
-                            order='F')[0, :, :] ) == m))
+            self.assertTrue(np.all(Utils.mkvc((m2to3 * m).reshape(M3.vnC,
+                            order='F')[0, :, :]) == m))
 
     def test_map2Dto3D_y(self):
         M2 = Mesh.TensorMesh([3, 4])
@@ -183,8 +184,8 @@ class MapTests(unittest.TestCase):
             m = np.arange(m2to3.nP)
             self.assertTrue(m2to3.test())
             self.assertTrue(m2to3.testVec())
-            self.assertTrue(np.all(Utils.mkvc( (m2to3 * m).reshape(M3.vnC,
-                            order='F')[:, 0, :] ) == m))
+            self.assertTrue(np.all(Utils.mkvc((m2to3 * m).reshape(M3.vnC,
+                            order='F')[:, 0, :]) == m))
 
     def test_map2Dto3D_z(self):
         M2 = Mesh.TensorMesh([3, 2])
@@ -198,8 +199,8 @@ class MapTests(unittest.TestCase):
             m = np.arange(m2to3.nP)
             self.assertTrue(m2to3.test())
             self.assertTrue(m2to3.testVec())
-            self.assertTrue(np.all(Utils.mkvc( (m2to3 * m).reshape(M3.vnC,
-                            order='F')[:, :, 0] ) == m))
+            self.assertTrue(np.all(Utils.mkvc((m2to3 * m).reshape(M3.vnC,
+                            order='F')[:, :, 0]) == m))
 
 
 if __name__ == '__main__':
