@@ -30,7 +30,7 @@ SimPEG
     :target: https://gitter.im/simpeg/simpeg
 
 .. image:: https://codecov.io/gh/simpeg/simpeg/branch/master/graph/badge.svg
-    :target: https://codecov.io/gh/simpeg/simpeg
+    :target: https://codecov.io/gh/simpeg/simpeg
     :alt: Coverage status
 
 
