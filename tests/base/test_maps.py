@@ -7,7 +7,10 @@ import inspect
 TOL = 1e-14
 
 MAPS_TO_EXCLUDE_2D = ["ComboMap", "ActiveCells", "InjectActiveCells"]
-MAPS_TO_EXCLUDE_3D = ["ComboMap", "ActiveCells", "InjectActiveCells", "CircleMap"]
+MAPS_TO_EXCLUDE_3D = ["ComboMap", "ActiveCells", "InjectActiveCells",
+                      "CircleMap"]
+
+MAPS_TO_TEST_INVERSE = ["ExpMap"]
 
 
 class MapTests(unittest.TestCase):
@@ -53,16 +56,16 @@ class MapTests(unittest.TestCase):
         # Note that log/reciprocal maps can be kinda finicky, so we are being
         # explicit about the random seed.
 
-        v2 = np.r_[ 0.40077291, 0.14410044, 0.58452314, 0.96323738, 0.01198519,
-                    0.79754415]
-        dv2 = np.r_[ 0.80653921, 0.13132446, 0.4901117, 0.03358737, 0.65473762,
-                     0.44252488]
-        v3 = np.r_[ 0.96084865, 0.34385186, 0.39430044, 0.81671285, 0.65929109,
-                    0.2235217, 0.87897526, 0.5784033, 0.96876393, 0.63535864,
-                    0.84130763, 0.22123854]
-        dv3 = np.r_[ 0.96827838, 0.26072111, 0.45090749, 0.10573893,
-                     0.65276365, 0.15646586, 0.51679682, 0.23071984,
-                     0.95106218, 0.14201845, 0.25093564, 0.3732866 ]
+        v2 = np.r_[0.40077291, 0.14410044, 0.58452314, 0.96323738, 0.01198519,
+                   0.79754415]
+        dv2 = np.r_[0.80653921, 0.13132446, 0.4901117, 0.03358737, 0.65473762,
+                    0.44252488]
+        v3 = np.r_[0.96084865, 0.34385186, 0.39430044, 0.81671285, 0.65929109,
+                   0.2235217, 0.87897526, 0.5784033, 0.96876393, 0.63535864,
+                   0.84130763, 0.22123854]
+        dv3 = np.r_[0.96827838, 0.26072111, 0.45090749, 0.10573893,
+                    0.65276365, 0.15646586, 0.51679682, 0.23071984,
+                    0.95106218, 0.14201845, 0.25093564, 0.3732866 ]
 
         maps = Maps.LogMap(self.mesh2)
         self.assertTrue(maps.test(v2, dx=dv2))
@@ -123,14 +126,11 @@ class MapTests(unittest.TestCase):
                        nC=M.nCy), Maps.ActiveCells(M, M.vectorCCy <= 0, 10,
                        nC=M.nCy)]:
 
-            # actMap = Maps.InjectActiveCells(M, M.vectorCCy <=0, 10, nC=M.nCy)
             vertMap = Maps.SurjectVertical1D(M)
             combo = vertMap * actMap
             m = np.r_[1., 2.]
             mod = Models.Model(m, combo)
-            # import matplotlib.pyplot as plt
-            # plt.colorbar(M.plotImage(mod.transform)[0])
-            # plt.show()
+
             self.assertLess(np.linalg.norm(mod.transform -
                             np.r_[1, 1, 2, 2, 10, 10, 10, 10.]), TOL)
             self.assertLess((mod.transformDeriv -
