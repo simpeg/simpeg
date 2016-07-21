@@ -203,7 +203,7 @@ class DiffOperators(object):
         """
         if(self.dim < 3):
             return None
-        if(self._faceDivz is None):
+        if getattr(self, '_faceDivz', None) is None:
             # The number of cell centers in each direction
             n = self.vnC
             # Compute faceDivergence operator on faces
