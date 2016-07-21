@@ -49,8 +49,8 @@ class CurvilinearMesh(BaseRectangularMesh, DiffOperators, InnerProducts,
         assert len(nodes) > 1, "len(node) must be greater than 1"
 
         for i, nodes_i in enumerate(nodes):
-            assert isinstance(nodes_i, np.ndarray), ("nodes[%i] is not a numpy array." % i)
-            assert nodes_i.shape == nodes[0].shape, ("nodes[%i] is not the same shape as nodes[0]" % i)
+            assert isinstance(nodes_i, np.ndarray), ("nodes[{0:d}] is not a numpy array.".format(i))
+            assert nodes_i.shape == nodes[0].shape, ("nodes[{0:d}] is not the same shape as nodes[0]".format(i))
 
         assert len(nodes[0].shape) == len(nodes), "Dimension mismatch"
         assert len(nodes[0].shape) > 1, "Not worth using Curv for a 1D mesh."

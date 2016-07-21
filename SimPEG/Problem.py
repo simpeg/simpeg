@@ -49,7 +49,7 @@ class BaseProblem(object):
 
     def pair(self, d):
         """Bind a survey to this problem instance using pointers."""
-        assert isinstance(d, self.surveyPair), "Data object must be an instance of a %s class."%(self.surveyPair.__name__)
+        assert isinstance(d, self.surveyPair), "Data object must be an instance of a {0!s} class.".format((self.surveyPair.__name__))
         if d.ispaired:
             raise Exception("The survey object is already paired to a problem. Use survey.unpair()")
         self._survey = d

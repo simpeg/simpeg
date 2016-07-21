@@ -58,7 +58,7 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
                 Src.append(EM.FDEM.Src.RawVec([rx0], freq, mesh.getEdgeInnerProduct()*S_m, S_e))
 
     if verbose:
-        print '  Fetching %s problem' % (fdemType)
+        print '  Fetching {0!s} problem'.format((fdemType))
 
     if fdemType == 'e':
         survey = EM.FDEM.Survey(Src)
@@ -94,7 +94,7 @@ def crossCheckTest(SrcList, fdemType1, fdemType2, comp, addrandoms = False, useM
 
     prb1 = getFDEMProblem(fdemType1, comp, SrcList, freq, useMu, verbose)
     mesh = prb1.mesh
-    print 'Cross Checking Forward: %s, %s formulations - %s' % (fdemType1, fdemType2, comp)
+    print 'Cross Checking Forward: {0!s}, {1!s} formulations - {2!s}'.format(fdemType1, fdemType2, comp)
 
     logsig = np.log(np.ones(mesh.nC)*CONDUCTIVITY)
     mu = np.ones(mesh.nC)*MU

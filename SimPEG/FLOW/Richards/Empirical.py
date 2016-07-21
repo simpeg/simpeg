@@ -116,7 +116,7 @@ class RichardsMap(object):
         ax.semilogx(self.k(h, m), h)
 
     def _assertMatchesPair(self, pair):
-        assert isinstance(self, pair), "Mapping object must be an instance of a %s class."%(pair.__name__)
+        assert isinstance(self, pair), "Mapping object must be an instance of a {0!s} class.".format((pair.__name__))
 
 
 

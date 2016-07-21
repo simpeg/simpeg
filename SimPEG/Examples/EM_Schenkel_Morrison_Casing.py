@@ -110,7 +110,7 @@ def run(plotIt=True):
     # Mesh
     mesh = Mesh.CylMesh([hx,1.,hz], [0.,0.,-np.sum(hz[:npadzu+ncz-nza])])
 
-    print 'Mesh Extent xmax: %f,: zmin: %f, zmax: %f'%(mesh.vectorCCx.max(), mesh.vectorCCz.min(), mesh.vectorCCz.max())
+    print 'Mesh Extent xmax: {0:f},: zmin: {1:f}, zmax: {2:f}'.format(mesh.vectorCCx.max(), mesh.vectorCCz.min(), mesh.vectorCCz.max())
     print 'Number of cells', mesh.nC
 
     if plotIt is True:
