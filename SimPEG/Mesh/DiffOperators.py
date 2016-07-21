@@ -323,7 +323,7 @@ class DiffOperators(object):
         """
         The cell centered Gradient, takes you to cell faces.
         """
-        if(self._cellGrad is None):
+        if getattr(self, '_cellGrad', None) is None:
             G = self._cellGradStencil()
             S = self.area  # Compute areas of cell faces & volumes
             V = self.aveCC2F*self.vol  # Average volume between adjacent cells
