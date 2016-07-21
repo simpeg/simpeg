@@ -45,12 +45,16 @@ class CurvilinearMesh(BaseRectangularMesh, DiffOperators, InnerProducts,
     _meshType = 'Curv'
 
     def __init__(self, nodes):
-        assert type(nodes) == list, "'nodes' variable must be a list of np.ndarray"
+        assert type(nodes) == list, ("'nodes' variable must be a list of "
+                                     "np.ndarray")
         assert len(nodes) > 1, "len(node) must be greater than 1"
 
         for i, nodes_i in enumerate(nodes):
-            assert isinstance(nodes_i, np.ndarray), ("nodes[{0:d}] is not a numpy array.".format(i))
-            assert nodes_i.shape == nodes[0].shape, ("nodes[{0:d}] is not the same shape as nodes[0]".format(i))
+            assert isinstance(nodes_i, np.ndarray), ("nodes[{0:d}] is not a"
+                                                     "numpy array.".format(i))
+            assert nodes_i.shape == nodes[0].shape, ("nodes[{0:d}] is not the "
+                                                     "same shape as nodes[0]"
+                                                     .format(i))
 
         assert len(nodes[0].shape) == len(nodes), "Dimension mismatch"
         assert len(nodes[0].shape) > 1, "Not worth using Curv for a 1D mesh."
@@ -62,30 +66,25 @@ class CurvilinearMesh(BaseRectangularMesh, DiffOperators, InnerProducts,
         for i, node_i in enumerate(nodes):
             self._gridN[:, i] = Utils.mkvc(node_i.astype(float))
 
-    def gridCC():
-        doc = "Cell-centered grid."
+    @property
+    def gridCC(self):
+        """
+        Cell-centered grid
+        """
+        if getattr(self, '_gridCC', None) is None:
+            self._gridCC = np.concatenate([self.aveN2CC*self.gridN[:, i]
+                                           for i in range(self.dim)]).reshape(
+                                           (-1, self.dim), order='F')
+        return self._gridCC
 
-        def fget(self):
-            if self._gridCC is None:
-                self._gridCC = np.concatenate([self.aveN2CC*self.gridN[:, i]
-                                              for
-                                              i in range(self.dim)]).reshape(
-                                              (-1, self.dim), order='F')
-            return self._gridCC
-        return locals()
-    _gridCC = None  # Store grid by default
-    gridCC = property(**gridCC())
-
-    def gridN():
-        doc = "Nodal grid."
-
-        def fget(self):
-            if self._gridN is None:
-                raise Exception("Someone deleted this. I blame you.")
-            return self._gridN
-        return locals()
-    _gridN = None  # Store grid by default
-    gridN = property(**gridN())
+    @property
+    def gridN(self):
+        """
+        Nodal grid.
+        """
+        if getattr(self, '_gridN', None) is None:
+            raise Exception("Someone deleted this. I blame you.")
+        return self._gridN
 
     @property
     def gridFx(self):
