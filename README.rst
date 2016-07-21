@@ -32,6 +32,9 @@ SimPEG
     :target: https://www.quantifiedcode.com/app/project/933aa3decf444538aa432c8817169b6d
     :alt: Code issues
 
+.. image:: https://api.codacy.com/project/badge/Grade/4fc959a5294a418fa21fc7bc3b3aa078
+    :target: https://www.codacy.com/app/lindseyheagy/simpeg?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=simpeg/simpeg&amp;utm_campaign=Badge_Grade
+    :alt: codacy
 
 Simulation and Parameter Estimation in Geophysics  -  A python package for simulation and gradient based parameter estimation in the context of geophysical applications.
 
