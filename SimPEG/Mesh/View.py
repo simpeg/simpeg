@@ -171,7 +171,7 @@ class TensorView(object):
                         iz = ix + iy*nX
                         if iz < self.nCz:
                             ax.text((ix+1)*(self.vectorNx[-1]-self.x0[0])-pad,(iy)*(self.vectorNy[-1]-self.x0[1])+pad,
-                                     '#{0:d}'.format(iz),color=annotationColor,verticalalignment='bottom',horizontalalignment='right',size='x-large')
+                                     '#{0:.0f}'.format(iz),color=annotationColor,verticalalignment='bottom',horizontalalignment='right',size='x-large')
 
         ax.set_title(vType)
         if showIt: plt.show()
@@ -295,7 +295,7 @@ class TensorView(object):
 
         ax.set_xlabel('y' if normal == 'X' else 'x')
         ax.set_ylabel('y' if normal == 'Z' else 'z')
-        ax.set_title('Slice {0:d}'.format(ind))
+        ax.set_title('Slice {0:.0f}'.format(ind))
         return out
 
 
