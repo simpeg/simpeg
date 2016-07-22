@@ -5,11 +5,11 @@ SimPEG Documentation
 ********************
 
 .. image:: https://img.shields.io/pypi/v/SimPEG.svg
-    :target: https://crate.io/packages/SimPEG/
+    :target: https://pypi.python.org/pypi/SimPEG
     :alt: Latest PyPI version
 
 .. image:: https://img.shields.io/pypi/dm/SimPEG.svg
-    :target: https://crate.io/packages/SimPEG/
+    :target: https://pypi.python.org/pypi/SimPEG
     :alt: Number of PyPI downloads
 
 .. image:: https://img.shields.io/badge/license-MIT-blue.svg
