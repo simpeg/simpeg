@@ -1,6 +1,6 @@
 import unittest
-from SimPEG import *
-
+from SimPEG import Mesh, Problem, Fields, Survey, Utils
+import numpy as np
 
 class FieldsTest(unittest.TestCase):
 
