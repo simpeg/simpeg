@@ -25,7 +25,7 @@ SimPEG Documentation
     :target: https://gitter.im/simpeg/simpeg
 
 .. image:: https://codecov.io/gh/simpeg/simpeg/branch/master/graph/badge.svg
-    :target: https://codecov.io/gh/simpeg/simpeg
+    :target: https://codecov.io/gh/simpeg/simpeg
 
 .. image:: https://www.quantifiedcode.com/api/v1/project/933aa3decf444538aa432c8817169b6d/badge.svg
     :target: https://www.quantifiedcode.com/app/project/933aa3decf444538aa432c8817169b6d
