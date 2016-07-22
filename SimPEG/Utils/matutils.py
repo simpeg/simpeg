@@ -9,6 +9,7 @@ from builtins import object
 import numpy as np
 import scipy.sparse as sp
 from .codeutils import isScalar
+from past.utils import old_div
 
 def mkvc(x, numDims=1):
     """Creates a vector with the number of dimension specified
@@ -472,5 +473,3 @@ class Identity(object):
     def __ne__(self, v):return (not (1 == v))if self._positive else (not (-1 == v))
     def __ge__(self, v):return 1 >= v if self._positive else -1 >= v
     def __gt__(self, v):return 1 >  v if self._positive else -1 >  v
-
-
