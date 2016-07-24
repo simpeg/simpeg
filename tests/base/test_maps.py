@@ -6,11 +6,16 @@ import inspect
 
 TOL = 1e-14
 
-MAPS_TO_EXCLUDE_2D = ["ComboMap", "ActiveCells", "InjectActiveCells"]
+MAPS_TO_EXCLUDE_2D = ["ComboMap", "ActiveCells", "InjectActiveCells",
+                      "LogMap", "ReciprocalMap",
+                      "Surject2Dto3D", "Map2Dto3D", "Mesh2Mesh",
+                      "ParametricPolyMap", "PolyMap", "ParametricSplineMap",
+                      "SplineMap"]
 MAPS_TO_EXCLUDE_3D = ["ComboMap", "ActiveCells", "InjectActiveCells",
-                      "CircleMap"]
-
-MAPS_TO_TEST_INVERSE = ["ExpMap"]
+                      "LogMap", "ReciprocalMap",
+                      "CircleMap", "ParametricCircleMap", "Mesh2Mesh",
+                      "ParametricPolyMap", "PolyMap", "ParametricSplineMap",
+                      "SplineMap"]
 
 
 class MapTests(unittest.TestCase):
@@ -20,11 +25,11 @@ class MapTests(unittest.TestCase):
         maps2test2D = [M for M in dir(Maps) if M not in MAPS_TO_EXCLUDE_2D]
         maps2test3D = [M for M in dir(Maps) if M not in MAPS_TO_EXCLUDE_3D]
 
-        self.maps2test2D = [getattr(Maps, m) for m in maps2test2D if
-                            inspect.isclass(getattr(Maps, M)) and
-                            issubclass(getattr(Maps, M), Maps.IdentityMap)]
+        self.maps2test2D = [getattr(Maps, M) for M in maps2test2D if
+                            (inspect.isclass(getattr(Maps, M)) and
+                             issubclass(getattr(Maps, M), Maps.IdentityMap))]
 
-        self.maps2test3D = [getattr(Maps, m) for m in maps2test3D if
+        self.maps2test3D = [getattr(Maps, M) for M in maps2test3D if
                             inspect.isclass(getattr(Maps, M)) and
                             issubclass(getattr(Maps, M), Maps.IdentityMap)]
 
@@ -37,19 +42,45 @@ class MapTests(unittest.TestCase):
 
     def test_transforms2D(self):
         for M in self.maps2test2D:
-            self.assertTrue(M.test())
+            self.assertTrue(M(self.mesh2).test())
 
     def test_transforms2Dvec(self):
         for M in self.maps2test2D:
-            self.assertTrue(M.testVec())
+            self.assertTrue(M(self.mesh2).testVec())
 
     def test_transforms3D(self):
         for M in self.maps2test3D:
-            self.assertTrue(M.test())
+            self.assertTrue(M(self.mesh3).test())
 
     def test_transforms3Dvec(self):
         for M in self.maps2test3D:
-            self.assertTrue(M.test())
+            self.assertTrue(M(self.mesh3).testVec())
+
+    def test_invtransforms2D(self):
+        for M in self.maps2test2D:
+            mapping = M(self.mesh2)
+            d = np.random.rand(mapping.shape[0])
+            try:
+                m = mapping.inverse(d)
+                print 'Testing Inverse {0}'.format(str(M.__name__))
+                self.assertLess(np.linalg.norm(d - mapping._transform(m)), TOL)
+                print '  ... ok\n'
+            except NotImplementedError:
+                pass
+
+    def test_invtransforms3D(self):
+        for M in self.maps2test3D:
+            mapping = M(self.mesh3)
+            d = np.random.rand(mapping.shape[0])
+            try:
+                m = mapping.inverse(d)
+                print 'Testing Inverse {0}'.format(str(M.__name__))
+                self.assertLess(np.linalg.norm(d - mapping._transform(m)), TOL)
+                print '  ... ok\n'
+            except NotImplementedError:
+                pass
+
+
 
     def test_transforms_logMap_reciprocalMap(self):
 
