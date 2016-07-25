@@ -1,4 +1,6 @@
-import Utils, Maps, Mesh, numpy as np, scipy.sparse as sp
+import Utils, Maps, Mesh
+import numpy as np
+import scipy.sparse as sp
 
 class RegularizationMesh(object):
     """
@@ -8,7 +10,7 @@ class RegularizationMesh(object):
     are not necessarily true differential operators, but are constructed from
     a SimPEG Mesh.
 
-    :param Mesh mesh: problem mesh
+    :param BaseMesh mesh: problem mesh
     :param numpy.array indActive: bool array, size nC, that is True where we have active cells. Used to reduce the operators so we regularize only on active cells
     """
 
@@ -389,8 +391,8 @@ class BaseRegularization(object):
 
         :param numpy.array m: geophysical model
         :param numpy.array v: vector to multiply
-        :rtype: scipy.sparse.csr_matrix or numpy.ndarray
-        :return: WtW or WtW*v
+        :rtype: scipy.sparse.csr_matrix
+        :return: WtW, or if v is supplied WtW*v (numpy.ndarray)
 
         The regularization is:
 
@@ -411,7 +413,238 @@ class BaseRegularization(object):
 
         return mD.T * ( self.W.T * ( self.W * ( mD * v) ) )
 
-class Tikhonov(BaseRegularization):
+class Simple(BaseRegularization):
+    """
+    Simple regularization that does not include length scales in the derivatives.
+    """
+
+    mrefInSmooth = False  #: include mref in the smoothness?
+    alpha_s      = Utils.dependentProperty('_alpha_s', 1.0, ['_W', '_Wsmall'], "Smallness weight")
+    alpha_x      = Utils.dependentProperty('_alpha_x', 1.0, ['_W', '_Wx'],     "Weight for the first derivative in the x direction")
+    alpha_y      = Utils.dependentProperty('_alpha_y', 1.0, ['_W', '_Wy'],     "Weight for the first derivative in the y direction")
+    alpha_z      = Utils.dependentProperty('_alpha_z', 1.0, ['_W', '_Wz'],     "Weight for the first derivative in the z direction")
+    cell_weights = 1.
+
+    def __init__(self, mesh, mapping=None, indActive=None, **kwargs):
+        BaseRegularization.__init__(self, mesh, mapping=mapping, indActive=indActive, **kwargs)
+
+        if isinstance(self.cell_weights,float):
+            self.cell_weights = np.ones(self.regmesh.nC) * self.cell_weights
+
+    @property
+    def Wsmall(self):
+        """Regularization matrix Wsmall"""
+        if getattr(self,'_Wsmall', None) is None:
+            self._Wsmall = Utils.sdiag((self.alpha_s*self.cell_weights)**0.5)
+        return self._Wsmall
+
+    @property
+    def Wx(self):
+        """Regularization matrix Wx"""
+        if getattr(self, '_Wx', None) is None:
+            self._Wx = Utils.sdiag((self.alpha_x * (self.regmesh.aveCC2Fx*self.cell_weights))**0.5)*self.regmesh.cellDiffxStencil
+        return self._Wx
+
+    @property
+    def Wy(self):
+        """Regularization matrix Wy"""
+        if getattr(self, '_Wy', None) is None:
+            self._Wy = Utils.sdiag((self.alpha_y * (self.regmesh.aveCC2Fy*self.cell_weights))**0.5)*self.regmesh.cellDiffyStencil
+        return self._Wy
+
+    @property
+    def Wz(self):
+        """Regularization matrix Wz"""
+        if getattr(self, '_Wz', None) is None:
+            self._Wz = Utils.sdiag((self.alpha_z * (self.regmesh.aveCC2Fz*self.cell_weights))**0.5)*self.regmesh.cellDiffzStencil
+        return self._Wz
+
+#    @property
+#    def Wsmooth(self):
+#        """Full smoothness regularization matrix W"""
+#        print 'wtf why are we using Wsmooth'
+#        raise NotImplementedError
+#        if getattr(self, '_Wsmooth', None) is None:
+#            wlist = (self.Wx,)
+#            if self.regmesh.dim > 1:
+#                wlist += (self.Wy,)
+#            if self.regmesh.dim > 2:
+#                wlist += (self.Wz,)
+#            self._Wsmooth = sp.vstack(wlist)
+#        return self._Wsmooth
+#
+#    @property
+#    def W(self):
+#        """Full regularization matrix W"""
+#        print 'wtf why are we using W'
+#        if getattr(self, '_W', None) is None:
+#            wlist = (self.Wsmall, self.Wx)
+#            if self.regmesh.dim > 1:
+#                wlist += (self.Wy,)
+#            if self.regmesh.dim > 2:
+#                wlist += (self.Wz,)
+#            self._W = sp.vstack(wlist)
+#        return self._W
+
+
+    @Utils.timeIt
+    def _evalSmall(self, m):
+        r = self.Wsmall * ( self.mapping * (m - self.mref) )
+        return 0.5 * r.dot(r)
+
+    @Utils.timeIt
+    def _evalSmallDeriv(self, m):
+        r = self.Wsmall * ( self.mapping * (m - self.mref) )
+        return r.T * ( self.Wsmall * self.mapping.deriv(m - self.mref) )
+
+    @Utils.timeIt
+    def _evalSmall2Deriv(self, m, v = None):
+        rDeriv = self.Wsmall * ( self.mapping.deriv(m - self.mref) )
+        if v is not None:
+            return rDeriv.T * (rDeriv * v)
+        return rDeriv.T * rDeriv
+
+    @Utils.timeIt
+    def _evalSmoothx(self, m):
+        if self.mrefInSmooth == True:
+            r = self.Wx * ( self.mapping * (m - self.mref) )
+        elif self.mrefInSmooth == False:
+            r = self.Wx * ( self.mapping * (m) )
+        return 0.5 * r.dot(r)
+
+    @Utils.timeIt
+    def _evalSmoothy(self, m):
+        if self.mrefInSmooth == True:
+            r = self.Wy * ( self.mapping * (m - self.mref) )
+        elif self.mrefInSmooth == False:
+            r = self.Wy * ( self.mapping * (m) )
+        return 0.5 * r.dot(r)
+
+    @Utils.timeIt
+    def _evalSmoothz(self, m):
+        if self.mrefInSmooth == True:
+            r = self.Wz * ( self.mapping * (m - self.mref) )
+        elif self.mrefInSmooth == False:
+            r = self.Wz * ( self.mapping * (m) )
+        return 0.5 * r.dot(r)
+
+    @Utils.timeIt
+    def _evalSmooth(self, m):
+        phiSmooth = self._evalSmoothx(m)
+        if self.regmesh.dim > 1:
+            phiSmooth += self._evalSmoothy(m)
+        if self.regmesh.dim > 2:
+            phiSmooth += self._evalSmoothz(m)
+        return phiSmooth
+
+    @Utils.timeIt
+    def _evalSmoothxDeriv(self, m):
+        if self.mrefInSmooth == True:
+            r = self.Wx * ( self.mapping * ( m - self.mref ) )
+            return r.T * ( self.Wx * self.mapping.deriv(m - self.mref) )
+        elif self.mrefInSmooth == False:
+            r = self.Wx * ( self.mapping * m )
+            return r.T * ( self.Wx * self.mapping.deriv(m) )
+
+    @Utils.timeIt
+    def _evalSmoothx2Deriv(self, m, v=None):
+        if self.mrefInSmooth == True:
+            rDeriv = self.Wx * ( self.mapping.deriv( m - self.mref ) )
+        elif self.mrefInSmooth == False:
+            rDeriv = self.Wx * ( self.mapping.deriv(m) )
+
+        if v is not None:
+            return rDeriv.T * ( rDeriv * v )
+        return rDeriv.T * rDeriv
+
+    @Utils.timeIt
+    def _evalSmoothyDeriv(self, m):
+        if self.mrefInSmooth == True:
+            r = self.Wy * ( self.mapping * ( m - self.mref ) )
+            return r.T * ( self.Wy * self.mapping.deriv(m - self.mref) )
+        elif self.mrefInSmooth == False:
+            r = self.Wy * ( self.mapping * m )
+            return r.T * ( self.Wy * self.mapping.deriv(m) )
+
+    @Utils.timeIt
+    def _evalSmoothy2Deriv(self, m, v=None):
+        if self.mrefInSmooth == True:
+            rDeriv = self.Wy * ( self.mapping.deriv( m - self.mref ) )
+        elif self.mrefInSmooth == False:
+            rDeriv = self.Wy * ( self.mapping.deriv(m) )
+
+        if v is not None:
+            return rDeriv.T * ( rDeriv * v )
+        return rDeriv.T * rDeriv
+
+    @Utils.timeIt
+    def _evalSmoothzDeriv(self, m):
+        if self.mrefInSmooth == True:
+            r = self.Wz * ( self.mapping * ( m - self.mref ) )
+            return r.T * ( self.Wz * self.mapping.deriv(m - self.mref) )
+        elif self.mrefInSmooth == False:
+            r = self.Wz * ( self.mapping * m )
+            return r.T * ( self.Wz * self.mapping.deriv(m) )
+
+    @Utils.timeIt
+    def _evalSmoothz2Deriv(self, m, v=None):
+        if self.mrefInSmooth == True:
+            rDeriv = self.Wz * ( self.mapping.deriv( m - self.mref ) )
+        elif self.mrefInSmooth == False:
+            rDeriv = self.Wz * ( self.mapping.deriv(m) )
+
+        if v is not None:
+            return rDeriv.T * ( rDeriv * v )
+        return rDeriv.T * rDeriv
+
+    @Utils.timeIt
+    def _evalSmoothDeriv(self, m):
+        deriv = self._evalSmoothxDeriv(m)
+        if self.regmesh.dim > 1:
+            deriv += self._evalSmoothyDeriv(m)
+        if self.regmesh.dim > 2:
+            deriv += self._evalSmoothzDeriv(m)
+        return deriv
+
+    @Utils.timeIt
+    def _evalSmooth2Deriv(self, m, v=None):
+        deriv = self._evalSmoothx2Deriv(m, v)
+        if self.regmesh.dim > 1:
+            deriv += self._evalSmoothy2Deriv(m, v)
+        if self.regmesh.dim > 2:
+            deriv += self._evalSmoothz2Deriv(m, v)
+        return deriv
+
+
+    @Utils.timeIt
+    def eval(self, m):
+        return self._evalSmall(m) + self._evalSmooth(m)
+
+    @Utils.timeIt
+    def evalDeriv(self, m):
+        """
+        The regularization is:
+
+        .. math::
+
+            R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top W(m-m_\\text{ref})}
+
+        So the derivative is straight forward:
+
+        .. math::
+
+            R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
+
+        """
+        return self._evalSmallDeriv(m) + self._evalSmoothDeriv(m)
+
+    @Utils.timeIt
+    def eval2Deriv(self, m, v=None):
+        return self._evalSmall2Deriv(m, v) + self._evalSmooth2Deriv(m, v)
+
+
+
+class Tikhonov(Simple):
     """
     L2 Tikhonov regularization with both smallness and smoothness (first order
     derivative) contributions.
@@ -425,8 +658,8 @@ class Tikhonov(BaseRegularization):
     Note if the key word argument `mrefInSmooth` is False, then mref is not
     included in the smoothness contribution.
 
-    :param Mesh mesh: SimPEG mesh
-    :param Maps mapping: regularization mapping, takes the model from model space to the thing you want to regularize
+    :param BaseMesh mesh: SimPEG mesh
+    :param IdentityMap mapping: regularization mapping, takes the model from model space to the thing you want to regularize
     :param numpy.ndarray indActive: active cell indices for reducing the size of differential operators in the definition of a regularization mesh
     :param bool mrefInSmooth: (default = False) put mref in the smoothness component?
     :param float alpha_s: (default 1e-6) smallness weight
@@ -446,7 +679,7 @@ class Tikhonov(BaseRegularization):
     alpha_yy     = Utils.dependentProperty('_alpha_yy', 0.0, ['_W', '_Wyy'],    "Weight for the second derivative in the y direction")
     alpha_zz     = Utils.dependentProperty('_alpha_zz', 0.0, ['_W', '_Wzz'],    "Weight for the second derivative in the z direction")
 
-    def __init__(self, mesh, mapping=None, indActive = None, **kwargs):
+    def __init__(self, mesh, mapping=None, indActive=None, **kwargs):
         BaseRegularization.__init__(self, mesh, mapping=mapping, indActive=indActive, **kwargs)
 
     @property
@@ -501,56 +734,131 @@ class Tikhonov(BaseRegularization):
             self._Wzz = Utils.sdiag((self.regmesh.vol*self.alpha_zz)**0.5)*self.regmesh.faceDiffz*self.regmesh.cellDiffz
         return self._Wzz
 
+
     @property
-    def Wsmooth(self):
+    def Wsmooth2(self):
         """Full smoothness regularization matrix W"""
         if getattr(self, '_Wsmooth', None) is None:
-            wlist = (self.Wx, self.Wxx)
+            wlist = (self.Wxx)
             if self.regmesh.dim > 1:
-                wlist += (self.Wy, self.Wyy)
+                wlist += (self.Wyy)
             if self.regmesh.dim > 2:
-                wlist += (self.Wz, self.Wzz)
+                wlist += (self.Wzz)
             self._Wsmooth = sp.vstack(wlist)
         return self._Wsmooth
 
-    @property
-    def W(self):
-        """Full regularization matrix W"""
-        if getattr(self, '_W', None) is None:
-            wlist = (self.Wsmall, self.Wsmooth)
-            self._W = sp.vstack(wlist)
-        return self._W
-
     @Utils.timeIt
-    def _evalSmall(self, m):
-        r = self.Wsmall * ( self.mapping * (m - self.mref) )
-        return 0.5 * r.dot(r)
-
-    @Utils.timeIt
-    def _evalSmooth(self, m):
+    def _evalSmoothxx(self, m):
         if self.mrefInSmooth == True:
-            r = self.Wsmooth * ( self.mapping * (m - self.mref) )
+            r = self.Wxx * ( self.mapping * (m - self.mref) )
         elif self.mrefInSmooth == False:
-            r = self.Wsmooth * ( self.mapping * (m) )
+            r = self.Wxx * ( self.mapping * (m) )
         return 0.5 * r.dot(r)
+
+    @Utils.timeIt
+    def _evalSmoothyy(self, m):
+        if self.mrefInSmooth == True:
+            r = self.Wyy * ( self.mapping * (m - self.mref) )
+        elif self.mrefInSmooth == False:
+            r = self.Wyy * ( self.mapping * (m) )
+        return 0.5 * r.dot(r)
+
+    @Utils.timeIt
+    def _evalSmoothzz(self, m):
+        if self.mrefInSmooth == True:
+            r = self.Wzz * ( self.mapping * (m - self.mref) )
+        elif self.mrefInSmooth == False:
+            r = self.Wzz * ( self.mapping * (m) )
+        return 0.5 * r.dot(r)
+
+    @Utils.timeIt
+    def _evalSmooth2(self, m):
+        phiSmooth2 = self._evalSmoothxx(m)
+        if self.regmesh.dim > 1:
+            phiSmooth2 += self._evalSmoothyy(m)
+        if self.regmesh.dim > 2:
+            phiSmooth2 += self._evalSmoothzz(m)
+        return phiSmooth2
+
+    @Utils.timeIt
+    def _evalSmoothxxDeriv(self, m):
+        if self.mrefInSmooth == True:
+            r = self.Wxx * ( self.mapping * ( m - self.mref ) )
+            return r.T * ( self.Wxx * self.mapping.deriv(m - self.mref) )
+        elif self.mrefInSmooth == False:
+            r = self.Wxx * ( self.mapping * m )
+            return r.T * ( self.Wxx * self.mapping.deriv(m) )
+
+    @Utils.timeIt
+    def _evalSmoothyyDeriv(self, m):
+        if self.mrefInSmooth == True:
+            r = self.Wyy * ( self.mapping * ( m - self.mref ) )
+            return r.T * ( self.Wyy * self.mapping.deriv(m - self.mref) )
+        elif self.mrefInSmooth == False:
+            r = self.Wyy * ( self.mapping * m )
+            return r.T * ( self.Wyy * self.mapping.deriv(m) )
+
+    @Utils.timeIt
+    def _evalSmoothzzDeriv(self, m):
+        if self.mrefInSmooth == True:
+            r = self.Wzz * ( self.mapping * ( m - self.mref ) )
+            return r.T * ( self.Wzz * self.mapping.deriv(m - self.mref) )
+        elif self.mrefInSmooth == False:
+            r = self.Wzz * ( self.mapping * m )
+            return r.T * ( self.Wzz * self.mapping.deriv(m) )
+
+    @Utils.timeIt
+    def _evalSmoothxx2Deriv(self, m, v=None):
+        if self.mrefInSmooth == True:
+            rDeriv = self.Wxx * ( self.mapping.deriv( m - self.mref ) )
+        elif self.mrefInSmooth == False:
+            rDeriv = self.Wxx * self.mapping.deriv(m)
+        if v is not None:
+            return rDeriv.T * (rDeriv * v)
+        return rDeriv.T * rDeriv
+
+    @Utils.timeIt
+    def _evalSmoothyy2Deriv(self, m, v=None):
+        if self.mrefInSmooth == True:
+            rDeriv = self.Wyy * ( self.mapping.deriv( m - self.mref ) )
+        elif self.mrefInSmooth == False:
+            rDeriv = self.Wyy * self.mapping.deriv(m)
+        if v is not None:
+            return rDeriv.T * (rDeriv * v)
+        return rDeriv.T * rDeriv
+
+    @Utils.timeIt
+    def _evalSmoothzz2Deriv(self, m, v=None):
+        if self.mrefInSmooth == True:
+            rDeriv = self.Wzz * ( self.mapping.deriv( m - self.mref ) )
+        elif self.mrefInSmooth == False:
+            rDeriv = self.Wzz * self.mapping.deriv(m)
+        if v is not None:
+            return rDeriv.T * (rDeriv * v)
+        return rDeriv.T * rDeriv
+
+    @Utils.timeIt
+    def _evalSmoothDeriv2(self, m):
+        deriv = self._evalSmoothxxDeriv(m)
+        if self.regmesh.dim > 1:
+            deriv += self._evalSmoothyyDeriv(m)
+        if self.regmesh.dim > 2:
+            deriv += self._evalSmoothzzDeriv(m)
+        return deriv
+
+    @Utils.timeIt
+    def _evalSmooth2Deriv2(self, m, v=None):
+        deriv = self._evalSmoothxx2Deriv(m, v)
+        if self.regmesh.dim > 1:
+            deriv += self._evalSmoothyy2Deriv(m, v)
+        if self.regmesh.dim > 2:
+            deriv += self._evalSmoothzz2Deriv(m, v)
+        return deriv
+
 
     @Utils.timeIt
     def eval(self, m):
-        return self._evalSmall(m) + self._evalSmooth(m)
-
-    @Utils.timeIt
-    def _evalSmallDeriv(self,m):
-        r = self.Wsmall * ( self.mapping * (m - self.mref) )
-        return r.T * ( self.Wsmall * self.mapping.deriv(m - self.mref) )
-
-    @Utils.timeIt
-    def _evalSmoothDeriv(self,m):
-        if self.mrefInSmooth == True:
-            r = self.Wsmooth * ( self.mapping * ( m - self.mref ) )
-            return r.T * ( self.Wsmooth * self.mapping.deriv(m - self.mref) )
-        elif self.mrefInSmooth == False:
-            r = self.Wsmooth * ( self.mapping * m )
-            return r.T * ( self.Wsmooth * self.mapping.deriv(m) )
+        return self._evalSmall(m) + self._evalSmooth(m) + self._evalSmooth2(m)
 
     @Utils.timeIt
     def evalDeriv(self, m):
@@ -568,184 +876,134 @@ class Tikhonov(BaseRegularization):
             R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
 
         """
-        return self._evalSmallDeriv(m) + self._evalSmoothDeriv(m)
+        return self._evalSmallDeriv(m) + self._evalSmoothDeriv(m) + self._evalSmoothDeriv2(m)
+
+    def eval2Deriv(self, m, v=None):
+        """
+        The regularization is:
+
+        .. math::
+
+            R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top W(m-m_\\text{ref})}
+
+        So the derivative is straight forward:
+
+        .. math::
+
+            R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
+
+        """
+        return self._evalSmall2Deriv(m, v) + self._evalSmooth2Deriv(m, v) + self._evalSmooth2Deriv2(m, v)
 
 
-class Simple(Tikhonov):
+
+class Sparse(Simple):
     """
-    Simple regularization that does not include length scales in the derivatives.
+        The regularization is:
+    
+        .. math::
+    
+            R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top R^\\top R W(m-m_\\text{ref})}
+    
+        where the IRLS weight
+    
+        .. math::
+    
+            R = \eta TO FINISH LATER!!!
+    
+        So the derivative is straight forward:
+    
+        .. math::
+    
+            R(m) = \mathbf{W^\\top R^\\top R W (m-m_\\text{ref})}
+    
+        The IRLS weights are recomputed after each beta solves.
+        It is strongly recommended to do a few Gauss-Newton iterations
+        before updating.
     """
-
-    mrefInSmooth = False  #: SMOOTH and SMOOTH_MOD_DIF options
-    alpha_s     = Utils.dependentProperty('_alpha_s', 1.0, ['_W', '_Wsmall'], "Smallness weight")
-    alpha_x     = Utils.dependentProperty('_alpha_x', 1.0, ['_W', '_Wx'], "Weight for the first derivative in the x direction")
-    alpha_y     = Utils.dependentProperty('_alpha_y', 1.0, ['_W', '_Wy'], "Weight for the first derivative in the y direction")
-    alpha_z     = Utils.dependentProperty('_alpha_z', 1.0, ['_W', '_Wz'], "Weight for the first derivative in the z direction")
-    wght        = 1.
+        
+    # set default values
+    eps_p = 1e-1        # Threshold value for the model norm
+    eps_q = 1e-1        # Threshold value for the model gradient norm
+    curModel = None     # Requires model to compute the weights
+    l2model = None
+    gamma = 1.          # Model norm scaling to smooth out convergence
+    norms = [0., 2., 2., 2.] # Values for norm on (m, dmdx, dmdy, dmdz)
+    cell_weights = 1.        # Consider overwriting with sensitivity weights
 
     def __init__(self, mesh, mapping=None, indActive=None, **kwargs):
-        BaseRegularization.__init__(self, mesh, mapping=mapping, indActive=indActive, **kwargs)
+        Simple.__init__(self, mesh, mapping=mapping, indActive=indActive, **kwargs)
 
-        if isinstance(self.wght,float):
-            self.wght = np.ones(self.regmesh.nC) * self.wght
+        if isinstance(self.cell_weights,float):
+            self.cell_weights = np.ones(self.regmesh.nC) * self.cell_weights
 
     @property
     def Wsmall(self):
         """Regularization matrix Wsmall"""
         if getattr(self,'_Wsmall', None) is None:
-            self._Wsmall = Utils.sdiag((self.regmesh.vol*self.alpha_s*self.wght)**0.5)
+            if getattr(self, 'curModel', None) is None:
+                self.Rs = Utils.speye(self.regmesh.nC)
+
+            else:
+                f_m = self.mapping * (self.curModel - self.reg.mref)
+                self.rs = self.R(f_m , self.eps_p, self.norms[0])
+                self.Rs = Utils.sdiag( self.rs )
+
+            self._Wsmall = Utils.sdiag((self.alpha_s*self.gamma*self.cell_weights)**0.5)*self.Rs
+
         return self._Wsmall
 
     @property
     def Wx(self):
         """Regularization matrix Wx"""
-        if getattr(self, '_Wx', None) is None:
-            self._Wx = Utils.sdiag((self.regmesh.aveCC2Fx * self.regmesh.vol*self.alpha_x*(self.regmesh.aveCC2Fx*self.wght))**0.5)*self.regmesh.cellDiffxStencil
+        if getattr(self,'_Wx', None) is None:
+            if getattr(self, 'curModel', None) is None:
+                self.Rx = Utils.speye(self.regmesh.cellDiffxStencil.shape[0])
+
+            else:
+                f_m = self.regmesh.cellDiffxStencil * (self.mapping * self.curModel)
+                self.rx = self.R( f_m , self.eps_q, self.norms[1])
+                self.Rx = Utils.sdiag( self.rx )
+
+            self._Wx = Utils.sdiag(( self.alpha_x*self.gamma*(self.regmesh.aveCC2Fx*self.cell_weights))**0.5)*self.Rx*self.regmesh.cellDiffxStencil
+
         return self._Wx
 
     @property
     def Wy(self):
         """Regularization matrix Wy"""
-        if getattr(self, '_Wy', None) is None:
-            self._Wy = Utils.sdiag((self.regmesh.aveCC2Fy * self.regmesh.vol * self.alpha_y*(self.regmesh.aveCC2Fy*self.wght))**0.5)*self.regmesh.cellDiffyStencil
+        if getattr(self,'_Wy', None) is None:
+            if getattr(self, 'curModel', None) is None:
+                self.Ry = Utils.speye(self.regmesh.cellDiffyStencil.shape[0])
+
+            else:
+                f_m = self.regmesh.cellDiffyStencil * (self.mapping * self.curModel)
+                self.ry = self.R( f_m , self.eps_q, self.norms[2])
+                self.Ry = Utils.sdiag( self.ry )
+
+            self._Wy = Utils.sdiag((self.alpha_y*self.gamma*(self.regmesh.aveCC2Fy*self.cell_weights))**0.5)*self.Ry*self.regmesh.cellDiffyStencil
+
         return self._Wy
 
     @property
     def Wz(self):
         """Regularization matrix Wz"""
-        if getattr(self, '_Wz', None) is None:
-            self._Wz = Utils.sdiag((self.regmesh.aveCC2Fz * self.regmesh.vol*self.alpha_z*(self.regmesh.aveCC2Fz*self.wght))**0.5)*self.regmesh.cellDiffzStencil
+        if getattr(self,'_Wz', None) is None:
+            if getattr(self, 'curModel', None) is None:
+                self.Rz = Utils.speye(self.regmesh.cellDiffzStencil.shape[0])
+
+            else:
+                f_m = self.regmesh.cellDiffzStencil * (self.mapping * self.curModel)
+                self.rz = self.R( f_m , self.eps_q, self.norms[3])
+                self.Rz = Utils.sdiag( self.rz )
+
+            self._Wz = Utils.sdiag((self.alpha_z*self.gamma*(self.regmesh.aveCC2Fz*self.cell_weights))**0.5)*self.Rz*self.regmesh.cellDiffzStencil
+
         return self._Wz
-
-    @property
-    def Wsmooth(self):
-        """Full smoothness regularization matrix W"""
-        if getattr(self, '_Wsmooth', None) is None:
-            wlist = (self.Wx,)
-            if self.regmesh.dim > 1:
-                wlist += (self.Wy,)
-            if self.regmesh.dim > 2:
-                wlist += (self.Wz,)
-            self._Wsmooth = sp.vstack(wlist)
-        return self._Wsmooth
-
-    @property
-    def W(self):
-        """Full regularization matrix W"""
-        if getattr(self, '_W', None) is None:
-            wlist = (self.Wsmall, self.Wsmooth)
-            self._W = sp.vstack(wlist)
-        return self._W
-
-    @Utils.timeIt
-    def _evalSmall(self, m):
-        r = self.Wsmall * ( self.mapping * (m - self.mref) )
-        return 0.5 * r.dot(r)
-
-    @Utils.timeIt
-    def _evalSmooth(self, m):
-        if self.mrefInSmooth == True:
-            r = self.Wsmooth * ( self.mapping * (m - self.mref) )
-        elif self.mrefInSmooth == False:
-            r = self.Wsmooth * ( self.mapping * m)
-        return 0.5 * r.dot(r)
-
-
-class Sparse(Simple):
-
-    # set default values
-    eps_p      = 1e-1
-    eps_q      = 1e-1
-    curModel = None # use a model to compute the weights
-    gamma    = 1.
-    norms    = [0., 2., 2., 2.]
-    wght     = 1.
-
-    def __init__(self, mesh, mapping=None, indActive=None, **kwargs):
-        Simple.__init__(self, mesh, mapping=mapping, indActive=indActive, **kwargs)
-
-        if isinstance(self.wght,float):
-            self.wght = np.ones(self.regmesh.nC) * self.wght
-
-    @property
-    def Wsmall(self):
-        """Regularization matrix Wsmall"""
-        if getattr(self, 'curModel', None) is None:
-            self.Rs = Utils.speye(self.regmesh.nC)
-
-        else:
-            f_m = self.curModel - self.reg.mref
-            self.rs = self.R(f_m , self.eps_p, self.norms[0])
-            #print "Min rs: " + str(np.max(self.rs)) + "Max rs: " + str(np.min(self.rs))
-            self.Rs = Utils.sdiag( self.rs )
-
-        return Utils.sdiag((self.regmesh.vol*self.alpha_s*self.gamma*self.wght)**0.5)*self.Rs
-
-
-    @property
-    def Wx(self):
-        """Regularization matrix Wx"""
-
-        if getattr(self, 'curModel', None) is None:
-            self.Rx = Utils.speye(self.regmesh.cellDiffxStencil.shape[0])
-
-        else:
-            f_m = self.regmesh.cellDiffxStencil * self.curModel
-            self.rx = self.R( f_m , self.eps_q, self.norms[1])
-            self.Rx = Utils.sdiag( self.rx )
-
-        return Utils.sdiag(( (self.regmesh.aveCC2Fx * self.regmesh.vol) *self.alpha_x*self.gamma*(self.regmesh.aveCC2Fx*self.wght))**0.5)*self.Rx*self.regmesh.cellDiffxStencil
-
-    @property
-    def Wy(self):
-        """Regularization matrix Wy"""
-
-        if getattr(self, 'curModel', None) is None:
-            self.Ry = Utils.speye(self.regmesh.cellDiffyStencil.shape[0])
-
-        else:
-            f_m = self.regmesh.cellDiffyStencil * self.curModel
-            self.ry = self.R( f_m , self.eps_q, self.norms[2])
-            self.Ry = Utils.sdiag( self.ry )
-
-        return Utils.sdiag(((self.regmesh.aveCC2Fy * self.regmesh.vol)*self.alpha_y*self.gamma*(self.regmesh.aveCC2Fy*self.wght))**0.5)*self.Ry*self.regmesh.cellDiffyStencil
-
-    @property
-    def Wz(self):
-        """Regularization matrix Wz"""
-
-        if getattr(self, 'curModel', None) is None:
-            self.Rz = Utils.speye(self.regmesh.cellDiffzStencil.shape[0])
-
-        else:
-            f_m = self.regmesh.cellDiffzStencil * self.curModel
-            self.rz = self.R( f_m , self.eps_q, self.norms[3])
-            self.Rz = Utils.sdiag( self.rz )
-
-        return Utils.sdiag(((self.regmesh.aveCC2Fz * self.regmesh.vol)*self.alpha_z*self.gamma*(self.regmesh.aveCC2Fz*self.wght))**0.5)*self.Rz*self.regmesh.cellDiffzStencil
-
-    @property
-    def Wsmooth(self):
-        """Full smoothness regularization matrix W"""
-        #if getattr(self, '_Wsmooth', None) is None:
-        wlist = (self.Wx,)
-        if self.regmesh.dim > 1:
-            wlist += (self.Wy,)
-        if self.regmesh.dim > 2:
-            wlist += (self.Wz,)
-        #self._Wsmooth = sp.vstack(wlist)
-        return sp.vstack(wlist)
-
-    @property
-    def W(self):
-        """Full regularization matrix W"""
-        if getattr(self, '_W', None) is None:
-            wlist = (self.Wsmall, self.Wsmooth)
-            self._W = sp.vstack(wlist)
-        return self._W
 
     def R(self, f_m , eps, exponent):
 
+        # Eta scaling is important for mix-norms...do not mess with it
         eta = (eps**(1.-exponent/2.))**0.5
         r = eta / (f_m**2.+ eps**2.)**((1.-exponent/2.)/2.)
 

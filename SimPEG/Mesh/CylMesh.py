@@ -68,8 +68,8 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         """
         Number of x-faces in each direction
 
-        :rtype: numpy.array (dim, )
-        :return: vnFx
+        :rtype: numpy.array 
+        :return: vnFx, (dim, )
         """
         return self.vnC
 
@@ -78,8 +78,8 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         """
         Number of y-edges in each direction
 
-        :rtype: numpy.array (dim, )
-        :return: vnEy or None if dim < 2
+        :rtype: numpy.array 
+        :return: vnEy or None if dim < 2, (dim, )
         """
         nNx = self.nNx if self.isSymmetric else self.nNx - 1
         return np.r_[nNx, self.nCy, self.nNz]
@@ -89,8 +89,8 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         """
         Number of z-edges in each direction
 
-        :rtype: numpy.array (dim, )
-        :return: vnEz or None if nCy > 1
+        :rtype: numpy.array 
+        :return: vnEz or None if nCy > 1, (dim, )
         """
         if self.isSymmetric:
             return np.r_[self.nNx, self.nNy, self.nCz]

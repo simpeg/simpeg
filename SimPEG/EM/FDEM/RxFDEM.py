@@ -25,10 +25,10 @@ class BaseRx(SimPEG.Survey.BaseRx):
 
     def eval(self, src, mesh, f):
         """
-        Project fields to recievers to get data.
+        Project fields to receivers to get data.
 
-        :param Source src: FDEM source
-        :param Mesh mesh: mesh used
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: FDEM source
+        :param BaseMesh mesh: mesh used
         :param Fields f: fields object
         :rtype: numpy.ndarray
         :return: fields projected to recievers
@@ -44,8 +44,8 @@ class BaseRx(SimPEG.Survey.BaseRx):
         """
         Derivative of projected fields with respect to the inversion model times a vector.
 
-        :param Source src: FDEM source
-        :param Mesh mesh: mesh used
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: FDEM source
+        :param BaseMesh mesh: mesh used
         :param Fields f: fields object
         :param numpy.ndarray v: vector to multiply
         :rtype: numpy.ndarray

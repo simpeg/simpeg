@@ -43,8 +43,8 @@ class IdentityMap(object):
             If this is a meshless mapping (i.e. nP is defined independently)
             the shape will be the the shape (nP,nP).
 
-            :rtype: (int,int)
-            :return: shape of the operator as a tuple
+            :rtype: tuple
+            :return: shape of the operator as a tuple (int,int)
         """
         if self._nP is not None:
             return (self.nP, self.nP)
@@ -88,7 +88,7 @@ class IdentityMap(object):
             The derivative of the transformation.
 
             :param numpy.array m: model
-            :rtype: scipy.csr_matrix
+            :rtype: scipy.sparse.csr_matrix
             :return: derivative of transformed model
 
         """
@@ -232,7 +232,7 @@ class ExpMap(IdentityMap):
     def deriv(self, m):
         """
             :param numpy.array m: model
-            :rtype: scipy.csr_matrix
+            :rtype: scipy.sparse.csr_matrix
             :return: derivative of transformed model
 
             The *transform* changes the model into the physical property.
@@ -382,7 +382,7 @@ class SurjectVertical1D(IdentityMap):
     def deriv(self, m):
         """
             :param numpy.array m: model
-            :rtype: scipy.csr_matrix
+            :rtype: scipy.sparse.csr_matrix
             :return: derivative of transformed model
         """
         repNum = self.mesh.vnC[:self.mesh.dim-1].prod()
@@ -443,7 +443,7 @@ class Surject2Dto3D(IdentityMap):
     def deriv(self, m):
         """
             :param numpy.array m: model
-            :rtype: scipy.csr_matrix
+            :rtype: scipy.sparse.csr_matrix
             :return: derivative of transformed model
         """
         inds = self * np.arange(self.nP)

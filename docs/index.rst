@@ -1,4 +1,4 @@
-.. image:: https://raw.github.com/simpeg/simpeg/master/docs/simpeg-logo.png
+.. image:: https://raw.github.com/simpeg/simpeg/master/docs/images/simpeg-logo.png
     :alt: SimPEG Logo
 
 SimPEG Documentation
@@ -24,6 +24,10 @@ SimPEG Documentation
     :target: https://coveralls.io/r/simpeg/simpeg?branch=master
     :alt: Coverage status
 
+.. image:: https://codecov.io/gh/simpeg/simpeg/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/simpeg/simpeg
+
+
 Simulation and Parameter Estimation in Geophysics  -  A python package for simulation and gradient based parameter estimation in the context of geophysical applications.
 
 Our vision is to create a package for finite volume simulation with applications to geophysical imaging and subsurface flow. To enable the understanding of the many different components, this package has the following features:
@@ -41,15 +45,16 @@ About SimPEG
 .. toctree::
    :maxdepth: 2
 
-   api_bigPicture
-   api_installing
+   content/api_core/api_bigPicture
+   content/api_core/api_installing
 
 Examples
 ********
 
 .. toctree::
    :maxdepth: 2
-   api_Examples
+
+   content/api_core/api_Examples
 
 Packages
 ********
@@ -57,9 +62,11 @@ Packages
 .. toctree::
    :maxdepth: 3
 
-   em/index
-   mt/index
-   flow/index
+   content/em/index
+   content/dc/index
+   content/ip/index
+   content/mt/index
+   content/flow/index
 
 Finite Volume
 *************
@@ -67,7 +74,7 @@ Finite Volume
 .. toctree::
    :maxdepth: 3
 
-   api_FiniteVolume
+   content/api_core/api_FiniteVolume
 
 Forward Problems
 ****************
@@ -75,7 +82,7 @@ Forward Problems
 .. toctree::
    :maxdepth: 3
 
-   api_ForwardProblem
+   content/api_core/api_ForwardProblem
 
 Inversion Components
 ********************
@@ -83,7 +90,7 @@ Inversion Components
 .. toctree::
    :maxdepth: 3
 
-   api_InversionComponents
+   content/api_core/api_InversionComponents
 
 Utility Codes
 *************
@@ -91,7 +98,7 @@ Utility Codes
 .. toctree::
    :maxdepth: 3
 
-   api_Utilities
+   content/api_core/api_Utilities
 
 
 Project Index & Search
