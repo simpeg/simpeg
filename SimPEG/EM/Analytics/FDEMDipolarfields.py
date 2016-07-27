@@ -219,7 +219,7 @@ def H_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
     # k  = np.sqrt( -1j*2.*np.pi*f*mu*sig )
     k = np.sqrt(omega(f)**2. * mu*epsilon - 1j*omega(f)*mu*sig)
 
-    front = current * length / (8.*np.pi*(r)**2) * (1j*k*r + 1) * np.exp(-1j*k*r)
+    front = current * length / (4.*np.pi*(r)**2) * (1j*k*r + 1) * np.exp(-1j*k*r)
 
     if orientation.upper() == 'X':
         Hy = front*(-dz / r)

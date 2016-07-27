@@ -55,6 +55,7 @@ class FDEM_analytic_DipoleTests(unittest.TestCase):
 
         # Form data interpolation matrix
         Pf = mesh.getInterpolationMat(XYZ, 'CC')
+        Pey = mesh.getInterpolationMat(XYZ, 'Ey')
         Zero = sp.csr_matrix(Pf.shape)
         Pfx, Pfz = sp.hstack([Pf, Zero]), sp.hstack([Zero, Pf])
 
@@ -98,12 +99,13 @@ class FDEM_analytic_DipoleTests(unittest.TestCase):
         e_num = numFields_ElecDipole[de_z, 'e']
 
         # H lives on edges
-        h_num = numFields_ElecDipole[de_z, 'h']
-        h_num = mesh.aveE2CCV*h_num
+        h_num_e = numFields_ElecDipole[de_z, 'h']
+        h_num = mesh.aveE2CCV*h_num_e
         # B lives on cell centers
         b_num = numFields_ElecDipole[de_z, 'b']
-        Mu = Utils.sdiag(MuBack)
-        b_numTest = Mu*h_num
+        MuBack_ey = (mu_0*(1 + kappa))*np.ones((mesh.nEy))
+        Mu = Utils.sdiag(MuBack_ey)
+        b_numTest = Mu*h_num_e
 
         # Interpolate numeric fields and fluxes to cell cetres for easy comparison with analytics
         ex_num, ez_num = Pfx*e_num, Pfz*e_num
@@ -135,7 +137,7 @@ class FDEM_analytic_DipoleTests(unittest.TestCase):
         print('')
         self.assertTrue(np.linalg.norm(btheta_num-btheta_numTest)/np.linalg.norm(btheta_numTest) < tol_ElecDipole, msg='The two ways of calculating the numeric B field do not agree.')
 
-        htheta_num = Pf*h_num
+        htheta_num = Pey*h_num_e
         hx_num = np.zeros_like(htheta_num)
         hz_num = np.zeros_like(htheta_num)
 
