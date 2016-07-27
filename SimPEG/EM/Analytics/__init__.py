@@ -3,3 +3,4 @@ from FDEM import hzAnalyticDipoleF
 from FDEMcasing import *
 from DC import DCAnalyticHalf, DCAnalyticSphere
 from FDEMDipolarfields import *
+from EMcircuit import *
