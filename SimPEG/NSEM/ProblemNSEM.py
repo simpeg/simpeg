@@ -486,11 +486,11 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
             :rtype: scipy.sparse.csr_matrix
             :return: A
         """
-        Mmui = self.MfMui
-        Msig = self.MeSigma
+        Mfmui = self.MfMui
+        Mesig = self.MeSigma
         C = self.mesh.edgeCurl
 
-        return C.T*Mmui*C + 1j*omega(freq)*Msig
+        return C.T*Mfmui*C + 1j*omega(freq)*Mesig
 
     def getADeriv(self, freq, u, v, adjoint=False):
         """

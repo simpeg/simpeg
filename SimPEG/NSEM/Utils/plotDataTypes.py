@@ -174,7 +174,7 @@ def plotIsoFreqNStipper(ax,freq,array,flag,par='abs',colorbar=True,colorNorm='Sy
 		plt.colorbar(cs,cax=ax.cax,ticks=clevel,format='%1.2e')
 	ax.set_title(flag+' '+par,fontsize=8)
 
-def plotIsoStaImpedance(ax,loc,array,flag,par='abs',pSym='s',pColor=None,addLabel=''):
+def plotIsoStaImpedance(ax,loc,array,flag,par='abs',pSym='s',pColor=None,addLabel='',zorder=1):
 
 	appResFact = 1/(8*np.pi**2*10**(-7))
 	treshold = 1.0 # 1 meter
@@ -206,7 +206,7 @@ def plotIsoStaImpedance(ax,loc,array,flag,par='abs',pSym='s',pColor=None,addLabe
 			lab = 'YY'
 			pColor = 'y'
 
-	ax.plot(freq,zPlot,color=pColor,marker=pSym,label=flag+addLabel)
+	ax.plot(freq,zPlot,color=pColor,marker=pSym,label=flag+addLabel,zorder=zorder)
 
 
 def plotPsudoSectNSimpedance(ax,sectDict,array,flag,par='abs',colorbar=True,colorNorm='None',cLevel=None,contour=True):
