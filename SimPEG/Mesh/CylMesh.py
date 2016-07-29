@@ -68,7 +68,7 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         """
         Number of x-faces in each direction
 
-        :rtype: numpy.array 
+        :rtype: numpy.array
         :return: vnFx, (dim, )
         """
         return self.vnC
@@ -78,7 +78,7 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         """
         Number of y-edges in each direction
 
-        :rtype: numpy.array 
+        :rtype: numpy.array
         :return: vnEy or None if dim < 2, (dim, )
         """
         nNx = self.nNx if self.isSymmetric else self.nNx - 1
@@ -89,7 +89,7 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         """
         Number of z-edges in each direction
 
-        :rtype: numpy.array 
+        :rtype: numpy.array
         :return: vnEz or None if nCy > 1, (dim, )
         """
         if self.isSymmetric:
@@ -279,7 +279,7 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
             if self.isSymmetric:
                 avR = av(n[0])[:,1:]
                 avR[0,0] = 1.
-                self._aveE2CC = (0.5)*sp.kron(av(n[2]), avR, format="csr")
+                self._aveE2CC = sp.kron(av(n[2]), avR, format="csr")
             else:
                 raise NotImplementedError('wrapping in the averaging is not yet implemented')
                 # self._aveE2CC = (1./3)*sp.hstack((kron3(av(n[2]), av(n[1]), speye(n[0])),
