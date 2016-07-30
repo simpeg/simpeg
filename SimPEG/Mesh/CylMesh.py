@@ -366,7 +366,7 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
             return None
 
         if projType == 'E':
-                M = 0.5*M
+            M = 0.5*M
 
         if invMat:
             return Utils.sdInv(M)
