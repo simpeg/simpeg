@@ -90,7 +90,7 @@ setup(
                         'Cython'
                        ],
     author = "Rowan Cockett",
-    author_email = "rowan@3ptscience.com",
+    author_email = "rowanc1@gmail.com",
     description = "SimPEG: Simulation and Parameter Estimation in Geophysics",
     long_description = LONG_DESCRIPTION,
     license = "MIT",
