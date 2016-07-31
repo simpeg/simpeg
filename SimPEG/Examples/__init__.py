@@ -59,7 +59,7 @@ if __name__ == '__main__':
         if line == "##### AUTOIMPORTS #####\n":
             inimports = not inimports
             if inimports:
-                out += '\n'.join(["import %s"%_ for _ in exfiles])
+                out += '\n'.join(["import {0!s}".format(_) for _ in exfiles])
                 out += '\n\n__examples__ = ["' + '", "'.join(exfiles)+ '"]\n'
                 out += '\n##### AUTOIMPORTS #####\n'
     f.close()
@@ -76,11 +76,11 @@ if __name__ == '__main__':
 
         docstr = runFunction.__doc__
         if docstr is None:
-            doc = '%s\n%s'%(name.replace('_',' '),'='*len(name))
+            doc = '{0!s}\n{1!s}'.format(name.replace('_',' '), '='*len(name))
         else:
             doc = '\n'.join([_[8:].rstrip() for _ in docstr.split('\n')])
 
-        out = """.. _examples_%s:
+        out = """.. _examples_{0!s}:
 
 .. --------------------------------- ..
 ..                                   ..
@@ -90,21 +90,21 @@ if __name__ == '__main__':
 ..                                   ..
 .. --------------------------------- ..
 
-%s
+{1!s}
 
 .. plot::
 
     from SimPEG import Examples
-    Examples.%s.run()
+    Examples.{2!s}.run()
 
-.. literalinclude:: ../../../SimPEG/Examples/%s.py
+.. literalinclude:: ../../../SimPEG/Examples/{3!s}.py
     :language: python
     :linenos:
-"""%(name,doc,name,name)
+""".format(name, doc, name, name)
 
         rst = os.path.sep.join((filePath.split(os.path.sep)[:-3] + ['docs', 'content', 'examples', name + '.rst']))
 
-        print 'Creating: %s.rst'%name
+        print 'Creating: {0!s}.rst'.format(name)
         f = open(rst, 'w')
         f.write(out)
         f.close()

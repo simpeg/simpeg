@@ -121,7 +121,7 @@ class RichardsTests1D(unittest.TestCase):
         tol = TOL*(10**int(np.log10(np.abs(zJv))))
         passed = np.abs(vJz - zJv) < tol
         print 'Richards Adjoint Test - PressureHead'
-        print '%4.4e === %4.4e, diff=%4.4e < %4.e'%(vJz, zJv,np.abs(vJz - zJv),tol)
+        print '{0:4.4e} === {1:4.4e}, diff={2:4.4e} < {3:4e}'.format(vJz, zJv, np.abs(vJz - zJv), tol)
         self.assertTrue(passed,True)
 
     def test_Sensitivity(self):
@@ -193,7 +193,7 @@ class RichardsTests2D(unittest.TestCase):
         tol = TOL*(10**int(np.log10(np.abs(zJv))))
         passed = np.abs(vJz - zJv) < tol
         print '2D: Richards Adjoint Test - PressureHead'
-        print '%4.4e === %4.4e, diff=%4.4e < %4.e'%(vJz, zJv,np.abs(vJz - zJv),tol)
+        print '{0:4.4e} === {1:4.4e}, diff={2:4.4e} < {3:4e}'.format(vJz, zJv, np.abs(vJz - zJv), tol)
         self.assertTrue(passed,True)
 
     def test_Sensitivity(self):
@@ -265,7 +265,7 @@ class RichardsTests3D(unittest.TestCase):
         tol = TOL*(10**int(np.log10(np.abs(zJv))))
         passed = np.abs(vJz - zJv) < tol
         print '3D: Richards Adjoint Test - PressureHead'
-        print '%4.4e === %4.4e, diff=%4.4e < %4.e'%(vJz, zJv,np.abs(vJz - zJv),tol)
+        print '{0:4.4e} === {1:4.4e}, diff={2:4.4e} < {3:4e}'.format(vJz, zJv, np.abs(vJz - zJv), tol)
         self.assertTrue(passed,True)
 
     def test_Sensitivity(self):

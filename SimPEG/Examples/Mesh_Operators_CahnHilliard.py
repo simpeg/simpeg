@@ -98,7 +98,7 @@ def run(plotIt=True, n=60):
             ii = int(ii)
             out = M.plotImage(PHIS[ii][1],ax=ax)
             ax.axis('off')
-            ax.set_title('Elapsed Time: %4.1f'%PHIS[ii][0])
+            ax.set_title('Elapsed Time: {0:4.1f}'.format(PHIS[ii][0]))
         plt.show()
 
 if __name__ == '__main__':
