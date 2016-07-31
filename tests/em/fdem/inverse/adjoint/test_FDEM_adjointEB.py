@@ -1,7 +1,6 @@
 import unittest
-from SimPEG import *
+import numpy as np
 from SimPEG import EM
-import sys
 from scipy.constants import mu_0
 from SimPEG.EM.Utils.testingUtils import getFDEMProblem
 

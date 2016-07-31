@@ -6,6 +6,7 @@ from TensorMesh import BaseTensorMesh, BaseRectangularMesh
 from InnerProducts import InnerProducts
 from View import CylView
 
+
 class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
     """
         CylMesh is a mesh class for cylindrical problems
@@ -490,10 +491,10 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
 
 if __name__ == '__main__':
 
-    from SimPEG import *
-    hx = np.r_[1,1,0.5]
-    hz = np.r_[2,1]
-    M = Mesh.CylMesh([hx, 1,hz], x0='00N')
+    from SimPEG import Mesh
+    hx = np.r_[1, 1, 0.5]
+    hz = np.r_[2, 1]
+    M = Mesh.CylMesh([hx, 1, hz], x0='00N')
 
     M.plotImage(np.random.rand(M.nC), showIt=False)
     M.plotGrid(centers=True, showIt=True)

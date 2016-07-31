@@ -1,6 +1,7 @@
 import unittest
 import sys
-from SimPEG import *
+import numpy as np
+from SimPEG import Mesh, Tests, Utils
 
 
 class TestCyl2DMesh(unittest.TestCase):

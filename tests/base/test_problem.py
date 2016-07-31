@@ -1,5 +1,6 @@
 import unittest
-from SimPEG import *
+from SimPEG import Mesh, Problem
+import numpy as np
 
 
 class TestTimeProblem(unittest.TestCase):

@@ -1,4 +1,6 @@
-import Utils, numpy as np, scipy.sparse as sp
+import Utils
+import numpy as np
+import scipy.sparse as sp
 
 class Fields(object):
     """Fancy Field Storage

@@ -1,5 +1,6 @@
 import unittest
-from SimPEG import *
+import numpy as np
+from SimPEG import Mesh, Maps, SolverLU
 from SimPEG import EM
 from scipy.constants import mu_0
 import matplotlib.pyplot as plt

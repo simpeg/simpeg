@@ -1,4 +1,6 @@
-import Utils, numpy as np, scipy.sparse as sp
+import Utils
+import numpy as np
+import scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
 from Tests import checkDerivative
 from PropMaps import PropMap, Property
@@ -504,7 +506,7 @@ class InjectActiveCells(IdentityMap):
         else:
             self.valInactive = np.ones(self.nC)
             self.valInactive[self.indInactive] = valInactive.copy()
-            
+
         self.valInactive[self.indActive] = 0
 
         inds = np.nonzero(self.indActive)[0]

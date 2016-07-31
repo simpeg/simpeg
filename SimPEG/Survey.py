@@ -1,4 +1,7 @@
-import Utils, numpy as np, scipy.sparse as sp, uuid
+import Utils
+import numpy as np
+import scipy.sparse as sp
+import uuid
 
 class BaseRx(object):
     """SimPEG Receiver Object"""

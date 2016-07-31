@@ -1,7 +1,13 @@
-import Utils, Survey, Models, numpy as np, scipy.sparse as sp
-Solver = Utils.SolverUtils.Solver
-import Maps, Mesh
+import Utils
+import Survey
+import Models
+import numpy as np
+import scipy.sparse as sp
+import Maps
+import Mesh
 from Fields import Fields, TimeFields
+
+Solver = Utils.SolverUtils.Solver
 
 class BaseProblem(object):
     """

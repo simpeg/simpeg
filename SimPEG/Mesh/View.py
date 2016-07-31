@@ -41,12 +41,12 @@ class TensorView(object):
     #     if showIt: plt.show()
 
     def plotImage(self, v, vType='CC', grid=False, view='real',
-              ax=None, clim=None, showIt=False,
-              pcolorOpts=None,
-              streamOpts=None,
-              gridOpts=None,
-              numbering=True, annotationColor='w'
-              ):
+                  ax=None, clim=None, showIt=False,
+                  pcolorOpts=None,
+                  streamOpts=None,
+                  gridOpts=None,
+                  numbering=True, annotationColor='w'
+                  ):
         """
         Mesh.plotImage(v)
 
@@ -553,7 +553,7 @@ class CurvView(object):
         pass
 
 
-    def plotGrid(self, ax=None, nodes=False, faces=False, centers=False, edges=False, lines=True,  showIt=False):
+    def plotGrid(self, ax=None, nodes=False, faces=False, centers=False, edges=False, lines=True, showIt=False):
         """Plot the nodal, cell-centered and staggered grids for 1,2 and 3 dimensions.
 
 
@@ -680,34 +680,35 @@ class CurvView(object):
 
 
 if __name__ == '__main__':
-    from SimPEG import *
-    hx = [(5,2,-1.3),(2,4),(5,2,1.3)]
-    hy = [(2,2,-1.3),(2,6),(2,2,1.3)]
-    hz = [(2,2,-1.3),(2,6),(2,2,1.3)]
-    M = Mesh.TensorMesh([hx,hy,hz], x0=[10,20,14])
+    import numpy as np
+    from SimPEG import Mesh, Utils, Solver
+    hx = [(5, 2, -1.3), (2, 4), (5, 2, 1.3)]
+    hy = [(2, 2, -1.3), (2, 6), (2, 2, 1.3)]
+    hz = [(2, 2, -1.3), (2, 6), (2, 2, 1.3)]
+    M = Mesh.TensorMesh([hx, hy, hz], x0=[10, 20, 14])
     q = np.zeros(M.vnC)
-    q[[4,4],[4,4],[2,6]]=[-1,1]
+    q[[4, 4], [4, 4], [2, 6]] = [-1, 1]
     q = Utils.mkvc(q)
     A = M.faceDiv*M.cellGrad
     b = Solver(A) * (q)
 
-    M.plotSlice(M.cellGrad*b, 'F', view='vec', grid=True, pcolorOpts={'alpha':0.8})
-    M2 = Mesh.TensorMesh([10,20],x0=[10,5])
-    f = np.r_[np.sin(M2.gridFx[:,0]*2*np.pi), np.sin(M2.gridFy[:,1]*2*np.pi)]
-    M2.plotImage(f, 'F', view='vec', grid=True, pcolorOpts={'alpha':0.8})
+    M.plotSlice(M.cellGrad*b, 'F', view='vec', grid=True,
+                pcolorOpts={'alpha':0.8})
+    M2 = Mesh.TensorMesh([10, 20], x0=[10, 5])
+    f = np.r_[np.sin(M2.gridFx[:, 0]*2*np.pi), np.sin(M2.gridFy[:, 1]*2*np.pi)]
+    M2.plotImage(f, 'F', view='vec', grid=True, pcolorOpts={'alpha': 0.8})
     M2.plotImage(f, 'Fx')
 
-    f = np.r_[np.sin(M2.gridEx[:,0]*2*np.pi), np.sin(M2.gridEy[:,1]*2*np.pi)]
-    M2.plotImage(f, 'E', view='vec', grid=True, pcolorOpts={'alpha':0.8})
+    f = np.r_[np.sin(M2.gridEx[:, 0]*2*np.pi), np.sin(M2.gridEy[:, 1]*2*np.pi)]
+    M2.plotImage(f, 'E', view='vec', grid=True, pcolorOpts={'alpha': 0.8})
 
-    c = np.r_[np.sin(M2.gridCC[:,0]*2*np.pi)]
+    c = np.r_[np.sin(M2.gridCC[:, 0]*2*np.pi)]
     M2.plotImage(c, 'CC', view='real')
 
-    from SimPEG import Mesh, np
-    M = Mesh.TensorMesh([20,20,20])
-    v = np.sin(M.gridCC[:,0]*2*np.pi)*np.sin(M.gridCC[:,1]*2*np.pi)*np.sin(M.gridCC[:,2]*2*np.pi)
+    M = Mesh.TensorMesh([20, 20, 20])
+    v = (np.sin(M.gridCC[:, 0]*2*np.pi)*np.sin(M.gridCC[:, 1]*2*np.pi)*
+         np.sin(M.gridCC[:, 2]*2*np.pi))
     M.plotImage(v, annotationColor='k')
-
 
     Mesh.TensorMesh([10]).plotGrid()
 

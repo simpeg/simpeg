@@ -1,7 +1,6 @@
 import unittest
-from SimPEG import *
+import numpy as np
 from SimPEG import EM
-import sys
 from scipy.constants import mu_0
 from SimPEG.EM.Utils.testingUtils import getFDEMProblem
 
@@ -97,7 +96,7 @@ class FDEM_AdjointTests(unittest.TestCase):
         def test_Jtvec_adjointTest_bzi_Jform(self):
             self.assertTrue(adjointTest('j', 'bzi'))
 
-    if testH: 
+    if testH:
         def test_Jtvec_adjointTest_hxr_Hform(self):
             self.assertTrue(adjointTest('h', 'hxr'))
         def test_Jtvec_adjointTest_hyr_Hform(self):
