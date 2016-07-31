@@ -11,25 +11,29 @@ except ImportError, e:
 
 
 def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=None, showIt=False):
+
+    print '\nTesting sig_half = {0}, rxOffset= {1}'.format(sig_half, rxOffset)
+
     if bounds is None:
-        bounds = [1e-5,1e-3]
+        bounds = [1e-5, 1e-3]
     if meshType == 'CYL':
-        cs, ncx, ncz, npad = 5., 30, 10, 15
-        hx = [(cs,ncx), (cs,npad,1.3)]
-        hz = [(cs,npad,-1.3), (cs,ncz), (cs,npad,1.3)]
-        mesh = Mesh.CylMesh([hx,1,hz], '00C')
+        cs, ncx, ncz, npad = 5., 30, 10, 20
+        hx = [(cs, ncx), (cs, npad, 1.3)]
+        hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
+        mesh = Mesh.CylMesh([hx, 1, hz], '00C')
     elif meshType == 'TENSOR':
         cs, nc, npad = 20., 13, 5
-        hx = [(cs,npad,-1.3), (cs,nc), (cs,npad,1.3)]
-        hy = [(cs,npad,-1.3), (cs,nc), (cs,npad,1.3)]
-        hz = [(cs,npad,-1.3), (cs,nc), (cs,npad,1.3)]
-        mesh = Mesh.TensorMesh([hx,hy,hz], 'CCC')
+        hx = [(cs, npad, -1.3), (cs, nc), (cs, npad, 1.3)]
+        hy = [(cs, npad, -1.3), (cs, nc), (cs, npad, 1.3)]
+        hz = [(cs, npad, -1.3), (cs, nc), (cs, npad, 1.3)]
+        mesh = Mesh.TensorMesh([hx, hy, hz], 'CCC')
 
-    active = mesh.vectorCCz<0.
+    active = mesh.vectorCCz < 0.
     actMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
     mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * actMap
 
-    rx = EM.TDEM.RxTDEM(np.array([[rxOffset, 0., 0.]]), np.logspace(-5,-4, 21), 'bz')
+    rx = EM.TDEM.RxTDEM(np.array([[rxOffset, 0., 0.]]),
+                        np.logspace(-5, -4, 21), 'bz')
     src = EM.TDEM.SrcTDEM_VMD_MVP([rx], loc=np.array([0., 0., 0.]))
     # src = EM.TDEM.SrcTDEM([rx], loc=np.array([0., 0., 0.]))
 
@@ -48,7 +52,7 @@ def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=None, 
 
     bz_calc = survey.dpred(sigma)
 
-    ind = np.logical_and(rx.times > bounds[0],rx.times < bounds[1])
+    ind = np.logical_and(rx.times > bounds[0], rx.times < bounds[1])
     log10diff = np.linalg.norm(np.log10(np.abs(bz_calc[ind])) - np.log10(np.abs(bz_ana[ind])))/np.linalg.norm(np.log10(np.abs(bz_ana[ind])))
     print 'Difference: ', log10diff
 
@@ -62,6 +66,9 @@ def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=None, 
 
 
 class TDEM_bTests(unittest.TestCase):
+
+    def test_analytic_p2_TENSOR_50m(self):
+        self.assertTrue(halfSpaceProblemAnaDiff('TENSOR', rxOffset=50., sig_half=1e+2) < 0.01)
 
     def test_analytic_p2_CYL_50m(self):
         self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=50., sig_half=1e+2) < 0.01)
