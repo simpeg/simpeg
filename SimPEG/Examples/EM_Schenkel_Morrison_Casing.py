@@ -1,5 +1,5 @@
 import numpy as np
-from SimPEG import Mesh, Utils, SolverLU
+from SimPEG import Mesh, Maps, Utils, SolverLU
 from SimPEG.EM import FDEM, Analytics, mu_0
 import time
 
