@@ -1,4 +1,5 @@
-from SimPEG import *
+import numpy as np
+from SimPEG import Mesh, Utils
 from SimPEG.EM import FDEM, Analytics, mu_0
 import time
 
@@ -9,19 +10,22 @@ except Exception:
     solver = SolverLU
     pass
 
+
 def run(plotIt=True):
     """
         EM: Schenkel and Morrison Casing Model
         ======================================
 
-        Here we create and run a FDEM forward simulation to calculate the vertical
-        current inside a steel-cased. The model is based on the Schenkel and
-        Morrison Casing Model, and the results are used in a 2016 SEG abstract by
-        Yang et al.
+        Here we create and run a FDEM forward simulation to calculate the
+        vertical current inside a steel-cased. The model is based on the
+        Schenkel and Morrison Casing Model, and the results are used in a 2016
+        SEG abstract by Yang et al.
 
         .. code-block:: text
 
-            Schenkel, C.J., and H.F. Morrison, 1990, Effects of well casing on potential field measurements using downhole current sources: Geophysical prospecting, 38, 663-686.
+            Schenkel, C.J., and H.F. Morrison, 1990, Effects of well casing on
+            potential field measurements using downhole current sources:
+            Geophysical prospecting, 38, 663-686.
 
 
         The model consists of:
@@ -36,20 +40,22 @@ def run(plotIt=True):
         Inside the casing, we take the same conductivity as the background.
 
         We are using an EM code to simulate DC, so we use frequency low enough
-        that the skin depth inside the casing is longer than the casing length (f
-        = 1e-6 Hz). The plot produced is of the current inside the casing.
+        that the skin depth inside the casing is longer than the casing length
+        (f = 1e-6 Hz). The plot produced is of the current inside the casing.
 
         These results are shown in the SEG abstract by Yang et al., 2016: 3D DC
         resistivity modeling of steel casing for reservoir monitoring using
-        equivalent resistor network. The solver used to produce these results and
-        achieve the CPU time of ~30s is Mumps, which was installed using pymatsolver_
+        equivalent resistor network. The solver used to produce these results
+        and achieve the CPU time of ~30s is Mumps, which was installed using
+        pymatsolver_
 
         .. _pymatsolver: https://github.com/rowanc1/pymatsolver
 
-        This example is on figshare: https://dx.doi.org/10.6084/m9.figshare.3126961.v1
+        This example is on figshare:
+        https://dx.doi.org/10.6084/m9.figshare.3126961.v1
 
-        If you would use this example for a code comparison, or build upon it, a
-        citation would be much appreciated!
+        If you would use this example for a code comparison, or build upon it,
+        a citation would be much appreciated!
 
     """
 
@@ -57,29 +63,26 @@ def run(plotIt=True):
         import matplotlib.pylab as plt
 
     # ------------------ MODEL ------------------
-    sigmaair = 1e-8 # air
-    sigmaback = 1e-2 # background
-    sigmacasing = 1e6 # casing
-    sigmainside = sigmaback # inside the casing
-
+    sigmaair = 1e-8  # air
+    sigmaback = 1e-2  # background
+    sigmacasing = 1e6  # casing
+    sigmainside = sigmaback  # inside the casing
 
     casing_t = 0.006  # 1cm thickness
-    casing_l = 300   # length of the casing
+    casing_l = 300  # length of the casing
 
     casing_r = 0.1
-    casing_a = casing_r - casing_t/2. # inner radius
-    casing_b = casing_r + casing_t/2. # outer radius
-    casing_z = np.r_[-casing_l,0.]
-
+    casing_a = casing_r - casing_t/2.  # inner radius
+    casing_b = casing_r + casing_t/2.  # outer radius
+    casing_z = np.r_[-casing_l, 0.]
 
     # ------------------ SURVEY PARAMETERS ------------------
-    freqs = np.r_[1e-6] #[1e-1, 1, 5] # frequencies
-    dsz = -300 # down-hole z source location
-    src_loc = np.r_[0.,0.,dsz]
-    inf_loc = np.r_[0.,0.,1e4]
+    freqs = np.r_[1e-6]  # [1e-1, 1, 5] # frequencies
+    dsz = -300  # down-hole z source location
+    src_loc = np.r_[0., 0., dsz]
+    inf_loc = np.r_[0., 0., 1e4]
 
     print 'Skin Depth: ', [(500./np.sqrt(sigmaback*_)) for _ in freqs]
-
 
     # ------------------ MESH ------------------
     # fine cells near well bore
@@ -89,26 +92,30 @@ def run(plotIt=True):
 
     # pad nicely to second cell size
     npadx1 = np.floor(np.log(csx2/csx1) / np.log(pfx1))
-    hx1a,hx1b = Utils.meshTensor([(csx1,ncx1)]),Utils.meshTensor([(csx1,npadx1,pfx1)])
+    hx1a = Utils.meshTensor([(csx1, ncx1)]),
+    hx1b = Utils.meshTensor([(csx1, npadx1, pfx1)])
     dx1 = sum(hx1a)+sum(hx1b)
     dx1 = np.floor(dx1/csx2)
     hx1b *= (dx1*csx2 - sum(hx1a))/sum(hx1b)
 
     # second chunk of mesh
-    dx2 = 300. # uniform mesh out to here
+    dx2 = 300.  # uniform mesh out to here
     ncx2 = np.ceil((dx2 - dx1)/csx2)
     npadx2 = 45
-    hx2a, hx2b = Utils.meshTensor([(csx2,ncx2)]), Utils.meshTensor([(csx2,npadx2,pfx2)])
-    hx = np.hstack([hx1a,hx1b,hx2a,hx2b])
+    hx2a, = Utils.meshTensor([(csx2, ncx2)])
+    hx2b = Utils.meshTensor([(csx2, npadx2, pfx2)])
+    hx = np.hstack([hx1a, hx1b, hx2a, hx2b])
 
     # z-direction
     csz = 0.05
     nza = 10
-    ncz, npadzu, npadzd = np.int(np.ceil(np.diff(casing_z)[0]/csz))+10, 68, 68 # cell size, number of core cells, number of padding cells in the x- direction
-    hz = Utils.meshTensor([(csz,npadzd,-1.3), (csz,ncz), (csz,npadzu,1.3)]) # vector of cell widths in the z-direction
+    # cell size, number of core cells, number of padding cells in the x-direction
+    ncz, npadzu, npadzd = np.int(np.ceil(np.diff(casing_z)[0]/csz))+10, 68, 68
+    # vector of cell widths in the z-direction
+    hz = Utils.meshTensor([(csz, npadzd, -1.3), (csz, ncz), (csz, npadzu, 1.3)])
 
     # Mesh
-    mesh = Mesh.CylMesh([hx,1.,hz], [0.,0.,-np.sum(hz[:npadzu+ncz-nza])])
+    mesh = Mesh.CylMesh([hx, 1., hz], [0., 0., -np.sum(hz[:npadzu+ncz-nza])])
 
     print 'Mesh Extent xmax: %f,: zmin: %f, zmax: %f'%(mesh.vectorCCx.max(), mesh.vectorCCz.min(), mesh.vectorCCz.max())
     print 'Number of cells', mesh.nC
