@@ -3,11 +3,11 @@ from SimPEG import *
 from SimPEG import EM
 from scipy.constants import mu_0
 
-plotIt = False
 tol_EBdipole = 1e-2
 
-if plotIt:
-    import matplotlib.pylab
+plotIt = False
+if plotIt is True:
+    import matplotlib.pylab as plt
 
 
 class FDEM_analyticTests(unittest.TestCase):
@@ -19,9 +19,9 @@ class FDEM_analyticTests(unittest.TestCase):
         npad = 4
         freq = 1e2
 
-        hx = [(cs,npad,-1.3), (cs,ncx), (cs,npad,1.3)]
-        hy = [(cs,npad,-1.3), (cs,ncy), (cs,npad,1.3)]
-        hz = [(cs,npad,-1.3), (cs,ncz), (cs,npad,1.3)]
+        hx = [(cs, npad, -1.3), (cs, ncx), (cs, npad, 1.3)]
+        hy = [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)]
+        hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
         mesh = Mesh.TensorMesh([hx,hy,hz], 'CCC')
 
         mapping = Maps.ExpMap(mesh)
@@ -95,7 +95,7 @@ class FDEM_analyticTests(unittest.TestCase):
         csz, ncz, npadz = 5, 50, 25
         hx = Utils.meshTensor([(csx,ncx), (csx,npadx,1.3)])
         hz = Utils.meshTensor([(csz,npadz,-1.3), (csz,ncz), (csz,npadz,1.3)])
-        mesh = Mesh.CylMesh([hx,1,hz], [0.,0.,-hz.sum()/2]) # define the cylindrical mesh
+        mesh = Mesh.CylMesh([hx, 1, hz], [0., 0., -hz.sum()/2]) # define the cylindrical mesh
 
         if plotIt:
             mesh.plotGrid()
@@ -109,21 +109,21 @@ class FDEM_analyticTests(unittest.TestCase):
 
         # set up source
         # test electric dipole
-        src_loc = np.r_[0.,0.,0.]
-        s_ind = Utils.closestPoints(mesh,src_loc,'Fz') + mesh.nFx
+        src_loc = np.r_[0., 0., 0.]
+        s_ind = Utils.closestPoints(mesh, src_loc, 'Fz') + mesh.nFx
 
-        de = np.zeros(mesh.nF,dtype=complex)
+        de = np.zeros(mesh.nF, dtype=complex)
         de[s_ind] = 1./csz
-        de_p = [EM.FDEM.Src.RawVec_e([],freq,de/mesh.area)]
+        de_p = [EM.FDEM.Src.RawVec_e([], freq, de/mesh.area)]
 
-        dm_p = [EM.FDEM.Src.MagDipole([],freq,src_loc)]
-
+        dm_p = [EM.FDEM.Src.MagDipole([], freq, src_loc)]
 
         # Pair the problem and survey
         surveye = EM.FDEM.Survey(de_p)
         surveym = EM.FDEM.Survey(dm_p)
 
-        mapping = [('sigma', Maps.IdentityMap(mesh)),('mu', Maps.IdentityMap(mesh))]
+        mapping = [('sigma', Maps.IdentityMap(mesh)),
+                   ('mu', Maps.IdentityMap(mesh))]
 
         prbe = EM.FDEM.Problem3D_h(mesh, mapping=mapping)
         prbm = EM.FDEM.Problem3D_e(mesh, mapping=mapping)
@@ -136,9 +136,9 @@ class FDEM_analyticTests(unittest.TestCase):
         fieldsBackM = prbm.fields(np.r_[SigmaBack, MuBack]) # Done
 
 
-        rlim = [20.,500.]
+        rlim = [20., 500.]
         lookAtTx = de_p
-        r = mesh.vectorCCx[np.argmin(np.abs(mesh.vectorCCx-rlim[0])):np.argmin(np.abs(mesh.vectorCCx-rlim[1]))]
+        r = mesh.vectorCCx[np.argmin(np.abs(mesh.vectorCCx-rlim[0])) : np.argmin(np.abs(mesh.vectorCCx-rlim[1]))]
         z = 100.
 
         # where we choose to measure
@@ -157,15 +157,15 @@ class FDEM_analyticTests(unittest.TestCase):
         en = Rho*mesh.aveF2CCV*jn
         bn = mesh.aveF2CCV*bn
 
-        ex,ez = Pfx*en, Pfz*en
-        bx,bz = Pfx*bn, Pfz*bn
+        ex, ez = Pfx*en, Pfz*en
+        bx, bz = Pfx*bn, Pfz*bn
 
         # get analytic solution
         exa, eya, eza = EM.Analytics.FDEM.ElectricDipoleWholeSpace(XYZ, src_loc, sigmaback, freq,orientation='Z',mu= mur*mu_0)
-        exa, eya, eza = Utils.mkvc(exa,2), Utils.mkvc(eya,2), Utils.mkvc(eza,2)
+        exa, eya, eza = Utils.mkvc(exa, 2), Utils.mkvc(eya, 2), Utils.mkvc(eza, 2)
 
         bxa, bya, bza = EM.Analytics.FDEM.MagneticDipoleWholeSpace(XYZ, src_loc, sigmaback, freq,orientation='Z',mu= mur*mu_0)
-        bxa, bya, bza = Utils.mkvc(bxa,2), Utils.mkvc(bya,2), Utils.mkvc(bza,2)
+        bxa, bya, bza = Utils.mkvc(bxa, 2), Utils.mkvc(bya, 2), Utils.mkvc(bza, 2)
 
         print ' comp,       anayltic,       numeric,       num - ana,       (num - ana)/ana'
         print '  ex:', np.linalg.norm(exa), np.linalg.norm(ex), np.linalg.norm(exa-ex), np.linalg.norm(exa-ex)/np.linalg.norm(exa)
@@ -174,7 +174,7 @@ class FDEM_analyticTests(unittest.TestCase):
         print '  bx:', np.linalg.norm(bxa), np.linalg.norm(bx), np.linalg.norm(bxa-bx), np.linalg.norm(bxa-bx)/np.linalg.norm(bxa)
         print '  bz:', np.linalg.norm(bza), np.linalg.norm(bz), np.linalg.norm(bza-bz), np.linalg.norm(bza-bz)/np.linalg.norm(bza)
 
-        if plotIt:
+        if plotIt is True:
             # Edipole
             plt.subplot(221)
             plt.plot(r,ex.real,'o',r,exa.real,linewidth=2)

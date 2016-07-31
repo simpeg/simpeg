@@ -121,7 +121,7 @@ class Minimize(object):
     @callback.setter
     def callback(self, value):
         if self.callback is not None:
-            print 'The callback on the %s Optimization was replaced.' % self.__name__
+            print 'The callback on the {0!s} Optimization was replaced.'.format(self.__name__)
         self._callback = value
 
 
@@ -855,7 +855,7 @@ class NewtonRoot(object):
             if self.comments and self.doLS: print '\tLinesearch:\n'
             # Enter Linesearch
             while True and self.doLS:
-                if self.comments: print '\t\tResid: %e\n'%norm(rt)
+                if self.comments: print '\t\tResid: {0:e}\n'.format(norm(rt))
                 if norm(rt) <= norm(r) or norm(rt) < self.tol:
                     break
 
@@ -873,7 +873,7 @@ class NewtonRoot(object):
             if norm(rt) < self.tol:
                 break
             if self.iter > self.maxIter:
-                print 'NewtonRoot stopped by maxIters (%d). norm: %4.4e' % (self.maxIter, norm(rt))
+                print 'NewtonRoot stopped by maxIters ({0:d}). norm: {1:4.4e}'.format(self.maxIter, norm(rt))
                 break
 
         return x

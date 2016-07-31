@@ -103,7 +103,7 @@ class IdentityMap(object):
             :return: passed the test?
 
         """
-        print 'Testing %s' % str(self)
+        print 'Testing {0!s}'.format(str(self))
         if m is None:
             m = abs(np.random.rand(self.nP))
         if 'plotIt' not in kwargs:
@@ -113,21 +113,21 @@ class IdentityMap(object):
     def _assertMatchesPair(self, pair):
         assert (isinstance(self, pair) or
             isinstance(self, ComboMap) and isinstance(self.maps[0], pair)
-            ), "Mapping object must be an instance of a %s class."%(pair.__name__)
+            ), "Mapping object must be an instance of a {0!s} class.".format((pair.__name__))
 
     def __mul__(self, val):
         if isinstance(val, IdentityMap):
             if not (self.shape[1] == '*' or val.shape[0] == '*') and not self.shape[1] == val.shape[0]:
-                raise ValueError('Dimension mismatch in %s and %s.' % (str(self), str(val)))
+                raise ValueError('Dimension mismatch in {0!s} and {1!s}.'.format(str(self), str(val)))
             return ComboMap([self, val])
         elif isinstance(val, np.ndarray):
             if not self.shape[1] == '*' and not self.shape[1] == val.shape[0]:
-                raise ValueError('Dimension mismatch in %s and np.ndarray%s.' % (str(self), str(val.shape)))
+                raise ValueError('Dimension mismatch in {0!s} and np.ndarray{1!s}.'.format(str(self), str(val.shape)))
             return self._transform(val)
         raise Exception('Unrecognized data type to multiply. Try a map or a numpy.ndarray!')
 
     def __str__(self):
-        return "%s(%s,%s)" % (self.__class__.__name__, self.shape[0], self.shape[1])
+        return "{0!s}({1!s},{2!s})".format(self.__class__.__name__, self.shape[0], self.shape[1])
 
 
 class ComboMap(IdentityMap):
@@ -150,7 +150,7 @@ class ComboMap(IdentityMap):
             if ii > 0 and not (self.shape[1] == '*' or m.shape[0] == '*') and not self.shape[1] == m.shape[0]:
                 prev = self.maps[-1]
                 errArgs = (prev.__class__.__name__, prev.shape[0], prev.shape[1], m.__class__.__name__, m.shape[0], m.shape[1])
-                raise ValueError('Dimension mismatch in map[%s] (%s, %s) and map[%s] (%s, %s).' % errArgs)
+                raise ValueError('Dimension mismatch in map[{0!s}] ({1!s}, {2!s}) and map[{3!s}] ({4!s}, {5!s}).'.format(*errArgs))
 
             if isinstance(m, ComboMap):
                 self.maps += m.maps
@@ -183,7 +183,7 @@ class ComboMap(IdentityMap):
         return deriv
 
     def __str__(self):
-        return 'ComboMap[%s](%s,%s)' % (' * '.join([m.__str__() for m in self.maps]), self.shape[0], self.shape[1])
+        return 'ComboMap[{0!s}]({1!s},{2!s})'.format(' * '.join([m.__str__() for m in self.maps]), self.shape[0], self.shape[1])
 
 
 class ExpMap(IdentityMap):

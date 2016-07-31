@@ -476,7 +476,7 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, surveyType, iptype = 0):
     fid.write('! ' + surveyType + ' FORMAT\n')
 
     if iptype!=0:
-        fid.write('IPTYPE=%i\n'%iptype)
+        fid.write('IPTYPE={0:d}\n'.format(iptype))
 
     else:
         fid.write('! ' + stype + ' FORMAT\n')
@@ -512,7 +512,7 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, surveyType, iptype = 0):
 
                 if surveyType == 'SURFACE':
 
-                    fid.writelines("%f " % ii for ii in mkvc(tx[0,:]))
+                    fid.writelines("{0:f} ".format(ii) for ii in mkvc(tx[0,:]))
                     M = M[:,0]
                     N = N[:,0]
 
@@ -521,7 +521,7 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, surveyType, iptype = 0):
                     # Flip sign for z-elevation to depth
                     tx[2::2,:] = -tx[2::2,:]
 
-                    fid.writelines("%e " % ii for ii in mkvc(tx[::2,:]))
+                    fid.writelines("{0:e} ".format(ii) for ii in mkvc(tx[::2,:]))
                     M = M[:,0::2]
                     N = N[:,0::2]
 
@@ -529,22 +529,22 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, surveyType, iptype = 0):
                     M[:,1::2] = -M[:,1::2]
                     N[:,1::2] = -N[:,1::2]
 
-                fid.write('%i\n'% nD)
+                fid.write('{0:d}\n'.format(nD))
                 np.savetxt(fid, np.c_[ M, N , DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%f',delimiter=' ',newline='\n')
 
         if dim=='3D':
 
             if surveyType == 'SURFACE':
 
-                fid.writelines("%e " % ii for ii in mkvc(tx[0:2,:]))
+                fid.writelines("{0:e} ".format(ii) for ii in mkvc(tx[0:2,:]))
                 M = M[:,0:2]
                 N = N[:,0:2]
 
             if surveyType == 'GENERAL':
 
-                fid.writelines("%e " % ii for ii in mkvc(tx[0:3,:]))
+                fid.writelines("{0:e} ".format(ii) for ii in mkvc(tx[0:3,:]))
 
-            fid.write('%i\n'% nD)
+            fid.write('{0:d}\n'.format(nD))
             np.savetxt(fid, np.c_[ M, N , DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e',delimiter=' ',newline='\n')
             fid.write('\n')
 

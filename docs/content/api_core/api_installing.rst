@@ -66,7 +66,7 @@ Numpy and Matlab
 Lessons in Python
 -----------------
 
-* `Software Carpentry <http://software-carpentry.org/v4/python/index.html>`_
+* `Software Carpentry <http://swcarpentry.github.io/python-novice-inflammation/>`_
 * `Introduction to NumPy and Matplotlib <http://www.youtube.com/watch?v=3Fp1zn5ao2M>`_
 
 Editing Python
