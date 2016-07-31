@@ -1,5 +1,6 @@
 import unittest
-from SimPEG import Mesh, Maps, np
+import numpy as np
+from SimPEG import Mesh, Maps, Utils
 from SimPEG import EM
 import sys
 from scipy.constants import mu_0

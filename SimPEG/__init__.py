@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
 import Utils
+from Utils import mkvc
 from Utils.SolverUtils import (_checkAccuracy, SolverWrapD, SolverWrapI,
                                Solver, SolverCG, SolverDiag, SolverLU)
 import Mesh
