@@ -59,7 +59,7 @@ def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=None, 
     if showIt == True:
         plt.loglog(rx.times[bz_calc>0], bz_calc[bz_calc>0], 'r', rx.times[bz_calc<0], -bz_calc[bz_calc<0], 'r--')
         plt.loglog(rx.times, abs(bz_ana), 'b*')
-        plt.title('sig_half = %e'%sig_half)
+        plt.title('sig_half = {0:e}'.format(sig_half))
         plt.show()
 
     return log10diff

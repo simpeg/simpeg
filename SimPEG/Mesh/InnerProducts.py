@@ -421,7 +421,7 @@ class InnerProducts(object):
     def _getEdgePx(M):
         """Returns a function for creating projection matrices"""
         def Px(xEdge):
-            assert xEdge == 'eX0', 'xEdge = %s, not eX0' % xEdge
+            assert xEdge == 'eX0', 'xEdge = {0!s}, not eX0'.format(xEdge)
             return sp.identity(M.nC)
         return Px
 

@@ -177,7 +177,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
         return l
 
     def __str__(self):
-        outStr = '  ---- %sTreeMesh ----  '%('Oc' if self.dim == 3 else 'Quad')
+        outStr = '  ---- {0!s}TreeMesh ----  '.format(('Oc' if self.dim == 3 else 'Quad'))
         def printH(hx, outStr=''):
             i = -1
             while True:
@@ -213,7 +213,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
             outStr += printH(self.hy, outStr='\n   hy:')
             outStr += printH(self.hz, outStr='\n   hz:')
         outStr += '\n  nC: {0:d}'.format(self.nC)
-        outStr += '\n  Fill: %2.2f%%'%(self.fill*100)
+        outStr += '\n  Fill: {0:2.2f}%'.format((self.fill*100))
         return outStr
 
     @property
@@ -2210,7 +2210,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
 
         ax.set_xlabel('y' if normal == 'X' else 'x')
         ax.set_ylabel('y' if normal == 'Z' else 'z')
-        ax.set_title('Slice %d, %s = %4.2f' % (ind,normal,indLoc))
+        ax.set_title('Slice {0:d}, {1!s} = {2:4.2f}'.format(ind, normal, indLoc))
 
         if grid:
             _ = antiNormalInd
@@ -2240,7 +2240,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
             if key < 0 : #Handle negative indices
                 key += len( self )
             if key >= len( self ) :
-                raise IndexError, "The index (%d) is out of range."%key
+                raise IndexError, "The index ({0:d}) is out of range.".format(key)
 
             self._numberCells() # no-op if numbered
             index   = self._i2cc[key]
