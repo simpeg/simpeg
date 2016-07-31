@@ -1,3 +1,10 @@
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
 from SimPEG import *
 from scipy.special import ellipk, ellipe
 from scipy.constants import mu_0, pi
@@ -17,7 +24,7 @@ def MagneticDipoleVectorPotential(srcLoc, obsLoc, component, moment=1., dipoleMo
     #TODO: break this out!
 
     if type(component) in [list, tuple]:
-        out = range(len(component))
+        out = list(range(len(component)))
         for i, comp in enumerate(component):
             out[i] = MagneticDipoleVectorPotential(srcLoc, obsLoc, comp, dipoleMoment=dipoleMoment)
         return np.concatenate(out)
@@ -118,7 +125,7 @@ def MagneticLoopVectorPotential(srcLoc, obsLoc, component, radius, mu=mu_0):
     """
 
     if type(component) in [list, tuple]:
-        out = range(len(component))
+        out = list(range(len(component)))
         for i, comp in enumerate(component):
             out[i] = MagneticLoopVectorPotential(srcLoc, obsLoc, comp, radius, mu)
         return np.concatenate(out)
@@ -158,11 +165,11 @@ def MagneticLoopVectorPotential(srcLoc, obsLoc, component, radius, mu=mu_0):
             # % 1/r singular at r = 0 and K(m) singular at m = 1
             Aphi = np.zeros(n)
             # % Common factor is (mu * I) / pi with I = 1 and mu = 4e-7 * pi.
-            Aphi[ind] = 4e-7 / np.sqrt(m[ind])  * np.sqrt(radius / r[ind]) *((1. - m[ind] / 2.) * K[ind] - E[ind])
+            Aphi[ind] = 4e-7 / np.sqrt(m[ind])  * np.sqrt(radius/ r[ind]) *((1. - m[ind] / 2.) * K[ind] - E[ind])
             if component == 'x':
-                A[ind, i] = Aphi[ind] * (-y[ind] / r[ind] )
+                A[ind, i] = Aphi[ind] * (-y[ind] / r[ind])
             elif component == 'y':
-                A[ind, i] = Aphi[ind] * ( x[ind] / r[ind] )
+                A[ind, i] = Aphi[ind] * (x[ind] / r[ind])
             else:
                 raise ValueError('Invalid component')
 

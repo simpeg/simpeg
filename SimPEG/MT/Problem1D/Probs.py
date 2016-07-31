@@ -1,3 +1,9 @@
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
 from SimPEG.EM.Utils import omega
 from SimPEG import mkvc
 from scipy.constants import mu_0
@@ -46,7 +52,7 @@ class eForm_psField(BaseMTProblem):
             Edge inner product matrix
         """
         if getattr(self, '_MeMui', None) is None:
-            self._MeMui = self.mesh.getEdgeInnerProduct(1.0/mu_0)
+            self._MeMui = self.mesh.getEdgeInnerProduct(old_div(1.0,mu_0))
         return self._MeMui
 
     @property
@@ -142,7 +148,7 @@ class eForm_psField(BaseMTProblem):
         for freq in self.survey.freqs:
             if self.verbose:
                 startTime = time.time()
-                print 'Starting work for {:.3e}'.format(freq)
+                print('Starting work for {:.3e}'.format(freq))
                 sys.stdout.flush()
             A = self.getA(freq)
             rhs  = self.getRHS(freq)
@@ -158,7 +164,7 @@ class eForm_psField(BaseMTProblem):
             # b = -( self.mesh.nodalGrad * e )/( 1j*omega(freq) )
             # F[Src, 'b_1d'] = b[:,1]
             if self.verbose:
-                print 'Ran for {:f} seconds'.format(time.time()-startTime)
+                print('Ran for {:f} seconds'.format(time.time()-startTime))
                 sys.stdout.flush()
         return F
 
@@ -191,7 +197,7 @@ class eForm_TotalField(BaseMTProblem):
             Edge inner product matrix
         """
         if getattr(self, '_MeMui', None) is None:
-            self._MeMui = self.mesh.getEdgeInnerProduct(1.0/mu_0)
+            self._MeMui = self.mesh.getEdgeInnerProduct(old_div(1.0,mu_0))
         return self._MeMui
 
     @property
@@ -249,7 +255,7 @@ class eForm_TotalField(BaseMTProblem):
         Ed, Eu, Hd, Hu = getEHfields(self.mesh,self.curModel.sigma,freq,self.mesh.vectorNx)
         Etot = (Ed + Eu)
         sourceAmp = 1.0
-        Etot = ((Etot/Etot[-1])*sourceAmp) # Scale the fields to be equal to sourceAmp at the top
+        Etot = ((old_div(Etot,Etot[-1]))*sourceAmp) # Scale the fields to be equal to sourceAmp at the top
         ## Note: The analytic solution is derived with e^iwt
         eBC = np.r_[Etot[0],Etot[-1]]
         # The right hand side
@@ -274,7 +280,7 @@ class eForm_TotalField(BaseMTProblem):
         for freq in self.survey.freqs:
             if self.verbose:
                 startTime = time.time()
-                print 'Starting work for {:.3e}'.format(freq)
+                print('Starting work for {:.3e}'.format(freq))
                 sys.stdout.flush()
             A = self.getA(freq)
             rhs, e_o = self.getRHS(freq)
@@ -286,6 +292,6 @@ class eForm_TotalField(BaseMTProblem):
             # NOTE: only store e fields
             F[Src, 'e_1dSolution'] = e[:,0]
             if self.verbose:
-                print 'Ran for {:f} seconds'.format(time.time()-startTime)
+                print('Ran for {:f} seconds'.format(time.time()-startTime))
                 sys.stdout.flush()
         return F

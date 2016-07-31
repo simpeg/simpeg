@@ -1,3 +1,11 @@
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
+from builtins import dict
+from future import standard_library
+standard_library.install_aliases()
+from builtins import zip
 import SimPEG as simpeg, numpy as np
 
 def homo1DModelSource(mesh,freq,sigma_1d):
@@ -90,7 +98,7 @@ def analytic1DModelSource(mesh,freq,sigma_1d):
     Eu, Ed, _, _ = getEHfields(mesh1d,sigma_1d,freq,mesh.vectorNz)
     # Make the fields into a dictionary of location and the fields
     e0_1d = Eu+Ed
-    E1dFieldDict = dict(zip(mesh.vectorNz,e0_1d))
+    E1dFieldDict = dict(list(zip(mesh.vectorNz,e0_1d)))
     if mesh.dim == 1:
         eBG_px = simpeg.mkvc(e0_1d,2)
         eBG_py = -simpeg.mkvc(e0_1d,2) # added a minus to make the results in the correct quadrents.

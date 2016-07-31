@@ -1,11 +1,17 @@
+from __future__ import absolute_import
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import division
+from future import standard_library
+standard_library.install_aliases()
 from SimPEG import Problem, Utils
 from SimPEG.EM.Base import BaseEMProblem
-from SurveyDC import Survey
-from FieldsDC import Fields, Fields_CC, Fields_N
+from .SurveyDC import Survey
+from .FieldsDC import Fields, Fields_CC, Fields_N
 from SimPEG.Utils import sdiag
 import numpy as np
 from SimPEG.Utils import Zero
-from BoundaryUtils import getxBCyBC_CC
+from .BoundaryUtils import getxBCyBC_CC
 
 class BaseDCProblem(BaseEMProblem):
 

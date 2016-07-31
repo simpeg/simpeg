@@ -1,15 +1,22 @@
-import Utils, Survey, Problem, numpy as np, scipy.sparse as sp, gc
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
+from . import Utils, Survey, Problem
+import numpy as np, scipy.sparse as sp, gc
+from future.utils import with_metaclass
 
 
-class BaseDataMisfit(object):
+class BaseDataMisfit(with_metaclass(Utils.SimPEGMetaClass, object)):
     """BaseDataMisfit
 
         .. note::
 
             You should inherit from this class to create your own data misfit term.
     """
-
-    __metaclass__ = Utils.SimPEGMetaClass
 
     debug   = False  #: Print debugging information
     counter = None   #: Set this to a SimPEG.Utils.Counter() if you want to count things
@@ -93,11 +100,11 @@ class l2_DataMisfit(BaseDataMisfit):
             survey = self.survey
 
             if getattr(survey,'std', None) is None:
-                print 'SimPEG.DataMisfit.l2_DataMisfit assigning default std of 5%'
+                print('SimPEG.DataMisfit.l2_DataMisfit assigning default std of 5%')
                 survey.std = 0.05
 
             if getattr(survey, 'eps', None) is None:
-                print 'SimPEG.DataMisfit.l2_DataMisfit assigning default eps of 1e-5 * ||dobs||'
+                print('SimPEG.DataMisfit.l2_DataMisfit assigning default eps of 1e-5 * ||dobs||')
                 survey.eps = np.linalg.norm(Utils.mkvc(survey.dobs),2)*1e-5
 
             self._Wd = Utils.sdiag(1/(abs(survey.dobs)*survey.std+survey.eps))

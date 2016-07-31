@@ -1,3 +1,15 @@
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
+from builtins import open
+from builtins import int
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import zip
+from builtins import map
+from builtins import object
 import numpy as np, os
 from SimPEG import Utils
 
@@ -128,13 +140,13 @@ class TensorMeshIO(object):
 
         # Assign the model('s) to the object
         if models is not None:
-            for item in models.iteritems():
+            for item in models.items():
                 # Convert numpy array
                 vtkDoubleArr = numpy_to_vtk(item[1],deep=1)
                 vtkDoubleArr.SetName(item[0])
                 vtkObj.GetCellData().AddArray(vtkDoubleArr)
             # Set the active scalar
-            vtkObj.GetCellData().SetActiveScalars(models.keys()[0])
+            vtkObj.GetCellData().SetActiveScalars(list(models.keys())[0])
         # vtkObj.Update()
 
         # Check the extension of the fileName
@@ -162,7 +174,7 @@ class TensorMeshIO(object):
             :return: model with TensorMesh ordered
         """
         f = open(fileName, 'r')
-        model = np.array(map(float, f.readlines()))
+        model = np.array(list(map(float, f.readlines())))
         f.close()
         model = np.reshape(model, (mesh.nCz, mesh.nCx, mesh.nCy), order = 'F')
         model = model[::-1,:,:]
@@ -265,7 +277,7 @@ class TreeMeshIO(object):
         # Assign the model('s) to the object
         if models is not None:
             # indUBCvector = np.argsort(cX0[np.argsort(np.concatenate((cX0[:,0:2],cX0[:,2:3].max() - cX0[:,2:3]),axis=1).view(','.join(3*['float'])),axis=0,order=('f2','f1','f0'))[:,0]].view(','.join(3*['float'])),axis=0,order=('f2','f1','f0'))[:,0]
-            for item in models.iteritems():
+            for item in models.items():
                 # Save the data
                 np.savetxt(item[0],item[1][ubcReorder],fmt='%3.5e')
 
@@ -384,7 +396,7 @@ class TreeMeshIO(object):
         vtuObj.GetCellData().AddArray(refineLevelArr)
         # Assign the model('s) to the object
         if models is not None:
-            for item in models.iteritems():
+            for item in models.items():
                 # Convert numpy array
                 vtkDoubleArr = numpy_to_vtk(item[1],deep=1)
                 vtkDoubleArr.SetName(item[0])

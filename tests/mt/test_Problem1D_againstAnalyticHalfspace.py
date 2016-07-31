@@ -1,3 +1,9 @@
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
 import unittest
 import SimPEG as simpeg
 from SimPEG import MT
@@ -44,8 +50,8 @@ def setupSurvey(sigmaHalf,tD=True):
 def getAppResPhs(MTdata):
     # Make impedance
     def appResPhs(freq,z):
-        app_res = ((1./(8e-7*np.pi**2))/freq)*np.abs(z)**2
-        app_phs = np.arctan2(z.imag,z.real)*(180/np.pi)
+        app_res = (old_div((old_div(1.,(8e-7*np.pi**2))),freq))*np.abs(z)**2
+        app_phs = np.arctan2(z.imag,z.real)*(old_div(180,np.pi))
         return app_res, app_phs
     zList = []
     for src in MTdata.survey.srcList:
@@ -75,7 +81,7 @@ def appRes_TotalFieldNorm(sigmaHalf):
     # Calculate the app res and phs
     app_r = np.array(getAppResPhs(data))[:,0]
 
-    return np.linalg.norm(np.abs(app_r - np.ones(survey.nFreq)/sigmaHalf)*sigmaHalf)
+    return np.linalg.norm(np.abs(app_r - old_div(np.ones(survey.nFreq),sigmaHalf))*sigmaHalf)
 
 def appPhs_TotalFieldNorm(sigmaHalf):
 
@@ -93,7 +99,7 @@ def appPhs_TotalFieldNorm(sigmaHalf):
     # Calculate the app  phs
     app_p = np.array(getAppResPhs(data))[:,1]
 
-    return np.linalg.norm(np.abs(app_p - np.ones(survey.nFreq)*45)/ 45)
+    return np.linalg.norm(old_div(np.abs(app_p - np.ones(survey.nFreq)*45), 45))
 
 def appRes_psFieldNorm(sigmaHalf):
 
@@ -111,7 +117,7 @@ def appRes_psFieldNorm(sigmaHalf):
     # Calculate the app res and phs
     app_r = np.array(getAppResPhs(data))[:,0]
 
-    return np.linalg.norm(np.abs(app_r - np.ones(survey.nFreq)/sigmaHalf)*sigmaHalf)
+    return np.linalg.norm(np.abs(app_r - old_div(np.ones(survey.nFreq),sigmaHalf))*sigmaHalf)
 
 def appPhs_psFieldNorm(sigmaHalf):
 
@@ -129,7 +135,7 @@ def appPhs_psFieldNorm(sigmaHalf):
     # Calculate the app  phs
     app_p = np.array(getAppResPhs(data))[:,1]
 
-    return np.linalg.norm(np.abs(app_p - np.ones(survey.nFreq)*45)/ 45)
+    return np.linalg.norm(old_div(np.abs(app_p - np.ones(survey.nFreq)*45), 45))
 
 class TestAnalytics(unittest.TestCase):
 

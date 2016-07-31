@@ -1,3 +1,9 @@
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
 from SimPEG import *
 import SimPEG.EM as EM
 from SimPEG.EM import mu_0
@@ -56,7 +62,7 @@ def run(plotIt=True):
     try:
         from pymatsolver import MumpsSolver
         prb.Solver = MumpsSolver
-    except ImportError, e:
+    except ImportError as e:
         prb.Solver = SolverLU
 
     prb.pair(survey)

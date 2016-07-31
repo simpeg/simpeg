@@ -1,3 +1,11 @@
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from builtins import int
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
 import numpy as np
 from numpy.linalg import norm
 from SimPEG.Utils import mkvc, sdiag, diagEst
@@ -12,7 +20,7 @@ import inspect
 try:
     import getpass
     name = getpass.getuser()[0].upper() + getpass.getuser()[1:]
-except Exception, e:
+except Exception as e:
     name = 'You'
 happiness = ['The test be workin!', 'You get a gold star!', 'Yay passed!', 'Happy little convergence test!', 'That was easy!', 'Testing is important.', 'You are awesome.', 'Go Test Go!', 'Once upon a time, a happy little test passed.', 'And then everyone was happy.','Not just a pretty face '+name,'You deserve a pat on the back!','Well done '+name+'!', 'Awesome, '+name+', just awesome.']
 sadness = ['No gold star for you.','Try again soon.','Thankfully, persistence is a great substitute for talent.','It might be easier to call this a feature...','Coffee break?', 'Boooooooo  :(', 'Testing is important. Do it again.',"Did you put your clever trousers on today?",'Just think about a dancing dinosaur and life will get better!','You had so much promise '+name+', oh well...', name.upper()+' ERROR!','Get on it '+name+'!', 'You break it, you fix it.']
@@ -144,7 +152,7 @@ class OrderTest(unittest.TestCase):
             else:
                 raise Exception('Unexpected meshType')
 
-            levels = int(np.log(nc)/np.log(2))
+            levels = int(np.log(nc) / np.log(2))
             self.M = Tree(h[:self.meshDimension], levels=levels)
             def function(cell):
                 if 'notatree' in self._meshType:
@@ -195,25 +203,25 @@ class OrderTest(unittest.TestCase):
                 max_h = self.setupMesh(nc)
                 err = self.getError()
                 if ii == 0:
-                    print ''
-                    print self._meshType + ':  ' + self.name
-                    print '_____________________________________________'
-                    print '   h  |    error    | e(i-1)/e(i) |  order'
-                    print '~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~'
-                    print '%4i  |  %8.2e   |' % (nc, err)
+                    print('')
+                    print(self._meshType + ':  ' + self.name)
+                    print('_____________________________________________')
+                    print('   h  |    error    | e(i-1)/e(i) |  order')
+                    print('~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~')
+                    print('%4i  |  %8.2e   |' % (nc, err))
                 else:
                     order.append(np.log(err/err_old)/np.log(max_h/max_h_old))
-                    print '%4i  |  %8.2e   |   %6.4f    |  %6.4f' % (nc, err, err_old/err, order[-1])
+                    print('%4i  |  %8.2e   |   %6.4f    |  %6.4f' % (nc, err, err_old/err, order[-1]))
                 err_old = err
                 max_h_old = max_h
-            print '---------------------------------------------'
+            print('---------------------------------------------')
             passTest = np.mean(np.array(order)) > self._tolerance*self._expectedOrder
             if passTest:
-                print happiness[np.random.randint(len(happiness))]
+                print(happiness[np.random.randint(len(happiness))])
             else:
-                print 'Failed to pass test on ' + self._meshType + '.'
-                print sadness[np.random.randint(len(sadness))]
-            print ''
+                print('Failed to pass test on ' + self._meshType + '.')
+                print(sadness[np.random.randint(len(sadness))])
+            print('')
             self.assertTrue(passTest)
 
 def Rosenbrock(x, return_g=True, return_H=True):
@@ -258,8 +266,8 @@ def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None, expectedOrder=2, tole
             Tests.checkDerivative(simplePass, np.random.randn(5))
     """
 
-    print "%s checkDerivative %s" % ('='*20, '='*20)
-    print "iter    h         |ft-f0|   |ft-f0-h*J0*dx|  Order\n%s" % ('-'*57)
+    print("%s checkDerivative %s" % ('='*20, '='*20))
+    print("iter    h         |ft-f0|   |ft-f0-h*J0*dx|  Order\n%s" % ('-'*57))
 
     f0, J0 = fctn(x0)
 
@@ -290,7 +298,7 @@ def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None, expectedOrder=2, tole
 
         order0 = np.log10(E0[:-1]/E0[1:])
         order1 = np.log10(E1[:-1]/E1[1:])
-        print " %d   %1.2e    %1.3e     %1.3e      %1.3f" % (i, h[i], E0[i], E1[i], np.nan if i == 0 else order1[i-1])
+        print(" %d   %1.2e    %1.3e     %1.3e      %1.3f" % (i, h[i], E0[i], E1[i], np.nan if i == 0 else order1[i-1]))
 
     # Ensure we are about precision
     order0 = order0[E0[1:] > eps]
@@ -302,11 +310,11 @@ def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None, expectedOrder=2, tole
     passTest = belowTol or correctOrder
 
     if passTest:
-        print "%s PASS! %s" % ('='*25, '='*25)
-        print happiness[np.random.randint(len(happiness))]+'\n'
+        print("%s PASS! %s" % ('='*25, '='*25))
+        print(happiness[np.random.randint(len(happiness))]+'\n')
     else:
-        print "%s\n%s FAIL! %s\n%s" % ('*'*57, '<'*25, '>'*25, '*'*57)
-        print sadness[np.random.randint(len(sadness))]+'\n'
+        print("%s\n%s FAIL! %s\n%s" % ('*'*57, '<'*25, '>'*25, '*'*57))
+        print(sadness[np.random.randint(len(sadness))]+'\n')
 
 
     if plotIt:

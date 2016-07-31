@@ -1,3 +1,9 @@
+from __future__ import absolute_import
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import division
+from future import standard_library
+standard_library.install_aliases()
 from SimPEG import Problem, Utils, Maps, Mesh
 from SimPEG.EM.Base import BaseEMProblem
 from SimPEG.EM.Static.DC.FieldsDC import Fields, Fields_CC, Fields_N
@@ -5,7 +11,7 @@ from SimPEG.Utils import sdiag
 import numpy as np
 from SimPEG.Utils import Zero
 from SimPEG.EM.Static.DC import getxBCyBC_CC
-from SurveyIP import Survey
+from .SurveyIP import Survey
 
 class IPPropMap(Maps.PropMap):
     """

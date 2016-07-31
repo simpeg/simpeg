@@ -1,3 +1,10 @@
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import division
+from __future__ import absolute_import
+from builtins import dict
+from future import standard_library
+standard_library.install_aliases()
 import unittest
 import sys
 import os
@@ -6,7 +13,7 @@ import numpy as np
 
 class compareInitFiles(unittest.TestCase):
     def test_compareInitFiles(self):
-        print 'Checking that __init__.py up-to-date in SimPEG/Examples'
+        print('Checking that __init__.py up-to-date in SimPEG/Examples')
         fName = os.path.abspath(__file__)
         ExamplesDir = os.path.sep.join(fName.split(os.path.sep)[:-3] + ['SimPEG', 'Examples'])
 
@@ -17,7 +24,7 @@ class compareInitFiles(unittest.TestCase):
 
         setdiff = set(pyfiles) - set(Examples.__examples__)
 
-        print ' Any missing files? ', setdiff 
+        print(' Any missing files? ', setdiff) 
 
         didpass = (setdiff == set())
 
@@ -25,7 +32,7 @@ class compareInitFiles(unittest.TestCase):
 
 def get(test):
     def test_func(self):
-        print '\nTesting %s.run(plotIt=False)\n'%test
+        print('\nTesting %s.run(plotIt=False)\n'%test)
         getattr(Examples, test).run(plotIt=False)
         self.assertTrue(True)
     return test_func

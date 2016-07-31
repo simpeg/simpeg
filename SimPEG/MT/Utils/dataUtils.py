@@ -1,3 +1,9 @@
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+from future import standard_library
+standard_library.install_aliases()
 # Utils used for the data,
 import numpy as np, matplotlib.pyplot as plt, sys
 import SimPEG as simpeg
@@ -45,13 +51,13 @@ def rotateData(MTdata, rotAngle):
 
 
 def appResPhs(freq, z):
-    app_res = ((1./(8e-7*np.pi**2))/freq)*np.abs(z)**2
-    app_phs = np.arctan2(z.imag,z.real)*(180/np.pi)
+    app_res = (old_div((old_div(1.,(8e-7*np.pi**2))),freq))*np.abs(z)**2
+    app_phs = np.arctan2(z.imag,z.real)*(old_div(180,np.pi))
     return app_res, app_phs
 
 def skindepth(rho, freq):
     ''' Function to calculate the skindepth of EM waves'''
-    return np.sqrt( (rho*((1/(freq * mu_0 * np.pi )))))
+    return np.sqrt( (rho*((old_div(1,(freq * mu_0 * np.pi ))))))
 
 def rec2ndarr(x, dt=float):
     return x.view((dt, len(x.dtype.names)))
@@ -64,7 +70,7 @@ def makeAnalyticSolution(mesh, model, elev, freqs):
         anaE = anaEd+anaEu
         anaH = anaHd+anaHu
 
-        anaZ = anaE/anaH
+        anaZ = old_div(anaE,anaH)
         # Add to the list
         data1D.append((freq,0,0,elev,anaZ[0]))
     dataRec = np.array(data1D,dtype=[('freq',float),('x',float),('y',float),('z',float),('zyx',complex)])
@@ -97,7 +103,7 @@ def plotMT1DModelData(problem, models, symList=None):
 
     # if not symList:
     #   symList = ['x']*len(models)
-    import plotDataTypes as pDt
+    from . import plotDataTypes as pDt
     # Loop through the models.
     modelList = [problem.survey.mtrue]
     modelList.extend(models)
@@ -110,14 +116,14 @@ def plotMT1DModelData(problem, models, symList=None):
         else:
             data1D = problem.dataPair(problem.survey,problem.survey.dpred(model)).toRecArray('Complex')
         # Plot the data and the model
-        colRat = nr/((len(modelList)-1.999)*1.)
+        colRat = old_div(nr,((len(modelList)-1.999)*1.))
         if colRat > 1.:
             col = 'k'
         else:
             col = plt.cm.seismic(1-colRat)
         # The model - make the pts to plot
         meshPts = np.concatenate((problem.mesh.gridN[0:1],np.kron(problem.mesh.gridN[1::],np.ones(2))[:-1]))
-        modelPts = np.kron(1./(problem.mapping.sigmaMap*model),np.ones(2,))
+        modelPts = np.kron(old_div(1.,(problem.mapping.sigmaMap*model)),np.ones(2,))
         axM.semilogx(modelPts,meshPts,color=col)
 
         ## Data
@@ -144,7 +150,7 @@ def plotMT1DModelData(problem, models, symList=None):
 
     # Fix labels and ticks
 
-    yMtick = [l/1000 for l in axM.get_yticks().tolist()]
+    yMtick = [old_div(l,1000) for l in axM.get_yticks().tolist()]
     axM.set_yticklabels(yMtick)
     [ l.set_rotation(90) for l in axM.get_yticklabels()]
     [ l.set_rotation(90) for l in axR.get_yticklabels()]
@@ -157,7 +163,7 @@ def plotMT1DModelData(problem, models, symList=None):
 
 def printTime():
     import time
-    print time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.localtime())
+    print(time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.localtime()))
 
 def convert3Dto1Dobject(MTdata,rxType3D='zyx'):
     from SimPEG import MT

@@ -1,3 +1,11 @@
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from builtins import int
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
 from SimPEG import Mesh, Utils, np, sp
 import SimPEG.DCIP as DC
 import time
@@ -57,7 +65,7 @@ def run(loc=None, sig=None, radi=None, param=None, surveyType='dipole-dipole', u
     model[ind] = sig[2]
 
     # Get index of the center
-    indy = int(mesh.nCy/2)
+    indy = int(mesh.nCy // 2)
 
     # Plot the model for reference
     # Define core mesh extent
@@ -124,10 +132,10 @@ def run(loc=None, sig=None, radi=None, param=None, surveyType='dipole-dipole', u
             tx =  np.squeeze(Tx[ii][:,0:1])
             tinf = tx + np.array([dl_x,dl_y,0])*dl_len*2
             inds = Utils.closestPoints(mesh, np.c_[tx,tinf].T)
-            RHS = mesh.getInterpolationMat(np.asarray(Tx[ii]).T, 'CC').T*( [-1] / mesh.vol[inds] )
+            RHS = mesh.getInterpolationMat(np.asarray(Tx[ii]).T, 'CC').T*([-1] / mesh.vol[inds])
         else:
             inds = Utils.closestPoints(mesh, np.asarray(Tx[ii]).T )
-            RHS = mesh.getInterpolationMat(np.asarray(Tx[ii]).T, 'CC').T*( [-1,1] / mesh.vol[inds] )
+            RHS = mesh.getInterpolationMat(np.asarray(Tx[ii]).T, 'CC').T*([-1,1] / mesh.vol[inds])
 
         # Iterative Solve
         Ainvb = sp.linalg.bicgstab(P*A,P*RHS, tol=1e-5)
@@ -143,10 +151,10 @@ def run(loc=None, sig=None, radi=None, param=None, surveyType='dipole-dipole', u
         dtemp = (P1*phi - P2*phi)*np.pi
 
         data.append( dtemp )
-        print '\rTransmitter {0} of {1} -> Time:{2} sec'.format(ii,len(Tx),time.time()- start_time),
+        print('\rTransmitter {0} of {1} -> Time:{2} sec'.format(ii,len(Tx),time.time()- start_time), end=' ')
 
-    print 'Transmitter {0} of {1}'.format(ii,len(Tx))
-    print 'Forward completed'
+    print('Transmitter {0} of {1}'.format(ii,len(Tx)))
+    print('Forward completed')
 
     # Let's just convert the 3D format into 2D (distance along line) and plot
     survey2D = DC.convertObs_DC3D_to_2D(survey, np.ones(survey.nSrc) , 'Xloc')

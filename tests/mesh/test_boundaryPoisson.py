@@ -1,3 +1,9 @@
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import division
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
 import numpy as np
 import scipy.sparse as sp
 import unittest
@@ -55,12 +61,12 @@ class Test1D_InhomogeneousDirichlet(Tests.OrderTest):
             #TODO: fix the null space
             solver = SolverCG(A, maxiter=1000)
             xc = solver * (rhs)
-            print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)
+            print('ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs))
             err = np.linalg.norm((xc-xc_ana), np.inf)
         elif self.myTest == 'xcJ':
             #TODO: fix the null space
             xc = Solver(A) * (rhs)
-            print np.linalg.norm(Utils.mkvc(A*xc) - rhs)
+            print(np.linalg.norm(Utils.mkvc(A*xc) - rhs))
             j = McI*(G*xc + P*phi_bc)
             err = np.linalg.norm((j-j_ana), np.inf)
 
@@ -218,16 +224,16 @@ class Test1D_InhomogeneousNeumann(Tests.OrderTest):
             xc, info = sp.linalg.minres(A, rhs, tol = 1e-6)
             err = np.linalg.norm((xc-xc_ana), np.inf)
             if info > 0:
-                print 'Solve does not work well'
-                print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)
+                print('Solve does not work well')
+                print('ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs))
         elif self.myTest == 'xcJ':
             #TODO: fix the null space
             xc, info = sp.linalg.minres(A, rhs, tol = 1e-6)
             j = McI*(G*xc + P*phi_bc)
             err = np.linalg.norm((Pin*j-Pin*j_ana), np.inf)
             if info > 0:
-                print 'Solve does not work well'
-                print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)
+                print('Solve does not work well')
+                print('ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs))
         return err
 
     def test_orderJ(self):
@@ -305,16 +311,16 @@ class Test2D_InhomogeneousNeumann(Tests.OrderTest):
             xc, info = sp.linalg.minres(A, rhs, tol = 1e-6)
             err = np.linalg.norm((xc-xc_ana), np.inf)
             if info > 0:
-                print 'Solve does not work well'
-                print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)
+                print('Solve does not work well')
+                print('ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs))
         elif self.myTest == 'xcJ':
             #TODO: fix the null space
             xc, info = sp.linalg.minres(A, rhs, tol = 1e-6)
             j = McI*(G*xc + P*phi_bc)
             err = np.linalg.norm((Pin*j-Pin*j_ana), np.inf)
             if info > 0:
-                print 'Solve does not work well'
-                print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)
+                print('Solve does not work well')
+                print('ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs))
         return err
 
     def test_orderJ(self):
@@ -382,16 +388,16 @@ class Test1D_InhomogeneousMixed(Tests.OrderTest):
             xc, info = sp.linalg.minres(A, rhs, tol = 1e-6)
             err = np.linalg.norm((xc-xc_ana), np.inf)
             if info > 0:
-                print 'Solve does not work well'
-                print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)
+                print('Solve does not work well')
+                print('ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs))
         elif self.myTest == 'xcJ':
             #TODO: fix the null space
             xc, info = sp.linalg.minres(A, rhs, tol = 1e-6)
             j = McI*(G*xc + P*phi_bc)
             err = np.linalg.norm((Pin*j-Pin*j_ana), np.inf)
             if info > 0:
-                print 'Solve does not work well'
-                print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)
+                print('Solve does not work well')
+                print('ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs))
         return err
 
     def test_orderJ(self):
@@ -469,16 +475,16 @@ class Test2D_InhomogeneousMixed(Tests.OrderTest):
             xc, info = sp.linalg.minres(A, rhs, tol = 1e-6)
             err = np.linalg.norm((xc-xc_ana), np.inf)
             if info > 0:
-                print 'Solve does not work well'
-                print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)
+                print('Solve does not work well')
+                print('ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs))
         elif self.myTest == 'xcJ':
             #TODO: fix the null space
             xc, info = sp.linalg.minres(A, rhs, tol = 1e-6)
             j = McI*(G*xc + P*phi_bc)
             err = np.linalg.norm((Pin*j-Pin*j_ana), np.inf)
             if info > 0:
-                print 'Solve does not work well'
-                print 'ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs)
+                print('Solve does not work well')
+                print('ACCURACY', np.linalg.norm(Utils.mkvc(A*xc) - rhs))
         return err
 
     def test_orderJ(self):

@@ -1,13 +1,19 @@
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 from SimPEG import Mesh, Maps, Utils, np
+from future.utils import with_metaclass
 
 
-class NonLinearMap(object):
+class NonLinearMap(with_metaclass(Utils.SimPEGMetaClass, object)):
     """
     SimPEG NonLinearMap
 
     """
-
-    __metaclass__ = Utils.SimPEGMetaClass
 
     counter = None   #: A SimPEG.Utils.Counter object
     mesh = None      #: A SimPEG Mesh
@@ -186,7 +192,7 @@ class _haverkamp_theta(NonLinearMap):
 
     def transformDerivU(self, u, m):
         self.setModel(m)
-        g = (self.alpha*((self.theta_s - self.theta_r)/
+        g = (self.alpha*((self.theta_s - self.theta_r) /
              (self.alpha + abs(u)**self.beta)**2)
              *(-self.beta*abs(u)**(self.beta-1)*np.sign(u)))
         g[u >= 0] = 0
@@ -273,7 +279,7 @@ class _vangenuchten_theta(NonLinearMap):
     def transform(self, u, m):
         self.setModel(m)
         m = 1 - 1.0/self.n
-        f = ((  self.theta_s  -  self.theta_r  )/
+        f = ((  self.theta_s  -  self.theta_r  ) /
              ((1+abs(self.alpha*u)**self.n)**m)   +  self.theta_r)
         if Utils.isScalar(self.theta_s):
             f[u >= 0] = self.theta_s
@@ -343,7 +349,7 @@ class _vangenuchten_k(NonLinearMap):
         Ks = self.Ks
         m = 1.0 - 1.0/n
 
-        g = I*alpha*n*np.exp(Ks)*abs(alpha*u)**(n - 1.0)*np.sign(alpha*u)*(1.0/n - 1.0)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2*(abs(alpha*u)**n + 1)**(1.0/n - 2) - (2*alpha*n*np.exp(Ks)*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/(((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n))
+        g = I*alpha*n*np.exp(Ks)*abs(alpha*u)**(n - 1.0)*np.sign(alpha*u)*(1.0/n - 1.0)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2*(abs(alpha*u)**n + 1)**(1.0/n - 2) - (2*alpha*n*np.exp(Ks)*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/(((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1))+ 1)*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n)
         g[u >= 0] = 0
         g = Utils.sdiag(g)
         return g

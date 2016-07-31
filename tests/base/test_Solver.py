@@ -1,3 +1,9 @@
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
 import unittest
 from SimPEG import *
 from SimPEG.Mesh import TensorMesh
@@ -23,7 +29,7 @@ def dotest(MYSOLVER, multi=False, A=None, **solverOpts):
         G = -M.faceDiv.T
         Msig = M.getFaceInnerProduct()
         A = D*Msig*G
-        A[-1,-1] *= 1/M.vol[-1] # remove the constant null space from the matrix
+        A[-1,-1] *= old_div(1,M.vol[-1]) # remove the constant null space from the matrix
     else:
         M = Mesh.TensorMesh([A.shape[0]])
 

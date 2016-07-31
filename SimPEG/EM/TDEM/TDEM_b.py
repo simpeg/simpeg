@@ -1,7 +1,14 @@
-from BaseTDEM import BaseTDEMProblem, FieldsTDEM
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
+from .BaseTDEM import BaseTDEMProblem, FieldsTDEM
 from SimPEG.Utils import mkvc, sdiag
 import numpy as np
-from SurveyTDEM import SurveyTDEM
+from .SurveyTDEM import SurveyTDEM
 
 
 class FieldsTDEM_e_from_b(FieldsTDEM):

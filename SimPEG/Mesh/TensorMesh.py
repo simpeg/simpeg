@@ -1,13 +1,21 @@
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+from builtins import int
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import range
 from SimPEG import Utils, np, sp
-from BaseMesh import BaseMesh, BaseRectangularMesh
-from View import TensorView
-from DiffOperators import DiffOperators
-from InnerProducts import InnerProducts
-from MeshIO import TensorMeshIO
+from .BaseMesh import BaseMesh, BaseRectangularMesh
+from .View import TensorView
+from .DiffOperators import DiffOperators
+from .InnerProducts import InnerProducts
+from .MeshIO import TensorMeshIO
+from future.utils import with_metaclass
 
-class BaseTensorMesh(BaseMesh):
-
-    __metaclass__ = Utils.SimPEGMetaClass
+class BaseTensorMesh(with_metaclass(Utils.SimPEGMetaClass, BaseMesh)):
 
     _meshType = 'BASETENSOR'
 
@@ -16,7 +24,7 @@ class BaseTensorMesh(BaseMesh):
     def __init__(self, h_in, x0_in=None):
         assert type(h_in) in [list, tuple], 'h_in must be a list'
         assert len(h_in) in [1,2,3], 'h_in must be of dimension 1, 2, or 3'
-        h = range(len(h_in))
+        h = list(range(len(h_in)))
         for i, h_i in enumerate(h_in):
             if Utils.isScalar(h_i) and type(h_i) is not np.ndarray:
                 # This gives you something over the unit cube.
@@ -339,7 +347,7 @@ class BaseTensorMesh(BaseMesh):
         if tensorType == 0:
             Av = getattr(self, 'ave'+projType+'2CC')
             V = Utils.sdiag(self.vol)
-            ones = sp.csr_matrix((np.ones(self.nC), (range(self.nC), np.zeros(self.nC))), shape=(self.nC,1))
+            ones = sp.csr_matrix((np.ones(self.nC), (list(range(self.nC)), np.zeros(self.nC))), shape=(self.nC,1))
             if not invMat and not invProp:
                 dMdprop = self.dim * Av.T * V * ones
             elif invMat and invProp:
@@ -364,7 +372,7 @@ class BaseTensorMesh(BaseMesh):
         if dMdprop is not None:
             def innerProductDeriv(v=None):
                 if v is None:
-                    print 'Depreciation Warning: TensorMesh.innerProductDeriv. You should be supplying a vector. Use: sdiag(u)*dMdprop'
+                    print('Depreciation Warning: TensorMesh.innerProductDeriv. You should be supplying a vector. Use: sdiag(u)*dMdprop')
                     return dMdprop
                 return Utils.sdiag(v) * dMdprop
             return innerProductDeriv
@@ -373,7 +381,7 @@ class BaseTensorMesh(BaseMesh):
 
 
 
-class TensorMesh(BaseTensorMesh, BaseRectangularMesh, TensorView, DiffOperators, InnerProducts, TensorMeshIO):
+class TensorMesh(with_metaclass(Utils.SimPEGMetaClass, type('NewBase', (BaseTensorMesh, BaseRectangularMesh, TensorView, DiffOperators, InnerProducts, TensorMeshIO), {}))):
     """
     TensorMesh is a mesh class that deals with tensor product meshes.
 
@@ -402,8 +410,6 @@ class TensorMesh(BaseTensorMesh, BaseRectangularMesh, TensorView, DiffOperators,
         mesh = Mesh.TensorMesh([10, 12, 15])
 
     """
-
-    __metaclass__ = Utils.SimPEGMetaClass
 
     _meshType = 'TENSOR'
 

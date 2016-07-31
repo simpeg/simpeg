@@ -1,3 +1,9 @@
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import division
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
 import unittest
 from SimPEG import *
 from SimPEG import EM
@@ -26,7 +32,7 @@ SrcType = ['MagDipole', 'RawVec'] #or 'MAgDipole_Bfield', 'CircularLoop', 'RawVe
 def derivTest(fdemType, comp):
 
     prb = getFDEMProblem(fdemType, comp, SrcType, freq)
-    print '%s formulation - %s' % (fdemType, comp)
+    print('%s formulation - %s' % (fdemType, comp))
     x0 = np.log(np.ones(prb.mapping.nP)*CONDUCTIVITY)
     mu = np.log(np.ones(prb.mesh.nC)*MU)
 

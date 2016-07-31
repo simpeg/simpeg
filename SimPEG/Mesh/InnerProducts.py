@@ -1,3 +1,11 @@
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
+from builtins import object
 from scipy import sparse as sp
 from SimPEG.Utils import *
 import numpy as np
@@ -186,7 +194,7 @@ class InnerProducts(object):
         if tensorType == 0:
             dMdm = spzeros(n, 1)
             for i, p in enumerate(P):
-                dMdm = dMdm + sp.csr_matrix((p.T * (p * v), (range(n), np.zeros(n))), shape=(n,1))
+                dMdm = dMdm + sp.csr_matrix((p.T * (p * v), (list(range(n)), np.zeros(n))), shape=(n,1))
         if d == 1:
             if tensorType == 1:
                 dMdm = spzeros(n, self.nC)
@@ -288,7 +296,7 @@ class InnerProducts(object):
             """
             posFx = 0 if xFace == 'fXm' else 1
             IND = ii + posFx
-            PX = sp.csr_matrix((np.ones(M.nC), (range(M.nC), IND)), shape=(M.nC, M.nF))
+            PX = sp.csr_matrix((np.ones(M.nC), (list(range(M.nC)), IND)), shape=(M.nC, M.nF))
             return PX
 
         return Px
@@ -350,7 +358,7 @@ class InnerProducts(object):
 
             IND = np.r_[ind1, ind2].flatten()
 
-            PXX = sp.csr_matrix((np.ones(2*M.nC), (range(2*M.nC), IND)), shape=(2*M.nC, M.nF))
+            PXX = sp.csr_matrix((np.ones(2*M.nC), (list(range(2*M.nC)), IND)), shape=(2*M.nC, M.nF))
 
             if M._meshType == 'Curv':
                 I2x2 = inv2X2BlockDiagonal(getSubArray(fN1[0], [i + posFx, j]), getSubArray(fN1[1], [i + posFx, j]),
@@ -407,7 +415,7 @@ class InnerProducts(object):
 
             IND = np.r_[ind1, ind2, ind3].flatten()
 
-            PXXX = sp.coo_matrix((np.ones(3*M.nC), (range(3*M.nC), IND)), shape=(3*M.nC, M.nF)).tocsr()
+            PXXX = sp.coo_matrix((np.ones(3*M.nC), (list(range(3*M.nC)), IND)), shape=(3*M.nC, M.nF)).tocsr()
 
             if M._meshType == 'Curv':
                 I3x3 = inv3X3BlockDiagonal(getSubArray(fN1[0], [i + posX, j, k]), getSubArray(fN1[1], [i + posX, j, k]), getSubArray(fN1[2], [i + posX, j, k]),
@@ -449,7 +457,7 @@ class InnerProducts(object):
 
             IND = np.r_[ind1, ind2].flatten()
 
-            PXX = sp.coo_matrix((np.ones(2*M.nC), (range(2*M.nC), IND)), shape=(2*M.nC, M.nE)).tocsr()
+            PXX = sp.coo_matrix((np.ones(2*M.nC), (list(range(2*M.nC)), IND)), shape=(2*M.nC, M.nE)).tocsr()
 
             if M._meshType == 'Curv':
                 I2x2 = inv2X2BlockDiagonal(getSubArray(eT1[0], [i, j + posX]), getSubArray(eT1[1], [i, j + posX]),
@@ -492,7 +500,7 @@ class InnerProducts(object):
 
             IND = np.r_[ind1, ind2, ind3].flatten()
 
-            PXXX = sp.coo_matrix((np.ones(3*M.nC), (range(3*M.nC), IND)), shape=(3*M.nC, M.nE)).tocsr()
+            PXXX = sp.coo_matrix((np.ones(3*M.nC), (list(range(3*M.nC)), IND)), shape=(3*M.nC, M.nE)).tocsr()
 
             if M._meshType == 'Curv':
                 I3x3 = inv3X3BlockDiagonal(getSubArray(eT1[0], [i, j + posX[0], k + posX[1]]), getSubArray(eT1[1], [i, j + posX[0], k + posX[1]]), getSubArray(eT1[2], [i, j + posX[0], k + posX[1]]),

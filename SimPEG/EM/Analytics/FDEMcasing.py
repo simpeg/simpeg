@@ -1,3 +1,9 @@
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
 from SimPEG import Utils, np
 from scipy.constants import mu_0, epsilon_0
 from SimPEG.EM.Utils.EMUtils import k
@@ -34,7 +40,7 @@ def _getCasingHertzMagDipoleDeriv_r(srcloc,obsloc,freq,sigma,a,b,mu=mu_0*np.ones
     sqrtr2z2 = np.sqrt(r2 + dxyz[:,2]**2)
     k2 = k(freq,sigma[2],mu[2],eps)
 
-    return -HertzZ * np.sqrt(r2) / sqrtr2z2 * (1j*k2 + 1./ sqrtr2z2)
+    return -HertzZ * np.sqrt(r2) / sqrtr2z2 * (1j*k2 + 1. / sqrtr2z2)
 
 
 def _getCasingHertzMagDipoleDeriv_z(srcloc,obsloc,freq,sigma,a,b,mu=mu_0*np.ones(3),eps=epsilon_0,moment=1.):

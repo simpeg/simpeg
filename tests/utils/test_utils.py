@@ -1,3 +1,12 @@
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
+from builtins import int
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
+from builtins import object
 import unittest
 from SimPEG.Utils import *
 from SimPEG import Mesh, np, sp
@@ -220,7 +229,7 @@ class TestSequenceFunctions(unittest.TestCase):
     def test_isScalar(self):
         self.assertTrue(isScalar(1.))
         self.assertTrue(isScalar(1))
-        self.assertTrue(isScalar(long(1)))
+        self.assertTrue(isScalar(int(1)))
         self.assertTrue(isScalar(np.r_[1.]))
         self.assertTrue(isScalar(np.r_[1]))
 

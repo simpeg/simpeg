@@ -1,6 +1,14 @@
-import Utils, Maps, Mesh
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
+from . import Utils, Maps, Mesh
 import numpy as np
 import scipy.sparse as sp
+from future.utils import with_metaclass
 
 class RegularizationMesh(object):
     """
@@ -286,7 +294,7 @@ class RegularizationMesh(object):
         return self._cellDiffzStencil
 
 
-class BaseRegularization(object):
+class BaseRegularization(with_metaclass(Utils.SimPEGMetaClass, object)):
     """
     **Base Regularization Class**
 
@@ -295,8 +303,6 @@ class BaseRegularization(object):
         reg = Regularization(mesh)
 
     """
-
-    __metaclass__ = Utils.SimPEGMetaClass
 
     counter = None
 
@@ -328,7 +334,7 @@ class BaseRegularization(object):
     @parent.setter
     def parent(self, p):
         if getattr(self,'_parent',None) is not None:
-            print 'Regularization has switched to a new parent!'
+            print('Regularization has switched to a new parent!')
         self._parent = p
 
     @property
@@ -892,28 +898,28 @@ class Tikhonov(Simple):
 class Sparse(Simple):
     """
         The regularization is:
-    
+
         .. math::
-    
+
             R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top R^\\top R W(m-m_\\text{ref})}
-    
+
         where the IRLS weight
-    
+
         .. math::
-    
+
             R = \eta TO FINISH LATER!!!
-    
+
         So the derivative is straight forward:
-    
+
         .. math::
-    
+
             R(m) = \mathbf{W^\\top R^\\top R W (m-m_\\text{ref})}
-    
+
         The IRLS weights are recomputed after each beta solves.
         It is strongly recommended to do a few Gauss-Newton iterations
         before updating.
     """
-        
+
     # set default values
     eps_p = 1e-1        # Threshold value for the model norm
     eps_q = 1e-1        # Threshold value for the model gradient norm

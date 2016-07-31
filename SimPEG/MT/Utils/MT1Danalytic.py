@@ -1,3 +1,10 @@
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from builtins import zip
 # Analytic solution of EM fields due to a plane wave
 
 import numpy as np, SimPEG as simpeg
@@ -33,8 +40,8 @@ def getEHfields(m1d,sigma,freq,zd,scaleUD=True):
     # Loop over all the layers, starting at the bottom layer
     for lnr, h in enumerate(m1d.hx): # lnr-number of layer, h-thickness of the layer
         # Calculate
-        yp1 = k[lnr]/(w*mu[lnr]) # Admittance of the layer below the current layer
-        zp = (w*mu[lnr+1])/k[lnr+1] # Impedance in the current layer
+        yp1 = old_div(k[lnr],(w*mu[lnr])) # Admittance of the layer below the current layer
+        zp = old_div((w*mu[lnr+1]),k[lnr+1]) # Impedance in the current layer
         # Build the propagation matrix
 
         # Convert fields to down/up going components in layer below current layer
@@ -48,7 +55,7 @@ def getEHfields(m1d,sigma,freq,zd,scaleUD=True):
         UDp[:,lnr+1] = elamh.dot(Pjinv.dot(Pj1)).dot(UDp[:,lnr])
 
         if scaleUD:
-             UDp[:,lnr+1::-1] = UDp[:,lnr+1::-1]/UDp[1,lnr+1]
+             UDp[:,lnr+1::-1] = old_div(UDp[:,lnr+1::-1],UDp[1,lnr+1])
 
     # Calculate the fields
     Ed = np.empty((zd.size,),dtype=complex)
@@ -62,14 +69,14 @@ def getEHfields(m1d,sigma,freq,zd,scaleUD=True):
     dind = dup >= zd
     Ed[dind] = UDp[1,0]*np.exp(-1j*k[0]*(dup-zd[dind]))
     Eu[dind] = UDp[0,0]*np.exp(1j*k[0]*(dup-zd[dind]))
-    Hd[dind] = (k[0]/(w*mu[0]))*UDp[1,0]*np.exp(-1j*k[0]*(dup-zd[dind]))
-    Hu[dind] = -(k[0]/(w*mu[0]))*UDp[0,0]*np.exp(1j*k[0]*(dup-zd[dind]))
+    Hd[dind] = (old_div(k[0],(w*mu[0])))*UDp[1,0]*np.exp(-1j*k[0]*(dup-zd[dind]))
+    Hu[dind] = -(old_div(k[0],(w*mu[0])))*UDp[0,0]*np.exp(1j*k[0]*(dup-zd[dind]))
     for ki,mui,epsi,dlow,dup,Up,Dp in zip(k[1::],mu[1::],eps[1::],m1d.vectorNx[:-1],m1d.vectorNx[1::],UDp[0,1::],UDp[1,1::]):
         dind = np.logical_and(dup >= zd, zd > dlow)
         Ed[dind] = Dp*np.exp(-1j*ki*(dup-zd[dind]))
         Eu[dind] = Up*np.exp(1j*ki*(dup-zd[dind]))
-        Hd[dind] = (ki/(w*mui))*Dp*np.exp(-1j*ki*(dup-zd[dind]))
-        Hu[dind] = -(ki/(w*mui))*Up*np.exp(1j*ki*(dup-zd[dind]))
+        Hd[dind] = (old_div(ki,(w*mui)))*Dp*np.exp(-1j*ki*(dup-zd[dind]))
+        Hu[dind] = -(old_div(ki,(w*mui)))*Up*np.exp(1j*ki*(dup-zd[dind]))
 
     # Return return the fields
     return Ed, Eu, Hd, Hu
@@ -92,15 +99,15 @@ def getImpedance(m1d,sigma,freq):
         om = 2*np.pi*fr
         Zall = np.empty(len(h)+1,dtype='complex')
         # Calculate the impedance for the bottom layer
-        Zall[0] = (mu_0*om)/np.sqrt(mu_0*eps_0*(om)**2 - 1j*mu_0*sigma[0]*om)
+        Zall[0] = old_div((mu_0*om),np.sqrt(mu_0*eps_0*(om)**2 - 1j*mu_0*sigma[0]*om))
 
         for nr,hi in enumerate(h):
             # Calculate the wave number
             # print nr,sigma[nr]
             k = np.sqrt(mu_0*eps_0*om**2 - 1j*mu_0*sigma[nr]*om)
-            Z = (mu_0*om)/k
+            Z = old_div((mu_0*om),k)
 
-            Zall[nr+1] = Z *((Zall[nr] + Z*np.tanh(1j*k*hi))/(Z + Zall[nr]*np.tanh(1j*k*hi)))
+            Zall[nr+1] = Z *(old_div((Zall[nr] + Z*np.tanh(1j*k*hi)),(Z + Zall[nr]*np.tanh(1j*k*hi))))
 
         #pdb.set_trace()
         Z1d[nrFr] = Zall[-1]

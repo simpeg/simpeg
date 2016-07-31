@@ -1,3 +1,10 @@
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
 import unittest
 from SimPEG import *
 from SimPEG import EM
@@ -35,7 +42,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         try:
             from pymatsolver import MumpsSolver
             self.prb.Solver = MumpsSolver
-        except ImportError, e:
+        except ImportError as e:
             self.prb.Solver = SolverLU
 
         self.sigma = np.ones(mesh.nCz)*1e-8
@@ -58,7 +65,7 @@ class TDEM_bDerivTests(unittest.TestCase):
 
         V1 = Ahu[:,'b',1]
         V2 = 1./prb.timeSteps[0]*prb.MfMui*u[:,'b',0]
-        self.assertLess(np.linalg.norm(V1-V2)/np.linalg.norm(V2), 1.e-6)
+        self.assertLess(old_div(np.linalg.norm(V1-V2),np.linalg.norm(V2)), 1.e-6)
 
         V1 = Ahu[:,'e',1]
         return np.linalg.norm(V1) < 1.e-6
@@ -70,12 +77,12 @@ class TDEM_bDerivTests(unittest.TestCase):
             V1 = Ahu[:,'b',i]
             V2 = 1.0/dt*prb.MfMui*u[:,'b', i-1]
             # print np.linalg.norm(V1), np.linalg.norm(V2)
-            self.assertLess(np.linalg.norm(V1)/np.linalg.norm(V2), 1.e-6)
+            self.assertLess(old_div(np.linalg.norm(V1),np.linalg.norm(V2)), 1.e-6)
 
             V1 = Ahu[:,'e',i]
             V2 = prb.MeSigma*u[:,'e',i]
             # print np.linalg.norm(V1), np.linalg.norm(V2)
-            return np.linalg.norm(V1)/np.linalg.norm(V2), 1.e-6
+            return old_div(np.linalg.norm(V1),np.linalg.norm(V2)), 1.e-6
 
     def test_AhVecVSMat_OneTS(self):
 
@@ -95,7 +102,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         u1 = A*f.tovec()
         u2 = prb._AhVec(sigma,f).tovec()
 
-        self.assertTrue(np.linalg.norm(u1-u2)/np.linalg.norm(u1)<1e-12)
+        self.assertTrue(old_div(np.linalg.norm(u1-u2),np.linalg.norm(u1))<1e-12)
 
     def test_solveAhVSMat_OneTS(self):
         prb = self.prb
@@ -155,7 +162,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         h = 0.01
 
         derChk = lambda m: [self.prb._AhVec(m, f).tovec(), lambda mx: self.prb.Gvec(sigma, mx, u=f).tovec()]
-        print '\ntest_DerivG'
+        print('\ntest_DerivG')
         passed = Tests.checkDerivative(derChk, sigma, plotIt=False, dx=dm, num=4, eps=1e-20)
         return passed
 
@@ -170,8 +177,8 @@ class TDEM_bDerivTests(unittest.TestCase):
         f = prb.fields(sigma)
 
         derChk = lambda m: [self.prb.fields(m).tovec(), lambda mx: -prb.solveAh(sigma, prb.Gvec(sigma, mx, u=f)).tovec()]
-        print '\n'
-        print 'test_Deriv_dUdM'
+        print('\n')
+        print('test_Deriv_dUdM')
         Tests.checkDerivative(derChk, sigma, plotIt=False, dx=dm, num=4, eps=1e-20)
 
     def test_Deriv_J(self):
@@ -186,8 +193,8 @@ class TDEM_bDerivTests(unittest.TestCase):
 
 
         derChk = lambda m: [prb.survey.dpred(m), lambda mx: prb.Jvec(sigma, mx)]
-        print '\n'
-        print 'test_Deriv_J'
+        print('\n')
+        print('test_Deriv_J')
         Tests.checkDerivative(derChk, sigma, plotIt=False, dx=d_sig, num=4, eps=1e-20)
 
     def test_projectAdjoint(self):
@@ -207,7 +214,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         V1 = d_vec.dot(survey.evalDeriv(None, v=f).tovec())
         V2 = f.tovec().dot(survey.evalDeriv(None, v=d, adjoint=True).tovec())
 
-        self.assertTrue((V1-V2)/np.abs(V1) < tol)
+        self.assertTrue(old_div((V1-V2),np.abs(V1)) < tol)
 
     def test_adjointAhVsAht(self):
         prb = self.prb
@@ -226,7 +233,7 @@ class TDEM_bDerivTests(unittest.TestCase):
 
         V1 = f2.tovec().dot(prb._AhVec(sigma, f1).tovec())
         V2 = f1.tovec().dot(prb._AhtVec(sigma, f2).tovec())
-        self.assertTrue(np.abs(V1-V2)/np.abs(V1) < tol)
+        self.assertTrue(old_div(np.abs(V1-V2),np.abs(V1)) < tol)
 
     # def test_solveAhtVsAhtVec(self):
     #     prb = self.prb
@@ -291,7 +298,7 @@ class TDEM_bDerivTests(unittest.TestCase):
 
         V1 = m.dot(prb.Gtvec(sigma, v, u))
         V2 = v.tovec().dot(prb.Gvec(sigma, m, u).tovec())
-        self.assertTrue(np.abs(V1-V2)/np.abs(V1) < tol)
+        self.assertTrue(old_div(np.abs(V1-V2),np.abs(V1)) < tol)
 
     def test_adjointJvecVsJtvec(self):
         mesh = self.mesh
@@ -303,8 +310,8 @@ class TDEM_bDerivTests(unittest.TestCase):
 
         V1 = d.dot(prb.Jvec(sigma, m))
         V2 = m.dot(prb.Jtvec(sigma, d))
-        passed = np.abs(V1-V2)/np.abs(V1) < tol
-        print 'AdjointTest', V1, V2, passed
+        passed = old_div(np.abs(V1-V2),np.abs(V1)) < tol
+        print('AdjointTest', V1, V2, passed)
         self.assertTrue(passed)
 
 

@@ -1,19 +1,26 @@
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
 import numpy as np
 import scipy.sparse as sp
-from matutils import mkvc, sub2ind, spzeros
+from .matutils import mkvc, sub2ind, spzeros
 
 try:
-    import interputils_cython as pyx
+    from . import interputils_cython as pyx
     _interp_point_1D = pyx._interp_point_1D
     _interpmat1D = pyx._interpmat1D
     _interpmat2D = pyx._interpmat2D
     _interpmat3D = pyx._interpmat3D
     _interpCython = True
-except ImportError, e:
-    print """Efficiency Warning: Interpolation will be slow, use setup.py!
+except ImportError as e:
+    print("""Efficiency Warning: Interpolation will be slow, use setup.py!
 
             python setup.py build_ext --inplace
-    """
+    """)
     _interpCython = False
 
 
@@ -62,7 +69,7 @@ def interpmat(locs, x, y=None, z=None):
         shape = [x.size, y.size, z.size]
         inds, vals = _interpmat3D(locs, x, y, z)
 
-    I = np.repeat(range(npts),2**len(shape))
+    I = np.repeat(list(range(npts)),2**len(shape))
     J = sub2ind(shape,inds)
     Q = sp.csr_matrix((vals,(I, J)),
                       shape=(npts, np.prod(shape)))
@@ -92,8 +99,8 @@ if not _interpCython:
             return ind_x1, ind_x1, 0.5, 0.5
 
         hx =  x[ind_x2] - x[ind_x1]
-        wx1 = 1 - (xr_i - x[ind_x1])/hx
-        wx2 = 1 - (x[ind_x2] - xr_i)/hx
+        wx1 = 1 - old_div((xr_i - x[ind_x1]),hx)
+        wx2 = 1 - old_div((x[ind_x2] - xr_i),hx)
 
         return ind_x1, ind_x2, wx1, wx2
 

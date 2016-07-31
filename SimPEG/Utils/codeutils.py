@@ -1,3 +1,9 @@
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
 import types
 import time
 import numpy as np
@@ -32,7 +38,7 @@ def memProfileWrapper(towrap, *funNames):
         if hasattr(towrap,f):
             attrs[f] = profile(getattr(towrap,f))
         else:
-            print '%s not found in %s Class' % (f, towrap.__name__)
+            print('%s not found in %s Class' % (f, towrap.__name__))
 
     return type(towrap.__name__ + 'MemProfileWrap', (towrap,), attrs)
 
@@ -50,9 +56,9 @@ def hook(obj, method, name=None, overwrite=False, silent=False):
     if not hasattr(obj,name) or overwrite:
         setattr(obj, name, types.MethodType( method, obj ))
         if getattr(obj,'debug',False):
-            print 'Method '+name+' was added to class.'
+            print('Method '+name+' was added to class.')
     elif not silent or getattr(obj,'debug',False):
-        print 'Method '+name+' was not overwritten.'
+        print('Method '+name+' was not overwritten.')
 
 
 def setKwargs(obj, ignore=None,  **kwargs):
@@ -76,15 +82,15 @@ def printTitles(obj, printers, name='Print Titles', pad=''):
     for printer in printers:
         titles += ('{:^%i}'%printer['width']).format(printer['title']) + ''
         widths += printer['width']
-    print pad + "{0} {1} {0}".format('='*((widths-1-len(name))/2), name)
-    print pad + titles
-    print pad + "%s" % '-'*widths
+    print(pad + "{0} {1} {0}".format('='*(old_div((widths-1-len(name)),2)), name))
+    print(pad + titles)
+    print(pad + "%s" % '-'*widths)
 
 def printLine(obj, printers, pad=''):
     values = ''
     for printer in printers:
         values += ('{:^%i}'%printer['width']).format(printer['format'] % printer['value'](obj))
-    print pad + values
+    print(pad + values)
 
 def checkStoppers(obj, stoppers):
     # check stopping rules
@@ -98,18 +104,18 @@ def checkStoppers(obj, stoppers):
         if stopper['stopType'] == 'critical':
             critical.append(l <= r)
 
-    if obj.debug: print 'checkStoppers.optimal: ', optimal
-    if obj.debug: print 'checkStoppers.critical: ', critical
+    if obj.debug: print('checkStoppers.optimal: ', optimal)
+    if obj.debug: print('checkStoppers.critical: ', critical)
 
     return (len(optimal)>0 and all(optimal)) | (len(critical)>0 and any(critical))
 
 def printStoppers(obj, stoppers, pad='', stop='STOP!', done='DONE!'):
-    print pad + "%s%s%s" % ('-'*25,stop,'-'*25)
+    print(pad + "%s%s%s" % ('-'*25,stop,'-'*25))
     for stopper in stoppers:
         l = stopper['left'](obj)
         r = stopper['right'](obj)
-        print pad + stopper['str'] % (l<=r,l,r)
-    print pad + "%s%s%s" % ('-'*25,done,'-'*25)
+        print(pad + stopper['str'] % (l<=r,l,r))
+    print(pad + "%s%s%s" % ('-'*25,done,'-'*25))
 
 def callHooks(match, mainFirst=False):
     """
@@ -169,7 +175,7 @@ def dependentProperty(name, value, children, doc):
     return property(fget=fget, fset=fset, doc=doc)
 
 def isScalar(f):
-    scalarTypes = [float, int, long, np.float_, np.int_]
+    scalarTypes = [float, int, int, np.float_, np.int_]
     if type(f) in scalarTypes:
         return True
     elif isinstance(f, np.ndarray) and f.size == 1 and type(f[0]) in scalarTypes:

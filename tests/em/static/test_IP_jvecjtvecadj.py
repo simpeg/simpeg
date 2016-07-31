@@ -1,3 +1,9 @@
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
 import unittest
 from SimPEG import *
 import SimPEG.EM.Static.DC as DC
@@ -15,7 +21,7 @@ class IPProblemTestsCC(unittest.TestCase):
         cs = surveySize/nElecs/4
 
         mesh = Mesh.TensorMesh([
-                [(cs,10, -1.3),(cs,surveySize/cs),(cs,10, 1.3)],
+                [(cs,10, -1.3),(cs,old_div(surveySize,cs)),(cs,10, 1.3)],
                 [(cs,3, -1.3),(cs,3,1.3)],
                 # [(cs,5, -1.3),(cs,10)]
             ],'CN')
@@ -23,7 +29,7 @@ class IPProblemTestsCC(unittest.TestCase):
         srcList = DC.Utils.WennerSrcList(nElecs, aSpacing, in2D=True)
         survey = IP.Survey(srcList)
         sigma = np.ones(mesh.nC)
-        problem = IP.Problem3D_CC(mesh, rho=1./sigma)
+        problem = IP.Problem3D_CC(mesh, rho=old_div(1.,sigma))
         problem.pair(survey)
         mSynth = np.ones(mesh.nC)*0.1
         survey.makeSyntheticData(mSynth)
@@ -55,7 +61,7 @@ class IPProblemTestsCC(unittest.TestCase):
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-10
-        print 'Adjoint Test', np.abs(wtJv - vtJtw), passed
+        print('Adjoint Test', np.abs(wtJv - vtJtw), passed)
         self.assertTrue(passed)
 
     def test_dataObj(self):
@@ -74,7 +80,7 @@ class IPProblemTestsN(unittest.TestCase):
         cs = surveySize/nElecs/4
 
         mesh = Mesh.TensorMesh([
-                [(cs,10, -1.3),(cs,surveySize/cs),(cs,10, 1.3)],
+                [(cs,10, -1.3),(cs,old_div(surveySize,cs)),(cs,10, 1.3)],
                 [(cs,3, -1.3),(cs,3,1.3)],
                 # [(cs,5, -1.3),(cs,10)]
             ],'CN')
@@ -114,7 +120,7 @@ class IPProblemTestsN(unittest.TestCase):
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
-        print 'Adjoint Test', np.abs(wtJv - vtJtw), passed
+        print('Adjoint Test', np.abs(wtJv - vtJtw), passed)
         self.assertTrue(passed)
 
     def test_dataObj(self):

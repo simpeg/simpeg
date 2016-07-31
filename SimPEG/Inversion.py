@@ -1,17 +1,23 @@
+from __future__ import absolute_import
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import division
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 import SimPEG
 from SimPEG import Utils, sp, np
-from Optimization import Remember, IterationPrinters, StoppingCriteria
-import Directives
+from .Optimization import Remember, IterationPrinters, StoppingCriteria
+from . import Directives
+from future.utils import with_metaclass
 
 
-class BaseInversion(object):
+class BaseInversion(with_metaclass(Utils.SimPEGMetaClass, object)):
     """
 
         Inversion Class.
 
     """
-
-    __metaclass__ = Utils.SimPEGMetaClass
 
     name = 'BaseInversion'
 

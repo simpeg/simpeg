@@ -1,3 +1,10 @@
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import division
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 import types
 import time
 import numpy as np
@@ -66,14 +73,14 @@ class Counter(object):
         """
             Provides a text summary of the current counters and timers.
         """
-        print 'Counters:'
+        print('Counters:')
         for prop in sorted(self._countList):
-            print "  {0:<40}: {1:8d}".format(prop,self._countList[prop])
-        print '\nTimes:'+' '*40+'mean      sum'
+            print("  {0:<40}: {1:8d}".format(prop,self._countList[prop]))
+        print('\nTimes:'+' '*40+'mean      sum')
         for prop in sorted(self._timeList):
             l = len(self._timeList[prop])
             a = np.array(self._timeList[prop])
-            print "  {0:<40}: {1:4.2e}, {2:4.2e}, {3:4d}x".format(prop,a.mean(),a.sum(),l)
+            print("  {0:<40}: {1:4.2e}, {2:4.2e}, {3:4d}x".format(prop,a.mean(),a.sum(),l))
 
 def count(f):
     @wraps(f)

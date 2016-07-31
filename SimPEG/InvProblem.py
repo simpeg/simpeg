@@ -1,13 +1,20 @@
-import Utils, Survey, Problem, numpy as np, scipy.sparse as sp, gc
-from Utils.SolverUtils import *
-import DataMisfit
-import Regularization
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import unicode_literals
+from __future__ import division
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
+from . import Utils, Survey, Problem
+import numpy as np, scipy.sparse as sp, gc
+from .Utils.SolverUtils import *
+from . import DataMisfit
+from . import Regularization
+from future.utils import with_metaclass
 
 
-class BaseInvProblem(object):
+class BaseInvProblem(with_metaclass(Utils.SimPEGMetaClass, object)):
     """BaseInvProblem(dmisfit, reg, opt)"""
-
-    __metaclass__ = Utils.SimPEGMetaClass
 
     beta    = 1.0    #: Trade-off parameter
 
@@ -54,10 +61,10 @@ class BaseInvProblem(object):
 
             Called when inversion is first starting.
         """
-        if self.debug: print 'Calling InvProblem.startup'
+        if self.debug: print('Calling InvProblem.startup')
 
         if self.reg.mref is None:
-            print 'SimPEG.InvProblem will set Regularization.mref to m0.'
+            print('SimPEG.InvProblem will set Regularization.mref to m0.')
             self.reg.mref = m0
 
         self.phi_d = np.nan
@@ -65,8 +72,8 @@ class BaseInvProblem(object):
 
         self.curModel = m0
 
-        print """SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
-                    ***Done using same Solver and solverOpts as the problem***"""
+        print("""SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
+                    ***Done using same Solver and solverOpts as the problem***""")
         self.opt.bfgsH0 = self.prob.Solver(self.reg.eval2Deriv(self.curModel), **self.prob.solverOpts)
 
     @property
@@ -87,7 +94,7 @@ class BaseInvProblem(object):
         for mtest, u_ofmtest in self.warmstart:
             if m is mtest:
                 f = u_ofmtest
-                if self.debug: print 'InvProb is Warm Starting!'
+                if self.debug: print('InvProb is Warm Starting!')
                 break
 
         if f is None:

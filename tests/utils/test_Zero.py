@@ -1,3 +1,9 @@
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
 import unittest
 from SimPEG.Utils import Zero, Identity, sdiag, mkvc
 from SimPEG import np, sp
@@ -19,7 +25,7 @@ class Tests(unittest.TestCase):
         assert z - 3 -z == -3
         assert 3*z == 0
         assert z*3 == 0
-        assert z/3 == 0
+        assert old_div(z,3) == 0
 
         a = 1
         a += z
@@ -27,7 +33,7 @@ class Tests(unittest.TestCase):
         a = 1
         a += z
         assert a == 1
-        self.assertRaises(ZeroDivisionError, lambda:3/z)
+        self.assertRaises(ZeroDivisionError, lambda:old_div(3,z))
 
         assert mkvc(z) == 0
         assert sdiag(z)*a == 0
@@ -68,12 +74,12 @@ class Tests(unittest.TestCase):
         assert 3 - -o == 4
         assert 3 - o == 2
 
-        assert o/2 == 0
-        assert o/2. == 0.5
-        assert -o/2 == -1
-        assert -o/2. == -0.5
-        assert 2/o == 2
-        assert 2/-o == -2
+        assert old_div(o,2) == 0
+        assert old_div(o,2.) == 0.5
+        assert old_div(-o,2) == -1
+        assert old_div(-o,2.) == -0.5
+        assert old_div(2,o) == 2
+        assert old_div(2,-o) == -2
 
 
     def test_mat_one(self):
@@ -87,9 +93,9 @@ class Tests(unittest.TestCase):
         check(o * S, [[2,0],[0,3]])
         check(S * -o, [[-2,0],[0,-3]])
         check(-o * S, [[-2,0],[0,-3]])
-        check(S/o, [[2,0],[0,3]])
-        check(S/-o, [[-2,0],[0,-3]])
-        self.assertRaises(NotImplementedError, lambda:o/S)
+        check(old_div(S,o), [[2,0],[0,3]])
+        check(old_div(S,-o), [[-2,0],[0,-3]])
+        self.assertRaises(NotImplementedError, lambda:old_div(o,S))
 
         check(S + o, [[3,0],[0,4]])
         check(o + S, [[3,0],[0,4]])
@@ -114,10 +120,10 @@ class Tests(unittest.TestCase):
         assert np.all(1+n == o+n)
         assert np.all(n-1 == n-o)
         assert np.all(1-n == o-n)
-        assert np.all(n/1 == n/o)
-        assert np.all(n/-1 == n/-o)
-        assert np.all(1/n == o/n)
-        assert np.all(-1/n == -o/n)
+        assert np.all(old_div(n,1) == old_div(n,o))
+        assert np.all(old_div(n,-1) == old_div(n,-o))
+        assert np.all(old_div(1,n) == old_div(o,n))
+        assert np.all(old_div(-1,n) == old_div(-o,n))
         assert np.all(n*1 == n*o)
         assert np.all(n*-1 == n*-o)
         assert np.all(1*n == o*n)

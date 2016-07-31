@@ -1,5 +1,12 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
 from SimPEG import *
-from BaseDC import SurveyDC, FieldsDC_CC
+from .BaseDC import SurveyDC, FieldsDC_CC
 
 class SurveyIP(SurveyDC):
     """
@@ -52,7 +59,7 @@ class ProblemIP(Problem.BaseProblem):
             # sigma = self.curModel.transform
             sigma = self.sigma
             Av = self.mesh.aveF2CC
-            self._Msig = Utils.sdiag(1/(self.mesh.dim * Av.T * (1/sigma)))
+            self._Msig = Utils.sdiag(1//(self.mesh.dim * Av.T * (1/sigma)))
         return self._Msig
 
     @property

@@ -1,3 +1,9 @@
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
 import unittest
 from SimPEG import Mesh, Utils, EM, Maps, np
 import SimPEG.EM.Static.DC as DC
@@ -32,7 +38,7 @@ class DCProblemAnalyticTests(unittest.TestCase):
         try:
             from pymatsolver import MumpsSolver
             self.Solver = MumpsSolver
-        except ImportError, e:
+        except ImportError as e:
             self.Solver = SolverLU
 
     def test_Problem3D_N(self):
@@ -41,13 +47,13 @@ class DCProblemAnalyticTests(unittest.TestCase):
         problem.Solver = self.Solver
         problem.pair(self.survey)
         data = self.survey.dpred(self.sigma)
-        err= np.linalg.norm((data-self.data_anal)/self.data_anal)**2 / self.data_anal.size
+        err= old_div(np.linalg.norm(old_div((data-self.data_anal),self.data_anal))**2, self.data_anal.size)
         if err < 0.05:
             passed = True
-            print ">> DC analytic test for Problem3D_N is passed"
+            print(">> DC analytic test for Problem3D_N is passed")
         else:
             passed = False
-            print ">> DC analytic test for Problem3D_N is failed"
+            print(">> DC analytic test for Problem3D_N is failed")
         self.assertTrue(passed)
 
     def test_Problem3D_CC(self):
@@ -55,13 +61,13 @@ class DCProblemAnalyticTests(unittest.TestCase):
         problem.Solver = self.Solver
         problem.pair(self.survey)
         data = self.survey.dpred(self.sigma)
-        err= np.linalg.norm((data-self.data_anal)/self.data_anal)**2 / self.data_anal.size
+        err= old_div(np.linalg.norm(old_div((data-self.data_anal),self.data_anal))**2, self.data_anal.size)
         if err < 0.05:
             passed = True
-            print ">> DC analytic test for Problem3D_CC is passed"
+            print(">> DC analytic test for Problem3D_CC is passed")
         else:
             passed = False
-            print ">> DC analytic test for Problem3D_CC is failed"
+            print(">> DC analytic test for Problem3D_CC is failed")
         self.assertTrue(passed)
 
 if __name__ == '__main__':

@@ -1,3 +1,9 @@
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
 import unittest
 from SimPEG import *
 from SimPEG import MT
@@ -5,8 +11,8 @@ from SimPEG import MT
 TOL = 1e-6
 
 def appResPhs(freq,z):
-    app_res = ((1./(8e-7*np.pi**2))/freq)*np.abs(z)**2
-    app_phs = np.arctan2(-z.imag,z.real)*(180/np.pi)
+    app_res = (old_div((old_div(1.,(8e-7*np.pi**2))),freq))*np.abs(z)**2
+    app_phs = np.arctan2(-z.imag,z.real)*(old_div(180,np.pi))
     return app_res, app_phs
 
 def appResNorm(sigmaHalf):
@@ -21,13 +27,13 @@ def appResNorm(sigmaHalf):
     Z = []
     for freq in freqs:
         Ed, Eu, Hd, Hu = MT.Utils.getEHfields(m1d,sigma,freq,np.array([200]))
-        Z.append((Ed + Eu)/(Hd + Hu))
+        Z.append(old_div((Ed + Eu),(Hd + Hu)))
 
     Zarr = np.concatenate(Z)
 
     app_r, app_p = appResPhs(freqs,Zarr)
 
-    return np.linalg.norm(np.abs(app_r - np.ones(nFreq)/sigmaHalf)) / np.log10(sigmaHalf)
+    return old_div(np.linalg.norm(np.abs(app_r - old_div(np.ones(nFreq),sigmaHalf))), np.log10(sigmaHalf))
 
 
 class TestAnalytics(unittest.TestCase):

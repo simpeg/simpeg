@@ -1,3 +1,9 @@
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
 import unittest
 from SimPEG import *
 from SimPEG import EM
@@ -6,7 +12,7 @@ import matplotlib.pyplot as plt
 
 try:
     from pymatsolver import MumpsSolver
-except ImportError, e:
+except ImportError as e:
     MumpsSolver = SolverLU
 
 
@@ -49,8 +55,8 @@ def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=None, 
     bz_calc = survey.dpred(sigma)
 
     ind = np.logical_and(rx.times > bounds[0],rx.times < bounds[1])
-    log10diff = np.linalg.norm(np.log10(np.abs(bz_calc[ind])) - np.log10(np.abs(bz_ana[ind])))/np.linalg.norm(np.log10(np.abs(bz_ana[ind])))
-    print 'Difference: ', log10diff
+    log10diff = old_div(np.linalg.norm(np.log10(np.abs(bz_calc[ind])) - np.log10(np.abs(bz_ana[ind]))),np.linalg.norm(np.log10(np.abs(bz_ana[ind]))))
+    print('Difference: ', log10diff)
 
     if showIt == True:
         plt.loglog(rx.times[bz_calc>0], bz_calc[bz_calc>0], 'r', rx.times[bz_calc<0], -bz_calc[bz_calc<0], 'r--')

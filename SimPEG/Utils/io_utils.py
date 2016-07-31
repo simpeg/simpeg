@@ -1,3 +1,10 @@
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import division
+from __future__ import absolute_import
+from builtins import open
+from future import standard_library
+standard_library.install_aliases()
 from SimPEG import np, Mesh
 import time as tm
 import vtk, vtk.util.numpy_support as npsup
@@ -124,7 +131,7 @@ def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
     else:
         extractImpDistRectGridFilt.ExtractInsideOff()
 
-    print "Extracting indices from grid..."
+    print("Extracting indices from grid...")
     # Executing the pipe
     extractImpDistRectGridFilt.Update()
 

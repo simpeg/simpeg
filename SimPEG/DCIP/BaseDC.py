@@ -1,3 +1,11 @@
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
+from builtins import super
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
 from SimPEG import *
 
 class FieldsDC_CC(Problem.Fields):
@@ -61,7 +69,7 @@ class SrcDipole(Survey.BaseSrc):
         pts = [self.loc[0], self.loc[1]]
         inds = Utils.closestPoints(prob.mesh, pts)
         q = np.zeros(prob.mesh.nC)
-        q[inds] = - self.current * ( np.r_[1., -1.] / prob.mesh.vol[inds] )
+        q[inds] = - self.current * (np.r_[1., -1.] / prob.mesh.vol[inds])
         # self._rhsDict[mesh] = q
         # return self._rhsDict[mesh]
         return q

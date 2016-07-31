@@ -1,10 +1,16 @@
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+from future import standard_library
+standard_library.install_aliases()
 import numpy as np
 import scipy.sparse as sp
 from scipy.constants import pi
 from SimPEG.Utils import mkvc, ndgrid, sdiag, kron3, speye, spzeros, ddx, av, avExtrap
-from TensorMesh import BaseTensorMesh, BaseRectangularMesh
-from InnerProducts import InnerProducts
-from View import CylView
+from .TensorMesh import BaseTensorMesh, BaseRectangularMesh
+from .InnerProducts import InnerProducts
+from .View import CylView
 
 
 class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
@@ -31,7 +37,7 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         BaseTensorMesh.__init__(self, h, x0)
         assert self.hy.sum() == 2*np.pi, "The 2nd dimension must sum to 2*pi"
         if self.dim == 2:
-            print 'Warning, a disk mesh has not been tested thoroughly.'
+            print('Warning, a disk mesh has not been tested thoroughly.')
         cartesianOrigin = np.zeros(self.dim) if cartesianOrigin is None else cartesianOrigin
         assert len(cartesianOrigin) == self.dim, "cartesianOrigin must be the same length as the dimension of the mesh."
         self.cartesianOrigin = np.array(cartesianOrigin, dtype=float)
@@ -68,7 +74,7 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         """
         Number of x-faces in each direction
 
-        :rtype: numpy.array 
+        :rtype: numpy.array
         :return: vnFx, (dim, )
         """
         return self.vnC
@@ -78,7 +84,7 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         """
         Number of y-edges in each direction
 
-        :rtype: numpy.array 
+        :rtype: numpy.array
         :return: vnEy or None if dim < 2, (dim, )
         """
         nNx = self.nNx if self.isSymmetric else self.nNx - 1
@@ -89,7 +95,7 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         """
         Number of z-edges in each direction
 
-        :rtype: numpy.array 
+        :rtype: numpy.array
         :return: vnEz or None if nCy > 1, (dim, )
         """
         if self.isSymmetric:

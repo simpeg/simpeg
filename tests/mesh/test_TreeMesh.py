@@ -1,3 +1,9 @@
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
 from SimPEG import Mesh, Tests
 from SimPEG.Mesh.TreeMesh import CellLookUpException
 import numpy as np
@@ -12,13 +18,13 @@ class TestSimpleQuadTree(unittest.TestCase):
         nc = 8
         h1 = np.random.rand(nc)*nc*0.5 + nc*0.5
         h2 = np.random.rand(nc)*nc*0.5 + nc*0.5
-        h = [hi/np.sum(hi) for hi in [h1, h2]]  # normalize
+        h = [old_div(hi,np.sum(hi)) for hi in [h1, h2]]  # normalize
         M = Mesh.TreeMesh(h)
         M._refineCell([0,0,0])
         M._refineCell([0,0,1])
         M.number()
         # M.plotGrid(showIt=True)
-        print M
+        print(M)
         assert M.nhFx == 2
         assert M.nFx == 9
 
@@ -60,7 +66,7 @@ class TestSimpleQuadTree(unittest.TestCase):
         nc = 8
         h1 = np.random.rand(nc)*nc*0.5 + nc*0.5
         h2 = np.random.rand(nc)*nc*0.5 + nc*0.5
-        h = [hi/np.sum(hi) for hi in [h1, h2]]  # normalize
+        h = [old_div(hi,np.sum(hi)) for hi in [h1, h2]]  # normalize
         M = Mesh.TreeMesh(h)
         M._refineCell([0,0,0])
         M._refineCell([0,0,1])
@@ -138,7 +144,7 @@ class TestOcTree(unittest.TestCase):
         h1 = np.random.rand(nc)*nc*0.5 + nc*0.5
         h2 = np.random.rand(nc)*nc*0.5 + nc*0.5
         h3 = np.random.rand(nc)*nc*0.5 + nc*0.5
-        h = [hi/np.sum(hi) for hi in [h1, h2, h3]]  # normalize
+        h = [old_div(hi,np.sum(hi)) for hi in [h1, h2, h3]]  # normalize
         M = Mesh.TreeMesh(h, levels=3)
         M._refineCell([0,0,0,0])
         M._refineCell([0,0,0,1])

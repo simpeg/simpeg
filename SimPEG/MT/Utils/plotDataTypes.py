@@ -1,3 +1,9 @@
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
 from matplotlib import pyplot as plt, colors, numpy as np
 
 
@@ -35,7 +41,7 @@ def plotIsoFreqNSimpedance(ax,freq,array,flag,par='abs',colorbar=True,colorNorm=
 		cmap = plt.get_cmap('RdYlBu')
 		level = np.concatenate((-np.logspace(0,-10,31),np.logspace(-10,0,31)))
 		clevel = np.concatenate((-np.logspace(0,-8,5),np.logspace(-8,0,5)))
-		plotNorm = colors.SymLogNorm(1e-10,linscale=2)		
+		plotNorm = colors.SymLogNorm(1e-10,linscale=2)
 		if cLevel:
 			level = np.concatenate((-np.logspace(0,-10,31),np.logspace(-10,0,31)))
 			clevel = np.concatenate((-np.logspace(0,-8,5),np.logspace(-8,0,5)))
@@ -65,45 +71,45 @@ def plotIsoFreqNSDiff(ax,freq,arrayList,flag,par='abs',colorbar=True,cLevel=True
 	x, y = arrayList[0]['x'][indUniFreq0],arrayList[0]['y'][indUniFreq0]
 	if par == 'abs':
 		if useLog:
-			zPlot = (np.log10(np.abs(arrayList[0][flag][indUniFreq0])) - np.log10(np.abs(arrayList[1][flag][indUniFreq1])))/np.log10(np.abs(arrayList[1][flag][indUniFreq1]))
+			zPlot = old_div((np.log10(np.abs(arrayList[0][flag][indUniFreq0])) - np.log10(np.abs(arrayList[1][flag][indUniFreq1]))),np.log10(np.abs(arrayList[1][flag][indUniFreq1])))
 		else:
-			zPlot = (np.abs(arrayList[0][flag][indUniFreq0]) - np.abs(arrayList[1][flag][indUniFreq1]))/np.abs(arrayList[1][flag][indUniFreq1])
+			zPlot = old_div((np.abs(arrayList[0][flag][indUniFreq0]) - np.abs(arrayList[1][flag][indUniFreq1])),np.abs(arrayList[1][flag][indUniFreq1]))
 		if mask:
 			maskInd = np.logical_or(np.abs(arrayList[0][flag][indUniFreq0])< 1e-3,np.abs(arrayList[1][flag][indUniFreq1]) < 1e-3)
 			zPlot = np.ma.array(zPlot)
 			zPlot[maskInd] = mask
 		if cLevel:
-			level = np.arange(-200,201,10) 
+			level = np.arange(-200,201,10)
 			clevel = np.arange(-200,201,25)
 		else:
 			level = np.linspace(zPlot.min(),zPlot.max(),100)
 			clevel = np.linspace(zPlot.min(),zPlot.max(),10)
 	elif par == 'real':
 		if useLog:
-			zPlot = (np.log10(np.real(arrayList[0][flag][indUniFreq0])) -np.log10(np.real(arrayList[1][flag][indUniFreq1])))/np.log10(np.abs((np.real(arrayList[1][flag][indUniFreq1]))))
+			zPlot = old_div((np.log10(np.real(arrayList[0][flag][indUniFreq0])) -np.log10(np.real(arrayList[1][flag][indUniFreq1]))),np.log10(np.abs((np.real(arrayList[1][flag][indUniFreq1])))))
 		else:
-			zPlot = (np.real(arrayList[0][flag][indUniFreq0]) -np.real(arrayList[1][flag][indUniFreq1]))/np.abs((np.real(arrayList[1][flag][indUniFreq1])))
+			zPlot = old_div((np.real(arrayList[0][flag][indUniFreq0]) -np.real(arrayList[1][flag][indUniFreq1])),np.abs((np.real(arrayList[1][flag][indUniFreq1]))))
 		if mask:
 			maskInd = np.logical_or(np.abs(np.real(arrayList[0][flag][indUniFreq0])) < 1e-3,np.abs(np.real(arrayList[1][flag][indUniFreq1])) < 1e-3)
 			zPlot = np.ma.array(zPlot)
 			zPlot[maskInd] = mask
 		if cLevel:
-			level = np.arange(-200,201,10) 
+			level = np.arange(-200,201,10)
 			clevel = np.arange(-200,201,25)
 		else:
 			level = np.linspace(zPlot.min(),zPlot.max(),100)
 			clevel = np.linspace(zPlot.min(),zPlot.max(),10)
 	elif par == 'imag':
 		if useLog:
-			zPlot = (np.log10(np.imag(arrayList[0][flag][indUniFreq0])) -np.log10(np.imag(arrayList[1][flag][indUniFreq1])))/np.log10(np.abs((np.imag(arrayList[1][flag][indUniFreq1]))))
+			zPlot = old_div((np.log10(np.imag(arrayList[0][flag][indUniFreq0])) -np.log10(np.imag(arrayList[1][flag][indUniFreq1]))),np.log10(np.abs((np.imag(arrayList[1][flag][indUniFreq1])))))
 		else:
-			zPlot = (np.imag(arrayList[0][flag][indUniFreq0]) -np.imag(arrayList[1][flag][indUniFreq1]))/np.abs((np.imag(arrayList[1][flag][indUniFreq1])))
+			zPlot = old_div((np.imag(arrayList[0][flag][indUniFreq0]) -np.imag(arrayList[1][flag][indUniFreq1])),np.abs((np.imag(arrayList[1][flag][indUniFreq1]))))
 		if mask:
 			maskInd = np.logical_or(np.abs(np.imag(arrayList[0][flag][indUniFreq0])) < 1e-3,np.abs(np.imag(arrayList[1][flag][indUniFreq1])) < 1e-3)
 			zPlot = np.ma.array(zPlot)
 			zPlot[maskInd] = mask
 		if cLevel:
-			level = np.arange(-200,201,10) 
+			level = np.arange(-200,201,10)
 			clevel = np.arange(-200,201,25)
 		else:
 			level = np.linspace(zPlot.min(),zPlot.max(),100)
@@ -174,13 +180,13 @@ def plotIsoFreqNStipper(ax,freq,array,flag,par='abs',colorbar=True,colorNorm='Sy
 		plt.colorbar(cs,cax=ax.cax,ticks=clevel,format='%1.2e')
 	ax.set_title(flag+' '+par,fontsize=8)
 
-def plotIsoStaImpedance(ax,loc,array,flag,par='abs',pSym='s',pColor=None):	
-	
-	appResFact = 1/(8*np.pi**2*10**(-7))
+def plotIsoStaImpedance(ax,loc,array,flag,par='abs',pSym='s',pColor=None):
+
+	appResFact = old_div(1,(8*np.pi**2*10**(-7)))
 	treshold = 1.0 # 1 meter
 	indUniSta = np.sqrt(np.sum((rec2nd(array[['x','y']])-loc)**2,axis=1)) < treshold
 	freq = array['freq'][indUniSta]
-	
+
 	if par == 'abs':
 		zPlot = np.abs(array[flag][indUniSta])
 	elif par == 'real':
@@ -188,9 +194,9 @@ def plotIsoStaImpedance(ax,loc,array,flag,par='abs',pSym='s',pColor=None):
 	elif par == 'imag':
 		zPlot = np.imag(array[flag][indUniSta])
 	elif par == 'res':
-		zPlot = (appResFact/freq)*np.abs(array[flag][indUniSta])**2
+		zPlot = (old_div(appResFact,freq))*np.abs(array[flag][indUniSta])**2
 	elif par == 'phs':
-		zPlot = np.arctan2(array[flag][indUniSta].imag,array[flag][indUniSta].real)*(180/np.pi)
+		zPlot = np.arctan2(array[flag][indUniSta].imag,array[flag][indUniSta].real)*(old_div(180,np.pi))
 
 	if not pColor:
 		if 'xx' in flag:
@@ -198,7 +204,7 @@ def plotIsoStaImpedance(ax,loc,array,flag,par='abs',pSym='s',pColor=None):
 			pColor = 'g'
 		elif 'xy' in flag:
 			lab = 'XY'
-			pColor = 'r'	
+			pColor = 'r'
 		elif 'yx' in flag:
 			lab = 'YX'
 			pColor = 'b'
@@ -207,14 +213,14 @@ def plotIsoStaImpedance(ax,loc,array,flag,par='abs',pSym='s',pColor=None):
 			pColor = 'y'
 
 	ax.plot(freq,zPlot,color=pColor,marker=pSym,label=flag)
-	
+
 
 def plotPsudoSectNSimpedance(ax,sectDict,array,flag,par='abs',colorbar=True,colorNorm='None',cLevel=None,contour=True):
 
-	indSect = np.where(sectDict.values()[0]==array[sectDict.keys()[0]])
+	indSect = np.where(list(sectDict.values())[0]==array[list(sectDict.keys())[0]])
 
 	# Define the plot axes
-	if 'x' in sectDict.keys()[0]:
+	if 'x' in list(sectDict.keys())[0]:
 		x = array['y'][indSect]
 	else:
 		x = array['x'][indSect]
@@ -229,9 +235,9 @@ def plotPsudoSectNSimpedance(ax,sectDict,array,flag,par='abs',colorbar=True,colo
 		else:
 			level = np.linspace(zPlot.min(),zPlot.max(),100,endpoint=True)
 			clevel = np.linspace(zPlot.min(),zPlot.max(),10,endpoint=True)
-		
-	elif par == 'ares':	
-		zPlot = np.abs(array[flag][indSect])**2/(8*np.pi**2*10**(-7)*array['freq'][indSect])
+
+	elif par == 'ares':
+		zPlot = old_div(np.abs(array[flag][indSect])**2,(8*np.pi**2*10**(-7)*array['freq'][indSect]))
 		cmap = plt.get_cmap('RdYlBu')#seismic)
 		if cLevel:
 			zMax = np.log10(cLevel[1])
@@ -244,7 +250,7 @@ def plotPsudoSectNSimpedance(ax,sectDict,array,flag,par='abs',colorbar=True,colo
 		plotNorm = colors.LogNorm()
 
 	elif par == 'aphs':
-		zPlot = np.arctan2(array[flag][indSect].imag,array[flag][indSect].real)*(180/np.pi)
+		zPlot = np.arctan2(array[flag][indSect].imag,array[flag][indSect].real)*(old_div(180,np.pi))
 		cmap = plt.get_cmap('RdYlBu')#seismic)
 		if cLevel:
 			zMax = cLevel[1]
@@ -271,7 +277,7 @@ def plotPsudoSectNSimpedance(ax,sectDict,array,flag,par='abs',colorbar=True,colo
 	elif par == 'imag':
 		zPlot = np.imag(array[flag][indSect])
 		cmap = plt.get_cmap('Spectral') #('RdYlBu')
-		
+
 		if cLevel:
 			zMax = np.log10(cLevel[1])
 			zMin = np.log10(cLevel[0])
@@ -281,7 +287,7 @@ def plotPsudoSectNSimpedance(ax,sectDict,array,flag,par='abs',colorbar=True,colo
 		level = np.concatenate((-np.logspace(zMax,zMin-.125,(zMax-zMin)*8+1,endpoint=True),np.logspace(zMin-.125,zMax,(zMax-zMin)*8+1,endpoint=True)))
 		clevel = np.concatenate((-np.logspace(zMax,zMin,(zMax-zMin)*1+1,endpoint=True),np.logspace(zMin,zMax,(zMax-zMin)*1+1,endpoint=True)))
 		plotNorm = colors.SymLogNorm(np.abs(level).min(),linscale=0.1)
-	
+
 	if colorNorm=='SymLog':
 		plotNorm = colors.SymLogNorm(np.abs(level).min(),linscale=0.1)
 	elif colorNorm=='Lin':
@@ -307,14 +313,14 @@ def plotPsudoSectNSDiff(ax,sectDict,arrayList,flag,par='abs',colorbar=True,color
 	def sortInArr(arr):
 		return np.sort(arr,order=['freq','x','y','z'])
 	# Find the index for the slice
-	indSect0 = np.where(sectDict.values()[0]==arrayList[0][sectDict.keys()[0]])
-	indSect1 = np.where(sectDict.values()[0]==arrayList[1][sectDict.keys()[0]])
+	indSect0 = np.where(list(sectDict.values())[0]==arrayList[0][list(sectDict.keys())[0]])
+	indSect1 = np.where(list(sectDict.values())[0]==arrayList[1][list(sectDict.keys())[0]])
 	# Extract and sort the mats
 	arr0 = sortInArr(arrayList[0][indSect0])
 	arr1 = sortInArr(arrayList[1][indSect1])
 
 	# Define the plot axes
-	if 'x' in sectDict.keys()[0]:
+	if 'x' in list(sectDict.keys())[0]:
 		x0 = arr0['y']
 		x1 = arr1['y']
 	else:
@@ -322,35 +328,35 @@ def plotPsudoSectNSDiff(ax,sectDict,arrayList,flag,par='abs',colorbar=True,color
 		x1 = arr1['x']
 	y0 = arr0['freq']
 	y1 = arr1['freq']
-	
+
 
 	if par == 'abs':
 		if useLog:
-			zPlot = (np.log10(np.abs(arr0[flag])) - np.log10(np.abs(arr1[flag])))/np.log10(np.abs(arr1[flag]))
+			zPlot = old_div((np.log10(np.abs(arr0[flag])) - np.log10(np.abs(arr1[flag]))),np.log10(np.abs(arr1[flag])))
 		else:
-			zPlot = (np.abs(arr0[flag]) - np.abs(arr1[flag]))/np.abs(arr1[flag])
+			zPlot = old_div((np.abs(arr0[flag]) - np.abs(arr1[flag])),np.abs(arr1[flag]))
 		if mask:
 			maskInd = np.logical_or(np.abs(arr0[flag])< 1e-3,np.abs(arr1[flag]) < 1e-3)
 			zPlot = np.ma.array(zPlot)
 			zPlot[maskInd] = mask
 		cmap = plt.get_cmap('RdYlBu')#seismic)
 	elif par == 'ares':
-		arF = 1/(8*np.pi**2*10**(-7))		
+		arF = old_div(1,(8*np.pi**2*10**(-7)))
 		if useLog:
-			zPlot = (np.log10((arF/arr0['freq'])*np.abs(arr0[flag])**2) - np.log10((arF/arr1['freq'])*np.abs(arr1[flag])**2))/np.log10((arF/arr1['freq'])*np.abs(arr1[flag])**2)
+			zPlot = old_div((np.log10((old_div(arF,arr0['freq']))*np.abs(arr0[flag])**2) - np.log10((old_div(arF,arr1['freq']))*np.abs(arr1[flag])**2)),np.log10((old_div(arF,arr1['freq']))*np.abs(arr1[flag])**2))
 		else:
-			zPlot = ((arF/arr0['freq'])*np.abs(arr0[flag])**2 - (arF/arr1['freq'])*np.abs(arr1[flag])**2)/((arF/arr1['freq'])*np.abs(arr1[flag])**2)
+			zPlot = old_div(((old_div(arF,arr0['freq']))*np.abs(arr0[flag])**2 - (old_div(arF,arr1['freq']))*np.abs(arr1[flag])**2),((old_div(arF,arr1['freq']))*np.abs(arr1[flag])**2))
 		if mask:
 			maskInd = np.logical_or(np.abs(arr0[flag])< 1e-3,np.abs(arr1[flag]) < 1e-3)
 			zPlot = np.ma.array(zPlot)
 			zPlot[maskInd] = mask
 		cmap = plt.get_cmap('Spectral')#seismic)
-	
+
 	elif par == 'aphs':
 		if useLog:
-			zPlot = (np.log10(np.arctan2(arr0[flag].imag,arr0[flag].real)*(180/np.pi)) - np.log10(np.arctan2(arr1[flag].imag,arr1[flag].real)*(180/np.pi)) )/np.log10(np.arctan2(arr1[flag].imag,arr1[flag].real)*(180/np.pi))
+			zPlot = old_div((np.log10(np.arctan2(arr0[flag].imag,arr0[flag].real)*(old_div(180,np.pi))) - np.log10(np.arctan2(arr1[flag].imag,arr1[flag].real)*(old_div(180,np.pi))) ),np.log10(np.arctan2(arr1[flag].imag,arr1[flag].real)*(old_div(180,np.pi))))
 		else:
-			zPlot = ( np.arctan2(arr0[flag].imag,arr0[flag].real)*(180/np.pi) - np.arctan2(arr1[flag].imag,arr1[flag].real)*(180/np.pi) )/(np.arctan2(arr1[flag].imag,arr1[flag].real)*(180/np.pi))
+			zPlot = old_div(( np.arctan2(arr0[flag].imag,arr0[flag].real)*(old_div(180,np.pi)) - np.arctan2(arr1[flag].imag,arr1[flag].real)*(old_div(180,np.pi)) ),(np.arctan2(arr1[flag].imag,arr1[flag].real)*(old_div(180,np.pi))))
 		if mask:
 			maskInd = np.logical_or(np.abs(arr0[flag])< 1e-3,np.abs(arr1[flag]) < 1e-3)
 			zPlot = np.ma.array(zPlot)
@@ -358,26 +364,26 @@ def plotPsudoSectNSDiff(ax,sectDict,arrayList,flag,par='abs',colorbar=True,color
 		cmap = plt.get_cmap('Spectral')#seismic)
 	elif par == 'real':
 		if useLog:
-			zPlot = (np.log10(arr0[flag].real) - np.log10(arr1[flag].real))/np.log10(arr1[flag].real)
+			zPlot = old_div((np.log10(arr0[flag].real) - np.log10(arr1[flag].real)),np.log10(arr1[flag].real))
 		else:
-			zPlot = (arr0[flag].real - arr1[flag].real)/arr1[flag].real
+			zPlot = old_div((arr0[flag].real - arr1[flag].real),arr1[flag].real)
 		if mask:
 			maskInd = np.logical_or(arr0[flag].real< 1e-3,arr1[flag].real < 1e-3)
 			zPlot = np.ma.array(zPlot)
 			zPlot[maskInd] = mask
 		cmap = plt.get_cmap('Spectral') #('Spectral')
-		
+
 	elif par == 'imag':
 		if useLog:
-			zPlot = (np.log10(arr0[flag].imag) - np.log10(arr1[flag].imag))/np.log10(arr1[flag].imag)
+			zPlot = old_div((np.log10(arr0[flag].imag) - np.log10(arr1[flag].imag)),np.log10(arr1[flag].imag))
 		else:
-			zPlot = (arr0[flag].imag - arr1[flag].imag)/arr1[flag].imag
+			zPlot = old_div((arr0[flag].imag - arr1[flag].imag),arr1[flag].imag)
 		if mask:
 			maskInd = np.logical_or(arr0[flag].imag< 1e-3,arr1[flag].imag < 1e-3)
 			zPlot = np.ma.array(zPlot)
 			zPlot[maskInd] = mask
 		cmap = plt.get_cmap('Spectral') #('RdYlBu')
-		
+
 	if cLevel:
 		zMax = np.log10(cLevel[1])
 		zMin = np.log10(cLevel[0])
@@ -385,18 +391,18 @@ def plotPsudoSectNSDiff(ax,sectDict,arrayList,flag,par='abs',colorbar=True,color
 		zMax = (np.ceil(np.log10(np.abs(zPlot).max())))
 		zMin = (np.floor(np.log10(np.abs(zPlot).min())))
 
-	
+
 	if colorNorm=='SymLog':
 		level = np.concatenate((-np.logspace(zMax,zMin-.125,(zMax-zMin)*8+1,endpoint=True),np.logspace(zMin-.125,zMax,(zMax-zMin)*8+1,endpoint=True)))
 		clevel = np.concatenate((-np.logspace(zMax,zMin,(zMax-zMin)*1+1,endpoint=True),np.logspace(zMin,zMax,(zMax-zMin)*1+1,endpoint=True)))
 		plotNorm = colors.SymLogNorm(np.abs(level).min(),linscale=0.1)
 	elif colorNorm=='Lin':
 		if cLevel:
-			level = np.arange(cLevel[0],cLevel[1]+.1,(cLevel[1] - cLevel[0])/50.) 
-			clevel = np.arange(cLevel[0],cLevel[1]+.1,(cLevel[1] - cLevel[0])/10.)
+			level = np.arange(cLevel[0],cLevel[1]+.1,old_div((cLevel[1] - cLevel[0]),50.))
+			clevel = np.arange(cLevel[0],cLevel[1]+.1,old_div((cLevel[1] - cLevel[0]),10.))
 		else:
-			level = np.arange(zPlot.min(),zPlot.max(),(zPlot.max() - zPlot.min())/50.)
-			clevel = np.arange(zPlot.min(),zPlot.max(),(zPlot.max() - zPlot.min())/10.)
+			level = np.arange(zPlot.min(),zPlot.max(),old_div((zPlot.max() - zPlot.min()),50.))
+			clevel = np.arange(zPlot.min(),zPlot.max(),old_div((zPlot.max() - zPlot.min()),10.))
 		plotNorm = colors.Normalize()
 	elif colorNorm=='Log':
 		level = np.logspace(zMin-.125,zMax,(zMax-zMin)*8+1,endpoint=True)

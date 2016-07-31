@@ -1,3 +1,9 @@
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
 from SimPEG import *
 import SimPEG.EM.Static.DC as DC
 
@@ -29,7 +35,7 @@ def run(plotIt=True):
     try:
         from pymatsolver import MumpsSolver
         problem.Solver = MumpsSolver
-    except Exception, e:
+    except Exception as e:
         pass
     data = survey.dpred(sigma)
 
@@ -61,8 +67,8 @@ def run(plotIt=True):
         ax[0].set_title('Computed')
         plt.show()
 
-    return np.linalg.norm(data-data_ana)/np.linalg.norm(data_ana)
+    return np.linalg.norm(data-data_ana) / np.linalg.norm(data_ana)
 
 
 if __name__ == '__main__':
-    print run()
+    print(run())

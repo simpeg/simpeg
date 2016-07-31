@@ -1,23 +1,33 @@
-import Utils, numpy as np, scipy.sparse as sp
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import range
+from builtins import object
+from . import Utils
+import numpy as np, scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
-from Tests import checkDerivative
-from PropMaps import PropMap, Property
+from .Tests import checkDerivative
+from .PropMaps import PropMap, Property
 from numpy.polynomial import polynomial
 from scipy.interpolate import UnivariateSpline
 import warnings
+from future.utils import with_metaclass
 
-class IdentityMap(object):
+class IdentityMap(with_metaclass(Utils.SimPEGMetaClass, object)):
     """
     SimPEG Map
 
     """
-    __metaclass__ = Utils.SimPEGMetaClass
 
     def __init__(self, mesh=None, nP=None, **kwargs):
         Utils.setKwargs(self, **kwargs)
 
         if nP is not None:
-            assert type(nP) in [int, long], ' Number of parameters must be an integer.'
+            assert type(nP) in [int, int], ' Number of parameters must be an integer.'
 
         self.mesh = mesh
         self._nP  = nP
@@ -101,7 +111,7 @@ class IdentityMap(object):
             :return: passed the test?
 
         """
-        print 'Testing %s' % str(self)
+        print('Testing %s' % str(self))
         if m is None:
             m = abs(np.random.rand(self.nP))
         if 'plotIt' not in kwargs:
@@ -291,7 +301,7 @@ class LogMap(IdentityMap):
         deriv = np.zeros(mod.shape)
         tol = 1e-16 # zero
         ind = np.greater_equal(np.abs(mod),tol)
-        deriv[ind] = 1.0/mod[ind]
+        deriv[ind] = 1.0 / mod[ind]
         return Utils.sdiag(deriv)
 
     def inverse(self, m):
@@ -372,7 +382,7 @@ class SurjectVertical1D(IdentityMap):
         repNum = self.mesh.vnC[:self.mesh.dim-1].prod()
         repVec = sp.csr_matrix(
                     (np.ones(repNum),
-                    (range(repNum), np.zeros(repNum))
+                    (list(range(repNum)), np.zeros(repNum))
                     ), shape=(repNum, 1))
         return sp.kron(sp.identity(self.nP), repVec)
 
@@ -434,7 +444,7 @@ class Surject2Dto3D(IdentityMap):
         nC, nP = self.mesh.nC, self.nP
         P = sp.csr_matrix(
                     (np.ones(nC),
-                    (range(nC), inds)
+                    (list(range(nC)), inds)
                 ), shape=(nC, nP))
         return P
 
@@ -504,11 +514,11 @@ class InjectActiveCells(IdentityMap):
         else:
             self.valInactive = np.ones(self.nC)
             self.valInactive[self.indInactive] = valInactive.copy()
-            
+
         self.valInactive[self.indActive] = 0
 
         inds = np.nonzero(self.indActive)[0]
-        self.P = sp.csr_matrix((np.ones(inds.size),(inds, range(inds.size))), shape=(self.nC, self.nP))
+        self.P = sp.csr_matrix((np.ones(inds.size),(inds, list(range(inds.size)))), shape=(self.nC, self.nP))
 
     @property
     def shape(self):
@@ -595,14 +605,14 @@ class ComplexMap(IdentityMap):
 
     @property
     def shape(self):
-        return (self.nP/2,self.nP)
+        return (self.nP // 2,self.nP)
 
     def _transform(self, m):
         nC = self.mesh.nC
         return m[:nC] + m[nC:]*1j
 
     def deriv(self, m):
-        nC = self.nP/2
+        nC = self.nP//2
         shp = (nC, nC*2)
         def fwd(v):
             return v[:nC] + v[nC:]*1j
@@ -695,7 +705,7 @@ class PolyMap(IdentityMap):
         self.actInd = actInd
 
         if getattr(self, 'actInd', None) is None:
-            self.actInd = range(self.mesh.nC)
+            self.actInd = list(range(self.mesh.nC))
             self.nC = self.mesh.nC
 
         else:
@@ -731,7 +741,7 @@ class PolyMap(IdentityMap):
             elif self.normal =='Y':
                 f = polynomial.polyval(X, c) - Y
             else:
-                raise(Exception("Input for normal = X or Y or Z"))
+                raise Exception
         #3D
         elif self.mesh.dim == 3:
             X = self.mesh.gridCC[self.actInd,0]
@@ -744,10 +754,10 @@ class PolyMap(IdentityMap):
             elif self.normal =='Z':
                 f = polynomial.polyval2d(X, Y, c.reshape((self.order[0]+1,self.order[1]+1))) - Z
             else:
-                raise(Exception("Input for normal = X or Y or Z"))
+                raise Exception
 
         else:
-            raise(Exception("Only supports 2D"))
+            raise Exception
 
 
         return sig1+(sig2-sig1)*(np.arctan(alpha*f)/np.pi+0.5)
@@ -769,7 +779,7 @@ class PolyMap(IdentityMap):
                 f = polynomial.polyval(X, c) - Y
                 V = polynomial.polyvander(X, len(c)-1)
             else:
-                raise(Exception("Input for normal = X or Y or Z"))
+                raise Exception
         #3D
         elif self.mesh.dim == 3:
             X = self.mesh.gridCC[self.actInd,0]
@@ -786,7 +796,7 @@ class PolyMap(IdentityMap):
                 f = polynomial.polyval2d(X, Y, c.reshape((self.order[0]+1,self.order[1]+1))) - Z
                 V = polynomial.polyvander2d(X, Y, self.order)
             else:
-                raise(Exception("Input for normal = X or Y or Z"))
+                raise Exception
 
         if self.logSigma:
             g1 = -(np.arctan(alpha*f)/np.pi + 0.5)*sig1 + sig1
@@ -834,7 +844,7 @@ class SplineMap(IdentityMap):
         elif self.mesh.dim == 3:
             return np.size(self.pts)*2+2
         else:
-            raise(Exception("Only supports 2D and 3D"))
+            raise Exception
 
     def _transform(self, m):
         # Set model parameters
@@ -853,7 +863,7 @@ class SplineMap(IdentityMap):
             elif self.normal =='Y':
                 f = self.spl(X) - Y
             else:
-                raise(Exception("Input for normal = X or Y or Z"))
+                raise Exception
 
         # 3D:
         # Comments:
@@ -868,7 +878,7 @@ class SplineMap(IdentityMap):
 
             npts = np.size(self.pts)
             if np.mod(c.size, 2):
-                raise(Exception("Put even points!"))
+                raise Exception
 
             self.spl = {"splb":UnivariateSpline(self.pts, c[:npts], k=self.order, s=0),
                         "splt":UnivariateSpline(self.pts, c[npts:], k=self.order, s=0)}
@@ -881,9 +891,9 @@ class SplineMap(IdentityMap):
             # elif self.normal =='Y':
             # elif self.normal =='Z':
             else:
-                raise(Exception("Input for normal = X or Y or Z"))
+                raise Exception
         else:
-            raise(Exception("Only supports 2D and 3D"))
+            raise Exception
 
 
         return sig1+(sig2-sig1)*(np.arctan(alpha*f)/np.pi+0.5)
@@ -903,7 +913,7 @@ class SplineMap(IdentityMap):
             elif self.normal =='Y':
                 f = self.spl(X) - Y
             else:
-                raise(Exception("Input for normal = X or Y or Z"))
+                raise Exception
         #3D
         elif self.mesh.dim == 3:
             X = self.mesh.gridCC[:,0]
@@ -917,7 +927,7 @@ class SplineMap(IdentityMap):
             # elif self.normal =='Y':
             # elif self.normal =='Z':
             else:
-                raise(Exception("Not Implemented for Y and Z, your turn :)"))
+                raise Exception
 
         if self.logSigma:
             g1 = -(np.arctan(alpha*f)/np.pi + 0.5)*sig1 + sig1
@@ -973,7 +983,7 @@ class SplineMap(IdentityMap):
                     fderiv = (flinesa-flinesb)/(2*dy)
                     g3[:,i] = Utils.sdiag(alpha*(sig2-sig1)/(1.+(alpha*f)**2)/np.pi)*fderiv
         else :
-            raise(Exception("Not Implemented for Y and Z, your turn :)"))
+            raise Exception
         return sp.csr_matrix(np.c_[g1,g2,g3])
 
 

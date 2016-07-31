@@ -1,10 +1,16 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
 from SimPEG import Survey as SimPEGsurvey, Utils, Problem, Maps, np, sp, mkvc
 from SimPEG.EM.FDEM.SrcFDEM import BaseSrc as FDEMBaseSrc
 from SimPEG.EM.Utils import omega
 from scipy.constants import mu_0
 from numpy.lib import recfunctions as recFunc
-from Utils import rec2ndarr
-import SrcMT
+from .Utils import rec2ndarr
+from . import SrcMT
 import sys
 
 #################
@@ -76,7 +82,7 @@ class Rx(SimPEGsurvey.BaseRx):
             bx = Pbx*mkvc(f[src,'b_1d'],2)/mu_0
             # Note: Has a minus sign in front, to comply with quadrant calculations.
             # Can be derived from zyx case for the 3D case.
-            f_part_complex = -ex/bx
+            f_part_complex = old_div(-ex,bx)
         # elif self.projType is 'Z2D':
         elif self.projType is 'Z3D':
             ## NOTE: Assumes that e is on edges and b on the faces. Need to generalize that or use a prop of fields to determine that.
@@ -103,13 +109,13 @@ class Rx(SimPEGsurvey.BaseRx):
             hy_py = Pby*f[src,'b_py']/mu_0
             # Make the complex data
             if 'zxx' in self.rxType:
-                f_part_complex = ( ex_px*hy_py - ex_py*hy_px)/(hx_px*hy_py - hx_py*hy_px)
+                f_part_complex = old_div(( ex_px*hy_py - ex_py*hy_px),(hx_px*hy_py - hx_py*hy_px))
             elif 'zxy' in self.rxType:
-                f_part_complex = (-ex_px*hx_py + ex_py*hx_px)/(hx_px*hy_py - hx_py*hy_px)
+                f_part_complex = old_div((-ex_px*hx_py + ex_py*hx_px),(hx_px*hy_py - hx_py*hy_px))
             elif 'zyx' in self.rxType:
-                f_part_complex = ( ey_px*hy_py - ey_py*hy_px)/(hx_px*hy_py - hx_py*hy_px)
+                f_part_complex = old_div(( ey_px*hy_py - ey_py*hy_px),(hx_px*hy_py - hx_py*hy_px))
             elif 'zyy' in self.rxType:
-                f_part_complex = (-ey_px*hx_py + ey_py*hx_px)/(hx_px*hy_py - hx_py*hy_px)
+                f_part_complex = old_div((-ey_px*hx_py + ey_py*hx_px),(hx_px*hy_py - hx_py*hy_px))
         elif self.projType is 'T3D':
             if self.locs.ndim == 3:
                 horLoc = self.locs[:,:,0]
@@ -127,9 +133,9 @@ class Rx(SimPEGsurvey.BaseRx):
             by_py = Pby*f[src,'b_py']
             bz_py = Pbz*f[src,'b_py']
             if 'tzx' in self.rxType:
-                f_part_complex = (- by_px*bz_py + by_py*bz_px)/(bx_px*by_py - bx_py*by_px)
+                f_part_complex = old_div((- by_px*bz_py + by_py*bz_px),(bx_px*by_py - bx_py*by_px))
             if 'tzy' in self.rxType:
-                f_part_complex = (  bx_px*bz_py - bx_py*bz_px)/(bx_px*by_py - bx_py*by_px)
+                f_part_complex = old_div((  bx_px*bz_py - bx_py*bz_px),(bx_px*by_py - bx_py*by_px))
 
         else:
             NotImplementedError('Projection of {:s} receiver type is not implemented.'.format(self.rxType))
@@ -157,8 +163,8 @@ class Rx(SimPEGsurvey.BaseRx):
                 Pbx = mesh.getInterpolationMat(self.locs[:,-1],'Ex')
                 # ex = Pex*mkvc(f[src,'e_1d'],2)
                 # bx = Pbx*mkvc(f[src,'b_1d'],2)/mu_0
-                dP_de = -mkvc(Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))*(Pex*v),2)
-                dP_db = mkvc( Utils.sdiag(Pex*mkvc(f[src,'e_1d'],2))*(Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)).T*Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)))*(Pbx*f._bDeriv_u(src,v)/mu_0),2)
+                dP_de = -mkvc(Utils.sdiag(old_div(1.,(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)))*(Pex*v),2)
+                dP_db = mkvc( Utils.sdiag(Pex*mkvc(f[src,'e_1d'],2))*(Utils.sdiag(old_div(1.,(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))).T*Utils.sdiag(old_div(1.,(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))))*(Pbx*f._bDeriv_u(src,v)/mu_0),2)
                 PDeriv_complex = np.sum(np.hstack((dP_de,dP_db)),1)
             elif self.projType is 'Z2D':
                 raise NotImplementedError('Has not been implement for 2D impedance tensor')
@@ -198,7 +204,7 @@ class Rx(SimPEGsurvey.BaseRx):
                 # Update the input vector
                 sDiag = lambda t: Utils.sdiag(mkvc(t,2))
                 # Define the components of the derivative
-                Hd = sDiag(1./(sDiag(hx_px)*hy_py - sDiag(hx_py)*hy_px))
+                Hd = sDiag(old_div(1.,(sDiag(hx_px)*hy_py - sDiag(hx_py)*hy_px)))
                 Hd_uV = sDiag(hy_py)*hx_px_u(v) + sDiag(hx_px)*hy_py_u(v) - sDiag(hx_py)*hy_px_u(v) - sDiag(hy_px)*hx_py_u(v)
                 # Calculate components
                 if 'zxx' in self.rxType:
@@ -247,7 +253,7 @@ class Rx(SimPEGsurvey.BaseRx):
                 # Update the input vector
                 sDiag = lambda t: Utils.sdiag(mkvc(t,2))
                 # Define the components of the derivative
-                Hd = sDiag(1./(sDiag(bx_px)*by_py - sDiag(bx_py)*by_px))
+                Hd = sDiag(old_div(1.,(sDiag(bx_px)*by_py - sDiag(bx_py)*by_px)))
                 Hd_uV = sDiag(by_py)*bx_px_u(v) + sDiag(bx_px)*by_py_u(v) - sDiag(bx_py)*by_px_u(v) - sDiag(by_px)*bx_py_u(v)
                 if 'tzx' in self.rxType:
                     Tij = sDiag(Hd*( - sDiag(by_px)*bz_py + sDiag(by_py)*bz_px ))
@@ -267,8 +273,8 @@ class Rx(SimPEGsurvey.BaseRx):
                 Pbx = mesh.getInterpolationMat(self.locs[:,-1],'Ex')
                 # ex = Pex*mkvc(f[src,'e_1d'],2)
                 # bx = Pbx*mkvc(f[src,'b_1d'],2)/mu_0
-                dP_deTv = -mkvc(Pex.T*Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)).T*v,2)
-                db_duv = Pbx.T/mu_0*Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))*(Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))).T*Utils.sdiag(Pex*mkvc(f[src,'e_1d'],2)).T*v
+                dP_deTv = -mkvc(Pex.T*Utils.sdiag(old_div(1.,(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))).T*v,2)
+                db_duv = Pbx.T/mu_0*Utils.sdiag(old_div(1.,(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)))*(Utils.sdiag(old_div(1.,(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)))).T*Utils.sdiag(Pex*mkvc(f[src,'e_1d'],2)).T*v
                 dP_dbTv = mkvc(f._bDeriv_u(src,db_duv,adjoint=True),2)
                 PDeriv_real = np.sum(np.hstack((dP_deTv,dP_dbTv)),1)
             elif self.projType is 'Z2D':
@@ -300,17 +306,17 @@ class Rx(SimPEGsurvey.BaseRx):
                 aey_px_u = lambda vec: f._e_pxDeriv_u(src,Pey.T*vec,adjoint=True)
                 aex_py_u = lambda vec: f._e_pyDeriv_u(src,Pex.T*vec,adjoint=True)
                 aey_py_u = lambda vec: f._e_pyDeriv_u(src,Pey.T*vec,adjoint=True)
-                ahx_px_u = lambda vec: f._b_pxDeriv_u(src,Pbx.T*vec,adjoint=True)/mu_0
-                ahy_px_u = lambda vec: f._b_pxDeriv_u(src,Pby.T*vec,adjoint=True)/mu_0
-                ahx_py_u = lambda vec: f._b_pyDeriv_u(src,Pbx.T*vec,adjoint=True)/mu_0
-                ahy_py_u = lambda vec: f._b_pyDeriv_u(src,Pby.T*vec,adjoint=True)/mu_0
+                ahx_px_u = lambda vec: old_div(f._b_pxDeriv_u(src,Pbx.T*vec,adjoint=True),mu_0)
+                ahy_px_u = lambda vec: old_div(f._b_pxDeriv_u(src,Pby.T*vec,adjoint=True),mu_0)
+                ahx_py_u = lambda vec: old_div(f._b_pyDeriv_u(src,Pbx.T*vec,adjoint=True),mu_0)
+                ahy_py_u = lambda vec: old_div(f._b_pyDeriv_u(src,Pby.T*vec,adjoint=True),mu_0)
 
                 # Update the input vector
                 # Define shortcuts
                 sDiag = lambda t: Utils.sdiag(mkvc(t,2))
                 sVec = lambda t: Utils.sp.csr_matrix(mkvc(t,2))
                 # Define the components of the derivative
-                aHd = sDiag(1./(sDiag(ahx_px)*ahy_py - sDiag(ahx_py)*ahy_px))
+                aHd = sDiag(old_div(1.,(sDiag(ahx_px)*ahy_py - sDiag(ahx_py)*ahy_px)))
                 aHd_uV = lambda x: ahx_px_u(sDiag(ahy_py)*x) + ahx_px_u(sDiag(ahy_py)*x) - ahy_px_u(sDiag(ahx_py)*x) - ahx_py_u(sDiag(ahy_px)*x)
                 # Need to fix this to reflect the adjoint
                 if 'zxx' in self.rxType:
@@ -362,7 +368,7 @@ class Rx(SimPEGsurvey.BaseRx):
                 sDiag = lambda t: Utils.sdiag(mkvc(t,2))
                 sVec = lambda t: Utils.sp.csr_matrix(mkvc(t,2))
                 # Define the components of the derivative
-                aHd = sDiag(1./(sDiag(abx_px)*aby_py - sDiag(abx_py)*aby_px))
+                aHd = sDiag(old_div(1.,(sDiag(abx_px)*aby_py - sDiag(abx_py)*aby_px)))
                 aHd_uV = lambda x: abx_px_u(sDiag(aby_py)*x) + abx_px_u(sDiag(aby_py)*x) - aby_px_u(sDiag(abx_py)*x) - abx_py_u(sDiag(aby_px)*x)
                 # Need to fix this to reflect the adjoint
                 if 'tzx' in self.rxType:

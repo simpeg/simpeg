@@ -1,14 +1,21 @@
-import Utils, Survey, Models, numpy as np, scipy.sparse as sp
+from __future__ import absolute_import
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import division
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
+from . import Utils, Survey, Models
+import numpy as np, scipy.sparse as sp
+from future.utils import with_metaclass
 Solver = Utils.SolverUtils.Solver
-import Maps, Mesh
-from Fields import Fields, TimeFields
+from . import Maps, Mesh
+from .Fields import Fields, TimeFields
 
-class BaseProblem(object):
+class BaseProblem(with_metaclass(Utils.SimPEGMetaClass, object)):
     """
         Problem is the base class for all geophysical forward problems in SimPEG.
     """
-
-    __metaclass__ = Utils.SimPEGMetaClass
 
     counter = None   #: A SimPEG.Utils.Counter object
 

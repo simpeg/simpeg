@@ -1,3 +1,10 @@
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
 from SimPEG import *
 from SimPEG.EM import FDEM, Analytics, mu_0
 import time
@@ -67,8 +74,8 @@ def run(plotIt=True):
     casing_l = 300   # length of the casing
 
     casing_r = 0.1
-    casing_a = casing_r - casing_t/2. # inner radius
-    casing_b = casing_r + casing_t/2. # outer radius
+    casing_a = casing_r - casing_t / 2. # inner radius
+    casing_b = casing_r + casing_t / 2. # outer radius
     casing_z = np.r_[-casing_l,0.]
 
 
@@ -78,25 +85,25 @@ def run(plotIt=True):
     src_loc = np.r_[0.,0.,dsz]
     inf_loc = np.r_[0.,0.,1e4]
 
-    print 'Skin Depth: ', [(500./np.sqrt(sigmaback*_)) for _ in freqs]
+    print('Skin Depth: ', [(500. / np.sqrt(sigmaback*_)) for _ in freqs])
 
 
     # ------------------ MESH ------------------
     # fine cells near well bore
     csx1, csx2 = 2e-3, 60.
     pfx1, pfx2 = 1.3, 1.3
-    ncx1 = np.ceil(casing_b/csx1+2)
+    ncx1 = np.ceil(casing_b/csx1)+2
 
     # pad nicely to second cell size
-    npadx1 = np.floor(np.log(csx2/csx1) / np.log(pfx1))
+    npadx1 = np.log(csx2/csx1) // np.log(pfx1)
     hx1a,hx1b = Utils.meshTensor([(csx1,ncx1)]),Utils.meshTensor([(csx1,npadx1,pfx1)])
     dx1 = sum(hx1a)+sum(hx1b)
-    dx1 = np.floor(dx1/csx2)
-    hx1b *= (dx1*csx2 - sum(hx1a))/sum(hx1b)
+    dx1 = dx1 // csx2
+    hx1b *= (dx1*csx2 - sum(hx1a)) / sum(hx1b)
 
     # second chunk of mesh
     dx2 = 300. # uniform mesh out to here
-    ncx2 = np.ceil((dx2 - dx1)/csx2)
+    ncx2 = np.ceil((dx2 - dx1) / csx2)
     npadx2 = 45
     hx2a, hx2b = Utils.meshTensor([(csx2,ncx2)]), Utils.meshTensor([(csx2,npadx2,pfx2)])
     hx = np.hstack([hx1a,hx1b,hx2a,hx2b])
@@ -110,8 +117,8 @@ def run(plotIt=True):
     # Mesh
     mesh = Mesh.CylMesh([hx,1.,hz], [0.,0.,-np.sum(hz[:npadzu+ncz-nza])])
 
-    print 'Mesh Extent xmax: %f,: zmin: %f, zmax: %f'%(mesh.vectorCCx.max(), mesh.vectorCCz.min(), mesh.vectorCCz.max())
-    print 'Number of cells', mesh.nC
+    print('Mesh Extent xmax: %f,: zmin: %f, zmax: %f'%(mesh.vectorCCx.max(), mesh.vectorCCz.min(), mesh.vectorCCz.max()))
+    print('Number of cells', mesh.nC)
 
     if plotIt is True:
         fig, ax = plt.subplots(1, 1, figsize=(6, 4))
@@ -224,7 +231,7 @@ def run(plotIt=True):
     # ------------- Solve ---------------------------
     t0 = time.time()
     fieldsCasing = problem.fields(sigCasing)
-    print 'Time to solve 2 sources', time.time() - t0
+    print('Time to solve 2 sources', time.time() - t0)
 
     # Plot current
 
@@ -251,9 +258,9 @@ def run(plotIt=True):
     in1_in = in1[np.r_[inds]]
     z_in = mesh.gridFz[inds_fz,2]
 
-    in0_in = in0_in.reshape([in0_in.shape[0]/3,3])
-    in1_in = in1_in.reshape([in1_in.shape[0]/3,3])
-    z_in = z_in.reshape([z_in.shape[0]/3,3])
+    in0_in = in0_in.reshape([in0_in.shape[0]//3,3])
+    in1_in = in1_in.reshape([in1_in.shape[0]//3,3])
+    z_in = z_in.reshape([z_in.shape[0]//3,3])
 
     I0 = in0_in.sum(1).real
     I1 = in1_in.sum(1).real

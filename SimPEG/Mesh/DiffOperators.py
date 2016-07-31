@@ -1,3 +1,10 @@
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 import numpy as np
 from scipy import sparse as sp
 from SimPEG.Utils import mkvc, sdiag, speye, kron3, spzeros, ddx, av, avExtrap
@@ -251,7 +258,7 @@ class DiffOperators(object):
 
         def fget(self):
             if(self._nodalLaplacian is None):
-                print 'Warning: Laplacian has not been tested rigorously.'
+                print('Warning: Laplacian has not been tested rigorously.')
                 # The number of cell centers in each direction
                 n = self.vnC
                 # Compute divergence operator on faces

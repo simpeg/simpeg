@@ -1,8 +1,16 @@
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
 from SimPEG import Utils, np
-from BaseMesh import BaseRectangularMesh
-from DiffOperators import DiffOperators
-from InnerProducts import InnerProducts
-from View import CurvView
+from .BaseMesh import BaseRectangularMesh
+from .DiffOperators import DiffOperators
+from .InnerProducts import InnerProducts
+from .View import CurvView
+from future.utils import with_metaclass
 
 # Some helper functions.
 length2D = lambda x: (x[:, 0]**2 + x[:, 1]**2)**0.5
@@ -11,7 +19,7 @@ normalize2D = lambda x: x/np.kron(np.ones((1, 2)), Utils.mkvc(length2D(x), 2))
 normalize3D = lambda x: x/np.kron(np.ones((1, 3)), Utils.mkvc(length3D(x), 2))
 
 
-class CurvilinearMesh(BaseRectangularMesh, DiffOperators, InnerProducts, CurvView):
+class CurvilinearMesh(with_metaclass(Utils.SimPEGMetaClass, type('NewBase', (BaseRectangularMesh, DiffOperators, InnerProducts, CurvView), {}))):
     """
     CurvilinearMesh is a mesh class that deals with curvilinear meshes.
 
@@ -25,8 +33,6 @@ class CurvilinearMesh(BaseRectangularMesh, DiffOperators, InnerProducts, CurvVie
             M = Mesh.CurvilinearMesh([X, Y])
             M.plotGrid(showIt=True)
     """
-
-    __metaclass__ = Utils.SimPEGMetaClass
 
     _meshType = 'Curv'
 
@@ -291,7 +297,7 @@ class CurvilinearMesh(BaseRectangularMesh, DiffOperators, InnerProducts, CurvVie
     normals = property(**normals())
 
     def edge():
-        doc = "Edge legnths."
+        doc = "Edge lengths."
 
         def fget(self):
             if(self._edge is None or self._tangents is None):
@@ -345,4 +351,4 @@ if __name__ == '__main__':
         X, Y = Utils.ndgrid(h1, h2, vector=False)
         M = CurvilinearMesh([X, Y])
 
-    print M.r(M.normals, 'F', 'Fx', 'V')
+    print(M.r(M.normals, 'F', 'Fx', 'V'))
