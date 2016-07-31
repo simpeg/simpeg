@@ -1,5 +1,6 @@
 import unittest
-from SimPEG import *
+import numpy as np
+from SimPEG import Mesh, Survey, Utils
 
 class TestData(unittest.TestCase):
 

@@ -1,5 +1,7 @@
 import unittest
-from SimPEG import *
+import numpy as np
+import scipy.sparse as sp
+from SimPEG import Mesh, Maps, Utils, SolverLU
 from SimPEG import EM
 from scipy.constants import mu_0
 
