@@ -5,6 +5,7 @@ from scipy.constants import mu_0
 
 tol_EBdipole = 1e-2
 
+plotIt = False
 if plotIt is True:
     import matplotlib.pylab as plt
 
@@ -173,7 +174,7 @@ class FDEM_analyticTests(unittest.TestCase):
         print '  bx:', np.linalg.norm(bxa), np.linalg.norm(bx), np.linalg.norm(bxa-bx), np.linalg.norm(bxa-bx)/np.linalg.norm(bxa)
         print '  bz:', np.linalg.norm(bza), np.linalg.norm(bz), np.linalg.norm(bza-bz), np.linalg.norm(bza-bz)/np.linalg.norm(bza)
 
-        if plotIt:
+        if plotIt is True:
             # Edipole
             plt.subplot(221)
             plt.plot(r,ex.real,'o',r,exa.real,linewidth=2)
