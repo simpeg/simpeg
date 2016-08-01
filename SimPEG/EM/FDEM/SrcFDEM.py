@@ -1,6 +1,6 @@
 from SimPEG import Survey, Problem, Utils, np, sp
 from scipy.constants import mu_0
-from SimPEG.EM.Utils import *
+from SimPEG.EM.Utils import omega, MagneticDipoleFields, MagneticDipoleVectorPotential, MagneticLoopVectorPotential
 from SimPEG.Utils import Zero
 
 class BaseSrc(Survey.BaseSrc):

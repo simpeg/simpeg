@@ -522,7 +522,7 @@ class BaseRectangularMesh(BaseMesh):
         assert xType in outType, 'You cannot change type of components.'
         if type(x) == list:
             for i, xi in enumerate(x):
-                assert isinstance(x, np.ndarray), "x[%i] must be a numpy array" % i
+                assert isinstance(x, np.ndarray), "x[{0:d}] must be a numpy array".format(i)
                 assert xi.size == x[0].size, "Number of elements in list must not change."
 
             x_array = np.ones((x.size, len(x)))
