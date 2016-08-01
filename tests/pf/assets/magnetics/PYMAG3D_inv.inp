@@ -1,13 +1,12 @@
-Mesh_10m.msh			! Mesh file
-Obs_loc_TMI.obs			! Obsfile
-Gaussian.topo			! Topofile | null
-ModelStart.sus			! Starting model
+FILE Mesh_10m.msh			! Mesh file
+FILE Obs_loc_TMI.obs			! Obsfile
+TOPO Gaussian.topo			! Topofile | null
+FILE ModelStart.sus			! Starting model
 VALUE 0				! Reference model
-ActiveCells.dat			! [ Active file (0:Inactive | 1: Active-Dynamic | -1: Active-Static) ] || [ VALUE ### (from starting model) ] || [ DEFAULT (all Active-Dynamic)]
 DEFAULT !..\AzmDip.dat		! Magnetization vector model
 DEFAULT				! Cell based weight file
-1				! target chi factor | DEFAULT=1
-1 1 1 1				! alpha s, x ,y ,z
+DEFAULT				! target chi factor | DEFAULT=1
+DEFAULT				! alpha s, x ,y ,z
 VALUE 0 1			! Lower and Upper Bounds for p-component
 VALUE 0 1 1 1 1			! lp-norm for amplitude inversion FILE pqxqyqzr.dat  ! Norms VALUE p, qx, qy, qz, r | FILE m-by-5 matrix
 DEFAULT		! Threshold value for the norm on model and model gradient VALUE eps_p, eps_q | DEFAULT

@@ -961,7 +961,7 @@ def writeUBCobs(filename, survey, d):
     print "Observation file saved to: " + filename
 
 
-def plot_obs_2D(rxLoc,d=None ,varstr='Mag Obs', vmin=None, vmax=None, levels=None, fig=None):
+def plot_obs_2D(rxLoc,d=None ,varstr='Gz Obs', vmin=None, vmax=None, levels=None, fig=None):
     """ Function plot_obs(rxLoc,d)
     Generate a 2d interpolated plot from scatter points of data
 

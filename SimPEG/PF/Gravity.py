@@ -200,12 +200,16 @@ class GravityIntegral(Problem.BaseProblem):
         count = -1;
         for ii in range(ndata):
 
+            tx, ty, tz = get_T_mat(Xn, Yn, Zn, rxLoc[ii, :])
+
             if flag=='z':
-                tt = get_T_mat(Xn, Yn, Zn, rxLoc[ii, :])
-                G[ii, :] = tt
+
+                G[ii, :] = tz
 
             elif flag == 'xyz':
-                print "Sorry 3-component not implemented yet"
+                G[ii,:] = tx
+                G[ii+ndata,:] = ty
+                G[ii+2*ndata,:] = tz
 
             # Display progress
             count = progress(ii, count, ndata)
@@ -331,7 +335,7 @@ def writeUBCobs(filename, survey, d):
     print "Observation file saved to: " + filename
 
 
-def plot_obs_2D(survey,varstr, fig = None):
+def plot_obs_2D(rxLoc,d=None ,varstr='Gz Obs', vmin=None, vmax=None, levels=None, fig=None):
     """ Function plot_obs(rxLoc,d,wd)
     Generate a 2d interpolated plot from scatter points of data
 
@@ -352,9 +356,6 @@ def plot_obs_2D(survey,varstr, fig = None):
     from scipy.interpolate import griddata
     import pylab as plt
 
-    rxLoc   = survey.srcField.rxList[0].locs
-    d       = survey.dobs
-    wd      = survey.std
 
     # Create grid of points
     x = np.linspace(rxLoc[:,0].min(), rxLoc[:,0].max(), 100)
@@ -369,13 +370,37 @@ def plot_obs_2D(survey,varstr, fig = None):
     if fig is None:
         fig = plt.figure()
 
-    ax = plt.subplot()
-    plt.imshow(d_grid, extent=[x.min(), x.max(), y.min(), y.max()],origin = 'lower', cmap='plasma')
-    plt.colorbar(fraction=0.02)
-    plt.contour(X,Y, d_grid,10)
-    plt.scatter(rxLoc[:,0],rxLoc[:,1], c=d, s=20)
+    plt.scatter(rxLoc[:,0],rxLoc[:,1], c='k', s=10)
+
+    if d is not None:
+
+        if (vmin is None):
+            vmin = d.min()
+
+        if (vmax is None):
+            vmax = d.max()
+
+        # Create grid of points
+        x = np.linspace(rxLoc[:,0].min(), rxLoc[:,0].max(), 100)
+        y = np.linspace(rxLoc[:,1].min(), rxLoc[:,1].max(), 100)
+
+        X, Y = np.meshgrid(x,y)
+
+        # Interpolate
+        d_grid = griddata(rxLoc[:,0:2],d,(X,Y), method ='linear')
+        plt.imshow(d_grid, extent=[x.min(), x.max(), y.min(), y.max()], origin='lower', vmin=vmin, vmax=vmax, cmap="plasma")
+        plt.colorbar(fraction=0.02)
+
+        if levels is None:
+            plt.contour(X,Y, d_grid, 10, vmin=vmin, vmax=vmax, cmap="plasma")
+        else:
+            plt.contour(X,Y, d_grid, levels=levels, colors='r', vmin=vmin, vmax=vmax, cmap="plasma")
+
+
     plt.title(varstr)
     plt.gca().set_aspect('equal', adjustable='box')
+
+    return fig
 
 def readUBCgravObs(obs_file):
 

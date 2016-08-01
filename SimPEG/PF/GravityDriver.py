@@ -87,7 +87,7 @@ class GravityDriver_Inv(object):
         line = fid.readline()
         l_input = re.split('[!\s]',line)
         if l_input[0]=='DEFAULT':
-            wgtfile = []
+            wgtfile = None
 
         elif l_input[0]=='FILE':
             wgtfile = l_input[1].rstrip()
@@ -233,7 +233,7 @@ class GravityDriver_Inv(object):
             else:
 
                 self._m0 = Mesh.TensorMesh.readModelUBC(self.mesh, self.basePath + self.mstart)
-                self._m0 = self._m0[self.activeCells]
+                #self._m0 = self._m0[self.activeCells]
 
         return self._m0
 
@@ -246,6 +246,18 @@ class GravityDriver_Inv(object):
                 self._mref = Mesh.TensorMesh.readModelUBC(self.mesh, self.basePath + self._mrefInput)
                 self._mref = self._mref[self.activeCells]
         return self._mref
+
+    @property
+    def activeModel(self):
+        if getattr(self, '_activeModel', None) is None:
+            if isinstance(self._staticInput, str):
+                # Read from file active cells with 0:air, 1:dynamic, -1 static
+                self._activeModel = Mesh.TensorMesh.readModelUBC(self.mesh, self.basePath + self._staticInput)
+
+            else:
+                self._activeModel = np.ones(self._mesh.nC)
+
+        return self._activeModel
 
     def readGravityObservations(self, obs_file):
         """
@@ -271,7 +283,7 @@ class GravityDriver_Inv(object):
 
         d  = np.zeros(ndat, dtype=float)
         wd = np.zeros(ndat, dtype=float)
-        locXYZ = np.zeros( (ndat,3), dtype=float)
+        locXYZ = np.zeros( (ndat[0],3), dtype=float)
 
         for ii in range(ndat):
 
