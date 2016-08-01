@@ -41,12 +41,12 @@ class TensorView(object):
     #     if showIt: plt.show()
 
     def plotImage(self, v, vType='CC', grid=False, view='real',
-              ax=None, clim=None, showIt=False,
-              pcolorOpts=None,
-              streamOpts=None,
-              gridOpts=None,
-              numbering=True, annotationColor='w'
-              ):
+                  ax=None, clim=None, showIt=False,
+                  pcolorOpts=None,
+                  streamOpts=None,
+                  gridOpts=None,
+                  numbering=True, annotationColor='w'
+                  ):
         """
         Mesh.plotImage(v)
 
@@ -171,7 +171,7 @@ class TensorView(object):
                         iz = ix + iy*nX
                         if iz < self.nCz:
                             ax.text((ix+1)*(self.vectorNx[-1]-self.x0[0])-pad,(iy)*(self.vectorNy[-1]-self.x0[1])+pad,
-                                     '#%i'%iz,color=annotationColor,verticalalignment='bottom',horizontalalignment='right',size='x-large')
+                                     '#{0:.0f}'.format(iz),color=annotationColor,verticalalignment='bottom',horizontalalignment='right',size='x-large')
 
         ax.set_title(vType)
         if showIt: plt.show()
@@ -221,10 +221,10 @@ class TensorView(object):
         vTypeOpts = ['CC', 'CCv','N','F','E','Fx','Fy','Fz','E','Ex','Ey','Ez']
 
         # Some user error checking
-        assert vType in vTypeOpts, "vType must be in ['%s']" % "','".join(vTypeOpts)
+        assert vType in vTypeOpts, "vType must be in ['{0!s}']".format("','".join(vTypeOpts))
         assert self.dim == 3, 'Must be a 3D mesh. Use plotImage.'
-        assert view in viewOpts, "view must be in ['%s']" % "','".join(viewOpts)
-        assert normal in normalOpts, "normal must be in ['%s']" % "','".join(normalOpts)
+        assert view in viewOpts, "view must be in ['{0!s}']".format("','".join(viewOpts))
+        assert normal in normalOpts, "normal must be in ['{0!s}']".format("','".join(normalOpts))
         assert type(grid) is bool, 'grid must be a boolean'
 
         szSliceDim = getattr(self, 'nC'+normal.lower()) #: Size of the sliced dimension
@@ -295,7 +295,7 @@ class TensorView(object):
 
         ax.set_xlabel('y' if normal == 'X' else 'x')
         ax.set_ylabel('y' if normal == 'Z' else 'z')
-        ax.set_title('Slice %d' % ind)
+        ax.set_title('Slice {0:.0f}'.format(ind))
         return out
 
 
@@ -316,11 +316,11 @@ class TensorView(object):
         vTypeOptsV = ['CCv','F','E']
         vTypeOpts = vTypeOptsCC + vTypeOptsV
         if view == 'vec':
-            assert vType in vTypeOptsV, "vType must be in ['%s'] when view='vec'" % "','".join(vTypeOptsV)
-        assert vType in vTypeOpts, "vType must be in ['%s']" % "','".join(vTypeOpts)
+            assert vType in vTypeOptsV, "vType must be in ['{0!s}'] when view='vec'".format("','".join(vTypeOptsV))
+        assert vType in vTypeOpts, "vType must be in ['{0!s}']".format("','".join(vTypeOpts))
 
         viewOpts = ['real','imag','abs','vec']
-        assert view in viewOpts, "view must be in ['%s']" % "','".join(viewOpts)
+        assert view in viewOpts, "view must be in ['{0!s}']".format("','".join(viewOpts))
 
 
         if ax is None:
@@ -553,7 +553,7 @@ class CurvView(object):
         pass
 
 
-    def plotGrid(self, ax=None, nodes=False, faces=False, centers=False, edges=False, lines=True,  showIt=False):
+    def plotGrid(self, ax=None, nodes=False, faces=False, centers=False, edges=False, lines=True, showIt=False):
         """Plot the nodal, cell-centered and staggered grids for 1,2 and 3 dimensions.
 
 
@@ -680,34 +680,35 @@ class CurvView(object):
 
 
 if __name__ == '__main__':
-    from SimPEG import *
-    hx = [(5,2,-1.3),(2,4),(5,2,1.3)]
-    hy = [(2,2,-1.3),(2,6),(2,2,1.3)]
-    hz = [(2,2,-1.3),(2,6),(2,2,1.3)]
-    M = Mesh.TensorMesh([hx,hy,hz], x0=[10,20,14])
+    import numpy as np
+    from SimPEG import Mesh, Utils, Solver
+    hx = [(5, 2, -1.3), (2, 4), (5, 2, 1.3)]
+    hy = [(2, 2, -1.3), (2, 6), (2, 2, 1.3)]
+    hz = [(2, 2, -1.3), (2, 6), (2, 2, 1.3)]
+    M = Mesh.TensorMesh([hx, hy, hz], x0=[10, 20, 14])
     q = np.zeros(M.vnC)
-    q[[4,4],[4,4],[2,6]]=[-1,1]
+    q[[4, 4], [4, 4], [2, 6]] = [-1, 1]
     q = Utils.mkvc(q)
     A = M.faceDiv*M.cellGrad
     b = Solver(A) * (q)
 
-    M.plotSlice(M.cellGrad*b, 'F', view='vec', grid=True, pcolorOpts={'alpha':0.8})
-    M2 = Mesh.TensorMesh([10,20],x0=[10,5])
-    f = np.r_[np.sin(M2.gridFx[:,0]*2*np.pi), np.sin(M2.gridFy[:,1]*2*np.pi)]
-    M2.plotImage(f, 'F', view='vec', grid=True, pcolorOpts={'alpha':0.8})
+    M.plotSlice(M.cellGrad*b, 'F', view='vec', grid=True,
+                pcolorOpts={'alpha':0.8})
+    M2 = Mesh.TensorMesh([10, 20], x0=[10, 5])
+    f = np.r_[np.sin(M2.gridFx[:, 0]*2*np.pi), np.sin(M2.gridFy[:, 1]*2*np.pi)]
+    M2.plotImage(f, 'F', view='vec', grid=True, pcolorOpts={'alpha': 0.8})
     M2.plotImage(f, 'Fx')
 
-    f = np.r_[np.sin(M2.gridEx[:,0]*2*np.pi), np.sin(M2.gridEy[:,1]*2*np.pi)]
-    M2.plotImage(f, 'E', view='vec', grid=True, pcolorOpts={'alpha':0.8})
+    f = np.r_[np.sin(M2.gridEx[:, 0]*2*np.pi), np.sin(M2.gridEy[:, 1]*2*np.pi)]
+    M2.plotImage(f, 'E', view='vec', grid=True, pcolorOpts={'alpha': 0.8})
 
-    c = np.r_[np.sin(M2.gridCC[:,0]*2*np.pi)]
+    c = np.r_[np.sin(M2.gridCC[:, 0]*2*np.pi)]
     M2.plotImage(c, 'CC', view='real')
 
-    from SimPEG import Mesh, np
-    M = Mesh.TensorMesh([20,20,20])
-    v = np.sin(M.gridCC[:,0]*2*np.pi)*np.sin(M.gridCC[:,1]*2*np.pi)*np.sin(M.gridCC[:,2]*2*np.pi)
+    M = Mesh.TensorMesh([20, 20, 20])
+    v = (np.sin(M.gridCC[:, 0]*2*np.pi)*np.sin(M.gridCC[:, 1]*2*np.pi)*
+         np.sin(M.gridCC[:, 2]*2*np.pi))
     M.plotImage(v, annotationColor='k')
-
 
     Mesh.TensorMesh([10]).plotGrid()
 

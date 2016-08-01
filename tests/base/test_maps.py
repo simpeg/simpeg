@@ -1,6 +1,6 @@
 import numpy as np
 import unittest
-from SimPEG import *
+from SimPEG import Mesh, Maps, Models, Utils
 from scipy.sparse.linalg import dsolve
 import inspect
 

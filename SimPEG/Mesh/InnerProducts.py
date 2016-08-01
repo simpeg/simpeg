@@ -1,5 +1,7 @@
 from scipy import sparse as sp
-from SimPEG.Utils import *
+from SimPEG.Utils import (sub2ind, sdiag, invPropertyTensor, TensorType,
+                          makePropertyTensor, ndgrid, inv2X2BlockDiagonal,
+                          getSubArray, inv3X3BlockDiagonal, spzeros, sdInv)
 import numpy as np
 
 
@@ -421,7 +423,7 @@ class InnerProducts(object):
     def _getEdgePx(M):
         """Returns a function for creating projection matrices"""
         def Px(xEdge):
-            assert xEdge == 'eX0', 'xEdge = %s, not eX0' % xEdge
+            assert xEdge == 'eX0', 'xEdge = {0!s}, not eX0'.format(xEdge)
             return sp.identity(M.nC)
         return Px
 

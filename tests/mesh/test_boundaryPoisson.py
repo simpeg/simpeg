@@ -2,7 +2,7 @@ import numpy as np
 import scipy.sparse as sp
 import unittest
 import matplotlib.pyplot as plt
-from SimPEG import *
+from SimPEG import Mesh, Utils, Tests, Solver, SolverCG
 
 MESHTYPES = ['uniformTensorMesh']
 
