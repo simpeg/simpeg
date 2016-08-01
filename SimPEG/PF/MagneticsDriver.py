@@ -172,7 +172,6 @@ class MagneticsDriver_Inv(object):
     @property
     def mesh(self):
         if getattr(self, '_mesh', None) is None:
-            print self.basePath + self.mshfile
             self._mesh = Mesh.TensorMesh.readUBC(self.basePath + self.mshfile)
         return self._mesh
 

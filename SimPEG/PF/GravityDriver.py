@@ -39,105 +39,113 @@ class GravityDriver_Inv(object):
 
         fid = open(self.basePath + input_file, 'r')
 
-        # Line 1
+        # Line 1: Mesh
         line = fid.readline()
-        l_input  = line.split('!')
-        mshfile = l_input[0].rstrip()
+        l_input  = re.split('[!\s]',line)
+        mshfile = l_input[1].rstrip()
 
-        # Line 2
+        # Line 2: Observation file
         line = fid.readline()
-        l_input  = line.split('!')
-        obsfile = l_input[0].rstrip()
+        l_input  = re.split('[!\s]',line)
+        obsfile = l_input[1].rstrip()
 
-        # Line 3
+        # Line 3: Topo, active-dyn, active-static
+        topofile = None
+        staticInput = None
+
         line = fid.readline()
-        l_input = re.split('[!\s]', line)
-        if l_input=='null':
-            topofile = []
+        l_input = re.split('[!\s]',line)
+        if l_input[0]=='TOPO':
+            topofile = l_input[1].rstrip()
 
-        else:
-            topofile = l_input[0].rstrip()
+        elif l_input[0]=='VALUE':
+            staticInput = float(l_input[1])
 
+        elif l_input[0]=='FILE':
+            staticInput = l_input[1].rstrip()
 
-        # Line 4
+        # Line 4: Starting model
         line = fid.readline()
-        l_input = re.split('[!\s]', line)
+        l_input = re.split('[!\s]',line)
         if l_input[0]=='VALUE':
             mstart = float(l_input[1])
 
-        else:
-            mstart = l_input[0].rstrip()
+        elif l_input[0]=='FILE':
+            mstart = l_input[1].rstrip()
 
-        # Line 5
+        # Line 5: Reference model
         line = fid.readline()
         l_input = re.split('[!\s]',line)
         if l_input[0]=='VALUE':
             mref = float(l_input[1])
 
-        else:
-            mref = l_input[0].rstrip()
+        elif l_input[0]=='FILE':
+            mref = l_input[1].rstrip()
 
-        # Line 6
+
+        # Line 6: Cell weights
         line = fid.readline()
-        l_input = re.split('[!\s]', line)
-        if l_input[0]=='VALUE':
-            staticInput = float(l_input[1])
-
-        elif l_input[0]=='DEFAULT':
-            staticInput = None
-
-        else:
-            staticInput = l_input[0].rstrip()
-
-        # Line 7
-        line = fid.readline()
-        l_input = re.split('[!\s]', line)
-        if l_input=='DEFAULT':
+        l_input = re.split('[!\s]',line)
+        if l_input[0]=='DEFAULT':
             wgtfile = []
 
-        else:
-            wgtfile = l_input[0].rstrip()
+        elif l_input[0]=='FILE':
+            wgtfile = l_input[1].rstrip()
 
-        # Line 8
+        # Line 7: Target chi-factor
         line = fid.readline()
-        l_input = re.split('[!\s]', line)
-        chi = float(l_input[0])
+        l_input = re.split('[!\s]',line)
+        if l_input[0]=='DEFAULT':
+            chi = 1.
 
-        # Line 9
-        line = fid.readline()
-        l_input = re.split('[!\s]', line)
-        val = np.array(l_input[0:4])
-        alphas = val.astype(np.float)
+        elif l_input[0]=='VALUE':
+            chi = float(l_input[1])
 
-        # Line 10
+        # Line 8: Alpha values
         line = fid.readline()
-        l_input = re.split('[!\s]', line)
+        l_input = re.split('[!\s]',line)
+        if l_input[0]=='VALUE':
+
+            val = np.array(l_input[1:5])
+            alphas = val.astype(np.float)
+
+        elif l_input[0]=='DEFAULT':
+
+            alphas = np.ones(4)
+
+        # Line 9: Bounds
+        line = fid.readline()
+        l_input = re.split('[!\s]',line)
         if l_input[0]=='VALUE':
             val   = np.array(l_input[1:3])
             bounds = val.astype(np.float)
 
-        else:
-            bounds = l_input[0].rstrip()
+        elif l_input[0]=='FILE':
+            bounds = l_input[1].rstrip()
 
-        # Line 11
+        else:
+            bounds = [-np.inf,np.inf]
+
+        # Line 10: Norms
         line = fid.readline()
-        l_input = re.split('[!\s]', line)
+        l_input = re.split('[!\s]',line)
         if l_input[0]=='VALUE':
             val   = np.array(l_input[1:6])
             lpnorms = val.astype(np.float)
 
-        else:
-            lpnorms = l_input[0].rstrip()
+        elif l_input[0]=='FILE':
+            lpnorms = l_input[1].rstrip()
 
-        # Line 12
+        # Line 11: Treshold values
         line = fid.readline()
-        l_input = re.split('[!\s]', line)
+        l_input = re.split('[!\s]',line)
         if l_input[0]=='VALUE':
             val   = np.array(l_input[1:3])
             eps = val.astype(np.float)
 
-        else:
-            eps = [None, None]
+        elif l_input[0]=='DEFAULT':
+            eps = None
+
 
         self.mshfile  = mshfile
         self.obsfile  = obsfile
@@ -167,14 +175,23 @@ class GravityDriver_Inv(object):
     @property
     def activeCells(self):
         if getattr(self, '_activeCells', None) is None:
-            if self.topofile == 'null':
-                self._activeCells = np.arange(mesh.nC)
-            else:
+            if getattr(self, 'topofile', None) is not None:
                 topo = np.genfromtxt(self.basePath + self.topofile, skip_header=1)
                 # Find the active cells
                 active = Utils.surface2ind_topo(self.mesh,topo,'N')
-                inds = np.asarray([inds for inds, elem in enumerate(active, 1) if elem], dtype = int) - 1
-                self._activeCells = inds
+
+            elif isinstance(self._staticInput, float):
+                active = self.m0 != self._staticInput
+
+            else:
+                # Read from file active cells with 0:air, 1:dynamic, -1 static
+                active = self.activeModel != 0
+
+            inds = np.asarray([inds for inds, elem in enumerate(active, 1) if elem], dtype = int) - 1
+            self._activeCells = inds
+
+            # Reduce m0 to active space
+            self._m0 = self.m0[self._activeCells]
 
         return self._activeCells
 
@@ -182,23 +199,11 @@ class GravityDriver_Inv(object):
     def staticCells(self):
         if getattr(self, '_staticCells', None) is None:
 
-            if getattr(self, '_staticInput', None) is None:
-                # All cells are dynamic: 1's
-                self._dynamicCells = np.arange(len(self.m0))
-                self._staticCells = []
+            # Cells with value 1 in active model are dynamic
+            staticCells = self.activeModel[self._activeCells] == -1
 
-            # Cells with specific value are static: 0's
-            else:
-                if isinstance(self._staticInput, float):
-                    staticCells = self.m0 == self._staticInput
-
-                else:
-                    # Read from file active cells with 0:air, 1:dynamic, -1 static
-                    staticCells = Mesh.TensorMesh.readModelUBC(self.mesh, self.basePath + self._staticInput)
-                    staticCells = staticCells[self.activeCells] == -1
-
-                inds = np.asarray([inds for inds, elem in enumerate(staticCells, 1) if elem], dtype = int) - 1
-                self._staticCells = inds
+            inds = np.asarray([inds for inds, elem in enumerate(staticCells, 1) if elem], dtype = int) - 1
+            self._staticCells = inds
 
         return self._staticCells
 
@@ -206,22 +211,11 @@ class GravityDriver_Inv(object):
     def dynamicCells(self):
         if getattr(self, '_dynamicCells', None) is None:
 
-            if getattr(self, '_staticInput', None) is None:
-                # All cells are dynamic: 1's
-                self._dynamicCells = np.arange(len(self.m0))
+            # Cells with value 1 in active model are dynamic
+            dynamicCells = self.activeModel[self._activeCells] == 1
 
-            # Cells with specific value are static: 0's
-            else:
-                if isinstance(self._staticInput, float):
-                    dynamicCells = self.m0 != self._staticInput
-
-                else:
-                    # Read from file active cells with 0:air, 1:dynamic, -1 static
-                    dynamicCells = Mesh.TensorMesh.readModelUBC(self.mesh, self.basePath + self._staticInput)
-                    dynamicCells = dynamicCells[self.activeCells] == 1
-
-                inds = np.asarray([inds for inds, elem in enumerate(dynamicCells, 1) if elem], dtype = int) - 1
-                self._dynamicCells = inds
+            inds = np.asarray([inds for inds, elem in enumerate(dynamicCells, 1) if elem], dtype = int) - 1
+            self._dynamicCells = inds
 
         return self._dynamicCells
 
