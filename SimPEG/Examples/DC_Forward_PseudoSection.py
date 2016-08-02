@@ -1,5 +1,6 @@
 from SimPEG import Mesh, Utils, np, sp
-import SimPEG.DCIP as DC
+import SimPEG.EM.Static.DC as DC
+from SimPEG.EM.Static.Utils import gen_DCIPsurvey
 import time
 
 def run(loc=None, sig=None, radi=None, param=None, surveyType='dipole-dipole', unitType='appConductivity', plotIt=True):
@@ -33,7 +34,12 @@ def run(loc=None, sig=None, radi=None, param=None, surveyType='dipole-dipole', u
     if param is None:
         param = np.r_[30.,30.,5]
 
-
+    if surveyType == "pole-dipole":
+        surveyType = "pdp"
+    elif surveyType == "dipole-dipole":
+        surveyType = "dpdp"
+    else:
+        raise NotImplementedError()
     # First we need to create a mesh and a model.
     # This is our mesh
     dx    = 5.
@@ -73,13 +79,15 @@ def run(loc=None, sig=None, radi=None, param=None, surveyType='dipole-dipole', u
     locs = np.c_[mesh.gridCC[indx,0],mesh.gridCC[indx,1],np.ones(2).T*mesh.vectorNz[-1]]
 
     # We will handle the geometry of the survey for you and create all the combination of tx-rx along line
-    # [Tx, Rx] = DC.gen_DCIPsurvey(locs, mesh, surveyType, param[0], param[1], param[2])
-    survey, Tx, Rx = DC.gen_DCIPsurvey(locs, mesh, surveyType, param[0], param[1], param[2])
-
+    # [Tx, Rx] = gen_DCIPsurvey(locs, mesh, surveyType, param[0], param[1], param[2])
+    # survey, Tx, Rx = gen_DCIPsurvey(locs, mesh, surveyType, param[0], param[1], param[2])
+    survey = gen_DCIPsurvey(locs, mesh, surveyType, param[0], param[1], param[2])
+    Tx = survey.srcList
+    Rx = [src.rxList[0] for src in Tx]
     # Define some global geometry
     dl_len = np.sqrt( np.sum((locs[0,:] - locs[1,:])**2) )
-    dl_x = ( Tx[-1][0,1] - Tx[0][0,0] ) / dl_len
-    dl_y = ( Tx[-1][1,1] - Tx[0][1,0]  ) / dl_len
+    dl_x = ( Tx[-1].loc[0][1] - Tx[0].loc[0][0] ) / dl_len
+    dl_y = ( Tx[-1].loc[1][1] - Tx[0].loc[1][0]  ) / dl_len
     #azm =  np.arctan(dl_y/dl_x)
 
     #Set boundary conditions
@@ -114,8 +122,8 @@ def run(loc=None, sig=None, radi=None, param=None, surveyType='dipole-dipole', u
         #print("Transmitter %i / %i\r" % (ii+1,len(Tx)))
 
         # Select dipole locations for receiver
-        rxloc_M = np.asarray(Rx[ii][:,0:3])
-        rxloc_N = np.asarray(Rx[ii][:,3:])
+        rxloc_M = np.asarray(Rx[ii].locs[0][:,0:3])
+        rxloc_N = np.asarray(Rx[ii].locs[0][:,3:])
 
 
         # For usual cases 'dipole-dipole' or "gradient"
