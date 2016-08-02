@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 def run(plotIt=True):
     """
         MT: 1D: Inversion
-        =======================
+        =================
 
         Forward model 1D MT data.
         Setup and run a MT 1D inversion.
@@ -50,7 +50,7 @@ def run(plotIt=True):
     m_0 = np.log(sigma_0[active])
 
     # Set the mapping
-    actMap = simpeg.Maps.ActiveCells(m1d, active, np.log(1e-8), nC=m1d.nCx)
+    actMap = simpeg.Maps.InjectActiveCells(m1d, active, np.log(1e-8), nC=m1d.nCx)
     mappingExpAct = simpeg.Maps.ExpMap(m1d) * actMap
 
     ## Setup the layout of the survey, set the sources and the connected receivers
@@ -76,7 +76,7 @@ def run(plotIt=True):
     survey.dobs = survey.dtrue + 0.025*abs(survey.dtrue)*np.random.randn(*survey.dtrue.shape)
 
     if plotIt:
-        fig = MT.Utils.dataUtils.plotMT1DModelData(problem)
+        fig = MT.Utils.dataUtils.plotMT1DModelData(problem, [m_0])
         fig.suptitle('Target - smooth true')
 
 
@@ -100,7 +100,7 @@ def run(plotIt=True):
     # Regularization - with a regularization mesh
     regMesh = simpeg.Mesh.TensorMesh([m1d.hx[problem.mapping.sigmaMap.maps[-1].indActive]],m1d.x0)
     reg = simpeg.Regularization.Tikhonov(regMesh)
-    reg.smoothModel = True
+    reg.mrefInSmooth = True
     reg.alpha_s = 1e-7
     reg.alpha_x = 1.
     # Inversion problem

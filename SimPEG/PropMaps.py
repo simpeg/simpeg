@@ -74,7 +74,7 @@ class Property(object):
                 if linkedMap is None:
                     return None
                 linkMap = linkMapClass(None) * linkedMap
-                m = getattr(self, '%s'%linkName)
+                m = getattr(self, '%sModel'%linkName)
                 return linkMap.deriv( m )
 
             m = getattr(self, '%sModel'%prop.name)
@@ -187,7 +187,7 @@ class _PropMapMetaClass(type):
             attrs[attr + 'Model'] = prop._getModelProperty()
             attrs[attr + 'Deriv'] = prop._getModelDerivProperty()
 
-        return type(name.replace('PropMap', 'PropModel'), (PropModel, ), attrs)
+        return type('PropModel', (PropModel, ), attrs)
 
 
 class PropMap(object):
@@ -239,7 +239,7 @@ class PropMap(object):
             setattr(self, '%sMap'%name, mapping)
             setattr(self, '%sIndex'%name, slices.get(name, slice(nP, nP + mapping.nP)))
             nP += mapping.nP
-        self.nP = nP 
+        self.nP = nP
 
     @property
     def defaultInvProp(self):

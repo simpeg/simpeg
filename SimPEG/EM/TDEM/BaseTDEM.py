@@ -108,11 +108,11 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
         Ainv.clean()
         return F
 
-    def Jvec(self, m, v, u=None):
+    def Jvec(self, m, v, f=None):
         """
             :param numpy.array m: Conductivity model
             :param numpy.ndarray v: vector (model object)
-            :param simpegEM.TDEM.FieldsTDEM u: Fields resulting from m
+            :param FieldsTDEM f: Fields resulting from m
             :rtype: numpy.ndarray
             :return: w (data object)
 
@@ -125,19 +125,19 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
         """
         if self.verbose: print '%s\nCalculating J(v)\n%s'%('*'*50,'*'*50)
         self.curModel = m
-        if u is None:
-            u = self.fields(m)
-        p = self.Gvec(m, v, u)
+        if f is None:
+            f = self.fields(m)
+        p = self.Gvec(m, v, f)
         y = self.solveAh(m, p)
-        Jv = self.survey.evalDeriv(u, v=y)
+        Jv = self.survey.evalDeriv(f, v=y)
         if self.verbose: print '%s\nDone calculating J(v)\n%s'%('*'*50,'*'*50)
         return - mkvc(Jv)
 
-    def Jtvec(self, m, v, u=None):
+    def Jtvec(self, m, v, f=None):
         """
             :param numpy.array m: Conductivity model
-            :param numpy.ndarray,SimPEG.Survey.Data v: vector (data object)
-            :param simpegEM.TDEM.FieldsTDEM u: Fields resulting from m
+            :param numpy.ndarray v: vector (or a :class:`SimPEG.Survey.Data` object)
+            :param FieldsTDEM u: Fields resulting from m
             :rtype: numpy.ndarray
             :return: w (model object)
 
@@ -150,15 +150,15 @@ class BaseTDEMProblem(BaseTimeProblem, BaseEMProblem):
         """
         if self.verbose: print '%s\nCalculating J^T(v)\n%s'%('*'*50,'*'*50)
         self.curModel = m
-        if u is None:
-            u = self.fields(m)
+        if f is None:
+            f = self.fields(m)
 
         if not isinstance(v, self.dataPair):
             v = self.dataPair(self.survey, v)
 
-        p = self.survey.evalDeriv(u, v=v, adjoint=True)
+        p = self.survey.evalDeriv(f, v=v, adjoint=True)
         y = self.solveAht(m, p)
-        w = self.Gtvec(m, y, u)
+        w = self.Gtvec(m, y, f)
         if self.verbose: print '%s\nDone calculating J^T(v)\n%s'%('*'*50,'*'*50)
         return - mkvc(w)
 

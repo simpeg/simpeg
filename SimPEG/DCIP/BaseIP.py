@@ -14,12 +14,12 @@ class SurveyIP(SurveyDC):
         Survey.BaseSurvey.__init__(self, **kwargs)
         self._Ps = {}
 
-    def dpred(self, m, u=None):
+    def dpred(self, m, f=None):
         """
             Predicted data.
 
             .. math::
-                d_\\text{pred} = Pu(m)
+                d_\\text{pred} = Pf(m)
         """
 
         return self.prob.forward(m)
@@ -71,7 +71,7 @@ class ProblemIP(Problem.BaseProblem):
             Makes the matrix A(m) for the DC resistivity problem.
 
             :param numpy.array m: model
-            :rtype: scipy.csc_matrix
+            :rtype: scipy.sparse.csc_matrix
             :return: A(m)
 
             .. math::
@@ -143,10 +143,10 @@ class ProblemIP(Problem.BaseProblem):
         J_x_v    = - P * mkvc( self.Ainv * dCdm_x_v )
         return -J_x_v
 
-    def Jvec(self, m, v, u=None):
+    def Jvec(self, m, v, f=None):
         return self.forward(v)
 
-    def Jtvec(self, m, v, u=None):
+    def Jtvec(self, m, v, f=None):
 
         self.curModel = m
         # sigma = self.curModel.transform # $\sigma = \mathcal{M}(\m)$

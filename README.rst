@@ -1,4 +1,4 @@
-.. image:: https://raw.github.com/simpeg/simpeg/master/docs/simpeg-logo.png
+.. image:: https://raw.github.com/simpeg/simpeg/master/docs/images/simpeg-logo.png
     :alt: SimPEG Logo
 
 ======
@@ -15,7 +15,7 @@ SimPEG
 
 .. image:: https://img.shields.io/badge/license-MIT-blue.svg
     :target: https://github.com/simpeg/simpeg/blob/master/LICENSE
-    :alt: BSD 3 clause license.
+    :alt: MIT license
 
 .. image:: https://api.travis-ci.org/simpeg/simpeg.svg?branch=master
     :target: https://travis-ci.org/simpeg/simpeg
@@ -24,6 +24,15 @@ SimPEG
 .. image:: https://img.shields.io/coveralls/simpeg/simpeg.svg
     :target: https://coveralls.io/r/simpeg/simpeg?branch=master
     :alt: Coverage status
+
+.. image:: http://img.shields.io/badge/GITTER-JOIN_CHAT-brightgreen.svg?style=flat-square
+    :alt: gitter chat room at https://gitter.im/simpeg/simpeg
+    :target: https://gitter.im/simpeg/simpeg
+
+.. image:: https://codecov.io/gh/simpeg/simpeg/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/simpeg/simpeg
+    :alt: Coverage status
+
 
 Simulation and Parameter Estimation in Geophysics  -  A python package for simulation and gradient based parameter estimation in the context of geophysical applications.
 

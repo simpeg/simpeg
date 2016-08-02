@@ -1875,7 +1875,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
 
         :param numpy.ndarray locs: Location of points to interpolate to
         :param str locType: What to interpolate (see below)
-        :rtype: scipy.sparse.csr.csr_matrix
+        :rtype: scipy.sparse.csr_matrix
         :return: M, the interpolation matrix
 
         locType can be::
@@ -2131,10 +2131,16 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
     def plotSlice(self, v, vType='CC',
         normal='Z', ind=None, grid=True, view='real',
         ax=None, clim=None, showIt=False,
-        pcolorOpts={},
-        streamOpts={'color':'k'},
-        gridOpts={'color':'k', 'alpha':0.5}):
+        pcolorOpts=None,
+        streamOpts=None,
+        gridOpts=None):
 
+        if pcolorOpts is None:
+            pcolorOpts = {}
+        if streamOpts is None:
+            streamOpts = {'color':'k'}
+        if gridOpts is None:
+            gridOpts = {'color':'k', 'alpha':0.5}
         assert vType in ['CC','F','E']
         assert self.dim == 3
 
