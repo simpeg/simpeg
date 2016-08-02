@@ -8,7 +8,7 @@ def _checkAccuracy(A, b, X, accuracyTol):
     if nrm_b > 0:
         nrm /= nrm_b
     if nrm > accuracyTol:
-        msg = '### SolverWarning ###: Accuracy on solve is above tolerance: %e > %e' % (nrm, accuracyTol)
+        msg = '### SolverWarning ###: Accuracy on solve is above tolerance: {0:e} > {1:e}'.format(nrm, accuracyTol)
         print msg
         warnings.warn(msg, RuntimeWarning)
 

@@ -94,7 +94,7 @@ When these are used in the inverse problem, this is extremely important!!
 .. plot::
     :include-source:
 
-    from SimPEG import *
+    from SimPEG import Mesh, Maps, np
     import matplotlib.pyplot as plt
     M = Mesh.TensorMesh([100])
     expMap = Maps.ExpMap(M)
