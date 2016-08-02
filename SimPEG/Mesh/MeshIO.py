@@ -198,11 +198,11 @@ class TensorMeshIO(object):
         """
         assert mesh.dim == 3
         s = ''
-        s += '%i %i %i\n' %tuple(mesh.vnC)
+        s += '{0:d} {1:d} {2:d}\n'.format(*tuple(mesh.vnC))
         origin = mesh.x0 + np.array([0,0,mesh.hz.sum()]) # Have to it in the same operation or use mesh.x0.copy(), otherwise the mesh.x0 is updated.
         origin.dtype = float
 
-        s += '%.2f %.2f %.2f\n' %tuple(origin)
+        s += '{0:.2f} {1:.2f} {2:.2f}\n'.format(*tuple(origin))
         s += ('%.2f '*mesh.nCx+'\n')%tuple(mesh.hx)
         s += ('%.2f '*mesh.nCy+'\n')%tuple(mesh.hy)
         s += ('%.2f '*mesh.nCz+'\n')%tuple(mesh.hz[::-1])

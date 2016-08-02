@@ -54,7 +54,7 @@ class Images(webapp2.RequestHandler):
 class Redirect(webapp2.RequestHandler):
     def get(self):
         path = str(self.request.path).split(os.path.sep)[3:]
-        self.redirect(('/%s'%os.path.sep.join(path)), permanent=True)
+        self.redirect(('/{0!s}'.format(os.path.sep.join(path))), permanent=True)
 
 
 class MainPage(webapp2.RequestHandler):
