@@ -65,9 +65,6 @@ def run(plotIt=True):
     # Create active map to go from reduce set to full
     actvMap = Maps.InjectActiveCells(mesh, actv, -100)
 
-    # Store the true model for later
-    m_true = actvMap * model
-
     # Creat reduced identity map
     idenMap = Maps.IdentityMap(nP = nC)
 

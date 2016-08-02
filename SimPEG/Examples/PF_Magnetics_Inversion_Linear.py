@@ -4,13 +4,16 @@ import SimPEG.PF as PF
 
 def run(plotIt=True):
     """
-        PF: Gravity: Inversion Linear
+        PF: Magnetic: Inversion Linear
         ===============================
 
         Create a synthetic block model and invert
         with a compact norm
 
     """
+
+    # Define the inducing field parameter
+    H0 = (50000,90,0)
 
     # Create a mesh
     dx    = 5.
@@ -64,9 +67,6 @@ def run(plotIt=True):
     # Create active map to go from reduce set to full
     actvMap = Maps.InjectActiveCells(mesh, actv, -100)
 
-    # Store the true model for later
-    m_true = actvMap * model
-
     # Creat reduced identity map
     idenMap = Maps.IdentityMap(nP = nC)
 
@@ -107,7 +107,7 @@ def run(plotIt=True):
     # Here is where the norms are applied
     # Use pick a treshold parameter empirically based on the distribution of model
     # parameters (run last cell to see the histogram before and after IRLS)
-    IRLS = Directives.Update_IRLS( norms=([0,1,1,1]),  eps=None, f_min_change = 1e-3, minGNiter=3)
+    IRLS = Directives.Update_IRLS( norms=([0,1,1,1]),  eps=(1e-3,1e-3), f_min_change = 1e-3, minGNiter=3)
     update_Jacobi = Directives.Update_lin_PreCond()
     inv = Inversion.BaseInversion(invProb, directiveList=[IRLS,betaest,update_Jacobi])
 

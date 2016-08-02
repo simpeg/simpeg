@@ -11,12 +11,12 @@ class MagSensProblemTests(unittest.TestCase):
 
     def test_magnetics_inversion(self):
 
-        driver = PF.MagneticsDriver.MagneticsDriver_Inv(
-            os.path.sep.join([
+        inp_file = os.getcwd() + os.path.sep.join([
                 os.path.split(__file__)[0],
                 'assets', 'magnetics', 'PYMAG3D_inv.inp'
             ])
-        )
+        print inp_file
+        driver = PF.MagneticsDriver.MagneticsDriver_Inv(inp_file)
 
         print driver.mesh
         print driver.survey
