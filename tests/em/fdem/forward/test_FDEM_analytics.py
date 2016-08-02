@@ -10,7 +10,6 @@ tol_EBdipole = 1e-2
 if plotIt:
     import matplotlib.pylab
 
-
 class FDEM_analyticTests(unittest.TestCase):
 
     def setUp(self):

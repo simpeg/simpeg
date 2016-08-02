@@ -138,9 +138,7 @@ def Cfun(L,R,xc,yc,zc,incl,decl,S,ht,f,xyz):
 
 if __name__ == '__main__':
     out = Mijfun(0., 0., 0., 0., 0., 10., 0, 0., 0., 0.)
-    # if scale ...
-    anal = 1.*1.*mu_0*np.pi / (2*10**3)
-    # anal = 1.*1. / (10**3) * 2
+    anal = mu_0*np.pi / (2*10**3)
     err = abs(out-anal)
     print err
     showIt = False
