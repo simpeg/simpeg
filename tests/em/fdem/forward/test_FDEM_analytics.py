@@ -1,6 +1,7 @@
 import unittest
-from SimPEG import *
-from SimPEG import EM
+from SimPEG import EM, Mesh, Maps, Utils
+import numpy as np
+import scipy.sparse as sp
 from scipy.constants import mu_0
 
 plotIt = False
@@ -85,7 +86,6 @@ class FDEM_analyticTests(unittest.TestCase):
 
 
     def test_CylMeshEBDipoles(self):
-        import scipy.sparse as sp
         print 'Testing CylMesh Electric and Magnetic Dipoles in a wholespace- Analytic: J-formulation'
         sigmaback = 1.
         mur = 2.
