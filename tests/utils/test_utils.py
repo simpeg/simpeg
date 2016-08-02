@@ -1,6 +1,12 @@
 import unittest
-from SimPEG.Utils import *
-from SimPEG import Mesh, np, sp
+import numpy as np
+import scipy.sparse as sp
+from SimPEG.Utils import (sdiag, sub2ind, ndgrid, mkvc, isScalar,
+                          inv2X2BlockDiagonal, inv3X3BlockDiagonal,
+                          invPropertyTensor, makePropertyTensor, indexCube,
+                          ind2sub, asArray_N_x_Dim, TensorType, diagEst, count,
+                          timeIt, Counter)
+from SimPEG import Mesh
 from SimPEG.Tests import checkDerivative
 
 TOL = 1e-8

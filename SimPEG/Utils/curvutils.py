@@ -80,7 +80,7 @@ def indexCube(nodes, gridSize, n=None):
     # Make sure that we choose from the possible nodes.
     possibleNodes = 'ABCD' if gridSize.size == 2 else 'ABCDEFGH'
     for node in nodes:
-        assert node in possibleNodes, "Nodes must be chosen from: '%s'" % possibleNodes
+        assert node in possibleNodes, "Nodes must be chosen from: '{0!s}'".format(possibleNodes)
     dim = gridSize.size
     if n is None:
         n = gridSize - 1

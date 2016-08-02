@@ -1,7 +1,6 @@
 import unittest
-from SimPEG import *
+import numpy as np
 from SimPEG import EM
-import sys
 from scipy.constants import mu_0
 from SimPEG.EM.Utils.testingUtils import getFDEMProblem
 
@@ -21,7 +20,7 @@ SrcList = ['RawVec', 'MagDipole'] #or 'MAgDipole_Bfield', 'CircularLoop', 'RawVe
 
 def adjointTest(fdemType, comp):
     prb = getFDEMProblem(fdemType, comp, SrcList, freq)
-    print 'Adjoint %s formulation - %s' % (fdemType, comp)
+    print 'Adjoint {0!s} formulation - {1!s}'.format(fdemType, comp)
 
     m  = np.log(np.ones(prb.mapping.nP)*CONDUCTIVITY)
     mu = np.ones(prb.mesh.nC)*MU
@@ -97,7 +96,7 @@ class FDEM_AdjointTests(unittest.TestCase):
         def test_Jtvec_adjointTest_bzi_Jform(self):
             self.assertTrue(adjointTest('j', 'bzi'))
 
-    if testH: 
+    if testH:
         def test_Jtvec_adjointTest_hxr_Hform(self):
             self.assertTrue(adjointTest('h', 'hxr'))
         def test_Jtvec_adjointTest_hyr_Hform(self):

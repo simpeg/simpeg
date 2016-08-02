@@ -1,4 +1,9 @@
-import Utils, Survey, Problem, numpy as np, scipy.sparse as sp, gc
+import numpy as np
+import scipy.sparse as sp
+import gc
+import Utils
+import Survey
+import Problem
 
 
 class BaseDataMisfit(object):

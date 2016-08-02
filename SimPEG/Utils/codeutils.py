@@ -32,7 +32,7 @@ def memProfileWrapper(towrap, *funNames):
         if hasattr(towrap,f):
             attrs[f] = profile(getattr(towrap,f))
         else:
-            print '%s not found in %s Class' % (f, towrap.__name__)
+            print '{0!s} not found in {1!s} Class'.format(f, towrap.__name__)
 
     return type(towrap.__name__ + 'MemProfileWrap', (towrap,), attrs)
 
@@ -65,7 +65,7 @@ def setKwargs(obj, ignore=None,  **kwargs):
         if hasattr(obj, attr):
             setattr(obj, attr, kwargs[attr])
         else:
-            raise Exception('%s attr is not recognized' % attr)
+            raise Exception('{0!s} attr is not recognized'.format(attr))
 
     hook(obj,hook, silent=True)
     hook(obj,setKwargs, silent=True)
@@ -74,7 +74,7 @@ def printTitles(obj, printers, name='Print Titles', pad=''):
     titles = ''
     widths = 0
     for printer in printers:
-        titles += ('{:^%i}'%printer['width']).format(printer['title']) + ''
+        titles += ('{{:^{0:d}}}'.format(printer['width'])).format(printer['title']) + ''
         widths += printer['width']
     print pad + "{0} {1} {0}".format('='*((widths-1-len(name))/2), name)
     print pad + titles
@@ -83,7 +83,7 @@ def printTitles(obj, printers, name='Print Titles', pad=''):
 def printLine(obj, printers, pad=''):
     values = ''
     for printer in printers:
-        values += ('{:^%i}'%printer['width']).format(printer['format'] % printer['value'](obj))
+        values += ('{{:^{0:d}}}'.format(printer['width'])).format(printer['format'] % printer['value'](obj))
     print pad + values
 
 def checkStoppers(obj, stoppers):
@@ -104,12 +104,12 @@ def checkStoppers(obj, stoppers):
     return (len(optimal)>0 and all(optimal)) | (len(critical)>0 and any(critical))
 
 def printStoppers(obj, stoppers, pad='', stop='STOP!', done='DONE!'):
-    print pad + "%s%s%s" % ('-'*25,stop,'-'*25)
+    print pad + "{0!s}{1!s}{2!s}".format('-'*25, stop, '-'*25)
     for stopper in stoppers:
         l = stopper['left'](obj)
         r = stopper['right'](obj)
         print pad + stopper['str'] % (l<=r,l,r)
-    print pad + "%s%s%s" % ('-'*25,done,'-'*25)
+    print pad + "{0!s}{1!s}{2!s}".format('-'*25, done, '-'*25)
 
 def callHooks(match, mainFirst=False):
     """
@@ -144,14 +144,14 @@ def callHooks(match, mainFirst=False):
 
 
         extra = """
-            If you have things that also need to run in the method %s, you can create a method::
+            If you have things that also need to run in the method {0!s}, you can create a method::
 
-                def _%s*(self, ... ):
+                def _{1!s}*(self, ... ):
                     pass
 
-            Where the * can be any string. If present, _%s* will be called at the start of the default %s call.
+            Where the * can be any string. If present, _{2!s}* will be called at the start of the default {3!s} call.
             You may also completely overwrite this function.
-        """ % (match, match, match, match)
+        """.format(match, match, match, match)
         doc = wrapper.__doc__
         wrapper.__doc__ = ('' if doc is None else doc) + extra
         return wrapper
@@ -186,7 +186,7 @@ def asArray_N_x_Dim(pts, dim):
         elif len(pts.shape) == 1:
             pts = pts[:,np.newaxis]
 
-        assert pts.shape[1] == dim, "pts must be a column vector of shape (nPts, %d) not (%d, %d)" % ((dim,)+pts.shape)
+        assert pts.shape[1] == dim, "pts must be a column vector of shape (nPts, {0:d}) not ({1:d}, {2:d})".format(*((dim,)+pts.shape))
 
         return pts
 
@@ -207,17 +207,17 @@ def requires(var):
 
         .. note::
 
-            To use survey.%s(), SimPEG requires that a problem be bound to the survey.
+            To use survey.{0!s}(), SimPEG requires that a problem be bound to the survey.
             If a problem has not been bound, an Exception will be raised.
             To bind a problem to the Data object::
 
                 survey.pair(myProblem)
 
-            """ % f.__name__
+            """.format(f.__name__)
         else:
             extra = """
-                To use *%s* method, SimPEG requires that the %s be specified.
-            """ % (f.__name__, var)
+                To use *{0!s}* method, SimPEG requires that the {1!s} be specified.
+            """.format(f.__name__, var)
         @wraps(f)
         def requiresVarWrapper(self,*args,**kwargs):
             if getattr(self, var, None) is None:

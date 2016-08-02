@@ -9,7 +9,7 @@ class Fields(SimPEG.Problem.Fields):
 
     def _phiDeriv(self, src, du_dm_v, v, adjoint=False):
         if getattr(self, '_phiDeriv_u', None) is None or getattr(self, '_phiDeriv_m', None) is None:
-            raise NotImplementedError ('Getting phiDerivs from %s is not implemented' %self.knownFields.keys()[0])
+            raise NotImplementedError ('Getting phiDerivs from {0!s} is not implemented'.format(self.knownFields.keys()[0]))
 
         if adjoint:
             return self._phiDeriv_u(src, v, adjoint=adjoint), self._phiDeriv_m(src, v, adjoint=adjoint)
@@ -18,7 +18,7 @@ class Fields(SimPEG.Problem.Fields):
 
     def _eDeriv(self, src, du_dm_v, v, adjoint=False):
         if getattr(self, '_eDeriv_u', None) is None or getattr(self, '_eDeriv_m', None) is None:
-            raise NotImplementedError ('Getting eDerivs from %s is not implemented' %self.knownFields.keys()[0])
+            raise NotImplementedError ('Getting eDerivs from {0!s} is not implemented'.format(self.knownFields.keys()[0]))
 
         if adjoint:
             return self._eDeriv_u(src, v, adjoint), self._eDeriv_m(src, v, adjoint)
@@ -26,7 +26,7 @@ class Fields(SimPEG.Problem.Fields):
 
     def _jDeriv(self, src, du_dm_v, v, adjoint=False):
         if getattr(self, '_jDeriv_u', None) is None or getattr(self, '_jDeriv_m', None) is None:
-            raise NotImplementedError ('Getting jDerivs from %s is not implemented' %self.knownFields.keys()[0])
+            raise NotImplementedError ('Getting jDerivs from {0!s} is not implemented'.format(self.knownFields.keys()[0]))
 
         if adjoint:
             return self._jDeriv_u(src, v, adjoint), self._jDeriv_m(src, v, adjoint)
