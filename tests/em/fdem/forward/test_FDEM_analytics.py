@@ -1,6 +1,6 @@
 import unittest
 from SimPEG import *
-from SimPEG import EM
+from SimPEG import EM, sp
 from scipy.constants import mu_0
 
 plotIt = False
