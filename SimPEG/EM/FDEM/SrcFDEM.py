@@ -291,8 +291,8 @@ class MagDipole(BaseSrc):
     def __init__(self, rxList, freq, loc, orientation='Z', moment=1., mu=mu_0, **kwargs):
         self.freq = float(freq)
         self.loc = loc
-        self.orientation = orientation
-        assert orientation in ['X','Y','Z'], "Orientation (right now) doesn't actually do anything! The methods in SrcUtils should take care of this..."
+        self.orientation = orientation.upper()
+        assert self.orientation in ['X','Y','Z'], "Orientation (right now) doesn't actually do anything! The methods in SrcUtils should take care of this..."
         self.moment = moment
         self.mu = mu
         BaseSrc.__init__(self, rxList)
@@ -324,13 +324,17 @@ class MagDipole(BaseSrc):
             if not prob.mesh.isSymmetric:
                 # TODO ?
                 raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
+            assert self.orientation == 'Z', 'for cylindrical symmetry, the dipole must be oriented in the Z direction'
             a = MagneticDipoleVectorPotential(self.loc, gridY, 'y', mu=self.mu, moment=self.moment)
 
         else:
             srcfct = MagneticDipoleVectorPotential
-            ax = srcfct(self.loc, gridX, 'x', mu=self.mu, moment=self.moment)
-            ay = srcfct(self.loc, gridY, 'y', mu=self.mu, moment=self.moment)
-            az = srcfct(self.loc, gridZ, 'z', mu=self.mu, moment=self.moment)
+            orientationDict = {'X':(1.,0.,0.),
+                               'Y':(0.,1.,0.),
+                               'Z':(0.,0.,1.)}
+            ax = srcfct(self.loc, gridX, 'x', mu=self.mu, moment=self.moment, orientation=orientationDict[self.orientation])
+            ay = srcfct(self.loc, gridY, 'y', mu=self.mu, moment=self.moment, orientation=orientationDict[self.orientation])
+            az = srcfct(self.loc, gridZ, 'z', mu=self.mu, moment=self.moment, orientation=orientationDict[self.orientation])
             a = np.concatenate((ax, ay, az))
 
         return C*a
