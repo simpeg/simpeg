@@ -18,8 +18,8 @@ class CylInnerProducts_Test(unittest.TestCase):
 
         # Create an isotropic sigma vector
         Sig = sympy.Matrix([
-            [540/sympy.pi*(r*z)**2, 0       ],
-            [     0  , 540/sympy.pi*(r*z)**4],
+            [100/sympy.pi*(r*z)**2, 0       ],
+            [     0  , 100/sympy.pi*(r*z)**2],
         ])
 
         # Do the inner product! - we are in cyl coordinates!
@@ -55,6 +55,9 @@ class CylInnerProducts_Test(unittest.TestCase):
         print('------ Testing Face Inner Product-----------')
         print(' Analytic: {analytic}, Numeric: {numeric}'.format(analytic=ans, numeric=numeric_ans))
         assert(np.abs(ans-numeric_ans) < TOL)
+
+
+
 
 if __name__ == '__main__':
     unittest.main()
