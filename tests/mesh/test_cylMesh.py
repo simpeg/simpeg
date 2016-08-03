@@ -83,6 +83,13 @@ class TestCyl2DMesh(unittest.TestCase):
         vol = np.r_[2*a,a]
         self.assertTrue(np.linalg.norm((vol-self.mesh.vol)) == 0)
 
+    def test_vol_simple(self):
+        mesh = Mesh.CylMesh([1., 1., 1.])
+        self.assertTrue(mesh.vol == np.pi)
+
+        mesh = Mesh.CylMesh([2., 1., 1.])
+        self.assertTrue(np.all(mesh.vol == np.pi*np.r_[0.5**2, 1 - 0.5**2]))
+
     def test_gridSizes(self):
         self.assertTrue(self.mesh.gridCC.shape == (self.mesh.nC, 3))
         self.assertTrue(self.mesh.gridN.shape == (9, 3))
@@ -467,18 +474,18 @@ class TestAveF2CC(Tests.OrderTest):
     def test_order(self):
         self.orderTest()
 
-# class TestInnerProducts2D(Tests.OrderTest):
-#     """Integrate an function over a unit cube domain using edgeInnerProducts and faceInnerProducts."""
+class TestInnerProducts2D(Tests.OrderTest):
+    """Integrate an function over a unit cube domain using edgeInnerProducts and faceInnerProducts."""
 
-#     meshTypes = MESHTYPES
-#     meshDimension = 2
-#     meshSizes = [4, 8, 16, 32, 64, 128]
+    meshTypes = MESHTYPES
+    meshDimension = 2
+    meshSizes = [4, 8, 16, 32, 64, 128]
 
-#     def getError(self):
+    def getError(self):
 
-#         funR = lambda r, t, z: np.cos(2.0*np.pi*z)
-#         funT = lambda r, t, z: 0*t
-#         funZ = lambda r, t, z: np.sin(2.0*np.pi*r)
+        funR = lambda r, t, z: np.cos(2.0*np.pi*z)
+        funT = lambda r, t, z: 0*t
+        funZ = lambda r, t, z: np.sin(2.0*np.pi*r)
 
 #         call = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1], xyz[:, 2])
 
