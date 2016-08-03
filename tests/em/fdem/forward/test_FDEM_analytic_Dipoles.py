@@ -151,11 +151,11 @@ class FDEM_analytic_DipoleTests_CylMesh(unittest.TestCase):
 
         # Check E values computed from fields object
         tol_fieldObjCheck = 1e-8
-        # print(' comp,       fields obj,       manual,       fields - manual,       (fields - manual)/manual')
-        # print('  E_x:', np.linalg.norm(ex_num), np.linalg.norm(ex_numTest), np.linalg.norm(ex_num-ex_numTest), np.linalg.norm(ex_num-ex_numTest)/np.linalg.norm(ex_numTest))
-        # print('  E_y:', np.linalg.norm(ey_num), np.linalg.norm(ey_numTest), np.linalg.norm(ey_num-ey_numTest))
-        # print('  E_z:', np.linalg.norm(ez_num), np.linalg.norm(ez_numTest), np.linalg.norm(ez_num-ez_numTest), np.linalg.norm(ez_num-ez_numTest)/np.linalg.norm(ez_numTest))
-        # print('')
+        # print' comp,       fields obj,       manual,       fields - manual,       (fields - manual)/manual'
+        # print'  E_x:', np.linalg.norm(ex_num), np.linalg.norm(ex_numTest), np.linalg.norm(ex_num-ex_numTest), np.linalg.norm(ex_num-ex_numTest)/np.linalg.norm(ex_numTest)
+        # print'  E_y:', np.linalg.norm(ey_num), np.linalg.norm(ey_numTest), np.linalg.norm(ey_num-ey_numTest)
+        # print'  E_z:', np.linalg.norm(ez_num), np.linalg.norm(ez_numTest), np.linalg.norm(ez_num-ez_numTest), np.linalg.norm(ez_num-ez_numTest)/np.linalg.norm(ez_numTest)
+        # print''
         # self.assertTrue(np.linalg.norm(ex_num-ex_numTest)/np.linalg.norm(ex_numTest) < tol_fieldObjCheck, msg='The two ways of calculating the numeric Ex field do not agree.')
         # self.assertTrue(np.linalg.norm(ey_num-ey_numTest) < tol_NumErrZero, msg='The two ways of calculating the numeric Ey field do not agree.')
         # self.assertTrue(np.linalg.norm(ez_num-ez_numTest)/np.linalg.norm(ez_numTest) < tol_fieldObjCheck, msg='The two ways of calculating the numeric Ez field do not agree.')
@@ -181,11 +181,11 @@ class FDEM_analytic_DipoleTests_CylMesh(unittest.TestCase):
         self.assertTrue(np.linalg.norm(hz_num-hz_numTest) < tol_NumErrZero, msg='The two ways of calculating the numeric Hz field do not agree.')
 
         # Check B values computed from fields object
-        # print(' comp,       fields obj,       manual,       fields - manual,       (fields - manual)/manual')
-        # print('  B_x:', np.linalg.norm(bx_num), np.linalg.norm(bx_numTest), np.linalg.norm(bx_num-bx_numTest))
-        # print('  B_y:', np.linalg.norm(btheta_num), np.linalg.norm(btheta_numTest), np.linalg.norm(btheta_num-btheta_numTest), np.linalg.norm(btheta_num-btheta_numTest)/np.linalg.norm(btheta_numTest))
-        # print('  B_z:', np.linalg.norm(bz_num), np.linalg.norm(bz_numTest), np.linalg.norm(bz_num-bz_numTest))
-        # print('')
+        # print' comp,       fields obj,       manual,       fields - manual,       (fields - manual)/manual'
+        # print'  B_x:', np.linalg.norm(bx_num), np.linalg.norm(bx_numTest), np.linalg.norm(bx_num-bx_numTest)
+        # print'  B_y:', np.linalg.norm(btheta_num), np.linalg.norm(btheta_numTest), np.linalg.norm(btheta_num-btheta_numTest), np.linalg.norm(btheta_num-btheta_numTest)/np.linalg.norm(btheta_numTest)
+        # print'  B_z:', np.linalg.norm(bz_num), np.linalg.norm(bz_numTest), np.linalg.norm(bz_num-bz_numTest)
+        # print''
         # self.assertTrue(np.linalg.norm(bx_num-bx_numTest) < tol_NumErrZero, msg='The two ways of calculating the numeric Bx field do not agree.')
         # self.assertTrue(np.linalg.norm(by_num-by_numTest)/np.linalg.norm(by_numTest) < tol_fieldObjCheck, msg='The two ways of calculating the numeric By field do not agree.')
         # self.assertTrue(np.linalg.norm(bz_num-bz_numTest) < tol_NumErrZero, msg='The two ways of calculating the numeric Bz field do not agree.')
@@ -616,11 +616,11 @@ class FDEM_analytic_DipoleTests_3DMesh(unittest.TestCase):
         print '  J_y:', np.linalg.norm(jya), np.linalg.norm(jy_num), np.linalg.norm(jya-jy_num), np.linalg.norm(jya-jy_num)/np.linalg.norm(jya)
         print '  J_z:', np.linalg.norm(jza), np.linalg.norm(jz_num), np.linalg.norm(jza-jz_num), np.linalg.norm(jza-jz_num)/np.linalg.norm(jza)
         print ''
-        print '  H_x:', np.linalg.norm(hxa), np.linalg.norm(hx_num), np.linalg.norm(hxa-hx_num), np.linalg.norm(hxa-hx_num)/np.linalg.norm(hxa)
+        print '  H_x:', np.linalg.norm(hxa), np.linalg.norm(hx_num), np.linalg.norm(hxa-hx_num)
         print '  H_y:', np.linalg.norm(hya), np.linalg.norm(hy_num), np.linalg.norm(hya-hy_num), np.linalg.norm(hya-hy_num)/np.linalg.norm(hya)
         print '  H_z:', np.linalg.norm(hza), np.linalg.norm(hz_num), np.linalg.norm(hza-hz_num), np.linalg.norm(hza-hz_num)/np.linalg.norm(hza)
         print ''
-        print '  B_x:', np.linalg.norm(bxa), np.linalg.norm(bx_num), np.linalg.norm(bxa-bx_num), np.linalg.norm(bxa-bx_num)/np.linalg.norm(bxa)
+        print '  B_x:', np.linalg.norm(bxa), np.linalg.norm(bx_num), np.linalg.norm(bxa-bx_num)
         print '  B_y:', np.linalg.norm(bya), np.linalg.norm(by_num), np.linalg.norm(bya-by_num), np.linalg.norm(bya-by_num)/np.linalg.norm(bya)
         print '  B_z:', np.linalg.norm(bza), np.linalg.norm(bz_num), np.linalg.norm(bza-bz_num), np.linalg.norm(bza-bz_num)/np.linalg.norm(bza)
         print ''
