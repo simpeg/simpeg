@@ -367,9 +367,6 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         else:
             return None
 
-        # if projType == 'E':
-        #     M = 0.5*M
-
         if invMat:
             return Utils.sdInv(M)
         else:
@@ -396,18 +393,22 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
             Av = getattr(self, 'ave'+projType+'2CC')
             V = Utils.sdiag(self.vol)
             ones = sp.csr_matrix((np.ones(self.nC), (range(self.nC), np.zeros(self.nC))), shape=(self.nC,1))
+            nelts = np.sum(getattr(self, 'vn'+projType).nonzero())
+
             if not invMat and not invProp:
-                dMdprop = self.dim * Av.T * V * ones
+                dMdprop = nelts * Av.T * V * ones
             elif invMat and invProp:
-                dMdprop =  self.dim * Utils.sdiag(MI.diagonal()**2) * Av.T * V * ones * Utils.sdiag(1./prop**2)
+                dMdprop = nelts * Utils.sdiag(MI.diagonal()**2) * Av.T * V * ones * Utils.sdiag(1./prop**2)
 
         if tensorType == 1:
             Av = getattr(self, 'ave'+projType+'2CC')
             V = Utils.sdiag(self.vol)
+            nelts = np.sum(getattr(self, 'vn'+projType).nonzero())
+
             if not invMat and not invProp:
-                dMdprop = self.dim * Av.T * V
+                dMdprop = nelts * Av.T * V
             elif invMat and invProp:
-                dMdprop =  self.dim * Utils.sdiag(MI.diagonal()**2) * Av.T * V * Utils.sdiag(1./prop**2)
+                dMdprop =  nelts * Utils.sdiag(MI.diagonal()**2) * Av.T * V * Utils.sdiag(1./prop**2)
 
         if tensorType == 2: # anisotropic
             Av = getattr(self, 'ave'+projType+'2CCV')
@@ -417,8 +418,8 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
             elif invMat and invProp:
                 dMdprop =  Utils.sdiag(MI.diagonal()**2) * Av.T * V * Utils.sdiag(1./prop**2)
 
-        if projType == 'E':
-            dMdprop = 0.5*dMdprop
+        # if projType == 'E':
+        #     dMdprop = 0.5*dMdprop
 
         if dMdprop is not None:
             def innerProductDeriv(v=None):
