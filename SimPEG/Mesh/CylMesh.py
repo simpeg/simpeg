@@ -358,7 +358,8 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         if prop.size == self.nC:
             Av = getattr(self, 'ave'+projType+'2CC')
             Vprop = self.vol * Utils.mkvc(prop)
-            M = self.dim * Utils.sdiag(Av.T * Vprop)
+            nelts = np.sum(getattr(self, 'vn'+projType).nonzero())
+            M =  nelts * Utils.sdiag(Av.T * Vprop)
         elif prop.size == self.nC*self.dim:
             Av = getattr(self, 'ave'+projType+'2CCV')
             V = sp.kron(sp.identity(self.dim), Utils.sdiag(self.vol))
@@ -366,8 +367,8 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         else:
             return None
 
-        if projType == 'E':
-            M = 0.5*M
+        # if projType == 'E':
+        #     M = 0.5*M
 
         if invMat:
             return Utils.sdInv(M)
