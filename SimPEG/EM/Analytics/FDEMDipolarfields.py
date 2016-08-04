@@ -322,7 +322,7 @@ def E_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., loopArea=1.
     # k  = np.sqrt( -1j*2.*np.pi*f*mu*sig )
     k  = np.sqrt( omega(f)**2. *mu*epsilon -1j*omega(f)*mu*sig )
 
-    front = ((1j * omega * mu * m) / (4.* np.pi * r**2)) * (1j * k * r + 1) * np.exp(-1j*k*r)
+    front = ((1j * omega(f) * mu * m) / (4.* np.pi * r**2)) * (1j * k * r + 1) * np.exp(-1j*k*r)
 
     if orientation.upper() == 'X':
         Ey = front * (dz / r)
@@ -367,6 +367,8 @@ def H_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., loopArea=1.
     """
     mu = mu_0 * (1+kappa)
     epsilon = epsilon_0 * epsr
+    m = current * loopArea
+
     XYZ = Utils.asArray_N_x_Dim(XYZ, 3)
     # Check
     if XYZ.shape[0] > 1 & f.shape[0] > 1:
@@ -429,6 +431,8 @@ def F_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., loopArea=1.
     """
     mu = mu_0 * (1+kappa)
     epsilon = epsilon_0*epsr
+    m = current * loopArea
+
     XYZ = Utils.asArray_N_x_Dim(XYZ, 3)
     # Check
     if XYZ.shape[0] > 1 & f.shape[0] > 1:
@@ -441,7 +445,7 @@ def F_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., loopArea=1.
     r  = np.sqrt( dx**2. + dy**2. + dz**2.)
     k  = np.sqrt( omega(f)**2. *mu*epsilon -1j*omega(f)*mu*sig )
 
-    front = (1j * omega * mu * m) / (4.* np.pi * r)
+    front = (1j * omega(f) * mu * m) / (4.* np.pi * r)
 
     if orientation.upper() == 'X':
         Fx = front*np.exp(-1j*k*r)
