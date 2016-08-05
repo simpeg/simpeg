@@ -363,6 +363,43 @@ class TestEdgeCurl2D(Tests.OrderTest):
     def test_order(self):
         self.orderTest()
 
+# class TestCellGrad2D_Dirichlet(Tests.OrderTest):
+class TestCellGrad2D_Dirichlet(unittest.TestCase):
+    # name = "Cell Grad 2 - Dirichlet"
+    # meshTypes = MESHTYPES
+    # meshDimension = 2
+    # meshSizes = [8, 16, 32, 64]
+
+    # def getError(self):
+    #     #Test function
+    #     fx = lambda x, z: -2*np.pi*np.sin(2*np.pi*x)*np.cos(2*np.pi*z)
+    #     fz = lambda x, z: -2*np.pi*np.sin(2*np.pi*z)*np.cos(2*np.pi*x)
+    #     sol = lambda x, z: np.cos(2*np.pi*x)*np.cos(2*np.pi*z)
+
+    #     xc = call2(sol, self.M.gridCC)
+
+    #     Fc = cylF2(self.M, fx, fz)
+    #     Fc = np.c_[Fc[:,0],np.zeros(self.M.nF),Fc[:,1]]
+    #     gradX_ana = self.M.projectFaceVector(Fc)
+
+    #     gradX = self.M.cellGrad.dot(xc)
+
+    #     err = np.linalg.norm((gradX-gradX_ana), np.inf)
+
+    #     return err
+
+    # def test_order(self):
+    #     self.orderTest()
+
+    def setUp(self):
+        hx = np.random.rand(10.)
+        hz = np.random.rand(10.)
+        self.mesh = Mesh.CylMesh([hx, 1,hz])
+
+    def test_NotImplementedError(self):
+        with self.assertRaises(NotImplementedError):
+            self.mesh.cellGrad
+
 
 class TestAveragingSimple(unittest.TestCase):
 

@@ -362,7 +362,12 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
             M =  nelts * Utils.sdiag(Av.T * Vprop)
         elif prop.size == self.nC*self.dim:
             Av = getattr(self, 'ave'+projType+'2CCV')
-            V = sp.kron(sp.identity(self.dim), Utils.sdiag(self.vol))
+            if projType == 'E':
+                prop = prop[:,1] # for cyl mesh, only y-diagonal used in edge inner product
+                V = Utils.sdiag(self.vol)
+            elif projType == 'F':
+                prop = prop[:,[0,2]] # for cly mesh, only x, z components used in face inner product
+                V = sp.kron(sp.identity(2), Utils.sdiag(self.vol))
             M = Utils.sdiag(Av.T * V * Utils.mkvc(prop))
         else:
             return None
@@ -386,7 +391,7 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
 
         dMdprop = None
 
-        if invMat:
+        if invMat or invProp:
             MI = self._fastInnerProduct(projType, prop, invProp=invProp, invMat=invMat)
 
         if tensorType == 0:
@@ -399,6 +404,11 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
                 dMdprop = nelts * Av.T * V * ones
             elif invMat and invProp:
                 dMdprop = nelts * Utils.sdiag(MI.diagonal()**2) * Av.T * V * ones * Utils.sdiag(1./prop**2)
+            elif invProp:
+                dMdprop = nelts * Av.T * V * Utils.sdiag(- 1./prop**2)
+            elif invMat:
+                dMdprop = nelts * Utils.sdiag(- MI.diagonal()**2) * Av.T * V
+
 
         if tensorType == 1:
             Av = getattr(self, 'ave'+projType+'2CC')
@@ -409,6 +419,10 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
                 dMdprop = nelts * Av.T * V
             elif invMat and invProp:
                 dMdprop =  nelts * Utils.sdiag(MI.diagonal()**2) * Av.T * V * Utils.sdiag(1./prop**2)
+            elif invProp:
+                dMdprop = nelts * Av.T * V * Utils.sdiag(-1./prop**2)
+            elif invMat:
+                dMdprop = nelts * Utils.sdiag(- MI.diagonal()**2) * Av.T * V
 
         if tensorType == 2: # anisotropic
             Av = getattr(self, 'ave'+projType+'2CCV')
