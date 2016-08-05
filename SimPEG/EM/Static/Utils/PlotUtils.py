@@ -1,7 +1,8 @@
 import numpy as np
 from scipy.interpolate import LinearNDInterpolator
+import matplotlib.pyplot as plt
 
-def plot2Ddata(xyz, data, nx=100, ny=100, ax=None, mask=None, level=None, figname=None, contourOpts={}):
+def plot2Ddata(xyz, data, nx=100, ny=100, ax=None, mask=None, level=None, figname=None, ncontour=10, dataloc=False, contourOpts={}, clim=None):
     """
         TODOs:
 
@@ -21,11 +22,12 @@ def plot2Ddata(xyz, data, nx=100, ny=100, ax=None, mask=None, level=None, fignam
     xy = np.c_[X.flatten(), Y.flatten()]
     DATA = F(xy)
     DATA = DATA.reshape(X.shape)
-    cont = ax.contourf(X, Y, DATA, **contourOpts)
+    cont = ax.contourf(X, Y, DATA, ncontour, **contourOpts)
     if level is not None:
         CS = ax.contour(X, Y, DATA, level, colors="k", linewidths=2)
 #         plt.clabel(CS, inline=1, fmt="%.1e")
-    ax.plot(xyz[:,0], xyz[:,1], 'k.', ms=1)
+    if dataloc:
+        ax.plot(xyz[:,0], xyz[:,1], 'k.', ms=1)
     plt.gca().set_aspect('equal', adjustable='box')
     if figname:
         plt.axis("off")

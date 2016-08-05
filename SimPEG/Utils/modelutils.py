@@ -1,4 +1,5 @@
 from matutils import mkvc, ndgrid
+from meshutils import closestPoints
 import numpy as np
 
 def surface2ind_topo(mesh, topo, gridLoc='CC'):
@@ -59,5 +60,4 @@ def surface2ind_topo(mesh, topo, gridLoc='CC'):
         raise NotImplementedError('surface2ind_topo not implemented for 1D mesh')
 
     return mkvc(actind)
-
 
