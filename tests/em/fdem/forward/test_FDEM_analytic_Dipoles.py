@@ -1,6 +1,11 @@
 import unittest
 from SimPEG import EM, Mesh, Utils, np, Maps, sp
-from pymatsolver import MumpsSolver
+try:
+    from pymatsolver import MumpsSolver
+    solver = MumpsSolver
+except ImportError:
+    from SimPEG import SolverLU
+    solver = SolverLU
 # import sys
 from scipy.constants import mu_0
 
@@ -87,11 +92,7 @@ class FDEM_analytic_DipoleTests_CylMesh(unittest.TestCase):
         # pair problem and survey
         problem.pair(survey)
 
-        try:
-            from pymatsolver import MumpsSolver
-            problem.Solver = MumpsSolver
-        except ImportError, e:
-            problem.Solver = SolverLU
+        problem.Solver = Solver
 
         # solve
         numFields_ElecDipole_Z = problem.fields(np.r_[self.SigmaBack, self.MuBack])
