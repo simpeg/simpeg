@@ -2,30 +2,45 @@ from SimPEG import *
 from scipy.special import ellipk, ellipe
 from scipy.constants import mu_0, pi
 
-def MagneticDipoleVectorPotential(srcLoc, obsLoc, component, moment=1., dipoleMoment=(0., 0., 1.), mu = mu_0):
+def MagneticDipoleVectorPotential(srcLoc, obsLoc, component, moment=1.,
+                                  orientation=orientation=(0., 0., 1.),
+                                  mu=mu_0):
     """
         Calculate the vector potential of a set of magnetic dipoles
         at given locations 'ref. <http://en.wikipedia.org/wiki/Dipole#Magnetic_vector_potential>'
 
         :param numpy.ndarray srcLoc: Location of the source(s) (x, y, z)
-        :param numpy.ndarray,SimPEG.Mesh obsLoc: Where the potentials will be calculated (x, y, z) or a SimPEG Mesh
-        :param str,list component: The component to calculate - 'x', 'y', or 'z' if an array, or grid type if mesh, can be a list
-        :param numpy.ndarray dipoleMoment: The vector dipole moment
+        :param numpy.ndarray,SimPEG.Mesh obsLoc: Where the potentials will be
+                                                 calculated (x, y, z) or a
+                                                 SimPEG Mesh
+        :param str,list component: The component to calculate - 'x', 'y', or
+                                   'z' if an array, or grid type if mesh, can
+                                   be a list
+        :param numpy.ndarray orientation: The vector dipole moment
         :rtype: numpy.ndarray
         :return: The vector potential each dipole at each observation location
     """
-    #TODO: break this out!
+    # TODO: break this out!
+
+    assert np.linalg.norm(np.array(orientation), 2) == 1., ("orientation must "
+                                                            "be a unit vector")
 
     if type(component) in [list, tuple]:
         out = range(len(component))
         for i, comp in enumerate(component):
-            out[i] = MagneticDipoleVectorPotential(srcLoc, obsLoc, comp, dipoleMoment=dipoleMoment)
+            out[i] = MagneticDipoleVectorPotential(srcLoc, obsLoc, comp,
+                                                   orientation=orientation,
+                                                   mu=mu)
         return np.concatenate(out)
 
     if isinstance(obsLoc, Mesh.BaseMesh):
         mesh = obsLoc
-        assert component in ['Ex','Ey','Ez','Fx','Fy','Fz'], "Components must be in: ['Ex','Ey','Ez','Fx','Fy','Fz']"
-        return MagneticDipoleVectorPotential(srcLoc, getattr(mesh,'grid'+component), component[1], dipoleMoment=dipoleMoment)
+        assert component in ['Ex', 'Ey', 'Ez', 'Fx', 'Fy', 'Fz'], ("Components"
+                                 "must be in: ['Ex','Ey','Ez','Fx','Fy','Fz']")
+        return MagneticDipoleVectorPotential(srcLoc, getattr(mesh, 'grid' +
+                                                             component),
+                                             component[1],
+                                             orientation=orientation)
 
     if component == 'x':
         dimInd = 0
@@ -38,24 +53,24 @@ def MagneticDipoleVectorPotential(srcLoc, obsLoc, component, moment=1., dipoleMo
 
     srcLoc = np.atleast_2d(srcLoc)
     obsLoc = np.atleast_2d(obsLoc)
-    dipoleMoment = np.atleast_2d(dipoleMoment)
+    orientation = np.atleast_2d(orientation)
 
     nEdges = obsLoc.shape[0]
     nSrc = srcLoc.shape[0]
 
-    m = np.array(dipoleMoment).repeat(nEdges, axis=0)
+    m = moment*np.array(orientation).repeat(nEdges, axis=0)
     A = np.empty((nEdges, nSrc))
     for i in range(nSrc):
         dR = obsLoc - srcLoc[i, np.newaxis].repeat(nEdges, axis=0)
         mCr = np.cross(m, dR)
         r = np.sqrt((dR**2).sum(axis=1))
-        A[:, i] = +(mu/(4*pi)) * mCr[:,dimInd]/(r**3)
+        A[:, i] = +(mu/(4*pi)) * mCr[:, dimInd]/(r**3)
     if nSrc == 1:
         return A.flatten()
     return A
 
 
-def MagneticDipoleFields(srcLoc, obsLoc, component, moment=1., mu = mu_0):
+def MagneticDipoleFields(srcLoc, obsLoc, component, moment=1., mu=mu_0):
     """
         Calculate the vector potential of a set of magnetic dipoles
         at given locations 'ref. <http://en.wikipedia.org/wiki/Dipole#Magnetic_vector_potential>'

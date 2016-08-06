@@ -288,11 +288,14 @@ class MagDipole(BaseSrc):
     :param float mu: background magnetic permeability
     """
 
-    def __init__(self, rxList, freq, loc, orientation='Z', moment=1., mu=mu_0, **kwargs):
+    def __init__(self, rxList, freq, loc, orientation='Z', moment=1., mu=mu_0,
+                 **kwargs):
         self.freq = float(freq)
         self.loc = loc
-        self.orientation = orientation
-        assert orientation in ['X','Y','Z'], "Orientation (right now) doesn't actually do anything! The methods in SrcUtils should take care of this..."
+        self.orientation = orientation.upper()
+        assert self.orientation in ['X', 'Y', 'Z'], ("arbitrary vector "
+                                                     "orientations not yet "
+                                                     "supported")
         self.moment = moment
         self.mu = mu
         BaseSrc.__init__(self, rxList)
