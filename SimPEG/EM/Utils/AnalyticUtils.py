@@ -1,6 +1,6 @@
 from SimPEG import *
 from scipy.special import ellipk, ellipe
-from scipy.constants import mu_0, pi
+from scipy.constants import mu_0
 
 orientationDict = {'X': np.r_[1., 0., 0.],
                    'Y': np.r_[0., 1., 0.],
@@ -72,7 +72,7 @@ def MagneticDipoleVectorPotential(srcLoc, obsLoc, component, moment=1.,
         dR = obsLoc - srcLoc[i, np.newaxis].repeat(nObs, axis=0)
         mCr = np.cross(m, dR)
         r = np.sqrt((dR**2).sum(axis=1))
-        A[:, i] = +(mu/(4*pi)) * mCr[:, dimInd]/(r**3)
+        A[:, i] = +(mu/(4*np.pi)) * mCr[:, dimInd]/(r**3)
     if nSrc == 1:
         return A.flatten()
     return A
@@ -148,23 +148,25 @@ def MagneticDipoleFields(srcLoc, obsLoc, component,
     # use outer product to construct an array of [x_src, y_src, z_src]
 
     m = moment*orientation.repeat(nObs, axis=0)
-    rx = component.repeat(nObs, axis=0)
     B = []
 
     for i in range(nSrc):
-        dR = obsLoc - srcLoc[i, np.newaxis].repeat(nObs, axis=0)
-        r = np.sqrt(dR**2).sum(axis=1)
+        srcLoc = srcLoc[i, np.newaxis].repeat(nObs, axis=0)
+        rx = component.repeat(nObs, axis=0)
+        dR = obsLoc - srcLoc
+        r = np.sqrt((dR**2).sum(axis=1))
 
         # mult each element and sum along the axis (vector dot product)
-        m_dot_dR_div_r2 = (m * dR).sum(axis=1) / r**2
+        m_dot_dR_div_r2 = (m * dR).sum(axis=1) / (r**2)
 
         # multiply the scalar m_dot_dR by the 3D vector r
-        rvec_m_dot_dR_div_r2 = np.vstack([m_dot_dR_div_r2 * dR[:, i] for i in range(3)]).T
+        rvec_m_dot_dR_div_r2 = np.vstack([m_dot_dR_div_r2 * dR[:, i] for
+                                          i in range(3)]).T
         inside = (3. * rvec_m_dot_dR_div_r2) - m
 
         # dot product with rx orientation
         inside_dot_rx = (inside * rx).sum(axis=1)
-        front = (mu/(4*pi)) / (r**3)
+        front = (mu/(4.* np.pi * r**3))
 
         B.append(Utils.mkvc(front * inside_dot_rx))
 
@@ -207,10 +209,17 @@ def MagneticLoopVectorPotential(srcLoc, obsLoc, component, radius, orientation='
         :return: The vector potential each dipole at each observation location
     """
 
+    if isinstance(orientation, str):
+        if orientation.upper() != 'Z':
+            raise NotImplementedError, 'Only Z oriented loops implemented'
+    elif not np.allclose(orientation, np.r_[0., 0., 1.]):
+        raise NotImplementedError, 'Only Z oriented loops implemented'
+
     if type(component) in [list, tuple]:
         out = range(len(component))
         for i, comp in enumerate(component):
-            out[i] = MagneticLoopVectorPotential(srcLoc, obsLoc, comp, radius, mu)
+            out[i] = MagneticLoopVectorPotential(srcLoc, obsLoc, comp, radius,
+                                                 orientation, mu)
         return np.concatenate(out)
 
     if isinstance(obsLoc, Mesh.BaseMesh):
@@ -248,7 +257,9 @@ def MagneticLoopVectorPotential(srcLoc, obsLoc, component, radius, orientation='
             # % 1/r singular at r = 0 and K(m) singular at m = 1
             Aphi = np.zeros(n)
             # % Common factor is (mu * I) / pi with I = 1 and mu = 4e-7 * pi.
-            Aphi[ind] = 4e-7 / np.sqrt(m[ind])  * np.sqrt(radius / r[ind]) *((1. - m[ind] / 2.) * K[ind] - E[ind])
+            Aphi[ind] = ((mu / (np.pi * np.sqrt(m[ind])) *
+                         np.sqrt(radius / r[ind]) *((1. - m[ind] / 2.) *
+                         K[ind] - E[ind])))
             if component == 'x':
                 A[ind, i] = Aphi[ind] * (-y[ind] / r[ind] )
             elif component == 'y':
