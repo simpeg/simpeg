@@ -3,4 +3,3 @@ scipy
 ipython
 matplotlib
 cython
-sympy
