@@ -430,10 +430,9 @@ class FDEM_analytic_DipoleTests_3DMesh(unittest.TestCase):
         self.kappa = 1.
 
         # Create 3D mesh
-        npad = 5
-        self.csx, self.ncx, self.npadx = 5, 30, npad
-        self.csy, self.ncy, self.npady = 5, 30, npad
-        self.csz, self.ncz, self.npadz = 5, 30, npad
+        self.csx, self.ncx, self.npadx = 5, 20, 7
+        self.csy, self.ncy, self.npady = 5, 20, 7
+        self.csz, self.ncz, self.npadz = 5, 25, 5
         self.hx = Utils.meshTensor([(self.csx, self.npadx, -1.3), (self.csx, self.ncx), (self.csx, self.npadx, 1.3)])
         self.hy = Utils.meshTensor([(self.csy, self.npady, -1.3), (self.csy, self.ncy), (self.csy, self.npady, 1.3)])
         self.hz = Utils.meshTensor([(self.csz, self.npadz, -1.3), (self.csz, self.ncz), (self.csz, self.npadz, 1.3)])
@@ -459,7 +458,7 @@ class FDEM_analytic_DipoleTests_3DMesh(unittest.TestCase):
         self.MuBack = (mu_0*(1 + self.kappa))*np.ones((self.mesh.nC))
 
         # Define reciever locations
-        xlim = 60. # x locations from -60 to 60
+        xlim = 50. # x locations from -50 to 50
         xInd = np.where(np.abs(self.mesh.vectorCCx) < xlim)
         self.x = self.mesh.vectorCCx[xInd[0]]
         y = 10.
