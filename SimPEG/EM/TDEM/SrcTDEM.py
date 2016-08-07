@@ -10,9 +10,11 @@ from SimPEG.EM.Utils import *
 
 class BaseWaveform(object):
 
-    def __init__(self, offTime=0., hasInitialFields=False):
+    def __init__(self, offTime=0., hasInitialFields=False, **kwargs):
+        Utils.setKwargs(self, **kwargs)
         self.offTime = offTime
         self.hasInitialFields = hasInitialFields
+
 
     def _assertMatchesPair(self, pair):
         assert (isinstance(self, pair)
@@ -36,11 +38,14 @@ class StepOffWaveform(BaseWaveform):
 
 class RawWaveform(BaseWaveform):
 
-    def __init__(self, offTime=0.):
-        BaseWaveform.__init__(self, offTime, hasInitialFields=True)
+    wavefun = None
+
+    def __init__(self, offTime=0., **kwargs):
+        BaseWaveform.__init__(self, offTime, **kwargs)
 
     def eval(self, time):
-        raise NotImplementedError('RawWaveform has not been implemented, you should write it!')
+        return self.wavefun(time)
+        # raise NotImplementedError('RawWaveform has not been implemented, you should write it!')
 
 
 class TriangularWaveform(BaseWaveform):
@@ -63,6 +68,7 @@ class BaseSrc(SimPEG.Survey.BaseSrc):
     def waveform(self):
         "A waveform instance is not None"
         return getattr(self, '_waveform', None)
+
     @waveform.setter
     def waveform(self, val):
         if self.waveform is None:
@@ -194,17 +200,19 @@ class MagDipole(BaseSrc):
 
     def S_m(self, prob, time):
         if self.waveform.hasInitialFields is False:
-            raise NotImplementedError
+            # raise NotImplementedError
+            return Zero()
         return Zero()
 
     def S_e(self, prob, time):
         if self.waveform.hasInitialFields is False:
-            raise NotImplementedError
+            # Compute S_e from vector potential
+            b = self._bfromVectorPotential(prob)
+            MfMui = prob.MfMui
+            C = prob.mesh.edgeCurl
+            return C.T * (MfMui * b) * self.waveform.eval(time)
+
         return Zero()
-        # b = self.bInitial(prob)
-        # MfMui = prob.MfMui
-        # C = prob.mesh.edgeCurl
-        # return C.T * (MfMui * b) * self.waveform.eval(time)
 
 
 class CircularLoop(MagDipole):
