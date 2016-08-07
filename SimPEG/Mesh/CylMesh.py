@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
 from scipy.constants import pi
-from SimPEG.Utils import mkvc, ndgrid, sdiag, kron3, speye, spzeros, ddx, av, avExtrap
+from SimPEG import Utils
 from TensorMesh import BaseTensorMesh, BaseRectangularMesh
 from InnerProducts import InnerProducts
 from View import CylView
@@ -68,8 +68,8 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         """
         Number of x-faces in each direction
 
-        :rtype: numpy.array (dim, )
-        :return: vnFx
+        :rtype: numpy.array
+        :return: vnFx, (dim, )
         """
         return self.vnC
 
@@ -78,8 +78,8 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         """
         Number of y-edges in each direction
 
-        :rtype: numpy.array (dim, )
-        :return: vnEy or None if dim < 2
+        :rtype: numpy.array
+        :return: vnEy or None if dim < 2, (dim, )
         """
         nNx = self.nNx if self.isSymmetric else self.nNx - 1
         return np.r_[nNx, self.nCy, self.nNz]
@@ -89,8 +89,8 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         """
         Number of z-edges in each direction
 
-        :rtype: numpy.array (dim, )
-        :return: vnEz or None if nCy > 1
+        :rtype: numpy.array
+        :return: vnEz or None if nCy > 1, (dim, )
         """
         if self.isSymmetric:
             return np.r_[self.nNx, self.nNy, self.nCz]
@@ -190,32 +190,32 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
     def faceDivx(self):
         """Construct divergence operator in the x component (face-stg to cell-centres)."""
         if getattr(self, '_faceDivx', None) is None:
-            D1 = kron3(speye(self.nCz), speye(self.nCy), ddx(self.nCx)[:,1:])
+            D1 = Utils.kron3(Utils.speye(self.nCz), Utils.speye(self.nCy), Utils.ddx(self.nCx)[:,1:])
             S = self.r(self.area, 'F', 'Fx', 'V')
             V = self.vol
-            self._faceDivx = sdiag(1/V)*D1*sdiag(S)
+            self._faceDivx = Utils.sdiag(1/V)*D1*Utils.sdiag(S)
         return self._faceDivx
 
     @property
     def faceDivy(self):
         """Construct divergence operator in the y component (face-stg to cell-centres)."""
-        raise NotImplementedError('Wrapping the ddx is not yet implemented.')
+        raise NotImplementedError('Wrapping the Utils.ddx is not yet implemented.')
         if getattr(self, '_faceDivy', None) is None:
             # TODO: this needs to wrap to join up faces which are connected in the cylinder
-            D2 = kron3(speye(self.nCz), ddx(self.nCy), speye(self.nCx))
+            D2 = Utils.kron3(Utils.speye(self.nCz), Utils.ddx(self.nCy), Utils.speye(self.nCx))
             S = self.r(self.area, 'F', 'Fy', 'V')
             V = self.vol
-            self._faceDivy = sdiag(1/V)*D2*sdiag(S)
+            self._faceDivy = Utils.sdiag(1/V)*D2*Utils.sdiag(S)
         return self._faceDivy
 
     @property
     def faceDivz(self):
         """Construct divergence operator in the z component (face-stg to cell-centres)."""
         if getattr(self, '_faceDivz', None) is None:
-            D3 = kron3(ddx(self.nCz), speye(self.nCy), speye(self.nCx))
+            D3 = Utils.kron3(Utils.ddx(self.nCz), Utils.speye(self.nCy), Utils.speye(self.nCx))
             S = self.r(self.area, 'F', 'Fz', 'V')
             V = self.vol
-            self._faceDivz = sdiag(1/V)*D3*sdiag(S)
+            self._faceDivz = Utils.sdiag(1/V)*D3*Utils.sdiag(S)
         return self._faceDivz
 
 
@@ -254,7 +254,7 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
             A = self.area
             E = self.edge
             #Edge curl operator
-            self._edgeCurl = sdiag(1/A)*sp.vstack((Dz, Dr))*sdiag(E)
+            self._edgeCurl = Utils.sdiag(1/A)*sp.vstack((Dz, Dr))*Utils.sdiag(E)
         return self._edgeCurl
 
     # @property
@@ -277,14 +277,14 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
             # The number of cell centers in each direction
             n = self.vnC
             if self.isSymmetric:
-                avR = av(n[0])[:,1:]
+                avR = Utils.av(n[0])[:, 1:]
                 avR[0,0] = 1.
-                self._aveE2CC = (0.5)*sp.kron(av(n[2]), avR, format="csr")
+                self._aveE2CC = sp.kron(Utils.av(n[2]), avR, format="csr")
             else:
                 raise NotImplementedError('wrapping in the averaging is not yet implemented')
-                # self._aveE2CC = (1./3)*sp.hstack((kron3(av(n[2]), av(n[1]), speye(n[0])),
-                #                                   kron3(av(n[2]), speye(n[1]), av(n[0])),
-                #                                   kron3(speye(n[2]), av(n[1]), av(n[0]))), format="csr")
+                # self._aveE2CC = (1./3)*sp.hstack((Utils.kron3(Utils.av(n[2]), Utils.av(n[1]), Utils.speye(n[0])),
+                #                                   Utils.kron3(Utils.av(n[2]), Utils.speye(n[1]), Utils.av(n[0])),
+                #                                   Utils.kron3(Utils.speye(n[2]), Utils.av(n[1]), Utils.av(n[0]))), format="csr")
         return self._aveE2CC
 
     @property
@@ -306,14 +306,14 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         if getattr(self, '_aveF2CC', None) is None:
             n = self.vnC
             if self.isSymmetric:
-                avR = av(n[0])[:,1:]
+                avR = Utils.av(n[0])[:,1:]
                 avR[0,0] = 1.
-                self._aveF2CC = (0.5)*sp.hstack((sp.kron(speye(n[2]), avR), sp.kron(av(n[2]), speye(n[0]))), format="csr")
+                self._aveF2CC = (0.5)*sp.hstack((sp.kron(Utils.speye(n[2]), avR), sp.kron(Utils.av(n[2]), Utils.speye(n[0]))), format="csr")
             else:
                 raise NotImplementedError('wrapping in the averaging is not yet implemented')
-                # self._aveF2CC = (1./3.)*sp.hstack((kron3(speye(n[2]), speye(n[1]), av(n[0])),
-                #                                    kron3(speye(n[2]), av(n[1]), speye(n[0])),
-                #                                    kron3(av(n[2]), speye(n[1]), speye(n[0]))), format="csr")
+                # self._aveF2CC = (1./3.)*sp.hstack((Utils.kron3(Utils.speye(n[2]), Utils.speye(n[1]), Utils.av(n[0])),
+                #                                    Utils.kron3(Utils.speye(n[2]), Utils.av(n[1]), Utils.speye(n[0])),
+                #                                    Utils.kron3(Utils.av(n[2]), Utils.speye(n[1]), Utils.speye(n[0]))), format="csr")
         return self._aveF2CC
 
     @property
@@ -322,13 +322,112 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         if getattr(self, '_aveF2CCV', None) is None:
             n = self.vnC
             if self.isSymmetric:
-                avR = av(n[0])[:,1:]
+                avR = Utils.av(n[0])[:,1:]
                 avR[0,0] = 1.
-                self._aveF2CCV = sp.block_diag((sp.kron(speye(n[2]), avR),
-                                                sp.kron(av(n[2]), speye(n[0]))), format="csr")
+                self._aveF2CCV = sp.block_diag((sp.kron(Utils.speye(n[2]), avR),
+                                                sp.kron(Utils.av(n[2]), Utils.speye(n[0]))), format="csr")
             else:
                 raise NotImplementedError('wrapping in the averaging is not yet implemented')
         return self._aveF2CCV
+
+
+    def _fastInnerProduct(self, projType, prop=None, invProp=False, invMat=False):
+        """
+            Fast version of getFaceInnerProduct.
+            This does not handle the case of a full tensor prop.
+
+            :param numpy.array prop: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
+            :param str projType: 'E' or 'F'
+            :param bool returnP: returns the projection matrices
+            :param bool invProp: inverts the material property
+            :param bool invMat: inverts the matrix
+            :rtype: scipy.sparse.csr_matrix
+            :return: M, the inner product matrix (nF, nF)
+        """
+        assert projType in ['F', 'E'], "projType must be 'F' for faces or 'E' for edges"
+
+        if prop is None:
+            prop = np.ones(self.nC)
+
+        if invProp:
+            prop = 1./prop
+
+        if Utils.isScalar(prop):
+            prop = prop*np.ones(self.nC)
+
+        if prop.size == self.nC:
+            Av = getattr(self, 'ave'+projType+'2CC')
+            Vprop = self.vol * Utils.mkvc(prop)
+            M = self.dim * Utils.sdiag(Av.T * Vprop)
+        elif prop.size == self.nC*self.dim:
+            Av = getattr(self, 'ave'+projType+'2CCV')
+            V = sp.kron(sp.identity(self.dim), Utils.sdiag(self.vol))
+            M = Utils.sdiag(Av.T * V * Utils.mkvc(prop))
+        else:
+            return None
+
+        if projType == 'E':
+            M = 0.5*M
+
+        if invMat:
+            return Utils.sdInv(M)
+        else:
+            return M
+
+    def _fastInnerProductDeriv(self, projType, prop, invProp=False, invMat=False):
+        """
+            :param str projType: 'E' or 'F'
+            :param TensorType tensorType: type of the tensor
+            :param bool invProp: inverts the material property
+            :param bool invMat: inverts the matrix
+            :rtype: function
+            :return: dMdmu, the derivative of the inner product matrix
+        """
+        assert projType in ['F', 'E'], "projType must be 'F' for faces or 'E' for edges"
+        tensorType = Utils.TensorType(self, prop)
+
+        dMdprop = None
+
+        if invMat:
+            MI = self._fastInnerProduct(projType, prop, invProp=invProp, invMat=invMat)
+
+        if tensorType == 0:
+            Av = getattr(self, 'ave'+projType+'2CC')
+            V = Utils.sdiag(self.vol)
+            ones = sp.csr_matrix((np.ones(self.nC), (range(self.nC), np.zeros(self.nC))), shape=(self.nC,1))
+            if not invMat and not invProp:
+                dMdprop = self.dim * Av.T * V * ones
+            elif invMat and invProp:
+                dMdprop =  self.dim * Utils.sdiag(MI.diagonal()**2) * Av.T * V * ones * Utils.sdiag(1./prop**2)
+
+        if tensorType == 1:
+            Av = getattr(self, 'ave'+projType+'2CC')
+            V = Utils.sdiag(self.vol)
+            if not invMat and not invProp:
+                dMdprop = self.dim * Av.T * V
+            elif invMat and invProp:
+                dMdprop =  self.dim * Utils.sdiag(MI.diagonal()**2) * Av.T * V * Utils.sdiag(1./prop**2)
+
+        if tensorType == 2: # anisotropic
+            Av = getattr(self, 'ave'+projType+'2CCV')
+            V = sp.kron(sp.identity(self.dim), Utils.sdiag(self.vol))
+            if not invMat and not invProp:
+                dMdprop = Av.T * V
+            elif invMat and invProp:
+                dMdprop =  Utils.sdiag(MI.diagonal()**2) * Av.T * V * Utils.sdiag(1./prop**2)
+
+        if projType == 'E':
+            dMdprop = 0.5*dMdprop
+
+        if dMdprop is not None:
+            def innerProductDeriv(v=None):
+                if v is None:
+                    print 'Depreciation Warning: TensorMesh.innerProductDeriv. You should be supplying a vector. Use: Utils.sdiag(u)*dMdprop'
+                    return dMdprop
+                return Utils.sdiag(v) * dMdprop
+            return innerProductDeriv
+        else:
+            return None
 
     def getInterpolationMatCartMesh(self, Mrect, locType='CC', locTypeTo=None):
         """
@@ -350,7 +449,7 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         if locType == 'E':
             X = self.getInterpolationMatCartMesh(Mrect, locType='Ex', locTypeTo=locTypeTo+'x')
             Y = self.getInterpolationMatCartMesh(Mrect, locType='Ey', locTypeTo=locTypeTo+'y')
-            Z = spzeros(getattr(Mrect, 'n' + locTypeTo + 'z'), self.nE)
+            Z = Utils.spzeros(getattr(Mrect, 'n' + locTypeTo + 'z'), self.nE)
             return sp.vstack((X,Y,Z))
 
         grid = getattr(Mrect, 'grid' + locTypeTo)
@@ -385,17 +484,17 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
             interpType = 'Ey'
 
         Pc2r = self.getInterpolationMat(G, interpType)
-        Proj = sdiag(proj)
+        Proj = Utils.sdiag(proj)
         return Proj * Pc2r
 
 
 
 if __name__ == '__main__':
 
-    from SimPEG import *
-    hx = np.r_[1,1,0.5]
-    hz = np.r_[2,1]
-    M = Mesh.CylMesh([hx, 1,hz], x0='00N')
+    from SimPEG import Mesh
+    hx = np.r_[1, 1, 0.5]
+    hz = np.r_[2, 1]
+    M = Mesh.CylMesh([hx, 1, hz], x0='00N')
 
     M.plotImage(np.random.rand(M.nC), showIt=False)
     M.plotGrid(centers=True, showIt=True)

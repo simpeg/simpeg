@@ -7,8 +7,8 @@ class BaseMesh(object):
     BaseMesh does all the counting you don't want to do.
     BaseMesh should be inherited by meshes with a regular structure.
 
-    :param numpy.array,list n: number of cells in each direction (dim, )
-    :param numpy.array,list x0: Origin of the mesh (dim, )
+    :param numpy.array n: (or list) number of cells in each direction (dim, )
+    :param numpy.array x0: (or list) Origin of the mesh (dim, )
 
     """
 
@@ -34,8 +34,8 @@ class BaseMesh(object):
         """
         Origin of the mesh
 
-        :rtype: numpy.array (dim, )
-        :return: x0
+        :rtype: numpy.array
+        :return: x0, (dim, )
         """
         return self._x0
 
@@ -116,8 +116,8 @@ class BaseMesh(object):
         """
         Total number of edges in each direction
 
-        :rtype: numpy.array (dim, )
-        :return: [nEx, nEy, nEz]
+        :rtype: numpy.array
+        :return: [nEx, nEy, nEz], (dim, )
 
         .. plot::
             :include-source:
@@ -173,8 +173,8 @@ class BaseMesh(object):
         """
         Total number of faces in each direction
 
-        :rtype: numpy.array (dim, )
-        :return: [nFx, nFy, nFz]
+        :rtype: numpy.array
+        :return: [nFx, nFy, nFz], (dim, )
 
         .. plot::
             :include-source:
@@ -200,8 +200,8 @@ class BaseMesh(object):
         """
         Face Normals
 
-        :rtype: numpy.array (sum(nF), dim)
-        :return: normals
+        :rtype: numpy.array
+        :return: normals, (sum(nF), dim)
         """
         if self.dim == 2:
             nX = np.c_[np.ones(self.nFx), np.zeros(self.nFx)]
@@ -218,8 +218,8 @@ class BaseMesh(object):
         """
         Edge Tangents
 
-        :rtype: numpy.array (sum(nE), dim)
-        :return: normals
+        :rtype: numpy.array
+        :return: normals, (sum(nE), dim)
         """
         if self.dim == 2:
             tX = np.c_[np.ones(self.nEx), np.zeros(self.nEx)]
@@ -236,8 +236,9 @@ class BaseMesh(object):
         Given a vector, fV, in cartesian coordinates, this will project it onto the mesh using the normals
 
         :param numpy.array fV: face vector with shape (nF, dim)
-        :rtype: numpy.array with shape (nF, )
-        :return: projected face vector
+        :rtype: numpy.array
+        :return: projected face vector, (nF, )
+
         """
         assert isinstance(fV, np.ndarray), 'fV must be an ndarray'
         assert len(fV.shape) == 2 and fV.shape[0] == self.nF and fV.shape[1] == self.dim, 'fV must be an ndarray of shape (nF x dim)'
@@ -248,8 +249,9 @@ class BaseMesh(object):
         Given a vector, eV, in cartesian coordinates, this will project it onto the mesh using the tangents
 
         :param numpy.array eV: edge vector with shape (nE, dim)
-        :rtype: numpy.array with shape (nE, )
-        :return: projected edge vector
+        :rtype: numpy.array
+        :return: projected edge vector, (nE, )
+
         """
         assert isinstance(eV, np.ndarray), 'eV must be an ndarray'
         assert len(eV.shape) == 2 and eV.shape[0] == self.nE and eV.shape[1] == self.dim, 'eV must be an ndarray of shape (nE x dim)'
@@ -295,7 +297,7 @@ class BaseRectangularMesh(BaseMesh):
         """
         Total number of cells in each direction
 
-        :rtype: numpy.array (dim, )
+        :rtype: numpy.array
         :return: [nCx, nCy, nCz]
         """
         return np.array([x for x in [self.nCx, self.nCy, self.nCz] if not x is None])
@@ -335,7 +337,7 @@ class BaseRectangularMesh(BaseMesh):
         """
         Total number of nodes in each direction
 
-        :rtype: numpy.array (dim, )
+        :rtype: numpy.array
         :return: [nNx, nNy, nNz]
         """
         return np.array([x for x in [self.nNx, self.nNy, self.nNz] if not x is None])
@@ -345,7 +347,7 @@ class BaseRectangularMesh(BaseMesh):
         """
         Number of x-edges in each direction
 
-        :rtype: numpy.array (dim, )
+        :rtype: numpy.array
         :return: vnEx
         """
         return np.array([x for x in [self.nCx, self.nNy, self.nNz] if not x is None])
@@ -355,7 +357,7 @@ class BaseRectangularMesh(BaseMesh):
         """
         Number of y-edges in each direction
 
-        :rtype: numpy.array (dim, )
+        :rtype: numpy.array
         :return: vnEy or None if dim < 2
         """
         return None if self.dim < 2 else np.array([x for x in [self.nNx, self.nCy, self.nNz] if not x is None])
@@ -365,7 +367,7 @@ class BaseRectangularMesh(BaseMesh):
         """
         Number of z-edges in each direction
 
-        :rtype: numpy.array (dim, )
+        :rtype: numpy.array
         :return: vnEz or None if dim < 3
         """
         return None if self.dim < 3 else np.array([x for x in [self.nNx, self.nNy, self.nCz] if not x is None])
@@ -375,7 +377,7 @@ class BaseRectangularMesh(BaseMesh):
         """
         Number of x-faces in each direction
 
-        :rtype: numpy.array (dim, )
+        :rtype: numpy.array
         :return: vnFx
         """
         return np.array([x for x in [self.nNx, self.nCy, self.nCz] if not x is None])
@@ -385,7 +387,7 @@ class BaseRectangularMesh(BaseMesh):
         """
         Number of y-faces in each direction
 
-        :rtype: numpy.array (dim, )
+        :rtype: numpy.array
         :return: vnFy or None if dim < 2
         """
         return None if self.dim < 2 else np.array([x for x in [self.nCx, self.nNy, self.nCz] if not x is None])
@@ -395,7 +397,7 @@ class BaseRectangularMesh(BaseMesh):
         """
         Number of z-faces in each direction
 
-        :rtype: numpy.array (dim, )
+        :rtype: numpy.array
         :return: vnFz or None if dim < 3
         """
         return None if self.dim < 3 else np.array([x for x in [self.nCx, self.nCy, self.nNz] if not x is None])
@@ -520,7 +522,7 @@ class BaseRectangularMesh(BaseMesh):
         assert xType in outType, 'You cannot change type of components.'
         if type(x) == list:
             for i, xi in enumerate(x):
-                assert isinstance(x, np.ndarray), "x[%i] must be a numpy array" % i
+                assert isinstance(x, np.ndarray), "x[{0:d}] must be a numpy array".format(i)
                 assert xi.size == x[0].size, "Number of elements in list must not change."
 
             x_array = np.ones((x.size, len(x)))

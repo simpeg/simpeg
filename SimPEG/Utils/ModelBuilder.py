@@ -7,11 +7,11 @@ def addBlock(gridCC, modelCC, p0, p1, blockProp):
     """
         Add a block to an exsisting cell centered model, modelCC
 
-        :param numpy.array, gridCC: mesh.gridCC is the cell centered grid
-        :param numpy.array, modelCC: cell centered model
-        :param numpy.array, p0: bottom, southwest corner of block
-        :param numpy.array, p1: top, northeast corner of block
-        :blockProp float, blockProp: property to assign to the model 
+        :param numpy.array gridCC: mesh.gridCC is the cell centered grid
+        :param numpy.array modelCC: cell centered model
+        :param numpy.array p0: bottom, southwest corner of block
+        :param numpy.array p1: top, northeast corner of block
+        :blockProp float blockProp: property to assign to the model
 
         :return numpy.array, modelBlock: model with block
     """
@@ -147,7 +147,7 @@ def getIndicesSphere(center,radius,ccMesh):
 
     if dimMesh == 1:
        # Define the reference points
-        
+
         ind  = np.abs(center[0] - ccMesh[:,0]) < radius
 
     elif dimMesh == 2:
@@ -222,14 +222,14 @@ def layeredModel(ccMesh, layerTops, layerValues):
 
         :param numpy.array ccMesh: cell-centered mesh
         :param numpy.array layerTops: z-locations of the tops of each layer
-        :param numpy.array layerValue: values of the property to assign for each layer (starting at the top) 
+        :param numpy.array layerValue: values of the property to assign for each layer (starting at the top)
         :rtype: numpy.array
-        :return: M, layered model on the mesh 
+        :return: M, layered model on the mesh
     """
 
     descending = np.linalg.norm(sorted(layerTops, reverse=True) - layerTops) < 1e-20
 
-    # TODO: put an error check to make sure that there is an ordering... needs to work with inf elts 
+    # TODO: put an error check to make sure that there is an ordering... needs to work with inf elts
     # assert ascending or descending, "Layers must be listed in either ascending or descending order"
 
     # start from bottom up
@@ -253,10 +253,10 @@ def layeredModel(ccMesh, layerTops, layerValues):
     model = np.zeros(ccMesh.shape[0])
 
     for i, top in enumerate(layerTops):
-        zind = z <= top 
+        zind = z <= top
         model[zind] = layerValues[i]
 
-    return model 
+    return model
 
 
 
@@ -265,9 +265,9 @@ def randomModel(shape, seed=None, anisotropy=None, its=100, bounds=None):
         Create a random model by convolving a kernel with a
         uniformly distributed model.
 
-        :param int,tuple shape: shape of the model.
+        :param tuple shape: shape of the model.
         :param int seed: pick which model to produce, prints the seed if you don't choose.
-        :param numpy.ndarray,list anisotropy: this is the (3 x n) blurring kernel that is used.
+        :param numpy.ndarray anisotropy: this is the (3 x n) blurring kernel that is used.
         :param int its: number of smoothing iterations
         :param list bounds: bounds on the model, len(list) == 2
         :rtype: numpy.ndarray

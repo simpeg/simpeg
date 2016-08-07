@@ -71,7 +71,7 @@ class ProblemIP(Problem.BaseProblem):
             Makes the matrix A(m) for the DC resistivity problem.
 
             :param numpy.array m: model
-            :rtype: scipy.csc_matrix
+            :rtype: scipy.sparse.csc_matrix
             :return: A(m)
 
             .. math::

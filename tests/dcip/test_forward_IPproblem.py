@@ -1,6 +1,7 @@
 import unittest
+import numpy as np
 import SimPEG.DCIP as DC
-from SimPEG import *
+from SimPEG import Mesh, Maps, SolverLU, Utils
 
 class IPforwardTests(unittest.TestCase):
 

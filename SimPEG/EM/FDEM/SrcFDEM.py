@@ -28,8 +28,8 @@ class BaseSrc(Survey.BaseSrc):
         - :math:`s_m` : magnetic source term
         - :math:`s_e` : electric source term
 
-        :param Problem prob: FDEM Problem
-        :rtype: (numpy.ndarray, numpy.ndarray)
+        :param BaseFDEMProblem prob: FDEM Problem
+        :rtype: tuple
         :return: tuple with magnetic source term and electric source term
         """
         s_m = self.s_m(prob)
@@ -42,10 +42,10 @@ class BaseSrc(Survey.BaseSrc):
         - :code:`s_mDeriv` : derivative of the magnetic source term
         - :code:`s_eDeriv` : derivative of the electric source term
 
-        :param Problem prob: FDEM Problem
+        :param BaseFDEMProblem prob: FDEM Problem
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
-        :rtype: (numpy.ndarray, numpy.ndarray)
+        :rtype: tuple
         :return: tuple with magnetic source term and electric source term derivatives times a vector
         """
         if v is not None:
@@ -57,7 +57,7 @@ class BaseSrc(Survey.BaseSrc):
         """
         Primary magnetic flux density
 
-        :param Problem prob: FDEM Problem
+        :param BaseFDEMProblem prob: FDEM Problem
         :rtype: numpy.ndarray
         :return: primary magnetic flux density
         """
@@ -69,7 +69,7 @@ class BaseSrc(Survey.BaseSrc):
         """
         Primary magnetic field
 
-        :param Problem prob: FDEM Problem
+        :param BaseFDEMProblem prob: FDEM Problem
         :rtype: numpy.ndarray
         :return: primary magnetic field
         """
@@ -81,7 +81,7 @@ class BaseSrc(Survey.BaseSrc):
         """
         Primary electric field
 
-        :param Problem prob: FDEM Problem
+        :param BaseFDEMProblem prob: FDEM Problem
         :rtype: numpy.ndarray
         :return: primary electric field
         """
@@ -93,7 +93,7 @@ class BaseSrc(Survey.BaseSrc):
         """
         Primary current density
 
-        :param Problem prob: FDEM Problem
+        :param BaseFDEMProblem prob: FDEM Problem
         :rtype: numpy.ndarray
         :return: primary current density
         """
@@ -105,7 +105,7 @@ class BaseSrc(Survey.BaseSrc):
         """
         Magnetic source term
 
-        :param Problem prob: FDEM Problem
+        :param BaseFDEMProblem prob: FDEM Problem
         :rtype: numpy.ndarray
         :return: magnetic source term on mesh
         """
@@ -115,7 +115,7 @@ class BaseSrc(Survey.BaseSrc):
         """
         Electric source term
 
-        :param Problem prob: FDEM Problem
+        :param BaseFDEMProblem prob: FDEM Problem
         :rtype: numpy.ndarray
         :return: electric source term on mesh
         """
@@ -125,7 +125,7 @@ class BaseSrc(Survey.BaseSrc):
         """
         Derivative of magnetic source term with respect to the inversion model
 
-        :param Problem prob: FDEM Problem
+        :param BaseFDEMProblem prob: FDEM Problem
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -138,7 +138,7 @@ class BaseSrc(Survey.BaseSrc):
         """
         Derivative of electric source term with respect to the inversion model
 
-        :param Problem prob: FDEM Problem
+        :param BaseFDEMProblem prob: FDEM Problem
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -167,7 +167,7 @@ class RawVec_e(BaseSrc):
         """
         Electric source term
 
-        :param Problem prob: FDEM Problem
+        :param BaseFDEMProblem prob: FDEM Problem
         :rtype: numpy.ndarray
         :return: electric source term on mesh
         """
@@ -196,7 +196,7 @@ class RawVec_m(BaseSrc):
         """
         Magnetic source term
 
-        :param Problem prob: FDEM Problem
+        :param BaseFDEMProblem prob: FDEM Problem
         :rtype: numpy.ndarray
         :return: magnetic source term on mesh
         """
@@ -225,7 +225,7 @@ class RawVec(BaseSrc):
         """
         Magnetic source term
 
-        :param Problem prob: FDEM Problem
+        :param BaseFDEMProblem prob: FDEM Problem
         :rtype: numpy.ndarray
         :return: magnetic source term on mesh
         """
@@ -237,7 +237,7 @@ class RawVec(BaseSrc):
         """
         Electric source term
 
-        :param Problem prob: FDEM Problem
+        :param BaseFDEMProblem prob: FDEM Problem
         :rtype: numpy.ndarray
         :return: electric source term on mesh
         """
@@ -327,7 +327,7 @@ class MagDipole(BaseSrc):
         """
         The primary magnetic flux density from a magnetic vector potential
 
-        :param Problem prob: FDEM problem
+        :param BaseFDEMProblem prob: FDEM problem
         :rtype: numpy.ndarray
         :return: primary magnetic field
         """
@@ -367,7 +367,7 @@ class MagDipole(BaseSrc):
         """
         The primary magnetic field from a magnetic vector potential
 
-        :param Problem prob: FDEM problem
+        :param BaseFDEMProblem prob: FDEM problem
         :rtype: numpy.ndarray
         :return: primary magnetic field
         """
@@ -378,7 +378,7 @@ class MagDipole(BaseSrc):
         """
         The magnetic source term
 
-        :param Problem prob: FDEM problem
+        :param BaseFDEMProblem prob: FDEM problem
         :rtype: numpy.ndarray
         :return: primary magnetic field
         """
@@ -392,7 +392,7 @@ class MagDipole(BaseSrc):
         """
         The electric source term
 
-        :param Problem prob: FDEM problem
+        :param BaseFDEMProblem prob: FDEM problem
         :rtype: numpy.ndarray
         :return: primary magnetic field
         """
@@ -448,7 +448,7 @@ class MagDipole_Bfield(MagDipole):
         The primary magnetic flux density from the analytic solution for
         magnetic fields from a dipole
 
-        :param Problem prob: FDEM problem
+        :param BaseFDEMProblem prob: FDEM problem
         :rtype: numpy.ndarray
         :return: primary magnetic field
         """
@@ -482,7 +482,52 @@ class MagDipole_Bfield(MagDipole):
         return Utils.mkvc(b)
 
 
-class CircularLoop(MagDipole):
+        :param BaseFDEMProblem prob: FDEM problem
+        :rtype: numpy.ndarray
+        :return: primary magnetic field
+        """
+        b = self.bPrimary(prob)
+        return 1/self.mu * b
+
+    def s_m(self, prob):
+        """
+        The magnetic source term
+
+        :param BaseFDEMProblem prob: FDEM problem
+        :rtype: numpy.ndarray
+        :return: primary magnetic field
+        """
+        b = self.bPrimary(prob)
+        if prob._formulation is 'HJ':
+            b = prob.Me * b
+        return -1j*omega(self.freq)*b
+
+    def s_e(self, prob):
+        """
+        The electric source term
+
+        :param BaseFDEMProblem prob: FDEM problem
+        :rtype: numpy.ndarray
+        :return: primary magnetic field
+        """
+        if all(np.r_[self.mu] == np.r_[prob.curModel.mu]):
+            return Zero()
+        else:
+            formulation = prob._formulation
+
+            if formulation is 'EB':
+                mui_s = prob.curModel.mui - 1./self.mu
+                MMui_s = prob.mesh.getFaceInnerProduct(mui_s)
+                C = prob.mesh.edgeCurl
+            elif formulation is 'HJ':
+                mu_s = prob.curModel.mu - self.mu
+                MMui_s = prob.mesh.getEdgeInnerProduct(mu_s, invMat=True)
+                C = prob.mesh.edgeCurl.T
+
+            return -C.T * (MMui_s * self.bPrimary(prob))
+
+
+class CircularLoop(BaseSrc):
     """
     Circular loop magnetic source calculated by taking the curl of a magnetic
     vector potential. By taking the discrete curl, we ensure that the magnetic
@@ -508,6 +553,85 @@ class CircularLoop(MagDipole):
         return MagneticLoopVectorPotential(self.loc, obsLoc, component,
                                            mu=self.mu, radius=self.radius,
                                            orientation=self.orientation)
+
+        :param BaseFDEMProblem prob: FDEM problem
+        :rtype: numpy.ndarray
+        :return: primary magnetic field
+        """
+        formulation = prob._formulation
+
+
+        elif formulation is 'HJ':
+            gridX = prob.mesh.gridFx
+            gridY = prob.mesh.gridFy
+            gridZ = prob.mesh.gridFz
+            C = prob.mesh.edgeCurl.T
+
+        if prob.mesh._meshType is 'CYL':
+            if not prob.mesh.isSymmetric:
+                # TODO ?
+                raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
+            a = MagneticLoopVectorPotential(self.loc, gridY, 'y', moment=self.radius, mu=self.mu)
+
+        else:
+            srcfct = MagneticDipoleVectorPotential
+            ax = srcfct(self.loc, gridX, 'x', self.radius, mu=self.mu)
+            ay = srcfct(self.loc, gridY, 'y', self.radius, mu=self.mu)
+            az = srcfct(self.loc, gridZ, 'z', self.radius, mu=self.mu)
+            a = np.concatenate((ax, ay, az))
+
+        return C*a
+
+    def hPrimary(self, prob):
+        """
+        The primary magnetic field from a magnetic vector potential
+
+        :param BaseFDEMProblem prob: FDEM problem
+        :rtype: numpy.ndarray
+        :return: primary magnetic field
+        """
+        b = self.bPrimary(prob)
+        return 1./self.mu*b
+
+    def s_m(self, prob):
+        """
+        The magnetic source term
+
+        :param BaseFDEMProblem prob: FDEM problem
+        :rtype: numpy.ndarray
+        :return: primary magnetic field
+        """
+        b = self.bPrimary(prob)
+        if prob._formulation is 'HJ':
+            b =  prob.Me *  b
+        return -1j*omega(self.freq)*b
+
+    def s_e(self, prob):
+        """
+        The electric source term
+
+        :param BaseFDEMProblem prob: FDEM problem
+        :rtype: numpy.ndarray
+        :return: primary magnetic field
+        """
+        if all(np.r_[self.mu] == np.r_[prob.curModel.mu]):
+            return Zero()
+        else:
+            formulation = prob._formulation
+
+            if formulation is 'EB':
+                mui_s = prob.curModel.mui - 1./self.mu
+                MMui_s = prob.mesh.getFaceInnerProduct(mui_s)
+                C = prob.mesh.edgeCurl
+
+
+            elif formulation is 'HJ':
+                mu_s = prob.curModel.mu - self.mu
+                MMui_s = prob.mesh.getEdgeInnerProduct(mu_s, invMat=True)
+                C = prob.mesh.edgeCurl.T
+
+            return -C.T * (MMui_s * self.bPrimary(prob))
+
 
 
 
