@@ -90,13 +90,6 @@ class FDEM_analyticTests(unittest.TestCase):
                 plt.plot(x, diff, 'g')
                 plt.show()
 
-            # We want the difference to be an orderMag less
-            # than the analytic solution. Note that right at
-            # the source, both the analytic and the numerical
-            # solution will be poor. Use plotIt up top to see that...
-            # orderMag = 1.6
-            # passed = np.abs(np.mean(diff - np.log10(np.abs(ana)))) > orderMag
-
             norm_num = np.linalg.norm(num)
             norm_ana = np.linalg.norm(ana)
             tol = tol_Transect*(norm_num + norm_ana)/2.

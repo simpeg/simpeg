@@ -1,4 +1,4 @@
-from SimPEG import Mesh, np
+from SimPEG import Mesh, np, Utils
 from scipy.special import ellipk, ellipe
 from scipy.constants import mu_0
 
