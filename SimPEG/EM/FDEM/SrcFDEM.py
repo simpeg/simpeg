@@ -438,27 +438,10 @@ class MagDipole_Bfield(MagDipole):
                                                orientation=orientation,
                                                moment=moment, mu=mu)
 
-    # @property
-    # def _srcFct(self):
-    #     return MagneticDipoleFields
-
-    # @property
     def _srcFct(self, obsLoc, component):
         return MagneticDipoleFields(self.srcLoc, obsLoc, component, mu=self.mu,
                                     moment=self.moment,
                                     orientation=self.orientation)
-
-
-    # def __init__(self, rxList, freq, loc, orientation='Z', moment=1., mu=mu_0):
-    #     self.freq = float(freq)
-    #     self.loc = loc
-    #     self.orientation = orientation.upper()
-    #     assert self.orientation in ['X', 'Y', 'Z'], ("arbitrary vector "
-    #                                                  "orientations not yet "
-    #                                                  "supported")
-    #     self.moment = moment
-    #     self.mu = mu
-    #     BaseSrc.__init__(self, rxList)
 
     def bPrimary(self, prob):
         """
@@ -498,54 +481,6 @@ class MagDipole_Bfield(MagDipole):
 
         return Utils.mkvc(b)
 
-    # def hPrimary(self, prob):
-    #     """
-    #     The primary magnetic field from a magnetic vector potential
-
-    #     :param Problem prob: FDEM problem
-    #     :rtype: numpy.ndarray
-    #     :return: primary magnetic field
-    #     """
-    #     b = self.bPrimary(prob)
-    #     return 1/self.mu * b
-
-    # def s_m(self, prob):
-    #     """
-    #     The magnetic source term
-
-    #     :param Problem prob: FDEM problem
-    #     :rtype: numpy.ndarray
-    #     :return: primary magnetic field
-    #     """
-    #     b = self.bPrimary(prob)
-    #     if prob._formulation is 'HJ':
-    #         b = prob.Me * b
-    #     return -1j*omega(self.freq)*b
-
-    # def s_e(self, prob):
-    #     """
-    #     The electric source term
-
-    #     :param Problem prob: FDEM problem
-    #     :rtype: numpy.ndarray
-    #     :return: primary magnetic field
-    #     """
-    #     if all(np.r_[self.mu] == np.r_[prob.curModel.mu]):
-    #         return Zero()
-    #     else:
-    #         formulation = prob._formulation
-
-    #         if formulation is 'EB':
-    #             mui_s = prob.curModel.mui - 1./self.mu
-    #             MMui_s = prob.mesh.getFaceInnerProduct(mui_s)
-    #             C = prob.mesh.edgeCurl
-    #         elif formulation is 'HJ':
-    #             mu_s = prob.curModel.mu - self.mu
-    #             MMui_s = prob.mesh.getEdgeInnerProduct(mu_s, invMat=True)
-    #             C = prob.mesh.edgeCurl.T
-
-    #         return -C.T * (MMui_s * self.bPrimary(prob))
-
 
 class CircularLoop(MagDipole):
     """
@@ -573,103 +508,6 @@ class CircularLoop(MagDipole):
         return MagneticLoopVectorPotential(self.loc, obsLoc, component,
                                            mu=self.mu, radius=self.radius,
                                            orientation=self.orientation)
-
-    #     self.freq = float(freq)
-    #     self.orientation = orientation
-    #     assert orientation in ['X','Y','Z'], "Orientation (right now) doesn't actually do anything! The methods in SrcUtils should take care of this..."
-    #     self.radius = radius
-    #     self.mu = mu
-    #     self.loc = loc
-    #     self.integrate = False
-    #     BaseSrc.__init__(self, rxList)
-
-    # def bPrimary(self, prob):
-    #     """
-    #     The primary magnetic flux density from a magnetic vector potential
-
-    #     :param Problem prob: FDEM problem
-    #     :rtype: numpy.ndarray
-    #     :return: primary magnetic field
-    #     """
-    #     formulation = prob._formulation
-
-    #     if formulation is 'EB':
-    #         gridX = prob.mesh.gridEx
-    #         gridY = prob.mesh.gridEy
-    #         gridZ = prob.mesh.gridEz
-    #         C = prob.mesh.edgeCurl
-
-    #     elif formulation is 'HJ':
-    #         gridX = prob.mesh.gridFx
-    #         gridY = prob.mesh.gridFy
-    #         gridZ = prob.mesh.gridFz
-    #         C = prob.mesh.edgeCurl.T
-
-    #     if prob.mesh._meshType is 'CYL':
-    #         if not prob.mesh.isSymmetric:
-    #             # TODO ?
-    #             raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
-    #         a = MagneticLoopVectorPotential(self.loc, gridY, 'y', moment=self.radius, mu=self.mu)
-
-    #     else:
-    #         srcfct = MagneticDipoleVectorPotential
-    #         ax = srcfct(self.loc, gridX, 'x', self.radius, mu=self.mu)
-    #         ay = srcfct(self.loc, gridY, 'y', self.radius, mu=self.mu)
-    #         az = srcfct(self.loc, gridZ, 'z', self.radius, mu=self.mu)
-    #         a = np.concatenate((ax, ay, az))
-
-    #     return C*a
-
-    # def hPrimary(self, prob):
-    #     """
-    #     The primary magnetic field from a magnetic vector potential
-
-    #     :param Problem prob: FDEM problem
-    #     :rtype: numpy.ndarray
-    #     :return: primary magnetic field
-    #     """
-    #     b = self.bPrimary(prob)
-    #     return 1./self.mu*b
-
-    # def s_m(self, prob):
-    #     """
-    #     The magnetic source term
-
-    #     :param Problem prob: FDEM problem
-    #     :rtype: numpy.ndarray
-    #     :return: primary magnetic field
-    #     """
-    #     b = self.bPrimary(prob)
-    #     if prob._formulation is 'HJ':
-    #         b =  prob.Me *  b
-    #     return -1j*omega(self.freq)*b
-
-    # def s_e(self, prob):
-    #     """
-    #     The electric source term
-
-    #     :param Problem prob: FDEM problem
-    #     :rtype: numpy.ndarray
-    #     :return: primary magnetic field
-    #     """
-    #     if all(np.r_[self.mu] == np.r_[prob.curModel.mu]):
-    #         return Zero()
-    #     else:
-    #         formulation = prob._formulation
-
-    #         if formulation is 'EB':
-    #             mui_s = prob.curModel.mui - 1./self.mu
-    #             MMui_s = prob.mesh.getFaceInnerProduct(mui_s)
-    #             C = prob.mesh.edgeCurl
-
-
-    #         elif formulation is 'HJ':
-    #             mu_s = prob.curModel.mu - self.mu
-    #             MMui_s = prob.mesh.getEdgeInnerProduct(mu_s, invMat=True)
-    #             C = prob.mesh.edgeCurl.T
-
-    #         return -C.T * (MMui_s * self.bPrimary(prob))
-
 
 
 
