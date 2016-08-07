@@ -424,9 +424,9 @@ class BaseTensorMesh(BaseMesh):
                 dMdprop = (Utils.sdiag(MI.diagonal()**2) * Av.T * P * V *
                            Utils.sdiag(1./prop**2))
             elif invProp:
-                dMprop = Av.T * P * V * Utils.sdiag(-1./prop**2)
+                dMdprop = Av.T * P * V * Utils.sdiag(-1./prop**2)
             elif invMat:
-                dMprop = Utils.sdiag(- MI.diagonal()**2) * Av.T * P * V
+                dMdprop = Utils.sdiag(- MI.diagonal()**2) * Av.T * P * V
 
         if dMdprop is not None:
             def innerProductDeriv(v=None):
