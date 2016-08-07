@@ -3,6 +3,7 @@ import numpy as np
 import sympy
 from sympy.abc import r, t, z
 import unittest
+import scipy.sparse as sp
 
 TOL = 1e-1
 TOLD = 0.7  # tolerance on deriv checks
@@ -284,7 +285,7 @@ class TestCylEdgeInnerProducts_Order(Tests.OrderTest):
 class TestCylInnerProducts_Deriv(unittest.TestCase):
 
     def setUp(self):
-        n = 80.
+        n = 2
         self.mesh = Mesh.CylMesh([n, 1, n])
         self.face_vec = np.random.rand(self.mesh.nF)
         self.edge_vec = np.random.rand(self.mesh.nE)
@@ -391,6 +392,176 @@ class TestCylInnerProducts_Deriv(unittest.TestCase):
             return MeSig*self.edge_vec, MeSigDeriv(self.edge_vec)
 
         print('Testing EdgeInnerProduct Isotropic InvProp InvMat')
+        return self.assertTrue(Tests.checkDerivative(fun, self.x0, num=7,
+                                                     tolerance=TOLD,
+                                                     plotIt=False))
+
+
+class TestCylInnerProductsAnisotropic_Deriv(unittest.TestCase):
+
+    def setUp(self):
+        n = 60
+        self.mesh = Mesh.CylMesh([n, 1, n])
+        self.face_vec = np.random.rand(self.mesh.nF)
+        self.edge_vec = np.random.rand(self.mesh.nE)
+        # make up a smooth function
+        self.x0 = np.array([2*self.mesh.gridCC[:, 0]**2 + self.mesh.gridCC[:, 2]**4
+                             ])
+
+    def test_FaceInnerProductAnisotropicDeriv(self):
+
+        def fun(x):
+            # fake anisotropy (testing anistropic implementation with isotropic
+            # vector). First order behavior expected for fully anisotropic
+            x = np.repeat(np.atleast_2d(x), 3, axis=0).T
+            x0 = np.repeat(self.x0, 3, axis=0).T
+
+            Zero = sp.csr_matrix((self.mesh.nC, self.mesh.nC))
+            Eye = sp.eye(self.mesh.nC)
+            P = sp.vstack([sp.hstack([Eye, Zero, Eye])])
+
+            MfSig = self.mesh.getFaceInnerProduct(x)
+            MfSigDeriv = self.mesh.getFaceInnerProductDeriv(x0)
+            return MfSig*self.face_vec ,  MfSigDeriv(self.face_vec) * P.T
+
+        print('Testing FaceInnerProduct Anisotropic')
+        return self.assertTrue(Tests.checkDerivative(fun, self.x0, num=7,
+                               tolerance=TOLD, plotIt=False))
+
+    # def test_FaceInnerProductAnisotropicDerivInvProp(self):
+
+    #     def fun(x):
+    #         x = np.repeat(np.atleast_2d(x), 3, axis=0).T
+    #         x0 = np.repeat(self.x0, 3, axis=0).T
+
+    #         Zero = sp.csr_matrix((self.mesh.nC, self.mesh.nC))
+    #         Eye = sp.eye(self.mesh.nC)
+    #         P = sp.vstack([sp.hstack([Eye, Zero, Eye])])
+
+    #         MfSig = self.mesh.getFaceInnerProduct(x, invProp=True)
+    #         MfSigDeriv = self.mesh.getFaceInnerProductDeriv(x0,
+    #                                                         invProp=True)
+    #         return MfSig*self.face_vec, MfSigDeriv(self.face_vec) * P.T
+
+    #     print('Testing FaceInnerProduct Anisotropic InvProp')
+    #     return self.assertTrue(Tests.checkDerivative(fun, self.x0, num=7,
+    #                                                  tolerance=TOLD,
+    #                                                  plotIt=False))
+
+    # def test_FaceInnerProductAnisotropicDerivInvMat(self):
+
+    #     def fun(x):
+    #         x = np.repeat(np.atleast_2d(x), 3, axis=0).T
+    #         x0 = np.repeat(self.x0, 3, axis=0).T
+
+    #         Zero = sp.csr_matrix((self.mesh.nC, self.mesh.nC))
+    #         Eye = sp.eye(self.mesh.nC)
+    #         P = sp.vstack([sp.hstack([Eye, Zero, Eye])])
+
+    #         MfSig = self.mesh.getFaceInnerProduct(x, invMat=True)
+    #         MfSigDeriv = self.mesh.getFaceInnerProductDeriv(x0, invMat=True)
+    #         return MfSig*self.face_vec, MfSigDeriv(self.face_vec) * P.T
+
+    #     print('Testing FaceInnerProduct Anisotropic InvMat')
+    #     return self.assertTrue(Tests.checkDerivative(fun, self.x0, num=7,
+    #                                                  tolerance=TOLD,
+    #                                                  plotIt=False))
+
+    def test_FaceInnerProductAnisotropicDerivInvPropInvMat(self):
+
+        def fun(x):
+            x = np.repeat(np.atleast_2d(x), 3, axis=0).T
+            x0 = np.repeat(self.x0, 3, axis=0).T
+
+            Zero = sp.csr_matrix((self.mesh.nC, self.mesh.nC))
+            Eye = sp.eye(self.mesh.nC)
+            P = sp.vstack([sp.hstack([Eye, Zero, Eye])])
+
+            MfSig = self.mesh.getFaceInnerProduct(x, invProp=True, invMat=True)
+            MfSigDeriv = self.mesh.getFaceInnerProductDeriv(x0,
+                                                            invProp=True,
+                                                            invMat=True)
+            return MfSig*self.face_vec, MfSigDeriv(self.face_vec) * P.T
+
+        print('Testing FaceInnerProduct Anisotropic InvProp InvMat')
+        return self.assertTrue(Tests.checkDerivative(fun, self.x0, num=7,
+                                                     tolerance=TOLD,
+                                                     plotIt=False))
+
+    def test_EdgeInnerProductAnisotropicDeriv(self):
+
+        def fun(x):
+            x = np.repeat(np.atleast_2d(x), 3, axis=0).T
+            x0 = np.repeat(self.x0, 3, axis=0).T
+
+            Zero = sp.csr_matrix((self.mesh.nC, self.mesh.nC))
+            Eye = sp.eye(self.mesh.nC)
+            P = sp.vstack([sp.hstack([Zero, Eye, Zero])])
+
+            MeSig = self.mesh.getEdgeInnerProduct(x.reshape(self.mesh.nC, 3))
+            MeSigDeriv = self.mesh.getEdgeInnerProductDeriv(x0)
+            return MeSig*self.edge_vec, MeSigDeriv(self.edge_vec) * P.T
+
+        print('Testing EdgeInnerProduct Anisotropic')
+        return self.assertTrue(Tests.checkDerivative(fun, self.x0, num=7,
+                                                     tolerance=TOLD,
+                                                     plotIt=False))
+
+    # def test_EdgeInnerProductAnisotropicDerivInvProp(self):
+
+    #     def fun(x):
+    #         x = np.repeat(np.atleast_2d(x), 3, axis=0).T
+    #         x0 = np.repeat(self.x0, 3, axis=0).T
+
+    #         Zero = sp.csr_matrix((self.mesh.nC, self.mesh.nC))
+    #         Eye = sp.eye(self.mesh.nC)
+    #         P = sp.vstack([sp.hstack([Zero, Eye, Zero])])
+
+    #         MeSig = self.mesh.getEdgeInnerProduct(x, invProp=True)
+    #         MeSigDeriv = self.mesh.getEdgeInnerProductDeriv(x0, invProp=True)
+    #         return MeSig*self.edge_vec, MeSigDeriv(self.edge_vec) * P.T
+
+    #     print('Testing EdgeInnerProduct Anisotropic InvProp')
+    #     return self.assertTrue(Tests.checkDerivative(fun, self.x0, num=7,
+    #                                                  tolerance=TOLD,
+    #                                                  plotIt=False))
+
+    # def test_EdgeInnerProductAnisotropicDerivInvMat(self):
+
+    #     def fun(x):
+    #         x = np.repeat(np.atleast_2d(x), 3, axis=0).T
+    #         x0 = np.repeat(self.x0, 3, axis=0).T
+
+    #         Zero = sp.csr_matrix((self.mesh.nC, self.mesh.nC))
+    #         Eye = sp.eye(self.mesh.nC)
+    #         P = sp.vstack([sp.hstack([Zero, Eye, Zero])])
+
+    #         MeSig = self.mesh.getEdgeInnerProduct(x, invMat=True)
+    #         MeSigDeriv = self.mesh.getEdgeInnerProductDeriv(x0, invMat=True)
+    #         return MeSig*self.edge_vec, MeSigDeriv(self.edge_vec) * P.T
+
+    #     print('Testing EdgeInnerProduct Anisotropic InvMat')
+    #     return self.assertTrue(Tests.checkDerivative(fun, self.x0, num=7,
+    #                                                  tolerance=TOLD,
+    #                                                  plotIt=False))
+
+    def test_EdgeInnerProductAnisotropicDerivInvPropInvMat(self):
+
+        def fun(x):
+            x = np.repeat(np.atleast_2d(x), 3, axis=0).T
+            x0 = np.repeat(self.x0, 3, axis=0).T
+
+            Zero = sp.csr_matrix((self.mesh.nC, self.mesh.nC))
+            Eye = sp.eye(self.mesh.nC)
+            P = sp.vstack([sp.hstack([Zero, Eye, Zero])])
+
+            MeSig = self.mesh.getEdgeInnerProduct(x, invProp=True, invMat=True)
+            MeSigDeriv = self.mesh.getEdgeInnerProductDeriv(x0,
+                                                            invProp=True,
+                                                            invMat=True)
+            return MeSig*self.edge_vec, MeSigDeriv(self.edge_vec) * P.T
+
+        print('Testing EdgeInnerProduct Anisotropic InvProp InvMat')
         return self.assertTrue(Tests.checkDerivative(fun, self.x0, num=7,
                                                      tolerance=TOLD,
                                                      plotIt=False))
