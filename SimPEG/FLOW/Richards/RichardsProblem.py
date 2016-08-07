@@ -140,7 +140,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
         for ii, dt in enumerate(self.timeSteps):
             bc = self.getBoundaryConditions(ii, u[ii])
             u[ii+1] = self.rootFinder.root(lambda hn1m, return_g=True: self.getResidual(m, u[ii], hn1m, dt, bc, return_g=return_g), u[ii])
-            if self.debug: print "Solving Fields (%4d/%d - %3.1f%% Done) %d Iterations, %4.2f seconds"%(ii+1, self.nT, 100.0*(ii+1)/self.nT, self.rootFinder.iter, time.time() - tic)
+            if self.debug: print "Solving Fields ({0:4d}/{1:d} - {2:3.1f}% Done) {3:d} Iterations, {4:4.2f} seconds".format(ii+1, self.nT, 100.0*(ii+1)/self.nT, self.rootFinder.iter, time.time() - tic)
         return u
 
     @Utils.timeIt

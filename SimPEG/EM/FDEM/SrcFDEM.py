@@ -1,6 +1,6 @@
 from SimPEG import Survey, Problem, Utils, np, sp
 from scipy.constants import mu_0
-from SimPEG.EM.Utils import *
+from SimPEG.EM.Utils import omega, MagneticDipoleFields, MagneticDipoleVectorPotential, MagneticLoopVectorPotential
 from SimPEG.Utils import Zero
 
 class BaseSrc(Survey.BaseSrc):
@@ -23,8 +23,8 @@ class BaseSrc(Survey.BaseSrc):
         - :math:`s_m` : magnetic source term
         - :math:`s_e` : electric source term
 
-        :param Problem prob: FDEM Problem
-        :rtype: (numpy.ndarray, numpy.ndarray)
+        :param BaseFDEMProblem prob: FDEM Problem
+        :rtype: tuple
         :return: tuple with magnetic source term and electric source term
         """
         s_m = self.s_m(prob)
@@ -37,10 +37,10 @@ class BaseSrc(Survey.BaseSrc):
         - :code:`s_mDeriv` : derivative of the magnetic source term
         - :code:`s_eDeriv` : derivative of the electric source term
 
-        :param Problem prob: FDEM Problem
+        :param BaseFDEMProblem prob: FDEM Problem
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
-        :rtype: (numpy.ndarray, numpy.ndarray)
+        :rtype: tuple
         :return: tuple with magnetic source term and electric source term derivatives times a vector
         """
         if v is not None:
@@ -52,7 +52,7 @@ class BaseSrc(Survey.BaseSrc):
         """
         Primary magnetic flux density
 
-        :param Problem prob: FDEM Problem
+        :param BaseFDEMProblem prob: FDEM Problem
         :rtype: numpy.ndarray
         :return: primary magnetic flux density
         """
@@ -64,7 +64,7 @@ class BaseSrc(Survey.BaseSrc):
         """
         Primary magnetic field
 
-        :param Problem prob: FDEM Problem
+        :param BaseFDEMProblem prob: FDEM Problem
         :rtype: numpy.ndarray
         :return: primary magnetic field
         """
@@ -76,7 +76,7 @@ class BaseSrc(Survey.BaseSrc):
         """
         Primary electric field
 
-        :param Problem prob: FDEM Problem
+        :param BaseFDEMProblem prob: FDEM Problem
         :rtype: numpy.ndarray
         :return: primary electric field
         """
@@ -88,7 +88,7 @@ class BaseSrc(Survey.BaseSrc):
         """
         Primary current density
 
-        :param Problem prob: FDEM Problem
+        :param BaseFDEMProblem prob: FDEM Problem
         :rtype: numpy.ndarray
         :return: primary current density
         """
@@ -100,7 +100,7 @@ class BaseSrc(Survey.BaseSrc):
         """
         Magnetic source term
 
-        :param Problem prob: FDEM Problem
+        :param BaseFDEMProblem prob: FDEM Problem
         :rtype: numpy.ndarray
         :return: magnetic source term on mesh
         """
@@ -110,7 +110,7 @@ class BaseSrc(Survey.BaseSrc):
         """
         Electric source term
 
-        :param Problem prob: FDEM Problem
+        :param BaseFDEMProblem prob: FDEM Problem
         :rtype: numpy.ndarray
         :return: electric source term on mesh
         """
@@ -120,7 +120,7 @@ class BaseSrc(Survey.BaseSrc):
         """
         Derivative of magnetic source term with respect to the inversion model
 
-        :param Problem prob: FDEM Problem
+        :param BaseFDEMProblem prob: FDEM Problem
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -133,7 +133,7 @@ class BaseSrc(Survey.BaseSrc):
         """
         Derivative of electric source term with respect to the inversion model
 
-        :param Problem prob: FDEM Problem
+        :param BaseFDEMProblem prob: FDEM Problem
         :param numpy.ndarray v: vector to take product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -162,7 +162,7 @@ class RawVec_e(BaseSrc):
         """
         Electric source term
 
-        :param Problem prob: FDEM Problem
+        :param BaseFDEMProblem prob: FDEM Problem
         :rtype: numpy.ndarray
         :return: electric source term on mesh
         """
@@ -191,7 +191,7 @@ class RawVec_m(BaseSrc):
         """
         Magnetic source term
 
-        :param Problem prob: FDEM Problem
+        :param BaseFDEMProblem prob: FDEM Problem
         :rtype: numpy.ndarray
         :return: magnetic source term on mesh
         """
@@ -220,7 +220,7 @@ class RawVec(BaseSrc):
         """
         Magnetic source term
 
-        :param Problem prob: FDEM Problem
+        :param BaseFDEMProblem prob: FDEM Problem
         :rtype: numpy.ndarray
         :return: magnetic source term on mesh
         """
@@ -232,7 +232,7 @@ class RawVec(BaseSrc):
         """
         Electric source term
 
-        :param Problem prob: FDEM Problem
+        :param BaseFDEMProblem prob: FDEM Problem
         :rtype: numpy.ndarray
         :return: electric source term on mesh
         """
@@ -301,7 +301,7 @@ class MagDipole(BaseSrc):
         """
         The primary magnetic flux density from a magnetic vector potential
 
-        :param Problem prob: FDEM problem
+        :param BaseFDEMProblem prob: FDEM problem
         :rtype: numpy.ndarray
         :return: primary magnetic field
         """
@@ -339,7 +339,7 @@ class MagDipole(BaseSrc):
         """
         The primary magnetic field from a magnetic vector potential
 
-        :param Problem prob: FDEM problem
+        :param BaseFDEMProblem prob: FDEM problem
         :rtype: numpy.ndarray
         :return: primary magnetic field
         """
@@ -350,7 +350,7 @@ class MagDipole(BaseSrc):
         """
         The magnetic source term
 
-        :param Problem prob: FDEM problem
+        :param BaseFDEMProblem prob: FDEM problem
         :rtype: numpy.ndarray
         :return: primary magnetic field
         """
@@ -364,7 +364,7 @@ class MagDipole(BaseSrc):
         """
         The electric source term
 
-        :param Problem prob: FDEM problem
+        :param BaseFDEMProblem prob: FDEM problem
         :rtype: numpy.ndarray
         :return: primary magnetic field
         """
@@ -416,7 +416,7 @@ class MagDipole_Bfield(BaseSrc):
         """
         The primary magnetic flux density from the analytic solution for magnetic fields from a dipole
 
-        :param Problem prob: FDEM problem
+        :param BaseFDEMProblem prob: FDEM problem
         :rtype: numpy.ndarray
         :return: primary magnetic field
         """
@@ -455,7 +455,7 @@ class MagDipole_Bfield(BaseSrc):
         """
         The primary magnetic field from a magnetic vector potential
 
-        :param Problem prob: FDEM problem
+        :param BaseFDEMProblem prob: FDEM problem
         :rtype: numpy.ndarray
         :return: primary magnetic field
         """
@@ -466,7 +466,7 @@ class MagDipole_Bfield(BaseSrc):
         """
         The magnetic source term
 
-        :param Problem prob: FDEM problem
+        :param BaseFDEMProblem prob: FDEM problem
         :rtype: numpy.ndarray
         :return: primary magnetic field
         """
@@ -479,7 +479,7 @@ class MagDipole_Bfield(BaseSrc):
         """
         The electric source term
 
-        :param Problem prob: FDEM problem
+        :param BaseFDEMProblem prob: FDEM problem
         :rtype: numpy.ndarray
         :return: primary magnetic field
         """
@@ -530,7 +530,7 @@ class CircularLoop(BaseSrc):
         """
         The primary magnetic flux density from a magnetic vector potential
 
-        :param Problem prob: FDEM problem
+        :param BaseFDEMProblem prob: FDEM problem
         :rtype: numpy.ndarray
         :return: primary magnetic field
         """
@@ -567,7 +567,7 @@ class CircularLoop(BaseSrc):
         """
         The primary magnetic field from a magnetic vector potential
 
-        :param Problem prob: FDEM problem
+        :param BaseFDEMProblem prob: FDEM problem
         :rtype: numpy.ndarray
         :return: primary magnetic field
         """
@@ -578,7 +578,7 @@ class CircularLoop(BaseSrc):
         """
         The magnetic source term
 
-        :param Problem prob: FDEM problem
+        :param BaseFDEMProblem prob: FDEM problem
         :rtype: numpy.ndarray
         :return: primary magnetic field
         """
@@ -591,7 +591,7 @@ class CircularLoop(BaseSrc):
         """
         The electric source term
 
-        :param Problem prob: FDEM problem
+        :param BaseFDEMProblem prob: FDEM problem
         :rtype: numpy.ndarray
         :return: primary magnetic field
         """

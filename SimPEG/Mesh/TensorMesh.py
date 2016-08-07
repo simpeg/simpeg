@@ -23,8 +23,8 @@ class BaseTensorMesh(BaseMesh):
                 h_i = self._unitDimensions[i] * np.ones(int(h_i))/int(h_i)
             elif type(h_i) is list:
                 h_i = Utils.meshTensor(h_i)
-            assert isinstance(h_i, np.ndarray), ("h[%i] is not a numpy array." % i)
-            assert len(h_i.shape) == 1, ("h[%i] must be a 1D numpy array." % i)
+            assert isinstance(h_i, np.ndarray), ("h[{0:d}] is not a numpy array.".format(i))
+            assert len(h_i.shape) == 1, ("h[{0:d}] must be a 1D numpy array.".format(i))
             h[i] = h_i[:] # make a copy.
 
         x0 = np.zeros(len(h))
@@ -41,7 +41,7 @@ class BaseTensorMesh(BaseMesh):
                 elif x_i == 'N':
                     x0[i] = -h_i.sum()
                 else:
-                    raise Exception("x0[%i] must be a scalar or '0' to be zero, 'C' to center, or 'N' to be negative." % i)
+                    raise Exception("x0[{0:d}] must be a scalar or '0' to be zero, 'C' to center, or 'N' to be negative.".format(i))
 
         if isinstance(self, BaseRectangularMesh):
             BaseRectangularMesh.__init__(self, np.array([x.size for x in h]), x0)
@@ -198,8 +198,8 @@ class BaseTensorMesh(BaseMesh):
         Determines if a set of points are inside a mesh.
 
         :param numpy.ndarray pts: Location of points to test
-        :rtype numpy.ndarray
-        :return inside, numpy array of booleans
+        :rtype numpy.ndarray:
+        :return: inside, numpy array of booleans
         """
         pts = Utils.asArray_N_x_Dim(pts, self.dim)
 
@@ -221,7 +221,7 @@ class BaseTensorMesh(BaseMesh):
 
         :param numpy.ndarray loc: Location of points to interpolate to
         :param str locType: What to interpolate (see below)
-        :rtype: scipy.sparse.csr.csr_matrix
+        :rtype: scipy.sparse.csr_matrix
         :return: M, the interpolation matrix
 
         locType can be::
@@ -239,7 +239,7 @@ class BaseTensorMesh(BaseMesh):
             'CCVz'  -> z-component of vector field defined on cell centers
         """
         if self._meshType == 'CYL' and self.isSymmetric and locType in ['Ex','Ez','Fy']:
-            raise Exception('Symmetric CylMesh does not support %s interpolation, as this variable does not exist.' % locType)
+            raise Exception('Symmetric CylMesh does not support {0!s} interpolation, as this variable does not exist.'.format(locType))
 
         loc = Utils.asArray_N_x_Dim(loc, self.dim)
 
@@ -289,7 +289,7 @@ class BaseTensorMesh(BaseMesh):
             :param bool returnP: returns the projection matrices
             :param bool invProp: inverts the material property
             :param bool invMat: inverts the matrix
-            :rtype: scipy.csr_matrix
+            :rtype: scipy.sparse.csr_matrix
             :return: M, the inner product matrix (nF, nF)
         """
         assert projType in ['F', 'E'], "projType must be 'F' for faces or 'E' for edges"

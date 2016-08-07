@@ -8,12 +8,12 @@ def _checkAccuracy(A, b, X, accuracyTol):
     if nrm_b > 0:
         nrm /= nrm_b
     if nrm > accuracyTol:
-        msg = '### SolverWarning ###: Accuracy on solve is above tolerance: %e > %e' % (nrm, accuracyTol)
+        msg = '### SolverWarning ###: Accuracy on solve is above tolerance: {0:e} > {1:e}'.format(nrm, accuracyTol)
         print msg
         warnings.warn(msg, RuntimeWarning)
 
 
-def SolverWrapD(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6):
+def SolverWrapD(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6, name=None):
     """
     Wraps a direct Solver.
 
@@ -72,11 +72,11 @@ def SolverWrapD(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6):
         if factorize and hasattr(self.solver, 'clean'):
             return self.solver.clean()
 
-    return type(fun.__name__+'_Wrapped', (object,), {"__init__": __init__, "clean": clean, "__mul__": __mul__})
+    return type(name if name is not None else fun.__name__, (object,), {"__init__": __init__, "clean": clean, "__mul__": __mul__})
 
 
 
-def SolverWrapI(fun, checkAccuracy=True, accuracyTol=1e-5):
+def SolverWrapI(fun, checkAccuracy=True, accuracyTol=1e-5, name=None):
     """
     Wraps an iterative Solver.
 
@@ -128,13 +128,13 @@ def SolverWrapI(fun, checkAccuracy=True, accuracyTol=1e-5):
     def clean(self):
         pass
 
-    return type(fun.__name__+'_Wrapped', (object,), {"__init__": __init__, "clean": clean, "__mul__": __mul__})
+    return type(name if name is not None else fun.__name__, (object,), {"__init__": __init__, "clean": clean, "__mul__": __mul__})
 
 
 from scipy.sparse import linalg
-Solver   = SolverWrapD(linalg.spsolve, factorize=False)
-SolverLU = SolverWrapD(linalg.splu, factorize=True)
-SolverCG = SolverWrapI(linalg.cg)
+Solver   = SolverWrapD(linalg.spsolve, factorize=False, name="Solver")
+SolverLU = SolverWrapD(linalg.splu, factorize=True, name="SolverLU")
+SolverCG = SolverWrapI(linalg.cg, name="SolverCG")
 
 
 class SolverDiag(object):

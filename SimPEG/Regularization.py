@@ -1,4 +1,6 @@
-import Utils, Maps, Mesh
+import Utils
+import Maps
+import Mesh
 import numpy as np
 import scipy.sparse as sp
 
@@ -10,7 +12,7 @@ class RegularizationMesh(object):
     are not necessarily true differential operators, but are constructed from
     a SimPEG Mesh.
 
-    :param Mesh mesh: problem mesh
+    :param BaseMesh mesh: problem mesh
     :param numpy.array indActive: bool array, size nC, that is True where we have active cells. Used to reduce the operators so we regularize only on active cells
     """
 
@@ -383,8 +385,8 @@ class BaseRegularization(object):
 
         :param numpy.array m: geophysical model
         :param numpy.array v: vector to multiply
-        :rtype: scipy.sparse.csr_matrix or numpy.ndarray
-        :return: WtW or WtW*v
+        :rtype: scipy.sparse.csr_matrix
+        :return: WtW, or if v is supplied WtW*v (numpy.ndarray)
 
         The regularization is:
 
@@ -650,8 +652,8 @@ class Tikhonov(Simple):
     Note if the key word argument `mrefInSmooth` is False, then mref is not
     included in the smoothness contribution.
 
-    :param Mesh mesh: SimPEG mesh
-    :param Maps mapping: regularization mapping, takes the model from model space to the thing you want to regularize
+    :param BaseMesh mesh: SimPEG mesh
+    :param IdentityMap mapping: regularization mapping, takes the model from model space to the thing you want to regularize
     :param numpy.ndarray indActive: active cell indices for reducing the size of differential operators in the definition of a regularization mesh
     :param bool mrefInSmooth: (default = False) put mref in the smoothness component?
     :param float alpha_s: (default 1e-6) smallness weight
@@ -671,7 +673,7 @@ class Tikhonov(Simple):
     alpha_yy     = Utils.dependentProperty('_alpha_yy', 0.0, ['_W', '_Wyy'],    "Weight for the second derivative in the y direction")
     alpha_zz     = Utils.dependentProperty('_alpha_zz', 0.0, ['_W', '_Wzz'],    "Weight for the second derivative in the z direction")
 
-    def __init__(self, mesh, mapping=None, indActive = None, **kwargs):
+    def __init__(self, mesh, mapping=None, indActive=None, **kwargs):
         BaseRegularization.__init__(self, mesh, mapping=mapping, indActive=indActive, **kwargs)
 
     @property
@@ -892,28 +894,28 @@ class Tikhonov(Simple):
 class Sparse(Simple):
     """
         The regularization is:
-    
+
         .. math::
-    
+
             R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top R^\\top R W(m-m_\\text{ref})}
-    
+
         where the IRLS weight
-    
+
         .. math::
-    
+
             R = \eta TO FINISH LATER!!!
-    
+
         So the derivative is straight forward:
-    
+
         .. math::
-    
+
             R(m) = \mathbf{W^\\top R^\\top R W (m-m_\\text{ref})}
-    
+
         The IRLS weights are recomputed after each beta solves.
         It is strongly recommended to do a few Gauss-Newton iterations
         before updating.
     """
-        
+
     # set default values
     eps_p = 1e-1        # Threshold value for the model norm
     eps_q = 1e-1        # Threshold value for the model gradient norm

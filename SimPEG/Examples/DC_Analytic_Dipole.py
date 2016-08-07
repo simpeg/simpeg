@@ -1,7 +1,7 @@
 from SimPEG import *
-import SimPEG.DCIP as DC
+import SimPEG.EM.Static.DC as DC
 
-def run(plotIt=False):
+def run(plotIt=True):
     cs = 25.
     hx = [(cs,7, -1.3),(cs,21),(cs,7, 1.3)]
     hy = [(cs,7, -1.3),(cs,21),(cs,7, 1.3)]
@@ -21,10 +21,10 @@ def run(plotIt=False):
     #     ax.plot(xyz_rxP[:,0],xyz_rxP[:,1], 'w.')
     #     ax.plot(xyz_rxN[:,0],xyz_rxN[:,1], 'r.', ms = 3)
 
-    rx = DC.RxDipole(xyz_rxP, xyz_rxN)
-    src = DC.SrcDipole([rx], [-200, 0, -12.5], [+200, 0, -12.5])
-    survey = DC.SurveyDC([src])
-    problem = DC.ProblemDC_CC(mesh)
+    rx = DC.Rx.Dipole(xyz_rxP, xyz_rxN)
+    src = DC.Src.Dipole([rx], np.r_[-200, 0, -12.5], np.r_[+200, 0, -12.5])
+    survey = DC.Survey([src])
+    problem = DC.Problem3D_CC(mesh)
     problem.pair(survey)
     try:
         from pymatsolver import MumpsSolver
@@ -65,4 +65,4 @@ def run(plotIt=False):
 
 
 if __name__ == '__main__':
-    print run(plotIt=True)
+    print run()

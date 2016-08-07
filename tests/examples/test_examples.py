@@ -25,7 +25,7 @@ class compareInitFiles(unittest.TestCase):
 
 def get(test):
     def test_func(self):
-        print '\nTesting %s.run(plotIt=False)\n'%test
+        print '\nTesting {0!s}.run(plotIt=False)\n'.format(test)
         getattr(Examples, test).run(plotIt=False)
         self.assertTrue(True)
     return test_func
