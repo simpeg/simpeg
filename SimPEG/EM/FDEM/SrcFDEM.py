@@ -297,16 +297,22 @@ class MagDipole(BaseSrc):
                  **kwargs):
         self.freq = float(freq)
         self.loc = loc
-        if not isinstance(orientation, str):
-            warnings.warn('Using orientations that are not in aligned with the'
-                          ' mesh axes is not thoroughly tested. PR on a test??'
-                          )
-            assert np.linalg.norm(orientation) == 1., ('Orientation must have '
-                                                       'unit length, not '
-                                                       '{}'.format(np.linalg.norm(orientation)))
-            self.orientation = orientation
-        else:
-            self.orientation = orientationDict[orientation.upper()]
+        if isinstance(orientation, str):
+            assert orientation.upper() in ['X', 'Y', 'Z'], ("orientation must "
+                                                            "be in 'X', 'Y', "
+                                                            "'Z' not {}".format(orientation))
+            orientation = orientationDict[orientation.upper()]
+        elif (np.linalg.norm(orientation - np.r_[1., 0., 0.]) > 1e-6 or
+              np.linalg.norm(orientation - np.r_[0., 1., 0.]) > 1e-6 or
+              np.linalg.norm(orientation - np.r_[0., 0., 1.]) > 1e-6):
+                warnings.warn('Using orientations that are not in aligned with'
+                              ' the mesh axes is not thoroughly tested. PR on '
+                              'a test??')
+
+        assert np.linalg.norm(orientation) == 1., ('Orientation must have unit'
+                                                   ' length, not {}'.format(np.linalg.norm(orientation)))
+
+        self.orientation = orientation
         self.moment = moment
         self.mu = mu
         Utils.setKwargs(self, **kwargs)
@@ -483,12 +489,12 @@ class MagDipole_Bfield(MagDipole):
                 raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
             bx = srcfct(self.loc, gridX, 'x', mu=self.mu, moment=self.moment)
             bz = srcfct(self.loc, gridZ, 'z', mu=self.mu, moment=self.moment)
-            b = np.concatenate((bx,bz))
+            b = np.concatenate((bx, bz))
         else:
             bx = srcfct(self.loc, gridX, 'x', mu=self.mu, moment=self.moment)
             by = srcfct(self.loc, gridY, 'y', mu=self.mu, moment=self.moment)
             bz = srcfct(self.loc, gridZ, 'z', mu=self.mu, moment=self.moment)
-            b = np.concatenate((bx,by,bz))
+            b = np.concatenate((bx, by, bz))
 
         return Utils.mkvc(b)
 
