@@ -1,5 +1,5 @@
 from SimPEG import Mesh, Utils, np, sp
-import SimPEG.DCIP as DC
+from SimPEG.EM.Static import DC, Utils as StaticUtils
 import time
 
 def run(loc=None, sig=None, radi=None, param=None, surveyType='dipole-dipole', unitType='appConductivity', plotIt=True):
@@ -74,7 +74,13 @@ def run(loc=None, sig=None, radi=None, param=None, surveyType='dipole-dipole', u
 
     # We will handle the geometry of the survey for you and create all the combination of tx-rx along line
     # [Tx, Rx] = DC.gen_DCIPsurvey(locs, mesh, surveyType, param[0], param[1], param[2])
-    survey, Tx, Rx = DC.gen_DCIPsurvey(locs, mesh, surveyType, param[0], param[1], param[2])
+    srcList = StaticUtils.gen_DCIPsurvey(locs, mesh, surveyType, param[0], param[1], param[2])
+    print(srcList)
+
+    raise Exception('The output of the function changed. We need to create the survey and get Rx to continue.')
+
+    # Something like this!
+    survey, Tx, Rx
 
     # Define some global geometry
     dl_len = np.sqrt( np.sum((locs[0,:] - locs[1,:])**2) )
