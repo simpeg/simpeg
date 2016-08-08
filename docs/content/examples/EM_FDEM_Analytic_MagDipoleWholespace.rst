@@ -12,7 +12,8 @@
 EM: Magnetic Dipole in a Whole-Space
 ====================================
 
-Here we plot the magnetic flux density from a harmonic dipole in a wholespace.
+Here we plot the magnetic flux density from a harmonic dipole in a
+wholespace.
 
 
 
