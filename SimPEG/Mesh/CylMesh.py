@@ -32,10 +32,12 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         assert self.hy.sum() == 2*np.pi, "The 2nd dimension must sum to 2*pi"
         if self.dim == 2:
             print 'Warning, a disk mesh has not been tested thoroughly.'
-        cartesianOrigin = np.zeros(self.dim) if cartesianOrigin is None else cartesianOrigin
-        assert len(cartesianOrigin) == self.dim, "cartesianOrigin must be the same length as the dimension of the mesh."
+        cartesianOrigin = (np.zeros(self.dim) if cartesianOrigin is None
+                           else cartesianOrigin)
+        assert len(cartesianOrigin) == self.dim, ("cartesianOrigin must be the "
+                                                  "same length as the dimension"
+                                                  " of the mesh.")
         self.cartesianOrigin = np.array(cartesianOrigin, dtype=float)
-
 
     @property
     def isSymmetric(self):
@@ -49,7 +51,8 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         :rtype: int
         :return: nNx
         """
-        if self.isSymmetric: return self.nCx
+        if self.isSymmetric:
+            return self.nCx
         return self.nCx + 1
 
     @property
@@ -60,7 +63,8 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         :rtype: int
         :return: nNy
         """
-        if self.isSymmetric: return 0
+        if self.isSymmetric:
+            return 0
         return self.nCy
 
     @property
@@ -140,9 +144,10 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         """Edge lengths"""
         if getattr(self, '_edge', None) is None:
             if self.isSymmetric:
-                self._edge = 2*pi*self.gridN[:,0]
+                self._edge = 2*pi*self.gridN[:, 0]
             else:
-                raise NotImplementedError('edges not yet implemented for 3D cyl mesh')
+                raise NotImplementedError('edges not yet implemented for 3D '
+                                          'cyl mesh')
         return self._edge
 
     @property
@@ -150,9 +155,11 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         """Face areas"""
         if getattr(self, '_area', None) is None:
             if self.nCy > 1:
-                raise NotImplementedError('area not yet implemented for 3D cyl mesh')
+                raise NotImplementedError('area not yet implemented for 3D '
+                                          'cyl mesh')
             areaR = np.kron(self.hz, 2*pi*self.vectorNx)
-            areaZ = np.kron(np.ones_like(self.vectorNz),pi*(self.vectorNx**2 - np.r_[0, self.vectorNx[:-1]]**2))
+            areaZ = np.kron(np.ones_like(self.vectorNz), pi*(self.vectorNx**2 -
+                            np.r_[0, self.vectorNx[:-1]]**2))
             self._area = np.r_[areaR, areaZ]
         return self._area
 
@@ -161,7 +168,8 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         """Volume of each cell"""
         if getattr(self, '_vol', None) is None:
             if self.nCy > 1:
-                raise NotImplementedError('vol not yet implemented for 3D cyl mesh')
+                raise NotImplementedError('vol not yet implemented for 3D '
+                                          'cyl mesh')
             az = pi*(self.vectorNx**2 - np.r_[0, self.vectorNx[:-1]]**2)
             self._vol = np.kron(self.hz, az)
         return self._vol
@@ -188,9 +196,13 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
 
     @property
     def faceDivx(self):
-        """Construct divergence operator in the x component (face-stg to cell-centres)."""
+        """
+        Construct divergence operator in the x component
+        (face-stg to cell-centres).
+        """
         if getattr(self, '_faceDivx', None) is None:
-            D1 = Utils.kron3(Utils.speye(self.nCz), Utils.speye(self.nCy), Utils.ddx(self.nCx)[:,1:])
+            D1 = Utils.kron3(Utils.speye(self.nCz), Utils.speye(self.nCy),
+                             Utils.ddx(self.nCx)[:,1:])
             S = self.r(self.area, 'F', 'Fx', 'V')
             V = self.vol
             self._faceDivx = Utils.sdiag(1/V)*D1*Utils.sdiag(S)
@@ -198,11 +210,17 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
 
     @property
     def faceDivy(self):
-        """Construct divergence operator in the y component (face-stg to cell-centres)."""
-        raise NotImplementedError('Wrapping the Utils.ddx is not yet implemented.')
+        """
+        Construct divergence operator in the y component
+        (face-stg to cell-centres).
+        """
+        raise NotImplementedError('Wrapping the Utils.ddx is not yet '
+                                  'implemented.')
         if getattr(self, '_faceDivy', None) is None:
-            # TODO: this needs to wrap to join up faces which are connected in the cylinder
-            D2 = Utils.kron3(Utils.speye(self.nCz), Utils.ddx(self.nCy), Utils.speye(self.nCx))
+            # TODO: this needs to wrap to join up faces which are
+            # connected in the cylinder
+            D2 = Utils.kron3(Utils.speye(self.nCz), Utils.ddx(self.nCy),
+                            Utils.speye(self.nCx))
             S = self.r(self.area, 'F', 'Fy', 'V')
             V = self.vol
             self._faceDivy = Utils.sdiag(1/V)*D2*Utils.sdiag(S)
@@ -210,26 +228,29 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
 
     @property
     def faceDivz(self):
-        """Construct divergence operator in the z component (face-stg to cell-centres)."""
+        """
+        Construct divergence operator in the z component
+        (face-stg to cell-centres).
+        """
         if getattr(self, '_faceDivz', None) is None:
-            D3 = Utils.kron3(Utils.ddx(self.nCz), Utils.speye(self.nCy), Utils.speye(self.nCx))
+            D3 = Utils.kron3(Utils.ddx(self.nCz), Utils.speye(self.nCy),
+                             Utils.speye(self.nCx))
             S = self.r(self.area, 'F', 'Fz', 'V')
             V = self.vol
             self._faceDivz = Utils.sdiag(1/V)*D3*Utils.sdiag(S)
         return self._faceDivz
-
 
     @property
     def cellGrad(self):
         """The cell centered Gradient, takes you to cell faces."""
         raise NotImplementedError('Cell Grad is not yet implemented.')
 
-
     @property
     def nodalGrad(self):
         """Construct gradient operator (nodes to edges)."""
         # Nodal grad does not make sense for cylindrically symmetric mesh.
-        if self.isSymmetric: return None
+        if self.isSymmetric:
+            return None
         raise NotImplementedError('nodalGrad not yet implemented')
 
     @property
@@ -241,34 +262,25 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
     def edgeCurl(self):
         """The edgeCurl property."""
         if self.nCy > 1:
-            raise NotImplementedError('Edge curl not yet implemented for nCy > 1')
+            raise NotImplementedError('Edge curl not yet implemented for '
+                                      'nCy > 1')
         if getattr(self, '_edgeCurl', None) is None:
-            #1D Difference matricies
-            dr = sp.spdiags((np.ones((self.nCx+1, 1))*[-1, 1]).T, [-1,0], self.nCx, self.nCx, format="csr")
-            dz = sp.spdiags((np.ones((self.nCz+1, 1))*[-1, 1]).T, [0,1], self.nCz, self.nCz+1, format="csr")
+            # 1D Difference matricies
+            dr = sp.spdiags((np.ones((self.nCx+1, 1))*[-1, 1]).T, [-1, 0],
+                            self.nCx, self.nCx, format="csr")
+            dz = sp.spdiags((np.ones((self.nCz+1, 1))*[-1, 1]).T, [0, 1],
+                            self.nCz, self.nCz+1, format="csr")
 
-            #2D Difference matricies
-            Dr =  sp.kron(sp.identity(self.nNz), dr)
+            # 2D Difference matricies
+            Dr = sp.kron(sp.identity(self.nNz), dr)
             Dz = -sp.kron(dz, sp.identity(self.nCx))
 
             A = self.area
             E = self.edge
-            #Edge curl operator
-            self._edgeCurl = Utils.sdiag(1/A)*sp.vstack((Dz, Dr))*Utils.sdiag(E)
+            # Edge curl operator
+            self._edgeCurl = (Utils.sdiag(1/A)*sp.vstack((Dz, Dr)) *
+                              Utils.sdiag(E))
         return self._edgeCurl
-
-    # @property
-    # def aveE2CC(self):
-    #     """Averaging operator from cell edges to cell centers"""
-    #     if getattr(self, '_aveE2CC', None) is None:
-    #         if self.isSymmetric:
-    #             az = sp.spdiags(0.5*np.ones((2, self.nNz)), [-1,0], self.nNz, self.nCz, format='csr')
-    #             ar = sp.spdiags(0.5*np.ones((2, self.nCx)), [0, 1], self.nCx, self.nCx, format='csr')
-    #             ar[0,0] = 1
-    #             self._aveE2CC = (0.5)*sp.kron(az, ar).T
-    #         else:
-    #             raise NotImplementedError('wrapping in the averaging is not yet implemented')
-    #     return self._aveE2CC
 
     @property
     def aveE2CC(self):
@@ -278,13 +290,21 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
             n = self.vnC
             if self.isSymmetric:
                 avR = Utils.av(n[0])[:, 1:]
-                avR[0,0] = 1.
+                avR[0, 0] = 1.
                 self._aveE2CC = sp.kron(Utils.av(n[2]), avR, format="csr")
             else:
-                raise NotImplementedError('wrapping in the averaging is not yet implemented')
-                # self._aveE2CC = (1./3)*sp.hstack((Utils.kron3(Utils.av(n[2]), Utils.av(n[1]), Utils.speye(n[0])),
-                #                                   Utils.kron3(Utils.av(n[2]), Utils.speye(n[1]), Utils.av(n[0])),
-                #                                   Utils.kron3(Utils.speye(n[2]), Utils.av(n[1]), Utils.av(n[0]))), format="csr")
+                raise NotImplementedError('wrapping in the averaging is not '
+                                          'yet implemented')
+                # self._aveE2CC = (1./3)*sp.hstack((Utils.kron3(Utils.av(n[2]),
+                #                                               Utils.av(n[1]),
+                #                                               Utils.speye(n[0])),
+                #                                   Utils.kron3(Utils.av(n[2]),
+                #                                               Utils.speye(n[1]),
+                #                                               Utils.av(n[0])),
+                #                                   Utils.kron3(Utils.speye(n[2]),
+                #                                               Utils.av(n[1]),
+                #                                               Utils.av(n[0]))),
+                #                                  format="csr")
         return self._aveE2CC
 
     @property
@@ -296,9 +316,9 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
             if self.isSymmetric:
                 return self.aveE2CC
             else:
-                raise NotImplementedError('wrapping in the averaging is not yet implemented')
+                raise NotImplementedError('wrapping in the averaging is not '
+                                          'yet implemented')
         return self._aveE2CCV
-
 
     @property
     def aveF2CC(self):
@@ -306,14 +326,26 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         if getattr(self, '_aveF2CC', None) is None:
             n = self.vnC
             if self.isSymmetric:
-                avR = Utils.av(n[0])[:,1:]
-                avR[0,0] = 1.
-                self._aveF2CC = (0.5)*sp.hstack((sp.kron(Utils.speye(n[2]), avR), sp.kron(Utils.av(n[2]), Utils.speye(n[0]))), format="csr")
+                avR = Utils.av(n[0])[:, 1:]
+                avR[0, 0] = 1.
+                self._aveF2CC = ((0.5)*sp.hstack((sp.kron(Utils.speye(n[2]),
+                                                          avR),
+                                                  sp.kron(Utils.av(n[2]),
+                                                          Utils.speye(n[0]))),
+                                                 format="csr"))
             else:
-                raise NotImplementedError('wrapping in the averaging is not yet implemented')
-                # self._aveF2CC = (1./3.)*sp.hstack((Utils.kron3(Utils.speye(n[2]), Utils.speye(n[1]), Utils.av(n[0])),
-                #                                    Utils.kron3(Utils.speye(n[2]), Utils.av(n[1]), Utils.speye(n[0])),
-                #                                    Utils.kron3(Utils.av(n[2]), Utils.speye(n[1]), Utils.speye(n[0]))), format="csr")
+                raise NotImplementedError('wrapping in the averaging is not '
+                                          'yet implemented')
+                # self._aveF2CC = (1./3.)*sp.hstack((Utils.kron3(Utils.speye(n[2]),
+                #                                                Utils.speye(n[1]),
+                #                                                Utils.av(n[0])),
+                #                                    Utils.kron3(Utils.speye(n[2]),
+                #                                                Utils.av(n[1]),
+                #                                                Utils.speye(n[0])),
+                #                                    Utils.kron3(Utils.av(n[2]),
+                #                                                Utils.speye(n[1]),
+                #                                                Utils.speye(n[0]))),
+                #                                   format="csr")
         return self._aveF2CC
 
     @property
@@ -322,160 +354,79 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         if getattr(self, '_aveF2CCV', None) is None:
             n = self.vnC
             if self.isSymmetric:
-                avR = Utils.av(n[0])[:,1:]
-                avR[0,0] = 1.
-                self._aveF2CCV = sp.block_diag((sp.kron(Utils.speye(n[2]), avR),
-                                                sp.kron(Utils.av(n[2]), Utils.speye(n[0]))), format="csr")
+                avR = Utils.av(n[0])[:, 1:]
+                avR[0, 0] = 1.
+                self._aveF2CCV = sp.block_diag((sp.kron(Utils.speye(n[2]),
+                                                        avR),
+                                                sp.kron(Utils.av(n[2]),
+                                                        Utils.speye(n[0]))),
+                                               format="csr")
             else:
-                raise NotImplementedError('wrapping in the averaging is not yet implemented')
+                raise NotImplementedError('wrapping in the averaging is not '
+                                          'yet implemented')
         return self._aveF2CCV
-
-
-    def _fastInnerProduct(self, projType, prop=None, invProp=False, invMat=False):
-        """
-            Fast version of getFaceInnerProduct.
-            This does not handle the case of a full tensor prop.
-
-            :param numpy.array prop: material property (tensor properties are possible) at each cell center (nC, (1, 3, or 6))
-            :param str projType: 'E' or 'F'
-            :param bool returnP: returns the projection matrices
-            :param bool invProp: inverts the material property
-            :param bool invMat: inverts the matrix
-            :rtype: scipy.sparse.csr_matrix
-            :return: M, the inner product matrix (nF, nF)
-        """
-        assert projType in ['F', 'E'], "projType must be 'F' for faces or 'E' for edges"
-
-        if prop is None:
-            prop = np.ones(self.nC)
-
-        if invProp:
-            prop = 1./prop
-
-        if Utils.isScalar(prop):
-            prop = prop*np.ones(self.nC)
-
-        if prop.size == self.nC:
-            Av = getattr(self, 'ave'+projType+'2CC')
-            Vprop = self.vol * Utils.mkvc(prop)
-            M = self.dim * Utils.sdiag(Av.T * Vprop)
-        elif prop.size == self.nC*self.dim:
-            Av = getattr(self, 'ave'+projType+'2CCV')
-            V = sp.kron(sp.identity(self.dim), Utils.sdiag(self.vol))
-            M = Utils.sdiag(Av.T * V * Utils.mkvc(prop))
-        else:
-            return None
-
-        if projType == 'E':
-            M = 0.5*M
-
-        if invMat:
-            return Utils.sdInv(M)
-        else:
-            return M
-
-    def _fastInnerProductDeriv(self, projType, prop, invProp=False, invMat=False):
-        """
-            :param str projType: 'E' or 'F'
-            :param TensorType tensorType: type of the tensor
-            :param bool invProp: inverts the material property
-            :param bool invMat: inverts the matrix
-            :rtype: function
-            :return: dMdmu, the derivative of the inner product matrix
-        """
-        assert projType in ['F', 'E'], "projType must be 'F' for faces or 'E' for edges"
-        tensorType = Utils.TensorType(self, prop)
-
-        dMdprop = None
-
-        if invMat:
-            MI = self._fastInnerProduct(projType, prop, invProp=invProp, invMat=invMat)
-
-        if tensorType == 0:
-            Av = getattr(self, 'ave'+projType+'2CC')
-            V = Utils.sdiag(self.vol)
-            ones = sp.csr_matrix((np.ones(self.nC), (range(self.nC), np.zeros(self.nC))), shape=(self.nC,1))
-            if not invMat and not invProp:
-                dMdprop = self.dim * Av.T * V * ones
-            elif invMat and invProp:
-                dMdprop =  self.dim * Utils.sdiag(MI.diagonal()**2) * Av.T * V * ones * Utils.sdiag(1./prop**2)
-
-        if tensorType == 1:
-            Av = getattr(self, 'ave'+projType+'2CC')
-            V = Utils.sdiag(self.vol)
-            if not invMat and not invProp:
-                dMdprop = self.dim * Av.T * V
-            elif invMat and invProp:
-                dMdprop =  self.dim * Utils.sdiag(MI.diagonal()**2) * Av.T * V * Utils.sdiag(1./prop**2)
-
-        if tensorType == 2: # anisotropic
-            Av = getattr(self, 'ave'+projType+'2CCV')
-            V = sp.kron(sp.identity(self.dim), Utils.sdiag(self.vol))
-            if not invMat and not invProp:
-                dMdprop = Av.T * V
-            elif invMat and invProp:
-                dMdprop =  Utils.sdiag(MI.diagonal()**2) * Av.T * V * Utils.sdiag(1./prop**2)
-
-        if projType == 'E':
-            dMdprop = 0.5*dMdprop
-
-        if dMdprop is not None:
-            def innerProductDeriv(v=None):
-                if v is None:
-                    print 'Depreciation Warning: TensorMesh.innerProductDeriv. You should be supplying a vector. Use: Utils.sdiag(u)*dMdprop'
-                    return dMdprop
-                return Utils.sdiag(v) * dMdprop
-            return innerProductDeriv
-        else:
-            return None
 
     def getInterpolationMatCartMesh(self, Mrect, locType='CC', locTypeTo=None):
         """
-            Takes a cartesian mesh and returns a projection to translate onto the cartesian grid.
+            Takes a cartesian mesh and returns a projection to translate onto
+            the cartesian grid.
         """
 
-        assert self.isSymmetric, "Currently we have not taken into account other projections for more complicated CylMeshes"
-
+        assert self.isSymmetric, ("Currently we have not taken into account "
+                                  "other projections for more complicated "
+                                  "CylMeshes")
 
         if locTypeTo is None:
             locTypeTo = locType
 
         if locType == 'F':
             # do this three times for each component
-            X = self.getInterpolationMatCartMesh(Mrect, locType='Fx', locTypeTo=locTypeTo+'x')
-            Y = self.getInterpolationMatCartMesh(Mrect, locType='Fy', locTypeTo=locTypeTo+'y')
-            Z = self.getInterpolationMatCartMesh(Mrect, locType='Fz', locTypeTo=locTypeTo+'z')
-            return sp.vstack((X,Y,Z))
+            X = self.getInterpolationMatCartMesh(Mrect, locType='Fx',
+                                                 locTypeTo=locTypeTo+'x')
+            Y = self.getInterpolationMatCartMesh(Mrect, locType='Fy',
+                                                 locTypeTo=locTypeTo+'y')
+            Z = self.getInterpolationMatCartMesh(Mrect, locType='Fz',
+                                                 locTypeTo=locTypeTo+'z')
+            return sp.vstack((X, Y, Z))
         if locType == 'E':
-            X = self.getInterpolationMatCartMesh(Mrect, locType='Ex', locTypeTo=locTypeTo+'x')
-            Y = self.getInterpolationMatCartMesh(Mrect, locType='Ey', locTypeTo=locTypeTo+'y')
+            X = self.getInterpolationMatCartMesh(Mrect, locType='Ex',
+                                                 locTypeTo=locTypeTo+'x')
+            Y = self.getInterpolationMatCartMesh(Mrect, locType='Ey',
+                                                 locTypeTo=locTypeTo+'y')
             Z = Utils.spzeros(getattr(Mrect, 'n' + locTypeTo + 'z'), self.nE)
-            return sp.vstack((X,Y,Z))
+            return sp.vstack((X, Y, Z))
 
         grid = getattr(Mrect, 'grid' + locTypeTo)
-        # This is unit circle stuff, 0 to 2*pi, starting at x-axis, rotating counter clockwise in an x-y slice
-        theta = - np.arctan2(grid[:,0] - self.cartesianOrigin[0], grid[:,1] - self.cartesianOrigin[1]) + np.pi/2
+        # This is unit circle stuff, 0 to 2*pi, starting at x-axis, rotating
+        # counter clockwise in an x-y slice
+        theta = - np.arctan2(grid[:, 0] - self.cartesianOrigin[0], grid[:, 1] -
+                             self.cartesianOrigin[1]) + np.pi/2
         theta[theta < 0] += np.pi*2.0
-        r = ((grid[:,0] - self.cartesianOrigin[0])**2 + (grid[:,1] - self.cartesianOrigin[1])**2)**0.5
+        r = ((grid[:, 0] - self.cartesianOrigin[0])**2 + (grid[:, 1] -
+             self.cartesianOrigin[1])**2)**0.5
 
         if locType in ['CC', 'N', 'Fz', 'Ez']:
-            G, proj = np.c_[r, theta, grid[:,2]], np.ones(r.size)
+            G, proj = np.c_[r, theta, grid[:, 2]], np.ones(r.size)
         else:
             dotMe = {
-                        'Fx': Mrect.normals[:Mrect.nFx,:],
-                        'Fy': Mrect.normals[Mrect.nFx:(Mrect.nFx+Mrect.nFy),:],
-                        'Fz': Mrect.normals[-Mrect.nFz:,:],
-                        'Ex': Mrect.tangents[:Mrect.nEx,:],
-                        'Ey': Mrect.tangents[Mrect.nEx:(Mrect.nEx+Mrect.nEy),:],
-                        'Ez': Mrect.tangents[-Mrect.nEz:,:],
+                        'Fx': Mrect.normals[:Mrect.nFx, :],
+                        'Fy': Mrect.normals[Mrect.nFx:(Mrect.nFx + Mrect.nFy),
+                                            :],
+                        'Fz': Mrect.normals[-Mrect.nFz:, :],
+                        'Ex': Mrect.tangents[:Mrect.nEx, :],
+                        'Ey': Mrect.tangents[Mrect.nEx:(Mrect.nEx+Mrect.nEy),
+                                             :],
+                        'Ez': Mrect.tangents[-Mrect.nEz:, :],
                     }[locTypeTo]
             if 'F' in locType:
-                normals = np.c_[np.cos(theta), np.sin(theta), np.zeros(theta.size)]
-                proj = ( normals * dotMe ).sum(axis=1)
+                normals = np.c_[np.cos(theta), np.sin(theta),
+                                np.zeros(theta.size)]
+                proj = (normals * dotMe).sum(axis=1)
             if 'E' in locType:
-                tangents = np.c_[-np.sin(theta), np.cos(theta), np.zeros(theta.size)]
-                proj = ( tangents * dotMe ).sum(axis=1)
-            G = np.c_[r, theta, grid[:,2]]
+                tangents = np.c_[-np.sin(theta), np.cos(theta),
+                                 np.zeros(theta.size)]
+                proj = (tangents * dotMe).sum(axis=1)
+            G = np.c_[r, theta, grid[:, 2]]
 
         interpType = locType
         if interpType == 'Fy':
@@ -486,8 +437,6 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         Pc2r = self.getInterpolationMat(G, interpType)
         Proj = Utils.sdiag(proj)
         return Proj * Pc2r
-
-
 
 if __name__ == '__main__':
 
