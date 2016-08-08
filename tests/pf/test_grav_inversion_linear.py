@@ -3,7 +3,7 @@ from SimPEG import *
 import SimPEG.PF as PF
 
 
-class MagInvLinProblemTest(unittest.TestCase):
+class GravInvLinProblemTest(unittest.TestCase):
 
     def setUp(self):
 
@@ -32,7 +32,7 @@ class MagInvLinProblemTest(unittest.TestCase):
                           if elem], dtype=int) - 1
 
         # Create active map to go from reduce space to full
-        actvMap = Maps.ActiveCells(mesh, actv, -100)
+        actvMap = Maps.InjectActiveCells(mesh, actv, -100)
         nC = len(actv)
 
         # Create and array of observation points
@@ -79,7 +79,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         survey.dobs = data
         survey.std = wd
 
-        PF.Gravity.plot_obs_2D(survey.srcField.rxList[0].locs, d=data)
+        # PF.Gravity.plot_obs_2D(survey.srcField.rxList[0].locs, d=data)
 
         # Create sensitivity weights from our linear forward operator
         wr = PF.Magnetics.get_dist_wgt(mesh, locXYZ, actv, 2., 2.)
