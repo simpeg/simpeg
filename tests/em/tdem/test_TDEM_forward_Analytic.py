@@ -33,9 +33,9 @@ def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=None, 
     actMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
     mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * actMap
 
-    rx = EM.TDEM.RxTDEM(np.array([[rxOffset, 0., 0.]]),
+    rx = EM.TDEM.Rx(np.array([[rxOffset, 0., 0.]]),
                         np.logspace(-5, -4, 21), 'bz')
-    src = EM.TDEM.SrcTDEM_VMD_MVP([rx], loc=np.array([0., 0., 0.]))
+    src = EM.TDEM.Src.MagDipole([rx], loc=np.array([0., 0., 0.]))
     # src = EM.TDEM.SrcTDEM([rx], loc=np.array([0., 0., 0.]))
 
     survey = EM.TDEM.Survey([src])
