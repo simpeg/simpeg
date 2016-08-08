@@ -92,7 +92,7 @@ class Fields_b(Fields):
 
     def _eDeriv_m(self, tInd, src, v, adjoint = False):
         _, S_e = src.eval(self.survey.prob, self.survey.prob.times[tInd])
-        bSolution = self[[src],'bSolution',tInd]
+        bSolution = self[[src],'bSolution',tInd].flatten()
 
         _, S_eDeriv = src.evalDeriv(self.survey.prob.times[tInd], self, adjoint=adjoint)
 

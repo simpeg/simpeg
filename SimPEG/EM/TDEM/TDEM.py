@@ -459,8 +459,8 @@ class Problem_b(BaseTDEMProblem):
         MeSigmaIDeriv = lambda u: self.MeSigmaIDeriv(u)
         MfMui = self.MfMui
 
-        _, S_e = src.eval(tInd, self)
-        S_mDeriv, S_eDeriv = src.evalDeriv(self.times[tInd], self, adjoint=adjoint)
+        _, S_e = src.eval(self, self.times[tInd])
+        S_mDeriv, S_eDeriv = src.evalDeriv(self, self.times[tInd], adjoint=adjoint)
 
         if adjoint:
             if self._makeASymmetric is True:
@@ -477,7 +477,13 @@ class Problem_b(BaseTDEMProblem):
         else:
             MeSigmaIDeriv_v = MeSigmaIDeriv(S_e) * v
 
-        RHSDeriv = (C * (MeSigmaIDeriv_v + MeSigmaI * S_eDeriv(v) + S_mDeriv(v)))
+
+        temp = MeSigmaIDeriv_v + MeSigmaI * S_eDeriv(v) + S_mDeriv(v)
+
+        if isinstance(temp, Utils.Zero) is False:
+            RHSDeriv = C * temp.astype(float)
+        else:
+            RHSDeriv = C * temp
 
         if self._makeASymmetric is True:
             return self.MfMui.T * RHSDeriv

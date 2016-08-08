@@ -211,7 +211,6 @@ class MagDipole(BaseSrc):
             MfMui = prob.MfMui
             C = prob.mesh.edgeCurl
             return C.T * (MfMui * b) * self.waveform.eval(time)
-
         return Zero()
 
 
