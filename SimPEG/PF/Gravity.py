@@ -239,7 +239,7 @@ def get_T_mat(Xn, Yn, Zn, rxLoc):
     indexing, once the topography has been figured out.
 
     """
-    NewtG=6.6738e-3
+    NewtG = 6.6738e-3  # Converted to mGal
     eps = 1e-10 # add a small value to the locations to avoid /0
 
     nC = Xn.shape[0]
