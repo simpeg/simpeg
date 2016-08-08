@@ -1,31 +1,54 @@
-from SimPEG import *
+from SimPEG import Mesh, np, Utils
 from scipy.special import ellipk, ellipe
-from scipy.constants import mu_0, pi
+from scipy.constants import mu_0
 
-def MagneticDipoleVectorPotential(srcLoc, obsLoc, component, moment=1., dipoleMoment=(0., 0., 1.), mu = mu_0):
+orientationDict = {'X': np.r_[1., 0., 0.],
+                   'Y': np.r_[0., 1., 0.],
+                   'Z': np.r_[0., 0., 1.]}
+
+
+def MagneticDipoleVectorPotential(srcLoc, obsLoc, component, moment=1.,
+                                  orientation=np.r_[0., 0., 1.],
+                                  mu=mu_0):
     """
         Calculate the vector potential of a set of magnetic dipoles
         at given locations 'ref. <http://en.wikipedia.org/wiki/Dipole#Magnetic_vector_potential>'
 
         :param numpy.ndarray srcLoc: Location of the source(s) (x, y, z)
-        :param numpy.ndarray,SimPEG.Mesh obsLoc: Where the potentials will be calculated (x, y, z) or a SimPEG Mesh
-        :param str,list component: The component to calculate - 'x', 'y', or 'z' if an array, or grid type if mesh, can be a list
-        :param numpy.ndarray dipoleMoment: The vector dipole moment
+        :param numpy.ndarray,SimPEG.Mesh obsLoc: Where the potentials will be
+                                                 calculated (x, y, z) or a
+                                                 SimPEG Mesh
+        :param str,list component: The component to calculate - 'x', 'y', or
+                                   'z' if an array, or grid type if mesh, can
+                                   be a list
+        :param numpy.ndarray orientation: The vector dipole moment
         :rtype: numpy.ndarray
         :return: The vector potential each dipole at each observation location
     """
-    #TODO: break this out!
+    # TODO: break this out!
+
+    if isinstance(orientation, str):
+        orientation = orientationDict[orientation]
+
+    assert np.linalg.norm(np.array(orientation), 2) == 1., ("orientation must "
+                                                            "be a unit vector")
 
     if type(component) in [list, tuple]:
         out = range(len(component))
         for i, comp in enumerate(component):
-            out[i] = MagneticDipoleVectorPotential(srcLoc, obsLoc, comp, dipoleMoment=dipoleMoment)
+            out[i] = MagneticDipoleVectorPotential(srcLoc, obsLoc, comp,
+                                                   orientation=orientation,
+                                                   mu=mu)
         return np.concatenate(out)
 
     if isinstance(obsLoc, Mesh.BaseMesh):
         mesh = obsLoc
-        assert component in ['Ex','Ey','Ez','Fx','Fy','Fz'], "Components must be in: ['Ex','Ey','Ez','Fx','Fy','Fz']"
-        return MagneticDipoleVectorPotential(srcLoc, getattr(mesh,'grid'+component), component[1], dipoleMoment=dipoleMoment)
+        assert component in ['Ex', 'Ey', 'Ez', 'Fx', 'Fy', 'Fz'], ("Components"
+                                 "must be in: ['Ex','Ey','Ez','Fx','Fy','Fz']")
+        return MagneticDipoleVectorPotential(srcLoc, getattr(mesh, 'grid' +
+                                                             component),
+                                             component[1],
+                                             orientation=orientation)
 
     if component == 'x':
         dimInd = 0
@@ -38,72 +61,141 @@ def MagneticDipoleVectorPotential(srcLoc, obsLoc, component, moment=1., dipoleMo
 
     srcLoc = np.atleast_2d(srcLoc)
     obsLoc = np.atleast_2d(obsLoc)
-    dipoleMoment = np.atleast_2d(dipoleMoment)
+    orientation = np.atleast_2d(orientation)
 
-    nEdges = obsLoc.shape[0]
+    nObs = obsLoc.shape[0]
     nSrc = srcLoc.shape[0]
 
-    m = np.array(dipoleMoment).repeat(nEdges, axis=0)
-    A = np.empty((nEdges, nSrc))
+    m = moment*np.array(orientation).repeat(nObs, axis=0)
+    A = np.empty((nObs, nSrc))
     for i in range(nSrc):
-        dR = obsLoc - srcLoc[i, np.newaxis].repeat(nEdges, axis=0)
+        dR = obsLoc - srcLoc[i, np.newaxis].repeat(nObs, axis=0)
         mCr = np.cross(m, dR)
         r = np.sqrt((dR**2).sum(axis=1))
-        A[:, i] = +(mu/(4*pi)) * mCr[:,dimInd]/(r**3)
+        A[:, i] = +(mu/(4*np.pi)) * mCr[:, dimInd]/(r**3)
     if nSrc == 1:
         return A.flatten()
     return A
 
 
-def MagneticDipoleFields(srcLoc, obsLoc, component, moment=1., mu = mu_0):
+def MagneticDipoleFields(srcLoc, obsLoc, component,
+                         orientation='Z', moment=1., mu=mu_0):
     """
         Calculate the vector potential of a set of magnetic dipoles
         at given locations 'ref. <http://en.wikipedia.org/wiki/Dipole#Magnetic_vector_potential>'
 
+        .. math::
+
+            B = \frac{\mu_0}{4 \pi r^3} \left( \frac{3 \vec{r} (\vec{m} \cdot
+                                                                \vec{r})}{r^2})
+                                                - \vec{m}
+                                        \right) \cdot{\hat{rx}}
+
         :param numpy.ndarray srcLoc: Location of the source(s) (x, y, z)
-        :param numpy.ndarray obsLoc: Where the potentials will be calculated (x, y, z)
+        :param numpy.ndarray obsLoc: Where the potentials will be calculated
+                                     (x, y, z)
         :param str component: The component to calculate - 'x', 'y', or 'z'
         :param numpy.ndarray moment: The vector dipole moment (vertical)
         :rtype: numpy.ndarray
         :return: The vector potential each dipole at each observation location
     """
 
-    if component=='x':
-        dimInd = 0
-    elif component=='y':
-        dimInd = 1
-    elif component=='z':
-        dimInd = 2
-    else:
-        raise ValueError('Invalid component')
+    if isinstance(orientation, str):
+        assert orientation.upper() in ['X', 'Y', 'Z'], ("orientation must be 'x', "
+                                                      "'y', or 'z' or a vector"
+                                                      "not {}".format(orientation)
+                                                      )
+    elif (not np.allclose(np.r_[1., 0., 0.], orientation) or
+          not np.allclose(np.r_[0., 1., 0.], orientation) or
+          not np.allclose(np.r_[0., 0., 1.], orientation)):
+        warnings.warn('Arbitrary trasnmitter orientations ({}) not thouroughly tested '
+                      'Pull request on a test anyone? bueller?').format(orientation)
+
+    if isinstance(component, str):
+        assert component.upper() in ['X', 'Y', 'Z'], ("component must be 'x', "
+                                                      "'y', or 'z' or a vector"
+                                                      "not {}".format(component)
+                                                      )
+    elif (not np.allclose(np.r_[1., 0., 0.], component) or
+          not np.allclose(np.r_[0., 1., 0.], component) or
+          not np.allclose(np.r_[0., 0., 1.], component)):
+        warnings.warn('Arbitrary receiver orientations ({}) not thouroughly tested '
+                      'Pull request on a test anyone? bueller?').format(component)
+
+    if isinstance(orientation, str):
+        orientation = orientationDict[orientation.upper()]
+
+    if isinstance(component, str):
+        component = orientationDict[component.upper()]
+
+    assert np.linalg.norm(orientation, 2) == 1., ('orientation must be a unit '
+                                                  'vector. Use "moment=X to '
+                                                  'scale source fields')
+
+    if np.linalg.norm(component, 2) != 1.:
+        warnings.warn('The magnitude of the receiver component vector is > 1, '
+                      ' it is {}. The receiver fields will be scaled.'
+                      ).format(np.linalg.norm(component, 2))
 
     srcLoc = np.atleast_2d(srcLoc)
+    component = np.atleast_2d(component)
     obsLoc = np.atleast_2d(obsLoc)
-    moment = np.atleast_2d(moment)
+    orientation = np.atleast_2d(orientation)
 
-    nFaces = obsLoc.shape[0]
-    nSrc = srcLoc.shape[0]
+    nObs = obsLoc.shape[0]
+    nSrc = int(srcLoc.size / 3.)
 
-    m = np.array(moment).repeat(nFaces, axis=0)
-    B = np.empty((nFaces, nSrc))
+    # use outer product to construct an array of [x_src, y_src, z_src]
+
+    m = moment*orientation.repeat(nObs, axis=0)
+    B = []
+
     for i in range(nSrc):
-        dR = obsLoc - srcLoc[i, np.newaxis].repeat(nFaces, axis=0)
+        srcLoc = srcLoc[i, np.newaxis].repeat(nObs, axis=0)
+        rx = component.repeat(nObs, axis=0)
+        dR = obsLoc - srcLoc
         r = np.sqrt((dR**2).sum(axis=1))
-        if dimInd == 0:
-            B[:, i] = +(mu/(4*pi)) /(r**3) * (3*dR[:,2]*dR[:,0]/r**2)
-        elif dimInd == 1:
-            B[:, i] = +(mu/(4*pi)) /(r**3) * (3*dR[:,2]*dR[:,1]/r**2)
-        elif dimInd == 2:
-            B[:, i] = +(mu/(4*pi)) /(r**3) * (3*dR[:,2]**2/r**2-1)
-        else:
-            raise Exception("Not Implemented")
-    if nSrc == 1:
-        return B.flatten()
-    return B
+
+        # mult each element and sum along the axis (vector dot product)
+        m_dot_dR_div_r2 = (m * dR).sum(axis=1) / (r**2)
+
+        # multiply the scalar m_dot_dR by the 3D vector r
+        rvec_m_dot_dR_div_r2 = np.vstack([m_dot_dR_div_r2 * dR[:, i] for
+                                          i in range(3)]).T
+        inside = (3. * rvec_m_dot_dR_div_r2) - m
+
+        # dot product with rx orientation
+        inside_dot_rx = (inside * rx).sum(axis=1)
+        front = (mu/(4.* np.pi * r**3))
+
+        B.append(Utils.mkvc(front * inside_dot_rx))
+
+    return np.vstack(B).T
+
+
+    #     if np.all(orientation == np.r_[1., 0., 0.]):
+
+    #     elif np.all(orientation == np.r_[0., 0., 1.]):
+    #         x1 = dR[:, 2]
+    #         x2 = dR[:, 0]
+    #         x3 = dR[:, 1]
+
+
+    #     if component == 'x':
+    #         B[:, i] = front * (3*x1*x2/r**2)
+    #     elif component == 'y':
+    #         B[:, i] = front * (3*x1*x3/r**2)
+    #     elif component == 'z':
+    #         B[:, i] = front * (3*x1**2/r**2-1)
+    #     else:
+    #         raise Exception("Not Implemented")
+    # if nSrc == 1:
+    #     return B.flatten()
+    # return B
 
 
 
-def MagneticLoopVectorPotential(srcLoc, obsLoc, component, radius, mu=mu_0):
+def MagneticLoopVectorPotential(srcLoc, obsLoc, component, radius, orientation='Z', mu=mu_0):
     """
         Calculate the vector potential of horizontal circular loop
         at given locations
@@ -117,10 +209,17 @@ def MagneticLoopVectorPotential(srcLoc, obsLoc, component, radius, mu=mu_0):
         :return: The vector potential each dipole at each observation location
     """
 
+    if isinstance(orientation, str):
+        if orientation.upper() != 'Z':
+            raise NotImplementedError, 'Only Z oriented loops implemented'
+    elif not np.allclose(orientation, np.r_[0., 0., 1.]):
+        raise NotImplementedError, 'Only Z oriented loops implemented'
+
     if type(component) in [list, tuple]:
         out = range(len(component))
         for i, comp in enumerate(component):
-            out[i] = MagneticLoopVectorPotential(srcLoc, obsLoc, comp, radius, mu)
+            out[i] = MagneticLoopVectorPotential(srcLoc, obsLoc, comp, radius,
+                                                 orientation, mu)
         return np.concatenate(out)
 
     if isinstance(obsLoc, Mesh.BaseMesh):
@@ -158,7 +257,9 @@ def MagneticLoopVectorPotential(srcLoc, obsLoc, component, radius, mu=mu_0):
             # % 1/r singular at r = 0 and K(m) singular at m = 1
             Aphi = np.zeros(n)
             # % Common factor is (mu * I) / pi with I = 1 and mu = 4e-7 * pi.
-            Aphi[ind] = 4e-7 / np.sqrt(m[ind])  * np.sqrt(radius / r[ind]) *((1. - m[ind] / 2.) * K[ind] - E[ind])
+            Aphi[ind] = ((mu / (np.pi * np.sqrt(m[ind])) *
+                         np.sqrt(radius / r[ind]) *((1. - m[ind] / 2.) *
+                         K[ind] - E[ind])))
             if component == 'x':
                 A[ind, i] = Aphi[ind] * (-y[ind] / r[ind] )
             elif component == 'y':

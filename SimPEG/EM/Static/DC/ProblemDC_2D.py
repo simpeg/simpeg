@@ -60,7 +60,7 @@ class BaseDCProblem_2D(BaseEMProblem):
                 dRHS_dm_v = self.getRHSDeriv(ky, src, v)
                 du_dm_v = self.Ainv[iky] * ( - dA_dm_v + dRHS_dm_v )
                 for rx in src.rxList:
-                    df_dmFun = getattr(f, '_%sDeriv'%rx.projField, None)
+                    df_dmFun = getattr(f, '_{0!s}Deriv'.format(rx.projField), None)
                     df_dm_v = df_dmFun(iky, src, du_dm_v, v, adjoint=False)
                     # Trapezoidal intergration
                     Jv1_temp = 1./np.pi*rx.evalDeriv(ky, src, self.mesh, f, df_dm_v)
@@ -101,7 +101,7 @@ class BaseDCProblem_2D(BaseEMProblem):
                     ky = self.kys[iky]
                     AT = self.getA(ky)
                     PTv = rx.evalDeriv(ky, src, self.mesh, f, v[src, rx], adjoint=True) # wrt f, need possibility wrt m
-                    df_duTFun = getattr(f, '_%sDeriv'%rx.projField, None)
+                    df_duTFun = getattr(f, '_{0!s}Deriv'.format(rx.projField), None)
                     df_duT, df_dmT = df_duTFun(iky, src, None, PTv, adjoint=True)
 
                     ATinvdf_duT = self.Ainv[iky] * df_duT

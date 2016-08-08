@@ -1,5 +1,6 @@
 import unittest
-from SimPEG import *
+import numpy as np
+from SimPEG import Mesh, Maps, SolverLU
 from SimPEG import EM
 from scipy.constants import mu_0
 import matplotlib.pyplot as plt
@@ -12,7 +13,7 @@ except ImportError, e:
 
 def halfSpaceProblemAnaDiff(meshType, srctype="MagDipole", sig_half=1e-2, rxOffset=50., bounds=None, showIt=False):
     if bounds is None:
-        bounds = [1e-5,1e-3]
+        bounds = [1e-5, 1e-3]
     if meshType == 'CYL':
         cs, ncx, ncz, npad = 5., 30, 10, 15
         hx = [(cs,ncx), (cs,npad,1.3)]
@@ -21,12 +22,12 @@ def halfSpaceProblemAnaDiff(meshType, srctype="MagDipole", sig_half=1e-2, rxOffs
 
     elif meshType == 'TENSOR':
         cs, nc, npad = 20., 13, 5
-        hx = [(cs,npad,-1.3), (cs,nc), (cs,npad,1.3)]
-        hy = [(cs,npad,-1.3), (cs,nc), (cs,npad,1.3)]
-        hz = [(cs,npad,-1.3), (cs,nc), (cs,npad,1.3)]
-        mesh = Mesh.TensorMesh([hx,hy,hz], 'CCC')
+        hx = [(cs, npad, -1.3), (cs, nc), (cs, npad, 1.3)]
+        hy = [(cs, npad, -1.3), (cs, nc), (cs, npad, 1.3)]
+        hz = [(cs, npad, -1.3), (cs, nc), (cs, npad, 1.3)]
+        mesh = Mesh.TensorMesh([hx, hy, hz], 'CCC')
 
-    active = mesh.vectorCCz<0.
+    active = mesh.vectorCCz < 0.
     actMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
     mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * actMap
 
@@ -62,7 +63,7 @@ def halfSpaceProblemAnaDiff(meshType, srctype="MagDipole", sig_half=1e-2, rxOffs
     if showIt == True:
         plt.loglog(rx.times[bz_calc>0], bz_calc[bz_calc>0], 'r', rx.times[bz_calc<0], -bz_calc[bz_calc<0], 'r--')
         plt.loglog(rx.times, abs(bz_ana), 'b*')
-        plt.title('sig_half = %e'%sig_half)
+        plt.title('sig_half = {0:e}'.format(sig_half))
         plt.show()
 
     return log10diff

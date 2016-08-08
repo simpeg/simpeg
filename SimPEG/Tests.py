@@ -4,7 +4,6 @@ from SimPEG.Utils import mkvc, sdiag, diagEst
 from SimPEG import Utils
 from SimPEG.Mesh import TensorMesh, CurvilinearMesh, CylMesh
 from SimPEG.Mesh.TreeMesh import TreeMesh as Tree
-import numpy as np
 import scipy.sparse as sp
 import unittest
 import inspect
@@ -200,10 +199,10 @@ class OrderTest(unittest.TestCase):
                     print '_____________________________________________'
                     print '   h  |    error    | e(i-1)/e(i) |  order'
                     print '~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~~~~|~~~~~~~~~~'
-                    print '%4i  |  %8.2e   |' % (nc, err)
+                    print '{0:4d}  |  {1:8.2e}   |'.format(nc, err)
                 else:
                     order.append(np.log(err/err_old)/np.log(max_h/max_h_old))
-                    print '%4i  |  %8.2e   |   %6.4f    |  %6.4f' % (nc, err, err_old/err, order[-1])
+                    print '{0:4d}  |  {1:8.2e}   |   {2:6.4f}    |  {3:6.4f}'.format(nc, err, err_old/err, order[-1])
                 err_old = err
                 max_h_old = max_h
             print '---------------------------------------------'
@@ -237,7 +236,7 @@ def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None, expectedOrder=2, tole
         Compares error decay of 0th and 1st order Taylor approximation at point
         x0 for a randomized search direction.
 
-        :param lambda fctn: function handle
+        :param callable fctn: function handle
         :param numpy.array x0: point at which to check derivative
         :param int num: number of times to reduce step length, h
         :param bool plotIt: if you would like to plot
@@ -258,8 +257,8 @@ def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None, expectedOrder=2, tole
             Tests.checkDerivative(simplePass, np.random.randn(5))
     """
 
-    print "%s checkDerivative %s" % ('='*20, '='*20)
-    print "iter    h         |ft-f0|   |ft-f0-h*J0*dx|  Order\n%s" % ('-'*57)
+    print "{0!s} checkDerivative {1!s}".format('='*20, '='*20)
+    print "iter    h         |ft-f0|   |ft-f0-h*J0*dx|  Order\n{0!s}".format(('-'*57))
 
     f0, J0 = fctn(x0)
 
@@ -290,7 +289,7 @@ def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None, expectedOrder=2, tole
 
         order0 = np.log10(E0[:-1]/E0[1:])
         order1 = np.log10(E1[:-1]/E1[1:])
-        print " %d   %1.2e    %1.3e     %1.3e      %1.3f" % (i, h[i], E0[i], E1[i], np.nan if i == 0 else order1[i-1])
+        print " {0:d}   {1:1.2e}    {2:1.3e}     {3:1.3e}      {4:1.3f}".format(i, h[i], E0[i], E1[i], np.nan if i == 0 else order1[i-1])
 
     # Ensure we are about precision
     order0 = order0[E0[1:] > eps]
@@ -302,10 +301,10 @@ def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None, expectedOrder=2, tole
     passTest = belowTol or correctOrder
 
     if passTest:
-        print "%s PASS! %s" % ('='*25, '='*25)
+        print "{0!s} PASS! {1!s}".format('='*25, '='*25)
         print happiness[np.random.randint(len(happiness))]+'\n'
     else:
-        print "%s\n%s FAIL! %s\n%s" % ('*'*57, '<'*25, '>'*25, '*'*57)
+        print "{0!s}\n{1!s} FAIL! {2!s}\n{3!s}".format('*'*57, '<'*25, '>'*25, '*'*57)
         print sadness[np.random.randint(len(sadness))]+'\n'
 
 
@@ -314,7 +313,7 @@ def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None, expectedOrder=2, tole
         ax = ax or plt.subplot(111)
         ax.loglog(h, E0, 'b')
         ax.loglog(h, E1, 'g--')
-        ax.set_title('Check Derivative - %s' % ('PASSED :)' if passTest else 'FAILED :('))
+        ax.set_title('Check Derivative - {0!s}'.format(('PASSED :)' if passTest else 'FAILED :(')))
         ax.set_xlabel('h')
         ax.set_ylabel('Error')
         leg = ax.legend(['$\mathcal{O}(h)$', '$\mathcal{O}(h^2)$'], loc='best',
