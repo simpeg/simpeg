@@ -286,7 +286,7 @@ class TreeMeshIO(object):
             delimiter='\n', comments='!')
         # Extract the data
         nCunderMesh = np.array(fileLines[0].
-            plit('!')[0].split(), dtype=float)
+            split('!')[0].split(), dtype=float)
         # I think this is the case?
         if np.unique(nCunderMesh).size >1:
             raise Exception('SimPEG TreeMeshes have the same number of cell in all directions')
