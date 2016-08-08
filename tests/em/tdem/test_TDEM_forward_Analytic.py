@@ -11,17 +11,15 @@ except ImportError, e:
     MumpsSolver = SolverLU
 
 
-def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=None, showIt=False):
-
-    print '\nTesting sig_half = {0}, rxOffset= {1}'.format(sig_half, rxOffset)
-
+def halfSpaceProblemAnaDiff(meshType, srctype="MagDipole", sig_half=1e-2, rxOffset=50., bounds=None, showIt=False):
     if bounds is None:
         bounds = [1e-5, 1e-3]
     if meshType == 'CYL':
-        cs, ncx, ncz, npad = 5., 30, 10, 20
-        hx = [(cs, ncx), (cs, npad, 1.3)]
-        hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
-        mesh = Mesh.CylMesh([hx, 1, hz], '00C')
+        cs, ncx, ncz, npad = 5., 30, 10, 15
+        hx = [(cs,ncx), (cs,npad,1.3)]
+        hz = [(cs,npad,-1.3), (cs,ncz), (cs,npad,1.3)]
+        mesh = Mesh.CylMesh([hx,1,hz], '00C')
+
     elif meshType == 'TENSOR':
         cs, nc, npad = 20., 13, 5
         hx = [(cs, npad, -1.3), (cs, nc), (cs, npad, 1.3)]
@@ -33,10 +31,12 @@ def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=None, 
     actMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
     mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * actMap
 
-    rx = EM.TDEM.Rx(np.array([[rxOffset, 0., 0.]]),
-                        np.logspace(-5, -4, 21), 'bz')
-    src = EM.TDEM.Src.MagDipole([rx], loc=np.array([0., 0., 0.]))
-    # src = EM.TDEM.SrcTDEM([rx], loc=np.array([0., 0., 0.]))
+    rx = EM.TDEM.Rx(np.array([[rxOffset, 0., 0.]]), np.logspace(-5,-4, 21), 'bz')
+
+    if srctype == "MagDipole":
+        src = EM.TDEM.Src.MagDipole([rx], waveform= EM.TDEM.Src.StepOffWaveform(), loc=np.array([0., 0., 0.]))
+    elif srctype == "CircularLoop":
+        src = EM.TDEM.Src.CircularLoop([rx], waveform= EM.TDEM.Src.StepOffWaveform(), loc=np.array([0., 0., 0.]), radius=0.1)
 
     survey = EM.TDEM.Survey([src])
     prb = EM.TDEM.Problem_b(mesh, mapping=mapping)
@@ -48,12 +48,13 @@ def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=None, 
     sigma[active] = sig_half
     sigma = np.log(sigma[active])
     prb.pair(survey)
-
-    bz_ana = mu_0*EM.Analytics.hzAnalyticDipoleT(rx.locs[0][0]+1e-3, rx.times, sig_half)
+    if srctype == "MagDipole":
+        bz_ana = mu_0*EM.Analytics.hzAnalyticDipoleT(rx.locs[0][0]+1e-3, rx.times, sig_half)
+    elif srctype == "CircularLoop":
+        bz_ana = mu_0*EM.Analytics.hzAnalyticDipoleT(13, rx.times, sig_half)
 
     bz_calc = survey.dpred(sigma)
-
-    ind = np.logical_and(rx.times > bounds[0], rx.times < bounds[1])
+    ind = np.logical_and(rx.times > bounds[0],rx.times < bounds[1])
     log10diff = np.linalg.norm(np.log10(np.abs(bz_calc[ind])) - np.log10(np.abs(bz_ana[ind])))/np.linalg.norm(np.log10(np.abs(bz_ana[ind])))
 
     print ' |bz_ana| = ',np.linalg.norm(bz_ana), ' |bz_num| = ', np.linalg.norm(bz_calc), ' |bz_ana - bz_num| =', np.linalg.norm(bz_ana-bz_calc)
@@ -76,31 +77,36 @@ class TDEM_SimpleSrcTests(unittest.TestCase):
 
 class TDEM_bTests(unittest.TestCase):
 
-    # def test_analytic_p2_TENSOR_50m(self):
-    #     self.assertTrue(halfSpaceProblemAnaDiff('TENSOR', rxOffset=50., sig_half=1e+2) < 0.01)
-
-    def test_analytic_p2_CYL_50m(self):
+    def test_analytic_p2_CYL_50_MagDipolem(self):
         self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=50., sig_half=1e+2) < 0.01)
-    def test_analytic_p1_CYL_50m(self):
+    def test_analytic_p1_CYL_50_MagDipolem(self):
         self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=50., sig_half=1e+1) < 0.01)
-    def test_analytic_p0_CYL_50m(self):
+    def test_analytic_p0_CYL_50_MagDipolem(self):
         self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=50., sig_half=1e+0) < 0.01)
-    def test_analytic_m1_CYL_50m(self):
+    def test_analytic_m1_CYL_50_MagDipolem(self):
         self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=50., sig_half=1e-1) < 0.01)
-    def test_analytic_m2_CYL_50m(self):
+    def test_analytic_m2_CYL_50_MagDipolem(self):
         self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=50., sig_half=1e-2) < 0.01)
-    def test_analytic_m3_CYL_50m(self):
+    def test_analytic_m3_CYL_50_MagDipolem(self):
         self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=50., sig_half=1e-3) < 0.02)
 
-    def test_analytic_p0_CYL_1m(self):
+    def test_analytic_p0_CYL_1m_MagDipole(self):
         self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=1.0, sig_half=1e+0) < 0.01)
-    def test_analytic_m1_CYL_1m(self):
+    def test_analytic_m1_CYL_1m_MagDipole(self):
         self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=1.0, sig_half=1e-1) < 0.01)
-    def test_analytic_m2_CYL_1m(self):
+    def test_analytic_m2_CYL_1m_MagDipole(self):
         self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=1.0, sig_half=1e-2) < 0.01)
-    def test_analytic_m3_CYL_1m(self):
+    def test_analytic_m3_CYL_1m_MagDipole(self):
         self.assertTrue(halfSpaceProblemAnaDiff('CYL', rxOffset=1.0, sig_half=1e-3) < 0.02)
 
+    def test_analytic_p0_CYL_0m_CircularLoop(self):
+        self.assertTrue(halfSpaceProblemAnaDiff('CYL', srctype="CircularLoop", rxOffset=.0, sig_half=1e+0) < 0.15)
+    def test_analytic_m1_CYL_0m_CircularLoop(self):
+        self.assertTrue(halfSpaceProblemAnaDiff('CYL', srctype="CircularLoop", rxOffset=.0, sig_half=1e-1) < 0.15)
+    def test_analytic_m2_CYL_0m_CircularLoop(self):
+        self.assertTrue(halfSpaceProblemAnaDiff('CYL', srctype="CircularLoop", rxOffset=.0, sig_half=1e-2) < 0.15)
+    def test_analytic_m3_CYL_0m_CircularLoop(self):
+        self.assertTrue(halfSpaceProblemAnaDiff('CYL', srctype="CircularLoop", rxOffset=.0, sig_half=1e-3) < 0.15)
 
 
 if __name__ == '__main__':
