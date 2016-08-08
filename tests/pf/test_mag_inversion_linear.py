@@ -97,6 +97,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         opt = Optimization.ProjectedGNCG(maxIter=100, lower=0., upper=1.,
                                          maxIterLS=20, maxIterCG=10,
                                          tolCG=1e-3)
+
         invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
         betaest = Directives.BetaEstimate_ByEig()
 

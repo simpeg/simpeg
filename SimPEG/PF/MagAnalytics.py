@@ -195,19 +195,16 @@ def IDTtoxyz(Inc, Dec, Btot):
 
 def MagSphereFreeSpace(x, y, z, R, xc, yc, zc, chi, Bo):
     """
-        Computing boundary condition using Congrous sphere method.
-        This is designed for secondary field formulation.
+        Computing the induced response of magnetic sphere in free-space.
         >> Input
-        mesh:   Mesh class
-        Bo:     np.array([Box, Boy, Boz]): Primary magnetic flux
-        Chi:    susceptibility at cell volume
-
-        .. math::
-
-            \\vec{B}(r) = \\frac{\mu_0}{4\pi}\\frac{m}{\| \\vec{r}-\\vec{r}_0\|^3}[3\hat{m}\cdot\hat{r}-\hat{m}]
+        x, y, z:   Observation locations
+        R:     radius of the sphere
+        xc, yc, zc: Location of the sphere
+        chi: Susceptibility of sphere
+        Bo: Inducing field components [bx, by, bz]*|H0|
 
     """
-    if (~np.size(x)==np.size(y)==np.size(z)):
+    if (~np.size(x) == np.size(y) == np.size(z)):
         print "Specify same size of x, y, z"
         return
 
@@ -219,9 +216,9 @@ def MagSphereFreeSpace(x, y, z, R, xc, yc, zc, chi, Bo):
 
     Bot = np.sqrt(sum(Bo**2))
 
-    mx = np.ones([nobs]) * Bo[0,0] *  R**3 / 3. * chi
-    my = np.ones([nobs]) * Bo[0,1] *  R**3 / 3. * chi
-    mz = np.ones([nobs]) * Bo[0,2] *  R**3 / 3. * chi
+    mx = np.ones([nobs]) * Bo[0] * R**3 / 3. * chi
+    my = np.ones([nobs]) * Bo[1] * R**3 / 3. * chi
+    mz = np.ones([nobs]) * Bo[2] * R**3 / 3. * chi
 
     M = np.c_[mx, my, mz]
 
@@ -230,13 +227,14 @@ def MagSphereFreeSpace(x, y, z, R, xc, yc, zc, chi, Bo):
     rz = (zc - z)
 
     rvec = np.c_[rx, ry, rz]
-    r = np.sqrt((rx)**2+(ry)**2+(rz)**2 )
+    r = np.sqrt((rx)**2+(ry)**2+(rz)**2)
 
-    B = -Utils.sdiag(1./r**3)*M + Utils.sdiag((3 * np.sum(M*rvec,axis=1))/r**5)*rvec
+    B = -Utils.sdiag(1./r**3)*M + \
+        Utils.sdiag((3 * np.sum(M*rvec, axis=1))/r**5)*rvec
 
-    Bx = B[:,0]
-    By = B[:,1]
-    Bz = B[:,2]
+    Bx = B[:, 0]
+    By = B[:, 1]
+    Bz = B[:, 2]
 
     return Bx, By, Bz
 
