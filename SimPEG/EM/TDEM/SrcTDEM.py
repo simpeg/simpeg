@@ -40,7 +40,8 @@ class RawWaveform(BaseWaveform):
 
     wavefun = None
 
-    def __init__(self, offTime=0., **kwargs):
+    def __init__(self, offTime=0., waveFct=waveFct, **kwargs):
+        self.waveFct = waveFct
         BaseWaveform.__init__(self, offTime, **kwargs)
 
     def eval(self, time):
