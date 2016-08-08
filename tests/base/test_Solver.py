@@ -1,5 +1,5 @@
 import unittest
-from SimPEG import *
+from SimPEG import Mesh, Solver, SolverDiag, SolverCG, SolverLU, Utils
 from SimPEG.Mesh import TensorMesh
 from SimPEG.Utils import sdiag
 import numpy as np

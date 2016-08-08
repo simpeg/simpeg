@@ -46,7 +46,7 @@ class BaseDCProblem(BaseEMProblem):
             du_dm_v = self.Ainv * ( - dA_dm_v + dRHS_dm_v )
 
             for rx in src.rxList:
-                df_dmFun = getattr(f, '_%sDeriv'%rx.projField, None)
+                df_dmFun = getattr(f, '_{0!s}Deriv'.format(rx.projField), None)
                 df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
                 Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
         return Utils.mkvc(Jv)
@@ -69,7 +69,7 @@ class BaseDCProblem(BaseEMProblem):
             u_src = f[src, self._solutionType]
             for rx in src.rxList:
                 PTv = rx.evalDeriv(src, self.mesh, f, v[src, rx], adjoint=True) # wrt f, need possibility wrt m
-                df_duTFun = getattr(f, '_%sDeriv'%rx.projField, None)
+                df_duTFun = getattr(f, '_{0!s}Deriv'.format(rx.projField), None)
                 df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
 
                 ATinvdf_duT = self.Ainv * df_duT

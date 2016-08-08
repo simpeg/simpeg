@@ -86,7 +86,7 @@ class polxy_1Dprimary(BaseMTSrc):
         Get the electrical field source
         """
         e_p = self.ePrimary(problem)
-        Map_sigma_p = Maps.Vertical1DMap(problem.mesh)
+        Map_sigma_p = Maps.SurjectVertical1D(problem.mesh)
         sigma_p = Map_sigma_p._transform(self.sigma1d)
         # Make mass matrix
         # Note: M(sig) - M(sig_p) = M(sig - sig_p)
@@ -163,7 +163,7 @@ class polxy_3Dprimary(BaseMTSrc):
         Get the electrical field source
         """
         e_p = self.ePrimary(problem)
-        Map_sigma_p = Maps.Vertical1DMap(problem.mesh)
+        Map_sigma_p = Maps.SurjectVertical1D(problem.mesh)
         sigma_p = Map_sigma_p._transform(self.sigma1d)
         # Make mass matrix
         # Note: M(sig) - M(sig_p) = M(sig - sig_p)

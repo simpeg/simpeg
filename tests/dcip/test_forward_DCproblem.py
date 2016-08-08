@@ -1,5 +1,7 @@
 import unittest
-from SimPEG import *
+import numpy as np
+from SimPEG import (Mesh, Maps, DataMisfit, Regularization, Optimization,
+                    Inversion, InvProblem, Tests)
 import SimPEG.DCIP as DC
 
 

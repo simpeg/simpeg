@@ -1,7 +1,13 @@
-import Utils, Survey, Models, numpy as np, scipy.sparse as sp
-Solver = Utils.SolverUtils.Solver
-import Maps, Mesh
+import Utils
+import Survey
+import Models
+import numpy as np
+import scipy.sparse as sp
+import Maps
+import Mesh
 from Fields import Fields, TimeFields
+
+Solver = Utils.SolverUtils.Solver
 
 class BaseProblem(object):
     """
@@ -49,7 +55,7 @@ class BaseProblem(object):
 
     def pair(self, d):
         """Bind a survey to this problem instance using pointers."""
-        assert isinstance(d, self.surveyPair), "Data object must be an instance of a %s class."%(self.surveyPair.__name__)
+        assert isinstance(d, self.surveyPair), "Data object must be an instance of a {0!s} class.".format((self.surveyPair.__name__))
         if d.ispaired:
             raise Exception("The survey object is already paired to a problem. Use survey.unpair()")
         self._survey = d

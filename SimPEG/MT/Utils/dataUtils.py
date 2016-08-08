@@ -19,7 +19,7 @@ def getAppRes(MTdata):
         zList.append(zc)
     return [appResPhs(zList[i][0],np.sum(zList[i][1:3])) for i in np.arange(len(zList))]
 
-def rotateData(MTdata,rotAngle):
+def rotateData(MTdata, rotAngle):
     '''
     Function that rotates clockwist by rotAngle (- negative for a counter-clockwise rotation)
     '''
@@ -44,19 +44,19 @@ def rotateData(MTdata,rotAngle):
     return MT.Data.fromRecArray(outRec)
 
 
-def appResPhs(freq,z):
+def appResPhs(freq, z):
     app_res = ((1./(8e-7*np.pi**2))/freq)*np.abs(z)**2
     app_phs = np.arctan2(z.imag,z.real)*(180/np.pi)
     return app_res, app_phs
 
-def skindepth(rho,freq):
+def skindepth(rho, freq):
     ''' Function to calculate the skindepth of EM waves'''
     return np.sqrt( (rho*((1/(freq * mu_0 * np.pi )))))
 
-def rec2ndarr(x,dt=float):
+def rec2ndarr(x, dt=float):
     return x.view((dt, len(x.dtype.names)))
 
-def makeAnalyticSolution(mesh,model,elev,freqs):
+def makeAnalyticSolution(mesh, model, elev, freqs):
     from SimPEG import MT
     data1D = []
     for freq in freqs:
@@ -70,7 +70,7 @@ def makeAnalyticSolution(mesh,model,elev,freqs):
     dataRec = np.array(data1D,dtype=[('freq',float),('x',float),('y',float),('z',float),('zyx',complex)])
     return dataRec
 
-def plotMT1DModelData(problem,models,symList=None):
+def plotMT1DModelData(problem, models, symList=None):
     from SimPEG import MT
     # Setup the figure
     fontSize = 15

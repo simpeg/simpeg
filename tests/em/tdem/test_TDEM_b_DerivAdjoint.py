@@ -1,5 +1,7 @@
 import unittest
-from SimPEG import *
+import numpy as np
+import scipy.sparse as sp
+from SimPEG import Mesh, Maps, SolverLU, Tests, Survey
 from SimPEG import EM
 
 plotIt = False

@@ -87,8 +87,8 @@ class ProblemTDEM_b(BaseTDEMProblem):
         """
             :param numpy.array m: Conductivity model
             :param numpy.array vec: vector (like a model)
-            :param simpegEM.TDEM.FieldsTDEM u: Fields resulting from m
-            :rtype: simpegEM.TDEM.FieldsTDEM
+            :param FieldsTDEM u: Fields resulting from m
+            :rtype: FieldsTDEM
             :return: f
 
             Multiply G by a vector
@@ -125,9 +125,9 @@ class ProblemTDEM_b(BaseTDEMProblem):
         """
             :param numpy.array m: Conductivity model
             :param numpy.array vec: vector (like a fields)
-            :param simpegEM.TDEM.FieldsTDEM u: Fields resulting from m
-            :rtype: np.ndarray (like a model)
-            :return: p
+            :param FieldsTDEM u: Fields resulting from m
+            :rtype: numpy.ndarray
+            :return: p (like a model)
 
             Multiply G.T by a vector
         """
@@ -153,8 +153,8 @@ class ProblemTDEM_b(BaseTDEMProblem):
     def solveAh(self, m, p):
         """
             :param numpy.array m: Conductivity model
-            :param simpegEM.TDEM.FieldsTDEM p: Fields object
-            :rtype: simpegEM.TDEM.FieldsTDEM
+            :param FieldsTDEM p: Fields object
+            :rtype: FieldsTDEM
             :return: y
 
             Solve the block-matrix system \\\(\\\hat{A} \\\hat{y} = \\\hat{p}\\\):
@@ -200,8 +200,8 @@ class ProblemTDEM_b(BaseTDEMProblem):
     def solveAht(self, m, p):
         """
             :param numpy.array m: Conductivity model
-            :param simpegEM.TDEM.FieldsTDEM p: Fields object
-            :rtype: simpegEM.TDEM.FieldsTDEM
+            :param FieldsTDEM p: Fields object
+            :rtype: FieldsTDEM
             :return: y
 
             Solve the block-matrix system \\\(\\\hat{A}^\\\\top \\\hat{y} = \\\hat{p}\\\):
@@ -270,8 +270,8 @@ class ProblemTDEM_b(BaseTDEMProblem):
     def _AhVec(self, m, vec):
         """
             :param numpy.array m: Conductivity model
-            :param simpegEM.TDEM.FieldsTDEM vec: Fields object
-            :rtype: simpegEM.TDEM.FieldsTDEM
+            :param FieldsTDEM vec: Fields object
+            :rtype: FieldsTDEM
             :return: f
 
             Multiply the matrix \\\(\\\hat{A}\\\) by a fields vector where
@@ -315,8 +315,8 @@ class ProblemTDEM_b(BaseTDEMProblem):
     def _AhtVec(self, m, vec):
         """
             :param numpy.array m: Conductivity model
-            :param simpegEM.TDEM.FieldsTDEM vec: Fields object
-            :rtype: simpegEM.TDEM.FieldsTDEM
+            :param FieldsTDEM vec: Fields object
+            :rtype: FieldsTDEM
             :return: f
 
             Multiply the matrix \\\(\\\hat{A}\\\) by a fields vector where
