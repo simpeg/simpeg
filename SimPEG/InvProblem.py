@@ -1,4 +1,9 @@
-import Utils, Survey, Problem, numpy as np, scipy.sparse as sp, gc
+import Utils
+import Survey
+import Problem
+import numpy as np
+import scipy.sparse as sp
+import gc
 from Utils.SolverUtils import *
 import DataMisfit
 import Regularization

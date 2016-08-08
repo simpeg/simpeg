@@ -1,4 +1,4 @@
-.. _examples_EM_FDEM_Analytic_MagDipoleWholespace:
+.. _examples_Maps_Mesh2Mesh:
 
 .. --------------------------------- ..
 ..                                   ..
@@ -9,19 +9,19 @@
 .. --------------------------------- ..
 
 
-EM: Magnetic Dipole in a Whole-Space
-====================================
 
-Here we plot the magnetic flux density from a harmonic dipole in a
-wholespace.
+Maps: Mesh2Mesh
+===============
+
+This mapping allows you to go from one mesh to another.
 
 
 
 .. plot::
 
     from SimPEG import Examples
-    Examples.EM_FDEM_Analytic_MagDipoleWholespace.run()
+    Examples.Maps_Mesh2Mesh.run()
 
-.. literalinclude:: ../../../SimPEG/Examples/EM_FDEM_Analytic_MagDipoleWholespace.py
+.. literalinclude:: ../../../SimPEG/Examples/Maps_Mesh2Mesh.py
     :language: python
     :linenos:
