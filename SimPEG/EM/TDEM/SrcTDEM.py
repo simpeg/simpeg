@@ -73,9 +73,9 @@ class BaseSrc(SimPEG.Survey.BaseSrc):
     def waveform(self, val):
         if self.waveform is None:
             val._assertMatchesPair(self.waveformPair)
-            self._mapping = val
+            self._waveform = val
         else:
-            self._mapping = self.PropMap(val)
+            self._waveform = self.StepOffWaveform(val)
 
 
     def __init__(self, rxList, waveform = StepOffWaveform(), **kwargs):
