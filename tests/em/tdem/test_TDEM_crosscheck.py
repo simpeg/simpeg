@@ -30,6 +30,8 @@ def setUp(prbtype = 'b', rxcomp='bz'):
         prb = EM.TDEM.Problem_b(mesh, mapping=mapping)
     elif prbtype == 'e':
         prb = EM.TDEM.Problem_e(mesh, mapping=mapping)
+    else:
+        raise NotImplementedError()
 
     prb.timeSteps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
     # prb.timeSteps = [(1e-05, 10), (1e-05, 50), (1e-05, 50) ] #, (2.5e-4, 10)]
