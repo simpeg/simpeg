@@ -38,7 +38,7 @@ def halfSpaceProblemAnaDiff(meshType, srctype="MagDipole", sig_half=1e-2, rxOffs
     out = EM.Utils.VTEMFun(prb.times, 0.00595, 0.006, 100)
     wavefun = interp1d(prb.times, out)
     t0 = 0.006
-    waveform = EM.TDEM.Src.RawWaveform(offTime=t0, wavefun=wavefun)
+    waveform = EM.TDEM.Src.RawWaveform(offTime=t0, waveFct=wavefun)
 
     rx = EM.TDEM.Rx(np.array([[rxOffset, 0., 0.]]), np.logspace(-4,-3, 31)+t0, 'bz')
 

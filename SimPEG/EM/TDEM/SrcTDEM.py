@@ -38,14 +38,12 @@ class StepOffWaveform(BaseWaveform):
 
 class RawWaveform(BaseWaveform):
 
-    wavefun = None
-
-    def __init__(self, offTime=0., waveFct=waveFct, **kwargs):
+    def __init__(self, offTime=0., waveFct=None, **kwargs):
         self.waveFct = waveFct
         BaseWaveform.__init__(self, offTime, **kwargs)
 
     def eval(self, time):
-        return self.wavefun(time)
+        return self.waveFct(time)
         # raise NotImplementedError('RawWaveform has not been implemented, you should write it!')
 
 
