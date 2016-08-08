@@ -27,7 +27,7 @@ def surface2ind_topo(mesh, topo, gridLoc='CC'):
             gridTopo = Ftopo(XY).reshape(mesh.vnN[:2], order='F')
 
             if mesh._meshType not in ['TENSOR', 'CYL', 'BASETENSOR']:
-                raise NotImplementedError('Nodal surface2ind_topo not implemented for %s mesh'%mesh._meshType)
+                raise NotImplementedError('Nodal surface2ind_topo not implemented for {0!s} mesh'.format(mesh._meshType))
 
             Nz = mesh.vectorNz[1:] # TODO: this will only work for tensor meshes
             actind = np.array([False]*mesh.nC).reshape(mesh.vnC, order='F')
@@ -48,7 +48,7 @@ def surface2ind_topo(mesh, topo, gridLoc='CC'):
 
             gridTopo = Ftopo(mesh.vectorNx)
             if mesh._meshType not in ['TENSOR', 'CYL', 'BASETENSOR']:
-                raise NotImplementedError('Nodal surface2ind_topo not implemented for %s mesh'%mesh._meshType)
+                raise NotImplementedError('Nodal surface2ind_topo not implemented for {0!s} mesh'.format(mesh._meshType))
 
             Ny = mesh.vectorNy[1:] # TODO: this will only work for tensor meshes
             actind = np.array([False]*mesh.nC).reshape(mesh.vnC, order='F')

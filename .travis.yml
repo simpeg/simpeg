@@ -18,7 +18,7 @@ env:
     - TEST_DIR="tests/mesh tests/base tests/utils"
     - TEST_DIR=tests/em/fdem/inverse/derivs
     - TEST_DIR=tests/em/tdem
-    - TEST_DIR=tests/dcip
+    - TEST_DIR=tests/em/static
     - TEST_DIR=tests/flow
     - TEST_DIR=tests/mt
     - TEST_DIR=tests/examples
@@ -42,7 +42,7 @@ before_install:
   - conda update --yes conda
 
 install:
-  - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython nose vtk sphinx
+  - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython nose vtk sphinx sympy
   - pip install nose-cov python-coveralls
 
   - git clone https://github.com/rowanc1/pymatsolver.git
@@ -58,8 +58,7 @@ script:
 
 # Calculate coverage
 after_success:
-  - coveralls --config_file .coveragerc
-
+  - bash <(curl -s https://codecov.io/bash)
   - if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then
       if [ ${TEST_DIR} == "tests/docs" ]; then
         python scripts/fetch_gae_sdk.py $(dirname "${GAE_PYTHONPATH}");

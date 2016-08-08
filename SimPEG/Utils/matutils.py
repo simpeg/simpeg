@@ -276,9 +276,9 @@ class TensorType(object):
             self._tt  = 3
             self._tts = 'tensor'
         else:
-            raise Exception('Unexpected shape of tensor')
+            raise Exception('Unexpected shape of tensor: {}'.format(tensor.shape))
     def __str__(self):
-        return 'TensorType[%i]: %s' % (self._tt, self._tts)
+        return 'TensorType[{0:d}]: {1!s}'.format(self._tt, self._tts)
     def __eq__(self, v): return self._tt == v
     def __le__(self, v): return self._tt <= v
     def __ge__(self, v): return self._tt >= v

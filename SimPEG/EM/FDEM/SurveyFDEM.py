@@ -1,5 +1,5 @@
 import SimPEG
-from SimPEG.EM.Utils import *
+from SimPEG.EM.Utils import omega
 from SimPEG.EM.Base import BaseEMSurvey
 from scipy.constants import mu_0
 from SimPEG.Utils import Zero, Identity

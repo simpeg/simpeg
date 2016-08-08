@@ -4,6 +4,7 @@ from View import TensorView
 from DiffOperators import DiffOperators
 from InnerProducts import InnerProducts
 from MeshIO import TensorMeshIO
+import warnings
 
 class BaseTensorMesh(BaseMesh):
 
@@ -23,8 +24,8 @@ class BaseTensorMesh(BaseMesh):
                 h_i = self._unitDimensions[i] * np.ones(int(h_i))/int(h_i)
             elif type(h_i) is list:
                 h_i = Utils.meshTensor(h_i)
-            assert isinstance(h_i, np.ndarray), ("h[%i] is not a numpy array." % i)
-            assert len(h_i.shape) == 1, ("h[%i] must be a 1D numpy array." % i)
+            assert isinstance(h_i, np.ndarray), ("h[{0:d}] is not a numpy array.".format(i))
+            assert len(h_i.shape) == 1, ("h[{0:d}] must be a 1D numpy array.".format(i))
             h[i] = h_i[:] # make a copy.
 
         x0 = np.zeros(len(h))
@@ -41,7 +42,7 @@ class BaseTensorMesh(BaseMesh):
                 elif x_i == 'N':
                     x0[i] = -h_i.sum()
                 else:
-                    raise Exception("x0[%i] must be a scalar or '0' to be zero, 'C' to center, or 'N' to be negative." % i)
+                    raise Exception("x0[{0:d}] must be a scalar or '0' to be zero, 'C' to center, or 'N' to be negative.".format(i))
 
         if isinstance(self, BaseRectangularMesh):
             BaseRectangularMesh.__init__(self, np.array([x.size for x in h]), x0)
@@ -239,7 +240,7 @@ class BaseTensorMesh(BaseMesh):
             'CCVz'  -> z-component of vector field defined on cell centers
         """
         if self._meshType == 'CYL' and self.isSymmetric and locType in ['Ex','Ez','Fy']:
-            raise Exception('Symmetric CylMesh does not support %s interpolation, as this variable does not exist.' % locType)
+            raise Exception('Symmetric CylMesh does not support {0!s} interpolation, as this variable does not exist.'.format(locType))
 
         loc = Utils.asArray_N_x_Dim(loc, self.dim)
 
@@ -292,7 +293,8 @@ class BaseTensorMesh(BaseMesh):
             :rtype: scipy.sparse.csr_matrix
             :return: M, the inner product matrix (nF, nF)
         """
-        assert projType in ['F', 'E'], "projType must be 'F' for faces or 'E' for edges"
+        assert projType in ['F', 'E'], ("projType must be 'F' for faces or 'E'"
+                                        " for edges")
 
         if prop is None:
             prop = np.ones(self.nC)
@@ -303,13 +305,32 @@ class BaseTensorMesh(BaseMesh):
         if Utils.isScalar(prop):
             prop = prop*np.ones(self.nC)
 
+        # number of elements we are averaging (equals dim for regular
+        # meshes, but for cyl, where we use symmetry, it is 1 for edge
+        # variables and 2 for face variables)
+        if self._meshType == 'CYL':
+            n_elements = np.sum(getattr(self, 'vn'+projType).nonzero())
+        else:
+            n_elements = self.dim
+
+        # Isotropic? or anisotropic?
         if prop.size == self.nC:
             Av = getattr(self, 'ave'+projType+'2CC')
             Vprop = self.vol * Utils.mkvc(prop)
-            M = self.dim * Utils.sdiag(Av.T * Vprop)
+            M = n_elements * Utils.sdiag(Av.T * Vprop)
+
         elif prop.size == self.nC*self.dim:
             Av = getattr(self, 'ave'+projType+'2CCV')
-            V = sp.kron(sp.identity(self.dim), Utils.sdiag(self.vol))
+
+            # if cyl, then only certain components are relevant due to symmetry
+            # for faces, x, z matters, for edges, y (which is theta) matters
+            if self._meshType == 'CYL':
+                if projType == 'E':
+                    prop = prop[:, 1] # this is the action of a projection mat
+                elif projType == 'F':
+                    prop = prop[:, [0, 2]]
+
+            V = sp.kron(sp.identity(n_elements), Utils.sdiag(self.vol))
             M = Utils.sdiag(Av.T * V * Utils.mkvc(prop))
         else:
             return None
@@ -319,7 +340,8 @@ class BaseTensorMesh(BaseMesh):
         else:
             return M
 
-    def _fastInnerProductDeriv(self, projType, prop, invProp=False, invMat=False):
+    def _fastInnerProductDeriv(self, projType, prop, invProp=False,
+                               invMat=False):
         """
             :param str projType: 'E' or 'F'
             :param TensorType tensorType: type of the tensor
@@ -328,49 +350,96 @@ class BaseTensorMesh(BaseMesh):
             :rtype: function
             :return: dMdmu, the derivative of the inner product matrix
         """
-        assert projType in ['F', 'E'], "projType must be 'F' for faces or 'E' for edges"
+        assert projType in ['F', 'E'], ("projType must be 'F' for faces or 'E'"
+                                        " for edges")
+
         tensorType = Utils.TensorType(self, prop)
 
         dMdprop = None
 
-        if invMat:
-            MI = self._fastInnerProduct(projType, prop, invProp=invProp, invMat=invMat)
+        if invMat or invProp:
+            MI = self._fastInnerProduct(projType, prop, invProp=invProp,
+                                        invMat=invMat)
 
-        if tensorType == 0:
+        # number of elements we are averaging (equals dim for regular
+        # meshes, but for cyl, where we use symmetry, it is 1 for edge
+        # variables and 2 for face variables)
+        if self._meshType == 'CYL':
+            n_elements = np.sum(getattr(self, 'vn'+projType).nonzero())
+        else:
+            n_elements = self.dim
+
+
+        if tensorType == 0:  # isotropic, constant
             Av = getattr(self, 'ave'+projType+'2CC')
             V = Utils.sdiag(self.vol)
-            ones = sp.csr_matrix((np.ones(self.nC), (range(self.nC), np.zeros(self.nC))), shape=(self.nC,1))
+            ones = sp.csr_matrix((np.ones(self.nC), (range(self.nC),
+                                                     np.zeros(self.nC))),
+                                 shape=(self.nC, 1))
             if not invMat and not invProp:
-                dMdprop = self.dim * Av.T * V * ones
+                dMdprop = n_elements * Av.T * V * ones
             elif invMat and invProp:
-                dMdprop =  self.dim * Utils.sdiag(MI.diagonal()**2) * Av.T * V * ones * Utils.sdiag(1./prop**2)
+                dMdprop =  n_elements * (Utils.sdiag(MI.diagonal()**2) * Av.T *
+                                         V * ones * Utils.sdiag(1./prop**2))
+            elif invProp:
+                dMdprop = n_elements * Av.T * V * Utils.sdiag(- 1./prop**2)
+            elif invMat:
+                dMdprop = n_elements * (Utils.sdiag(- MI.diagonal()**2) * Av.T
+                                        * V)
 
-        if tensorType == 1:
+        elif tensorType == 1:  # isotropic, variable in space
             Av = getattr(self, 'ave'+projType+'2CC')
             V = Utils.sdiag(self.vol)
             if not invMat and not invProp:
-                dMdprop = self.dim * Av.T * V
+                dMdprop = n_elements * Av.T * V
             elif invMat and invProp:
-                dMdprop =  self.dim * Utils.sdiag(MI.diagonal()**2) * Av.T * V * Utils.sdiag(1./prop**2)
+                dMdprop =  n_elements * (Utils.sdiag(MI.diagonal()**2) * Av.T *
+                                         V * Utils.sdiag(1./prop**2))
+            elif invProp:
+                dMdprop = n_elements * Av.T * V * Utils.sdiag(-1./prop**2)
+            elif invMat:
+                dMdprop = n_elements * (Utils.sdiag(- MI.diagonal()**2) * Av.T
+                                        * V)
 
-        if tensorType == 2: # anisotropic
+        elif tensorType == 2: # anisotropic
             Av = getattr(self, 'ave'+projType+'2CCV')
             V = sp.kron(sp.identity(self.dim), Utils.sdiag(self.vol))
+
+            if self._meshType == 'CYL':
+                Zero = sp.csr_matrix((self.nC, self.nC))
+                Eye = sp.eye(self.nC)
+                if projType == 'E':
+                    P = sp.hstack([Zero, Eye, Zero])
+                    # print P.todense()
+                elif projType == 'F':
+                    P = sp.vstack([sp.hstack([Eye, Zero, Zero]),
+                                   sp.hstack([Zero, Zero, Eye])])
+                    # print P.todense()
+            else:
+                P = sp.eye(self.nC*self.dim)
+
             if not invMat and not invProp:
-                dMdprop = Av.T * V
+                dMdprop = Av.T * P * V
             elif invMat and invProp:
-                dMdprop =  Utils.sdiag(MI.diagonal()**2) * Av.T * V * Utils.sdiag(1./prop**2)
+                dMdprop = (Utils.sdiag(MI.diagonal()**2) * Av.T * P * V *
+                           Utils.sdiag(1./prop**2))
+            elif invProp:
+                dMdprop = Av.T * P * V * Utils.sdiag(-1./prop**2)
+            elif invMat:
+                dMdprop = Utils.sdiag(- MI.diagonal()**2) * Av.T * P * V
 
         if dMdprop is not None:
             def innerProductDeriv(v=None):
                 if v is None:
-                    print 'Depreciation Warning: TensorMesh.innerProductDeriv. You should be supplying a vector. Use: sdiag(u)*dMdprop'
+                    warnings.warn("Depreciation Warning: "
+                                  "TensorMesh.innerProductDeriv."
+                                  " You should be supplying a vector. "
+                                  "Use: sdiag(u)*dMdprop", FutureWarning)
                     return dMdprop
                 return Utils.sdiag(v) * dMdprop
             return innerProductDeriv
         else:
             return None
-
 
 
 class TensorMesh(BaseTensorMesh, BaseRectangularMesh, TensorView, DiffOperators, InnerProducts, TensorMeshIO):

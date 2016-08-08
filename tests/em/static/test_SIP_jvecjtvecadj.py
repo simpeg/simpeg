@@ -1,9 +1,13 @@
 import unittest
-from SimPEG import *
-import SimPEG
-from SimPEG import Mesh, Utils, EM, Maps, np, Survey
+from SimPEG import (Mesh, Utils, EM, Maps, np, Survey, DataMisfit,
+                    Regularization, Optimization, Inversion, InvProblem, Tests)
 from SimPEG.EM.Static import SIP, DC, IP
-from pymatsolver import MumpsSolver
+try:
+    from pymatsolver import MumpsSolver
+    Solver = MumpsSolver
+except ImportError:
+    from SimPEG import SolverLU
+    Solver = SolverLU
 
 
 class IPProblemTestsCC(unittest.TestCase):
@@ -38,7 +42,7 @@ class IPProblemTestsCC(unittest.TestCase):
         survey = SIP.Survey([src])
         colemap = [("eta", Maps.IdentityMap(mesh)), ("taui", Maps.IdentityMap(mesh))]
         problem = SIP.Problem3D_CC(mesh, rho=1./sigma, mapping=colemap)
-        problem.Solver = MumpsSolver
+        problem.Solver = Solver
         problem.pair(survey)
         mSynth = np.r_[eta, 1./tau]
         survey.makeSyntheticData(mSynth)
@@ -110,7 +114,7 @@ class IPProblemTestsN(unittest.TestCase):
         survey = SIP.Survey([src])
         colemap = [("eta", Maps.IdentityMap(mesh)), ("taui", Maps.IdentityMap(mesh))]
         problem = SIP.Problem3D_N(mesh, sigma=sigma, mapping=colemap)
-        problem.Solver = MumpsSolver
+        problem.Solver = Solver
         problem.pair(survey)
         mSynth = np.r_[eta, 1./tau]
         survey.makeSyntheticData(mSynth)
@@ -187,7 +191,7 @@ class IPProblemTestsN_air(unittest.TestCase):
         survey = SIP.Survey([src])
         colemap = [("eta", Maps.IdentityMap(mesh)*actmapeta), ("taui", Maps.IdentityMap(mesh)*actmaptau)]
         problem = SIP.Problem3D_N(mesh, sigma=sigma, mapping=colemap)
-        problem.Solver = MumpsSolver
+        problem.Solver = Solver
         problem.pair(survey)
         mSynth = np.r_[eta[~airind], 1./tau[~airind]]
         survey.makeSyntheticData(mSynth)
