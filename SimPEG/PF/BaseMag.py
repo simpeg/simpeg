@@ -107,8 +107,8 @@ class BaseMagSurvey(Survey.BaseSurvey):
 class LinearSurvey(Survey.BaseSurvey):
     """Base Magnetics Survey"""
 
-    rxLoc = None #: receiver locations
-    rxType = None #: receiver type
+    rxLoc = None  #: receiver locations
+    rxType = None  #: receiver type
 
     def __init__(self, srcField, **kwargs):
         self.srcField = srcField
@@ -135,7 +135,7 @@ class LinearSurvey(Survey.BaseSurvey):
 class SrcField(Survey.BaseSrc):
     """ Define the inducing field """
 
-    param = None #: Inducing field param (Amp, Incl, Decl)
+    param = None  #: Inducing field param (Amp, Incl, Decl)
 
     def __init__(self, rxList, **kwargs):
         super(SrcField, self).__init__(rxList, **kwargs)
@@ -146,7 +146,8 @@ class RxObs(Survey.BaseRx):
     def __init__(self, locsXYZ, **kwargs):
         locs = locsXYZ
         assert locsXYZ.shape[1] == 3, 'locs must in 3-D (x,y,z).'
-        super(RxObs, self).__init__(locs, 'tmi', storeProjections=False, **kwargs)
+        super(RxObs, self).__init__(locs, 'tmi',
+                                    storeProjections=False, **kwargs)
 
     @property
     def nD(self):

@@ -2,6 +2,7 @@ import re, os
 from SimPEG import Mesh, np, Utils
 import BaseMag, Magnetics
 
+
 class MagneticsDriver_Inv(object):
     """docstring for MagneticsDriver_Inv"""
 
@@ -11,7 +12,6 @@ class MagneticsDriver_Inv(object):
             if len(self.basePath) > 0:
                 self.basePath += os.path.sep
             self.readDriverFile(input_file.split(os.path.sep)[-1])
-
 
     def readDriverFile(self, input_file):
         """
@@ -37,17 +37,16 @@ class MagneticsDriver_Inv(object):
 
         """
 
-
-        fid = open(self.basePath + input_file,'r')
+        fid = open(self.basePath + input_file, 'r')
 
         # Line 1: Mesh
         line = fid.readline()
-        l_input  = re.split('[!\s]',line)
+        l_input = re.split('[!\s]', line)
         mshfile = l_input[1].rstrip()
 
         # Line 2: Observation file
         line = fid.readline()
-        l_input  = re.split('[!\s]',line)
+        l_input = re.split('[!\s]', line)
         obsfile = l_input[1].rstrip()
 
         # Line 3: Topo, active-dyn, active-static
@@ -55,119 +54,119 @@ class MagneticsDriver_Inv(object):
         staticInput = None
 
         line = fid.readline()
-        l_input = re.split('[!\s]',line)
-        if l_input[0]=='TOPO':
+        l_input = re.split('[!\s]', line)
+        if l_input[0] == 'TOPO':
             topofile = l_input[1].rstrip()
 
-        elif l_input[0]=='VALUE':
+        elif l_input[0] == 'VALUE':
             staticInput = float(l_input[1])
 
-        elif l_input[0]=='FILE':
+        elif l_input[0] == 'FILE':
             staticInput = l_input[1].rstrip()
 
         # Line 4: Starting model
         line = fid.readline()
-        l_input = re.split('[!\s]',line)
-        if l_input[0]=='VALUE':
+        l_input = re.split('[!\s]', line)
+        if l_input[0] == 'VALUE':
             mstart = float(l_input[1])
 
-        elif l_input[0]=='FILE':
+        elif l_input[0] == 'FILE':
             mstart = l_input[1].rstrip()
 
         # Line 5: Reference model
         line = fid.readline()
-        l_input = re.split('[!\s]',line)
-        if l_input[0]=='VALUE':
+        l_input = re.split('[!\s]', line)
+        if l_input[0] == 'VALUE':
             mref = float(l_input[1])
 
-        elif l_input[0]=='FILE':
+        elif l_input[0] == 'FILE':
             mref = l_input[1].rstrip()
 
         # Line 6: Magnetization model
         line = fid.readline()
-        l_input = re.split('[!\s]',line)
-        if l_input[0]=='DEFAULT':
+        l_input = re.split('[!\s]', line)
+        if l_input[0] == 'DEFAULT':
             magfile = None
 
-        elif l_input[0]=='FILE':
+        elif l_input[0] == 'FILE':
             magfile = l_input[1].rstrip()
 
         # Line 7: Cell weights
         line = fid.readline()
-        l_input = re.split('[!\s]',line)
-        if l_input[0]=='DEFAULT':
+        l_input = re.split('[!\s]', line)
+        if l_input[0] == 'DEFAULT':
             wgtfile = []
 
-        elif l_input[0]=='FILE':
+        elif l_input[0] == 'FILE':
             wgtfile = l_input[1].rstrip()
 
         # Line 8: Target chi-factor
         line = fid.readline()
-        l_input = re.split('[!\s]',line)
-        if l_input[0]=='DEFAULT':
+        l_input = re.split('[!\s]', line)
+        if l_input[0] == 'DEFAULT':
             chi = 1.
 
-        elif l_input[0]=='VALUE':
+        elif l_input[0] == 'VALUE':
             chi = float(l_input[1])
 
         # Line 9: Alpha values
         line = fid.readline()
-        l_input = re.split('[!\s]',line)
-        if l_input[0]=='VALUE':
+        l_input = re.split('[!\s]', line)
+        if l_input[0] == 'VALUE':
 
             val = np.array(l_input[1:5])
             alphas = val.astype(np.float)
 
-        elif l_input[0]=='DEFAULT':
+        elif l_input[0] == 'DEFAULT':
 
             alphas = np.ones(4)
 
         # Line 10: Bounds
         line = fid.readline()
-        l_input = re.split('[!\s]',line)
-        if l_input[0]=='VALUE':
-            val   = np.array(l_input[1:3])
+        l_input = re.split('[!\s]', line)
+        if l_input[0] == 'VALUE':
+            val = np.array(l_input[1:3])
             bounds = val.astype(np.float)
 
-        elif l_input[0]=='FILE':
+        elif l_input[0] == 'FILE':
             bounds = l_input[1].rstrip()
 
         else:
-            bounds = [-np.inf,np.inf]
+            bounds = [-np.inf, np.inf]
 
         # Line 11: Norms
         line = fid.readline()
-        l_input = re.split('[!\s]',line)
-        if l_input[0]=='VALUE':
-            val   = np.array(l_input[1:6])
+        l_input = re.split('[!\s]', line)
+        if l_input[0] == 'VALUE':
+            val = np.array(l_input[1:6])
             lpnorms = val.astype(np.float)
 
-        elif l_input[0]=='FILE':
+        elif l_input[0] == 'FILE':
             lpnorms = l_input[1].rstrip()
 
         # Line 12: Treshold values
         line = fid.readline()
-        l_input = re.split('[!\s]',line)
-        if l_input[0]=='VALUE':
-            val   = np.array(l_input[1:3])
+        l_input = re.split('[!\s]', line)
+        if l_input[0] == 'VALUE':
+            val = np.array(l_input[1:3])
             eps = val.astype(np.float)
 
-        elif l_input[0]=='DEFAULT':
+        elif l_input[0] == 'DEFAULT':
             eps = None
 
-        self.mshfile  = mshfile
-        self.obsfile  = obsfile
+        self.mshfile = mshfile
+        self.obsfile = obsfile
         self.topofile = topofile
-        self.mstart   = mstart
+        self.mstart = mstart
         self._mrefInput = mref
         self._staticInput = staticInput
-        self.magfile  = magfile
-        self.wgtfile  = wgtfile
-        self.chi      = chi
-        self.alphas   = alphas
-        self.bounds   = bounds
-        self.lpnorms  = lpnorms
-        self.eps      = eps
+        self.magfile = magfile
+        self.wgtfile = wgtfile
+        self.chi = chi
+        self.alphas = alphas
+        self.bounds = bounds
+        self.lpnorms = lpnorms
+        self.eps = eps
 
     @property
     def mesh(self):
@@ -187,7 +186,7 @@ class MagneticsDriver_Inv(object):
             if getattr(self, 'topofile', None) is not None:
                 topo = np.genfromtxt(self.basePath + self.topofile, skip_header=1)
                 # Find the active cells
-                active = Utils.surface2ind_topo(self.mesh,topo,'N')
+                active = Utils.surface2ind_topo(self.mesh, topo, 'N')
 
             elif isinstance(self._staticInput, float):
                 active = self.m0 != self._staticInput
@@ -240,7 +239,7 @@ class MagneticsDriver_Inv(object):
             if isinstance(self.mstart, float):
                 self._m0 = np.ones(self.nC) * self.mstart
             else:
-                self._m0 = Mesh.TensorMesh.readModelUBC(self.mesh,self.basePath + self.mstart)
+                self._m0 = Mesh.TensorMesh.readModelUBC(self.mesh, self.basePath + self.mstart)
 
         return self._m0
 
@@ -250,9 +249,9 @@ class MagneticsDriver_Inv(object):
             if isinstance(self._mrefInput, float):
                 self._mref = np.ones(self.nC) * self._mrefInput
             else:
-                self._mref = Mesh.TensorMesh.readModelUBC(self.mesh,self.basePath + self._mrefInput)
+                self._mref = Mesh.TensorMesh.readModelUBC(self.mesh, self.basePath + self._mrefInput)
 
-                #Reduce to active space
+                # Reduce to active space
                 self._mref = self._mref[self._activeCells]
 
         return self._mref
@@ -260,7 +259,7 @@ class MagneticsDriver_Inv(object):
     @property
     def activeModel(self):
         if getattr(self, '_activeModel', None) is None:
-            if self._staticInput=='FILE':
+            if self._staticInput == 'FILE':
                 # Read from file active cells with 0:air, 1:dynamic, -1 static
                 self._activeModel = Mesh.TensorMesh.readModelUBC(self.mesh, self.basePath + self._staticInput)
 
@@ -281,7 +280,8 @@ class MagneticsDriver_Inv(object):
         else:
             raise NotImplementedError("this will require you to read in a three column vector model")
             self._mref = Utils.meshutils.readUBCTensorModel(self.basePath + self._mrefInput, self.mesh)
-            return np.genfromtxt(self.magfile,delimiter=' \n',dtype=np.str,comments='!')
+            return np.genfromtxt(self.magfile,
+                                 delimiter=' \n', dtype=np.str, comments='!')
 
     def readMagneticsObservations(self, obs_file):
         """
@@ -295,44 +295,44 @@ class MagneticsDriver_Inv(object):
             :param M, magnetization orentiaton (MI, MD)
         """
 
-        fid = open(self.basePath + obs_file,'r')
+        fid = open(self.basePath + obs_file, 'r')
 
         # First line has the inclination,declination and amplitude of B0
         line = fid.readline()
-        B = np.array(line.split(),dtype=float)
+        B = np.array(line.split(), dtype=float)
 
         # Second line has the magnetization orientation and a flag
         line = fid.readline()
-        M = np.array(line.split(),dtype=float)
+        M = np.array(line.split(), dtype=float)
 
         # Third line has the number of rows
         line = fid.readline()
-        ndat = np.array(line.split(),dtype=int)
+        ndat = np.array(line.split(), dtype=int)
 
         # Pre-allocate space for obsx, obsy, obsz, data, uncert
         line = fid.readline()
-        temp = np.array(line.split(),dtype=float)
+        temp = np.array(line.split(), dtype=float)
 
-        d  = np.zeros(ndat, dtype=float)
+        d = np.zeros(ndat, dtype=float)
         wd = np.zeros(ndat, dtype=float)
-        locXYZ = np.zeros( (ndat[0],3), dtype=float)
+        locXYZ = np.zeros((ndat[0], 3), dtype=float)
 
         for ii in range(ndat):
 
-            temp = np.array(line.split(),dtype=float)
-            locXYZ[ii,:] = temp[:3]
+            temp = np.array(line.split(), dtype=float)
+            locXYZ[ii, :] = temp[:3]
 
             if len(temp) > 3:
                 d[ii] = temp[3]
 
-                if len(temp)==5:
+                if len(temp) == 5:
                     wd[ii] = temp[4]
 
             line = fid.readline()
 
         rxLoc = BaseMag.RxObs(locXYZ)
-        srcField = BaseMag.SrcField([rxLoc],param=(B[2],B[0],B[1]))
+        srcField = BaseMag.SrcField([rxLoc], param=(B[2], B[0], B[1]))
         survey = BaseMag.LinearSurvey(srcField)
-        survey.dobs =  d
-        survey.std =  wd
+        survey.dobs = d
+        survey.std = wd
         return survey

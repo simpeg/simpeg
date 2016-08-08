@@ -4,28 +4,28 @@ from scipy.constants import mu_0
 from MagAnalytics import spheremodel, CongruousMagBC
 import re
 
+
 class MagneticIntegral(Problem.BaseProblem):
 
-    #surveyPair = Survey.LinearSurvey
-
-    forwardOnly = False #: Store the forward matrix by default, otherwise just compute d
-    actInd      = None #: Active cell indices provided
-    M           = None #: Magnetization matrix provided, otherwise all induced
-    rtype       = 'tmi' #: Receiver type either "tmi" | "xyz"
+    forwardOnly = False  # If false, matric is store to memory (watch your RAM)
+    actInd = None  #: Active cell indices provided
+    M = None  #: Magnetization matrix provided, otherwise all induced
+    rtype = 'tmi'  #: Receiver type either "tmi" | "xyz"
 
     def __init__(self, mesh, mapping=None, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, mapping=mapping, **kwargs)
 
     def fwr_ind(self):
         # Add forward function
-        # kappa = self.curModel.kappa TODO
-        kappa = self.mapping*self.curModel
+        m = self.mapping*self.curModel
 
         if self.forwardOnly:
 
             if getattr(self, 'actInd', None) is not None:
-                if self.actInd.dtype=='bool':
-                    inds = np.asarray([inds for inds, elem in enumerate(self.actInd, 1) if elem], dtype = int) - 1
+                if self.actInd.dtype == 'bool':
+                    inds = np.asarray([inds for inds,
+                                       elem in enumerate(self.actInd, 1)
+                                       if elem], dtype=int) - 1
                 else:
                     inds = self.actInd
 
@@ -36,49 +36,50 @@ class MagneticIntegral(Problem.BaseProblem):
             nC = len(inds)
 
             # Create active cell projector
-            P = sp.csr_matrix((np.ones(nC),(inds, range(nC))),
-            shape=(self.mesh.nC, nC))
+            P = sp.csr_matrix((np.ones(nC), (inds, range(nC))),
+                              shape=(self.mesh.nC, nC))
 
-            # Create vectors of nodal location (lower and upper coners for each cell)
-            xn = self.mesh.vectorNx;
-            yn = self.mesh.vectorNy;
-            zn = self.mesh.vectorNz;
+            # Create vectors of nodal location
+            # (lower and upper coners for each cell)
+            xn = self.mesh.vectorNx
+            yn = self.mesh.vectorNy
+            zn = self.mesh.vectorNz
 
-            yn2,xn2,zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
-            yn1,xn1,zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
+            yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
+            yn1, xn1, zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
 
             Yn = P.T*np.c_[mkvc(yn1), mkvc(yn2)]
             Xn = P.T*np.c_[mkvc(xn1), mkvc(xn2)]
             Zn = P.T*np.c_[mkvc(zn1), mkvc(zn2)]
 
-
             survey = self.survey
             rxLoc = survey.srcField.rxList[0].locs
             ndata = rxLoc.shape[0]
 
-            # Loop through all observations and create forward operator (ndata-by-nC)
+            # Loop through all observations and create forward operator
+            # (ndata-by-nC)
             print "Begin calculation forward calculations... G not stored: "
 
             # If assumes uniform magnetization direction
             if getattr(self, 'M', None) is None:
-                M = dipazm_2_xyz(np.ones(nC) * survey.srcField.param[1],np.ones(nC) * survey.srcField.param[2])
+                M = dipazm_2_xyz(np.ones(nC) * survey.srcField.param[1],
+                                 np.ones(nC) * survey.srcField.param[2])
 
+            Mx = Utils.sdiag(M[:, 0]*survey.srcField.param[0])
+            My = Utils.sdiag(M[:, 1]*survey.srcField.param[0])
+            Mz = Utils.sdiag(M[:, 2]*survey.srcField.param[0])
 
-            Mx = Utils.sdiag(M[:,0]*survey.srcField.param[0])
-            My = Utils.sdiag(M[:,1]*survey.srcField.param[0])
-            Mz = Utils.sdiag(M[:,2]*survey.srcField.param[0])
-
-            Mxyz = sp.vstack((Mx,My,Mz))
+            Mxyz = sp.vstack((Mx, My, Mz))
 
             if self.rtype == 'tmi':
 
                 # Convert Bdecination from north to cartesian
-                D = (450.-float(survey.srcField.param[2]))%360.
+                D = (450.-float(survey.srcField.param[2])) % 360.
                 I = survey.srcField.param[1]
                 # Projection matrix
                 Ptmi = mkvc(np.r_[np.cos(np.deg2rad(I))*np.cos(np.deg2rad(D)),
-                          np.cos(np.deg2rad(I))*np.sin(np.deg2rad(D)),
-                            np.sin(np.deg2rad(I))],2).T
+                            np.cos(np.deg2rad(I))*np.sin(np.deg2rad(D)),
+                            np.sin(np.deg2rad(I))], 2).T
 
                 fwr_d = np.zeros(self.survey.nRx)
 
@@ -86,36 +87,32 @@ class MagneticIntegral(Problem.BaseProblem):
 
                 fwr_d = np.zeros(3*self.survey.nRx)
 
-
             # Add counter to dsiplay progress. Good for large problems
-            count = -1;
+            count = -1
             for ii in range(ndata):
 
+                tx, ty, tz = get_T_mat(Xn, Yn, Zn, rxLoc[ii, :])
 
-                tx, ty, tz = get_T_mat(Xn,Yn,Zn,rxLoc[ii,:])
+                if self.rtype == 'tmi':
+                    fwr_d[ii] = (Ptmi.dot(np.vstack((tx, ty, tz)))*Mxyz).dot(m)
 
-
-                if self.rtype =='tmi':
-                    fwr_d[ii] = (Ptmi.dot(np.vstack((tx,ty,tz)))*Mxyz).dot(kappa)
-
-                elif self.rtype =='xyz':
-                    fwr_d[ii] = (tx*Mxyz).dot(kappa)
-                    fwr_d[ii+ndata] = (ty*Mxyz).dot(kappa)
-                    fwr_d[ii+2*ndata] = (tz*Mxyz).dot(kappa)
-
+                elif self.rtype == 'xyz':
+                    fwr_d[ii] = (tx*Mxyz).dot(m)
+                    fwr_d[ii+ndata] = (ty*Mxyz).dot(m)
+                    fwr_d[ii+2*ndata] = (tz*Mxyz).dot(m)
 
             # Display progress
-                count = progress(ii,count,ndata)
+                count = progress(ii, count, ndata)
 
             print "Done 100% ...forward operator completed!!\n"
 
             return fwr_d
 
         else:
-            return self.G.dot(kappa)
+            return self.G.dot(m)
 
     def fwr_rem(self):
-        #TODO check if we are inverting for M
+        # TODO check if we are inverting for M
         return self.G.dot(self.mapping(m))
 
     def fields(self, m, **kwargs):
@@ -134,9 +131,6 @@ class MagneticIntegral(Problem.BaseProblem):
 
         return total
 
-
-        # return self.G.dot(self.mapping*(m))
-
     def Jvec(self, m, v, f=None):
         dmudm = self.mapping.deriv(m)
         return self.G.dot(dmudm*v)
@@ -150,22 +144,10 @@ class MagneticIntegral(Problem.BaseProblem):
         if not self.ispaired:
             raise Exception('Need to pair!')
 
-        if getattr(self,'_G', None) is None:
-           self._G = self.Intrgl_Fwr_Op()
-
+        if getattr(self, '_G', None) is None:
+            self._G = self.Intrgl_Fwr_Op()
 
         return self._G
-
-    # @property
-    # def Grem(self):
-    #     if not self.ispaired:
-    #         raise Exception('Need to pair!')
-
-    #     if getattr(self,'_Grem', None) is None:
-    #        self._Grem = Intrgl_Fwr_Op('full')
-
-
-    #     return self._Grem
 
     def Intrgl_Fwr_Op(self, Magnetization="ind"):
 
@@ -180,19 +162,16 @@ class MagneticIntegral(Problem.BaseProblem):
           3- full: Full tensor matrix stored with shape([3*ndata, 3*nc])
 
         Return
-        _G        = Linear forward modeling operation
-
-        Created on March, 13th 2016
-
-        @author: dominiquef
+        _G = Linear forward modeling operation
 
          """
 
         # Find non-zero cells
-        #inds = np.nonzero(actv)[0]
         if getattr(self, 'actInd', None) is not None:
-            if self.actInd.dtype=='bool':
-                inds = np.asarray([inds for inds, elem in enumerate(self.actInd, 1) if elem], dtype = int) - 1
+            if self.actInd.dtype == 'bool':
+                inds = np.asarray([inds for inds,
+                                  elem in enumerate(self.actInd, 1) if elem],
+                                  dtype=int) - 1
             else:
                 inds = self.actInd
 
@@ -203,16 +182,17 @@ class MagneticIntegral(Problem.BaseProblem):
         nC = len(inds)
 
         # Create active cell projector
-        P = sp.csr_matrix((np.ones(nC),(inds, range(nC))),
-            shape=(self.mesh.nC, nC))
+        P = sp.csr_matrix((np.ones(nC), (inds, range(nC))),
+                          shape=(self.mesh.nC, nC))
 
-        # Create vectors of nodal location (lower and upper coners for each cell)
-        xn = self.mesh.vectorNx;
-        yn = self.mesh.vectorNy;
-        zn = self.mesh.vectorNz;
+        # Create vectors of nodal location
+        # (lower and upper coners for each cell)
+        xn = self.mesh.vectorNx
+        yn = self.mesh.vectorNy
+        zn = self.mesh.vectorNz
 
-        yn2,xn2,zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
-        yn1,xn1,zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
+        yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
+        yn1, xn1, zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
 
         Yn = P.T*np.c_[mkvc(yn1), mkvc(yn2)]
         Xn = P.T*np.c_[mkvc(xn1), mkvc(xn2)]
@@ -222,10 +202,8 @@ class MagneticIntegral(Problem.BaseProblem):
         rxLoc = survey.srcField.rxList[0].locs
         ndata = rxLoc.shape[0]
 
-
-
         # Pre-allocate space and create magnetization matrix if required
-        if (Magnetization=='ind'):
+        if (Magnetization == 'ind'):
 
             # # If assumes uniform magnetization direction
             # if M.shape != (nC,3):
@@ -233,27 +211,25 @@ class MagneticIntegral(Problem.BaseProblem):
             #     print 'Magnetization vector must be Nc x 3'
             #     return
             if getattr(self, 'M', None) is None:
-                M = dipazm_2_xyz(np.ones(nC) * survey.srcField.param[1],np.ones(nC) * survey.srcField.param[2])
+                M = dipazm_2_xyz(np.ones(nC) * survey.srcField.param[1],
+                                 np.ones(nC) * survey.srcField.param[2])
 
+            Mx = Utils.sdiag(M[:, 0]*survey.srcField.param[0])
+            My = Utils.sdiag(M[:, 1]*survey.srcField.param[0])
+            Mz = Utils.sdiag(M[:, 2]*survey.srcField.param[0])
 
-            Mx = Utils.sdiag(M[:,0]*survey.srcField.param[0])
-            My = Utils.sdiag(M[:,1]*survey.srcField.param[0])
-            Mz = Utils.sdiag(M[:,2]*survey.srcField.param[0])
-
-            Mxyz = sp.vstack((Mx,My,Mz))
-
-
+            Mxyz = sp.vstack((Mx, My, Mz))
 
             if survey.srcField.rxList[0].rxType == 'tmi':
                 G = np.zeros((ndata, nC))
 
                 # Convert Bdecination from north to cartesian
-                D = (450.-float(survey.srcField.param[2]))%360.
+                D = (450.-float(survey.srcField.param[2])) % 360.
                 I = survey.srcField.param[1]
                 # Projection matrix
                 Ptmi = mkvc(np.r_[np.cos(np.deg2rad(I))*np.cos(np.deg2rad(D)),
-                          np.cos(np.deg2rad(I))*np.sin(np.deg2rad(D)),
-                            np.sin(np.deg2rad(I))],2).T;
+                            np.cos(np.deg2rad(I))*np.sin(np.deg2rad(D)),
+                            np.sin(np.deg2rad(I))], 2).T
 
             elif survey.srcField.rxList[0].rxType == 'xyz':
 
@@ -262,43 +238,40 @@ class MagneticIntegral(Problem.BaseProblem):
         elif Magnetization == 'full':
             G = np.zeros((int(3*ndata), int(3*nC)))
 
-
         else:
             print """Flag must be either 'ind' | 'full', please revised"""
             return
 
-
-        # Loop through all observations and create forward operator (ndata-by-nC)
+        # Loop through all observations and create forward operator (nD-by-nC)
         print "Begin calculation of forward operator: " + Magnetization
 
         # Add counter to dsiplay progress. Good for large problems
-        count = -1;
+        count = -1
         for ii in range(ndata):
 
-
-            tx, ty, tz = get_T_mat(Xn,Yn,Zn,rxLoc[ii,:])
+            tx, ty, tz = get_T_mat(Xn, Yn, Zn, rxLoc[ii, :])
             if Magnetization == 'ind':
 
-                if survey.srcField.rxList[0].rxType =='tmi':
-                    G[ii,:] = Ptmi.dot(np.vstack((tx,ty,tz)))*Mxyz
+                if survey.srcField.rxList[0].rxType == 'tmi':
+                    G[ii, :] = Ptmi.dot(np.vstack((tx, ty, tz)))*Mxyz
 
-                elif survey.srcField.rxList[0].rxType =='xyz':
-                    G[ii,:] = tx*Mxyz
-                    G[ii+ndata,:] = ty*Mxyz
-                    G[ii+2*ndata,:] = tz*Mxyz
+                elif survey.srcField.rxList[0].rxType == 'xyz':
+                    G[ii, :] = tx*Mxyz
+                    G[ii+ndata, :] = ty*Mxyz
+                    G[ii+2*ndata, :] = tz*Mxyz
 
             elif Magnetization == 'full':
-                G[ii,:] = tx
-                G[ii+ndata,:] = ty
-                G[ii+2*ndata,:] = tz
-
+                G[ii, :] = tx
+                G[ii+ndata, :] = ty
+                G[ii+2*ndata, :] = tz
 
         # Display progress
-            count = progress(ii,count,ndata)
+        count = progress(ii, count, ndata)
 
         print "Done 100% ...forward operator completed!!\n"
 
         return G
+
 
 class Problem3D_DiffSecondary(Problem.BaseProblem):
     """
@@ -331,7 +304,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         mu = self.mapping*m
         self._MfMui = self.mesh.getFaceInnerProduct(1./mu)/self.mesh.dim
         # self._MfMui = self.mesh.getFaceInnerProduct(1./mu)
-        #TODO: this will break if tensor mu
+        # TODO: this will break if tensor mu
         self._MfMuI = Utils.sdiag(1./self._MfMui.diagonal())
         self._MfMu0 = self.mesh.getFaceInnerProduct(1./mu_0)/self.mesh.dim
         # self._MfMu0 = self.mesh.getFaceInnerProduct(1/mu_0)
@@ -349,7 +322,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
 
         .. math ::
 
-            \mathbf{rhs} =  \Div(\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0 - \Div\mathbf{B}_0+\diag(v)\mathbf{D} \mathbf{P}_{out}^T \mathbf{B}_{sBC}
+            \mathbf{rhs} = \Div(\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0 - \Div\mathbf{B}_0+\diag(v)\mathbf{D} \mathbf{P}_{out}^T \mathbf{B}_{sBC}
 
         """
         B0 = self.getB0()
@@ -359,8 +332,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         mu = self.mapping*m
         chi = mu/mu_0-1
 
-
-        #temporary fix
+        # Temporary fix
         Bbc, Bbc_const = CongruousMagBC(self.mesh, self.survey.B0, chi)
         self.Bbc = Bbc
         self.Bbc_const = Bbc_const
@@ -379,7 +351,6 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
 
         """
         return self._Div*self.MfMuI*self._Div.T
-
 
     def fields(self, m):
         """
@@ -489,7 +460,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         vol = self.mesh.vol
         Div = self._Div
         Dface = self.mesh.faceDiv
-        P = self.survey.projectFieldsDeriv(B)                 # Projection matrix
+        P = self.survey.projectFieldsDeriv(B)  # Projection matrix
         B0 = self.getB0()
 
         MfMuIvec = 1/self.MfMui.diagonal()
@@ -501,17 +472,18 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         # dudm = -(dCdu)^(-1)dCdm
 
         dCdu = self.getA(m)
-        dCdm_A = Div * ( Utils.sdiag( Div.T * u )* dMfMuI *dmudm  )
-        dCdm_RHS1 = Div * (Utils.sdiag( self.MfMu0*B0  ) * dMfMuI)
+        dCdm_A = Div * (Utils.sdiag(Div.T * u) * dMfMuI * dmudm)
+        dCdm_RHS1 = Div * (Utils.sdiag(self.MfMu0 * B0) * dMfMuI)
         temp1 = (Dface*(self._Pout.T*self.Bbc_const*self.Bbc))
-        dCdm_RHS2v  = (Utils.sdiag(vol)*temp1)*np.inner(vol, dchidmu*dmudm*v)
-        #temporary fix
+        dCdm_RHS2v = (Utils.sdiag(vol)*temp1)*np.inner(vol, dchidmu*dmudm*v)
+
         # dCdm_RHSv =  dCdm_RHS1*(dmudm*v) +  dCdm_RHS2v
-        dCdm_RHSv =  dCdm_RHS1*(dmudm*v)
-        dCdm_v = dCdm_A*v - dCdm_RHSv
+        dCdm_RHSv = dCdm_RHS1 * (dmudm * v)
+        dCdm_v = dCdm_A * v - dCdm_RHSv
 
         m1 = sp.linalg.interface.aslinearoperator(Utils.sdiag(1/dCdu.diagonal()))
-        sol, info = sp.linalg.bicgstab(dCdu, dCdm_v, tol=1e-6, maxiter=1000, M=m1)
+        sol, info = sp.linalg.bicgstab(dCdu, dCdm_v,
+                                       tol=1e-6, maxiter=1000, M=m1)
 
         if info > 0:
             print "Iterative solver did not work well (Jvec)"
@@ -580,7 +552,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         # dudm = -(dCdu)^(-1)dCdm
 
         dCdu = self.getA(m)
-        s = Div * ( self.MfMuI.T * ( P.T*v ) )
+        s = Div * (self.MfMuI.T * (P.T*v))
 
         m1 = sp.linalg.interface.aslinearoperator(Utils.sdiag(1/(dCdu.T).diagonal()))
         sol, info = sp.linalg.bicgstab(dCdu.T, s, tol=1e-6, maxiter=1000, M=m1)
@@ -592,11 +564,11 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
 
         # dCdm_A = Div * ( Utils.sdiag( Div.T * u )* dMfMuI *dmudm  )
         # dCdm_Atsol = ( dMfMuI.T*( Utils.sdiag( Div.T * u ) * (Div.T * dmudm)) ) * sol
-        dCdm_Atsol = ( dmudm.T * dMfMuI.T*( Utils.sdiag( Div.T * u ) * Div.T ) ) * sol
+        dCdm_Atsol = (dmudm.T * dMfMuI.T*(Utils.sdiag(Div.T * u) * Div.T)) * sol
 
         # dCdm_RHS1 = Div * (Utils.sdiag( self.MfMu0*B0  ) * dMfMuI)
         # dCdm_RHS1tsol = (dMfMuI.T*( Utils.sdiag( self.MfMu0*B0  ) ) * Div.T * dmudm) * sol
-        dCdm_RHS1tsol = ( dmudm.T * dMfMuI.T*( Utils.sdiag( self.MfMu0*B0  ) ) * Div.T ) * sol
+        dCdm_RHS1tsol = (dmudm.T * dMfMuI.T*(Utils.sdiag( self.MfMu0*B0)) * Div.T ) * sol
 
 
         # temp1 = (Dface*(self._Pout.T*self.Bbc_const*self.Bbc))
@@ -626,6 +598,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
 
         return Utils.mkvc(Jtv)
 
+
 def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
 
     """
@@ -645,7 +618,7 @@ def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
 
     # Create an optimization program
     opt = Optimization.InexactGaussNewton(maxIter=miter)
-    opt.bfgsH0 = Solver(sp.identity(model.nP),flag='D')
+    opt.bfgsH0 = Solver(sp.identity(model.nP), flag='D')
     # Create a regularization program
     reg = Regularization.Tikhonov(model)
     # Create an objective function
@@ -682,100 +655,94 @@ def get_T_mat(Xn, Yn, Zn, rxLoc):
 
      """
 
-    eps = 1e-10 # add a small value to the locations to avoid /0
+    eps = 1e-10  # add a small value to the locations to avoid /0
 
     nC = Xn.shape[0]
 
     # Pre-allocate space for 1D array
-    Tx = np.zeros((1,3*nC))
-    Ty = np.zeros((1,3*nC))
-    Tz = np.zeros((1,3*nC))
+    Tx = np.zeros((1, 3*nC))
+    Ty = np.zeros((1, 3*nC))
+    Tz = np.zeros((1, 3*nC))
 
+    dz2 = rxLoc[2] - Zn[:, 0] + eps
+    dz1 = rxLoc[2] - Zn[:, 1] + eps
 
-    dz2 = rxLoc[2] - Zn[:,0] + eps
-    dz1 = rxLoc[2] - Zn[:,1] + eps
+    dy2 = Yn[:, 1] - rxLoc[1] + eps
+    dy1 = Yn[:, 0] - rxLoc[1] + eps
 
-    dy2 = Yn[:,1] - rxLoc[1] + eps
-    dy1 = Yn[:,0] - rxLoc[1] + eps
+    dx2 = Xn[:, 1] - rxLoc[0] + eps
+    dx1 = Xn[:, 0] - rxLoc[0] + eps
 
-    dx2 = Xn[:,1] - rxLoc[0] + eps
-    dx1 = Xn[:,0] - rxLoc[0] + eps
+    R1 = (dy2**2 + dx2**2)
+    R2 = (dy2**2 + dx1**2)
+    R3 = (dy1**2 + dx2**2)
+    R4 = (dy1**2 + dx1**2)
 
+    arg1 = np.sqrt(dz2**2 + R2)
+    arg2 = np.sqrt(dz2**2 + R1)
+    arg3 = np.sqrt(dz1**2 + R1)
+    arg4 = np.sqrt(dz1**2 + R2)
+    arg5 = np.sqrt(dz2**2 + R3)
+    arg6 = np.sqrt(dz2**2 + R4)
+    arg7 = np.sqrt(dz1**2 + R4)
+    arg8 = np.sqrt(dz1**2 + R3)
 
-    R1 = ( dy2**2 + dx2**2 )
-    R2 = ( dy2**2 + dx1**2 )
-    R3 = ( dy1**2 + dx2**2 )
-    R4 = ( dy1**2 + dx1**2 )
+    Tx[0, 0:nC] = np.arctan2(dy1 * dz2, (dx2 * arg5)) +\
+        - np.arctan2(dy2 * dz2, (dx2 * arg2)) +\
+        np.arctan2(dy2 * dz1, (dx2 * arg3)) +\
+        - np.arctan2(dy1 * dz1, (dx2 * arg8)) +\
+        np.arctan2(dy2 * dz2, (dx1 * arg1)) +\
+        - np.arctan2(dy1 * dz2, (dx1 * arg6)) +\
+        np.arctan2(dy1 * dz1, (dx1 * arg7)) +\
+        - np.arctan2(dy2 * dz1, (dx1 * arg4))
 
+    Ty[0, 0:nC] = np.log((dz2 + arg2) / (dz1 + arg3)) +\
+        -np.log((dz2 + arg1) / (dz1 + arg4)) +\
+        np.log((dz2 + arg6) / (dz1 + arg7)) +\
+        -np.log((dz2 + arg5) / (dz1 + arg8))
 
-    arg1 = np.sqrt( dz2**2 + R2 )
-    arg2 = np.sqrt( dz2**2 + R1 )
-    arg3 = np.sqrt( dz1**2 + R1 )
-    arg4 = np.sqrt( dz1**2 + R2 )
-    arg5 = np.sqrt( dz2**2 + R3 )
-    arg6 = np.sqrt( dz2**2 + R4 )
-    arg7 = np.sqrt( dz1**2 + R4 )
-    arg8 = np.sqrt( dz1**2 + R3 )
+    Ty[0, nC:2*nC] = np.arctan2(dx1 * dz2, (dy2 * arg1)) +\
+        - np.arctan2(dx2 * dz2, (dy2 * arg2)) +\
+        np.arctan2(dx2 * dz1, (dy2 * arg3)) +\
+        - np.arctan2(dx1 * dz1, (dy2 * arg4)) +\
+        np.arctan2(dx2 * dz2, (dy1 * arg5)) +\
+        - np.arctan2(dx1 * dz2, (dy1 * arg6)) +\
+        np.arctan2(dx1 * dz1, (dy1 * arg7)) +\
+        - np.arctan2(dx2 * dz1, (dy1 * arg8))
 
+    R1 = (dy2**2 + dz1**2)
+    R2 = (dy2**2 + dz2**2)
+    R3 = (dy1**2 + dz1**2)
+    R4 = (dy1**2 + dz2**2)
 
+    Ty[0, 2*nC:] = np.log((dx1 + np.sqrt(dx1**2 + R1)) /
+                          (dx2 + np.sqrt(dx2**2 + R1))) +\
+        -np.log((dx1 + np.sqrt(dx1**2 + R2)) / (dx2 + np.sqrt(dx2**2 + R2))) +\
+        np.log((dx1 + np.sqrt(dx1**2 + R4)) / (dx2 + np.sqrt(dx2**2 + R4))) +\
+        -np.log((dx1 + np.sqrt(dx1**2 + R3)) / (dx2 + np.sqrt(dx2**2 + R3)))
 
-    Tx[0,0:nC] = np.arctan2( dy1 * dz2 , ( dx2 * arg5 ) ) +\
-                - np.arctan2( dy2 * dz2 , ( dx2 * arg2 ) ) +\
-                np.arctan2( dy2 * dz1 , ( dx2 * arg3 ) ) +\
-                - np.arctan2( dy1 * dz1 , ( dx2 * arg8 ) ) +\
-                np.arctan2( dy2 * dz2  , ( dx1 * arg1 ) ) +\
-                - np.arctan2( dy1 * dz2 , ( dx1 * arg6 ) ) +\
-                np.arctan2( dy1 * dz1 , ( dx1 * arg7 ) ) +\
-                - np.arctan2( dy2 * dz1 , ( dx1 * arg4 ) );
+    R1 = (dx2**2 + dz1**2)
+    R2 = (dx2**2 + dz2**2)
+    R3 = (dx1**2 + dz1**2)
+    R4 = (dx1**2 + dz2**2)
 
+    Tx[0, 2*nC:] = np.log((dy1 + np.sqrt(dy1**2 + R1)) /
+                          (dy2 + np.sqrt(dy2**2 + R1))) +\
+        -np.log((dy1 + np.sqrt(dy1**2 + R2)) / (dy2 + np.sqrt(dy2**2 + R2))) +\
+        np.log((dy1 + np.sqrt(dy1**2 + R4)) / (dy2 + np.sqrt(dy2**2 + R4))) +\
+        -np.log((dy1 + np.sqrt(dy1**2 + R3)) / (dy2 + np.sqrt(dy2**2 + R3)))
 
-    Ty[0,0:nC] = np.log( ( dz2 + arg2 ) / (dz1 + arg3 ) ) +\
-                -np.log( ( dz2 + arg1 ) / (dz1 + arg4 ) ) +\
-                np.log( ( dz2 + arg6 ) / (dz1 + arg7 ) ) +\
-                -np.log( ( dz2 + arg5 ) / (dz1 + arg8 ) );
+    Tz[0, 2*nC:] = -(Ty[0, nC:2*nC] + Tx[0, 0:nC])
+    Tz[0, nC:2*nC] = Ty[0, 2*nC:]
+    Tx[0, nC:2*nC] = Ty[0, 0:nC]
+    Tz[0, 0:nC] = Tx[0, 2*nC:]
 
-    Ty[0,nC:2*nC] = np.arctan2( dx1 * dz2 , ( dy2 * arg1 ) ) +\
-                    - np.arctan2( dx2 * dz2 , ( dy2 * arg2 ) ) +\
-                    np.arctan2( dx2 * dz1 , ( dy2 * arg3 ) ) +\
-                    - np.arctan2( dx1 * dz1 , ( dy2 * arg4 ) ) +\
-                    np.arctan2( dx2 * dz2 , ( dy1 * arg5 ) ) +\
-                    - np.arctan2( dx1 * dz2 , ( dy1 * arg6 ) ) +\
-                    np.arctan2( dx1 * dz1 , ( dy1 * arg7 ) ) +\
-                    - np.arctan2( dx2 * dz1 , ( dy1 * arg8 ) );
+    Tx = Tx/(4*np.pi)
+    Ty = Ty/(4*np.pi)
+    Tz = Tz/(4*np.pi)
 
-    R1 = (dy2**2 + dz1**2);
-    R2 = (dy2**2 + dz2**2);
-    R3 = (dy1**2 + dz1**2);
-    R4 = (dy1**2 + dz2**2);
+    return Tx, Ty, Tz
 
-    Ty[0,2*nC:] = np.log( ( dx1 + np.sqrt( dx1**2 + R1 ) ) / (dx2 + np.sqrt( dx2**2 + R1 ) ) ) +\
-                        -np.log( ( dx1 + np.sqrt( dx1**2 + R2 ) ) / (dx2 + np.sqrt( dx2**2 + R2 ) ) ) +\
-                        np.log( ( dx1 + np.sqrt( dx1**2 + R4 ) ) / (dx2 + np.sqrt( dx2**2 + R4 ) ) ) +\
-                        -np.log( ( dx1 + np.sqrt( dx1**2 + R3 ) ) / (dx2 + np.sqrt( dx2**2 + R3 ) ) );
-
-    R1 = (dx2**2 + dz1**2);
-    R2 = (dx2**2 + dz2**2);
-    R3 = (dx1**2 + dz1**2);
-    R4 = (dx1**2 + dz2**2);
-
-    Tx[0,2*nC:] = np.log( ( dy1 + np.sqrt( dy1**2 + R1 ) ) / (dy2 + np.sqrt( dy2**2 + R1 ) ) ) +\
-                        -np.log( ( dy1 + np.sqrt( dy1**2 + R2 ) ) / (dy2 + np.sqrt( dy2**2 + R2 ) ) ) +\
-                        np.log( ( dy1 + np.sqrt( dy1**2 + R4 ) ) / (dy2 + np.sqrt( dy2**2 + R4 ) ) ) +\
-                        -np.log( ( dy1 + np.sqrt( dy1**2 + R3 ) ) / (dy2 + np.sqrt( dy2**2 + R3 ) ) );
-
-    Tz[0,2*nC:] = -( Ty[0,nC:2*nC] + Tx[0,0:nC] );
-    Tz[0,nC:2*nC] = Ty[0,2*nC:];
-    Tx[0,nC:2*nC] = Ty[0,0:nC];
-    Tz[0,0:nC] = Tx[0,2*nC:];
-
-
-
-    Tx = Tx/(4*np.pi);
-    Ty = Ty/(4*np.pi);
-    Tz = Tz/(4*np.pi);
-
-
-    return Tx,Ty,Tz
 
 def progress(iter, prog, final):
     """
@@ -788,15 +755,16 @@ def progress(iter, prog, final):
 
     @author: dominiquef
     """
-    arg = np.floor(float(iter)/float(final)*10.);
+    arg = np.floor(float(iter)/float(final)*10.)
 
-    if  arg > prog:
+    if arg > prog:
 
         strg = "Done " + str(arg*10) + " %"
         print strg
-        prog = arg;
+        prog = arg
 
     return prog
+
 
 def dipazm_2_xyz(dip, azm_N):
     """
@@ -818,19 +786,20 @@ def dipazm_2_xyz(dip, azm_N):
     """
     nC = len(azm_N)
 
-    M = np.zeros((nC,3))
+    M = np.zeros((nC, 3))
 
     # Modify azimuth from North to Cartesian-X
-    azm_X = (450.- np.asarray(azm_N)) % 360.
+    azm_X = (450. - np.asarray(azm_N)) % 360.
 
     D = np.deg2rad(np.asarray(dip))
     I = np.deg2rad(azm_X)
 
-    M[:,0] = np.cos(D) * np.cos(I) ;
-    M[:,1] = np.cos(D) * np.sin(I) ;
-    M[:,2] = np.sin(D) ;
+    M[:, 0] = np.cos(D) * np.cos(I)
+    M[:, 1] = np.cos(D) * np.sin(I)
+    M[:, 2] = np.sin(D)
 
     return M
+
 
 def get_dist_wgt(mesh, rxLoc, actv, R, R0):
     """
@@ -855,23 +824,24 @@ def get_dist_wgt(mesh, rxLoc, actv, R, R0):
     """
 
     # Find non-zero cells
-    if actv.dtype=='bool':
-        inds = np.asarray([inds for inds, elem in enumerate(actv, 1) if elem], dtype=int) - 1
+    if actv.dtype == 'bool':
+        inds = np.asarray([inds for inds,
+                          elem in enumerate(actv, 1) if elem], dtype=int) - 1
     else:
         inds = actv
 
     nC = len(inds)
 
     # Create active cell projector
-    P = sp.csr_matrix((np.ones(nC),(inds, range(nC))),
+    P = sp.csr_matrix((np.ones(nC), (inds, range(nC))),
                       shape=(mesh.nC, nC))
 
     # Geometrical constant
-    p = 1/np.sqrt(3);
+    p = 1/np.sqrt(3)
 
     # Create cell center location
-    Ym,Xm,Zm = np.meshgrid(mesh.vectorCCy, mesh.vectorCCx, mesh.vectorCCz)
-    hY,hX,hZ = np.meshgrid(mesh.hy, mesh.hx, mesh.hz)
+    Ym, Xm, Zm = np.meshgrid(mesh.vectorCCy, mesh.vectorCCx, mesh.vectorCCz)
+    hY, hX, hZ = np.meshgrid(mesh.hy, mesh.hx, mesh.hz)
 
     # Rmove air cells
     Xm = P.T*mkvc(Xm)
@@ -891,14 +861,14 @@ def get_dist_wgt(mesh, rxLoc, actv, R, R0):
 
     for dd in range(ndata):
 
-        nx1 = (Xm - hX * p - rxLoc[dd,0])**2
-        nx2 = (Xm + hX * p - rxLoc[dd,0])**2
+        nx1 = (Xm - hX * p - rxLoc[dd, 0])**2
+        nx2 = (Xm + hX * p - rxLoc[dd, 0])**2
 
-        ny1 = (Ym - hY * p - rxLoc[dd,1])**2
-        ny2 = (Ym + hY * p - rxLoc[dd,1])**2
+        ny1 = (Ym - hY * p - rxLoc[dd, 1])**2
+        ny2 = (Ym + hY * p - rxLoc[dd, 1])**2
 
-        nz1 = (Zm - hZ * p - rxLoc[dd,2])**2
-        nz2 = (Zm + hZ * p - rxLoc[dd,2])**2
+        nz1 = (Zm - hZ * p - rxLoc[dd, 2])**2
+        nz2 = (Zm + hZ * p - rxLoc[dd, 2])**2
 
         R1 = np.sqrt(nx1 + ny1 + nz1)
         R2 = np.sqrt(nx1 + ny1 + nz2)
@@ -909,12 +879,13 @@ def get_dist_wgt(mesh, rxLoc, actv, R, R0):
         R7 = np.sqrt(nx2 + ny2 + nz1)
         R8 = np.sqrt(nx2 + ny2 + nz2)
 
-        temp = (R1 + R0)**-R  + (R2 + R0)**-R  + (R3 + R0)**-R  + (R4 + R0)**-R  + (R5 + R0)**-R  + (R6 + R0)**-R  + (R7 + R0)**-R  + (R8 + R0)**-R
+        temp = (R1 + R0)**-R + (R2 + R0)**-R + (R3 + R0)**-R + \
+            (R4 + R0)**-R + (R5 + R0)**-R + (R6 + R0)**-R + \
+            (R7 + R0)**-R + (R8 + R0)**-R
 
         wr = wr + (V*temp/8.)**2.
 
-        count = progress(dd,count,ndata)
-
+        count = progress(dd, count, ndata)
 
     wr = np.sqrt(wr)/V
     wr = mkvc(wr)
@@ -923,6 +894,7 @@ def get_dist_wgt(mesh, rxLoc, actv, R, R0):
     print "Done 100% ...distance weighting completed!!\n"
 
     return wr
+
 
 def writeUBCobs(filename, survey, d):
     """
@@ -949,26 +921,25 @@ def writeUBCobs(filename, survey, d):
 
     wd = survey.std
 
-    data = np.c_[rxLoc , d , wd]
+    data = np.c_[rxLoc, d, wd]
 
-    with file(filename,'w') as fid:
-        fid.write('%6.2f %6.2f %6.2f\n' %(B[1], B[2], B[0]) )
-        fid.write('%6.2f %6.2f %6.2f\n' %(B[1], B[2], 1) )
-        fid.write('%i\n' %len(d) )
-        np.savetxt(fid, data, fmt='%e',delimiter=' ',newline='\n')
-
+    with file(filename, 'w') as fid:
+        fid.write('%6.2f %6.2f %6.2f\n' % (B[1], B[2], B[0]))
+        fid.write('%6.2f %6.2f %6.2f\n' % (B[1], B[2], 1))
+        fid.write('%i\n' % len(d))
+        np.savetxt(fid, data, fmt='%e', delimiter=' ', newline='\n')
 
     print "Observation file saved to: " + filename
 
 
-def plot_obs_2D(rxLoc,d=None ,varstr='Gz Obs', vmin=None, vmax=None, levels=None, fig=None):
+def plot_obs_2D(rxLoc, d=None, varstr='TMI Obs',
+                vmin=None, vmax=None, levels=None, fig=None):
     """ Function plot_obs(rxLoc,d)
     Generate a 2d interpolated plot from scatter points of data
 
     INPUT
     rxLoc       : Observation locations [x,y,z]
     d           : Data vector
-    wd          : Uncertainty vector
 
     OUTPUT
     figure()
@@ -982,13 +953,12 @@ def plot_obs_2D(rxLoc,d=None ,varstr='Gz Obs', vmin=None, vmax=None, levels=None
     from scipy.interpolate import griddata
     import pylab as plt
 
-
     # Plot result
     if fig is None:
         fig = plt.figure()
 
     ax = plt.subplot()
-    plt.scatter(rxLoc[:,0],rxLoc[:,1], c='k', s=10)
+    plt.scatter(rxLoc[:, 0], rxLoc[:, 1], c='k', s=10)
 
     if d is not None:
 
@@ -999,21 +969,22 @@ def plot_obs_2D(rxLoc,d=None ,varstr='Gz Obs', vmin=None, vmax=None, levels=None
             vmax = d.max()
 
         # Create grid of points
-        x = np.linspace(rxLoc[:,0].min(), rxLoc[:,0].max(), 100)
-        y = np.linspace(rxLoc[:,1].min(), rxLoc[:,1].max(), 100)
+        x = np.linspace(rxLoc[:, 0].min(), rxLoc[:, 0].max(), 100)
+        y = np.linspace(rxLoc[:, 1].min(), rxLoc[:, 1].max(), 100)
 
-        X, Y = np.meshgrid(x,y)
+        X, Y = np.meshgrid(x, y)
 
         # Interpolate
-        d_grid = griddata(rxLoc[:,0:2],d,(X,Y), method ='linear')
-        plt.imshow(d_grid, extent=[x.min(), x.max(), y.min(), y.max()], origin='lower', vmin=vmin, vmax=vmax, cmap="plasma")
+        d_grid = griddata(rxLoc[:, 0:2], d, (X, Y), method='linear')
+        plt.imshow(d_grid, extent=[x.min(), x.max(), y.min(), y.max()],
+                   origin='lower', vmin=vmin, vmax=vmax, cmap="plasma")
         plt.colorbar(fraction=0.02)
 
         if levels is None:
-            plt.contour(X,Y, d_grid, 10, vmin=vmin, vmax=vmax, cmap="plasma")
+            plt.contour(X, Y, d_grid, 10, vmin=vmin, vmax=vmax, cmap="plasma")
         else:
-            plt.contour(X,Y, d_grid, levels=levels, colors='r', vmin=vmin, vmax=vmax, cmap="plasma")
-
+            plt.contour(X, Y, d_grid, levels=levels, colors='r',
+                        vmin=vmin, vmax=vmax, cmap="plasma")
 
     plt.title(varstr)
     plt.gca().set_aspect('equal', adjustable='box')

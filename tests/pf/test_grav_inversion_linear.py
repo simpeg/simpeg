@@ -7,9 +7,7 @@ class MagInvLinProblemTest(unittest.TestCase):
 
     def setUp(self):
 
-        # Define the inducing field parameter
-        H0 = (50000, 90, 0)
-
+        ndv = -100
         # Create a mesh
         dx = 5.
 
@@ -46,27 +44,27 @@ class MagInvLinProblemTest(unittest.TestCase):
         Z = -np.exp((X**2 + Y**2) / 75**2) + mesh.vectorNz[-1] + 5.
 
         # Create a MAGsurvey
-        rxLoc = np.c_[Utils.mkvc(X.T), Utils.mkvc(Y.T), Utils.mkvc(Z.T)]
-        rxLoc = PF.BaseMag.RxObs(rxLoc)
-        srcField = PF.BaseMag.SrcField([rxLoc], param=H0)
-        survey = PF.BaseMag.LinearSurvey(srcField)
+        locXYZ = np.c_[Utils.mkvc(X.T), Utils.mkvc(Y.T), Utils.mkvc(Z.T)]
+        rxLoc = PF.BaseGrav.RxObs(locXYZ)
+        srcField = PF.BaseGrav.SrcField([rxLoc])
+        survey = PF.BaseGrav.LinearSurvey(srcField)
 
-        # We can now create a susceptibility model and generate data
+        # We can now create a density model and generate data
         # Here a simple block in half-space
         model = np.zeros((mesh.nCx, mesh.nCy, mesh.nCz))
-        model[(midx-2):(midx+2), (midy-2):(midy+2), -6:-2] = 0.02
+        model[(midx-2):(midx+2), (midy-2):(midy+2), -6:-2] = 0.5
         model = mkvc(model)
         self.model = model[actv]
 
         # Create active map to go from reduce set to full
-        actvMap = Maps.InjectActiveCells(mesh, actv, -100)
+        actvMap = Maps.InjectActiveCells(mesh, actv, ndv)
 
         # Creat reduced identity map
         idenMap = Maps.IdentityMap(nP=nC)
 
         # Create the forward model operator
-        prob = PF.Magnetics.MagneticIntegral(mesh, mapping=idenMap,
-                                             actInd=actv)
+        prob = PF.Gravity.GravityIntegral(mesh, mapping=idenMap,
+                                          actInd=actv)
 
         # Pair the survey and problem
         survey.pair(prob)
@@ -75,15 +73,17 @@ class MagInvLinProblemTest(unittest.TestCase):
         d = prob.fields(self.model)
 
         # Add noise and uncertainties (1nT)
-        data = d + np.random.randn(len(d))
-        wd = np.ones(len(data))*1.
+        data = d + np.random.randn(len(d))*0.001
+        wd = np.ones(len(data))*.001
 
         survey.dobs = data
         survey.std = wd
 
+        PF.Gravity.plot_obs_2D(survey.srcField.rxList[0].locs, d=data)
+
         # Create sensitivity weights from our linear forward operator
-        wr = np.sum(prob.G**2., axis=0)**0.5
-        wr = (wr/np.max(wr))
+        wr = PF.Magnetics.get_dist_wgt(mesh, locXYZ, actv, 2., 2.)
+        wr = wr**2.
 
         # Create a regularization
         reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
@@ -94,7 +94,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         dmis.Wd = 1/wd
 
         # Add directives to the inversion
-        opt = Optimization.ProjectedGNCG(maxIter=100, lower=0., upper=1.,
+        opt = Optimization.ProjectedGNCG(maxIter=100, lower=-1., upper=1.,
                                          maxIterLS=20, maxIterCG=10,
                                          tolCG=1e-3)
         invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
@@ -102,9 +102,10 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         # Here is where the norms are applied
         IRLS = Directives.Update_IRLS(norms=([0, 1, 1, 1]),
-                                      eps=(1e-3, 1e-3), f_min_change=1e-3,
+                                      eps=(5e-2, 1e-2), f_min_change=1e-3,
                                       minGNiter=3)
         update_Jacobi = Directives.Update_lin_PreCond()
+
         self.inv = Inversion.BaseInversion(invProb,
                                            directiveList=[IRLS, betaest,
                                                           update_Jacobi])
@@ -116,7 +117,7 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         residual = np.linalg.norm(mrec-self.model) / np.linalg.norm(self.model)
         print residual
-        self.assertTrue(residual < 0.01)
+        self.assertTrue(residual < 0.05)
 
 if __name__ == '__main__':
     unittest.main()

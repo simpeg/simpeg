@@ -13,11 +13,11 @@ def run(plotIt=True):
     """
 
     # Create a mesh
-    dx    = 5.
+    dx = 5.
 
-    hxind = [(dx,5,-1.3), (dx, 15), (dx,5,1.3)]
-    hyind = [(dx,5,-1.3), (dx, 15), (dx,5,1.3)]
-    hzind = [(dx,5,-1.3),(dx, 7),(3.5,1),(2, 5)]
+    hxind = [(dx, 5, -1.3), (dx, 15), (dx, 5, 1.3)]
+    hyind = [(dx, 5, -1.3), (dx, 15), (dx, 5, 1.3)]
+    hzind = [(dx, 5, -1.3), (dx, 7), (3.5, 1), (2, 5)]
 
     mesh = Mesh.TensorMesh([hxind, hyind, hzind], 'CCC')
 
@@ -26,15 +26,16 @@ def run(plotIt=True):
     midy = int(mesh.nCy/2)
 
     # Lets create a simple Gaussian topo and set the active cells
-    [xx,yy] = np.meshgrid(mesh.vectorNx,mesh.vectorNy)
-    zz = -np.exp( ( xx**2 + yy**2 )/ 75**2 ) + mesh.vectorNz[-1]
+    [xx, yy] = np.meshgrid(mesh.vectorNx, mesh.vectorNy)
+    zz = -np.exp((xx**2 + yy**2) / 75**2) + mesh.vectorNz[-1]
 
-    topo = np.c_[mkvc(xx),mkvc(yy),mkvc(zz)] # We would usually load a topofile
+    # We would usually load a topofile
+    topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 
-    actv = Utils.surface2ind_topo(mesh,topo,'N') # Go from topo to actv cells
-    actv = np.asarray([inds for inds, elem in enumerate(actv, 1) if elem], dtype = int) - 1
-    #nC   = mesh.nC
-    #actv = np.asarray(range(mesh.nC))
+    # Go from topo to actv cells
+    actv = Utils.surface2ind_topo(mesh, topo, 'N')
+    actv = np.asarray([inds for inds, elem in enumerate(actv, 1) if elem],
+                      dtype=int) - 1
 
     # Create active map to go from reduce space to full
     actvMap = Maps.ActiveCells(mesh, actv, -100)
@@ -46,7 +47,7 @@ def run(plotIt=True):
     X, Y = np.meshgrid(xr, yr)
 
     # Move the observation points 5m above the topo
-    Z = -np.exp( ( X**2 + Y**2 )/ 75**2 ) + mesh.vectorNz[-1] + 0.1
+    Z = -np.exp((X**2 + Y**2) / 75**2) + mesh.vectorNz[-1] + 0.1
 
     # Create a MAGsurvey
     rxLoc = np.c_[Utils.mkvc(X.T), Utils.mkvc(Y.T), Utils.mkvc(Z.T)]
@@ -56,9 +57,9 @@ def run(plotIt=True):
 
     # We can now create a susceptibility model and generate data
     # Here a simple block in half-space
-    model = np.zeros((mesh.nCx,mesh.nCy,mesh.nCz))
-    model[(midx-5):(midx-1),(midy-2):(midy+2),-10:-6] = 0.5
-    model[(midx+1):(midx+5),(midy-2):(midy+2),-10:-6] = -0.5
+    model = np.zeros((mesh.nCx, mesh.nCy, mesh.nCz))
+    model[(midx-5):(midx-1), (midy-2):(midy+2), -10:-6] = 0.5
+    model[(midx+1):(midx+5), (midy-2):(midy+2), -10:-6] = -0.5
     model = mkvc(model)
     model = model[actv]
 
@@ -66,10 +67,10 @@ def run(plotIt=True):
     actvMap = Maps.InjectActiveCells(mesh, actv, -100)
 
     # Creat reduced identity map
-    idenMap = Maps.IdentityMap(nP = nC)
+    idenMap = Maps.IdentityMap(nP=nC)
 
     # Create the forward model operator
-    prob = PF.Gravity.GravityIntegral(mesh, mapping = idenMap, actInd = actv)
+    prob = PF.Gravity.GravityIntegral(mesh, mapping=idenMap, actInd=actv)
 
     # Pair the survey and problem
     survey.pair(prob)
@@ -78,17 +79,18 @@ def run(plotIt=True):
     d = prob.fields(model)
 
     # Add noise and uncertainties
-    data = d + np.random.randn(len(d))*1e-3 # We add some random Gaussian noise (1nT)
-    wd = np.ones(len(data))*1e-3 # Assign flat uncertainties
+    # We add some random Gaussian noise (1nT)
+    data = d + np.random.randn(len(d))*1e-3
+    wd = np.ones(len(data))*1e-3  # Assign flat uncertainties
 
-    survey.dobs= data
+    survey.dobs = data
     survey.std = wd
     survey.mtrue = model
 
     # Create sensitivity weights from our linear forward operator
     rxLoc = survey.srcField.rxList[0].locs
-    wr = np.sum(prob.G**2.,axis=0)**0.5
-    wr = ( wr/np.max(wr) )
+    wr = np.sum(prob.G**2., axis=0)**0.5
+    wr = (wr/np.max(wr))
 
     # Create a regularization
     reg = Regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
@@ -99,19 +101,24 @@ def run(plotIt=True):
     dmis.Wd = 1/wd
 
     # Add directives to the inversion
-    opt = Optimization.ProjectedGNCG(maxIter=100 ,lower=-1.,upper=1., maxIterLS = 20, maxIterCG= 10, tolCG = 1e-3)
+    opt = Optimization.ProjectedGNCG(maxIter=100, lower=-1., upper=1.,
+                                     maxIterLS=20, maxIterCG=10,
+                                     tolCG=1e-3)
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
     betaest = Directives.BetaEstimate_ByEig()
 
     # Here is where the norms are applied
-    # Use pick a treshold parameter empirically based on the distribution of model
-    # parameters (run last cell to see the histogram before and after IRLS)
-    IRLS = Directives.Update_IRLS( norms=([0,1,1,1]),  eps=None, f_min_change = 1e-2, minGNiter=3)
+    # Use pick a treshold parameter empirically based on the distribution of
+    # model parameters
+    IRLS = Directives.Update_IRLS(norms=([0, 1, 1, 1]),  eps=None,
+                                  f_min_change=1e-2, minGNiter=3)
     update_Jacobi = Directives.Update_lin_PreCond()
-    inv = Inversion.BaseInversion(invProb, directiveList=[IRLS,betaest,update_Jacobi])
+    inv = Inversion.BaseInversion(invProb, directiveList=[IRLS,
+                                                          betaest,
+                                                          update_Jacobi])
 
     # Run the inversion
-    m0 = np.ones(nC)*1e-4 # Starting model
+    m0 = np.ones(nC)*1e-4  # Starting model
     mrec = inv.run(m0)
 
     if plotIt:
@@ -120,23 +127,25 @@ def run(plotIt=True):
         ypanel = midx
         zpanel = -7
         m_l2 = actvMap * reg.l2model
-        m_l2[m_l2==-100] = np.nan
+        m_l2[m_l2 == -100] = np.nan
 
         m_lp = actvMap * mrec
-        m_lp[m_lp==-100] = np.nan
+        m_lp[m_lp == -100] = np.nan
 
         m_true = actvMap * model
-        m_true[m_true==-100] = np.nan
+        m_true[m_true == -100] = np.nan
 
-        #Plot the data
-        PF.Gravity.plot_obs_2D(rxLoc,d=data)
+        # Plot the data
+        PF.Gravity.plot_obs_2D(rxLoc, d=data)
 
         plt.figure()
 
-        #Plot L2 model
+        # Plot L2 model
         ax = plt.subplot(321)
-        mesh.plotSlice(m_l2, ax = ax, normal = 'Z', ind=zpanel, grid=True, clim = ( model.min(), model.max()))
-        plt.plot(([mesh.vectorCCx[0],mesh.vectorCCx[-1]]),([mesh.vectorCCy[ypanel],mesh.vectorCCy[ypanel]]),Color='w')
+        mesh.plotSlice(m_l2, ax=ax, normal='Z', ind=zpanel,
+                       grid=True, clim=(model.min(), model.max()))
+        plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
+                 ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]), Color='w')
         plt.title('Plan l2-model.')
         plt.gca().set_aspect('equal')
         plt.ylabel('y')
@@ -145,52 +154,62 @@ def run(plotIt=True):
 
         # Vertica section
         ax = plt.subplot(322)
-        mesh.plotSlice(m_l2, ax = ax, normal = 'Y', ind=midx, grid=True, clim = (model.min(), model.max()))
-        plt.plot(([mesh.vectorCCx[0],mesh.vectorCCx[-1]]),([mesh.vectorCCz[zpanel],mesh.vectorCCz[zpanel]]),Color='w')
+        mesh.plotSlice(m_l2, ax=ax, normal='Y', ind=midx,
+                       grid=True, clim=(model.min(), model.max()))
+        plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
+                 ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), Color='w')
         plt.title('E-W l2-model.')
         plt.gca().set_aspect('equal')
         ax.xaxis.set_visible(False)
         plt.ylabel('z')
         plt.gca().set_aspect('equal', adjustable='box')
 
-        #Plot Lp model
+        # Plot Lp model
         ax = plt.subplot(323)
-        mesh.plotSlice(m_lp, ax = ax, normal = 'Z', ind=zpanel, grid=True, clim = (model.min(), model.max()))
-        plt.plot(([mesh.vectorCCx[0],mesh.vectorCCx[-1]]),([mesh.vectorCCy[ypanel],mesh.vectorCCy[ypanel]]),Color='w')
+        mesh.plotSlice(m_lp, ax=ax, normal='Z', ind=zpanel,
+                       grid=True, clim=(model.min(), model.max()))
+        plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
+                 ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]), Color='w')
         plt.title('Plan lp-model.')
         plt.gca().set_aspect('equal')
         ax.xaxis.set_visible(False)
         plt.ylabel('y')
         plt.gca().set_aspect('equal', adjustable='box')
 
-
         # Vertical section
         ax = plt.subplot(324)
-        mesh.plotSlice(m_lp, ax = ax, normal = 'Y', ind=midx, grid=True, clim = (model.min(), model.max()))
-        plt.plot(([mesh.vectorCCx[0],mesh.vectorCCx[-1]]),([mesh.vectorCCz[zpanel],mesh.vectorCCz[zpanel]]),Color='w')
+        mesh.plotSlice(m_lp, ax=ax, normal='Y', ind=midx,
+                       grid=True, clim=(model.min(), model.max()))
+        plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
+                 ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), Color='w')
         plt.title('E-W lp-model.')
         plt.gca().set_aspect('equal')
         ax.xaxis.set_visible(False)
         plt.ylabel('z')
         plt.gca().set_aspect('equal', adjustable='box')
 
-        #Plot True model
+        # Plot True model
         ax = plt.subplot(325)
-        mesh.plotSlice(m_true, ax = ax, normal = 'Z', ind=zpanel, grid=True, clim = (model.min(), model.max()))
-        plt.plot(([mesh.vectorCCx[0],mesh.vectorCCx[-1]]),([mesh.vectorCCy[ypanel],mesh.vectorCCy[ypanel]]),Color='w')
+        mesh.plotSlice(m_true, ax=ax, normal='Z', ind=zpanel,
+                       grid=True, clim=(model.min(), model.max()))
+        plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
+                 ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]), Color='w')
         plt.title('Plan true model.')
         plt.gca().set_aspect('equal')
-        plt.xlabel('x');plt.ylabel('y')
+        plt.xlabel('x')
+        plt.ylabel('y')
         plt.gca().set_aspect('equal', adjustable='box')
-
 
         # Vertical section
         ax = plt.subplot(326)
-        mesh.plotSlice(m_true, ax = ax, normal = 'Y', ind=midx, grid=True, clim = (model.min(), model.max()))
-        plt.plot(([mesh.vectorCCx[0],mesh.vectorCCx[-1]]),([mesh.vectorCCz[zpanel],mesh.vectorCCz[zpanel]]),Color='w')
+        mesh.plotSlice(m_true, ax=ax, normal='Y', ind=midx,
+                       grid=True, clim=(model.min(), model.max()))
+        plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
+                 ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), Color='w')
         plt.title('E-W true model.')
         plt.gca().set_aspect('equal')
-        plt.xlabel('x');plt.ylabel('z')
+        plt.xlabel('x')
+        plt.ylabel('z')
         plt.gca().set_aspect('equal', adjustable='box')
         plt.show()
 
