@@ -292,16 +292,21 @@ class TreeMeshIO(object):
 
         """
 
-        ## Read the file lines
-        fileLines = np.genfromtxt(meshFile,dtype=str,delimiter='\n')
+        # Read the file lines
+        fileLines = np.genfromtxt(meshFile, dtype=str,
+            delimiter='\n', comments='!')
         # Extract the data
-        nCunderMesh = np.array(fileLines[0].split(),dtype=float)
+        nCunderMesh = np.array(fileLines[0].
+            plit('!')[0].split(), dtype=float)
         # I think this is the case?
         if np.unique(nCunderMesh).size >1:
             raise Exception('SimPEG TreeMeshes have the same number of cell in all directions')
-        tswCorn = np.array(fileLines[1].split(),dtype=float)
-        smallCell = np.array(fileLines[2].split(),dtype=float)
-        nrCells = np.array(fileLines[3].split(),dtype=float)
+        tswCorn = np.array(fileLines[1].
+            split('!')[0].split(), dtype=float)
+        smallCell = np.array(fileLines[2].
+            split('!')[0].split(), dtype=float)
+        nrCells = np.array(fileLines[3].
+            split('!')[0].split(), dtype=float)
         # Read the index array
         indArr = np.genfromtxt(fileLines[4::],dtype=np.int)
 
