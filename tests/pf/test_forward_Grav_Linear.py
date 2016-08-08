@@ -3,11 +3,11 @@ from SimPEG import Mesh, Utils, np, PF, Maps, Problem, Survey, mkvc
 import matplotlib.pyplot as plt
 
 
-class MagFwdProblemTests(unittest.TestCase):
+class GravFwdProblemTests(unittest.TestCase):
 
     def setUp(self):
 
-        # Define inducing field and sphere parameters
+        # Define sphere parameters
         self.rad = 2.
         self.rho = 0.1
 
@@ -21,12 +21,12 @@ class MagFwdProblemTests(unittest.TestCase):
         # Get cells inside the sphere
         sph_ind = PF.MagAnalytics.spheremodel(mesh, 0., 0., 0., self.rad)
 
-        # Adjust susceptibility for volume difference
+        # Adjust density for volume difference
         Vratio = (4./3.*np.pi*self.rad**3.) / (np.sum(sph_ind)*cs**3.)
         model = np.ones(mesh.nC)*self.rho*Vratio
         self.model = model[sph_ind]
 
-        # Creat reduced identity map for Linear Pproblem
+        # Create reduced identity map for Linear Pproblem
         idenMap = Maps.IdentityMap(nP=int(sum(sph_ind)))
 
         # Create plane of observations
@@ -47,13 +47,13 @@ class MagFwdProblemTests(unittest.TestCase):
                                                    rtype='xyz')
 
         self.prob_z = PF.Gravity.GravityIntegral(mesh, mapping=idenMap,
-                                                   actInd=sph_ind,
-                                                   forwardOnly=True,
-                                                   rtype='z')
+                                                 actInd=sph_ind,
+                                                 forwardOnly=True,
+                                                 rtype='z')
 
     def test_ana_forward(self):
 
-        # Compute 3-component mag data
+        # Compute 3-component grav data
         self.survey.pair(self.prob_xyz)
         d = self.prob_xyz.fields(self.model)
 
@@ -62,18 +62,18 @@ class MagFwdProblemTests(unittest.TestCase):
         dgy = d[ndata:2*ndata]
         dgz = d[2*ndata:]
 
-        # Compute tmi mag data
+        # Compute gz data only
         self.survey.pair(self.prob_z)
         dz = self.prob_z.fields(self.model)
 
-        # Compute analytical response from a magnetized sphere
+        # Compute analytical response from mass sphere
         gxa, gya, gza = PF.GravAnalytics.GravSphereFreeSpace(self.locXyz[:, 0],
                                                              self.locXyz[:, 1],
                                                              self.locXyz[:, 2],
                                                              self.rad, 0, 0, 0,
                                                              self.rho)
 
-        # Projection matrix
+        # Compute residual
         err_xyz = (np.linalg.norm(d-np.r_[gxa, gya, gza]) /
                    np.linalg.norm(np.r_[gxa, gya, gza]))
 

@@ -6,9 +6,9 @@ import re
 class GravityIntegral(Problem.BaseProblem):
 
     # surveyPair = Survey.LinearSurvey
-    forwardOnly = False #: Determine if the forward matrix is stored (defaut:yes)
-    actInd = None #: Active cell indices provided
-    rtype       = 'z'
+    forwardOnly = False  # Is TRUE, forward matrix not stored to memory
+    actInd = None  #: Active cell indices provided
+    rtype = 'z'
 
     def __init__(self, mesh, mapping=None, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, mapping=mapping, **kwargs)
@@ -22,8 +22,10 @@ class GravityIntegral(Problem.BaseProblem):
 
             if getattr(self, 'actInd', None) is not None:
 
-                if self.actInd.dtype=='bool':
-                    inds = np.asarray([inds for inds, elem in enumerate(self.actInd, 1) if elem], dtype = int) - 1
+                if self.actInd.dtype == 'bool':
+                    inds = np.asarray([inds for inds,
+                                      elem in enumerate(self.actInd, 1)
+                                      if elem], dtype=int) - 1
                 else:
                     inds = self.actInd
 
@@ -39,7 +41,8 @@ class GravityIntegral(Problem.BaseProblem):
                 shape=(self.mesh.nC, nC)
             )
 
-            # Create vectors of nodal location (lower and upper corners for each cell)
+            # Create vectors of nodal location
+            # (lower and upper corners for each cell)
             xn = self.mesh.vectorNx
             yn = self.mesh.vectorNy
             zn = self.mesh.vectorNz
@@ -53,7 +56,6 @@ class GravityIntegral(Problem.BaseProblem):
 
             rxLoc = self.survey.srcField.rxList[0].locs
             ndata = rxLoc.shape[0]
-
 
             # Pre-allocate space and create magnetization matrix if required
             # Pre-allocate space
@@ -70,26 +72,22 @@ class GravityIntegral(Problem.BaseProblem):
                 print """Flag must be either 'z' | 'xyz', please revised"""
                 return
 
-
             # Add counter to dsiplay progress. Good for large problems
-            count = -1;
+            count = -1
             for ii in range(ndata):
-
 
                 tx, ty, tz = get_T_mat(Xn, Yn, Zn, rxLoc[ii, :])
 
+                if self.rtype == 'z':
+                    fwr_d[ii] = tz.dot(rho)
 
-                if self.rtype =='z':
-                    fwr_d[ii] =tz.dot(rho)
-
-                elif self.rtype =='xyz':
+                elif self.rtype == 'xyz':
                     fwr_d[ii] = tx.dot(rho)
                     fwr_d[ii+ndata] = ty.dot(rho)
                     fwr_d[ii+2*ndata] = tz.dot(rho)
 
-
             # Display progress
-                count = progress(ii,count,ndata)
+                count = progress(ii, count, ndata)
 
             print "Done 100% ...forward operator completed!!\n"
 
@@ -105,8 +103,6 @@ class GravityIntegral(Problem.BaseProblem):
 
         return fields
 
-        # return self.G.dot(self.mapping*(m))
-
     def Jvec(self, m, v, f=None):
         dmudm = self.mapping.deriv(m)
         return self.G.dot(dmudm*v)
@@ -121,7 +117,7 @@ class GravityIntegral(Problem.BaseProblem):
             raise Exception('Need to pair!')
 
         if getattr(self, '_G', None) is None:
-            self._G = self.Intrgl_Fwr_Op( 'z' )
+            self._G = self.Intrgl_Fwr_Op('z')
 
         return self._G
 
@@ -145,8 +141,10 @@ class GravityIntegral(Problem.BaseProblem):
         # inds = np.nonzero(actv)[0]
         if getattr(self, 'actInd', None) is not None:
 
-            if self.actInd.dtype=='bool':
-                inds = np.asarray([inds for inds, elem in enumerate(self.actInd, 1) if elem], dtype = int) - 1
+            if self.actInd.dtype == 'bool':
+                inds = np.asarray([inds for inds,
+                                  elem in enumerate(self.actInd, 1)
+                                  if elem], dtype=int) - 1
             else:
                 inds = self.actInd
 
@@ -162,7 +160,8 @@ class GravityIntegral(Problem.BaseProblem):
             shape=(self.mesh.nC, nC)
         )
 
-        # Create vectors of nodal location (lower and upper corners for each cell)
+        # Create vectors of nodal location
+        # (lower and upper corners for each cell)
         xn = self.mesh.vectorNx
         yn = self.mesh.vectorNy
         zn = self.mesh.vectorNz
@@ -192,24 +191,23 @@ class GravityIntegral(Problem.BaseProblem):
             print """Flag must be either 'z' | 'xyz', please revised"""
             return
 
-
-        # Loop through all observations and create forward operator (ndata-by-nC)
+        # Loop through all observations
         print "Begin calculation of forward operator: " + flag
 
         # Add counter to dsiplay progress. Good for large problems
-        count = -1;
+        count = -1
         for ii in range(ndata):
 
             tx, ty, tz = get_T_mat(Xn, Yn, Zn, rxLoc[ii, :])
 
-            if flag=='z':
+            if flag == 'z':
 
                 G[ii, :] = tz
 
             elif flag == 'xyz':
-                G[ii,:] = tx
-                G[ii+ndata,:] = ty
-                G[ii+2*ndata,:] = tz
+                G[ii, :] = tx
+                G[ii+ndata, :] = ty
+                G[ii+2*ndata, :] = tz
 
             # Display progress
             count = progress(ii, count, ndata)
@@ -239,15 +237,16 @@ def get_T_mat(Xn, Yn, Zn, rxLoc):
     indexing, once the topography has been figured out.
 
     """
-    NewtG = 6.6738e-3  # Converted to mGal
-    eps = 1e-10 # add a small value to the locations to avoid /0
+    from scipy.constants import G
+    NewtG = G*1e+8  # Convertion from mGal (1e-5) and g/cc (1e-3)
+    eps = 1e-10  # add a small value to the locations to avoid
 
     nC = Xn.shape[0]
 
     # Pre-allocate space for 1D array
-    tx = np.zeros((1,nC))
-    ty = np.zeros((1,nC))
-    tz = np.zeros((1,nC))
+    tx = np.zeros((1, nC))
+    ty = np.zeros((1, nC))
+    tz = np.zeros((1, nC))
 
     dz = rxLoc[2] - Zn + eps
 
@@ -269,19 +268,22 @@ def get_T_mat(Xn, Yn, Zn, rxLoc):
                 tx = tx - NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
                     dy[:, bb] * np.log(dz[:, cc] + r) +
                     dz[:, cc] * np.log(dy[:, bb] + r) -
-                    dx[:, aa] * np.arctan(dy[:, bb] * dz[:, cc] / (dx[:, aa] * r)))
+                    dx[:, aa] * np.arctan(dy[:, bb] * dz[:, cc] /
+                                          (dx[:, aa] * r)))
 
                 ty = ty - NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
                     dx[:, aa] * np.log(dz[:, cc] + r) +
                     dz[:, cc] * np.log(dx[:, aa] + r) -
-                    dy[:, bb] * np.arctan(dx[:, aa] * dz[:, cc] / (dy[:, bb] * r)))
+                    dy[:, bb] * np.arctan(dx[:, aa] * dz[:, cc] /
+                                          (dy[:, bb] * r)))
 
                 tz = tz - NewtG * (-1) ** aa * (-1) ** bb * (-1) ** cc * (
                     dx[:, aa] * np.log(dy[:, bb] + r) +
                     dy[:, bb] * np.log(dx[:, aa] + r) -
-                    dz[:, cc] * np.arctan(dx[:, aa] * dy[:, bb] / (dz[:, cc] * r)))
+                    dz[:, cc] * np.arctan(dx[:, aa] * dy[:, bb] /
+                                          (dz[:, cc] * r)))
 
-    return tx,ty,tz
+    return tx, ty, tz
 
 
 def progress(iter, prog, final):
@@ -297,7 +299,7 @@ def progress(iter, prog, final):
     """
     arg = np.floor(float(iter)/float(final)*10.)
 
-    if  arg > prog:
+    if arg > prog:
 
         strg = "Done " + str(arg*10) + " %"
         print strg
@@ -335,7 +337,8 @@ def writeUBCobs(filename, survey, d):
     print "Observation file saved to: " + filename
 
 
-def plot_obs_2D(rxLoc,d=None ,varstr='Gz Obs', vmin=None, vmax=None, levels=None, fig=None):
+def plot_obs_2D(rxLoc, d=None, varstr='Gz Obs', vmin=None, vmax=None,
+                levels=None, fig=None):
     """ Function plot_obs(rxLoc,d,wd)
     Generate a 2d interpolated plot from scatter points of data
 
@@ -356,21 +359,20 @@ def plot_obs_2D(rxLoc,d=None ,varstr='Gz Obs', vmin=None, vmax=None, levels=None
     from scipy.interpolate import griddata
     import pylab as plt
 
-
     # Create grid of points
-    x = np.linspace(rxLoc[:,0].min(), rxLoc[:,0].max(), 100)
-    y = np.linspace(rxLoc[:,1].min(), rxLoc[:,1].max(), 100)
+    x = np.linspace(rxLoc[:, 0].min(), rxLoc[:, 0].max(), 100)
+    y = np.linspace(rxLoc[:, 1].min(), rxLoc[:, 1].max(), 100)
 
-    X, Y = np.meshgrid(x,y)
+    X, Y = np.meshgrid(x, y)
 
     # Interpolate
-    d_grid = griddata(rxLoc[:,0:2],d,(X,Y), method ='linear')
+    d_grid = griddata(rxLoc[:, 0:2], d, (X, Y), method='linear')
 
     # Plot result
     if fig is None:
         fig = plt.figure()
 
-    plt.scatter(rxLoc[:,0],rxLoc[:,1], c='k', s=10)
+    plt.scatter(rxLoc[:, 0], rxLoc[:, 1], c='k', s=10)
 
     if d is not None:
 
@@ -381,26 +383,28 @@ def plot_obs_2D(rxLoc,d=None ,varstr='Gz Obs', vmin=None, vmax=None, levels=None
             vmax = d.max()
 
         # Create grid of points
-        x = np.linspace(rxLoc[:,0].min(), rxLoc[:,0].max(), 100)
-        y = np.linspace(rxLoc[:,1].min(), rxLoc[:,1].max(), 100)
+        x = np.linspace(rxLoc[:, 0].min(), rxLoc[:, 0].max(), 100)
+        y = np.linspace(rxLoc[:, 1].min(), rxLoc[:, 1].max(), 100)
 
-        X, Y = np.meshgrid(x,y)
+        X, Y = np.meshgrid(x, y)
 
         # Interpolate
-        d_grid = griddata(rxLoc[:,0:2],d,(X,Y), method ='linear')
-        plt.imshow(d_grid, extent=[x.min(), x.max(), y.min(), y.max()], origin='lower', vmin=vmin, vmax=vmax, cmap="plasma")
+        d_grid = griddata(rxLoc[:, 0:2], d, (X, Y), method='linear')
+        plt.imshow(d_grid, extent=[x.min(), x.max(), y.min(), y.max()],
+                   origin='lower', vmin=vmin, vmax=vmax, cmap="plasma")
         plt.colorbar(fraction=0.02)
 
         if levels is None:
-            plt.contour(X,Y, d_grid, 10, vmin=vmin, vmax=vmax, cmap="plasma")
+            plt.contour(X, Y, d_grid, 10, vmin=vmin, vmax=vmax, cmap="plasma")
         else:
-            plt.contour(X,Y, d_grid, levels=levels, colors='r', vmin=vmin, vmax=vmax, cmap="plasma")
-
+            plt.contour(X, Y, d_grid, levels=levels, colors='r',
+                        vmin=vmin, vmax=vmax, cmap="plasma")
 
     plt.title(varstr)
     plt.gca().set_aspect('equal', adjustable='box')
 
     return fig
+
 
 def readUBCgravObs(obs_file):
 
@@ -415,24 +419,24 @@ def readUBCgravObs(obs_file):
 
     """
 
-    fid = open(obs_file,'r')
+    fid = open(obs_file, 'r')
 
     # First line has the number of rows
     line = fid.readline()
-    ndat = np.array(line.split(),dtype=int)
+    ndat = np.array(line.split(), dtype=int)
 
     # Pre-allocate space for obsx, obsy, obsz, data, uncert
     line = fid.readline()
-    temp = np.array(line.split(),dtype=float)
+    temp = np.array(line.split(), dtype=float)
 
-    d  = np.zeros(ndat, dtype=float)
+    d = np.zeros(ndat, dtype=float)
     wd = np.zeros(ndat, dtype=float)
-    locXYZ = np.zeros( (ndat,3), dtype=float)
+    locXYZ = np.zeros((ndat, 3), dtype=float)
 
     for ii in range(ndat):
 
-        temp = np.array(line.split(),dtype=float)
-        locXYZ[ii,:] = temp[:3]
+        temp = np.array(line.split(), dtype=float)
+        locXYZ[ii, :] = temp[:3]
         d[ii] = temp[3]
         wd[ii] = temp[4]
         line = fid.readline()
@@ -440,6 +444,6 @@ def readUBCgravObs(obs_file):
     rxLoc = GRAV.RxObs(locXYZ)
     srcField = GRAV.SrcField([rxLoc])
     survey = GRAV.LinearSurvey(srcField)
-    survey.dobs =  d
-    survey.std =  wd
+    survey.dobs = d
+    survey.std = wd
     return survey
