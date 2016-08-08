@@ -1,5 +1,7 @@
 from scipy import sparse as sp
-from SimPEG.Utils import *
+from SimPEG.Utils import (sub2ind, sdiag, invPropertyTensor, TensorType,
+                          makePropertyTensor, ndgrid, inv2X2BlockDiagonal,
+                          getSubArray, inv3X3BlockDiagonal, spzeros, sdInv)
 import numpy as np
 
 

@@ -1,4 +1,6 @@
-import Utils, Maps, Mesh
+import Utils
+import Maps
+import Mesh
 import numpy as np
 import scipy.sparse as sp
 
@@ -900,28 +902,28 @@ class Tikhonov(Simple):
 class Sparse(Simple):
     """
         The regularization is:
-    
+
         .. math::
-    
+
             R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top R^\\top R W(m-m_\\text{ref})}
-    
+
         where the IRLS weight
-    
+
         .. math::
-    
+
             R = \eta TO FINISH LATER!!!
-    
+
         So the derivative is straight forward:
-    
+
         .. math::
-    
+
             R(m) = \mathbf{W^\\top R^\\top R W (m-m_\\text{ref})}
-    
+
         The IRLS weights are recomputed after each beta solves.
         It is strongly recommended to do a few Gauss-Newton iterations
         before updating.
     """
-        
+
     # set default values
     eps_p = 1e-1        # Threshold value for the model norm
     eps_q = 1e-1        # Threshold value for the model gradient norm

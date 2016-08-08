@@ -1,6 +1,7 @@
 import unittest
 from SimPEG.Utils import Zero, Identity, sdiag, mkvc
-from SimPEG import np, sp
+import numpy as np
+import scipy.sparse as sp
 
 class Tests(unittest.TestCase):
 

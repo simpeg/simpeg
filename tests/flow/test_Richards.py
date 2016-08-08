@@ -1,5 +1,6 @@
 import unittest
-from SimPEG import *
+import numpy as np
+from SimPEG import Mesh, Solver, Utils
 from SimPEG.Tests import OrderTest, checkDerivative
 from scipy.sparse.linalg import dsolve
 from SimPEG.FLOW import Richards

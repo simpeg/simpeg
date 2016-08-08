@@ -1,5 +1,7 @@
 from __future__ import division
-import Utils, numpy as np, scipy.sparse as sp
+import Utils
+import numpy as np
+import scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
 from Tests import checkDerivative
 from PropMaps import PropMap, Property
@@ -543,19 +545,13 @@ class InjectActiveCells(IdentityMap):
         self.indInactive = np.logical_not(indActive)
         if Utils.isScalar(valInactive):
             self.valInactive = np.ones(self.nC)*float(valInactive)
-            self.valInactive[self.indActive] = 0.
         else:
-            if len(valInactive) == sum(self.indInactive):
-                self.valInactive = np.zeros(nC)
-                self.valInactive[self.indInactive] = valInactive.copy()
-            else:
-                assert len(self.valInactive) == self.nC, 'valInactive must be the size of nC or nInactive'
-                self.valInactive = valInactive.copy()
-                if any(self.valInactive[self.indActive] != 0.):
-                    warnings.warn('the inactive has non-zero values in the active set.')
+            self.valInactive = np.ones(self.nC)
+            self.valInactive[self.indInactive] = valInactive.copy()
+
+        self.valInactive[self.indActive] = 0
 
         inds = np.nonzero(self.indActive)[0]
-        # inds[self.indActive]
         self.P = sp.csr_matrix((np.ones(inds.size),(inds, range(inds.size))), shape=(self.nC, self.nP))
 
     @property
