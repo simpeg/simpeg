@@ -64,13 +64,13 @@ class TDEM_bDerivTests(unittest.TestCase):
             Tests.checkDerivative(derChk, m0, plotIt=False, num=3, eps=1e-20)
 
         def test_Jvec_bx(self):
-            self.Deriv_J('bx')
+            self.Deriv_J(rxcomp='bx')
 
         def test_Jvec_bz(self):
-            self.Deriv_J('bz')
+            self.Deriv_J(rxcomp='bz')
 
         def test_Jvec_ey(self):
-            self.Deriv_J('ey')
+            self.Deriv_J(rxcomp='ey')
 
     if testAdjoint:
         def adjointJvecVsJtvec(self, rxcomp='bz'):
@@ -89,15 +89,13 @@ class TDEM_bDerivTests(unittest.TestCase):
             self.assertTrue(passed)
 
         def test_JvecVsJtvec_bx(self):
-            self.adjointJvecVsJtvec('bx')
+            self.adjointJvecVsJtvec(rxcomp='bx')
 
         def test_JvecVsJtvec_bz(self):
-            self.adjointJvecVsJtvec('bz')
+            self.adjointJvecVsJtvec(rxcomp='bz')
 
         def test_JvecVsJtvec_ey(self):
-            self.adjointJvecVsJtvec('ey')
-
-
+            self.adjointJvecVsJtvec(rxcomp='ey')
 
 if __name__ == '__main__':
     unittest.main()

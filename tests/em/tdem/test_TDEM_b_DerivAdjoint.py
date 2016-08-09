@@ -56,58 +56,58 @@ class TDEM_DerivTests(unittest.TestCase):
 
 # ====== TEST A ========== #
 
-    # def AderivTest(self, prbtype):
-    #     prb, m0, mesh = setUp(prbtype)
-    #     tInd = 2
-    #     if prbtype == 'b':
-    #         nu = mesh.nF
-    #     elif prbtype == 'e':
-    #         nu = mesh.nE
-    #     v = np.random.rand(nu)
+    def AderivTest(self, prbtype):
+        prb, m0, mesh = setUp(prbtype)
+        tInd = 2
+        if prbtype == 'b':
+            nu = mesh.nF
+        elif prbtype == 'e':
+            nu = mesh.nE
+        v = np.random.rand(nu)
 
-    #     def AderivFun(m):
-    #         prb.curModel = m
-    #         A = prb.getAdiag(tInd)
-    #         Av = A*v
-    #         prb.curModel = m0
-    #         ADeriv_dm = lambda dm: prb.getAdiagDeriv(tInd, v, dm)
+        def AderivFun(m):
+            prb.curModel = m
+            A = prb.getAdiag(tInd)
+            Av = A*v
+            prb.curModel = m0
+            ADeriv_dm = lambda dm: prb.getAdiagDeriv(tInd, v, dm)
 
-    #         return Av, ADeriv_dm
+            return Av, ADeriv_dm
 
-    #     print '\n Testing ADeriv %s'%(prbtype)
-    #     Tests.checkDerivative(AderivFun, m0, plotIt=False, num=4, eps=1e-20)
+        print '\n Testing ADeriv %s'%(prbtype)
+        Tests.checkDerivative(AderivFun, m0, plotIt=False, num=4, eps=1e-20)
 
-    # def A_adjointTest(self,prbtype):
-    #     prb, m0, mesh = setUp(prbtype)
-    #     tInd = 2
+    def A_adjointTest(self,prbtype):
+        prb, m0, mesh = setUp(prbtype)
+        tInd = 2
 
-    #     print '\n Testing A_adjoint'
-    #     m = np.random.rand(prb.mapping.nP)
-    #     if prbtype == 'b':
-    #         nu = prb.mesh.nF
-    #     elif prbtype == 'e':
-    #         nu = prb.mesh.nE
+        print '\n Testing A_adjoint'
+        m = np.random.rand(prb.mapping.nP)
+        if prbtype == 'b':
+            nu = prb.mesh.nF
+        elif prbtype == 'e':
+            nu = prb.mesh.nE
 
-    #     v = np.random.rand(nu)
-    #     u = np.random.rand(nu)
-    #     prb.curModel = m0
+        v = np.random.rand(nu)
+        u = np.random.rand(nu)
+        prb.curModel = m0
 
-    #     tInd = 2 # not actually used
-    #     V1 = v.dot(prb.getAdiagDeriv(tInd, u, m))
-    #     V2 = m.dot(prb.getAdiagDeriv(tInd, u, v, adjoint=True))
-    #     passed = np.abs(V1-V2) < TOL * (np.abs(V1) + np.abs(V2))/2.
-    #     print 'AdjointTest %s'%(prbtype), V1, V2, passed
-    #     self.assertTrue(passed)
+        tInd = 2 # not actually used
+        V1 = v.dot(prb.getAdiagDeriv(tInd, u, m))
+        V2 = m.dot(prb.getAdiagDeriv(tInd, u, v, adjoint=True))
+        passed = np.abs(V1-V2) < TOL * (np.abs(V1) + np.abs(V2))/2.
+        print 'AdjointTest %s'%(prbtype), V1, V2, passed
+        self.assertTrue(passed)
 
-    # def test_Aderiv_b(self):
-    #     self.AderivTest('b')
-    # def test_Aderiv_e(self):
-    #     self.AderivTest('e')
+    def test_Aderiv_b(self):
+        self.AderivTest(prbtype='b')
+    def test_Aderiv_e(self):
+        self.AderivTest(prbtype='e')
 
-    # def test_Aadjoint_b(self):
-    #     self.A_adjointTest('b')
-    # def test_Aadjoint_e(self):
-    #     self.A_adjointTest('e')
+    def test_Aadjoint_b(self):
+        self.A_adjointTest(prbtype='b')
+    def test_Aadjoint_e(self):
+        self.A_adjointTest(prbtype='e')
 
 # ====== TEST Fields Deriv Pieces ========== #
 

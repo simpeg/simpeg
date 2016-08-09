@@ -71,7 +71,7 @@ def CrossCheck(prbtype1='b', prbtype2='e', rxcomp='bz'):
 
 class TDEM_cross_check_EB(unittest.TestCase):
     def test_EB_ey(self):
-        CrossCheck('b','e','ey')
+        CrossCheck(prbtype1='b',prbtype2='e',rxcomp='ey')
 
 if __name__ == '__main__':
     unittest.main()

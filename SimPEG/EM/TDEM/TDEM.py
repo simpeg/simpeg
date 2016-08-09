@@ -468,7 +468,7 @@ class Problem_b(BaseTDEMProblem):
             if isinstance(S_e, Utils.Zero):
                 MeSigmaIDerivT_v = Utils.Zero()
             else:
-                MeSigmaIDerivT_v = MeSigmaIDeriv(S_e).T * v
+                MeSigmaIDerivT_v = MeSigmaIDeriv(S_e).T * C.T * v
             RHSDeriv = MeSigmaIDerivT_v + S_eDeriv( MeSigmaI.T *  ( C.T * v ) ) + S_mDeriv(v)
             return RHSDeriv
 
@@ -477,9 +477,9 @@ class Problem_b(BaseTDEMProblem):
         else:
             MeSigmaIDeriv_v = MeSigmaIDeriv(S_e) * v
 
-
         temp = MeSigmaIDeriv_v + MeSigmaI * S_eDeriv(v) + S_mDeriv(v)
 
+        # TODO: this is because Zero class, which need to be modified
         if isinstance(temp, Utils.Zero) is False:
             RHSDeriv = C * temp.astype(float)
         else:
