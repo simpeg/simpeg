@@ -15,6 +15,16 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
     def __init__(self, mesh, mapping=None, **kwargs):
         Problem.BaseTimeProblem.__init__(self, mesh, mapping=mapping, **kwargs)
 
+    def fields_nostore(self, m):
+        """
+        Solve the forward problem without storing fields
+        :param numpy.array m: inversion model (nP,)
+        :rtype numpy.array:
+        :return F: fields
+        """
+        pass
+        # return data
+
     def fields(self, m):
         """
         Solve the forward problem for the fields.
