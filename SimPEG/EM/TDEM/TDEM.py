@@ -18,12 +18,16 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
     def fields_nostore(self, m):
         """
         Solve the forward problem without storing fields
+
         :param numpy.array m: inversion model (nP,)
         :rtype numpy.array:
-        :return F: fields
+        :return numpy.array: numpy.array (nD,)
+
         """
+
         pass
         # return data
+
 
     def fields(self, m):
         """
