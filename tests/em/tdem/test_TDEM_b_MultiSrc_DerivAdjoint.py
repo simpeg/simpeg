@@ -15,8 +15,8 @@ def setUp_TDEM(self, rxcomp='bz'):
         ncx = 20
         ncy = 6
         npad = 20
-        hx = [(cs,ncx), (cs,npad,1.3)]
-        hy = [(cs,npad,-1.3), (cs,ncy), (cs,npad,1.3)]
+        hx = [(cs, ncx), (cs, npad, 1.3)]
+        hy = [(cs, npad, -1.3), (cs,ncy), (cs,npad,1.3)]
         mesh = Mesh.CylMesh([hx,1,hy], '00C')
 
         active = mesh.vectorCCz<0.

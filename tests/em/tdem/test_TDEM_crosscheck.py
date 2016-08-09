@@ -7,21 +7,22 @@ FLR = 1e-20
 
 np.random.seed(seed=25) # set a seed so that the same conductivity model is used for all runs
 
-def setUp_TDEM(prbtype = 'b', rxcomp='bz'):
+
+def setUp_TDEM(prbtype='b', rxcomp='bz'):
     cs = 5.
     ncx = 20
     ncy = 15
     npad = 20
-    hx = [(cs,ncx), (cs,npad,1.3)]
-    hy = [(cs,npad,-1.3), (cs,ncy), (cs,npad,1.3)]
-    mesh = Mesh.CylMesh([hx,1,hy], '00C')
+    hx = [(cs, ncx), (cs, npad, 1.3)]
+    hy = [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)]
+    mesh = Mesh.CylMesh([hx, 1, hy], '00C')
 #
     active = mesh.vectorCCz<0.
     activeMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
     mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * activeMap
 
     rxOffset = 10.
-    rx = EM.TDEM.Rx(np.array([[rxOffset, 0., -1e-2]]), np.logspace(-4,-3, 20), rxcomp) #,]
+    rx = EM.TDEM.Rx(np.array([[rxOffset, 0., -1e-2]]), np.logspace(-4, -3, 20), rxcomp) #,]
     src = EM.TDEM.Src.MagDipole([rx], loc=np.array([0., 0., 0.]))
 
     survey = EM.TDEM.Survey([src])
@@ -71,7 +72,8 @@ def CrossCheck(prbtype1='b', prbtype2='e', rxcomp='bz'):
 
 class TDEM_cross_check_EB(unittest.TestCase):
     def test_EB_ey(self):
-        CrossCheck(prbtype1='b',prbtype2='e',rxcomp='ey')
+        CrossCheck(prbtype1='b', prbtype2='e', rxcomp='ey')
+
 
 if __name__ == '__main__':
     unittest.main()

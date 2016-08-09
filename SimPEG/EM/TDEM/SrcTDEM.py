@@ -76,11 +76,9 @@ class BaseSrc(SimPEG.Survey.BaseSrc):
         else:
             self._waveform = self.StepOffWaveform(val)
 
-
     def __init__(self, rxList, waveform = StepOffWaveform(), **kwargs):
         self.waveform = waveform
         SimPEG.Survey.BaseSrc.__init__(self, rxList, **kwargs)
-
 
     def bInitial(self, prob):
         return Zero()
@@ -168,7 +166,9 @@ class MagDipole(BaseSrc):
         return self._bfromVectorPotential(prob)
 
     def eInitial(self, prob):
-        if self.waveform.hasInitialFields is False:
+        # when solving for e, it is easier to work with an initial source than
+        # initial fields
+        if self.waveform.hasInitialFields is False or prob._fieldType is 'e':
             return Zero()
 
         b = self.bInitial(prob)
@@ -180,21 +180,23 @@ class MagDipole(BaseSrc):
 
     def eInitialDeriv(self, prob, v=None, adjoint=False):
 
-        if self.waveform.hasInitialFields is False:
-            return Zero()
+        return Zero()
 
-        b = self.bInitial(prob)
-        MeSigmaIDeriv = prob.MeSigmaIDeriv
-        MfMui = prob.MfMui
-        C = prob.mesh.edgeCurl
-        S_e = self.S_e(prob, prob.t0)
+        # if self.waveform.hasInitialFields is False:
+        #     return Zero()
 
-        # S_e doesn't depend on the model
+        # b = self.bInitial(prob)
+        # MeSigmaIDeriv = prob.MeSigmaIDeriv
+        # MfMui = prob.MfMui
+        # C = prob.mesh.edgeCurl
+        # S_e = self.S_e(prob, prob.t0)
 
-        if adjoint:
-            return MeSigmaIDeriv( -S_e + C.T * ( MfMui * b ) ).T * v
+        # # S_e doesn't depend on the model
 
-        return MeSigmaIDeriv( -S_e + C.T * ( MfMui * b ) ) * v
+        # if adjoint:
+        #     return MeSigmaIDeriv( -S_e + C.T * ( MfMui * b ) ).T * v
+
+        # return MeSigmaIDeriv( -S_e + C.T * ( MfMui * b ) ) * v
 
 
     def S_m(self, prob, time):
@@ -204,13 +206,24 @@ class MagDipole(BaseSrc):
         return Zero()
 
     def S_e(self, prob, time):
-        if self.waveform.hasInitialFields is False:
-            # Compute S_e from vector potential
-            b = self._bfromVectorPotential(prob)
-            MfMui = prob.MfMui
-            C = prob.mesh.edgeCurl
+        b = self._bfromVectorPotential(prob)
+        MfMui = prob.MfMui
+        C = prob.mesh.edgeCurl
+
+        # print 'time ', time
+
+        if self.waveform.hasInitialFields is True and time < prob.timeSteps[1]:
+            # if time > 0.0:
+            #     return Zero()
+            if prob._fieldType == 'b':
+                return Zero()
+            elif prob._fieldType == 'e':
+                # Compute S_e from vector potential
+                return C.T * (MfMui * b)
+        else:
+            # b = self._bfromVectorPotential(prob)
             return C.T * (MfMui * b) * self.waveform.eval(time)
-        return Zero()
+        # return Zero()
 
 
 class CircularLoop(MagDipole):
