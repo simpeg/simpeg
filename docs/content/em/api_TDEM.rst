@@ -356,20 +356,29 @@ TDEM Problem
     :undoc-members:
 
 
-Field Storage
-=============
+Fields
+======
 
-.. autoclass:: SimPEG.EM.TDEM.BaseTDEM.FieldsTDEM
+.. automodule:: SimPEG.EM.TDEM.FieldsTDEM
     :show-inheritance:
     :members:
     :undoc-members:
     :inherited-members:
 
 
-TDEM Survey Classes
-===================
+Sources
+=======
 
-.. autoclass:: SimPEG.EM.TDEM.SurveyTDEM.Survey
+.. automodule:: SimPEG.EM.TDEM.SrcTDEM
+    :show-inheritance:
+    :members:
+    :undoc-members:
+    :inherited-members:
+
+Survey
+======
+
+.. automodule:: SimPEG.EM.TDEM.SurveyTDEM
     :show-inheritance:
     :members:
     :undoc-members:

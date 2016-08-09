@@ -1,7 +1,8 @@
 from SimPEG import Problem, Utils, np, sp, Solver as SimpegSolver
 from SimPEG.EM.Base import BaseEMProblem
 from SimPEG.EM.TDEM.SurveyTDEM import Survey as SurveyTDEM
-from SimPEG.EM.TDEM.FieldsTDEM import *
+from SimPEG.EM.TDEM.FieldsTDEM import (FieldsTDEM, Fields_b, Fields_e,
+                                       Fields_Derivs)
 from scipy.constants import mu_0
 import time
 
@@ -10,8 +11,8 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
     """
     We start with the first order form of Maxwell's equations
     """
-    surveyPair = SurveyTDEM
-    fieldsPair = Fields
+    surveyPair = SurveyTDEM  #: A SimPEG.EM.TDEM.SurveyTDEM Class
+    fieldsPair = FieldsTDEM  #: A SimPEG.EM.TDEM.FieldsTDEM Class
 
     def __init__(self, mesh, mapping=None, **kwargs):
         Problem.BaseTimeProblem.__init__(self, mesh, mapping=mapping, **kwargs)
@@ -26,15 +27,14 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
     #     """
 
-    #     pass
 
     def fields(self, m):
         """
         Solve the forward problem for the fields.
 
         :param numpy.array m: inversion model (nP,)
-        :rtype numpy.array:
-        :return F: fields
+        :rtype: SimPEG.EM.TDEM.FieldsTDEM
+        :return F: fields object
         """
 
         tic = time.time()
@@ -273,7 +273,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
                 Adiag = self.getAdiag(tInd)
                 AdiagTinv = self.Solver(Adiag.T, **self.solverOpts)
 
-            dAsubdiag_dm_v = Zero()
+            dAsubdiag_dm_v = Utils.Zero()
 
             if tInd < self.nT - 1:
                 Asubdiag = self.getAsubdiag(tInd+1)
@@ -306,6 +306,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
                 # TODO: clean up how this is implemented!
                 if tInd > -1 or self._fieldType == 'e':
+
                     un_src = f[src, ftype, tInd+1]
                     # cell centered on time mesh
                     dAT_dm_v = self.getAdiagDeriv(
@@ -317,6 +318,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
                     JTv = JTv + Utils.mkvc(-dAT_dm_v - dAsubdiag_dm_v +
                                            dRHST_dm_v)
+
                 elif self._fieldType == 'b' and src.waveform.hasInitialFields is True:
                     # dA_dm_v = self.getInitialFieldsDeriv(df_duT_v[src,'%sDeriv'%self._fieldType,tInd+1], adjoint=True)
                     # print np.linalg.norm(self.getInitialFieldsDeriv(src, df_duT_v[src,'%sDeriv'%self._fieldType,tInd+1], adjoint=True))
@@ -411,53 +413,83 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         return ifieldsDeriv
 
 
-##########################################################################################
-################################ E-B Formulation #########################################
-##########################################################################################
+###############################################################################
+################################ E-B Formulation ##############################
+###############################################################################
 
-# ------------------------------- Problem_b -------------------------------------------- #
+# ------------------------------- Problem_b --------------------------------- #
 
 class Problem_b(BaseTDEMProblem):
     """
-    Starting from the quasi-static E-B formulation of Maxwell's equations (semi-discretized)
+    Starting from the quasi-static E-B formulation of Maxwell's equations
+    (semi-discretized)
 
     .. math::
 
-        \mathbf{C} \mathbf{e} + \\frac{\partial \mathbf{b}}{\partial t} = \mathbf{s_m} \\\\
-        \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b} - \mathbf{M_{\sigma}^e} \mathbf{e} = \mathbf{s_e}
+        \mathbf{C} \mathbf{e} + \\frac{\partial \mathbf{b}}{\partial t} =
+        \mathbf{s_m} \\\\
+        \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b} -
+        \mathbf{M_{\sigma}^e} \mathbf{e} = \mathbf{s_e}
 
-    where :math:`\mathbf{s_e}` is an integrated quantity, we eliminate :math:`\mathbf{e}` using
+
+    where :math:`\mathbf{s_e}` is an integrated quantity, we eliminate
+    :math:`\mathbf{e}` using
 
     .. math::
-        \mathbf{e} = \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b} - \mathbf{M_{\sigma}^e}^{-1} \mathbf{s_e}
+
+        \mathbf{e} = \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\\top}
+        \mathbf{M_{\mu^{-1}}^f} \mathbf{b} -
+        \mathbf{M_{\sigma}^e}^{-1} \mathbf{s_e}
+
 
     to obtain a second order semi-discretized system in :math:`\mathbf{b}`
 
     .. math::
-        \mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b}  + \\frac{\partial \mathbf{b}}{\partial t} = \mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{s_e} + \mathbf{s_m}
+
+        \mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\\top}
+        \mathbf{M_{\mu^{-1}}^f} \mathbf{b}  +
+        \\frac{\partial \mathbf{b}}{\partial t} =
+        \mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{s_e} + \mathbf{s_m}
+
 
     and moving everything except the time derivative to the rhs gives
 
     .. math::
-        \\frac{\partial \mathbf{b}}{\partial t} = -\mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b} + \mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{s_e} + \mathbf{s_m}
+        \\frac{\partial \mathbf{b}}{\partial t} =
+        -\mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\\top}
+        \mathbf{M_{\mu^{-1}}^f} \mathbf{b} +
+        \mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{s_e} + \mathbf{s_m}
 
-    For the time discretization, we use backward euler. To solve for the :math:`n+1`th time step, we have
+    For the time discretization, we use backward euler. To solve for the
+    :math:`n+1` th time step, we have
 
     .. math::
-        \\frac{\mathbf{b}^{n+1} - \mathbf{b}^{n}}{\mathbf{dt}} = -\mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b}^{n+1} + \mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{s_e}^{n+1} + \mathbf{s_m}^{n+1}
+
+        \\frac{\mathbf{b}^{n+1} - \mathbf{b}^{n}}{\mathbf{dt}} =
+        -\mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\\top}
+        \mathbf{M_{\mu^{-1}}^f} \mathbf{b}^{n+1} +
+        \mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{s_e}^{n+1} +
+        \mathbf{s_m}^{n+1}
+
 
     re-arranging to put :math:`\mathbf{b}^{n+1}` on the left hand side gives
 
     .. math::
-        (\mathbf{I} + \mathbf{dt} \mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f}) \mathbf{b}^{n+1} = \mathbf{b}^{n} + \mathbf{dt}(\mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{s_e}^{n+1} + \mathbf{s_m}^{n+1})
 
-    :param Mesh mesh: mesh
-    :param Mapping mapping: mapping
+        (\mathbf{I} + \mathbf{dt} \mathbf{C} \mathbf{M_{\sigma}^e}^{-1}
+         \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f}) \mathbf{b}^{n+1} =
+         \mathbf{b}^{n} + \mathbf{dt}(\mathbf{C} \mathbf{M_{\sigma}^e}^{-1}
+         \mathbf{s_e}^{n+1} + \mathbf{s_m}^{n+1})
+
+
+    :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: mesh
+    :param SimPEG.Maps.IdentityMap mapping: mapping
+
     """
 
     _fieldType = 'b'
-    _eqLocs    = 'FE'
-    fieldsPair = Fields_b
+    _eqLocs    = 'FE'  # TODO: This should be 'formulation EB or HJ'
+    fieldsPair = Fields_b  #: A SimPEG.EM.TDEM.Fields_b object
     surveyPair = SurveyTDEM
 
     def __init__(self, mesh, mapping=None, **kwargs):
@@ -468,7 +500,8 @@ class Problem_b(BaseTDEMProblem):
         System matrix at a given time index
 
         .. math::
-            (\mathbf{I} + \mathbf{dt} \mathbf{C} \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f})
+            (\mathbf{I} + \mathbf{dt} \mathbf{C} \mathbf{M_{\sigma}^e}^{-1}
+            \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f})
 
         """
         assert tInd >= 0 and tInd < self.nT
@@ -512,7 +545,7 @@ class Problem_b(BaseTDEMProblem):
         return Asubdiag
 
     def getAsubdiagDeriv(self, tInd, u, v, adjoint=False):
-        return Zero() * v
+        return Utils.Zero() * v
 
     def getRHS(self, tInd):
         C = self.mesh.edgeCurl
@@ -544,7 +577,8 @@ class Problem_b(BaseTDEMProblem):
                 MeSigmaIDerivT_v = Utils.Zero()
             else:
                 MeSigmaIDerivT_v = MeSigmaIDeriv(S_e).T * C.T * v
-            RHSDeriv = MeSigmaIDerivT_v + S_eDeriv( MeSigmaI.T *  ( C.T * v ) ) + S_mDeriv(v)
+            RHSDeriv = (MeSigmaIDerivT_v + S_eDeriv( MeSigmaI.T *  (C.T * v)) +
+                        S_mDeriv(v))
             return RHSDeriv
 
         if isinstance(S_e, Utils.Zero):
@@ -565,13 +599,13 @@ class Problem_b(BaseTDEMProblem):
         return RHSDeriv
 
 
-# ------------------------------- Problem_e -------------------------------------------- #
+# ------------------------------- Problem_e --------------------------------- #
 
 class Problem_e(BaseTDEMProblem):
 
     _fieldType = 'e'
     _eqLocs    = 'FE'
-    fieldsPair = Fields_e
+    fieldsPair = Fields_e  #: A Fields_e
     surveyPair = SurveyTDEM
 
     def __init__(self, mesh, mapping=None, **kwargs):
@@ -605,7 +639,6 @@ class Problem_e(BaseTDEMProblem):
 
         return 1./dt * MeSigmaDeriv * v
 
-
     def getAsubdiag(self, tInd):
         assert tInd >= 0 and tInd < self.nT
 
@@ -632,9 +665,7 @@ class Problem_e(BaseTDEMProblem):
 
     def getRHSDeriv(self, tInd, src, v, adjoint=False):
         # right now, we are assuming that S_e, S_m do not depend on the model.
-        return Zero()
-
-
+        return Utils.Zero()
 
 
 

@@ -5,7 +5,7 @@ from SimPEG import Utils
 from SimPEG.EM.Utils import omega
 from SimPEG.Utils import Zero, Identity
 
-class Fields(SimPEG.Problem.TimeFields):
+class FieldsTDEM(SimPEG.Problem.TimeFields):
     """
 
     Fancy Field Storage for a TDEM survey. Only one field type is stored for
@@ -41,7 +41,7 @@ class Fields(SimPEG.Problem.TimeFields):
             return self._bDeriv_u(tInd, src, v, adjoint), self._bDeriv_m(tInd, src, v, adjoint)
         return self._bDeriv_u(tInd, src, dun_dm_v) + self._bDeriv_m(tInd, src, v)
 
-class Fields_Derivs(Fields):
+class Fields_Derivs(FieldsTDEM):
     knownFields = {
                     'bDeriv': 'F',
                     'eDeriv': 'E',
@@ -50,7 +50,7 @@ class Fields_Derivs(Fields):
                   }
 
 
-class Fields_b(Fields):
+class Fields_b(FieldsTDEM):
     """Fancy Field Storage for a TDEM survey."""
     knownFields = {'bSolution': 'F'}
     aliasFields = {
@@ -103,7 +103,7 @@ class Fields_b(Fields):
 
 
 
-class Fields_e(Fields):
+class Fields_e(FieldsTDEM):
     """Fancy Field Storage for a TDEM survey."""
     knownFields = {'eSolution': 'E'}
     aliasFields = {
