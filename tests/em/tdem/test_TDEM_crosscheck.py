@@ -7,7 +7,7 @@ FLR = 1e-20
 
 np.random.seed(seed=25) # set a seed so that the same conductivity model is used for all runs
 
-def setUp(prbtype = 'b', rxcomp='bz'):
+def setUp_TDEM(prbtype = 'b', rxcomp='bz'):
     cs = 5.
     ncx = 20
     ncy = 15
@@ -51,8 +51,8 @@ def setUp(prbtype = 'b', rxcomp='bz'):
 
 def CrossCheck(prbtype1='b', prbtype2='e', rxcomp='bz'):
 
-    prb1,m1,mesh1 = setUp(prbtype1, rxcomp)
-    prb2,m2,mesh2 = setUp(prbtype2, rxcomp)
+    prb1,m1,mesh1 = setUp_TDEM(prbtype1, rxcomp)
+    prb2,m2,mesh2 = setUp_TDEM(prbtype2, rxcomp)
 
     assert (m1 == m2).all(), 'Models for two formulations are different'
 

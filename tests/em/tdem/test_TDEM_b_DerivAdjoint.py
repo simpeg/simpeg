@@ -11,7 +11,7 @@ testAdjoint = True
 
 TOL = 1e-5
 
-def setUp(prbtype='b', rxcomp='bz'):
+def setUp_TDEM(prbtype='b', rxcomp='bz'):
     cs = 5.
     ncx = 20
     ncy = 15
@@ -57,7 +57,7 @@ class TDEM_DerivTests(unittest.TestCase):
 # ====== TEST A ========== #
 
     def AderivTest(self, prbtype):
-        prb, m0, mesh = setUp(prbtype)
+        prb, m0, mesh = setUp_TDEM(prbtype)
         tInd = 2
         if prbtype == 'b':
             nu = mesh.nF
@@ -78,7 +78,7 @@ class TDEM_DerivTests(unittest.TestCase):
         Tests.checkDerivative(AderivFun, m0, plotIt=False, num=4, eps=1e-20)
 
     def A_adjointTest(self,prbtype):
-        prb, m0, mesh = setUp(prbtype)
+        prb, m0, mesh = setUp_TDEM(prbtype)
         tInd = 2
 
         print '\n Testing A_adjoint'
@@ -112,14 +112,14 @@ class TDEM_DerivTests(unittest.TestCase):
 # ====== TEST Fields Deriv Pieces ========== #
 
     # def test_eDeriv_m_adjoint(self):
-    #     prb, m0, mesh = setUp()
+    #     prb, m0, mesh = setUp_TDEM()
     #     tInd = 0
 
     #     v = np.random.rand(mesh.nF)
 
     #     print '\n Testing eDeriv_m Adjoint'
 
-    #     prb, m0, mesh = setUp()
+    #     prb, m0, mesh = setUp_TDEM()
     #     f = prb.fields(m0)
 
     #     m = np.random.rand(prb.mapping.nP)
@@ -135,7 +135,7 @@ class TDEM_DerivTests(unittest.TestCase):
     # def test_eDeriv_u_adjoint(self):
     #     print '\n Testing eDeriv_u Adjoint'
 
-    #     prb, m0, mesh = setUp()
+    #     prb, m0, mesh = setUp_TDEM()
     #     f = prb.fields(m0)
 
     #     b = np.random.rand(prb.mesh.nF)
@@ -154,7 +154,7 @@ class TDEM_DerivTests(unittest.TestCase):
     if testDeriv:
 
         def JvecTest(self, prbtype, rxcomp):
-            prb, m, mesh = setUp(prbtype, rxcomp)
+            prb, m, mesh = setUp_TDEM(prbtype, rxcomp)
 
             derChk = lambda m: [prb.survey.dpred(m), lambda mx: prb.Jvec(m, mx)]
             print '\n'
@@ -188,7 +188,7 @@ class TDEM_DerivTests(unittest.TestCase):
 
     #         print '\nAdjoint Testing Jvec, Jtvec %s' %(rxcomp)
 
-    #         prb, m0, mesh = setUp(prbtype, rxcomp)
+    #         prb, m0, mesh = setUp_TDEM(prbtype, rxcomp)
     #         m = np.random.rand(prb.mapping.nP)
     #         d = np.random.randn(prb.survey.nD)
     #         V1 = d.dot(prb.Jvec(m0, m))

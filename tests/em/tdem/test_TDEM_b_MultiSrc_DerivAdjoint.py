@@ -9,7 +9,7 @@ testAdjoint = True
 
 TOL = 1e-5
 
-def setUp(self, rxcomp='bz'):
+def setUp_TDEM(self, rxcomp='bz'):
 
         cs = 5.
         ncx = 20
@@ -54,7 +54,7 @@ class TDEM_bDerivTests(unittest.TestCase):
     if testDeriv:
         def Deriv_J(self, rxcomp='bz'):
 
-            mesh, prb, m0 = setUp(rxcomp)
+            mesh, prb, m0 = setUp_TDEM(rxcomp)
 
             prb.timeSteps = [(1e-05, 10), (0.0001, 10), (0.001, 10)]
 
@@ -75,7 +75,7 @@ class TDEM_bDerivTests(unittest.TestCase):
     if testAdjoint:
         def adjointJvecVsJtvec(self, rxcomp='bz'):
             print ' \n Testing Adjoint %s' %rxcomp
-            mesh, prb, m0 = setUp(rxcomp)
+            mesh, prb, m0 = setUp_TDEM(rxcomp)
 
             m = np.random.rand(prb.mapping.nP)
             d = np.random.rand(prb.survey.nD)

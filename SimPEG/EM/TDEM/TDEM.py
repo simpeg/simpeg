@@ -192,7 +192,6 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
             df_duT_v[src, '%sDeriv'%self._fieldType, :] = np.zeros_like(f[src, self._fieldType, :])
 
             for rx in src.rxList:
-                print ('_%sDeriv')%(rx.projField)
                 PT_v[src,'%sDeriv'%rx.projField,:] = rx.evalDeriv(src, self.mesh, self.timeMesh, Utils.mkvc(v[src,rx]), adjoint=True) # this is +=
 
                 # PT_v = np.reshape(curPT_v,(len(curPT_v)/self.timeMesh.nN, self.timeMesh.nN), order='F')
