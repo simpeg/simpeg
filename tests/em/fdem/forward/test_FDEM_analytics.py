@@ -87,6 +87,7 @@ class FDEM_analyticTests(unittest.TestCase):
 
 
     def test_CylMeshEBDipoles(self):
+        import scipy.sparse as sp
         print 'Testing CylMesh Electric and Magnetic Dipoles in a wholespace- Analytic: J-formulation'
         sigmaback = 1.
         mur = 2.

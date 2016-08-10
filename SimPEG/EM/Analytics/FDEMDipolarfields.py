@@ -211,31 +211,31 @@ def H_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
     if XYZ.shape[0] > 1 & f.shape[0] > 1:
         raise Exception("I/O type error: For multiple field locations only a single frequency can be specified.")
 
-    dx = XYZ[:,0]-srcLoc[0]
-    dy = XYZ[:,1]-srcLoc[1]
-    dz = XYZ[:,2]-srcLoc[2]
+    dx = XYZ[:, 0]-srcLoc[0]
+    dy = XYZ[:, 1]-srcLoc[1]
+    dz = XYZ[:, 2]-srcLoc[2]
 
-    r  = np.sqrt( dx**2. + dy**2. + dz**2.)
+    r = np.sqrt(dx**2. + dy**2. + dz**2.)
     # k  = np.sqrt( -1j*2.*np.pi*f*mu*sig )
-    k  = np.sqrt( omega(f)**2. *mu*epsilon -1j*omega(f)*mu*sig )
+    k = np.sqrt(omega(f)**2. * mu*epsilon - 1j*omega(f)*mu*sig)
 
-    front = current * length / (4.*np.pi* r**2) * (-1j*k*r + 1) * np.exp(-1j*k*r)
+    front = current * length / (4.*np.pi*(r)**2) * (1j*k*r + 1) * np.exp(-1j*k*r)
 
     if orientation.upper() == 'X':
-        Hy = front*(-dz  / r)
-        Hz = front*(dy  / r)
+        Hy = front*(-dz / r)
+        Hz = front*(dy / r)
         Hx = np.zeros_like(Hy)
         return Hx, Hy, Hz
 
     elif orientation.upper() == 'Y':
-        Hx = front*(dz  / r)
-        Hz = front*(-dx  / r)
+        Hx = front*(dz / r)
+        Hz = front*(-dx / r)
         Hy = np.zeros_like(Hx)
         return Hx, Hy, Hz
 
     elif orientation.upper() == 'Z':
         Hx = front*(-dy / r)
-        Hy = front*(dx  / r)
+        Hy = front*(dx / r)
         Hz = np.zeros_like(Hx)
         return Hx, Hy, Hz
 
@@ -247,6 +247,7 @@ def B_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
         TODO:
             Add description of parameters
     """
+    mu = mu_0*(1+kappa)
 
     Hx, Hy, Hz = H_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=current, length=length, orientation=orientation, kappa=kappa, epsr=epsr)
     Bx = mu*Hx
