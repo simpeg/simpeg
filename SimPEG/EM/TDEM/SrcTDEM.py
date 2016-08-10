@@ -168,15 +168,15 @@ class MagDipole(BaseSrc):
     def eInitial(self, prob):
         # when solving for e, it is easier to work with an initial source than
         # initial fields
-        if self.waveform.hasInitialFields is False or prob._fieldType is 'e':
-            return Zero()
+        # if self.waveform.hasInitialFields is False or prob._fieldType is 'e':
+        return Zero()
 
-        b = self.bInitial(prob)
-        MeSigmaI = prob.MeSigmaI
-        MfMui = prob.MfMui
-        C = prob.mesh.edgeCurl
+        # b = self.bInitial(prob)
+        # MeSigmaI = prob.MeSigmaI
+        # MfMui = prob.MfMui
+        # C = prob.mesh.edgeCurl
 
-        return MeSigmaI * (C.T * (MfMui * b))
+        # return MeSigmaI * (C.T * (MfMui * b))
 
     def eInitialDeriv(self, prob, v=None, adjoint=False):
 
