@@ -159,8 +159,58 @@ Comparing to the analytic function:
 API for DC codes
 ================
 
-.. automodule:: SimPEG.EM.Static.DC
+Problem
+-------
+
+.. automodule:: SimPEG.EM.Static.DC.ProblemDC
     :show-inheritance:
     :members:
     :undoc-members:
-    :inherited-members:
+
+
+.. automodule:: SimPEG.EM.Static.DC.ProblemDC_2D
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+Survey
+------
+
+.. automodule:: SimPEG.EM.Static.DC.SurveyDC
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+.. automodule:: SimPEG.EM.Static.DC.SrcDC
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+.. automodule:: SimPEG.EM.Static.DC.RxDC
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+Fields
+------
+
+.. automodule:: SimPEG.EM.Static.DC.FieldsDC
+    :show-inheritance:
+    :undoc-members:
+
+.. automodule:: SimPEG.EM.Static.DC.FieldsDC_2D
+    :show-inheritance:
+    :undoc-members:
+
+Utils
+-----
+
+.. automodule:: SimPEG.EM.Static.DC.Utils
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+.. automodule:: SimPEG.EM.Static.DC.BoundaryUtils
+    :show-inheritance:
+    :members:
+    :undoc-members:

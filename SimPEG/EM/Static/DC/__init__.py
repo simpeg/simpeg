@@ -3,6 +3,7 @@ from ProblemDC_2D import Problem2D_CC, Problem2D_N
 from SurveyDC import Survey, Survey_ky
 import SrcDC as Src #Pole
 import RxDC as Rx
-from FieldsDC import Fields_CC
+from FieldsDC import Fields, Fields_CC, Fields_N
+from FieldsDC_2D import Fields_ky, Fields_ky_CC, Fields_ky_N
 from BoundaryUtils import getxBCyBC_CC
 import Utils
