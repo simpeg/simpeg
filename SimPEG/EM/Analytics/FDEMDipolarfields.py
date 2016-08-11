@@ -298,6 +298,172 @@ def A_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
         return Ax, Ay, Az
 
 
+def E_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., loopArea=1., orientation='X', kappa=0., epsr=1., t=0.):
+
+    """
+        Computing analytic electric fields from Magnetic Dipole in a Wholespace
+        TODO:
+            Add description of parameters
+    """
+    mu = mu_0 * (1+kappa)
+    epsilon = epsilon_0 * epsr
+    m = current * loopArea
+
+    XYZ = Utils.asArray_N_x_Dim(XYZ, 3)
+    # Check
+    if XYZ.shape[0] > 1 & f.shape[0] > 1:
+        raise Exception("I/O type error: For multiple field locations only a single frequency can be specified.")
+
+    dx = XYZ[:,0]-srcLoc[0]
+    dy = XYZ[:,1]-srcLoc[1]
+    dz = XYZ[:,2]-srcLoc[2]
+
+    r  = np.sqrt( dx**2. + dy**2. + dz**2.)
+    # k  = np.sqrt( -1j*2.*np.pi*f*mu*sig )
+    k  = np.sqrt( omega(f)**2. *mu*epsilon -1j*omega(f)*mu*sig )
+
+    front = ((1j * omega(f) * mu * m) / (4.* np.pi * r**2)) * (1j * k * r + 1) * np.exp(-1j*k*r)
+
+    if orientation.upper() == 'X':
+        Ey = front * (dz / r)
+        Ez = front * (-dy / r)
+        Ex = np.zeros_like(Ey)
+        return Ex, Ey, Ez
+
+    elif orientation.upper() == 'Y':
+        Ex = front * (-dz / r)
+        Ez = front * (dx / r)
+        Ey = np.zeros_like(Ex)
+        return Ex, Ey, Ez
+
+    elif orientation.upper() == 'Z':
+        Ex = front * (dy / r)
+        Ey = front * (-dx / r)
+        Ez = np.zeros_like(Ex)
+        return Ex, Ey, Ez
+
+
+def J_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., loopArea=1., orientation='X', kappa=1., epsr=1., t=0.):
+
+    """
+        Computing current densities from Magnetic Dipole in a Wholespace
+        TODO:
+            Add description of parameters
+    """
+
+    Ex, Ey, Ez = E_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=current, loopArea=loopArea, orientation=orientation, kappa=kappa, epsr=epsr)
+    Jx = sig * Ex
+    Jy = sig * Ey
+    Jz = sig * Ez
+    return Jx, Jy, Jz
+
+
+def H_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., loopArea=1., orientation='X', kappa=1., epsr=1., t=0.):
+
+    """
+        Computing magnetic fields from Magnetic Dipole in a Wholespace
+        TODO:
+            Add description of parameters
+    """
+    mu = mu_0 * (1+kappa)
+    epsilon = epsilon_0 * epsr
+    m = current * loopArea
+
+    XYZ = Utils.asArray_N_x_Dim(XYZ, 3)
+    # Check
+    if XYZ.shape[0] > 1 & f.shape[0] > 1:
+        raise Exception("I/O type error: For multiple field locations only a single frequency can be specified.")
+
+    dx = XYZ[:, 0]-srcLoc[0]
+    dy = XYZ[:, 1]-srcLoc[1]
+    dz = XYZ[:, 2]-srcLoc[2]
+
+    r = np.sqrt(dx**2. + dy**2. + dz**2.)
+    # k  = np.sqrt( -1j*2.*np.pi*f*mu*sig )
+    k = np.sqrt(omega(f)**2. * mu*epsilon - 1j*omega(f)*mu*sig)
+
+    front = m / (4.*np.pi*(r)**3) * np.exp(-1j*k*r)
+    mid   = -k**2 * r**2 + 3*1j*k*r + 3
+
+    if orientation.upper() == 'X':
+        Hx = front*((dx**2 / r**2)*mid + (k**2 * r**2 - 1j*k*r - 1.))
+        Hy = front*(dx*dy  / r**2)*mid
+        Hz = front*(dx*dz  / r**2)*mid
+        return Hx, Hy, Hz
+
+    elif orientation.upper() == 'Y':
+        #  x--> y, y--> z, z-->x
+        Hy = front * ((dy**2 / r**2)*mid + (k**2 * r**2 - 1j*k*r - 1.))
+        Hz = front * (dy*dz  / r**2)*mid
+        Hx = front * (dy*dx  / r**2)*mid
+        return Hx, Hy, Hz
+
+    elif orientation.upper() == 'Z':
+        # x --> z, y --> x, z --> y
+        Hz = front*((dz**2 / r**2)*mid + (k**2 * r**2 - 1j*k*r - 1.))
+        Hx = front*(dz*dx  / r**2)*mid
+        Hy = front*(dz*dy  / r**2)*mid
+        return Hx, Hy, Hz
+
+
+def B_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., loopArea=1., orientation='X', kappa=1., epsr=1., t=0.):
+
+    """
+        Computing magnetic flux densites from Magnetic Dipole in a Wholespace
+        TODO:
+            Add description of parameters
+    """
+    mu = mu_0 * (1+kappa)
+
+    Hx, Hy, Hz = H_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=current, loopArea=loopArea, orientation=orientation, kappa=kappa, epsr=epsr)
+    Bx = mu * Hx
+    By = mu * Hy
+    Bz = mu * Hz
+    return Bx, By, Bz
+
+
+def F_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., loopArea=1., orientation='X', kappa=1., epsr=1., t=0.):
+
+    """
+        Computing magnetic vector potentials from Magnetic Dipole in a Wholespace
+        TODO:
+            Add description of parameters
+    """
+    mu = mu_0 * (1+kappa)
+    epsilon = epsilon_0*epsr
+    m = current * loopArea
+
+    XYZ = Utils.asArray_N_x_Dim(XYZ, 3)
+    # Check
+    if XYZ.shape[0] > 1 & f.shape[0] > 1:
+        raise Exception("I/O type error: For multiple field locations only a single frequency can be specified.")
+
+    dx = XYZ[:,0]-srcLoc[0]
+    dy = XYZ[:,1]-srcLoc[1]
+    dz = XYZ[:,2]-srcLoc[2]
+
+    r  = np.sqrt( dx**2. + dy**2. + dz**2.)
+    k  = np.sqrt( omega(f)**2. *mu*epsilon -1j*omega(f)*mu*sig )
+
+    front = (1j * omega(f) * mu * m) / (4.* np.pi * r)
+
+    if orientation.upper() == 'X':
+        Fx = front*np.exp(-1j*k*r)
+        Fy = np.zeros_like(Fx)
+        Fz = np.zeros_like(Fx)
+        return Fx, Fy, Fz
+
+    elif orientation.upper() == 'Y':
+        Fy = front*np.exp(-1j*k*r)
+        Fx = np.zeros_like(Fy)
+        Fz = np.zeros_like(Fy)
+        return Fx, Fy, Fz
+
+    elif orientation.upper() == 'Z':
+        Fz = front*np.exp(-1j*k*r)
+        Fx = np.zeros_like(Fy)
+        Fy = np.zeros_like(Fy)
+        return Fx, Fy, Fz
 
 
 
