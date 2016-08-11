@@ -1,7 +1,7 @@
 from SimPEG import Problem, Utils
 from SimPEG.EM.Base import BaseEMProblem
 from SurveyDC import Survey
-from FieldsDC import Fields, Fields_CC, Fields_N
+from FieldsDC import FieldsDC, Fields_CC, Fields_N
 from SimPEG.Utils import sdiag
 import numpy as np
 from SimPEG.Utils import Zero
@@ -13,7 +13,7 @@ class BaseDCProblem(BaseEMProblem):
     Base DC Problem
     """
     surveyPair = Survey
-    fieldsPair = Fields
+    fieldsPair = FieldsDC
     Ainv = None
 
     def fields(self, m):

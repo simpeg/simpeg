@@ -292,7 +292,7 @@ nitpick_ignore = [
     ('py:class', 'BaseMTFields'),
     ('py:class', 'SolverLU'),
     ('py:class', 'Fields_CC'),
-    ('py:class', 'Fields'),
+    ('py:class', 'FieldsDC'),
     ('py:class', 'Fields_N'),
     ('py:class', 'Survey_ky'),
     ('py:class', 'Fields_ky'),

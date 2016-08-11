@@ -4,7 +4,7 @@ import numpy as np
 from scipy.constants import epsilon_0
 
 
-class Fields(SimPEG.Problem.Fields):
+class FieldsDC(SimPEG.Problem.Fields):
     knownFields = {}
     dtype = float
 
@@ -49,7 +49,7 @@ class Fields(SimPEG.Problem.Fields):
                          self._jDeriv_m(src, v, adjoint), dtype=float))
 
 
-class Fields_CC(Fields):
+class Fields_CC(FieldsDC):
     knownFields = {'phiSolution': 'CC'}
     aliasFields = {
                     'phi': ['phiSolution', 'CC', '_phi'],
@@ -109,7 +109,7 @@ class Fields_CC(Fields):
                                                                   srcList))
 
 
-class Fields_N(Fields):
+class Fields_N(FieldsDC):
     knownFields = {'phiSolution': 'N'}
     aliasFields = {
                     'phi': ['phiSolution', 'N', '_phi'],
