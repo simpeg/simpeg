@@ -219,10 +219,12 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
         for ii in range(0, int(nstn)-1):
 
 
-            if stype == 'dpdp':
+            if stype == 'dipole-dipole':
                 tx = np.c_[M[ii,:],N[ii,:]]
-            elif stype == 'pdp':
+            elif stype == 'pole-dipole':
                 tx = np.c_[M[ii,:],M[ii,:]]
+            else:
+                raise Exception('The stype must be "dipole-dipole" or "pole-dipole"')
 
             # Rx.append(np.c_[M[ii+1:indx,:],N[ii+1:indx,:]])
 
@@ -256,10 +258,10 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
                 P2 = np.c_[stn_x+a*dl_x, np.ones(nstn).T*ztop]
                 rxClass = DC.Rx.Dipole_ky(P1, P2)
 
-            if stype == 'dpdp':
-                    srcClass = DC.Src.Dipole([rxClass], M[ii,:],N[ii,:])
-            elif stype == 'pdp':
-                    srcClass = DC.Src.Pole([rxClass], M[ii,:])
+            if stype == 'dipole-dipole':
+                srcClass = DC.Src.Dipole([rxClass], M[ii,:],N[ii,:])
+            elif stype == 'pole-dipole':
+                srcClass = DC.Src.Pole([rxClass], M[ii,:])
             SrcList.append(srcClass)
 
     elif stype == 'gradient':
@@ -310,7 +312,7 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
             srcClass = DC.Src.Dipole([rxClass], M[0,:], N[-1,:])
         SrcList.append(srcClass)
     else:
-        print """stype must be either 'pdp', 'dpdp' or 'gradient'. """
+        print """stype must be either 'pole-dipole', 'dipole-dipole' or 'gradient'. """
 
 
     return SrcList
