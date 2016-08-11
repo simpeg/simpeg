@@ -5,11 +5,13 @@ from SimPEG import Utils
 from SimPEG.EM.Utils import omega
 from SimPEG.Utils import Zero, Identity
 
+
 class FieldsTDEM(SimPEG.Problem.TimeFields):
     """
 
     Fancy Field Storage for a TDEM survey. Only one field type is stored for
-    each problem, the rest are computed. The fields obejct acts like an array and is indexed by
+    each problem, the rest are computed. The fields obejct acts like an array
+    and is indexed by
 
     .. code-block:: python
 
@@ -25,7 +27,8 @@ class FieldsTDEM(SimPEG.Problem.TimeFields):
         e = f[:,'e']
         b = f[:,'b']
 
-    The array returned will be size (nE or nF, nSrcs :math:`\\times` nFrequencies)
+    The array returned will be size (nE or nF, nSrcs :math:`\\times`
+    nFrequencies)
     """
 
     knownFields = {}
@@ -33,15 +36,23 @@ class FieldsTDEM(SimPEG.Problem.TimeFields):
 
     def _eDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
         if adjoint is True:
-            return self._eDeriv_u(tInd, src, v, adjoint), self._eDeriv_m(tInd, src, v, adjoint)
-        return self._eDeriv_u(tInd, src, dun_dm_v) + self._eDeriv_m(tInd, src, v)
+            return (self._eDeriv_u(tInd, src, v, adjoint),
+                    self._eDeriv_m(tInd, src, v, adjoint))
+        return (self._eDeriv_u(tInd, src, dun_dm_v) +
+                self._eDeriv_m(tInd, src, v))
 
     def _bDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
         if adjoint is True:
-            return self._bDeriv_u(tInd, src, v, adjoint), self._bDeriv_m(tInd, src, v, adjoint)
-        return self._bDeriv_u(tInd, src, dun_dm_v) + self._bDeriv_m(tInd, src, v)
+            return (self._bDeriv_u(tInd, src, v, adjoint),
+                    self._bDeriv_m(tInd, src, v, adjoint))
+        return (self._bDeriv_u(tInd, src, dun_dm_v) +
+                self._bDeriv_m(tInd, src, v))
+
 
 class Fields_Derivs(FieldsTDEM):
+    """
+        A fields object for satshing derivs
+    """
     knownFields = {
                     'bDeriv': 'F',
                     'eDeriv': 'E',
@@ -51,7 +62,7 @@ class Fields_Derivs(FieldsTDEM):
 
 
 class Fields_b(FieldsTDEM):
-    """Fancy Field Storage for a TDEM survey."""
+    """Field Storage for a TDEM survey."""
     knownFields = {'bSolution': 'F'}
     aliasFields = {
                     'b': ['bSolution', 'F', '_b'],
