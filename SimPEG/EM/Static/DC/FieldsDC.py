@@ -61,7 +61,7 @@ class Fields_CC(FieldsDC):
                   # CC variables
 
     def __init__(self, mesh, survey, **kwargs):
-        Fields.__init__(self, mesh, survey, **kwargs)
+        FieldsDC.__init__(self, mesh, survey, **kwargs)
         mesh.setCellGradBC("neumann")
         cellGrad = mesh.cellGrad
 
@@ -121,7 +121,7 @@ class Fields_N(FieldsDC):
                   # N variables
 
     def __init__(self, mesh, survey, **kwargs):
-        Fields.__init__(self, mesh, survey, **kwargs)
+        FieldsDC.__init__(self, mesh, survey, **kwargs)
 
     def startup(self):
         self.prob = self.survey.prob
