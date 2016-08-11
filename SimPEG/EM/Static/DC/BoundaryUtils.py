@@ -8,15 +8,16 @@ def getxBCyBC_CC(mesh, alpha, beta, gamma):
 
     .. math::
 
-        \nabla \cdot \vec{j} = -\nabla \cdot \vec{j}_s = q
+        \\nabla \cdot \\vec{j} = -\\nabla \cdot \\vec{j}_s = q
 
-        \rho \vec{j} = -\nabla \phi \phi
+        \\rho \\vec{j} = -\\nabla \phi
 
-        \alpha \phi + \beta \frac{\partial \phi}{\partial r} = \gamma \ at \ r
-        = \partial \Omega
+        \\alpha \phi + \\beta \\frac{\partial \phi}{\partial r} = \gamma
+        \quad \\vec{r} \subset \partial \Omega
 
-        xBC = f_1(\alpha, \beta, \gamma)
-        yBC = f(\alpha, \beta, \gamma)
+        xBC = f_1(\\alpha, \\beta, \\gamma)
+
+        yBC = f(\\alpha, \\beta, \\gamma)
 
 
     Computes xBC and yBC for cell-centered discretizations

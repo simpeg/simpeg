@@ -196,10 +196,12 @@ Fields
 
 .. automodule:: SimPEG.EM.Static.DC.FieldsDC
     :show-inheritance:
+    :members:
     :undoc-members:
 
 .. automodule:: SimPEG.EM.Static.DC.FieldsDC_2D
     :show-inheritance:
+    :members:
     :undoc-members:
 
 Utils
