@@ -759,8 +759,7 @@ def progress(iter, prog, final):
 
     if arg > prog:
 
-        strg = "Done " + str(arg*10) + " %"
-        print strg
+        print "Done " + str(arg*10) + " %"
         prog = arg
 
     return prog

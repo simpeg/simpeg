@@ -97,8 +97,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         opt = Optimization.ProjectedGNCG(maxIter=100, lower=-1., upper=1.,
                                          maxIterLS=20, maxIterCG=10,
                                          tolCG=1e-3)
-        invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
-        betaest = Directives.BetaEstimate_ByEig()
+        invProb = InvProblem.BaseInvProblem(dmis, reg, opt, beta=1e+8)
 
         # Here is where the norms are applied
         IRLS = Directives.Update_IRLS(norms=([0, 1, 1, 1]),
@@ -107,7 +106,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         update_Jacobi = Directives.Update_lin_PreCond()
 
         self.inv = Inversion.BaseInversion(invProb,
-                                           directiveList=[IRLS, betaest,
+                                           directiveList=[IRLS,
                                                           update_Jacobi])
 
     def test_mag_inverse(self):

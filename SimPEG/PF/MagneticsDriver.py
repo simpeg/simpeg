@@ -1,6 +1,8 @@
-import re, os
+import re
+import os
 from SimPEG import Mesh, np, Utils
-import BaseMag, Magnetics
+import BaseMag
+import Magnetics
 
 
 class MagneticsDriver_Inv(object):
@@ -8,7 +10,8 @@ class MagneticsDriver_Inv(object):
 
     def __init__(self, input_file=None):
         if input_file is not None:
-            self.basePath = os.path.sep.join(input_file.split(os.path.sep)[:-1])
+            self.basePath = os.path.sep.join(input_file.split(
+                                             os.path.sep)[:-1])
             if len(self.basePath) > 0:
                 self.basePath += os.path.sep
             self.readDriverFile(input_file.split(os.path.sep)[-1])
@@ -32,8 +35,8 @@ class MagneticsDriver_Inv(object):
             upper, lower bounds
             lp, lqx, lqy, lqz
 
-            # All files should be in the working directory, otherwise the path must
-            # be specified.
+            # All files should be in the working directory,
+            # otherwise the path must be specified.
 
         """
 
@@ -184,7 +187,8 @@ class MagneticsDriver_Inv(object):
     def activeCells(self):
         if getattr(self, '_activeCells', None) is None:
             if getattr(self, 'topofile', None) is not None:
-                topo = np.genfromtxt(self.basePath + self.topofile, skip_header=1)
+                topo = np.genfromtxt(self.basePath + self.topofile,
+                                     skip_header=1)
                 # Find the active cells
                 active = Utils.surface2ind_topo(self.mesh, topo, 'N')
 
@@ -195,7 +199,10 @@ class MagneticsDriver_Inv(object):
                 # Read from file active cells with 0:air, 1:dynamic, -1 static
                 active = self.activeModel != 0
 
-            inds = np.asarray([inds for inds, elem in enumerate(active, 1) if elem], dtype = int) - 1
+            inds = np.asarray([inds for inds,
+                               elem in enumerate(active, 1)
+                               if elem], dtype=int) - 1
+
             self._activeCells = inds
 
             # Reduce m0 to active space
@@ -210,7 +217,10 @@ class MagneticsDriver_Inv(object):
             # Cells with value 1 in active model are dynamic
             staticCells = self.activeModel[self._activeCells] == -1
 
-            inds = np.asarray([inds for inds, elem in enumerate(staticCells, 1) if elem], dtype = int) - 1
+            inds = np.asarray([inds for inds,
+                               elem in enumerate(staticCells, 1)
+                               if elem], dtype=int) - 1
+
             self._staticCells = inds
 
         return self._staticCells
@@ -222,7 +232,10 @@ class MagneticsDriver_Inv(object):
             # Cells with value 1 in active model are dynamic
             dynamicCells = self.activeModel[self._activeCells] == 1
 
-            inds = np.asarray([inds for inds, elem in enumerate(dynamicCells, 1) if elem], dtype = int) - 1
+            inds = np.asarray([inds for inds,
+                               elem in enumerate(dynamicCells, 1)
+                               if elem], dtype=int) - 1
+
             self._dynamicCells = inds
 
         return self._dynamicCells
@@ -239,7 +252,9 @@ class MagneticsDriver_Inv(object):
             if isinstance(self.mstart, float):
                 self._m0 = np.ones(self.nC) * self.mstart
             else:
-                self._m0 = Mesh.TensorMesh.readModelUBC(self.mesh, self.basePath + self.mstart)
+                self._m0 = Mesh.TensorMesh.readModelUBC(self.mesh,
+                                                        self.basePath +
+                                                        self.mstart)
 
         return self._m0
 
@@ -249,7 +264,9 @@ class MagneticsDriver_Inv(object):
             if isinstance(self._mrefInput, float):
                 self._mref = np.ones(self.nC) * self._mrefInput
             else:
-                self._mref = Mesh.TensorMesh.readModelUBC(self.mesh, self.basePath + self._mrefInput)
+                self._mref = Mesh.TensorMesh.readModelUBC(self.mesh,
+                                                          self.basePath +
+                                                          self._mrefInput)
 
                 # Reduce to active space
                 self._mref = self._mref[self._activeCells]
@@ -275,13 +292,39 @@ class MagneticsDriver_Inv(object):
         """
 
         if getattr(self, 'magfile', None) is None:
-            return Magnetics.dipazm_2_xyz(np.ones(self.nC) * self.survey.srcField.param[1], np.ones(self.nC) * self.survey.srcField.param[2])
+
+            M = Magnetics.dipazm_2_xyz(np.ones(self.nC) *
+                                       self.survey.srcField.param[1],
+                                       np.ones(self.nC) *
+                                       self.survey.srcField.param[2])
 
         else:
-            raise NotImplementedError("this will require you to read in a three column vector model")
-            self._mref = Utils.meshutils.readUBCTensorModel(self.basePath + self._mrefInput, self.mesh)
-            return np.genfromtxt(self.magfile,
-                                 delimiter=' \n', dtype=np.str, comments='!')
+
+            with open(self.basePath + self.magfile) as f:
+                magmodel = f.read()
+
+            magmodel = magmodel.splitlines()
+            M = []
+
+            for line in magmodel:
+                M.append(map(float, line.split()))
+
+            # Convert list to 2d array
+            M = np.vstack(M)
+
+            # Cycle through three components and permute from UBC to SimPEG
+            for ii in range(3):
+                m = np.reshape(M[:, ii],
+                               (self.mesh.nCz, self.mesh.nCx, self.mesh.nCy),
+                               order='F')
+
+                m = m[::-1, :, :]
+                m = np.transpose(m, (1, 2, 0))
+                M[:, ii] = Utils.mkvc(m)
+
+        self._M = M
+
+        return self._M
 
     def readMagneticsObservations(self, obs_file):
         """

@@ -11,16 +11,16 @@ class MagSensProblemTests(unittest.TestCase):
 
     def setUp(self):
         url = 'https://storage.googleapis.com/simpeg/tests/potential_fields/'
-        cloudfiles = ['MagData.obs', 'Gaussian.topo', 'Mesh_10m.msh',
-                      'ModelStart.sus', 'SimPEG_Mag_Input.inp']
+        cloudfiles = ['GravData.obs', 'Gaussian.topo', 'Mesh_10m.msh',
+                      'ModelStart.sus', 'SimPEG_Grav_Input.inp']
 
         self.basePath = io_utils.remoteDownload(url, cloudfiles)
 
     def test_magnetics_inversion(self):
 
-        inp_file = self.basePath + 'SimPEG_Mag_Input.inp'
+        inp_file = self.basePath + 'SimPEG_Grav_Input.inp'
 
-        driver = PF.MagneticsDriver.MagneticsDriver_Inv(inp_file)
+        driver = PF.GravityDriver.GravityDriver_Inv(inp_file)
 
         print driver.mesh
         print driver.survey
@@ -37,8 +37,8 @@ class MagSensProblemTests(unittest.TestCase):
         print driver.eps
 
         # Write obs to file
-        PF.Magnetics.writeUBCobs(self.basePath + 'FWR_data.dat',
-                                 driver.survey, driver.survey.dobs)
+        PF.Gravity.writeUBCobs(self.basePath + 'FWR_data.dat',
+                               driver.survey, driver.survey.dobs)
 
         # Clean up the working directory
         shutil.rmtree(self.basePath)

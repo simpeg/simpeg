@@ -78,6 +78,7 @@ class GravFwdProblemTests(unittest.TestCase):
                    np.linalg.norm(np.r_[gxa, gya, gza]))
 
         err_tmi = np.linalg.norm(dz-gza)/np.linalg.norm(gza)
+
         self.assertTrue(err_xyz < 0.005 and err_tmi < 0.005)
 
 
