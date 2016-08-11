@@ -331,8 +331,8 @@ def E_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., loopArea=1.
         return Ex, Ey, Ez
 
     elif orientation.upper() == 'Y':
-        Ex = front * (dz / r)
-        Ez = front * (-dx / r)
+        Ex = front * (-dz / r)
+        Ez = front * (dx / r)
         Ey = np.zeros_like(Ex)
         return Ex, Ey, Ez
 
