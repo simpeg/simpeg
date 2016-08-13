@@ -557,3 +557,150 @@ class CircularLoop(MagDipole):
                                            mu=self.mu, radius=self.radius,
                                            orientation=self.orientation)
 
+class PrimSecSigma(BaseSrc):
+
+    def __init__(self, rxList, freq, sigBack, ePrimary, **kwargs):
+        self.sigBack = sigBack
+
+        BaseSrc.__init__(self, rxList, freq=freq, _ePrimary=ePrimary, **kwargs)
+
+    def s_e(self, prob):
+        return (prob.MeSigma -  prob.mesh.getEdgeInnerProduct(self.sigBack)) * self.ePrimary(prob)
+
+    def s_eDeriv(self, prob, v, adjoint=False):
+        if adjoint:
+            return prob.MeSigmaDeriv(self.ePrimary(prob)).T * v
+        return prob.MeSigmaDeriv(self.ePrimary(prob)) * v
+
+
+class PrimSecMappedSigma(BaseSrc):
+
+    """
+    Primary-Secondary Source in which a mapping is provided to put the current model
+    onto the primary mesh. This is solved on every model update.
+    There are a lot of layers to the derivatives here!
+    **Required**
+    :param list rxList: Receiver List
+    :param float freq: frequency
+    :param ProblemFDEM primaryProblem: FDEM primary problem
+    :param SurveyFDEM primarySurvey: FDEM primary survey
+    **Optional**
+    :param Mapping map2meshSecondary: mapping current model to act as primary model on the secondary mesh
+    """
+
+    def __init__(self, rxList, freq, primaryProblem, primarySurvey, map2meshSecondary = None ,**kwargs):
+
+        self.primaryProblem = primaryProblem
+        self.primarySurvey = primarySurvey
+
+        if self.primaryProblem.ispaired is False:
+            self.primaryProblem.pair(self.primarySurvey)
+
+        self.map2meshSecondary = map2meshSecondary
+
+        BaseSrc.__init__(self, rxList, freq=freq, **kwargs)
+
+    def _ProjPrimary(self, prob):
+        # if getattr(self, '__ProjPrimary', None) is None:
+        return self.primaryProblem.mesh.getInterpolationMatCartMesh(prob.mesh, locType='F', locTypeTo='E')
+        # return self.__ProjPrimary
+
+
+    def _primaryFields(self, prob, fieldType=None):
+
+        # TODO: cache and check if prob.curModel has changed
+        fields = self.primaryProblem.fields(prob.curModel.sigmaModel)
+
+        if fieldType is not None:
+            return fields[:,fieldType]
+        return fields
+
+    def _primaryFieldsDeriv(self, prob, v, adjoint=False, f=None):
+        if adjoint:
+            raise NotImplementedError
+
+        # TODO: this should not be hard-coded for j
+        # jp = self._primaryFields(prob)[:,'j']
+
+        # TODO: pull apart Jvec so that don't have to copy paste this code in
+        # A = self.primaryProblem.getA(self.freq)
+        # Ainv = self.primaryProblem.Solver(A, **self.primaryProblem.solverOpts) # create the concept of Ainv (actually a solve)
+
+        if f is None:
+           f = self._primaryFields(prob.curModel.sigmaModel)
+
+        freq = self.freq
+
+        A = self.primaryProblem.getA(freq)
+        Ainv = self.primaryProblem.Solver(A, **self.primaryProblem.solverOpts) # create the concept of Ainv (actually a solve)
+
+        src = self.primarySurvey.srcList[0]
+        # for src in self.survey.getSrcByFreq(freq):
+        u_src = Utils.mkvc(f[src, self.primaryProblem._solutionType])
+        dA_dm_v = self.primaryProblem.getADeriv(freq, u_src, v)
+        dRHS_dm_v = self.primaryProblem.getRHSDeriv(freq, src, v)
+        du_dm_v = Ainv * ( - dA_dm_v + dRHS_dm_v )
+
+        df_dmFun = getattr(f, '_{0}Deriv'.format('j'), None)
+        df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
+        # Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
+        Ainv.clean()
+
+        return df_dm_v
+
+        # return self.primaryProblem.Jvec(prob.curModel, v, f=f)
+
+    def ePrimary(self, prob, f=None):
+        if f is None:
+            f = self._primaryFields(prob)
+
+        ep = self._ProjPrimary(prob) * (
+                self.primaryProblem.MfI * (
+                self.primaryProblem.MfRho * f[:,'j'])
+                )
+
+        return Utils.mkvc(ep)
+
+    def ePrimaryDeriv(self, prob, v, adjoint=False, f=None):
+
+        if adjoint is True:
+            raise NotImplementedError
+
+        if f is None:
+            f = self._primaryFields(prob)
+
+        epDeriv = self._ProjPrimary(prob) * (
+                    self.primaryProblem.MfI * (
+                    (self.primaryProblem.MfRhoDeriv(f[:,'j']) * v)
+                    +
+                    (self.primaryProblem.MfRho * self._primaryFieldsDeriv(prob, v, f=f))
+                    )
+                    )
+
+        return Utils.mkvc(epDeriv)
+
+
+    def s_e(self, prob):
+        sigmaPrimary = self.map2meshSecondary * prob.curModel.sigmaModel
+
+        return Utils.mkvc((prob.MeSigma -  prob.mesh.getEdgeInnerProduct(sigmaPrimary)) * self.ePrimary(prob))
+
+
+    def s_eDeriv(self, prob, v, adjoint=False):
+        if adjoint:
+            raise NotImplementedError
+            return prob.MeSigmaDeriv(self.ePrimary(prob)).T * v
+
+        sigmaPrimary = self.map2meshSecondary * prob.curModel.sigmaModel
+        sigmaPrimaryDeriv = self.map2meshSecondary.deriv(prob.curModel.sigmaModel)
+
+        f = self._primaryFields(prob)
+        ePrimary = self.ePrimary(prob,f=f)
+
+        return (prob.MeSigmaDeriv(ePrimary) * v
+                - prob.mesh.getEdgeInnerProductDeriv(sigmaPrimary)(ePrimary) * sigmaPrimaryDeriv * v
+                + (prob.MeSigma -  prob.mesh.getEdgeInnerProduct(sigmaPrimary)) * self.ePrimaryDeriv(prob, v, None, f=f)
+                )
+
+
+
