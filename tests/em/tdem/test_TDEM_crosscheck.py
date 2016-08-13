@@ -1,6 +1,7 @@
 import unittest
 from SimPEG import *
 from SimPEG import EM
+import matplotlib.pyplot as plt
 
 TOL = 1e-5
 FLR = 1e-20
@@ -43,12 +44,14 @@ def setUp_TDEM(prbtype='b', rxcomp='bz'):
     except ImportError, e:
         prb.Solver = SolverLU
 
-    m = np.log(1e-1)*np.ones(prb.mapping.nP) + 1e-2*np.random.rand(prb.mapping.nP)
+    m = (np.log(1e-1)*np.ones(prb.mapping.nP) +
+         1e-2*np.random.rand(prb.mapping.nP))
 
     prb.pair(survey)
     mesh = mesh
 
     return prb, m, mesh
+
 
 def CrossCheck(prbtype1='b', prbtype2='e', rxcomp='bz'):
 
@@ -58,13 +61,17 @@ def CrossCheck(prbtype1='b', prbtype2='e', rxcomp='bz'):
     d1 = prb1.survey.dpred(m1)
     d2 = prb2.survey.dpred(m1)
 
+    plt.plot(d1)
+    plt.plot(d2)
+    plt.show()
 
     check = np.linalg.norm(d1 - d2)
-    tol   = 0.5 * (np.linalg.norm(d1) + np.linalg.norm(d2)) * TOL
+    tol = 0.5 * (np.linalg.norm(d1) + np.linalg.norm(d2)) * TOL
     passed = check < tol
 
-    print 'Checking %s, %s for %s data'%(prbtype1, prbtype2, rxcomp)
-    print '  ', np.linalg.norm(d1), np.linalg.norm(d2), np.linalg.norm(check), tol, passed
+    print('Checking %s, %s for %s data'%(prbtype1, prbtype2, rxcomp))
+    print('{}, {}, {}'.format(np.linalg.norm(d1), np.linalg.norm(d2),
+          np.linalg.norm(check), tol, passed))
 
     assert passed
 
@@ -72,6 +79,15 @@ def CrossCheck(prbtype1='b', prbtype2='e', rxcomp='bz'):
 class TDEM_cross_check_EB(unittest.TestCase):
     def test_EB_ey(self):
         CrossCheck(prbtype1='b', prbtype2='e', rxcomp='ey')
+
+    # def test_EB_dbxdt(self):
+    #     CrossCheck(prbtype1='b', prbtype2='e', rxcomp='dbxdt')
+
+    # def test_EB_bx(self):
+    #     CrossCheck(prbtype1='b', prbtype2='e', rxcomp='bx')
+
+    # def test_EB_bz(self):
+    #     CrossCheck(prbtype1='b', prbtype2='e', rxcomp='bz')
 
 
 if __name__ == '__main__':

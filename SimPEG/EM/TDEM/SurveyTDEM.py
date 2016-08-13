@@ -52,7 +52,7 @@ class Rx(SimPEG.Survey.BaseTimeRx):
 
                 This is not stored in memory, but is created on demand.
         """
-        if self.rxType in ['dbxdt','dbydt','dbzdt']:
+        if self.rxType in ['dbxdt', 'dbydt', 'dbzdt']:
             return timeMesh.getInterpolationMat(self.times, self.projTLoc)*timeMesh.faceDiv
         else:
             return timeMesh.getInterpolationMat(self.times, self.projTLoc)

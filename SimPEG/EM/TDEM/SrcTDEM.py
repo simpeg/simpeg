@@ -4,9 +4,11 @@ from SimPEG.Utils import Zero, Identity
 from scipy.constants import mu_0
 from SimPEG.EM.Utils import *
 
+
 ####################################################
 # Sources
 ####################################################
+
 
 class BaseWaveform(object):
 
@@ -15,10 +17,10 @@ class BaseWaveform(object):
         self.offTime = offTime
         self.hasInitialFields = hasInitialFields
 
-
     def _assertMatchesPair(self, pair):
-        assert (isinstance(self, pair)
-            ), "Waveform object must be an instance of a %s BaseWaveform class."%(pair.__name__)
+        assert isinstance(self, pair), ("Waveform object must be an instance "
+                                        "of a %s BaseWaveform class.".format(
+                                            pair.__name__))
 
     def eval(self, time):
         raise NotImplementedError
