@@ -1,6 +1,6 @@
 from SimPEG import Problem, Utils, Maps, Mesh
 from SimPEG.EM.Base import BaseEMProblem
-from SimPEG.EM.Static.DC.FieldsDC import Fields, Fields_CC, Fields_N
+from SimPEG.EM.Static.DC.FieldsDC import FieldsDC, Fields_CC, Fields_N
 from SimPEG.Utils import sdiag
 import numpy as np
 from SimPEG.Utils import Zero
@@ -21,7 +21,7 @@ class ColeColePropMap(Maps.PropMap):
 class BaseSIPProblem(BaseEMProblem):
 
     surveyPair = Survey
-    fieldsPair = Fields
+    fieldsPair = FieldsDC
     dataPair = Data
     PropMap = ColeColePropMap
     Ainv = None
