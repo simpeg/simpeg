@@ -1,5 +1,5 @@
 import unittest
-from SimPEG import Mesh, Utils, EM, Maps, np
+from SimPEG import Mesh, Utils, EM, Maps, np, SolverLU
 import SimPEG.EM.Static.DC as DC
 import SimPEG.EM.Static.IP as IP
 
