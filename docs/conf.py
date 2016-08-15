@@ -28,7 +28,12 @@ sys.path.append('../')
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.todo', 'sphinx.ext.mathjax', 'sphinx.ext.viewcode', 'sphinx.ext.autodoc', 'sphinx.ext.intersphinx', 'matplotlib.sphinxext.plot_directive']
+extensions = ['sphinx.ext.todo',
+              'sphinx.ext.mathjax',
+              'sphinx.ext.viewcode',
+              'sphinx.ext.autodoc',
+              'sphinx.ext.intersphinx',
+              'matplotlib.sphinxext.plot_directive']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -291,6 +296,8 @@ nitpick_ignore = [
     ('py:class', 'SurveyDC'),
     ('py:class', 'BaseMTFields'),
     ('py:class', 'SolverLU'),
+    ('py:class', 'BaseMagSurvey'),
+    ('py:class', 'BaseMagMap'),
     ('py:class', 'Fields_CC'),
     ('py:class', 'FieldsDC'),
     ('py:class', 'Fields_N'),
