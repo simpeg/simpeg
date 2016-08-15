@@ -1,4 +1,4 @@
-.. _examples_simpegEMpaper_example_1:
+.. _examples_EM_CylInversions_Heagyetal2016:
 
 .. --------------------------------- ..
 ..                                   ..
@@ -8,14 +8,14 @@
 ..                                   ..
 .. --------------------------------- ..
 
-simpegEMpaper example 1
-=======================
+EM CylInversions Heagyetal2016
+==============================
 
 .. plot::
 
     from SimPEG import Examples
-    Examples.simpegEMpaper_example_1.run()
+    Examples.EM_CylInversions_Heagyetal2016.run()
 
-.. literalinclude:: ../../../SimPEG/Examples/simpegEMpaper_example_1.py
+.. literalinclude:: ../../../SimPEG/Examples/EM_CylInversions_Heagyetal2016.py
     :language: python
     :linenos:

@@ -1,23 +1,23 @@
-from SimPEG import np, Mesh, Maps, Utils, DataMisfit, Regularization, Optimization, Inversion, InvProblem, Directives
+from SimPEG import (np, Mesh, Maps, Utils, DataMisfit, Regularization,
+                    Optimization, Inversion, InvProblem, Directives)
 from SimPEG import SolverLU
 from SimPEG.EM import FDEM, TDEM, mu_0
+import warnings
 import matplotlib.pyplot as plt
-import matplotlib
-matplotlib.rcParams['font.size'] = 14
 
 def run(plotIt=True):
     # Set up cylindrically symmeric mesh
     cs, ncx, ncz, npad = 10., 15, 25, 13  # padded cyl mesh
-    hx = [(cs,ncx), (cs,npad,1.3)]
-    hz = [(cs,npad,-1.3), (cs,ncz), (cs,npad,1.3)]
-    mesh = Mesh.CylMesh([hx,1,hz], '00C')
+    hx = [(cs, ncx), (cs, npad, 1.3)]
+    hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
+    mesh = Mesh.CylMesh([hx, 1, hz], '00C')
 
     # Conductivity model
     layerz = np.r_[-200., -100.]
-    layer = (mesh.vectorCCz>=layerz[0]) & (mesh.vectorCCz<=layerz[1])
-    active = mesh.vectorCCz<0.
-    sig_half  = 1e-2  # Half-space conductivity
-    sig_air   = 1e-8  # Air conductivity
+    layer = (mesh.vectorCCz >= layerz[0]) & (mesh.vectorCCz <= layerz[1])
+    active = mesh.vectorCCz < 0.
+    sig_half = 1e-2  # Half-space conductivity
+    sig_air = 1e-8  # Air conductivity
     sig_layer = 5e-2  # Layer conductivity
     sigma = np.ones(mesh.nCz)*sig_air
     sigma[active] = sig_half
@@ -28,7 +28,7 @@ def run(plotIt=True):
     mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * actMap
     mtrue = np.log(sigma[active])
 
-    # FDEM problem & survey
+    # ----- FDEM problem & survey -----
     rxlocs = Utils.ndgrid([np.r_[50.], np.r_[0], np.r_[0.]])
     bzi = FDEM.Rx.Point_bSecondary(rxlocs, 'z', 'real')
     bzr = FDEM.Rx.Point_bSecondary(rxlocs, 'z', 'imag')
@@ -56,10 +56,10 @@ def run(plotIt=True):
     reg = Regularization.Simple(regMesh)
     opt = Optimization.InexactGaussNewton(maxIterCG=10, maxIter=4)
     invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
+
     # Inversion Directives
-    beta = Directives.BetaSchedule(coolingFactor=5, coolingRate=3)
-    # betaest = Directives.BetaEstimate_ByEig(beta0_ratio=10.)
-    invProb.beta = 1.
+    beta = Directives.BetaSchedule(coolingFactor=4, coolingRate=3)
+    betaest = Directives.BetaEstimate_ByEig(beta0_ratio=2.)
     target = Directives.TargetMisfit()
 
     inv = Inversion.BaseInversion(invProb, directiveList=[beta,target])
@@ -67,9 +67,6 @@ def run(plotIt=True):
     reg.alpha_s = 5e-1
     reg.alpha_x = 1.
     prbFD.counter = opt.counter = Utils.Counter()
-    opt.LSshorten = 0.5
-    opt.tolG = 1e-10
-    opt.eps = 1e-10
     opt.remember('xc')
     moptFD = inv.run(m0)
 
@@ -81,7 +78,7 @@ def run(plotIt=True):
 
     surveyTD = TDEM.Survey([src])
     prbTD = TDEM.Problem_b(mesh, mapping=mapping)
-    prbTD.timeSteps = [(5e-5, 10),(1e-4, 10),(5e-4, 10)]
+    prbTD.timeSteps = [(5e-5, 10), (1e-4, 10), (5e-4, 10)]
     prbTD.pair(surveyTD)
     prbTD.Solver = SolverLU
 
@@ -98,9 +95,8 @@ def run(plotIt=True):
     invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
 
     # Inversion Directives
-    beta = Directives.BetaSchedule(coolingFactor=5, coolingRate=3)
-    invProb.beta = 1.
-    # betaest = Directives.BetaEstimate_ByEig(beta0_ratio=1.)
+    beta = Directives.BetaSchedule(coolingFactor=4, coolingRate=3)
+    betaest = Directives.BetaEstimate_ByEig(beta0_ratio=2.)
     target = Directives.TargetMisfit()
 
     inv = Inversion.BaseInversion(invProb, directiveList=[beta, target])
@@ -108,50 +104,64 @@ def run(plotIt=True):
     reg.alpha_s = 5e-1
     reg.alpha_x = 1.
     prbTD.counter = opt.counter = Utils.Counter()
-    opt.LSshorten = 0.5
     opt.remember('xc')
     moptTD = inv.run(m0)
 
     if plotIt:
-        fig, ax = plt.subplots(1,1, figsize = (4, 6))
-        plt.semilogx(sigma[active], mesh.vectorCCz[active], 'k-', lw=2)
-        plt.semilogx(np.exp(moptFD), mesh.vectorCCz[active], 'ko', ms=3)
-        plt.semilogx(np.exp(moptTD), mesh.vectorCCz[active], 'k*')
-        ax.set_ylim(-1000, 0)
-        ax.set_xlim(5e-3, 1e-1)
+        import matplotlib
+        fig = plt.figure(figsize = (10,8))
+        ax0 = plt.subplot2grid((2,2), (0,0), rowspan=2)
+        ax1 = plt.subplot2grid((2,2), (0,1))
+        ax2 = plt.subplot2grid((2,2), (1,1))
 
-        ax.set_xlabel('Conductivity (S/m)', fontsize = 14)
-        ax.set_ylabel('Depth (m)', fontsize = 14)
-        ax.grid(color='k', alpha=0.5, linestyle='dashed', linewidth=0.5)
-        plt.legend(['True', 'Pred (FD)', 'Pred (TD)'], fontsize=13, loc=4)
-        plt.show()
+        fs = 13 # fontsize
+        matplotlib.rcParams['font.size'] = fs
 
-        fig = plt.figure(figsize = (10*1.3, 5*1.3))
-        ax2 = plt.subplot(122)
-        ax2.plot(times, surveyTD.dobs, 'k-', lw=2)
-        ax2.plot(times, surveyTD.dpred(moptTD), 'ko', ms=4)
-        ax2.set_xscale('log')
-        ax2.set_yscale('log')
-        ax2.set_xlim(times.min(), times.max())
-        ax1 = plt.subplot(121)
+        # Plot the model
+        ax0.semilogx(sigma[active], mesh.vectorCCz[active], 'k-', lw=2)
+        ax0.semilogx(np.exp(moptFD), mesh.vectorCCz[active], 'bo', ms=6)
+        ax0.semilogx(np.exp(moptTD), mesh.vectorCCz[active], 'r*', ms=10)
+        ax0.set_ylim(-700, 0)
+        ax0.set_xlim(5e-3, 1e-1)
+
+        ax0.set_xlabel('Conductivity (S/m)', fontsize = fs)
+        ax0.set_ylabel('Depth (m)', fontsize = fs)
+        ax0.grid(which='both',color='k', alpha=0.5, linestyle='-', linewidth=0.2)
+        ax0.legend(['True', 'FDEM', 'TDEM'], fontsize=fs, loc=4)
+
+        # plot the data misfits - negative b/c we choose positive to be in the direction of primary
+
         ax1.plot(freqs, -surveyFD.dobs[::2], 'k-', lw=2)
         ax1.plot(freqs, -surveyFD.dobs[1::2], 'k--', lw=2)
+
         dpredFD = surveyFD.dpred(moptTD)
-        ax1.plot(freqs, -dpredFD[::2], 'ko', ms=4)
-        ax1.plot(freqs, -dpredFD[1::2], 'k+', markeredgewidth=2., ms=10)
-        ax1.set_xscale('log')
-        ax1.set_yscale('log')
-        ax2.set_xlabel('Time (s)', fontsize = 14)
-        ax1.set_xlabel('Frequency (Hz)', fontsize = 14)
-        ax1.set_ylabel('Vertical magnetic field (T)', fontsize = 14)
-        ax2.grid(True,which='minor')
-        ax1.grid(True,which='minor')
-        ax2.set_title("(b) TD observed vs. predicted", fontsize = 14)
-        ax1.set_title("(a) FD observed vs. predicted", fontsize = 14)
-        ax2.legend(("Obs", "Pred"), fontsize = 12)
-        ax1.legend(("Obs", "Pred (real)", "Pred (imag)"), fontsize = 12, loc=3)
+        ax1.loglog(freqs, -dpredFD[::2], 'bo', ms=6)
+        ax1.loglog(freqs, -dpredFD[1::2], 'b+', markeredgewidth=2., ms=10)
+
+        ax2.loglog(times, surveyTD.dobs, 'k-', lw=2)
+        ax2.loglog(times, surveyTD.dpred(moptTD), 'r*', ms=10)
+        ax2.set_xlim(times.min(), times.max())
+
+        # Labels, gridlines, etc
+        ax2.grid(which='both', alpha=0.5, linestyle='-', linewidth=0.2)
+        ax1.grid(which='both', alpha=0.5, linestyle='-', linewidth=0.2)
+
+        ax1.set_xlabel('Frequency (Hz)', fontsize = fs)
+        ax1.set_ylabel('Vertical magnetic field (-T)', fontsize = fs)
+
+        ax2.set_xlabel('Time (s)', fontsize = fs)
+        ax2.set_ylabel('Vertical magnetic field (-T)', fontsize = fs)
+
+        ax2.legend(("Obs", "Pred"), fontsize = fs)
+        ax1.legend(("Obs (real)", "Obs (imag)", "Pred (real)", "Pred (imag)"), fontsize = fs)
         ax1.set_xlim(freqs.max(), freqs.min())
+
+        ax0.set_title("(a) Recovered Models", fontsize = fs)
+        ax1.set_title("(b) FDEM observed vs. predicted", fontsize = fs)
+        ax2.set_title("(c) TDEM observed vs. predicted", fontsize = fs)
+
+        plt.tight_layout(pad = 1.5)
         plt.show()
 
 if __name__ == '__main__':
-    run()
+    run(plotIt=True)
