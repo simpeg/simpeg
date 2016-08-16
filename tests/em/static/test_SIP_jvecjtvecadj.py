@@ -9,6 +9,7 @@ except ImportError:
     from SimPEG import SolverLU
     Solver = SolverLU
 
+np.random.seed(38)
 
 class IPProblemTestsCC(unittest.TestCase):
 
