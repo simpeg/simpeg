@@ -2,6 +2,7 @@ import unittest
 from SimPEG import *
 import SimPEG.PF as PF
 
+np.random.seed(43)
 
 class GravInvLinProblemTest(unittest.TestCase):
 
