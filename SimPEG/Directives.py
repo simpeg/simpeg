@@ -301,18 +301,16 @@ class Update_IRLS(InversionDirective):
 
             # Either use the supplied epsilon, or fix base on distribution of
             # model values
-            if getattr(self, 'reg.eps', None) is None:
+            if getattr(self, 'eps', None) is None:
                 self.reg.eps_p = np.percentile(np.abs(self.invProb.curModel),self.prctile)
             else:
                 self.reg.eps_p = self.eps[0]
 
-            if getattr(self, 'reg.eps', None) is None:
+            if getattr(self, 'eps', None) is None:
+
                 self.reg.eps_q = np.percentile(np.abs(self.reg.regmesh.cellDiffxStencil*(self.reg.mapping * self.invProb.curModel)),self.prctile)
             else:
                 self.reg.eps_q = self.eps[1]
-
-            print "L[p qx qy qz]-norm : " + str(self.reg.norms)
-            print "eps_p: " + str(self.reg.eps_p) + " eps_q: " + str(self.reg.eps_q)
 
             self.reg.norms = self.norms
             self.coolingFactor = 1.
@@ -323,6 +321,9 @@ class Update_IRLS(InversionDirective):
 
             self.reg.l2model = self.invProb.curModel
             self.reg.curModel = self.invProb.curModel
+
+            print "L[p qx qy qz]-norm : " + str(self.reg.norms)
+            print "eps_p: " + str(self.reg.eps_p) + " eps_q: " + str(self.reg.eps_q)
 
             if getattr(self, 'f_old', None) is None:
                 self.f_old = self.reg.eval(self.invProb.curModel)#self.invProb.evalFunction(self.invProb.curModel, return_g=False, return_H=False)

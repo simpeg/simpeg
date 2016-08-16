@@ -3,8 +3,8 @@ from SimPEG import *
 
 def run(N=100, plotIt=True):
     """
-        Inversion: Linear Problem
-        =========================
+        Inversion for compact models (IRLS)
+        ===================================
 
         Here we go over the basics of creating a linear problem and inversion.
 
