@@ -3,6 +3,7 @@ from SimPEG import *
 import SimPEG.EM.Static.DC as DC
 import SimPEG.EM.Static.IP as IP
 
+np.random.seed(30)
 
 class IPProblemTestsCC(unittest.TestCase):
 

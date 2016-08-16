@@ -1,4 +1,5 @@
-from SimPEG import *
+from SimPEG import Mesh, Utils, np
+
 
 def run(plotIt=True):
     """
@@ -8,15 +9,15 @@ def run(plotIt=True):
         Here we show SimPEG used to create three different types of meshes.
 
     """
-    sz = [16,16]
+    sz = [16, 16]
     tM = Mesh.TensorMesh(sz)
     qM = Mesh.TreeMesh(sz)
     qM.refine(lambda cell: 4 if np.sqrt(((np.r_[cell.center]-0.5)**2).sum()) < 0.4 else 3)
-    rM = Mesh.CurvilinearMesh(Utils.meshutils.exampleLrmGrid(sz,'rotate'))
+    rM = Mesh.CurvilinearMesh(Utils.meshutils.exampleLrmGrid(sz, 'rotate'))
 
     if plotIt:
         import matplotlib.pyplot as plt
-        fig, axes = plt.subplots(1,3,figsize=(14,5))
+        fig, axes = plt.subplots(1, 3, figsize=(14, 5))
         opts = {}
         tM.plotGrid(ax=axes[0], **opts)
         axes[0].set_title('TensorMesh')
