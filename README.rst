@@ -47,6 +47,14 @@ The vision is to create a package for finite volume simulation with applications
 * supports 1D, 2D and 3D problems
 * designed for large-scale inversions
 
+Overview Video
+--------------
+
+.. image:: https://img.youtube.com/vi/yUm01YsS9hQ/0.jpg
+    :target: https://www.youtube.com/watch?v=yUm01YsS9hQ
+    :alt: All of the Geophysics But Backwards
+    
+Working towards all the Geophysics, but Backwards - SciPy 2016
 
 Citing SimPEG:
 --------------
@@ -55,7 +63,6 @@ There is a paper about SimPEG!
 
 
     Cockett, R., Kang, S., Heagy, L. J., Pidlisecky, A., & Oldenburg, D. W. (2015). SimPEG: An open source framework for simulation and gradient based parameter estimation in geophysical applications. Computers & Geosciences.
-
 
 **BibTex:**
 
