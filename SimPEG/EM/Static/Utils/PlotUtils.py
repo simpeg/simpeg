@@ -2,7 +2,7 @@ import numpy as np
 from scipy.interpolate import LinearNDInterpolator
 import matplotlib.pyplot as plt
 
-def plot2Ddata(xyz, data, nx=100, ny=100, ax=None, mask=None, level=None, figname=None, ncontour=10, dataloc=False, contourOpts={}, clim=None):
+def plot2Ddata(xyz, data, vec=None, nx=100, ny=100, ax=None, mask=None, level=None, figname=None, ncontour=10, dataloc=False, contourOpts={}, clim=None):
     """
         TODOs:
 
@@ -18,13 +18,31 @@ def plot2Ddata(xyz, data, nx=100, ny=100, ax=None, mask=None, level=None, fignam
     x = np.linspace(xmin, xmax, nx)
     y = np.linspace(ymin, ymax, ny)
     X, Y = np.meshgrid(x, y)
-    F = LinearNDInterpolator(xyz[:,:2], data)
     xy = np.c_[X.flatten(), Y.flatten()]
-    DATA = F(xy)
-    DATA = DATA.reshape(X.shape)
-    cont = ax.contourf(X, Y, DATA, ncontour, **contourOpts)
-    if level is not None:
-        CS = ax.contour(X, Y, DATA, level, colors="k", linewidths=2)
+    if vec is None:
+        F = LinearNDInterpolator(xyz[:,:2], data)
+        DATA = F(xy)
+        DATA = DATA.reshape(X.shape)
+        cont = ax.contourf(X, Y, DATA, ncontour, **contourOpts)
+        if level is not None:
+            CS = ax.contour(X, Y, DATA, level, colors="k", linewidths=2)
+
+    else:
+        # Assume size of data is (N,2)
+        datax = data[:,0]
+        datay = data[:,1]
+        Fx = LinearNDInterpolator(xyz[:,:2], datax)
+        Fy = LinearNDInterpolator(xyz[:,:2], datay)
+        DATAx = Fx(xy)
+        DATAy = Fy(xy)
+        DATA = np.sqrt(DATAx**2+DATAy**2).reshape(X.shape)
+        DATAx = DATAx.reshape(X.shape)
+        DATAy = DATAy.reshape(X.shape)
+        cont = ax.contourf(X, Y, DATA, ncontour, **contourOpts)
+        ax.streamplot(X, Y, DATAx, DATAy, color="w")
+        if level is not None:
+            CS = ax.contour(X, Y, DATA, level, colors="k", linewidths=2)
+
 #         plt.clabel(CS, inline=1, fmt="%.1e")
     if dataloc:
         ax.plot(xyz[:,0], xyz[:,1], 'k.', ms=1)
@@ -33,6 +51,6 @@ def plot2Ddata(xyz, data, nx=100, ny=100, ax=None, mask=None, level=None, fignam
         plt.axis("off")
         fig.savefig(figname, dpi=200)
     if level is  None:
-        return F, cont, ax
+        return True, cont, ax
     else:
-        return F, cont, ax, CS
+        return True, cont, ax, CS
