@@ -61,10 +61,6 @@ def CrossCheck(prbtype1='b', prbtype2='e', rxcomp='bz'):
     d1 = prb1.survey.dpred(m1)
     d2 = prb2.survey.dpred(m1)
 
-    plt.plot(d1)
-    plt.plot(d2)
-    plt.show()
-
     check = np.linalg.norm(d1 - d2)
     tol = 0.5 * (np.linalg.norm(d1) + np.linalg.norm(d2)) * TOL
     passed = check < tol
