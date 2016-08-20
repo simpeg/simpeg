@@ -1,7 +1,7 @@
 from SimPEG import Problem, Utils, np, sp, Solver as SimpegSolver
 from SimPEG.EM.Base import BaseEMProblem
 from SimPEG.EM.TDEM.SurveyTDEM import Survey as SurveyTDEM
-from SimPEG.EM.TDEM.FieldsTDEM import (FieldsTDEM, Fields_b, Fields_e,
+from SimPEG.EM.TDEM.FieldsTDEM import (FieldsTDEM, Fields3D_b, Fields3D_e,
                                        Fields_Derivs)
 from scipy.constants import mu_0
 import time
@@ -374,9 +374,9 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 ################################ E-B Formulation ##############################
 ###############################################################################
 
-# ------------------------------- Problem_b --------------------------------- #
+# ------------------------------- Problem3D_b ------------------------------- #
 
-class Problem_b(BaseTDEMProblem):
+class Problem3D_b(BaseTDEMProblem):
     """
     Starting from the quasi-static E-B formulation of Maxwell's equations
     (semi-discretized)
@@ -446,7 +446,7 @@ class Problem_b(BaseTDEMProblem):
 
     _fieldType = 'b'
     _eqLocs    = 'FE'  # TODO: This should be 'formulation EB or HJ'
-    fieldsPair = Fields_b  #: A SimPEG.EM.TDEM.Fields_b object
+    fieldsPair = Fields3D_b  #: A SimPEG.EM.TDEM.Fields3D_b object
     surveyPair = SurveyTDEM
 
     def __init__(self, mesh, mapping=None, **kwargs):
@@ -556,13 +556,13 @@ class Problem_b(BaseTDEMProblem):
         return RHSDeriv
 
 
-# ------------------------------- Problem_e --------------------------------- #
+# ------------------------------- Problem3D_e --------------------------------- #
 
-class Problem_e(BaseTDEMProblem):
+class Problem3D_e(BaseTDEMProblem):
 
     _fieldType = 'e'
     _eqLocs    = 'FE'
-    fieldsPair = Fields_e  #: A Fields_e
+    fieldsPair = Fields3D_e  #: A Fields3D_e
     surveyPair = SurveyTDEM
 
     def __init__(self, mesh, mapping=None, **kwargs):

@@ -46,7 +46,7 @@ def run(plotIt=True):
                         np.logspace(-5, -3, 31), 'bz')
     src = EM.TDEM.Src.MagDipole([rx], loc=np.array([0., 0., 80]))
     survey = EM.TDEM.Survey([src])
-    prb = EM.TDEM.Problem_b(mesh, mapping=mapping)
+    prb = EM.TDEM.Problem3D_b(mesh, mapping=mapping)
 
     prb.Solver = SolverLU
     prb.timeSteps = [(1e-06, 20), (1e-05, 20), (0.0001, 20)]

@@ -27,9 +27,9 @@ def setUp_TDEM(prbtype='b', rxcomp='bz'):
     rxOffset = 10.
 
     if prbtype == 'b':
-        prb = EM.TDEM.Problem_b(mesh, mapping=mapping)
+        prb = EM.TDEM.Problem3D_b(mesh, mapping=mapping)
     elif prbtype == 'e':
-        prb = EM.TDEM.Problem_e(mesh, mapping=mapping)
+        prb = EM.TDEM.Problem3D_e(mesh, mapping=mapping)
     prb.timeSteps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 10), (1e-4, 10)]
     out = EM.Utils.VTEMFun(prb.times, 0.00595, 0.006, 100)
     wavefun = interp1d(prb.times, out)
@@ -220,7 +220,7 @@ class TDEM_DerivTests(unittest.TestCase):
         def test_Jvec_adjoint_b_ey(self):
             self.JvecVsJtvecTest(prbtype='b',rxcomp='ey')
 
-        # This is not working because Problem_e has not done
+        # This is not working because Problem3D_e has not done
         # def test_Jvec_adjoint_e_ey(self):
         #     self.JvecVsJtvecTest('e', 'ey')
 

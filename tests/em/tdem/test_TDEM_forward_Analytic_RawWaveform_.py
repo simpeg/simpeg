@@ -32,7 +32,7 @@ def halfSpaceProblemAnaDiff(meshType, srctype="MagDipole", sig_half=1e-2, rxOffs
     actMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
     mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * actMap
 
-    prb = EM.TDEM.Problem_b(mesh, mapping=mapping)
+    prb = EM.TDEM.Problem3D_b(mesh, mapping=mapping)
     prb.Solver = MumpsSolver
     prb.timeSteps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 10), (1e-4, 10)]
     out = EM.Utils.VTEMFun(prb.times, 0.00595, 0.006, 100)

@@ -34,9 +34,9 @@ def setUp_TDEM(prbtype='b', rxcomp='bz'):
     survey = EM.TDEM.Survey([src])
 
     if prbtype == 'b':
-        prb = EM.TDEM.Problem_b(mesh, mapping=mapping)
+        prb = EM.TDEM.Problem3D_b(mesh, mapping=mapping)
     elif prbtype == 'e':
-        prb = EM.TDEM.Problem_e(mesh, mapping=mapping)
+        prb = EM.TDEM.Problem3D_e(mesh, mapping=mapping)
 
     prb.timeSteps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
     # prb.timeSteps = [(1e-05, 10), (1e-05, 50), (1e-05, 50) ] #, (2.5e-4, 10)]
@@ -219,7 +219,7 @@ class TDEM_DerivTests(unittest.TestCase):
         def test_Jvec_adjoint_b_ey(self):
             self.JvecVsJtvecTest('b', 'ey')
 
-        # This is not working because Problem_e has not done
+        # This is not working because Problem3D_e has not done
         def test_Jvec_adjoint_e_ey(self):
             self.JvecVsJtvecTest('e', 'ey')
 

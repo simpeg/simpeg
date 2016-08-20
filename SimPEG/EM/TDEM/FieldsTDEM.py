@@ -61,7 +61,7 @@ class Fields_Derivs(FieldsTDEM):
                   }
 
 
-class Fields_b(FieldsTDEM):
+class Fields3D_b(FieldsTDEM):
     """Field Storage for a TDEM survey."""
     knownFields = {'bSolution': 'F'}
     aliasFields = {
@@ -115,7 +115,7 @@ class Fields_b(FieldsTDEM):
                 v - self.MeSigmaI * S_eDeriv(v))
 
 
-class Fields_e(FieldsTDEM):
+class Fields3D_e(FieldsTDEM):
     """Fancy Field Storage for a TDEM survey."""
     knownFields = {'eSolution': 'E'}
     aliasFields = {

@@ -39,7 +39,7 @@ def halfSpaceProblemAnaDiff(meshType, srctype="MagDipole", sig_half=1e-2, rxOffs
         src = EM.TDEM.Src.CircularLoop([rx], waveform= EM.TDEM.Src.StepOffWaveform(), loc=np.array([0., 0., 0.]), radius=0.1)
 
     survey = EM.TDEM.Survey([src])
-    prb = EM.TDEM.Problem_b(mesh, mapping=mapping)
+    prb = EM.TDEM.Problem3D_b(mesh, mapping=mapping)
     prb.Solver = MumpsSolver
 
     prb.timeSteps = [(1e-06, 40), (5e-06, 40), (1e-05, 40), (5e-05, 40), (0.0001, 40), (0.0005, 40)]

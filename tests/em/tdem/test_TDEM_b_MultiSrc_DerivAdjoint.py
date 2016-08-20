@@ -31,7 +31,7 @@ def setUp_TDEM(self, rxcomp='bz'):
 
         survey = EM.TDEM.Survey([src,src2])
 
-        prb = EM.TDEM.Problem_b(mesh, mapping=mapping)
+        prb = EM.TDEM.Problem3D_b(mesh, mapping=mapping)
         # prb.timeSteps = [1e-5]
         prb.timeSteps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
         # prb.timeSteps = [(1e-05, 100)]

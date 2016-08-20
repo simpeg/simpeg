@@ -77,7 +77,7 @@ def run(plotIt=True):
     src = TDEM.Src.MagDipole([rx], waveform=TDEM.Src.StepOffWaveform(), loc=srcLoc) # same src location as FDEM problem
 
     surveyTD = TDEM.Survey([src])
-    prbTD = TDEM.Problem_b(mesh, mapping=mapping)
+    prbTD = TDEM.Problem3D_b(mesh, mapping=mapping)
     prbTD.timeSteps = [(5e-5, 10), (1e-4, 10), (5e-4, 10)]
     prbTD.pair(surveyTD)
     prbTD.Solver = SolverLU

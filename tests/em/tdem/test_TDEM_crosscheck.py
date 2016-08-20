@@ -29,9 +29,9 @@ def setUp_TDEM(prbtype='b', rxcomp='bz'):
     survey = EM.TDEM.Survey([src])
 
     if prbtype == 'b':
-        prb = EM.TDEM.Problem_b(mesh, mapping=mapping)
+        prb = EM.TDEM.Problem3D_b(mesh, mapping=mapping)
     elif prbtype == 'e':
-        prb = EM.TDEM.Problem_e(mesh, mapping=mapping)
+        prb = EM.TDEM.Problem3D_e(mesh, mapping=mapping)
     else:
         raise NotImplementedError()
 
