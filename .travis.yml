@@ -34,15 +34,13 @@ env:
 # Setup anaconda
 before_install:
 # Install packages
-  - if [ $TRAVIS_PYTHON_VERSION == "2" ]; then 
-      echo "Python 2";
+  - if [ $TRAVIS_PYTHON_VERSION == "2" ]; then
       wget http://repo.continuum.io/miniconda/Miniconda-3.8.3-Linux-x86_64.sh -O miniconda.sh;
     else
-      echo "Python 3";
       wget http://repo.continuum.io/miniconda/Miniconda3-3.8.3-Linux-x86_64.sh -O miniconda.sh;
     fi
   - chmod +x miniconda.sh
-  - ./miniconda.sh -b
+  - ./miniconda.sh -b -p $HOME/miniconda
   - export PATH=/home/travis/anaconda/bin:/home/travis/miniconda/bin:$PATH
   - hash -r
   - conda update --yes conda
