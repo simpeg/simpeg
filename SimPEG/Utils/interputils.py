@@ -1,6 +1,7 @@
+from __future__ import print_function
 import numpy as np
 import scipy.sparse as sp
-from matutils import mkvc, sub2ind, spzeros
+from .matutils import mkvc, sub2ind, spzeros
 
 try:
     import interputils_cython as pyx
@@ -9,11 +10,11 @@ try:
     _interpmat2D = pyx._interpmat2D
     _interpmat3D = pyx._interpmat3D
     _interpCython = True
-except ImportError, e:
-    print """Efficiency Warning: Interpolation will be slow, use setup.py!
+except ImportError as e:
+    print("""Efficiency Warning: Interpolation will be slow, use setup.py!
 
             python setup.py build_ext --inplace
-    """
+    """)
     _interpCython = False
 
 

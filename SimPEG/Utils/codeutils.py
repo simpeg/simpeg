@@ -1,7 +1,9 @@
+from __future__ import print_function,division
 import types
 import time
 import numpy as np
 from functools import wraps
+import sys
 
 SimPEGMetaClass = type
 
@@ -32,7 +34,7 @@ def memProfileWrapper(towrap, *funNames):
         if hasattr(towrap,f):
             attrs[f] = profile(getattr(towrap,f))
         else:
-            print '{0!s} not found in {1!s} Class'.format(f, towrap.__name__)
+            print('{0!s} not found in {1!s} Class'.format(f, towrap.__name__))
 
     return type(towrap.__name__ + 'MemProfileWrap', (towrap,), attrs)
 
@@ -50,9 +52,9 @@ def hook(obj, method, name=None, overwrite=False, silent=False):
     if not hasattr(obj,name) or overwrite:
         setattr(obj, name, types.MethodType( method, obj ))
         if getattr(obj,'debug',False):
-            print 'Method '+name+' was added to class.'
+            print('Method '+name+' was added to class.')
     elif not silent or getattr(obj,'debug',False):
-        print 'Method '+name+' was not overwritten.'
+        print('Method '+name+' was not overwritten.')
 
 
 def setKwargs(obj, ignore=None,  **kwargs):
@@ -76,15 +78,15 @@ def printTitles(obj, printers, name='Print Titles', pad=''):
     for printer in printers:
         titles += ('{{:^{0:d}}}'.format(printer['width'])).format(printer['title']) + ''
         widths += printer['width']
-    print pad + "{0} {1} {0}".format('='*((widths-1-len(name))/2), name)
-    print pad + titles
-    print pad + "%s" % '-'*widths
+    print(pad + "{0} {1} {0}".format('='*((widths-1-len(name))//2), name))
+    print(pad + titles)
+    print(pad + "%s" % '-'*widths)
 
 def printLine(obj, printers, pad=''):
     values = ''
     for printer in printers:
         values += ('{{:^{0:d}}}'.format(printer['width'])).format(printer['format'] % printer['value'](obj))
-    print pad + values
+    print(pad + values)
 
 def checkStoppers(obj, stoppers):
     # check stopping rules
@@ -98,18 +100,18 @@ def checkStoppers(obj, stoppers):
         if stopper['stopType'] == 'critical':
             critical.append(l <= r)
 
-    if obj.debug: print 'checkStoppers.optimal: ', optimal
-    if obj.debug: print 'checkStoppers.critical: ', critical
+    if obj.debug: print('checkStoppers.optimal: ', optimal)
+    if obj.debug: print('checkStoppers.critical: ', critical)
 
     return (len(optimal)>0 and all(optimal)) | (len(critical)>0 and any(critical))
 
 def printStoppers(obj, stoppers, pad='', stop='STOP!', done='DONE!'):
-    print pad + "{0!s}{1!s}{2!s}".format('-'*25, stop, '-'*25)
+    print(pad + "{0!s}{1!s}{2!s}".format('-'*25, stop, '-'*25))
     for stopper in stoppers:
         l = stopper['left'](obj)
         r = stopper['right'](obj)
-        print pad + stopper['str'] % (l<=r,l,r)
-    print pad + "{0!s}{1!s}{2!s}".format('-'*25, done, '-'*25)
+        print(pad + stopper['str'] % (l<=r,l,r))
+    print(pad + "{0!s}{1!s}{2!s}".format('-'*25, done, '-'*25))
 
 def callHooks(match, mainFirst=False):
     """
@@ -129,7 +131,7 @@ def callHooks(match, mainFirst=False):
 
             if not mainFirst:
                 for method in [posible for posible in dir(self) if ('_'+match) in posible]:
-                    if getattr(self,'debug',False): print (match+' is calling self.'+method)
+                    if getattr(self,'debug',False): print((match+' is calling self.'+method))
                     getattr(self,method)(*args, **kwargs)
 
                 return f(self,*args,**kwargs)
@@ -137,7 +139,7 @@ def callHooks(match, mainFirst=False):
                 out = f(self,*args,**kwargs)
 
                 for method in [posible for posible in dir(self) if ('_'+match) in posible]:
-                    if getattr(self,'debug',False): print (match+' is calling self.'+method)
+                    if getattr(self,'debug',False): print((match+' is calling self.'+method))
                     getattr(self,method)(*args, **kwargs)
 
                 return out
@@ -169,7 +171,10 @@ def dependentProperty(name, value, children, doc):
     return property(fget=fget, fset=fset, doc=doc)
 
 def isScalar(f):
-    scalarTypes = [float, int, long, np.float_, np.int_]
+    if sys.version_info < (3,):
+      scalarTypes = [float, int, long, np.float_, np.int_]
+    else:
+      scalarTypes = [float, int, np.float_, np.int_]
     if type(f) in scalarTypes:
         return True
     elif isinstance(f, np.ndarray) and f.size == 1 and type(f[0]) in scalarTypes:

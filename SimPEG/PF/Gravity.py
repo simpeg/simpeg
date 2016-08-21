@@ -1,5 +1,6 @@
+from __future__ import print_function
 from SimPEG import *
-import BaseGrav as GRAV
+from . import BaseGrav as GRAV
 import re
 
 
@@ -69,7 +70,7 @@ class GravityIntegral(Problem.BaseProblem):
 
             else:
 
-                print """Flag must be either 'z' | 'xyz', please revised"""
+                print("""Flag must be either 'z' | 'xyz', please revised""")
                 return
 
             # Add counter to dsiplay progress. Good for large problems
@@ -89,7 +90,7 @@ class GravityIntegral(Problem.BaseProblem):
             # Display progress
                 count = progress(ii, count, ndata)
 
-            print "Done 100% ...forward operator completed!!\n"
+            print("Done 100% ...forward operator completed!!\n")
 
             return fwr_d
 
@@ -188,11 +189,11 @@ class GravityIntegral(Problem.BaseProblem):
 
         else:
 
-            print """Flag must be either 'z' | 'xyz', please revised"""
+            print("""Flag must be either 'z' | 'xyz', please revised""")
             return
 
         # Loop through all observations
-        print "Begin calculation of forward operator: " + flag
+        print("Begin calculation of forward operator: " + flag)
 
         # Add counter to dsiplay progress. Good for large problems
         count = -1
@@ -212,7 +213,7 @@ class GravityIntegral(Problem.BaseProblem):
             # Display progress
             count = progress(ii, count, ndata)
 
-        print "Done 100% ...forward operator completed!!\n"
+        print("Done 100% ...forward operator completed!!\n")
 
         return G
 
@@ -302,7 +303,7 @@ def progress(iter, prog, final):
     if arg > prog:
 
         strg = "Done " + str(arg*10) + " %"
-        print strg
+        print(strg)
         prog = arg
 
     return prog
@@ -330,11 +331,10 @@ def writeUBCobs(filename, survey, d):
 
     data = np.c_[rxLoc, d, wd]
 
-    with file(filename, 'w') as fid:
-        fid.write('%i\n' % len(d))
-        np.savetxt(fid, data, fmt='%e', delimiter=' ', newline='\n')
+    np.savetxt(filename, data, fmt='%e', delimiter=' ', newline='\n',
+        header='%i\n'%len(d))
 
-    print "Observation file saved to: " + filename
+    print("Observation file saved to: " + filename)
 
 
 def plot_obs_2D(rxLoc, d=None, varstr='Gz Obs', vmin=None, vmax=None,

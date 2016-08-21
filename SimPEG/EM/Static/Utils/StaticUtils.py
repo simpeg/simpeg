@@ -1,3 +1,4 @@
+from __future__ import print_function
 from SimPEG import np
 from SimPEG.EM.Static import DC, IP
 
@@ -88,7 +89,7 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
                 leg = data * 2*np.pi / ( 1/MA - 1/MB + 1/NB - 1/NA )
                 LEG.append(1./(2*np.pi) *( 1/MA - 1/MB + 1/NB - 1/NA ))
             else:
-                print """dtype must be 'pdp'(pole-dipole) | 'dpdp' (dipole-dipole) """
+                print("""dtype must be 'pdp'(pole-dipole) | 'dpdp' (dipole-dipole) """)
                 break
 
 
@@ -103,7 +104,7 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
                 rho = np.hstack([rho,leg])
 
             else:
-                print """dtype must be 'appr' | 'appc' | 'volt' """
+                print("""dtype must be 'appr' | 'appc' | 'volt' """)
                 break
 
 
@@ -312,7 +313,7 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
             srcClass = DC.Src.Dipole([rxClass], M[0,:], N[-1,:])
         SrcList.append(srcClass)
     else:
-        print """stype must be either 'pole-dipole', 'dipole-dipole' or 'gradient'. """
+        print("""stype must be either 'pole-dipole', 'dipole-dipole' or 'gradient'. """)
 
 
     return SrcList

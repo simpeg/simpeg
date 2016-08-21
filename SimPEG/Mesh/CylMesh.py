@@ -1,10 +1,11 @@
+from __future__ import print_function
 import numpy as np
 import scipy.sparse as sp
 from scipy.constants import pi
 from SimPEG import Utils
-from TensorMesh import BaseTensorMesh, BaseRectangularMesh
-from InnerProducts import InnerProducts
-from View import CylView
+from SimPEG.Mesh.TensorMesh import BaseTensorMesh, BaseRectangularMesh
+from SimPEG.Mesh.InnerProducts import InnerProducts
+from SimPEG.Mesh.View import CylView
 
 
 class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
@@ -31,7 +32,7 @@ class CylMesh(BaseTensorMesh, BaseRectangularMesh, InnerProducts, CylView):
         BaseTensorMesh.__init__(self, h, x0)
         assert self.hy.sum() == 2*np.pi, "The 2nd dimension must sum to 2*pi"
         if self.dim == 2:
-            print 'Warning, a disk mesh has not been tested thoroughly.'
+            print('Warning, a disk mesh has not been tested thoroughly.')
         cartesianOrigin = (np.zeros(self.dim) if cartesianOrigin is None
                            else cartesianOrigin)
         assert len(cartesianOrigin) == self.dim, ("cartesianOrigin must be the "

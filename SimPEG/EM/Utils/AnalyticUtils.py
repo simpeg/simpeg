@@ -211,9 +211,9 @@ def MagneticLoopVectorPotential(srcLoc, obsLoc, component, radius, orientation='
 
     if isinstance(orientation, str):
         if orientation.upper() != 'Z':
-            raise NotImplementedError, 'Only Z oriented loops implemented'
+            raise NotImplementedError('Only Z oriented loops implemented')
     elif not np.allclose(orientation, np.r_[0., 0., 1.]):
-        raise NotImplementedError, 'Only Z oriented loops implemented'
+        raise NotImplementedError('Only Z oriented loops implemented')
 
     if type(component) in [list, tuple]:
         out = range(len(component))

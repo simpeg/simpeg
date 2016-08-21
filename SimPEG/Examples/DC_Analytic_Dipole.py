@@ -1,3 +1,4 @@
+from __future__ import print_function
 from SimPEG import *
 import SimPEG.EM.Static.DC as DC
 
@@ -29,7 +30,7 @@ def run(plotIt=True):
     try:
         from pymatsolver import MumpsSolver
         problem.Solver = MumpsSolver
-    except Exception, e:
+    except Exception as e:
         pass
     data = survey.dpred(sigma)
 
@@ -65,4 +66,4 @@ def run(plotIt=True):
 
 
 if __name__ == '__main__':
-    print run()
+    print(run())

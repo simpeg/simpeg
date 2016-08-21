@@ -1,4 +1,7 @@
-import Utils, Maps, numpy as np, scipy.sparse as sp
+from __future__ import print_function
+from . import Utils
+import numpy as np, scipy.sparse as sp
+from six import add_metaclass
 
 class Property(object):
 
@@ -19,7 +22,8 @@ class Property(object):
         return getattr(self, '_propertyLink', None)
     @propertyLink.setter
     def propertyLink(self, value):
-        assert type(value) is tuple and len(value) == 2 and type(value[0]) is str and issubclass(value[1], Maps.IdentityMap), 'Use format: ("{0!s}", Maps.ReciprocalMap)'.format(self.name)
+        from .Maps import IdentityMap
+        assert type(value) is tuple and len(value) == 2 and type(value[0]) is str and issubclass(value[1], IdentityMap), 'Use format: ("{0!s}", Maps.ReciprocalMap)'.format(self.name)
         self._propertyLink = value
 
     def _getMapProperty(self):
@@ -190,10 +194,12 @@ class _PropMapMetaClass(type):
         return type('PropModel', (PropModel, ), attrs)
 
 
+@add_metaclass(_PropMapMetaClass)
 class PropMap(object):
-    __metaclass__ = _PropMapMetaClass
+    #__metaclass__ = _PropMapMetaClass
 
     def __init__(self, mappings):
+        from .Maps import IdentityMap
         """
             PropMap takes a multi parameter model and maps it to the equivalent PropModel
         """
@@ -202,13 +208,14 @@ class PropMap(object):
             self.setup(mappings['maps'], slices=mappings['slices'])
         elif type(mappings) is list:
             self.setup(mappings)
-        elif isinstance(mappings, Maps.IdentityMap):
+        elif isinstance(mappings, IdentityMap):
             self.setup([(self.defaultInvProp, mappings)])
         else:
             raise Exception('mappings must be a dict, a mapping, or a list of tuples.')
 
 
     def setup(self, maps, slices=None):
+        from .Maps import IdentityMap
         """
             Sets up the maps and slices for the PropertyMap
 
@@ -222,7 +229,7 @@ class PropMap(object):
                 len(m)==2 and
                 type(m[0]) is str and
                 m[0] in self._properties and
-                isinstance(m[1], Maps.IdentityMap)
+                isinstance(m[1], IdentityMap)
                 for m in maps]), "Use signature: [{0!s}]".format((', '.join(["('{0!s}', {1!s}Map)".format(p, p) for p in self._properties])))
         if slices is None:
             slices = dict()

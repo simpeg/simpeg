@@ -1,25 +1,34 @@
-import Utils
+from __future__ import print_function
+from . import Utils
 import numpy as np
 import scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
-from Tests import checkDerivative
-from PropMaps import PropMap, Property
+from .Tests import checkDerivative
+from .PropMaps import PropMap, Property
 from numpy.polynomial import polynomial
 from scipy.interpolate import UnivariateSpline
 import warnings
 
+import sys
+if(sys.version_info < (3,)):
+  integer_types = [int,long,]
+else:
+  integer_types = [int,]
+from six import add_metaclass
+
+@add_metaclass(Utils.SimPEGMetaClass)
 class IdentityMap(object):
     """
     SimPEG Map
 
     """
-    __metaclass__ = Utils.SimPEGMetaClass
+    #__metaclass__ = Utils.SimPEGMetaClass
 
     def __init__(self, mesh=None, nP=None, **kwargs):
         Utils.setKwargs(self, **kwargs)
 
         if nP is not None:
-            assert type(nP) in [int, long], ' Number of parameters must be an integer.'
+            assert type(nP) in integer_types, ' Number of parameters must be an integer.'
 
         self.mesh = mesh
         self._nP  = nP
@@ -103,7 +112,7 @@ class IdentityMap(object):
             :return: passed the test?
 
         """
-        print 'Testing {0!s}'.format(str(self))
+        print('Testing {0!s}'.format(str(self)))
         if m is None:
             m = abs(np.random.rand(self.nP))
         if 'plotIt' not in kwargs:

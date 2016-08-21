@@ -1,6 +1,6 @@
 import re, os
 from SimPEG import Mesh, np, Utils
-import BaseGrav, Gravity
+from . import BaseGrav, Gravity
 
 
 class GravityDriver_Inv(object):

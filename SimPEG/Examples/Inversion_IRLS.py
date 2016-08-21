@@ -1,3 +1,4 @@
+from __future__ import print_function
 from SimPEG import *
 
 
@@ -75,7 +76,7 @@ def run(N=100, plotIt=True):
     # Run inversion
     mrec = inv.run(m0)
 
-    print "Final misfit:" + str(invProb.dmisfit.eval(mrec))
+    print("Final misfit:" + str(invProb.dmisfit.eval(mrec)))
 
 
     if plotIt:

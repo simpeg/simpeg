@@ -1,7 +1,8 @@
+from __future__ import print_function
 from SimPEG import *
-import BaseMag as MAG
+from . import BaseMag as MAG
 from scipy.constants import mu_0
-from MagAnalytics import spheremodel, CongruousMagBC
+from .MagAnalytics import spheremodel, CongruousMagBC
 import re
 
 
@@ -58,7 +59,7 @@ class MagneticIntegral(Problem.BaseProblem):
 
             # Loop through all observations and create forward operator
             # (ndata-by-nC)
-            print "Begin calculation forward calculations... G not stored: "
+            print("Begin calculation forward calculations... G not stored: ")
 
             # If assumes uniform magnetization direction
             if getattr(self, 'M', None) is None:
@@ -104,7 +105,7 @@ class MagneticIntegral(Problem.BaseProblem):
             # Display progress
                 count = progress(ii, count, ndata)
 
-            print "Done 100% ...forward operator completed!!\n"
+            print("Done 100% ...forward operator completed!!\n")
 
             return fwr_d
 
@@ -208,7 +209,7 @@ class MagneticIntegral(Problem.BaseProblem):
             # # If assumes uniform magnetization direction
             # if M.shape != (nC,3):
 
-            #     print 'Magnetization vector must be Nc x 3'
+            #     print('Magnetization vector must be Nc x 3')
             #     return
             if getattr(self, 'M', None) is None:
                 M = dipazm_2_xyz(np.ones(nC) * survey.srcField.param[1],
@@ -239,11 +240,11 @@ class MagneticIntegral(Problem.BaseProblem):
             G = np.zeros((int(3*ndata), int(3*nC)))
 
         else:
-            print """Flag must be either 'ind' | 'full', please revised"""
+            print("""Flag must be either 'ind' | 'full', please revised""")
             return
 
         # Loop through all observations and create forward operator (nD-by-nC)
-        print "Begin calculation of forward operator: " + Magnetization
+        print("Begin calculation of forward operator: " + Magnetization)
 
         # Add counter to dsiplay progress. Good for large problems
         count = -1
@@ -268,7 +269,7 @@ class MagneticIntegral(Problem.BaseProblem):
         # Display progress
         count = progress(ii, count, ndata)
 
-        print "Done 100% ...forward operator completed!!\n"
+        print("Done 100% ...forward operator completed!!\n")
 
         return G
 
@@ -486,7 +487,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
                                        tol=1e-6, maxiter=1000, M=m1)
 
         if info > 0:
-            print "Iterative solver did not work well (Jvec)"
+            print("Iterative solver did not work well (Jvec)")
             # raise Exception ("Iterative solver did not work well")
 
         # B = self.MfMuI*self.MfMu0*B0-B0-self.MfMuI*self._Div.T*u
@@ -558,7 +559,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         sol, info = sp.linalg.bicgstab(dCdu.T, s, tol=1e-6, maxiter=1000, M=m1)
 
         if info > 0:
-            print "Iterative solver did not work well (Jtvec)"
+            print("Iterative solver did not work well (Jtvec)")
             # raise Exception ("Iterative solver did not work well")
 
 
@@ -759,7 +760,7 @@ def progress(iter, prog, final):
 
     if arg > prog:
 
-        print "Done " + str(arg*10) + " %"
+        print("Done " + str(arg*10) + " %")
         prog = arg
 
     return prog
@@ -856,7 +857,7 @@ def get_dist_wgt(mesh, rxLoc, actv, R, R0):
 
     ndata = rxLoc.shape[0]
     count = -1
-    print "Begin calculation of distance weighting for R= " + str(R)
+    print("Begin calculation of distance weighting for R= " + str(R))
 
     for dd in range(ndata):
 
@@ -890,7 +891,7 @@ def get_dist_wgt(mesh, rxLoc, actv, R, R0):
     wr = mkvc(wr)
     wr = np.sqrt(wr/(np.max(wr)))
 
-    print "Done 100% ...distance weighting completed!!\n"
+    print("Done 100% ...distance weighting completed!!\n")
 
     return wr
 
@@ -921,14 +922,12 @@ def writeUBCobs(filename, survey, d):
     wd = survey.std
 
     data = np.c_[rxLoc, d, wd]
+    head = ('%6.2f %6.2f %6.2f\n' % (B[1], B[2], B[0])+
+              '%6.2f %6.2f %6.2f\n' % (B[1], B[2], 1)+
+              '%i\n' % len(d))
+    np.savetxt(filename, data, fmt='%e', delimiter=' ', newline='\n',header=head)
 
-    with file(filename, 'w') as fid:
-        fid.write('%6.2f %6.2f %6.2f\n' % (B[1], B[2], B[0]))
-        fid.write('%6.2f %6.2f %6.2f\n' % (B[1], B[2], 1))
-        fid.write('%i\n' % len(d))
-        np.savetxt(fid, data, fmt='%e', delimiter=' ', newline='\n')
-
-    print "Observation file saved to: " + filename
+    print("Observation file saved to: " + filename)
 
 
 def plot_obs_2D(rxLoc, d=None, varstr='TMI Obs',
