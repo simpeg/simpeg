@@ -1,8 +1,6 @@
 language: python
 python:
-  - 2.7
   - 3.4
-  - 3.5
 
 sudo: false
 
@@ -36,22 +34,23 @@ env:
 # Setup anaconda
 before_install:
 # Install packages
-  - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
-      wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
-    else
-      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-    fi
+  - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then wget http://repo.continuum.io/miniconda/Miniconda-3.8.3-Linux-x86_64.sh
+    -O miniconda.sh; else wget http://repo.continuum.io/miniconda/Miniconda3-3.8.3-Linux-x86_64.sh
+    -O miniconda.sh; fi
   - chmod +x miniconda.sh
   - ./miniconda.sh -b
   - export PATH=/home/travis/anaconda/bin:/home/travis/miniconda/bin:$PATH
+  - hash -r
   - conda update --yes conda
 
 install:
   - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython nose vtk sphinx sympy
   - pip install nose-cov python-coveralls
 
-  - git clone https://github.com/rowanc1/pymatsolver.git
-  - cd pymatsolver; python setup.py install; cd ..
+  - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2"]; then
+      git clone https://github.com/rowanc1/pymatsolver.git;
+      cd pymatsolver; python setup.py install; cd ..;
+    fi
 
   - python setup.py install
   - python setup.py build_ext --inplace
