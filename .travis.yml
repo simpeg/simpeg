@@ -46,15 +46,18 @@ before_install:
   - conda update --yes conda
 
 install:
-  - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython nose sphinx sympy
-  - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2"]; then
-      conda install --yes pip python=$TRAVIS_PYTHON_VERSION vtk;
+  - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
+      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython nose sphinx sympy vtk;
+    else
+      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython nose sphinx sympy;
     fi
   - pip install nose-cov python-coveralls
 
-  - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2"]; then
+  - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
       git clone https://github.com/rowanc1/pymatsolver.git;
       cd pymatsolver; python setup.py install; cd ..;
+    else
+      echo "pymatsolver not updated for python3";
     fi
 
   - python setup.py install
