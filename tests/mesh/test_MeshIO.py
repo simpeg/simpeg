@@ -55,7 +55,7 @@ class TestTensorMeshIO(unittest.TestCase):
         vecVTK = models['arange.txt']
         assert np.sum(vec - vecVTK) == 0
 
-        prin( 'IO of VTR tensor mesh files is working')
+        print( 'IO of VTR tensor mesh files is working')
         os.remove('temp.vtr')
 
 
