@@ -1,11 +1,12 @@
+from __future__ import print_function
 import numpy as np
 from SimPEG.Utils import mkvc
 try:
     import matplotlib.pyplot as plt
     import matplotlib
     from mpl_toolkits.mplot3d import Axes3D
-except ImportError, e:
-    print 'Trouble importing matplotlib.'
+except ImportError as e:
+    print('Trouble importing matplotlib.')
 
 
 class TensorView(object):
@@ -23,7 +24,7 @@ class TensorView(object):
     #     options = {"direction":direction,"numbering":numbering,"annotationColor":annotationColor,"showIt":False}
     #     fig = plt.figure(figNum)
     #     # Determine the subplot number: 131, 121
-    #     numPlots = 130 if plotAll else len(imageType)/2*10+100
+    #     numPlots = 130 if plotAll else len(imageType)//2*10+100
     #     pltNum = 1
     #     fxyz = self.r(I,'F','F','M')
     #     if plotAll or 'Fx' in imageType:

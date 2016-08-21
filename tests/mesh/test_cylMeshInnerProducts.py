@@ -1,3 +1,4 @@
+from __future__ import print_function
 from SimPEG import Mesh, Utils, Tests
 import numpy as np
 import sympy

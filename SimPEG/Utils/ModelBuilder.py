@@ -1,7 +1,14 @@
+from __future__ import print_function
 import numpy as np
 import scipy.ndimage as ndi
 import scipy.sparse as sp
-from matutils import mkvc
+from .matutils import mkvc
+
+import sys
+if sys.version_info < (3,):
+    num_types = [int,long,float,]
+else:
+    num_types = [int,float,]
 
 def addBlock(gridCC, modelCC, p0, p1, blockProp):
     """
@@ -289,9 +296,9 @@ def randomModel(shape, seed=None, anisotropy=None, its=100, bounds=None):
 
     if seed is None:
         seed = np.random.randint(1e3)
-        print 'Using a seed of: ', seed
+        print('Using a seed of: ', seed)
 
-    if type(shape) in [int, long, float]:
+    if type(shape) in num_types:
         shape = (shape,) # make it a tuple for consistency
 
     np.random.seed(seed)
@@ -360,9 +367,9 @@ if __name__ == '__main__':
     sigma = defineBlockConductivity(ccMesh,p0,p1,vals)
 
     # Plot sigma model
-    print sigma.shape
+    print(sigma.shape)
     M.plotImage(sigma)
-    print 'Done with block! :)'
+    print('Done with block! :)')
     plt.show()
 
     # -----------------------------------------
@@ -373,8 +380,8 @@ if __name__ == '__main__':
     sigma = defineTwoLayeredConductivity(ccMesh,depth,vals)
 
     M.plotImage(sigma)
-    print sigma
-    print 'layer model!'
+    print(sigma)
+    print('layer model!')
     plt.show()
 
     # -----------------------------------------
@@ -391,8 +398,8 @@ if __name__ == '__main__':
 
     # Plot sigma model
     M.plotImage(sigma)
-    print sigma
-    print 'Scalar conductivity defined!'
+    print(sigma)
+    print('Scalar conductivity defined!')
     plt.show()
 
     # -----------------------------------------

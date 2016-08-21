@@ -1,3 +1,4 @@
+from __future__ import print_function
 #      ___                     ___          ___          ___          ___
 #     /\  \         ___       /\__\        /\  \        /\  \        /\  \
 #    /::\  \       /\  \     /::|  |      /::\  \      /::\  \      /::\  \
@@ -92,16 +93,22 @@
 from SimPEG import np, sp, Utils, Solver
 
 try:
-    import TreeUtils
+    from . import TreeUtils
     _IMPORT_TREEUTILS = True
-except Exception, e:
+except Exception as e:
     _IMPORT_TREEUTILS = False
 
 
-from InnerProducts import InnerProducts
-from TensorMesh import TensorMesh, BaseTensorMesh
-from MeshIO import TreeMeshIO
+from .InnerProducts import InnerProducts
+from .TensorMesh import TensorMesh, BaseTensorMesh
+from .MeshIO import TreeMeshIO
 import time
+
+import sys
+if sys.version_info <(3,):
+    int_types=[int,long,]
+else:
+    int_types=[int,]
 
 MAX_BITS = 20
 
@@ -408,7 +415,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
         return TreeUtils.index(self.dim, MAX_BITS, self._levelBits, pointer[:-1], pointer[-1])
 
     def _pointer(self, index):
-        assert type(index) in [int, long]
+        assert type(index) in int_types
         return TreeUtils.point(self.dim, MAX_BITS, self._levelBits, index)
 
     def __contains__(self, v):
@@ -416,13 +423,13 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
 
     def refine(self, function=None, recursive=True, cells=None, balance=True, verbose=False, _inRecursion=False):
 
-        if type(function) in [int, long]:
+        if type(function) in int_types:
             level = function
             function = lambda cell: level
 
         if not _inRecursion:
             self.__dirty__ = True
-            if verbose: print 'Refining Mesh'
+            if verbose: print('Refining Mesh')
 
         cells = cells if cells is not None else sorted(self._cells)
         recurse = []
@@ -433,14 +440,14 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
             result = function(Cell(self, cell, p))
             if type(result) is bool:
                 do = result
-            elif type(result) in [int,long]:
+            elif type(result) in int_types:
                 do = result > p[-1]
             else:
                 raise Exception('You must tell the program what to refine. Use BOOL or INT (level)')
             if do:
                 recurse += self._refineCell(cell, p)
 
-        if verbose: print '   ', time.time() - tic
+        if verbose: print('   ', time.time() - tic)
 
         if recursive and len(recurse) > 0:
             recurse += self.refine(function=function, recursive=True, cells=recurse, balance=balance, verbose=verbose, _inRecursion=True)
@@ -451,13 +458,13 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
 
     def corsen(self, function=None, recursive=True, cells=None, balance=True, verbose=False, _inRecursion=False):
 
-        if type(function) in [int, long]:
+        if type(function) in int_types:
             level = function
             function = lambda cell: level
 
         if not _inRecursion:
             self.__dirty__ = True
-            if verbose: print 'Corsening Mesh'
+            if verbose: print('Corsening Mesh')
 
         cells = cells if cells is not None else sorted(self._cells)
         recurse = []
@@ -469,14 +476,14 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
             result = function(Cell(self, cell, p))
             if type(result) is bool:
                 do = result
-            elif type(result) in [int,long]:
+            elif type(result) in int_types:
                 do = result < p[-1]
             else:
                 raise Exception('You must tell the program what to corsen. Use BOOL or INT (level)')
             if do:
                 recurse += self._corsenCell(cell, p)
 
-        if verbose: print '   ', time.time() - tic
+        if verbose: print('   ', time.time() - tic)
 
         if recursive and len(recurse) > 0:
             recurse += self.corsen(function=function, recursive=True, cells=recurse, balance=balance, verbose=verbose, _inRecursion=True)
@@ -510,7 +517,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
         return [parentInd]
 
     def _asPointer(self, ind):
-        if type(ind) in [int, long]:
+        if type(ind) in int_types:
             return self._pointer(ind)
         if type(ind) is list:
             assert len(ind) == (self.dim + 1), str(ind) +' is not valid pointer'
@@ -521,7 +528,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
         raise Exception
 
     def _asIndex(self, pointer):
-        if type(pointer) in [int, long]:
+        if type(pointer) in int_types:
             return pointer
         if type(pointer) is list:
             return self._index(pointer)
@@ -623,7 +630,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
         tic = time.time()
         if not _inRecursion:
             self.__dirty__ = True
-            if verbose: print 'Balancing Mesh:'
+            if verbose: print('Balancing Mesh:')
 
         cells = cells if cells is not None else sorted(self._cells)
 
@@ -636,7 +643,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
             p = self._asPointer(cell)
             if p[-1] == self.levels: continue
 
-            cs = range(6)
+            cs = list(range(6))
             cs[0] = self._getNextCell(cell, direction=0, positive=False)
             cs[1] = self._getNextCell(cell, direction=0, positive=True)
             cs[2] = self._getNextCell(cell, direction=1, positive=False)
@@ -650,15 +657,15 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
                         if c is not None
                    ])
             # depth = calcDepth(0)(cs)
-            # print depth, depth > 2, do, [jj for jj in flatten(cs) if jj is not None]
+            # print(depth, depth > 2, do, [jj for jj in flatten(cs) if jj is not None])
             # recurse += [jj for jj in flatten(cs) if jj is not None]
 
             if do and cell in self:
                 newCells = self._refineCell(cell)
-                recurse.update([_ for _ in cs if type(_) in [int, long]]) # only add the bigger ones!
+                recurse.update([_ for _ in cs if type(_) in int_types]) # only add the bigger ones!
                 recurse.update(newCells)
 
-        if verbose: print '   ', len(cells), time.time() - tic
+        if verbose: print('   ', len(cells), time.time() - tic)
         if recursive and len(recurse) > 0:
             self.balance(cells=sorted(recurse), _inRecursion=True)
 
@@ -1847,7 +1854,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
         Ny = self.vectorNy
         Nz = self.vectorNz
 
-        pointers = range(self.dim)
+        pointers = list(range(self.dim))
         Nx = np.r_[Nx[0] - TOL, Nx[1:-1], Nx[-1] + TOL]
         pointers[0] = np.searchsorted(Nx, locs[:,0])
         Ny = np.r_[Ny[0] - TOL, Ny[1:-1], Ny[-1] + TOL]
@@ -2152,8 +2159,8 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
         import matplotlib.cm as cmx
 
         szSliceDim = len(getattr(self, 'h'+normal.lower())) #: Size of the sliced dimension
-        if ind is None: ind = int(szSliceDim/2)
-        assert type(ind) in [int, long], 'ind must be an integer'
+        if ind is None: ind = int(szSliceDim//2)
+        assert type(ind) in int_types, 'ind must be an integer'
         indLoc = getattr(self,'vectorCC'+normal.lower())[ind]
         normalInd = {'X':0,'Y':1,'Z':2}[normal]
         antiNormalInd = {'X':[1,2],'Y':[0,2],'Z':[0,1]}[normal]
@@ -2240,14 +2247,14 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
             if key < 0 : #Handle negative indices
                 key += len( self )
             if key >= len( self ) :
-                raise IndexError, "The index ({0:d}) is out of range.".format(key)
+                raise IndexError("The index ({0:d}) is out of range.".format(key))
 
             self._numberCells() # no-op if numbered
             index   = self._i2cc[key]
             pointer = self._asPointer(index)
             return Cell(self, index, pointer)
         else:
-            raise TypeError, "Invalid argument type."
+            raise TypeError("Invalid argument type.")
 
 
 class Cell(object):
@@ -2333,7 +2340,7 @@ def SortGrid(grid, offset=0):
         def __ne__(self, other):
             return mycmp(self.obj, other.obj) != 0
 
-    return sorted(range(offset,grid.shape[0]+offset), key=K)
+    return sorted(list(range(offset,grid.shape[0]+offset)), key=K)
 
 
 class TreeException(Exception):

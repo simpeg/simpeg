@@ -1,7 +1,6 @@
+from __future__ import print_function
 from SimPEG import np, Mesh
 import time as tm
-import vtk
-import vtk.util.numpy_support as npsup
 import re
 
 
@@ -75,6 +74,8 @@ def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
     mesh with in the structure.
 
     """
+    import vtk
+    import vtk.util.numpy_support as npsup
     # Adjust the index
     trgl = trgl - 1
 
@@ -127,7 +128,7 @@ def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
     else:
         extractImpDistRectGridFilt.ExtractInsideOff()
 
-    print "Extracting indices from grid..."
+    print("Extracting indices from grid...")
     # Executing the pipe
     extractImpDistRectGridFilt.Update()
 
@@ -150,6 +151,11 @@ def remoteDownload(url, remoteFiles, basePath=None):
     import urllib
     import shutil
     import os
+    import sys
+    if sys.version_info <(3,):
+      urlretrieve=urllib.urlretrieve
+    else:
+      urlretrieve=urllib.request.urlretrieve
 
     if basePath is None:
         basePath = os.curdir+os.path.sep+'SimPEGtemp'+os.path.sep
@@ -159,10 +165,10 @@ def remoteDownload(url, remoteFiles, basePath=None):
 
     os.makedirs(basePath)
 
-    print "Download files from URL..."
+    print("Download files from URL...")
     for file in remoteFiles:
-        print "Retrieving: " + file
-        urllib.urlretrieve(url + file, basePath+file)
+        print("Retrieving: " + file)
+        urlretrieve(url + file, basePath+file)
 
-    print "Download completed!"
+    print("Download completed!")
     return basePath

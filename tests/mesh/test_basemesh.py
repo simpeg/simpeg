@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 import sys
 from SimPEG.Mesh.BaseMesh import BaseRectangularMesh

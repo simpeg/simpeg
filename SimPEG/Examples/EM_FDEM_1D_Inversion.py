@@ -59,7 +59,7 @@ def run(plotIt=True):
     try:
         from pymatsolver import MumpsSolver
         prb.Solver = MumpsSolver
-    except ImportError, e:
+    except ImportError as e:
         prb.Solver = SolverLU
 
     prb.pair(survey)

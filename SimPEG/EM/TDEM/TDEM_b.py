@@ -1,7 +1,7 @@
-from BaseTDEM import BaseTDEMProblem, FieldsTDEM
+from .BaseTDEM import BaseTDEMProblem, FieldsTDEM
 from SimPEG.Utils import mkvc, sdiag
 import numpy as np
-from SurveyTDEM import SurveyTDEM
+from .SurveyTDEM import SurveyTDEM
 
 
 class FieldsTDEM_e_from_b(FieldsTDEM):

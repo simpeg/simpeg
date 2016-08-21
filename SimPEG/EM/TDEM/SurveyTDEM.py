@@ -1,7 +1,8 @@
+from __future__ import print_function
 from SimPEG import Utils, Survey, np
 from SimPEG.Survey import BaseSurvey
 from SimPEG.EM.Utils import *
-from BaseTDEM import FieldsTDEM
+from .BaseTDEM import FieldsTDEM
 
 
 class RxTDEM(Survey.BaseTimeRx):
@@ -87,7 +88,7 @@ class SrcTDEM_VMD_MVP(SrcTDEM):
     def getInitialFields(self, mesh):
         """Vertical magnetic dipole, magnetic vector potential"""
         if self.waveformType == "STEPOFF":
-            print ">> Step waveform: Non-zero initial condition"
+            print(">> Step waveform: Non-zero initial condition")
             if mesh._meshType is 'CYL':
                 if mesh.isSymmetric:
                     MVP = MagneticDipoleVectorPotential(self.loc, mesh, 'Ey')
@@ -99,7 +100,7 @@ class SrcTDEM_VMD_MVP(SrcTDEM):
                 raise Exception('Unknown mesh for VMD')
             return {"b": mesh.edgeCurl*MVP}
         elif self.waveformType == "GENERAL":
-            print ">> General waveform: Zero initial condition"
+            print(">> General waveform: Zero initial condition")
             return {"b": np.zeros(mesh.nF)}
         else:
             raise NotImplementedError("Only use STEPOFF or GENERAL")
@@ -127,7 +128,7 @@ class SrcTDEM_CircularLoop_MVP(SrcTDEM):
     def getInitialFields(self, mesh):
         """Circular Loop, magnetic vector potential"""
         if self.waveformType == "STEPOFF":
-            print ">> Step waveform: Non-zero initial condition"
+            print(">> Step waveform: Non-zero initial condition")
             if mesh._meshType is 'CYL':
                 if mesh.isSymmetric:
                     MVP = MagneticLoopVectorPotential(self.loc, mesh, 'Ey', self.radius)
@@ -139,7 +140,7 @@ class SrcTDEM_CircularLoop_MVP(SrcTDEM):
                 raise Exception('Unknown mesh for CircularLoop')
             return {"b": mesh.edgeCurl*MVP}
         elif self.waveformType == "GENERAL":
-            print ">> General waveform: Zero initial condition"
+            print(">> General waveform: Zero initial condition")
             return {"b": np.zeros(mesh.nF)}
         else:
             raise NotImplementedError("Only use STEPOFF or GENERAL")

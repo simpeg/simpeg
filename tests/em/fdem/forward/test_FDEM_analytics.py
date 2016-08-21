@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 import numpy as np
 import scipy.sparse as sp
@@ -50,7 +51,7 @@ class FDEM_analyticTests(unittest.TestCase):
         try:
             from pymatsolver import MumpsSolver
             prb.Solver = MumpsSolver
-        except ImportError, e:
+        except ImportError as e:
             prb.Solver = SolverLU
 
         sig = 1e-1
@@ -71,7 +72,7 @@ class FDEM_analyticTests(unittest.TestCase):
     def test_Transect(self):
 
         for src in self.prb.survey.srcList:
-            print ' --- testing {} --- '.format(src.__class__.__name__)
+            print(' --- testing {} --- '.format(src.__class__.__name__))
             bfz = self.mesh.r(self.u[src, 'b'],'F','Fz','M')
             x = np.linspace(-55,55,12)
             XYZ = Utils.ndgrid(x,np.r_[0],np.r_[0])
@@ -188,12 +189,12 @@ class TestDipoles(unittest.TestCase):
         bxa, bya, bza = EM.Analytics.FDEM.MagneticDipoleWholeSpace(XYZ, src_loc, sigmaback, freq,orientation='Z',mu= mur*mu_0)
         bxa, bya, bza = Utils.mkvc(bxa, 2), Utils.mkvc(bya, 2), Utils.mkvc(bza, 2)
 
-        print ' comp,       anayltic,       numeric,       num - ana,       (num - ana)/ana'
-        print '  ex:', np.linalg.norm(exa), np.linalg.norm(ex), np.linalg.norm(exa-ex), np.linalg.norm(exa-ex)/np.linalg.norm(exa)
-        print '  ez:', np.linalg.norm(eza), np.linalg.norm(ez), np.linalg.norm(eza-ez), np.linalg.norm(eza-ez)/np.linalg.norm(eza)
+        print(' comp,       anayltic,       numeric,       num - ana,       (num - ana)/ana')
+        print('  ex:', np.linalg.norm(exa), np.linalg.norm(ex), np.linalg.norm(exa-ex), np.linalg.norm(exa-ex)/np.linalg.norm(exa))
+        print('  ez:', np.linalg.norm(eza), np.linalg.norm(ez), np.linalg.norm(eza-ez), np.linalg.norm(eza-ez)/np.linalg.norm(eza))
 
-        print '  bx:', np.linalg.norm(bxa), np.linalg.norm(bx), np.linalg.norm(bxa-bx), np.linalg.norm(bxa-bx)/np.linalg.norm(bxa)
-        print '  bz:', np.linalg.norm(bza), np.linalg.norm(bz), np.linalg.norm(bza-bz), np.linalg.norm(bza-bz)/np.linalg.norm(bza)
+        print('  bx:', np.linalg.norm(bxa), np.linalg.norm(bx), np.linalg.norm(bxa-bx), np.linalg.norm(bxa-bx)/np.linalg.norm(bxa))
+        print('  bz:', np.linalg.norm(bza), np.linalg.norm(bz), np.linalg.norm(bza-bz), np.linalg.norm(bza-bz)/np.linalg.norm(bza))
 
         if plotIt is True:
             # Edipole

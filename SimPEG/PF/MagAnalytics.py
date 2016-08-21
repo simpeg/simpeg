@@ -1,3 +1,4 @@
+from __future__ import print_function
 from scipy.constants import mu_0
 from SimPEG import *
 from SimPEG.Utils import kron3, speye, sdiag
@@ -33,7 +34,7 @@ def MagSphereAnaFun(x, y, z, R, x0, y0, z0, mu1, mu2, H0, flag='total'):
     """
 
     if (~np.size(x)==np.size(y)==np.size(z)):
-        print "Specify same size of x, y, z"
+        print("Specify same size of x, y, z")
         return
     dim = x.shape
     x = Utils.mkvc(x)
@@ -140,7 +141,7 @@ def MagSphereAnaFunA(x, y, z, R, xc, yc, zc, chi, Bo, flag):
 
     """
     if (~np.size(x)==np.size(y)==np.size(z)):
-        print "Specify same size of x, y, z"
+        print("Specify same size of x, y, z")
         return
     dim = x.shape
     x = Utils.mkvc(x)
@@ -205,7 +206,7 @@ def MagSphereFreeSpace(x, y, z, R, xc, yc, zc, chi, Bo):
 
     """
     if (~np.size(x) == np.size(y) == np.size(z)):
-        print "Specify same size of x, y, z"
+        print("Specify same size of x, y, z")
         return
 
     x = Utils.mkvc(x)
@@ -270,7 +271,7 @@ if __name__ == '__main__':
     err = np.linalg.norm(Bbc-Bbc_ana)/np.linalg.norm(Bbc_ana)
 
     if err < 0.1:
-        print 'Mag Boundary computation is valid, err = ', err
+        print('Mag Boundary computation is valid, err = ', err)
     else:
-        print 'Mag Boundary computation is wrong!!, err = ', err
+        print('Mag Boundary computation is wrong!!, err = ', err)
     pass

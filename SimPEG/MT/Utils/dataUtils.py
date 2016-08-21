@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Utils used for the data,
 import numpy as np, matplotlib.pyplot as plt, sys
 import SimPEG as simpeg
@@ -157,7 +158,7 @@ def plotMT1DModelData(problem, models, symList=None):
 
 def printTime():
     import time
-    print time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.localtime())
+    print(time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.localtime()))
 
 def convert3Dto1Dobject(MTdata,rxType3D='zyx'):
     from SimPEG import MT

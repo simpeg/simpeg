@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 from SimPEG import Mesh, Maps, Utils, SolverLU
 from SimPEG.EM import FDEM, Analytics, mu_0
@@ -82,7 +83,7 @@ def run(plotIt=True):
     src_loc = np.r_[0., 0., dsz]
     inf_loc = np.r_[0., 0., 1e4]
 
-    print 'Skin Depth: ', [(500./np.sqrt(sigmaback*_)) for _ in freqs]
+    print('Skin Depth: ', [(500./np.sqrt(sigmaback*_)) for _ in freqs])
 
     # ------------------ MESH ------------------
     # fine cells near well bore
@@ -119,8 +120,8 @@ def run(plotIt=True):
     # Mesh
     mesh = Mesh.CylMesh([hx, 1., hz], [0., 0., -np.sum(hz[:npadzu+ncz-nza])])
 
-    print 'Mesh Extent xmax: {0:f},: zmin: {1:f}, zmax: {2:f}'.format(mesh.vectorCCx.max(), mesh.vectorCCz.min(), mesh.vectorCCz.max())
-    print 'Number of cells', mesh.nC
+    print('Mesh Extent xmax: {0:f},: zmin: {1:f}, zmax: {2:f}'.format(mesh.vectorCCx.max(), mesh.vectorCCz.min(), mesh.vectorCCz.max()))
+    print('Number of cells', mesh.nC)
 
     if plotIt is True:
         fig, ax = plt.subplots(1, 1, figsize=(6, 4))
@@ -241,7 +242,7 @@ def run(plotIt=True):
     # ------------- Solve ---------------------------
     t0 = time.time()
     fieldsCasing = problem.fields(sigCasing)
-    print 'Time to solve 2 sources', time.time() - t0
+    print('Time to solve 2 sources', time.time() - t0)
 
     # Plot current
 

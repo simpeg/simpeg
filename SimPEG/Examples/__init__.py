@@ -1,30 +1,31 @@
+from __future__ import print_function
 # Run this file to add imports.
 
 ##### AUTOIMPORTS #####
-import DC_Analytic_Dipole
-import EM_FDEM_1D_Inversion
-import EM_FDEM_Analytic_MagDipoleWholespace
-import EM_Schenkel_Morrison_Casing
-import EM_TDEM_1D_Inversion
-import FLOW_Richards_1D_Celia1990
-import Inversion_IRLS
-import Inversion_Linear
-import Maps_ComboMaps
-import Maps_Mesh2Mesh
-import Mesh_Basic_ForwardDC
-import Mesh_Basic_PlotImage
-import Mesh_Basic_Types
-import Mesh_Operators_CahnHilliard
-import Mesh_QuadTree_Creation
-import Mesh_QuadTree_FaceDiv
-import Mesh_QuadTree_HangingNodes
-import Mesh_Tensor_Creation
-import MT_1D_ForwardAndInversion
-import MT_3D_Foward
-import PF_Gravity_Inversion_Linear
-import PF_Magnetics_Analytics
-import PF_Magnetics_Inversion_Linear
-import Utils_surface2ind_topo
+from . import DC_Analytic_Dipole
+from . import EM_FDEM_1D_Inversion
+from . import EM_FDEM_Analytic_MagDipoleWholespace
+from . import EM_Schenkel_Morrison_Casing
+from . import EM_TDEM_1D_Inversion
+from . import FLOW_Richards_1D_Celia1990
+from . import Inversion_IRLS
+from . import Inversion_Linear
+from . import Maps_ComboMaps
+from . import Maps_Mesh2Mesh
+from . import Mesh_Basic_ForwardDC
+from . import Mesh_Basic_PlotImage
+from . import Mesh_Basic_Types
+from . import Mesh_Operators_CahnHilliard
+from . import Mesh_QuadTree_Creation
+from . import Mesh_QuadTree_FaceDiv
+from . import Mesh_QuadTree_HangingNodes
+from . import Mesh_Tensor_Creation
+from . import MT_1D_ForwardAndInversion
+from . import MT_3D_Foward
+from . import PF_Gravity_Inversion_Linear
+from . import PF_Magnetics_Analytics
+from . import PF_Magnetics_Inversion_Linear
+from . import Utils_surface2ind_topo
 
 __examples__ = ["DC_Analytic_Dipole", "EM_FDEM_1D_Inversion", "EM_FDEM_Analytic_MagDipoleWholespace", "EM_Schenkel_Morrison_Casing", "EM_TDEM_1D_Inversion", "FLOW_Richards_1D_Celia1990", "Inversion_IRLS", "Inversion_Linear", "Maps_ComboMaps", "Maps_Mesh2Mesh", "Mesh_Basic_ForwardDC", "Mesh_Basic_PlotImage", "Mesh_Basic_Types", "Mesh_Operators_CahnHilliard", "Mesh_QuadTree_Creation", "Mesh_QuadTree_FaceDiv", "Mesh_QuadTree_HangingNodes", "Mesh_Tensor_Creation", "MT_1D_ForwardAndInversion", "MT_3D_Foward", "PF_Gravity_Inversion_Linear", "PF_Magnetics_Analytics", "PF_Magnetics_Inversion_Linear", "Utils_surface2ind_topo"]
 
@@ -106,7 +107,7 @@ if __name__ == '__main__':
 
         rst = os.path.sep.join((filePath.split(os.path.sep)[:-3] + ['docs', 'content', 'examples', name + '.rst']))
 
-        print 'Creating: {0!s}.rst'.format(name)
+        print('Creating: {0!s}.rst'.format(name))
         f = open(rst, 'w')
         f.write(out)
         f.close()
