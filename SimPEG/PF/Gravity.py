@@ -331,8 +331,8 @@ def writeUBCobs(filename, survey, d):
 
     data = np.c_[rxLoc, d, wd]
 
-    np.savetxt(filename, data, fmt='%e', delimiter=' ', newline='\n',
-        header='%i\n'%len(d))
+    head = '%i\n'%len(d)
+    np.savetxt(filename, data, fmt='%e', delimiter=' ', newline='\n', header=head,comments='')
 
     print("Observation file saved to: " + filename)
 
