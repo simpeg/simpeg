@@ -11,9 +11,9 @@ import warnings
 
 import sys
 if(sys.version_info < (3,)):
-  integer_types = [int,long,]
+    integer_types = [int,long,]
 else:
-  integer_types = [int,]
+    integer_types = [int,]
 from six import add_metaclass
 
 @add_metaclass(Utils.SimPEGMetaClass)

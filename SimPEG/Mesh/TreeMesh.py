@@ -106,9 +106,9 @@ import time
 
 import sys
 if sys.version_info <(3,):
-  int_types=[int,long,]
+    int_types=[int,long,]
 else:
-  int_types=[int,]
+    int_types=[int,]
 
 MAX_BITS = 20
 

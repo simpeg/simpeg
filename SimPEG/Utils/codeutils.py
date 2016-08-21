@@ -4,6 +4,10 @@ import time
 import numpy as np
 from functools import wraps
 import sys
+  if sys.version_info < (3,):
+      scalarTypes = [float, int, long, np.float_, np.int_]
+  else:
+      scalarTypes = [float, int, np.float_, np.int_]
 
 SimPEGMetaClass = type
 
@@ -171,10 +175,6 @@ def dependentProperty(name, value, children, doc):
     return property(fget=fget, fset=fset, doc=doc)
 
 def isScalar(f):
-    if sys.version_info < (3,):
-      scalarTypes = [float, int, long, np.float_, np.int_]
-    else:
-      scalarTypes = [float, int, np.float_, np.int_]
     if type(f) in scalarTypes:
         return True
     elif isinstance(f, np.ndarray) and f.size == 1 and type(f[0]) in scalarTypes:

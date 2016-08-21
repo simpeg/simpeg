@@ -6,9 +6,9 @@ from .matutils import mkvc
 
 import sys
 if sys.version_info < (3,):
-  num_types = [int,long,float,]
+    num_types = [int,long,float,]
 else:
-  num_types = [int,float,]
+    num_types = [int,float,]
 
 def addBlock(gridCC, modelCC, p0, p1, blockProp):
     """
