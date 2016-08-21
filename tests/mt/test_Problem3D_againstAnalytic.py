@@ -156,7 +156,7 @@ def getAppResPhs(MTdata):
 def JvecAdjointTest(inputSetup,comp='All',freq=False):
     (M, freqs, sig, sigBG, rx_loc) = inputSetup
     survey, problem = setupSimpegMTfwd_eForm_ps(inputSetup,comp='All',singleFreq=freq)
-    print('Adjoint test of eForm primary/secondary for {:s} comp at {:s}\n'.format(comp,str(survey.freqs)))
+    print('Adjoint test of eForm primary/secondary for {!s:s} comp at {!s:s}\n'.format(comp,str(survey.freqs)))
 
     m  = sig
     u = problem.fields(m)
@@ -176,7 +176,7 @@ def JvecAdjointTest(inputSetup,comp='All',freq=False):
 def DerivJvecTest(inputSetup,comp='All',freq=False,expMap=True):
     (M, freqs, sig, sigBG, rx_loc) = inputSetup
     survey, problem = setupSimpegMTfwd_eForm_ps(inputSetup,comp=comp,singleFreq=freq,expMap=expMap)
-    print('Derivative test of Jvec for eForm primary/secondary for {:s} comp at {:s}\n'.format(comp,survey.freqs))
+    print('Derivative test of Jvec for eForm primary/secondary for {!s:s} comp at {!s:s}\n'.format(comp,survey.freqs))
     # problem.mapping = simpeg.Maps.ExpMap(problem.mesh)
     # problem.sigmaPrimary = np.log(sigBG)
     x0 = np.log(sigBG)
@@ -222,7 +222,7 @@ def appResPhsHalfspace_eFrom_ps_Norm(sigmaHalf,appR=True,expMap=False):
         label = 'phase'
     # Make the survey and the problem
     survey, problem = setupSimpegMTfwd_eForm_ps(halfSpace(sigmaHalf),expMap=expMap)
-    print('Apperent {:s} test of eFormulation primary/secondary at {:g}\n\n'.format(label,sigmaHalf))
+    print('Apperent {!s:s} test of eFormulation primary/secondary at {:g}\n\n'.format(label,sigmaHalf))
 
     data = problem.dataPair(survey,survey.dpred(problem.curModel))
     # Calculate the app  phs

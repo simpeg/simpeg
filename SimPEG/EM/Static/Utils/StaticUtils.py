@@ -288,7 +288,7 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
 
         # Define number of cross lines
         nlin = int(np.floor( box_w / a ))
-        lind = range(-nlin,nlin+1)
+        lind = list(range(-nlin,nlin+1))
 
         ngrad = nstn * len(lind)
 

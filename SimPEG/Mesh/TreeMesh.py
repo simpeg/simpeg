@@ -2159,7 +2159,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
         import matplotlib.cm as cmx
 
         szSliceDim = len(getattr(self, 'h'+normal.lower())) #: Size of the sliced dimension
-        if ind is None: ind = int(szSliceDim/2)
+        if ind is None: ind = int(szSliceDim//2)
         assert type(ind) in int_types, 'ind must be an integer'
         indLoc = getattr(self,'vectorCC'+normal.lower())[ind]
         normalInd = {'X':0,'Y':1,'Z':2}[normal]

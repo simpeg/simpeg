@@ -103,7 +103,7 @@ class Property(object):
                 return None
             inds = getattr(self.propMap, '{0!s}Index'.format(prop.name))
             if type(inds) is slice:
-                inds = range(*inds.indices(self.nP))
+                inds = list(range(*inds.indices(self.nP)))
             nI, nP = len(inds),self.nP
             return sp.csr_matrix((np.ones(nI), (range(nI), inds) ), shape=(nI, nP))
         return property(fget=fget)
@@ -130,7 +130,7 @@ class PropModel(object):
                 index = getattr(self.propMap, '{0!s}Index'.format(name), None)
                 if index is not None:
                     if type(index) is slice:
-                        inds += range(*index.indices(len(self.vector)))
+                        inds += list(range(*index.indices(len(self.vector))))
                     else:
                         inds += list(index)
             self._nP = len(set(inds))

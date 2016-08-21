@@ -706,7 +706,7 @@ class PolyMap(IdentityMap):
         self.actInd = actInd
 
         if getattr(self, 'actInd', None) is None:
-            self.actInd = range(self.mesh.nC)
+            self.actInd = list(range(self.mesh.nC))
             self.nC = self.mesh.nC
 
         else:
