@@ -34,7 +34,7 @@ env:
 # Setup anaconda
 before_install:
 # Install packages
-  - if [ $TRAVIS_PYTHON_VERSION == "2" ]; then
+  - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
       wget http://repo.continuum.io/miniconda/Miniconda-3.8.3-Linux-x86_64.sh -O miniconda.sh;
     else
       wget http://repo.continuum.io/miniconda/Miniconda3-3.8.3-Linux-x86_64.sh -O miniconda.sh;
@@ -42,11 +42,13 @@ before_install:
   - chmod +x miniconda.sh
   - ./miniconda.sh -b -p $HOME/miniconda
   - export PATH=/home/travis/anaconda/bin:/home/travis/miniconda/bin:$PATH
-  - hash -r
   - conda update --yes conda
 
 install:
-  - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython nose vtk sphinx sympy
+  - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython nose sphinx sympy
+  - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2"]; then
+      conda install --yes pip python=$TRAVIS_PYTHON_VERSION vtk;
+    fi
   - pip install nose-cov python-coveralls
 
   - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2"]; then
