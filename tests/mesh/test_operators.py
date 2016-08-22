@@ -326,8 +326,8 @@ class TestNodalGrad2D(OrderTest):
 
 class TestAverating2DSimple(unittest.TestCase):
     def setUp(self):
-        hx = np.random.rand(10.)
-        hy = np.random.rand(10.)
+        hx = np.random.rand(10)
+        hy = np.random.rand(10)
         self.mesh = Mesh.TensorMesh([hx, hy])
 
     def test_constantEdges(self):
@@ -419,11 +419,12 @@ class TestAveraging2D(OrderTest):
         self.getAve = lambda M: M.aveE2CCV
         self.orderTest()
 
+
 class TestAverating3DSimple(unittest.TestCase):
     def setUp(self):
-        hx = np.random.rand(10.)
-        hy = np.random.rand(10.)
-        hz = np.random.rand(10.)
+        hx = np.random.rand(10)
+        hy = np.random.rand(10)
+        hz = np.random.rand(10)
         self.mesh = Mesh.TensorMesh([hx, hy, hz])
 
     def test_constantEdges(self):
