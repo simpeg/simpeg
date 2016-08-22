@@ -6,9 +6,10 @@ from .matutils import mkvc
 
 import sys
 if sys.version_info < (3,):
-    num_types = [int,long,float,]
+    num_types = [int, long, float]
 else:
-    num_types = [int,float,]
+    num_types = [int, float]
+
 
 def addBlock(gridCC, modelCC, p0, p1, blockProp):
     """
@@ -28,7 +29,7 @@ def addBlock(gridCC, modelCC, p0, p1, blockProp):
     return modelBlock
 
 
-def getIndicesBlock(p0,p1,ccMesh):
+def getIndicesBlock(p0, p1, ccMesh):
     """
         Creates a vector containing the block indices in the cell centers mesh.
         Returns a tuple
@@ -56,7 +57,7 @@ def getIndicesBlock(p0,p1,ccMesh):
         p0[ii], p1[ii] = np.min([p0[ii], p1[ii]]), np.max([p0[ii], p1[ii]])
 
     if dimMesh == 1:
-       # Define the reference points
+        # Define the reference points
         x1 = p0[0]
         x2 = p1[0]
 
@@ -64,7 +65,7 @@ def getIndicesBlock(p0,p1,ccMesh):
         ind  = np.where(indX)
 
     elif dimMesh == 2:
-       # Define the reference points
+        # Define the reference points
         x1 = p0[0]
         y1 = p0[1]
 
@@ -95,7 +96,8 @@ def getIndicesBlock(p0,p1,ccMesh):
     # Return a tuple
     return ind
 
-def defineBlock(ccMesh,p0,p1,vals=None):
+
+def defineBlock(ccMesh, p0, p1, vals=None):
     """
         Build a block with the conductivity specified by condVal.  Returns an array.
         vals[0]  conductivity of the block
@@ -109,6 +111,7 @@ def defineBlock(ccMesh,p0,p1,vals=None):
     sigma[ind] = vals[0]
 
     return mkvc(sigma)
+
 
 def defineElipse(ccMesh, center=None, anisotropy=None, slope=10., theta=0.):
     if center is None:
@@ -131,7 +134,8 @@ def defineElipse(ccMesh, center=None, anisotropy=None, slope=10., theta=0.):
     D = np.sqrt(np.sum(G**2,axis=1))
     return -np.arctan((D-1)*slope)*(2./np.pi)/2.+0.5
 
-def getIndicesSphere(center,radius,ccMesh):
+
+def getIndicesSphere(center, radius, ccMesh):
     """
         Creates a vector containing the sphere indices in the cell centers mesh.
         Returns a tuple
@@ -169,7 +173,8 @@ def getIndicesSphere(center,radius,ccMesh):
     # Return a tuple
     return ind
 
-def defineTwoLayers(ccMesh,depth,vals=None):
+
+def defineTwoLayers(ccMesh, depth, vals=None):
     """
     Define a two layered model.  Depth of the first layer must be specified.
     CondVals vector with the conductivity values of the layers.  Eg:
@@ -208,7 +213,8 @@ def defineTwoLayers(ccMesh,depth,vals=None):
 
     return mkvc(sigma)
 
-def scalarConductivity(ccMesh,pFunction):
+
+def scalarConductivity(ccMesh, pFunction):
     """
     Define the distribution conductivity in the mesh according to the
     analytical expression given in pFunction
@@ -218,10 +224,10 @@ def scalarConductivity(ccMesh,pFunction):
     if dim>1: CC.append(ccMesh[:,1])
     if dim>2: CC.append(ccMesh[:,2])
 
-
     sigma = pFunction(*CC)
 
     return mkvc(sigma)
+
 
 def layeredModel(ccMesh, layerTops, layerValues):
     """
@@ -264,7 +270,6 @@ def layeredModel(ccMesh, layerTops, layerValues):
         model[zind] = layerValues[i]
 
     return model
-
 
 
 def randomModel(shape, seed=None, anisotropy=None, its=100, bounds=None):
@@ -323,7 +328,6 @@ def randomModel(shape, seed=None, anisotropy=None, its=100, bounds=None):
     # scale the model to live between the bounds.
     mi = (mi - mi.min())/(mi.max()-mi.min()) # scaled between 0 and 1
     mi = mi*(bounds[1]-bounds[0])+bounds[0]
-
 
     return mi
 
