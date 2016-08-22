@@ -270,9 +270,9 @@ def run(plotIt=True):
     in1_in = in1[np.r_[inds]]
     z_in = mesh.gridFz[inds_fz, 2]
 
-    in0_in = in0_in.reshape([in0_in.shape[0]/3, 3])
-    in1_in = in1_in.reshape([in1_in.shape[0]/3, 3])
-    z_in = z_in.reshape([z_in.shape[0]/3, 3])
+    in0_in = in0_in.reshape([in0_in.shape[0]//3, 3])
+    in1_in = in1_in.reshape([in1_in.shape[0]//3, 3])
+    z_in = z_in.reshape([z_in.shape[0]//3, 3])
 
     I0 = in0_in.sum(1).real
     I1 = in1_in.sum(1).real
