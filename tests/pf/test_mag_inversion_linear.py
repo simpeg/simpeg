@@ -1,12 +1,23 @@
 from __future__ import print_function
 import unittest
-from SimPEG import *
+from SimPEG import Mesh
+from SimPEG import Utils
+from SimPEG import Maps
+from SimPEG import Regularization
+from SimPEG import DataMisfit
+from SimPEG import Optimization
+from SimPEG import InvProblem
+from SimPEG import Directives
+from SimPEG import Inversion
+import numpy as np
 import SimPEG.PF as PF
 
 
 class MagInvLinProblemTest(unittest.TestCase):
 
     def setUp(self):
+
+        np.random.seed(0)
 
         # Define the inducing field parameter
         H0 = (50000, 90, 0)
@@ -29,7 +40,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         zz = -np.exp((xx**2 + yy**2) / 75**2) + mesh.vectorNz[-1]
 
         # Go from topo to actv cells
-        topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
+        topo = np.c_[Utils.mkvc(xx), Utils.mkvc(yy), Utils.mkvc(zz)]
         actv = Utils.surface2ind_topo(mesh, topo, 'N')
         actv = np.asarray([inds for inds, elem in enumerate(actv, 1)
                           if elem], dtype=int) - 1
@@ -56,7 +67,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         # Here a simple block in half-space
         model = np.zeros((mesh.nCx, mesh.nCy, mesh.nCz))
         model[(midx-2):(midx+2), (midy-2):(midy+2), -6:-2] = 0.02
-        model = mkvc(model)
+        model = Utils.mkvc(model)
         self.model = model[actv]
 
         # Create active map to go from reduce set to full

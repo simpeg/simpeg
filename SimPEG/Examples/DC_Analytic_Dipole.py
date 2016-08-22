@@ -1,12 +1,14 @@
 from __future__ import print_function
-from SimPEG import *
+from SimPEG import Mesh, Utils
+import numpy as np
 import SimPEG.EM.Static.DC as DC
+
 
 def run(plotIt=True):
     cs = 25.
-    hx = [(cs,7, -1.3),(cs,21),(cs,7, 1.3)]
-    hy = [(cs,7, -1.3),(cs,21),(cs,7, 1.3)]
-    hz = [(cs,7, -1.3),(cs,20)]
+    hx = [(cs, 7, -1.3), (cs, 21), (cs, 7, 1.3)]
+    hy = [(cs, 7, -1.3), (cs, 21), (cs, 7, 1.3)]
+    hz = [(cs, 7, -1.3), (cs, 20)]
     mesh = Mesh.TensorMesh([hx, hy, hz], 'CCN')
     sighalf = 1e-2
     sigma = np.ones(mesh.nC)*sighalf
