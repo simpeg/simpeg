@@ -45,6 +45,7 @@ class BaseDCProblem_2D(BaseEMProblem):
 
         self.curModel = m
 
+        # TODO: This is not a good idea !! should change that as a list
         Jv = self.dataPair(self.survey)  # same size as the data
         Jv0 = self.dataPair(self.survey)
 

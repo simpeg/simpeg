@@ -68,9 +68,9 @@ class BaseSIPProblem(BaseEMProblem):
             f = self.fields(m)
 
         self.curModel = m
-        Jv = self.dataPair(self.survey) #same size as the data
+        # Jv = self.dataPair(self.survey) #same size as the data
+        Jv = []
         # A = self.getA()
-        JvAll = []
         for tind in range(len(self.survey.times)):
             #Pseudo-chareability
             t = self.survey.times[tind]
@@ -85,14 +85,17 @@ class BaseSIPProblem(BaseEMProblem):
                     if timeindex[tind]:
                         df_dmFun = getattr(f, '_{0!s}Deriv'.format(rx.projField), None)
                         df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
-                        Jv[src, rx, t] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
+                        Jv.append(rx.evalDeriv(src, self.mesh, f, df_dm_v))
+                        # Jv[src, rx, t] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
 
         # Conductivity (d u / d log sigma)
         if self._formulation is 'EB':
-            return -Utils.mkvc(Jv)
+            # return -Utils.mkvc(Jv)
+            return -np.hstack(Jv)
         # Resistivity (d u / d log rho)
         if self._formulation is 'HJ':
-            return Utils.mkvc(Jv)
+            # return Utils.mkvc(Jv)
+            return np.hstack(Jv)
 
     def Jvec(self, m, v, f=None):
 
@@ -100,9 +103,9 @@ class BaseSIPProblem(BaseEMProblem):
             f = self.fields(m)
 
         self.curModel = m
-        Jv = self.dataPair(self.survey) #same size as the data
+        # Jv = self.dataPair(self.survey) #same size as the data
+        Jv = []
         # A = self.getA()
-        JvAll = []
         #Assume only eta and tau (eta first then tau)
         # v = [2*Mx1]
         v = v.reshape((int(v.size/2), 2), order='F')
@@ -125,14 +128,19 @@ class BaseSIPProblem(BaseEMProblem):
                         df_dmFun = getattr(f, '_{0!s}Deriv'.format(rx.projField), None)
                         df_dm_v0 = df_dmFun(src, du_dm_v0, v0, adjoint=False)
                         df_dm_v1 = df_dmFun(src, du_dm_v1, v1, adjoint=False)
-                        Jv[src, rx, t] = rx.evalDeriv(src, self.mesh, f, df_dm_v0)
-                        Jv[src, rx, t] += rx.evalDeriv(src, self.mesh, f, df_dm_v1)
+                        # Jv[src, rx, t] = rx.evalDeriv(src, self.mesh, f, df_dm_v0)
+                        # Jv[src, rx, t] += rx.evalDeriv(src, self.mesh, f, df_dm_v1)
+                        Jv.append(rx.evalDeriv(src, self.mesh, f, df_dm_v0) +
+                                  rx.evalDeriv(src, self.mesh, f, df_dm_v1))
+
         # Conductivity (d u / d log sigma)
         if self._formulation is 'EB':
-            return -Jv.tovec()
+            # return -Jv.tovec()
+            return -np.hstack(Jv)
         # Resistivity (d u / d log rho)
         if self._formulation is 'HJ':
-            return Jv.tovec()
+            # return Jv.tovec()
+            return np.hstack(Jv)
 
     def Jtvec(self, m, v, f=None):
         if f is None:
@@ -145,6 +153,7 @@ class BaseSIPProblem(BaseEMProblem):
             v = self.dataPair(self.survey, v)
 
         Jtv= np.zeros(m.size)
+
         for tind in range(len(self.survey.times)):
             t = self.survey.times[tind]
             for src in self.survey.srcList:
