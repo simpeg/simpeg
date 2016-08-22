@@ -366,7 +366,7 @@ where:
 TDEM Problem
 ============
 
-.. automodule:: SimPEG.EM.TDEM.TDEM
+.. automodule:: SimPEG.EM.TDEM.ProblemTDEM
     :show-inheritance:
     :members:
     :undoc-members:
