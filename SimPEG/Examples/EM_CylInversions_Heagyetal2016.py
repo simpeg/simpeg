@@ -5,6 +5,7 @@ from SimPEG.EM import FDEM, TDEM, mu_0
 import warnings
 import matplotlib.pyplot as plt
 
+
 def run(plotIt=True):
     # Set up cylindrically symmeric mesh
     cs, ncx, ncz, npad = 10., 15, 25, 13  # padded cyl mesh
@@ -36,11 +37,14 @@ def run(plotIt=True):
     freqs = np.logspace(2, 3, 5)
     srcLoc = np.array([0., 0., 0.])
 
-    print 'min skin depth = ', 500./np.sqrt(freqs.max() * sig_half), 'max skin depth = ', 500./np.sqrt(freqs.min() * sig_half)
-    print 'max x ', mesh.vectorCCx.max(), 'min z ', mesh.vectorCCz.min(), 'max z ', mesh.vectorCCz.max()
+    print('min skin depth = ', 500./np.sqrt(freqs.max() * sig_half),
+          'max skin depth = ', 500./np.sqrt(freqs.min() * sig_half))
+    print('max x ', mesh.vectorCCx.max(), 'min z ', mesh.vectorCCz.min(),
+          'max z ', mesh.vectorCCz.max())
 
     srcList = []
-    [srcList.append(FDEM.Src.MagDipole([bzr, bzi],freq, srcLoc,orientation='Z')) for freq in freqs]
+    [srcList.append(FDEM.Src.MagDipole([bzr, bzi], freq, srcLoc,
+                                       orientation='Z')) for freq in freqs]
 
     surveyFD = FDEM.Survey(srcList)
     prbFD = FDEM.Problem3D_b(mesh, mapping=mapping)
@@ -62,7 +66,7 @@ def run(plotIt=True):
     betaest = Directives.BetaEstimate_ByEig(beta0_ratio=2.)
     target = Directives.TargetMisfit()
 
-    inv = Inversion.BaseInversion(invProb, directiveList=[beta,target])
+    inv = Inversion.BaseInversion(invProb, directiveList=[beta, target])
     m0 = np.log(np.ones(mtrue.size)*sig_half)
     reg.alpha_s = 5e-1
     reg.alpha_x = 1.
@@ -72,9 +76,11 @@ def run(plotIt=True):
 
     # TDEM problem
     times = np.logspace(-4, np.log10(2e-3), 10)
-    print 'min diffusion distance ', 1.28*np.sqrt(times.min()/(sig_half*mu_0)), 'max diffusion distance ', 1.28*np.sqrt(times.max()/(sig_half*mu_0))
+    print('min diffusion distance ', 1.28*np.sqrt(times.min()/(sig_half*mu_0)),
+          'max diffusion distance ', 1.28*np.sqrt(times.max()/(sig_half*mu_0)))
     rx = TDEM.Rx(rxlocs, times, 'bz')
-    src = TDEM.Src.MagDipole([rx], waveform=TDEM.Src.StepOffWaveform(), loc=srcLoc) # same src location as FDEM problem
+    src = TDEM.Src.MagDipole([rx], waveform=TDEM.Src.StepOffWaveform(),
+                             loc=srcLoc) # same src location as FDEM problem
 
     surveyTD = TDEM.Survey([src])
     prbTD = TDEM.Problem3D_b(mesh, mapping=mapping)
@@ -109,10 +115,10 @@ def run(plotIt=True):
 
     if plotIt:
         import matplotlib
-        fig = plt.figure(figsize = (10,8))
-        ax0 = plt.subplot2grid((2,2), (0,0), rowspan=2)
-        ax1 = plt.subplot2grid((2,2), (0,1))
-        ax2 = plt.subplot2grid((2,2), (1,1))
+        fig = plt.figure(figsize = (10, 8))
+        ax0 = plt.subplot2grid((2, 2), (0, 0), rowspan=2)
+        ax1 = plt.subplot2grid((2, 2), (0, 1))
+        ax2 = plt.subplot2grid((2, 2), (1, 1))
 
         fs = 13 # fontsize
         matplotlib.rcParams['font.size'] = fs
@@ -126,10 +132,12 @@ def run(plotIt=True):
 
         ax0.set_xlabel('Conductivity (S/m)', fontsize = fs)
         ax0.set_ylabel('Depth (m)', fontsize = fs)
-        ax0.grid(which='both',color='k', alpha=0.5, linestyle='-', linewidth=0.2)
+        ax0.grid(which='both',color='k', alpha=0.5, linestyle='-',
+                 linewidth=0.2)
         ax0.legend(['True', 'FDEM', 'TDEM'], fontsize=fs, loc=4)
 
-        # plot the data misfits - negative b/c we choose positive to be in the direction of primary
+        # plot the data misfits - negative b/c we choose positive to be in the
+        # direction of primary
 
         ax1.plot(freqs, -surveyFD.dobs[::2], 'k-', lw=2)
         ax1.plot(freqs, -surveyFD.dobs[1::2], 'k--', lw=2)
@@ -146,21 +154,22 @@ def run(plotIt=True):
         ax2.grid(which='both', alpha=0.5, linestyle='-', linewidth=0.2)
         ax1.grid(which='both', alpha=0.5, linestyle='-', linewidth=0.2)
 
-        ax1.set_xlabel('Frequency (Hz)', fontsize = fs)
-        ax1.set_ylabel('Vertical magnetic field (-T)', fontsize = fs)
+        ax1.set_xlabel('Frequency (Hz)', fontsize=fs)
+        ax1.set_ylabel('Vertical magnetic field (-T)', fontsize=fs)
 
-        ax2.set_xlabel('Time (s)', fontsize = fs)
-        ax2.set_ylabel('Vertical magnetic field (-T)', fontsize = fs)
+        ax2.set_xlabel('Time (s)', fontsize=fs)
+        ax2.set_ylabel('Vertical magnetic field (-T)', fontsize=fs)
 
-        ax2.legend(("Obs", "Pred"), fontsize = fs)
-        ax1.legend(("Obs (real)", "Obs (imag)", "Pred (real)", "Pred (imag)"), fontsize = fs)
+        ax2.legend(("Obs", "Pred"), fontsize=fs)
+        ax1.legend(("Obs (real)", "Obs (imag)", "Pred (real)", "Pred (imag)"),
+                   fontsize=fs)
         ax1.set_xlim(freqs.max(), freqs.min())
 
-        ax0.set_title("(a) Recovered Models", fontsize = fs)
-        ax1.set_title("(b) FDEM observed vs. predicted", fontsize = fs)
-        ax2.set_title("(c) TDEM observed vs. predicted", fontsize = fs)
+        ax0.set_title("(a) Recovered Models", fontsize=fs)
+        ax1.set_title("(b) FDEM observed vs. predicted", fontsize=fs)
+        ax2.set_title("(c) TDEM observed vs. predicted", fontsize=fs)
 
-        plt.tight_layout(pad = 1.5)
+        plt.tight_layout(pad=1.5)
         plt.show()
 
 if __name__ == '__main__':
