@@ -1,1 +1,1 @@
-from Probs import eForm_ps
+from .Probs import eForm_ps

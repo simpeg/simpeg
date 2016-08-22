@@ -1,8 +1,10 @@
-import Utils
-import Maps
-import Mesh
+from __future__ import print_function
+from . import Utils
+from . import Maps
+from . import Mesh
 import numpy as np
 import scipy.sparse as sp
+from six import add_metaclass
 
 class RegularizationMesh(object):
     """
@@ -288,6 +290,7 @@ class RegularizationMesh(object):
         return self._cellDiffzStencil
 
 
+@add_metaclass(Utils.SimPEGMetaClass)
 class BaseRegularization(object):
     """
     **Base Regularization Class**
@@ -298,7 +301,7 @@ class BaseRegularization(object):
 
     """
 
-    __metaclass__ = Utils.SimPEGMetaClass
+    #__metaclass__ = Utils.SimPEGMetaClass
 
     counter = None
 
@@ -330,7 +333,7 @@ class BaseRegularization(object):
     @parent.setter
     def parent(self, p):
         if getattr(self,'_parent',None) is not None:
-            print 'Regularization has switched to a new parent!'
+            print('Regularization has switched to a new parent!')
         self._parent = p
 
     @property
@@ -456,7 +459,7 @@ class Simple(BaseRegularization):
 #    @property
 #    def Wsmooth(self):
 #        """Full smoothness regularization matrix W"""
-#        print 'wtf why are we using Wsmooth'
+#        print('wtf why are we using Wsmooth')
 #        raise NotImplementedError
 #        if getattr(self, '_Wsmooth', None) is None:
 #            wlist = (self.Wx,)
@@ -470,7 +473,7 @@ class Simple(BaseRegularization):
 #    @property
 #    def W(self):
 #        """Full regularization matrix W"""
-#        print 'wtf why are we using W'
+#        print('wtf why are we using W')
 #        if getattr(self, '_W', None) is None:
 #            wlist = (self.Wsmall, self.Wx)
 #            if self.regmesh.dim > 1:

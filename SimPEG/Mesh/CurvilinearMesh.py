@@ -1,8 +1,11 @@
+from __future__ import print_function
 from SimPEG import Utils, np
-from BaseMesh import BaseRectangularMesh
-from DiffOperators import DiffOperators
-from InnerProducts import InnerProducts
-from View import CurvView
+from SimPEG.Mesh.BaseMesh import BaseRectangularMesh
+from SimPEG.Mesh.DiffOperators import DiffOperators
+from SimPEG.Mesh.InnerProducts import InnerProducts
+from SimPEG.Mesh.View import CurvView
+
+from six import add_metaclass
 
 
 # Some helper functions.
@@ -24,8 +27,8 @@ def normalize3D(x):
 
 # Curvi Mesh
 
-class CurvilinearMesh(BaseRectangularMesh, DiffOperators, InnerProducts,
-                      CurvView):
+@add_metaclass(Utils.SimPEGMetaClass)
+class CurvilinearMesh(BaseRectangularMesh, DiffOperators, InnerProducts,CurvView):
     """
     CurvilinearMesh is a mesh class that deals with curvilinear meshes.
 
@@ -40,7 +43,7 @@ class CurvilinearMesh(BaseRectangularMesh, DiffOperators, InnerProducts,
             M.plotGrid(showIt=True)
     """
 
-    __metaclass__ = Utils.SimPEGMetaClass
+    #__metaclass__ = Utils.SimPEGMetaClass
 
     _meshType = 'Curv'
 
@@ -377,4 +380,4 @@ if __name__ == '__main__':
         X, Y = Utils.ndgrid(h1, h2, vector=False)
         M = CurvilinearMesh([X, Y])
 
-    print M.r(M.normals, 'F', 'Fx', 'V')
+    print(M.r(M.normals, 'F', 'Fx', 'V'))

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 import SimPEG as simpeg
 from SimPEG import MT

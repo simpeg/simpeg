@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Analytic solution of EM fields due to a plane wave
 
 import numpy as np, SimPEG as simpeg
@@ -96,7 +97,7 @@ def getImpedance(m1d,sigma,freq):
 
         for nr,hi in enumerate(h):
             # Calculate the wave number
-            # print nr,sigma[nr]
+            # print(nr,sigma[nr])
             k = np.sqrt(mu_0*eps_0*om**2 - 1j*mu_0*sigma[nr]*om)
             Z = (mu_0*om)/k
 

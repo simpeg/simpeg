@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 from SimPEG import Mesh, Utils, EM, Maps, np, SolverLU
 import SimPEG.EM.Static.DC as DC
@@ -42,7 +43,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
         try:
             from pymatsolver import MumpsSolver
             self.Solver = MumpsSolver
-        except ImportError, e:
+        except ImportError:
             self.Solver = SolverLU
 
     def test_Problem3D_N(self):
@@ -62,10 +63,10 @@ class IPProblemAnalyticTests(unittest.TestCase):
         err= np.linalg.norm((data-data_full)/data_full)**2 / data_full.size
         if err < 0.05:
             passed = True
-            print ">> IP forward test for Problem3D_N is passed"
+            print(">> IP forward test for Problem3D_N is passed")
         else:
             passed = False
-            print ">> IP forward test for Problem3D_N is failed"
+            print(">> IP forward test for Problem3D_N is failed")
         self.assertTrue(passed)
 
     def test_Problem3D_CC(self):
@@ -85,10 +86,10 @@ class IPProblemAnalyticTests(unittest.TestCase):
         err= np.linalg.norm((data-data_full)/data_full)**2 / data_full.size
         if err < 0.05:
             passed = True
-            print ">> IP forward test for Problem3D_CC is passed"
+            print(">> IP forward test for Problem3D_CC is passed")
         else:
             passed = False
-            print ">> IP forward test for Problem3D_CC is failed"
+            print(">> IP forward test for Problem3D_CC is failed")
         self.assertTrue(passed)
 
 if __name__ == '__main__':

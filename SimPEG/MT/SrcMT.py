@@ -3,8 +3,8 @@ from SimPEG.EM.FDEM.SrcFDEM import BaseSrc as FDEMBaseSrc
 from SimPEG.EM.Utils import omega
 from scipy.constants import mu_0
 from numpy.lib import recfunctions as recFunc
-from Utils.sourceUtils import homo1DModelSource
-from Utils import rec2ndarr
+from .Utils.sourceUtils import homo1DModelSource
+from .Utils import rec2ndarr
 import sys
 
 #################

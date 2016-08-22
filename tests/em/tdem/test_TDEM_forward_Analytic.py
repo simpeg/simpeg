@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 import numpy as np
 from SimPEG import Mesh, Maps, SolverLU
@@ -7,13 +8,13 @@ import matplotlib.pyplot as plt
 
 try:
     from pymatsolver import MumpsSolver
-except ImportError, e:
+except ImportError:
     MumpsSolver = SolverLU
 
 
 def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=None, showIt=False):
 
-    print '\nTesting sig_half = {0}, rxOffset= {1}'.format(sig_half, rxOffset)
+    print('\nTesting sig_half = {0}, rxOffset= {1}'.format(sig_half, rxOffset))
 
     if bounds is None:
         bounds = [1e-5, 1e-3]
@@ -55,7 +56,7 @@ def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=None, 
 
     ind = np.logical_and(rx.times > bounds[0], rx.times < bounds[1])
     log10diff = np.linalg.norm(np.log10(np.abs(bz_calc[ind])) - np.log10(np.abs(bz_ana[ind])))/np.linalg.norm(np.log10(np.abs(bz_ana[ind])))
-    print 'Difference: ', log10diff
+    print('Difference: ', log10diff)
 
     if showIt == True:
         plt.loglog(rx.times[bz_calc>0], bz_calc[bz_calc>0], 'r', rx.times[bz_calc<0], -bz_calc[bz_calc<0], 'r--')
