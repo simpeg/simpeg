@@ -73,7 +73,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
         problemDC = DC.Problem3D_CC(self.mesh)
         problemDC.Solver = self.Solver
         problemDC.pair(self.surveyDC)
-        data0 = self.surveyDC.dpred(s`elf.sigma0)
+        data0 = self.surveyDC.dpred(self.sigma0)
         finf = problemDC.fields(self.sigmaInf)
         datainf = self.surveyDC.dpred(self.sigmaInf, f=finf)
         problemIP = IP.Problem3D_CC(self.mesh, rho=1./self.sigmaInf, Ainv=problemDC.Ainv, f=finf)
