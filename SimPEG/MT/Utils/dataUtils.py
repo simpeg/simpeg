@@ -98,7 +98,7 @@ def plotMT1DModelData(problem, models, symList=None):
 
     # if not symList:
     #   symList = ['x']*len(models)
-    import plotDataTypes as pDt
+    from SimPEG.MT.Utils import plotDataTypes as pDt
     # Loop through the models.
     modelList = [problem.survey.mtrue]
     modelList.extend(models)
