@@ -1,3 +1,4 @@
+from __future__ import division
 import numpy as np
 import scipy.sparse as sp
 import SimPEG
@@ -145,7 +146,7 @@ class Fields3D_e(FieldsTDEM):
             s_m_src, _ = src.eval(self.survey.prob,
                                   self.survey.prob.times[tInd])
             s_m = s_m_src + s_m
-        return s_m  - self.edgeCurl * eSolution
+        return s_m - self.edgeCurl * eSolution
 
     def _dbdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
         if adjoint:

@@ -80,7 +80,7 @@ def run(plotIt=True):
           'max diffusion distance ', 1.28*np.sqrt(times.max()/(sig_half*mu_0)))
     rx = TDEM.Rx(rxlocs, times, 'bz')
     src = TDEM.Src.MagDipole([rx], waveform=TDEM.Src.StepOffWaveform(),
-                             loc=srcLoc) # same src location as FDEM problem
+                             loc=srcLoc)  # same src location as FDEM problem
 
     surveyTD = TDEM.Survey([src])
     prbTD = TDEM.Problem3D_b(mesh, mapping=mapping)
@@ -120,7 +120,7 @@ def run(plotIt=True):
         ax1 = plt.subplot2grid((2, 2), (0, 1))
         ax2 = plt.subplot2grid((2, 2), (1, 1))
 
-        fs = 13 # fontsize
+        fs = 13  # fontsize
         matplotlib.rcParams['font.size'] = fs
 
         # Plot the model
@@ -130,9 +130,9 @@ def run(plotIt=True):
         ax0.set_ylim(-700, 0)
         ax0.set_xlim(5e-3, 1e-1)
 
-        ax0.set_xlabel('Conductivity (S/m)', fontsize = fs)
-        ax0.set_ylabel('Depth (m)', fontsize = fs)
-        ax0.grid(which='both',color='k', alpha=0.5, linestyle='-',
+        ax0.set_xlabel('Conductivity (S/m)', fontsize=fs)
+        ax0.set_ylabel('Depth (m)', fontsize=fs)
+        ax0.grid(which='both', color='k', alpha=0.5, linestyle='-',
                  linewidth=0.2)
         ax0.legend(['True', 'FDEM', 'TDEM'], fontsize=fs, loc=4)
 
