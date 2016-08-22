@@ -103,17 +103,17 @@ class Fields3D_b(FieldsTDEM):
         _, s_e = src.eval(self.survey.prob, self.survey.prob.times[tInd])
         bSolution = self[[src], 'bSolution', tInd].flatten()
 
-        _, S_eDeriv = src.evalDeriv(self.survey.prob.times[tInd], self,
+        _, s_eDeriv = src.evalDeriv(self.survey.prob.times[tInd], self,
                                     adjoint=adjoint)
 
         if adjoint is True:
             return (self.MeSigmaIDeriv(-s_e + self.edgeCurl.T *
                                        (self.MfMui * bSolution)).T *
-                    v - S_eDeriv(self.MeSigmaI.T * v))
+                    v - s_eDeriv(self.MeSigmaI.T * v))
 
         return (self.MeSigmaIDeriv(-s_e + self.edgeCurl.T *
                                    (self.MfMui * bSolution)) *
-                v - self.MeSigmaI * S_eDeriv(v))
+                v - self.MeSigmaI * s_eDeriv(v))
 
 
 class Fields3D_e(FieldsTDEM):
@@ -154,9 +154,9 @@ class Fields3D_e(FieldsTDEM):
         return -self.edgeCurl * dun_dm_v
 
     def _dbdtDeriv_m(self, tInd, src, v, adjoint=False):
-        S_mDeriv, _ = src.evalDeriv(self.survey.prob.times[tInd], self,
+        s_mDeriv, _ = src.evalDeriv(self.survey.prob.times[tInd], self,
                                     adjoint=adjoint)
-        return S_mDeriv(v)
+        return s_mDeriv(v)
 
     def _b(self, eSolution, srcList, tInd):
         """

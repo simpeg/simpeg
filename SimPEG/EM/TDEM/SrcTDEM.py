@@ -97,28 +97,28 @@ class BaseSrc(SimPEG.Survey.BaseSrc):
         return Zero()
 
     def eval(self, prob, time):
-        S_m = self.S_m(prob, time)
-        S_e = self.S_e(prob, time)
-        return S_m, S_e
+        s_m = self.s_m(prob, time)
+        s_e = self.s_e(prob, time)
+        return s_m, s_e
 
     def evalDeriv(self, prob, time, v=None, adjoint=False):
         if v is not None:
-            return (self.S_mDeriv(prob, time, v, adjoint),
-                    self.S_eDeriv(prob, time, v, adjoint))
+            return (self.s_mDeriv(prob, time, v, adjoint),
+                    self.s_eDeriv(prob, time, v, adjoint))
         else:
-            return (lambda v: self.S_mDeriv(prob, time, v, adjoint),
-                    lambda v: self.S_eDeriv(prob, time, v, adjoint))
+            return (lambda v: self.s_mDeriv(prob, time, v, adjoint),
+                    lambda v: self.s_eDeriv(prob, time, v, adjoint))
 
-    def S_m(self, prob, time):
+    def s_m(self, prob, time):
         return Zero()
 
-    def S_e(self, prob, time):
+    def s_e(self, prob, time):
         return Zero()
 
-    def S_mDeriv(self, prob, time, v=None, adjoint=False):
+    def s_mDeriv(self, prob, time, v=None, adjoint=False):
         return Zero()
 
-    def S_eDeriv(self, prob, time, v=None, adjoint=False):
+    def s_eDeriv(self, prob, time, v=None, adjoint=False):
         return Zero()
 
 
@@ -198,22 +198,22 @@ class MagDipole(BaseSrc):
         # MeSigmaIDeriv = prob.MeSigmaIDeriv
         # MfMui = prob.MfMui
         # C = prob.mesh.edgeCurl
-        # S_e = self.S_e(prob, prob.t0)
+        # s_e = self.s_e(prob, prob.t0)
 
-        # # S_e doesn't depend on the model
+        # # s_e doesn't depend on the model
 
         # if adjoint:
-        #     return MeSigmaIDeriv( -S_e + C.T * ( MfMui * b ) ).T * v
+        #     return MeSigmaIDeriv( -s_e + C.T * ( MfMui * b ) ).T * v
 
-        # return MeSigmaIDeriv( -S_e + C.T * ( MfMui * b ) ) * v
+        # return MeSigmaIDeriv( -s_e + C.T * ( MfMui * b ) ) * v
 
-    def S_m(self, prob, time):
+    def s_m(self, prob, time):
         if self.waveform.hasInitialFields is False:
             # raise NotImplementedError
             return Zero()
         return Zero()
 
-    def S_e(self, prob, time):
+    def s_e(self, prob, time):
         b = self._bfromVectorPotential(prob)
         MfMui = prob.MfMui
         C = prob.mesh.edgeCurl
@@ -226,7 +226,7 @@ class MagDipole(BaseSrc):
             if prob._fieldType == 'b':
                 return Zero()
             elif prob._fieldType == 'e':
-                # Compute S_e from vector potential
+                # Compute s_e from vector potential
                 return C.T * (MfMui * b)
         else:
             # b = self._bfromVectorPotential(prob)

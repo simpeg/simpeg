@@ -322,18 +322,18 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         Srcs = self.survey.srcList
 
         if self._eqLocs is 'FE':
-            S_m = np.zeros((self.mesh.nF, len(Srcs)))
-            S_e = np.zeros((self.mesh.nE, len(Srcs)))
+            s_m = np.zeros((self.mesh.nF, len(Srcs)))
+            s_e = np.zeros((self.mesh.nE, len(Srcs)))
         elif self._eqLocs is 'EF':
-            S_m = np.zeros((self.mesh.nE, len(Srcs)))
-            S_e = np.zeros((self.mesh.nF, len(Srcs)))
+            s_m = np.zeros((self.mesh.nE, len(Srcs)))
+            s_e = np.zeros((self.mesh.nF, len(Srcs)))
 
         for i, src in enumerate(Srcs):
             smi, sei = src.eval(self, self.times[tInd])
-            S_m[:, i] = S_m[:, i] + smi
-            S_e[:, i] = S_e[:, i] + sei
+            s_m[:, i] = s_m[:, i] + smi
+            s_e[:, i] = s_e[:, i] + sei
 
-        return S_m, S_e
+        return s_m, s_e
 
     def getInitialFields(self):
 
@@ -512,9 +512,9 @@ class Problem3D_b(BaseTDEMProblem):
         MeSigmaI = self.MeSigmaI
         MfMui = self.MfMui
 
-        S_m, S_e = self.getSourceTerm(tInd)
+        s_m, s_e = self.getSourceTerm(tInd)
 
-        rhs = (C * (MeSigmaI * S_e) + S_m)
+        rhs = (C * (MeSigmaI * s_e) + s_m)
         if self._makeASymmetric is True:
             return MfMui.T * rhs
         return rhs
@@ -529,29 +529,29 @@ class Problem3D_b(BaseTDEMProblem):
 
         MfMui = self.MfMui
 
-        _, S_e = src.eval(self, self.times[tInd])
-        S_mDeriv, S_eDeriv = src.evalDeriv(self, self.times[tInd],
+        _, s_e = src.eval(self, self.times[tInd])
+        s_mDeriv, s_eDeriv = src.evalDeriv(self, self.times[tInd],
                                            adjoint=adjoint)
 
         if adjoint:
             if self._makeASymmetric is True:
                 v = self.MfMui * v
-            if isinstance(S_e, Utils.Zero):
+            if isinstance(s_e, Utils.Zero):
                 MeSigmaIDerivT_v = Utils.Zero()
             else:
-                MeSigmaIDerivT_v = MeSigmaIDeriv(S_e).T * C.T * v
+                MeSigmaIDerivT_v = MeSigmaIDeriv(s_e).T * C.T * v
 
-            RHSDeriv = (MeSigmaIDerivT_v + S_eDeriv( MeSigmaI.T * (C.T * v)) +
-                        S_mDeriv(v))
+            RHSDeriv = (MeSigmaIDerivT_v + s_eDeriv( MeSigmaI.T * (C.T * v)) +
+                        s_mDeriv(v))
 
             return RHSDeriv
 
-        if isinstance(S_e, Utils.Zero):
+        if isinstance(s_e, Utils.Zero):
             MeSigmaIDeriv_v = Utils.Zero()
         else:
-            MeSigmaIDeriv_v = MeSigmaIDeriv(S_e) * v
+            MeSigmaIDeriv_v = MeSigmaIDeriv(s_e) * v
 
-        temp = MeSigmaIDeriv_v + MeSigmaI * S_eDeriv(v) + S_mDeriv(v)
+        temp = MeSigmaIDeriv_v + MeSigmaI * s_eDeriv(v) + s_mDeriv(v)
 
         # TODO: this is because Zero class, which need to be modified
         if isinstance(temp, Utils.Zero) is False:
@@ -620,13 +620,13 @@ class Problem3D_e(BaseTDEMProblem):
         if tInd == len(self.timeSteps):
             tInd = tInd - 1
         dt = self.timeSteps[tInd]
-        S_m, S_e = self.getSourceTerm(tInd)
-        _, S_en1 = self.getSourceTerm(tInd-1)
-        return (-1./dt * (S_e - S_en1) +
-                self.mesh.edgeCurl.T * self.MfMui * S_m)
+        s_m, s_e = self.getSourceTerm(tInd)
+        _, s_en1 = self.getSourceTerm(tInd-1)
+        return (-1./dt * (s_e - s_en1) +
+                self.mesh.edgeCurl.T * self.MfMui * s_m)
 
     def getRHSDeriv(self, tInd, src, v, adjoint=False):
-        # right now, we are assuming that S_e, S_m do not depend on the model.
+        # right now, we are assuming that s_e, s_m do not depend on the model.
         return Utils.Zero()
 
 
