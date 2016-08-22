@@ -393,8 +393,8 @@ class TestCellGrad2D_Dirichlet(unittest.TestCase):
     #     self.orderTest()
 
     def setUp(self):
-        hx = np.random.rand(10.)
-        hz = np.random.rand(10.)
+        hx = np.random.rand(10)
+        hz = np.random.rand(10)
         self.mesh = Mesh.CylMesh([hx, 1,hz])
 
     def test_NotImplementedError(self):
@@ -405,8 +405,8 @@ class TestCellGrad2D_Dirichlet(unittest.TestCase):
 class TestAveragingSimple(unittest.TestCase):
 
     def setUp(self):
-        hx = np.random.rand(10.)
-        hz = np.random.rand(10.)
+        hx = np.random.rand(10)
+        hz = np.random.rand(10)
         self.mesh = Mesh.CylMesh([hx, 1,hz])
 
     def test_constantEdges(self):
