@@ -1,14 +1,16 @@
 from __future__ import print_function
 from . import Utils
-import numpy as np, scipy.sparse as sp
+import numpy as np
+import scipy.sparse as sp
 from six import add_metaclass
+
 
 class Property(object):
 
-    name           = ''
-    doc            = ''
+    name = ''
+    doc = ''
 
-    defaultVal     = None
+    defaultVal = None
     defaultInvProp = False
 
     def __init__(self, doc, **kwargs):
@@ -20,6 +22,7 @@ class Property(object):
     def propertyLink(self):
         "Can be something like: ('sigma', Maps.ReciprocalMap)"
         return getattr(self, '_propertyLink', None)
+
     @propertyLink.setter
     def propertyLink(self, value):
         from .Maps import IdentityMap
@@ -28,8 +31,10 @@ class Property(object):
 
     def _getMapProperty(self):
         prop = self
+
         def fget(self):
             return getattr(self, '_{0!s}Map'.format(prop.name), None)
+
         def fset(self, val):
             if prop.propertyLink is not None:
                 linkName, linkMap = prop.propertyLink
@@ -40,14 +45,17 @@ class Property(object):
 
     def _getIndexProperty(self):
         prop = self
+
         def fget(self):
             return getattr(self, '_{0!s}Index'.format(prop.name), slice(None))
+
         def fset(self, val):
             setattr(self, '_{0!s}Index'.format(prop.name), val)
         return property(fget=fget, fset=fset, doc=prop.doc)
 
     def _getProperty(self):
         prop = self
+
         def fget(self):
             mapping = getattr(self, '{0!s}Map'.format(prop.name))
             if mapping is None and prop.propertyLink is None:
@@ -67,6 +75,7 @@ class Property(object):
 
     def _getModelDerivProperty(self):
         prop = self
+
         def fget(self):
             mapping = getattr(self, '{0!s}Map'.format(prop.name))
             if mapping is None and prop.propertyLink is None:
@@ -79,10 +88,10 @@ class Property(object):
                     return None
                 linkMap = linkMapClass(None) * linkedMap
                 m = getattr(self, '{0!s}Model'.format(linkName))
-                return linkMap.deriv( m )
+                return linkMap.deriv(m)
 
             m = getattr(self, '{0!s}Model'.format(prop.name))
-            return mapping.deriv( m )
+            return mapping.deriv(m)
         return property(fget=fget)
 
     def _getModelProperty(self):
@@ -97,6 +106,7 @@ class Property(object):
 
     def _getModelProjProperty(self):
         prop = self
+
         def fget(self):
             mapping = getattr(self, '{0!s}Map'.format(prop.name))
             if mapping is None:
@@ -110,10 +120,10 @@ class Property(object):
 
     def _getModelMapProperty(self):
         prop = self
+
         def fget(self):
             return getattr(self.propMap, '_{0!s}Map'.format(prop.name), None)
         return property(fget=fget)
-
 
 
 class PropModel(object):
@@ -140,8 +150,8 @@ class PropModel(object):
         return val in self.propMap
 
 
-
 _PROPMAPCLASSREGISTRY = {}
+
 
 class _PropMapMetaClass(type):
     def __new__(cls, name, bases, attrs):
