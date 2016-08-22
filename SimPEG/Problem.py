@@ -4,6 +4,7 @@ from . import Survey
 from . import Models
 import numpy as np
 from . import Maps
+from .Fields import Fields, TimeFields
 from . import Mesh
 
 

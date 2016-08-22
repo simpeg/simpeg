@@ -4,6 +4,7 @@ import numpy as np
 import scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
 from .Tests import checkDerivative
+from .PropMaps import PropMap, Property
 from numpy.polynomial import polynomial
 from scipy.interpolate import UnivariateSpline
 import warnings

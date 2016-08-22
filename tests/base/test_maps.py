@@ -96,12 +96,12 @@ class MapTests(unittest.TestCase):
             self.assertLess((mod.transformDeriv - combo.deriv(m)).toarray().sum(), TOL)
 
     def test_tripleMultiply(self):
-        M = Mesh.TensorMesh([2,4],'0C')
+        M = Mesh.TensorMesh([2, 4], '0C')
         expMap = Maps.ExpMap(M)
         vertMap = Maps.SurjectVertical1D(M)
-        actMap = Maps.InjectActiveCells(M, M.vectorCCy <=0, 10, nC=M.nCy)
-        m = np.r_[1,2.]
-        t_true = np.exp(np.r_[1,1,2,2,10,10,10,10.])
+        actMap = Maps.InjectActiveCells(M, M.vectorCCy <= 0, 10, nC=M.nCy)
+        m = np.r_[1, 2.]
+        t_true = np.exp(np.r_[1, 1, 2, 2, 10, 10, 10, 10.])
         self.assertLess(np.linalg.norm((expMap * vertMap * actMap * m)-t_true,np.inf),TOL)
         self.assertLess(np.linalg.norm(((expMap * vertMap * actMap) * m)-t_true,np.inf),TOL)
         self.assertLess(np.linalg.norm((expMap * vertMap * (actMap * m))-t_true,np.inf),TOL)
@@ -118,18 +118,15 @@ class MapTests(unittest.TestCase):
         m = np.random.rand(M2.nC)
 
         for m2to3 in [Maps.Surject2Dto3D(M3, normal='X'), Maps.Map2Dto3D(M3, normal='X')]:
-        # m2to3 = Maps.Surject2Dto3D(M3, normal='X')
             m = np.arange(m2to3.nP)
             self.assertTrue(m2to3.test())
             self.assertTrue(np.all(Utils.mkvc( (m2to3 * m).reshape(M3.vnC,order='F')[0,:,:] ) == m))
-
 
     def test_map2Dto3D_y(self):
         M2 = Mesh.TensorMesh([3,4])
         M3 = Mesh.TensorMesh([3,2,4])
         m = np.random.rand(M2.nC)
-        for m2to3 in [Maps.Surject2Dto3D(M3, normal='Y'),Maps.Map2Dto3D(M3, normal='Y')]:
-        # m2to3 = Maps.Surject2Dto3D(M3, normal='Y')
+        for m2to3 in [Maps.Surject2Dto3D(M3, normal='Y'), Maps.Map2Dto3D(M3, normal='Y')]:
             m = np.arange(m2to3.nP)
             self.assertTrue(m2to3.test())
             self.assertTrue(np.all(Utils.mkvc( (m2to3 * m).reshape(M3.vnC,order='F')[:,0,:] ) == m))
@@ -138,11 +135,10 @@ class MapTests(unittest.TestCase):
         M2 = Mesh.TensorMesh([3,2])
         M3 = Mesh.TensorMesh([3,2,4])
         m = np.random.rand(M2.nC)
-        for m2to3 in [Maps.Surject2Dto3D(M3, normal='Z'),Maps.Map2Dto3D(M3, normal='Z')]:
-        # m2to3 = Maps.Surject2Dto3D(M3, normal='Z')
+        for m2to3 in [Maps.Surject2Dto3D(M3, normal='Z'), Maps.Map2Dto3D(M3, normal='Z')]:
             m = np.arange(m2to3.nP)
             self.assertTrue(m2to3.test())
-            self.assertTrue(np.all(Utils.mkvc( (m2to3 * m).reshape(M3.vnC,order='F')[:,:,0] ) == m))
+            self.assertTrue(np.all(Utils.mkvc( (m2to3 * m).reshape(M3.vnC, order='F')[:,:,0] ) == m))
 
 
 if __name__ == '__main__':
