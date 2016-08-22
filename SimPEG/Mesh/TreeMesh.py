@@ -103,12 +103,7 @@ from .InnerProducts import InnerProducts
 from .TensorMesh import TensorMesh, BaseTensorMesh
 from .MeshIO import TreeMeshIO
 import time
-
-import sys
-if sys.version_info <(3,):
-    int_types=[int,long,]
-else:
-    int_types=[int,]
+from six import integer_types
 
 MAX_BITS = 20
 
@@ -415,7 +410,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
         return TreeUtils.index(self.dim, MAX_BITS, self._levelBits, pointer[:-1], pointer[-1])
 
     def _pointer(self, index):
-        assert type(index) in int_types
+        assert type(index) in integer_types
         return TreeUtils.point(self.dim, MAX_BITS, self._levelBits, index)
 
     def __contains__(self, v):
@@ -423,7 +418,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
 
     def refine(self, function=None, recursive=True, cells=None, balance=True, verbose=False, _inRecursion=False):
 
-        if type(function) in int_types:
+        if type(function) in integer_types:
             level = function
             function = lambda cell: level
 
@@ -440,7 +435,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
             result = function(Cell(self, cell, p))
             if type(result) is bool:
                 do = result
-            elif type(result) in int_types:
+            elif type(result) in integer_types:
                 do = result > p[-1]
             else:
                 raise Exception('You must tell the program what to refine. Use BOOL or INT (level)')
@@ -458,7 +453,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
 
     def corsen(self, function=None, recursive=True, cells=None, balance=True, verbose=False, _inRecursion=False):
 
-        if type(function) in int_types:
+        if type(function) in integer_types:
             level = function
             function = lambda cell: level
 
@@ -476,7 +471,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
             result = function(Cell(self, cell, p))
             if type(result) is bool:
                 do = result
-            elif type(result) in int_types:
+            elif type(result) in integer_types:
                 do = result < p[-1]
             else:
                 raise Exception('You must tell the program what to corsen. Use BOOL or INT (level)')
@@ -517,7 +512,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
         return [parentInd]
 
     def _asPointer(self, ind):
-        if type(ind) in int_types:
+        if type(ind) in integer_types:
             return self._pointer(ind)
         if type(ind) is list:
             assert len(ind) == (self.dim + 1), str(ind) +' is not valid pointer'
@@ -528,7 +523,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
         raise Exception
 
     def _asIndex(self, pointer):
-        if type(pointer) in int_types:
+        if type(pointer) in integer_types:
             return pointer
         if type(pointer) is list:
             return self._index(pointer)
@@ -662,7 +657,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
 
             if do and cell in self:
                 newCells = self._refineCell(cell)
-                recurse.update([_ for _ in cs if type(_) in int_types]) # only add the bigger ones!
+                recurse.update([_ for _ in cs if type(_) in integer_types]) # only add the bigger ones!
                 recurse.update(newCells)
 
         if verbose: print('   ', len(cells), time.time() - tic)
@@ -2160,7 +2155,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
 
         szSliceDim = len(getattr(self, 'h'+normal.lower())) #: Size of the sliced dimension
         if ind is None: ind = int(szSliceDim//2)
-        assert type(ind) in int_types, 'ind must be an integer'
+        assert type(ind) in integer_types, 'ind must be an integer'
         indLoc = getattr(self,'vectorCC'+normal.lower())[ind]
         normalInd = {'X':0,'Y':1,'Z':2}[normal]
         antiNormalInd = {'X':[1,2],'Y':[0,2],'Z':[0,1]}[normal]
