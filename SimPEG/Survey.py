@@ -3,7 +3,7 @@ from . import Utils
 import numpy as np
 import scipy.sparse as sp
 import uuid
-from six import add_metaclass
+
 
 class BaseRx(object):
     """SimPEG Receiver Object"""
@@ -206,11 +206,8 @@ class Data(object):
                 indBot += rx.nD
 
 
-@add_metaclass(Utils.SimPEGMetaClass)
 class BaseSurvey(object):
     """Survey holds the observed data, and the standard deviations."""
-
-    #__metaclass__ = Utils.SimPEGMetaClass
 
     std = None       #: Estimated Standard Deviations
     eps = None       #: Estimated Noise Floor

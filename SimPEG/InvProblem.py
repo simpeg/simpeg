@@ -8,13 +8,10 @@ import gc
 from .Utils.SolverUtils import *
 from . import DataMisfit
 from . import Regularization
-from six import add_metaclass
 
-@add_metaclass(Utils.SimPEGMetaClass)
+
 class BaseInvProblem(object):
     """BaseInvProblem(dmisfit, reg, opt)"""
-
-    #__metaclass__ = Utils.SimPEGMetaClass
 
     beta    = 1.0    #: Trade-off parameter
 

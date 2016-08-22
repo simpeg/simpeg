@@ -14,8 +14,9 @@ try:
     name = getpass.getuser()[0].upper() + getpass.getuser()[1:]
 except Exception as e:
     name = 'You'
-happiness = ['The test be workin!', 'You get a gold star!', 'Yay passed!', 'Happy little convergence test!', 'That was easy!', 'Testing is important.', 'You are awesome.', 'Go Test Go!', 'Once upon a time, a happy little test passed.', 'And then everyone was happy.','Not just a pretty face '+name,'You deserve a pat on the back!','Well done '+name+'!', 'Awesome, '+name+', just awesome.']
-sadness = ['No gold star for you.','Try again soon.','Thankfully, persistence is a great substitute for talent.','It might be easier to call this a feature...','Coffee break?', 'Boooooooo  :(', 'Testing is important. Do it again.',"Did you put your clever trousers on today?",'Just think about a dancing dinosaur and life will get better!','You had so much promise '+name+', oh well...', name.upper()+' ERROR!','Get on it '+name+'!', 'You break it, you fix it.']
+happiness = ['The test be workin!', 'You get a gold star!', 'Yay passed!', 'Happy little convergence test!', 'That was easy!', 'Testing is important.', 'You are awesome.', 'Go Test Go!', 'Once upon a time, a happy little test passed.', 'And then everyone was happy.','Not just a pretty face '+name, 'You deserve a pat on the back!', 'Well done '+name+'!', 'Awesome, '+name+', just awesome.']
+sadness = ['No gold star for you.', 'Try again soon.', 'Thankfully,  persistence is a great substitute for talent.', 'It might be easier to call this a feature...', 'Coffee break?',  'Boooooooo  :(',  'Testing is important. Do it again.', "Did you put your clever trousers on today?", 'Just think about a dancing dinosaur and life will get better!', 'You had so much promise '+name+', oh well...', name.upper()+' ERROR!', 'Get on it '+name+'!', 'You break it, you fix it.']
+
 
 class OrderTest(unittest.TestCase):
     """

@@ -4,7 +4,7 @@ from . import Maps
 from . import Mesh
 import numpy as np
 import scipy.sparse as sp
-from six import add_metaclass
+
 
 class RegularizationMesh(object):
     """
@@ -290,7 +290,6 @@ class RegularizationMesh(object):
         return self._cellDiffzStencil
 
 
-@add_metaclass(Utils.SimPEGMetaClass)
 class BaseRegularization(object):
     """
     **Base Regularization Class**
@@ -300,8 +299,6 @@ class BaseRegularization(object):
         reg = Regularization(mesh)
 
     """
-
-    #__metaclass__ = Utils.SimPEGMetaClass
 
     counter = None
 

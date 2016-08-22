@@ -1,14 +1,15 @@
 from __future__ import print_function
 from . import Utils
-import numpy as np, scipy.sparse as sp
+import numpy as np
+import scipy.sparse as sp
 from .Utils.SolverUtils import *
-from six import add_metaclass
 norm = np.linalg.norm
 
 
 __all__ = ['Minimize', 'Remember', 'SteepestDescent', 'BFGS', 'GaussNewton', 'InexactGaussNewton', 'ProjectedGradient', 'NewtonRoot', 'StoppingCriteria', 'IterationPrinters']
 
 SolverICG = SolverWrapI(sp.linalg.cg, checkAccuracy=False)
+
 
 class StoppingCriteria(object):
     """docstring for StoppingCriteria"""
@@ -81,13 +82,10 @@ class IterationPrinters(object):
     phi_m = {"title": "phi_m", "value": lambda M: M.parent.phi_m, "width": 10, "format":   "%1.2e"}
 
 
-@add_metaclass(Utils.SimPEGMetaClass)
 class Minimize(object):
     """
         Minimize is a general class for derivative based optimization.
     """
-
-    #__metaclass__ = Utils.SimPEGMetaClass
 
     name = "General Optimization Algorithm"  #: The name of the optimization algorithm
 

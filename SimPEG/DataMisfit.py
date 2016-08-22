@@ -1,14 +1,9 @@
 from __future__ import print_function
 import numpy as np
-import scipy.sparse as sp
-import gc
 from SimPEG import Utils
 from SimPEG import Survey
-from SimPEG import Problem
 
-from six import add_metaclass
 
-@add_metaclass(Utils.SimPEGMetaClass)
 class BaseDataMisfit(object):
     """BaseDataMisfit
 
@@ -16,8 +11,6 @@ class BaseDataMisfit(object):
 
             You should inherit from this class to create your own data misfit term.
     """
-
-    #__metaclass__ = Utils.SimPEGMetaClass
 
     debug   = False  #: Print debugging information
     counter = None   #: Set this to a SimPEG.Utils.Counter() if you want to count things

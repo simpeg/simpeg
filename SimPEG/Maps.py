@@ -4,25 +4,16 @@ import numpy as np
 import scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
 from .Tests import checkDerivative
-from .PropMaps import PropMap, Property
 from numpy.polynomial import polynomial
 from scipy.interpolate import UnivariateSpline
 import warnings
+from six import integer_types
 
-import sys
-if(sys.version_info < (3,)):
-    integer_types = [int,long,]
-else:
-    integer_types = [int,]
-from six import add_metaclass
 
-@add_metaclass(Utils.SimPEGMetaClass)
 class IdentityMap(object):
     """
-    SimPEG Map
-
+        SimPEG Map
     """
-    #__metaclass__ = Utils.SimPEGMetaClass
 
     def __init__(self, mesh=None, nP=None, **kwargs):
         Utils.setKwargs(self, **kwargs)
@@ -31,7 +22,7 @@ class IdentityMap(object):
             assert type(nP) in integer_types, ' Number of parameters must be an integer.'
 
         self.mesh = mesh
-        self._nP  = nP
+        self._nP = nP
 
     @property
     def nP(self):
@@ -249,6 +240,7 @@ class ExpMap(IdentityMap):
         """
         return Utils.sdiag(np.exp(Utils.mkvc(m)))
 
+
 class ReciprocalMap(IdentityMap):
     """
         Reciprocal mapping. For example, electrical resistivity and conductivity.
@@ -261,13 +253,12 @@ class ReciprocalMap(IdentityMap):
     def _transform(self, m):
         return 1.0 / Utils.mkvc(m)
 
-    def inverse(self, D):
+    def inverse(self, m):
         return 1.0 / Utils.mkvc(m)
 
     def deriv(self, m):
         # TODO: if this is a tensor, you might have a problem.
-        return Utils.sdiag( - Utils.mkvc(m)**(-2) )
-
+        return Utils.sdiag(-Utils.mkvc(m)**(-2))
 
 
 class LogMap(IdentityMap):
@@ -300,13 +291,14 @@ class LogMap(IdentityMap):
     def deriv(self, m):
         mod = Utils.mkvc(m)
         deriv = np.zeros(mod.shape)
-        tol = 1e-16 # zero
-        ind = np.greater_equal(np.abs(mod),tol)
+        tol = 1e-16   # zero
+        ind = np.greater_equal(np.abs(mod), tol)
         deriv[ind] = 1.0/mod[ind]
         return Utils.sdiag(deriv)
 
     def inverse(self, m):
         return np.exp(Utils.mkvc(m))
+
 
 class SurjectFull(IdentityMap):
     """
@@ -317,7 +309,7 @@ class SurjectFull(IdentityMap):
     """
 
     def __init__(self,mesh,**kwargs):
-        IdentityMap.__init__(self, mesh,**kwargs)
+        IdentityMap.__init__(self, mesh, **kwargs)
 
     @property
     def nP(self):
@@ -986,9 +978,3 @@ class SplineMap(IdentityMap):
         else :
             raise(Exception("Not Implemented for Y and Z, your turn :)"))
         return sp.csr_matrix(np.c_[g1,g2,g3])
-
-
-
-
-
-

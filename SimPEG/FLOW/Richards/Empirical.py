@@ -1,15 +1,11 @@
-from SimPEG import Mesh, Maps, Utils, np
+from SimPEG import Mesh, Utils, np
 
-from six import add_metaclass
 
-@add_metaclass(Utils.SimPEGMetaClass)
 class NonLinearMap(object):
     """
     SimPEG NonLinearMap
 
     """
-
-    #__metaclass__ = Utils.SimPEGMetaClass
 
     counter = None   #: A SimPEG.Utils.Counter object
     mesh = None      #: A SimPEG Mesh

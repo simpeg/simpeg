@@ -4,7 +4,7 @@ from .matutils import (mkvc, sdiag, sdInv, speye, kron3, spzeros, ddx, av,
                       inv3X3BlockDiagonal, inv2X2BlockDiagonal, TensorType,
                       makePropertyTensor, invPropertyTensor, diagEst, Zero,
                       Identity)
-from .codeutils import (SimPEGMetaClass, memProfileWrapper, hook, setKwargs,
+from .codeutils import (memProfileWrapper, hook, setKwargs,
                        printTitles, printLine, checkStoppers, printStoppers,
                        callHooks, dependentProperty, isScalar, asArray_N_x_Dim,
                        requires)

@@ -1,7 +1,7 @@
 from __future__ import print_function
 import numpy as np
 from SimPEG import Mesh, Maps, Utils, SolverLU
-from SimPEG.EM import FDEM, Analytics, mu_0
+from SimPEG.EM import FDEM, Analytics
 import time
 
 try:
@@ -260,7 +260,7 @@ def run(plotIt=True):
     # integrate to get z-current inside casing
     inds_inx = ((mesh.gridFz[:, 0] >= casing_a) &
                 (mesh.gridFz[:, 0] <= casing_b))
-    inds_inz = (mesh.gridFz[:, 2] >= dsz )     & (mesh.gridFz[:, 2] <= 0)
+    inds_inz = (mesh.gridFz[:, 2] >= dsz ) & (mesh.gridFz[:, 2] <= 0)
     inds_fz = inds_inx & inds_inz
 
     indsx = [False]*mesh.nFx

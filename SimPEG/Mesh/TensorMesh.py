@@ -6,12 +6,9 @@ from .DiffOperators import DiffOperators
 from .InnerProducts import InnerProducts
 from .MeshIO import TensorMeshIO
 import warnings
-from six import add_metaclass
 
-@add_metaclass(Utils.SimPEGMetaClass)
+
 class BaseTensorMesh(BaseMesh):
-
-    #__metaclass__ = Utils.SimPEGMetaClass
 
     _meshType = 'BASETENSOR'
 
@@ -445,8 +442,7 @@ class BaseTensorMesh(BaseMesh):
             return None
 
 
-@add_metaclass(Utils.SimPEGMetaClass)
-class TensorMesh(BaseTensorMesh, BaseRectangularMesh, TensorView, DiffOperators, 
+class TensorMesh(BaseTensorMesh, BaseRectangularMesh, TensorView, DiffOperators,
       InnerProducts, TensorMeshIO):
     """
     TensorMesh is a mesh class that deals with tensor product meshes.
@@ -476,8 +472,6 @@ class TensorMesh(BaseTensorMesh, BaseRectangularMesh, TensorView, DiffOperators,
         mesh = Mesh.TensorMesh([10, 12, 15])
 
     """
-
-    #__metaclass__ = Utils.SimPEGMetaClass
 
     _meshType = 'TENSOR'
 
