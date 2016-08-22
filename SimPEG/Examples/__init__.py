@@ -2,30 +2,30 @@ from __future__ import print_function
 # Run this file to add imports.
 
 ##### AUTOIMPORTS #####
-from . import DC_Analytic_Dipole
-from . import EM_FDEM_1D_Inversion
-from . import EM_FDEM_Analytic_MagDipoleWholespace
-from . import EM_Schenkel_Morrison_Casing
-from . import EM_TDEM_1D_Inversion
-from . import FLOW_Richards_1D_Celia1990
-from . import Inversion_IRLS
-from . import Inversion_Linear
-from . import Maps_ComboMaps
-from . import Maps_Mesh2Mesh
-from . import Mesh_Basic_ForwardDC
-from . import Mesh_Basic_PlotImage
-from . import Mesh_Basic_Types
-from . import Mesh_Operators_CahnHilliard
-from . import Mesh_QuadTree_Creation
-from . import Mesh_QuadTree_FaceDiv
-from . import Mesh_QuadTree_HangingNodes
-from . import Mesh_Tensor_Creation
-from . import MT_1D_ForwardAndInversion
-from . import MT_3D_Foward
-from . import PF_Gravity_Inversion_Linear
-from . import PF_Magnetics_Analytics
-from . import PF_Magnetics_Inversion_Linear
-from . import Utils_surface2ind_topo
+from SimPEG.Examples import DC_Analytic_Dipole
+from SimPEG.Examples import EM_FDEM_1D_Inversion
+from SimPEG.Examples import EM_FDEM_Analytic_MagDipoleWholespace
+from SimPEG.Examples import EM_Schenkel_Morrison_Casing
+from SimPEG.Examples import EM_TDEM_1D_Inversion
+from SimPEG.Examples import FLOW_Richards_1D_Celia1990
+from SimPEG.Examples import Inversion_IRLS
+from SimPEG.Examples import Inversion_Linear
+from SimPEG.Examples import Maps_ComboMaps
+from SimPEG.Examples import Maps_Mesh2Mesh
+from SimPEG.Examples import Mesh_Basic_ForwardDC
+from SimPEG.Examples import Mesh_Basic_PlotImage
+from SimPEG.Examples import Mesh_Basic_Types
+from SimPEG.Examples import Mesh_Operators_CahnHilliard
+from SimPEG.Examples import Mesh_QuadTree_Creation
+from SimPEG.Examples import Mesh_QuadTree_FaceDiv
+from SimPEG.Examples import Mesh_QuadTree_HangingNodes
+from SimPEG.Examples import Mesh_Tensor_Creation
+from SimPEG.Examples import MT_1D_ForwardAndInversion
+from SimPEG.Examples import MT_3D_Foward
+from SimPEG.Examples import PF_Gravity_Inversion_Linear
+from SimPEG.Examples import PF_Magnetics_Analytics
+from SimPEG.Examples import PF_Magnetics_Inversion_Linear
+from SimPEG.Examples import Utils_surface2ind_topo
 
 __examples__ = ["DC_Analytic_Dipole", "EM_FDEM_1D_Inversion", "EM_FDEM_Analytic_MagDipoleWholespace", "EM_Schenkel_Morrison_Casing", "EM_TDEM_1D_Inversion", "FLOW_Richards_1D_Celia1990", "Inversion_IRLS", "Inversion_Linear", "Maps_ComboMaps", "Maps_Mesh2Mesh", "Mesh_Basic_ForwardDC", "Mesh_Basic_PlotImage", "Mesh_Basic_Types", "Mesh_Operators_CahnHilliard", "Mesh_QuadTree_Creation", "Mesh_QuadTree_FaceDiv", "Mesh_QuadTree_HangingNodes", "Mesh_Tensor_Creation", "MT_1D_ForwardAndInversion", "MT_3D_Foward", "PF_Gravity_Inversion_Linear", "PF_Magnetics_Analytics", "PF_Magnetics_Inversion_Linear", "Utils_surface2ind_topo"]
 
@@ -52,7 +52,7 @@ if __name__ == '__main__':
     exfiles  = [f[:-3] for f in os.listdir(thispath) if os.path.isfile(os.path.join(thispath, f)) and f.endswith('.py') and not f.startswith('_')]
 
     # Add the imports to the top in the AUTOIMPORTS section
-    f = file(fName, 'r')
+    f = open(fName, 'r')
     inimports = False
     out = ''
     for line in f:
@@ -62,12 +62,12 @@ if __name__ == '__main__':
         if line == "##### AUTOIMPORTS #####\n":
             inimports = not inimports
             if inimports:
-                out += '\n'.join(["import {0!s}".format(_) for _ in exfiles])
+                out += '\n'.join(["from SimPEG.Examples import {0!s}".format(_) for _ in exfiles]) 
                 out += '\n\n__examples__ = ["' + '", "'.join(exfiles)+ '"]\n'
                 out += '\n##### AUTOIMPORTS #####\n'
     f.close()
 
-    f = file(fName, 'w')
+    f = open(fName, 'w')
     f.write(out)
     f.close()
 
@@ -113,6 +113,6 @@ if __name__ == '__main__':
         f.close()
 
     for ex in dir(Examples):
-        if ex.startswith('_'): continue
+        if ex.startswith('_') or ex.startswith('print_function'): continue
         E = getattr(Examples,ex)
         _makeExample(E.__file__, E.run)

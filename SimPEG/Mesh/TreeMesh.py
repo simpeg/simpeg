@@ -2029,13 +2029,13 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
                 ax.plot(self.gridCC[[0,-1],0], self.gridCC[[0,-1],1], 'ro')
             if nodes:
                 ax.plot(self._gridN[:,0], self._gridN[:,1], 'ms')
-                ax.plot(self._gridN[self._hangingN.keys(),0], self._gridN[self._hangingN.keys(),1], 'ms', ms=10, mfc='none', mec='m')
+                ax.plot(self._gridN[list(self._hangingN.keys()),0], self._gridN[list(self._hangingN.keys()),1], 'ms', ms=10, mfc='none', mec='m')
             if facesX:
                 ax.plot(self._gridFx[:,0], self._gridFx[:,1], 'g>')
-                ax.plot(self._gridFx[self._hangingFx.keys(),0], self._gridFx[self._hangingFx.keys(),1], 'gs', ms=10, mfc='none', mec='g')
+                ax.plot(self._gridFx[list(self._hangingFx.keys()),0], self._gridFx[list(self._hangingFx.keys()),1], 'gs', ms=10, mfc='none', mec='g')
             if facesY:
                 ax.plot(self._gridFy[:,0], self._gridFy[:,1], 'g^')
-                ax.plot(self._gridFy[self._hangingFy.keys(),0], self._gridFy[self._hangingFy.keys(),1], 'gs', ms=10, mfc='none', mec='g')
+                ax.plot(self._gridFy[list(self._hangingFy.keys()),0], self._gridFy[list(self._hangingFy.keys()),1], 'gs', ms=10, mfc='none', mec='g')
             ax.set_xlabel('x1')
             ax.set_ylabel('x2')
         elif self.dim == 3:
@@ -2047,7 +2047,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
 
             if nodes:
                 ax.plot(self._gridN[:,0], self._gridN[:,1], 'ms', zs=self._gridN[:,2])
-                ax.plot(self._gridN[self._hangingN.keys(),0], self._gridN[self._hangingN.keys(),1], 'ms', ms=10, mfc='none', mec='m', zs=self._gridN[self._hangingN.keys(),2])
+                ax.plot(self._gridN[list(self._hangingN.keys()),0], self._gridN[list(self._hangingN.keys()),1], 'ms', ms=10, mfc='none', mec='m', zs=self._gridN[list(self._hangingN.keys()),2])
                 for key in self._hangingN.keys():
                     for hf in self._hangingN[key]:
                         ind = [key, hf[0]]
@@ -2055,7 +2055,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
 
             if facesX:
                 ax.plot(self._gridFx[:,0], self._gridFx[:,1], 'g>', zs=self._gridFx[:,2])
-                ax.plot(self._gridFx[self._hangingFx.keys(),0], self._gridFx[self._hangingFx.keys(),1], 'gs', ms=10, mfc='none', mec='g', zs=self._gridFx[self._hangingFx.keys(),2])
+                ax.plot(self._gridFx[list(self._hangingFx.keys()),0], self._gridFx[list(self._hangingFx.keys()),1], 'gs', ms=10, mfc='none', mec='g', zs=self._gridFx[list(self._hangingFx.keys()),2])
                 for key in self._hangingFx.keys():
                     for hf in self._hangingFx[key]:
                         ind = [key, hf[0]]
@@ -2063,7 +2063,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
 
             if facesY:
                 ax.plot(self._gridFy[:,0], self._gridFy[:,1], 'g^', zs=self._gridFy[:,2])
-                ax.plot(self._gridFy[self._hangingFy.keys(),0], self._gridFy[self._hangingFy.keys(),1], 'gs', ms=10, mfc='none', mec='g', zs=self._gridFy[self._hangingFy.keys(),2])
+                ax.plot(self._gridFy[list(self._hangingFy.keys()),0], self._gridFy[list(self._hangingFy.keys()),1], 'gs', ms=10, mfc='none', mec='g', zs=self._gridFy[list(self._hangingFy.keys()),2])
                 for key in self._hangingFy.keys():
                     for hf in self._hangingFy[key]:
                         ind = [key, hf[0]]
@@ -2071,7 +2071,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
 
             if facesZ:
                 ax.plot(self._gridFz[:,0], self._gridFz[:,1], 'g^', zs=self._gridFz[:,2])
-                ax.plot(self._gridFz[self._hangingFz.keys(),0], self._gridFz[self._hangingFz.keys(),1], 'gs', ms=10, mfc='none', mec='g', zs=self._gridFz[self._hangingFz.keys(),2])
+                ax.plot(self._gridFz[list(self._hangingFz.keys()),0], self._gridFz[list(self._hangingFz.keys()),1], 'gs', ms=10, mfc='none', mec='g', zs=self._gridFz[list(self._hangingFz.keys()),2])
                 for key in self._hangingFz.keys():
                     for hf in self._hangingFz[key]:
                         ind = [key, hf[0]]
@@ -2079,7 +2079,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
 
             if edgesX:
                 ax.plot(self._gridEx[:,0], self._gridEx[:,1], 'k>', zs=self._gridEx[:,2])
-                ax.plot(self._gridEx[self._hangingEx.keys(),0], self._gridEx[self._hangingEx.keys(),1], 'ks', ms=10, mfc='none', mec='k', zs=self._gridEx[self._hangingEx.keys(),2])
+                ax.plot(self._gridEx[list(self._hangingEx.keys()),0], self._gridEx[list(self._hangingEx.keys()),1], 'ks', ms=10, mfc='none', mec='k', zs=self._gridEx[list(self._hangingEx.keys()),2])
                 for key in self._hangingEx.keys():
                     for hf in self._hangingEx[key]:
                         ind = [key, hf[0]]
@@ -2087,7 +2087,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
 
             if edgesY:
                 ax.plot(self._gridEy[:,0], self._gridEy[:,1], 'k<', zs=self._gridEy[:,2])
-                ax.plot(self._gridEy[self._hangingEy.keys(),0], self._gridEy[self._hangingEy.keys(),1], 'ks', ms=10, mfc='none', mec='k', zs=self._gridEy[self._hangingEy.keys(),2])
+                ax.plot(self._gridEy[list(self._hangingEy.keys()),0], self._gridEy[list(self._hangingEy.keys()),1], 'ks', ms=10, mfc='none', mec='k', zs=self._gridEy[list(self._hangingEy.keys()),2])
                 for key in self._hangingEy.keys():
                     for hf in self._hangingEy[key]:
                         ind = [key, hf[0]]
@@ -2095,7 +2095,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
 
             if edgesZ:
                 ax.plot(self._gridEz[:,0], self._gridEz[:,1], 'k^', zs=self._gridEz[:,2])
-                ax.plot(self._gridEz[self._hangingEz.keys(),0], self._gridEz[self._hangingEz.keys(),1], 'ks', ms=10, mfc='none', mec='k', zs=self._gridEz[self._hangingEz.keys(),2])
+                ax.plot(self._gridEz[list(self._hangingEz.keys()),0], self._gridEz[list(self._hangingEz.keys()),1], 'ks', ms=10, mfc='none', mec='k', zs=self._gridEz[list(self._hangingEz.keys()),2])
                 for key in self._hangingEz.keys():
                     for hf in self._hangingEz[key]:
                         ind = [key, hf[0]]
