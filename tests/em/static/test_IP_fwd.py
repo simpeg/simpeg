@@ -43,7 +43,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
         try:
             from pymatsolver import MumpsSolver
             self.Solver = MumpsSolver
-        except ImportError as e:
+        except ImportError:
             self.Solver = SolverLU
 
     def test_Problem3D_N(self):

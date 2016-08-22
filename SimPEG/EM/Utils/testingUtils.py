@@ -85,7 +85,7 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
     try:
         from pymatsolver import MumpsSolver
         prb.Solver = MumpsSolver
-    except ImportError as e:
+    except ImportError:
         prb.Solver = SolverLU
 
     return prb

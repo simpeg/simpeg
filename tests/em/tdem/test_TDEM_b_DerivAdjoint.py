@@ -38,7 +38,7 @@ class TDEM_bDerivTests(unittest.TestCase):
         try:
             from pymatsolver import MumpsSolver
             self.prb.Solver = MumpsSolver
-        except ImportError as e:
+        except ImportError:
             self.prb.Solver = SolverLU
 
         self.sigma = np.ones(mesh.nCz)*1e-8

@@ -30,7 +30,7 @@ def run(plotIt=True):
     try:
         from pymatsolver import MumpsSolver
         problem.Solver = MumpsSolver
-    except Exception as e:
+    except Exception:
         pass
     data = survey.dpred(sigma)
 

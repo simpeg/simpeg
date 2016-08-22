@@ -5,7 +5,7 @@ from SimPEG.Mesh.DiffOperators import DiffOperators
 from SimPEG.Mesh.InnerProducts import InnerProducts
 from SimPEG.Mesh.View import CurvView
 
-from six import with_metaclass
+from six import add_metaclass
 
 
 # Some helper functions.
@@ -27,8 +27,8 @@ def normalize3D(x):
 
 # Curvi Mesh
 
-class CurvilinearMesh(with_metaclass(Utils.SimPEGMetaClass,
-      BaseRectangularMesh, DiffOperators, InnerProducts,CurvView)):
+@add_metaclass(Utils.SimPEGMetaClass)
+class CurvilinearMesh(BaseRectangularMesh, DiffOperators, InnerProducts,CurvView):
     """
     CurvilinearMesh is a mesh class that deals with curvilinear meshes.
 

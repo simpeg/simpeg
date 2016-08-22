@@ -51,7 +51,7 @@ class FDEM_analyticTests(unittest.TestCase):
         try:
             from pymatsolver import MumpsSolver
             prb.Solver = MumpsSolver
-        except ImportError as e:
+        except ImportError:
             prb.Solver = SolverLU
 
         sig = 1e-1

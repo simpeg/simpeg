@@ -239,7 +239,7 @@ def resampleMTdataAtFreq(MTdata,freqs):
         # Join together
         try:
             outRecArr = recFunc.stack_arrays((outRecArr,tArrRec))
-        except NameError as e:
+        except NameError:
             outRecArr = tArrRec
 
     # Make the MTdata and return

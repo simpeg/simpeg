@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 try:
     from pymatsolver import MumpsSolver
-except ImportError as e:
+except ImportError:
     MumpsSolver = SolverLU
 
 

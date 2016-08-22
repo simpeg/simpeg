@@ -8,7 +8,7 @@ from SimPEG.FLOW import Richards
 try:
     from pymatsolver import MumpsSolver
     Solver = MumpsSolver
-except Exception as e:
+except Exception:
     pass
 
 

@@ -36,7 +36,7 @@ def getProb(meshType='CYL',rxTypes='bx,bz',nSrc=1):
     try:
         from pymatsolver import MumpsSolver
         prb.Solver = MumpsSolver
-    except ImportError as e:
+    except ImportError:
         prb.Solver  = SolverLU
 
     sigma = np.ones(mesh.nCz)*1e-8

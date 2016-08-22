@@ -1,11 +1,16 @@
 from __future__ import print_function
 import numpy as np
 from SimPEG.Utils import mkvc
+import sys
+if(sys.version_info<(3,)):
+    int_types = [int,long,]
+else:
+    int_types = [int,]
 try:
     import matplotlib.pyplot as plt
     import matplotlib
     from mpl_toolkits.mplot3d import Axes3D
-except ImportError as e:
+except ImportError:
     print('Trouble importing matplotlib.')
 
 
@@ -230,7 +235,7 @@ class TensorView(object):
 
         szSliceDim = getattr(self, 'nC'+normal.lower()) #: Size of the sliced dimension
         if ind is None: ind = int(szSliceDim/2)
-        assert type(ind) in [int, long], 'ind must be an integer'
+        assert type(ind) in int_types, 'ind must be an integer'
 
         assert not (v.dtype == complex and view == 'vec'), 'Can not plot a complex vector.'
         # The slicing and plotting code!!

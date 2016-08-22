@@ -261,15 +261,6 @@ class TreeMeshIO(object):
             '{:.0f} \n'.format(nrCells))
         np.savetxt(fileName,indArr,fmt='%i',header=head,comments='')
 
-        '''
-        with open(fileName,'w') as mshOut:
-            mshOut.write('{:.0f} {:.0f} {:.0f}\n'.format(nCunderMesh[0],nCunderMesh[1],nCunderMesh[2]))
-            mshOut.write('{:.4f} {:.4f} {:.4f}\n'.format(tswCorn[0],tswCorn[1],tswCorn[2]))
-            mshOut.write('{:.3f} {:.3f} {:.3f}\n'.format(smallCell[0],smallCell[1],smallCell[2]))
-            mshOut.write('{:.0f} \n'.format(nrCells))
-            np.savetxt(mshOut,indArr,fmt='%i')
-        '''
-
         ## Print the models
         # Assign the model('s) to the object
         if models is not None:

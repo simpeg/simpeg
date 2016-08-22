@@ -95,7 +95,7 @@ from SimPEG import np, sp, Utils, Solver
 try:
     from . import TreeUtils
     _IMPORT_TREEUTILS = True
-except Exception as e:
+except Exception:
     _IMPORT_TREEUTILS = False
 
 

@@ -103,7 +103,7 @@ class EDIimporter:
             mArrRec = np.ma.MaskedArray(rec2ndarr(tArrRec),mask=np.isnan(rec2ndarr(tArrRec))).view(dtype=tArrRec.dtype)
             try:
                 outTemp = recFunc.stack_arrays((outTemp,mArrRec))
-            except NameError as e:
+            except NameError:
                 outTemp = mArrRec
 
         # Assign the data
