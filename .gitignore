@@ -39,3 +39,5 @@ nosetests.xml
 *.sublime-workspace
 docs/_build/
 Makefile
+SimPEG/Optimization.py
+SimPEG/Inversion.py
