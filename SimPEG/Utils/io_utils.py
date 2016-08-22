@@ -152,10 +152,10 @@ def remoteDownload(url, remoteFiles, basePath=None):
     import shutil
     import os
     import sys
-    if sys.version_info <(3,):
-      urlretrieve=urllib.urlretrieve
+    if sys.version_info < (3,):
+        urlretrieve = urllib.urlretrieve
     else:
-      urlretrieve=urllib.request.urlretrieve
+        urlretrieve = urllib.request.urlretrieve
 
     if basePath is None:
         basePath = os.curdir+os.path.sep+'SimPEGtemp'+os.path.sep
