@@ -12,7 +12,7 @@ except:
 def run(plotIt=True, nFreq=1):
     """
         MT: 3D: Forward
-        =======================
+        ===============
 
         Forward model 3D MT data.
 

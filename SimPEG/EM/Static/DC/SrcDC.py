@@ -3,7 +3,11 @@ import SimPEG
 from SimPEG.Utils import Zero, closestPoints, mkvc
 import numpy as np
 
+
 class BaseSrc(SimPEG.Survey.BaseSrc):
+    """
+    Base DC source
+    """
 
     current = 1.0
     loc = None
@@ -19,9 +23,13 @@ class BaseSrc(SimPEG.Survey.BaseSrc):
 
 
 class Dipole(BaseSrc):
+    """
+    Dipole source
+    """
 
     def __init__(self, rxList, locA, locB, **kwargs):
-        assert locA.shape == locB.shape, 'Shape of locA and locB should be the same'
+        assert locA.shape == locB.shape, ('Shape of locA and locB should be '
+                                          'the same')
         self.loc = [locA, locB]
         BaseSrc.__init__(self, rxList, **kwargs)
 
@@ -31,10 +39,13 @@ class Dipole(BaseSrc):
             q = np.zeros(prob.mesh.nC)
             q[inds] = self.current * np.r_[1., -1.]
         elif prob._formulation == 'EB':
-            qa = prob.mesh.getInterpolationMat(self.loc[0], locType='N').todense()
-            qb = -prob.mesh.getInterpolationMat(self.loc[1], locType='N').todense()
+            qa = prob.mesh.getInterpolationMat(self.loc[0],
+                                               locType='N').todense()
+            qb = -prob.mesh.getInterpolationMat(self.loc[1],
+                                                locType='N').todense()
             q = self.current * mkvc(qa+qb)
         return q
+
 
 class Pole(BaseSrc):
 

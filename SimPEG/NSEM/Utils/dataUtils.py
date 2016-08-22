@@ -44,16 +44,16 @@ def rotateData(NSEMdata,rotAngle):
     return NSEM.Data.fromRecArray(outRec)
 
 
-def appResPhs(freq,z):
+def appResPhs(freq, z):
     app_res = ((1./(8e-7*np.pi**2))/freq)*np.abs(z)**2
     app_phs = np.arctan2(z.imag,z.real)*(180/np.pi)
     return app_res, app_phs
 
-def skindepth(rho,freq):
+def skindepth(rho, freq):
     ''' Function to calculate the skindepth of EM waves'''
     return np.sqrt( (rho*((1/(freq * mu_0 * np.pi )))))
 
-def rec2ndarr(x,dt=float):
+def rec2ndarr(x, dt=float):
     return x.view((dt, len(x.dtype.names)))
 
 def makeAnalyticSolution(mesh,model,elev,freqs):
@@ -79,7 +79,7 @@ def plotMT1DModelData(problem,models,symList=None):
     axM = fig.add_axes([0.075,.1,.25,.875])
     axM.set_xlabel('Resistivity [Ohm*m]',fontsize=fontSize)
     axM.set_xlim(1e-1,1e5)
-    # axM.set_ylim(-10000,5000)
+    axM.set_ylim(-10000,5000)
     axM.set_ylabel('Depth [km]',fontsize=fontSize)
     axR = fig.add_axes([0.42,.575,.5,.4])
     axR.set_xscale('log')

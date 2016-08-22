@@ -6,11 +6,11 @@ from SimPEG.EM.Utils import omega
 from SimPEG.Utils import Zero, Identity, sdiag
 
 
-class Fields(SimPEG.Problem.Fields):
+class FieldsFDEM(SimPEG.Problem.Fields):
     """
 
     Fancy Field Storage for a FDEM survey. Only one field type is stored for
-    each problem, the rest are computed. The fields obejct acts like an array and is indexed by
+    each problem, the rest are computed. The fields object acts like an array and is indexed by
 
     .. code-block:: python
 
@@ -42,7 +42,7 @@ class Fields(SimPEG.Problem.Fields):
         :return: total electric field
         """
         if getattr(self, '_ePrimary', None) is None or getattr(self, '_eSecondary', None) is None:
-            raise NotImplementedError ('Getting e from %s is not implemented' %self.knownFields.keys()[0])
+            raise NotImplementedError ('Getting e from {0!s} is not implemented'.format(self.knownFields.keys()[0]))
 
         return self._ePrimary(solution,srcList) + self._eSecondary(solution,srcList)
 
@@ -56,9 +56,23 @@ class Fields(SimPEG.Problem.Fields):
         :return: total magnetic flux density
         """
         if getattr(self, '_bPrimary', None) is None or getattr(self, '_bSecondary', None) is None:
-            raise NotImplementedError ('Getting b from %s is not implemented' %self.knownFields.keys()[0])
+            raise NotImplementedError ('Getting b from {0!s} is not implemented'.format(self.knownFields.keys()[0]))
 
         return self._bPrimary(solution, srcList) + self._bSecondary(solution, srcList)
+
+    def _bSecondary(self, solution, srcList):
+        """
+        Total magnetic flux density is sum of primary and secondary
+
+        :param numpy.ndarray solution: field we solved for
+        :param list srcList: list of sources
+        :rtype: numpy.ndarray
+        :return: total magnetic flux density
+        """
+        if getattr(self, '_bSecondary', None) is None:
+            raise NotImplementedError ('Getting b from %s is not implemented' %self.knownFields.keys()[0])
+
+        return  self._bSecondary(solution, srcList)
 
     def _h(self, solution, srcList):
         """
@@ -70,7 +84,7 @@ class Fields(SimPEG.Problem.Fields):
         :return: total magnetic field
         """
         if getattr(self, '_hPrimary', None) is None or getattr(self, '_hSecondary', None) is None:
-            raise NotImplementedError ('Getting h from %s is not implemented' %self.knownFields.keys()[0])
+            raise NotImplementedError ('Getting h from {0!s} is not implemented'.format(self.knownFields.keys()[0]))
 
         return self._hPrimary(solution, srcList) + self._hSecondary(solution, srcList)
 
@@ -84,7 +98,7 @@ class Fields(SimPEG.Problem.Fields):
         :return: total current density
         """
         if getattr(self, '_jPrimary', None) is None or getattr(self, '_jSecondary', None) is None:
-            raise NotImplementedError ('Getting j from %s is not implemented' %self.knownFields.keys()[0])
+            raise NotImplementedError ('Getting j from {0!s} is not implemented'.format(self.knownFields.keys()[0]))
 
         return self._jPrimary(solution, srcList) + self._jSecondary(solution, srcList)
 
@@ -92,7 +106,7 @@ class Fields(SimPEG.Problem.Fields):
         """
         Total derivative of e with respect to the inversion model. Returns :math:`d\mathbf{e}/d\mathbf{m}` for forward and (:math:`d\mathbf{e}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for the adjoint
 
-        :param Src src: sorce
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: source
         :param numpy.ndarray du_dm_v: derivative of the solution vector with respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
         :param bool adjoint: adjoint?
@@ -100,13 +114,31 @@ class Fields(SimPEG.Problem.Fields):
         :return: derivative times a vector (or tuple for adjoint)
         """
         if getattr(self, '_eDeriv_u', None) is None or getattr(self, '_eDeriv_m', None) is None:
-            raise NotImplementedError ('Getting eDerivs from %s is not implemented' %self.knownFields.keys()[0])
+            raise NotImplementedError ('Getting eDerivs from {0!s} is not implemented'.format(self.knownFields.keys()[0]))
 
         if adjoint:
             return self._eDeriv_u(src, v, adjoint), self._eDeriv_m(src, v, adjoint)
         return np.array(self._eDeriv_u(src, du_dm_v, adjoint) + self._eDeriv_m(src, v, adjoint), dtype = complex)
 
     def _bDeriv(self, src, du_dm_v, v, adjoint = False):
+        """
+        Total derivative of b with respect to the inversion model. Returns :math:`d\mathbf{b}/d\mathbf{m}` for forward and (:math:`d\mathbf{b}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for the adjoint
+
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: source
+        :param numpy.ndarray du_dm_v: derivative of the solution vector with respect to the model times a vector (is None for adjoint)
+        :param numpy.ndarray v: vector to take sensitivity product with
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: derivative times a vector (or tuple for adjoint)
+        """
+        if getattr(self, '_bDeriv_u', None) is None or getattr(self, '_bDeriv_m', None) is None:
+            raise NotImplementedError ('Getting bDerivs from {0!s} is not implemented'.format(self.knownFields.keys()[0]))
+
+        if adjoint:
+            return self._bDeriv_u(src, v, adjoint), self._bDeriv_m(src, v, adjoint)
+        return np.array(self._bDeriv_u(src, du_dm_v, adjoint) + self._bDeriv_m(src, v, adjoint), dtype = complex)
+
+    def _bSecondaryDeriv(self, src, du_dm_v, v, adjoint = False):
         """
         Total derivative of b with respect to the inversion model. Returns :math:`d\mathbf{b}/d\mathbf{m}` for forward and (:math:`d\mathbf{b}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for the adjoint
 
@@ -117,18 +149,15 @@ class Fields(SimPEG.Problem.Fields):
         :rtype: numpy.ndarray
         :return: derivative times a vector (or tuple for adjoint)
         """
-        if getattr(self, '_bDeriv_u', None) is None or getattr(self, '_bDeriv_m', None) is None:
-            raise NotImplementedError ('Getting bDerivs from %s is not implemented' %self.knownFields.keys()[0])
+        # TODO: modify when primary field is dependent on m
 
-        if adjoint:
-            return self._bDeriv_u(src, v, adjoint), self._bDeriv_m(src, v, adjoint)
-        return np.array(self._bDeriv_u(src, du_dm_v, adjoint) + self._bDeriv_m(src, v, adjoint), dtype = complex)
+        return self._bDeriv(src, du_dm_v, v, adjoint = adjoint)
 
     def _hDeriv(self, src, du_dm_v, v, adjoint = False):
         """
         Total derivative of h with respect to the inversion model. Returns :math:`d\mathbf{h}/d\mathbf{m}` for forward and (:math:`d\mathbf{h}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for the adjoint
 
-        :param Src src: sorce
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: source
         :param numpy.ndarray du_dm_v: derivative of the solution vector with respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
         :param bool adjoint: adjoint?
@@ -136,7 +165,7 @@ class Fields(SimPEG.Problem.Fields):
         :return: derivative times a vector (or tuple for adjoint)
         """
         if getattr(self, '_hDeriv_u', None) is None or getattr(self, '_hDeriv_m', None) is None:
-            raise NotImplementedError ('Getting hDerivs from %s is not implemented' %self.knownFields.keys()[0])
+            raise NotImplementedError ('Getting hDerivs from {0!s} is not implemented'.format(self.knownFields.keys()[0]))
 
         if adjoint:
             return self._hDeriv_u(src, v, adjoint), self._hDeriv_m(src, v, adjoint)
@@ -146,7 +175,7 @@ class Fields(SimPEG.Problem.Fields):
         """
         Total derivative of j with respect to the inversion model. Returns :math:`d\mathbf{j}/d\mathbf{m}` for forward and (:math:`d\mathbf{j}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for the adjoint
 
-        :param Src src: sorce
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: source
         :param numpy.ndarray du_dm_v: derivative of the solution vector with respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
         :param bool adjoint: adjoint?
@@ -154,18 +183,18 @@ class Fields(SimPEG.Problem.Fields):
         :return: derivative times a vector (or tuple for adjoint)
         """
         if getattr(self, '_jDeriv_u', None) is None or getattr(self, '_jDeriv_m', None) is None:
-            raise NotImplementedError ('Getting jDerivs from %s is not implemented' %self.knownFields.keys()[0])
+            raise NotImplementedError ('Getting jDerivs from {0!s} is not implemented'.format(self.knownFields.keys()[0]))
 
         if adjoint:
             return self._jDeriv_u(src, v, adjoint), self._jDeriv_m(src, v, adjoint)
         return np.array(self._jDeriv_u(src, du_dm_v, adjoint) + self._jDeriv_m(src, v, adjoint), dtype = complex)
 
-class Fields3D_e(Fields):
+class Fields3D_e(FieldsFDEM):
     """
     Fields object for Problem3D_e.
 
-    :param Mesh mesh: mesh
-    :param Survey survey: survey
+    :param BaseMesh mesh: mesh
+    :param SimPEG.EM.FDEM.SurveyFDEM.Survey survey: survey
     """
 
     knownFields = {'eSolution':'E'}
@@ -179,9 +208,6 @@ class Fields3D_e(Fields):
                     'j' : ['eSolution','CCV','_j'],
                     'h' : ['eSolution','CCV','_h'],
                   }
-
-    def __init__(self, mesh, survey, **kwargs):
-        Fields.__init__(self, mesh, survey, **kwargs)
 
     def startup(self):
         self.prob = self.survey.prob
@@ -426,12 +452,12 @@ class Fields3D_e(Fields):
 
 
 
-class Fields3D_b(Fields):
+class Fields3D_b(FieldsFDEM):
     """
     Fields object for Problem3D_b.
 
-    :param Mesh mesh: mesh
-    :param Survey survey: survey
+    :param BaseMesh mesh: mesh
+    :param SimPEG.EM.FDEM.SurveyFDEM.Survey survey: survey
     """
 
     knownFields = {'bSolution':'F'}
@@ -445,9 +471,6 @@ class Fields3D_b(Fields):
                     'j' : ['bSolution','CCV','_j'],
                     'h' : ['bSolution','CCV','_h'],
                   }
-
-    def __init__(self,mesh,survey,**kwargs):
-        Fields.__init__(self,mesh,survey,**kwargs)
 
     def startup(self):
         self.prob = self.survey.prob
@@ -470,6 +493,8 @@ class Fields3D_b(Fields):
         if fieldType == 'e':
             return 'E'
         elif fieldType == 'b':
+            return 'F'
+        elif fieldType == 'bSecondary':
             return 'F'
         elif (fieldType == 'h') or (fieldType == 'j'):
             return'CCV'
@@ -693,12 +718,12 @@ class Fields3D_b(Fields):
         return Zero()
 
 
-class Fields3D_j(Fields):
+class Fields3D_j(FieldsFDEM):
     """
     Fields object for Problem3D_j.
 
-    :param Mesh mesh: mesh
-    :param Survey survey: survey
+    :param BaseMesh mesh: mesh
+    :param SimPEG.EM.FDEM.SurveyFDEM.Survey survey: survey
     """
 
     knownFields = {'jSolution':'F'}
@@ -712,9 +737,6 @@ class Fields3D_j(Fields):
                     'e' : ['jSolution','CCV','_e'],
                     'b' : ['jSolution','CCV','_b'],
                   }
-
-    def __init__(self,mesh,survey,**kwargs):
-        Fields.__init__(self,mesh,survey,**kwargs)
 
     def startup(self):
         self.prob = self.survey.prob
@@ -988,12 +1010,12 @@ class Fields3D_j(Fields):
         return 1./(1j * omega(src.freq)) * VI * (self._aveE2CCV * ( s_mDeriv(v) - self._edgeCurl.T * ( self._MfRhoDeriv(jSolution) * v ) ) )
 
 
-class Fields3D_h(Fields):
+class Fields3D_h(FieldsFDEM):
     """
     Fields object for Problem3D_h.
 
-    :param Mesh mesh: mesh
-    :param Survey survey: survey
+    :param BaseMesh mesh: mesh
+    :param SimPEG.EM.FDEM.SurveyFDEM.Survey survey: survey
     """
 
     knownFields = {'hSolution':'E'}
@@ -1007,9 +1029,6 @@ class Fields3D_h(Fields):
                     'e' : ['hSolution','CCV','_e'],
                     'b' : ['hSolution','CCV','_b'],
                   }
-
-    def __init__(self,mesh,survey,**kwargs):
-        Fields.__init__(self,mesh,survey,**kwargs)
 
     def startup(self):
         self.prob = self.survey.prob

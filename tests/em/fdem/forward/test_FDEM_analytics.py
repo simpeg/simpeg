@@ -1,37 +1,48 @@
 import unittest
-from SimPEG import *
+import numpy as np
+import scipy.sparse as sp
+from SimPEG import Mesh, Maps, Utils, SolverLU
 from SimPEG import EM
 from scipy.constants import mu_0
 
 plotIt = False
+tol_Transect = 2e-1
 tol_EBdipole = 1e-2
 
-if plotIt:
-    import matplotlib.pylab
+plotIt = False
+if plotIt is True:
+    import matplotlib.pylab as plt
 
 
 class FDEM_analyticTests(unittest.TestCase):
 
     def setUp(self):
+        print ('\nTesting Transect for analytic')
 
         cs = 10.
         ncx, ncy, ncz = 10, 10, 10
-        npad = 4
+        npad = 5
         freq = 1e2
 
-        hx = [(cs,npad,-1.3), (cs,ncx), (cs,npad,1.3)]
-        hy = [(cs,npad,-1.3), (cs,ncy), (cs,npad,1.3)]
-        hz = [(cs,npad,-1.3), (cs,ncz), (cs,npad,1.3)]
+        hx = [(cs, npad, -1.3), (cs, ncx), (cs, npad, 1.3)]
+        hy = [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)]
+        hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
         mesh = Mesh.TensorMesh([hx,hy,hz], 'CCC')
 
         mapping = Maps.ExpMap(mesh)
 
-        x = np.linspace(-10,10,5)
-        XYZ = Utils.ndgrid(x,np.r_[0],np.r_[0])
+        x = np.linspace(-10, 10, 5)
+        XYZ = Utils.ndgrid(x, np.r_[0], np.r_[0])
         rxList = EM.FDEM.Rx.Point_e(XYZ, orientation='x', component='imag')
-        Src0 = EM.FDEM.Src.MagDipole([rxList],loc=np.r_[0.,0.,0.], freq=freq)
+        SrcList = [EM.FDEM.Src.MagDipole([rxList], loc=np.r_[0., 0., 0.],
+                                         freq=freq),
+                   EM.FDEM.Src.CircularLoop([rxList], loc=np.r_[0., 0., 0.],
+                                            freq=freq, radius=np.sqrt(1./np.pi)),
+                   # EM.FDEM.Src.MagDipole_Bfield([rxList], loc=np.r_[0., 0., 0.],
+                   #                              freq=freq), # less accurate
+                   ]
 
-        survey = EM.FDEM.Survey([Src0])
+        survey = EM.FDEM.Survey(SrcList)
 
         prb = EM.FDEM.Problem3D_b(mesh, mapping=mapping)
         prb.pair(survey)
@@ -44,48 +55,58 @@ class FDEM_analyticTests(unittest.TestCase):
 
         sig = 1e-1
         sigma = np.ones(mesh.nC)*sig
-        sigma[mesh.gridCC[:,2] > 0] = 1e-8
+        sigma[mesh.gridCC[:, 2] > 0] = 1e-8
         m = np.log(sigma)
 
         self.prb = prb
         self.mesh = mesh
         self.m = m
-        self.Src0 = Src0
         self.sig = sig
 
-    def test_Transect(self):
-        print 'Testing Transect for analytic'
-
+        print(' starting solve ...')
         u = self.prb.fields(self.m)
+        print(' ... done')
+        self.u = u
 
-        bfz = self.mesh.r(u[self.Src0, 'b'],'F','Fz','M')
-        x = np.linspace(-55,55,12)
-        XYZ = Utils.ndgrid(x,np.r_[0],np.r_[0])
+    def test_Transect(self):
 
-        P = self.mesh.getInterpolationMat(XYZ, 'Fz')
+        for src in self.prb.survey.srcList:
+            print ' --- testing {} --- '.format(src.__class__.__name__)
+            bfz = self.mesh.r(self.u[src, 'b'],'F','Fz','M')
+            x = np.linspace(-55,55,12)
+            XYZ = Utils.ndgrid(x,np.r_[0],np.r_[0])
 
-        an = EM.Analytics.FDEM.hzAnalyticDipoleF(x, self.Src0.freq, self.sig)
+            P = self.mesh.getInterpolationMat(XYZ, 'Fz')
 
-        diff = np.log10(np.abs(P*np.imag(u[self.Src0, 'b']) - mu_0*np.imag(an)))
+            ana = mu_0*np.imag(EM.Analytics.FDEM.hzAnalyticDipoleF(x, src.freq, self.sig))
+            num = P*np.imag(self.u[src, 'b'])
 
-        if plotIt:
-            import matplotlib.pyplot as plt
-            plt.plot(x,np.log10(np.abs(P*np.imag(u[self.Src0, 'b']))))
-            plt.plot(x,np.log10(np.abs(mu_0*np.imag(an))), 'r')
-            plt.plot(x,diff,'g')
-            plt.show()
+            diff = np.linalg.norm(num - ana)
 
-        # We want the difference to be an orderMag less
-        # than the analytic solution. Note that right at
-        # the source, both the analytic and the numerical
-        # solution will be poor. Use plotIt up top to see that...
-        orderMag = 1.6
-        passed = np.abs(np.mean(diff - np.log10(np.abs(mu_0*np.imag(an))))) > orderMag
-        self.assertTrue(passed)
+            if plotIt:
+                import matplotlib.pyplot as plt
+                plt.plot(x, np.log10(np.abs(num)))
+                plt.plot(x, np.log10(np.abs(ana)), 'r')
+                plt.plot(x, diff, 'g')
+                plt.show()
 
+            norm_num = np.linalg.norm(num)
+            norm_ana = np.linalg.norm(ana)
+            tol = tol_Transect*(norm_num + norm_ana)/2.
+
+            passed = diff < tol
+            print ('analytic: {}, numeric {}, difference {} < tolerance {} ? '
+                   ' {}'.format(norm_ana, norm_num, diff,
+                                tol, passed))
+
+            self.assertTrue(passed)
+
+
+class TestDipoles(unittest.TestCase):
 
     def test_CylMeshEBDipoles(self):
-        print 'Testing CylMesh Electric and Magnetic Dipoles in a wholespace- Analytic: J-formulation'
+        print ("Testing CylMesh Electric and Magnetic Dipoles in a wholespace-"
+               " Analytic: J-formulation")
         sigmaback = 1.
         mur = 2.
         freq = 1.
@@ -95,7 +116,7 @@ class FDEM_analyticTests(unittest.TestCase):
         csz, ncz, npadz = 5, 50, 25
         hx = Utils.meshTensor([(csx,ncx), (csx,npadx,1.3)])
         hz = Utils.meshTensor([(csz,npadz,-1.3), (csz,ncz), (csz,npadz,1.3)])
-        mesh = Mesh.CylMesh([hx,1,hz], [0.,0.,-hz.sum()/2]) # define the cylindrical mesh
+        mesh = Mesh.CylMesh([hx, 1, hz], [0., 0., -hz.sum()/2]) # define the cylindrical mesh
 
         if plotIt:
             mesh.plotGrid()
@@ -109,21 +130,21 @@ class FDEM_analyticTests(unittest.TestCase):
 
         # set up source
         # test electric dipole
-        src_loc = np.r_[0.,0.,0.]
-        s_ind = Utils.closestPoints(mesh,src_loc,'Fz') + mesh.nFx
+        src_loc = np.r_[0., 0., 0.]
+        s_ind = Utils.closestPoints(mesh, src_loc, 'Fz') + mesh.nFx
 
-        de = np.zeros(mesh.nF,dtype=complex)
+        de = np.zeros(mesh.nF, dtype=complex)
         de[s_ind] = 1./csz
-        de_p = [EM.FDEM.Src.RawVec_e([],freq,de/mesh.area)]
+        de_p = [EM.FDEM.Src.RawVec_e([], freq, de/mesh.area)]
 
-        dm_p = [EM.FDEM.Src.MagDipole([],freq,src_loc)]
-
+        dm_p = [EM.FDEM.Src.MagDipole([], freq, src_loc)]
 
         # Pair the problem and survey
         surveye = EM.FDEM.Survey(de_p)
         surveym = EM.FDEM.Survey(dm_p)
 
-        mapping = [('sigma', Maps.IdentityMap(mesh)),('mu', Maps.IdentityMap(mesh))]
+        mapping = [('sigma', Maps.IdentityMap(mesh)),
+                   ('mu', Maps.IdentityMap(mesh))]
 
         prbe = EM.FDEM.Problem3D_h(mesh, mapping=mapping)
         prbm = EM.FDEM.Problem3D_e(mesh, mapping=mapping)
@@ -136,9 +157,9 @@ class FDEM_analyticTests(unittest.TestCase):
         fieldsBackM = prbm.fields(np.r_[SigmaBack, MuBack]) # Done
 
 
-        rlim = [20.,500.]
+        rlim = [20., 500.]
         lookAtTx = de_p
-        r = mesh.vectorCCx[np.argmin(np.abs(mesh.vectorCCx-rlim[0])):np.argmin(np.abs(mesh.vectorCCx-rlim[1]))]
+        r = mesh.vectorCCx[np.argmin(np.abs(mesh.vectorCCx-rlim[0])) : np.argmin(np.abs(mesh.vectorCCx-rlim[1]))]
         z = 100.
 
         # where we choose to measure
@@ -157,15 +178,15 @@ class FDEM_analyticTests(unittest.TestCase):
         en = Rho*mesh.aveF2CCV*jn
         bn = mesh.aveF2CCV*bn
 
-        ex,ez = Pfx*en, Pfz*en
-        bx,bz = Pfx*bn, Pfz*bn
+        ex, ez = Pfx*en, Pfz*en
+        bx, bz = Pfx*bn, Pfz*bn
 
         # get analytic solution
         exa, eya, eza = EM.Analytics.FDEM.ElectricDipoleWholeSpace(XYZ, src_loc, sigmaback, freq,orientation='Z',mu= mur*mu_0)
-        exa, eya, eza = Utils.mkvc(exa,2), Utils.mkvc(eya,2), Utils.mkvc(eza,2)
+        exa, eya, eza = Utils.mkvc(exa, 2), Utils.mkvc(eya, 2), Utils.mkvc(eza, 2)
 
         bxa, bya, bza = EM.Analytics.FDEM.MagneticDipoleWholeSpace(XYZ, src_loc, sigmaback, freq,orientation='Z',mu= mur*mu_0)
-        bxa, bya, bza = Utils.mkvc(bxa,2), Utils.mkvc(bya,2), Utils.mkvc(bza,2)
+        bxa, bya, bza = Utils.mkvc(bxa, 2), Utils.mkvc(bya, 2), Utils.mkvc(bza, 2)
 
         print ' comp,       anayltic,       numeric,       num - ana,       (num - ana)/ana'
         print '  ex:', np.linalg.norm(exa), np.linalg.norm(ex), np.linalg.norm(exa-ex), np.linalg.norm(exa-ex)/np.linalg.norm(exa)
@@ -174,7 +195,7 @@ class FDEM_analyticTests(unittest.TestCase):
         print '  bx:', np.linalg.norm(bxa), np.linalg.norm(bx), np.linalg.norm(bxa-bx), np.linalg.norm(bxa-bx)/np.linalg.norm(bxa)
         print '  bz:', np.linalg.norm(bza), np.linalg.norm(bz), np.linalg.norm(bza-bz), np.linalg.norm(bza-bz)/np.linalg.norm(bza)
 
-        if plotIt:
+        if plotIt is True:
             # Edipole
             plt.subplot(221)
             plt.plot(r,ex.real,'o',r,exa.real,linewidth=2)

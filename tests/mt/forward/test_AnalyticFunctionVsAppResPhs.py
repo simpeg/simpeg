@@ -1,9 +1,9 @@
 import unittest
-from SimPEG import *
 from SimPEG import NSEM
+import numpy as np
+from SimPEG import Mesh
 
 TOL = 1e-6
-
 
 
 def appResNorm(sigmaHalf):

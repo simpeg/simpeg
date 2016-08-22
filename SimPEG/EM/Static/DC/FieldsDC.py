@@ -3,51 +3,68 @@ from SimPEG.Utils import Identity, Zero
 import numpy as np
 from scipy.constants import epsilon_0
 
-class Fields(SimPEG.Problem.Fields):
+
+class FieldsDC(SimPEG.Problem.Fields):
     knownFields = {}
     dtype = float
 
     def _phiDeriv(self, src, du_dm_v, v, adjoint=False):
-        if getattr(self, '_phiDeriv_u', None) is None or getattr(self, '_phiDeriv_m', None) is None:
-            raise NotImplementedError ('Getting phiDerivs from %s is not implemented' %self.knownFields.keys()[0])
+        if (getattr(self, '_phiDeriv_u', None) is None or
+            getattr(self, '_phiDeriv_m', None) is None):
+            raise NotImplementedError ('Getting phiDerivs from {0!s} is not '
+                                       'implemented'.format(
+                                        self.knownFields.keys()[0]))
 
         if adjoint:
-            return self._phiDeriv_u(src, v, adjoint=adjoint), self._phiDeriv_m(src, v, adjoint=adjoint)
+            return (self._phiDeriv_u(src, v, adjoint=adjoint),
+                    self._phiDeriv_m(src, v, adjoint=adjoint))
 
-        return np.array(self._phiDeriv_u(src, du_dm_v, adjoint) + self._phiDeriv_m(src, v, adjoint), dtype = float)
+        return (np.array(self._phiDeriv_u(src, du_dm_v, adjoint) +
+                         self._phiDeriv_m(src, v, adjoint), dtype=float))
 
     def _eDeriv(self, src, du_dm_v, v, adjoint=False):
-        if getattr(self, '_eDeriv_u', None) is None or getattr(self, '_eDeriv_m', None) is None:
-            raise NotImplementedError ('Getting eDerivs from %s is not implemented' %self.knownFields.keys()[0])
+        if (getattr(self, '_eDeriv_u', None) is None or
+            getattr(self, '_eDeriv_m', None) is None):
+            raise NotImplementedError ('Getting eDerivs from {0!s} is not '
+                                       'implemented'.format(
+                                        self.knownFields.keys()[0]))
 
         if adjoint:
-            return self._eDeriv_u(src, v, adjoint), self._eDeriv_m(src, v, adjoint)
-        return np.array(self._eDeriv_u(src, du_dm_v, adjoint) + self._eDeriv_m(src, v, adjoint), dtype = float)
+            return (self._eDeriv_u(src, v, adjoint),
+                    self._eDeriv_m(src, v, adjoint))
+        return (np.array(self._eDeriv_u(src, du_dm_v, adjoint) +
+                         self._eDeriv_m(src, v, adjoint), dtype=float))
 
     def _jDeriv(self, src, du_dm_v, v, adjoint=False):
-        if getattr(self, '_jDeriv_u', None) is None or getattr(self, '_jDeriv_m', None) is None:
-            raise NotImplementedError ('Getting jDerivs from %s is not implemented' %self.knownFields.keys()[0])
+        if (getattr(self, '_jDeriv_u', None) is None or
+            getattr(self, '_jDeriv_m', None) is None):
+            raise NotImplementedError ('Getting jDerivs from {0!s} is not '
+                                       'implemented'.format(
+                                        self.knownFields.keys()[0]))
 
         if adjoint:
-            return self._jDeriv_u(src, v, adjoint), self._jDeriv_m(src, v, adjoint)
-        return np.array(self._jDeriv_u(src, du_dm_v, adjoint) + self._jDeriv_m(src, v, adjoint), dtype = float)
+            return (self._jDeriv_u(src, v, adjoint),
+                    self._jDeriv_m(src, v, adjoint))
+        return (np.array(self._jDeriv_u(src, du_dm_v, adjoint) +
+                         self._jDeriv_m(src, v, adjoint), dtype=float))
 
 
-class Fields_CC(Fields):
-    knownFields = {'phiSolution':'CC'}
+class Fields_CC(FieldsDC):
+    knownFields = {'phiSolution': 'CC'}
     aliasFields = {
-                    'phi': ['phiSolution','CC','_phi'],
-                    'j' : ['phiSolution','F','_j'],
-                    'e' : ['phiSolution','F','_e'],
-                    'charge' : ['phiSolution','CC','_charge'],
+                    'phi': ['phiSolution', 'CC', '_phi'],
+                    'j' : ['phiSolution', 'F', '_j'],
+                    'e' : ['phiSolution', 'F', '_e'],
+                    'charge' : ['phiSolution', 'CC', '_charge'],
                   }
                   # primary - secondary
                   # CC variables
 
     def __init__(self, mesh, survey, **kwargs):
-        Fields.__init__(self, mesh, survey, **kwargs)
+        FieldsDC.__init__(self, mesh, survey, **kwargs)
         mesh.setCellGradBC("neumann")
         cellGrad = mesh.cellGrad
+
     def startup(self):
         self.prob = self.survey.prob
 
@@ -62,10 +79,10 @@ class Fields_CC(Fields):
     def _phi(self, phiSolution, srcList):
         return phiSolution
 
-    def _phiDeriv_u(self, src, v, adjoint = False):
+    def _phiDeriv_u(self, src, v, adjoint=False):
         return Identity()*v
 
-    def _phiDeriv_m(self, src, v, adjoint = False):
+    def _phiDeriv_m(self, src, v, adjoint=False):
         return Zero()
 
     def _j(self, phiSolution, srcList):
@@ -88,21 +105,23 @@ class Fields_CC(Fields):
             .. math::
                 \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
         """
-        return epsilon_0*self.prob.Vol*(self.mesh.faceDiv*self._e(phiSolution, srcList))
+        return epsilon_0*self.prob.Vol*(self.mesh.faceDiv*self._e(phiSolution,
+                                                                  srcList))
 
-class Fields_N(Fields):
-    knownFields = {'phiSolution':'N'}
+
+class Fields_N(FieldsDC):
+    knownFields = {'phiSolution': 'N'}
     aliasFields = {
-                    'phi': ['phiSolution','N','_phi'],
-                    'j' : ['phiSolution','E','_j'],
-                    'e' : ['phiSolution','E','_e'],
-                    'charge' : ['phiSolution','N','_charge'],
+                    'phi': ['phiSolution', 'N', '_phi'],
+                    'j' : ['phiSolution', 'E', '_j'],
+                    'e' : ['phiSolution', 'E', '_e'],
+                    'charge' : ['phiSolution', 'N', '_charge'],
                   }
                   # primary - secondary
                   # N variables
 
     def __init__(self, mesh, survey, **kwargs):
-        Fields.__init__(self, mesh, survey, **kwargs)
+        FieldsDC.__init__(self, mesh, survey, **kwargs)
 
     def startup(self):
         self.prob = self.survey.prob
@@ -118,10 +137,10 @@ class Fields_N(Fields):
     def _phi(self, phiSolution, srcList):
         return phiSolution
 
-    def _phiDeriv_u(self, src, v, adjoint = False):
+    def _phiDeriv_u(self, src, v, adjoint=False):
         return Identity()*v
 
-    def _phiDeriv_m(self, src, v, adjoint = False):
+    def _phiDeriv_m(self, src, v, adjoint=False):
         return Zero()
 
     def _j(self, phiSolution, srcList):
@@ -145,4 +164,6 @@ class Fields_N(Fields):
             .. math::
                 \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
         """
-        return - epsilon_0*(self.mesh.nodalGrad.T*self.mesh.getEdgeInnerProduct()*self._e(phiSolution, srcList))
+        return - epsilon_0*(self.mesh.nodalGrad.T *
+                            self.mesh.getEdgeInnerProduct() *
+                            self._e(phiSolution, srcList))
