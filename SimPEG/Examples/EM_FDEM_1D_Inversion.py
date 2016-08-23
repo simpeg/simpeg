@@ -3,7 +3,6 @@ from SimPEG import (Mesh, Maps, Utils, SolverLU, DataMisfit, Regularization,
                     Optimization, Inversion, InvProblem, Directives)
 import SimPEG.EM as EM
 from SimPEG.EM import mu_0
-from SimPEG import SolverWrapD
 
 
 def run(plotIt=True):
@@ -58,19 +57,10 @@ def run(plotIt=True):
     prb = EM.FDEM.Problem3D_b(mesh, mapping=mapping)
 
     try:
-        import pyMKL
-        def pardisoSolverFunc(A):
-            from pyMKL import pardisoSolver
-            factor = pardisoSolver(A, mtype=6) #Complex and Symmetric
-            factor.run_pardiso(12) #analysis and factor
-            return factor
-        prb.Solver = SolverWrapD(pardisoSolverFunc)
+        from pymatsolver import MumpsSolver
+        prb.Solver = MumpsSolver
     except ImportError:
-        try:
-            from pymatsolver import MumpsSolver
-            prb.Solver = MumpsSolver
-        except ImportError:
-            prb.Solver = SolverLU
+        prb.Solver = SolverLU
 
     prb.pair(survey)
 

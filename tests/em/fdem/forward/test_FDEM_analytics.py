@@ -4,7 +4,6 @@ import numpy as np
 import scipy.sparse as sp
 from SimPEG import Mesh, Maps, Utils, SolverLU
 from SimPEG import EM
-from SimPEG import SolverWrapD
 from scipy.constants import mu_0
 
 plotIt = False
@@ -50,19 +49,10 @@ class FDEM_analyticTests(unittest.TestCase):
         prb.pair(survey)
 
         try:
-            import pyMKL
-            def pardisoSolverFunc(A):
-                from pyMKL import pardisoSolver
-                factor = pardisoSolver(A, mtype=6) #Complex and symmetric
-                factor.run_pardiso(12) #analysis and factor
-                return factor
-            prb.Solver = SolverWrapD(pardisoSolverFunc)
+            from pymatsolver import MumpsSolver
+            prb.Solver = MumpsSolver
         except ImportError:
-            try:
-                from pymatsolver import MumpsSolver
-                prb.Solver = MumpsSolver
-            except ImportError:
-                prb.Solver = SolverLU
+            prb.Solver = SolverLU
 
         sig = 1e-1
         sigma = np.ones(mesh.nC)*sig

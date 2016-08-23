@@ -3,7 +3,6 @@ import unittest
 import numpy as np
 from SimPEG import Mesh, Maps, SolverLU, Tests
 from SimPEG import EM
-from SimPEG import SolverWrapD
 
 plotIt = False
 
@@ -35,19 +34,10 @@ def getProb(meshType='CYL',rxTypes='bx,bz',nSrc=1):
     # prb.timeSteps = [(1e-05, 100)]
 
     try:
-        import pyMKL
-        def pardisoSolverFunc(A):
-            from pyMKL import pardisoSolver
-            factor = pardisoSolver(A, mtype=2) #Real and SPD
-            factor.run_pardiso(12) #analysis and factor
-            return factor
-        prb.Solver = SolverWrapD(pardisoSolverFunc)
+        from pymatsolver import MumpsSolver
+        prb.Solver = MumpsSolver
     except ImportError:
-        try:
-            from pymatsolver import MumpsSolver
-            prb.Solver = MumpsSolver
-        except ImportError:
-            prb.Solver = SolverLU
+        prb.Solver  = SolverLU
 
     sigma = np.ones(mesh.nCz)*1e-8
     sigma[mesh.vectorCCz<0] = 1e-1

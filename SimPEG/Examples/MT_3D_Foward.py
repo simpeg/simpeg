@@ -2,22 +2,12 @@
 
 # Import
 import SimPEG as simpeg
-from SimPEG import MT, SolverWrapD
+from SimPEG import MT
 import numpy as np
 try:
-    import pyMKL
-    def pardisoSolverFunc(A):
-        from pyMKL import pardisoSolver
-        factor = pardisoSolver(A, mtype=6) #Complex and symmetric
-        factor.run_pardiso(12) #analysis and factor
-        return factor
-    Solver = SolverWrapD(pardisoSolverFunc)
-except ImportError:
-    try:
-        from pymatsolver import MumpsSolver
-        Solver = MumpsSolver
-    except ImportError:
-        from SimPEG import Solver
+    from pymatsolver import MumpsSolver as Solver
+except:
+    from SimPEG import Solver
 
 def run(plotIt=True, nFreq=1):
     """

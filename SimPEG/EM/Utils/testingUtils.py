@@ -3,7 +3,6 @@ import unittest
 import numpy as np
 from SimPEG import Mesh, Maps, Utils, SolverLU
 from SimPEG import EM
-from SimPEG import SolverWrapD
 import sys
 from scipy.constants import mu_0
 
@@ -84,19 +83,10 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
     prb.pair(survey)
 
     try:
-        import pyMKL
-        def pardisoSolverFunc(A):
-            from pyMKL import pardisoSolver
-            factor = pardisoSolver(A, mtype=6) #Complex and Symmetric
-            factor.run_pardiso(12) #analysis and factor
-            return factor
-        prb.Solver = SolverWrapD(pardisoSolverFunc)
+        from pymatsolver import MumpsSolver
+        prb.Solver = MumpsSolver
     except ImportError:
-        try:
-            from pymatsolver import MumpsSolver
-            prb.Solver = MumpsSolver
-        except ImportError:
-            prb.Solver = SolverLU
+        prb.Solver = SolverLU
 
     return prb
 

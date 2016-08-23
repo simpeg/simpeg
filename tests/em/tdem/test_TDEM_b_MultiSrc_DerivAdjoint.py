@@ -3,7 +3,6 @@ import unittest
 import numpy as np
 from SimPEG import Mesh, Maps, SolverLU, Tests, Survey
 from SimPEG import EM
-from SimPEG import SolverWrapD
 
 plotIt = False
 
@@ -37,19 +36,10 @@ class TDEM_bDerivTests(unittest.TestCase):
         # self.prb.timeSteps = [(1e-05, 100)]
 
         try:
-            import pyMKL
-            def pardisoSolverFunc(A):
-                from pyMKL import pardisoSolver
-                factor = pardisoSolver(A, mtype=2) #Real and SPD
-                factor.run_pardiso(12) #analysis and factor
-                return factor
-            self.prb.Solver = SolverWrapD(pardisoSolverFunc)
+            from pymatsolver import MumpsSolver
+            self.prb.Solver = MumpsSolver
         except ImportError:
-            try:
-                from pymatsolver import MumpsSolver
-                self.prb.Solver = MumpsSolver
-            except ImportError:
-                self.prb.Solver = SolverLU
+            self.prb.Solver  = SolverLU
 
         self.sigma = np.ones(mesh.nCz)*1e-8
         self.sigma[mesh.vectorCCz<0] = 1e-1
