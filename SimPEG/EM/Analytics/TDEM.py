@@ -1,6 +1,8 @@
+from __future__ import division
 import numpy as np
 from scipy.constants import mu_0, pi
 from scipy.special import erf
+
 
 def hzAnalyticDipoleT(r, t, sigma):
     theta = np.sqrt((sigma*mu_0)/(4*t))

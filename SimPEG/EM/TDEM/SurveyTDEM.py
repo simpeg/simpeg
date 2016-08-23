@@ -1,3 +1,4 @@
+from __future__ import division, print_function
 import SimPEG
 from SimPEG import np, Utils
 from SimPEG.Utils import Zero, Identity
@@ -13,17 +14,17 @@ import SrcTDEM as Src
 class Rx(SimPEG.Survey.BaseTimeRx):
 
     knownRxTypes = {
-                    'ex':['e', 'Ex', 'N'],
-                    'ey':['e', 'Ey', 'N'],
-                    'ez':['e', 'Ez', 'N'],
+                    'ex': ['e', 'Ex', 'N'],
+                    'ey': ['e', 'Ey', 'N'],
+                    'ez': ['e', 'Ez', 'N'],
 
-                    'bx':['b', 'Fx', 'N'],
-                    'by':['b', 'Fy', 'N'],
-                    'bz':['b', 'Fz', 'N'],
+                    'bx': ['b', 'Fx', 'N'],
+                    'by': ['b', 'Fy', 'N'],
+                    'bz': ['b', 'Fz', 'N'],
 
-                    'dbxdt':['b', 'Fx', 'CC'],
-                    'dbydt':['b', 'Fy', 'CC'],
-                    'dbzdt':['b', 'Fz', 'CC'],
+                    'dbxdt': ['b', 'Fx', 'CC'],
+                    'dbydt': ['b', 'Fy', 'CC'],
+                    'dbzdt': ['b', 'Fz', 'CC'],
                    }
 
     def __init__(self, locs, times, rxType):
@@ -53,7 +54,8 @@ class Rx(SimPEG.Survey.BaseTimeRx):
                 This is not stored in memory, but is created on demand.
         """
         if self.rxType in ['dbxdt', 'dbydt', 'dbzdt']:
-            return timeMesh.getInterpolationMat(self.times, self.projTLoc)*timeMesh.faceDiv
+            return timeMesh.getInterpolationMat(self.times,
+                                                self.projTLoc)*timeMesh.faceDiv
         else:
             return timeMesh.getInterpolationMat(self.times, self.projTLoc)
 
@@ -65,11 +67,11 @@ class Rx(SimPEG.Survey.BaseTimeRx):
     def evalDeriv(self, src, mesh, timeMesh, v, adjoint=False):
         P = self.getP(mesh, timeMesh)
         if not adjoint:
-            return P * v #Utils.mkvc(v[src, self.projField+'Deriv', :])
+            return P * v # Utils.mkvc(v[src, self.projField+'Deriv', :])
         elif adjoint:
             # dP_dF_T = P.T * v #[src, self]
             # newshape = (len(dP_dF_T)/timeMesh.nN, timeMesh.nN )
-            return P.T * v #np.reshape(dP_dF_T, newshape, order='F')
+            return P.T * v # np.reshape(dP_dF_T, newshape, order='F')
 
 
 ####################################################
@@ -98,24 +100,5 @@ class Survey(SimPEG.Survey.BaseSurvey):
 
     def evalDeriv(self, u, v=None, adjoint=False):
         raise Exception('Use Receivers to project fields deriv.')
-        # assert v is not None, 'v to multiply must be provided.'
-
-        # if not adjoint:
-        #     data = SimPEG.Survey.Data(self)
-        #     for src in self.srcList:
-        #         for rx in src.rxList:
-        #             data[src, rx] = rx.evalDeriv(src, self.mesh, self.prob.timeMesh, u, v)
-        #     return data
-        # else:
-        #     f = FieldsTDEM(self.mesh, self)
-        #     for src in self.srcList:
-        #         for rx in src.rxList:
-        #             Ptv = rx.evalDeriv(src, self.mesh, self.prob.timeMesh, u, v, adjoint=True)
-        #             Ptv = Ptv.reshape((-1, self.prob.timeMesh.nN), order='F')
-        #             if rx.projField not in f: # first time we are projecting
-        #                 f[src, rx.projField, :] = Ptv
-        #             else: # there are already fields, so let's add to them!
-        #                 f[src, rx.projField, :] += Ptv
-        #     return f
 
 

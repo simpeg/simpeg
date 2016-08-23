@@ -1,3 +1,4 @@
+from __future__ import division, print_function
 from SimPEG import Problem, Utils, np, sp, Solver as SimpegSolver
 from SimPEG.EM.Base import BaseEMProblem
 from SimPEG.EM.TDEM.SurveyTDEM import Survey as SurveyTDEM
@@ -27,7 +28,6 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
     #     """
 
-
     def fields(self, m):
         """
         Solve the forward problem for the fields.
@@ -47,7 +47,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
         # timestep to solve forward
         if self.verbose:
-            print '%s\nCalculating fields(m)\n%s'% ('*'*50, '*'*50)
+            print('{}\nCalculating fields(m)\n{}'.format('*'*50, '*'*50))
         Ainv = None
         for tInd, dt in enumerate(self.timeSteps):
             # keep factors if dt is the same as previous step b/c A will be the
@@ -60,28 +60,28 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
             if Ainv is None:
                 A = self.getAdiag(tInd)
                 if self.verbose:
-                    print 'Factoring...   (dt = %e)' % dt
+                    print('Factoring...   (dt = {:e})'.format(dt))
                 Ainv = self.Solver(A, **self.solverOpts)
                 if self.verbose:
-                    print 'Done'
+                    print('Done')
 
             rhs = self.getRHS(tInd+1)  # this is on the nodes of the time mesh
             Asubdiag = self.getAsubdiag(tInd)
 
             if self.verbose:
-                print ('    Solving...   (tInd = %i)') % (tInd+1)
+                print('    Solving...   (tInd = {:i})'.format(tInd+1))
             # taking a step
             sol = Ainv * (rhs - Asubdiag * F[:, (self._fieldType + 'Solution'),
                                              tInd])
 
             if self.verbose:
-                print '    Done...'
+                print('    Done...')
 
             if sol.ndim == 1:
                 sol.shape = (sol.size, 1)
             F[:, self._fieldType+'Solution', tInd+1] = sol
         if self.verbose:
-            print '%s\nDone calculating fields(m)\n%s' % ('*'*50, '*'*50)
+            print('{}\nDone calculating fields(m)\n{}'.format('*'*50, '*'*50))
         Ainv.clean()
         return F
 
@@ -153,14 +153,14 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
                     # df_dm_v is dense, but we only need the times at
                     # (rx.P.T * ones > 0)
                     # This should be called rx.footprint
-                    df_dm_v[src, '%sDeriv' % projField , tInd] = df_dmFun(
+                    df_dm_v[src, '{}Deriv'.format(projField), tInd] = df_dmFun(
                         tInd, src, dun_dm_v[:, i], v
                         )
 
                 un_src = f[src, ftype, tInd+1]
 
                 # cell centered on time mesh
-                dA_dm_v   = self.getAdiagDeriv(tInd, un_src, v)
+                dA_dm_v = self.getAdiagDeriv(tInd, un_src, v)
                 # on nodes of time mesh
                 dRHS_dm_v = self.getRHSDeriv(tInd+1, src, v)
 
@@ -209,7 +209,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
             f = self.fields(m)
 
         self.curModel = m
-        ftype = self._fieldType + 'Solution' # the thing we solved for
+        ftype = self._fieldType + 'Solution'  # the thing we solved for
 
         # Ensure v is a data object.
         if not isinstance(v, self.dataPair):
@@ -272,7 +272,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
                 AdiagTinv = None
 
             # refactor if we need to
-            if AdiagTinv is None: # and tInd > -1:
+            if AdiagTinv is None:  # and tInd > -1:
                 Adiag = self.getAdiag(tInd)
                 AdiagTinv = self.Solver(Adiag.T, **self.solverOpts)
 
@@ -285,11 +285,11 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
                 if tInd >= self.nT-1:
                     # last timestep (first to be solved)
                     ATinv_df_duT_v[isrc, :] = AdiagTinv * df_duT_v[
-                        src, '%sDeriv' % self._fieldType, tInd+1]
+                        src, '{}Deriv'.format(self._fieldType), tInd+1]
                 elif tInd > -1:
                     ATinv_df_duT_v[isrc, :] = AdiagTinv * (Utils.mkvc(df_duT_v[
-                        src, '%sDeriv'%self._fieldType, tInd+1]) - Asubdiag.T *
-                        Utils.mkvc(ATinv_df_duT_v[isrc, :]))
+                        src, '{}Deriv'.format(self._fieldType), tInd+1]) -
+                        Asubdiag.T * Utils.mkvc(ATinv_df_duT_v[isrc, :]))
 
                 if tInd < self.nT:
                     dAsubdiagT_dm_v = self.getAsubdiagDeriv(
@@ -298,10 +298,9 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
                 else:
                     dAsubdiagT_dm_v = Utils.Zero()
 
-
                 dRHST_dm_v = self.getRHSDeriv(
                         tInd+1, src, ATinv_df_duT_v[isrc, :], adjoint=True
-                        ) # on nodes of time mesh
+                        )  # on nodes of time mesh
 
                 un_src = f[src, ftype, tInd+1]
                 # cell centered on time mesh
@@ -323,18 +322,18 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         Srcs = self.survey.srcList
 
         if self._eqLocs is 'FE':
-            S_m = np.zeros((self.mesh.nF,len(Srcs)))
-            S_e = np.zeros((self.mesh.nE,len(Srcs)))
+            s_m = np.zeros((self.mesh.nF, len(Srcs)))
+            s_e = np.zeros((self.mesh.nE, len(Srcs)))
         elif self._eqLocs is 'EF':
-            S_m = np.zeros((self.mesh.nE,len(Srcs)))
-            S_e = np.zeros((self.mesh.nF,len(Srcs)))
+            s_m = np.zeros((self.mesh.nE, len(Srcs)))
+            s_e = np.zeros((self.mesh.nF, len(Srcs)))
 
         for i, src in enumerate(Srcs):
             smi, sei = src.eval(self, self.times[tInd])
-            S_m[:,i] = S_m[:,i] + smi
-            S_e[:,i] = S_e[:,i] + sei
+            s_m[:, i] = s_m[:, i] + smi
+            s_e[:, i] = s_e[:, i] + sei
 
-        return S_m, S_e
+        return s_m, s_e
 
     def getInitialFields(self):
 
@@ -346,7 +345,8 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
             ifields = np.zeros((self.mesh.nE, len(Srcs)))
 
         for i, src in enumerate(Srcs):
-            ifields[:, i] = ifields[:, i] + getattr(src, '%sInitial'%self._fieldType, None)(self)
+            ifields[:, i] = (ifields[:, i] + getattr(src,
+                             '{}Initial'.format(self._fieldType), None)(self))
 
         return ifields
 
@@ -361,11 +361,10 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         elif adjoint is True:
             ifieldsDeriv = np.zeros(self.mapping.nP)
 
-        ifieldsDeriv = Utils.mkvc(getattr(src, '%sInitialDeriv'%self._fieldType, None)(self, v, adjoint)) + ifieldsDeriv
-
-            # ifieldsDeriv = Utils.mkvc(getattr(src, '%sInitialDeriv'%self._fieldType, None)(self,v,adjoint)) + ifieldsDeriv
-            # ifieldsDeriv = self.getAdiagDeriv(None, u, v, adjoint)
-            # ifieldsDeriv = ifieldsDeriv.sum()
+        ifieldsDeriv = (Utils.mkvc(
+            getattr(src, '{}InitialDeriv'.format(self._fieldType),
+                    None)(self, v, adjoint)) + ifieldsDeriv
+            )
 
         return ifieldsDeriv
 
@@ -445,7 +444,7 @@ class Problem3D_b(BaseTDEMProblem):
     """
 
     _fieldType = 'b'
-    _eqLocs    = 'FE'  # TODO: This should be 'formulation EB or HJ'
+    _eqLocs = 'FE'  # TODO: This should be 'formulation EB or HJ'
     fieldsPair = Fields3D_b  #: A SimPEG.EM.TDEM.Fields3D_b object
     surveyPair = SurveyTDEM
 
@@ -477,15 +476,19 @@ class Problem3D_b(BaseTDEMProblem):
 
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
         C = self.mesh.edgeCurl
-        MeSigmaIDeriv = lambda x: self.MeSigmaIDeriv(x)
+
+        def MeSigmaIDeriv(x):
+            return self.MeSigmaIDeriv(x)
+
         MfMui = self.MfMui
 
         if adjoint:
             if self._makeASymmetric is True:
                 v = MfMui * v
-            return  MeSigmaIDeriv(C.T * ( MfMui * u )).T * ( C.T * v )
+            return MeSigmaIDeriv(C.T * (MfMui * u)).T * (C.T * v)
 
-        ADeriv = ( C * ( MeSigmaIDeriv(C.T * ( MfMui * u )) * v ) )
+        ADeriv = (C * (MeSigmaIDeriv(C.T * (MfMui * u)) * v))
+
         if self._makeASymmetric is True:
             return MfMui.T * ADeriv
         return ADeriv
@@ -509,9 +512,9 @@ class Problem3D_b(BaseTDEMProblem):
         MeSigmaI = self.MeSigmaI
         MfMui = self.MfMui
 
-        S_m, S_e = self.getSourceTerm(tInd)
+        s_m, s_e = self.getSourceTerm(tInd)
 
-        rhs =  (C * (MeSigmaI * S_e) + S_m)
+        rhs = (C * (MeSigmaI * s_e) + s_m)
         if self._makeASymmetric is True:
             return MfMui.T * rhs
         return rhs
@@ -520,30 +523,35 @@ class Problem3D_b(BaseTDEMProblem):
 
         C = self.mesh.edgeCurl
         MeSigmaI = self.MeSigmaI
-        MeSigmaIDeriv = lambda u: self.MeSigmaIDeriv(u)
+
+        def MeSigmaIDeriv(u):
+            return self.MeSigmaIDeriv(u)
+
         MfMui = self.MfMui
 
-        _, S_e = src.eval(self, self.times[tInd])
-        S_mDeriv, S_eDeriv = src.evalDeriv(self, self.times[tInd],
+        _, s_e = src.eval(self, self.times[tInd])
+        s_mDeriv, s_eDeriv = src.evalDeriv(self, self.times[tInd],
                                            adjoint=adjoint)
 
         if adjoint:
             if self._makeASymmetric is True:
                 v = self.MfMui * v
-            if isinstance(S_e, Utils.Zero):
+            if isinstance(s_e, Utils.Zero):
                 MeSigmaIDerivT_v = Utils.Zero()
             else:
-                MeSigmaIDerivT_v = MeSigmaIDeriv(S_e).T * C.T * v
-            RHSDeriv = (MeSigmaIDerivT_v + S_eDeriv( MeSigmaI.T *  (C.T * v)) +
-                        S_mDeriv(v))
+                MeSigmaIDerivT_v = MeSigmaIDeriv(s_e).T * C.T * v
+
+            RHSDeriv = (MeSigmaIDerivT_v + s_eDeriv( MeSigmaI.T * (C.T * v)) +
+                        s_mDeriv(v))
+
             return RHSDeriv
 
-        if isinstance(S_e, Utils.Zero):
+        if isinstance(s_e, Utils.Zero):
             MeSigmaIDeriv_v = Utils.Zero()
         else:
-            MeSigmaIDeriv_v = MeSigmaIDeriv(S_e) * v
+            MeSigmaIDeriv_v = MeSigmaIDeriv(s_e) * v
 
-        temp = MeSigmaIDeriv_v + MeSigmaI * S_eDeriv(v) + S_mDeriv(v)
+        temp = MeSigmaIDeriv_v + MeSigmaI * s_eDeriv(v) + s_mDeriv(v)
 
         # TODO: this is because Zero class, which need to be modified
         if isinstance(temp, Utils.Zero) is False:
@@ -556,12 +564,12 @@ class Problem3D_b(BaseTDEMProblem):
         return RHSDeriv
 
 
-# ------------------------------- Problem3D_e --------------------------------- #
+# ------------------------------- Problem3D_e ------------------------------- #
 
 class Problem3D_e(BaseTDEMProblem):
 
     _fieldType = 'e'
-    _eqLocs    = 'FE'
+    _eqLocs = 'FE'
     fieldsPair = Fields3D_e  #: A Fields3D_e
     surveyPair = SurveyTDEM
 
@@ -581,7 +589,6 @@ class Problem3D_e(BaseTDEMProblem):
         MeSigma = self.MeSigma
 
         return C.T * ( MfMui * C ) + 1./dt * MeSigma
-
 
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
         assert tInd >= 0 and tInd < self.nT
@@ -613,13 +620,13 @@ class Problem3D_e(BaseTDEMProblem):
         if tInd == len(self.timeSteps):
             tInd = tInd - 1
         dt = self.timeSteps[tInd]
-        S_m, S_e = self.getSourceTerm(tInd)
-        _, S_en1 = self.getSourceTerm(tInd-1)
-        return (-1./dt * (S_e - S_en1) +
-                self.mesh.edgeCurl.T * self.MfMui * S_m)
+        s_m, s_e = self.getSourceTerm(tInd)
+        _, s_en1 = self.getSourceTerm(tInd-1)
+        return (-1./dt * (s_e - s_en1) +
+                self.mesh.edgeCurl.T * self.MfMui * s_m)
 
     def getRHSDeriv(self, tInd, src, v, adjoint=False):
-        # right now, we are assuming that S_e, S_m do not depend on the model.
+        # right now, we are assuming that s_e, s_m do not depend on the model.
         return Utils.Zero()
 
 
