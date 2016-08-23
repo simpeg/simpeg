@@ -1,8 +1,6 @@
-from SimPEG import np, Mesh
+import numpy as np
+from SimPEG import Mesh
 import time as tm
-import vtk
-import vtk.util.numpy_support as npsup
-import re
 
 
 def read_GOCAD_ts(tsfile):
@@ -26,6 +24,10 @@ def read_GOCAD_ts(tsfile):
         Remove all attributes from the GoCAD surface before exporting it!
 
     """
+
+    import re
+    import vtk
+    import vtk.util.numpy_support as npsup
 
     fid = open(tsfile, 'r')
     line = fid.readline()
@@ -75,6 +77,9 @@ def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
     mesh with in the structure.
 
     """
+    import vtk
+    import vtk.util.numpy_support as npsup
+
     # Adjust the index
     trgl = trgl - 1
 
