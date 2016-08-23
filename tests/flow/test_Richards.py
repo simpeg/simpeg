@@ -5,11 +5,22 @@ from SimPEG import Mesh, Solver, Utils
 from SimPEG.Tests import OrderTest, checkDerivative
 from scipy.sparse.linalg import dsolve
 from SimPEG.FLOW import Richards
+from SimPEG import SolverWrapD
+
 try:
-    from pymatsolver import MumpsSolver
-    Solver = MumpsSolver
-except Exception:
-    pass
+    import pyMKL
+    def pardisoSolverFunc(A):
+        from pyMKL import pardisoSolver
+        factor = pardisoSolver(A, mtype=11) #Real and not symmetric
+        factor.run_pardiso(12) #analysis and factor
+        return factor
+    Solver = SolverWrapD(pardisoSolverFunc)
+except ImportError:
+    try:
+        from pymatsolver import MumpsSolver
+        Solver = MumpsSolver
+    except ImportError:
+        pass
 
 
 TOL = 1E-8

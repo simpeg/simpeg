@@ -3,6 +3,7 @@ import unittest
 from SimPEG import Mesh, Utils, EM, Maps, np, SolverLU
 import SimPEG.EM.Static.DC as DC
 import SimPEG.EM.Static.IP as IP
+from SimPEG import SolverWrapD
 
 class IPProblemAnalyticTests(unittest.TestCase):
 
@@ -41,10 +42,19 @@ class IPProblemAnalyticTests(unittest.TestCase):
         self.eta = eta
 
         try:
-            from pymatsolver import MumpsSolver
-            self.Solver = MumpsSolver
+            import pyMKL
+            def pardisoSolverFunc(A):
+                from pyMKL import pardisoSolver
+                factor = pardisoSolver(A, mtype=11) #Real and not symmetric
+                factor.run_pardiso(12) #analysis and factor
+                return factor
+            self.Solver = SolverWrapD(pardisoSolverFunc)
         except ImportError:
-            self.Solver = SolverLU
+            try:
+                from pymatsolver import MumpsSolver
+                self.Solver = MumpsSolver
+            except ImportError:
+                self.Solver = SolverLU
 
     def test_Problem3D_N(self):
 

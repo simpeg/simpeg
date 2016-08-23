@@ -2,14 +2,23 @@ from __future__ import print_function
 import numpy as np
 from SimPEG import Mesh, Maps, Utils, SolverLU
 from SimPEG.EM import FDEM, Analytics
+from SimPEG import SolverWrapD
 import time
 
 try:
-    from pymatsolver import MumpsSolver
-    solver = MumpsSolver
-except Exception:
-    solver = SolverLU
-    pass
+    import pyMKL
+    def pardisoSolverFunc(A):
+        from pyMKL import pardisoSolver
+        factor = pardisoSolver(A, mtype=6) #Complex and symmetric
+        factor.run_pardiso(12) #analysis and factor
+        return factor
+    solver = SolverWrapD(pardisoSolverFunc)
+except ImportError:
+    try:
+        from pymatsolver import MumpsSolver
+        solver = MumpsSolver
+    except ImportError:
+        solver = SolverLU
 
 
 def run(plotIt=True):

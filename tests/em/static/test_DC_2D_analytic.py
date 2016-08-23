@@ -1,6 +1,6 @@
 from __future__ import print_function
 import unittest
-from SimPEG import Mesh, Utils, EM, Maps, np, SolverLU
+from SimPEG import Mesh, Utils, EM, Maps, np, SolverLU, SolverWrapD
 import SimPEG.EM.Static.DC as DC
 
 class DCProblemAnalyticTests(unittest.TestCase):
@@ -29,12 +29,20 @@ class DCProblemAnalyticTests(unittest.TestCase):
         self.mesh = mesh
         self.sigma = sigma
         self.data_anal = data_anal
-
         try:
-            from pymatsolver import MumpsSolver
-            self.Solver = MumpsSolver
+            import pyMKL
+            def pardisoSolverFunc(A):
+                from pyMKL import pardisoSolver
+                factor = pardisoSolver(A, mtype=11) #Real and not symmetric
+                factor.run_pardiso(12) #analysis and factor
+                return factor
+            self.Solver = SolverWrapD(pardisoSolverFunc)
         except ImportError:
-            self.Solver = SolverLU
+            try:
+                from pymatsolver import MumpsSolver
+                self.Solver = MumpsSolver
+            except ImportError:
+                self.Solver = SolverLU
 
     def test_Problem3D_N(self):
 

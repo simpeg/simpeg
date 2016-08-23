@@ -3,13 +3,24 @@ import unittest
 import numpy as np
 from SimPEG import Mesh, Maps, SolverLU
 from SimPEG import EM
+from SimPEG import SolverWrapD
 from scipy.constants import mu_0
 import matplotlib.pyplot as plt
 
 try:
-    from pymatsolver import MumpsSolver
+    import pyMKL
+    def pardisoSolverFunc(A):
+        from pyMKL import pardisoSolver
+        factor = pardisoSolver(A, mtype=2) #Real and SPD
+        factor.run_pardiso(12) #analysis and factor
+        return factor
+    Solver = SolverWrapD(pardisoSolverFunc)
 except ImportError:
-    MumpsSolver = SolverLU
+    try:
+        from pymatsolver import MumpsSolver
+        Solver = MumpsSolver
+    except ImportError:
+        Solver = SolverLU
 
 
 def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=None, showIt=False):
@@ -41,7 +52,7 @@ def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=None, 
 
     survey = EM.TDEM.SurveyTDEM([src])
     prb = EM.TDEM.ProblemTDEM_b(mesh, mapping=mapping)
-    prb.Solver = MumpsSolver
+    prb.Solver = Solver
 
     prb.timeSteps = [(1e-06, 40), (5e-06, 40), (1e-05, 40), (5e-05, 40), (0.0001, 40), (0.0005, 40)]
 

@@ -2,6 +2,7 @@ from __future__ import print_function
 from SimPEG import Mesh, Utils
 import numpy as np
 import SimPEG.EM.Static.DC as DC
+from SimPEG import SolverWrapD
 
 
 def run(plotIt=True):
@@ -30,10 +31,19 @@ def run(plotIt=True):
     problem = DC.Problem3D_CC(mesh)
     problem.pair(survey)
     try:
-        from pymatsolver import MumpsSolver
-        problem.Solver = MumpsSolver
-    except Exception:
-        pass
+        import pyMKL
+        def pardisoSolverFunc(A):
+            from pyMKL import pardisoSolver
+            factor = pardisoSolver(A, mtype=11) #Real and not symmetric
+            factor.run_pardiso(12) #analysis and factor
+            return factor
+        problem.Solver = SolverWrapD(pardisoSolverFunc)
+    except ImportError:
+        try:
+            from pymatsolver import MumpsSolver
+            problem.Solver = MumpsSolver
+        except ImportError:
+            pass
     data = survey.dpred(sigma)
 
     def DChalf(srclocP, srclocN, rxloc, sigma, I=1.):

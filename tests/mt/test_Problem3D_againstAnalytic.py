@@ -7,6 +7,7 @@ import unittest
 from SimPEG import MT
 from SimPEG.Utils import meshTensor
 from scipy.constants import mu_0
+from SimPEG import SolverWrapD
 
 TOLr = 5e-2
 TOL = 1e-4
@@ -137,10 +138,19 @@ def setupSimpegMTfwd_eForm_ps(inputSetup,comp='Imp',singleFreq=False,expMap=True
     problem.pair(survey)
     problem.verbose = False
     try:
-        from pymatsolver import MumpsSolver
-        problem.Solver = MumpsSolver
-    except:
-        pass
+        import pyMKL
+        def pardisoSolverFunc(A):
+            from pyMKL import pardisoSolver
+            factor = pardisoSolver(A, mtype=6) #Complex and symmetric
+            factor.run_pardiso(12) #analysis and factor
+            return factor
+        problem.Solver = SolverWrapD(pardisoSolverFunc)
+    except ImportError:
+        try:
+            from pymatsolver import MumpsSolver
+            problem.Solver = MumpsSolver
+        except ImportError:
+            pass
 
     return (survey, problem)
 
