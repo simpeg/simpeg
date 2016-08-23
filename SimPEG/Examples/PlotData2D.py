@@ -1,7 +1,7 @@
 from SimPEG import EM, np, Utils
 import matplotlib.pyplot as plt
 
-def run(plotIt = True):
+def run(plotIt = False):
     """
 
         Plotting 2D data
