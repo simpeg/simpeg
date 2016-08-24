@@ -2,7 +2,6 @@ from __future__ import print_function
 import unittest
 import numpy as np
 from SimPEG import Tests
-from SimPEG import EM
 from scipy.constants import mu_0
 from SimPEG.EM.Utils.testingUtils import getFDEMProblem
 
@@ -15,18 +14,21 @@ testJ = True
 verbose = False
 
 TOL = 1e-5
-FLR = 1e-20 # "zero", so if residual below this --> pass regardless of order
+FLR = 1e-20  # "zero", so if residual below this --> pass regardless of order
 CONDUCTIVITY = 1e1
 MU = mu_0
 freq = 1e-1
 addrandoms = True
 
-SrcType = ['MagDipole', 'RawVec'] #or 'MAgDipole_Bfield', 'CircularLoop', 'RawVec'
+SrcType = ['MagDipole', 'RawVec']  # or 'MAgDipole_Bfield', 'CircularLoop', 'RawVec'
 
 
 def derivTest(fdemType, comp):
 
     prb = getFDEMProblem(fdemType, comp, SrcType, freq)
+
+    prb.solverOpts = dict(check_accuracy=True)
+
     print('{0!s} formulation - {1!s}'.format(fdemType, comp))
     x0 = np.log(np.ones(prb.mapping.nP)*CONDUCTIVITY)
     mu = np.log(np.ones(prb.mesh.nC)*MU)
@@ -36,6 +38,7 @@ def derivTest(fdemType, comp):
         mu = mu + np.random.randn(prb.mapping.nP)*MU*1e-1
 
     survey = prb.survey
+
     def fun(x):
         return survey.dpred(x), lambda x: prb.Jvec(x0, x)
     return Tests.checkDerivative(fun, x0, num=2, plotIt=False, eps=FLR)
@@ -201,7 +204,6 @@ class FDEM_DerivTests(unittest.TestCase):
             self.assertTrue(derivTest('j', 'byi'))
         def test_Jvec_bzi_Jform(self):
             self.assertTrue(derivTest('j', 'bzi'))
-
 
     if testH:
         def test_Jvec_hxr_Hform(self):
