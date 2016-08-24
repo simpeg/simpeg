@@ -24,6 +24,7 @@ env:
     - TEST_DIR=tests/examples
     - TEST_DIR=tests/em/fdem/inverse/adjoint
     - TEST_DIR=tests/em/fdem/forward
+    - TEST_DIR=tests/pf
     - TEST_DIR=tests/docs;
       GAE_PYTHONPATH=${HOME}/.cache/google_appengine;
       PATH=$PATH:${HOME}/google-cloud-sdk/bin;

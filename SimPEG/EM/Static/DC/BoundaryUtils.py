@@ -1,27 +1,33 @@
 import numpy as np
 
+
 def getxBCyBC_CC(mesh, alpha, beta, gamma):
-# def getxBCyBC(mesh, alpha, beta, gamma):
+
     """
     This is a subfunction generating mixed-boundary condition:
 
     .. math::
 
-        \nabla \cdot \vec{j} = -\nabla \cdot \vec{j}_s = q
+        \\nabla \cdot \\vec{j} = -\\nabla \cdot \\vec{j}_s = q
 
-        \rho \vec{j} = -\nabla \phi \phi
+        \\rho \\vec{j} = -\\nabla \phi
 
-        \alpha \phi + \beta \frac{\partial \phi}{\partial r} = \gamma \ at \ r = \partial \Omega
+        \\alpha \phi + \\beta \\frac{\partial \phi}{\partial r} = \gamma
+        \quad \\vec{r} \subset \partial \Omega
 
-        xBC = f_1(\alpha, \beta, \gamma)
-        yBC = f(\alpha, \beta, \gamma)
+        xBC = f_1(\\alpha, \\beta, \\gamma)
+
+        yBC = f(\\alpha, \\beta, \\gamma)
+
 
     Computes xBC and yBC for cell-centered discretizations
+
     """
-    if mesh.dim == 1: #1D
+
+    if mesh.dim == 1:  # 1D
         if (len(alpha) != 2 or len(beta) != 2 or len(gamma) != 2):
             raise Exception("Lenght of list, alpha should be 2")
-        fCCxm,fCCxp = mesh.cellBoundaryInd
+        fCCxm, fCCxp = mesh.cellBoundaryInd
         nBC = fCCxm.sum()+fCCxp.sum()
         h_xm, h_xp = mesh.gridCC[fCCxm], mesh.gridCC[fCCxp]
 
@@ -44,11 +50,11 @@ def getxBCyBC_CC(mesh, alpha, beta, gamma):
         xBC = np.r_[xBC_xm, xBC_xp]
         yBC = np.r_[yBC_xm, yBC_xp]
 
-    elif mesh.dim == 2: #2D
+    elif mesh.dim == 2:  # 2D
         if (len(alpha) != 4 or len(beta) != 4 or len(gamma) != 4):
             raise Exception("Lenght of list, alpha should be 4")
 
-        fxm,fxp,fym,fyp = mesh.faceBoundaryInd
+        fxm, fxp, fym, fyp = mesh.faceBoundaryInd
         nBC = fxm.sum()+fxp.sum()+fxm.sum()+fxp.sum()
 
         alpha_xm, beta_xm, gamma_xm = alpha[0], beta[0], gamma[0]
@@ -59,8 +65,10 @@ def getxBCyBC_CC(mesh, alpha, beta, gamma):
         # h_xm, h_xp = mesh.gridCC[fCCxm,0], mesh.gridCC[fCCxp,0]
         # h_ym, h_yp = mesh.gridCC[fCCym,1], mesh.gridCC[fCCyp,1]
 
-        h_xm, h_xp = mesh.hx[0]*np.ones_like(alpha_xm), mesh.hx[-1]*np.ones_like(alpha_xp)
-        h_ym, h_yp = mesh.hy[0]*np.ones_like(alpha_ym), mesh.hy[-1]*np.ones_like(alpha_yp)
+        h_xm = mesh.hx[0]*np.ones_like(alpha_xm)
+        h_xp = mesh.hx[-1]*np.ones_like(alpha_xp)
+        h_ym = mesh.hy[0]*np.ones_like(alpha_ym)
+        h_yp = mesh.hy[-1]*np.ones_like(alpha_yp)
 
         a_xm = gamma_xm/(0.5*alpha_xm-beta_xm/h_xm)
         b_xm = (0.5*alpha_xm+beta_xm/h_xm)/(0.5*alpha_xm-beta_xm/h_xm)
@@ -81,8 +89,10 @@ def getxBCyBC_CC(mesh, alpha, beta, gamma):
         yBC_ym = 0.5*(1.-b_ym)
         yBC_yp = 0.5*(1.-1./b_yp)
 
-        sortindsfx = np.argsort(np.r_[np.arange(mesh.nFx)[fxm], np.arange(mesh.nFx)[fxp]])
-        sortindsfy = np.argsort(np.r_[np.arange(mesh.nFy)[fym], np.arange(mesh.nFy)[fyp]])
+        sortindsfx = np.argsort(np.r_[np.arange(mesh.nFx)[fxm],
+                                      np.arange(mesh.nFx)[fxp]])
+        sortindsfy = np.argsort(np.r_[np.arange(mesh.nFy)[fym],
+                                      np.arange(mesh.nFy)[fyp]])
 
         xBC_x = np.r_[xBC_xm, xBC_xp][sortindsfx]
         xBC_y = np.r_[xBC_ym, xBC_yp][sortindsfy]
@@ -92,11 +102,11 @@ def getxBCyBC_CC(mesh, alpha, beta, gamma):
         xBC = np.r_[xBC_x, xBC_y]
         yBC = np.r_[yBC_x, yBC_y]
 
-    elif mesh.dim == 3: #3D
+    elif mesh.dim == 3:  # 3D
         if (len(alpha) != 6 or len(beta) != 6 or len(gamma) != 6):
             raise Exception("Lenght of list, alpha should be 6")
         # fCCxm,fCCxp,fCCym,fCCyp,fCCzm,fCCzp = mesh.cellBoundaryInd
-        fxm,fxp,fym,fyp,fzm,fzp = mesh.faceBoundaryInd
+        fxm, fxp, fym, fyp, fzm, fzp = mesh.faceBoundaryInd
         nBC = fxm.sum()+fxp.sum()+fxm.sum()+fxp.sum()
 
         alpha_xm, beta_xm, gamma_xm = alpha[0], beta[0], gamma[0]
@@ -110,9 +120,12 @@ def getxBCyBC_CC(mesh, alpha, beta, gamma):
         # h_ym, h_yp = mesh.gridCC[fCCym,1], mesh.gridCC[fCCyp,1]
         # h_zm, h_zp = mesh.gridCC[fCCzm,2], mesh.gridCC[fCCzp,2]
 
-        h_xm, h_xp = mesh.hx[0]*np.ones_like(alpha_xm), mesh.hx[-1]*np.ones_like(alpha_xp)
-        h_ym, h_yp = mesh.hy[0]*np.ones_like(alpha_ym), mesh.hy[-1]*np.ones_like(alpha_yp)
-        h_zm, h_zp = mesh.hz[0]*np.ones_like(alpha_zm), mesh.hz[-1]*np.ones_like(alpha_zp)
+        h_xm = mesh.hx[0]*np.ones_like(alpha_xm)
+        h_xp = mesh.hx[-1]*np.ones_like(alpha_xp)
+        h_ym = mesh.hy[0]*np.ones_like(alpha_ym)
+        h_yp = mesh.hy[-1]*np.ones_like(alpha_yp)
+        h_zm = mesh.hz[0]*np.ones_like(alpha_zm)
+        h_zp = mesh.hz[-1]*np.ones_like(alpha_zp)
 
         a_xm = gamma_xm/(0.5*alpha_xm-beta_xm/h_xm)
         b_xm = (0.5*alpha_xm+beta_xm/h_xm)/(0.5*alpha_xm-beta_xm/h_xm)
@@ -142,9 +155,12 @@ def getxBCyBC_CC(mesh, alpha, beta, gamma):
         yBC_zm = 0.5*(1.-b_zm)
         yBC_zp = 0.5*(1.-1./b_zp)
 
-        sortindsfx = np.argsort(np.r_[np.arange(mesh.nFx)[fxm], np.arange(mesh.nFx)[fxp]])
-        sortindsfy = np.argsort(np.r_[np.arange(mesh.nFy)[fym], np.arange(mesh.nFy)[fyp]])
-        sortindsfz = np.argsort(np.r_[np.arange(mesh.nFz)[fzm], np.arange(mesh.nFz)[fzp]])
+        sortindsfx = np.argsort(np.r_[np.arange(mesh.nFx)[fxm],
+                                      np.arange(mesh.nFx)[fxp]])
+        sortindsfy = np.argsort(np.r_[np.arange(mesh.nFy)[fym],
+                                      np.arange(mesh.nFy)[fyp]])
+        sortindsfz = np.argsort(np.r_[np.arange(mesh.nFz)[fzm],
+                                      np.arange(mesh.nFz)[fzp]])
 
         xBC_x = np.r_[xBC_xm, xBC_xp][sortindsfx]
         xBC_y = np.r_[xBC_ym, xBC_yp][sortindsfy]

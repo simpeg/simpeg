@@ -4,6 +4,7 @@ from SimPEG import (Mesh, Maps, Utils, DataMisfit, Regularization,
                     Optimization, Tests, Inversion, InvProblem)
 import SimPEG.EM.Static.DC as DC
 
+np.random.seed(41)
 
 class DCProblem_2DTestsCC(unittest.TestCase):
 

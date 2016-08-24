@@ -9,8 +9,8 @@
 .. --------------------------------- ..
 
 
-Inversion: Linear Problem
-=========================
+Inversion for compact models (IRLS)
+===================================
 
 Here we go over the basics of creating a linear problem and inversion.
 
