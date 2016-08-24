@@ -7,6 +7,14 @@ import matplotlib.pyplot as plt
 
 
 def run(plotIt=True):
+    """
+    1D FDEM and TDEM inversions
+    ===========================
+
+    This example is used in the paper Heagy et al 2016 (in prep)
+
+    """
+
     # Set up cylindrically symmeric mesh
     cs, ncx, ncz, npad = 10., 15, 25, 13  # padded cyl mesh
     hx = [(cs, ncx), (cs, npad, 1.3)]
@@ -58,7 +66,7 @@ def run(plotIt=True):
     dmisfit = DataMisfit.l2_DataMisfit(surveyFD)
     regMesh = Mesh.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
     reg = Regularization.Simple(regMesh)
-    opt = Optimization.InexactGaussNewton(maxIterCG=10, maxIter=4)
+    opt = Optimization.InexactGaussNewton(maxIterCG=10)
     invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
 
     # Inversion Directives
@@ -66,7 +74,7 @@ def run(plotIt=True):
     betaest = Directives.BetaEstimate_ByEig(beta0_ratio=2.)
     target = Directives.TargetMisfit()
 
-    inv = Inversion.BaseInversion(invProb, directiveList=[beta, target])
+    inv = Inversion.BaseInversion(invProb, directiveList=[beta, betaest, target])
     m0 = np.log(np.ones(mtrue.size)*sig_half)
     reg.alpha_s = 5e-1
     reg.alpha_x = 1.
@@ -97,7 +105,7 @@ def run(plotIt=True):
     dmisfit = DataMisfit.l2_DataMisfit(surveyTD)
     regMesh = Mesh.TensorMesh([mesh.hz[mapping.maps[-1].indActive]])
     reg = Regularization.Simple(regMesh)
-    opt = Optimization.InexactGaussNewton(maxIterCG=10, maxIter=4)
+    opt = Optimization.InexactGaussNewton(maxIterCG=10)
     invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
 
     # Inversion Directives
@@ -105,7 +113,7 @@ def run(plotIt=True):
     betaest = Directives.BetaEstimate_ByEig(beta0_ratio=2.)
     target = Directives.TargetMisfit()
 
-    inv = Inversion.BaseInversion(invProb, directiveList=[beta, target])
+    inv = Inversion.BaseInversion(invProb, directiveList=[beta, betaest, target])
     m0 = np.log(np.ones(mtrue.size)*sig_half)
     reg.alpha_s = 5e-1
     reg.alpha_x = 1.
