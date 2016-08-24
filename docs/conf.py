@@ -291,6 +291,7 @@ nitpick_ignore = [
     ('py:class', 'Fields3D_h'),
     ('py:class', 'SurveyTDEM'),
     ('py:class', 'SrcTDEM'),
+    ('py:class', 'FieldsTDEM'),
     ('py:class', 'EMPropMap'),
     ('py:class', 'Data'),
     ('py:class', 'SurveyDC'),
