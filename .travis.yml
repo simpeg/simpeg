@@ -53,12 +53,8 @@ install:
     fi
   - pip install nose-cov python-coveralls
 
-  - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
-      git clone https://github.com/rowanc1/pymatsolver.git;
-      cd pymatsolver; python setup.py install; cd ..;
-    else
-      echo "pymatsolver not updated for python3";
-    fi
+  - git clone https://github.com/rowanc1/pymatsolver.git;
+    cd pymatsolver; python setup.py install; cd ..;
 
   - python setup.py install
   - python setup.py build_ext --inplace
