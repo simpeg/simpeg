@@ -31,8 +31,8 @@ class DCProblemAnalyticTests(unittest.TestCase):
         self.data_anal = data_anal
 
         try:
-            from pymatsolver import MumpsSolver
-            self.Solver = MumpsSolver
+            from pymatsolver import PardisoSolver
+            self.Solver = PardisoSolver
         except ImportError:
             self.Solver = SolverLU
 

@@ -7,9 +7,9 @@ from scipy.constants import mu_0
 import matplotlib.pyplot as plt
 
 try:
-    from pymatsolver import MumpsSolver
+    from pymatsolver import PardisoSolver
 except ImportError:
-    MumpsSolver = SolverLU
+    PardisoSolver = SolverLU
 
 
 def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=None, showIt=False):
@@ -41,7 +41,7 @@ def halfSpaceProblemAnaDiff(meshType, sig_half=1e-2, rxOffset=50., bounds=None, 
 
     survey = EM.TDEM.SurveyTDEM([src])
     prb = EM.TDEM.ProblemTDEM_b(mesh, mapping=mapping)
-    prb.Solver = MumpsSolver
+    prb.Solver = PardisoSolver
 
     prb.timeSteps = [(1e-06, 40), (5e-06, 40), (1e-05, 40), (5e-05, 40), (0.0001, 40), (0.0005, 40)]
 

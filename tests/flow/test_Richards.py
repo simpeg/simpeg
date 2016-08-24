@@ -6,8 +6,8 @@ from SimPEG.Tests import OrderTest, checkDerivative
 from scipy.sparse.linalg import dsolve
 from SimPEG.FLOW import Richards
 try:
-    from pymatsolver import MumpsSolver
-    Solver = MumpsSolver
+    from pymatsolver import PardisoSolver
+    Solver = PardisoSolver
 except Exception:
     pass
 

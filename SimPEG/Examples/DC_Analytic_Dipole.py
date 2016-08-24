@@ -30,8 +30,8 @@ def run(plotIt=True):
     problem = DC.Problem3D_CC(mesh)
     problem.pair(survey)
     try:
-        from pymatsolver import MumpsSolver
-        problem.Solver = MumpsSolver
+        from pymatsolver import PardisoSolver
+        problem.Solver = PardisoSolver
     except Exception:
         pass
     data = survey.dpred(sigma)

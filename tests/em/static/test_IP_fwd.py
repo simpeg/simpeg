@@ -41,8 +41,8 @@ class IPProblemAnalyticTests(unittest.TestCase):
         self.eta = eta
 
         try:
-            from pymatsolver import MumpsSolver
-            self.Solver = MumpsSolver
+            from pymatsolver import PardisoSolver
+            self.Solver = PardisoSolver
         except ImportError:
             self.Solver = SolverLU
 

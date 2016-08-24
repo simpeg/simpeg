@@ -36,8 +36,8 @@ class TDEM_bDerivTests(unittest.TestCase):
         # self.prb.timeSteps = [(1e-05, 100)]
 
         try:
-            from pymatsolver import MumpsSolver
-            self.prb.Solver = MumpsSolver
+            from pymatsolver import PardisoSolver
+            self.prb.Solver = PardisoSolver
         except ImportError:
             self.prb.Solver = SolverLU
 

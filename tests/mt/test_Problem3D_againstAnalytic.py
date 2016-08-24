@@ -137,8 +137,8 @@ def setupSimpegMTfwd_eForm_ps(inputSetup,comp='Imp',singleFreq=False,expMap=True
     problem.pair(survey)
     problem.verbose = False
     try:
-        from pymatsolver import MumpsSolver
-        problem.Solver = MumpsSolver
+        from pymatsolver import PardisoSolver
+        problem.Solver = PardisoSolver
     except:
         pass
 

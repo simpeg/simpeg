@@ -4,8 +4,8 @@ from SimPEG import (Mesh, Utils, EM, Maps, np, Survey, DataMisfit,
                     Regularization, Optimization, Inversion, InvProblem, Tests)
 from SimPEG.EM.Static import SIP, DC, IP
 try:
-    from pymatsolver import MumpsSolver
-    Solver = MumpsSolver
+    from pymatsolver import PardisoSolver
+    Solver = PardisoSolver
 except ImportError:
     from SimPEG import SolverLU
     Solver = SolverLU

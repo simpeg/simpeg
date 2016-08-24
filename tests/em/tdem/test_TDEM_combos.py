@@ -34,8 +34,8 @@ def getProb(meshType='CYL',rxTypes='bx,bz',nSrc=1):
     # prb.timeSteps = [(1e-05, 100)]
 
     try:
-        from pymatsolver import MumpsSolver
-        prb.Solver = MumpsSolver
+        from pymatsolver import PardisoSolver
+        prb.Solver = PardisoSolver
     except ImportError:
         prb.Solver  = SolverLU
 

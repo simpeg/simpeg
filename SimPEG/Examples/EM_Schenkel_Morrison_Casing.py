@@ -5,8 +5,8 @@ from SimPEG.EM import FDEM, Analytics
 import time
 
 try:
-    from pymatsolver import MumpsSolver
-    solver = MumpsSolver
+    from pymatsolver import PardisoSolver
+    solver = PardisoSolver
 except Exception:
     solver = SolverLU
     pass
