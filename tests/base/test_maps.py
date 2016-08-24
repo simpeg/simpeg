@@ -87,7 +87,7 @@ class MapTests(unittest.TestCase):
         # Note that log/reciprocal maps can be kinda finicky, so we are being
         # explicit about the random seed.
 
-        v2 = np.r_[0.40077291, 0.14410044, 0.58452314, 0.96323738, 0.01198519,
+        v2 = np.r_[0.40077291, 0.1441044, 0.58452314, 0.96323738, 0.01198519,
                    0.79754415]
         dv2 = np.r_[0.80653921, 0.13132446, 0.4901117, 0.03358737, 0.65473762,
                     0.44252488]
@@ -233,6 +233,18 @@ class MapTests(unittest.TestCase):
             self.assertTrue(np.all(Utils.mkvc((m2to3 * m).reshape(M3.vnC,
                             order='F')[:, :, 0]) == m))
 
+    def test_ParametricPolyMap(self):
+        M2 = Mesh.TensorMesh([np.ones(10), np.ones(10)], "CN")
+        mParamPoly = Maps.ParametricPolyMap(M2, 2, logSigma=True, normal='Y')
+        self.assertTrue(mParamPoly.test(m=np.r_[1., 1., 0., 0., 0.]))
+        self.assertTrue(mParamPoly.testVec(m=np.r_[1., 1., 0., 0., 0.]))
+
+    def test_ParametricSplineMap(self):
+        M2 = Mesh.TensorMesh([np.ones(10), np.ones(10)], "CN")
+        x = M2.vectorCCx
+        mParamSpline = Maps.ParametricSplineMap(M2, x, normal='Y', order=1)
+        self.assertTrue(mParamSpline.test())
+        self.assertTrue(mParamSpline.testVec())
 
 if __name__ == '__main__':
     unittest.main()
