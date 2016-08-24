@@ -940,6 +940,20 @@ class ParametricPolyMap(IdentityMap):
         return sp.csr_matrix(np.c_[g1, g2, g3])
 
 
+class PolyMap(ParametricPolyMap):
+
+    """PolyMap is depreciated. Use ParametricSplineMap instead.
+
+    """
+
+    def __init__(self, mesh, order, logSigma=True, normal='X', actInd=None):
+        warnings.warn(
+            "`PolyMap` is deprecated and will be removed in future "
+            "versions. Use `ParametricSplineMap` instead",
+            FutureWarning)
+        ParametricPolyMap(self, mesh, order, logSigma, normal, actInd)
+
+
 class ParametricSplineMap(IdentityMap):
 
     """SplineMap
