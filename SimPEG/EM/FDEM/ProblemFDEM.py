@@ -80,6 +80,8 @@ class BaseFDEMProblem(BaseEMProblem):
         for freq in self.survey.freqs:
             A = self.getA(freq)
             print(A.dtype)
+            print(A.indptr.dtype)
+            print(A.indices.dtype)
             Ainv = self.Solver(A, **self.solverOpts) # create the concept of Ainv (actually a solve)
 
             for src in self.survey.getSrcByFreq(freq):
