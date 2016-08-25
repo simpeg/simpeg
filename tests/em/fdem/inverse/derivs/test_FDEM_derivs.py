@@ -44,7 +44,10 @@ def derivTest(fdemType, comp):
 
 
 class FDEM_DerivTests(unittest.TestCase):
+    def test_Jvec_exr_Eform(self):
+        self.assertTrue(derivTest('e', 'exr'))
 
+    """
     if testE:
         def test_Jvec_exr_Eform(self):
             self.assertTrue(derivTest('e', 'exr'))
@@ -257,6 +260,6 @@ class FDEM_DerivTests(unittest.TestCase):
         def test_Jvec_bzi_Hform(self):
             self.assertTrue(derivTest('h', 'bzi'))
 
-
+    """
 if __name__ == '__main__':
     unittest.main()
