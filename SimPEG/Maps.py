@@ -23,7 +23,7 @@ class IdentityMap(object):
 
         if nP is not None:
             assert type(nP) in [int, long], ('Number of parameters '
-                'must be an integer.')
+                                             'must be an integer.')
 
         self.mesh = mesh
         self._nP = nP
@@ -145,19 +145,25 @@ class IdentityMap(object):
 
     def __mul__(self, val):
         if isinstance(val, IdentityMap):
-            if not (self.shape[1] == '*' or val.shape[0] == '*') and not self.shape[1] == val.shape[0]:
-                raise ValueError('Dimension mismatch in {0!s} and {1!s}.'.format(str(self), str(val)))
+            if (not (self.shape[1] == '*' or val.shape[0] == '*') and not
+                    self.shape[1] == val.shape[0]):
+                raise ValueError('Dimension mismatch in {0!s} and '
+                                 '{1!s}.'.format(str(self), str(val)))
+
             return ComboMap([self, val])
 
         elif isinstance(val, np.ndarray):
             if not self.shape[1] == '*' and not self.shape[1] == val.shape[0]:
-                raise ValueError('Dimension mismatch in {0!s} and np.ndarray{1!s}.'.format(str(self), str(val.shape)))
+                raise ValueError('Dimension mismatch in {0!s} and '
+                                 'np.ndarray{1!s}.'.format(str(self),
+                                                           str(val.shape)))
             return self._transform(val)
         raise Exception('Unrecognized data type to multiply. '
                         'Try a map or a numpy.ndarray!')
 
     def __str__(self):
-        return "{0!s}({1!s},{2!s})".format(self.__class__.__name__, self.shape[0], self.shape[1])
+        return "{0!s}({1!s},{2!s})".format(self.__class__.__name__,
+                                           self.shape[0], self.shape[1])
 
 
 class ComboMap(IdentityMap):
@@ -180,10 +186,14 @@ class ComboMap(IdentityMap):
             "inherit from an IdentityMap or ComboMap!"
 
             if (ii > 0 and not (self.shape[1] == '*' or m.shape[0] == '*') and
-                not self.shape[1] == m.shape[0]):
+                    not self.shape[1] == m.shape[0]):
                 prev = self.maps[-1]
-                errArgs = (prev.__class__.__name__, prev.shape[0], prev.shape[1], m.__class__.__name__, m.shape[0], m.shape[1])
-                raise ValueError('Dimension mismatch in map[{0!s}] ({1!s}, {2!s}) and map[{3!s}] ({4!s}, {5!s}).'.format(*errArgs))
+                errArgs = (prev.__class__.__name__, prev.shape[0],
+                           prev.shape[1], m.__class__.__name__, m.shape[0],
+                           m.shape[1])
+                raise ValueError("Dimension mismatch in map[{0!s}] ({1!s}, "
+                                 "{2!s}) and map[{3!s}] ({4!s}, {5!s}"
+                                 ").".format(*errArgs))
 
             if isinstance(m, ComboMap):
                 self.maps += m.maps
@@ -221,15 +231,18 @@ class ComboMap(IdentityMap):
         return deriv
 
     def __str__(self):
-        return 'ComboMap[{0!s}]({1!s},{2!s})'.format(' * '.join([m.__str__() for m in self.maps]), self.shape[0], self.shape[1])
+        return 'ComboMap[{0!s}]({1!s},{2!s})'.format(
+            ' * '.join([m.__str__() for m in self.maps]), self.shape[0],
+                       self.shape[1])
 
 
 class ExpMap(IdentityMap):
     """
-        Electrical conductivity varies over many orders of magnitude, so it is a common
-        technique when solving the inverse problem to parameterize and optimize in terms
-        of log conductivity. This makes sense not only because it ensures all conductivities
-        will be positive, but because this is fundamentally the space where conductivity
+        Electrical conductivity varies over many orders of magnitude, so it is
+        a common technique when solving the inverse problem to parameterize and
+        optimize in terms of log conductivity. This makes sense not only
+        because it ensures all conductivities will be positive, but because
+        this is fundamentally the space where conductivity
         lives (i.e. it varies logarithmically).
 
         Changes the model into the physical property.
@@ -351,7 +364,7 @@ class LogMap(IdentityMap):
     def deriv(self, m, v=None):
         mod = Utils.mkvc(m)
         deriv = np.zeros(mod.shape)
-        tol = 1e-16 # zero
+        tol = 1e-16  # zero
         ind = np.greater_equal(np.abs(mod), tol)
         deriv[ind] = 1.0/mod[ind]
         if v is not None:
@@ -501,17 +514,17 @@ class Surject2Dto3D(IdentityMap):
         """
         m = Utils.mkvc(m)
         if self.normal == 'Z':
-            return Utils.mkvc(m.reshape(self.mesh.vnC[[0,1]], order='F'
-                                        )[:, :, np.newaxis].repeat(self.mesh.nCz,
-                                                                   axis=2))
+            return Utils.mkvc(
+                m.reshape(self.mesh.vnC[[0, 1]], order='F'
+                          )[:, :, np.newaxis].repeat(self.mesh.nCz, axis=2))
         elif self.normal == 'Y':
-            return Utils.mkvc(m.reshape(self.mesh.vnC[[0,2]], order='F'
-                                        )[:, np.newaxis, :].repeat(self.mesh.nCy,
-                                                                   axis=1))
+            return Utils.mkvc(
+                m.reshape(self.mesh.vnC[[0, 2]], order='F'
+                          )[:, np.newaxis, :].repeat(self.mesh.nCy, axis=1))
         elif self.normal == 'X':
-            return Utils.mkvc(m.reshape(self.mesh.vnC[[1,2]], order='F'
-                                        )[np.newaxis, :, :].repeat(self.mesh.nCx,
-                                                                   axis=0))
+            return Utils.mkvc(
+                m.reshape(self.mesh.vnC[[1, 2]], order='F'
+                          )[np.newaxis, :, :].repeat(self.mesh.nCx, axis=0))
 
     def deriv(self, m, v=None):
         """
@@ -580,7 +593,7 @@ class Mesh2Mesh(IdentityMap):
         assert meshes[0].dim == meshes[1].dim, ("The two meshes must be the "
                                                 "same dimension")
 
-        self.mesh  = meshes[0]
+        self.mesh = meshes[0]
         self.mesh2 = meshes[1]
 
         self.P = self.mesh2.getInterpolationMat(self.mesh.gridCC, 'CC',
@@ -1146,7 +1159,8 @@ class ParametricSplineMap(IdentityMap):
             X = self.mesh.gridCC[:, 0]
             Y = self.mesh.gridCC[:, 1]
             Z = self.mesh.gridCC[:, 2]
-            if self.normal =='X':
+
+            if self.normal == 'X':
                 zb = self.ptsv[0]
                 zt = self.ptsv[1]
                 flines = ((self.spl["splt"](Y)-self.spl["splb"](Y)) *
@@ -1270,13 +1284,15 @@ class ParametrizedLayer(IdentityMap):
 
         **Optional**
 
-        :param float slopeFact: arctan slope factor - divided by the minimum h spacing to give the slope of the arctan functions
+        :param float slopeFact: arctan slope factor - divided by the minimum h
+                                spacing to give the slope of the arctan
+                                functions
         :param float slope: slope of the arctan function
         :param numpy.ndarray indActive: bool vector with
 
     """
 
-    slopeFact = 1e2 # will be scaled by the mesh.
+    slopeFact = 1e2  # will be scaled by the mesh.
     slope = None
     indActive = None
 
@@ -1284,17 +1300,19 @@ class ParametrizedLayer(IdentityMap):
 
         super(ParametrizedLayer, self).__init__(mesh, **kwargs)
 
-
         if self.slope is None:
             self.slope = self.slopeFact / np.hstack(self.mesh.h).min()
 
-        self.x = [self.mesh.gridCC[:,0] if self.indActive is None else self.mesh.gridCC[self.indActive,0]][0]
+        self.x = [self.mesh.gridCC[:, 0] if self.indActive is None else
+                  self.mesh.gridCC[self.indActive, 0]][0]
 
         if self.mesh.dim > 1:
-            self.y = [self.mesh.gridCC[:,1] if self.indActive is None else self.mesh.gridCC[self.indActive,1]][0]
+            self.y = [self.mesh.gridCC[:, 1] if self.indActive is None else
+                      self.mesh.gridCC[self.indActive, 1]][0]
 
         if self.mesh.dim > 2:
-            self.z = [self.mesh.gridCC[:,2] if self.indActive is None else self.mesh.gridCC[self.indActive,2]][0]
+            self.z = [self.mesh.gridCC[:, 2] if self.indActive is None else
+                      self.mesh.gridCC[self.indActive, 2]][0]
 
     @property
     def nP(self):
@@ -1331,7 +1349,8 @@ class ParametrizedLayer(IdentityMap):
 
         layer_bottom = mDict['layer_center'] - mDict['layer_thickness'] / 2.
         layer_top = mDict['layer_center'] + mDict['layer_thickness'] / 2.
-        return self._atanfct(z, layer_bottom, self.slope)*self._atanfct(z, layer_top, -self.slope)
+        return (self._atanfct(z, layer_bottom, self.slope) *
+                self._atanfct(z, layer_top, -self.slope))
 
     def _atanLayerDeriv_layer_center(self, mDict):
         if self.mesh.dim == 2:
@@ -1342,8 +1361,10 @@ class ParametrizedLayer(IdentityMap):
         layer_bottom = mDict['layer_center'] - mDict['layer_thickness'] / 2.
         layer_top = mDict['layer_center'] + mDict['layer_thickness'] / 2.
 
-        return (self._atanfctDeriv(z, layer_bottom, self.slope)*self._atanfct(z, layer_top, -self.slope)
-                + self._atanfct(z, layer_bottom, self.slope)*self._atanfctDeriv(z, layer_top, -self.slope))
+        return (self._atanfctDeriv(z, layer_bottom, self.slope) *
+                self._atanfct(z, layer_top, -self.slope) +
+                self._atanfct(z, layer_bottom, self.slope) *
+                self._atanfctDeriv(z, layer_top, -self.slope))
 
     def _atanLayerDeriv_layer_thickness(self, mDict):
         if self.mesh.dim == 2:
@@ -1354,11 +1375,14 @@ class ParametrizedLayer(IdentityMap):
         layer_bottom = mDict['layer_center'] - mDict['layer_thickness'] / 2.
         layer_top = mDict['layer_center'] + mDict['layer_thickness'] / 2.
 
-        return (-0.5*self._atanfctDeriv(z, layer_bottom, self.slope)*self._atanfct(z, layer_top, -self.slope)
-                + 0.5*self._atanfct(z, layer_bottom, self.slope)*self._atanfctDeriv(z, layer_top, -self.slope))
+        return (-0.5*self._atanfctDeriv(z, layer_bottom, self.slope) *
+                self._atanfct(z, layer_top, -self.slope) +
+                0.5*self._atanfct(z, layer_bottom, self.slope) *
+                self._atanfctDeriv(z, layer_top, -self.slope))
 
     def layer_cont(self, mDict):
-        return mDict['val_background'] + (mDict['val_layer'] - mDict['val_background'])*self._atanLayer(mDict)
+        return (mDict['val_background'] + (mDict['val_layer'] -
+                mDict['val_background'])*self._atanLayer(mDict))
 
     def _transform(self, m):
         mDict = self.mDict(m)
@@ -1371,10 +1395,12 @@ class ParametrizedLayer(IdentityMap):
         return self._atanLayer(mDict)
 
     def _deriv_layer_center(self, mDict):
-        return (mDict['val_layer']-mDict['val_background'])*self._atanLayerDeriv_layer_center(mDict)
+        return ((mDict['val_layer']-mDict['val_background']) *
+                self._atanLayerDeriv_layer_center(mDict))
 
     def _deriv_layer_thickness(self, mDict):
-        return (mDict['val_layer']-mDict['val_background'])*self._atanLayerDeriv_layer_thickness(mDict)
+        return ((mDict['val_layer']-mDict['val_background']) *
+                self._atanLayerDeriv_layer_thickness(mDict))
 
     def deriv(self, m):
 
@@ -1392,15 +1418,17 @@ class ParametrizedCasingAndLayer(ParametrizedLayer):
     """
         Parametrized layered space with casing.
 
-        m = [val_background, val_layer, val_casing, val_insideCasing, layer_center, layer_thickness, casing_radius, casing_thickness, casing_bottom, casing_top]
+        m = [val_background, val_layer, val_casing, val_insideCasing,
+             layer_center, layer_thickness, casing_radius, casing_thickness,
+             casing_bottom, casing_top]
     """
 
     def __init__(self, mesh, **kwargs):
 
-        assert mesh._meshType == 'CYL', 'Parametrized Casing in a layer map only works for a cyl mesh.'
+        assert mesh._meshType == 'CYL', ('Parametrized Casing in a layer map '
+                                         'only works for a cyl mesh.')
 
         super(ParametrizedCasingAndLayer, self).__init__(mesh, **kwargs)
-
 
     @property
     def nP(self):
@@ -1413,7 +1441,10 @@ class ParametrizedCasingAndLayer(ParametrizedLayer):
         return (self.mesh.nC, self.nP)
 
     def mDict(self, m):
-        #m = [val_background, val_layer, val_casing, val_insideCasing, layer_center, layer_thickness, casing_radius, casing_thickness, casing_bottom, casing_top]
+        # m = [val_background, val_layer, val_casing, val_insideCasing,
+        #      layer_center, layer_thickness, casing_radius, casing_thickness,
+        #      casing_bottom, casing_top]
+
         return {
                     'val_background': m[0],
                     'val_layer': m[1],
@@ -1428,50 +1459,52 @@ class ParametrizedCasingAndLayer(ParametrizedLayer):
                }
 
     def _atanCasingLength(self, mDict):
-        return (self._atanfct(self.z, mDict['casing_top'], -self.slope)
-                * self._atanfct(self.z, mDict['casing_bottom'], self.slope))
+        return (self._atanfct(self.z, mDict['casing_top'], -self.slope) *
+                self._atanfct(self.z, mDict['casing_bottom'], self.slope))
 
     def _atanCasingLengthDeriv_casing_top(self, mDict):
-        return (self._atanfctDeriv(self.z, mDict['casing_top'], -self.slope)
-                * self._atanfct(self.z, mDict['casing_bottom'], self.slope))
+        return (self._atanfctDeriv(self.z, mDict['casing_top'], -self.slope) *
+                self._atanfct(self.z, mDict['casing_bottom'], self.slope))
 
     def _atanCasingLengthDeriv_casing_bottom(self, mDict):
-        return (self._atanfct(self.z, mDict['casing_top'], -self.slope)
-                * self._atanfctDeriv(self.z, mDict['casing_bottom'], self.slope))
+        return (self._atanfct(self.z, mDict['casing_top'], -self.slope) *
+                self._atanfctDeriv(self.z, mDict['casing_bottom'], self.slope))
 
     def _atanInsideCasing(self, mDict):
         casing_a = mDict['casing_radius'] - 0.5*mDict['casing_thickness']
-        return (self._atanCasingLength(mDict)
-                * self._atanfct(self.x, casing_a, -self.slope))
+        return (self._atanCasingLength(mDict) *
+                self._atanfct(self.x, casing_a, -self.slope))
 
     def _atanInsideCasingDeriv_casing_radius(self, mDict):
         casing_a = mDict['casing_radius'] - 0.5*mDict['casing_thickness']
-        return (self._atanCasingLength(mDict)
-                * self._atanfctDeriv(self.x, casing_a, -self.slope))
+        return (self._atanCasingLength(mDict) *
+                self._atanfctDeriv(self.x, casing_a, -self.slope))
 
     def _atanInsideCasingDeriv_casing_thickness(self, mDict):
         casing_a = mDict['casing_radius'] - 0.5*mDict['casing_thickness']
-        return (self._atanCasingLength(mDict)
-                * - 0.5*self._atanfctDeriv(self.x, casing_a, -self.slope))
+        return (self._atanCasingLength(mDict) * -
+                0.5*self._atanfctDeriv(self.x, casing_a, -self.slope))
 
     def _atanInsideCasingDeriv_casing_top(self, mDict):
         casing_a = mDict['casing_radius'] - 0.5*mDict['casing_thickness']
-        return (self._atanCasingLengthDeriv_casing_top(mDict)
-                * self._atanfct(self.x, casing_a, -self.slope))
+        return (self._atanCasingLengthDeriv_casing_top(mDict) *
+                self._atanfct(self.x, casing_a, -self.slope))
 
     def _atanInsideCasingDeriv_casing_bottom(self, mDict):
         casing_a = mDict['casing_radius'] - 0.5*mDict['casing_thickness']
-        return (self._atanCasingLengthDeriv_casing_bottom(mDict)
-                * self._atanfct(self.x, casing_a, -self.slope))
+        return (self._atanCasingLengthDeriv_casing_bottom(mDict) *
+                self._atanfct(self.x, casing_a, -self.slope))
 
     def _atanCasing(self, mDict):
-        casing_a, casing_b = mDict['casing_radius'] - 0.5*mDict['casing_thickness'], mDict['casing_radius'] + 0.5*mDict['casing_thickness']
-        return (self._atanCasingLength(mDict)
-                * self._atanfct(self.x, casing_a, self.slope)
-                * self._atanfct(self.x, casing_b, -self.slope))
+        casing_a = mDict['casing_radius'] - 0.5*mDict['casing_thickness']
+        casing_b = mDict['casing_radius'] + 0.5*mDict['casing_thickness']
+        return (self._atanCasingLength(mDict) *
+                self._atanfct(self.x, casing_a, self.slope) *
+                self._atanfct(self.x, casing_b, -self.slope))
 
     def _atanCasingDeriv_casing_radius(self, mDict):
-        casing_a, casing_b = mDict['casing_radius'] - 0.5*mDict['casing_thickness'], mDict['casing_radius'] + 0.5*mDict['casing_thickness']
+        casing_a = mDict['casing_radius'] - 0.5*mDict['casing_thickness']
+        casing_b = mDict['casing_radius'] + 0.5*mDict['casing_thickness']
         return (self._atanCasingLength(mDict) * (
                 self._atanfctDeriv(self.x, casing_a, self.slope)
                 * self._atanfct(self.x, casing_b, -self.slope)
@@ -1481,7 +1514,8 @@ class ParametrizedCasingAndLayer(ParametrizedLayer):
                 ))
 
     def _atanCasingDeriv_casing_thickness(self, mDict):
-        casing_a, casing_b = mDict['casing_radius'] - 0.5*mDict['casing_thickness'], mDict['casing_radius'] + 0.5*mDict['casing_thickness']
+        casing_a = mDict['casing_radius'] - 0.5*mDict['casing_thickness']
+        casing_b = mDict['casing_radius'] + 0.5*mDict['casing_thickness']
         return (self._atanCasingLength(mDict) * (
                 - 0.5*self._atanfctDeriv(self.x, casing_a, self.slope)
                 * 0.5*self._atanfct(self.x, casing_b, -self.slope)
@@ -1491,20 +1525,23 @@ class ParametrizedCasingAndLayer(ParametrizedLayer):
                 ))
 
     def _atanCasingDeriv_casing_bottom(self, mDict):
-        casing_a, casing_b = mDict['casing_radius'] - 0.5*mDict['casing_thickness'], mDict['casing_radius'] + 0.5*mDict['casing_thickness']
+        casing_a = mDict['casing_radius'] - 0.5*mDict['casing_thickness']
+        casing_b = mDict['casing_radius'] + 0.5*mDict['casing_thickness']
         return (self._atanCasingLengthDeriv_casing_bottom(mDict)
                 * self._atanfct(self.x, casing_a, self.slope)
                 * self._atanfct(self.x, casing_b, -self.slope))
 
     def _atanCasingDeriv_casing_top(self, mDict):
-        casing_a, casing_b = mDict['casing_radius'] - 0.5*mDict['casing_thickness'], mDict['casing_radius'] + 0.5*mDict['casing_thickness']
+        casing_a = mDict['casing_radius'] - 0.5*mDict['casing_thickness']
+        casing_b = mDict['casing_radius'] + 0.5*mDict['casing_thickness']
         return (self._atanCasingLengthDeriv_casing_top(mDict)
                 * self._atanfct(self.x, casing_a, self.slope)
                 * self._atanfct(self.x, casing_b, -self.slope))
 
     def layer_cont(self, mDict):
-        return mDict['val_background'] + (mDict['val_layer']-mDict['val_background']) * self._atanLayer(mDict) # contribution from the layered background
-
+        # contribution from the layered background
+        return (mDict['val_background'] + (mDict['val_layer'] -
+                mDict['val_background']) * self._atanLayer(mDict))
 
     def _transform(self, m):
 
@@ -1513,71 +1550,138 @@ class ParametrizedCasingAndLayer(ParametrizedLayer):
         # assemble the model
         layer = self.layer_cont(mDict)
         casing = (mDict['val_casing'] - layer) * self._atanCasing(mDict)
-        insideCasing = (mDict['val_insideCasing'] - layer) * self._atanInsideCasing(mDict)
+        insideCasing = ((mDict['val_insideCasing'] - layer) *
+                        self._atanInsideCasing(mDict))
 
         return layer + casing + insideCasing
 
     def _deriv_val_background(self, mDict):
-        d_layer_cont_dval_background = 1. - self._atanLayer(mDict) # contribution from the layered background
-        d_casing_cont_dval_background = -1. * d_layer_cont_dval_background * self._atanCasing(mDict)
-        d_insideCasing_cont_dval_background = -1. * d_layer_cont_dval_background * self._atanInsideCasing(mDict)
-        return d_layer_cont_dval_background + d_casing_cont_dval_background + d_insideCasing_cont_dval_background
+        # contribution from the layered background
+        d_layer_cont_dval_background = 1. - self._atanLayer(mDict)
+        d_casing_cont_dval_background = (
+            -1. * d_layer_cont_dval_background * self._atanCasing(mDict)
+            )
+        d_insideCasing_cont_dval_background = (
+            -1. * d_layer_cont_dval_background * self._atanInsideCasing(mDict)
+            )
+        return (d_layer_cont_dval_background +
+                d_casing_cont_dval_background +
+                d_insideCasing_cont_dval_background)
 
     def _deriv_val_layer(self, mDict):
         d_layer_cont_dval_layer = self._atanLayer(mDict)
-        d_casing_cont_dval_layer = -1. * d_layer_cont_dval_layer * self._atanCasing(mDict)
-        d_insideCasing_cont_dval_layer = -1. * d_layer_cont_dval_layer * self._atanInsideCasing(mDict)
-        return d_layer_cont_dval_layer + d_casing_cont_dval_layer + d_insideCasing_cont_dval_layer
+        d_casing_cont_dval_layer = (
+            -1. * d_layer_cont_dval_layer * self._atanCasing(mDict)
+            )
+        d_insideCasing_cont_dval_layer = (
+            -1. * d_layer_cont_dval_layer * self._atanInsideCasing(mDict)
+            )
+        return (d_layer_cont_dval_layer +
+                d_casing_cont_dval_layer +
+                d_insideCasing_cont_dval_layer)
 
     def _deriv_val_casing(self, mDict):
         d_layer_cont_dval_casing = 0.
         d_casing_cont_dval_casing = self._atanCasing(mDict)
         d_insideCasing_cont_dval_casing = 0.
-        return d_layer_cont_dval_casing + d_casing_cont_dval_casing + d_insideCasing_cont_dval_casing
+        return (d_layer_cont_dval_casing +
+                d_casing_cont_dval_casing +
+                d_insideCasing_cont_dval_casing)
 
     def _deriv_val_insideCasing(self, mDict):
         d_layer_cont_dval_insideCasing = 0.
         d_casing_cont_dval_insideCasing = 0.
         d_insideCasing_cont_dval_insideCasing = self._atanInsideCasing(mDict)
-        return d_layer_cont_dval_insideCasing + d_casing_cont_dval_insideCasing + d_insideCasing_cont_dval_insideCasing
+        return (d_layer_cont_dval_insideCasing +
+                d_casing_cont_dval_insideCasing +
+                d_insideCasing_cont_dval_insideCasing)
 
     def _deriv_layer_center(self, mDict):
-        d_layer_cont_dlayer_center = (mDict['val_layer'] - mDict['val_background']) * self._atanLayerDeriv_layer_center(mDict)
-        d_casing_cont_dlayer_center =  - d_layer_cont_dlayer_center * self._atanCasing(mDict)
-        d_insideCasing_cont_dlayer_center = - d_layer_cont_dlayer_center * self._atanInsideCasing(mDict)
-        return d_layer_cont_dlayer_center + d_casing_cont_dlayer_center + d_insideCasing_cont_dlayer_center
+        d_layer_cont_dlayer_center = (
+            (mDict['val_layer'] - mDict['val_background']) *
+            self._atanLayerDeriv_layer_center(mDict)
+            )
+        d_casing_cont_dlayer_center = (
+            - d_layer_cont_dlayer_center * self._atanCasing(mDict)
+            )
+        d_insideCasing_cont_dlayer_center = (
+            - d_layer_cont_dlayer_center * self._atanInsideCasing(mDict)
+            )
+        return (d_layer_cont_dlayer_center +
+                d_casing_cont_dlayer_center +
+                d_insideCasing_cont_dlayer_center)
 
     def _deriv_layer_thickness(self, mDict):
-        d_layer_cont_dlayer_thickness = (mDict['val_layer']-mDict['val_background']) * self._atanLayerDeriv_layer_thickness(mDict)
-        d_casing_cont_dlayer_thickness =  - d_layer_cont_dlayer_thickness * self._atanCasing(mDict)
-        d_insideCasing_cont_dlayer_thickness = - d_layer_cont_dlayer_thickness * self._atanInsideCasing(mDict)
-        return d_layer_cont_dlayer_thickness + d_casing_cont_dlayer_thickness + d_insideCasing_cont_dlayer_thickness
+        d_layer_cont_dlayer_thickness = (
+            (mDict['val_layer']-mDict['val_background']) *
+            self._atanLayerDeriv_layer_thickness(mDict)
+            )
+        d_casing_cont_dlayer_thickness = (
+            - d_layer_cont_dlayer_thickness * self._atanCasing(mDict)
+            )
+        d_insideCasing_cont_dlayer_thickness = (
+            - d_layer_cont_dlayer_thickness * self._atanInsideCasing(mDict)
+            )
+        return (d_layer_cont_dlayer_thickness +
+                d_casing_cont_dlayer_thickness +
+                d_insideCasing_cont_dlayer_thickness)
 
     def _deriv_casing_radius(self, mDict):
         layer = self.layer_cont(mDict)
         d_layer_cont_dcasing_radius = 0.
-        d_casing_cont_dcasing_radius = (mDict['val_casing'] - layer) * self._atanCasingDeriv_casing_radius(mDict)
-        d_insideCasing_cont_dcasing_radius = (mDict['val_insideCasing'] - layer) * self._atanInsideCasingDeriv_casing_radius(mDict)
-        return d_layer_cont_dcasing_radius + d_casing_cont_dcasing_radius + d_insideCasing_cont_dcasing_radius
+        d_casing_cont_dcasing_radius = (
+            (mDict['val_casing'] - layer) *
+            self._atanCasingDeriv_casing_radius(mDict)
+            )
+        d_insideCasing_cont_dcasing_radius = (
+            (mDict['val_insideCasing'] - layer) *
+            self._atanInsideCasingDeriv_casing_radius(mDict)
+            )
+        return (d_layer_cont_dcasing_radius +
+                d_casing_cont_dcasing_radius +
+                d_insideCasing_cont_dcasing_radius)
 
     def _deriv_casing_thickness(self, mDict):
         d_layer_cont_dcasing_thickness = 0.
-        d_casing_cont_dcasing_thickness = (mDict['val_casing'] - self.layer_cont(mDict)) * self._atanCasingDeriv_casing_thickness(mDict)
-        d_insideCasing_cont_dcasing_thickness = (mDict['val_insideCasing'] - self.layer_cont(mDict)) * self._atanInsideCasingDeriv_casing_thickness(mDict)
-        return d_layer_cont_dcasing_thickness + d_casing_cont_dcasing_thickness + d_insideCasing_cont_dcasing_thickness
+        d_casing_cont_dcasing_thickness = (
+            (mDict['val_casing'] - self.layer_cont(mDict)) *
+            self._atanCasingDeriv_casing_thickness(mDict)
+            )
+        d_insideCasing_cont_dcasing_thickness = (
+            (mDict['val_insideCasing'] - self.layer_cont(mDict)) *
+            self._atanInsideCasingDeriv_casing_thickness(mDict)
+            )
+        return (d_layer_cont_dcasing_thickness +
+                d_casing_cont_dcasing_thickness +
+                d_insideCasing_cont_dcasing_thickness)
 
     def _deriv_casing_bottom(self, mDict):
         d_layer_cont_dcasing_bottom = 0.
-        d_casing_cont_dcasing_bottom = (mDict['val_casing'] - self.layer_cont(mDict)) * self._atanCasingDeriv_casing_bottom(mDict)
-        d_insideCasing_cont_dcasing_bottom = (mDict['val_insideCasing'] - self.layer_cont(mDict)) * self._atanInsideCasingDeriv_casing_bottom(mDict)
-        return d_layer_cont_dcasing_bottom + d_casing_cont_dcasing_bottom + d_insideCasing_cont_dcasing_bottom
+        d_casing_cont_dcasing_bottom = (
+            (mDict['val_casing'] - self.layer_cont(mDict)) *
+            self._atanCasingDeriv_casing_bottom(mDict)
+            )
+        d_insideCasing_cont_dcasing_bottom = (
+            (mDict['val_insideCasing'] - self.layer_cont(mDict)) *
+            self._atanInsideCasingDeriv_casing_bottom(mDict)
+            )
+        return (d_layer_cont_dcasing_bottom +
+                d_casing_cont_dcasing_bottom +
+                d_insideCasing_cont_dcasing_bottom)
 
     def _deriv_casing_top(self, mDict):
         d_layer_cont_dcasing_top = 0.
-        d_casing_cont_dcasing_top = (mDict['val_casing'] - self.layer_cont(mDict)) * self._atanCasingDeriv_casing_top(mDict)
-        d_insideCasing_cont_dcasing_top = (mDict['val_insideCasing'] - self.layer_cont(mDict)) * self._atanInsideCasingDeriv_casing_top(mDict)
-        return d_layer_cont_dcasing_top + d_casing_cont_dcasing_top + d_insideCasing_cont_dcasing_top
-
+        d_casing_cont_dcasing_top = (
+            (mDict['val_casing'] - self.layer_cont(mDict)) *
+            self._atanCasingDeriv_casing_top(mDict)
+            )
+        d_insideCasing_cont_dcasing_top = (
+            (mDict['val_insideCasing'] - self.layer_cont(mDict)) *
+            self._atanInsideCasingDeriv_casing_top(mDict)
+            )
+        return (d_layer_cont_dcasing_top +
+                d_casing_cont_dcasing_top +
+                d_insideCasing_cont_dcasing_top)
 
     def deriv(self, m):
 
@@ -1602,10 +1706,12 @@ class ParametrizedBlockInLayer(ParametrizedLayer):
         Parametrized Block in a Layered Space
 
         For 2D:
-        m = [val_background, val_layer, val_block, layer_center, layer_thickness, block_x0, block_dx]
+        m = [val_background, val_layer, val_block, layer_center,
+             layer_thickness, block_x0, block_dx]
 
         For 3D:
-        m = [val_background, val_layer, val_block, layer_center, layer_thickness, block_x0, block_y0, block_dx, block_dy]
+        m = [val_background, val_layer, val_block, layer_center,
+             layer_thickness, block_x0, block_y0, block_dx, block_dy]
 
         .. plot::
             :include-source:
@@ -1627,7 +1733,9 @@ class ParametrizedBlockInLayer(ParametrizedLayer):
 
         **Optional**
 
-        :param float slopeFact: arctan slope factor - divided by the minimum h spacing to give the slope of the arctan functions
+        :param float slopeFact: arctan slope factor - divided by the minimum h
+                                spacing to give the slope of the arctan
+                                functions
         :param float slope: slope of the arctan function
         :param numpy.ndarray indActive: bool vector with
 
@@ -1680,127 +1788,149 @@ class ParametrizedBlockInLayer(ParametrizedLayer):
         elif self.mesh.dim == 3:
             return self._mDict3d(m)
 
+    def xleft(self, mDict):
+        return mDict['x0_block'] - 0.5*mDict['dx_block']
+
+    def xright(self, mDict):
+        return mDict['x0_block'] + 0.5*mDict['dx_block']
+
+    def yleft(self, mDict):
+        return mDict['y0_block'] - 0.5*mDict['dy_block']
+
+    def yright(self, mDict):
+        return mDict['y0_block'] + 0.5*mDict['dy_block']
+
     def _atanBlock2d(self, mDict):
-        return (self._atanLayer(mDict)
-                          * self._atanfct(self.x, mDict['x0_block'] - 0.5*mDict['dx_block'], self.slope)
-                          * self._atanfct(self.x, mDict['x0_block'] + 0.5*mDict['dx_block'], -self.slope))
+        return (self._atanLayer(mDict) *
+                self._atanfct(self.x, self.xleft(mDict), self.slope) *
+                self._atanfct(self.x, self.self.xright(mDict)(mDict),
+                              -self.slope))
 
     def _atanBlock2dDeriv_layer_center(self, mDict):
-        return (self._atanLayerDeriv_layer_center(mDict)
-                          * self._atanfct(self.x, mDict['x0_block'] - 0.5*mDict['dx_block'], self.slope)
-                          * self._atanfct(self.x, mDict['x0_block'] + 0.5*mDict['dx_block'], -self.slope))
+        return (self._atanLayerDeriv_layer_center(mDict) *
+                self._atanfct(self.x, self.xleft(mDict), self.slope) *
+                self._atanfct(self.x, self.xright(mDict), -self.slope))
 
     def _atanBlock2dDeriv_layer_thickness(self, mDict):
-        return (self._atanLayerDeriv_layer_thickness(mDict)
-                          * self._atanfct(self.x, mDict['x0_block'] - 0.5*mDict['dx_block'], self.slope)
-                          * self._atanfct(self.x, mDict['x0_block'] + 0.5*mDict['dx_block'], -self.slope))
-
+        return (self._atanLayerDeriv_layer_thickness(mDict) *
+                self._atanfct(self.x, self.xleft(mDict), self.slope) *
+                self._atanfct(self.x, self.xright(mDict), -self.slope))
 
     def _atanBlock2dDeriv_x0(self, mDict):
         return self._atanLayer(mDict) * (
-                    (self._atanfctDeriv(self.x, mDict['x0_block'] - 0.5*mDict['dx_block'], self.slope)
-                    * self._atanfct(self.x, mDict['x0_block'] + 0.5*mDict['dx_block'], -self.slope))
-                    +
-                    (self._atanfct(self.x, mDict['x0_block'] - 0.5*mDict['dx_block'], self.slope)
-                    * self._atanfctDeriv(self.x, mDict['x0_block'] + 0.5*mDict['dx_block'], -self.slope))
+                    (self._atanfctDeriv(self.x, self.xleft(mDict),
+                                        self.slope) *
+                        self._atanfct(self.x, self.xright(mDict),
+                                      -self.slope)) +
+                    (self._atanfct(self.x, self.xleft(mDict), self.slope) *
+                        self._atanfctDeriv(self.x, self.xright(mDict),
+                                           -self.slope))
                     )
 
     def _atanBlock2dDeriv_dx(self, mDict):
         return self._atanLayer(mDict) * (
-                    (self._atanfctDeriv(self.x, mDict['x0_block'] - 0.5*mDict['dx_block'], self.slope) * -0.5
-                    * self._atanfct(self.x, mDict['x0_block'] + 0.5*mDict['dx_block'], -self.slope))
-                    +
-                    (self._atanfct(self.x, mDict['x0_block'] - 0.5*mDict['dx_block'], self.slope)
-                    * self._atanfctDeriv(self.x, mDict['x0_block'] + 0.5*mDict['dx_block'], -self.slope) * 0.5)
+                    (self._atanfctDeriv(self.x, self.xleft(mDict),
+                                        self.slope) *
+                        -0.5 * self._atanfct(self.x, self.xright(mDict),
+                                             -self.slope)) +
+                    (self._atanfct(self.x, self.xleft(mDict), self.slope) *
+                        0.5 * self._atanfctDeriv(self.x, self.xright(mDict),
+                                                 -self.slope))
                     )
 
     def _atanBlock3d(self, mDict):
-        return (self._atanLayer(mDict)
-                      * self._atanfct(self.x, mDict['x0_block'] - 0.5*mDict['dx_block'], self.slope)
-                      * self._atanfct(self.x, mDict['x0_block'] + 0.5*mDict['dx_block'], -self.slope)
-                      * self._atanfct(self.y, mDict['y0_block'] - 0.5*mDict['dy_block'], self.slope)
-                      * self._atanfct(self.y, mDict['y0_block'] + 0.5*mDict['dy_block'], -self.slope))
-
+        return (self._atanLayer(mDict) *
+                self._atanfct(self.x, self.xleft(mDict), self.slope) *
+                self._atanfct(self.x, self.xright(mDict), -self.slope) *
+                self._atanfct(self.y, self.yleft(mDict), self.slope) *
+                self._atanfct(self.y, self.yright(mDict), -self.slope))
 
     def _atanBlock3dDeriv_layer_center(self, mDict):
-        return (self._atanLayerDeriv_layer_center(mDict)
-                      * self._atanfct(self.x, mDict['x0_block'] - 0.5*mDict['dx_block'], self.slope)
-                      * self._atanfct(self.x, mDict['x0_block'] + 0.5*mDict['dx_block'], -self.slope)
-                      * self._atanfct(self.y, mDict['y0_block'] - 0.5*mDict['dy_block'], self.slope)
-                      * self._atanfct(self.y, mDict['y0_block'] + 0.5*mDict['dy_block'], -self.slope))
+        return (self._atanLayerDeriv_layer_center(mDict) *
+                self._atanfct(self.x, self.xleft(mDict), self.slope) *
+                self._atanfct(self.x, self.xright(mDict), -self.slope) *
+                self._atanfct(self.y, self.yleft(mDict), self.slope) *
+                self._atanfct(self.y, self.yright(mDict), -self.slope))
 
     def _atanBlock3dDeriv_layer_thickness(self, mDict):
-        return (self._atanLayerDeriv_layer_thickness(mDict)
-                      * self._atanfct(self.x, mDict['x0_block'] - 0.5*mDict['dx_block'], self.slope)
-                      * self._atanfct(self.x, mDict['x0_block'] + 0.5*mDict['dx_block'], -self.slope)
-                      * self._atanfct(self.y, mDict['y0_block'] - 0.5*mDict['dy_block'], self.slope)
-                      * self._atanfct(self.y, mDict['y0_block'] + 0.5*mDict['dy_block'], -self.slope))
-
+        return (self._atanLayerDeriv_layer_thickness(mDict) *
+                self._atanfct(self.x, self.xleft(mDict), self.slope) *
+                self._atanfct(self.x, self.xright(mDict), -self.slope) *
+                self._atanfct(self.y, self.yleft(mDict), self.slope) *
+                self._atanfct(self.y, self.yright(mDict), -self.slope))
 
     def _atanBlock3dDeriv_x0(self, mDict):
         return self._atanLayer(mDict) * (
-                    (self._atanfctDeriv(self.x, mDict['x0_block'] - 0.5*mDict['dx_block'], self.slope)
-                    * self._atanfct(self.x, mDict['x0_block'] + 0.5*mDict['dx_block'], -self.slope)
-                    * self._atanfct(self.y, mDict['y0_block'] - 0.5*mDict['dy_block'], self.slope)
-                    * self._atanfct(self.y, mDict['y0_block'] + 0.5*mDict['dy_block'], -self.slope))
-                    +
-                    (self._atanfct(self.x, mDict['x0_block'] - 0.5*mDict['dx_block'], self.slope)
-                    * self._atanfctDeriv(self.x, mDict['x0_block'] + 0.5*mDict['dx_block'], -self.slope)
-                    * self._atanfct(self.y, mDict['y0_block'] - 0.5*mDict['dy_block'], self.slope)
-                    * self._atanfct(self.y, mDict['y0_block'] + 0.5*mDict['dy_block'], -self.slope))
+                    (self._atanfctDeriv(self.x, self.xleft(mDict),
+                                        self.slope) *
+                     self._atanfct(self.x, self.xright(mDict), -self.slope) *
+                     self._atanfct(self.y, self.yleft(mDict), self.slope) *
+                     self._atanfct(self.y, self.yright(mDict), -self.slope)) +
+                    (self._atanfct(self.x, self.xleft(mDict), self.slope) *
+                     self._atanfctDeriv(self.x, self.xright(mDict),
+                                        -self.slope) *
+                     self._atanfct(self.y, self.yleft(mDict), self.slope) *
+                     self._atanfct(self.y, self.yright(mDict), -self.slope))
                     )
 
     def _atanBlock3dDeriv_y0(self, mDict):
         return self._atanLayer(mDict) * (
-                    (self._atanfct(self.x, mDict['x0_block'] - 0.5*mDict['dx_block'], self.slope)
-                    * self._atanfct(self.x, mDict['x0_block'] + 0.5*mDict['dx_block'], -self.slope)
-                    * self._atanfctDeriv(self.y, mDict['y0_block'] - 0.5*mDict['dy_block'], self.slope)
-                    * self._atanfct(self.y, mDict['y0_block'] + 0.5*mDict['dy_block'], -self.slope))
-                    +
-                    (self._atanfct(self.x, mDict['x0_block'] - 0.5*mDict['dx_block'], self.slope)
-                    * self._atanfct(self.x, mDict['x0_block'] + 0.5*mDict['dx_block'], -self.slope)
-                    * self._atanfct(self.y, mDict['y0_block'] - 0.5*mDict['dy_block'], self.slope)
-                    * self._atanfctDeriv(self.y, mDict['y0_block'] + 0.5*mDict['dy_block'], -self.slope))
+                    (self._atanfct(self.x, self.xleft(mDict), self.slope) *
+                     self._atanfct(self.x, self.xright(mDict), -self.slope) *
+                     self._atanfctDeriv(self.y, self.yleft(mDict),
+                                        self.slope) *
+                     self._atanfct(self.y, self.yright(mDict), -self.slope)) +
+                    (self._atanfct(self.x, self.xleft(mDict), self.slope) *
+                     self._atanfct(self.x, self.xright(mDict), -self.slope) *
+                     self._atanfct(self.y, self.yleft(mDict), self.slope) *
+                     self._atanfctDeriv(self.y, self.yright(mDict),
+                                        -self.slope))
                     )
 
     def _atanBlock3dDeriv_dx(self, mDict):
         return self._atanLayer(mDict) * (
-                    (self._atanfctDeriv(self.x, mDict['x0_block'] - 0.5*mDict['dx_block'], self.slope) * -0.5
-                    * self._atanfct(self.x, mDict['x0_block'] + 0.5*mDict['dx_block'], -self.slope)
-                    * self._atanfct(self.y, mDict['y0_block'] - 0.5*mDict['dy_block'], self.slope)
-                    * self._atanfct(self.y, mDict['y0_block'] + 0.5*mDict['dy_block'], -self.slope))
-                    +
-                    (self._atanfct(self.x, mDict['x0_block'] - 0.5*mDict['dx_block'], self.slope)
-                    * self._atanfctDeriv(self.x, mDict['x0_block'] + 0.5*mDict['dx_block'], -self.slope) * 0.5
-                    * self._atanfct(self.y, mDict['y0_block'] - 0.5*mDict['dy_block'], self.slope)
-                    * self._atanfct(self.y, mDict['y0_block'] + 0.5*mDict['dy_block'], -self.slope))
+                    (self._atanfctDeriv(self.x, self.xleft(mDict),
+                                        self.slope) * -0.5 *
+                     self._atanfct(self.x, self.xright(mDict), -self.slope) *
+                     self._atanfct(self.y, self.yleft(mDict), self.slope) *
+                     self._atanfct(self.y, self.yright(mDict), -self.slope)) +
+                    (self._atanfct(self.x, self.xleft(mDict), self.slope) *
+                     self._atanfctDeriv(self.x, self.xright(mDict),
+                                        -self.slope) * 0.5 *
+                     self._atanfct(self.y, self.yleft(mDict), self.slope) *
+                     self._atanfct(self.y, self.yright(mDict), -self.slope))
                     )
 
     def _atanBlock3dDeriv_dy(self, mDict):
         return self._atanLayer(mDict) * (
-                    (self._atanfct(self.x, mDict['x0_block'] - 0.5*mDict['dx_block'], self.slope)
-                    * self._atanfct(self.x, mDict['x0_block'] + 0.5*mDict['dx_block'], -self.slope)
-                    * self._atanfctDeriv(self.y, mDict['y0_block'] - 0.5*mDict['dy_block'], self.slope) * -0.5
-                    * self._atanfct(self.y, mDict['y0_block'] + 0.5*mDict['dy_block'], -self.slope))
-                    +
-                    (self._atanfct(self.x, mDict['x0_block'] - 0.5*mDict['dx_block'], self.slope)
-                    * self._atanfct(self.x, mDict['x0_block'] + 0.5*mDict['dx_block'], -self.slope)
-                    * self._atanfct(self.y, mDict['y0_block'] - 0.5*mDict['dy_block'], self.slope)
-                    * self._atanfctDeriv(self.y, mDict['y0_block'] + 0.5*mDict['dy_block'], -self.slope) * 0.5)
+                    (self._atanfct(self.x, self.xleft(mDict), self.slope) *
+                     self._atanfct(self.x, self.xright(mDict), -self.slope) *
+                     self._atanfctDeriv(self.y, self.yleft(mDict),
+                                        self.slope) * -0.5 *
+                     self._atanfct(self.y, self.yright(mDict), -self.slope)) +
+                    (self._atanfct(self.x, self.xleft(mDict), self.slope) *
+                     self._atanfct(self.x, self.xright(mDict), -self.slope) *
+                     self._atanfct(self.y, self.yleft(mDict), self.slope) *
+                     self._atanfctDeriv(self.y, self.yright(mDict),
+                                        -self.slope) * 0.5)
                     )
-
 
     def _transform2d(self, m):
         mDict = self.mDict(m)
         # assemble the model
-        layer_cont = mDict['val_background'] + (mDict['val_layer']-mDict['val_background'])*self._atanLayer(mDict) # contribution from the layered background
-        block_cont = (mDict['val_block']-layer_cont)*self._atanBlock2d(mDict) # perturbation due to the block
+        # contribution from the layered background
+        layer_cont = (mDict['val_background'] +
+                      (mDict['val_layer']-mDict['val_background']) *
+                      self._atanLayer(mDict))
+        # perturbation due to the blocks
+        block_cont = (mDict['val_block']-layer_cont)*self._atanBlock2d(mDict)
 
         return layer_cont + block_cont
 
     def _deriv2d_val_background(self, mDict):
         d_layer_dval_background = np.ones_like(self.x) - self._atanLayer(mDict)
-        d_block_dval_background = (-d_layer_dval_background)*self._atanBlock2d(mDict)
+        d_block_dval_background = ((-d_layer_dval_background) *
+                                   self._atanBlock2d(mDict))
         return d_layer_dval_background + d_block_dval_background
 
     def _deriv2d_val_layer(self, mDict):
@@ -1814,25 +1944,39 @@ class ParametrizedBlockInLayer(ParametrizedLayer):
         return d_layer_dval_block + d_block_dval_block
 
     def _deriv2d_layer_center(self, mDict):
-        d_layer_dlayer_center = (mDict['val_layer']-mDict['val_background'])*self._atanLayerDeriv_layer_center(mDict)
-        d_block_dlayer_center = ((mDict['val_block']-self.layer_cont(mDict))*self._atanBlock2dDeriv_layer_center(mDict)
-                                    - d_layer_dlayer_center*self._atanBlock2d(mDict))
+        d_layer_dlayer_center = (
+            (mDict['val_layer']-mDict['val_background']) *
+            self._atanLayerDeriv_layer_center(mDict)
+            )
+        d_block_dlayer_center = (
+            (mDict['val_block']-self.layer_cont(mDict)) *
+            self._atanBlock2dDeriv_layer_center(mDict) -
+            d_layer_dlayer_center*self._atanBlock2d(mDict)
+            )
         return d_layer_dlayer_center + d_block_dlayer_center
 
     def _deriv2d_layer_thickness(self, mDict):
-        d_layer_dlayer_thickness = (mDict['val_layer']-mDict['val_background'])*self._atanLayerDeriv_layer_thickness(mDict)
-        d_block_dlayer_thickness = ((mDict['val_block']-self.layer_cont(mDict))*self._atanBlock2dDeriv_layer_thickness(mDict)
-                                    - d_layer_dlayer_thickness*self._atanBlock2d(mDict))
+        d_layer_dlayer_thickness = (
+            (mDict['val_layer']-mDict['val_background']) *
+            self._atanLayerDeriv_layer_thickness(mDict)
+            )
+        d_block_dlayer_thickness = (
+            (mDict['val_block']-self.layer_cont(mDict)) *
+            self._atanBlock2dDeriv_layer_thickness(mDict) -
+            d_layer_dlayer_thickness*self._atanBlock2d(mDict)
+            )
         return d_layer_dlayer_thickness + d_block_dlayer_thickness
 
     def _deriv2d_x0_block(self, mDict):
         d_layer_dx0 = 0.
-        d_block_dx0 = (mDict['val_block']-self.layer_cont(mDict))*self._atanBlock2dDeriv_x0(mDict)
+        d_block_dx0 = ((mDict['val_block']-self.layer_cont(mDict)) *
+                       self._atanBlock2dDeriv_x0(mDict))
         return d_layer_dx0 + d_block_dx0
 
     def _deriv2d_dx_block(self, mDict):
         d_layer_ddx = 0.
-        d_block_ddx = (mDict['val_block']-self.layer_cont(mDict))*self._atanBlock2dDeriv_dx(mDict)
+        d_block_ddx = ((mDict['val_block']-self.layer_cont(mDict)) *
+                       self._atanBlock2dDeriv_dx(mDict))
         return d_layer_ddx + d_block_ddx
 
     def _deriv2d(self, m):
@@ -1853,14 +1997,20 @@ class ParametrizedBlockInLayer(ParametrizedLayer):
         mDict = self.mDict(m)
 
         # assemble the model
-        layer_cont = mDict['val_background'] + (mDict['val_layer']-mDict['val_background'])*self._atanLayer(mDict) # contribution from the layered background
-        block_cont = (mDict['val_block']-layer_cont)*self._atanBlock3d(mDict) # perturbation due to the block
+        # contribution from the layered background
+        layer_cont = (
+            mDict['val_background'] +
+            (mDict['val_layer']-mDict['val_background'])*self._atanLayer(mDict)
+            )
+        # perturbation due to the block
+        block_cont = (mDict['val_block']-layer_cont)*self._atanBlock3d(mDict)
 
         return layer_cont + block_cont
 
     def _deriv3d_val_background(self, mDict):
         d_layer_dval_background = np.ones_like(self.x) - self._atanLayer(mDict)
-        d_block_dval_background = (-d_layer_dval_background)*self._atanBlock3d(mDict)
+        d_block_dval_background = ((-d_layer_dval_background)*
+                                   self._atanBlock3d(mDict))
         return d_layer_dval_background + d_block_dval_background
 
     def _deriv3d_val_layer(self, mDict):
@@ -1874,35 +2024,51 @@ class ParametrizedBlockInLayer(ParametrizedLayer):
         return d_layer_dval_block + d_block_dval_block
 
     def _deriv3d_layer_center(self, mDict):
-        d_layer_dlayer_center = (mDict['val_layer']-mDict['val_background'])*self._atanLayerDeriv_layer_center(mDict)
-        d_block_dlayer_center = ((mDict['val_block']-self.layer_cont(mDict))*self._atanBlock3dDeriv_layer_center(mDict)
-                                    - d_layer_dlayer_center*self._atanBlock3d(mDict))
+        d_layer_dlayer_center = (
+            (mDict['val_layer']-mDict['val_background']) *
+            self._atanLayerDeriv_layer_center(mDict)
+            )
+        d_block_dlayer_center = (
+            (mDict['val_block']-self.layer_cont(mDict)) *
+            self._atanBlock3dDeriv_layer_center(mDict) -
+            d_layer_dlayer_center*self._atanBlock3d(mDict)
+            )
         return d_layer_dlayer_center + d_block_dlayer_center
 
     def _deriv3d_layer_thickness(self, mDict):
-        d_layer_dlayer_thickness = (mDict['val_layer']-mDict['val_background'])*self._atanLayerDeriv_layer_thickness(mDict)
-        d_block_dlayer_thickness = ((mDict['val_block']-self.layer_cont(mDict))*self._atanBlock3dDeriv_layer_thickness(mDict)
-                                - d_layer_dlayer_thickness*self._atanBlock3d(mDict))
+        d_layer_dlayer_thickness = (
+            (mDict['val_layer']-mDict['val_background']) *
+            self._atanLayerDeriv_layer_thickness(mDict)
+            )
+        d_block_dlayer_thickness = (
+            (mDict['val_block']-self.layer_cont(mDict)) *
+            self._atanBlock3dDeriv_layer_thickness(mDict) -
+            d_layer_dlayer_thickness*self._atanBlock3d(mDict)
+            )
         return d_layer_dlayer_thickness + d_block_dlayer_thickness
 
     def _deriv3d_x0_block(self, mDict):
         d_layer_dx0 = 0.
-        d_block_dx0 = (mDict['val_block']-self.layer_cont(mDict))*self._atanBlock3dDeriv_x0(mDict)
+        d_block_dx0 = ((mDict['val_block']-self.layer_cont(mDict)) *
+                       self._atanBlock3dDeriv_x0(mDict))
         return d_layer_dx0 + d_block_dx0
 
     def _deriv3d_y0_block(self, mDict):
         d_layer_dy0 = 0.
-        d_block_dy0 = (mDict['val_block']-self.layer_cont(mDict))*self._atanBlock3dDeriv_y0(mDict)
+        d_block_dy0 = ((mDict['val_block']-self.layer_cont(mDict)) *
+                       self._atanBlock3dDeriv_y0(mDict))
         return d_layer_dy0 + d_block_dy0
 
     def _deriv3d_dx_block(self, mDict):
         d_layer_ddx = 0.
-        d_block_ddx = (mDict['val_block']-self.layer_cont(mDict))*self._atanBlock3dDeriv_dx(mDict)
+        d_block_ddx = ((mDict['val_block']-self.layer_cont(mDict)) *
+                       self._atanBlock3dDeriv_dx(mDict))
         return d_layer_ddx + d_block_ddx
 
     def _deriv3d_dy_block(self, mDict):
         d_layer_ddy = 0.
-        d_block_ddy = (mDict['val_block']-self.layer_cont(mDict))*self._atanBlock3dDeriv_dy(mDict)
+        d_block_ddy = ((mDict['val_block']-self.layer_cont(mDict)) *
+                       self._atanBlock3dDeriv_dy(mDict))
         return d_layer_ddy + d_block_ddy
 
     def _deriv3d(self, m):
