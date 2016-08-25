@@ -26,7 +26,6 @@ SrcType = ['MagDipole', 'RawVec']  # or 'MAgDipole_Bfield', 'CircularLoop', 'Raw
 def derivTest(fdemType, comp):
 
     prb = getFDEMProblem(fdemType, comp, SrcType, freq)
-
     prb.solverOpts = dict(check_accuracy=True)
 
     print('{0!s} formulation - {1!s}'.format(fdemType, comp))

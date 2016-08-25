@@ -87,6 +87,7 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
         prb.Solver = PardisoSolver
     except ImportError:
         prb.Solver = SolverLU
+    prb.solverOpts = dict(check_accuracy=True)
 
     return prb
 
