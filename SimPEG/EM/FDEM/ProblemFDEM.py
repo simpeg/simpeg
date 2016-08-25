@@ -79,13 +79,20 @@ class BaseFDEMProblem(BaseEMProblem):
 
         for freq in self.survey.freqs:
             A = self.getA(freq)
+            print('A.data',sum(A.data))
             Ainv = self.Solver(A, **self.solverOpts) # create the concept of Ainv (actually a solve)
 
             for src in self.survey.getSrcByFreq(freq):
                 u_src = f[src, self._solutionType]
+                print('u_src',sum(u_src))
                 dA_dm_v = self.getADeriv(freq, u_src, v)
+                print('dA_dm_v',sum(dA_dm_v))
                 dRHS_dm_v = self.getRHSDeriv(freq, src, v)
+                test = -dA_dm_v + dRHS_dm_v
+                print('solver input',sum(test))
                 du_dm_v = Ainv * ( - dA_dm_v + dRHS_dm_v )
+                print('du_dm_v',sum(du_dm_v))
+                
 
                 for rx in src.rxList:
                     df_dmFun = getattr(f, '_{0}Deriv'.format(rx.projField), None)

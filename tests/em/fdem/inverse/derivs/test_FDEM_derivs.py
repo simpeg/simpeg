@@ -18,7 +18,8 @@ FLR = 1e-20  # "zero", so if residual below this --> pass regardless of order
 CONDUCTIVITY = 1e1
 MU = mu_0
 freq = 1e-1
-addrandoms = True
+addrandoms = False
+np.random.seed(1234)
 
 SrcType = ['MagDipole', 'RawVec']  # or 'MAgDipole_Bfield', 'CircularLoop', 'RawVec'
 
@@ -39,12 +40,16 @@ def derivTest(fdemType, comp):
     survey = prb.survey
 
     def fun(x):
-        return survey.dpred(x), lambda x: prb.Jvec(x0, x)
+        y = survey.dpred(x)
+        print('fun y',sum(y))
+        return y, lambda x: prb.Jvec(x0, x)
     return Tests.checkDerivative(fun, x0, num=2, plotIt=False, eps=FLR)
 
 
 class FDEM_DerivTests(unittest.TestCase):
-
+    def test_Jvec_exr_Eform(self):
+        self.assertTrue(derivTest('e', 'exr'))
+    """
     if testE:
         def test_Jvec_exr_Eform(self):
             self.assertTrue(derivTest('e', 'exr'))
@@ -256,7 +261,7 @@ class FDEM_DerivTests(unittest.TestCase):
             self.assertTrue(derivTest('h', 'byi'))
         def test_Jvec_bzi_Hform(self):
             self.assertTrue(derivTest('h', 'bzi'))
-
+    """
 
 if __name__ == '__main__':
     unittest.main()
