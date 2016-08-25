@@ -53,7 +53,10 @@ install:
     fi
   - pip install nose-cov python-coveralls
 
-  - pip install pyMKL;
+  - git clone https://github.com/jcapriot/pyMKL.git;
+    cd pyMKL;
+    python setup.py install;
+    cd ..;
     git clone https://github.com/rowanc1/pymatsolver.git;
     cd pymatsolver;
     python setup.py install;
