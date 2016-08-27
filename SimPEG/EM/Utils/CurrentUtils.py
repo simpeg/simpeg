@@ -222,7 +222,6 @@ if __name__ == '__main__':
     xorig = np.r_[0., 0., 0.]
 
     out = getSourceTermLineCurrentPolygon(xorig, hx, hy, hz, px, py, pz)
-    print "kang", np.linalg.norm(out)
     fname = "currents.npy"
     out_true = np.load(fname)
     err = np.linalg.norm(out-out_true)
