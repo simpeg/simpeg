@@ -62,10 +62,10 @@ def DCAnalytic_DipoleTx(txlocs, rxlocs, sigma, current=1., earth_type="wholespac
     M = rxlocs[0]
     N = rxlocs[1]
 
-    rAM = np.sqrt( (M[:,0]-A[0])**2 + (M[:,1]-A[1])**2 + (M[:,2]-A[1])**2 )
-    rAN = np.sqrt( (N[:,0]-A[0])**2 + (N[:,1]-A[1])**2 + (N[:,2]-A[1])**2 )
-    rBM = np.sqrt( (M[:,0]-B[0])**2 + (M[:,1]-B[1])**2 + (M[:,2]-B[1])**2 )
-    rBN = np.sqrt( (N[:,0]-B[0])**2 + (N[:,1]-B[1])**2 + (N[:,2]-B[1])**2 )
+    rAM = np.sqrt( (M[:,0]-A[0])**2 + (M[:,1]-A[1])**2 + (M[:,2]-A[2])**2 )
+    rAN = np.sqrt( (N[:,0]-A[0])**2 + (N[:,1]-A[1])**2 + (N[:,2]-A[2])**2 )
+    rBM = np.sqrt( (M[:,0]-B[0])**2 + (M[:,1]-B[1])**2 + (M[:,2]-B[2])**2 )
+    rBN = np.sqrt( (N[:,0]-B[0])**2 + (N[:,1]-B[1])**2 + (N[:,2]-B[2])**2 )
 
     frontFactor = current/(4*np.pi*sigma)
 
