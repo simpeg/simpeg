@@ -23,7 +23,6 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None, sca
     from SimPEG import np
     from scipy.interpolate import griddata
     import pylab as plt
-
     # Set depth to 0 for now
     z0 = 0.
 
@@ -45,6 +44,7 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None, sca
 
         # Get distances between each poles A-B-M-N
         if stype == 'pdp':
+
             MA = np.abs(Tx[0] - Rx[0][:,0])
             NA = np.abs(Tx[0] - Rx[1][:,0])
             MN = np.abs(Rx[1][:,0] - Rx[0][:,0])
