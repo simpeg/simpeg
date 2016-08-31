@@ -201,9 +201,10 @@ class Problem2D_CC(BaseDCProblem_2D):
         rho = self.curModel.rho
         if adjoint:
             return((MfRhoIDeriv( G * u).T) * (D.T * v) +
-                   ky**2 * Utils.sdiag(u.flatten()*vol*(-1./rho**2))*v)
+                   ky**2 * self.curModel.rhoDeriv.T*Utils.sdiag(u.flatten()*vol*(-1./rho**2))*v)
+
         return (D * ((MfRhoIDeriv(G * u)) * v) + ky**2*
-                Utils.sdiag(u.flatten()*vol*(-1./rho**2))*v)
+                Utils.sdiag(u.flatten()*vol*(-1./rho**2))*(self.curModel.rhoDeriv*v))
 
     def getRHS(self, ky):
         """

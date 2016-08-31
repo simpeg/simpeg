@@ -1,7 +1,7 @@
 from SimPEG import np
 from SimPEG.EM.Static import DC, IP
 
-def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
+def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None, scale="linear", sameratio=True):
     """
         Read list of 2D tx-rx location and plot a speudo-section of apparent
         resistivity.
@@ -52,10 +52,10 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
             # Create mid-point location
             Cmid = Tx[0]
             Pmid = (Rx[0][:,0] + Rx[1][:,0])/2
-            if DCsurvey.mesh.dim == 2:
-                zsrc = Tx[1]
-            elif DCsurvey.mesh.dim ==3:
-                zsrc = Tx[2]
+            # if DCsurvey.mesh.dim == 2:
+            #     zsrc = Tx[1]
+            # elif DCsurvey.mesh.dim ==3:
+            zsrc = Tx[2]
 
         elif stype == 'dpdp':
             MA = np.abs(Tx[0][0] - Rx[0][:,0])
@@ -66,52 +66,56 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
             # Create mid-point location
             Cmid = (Tx[0][0] + Tx[1][0])/2
             Pmid = (Rx[0][:,0] + Rx[1][:,0])/2
-            if DCsurvey.mesh.dim == 2:
-                zsrc = (Tx[0][1] + Tx[1][1])/2
-            elif DCsurvey.mesh.dim ==3:
-                zsrc = (Tx[0][2] + Tx[1][2])/2
+            # if DCsurvey.mesh.dim == 2:
+            #     zsrc = (Tx[0][1] + Tx[1][1])/2
+            # elif DCsurvey.mesh.dim ==3:
+            zsrc = (Tx[0][2] + Tx[1][2])/2
 
         # Change output for dtype
-        if dtype == 'volt':
+        if stype == 'pdp':
 
-            rho = np.hstack([rho,data])
+            leg =  data * 2*np.pi  * MA * ( MA + MN ) / MN
+
+        elif stype == 'dpdp':
+
+            leg = data * 2*np.pi / ( 1/MA - 1/MB + 1/NB - 1/NA )
+            LEG.append(1./(2*np.pi) *( 1/MA - 1/MB + 1/NB - 1/NA ))
+        else:
+            print """dtype must be 'pdp'(pole-dipole) | 'dpdp' (dipole-dipole) """
+            break
+
+        if dtype == 'volt':
+            if scale == "linear":
+                rho = np.hstack([rho, data])
+            elif scale == "log":
+                rho = np.hstack([rho, np.log10(abs(data))])            
 
         else:
 
             # Compute pant leg of apparent rho
-            if stype == 'pdp':
-
-                leg =  data * 2*np.pi  * MA * ( MA + MN ) / MN
-
-            elif stype == 'dpdp':
-
-                leg = data * 2*np.pi / ( 1/MA - 1/MB + 1/NB - 1/NA )
-                LEG.append(1./(2*np.pi) *( 1/MA - 1/MB + 1/NB - 1/NA ))
-            else:
-                print """dtype must be 'pdp'(pole-dipole) | 'dpdp' (dipole-dipole) """
-                break
-
 
             if dtype == 'appc':
 
-                leg = np.log10(abs(1./leg))
-                rho = np.hstack([rho,leg])
+                leg = abs(1./leg)
 
             elif dtype == 'appr':
 
-                leg = np.log10(abs(leg))
-                rho = np.hstack([rho,leg])
+                leg = abs(leg)
 
             else:
                 print """dtype must be 'appr' | 'appc' | 'volt' """
                 break
 
+            if scale == "linear":
+                rho = np.hstack([rho, leg])
+            elif scale == "log":
+                rho = np.hstack([rho, np.log10(leg)])
 
         midx = np.hstack([midx, ( Cmid + Pmid )/2 ])
-        if DCsurvey.mesh.dim==3:
-            midz = np.hstack([midz, -np.abs(Cmid-Pmid)/2 + zsrc ])
-        elif DCsurvey.mesh.dim==2:
-            midz = np.hstack([midz, -np.abs(Cmid-Pmid)/2 + zsrc ])
+        # if DCsurvey.mesh.dim==3:
+        midz = np.hstack([midz, -np.abs(Cmid-Pmid)/2 + zsrc ])
+        # elif DCsurvey.mesh.dim==2:
+        #     midz = np.hstack([midz, -np.abs(Cmid-Pmid)/2 + zsrc ])
     ax = axs
 
     # Grid points
@@ -125,31 +129,37 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None):
 
     grid_rho = np.ma.masked_where(np.isnan(grid_rho), grid_rho)
     ph = plt.pcolormesh(grid_x[:,0],grid_z[0,:],grid_rho.T, clim=(vmin, vmax), vmin=vmin, vmax=vmax)
-    cbar = plt.colorbar(format="$10^{%.1f}$",fraction=0.04,orientation="horizontal")
+
+    if scale == "log":
+        cbar = plt.colorbar(format="$10^{%.1f}$",fraction=0.04,orientation="horizontal")
+    elif scale == "linear":
+        cbar = plt.colorbar(format="%.1f",fraction=0.04,orientation="horizontal")
+
+    if dtype == 'appc':
+        cbar.set_label("App.Cond",size=12)
+
+    elif dtype == 'appr':
+        cbar.set_label("App.Res.",size=12)
+
+    elif dtype == 'volt':
+        cbar.set_label("Potential (V)",size=12)
+
 
     cmin,cmax = cbar.get_clim()
     ticks = np.linspace(cmin,cmax,3)
     cbar.set_ticks(ticks)
     cbar.ax.tick_params(labelsize=10)
 
-    if dtype == 'appc':
-        cbar.set_label("App.Cond",size=12)
-    elif dtype == 'appr':
-        cbar.set_label("App.Res.",size=12)
-    elif dtype == 'volt':
-        cbar.set_label("Potential (V)",size=12)
-
     # Plot apparent resistivity
-    ax.scatter(midx,midz,s=10,c=rho.T, vmin =vmin, vmax = vmax, clim=(vmin, vmax))
+    # ax.scatter(midx,midz,s=10,c=rho.T, vmin =vmin, vmax = vmax, clim=(vmin, vmax))
+    ax.plot(midx,midz, 'k.', ms=1)
 
     #ax.set_xticklabels([])
     #ax.set_yticklabels([])
+    if sameratio == True:
+        plt.gca().set_aspect('equal', adjustable='box')
 
-    plt.gca().set_aspect('equal', adjustable='box')
-
-
-
-    return ph, LEG
+    return ph, ax, cbar, LEG
 
 def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
     """
