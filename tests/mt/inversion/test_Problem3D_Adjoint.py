@@ -1,10 +1,8 @@
 # Test functions
-from glob import glob
-import numpy as np, sys, os, time, scipy, subprocess
+import numpy as np
 import SimPEG as simpeg
 import unittest
 from SimPEG import NSEM
-from SimPEG.Utils import meshTensor
 from scipy.constants import mu_0
 
 
@@ -21,6 +19,7 @@ addrandoms = True
 def JvecAdjointTest(inputSetup,comp='All',freq=False):
     (M, freqs, sig, sigBG, rx_loc) = inputSetup
     survey, problem = NSEM.Utils.testUtils.setupSimpegNSEM_ePrimSec(inputSetup,comp='All',singleFreq=freq)
+    print 'Using {0} solver for the problem'.format(problem.Solver)
     print 'Adjoint test of eForm primary/secondary for {:s} comp at {:s}\n'.format(comp,str(survey.freqs))
 
     m  = sig
