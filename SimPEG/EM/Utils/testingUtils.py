@@ -12,7 +12,7 @@ MU = mu_0
 freq = 5e-1
 
 
-def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
+def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False,solver=SolverLU):
     cs = 10.
     ncx, ncy, ncz = 0, 0, 0
     npad = 8
@@ -82,12 +82,7 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
         raise NotImplementedError()
     prb.pair(survey)
 
-    try:
-        from pymatsolver import PardisoSolver
-        prb.Solver = PardisoSolver
-    except ImportError:
-        prb.Solver = SolverLU
-    # prb.solverOpts = dict(check_accuracy=True)
+    prb.Solver = solver
 
     return prb
 

@@ -1,7 +1,7 @@
 language: python
 python:
   - 3.4
- # - 2.7
+  - 2.7
 
 sudo: false
 
@@ -16,21 +16,21 @@ addons:
     - liblapack-dev
 
 env:
- #   - TEST_DIR="tests/mesh tests/base tests/utils"
+    - TEST_DIR="tests/mesh tests/base tests/utils"
     - TEST_DIR=tests/em/fdem/inverse/derivs
- #   - TEST_DIR=tests/em/tdem
- #   - TEST_DIR=tests/em/static
- #   - TEST_DIR=tests/flow
- #   - TEST_DIR=tests/mt
- #   - TEST_DIR=tests/examples
- #   - TEST_DIR=tests/em/fdem/inverse/adjoint
- #   - TEST_DIR=tests/em/fdem/forward
- #   - TEST_DIR=tests/pf
- #   - TEST_DIR=tests/docs;
- #     GAE_PYTHONPATH=${HOME}/.cache/google_appengine;
- #     PATH=$PATH:${HOME}/google-cloud-sdk/bin;
- #     PYTHONPATH=${PYTHONPATH}:${GAE_PYTHONPATH};
- #     CLOUDSDK_CORE_DISABLE_PROMPTS=1
+    - TEST_DIR=tests/em/tdem
+    - TEST_DIR=tests/em/static
+    - TEST_DIR=tests/flow
+    - TEST_DIR=tests/mt
+    - TEST_DIR=tests/examples
+    - TEST_DIR=tests/em/fdem/inverse/adjoint
+    - TEST_DIR=tests/em/fdem/forward
+    - TEST_DIR=tests/pf
+    - TEST_DIR=tests/docs;
+      GAE_PYTHONPATH=${HOME}/.cache/google_appengine;
+      PATH=$PATH:${HOME}/google-cloud-sdk/bin;
+      PYTHONPATH=${PYTHONPATH}:${GAE_PYTHONPATH};
+      CLOUDSDK_CORE_DISABLE_PROMPTS=1
 
 # Setup anaconda
 before_install:
