@@ -81,10 +81,7 @@ def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
     """
     import vtk
     import vtk.util.numpy_support as npsup
-<<<<<<< HEAD
-=======
 
->>>>>>> dev
     # Adjust the index
     trgl = trgl - 1
 
