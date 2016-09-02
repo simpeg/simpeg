@@ -8,8 +8,9 @@ import matplotlib.pyplot as plt
 
 try:
     from pymatsolver import PardisoSolver
+    Solver = PardisoSolver
 except ImportError:
-    PardisoSolver = SolverLU
+    Solver = SolverLU
 
 
 def halfSpaceProblemAnaDiff(meshType, srctype="MagDipole",
@@ -48,7 +49,7 @@ def halfSpaceProblemAnaDiff(meshType, srctype="MagDipole",
 
     survey = EM.TDEM.Survey([src])
     prb = EM.TDEM.Problem3D_b(mesh, mapping=mapping)
-    prb.Solver = MumpsSolver
+    prb.Solver = Solver
 
     prb.timeSteps = [(1e-06, 40), (5e-06, 40), (1e-05, 40), (5e-05, 40),
                      (0.0001, 40), (0.0005, 40)]
