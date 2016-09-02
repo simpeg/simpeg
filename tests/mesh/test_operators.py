@@ -8,7 +8,7 @@ from SimPEG import Mesh
 # Tolerance
 TOL = 1e-14
 
-#TODO: 'randomTensorMesh'
+# TODO: 'randomTensorMesh'
 MESHTYPES = ['uniformTensorMesh', 'uniformCurv', 'rotateCurv']
 call2 = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1])
 call3 = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1], xyz[:, 2])
