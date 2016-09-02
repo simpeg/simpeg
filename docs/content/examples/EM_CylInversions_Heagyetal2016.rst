@@ -1,4 +1,4 @@
-.. _examples_Inversion_IRLS:
+.. _examples_EM_CylInversions_Heagyetal2016:
 
 .. --------------------------------- ..
 ..                                   ..
@@ -8,19 +8,14 @@
 ..                                   ..
 .. --------------------------------- ..
 
-
-Inversion for compact models (IRLS)
-===================================
-
-Here we go over the basics of creating a linear problem and inversion.
-
-
+EM CylInversions Heagyetal2016
+==============================
 
 .. plot::
 
     from SimPEG import Examples
-    Examples.Inversion_IRLS.run()
+    Examples.EM_CylInversions_Heagyetal2016.run()
 
-.. literalinclude:: ../../../SimPEG/Examples/Inversion_IRLS.py
+.. literalinclude:: ../../../SimPEG/Examples/EM_CylInversions_Heagyetal2016.py
     :language: python
     :linenos:
