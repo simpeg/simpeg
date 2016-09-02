@@ -33,8 +33,51 @@ def DCAnalyticHalf(txloc, rxlocs, sigma, earth_type="wholespace"):
 
     return phi
 
+
 deg2rad  = lambda deg: deg/180.*np.pi
 rad2deg  = lambda rad: rad*180./np.pi
+
+
+def DCAnalytic_DipoleTx(txlocs, rxlocs, sigma, current=1., earth_type="wholespace"):
+    """
+        Analytic solution for electric potential from a dipole source
+
+        :param array txlocs: xyz location of A (+)  and B (-) electrodes [np.r_[xa, ya, za],np.r_[xb, yb, zb]]
+        :param list rxlocs: xyz locations of M (+) and N (-) electrodes [M, N]
+
+            e.g.
+            rxlocs = [M, N]
+            M: xyz locations of M (+) electrode (np.c_[xmlocs, ymlocs, zmlocs])
+            N: xyz locations of N (-) electrode (np.c_[xnlocs, ynlocs, znlocs])
+
+        :param float or complex sigma: values of conductivity
+        :param float current: input current of Tx in [A]
+        :param string earth_type: values of conductivity ("wholsespace" or "halfspace")
+
+    """
+
+    A = txlocs[0]
+    B = txlocs[1]
+
+    M = rxlocs[0]
+    N = rxlocs[1]
+
+    rAM = np.sqrt( (M[:,0]-A[0])**2 + (M[:,1]-A[1])**2 + (M[:,2]-A[2])**2 )
+    rAN = np.sqrt( (N[:,0]-A[0])**2 + (N[:,1]-A[1])**2 + (N[:,2]-A[2])**2 )
+    rBM = np.sqrt( (M[:,0]-B[0])**2 + (M[:,1]-B[1])**2 + (M[:,2]-B[2])**2 )
+    rBN = np.sqrt( (N[:,0]-B[0])**2 + (N[:,1]-B[1])**2 + (N[:,2]-B[2])**2 )
+
+    frontFactor = current/(4*np.pi*sigma)
+
+    phiM = frontFactor*(1/rAM - 1/rBM)
+    phiN = frontFactor*(1/rAN - 1/rBN)
+    phi = phiM - phiN
+
+    if earth_type == "halfspace":
+        phi *= 2
+
+    return phi
+
 
 def DCAnalyticSphere(txloc, rxloc, xc, radius, sigma, sigma1, \
                  field_type = "secondary", order=12, halfspace=False):

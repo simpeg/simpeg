@@ -1,6 +1,7 @@
 import unittest
 from SimPEG import Mesh, Utils, EM, Maps, np, SolverLU
 import SimPEG.EM.Static.DC as DC
+import matplotlib.pyplot as plt
 
 class DCProblemAnalyticTests(unittest.TestCase):
 
@@ -58,6 +59,9 @@ class DCProblemAnalyticTests(unittest.TestCase):
         err= np.linalg.norm((data-self.data_anal)/self.data_anal)**2 / self.data_anal.size
         if err < 0.05:
             passed = True
+            plt.plot(data)
+            plt.plot(self.data_anal)
+            plt.show()
             print ">> DC analytic test for Problem3D_CC is passed"
         else:
             passed = False
