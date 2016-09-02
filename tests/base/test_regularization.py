@@ -42,13 +42,13 @@ class RegularizationTests(unittest.TestCase):
                     passed = reg.eval(reg.mref) < TOL
                     self.assertTrue(passed)
 
-                    print 'Check:', R
+                    print('Check: {}'.format(R))
                     passed = Tests.checkDerivative(lambda m: [reg.eval(m),
                                                    reg.evalDeriv(m)], m,
                                                    plotIt=False)
                     self.assertTrue(passed)
 
-                    print 'Check 2 Deriv:', R
+                    print('Check 2 Deriv: {}'.format(R))
                     passed = Tests.checkDerivative(lambda m: [reg.evalDeriv(m),
                                                    reg.eval2Deriv(m)], m,
                                                    plotIt=False)
