@@ -8,8 +8,13 @@
 ..                                   ..
 .. --------------------------------- ..
 
-EM CylInversions Heagyetal2016
-==============================
+
+DEM and TDEM inversions
+=======================
+
+ example is used in the paper Heagy et al 2016 (in prep)
+
+
 
 .. plot::
 
