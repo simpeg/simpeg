@@ -505,7 +505,6 @@ def convertObs_DC3D_to_2D(survey, lineID, flag='local'):
 
         Tx = srcMat[indx]
 
-        print Tx
         if Tx[0:3] == Tx[3:]:
             stype = 'pole-dipole'
 
@@ -704,8 +703,6 @@ def readUBC_DC2Dpre(fileName):
 
 
 def readUBC_DC3Dobs(fileName):
-    
-    from SimPEG import np
     """
         Read UBC GIF DCIP 3D observation file and generate arrays for tx-rx location
     
@@ -767,9 +764,10 @@ def readUBC_DC3Dobs(fileName):
                 d.append(temp[-2])
                 wd.append(temp[-1])
 
-        else:    
-            rx.append(np.r_[temp[0:2],np.nan,temp[0:2],np.nan] )   
-            # Check if there is data with the location      
+        else:
+            rx.append(np.r_[temp[0:2],np.nan,temp[0:2],np.nan] )
+            print append
+            # Check if there is data with the location
             if len(temp)==6:
                 d.append(temp[-2])
                 wd.append(temp[-1])
@@ -789,20 +787,20 @@ def readUBC_DC3Dobs(fileName):
     return {'DCsurvey':survey}
 
 
-def xy_2_lineID(x,y):
+def xy_2_lineID(DCsurvey):
     """
-        Read x,y locations and returns a line ID number.
+        Read DC survey class and append line ID.
         Assumes that the locations are listed in the order
         they were collected. May need to generalize for random
         point locations, but will be more expensive
 
         Input:
-        :param x, y Vectors of station location
+        :param DCdict Vectors of station location
 
         Output:
         :param LineID Vector of integers
         :return
-        
+
         Created on Thu Feb 11, 2015
 
         @author: dominiquef
@@ -810,61 +808,101 @@ def xy_2_lineID(x,y):
     """
 
     # Compute unit vector between two points
-    def r_unit(xx,yy):
-        dx = xx[1] - xx[0]
-        dy = yy[1] - yy[0]
-
-        dl = np.sum(dx**2. + dy**2.)**0.5
-
-        r = np.r_[dx/dl, dy/dl]
-
-        return r
-
-    nstn = len(x)
+    nstn = DCsurvey.nSrc
 
     # Pre-allocate space
     lineID = np.zeros(nstn)
 
-    # Initiate first station
-    xy0 = np.r_[x[0],y[0]]
-
-    # Initiate mid-point location
-    xym = xy0
-
     linenum = 0
-    indx    = 0  
+    indx    = 0
 
-    for ii in range(nstn-1):
+    for ii in range(nstn):
+
+        if ii == 0:
+
+            A = DCsurvey.srcList[ii].loc[0]
+            B = DCsurvey.srcList[ii].loc[1]
+
+            xout = np.mean([A[0:2],B[0:2]], axis = 0)
+
+            xy0 = A[:2]
+            xym = xout
+
+            # Deal with replicate pole location
+            if np.all(xy0==xym):
+
+                xym[0] = xym[0] + 1e-3
+
+            continue
+
+        A = DCsurvey.srcList[ii].loc[0]
+        B = DCsurvey.srcList[ii].loc[1]
+
+        xin = np.mean([A[0:2],B[0:2]], axis = 0)
 
         # Compute vector between neighbours
-        r1 = r_unit(np.r_[x[ii],x[ii+1]],np.r_[y[ii],y[ii+1]])
+        vec1, r1 = r_unit(xout,xin)
 
         # Compute vector between current stn and mid-point
-        r2 = r_unit(np.r_[xym[0],x[ii+1]],np.r_[xym[1],y[ii+1]])
+        vec2, r2 = r_unit(xym,xin)
 
         # Compute vector between current stn and start line
-        r3 = r_unit(np.r_[xy0[0],x[ii+1]],np.r_[xy0[1],y[ii+1]])
+        vec3, r3 = r_unit(xy0,xin)
 
         # Compute vector between mid-point and start line
-        r4 = r_unit(np.r_[xym[0],xy0[0]],np.r_[xym[1],xy0[1]])
+        vec4, r4 = r_unit(xym,xy0)
 
-        # Compute dot product 
-        ang1 = r1.dot(r2)
-        ang2 = r3.dot(r4)
+        # Compute dot product
+        ang1 = np.abs(vec1.dot(vec2))
+        ang2 = np.abs(vec3.dot(vec4))
 
-        # If the angles are smaller then 45d, than new line
-        if (ang1 < np.cos(np.pi/4.)) | (ang2 < np.cos(np.pi/4.)) & (ii>0):
+        # If the angles are smaller then 45d, than next point is on a new line
+        if ((ang1 < np.cos(np.pi/4.)) | (ang2 < np.cos(np.pi/4.))) & (np.all(np.r_[r1,r2,r3,r4] > 0)):
 
             # Re-initiate start and mid-point location
-            xy0 = np.r_[x[ii+1],y[ii+1]]
-            xym = xy0
+            xy0 = A[:2]
+            xym = xin
+
+            # Deal with replicate pole location
+            if np.all(xy0==xym):
+
+                xym[0] = xym[0] + 1e-3
 
             linenum += 1
-            indx = ii+1
-            lineID[ii+1] = linenum
+            indx = ii
 
         else:
-            xym = np.median(np.c_[x[indx:ii+1],y[indx:ii+1]],axis=0)
+            xym = np.mean([xy0,xin], axis = 0)
+
+        lineID[ii] = linenum
+        xout = xin
+
+    return lineID
+
+def r_unit(p1,p2):
+    """
+    r_unit(x,y) : Function computes the unit vector
+    between two points with coordinates p1(x1,y1) and p2(x2,y2)
+
+    """
+
+    assert len(p1)==len(p2), 'locs must be the same shape.'
+
+    dx = []
+    for ii in range(len(p1)):
+        dx.append((p2[ii] - p1[ii]))
+
+    # Compute length of vector
+    r =  np.linalg.norm(np.asarray(dx))
+
+
+    if r!=0:
+        vec = dx/r
+
+    else:
+        vec = np.zeros(len(p1))
+
+    return vec, r
 
 
 def getSrc_locs(survey):
