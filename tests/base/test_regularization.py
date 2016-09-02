@@ -9,6 +9,7 @@ TOL = 1e-20
 testReg = True
 testRegMesh = True
 
+
 class RegularizationTests(unittest.TestCase):
 
     def setUp(self):
@@ -17,13 +18,14 @@ class RegularizationTests(unittest.TestCase):
         mesh1 = Mesh.TensorMesh([hx])
         mesh2 = Mesh.TensorMesh([hx, hy])
         mesh3 = Mesh.TensorMesh([hx, hy, hz])
-        self.meshlist = [mesh1,mesh2, mesh3]
+        self.meshlist = [mesh1, mesh2, mesh3]
 
     if testReg:
         def test_regularization(self):
             for R in dir(Regularization):
                 r = getattr(Regularization, R)
-                if not inspect.isclass(r): continue
+                if not inspect.isclass(r):
+                    continue
                 if not issubclass(r, Regularization.BaseRegularization):
                     continue
 
@@ -40,18 +42,23 @@ class RegularizationTests(unittest.TestCase):
                     passed = reg.eval(reg.mref) < TOL
                     self.assertTrue(passed)
 
-                    print('Check:', R)
-                    passed = Tests.checkDerivative(lambda m : [reg.eval(m), reg.evalDeriv(m)], m, plotIt=False)
+                    print 'Check:', R
+                    passed = Tests.checkDerivative(lambda m: [reg.eval(m),
+                                                   reg.evalDeriv(m)], m,
+                                                   plotIt=False)
                     self.assertTrue(passed)
 
-                    print('Check 2 Deriv:', R)
-                    passed = Tests.checkDerivative(lambda m : [reg.evalDeriv(m), reg.eval2Deriv(m)], m, plotIt=False)
+                    print 'Check 2 Deriv:', R
+                    passed = Tests.checkDerivative(lambda m: [reg.evalDeriv(m),
+                                                   reg.eval2Deriv(m)], m,
+                                                   plotIt=False)
                     self.assertTrue(passed)
 
         def test_regularization_ActiveCells(self):
             for R in dir(Regularization):
                 r = getattr(Regularization, R)
-                if not inspect.isclass(r): continue
+                if not inspect.isclass(r):
+                    continue
                 if not issubclass(r, Regularization.BaseRegularization):
                     continue
 

@@ -42,11 +42,11 @@ def run(plotIt=True):
         ax.grid(color='k', alpha=0.5, linestyle='dashed', linewidth=0.5)
 
     rxOffset = 1e-3
-    rx = EM.TDEM.RxTDEM(np.array([[rxOffset, 0., 30]]),
+    rx = EM.TDEM.Rx(np.array([[rxOffset, 0., 30]]),
                         np.logspace(-5, -3, 31), 'bz')
-    src = EM.TDEM.SrcTDEM_VMD_MVP([rx], np.array([0., 0., 80]))
-    survey = EM.TDEM.SurveyTDEM([src])
-    prb = EM.TDEM.ProblemTDEM_b(mesh, mapping=mapping)
+    src = EM.TDEM.Src.MagDipole([rx], loc=np.array([0., 0., 80]))
+    survey = EM.TDEM.Survey([src])
+    prb = EM.TDEM.Problem3D_b(mesh, mapping=mapping)
 
     prb.Solver = SolverLU
     prb.timeSteps = [(1e-06, 20), (1e-05, 20), (0.0001, 20)]

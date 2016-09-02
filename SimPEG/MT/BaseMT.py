@@ -44,7 +44,7 @@ class BaseMTProblem(BaseFDEMProblem):
         # Set current model
         self.curModel = m
         # Initiate the Jv object
-        Jv = self.dataPair(self.survey)
+        Jv = []
 
         # Loop all the frequenies
         for freq in self.survey.freqs:
@@ -69,10 +69,11 @@ class BaseMTProblem(BaseFDEMProblem):
                     # Get the projection derivative
                     # v should be of size 2*nE (for 2 polarizations)
                     PDeriv_u = lambda t: rx.evalDeriv(src, self.mesh, f, t) # wrt u, we don't have have PDeriv wrt m
-                    Jv[src, rx] = PDeriv_u(mkvc(du_dm))
+                    # Jv[src, rx] = PDeriv_u(mkvc(du_dm))
+                    Jv.append(PDeriv_u(mkvc(du_dm)))
             dA_duI.clean()
         # Return the vectorized sensitivities
-        return mkvc(Jv)
+        return np.hstack(Jv)
 
     def Jtvec(self, m, v, f=None):
         """

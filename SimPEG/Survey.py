@@ -3,6 +3,7 @@ from . import Utils
 import numpy as np
 import scipy.sparse as sp
 import uuid
+import gc
 
 
 class BaseRx(object):

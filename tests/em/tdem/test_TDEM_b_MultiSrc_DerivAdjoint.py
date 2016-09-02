@@ -1,155 +1,109 @@
-from __future__ import print_function
+from __future__ import division, print_function
 import unittest
 import numpy as np
 from SimPEG import Mesh, Maps, SolverLU, Tests, Survey
 from SimPEG import EM
 
 plotIt = False
+testDeriv = True
+testAdjoint = True
 
-class TDEM_bDerivTests(unittest.TestCase):
+TOL = 1e-5
 
-    def setUp(self):
+
+def setUp_TDEM(self, rxcomp='bz'):
 
         cs = 5.
         ncx = 20
         ncy = 6
         npad = 20
-        hx = [(cs,ncx), (cs,npad,1.3)]
-        hy = [(cs,npad,-1.3), (cs,ncy), (cs,npad,1.3)]
-        mesh = Mesh.CylMesh([hx,1,hy], '00C')
+        hx = [(cs, ncx), (cs, npad, 1.3)]
+        hy = [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)]
+        mesh = Mesh.CylMesh([hx, 1, hy], '00C')
 
-        active = mesh.vectorCCz<0.
-        activeMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
+        active = mesh.vectorCCz < 0.
+        activeMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8),
+                                           nC=mesh.nCz)
         mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * activeMap
 
         rxOffset = 40.
-        rx = EM.TDEM.RxTDEM(np.array([[rxOffset, 0., 0.]]), np.logspace(-4,-3, 20), 'bz')
-        src = EM.TDEM.SrcTDEM_VMD_MVP( [rx], loc=np.array([0., 0., 0.]))
-        rx2 = EM.TDEM.RxTDEM(np.array([[rxOffset-10, 0., 0.]]), np.logspace(-5,-4, 25), 'bz')
-        src2 = EM.TDEM.SrcTDEM_VMD_MVP( [rx2], loc=np.array([0., 0., 0.]))
+        rx = EM.TDEM.Rx(np.array([[rxOffset, 0., 0.]]),
+                        np.logspace(-4, -3, 20), rxcomp)
+        src = EM.TDEM.Src.MagDipole([rx], loc=np.array([0., 0., 0.]))
+        rx2 = EM.TDEM.Rx(np.array([[rxOffset-10, 0., 0.]]),
+                         np.logspace(-5, -4, 25), rxcomp)
+        src2 = EM.TDEM.Src.MagDipole( [rx2], loc=np.array([0., 0., 0.]))
 
-        survey = EM.TDEM.SurveyTDEM([src,src2])
+        survey = EM.TDEM.Survey([src, src2])
 
-        self.prb = EM.TDEM.ProblemTDEM_b(mesh, mapping=mapping)
-        # self.prb.timeSteps = [1e-5]
-        self.prb.timeSteps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
-        # self.prb.timeSteps = [(1e-05, 100)]
+        prb = EM.TDEM.Problem3D_b(mesh, mapping=mapping)
+        # prb.timeSteps = [1e-5]
+        prb.timeSteps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
+        # prb.timeSteps = [(1e-05, 100)]
 
         try:
-            from pymatsolver import PardisoSolver
-            self.prb.Solver = PardisoSolver
-        except ImportError:
-            self.prb.Solver  = SolverLU
+            from pymatsolver import MumpsSolver
+            prb.Solver = MumpsSolver
+        except ImportError, e:
+            prb.Solver = SolverLU
 
-        self.sigma = np.ones(mesh.nCz)*1e-8
-        self.sigma[mesh.vectorCCz<0] = 1e-1
-        self.sigma = np.log(self.sigma[active])
+        m = (np.log(1e-1)*np.ones(prb.mapping.nP) +
+             1e-2*np.random.randn(prb.mapping.nP))
 
-        self.prb.pair(survey)
-        self.mesh = mesh
+        prb.pair(survey)
 
-    def test_DerivG(self):
-        """
-            Test the derivative of c with respect to sigma
-        """
-
-        # Random model and perturbation
-        sigma = np.random.rand(self.prb.mapping.nP)
-
-        f = self.prb.fields(sigma)
-        dm = 1000*np.random.rand(self.prb.mapping.nP)
-        h = 0.01
-
-        derChk = lambda m: [self.prb._AhVec(m, f).tovec(), lambda mx: self.prb.Gvec(sigma, mx, u=f).tovec()]
-        print('\ntest_DerivG')
-        Tests.checkDerivative(derChk, sigma, plotIt=False, dx=dm, num=4, eps=1e-20)
-
-    def test_Deriv_dUdM(self):
-
-        prb = self.prb
-        prb.timeSteps = [(1e-05, 10), (0.0001, 10), (0.001, 10)]
-        mesh = self.mesh
-        sigma = self.sigma
-
-        dm = 10*np.random.rand(prb.mapping.nP)
-        f = prb.fields(sigma)
-
-        derChk = lambda m: [self.prb.fields(m).tovec(), lambda mx: -prb.solveAh(sigma, prb.Gvec(sigma, mx, u=f)).tovec()]
-        print('\n')
-        print('test_Deriv_dUdM')
-        Tests.checkDerivative(derChk, sigma, plotIt=False, dx=dm, num=4, eps=1e-20)
-
-    def test_Deriv_J(self):
-
-        prb = self.prb
-        prb.timeSteps = [(1e-05, 10), (0.0001, 10), (0.001, 10)]
-        mesh = self.mesh
-        sigma = self.sigma
-
-        # d_sig = 0.8*sigma #np.random.rand(mesh.nCz)
-        d_sig = 10*np.random.rand(prb.mapping.nP)
+        return mesh, prb, m
 
 
-        derChk = lambda m: [prb.survey.dpred(m), lambda mx: prb.Jvec(sigma, mx)]
-        print('\n')
-        print('test_Deriv_J')
-        Tests.checkDerivative(derChk, sigma, plotIt=False, dx=d_sig, num=4, eps=1e-20)
+class TDEM_bDerivTests(unittest.TestCase):
 
-    def test_projectAdjoint(self):
-        prb = self.prb
-        survey = prb.survey
-        nSrc = survey.nSrc
-        mesh = self.mesh
+    if testDeriv:
+        def Deriv_J(self, rxcomp='bz'):
 
-        # Generate random fields and data
-        f = EM.TDEM.FieldsTDEM(prb.mesh, prb.survey)
-        for i in range(prb.nT):
-            f[:,'b',i] = np.random.rand(mesh.nF, nSrc)
-            f[:,'e',i] = np.random.rand(mesh.nE, nSrc)
-        d_vec = np.random.rand(survey.nD)
-        d = Survey.Data(survey,v=d_vec)
+            mesh, prb, m0 = setUp_TDEM(rxcomp)
 
-        # Check that d.T*Q*f = f.T*Q.T*d
-        V1 = d_vec.dot(survey.evalDeriv(None, v=f).tovec())
-        V2 = np.sum((f.tovec())*(survey.evalDeriv(None, v=d, adjoint=True).tovec()))
+            prb.timeSteps = [(1e-05, 10), (0.0001, 10), (0.001, 10)]
 
-        self.assertTrue((V1-V2)/np.abs(V1) < 1e-6)
+            def derChk(m):
+                return [prb.survey.dpred(m), lambda mx: prb.Jvec(m0, mx)]
 
-    def test_adjointGvecVsGtvec(self):
-        mesh = self.mesh
-        prb = self.prb
+            print('test_Deriv_J {}'.format(rxcomp))
+            Tests.checkDerivative(derChk, m0, plotIt=False, num=3, eps=1e-20)
 
-        m = np.random.rand(prb.mapping.nP)
-        sigma = np.random.rand(prb.mapping.nP)
+        def test_Jvec_bx(self):
+            self.Deriv_J(rxcomp='bx')
 
-        u = EM.TDEM.FieldsTDEM(prb.mesh, prb.survey)
-        for i in range(1,prb.nT+1):
-            u[:,'b',i] = np.random.rand(mesh.nF, 2)
-            u[:,'e',i] = np.random.rand(mesh.nE, 2)
+        def test_Jvec_bz(self):
+            self.Deriv_J(rxcomp='bz')
 
-        v = EM.TDEM.FieldsTDEM(prb.mesh, prb.survey)
-        for i in range(1,prb.nT+1):
-            v[:,'b',i] = np.random.rand(mesh.nF, 2)
-            v[:,'e',i] = np.random.rand(mesh.nE, 2)
+        def test_Jvec_ey(self):
+            self.Deriv_J(rxcomp='ey')
 
-        V1 = m.dot(prb.Gtvec(sigma, v, u))
-        V2 = np.sum(v.tovec()*prb.Gvec(sigma, m, u).tovec())
-        self.assertTrue(np.abs(V1-V2)/np.abs(V1) <1e-6)
+    if testAdjoint:
+        def adjointJvecVsJtvec(self, rxcomp='bz'):
+            print(' \n Testing Adjoint {}'.format(rxcomp))
+            mesh, prb, m0 = setUp_TDEM(rxcomp)
 
-    def test_adjointJvecVsJtvec(self):
-        mesh = self.mesh
-        prb = self.prb
-        sigma = self.sigma
+            m = np.random.rand(prb.mapping.nP)
+            d = np.random.rand(prb.survey.nD)
 
-        m = np.random.rand(prb.mapping.nP)
-        d = np.random.rand(prb.survey.nD)
+            V1 = d.dot(prb.Jvec(m0, m))
+            V2 = m.dot(prb.Jtvec(m0, d))
 
-        V1 = d.dot(prb.Jvec(sigma, m))
-        V2 = m.dot(prb.Jtvec(sigma, d))
-        print('AdjointTest', V1, V2)
-        self.assertTrue(np.abs(V1-V2)/np.abs(V1) < 1e-6)
+            tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
+            passed = np.abs(V1-V2) < tol
+            print('    {v1}, {v2}, {diff}, {tol}, {passed} '.format(
+                v1=V1, v2=V2, diff=np.abs(V1-V2), tol=tol, passed=passed))
+            self.assertTrue(passed)
 
+        def test_JvecVsJtvec_bx(self):
+            self.adjointJvecVsJtvec(rxcomp='bx')
 
+        def test_JvecVsJtvec_bz(self):
+            self.adjointJvecVsJtvec(rxcomp='bz')
+
+        def test_JvecVsJtvec_ey(self):
+            self.adjointJvecVsJtvec(rxcomp='ey')
 
 if __name__ == '__main__':
     unittest.main()
