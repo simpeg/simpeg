@@ -12,10 +12,24 @@ omega = lambda f: 2.*np.pi*f
 def E_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', kappa=0., epsr=1., t=0.):
 
     """
-        Computing Analytic Electric fields from Electrical Dipole in a Wholespace
-        TODO:
-            Add description of parameters
+        Computing the analytic electric fields (E) from an electrical dipole in a wholespace
+        - You have the option of computing E for multiple frequencies at a single reciever location
+          or a single frequency at multiple locations
+
+        :param numpy.array XYZ: reciever locations at which to evaluate E
+        :param numpy.array srcLoc: [x,y,z] triplet defining the location of the electric dipole source
+        :param float sig: value specifying the conductivity (S/m) of the wholespace
+        :param numpy.array f: array of Tx frequencies (Hz)
+        :param float current: size of the injected current (A), default is 1.0 A
+        :param float length: length of the dipole (m), default is 1.0 m
+        :param str orientation: orientation of dipole: 'X', 'Y', or 'Z'
+        :param float kappa: magnetic susceptiblity value (unitless), default is 0.
+        :param float epsr: relative permitivitty value (unitless),  default is 1.0
+        :param float t: time variable, only used for Seogi's plotting application...
+        :rtype: numpy.array
+        :return: Ex, Ey, Ez: arrays containing all 3 components of E evaluated at the specified locations and frequencies.
     """
+
     mu = mu_0*(1+kappa)
     epsilon = epsilon_0*epsr
     sig_hat = sig + 1j*omega(f)*epsilon
@@ -60,10 +74,24 @@ def E_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
 def E_galvanic_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', kappa=1., epsr=1., t=0.):
 
     """
-        Computing Galvanic portion of Electric fields from Electrical Dipole in a Wholespace
-        TODO:
-            Add description of parameters
+        Computing the galvanic portion of the analytic electric fields (E) from an electrical dipole in a wholespace
+        - You have the option of computing E for multiple frequencies at a single reciever location
+          or a single frequency at multiple locations
+
+        :param numpy.array XYZ: reciever locations at which to evaluate E_galvanic
+        :param numpy.array srcLoc: [x,y,z] triplet defining the location of the electric dipole source
+        :param float sig: value specifying the conductivity (S/m) of the wholespace
+        :param numpy.array f: array of Tx frequencies (Hz)
+        :param float current: size of the injected current (A), default is 1.0 A
+        :param float length: length of the dipole (m), default is 1.0 m
+        :param str orientation: orientation of dipole: 'X', 'Y', or 'Z'
+        :param float kappa: magnetic susceptiblity value (unitless), default is 0.
+        :param float epsr: relative permitivitty value (unitless),  default is 1.0
+        :param float t: time variable, only used for Seogi's plotting application...
+        :rtype: numpy.array
+        :return: Ex, Ey, Ez: arrays containing the galvanic portion of all 3 components of E evaluated at the specified locations and frequencies.
     """
+
     mu = mu_0*(1+kappa)
     epsilon = epsilon_0*epsr
     sig_hat = sig + 1j*omega(f)*epsilon
@@ -108,9 +136,22 @@ def E_galvanic_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., le
 def E_inductive_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', kappa=1., epsr=1., t=0.):
 
     """
-        Computing Inductive portion of Electric fields from Electrical Dipole in a Wholespace
-        TODO:
-            Add description of parameters
+        Computing the inductive portion of the analytic electric fields (E) from an electrical dipole in a wholespace
+        - You have the option of computing E for multiple frequencies at a single reciever location
+          or a single frequency at multiple locations
+
+        :param numpy.array XYZ: reciever locations at which to evaluate E_inductive
+        :param numpy.array srcLoc: [x,y,z] triplet defining the location of the electric dipole source
+        :param float sig: value specifying the conductivity (S/m) of the wholespace
+        :param numpy.array f: array of Tx frequencies (Hz)
+        :param float current: size of the injected current (A), default is 1.0 A
+        :param float length: length of the dipole (m), default is 1.0 m
+        :param str orientation: orientation of dipole: 'X', 'Y', or 'Z'
+        :param float kappa: magnetic susceptiblity value (unitless), default is 0.
+        :param float epsr: relative permitivitty value (unitless),  default is 1.0
+        :param float t: time variable, only used for Seogi's plotting application...
+        :rtype: numpy.array
+        :return: Ex, Ey, Ez: arrays containing the inductive portion of all 3 components of E evaluated at the specified locations and frequencies.
     """
     mu = mu_0*(1+kappa)
     epsilon = epsilon_0*epsr
@@ -155,9 +196,22 @@ def E_inductive_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., l
 def J_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', kappa=1., epsr=1., t=0.):
 
     """
-        Computing Current densities from Electrical Dipole in a Wholespace
-        TODO:
-            Add description of parameters
+        Computing the analytic current density (J) from an electrical dipole in a wholespace
+        - You have the option of computing J for multiple frequencies at a single reciever location
+          or a single frequency at multiple locations
+
+        :param numpy.array XYZ: reciever locations at which to evaluate J
+        :param numpy.array srcLoc: [x,y,z] triplet defining the location of the electric dipole source
+        :param float sig: value specifying the conductivity (S/m) of the wholespace
+        :param numpy.array f: array of Tx frequencies (Hz)
+        :param float current: size of the injected current (A), default is 1.0 A
+        :param float length: length of the dipole (m), default is 1.0 m
+        :param str orientation: orientation of dipole: 'X', 'Y', or 'Z'
+        :param float kappa: magnetic susceptiblity value (unitless), default is 0.
+        :param float epsr: relative permitivitty value (unitless),  default is 1.0
+        :param float t: time variable, only used for Seogi's plotting application...
+        :rtype: numpy.array
+        :return: Jx, Jy, Jz: arrays containing all 3 components of J evaluated at the specified locations and frequencies.
     """
 
     Ex, Ey, Ez = E_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=current, length=length, orientation=orientation, kappa=kappa, epsr=epsr)
@@ -170,9 +224,22 @@ def J_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
 def J_galvanic_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', kappa=1., epsr=1., t=0.):
 
     """
-        Computing Galvanic portion of Current densities from Electrical Dipole in a Wholespace
-        TODO:
-            Add description of parameters
+        Computing the galvanic portion of the analytic current density (J) from an electrical dipole in a wholespace
+        - You have the option of computing J for multiple frequencies at a single reciever location
+          or a single frequency at multiple locations
+
+        :param numpy.array XYZ: reciever locations at which to evaluate J_galvanic
+        :param numpy.array srcLoc: [x,y,z] triplet defining the location of the electric dipole source
+        :param float sig: value specifying the conductivity (S/m) of the wholespace
+        :param numpy.array f: array of Tx frequencies (Hz)
+        :param float current: size of the injected current (A), default is 1.0 A
+        :param float length: length of the dipole (m), default is 1.0 m
+        :param str orientation: orientation of dipole: 'X', 'Y', or 'Z'
+        :param float kappa: magnetic susceptiblity value (unitless), default is 0.
+        :param float epsr: relative permitivitty value (unitless),  default is 1.0
+        :param float t: time variable, only used for Seogi's plotting application...
+        :rtype: numpy.array
+        :return: Jx, Jy, Jz: arrays containing the galvanic portion of all 3 components of J evaluated at the specified locations and frequencies.
     """
 
     Ex_galvanic, Ey_galvanic, Ez_galvanic = E_galvanic_from_ElectricDipoleWholeSpaced(XYZ, srcLoc, sig, f, current=current, length=length, orientation=orientation, kappa=kappa, epsr=epsr)
@@ -185,9 +252,22 @@ def J_galvanic_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., le
 def J_inductive_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', kappa=1., epsr=1., t=0.):
 
     """
-        Computing Inductive portion of Current densities from Electrical Dipole in a Wholespace
-        TODO:
-            Add description of parameters
+        Computing the inductive portion of the analytic current density (J) from an electrical dipole in a wholespace
+        - You have the option of computing J for multiple frequencies at a single reciever location
+          or a single frequency at multiple locations
+
+        :param numpy.array XYZ: reciever locations at which to evaluate J_inductive
+        :param numpy.array srcLoc: [x,y,z] triplet defining the location of the electric dipole source
+        :param float sig: value specifying the conductivity (S/m) of the wholespace
+        :param numpy.array f: array of Tx frequencies (Hz)
+        :param float current: size of the injected current (A), default is 1.0 A
+        :param float length: length of the dipole (m), default is 1.0 m
+        :param str orientation: orientation of dipole: 'X', 'Y', or 'Z'
+        :param float kappa: magnetic susceptiblity value (unitless), default is 0.
+        :param float epsr: relative permitivitty value (unitless),  default is 1.0
+        :param float t: time variable, only used for Seogi's plotting application...
+        :rtype: numpy.array
+        :return: Jx, Jy, Jz: arrays containing the galvanic portion of all 3 components of J evaluated at the specified locations and frequencies.
     """
 
     Ex_inductive, Ey_inductive, Ez_inductive = E_inductive_from_ElectricDipoleWholeSpaced(XYZ, srcLoc, sig, f, current=current, length=length, orientation=orientation, kappa=kappa, epsr=epsr)
@@ -200,10 +280,24 @@ def J_inductive_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., l
 def H_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', kappa=1., epsr=1., t=0.):
 
     """
-        Computing Magnetic fields from Electrical Dipole in a Wholespace
-        TODO:
-            Add description of parameters
+        Computing the analytic magnetic fields (H) from an electrical dipole in a wholespace
+        - You have the option of computing H for multiple frequencies at a single reciever location
+          or a single frequency at multiple locations
+
+        :param numpy.array XYZ: reciever locations at which to evaluate H
+        :param numpy.array srcLoc: [x,y,z] triplet defining the location of the electric dipole source
+        :param float sig: value specifying the conductivity (S/m) of the wholespace
+        :param numpy.array f: array of Tx frequencies (Hz)
+        :param float current: size of the injected current (A), default is 1.0 A
+        :param float length: length of the dipole (m), default is 1.0 m
+        :param str orientation: orientation of dipole: 'X', 'Y', or 'Z'
+        :param float kappa: magnetic susceptiblity value (unitless), default is 0.
+        :param float epsr: relative permitivitty value (unitless),  default is 1.0
+        :param float t: time variable, only used for Seogi's plotting application...
+        :rtype: numpy.array
+        :return: Hx, Hy, Hz: arrays containing all 3 components of H evaluated at the specified locations and frequencies.
     """
+
     mu = mu_0*(1+kappa)
     epsilon = epsilon_0*epsr
     XYZ = Utils.asArray_N_x_Dim(XYZ, 3)
@@ -243,10 +337,24 @@ def H_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
 def B_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', kappa=1., epsr=1., t=0.):
 
     """
-        Computing Magnetic flux densites from Electrical Dipole in a Wholespace
-        TODO:
-            Add description of parameters
+        Computing the analytic magnetic flux density (B) from an electrical dipole in a wholespace
+        - You have the option of computing B for multiple frequencies at a single reciever location
+          or a single frequency at multiple locations
+
+        :param numpy.array XYZ: reciever locations at which to evaluate B
+        :param numpy.array srcLoc: [x,y,z] triplet defining the location of the electric dipole source
+        :param float sig: value specifying the conductivity (S/m) of the wholespace
+        :param numpy.array f: array of Tx frequencies (Hz)
+        :param float current: size of the injected current (A), default is 1.0 A
+        :param float length: length of the dipole (m), default is 1.0 m
+        :param str orientation: orientation of dipole: 'X', 'Y', or 'Z'
+        :param float kappa: magnetic susceptiblity value (unitless), default is 0.
+        :param float epsr: relative permitivitty value (unitless),  default is 1.0
+        :param float t: time variable, only used for Seogi's plotting application...
+        :rtype: numpy.array
+        :return: Bx, By, Bz: arrays containing all 3 components of B evaluated at the specified locations and frequencies.
     """
+
     mu = mu_0*(1+kappa)
 
     Hx, Hy, Hz = H_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=current, length=length, orientation=orientation, kappa=kappa, epsr=epsr)
@@ -259,9 +367,22 @@ def B_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
 def A_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', kappa=1., epsr=1., t=0.):
 
     """
-        Computing Electric vector potentials from Electrical Dipole in a Wholespace
-        TODO:
-            Add description of parameters
+        Computing the analytic electric vector potential (A) from an electrical dipole in a wholespace
+        - You have the option of computing A for multiple frequencies at a single reciever location
+          or a single frequency at multiple locations
+
+        :param numpy.array XYZ: reciever locations at which to evaluate A
+        :param numpy.array srcLoc: [x,y,z] triplet defining the location of the electric dipole source
+        :param float sig: value specifying the conductivity (S/m) of the wholespace
+        :param numpy.array f: array of Tx frequencies (Hz)
+        :param float current: size of the injected current (A), default is 1.0 A
+        :param float length: length of the dipole (m), default is 1.0 m
+        :param str orientation: orientation of dipole: 'X', 'Y', or 'Z'
+        :param float kappa: magnetic susceptiblity value (unitless), default is 0.
+        :param float epsr: relative permitivitty value (unitless),  default is 1.0
+        :param float t: time variable, only used for Seogi's plotting application...
+        :rtype: numpy.array
+        :return: Ax, Ay, Az: arrays containing all 3 components of A evaluated at the specified locations and frequencies.
     """
     mu = mu_0*(1+kappa)
     epsilon = epsilon_0*epsr
@@ -301,10 +422,24 @@ def A_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
 def E_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., loopArea=1., orientation='X', kappa=0., epsr=1., t=0.):
 
     """
-        Computing analytic electric fields from Magnetic Dipole in a Wholespace
-        TODO:
-            Add description of parameters
+        Computing the analytic electric fields (E) from a magnetic dipole in a wholespace
+        - You have the option of computing E for multiple frequencies at a single reciever location
+          or a single frequency at multiple locations
+
+        :param numpy.array XYZ: reciever locations at which to evaluate E
+        :param numpy.array srcLoc: [x,y,z] triplet defining the location of the electric dipole source
+        :param float sig: value specifying the conductivity (S/m) of the wholespace
+        :param numpy.array f: array of Tx frequencies (Hz)
+        :param float current: size of the injected current (A), default is 1.0 A
+        :param float length: length of the dipole (m), default is 1.0 m
+        :param str orientation: orientation of dipole: 'X', 'Y', or 'Z'
+        :param float kappa: magnetic susceptiblity value (unitless), default is 0.
+        :param float epsr: relative permitivitty value (unitless),  default is 1.0
+        :param float t: time variable, only used for Seogi's plotting application...
+        :rtype: numpy.array
+        :return: Ex, Ey, Ez: arrays containing all 3 components of E evaluated at the specified locations and frequencies.
     """
+
     mu = mu_0 * (1+kappa)
     epsilon = epsilon_0 * epsr
     m = current * loopArea
@@ -346,9 +481,22 @@ def E_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., loopArea=1.
 def J_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., loopArea=1., orientation='X', kappa=1., epsr=1., t=0.):
 
     """
-        Computing current densities from Magnetic Dipole in a Wholespace
-        TODO:
-            Add description of parameters
+        Computing the analytic current density (J) from a magnetic dipole in a wholespace
+        - You have the option of computing J for multiple frequencies at a single reciever location
+          or a single frequency at multiple locations
+
+        :param numpy.array XYZ: reciever locations at which to evaluate J
+        :param numpy.array srcLoc: [x,y,z] triplet defining the location of the electric dipole source
+        :param float sig: value specifying the conductivity (S/m) of the wholespace
+        :param numpy.array f: array of Tx frequencies (Hz)
+        :param float current: size of the injected current (A), default is 1.0 A
+        :param float length: length of the dipole (m), default is 1.0 m
+        :param str orientation: orientation of dipole: 'X', 'Y', or 'Z'
+        :param float kappa: magnetic susceptiblity value (unitless), default is 0.
+        :param float epsr: relative permitivitty value (unitless),  default is 1.0
+        :param float t: time variable, only used for Seogi's plotting application...
+        :rtype: numpy.array
+        :return: Jx, Jy, Jz: arrays containing all 3 components of J evaluated at the specified locations and frequencies.
     """
 
     Ex, Ey, Ez = E_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=current, loopArea=loopArea, orientation=orientation, kappa=kappa, epsr=epsr)
@@ -361,10 +509,24 @@ def J_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., loopArea=1.
 def H_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., loopArea=1., orientation='X', kappa=1., epsr=1., t=0.):
 
     """
-        Computing magnetic fields from Magnetic Dipole in a Wholespace
-        TODO:
-            Add description of parameters
+        Computing the analytic magnetic fields (H) from a magnetic dipole in a wholespace
+        - You have the option of computing H for multiple frequencies at a single reciever location
+          or a single frequency at multiple locations
+
+        :param numpy.array XYZ: reciever locations at which to evaluate H
+        :param numpy.array srcLoc: [x,y,z] triplet defining the location of the electric dipole source
+        :param float sig: value specifying the conductivity (S/m) of the wholespace
+        :param numpy.array f: array of Tx frequencies (Hz)
+        :param float current: size of the injected current (A), default is 1.0 A
+        :param float length: length of the dipole (m), default is 1.0 m
+        :param str orientation: orientation of dipole: 'X', 'Y', or 'Z'
+        :param float kappa: magnetic susceptiblity value (unitless), default is 0.
+        :param float epsr: relative permitivitty value (unitless),  default is 1.0
+        :param float t: time variable, only used for Seogi's plotting application...
+        :rtype: numpy.array
+        :return: Hx, Hy, Hz: arrays containing all 3 components of H evaluated at the specified locations and frequencies.
     """
+
     mu = mu_0 * (1+kappa)
     epsilon = epsilon_0 * epsr
     m = current * loopArea
@@ -409,10 +571,24 @@ def H_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., loopArea=1.
 def B_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., loopArea=1., orientation='X', kappa=1., epsr=1., t=0.):
 
     """
-        Computing magnetic flux densites from Magnetic Dipole in a Wholespace
-        TODO:
-            Add description of parameters
+        Computing the analytic magnetic flux density (B) from a magnetic dipole in a wholespace
+        - You have the option of computing B for multiple frequencies at a single reciever location
+          or a single frequency at multiple locations
+
+        :param numpy.array XYZ: reciever locations at which to evaluate B
+        :param numpy.array srcLoc: [x,y,z] triplet defining the location of the electric dipole source
+        :param float sig: value specifying the conductivity (S/m) of the wholespace
+        :param numpy.array f: array of Tx frequencies (Hz)
+        :param float current: size of the injected current (A), default is 1.0 A
+        :param float length: length of the dipole (m), default is 1.0 m
+        :param str orientation: orientation of dipole: 'X', 'Y', or 'Z'
+        :param float kappa: magnetic susceptiblity value (unitless), default is 0.
+        :param float epsr: relative permitivitty value (unitless),  default is 1.0
+        :param float t: time variable, only used for Seogi's plotting application...
+        :rtype: numpy.array
+        :return: Bx, By, Bz: arrays containing all 3 components of B evaluated at the specified locations and frequencies.
     """
+
     mu = mu_0 * (1+kappa)
 
     Hx, Hy, Hz = H_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=current, loopArea=loopArea, orientation=orientation, kappa=kappa, epsr=epsr)
@@ -425,10 +601,24 @@ def B_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., loopArea=1.
 def F_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., loopArea=1., orientation='X', kappa=1., epsr=1., t=0.):
 
     """
-        Computing magnetic vector potentials from Magnetic Dipole in a Wholespace
-        TODO:
-            Add description of parameters
+        Computing the analytic magnetic vector potential (F) from a magnetic dipole in a wholespace
+        - You have the option of computing F for multiple frequencies at a single reciever location
+          or a single frequency at multiple locations
+
+        :param numpy.array XYZ: reciever locations at which to evaluate F
+        :param numpy.array srcLoc: [x,y,z] triplet defining the location of the electric dipole source
+        :param float sig: value specifying the conductivity (S/m) of the wholespace
+        :param numpy.array f: array of Tx frequencies (Hz)
+        :param float current: size of the injected current (A), default is 1.0 A
+        :param float length: length of the dipole (m), default is 1.0 m
+        :param str orientation: orientation of dipole: 'X', 'Y', or 'Z'
+        :param float kappa: magnetic susceptiblity value (unitless), default is 0.
+        :param float epsr: relative permitivitty value (unitless),  default is 1.0
+        :param float t: time variable, only used for Seogi's plotting application...
+        :rtype: numpy.array
+        :return: Fx, Fy, Fz: arrays containing all 3 components of F evaluated at the specified locations and frequencies.
     """
+
     mu = mu_0 * (1+kappa)
     epsilon = epsilon_0*epsr
     m = current * loopArea
