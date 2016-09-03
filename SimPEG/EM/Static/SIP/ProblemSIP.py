@@ -5,7 +5,7 @@ from SimPEG.Utils import sdiag
 import numpy as np
 from SimPEG.Utils import Zero
 from SimPEG.EM.Static.DC import getxBCyBC_CC
-from SurveySIP import Survey, Data
+from .SurveySIP import Survey, Data
 
 class ColeColePropMap(Maps.PropMap):
     """

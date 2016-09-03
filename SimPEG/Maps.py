@@ -1,27 +1,26 @@
-import Utils
+from __future__ import print_function
+from . import Utils
 import numpy as np
 import scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
-from Tests import checkDerivative
-from PropMaps import PropMap, Property
+from .Tests import checkDerivative
+from .PropMaps import PropMap, Property
 from numpy.polynomial import polynomial
 from scipy.interpolate import UnivariateSpline
 import warnings
+from six import integer_types
 
 
 class IdentityMap(object):
     """
-    SimPEG Map
-
+        SimPEG Map
     """
-    __metaclass__ = Utils.SimPEGMetaClass
 
     def __init__(self, mesh=None, nP=None, **kwargs):
         Utils.setKwargs(self, **kwargs)
 
         if nP is not None:
-            assert type(nP) in [int, long], 'Number of parameters '
-            'must be an integer.'
+            assert type(nP) in integer_types, ' Number of parameters must be an integer.'
 
         self.mesh = mesh
         self._nP = nP
@@ -108,7 +107,7 @@ class IdentityMap(object):
             :return: passed the test?
 
         """
-        print 'Testing {0!s}'.format(str(self))
+        print('Testing {0!s}'.format(str(self)))
         if m is None:
             m = abs(np.random.rand(self.nP))
         if 'plotIt' not in kwargs:
@@ -126,7 +125,7 @@ class IdentityMap(object):
             :return: passed the test?
 
         """
-        print 'Testing %s' % str(self)
+        print('Testing {0!s}'.format(self))
         if m is None:
             m = abs(np.random.rand(self.nP))
         if 'plotIt' not in kwargs:
@@ -823,7 +822,7 @@ class ParametricPolyMap(IdentityMap):
         self.actInd = actInd
 
         if getattr(self, 'actInd', None) is None:
-            self.actInd = range(self.mesh.nC)
+            self.actInd = list(range(self.mesh.nC))
             self.nC = self.mesh.nC
 
         else:

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 from SimPEG import *
 import SimPEG.EM.Static.DC as DC
@@ -56,7 +57,7 @@ class IPProblemTestsCC(unittest.TestCase):
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-10
-        print 'Adjoint Test', np.abs(wtJv - vtJtw), passed
+        print('Adjoint Test', np.abs(wtJv - vtJtw), passed)
         self.assertTrue(passed)
 
     def test_dataObj(self):
@@ -115,7 +116,7 @@ class IPProblemTestsN(unittest.TestCase):
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
-        print 'Adjoint Test', np.abs(wtJv - vtJtw), passed
+        print('Adjoint Test', np.abs(wtJv - vtJtw), passed)
         self.assertTrue(passed)
 
     def test_dataObj(self):

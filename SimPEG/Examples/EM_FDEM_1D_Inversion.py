@@ -57,9 +57,9 @@ def run(plotIt=True):
     prb = EM.FDEM.Problem3D_b(mesh, mapping=mapping)
 
     try:
-        from pymatsolver import MumpsSolver
-        prb.Solver = MumpsSolver
-    except ImportError, e:
+        from pymatsolver import PardisoSolver
+        prb.Solver = PardisoSolver
+    except ImportError:
         prb.Solver = SolverLU
 
     prb.pair(survey)
