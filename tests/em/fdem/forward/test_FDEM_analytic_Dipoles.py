@@ -1,18 +1,43 @@
 import unittest
 from SimPEG import EM, Mesh, Utils, np, Maps, sp
 try:
-    from pymatsolver import MumpsSolver
-    solver = MumpsSolver
+    from pymatsolver import PardisoSolver as Solver
 except ImportError:
-    from SimPEG import SolverLU
-    solver = SolverLU
+    from SimPEG import SolverLU as Solver
 # import sys
 from scipy.constants import mu_0
 
+# Global Test Parameters
 plotIt = False
 
+SIGMABACK = 7e-2
+KAPPA = 1
+
+# Util functions
 if plotIt:
     import matplotlib.pyplot as plt
+
+    def plotLine_num_ana(ax, x, num, ana, title=None, xlabel='x (m)'):
+        ax.plot(x, num, 'o', x, ana, linewidth=2)
+        ax.grid(which='both')
+        if title is not None:
+            ax.set_title(title)
+        if xlabel is not None:
+            ax.set_xlabel('x (m)')
+        return ax
+
+
+def setUpMesh():
+    csx, ncx, npadx = 5, 18, 8
+    csy, ncy, npady = 5, 18, 8
+    csz, ncz, npadz = 5, 18, 8
+    hx = Utils.meshTensor([(csx, npadx, -1.3), (csx, ncx), (csx, npadx, 1.3)])
+    hy = Utils.meshTensor([(csy, npady, -1.3), (csy, ncy), (csy, npady, 1.3)])
+    hz = Utils.meshTensor([(csz, npadz, -1.3), (csz, ncz), (csz, npadz, 1.3)])
+
+    return Mesh.TensorMesh([hx, hy, hz], 'CCC')
+
+
 
 class X_ElecDipoleTest_3DMesh(unittest.TestCase):
 
@@ -22,18 +47,12 @@ class X_ElecDipoleTest_3DMesh(unittest.TestCase):
         print('Testing a X-oriented analytic harmonic electric dipole against the numerical solution on a 3D-tesnsor mesh.')
 
         # Define model parameters
-        self.sigmaback = 7e-2
+        self.sigmaback = SIGMABACK
         # mu = mu_0*(1+kappa)
-        self.kappa = 1.
+        self.kappa = KAPPA
 
         # Create 3D mesh
-        csx, ncx, npadx = 5, 18, 8
-        csy, ncy, npady = 5, 18, 8
-        csz, ncz, npadz = 5, 18, 8
-        hx = Utils.meshTensor([(csx, npadx, -1.3), (csx, ncx), (csx, npadx, 1.3)])
-        hy = Utils.meshTensor([(csy, npady, -1.3), (csy, ncy), (csy, npady, 1.3)])
-        hz = Utils.meshTensor([(csz, npadz, -1.3), (csz, ncz), (csz, npadz, 1.3)])
-        self.mesh = Mesh.TensorMesh([hx, hy, hz], 'CCC')
+        self.mesh = setUpMesh()
 
         # Set source parameters
         self.freq = 500.
@@ -67,23 +86,23 @@ class X_ElecDipoleTest_3DMesh(unittest.TestCase):
 
         # Cell centred recievers
         XYZ_CCInd = Utils.closestPoints(self.mesh, XYZ, 'CC')
-        self.XYZ_CC = self.mesh.gridCC[XYZ_CCInd,:]
+        self.XYZ_CC = self.mesh.gridCC[XYZ_CCInd, :]
 
         # Edge recievers
         XYZ_ExInd = Utils.closestPoints(self.mesh, XYZ, 'Ex')
-        self.XYZ_Ex = self.mesh.gridEx[XYZ_ExInd,:]
+        self.XYZ_Ex = self.mesh.gridEx[XYZ_ExInd, :]
         XYZ_EyInd = Utils.closestPoints(self.mesh, XYZ, 'Ey')
-        self.XYZ_Ey = self.mesh.gridEy[XYZ_EyInd,:]
+        self.XYZ_Ey = self.mesh.gridEy[XYZ_EyInd, :]
         XYZ_EzInd = Utils.closestPoints(self.mesh, XYZ, 'Ez')
-        self.XYZ_Ez = self.mesh.gridEz[XYZ_EzInd,:]
+        self.XYZ_Ez = self.mesh.gridEz[XYZ_EzInd, :]
 
         # Face recievers
         XYZ_FxInd = Utils.closestPoints(self.mesh, XYZ, 'Fx')
-        self.XYZ_Fx = self.mesh.gridFx[XYZ_FxInd,:]
+        self.XYZ_Fx = self.mesh.gridFx[XYZ_FxInd, :]
         XYZ_FyInd = Utils.closestPoints(self.mesh, XYZ, 'Fy')
-        self.XYZ_Fy = self.mesh.gridFy[XYZ_FyInd,:]
+        self.XYZ_Fy = self.mesh.gridFy[XYZ_FyInd, :]
         XYZ_FzInd = Utils.closestPoints(self.mesh, XYZ, 'Fz')
-        self.XYZ_Fz = self.mesh.gridFz[XYZ_FzInd,:]
+        self.XYZ_Fz = self.mesh.gridFz[XYZ_FzInd, :]
 
         # Form data interpolation matrices
         Pcc = self.mesh.getInterpolationMat(self.XYZ_CC, 'CC')
@@ -97,10 +116,10 @@ class X_ElecDipoleTest_3DMesh(unittest.TestCase):
         # Search over x-faces to find face nearest src_loc
         s_ind = Utils.closestPoints(self.mesh, self.src_loc_CC, 'Fx')
         de = np.zeros(self.mesh.nF, dtype=complex)
-        de[s_ind] = 1./csx
+        de[s_ind] = 1./self.mesh.hx.min()
         self.de_x = [EM.FDEM.Src.RawVec_e([], self.freq, de/self.mesh.area)]
 
-        self.src_loc_Fx = self.mesh.gridFx[s_ind,:]
+        self.src_loc_Fx = self.mesh.gridFx[s_ind, :]
         self.src_loc_Fx = self.src_loc_Fx[0]
 
         # Create survey and problem object
@@ -110,12 +129,7 @@ class X_ElecDipoleTest_3DMesh(unittest.TestCase):
 
         # Pair problem and survey
         problem.pair(survey)
-        try:
-            from pymatsolver import MumpsSolver
-            problem.Solver = MumpsSolver
-            print('solver set to Mumps')
-        except ImportError, e:
-            problem.Solver = SolverLU
+        problem.Solver = Solver
 
         # Solve forward problem
         self.numFields_ElecDipole_X = problem.fields(np.r_[SigmaBack, MuBack])
@@ -152,54 +166,28 @@ class X_ElecDipoleTest_3DMesh(unittest.TestCase):
         if plotIt:
 
             # Plot Tx and Rx locations on mesh
-            fig, ax = plt.subplots(1,1, figsize=(10,10))
+            fig, ax = plt.subplots(1, 1, figsize=(10, 10))
             ax.plot(self.src_loc_Fx[0], self.src_loc_Fx[2], 'ro', ms=8)
-            ax.plot(self.XYZ_CC[:,0], self.XYZ_CC[:,2], 'k.', ms=8)
-            self.mesh.plotSlice(np.zeros(self.mesh.nC)*np.nan, grid=True, normal="Y", ax = ax)
-
+            ax.plot(self.XYZ_CC[:, 0], self.XYZ_CC[:, 2], 'k.', ms=8)
+            self.mesh.plotSlice(np.zeros(self.mesh.nC)*np.nan, grid=True,
+                                normal="Y", ax = ax)
 
             # Plot E
-            fig, ax = plt.subplots(2,3, figsize=(20,10))
+            fig, ax = plt.subplots(2, 3, figsize=(20, 10))
+            ax = Utils.mkvc(ax)
 
-            x = self.XYZ_CC[:,0]
+            x = self.XYZ_CC[:, 0]
 
-            plt.subplot(231)
-            plt.plot(x, ex_num.real, 'o', x, exa.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_x Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[0], x, ex_num.real, exa.real, title='E_x Real')
+            plotLine_num_ana(ax[1], x, ex_num.imag, exa.imag, title='E_x Imag')
 
-            plt.subplot(234)
-            plt.plot(x, ex_num.imag, 'o', x, exa.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_x Imag')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[2], x, ey_num.real, eya.real, title='E_y Real')
+            plotLine_num_ana(ax[3], x, ey_num.imag, eya.imag, title='E_y Imag')
 
-            plt.subplot(232)
-            plt.plot(x, ey_num.real, 'o', x, eya.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_y Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[4], x, ez_num.real, eza.real, title='E_z Real')
+            plotLine_num_ana(ax[5], x, ez_num.imag, eza.imag, title='E_z Imag')
 
-            plt.subplot(235)
-            plt.plot(x, ey_num.imag, 'o', x, eya.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_y Imag')
-            plt.xlabel('x (m)')
-
-            plt.subplot(233)
-            plt.plot(x, ez_num.real, 'o', x, eza.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_z Real')
-            plt.xlabel('x (m)')
-
-            plt.subplot(236)
-            plt.plot(x, ez_num.imag, 'o', x, eza.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_z Imag')
-            plt.xlabel('x (m)')
-
-            plt.legend(['Num', 'Ana'],bbox_to_anchor=(1.5,0.5))
+            plt.legend(['Num', 'Ana'], bbox_to_anchor=(1.5, 0.5))
             plt.tight_layout()
             plt.show()
 
@@ -233,57 +221,34 @@ class X_ElecDipoleTest_3DMesh(unittest.TestCase):
         # Plot Tx and Rx locations on mesh
         if plotIt:
 
-            x_Jx = self.XYZ_Fx[:,0]
-            x_Jy = self.XYZ_Fy[:,0]
-            x_Jz = self.XYZ_Fz[:,0]
+            x_Jx = self.XYZ_Fx[:, 0]
+            x_Jy = self.XYZ_Fy[:, 0]
+            x_Jz = self.XYZ_Fz[:, 0]
 
             # Plot Tx and Rx locations on mesh
-            fig, ax = plt.subplots(1,1, figsize=(10,10))
+            fig, ax = plt.subplots(1, 1, figsize=(10, 10))
             ax.plot(self.src_loc_Fx[0], self.src_loc_Fx[2], 'ro', ms=8)
-            ax.plot(self.XYZ_Fx[:,0], self.XYZ_Fx[:,2], 'k.', ms=6)
-            ax.plot(self.XYZ_Fy[:,0], self.XYZ_Fy[:,2], 'k.', ms=6)
-            ax.plot(self.XYZ_Fz[:,0], self.XYZ_Fz[:,2], 'k.', ms=6)
+            ax.plot(self.XYZ_Fx[:, 0], self.XYZ_Fx[:, 2], 'k.', ms=6)
+            ax.plot(self.XYZ_Fy[:, 0], self.XYZ_Fy[:, 2], 'k.', ms=6)
+            ax.plot(self.XYZ_Fz[:, 0], self.XYZ_Fz[:, 2], 'k.', ms=6)
             self.mesh.plotSlice(np.zeros(self.mesh.nC)*np.nan, grid=True, normal="Y", ax = ax)
 
             # Plot J
-            fig, ax = plt.subplots(2,3, figsize=(20,10))
-            plt.subplot(231)
-            plt.plot(x_Jx, jx_num.real, 'o', x_Jx, jxa.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_x Real')
-            plt.xlabel('x (m)')
+            fig, ax = plt.subplots(2, 3, figsize=(20, 10))
+            ax = Utils.mkvc(ax)
 
-            plt.subplot(234)
-            plt.plot(x_Jx, jx_num.imag, 'o', x_Jx, jxa.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_x Imag')
-            plt.xlabel('x (m)')
+            x = self.XYZ_CC[:, 0]
 
-            plt.subplot(232)
-            plt.plot(x_Jy, jy_num.real, 'o', x_Jy, jya.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_y Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[0], x, jx_num.real, jxa.real, title='J_x Real')
+            plotLine_num_ana(ax[1], x, jx_num.imag, jxa.imag, title='J_x Imag')
 
-            plt.subplot(235)
-            plt.plot(x_Jy, jy_num.imag, 'o', x_Jy, jya.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_y Imag')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[2], x, jy_num.real, jya.real, title='J_y Real')
+            plotLine_num_ana(ax[3], x, jy_num.imag, jya.imag, title='J_y Imag')
 
-            plt.subplot(233)
-            plt.plot(x_Jz, jz_num.real, 'o', x_Jz, jza.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_z Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[4], x, jz_num.real, jza.real, title='J_z Real')
+            plotLine_num_ana(ax[5], x, jz_num.imag, jza.imag, title='J_z Imag')
 
-            plt.subplot(236)
-            plt.plot(x_Jz, jz_num.imag, 'o', x_Jz, jza.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_z Imag')
-            plt.xlabel('x (m)')
-
-            plt.legend(['Num', 'Ana'],bbox_to_anchor=(1.5,0.5))
+            plt.legend(['Num', 'Ana'], bbox_to_anchor=(1.5, 0.5))
             plt.tight_layout()
             plt.show()
 
@@ -317,57 +282,34 @@ class X_ElecDipoleTest_3DMesh(unittest.TestCase):
         # Plot Tx and Rx locations on mesh
         if plotIt:
 
-            x_Hx = self.XYZ_Ex[:,0]
-            x_Hy = self.XYZ_Ey[:,0]
-            x_Hz = self.XYZ_Ez[:,0]
+            x_Hx = self.XYZ_Ex[:, 0]
+            x_Hy = self.XYZ_Ey[:, 0]
+            x_Hz = self.XYZ_Ez[:, 0]
 
             # Plot Tx and Rx locations on mesh
-            fig, ax = plt.subplots(1,1, figsize=(10,10))
+            fig, ax = plt.subplots(1, 1, figsize=(10, 10))
             ax.plot(self.src_loc_Fx[0], self.src_loc_Fx[2], 'ro', ms=8)
-            ax.plot(self.XYZ_Ex[:,0], self.XYZ_Ex[:,2], 'k.', ms=6)
-            ax.plot(self.XYZ_Ey[:,0], self.XYZ_Ey[:,2], 'k.', ms=6)
-            ax.plot(self.XYZ_Ez[:,0], self.XYZ_Ez[:,2], 'k.', ms=6)
+            ax.plot(self.XYZ_Ex[:, 0], self.XYZ_Ex[:, 2], 'k.', ms=6)
+            ax.plot(self.XYZ_Ey[:, 0], self.XYZ_Ey[:, 2], 'k.', ms=6)
+            ax.plot(self.XYZ_Ez[:, 0], self.XYZ_Ez[:, 2], 'k.', ms=6)
             self.mesh.plotSlice(np.zeros(self.mesh.nC)*np.nan, grid=True, normal="Y", ax = ax)
 
-            # Plot J
-            fig, ax = plt.subplots(2,3, figsize=(20,10))
-            plt.subplot(231)
-            plt.plot(x_Hx, hx_num.real, 'o', x_Hx, hxa.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_x Real')
-            plt.xlabel('x (m)')
+            # Plot H
+            fig, ax = plt.subplots(2, 3, figsize=(20, 10))
+            ax = Utils.mkvc(ax)
 
-            plt.subplot(234)
-            plt.plot(x_Hx, hx_num.imag, 'o', x_Hx, hxa.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_x Imag')
-            plt.xlabel('x (m)')
+            x = self.XYZ_CC[:, 0]
 
-            plt.subplot(232)
-            plt.plot(x_Hy, hy_num.real, 'o', x_Hy, hya.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_y Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[0], x, hx_num.real, hxa.real, title='H_x Real')
+            plotLine_num_ana(ax[1], x, hx_num.imag, hxa.imag, title='H_x Imag')
 
-            plt.subplot(235)
-            plt.plot(x_Hy, hy_num.imag, 'o', x_Hy, hya.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_y Imag')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[2], x, hy_num.real, hya.real, title='H_y Real')
+            plotLine_num_ana(ax[3], x, hy_num.imag, hya.imag, title='H_y Imag')
 
-            plt.subplot(233)
-            plt.plot(x_Hz, hz_num.real, 'o', x_Hz, hza.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_z Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[4], x, hz_num.real, hza.real, title='H_z Real')
+            plotLine_num_ana(ax[5], x, hz_num.imag, hza.imag, title='H_z Imag')
 
-            plt.subplot(236)
-            plt.plot(x_Hz, hz_num.imag, 'o', x_Hz, hza.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_z Imag')
-            plt.xlabel('x (m)')
-
-            plt.legend(['Num', 'Ana'],bbox_to_anchor=(1.5,0.5))
+            plt.legend(['Num', 'Ana'], bbox_to_anchor=(1.5, 0.5))
             plt.tight_layout()
             plt.show()
 
@@ -401,54 +343,27 @@ class X_ElecDipoleTest_3DMesh(unittest.TestCase):
         if plotIt:
 
             # Plot Tx and Rx locations on mesh
-            fig, ax = plt.subplots(1,1, figsize=(10,10))
+            fig, ax = plt.subplots(1, 1, figsize=(10, 10))
             ax.plot(self.src_loc_Fx[0], self.src_loc_Fx[2], 'ro', ms=8)
-            ax.plot(self.XYZ_CC[:,0], self.XYZ_CC[:,2], 'k.', ms=8)
+            ax.plot(self.XYZ_CC[:, 0], self.XYZ_CC[:, 2], 'k.', ms=8)
             self.mesh.plotSlice(np.zeros(self.mesh.nC)*np.nan, grid=True, normal="Y", ax = ax)
 
+            # Plot B
+            fig, ax = plt.subplots(2, 3, figsize=(20, 10))
+            ax = Utils.mkvc(ax)
 
-            # Plot E
-            fig, ax = plt.subplots(2,3, figsize=(20,10))
+            x = self.XYZ_CC[:, 0]
 
-            x = self.XYZ_CC[:,0]
+            plotLine_num_ana(ax[0], x, bx_num.real, bxa.real, title='B_x Real')
+            plotLine_num_ana(ax[1], x, bx_num.imag, bxa.imag, title='B_x Imag')
 
-            plt.subplot(231)
-            plt.plot(x, bx_num.real, 'o', x, bxa.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_x Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[2], x, by_num.real, bya.real, title='B_y Real')
+            plotLine_num_ana(ax[3], x, by_num.imag, bya.imag, title='B_y Imag')
 
-            plt.subplot(234)
-            plt.plot(x, bx_num.imag, 'o', x, bxa.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_x Imag')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[4], x, bz_num.real, bza.real, title='B_z Real')
+            plotLine_num_ana(ax[5], x, bz_num.imag, bza.imag, title='B_z Imag')
 
-            plt.subplot(232)
-            plt.plot(x, by_num.real, 'o', x, bya.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_y Real')
-            plt.xlabel('x (m)')
-
-            plt.subplot(235)
-            plt.plot(x, by_num.imag, 'o', x, bya.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_y Imag')
-            plt.xlabel('x (m)')
-
-            plt.subplot(233)
-            plt.plot(x, bz_num.real, 'o', x, bza.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_z Real')
-            plt.xlabel('x (m)')
-
-            plt.subplot(236)
-            plt.plot(x, bz_num.imag, 'o', x, bza.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_z Imag')
-            plt.xlabel('x (m)')
-
-            plt.legend(['Num', 'Ana'],bbox_to_anchor=(1.5,0.5))
+            plt.legend(['Num', 'Ana'], bbox_to_anchor=(1.5, 0.5))
             plt.tight_layout()
             plt.show()
 
@@ -461,9 +376,9 @@ class Y_ElecDipoleTest_3DMesh(unittest.TestCase):
         print('Testing a Y-oriented analytic harmonic electric dipole against the numerical solution on a 3D-tesnsor mesh.')
 
         # Define model parameters
-        self.sigmaback = 7e-2
+        self.sigmaback = SIGMABACK
         # mu = mu_0*(1+kappa)
-        self.kappa = 1.
+        self.kappa = KAPPA
 
         # Create 3D mesh
         csx, ncx, npadx = 5, 18, 9
@@ -536,7 +451,7 @@ class Y_ElecDipoleTest_3DMesh(unittest.TestCase):
         # Search over x-faces to find face nearest src_loc
         s_ind = Utils.closestPoints(self.mesh, self.src_loc_CC, 'Fy') + self.mesh.nFx
         de = np.zeros(self.mesh.nF, dtype=complex)
-        de[s_ind] = 1./csy
+        de[s_ind] = 1./self.mesh.hy.min()
         self.de_y = [EM.FDEM.Src.RawVec_e([], self.freq, de/self.mesh.area)]
 
         self.src_loc_Fy = self.mesh.gridFy[Utils.closestPoints(self.mesh, self.src_loc_CC, 'Fy'),:]
@@ -549,12 +464,7 @@ class Y_ElecDipoleTest_3DMesh(unittest.TestCase):
 
         # Pair problem and survey
         problem.pair(survey)
-        try:
-            from pymatsolver import MumpsSolver
-            problem.Solver = MumpsSolver
-            print('solver set to Mumps')
-        except ImportError, e:
-            problem.Solver = SolverLU
+        problem.Solver = Solver
 
         # Solve forward problem
         self.numFields_ElecDipole_Y = problem.fields(np.r_[SigmaBack, MuBack])
@@ -591,54 +501,28 @@ class Y_ElecDipoleTest_3DMesh(unittest.TestCase):
         if plotIt:
 
             # Plot Tx and Rx locations on mesh
-            fig, ax = plt.subplots(1,1, figsize=(10,10))
+            fig, ax = plt.subplots(1, 1, figsize=(10, 10))
             ax.plot(self.src_loc_Fy[0], self.src_loc_Fy[2], 'ro', ms=8)
-            ax.plot(self.XYZ_CC[:,0], self.XYZ_CC[:,2], 'k.', ms=8)
+            ax.plot(self.XYZ_CC[:, 0], self.XYZ_CC[:, 2], 'k.', ms=8)
             self.mesh.plotSlice(np.zeros(self.mesh.nC)*np.nan, grid=True, normal="Y", ax = ax)
 
 
             # Plot E
-            fig, ax = plt.subplots(2,3, figsize=(20,10))
+            fig, ax = plt.subplots(2, 3, figsize=(20, 10))
+            ax = Utils.mkvc(ax)
 
-            x = self.XYZ_CC[:,0]
+            x = self.XYZ_CC[:, 0]
 
-            plt.subplot(231)
-            plt.plot(x, ex_num.real, 'o', x, exa.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_x Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[0], x, ex_num.real, exa.real, title='E_x Real')
+            plotLine_num_ana(ax[1], x, ex_num.imag, exa.imag, title='E_x Imag')
 
-            plt.subplot(234)
-            plt.plot(x, ex_num.imag, 'o', x, exa.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_x Imag')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[2], x, ey_num.real, eya.real, title='E_y Real')
+            plotLine_num_ana(ax[3], x, ey_num.imag, eya.imag, title='E_y Imag')
 
-            plt.subplot(232)
-            plt.plot(x, ey_num.real, 'o', x, eya.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_y Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[4], x, ez_num.real, eza.real, title='E_z Real')
+            plotLine_num_ana(ax[5], x, ez_num.imag, eza.imag, title='E_z Imag')
 
-            plt.subplot(235)
-            plt.plot(x, ey_num.imag, 'o', x, eya.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_y Imag')
-            plt.xlabel('x (m)')
-
-            plt.subplot(233)
-            plt.plot(x, ez_num.real, 'o', x, eza.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_z Real')
-            plt.xlabel('x (m)')
-
-            plt.subplot(236)
-            plt.plot(x, ez_num.imag, 'o', x, eza.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_z Imag')
-            plt.xlabel('x (m)')
-
-            plt.legend(['Num', 'Ana'],bbox_to_anchor=(1.5,0.5))
+            plt.legend(['Num', 'Ana'], bbox_to_anchor=(1.5, 0.5))
             plt.tight_layout()
             plt.show()
 
@@ -672,57 +556,34 @@ class Y_ElecDipoleTest_3DMesh(unittest.TestCase):
         # Plot Tx and Rx locations on mesY
         if plotIt:
 
-            x_Jx = self.XYZ_Fx[:,0]
-            x_Jy = self.XYZ_Fy[:,0]
-            x_Jz = self.XYZ_Fz[:,0]
+            x_Jx = self.XYZ_Fx[:, 0]
+            x_Jy = self.XYZ_Fy[:, 0]
+            x_Jz = self.XYZ_Fz[:, 0]
 
             # Plot Tx and Rx locations on mesh
-            fig, ax = plt.subplots(1,1, figsize=(10,10))
+            fig, ax = plt.subplots(1, 1, figsize=(10, 10))
             ax.plot(self.src_loc_Fy[0], self.src_loc_Fy[2], 'ro', ms=8)
-            ax.plot(self.XYZ_Fx[:,0], self.XYZ_Fx[:,2], 'k.', ms=6)
-            ax.plot(self.XYZ_Fy[:,0], self.XYZ_Fy[:,2], 'k.', ms=6)
-            ax.plot(self.XYZ_Fz[:,0], self.XYZ_Fz[:,2], 'k.', ms=6)
+            ax.plot(self.XYZ_Fx[:, 0], self.XYZ_Fx[:, 2], 'k.', ms=6)
+            ax.plot(self.XYZ_Fy[:, 0], self.XYZ_Fy[:, 2], 'k.', ms=6)
+            ax.plot(self.XYZ_Fz[:, 0], self.XYZ_Fz[:, 2], 'k.', ms=6)
             self.mesh.plotSlice(np.zeros(self.mesh.nC)*np.nan, grid=True, normal="Y", ax = ax)
 
-            # Plot J
-            fig, ax = plt.subplots(2,3, figsize=(20,10))
-            plt.subplot(231)
-            plt.plot(x_Jx, jx_num.real, 'o', x_Jx, jxa.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_x Real')
-            plt.xlabel('x (m)')
+            # Plot H
+            fig, ax = plt.subplots(2, 3, figsize=(20, 10))
+            ax = Utils.mkvc(ax)
 
-            plt.subplot(234)
-            plt.plot(x_Jx, jx_num.imag, 'o', x_Jx, jxa.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_x Imag')
-            plt.xlabel('x (m)')
+            x = self.XYZ_CC[:, 0]
 
-            plt.subplot(232)
-            plt.plot(x_Jy, jy_num.real, 'o', x_Jy, jya.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_y Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[0], x, hx_num.real, hxa.real, title='H_x Real')
+            plotLine_num_ana(ax[1], x, hx_num.imag, hxa.imag, title='H_x Imag')
 
-            plt.subplot(235)
-            plt.plot(x_Jy, jy_num.imag, 'o', x_Jy, jya.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_y Imag')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[2], x, hy_num.real, hya.real, title='H_y Real')
+            plotLine_num_ana(ax[3], x, hy_num.imag, hya.imag, title='H_y Imag')
 
-            plt.subplot(233)
-            plt.plot(x_Jz, jz_num.real, 'o', x_Jz, jza.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_z Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[4], x, hz_num.real, hza.real, title='H_z Real')
+            plotLine_num_ana(ax[5], x, hz_num.imag, hza.imag, title='H_z Imag')
 
-            plt.subplot(236)
-            plt.plot(x_Jz, jz_num.imag, 'o', x_Jz, jza.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_z Imag')
-            plt.xlabel('x (m)')
-
-            plt.legend(['Num', 'Ana'],bbox_to_anchor=(1.5,0.5))
+            plt.legend(['Num', 'Ana'], bbox_to_anchor=(1.5, 0.5))
             plt.tight_layout()
             plt.show()
 
@@ -756,57 +617,34 @@ class Y_ElecDipoleTest_3DMesh(unittest.TestCase):
         # Plot Tx and Rx locations on mesh
         if plotIt:
 
-            x_Hx = self.XYZ_Ex[:,0]
-            x_Hy = self.XYZ_Ey[:,0]
-            x_Hz = self.XYZ_Ez[:,0]
+            x_Hx = self.XYZ_Ex[:, 0]
+            x_Hy = self.XYZ_Ey[:, 0]
+            x_Hz = self.XYZ_Ez[:, 0]
 
             # Plot Tx and Rx locations on mesh
-            fig, ax = plt.subplots(1,1, figsize=(10,10))
+            fig, ax = plt.subplots(1, 1, figsize=(10, 10))
             ax.plot(self.src_loc_Fy[0], self.src_loc_Fy[2], 'ro', ms=8)
-            ax.plot(self.XYZ_Ex[:,0], self.XYZ_Ex[:,2], 'k.', ms=6)
-            ax.plot(self.XYZ_Ey[:,0], self.XYZ_Ey[:,2], 'k.', ms=6)
-            ax.plot(self.XYZ_Ez[:,0], self.XYZ_Ez[:,2], 'k.', ms=6)
+            ax.plot(self.XYZ_Ex[:, 0], self.XYZ_Ex[:, 2], 'k.', ms=6)
+            ax.plot(self.XYZ_Ey[:, 0], self.XYZ_Ey[:, 2], 'k.', ms=6)
+            ax.plot(self.XYZ_Ez[:, 0], self.XYZ_Ez[:, 2], 'k.', ms=6)
             self.mesh.plotSlice(np.zeros(self.mesh.nC)*np.nan, grid=True, normal="Y", ax = ax)
 
             # Plot J
-            fig, ax = plt.subplots(2,3, figsize=(20,10))
-            plt.subplot(231)
-            plt.plot(x_Hx, hx_num.real, 'o', x_Hx, hxa.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_x Real')
-            plt.xlabel('x (m)')
+            fig, ax = plt.subplots(2, 3, figsize=(20, 10))
+            ax = Utils.mkvc(ax)
 
-            plt.subplot(234)
-            plt.plot(x_Hx, hx_num.imag, 'o', x_Hx, hxa.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_x Imag')
-            plt.xlabel('x (m)')
+            x = self.XYZ_CC[:, 0]
 
-            plt.subplot(232)
-            plt.plot(x_Hy, hy_num.real, 'o', x_Hy, hya.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_y Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[0], x, jx_num.real, jxa.real, title='J_x Real')
+            plotLine_num_ana(ax[1], x, jx_num.imag, jxa.imag, title='J_x Imag')
 
-            plt.subplot(235)
-            plt.plot(x_Hy, hy_num.imag, 'o', x_Hy, hya.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_y Imag')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[2], x, jy_num.real, jya.real, title='J_y Real')
+            plotLine_num_ana(ax[3], x, jy_num.imag, jya.imag, title='J_y Imag')
 
-            plt.subplot(233)
-            plt.plot(x_Hz, hz_num.real, 'o', x_Hz, hza.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_z Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[4], x, jz_num.real, jza.real, title='J_z Real')
+            plotLine_num_ana(ax[5], x, jz_num.imag, jza.imag, title='J_z Imag')
 
-            plt.subplot(236)
-            plt.plot(x_Hz, hz_num.imag, 'o', x_Hz, hza.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_z Imag')
-            plt.xlabel('x (m)')
-
-            plt.legend(['Num', 'Ana'],bbox_to_anchor=(1.5,0.5))
+            plt.legend(['Num', 'Ana'], bbox_to_anchor=(1.5, 0.5))
             plt.tight_layout()
             plt.show()
 
@@ -840,54 +678,28 @@ class Y_ElecDipoleTest_3DMesh(unittest.TestCase):
         if plotIt:
 
             # Plot Tx and Rx locations on mesh
-            fig, ax = plt.subplots(1,1, figsize=(10,10))
+            fig, ax = plt.subplots(1, 1, figsize=(10, 10))
             ax.plot(self.src_loc_Fy[0], self.src_loc_Fy[2], 'ro', ms=8)
-            ax.plot(self.XYZ_CC[:,0], self.XYZ_CC[:,2], 'k.', ms=8)
+            ax.plot(self.XYZ_CC[:, 0], self.XYZ_CC[:, 2], 'k.', ms=8)
             self.mesh.plotSlice(np.zeros(self.mesh.nC)*np.nan, grid=True, normal="Y", ax = ax)
 
 
-            # Plot E
-            fig, ax = plt.subplots(2,3, figsize=(20,10))
+            # Plot B
+            fig, ax = plt.subplots(2, 3, figsize=(20, 10))
+            ax = Utils.mkvc(ax)
 
-            x = self.XYZ_CC[:,0]
+            x = self.XYZ_CC[:, 0]
 
-            plt.subplot(231)
-            plt.plot(x, bx_num.real, 'o', x, bxa.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_x Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[0], x, bx_num.real, bxa.real, title='B_x Real')
+            plotLine_num_ana(ax[1], x, bx_num.imag, bxa.imag, title='B_x Imag')
 
-            plt.subplot(234)
-            plt.plot(x, bx_num.imag, 'o', x, bxa.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_x Imag')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[2], x, by_num.real, bya.real, title='B_y Real')
+            plotLine_num_ana(ax[3], x, by_num.imag, bya.imag, title='B_y Imag')
 
-            plt.subplot(232)
-            plt.plot(x, by_num.real, 'o', x, bya.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_y Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[4], x, bz_num.real, bza.real, title='B_z Real')
+            plotLine_num_ana(ax[5], x, bz_num.imag, bza.imag, title='B_z Imag')
 
-            plt.subplot(235)
-            plt.plot(x, by_num.imag, 'o', x, bya.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_y Imag')
-            plt.xlabel('x (m)')
-
-            plt.subplot(233)
-            plt.plot(x, bz_num.real, 'o', x, bza.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_z Real')
-            plt.xlabel('x (m)')
-
-            plt.subplot(236)
-            plt.plot(x, bz_num.imag, 'o', x, bza.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_z Imag')
-            plt.xlabel('x (m)')
-
-            plt.legend(['Num', 'Ana'],bbox_to_anchor=(1.5,0.5))
+            plt.legend(['Num', 'Ana'], bbox_to_anchor=(1.5, 0.5))
             plt.tight_layout()
             plt.show()
 
@@ -899,18 +711,12 @@ class Z_ElecDipoleTest_3DMesh(unittest.TestCase):
         print('Testing a Z-oriented analytic harmonic electric dipole against the numerical solution on a 3D-tesnsor mesh.')
 
         # Define model parameters
-        self.sigmaback = 7e-2
+        self.sigmaback = SIGMABACK
         # mu = mu_0*(1+kappa)
-        self.kappa = 1.
+        self.kappa = KAPPA
 
         # Create 3D mesh
-        csx, ncx, npadx = 5, 18, 8
-        csy, ncy, npady = 5, 18, 8
-        csz, ncz, npadz = 5, 18, 8
-        hx = Utils.meshTensor([(csx, npadx, -1.3), (csx, ncx), (csx, npadx, 1.3)])
-        hy = Utils.meshTensor([(csy, npady, -1.3), (csy, ncy), (csy, npady, 1.3)])
-        hz = Utils.meshTensor([(csz, npadz, -1.3), (csz, ncz), (csz, npadz, 1.3)])
-        self.mesh = Mesh.TensorMesh([hx, hy, hz], 'CCC')
+        self.mesh = setUpMesh()
 
         # Set source parameters
         self.freq = 500.
@@ -974,7 +780,7 @@ class Z_ElecDipoleTest_3DMesh(unittest.TestCase):
         # Search over x-faces to find face nearest src_loc
         s_ind = Utils.closestPoints(self.mesh, self.src_loc_CC, 'Fz') + self.mesh.nFx + self.mesh.nFy
         de = np.zeros(self.mesh.nF, dtype=complex)
-        de[s_ind] = 1./csz
+        de[s_ind] = 1./self.mesh.hz.min()
         self.de_z = [EM.FDEM.Src.RawVec_e([], self.freq, de/self.mesh.area)]
 
         self.src_loc_Fz = self.mesh.gridFz[Utils.closestPoints(self.mesh, self.src_loc_CC, 'Fz'),:]
@@ -987,12 +793,7 @@ class Z_ElecDipoleTest_3DMesh(unittest.TestCase):
 
         # Pair problem and survey
         problem.pair(survey)
-        try:
-            from pymatsolver import MumpsSolver
-            problem.Solver = MumpsSolver
-            print('solver set to Mumps')
-        except ImportError, e:
-            problem.Solver = SolverLU
+        problem.Solver = Solver
 
         # Solve forward problem
         self.numFields_ElecDipole_Z = problem.fields(np.r_[SigmaBack, MuBack])
@@ -1029,54 +830,28 @@ class Z_ElecDipoleTest_3DMesh(unittest.TestCase):
         if plotIt:
 
             # Plot Tx and Rx locations on mesh
-            fig, ax = plt.subplots(1,1, figsize=(10,10))
+            fig, ax = plt.subplots(1, 1, figsize=(10, 10))
             ax.plot(self.src_loc_Fz[0], self.src_loc_Fz[2], 'ro', ms=8)
-            ax.plot(self.XYZ_CC[:,0], self.XYZ_CC[:,2], 'k.', ms=8)
+            ax.plot(self.XYZ_CC[:, 0], self.XYZ_CC[:, 2], 'k.', ms=8)
             self.mesh.plotSlice(np.zeros(self.mesh.nC)*np.nan, grid=True, normal="Y", ax = ax)
 
 
             # Plot E
-            fig, ax = plt.subplots(2,3, figsize=(20,10))
+            fig, ax = plt.subplots(2, 3, figsize=(20, 10))
+            ax = Utils.mkvc(ax)
 
-            x = self.XYZ_CC[:,0]
+            x = self.XYZ_CC[:, 0]
 
-            plt.subplot(231)
-            plt.plot(x, ex_num.real, 'o', x, exa.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_x Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[0], x, ex_num.real, exa.real, title='E_x Real')
+            plotLine_num_ana(ax[1], x, ex_num.imag, exa.imag, title='E_x Imag')
 
-            plt.subplot(234)
-            plt.plot(x, ex_num.imag, 'o', x, exa.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_x Imag')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[2], x, ey_num.real, eya.real, title='E_y Real')
+            plotLine_num_ana(ax[3], x, ey_num.imag, eya.imag, title='E_y Imag')
 
-            plt.subplot(232)
-            plt.plot(x, ey_num.real, 'o', x, eya.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_y Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[4], x, ez_num.real, eza.real, title='E_z Real')
+            plotLine_num_ana(ax[5], x, ez_num.imag, eza.imag, title='E_z Imag')
 
-            plt.subplot(235)
-            plt.plot(x, ey_num.imag, 'o', x, eya.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_y Imag')
-            plt.xlabel('x (m)')
-
-            plt.subplot(233)
-            plt.plot(x, ez_num.real, 'o', x, eza.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_z Real')
-            plt.xlabel('x (m)')
-
-            plt.subplot(236)
-            plt.plot(x, ez_num.imag, 'o', x, eza.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_z Imag')
-            plt.xlabel('x (m)')
-
-            plt.legend(['Num', 'Ana'],bbox_to_anchor=(1.5,0.5))
+            plt.legend(['Num', 'Ana'], bbox_to_anchor=(1.5, 0.5))
             plt.tight_layout()
             plt.show()
 
@@ -1110,57 +885,34 @@ class Z_ElecDipoleTest_3DMesh(unittest.TestCase):
         # Plot Tx and Rx locations on mesY
         if plotIt:
 
-            x_Jx = self.XYZ_Fx[:,0]
-            x_Jy = self.XYZ_Fy[:,0]
-            x_Jz = self.XYZ_Fz[:,0]
+            x_Jx = self.XYZ_Fx[:, 0]
+            x_Jy = self.XYZ_Fy[:, 0]
+            x_Jz = self.XYZ_Fz[:, 0]
 
             # Plot Tx and Rx locations on mesh
-            fig, ax = plt.subplots(1,1, figsize=(10,10))
+            fig, ax = plt.subplots(1, 1, figsize=(10, 10))
             ax.plot(self.src_loc_Fz[0], self.src_loc_Fz[2], 'ro', ms=8)
-            ax.plot(self.XYZ_Fx[:,0], self.XYZ_Fx[:,2], 'k.', ms=6)
-            ax.plot(self.XYZ_Fy[:,0], self.XYZ_Fy[:,2], 'k.', ms=6)
-            ax.plot(self.XYZ_Fz[:,0], self.XYZ_Fz[:,2], 'k.', ms=6)
+            ax.plot(self.XYZ_Fx[:, 0], self.XYZ_Fx[:, 2], 'k.', ms=6)
+            ax.plot(self.XYZ_Fy[:, 0], self.XYZ_Fy[:, 2], 'k.', ms=6)
+            ax.plot(self.XYZ_Fz[:, 0], self.XYZ_Fz[:, 2], 'k.', ms=6)
             self.mesh.plotSlice(np.zeros(self.mesh.nC)*np.nan, grid=True, normal="Y", ax = ax)
 
             # Plot J
-            fig, ax = plt.subplots(2,3, figsize=(20,10))
-            plt.subplot(231)
-            plt.plot(x_Jx, jx_num.real, 'o', x_Jx, jxa.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_x Real')
-            plt.xlabel('x (m)')
+            fig, ax = plt.subplots(2, 3, figsize=(20, 10))
+            ax = Utils.mkvc(ax)
 
-            plt.subplot(234)
-            plt.plot(x_Jx, jx_num.imag, 'o', x_Jx, jxa.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_x Imag')
-            plt.xlabel('x (m)')
+            x = self.XYZ_CC[:, 0]
 
-            plt.subplot(232)
-            plt.plot(x_Jy, jy_num.real, 'o', x_Jy, jya.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_y Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[0], x, jx_num.real, jxa.real, title='J_x Real')
+            plotLine_num_ana(ax[1], x, jx_num.imag, jxa.imag, title='J_x Imag')
 
-            plt.subplot(235)
-            plt.plot(x_Jy, jy_num.imag, 'o', x_Jy, jya.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_y Imag')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[2], x, jy_num.real, jya.real, title='J_y Real')
+            plotLine_num_ana(ax[3], x, jy_num.imag, jya.imag, title='J_y Imag')
 
-            plt.subplot(233)
-            plt.plot(x_Jz, jz_num.real, 'o', x_Jz, jza.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_z Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[4], x, jz_num.real, jza.real, title='J_z Real')
+            plotLine_num_ana(ax[5], x, jz_num.imag, jza.imag, title='J_z Imag')
 
-            plt.subplot(236)
-            plt.plot(x_Jz, jz_num.imag, 'o', x_Jz, jza.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_z Imag')
-            plt.xlabel('x (m)')
-
-            plt.legend(['Num', 'Ana'],bbox_to_anchor=(1.5,0.5))
+            plt.legend(['Num', 'Ana'], bbox_to_anchor=(1.5, 0.5))
             plt.tight_layout()
             plt.show()
 
@@ -1194,57 +946,34 @@ class Z_ElecDipoleTest_3DMesh(unittest.TestCase):
         # Plot Tx and Rx locations on mesh
         if plotIt:
 
-            x_Hx = self.XYZ_Ex[:,0]
-            x_Hy = self.XYZ_Ey[:,0]
-            x_Hz = self.XYZ_Ez[:,0]
+            x_Hx = self.XYZ_Ex[:, 0]
+            x_Hy = self.XYZ_Ey[:, 0]
+            x_Hz = self.XYZ_Ez[:, 0]
 
             # Plot Tx and Rx locations on mesh
-            fig, ax = plt.subplots(1,1, figsize=(10,10))
+            fig, ax = plt.subplots(1, 1, figsize=(10, 10))
             ax.plot(self.src_loc_Fz[0], self.src_loc_Fz[2], 'ro', ms=8)
-            ax.plot(self.XYZ_Ex[:,0], self.XYZ_Ex[:,2], 'k.', ms=6)
-            ax.plot(self.XYZ_Ey[:,0], self.XYZ_Ey[:,2], 'k.', ms=6)
-            ax.plot(self.XYZ_Ez[:,0], self.XYZ_Ez[:,2], 'k.', ms=6)
+            ax.plot(self.XYZ_Ex[:, 0], self.XYZ_Ex[:, 2], 'k.', ms=6)
+            ax.plot(self.XYZ_Ey[:, 0], self.XYZ_Ey[:, 2], 'k.', ms=6)
+            ax.plot(self.XYZ_Ez[:, 0], self.XYZ_Ez[:, 2], 'k.', ms=6)
             self.mesh.plotSlice(np.zeros(self.mesh.nC)*np.nan, grid=True, normal="Y", ax = ax)
 
-            # Plot J
-            fig, ax = plt.subplots(2,3, figsize=(20,10))
-            plt.subplot(231)
-            plt.plot(x_Hx, hx_num.real, 'o', x_Hx, hxa.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_x Real')
-            plt.xlabel('x (m)')
+            # Plot H
+            fig, ax = plt.subplots(2, 3, figsize=(20, 10))
+            ax = Utils.mkvc(ax)
 
-            plt.subplot(234)
-            plt.plot(x_Hx, hx_num.imag, 'o', x_Hx, hxa.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_x Imag')
-            plt.xlabel('x (m)')
+            x = self.XYZ_CC[:, 0]
 
-            plt.subplot(232)
-            plt.plot(x_Hy, hy_num.real, 'o', x_Hy, hya.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_y Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[0], x, hx_num.real, hxa.real, title='H_x Real')
+            plotLine_num_ana(ax[1], x, hx_num.imag, hxa.imag, title='H_x Imag')
 
-            plt.subplot(235)
-            plt.plot(x_Hy, hy_num.imag, 'o', x_Hy, hya.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_y Imag')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[2], x, hy_num.real, hya.real, title='H_y Real')
+            plotLine_num_ana(ax[3], x, hy_num.imag, hya.imag, title='H_y Imag')
 
-            plt.subplot(233)
-            plt.plot(x_Hz, hz_num.real, 'o', x_Hz, hza.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_z Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[4], x, hz_num.real, hza.real, title='H_z Real')
+            plotLine_num_ana(ax[5], x, hz_num.imag, hza.imag, title='H_z Imag')
 
-            plt.subplot(236)
-            plt.plot(x_Hz, hz_num.imag, 'o', x_Hz, hza.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_z Imag')
-            plt.xlabel('x (m)')
-
-            plt.legend(['Num', 'Ana'],bbox_to_anchor=(1.5,0.5))
+            plt.legend(['Num', 'Ana'], bbox_to_anchor=(1.5, 0.5))
             plt.tight_layout()
             plt.show()
 
@@ -1279,54 +1008,28 @@ class Z_ElecDipoleTest_3DMesh(unittest.TestCase):
         if plotIt:
 
             # Plot Tx and Rx locations on mesh
-            fig, ax = plt.subplots(1,1, figsize=(10,10))
+            fig, ax = plt.subplots(1, 1, figsize=(10, 10))
             ax.plot(self.src_loc_Fz[0], self.src_loc_Fz[2], 'ro', ms=8)
-            ax.plot(self.XYZ_CC[:,0], self.XYZ_CC[:,2], 'k.', ms=8)
+            ax.plot(self.XYZ_CC[:, 0], self.XYZ_CC[:, 2], 'k.', ms=8)
             self.mesh.plotSlice(np.zeros(self.mesh.nC)*np.nan, grid=True, normal="Y", ax = ax)
 
 
             # Plot E
-            fig, ax = plt.subplots(2,3, figsize=(20,10))
+            fig, ax = plt.subplots(2, 3, figsize=(20, 10))
+            ax = Utils.mkvc(ax)
 
-            x = self.XYZ_CC[:,0]
+            x = self.XYZ_CC[:, 0]
 
-            plt.subplot(231)
-            plt.plot(x, bx_num.real, 'o', x, bxa.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_x Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[0], x, bx_num.real, bxa.real, title='B_x Real')
+            plotLine_num_ana(ax[1], x, bx_num.imag, bxa.imag, title='B_x Imag')
 
-            plt.subplot(234)
-            plt.plot(x, bx_num.imag, 'o', x, bxa.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_x Imag')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[2], x, by_num.real, bya.real, title='B_y Real')
+            plotLine_num_ana(ax[3], x, by_num.imag, bya.imag, title='B_y Imag')
 
-            plt.subplot(232)
-            plt.plot(x, by_num.real, 'o', x, bya.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_y Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[4], x, bz_num.real, bza.real, title='B_z Real')
+            plotLine_num_ana(ax[5], x, bz_num.imag, bza.imag, title='B_z Imag')
 
-            plt.subplot(235)
-            plt.plot(x, by_num.imag, 'o', x, bya.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_y Imag')
-            plt.xlabel('x (m)')
-
-            plt.subplot(233)
-            plt.plot(x, bz_num.real, 'o', x, bza.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_z Real')
-            plt.xlabel('x (m)')
-
-            plt.subplot(236)
-            plt.plot(x, bz_num.imag, 'o', x, bza.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_z Imag')
-            plt.xlabel('x (m)')
-
-            plt.legend(['Num', 'Ana'],bbox_to_anchor=(1.5,0.5))
+            plt.legend(['Num', 'Ana'], bbox_to_anchor=(1.5, 0.5))
             plt.tight_layout()
             plt.show()
 
@@ -1338,18 +1041,12 @@ class X_MaDipoleTest_3DMesh(unittest.TestCase):
         print('Testing a X-oriented analytic harmonic magnetic dipole against the numerical solution on a 3D-tesnsor mesh.')
 
         # Define model parameters
-        self.sigmaback = 7e-2
+        self.sigmaback = SIGMABACK
         # mu = mu_0*(1+kappa)
-        self.kappa = 1.
+        self.kappa = KAPPA
 
         # Create 3D mesh
-        csx, ncx, npadx = 5, 18, 8
-        csy, ncy, npady = 5, 18, 8
-        csz, ncz, npadz = 5, 18, 8
-        hx = Utils.meshTensor([(csx, npadx, -1.3), (csx, ncx), (csx, npadx, 1.3)])
-        hy = Utils.meshTensor([(csy, npady, -1.3), (csy, ncy), (csy, npady, 1.3)])
-        hz = Utils.meshTensor([(csz, npadz, -1.3), (csz, ncz), (csz, npadz, 1.3)])
-        self.mesh = Mesh.TensorMesh([hx, hy, hz], 'CCC')
+        self.mesh = setUpMesh()
 
         # Set source parameters
         self.freq = 500.
@@ -1413,7 +1110,7 @@ class X_MaDipoleTest_3DMesh(unittest.TestCase):
         # Search over x-faces to find face nearest src_loc
         s_ind = Utils.closestPoints(self.mesh, self.src_loc_CC, 'Fx')
         dm = np.zeros(self.mesh.nF, dtype=complex)
-        dm[s_ind] = (-1j*(2*np.pi*self.freq)*(mu_0*(1 + self.kappa)))/csx
+        dm[s_ind] = (-1j*(2*np.pi*self.freq)*(mu_0*(1 + self.kappa)))/self.mesh.hx.min()
         self.dm_x = [EM.FDEM.Src.RawVec_m([], self.freq, dm/self.mesh.area)]
 
         self.src_loc_Fx = self.mesh.gridFx[Utils.closestPoints(self.mesh, self.src_loc_CC, 'Fx'),:]
@@ -1426,12 +1123,7 @@ class X_MaDipoleTest_3DMesh(unittest.TestCase):
 
         # Pair problem and survey
         problem.pair(survey)
-        try:
-            from pymatsolver import MumpsSolver
-            problem.Solver = MumpsSolver
-            print('solver set to Mumps')
-        except ImportError, e:
-            problem.Solver = SolverLU
+        problem.Solver = Solver
 
         # Solve forward problem
         self.numFields_MagDipole_X = problem.fields(np.r_[SigmaBack, MuBack])
@@ -1470,58 +1162,34 @@ class X_MaDipoleTest_3DMesh(unittest.TestCase):
         # Plot Tx and Rx locations on mesh
         if plotIt:
 
-            x_Ex = self.XYZ_Ex[:,0]
-            x_Ey = self.XYZ_Ey[:,0]
-            x_Ez = self.XYZ_Ez[:,0]
+            x_Ex = self.XYZ_Ex[:, 0]
+            x_Ey = self.XYZ_Ey[:, 0]
+            x_Ez = self.XYZ_Ez[:, 0]
 
             # Plot Tx and Rx locations on mesh
-            fig, ax = plt.subplots(1,1, figsize=(10,10))
+            fig, ax = plt.subplots(1, 1, figsize=(10, 10))
             ax.plot(self.src_loc_Fx[0], self.src_loc_Fx[2], 'ro', ms=8)
-            ax.plot(self.XYZ_Ex[:,0], self.XYZ_Ex[:,2], 'k.', ms=6)
-            ax.plot(self.XYZ_Ey[:,0], self.XYZ_Ey[:,2], 'k.', ms=6)
-            ax.plot(self.XYZ_Ez[:,0], self.XYZ_Ez[:,2], 'k.', ms=6)
+            ax.plot(self.XYZ_Ex[:, 0], self.XYZ_Ex[:, 2], 'k.', ms=6)
+            ax.plot(self.XYZ_Ey[:, 0], self.XYZ_Ey[:, 2], 'k.', ms=6)
+            ax.plot(self.XYZ_Ez[:, 0], self.XYZ_Ez[:, 2], 'k.', ms=6)
             self.mesh.plotSlice(np.zeros(self.mesh.nC)*np.nan, grid=True, normal="Y", ax = ax)
 
             # Plot E
-            fig, ax = plt.subplots(2,3, figsize=(20,10))
+            fig, ax = plt.subplots(2, 3, figsize=(20, 10))
+            ax = Utils.mkvc(ax)
 
-            plt.subplot(231)
-            plt.plot(x_Ex, ex_num.real, 'o', x_Ex, exa.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_x Real')
-            plt.xlabel('x (m)')
+            x = self.XYZ_CC[:, 0]
 
-            plt.subplot(234)
-            plt.plot(x_Ex, ex_num.imag, 'o', x_Ex, exa.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_x Imag')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[0], x, ex_num.real, exa.real, title='E_x Real')
+            plotLine_num_ana(ax[1], x, ex_num.imag, exa.imag, title='E_x Imag')
 
-            plt.subplot(232)
-            plt.plot(x_Ey, ey_num.real, 'o', x_Ey, eya.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_y Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[2], x, ey_num.real, eya.real, title='E_y Real')
+            plotLine_num_ana(ax[3], x, ey_num.imag, eya.imag, title='E_y Imag')
 
-            plt.subplot(235)
-            plt.plot(x_Ey, ey_num.imag, 'o', x_Ey, eya.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_y Imag')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[4], x, ez_num.real, eza.real, title='E_z Real')
+            plotLine_num_ana(ax[5], x, ez_num.imag, eza.imag, title='E_z Imag')
 
-            plt.subplot(233)
-            plt.plot(x_Ez, ez_num.real, 'o', x_Ez, eza.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_z Real')
-            plt.xlabel('x (m)')
-
-            plt.subplot(236)
-            plt.plot(x_Ez, ez_num.imag, 'o', x_Ez, eza.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_z Imag')
-            plt.xlabel('x (m)')
-
-            plt.legend(['Num', 'Ana'],bbox_to_anchor=(1.5,0.5))
+            plt.legend(['Num', 'Ana'], bbox_to_anchor=(1.5, 0.5))
             plt.tight_layout()
             plt.show()
 
@@ -1553,53 +1221,30 @@ class X_MaDipoleTest_3DMesh(unittest.TestCase):
         # Plot Tx and Rx locations on mesY
         if plotIt:
 
-            x = self.XYZ_CC[:,0]
+            x = self.XYZ_CC[:, 0]
 
             # Plot Tx and Rx locations on mesh
-            fig, ax = plt.subplots(1,1, figsize=(10,10))
+            fig, ax = plt.subplots(1, 1, figsize=(10, 10))
             ax.plot(self.src_loc_Fx[0], self.src_loc_Fx[2], 'ro', ms=8)
-            ax.plot(self.XYZ_CC[:,0], self.XYZ_CC[:,2], 'k.', ms=6)
+            ax.plot(self.XYZ_CC[:, 0], self.XYZ_CC[:, 2], 'k.', ms=6)
             self.mesh.plotSlice(np.zeros(self.mesh.nC)*np.nan, grid=True, normal="Y", ax = ax)
 
             # Plot J
-            fig, ax = plt.subplots(2,3, figsize=(20,10))
-            plt.subplot(231)
-            plt.plot(x, jx_num.real, 'o', x, jxa.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_x Real')
-            plt.xlabel('x (m)')
+            fig, ax = plt.subplots(2, 3, figsize=(20, 10))
+            ax = Utils.mkvc(ax)
 
-            plt.subplot(234)
-            plt.plot(x, jx_num.imag, 'o', x, jxa.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_x Imag')
-            plt.xlabel('x (m)')
+            x = self.XYZ_CC[:, 0]
 
-            plt.subplot(232)
-            plt.plot(x, jy_num.real, 'o', x, jya.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_y Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[0], x, jx_num.real, jxa.real, title='J_x Real')
+            plotLine_num_ana(ax[1], x, jx_num.imag, jxa.imag, title='J_x Imag')
 
-            plt.subplot(235)
-            plt.plot(x, jy_num.imag, 'o', x, jya.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_y Imag')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[2], x, jy_num.real, jya.real, title='J_y Real')
+            plotLine_num_ana(ax[3], x, jy_num.imag, jya.imag, title='J_y Imag')
 
-            plt.subplot(233)
-            plt.plot(x, jz_num.real, 'o', x, jza.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_z Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[4], x, jz_num.real, jza.real, title='J_z Real')
+            plotLine_num_ana(ax[5], x, jz_num.imag, jza.imag, title='J_z Imag')
 
-            plt.subplot(236)
-            plt.plot(x, jz_num.imag, 'o', x, jza.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_z Imag')
-            plt.xlabel('x (m)')
-
-            plt.legend(['Num', 'Ana'],bbox_to_anchor=(1.5,0.5))
+            plt.legend(['Num', 'Ana'], bbox_to_anchor=(1.5, 0.5))
             plt.tight_layout()
             plt.show()
 
@@ -1631,54 +1276,31 @@ class X_MaDipoleTest_3DMesh(unittest.TestCase):
         # Plot Tx and Rx locations on mesh
         if plotIt:
 
-            x = self.XYZ_CC[:,0]
+            x = self.XYZ_CC[:, 0]
 
             # Plot Tx and Rx locations on mesh
-            fig, ax = plt.subplots(1,1, figsize=(10,10))
+            fig, ax = plt.subplots(1, 1, figsize=(10, 10))
             ax.plot(self.src_loc_Fx[0], self.src_loc_Fx[2], 'ro', ms=8)
-            ax.plot(self.XYZ_CC[:,0], self.XYZ_CC[:,2], 'k.', ms=6)
+            ax.plot(self.XYZ_CC[:, 0], self.XYZ_CC[:, 2], 'k.', ms=6)
             self.mesh.plotSlice(np.zeros(self.mesh.nC)*np.nan, grid=True, normal="Y", ax = ax)
 
 
             # Plot J
-            fig, ax = plt.subplots(2,3, figsize=(20,10))
-            plt.subplot(231)
-            plt.plot(x, hx_num.real, 'o', x, hxa.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_x Real')
-            plt.xlabel('x (m)')
+            fig, ax = plt.subplots(2, 3, figsize=(20, 10))
+            ax = Utils.mkvc(ax)
 
-            plt.subplot(234)
-            plt.plot(x, hx_num.imag, 'o', x, hxa.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_x Imag')
-            plt.xlabel('x (m)')
+            x = self.XYZ_CC[:, 0]
 
-            plt.subplot(232)
-            plt.plot(x, hy_num.real, 'o', x, hya.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_y Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[0], x, hx_num.real, hxa.real, title='H_x Real')
+            plotLine_num_ana(ax[1], x, hx_num.imag, hxa.imag, title='H_x Imag')
 
-            plt.subplot(235)
-            plt.plot(x, hy_num.imag, 'o', x, hya.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_y Imag')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[2], x, hy_num.real, hya.real, title='H_y Real')
+            plotLine_num_ana(ax[3], x, hy_num.imag, hya.imag, title='H_y Imag')
 
-            plt.subplot(233)
-            plt.plot(x, hz_num.real, 'o', x, hza.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_z Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[4], x, hz_num.real, hza.real, title='H_z Real')
+            plotLine_num_ana(ax[5], x, hz_num.imag, hza.imag, title='H_z Imag')
 
-            plt.subplot(236)
-            plt.plot(x, hz_num.imag, 'o', x, hza.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_z Imag')
-            plt.xlabel('x (m)')
-
-            plt.legend(['Num', 'Ana'],bbox_to_anchor=(1.5,0.5))
+            plt.legend(['Num', 'Ana'], bbox_to_anchor=(1.5, 0.5))
             plt.tight_layout()
             plt.show()
 
@@ -1714,58 +1336,37 @@ class X_MaDipoleTest_3DMesh(unittest.TestCase):
         # Plot Tx and Rx locations on mesh
         if plotIt:
 
-            x_Bx = self.XYZ_Fx[:,0]
-            x_By = self.XYZ_Fy[:,0]
-            x_Bz = self.XYZ_Fz[:,0]
+            x_Bx = self.XYZ_Fx[:, 0]
+            x_By = self.XYZ_Fy[:, 0]
+            x_Bz = self.XYZ_Fz[:, 0]
 
             # Plot Tx and Rx locations on mesh
-            fig, ax = plt.subplots(1,1, figsize=(10,10))
+            fig, ax = plt.subplots(1, 1, figsize=(10, 10))
             ax.plot(self.src_loc_Fx[0], self.src_loc_Fx[2], 'ro', ms=8)
-            ax.plot(self.XYZ_Fx[:,0], self.XYZ_Fx[:,2], 'k.', ms=6)
-            ax.plot(self.XYZ_Fy[:,0], self.XYZ_Fy[:,2], 'k.', ms=6)
-            ax.plot(self.XYZ_Fz[:,0], self.XYZ_Fz[:,2], 'k.', ms=6)
+            ax.plot(self.XYZ_Fx[:, 0], self.XYZ_Fx[:, 2], 'k.', ms=6)
+            ax.plot(self.XYZ_Fy[:, 0], self.XYZ_Fy[:, 2], 'k.', ms=6)
+            ax.plot(self.XYZ_Fz[:, 0], self.XYZ_Fz[:, 2], 'k.', ms=6)
             self.mesh.plotSlice(np.zeros(self.mesh.nC)*np.nan, grid=True, normal="Y", ax = ax)
 
             # Plot E
-            fig, ax = plt.subplots(2,3, figsize=(20,10))
+            fig, ax = plt.subplots(2, 3, figsize=(20, 10))
 
-            plt.subplot(231)
-            plt.plot(x_Bx, bx_num.real, 'o', x_Bx, bxa.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_x Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[0], x_Bx, bx_num.real, bxa.real,
+                             title='B_x Real')
+            plotLine_num_ana(ax[1], x_Bx, bx_num.imag, bxa.imag,
+                             title='B_x Imag')
 
-            plt.subplot(234)
-            plt.plot(x_Bx, bx_num.imag, 'o', x_Bx, bxa.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_x Imag')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[2], x_By, by_num.real, bya.real,
+                             title='B_y Real')
+            plotLine_num_ana(ax[3], x_By, by_num.imag, bya.imag,
+                             title='B_y Imag')
 
-            plt.subplot(232)
-            plt.plot(x_By, by_num.real, 'o', x_By, bya.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_y Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[4], x_Bz, bz_num.real, bza.real,
+                             title='B_z Real')
+            plotLine_num_ana(ax[5], x_Bz, bz_num.imag, bza.imag,
+                             title='B_z Imag')
 
-            plt.subplot(235)
-            plt.plot(x_By, by_num.imag, 'o', x_By, bya.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_y Imag')
-            plt.xlabel('x (m)')
-
-            plt.subplot(233)
-            plt.plot(x_Bz, bz_num.real, 'o', x_Bz, bza.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_z Real')
-            plt.xlabel('x (m)')
-
-            plt.subplot(236)
-            plt.plot(x_Bz, bz_num.imag, 'o', x_Bz, bza.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_z Imag')
-            plt.xlabel('x (m)')
-
-            plt.legend(['Num', 'Ana'],bbox_to_anchor=(1.5,0.5))
+            plt.legend(['Num', 'Ana'], bbox_to_anchor=(1.5, 0.5))
             plt.tight_layout()
             plt.show()
 
@@ -1777,18 +1378,12 @@ class Y_MaDipoleTest_3DMesh(unittest.TestCase):
         print('Testing a Y-oriented analytic harmonic magnetic dipole against the numerical solution on a 3D-tesnsor mesh.')
 
         # Define model parameters
-        self.sigmaback = 7e-2
+        self.sigmaback = SIGMABACK
         # mu = mu_0*(1+kappa)
-        self.kappa = 1.
+        self.kappa = KAPPA
 
         # Create 3D mesh
-        csx, ncx, npadx = 5, 18, 8
-        csy, ncy, npady = 5, 18, 8
-        csz, ncz, npadz = 5, 18, 8
-        hx = Utils.meshTensor([(csx, npadx, -1.3), (csx, ncx), (csx, npadx, 1.3)])
-        hy = Utils.meshTensor([(csy, npady, -1.3), (csy, ncy), (csy, npady, 1.3)])
-        hz = Utils.meshTensor([(csz, npadz, -1.3), (csz, ncz), (csz, npadz, 1.3)])
-        self.mesh = Mesh.TensorMesh([hx, hy, hz], 'CCC')
+        self.mesh = setUpMesh()
 
         # Set source parameters
         self.freq = 500.
@@ -1852,7 +1447,7 @@ class Y_MaDipoleTest_3DMesh(unittest.TestCase):
         # Search over x-faces to find face nearest src_loc
         s_ind = Utils.closestPoints(self.mesh, self.src_loc_CC, 'Fy') + self.mesh.nFx
         dm = np.zeros(self.mesh.nF, dtype=complex)
-        dm[s_ind] = (-1j*(2*np.pi*self.freq)*(mu_0*(1 + self.kappa)))/csy
+        dm[s_ind] = (-1j*(2*np.pi*self.freq)*(mu_0*(1 + self.kappa)))/self.mesh.hy.min()
         self.dm_y = [EM.FDEM.Src.RawVec_m([], self.freq, dm/self.mesh.area)]
 
         self.src_loc_Fy = self.mesh.gridFy[Utils.closestPoints(self.mesh, self.src_loc_CC, 'Fy'),:]
@@ -1865,12 +1460,7 @@ class Y_MaDipoleTest_3DMesh(unittest.TestCase):
 
         # Pair problem and survey
         problem.pair(survey)
-        try:
-            from pymatsolver import MumpsSolver
-            problem.Solver = MumpsSolver
-            print('solver set to Mumps')
-        except ImportError, e:
-            problem.Solver = SolverLU
+        problem.Solver = Solver
 
         # Solve forward problem
         self.numFields_MagDipole_Y = problem.fields(np.r_[SigmaBack, MuBack])
@@ -1909,58 +1499,34 @@ class Y_MaDipoleTest_3DMesh(unittest.TestCase):
         # Plot Tx and Rx locations on mesh
         if plotIt:
 
-            x_Ex = self.XYZ_Ex[:,0]
-            x_Ey = self.XYZ_Ey[:,0]
-            x_Ez = self.XYZ_Ez[:,0]
+            x_Ex = self.XYZ_Ex[:, 0]
+            x_Ey = self.XYZ_Ey[:, 0]
+            x_Ez = self.XYZ_Ez[:, 0]
 
             # Plot Tx and Rx locations on mesh
-            fig, ax = plt.subplots(1,1, figsize=(10,10))
+            fig, ax = plt.subplots(1, 1, figsize=(10, 10))
             ax.plot(self.src_loc_Fy[0], self.src_loc_Fy[2], 'ro', ms=8)
-            ax.plot(self.XYZ_Ex[:,0], self.XYZ_Ex[:,2], 'k.', ms=6)
-            ax.plot(self.XYZ_Ey[:,0], self.XYZ_Ey[:,2], 'k.', ms=6)
-            ax.plot(self.XYZ_Ez[:,0], self.XYZ_Ez[:,2], 'k.', ms=6)
+            ax.plot(self.XYZ_Ex[:, 0], self.XYZ_Ex[:, 2], 'k.', ms=6)
+            ax.plot(self.XYZ_Ey[:, 0], self.XYZ_Ey[:, 2], 'k.', ms=6)
+            ax.plot(self.XYZ_Ez[:, 0], self.XYZ_Ez[:, 2], 'k.', ms=6)
             self.mesh.plotSlice(np.zeros(self.mesh.nC)*np.nan, grid=True, normal="Y", ax = ax)
 
             # Plot E
-            fig, ax = plt.subplots(2,3, figsize=(20,10))
+            fig, ax = plt.subplots(2, 3, figsize=(20, 10))
+            ax = Utils.mkvc(ax)
 
-            plt.subplot(231)
-            plt.plot(x_Ex, ex_num.real, 'o', x_Ex, exa.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_x Real')
-            plt.xlabel('x (m)')
+            x = self.XYZ_CC[:, 0]
 
-            plt.subplot(234)
-            plt.plot(x_Ex, ex_num.imag, 'o', x_Ex, exa.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_x Imag')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[0], x, ex_num.real, exa.real, title='E_x Real')
+            plotLine_num_ana(ax[1], x, ex_num.imag, exa.imag, title='E_x Imag')
 
-            plt.subplot(232)
-            plt.plot(x_Ey, ey_num.real, 'o', x_Ey, eya.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_y Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[2], x, ey_num.real, eya.real, title='E_y Real')
+            plotLine_num_ana(ax[3], x, ey_num.imag, eya.imag, title='E_y Imag')
 
-            plt.subplot(235)
-            plt.plot(x_Ey, ey_num.imag, 'o', x_Ey, eya.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_y Imag')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[4], x, ez_num.real, eza.real, title='E_z Real')
+            plotLine_num_ana(ax[5], x, ez_num.imag, eza.imag, title='E_z Imag')
 
-            plt.subplot(233)
-            plt.plot(x_Ez, ez_num.real, 'o', x_Ez, eza.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_z Real')
-            plt.xlabel('x (m)')
-
-            plt.subplot(236)
-            plt.plot(x_Ez, ez_num.imag, 'o', x_Ez, eza.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_z Imag')
-            plt.xlabel('x (m)')
-
-            plt.legend(['Num', 'Ana'],bbox_to_anchor=(1.5,0.5))
+            plt.legend(['Num', 'Ana'], bbox_to_anchor=(1.5, 0.5))
             plt.tight_layout()
             plt.show()
 
@@ -1992,53 +1558,30 @@ class Y_MaDipoleTest_3DMesh(unittest.TestCase):
         # Plot Tx and Rx locations on mesY
         if plotIt:
 
-            x = self.XYZ_CC[:,0]
+            x = self.XYZ_CC[:, 0]
 
             # Plot Tx and Rx locations on mesh
-            fig, ax = plt.subplots(1,1, figsize=(10,10))
+            fig, ax = plt.subplots(1, 1, figsize=(10, 10))
             ax.plot(self.src_loc_Fy[0], self.src_loc_Fy[2], 'ro', ms=8)
-            ax.plot(self.XYZ_CC[:,0], self.XYZ_CC[:,2], 'k.', ms=6)
+            ax.plot(self.XYZ_CC[:, 0], self.XYZ_CC[:, 2], 'k.', ms=6)
             self.mesh.plotSlice(np.zeros(self.mesh.nC)*np.nan, grid=True, normal="Y", ax = ax)
 
             # Plot J
-            fig, ax = plt.subplots(2,3, figsize=(20,10))
-            plt.subplot(231)
-            plt.plot(x, jx_num.real, 'o', x, jxa.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_x Real')
-            plt.xlabel('x (m)')
+            fig, ax = plt.subplots(2, 3, figsize=(20, 10))
+            ax = Utils.mkvc(ax)
 
-            plt.subplot(234)
-            plt.plot(x, jx_num.imag, 'o', x, jxa.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_x Imag')
-            plt.xlabel('x (m)')
+            x = self.XYZ_CC[:, 0]
 
-            plt.subplot(232)
-            plt.plot(x, jy_num.real, 'o', x, jya.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_y Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[0], x, jx_num.real, jxa.real, title='J_x Real')
+            plotLine_num_ana(ax[1], x, jx_num.imag, jxa.imag, title='J_x Imag')
 
-            plt.subplot(235)
-            plt.plot(x, jy_num.imag, 'o', x, jya.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_y Imag')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[2], x, jy_num.real, jya.real, title='J_y Real')
+            plotLine_num_ana(ax[3], x, jy_num.imag, jya.imag, title='J_y Imag')
 
-            plt.subplot(233)
-            plt.plot(x, jz_num.real, 'o', x, jza.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_z Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[4], x, jz_num.real, jza.real, title='J_z Real')
+            plotLine_num_ana(ax[5], x, jz_num.imag, jza.imag, title='J_z Imag')
 
-            plt.subplot(236)
-            plt.plot(x, jz_num.imag, 'o', x, jza.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_z Imag')
-            plt.xlabel('x (m)')
-
-            plt.legend(['Num', 'Ana'],bbox_to_anchor=(1.5,0.5))
+            plt.legend(['Num', 'Ana'], bbox_to_anchor=(1.5, 0.5))
             plt.tight_layout()
             plt.show()
 
@@ -2070,54 +1613,31 @@ class Y_MaDipoleTest_3DMesh(unittest.TestCase):
         # Plot Tx and Rx locations on mesh
         if plotIt:
 
-            x = self.XYZ_CC[:,0]
+            x = self.XYZ_CC[:, 0]
 
             # Plot Tx and Rx locations on mesh
-            fig, ax = plt.subplots(1,1, figsize=(10,10))
+            fig, ax = plt.subplots(1, 1, figsize=(10, 10))
             ax.plot(self.src_loc_Fy[0], self.src_loc_Fy[2], 'ro', ms=8)
-            ax.plot(self.XYZ_CC[:,0], self.XYZ_CC[:,2], 'k.', ms=6)
+            ax.plot(self.XYZ_CC[:, 0], self.XYZ_CC[:, 2], 'k.', ms=6)
             self.mesh.plotSlice(np.zeros(self.mesh.nC)*np.nan, grid=True, normal="Y", ax = ax)
 
 
-            # Plot J
-            fig, ax = plt.subplots(2,3, figsize=(20,10))
-            plt.subplot(231)
-            plt.plot(x, hx_num.real, 'o', x, hxa.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_x Real')
-            plt.xlabel('x (m)')
+            # Plot H
+            fig, ax = plt.subplots(2, 3, figsize=(20, 10))
+            ax = Utils.mkvc(ax)
 
-            plt.subplot(234)
-            plt.plot(x, hx_num.imag, 'o', x, hxa.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_x Imag')
-            plt.xlabel('x (m)')
+            x = self.XYZ_CC[:, 0]
 
-            plt.subplot(232)
-            plt.plot(x, hy_num.real, 'o', x, hya.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_y Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[0], x, hx_num.real, hxa.real, title='H_x Real')
+            plotLine_num_ana(ax[1], x, hx_num.imag, hxa.imag, title='H_x Imag')
 
-            plt.subplot(235)
-            plt.plot(x, hy_num.imag, 'o', x, hya.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_y Imag')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[2], x, hy_num.real, hya.real, title='H_y Real')
+            plotLine_num_ana(ax[3], x, hy_num.imag, hya.imag, title='H_y Imag')
 
-            plt.subplot(233)
-            plt.plot(x, hz_num.real, 'o', x, hza.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_z Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[4], x, hz_num.real, hza.real, title='H_z Real')
+            plotLine_num_ana(ax[5], x, hz_num.imag, hza.imag, title='H_z Imag')
 
-            plt.subplot(236)
-            plt.plot(x, hz_num.imag, 'o', x, hza.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_z Imag')
-            plt.xlabel('x (m)')
-
-            plt.legend(['Num', 'Ana'],bbox_to_anchor=(1.5,0.5))
+            plt.legend(['Num', 'Ana'], bbox_to_anchor=(1.5, 0.5))
             plt.tight_layout()
             plt.show()
 
@@ -2153,58 +1673,37 @@ class Y_MaDipoleTest_3DMesh(unittest.TestCase):
         # Plot Tx and Rx locations on mesh
         if plotIt:
 
-            x_Bx = self.XYZ_Fx[:,0]
-            x_By = self.XYZ_Fy[:,0]
-            x_Bz = self.XYZ_Fz[:,0]
+            x_Bx = self.XYZ_Fx[:, 0]
+            x_By = self.XYZ_Fy[:, 0]
+            x_Bz = self.XYZ_Fz[:, 0]
 
             # Plot Tx and Rx locations on mesh
-            fig, ax = plt.subplots(1,1, figsize=(10,10))
+            fig, ax = plt.subplots(1, 1, figsize=(10, 10))
             ax.plot(self.src_loc_Fy[0], self.src_loc_Fy[2], 'ro', ms=8)
-            ax.plot(self.XYZ_Fx[:,0], self.XYZ_Fx[:,2], 'k.', ms=6)
-            ax.plot(self.XYZ_Fy[:,0], self.XYZ_Fy[:,2], 'k.', ms=6)
-            ax.plot(self.XYZ_Fz[:,0], self.XYZ_Fz[:,2], 'k.', ms=6)
+            ax.plot(self.XYZ_Fx[:, 0], self.XYZ_Fx[:, 2], 'k.', ms=6)
+            ax.plot(self.XYZ_Fy[:, 0], self.XYZ_Fy[:, 2], 'k.', ms=6)
+            ax.plot(self.XYZ_Fz[:, 0], self.XYZ_Fz[:, 2], 'k.', ms=6)
             self.mesh.plotSlice(np.zeros(self.mesh.nC)*np.nan, grid=True, normal="Y", ax = ax)
 
             # Plot E
-            fig, ax = plt.subplots(2,3, figsize=(20,10))
+            fig, ax = plt.subplots(2, 3, figsize=(20, 10))
 
-            plt.subplot(231)
-            plt.plot(x_Bx, bx_num.real, 'o', x_Bx, bxa.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_x Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[0], x_Bx, bx_num.real, bxa.real,
+                             title='B_x Real')
+            plotLine_num_ana(ax[1], x_Bx, bx_num.imag, bxa.imag,
+                             title='B_x Imag')
 
-            plt.subplot(234)
-            plt.plot(x_Bx, bx_num.imag, 'o', x_Bx, bxa.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_x Imag')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[2], x_By, by_num.real, bya.real,
+                             title='B_y Real')
+            plotLine_num_ana(ax[3], x_By, by_num.imag, bya.imag,
+                             title='B_y Imag')
 
-            plt.subplot(232)
-            plt.plot(x_By, by_num.real, 'o', x_By, bya.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_y Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[4], x_Bz, bz_num.real, bza.real,
+                             title='B_z Real')
+            plotLine_num_ana(ax[5], x_Bz, bz_num.imag, bza.imag,
+                             title='B_z Imag')
 
-            plt.subplot(235)
-            plt.plot(x_By, by_num.imag, 'o', x_By, bya.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_y Imag')
-            plt.xlabel('x (m)')
-
-            plt.subplot(233)
-            plt.plot(x_Bz, bz_num.real, 'o', x_Bz, bza.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_z Real')
-            plt.xlabel('x (m)')
-
-            plt.subplot(236)
-            plt.plot(x_Bz, bz_num.imag, 'o', x_Bz, bza.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_z Imag')
-            plt.xlabel('x (m)')
-
-            plt.legend(['Num', 'Ana'],bbox_to_anchor=(1.5,0.5))
+            plt.legend(['Num', 'Ana'], bbox_to_anchor=(1.5, 0.5))
             plt.tight_layout()
             plt.show()
 
@@ -2216,18 +1715,12 @@ class Z_MaDipoleTest_3DMesh(unittest.TestCase):
         print('Testing a Z-oriented analytic harmonic magnetic dipole against the numerical solution on a 3D-tesnsor mesh.')
 
         # Define model parameters
-        self.sigmaback = 7e-2
+        self.sigmaback = SIGMABACK
         # mu = mu_0*(1+kappa)
-        self.kappa = 1.
+        self.kappa = KAPPA
 
         # Create 3D mesh
-        csx, ncx, npadx = 5, 18, 8
-        csy, ncy, npady = 5, 18, 8
-        csz, ncz, npadz = 5, 18, 8
-        hx = Utils.meshTensor([(csx, npadx, -1.3), (csx, ncx), (csx, npadx, 1.3)])
-        hy = Utils.meshTensor([(csy, npady, -1.3), (csy, ncy), (csy, npady, 1.3)])
-        hz = Utils.meshTensor([(csz, npadz, -1.3), (csz, ncz), (csz, npadz, 1.3)])
-        self.mesh = Mesh.TensorMesh([hx, hy, hz], 'CCC')
+        self.mesh = setUpMesh()
 
         # Set source parameters
         self.freq = 500.
@@ -2291,7 +1784,7 @@ class Z_MaDipoleTest_3DMesh(unittest.TestCase):
         # Search over x-faces to find face nearest src_loc
         s_ind = Utils.closestPoints(self.mesh, self.src_loc_CC, 'Fz') + self.mesh.nFx + self.mesh.nFy
         dm = np.zeros(self.mesh.nF, dtype=complex)
-        dm[s_ind] = (-1j*(2*np.pi*self.freq)*(mu_0*(1 + self.kappa)))/csz
+        dm[s_ind] = (-1j*(2*np.pi*self.freq)*(mu_0*(1 + self.kappa)))/self.mesh.hz.min()
         self.dm_z = [EM.FDEM.Src.RawVec_m([], self.freq, dm/self.mesh.area)]
 
         self.src_loc_Fz = self.mesh.gridFz[Utils.closestPoints(self.mesh, self.src_loc_CC, 'Fz'),:]
@@ -2304,12 +1797,7 @@ class Z_MaDipoleTest_3DMesh(unittest.TestCase):
 
         # Pair problem and survey
         problem.pair(survey)
-        try:
-            from pymatsolver import MumpsSolver
-            problem.Solver = MumpsSolver
-            print('solver set to Mumps')
-        except ImportError, e:
-            problem.Solver = SolverLU
+        problem.Solver = Solver
 
         # Solve forward problem
         self.numFields_MagDipole_Z = problem.fields(np.r_[SigmaBack, MuBack])
@@ -2348,58 +1836,34 @@ class Z_MaDipoleTest_3DMesh(unittest.TestCase):
         # Plot Tx and Rx locations on mesh
         if plotIt:
 
-            x_Ex = self.XYZ_Ex[:,0]
-            x_Ey = self.XYZ_Ey[:,0]
-            x_Ez = self.XYZ_Ez[:,0]
+            x_Ex = self.XYZ_Ex[:, 0]
+            x_Ey = self.XYZ_Ey[:, 0]
+            x_Ez = self.XYZ_Ez[:, 0]
 
             # Plot Tx and Rx locations on mesh
-            fig, ax = plt.subplots(1,1, figsize=(10,10))
+            fig, ax = plt.subplots(1, 1, figsize=(10, 10))
             ax.plot(self.src_loc_Fz[0], self.src_loc_Fz[2], 'ro', ms=8)
-            ax.plot(self.XYZ_Ex[:,0], self.XYZ_Ex[:,2], 'k.', ms=6)
-            ax.plot(self.XYZ_Ey[:,0], self.XYZ_Ey[:,2], 'k.', ms=6)
-            ax.plot(self.XYZ_Ez[:,0], self.XYZ_Ez[:,2], 'k.', ms=6)
+            ax.plot(self.XYZ_Ex[:, 0], self.XYZ_Ex[:, 2], 'k.', ms=6)
+            ax.plot(self.XYZ_Ey[:, 0], self.XYZ_Ey[:, 2], 'k.', ms=6)
+            ax.plot(self.XYZ_Ez[:, 0], self.XYZ_Ez[:, 2], 'k.', ms=6)
             self.mesh.plotSlice(np.zeros(self.mesh.nC)*np.nan, grid=True, normal="Y", ax = ax)
 
             # Plot E
-            fig, ax = plt.subplots(2,3, figsize=(20,10))
+            fig, ax = plt.subplots(2, 3, figsize=(20, 10))
+            ax = Utils.mkvc(ax)
 
-            plt.subplot(231)
-            plt.plot(x_Ex, ex_num.real, 'o', x_Ex, exa.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_x Real')
-            plt.xlabel('x (m)')
+            x = self.XYZ_CC[:, 0]
 
-            plt.subplot(234)
-            plt.plot(x_Ex, ex_num.imag, 'o', x_Ex, exa.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_x Imag')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[0], x, ex_num.real, exa.real, title='E_x Real')
+            plotLine_num_ana(ax[1], x, ex_num.imag, exa.imag, title='E_x Imag')
 
-            plt.subplot(232)
-            plt.plot(x_Ey, ey_num.real, 'o', x_Ey, eya.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_y Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[2], x, ey_num.real, eya.real, title='E_y Real')
+            plotLine_num_ana(ax[3], x, ey_num.imag, eya.imag, title='E_y Imag')
 
-            plt.subplot(235)
-            plt.plot(x_Ey, ey_num.imag, 'o', x_Ey, eya.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_y Imag')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[4], x, ez_num.real, eza.real, title='E_z Real')
+            plotLine_num_ana(ax[5], x, ez_num.imag, eza.imag, title='E_z Imag')
 
-            plt.subplot(233)
-            plt.plot(x_Ez, ez_num.real, 'o', x_Ez, eza.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_z Real')
-            plt.xlabel('x (m)')
-
-            plt.subplot(236)
-            plt.plot(x_Ez, ez_num.imag, 'o', x_Ez, eza.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('E_z Imag')
-            plt.xlabel('x (m)')
-
-            plt.legend(['Num', 'Ana'],bbox_to_anchor=(1.5,0.5))
+            plt.legend(['Num', 'Ana'], bbox_to_anchor=(1.5, 0.5))
             plt.tight_layout()
             plt.show()
 
@@ -2431,53 +1895,30 @@ class Z_MaDipoleTest_3DMesh(unittest.TestCase):
         # Plot Tx and Rx locations on mesY
         if plotIt:
 
-            x = self.XYZ_CC[:,0]
+            x = self.XYZ_CC[:, 0]
 
             # Plot Tx and Rx locations on mesh
-            fig, ax = plt.subplots(1,1, figsize=(10,10))
+            fig, ax = plt.subplots(1, 1, figsize=(10, 10))
             ax.plot(self.src_loc_Fz[0], self.src_loc_Fz[2], 'ro', ms=8)
-            ax.plot(self.XYZ_CC[:,0], self.XYZ_CC[:,2], 'k.', ms=6)
+            ax.plot(self.XYZ_CC[:, 0], self.XYZ_CC[:, 2], 'k.', ms=6)
             self.mesh.plotSlice(np.zeros(self.mesh.nC)*np.nan, grid=True, normal="Y", ax = ax)
 
             # Plot J
-            fig, ax = plt.subplots(2,3, figsize=(20,10))
-            plt.subplot(231)
-            plt.plot(x, jx_num.real, 'o', x, jxa.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_x Real')
-            plt.xlabel('x (m)')
+            fig, ax = plt.subplots(2, 3, figsize=(20, 10))
+            ax = Utils.mkvc(ax)
 
-            plt.subplot(234)
-            plt.plot(x, jx_num.imag, 'o', x, jxa.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_x Imag')
-            plt.xlabel('x (m)')
+            x = self.XYZ_CC[:, 0]
 
-            plt.subplot(232)
-            plt.plot(x, jy_num.real, 'o', x, jya.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_y Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[0], x, jx_num.real, jxa.real, title='J_x Real')
+            plotLine_num_ana(ax[1], x, jx_num.imag, jxa.imag, title='J_x Imag')
 
-            plt.subplot(235)
-            plt.plot(x, jy_num.imag, 'o', x, jya.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_y Imag')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[2], x, jy_num.real, jya.real, title='J_y Real')
+            plotLine_num_ana(ax[3], x, jy_num.imag, jya.imag, title='J_y Imag')
 
-            plt.subplot(233)
-            plt.plot(x, jz_num.real, 'o', x, jza.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_z Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[4], x, jz_num.real, jza.real, title='J_z Real')
+            plotLine_num_ana(ax[5], x, jz_num.imag, jza.imag, title='J_z Imag')
 
-            plt.subplot(236)
-            plt.plot(x, jz_num.imag, 'o', x, jza.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('J_z Imag')
-            plt.xlabel('x (m)')
-
-            plt.legend(['Num', 'Ana'],bbox_to_anchor=(1.5,0.5))
+            plt.legend(['Num', 'Ana'], bbox_to_anchor=(1.5, 0.5))
             plt.tight_layout()
             plt.show()
 
@@ -2509,54 +1950,31 @@ class Z_MaDipoleTest_3DMesh(unittest.TestCase):
         # Plot Tx and Rx locations on mesh
         if plotIt:
 
-            x = self.XYZ_CC[:,0]
+            x = self.XYZ_CC[:, 0]
 
             # Plot Tx and Rx locations on mesh
-            fig, ax = plt.subplots(1,1, figsize=(10,10))
+            fig, ax = plt.subplots(1, 1, figsize=(10, 10))
             ax.plot(self.src_loc_Fz[0], self.src_loc_Fz[2], 'ro', ms=8)
-            ax.plot(self.XYZ_CC[:,0], self.XYZ_CC[:,2], 'k.', ms=6)
+            ax.plot(self.XYZ_CC[:, 0], self.XYZ_CC[:, 2], 'k.', ms=6)
             self.mesh.plotSlice(np.zeros(self.mesh.nC)*np.nan, grid=True, normal="Y", ax = ax)
 
 
             # Plot J
-            fig, ax = plt.subplots(2,3, figsize=(20,10))
-            plt.subplot(231)
-            plt.plot(x, hx_num.real, 'o', x, hxa.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_x Real')
-            plt.xlabel('x (m)')
+            fig, ax = plt.subplots(2, 3, figsize=(20, 10))
+            ax = Utils.mkvc(ax)
 
-            plt.subplot(234)
-            plt.plot(x, hx_num.imag, 'o', x, hxa.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_x Imag')
-            plt.xlabel('x (m)')
+            x = self.XYZ_CC[:, 0]
 
-            plt.subplot(232)
-            plt.plot(x, hy_num.real, 'o', x, hya.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_y Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[0], x, hx_num.real, hxa.real, title='H_x Real')
+            plotLine_num_ana(ax[1], x, hx_num.imag, hxa.imag, title='H_x Imag')
 
-            plt.subplot(235)
-            plt.plot(x, hy_num.imag, 'o', x, hya.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_y Imag')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[2], x, hy_num.real, hya.real, title='H_y Real')
+            plotLine_num_ana(ax[3], x, hy_num.imag, hya.imag, title='H_y Imag')
 
-            plt.subplot(233)
-            plt.plot(x, hz_num.real, 'o', x, hza.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_z Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[4], x, hz_num.real, hza.real, title='H_z Real')
+            plotLine_num_ana(ax[5], x, hz_num.imag, hza.imag, title='H_z Imag')
 
-            plt.subplot(236)
-            plt.plot(x, hz_num.imag, 'o', x, hza.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('H_z Imag')
-            plt.xlabel('x (m)')
-
-            plt.legend(['Num', 'Ana'],bbox_to_anchor=(1.5,0.5))
+            plt.legend(['Num', 'Ana'], bbox_to_anchor=(1.5, 0.5))
             plt.tight_layout()
             plt.show()
 
@@ -2592,58 +2010,37 @@ class Z_MaDipoleTest_3DMesh(unittest.TestCase):
         # Plot Tx and Rx locations on mesh
         if plotIt:
 
-            x_Bx = self.XYZ_Fx[:,0]
-            x_By = self.XYZ_Fy[:,0]
-            x_Bz = self.XYZ_Fz[:,0]
+            x_Bx = self.XYZ_Fx[:, 0]
+            x_By = self.XYZ_Fy[:, 0]
+            x_Bz = self.XYZ_Fz[:, 0]
 
             # Plot Tx and Rx locations on mesh
-            fig, ax = plt.subplots(1,1, figsize=(10,10))
+            fig, ax = plt.subplots(1, 1, figsize=(10, 10))
             ax.plot(self.src_loc_Fz[0], self.src_loc_Fz[2], 'ro', ms=8)
-            ax.plot(self.XYZ_Fx[:,0], self.XYZ_Fx[:,2], 'k.', ms=6)
-            ax.plot(self.XYZ_Fy[:,0], self.XYZ_Fy[:,2], 'k.', ms=6)
-            ax.plot(self.XYZ_Fz[:,0], self.XYZ_Fz[:,2], 'k.', ms=6)
+            ax.plot(self.XYZ_Fx[:, 0], self.XYZ_Fx[:, 2], 'k.', ms=6)
+            ax.plot(self.XYZ_Fy[:, 0], self.XYZ_Fy[:, 2], 'k.', ms=6)
+            ax.plot(self.XYZ_Fz[:, 0], self.XYZ_Fz[:, 2], 'k.', ms=6)
             self.mesh.plotSlice(np.zeros(self.mesh.nC)*np.nan, grid=True, normal="Y", ax = ax)
 
-            # Plot E
-            fig, ax = plt.subplots(2,3, figsize=(20,10))
+            # Plot Br
+            fig, ax = plt.subplots(2, 3, figsize=(20, 10))
 
-            plt.subplot(231)
-            plt.plot(x_Bx, bx_num.real, 'o', x_Bx, bxa.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_x Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[0], x_Bx, bx_num.real, bxa.real,
+                             title='B_x Real')
+            plotLine_num_ana(ax[1], x_Bx, bx_num.imag, bxa.imag,
+                             title='B_x Imag')
 
-            plt.subplot(234)
-            plt.plot(x_Bx, bx_num.imag, 'o', x_Bx, bxa.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_x Imag')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[2], x_By, by_num.real, bya.real,
+                             title='B_y Real')
+            plotLine_num_ana(ax[3], x_By, by_num.imag, bya.imag,
+                             title='B_y Imag')
 
-            plt.subplot(232)
-            plt.plot(x_By, by_num.real, 'o', x_By, bya.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_y Real')
-            plt.xlabel('x (m)')
+            plotLine_num_ana(ax[4], x_Bz, bz_num.real, bza.real,
+                             title='B_z Real')
+            plotLine_num_ana(ax[5], x_Bz, bz_num.imag, bza.imag,
+                             title='B_z Imag')
 
-            plt.subplot(235)
-            plt.plot(x_By, by_num.imag, 'o', x_By, bya.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_y Imag')
-            plt.xlabel('x (m)')
-
-            plt.subplot(233)
-            plt.plot(x_Bz, bz_num.real, 'o', x_Bz, bza.real, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_z Real')
-            plt.xlabel('x (m)')
-
-            plt.subplot(236)
-            plt.plot(x_Bz, bz_num.imag, 'o', x_Bz, bza.imag, linewidth=2)
-            plt.grid(which='both')
-            plt.title('B_z Imag')
-            plt.xlabel('x (m)')
-
-            plt.legend(['Num', 'Ana'],bbox_to_anchor=(1.5,0.5))
+            plt.legend(['Num', 'Ana'], bbox_to_anchor=(1.5, 0.5))
             plt.tight_layout()
             plt.show()
 
