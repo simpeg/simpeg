@@ -298,7 +298,7 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None, col
 
 
 
-    return ph
+    return ph, midx, midz
 
 def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
     """
