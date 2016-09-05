@@ -145,7 +145,7 @@ def run(plotIt=True):
         mesh.plotSlice(m_l2, ax=ax, normal='Z', ind=zpanel,
                        grid=True, clim=(model.min(), model.max()))
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-                 ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]), Color='w')
+                 ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]), color='w')
         plt.title('Plan l2-model.')
         plt.gca().set_aspect('equal')
         plt.ylabel('y')
@@ -157,7 +157,7 @@ def run(plotIt=True):
         mesh.plotSlice(m_l2, ax=ax, normal='Y', ind=midx,
                        grid=True, clim=(model.min(), model.max()))
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-                 ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), Color='w')
+                 ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), color='w')
         plt.title('E-W l2-model.')
         plt.gca().set_aspect('equal')
         ax.xaxis.set_visible(False)
@@ -169,7 +169,7 @@ def run(plotIt=True):
         mesh.plotSlice(m_lp, ax=ax, normal='Z', ind=zpanel,
                        grid=True, clim=(model.min(), model.max()))
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-                 ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]), Color='w')
+                 ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]), color='w')
         plt.title('Plan lp-model.')
         plt.gca().set_aspect('equal')
         ax.xaxis.set_visible(False)
@@ -181,7 +181,7 @@ def run(plotIt=True):
         mesh.plotSlice(m_lp, ax=ax, normal='Y', ind=midx,
                        grid=True, clim=(model.min(), model.max()))
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-                 ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), Color='w')
+                 ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), color='w')
         plt.title('E-W lp-model.')
         plt.gca().set_aspect('equal')
         ax.xaxis.set_visible(False)
@@ -193,7 +193,7 @@ def run(plotIt=True):
         mesh.plotSlice(m_true, ax=ax, normal='Z', ind=zpanel,
                        grid=True, clim=(model.min(), model.max()))
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-                 ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]), Color='w')
+                 ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]), color='w')
         plt.title('Plan true model.')
         plt.gca().set_aspect('equal')
         plt.xlabel('x')
@@ -205,7 +205,7 @@ def run(plotIt=True):
         mesh.plotSlice(m_true, ax=ax, normal='Y', ind=midx,
                        grid=True, clim=(model.min(), model.max()))
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-                 ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), Color='w')
+                 ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), color='w')
         plt.title('E-W true model.')
         plt.gca().set_aspect('equal')
         plt.xlabel('x')

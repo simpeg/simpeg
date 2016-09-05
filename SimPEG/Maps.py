@@ -1,30 +1,26 @@
-from __future__ import division
-import Utils
+from __future__ import print_function
+from . import Utils
 import numpy as np
 import scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
-from Tests import checkDerivative
-from PropMaps import PropMap, Property
+from .Tests import checkDerivative
+from .PropMaps import PropMap, Property
 from numpy.polynomial import polynomial
 from scipy.interpolate import UnivariateSpline
 import warnings
-from SimPEG.Utils import Zero
+from six import integer_types
 
 
 class IdentityMap(object):
     """
-    SimPEG Map
-
+        SimPEG Map
     """
-    __metaclass__ = Utils.SimPEGMetaClass
 
     def __init__(self, mesh=None, nP=None, **kwargs):
         Utils.setKwargs(self, **kwargs)
 
         if nP is not None:
-            assert type(nP) in [int, long, np.int64], (
-                'Number of parameters must be an integer.'
-                )
+            assert type(nP) in integer_types, ' Number of parameters must be an integer.'
 
         self.mesh = mesh
         self._nP = nP
@@ -111,7 +107,7 @@ class IdentityMap(object):
             :return: passed the test?
 
         """
-        print 'Testing {0!s}'.format(str(self))
+        print('Testing {0!s}'.format(str(self)))
         if m is None:
             m = abs(np.random.rand(self.nP))
         if 'plotIt' not in kwargs:
@@ -129,7 +125,7 @@ class IdentityMap(object):
             :return: passed the test?
 
         """
-        print 'Testing %s' % str(self)
+        print('Testing {0!s}'.format(self))
         if m is None:
             m = abs(np.random.rand(self.nP))
         if 'plotIt' not in kwargs:
@@ -139,32 +135,24 @@ class IdentityMap(object):
 
     def _assertMatchesPair(self, pair):
         assert (isinstance(self, pair) or
-                isinstance(self, ComboMap) and
-                isinstance(self.maps[0], pair)
-                ), ("Mapping object must be an instance of a {0!s} "
-                    "class.".format((pair.__name__)))
+            isinstance(self, ComboMap) and isinstance(self.maps[0], pair)
+            ), "Mapping object must be an instance of a {0!s} class.".format((pair.__name__))
 
     def __mul__(self, val):
         if isinstance(val, IdentityMap):
-            if (not (self.shape[1] == '*' or val.shape[0] == '*') and not
-                    self.shape[1] == val.shape[0]):
-                raise ValueError('Dimension mismatch in {0!s} and '
-                                 '{1!s}.'.format(str(self), str(val)))
-
+            if not (self.shape[1] == '*' or val.shape[0] == '*') and not self.shape[1] == val.shape[0]:
+                raise ValueError('Dimension mismatch in {0!s} and {1!s}.'.format(str(self), str(val)))
             return ComboMap([self, val])
 
         elif isinstance(val, np.ndarray):
             if not self.shape[1] == '*' and not self.shape[1] == val.shape[0]:
-                raise ValueError('Dimension mismatch in {0!s} and '
-                                 'np.ndarray{1!s}.'.format(str(self),
-                                                           str(val.shape)))
+                raise ValueError('Dimension mismatch in {0!s} and np.ndarray{1!s}.'.format(str(self), str(val.shape)))
             return self._transform(val)
         raise Exception('Unrecognized data type to multiply. '
                         'Try a map or a numpy.ndarray!')
 
     def __str__(self):
-        return "{0!s}({1!s},{2!s})".format(self.__class__.__name__,
-                                           self.shape[0], self.shape[1])
+        return "{0!s}({1!s},{2!s})".format(self.__class__.__name__, self.shape[0], self.shape[1])
 
 
 class ComboMap(IdentityMap):
@@ -187,7 +175,7 @@ class ComboMap(IdentityMap):
             "inherit from an IdentityMap or ComboMap!"
 
             if (ii > 0 and not (self.shape[1] == '*' or m.shape[0] == '*') and
-                    not self.shape[1] == m.shape[0]):
+                not self.shape[1] == m.shape[0]):
                 prev = self.maps[-1]
                 errArgs = (prev.__class__.__name__, prev.shape[0],
                            prev.shape[1], m.__class__.__name__, m.shape[0],
@@ -913,7 +901,7 @@ class ParametricPolyMap(IdentityMap):
         self.actInd = actInd
 
         if getattr(self, 'actInd', None) is None:
-            self.actInd = range(self.mesh.nC)
+            self.actInd = list(range(self.mesh.nC))
             self.nC = self.mesh.nC
 
         else:

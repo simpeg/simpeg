@@ -1,3 +1,4 @@
+from __future__ import print_function
 from scipy.constants import G
 from SimPEG.Utils import mkvc
 import numpy as np
@@ -17,7 +18,7 @@ def GravSphereFreeSpace(x, y, z, R, xc, yc, zc, rho):
 
     """
     if (~np.size(x) == np.size(y) == np.size(z)):
-        print "Specify same size of x, y, z"
+        print("Specify same size of x, y, z")
         return
 
     unit_conv = 1e+8  # Unit conversion from SI to (mgal*g/cc)
