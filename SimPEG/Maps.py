@@ -1,5 +1,5 @@
 from __future__ import print_function
-from . import Utils
+from SimPEG import Utils
 import numpy as np
 import scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
