@@ -1,8 +1,8 @@
 import re
 import os
 from SimPEG import Mesh, np, Utils
-import BaseMag
-import Magnetics
+from . import BaseMag
+from . import Magnetics
 
 
 class MagneticsDriver_Inv(object):

@@ -62,9 +62,9 @@ class MapTests(unittest.TestCase):
             d = np.random.rand(mapping.shape[0])
             try:
                 m = mapping.inverse(d)
-                print 'Testing Inverse {0}'.format(str(M.__name__))
+                print('Testing Inverse {0}'.format(str(M.__name__)))
                 self.assertLess(np.linalg.norm(d - mapping._transform(m)), TOL)
-                print '  ... ok\n'
+                print('  ... ok\n')
             except NotImplementedError:
                 pass
 
@@ -74,9 +74,9 @@ class MapTests(unittest.TestCase):
             d = np.random.rand(mapping.shape[0])
             try:
                 m = mapping.inverse(d)
-                print 'Testing Inverse {0}'.format(str(M.__name__))
+                print('Testing Inverse {0}'.format(str(M.__name__)))
                 self.assertLess(np.linalg.norm(d - mapping._transform(m)), TOL)
-                print '  ... ok\n'
+                print('  ... ok\n')
             except NotImplementedError:
                 pass
 

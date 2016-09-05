@@ -7,9 +7,10 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 
 try:
-    from pymatsolver import MumpsSolver
-except ImportError, e:
-    MumpsSolver = SolverLU
+    from pymatsolver import PardisoSolver
+    Solver = PardisoSolver
+except ImportError:
+    Solver = SolverLU
 
 
 def halfSpaceProblemAnaDiff(meshType, srctype="MagDipole", sig_half=1e-2,
@@ -35,7 +36,7 @@ def halfSpaceProblemAnaDiff(meshType, srctype="MagDipole", sig_half=1e-2,
     mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * actMap
 
     prb = EM.TDEM.Problem3D_b(mesh, mapping=mapping)
-    prb.Solver = MumpsSolver
+    prb.Solver = Solver
     prb.timeSteps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 10), (1e-4, 10)]
     out = EM.Utils.VTEMFun(prb.times, 0.00595, 0.006, 100)
     wavefun = interp1d(prb.times, out)

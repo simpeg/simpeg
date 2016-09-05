@@ -1,8 +1,10 @@
-import Utils
+from __future__ import print_function
+from . import Utils
 import numpy as np
 import scipy.sparse as sp
 import uuid
 import gc
+
 
 class BaseRx(object):
     """SimPEG Receiver Object"""
@@ -208,8 +210,6 @@ class Data(object):
 class BaseSurvey(object):
     """Survey holds the observed data, and the standard deviations."""
 
-    __metaclass__ = Utils.SimPEGMetaClass
-
     std = None       #: Estimated Standard Deviations
     eps = None       #: Estimated Noise Floor
     dobs = None      #: Observed data
@@ -243,7 +243,7 @@ class BaseSurvey(object):
         for src in sources:
             if getattr(src,'uid',None) is None:
                 raise KeyError('Source does not have a uid: {0!s}'.format(str(src)))
-        inds = map(lambda src: self._sourceOrder.get(src.uid, None), sources)
+        inds = list(map(lambda src: self._sourceOrder.get(src.uid, None), sources))
         if None in inds:
             raise KeyError('Some of the sources specified are not in this survey. {0!s}'.format(str(inds)))
         return inds

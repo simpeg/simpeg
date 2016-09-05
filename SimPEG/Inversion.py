@@ -1,7 +1,7 @@
-import SimPEG
+from __future__ import print_function
 from SimPEG import Utils, sp, np
-from Optimization import Remember, IterationPrinters, StoppingCriteria
-import Directives
+from .Optimization import Remember, IterationPrinters, StoppingCriteria
+from . import Directives
 
 
 class BaseInversion(object):
@@ -10,8 +10,6 @@ class BaseInversion(object):
         Inversion Class.
 
     """
-
-    __metaclass__ = Utils.SimPEGMetaClass
 
     name = 'BaseInversion'
 

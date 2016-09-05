@@ -1,11 +1,14 @@
-from SimPEG import *
+from __future__ import print_function
+from SimPEG import Mesh, Utils
+import numpy as np
 import SimPEG.EM.Static.DC as DC
+
 
 def run(plotIt=True):
     cs = 25.
-    hx = [(cs,7, -1.3),(cs,21),(cs,7, 1.3)]
-    hy = [(cs,7, -1.3),(cs,21),(cs,7, 1.3)]
-    hz = [(cs,7, -1.3),(cs,20)]
+    hx = [(cs, 7, -1.3), (cs, 21), (cs, 7, 1.3)]
+    hy = [(cs, 7, -1.3), (cs, 21), (cs, 7, 1.3)]
+    hz = [(cs, 7, -1.3), (cs, 20)]
     mesh = Mesh.TensorMesh([hx, hy, hz], 'CCN')
     sighalf = 1e-2
     sigma = np.ones(mesh.nC)*sighalf
@@ -27,9 +30,9 @@ def run(plotIt=True):
     problem = DC.Problem3D_CC(mesh)
     problem.pair(survey)
     try:
-        from pymatsolver import MumpsSolver
-        problem.Solver = MumpsSolver
-    except Exception, e:
+        from pymatsolver import PardisoSolver
+        problem.Solver = PardisoSolver
+    except Exception:
         pass
     data = survey.dpred(sigma)
 
@@ -65,4 +68,4 @@ def run(plotIt=True):
 
 
 if __name__ == '__main__':
-    print run()
+    print(run())
