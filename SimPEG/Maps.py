@@ -20,7 +20,9 @@ class IdentityMap(object):
         Utils.setKwargs(self, **kwargs)
 
         if nP is not None:
-            assert type(nP) in [integer_types, np.int64], (
+            if type(nP) is np.int64:
+                nP = np.asscalar(nP)
+            assert type(nP) in integer_types, (
                 'Number of parameters must be an integer.')
 
         self.mesh = mesh
