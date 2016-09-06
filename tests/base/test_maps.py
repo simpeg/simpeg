@@ -66,7 +66,7 @@ class MapTests(unittest.TestCase):
 
     def test_invtransforms2D(self):
         for M in self.maps2test2D:
-            print 'Testing Inverse {0}'.format(str(M.__name__))
+            print('Testing Inverse {0}'.format(str(M.__name__)))
             mapping = M(self.mesh2)
             d = np.random.rand(mapping.shape[0])
             try:
@@ -79,7 +79,7 @@ class MapTests(unittest.TestCase):
 
     def test_invtransforms3D(self):
         for M in self.maps2test3D:
-            print 'Testing Inverse {0}'.format(str(M.__name__))
+            print('Testing Inverse {0}'.format(str(M.__name__)))
             mapping = M(self.mesh3)
             d = np.random.rand(mapping.shape[0])
             try:
