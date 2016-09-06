@@ -319,9 +319,10 @@ class BaseRegularization(object):
             mapping = Maps.IdentityMap(nP=indActive.nonzero()[0].size)
 
         if mesh is None and nP is None:
-            raise Exception, 'either Mesh or number of parameters must be provided to the BaseRegularization'
+            raise Exception('either Mesh or number of parameters must be '
+                            'provided to the BaseRegularization')
 
-        self.regmesh = RegularizationMesh(mesh,indActive)
+        self.regmesh = RegularizationMesh(mesh, indActive)
         self.indActive = indActive
 
         if mesh is not None and nP is None:
