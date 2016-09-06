@@ -582,7 +582,7 @@ class PrimSecMappedSigma(BaseSrc):
     **Required**
     :param list rxList: Receiver List
     :param float freq: frequency
-    :param ProblemFDEM primaryProblem: FDEM primary problem
+    :param BaseFDEMProblem primaryProblem: FDEM primary problem
     :param SurveyFDEM primarySurvey: FDEM primary survey
     **Optional**
     :param Mapping map2meshSecondary: mapping current model to act as primary model on the secondary mesh
