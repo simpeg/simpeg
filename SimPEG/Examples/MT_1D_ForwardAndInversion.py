@@ -83,7 +83,7 @@ def run(plotIt=True):
 
 
     # Assign uncertainties
-    std = 0.025 # 5% std
+    std = 0.05 # 5% std
     survey.std = np.abs(survey.dobs*std)
     # Assign the data weight
     Wd = 1./survey.std

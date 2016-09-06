@@ -512,7 +512,6 @@ class Data(SimPEGsurvey.Data):
 
             try:
                 outTemp = recFunc.stack_arrays((outTemp,mArrRec))
-                #outTemp = np.concatenate((outTemp,dataBlock),axis=0)
             except NameError as e:
                 outTemp = mArrRec
 

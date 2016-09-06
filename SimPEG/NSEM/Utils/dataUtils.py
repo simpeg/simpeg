@@ -121,10 +121,11 @@ def plotMT1DModelData(problem,models,symList=None):
         axM.semilogx(modelPts,meshPts,color=col)
 
         ## Data
+        loc = NSEM.Utils.dataUtils.rec2ndarr(np.unique(data1D[['x','y']]))
         # Appres
-        pDt.plotIsoStaImpedance(axR,np.array([0,0]),data1D,'zyx','res',pColor=col)
+        pDt.plotIsoStaImpedance(axR,loc,data1D,'zyx','res',pColor=col)
         # Appphs
-        pDt.plotIsoStaImpedance(axP,np.array([0,0]),data1D,'zyx','phs',pColor=col)
+        pDt.plotIsoStaImpedance(axP,loc,data1D,'zyx','phs',pColor=col)
         try:
             allData = np.concatenate((allData,simpeg.mkvc(data1D['zyx'],2)),1)
         except:
@@ -219,19 +220,21 @@ def convert3Dto1Dobject(NSEMdata,rxType3D='zyx'):
     from SimPEG import NSEM
     # Find the unique locations
     # Need to find the locations
-    recDataTemp = NSEMdata.toRecArray()
+    recDataTemp = NSEMdata.toRecArray().data.flatten()
     # Check if survey.std has been assigned.
     ## NEED TO: write this...
     # Calculte and add the DET of the tensor to the recArray
     if 'det' in rxType3D:
         Zon = (recDataTemp['zxxr']+1j*recDataTemp['zxxi'])*(recDataTemp['zyyr']+1j*recDataTemp['zyyi'])
         Zoff = (recDataTemp['zxyr']+1j*recDataTemp['zxyi'])*(recDataTemp['zyxr']+1j*recDataTemp['zyxi'])
-        det = np.sqrt(Zon.data - Zoff.data)
+        det = np.sqrt(Zon - Zoff)
         recData = recFunc.append_fields(recDataTemp,['zdetr','zdeti'],[det.real,det.imag] )
     else:
         recData = recDataTemp
 
-    uniLocs = rec2ndarr(np.unique(recData[['x','y','z']])).data
+
+
+    uniLocs = rec2ndarr(np.unique(recData[['x','y','z']]))
     mtData1DList = []
     if 'zxy' in rxType3D:
         corr = -1 # Shift the data to comply with the quadtrature of the 1d problem
@@ -243,13 +246,13 @@ def convert3Dto1Dobject(NSEMdata,rxType3D='zyx'):
         for rxType in ['z1dr','z1di']:
             rx1DList.append(NSEM.Rx(simpeg.mkvc(loc,2).T,rxType))
         # Source list
-        locrecData = recData[np.sqrt(np.sum( (rec2ndarr(recData[['x','y','z']]).data - loc )**2,axis=1)) < 1e-5]
+        locrecData = recData[np.sqrt(np.sum( (rec2ndarr(recData[['x','y','z']]) - loc )**2,axis=1)) < 1e-5]
         dat1DList = []
         src1DList = []
         for freq in locrecData['freq']:
-            src1DList.append(NSEM.SrcNSEM.src_polxy_1Dprimary(rx1DList,freq))
+            src1DList.append(NSEM.SrcNSEM.polxy_1Dprimary(rx1DList,freq))
             for comp  in ['r','i']:
-                dat1DList.append( corr * locrecData[rxType3D+comp][locrecData['freq']== freq].data )
+                dat1DList.append( corr * locrecData[rxType3D+comp][locrecData['freq']== freq] )
 
         # Make the survey
         sur1D = NSEM.Survey(src1DList)
