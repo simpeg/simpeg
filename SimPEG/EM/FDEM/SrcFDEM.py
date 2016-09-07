@@ -117,7 +117,7 @@ class BaseSrc(Survey.BaseSrc):
         """
         Derivative of the primary electric field
 
-        :param Problem prob: FDEM Problem
+        :param BaseFDEMProblem prob: FDEM Problem
         :param numpy.ndarray v: vector
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
