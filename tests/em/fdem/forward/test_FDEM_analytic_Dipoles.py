@@ -14,6 +14,8 @@ tol_NumErrZero = 1e-16
 
 SIGMABACK = 7e-2
 KAPPA = 1
+FREQ = 500
+
 
 # Util functions
 if plotIt:
@@ -49,6 +51,62 @@ if plotIt:
 def setUpMesh(cs=5, nc=18, npad=8):
     h = Utils.meshTensor([(cs, npad, -1.3), (cs, nc), (cs, npad, 1.3)])
     return Mesh.TensorMesh([h, h, h], 'CCC')
+
+
+def setUpTest(mesh):
+    # Set source parameters
+    src_loc = np.r_[0., 0., -35]
+    src_loc_CCInd = Utils.closestPoints(mesh, src_loc, 'CC')
+    src_loc_CC = mesh.gridCC[src_loc_CCInd, :]
+    src_loc_CC = src_loc_CC[0]
+
+    # Create wholespace models
+    SigmaBack = SIGMABACK*np.ones((mesh.nC))
+    MuBack = (mu_0*(1 + KAPPA))*np.ones((mesh.nC))
+
+    return src_loc_CC, SigmaBack, MuBack
+
+
+def getDataProjMat(mesh):
+    # Define reciever locations
+    xlim = 40. # x locations from -40 to 40
+    xInd = np.where(np.abs(mesh.vectorCCx) < xlim)
+    x = mesh.vectorCCx[xInd[0]]
+    y = 10.
+    z = 30.
+
+    # where we choose to measure
+    XYZ = Utils.ndgrid(x, np.r_[y], np.r_[z])
+
+    # Cell centred recievers
+    XYZ_CCInd = Utils.closestPoints(mesh, XYZ, 'CC')
+    XYZ_CC = mesh.gridCC[XYZ_CCInd, :]
+
+    # Edge recievers
+    XYZ_ExInd = Utils.closestPoints(mesh, XYZ, 'Ex')
+    XYZ_Ex = mesh.gridEx[XYZ_ExInd, :]
+    XYZ_EyInd = Utils.closestPoints(mesh, XYZ, 'Ey')
+    XYZ_Ey = mesh.gridEy[XYZ_EyInd, :]
+    XYZ_EzInd = Utils.closestPoints(mesh, XYZ, 'Ez')
+    XYZ_Ez = mesh.gridEz[XYZ_EzInd, :]
+
+    # Face recievers
+    XYZ_FxInd = Utils.closestPoints(mesh, XYZ, 'Fx')
+    XYZ_Fx = mesh.gridFx[XYZ_FxInd, :]
+    XYZ_FyInd = Utils.closestPoints(mesh, XYZ, 'Fy')
+    XYZ_Fy = mesh.gridFy[XYZ_FyInd, :]
+    XYZ_FzInd = Utils.closestPoints(mesh, XYZ, 'Fz')
+    XYZ_Fz = mesh.gridFz[XYZ_FzInd, :]
+
+    # Form data interpolation matrices
+    Pcc = mesh.getInterpolationMat(XYZ_CC, 'CC')
+    Zero = sp.csr_matrix(Pcc.shape)
+    Pccx, Pccy, Pccz = sp.hstack([Pcc, Zero, Zero]), sp.hstack([Zero, Pcc, Zero]), sp.hstack([Zero, Zero, Pcc])
+
+    Pex, Pey, Pez = mesh.getInterpolationMat(XYZ_Ex, 'Ex'), mesh.getInterpolationMat(XYZ_Ey, 'Ey'), mesh.getInterpolationMat(XYZ_Ez, 'Ez')
+    Pfx, Pfy, Pfz = mesh.getInterpolationMat(XYZ_Fx, 'Fx'), mesh.getInterpolationMat(XYZ_Fy, 'Fy'), mesh.getInterpolationMat(XYZ_Fz, 'Fz')
+
+    return XYZ_CC, XYZ_Ex, XYZ_Ey, XYZ_Ez, XYZ_Fx, XYZ_Fy, XYZ_Fz, Pccx, Pccy, Pccz, Pex, Pey, Pez, Pfx, Pfy, Pfz
 
 
 def errorLog(field, ana_x, ana_y, ana_z, num_x, num_y, num_z, tol):
@@ -102,63 +160,19 @@ class X_ElecDipoleTest_3DMesh(unittest.TestCase):
         # Create 3D mesh
         self.mesh = setUpMesh()
 
-        # Set source parameters
-        self.freq = 500.
-        src_loc = np.r_[0., 0., -35]
-        src_loc_CCInd = Utils.closestPoints(self.mesh, src_loc, 'CC')
-        self.src_loc_CC = self.mesh.gridCC[src_loc_CCInd, :]
-        self.src_loc_CC = self.src_loc_CC[0]
+        # Set source frequency
+        self.freq = FREQ
 
-        # Compute skin depth
-        skdpth = 500. / np.sqrt(self.sigmaback * self.freq)
+        # Set Tx location and create wholespace models
+        self.src_loc_CC, SigmaBack, MuBack = setUpTest(self.mesh)
 
-        # make sure mesh is big enough
-        # print('skin depth =', skdpth)
-        # self.assertTrue(self.mesh.hx.sum() > skdpth*2.)
-        # self.assertTrue(self.mesh.hy.sum() > skdpth*2.)
-        # self.assertTrue(self.mesh.hz.sum() > skdpth*2.)
-
-        # Create wholespace models
-        SigmaBack = self.sigmaback*np.ones((self.mesh.nC))
-        MuBack = (mu_0*(1 + self.kappa))*np.ones((self.mesh.nC))
-
-        # Define reciever locations
-        xlim = 40.  # x locations from -50 to 50
-        xInd = np.where(np.abs(self.mesh.vectorCCx) < xlim)
-        x = self.mesh.vectorCCx[xInd[0]]
-        y = 10.
-        z = 30.
-
-        # where we choose to measure
-        XYZ = Utils.ndgrid(x, np.r_[y], np.r_[z])
-
-        # Cell centred recievers
-        XYZ_CCInd = Utils.closestPoints(self.mesh, XYZ, 'CC')
-        self.XYZ_CC = self.mesh.gridCC[XYZ_CCInd, :]
-
-        # Edge recievers
-        XYZ_ExInd = Utils.closestPoints(self.mesh, XYZ, 'Ex')
-        self.XYZ_Ex = self.mesh.gridEx[XYZ_ExInd, :]
-        XYZ_EyInd = Utils.closestPoints(self.mesh, XYZ, 'Ey')
-        self.XYZ_Ey = self.mesh.gridEy[XYZ_EyInd, :]
-        XYZ_EzInd = Utils.closestPoints(self.mesh, XYZ, 'Ez')
-        self.XYZ_Ez = self.mesh.gridEz[XYZ_EzInd, :]
-
-        # Face recievers
-        XYZ_FxInd = Utils.closestPoints(self.mesh, XYZ, 'Fx')
-        self.XYZ_Fx = self.mesh.gridFx[XYZ_FxInd, :]
-        XYZ_FyInd = Utils.closestPoints(self.mesh, XYZ, 'Fy')
-        self.XYZ_Fy = self.mesh.gridFy[XYZ_FyInd, :]
-        XYZ_FzInd = Utils.closestPoints(self.mesh, XYZ, 'Fz')
-        self.XYZ_Fz = self.mesh.gridFz[XYZ_FzInd, :]
-
-        # Form data interpolation matrices
-        Pcc = self.mesh.getInterpolationMat(self.XYZ_CC, 'CC')
-        Zero = sp.csr_matrix(Pcc.shape)
-        self.Pccx, self.Pccy, self.Pccz = sp.hstack([Pcc, Zero, Zero]), sp.hstack([Zero, Pcc, Zero]), sp.hstack([Zero, Zero, Pcc])
-
-        self.Pex, self.Pey, self.Pez = self.mesh.getInterpolationMat(self.XYZ_Ex, 'Ex'), self.mesh.getInterpolationMat(self.XYZ_Ey, 'Ey'), self.mesh.getInterpolationMat(self.XYZ_Ez, 'Ez')
-        self.Pfx, self.Pfy, self.Pfz = self.mesh.getInterpolationMat(self.XYZ_Fx, 'Fx'), self.mesh.getInterpolationMat(self.XYZ_Fy, 'Fy'), self.mesh.getInterpolationMat(self.XYZ_Fz, 'Fz')
+        # Set Rx locations (XYZ) and get data projection matrices
+        (self.XYZ_CC,
+         self.XYZ_Ex, self.XYZ_Ey, self.XYZ_Ez,
+         self.XYZ_Fx, self.XYZ_Fy, self.XYZ_Fz,
+         self.Pccx, self.Pccy, self.Pccz,
+         self.Pex, self.Pey, self.Pez,
+         self.Pfx, self.Pfy, self.Pfz) = getDataProjMat(self.mesh)
 
         # Define the source
         # Search over x-faces to find face nearest src_loc
@@ -197,17 +211,10 @@ class X_ElecDipoleTest_3DMesh(unittest.TestCase):
         ex_num, ey_num, ez_num = self.Pccx*e_numCC, self.Pccy*e_numCC, self.Pccz*e_numCC
 
         # Get analytic solution
-        exa, eya, eza = EM.Analytics.FDEMDipolarfields.ElectricDipoleWholeSpace_E(self.XYZ_CC, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)), orientation='X', kappa= self.kappa)
+        exa, eya, eza = EM.Analytics.FDEMDipolarfields.ElectricDipoleWholeSpace_E(self.XYZ_CC, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(FREQ)), orientation='X', kappa= self.kappa)
         exa, eya, eza = Utils.mkvc(exa, 2), Utils.mkvc(eya, 2), Utils.mkvc(eza, 2)
 
         # Passed?
-        passed_x = (np.linalg.norm(exa-ex_num)/np.linalg.norm(exa) <
-                    tol_ElecDipole_X)
-        passed_y = (np.linalg.norm(eya-ey_num)/np.linalg.norm(eya) <
-                    tol_ElecDipole_X)
-        passed_z = (np.linalg.norm(eza-ez_num)/np.linalg.norm(eza) <
-                    tol_ElecDipole_X)
-
         passed_x, passed_y, passed_z = errorLog(
             'E', exa, eya, eza, ex_num, ey_num, ez_num, tol_ElecDipole_X
             )
@@ -247,9 +254,14 @@ class X_ElecDipoleTest_3DMesh(unittest.TestCase):
         _ , _ , jza = EM.Analytics.FDEMDipolarfields.ElectricDipoleWholeSpace_J(self.XYZ_Fz, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
         jxa, jya, jza = Utils.mkvc(jxa, 2), Utils.mkvc(jya, 2), Utils.mkvc(jza, 2)
 
+        # Passed?
         passed_x, passed_y, passed_z = errorLog(
             'J', jxa, jya, jza, jx_num, jy_num, jz_num, tol_ElecDipole_X
             )
+
+        self.assertTrue(passed_x, msg='Analytic and numeric solutions for Jx do not agree.')
+        self.assertTrue(passed_y, msg='Analytic and numeric solutions for Jy do not agree.')
+        self.assertTrue(passed_z, msg='Analytic and numeric solutions for Jz do not agree.')
 
         # Plot Tx and Rx locations on mesh
         if plotIt:
@@ -270,10 +282,6 @@ class X_ElecDipoleTest_3DMesh(unittest.TestCase):
             x = self.XYZ_CC[:, 0]
             plotFields_num_ana('J', x, jxa, jya, jza, jx_num, jy_num, jz_num)
 
-        self.assertTrue(passed_x, msg='Analytic and numeric solutions for Jx do not agree.')
-        self.assertTrue(passed_y, msg='Analytic and numeric solutions for Jy do not agree.')
-        self.assertTrue(passed_z, msg='Analytic and numeric solutions for Jz do not agree.')
-
     def test_3DMesh_X_ElecDipoleTest_H(self):
         print('Testing H components of a X-oriented analytic harmonic electric dipole.')
         # Specify toleraces
@@ -291,6 +299,7 @@ class X_ElecDipoleTest_3DMesh(unittest.TestCase):
         _ , _ , hza = EM.Analytics.FDEMDipolarfields.ElectricDipoleWholeSpace_H(self.XYZ_Ez, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
         hxa, hya, hza = Utils.mkvc(hxa, 2), Utils.mkvc(hya, 2), Utils.mkvc(hza, 2)
 
+        # Passed?
         passed_x, passed_y, passed_z = errorLog(
             'H', hxa, hya, hza, hx_num, hy_num, hz_num, tol_ElecDipole_X
             )
@@ -334,9 +343,14 @@ class X_ElecDipoleTest_3DMesh(unittest.TestCase):
         bxa, bya, bza = EM.Analytics.FDEMDipolarfields.ElectricDipoleWholeSpace_B(self.XYZ_CC, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
         bxa, bya, bza = Utils.mkvc(bxa, 2), Utils.mkvc(bya, 2), Utils.mkvc(bza, 2)
 
+        # Passed?
         passed_x, passed_y, passed_z = errorLog(
             'B', bxa, bya, bza, bx_num, by_num, bz_num, tol_ElecDipole_X
             )
+
+        self.assertTrue(passed_x, msg='Analytic and numeric solutions for Bx do not agree.')
+        self.assertTrue(passed_y, msg='Analytic and numeric solutions for By do not agree.')
+        self.assertTrue(passed_z, msg='Analytic and numeric solutions for Bz do not agree.')
 
         # Plot Tx and Rx locations on mesh
         if plotIt:
@@ -351,10 +365,6 @@ class X_ElecDipoleTest_3DMesh(unittest.TestCase):
             x = self.XYZ_CC[:, 0]
             plotFields_num_ana('B', x, bxa, bya, bza, bx_num, by_num, bz_num)
 
-        self.assertTrue(passed_x, msg='Analytic and numeric solutions for Bx do not agree.')
-        self.assertTrue(passed_y, msg='Analytic and numeric solutions for By do not agree.')
-        self.assertTrue(passed_z, msg='Analytic and numeric solutions for Bz do not agree.')
-
 class Y_ElecDipoleTest_3DMesh(unittest.TestCase):
 
     @classmethod
@@ -362,80 +372,30 @@ class Y_ElecDipoleTest_3DMesh(unittest.TestCase):
 
         print('Testing a Y-oriented analytic harmonic electric dipole against the numerical solution on a 3D-tesnsor mesh.')
 
-        # Define model parameters
+                # Define model parameters
         self.sigmaback = SIGMABACK
         # mu = mu_0*(1+kappa)
         self.kappa = KAPPA
 
         # Create 3D mesh
-        csx, ncx, npadx = 5, 18, 8
-        csy, ncy, npady = 5, 18, 8
-        csz, ncz, npadz = 5, 18, 8
-        hx = Utils.meshTensor([(csx, npadx, -1.3), (csx, ncx), (csx, npadx, 1.3)])
-        hy = Utils.meshTensor([(csy, npady, -1.3), (csy, ncy), (csy, npady, 1.3)])
-        hz = Utils.meshTensor([(csz, npadz, -1.3), (csz, ncz), (csz, npadz, 1.3)])
-        self.mesh = Mesh.TensorMesh([hx, hy, hz], 'CCC')
+        self.mesh = setUpMesh()
 
-        # Set source parameters
-        self.freq = 500.
-        src_loc = np.r_[0., 0., -35]
-        src_loc_CCInd = Utils.closestPoints(self.mesh, src_loc, 'CC')
-        self.src_loc_CC = self.mesh.gridCC[src_loc_CCInd,:]
-        self.src_loc_CC = self.src_loc_CC[0]
+        # Set source frequency
+        self.freq = FREQ
 
-        # Compute skin depth
-        skdpth = 500. / np.sqrt(self.sigmaback * self.freq)
+        # Set Tx location and create wholespace models
+        self.src_loc_CC, SigmaBack, MuBack = setUpTest(self.mesh)
 
-        # make sure mesh is big enough
-        # print('skin depth =', skdpth)
-        # self.assertTrue(self.mesh.hx.sum() > skdpth*2.)
-        # self.assertTrue(self.mesh.hy.sum() > skdpth*2.)
-        # self.assertTrue(self.mesh.hz.sum() > skdpth*2.)
-
-        # Create wholespace models
-        SigmaBack = self.sigmaback*np.ones((self.mesh.nC))
-        MuBack = (mu_0*(1 + self.kappa))*np.ones((self.mesh.nC))
-
-        # Define reciever locations
-        xlim = 40. # x locations from -50 to 50
-        xInd = np.where(np.abs(self.mesh.vectorCCx) < xlim)
-        x = self.mesh.vectorCCx[xInd[0]]
-        y = 10.
-        z = 30.
-
-        # where we choose to measure
-        XYZ = Utils.ndgrid(x, np.r_[y], np.r_[z])
-
-        # Cell centred recievers
-        XYZ_CCInd = Utils.closestPoints(self.mesh, XYZ, 'CC')
-        self.XYZ_CC = self.mesh.gridCC[XYZ_CCInd,:]
-
-        # Edge recievers
-        XYZ_ExInd = Utils.closestPoints(self.mesh, XYZ, 'Ex')
-        self.XYZ_Ex = self.mesh.gridEx[XYZ_ExInd,:]
-        XYZ_EyInd = Utils.closestPoints(self.mesh, XYZ, 'Ey')
-        self.XYZ_Ey = self.mesh.gridEy[XYZ_EyInd,:]
-        XYZ_EzInd = Utils.closestPoints(self.mesh, XYZ, 'Ez')
-        self.XYZ_Ez = self.mesh.gridEz[XYZ_EzInd,:]
-
-        # Face recievers
-        XYZ_FxInd = Utils.closestPoints(self.mesh, XYZ, 'Fx')
-        self.XYZ_Fx = self.mesh.gridFx[XYZ_FxInd,:]
-        XYZ_FyInd = Utils.closestPoints(self.mesh, XYZ, 'Fy')
-        self.XYZ_Fy = self.mesh.gridFy[XYZ_FyInd,:]
-        XYZ_FzInd = Utils.closestPoints(self.mesh, XYZ, 'Fz')
-        self.XYZ_Fz = self.mesh.gridFz[XYZ_FzInd,:]
-
-        # Form data interpolation matrices
-        Pcc = self.mesh.getInterpolationMat(self.XYZ_CC, 'CC')
-        Zero = sp.csr_matrix(Pcc.shape)
-        self.Pccx, self.Pccy, self.Pccz = sp.hstack([Pcc, Zero, Zero]), sp.hstack([Zero, Pcc, Zero]), sp.hstack([Zero, Zero, Pcc])
-
-        self.Pex, self.Pey, self.Pez = self.mesh.getInterpolationMat(self.XYZ_Ex, 'Ex'), self.mesh.getInterpolationMat(self.XYZ_Ey, 'Ey'), self.mesh.getInterpolationMat(self.XYZ_Ez, 'Ez')
-        self.Pfx, self.Pfy, self.Pfz = self.mesh.getInterpolationMat(self.XYZ_Fx, 'Fx'), self.mesh.getInterpolationMat(self.XYZ_Fy, 'Fy'), self.mesh.getInterpolationMat(self.XYZ_Fz, 'Fz')
+        # Set Rx locations (XYZ) and get data projection matrices
+        (self.XYZ_CC,
+         self.XYZ_Ex, self.XYZ_Ey, self.XYZ_Ez,
+         self.XYZ_Fx, self.XYZ_Fy, self.XYZ_Fz,
+         self.Pccx, self.Pccy, self.Pccz,
+         self.Pex, self.Pey, self.Pez,
+         self.Pfx, self.Pfy, self.Pfz) = getDataProjMat(self.mesh)
 
         # Define the source
-        # Search over x-faces to find face nearest src_loc
+        # Search over y-faces to find face nearest src_loc
         s_ind = Utils.closestPoints(self.mesh, self.src_loc_CC, 'Fy') + self.mesh.nFx
         de = np.zeros(self.mesh.nF, dtype=complex)
         de[s_ind] = 1./self.mesh.hy.min()
@@ -662,66 +622,22 @@ class Z_ElecDipoleTest_3DMesh(unittest.TestCase):
         # Create 3D mesh
         self.mesh = setUpMesh()
 
-        # Set source parameters
-        self.freq = 500.
-        src_loc = np.r_[0., 0., -35]
-        src_loc_CCInd = Utils.closestPoints(self.mesh, src_loc, 'CC')
-        self.src_loc_CC = self.mesh.gridCC[src_loc_CCInd,:]
-        self.src_loc_CC = self.src_loc_CC[0]
+        # Set source frequency
+        self.freq = FREQ
 
-        # Compute skin depth
-        skdpth = 500. / np.sqrt(self.sigmaback * self.freq)
+        # Set Tx location and create wholespace models
+        self.src_loc_CC, SigmaBack, MuBack = setUpTest(self.mesh)
 
-        # make sure mesh is big enough
-        # print('skin depth =', skdpth)
-        # self.assertTrue(self.mesh.hx.sum() > skdpth*2.)
-        # self.assertTrue(self.mesh.hy.sum() > skdpth*2.)
-        # self.assertTrue(self.mesh.hz.sum() > skdpth*2.)
-
-        # Create wholespace models
-        SigmaBack = self.sigmaback*np.ones((self.mesh.nC))
-        MuBack = (mu_0*(1 + self.kappa))*np.ones((self.mesh.nC))
-
-        # Define reciever locations
-        xlim = 40. # x locations from -50 to 50
-        xInd = np.where(np.abs(self.mesh.vectorCCx) < xlim)
-        x = self.mesh.vectorCCx[xInd[0]]
-        y = 10.
-        z = 30.
-
-        # where we choose to measure
-        XYZ = Utils.ndgrid(x, np.r_[y], np.r_[z])
-
-        # Cell centred recievers
-        XYZ_CCInd = Utils.closestPoints(self.mesh, XYZ, 'CC')
-        self.XYZ_CC = self.mesh.gridCC[XYZ_CCInd,:]
-
-        # Edge recievers
-        XYZ_ExInd = Utils.closestPoints(self.mesh, XYZ, 'Ex')
-        self.XYZ_Ex = self.mesh.gridEx[XYZ_ExInd,:]
-        XYZ_EyInd = Utils.closestPoints(self.mesh, XYZ, 'Ey')
-        self.XYZ_Ey = self.mesh.gridEy[XYZ_EyInd,:]
-        XYZ_EzInd = Utils.closestPoints(self.mesh, XYZ, 'Ez')
-        self.XYZ_Ez = self.mesh.gridEz[XYZ_EzInd,:]
-
-        # Face recievers
-        XYZ_FxInd = Utils.closestPoints(self.mesh, XYZ, 'Fx')
-        self.XYZ_Fx = self.mesh.gridFx[XYZ_FxInd,:]
-        XYZ_FyInd = Utils.closestPoints(self.mesh, XYZ, 'Fy')
-        self.XYZ_Fy = self.mesh.gridFy[XYZ_FyInd,:]
-        XYZ_FzInd = Utils.closestPoints(self.mesh, XYZ, 'Fz')
-        self.XYZ_Fz = self.mesh.gridFz[XYZ_FzInd,:]
-
-        # Form data interpolation matrices
-        Pcc = self.mesh.getInterpolationMat(self.XYZ_CC, 'CC')
-        Zero = sp.csr_matrix(Pcc.shape)
-        self.Pccx, self.Pccy, self.Pccz = sp.hstack([Pcc, Zero, Zero]), sp.hstack([Zero, Pcc, Zero]), sp.hstack([Zero, Zero, Pcc])
-
-        self.Pex, self.Pey, self.Pez = self.mesh.getInterpolationMat(self.XYZ_Ex, 'Ex'), self.mesh.getInterpolationMat(self.XYZ_Ey, 'Ey'), self.mesh.getInterpolationMat(self.XYZ_Ez, 'Ez')
-        self.Pfx, self.Pfy, self.Pfz = self.mesh.getInterpolationMat(self.XYZ_Fx, 'Fx'), self.mesh.getInterpolationMat(self.XYZ_Fy, 'Fy'), self.mesh.getInterpolationMat(self.XYZ_Fz, 'Fz')
+        # Set Rx locations (XYZ) and get data projection matrices
+        (self.XYZ_CC,
+         self.XYZ_Ex, self.XYZ_Ey, self.XYZ_Ez,
+         self.XYZ_Fx, self.XYZ_Fy, self.XYZ_Fz,
+         self.Pccx, self.Pccy, self.Pccz,
+         self.Pex, self.Pey, self.Pez,
+         self.Pfx, self.Pfy, self.Pfz) = getDataProjMat(self.mesh)
 
         # Define the source
-        # Search over x-faces to find face nearest src_loc
+        # Search over z-faces to find face nearest src_loc
         s_ind = Utils.closestPoints(self.mesh, self.src_loc_CC, 'Fz') + self.mesh.nFx + self.mesh.nFy
         de = np.zeros(self.mesh.nF, dtype=complex)
         de[s_ind] = 1./self.mesh.hz.min()
@@ -764,15 +680,9 @@ class Z_ElecDipoleTest_3DMesh(unittest.TestCase):
             'B', exa, eya, eza, ex_num, ey_num, ez_num, tol_ElecDipole_Z
             )
 
-        self.assertTrue(
-            passed_x, msg='Analytic and numeric solutions for Ex do not agree.'
-            )
-        self.assertTrue(
-            passed_y, msg='Analytic and numeric solutions for Ey do not agree.'
-            )
-        self.assertTrue(
-            passed_z, msg='Analytic and numeric solutions for Ez do not agree.'
-            )
+        self.assertTrue(passed_x, msg='Analytic and numeric solutions for Ex do not agree.')
+        self.assertTrue(passed_y, msg='Analytic and numeric solutions for Ey do not agree.')
+        self.assertTrue(passed_z, msg='Analytic and numeric solutions for Ez do not agree.')
 
         # Plot Tx and Rx locations on mesh
         if plotIt:
@@ -827,15 +737,9 @@ class Z_ElecDipoleTest_3DMesh(unittest.TestCase):
             x = self.XYZ_CC[:, 0]
             plotFields_num_ana('J', x, jxa, jya, jza, jx_num, jy_num, jz_num)
 
-        self.assertTrue(
-            passed_x, msg='Analytic and numeric solutions for Jx do not agree.'
-            )
-        self.assertTrue(
-            passed_y, msg='Analytic and numeric solutions for Jy do not agree.'
-            )
-        self.assertTrue(
-            passed_z, msg='Analytic and numeric solutions for Jz do not agree.'
-            )
+        self.assertTrue(passed_x, msg='Analytic and numeric solutions for Jx do not agree.')
+        self.assertTrue(passed_y, msg='Analytic and numeric solutions for Jy do not agree.')
+        self.assertTrue(passed_z, msg='Analytic and numeric solutions for Jz do not agree.')
 
     def test_3DMesh_Z_ElecDipoleTest_H(self):
         print('Testing H components of a Z-oriented analytic harmonic electric dipole.')
@@ -877,15 +781,9 @@ class Z_ElecDipoleTest_3DMesh(unittest.TestCase):
             x = self.XYZ_CC[:, 0]
             plotFields_num_ana('H', x, hxa, hya, hza, hx_num, hy_num, hz_num)
 
-        self.assertTrue(
-            passed_x, msg='Analytic and numeric solutions for Jx do not agree.'
-            )
-        self.assertTrue(
-            passed_y, msg='Analytic and numeric solutions for Jy do not agree.'
-            )
-        self.assertTrue(
-            passed_z, msg='Analytic and numeric solutions for Jz do not agree.'
-            )
+        self.assertTrue(passed_x, msg='Analytic and numeric solutions for Jx do not agree.')
+        self.assertTrue(passed_y, msg='Analytic and numeric solutions for Jy do not agree.')
+        self.assertTrue(passed_z, msg='Analytic and numeric solutions for Jz do not agree.')
 
     def test_3DMesh_Z_ElecDipoleTest_B(self):
         print('Testing B components of a Z-oriented analytic harmonic electric dipole.')
@@ -939,63 +837,19 @@ class X_MaDipoleTest_3DMesh(unittest.TestCase):
         # Create 3D mesh
         self.mesh = setUpMesh()
 
-        # Set source parameters
-        self.freq = 500.
-        src_loc = np.r_[0., 0., -35]
-        src_loc_CCInd = Utils.closestPoints(self.mesh, src_loc, 'CC')
-        self.src_loc_CC = self.mesh.gridCC[src_loc_CCInd,:]
-        self.src_loc_CC = self.src_loc_CC[0]
+        # Set source frequency
+        self.freq = FREQ
 
-        # Compute skin depth
-        skdpth = 500. / np.sqrt(self.sigmaback * self.freq)
+        # Set Tx location and create wholespace models
+        self.src_loc_CC, SigmaBack, MuBack = setUpTest(self.mesh)
 
-        # make sure mesh is big enough
-        # print('skin depth =', skdpth)
-        # self.assertTrue(self.mesh.hx.sum() > skdpth*2.)
-        # self.assertTrue(self.mesh.hy.sum() > skdpth*2.)
-        # self.assertTrue(self.mesh.hz.sum() > skdpth*2.)
-
-        # Create wholespace models
-        SigmaBack = self.sigmaback*np.ones((self.mesh.nC))
-        MuBack = (mu_0*(1 + self.kappa))*np.ones((self.mesh.nC))
-
-        # Define reciever locations
-        xlim = 40. # x locations from -50 to 50
-        xInd = np.where(np.abs(self.mesh.vectorCCx) < xlim)
-        x = self.mesh.vectorCCx[xInd[0]]
-        y = 10.
-        z = 30.
-
-        # where we choose to measure
-        XYZ = Utils.ndgrid(x, np.r_[y], np.r_[z])
-
-        # Cell centred recievers
-        XYZ_CCInd = Utils.closestPoints(self.mesh, XYZ, 'CC')
-        self.XYZ_CC = self.mesh.gridCC[XYZ_CCInd,:]
-
-        # Edge recievers
-        XYZ_ExInd = Utils.closestPoints(self.mesh, XYZ, 'Ex')
-        self.XYZ_Ex = self.mesh.gridEx[XYZ_ExInd,:]
-        XYZ_EyInd = Utils.closestPoints(self.mesh, XYZ, 'Ey')
-        self.XYZ_Ey = self.mesh.gridEy[XYZ_EyInd,:]
-        XYZ_EzInd = Utils.closestPoints(self.mesh, XYZ, 'Ez')
-        self.XYZ_Ez = self.mesh.gridEz[XYZ_EzInd,:]
-
-        # Face recievers
-        XYZ_FxInd = Utils.closestPoints(self.mesh, XYZ, 'Fx')
-        self.XYZ_Fx = self.mesh.gridFx[XYZ_FxInd,:]
-        XYZ_FyInd = Utils.closestPoints(self.mesh, XYZ, 'Fy')
-        self.XYZ_Fy = self.mesh.gridFy[XYZ_FyInd,:]
-        XYZ_FzInd = Utils.closestPoints(self.mesh, XYZ, 'Fz')
-        self.XYZ_Fz = self.mesh.gridFz[XYZ_FzInd,:]
-
-        # Form data interpolation matrices
-        Pcc = self.mesh.getInterpolationMat(self.XYZ_CC, 'CC')
-        Zero = sp.csr_matrix(Pcc.shape)
-        self.Pccx, self.Pccy, self.Pccz = sp.hstack([Pcc, Zero, Zero]), sp.hstack([Zero, Pcc, Zero]), sp.hstack([Zero, Zero, Pcc])
-
-        self.Pex, self.Pey, self.Pez = self.mesh.getInterpolationMat(self.XYZ_Ex, 'Ex'), self.mesh.getInterpolationMat(self.XYZ_Ey, 'Ey'), self.mesh.getInterpolationMat(self.XYZ_Ez, 'Ez')
-        self.Pfx, self.Pfy, self.Pfz = self.mesh.getInterpolationMat(self.XYZ_Fx, 'Fx'), self.mesh.getInterpolationMat(self.XYZ_Fy, 'Fy'), self.mesh.getInterpolationMat(self.XYZ_Fz, 'Fz')
+        # Set Rx locations (XYZ) and get data projection matrices
+        (self.XYZ_CC,
+         self.XYZ_Ex, self.XYZ_Ey, self.XYZ_Ez,
+         self.XYZ_Fx, self.XYZ_Fy, self.XYZ_Fz,
+         self.Pccx, self.Pccy, self.Pccz,
+         self.Pex, self.Pey, self.Pez,
+         self.Pfx, self.Pfy, self.Pfz) = getDataProjMat(self.mesh)
 
         # Define the source
         # Search over x-faces to find face nearest src_loc
@@ -1019,7 +873,6 @@ class X_MaDipoleTest_3DMesh(unittest.TestCase):
         # Solve forward problem
         self.numFields_MagDipole_X = problem.fields(np.r_[SigmaBack, MuBack])
 
-        # setUp_Done = True
 
     def test_3DMesh_X_MagDipoleTest_E(self):
         print('Testing E components of a X-oriented analytic harmonic magnetic dipole.')
@@ -1222,66 +1075,22 @@ class Y_MaDipoleTest_3DMesh(unittest.TestCase):
         # Create 3D mesh
         self.mesh = setUpMesh()
 
-        # Set source parameters
-        self.freq = 500.
-        src_loc = np.r_[0., 0., -35]
-        src_loc_CCInd = Utils.closestPoints(self.mesh, src_loc, 'CC')
-        self.src_loc_CC = self.mesh.gridCC[src_loc_CCInd,:]
-        self.src_loc_CC = self.src_loc_CC[0]
+        # Set source frequency
+        self.freq = FREQ
 
-        # Compute skin depth
-        skdpth = 500. / np.sqrt(self.sigmaback * self.freq)
+        # Set Tx location and create wholespace models
+        self.src_loc_CC, SigmaBack, MuBack = setUpTest(self.mesh)
 
-        # make sure mesh is big enough
-        # print('skin depth =', skdpth)
-        # self.assertTrue(self.mesh.hx.sum() > skdpth*2.)
-        # self.assertTrue(self.mesh.hy.sum() > skdpth*2.)
-        # self.assertTrue(self.mesh.hz.sum() > skdpth*2.)
-
-        # Create wholespace models
-        SigmaBack = self.sigmaback*np.ones((self.mesh.nC))
-        MuBack = (mu_0*(1 + self.kappa))*np.ones((self.mesh.nC))
-
-        # Define reciever locations
-        xlim = 40. # x locations from -50 to 50
-        xInd = np.where(np.abs(self.mesh.vectorCCx) < xlim)
-        x = self.mesh.vectorCCx[xInd[0]]
-        y = 10.
-        z = 30.
-
-        # where we choose to measure
-        XYZ = Utils.ndgrid(x, np.r_[y], np.r_[z])
-
-        # Cell centred recievers
-        XYZ_CCInd = Utils.closestPoints(self.mesh, XYZ, 'CC')
-        self.XYZ_CC = self.mesh.gridCC[XYZ_CCInd,:]
-
-        # Edge recievers
-        XYZ_ExInd = Utils.closestPoints(self.mesh, XYZ, 'Ex')
-        self.XYZ_Ex = self.mesh.gridEx[XYZ_ExInd,:]
-        XYZ_EyInd = Utils.closestPoints(self.mesh, XYZ, 'Ey')
-        self.XYZ_Ey = self.mesh.gridEy[XYZ_EyInd,:]
-        XYZ_EzInd = Utils.closestPoints(self.mesh, XYZ, 'Ez')
-        self.XYZ_Ez = self.mesh.gridEz[XYZ_EzInd,:]
-
-        # Face recievers
-        XYZ_FxInd = Utils.closestPoints(self.mesh, XYZ, 'Fx')
-        self.XYZ_Fx = self.mesh.gridFx[XYZ_FxInd,:]
-        XYZ_FyInd = Utils.closestPoints(self.mesh, XYZ, 'Fy')
-        self.XYZ_Fy = self.mesh.gridFy[XYZ_FyInd,:]
-        XYZ_FzInd = Utils.closestPoints(self.mesh, XYZ, 'Fz')
-        self.XYZ_Fz = self.mesh.gridFz[XYZ_FzInd,:]
-
-        # Form data interpolation matrices
-        Pcc = self.mesh.getInterpolationMat(self.XYZ_CC, 'CC')
-        Zero = sp.csr_matrix(Pcc.shape)
-        self.Pccx, self.Pccy, self.Pccz = sp.hstack([Pcc, Zero, Zero]), sp.hstack([Zero, Pcc, Zero]), sp.hstack([Zero, Zero, Pcc])
-
-        self.Pex, self.Pey, self.Pez = self.mesh.getInterpolationMat(self.XYZ_Ex, 'Ex'), self.mesh.getInterpolationMat(self.XYZ_Ey, 'Ey'), self.mesh.getInterpolationMat(self.XYZ_Ez, 'Ez')
-        self.Pfx, self.Pfy, self.Pfz = self.mesh.getInterpolationMat(self.XYZ_Fx, 'Fx'), self.mesh.getInterpolationMat(self.XYZ_Fy, 'Fy'), self.mesh.getInterpolationMat(self.XYZ_Fz, 'Fz')
+        # Set Rx locations (XYZ) and get data projection matrices
+        (self.XYZ_CC,
+        self.XYZ_Ex, self.XYZ_Ey, self.XYZ_Ez,
+        self.XYZ_Fx, self.XYZ_Fy, self.XYZ_Fz,
+        self.Pccx, self.Pccy, self.Pccz,
+        self.Pex, self.Pey, self.Pez,
+        self.Pfx, self.Pfy, self.Pfz) = getDataProjMat(self.mesh)
 
         # Define the source
-        # Search over x-faces to find face nearest src_loc
+        # Search over y-faces to find face nearest src_loc
         s_ind = Utils.closestPoints(self.mesh, self.src_loc_CC, 'Fy') + self.mesh.nFx
         dm = np.zeros(self.mesh.nF, dtype=complex)
         dm[s_ind] = (-1j*(2*np.pi*self.freq)*(mu_0*(1 + self.kappa)))/self.mesh.hy.min()
@@ -1503,66 +1312,22 @@ class Z_MaDipoleTest_3DMesh(unittest.TestCase):
         # Create 3D mesh
         self.mesh = setUpMesh()
 
-        # Set source parameters
-        self.freq = 500.
-        src_loc = np.r_[0., 0., -35]
-        src_loc_CCInd = Utils.closestPoints(self.mesh, src_loc, 'CC')
-        self.src_loc_CC = self.mesh.gridCC[src_loc_CCInd,:]
-        self.src_loc_CC = self.src_loc_CC[0]
+        # Set source frequency
+        self.freq = FREQ
 
-        # Compute skin depth
-        skdpth = 500. / np.sqrt(self.sigmaback * self.freq)
+        # Set Tx location and create wholespace models
+        self.src_loc_CC, SigmaBack, MuBack = setUpTest(self.mesh)
 
-        # make sure mesh is big enough
-        # print('skin depth =', skdpth)
-        # self.assertTrue(self.mesh.hx.sum() > skdpth*2.)
-        # self.assertTrue(self.mesh.hy.sum() > skdpth*2.)
-        # self.assertTrue(self.mesh.hz.sum() > skdpth*2.)
-
-        # Create wholespace models
-        SigmaBack = self.sigmaback*np.ones((self.mesh.nC))
-        MuBack = (mu_0*(1 + self.kappa))*np.ones((self.mesh.nC))
-
-        # Define reciever locations
-        xlim = 40. # x locations from -50 to 50
-        xInd = np.where(np.abs(self.mesh.vectorCCx) < xlim)
-        x = self.mesh.vectorCCx[xInd[0]]
-        y = 10.
-        z = 30.
-
-        # where we choose to measure
-        XYZ = Utils.ndgrid(x, np.r_[y], np.r_[z])
-
-        # Cell centred recievers
-        XYZ_CCInd = Utils.closestPoints(self.mesh, XYZ, 'CC')
-        self.XYZ_CC = self.mesh.gridCC[XYZ_CCInd,:]
-
-        # Edge recievers
-        XYZ_ExInd = Utils.closestPoints(self.mesh, XYZ, 'Ex')
-        self.XYZ_Ex = self.mesh.gridEx[XYZ_ExInd,:]
-        XYZ_EyInd = Utils.closestPoints(self.mesh, XYZ, 'Ey')
-        self.XYZ_Ey = self.mesh.gridEy[XYZ_EyInd,:]
-        XYZ_EzInd = Utils.closestPoints(self.mesh, XYZ, 'Ez')
-        self.XYZ_Ez = self.mesh.gridEz[XYZ_EzInd,:]
-
-        # Face recievers
-        XYZ_FxInd = Utils.closestPoints(self.mesh, XYZ, 'Fx')
-        self.XYZ_Fx = self.mesh.gridFx[XYZ_FxInd,:]
-        XYZ_FyInd = Utils.closestPoints(self.mesh, XYZ, 'Fy')
-        self.XYZ_Fy = self.mesh.gridFy[XYZ_FyInd,:]
-        XYZ_FzInd = Utils.closestPoints(self.mesh, XYZ, 'Fz')
-        self.XYZ_Fz = self.mesh.gridFz[XYZ_FzInd,:]
-
-        # Form data interpolation matrices
-        Pcc = self.mesh.getInterpolationMat(self.XYZ_CC, 'CC')
-        Zero = sp.csr_matrix(Pcc.shape)
-        self.Pccx, self.Pccy, self.Pccz = sp.hstack([Pcc, Zero, Zero]), sp.hstack([Zero, Pcc, Zero]), sp.hstack([Zero, Zero, Pcc])
-
-        self.Pex, self.Pey, self.Pez = self.mesh.getInterpolationMat(self.XYZ_Ex, 'Ex'), self.mesh.getInterpolationMat(self.XYZ_Ey, 'Ey'), self.mesh.getInterpolationMat(self.XYZ_Ez, 'Ez')
-        self.Pfx, self.Pfy, self.Pfz = self.mesh.getInterpolationMat(self.XYZ_Fx, 'Fx'), self.mesh.getInterpolationMat(self.XYZ_Fy, 'Fy'), self.mesh.getInterpolationMat(self.XYZ_Fz, 'Fz')
+        # Set Rx locations (XYZ) and get data projection matrices
+        (self.XYZ_CC,
+         self.XYZ_Ex, self.XYZ_Ey, self.XYZ_Ez,
+         self.XYZ_Fx, self.XYZ_Fy, self.XYZ_Fz,
+         self.Pccx, self.Pccy, self.Pccz,
+         self.Pex, self.Pey, self.Pez,
+         self.Pfx, self.Pfy, self.Pfz) = getDataProjMat(self.mesh)
 
         # Define the source
-        # Search over x-faces to find face nearest src_loc
+        # Search over z-faces to find face nearest src_loc
         s_ind = Utils.closestPoints(self.mesh, self.src_loc_CC, 'Fz') + self.mesh.nFx + self.mesh.nFy
         dm = np.zeros(self.mesh.nF, dtype=complex)
         dm[s_ind] = (-1j*(2*np.pi*self.freq)*(mu_0*(1 + self.kappa)))/self.mesh.hz.min()
