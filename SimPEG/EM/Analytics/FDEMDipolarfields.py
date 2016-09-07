@@ -214,7 +214,7 @@ def ElectricDipoleWholeSpace_J(XYZ, srcLoc, sig, f, current=1., length=1., orien
         :return: Jx, Jy, Jz: arrays containing all 3 components of J evaluated at the specified locations and frequencies.
     """
 
-    Ex, Ey, Ez = E_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=current, length=length, orientation=orientation, kappa=kappa, epsr=epsr)
+    Ex, Ey, Ez = ElectricDipoleWholeSpace_E(XYZ, srcLoc, sig, f, current=current, length=length, orientation=orientation, kappa=kappa, epsr=epsr)
     Jx = sig*Ex
     Jy = sig*Ey
     Jz = sig*Ez
@@ -242,7 +242,7 @@ def ElectricDipoleWholeSpace_J_galvanic(XYZ, srcLoc, sig, f, current=1., length=
         :return: Jx, Jy, Jz: arrays containing the galvanic portion of all 3 components of J evaluated at the specified locations and frequencies.
     """
 
-    Ex_galvanic, Ey_galvanic, Ez_galvanic = E_galvanic_from_ElectricDipoleWholeSpaced(XYZ, srcLoc, sig, f, current=current, length=length, orientation=orientation, kappa=kappa, epsr=epsr)
+    Ex_galvanic, Ey_galvanic, Ez_galvanic = ElectricDipoleWholeSpace_E_galvanic(XYZ, srcLoc, sig, f, current=current, length=length, orientation=orientation, kappa=kappa, epsr=epsr)
     Jx_galvanic = sig*Ex_galvanic
     Jy_galvanic = sig*Ey_galvanic
     Jz_galvanic = sig*Ez_galvanic
@@ -270,7 +270,7 @@ def ElectricDipoleWholeSpace_J_inductive(XYZ, srcLoc, sig, f, current=1., length
         :return: Jx, Jy, Jz: arrays containing the galvanic portion of all 3 components of J evaluated at the specified locations and frequencies.
     """
 
-    Ex_inductive, Ey_inductive, Ez_inductive = E_inductive_from_ElectricDipoleWholeSpaced(XYZ, srcLoc, sig, f, current=current, length=length, orientation=orientation, kappa=kappa, epsr=epsr)
+    Ex_inductive, Ey_inductive, Ez_inductive = ElectricDipoleWholeSpace_E_inductive(XYZ, srcLoc, sig, f, current=current, length=length, orientation=orientation, kappa=kappa, epsr=epsr)
     Jx_inductive = sig*Ex_inductive
     Jy_inductive = sig*Ey_inductive
     Jz_inductive = sig*Ez_inductive
@@ -357,7 +357,7 @@ def ElectricDipoleWholeSpace_B(XYZ, srcLoc, sig, f, current=1., length=1., orien
 
     mu = mu_0*(1+kappa)
 
-    Hx, Hy, Hz = H_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=current, length=length, orientation=orientation, kappa=kappa, epsr=epsr)
+    Hx, Hy, Hz = ElectricDipoleWholeSpace_H(XYZ, srcLoc, sig, f, current=current, length=length, orientation=orientation, kappa=kappa, epsr=epsr)
     Bx = mu*Hx
     By = mu*Hy
     Bz = mu*Hz
@@ -499,7 +499,7 @@ def MagneticDipoleWholeSpace_J(XYZ, srcLoc, sig, f, current=1., loopArea=1., ori
         :return: Jx, Jy, Jz: arrays containing all 3 components of J evaluated at the specified locations and frequencies.
     """
 
-    Ex, Ey, Ez = E_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=current, loopArea=loopArea, orientation=orientation, kappa=kappa, epsr=epsr)
+    Ex, Ey, Ez = MagneticDipoleWholeSpace_E(XYZ, srcLoc, sig, f, current=current, loopArea=loopArea, orientation=orientation, kappa=kappa, epsr=epsr)
     Jx = sig * Ex
     Jy = sig * Ey
     Jz = sig * Ez
@@ -591,7 +591,7 @@ def MagneticDipoleWholeSpace_B(XYZ, srcLoc, sig, f, current=1., loopArea=1., ori
 
     mu = mu_0 * (1+kappa)
 
-    Hx, Hy, Hz = H_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=current, loopArea=loopArea, orientation=orientation, kappa=kappa, epsr=epsr)
+    Hx, Hy, Hz = MagneticDipoleWholeSpace_H(XYZ, srcLoc, sig, f, current=current, loopArea=loopArea, orientation=orientation, kappa=kappa, epsr=epsr)
     Bx = mu * Hx
     By = mu * Hy
     Bz = mu * Hz
