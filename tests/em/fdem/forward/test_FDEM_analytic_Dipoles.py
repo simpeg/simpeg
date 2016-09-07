@@ -136,7 +136,7 @@ class X_ElecDipoleTest_3DMesh(unittest.TestCase):
         ex_num, ey_num, ez_num = self.Pccx*e_numCC, self.Pccy*e_numCC, self.Pccz*e_numCC
 
         # Get analytic solution
-        exa, eya, eza = EM.Analytics.FDEMDipolarfields.E_from_ElectricDipoleWholeSpace(self.XYZ_CC, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)), orientation='X', kappa= self.kappa)
+        exa, eya, eza = EM.Analytics.FDEMDipolarfields.ElectricDipoleWholeSpace_E(self.XYZ_CC, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)), orientation='X', kappa= self.kappa)
         exa, eya, eza = Utils.mkvc(exa, 2), Utils.mkvc(eya, 2), Utils.mkvc(eza, 2)
 
         print str('Comp').center(4), str('Ana').center(25)              , str('Num').center(25)                 , str('Num - Ana').center(25)               , str('(Num - Ana)/Ana').center(25)                             , str('Pass Status').center(12)
@@ -216,9 +216,9 @@ class X_ElecDipoleTest_3DMesh(unittest.TestCase):
         jx_num, jy_num, jz_num = self.Pfx*j_numF, self.Pfy*j_numF, self.Pfz*j_numF
 
         # Get analytic solution
-        jxa, _ , _ = EM.Analytics.FDEMDipolarfields.J_from_ElectricDipoleWholeSpace(self.XYZ_Fx, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
-        _ , jya , _ = EM.Analytics.FDEMDipolarfields.J_from_ElectricDipoleWholeSpace(self.XYZ_Fy, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
-        _ , _ , jza = EM.Analytics.FDEMDipolarfields.J_from_ElectricDipoleWholeSpace(self.XYZ_Fz, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
+        jxa, _ , _  = EM.Analytics.FDEMDipolarfields.ElectricDipoleWholeSpace_J(self.XYZ_Fx, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
+        _ , jya , _ = EM.Analytics.FDEMDipolarfields.ElectricDipoleWholeSpace_J(self.XYZ_Fy, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
+        _ , _ , jza = EM.Analytics.FDEMDipolarfields.ElectricDipoleWholeSpace_J(self.XYZ_Fz, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
         jxa, jya, jza = Utils.mkvc(jxa, 2), Utils.mkvc(jya, 2), Utils.mkvc(jza, 2)
 
         print str('Comp').center(4), str('Ana').center(25)              , str('Num').center(25)                 , str('Num - Ana').center(25)               , str('(Num - Ana)/Ana').center(25)                             , str('Pass Status').center(12)
@@ -300,9 +300,9 @@ class X_ElecDipoleTest_3DMesh(unittest.TestCase):
         hx_num, hy_num, hz_num = self.Pex*h_numE, self.Pey*h_numE, self.Pez*h_numE
 
         # Get analytic solution
-        hxa, _ , _  = EM.Analytics.FDEMDipolarfields.H_from_ElectricDipoleWholeSpace(self.XYZ_Ex, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
-        _ , hya , _ = EM.Analytics.FDEMDipolarfields.H_from_ElectricDipoleWholeSpace(self.XYZ_Ey, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
-        _ , _ , hza = EM.Analytics.FDEMDipolarfields.H_from_ElectricDipoleWholeSpace(self.XYZ_Ez, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
+        hxa, _ , _  = EM.Analytics.FDEMDipolarfields.ElectricDipoleWholeSpace_H(self.XYZ_Ex, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
+        _ , hya , _ = EM.Analytics.FDEMDipolarfields.ElectricDipoleWholeSpace_H(self.XYZ_Ey, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
+        _ , _ , hza = EM.Analytics.FDEMDipolarfields.ElectricDipoleWholeSpace_H(self.XYZ_Ez, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
         hxa, hya, hza = Utils.mkvc(hxa, 2), Utils.mkvc(hya, 2), Utils.mkvc(hza, 2)
 
         print str('Comp').center(4), str('Ana').center(25)              , str('Num').center(25)                 , str('Num - Ana').center(25)               , str('(Num - Ana)/Ana').center(25)                             , str('Pass Status').center(12)
@@ -385,7 +385,7 @@ class X_ElecDipoleTest_3DMesh(unittest.TestCase):
         bx_num, by_num, bz_num = self.Pccx*b_numCC, self.Pccy*b_numCC, self.Pccz*b_numCC
 
         # Get analytic solution
-        bxa, bya, bza = EM.Analytics.FDEMDipolarfields.B_from_ElectricDipoleWholeSpace(self.XYZ_CC, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
+        bxa, bya, bza = EM.Analytics.FDEMDipolarfields.ElectricDipoleWholeSpace_B(self.XYZ_CC, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
         bxa, bya, bza = Utils.mkvc(bxa, 2), Utils.mkvc(bya, 2), Utils.mkvc(bza, 2)
 
         print str('Comp').center(4), str('Ana').center(25)              , str('Num').center(25)                 , str('Num - Ana').center(25)               , str('(Num - Ana)/Ana').center(25)                             , str('Pass Status').center(12)
@@ -466,9 +466,9 @@ class Y_ElecDipoleTest_3DMesh(unittest.TestCase):
         self.kappa = 1.
 
         # Create 3D mesh
-        csx, ncx, npadx = 5, 18, 9
-        csy, ncy, npady = 5, 18, 9
-        csz, ncz, npadz = 5, 18, 9
+        csx, ncx, npadx = 5, 18, 8
+        csy, ncy, npady = 5, 18, 8
+        csz, ncz, npadz = 5, 18, 8
         hx = Utils.meshTensor([(csx, npadx, -1.3), (csx, ncx), (csx, npadx, 1.3)])
         hy = Utils.meshTensor([(csy, npady, -1.3), (csy, ncy), (csy, npady, 1.3)])
         hz = Utils.meshTensor([(csz, npadz, -1.3), (csz, ncz), (csz, npadz, 1.3)])
@@ -575,7 +575,7 @@ class Y_ElecDipoleTest_3DMesh(unittest.TestCase):
         ex_num, ey_num, ez_num = self.Pccx*e_numCC, self.Pccy*e_numCC, self.Pccz*e_numCC
 
         # Get analytic solution
-        exa, eya, eza = EM.Analytics.FDEMDipolarfields.E_from_ElectricDipoleWholeSpace(self.XYZ_CC, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)), orientation='Y', kappa= self.kappa)
+        exa, eya, eza = EM.Analytics.FDEMDipolarfields.ElectricDipoleWholeSpace_E(self.XYZ_CC, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)), orientation='Y', kappa= self.kappa)
         exa, eya, eza = Utils.mkvc(exa, 2), Utils.mkvc(eya, 2), Utils.mkvc(eza, 2)
 
         print str('Comp').center(4), str('Ana').center(25)              , str('Num').center(25)                 , str('Num - Ana').center(25)               , str('(Num - Ana)/Ana').center(25)                             , str('Pass Status').center(12)
@@ -655,9 +655,9 @@ class Y_ElecDipoleTest_3DMesh(unittest.TestCase):
         jx_num, jy_num, jz_num = self.Pfx*j_numF, self.Pfy*j_numF, self.Pfz*j_numF
 
         # Get analytic solution
-        jxa, _ , _ = EM.Analytics.FDEMDipolarfields.J_from_ElectricDipoleWholeSpace(self.XYZ_Fx, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Y',kappa= self.kappa)
-        _ , jya , _ = EM.Analytics.FDEMDipolarfields.J_from_ElectricDipoleWholeSpace(self.XYZ_Fy, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Y',kappa= self.kappa)
-        _ , _ , jza = EM.Analytics.FDEMDipolarfields.J_from_ElectricDipoleWholeSpace(self.XYZ_Fz, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Y',kappa= self.kappa)
+        jxa, _ , _  = EM.Analytics.FDEMDipolarfields.ElectricDipoleWholeSpace_J(self.XYZ_Fx, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Y',kappa= self.kappa)
+        _ , jya , _ = EM.Analytics.FDEMDipolarfields.ElectricDipoleWholeSpace_J(self.XYZ_Fy, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Y',kappa= self.kappa)
+        _ , _ , jza = EM.Analytics.FDEMDipolarfields.ElectricDipoleWholeSpace_J(self.XYZ_Fz, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Y',kappa= self.kappa)
         jxa, jya, jza = Utils.mkvc(jxa, 2), Utils.mkvc(jya, 2), Utils.mkvc(jza, 2)
 
         print str('Comp').center(4), str('Ana').center(25)              , str('Num').center(25)                 , str('Num - Ana').center(25)               , str('(Num - Ana)/Ana').center(25)                             , str('Pass Status').center(12)
@@ -739,9 +739,9 @@ class Y_ElecDipoleTest_3DMesh(unittest.TestCase):
         hx_num, hy_num, hz_num = self.Pex*h_numE, self.Pey*h_numE, self.Pez*h_numE
 
         # Get analytic solution
-        hxa, _ , _  = EM.Analytics.FDEMDipolarfields.H_from_ElectricDipoleWholeSpace(self.XYZ_Ex, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Y',kappa= self.kappa)
-        _ , hya , _ = EM.Analytics.FDEMDipolarfields.H_from_ElectricDipoleWholeSpace(self.XYZ_Ey, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Y',kappa= self.kappa)
-        _ , _ , hza = EM.Analytics.FDEMDipolarfields.H_from_ElectricDipoleWholeSpace(self.XYZ_Ez, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Y',kappa= self.kappa)
+        hxa, _ , _  = EM.Analytics.FDEMDipolarfields.ElectricDipoleWholeSpace_H(self.XYZ_Ex, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Y',kappa= self.kappa)
+        _ , hya , _ = EM.Analytics.FDEMDipolarfields.ElectricDipoleWholeSpace_H(self.XYZ_Ey, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Y',kappa= self.kappa)
+        _ , _ , hza = EM.Analytics.FDEMDipolarfields.ElectricDipoleWholeSpace_H(self.XYZ_Ez, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Y',kappa= self.kappa)
         hxa, hya, hza = Utils.mkvc(hxa, 2), Utils.mkvc(hya, 2), Utils.mkvc(hza, 2)
 
         print str('Comp').center(4), str('Ana').center(25)              , str('Num').center(25)                 , str('Num - Ana').center(25)               , str('(Num - Ana)/Ana').center(25)                             , str('Pass Status').center(12)
@@ -824,7 +824,7 @@ class Y_ElecDipoleTest_3DMesh(unittest.TestCase):
         bx_num, by_num, bz_num = self.Pccx*b_numCC, self.Pccy*b_numCC, self.Pccz*b_numCC
 
         # Get analytic solution
-        bxa, bya, bza = EM.Analytics.FDEMDipolarfields.B_from_ElectricDipoleWholeSpace(self.XYZ_CC, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Y',kappa= self.kappa)
+        bxa, bya, bza = EM.Analytics.FDEMDipolarfields.ElectricDipoleWholeSpace_B(self.XYZ_CC, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Y',kappa= self.kappa)
         bxa, bya, bza = Utils.mkvc(bxa, 2), Utils.mkvc(bya, 2), Utils.mkvc(bza, 2)
 
         print str('Comp').center(4), str('Ana').center(25)              , str('Num').center(25)                 , str('Num - Ana').center(25)               , str('(Num - Ana)/Ana').center(25)                             , str('Pass Status').center(12)
@@ -1013,7 +1013,7 @@ class Z_ElecDipoleTest_3DMesh(unittest.TestCase):
         ex_num, ey_num, ez_num = self.Pccx*e_numCC, self.Pccy*e_numCC, self.Pccz*e_numCC
 
         # Get analytic solution
-        exa, eya, eza = EM.Analytics.FDEMDipolarfields.E_from_ElectricDipoleWholeSpace(self.XYZ_CC, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)), orientation='Z', kappa= self.kappa)
+        exa, eya, eza = EM.Analytics.FDEMDipolarfields.ElectricDipoleWholeSpace_E(self.XYZ_CC, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)), orientation='Z', kappa= self.kappa)
         exa, eya, eza = Utils.mkvc(exa, 2), Utils.mkvc(eya, 2), Utils.mkvc(eza, 2)
 
         print str('Comp').center(4), str('Ana').center(25)              , str('Num').center(25)                 , str('Num - Ana').center(25)               , str('(Num - Ana)/Ana').center(25)                             , str('Pass Status').center(12)
@@ -1093,9 +1093,9 @@ class Z_ElecDipoleTest_3DMesh(unittest.TestCase):
         jx_num, jy_num, jz_num = self.Pfx*j_numF, self.Pfy*j_numF, self.Pfz*j_numF
 
         # Get analytic solution
-        jxa, _ , _ = EM.Analytics.FDEMDipolarfields.J_from_ElectricDipoleWholeSpace(self.XYZ_Fx, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Z',kappa= self.kappa)
-        _ , jya , _ = EM.Analytics.FDEMDipolarfields.J_from_ElectricDipoleWholeSpace(self.XYZ_Fy, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Z',kappa= self.kappa)
-        _ , _ , jza = EM.Analytics.FDEMDipolarfields.J_from_ElectricDipoleWholeSpace(self.XYZ_Fz, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Z',kappa= self.kappa)
+        jxa, _ , _ = EM.Analytics.FDEMDipolarfields.ElectricDipoleWholeSpace_J(self.XYZ_Fx, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Z',kappa= self.kappa)
+        _ , jya , _ = EM.Analytics.FDEMDipolarfields.ElectricDipoleWholeSpace_J(self.XYZ_Fy, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Z',kappa= self.kappa)
+        _ , _ , jza = EM.Analytics.FDEMDipolarfields.ElectricDipoleWholeSpace_J(self.XYZ_Fz, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Z',kappa= self.kappa)
         jxa, jya, jza = Utils.mkvc(jxa, 2), Utils.mkvc(jya, 2), Utils.mkvc(jza, 2)
 
         print str('Comp').center(4), str('Ana').center(25)              , str('Num').center(25)                 , str('Num - Ana').center(25)               , str('(Num - Ana)/Ana').center(25)                             , str('Pass Status').center(12)
@@ -1177,9 +1177,9 @@ class Z_ElecDipoleTest_3DMesh(unittest.TestCase):
         hx_num, hy_num, hz_num = self.Pex*h_numE, self.Pey*h_numE, self.Pez*h_numE
 
         # Get analytic solution
-        hxa, _ , _  = EM.Analytics.FDEMDipolarfields.H_from_ElectricDipoleWholeSpace(self.XYZ_Ex, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Z',kappa= self.kappa)
-        _ , hya , _ = EM.Analytics.FDEMDipolarfields.H_from_ElectricDipoleWholeSpace(self.XYZ_Ey, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Z',kappa= self.kappa)
-        _ , _ , hza = EM.Analytics.FDEMDipolarfields.H_from_ElectricDipoleWholeSpace(self.XYZ_Ez, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Z',kappa= self.kappa)
+        hxa, _ , _  = EM.Analytics.FDEMDipolarfields.ElectricDipoleWholeSpace_H(self.XYZ_Ex, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Z',kappa= self.kappa)
+        _ , hya , _ = EM.Analytics.FDEMDipolarfields.ElectricDipoleWholeSpace_H(self.XYZ_Ey, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Z',kappa= self.kappa)
+        _ , _ , hza = EM.Analytics.FDEMDipolarfields.ElectricDipoleWholeSpace_H(self.XYZ_Ez, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Z',kappa= self.kappa)
         hxa, hya, hza = Utils.mkvc(hxa, 2), Utils.mkvc(hya, 2), Utils.mkvc(hza, 2)
 
         print str('Comp').center(4), str('Ana').center(25)              , str('Num').center(25)                 , str('Num - Ana').center(25)               , str('(Num - Ana)/Ana').center(25)                             , str('Pass Status').center(12)
@@ -1262,7 +1262,7 @@ class Z_ElecDipoleTest_3DMesh(unittest.TestCase):
         bx_num, by_num, bz_num = self.Pccx*b_numCC, self.Pccy*b_numCC, self.Pccz*b_numCC
 
         # Get analytic solution
-        bxa, bya, bza = EM.Analytics.FDEMDipolarfields.B_from_ElectricDipoleWholeSpace(self.XYZ_CC, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Z',kappa= self.kappa)
+        bxa, bya, bza = EM.Analytics.FDEMDipolarfields.ElectricDipoleWholeSpace_B(self.XYZ_CC, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Z',kappa= self.kappa)
         bxa, bya, bza = Utils.mkvc(bxa, 2), Utils.mkvc(bya, 2), Utils.mkvc(bza, 2)
 
         print str('Comp').center(4), str('Ana').center(25)              , str('Num').center(25)                 , str('Num - Ana').center(25)               , str('(Num - Ana)/Ana').center(25)                             , str('Pass Status').center(12)
@@ -1452,9 +1452,9 @@ class X_MaDipoleTest_3DMesh(unittest.TestCase):
         ex_num, ey_num, ez_num = self.Pex*e_numE, self.Pey*e_numE, self.Pez*e_numE
 
         # Get analytic solution
-        exa, _ , _  = EM.Analytics.FDEMDipolarfields.E_from_MagneticDipoleWholeSpace(self.XYZ_Ex, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
-        _ , eya , _ = EM.Analytics.FDEMDipolarfields.E_from_MagneticDipoleWholeSpace(self.XYZ_Ey, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
-        _ , _ , eza = EM.Analytics.FDEMDipolarfields.E_from_MagneticDipoleWholeSpace(self.XYZ_Ez, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
+        exa, _ , _  = EM.Analytics.FDEMDipolarfields.MagneticDipoleWholeSpace_E(self.XYZ_Ex, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
+        _ , eya , _ = EM.Analytics.FDEMDipolarfields.MagneticDipoleWholeSpace_E(self.XYZ_Ey, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
+        _ , _ , eza = EM.Analytics.FDEMDipolarfields.MagneticDipoleWholeSpace_E(self.XYZ_Ez, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
         exa, eya, eza = Utils.mkvc(exa, 2), Utils.mkvc(eya, 2), Utils.mkvc(eza, 2)
 
 
@@ -1538,7 +1538,7 @@ class X_MaDipoleTest_3DMesh(unittest.TestCase):
         jx_num, jy_num, jz_num = self.Pccx*j_numCC, self.Pccy*j_numCC, self.Pccz*j_numCC
 
         # Get analytic solution
-        jxa, jya, jza = EM.Analytics.FDEMDipolarfields.J_from_MagneticDipoleWholeSpace(self.XYZ_CC, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
+        jxa, jya, jza = EM.Analytics.FDEMDipolarfields.MagneticDipoleWholeSpace_J(self.XYZ_CC, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
         jxa, jya, jza = Utils.mkvc(jxa, 2), Utils.mkvc(jya, 2), Utils.mkvc(jza, 2)
 
         print str('Comp').center(4), str('Ana').center(25)              , str('Num').center(25)                 , str('Num - Ana').center(25)               , str('(Num - Ana)/Ana').center(25)                             , str('Pass Status').center(12)
@@ -1616,7 +1616,7 @@ class X_MaDipoleTest_3DMesh(unittest.TestCase):
         hx_num, hy_num, hz_num = self.Pccx*h_numCC, self.Pccy*h_numCC, self.Pccz*h_numCC
 
         # Get analytic solution
-        hxa, hya, hza = EM.Analytics.FDEMDipolarfields.H_from_MagneticDipoleWholeSpace(self.XYZ_CC, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
+        hxa, hya, hza = EM.Analytics.FDEMDipolarfields.MagneticDipoleWholeSpace_H(self.XYZ_CC, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
         hxa, hya, hza = Utils.mkvc(hxa, 2), Utils.mkvc(hya, 2), Utils.mkvc(hza, 2)
 
         print str('Comp').center(4), str('Ana').center(25)              , str('Num').center(25)                 , str('Num - Ana').center(25)               , str('(Num - Ana)/Ana').center(25)                             , str('Pass Status').center(12)
@@ -1696,9 +1696,9 @@ class X_MaDipoleTest_3DMesh(unittest.TestCase):
         bx_num, by_num, bz_num = self.Pfx*b_numF, self.Pfy*b_numF, self.Pfz*b_numF
 
         # Get analytic solution
-        bxa, _ , _  = EM.Analytics.FDEMDipolarfields.B_from_MagneticDipoleWholeSpace(self.XYZ_Fx, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
-        _ , bya , _ = EM.Analytics.FDEMDipolarfields.B_from_MagneticDipoleWholeSpace(self.XYZ_Fy, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
-        _ , _ , bza = EM.Analytics.FDEMDipolarfields.B_from_MagneticDipoleWholeSpace(self.XYZ_Fz, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
+        bxa, _ , _  = EM.Analytics.FDEMDipolarfields.MagneticDipoleWholeSpace_B(self.XYZ_Fx, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
+        _ , bya , _ = EM.Analytics.FDEMDipolarfields.MagneticDipoleWholeSpace_B(self.XYZ_Fy, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
+        _ , _ , bza = EM.Analytics.FDEMDipolarfields.MagneticDipoleWholeSpace_B(self.XYZ_Fz, self.src_loc_Fx, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='X',kappa= self.kappa)
         bxa, bya, bza = Utils.mkvc(bxa, 2), Utils.mkvc(bya, 2), Utils.mkvc(bza, 2)
 
         print str('Comp').center(4), str('Ana').center(25)              , str('Num').center(25)                 , str('Num - Ana').center(25)               , str('(Num - Ana)/Ana').center(25)                             , str('Pass Status').center(12)
@@ -1891,9 +1891,9 @@ class Y_MaDipoleTest_3DMesh(unittest.TestCase):
         ex_num, ey_num, ez_num = self.Pex*e_numE, self.Pey*e_numE, self.Pez*e_numE
 
         # Get analytic solution
-        exa, _ , _  = EM.Analytics.FDEMDipolarfields.E_from_MagneticDipoleWholeSpace(self.XYZ_Ex, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Y',kappa= self.kappa)
-        _ , eya , _ = EM.Analytics.FDEMDipolarfields.E_from_MagneticDipoleWholeSpace(self.XYZ_Ey, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Y',kappa= self.kappa)
-        _ , _ , eza = EM.Analytics.FDEMDipolarfields.E_from_MagneticDipoleWholeSpace(self.XYZ_Ez, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Y',kappa= self.kappa)
+        exa, _ , _  = EM.Analytics.FDEMDipolarfields.MagneticDipoleWholeSpace_E(self.XYZ_Ex, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Y',kappa= self.kappa)
+        _ , eya , _ = EM.Analytics.FDEMDipolarfields.MagneticDipoleWholeSpace_E(self.XYZ_Ey, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Y',kappa= self.kappa)
+        _ , _ , eza = EM.Analytics.FDEMDipolarfields.MagneticDipoleWholeSpace_E(self.XYZ_Ez, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Y',kappa= self.kappa)
         exa, eya, eza = Utils.mkvc(exa, 2), Utils.mkvc(eya, 2), Utils.mkvc(eza, 2)
 
 
@@ -1977,7 +1977,7 @@ class Y_MaDipoleTest_3DMesh(unittest.TestCase):
         jx_num, jy_num, jz_num = self.Pccx*j_numCC, self.Pccy*j_numCC, self.Pccz*j_numCC
 
         # Get analytic solution
-        jxa, jya, jza = EM.Analytics.FDEMDipolarfields.J_from_MagneticDipoleWholeSpace(self.XYZ_CC, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Y',kappa= self.kappa)
+        jxa, jya, jza = EM.Analytics.FDEMDipolarfields.MagneticDipoleWholeSpace_J(self.XYZ_CC, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Y',kappa= self.kappa)
         jxa, jya, jza = Utils.mkvc(jxa, 2), Utils.mkvc(jya, 2), Utils.mkvc(jza, 2)
 
         print str('Comp').center(4), str('Ana').center(25)              , str('Num').center(25)                 , str('Num - Ana').center(25)               , str('(Num - Ana)/Ana').center(25)                             , str('Pass Status').center(12)
@@ -2055,7 +2055,7 @@ class Y_MaDipoleTest_3DMesh(unittest.TestCase):
         hx_num, hy_num, hz_num = self.Pccx*h_numCC, self.Pccy*h_numCC, self.Pccz*h_numCC
 
         # Get analytic solution
-        hxa, hya, hza = EM.Analytics.FDEMDipolarfields.H_from_MagneticDipoleWholeSpace(self.XYZ_CC, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Y',kappa= self.kappa)
+        hxa, hya, hza = EM.Analytics.FDEMDipolarfields.MagneticDipoleWholeSpace_H(self.XYZ_CC, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Y',kappa= self.kappa)
         hxa, hya, hza = Utils.mkvc(hxa, 2), Utils.mkvc(hya, 2), Utils.mkvc(hza, 2)
 
         print str('Comp').center(4), str('Ana').center(25)              , str('Num').center(25)                 , str('Num - Ana').center(25)               , str('(Num - Ana)/Ana').center(25)                             , str('Pass Status').center(12)
@@ -2135,9 +2135,9 @@ class Y_MaDipoleTest_3DMesh(unittest.TestCase):
         bx_num, by_num, bz_num = self.Pfx*b_numF, self.Pfy*b_numF, self.Pfz*b_numF
 
         # Get analytic solution
-        bxa, _ , _  = EM.Analytics.FDEMDipolarfields.B_from_MagneticDipoleWholeSpace(self.XYZ_Fx, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Y',kappa= self.kappa)
-        _ , bya , _ = EM.Analytics.FDEMDipolarfields.B_from_MagneticDipoleWholeSpace(self.XYZ_Fy, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Y',kappa= self.kappa)
-        _ , _ , bza = EM.Analytics.FDEMDipolarfields.B_from_MagneticDipoleWholeSpace(self.XYZ_Fz, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Y',kappa= self.kappa)
+        bxa, _ , _  = EM.Analytics.FDEMDipolarfields.MagneticDipoleWholeSpace_B(self.XYZ_Fx, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Y',kappa= self.kappa)
+        _ , bya , _ = EM.Analytics.FDEMDipolarfields.MagneticDipoleWholeSpace_B(self.XYZ_Fy, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Y',kappa= self.kappa)
+        _ , _ , bza = EM.Analytics.FDEMDipolarfields.MagneticDipoleWholeSpace_B(self.XYZ_Fz, self.src_loc_Fy, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Y',kappa= self.kappa)
         bxa, bya, bza = Utils.mkvc(bxa, 2), Utils.mkvc(bya, 2), Utils.mkvc(bza, 2)
 
         print str('Comp').center(4), str('Ana').center(25)              , str('Num').center(25)                 , str('Num - Ana').center(25)               , str('(Num - Ana)/Ana').center(25)                             , str('Pass Status').center(12)
@@ -2330,9 +2330,9 @@ class Z_MaDipoleTest_3DMesh(unittest.TestCase):
         ex_num, ey_num, ez_num = self.Pex*e_numE, self.Pey*e_numE, self.Pez*e_numE
 
         # Get analytic solution
-        exa, _ , _  = EM.Analytics.FDEMDipolarfields.E_from_MagneticDipoleWholeSpace(self.XYZ_Ex, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Z',kappa= self.kappa)
-        _ , eya , _ = EM.Analytics.FDEMDipolarfields.E_from_MagneticDipoleWholeSpace(self.XYZ_Ey, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Z',kappa= self.kappa)
-        _ , _ , eza = EM.Analytics.FDEMDipolarfields.E_from_MagneticDipoleWholeSpace(self.XYZ_Ez, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Z',kappa= self.kappa)
+        exa, _ , _  = EM.Analytics.FDEMDipolarfields.MagneticDipoleWholeSpace_E(self.XYZ_Ex, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Z',kappa= self.kappa)
+        _ , eya , _ = EM.Analytics.FDEMDipolarfields.MagneticDipoleWholeSpace_E(self.XYZ_Ey, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Z',kappa= self.kappa)
+        _ , _ , eza = EM.Analytics.FDEMDipolarfields.MagneticDipoleWholeSpace_E(self.XYZ_Ez, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Z',kappa= self.kappa)
         exa, eya, eza = Utils.mkvc(exa, 2), Utils.mkvc(eya, 2), Utils.mkvc(eza, 2)
 
 
@@ -2416,7 +2416,7 @@ class Z_MaDipoleTest_3DMesh(unittest.TestCase):
         jx_num, jy_num, jz_num = self.Pccx*j_numCC, self.Pccy*j_numCC, self.Pccz*j_numCC
 
         # Get analytic solution
-        jxa, jya, jza = EM.Analytics.FDEMDipolarfields.J_from_MagneticDipoleWholeSpace(self.XYZ_CC, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Z',kappa= self.kappa)
+        jxa, jya, jza = EM.Analytics.FDEMDipolarfields.MagneticDipoleWholeSpace_J(self.XYZ_CC, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Z',kappa= self.kappa)
         jxa, jya, jza = Utils.mkvc(jxa, 2), Utils.mkvc(jya, 2), Utils.mkvc(jza, 2)
 
         print str('Comp').center(4), str('Ana').center(25)              , str('Num').center(25)                 , str('Num - Ana').center(25)               , str('(Num - Ana)/Ana').center(25)                             , str('Pass Status').center(12)
@@ -2494,7 +2494,7 @@ class Z_MaDipoleTest_3DMesh(unittest.TestCase):
         hx_num, hy_num, hz_num = self.Pccx*h_numCC, self.Pccy*h_numCC, self.Pccz*h_numCC
 
         # Get analytic solution
-        hxa, hya, hza = EM.Analytics.FDEMDipolarfields.H_from_MagneticDipoleWholeSpace(self.XYZ_CC, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Z',kappa= self.kappa)
+        hxa, hya, hza = EM.Analytics.FDEMDipolarfields.MagneticDipoleWholeSpace_H(self.XYZ_CC, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Z',kappa= self.kappa)
         hxa, hya, hza = Utils.mkvc(hxa, 2), Utils.mkvc(hya, 2), Utils.mkvc(hza, 2)
 
         print str('Comp').center(4), str('Ana').center(25)              , str('Num').center(25)                 , str('Num - Ana').center(25)               , str('(Num - Ana)/Ana').center(25)                             , str('Pass Status').center(12)
@@ -2574,9 +2574,9 @@ class Z_MaDipoleTest_3DMesh(unittest.TestCase):
         bx_num, by_num, bz_num = self.Pfx*b_numF, self.Pfy*b_numF, self.Pfz*b_numF
 
         # Get analytic solution
-        bxa, _ , _  = EM.Analytics.FDEMDipolarfields.B_from_MagneticDipoleWholeSpace(self.XYZ_Fx, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Z',kappa= self.kappa)
-        _ , bya , _ = EM.Analytics.FDEMDipolarfields.B_from_MagneticDipoleWholeSpace(self.XYZ_Fy, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Z',kappa= self.kappa)
-        _ , _ , bza = EM.Analytics.FDEMDipolarfields.B_from_MagneticDipoleWholeSpace(self.XYZ_Fz, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Z',kappa= self.kappa)
+        bxa, _ , _  = EM.Analytics.FDEMDipolarfields.MagneticDipoleWholeSpace_B(self.XYZ_Fx, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Z',kappa= self.kappa)
+        _ , bya , _ = EM.Analytics.FDEMDipolarfields.MagneticDipoleWholeSpace_B(self.XYZ_Fy, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Z',kappa= self.kappa)
+        _ , _ , bza = EM.Analytics.FDEMDipolarfields.MagneticDipoleWholeSpace_B(self.XYZ_Fz, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Z',kappa= self.kappa)
         bxa, bya, bza = Utils.mkvc(bxa, 2), Utils.mkvc(bya, 2), Utils.mkvc(bza, 2)
 
         print str('Comp').center(4), str('Ana').center(25)              , str('Num').center(25)                 , str('Num - Ana').center(25)               , str('(Num - Ana)/Ana').center(25)                             , str('Pass Status').center(12)

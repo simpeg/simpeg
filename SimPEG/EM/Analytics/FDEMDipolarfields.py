@@ -9,7 +9,7 @@ omega = lambda f: 2.*np.pi*f
 # r = lambda dx, dy, dz: np.sqrt( dx**2. + dy**2. + dz**2.)
 # k = lambda f, mu, epsilon, sig: np.sqrt( omega(f)**2. *mu*epsilon -1j*omega(f)*mu*sig )
 
-def E_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', kappa=0., epsr=1., t=0.):
+def ElectricDipoleWholeSpace_E(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', kappa=0., epsr=1., t=0.):
 
     """
         Computing the analytic electric fields (E) from an electrical dipole in a wholespace
@@ -71,7 +71,7 @@ def E_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
         return Ex, Ey, Ez
 
 
-def E_galvanic_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', kappa=1., epsr=1., t=0.):
+def ElectricDipoleWholeSpace_E_galvanic(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', kappa=1., epsr=1., t=0.):
 
     """
         Computing the galvanic portion of the analytic electric fields (E) from an electrical dipole in a wholespace
@@ -133,7 +133,7 @@ def E_galvanic_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., le
         return Ex_galvanic, Ey_galvanic, Ez_galvanic
 
 
-def E_inductive_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', kappa=1., epsr=1., t=0.):
+def ElectricDipoleWholeSpace_E_inductive(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', kappa=1., epsr=1., t=0.):
 
     """
         Computing the inductive portion of the analytic electric fields (E) from an electrical dipole in a wholespace
@@ -193,7 +193,7 @@ def E_inductive_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., l
         return Ex_inductive, Ey_inductive, Ez_inductive
 
 
-def J_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', kappa=1., epsr=1., t=0.):
+def ElectricDipoleWholeSpace_J(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', kappa=1., epsr=1., t=0.):
 
     """
         Computing the analytic current density (J) from an electrical dipole in a wholespace
@@ -221,7 +221,7 @@ def J_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
     return Jx, Jy, Jz
 
 
-def J_galvanic_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', kappa=1., epsr=1., t=0.):
+def ElectricDipoleWholeSpace_J_galvanic(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', kappa=1., epsr=1., t=0.):
 
     """
         Computing the galvanic portion of the analytic current density (J) from an electrical dipole in a wholespace
@@ -249,7 +249,7 @@ def J_galvanic_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., le
     return Jx_galvanic, Jy_galvanic, Jz_galvanic
 
 
-def J_inductive_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', kappa=1., epsr=1., t=0.):
+def ElectricDipoleWholeSpace_J_inductive(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', kappa=1., epsr=1., t=0.):
 
     """
         Computing the inductive portion of the analytic current density (J) from an electrical dipole in a wholespace
@@ -277,7 +277,7 @@ def J_inductive_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., l
     return Jx_inductive, Jy_inductive, Jz_inductive
 
 
-def H_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', kappa=1., epsr=1., t=0.):
+def ElectricDipoleWholeSpace_H(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', kappa=1., epsr=1., t=0.):
 
     """
         Computing the analytic magnetic fields (H) from an electrical dipole in a wholespace
@@ -334,7 +334,7 @@ def H_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
         return Hx, Hy, Hz
 
 
-def B_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', kappa=1., epsr=1., t=0.):
+def ElectricDipoleWholeSpace_B(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', kappa=1., epsr=1., t=0.):
 
     """
         Computing the analytic magnetic flux density (B) from an electrical dipole in a wholespace
@@ -364,7 +364,7 @@ def B_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
     return Bx, By, Bz
 
 
-def A_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', kappa=1., epsr=1., t=0.):
+def ElectricDipoleWholeSpace_A(XYZ, srcLoc, sig, f, current=1., length=1., orientation='X', kappa=1., epsr=1., t=0.):
 
     """
         Computing the analytic electric vector potential (A) from an electrical dipole in a wholespace
@@ -419,7 +419,7 @@ def A_from_ElectricDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., length=1., 
         return Ax, Ay, Az
 
 
-def E_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., loopArea=1., orientation='X', kappa=0., epsr=1., t=0.):
+def MagneticDipoleWholeSpace_E(XYZ, srcLoc, sig, f, current=1., loopArea=1., orientation='X', kappa=0., epsr=1., t=0.):
 
     """
         Computing the analytic electric fields (E) from a magnetic dipole in a wholespace
@@ -478,7 +478,7 @@ def E_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., loopArea=1.
         return Ex, Ey, Ez
 
 
-def J_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., loopArea=1., orientation='X', kappa=1., epsr=1., t=0.):
+def MagneticDipoleWholeSpace_J(XYZ, srcLoc, sig, f, current=1., loopArea=1., orientation='X', kappa=1., epsr=1., t=0.):
 
     """
         Computing the analytic current density (J) from a magnetic dipole in a wholespace
@@ -506,7 +506,7 @@ def J_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., loopArea=1.
     return Jx, Jy, Jz
 
 
-def H_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., loopArea=1., orientation='X', kappa=1., epsr=1., t=0.):
+def MagneticDipoleWholeSpace_H(XYZ, srcLoc, sig, f, current=1., loopArea=1., orientation='X', kappa=1., epsr=1., t=0.):
 
     """
         Computing the analytic magnetic fields (H) from a magnetic dipole in a wholespace
@@ -568,7 +568,7 @@ def H_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., loopArea=1.
         return Hx, Hy, Hz
 
 
-def B_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., loopArea=1., orientation='X', kappa=1., epsr=1., t=0.):
+def MagneticDipoleWholeSpace_B(XYZ, srcLoc, sig, f, current=1., loopArea=1., orientation='X', kappa=1., epsr=1., t=0.):
 
     """
         Computing the analytic magnetic flux density (B) from a magnetic dipole in a wholespace
@@ -598,7 +598,7 @@ def B_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., loopArea=1.
     return Bx, By, Bz
 
 
-def F_from_MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, current=1., loopArea=1., orientation='X', kappa=1., epsr=1., t=0.):
+def MagneticDipoleWholeSpace_F(XYZ, srcLoc, sig, f, current=1., loopArea=1., orientation='X', kappa=1., epsr=1., t=0.):
 
     """
         Computing the analytic magnetic vector potential (F) from a magnetic dipole in a wholespace
