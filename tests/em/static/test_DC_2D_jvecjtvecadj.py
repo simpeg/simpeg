@@ -1,9 +1,11 @@
+from __future__ import print_function
 import unittest
 import numpy as np
 from SimPEG import (Mesh, Maps, Utils, DataMisfit, Regularization,
                     Optimization, Tests, Inversion, InvProblem)
 import SimPEG.EM.Static.DC as DC
 
+np.random.seed(41)
 
 class DCProblem_2DTestsCC(unittest.TestCase):
 
@@ -57,7 +59,7 @@ class DCProblem_2DTestsCC(unittest.TestCase):
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-10
-        print 'Adjoint Test', np.abs(wtJv - vtJtw), passed
+        print('Adjoint Test', np.abs(wtJv - vtJtw), passed)
         self.assertTrue(passed)
 
     def test_dataObj(self):
@@ -117,7 +119,7 @@ class DCProblemTestsN(unittest.TestCase):
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
-        print 'Adjoint Test', np.abs(wtJv - vtJtw), passed
+        print('Adjoint Test', np.abs(wtJv - vtJtw), passed)
         self.assertTrue(passed)
 
     def test_dataObj(self):

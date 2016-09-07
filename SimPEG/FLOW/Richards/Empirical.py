@@ -1,4 +1,4 @@
-from SimPEG import Mesh, Maps, Utils, np
+from SimPEG import Mesh, Utils, np
 
 
 class NonLinearMap(object):
@@ -6,8 +6,6 @@ class NonLinearMap(object):
     SimPEG NonLinearMap
 
     """
-
-    __metaclass__ = Utils.SimPEGMetaClass
 
     counter = None   #: A SimPEG.Utils.Counter object
     mesh = None      #: A SimPEG Mesh

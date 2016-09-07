@@ -5,7 +5,7 @@ import SimPEG as simpeg
 from SimPEG import MT
 import numpy as np
 try:
-    from pymatsolver import MumpsSolver as Solver
+    from pymatsolver import PardisoSolver as Solver
 except:
     from SimPEG import Solver
 

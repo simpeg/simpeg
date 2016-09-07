@@ -1,7 +1,9 @@
-from SimPEG import np, Mesh
+from __future__ import print_function
+import numpy as np
+from SimPEG import Mesh
 import time as tm
-import vtk, vtk.util.numpy_support as npsup
 import re
+
 
 def read_GOCAD_ts(tsfile):
     """
@@ -25,20 +27,23 @@ def read_GOCAD_ts(tsfile):
 
     """
 
+    import re
+    import vtk
+    import vtk.util.numpy_support as npsup
 
-    fid = open(tsfile,'r')
+    fid = open(tsfile, 'r')
     line = fid.readline()
 
     # Skip all the lines until the vertices
-    while re.match('TFACE',line)==None:
+    while re.match('TFACE', line) == None:
         line = fid.readline()
 
     line = fid.readline()
     vrtx = []
 
     # Run down all the vertices and save in array
-    while re.match('VRTX',line):
-        l_input  = re.split('[\s*]',line)
+    while re.match('VRTX', line):
+        l_input = re.split('[\s*]', line)
         temp = np.array(l_input[2:5])
         vrtx.append(temp.astype(np.float))
 
@@ -48,15 +53,15 @@ def read_GOCAD_ts(tsfile):
     vrtx = np.asarray(vrtx)
 
     # Skip lines to the triangles
-    while re.match('TRGL',line)==None:
+    while re.match('TRGL', line) == None:
         line = fid.readline()
 
     # Run down the list of triangles
     trgl = []
 
     # Run down all the vertices and save in array
-    while re.match('TRGL',line):
-        l_input  = re.split('[\s*]',line)
+    while re.match('TRGL', line):
+        l_input = re.split('[\s*]', line)
         temp = np.array(l_input[1:4])
         trgl.append(temp.astype(np.int))
 
@@ -67,17 +72,22 @@ def read_GOCAD_ts(tsfile):
 
     return vrtx, trgl
 
+
 def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
     """"
-    Function to read gocad polystructure file and output indexes of mesh with in the structure.
+    Function to read gocad polystructure file and output indexes of
+    mesh with in the structure.
 
     """
+    import vtk
+    import vtk.util.numpy_support as npsup
+
     # Adjust the index
     trgl = trgl - 1
 
     # Make vtk pts
     ptsvtk = vtk.vtkPoints()
-    ptsvtk.SetData(npsup.numpy_to_vtk(vrtx,deep=1))
+    ptsvtk.SetData(npsup.numpy_to_vtk(vrtx, deep=1))
 
     # Make the polygon connection
     polys = vtk.vtkCellArray()
@@ -85,7 +95,7 @@ def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
         poly = vtk.vtkPolygon()
         poly.GetPointIds().SetNumberOfIds(len(face))
         for nrv, vert in enumerate(face):
-            poly.GetPointIds().SetId(nrv,vert)
+            poly.GetPointIds().SetId(nrv, vert)
         polys.InsertNextCell(poly)
 
     # Make the polydata, structure of connections and vrtx
@@ -99,7 +109,7 @@ def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
 
     # Convert the mesh
     vtkMesh = vtk.vtkRectilinearGrid()
-    vtkMesh.SetDimensions(mesh.nNx,mesh.nNy,mesh.nNz)
+    vtkMesh.SetDimensions(mesh.nNx, mesh.nNy, mesh.nNz)
     vtkMesh.SetXCoordinates(npsup.numpy_to_vtk(mesh.vectorNx, deep=1))
     vtkMesh.SetYCoordinates(npsup.numpy_to_vtk(mesh.vectorNy, deep=1))
     vtkMesh.SetZCoordinates(npsup.numpy_to_vtk(mesh.vectorNz, deep=1))
@@ -108,8 +118,8 @@ def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
     vtkInd.SetName('Index')
     vtkMesh.GetCellData().AddArray(vtkInd)
 
-    extractImpDistRectGridFilt = vtk.vtkExtractGeometry() # Object constructor
-    extractImpDistRectGridFilt.SetImplicitFunction(ImpDistFunc) #
+    extractImpDistRectGridFilt = vtk.vtkExtractGeometry()  # Object constructor
+    extractImpDistRectGridFilt.SetImplicitFunction(ImpDistFunc)  #
     extractImpDistRectGridFilt.SetInputData(vtkMesh)
 
     if boundaries is True:
@@ -124,7 +134,7 @@ def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
     else:
         extractImpDistRectGridFilt.ExtractInsideOff()
 
-    print "Extracting indices from grid..."
+    print("Extracting indices from grid...")
     # Executing the pipe
     extractImpDistRectGridFilt.Update()
 
@@ -132,6 +142,39 @@ def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
     insideGrid = extractImpDistRectGridFilt.GetOutput()
     insideGrid = npsup.vtk_to_numpy(insideGrid.GetCellData().GetArray('Index'))
 
-
     # Return the indexes inside
     return insideGrid
+
+
+def remoteDownload(url, remoteFiles, basePath=None):
+    """
+    Function to download all files stored in a cloud directory
+    var:    url ("http:\\...")
+    list:   List of file names to download
+    """
+
+    # Download from cloud
+    import urllib
+    import shutil
+    import os
+    import sys
+    if sys.version_info < (3,):
+        urlretrieve = urllib.urlretrieve
+    else:
+        urlretrieve = urllib.request.urlretrieve
+
+    if basePath is None:
+        basePath = os.curdir+os.path.sep+'SimPEGtemp'+os.path.sep
+
+    if os.path.exists(basePath):
+        shutil.rmtree(basePath)
+
+    os.makedirs(basePath)
+
+    print("Download files from URL...")
+    for file in remoteFiles:
+        print("Retrieving: " + file)
+        urlretrieve(url + file, basePath+file)
+
+    print("Download completed!")
+    return basePath

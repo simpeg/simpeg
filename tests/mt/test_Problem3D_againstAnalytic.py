@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Test functions
 from glob import glob
 import numpy as np, sys, os, time, scipy, subprocess
@@ -136,8 +137,8 @@ def setupSimpegMTfwd_eForm_ps(inputSetup,comp='Imp',singleFreq=False,expMap=True
     problem.pair(survey)
     problem.verbose = False
     try:
-        from pymatsolver import MumpsSolver
-        problem.Solver = MumpsSolver
+        from pymatsolver import PardisoSolver
+        problem.Solver = PardisoSolver
     except:
         pass
 
@@ -155,27 +156,27 @@ def getAppResPhs(MTdata):
 def JvecAdjointTest(inputSetup,comp='All',freq=False):
     (M, freqs, sig, sigBG, rx_loc) = inputSetup
     survey, problem = setupSimpegMTfwd_eForm_ps(inputSetup,comp='All',singleFreq=freq)
-    print 'Adjoint test of eForm primary/secondary for {:s} comp at {:s}\n'.format(comp,str(survey.freqs))
+    print('Adjoint test of eForm primary/secondary for {!s:s} comp at {!s:s}\n'.format(comp,str(survey.freqs)))
 
     m  = sig
     u = problem.fields(m)
 
     v = np.random.rand(survey.nD,)
-    # print problem.PropMap.PropModel.nP
+    # print(problem.PropMap.PropModel.nP)
     w = np.random.rand(problem.mesh.nC,)
 
     vJw = v.ravel().dot(problem.Jvec(m, w, u))
     wJtv = w.ravel().dot(problem.Jtvec(m, v, u))
     tol = np.max([TOL*(10**int(np.log10(np.abs(vJw)))),FLR])
-    print ' vJw   wJtv  vJw - wJtv     tol    abs(vJw - wJtv) < tol'
-    print vJw, wJtv, vJw - wJtv, tol, np.abs(vJw - wJtv) < tol
+    print(' vJw   wJtv  vJw - wJtv     tol    abs(vJw - wJtv) < tol')
+    print(vJw, wJtv, vJw - wJtv, tol, np.abs(vJw - wJtv) < tol)
     return np.abs(vJw - wJtv) < tol
 
 # Test the Jvec derivative
 def DerivJvecTest(inputSetup,comp='All',freq=False,expMap=True):
     (M, freqs, sig, sigBG, rx_loc) = inputSetup
     survey, problem = setupSimpegMTfwd_eForm_ps(inputSetup,comp=comp,singleFreq=freq,expMap=expMap)
-    print 'Derivative test of Jvec for eForm primary/secondary for {:s} comp at {:s}\n'.format(comp,survey.freqs)
+    print('Derivative test of Jvec for eForm primary/secondary for {!s:s} comp at {!s:s}\n'.format(comp,survey.freqs))
     # problem.mapping = simpeg.Maps.ExpMap(problem.mesh)
     # problem.sigmaPrimary = np.log(sigBG)
     x0 = np.log(sigBG)
@@ -192,7 +193,7 @@ def DerivJvecTest(inputSetup,comp='All',freq=False,expMap=True):
 def DerivProjfieldsTest(inputSetup,comp='All',freq=False):
 
     survey, problem = setupSimpegMTfwd_eForm_ps(inputSetup,comp,freq)
-    print 'Derivative test of data projection for eFormulation primary/secondary\n\n'
+    print('Derivative test of data projection for eFormulation primary/secondary\n\n')
     # problem.mapping = simpeg.Maps.ExpMap(problem.mesh)
     # Initate things for the derivs Test
     src = survey.srcList[0]
@@ -221,7 +222,7 @@ def appResPhsHalfspace_eFrom_ps_Norm(sigmaHalf,appR=True,expMap=False):
         label = 'phase'
     # Make the survey and the problem
     survey, problem = setupSimpegMTfwd_eForm_ps(halfSpace(sigmaHalf),expMap=expMap)
-    print 'Apperent {:s} test of eFormulation primary/secondary at {:g}\n\n'.format(label,sigmaHalf)
+    print('Apperent {!s:s} test of eFormulation primary/secondary at {:g}\n\n'.format(label,sigmaHalf))
 
     data = problem.dataPair(survey,survey.dpred(problem.curModel))
     # Calculate the app  phs

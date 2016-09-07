@@ -1,6 +1,6 @@
 import numpy as np
 from scipy import sparse as sp
-from matutils import mkvc, ndgrid, sub2ind, sdiag
+from .matutils import mkvc, ndgrid, sub2ind, sdiag
 
 
 def volTetra(xyz, A, B, C, D):

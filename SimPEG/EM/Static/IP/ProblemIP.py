@@ -1,11 +1,11 @@
 from SimPEG import Problem, Utils, Maps, Mesh
 from SimPEG.EM.Base import BaseEMProblem
-from SimPEG.EM.Static.DC.FieldsDC import Fields, Fields_CC, Fields_N
+from SimPEG.EM.Static.DC.FieldsDC import FieldsDC, Fields_CC, Fields_N
 from SimPEG.Utils import sdiag
 import numpy as np
 from SimPEG.Utils import Zero
 from SimPEG.EM.Static.DC import getxBCyBC_CC
-from SurveyIP import Survey
+from .SurveyIP import Survey
 
 class IPPropMap(Maps.PropMap):
     """
@@ -17,7 +17,7 @@ class IPPropMap(Maps.PropMap):
 class BaseIPProblem(BaseEMProblem):
 
     surveyPair = Survey
-    fieldsPair = Fields
+    fieldsPair = FieldsDC
     PropMap = IPPropMap
     Ainv = None
     sigma = None

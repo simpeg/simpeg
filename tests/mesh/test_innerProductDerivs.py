@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 import unittest
 from SimPEG import Mesh, Utils, Tests
@@ -21,7 +22,7 @@ class TestInnerProductsDerivs(unittest.TestCase):
             M  = mesh.getFaceInnerProduct(sig, invProp=invProp, invMat=invMat)
             Md = mesh.getFaceInnerProductDeriv(sig, invProp=invProp, invMat=invMat, doFast=fast)
             return M*v, Md(v)
-        print meshType, 'Face', h, rep, fast, ('harmonic' if invProp and invMat else 'standard')
+        print(meshType, 'Face', h, rep, fast, ('harmonic' if invProp and invMat else 'standard'))
         return Tests.checkDerivative(fun, sig, num=5, plotIt=False)
 
     def doTestEdge(self, h, rep, fast, meshType, invProp=False, invMat=False):
@@ -40,7 +41,7 @@ class TestInnerProductsDerivs(unittest.TestCase):
             M  = mesh.getEdgeInnerProduct(sig, invProp=invProp, invMat=invMat)
             Md = mesh.getEdgeInnerProductDeriv(sig, invProp=invProp, invMat=invMat, doFast=fast)
             return M*v, Md(v)
-        print meshType, 'Edge', h, rep, fast, ('harmonic' if invProp and invMat else 'standard')
+        print(meshType, 'Edge', h, rep, fast, ('harmonic' if invProp and invMat else 'standard'))
         return Tests.checkDerivative(fun, sig, num=5, plotIt=False)
 
     def test_FaceIP_1D_float(self):
