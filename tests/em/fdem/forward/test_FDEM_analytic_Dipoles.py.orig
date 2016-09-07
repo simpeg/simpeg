@@ -209,7 +209,7 @@ class X_ElecDipoleTest_3DMesh(unittest.TestCase):
                     tol_ElecDipole_X)
 
         passed_x, passed_y, passed_z = errorLog(
-            'E', exa, eya, eza, ex_num, ey_num, ez_num, tol_ElecDipole_X
+            'E', exa, eya, eza, ex_num, ey_num, ez_num, tol
             )
 
         self.assertTrue(passed_x, msg='Analytic and numeric solutions for Ex do not agree.')
@@ -368,6 +368,9 @@ class Y_ElecDipoleTest_3DMesh(unittest.TestCase):
         self.kappa = KAPPA
 
         # Create 3D mesh
+<<<<<<< HEAD
+        self.mesh = setUpMesh(npad=9)
+=======
         csx, ncx, npadx = 5, 18, 8
         csy, ncy, npady = 5, 18, 8
         csz, ncz, npadz = 5, 18, 8
@@ -375,6 +378,7 @@ class Y_ElecDipoleTest_3DMesh(unittest.TestCase):
         hy = Utils.meshTensor([(csy, npady, -1.3), (csy, ncy), (csy, npady, 1.3)])
         hz = Utils.meshTensor([(csz, npadz, -1.3), (csz, ncz), (csz, npadz, 1.3)])
         self.mesh = Mesh.TensorMesh([hx, hy, hz], 'CCC')
+>>>>>>> analytics
 
         # Set source parameters
         self.freq = 500.
@@ -482,7 +486,7 @@ class Y_ElecDipoleTest_3DMesh(unittest.TestCase):
                     tol_ElecDipole_Y)
 
         passed_x, passed_y, passed_z = errorLog(
-            'E', exa, eya, eza, ex_num, ey_num, ez_num, tol_ElecDipole_Y
+            'E', exa, eya, eza, ex_num, ey_num, ez_num, tol
             )
 
         self.assertTrue(passed_x, msg='Analytic and numeric solutions for Ex do not agree.')
@@ -620,7 +624,7 @@ class Y_ElecDipoleTest_3DMesh(unittest.TestCase):
                     tol_ElecDipole_Y)
 
         passed_x, passed_y, passed_z = errorLog(
-            'B', bxa, bya, bza, bx_num, by_num, bz_num, tol_ElecDipole_Y
+            'B', bxa, bya, bza, bx_num, by_num, bz_num, tol
             )
 
         self.assertTrue(
