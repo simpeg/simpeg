@@ -69,7 +69,7 @@ class BaseSrc(Survey.BaseSrc):
         """
         Derivative of the primary magnetic flux density
 
-        :param Problem prob: FDEM Problem
+        :param BaseFDEMProblem prob: FDEM Problem
         :param numpy.ndarray v: vector
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -93,7 +93,7 @@ class BaseSrc(Survey.BaseSrc):
         """
         Derivative of the primary magnetic field
 
-        :param Problem prob: FDEM Problem
+        :param BaseFDEMProblem prob: FDEM Problem
         :param numpy.ndarray v: vector
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -141,7 +141,7 @@ class BaseSrc(Survey.BaseSrc):
         """
         Derivative of the primary current density
 
-        :param Problem prob: FDEM Problem
+        :param BaseFDEMProblem prob: FDEM Problem
         :param numpy.ndarray v: vector
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
