@@ -122,7 +122,7 @@ class BaseNSEMProblem(BaseFDEMProblem):
                         du_dmT = -dA_dmT + dRHS_dmT
                     # Select the correct component
                     # du_dmT needs to be of size nC,
-                    real_or_imag = rx.projComp
+                    real_or_imag = rx.component
                     if real_or_imag == 'real':
                         Jtv +=  du_dmT.real
                     elif real_or_imag == 'imag':

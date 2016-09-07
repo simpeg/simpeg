@@ -148,28 +148,28 @@ class Point_NSEM(SimPEG.Survey.BaseRx):
     # Adjoint
     @property
     def aex_px(self):
-        return mkvc(mkvc(self.f[self.src,'e_px'],2).T*self.Pex.T)
+        return SimPEG.mkvc(SimPEG.mkvc(self.f[self.src,'e_px'],2).T*self.Pex.T)
     @property
     def aey_px(self):
-        return mkvc(mkvc(self.f[self.src,'e_px'],2).T*self.Pey.T)
+        return SimPEG.mkvc(SimPEG.mkvc(self.f[self.src,'e_px'],2).T*self.Pey.T)
     @property
     def aex_py(self):
-        return mkvc(mkvc(self.f[self.src,'e_py'],2).T*self.Pex.T)
+        return SimPEG.mkvc(SimPEG.mkvc(self.f[self.src,'e_py'],2).T*self.Pex.T)
     @property
     def aey_py(self):
-        return mkvc(mkvc(self.f[self.src,'e_py'],2).T*self.Pey.T)
+        return SimPEG.mkvc(SimPEG.mkvc(self.f[self.src,'e_py'],2).T*self.Pey.T)
     @property
     def ahx_px(self):
-        return mkvc(mkvc(self.f[self.src,'b_px'],2).T/mu_0*self.Pbx.T)
+        return SimPEG.mkvc(SimPEG.mkvc(self.f[self.src,'b_px'],2).T/mu_0*self.Pbx.T)
     @property
     def ahy_px(self):
-        return mkvc(mkvc(self.f[self.src,'b_px'],2).T/mu_0*self.Pby.T)
+        return SimPEG.mkvc(SimPEG.mkvc(self.f[self.src,'b_px'],2).T/mu_0*self.Pby.T)
     @property
     def ahx_py(self):
-        return mkvc(mkvc(self.f[self.src,'b_py'],2).T/mu_0*self.Pbx.T)
+        return SimPEG.mkvc(SimPEG.mkvc(self.f[self.src,'b_py'],2).T/mu_0*self.Pbx.T)
     @property
     def ahy_py(self):
-        return mkvc(mkvc(self.f[self.src,'b_py'],2).T/mu_0*self.Pby.T)
+        return SimPEG.mkvc(SimPEG.mkvc(self.f[self.src,'b_py'],2).T/mu_0*self.Pby.T)
 
     def aex_px_u(self, vec):
         return self.f._e_pxDeriv_u(self.src,self.Pex.T*vec,adjoint=True)
@@ -190,7 +190,7 @@ class Point_NSEM(SimPEG.Survey.BaseRx):
     # Define the components of the derivative
     @property
     def aHd(self):
-        return sDiag(1./(
+        return self.sDiag(1./(
             self.sDiag(self.ahx_px)*self.ahy_py -
             self.sDiag(self.ahx_py)*self.ahy_px
         ))
@@ -287,7 +287,7 @@ class Point_impedance3D(Point_NSEM):
             elif 'xy' in self.orientation:
                 Zij = self.sDiag(self.aHd * (
                     -self.sDiag(self.ahx_py) * self.aex_px +
-                    self.Diag(self.ahx_px) * self.aex_py
+                    self.sDiag(self.ahx_px) * self.aex_py
                 ))
                 def ZijN_uV(x):
                     return (-self.aex_px_u(self.sDiag(self.ahx_py)*x) -
@@ -318,9 +318,9 @@ class Point_impedance3D(Point_NSEM):
                     )
 
             # Calculate the complex derivative
-            PDeriv_real = ZijN_uV(aHd*v) - aHd_uV(Zij.T*aHd*v)#
+            PDeriv_real = ZijN_uV(self.aHd*v) - self.aHd_uV(Zij.T*self.aHd*v)#
             # NOTE: Need to reshape the output to go from 2*nU array to a (nU,2) matrix for each polarization
-            # PDeriv_real = np.hstack((mkvc(PDeriv_real[:len(PDeriv_real)/2],2),mkvc(PDeriv_real[len(PDeriv_real)/2::],2)))
+            # PDeriv_real = np.hstack((SimPEG.mkvc(PDeriv_real[:len(PDeriv_real)/2],2),SimPEG.mkvc(PDeriv_real[len(PDeriv_real)/2::],2)))
             PDeriv_real = PDeriv_real.reshape((2,self.mesh.nE)).T
             # Extract the data
             if self.component == 'imag':
@@ -359,7 +359,7 @@ class Point_impedance3D(Point_NSEM):
 
             Zij = self.eval(src, self.mesh, self.f)
             # Calculate the complex derivative
-            PDeriv_complex = self.Hd * (ZijN_uV - Zij * self.Hd_uV(v) )
+            PDeriv_complex = self.Hd * (ZijN_uV - self.sDiag(Zij) * self.Hd_uV(v) )
             Pv = SimPEG.np.array(getattr(PDeriv_complex, self.component))
 
         return Pv
