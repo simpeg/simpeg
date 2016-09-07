@@ -44,7 +44,6 @@ def DerivProjfieldsTest(inputSetup,comp='All',freq=False):
     # problem.mapping = simpeg.Maps.ExpMap(problem.mesh)
     # Initate things for the derivs Test
     src = survey.srcList[0]
-    rx = src.rxList[0]
 
     u0x = np.random.randn(survey.mesh.nE)+np.random.randn(survey.mesh.nE)*1j
     u0y = np.random.randn(survey.mesh.nE)+np.random.randn(survey.mesh.nE)*1j
@@ -78,7 +77,7 @@ class NSEM_DerivTests(unittest.TestCase):
     # def test_derivJvec_zyxi(self):self.assertTrue(DerivJvecTest(random(1e-2),'zyxi',.1))
     # def test_derivJvec_zyyr(self):self.assertTrue(DerivJvecTest(random(1e-2),'zyyr',.1))
     # def test_derivJvec_zyyi(self):self.assertTrue(DerivJvecTest(random(1e-2),'zyyi',.1))
-    def test_derivJvec_All(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.random(1e-2),'All',.1))
+    def test_derivJvec_All(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.random(1e-2),'Imp',.1))
 
 if __name__ == '__main__':
     unittest.main()

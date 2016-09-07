@@ -79,8 +79,9 @@ def setupSimpegNSEM_ePrimSec(inputSetup,comp='Imp',singleFreq=False,expMap=True)
         for rxType in ['zxxr','zxxi','zxyr','zxyi','zyxr','zyxi','zyyr','zyyi','tzxr','tzxi','tzyr','tzyi']:
             rxList.append(NSEM.Rx(rx_loc,rxType))
     elif comp == 'Imp':
-        for rxType in ['zxxr','zxxi','zxyr','zxyi','zyxr','zyxi','zyyr','zyyi']:
-            rxList.append(NSEM.Rx(rx_loc,rxType))
+        for rxType in ['xx','xy','yx','yy']:
+            rxList.append(NSEM.Point_impedance3D(rx_loc,rxType,'real'))
+            rxList.append(NSEM.Point_impedance3D(rx_loc,rxType,'real'))
     elif comp == 'Tip':
         for rxType in ['tzxr','tzxi','tzyr','tzyi']:
             rxList.append(NSEM.Rx(rx_loc,rxType))

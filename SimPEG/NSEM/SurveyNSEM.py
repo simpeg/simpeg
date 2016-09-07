@@ -501,9 +501,10 @@ class Data(SimPEGsurvey.Data):
             tArrRec = np.concatenate((src.freq*np.ones((locs.shape[0],1)),locs,np.nan*np.ones((locs.shape[0],12))),axis=1).view(dtRI)
             # np.array([(src.freq,rx.locs[0,0],rx.locs[0,1],rx.locs[0,2],np.nan ,np.nan ,np.nan ,np.nan ,np.nan ,np.nan ,np.nan ,np.nan ) for rx in src.rxList],dtype=dtRI)
             # Get the type and the value for the DataNSEM object as a list
-            typeList = [[rx.rxType.replace('z1d','zyx'),self[src,rx]] for rx in src.rxList]
+            typeList = [[rx.orientation,rx.component,self[src,rx]] for rx in src.rxList]
             # Insert the values to the temp array
-            for nr,(key,val) in enumerate(typeList):
+            for nr,(k,c,val) in enumerate(typeList):
+                key = 'z' + k + c[0]
                 tArrRec[key] = mkvc(val,2)
             # Masked array
             mArrRec = np.ma.MaskedArray(rec2ndarr(tArrRec),mask=np.isnan(rec2ndarr(tArrRec))).view(dtype=tArrRec.dtype)
