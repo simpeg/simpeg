@@ -87,7 +87,6 @@ after_success:
       fi;
     fi
   - if [ ${TEST_DIR} = "tests/docs" -a $"TRAVIS_PYTHON_VERSION" == "2.7" ]; then
-      cd .. ;
       python setup.py register -r pypi ;
       python setup.py sdist upload ;
     fi
