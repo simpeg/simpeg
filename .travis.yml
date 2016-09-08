@@ -86,13 +86,15 @@ after_success:
         gcloud -q preview app deploy ./docs/app.yaml --version ${TRAVIS_COMMIT} --promote;
       fi;
     fi
-  # - if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then
   - if [ ${TEST_DIR} == "tests/docs" -a $TRAVIS_PYTHON_VERSION == "2.7"]; then
-      cd ../ ;
+      cd .. ;
       python setup.py register -r pypi ;
       python setup.py sdist upload ;
     fi
-    # fi
+
+    # - if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then
+
+  # fi
 
 
 notifications:
