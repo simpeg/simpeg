@@ -1410,14 +1410,13 @@ class Z_MaDipoleTest_3DMesh(unittest.TestCase):
         jxa, jya, jza = EM.Analytics.FDEMDipolarfields.MagneticDipoleWholeSpace_J(self.XYZ_CC, self.src_loc_Fz, self.sigmaback, Utils.mkvc(np.array(self.freq)),orientation='Z',kappa= self.kappa)
         jxa, jya, jza = Utils.mkvc(jxa, 2), Utils.mkvc(jya, 2), Utils.mkvc(jza, 2)
 
-        print str('Comp').center(4), str('Ana').center(25)              , str('Num').center(25)                 , str('Num - Ana').center(25)               , str('(Num - Ana)/Ana').center(25)                             , str('Pass Status').center(12)
-        print str('J_x:').rjust(4) , repr(np.linalg.norm(jxa)).rjust(25), repr(np.linalg.norm(jx_num)).rjust(25), repr(np.linalg.norm(jxa-jx_num)).rjust(25), repr(np.linalg.norm(jxa-jx_num)/np.linalg.norm(jxa)).rjust(25), repr(np.linalg.norm(jxa-jx_num)/np.linalg.norm(jxa) < tol_MagDipole_Z).center(12)
-        print str('J_y:').rjust(4) , repr(np.linalg.norm(jya)).rjust(25), repr(np.linalg.norm(jy_num)).rjust(25), repr(np.linalg.norm(jya-jy_num)).rjust(25), repr(np.linalg.norm(jya-jy_num)/np.linalg.norm(jya)).rjust(25), repr(np.linalg.norm(jya-jy_num)/np.linalg.norm(jya) < tol_MagDipole_Z).center(12)
-        print str('J_z:').rjust(4) , repr(np.linalg.norm(jza)).rjust(25), repr(np.linalg.norm(jz_num)).rjust(25), repr(np.linalg.norm(jza-jz_num)).rjust(25), str('').rjust(25)                                             , repr(np.linalg.norm(jza-jz_num) < tol_NumErrZero).center(12)
-        print
-        self.assertTrue(np.linalg.norm(jxa-jx_num)/np.linalg.norm(jxa) < tol_MagDipole_Z, msg='Analytic and numeric solutions for Jx do not agree.')
-        self.assertTrue(np.linalg.norm(jya-jy_num)/np.linalg.norm(jya) < tol_MagDipole_Z, msg='Analytic and numeric solutions for Jy do not agree.')
-        self.assertTrue(np.linalg.norm(jza-jz_num) < tol_NumErrZero, msg='Analytic and numeric solutions for Jz do not agree.')
+        passed_x, passed_y, passed_z = errorLog(
+            'J', jxa, jya, jza, jx_num, jy_num, jz_num, tol_MagDipole_Z
+            )
+
+        self.assertTrue(passed_x, msg='Analytic and numeric solutions for Jx do not agree.')
+        self.assertTrue(passed_y, msg='Analytic and numeric solutions for Jy do not agree.')
+        self.assertTrue(passed_z, msg='Analytic and numeric solutions for Jz do not agree.')
 
         # Plot Tx and Rx locations on mesY
         if plotIt:
