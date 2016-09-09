@@ -1,6 +1,7 @@
 import unittest
-from SimPEG import EM, Mesh, Utils, np, Maps, sp
-
+from SimPEG import EM, Mesh, Utils, Maps
+import numpy as np
+import scipy.sparse as sp
 try:
     from pymatsolver import PardisoSolver as Solver
     print('Solver set to Pardiso')
