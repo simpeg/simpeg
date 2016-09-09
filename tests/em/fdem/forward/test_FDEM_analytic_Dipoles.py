@@ -3,12 +3,14 @@ from SimPEG import EM, Mesh, Utils, np, Maps, sp
 
 try:
     from pymatsolver import PardisoSolver as Solver
-    # from pymatsolver import MumpsSolver as Solver
+    print('Solver set to Pardiso')
 except ImportError:
-	try:
-		from pymatsolver import MumpsSolver as Solver
-	except ImportError:	
-	    from SimPEG import SolverLU as Solver
+    try:
+        from pymatsolver import MumpsSolver as Solver
+        print('Solver set to Mumps')
+    except ImportError:
+        from SimPEG import SolverLU as Solver
+        print('Solver set to LU')
 
 # import sys
 from scipy.constants import mu_0
