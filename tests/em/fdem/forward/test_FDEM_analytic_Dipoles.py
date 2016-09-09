@@ -1,10 +1,15 @@
 import unittest
 from SimPEG import EM, Mesh, Utils, np, Maps, sp
+
 try:
-    # from pymatsolver import PardisoSolver as Solver
-    from pymatsolver import MumpsSolver as Solver
+    from pymatsolver import PardisoSolver as Solver
+    # from pymatsolver import MumpsSolver as Solver
 except ImportError:
-    from SimPEG import SolverLU as Solver
+	try:
+		from pymatsolver import MumpsSolver as Solver
+	except ImportError:	
+	    from SimPEG import SolverLU as Solver
+
 # import sys
 from scipy.constants import mu_0
 
