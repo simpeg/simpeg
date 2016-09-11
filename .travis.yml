@@ -86,7 +86,7 @@ after_success:
       fi;
     fi
   - if [ ${TEST_DIR} = "tests/docs" ]; then
-      mv credentials/.pyrpirc ~/.pyrpirc ;
+      mv credentials/.pypirc ~/.pypirc ;
       python setup.py register -r pypi ;
       python setup.py sdist upload ;
     fi
