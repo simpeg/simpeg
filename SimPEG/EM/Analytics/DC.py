@@ -2,7 +2,7 @@ import numpy as np
 from scipy.constants import mu_0, pi
 from scipy import special
 
-def DCAnalytic_PoleTx(txloc, rxlocs, sigma, earth_type="wholespace"):
+def DCAnalytic_PoleTx(txloc, rxlocs, sigma, current=1., earth_type="wholespace"):
     """
         Analytic solution for electric potential from a postive pole
 
@@ -24,8 +24,10 @@ def DCAnalytic_PoleTx(txloc, rxlocs, sigma, earth_type="wholespace"):
     rM = np.sqrt( (M[:,0]-txloc[0])**2 + (M[:,1]-txloc[1])**2 + (M[:,2]-txloc[1])**2 )
     rN = np.sqrt( (N[:,0]-txloc[0])**2 + (N[:,1]-txloc[1])**2 + (N[:,2]-txloc[1])**2 )
 
-    phiM = 1./(4*np.pi*rM*sigma)
-    phiN = 1./(4*np.pi*rN*sigma)
+    frontFactor = current/(4*np.pi*sigma)
+
+    phiM = frontFactor*(1/rM)
+    phiN = frontFactor*(1/rN)
     phi = phiM - phiN
 
     if earth_type == "halfspace":
