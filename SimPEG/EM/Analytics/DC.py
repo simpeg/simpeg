@@ -2,7 +2,7 @@ import numpy as np
 from scipy.constants import mu_0, pi
 from scipy import special
 
-def DCAnalyticHalf(txloc, rxlocs, sigma, earth_type="wholespace"):
+def DCAnalytic_PoleTx(txloc, rxlocs, sigma, earth_type="wholespace"):
     """
         Analytic solution for electric potential from a postive pole
 
