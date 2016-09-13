@@ -21,8 +21,8 @@ def DCAnalytic_PoleTx(txloc, rxlocs, sigma, current=1., earth_type="wholespace")
     M = rxlocs[0]
     N = rxlocs[1]
 
-    rM = np.sqrt( (M[:,0]-txloc[0])**2 + (M[:,1]-txloc[1])**2 + (M[:,2]-txloc[1])**2 )
-    rN = np.sqrt( (N[:,0]-txloc[0])**2 + (N[:,1]-txloc[1])**2 + (N[:,2]-txloc[1])**2 )
+    rM = np.sqrt( (M[:,0]-txloc[0])**2 + (M[:,1]-txloc[1])**2 + (M[:,2]-txloc[2])**2 )
+    rN = np.sqrt( (N[:,0]-txloc[0])**2 + (N[:,1]-txloc[1])**2 + (N[:,2]-txloc[2])**2 )
 
     frontFactor = current/(4*np.pi*sigma)
 
