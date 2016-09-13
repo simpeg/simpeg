@@ -7,7 +7,7 @@ from SimPEG import NSEM
 from SimPEG.Utils import meshTensor
 from scipy.constants import mu_0
 
-np.random.seed(1983)
+
 
 TOLr = 5e-2
 TOL = 1e-4
@@ -44,7 +44,7 @@ def DerivProjfieldsTest(inputSetup,comp='All',freq=False):
     # problem.mapping = simpeg.Maps.ExpMap(problem.mesh)
     # Initate things for the derivs Test
     src = survey.srcList[0]
-
+    np.random.seed(1983)
     u0x = np.random.randn(survey.mesh.nE)+np.random.randn(survey.mesh.nE)*1j
     u0y = np.random.randn(survey.mesh.nE)+np.random.randn(survey.mesh.nE)*1j
     u0 = np.vstack((simpeg.mkvc(u0x,2),simpeg.mkvc(u0y,2)))

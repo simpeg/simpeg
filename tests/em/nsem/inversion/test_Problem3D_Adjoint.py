@@ -24,7 +24,7 @@ def JvecAdjointTest(inputSetup,comp='All',freq=False):
 
     m  = sig
     u = problem.fields(m)
-
+    np.random.seed(1983)
     v = np.random.rand(survey.nD,)
     # print problem.PropMap.PropModel.nP
     w = np.random.rand(problem.mesh.nC,)

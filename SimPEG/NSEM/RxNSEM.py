@@ -233,7 +233,7 @@ class Point_impedance3D(Point_NSEM):
 
 
 
-    def eval(self, src, mesh, f):
+    def eval(self, src, mesh, f, return_full=False):
         '''
         Project the fields to natural source data.
 
@@ -255,9 +255,12 @@ class Point_impedance3D(Point_NSEM):
         elif 'yy' in self.orientation:
             Zij = (-self.ey_px * self.hx_py + self.ey_py * self.hx_px)
         # Calculate the complex value
-        f_part_complex = self.Hd * Zij
+        eval_complex = self.Hd * Zij
 
-        return getattr(f_part_complex, self.component)
+        # Return the full impedance
+        if return_full:
+            return eval_complex
+        return getattr(eval_complex, self.component)
 
     def evalDeriv(self, src, mesh, f, v, adjoint=False):
         """
@@ -357,7 +360,7 @@ class Point_impedance3D(Point_NSEM):
                     self.sDiag(self.hx_px) * self.ey_py_u(v)
                 )
 
-            Zij = self.eval(src, self.mesh, self.f)
+            Zij = self.eval(src, self.mesh, self.f, True)
             # Calculate the complex derivative
             PDeriv_complex = self.Hd * (ZijN_uV - self.sDiag(Zij) * self.Hd_uV(v) )
             Pv = SimPEG.np.array(getattr(PDeriv_complex, self.component))
