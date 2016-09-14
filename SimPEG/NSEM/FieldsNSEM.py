@@ -48,8 +48,6 @@ class Fields1D_ePrimSec(BaseNSEMFields):
         return self._ePrimary(eSolution,srcList) + self._eSecondary(eSolution,srcList)
 
     def _eDeriv_u(self, src, du_dm_v, adjoint = False):
-
-
         return Utils.Identity()*du_dm_v
 
     def _eDeriv_m(self, src, v, adjoint = False):

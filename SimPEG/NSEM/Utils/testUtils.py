@@ -27,7 +27,6 @@ def getAppResPhs(NSEMdata):
         zList.append(zc)
     return [appResPhs(zList[i][0],np.sum(zList[i][1:3])) for i in np.arange(len(zList))]
 
-
 def setup1DSurvey(sigmaHalf,tD=True,structure=False):
     from SimPEG import NSEM
     # Frequency
@@ -54,8 +53,9 @@ def setup1DSurvey(sigmaHalf,tD=True,structure=False):
         sigma[deep] = 0.1
 
     rxList = []
-    for rxType in ['z1dr','z1di']:
-        rxList.append(NSEM.Rx(simpeg.mkvc(np.array([0.0]),2).T,rxType))
+    for rxType in ['z1d','z1d']:
+        rxList.append(NSEM.rxPoint_impedance1D(simpeg.mkvc(np.array([0.0]),2).T,'real'))
+        rxList.append(NSEM.rxPoint_impedance1D(simpeg.mkvc(np.array([0.0]),2).T,'imag'))
     # Source list
     srcList =[]
     if tD:
@@ -66,7 +66,7 @@ def setup1DSurvey(sigmaHalf,tD=True,structure=False):
             srcList.append(NSEM.SrcNSEM.polxy_1Dprimary(rxList,freq))
 
     survey = NSEM.Survey(srcList)
-    return survey, sigma, m1d
+    return (survey, sigma, sigmaBack, m1d)
 
 
 def setupSimpegNSEM_ePrimSec(inputSetup,comp='Imp',singleFreq=False,expMap=True):
@@ -76,20 +76,21 @@ def setupSimpegNSEM_ePrimSec(inputSetup,comp='Imp',singleFreq=False,expMap=True)
     # Make a receiver list
     rxList = []
     if comp == 'All':
-        for rxType in ['zxxr','zxxi','zxyr','zxyi','zyxr','zyxi','zyyr','zyyi','tzxr','tzxi','tzyr','tzyi']:
-            rxList.append(NSEM.Rx(rx_loc,rxType))
+        rx_type_list = ['xx','xy','yx', 'yy','zx','zy']
     elif comp == 'Imp':
-        for rxType in ['xx','xy','yx','yy']:
-            rxList.append(NSEM.Point_impedance3D(rx_loc,rxType,'real'))
-            rxList.append(NSEM.Point_impedance3D(rx_loc,rxType,'imag'))
+        rx_type_list = ['xx','xy','yx','yy']
     elif comp == 'Tip':
-        for rxType in ['tzxr','tzxi','tzyr','tzyi']:
-            rxList.append(NSEM.Rx(rx_loc,rxType))
+        rx_type_list = ['zx','zy']
     else:
-        rxType = comp[1:3]
-        ri = 'real' if comp[-1] is 'r' else 'imag'
-        rxList.append(NSEM.Point_impedance3D(rx_loc,rxType,'real'))
+        rx_type_list = [comp]
 
+    for rx_type in rx_type_list:
+        if rx_type in ['xx','xy','yx','yy']:
+            rxList.append(NSEM.rxPoint_impedance3D(rx_loc, rx_type, 'real'))
+            rxList.append(NSEM.rxPoint_impedance3D(rx_loc, rx_type, 'imag'))
+        if rx_type in ['zx','zy']:
+            rxList.append(NSEM.rxPoint_tipper3D(rx_loc, rx_type, 'real'))
+            rxList.append(NSEM.rxPoint_tipper3D(rx_loc, rx_type, 'imag'))
 
     # Source list
     srcList =[]
@@ -121,13 +122,12 @@ def setupSimpegNSEM_ePrimSec(inputSetup,comp='Imp',singleFreq=False,expMap=True)
 
     return (survey, problem)
 
+
 def getInputs():
     """
     Function that returns Mesh, freqs, rx_loc, elev.
     """
     # Make a mesh
-    # M = simpeg.Mesh.TensorMesh([[(100,5,-1.5),(100.,10),(100,5,1.5)],[(100,5,-1.5),(100.,10),(100,5,1.5)],[(100,5,1.6),(100.,10),(100,3,2)]], x0=['C','C',-3529.5360])
-    # M = simpeg.Mesh.TensorMesh([[(1000,6,-1.5),(1000.,6),(1000,6,1.5)],[(1000,6,-1.5),(1000.,2),(1000,6,1.5)],[(1000,6,-1.3),(1000.,6),(1000,6,1.3)]], x0=['C','C','C'])# Setup the model
     M = simpeg.Mesh.TensorMesh([[(200,6,-1.5),(200.,4),(200,6,1.5)],[(200,6,-1.5),(200.,4),(200,6,1.5)],[(200,8,-1.5),(200.,8),(200,8,1.5)]], x0=['C','C','C'])# Setup the model
     # Set the frequencies
     freqs = np.logspace(1,-3,5)

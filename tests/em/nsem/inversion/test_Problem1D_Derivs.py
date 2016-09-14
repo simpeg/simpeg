@@ -19,14 +19,17 @@ addrandoms = True
 
 
 # Test the Jvec derivative
-def DerivJvecTest(inputSetup,comp='All',freq=False,expMap=True):
-    (M, freqs, sig, sigBG, rx_loc) = inputSetup
-    survey, problem = NSEM.Utils.testUtils.setupSimpegNSEM_ePrimSec(inputSetup,comp=comp,singleFreq=freq,expMap=expMap)
+def DerivJvecTest(halfspace_value, freq=False, expMap=True):
+
+    survey, sig, sigBG, mesh = NSEM.Utils.testUtils.setup1DSurvey(halfspace_value,False,structure=True)
+    problem = NSEM.Problem1D_ePrimSec(mesh, sigmaPrimary = sig)
+    problem.pair(survey)
     print 'Using {0} solver for the problem'.format(problem.Solver)
-    print 'Derivative test of Jvec for eForm primary/secondary for {:s} comp at {:s}\n'.format(comp,survey.freqs)
+    print 'Derivative test of Jvec for eForm primary/secondary for 1d comp from {0} to {1} Hz\n'.format(survey.freqs[0],survey.freqs[-1])
     # problem.mapping = simpeg.Maps.ExpMap(problem.mesh)
     # problem.sigmaPrimary = np.log(sigBG)
-    x0 = np.log(sigBG)
+
+    x0 = sigBG
     # cond = sig[0]
     # x0 = np.log(np.ones(problem.mesh.nC)*cond)
     # problem.sigmaPrimary = x0
@@ -68,21 +71,8 @@ class NSEM_DerivTests(unittest.TestCase):
     def setUp(self):
         pass
 
-    # Do a derivative test of Jvec
-    # def test_derivJvec_zxxr(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'zxxr',.1))
-    # def test_derivJvec_zxxi(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'zxxi',.1))
-    # def test_derivJvec_zxyr(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'zxyr',.1))
-    # def test_derivJvec_zxyi(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'zxyi',.1))
-    # def test_derivJvec_zyxr(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'zyxr',.1))
-    # def test_derivJvec_zyxi(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'zyxi',.1))
-    # def test_derivJvec_zyyr(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'zyyr',.1))
-    # def test_derivJvec_zyyi(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'zyyi',.1))
-    # def test_derivJvec_zAll(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'Imp',.1))
-    def test_derivJvec_tzxr(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'zx',.1))
-    def test_derivJvec_tzxi(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'zx',.1))
-    def test_derivJvec_tzyr(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'zy',.1))
-    def test_derivJvec_tzyi(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.halfSpace(1e-2),'zy',.1))
-    # def test_derivJvec_All(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.random(1e-2),'Imp',.1))
+    def test_derivJvec_Z1dr(self):self.assertTrue(DerivJvecTest(1e-2))
+    def test_derivJvec_Z1di(self):self.assertTrue(DerivJvecTest(1e-2))
 
 if __name__ == '__main__':
     unittest.main()
