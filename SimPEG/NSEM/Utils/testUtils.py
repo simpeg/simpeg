@@ -19,7 +19,7 @@ def getAppResPhs(NSEMdata):
     for src in NSEMdata.survey.srcList:
         zc = [src.freq]
         for rx in src.rxList:
-            if 'i' in rx.rxType:
+            if 'imag' in rx.component:
                 m=1j
             else:
                 m = 1
@@ -27,7 +27,7 @@ def getAppResPhs(NSEMdata):
         zList.append(zc)
     return [appResPhs(zList[i][0],np.sum(zList[i][1:3])) for i in np.arange(len(zList))]
 
-def setup1DSurvey(sigmaHalf,tD=True,structure=False):
+def setup1DSurvey(sigmaHalf, tD=False, structure=False):
     from SimPEG import NSEM
     # Frequency
     nFreq = 33

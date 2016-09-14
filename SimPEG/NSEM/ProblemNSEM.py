@@ -189,6 +189,14 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
             self._MfSigma = self.mesh.getFaceInnerProduct(self.curModel.sigma)
         return self._MfSigma
 
+    def MfSigmaDeriv_m(self, u):
+        """
+            Edge inner product matrix
+        """
+        if getattr(self, '_MfSigmaDeriv_m', None) is None:
+            self._MfSigmaDeriv_m = self.mesh.getFaceInnerProductDeriv(self.curModel.sigma)(u) * self.curModel.sigmaDeriv
+        return self._MfSigmaDeriv_m
+
     @property
     def sigmaPrimary(self):
         """
@@ -227,16 +235,13 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
         The derivative of A wrt sigma
         """
 
-        dsig_dm = self.curModel.sigmaDeriv
-        MeMui = self.MeMui
-        #
         u_src = u['e_1dSolution']
-        dMfSigma_dm = self.mesh.getFaceInnerProductDeriv(self.curModel.sigma)(u_src) * self.curModel.sigmaDeriv
+        dMfSigma_dm = self.MfSigmaDeriv_m(u_src)
         if adjoint:
             return 1j * omega(freq) * (  dMfSigma_dm.T * v )
         # Note: output has to be nN/nF, not nC/nE.
         # v should be nC
-        return 1j * omega(freq) * ( dMfSigma_dm * v )
+        return 1j * omega(freq) * mkvc(dMfSigma_dm * v, 2)
 
     def getRHS(self, freq):
         """
@@ -248,7 +253,8 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
 
         # Get sources for the frequncy(polarizations)
         Src = self.survey.getSrcByFreq(freq)[0]
-        S_e = Src.S_e(self)
+        # Only select the yx polarization
+        S_e = mkvc(Src.S_e(self)[:, 1], 2)
         return -1j * omega(freq) * S_e
 
     def getRHSDeriv_m(self, freq, v, adjoint=False):
@@ -258,7 +264,7 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
 
         Src = self.survey.getSrcByFreq(freq)[0]
         S_eDeriv = Src.S_eDeriv_m(self, v, adjoint)
-        return -1j * omega(freq) * S_eDeriv
+        return -1j * omega(freq) * mkvc(S_eDeriv, 2)
 
     def fields(self, m):
         '''
@@ -284,11 +290,8 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
             # Store the fields
             Src = self.survey.getSrcByFreq(freq)[0]
             # NOTE: only store the e_solution(secondary), all other components calculated in the fields object
-            F[Src, 'e_1dSolution'] = e_s[:,-1] # Only storing the yx polarization as 1d
+            F[Src, 'e_1dSolution'] = e_s
 
-            # Note curl e = -iwb so b = -curl e /iw
-            # b = -( self.mesh.nodalGrad * e )/( 1j*omega(freq) )
-            # F[Src, 'b_1d'] = b[:,1]
             if self.verbose:
                 print 'Ran for {:f} seconds'.format(time.time()-startTime)
                 sys.stdout.flush()
