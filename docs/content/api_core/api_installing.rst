@@ -60,7 +60,7 @@ Python for scientific computing
 Numpy and Matlab
 ----------------
 
-* `NumPy for Matlab Users <http://wiki.scipy.org/NumPy_for_Matlab_Users>`_
+* `NumPy for Matlab Users <http://docs.scipy.org/doc/numpy-dev/user/numpy-for-matlab-users.html>`_
 * `Python vs Matlab <https://sites.google.com/site/pythonforscientists/python-vs-matlab>`_
 
 Lessons in Python
