@@ -574,7 +574,7 @@ class rxPoint_tipper3D(rxPoint_NSEM):
 
         if adjoint:
             if 'zx' in self.orientation:
-                Tij = self.sDiag(aHd*(
+                Tij = self.sDiag(self.aHd*(
                     -self.sDiag(self.ahz_py)*self.ahy_px +
                     self.sDiag(self.ahz_px)*self.ahy_py)
                 )
@@ -585,7 +585,7 @@ class rxPoint_tipper3D(rxPoint_NSEM):
                             self.ahz_px_u(self.sDiag(self.ahy_py)*x)
                     )
             elif 'zy' in self.orientation:
-                Tij = self.sDiag(aHd*(
+                Tij = self.sDiag(self.aHd*(
                       self.sDiag(self.ahz_py)*self.ahx_px -
                       self.sDiag(self.ahz_px)*self.ahx_py)
                 )
