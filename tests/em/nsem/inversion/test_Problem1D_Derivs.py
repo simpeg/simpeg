@@ -22,7 +22,7 @@ addrandoms = True
 def DerivJvecTest(halfspace_value, freq=False, expMap=True):
 
     survey, sig, sigBG, mesh = NSEM.Utils.testUtils.setup1DSurvey(halfspace_value,False,structure=True)
-    problem = NSEM.Problem1D_ePrimSec(mesh, sigmaPrimary = sig)
+    problem = NSEM.Problem1D_ePrimSec(mesh, sigmaPrimary = sigBG)
     problem.pair(survey)
     print 'Using {0} solver for the problem'.format(problem.Solver)
     print 'Derivative test of Jvec for eForm primary/secondary for 1d comp from {0} to {1} Hz\n'.format(survey.freqs[0],survey.freqs[-1])
@@ -31,14 +31,15 @@ def DerivJvecTest(halfspace_value, freq=False, expMap=True):
 
     x0 = sigBG
     # cond = sig[0]
-    # x0 = np.log(np.ones(problem.mesh.nC)*cond)
+    # x0 = np.log(np.ones(problem.mesh.nC)*halfspace_value)
     # problem.sigmaPrimary = x0
+    np.random.seed(1983)
     # if True:
-    #     x0  = x0 + np.random.randn(problem.mesh.nC)*cond*1e-1
+    #     x0  = x0 + np.random.randn(problem.mesh.nC)*halfspace_value*1e-1
     survey = problem.survey
     def fun(x):
         return survey.dpred(x), lambda x: problem.Jvec(x0, x)
-    return simpeg.Tests.checkDerivative(fun, x0, num=3, plotIt=False, eps=FLR)
+    return simpeg.Tests.checkDerivative(fun, x0, num=4, plotIt=False, eps=FLR)
 
 def DerivProjfieldsTest(inputSetup,comp='All',freq=False):
 
@@ -62,7 +63,7 @@ def DerivProjfieldsTest(inputSetup,comp='All',freq=False):
         f[src,'e_pySolution'] = u[len(u)/2::]
         return rx.eval(src,survey.mesh,f), lambda t: rx.evalDeriv(src,survey.mesh,f0,simpeg.mkvc(t,2))
 
-    return simpeg.Tests.checkDerivative(fun, u0, num=3, plotIt=False, eps=FLR)
+    return simpeg.Tests.checkDerivative(fun, u0, num=4, plotIt=False, eps=FLR)
 
 
 

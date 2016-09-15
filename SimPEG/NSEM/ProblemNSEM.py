@@ -185,17 +185,17 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
         """
             Edge inner product matrix
         """
-        if getattr(self, '_MfSigma', None) is None:
-            self._MfSigma = self.mesh.getFaceInnerProduct(self.curModel.sigma)
+        # if getattr(self, '_MfSigma', None) is None:
+        self._MfSigma = self.mesh.getFaceInnerProduct(self.curModel.sigma)
         return self._MfSigma
 
-    def MfSigmaDeriv_m(self, u):
+    def MfSigmaDeriv(self, u):
         """
             Edge inner product matrix
         """
-        if getattr(self, '_MfSigmaDeriv_m', None) is None:
-            self._MfSigmaDeriv_m = self.mesh.getFaceInnerProductDeriv(self.curModel.sigma)(u) * self.curModel.sigmaDeriv
-        return self._MfSigmaDeriv_m
+        # if getattr(self, '_MfSigmaDeriv', None) is None:
+        self._MfSigmaDeriv = self.mesh.getFaceInnerProductDeriv(self.curModel.sigma)(u) * self.curModel.sigmaDeriv
+        return self._MfSigmaDeriv
 
     @property
     def sigmaPrimary(self):
@@ -236,9 +236,9 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
         """
 
         u_src = u['e_1dSolution']
-        dMfSigma_dm = self.MfSigmaDeriv_m(u_src)
+        dMfSigma_dm = self.MfSigmaDeriv(u_src)
         if adjoint:
-            return 1j * omega(freq) * (  dMfSigma_dm.T * v )
+            return 1j * omega(freq) * mkvc(dMfSigma_dm.T, 2) * v
         # Note: output has to be nN/nF, not nC/nE.
         # v should be nC
         return 1j * omega(freq) * mkvc(dMfSigma_dm * v, 2)
