@@ -141,14 +141,16 @@ class Problem3D_CC(BaseDCProblem):
         MfRhoI = self.MfRhoI
         A = D * MfRhoI * G
 
-        Vol = self.mesh.vol
+        if(self.bc_type == 'Neumann'):
+            Vol = self.mesh.vol
+            print('Perturbing first row of A to remove nullspace for Neumann BC.')
 
-        # Handling Null space of A
-        I, J, V = sp.sparse.find(A[0,:])
-        for jj in J:
-            A[0,jj] = 0.
+            # Handling Null space of A
+            I, J, V = sp.sparse.find(A[0,:])
+            for jj in J:
+                A[0,jj] = 0.
 
-        A[0, 0] = 1./Vol[0]
+            A[0, 0] = 1./Vol[0]
 
         # I think we should deprecate this for DC problem.
         # if self._makeASymmetric is True:
