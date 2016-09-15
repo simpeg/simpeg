@@ -106,6 +106,7 @@ class Fields1D_ePrimSec(BaseNSEMFields):
 
         return Identity()*v
 
+
     def _eDeriv_m(self, src, v, adjoint = False):
         """
         Partial derivative of the total electric field with respect to the inversion model. Here, we assume that the primary does not depend on the model. Note that this also includes derivative contributions from the sources.

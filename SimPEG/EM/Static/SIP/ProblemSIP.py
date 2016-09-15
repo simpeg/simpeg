@@ -1,6 +1,6 @@
 from SimPEG import Problem, Utils, Maps, Mesh
 from SimPEG.EM.Base import BaseEMProblem
-from SimPEG.EM.Static.DC.FieldsDC import Fields, Fields_CC, Fields_N
+from SimPEG.EM.Static.DC.FieldsDC import FieldsDC, Fields_CC, Fields_N
 from SimPEG.Utils import sdiag
 import numpy as np
 from SimPEG.Utils import Zero
@@ -21,7 +21,7 @@ class ColeColePropMap(Maps.PropMap):
 class BaseSIPProblem(BaseEMProblem):
 
     surveyPair = Survey
-    fieldsPair = Fields
+    fieldsPair = FieldsDC
     dataPair = Data
     PropMap = ColeColePropMap
     Ainv = None
@@ -83,7 +83,7 @@ class BaseSIPProblem(BaseEMProblem):
                 for rx in src.rxList:
                     timeindex = rx.getTimeP(self.survey.times)
                     if timeindex[tind]:
-                        df_dmFun = getattr(f, '_%sDeriv'%rx.projField, None)
+                        df_dmFun = getattr(f, '_{0!s}Deriv'.format(rx.projField), None)
                         df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
                         Jv[src, rx, t] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
 
@@ -122,7 +122,7 @@ class BaseSIPProblem(BaseEMProblem):
                 for rx in src.rxList:
                     timeindex = rx.getTimeP(self.survey.times)
                     if timeindex[tind]:
-                        df_dmFun = getattr(f, '_%sDeriv'%rx.projField, None)
+                        df_dmFun = getattr(f, '_{0!s}Deriv'.format(rx.projField), None)
                         df_dm_v0 = df_dmFun(src, du_dm_v0, v0, adjoint=False)
                         df_dm_v1 = df_dmFun(src, du_dm_v1, v1, adjoint=False)
                         Jv[src, rx, t] = rx.evalDeriv(src, self.mesh, f, df_dm_v0)
@@ -153,7 +153,7 @@ class BaseSIPProblem(BaseEMProblem):
                     timeindex = rx.getTimeP(self.survey.times)
                     if timeindex[tind]:
                         PTv = rx.evalDeriv(src, self.mesh, f, v[src, rx, t], adjoint=True) # wrt f, need possibility wrt m
-                        df_duTFun = getattr(f, '_%sDeriv'%rx.projField, None)
+                        df_duTFun = getattr(f, '_{0!s}Deriv'.format(rx.projField), None)
                         df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
                         ATinvdf_duT = self.Ainv * df_duT
                         dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)

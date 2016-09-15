@@ -1,6 +1,4 @@
-from SimPEG import Survey as SimPEGsurvey, Utils, Problem, Maps, np, sp, mkvc
-from SimPEG.EM.FDEM.SrcFDEM import BaseSrc as FDEMBaseSrc
-from SimPEG.EM.Utils import omega
+from SimPEG import Survey as SimPEGsurvey, Utils, Problem, Maps, np, mkvc
 from scipy.constants import mu_0
 from numpy.lib import recfunctions as recFunc
 from Utils import rec2ndarr
@@ -8,8 +6,9 @@ import SrcNSEM
 import sys
 
 #################
-### Receivers ###
-#################
+# Receivers
+
+
 class Rx(SimPEGsurvey.BaseRx):
     """
         Class that defines natural source receivers.
@@ -22,27 +21,28 @@ class Rx(SimPEGsurvey.BaseRx):
     """
 
     knownRxTypes = {
-                    # 3D impedance
-                    'zxxr':['Z3D', 'real'],
-                    'zxyr':['Z3D', 'real'],
-                    'zyxr':['Z3D', 'real'],
-                    'zyyr':['Z3D', 'real'],
-                    'zxxi':['Z3D', 'imag'],
-                    'zxyi':['Z3D', 'imag'],
-                    'zyxi':['Z3D', 'imag'],
-                    'zyyi':['Z3D', 'imag'],
+                    'zxxr': ['Z3D', 'real'],
+                    'zxyr': ['Z3D', 'real'],
+                    'zyxr': ['Z3D', 'real'],
+                    'zyyr': ['Z3D', 'real'],
+                    'zxxi': ['Z3D', 'imag'],
+                    'zxyi': ['Z3D', 'imag'],
+                    'zyxi': ['Z3D', 'imag'],
+                    'zyyi': ['Z3D', 'imag'],
                     # 2D impedance
                     # TODO:
                     # 1D impedance
-                    'z1dr':['Z1D', 'real'],
-                    'z1di':['Z1D', 'imag'],
+                    'z1dr': ['Z1D', 'real'],
+                    'z1di': ['Z1D', 'imag'],
                     # Tipper
-                    'tzxr':['T3D','real'],
-                    'tzxi':['T3D','imag'],
-                    'tzyr':['T3D','real'],
-                    'tzyi':['T3D','imag']
-                   }
-    # TODO: Have locs as single or double coordinates for both or numerator and denominator separately, respectively.
+                    'tzxr': ['T3D', 'real'],
+                    'tzxi': ['T3D', 'imag'],
+                    'tzyr': ['T3D', 'real'],
+                    'tzyi': ['T3D', 'imag']
+                }
+    # TODO: Have locs as single or double coordinates for
+    # both or numerator and denominator separately, respectively.
+
     def __init__(self, locs, rxType):
         SimPEGsurvey.BaseRx.__init__(self, locs, rxType)
 
@@ -68,68 +68,77 @@ class Rx(SimPEGsurvey.BaseRx):
             :param FieldsNSEM f: Natural source fields object to project
         '''
 
-        ## NOTE: Assumes that e is on t
+        # NOTE: Assumes that e is on t
         if self.projType is 'Z1D':
-            Pex = mesh.getInterpolationMat(self.locs[:,-1],'Fx')
-            Pbx = mesh.getInterpolationMat(self.locs[:,-1],'Ex')
-            ex = Pex*mkvc(f[src,'e_1d'],2)
-            bx = Pbx*mkvc(f[src,'b_1d'],2)/mu_0
-            # Note: Has a minus sign in front, to comply with quadrant calculations.
+            Pex = mesh.getInterpolationMat(self.locs[:, -1], 'Fx')
+            Pbx = mesh.getInterpolationMat(self.locs[:, -1], 'Ex')
+            ex = Pex*mkvc(f[src, 'e_1d'],2)
+            bx = Pbx*mkvc(f[src, 'b_1d'],2) / mu_0
+            # Note: Has a minus sign in front, to comply with
+            # quadrant calculations.
             # Can be derived from zyx case for the 3D case.
-            f_part_complex = -ex/bx
+            f_part_complex = -ex / bx
         # elif self.projType is 'Z2D':
         elif self.projType is 'Z3D':
-            ## NOTE: Assumes that e is on edges and b on the faces. Need to generalize that or use a prop of fields to determine that.
+            # NOTE: Assumes that e is on edges and b on the faces.
+            # Need to generalize that or use a prop of fields to determine that.
             if self.locs.ndim == 3:
-                eFLocs = self.locs[:,:,0]
-                bFLocs = self.locs[:,:,1]
+                eFLocs = self.locs[:, :, 0]
+                bFLocs = self.locs[:, :, 1]
             else:
                 eFLocs = self.locs
                 bFLocs = self.locs
             # Get the projection
-            Pex = mesh.getInterpolationMat(eFLocs,'Ex')
-            Pey = mesh.getInterpolationMat(eFLocs,'Ey')
-            Pbx = mesh.getInterpolationMat(bFLocs,'Fx')
-            Pby = mesh.getInterpolationMat(bFLocs,'Fy')
+            Pex = mesh.getInterpolationMat(eFLocs, 'Ex')
+            Pey = mesh.getInterpolationMat(eFLocs, 'Ey')
+            Pbx = mesh.getInterpolationMat(bFLocs, 'Fx')
+            Pby = mesh.getInterpolationMat(bFLocs, 'Fy')
             # Get the fields at location
             # px: x-polaration and py: y-polaration.
-            ex_px = Pex*f[src,'e_px']
-            ey_px = Pey*f[src,'e_px']
-            ex_py = Pex*f[src,'e_py']
-            ey_py = Pey*f[src,'e_py']
-            hx_px = Pbx*f[src,'b_px']/mu_0
-            hy_px = Pby*f[src,'b_px']/mu_0
-            hx_py = Pbx*f[src,'b_py']/mu_0
-            hy_py = Pby*f[src,'b_py']/mu_0
+            ex_px = Pex*f[src, 'e_px']
+            ey_px = Pey*f[src, 'e_px']
+            ex_py = Pex*f[src, 'e_py']
+            ey_py = Pey*f[src, 'e_py']
+            hx_px = Pbx*f[src, 'b_px']/mu_0
+            hy_px = Pby*f[src, 'b_px']/mu_0
+            hx_py = Pbx*f[src, 'b_py']/mu_0
+            hy_py = Pby*f[src, 'b_py']/mu_0
             # Make the complex data
+            Hd = (hx_px * hy_py - hx_py * hy_px)
+
             if 'zxx' in self.rxType:
-                f_part_complex = ( ex_px*hy_py - ex_py*hy_px)/(hx_px*hy_py - hx_py*hy_px)
+                Zij = ( ex_px * hy_py - ex_py * hy_px)
             elif 'zxy' in self.rxType:
-                f_part_complex = (-ex_px*hx_py + ex_py*hx_px)/(hx_px*hy_py - hx_py*hy_px)
+                Zij = (-ex_px * hx_py + ex_py * hx_px)
             elif 'zyx' in self.rxType:
-                f_part_complex = ( ey_px*hy_py - ey_py*hy_px)/(hx_px*hy_py - hx_py*hy_px)
+                Zij = ( ey_px * hy_py - ey_py * hy_px)
             elif 'zyy' in self.rxType:
-                f_part_complex = (-ey_px*hx_py + ey_py*hx_px)/(hx_px*hy_py - hx_py*hy_px)
+                Zij = (-ey_px * hx_py + ey_py * hx_px)
+            # Calculate the complex value
+            f_part_complex = Zij / Hd
         elif self.projType is 'T3D':
             if self.locs.ndim == 3:
-                horLoc = self.locs[:,:,0]
-                vertLoc = self.locs[:,:,1]
+                horLoc = self.locs[:, :, 0]
+                vertLoc = self.locs[:, :, 1]
             else:
                 horLoc = self.locs
                 vertLoc = self.locs
-            Pbx = mesh.getInterpolationMat(horLoc,'Fx')
-            Pby = mesh.getInterpolationMat(horLoc,'Fy')
-            Pbz = mesh.getInterpolationMat(vertLoc,'Fz')
-            bx_px = Pbx*f[src,'b_px']
-            by_px = Pby*f[src,'b_px']
-            bz_px = Pbz*f[src,'b_px']
-            bx_py = Pbx*f[src,'b_py']
-            by_py = Pby*f[src,'b_py']
-            bz_py = Pbz*f[src,'b_py']
+            Pbx = mesh.getInterpolationMat(horLoc, 'Fx')
+            Pby = mesh.getInterpolationMat(horLoc, 'Fy')
+            Pbz = mesh.getInterpolationMat(vertLoc, 'Fz')
+            bx_px = Pbx * f[src, 'b_px']
+            by_px = Pby * f[src, 'b_px']
+            bz_px = Pbz * f[src, 'b_px']
+            bx_py = Pbx * f[src, 'b_py']
+            by_py = Pby * f[src, 'b_py']
+            bz_py = Pbz * f[src, 'b_py']
+
+            Bh = (bx_px * by_py - bx_py * by_px)
             if 'tzx' in self.rxType:
-                f_part_complex = (- by_px*bz_py + by_py*bz_px)/(bx_px*by_py - bx_py*by_px)
+                Tij = (- by_px * bz_py + by_py * bz_px)
             if 'tzy' in self.rxType:
-                f_part_complex = (  bx_px*bz_py - bx_py*bz_px)/(bx_px*by_py - bx_py*by_px)
+                Tij = (  bx_px * bz_py - bx_py * bz_px)
+            f_part_complex = Tij / Bh
 
         else:
             NotImplementedError('Projection of {:s} receiver type is not implemented.'.format(self.rxType))
@@ -153,12 +162,20 @@ class Rx(SimPEGsurvey.BaseRx):
 
         if not adjoint:
             if self.projType is 'Z1D':
-                Pex = mesh.getInterpolationMat(self.locs[:,-1],'Fx')
-                Pbx = mesh.getInterpolationMat(self.locs[:,-1],'Ex')
+                Pex = mesh.getInterpolationMat(self.locs[:, -1], 'Fx')
+                Pbx = mesh.getInterpolationMat(self.locs[:, -1], 'Ex')
                 # ex = Pex*mkvc(f[src,'e_1d'],2)
                 # bx = Pbx*mkvc(f[src,'b_1d'],2)/mu_0
-                dP_de = -mkvc(Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0))*(Pex*v),2)
-                dP_db = mkvc( Utils.sdiag(Pex*mkvc(f[src,'e_1d'],2))*(Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)).T*Utils.sdiag(1./(Pbx*mkvc(f[src,'b_1d'],2)/mu_0)))*(Pbx*f._bDeriv(src,v)/mu_0),2)
+
+                dP_de = -mkvc(
+                    Utils.sdiag(1. / (Pbx * mkvc(f[src, 'b_1d'], 2) / mu_0)) *
+                    (Pex * v), 2)
+                dP_db = mkvc(Utils.sdiag(Pex * mkvc(f[src, 'e_1d'], 2)) *
+                    (Utils.sdiag(1. /
+                    (Pbx * mkvc(f[src, 'b_1d'], 2) / mu_0)).T *
+                    (Utils.sdiag(1. / (Pbx * mkvc(f[src, 'b_1d'], 2) / mu_0)))) *
+                    (Pbx * f._bDeriv_u(src, v) / mu_0), 2
+                    )
                 PDeriv_complex = np.sum(np.hstack((dP_de,dP_db)),1)
             elif self.projType is 'Z2D':
                 raise NotImplementedError('Has not been implement for 2D impedance tensor')
@@ -439,8 +456,9 @@ class Survey(SimPEGsurvey.BaseSurvey):
         raise Exception('Use Transmitters to project fields deriv.')
 
 #################
-###   Data    ###
+# Data
 #################
+
 class Data(SimPEGsurvey.Data):
     '''
     Data class for NSEMdata. Stores the data vector indexed by the survey.
@@ -484,9 +502,10 @@ class Data(SimPEGsurvey.Data):
             tArrRec = np.concatenate((src.freq*np.ones((locs.shape[0],1)),locs,np.nan*np.ones((locs.shape[0],12))),axis=1).view(dtRI)
             # np.array([(src.freq,rx.locs[0,0],rx.locs[0,1],rx.locs[0,2],np.nan ,np.nan ,np.nan ,np.nan ,np.nan ,np.nan ,np.nan ,np.nan ) for rx in src.rxList],dtype=dtRI)
             # Get the type and the value for the DataNSEM object as a list
-            typeList = [[rx.rxType.replace('z1d','zyx'),self[src,rx]] for rx in src.rxList]
+            typeList = [[rx.orientation,rx.component,self[src,rx]] for rx in src.rxList]
             # Insert the values to the temp array
-            for nr,(key,val) in enumerate(typeList):
+            for nr,(k,c,val) in enumerate(typeList):
+                key = 'z' + k + c[0]
                 tArrRec[key] = mkvc(val,2)
             # Masked array
             mArrRec = np.ma.MaskedArray(rec2ndarr(tArrRec),mask=np.isnan(rec2ndarr(tArrRec))).view(dtype=tArrRec.dtype)
@@ -495,7 +514,6 @@ class Data(SimPEGsurvey.Data):
 
             try:
                 outTemp = recFunc.stack_arrays((outTemp,mArrRec))
-                #outTemp = np.concatenate((outTemp,dataBlock),axis=0)
             except NameError as e:
                 outTemp = mArrRec
 

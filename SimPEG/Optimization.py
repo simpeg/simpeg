@@ -121,7 +121,7 @@ class Minimize(object):
     @callback.setter
     def callback(self, value):
         if self.callback is not None:
-            print 'The callback on the %s Optimization was replaced.' % self.__name__
+            print 'The callback on the {0!s} Optimization was replaced.'.format(self.__name__)
         self._callback = value
 
 
@@ -131,7 +131,7 @@ class Minimize(object):
 
         Minimizes the function (evalFunction) starting at the location x0.
 
-        :param def evalFunction: function handle that evaluates: f, g, H = F(x)
+        :param callable evalFunction: function handle that evaluates: f, g, H = F(x)
         :param numpy.ndarray x0: starting location
         :rtype: numpy.ndarray
         :return: x, the last iterate of the optimization algorithm
@@ -174,7 +174,7 @@ class Minimize(object):
         self.evalFunction = evalFunction
         self.startup(x0)
         self.printInit()
-
+        print 'x0 has any nan: {:b}'.format(np.any(np.isnan(x0)))
         while True:
             self.doStartIteration()
             self.f, self.g, self.H = evalFunction(self.xc, return_g=True, return_H=True)
@@ -372,8 +372,8 @@ class Minimize(object):
             Else, a modifySearchDirectionBreak call is preformed.
 
             :param numpy.ndarray p: searchDirection
-            :rtype: numpy.ndarray,bool
-            :return: (xt, passLS)
+            :rtype: tuple
+            :return: (xt, passLS) numpy.ndarray, bool
         """
         # Projected Armijo linesearch
         self._LS_t = 1
@@ -408,8 +408,8 @@ class Minimize(object):
             evalFunction returns a False indicating the break was not caught.
 
             :param numpy.ndarray p: searchDirection
-            :rtype: numpy.ndarray,bool
-            :return: (xt, breakCaught)
+            :rtype: tuple
+            :return: (xt, breakCaught) numpy.ndarray, bool
         """
         self.printDone(inLS=True)
         print 'The linesearch got broken. Boo.'
@@ -855,7 +855,7 @@ class NewtonRoot(object):
             if self.comments and self.doLS: print '\tLinesearch:\n'
             # Enter Linesearch
             while True and self.doLS:
-                if self.comments: print '\t\tResid: %e\n'%norm(rt)
+                if self.comments: print '\t\tResid: {0:e}\n'.format(norm(rt))
                 if norm(rt) <= norm(r) or norm(rt) < self.tol:
                     break
 
@@ -873,7 +873,7 @@ class NewtonRoot(object):
             if norm(rt) < self.tol:
                 break
             if self.iter > self.maxIter:
-                print 'NewtonRoot stopped by maxIters (%d). norm: %4.4e' % (self.maxIter, norm(rt))
+                print 'NewtonRoot stopped by maxIters ({0:d}). norm: {1:4.4e}'.format(self.maxIter, norm(rt))
                 break
 
         return x

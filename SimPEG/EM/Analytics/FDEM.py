@@ -69,6 +69,16 @@ def MagneticDipoleWholeSpace(XYZ, srcLoc, sig, f, moment=1., orientation='X', mu
 
     """
 
+    if not isinstance(orientation, str):
+        if np.allclose(orientation, np.r_[1., 0., 0.]):
+            orientation = 'X'
+        elif np.allclose(orientation, np.r_[0., 1., 0.]):
+            orientation = 'Y'
+        elif np.allclose(orientation, np.r_[0., 0., 1.]):
+            orientation = 'Z'
+        else:
+            raise NotImplementedError, 'arbitrary orientations not implemented'
+
     XYZ = Utils.asArray_N_x_Dim(XYZ, 3)
 
     dx = XYZ[:,0]-srcLoc[0]

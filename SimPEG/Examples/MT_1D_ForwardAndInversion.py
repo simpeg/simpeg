@@ -9,7 +9,7 @@ np.random.seed(1983)
 def run(plotIt=True):
     """
         MT: 1D: Inversion
-        =======================
+        =================
 
         Forward model 1D MT data.
         Setup and run a MT 1D inversion.
@@ -83,7 +83,7 @@ def run(plotIt=True):
 
 
     # Assign uncertainties
-    std = 0.025 # 5% std
+    std = 0.05 # 5% std
     survey.std = np.abs(survey.dobs*std)
     # Assign the data weight
     Wd = 1./survey.std
@@ -115,7 +115,7 @@ def run(plotIt=True):
     beta = simpeg.Directives.BetaSchedule()
     beta.coolingRate = 4.
     beta.coolingFactor = 4.
-    betaest = simpeg.Directives.BetaEstimate_ByEig(beta0_ratio=1.)
+    betaest = simpeg.Directives.BetaEstimate_ByEig(beta0_ratio=100.)
     betaest.beta0 = 1.
     targmis = simpeg.Directives.TargetMisfit()
     targmis.target = survey.nD

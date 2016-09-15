@@ -1,6 +1,6 @@
 from SimPEG.EM.Utils.EMUtils import omega, mu_0
 from SimPEG import SolverLU as SimpegSolver, PropMaps, Utils, mkvc, sp, np
-from SimPEG.EM.FDEM.FDEM import BaseFDEMProblem
+from SimPEG.EM.FDEM.ProblemFDEM import BaseFDEMProblem
 from SurveyNSEM import Survey, Data
 from FieldsNSEM import BaseNSEMFields, Fields1D_ePrimSec, Fields1D_eTotal, Fields3D_ePrimSec
 from SimPEG.NSEM.Utils.MT1Danalytic import getEHfields
@@ -116,7 +116,7 @@ class BaseNSEMProblem(BaseFDEMProblem):
                     du_dmT = -dA_dmT + dRHS_dmT
                     # Select the correct component
                     # du_dmT needs to be of size nC,
-                    real_or_imag = rx.projComp
+                    real_or_imag = rx.component
                     if real_or_imag == 'real':
                         Jtv +=  du_dmT.real
                     elif real_or_imag == 'imag':
@@ -179,9 +179,17 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
         """
             Edge inner product matrix
         """
-        if getattr(self, '_MfSigma', None) is None:
-            self._MfSigma = self.mesh.getFaceInnerProduct(self.curModel.sigma)
+        # if getattr(self, '_MfSigma', None) is None:
+        self._MfSigma = self.mesh.getFaceInnerProduct(self.curModel.sigma)
         return self._MfSigma
+
+    def MfSigmaDeriv(self, u):
+        """
+            Edge inner product matrix
+        """
+        # if getattr(self, '_MfSigmaDeriv', None) is None:
+        self._MfSigmaDeriv = self.mesh.getFaceInnerProductDeriv(self.curModel.sigma)(u) * self.curModel.sigmaDeriv
+        return self._MfSigmaDeriv
 
     @property
     def sigmaPrimary(self):
@@ -221,16 +229,13 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
         The derivative of A wrt sigma
         """
 
-        dsig_dm = self.curModel.sigmaDeriv
-        MeMui = self.MeMui
-        #
         u_src = u['e_1dSolution']
-        dMfSigma_dm = self.mesh.getFaceInnerProductDeriv(self.curModel.sigma)(u_src) * self.curModel.sigmaDeriv
+        dMfSigma_dm = self.MfSigmaDeriv(u_src)
         if adjoint:
-            return 1j * omega(freq) * (  dMfSigma_dm.T * v )
+            return 1j * omega(freq) * mkvc(dMfSigma_dm.T, 2) * v
         # Note: output has to be nN/nF, not nC/nE.
         # v should be nC
-        return 1j * omega(freq) * ( dMfSigma_dm * v )
+        return 1j * omega(freq) * mkvc(dMfSigma_dm * v, 2)
 
     def getRHS(self, freq):
         """
@@ -242,7 +247,8 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
 
         # Get sources for the frequncy(polarizations)
         Src = self.survey.getSrcByFreq(freq)[0]
-        S_e = Src.S_e(self)
+        # Only select the yx polarization
+        S_e = mkvc(Src.S_e(self)[:, 1], 2)
         return -1j * omega(freq) * S_e
 
     def getRHSDeriv(self, freq, v, adjoint=False):
@@ -251,9 +257,9 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
         """
 
         Src = self.survey.getSrcByFreq(freq)[0]
-        S_eDeriv = Src.S_eDeriv(self, v, adjoint)
-        return -1j * omega(freq) * S_eDeriv
 
+        S_eDeriv = Src.S_eDeriv_m(self, v, adjoint)
+        return -1j * omega(freq) * mkvc(S_eDeriv, 2)
 
     def fields(self, m):
         '''
@@ -279,11 +285,8 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
             # Store the fields
             Src = self.survey.getSrcByFreq(freq)[0]
             # NOTE: only store the e_solution(secondary), all other components calculated in the fields object
-            F[Src, 'e_1dSolution'] = e_s[:,-1] # Only storing the yx polarization as 1d
+            F[Src, 'e_1dSolution'] = e_s
 
-            # Note curl e = -iwb so b = -curl e /iw
-            # b = -( self.mesh.nodalGrad * e )/( 1j*omega(freq) )
-            # F[Src, 'b_1d'] = b[:,1]
             if self.verbose:
                 print 'Ran for {:f} seconds'.format(time.time()-startTime)
                 sys.stdout.flush()

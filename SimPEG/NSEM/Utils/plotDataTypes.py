@@ -174,7 +174,9 @@ def plotIsoFreqNStipper(ax,freq,array,flag,par='abs',colorbar=True,colorNorm='Sy
 		plt.colorbar(cs,cax=ax.cax,ticks=clevel,format='%1.2e')
 	ax.set_title(flag+' '+par,fontsize=8)
 
+
 def plotIsoStaImpedance(ax,loc,array,flag,par='abs',pSym='s',pColor=None,addLabel='',zorder=1):
+
 
 	appResFact = 1/(8*np.pi**2*10**(-7))
 	treshold = 1.0 # 1 meter
@@ -209,6 +211,7 @@ def plotIsoStaImpedance(ax,loc,array,flag,par='abs',pSym='s',pColor=None,addLabe
 	ax.plot(freq,zPlot,color=pColor,marker=pSym,label=flag+addLabel,zorder=zorder)
 
 
+
 def plotPsudoSectNSimpedance(ax,sectDict,array,flag,par='abs',colorbar=True,colorNorm='None',cLevel=None,contour=True):
 
 	indSect = np.where(sectDict.values()[0]==array[sectDict.keys()[0]])
@@ -232,7 +235,7 @@ def plotPsudoSectNSimpedance(ax,sectDict,array,flag,par='abs',colorbar=True,colo
 
 	elif par == 'ares':
 		zPlot = np.abs(array[flag][indSect])**2/(8*np.pi**2*10**(-7)*array['freq'][indSect])
-		cmap = plt.get_cmap('RdYlBu')#seismic)
+		cmap = plt.get_cmap('plasma')#seismic)
 		if cLevel:
 			zMax = np.log10(cLevel[1])
 			zMin = np.log10(cLevel[0])
@@ -245,7 +248,7 @@ def plotPsudoSectNSimpedance(ax,sectDict,array,flag,par='abs',colorbar=True,colo
 
 	elif par == 'aphs':
 		zPlot = np.arctan2(array[flag][indSect].imag,array[flag][indSect].real)*(180/np.pi)
-		cmap = plt.get_cmap('RdYlBu')#seismic)
+		cmap = plt.get_cmap('plasma')#seismic)
 		if cLevel:
 			zMax = cLevel[1]
 			zMin = cLevel[0]
@@ -295,9 +298,9 @@ def plotPsudoSectNSimpedance(ax,sectDict,array,flag,par='abs',colorbar=True,colo
 		X,Y = np.meshgrid(np.append(uniX-25,uniX[-1]+25),np.append(uniY-25,uniY[-1]+25))
 		cs = ax.pcolor(X,Y,np.reshape(zPlot,(len(uniY),len(uniX))),cmap=cmap,norm=plotNorm)
 	if colorbar:
-		csB = plt.colorbar(cs,cax=ax.cax,ticks=clevel,format='%1.2e')
+		csB = plt.colorbar(cs,cax=ax.cax,ticks=clevel,format='%1.0e')
 		# csB.on_mappable_changed(cs)
-		ax.set_title(flag+' '+par,fontsize=8)
+		ax.set_title(flag+' '+par,fontsize=15)
 		return cs, csB
 	return cs,None
 

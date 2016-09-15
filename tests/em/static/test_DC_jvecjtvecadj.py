@@ -1,7 +1,10 @@
 import unittest
-from SimPEG import *
+import numpy as np
+from SimPEG import (Mesh, Maps, DataMisfit, Regularization, Inversion,
+                    Optimization, InvProblem, Tests)
 import SimPEG.EM.Static.DC as DC
 
+np.random.seed(40)
 
 class DCProblemTestsCC(unittest.TestCase):
 

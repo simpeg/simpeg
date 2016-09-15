@@ -115,7 +115,10 @@ class polxy_1Dprimary(BaseNSEMSrc):
         # Need to deal with
         if problem.mesh.dim == 1:
             # Need to use the faceInnerProduct
-            MsigmaDeriv = problem.mesh.getFaceInnerProductDeriv(problem.curModel.sigma)(self.ePrimary(problem)[:,1]) * problem.curModel.sigmaDeriv
+            ePri = self.ePrimary(problem)[:,1]
+            MsigmaDeriv = problem.mesh.getFaceInnerProductDeriv(problem.curModel.sigma)(ePri) * problem.curModel.sigmaDeriv
+            # MsigmaDeriv = ( MsigmaDeriv * MsigmaDeriv.T)**2
+
             if adjoint:
                 #
                 return MsigmaDeriv.T * v
@@ -123,7 +126,7 @@ class polxy_1Dprimary(BaseNSEMSrc):
                 # v should be nC size
                 return MsigmaDeriv * v
         if problem.mesh.dim == 2:
-            pass
+            raise NotImplementedError('The NSEM 2D problem is not implemented')
         if problem.mesh.dim == 3:
             # Need to take the derivative of both u_px and u_py
             # And stack them to be of the correct size

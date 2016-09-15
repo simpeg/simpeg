@@ -1,6 +1,7 @@
 from SimPEG import *
 from SimPEG.FLOW import Richards
 
+
 def run(plotIt=True):
     """
         FLOW: Richards: 1D: Celia1990

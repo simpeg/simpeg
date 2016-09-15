@@ -83,14 +83,14 @@ with open("README.rst") as f:
 
 setup(
     name = "SimPEG",
-    version = "0.1.10",
+    version = "0.1.17",
     packages = find_packages(),
     install_requires = ['numpy>=1.7',
                         'scipy>=0.13',
                         'Cython'
                        ],
     author = "Rowan Cockett",
-    author_email = "rowan@3ptscience.com",
+    author_email = "rowanc1@gmail.com",
     description = "SimPEG: Simulation and Parameter Estimation in Geophysics",
     long_description = LONG_DESCRIPTION,
     license = "MIT",
