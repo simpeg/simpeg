@@ -141,7 +141,7 @@ class Problem3D_CC(BaseDCProblem):
         MfRhoI = self.MfRhoI
         A = D * MfRhoI * G
 
-        Vol = problem.mesh.vol
+        Vol = self.mesh.vol
 
         # Handling Null space of A
         I, J, V = sp.sparse.find(A[0,:])
@@ -298,7 +298,7 @@ class Problem3D_N(BaseDCProblem):
         Grad = self.mesh.nodalGrad
         A = Grad.T * MeSigma * Grad
 
-        Vol = problem.mesh.vol
+        Vol = self.mesh.vol
 
         # Handling Null space of A
         I, J, V = sp.sparse.find(A[0,:])
