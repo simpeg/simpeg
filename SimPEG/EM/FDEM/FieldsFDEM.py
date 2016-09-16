@@ -42,7 +42,7 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         :return: total electric field
         """
         if getattr(self, '_ePrimary', None) is None or getattr(self, '_eSecondary', None) is None:
-            raise NotImplementedError ('Getting e from %s is not implemented' %self.knownFields.keys()[0])
+            raise NotImplementedError ('Getting e from {0!s} is not implemented'.format(self.knownFields.keys()[0]))
 
         return self._ePrimary(solution,srcList) + self._eSecondary(solution,srcList)
 
@@ -56,9 +56,23 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         :return: total magnetic flux density
         """
         if getattr(self, '_bPrimary', None) is None or getattr(self, '_bSecondary', None) is None:
-            raise NotImplementedError ('Getting b from %s is not implemented' %self.knownFields.keys()[0])
+            raise NotImplementedError ('Getting b from {0!s} is not implemented'.format(self.knownFields.keys()[0]))
 
         return self._bPrimary(solution, srcList) + self._bSecondary(solution, srcList)
+
+    def _bSecondary(self, solution, srcList):
+        """
+        Total magnetic flux density is sum of primary and secondary
+
+        :param numpy.ndarray solution: field we solved for
+        :param list srcList: list of sources
+        :rtype: numpy.ndarray
+        :return: total magnetic flux density
+        """
+        if getattr(self, '_bSecondary', None) is None:
+            raise NotImplementedError ('Getting b from %s is not implemented' %self.knownFields.keys()[0])
+
+        return  self._bSecondary(solution, srcList)
 
     def _h(self, solution, srcList):
         """
@@ -70,7 +84,7 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         :return: total magnetic field
         """
         if getattr(self, '_hPrimary', None) is None or getattr(self, '_hSecondary', None) is None:
-            raise NotImplementedError ('Getting h from %s is not implemented' %self.knownFields.keys()[0])
+            raise NotImplementedError ('Getting h from {0!s} is not implemented'.format(self.knownFields.keys()[0]))
 
         return self._hPrimary(solution, srcList) + self._hSecondary(solution, srcList)
 
@@ -84,7 +98,7 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         :return: total current density
         """
         if getattr(self, '_jPrimary', None) is None or getattr(self, '_jSecondary', None) is None:
-            raise NotImplementedError ('Getting j from %s is not implemented' %self.knownFields.keys()[0])
+            raise NotImplementedError ('Getting j from {0!s} is not implemented'.format(self.knownFields.keys()[0]))
 
         return self._jPrimary(solution, srcList) + self._jSecondary(solution, srcList)
 
@@ -100,7 +114,7 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         :return: derivative times a vector (or tuple for adjoint)
         """
         if getattr(self, '_eDeriv_u', None) is None or getattr(self, '_eDeriv_m', None) is None:
-            raise NotImplementedError ('Getting eDerivs from %s is not implemented' %self.knownFields.keys()[0])
+            raise NotImplementedError ('Getting eDerivs from {0!s} is not implemented'.format(self.knownFields.keys()[0]))
 
         if adjoint:
             return self._eDeriv_u(src, v, adjoint), self._eDeriv_m(src, v, adjoint)
@@ -118,11 +132,26 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         :return: derivative times a vector (or tuple for adjoint)
         """
         if getattr(self, '_bDeriv_u', None) is None or getattr(self, '_bDeriv_m', None) is None:
-            raise NotImplementedError ('Getting bDerivs from %s is not implemented' %self.knownFields.keys()[0])
+            raise NotImplementedError ('Getting bDerivs from {0!s} is not implemented'.format(self.knownFields.keys()[0]))
 
         if adjoint:
             return self._bDeriv_u(src, v, adjoint), self._bDeriv_m(src, v, adjoint)
         return np.array(self._bDeriv_u(src, du_dm_v, adjoint) + self._bDeriv_m(src, v, adjoint), dtype = complex)
+
+    def _bSecondaryDeriv(self, src, du_dm_v, v, adjoint = False):
+        """
+        Total derivative of b with respect to the inversion model. Returns :math:`d\mathbf{b}/d\mathbf{m}` for forward and (:math:`d\mathbf{b}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for the adjoint
+
+        :param Src src: sorce
+        :param numpy.ndarray du_dm_v: derivative of the solution vector with respect to the model times a vector (is None for adjoint)
+        :param numpy.ndarray v: vector to take sensitivity product with
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: derivative times a vector (or tuple for adjoint)
+        """
+        # TODO: modify when primary field is dependent on m
+
+        return self._bDeriv(src, du_dm_v, v, adjoint = adjoint)
 
     def _hDeriv(self, src, du_dm_v, v, adjoint = False):
         """
@@ -136,7 +165,7 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         :return: derivative times a vector (or tuple for adjoint)
         """
         if getattr(self, '_hDeriv_u', None) is None or getattr(self, '_hDeriv_m', None) is None:
-            raise NotImplementedError ('Getting hDerivs from %s is not implemented' %self.knownFields.keys()[0])
+            raise NotImplementedError ('Getting hDerivs from {0!s} is not implemented'.format(self.knownFields.keys()[0]))
 
         if adjoint:
             return self._hDeriv_u(src, v, adjoint), self._hDeriv_m(src, v, adjoint)
@@ -154,7 +183,7 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         :return: derivative times a vector (or tuple for adjoint)
         """
         if getattr(self, '_jDeriv_u', None) is None or getattr(self, '_jDeriv_m', None) is None:
-            raise NotImplementedError ('Getting jDerivs from %s is not implemented' %self.knownFields.keys()[0])
+            raise NotImplementedError ('Getting jDerivs from {0!s} is not implemented'.format(self.knownFields.keys()[0]))
 
         if adjoint:
             return self._jDeriv_u(src, v, adjoint), self._jDeriv_m(src, v, adjoint)
@@ -464,6 +493,8 @@ class Fields3D_b(FieldsFDEM):
         if fieldType == 'e':
             return 'E'
         elif fieldType == 'b':
+            return 'F'
+        elif fieldType == 'bSecondary':
             return 'F'
         elif (fieldType == 'h') or (fieldType == 'j'):
             return'CCV'

@@ -1,6 +1,10 @@
-import Utils, Maps, Mesh
+from __future__ import print_function
+from . import Utils
+from . import Maps
+from . import Mesh
 import numpy as np
 import scipy.sparse as sp
+
 
 class RegularizationMesh(object):
     """
@@ -296,8 +300,6 @@ class BaseRegularization(object):
 
     """
 
-    __metaclass__ = Utils.SimPEGMetaClass
-
     counter = None
 
     mapPair = Maps.IdentityMap    #: A SimPEG.Map Class
@@ -328,7 +330,7 @@ class BaseRegularization(object):
     @parent.setter
     def parent(self, p):
         if getattr(self,'_parent',None) is not None:
-            print 'Regularization has switched to a new parent!'
+            print('Regularization has switched to a new parent!')
         self._parent = p
 
     @property
@@ -454,7 +456,7 @@ class Simple(BaseRegularization):
 #    @property
 #    def Wsmooth(self):
 #        """Full smoothness regularization matrix W"""
-#        print 'wtf why are we using Wsmooth'
+#        print('wtf why are we using Wsmooth')
 #        raise NotImplementedError
 #        if getattr(self, '_Wsmooth', None) is None:
 #            wlist = (self.Wx,)
@@ -468,7 +470,7 @@ class Simple(BaseRegularization):
 #    @property
 #    def W(self):
 #        """Full regularization matrix W"""
-#        print 'wtf why are we using W'
+#        print('wtf why are we using W')
 #        if getattr(self, '_W', None) is None:
 #            wlist = (self.Wsmall, self.Wx)
 #            if self.regmesh.dim > 1:
@@ -892,28 +894,28 @@ class Tikhonov(Simple):
 class Sparse(Simple):
     """
         The regularization is:
-    
+
         .. math::
-    
+
             R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top R^\\top R W(m-m_\\text{ref})}
-    
+
         where the IRLS weight
-    
+
         .. math::
-    
+
             R = \eta TO FINISH LATER!!!
-    
+
         So the derivative is straight forward:
-    
+
         .. math::
-    
+
             R(m) = \mathbf{W^\\top R^\\top R W (m-m_\\text{ref})}
-    
+
         The IRLS weights are recomputed after each beta solves.
         It is strongly recommended to do a few Gauss-Newton iterations
         before updating.
     """
-        
+
     # set default values
     eps_p = 1e-1        # Threshold value for the model norm
     eps_q = 1e-1        # Threshold value for the model gradient norm

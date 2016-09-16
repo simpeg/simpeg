@@ -1,11 +1,16 @@
-import Utils, Maps, numpy as np, scipy.sparse as sp
+from __future__ import print_function
+from . import Utils
+import numpy as np
+import scipy.sparse as sp
+from six import add_metaclass
+
 
 class Property(object):
 
-    name           = ''
-    doc            = ''
+    name = ''
+    doc = ''
 
-    defaultVal     = None
+    defaultVal = None
     defaultInvProp = False
 
     def __init__(self, doc, **kwargs):
@@ -17,99 +22,108 @@ class Property(object):
     def propertyLink(self):
         "Can be something like: ('sigma', Maps.ReciprocalMap)"
         return getattr(self, '_propertyLink', None)
+
     @propertyLink.setter
     def propertyLink(self, value):
-        assert type(value) is tuple and len(value) == 2 and type(value[0]) is str and issubclass(value[1], Maps.IdentityMap), 'Use format: ("%s", Maps.ReciprocalMap)'%self.name
+        from .Maps import IdentityMap
+        assert type(value) is tuple and len(value) == 2 and type(value[0]) is str and issubclass(value[1], IdentityMap), 'Use format: ("{0!s}", Maps.ReciprocalMap)'.format(self.name)
         self._propertyLink = value
 
     def _getMapProperty(self):
         prop = self
+
         def fget(self):
-            return getattr(self, '_%sMap'%prop.name, None)
+            return getattr(self, '_{0!s}Map'.format(prop.name), None)
+
         def fset(self, val):
             if prop.propertyLink is not None:
                 linkName, linkMap = prop.propertyLink
-                assert getattr(self, '%sMap'%linkName, None) is None, 'Cannot set both sides of a linked property.'
+                assert getattr(self, '{0!s}Map'.format(linkName), None) is None, 'Cannot set both sides of a linked property.'
             # TODO: Check if the mapping can be correct
-            setattr(self, '_%sMap'%prop.name, val)
+            setattr(self, '_{0!s}Map'.format(prop.name), val)
         return property(fget=fget, fset=fset, doc=prop.doc)
 
     def _getIndexProperty(self):
         prop = self
+
         def fget(self):
-            return getattr(self, '_%sIndex'%prop.name, slice(None))
+            return getattr(self, '_{0!s}Index'.format(prop.name), slice(None))
+
         def fset(self, val):
-            setattr(self, '_%sIndex'%prop.name, val)
+            setattr(self, '_{0!s}Index'.format(prop.name), val)
         return property(fget=fget, fset=fset, doc=prop.doc)
 
     def _getProperty(self):
         prop = self
+
         def fget(self):
-            mapping = getattr(self, '%sMap'%prop.name)
+            mapping = getattr(self, '{0!s}Map'.format(prop.name))
             if mapping is None and prop.propertyLink is None:
                 return prop.defaultVal
 
             if mapping is None and prop.propertyLink is not None:
                 linkName, linkMapClass = prop.propertyLink
                 linkMap = linkMapClass(None)
-                if getattr(self, '%sMap'%linkName, None) is None:
+                if getattr(self, '{0!s}Map'.format(linkName), None) is None:
                     return prop.defaultVal
-                m = getattr(self, '%s'%linkName)
+                m = getattr(self, '{0!s}'.format(linkName))
                 return linkMap * m
 
-            m = getattr(self, '%sModel'%prop.name)
+            m = getattr(self, '{0!s}Model'.format(prop.name))
             return mapping * m
         return property(fget=fget)
 
     def _getModelDerivProperty(self):
         prop = self
+
         def fget(self):
-            mapping = getattr(self, '%sMap'%prop.name)
+            mapping = getattr(self, '{0!s}Map'.format(prop.name))
             if mapping is None and prop.propertyLink is None:
                 return None
 
             if mapping is None and prop.propertyLink is not None:
                 linkName, linkMapClass = prop.propertyLink
-                linkedMap = getattr(self, '%sMap'%linkName)
+                linkedMap = getattr(self, '{0!s}Map'.format(linkName))
                 if linkedMap is None:
                     return None
                 linkMap = linkMapClass(None) * linkedMap
-                m = getattr(self, '%sModel'%linkName)
-                return linkMap.deriv( m )
+                m = getattr(self, '{0!s}Model'.format(linkName))
+                return linkMap.deriv(m)
 
-            m = getattr(self, '%sModel'%prop.name)
-            return mapping.deriv( m )
+            m = getattr(self, '{0!s}Model'.format(prop.name))
+            return mapping.deriv(m)
         return property(fget=fget)
 
     def _getModelProperty(self):
         prop = self
         def fget(self):
-            mapping = getattr(self, '%sMap'%prop.name)
+            mapping = getattr(self, '{0!s}Map'.format(prop.name))
             if mapping is None:
                 return None
-            index = getattr(self.propMap, '%sIndex'%prop.name)
+            index = getattr(self.propMap, '{0!s}Index'.format(prop.name))
             return self.vector[index]
         return property(fget=fget)
 
     def _getModelProjProperty(self):
         prop = self
+
         def fget(self):
-            mapping = getattr(self, '%sMap'%prop.name)
+            mapping = getattr(self, '{0!s}Map'.format(prop.name))
             if mapping is None:
                 return None
-            inds = getattr(self.propMap, '%sIndex'%prop.name)
+            inds = getattr(self.propMap, '{0!s}Index'.format(prop.name))
             if type(inds) is slice:
-                inds = range(*inds.indices(self.nP))
+                inds = list(range(*inds.indices(self.nP)))
             nI, nP = len(inds),self.nP
             return sp.csr_matrix((np.ones(nI), (range(nI), inds) ), shape=(nI, nP))
         return property(fget=fget)
 
     def _getModelMapProperty(self):
         prop = self
-        def fget(self):
-            return getattr(self.propMap, '_%sMap'%prop.name, None)
-        return property(fget=fget)
 
+        def fget(self):
+            return getattr(self.propMap, '_{0!s}Map'.format(prop.name), None)
+        return property(fget=fget)
 
 
 class PropModel(object):
@@ -123,10 +137,10 @@ class PropModel(object):
         inds = []
         if getattr(self, '_nP', None) is None:
             for name in self.propMap._properties:
-                index = getattr(self.propMap, '%sIndex'%name, None)
+                index = getattr(self.propMap, '{0!s}Index'.format(name), None)
                 if index is not None:
                     if type(index) is slice:
-                        inds += range(*index.indices(len(self.vector)))
+                        inds += list(range(*index.indices(len(self.vector))))
                     else:
                         inds += list(index)
             self._nP = len(set(inds))
@@ -136,8 +150,8 @@ class PropModel(object):
         return val in self.propMap
 
 
-
 _PROPMAPCLASSREGISTRY = {}
+
 
 class _PropMapMetaClass(type):
     def __new__(cls, name, bases, attrs):
@@ -163,9 +177,9 @@ class _PropMapMetaClass(type):
             if prop.defaultInvProp:
                 defaultInvProps += [p]
             if prop.propertyLink is not None:
-                assert prop.propertyLink[0] in _properties, "You can only link to things that exist: '%s' is trying to link to '%s'"%(prop.name, prop.propertyLink[0])
+                assert prop.propertyLink[0] in _properties, "You can only link to things that exist: '{0!s}' is trying to link to '{1!s}'".format(prop.name, prop.propertyLink[0])
         if len(defaultInvProps) > 1:
-            raise Exception('You have more than one default inversion property: %s' % defaultInvProps)
+            raise Exception('You have more than one default inversion property: {0!s}'.format(defaultInvProps))
 
         newClass = super(_PropMapMetaClass, cls).__new__(cls, name, bases, attrs)
 
@@ -190,10 +204,12 @@ class _PropMapMetaClass(type):
         return type('PropModel', (PropModel, ), attrs)
 
 
+@add_metaclass(_PropMapMetaClass)
 class PropMap(object):
-    __metaclass__ = _PropMapMetaClass
+    #__metaclass__ = _PropMapMetaClass
 
     def __init__(self, mappings):
+        from .Maps import IdentityMap
         """
             PropMap takes a multi parameter model and maps it to the equivalent PropModel
         """
@@ -202,13 +218,14 @@ class PropMap(object):
             self.setup(mappings['maps'], slices=mappings['slices'])
         elif type(mappings) is list:
             self.setup(mappings)
-        elif isinstance(mappings, Maps.IdentityMap):
+        elif isinstance(mappings, IdentityMap):
             self.setup([(self.defaultInvProp, mappings)])
         else:
             raise Exception('mappings must be a dict, a mapping, or a list of tuples.')
 
 
     def setup(self, maps, slices=None):
+        from .Maps import IdentityMap
         """
             Sets up the maps and slices for the PropertyMap
 
@@ -222,8 +239,8 @@ class PropMap(object):
                 len(m)==2 and
                 type(m[0]) is str and
                 m[0] in self._properties and
-                isinstance(m[1], Maps.IdentityMap)
-                for m in maps]), "Use signature: [%s]" % (', '.join(["('%s', %sMap)"%(p,p) for p in self._properties]))
+                isinstance(m[1], IdentityMap)
+                for m in maps]), "Use signature: [{0!s}]".format((', '.join(["('{0!s}', {1!s}Map)".format(p, p) for p in self._properties])))
         if slices is None:
             slices = dict()
         else:
@@ -236,8 +253,8 @@ class PropMap(object):
 
         nP = 0
         for name, mapping in maps:
-            setattr(self, '%sMap'%name, mapping)
-            setattr(self, '%sIndex'%name, slices.get(name, slice(nP, nP + mapping.nP)))
+            setattr(self, '{0!s}Map'.format(name), mapping)
+            setattr(self, '{0!s}Index'.format(name), slices.get(name, slice(nP, nP + mapping.nP)))
             nP += mapping.nP
         self.nP = nP
 
@@ -250,12 +267,12 @@ class PropMap(object):
 
     def clearMaps(self):
         for name in self._properties:
-            setattr(self, '%sMap'%name, None)
-            setattr(self, '%sIndex'%name, None)
+            setattr(self, '{0!s}Map'.format(name), None)
+            setattr(self, '{0!s}Index'.format(name), None)
 
     def __call__(self, vec):
         return self.PropModel(self, vec)
 
     def __contains__(self, val):
-        activeMaps = [name for name in self._properties if getattr(self, '%sMap'%name) is not None]
+        activeMaps = [name for name in self._properties if getattr(self, '{0!s}Map'.format(name)) is not None]
         return val in activeMaps

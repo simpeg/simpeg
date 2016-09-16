@@ -1,10 +1,11 @@
+from __future__ import print_function
 from SimPEG import *
 
 
 def run(N=100, plotIt=True):
     """
-        Inversion: Linear Problem
-        =========================
+        Inversion for compact models (IRLS)
+        ===================================
 
         Here we go over the basics of creating a linear problem and inversion.
 
@@ -75,7 +76,7 @@ def run(N=100, plotIt=True):
     # Run inversion
     mrec = inv.run(m0)
 
-    print "Final misfit:" + str(invProb.dmisfit.eval(mrec))
+    print("Final misfit:" + str(invProb.dmisfit.eval(mrec)))
 
 
     if plotIt:

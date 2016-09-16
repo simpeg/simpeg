@@ -1,5 +1,6 @@
+from __future__ import print_function
 import numpy as np, scipy.sparse as sp
-from matutils import mkvc
+from .matutils import mkvc
 import warnings
 
 def _checkAccuracy(A, b, X, accuracyTol):
@@ -8,8 +9,8 @@ def _checkAccuracy(A, b, X, accuracyTol):
     if nrm_b > 0:
         nrm /= nrm_b
     if nrm > accuracyTol:
-        msg = '### SolverWarning ###: Accuracy on solve is above tolerance: %e > %e' % (nrm, accuracyTol)
-        print msg
+        msg = '### SolverWarning ###: Accuracy on solve is above tolerance: {0:e} > {1:e}'.format(nrm, accuracyTol)
+        print(msg)
         warnings.warn(msg, RuntimeWarning)
 
 
@@ -28,9 +29,9 @@ def SolverWrapD(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6, name=
         self.A = A.tocsc()
 
         self.checkAccuracy = kwargs.get("checkAccuracy", checkAccuracy)
-        if kwargs.has_key("checkAccuracy"): del kwargs["checkAccuracy"]
+        if "checkAccuracy" in kwargs: del kwargs["checkAccuracy"]
         self.accuracyTol = kwargs.get("accuracyTol", accuracyTol)
-        if kwargs.has_key("accuracyTol"): del kwargs["accuracyTol"]
+        if "accuracyTol" in kwargs: del kwargs["accuracyTol"]
 
         self.kwargs = kwargs
 
@@ -90,9 +91,9 @@ def SolverWrapI(fun, checkAccuracy=True, accuracyTol=1e-5, name=None):
         self.A = A
 
         self.checkAccuracy = kwargs.get("checkAccuracy", checkAccuracy)
-        if kwargs.has_key("checkAccuracy"): del kwargs["checkAccuracy"]
+        if "checkAccuracy" in kwargs: del kwargs["checkAccuracy"]
         self.accuracyTol = kwargs.get("accuracyTol", accuracyTol)
-        if kwargs.has_key("accuracyTol"): del kwargs["accuracyTol"]
+        if "accuracyTol" in kwargs: del kwargs["accuracyTol"]
 
         self.kwargs = kwargs
 

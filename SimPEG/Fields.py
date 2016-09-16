@@ -1,10 +1,13 @@
-import Utils, numpy as np, scipy.sparse as sp
+from __future__ import print_function
+from . import Utils
+import numpy as np
+import scipy.sparse as sp
 
 class Fields(object):
     """Fancy Field Storage
 
         u[:,'phi'] = phi
-        print u[src0,'phi']
+        print(u[src0,'phi'])
 
     """
 
@@ -37,7 +40,7 @@ class Fields(object):
         for f in self.knownFields:
             loc =self.knownFields[f]
             sz += np.array(self._storageShape(loc)).prod()*8.0/(1024**2)
-        return "%e MB"%sz
+        return "{0:e} MB".format(sz)
 
     def _storageShape(self, loc):
         nSrc = self.survey.nSrc
@@ -84,12 +87,12 @@ class Fields(object):
             return
         if accessType=='set' and name not in self.knownFields:
             if name in self.aliasFields:
-                raise KeyError("Invalid field name (%s) for setter, you can't set an aliased property"%name)
+                raise KeyError("Invalid field name ({0!s}) for setter, you can't set an aliased property".format(name))
             else:
-                raise KeyError('Invalid field name (%s) for setter'%name)
+                raise KeyError('Invalid field name ({0!s}) for setter'.format(name))
 
         elif accessType=='get' and (name not in self.knownFields and name not in self.aliasFields):
-            raise KeyError('Invalid field name (%s) for getter'%name)
+            raise KeyError('Invalid field name ({0!s}) for getter'.format(name))
         return name
 
     def _indexAndNameFromKey(self, key, accessType):
@@ -162,7 +165,7 @@ class TimeFields(Fields):
     """Fancy Field Storage for time domain problems
 
         u[:,'phi', timeInd] = phi
-        print u[src0,'phi']
+        print(u[src0,'phi'])
 
     """
 
@@ -244,7 +247,7 @@ class TimeFields(Fields):
                 out = func(pointerFields, srcII, timeII)
             else: #loop over the time steps
                 nT = pointerShape[2]
-                out = range(nT)
+                out = list(range(nT))
                 for i, TIND_i in enumerate(timeII):
                     fieldI = pointerFields[:,:,i]
                     if fieldI.shape[0] == fieldI.size:

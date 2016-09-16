@@ -1,5 +1,6 @@
 import numpy as np, os
 from SimPEG import Utils
+import six
 
 class TensorMeshIO(object):
 
@@ -128,7 +129,7 @@ class TensorMeshIO(object):
 
         # Assign the model('s) to the object
         if models is not None:
-            for item in models.iteritems():
+            for item in six.iteritems(models):
                 # Convert numpy array
                 vtkDoubleArr = numpy_to_vtk(item[1],deep=1)
                 vtkDoubleArr.SetName(item[0])
@@ -162,7 +163,7 @@ class TensorMeshIO(object):
             :return: model with TensorMesh ordered
         """
         f = open(fileName, 'r')
-        model = np.array(map(float, f.readlines()))
+        model = np.array(list(map(float, f.readlines())))
         f.close()
         model = np.reshape(model, (mesh.nCz, mesh.nCx, mesh.nCy), order = 'F')
         model = model[::-1,:,:]
@@ -198,11 +199,11 @@ class TensorMeshIO(object):
         """
         assert mesh.dim == 3
         s = ''
-        s += '%i %i %i\n' %tuple(mesh.vnC)
+        s += '{0:d} {1:d} {2:d}\n'.format(*tuple(mesh.vnC))
         origin = mesh.x0 + np.array([0,0,mesh.hz.sum()]) # Have to it in the same operation or use mesh.x0.copy(), otherwise the mesh.x0 is updated.
         origin.dtype = float
 
-        s += '%.2f %.2f %.2f\n' %tuple(origin)
+        s += '{0:.2f} {1:.2f} {2:.2f}\n'.format(*tuple(origin))
         s += ('%.2f '*mesh.nCx+'\n')%tuple(mesh.hx)
         s += ('%.2f '*mesh.nCy+'\n')%tuple(mesh.hy)
         s += ('%.2f '*mesh.nCz+'\n')%tuple(mesh.hz[::-1])
@@ -254,23 +255,23 @@ class TreeMeshIO(object):
         indArr = np.concatenate((ubcCellPt[ubcReorder,:],cellW[ubcReorder].reshape((-1,1)) ),axis=1)
 
         ## Write the UBC octree mesh file
-        with open(fileName,'w') as mshOut:
-            mshOut.write('{:.0f} {:.0f} {:.0f}\n'.format(nCunderMesh[0],nCunderMesh[1],nCunderMesh[2]))
-            mshOut.write('{:.4f} {:.4f} {:.4f}\n'.format(tswCorn[0],tswCorn[1],tswCorn[2]))
-            mshOut.write('{:.3f} {:.3f} {:.3f}\n'.format(smallCell[0],smallCell[1],smallCell[2]))
-            mshOut.write('{:.0f} \n'.format(nrCells))
-            np.savetxt(mshOut,indArr,fmt='%i')
+        head = ('{:.0f} {:.0f} {:.0f}\n'.format(nCunderMesh[0],nCunderMesh[1],nCunderMesh[2])+
+            '{:.4f} {:.4f} {:.4f}\n'.format(tswCorn[0],tswCorn[1],tswCorn[2])+
+            '{:.3f} {:.3f} {:.3f}\n'.format(smallCell[0],smallCell[1],smallCell[2])+
+            '{:.0f} \n'.format(nrCells))
+        np.savetxt(fileName,indArr,fmt='%i',header=head,comments='')
 
         ## Print the models
         # Assign the model('s) to the object
         if models is not None:
             # indUBCvector = np.argsort(cX0[np.argsort(np.concatenate((cX0[:,0:2],cX0[:,2:3].max() - cX0[:,2:3]),axis=1).view(','.join(3*['float'])),axis=0,order=('f2','f1','f0'))[:,0]].view(','.join(3*['float'])),axis=0,order=('f2','f1','f0'))[:,0]
-            for item in models.iteritems():
+            for item in six.iteritems(models):
                 # Save the data
                 np.savetxt(item[0],item[1][ubcReorder],fmt='%3.5e')
 
     @classmethod
     def readUBC(TreeMesh, meshFile):
+        from io import StringIO
         """
             Read UBC 3D OcTree mesh and/or modelFiles
 
@@ -281,18 +282,23 @@ class TreeMeshIO(object):
 
         """
 
-        ## Read the file lines
-        fileLines = np.genfromtxt(meshFile,dtype=str,delimiter='\n')
+        # Read the file lines
+        fileLines = np.genfromtxt(meshFile, dtype=str,
+            delimiter='\n', comments='!')
         # Extract the data
-        nCunderMesh = np.array(fileLines[0].split(),dtype=float)
+        nCunderMesh = np.array(fileLines[0].
+            split('!')[0].split(), dtype=float)
         # I think this is the case?
         if np.unique(nCunderMesh).size >1:
             raise Exception('SimPEG TreeMeshes have the same number of cell in all directions')
-        tswCorn = np.array(fileLines[1].split(),dtype=float)
-        smallCell = np.array(fileLines[2].split(),dtype=float)
-        nrCells = np.array(fileLines[3].split(),dtype=float)
+        tswCorn = np.array(fileLines[1].
+            split('!')[0].split(), dtype=float)
+        smallCell = np.array(fileLines[2].
+            split('!')[0].split(), dtype=float)
+        nrCells = np.array(fileLines[3].
+            split('!')[0].split(), dtype=float)
         # Read the index array
-        indArr = np.genfromtxt(fileLines[4::],dtype=np.int)
+        indArr = np.genfromtxt((line.encode('utf8') for line in fileLines[4::]),dtype=np.int)
 
         ## Calculate simpeg parameters
         h1,h2,h3 = [np.ones(nr)*sz for nr,sz in zip(nCunderMesh,smallCell)]
@@ -384,7 +390,7 @@ class TreeMeshIO(object):
         vtuObj.GetCellData().AddArray(refineLevelArr)
         # Assign the model('s) to the object
         if models is not None:
-            for item in models.iteritems():
+            for item in six.iteritems(models):
                 # Convert numpy array
                 vtkDoubleArr = numpy_to_vtk(item[1],deep=1)
                 vtkDoubleArr.SetName(item[0])

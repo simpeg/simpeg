@@ -1,4 +1,10 @@
-import Utils, numpy as np, scipy.sparse as sp, uuid
+from __future__ import print_function
+from . import Utils
+import numpy as np
+import scipy.sparse as sp
+import uuid
+import gc
+
 
 class BaseRx(object):
     """SimPEG Receiver Object"""
@@ -26,7 +32,7 @@ class BaseRx(object):
     def rxType(self, value):
         known = self.knownRxTypes
         if known is not None:
-            assert value in known, "rxType must be in ['%s']" % ("', '".join(known))
+            assert value in known, "rxType must be in ['{0!s}']".format(("', '".join(known)))
         self._rxType = value
 
     @property
@@ -125,7 +131,7 @@ class BaseSrc(object):
     def __init__(self, rxList, **kwargs):
         assert type(rxList) is list, 'rxList must be a list'
         for rx in rxList:
-            assert isinstance(rx, self.rxPair), 'rxList must be a %s'%self.rxPair.__name__
+            assert isinstance(rx, self.rxPair), 'rxList must be a {0!s}'.format(self.rxPair.__name__)
         assert len(set(rxList)) == len(rxList), 'The rxList must be unique'
         self.uid = str(uuid.uuid4())
         self.rxList = rxList
@@ -204,8 +210,6 @@ class Data(object):
 class BaseSurvey(object):
     """Survey holds the observed data, and the standard deviations."""
 
-    __metaclass__ = Utils.SimPEGMetaClass
-
     std = None       #: Estimated Standard Deviations
     eps = None       #: Estimated Noise Floor
     dobs = None      #: Observed data
@@ -227,7 +231,7 @@ class BaseSurvey(object):
     @srcList.setter
     def srcList(self, value):
         assert type(value) is list, 'srcList must be a list'
-        assert np.all([isinstance(src, self.srcPair) for src in value]), 'All sources must be instances of %s' % self.srcPair.__name__
+        assert np.all([isinstance(src, self.srcPair) for src in value]), 'All sources must be instances of {0!s}'.format(self.srcPair.__name__)
         assert len(set(value)) == len(value), 'The srcList must be unique'
         self._srcList = value
         self._sourceOrder = dict()
@@ -238,10 +242,10 @@ class BaseSurvey(object):
             sources = [sources]
         for src in sources:
             if getattr(src,'uid',None) is None:
-                raise KeyError('Source does not have a uid: %s'%str(src))
-        inds = map(lambda src: self._sourceOrder.get(src.uid, None), sources)
+                raise KeyError('Source does not have a uid: {0!s}'.format(str(src)))
+        inds = list(map(lambda src: self._sourceOrder.get(src.uid, None), sources))
         if None in inds:
-            raise KeyError('Some of the sources specified are not in this survey. %s'%str(inds))
+            raise KeyError('Some of the sources specified are not in this survey. {0!s}'.format(str(inds)))
         return inds
 
     @property
@@ -263,7 +267,7 @@ class BaseSurvey(object):
     def pair(self, p):
         """Bind a problem to this survey instance using pointers"""
         assert hasattr(p, 'surveyPair'), "Problem must have an attribute 'surveyPair'."
-        assert isinstance(self, p.surveyPair), "Problem requires survey object must be an instance of a %s class."%(p.surveyPair.__name__)
+        assert isinstance(self, p.surveyPair), "Problem requires survey object must be an instance of a {0!s} class.".format((p.surveyPair.__name__))
         if p.ispaired:
             raise Exception("The problem object is already paired to a survey. Use prob.unpair()")
         self._prob = p

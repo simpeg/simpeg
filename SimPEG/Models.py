@@ -1,6 +1,6 @@
+from __future__ import print_function
 import numpy as np
-from Maps import *
-
+from .Maps import IdentityMap
 
 class Model(np.ndarray):
 

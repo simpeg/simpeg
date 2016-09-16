@@ -60,13 +60,13 @@ Python for scientific computing
 Numpy and Matlab
 ----------------
 
-* `NumPy for Matlab Users <http://wiki.scipy.org/NumPy_for_Matlab_Users>`_
+* `NumPy for Matlab Users <http://docs.scipy.org/doc/numpy-dev/user/numpy-for-matlab-users.html>`_
 * `Python vs Matlab <https://sites.google.com/site/pythonforscientists/python-vs-matlab>`_
 
 Lessons in Python
 -----------------
 
-* `Software Carpentry <http://software-carpentry.org/v4/python/index.html>`_
+* `Software Carpentry <http://swcarpentry.github.io/python-novice-inflammation/>`_
 * `Introduction to NumPy and Matplotlib <http://www.youtube.com/watch?v=3Fp1zn5ao2M>`_
 
 Editing Python

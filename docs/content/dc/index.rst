@@ -40,14 +40,23 @@
 Direct Current Resistivity
 **************************
 
-`SimPEG.DCIP` uses SimPEG as the framework for the forward and inverse
+`SimPEG.EM.Static.DC` and `SimPEG.EM.Static.IP` uses SimPEG as the framework for the forward and inverse
 direct current (DC) resistivity and induced polarization (IP) geophysical problems.
 
 
 DC resistivity survey
 =====================
 
-Electrical resistivity of subsurface materials is measured by causing an electrical current to flow in the earth between one pair of electrodes while the voltage across a second pair of electrodes is measured. The result is an "apparent" resistivity which is a value representing the weighted average resistivity over a volume of the earth. Variations in this measurement are caused by variations in the soil, rock, and pore fluid electrical resistivity. Surveys require contact with the ground, so they can be labour intensive. Results are sometimes interpreted directly, but more commonly, 1D, 2D or 3D models are estimated using inversion procedures (`GPG <http://www.eos.ubc.ca/courses/eosc350/content/>`_).
+Electrical resistivity of subsurface materials is measured by causing an
+electrical current to flow in the earth between one pair of electrodes while
+the voltage across a second pair of electrodes is measured. The result is an
+"apparent" resistivity which is a value representing the weighted average
+resistivity over a volume of the earth. Variations in this measurement are
+caused by variations in the soil, rock, and pore fluid electrical resistivity.
+Surveys require contact with the ground, so they can be labour intensive.
+Results are sometimes interpreted directly, but more commonly, 1D, 2D or 3D
+models are estimated using inversion procedures (`GPG
+<http://gpg.geosci.xyz>`_).
 
 
 Background
@@ -150,8 +159,60 @@ Comparing to the analytic function:
 API for DC codes
 ================
 
-.. automodule:: SimPEG.DCIP.BaseDC
+Problem
+-------
+
+.. automodule:: SimPEG.EM.Static.DC.ProblemDC
     :show-inheritance:
     :members:
     :undoc-members:
-    :inherited-members:
+
+
+.. automodule:: SimPEG.EM.Static.DC.ProblemDC_2D
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+Survey
+------
+
+.. automodule:: SimPEG.EM.Static.DC.SurveyDC
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+.. automodule:: SimPEG.EM.Static.DC.SrcDC
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+.. automodule:: SimPEG.EM.Static.DC.RxDC
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+Fields
+------
+
+.. automodule:: SimPEG.EM.Static.DC.FieldsDC
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+.. automodule:: SimPEG.EM.Static.DC.FieldsDC_2D
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+Utils
+-----
+
+.. automodule:: SimPEG.EM.Static.DC.Utils
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+.. automodule:: SimPEG.EM.Static.DC.BoundaryUtils
+    :show-inheritance:
+    :members:
+    :undoc-members:

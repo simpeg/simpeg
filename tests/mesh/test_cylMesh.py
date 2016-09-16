@@ -1,6 +1,8 @@
+from __future__ import print_function
 import unittest
 import sys
-from SimPEG import *
+import numpy as np
+from SimPEG import Mesh, Tests, Utils
 
 
 class TestCyl2DMesh(unittest.TestCase):
@@ -81,6 +83,13 @@ class TestCyl2DMesh(unittest.TestCase):
         a = (r[1:]**2 - r[:-1]**2)*np.pi
         vol = np.r_[2*a,a]
         self.assertTrue(np.linalg.norm((vol-self.mesh.vol)) == 0)
+
+    def test_vol_simple(self):
+        mesh = Mesh.CylMesh([1., 1., 1.])
+        self.assertTrue(mesh.vol == np.pi)
+
+        mesh = Mesh.CylMesh([2., 1., 1.])
+        self.assertTrue(np.all(mesh.vol == np.pi*np.r_[0.5**2, 1 - 0.5**2]))
 
     def test_gridSizes(self):
         self.assertTrue(self.mesh.gridCC.shape == (self.mesh.nC, 3))
@@ -332,9 +341,9 @@ class TestEdgeCurl2D(Tests.OrderTest):
         # fZ = 0
         # fT = sympy.sin(2.*sympy.pi*z)
 
-        # print 1/r*sympy.diff(fZ,t) - sympy.diff(fT,z)
-        # print sympy.diff(fR,z) - sympy.diff(fZ,r)
-        # print 1/r*(sympy.diff(r*fT,r) - sympy.diff(fR,t))
+        # print(1/r*sympy.diff(fZ,t) - sympy.diff(fT,z))
+        # print(sympy.diff(fR,z) - sympy.diff(fZ,r))
+        # print(1/r*(sympy.diff(r*fT,r) - sympy.diff(fR,t)))
 
         funT = lambda r, t, z: np.sin(2.*np.pi*z)
 
@@ -355,19 +364,166 @@ class TestEdgeCurl2D(Tests.OrderTest):
     def test_order(self):
         self.orderTest()
 
+# class TestCellGrad2D_Dirichlet(Tests.OrderTest):
+class TestCellGrad2D_Dirichlet(unittest.TestCase):
+    # name = "Cell Grad 2 - Dirichlet"
+    # meshTypes = MESHTYPES
+    # meshDimension = 2
+    # meshSizes = [8, 16, 32, 64]
 
-# class TestInnerProducts2D(Tests.OrderTest):
-#     """Integrate an function over a unit cube domain using edgeInnerProducts and faceInnerProducts."""
+    # def getError(self):
+    #     #Test function
+    #     fx = lambda x, z: -2*np.pi*np.sin(2*np.pi*x)*np.cos(2*np.pi*z)
+    #     fz = lambda x, z: -2*np.pi*np.sin(2*np.pi*z)*np.cos(2*np.pi*x)
+    #     sol = lambda x, z: np.cos(2*np.pi*x)*np.cos(2*np.pi*z)
 
-#     meshTypes = MESHTYPES
-#     meshDimension = 2
-#     meshSizes = [4, 8, 16, 32, 64, 128]
+    #     xc = call2(sol, self.M.gridCC)
 
-#     def getError(self):
+    #     Fc = cylF2(self.M, fx, fz)
+    #     Fc = np.c_[Fc[:,0],np.zeros(self.M.nF),Fc[:,1]]
+    #     gradX_ana = self.M.projectFaceVector(Fc)
 
-#         funR = lambda r, t, z: np.cos(2.0*np.pi*z)
-#         funT = lambda r, t, z: 0*t
-#         funZ = lambda r, t, z: np.sin(2.0*np.pi*r)
+    #     gradX = self.M.cellGrad.dot(xc)
+
+    #     err = np.linalg.norm((gradX-gradX_ana), np.inf)
+
+    #     return err
+
+    # def test_order(self):
+    #     self.orderTest()
+
+    def setUp(self):
+        hx = np.random.rand(10)
+        hz = np.random.rand(10)
+        self.mesh = Mesh.CylMesh([hx, 1,hz])
+
+    def test_NotImplementedError(self):
+        with self.assertRaises(NotImplementedError):
+            self.mesh.cellGrad
+
+
+class TestAveragingSimple(unittest.TestCase):
+
+    def setUp(self):
+        hx = np.random.rand(10)
+        hz = np.random.rand(10)
+        self.mesh = Mesh.CylMesh([hx, 1,hz])
+
+    def test_constantEdges(self):
+        edge_vec = np.ones(self.mesh.nE)
+        assert all(self.mesh.aveE2CC * edge_vec == 1.)
+        assert all(self.mesh.aveE2CCV * edge_vec == 1.)
+
+    def test_constantFaces(self):
+        face_vec = np.ones(self.mesh.nF)
+        assert all(self.mesh.aveF2CC * face_vec == 1.)
+        assert all(self.mesh.aveF2CCV * face_vec == 1.)
+
+
+class TestAveE2CC(Tests.OrderTest):
+    name = "aveE2CC"
+    meshTypes = MESHTYPES
+    meshDimension = 2
+
+    def getError(self):
+
+        fun = lambda r, t, z: np.sin(2.*np.pi*z) * np.cos(np.pi*r)
+
+        E = call3(fun, self.M.gridEy)
+
+        aveE = self.M.aveE2CC * E
+        aveE_ana = call3(fun, self.M.gridCC)
+
+        err = np.linalg.norm((aveE-aveE_ana), np.inf)
+        return err
+
+    def test_order(self):
+        self.orderTest()
+
+
+class TestAveE2CCV(Tests.OrderTest):
+    name = "aveE2CCV"
+    meshTypes = MESHTYPES
+    meshDimension = 2
+
+    def getError(self):
+
+        fun = lambda r, t, z: np.sin(2.*np.pi*z) * np.cos(np.pi*r)
+
+        E = call3(fun, self.M.gridEy)
+
+        aveE = self.M.aveE2CCV * E
+        aveE_ana = call3(fun, self.M.gridCC)
+
+        err = np.linalg.norm((aveE-aveE_ana), np.inf)
+        return err
+
+    def test_order(self):
+        self.orderTest()
+
+
+class TestAveF2CCV(Tests.OrderTest):
+    name = "aveF2CCV"
+    meshTypes = MESHTYPES
+    meshDimension = 2
+
+    def getError(self):
+
+        funR = lambda r, z: np.sin(2.*np.pi*z) * np.cos(np.pi*r)
+        funZ = lambda r, z: np.sin(3.*np.pi*z) * np.cos(2.*np.pi*r)
+
+        Fc = cylF2(self.M, funR, funZ)
+        Fc = np.c_[Fc[:,0],np.zeros(self.M.nF), Fc[:,1]]
+        F = self.M.projectFaceVector(Fc)
+
+        aveF = self.M.aveF2CCV * F
+
+        aveF_anaR = funR(self.M.gridCC[:,0], self.M.gridCC[:,2])
+        aveF_anaZ = funZ(self.M.gridCC[:,0], self.M.gridCC[:,2])
+
+        aveF_ana = np.hstack([aveF_anaR, aveF_anaZ])
+
+        err = np.linalg.norm((aveF-aveF_ana), np.inf)
+        return err
+
+    def test_order(self):
+        self.orderTest()
+
+
+class TestAveF2CC(Tests.OrderTest):
+    name = "aveF2CC"
+    meshTypes = MESHTYPES
+    meshDimension = 2
+
+    def getError(self):
+
+        fun = lambda r, z: np.sin(2.*np.pi*z) * np.cos(np.pi*r)
+
+        Fc = cylF2(self.M, fun, fun)
+        Fc = np.c_[Fc[:,0],np.zeros(self.M.nF), Fc[:,1]]
+        F = self.M.projectFaceVector(Fc)
+
+        aveF = self.M.aveF2CC * F
+        aveF_ana = fun(self.M.gridCC[:,0], self.M.gridCC[:,2])
+
+        err = np.linalg.norm((aveF-aveF_ana), np.inf)
+        return err
+
+    def test_order(self):
+        self.orderTest()
+
+class TestInnerProducts2D(Tests.OrderTest):
+    """Integrate an function over a unit cube domain using edgeInnerProducts and faceInnerProducts."""
+
+    meshTypes = MESHTYPES
+    meshDimension = 2
+    meshSizes = [4, 8, 16, 32, 64, 128]
+
+    def getError(self):
+
+        funR = lambda r, t, z: np.cos(2.0*np.pi*z)
+        funT = lambda r, t, z: 0*t
+        funZ = lambda r, t, z: np.sin(2.0*np.pi*r)
 
 #         call = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1], xyz[:, 2])
 
@@ -400,7 +556,7 @@ class TestEdgeCurl2D(Tests.OrderTest):
 #             F = np.r_[Fr,Fz]
 #             numeric = F.T.dot(A.dot(F))
 
-#         print numeric
+#         print(numeric)
 #         err = np.abs(numeric - analytic)
 #         return err
 

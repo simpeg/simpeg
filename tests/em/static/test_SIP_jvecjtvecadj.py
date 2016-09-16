@@ -1,10 +1,16 @@
+from __future__ import print_function
 import unittest
-from SimPEG import *
-import SimPEG
-from SimPEG import Mesh, Utils, EM, Maps, np, Survey
+from SimPEG import (Mesh, Utils, EM, Maps, np, Survey, DataMisfit,
+                    Regularization, Optimization, Inversion, InvProblem, Tests)
 from SimPEG.EM.Static import SIP, DC, IP
-from pymatsolver import MumpsSolver
+try:
+    from pymatsolver import PardisoSolver
+    Solver = PardisoSolver
+except ImportError:
+    from SimPEG import SolverLU
+    Solver = SolverLU
 
+np.random.seed(38)
 
 class IPProblemTestsCC(unittest.TestCase):
 
@@ -38,7 +44,7 @@ class IPProblemTestsCC(unittest.TestCase):
         survey = SIP.Survey([src])
         colemap = [("eta", Maps.IdentityMap(mesh)), ("taui", Maps.IdentityMap(mesh))]
         problem = SIP.Problem3D_CC(mesh, rho=1./sigma, mapping=colemap)
-        problem.Solver = MumpsSolver
+        problem.Solver = Solver
         problem.pair(survey)
         mSynth = np.r_[eta, 1./tau]
         survey.makeSyntheticData(mSynth)
@@ -70,7 +76,7 @@ class IPProblemTestsCC(unittest.TestCase):
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-10
-        print 'Adjoint Test', np.abs(wtJv - vtJtw), passed
+        print('Adjoint Test', np.abs(wtJv - vtJtw), passed)
         self.assertTrue(passed)
 
     def test_dataObj(self):
@@ -110,7 +116,7 @@ class IPProblemTestsN(unittest.TestCase):
         survey = SIP.Survey([src])
         colemap = [("eta", Maps.IdentityMap(mesh)), ("taui", Maps.IdentityMap(mesh))]
         problem = SIP.Problem3D_N(mesh, sigma=sigma, mapping=colemap)
-        problem.Solver = MumpsSolver
+        problem.Solver = Solver
         problem.pair(survey)
         mSynth = np.r_[eta, 1./tau]
         survey.makeSyntheticData(mSynth)
@@ -142,7 +148,7 @@ class IPProblemTestsN(unittest.TestCase):
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
-        print 'Adjoint Test', np.abs(wtJv - vtJtw), passed
+        print('Adjoint Test', np.abs(wtJv - vtJtw), passed)
         self.assertTrue(passed)
 
     def test_dataObj(self):
@@ -187,7 +193,7 @@ class IPProblemTestsN_air(unittest.TestCase):
         survey = SIP.Survey([src])
         colemap = [("eta", Maps.IdentityMap(mesh)*actmapeta), ("taui", Maps.IdentityMap(mesh)*actmaptau)]
         problem = SIP.Problem3D_N(mesh, sigma=sigma, mapping=colemap)
-        problem.Solver = MumpsSolver
+        problem.Solver = Solver
         problem.pair(survey)
         mSynth = np.r_[eta[~airind], 1./tau[~airind]]
         survey.makeSyntheticData(mSynth)
@@ -220,7 +226,7 @@ class IPProblemTestsN_air(unittest.TestCase):
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
-        print 'Adjoint Test', np.abs(wtJv - vtJtw), passed
+        print('Adjoint Test', np.abs(wtJv - vtJtw), passed)
         self.assertTrue(passed)
 
     def test_dataObj(self):

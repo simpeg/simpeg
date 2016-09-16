@@ -1,9 +1,8 @@
+from __future__ import print_function
 import numpy as np
 import unittest
 from SimPEG.Utils import mkvc
 from SimPEG import Mesh, Tests
-import unittest
-
 
 MESHTYPES = ['uniformTensorMesh', 'randomTensorMesh']
 TOLERANCES = [0.9, 0.5, 0.5]

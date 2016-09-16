@@ -1,14 +1,20 @@
-import Utils, Survey, Models, numpy as np, scipy.sparse as sp
+from __future__ import print_function
+from . import Utils
+from . import Survey
+from . import Models
+import numpy as np
+from . import Maps
+from .Fields import Fields, TimeFields
+from . import Mesh
+
+
 Solver = Utils.SolverUtils.Solver
-import Maps, Mesh
-from Fields import Fields, TimeFields
+
 
 class BaseProblem(object):
     """
         Problem is the base class for all geophysical forward problems in SimPEG.
     """
-
-    __metaclass__ = Utils.SimPEGMetaClass
 
     counter = None   #: A SimPEG.Utils.Counter object
 
@@ -49,7 +55,7 @@ class BaseProblem(object):
 
     def pair(self, d):
         """Bind a survey to this problem instance using pointers."""
-        assert isinstance(d, self.surveyPair), "Data object must be an instance of a %s class."%(self.surveyPair.__name__)
+        assert isinstance(d, self.surveyPair), "Data object must be an instance of a {0!s} class.".format((self.surveyPair.__name__))
         if d.ispaired:
             raise Exception("The survey object is already paired to a problem. Use survey.unpair()")
         self._survey = d

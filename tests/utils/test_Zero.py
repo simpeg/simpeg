@@ -1,6 +1,8 @@
+from __future__ import print_function
 import unittest
 from SimPEG.Utils import Zero, Identity, sdiag, mkvc
-from SimPEG import np, sp
+import numpy as np
+import scipy.sparse as sp
 
 class Tests(unittest.TestCase):
 
@@ -52,7 +54,7 @@ class Tests(unittest.TestCase):
         assert o <= -1
         assert not (o > -1)
         assert o >= -1
-        assert -(-o)*o == -o
+        assert -1.*(-o)*o == -o
         o = Identity()
         assert +o == o
         assert -o == -o
@@ -68,9 +70,9 @@ class Tests(unittest.TestCase):
         assert 3 - -o == 4
         assert 3 - o == 2
 
-        assert o/2 == 0
+        assert o//2 == 0
         assert o/2. == 0.5
-        assert -o/2 == -1
+        assert -o//2 == -1
         assert -o/2. == -0.5
         assert 2/o == 2
         assert 2/-o == -2
