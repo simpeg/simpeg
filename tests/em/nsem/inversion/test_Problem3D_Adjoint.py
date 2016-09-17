@@ -43,11 +43,11 @@ class NSEM_3D_AdjointTests(unittest.TestCase):
         pass
 
     # Test the adjoint of Jvec and Jtvec
-    def test_JvecAdjoint_zxx(self):self.assertTrue(JvecAdjointTest(NSEM.Utils.testUtils.halfSpace(1e-2),'xx',.1))
+    # def test_JvecAdjoint_zxx(self):self.assertTrue(JvecAdjointTest(NSEM.Utils.testUtils.halfSpace(1e-2),'xx',.1))
     def test_JvecAdjoint_zxy(self):self.assertTrue(JvecAdjointTest(NSEM.Utils.testUtils.halfSpace(1e-2),'xy',.1))
-    def test_JvecAdjoint_zyx(self):self.assertTrue(JvecAdjointTest(NSEM.Utils.testUtils.halfSpace(1e-2),'yx',.1))
-    def test_JvecAdjoint_zyy(self):self.assertTrue(JvecAdjointTest(NSEM.Utils.testUtils.halfSpace(1e-2),'yy',.1))
-    def test_JvecAdjoint_tzx(self):self.assertTrue(JvecAdjointTest(NSEM.Utils.testUtils.halfSpace(1e-2),'zx',.1))
+    # def test_JvecAdjoint_zyx(self):self.assertTrue(JvecAdjointTest(NSEM.Utils.testUtils.halfSpace(1e-2),'yx',.1))
+    # def test_JvecAdjoint_zyy(self):self.assertTrue(JvecAdjointTest(NSEM.Utils.testUtils.halfSpace(1e-2),'yy',.1))
+    # def test_JvecAdjoint_tzx(self):self.assertTrue(JvecAdjointTest(NSEM.Utils.testUtils.halfSpace(1e-2),'zx',.1))
     def test_JvecAdjoint_tzy(self):self.assertTrue(JvecAdjointTest(NSEM.Utils.testUtils.halfSpace(1e-2),'zy',.1))
     # def test_JvecAdjoint_All(self):self.assertTrue(JvecAdjointTest(NSEM.Utils.testUtils.random(1e-2),'Imp',.1))
 

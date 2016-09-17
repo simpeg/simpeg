@@ -20,11 +20,11 @@ addrandoms = True
 
 def JvecAdjointTest(sigmaHalf,formulation='PrimSec'):
     forType = 'PrimSec' not in formulation
-    survey, sigma, m1d = NSEM.Utils.testUtils.setup1DSurvey(sigmaHalf,tD=forType,structure=False)
+    survey, sigma, sigBG, m1d = NSEM.Utils.testUtils.setup1DSurvey(sigmaHalf,tD=forType,structure=False)
     print 'Adjoint test of e formulation for {:s} comp \n'.format(formulation)
 
     if 'PrimSec' in formulation:
-        problem = NSEM.Problem1D_ePrimSec(m1d, sigmaPrimary = sigma)
+        problem = NSEM.Problem1D_ePrimSec(m1d, sigmaPrimary = sigBG)
     else:
         problem = NSEM.Problem1D_eTotal(m1d)
     problem.pair(survey)

@@ -97,12 +97,13 @@ class Fields1D_ePrimSec(BaseNSEMFields):
         """
         Partial derivative of the total electric field with respect to the solution.
 
-        :param SimPEG.EM.FDEM.Src src: source
+        :param SimPEG.EM.NSEM.Src src: source
         :param numpy.ndarray v: vector to take product with
+            Size (nE,) when adjoint=True, (nU,) when adjoint=False
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
-        :return: product of the derivative of the electric field with respect to the field we solved for with a vector
-        """
+        :return: The calculated derivative, size (nU,) when adjoint=True
+            (nE,) when adjoint=False"""
 
         return Identity()*v
 
@@ -536,6 +537,15 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         BaseNSEMFields.__init__(self,mesh,survey,**kwargs)
 
     def _e_pxPrimary(self, e_pxSolution, srcList):
+        """
+        px polarization of primary electric field from source
+
+        :param numpy.ndarray e_pxSolution: px polarization that
+            was solved for
+        :param list srcList: list of sources
+        :rtype: numpy.ndarray
+        :return: primary electric field as defined by the sources
+        """
         e_pxPrimary = np.zeros_like(e_pxSolution)
         for i, src in enumerate(srcList):
             ep = src.ePrimary(self.survey.prob)
@@ -544,6 +554,16 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         return e_pxPrimary
 
     def _e_pyPrimary(self, e_pySolution, srcList):
+        """
+        py polarization of primary electric field from source
+
+        :param numpy.ndarray e_pySolution: py polarization that
+            was solved for
+        :param list srcList: list of sources
+        :rtype: numpy.ndarray
+        :return: primary electric field as defined by the sources
+        """
+
         e_pyPrimary = np.zeros_like(e_pySolution)
         for i, src in enumerate(srcList):
             ep = src.ePrimary(self.survey.prob)
@@ -552,18 +572,64 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         return e_pyPrimary
 
     def _e_pxSecondary(self, e_pxSolution, srcList):
+        """
+        px polarization of secondary electric field from source
+
+        :param numpy.ndarray e_pxSolution: px polarization that
+            was solved for
+        :param list srcList: list of sources
+        :rtype: numpy.ndarray
+        :return: secondary electric field as defined by the sources
+        """
+
         return e_pxSolution
 
     def _e_pySecondary(self, e_pySolution, srcList):
+        """
+        py polarization of secondary electric field from source
+
+        :param numpy.ndarray e_pySolution: py polarization that
+            was solved for
+        :param list srcList: list of sources
+        :rtype: numpy.ndarray
+        :return: secondary electric field as defined by the sources
+        """
         return e_pySolution
 
     def _e_px(self, e_pxSolution, srcList):
+        """
+        px polarization of electric field from source
+
+        :param numpy.ndarray e_pxSolution: px polarization that
+            was solved for
+        :param list srcList: list of sources
+        :rtype: numpy.ndarray
+        :return: electric field as defined by the sources
+        """
         return self._e_pxPrimary(e_pxSolution,srcList) + self._e_pxSecondary(e_pxSolution,srcList)
 
     def _e_py(self, e_pySolution, srcList):
+        """
+        py polarization of electric field from source
+
+        :param numpy.ndarray e_pySolution: py polarization that
+            was solved for
+        :param list srcList: list of sources
+        :rtype: numpy.ndarray
+        :return: electric field as defined by the sources
+        """
         return self._e_pyPrimary(e_pySolution,srcList) + self._e_pySecondary(e_pySolution,srcList)
 
     def _b_pxPrimary(self, e_pxSolution, srcList):
+        """
+        px polarization of primary magnetic flux from source
+
+        :param numpy.ndarray e_pxSolution: px polarization that
+            was solved for
+        :param list srcList: list of sources
+        :rtype: numpy.ndarray
+        :return: primary magnetic flux as defined by the sources
+        """
         b_pxPrimary = np.zeros([self.survey.mesh.nF,e_pxSolution.shape[1]], dtype = complex)
         for i, src in enumerate(srcList):
             bp = src.bPrimary(self.survey.prob)
@@ -572,6 +638,15 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         return b_pxPrimary
 
     def _b_pyPrimary(self, e_pySolution, srcList):
+        """
+        py polarization of primary magnetic flux from source
+
+        :param numpy.ndarray e_pySolution: py polarization that
+            was solved for
+        :param list srcList: list of sources
+        :rtype: numpy.ndarray
+        :return: primary magnetic flux as defined by the sources
+        """
         b_pyPrimary = np.zeros([self.survey.mesh.nF,e_pySolution.shape[1]], dtype = complex)
         for i, src in enumerate(srcList):
             bp = src.bPrimary(self.survey.prob)
@@ -580,6 +655,15 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         return b_pyPrimary
 
     def _b_pxSecondary(self, e_pxSolution, srcList):
+        """
+        px polarization of secondary magnetic flux from source
+
+        :param numpy.ndarray e_pxSolution: px polarization that
+            was solved for
+        :param list srcList: list of sources
+        :rtype: numpy.ndarray
+        :return: secondary magnetic flux as defined by the sources
+        """
         C = self.mesh.edgeCurl
         b = (C * e_pxSolution)
         for i, src in enumerate(srcList):
@@ -587,6 +671,15 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         return b
 
     def _b_pySecondary(self, e_pySolution, srcList):
+        """
+        py polarization of secondary magnetic flux from source
+
+        :param numpy.ndarray e_pySolution: py polarization that
+            was solved for
+        :param list srcList: list of sources
+        :rtype: numpy.ndarray
+        :return: secondary magnetic flux as defined by the sources
+        """
         C = self.mesh.edgeCurl
         b = (C * e_pySolution)
         for i, src in enumerate(srcList):
@@ -594,9 +687,27 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         return b
 
     def _b_px(self, eSolution, srcList):
+        """
+        py polarization of magnetic flux from source
+
+        :param numpy.ndarray e_pySolution: py polarization that
+            was solved for
+        :param list srcList: list of sources
+        :rtype: numpy.ndarray
+        :return: magnetic flux as defined by the sources
+        """
         return self._b_pxPrimary(eSolution, srcList) + self._b_pxSecondary(eSolution, srcList)
 
     def _b_py(self, eSolution, srcList):
+        """
+        py polarization of magnetic flux from source
+
+        :param numpy.ndarray e_pySolution: py polarization that
+            was solved for
+        :param list srcList: list of sources
+        :rtype: numpy.ndarray
+        :return: magnetic flux as defined by the sources
+        """
         return self._b_pyPrimary(eSolution, srcList) + self._b_pySecondary(eSolution, srcList)
 
     ## Derivatives
@@ -614,29 +725,75 @@ class Fields3D_ePrimSec(BaseNSEMFields):
 
 
     def _e_pxDeriv_u(self, src, v, adjoint = False):
-        ''' Derivative of e_px wrt u '''
+        '''
+        Derivative of e_px wrt u
+
+        :param SimPEG.NSEM.src src: The source of the problem
+        :param numpy.ndarray v: vector to take product with
+            Size (nE,) when adjoint=True, (nU,) when adjoint=False
+        :param bool adjoint: adjoint?
+        :rtype: numpy.array
+        :return: The calculated derivative, size (nU,) when adjoint=True
+            (nE,) when adjoint=False
+        '''
         # e_pxPrimary doesn't depend on u, only e_pxSecondary
         if adjoint:
             # adjoint: returns a 2*nE long vector with zero's for py
-            return np.vstack((v,np.zeros_like(v)))
+            return np.concatenate((v,np.zeros_like(v)))
         # Not adjoint: return only the px part of the vector
         return v[:len(v)/2]
 
     def _e_pyDeriv_u(self, src, v, adjoint = False):
-        ''' Derivative of e_py wrt u '''
-        # e_pyPrimary doesn't depend on u, only e_pxSecondary
+        '''
+        Derivative of e_py wrt u
+
+        :param SimPEG.NSEM.src src: The source of the problem
+        :param numpy.ndarray v: vector to take product with
+            Size (nE,) when adjoint=True, (nU,) when adjoint=False
+        :param bool adjoint: adjoint?
+        :rtype: numpy.array
+        :return: The calculated derivative, size (nU,) when adjoint=True
+            (nE,) when adjoint=False
+
+        '''
+
         if adjoint:
             # adjoint: returns a 2*nE long vector with zero's for px
-            return np.vstack((np.zeros_like(v),v))
+            return np.concatenate((np.zeros_like(v),v))
         # Not adjoint: return only the px part of the vector
         return v[len(v)/2::]
 
     def _e_pxDeriv_m(self, src, v, adjoint = False):
-        ''' Derivative of e_px wrt m '''
+        '''
+        Derivative of e_px wrt m
+
+        :param SimPEG.NSEM.src src: The source of the problem
+        :param numpy.ndarray v: vector to take product with
+            Size (nE,) when adjoint=True, (nU,) when adjoint=False
+        :param bool adjoint: adjoint?
+        :rtype: numpy.array
+        :return: The calculated derivative, size (nU,) when adjoint=True
+            (nE,) when adjoint=False
+
+
+        '''
         # e_px does not depend on the model
         return Zero()
+
     def _e_pyDeriv_m(self, src, v, adjoint = False):
-        ''' Derivative of e_py wrt m '''
+        '''
+        Derivative of e_py wrt m
+
+        :param SimPEG.NSEM.src src: The source of the problem
+        :param numpy.ndarray v: vector to take product with
+            Size (nE,) when adjoint=True, (nU,) when adjoint=False
+        :param bool adjoint: adjoint?
+        :rtype: numpy.array
+        :return: The calculated derivative, size (nU,) when adjoint=True
+            (nE,) when adjoint=False
+
+
+        '''
         # e_py does not depend on the model
         return Zero()
 
@@ -654,7 +811,17 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         return np.array(self._b_pyDeriv_u(src, v, adjoint) + self._b_pyDeriv_m(src, v, adjoint),complex)
 
     def _b_pxDeriv_u(self, src, v, adjoint = False):
-        ''' Derivative of b_px with wrt u  '''
+        '''
+        Derivative of b_px with wrt u
+
+        :param SimPEG.NSEM.src src: The source of the problem
+        :param numpy.ndarray v: vector to take product with
+            Size (nF,) when adjoint=True, (nU,) when adjoint=False
+        :param bool adjoint: adjoint?
+        :rtype: numpy.array
+        :return: The calculated derivative, size (nU,) when adjoint=True
+            (nF,) when adjoint=False
+        '''
         # Primary does not depend on u
         C = sp.hstack((self.mesh.edgeCurl,Utils.spzeros(self.mesh.nF,self.mesh.nE))) # This works for adjoint = None
         if adjoint:
@@ -662,7 +829,16 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         return - 1./(1j*omega(src.freq)) * (C * v)
 
     def _b_pyDeriv_u(self, src, v, adjoint = False):
-        ''' Derivative of b_py with wrt u  '''
+        ''' Derivative of b_py with wrt u
+
+        :param SimPEG.NSEM.src src: The source of the problem
+        :param numpy.ndarray v: vector to take product with
+            Size (nF,) when adjoint=True, (nU,) when adjoint=False
+        :param bool adjoint: adjoint?
+        :rtype: numpy.array
+        :return: The calculated derivative, size (nU,) when adjoint=True
+            (nF,) when adjoint=False
+        '''
         # Primary does not depend on u
         C = sp.hstack((Utils.spzeros(self.mesh.nF,self.mesh.nE),self.mesh.edgeCurl)) # This works for adjoint = None
         if adjoint:

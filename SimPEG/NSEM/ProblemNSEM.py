@@ -32,11 +32,11 @@ class BaseNSEMProblem(BaseFDEMProblem):
         """
         Function to calculate the data sensitivities dD/dm times a vector.
 
-            :param numpy.ndarray m (nC, 1) - conductive model
-            :param numpy.ndarray v (nC, 1) - random vector
-            :param NSEMfields object (optional) - NSEM fields object, if not given it is calculated
-            :rtype: NSEMdata object
-            :return: Data sensitivities wrt m
+            :param numpy.ndarray m  - conductivity model (nP,)
+            :param numpy.ndarray v  - vector which we take sensitivity product with (nP,)
+            :param SimPEG.EM.NSEM.FieldsNSEM (optional) u - NSEM fields object, if not given it is calculated
+            :rtype: numpy.array:
+            :return: Jv (nData,) Data sensitivities wrt m
         """
 
         # Calculate the fields if not given as input
@@ -77,11 +77,11 @@ class BaseNSEMProblem(BaseFDEMProblem):
         """
         Function to calculate the transpose of the data sensitivities (dD/dm)^T times a vector.
 
-            :param numpy.ndarray m (nC, 1) - conductive model
-            :param numpy.ndarray v (nD, 1) - vector
+            :param numpy.ndarray m (nP,) - inversion model
+            :param numpy.ndarray v (nD,) - vector which we take adjoint product with (nP,)
             :param NSEMfields object f (optional) - NSEM fields object, if not given it is calculated
-            :rtype: NSEMdata object
-            :return: Data sensitivities wrt m
+            :rtype: numpy.array:
+            :return: Jtv (nP,) Data sensitivities wrt m
         """
 
         if f is None:
@@ -106,21 +106,21 @@ class BaseNSEMProblem(BaseFDEMProblem):
 
                 for rx in src.rxList:
                     # Get the adjoint evalDeriv
-                    # PTv needs to be nE,
-                    PTv = rx.evalDeriv(src, self.mesh, f, mkvc(v[src, rx],2), adjoint=True) # wrt f, need possibility wrt m
+                    # PTv needs to be nE,2
+                    PTv = rx.evalDeriv(src, self.mesh, f, mkvc(v[src, rx]), adjoint=True) # wrt f, need possibility wrt m
                     # Get the
-                    dA_duIT = ATinv * PTv
-                    dA_dmT = self.getADeriv(freq, u_src, mkvc(dA_duIT), adjoint=True)
-                    dRHS_dmT = self.getRHSDeriv(freq, mkvc(dA_duIT), adjoint=True)
+                    dA_duIT = mkvc(ATinv * PTv) # Force (nU,) shape
+                    dA_dmT = self.getADeriv(freq, u_src, dA_duIT, adjoint=True)
+                    dRHS_dmT = self.getRHSDeriv(freq, dA_duIT, adjoint=True)
                     # Make du_dmT
                     du_dmT = -dA_dmT + dRHS_dmT
                     # Select the correct component
-                    # du_dmT needs to be of size nC,
+                    # du_dmT needs to be of size (nP,) number of model parameters
                     real_or_imag = rx.component
                     if real_or_imag == 'real':
-                        Jtv +=  du_dmT.real
+                        Jtv +=  np.array(du_dmT,dtype=complex).real
                     elif real_or_imag == 'imag':
-                        Jtv +=  -du_dmT.real
+                        Jtv +=  -np.array(du_dmT,dtype=complex).real
                     else:
                         raise Exception('Must be real or imag')
             # Clean the factorization, clear memory.
@@ -232,10 +232,10 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
         u_src = u['e_1dSolution']
         dMfSigma_dm = self.MfSigmaDeriv(u_src)
         if adjoint:
-            return 1j * omega(freq) * mkvc(dMfSigma_dm.T, 2) * v
+            return 1j * omega(freq) * mkvc(dMfSigma_dm.T * v,)
         # Note: output has to be nN/nF, not nC/nE.
         # v should be nC
-        return 1j * omega(freq) * mkvc(dMfSigma_dm * v, 2)
+        return 1j * omega(freq) * mkvc(dMfSigma_dm * v,)
 
     def getRHS(self, freq):
         """
@@ -258,8 +258,8 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
 
         Src = self.survey.getSrcByFreq(freq)[0]
 
-        S_eDeriv = Src.S_eDeriv_m(self, v, adjoint)
-        return -1j * omega(freq) * mkvc(S_eDeriv, 2)
+        S_eDeriv = mkvc(Src.S_eDeriv_m(self, v, adjoint),)
+        return -1j * omega(freq) * S_eDeriv
 
     def fields(self, m):
         '''
@@ -498,6 +498,14 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
     def getADeriv(self, freq, u, v, adjoint=False):
         """
         Calculate the derivative of A wrt m.
+        :param float freq: Frequency
+        :param SimPEG.EM.NSEM.Fields u: Fields object
+        :param np.array v: vector of size (nU,) (adjoint=False)
+            and size (nP,) (adjoint=True)
+        :rtype numpy.array:
+        :return: Calculated derivative (nP,) (adjoint=False) and (nU,)[Note: return as a (nU/2,2)
+            columnwise polarizations] (adjoint=True) for both polarizations
+
 
         """
         # Fix u to be a matrix nE,2
@@ -530,6 +538,12 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
     def getRHSDeriv(self, freq, v, adjoint=False):
         """
         The derivative of the RHS with respect to the model and the source
+        :param float freq: Frequency
+        :param np.array v: vector of size (nU,) (adjoint=False)
+            and size (nP,) (adjoint=True)
+        :rtype numpy.array:
+        :return: Calculated derivative (nP,) (adjoint=False) and (nU,2) (adjoint=True)
+            for both polarizations
         """
 
         # Note: the formulation of the derivative is the same for adjoint or not.
