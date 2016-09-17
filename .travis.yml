@@ -47,9 +47,9 @@ before_install:
 
 install:
   - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
-      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib=1.5.1 cython ipython nose sphinx sympy vtk;
+      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib=1.5.1 pyqt=4.11.4 cython ipython nose sphinx sympy vtk;
     else
-      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib=1.5.1 cython ipython nose sphinx sympy;
+      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib=1.5.1 pyqt=4.11.4 cython ipython nose sphinx sympy;
     fi
   - pip install nose-cov python-coveralls
 
