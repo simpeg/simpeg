@@ -253,8 +253,8 @@ def convert3Dto1Dobject(NSEMdata, rxType3D='yx'):
     for loc in uniLocs:
         # Make the receiver list
         rx1DList = []
-        rxList.append(rxPoint_impedance1D(simpeg.mkvc(loc,2).T,'real'))
-        rxList.append(rxPoint_impedance1D(simpeg.mkvc(loc,2).T,'imag'))
+        rx1DList.append(rxPoint_impedance1D(simpeg.mkvc(loc,2).T,'real'))
+        rx1DList.append(rxPoint_impedance1D(simpeg.mkvc(loc,2).T,'imag'))
         # Source list
         locrecData = recData[np.sqrt(np.sum( (rec2ndarr(recData[['x','y','z']]) - loc )**2,axis=1)) < 1e-5]
         dat1DList = []

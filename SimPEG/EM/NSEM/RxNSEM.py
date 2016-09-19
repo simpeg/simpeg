@@ -281,14 +281,15 @@ class rxPoint_impedance1D(SimPEG.Survey.BaseRx):
     """
     Natural source 1D impedance receiver class
 
-    :param string orientation: receiver orientation 'x', 'y' or 'z'
     :param string component: real or imaginary component 'real' or 'imag'
     """
+
+    orientation = 'yx'
+
     def __init__(self, locs, component=None):
         assert(component in ['real', 'imag']), "'component' must be 'real' or 'imag', not {0!s}".format(component)
-        self.orientation = 'yx'
-        self.component = component
 
+        self.component = component
         SimPEG.Survey.BaseRx.__init__(self, locs, rxType=None)
 
     @property

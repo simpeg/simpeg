@@ -5,6 +5,7 @@ from numpy.lib import recfunctions as recFunc
 
 from SimPEG import Survey as SimPEGsurvey, Utils, np, sp, mkvc
 import Utils
+from .RxNSEM import rxPoint_impedance1D, rxPoint_impedance3D, rxPoint_tipper3D
 from . import SrcNSEM
 
 #################
@@ -566,13 +567,25 @@ class Data(SimPEGsurvey.Data):
                 if np.any(notNaNind): # Make sure that there is any data to add.
                     locs = Utils.rec2ndarr(dFreq[['x','y','z']][notNaNind].copy())
                     if dFreq[rxType].dtype.name in 'complex128':
-                        rxList.append(Rx(locs,rxType+'r'))
-                        dataList.append(dFreq[rxType][notNaNind].real.copy())
-                        rxList.append(Rx(locs,rxType+'i'))
-                        dataList.append(dFreq[rxType][notNaNind].imag.copy())
+                        if 'z' in rxType:
+                            rxList.append(rxPoint_impedance3D(locs,rxType[1:-1],'real'))
+                            dataList.append(dFreq[rxType][notNaNind].real.copy())
+                            rxList.append(rxPoint_impedance3D(locs,rxType[1:-1],'imag'))
+                            dataList.append(dFreq[rxType][notNaNind].imag.copy())
+                        elif 't' in rxType:
+                            rxList.append(rxPoint_tipper3D(locs,rxType[1:-1],'real'))
+                            dataList.append(dFreq[rxType][notNaNind].real.copy())
+                            rxList.append(rxPoint_tipper3D(locs,rxType[1:-1],'imag'))
+                            dataList.append(dFreq[rxType][notNaNind].imag.copy())
                     else:
-                        rxList.append(Rx(locs,rxType))
-                        dataList.append(dFreq[rxType][notNaNind].copy())
+                        component = 'real' if 'r' in rxType else 'imag'
+                        if 'z' in rxType:
+                            rxList.append(rxPoint_impedance3D(locs,rxType[1:-1],component))
+                            dataList.append(dFreq[rxType][notNaNind].copy())
+                        if 't' in rxType:
+                            rxList.append(rxPoint_tipper3D(locs,rxType[1:-1],component))
+                            dataList.append(dFreq[rxType][notNaNind].copy())
+
             srcList.append(src(rxList,freq))
 
         # Make a survey
