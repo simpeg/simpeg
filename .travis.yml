@@ -46,15 +46,11 @@ before_install:
   - conda update --yes conda
 
 install:
-<<<<<<< HEAD
-  - conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython ipywidgets nose vtk
-=======
   - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
       conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython nose sphinx sympy vtk;
     else
       conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython nose sphinx sympy;
     fi
->>>>>>> 28248b4174e0d010322903e0d74cb5be4be7d42b
   - pip install nose-cov python-coveralls
 
 #  - pip install pyMKL;

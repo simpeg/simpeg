@@ -20,11 +20,7 @@ def getAppRes(NSEMdata):
         zList.append(zc)
     return [appResPhs(zList[i][0],np.sum(zList[i][1:3])) for i in np.arange(len(zList))]
 
-<<<<<<< HEAD:SimPEG/NSEM/Utils/dataUtils.py
-def rotateData(NSEMdata,rotAngle):
-=======
-def rotateData(MTdata, rotAngle):
->>>>>>> 28248b4174e0d010322903e0d74cb5be4be7d42b:SimPEG/MT/Utils/dataUtils.py
+def rotateData(NSEMdata, rotAngle):
     '''
     Function that rotates clockwist by rotAngle (- negative for a counter-clockwise rotation)
     '''
@@ -61,13 +57,8 @@ def skindepth(rho, freq):
 def rec2ndarr(x, dt=float):
     return x.view((dt, len(x.dtype.names)))
 
-<<<<<<< HEAD:SimPEG/NSEM/Utils/dataUtils.py
-def makeAnalyticSolution(mesh,model,elev,freqs):
-    from SimPEG import NSEM
-=======
 def makeAnalyticSolution(mesh, model, elev, freqs):
-    from SimPEG import MT
->>>>>>> 28248b4174e0d010322903e0d74cb5be4be7d42b:SimPEG/MT/Utils/dataUtils.py
+    from SimPEG import NSEM
     data1D = []
     for freq in freqs:
         anaEd, anaEu, anaHd, anaHu = NSEM.Utils.MT1Danalytic.getEHfields(mesh,model,freq,elev)
@@ -80,13 +71,8 @@ def makeAnalyticSolution(mesh, model, elev, freqs):
     dataRec = np.array(data1D,dtype=[('freq',float),('x',float),('y',float),('z',float),('zyx',complex)])
     return dataRec
 
-<<<<<<< HEAD:SimPEG/NSEM/Utils/dataUtils.py
-def plotMT1DModelData(problem,models,symList=None):
-    from SimPEG import NSEM
-=======
 def plotMT1DModelData(problem, models, symList=None):
-    from SimPEG import MT
->>>>>>> 28248b4174e0d010322903e0d74cb5be4be7d42b:SimPEG/MT/Utils/dataUtils.py
+    from SimPEG import NSEM
     # Setup the figure
     fontSize = 15
 
@@ -171,7 +157,7 @@ def plotMT1DModelData(problem, models, symList=None):
         ax.yaxis.set_tick_params(labelsize=fontSize)
     return fig
 
-def plotImpAppRes(dataArrays,plotLoc,textStr=[]):
+def plotImpAppRes(dataArrays, plotLoc, textStr=[]):
     ''' Plots amplitude impedance and phase'''
     # fig = plt.figure(1,(7, 7))
     import plotDataTypes as pDt
@@ -230,7 +216,7 @@ def printTime():
     import time
     print(time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.localtime()))
 
-def convert3Dto1Dobject(NSEMdata,rxType3D='zyx'):
+def convert3Dto1Dobject(NSEMdata, rxType3D='zyx'):
     from SimPEG import NSEM
     # Find the unique locations
     # Need to find the locations
@@ -281,7 +267,7 @@ def convert3Dto1Dobject(NSEMdata,rxType3D='zyx'):
     # Return the the list of data.
     return mtData1DList
 
-def resampleNSEMdataAtFreq(NSEMdata,freqs):
+def resampleNSEMdataAtFreq(NSEMdata, freqs):
     """
     Function to resample NSEMdata at set of frequencies
 

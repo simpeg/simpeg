@@ -2,31 +2,6 @@ from __future__ import print_function
 # Run this file to add imports.
 
 ##### AUTOIMPORTS #####
-<<<<<<< HEAD
-import EM_FDEM_1D_Inversion
-import Mesh_QuadTree_Creation
-import EM_TDEM_1D_Inversion
-import Mesh_QuadTree_FaceDiv
-import Mesh_Tensor_Creation
-import FLOW_Richards_1D_Celia1990
-import DC_Forward_PseudoSection
-import Mesh_Operators_CahnHilliard
-import Mesh_Basic_Types
-import Inversion_IRLS
-import Inversion_Linear
-import EM_Schenkel_Morrison_Casing
-import MT_3D_Foward
-import Mesh_Basic_ForwardDC
-import MT_1D_ForwardAndInversion
-import Utils_surface2ind_topo
-import MT_1D_analytic_nlayer_Earth
-import EM_FDEM_Analytic_MagDipoleWholespace
-import Mesh_Basic_PlotImage
-import DC_Analytic_Dipole
-import Mesh_QuadTree_HangingNodes
-
-__examples__ = ["EM_FDEM_1D_Inversion", "Mesh_QuadTree_Creation", "EM_TDEM_1D_Inversion", "Mesh_QuadTree_FaceDiv", "Mesh_Tensor_Creation", "FLOW_Richards_1D_Celia1990", "DC_Forward_PseudoSection", "Mesh_Operators_CahnHilliard", "Mesh_Basic_Types", "Inversion_IRLS", "Inversion_Linear", "EM_Schenkel_Morrison_Casing", "MT_3D_Foward", "Mesh_Basic_ForwardDC", "MT_1D_ForwardAndInversion", "Utils_surface2ind_topo", "MT_1D_analytic_nlayer_Earth", "EM_FDEM_Analytic_MagDipoleWholespace", "Mesh_Basic_PlotImage", "DC_Analytic_Dipole", "Mesh_QuadTree_HangingNodes"]
-=======
 from SimPEG.Examples import DC_Analytic_Dipole
 from SimPEG.Examples import EM_CylInversions_Heagyetal2016
 from SimPEG.Examples import EM_FDEM_1D_Inversion
@@ -54,7 +29,6 @@ from SimPEG.Examples import PF_Magnetics_Inversion_Linear
 from SimPEG.Examples import Utils_surface2ind_topo
 
 __examples__ = ["DC_Analytic_Dipole", "EM_CylInversions_Heagyetal2016", "EM_FDEM_1D_Inversion", "EM_FDEM_Analytic_MagDipoleWholespace", "EM_Schenkel_Morrison_Casing", "EM_TDEM_1D_Inversion", "FLOW_Richards_1D_Celia1990", "Inversion_IRLS", "Inversion_Linear", "Maps_ComboMaps", "Maps_Mesh2Mesh", "Mesh_Basic_ForwardDC", "Mesh_Basic_PlotImage", "Mesh_Basic_Types", "Mesh_Operators_CahnHilliard", "Mesh_QuadTree_Creation", "Mesh_QuadTree_FaceDiv", "Mesh_QuadTree_HangingNodes", "Mesh_Tensor_Creation", "MT_1D_ForwardAndInversion", "MT_3D_Foward", "PF_Gravity_Inversion_Linear", "PF_Magnetics_Analytics", "PF_Magnetics_Inversion_Linear", "Utils_surface2ind_topo"]
->>>>>>> 28248b4174e0d010322903e0d74cb5be4be7d42b
 
 ##### AUTOIMPORTS #####
 

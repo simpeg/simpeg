@@ -4,13 +4,8 @@ from SimPEG.EM.FDEM.SrcFDEM import BaseSrc as FDEMBaseSrc
 from SimPEG.EM.Utils import omega
 from scipy.constants import mu_0
 from numpy.lib import recfunctions as recFunc
-<<<<<<< HEAD:SimPEG/NSEM/SurveyNSEM.py
 from Utils import rec2ndarr
 import SrcNSEM
-=======
-from .Utils import rec2ndarr
-from . import SrcMT
->>>>>>> 28248b4174e0d010322903e0d74cb5be4be7d42b:SimPEG/MT/SurveyMT.py
 import sys
 
 #################

@@ -214,18 +214,12 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         f.write(' {0:3d} {1:1.4e} {2:1.4e} {3:1.4e} {4:1.4e}\n'.format(self.opt.iter, self.invProb.beta, self.invProb.phi_d, self.invProb.phi_m, self.opt.f))
         f.close()
 
-<<<<<<< HEAD
-class SaveOutputDictEveryIteration(_SaveEveryIteration):
+class SaveOutputDictEveryIteration(SaveEveryIteration):
     """
     Saves inversion parameters at every iteraion.
 
 
     """
-=======
-class SaveOutputDictEveryIteration(SaveEveryIteration):
-    """SaveOutputDictEveryIteration"""
->>>>>>> 28248b4174e0d010322903e0d74cb5be4be7d42b
-
     def initialize(self):
         print("SimPEG.SaveOutputDictEveryIteration will save your inversion progress as dictionary: '###-{0!s}.npz'".format(self.fileName))
 
@@ -246,18 +240,8 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
         outDict['dpred'] = self.invProb.dpred
 
         # Save the file as a npz
-<<<<<<< HEAD
         np.savez('{:03d}-{:s}'.format(self.opt.iter,self.fileName), outDict)
-=======
-        np.savez('{:03d}-{:s}'.format(self.opt.iter,self.fileName), iter=self.opt.iter, beta=self.invProb.beta, phi_d=self.invProb.phi_d, phi_m=self.invProb.phi_m, phi_ms=phi_ms, phi_mx=phi_mx, phi_my=phi_my, phi_mz=phi_mz,f=self.opt.f, m=self.invProb.curModel,dpred=self.invProb.dpred)
 
-#         mref = getattr(self, 'm_prev', None)
-#         if mref is None:
-#             if self.debug: print('UpdateReferenceModel is using mref0')
-#             mref = self.mref0
-#         self.m_prev = self.invProb.m_current
-#         return mref
->>>>>>> 28248b4174e0d010322903e0d74cb5be4be7d42b
 
 class Update_IRLS(InversionDirective):
 
