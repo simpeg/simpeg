@@ -222,7 +222,6 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
 
     """
 
->>>>>>> mt/dev
     def initialize(self):
         print("SimPEG.SaveOutputDictEveryIteration will save your inversion progress as dictionary: '###-{0!s}.npz'".format(self.fileName))
 

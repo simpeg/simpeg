@@ -14,7 +14,7 @@ TOLp = 5e-2
 
 def getAppResPhs(NSEMdata):
     # Make impedance
-    from SimPEG.NSEM.Utils import appResPhs
+    from SimPEG.EM.NSEM.Utils import appResPhs
     zList = []
     for src in NSEMdata.survey.srcList:
         zc = [src.freq]
