@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 import unittest
 from SimPEG import Utils, Tests
@@ -62,7 +63,7 @@ class TestInterpolation2d(Tests.OrderTest):
             grid = call2(funX, self.M.gridN)
 
         P = self.M.getInterpolationMat(self.LOCS, self.type)
-        # print P
+        # print(P)
         comp = P*grid
 
         err = np.linalg.norm((comp - ana), np.inf)

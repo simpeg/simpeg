@@ -1,12 +1,20 @@
+from __future__ import division, print_function
 import unittest
 from SimPEG import *
 from SimPEG import EM
 import matplotlib.pyplot as plt
 
+try:
+    from pymatsolver import PardisoSolver
+    Solver = PardisoSolver
+except ImportError:
+    Solver = SolverLU
+
 TOL = 1e-5
 FLR = 1e-20
 
-np.random.seed(seed=25) # set a seed so that the same conductivity model is used for all runs
+# set a seed so that the same conductivity model is used for all runs
+np.random.seed(seed=25)
 
 
 def setUp_TDEM(prbtype='b', rxcomp='bz'):
@@ -17,13 +25,14 @@ def setUp_TDEM(prbtype='b', rxcomp='bz'):
     hx = [(cs, ncx), (cs, npad, 1.3)]
     hy = [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)]
     mesh = Mesh.CylMesh([hx, 1, hy], '00C')
-#
-    active = mesh.vectorCCz <  0.
+
+    active = mesh.vectorCCz < 0.
     activeMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
     mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * activeMap
 
     rxOffset = 10.
-    rx = EM.TDEM.Rx(np.array([[rxOffset, 0., -1e-2]]), np.logspace(-4, -3, 20), rxcomp)
+    rx = EM.TDEM.Rx(np.array([[rxOffset, 0., -1e-2]]),
+                    np.logspace(-4, -3, 20), rxcomp)
     src = EM.TDEM.Src.MagDipole([rx], loc=np.array([0., 0., 0.]))
 
     survey = EM.TDEM.Survey([src])
@@ -36,13 +45,8 @@ def setUp_TDEM(prbtype='b', rxcomp='bz'):
         raise NotImplementedError()
 
     prb.timeSteps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
-    # prb.timeSteps = [(1e-05, 10), (1e-05, 50), (1e-05, 50) ] #, (2.5e-4, 10)]
 
-    try:
-        from pymatsolver import MumpsSolver
-        prb.Solver = MumpsSolver
-    except ImportError, e:
-        prb.Solver = SolverLU
+    prb.Solver = Solver
 
     m = (np.log(1e-1)*np.ones(prb.mapping.nP) +
          1e-2*np.random.rand(prb.mapping.nP))
@@ -65,7 +69,7 @@ def CrossCheck(prbtype1='b', prbtype2='e', rxcomp='bz'):
     tol = 0.5 * (np.linalg.norm(d1) + np.linalg.norm(d2)) * TOL
     passed = check < tol
 
-    print('Checking %s, %s for %s data'%(prbtype1, prbtype2, rxcomp))
+    print('Checking {}, {} for {} data'.format(prbtype1, prbtype2, rxcomp))
     print('{}, {}, {}'.format(np.linalg.norm(d1), np.linalg.norm(d2),
           np.linalg.norm(check), tol, passed))
 

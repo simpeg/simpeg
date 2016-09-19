@@ -1,4 +1,5 @@
-import Utils
+from __future__ import print_function
+from . import Utils
 import numpy as np
 
 class InversionDirective(object):
@@ -16,7 +17,7 @@ class InversionDirective(object):
     @inversion.setter
     def inversion(self, i):
         if getattr(self,'_inversion',None) is not None:
-            print 'Warning: InversionDirective {0!s} has switched to a new inversion.'.format(self.__name__)
+            print('Warning: InversionDirective {0!s} has switched to a new inversion.'.format(self.__name__))
         self._inversion = i
 
     @property
@@ -69,7 +70,7 @@ class DirectiveList(object):
     def inversion(self, i):
         if self.inversion is i: return
         if getattr(self,'_inversion',None) is not None:
-            print 'Warning: {0!s} has switched to a new inversion.'.format(self.__name__)
+            print('Warning: {0!s} has switched to a new inversion.'.format(self.__name__))
         for d in self.dList:
             d.inversion = i
         self._inversion = i
@@ -121,7 +122,7 @@ class BetaEstimate_ByEig(InversionDirective):
             :return: beta0
         """
 
-        if self.debug: print 'Calculating the beta0 parameter.'
+        if self.debug: print('Calculating the beta0 parameter.')
 
         m = self.invProb.curModel
         f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
@@ -142,7 +143,7 @@ class BetaSchedule(InversionDirective):
 
     def endIter(self):
         if self.opt.iter > 0 and self.opt.iter % self.coolingRate == 0:
-            if self.debug: print 'BetaSchedule is cooling Beta. Iteration: {0:d}'.format(self.opt.iter)
+            if self.debug: print('BetaSchedule is cooling Beta. Iteration: {0:d}'.format(self.opt.iter))
             self.invProb.beta /= self.coolingFactor
 
 
@@ -193,7 +194,7 @@ class SaveModelEveryIteration(SaveEveryIteration):
     """SaveModelEveryIteration"""
 
     def initialize(self):
-        print "SimPEG.SaveModelEveryIteration will save your models as: '###-{0!s}.npy'".format(self.fileName)
+        print("SimPEG.SaveModelEveryIteration will save your models as: '###-{0!s}.npy'".format(self.fileName))
 
     def endIter(self):
         np.save('{0:03d}-{1!s}'.format(self.opt.iter, self.fileName), self.opt.xc)
@@ -203,7 +204,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
     """SaveModelEveryIteration"""
 
     def initialize(self):
-        print "SimPEG.SaveOutputEveryIteration will save your inversion progress as: '###-{0!s}.txt'".format(self.fileName)
+        print("SimPEG.SaveOutputEveryIteration will save your inversion progress as: '###-{0!s}.txt'".format(self.fileName))
         f = open(self.fileName+'.txt', 'w')
         f.write("  #     beta     phi_d     phi_m       f\n")
         f.close()
@@ -214,11 +215,14 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         f.close()
 
 class SaveOutputDictEveryIteration(SaveEveryIteration):
-    """SaveOutputDictEveryIteration"""
+    """
+    Saves inversion parameters at every iteraion.
 
+
+    """
 
     def initialize(self):
-        print "SimPEG.SaveOutputDictEveryIteration will save your inversion progress as dictionary: '###-{0!s}.npz'".format(self.fileName)
+        print("SimPEG.SaveOutputDictEveryIteration will save your inversion progress as dictionary: '###-{0!s}.npz'".format(self.fileName))
 
     def endIter(self):
 
@@ -238,6 +242,7 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
 
         # Save the file as a npz
         np.savez('{:03d}-{:s}'.format(self.opt.iter,self.fileName), outDict)
+
 
 class Update_IRLS(InversionDirective):
 
@@ -283,7 +288,7 @@ class Update_IRLS(InversionDirective):
 
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
         if self.invProb.phi_d < self.target and self.mode == 1:
-            print "Convergence with smooth l2-norm regularization: Start IRLS steps..."
+            print("Convergence with smooth l2-norm regularization: Start IRLS steps...")
 
             self.mode = 2
 
@@ -310,15 +315,15 @@ class Update_IRLS(InversionDirective):
             self.reg.l2model = self.invProb.curModel
             self.reg.curModel = self.invProb.curModel
 
-            print "L[p qx qy qz]-norm : " + str(self.reg.norms)
-            print "eps_p: " + str(self.reg.eps_p) + " eps_q: " + str(self.reg.eps_q)
+            print("L[p qx qy qz]-norm : " + str(self.reg.norms))
+            print("eps_p: " + str(self.reg.eps_p) + " eps_q: " + str(self.reg.eps_q))
 
             if getattr(self, 'f_old', None) is None:
                 self.f_old = self.reg.eval(self.invProb.curModel)#self.invProb.evalFunction(self.invProb.curModel, return_g=False, return_H=False)
 
         # Beta Schedule
         if self.opt.iter > 0 and self.opt.iter % self.coolingRate == 0:
-            if self.debug: print 'BetaSchedule is cooling Beta. Iteration: {0:d}'.format(self.opt.iter)
+            if self.debug: print('BetaSchedule is cooling Beta. Iteration: {0:d}'.format(self.opt.iter))
             self.invProb.beta /= self.coolingFactor
 
 
@@ -330,17 +335,17 @@ class Update_IRLS(InversionDirective):
             phim_new = self.reg.eval(self.invProb.curModel)
             self.f_change = np.abs(self.f_old - phim_new) / self.f_old
 
-            print "Regularization decrease: {0:6.3e}".format((self.f_change))
+            print("Regularization decrease: {0:6.3e}".format((self.f_change)))
 
             # Check for maximum number of IRLS cycles
             if self.IRLSiter == self.maxIRLSiter:
-                print "Reach maximum number of IRLS cycles: {0:d}".format(self.maxIRLSiter)
+                print("Reach maximum number of IRLS cycles: {0:d}".format(self.maxIRLSiter))
                 self.opt.stopNextIteration = True
                 return
 
             # Check if the function has changed enough
             if self.f_change < self.f_min_change and self.IRLSiter > 1:
-                print "Minimum decrease in regularization. End of IRLS"
+                print("Minimum decrease in regularization. End of IRLS")
                 self.opt.stopNextIteration = True
                 return
             else:

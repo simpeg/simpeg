@@ -1,3 +1,4 @@
+from __future__ import division
 import numpy as np
 import scipy.sparse as sp
 import SimPEG
@@ -102,17 +103,17 @@ class Fields3D_b(FieldsTDEM):
         _, s_e = src.eval(self.survey.prob, self.survey.prob.times[tInd])
         bSolution = self[[src], 'bSolution', tInd].flatten()
 
-        _, S_eDeriv = src.evalDeriv(self.survey.prob.times[tInd], self,
+        _, s_eDeriv = src.evalDeriv(self.survey.prob.times[tInd], self,
                                     adjoint=adjoint)
 
         if adjoint is True:
             return (self.MeSigmaIDeriv(-s_e + self.edgeCurl.T *
                                        (self.MfMui * bSolution)).T *
-                    v - S_eDeriv(self.MeSigmaI.T * v))
+                    v - s_eDeriv(self.MeSigmaI.T * v))
 
         return (self.MeSigmaIDeriv(-s_e + self.edgeCurl.T *
                                    (self.MfMui * bSolution)) *
-                v - self.MeSigmaI * S_eDeriv(v))
+                v - self.MeSigmaI * s_eDeriv(v))
 
 
 class Fields3D_e(FieldsTDEM):
@@ -145,7 +146,7 @@ class Fields3D_e(FieldsTDEM):
             s_m_src, _ = src.eval(self.survey.prob,
                                   self.survey.prob.times[tInd])
             s_m = s_m_src + s_m
-        return s_m  - self.edgeCurl * eSolution
+        return s_m - self.edgeCurl * eSolution
 
     def _dbdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
         if adjoint:
@@ -153,9 +154,9 @@ class Fields3D_e(FieldsTDEM):
         return -self.edgeCurl * dun_dm_v
 
     def _dbdtDeriv_m(self, tInd, src, v, adjoint=False):
-        S_mDeriv, _ = src.evalDeriv(self.survey.prob.times[tInd], self,
+        s_mDeriv, _ = src.evalDeriv(self.survey.prob.times[tInd], self,
                                     adjoint=adjoint)
-        return S_mDeriv(v)
+        return s_mDeriv(v)
 
     def _b(self, eSolution, srcList, tInd):
         """

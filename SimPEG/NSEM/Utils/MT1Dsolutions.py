@@ -1,5 +1,5 @@
 import numpy as np, SimPEG as simpeg
-from MT1Danalytic import getEHfields
+from .MT1Danalytic import getEHfields
 from scipy.constants import mu_0
 
 def get1DEfields(m1d,sigma,freq,sourceAmp=1.0):

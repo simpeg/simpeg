@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 import unittest
 from SimPEG import Utils, Tests
@@ -367,10 +368,10 @@ if __name__ == '__main__':
     # S2 = sympy.Matrix([[sigma1,0,0],[0,sigma2,0],[0,0,sigma3]])
     # S3 = sympy.Matrix([[sigma1,sigma4,sigma5],[sigma4,sigma2,sigma6],[sigma5,sigma6,sigma3]])
 
-    # print '3D'
-    # print sympy.integrate(sympy.integrate(sympy.integrate(e.T*S1*e, (x,0,1)), (y,0,1)), (z,0,1))
-    # print sympy.integrate(sympy.integrate(sympy.integrate(e.T*S2*e, (x,0,1)), (y,0,1)), (z,0,1))
-    # print sympy.integrate(sympy.integrate(sympy.integrate(e.T*S3*e, (x,0,1)), (y,0,1)), (z,0,1))
+    # print('3D')
+    # print(sympy.integrate(sympy.integrate(sympy.integrate(e.T*S1*e, (x,0,1)), (y,0,1)), (z,0,1)))
+    # print(sympy.integrate(sympy.integrate(sympy.integrate(e.T*S2*e, (x,0,1)), (y,0,1)), (z,0,1)))
+    # print(sympy.integrate(sympy.integrate(sympy.integrate(e.T*S3*e, (x,0,1)), (y,0,1)), (z,0,1)))
 
 
     # z = 5
@@ -386,10 +387,10 @@ if __name__ == '__main__':
     # S2 = sympy.Matrix([[sigma1,0],[0,sigma2]])
     # S3 = sympy.Matrix([[sigma1,sigma3],[sigma3,sigma2]])
 
-    # print '2D'
-    # print sympy.integrate(sympy.integrate(e.T*S1*e, (x,0,1)), (y,0,1))
-    # print sympy.integrate(sympy.integrate(e.T*S2*e, (x,0,1)), (y,0,1))
-    # print sympy.integrate(sympy.integrate(e.T*S3*e, (x,0,1)), (y,0,1))
+    # print('2D')
+    # print(sympy.integrate(sympy.integrate(e.T*S1*e, (x,0,1)), (y,0,1)))
+    # print(sympy.integrate(sympy.integrate(e.T*S2*e, (x,0,1)), (y,0,1)))
+    # print(sympy.integrate(sympy.integrate(e.T*S3*e, (x,0,1)), (y,0,1)))
 
     # y = 12
     # z = 5
@@ -398,5 +399,5 @@ if __name__ == '__main__':
 
     # sigma1 = x*y+1
 
-    # print '1D'
-    # print sympy.integrate(e*sigma1*e, (x,0,1))
+    # print('1D')
+    # print(sympy.integrate(e*sigma1*e, (x,0,1)))

@@ -1,8 +1,8 @@
 import numpy as np
 from scipy import sparse as sp
-from matutils import mkvc, ndgrid, sub2ind, sdiag
-from codeutils import asArray_N_x_Dim
-from codeutils import isScalar
+from .matutils import mkvc, ndgrid, sub2ind, sdiag
+from .codeutils import asArray_N_x_Dim
+from .codeutils import isScalar
 import os
 
 def exampleLrmGrid(nC, exType):
