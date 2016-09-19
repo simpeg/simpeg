@@ -1,4 +1,4 @@
-from SimPEG import Mesh, Maps, Utils, np
+from SimPEG import Mesh, Utils, np
 
 
 class NonLinearMap(object):
@@ -6,8 +6,6 @@ class NonLinearMap(object):
     SimPEG NonLinearMap
 
     """
-
-    __metaclass__ = Utils.SimPEGMetaClass
 
     counter = None   #: A SimPEG.Utils.Counter object
     mesh = None      #: A SimPEG Mesh
@@ -31,7 +29,7 @@ class NonLinearMap(object):
         """
             :param numpy.array u: fields
             :param numpy.array m: model
-            :rtype: scipy.csr_matrix
+            :rtype: scipy.sparse.csr_matrix
             :return: derivative of transformed model
 
             The *transform* changes the model into the physical property.
@@ -44,7 +42,7 @@ class NonLinearMap(object):
         """
             :param numpy.array u: fields
             :param numpy.array m: model
-            :rtype: scipy.csr_matrix
+            :rtype: scipy.sparse.csr_matrix
             :return: derivative of transformed model
 
             The *transform* changes the model into the physical property.
@@ -116,7 +114,7 @@ class RichardsMap(object):
         ax.semilogx(self.k(h, m), h)
 
     def _assertMatchesPair(self, pair):
-        assert isinstance(self, pair), "Mapping object must be an instance of a %s class."%(pair.__name__)
+        assert isinstance(self, pair), "Mapping object must be an instance of a {0!s} class.".format((pair.__name__))
 
 
 

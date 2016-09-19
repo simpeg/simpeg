@@ -1,19 +1,20 @@
+from __future__ import print_function
 import numpy as np
 import scipy.sparse as sp
-from matutils import mkvc, sub2ind, spzeros
+from .matutils import mkvc, sub2ind, spzeros
 
 try:
-    import interputils_cython as pyx
+    from . import interputils_cython as pyx
     _interp_point_1D = pyx._interp_point_1D
     _interpmat1D = pyx._interpmat1D
     _interpmat2D = pyx._interpmat2D
     _interpmat3D = pyx._interpmat3D
     _interpCython = True
-except ImportError, e:
-    print """Efficiency Warning: Interpolation will be slow, use setup.py!
+except ImportError:
+    print("""Efficiency Warning: Interpolation will be slow, use setup.py!
 
             python setup.py build_ext --inplace
-    """
+    """)
     _interpCython = False
 
 
@@ -25,7 +26,7 @@ def interpmat(locs, x, y=None, z=None):
         :param numpy.ndarray x: Tensor vector of 1st dimension of grid.
         :param numpy.ndarray y: Tensor vector of 2nd dimension of grid. None by default.
         :param numpy.ndarray z: Tensor vector of 3rd dimension of grid. None by default.
-        :rtype: scipy.sparse.csr.csr_matrix
+        :rtype: scipy.sparse.csr_matrix
         :return: Interpolation matrix
 
         .. plot::

@@ -1,9 +1,14 @@
+from __future__ import print_function
 import numpy as np
 import unittest
 from SimPEG.Tests import OrderTest
 import matplotlib.pyplot as plt
+from SimPEG import Mesh
 
-#TODO: 'randomTensorMesh'
+# Tolerance
+TOL = 1e-14
+
+# TODO: 'randomTensorMesh'
 MESHTYPES = ['uniformTensorMesh', 'uniformCurv', 'rotateCurv']
 call2 = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1])
 call3 = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1], xyz[:, 2])
@@ -318,6 +323,24 @@ class TestNodalGrad2D(OrderTest):
     def test_order(self):
         self.orderTest()
 
+
+class TestAverating2DSimple(unittest.TestCase):
+    def setUp(self):
+        hx = np.random.rand(10)
+        hy = np.random.rand(10)
+        self.mesh = Mesh.TensorMesh([hx, hy])
+
+    def test_constantEdges(self):
+        edge_vec = np.ones(self.mesh.nE)
+        assert all(self.mesh.aveE2CC * edge_vec == 1.)
+        assert all(self.mesh.aveE2CCV * edge_vec == 1.)
+
+    def test_constantFaces(self):
+        face_vec = np.ones(self.mesh.nF)
+        assert all(self.mesh.aveF2CC * face_vec == 1.)
+        assert all(self.mesh.aveF2CCV * face_vec == 1.)
+
+
 class TestAveraging2D(OrderTest):
     name = "Averaging 2D"
     meshTypes = MESHTYPES
@@ -395,6 +418,24 @@ class TestAveraging2D(OrderTest):
         self.getThere = lambda M: np.r_[call2(funX, M.gridCC), call2(funY, M.gridCC)]
         self.getAve = lambda M: M.aveE2CCV
         self.orderTest()
+
+
+class TestAverating3DSimple(unittest.TestCase):
+    def setUp(self):
+        hx = np.random.rand(10)
+        hy = np.random.rand(10)
+        hz = np.random.rand(10)
+        self.mesh = Mesh.TensorMesh([hx, hy, hz])
+
+    def test_constantEdges(self):
+        edge_vec = np.ones(self.mesh.nE)
+        assert all(np.absolute(self.mesh.aveE2CC * edge_vec - 1.) < TOL)
+        assert all(np.absolute(self.mesh.aveE2CCV * edge_vec - 1.) < TOL)
+
+    def test_constantFaces(self):
+        face_vec = np.ones(self.mesh.nF)
+        assert all(np.absolute(self.mesh.aveF2CC * face_vec - 1.) < TOL)
+        assert all(np.absolute(self.mesh.aveF2CCV * face_vec - 1.) < TOL)
 
 
 class TestAveraging3D(OrderTest):

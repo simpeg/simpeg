@@ -1,4 +1,6 @@
-import Utils, numpy as np
+from __future__ import print_function
+from . import Utils
+import numpy as np
 
 class InversionDirective(object):
     """InversionDirective"""
@@ -15,7 +17,7 @@ class InversionDirective(object):
     @inversion.setter
     def inversion(self, i):
         if getattr(self,'_inversion',None) is not None:
-            print 'Warning: InversionDirective %s has switched to a new inversion.' % self.__name__
+            print('Warning: InversionDirective {0!s} has switched to a new inversion.'.format(self.__name__))
         self._inversion = i
 
     @property
@@ -47,7 +49,7 @@ class DirectiveList(object):
     def __init__(self, *directives, **kwargs):
         self.dList = []
         for d in directives:
-            assert isinstance(d, InversionDirective), 'All directives must be InversionDirectives not %s' % d.__name__
+            assert isinstance(d, InversionDirective), 'All directives must be InversionDirectives not {0!s}'.format(d.__name__)
             self.dList.append(d)
         Utils.setKwargs(self, **kwargs)
 
@@ -68,7 +70,7 @@ class DirectiveList(object):
     def inversion(self, i):
         if self.inversion is i: return
         if getattr(self,'_inversion',None) is not None:
-            print 'Warning: %s has switched to a new inversion.' % self.__name__
+            print('Warning: {0!s} has switched to a new inversion.'.format(self.__name__))
         for d in self.dList:
             d.inversion = i
         self._inversion = i
@@ -79,7 +81,7 @@ class DirectiveList(object):
             return
 
         directives = ['initialize', 'endIter', 'finish']
-        assert ruleType in directives, 'Directive type must be in ["%s"]' % '", "'.join(directives)
+        assert ruleType in directives, 'Directive type must be in ["{0!s}"]'.format('", "'.join(directives))
         for r in self.dList:
             getattr(r, ruleType)()
 
@@ -120,7 +122,7 @@ class BetaEstimate_ByEig(InversionDirective):
             :return: beta0
         """
 
-        if self.debug: print 'Calculating the beta0 parameter.'
+        if self.debug: print('Calculating the beta0 parameter.')
 
         m = self.invProb.curModel
         f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
@@ -141,7 +143,7 @@ class BetaSchedule(InversionDirective):
 
     def endIter(self):
         if self.opt.iter > 0 and self.opt.iter % self.coolingRate == 0:
-            if self.debug: print 'BetaSchedule is cooling Beta. Iteration: %d' % self.opt.iter
+            if self.debug: print('BetaSchedule is cooling Beta. Iteration: {0:d}'.format(self.opt.iter))
             self.invProb.beta /= self.coolingFactor
 
 
@@ -167,7 +169,7 @@ class TargetMisfit(InversionDirective):
 
 
 
-class _SaveEveryIteration(InversionDirective):
+class SaveEveryIteration(InversionDirective):
     @property
     def name(self):
         if getattr(self, '_name', None) is None:
@@ -181,46 +183,51 @@ class _SaveEveryIteration(InversionDirective):
     def fileName(self):
         if getattr(self, '_fileName', None) is None:
             from datetime import datetime
-            self._fileName = '%s-%s'%(self.name, datetime.now().strftime('%Y-%m-%d-%H-%M'))
+            self._fileName = '{0!s}-{1!s}'.format(self.name, datetime.now().strftime('%Y-%m-%d-%H-%M'))
         return self._fileName
     @fileName.setter
     def fileName(self, value):
         self._fileName = value
 
 
-class SaveModelEveryIteration(_SaveEveryIteration):
+class SaveModelEveryIteration(SaveEveryIteration):
     """SaveModelEveryIteration"""
 
     def initialize(self):
-        print "SimPEG.SaveModelEveryIteration will save your models as: '###-%s.npy'"%self.fileName
+        print("SimPEG.SaveModelEveryIteration will save your models as: '###-{0!s}.npy'".format(self.fileName))
 
     def endIter(self):
-        np.save('%03d-%s' % (self.opt.iter, self.fileName), self.opt.xc)
+        np.save('{0:03d}-{1!s}'.format(self.opt.iter, self.fileName), self.opt.xc)
 
 
-class SaveOutputEveryIteration(_SaveEveryIteration):
+class SaveOutputEveryIteration(SaveEveryIteration):
     """SaveModelEveryIteration"""
 
     def initialize(self):
-        print "SimPEG.SaveOutputEveryIteration will save your inversion progress as: '###-%s.txt'"%self.fileName
+        print("SimPEG.SaveOutputEveryIteration will save your inversion progress as: '###-{0!s}.txt'".format(self.fileName))
         f = open(self.fileName+'.txt', 'w')
         f.write("  #     beta     phi_d     phi_m       f\n")
         f.close()
 
     def endIter(self):
         f = open(self.fileName+'.txt', 'a')
-        f.write(' %3d %1.4e %1.4e %1.4e %1.4e\n'%(self.opt.iter, self.invProb.beta, self.invProb.phi_d, self.invProb.phi_m, self.opt.f))
+        f.write(' {0:3d} {1:1.4e} {2:1.4e} {3:1.4e} {4:1.4e}\n'.format(self.opt.iter, self.invProb.beta, self.invProb.phi_d, self.invProb.phi_m, self.opt.f))
         f.close()
 
+<<<<<<< HEAD
 class SaveOutputDictEveryIteration(_SaveEveryIteration):
     """
     Saves inversion parameters at every iteraion.
 
 
     """
+=======
+class SaveOutputDictEveryIteration(SaveEveryIteration):
+    """SaveOutputDictEveryIteration"""
+>>>>>>> 28248b4174e0d010322903e0d74cb5be4be7d42b
 
     def initialize(self):
-        print "SimPEG.SaveOutputDictEveryIteration will save your inversion progress as dictionary: '###-%s.npz'"%self.fileName
+        print("SimPEG.SaveOutputDictEveryIteration will save your inversion progress as dictionary: '###-{0!s}.npz'".format(self.fileName))
 
     def endIter(self):
 
@@ -239,13 +246,23 @@ class SaveOutputDictEveryIteration(_SaveEveryIteration):
         outDict['dpred'] = self.invProb.dpred
 
         # Save the file as a npz
+<<<<<<< HEAD
         np.savez('{:03d}-{:s}'.format(self.opt.iter,self.fileName), outDict)
+=======
+        np.savez('{:03d}-{:s}'.format(self.opt.iter,self.fileName), iter=self.opt.iter, beta=self.invProb.beta, phi_d=self.invProb.phi_d, phi_m=self.invProb.phi_m, phi_ms=phi_ms, phi_mx=phi_mx, phi_my=phi_my, phi_mz=phi_mz,f=self.opt.f, m=self.invProb.curModel,dpred=self.invProb.dpred)
+
+#         mref = getattr(self, 'm_prev', None)
+#         if mref is None:
+#             if self.debug: print('UpdateReferenceModel is using mref0')
+#             mref = self.mref0
+#         self.m_prev = self.invProb.m_current
+#         return mref
+>>>>>>> 28248b4174e0d010322903e0d74cb5be4be7d42b
 
 class Update_IRLS(InversionDirective):
 
     eps_min = None
-    eps_p = None
-    eps_q = None
+    eps = None
     norms = [2.,2.,2.,2.]
     factor = None
     gamma = None
@@ -254,6 +271,7 @@ class Update_IRLS(InversionDirective):
     f_old = None
     f_min_change = 1e-2
     beta_tol = 5e-2
+    prctile = 95
 
     # Solving parameter for IRLS (mode:2)
     IRLSiter   = 0
@@ -285,12 +303,23 @@ class Update_IRLS(InversionDirective):
 
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
         if self.invProb.phi_d < self.target and self.mode == 1:
-            print "Convergence with smooth l2-norm regularization: Start IRLS steps..."
+            print("Convergence with smooth l2-norm regularization: Start IRLS steps...")
 
             self.mode = 2
-            print self.eps_p, self.eps_q, self.norms
-            self.reg.eps_p = self.eps_p
-            self.reg.eps_q = self.eps_q
+
+            # Either use the supplied epsilon, or fix base on distribution of
+            # model values
+            if getattr(self, 'eps', None) is None:
+                self.reg.eps_p = np.percentile(np.abs(self.invProb.curModel),self.prctile)
+            else:
+                self.reg.eps_p = self.eps[0]
+
+            if getattr(self, 'eps', None) is None:
+
+                self.reg.eps_q = np.percentile(np.abs(self.reg.regmesh.cellDiffxStencil*(self.reg.mapping * self.invProb.curModel)),self.prctile)
+            else:
+                self.reg.eps_q = self.eps[1]
+
             self.reg.norms = self.norms
             self.coolingFactor = 1.
             self.coolingRate = 1
@@ -301,12 +330,15 @@ class Update_IRLS(InversionDirective):
             self.reg.l2model = self.invProb.curModel
             self.reg.curModel = self.invProb.curModel
 
+            print("L[p qx qy qz]-norm : " + str(self.reg.norms))
+            print("eps_p: " + str(self.reg.eps_p) + " eps_q: " + str(self.reg.eps_q))
+
             if getattr(self, 'f_old', None) is None:
                 self.f_old = self.reg.eval(self.invProb.curModel)#self.invProb.evalFunction(self.invProb.curModel, return_g=False, return_H=False)
 
         # Beta Schedule
         if self.opt.iter > 0 and self.opt.iter % self.coolingRate == 0:
-            if self.debug: print 'BetaSchedule is cooling Beta. Iteration: %d' % self.opt.iter
+            if self.debug: print('BetaSchedule is cooling Beta. Iteration: {0:d}'.format(self.opt.iter))
             self.invProb.beta /= self.coolingFactor
 
 
@@ -318,30 +350,30 @@ class Update_IRLS(InversionDirective):
             phim_new = self.reg.eval(self.invProb.curModel)
             self.f_change = np.abs(self.f_old - phim_new) / self.f_old
 
-            print "Regularization decrease: %6.3e" % (self.f_change)
+            print("Regularization decrease: {0:6.3e}".format((self.f_change)))
 
             # Check for maximum number of IRLS cycles
             if self.IRLSiter == self.maxIRLSiter:
-                print "Reach maximum number of IRLS cycles: %i" % self.maxIRLSiter
+                print("Reach maximum number of IRLS cycles: {0:d}".format(self.maxIRLSiter))
                 self.opt.stopNextIteration = True
                 return
 
             # Check if the function has changed enough
             if self.f_change < self.f_min_change and self.IRLSiter > 1:
-                print "Minimum decrease in regularization. End of IRLS"
+                print("Minimum decrease in regularization. End of IRLS")
                 self.opt.stopNextIteration = True
                 return
             else:
                 self.f_old = phim_new
 
-            # Cool the threshold parameter if required
-            if getattr(self, 'factor', None) is not None:
-                eps = self.reg.eps / self.factor
-
-                if getattr(self, 'eps_min', None) is not None:
-                    self.reg.eps = np.max([self.eps_min,eps])
-                else:
-                    self.reg.eps = eps
+#            # Cool the threshold parameter if required
+#            if getattr(self, 'factor', None) is not None:
+#                eps = self.reg.eps / self.factor
+#
+#                if getattr(self, 'eps_min', None) is not None:
+#                    self.reg.eps = np.max([self.eps_min,eps])
+#                else:
+#                    self.reg.eps = eps
 
             # Get phi_m at the end of current iteration
             self.phi_m_last = self.invProb.phi_m_last

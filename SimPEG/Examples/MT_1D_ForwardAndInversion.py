@@ -9,7 +9,7 @@ np.random.seed(1983)
 def run(plotIt=True):
     """
         MT: 1D: Inversion
-        =======================
+        =================
 
         Forward model 1D MT data.
         Setup and run a MT 1D inversion.
@@ -78,7 +78,11 @@ def run(plotIt=True):
     survey.dobs = survey.dtrue + 0.01*abs(survey.dtrue)*np.random.randn(*survey.dtrue.shape)
 
     if plotIt:
+<<<<<<< HEAD
         fig = NSEM.Utils.dataUtils.plotMT1DModelData(problem,[])
+=======
+        fig = MT.Utils.dataUtils.plotMT1DModelData(problem, [m_0])
+>>>>>>> 28248b4174e0d010322903e0d74cb5be4be7d42b
         fig.suptitle('Target - smooth true')
 
 

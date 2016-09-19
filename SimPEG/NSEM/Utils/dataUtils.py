@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Utils used for the data,
 import numpy as np, matplotlib.pyplot as plt, sys
 import SimPEG as simpeg
@@ -19,7 +20,11 @@ def getAppRes(NSEMdata):
         zList.append(zc)
     return [appResPhs(zList[i][0],np.sum(zList[i][1:3])) for i in np.arange(len(zList))]
 
+<<<<<<< HEAD:SimPEG/NSEM/Utils/dataUtils.py
 def rotateData(NSEMdata,rotAngle):
+=======
+def rotateData(MTdata, rotAngle):
+>>>>>>> 28248b4174e0d010322903e0d74cb5be4be7d42b:SimPEG/MT/Utils/dataUtils.py
     '''
     Function that rotates clockwist by rotAngle (- negative for a counter-clockwise rotation)
     '''
@@ -44,20 +49,25 @@ def rotateData(NSEMdata,rotAngle):
     return NSEM.Data.fromRecArray(outRec)
 
 
-def appResPhs(freq,z):
+def appResPhs(freq, z):
     app_res = ((1./(8e-7*np.pi**2))/freq)*np.abs(z)**2
     app_phs = np.arctan2(z.imag,z.real)*(180/np.pi)
     return app_res, app_phs
 
-def skindepth(rho,freq):
+def skindepth(rho, freq):
     ''' Function to calculate the skindepth of EM waves'''
     return np.sqrt( (rho*((1/(freq * mu_0 * np.pi )))))
 
-def rec2ndarr(x,dt=float):
+def rec2ndarr(x, dt=float):
     return x.view((dt, len(x.dtype.names)))
 
+<<<<<<< HEAD:SimPEG/NSEM/Utils/dataUtils.py
 def makeAnalyticSolution(mesh,model,elev,freqs):
     from SimPEG import NSEM
+=======
+def makeAnalyticSolution(mesh, model, elev, freqs):
+    from SimPEG import MT
+>>>>>>> 28248b4174e0d010322903e0d74cb5be4be7d42b:SimPEG/MT/Utils/dataUtils.py
     data1D = []
     for freq in freqs:
         anaEd, anaEu, anaHd, anaHu = NSEM.Utils.MT1Danalytic.getEHfields(mesh,model,freq,elev)
@@ -70,8 +80,13 @@ def makeAnalyticSolution(mesh,model,elev,freqs):
     dataRec = np.array(data1D,dtype=[('freq',float),('x',float),('y',float),('z',float),('zyx',complex)])
     return dataRec
 
+<<<<<<< HEAD:SimPEG/NSEM/Utils/dataUtils.py
 def plotMT1DModelData(problem,models,symList=None):
     from SimPEG import NSEM
+=======
+def plotMT1DModelData(problem, models, symList=None):
+    from SimPEG import MT
+>>>>>>> 28248b4174e0d010322903e0d74cb5be4be7d42b:SimPEG/MT/Utils/dataUtils.py
     # Setup the figure
     fontSize = 15
 
@@ -97,7 +112,7 @@ def plotMT1DModelData(problem,models,symList=None):
 
     # if not symList:
     #   symList = ['x']*len(models)
-    import plotDataTypes as pDt
+    from SimPEG.MT.Utils import plotDataTypes as pDt
     # Loop through the models.
     modelList = [problem.survey.mtrue]
     modelList.extend(models)
@@ -213,7 +228,7 @@ def plotImpAppRes(dataArrays,plotLoc,textStr=[]):
 
 def printTime():
     import time
-    print time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.localtime())
+    print(time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.localtime()))
 
 def convert3Dto1Dobject(NSEMdata,rxType3D='zyx'):
     from SimPEG import NSEM
@@ -294,7 +309,7 @@ def resampleNSEMdataAtFreq(NSEMdata,freqs):
         # Join together
         try:
             outRecArr = recFunc.stack_arrays((outRecArr,tArrRec))
-        except NameError as e:
+        except NameError:
             outRecArr = tArrRec
 
     # Make the NSEMdata and return

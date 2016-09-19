@@ -1,6 +1,13 @@
+from __future__ import print_function
 import unittest
+<<<<<<< HEAD:tests/mt/forward/test_AnalyticFunctionVsAppResPhs.py
 from SimPEG import *
 from SimPEG import NSEM
+=======
+import numpy as np
+from SimPEG import Mesh
+from SimPEG import MT
+>>>>>>> 28248b4174e0d010322903e0d74cb5be4be7d42b:tests/mt/test_ApparentResistivityAnalytic.py
 
 TOL = 1e-6
 

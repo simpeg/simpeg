@@ -1,10 +1,16 @@
+from __future__ import print_function
 from SimPEG import Survey as SimPEGsurvey, Utils, Problem, Maps, np, sp, mkvc
 from SimPEG.EM.FDEM.SrcFDEM import BaseSrc as FDEMBaseSrc
 from SimPEG.EM.Utils import omega
 from scipy.constants import mu_0
 from numpy.lib import recfunctions as recFunc
+<<<<<<< HEAD:SimPEG/NSEM/SurveyNSEM.py
 from Utils import rec2ndarr
 import SrcNSEM
+=======
+from .Utils import rec2ndarr
+from . import SrcMT
+>>>>>>> 28248b4174e0d010322903e0d74cb5be4be7d42b:SimPEG/MT/SurveyMT.py
 import sys
 
 #################
@@ -136,7 +142,7 @@ class Rx(SimPEGsurvey.BaseRx):
         # Get the real or imag component
         real_or_imag = self.projComp
         f_part = getattr(f_part_complex, real_or_imag)
-        # print f_part
+        # print(f_part)
         return f_part
 
     def evalDeriv(self, src, mesh, f, v, adjoint=False):
@@ -496,7 +502,7 @@ class Data(SimPEGsurvey.Data):
             try:
                 outTemp = recFunc.stack_arrays((outTemp,mArrRec))
                 #outTemp = np.concatenate((outTemp,dataBlock),axis=0)
-            except NameError as e:
+            except NameError:
                 outTemp = mArrRec
 
             if 'RealImag' in returnType:

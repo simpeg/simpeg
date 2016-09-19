@@ -39,5 +39,10 @@ nosetests.xml
 *.sublime-workspace
 docs/_build/
 Makefile
+<<<<<<< HEAD
 SimPEG/Optimization.py
 SimPEG/Inversion.py
+=======
+docs/warnings.txt
+.DS_Store
+>>>>>>> 28248b4174e0d010322903e0d74cb5be4be7d42b

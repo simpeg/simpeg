@@ -1,5 +1,6 @@
+from __future__ import print_function
 from SimPEG import *
-from Empirical import RichardsMap
+from SimPEG.FLOW.Richards.Empirical import RichardsMap
 import time
 
 
@@ -61,7 +62,7 @@ class RichardsSurvey(Survey.BaseSurvey):
 
     @Utils.requires('prob')
     def eval(self, U, m):
-        Ds = range(len(self.rxList))
+        Ds = list(range(len(self.rxList)))
         for ii, rx in enumerate(self.rxList):
             Ds[ii] = rx.eval(U, m,
                                 self.prob.mapping,
@@ -73,7 +74,7 @@ class RichardsSurvey(Survey.BaseSurvey):
     @Utils.requires('prob')
     def evalDeriv(self, U, m):
         """The Derivative with respect to the fields."""
-        Ds = range(len(self.rxList))
+        Ds = list(range(len(self.rxList)))
         for ii, rx in enumerate(self.rxList):
             Ds[ii] = rx.evalDeriv(U, m,
                                 self.prob.mapping,
@@ -135,12 +136,12 @@ class RichardsProblem(Problem.BaseTimeProblem):
     @Utils.timeIt
     def fields(self, m):
         tic = time.time()
-        u = range(self.nT+1)
+        u = list(range(self.nT+1))
         u[0] = self.initialConditions
         for ii, dt in enumerate(self.timeSteps):
             bc = self.getBoundaryConditions(ii, u[ii])
             u[ii+1] = self.rootFinder.root(lambda hn1m, return_g=True: self.getResidual(m, u[ii], hn1m, dt, bc, return_g=return_g), u[ii])
-            if self.debug: print "Solving Fields (%4d/%d - %3.1f%% Done) %d Iterations, %4.2f seconds"%(ii+1, self.nT, 100.0*(ii+1)/self.nT, self.rootFinder.iter, time.time() - tic)
+            if self.debug: print("Solving Fields ({0:4d}/{1:d} - {2:3.1f}% Done) {3:d} Iterations, {4:4.2f} seconds".format(ii+1, self.nT, 100.0*(ii+1)/self.nT, self.rootFinder.iter, time.time() - tic))
         return u
 
     @Utils.timeIt
@@ -238,7 +239,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
             f = self.fields(m)
 
         nn = len(f)-1
-        Asubs, Adiags, Bs = range(nn), range(nn), range(nn)
+        Asubs, Adiags, Bs = list(range(nn)), list(range(nn)), list(range(nn))
         for ii in range(nn):
             dt = self.timeSteps[ii]
             bc = self.getBoundaryConditions(ii, f[ii])
@@ -263,7 +264,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
         if f is None:
             f = self.fields(m)
 
-        JvC = range(len(f)-1) # Cell to hold each row of the long vector.
+        JvC = list(range(len(f)-1)) # Cell to hold each row of the long vector.
 
         # This is done via forward substitution.
         bc = self.getBoundaryConditions(0, f[0])
@@ -295,7 +296,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
             bc = self.getBoundaryConditions(ii-1, f[ii-1])
             Asub, Adiag, B = self.diagsJacobian(m, f[ii-1], f[ii], self.timeSteps[ii-1], bc)
             #select the correct part of v
-            vpart = range((ii)*Adiag.shape[0], (ii+1)*Adiag.shape[0])
+            vpart = list(range((ii)*Adiag.shape[0], (ii+1)*Adiag.shape[0]))
             AdiaginvT = self.Solver(Adiag.T, **self.solverOpts)
             JTvC = AdiaginvT * (PTv[vpart] - minus)
             minus = Asub.T*JTvC  # this is now the super diagonal.

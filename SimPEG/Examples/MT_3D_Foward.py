@@ -5,14 +5,14 @@ import SimPEG as simpeg
 from SimPEG import NSEM
 import numpy as np
 try:
-    from pymatsolver import MumpsSolver as Solver
+    from pymatsolver import PardisoSolver as Solver
 except:
     from SimPEG import Solver
 
 def run(plotIt=True, nFreq=1):
     """
         MT: 3D: Forward
-        =======================
+        ===============
 
         Forward model 3D MT data.
 
@@ -46,16 +46,23 @@ def run(plotIt=True, nFreq=1):
     survey = NSEM.Survey(srcList)
 
     ## Setup the problem object
+<<<<<<< HEAD
     problem = NSEM.Problem3D_ePrimSec(M, sigmaPrimary=sigBG)
+=======
+    problem = MT.Problem3D.eForm_ps(M, sigmaPrimary=sigBG, Solver=Solver)
+>>>>>>> 28248b4174e0d010322903e0d74cb5be4be7d42b
     problem.pair(survey)
-    problem.Solver = Solver
 
     # Calculate the data
     fields = problem.fields(sig)
     dataVec = survey.eval(fields)
 
     # Make the data
+<<<<<<< HEAD
     mtData = NSEM.Data(survey,dataVec)
+=======
+    mtData = MT.Data(survey, dataVec)
+>>>>>>> 28248b4174e0d010322903e0d74cb5be4be7d42b
     # Add plots
     if plotIt:
         pass

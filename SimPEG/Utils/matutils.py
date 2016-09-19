@@ -1,6 +1,7 @@
+from __future__ import division
 import numpy as np
 import scipy.sparse as sp
-from codeutils import isScalar
+from .codeutils import isScalar
 
 def mkvc(x, numDims=1):
     """Creates a vector with the number of dimension specified
@@ -27,7 +28,7 @@ def mkvc(x, numDims=1):
 
     if isinstance(x, Zero):
         return x
-    
+
     assert isinstance(x, np.ndarray), "Vector must be a numpy array"
 
     if numDims == 1:
@@ -276,9 +277,9 @@ class TensorType(object):
             self._tt  = 3
             self._tts = 'tensor'
         else:
-            raise Exception('Unexpected shape of tensor')
+            raise Exception('Unexpected shape of tensor: {}'.format(tensor.shape))
     def __str__(self):
-        return 'TensorType[%i]: %s' % (self._tt, self._tts)
+        return 'TensorType[{0:d}]: {1!s}'.format(self._tt, self._tts)
     def __eq__(self, v): return self._tt == v
     def __le__(self, v): return self._tt <= v
     def __ge__(self, v): return self._tt >= v
@@ -355,9 +356,9 @@ def diagEst(matFun, n, k=None, approach='Probing'):
         2. Ones : random +/- 1 entries
         3. Random : random vectors
 
-    :param lambda (numpy.array) matFun: matrix to estimate the diagonal of
-    :param int64 n: size of the vector that should be used to compute matFun(v)
-    :param int64 k: number of vectors to be used to estimate the diagonal
+    :param callable matFun: takes a (numpy.array) and multiplies it by a matrix to estimate the diagonal
+    :param int n: size of the vector that should be used to compute matFun(v)
+    :param int k: number of vectors to be used to estimate the diagonal
     :param str approach: approach to be used for getting vectors
     :rtype: numpy.array
     :return: est_diag(A)
@@ -413,6 +414,8 @@ class Zero(object):
     def __div__(self, v): return self
     def __truediv__(self, v): return self
     def __rdiv__(self, v): raise ZeroDivisionError('Cannot divide by zero.')
+    def __rtruediv__(self, v): raise ZeroDivisionError('Cannot divide by zero.')
+    def __rfloordiv__(self, v): raise ZeroDivisionError('Cannot divide by zero.')
     def __pos__(self):return self
     def __neg__(self):return self
     def __lt__(self, v):return 0 < v
@@ -422,9 +425,9 @@ class Zero(object):
     def __ge__(self, v):return 0 >= v
     def __gt__(self, v):return 0 > v
 
-    @property 
+    @property
     def transpose(self): return Zero()
-    
+
     @property
     def T(self): return Zero()
 
@@ -457,7 +460,12 @@ class Identity(object):
         return 1.0/v if self._positive else -1.0/v
     def __rdiv__(self, v):
         return v if self._positive else -v
-
+    def __rtruediv__(self,v):
+        return v if self._positive else -v
+    def __floordiv__(self,v):
+        return 1//v if self._positive else -1//v
+    def __rfloordiv__(self,v):
+        return 1//v if self._positivie else -1//v
     def __lt__(self, v):return 1 <  v if self._positive else -1 <  v
     def __le__(self, v):return 1 <= v if self._positive else -1 <= v
     def __eq__(self, v):return v == 1 if self._positive else v == -1

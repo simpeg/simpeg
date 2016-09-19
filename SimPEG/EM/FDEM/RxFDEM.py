@@ -11,8 +11,8 @@ class BaseRx(SimPEG.Survey.BaseRx):
     """
 
     def __init__(self, locs, orientation=None, component=None):
-        assert(orientation in ['x','y','z']), "Orientation %s not known. Orientation must be in 'x', 'y', 'z'. Arbitrary orientations have not yet been implemented."%orientation
-        assert(component in ['real', 'imag']), "'component' must be 'real' or 'imag', not %s"%component
+        assert(orientation in ['x','y','z']), "Orientation {0!s} not known. Orientation must be in 'x', 'y', 'z'. Arbitrary orientations have not yet been implemented.".format(orientation)
+        assert(component in ['real', 'imag']), "'component' must be 'real' or 'imag', not {0!s}".format(component)
 
         self.projComp = orientation
         self.component = component
@@ -25,10 +25,10 @@ class BaseRx(SimPEG.Survey.BaseRx):
 
     def eval(self, src, mesh, f):
         """
-        Project fields to recievers to get data.
+        Project fields to receivers to get data.
 
-        :param Source src: FDEM source
-        :param Mesh mesh: mesh used
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: FDEM source
+        :param BaseMesh mesh: mesh used
         :param Fields f: fields object
         :rtype: numpy.ndarray
         :return: fields projected to recievers
@@ -44,8 +44,8 @@ class BaseRx(SimPEG.Survey.BaseRx):
         """
         Derivative of projected fields with respect to the inversion model times a vector.
 
-        :param Source src: FDEM source
-        :param Mesh mesh: mesh used
+        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: FDEM source
+        :param BaseMesh mesh: mesh used
         :param Fields f: fields object
         :param numpy.ndarray v: vector to multiply
         :rtype: numpy.ndarray
@@ -96,6 +96,19 @@ class Point_b(BaseRx):
     def __init__(self, locs, orientation=None, component=None):
         self.projField = 'b'
         super(Point_b, self).__init__(locs, orientation, component)
+
+class Point_bSecondary(BaseRx):
+    """
+    Magnetic flux FDEM receiver
+
+    :param numpy.ndarray locs: receiver locations (ie. :code:`np.r_[x,y,z]`)
+    :param string orientation: receiver orientation 'x', 'y' or 'z'
+    :param string component: real or imaginary component 'real' or 'imag'
+    """
+
+    def __init__(self, locs, orientation=None, component=None):
+        self.projField = 'bSecondary'
+        super(Point_bSecondary, self).__init__(locs, orientation, component)
 
 
 class Point_h(BaseRx):

@@ -1,8 +1,8 @@
 import numpy as np
 from scipy import sparse as sp
-from matutils import mkvc, ndgrid, sub2ind, sdiag
-from codeutils import asArray_N_x_Dim
-from codeutils import isScalar
+from .matutils import mkvc, ndgrid, sub2ind, sdiag
+from .codeutils import asArray_N_x_Dim
+from .codeutils import isScalar
 import os
 
 def exampleLrmGrid(nC, exType):
@@ -83,7 +83,7 @@ def closestPoints(mesh, pts, gridLoc='CC'):
     """
         Move a list of points to the closest points on a grid.
 
-        :param simpeg.Mesh.BaseMesh mesh: The mesh
+        :param BaseMesh mesh: The mesh
         :param numpy.ndarray pts: Points to move
         :param string gridLoc: ['CC', 'N', 'Fx', 'Fy', 'Fz', 'Ex', 'Ex', 'Ey', 'Ez']
         :rtype: numpy.ndarray
@@ -104,16 +104,20 @@ def closestPoints(mesh, pts, gridLoc='CC'):
 
 def ExtractCoreMesh(xyzlim, mesh, meshType='tensor'):
     """
-        Extracts Core Mesh from Global mesh
-        xyzlim: 2D array [ndim x 2]
-        mesh: SimPEG mesh
-        This function ouputs:
-            - actind: corresponding boolean index from global to core
-            - meshcore: core SimPEG mesh
-        Warning: 1D and 2D has not been tested
+    Extracts Core Mesh from Global mesh
+
+    :param numpy.ndarray xyzlim: 2D array [ndim x 2]
+    :param BaseMesh mesh: The mesh
+
+    This function ouputs::
+
+        - actind: corresponding boolean index from global to core
+        - meshcore: core SimPEG mesh
+
+    Warning: 1D and 2D has not been tested
     """
     from SimPEG import Mesh
-    if mesh.dim ==1:
+    if mesh.dim == 1:
         xyzlim = xyzlim.flatten()
         xmin, xmax = xyzlim[0], xyzlim[1]
 
@@ -125,11 +129,11 @@ def ExtractCoreMesh(xyzlim, mesh, meshType='tensor'):
 
         x0 = [xc[0]-hx[0]*0.5, yc[0]-hy[0]*0.5]
 
-        meshCore = Mesh.TensorMesh([hx, hy] ,x0=x0)
+        meshCore = Mesh.TensorMesh([hx, hy], x0=x0)
 
         actind = (mesh.gridCC[:,0]>xmin) & (mesh.gridCC[:,0]<xmax)
 
-    elif mesh.dim ==2:
+    elif mesh.dim == 2:
         xmin, xmax = xyzlim[0,0], xyzlim[0,1]
         ymin, ymax = xyzlim[1,0], xyzlim[1,1]
 
@@ -144,12 +148,12 @@ def ExtractCoreMesh(xyzlim, mesh, meshType='tensor'):
 
         x0 = [xc[0]-hx[0]*0.5, yc[0]-hy[0]*0.5]
 
-        meshCore = Mesh.TensorMesh([hx, hy] ,x0=x0)
+        meshCore = Mesh.TensorMesh([hx, hy], x0=x0)
 
         actind = (mesh.gridCC[:,0]>xmin) & (mesh.gridCC[:,0]<xmax) \
                & (mesh.gridCC[:,1]>ymin) & (mesh.gridCC[:,1]<ymax) \
 
-    elif mesh.dim==3:
+    elif mesh.dim == 3:
         xmin, xmax = xyzlim[0,0], xyzlim[0,1]
         ymin, ymax = xyzlim[1,0], xyzlim[1,1]
         zmin, zmax = xyzlim[2,0], xyzlim[2,1]
@@ -168,7 +172,7 @@ def ExtractCoreMesh(xyzlim, mesh, meshType='tensor'):
 
         x0 = [xc[0]-hx[0]*0.5, yc[0]-hy[0]*0.5, zc[0]-hz[0]*0.5]
 
-        meshCore = Mesh.TensorMesh([hx, hy, hz] ,x0=x0)
+        meshCore = Mesh.TensorMesh([hx, hy, hz], x0=x0)
 
         actind = (mesh.gridCC[:,0]>xmin) & (mesh.gridCC[:,0]<xmax) \
                & (mesh.gridCC[:,1]>ymin) & (mesh.gridCC[:,1]<ymax) \

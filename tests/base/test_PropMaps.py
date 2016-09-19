@@ -1,5 +1,7 @@
+from __future__ import print_function
 import unittest
-from SimPEG import *
+import numpy as np
+from SimPEG import Mesh, Maps
 from scipy.constants import mu_0
 from SimPEG import Tests
 
@@ -134,8 +136,8 @@ class TestPropMaps(unittest.TestCase):
         iMap = Maps.IdentityMap(m)
         PM = MyReciprocalPropMap([('sigma', iMap)])
         pm = PM(np.r_[1,2.,3])
-        # print pm.sigma
-        # print pm.sigmaMap
+        # print(pm.sigma)
+        # print(pm.sigmaMap)
         assert np.all(pm.sigma == [1,2,3])
         assert np.all(pm.rho == 1./np.r_[1,2,3])
         assert pm.sigmaMap is iMap
@@ -163,8 +165,8 @@ class TestPropMaps(unittest.TestCase):
 
         PM = MyReciprocalPropMap([('rho', iMap)])
         pm = PM(np.r_[1,2.,3])
-        # print pm.sigma
-        # print pm.sigmaMap
+        # print(pm.sigma)
+        # print(pm.sigmaMap)
         assert np.all(pm.sigma == 1./np.r_[1,2,3])
         assert np.all(pm.rho == [1,2,3])
         assert pm.sigmaMap is None
@@ -199,7 +201,7 @@ class TestPropMaps(unittest.TestCase):
 
         # test Sigma
         testme = lambda v: [1./(m.rhoMap*v), m.sigmaDeriv]
-        print 'Testing Rho from Sigma'
+        print('Testing Rho from Sigma')
         Tests.checkDerivative(testme, x0, dx=0.01*x0, num=5, plotIt=False)
 
     def test_linked_derivs_rho(self):
@@ -213,7 +215,7 @@ class TestPropMaps(unittest.TestCase):
 
         # test Sigma
         testme = lambda v: [1./(m.sigmaMap*v), m.rhoDeriv]
-        print 'Testing Rho from Sigma'
+        print('Testing Rho from Sigma')
         Tests.checkDerivative(testme, x0, dx=0.01*x0, num=5, plotIt=False)
 
 if __name__ == '__main__':

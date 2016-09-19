@@ -20,10 +20,10 @@ class BaseEMProblem(Problem.BaseProblem):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
 
-    surveyPair = Survey.BaseSurvey
-    dataPair = Survey.Data
+    surveyPair = Survey.BaseSurvey #: The survey to pair with.
+    dataPair = Survey.Data #: The data to pair with.
 
-    PropMap = EMPropMap
+    PropMap = EMPropMap #: The property mapping
 
     Solver = SimpegSolver
     solverOpts = {}
@@ -217,6 +217,7 @@ class BaseEMSurvey(Survey.BaseSurvey):
     def eval(self, f):
         """
         Project fields to receiver locations
+
         :param Fields u: fields object
         :rtype: numpy.ndarray
         :return: data
