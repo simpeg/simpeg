@@ -1,7 +1,7 @@
 from SimPEG import Survey as SimPEGsurvey, Utils, Problem, Maps, np, mkvc
 from scipy.constants import mu_0
 from numpy.lib import recfunctions as recFunc
-from Utils import rec2ndarr
+from .Utils import rec2ndarr
 import SrcNSEM
 import sys
 

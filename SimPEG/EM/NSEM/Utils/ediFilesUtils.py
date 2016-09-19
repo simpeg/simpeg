@@ -2,7 +2,7 @@
 from SimPEG import mkvc
 from scipy.constants import mu_0
 from numpy.lib import recfunctions as recFunc
-from SimPEG.NSEM.Utils.dataUtils import rec2ndarr
+from .dataUtils import rec2ndarr
 
 # Import modules
 import numpy as np
