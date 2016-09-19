@@ -1,6 +1,6 @@
 from __future__ import print_function
 import unittest
-from SimPEG import NSEM
+from SimPEG.EM import NSEM
 from SimPEG import Mesh
 from SimPEG import np
 

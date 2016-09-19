@@ -1,10 +1,16 @@
 from __future__ import print_function
 # Utils used for the data,
-import numpy as np, matplotlib.pyplot as plt, sys
-import SimPEG as simpeg
+import matplotlib.pyplot as plt, sys
 import numpy.lib.recfunctions as recFunc
 from scipy.constants import mu_0
 from scipy import interpolate as sciint
+
+import SimPEG as simpeg
+from SimPEG import np
+from ..SurveyNSEM import Data, Survey
+from ..RxNSEM import rxPoint_impedance1D
+from ..SrcNSEM import polxy_1Dprimary
+
 
 def getAppRes(NSEMdata):
     # Make impedance
@@ -42,8 +48,8 @@ def rotateData(NSEMdata, rotAngle):
     for nr,comp in enumerate(['zxx','zxy','zyx','zyy']):
         outRec[comp] = rotData[:,nr]
 
-    from SimPEG import NSEM
-    return NSEM.Data.fromRecArray(outRec)
+
+    return Data.fromRecArray(outRec)
 
 
 def appResPhs(freq, z):
@@ -60,10 +66,10 @@ def rec2ndarr(x, dt=float):
 
 def makeAnalyticSolution(mesh, model, elev, freqs):
 
-    from SimPEG import NSEM
+
     data1D = []
     for freq in freqs:
-        anaEd, anaEu, anaHd, anaHu = NSEM.Utils.MT1Danalytic.getEHfields(mesh,model,freq,elev)
+        anaEd, anaEu, anaHd, anaHu = Utils.MT1Danalytic.getEHfields(mesh,model,freq,elev)
         anaE = anaEd+anaEu
         anaH = anaHd+anaHu
 
@@ -75,7 +81,7 @@ def makeAnalyticSolution(mesh, model, elev, freqs):
 
 
 def plotMT1DModelData(problem, models, symList=None):
-    from SimPEG import NSEM
+
     # Setup the figure
     fontSize = 15
 
@@ -101,7 +107,7 @@ def plotMT1DModelData(problem, models, symList=None):
 
     # if not symList:
     #   symList = ['x']*len(models)
-    from SimPEG.MT.Utils import plotDataTypes as pDt
+    pDt = Utils.plotDataTypes
     # Loop through the models.
     modelList = [problem.survey.mtrue]
     modelList.extend(models)
@@ -125,7 +131,7 @@ def plotMT1DModelData(problem, models, symList=None):
         axM.semilogx(modelPts,meshPts,color=col)
 
         ## Data
-        loc = NSEM.Utils.dataUtils.rec2ndarr(np.unique(data1D[['x','y']]))
+        loc = Utils.dataUtils.rec2ndarr(np.unique(data1D[['x','y']]))
         # Appres
         pDt.plotIsoStaImpedance(axR,loc,data1D,'zyx','res',pColor=col)
         # Appphs
@@ -221,7 +227,7 @@ def printTime():
     print(time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.localtime()))
 
 def convert3Dto1Dobject(NSEMdata, rxType3D='yx'):
-    from SimPEG import NSEM
+
     # Find the unique locations
     # Need to find the locations
     recDataTemp = NSEMdata.toRecArray().data.flatten()
@@ -247,23 +253,23 @@ def convert3Dto1Dobject(NSEMdata, rxType3D='yx'):
     for loc in uniLocs:
         # Make the receiver list
         rx1DList = []
-        rxList.append(NSEM.rxPoint_impedance1D(simpeg.mkvc(loc,2).T,'real'))
-        rxList.append(NSEM.rxPoint_impedance1D(simpeg.mkvc(loc,2).T,'imag'))
+        rxList.append(rxPoint_impedance1D(simpeg.mkvc(loc,2).T,'real'))
+        rxList.append(rxPoint_impedance1D(simpeg.mkvc(loc,2).T,'imag'))
         # Source list
         locrecData = recData[np.sqrt(np.sum( (rec2ndarr(recData[['x','y','z']]) - loc )**2,axis=1)) < 1e-5]
         dat1DList = []
         src1DList = []
         for freq in locrecData['freq']:
-            src1DList.append(NSEM.SrcNSEM.polxy_1Dprimary(rx1DList,freq))
+            src1DList.append(polxy_1Dprimary(rx1DList,freq))
             for comp  in ['r','i']:
                 dat1DList.append( corr * locrecData[rxType3D+comp][locrecData['freq']== freq] )
 
         # Make the survey
-        sur1D = NSEM.Survey(src1DList)
+        sur1D = Survey(src1DList)
 
         # Make the data
         dataVec = np.hstack(dat1DList)
-        dat1D = NSEM.Data(sur1D,dataVec)
+        dat1D = Data(sur1D,dataVec)
         sur1D.dobs = dataVec
         # Need to take NSEMdata.survey.std and split it as well.
         std=0.05
@@ -278,7 +284,7 @@ def resampleNSEMdataAtFreq(NSEMdata, freqs):
     Function to resample NSEMdata at set of frequencies
 
     """
-    from SimPEG import NSEM
+
     # Make a rec array
     NSEMrec = NSEMdata.toRecArray().data
 
@@ -305,4 +311,4 @@ def resampleNSEMdataAtFreq(NSEMdata, freqs):
             outRecArr = tArrRec
 
     # Make the NSEMdata and return
-    return NSEM.Data.fromRecArray(outRecArr)
+    return Data.fromRecArray(outRecArr)

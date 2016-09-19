@@ -1,10 +1,15 @@
 import unittest
 import sys
 from scipy.constants import mu_0
-import SimPEG as simpeg
 
+import SimPEG as simpeg
 from SimPEG.Utils import meshTensor
-import numpy as np
+from SimPEG import np
+from ..RxNSEM import rxPoint_impedance1D, rxPoint_impedance3D, rxPoint_tipper3D
+from .dataUtils import appResPhs
+from ..SurveyNSEM import Data, Survey
+from ..SrcNSEM import polxy_1Dprimary, polxy_1DhomotD
+from ..ProblemNSEM import Problem3D_ePrimSec
 
 np.random.seed(1100)
 # Define the tolerances
@@ -14,7 +19,7 @@ TOLp = 5e-2
 
 def getAppResPhs(NSEMdata):
     # Make impedance
-    from SimPEG.EM.NSEM.Utils import appResPhs
+
     zList = []
     for src in NSEMdata.survey.srcList:
         zc = [src.freq]
@@ -29,7 +34,7 @@ def getAppResPhs(NSEMdata):
 
 def setup1DSurvey(sigmaHalf, tD=False, structure=False):
 
-    from SimPEG import NSEM
+
     # Frequency
     nFreq = 33
     freqs = np.logspace(3,-3,nFreq)
@@ -55,23 +60,23 @@ def setup1DSurvey(sigmaHalf, tD=False, structure=False):
 
     rxList = []
     for rxType in ['z1d','z1d']:
-        rxList.append(NSEM.rxPoint_impedance1D(simpeg.mkvc(np.array([0.0]),2).T,'real'))
-        rxList.append(NSEM.rxPoint_impedance1D(simpeg.mkvc(np.array([0.0]),2).T,'imag'))
+        rxList.append(rxPoint_impedance1D(simpeg.mkvc(np.array([0.0]),2).T,'real'))
+        rxList.append(rxPoint_impedance1D(simpeg.mkvc(np.array([0.0]),2).T,'imag'))
     # Source list
     srcList =[]
     if tD:
         for freq in freqs:
-            srcList.append(NSEM.SrcNSEM.polxy_1DhomotD(rxList,freq))
+            srcList.append(polxy_1DhomotD(rxList,freq))
     else:
         for freq in freqs:
-            srcList.append(NSEM.SrcNSEM.polxy_1Dprimary(rxList,freq))
+            srcList.append(polxy_1Dprimary(rxList,freq))
 
-    survey = NSEM.Survey(srcList)
+    survey = Survey(srcList)
     return (survey, sigma, sigmaBack, m1d)
 
 
 def setupSimpegNSEM_ePrimSec(inputSetup, comp='Imp', singleFreq=False, expMap=True):
-    from SimPEG import NSEM
+
 
     M,freqs,sig,sigBG,rx_loc = inputSetup
     # Make a receiver list
@@ -87,31 +92,31 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp='Imp', singleFreq=False, expMap=Tr
 
     for rx_type in rx_type_list:
         if rx_type in ['xx','xy','yx','yy']:
-            rxList.append(NSEM.rxPoint_impedance3D(rx_loc, rx_type, 'real'))
-            rxList.append(NSEM.rxPoint_impedance3D(rx_loc, rx_type, 'imag'))
+            rxList.append(rxPoint_impedance3D(rx_loc, rx_type, 'real'))
+            rxList.append(rxPoint_impedance3D(rx_loc, rx_type, 'imag'))
         if rx_type in ['zx','zy']:
-            rxList.append(NSEM.rxPoint_tipper3D(rx_loc, rx_type, 'real'))
-            rxList.append(NSEM.rxPoint_tipper3D(rx_loc, rx_type, 'imag'))
+            rxList.append(rxPoint_tipper3D(rx_loc, rx_type, 'real'))
+            rxList.append(rxPoint_tipper3D(rx_loc, rx_type, 'imag'))
 
     # Source list
     srcList =[]
 
     if singleFreq:
-        srcList.append(NSEM.SrcNSEM.polxy_1Dprimary(rxList,singleFreq))
+        srcList.append(polxy_1Dprimary(rxList,singleFreq))
     else:
         for freq in freqs:
-            srcList.append(NSEM.SrcNSEM.polxy_1Dprimary(rxList,freq))
+            srcList.append(polxy_1Dprimary(rxList,freq))
     # Survey NSEM
-    survey = NSEM.Survey(srcList)
+    survey = Survey(srcList)
 
     ## Setup the problem object
     sigma1d = M.r(sigBG,'CC','CC','M')[0,0,:]
     if expMap:
-        problem = NSEM.Problem3D_ePrimSec(M,sigmaPrimary= np.log(sigma1d) )
+        problem = Problem3D_ePrimSec(M,sigmaPrimary= np.log(sigma1d) )
         problem.mapping = simpeg.Maps.ExpMap(problem.mesh)
         problem.curModel = np.log(sig)
     else:
-        problem = NSEM.Problem3D_ePrimSec(M,sigmaPrimary= sigma1d)
+        problem = Problem3D_ePrimSec(M,sigmaPrimary= sigma1d)
         problem.curModel = sig
     problem.pair(survey)
     problem.verbose = False

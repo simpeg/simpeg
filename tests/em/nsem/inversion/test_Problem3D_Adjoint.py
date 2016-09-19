@@ -2,7 +2,7 @@
 import numpy as np
 import SimPEG as simpeg
 import unittest
-from SimPEG import NSEM
+from SimPEG.EM import NSEM
 from scipy.constants import mu_0
 
 

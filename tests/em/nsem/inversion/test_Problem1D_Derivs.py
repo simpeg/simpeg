@@ -3,7 +3,7 @@ from glob import glob
 import numpy as np, sys, os, time, scipy, subprocess
 import SimPEG as simpeg
 import unittest
-from SimPEG import NSEM
+from SimPEG.EM import NSEM
 from SimPEG.Utils import meshTensor
 from scipy.constants import mu_0
 

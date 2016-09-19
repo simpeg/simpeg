@@ -1,8 +1,8 @@
-from . import TDEM
-from . import FDEM
-from . import NSEM
-from . import Static
-from . import Base
-from . import Analytics
-from . import Utils
+import TDEM
+import FDEM
+import NSEM
+import Static
+import Base
+import Analytics
+import Utils
 from scipy.constants import mu_0, epsilon_0

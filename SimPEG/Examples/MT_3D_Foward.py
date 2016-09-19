@@ -2,8 +2,8 @@
 
 # Import
 import SimPEG as simpeg
-from SimPEG import NSEM
-import numpy as np
+from SimPEG.EM import NSEM
+from SimPEG import np
 try:
     from pymatsolver import PardisoSolver as Solver
 except:

@@ -1,12 +1,11 @@
 from __future__ import print_function
-from SimPEG import Survey as SimPEGsurvey, Utils, Problem, Maps, np, sp, mkvc
-from SimPEG.EM.FDEM.SrcFDEM import BaseSrc as FDEMBaseSrc
-from SimPEG.EM.Utils import omega
+import sys
 from scipy.constants import mu_0
 from numpy.lib import recfunctions as recFunc
-from .Utils import rec2ndarr
-import SrcNSEM
-import sys
+
+from SimPEG import Survey as SimPEGsurvey, Utils, np, sp, mkvc
+import Utils
+from . import SrcNSEM
 
 #################
 # Receivers
@@ -511,7 +510,7 @@ class Data(SimPEGsurvey.Data):
                 key = 'z' + k + c[0]
                 tArrRec[key] = mkvc(val,2)
             # Masked array
-            mArrRec = np.ma.MaskedArray(rec2ndarr(tArrRec),mask=np.isnan(rec2ndarr(tArrRec))).view(dtype=tArrRec.dtype)
+            mArrRec = np.ma.MaskedArray(Utils.rec2ndarr(tArrRec),mask=np.isnan(Utils.rec2ndarr(tArrRec))).view(dtype=tArrRec.dtype)
             # Unique freq and loc of the masked array
             uniFLmarr = np.unique(mArrRec[['freq','x','y','z']]).copy()
 
@@ -565,7 +564,7 @@ class Data(SimPEGsurvey.Data):
                 # Find index of not nan values in rxType
                 notNaNind = ~np.isnan(dFreq[rxType])
                 if np.any(notNaNind): # Make sure that there is any data to add.
-                    locs = rec2ndarr(dFreq[['x','y','z']][notNaNind].copy())
+                    locs = Utils.rec2ndarr(dFreq[['x','y','z']][notNaNind].copy())
                     if dFreq[rxType].dtype.name in 'complex128':
                         rxList.append(Rx(locs,rxType+'r'))
                         dataList.append(dFreq[rxType][notNaNind].real.copy())

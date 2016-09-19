@@ -1,8 +1,9 @@
-import SimPEG as simpeg
-import numpy as np
-from SimPEG import NSEM
-from scipy.constants import mu_0
 import matplotlib.pyplot as plt
+
+
+import SimPEG as simpeg
+from SimPEG import np
+from SimPEG.EM import NSEM
 
 np.random.seed(1983)
 
