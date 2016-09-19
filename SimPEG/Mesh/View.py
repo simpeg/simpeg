@@ -1,11 +1,13 @@
+from __future__ import print_function
 import numpy as np
 from SimPEG.Utils import mkvc
+from six import integer_types
 try:
     import matplotlib.pyplot as plt
     import matplotlib
     from mpl_toolkits.mplot3d import Axes3D
-except ImportError, e:
-    print 'Trouble importing matplotlib.'
+except ImportError:
+    print('Trouble importing matplotlib.')
 
 
 class TensorView(object):
@@ -23,7 +25,7 @@ class TensorView(object):
     #     options = {"direction":direction,"numbering":numbering,"annotationColor":annotationColor,"showIt":False}
     #     fig = plt.figure(figNum)
     #     # Determine the subplot number: 131, 121
-    #     numPlots = 130 if plotAll else len(imageType)/2*10+100
+    #     numPlots = 130 if plotAll else len(imageType)//2*10+100
     #     pltNum = 1
     #     fxyz = self.r(I,'F','F','M')
     #     if plotAll or 'Fx' in imageType:
@@ -229,7 +231,7 @@ class TensorView(object):
 
         szSliceDim = getattr(self, 'nC'+normal.lower()) #: Size of the sliced dimension
         if ind is None: ind = int(szSliceDim/2)
-        assert type(ind) in [int, long], 'ind must be an integer'
+        assert type(ind) in integer_types, 'ind must be an integer'
 
         assert not (v.dtype == complex and view == 'vec'), 'Can not plot a complex vector.'
         # The slicing and plotting code!!
@@ -641,10 +643,12 @@ class CurvView(object):
         ax.set_xlabel('x1')
         ax.set_ylabel('x2')
 
-        if showIt: plt.show()
+        if showIt:
+            plt.show()
 
     def plotImage(self, I, ax=None, showIt=False, grid=False, clim=None):
-        if self.dim == 3: raise NotImplementedError('This is not yet done!')
+        if self.dim == 3:
+            raise NotImplementedError('This is not yet done!')
 
         import matplotlib.pyplot as plt
         import matplotlib
@@ -675,41 +679,6 @@ class CurvView(object):
         scalarMap._A = []  # http://stackoverflow.com/questions/8342549/matplotlib-add-colorbar-to-a-sequence-of-line-plots
         ax.set_xlabel('x')
         ax.set_ylabel('y')
-        if showIt: plt.show()
+        if showIt:
+            plt.show()
         return [scalarMap]
-
-
-if __name__ == '__main__':
-    import numpy as np
-    from SimPEG import Mesh, Utils, Solver
-    hx = [(5, 2, -1.3), (2, 4), (5, 2, 1.3)]
-    hy = [(2, 2, -1.3), (2, 6), (2, 2, 1.3)]
-    hz = [(2, 2, -1.3), (2, 6), (2, 2, 1.3)]
-    M = Mesh.TensorMesh([hx, hy, hz], x0=[10, 20, 14])
-    q = np.zeros(M.vnC)
-    q[[4, 4], [4, 4], [2, 6]] = [-1, 1]
-    q = Utils.mkvc(q)
-    A = M.faceDiv*M.cellGrad
-    b = Solver(A) * (q)
-
-    M.plotSlice(M.cellGrad*b, 'F', view='vec', grid=True,
-                pcolorOpts={'alpha':0.8})
-    M2 = Mesh.TensorMesh([10, 20], x0=[10, 5])
-    f = np.r_[np.sin(M2.gridFx[:, 0]*2*np.pi), np.sin(M2.gridFy[:, 1]*2*np.pi)]
-    M2.plotImage(f, 'F', view='vec', grid=True, pcolorOpts={'alpha': 0.8})
-    M2.plotImage(f, 'Fx')
-
-    f = np.r_[np.sin(M2.gridEx[:, 0]*2*np.pi), np.sin(M2.gridEy[:, 1]*2*np.pi)]
-    M2.plotImage(f, 'E', view='vec', grid=True, pcolorOpts={'alpha': 0.8})
-
-    c = np.r_[np.sin(M2.gridCC[:, 0]*2*np.pi)]
-    M2.plotImage(c, 'CC', view='real')
-
-    M = Mesh.TensorMesh([20, 20, 20])
-    v = (np.sin(M.gridCC[:, 0]*2*np.pi)*np.sin(M.gridCC[:, 1]*2*np.pi)*
-         np.sin(M.gridCC[:, 2]*2*np.pi))
-    M.plotImage(v, annotationColor='k')
-
-    Mesh.TensorMesh([10]).plotGrid()
-
-    plt.show()

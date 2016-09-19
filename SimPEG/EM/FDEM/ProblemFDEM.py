@@ -1,7 +1,7 @@
 from SimPEG import Problem, Utils, np, sp, Solver as SimpegSolver
 from scipy.constants import mu_0
-from SurveyFDEM import Survey as SurveyFDEM
-from FieldsFDEM import FieldsFDEM, Fields3D_e, Fields3D_b, Fields3D_h, Fields3D_j
+from .SurveyFDEM import Survey as SurveyFDEM
+from .FieldsFDEM import FieldsFDEM, Fields3D_e, Fields3D_b, Fields3D_h, Fields3D_j
 from SimPEG.EM.Base import BaseEMProblem
 from SimPEG.EM.Utils import omega
 
@@ -75,7 +75,8 @@ class BaseFDEMProblem(BaseEMProblem):
 
         self.curModel = m
 
-        Jv = self.dataPair(self.survey)
+        # Jv = self.dataPair(self.survey)
+        Jv = []
 
         for freq in self.survey.freqs:
             A = self.getA(freq)
@@ -90,9 +91,11 @@ class BaseFDEMProblem(BaseEMProblem):
                 for rx in src.rxList:
                     df_dmFun = getattr(f, '_{0}Deriv'.format(rx.projField), None)
                     df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
-                    Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
+                    # Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
+                    Jv.append(rx.evalDeriv(src, self.mesh, f, df_dm_v))
             Ainv.clean()
-        return Utils.mkvc(Jv)
+        # return Utils.mkvc(Jv)
+        return np.hstack(Jv)
 
     def Jtvec(self, m, v, f=None):
         """

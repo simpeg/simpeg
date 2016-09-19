@@ -2,8 +2,8 @@ import SimPEG
 from SimPEG.EM.Base import BaseEMSurvey
 from SimPEG import sp, Survey
 from SimPEG.Utils import Zero, Identity
-from RxDC import BaseRx
-from SrcDC import BaseSrc
+from .RxDC import BaseRx
+from .SrcDC import BaseSrc
 
 
 class Survey(BaseEMSurvey):

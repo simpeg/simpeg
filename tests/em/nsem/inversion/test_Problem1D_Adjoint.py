@@ -31,6 +31,7 @@ def JvecAdjointTest(sigmaHalf,formulation='PrimSec'):
     m  = sigma
     u = problem.fields(m)
 
+    np.random.seed(1983)
     v = np.random.rand(survey.nD,)
     # print problem.PropMap.PropModel.nP
     w = np.random.rand(problem.mesh.nC,)
@@ -49,6 +50,7 @@ class NSEM_1D_AdjointTests(unittest.TestCase):
         pass
 
     # Test the adjoint of Jvec and Jtvec
+<<<<<<< HEAD:tests/em/nsem/inversion/test_Problem1D_Adjoint.py
     # def test_JvecAdjoint_zxxr(self):self.assertTrue(JvecAdjointTest(random(1e-2),'zxxr',.1))
     # def test_JvecAdjoint_zxxi(self):self.assertTrue(JvecAdjointTest(random(1e-2),'zxxi',.1))
     # def test_JvecAdjoint_zxyr(self):self.assertTrue(JvecAdjointTest(random(1e-2),'zxyr',.1))
@@ -58,6 +60,17 @@ class NSEM_1D_AdjointTests(unittest.TestCase):
     # def test_JvecAdjoint_zyyr(self):self.assertTrue(JvecAdjointTest(random(1e-2),'zyyr',.1))
     # def test_JvecAdjoint_zyyi(self):self.assertTrue(JvecAdjointTest(random(1e-2),'zyyi',.1))
     def test_JvecAdjoint_All(self):self.assertTrue(JvecAdjointTest(1e-2))
+=======
+    def test_JvecAdjoint_zxxr(self):self.assertTrue(JvecAdjointTest(NSEM.Utils.testUtils.halfSpace(1e-2),'zxxr',.1))
+    def test_JvecAdjoint_zxxi(self):self.assertTrue(JvecAdjointTest(NSEM.Utils.testUtils.halfSpace(1e-2),'zxxi',.1))
+    def test_JvecAdjoint_zxyr(self):self.assertTrue(JvecAdjointTest(NSEM.Utils.testUtils.halfSpace(1e-2),'zxyr',.1))
+    def test_JvecAdjoint_zxyi(self):self.assertTrue(JvecAdjointTest(NSEM.Utils.testUtils.halfSpace(1e-2),'zxyi',.1))
+    def test_JvecAdjoint_zyxr(self):self.assertTrue(JvecAdjointTest(NSEM.Utils.testUtils.halfSpace(1e-2),'zyxr',.1))
+    def test_JvecAdjoint_zyxi(self):self.assertTrue(JvecAdjointTest(NSEM.Utils.testUtils.halfSpace(1e-2),'zyxi',.1))
+    def test_JvecAdjoint_zyyr(self):self.assertTrue(JvecAdjointTest(NSEM.Utils.testUtils.halfSpace(1e-2),'zyyr',.1))
+    def test_JvecAdjoint_zyyi(self):self.assertTrue(JvecAdjointTest(NSEM.Utils.testUtils.halfSpace(1e-2),'zyyi',.1))
+    # def test_JvecAdjoint_All(self):self.assertTrue(JvecAdjointTest(NSEM.Utils.testUtils.random(1e-2),'All',.1))
+>>>>>>> mt/dev:tests/mt/inversion/test_Problem3D_Adjoint.py
 
 if __name__ == '__main__':
     unittest.main()

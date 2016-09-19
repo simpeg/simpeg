@@ -1,14 +1,23 @@
+from __future__ import division, print_function
 import unittest
-from SimPEG import *
+import numpy as np
+from SimPEG import Mesh, Maps, SolverLU, Tests
 from SimPEG import EM
 from scipy.interpolate import interp1d
 
+try:
+    from pymatsolver import PardisoSolver
+    Solver = PardisoSolver
+except ImportError:
+    Solver = SolverLU
+
 plotIt = False
 
-testDeriv   = True
+testDeriv = True
 testAdjoint = True
 
 TOL = 1e-5
+
 
 def setUp_TDEM(prbtype='b', rxcomp='bz'):
 
@@ -16,11 +25,11 @@ def setUp_TDEM(prbtype='b', rxcomp='bz'):
     ncx = 20
     ncy = 15
     npad = 20
-    hx = [(cs,ncx), (cs,npad,1.3)]
-    hy = [(cs,npad,-1.3), (cs,ncy), (cs,npad,1.3)]
-    mesh = Mesh.CylMesh([hx,1,hy], '00C')
+    hx = [(cs, ncx), (cs, npad, 1.3)]
+    hy = [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)]
+    mesh = Mesh.CylMesh([hx, 1, hy], '00C')
 #
-    active = mesh.vectorCCz<0.
+    active = mesh.vectorCCz < 0.
     activeMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
     mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * activeMap
 
@@ -36,17 +45,13 @@ def setUp_TDEM(prbtype='b', rxcomp='bz'):
     t0 = 0.006
     waveform = EM.TDEM.Src.RawWaveform(offTime=t0, waveFct=wavefun)
     timerx = np.logspace(-4, -3, 20)
-    rx = EM.TDEM.Rx(np.array([[rxOffset, 0., 0.]]), timerx, rxcomp) #,]
-    src = EM.TDEM.Src.MagDipole([rx], waveform= waveform, loc=np.array([0, 0., 0.]))
+    rx = EM.TDEM.Rx(np.array([[rxOffset, 0., 0.]]), timerx, rxcomp)
+    src = EM.TDEM.Src.MagDipole([rx], waveform= waveform,
+                                loc=np.array([0., 0., 0.]))
 
     survey = EM.TDEM.Survey([src])
 
-
-    try:
-        from pymatsolver import MumpsSolver
-        prb.Solver = MumpsSolver
-    except ImportError, e:
-        prb.Solver = SolverLU
+    prb.Solver = Solver
 
     m = np.log(1e-1)*np.ones(prb.mapping.nP)
     # + 1e-2*np.random.randn(prb.mapping.nP)
@@ -75,18 +80,20 @@ class TDEM_DerivTests(unittest.TestCase):
             A = prb.getAdiag(tInd)
             Av = A*v
             prb.curModel = m0
-            ADeriv_dm = lambda dm: prb.getAdiagDeriv(tInd, v, dm)
+
+            def ADeriv_dm(dm):
+                return prb.getAdiagDeriv(tInd, v, dm)
 
             return Av, ADeriv_dm
 
-        print '\n Testing ADeriv %s'%(prbtype)
+        print('\n Testing ADeriv {}'.format(prbtype))
         Tests.checkDerivative(AderivFun, m0, plotIt=False, num=4, eps=1e-20)
 
-    def A_adjointTest(self,prbtype):
+    def A_adjointTest(self, prbtype):
         prb, m0, mesh = setUp_TDEM(prbtype)
         tInd = 2
 
-        print '\n Testing A_adjoint'
+        print('\n Testing A_adjoint')
         m = np.random.rand(prb.mapping.nP)
         if prbtype == 'b':
             nu = prb.mesh.nF
@@ -97,20 +104,23 @@ class TDEM_DerivTests(unittest.TestCase):
         u = np.random.rand(nu)
         prb.curModel = m0
 
-        tInd = 2 # not actually used
+        tInd = 2  # not actually used
         V1 = v.dot(prb.getAdiagDeriv(tInd, u, m))
         V2 = m.dot(prb.getAdiagDeriv(tInd, u, v, adjoint=True))
         passed = np.abs(V1-V2) < TOL * (np.abs(V1) + np.abs(V2))/2.
-        print 'AdjointTest %s'%(prbtype), V1, V2, passed
+        print('AdjointTest {prbtype} {v1} {v2} {passed}'.format(
+            prbtype=prbtype, v1=V1, v2=V2, passed=passed))
         self.assertTrue(passed)
 
     def test_Aderiv_b(self):
         self.AderivTest(prbtype='b')
+
     def test_Aderiv_e(self):
         self.AderivTest(prbtype='e')
 
     def test_Aadjoint_b(self):
         self.A_adjointTest(prbtype='b')
+
     def test_Aadjoint_e(self):
         self.A_adjointTest(prbtype='e')
 
@@ -122,7 +132,7 @@ class TDEM_DerivTests(unittest.TestCase):
 
         v = np.random.rand(mesh.nF)
 
-        print '\n Testing eDeriv_m Adjoint'
+        print('\n Testing eDeriv_m Adjoint')
 
         prb, m0, mesh = setUp_TDEM()
         f = prb.fields(m0)
@@ -134,11 +144,12 @@ class TDEM_DerivTests(unittest.TestCase):
         tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
         passed = np.abs(V1-V2) < tol
 
-        print '    ', V1, V2, np.abs(V1-V2), tol, passed
+        print('     {v1}, {v2}, {diff}, {tol}, {passed}'.format(
+              v1=V1, v2=V2, diff=np.abs(V1-V2), tol=tol, passed=passed))
         self.assertTrue(passed)
 
     def test_eDeriv_u_adjoint(self):
-        print '\n Testing eDeriv_u Adjoint'
+        print('\n Testing eDeriv_u Adjoint')
 
         prb, m0, mesh = setUp_TDEM()
         f = prb.fields(m0)
@@ -150,7 +161,8 @@ class TDEM_DerivTests(unittest.TestCase):
         tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
         passed = np.abs(V1-V2) < tol
 
-        print '    ', V1, V2, np.abs(V1-V2), tol, passed
+        print('     {v1}, {v2}, {diff}, {tol}, {passed}'.format(
+              v1=V1, v2=V2, diff=np.abs(V1-V2), tol=tol, passed=passed))
         self.assertTrue(passed)
 
 
@@ -161,25 +173,26 @@ class TDEM_DerivTests(unittest.TestCase):
         def JvecTest(self, prbtype, rxcomp):
             prb, m, mesh = setUp_TDEM(prbtype, rxcomp)
 
-            derChk = lambda m: [prb.survey.dpred(m), lambda mx: prb.Jvec(m, mx)]
-            print '\n'
-            print 'test_Jvec_%s_%s' %(prbtype, rxcomp)
-            Tests.checkDerivative(derChk, m, plotIt=False, num=2, dx=m*2, eps=1e-20)
+            def derChk(m):
+                return [prb.survey.dpred(m), lambda mx: prb.Jvec(m, mx)]
+            print('\ntest_Jvec_{}_{}'.format(prbtype, rxcomp))
+            Tests.checkDerivative(derChk, m, plotIt=False, num=2, dx=m*2,
+                                  eps=1e-20)
 
         def test_Jvec_b_bx(self):
-            self.JvecTest(prbtype='b',rxcomp='bx')
+            self.JvecTest(prbtype='b', rxcomp='bx')
 
         def test_Jvec_b_bz(self):
-            self.JvecTest(prbtype='b',rxcomp='bz')
+            self.JvecTest(prbtype='b', rxcomp='bz')
 
         def test_Jvec_b_dbxdt(self):
-            self.JvecTest(prbtype='b',rxcomp='dbxdt')
+            self.JvecTest(prbtype='b', rxcomp='dbxdt')
 
         def test_Jvec_b_dbzdt(self):
-            self.JvecTest(prbtype='b',rxcomp='dbzdt')
+            self.JvecTest(prbtype='b', rxcomp='dbzdt')
 
         def test_Jvec_b_ey(self):
-            self.JvecTest(prbtype='b',rxcomp='ey')
+            self.JvecTest(prbtype='b', rxcomp='ey')
 
         # TODOs: problem_e is not working yet
         # def test_Jvec_e_ey(self):
@@ -192,7 +205,7 @@ class TDEM_DerivTests(unittest.TestCase):
 
         def JvecVsJtvecTest(self, prbtype='b', rxcomp='bz'):
 
-            print '\nAdjoint Testing Jvec, Jtvec %s' %(rxcomp)
+            print('\nAdjoint Testing Jvec, Jtvec {}'.format(rxcomp))
 
             prb, m0, mesh = setUp_TDEM(prbtype, rxcomp)
             m = np.random.rand(prb.mapping.nP)
@@ -202,29 +215,28 @@ class TDEM_DerivTests(unittest.TestCase):
             tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
             passed = np.abs(V1-V2) < tol
 
-            print '    ', V1, V2, np.abs(V1-V2), tol, passed
+            print('     {v1}, {v2}, {diff}, {tol}, {passed}'.format(
+                v1=V1, v2=V2, diff=np.abs(V1-V2), tol=tol, passed=passed))
             self.assertTrue(passed)
 
         def test_Jvec_adjoint_b_bx(self):
-            self.JvecVsJtvecTest(prbtype='b',rxcomp='bx')
+            self.JvecVsJtvecTest(prbtype='b', rxcomp='bx')
 
         def test_Jvec_adjoint_b_bz(self):
-            self.JvecVsJtvecTest(prbtype='b',rxcomp='bz')
+            self.JvecVsJtvecTest(prbtype='b', rxcomp='bz')
 
         def test_Jvec_adjoint_b_dbxdt(self):
-            self.JvecVsJtvecTest(prbtype='b',rxcomp='bx')
+            self.JvecVsJtvecTest(prbtype='b', rxcomp='bx')
 
         def test_Jvec_adjoint_b_dbzdt(self):
-            self.JvecVsJtvecTest(prbtype='b',rxcomp='bz')
+            self.JvecVsJtvecTest(prbtype='b', rxcomp='bz')
 
         def test_Jvec_adjoint_b_ey(self):
-            self.JvecVsJtvecTest(prbtype='b',rxcomp='ey')
+            self.JvecVsJtvecTest(prbtype='b', rxcomp='ey')
 
         # This is not working because Problem3D_e has not done
         # def test_Jvec_adjoint_e_ey(self):
         #     self.JvecVsJtvecTest('e', 'ey')
-
-
 
 if __name__ == '__main__':
     unittest.main()

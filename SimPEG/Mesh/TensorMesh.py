@@ -1,14 +1,14 @@
+from __future__ import print_function
 from SimPEG import Utils, np, sp
-from BaseMesh import BaseMesh, BaseRectangularMesh
-from View import TensorView
-from DiffOperators import DiffOperators
-from InnerProducts import InnerProducts
-from MeshIO import TensorMeshIO
+from .BaseMesh import BaseMesh, BaseRectangularMesh
+from .View import TensorView
+from .DiffOperators import DiffOperators
+from .InnerProducts import InnerProducts
+from .MeshIO import TensorMeshIO
 import warnings
 
-class BaseTensorMesh(BaseMesh):
 
-    __metaclass__ = Utils.SimPEGMetaClass
+class BaseTensorMesh(BaseMesh):
 
     _meshType = 'BASETENSOR'
 
@@ -17,7 +17,7 @@ class BaseTensorMesh(BaseMesh):
     def __init__(self, h_in, x0_in=None):
         assert type(h_in) in [list, tuple], 'h_in must be a list'
         assert len(h_in) in [1,2,3], 'h_in must be of dimension 1, 2, or 3'
-        h = range(len(h_in))
+        h = list(range(len(h_in)))
         for i, h_i in enumerate(h_in):
             if Utils.isScalar(h_i) and type(h_i) is not np.ndarray:
                 # This gives you something over the unit cube.
@@ -410,11 +410,11 @@ class BaseTensorMesh(BaseMesh):
                 Eye = sp.eye(self.nC)
                 if projType == 'E':
                     P = sp.hstack([Zero, Eye, Zero])
-                    # print P.todense()
+                    # print(P.todense())
                 elif projType == 'F':
                     P = sp.vstack([sp.hstack([Eye, Zero, Zero]),
                                    sp.hstack([Zero, Zero, Eye])])
-                    # print P.todense()
+                    # print(P.todense())
             else:
                 P = sp.eye(self.nC*self.dim)
 
@@ -442,7 +442,8 @@ class BaseTensorMesh(BaseMesh):
             return None
 
 
-class TensorMesh(BaseTensorMesh, BaseRectangularMesh, TensorView, DiffOperators, InnerProducts, TensorMeshIO):
+class TensorMesh(BaseTensorMesh, BaseRectangularMesh, TensorView, DiffOperators,
+      InnerProducts, TensorMeshIO):
     """
     TensorMesh is a mesh class that deals with tensor product meshes.
 
@@ -471,8 +472,6 @@ class TensorMesh(BaseTensorMesh, BaseRectangularMesh, TensorView, DiffOperators,
         mesh = Mesh.TensorMesh([10, 12, 15])
 
     """
-
-    __metaclass__ = Utils.SimPEGMetaClass
 
     _meshType = 'TENSOR'
 

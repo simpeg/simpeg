@@ -28,6 +28,7 @@ def getAppResPhs(NSEMdata):
     return [appResPhs(zList[i][0],np.sum(zList[i][1:3])) for i in np.arange(len(zList))]
 
 def setup1DSurvey(sigmaHalf, tD=False, structure=False):
+
     from SimPEG import NSEM
     # Frequency
     nFreq = 33
@@ -69,7 +70,7 @@ def setup1DSurvey(sigmaHalf, tD=False, structure=False):
     return (survey, sigma, sigmaBack, m1d)
 
 
-def setupSimpegNSEM_ePrimSec(inputSetup,comp='Imp',singleFreq=False,expMap=True):
+def setupSimpegNSEM_ePrimSec(inputSetup, comp='Imp', singleFreq=False, expMap=True):
     from SimPEG import NSEM
 
     M,freqs,sig,sigBG,rx_loc = inputSetup

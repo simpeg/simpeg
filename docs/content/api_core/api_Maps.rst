@@ -141,7 +141,7 @@ Vertical 1D Map
 Map 2D Cross-Section to 3D Model
 --------------------------------
 
-.. autoclass:: SimPEG.Maps.Map2Dto3D
+.. autoclass:: SimPEG.Maps.Surject2Dto3D
     :members:
     :undoc-members:
 

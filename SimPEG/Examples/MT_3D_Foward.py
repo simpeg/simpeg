@@ -5,7 +5,7 @@ import SimPEG as simpeg
 from SimPEG import NSEM
 import numpy as np
 try:
-    from pymatsolver import MumpsSolver as Solver
+    from pymatsolver import PardisoSolver as Solver
 except:
     from SimPEG import Solver
 
@@ -51,6 +51,7 @@ def run(plotIt=True, nFreq=1):
 
     ## Setup the problem object
     problem = NSEM.Problem3D_ePrimSec(M, sigmaPrimary=sigBG)
+
     problem.pair(survey)
     problem.Solver = Solver
 
@@ -60,6 +61,7 @@ def run(plotIt=True, nFreq=1):
 
     # Make the data
     mtData = NSEM.Data(survey,dataVec)
+
     # Add plots
     if plotIt:
         pass

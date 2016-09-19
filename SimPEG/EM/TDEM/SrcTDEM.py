@@ -1,3 +1,4 @@
+from __future__ import division, print_function
 import SimPEG
 from SimPEG import np, Utils
 from SimPEG.Utils import Zero, Identity
@@ -26,7 +27,7 @@ class BaseWaveform(object):
         raise NotImplementedError
 
     def evalDeriv(self, time):
-        raise NotImplementedError # needed for E-formulation
+        raise NotImplementedError  # needed for E-formulation
 
 
 class StepOffWaveform(BaseWaveform):
@@ -46,7 +47,6 @@ class RawWaveform(BaseWaveform):
 
     def eval(self, time):
         return self.waveFct(time)
-        # raise NotImplementedError('RawWaveform has not been implemented, you should write it!')
 
 
 class TriangularWaveform(BaseWaveform):
@@ -58,12 +58,14 @@ class TriangularWaveform(BaseWaveform):
         raise NotImplementedError('TriangularWaveform has not been implemented, you should write it!')
 
 
-
 class BaseSrc(SimPEG.Survey.BaseSrc):
 
     # rxPair = Rx
     integrate = True
     waveformPair = BaseWaveform
+
+    def __init__(self, rxList, **kwargs):
+        Survey.BaseSrc.__init__(self, rxList, **kwargs)
 
     @property
     def waveform(self):
@@ -95,26 +97,28 @@ class BaseSrc(SimPEG.Survey.BaseSrc):
         return Zero()
 
     def eval(self, prob, time):
-        S_m = self.S_m(prob, time)
-        S_e = self.S_e(prob, time)
-        return S_m, S_e
+        s_m = self.s_m(prob, time)
+        s_e = self.s_e(prob, time)
+        return s_m, s_e
 
     def evalDeriv(self, prob, time, v=None, adjoint=False):
         if v is not None:
-            return self.S_mDeriv(prob, time, v, adjoint), self.S_eDeriv(prob, time, v, adjoint)
+            return (self.s_mDeriv(prob, time, v, adjoint),
+                    self.s_eDeriv(prob, time, v, adjoint))
         else:
-            return lambda v: self.S_mDeriv(prob, time, v, adjoint), lambda v: self.S_eDeriv(prob, time, v, adjoint)
+            return (lambda v: self.s_mDeriv(prob, time, v, adjoint),
+                    lambda v: self.s_eDeriv(prob, time, v, adjoint))
 
-    def S_m(self, prob, time):
+    def s_m(self, prob, time):
         return Zero()
 
-    def S_e(self, prob, time):
+    def s_e(self, prob, time):
         return Zero()
 
-    def S_mDeriv(self, prob, time, v=None, adjoint=False):
+    def s_mDeriv(self, prob, time, v=None, adjoint=False):
         return Zero()
 
-    def S_eDeriv(self, prob, time, v=None, adjoint=False):
+    def s_eDeriv(self, prob, time, v=None, adjoint=False):
         return Zero()
 
 
@@ -127,7 +131,10 @@ class MagDipole(BaseSrc):
     mu = mu_0
 
     def __init__(self, rxList, **kwargs):
-        assert self.orientation in ['X','Y','Z'], "Orientation (right now) doesn't actually do anything! The methods in SrcUtils should take care of this..."
+        assert(self.orientation in ['X', 'Y', 'Z']), (
+            "Orientation (right now) doesn't actually do anything! The methods"
+            " in SrcUtils should take care of this..."
+            )
         self.integrate = False
         BaseSrc.__init__(self, rxList, **kwargs)
 
@@ -144,11 +151,12 @@ class MagDipole(BaseSrc):
             gridZ = prob.mesh.gridFz
             C = prob.mesh.edgeCurl.T
 
-
         if prob.mesh._meshType is 'CYL':
             if not prob.mesh.isSymmetric:
-                raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
-            a = MagneticDipoleVectorPotential(self.loc, gridY, 'y', mu=self.mu, moment=self.moment)
+                raise NotImplementedError('Non-symmetric cyl mesh '
+                                          'not implemented yet!')
+            a = MagneticDipoleVectorPotential(self.loc, gridY, 'y', mu=self.mu,
+                                              moment=self.moment)
 
         else:
             srcfct = MagneticDipoleVectorPotential
@@ -158,7 +166,6 @@ class MagDipole(BaseSrc):
             a = np.concatenate((ax, ay, az))
 
         return C*a
-
 
     def bInitial(self, prob):
 
@@ -191,23 +198,22 @@ class MagDipole(BaseSrc):
         # MeSigmaIDeriv = prob.MeSigmaIDeriv
         # MfMui = prob.MfMui
         # C = prob.mesh.edgeCurl
-        # S_e = self.S_e(prob, prob.t0)
+        # s_e = self.s_e(prob, prob.t0)
 
-        # # S_e doesn't depend on the model
+        # # s_e doesn't depend on the model
 
         # if adjoint:
-        #     return MeSigmaIDeriv( -S_e + C.T * ( MfMui * b ) ).T * v
+        #     return MeSigmaIDeriv( -s_e + C.T * ( MfMui * b ) ).T * v
 
-        # return MeSigmaIDeriv( -S_e + C.T * ( MfMui * b ) ) * v
+        # return MeSigmaIDeriv( -s_e + C.T * ( MfMui * b ) ) * v
 
-
-    def S_m(self, prob, time):
+    def s_m(self, prob, time):
         if self.waveform.hasInitialFields is False:
             # raise NotImplementedError
             return Zero()
         return Zero()
 
-    def S_e(self, prob, time):
+    def s_e(self, prob, time):
         b = self._bfromVectorPotential(prob)
         MfMui = prob.MfMui
         C = prob.mesh.edgeCurl
@@ -220,7 +226,7 @@ class MagDipole(BaseSrc):
             if prob._fieldType == 'b':
                 return Zero()
             elif prob._fieldType == 'e':
-                # Compute S_e from vector potential
+                # Compute s_e from vector potential
                 return C.T * (MfMui * b)
         else:
             # b = self._bfromVectorPotential(prob)
@@ -237,7 +243,10 @@ class CircularLoop(MagDipole):
     mu = mu_0
 
     def __init__(self, rxList, **kwargs):
-        assert self.orientation in ['X','Y','Z'], "Orientation (right now) doesn't actually do anything! The methods in SrcUtils should take care of this..."
+        assert(self.orientation in ['X', 'Y', 'Z']), (
+            "Orientation (right now) doesn't actually do anything! The methods"
+            " in SrcUtils should take care of this..."
+            )
         self.integrate = False
         BaseSrc.__init__(self, rxList, **kwargs)
 
@@ -254,11 +263,12 @@ class CircularLoop(MagDipole):
             gridZ = prob.mesh.gridFz
             C = prob.mesh.edgeCurl.T
 
-
         if prob.mesh._meshType is 'CYL':
             if not prob.mesh.isSymmetric:
-                raise NotImplementedError('Non-symmetric cyl mesh not implemented yet!')
-            a = MagneticLoopVectorPotential(self.loc, gridY, 'y', radius=self.radius, mu=self.mu)
+                raise NotImplementedError('Non-symmetric cyl mesh not '
+                                          'implemented yet!')
+            a = MagneticLoopVectorPotential(self.loc, gridY, 'y',
+                                            radius=self.radius, mu=self.mu)
 
         else:
             srcfct = MagneticLoopVectorPotential

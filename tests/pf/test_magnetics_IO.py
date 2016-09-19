@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 from SimPEG import Mesh, np, PF
 from SimPEG.Utils import io_utils
@@ -22,19 +23,19 @@ class MagSensProblemTests(unittest.TestCase):
 
         driver = PF.MagneticsDriver.MagneticsDriver_Inv(inp_file)
 
-        print driver.mesh
-        print driver.survey
-        print driver.m0
-        print driver.mref
-        print driver.activeCells
-        print driver.staticCells
-        print driver.dynamicCells
-        print driver.chi
-        print driver.nC
-        print driver.alphas
-        print driver.bounds
-        print driver.lpnorms
-        print driver.eps
+        print(driver.mesh)
+        print(driver.survey)
+        print(driver.m0)
+        print(driver.mref)
+        print(driver.activeCells)
+        print(driver.staticCells)
+        print(driver.dynamicCells)
+        print(driver.chi)
+        print(driver.nC)
+        print(driver.alphas)
+        print(driver.bounds)
+        print(driver.lpnorms)
+        print(driver.eps)
 
         # Write obs to file
         PF.Magnetics.writeUBCobs(self.basePath + 'FWR_data.dat',
