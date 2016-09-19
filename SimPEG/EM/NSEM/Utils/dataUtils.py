@@ -216,7 +216,7 @@ def printTime():
     import time
     print time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.localtime())
 
-def convert3Dto1Dobject(NSEMdata,rxType3D='zyx'):
+def convert3Dto1Dobject(NSEMdata,rxType3D='yx'):
     from SimPEG import NSEM
     # Find the unique locations
     # Need to find the locations
@@ -236,15 +236,15 @@ def convert3Dto1Dobject(NSEMdata,rxType3D='zyx'):
 
     uniLocs = rec2ndarr(np.unique(recData[['x','y','z']]))
     mtData1DList = []
-    if 'zxy' in rxType3D:
+    if 'xy' in rxType3D:
         corr = -1 # Shift the data to comply with the quadtrature of the 1d problem
     else:
         corr = 1
     for loc in uniLocs:
         # Make the receiver list
         rx1DList = []
-        for rxType in ['z1dr','z1di']:
-            rx1DList.append(NSEM.Rx(simpeg.mkvc(loc,2).T,rxType))
+        rxList.append(NSEM.rxPoint_impedance1D(simpeg.mkvc(loc,2).T,'real'))
+        rxList.append(NSEM.rxPoint_impedance1D(simpeg.mkvc(loc,2).T,'imag'))
         # Source list
         locrecData = recData[np.sqrt(np.sum( (rec2ndarr(recData[['x','y','z']]) - loc )**2,axis=1)) < 1e-5]
         dat1DList = []

@@ -1,1 +1,1 @@
-from SimPEG.EM import NSEM
+from SimPEG.EM.NSEM import *
