@@ -1,4 +1,4 @@
-# Test functions
+from __future__ import division
 from glob import glob
 import numpy as np, sys, os, time, scipy, subprocess
 import SimPEG as simpeg
@@ -32,7 +32,7 @@ def appResPhsHalfspace_eFrom_ps_Norm(sigmaHalf,appR=True,expMap=False):
     if appR:
         return np.linalg.norm( np.abs(np.log10(app_rpxy[0]) - np.log10(1./sigmaHalf)) * np.log10(sigmaHalf ))
     else:
-        return np.linalg.norm( np.abs(app_rpxy[1] + 135) / 135 )
+        return np.linalg.norm( np.abs(app_rpxy[1] + 135.) / 135. )
 
 
 class TestAnalytics(unittest.TestCase):
