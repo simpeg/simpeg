@@ -1,15 +1,16 @@
-import unittest
-import sys
-from scipy.constants import mu_0
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+
+import numpy as np
 
 import SimPEG as simpeg
 from SimPEG.Utils import meshTensor
-from SimPEG import np
-from ..RxNSEM import rxPoint_impedance1D, rxPoint_impedance3D, rxPoint_tipper3D
+from SimPEG.EM.NSEM.RxNSEM import rxPoint_impedance1D, rxPoint_impedance3D, rxPoint_tipper3D
+from SimPEG.EM.NSEM.SurveyNSEM import Survey
+from SimPEG.EM.NSEM.SrcNSEM import polxy_1Dprimary, polxy_1DhomotD
+from SimPEG.EM.NSEM.ProblemNSEM import Problem3D_ePrimSec
 from .dataUtils import appResPhs
-from ..SurveyNSEM import Data, Survey
-from ..SrcNSEM import polxy_1Dprimary, polxy_1DhomotD
-from ..ProblemNSEM import Problem3D_ePrimSec
 
 np.random.seed(1100)
 # Define the tolerances
@@ -147,7 +148,7 @@ def getInputs():
     return M, freqs, rx_loc, elev
 
 def random(conds):
-    ''' Returns a halfspace model based on the inputs'''
+    ''' Returns a random model based on the inputs'''
     M, freqs, rx_loc, elev = getInputs()
 
     # Backround
@@ -174,7 +175,7 @@ def halfSpace(conds):
     return (M, freqs, sig, sigBG, rx_loc)
 
 def blockInhalfSpace(conds):
-    ''' Returns a halfspace model based on the inputs'''
+    ''' Returns a block in a halfspace model based on the inputs'''
     M, freqs, rx_loc, elev = getInputs()
 
     # Model

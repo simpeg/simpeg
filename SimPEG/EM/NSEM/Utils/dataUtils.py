@@ -1,15 +1,17 @@
 from __future__ import print_function
-# Utils used for the data,
-import matplotlib.pyplot as plt, sys
+from __future__ import absolute_import
+from __future__ import division
+
+import matplotlib.pyplot as plt
+import numpy as np
 import numpy.lib.recfunctions as recFunc
 from scipy.constants import mu_0
 from scipy import interpolate as sciint
 
 import SimPEG as simpeg
-from SimPEG import np
-from ..SurveyNSEM import Data, Survey
-from ..RxNSEM import rxPoint_impedance1D
-from ..SrcNSEM import polxy_1Dprimary
+from SimPEG.EM.NSEM.SurveyNSEM import Data , Survey
+from SimPEG.EM.NSEM.RxNSEM import rxPoint_impedance1D
+from SimPEG.EM.NSEM.SrcNSEM import polxy_1Dprimary
 
 
 def getAppRes(NSEMdata):
@@ -32,7 +34,7 @@ def rotateData(NSEMdata, rotAngle):
     Function that rotates clockwist by rotAngle (- negative for a counter-clockwise rotation)
     '''
     recData = NSEMdata.toRecArray('Complex')
-    impData = rec2ndarr(recData[['zxx','zxy','zyx','zyy']],complex)
+    impData = rec_to_ndarr(recData[['zxx','zxy','zyx','zyy']],complex)
     # Make the rotation matrix
     # c,s,zxx,zxy,zyx,zyy = sympy.symbols('c,s,zxx,zxy,zyx,zyy')
     # rotM = sympy.Matrix([[c,-s],[s, c]])
@@ -61,8 +63,11 @@ def skindepth(rho, freq):
     ''' Function to calculate the skindepth of EM waves'''
     return np.sqrt( (rho*((1/(freq * mu_0 * np.pi )))))
 
-def rec2ndarr(x, dt=float):
-    return x.view((dt, len(x.dtype.names)))
+def rec_to_ndarr(rec_arr, data_type=float):
+    """
+    Function to transform a numpy record array to a nd array.
+    """
+    return rec_arr.view((data_type, len(rec_arr.dtype.names)))
 
 def makeAnalyticSolution(mesh, model, elev, freqs):
 
@@ -131,7 +136,7 @@ def plotMT1DModelData(problem, models, symList=None):
         axM.semilogx(modelPts,meshPts,color=col)
 
         ## Data
-        loc = Utils.dataUtils.rec2ndarr(np.unique(data1D[['x','y']]))
+        loc = Utils.dataUtils.rec_to_ndarr(np.unique(data1D[['x','y']]))
         # Appres
         pDt.plotIsoStaImpedance(axR,loc,data1D,'zyx','res',pColor=col)
         # Appphs
@@ -169,9 +174,6 @@ def plotMT1DModelData(problem, models, symList=None):
 
 def plotImpAppRes(dataArrays, plotLoc, textStr=[]):
     ''' Plots amplitude impedance and phase'''
-    # fig = plt.figure(1,(7, 7))
-    import plotDataTypes as pDt
-    # axes = ImageGrid(fig, (0.05,0.05,0.875,0.875),nrows_ncols = (2, 2),axes_pad = 0.25,add_all=True,share_all=True,label_mode = "L")
     # Make the figure and axes
     fig,axT=plt.subplots(2,2,sharex=True)
     axes = axT.ravel()
@@ -244,7 +246,7 @@ def convert3Dto1Dobject(NSEMdata, rxType3D='yx'):
 
 
 
-    uniLocs = rec2ndarr(np.unique(recData[['x','y','z']]))
+    uniLocs = rec_to_ndarr(np.unique(recData[['x','y','z']]))
     mtData1DList = []
     if 'xy' in rxType3D:
         corr = -1 # Shift the data to comply with the quadtrature of the 1d problem
@@ -256,7 +258,7 @@ def convert3Dto1Dobject(NSEMdata, rxType3D='yx'):
         rx1DList.append(rxPoint_impedance1D(simpeg.mkvc(loc,2).T,'real'))
         rx1DList.append(rxPoint_impedance1D(simpeg.mkvc(loc,2).T,'imag'))
         # Source list
-        locrecData = recData[np.sqrt(np.sum( (rec2ndarr(recData[['x','y','z']]) - loc )**2,axis=1)) < 1e-5]
+        locrecData = recData[np.sqrt(np.sum( (rec_to_ndarr(recData[['x','y','z']]) - loc )**2,axis=1)) < 1e-5]
         dat1DList = []
         src1DList = []
         for freq in locrecData['freq']:
@@ -297,9 +299,9 @@ def resampleNSEMdataAtFreq(NSEMdata, freqs):
     # Loop over all the locations and interpolate
     for loc in uniLoc:
         # Find the index of the station
-        ind = np.sqrt(np.sum((rec2ndarr(NSEMrec[['x','y','z']]) - rec2ndarr(loc))**2,axis=1)) < 1. # Find dist of 1 m accuracy
+        ind = np.sqrt(np.sum((rec_to_ndarr(NSEMrec[['x','y','z']]) - rec_to_ndarr(loc))**2,axis=1)) < 1. # Find dist of 1 m accuracy
         # Make a temporary recArray and interpolate all the components
-        tArrRec = np.concatenate((simpeg.mkvc(freqs,2),np.ones((len(freqs),1))*rec2ndarr(loc),np.nan*np.ones((len(freqs),12))),axis=1).view(dNames)
+        tArrRec = np.concatenate((simpeg.mkvc(freqs,2),np.ones((len(freqs),1))*rec_to_ndarr(loc),np.nan*np.ones((len(freqs),12))),axis=1).view(dNames)
         for comp in ['zxxr','zxxi','zxyr','zxyi','zyxr','zyxi','zyyr','zyyi','tzxr','tzxi','tzyr','tzyi']:
             int1d = sciint.interp1d(NSEMrec[ind]['freq'],NSEMrec[ind][comp],bounds_error=False)
             tArrRec[comp] = simpeg.mkvc(int1d(freqs),2)

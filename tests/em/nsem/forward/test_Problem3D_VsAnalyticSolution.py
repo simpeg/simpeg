@@ -1,11 +1,13 @@
+from __future__ import print_function
+from __future__ import absolute_import
 from __future__ import division
-from glob import glob
-import numpy as np, sys, os, time, scipy, subprocess
-import SimPEG as simpeg
+
 import unittest
-from SimPEG.EM import NSEM
-from SimPEG.Utils import meshTensor
 from scipy.constants import mu_0
+
+import numpy as np
+from SimPEG.EM import NSEM
+
 
 np.random.seed(1100)
 
@@ -22,7 +24,7 @@ def appResPhsHalfspace_eFrom_ps_Norm(sigmaHalf,appR=True,expMap=False):
         label = 'resistivity'
     else:
         label = 'phase'
-    print 'Apperent {:s} test of eFormulation primary/secondary at {:g}\n\n'.format(label,sigmaHalf)
+    print('Apperent {:s} test of eFormulation primary/secondary at {:g}\n\n'.format(label,sigmaHalf))
 
     # Calculate the app  phs
     survey, problem = NSEM.Utils.testUtils.setupSimpegNSEM_ePrimSec(NSEM.Utils.testUtils.halfSpace(sigmaHalf),expMap=expMap)

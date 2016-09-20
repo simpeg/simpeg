@@ -1,8 +1,13 @@
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+
+from scipy.constants import mu_0
+from numpy.lib import recfunctions as recFunc
+
 from SimPEG import Utils, Problem, Maps, np, sp, mkvc
 from SimPEG.EM.FDEM.SrcFDEM import BaseSrc as FDEMBaseSrc
 from SimPEG.EM.Utils import omega
-from scipy.constants import mu_0
-from numpy.lib import recfunctions as recFunc
 from .Utils.sourceUtils import homo1DModelSource
 
 

@@ -1,10 +1,18 @@
-from SimPEG.EM.Utils.EMUtils import omega, mu_0
-from SimPEG import SolverLU as SimpegSolver, PropMaps, Utils, mkvc, sp, np
-from SimPEG.EM.FDEM.ProblemFDEM import BaseFDEMProblem
-from SurveyNSEM import Survey, Data
-from FieldsNSEM import BaseNSEMFields, Fields1D_ePrimSec, Fields1D_eTotal, Fields3D_ePrimSec
-from .Utils.MT1Danalytic import getEHfields
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+
 import time, sys
+import scipy.sparse as sp
+import numpy as np
+
+from SimPEG.EM.Utils.EMUtils import omega, mu_0
+from SimPEG import SolverLU as SimpegSolver, Utils, mkvc
+from ..FDEM.ProblemFDEM import BaseFDEMProblem
+from .SurveyNSEM import Survey, Data
+from .FieldsNSEM import BaseNSEMFields, Fields1D_ePrimSec, Fields1D_eTotal, Fields3D_ePrimSec
+from .Utils.MT1Danalytic import getEHfields
+
 
 class BaseNSEMProblem(BaseFDEMProblem):
     """
@@ -34,14 +42,15 @@ class BaseNSEMProblem(BaseFDEMProblem):
 
             :param numpy.ndarray m  - conductivity model (nP,)
             :param numpy.ndarray v  - vector which we take sensitivity product with (nP,)
-            :param SimPEG.EM.NSEM.FieldsNSEM (optional) u - NSEM fields object, if not given it is calculated
+            :param SimPEG.EM.NSEM.FieldsNSEM (optional) u - NSEM fields object, if not given
+                it is calculated
             :rtype: numpy.array:
             :return: Jv (nData,) Data sensitivities wrt m
         """
 
         # Calculate the fields if not given as input
         if f is None:
-           f= self.fields(m)
+           f = self.fields(m)
         # Set current model
         self.curModel = m
         # Initiate the Jv object
@@ -275,7 +284,7 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
         for freq in self.survey.freqs:
             if self.verbose:
                 startTime = time.time()
-                print 'Starting work for {:.3e}'.format(freq)
+                print('Starting work for {:.3e}'.format(freq))
                 sys.stdout.flush()
             A = self.getA(freq)
             rhs  = self.getRHS(freq)
@@ -288,7 +297,7 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
             F[Src, 'e_1dSolution'] = e_s
 
             if self.verbose:
-                print 'Ran for {:f} seconds'.format(time.time()-startTime)
+                print('Ran for {:f} seconds'.format(time.time()-startTime))
                 sys.stdout.flush()
         return F
 
@@ -417,7 +426,7 @@ class Problem1D_eTotal(BaseNSEMProblem):
         for freq in self.survey.freqs:
             if self.verbose:
                 startTime = time.time()
-                print 'Starting work for {:.3e}'.format(freq)
+                print('Starting work for {:.3e}'.format(freq))
                 sys.stdout.flush()
             A = self.getA(freq)
             rhs, e_o = self.getRHS(freq)
@@ -429,7 +438,7 @@ class Problem1D_eTotal(BaseNSEMProblem):
             # NOTE: only store e fields
             F[Src, 'e_1dSolution'] = e[:,0]
             if self.verbose:
-                print 'Ran for {:f} seconds'.format(time.time()-startTime)
+                print('Ran for {:f} seconds'.format(time.time()-startTime))
                 sys.stdout.flush()
         return F
 
@@ -566,7 +575,7 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
         for freq in self.survey.freqs:
             if self.verbose:
                 startTime = time.time()
-                print 'Starting work for {:.3e}'.format(freq)
+                print('Starting work for {:.3e}'.format(freq))
                 sys.stdout.flush()
             A = self.getA(freq)
             rhs  = self.getRHS(freq)
@@ -583,7 +592,7 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
             # Note curl e = -iwb so b = -curl/iw
 
             if self.verbose:
-                print 'Ran for {:f} seconds'.format(time.time()-startTime)
+                print('Ran for {:f} seconds'.format(time.time()-startTime))
                 sys.stdout.flush()
             Ainv.clean()
         return F

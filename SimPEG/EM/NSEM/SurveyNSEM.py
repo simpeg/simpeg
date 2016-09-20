@@ -1,12 +1,15 @@
 from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+
 import sys
-from scipy.constants import mu_0
 import numpy as np
 from numpy.lib import recfunctions as recFunc
 
-from SimPEG import Survey as SimPEGsurvey, Utils, mkvc
+from SimPEG import Survey as SimPEGsurvey, mkvc
 from .RxNSEM import rxPoint_impedance3D, rxPoint_tipper3D
-from . import SrcNSEM
+from .SrcNSEM import BaseNSEMSrc, polxy_1Dprimary, polxy_1DhomotD
+# from .Utils.dataUtils import rec_to_ndarr
 
 #################
 ###  Survey   ###
@@ -18,7 +21,7 @@ class Survey(SimPEGsurvey.BaseSurvey):
         :param list srcList: List of sources associated with the survey
 
     """
-    srcPair = SrcNSEM.BaseNSEMSrc
+    srcPair = BaseNSEMSrc
 
     def __init__(self, srcList, **kwargs):
         # Sort these by frequency
@@ -78,16 +81,13 @@ class Data(SimPEGsurvey.Data):
         # Pass the variables to the "parent" method
         SimPEGsurvey.Data.__init__(self, survey, v)
 
-    # # Import data
-    # @classmethod
-    # def fromEDIFiles():
-    #     pass
 
     def toRecArray(self,returnType='RealImag'):
         '''
         Function that returns a numpy.recarray for a SimpegNSEM impedance data object.
 
-        :param str returnType: Switches between returning a rec array where the impedance is split to real and imaginary ('RealImag') or is a complex ('Complex')
+        :param str returnType: Switches between returning a rec array where the impedance
+            is split to real and imaginary ('RealImag') or is a complex ('Complex')
 
         '''
 
@@ -114,17 +114,15 @@ class Data(SimPEGsurvey.Data):
                 key = 'z' + k + c[0]
                 tArrRec[key] = mkvc(val,2)
             # Masked array
-            mArrRec = np.ma.MaskedArray(Utils.rec2ndarr(tArrRec),mask=np.isnan(Utils.rec2ndarr(tArrRec))).view(dtype=tArrRec.dtype)
-            # Unique freq and loc of the masked array
-            uniFLmarr = np.unique(mArrRec[['freq','x','y','z']]).copy()
+            mArrRec = np.ma.MaskedArray(_rec_to_ndarr(tArrRec),mask=np.isnan(_rec_to_ndarr(tArrRec))).view(dtype=tArrRec.dtype)
 
             try:
                 outTemp = recFunc.stack_arrays((outTemp,mArrRec))
             except NameError:
-                outTemp = mArrRec
+                outTemp = mArrRec.copy()
 
             if 'RealImag' in returnType:
-                outArr = outTemp
+                outArr = outTemp.copy()
             elif 'Complex' in returnType:
                 # Add the real and imaginary to a complex number
                 outArr = np.empty(outTemp.shape,dtype=dtCP)
@@ -147,14 +145,14 @@ class Data(SimPEGsurvey.Data):
 
         """
         if srcType=='primary':
-            src = SrcNSEM.polxy_1Dprimary
+            src = polxy_1Dprimary
         elif srcType=='total':
-            src = SrcNSEM.polxy_1DhomotD
+            src = polxy_1DhomotD
         else:
             raise NotImplementedError('{:s} is not a valid source type for NSEMdata')
 
         # Find all the frequencies in recArray
-        uniFreq = np.unique(recArray['freq'])
+        uniFreq = np.unique(recArray['freq'].copy())
         srcList = []
         dataList = []
         for freq in uniFreq:
@@ -166,9 +164,9 @@ class Data(SimPEGsurvey.Data):
             rxTypes = [ comp for comp in recArray.dtype.names if (len(comp)==4 or len(comp)==3) and 'z' in comp]
             for rxType in rxTypes:
                 # Find index of not nan values in rxType
-                notNaNind = ~np.isnan(dFreq[rxType])
+                notNaNind = ~np.isnan(dFreq[rxType].copy())
                 if np.any(notNaNind): # Make sure that there is any data to add.
-                    locs = Utils.rec2ndarr(dFreq[['x','y','z']][notNaNind].copy())
+                    locs = _rec_to_ndarr(dFreq[['x','y','z']][notNaNind].copy())
                     if dFreq[rxType].dtype.name in 'complex128':
                         if 'z' in rxType:
                             rxList.append(rxPoint_impedance3D(locs,rxType[1:-1],'real'))
@@ -194,5 +192,10 @@ class Data(SimPEGsurvey.Data):
         # Make a survey
         survey = Survey(srcList)
         dataVec = np.hstack(dataList)
-        return cls(survey,dataVec)
+        return cls(survey, dataVec)
 
+def _rec_to_ndarr(rec_arr, data_type=float):
+    """
+    Function to transform a numpy record array to a nd array.
+    """
+    return rec_arr.view((data_type, len(rec_arr.dtype.names)))

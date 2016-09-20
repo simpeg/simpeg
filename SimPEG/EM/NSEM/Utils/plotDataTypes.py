@@ -1,9 +1,10 @@
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+
 from matplotlib import pyplot as plt, colors, numpy as np
 
-
-def rec2nd(structArray):
-    """ Converts a structured/record array to ndarray to do operations on."""
-    return structArray.view((np.float,len(structArray.dtype.names)))
+from . import rec_to_ndarr
 
 def plotIsoFreqNSimpedance(ax,freq,array,flag,par='abs',colorbar=True,colorNorm='SymLog',cLevel=True,contour=True):
 
@@ -179,7 +180,7 @@ def plotIsoStaImpedance(ax ,loc ,array, flag, par='abs',
 
     appResFact = 1/(8*np.pi**2*10**(-7))
     treshold = 1.0 # 1 meter
-    indUniSta = np.sqrt(np.sum((rec2nd(array[['x','y']])-loc)**2,axis=1)) < treshold
+    indUniSta = np.sqrt(np.sum((rec_to_ndarr(array[['x','y']])-loc)**2,axis=1)) < treshold
     freq = array['freq'][indUniSta]
 
     if par == 'abs':

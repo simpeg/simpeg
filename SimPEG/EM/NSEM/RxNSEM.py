@@ -1,6 +1,15 @@
+""" Module RxNSEM.py
+
+Receivers for the NSEM problem
+
+"""
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+
 import SimPEG
 from SimPEG import mkvc
-from SimPEG.EM.Utils.EMUtils import mu_0
+from ...EM.Utils.EMUtils import mu_0
 
 class rxPoint_NSEM(SimPEG.Survey.BaseRx):
     """

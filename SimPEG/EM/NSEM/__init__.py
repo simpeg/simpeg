@@ -1,3 +1,13 @@
+""" module SimPEG.EM.NSEM
+
+SimPEG implementation of the natural source problem
+(including magenetotelluric, tipper and ZTEM)
+
+
+
+"""
+from __future__ import absolute_import
+
 import SimPEG.EM.NSEM.Utils
 import SimPEG.EM.NSEM.SrcNSEM
 from .SurveyNSEM import Survey, Data
