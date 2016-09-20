@@ -70,15 +70,15 @@ class NSEM_DerivTests(unittest.TestCase):
         pass
 
     # Do a derivative test of Jvec
-    # def test_derivJvec_zxxr(self):self.assertTrue(DerivJvecTest(random(1e-2),'zxxr',.1))
-    # def test_derivJvec_zxxi(self):self.assertTrue(DerivJvecTest(random(1e-2),'zxxi',.1))
-    # def test_derivJvec_zxyr(self):self.assertTrue(DerivJvecTest(random(1e-2),'zxyr',.1))
-    # def test_derivJvec_zxyi(self):self.assertTrue(DerivJvecTest(random(1e-2),'zxyi',.1))
-    # def test_derivJvec_zyxr(self):self.assertTrue(DerivJvecTest(random(1e-2),'zyxr',.1))
-    # def test_derivJvec_zyxi(self):self.assertTrue(DerivJvecTest(random(1e-2),'zyxi',.1))
-    # def test_derivJvec_zyyr(self):self.assertTrue(DerivJvecTest(random(1e-2),'zyyr',.1))
-    # def test_derivJvec_zyyi(self):self.assertTrue(DerivJvecTest(random(1e-2),'zyyi',.1))
-    def test_derivJvec_All(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.random(1e-2),'All',.1))
+    def test_derivJvec_zxxr(self):self.assertTrue(DerivJvecTest(half(1e-2),'zxxr',.1))
+    def test_derivJvec_zxxi(self):self.assertTrue(DerivJvecTest(half(1e-2),'zxxi',.1))
+    def test_derivJvec_zxyr(self):self.assertTrue(DerivJvecTest(half(1e-2),'zxyr',.1))
+    def test_derivJvec_zxyi(self):self.assertTrue(DerivJvecTest(half(1e-2),'zxyi',.1))
+    def test_derivJvec_zyxr(self):self.assertTrue(DerivJvecTest(half(1e-2),'zyxr',.1))
+    def test_derivJvec_zyxi(self):self.assertTrue(DerivJvecTest(half(1e-2),'zyxi',.1))
+    def test_derivJvec_zyyr(self):self.assertTrue(DerivJvecTest(half(1e-2),'zyyr',.1))
+    def test_derivJvec_zyyi(self):self.assertTrue(DerivJvecTest(half(1e-2),'zyyi',.1))
+    # def test_derivJvec_All(self):self.assertTrue(DerivJvecTest(NSEM.Utils.testUtils.random(1e-2),'All',.1))
 
 if __name__ == '__main__':
     unittest.main()

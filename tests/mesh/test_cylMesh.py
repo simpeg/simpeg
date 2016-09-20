@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 import sys
 import numpy as np
@@ -340,9 +341,9 @@ class TestEdgeCurl2D(Tests.OrderTest):
         # fZ = 0
         # fT = sympy.sin(2.*sympy.pi*z)
 
-        # print 1/r*sympy.diff(fZ,t) - sympy.diff(fT,z)
-        # print sympy.diff(fR,z) - sympy.diff(fZ,r)
-        # print 1/r*(sympy.diff(r*fT,r) - sympy.diff(fR,t))
+        # print(1/r*sympy.diff(fZ,t) - sympy.diff(fT,z))
+        # print(sympy.diff(fR,z) - sympy.diff(fZ,r))
+        # print(1/r*(sympy.diff(r*fT,r) - sympy.diff(fR,t)))
 
         funT = lambda r, t, z: np.sin(2.*np.pi*z)
 
@@ -392,8 +393,8 @@ class TestCellGrad2D_Dirichlet(unittest.TestCase):
     #     self.orderTest()
 
     def setUp(self):
-        hx = np.random.rand(10.)
-        hz = np.random.rand(10.)
+        hx = np.random.rand(10)
+        hz = np.random.rand(10)
         self.mesh = Mesh.CylMesh([hx, 1,hz])
 
     def test_NotImplementedError(self):
@@ -404,8 +405,8 @@ class TestCellGrad2D_Dirichlet(unittest.TestCase):
 class TestAveragingSimple(unittest.TestCase):
 
     def setUp(self):
-        hx = np.random.rand(10.)
-        hz = np.random.rand(10.)
+        hx = np.random.rand(10)
+        hz = np.random.rand(10)
         self.mesh = Mesh.CylMesh([hx, 1,hz])
 
     def test_constantEdges(self):
@@ -555,7 +556,7 @@ class TestInnerProducts2D(Tests.OrderTest):
 #             F = np.r_[Fr,Fz]
 #             numeric = F.T.dot(A.dot(F))
 
-#         print numeric
+#         print(numeric)
 #         err = np.abs(numeric - analytic)
 #         return err
 

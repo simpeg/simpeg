@@ -1,3 +1,4 @@
+from __future__ import division
 from SimPEG import Survey, Utils, Problem, np, sp, mkvc
 from scipy.constants import mu_0
 import sys
@@ -312,7 +313,7 @@ class Fields3D_ePrimSec(BaseNSEMFields):
             # adjoint: returns a 2*nE long vector with zero's for py
             return np.vstack((v,np.zeros_like(v)))
         # Not adjoint: return only the px part of the vector
-        return v[:len(v)/2]
+        return v[:len(v)//2]
 
     def _e_pyDeriv_u(self, src, v, adjoint = False):
         '''
@@ -322,7 +323,7 @@ class Fields3D_ePrimSec(BaseNSEMFields):
             # adjoint: returns a 2*nE long vector with zero's for px
             return np.vstack((np.zeros_like(v),v))
         # Not adjoint: return only the px part of the vector
-        return v[len(v)/2::]
+        return v[len(v)//2::]
 
     def _e_pxDeriv_m(self, src, v, adjoint = False):
         # assuming primary does not depend on the model

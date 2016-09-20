@@ -1,6 +1,13 @@
+from __future__ import print_function
 import unittest
 from SimPEG import Mesh, Problem, Fields, Survey, Utils
 import numpy as np
+import sys
+
+if sys.version_info < (3,):
+  zero_types = [0, 0.0, np.r_[0], long(0),]
+else:
+  zero_types = [0, 0.0, np.r_[0],]
 
 
 class FieldsTest(unittest.TestCase):
@@ -63,11 +70,12 @@ class FieldsTest(unittest.TestCase):
         self.assertTrue(np.all(F[:, 'e'] == e))
         self.assertTrue(np.all(F[:, 'b'] == b))
 
-        for s in [0, 0.0, np.r_[0], long(0)]:
+        for s in zero_types:
             F[:, 'b'] = s
             self.assertTrue(np.all(F[:, 'b'] == b*0))
 
         b = np.random.rand(F.mesh.nF, 1)
+        print(type(self.Src0),'here')
         F[self.Src0, 'b'] = b
         self.assertTrue(np.all(F[self.Src0, 'b'] == b))
 
@@ -241,7 +249,7 @@ class FieldsTest_Time(unittest.TestCase):
         self.assertTrue(np.all(F[:, 'e'] == e))
         self.assertTrue(np.all(F[:, 'b'] == b))
 
-        for s in [0, 0.0, np.r_[0], long(0)]:
+        for s in zero_types:
             F[:, 'b'] = s
             self.assertTrue(np.all(F[:, 'b'] == b*0))
 
@@ -347,7 +355,7 @@ class FieldsTest_Time_Aliased(unittest.TestCase):
         F[:, 'b', :] = b
         self.assertTrue(np.all(F[:, 'e', 0] == F.mesh.edgeCurl.T * b[:, :, 0]))
 
-        e = range(nT)
+        e = list(range(nT))
         for i in range(nT):
             e[i] = F.mesh.edgeCurl.T*b[:, :, i] + i
             e[i] = e[i][:, :, np.newaxis]

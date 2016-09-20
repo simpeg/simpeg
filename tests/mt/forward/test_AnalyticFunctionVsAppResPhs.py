@@ -1,7 +1,9 @@
+from __future__ import print_function
 import unittest
 from SimPEG import NSEM
-import numpy as np
 from SimPEG import Mesh
+from SimPEG import np
+
 
 TOL = 1e-6
 
