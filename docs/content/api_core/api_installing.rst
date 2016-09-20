@@ -22,9 +22,10 @@ it is best to use a package manager such as
 You can download the package manager and use it to install the dependencies above.
 
 .. note::
-    When using Continuum Anaconda, make sure to run
-    ``conda update conda
-      conda update anaconda``
+    When using Continuum Anaconda, make sure to run::
+
+        conda update conda
+        conda update anaconda
 
 
 Installing SimPEG
