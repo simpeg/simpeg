@@ -11,7 +11,7 @@ def getEHfields(m1d,sigma,freq,zd,scaleUD=True,scaleValue=1):
     :param numpy.array, vector sigma: Physical property of conductivity corresponding with the mesh.
     :param float, freq: Frequency to calculate data at.
     :param numpy array, vector zd: location to calculate EH fields at
-    :param boolean, scaleUD: scales the output to be scaleV at the top, increases numeracal stability.
+    :param boolean, scaleUD: scales the output to be scaleValue at the top, increases numerical stability.
 
     Assumes a halfspace with the same conductive as the deepest cell.
 

@@ -1,3 +1,7 @@
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+
 # Test functions
 from glob import glob
 import numpy as np, sys, os, time, scipy, subprocess
@@ -22,8 +26,8 @@ addrandoms = True
 def DerivJvecTest(inputSetup,comp='All',freq=False,expMap=True):
     (M, freqs, sig, sigBG, rx_loc) = inputSetup
     survey, problem = NSEM.Utils.testUtils.setupSimpegNSEM_ePrimSec(inputSetup,comp=comp,singleFreq=freq,expMap=expMap)
-    print 'Using {0} solver for the problem'.format(problem.Solver)
-    print 'Derivative test of Jvec for eForm primary/secondary for {:s} comp at {:s}\n'.format(comp,survey.freqs)
+    print('Using {0} solver for the problem'.format(problem.Solver))
+    print('Derivative test of Jvec for eForm primary/secondary for {:s} comp at {:s}\n'.format(comp,survey.freqs))
     # problem.mapping = simpeg.Maps.ExpMap(problem.mesh)
     # problem.sigmaPrimary = np.log(sigBG)
     x0 = np.log(sigBG)

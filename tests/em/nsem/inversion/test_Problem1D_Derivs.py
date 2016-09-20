@@ -1,4 +1,7 @@
-# Test functions
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+
 from glob import glob
 import numpy as np, sys, os, time, scipy, subprocess
 import SimPEG as simpeg
@@ -24,8 +27,8 @@ def DerivJvecTest(halfspace_value, freq=False, expMap=True):
     survey, sig, sigBG, mesh = NSEM.Utils.testUtils.setup1DSurvey(halfspace_value,False,structure=True)
     problem = NSEM.Problem1D_ePrimSec(mesh, sigmaPrimary = sigBG)
     problem.pair(survey)
-    print 'Using {0} solver for the problem'.format(problem.Solver)
-    print 'Derivative test of Jvec for eForm primary/secondary for 1d comp from {0} to {1} Hz\n'.format(survey.freqs[0],survey.freqs[-1])
+    print('Using {0} solver for the problem'.format(problem.Solver))
+    print('Derivative test of Jvec for eForm primary/secondary for 1d comp from {0} to {1} Hz\n'.format(survey.freqs[0],survey.freqs[-1]))
     # problem.mapping = simpeg.Maps.ExpMap(problem.mesh)
     # problem.sigmaPrimary = np.log(sigBG)
 

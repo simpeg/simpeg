@@ -1,27 +1,24 @@
-# Test functions
-from glob import glob
-import numpy as np, sys, os, time, scipy, subprocess
-import SimPEG as simpeg
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+
+import numpy as np
 import unittest
-from SimPEG.EM import NSEM
-from SimPEG.Utils import meshTensor
 from scipy.constants import mu_0
 
+from SimPEG.EM import NSEM
 
-TOLr = 5e-2
+
 TOL = 1e-4
 FLR = 1e-20 # "zero", so if residual below this --> pass regardless of order
 CONDUCTIVITY = 1e1
 MU = mu_0
-freq = [1e-1, 2e-1]
-addrandoms = True
 
 
-
-def JvecAdjointTest(sigmaHalf,formulation='PrimSec'):
+def JvecAdjointTest(sigmaHalf, formulation='PrimSec'):
     forType = 'PrimSec' not in formulation
     survey, sigma, sigBG, m1d = NSEM.Utils.testUtils.setup1DSurvey(sigmaHalf,tD=forType,structure=False)
-    print 'Adjoint test of e formulation for {:s} comp \n'.format(formulation)
+    print('Adjoint test of e formulation for {:s} comp \n'.format(formulation))
 
     if 'PrimSec' in formulation:
         problem = NSEM.Problem1D_ePrimSec(m1d, sigmaPrimary = sigBG)
@@ -39,8 +36,8 @@ def JvecAdjointTest(sigmaHalf,formulation='PrimSec'):
     vJw = v.ravel().dot(problem.Jvec(m, w, u))
     wJtv = w.ravel().dot(problem.Jtvec(m, v, u))
     tol = np.max([TOL*(10**int(np.log10(np.abs(vJw)))),FLR])
-    print ' vJw   wJtv  vJw - wJtv     tol    abs(vJw - wJtv) < tol'
-    print vJw, wJtv, vJw - wJtv, tol, np.abs(vJw - wJtv) < tol
+    print(' vJw   wJtv  vJw - wJtv     tol    abs(vJw - wJtv) < tol')
+    print(vJw, wJtv, vJw - wJtv, tol, np.abs(vJw - wJtv) < tol)
     return np.abs(vJw - wJtv) < tol
 
 

@@ -19,8 +19,8 @@ addrandoms = True
 def JvecAdjointTest(inputSetup,comp='All',freq=False):
     (M, freqs, sig, sigBG, rx_loc) = inputSetup
     survey, problem = NSEM.Utils.testUtils.setupSimpegNSEM_ePrimSec(inputSetup,comp=comp,singleFreq=freq)
-    print 'Using {0} solver for the problem'.format(problem.Solver)
-    print 'Adjoint test of eForm primary/secondary for {:s} comp at {:s}\n'.format(comp,str(survey.freqs))
+    print('Using {0} solver for the problem'.format(problem.Solver))
+    print('Adjoint test of eForm primary/secondary for {:s} comp at {:s}\n'.format(comp,str(survey.freqs)))
 
     m  = sig
     u = problem.fields(m)
