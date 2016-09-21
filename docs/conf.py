@@ -74,7 +74,11 @@ release = '0.2.1'
 # directories to ignore when looking for source files.
 exclude_patterns = ['_build']
 
-linkcheck_ignore = ['http://math.lanl.gov/~mac/papers/numerics/HS99B.pdf']
+linkcheck_ignore = [
+    'http://math.lanl.gov/~mac/papers/numerics/HS99B.pdf',
+    'http://wiki.python.org/moin/NumericAndScientific',
+    'http://wiki.python.org/moin/PythonEditors'
+                   ]
 
 # The reST default role (used for this markup: `text`) to use for all documents.
 #default_role = None
@@ -269,7 +273,7 @@ def supress_nonlocal_image_warn():
     import sphinx.environment
     sphinx.environment.BuildEnvironment.warn_node = _supress_nonlocal_image_warn
 
-def _supress_nonlocal_image_warn(self, msg, node):
+def _supress_nonlocal_image_warn(self, msg, node, **kwargs):
     from docutils.utils import get_source_line
 
     if not msg.startswith('nonlocal image URI found:'):
