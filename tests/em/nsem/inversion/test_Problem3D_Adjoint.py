@@ -1,4 +1,7 @@
-# Test functions
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+
 import numpy as np
 import SimPEG as simpeg
 import unittest
@@ -32,8 +35,8 @@ def JvecAdjointTest(inputSetup,comp='All',freq=False):
     vJw = v.ravel().dot(problem.Jvec(m, w, u))
     wJtv = w.ravel().dot(problem.Jtvec(m, v, u))
     tol = np.max([TOL*(10**int(np.log10(np.abs(vJw)))),FLR])
-    print ' vJw   wJtv  vJw - wJtv     tol    abs(vJw - wJtv) < tol'
-    print vJw, wJtv, vJw - wJtv, tol, np.abs(vJw - wJtv) < tol
+    print(' vJw   wJtv  vJw - wJtv     tol    abs(vJw - wJtv) < tol')
+    print(vJw, wJtv, vJw - wJtv, tol, np.abs(vJw - wJtv) < tol)
     return np.abs(vJw - wJtv) < tol
 
 
