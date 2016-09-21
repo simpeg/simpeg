@@ -10,8 +10,6 @@
 DC Analytic Dipole
 ==================
 
-Analytic Dipole example
-
 
 .. plot::
     from SimPEG import Examples
