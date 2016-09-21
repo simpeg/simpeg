@@ -77,7 +77,8 @@ exclude_patterns = ['_build']
 linkcheck_ignore = [
     'http://math.lanl.gov/~mac/papers/numerics/HS99B.pdf',
     'http://wiki.python.org/moin/NumericAndScientific',
-    'http://wiki.python.org/moin/PythonEditors'
+    'http://wiki.python.org/moin/PythonEditors',
+    'http://docs.scipy.org/doc/numpy/reference/generated/numpy.array.html#numpy.array'
                    ]
 
 # The reST default role (used for this markup: `text`) to use for all documents.
