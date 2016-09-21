@@ -74,7 +74,10 @@ release = '0.2.1'
 # directories to ignore when looking for source files.
 exclude_patterns = ['_build']
 
-linkcheck_ignore = ['http://math.lanl.gov/~mac/papers/numerics/HS99B.pdf']
+linkcheck_ignore = [
+    'http://math.lanl.gov/~mac/papers/numerics/HS99B.pdf',
+    'http://wiki.python.org/moin/NumericAndScientific',
+                   ]
 
 # The reST default role (used for this markup: `text`) to use for all documents.
 #default_role = None
