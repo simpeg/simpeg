@@ -8,8 +8,11 @@ from SimPEG import Mesh
 # Tolerance
 TOL = 1e-14
 
+np.random.seed(4)
+
 # TODO: 'randomTensorMesh'
-MESHTYPES = ['uniformTensorMesh', 'uniformCurv', 'rotateCurv']
+MESHTYPES = ['uniformTensorMesh', 'randomTensorMesh', 'uniformCurv',
+             'rotateCurv']
 call2 = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1])
 call3 = lambda fun, xyz: fun(xyz[:, 0], xyz[:, 1], xyz[:, 2])
 cart_row2 = lambda g, xfun, yfun: np.c_[call2(xfun, g), call2(yfun, g)]
