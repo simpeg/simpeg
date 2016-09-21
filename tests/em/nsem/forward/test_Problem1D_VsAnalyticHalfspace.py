@@ -1,6 +1,6 @@
 import unittest
 import SimPEG as simpeg
-from SimPEG import NSEM
+from SimPEG.EM import NSEM
 from SimPEG.Utils import meshTensor
 import numpy as np
 # Define the tolerances
@@ -12,7 +12,7 @@ TOLp = 5e-1
 def appRes_TotalFieldNorm(sigmaHalf):
 
     # Make the survey
-    survey, sigma, mesh = NSEM.Utils.testUtils.setup1DSurvey(sigmaHalf)
+    survey, sigma, sigBG, mesh = NSEM.Utils.testUtils.setup1DSurvey(sigmaHalf,True)
     problem = NSEM.Problem1D_eTotal(mesh)
     problem.pair(survey)
 
@@ -30,7 +30,7 @@ def appRes_TotalFieldNorm(sigmaHalf):
 def appPhs_TotalFieldNorm(sigmaHalf):
 
     # Make the survey
-    survey, sigma, mesh = NSEM.Utils.testUtils.setup1DSurvey(sigmaHalf)
+    survey, sigma, sigBG, mesh = NSEM.Utils.testUtils.setup1DSurvey(sigmaHalf,True)
     problem = NSEM.Problem1D_eTotal(mesh)
     problem.pair(survey)
 
@@ -48,8 +48,8 @@ def appPhs_TotalFieldNorm(sigmaHalf):
 def appRes_psFieldNorm(sigmaHalf):
 
     # Make the survey
-    survey, sigma, mesh = NSEM.Utils.testUtils.setup1DSurvey(sigmaHalf,False)
-    problem = NSEM.Problem1D_ePrimSec(mesh, sigmaPrimary = sigma)
+    survey, sigma, sigBG, mesh = NSEM.Utils.testUtils.setup1DSurvey(sigmaHalf,False)
+    problem = NSEM.Problem1D_ePrimSec(mesh, sigmaPrimary = sigBG)
     problem.pair(survey)
 
     # Get the fields
@@ -66,8 +66,8 @@ def appRes_psFieldNorm(sigmaHalf):
 def appPhs_psFieldNorm(sigmaHalf):
 
     # Make the survey
-    survey, sigma, mesh = NSEM.Utils.testUtils.setup1DSurvey(sigmaHalf,False)
-    problem = NSEM.Problem1D_ePrimSec(mesh, sigmaPrimary = sigma)
+    survey, sigma, sigBG, mesh = NSEM.Utils.testUtils.setup1DSurvey(sigmaHalf,False)
+    problem = NSEM.Problem1D_ePrimSec(mesh, sigmaPrimary = sigBG)
     problem.pair(survey)
 
     # Get the fields

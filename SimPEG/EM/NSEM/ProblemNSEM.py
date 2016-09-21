@@ -1,10 +1,19 @@
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+
+import time
+import sys
+import scipy.sparse as sp
+import numpy as np
+
 from SimPEG.EM.Utils.EMUtils import omega, mu_0
-from SimPEG import SolverLU as SimpegSolver, PropMaps, Utils, mkvc, sp, np
-from SimPEG.EM.FDEM.ProblemFDEM import BaseFDEMProblem
-from SurveyNSEM import Survey, Data
-from FieldsNSEM import BaseNSEMFields, Fields1D_ePrimSec, Fields3D_ePrimSec
-from SimPEG.NSEM.Utils.MT1Danalytic import getEHfields
-import time, sys
+from SimPEG import SolverLU as SimpegSolver, Utils, mkvc
+from ..FDEM.ProblemFDEM import BaseFDEMProblem
+from .SurveyNSEM import Survey, Data
+from .FieldsNSEM import BaseNSEMFields, Fields1D_ePrimSec, Fields1D_eTotal, Fields3D_ePrimSec
+from .Utils.MT1Danalytic import getEHfields
+
 
 class BaseNSEMProblem(BaseFDEMProblem):
     """
@@ -25,24 +34,24 @@ class BaseNSEMProblem(BaseFDEMProblem):
 
     verbose = False
     # Notes:
-    # Use the forward and devs from BaseFDEMProblem
-    # Might need to add more stuff here.
+    # Use the fields and devs methods from BaseFDEMProblem
 
     ## NEED to clean up the Jvec and Jtvec to use Zero and Identities for None components.
     def Jvec(self, m, v, f=None):
         """
         Function to calculate the data sensitivities dD/dm times a vector.
 
-            :param numpy.ndarray m (nC, 1) - conductive model
-            :param numpy.ndarray v (nC, 1) - random vector
-            :param NSEMfields object (optional) - NSEM fields object, if not given it is calculated
-            :rtype: NSEMdata object
-            :return: Data sensitivities wrt m
+            :param numpy.ndarray m  - conductivity model (nP,)
+            :param numpy.ndarray v  - vector which we take sensitivity product with (nP,)
+            :param SimPEG.EM.NSEM.FieldsNSEM (optional) u - NSEM fields object, if not given
+                it is calculated
+            :rtype: numpy.array:
+            :return: Jv (nData,) Data sensitivities wrt m
         """
 
-        # Calculate the fields
+        # Calculate the fields if not given as input
         if f is None:
-           f= self.fields(m)
+           f = self.fields(m)
         # Set current model
         self.curModel = m
         # Initiate the Jv object
@@ -50,29 +59,27 @@ class BaseNSEMProblem(BaseFDEMProblem):
 
         # Loop all the frequenies
         for freq in self.survey.freqs:
-            dA_du = self.getA(freq) #
-
-            dA_duI = self.Solver(dA_du, **self.solverOpts)
+            # Get the system
+            A = self.getA(freq)
+            # Factor
+            Ainv = self.Solver(A, **self.solverOpts)
 
             for src in self.survey.getSrcByFreq(freq):
                 # We need fDeriv_m = df/du*du/dm + df/dm
                 # Construct du/dm, it requires a solve
                 # NOTE: need to account for the 2 polarizations in the derivatives.
                 u_src = f[src,:] # u should be a vector by definition. Need to fix this...
-                # dA_dm and dRHS_dm should be of size nE,2, so that we can multiply by dA_duI. The 2 columns are each of the polarizations.
-                dA_dm = self.getADeriv_m(freq, u_src, v) # Size: nE,2 (u_px,u_py) in the columns.
-                dRHS_dm = self.getRHSDeriv_m(freq, v) # Size: nE,2 (u_px,u_py) in the columns.
-                if dRHS_dm is None:
-                    du_dm = dA_duI * ( -dA_dm )
-                else:
-                    du_dm = dA_duI * ( -dA_dm + dRHS_dm )
+                # dA_dm and dRHS_dm should be of size nE,2, so that we can multiply by Ainv.
+                # The 2 columns are each of the polarizations.
+                dA_dm_v = self.getADeriv(freq, u_src, v) # Size: nE,2 (u_px,u_py) in the columns.
+                dRHS_dm_v = self.getRHSDeriv(freq, v) # Size: nE,2 (u_px,u_py) in the columns.
+                # Calculate du/dm*v
+                du_dm_v = Ainv * ( - dA_dm_v + dRHS_dm_v)
                 # Calculate the projection derivatives
                 for rx in src.rxList:
-                    # Get the projection derivative
-                    # v should be of size 2*nE (for 2 polarizations)
-                    PDeriv_u = lambda t: rx.evalDeriv(src, self.mesh, f, t) # wrt u, we don't have have PDeriv wrt m
-                    Jv[src, rx] = PDeriv_u(mkvc(du_dm))
-            dA_duI.clean()
+                    # Calculate dP/du*du/dm*v
+                    Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, mkvc(du_dm_v)) # wrt uPDeriv_u(mkvc(du_dm))
+            Ainv.clean()
         # Return the vectorized sensitivities
         return mkvc(Jv)
 
@@ -80,11 +87,11 @@ class BaseNSEMProblem(BaseFDEMProblem):
         """
         Function to calculate the transpose of the data sensitivities (dD/dm)^T times a vector.
 
-            :param numpy.ndarray m (nC, 1) - conductive model
-            :param numpy.ndarray v (nD, 1) - vector
+            :param numpy.ndarray m (nP,) - inversion model
+            :param numpy.ndarray v (nD,) - vector which we take adjoint product with (nP,)
             :param NSEMfields object f (optional) - NSEM fields object, if not given it is calculated
-            :rtype: NSEMdata object
-            :return: Data sensitivities wrt m
+            :rtype: numpy.array:
+            :return: Jtv (nP,) Data sensitivities wrt m
         """
 
         if f is None:
@@ -104,29 +111,26 @@ class BaseNSEMProblem(BaseFDEMProblem):
             ATinv = self.Solver(AT, **self.solverOpts)
 
             for src in self.survey.getSrcByFreq(freq):
-                ftype = self._solutionType
-                f_src = f[src, :] # Need to fix this...
+                # u_src needs to have both polarizations
+                u_src = f[src, :]
 
                 for rx in src.rxList:
                     # Get the adjoint evalDeriv
-                    # PTv needs to be nE,
-                    PTv = rx.evalDeriv(src, self.mesh, f, mkvc(v[src, rx],2), adjoint=True) # wrt u, need possibility wrt m
+                    # PTv needs to be nE,2
+                    PTv = rx.evalDeriv(src, self.mesh, f, mkvc(v[src, rx]), adjoint=True) # wrt f, need possibility wrt m
                     # Get the
-                    dA_duIT = ATinv * PTv
-                    dA_dmT = self.getADeriv_m(freq, f_src, mkvc(dA_duIT), adjoint=True)
-                    dRHS_dmT = self.getRHSDeriv_m(freq, mkvc(dA_duIT), adjoint=True)
+                    dA_duIT = mkvc(ATinv * PTv) # Force (nU,) shape
+                    dA_dmT = self.getADeriv(freq, u_src, dA_duIT, adjoint=True)
+                    dRHS_dmT = self.getRHSDeriv(freq, dA_duIT, adjoint=True)
                     # Make du_dmT
-                    if dRHS_dmT is None:
-                        du_dmT = -dA_dmT
-                    else:
-                        du_dmT = -dA_dmT + dRHS_dmT
+                    du_dmT = -dA_dmT + dRHS_dmT
                     # Select the correct component
-                    # du_dmT needs to be of size nC,
-                    real_or_imag = rx.projComp
+                    # du_dmT needs to be of size (nP,) number of model parameters
+                    real_or_imag = rx.component
                     if real_or_imag == 'real':
-                        Jtv +=  du_dmT.real
+                        Jtv +=  np.array(du_dmT,dtype=complex).real
                     elif real_or_imag == 'imag':
-                        Jtv +=  -du_dmT.real
+                        Jtv +=  -np.array(du_dmT,dtype=complex).real
                     else:
                         raise Exception('Must be real or imag')
             # Clean the factorization, clear memory.
@@ -185,9 +189,17 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
         """
             Edge inner product matrix
         """
-        if getattr(self, '_MfSigma', None) is None:
-            self._MfSigma = self.mesh.getFaceInnerProduct(self.curModel.sigma)
+        # if getattr(self, '_MfSigma', None) is None:
+        self._MfSigma = self.mesh.getFaceInnerProduct(self.curModel.sigma)
         return self._MfSigma
+
+    def MfSigmaDeriv(self, u):
+        """
+            Edge inner product matrix
+        """
+        # if getattr(self, '_MfSigmaDeriv', None) is None:
+        self._MfSigmaDeriv = self.mesh.getFaceInnerProductDeriv(self.curModel.sigma)(u) * self.curModel.sigmaDeriv
+        return self._MfSigmaDeriv
 
     @property
     def sigmaPrimary(self):
@@ -222,21 +234,18 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
         # Either return full or only the inner part of A
         return A
 
-    def getADeriv_m(self, freq, u, v, adjoint=False):
+    def getADeriv(self, freq, u, v, adjoint=False):
         """
         The derivative of A wrt sigma
         """
 
-        dsig_dm = self.curModel.sigmaDeriv
-        MeMui = self.MeMui
-        #
         u_src = u['e_1dSolution']
-        dMfSigma_dm = self.mesh.getFaceInnerProductDeriv(self.curModel.sigma)(u_src) * self.curModel.sigmaDeriv
+        dMfSigma_dm = self.MfSigmaDeriv(u_src)
         if adjoint:
-            return 1j * omega(freq) * (  dMfSigma_dm.T * v )
+            return 1j * omega(freq) * mkvc(dMfSigma_dm.T * v,)
         # Note: output has to be nN/nF, not nC/nE.
         # v should be nC
-        return 1j * omega(freq) * ( dMfSigma_dm * v )
+        return 1j * omega(freq) * mkvc(dMfSigma_dm * v,)
 
     def getRHS(self, freq):
         """
@@ -248,16 +257,18 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
 
         # Get sources for the frequncy(polarizations)
         Src = self.survey.getSrcByFreq(freq)[0]
-        S_e = Src.S_e(self)
+        # Only select the yx polarization
+        S_e = mkvc(Src.S_e(self)[:, 1], 2)
         return -1j * omega(freq) * S_e
 
-    def getRHSDeriv_m(self, freq, v, adjoint=False):
+    def getRHSDeriv(self, freq, v, adjoint=False):
         """
         The derivative of the RHS wrt sigma
         """
 
         Src = self.survey.getSrcByFreq(freq)[0]
-        S_eDeriv = Src.S_eDeriv_m(self, v, adjoint)
+
+        S_eDeriv = mkvc(Src.S_eDeriv_m(self, v, adjoint),)
         return -1j * omega(freq) * S_eDeriv
 
     def fields(self, m):
@@ -274,7 +285,7 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
         for freq in self.survey.freqs:
             if self.verbose:
                 startTime = time.time()
-                print 'Starting work for {:.3e}'.format(freq)
+                print('Starting work for {:.3e}'.format(freq))
                 sys.stdout.flush()
             A = self.getA(freq)
             rhs  = self.getRHS(freq)
@@ -284,13 +295,10 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
             # Store the fields
             Src = self.survey.getSrcByFreq(freq)[0]
             # NOTE: only store the e_solution(secondary), all other components calculated in the fields object
-            F[Src, 'e_1dSolution'] = e_s[:,-1] # Only storing the yx polarization as 1d
+            F[Src, 'e_1dSolution'] = e_s
 
-            # Note curl e = -iwb so b = -curl e /iw
-            # b = -( self.mesh.nodalGrad * e )/( 1j*omega(freq) )
-            # F[Src, 'b_1d'] = b[:,1]
             if self.verbose:
-                print 'Ran for {:f} seconds'.format(time.time()-startTime)
+                print('Ran for {:f} seconds'.format(time.time()-startTime))
                 sys.stdout.flush()
         return F
 
@@ -313,10 +321,11 @@ class Problem1D_eTotal(BaseNSEMProblem):
     # From FDEMproblem: Used to project the fields. Currently not used for NSEMproblem.
     _solutionType = 'e_1dSolution'
     _formulation  = 'EF'
-    # fieldsPair = Fields1D_eTotal
+    fieldsPair = Fields1D_eTotal
 
     def __init__(self, mesh, **kwargs):
         BaseNSEMProblem.__init__(self, mesh, **kwargs)
+
     @property
     def MeMui(self):
         """
@@ -334,6 +343,12 @@ class Problem1D_eTotal(BaseNSEMProblem):
         if getattr(self, '_MfSigma', None) is None:
             self._MfSigma = self.mesh.getFaceInnerProduct(self.curModel.sigma)
         return self._MfSigma
+
+    @property
+    def getEdgeBoundInd(self):
+        if getattr(self, '_MfSigma_getEdgeBoundInd', None) is None:
+            self._getEdgeBoundInd = np.sum(self.mesh.edgeBoundaryInd,axis=0,dtype=bool)
+        return self._getEdgeBoundInd
 
     def getA(self, freq, full=False):
         """
@@ -356,10 +371,11 @@ class Problem1D_eTotal(BaseNSEMProblem):
         # Make A
         A = C.T*MeMui*C + 1j*omega(freq)*MfSigma
         # Either return full or only the inner part of A
+        interInd = ~self.getEdgeBoundInd
         if full:
             return A
         else:
-            return A[1:-1,1:-1]
+            return A[interIndeBind,interInd]
 
     def getADeriv_m(self, freq, u, v, adjoint=False):
         raise NotImplementedError('getADeriv is not implemented')
@@ -376,8 +392,11 @@ class Problem1D_eTotal(BaseNSEMProblem):
         src = self.survey.getSrcByFreq(freq)
         # Get the full A
         A = self.getA(freq,full=True)
+        # Get the boundary index
+        eBind = self.getEdgeBoundInd
+        interInd = ~eBind
         # Define the outer part of the solution matrix
-        Aio = A[1:-1,[0,-1]]
+        Aio = A[interInd,eBind]
         Ed, Eu, Hd, Hu = getEHfields(self.mesh,self.curModel.sigma,freq,self.mesh.vectorNx)
         Etot = (Ed + Eu)
         sourceAmp = 1.0
@@ -408,7 +427,7 @@ class Problem1D_eTotal(BaseNSEMProblem):
         for freq in self.survey.freqs:
             if self.verbose:
                 startTime = time.time()
-                print 'Starting work for {:.3e}'.format(freq)
+                print('Starting work for {:.3e}'.format(freq))
                 sys.stdout.flush()
             A = self.getA(freq)
             rhs, e_o = self.getRHS(freq)
@@ -420,7 +439,7 @@ class Problem1D_eTotal(BaseNSEMProblem):
             # NOTE: only store e fields
             F[Src, 'e_1dSolution'] = e[:,0]
             if self.verbose:
-                print 'Ran for {:f} seconds'.format(time.time()-startTime)
+                print('Ran for {:f} seconds'.format(time.time()-startTime))
                 sys.stdout.flush()
         return F
 
@@ -480,24 +499,35 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
             :rtype: scipy.sparse.csr_matrix
             :return: A
         """
-        Mmui = self.MfMui
-        Msig = self.MeSigma
+        Mfmui = self.MfMui
+        Mesig = self.MeSigma
         C = self.mesh.edgeCurl
 
-        return C.T*Mmui*C + 1j*omega(freq)*Msig
+        return C.T*Mfmui*C + 1j*omega(freq)*Mesig
 
-    def getADeriv_m(self, freq, u, v, adjoint=False):
+    def getADeriv(self, freq, u, v, adjoint=False):
         """
         Calculate the derivative of A wrt m.
+        :param float freq: Frequency
+        :param SimPEG.EM.NSEM.Fields u: Fields object
+        :param np.array v: vector of size (nU,) (adjoint=False)
+            and size (nP,) (adjoint=True)
+        :rtype numpy.array:
+        :return: Calculated derivative (nP,) (adjoint=False) and (nU,)[Note: return as a (nU/2,2)
+            columnwise polarizations] (adjoint=True) for both polarizations
+
 
         """
         # Fix u to be a matrix nE,2
         # This considers both polarizations and returns a nE,2 matrix for each polarization
+        # The solution types
+        sol0, sol1 = self._solutionType
+
         if adjoint:
-            dMe_dsigV = sp.hstack(( self.MeSigmaDeriv( u['e_pxSolution'] ).T, self.MeSigmaDeriv(u['e_pySolution'] ).T ))*v
+            dMe_dsigV = sp.hstack(( self.MeSigmaDeriv( u[sol0] ).T, self.MeSigmaDeriv(u[sol1] ).T ))*v
         else:
             # Need a nE,2 matrix to be returned
-            dMe_dsigV = np.hstack(( mkvc(self.MeSigmaDeriv( u['e_pxSolution'] )*v,2), mkvc( self.MeSigmaDeriv(u['e_pySolution'] )*v,2) ))
+            dMe_dsigV = np.hstack(( mkvc(self.MeSigmaDeriv( u[sol0] )*v,2), mkvc( self.MeSigmaDeriv(u[sol1] )*v,2) ))
         return 1j * omega(freq) * dMe_dsigV
 
 
@@ -515,14 +545,23 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
         S_e = Src.S_e(self)
         return -1j * omega(freq) * S_e
 
-    def getRHSDeriv_m(self, freq, v, adjoint=False):
+    def getRHSDeriv(self, freq, v, adjoint=False):
         """
-        The derivative of the RHS with respect to sigma
+        The derivative of the RHS with respect to the model and the source
+        :param float freq: Frequency
+        :param np.array v: vector of size (nU,) (adjoint=False)
+            and size (nP,) (adjoint=True)
+        :rtype numpy.array:
+        :return: Calculated derivative (nP,) (adjoint=False) and (nU,2) (adjoint=True)
+            for both polarizations
         """
 
+        # Note: the formulation of the derivative is the same for adjoint or not.
         Src = self.survey.getSrcByFreq(freq)[0]
-        S_eDeriv = Src.S_eDeriv_m(self, v, adjoint)
-        return -1j * omega(freq) * S_eDeriv
+        S_eDeriv = Src.S_eDeriv(self, v, adjoint)
+        dRHS_dm = -1j * omega(freq) * S_eDeriv
+
+        return dRHS_dm
 
     def fields(self, m):
         '''
@@ -537,7 +576,7 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
         for freq in self.survey.freqs:
             if self.verbose:
                 startTime = time.time()
-                print 'Starting work for {:.3e}'.format(freq)
+                print('Starting work for {:.3e}'.format(freq))
                 sys.stdout.flush()
             A = self.getA(freq)
             rhs  = self.getRHS(freq)
@@ -554,7 +593,7 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
             # Note curl e = -iwb so b = -curl/iw
 
             if self.verbose:
-                print 'Ran for {:f} seconds'.format(time.time()-startTime)
+                print('Ran for {:f} seconds'.format(time.time()-startTime))
                 sys.stdout.flush()
             Ainv.clean()
         return F

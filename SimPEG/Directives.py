@@ -214,6 +214,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         f.write(' {0:3d} {1:1.4e} {2:1.4e} {3:1.4e} {4:1.4e}\n'.format(self.opt.iter, self.invProb.beta, self.invProb.phi_d, self.invProb.phi_m, self.opt.f))
         f.close()
 
+
 class SaveOutputDictEveryIteration(SaveEveryIteration):
     """
     Saves inversion parameters at every iteraion.
@@ -232,6 +233,7 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
         outDict['iter'] = self.opt.iter
         outDict['beta'] = self.invProb.beta
         outDict['phi_d'] = self.invProb.phi_d
+        outDict['phi_m'] = self.invProb.phi_m
         outDict['phi_ms'] = self.reg._evalSmall(self.invProb.curModel)
         outDict['phi_mx'] = self.reg._evalSmoothx(self.invProb.curModel)
         outDict['phi_my'] = self.reg._evalSmoothy(self.invProb.curModel) if self.prob.mesh.dim >= 2 else 'NaN'

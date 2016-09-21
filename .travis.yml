@@ -21,7 +21,8 @@ env:
     - TEST_DIR=tests/em/tdem
     - TEST_DIR=tests/em/static
     - TEST_DIR=tests/flow
-    - TEST_DIR=tests/mt
+    - TEST_DIR=tests/em/nsem/forward
+    - TEST_DIR=tests/em/nsem/inversion
     - TEST_DIR=tests/examples
     - TEST_DIR=tests/em/fdem/inverse/adjoint
     - TEST_DIR=tests/em/fdem/forward
@@ -51,6 +52,7 @@ install:
       conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib=1.5.1 pyqt=4.11.4 cython ipython nose sphinx sympy vtk;
     else
       conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib=1.5.1 pyqt=4.11.4 cython ipython nose sphinx sympy;
+
     fi
   - pip install nose-cov python-coveralls
 

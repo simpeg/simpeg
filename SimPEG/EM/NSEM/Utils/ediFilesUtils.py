@@ -3,7 +3,7 @@ from __future__ import print_function
 from SimPEG import mkvc
 from scipy.constants import mu_0
 from numpy.lib import recfunctions as recFunc
-from SimPEG.NSEM.Utils.dataUtils import rec2ndarr
+from .dataUtils import rec_to_ndarr
 
 # Import modules
 import numpy as np
@@ -100,7 +100,7 @@ class EDIimporter:
                 key = [comp.lower().replace('.','').replace(s,t) for s,t in [['xx','yy'],['xy','yx'],['yx','xy'],['yy','xx']] if s in comp.lower()][0]
                 tArrRec[key] = mkvc(unitConvert*_findEDIcomp('>'+comp,EDIlines),2)
             # Make a masked array
-            mArrRec = np.ma.MaskedArray(rec2ndarr(tArrRec),mask=np.isnan(rec2ndarr(tArrRec))).view(dtype=tArrRec.dtype)
+            mArrRec = np.ma.MaskedArray(rec_to_ndarr(tArrRec),mask=np.isnan(rec_to_ndarr(tArrRec))).view(dtype=tArrRec.dtype)
             try:
                 outTemp = recFunc.stack_arrays((outTemp,mArrRec))
             except NameError:
@@ -171,7 +171,7 @@ def _findEDIcomp(comp,fileLines,dt=float):
     # Find the data
     headLine, indHead = [(st,nr) for nr,st in enumerate(fileLines) if re.search(comp,st)][0]
     # Extract the data
-    nrVec = int(headLine.split()[-1])
+    nrVec = int(headLine.split('//')[-1])
     c = 0
     dataList = []
     while c < nrVec:

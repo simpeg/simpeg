@@ -1,5 +1,4 @@
 .. _examples_Mesh_QuadTree_Creation:
-
 .. --------------------------------- ..
 ..                                   ..
 ..    THIS FILE IS AUTO GENEREATED   ..
@@ -7,7 +6,6 @@
 ..    SimPEG/Examples/__init__.py    ..
 ..                                   ..
 .. --------------------------------- ..
-
 
 Mesh: QuadTree: Creation
 ========================
@@ -20,12 +18,9 @@ Occasionally it is useful to initially refine to a constant level
 on an 8x8 mesh (2^3).
 
 
-
 .. plot::
-
     from SimPEG import Examples
     Examples.Mesh_QuadTree_Creation.run()
-
 .. literalinclude:: ../../../SimPEG/Examples/Mesh_QuadTree_Creation.py
     :language: python
     :linenos:
