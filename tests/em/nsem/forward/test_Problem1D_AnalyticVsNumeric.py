@@ -1,7 +1,7 @@
 from __future__ import print_function
 import unittest
 import SimPEG as simpeg
-from SimPEG import NSEM
+from SimPEG.EM import NSEM
 from SimPEG.Utils import meshTensor
 import numpy as np
 # Define the tolerances
@@ -40,7 +40,7 @@ def calculateAnalyticSolution(srcList,mesh,model):
         # anaH = (anaHtemp/anaEtemp[-1])#.conj()
         anaZ = anaE/anaH
         for rx in src.rxList:
-            data1D[src,rx] = getattr(anaZ, rx.projComp)
+            data1D[src,rx] = getattr(anaZ, rx.component)
     return data1D
 
 def dataMis_AnalyticTotalDomain(sigmaHalf):
@@ -70,14 +70,14 @@ def dataMis_AnalyticPrimarySecondary(sigmaHalf):
 
     # Make the survey
     # Primary secondary
-    survey, sigma, mesh = NSEM.Utils.testUtils.setup1DSurvey(sigmaHalf,False,structure=True)
+    survey, sig, sigBG, mesh = NSEM.Utils.testUtils.setup1DSurvey(sigmaHalf,False,structure=True)
     # Analytic data
-    problem = NSEM.Problem1D_ePrimSec(mesh, sigmaPrimary = sigma)
+    problem = NSEM.Problem1D_ePrimSec(mesh, sigmaPrimary = sig)
     problem.pair(survey)
 
-    dataAnaObj = calculateAnalyticSolution(survey.srcList,mesh,sigma)
+    dataAnaObj = calculateAnalyticSolution(survey.srcList,mesh,sig)
 
-    data = survey.dpred(sigma)
+    data = survey.dpred(sig)
     dataAna = simpeg.mkvc(dataAnaObj)
     return np.all((data - dataAna)/dataAna < 2.)
 

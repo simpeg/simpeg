@@ -1,5 +1,4 @@
 .. _examples_Mesh_Operators_CahnHilliard:
-
 .. --------------------------------- ..
 ..                                   ..
 ..    THIS FILE IS AUTO GENEREATED   ..
@@ -7,7 +6,6 @@
 ..    SimPEG/Examples/__init__.py    ..
 ..                                   ..
 .. --------------------------------- ..
-
 
 Mesh: Operators: Cahn Hilliard
 ==============================
@@ -46,12 +44,9 @@ field separating as the time increases.
 .. _FiPy: http://www.ctcms.nist.gov/fipy/examples/cahnHilliard/generated/examples.cahnHilliard.mesh2DCoupled.html
 
 
-
 .. plot::
-
     from SimPEG import Examples
     Examples.Mesh_Operators_CahnHilliard.run()
-
 .. literalinclude:: ../../../SimPEG/Examples/Mesh_Operators_CahnHilliard.py
     :language: python
     :linenos:

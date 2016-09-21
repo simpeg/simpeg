@@ -1,5 +1,4 @@
 .. _examples_Mesh_Tensor_Creation:
-
 .. --------------------------------- ..
 ..                                   ..
 ..    THIS FILE IS AUTO GENEREATED   ..
@@ -7,7 +6,6 @@
 ..    SimPEG/Examples/__init__.py    ..
 ..                                   ..
 .. --------------------------------- ..
-
 
 
 Mesh: Tensor: Creation
@@ -32,12 +30,9 @@ notation::
     make the mesh start at zero.
 
 
-
 .. plot::
-
     from SimPEG import Examples
     Examples.Mesh_Tensor_Creation.run()
-
 .. literalinclude:: ../../../SimPEG/Examples/Mesh_Tensor_Creation.py
     :language: python
     :linenos:

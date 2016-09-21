@@ -1,5 +1,4 @@
 .. _examples_EM_Schenkel_Morrison_Casing:
-
 .. --------------------------------- ..
 ..                                   ..
 ..    THIS FILE IS AUTO GENEREATED   ..
@@ -7,7 +6,6 @@
 ..    SimPEG/Examples/__init__.py    ..
 ..                                   ..
 .. --------------------------------- ..
-
 
 EM: Schenkel and Morrison Casing Model
 ======================================
@@ -54,12 +52,9 @@ If you would use this example for a code comparison, or build upon it,
 a citation would be much appreciated!
 
 
-
 .. plot::
-
     from SimPEG import Examples
     Examples.EM_Schenkel_Morrison_Casing.run()
-
 .. literalinclude:: ../../../SimPEG/Examples/EM_Schenkel_Morrison_Casing.py
     :language: python
     :linenos:

@@ -1,8 +1,9 @@
-import SimPEG as simpeg
-import numpy as np
-from SimPEG import NSEM
-from scipy.constants import mu_0
 import matplotlib.pyplot as plt
+
+
+import SimPEG as simpeg
+from SimPEG import np
+from SimPEG.EM import NSEM
 
 np.random.seed(1983)
 
@@ -58,8 +59,8 @@ def run(plotIt=True):
     ## Setup the layout of the survey, set the sources and the connected receivers
     # Receivers
     rxList = []
-    for rxType in ['z1dr','z1di']:
-        rxList.append(NSEM.Rx(simpeg.mkvc(np.array([-0.5]),2).T,rxType))
+    rxList.append(NSEM.rxPoint_impedance1D(simpeg.mkvc(np.array([-0.5]),2).T,'real'))
+    rxList.append(NSEM.rxPoint_impedance1D(simpeg.mkvc(np.array([-0.5]),2).T,'imag'))
     # Source list
     srcList =[]
     for freq in freqs:

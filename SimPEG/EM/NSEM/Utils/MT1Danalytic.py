@@ -11,7 +11,7 @@ def getEHfields(m1d,sigma,freq,zd,scaleUD=True,scaleValue=1):
     :param numpy.array, vector sigma: Physical property of conductivity corresponding with the mesh.
     :param float, freq: Frequency to calculate data at.
     :param numpy array, vector zd: location to calculate EH fields at
-    :param bollean, scaleUD: scales the output to be 1 at the top, increases numeracal stability.
+    :param boolean, scaleUD: scales the output to be scaleValue at the top, increases numerical stability.
 
     Assumes a halfspace with the same conductive as the deepest cell.
 
@@ -51,7 +51,7 @@ def getEHfields(m1d,sigma,freq,zd,scaleUD=True,scaleValue=1):
         if scaleUD:
             # Scale the values such that 1 at the top
             scaleVal = UDp[:,lnr+1::-1]/UDp[1,lnr+1]
-            if np.any(np.isnan(scaleVal)):
+            if np.any(~np.isfinite(scaleVal)):
                 # If there is a nan (thickness very great), rebuild the move up cell
                 scaleVal = np.zeros_like(UDp[:,lnr+1::-1],dtype=complex)
                 scaleVal[1,0] = scaleValue
