@@ -44,7 +44,7 @@ def DerivJvecTest(inputSetup,comp='All',freq=False,expMap=True):
 def DerivProjfieldsTest(inputSetup,comp='All',freq=False):
 
     survey, problem = NSEM.Utils.testUtils.setupSimpegNSEM_ePrimSec(inputSetup,comp,freq)
-    print('Derivative test of data projection for eFormulation primary/secondary\n)
+    print('Derivative test of data projection for eFormulation primary/secondary\n')
     # problem.mapping = simpeg.Maps.ExpMap(problem.mesh)
     # Initate things for the derivs Test
     src = survey.srcList[0]

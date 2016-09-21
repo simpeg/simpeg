@@ -49,7 +49,6 @@ from SimPEG.Examples import Mesh_Basic_ForwardDC
 from SimPEG.Examples import MT_1D_ForwardAndInversion
 from SimPEG.Examples import PF_Gravity_Inversion_Linear
 from SimPEG.Examples import Utils_surface2ind_topo
-from SimPEG.Examples import MT_1D_analytic_nlayer_Earth
 from SimPEG.Examples import Maps_ComboMaps
 from SimPEG.Examples import PF_Magnetics_Inversion_Linear
 from SimPEG.Examples import Maps_Mesh2Mesh
@@ -58,6 +57,6 @@ from SimPEG.Examples import Mesh_Basic_PlotImage
 from SimPEG.Examples import DC_Analytic_Dipole
 from SimPEG.Examples import Mesh_QuadTree_HangingNodes
 
-__examples__ = ["EM_FDEM_1D_Inversion", "PF_Magnetics_Analytics", "Mesh_QuadTree_Creation", "EM_TDEM_1D_Inversion", "Mesh_QuadTree_FaceDiv", "Mesh_Tensor_Creation", "EM_CylInversions_Heagyetal2016", "FLOW_Richards_1D_Celia1990", "Mesh_Operators_CahnHilliard", "Mesh_Basic_Types", "Inversion_IRLS", "Inversion_Linear", "EM_Schenkel_Morrison_Casing", "MT_3D_Foward", "Mesh_Basic_ForwardDC", "MT_1D_ForwardAndInversion", "PF_Gravity_Inversion_Linear", "Utils_surface2ind_topo", "MT_1D_analytic_nlayer_Earth", "Maps_ComboMaps", "PF_Magnetics_Inversion_Linear", "Maps_Mesh2Mesh", "EM_FDEM_Analytic_MagDipoleWholespace", "Mesh_Basic_PlotImage", "DC_Analytic_Dipole", "Mesh_QuadTree_HangingNodes"]
+__examples__ = ["EM_FDEM_1D_Inversion", "PF_Magnetics_Analytics", "Mesh_QuadTree_Creation", "EM_TDEM_1D_Inversion", "Mesh_QuadTree_FaceDiv", "Mesh_Tensor_Creation", "EM_CylInversions_Heagyetal2016", "FLOW_Richards_1D_Celia1990", "Mesh_Operators_CahnHilliard", "Mesh_Basic_Types", "Inversion_IRLS", "Inversion_Linear", "EM_Schenkel_Morrison_Casing", "MT_3D_Foward", "Mesh_Basic_ForwardDC", "MT_1D_ForwardAndInversion", "PF_Gravity_Inversion_Linear", "Utils_surface2ind_topo", "Maps_ComboMaps", "PF_Magnetics_Inversion_Linear", "Maps_Mesh2Mesh", "EM_FDEM_Analytic_MagDipoleWholespace", "Mesh_Basic_PlotImage", "DC_Analytic_Dipole", "Mesh_QuadTree_HangingNodes"]
 
 ##### AUTOIMPORTS #####
