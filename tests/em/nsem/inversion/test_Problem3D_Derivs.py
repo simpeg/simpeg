@@ -27,7 +27,7 @@ def DerivJvecTest(inputSetup,comp='All',freq=False,expMap=True):
     (M, freqs, sig, sigBG, rx_loc) = inputSetup
     survey, problem = NSEM.Utils.testUtils.setupSimpegNSEM_ePrimSec(inputSetup,comp=comp,singleFreq=freq,expMap=expMap)
     print('Using {0} solver for the problem'.format(problem.Solver))
-    print('Derivative test of Jvec for eForm primary/secondary for {:s} comp at {:s}\n'.format(comp,survey.freqs))
+    print('Derivative test of Jvec for eForm primary/secondary for {} comp at {}\n'.format(comp,survey.freqs))
     # problem.mapping = simpeg.Maps.ExpMap(problem.mesh)
     # problem.sigmaPrimary = np.log(sigBG)
     x0 = np.log(sigBG)
