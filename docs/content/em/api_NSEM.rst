@@ -3,7 +3,14 @@
 Natural Source Electromagnetics
 *******************************
 
-.. todo:: Docs here :)
+.. todo:: Docs here
+
+SimPEG (Simulation and Parameter Estimation in Geophysics) is a python
+package for simulation and gradient based parameter estimation in the
+context of geoscience applications.
+
+simpegMT uses SimPEG as the framework for the forward and inverse
+magnetotellurics geophysical problems.
 
 
 API
@@ -12,7 +19,7 @@ API
 NSEM Problem
 ------------
 
-.. automodule:: SimPEG.NSEM.ProblemNSEM
+.. automodule:: SimPEG.EM.NSEM.ProblemNSEM
     :show-inheritance:
     :members:
     :undoc-members:
@@ -21,25 +28,26 @@ NSEM Problem
 NSEM Survey
 -----------
 
-.. automodule:: SimPEG.NSEM.SurveyNSEM
+.. automodule:: SimPEG.EM.NSEM.SurveyNSEM
     :show-inheritance:
     :members:
     :undoc-members:
 
-.. automodule:: SimPEG.NSEM.SrcNSEM
+.. automodule:: SimPEG.EM.NSEM.SrcNSEM
     :show-inheritance:
     :members:
     :undoc-members:
 
-.. automodule:: SimPEG.NSEM.RxNSEM
+.. automodule:: SimPEG.EM.NSEM.RxNSEM
     :show-inheritance:
     :members:
     :undoc-members:
+
 
 NSEM Fields
 -----------
 
-.. automodule:: SimPEG.NSEM.FieldsNSEM
+.. automodule:: SimPEG.EM.NSEM.FieldsNSEM
     :show-inheritance:
     :members:
     :undoc-members:
