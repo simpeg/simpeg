@@ -6,8 +6,13 @@
 ..    SimPEG/Examples/__init__.py    ..
 ..                                   ..
 .. --------------------------------- ..
+
 DC Analytic Dipole
 ==================
+
+Analytic Dipole example
+
+
 .. plot::
     from SimPEG import Examples
     Examples.DC_Analytic_Dipole.run()
