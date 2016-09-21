@@ -23,7 +23,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
     #     Solve the forward problem without storing fields
 
     #     :param numpy.array m: inversion model (nP,)
-    #     :rtype numpy.array:
+    #     :rtype: numpy.array
     #     :return numpy.array: numpy.array (nD,)
 
     #     """

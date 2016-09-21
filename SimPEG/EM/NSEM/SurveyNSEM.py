@@ -9,16 +9,17 @@ from numpy.lib import recfunctions as recFunc
 from SimPEG import Survey as SimPEGsurvey, mkvc
 from .RxNSEM import rxPoint_impedance3D, rxPoint_tipper3D
 from .SrcNSEM import BaseNSEMSrc, polxy_1Dprimary, polxy_1DhomotD
-# from .Utils.dataUtils import rec_to_ndarr
 
 #################
 ###  Survey   ###
 #################
+
+
 class Survey(SimPEGsurvey.BaseSurvey):
     """
-        Survey class for NSEM. Contains all the sources associated with the survey.
+    Survey class for NSEM. Contains all the sources associated with the survey.
 
-        :param list srcList: List of sources associated with the survey
+    :param list srcList: List of sources associated with the survey
 
     """
     srcPair = BaseNSEMSrc
@@ -47,7 +48,6 @@ class Survey(SimPEGsurvey.BaseSurvey):
         """Number of frequencies"""
         return len(self._freqDict)
 
-    # TODO: Rename to getSources
     def getSrcByFreq(self, freq):
         """Returns the sources associated with a specific frequency."""
         assert freq in self._freqDict, "The requested frequency is not in this survey."
@@ -62,19 +62,19 @@ class Survey(SimPEGsurvey.BaseSurvey):
         return data
 
     def evalDeriv(self, f):
-        raise Exception('Use Transmitters to project fields deriv.')
+        raise Exception('Use Sources to project fields deriv.')
 
 #################
 # Data
 #################
 
+
 class Data(SimPEGsurvey.Data):
     '''
     Data class for NSEMdata. Stores the data vector indexed by the survey.
 
-    :param SimPEG survey object survey:
-    :param v vector of the data in order matching of the survey
-
+    :param SimPEG.EM.NSEM.SurveyNSEM survey: NSEM survey object
+    :param numpy.ndarray v: Vector of the data in order matching of the survey
 
     '''
     def __init__(self, survey, v=None):
@@ -88,6 +88,8 @@ class Data(SimPEGsurvey.Data):
 
         :param str returnType: Switches between returning a rec array where the impedance
             is split to real and imaginary ('RealImag') or is a complex ('Complex')
+        :rtype: numpy.recarray
+        :return: Record array with data, with indexed columns
 
         '''
 
@@ -141,7 +143,9 @@ class Data(SimPEGsurvey.Data):
         """
         Class method that reads in a numpy record array to NSEMdata object.
 
-        Only imports the impedance data.
+        :param numpy.recarray recArray: Record array with the data. Has to have
+            ('freq','x','y','z') columns and some ('zxx','zxy','zyx','zyy','tzx','tzy')
+        :param string srcType: The type of SimPEG.EM.NSEM.SrcNSEM to be used
 
         """
         if srcType=='primary':
@@ -181,18 +185,20 @@ class Data(SimPEGsurvey.Data):
                     else:
                         component = 'real' if 'r' in rxType else 'imag'
                         if 'z' in rxType:
-                            rxList.append(rxPoint_impedance3D(locs,rxType[1:-1],component))
+                            rxList.append(
+                                rxPoint_impedance3D(locs, rxType[1:-1], component))
                             dataList.append(dFreq[rxType][notNaNind].copy())
                         if 't' in rxType:
-                            rxList.append(rxPoint_tipper3D(locs,rxType[1:-1],component))
+                            rxList.append(rxPoint_tipper3D(locs, rxType[1:-1], component))
                             dataList.append(dFreq[rxType][notNaNind].copy())
 
-            srcList.append(src(rxList,freq))
+            srcList.append(src(rxList, freq))
 
         # Make a survey
-        survey = Survey(srcList)
-        dataVec = np.hstack(dataList)
+        survey=Survey(srcList)
+        dataVec=np.hstack(dataList)
         return cls(survey, dataVec)
+
 
 def _rec_to_ndarr(rec_arr, data_type=float):
     """
