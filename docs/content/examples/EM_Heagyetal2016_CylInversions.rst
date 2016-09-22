@@ -1,4 +1,4 @@
-.. _examples_EM_CylInversions_Heagyetal2016:
+.. _examples_EM_Heagyetal2016_CylInversions:
 
 .. --------------------------------- ..
 ..                                   ..
@@ -19,8 +19,8 @@ DEM and TDEM inversions
 .. plot::
 
     from SimPEG import Examples
-    Examples.EM_CylInversions_Heagyetal2016.run()
+    Examples.EM_Heagyetal2016_CylInversions.run()
 
-.. literalinclude:: ../../../SimPEG/Examples/EM_CylInversions_Heagyetal2016.py
+.. literalinclude:: ../../../SimPEG/Examples/EM_Heagyetal2016_CylInversions.py
     :language: python
     :linenos:
