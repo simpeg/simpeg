@@ -199,7 +199,7 @@ class BaseTensorMesh(BaseMesh):
         Determines if a set of points are inside a mesh.
 
         :param numpy.ndarray pts: Location of points to test
-        :rtype numpy.ndarray:
+        :rtype: numpy.ndarray
         :return: inside, numpy array of booleans
         """
         pts = Utils.asArray_N_x_Dim(pts, self.dim)

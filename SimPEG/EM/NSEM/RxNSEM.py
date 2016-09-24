@@ -363,12 +363,12 @@ class rxPoint_impedance1D(SimPEG.Survey.BaseRx):
         '''
         Project the fields to natural source data.
 
-        :param SimPEG.EM.NSEM.srcNSEM src: NSEM source
+        :param SimPEG.EM.NSEM.SrcNSEM src: NSEM source
         :param SimPEG.Mesh.TensorMesh mesh: Mesh defining the topology of the problem
         :param SimPEG.EM.NSEM.FieldsNSEM f: NSEM fields object of the source
         :param bool (optional) return_complex: Flag for return the complex evaluation
-        :rtype numpy.array:
-        :return:
+        :rtype: numpy.array
+        :return: Evaluated data for the receiver
         '''
         # NOTE: Maybe set this as a property
         self.src = src
@@ -386,12 +386,12 @@ class rxPoint_impedance1D(SimPEG.Survey.BaseRx):
 
         The derivative of the projection wrt u
 
-        :param SimPEG.EM.NSEM.srcNSEM src: NSEM source
+        :param SimPEG.EM.NSEM.SrcNSEM src: NSEM source
         :param SimPEG.Mesh.TensorMesh mesh: Mesh defining the topology of the problem
         :param SimPEG.EM.NSEM.FieldsNSEM f: NSEM fields object of the source
         :param numpy.ndarray v: vector of size (nU,) (adjoint=False)
             and size (nD,) (adjoint=True)
-        :rtype numpy.array:
+        :rtype: numpy.array
         :return: Calculated derivative (nD,) (adjoint=False) and (nP,2) (adjoint=True)
             for both polarizations
         """
@@ -445,7 +445,7 @@ class rxPoint_impedance3D(rxPoint_NSEM):
         Project the fields to natural source data.
 
             :param SrcNSEM src: The source of the fields to project
-            :param SimPEG.Mesh mesh: topological mesh corresponding to the fields
+            :param SimPEG.Mesh.TensorMesh mesh: topological mesh corresponding to the fields
             :param FieldsNSEM f: Natural source fields object to project
             :rtype: numpy.array
             :return: component of the impedance evaluation
@@ -475,12 +475,12 @@ class rxPoint_impedance3D(rxPoint_NSEM):
         """
         The derivative of the projection wrt u
 
-        :param SimPEG.EM.NSEM.srcNSEM src: NSEM source
+        :param SimPEG.EM.NSEM.SrcNSEM src: NSEM source
         :param SimPEG.Mesh.TensorMesh mesh: Mesh defining the topology of the problem
         :param SimPEG.EM.NSEM.FieldsNSEM f: NSEM fields object of the source
         :param numpy.ndarray v: vector of size (nU,) (adjoint=False)
             and size (nD,) (adjoint=True)
-        :rtype numpy.array:
+        :rtype: numpy.array
         :return: Calculated derivative (nD,) (adjoint=False) and (nP,2) (adjoint=True)
             for both polarizations
         """
@@ -602,9 +602,11 @@ class rxPoint_tipper3D(rxPoint_NSEM):
         '''
         Project the fields to natural source data.
 
-            :param SrcNSEM src: The source of the fields to project
-            :param SimPEG.Mesh mesh:
-            :param FieldsNSEM f: Natural source fields object to project
+        :param SrcNSEM src: The source of the fields to project
+        :param SimPEG.Mesh.TensorMesh mesh: Mesh defining the topology of the problem
+        :param FieldsNSEM f: Natural source fields object to project
+        :rtype: numpy.array
+        :return: Evaluated component of the impedance data
         '''
         # NOTE: Maybe set this as a property
         self.src = src
@@ -626,10 +628,13 @@ class rxPoint_tipper3D(rxPoint_NSEM):
         """
         The derivative of the projection wrt u
 
-        :param NSEMsrc src: NSEM source
-        :param TensorMesh mesh: Mesh defining the topology of the problem
-        :param NSEMfields f: NSEM fields object of the source
+        :param SimPEG.EM.NSEM.SrcNSEM src: NSEM source
+        :param SimPEG.Mesh.TensorMesh mesh: Mesh defining the topology of the problem
+        :param SimPEG.EM.NSEM.FieldsNSEM f: NSEM fields object of the source
         :param numpy.ndarray v: Random vector of size
+        :rtype: numpy.array
+        :return: Calculated derivative (nD,) (adjoint=False) and (nP,2) (adjoint=True)
+            for both polarizations
         """
         self.src = src
         self.mesh = mesh

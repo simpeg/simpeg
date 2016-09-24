@@ -41,12 +41,12 @@ class BaseNSEMProblem(BaseFDEMProblem):
         """
         Function to calculate the data sensitivities dD/dm times a vector.
 
-            :param numpy.ndarray m  - conductivity model (nP,)
-            :param numpy.ndarray v  - vector which we take sensitivity product with (nP,)
-            :param SimPEG.EM.NSEM.FieldsNSEM (optional) u - NSEM fields object, if not given
-                it is calculated
-            :rtype: numpy.array:
-            :return: Jv (nData,) Data sensitivities wrt m
+        :param numpy.ndarray m: conductivity model (nP,)
+        :param numpy.ndarray v: vector which we take sensitivity product with (nP,)
+        :param SimPEG.EM.NSEM.FieldsNSEM (optional) u: NSEM fields object, if not given
+            it is calculated
+        :rtype: numpy.ndarray
+        :return: Jv (nData,) Data sensitivities wrt m
         """
 
         # Calculate the fields if not given as input
@@ -87,11 +87,11 @@ class BaseNSEMProblem(BaseFDEMProblem):
         """
         Function to calculate the transpose of the data sensitivities (dD/dm)^T times a vector.
 
-            :param numpy.ndarray m (nP,) - inversion model
-            :param numpy.ndarray v (nD,) - vector which we take adjoint product with (nP,)
-            :param NSEMfields object f (optional) - NSEM fields object, if not given it is calculated
-            :rtype: numpy.array:
-            :return: Jtv (nP,) Data sensitivities wrt m
+        :param numpy.ndarray m: inversion model (nP,)
+        :param numpy.ndarray v: vector which we take adjoint product with (nP,)
+        :param SimPEG.EM.NSEM.FieldsNSEM f (optional): NSEM fields object, if not given it is calculated
+        :rtype: numpy.ndarray
+        :return: Jtv (nP,) Data sensitivities wrt m
         """
 
         if f is None:
@@ -155,8 +155,9 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
     we can write Maxwell's equations as a second order system in \\\(\\\mathbf{e}\\\) only:
 
     .. math ::
-        \\left(\mathbf{C}^T \mathbf{M^e_{\mu^{-1}}} \mathbf{C} + i \omega \mathbf{M^f_\sigma}] \mathbf{e}_{s} =& i \omega \mathbf{M^f_{\delta \sigma}} \mathbf{e}_{p}
-    which we solve for \\\(\\\mathbf{e_s}\\\). The total field \\\mathbf{e}\\ = \\\mathbf{e_p}\\ + \\\mathbf{e_s}\\.
+        \\left[ \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^e } \mathbf{C} + i \omega \mathbf{M_{\sigma}^f} \\right] \mathbf{e}_{s} = i \omega \mathbf{M_{\sigma_{s}}^f } \mathbf{e}_{p}
+
+    which we solve for :math:`\\mathbf{e_s}`. The total field :math:`\mathbf{e} = \mathbf{e_p} + \mathbf{e_s}`.
 
     The primary field is estimated from a background model (commonly half space ).
 
@@ -251,8 +252,8 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
         """
             Function to return the right hand side for the system.
             :param float freq: Frequency
-            :rtype: numpy.ndarray (nF, 1), numpy.ndarray (nF, 1)
-            :return: RHS for 1 polarizations, primary fields
+            :rtype: numpy.ndarray
+            :return: RHS for 1 polarizations, primary fields (nF, 1)
         """
 
         # Get sources for the frequncy(polarizations)
@@ -275,7 +276,9 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
         '''
         Function to calculate all the fields for the model m.
 
-        :param np.ndarray (nC,) m: Conductivity model
+        :param numpy.ndarray m: Conductivity model (nC,)
+        :rtype: SimPEG.EM.NSEM.FieldsNSEM.Fields1D_ePrimSec
+        :return: NSEM fields object containing the solution
         '''
         # Set the current model
         self.curModel = m
@@ -313,7 +316,7 @@ class Problem1D_eTotal(BaseNSEMProblem):
 
     Solves the equation:
 
-    Math:
+    .. math ::
         Have to do this...
         Not implement correctly.......
     """
@@ -355,7 +358,7 @@ class Problem1D_eTotal(BaseNSEMProblem):
             Function to get the A matrix.
 
             :param float freq: Frequency
-            :param logic full: Return full A or the inner part
+            :param bool full: Return full A or the inner part
             :rtype: scipy.sparse.csr_matrix
             :return: A
         """
@@ -384,8 +387,8 @@ class Problem1D_eTotal(BaseNSEMProblem):
         """
             Function to return the right hand side for the system.
             :param float freq: Frequency
-            :rtype: numpy.ndarray (nE, 2), numpy.ndarray (nE, 2)
-            :return: RHS for both polarizations, primary fields
+            :rtype: numpy.ndarray
+            :return: RHS for both polarizations, primary fields (nE, 2)
         """
         # Get sources for the frequency
         # NOTE: Need to use the source information, doesn't really apply in 1D
@@ -415,8 +418,8 @@ class Problem1D_eTotal(BaseNSEMProblem):
         '''
         Function to calculate all the fields for the model m.
 
-        :param np.ndarray (nC,) m: Conductivity model
-        :param np.ndarray (nC,) m_back: Background conductivity model
+        :param numpy.ndarray m: Conductivity model (nC,)
+        :param numpy.ndarray m_back: Background conductivity model (nC,)
         '''
 
 
@@ -458,11 +461,13 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
             \mathbf{b} = \\frac{1}{i \omega}\\left(-\mathbf{C} \mathbf{e} \\right)
 
 
-    we can write Maxwell's equations as a second order system in \\\(\\\mathbf{e}\\\) only:
+    we can write Maxwell's equations as a second order system in :math:`\mathbf{e}` only:
 
     .. math ::
-        \\left(\mathbf{C}^T \mathbf{M^f_{\mu^{-1}}} \mathbf{C} + i \omega \mathbf{M^e_\sigma}] \mathbf{e}_{s} =& i \omega \mathbf{M^e_{\delta \sigma}} \mathbf{e}_{p}
-    which we solve for \\\(\\\mathbf{e_s}\\\). The total field \\\mathbf{e}\\ = \\\mathbf{e_p}\\ + \\\mathbf{e_s}\\.
+
+        \\left[\mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{C} + i \omega \mathbf{M_{\sigma}^e} \\right] \mathbf{e}_{s} = i \omega \mathbf{M_{\sigma_{p}}^e} \mathbf{e}_{p}
+
+    which we solve for :math:`\mathbf{e_s}`. The total field :math:`\mathbf{e} = \mathbf{e_p} + \mathbf{e_s}`.
 
     The primary field is estimated from a background model (commonly as a 1D model).
 
@@ -493,11 +498,11 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
 
     def getA(self, freq):
         """
-            Function to get the A system.
+        Function to get the A system.
 
-            :param float freq: Frequency
-            :rtype: scipy.sparse.csr_matrix
-            :return: A
+        :param float freq: Frequency
+        :rtype: scipy.sparse.csr_matrix
+        :return: A
         """
         Mfmui = self.MfMui
         Mesig = self.MeSigma
@@ -508,14 +513,14 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
     def getADeriv(self, freq, u, v, adjoint=False):
         """
         Calculate the derivative of A wrt m.
-        :param float freq: Frequency
-        :param SimPEG.EM.NSEM.Fields u: Fields object
-        :param np.array v: vector of size (nU,) (adjoint=False)
-            and size (nP,) (adjoint=True)
-        :rtype numpy.array:
-        :return: Calculated derivative (nP,) (adjoint=False) and (nU,)[Note: return as a (nU/2,2)
-            columnwise polarizations] (adjoint=True) for both polarizations
 
+        :param float freq: Frequency
+        :param SimPEG.EM.NSEM.FieldsNSEM u: NSEM Fields object
+        :param numpy.ndarray v: vector of size (nU,) (adjoint=False)
+            and size (nP,) (adjoint=True)
+        :rtype: numpy.ndarray
+        :return: Calculated derivative (nP,) (adjoint=False) and (nU,)[NOTE return as a (nU/2,2)
+            columnwise polarizations] (adjoint=True) for both polarizations
 
         """
         # Fix u to be a matrix nE,2
@@ -535,9 +540,10 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
         """
         Function to return the right hand side for the system.
 
-            :param float freq: Frequency
-            :rtype: numpy.ndarray (nE, 2), numpy.ndarray (nE, 2)
-            :return: RHS for both polarizations, primary fields
+        :param float freq: Frequency
+        :rtype: numpy.ndarray
+        :return: RHS for both polarizations, primary fields (nE, 2)
+
         """
 
         # Get sources for the frequncy(polarizations)
@@ -548,12 +554,14 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
     def getRHSDeriv(self, freq, v, adjoint=False):
         """
         The derivative of the RHS with respect to the model and the source
+
         :param float freq: Frequency
-        :param np.array v: vector of size (nU,) (adjoint=False)
+        :param numpy.ndarray v: vector of size (nU,) (adjoint=False)
             and size (nP,) (adjoint=True)
-        :rtype numpy.array:
+        :rtype: numpy.ndarray
         :return: Calculated derivative (nP,) (adjoint=False) and (nU,2) (adjoint=True)
             for both polarizations
+
         """
 
         # Note: the formulation of the derivative is the same for adjoint or not.
@@ -567,7 +575,10 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
         '''
         Function to calculate all the fields for the model m.
 
-        :param np.ndarray (nC,) m: Conductivity model
+        :param numpy.ndarray (nC,) m: Conductivity model
+        :rtype: SimPEG.EM.NSEM.FieldsNSEM
+        :return: Fields object with of the solution
+
         '''
         # Set the current model
         self.curModel = m
