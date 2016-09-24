@@ -114,12 +114,12 @@ class Data(SimPEGsurvey.Data):
                 key = 'z' + k + c[0]
                 tArrRec[key] = mkvc(val,2)
             # Masked array
-            mArrRec = np.ma.MaskedArray(_rec_to_ndarr(tArrRec),mask=np.isnan(_rec_to_ndarr(tArrRec))).view(dtype=tArrRec.dtype)
+            # mArrRec = np.ma.MaskedArray(_rec_to_ndarr(tArrRec),mask=np.isnan(_rec_to_ndarr(tArrRec))).view(dtype=tArrRec.dtype)
 
             try:
-                outTemp = recFunc.stack_arrays((outTemp,mArrRec))
+                outTemp = recFunc.stack_arrays((outTemp,tArrRec))
             except NameError:
-                outTemp = mArrRec.copy()
+                outTemp = tArrRec.copy()
 
             if 'RealImag' in returnType:
                 outArr = outTemp.copy()
