@@ -6,7 +6,7 @@ import numpy as np
 
 import SimPEG as simpeg
 from SimPEG.Utils import meshTensor
-from SimPEG.EM.NSEM.RxNSEM import rxPoint_impedance1D, rxPoint_impedance3D, rxPoint_tipper3D
+from SimPEG.EM.NSEM.RxNSEM import rx_Point_impedance1D, rx_Point_impedance3D, rx_Point_tipper3D
 from SimPEG.EM.NSEM.SurveyNSEM import Survey
 from SimPEG.EM.NSEM.SrcNSEM import polxy_1Dprimary, polxy_1DhomotD
 from SimPEG.EM.NSEM.ProblemNSEM import Problem3D_ePrimSec
@@ -61,8 +61,8 @@ def setup1DSurvey(sigmaHalf, tD=False, structure=False):
 
     rxList = []
     for rxType in ['z1d','z1d']:
-        rxList.append(rxPoint_impedance1D(simpeg.mkvc(np.array([0.0]),2).T,'real'))
-        rxList.append(rxPoint_impedance1D(simpeg.mkvc(np.array([0.0]),2).T,'imag'))
+        rxList.append(rx_Point_impedance1D(simpeg.mkvc(np.array([0.0]),2).T,'real'))
+        rxList.append(rx_Point_impedance1D(simpeg.mkvc(np.array([0.0]),2).T,'imag'))
     # Source list
     srcList =[]
     if tD:
@@ -93,11 +93,11 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp='Imp', singleFreq=False, expMap=Tr
 
     for rx_type in rx_type_list:
         if rx_type in ['xx','xy','yx','yy']:
-            rxList.append(rxPoint_impedance3D(rx_loc, rx_type, 'real'))
-            rxList.append(rxPoint_impedance3D(rx_loc, rx_type, 'imag'))
+            rxList.append(rx_Point_impedance3D(rx_loc, rx_type, 'real'))
+            rxList.append(rx_Point_impedance3D(rx_loc, rx_type, 'imag'))
         if rx_type in ['zx','zy']:
-            rxList.append(rxPoint_tipper3D(rx_loc, rx_type, 'real'))
-            rxList.append(rxPoint_tipper3D(rx_loc, rx_type, 'imag'))
+            rxList.append(rx_Point_tipper3D(rx_loc, rx_type, 'real'))
+            rxList.append(rx_Point_tipper3D(rx_loc, rx_type, 'imag'))
 
     # Source list
     srcList =[]

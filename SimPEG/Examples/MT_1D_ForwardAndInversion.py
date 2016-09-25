@@ -59,8 +59,8 @@ def run(plotIt=True):
     ## Setup the layout of the survey, set the sources and the connected receivers
     # Receivers
     rxList = []
-    rxList.append(NSEM.rxPoint_impedance1D(simpeg.mkvc(np.array([-0.5]),2).T,'real'))
-    rxList.append(NSEM.rxPoint_impedance1D(simpeg.mkvc(np.array([-0.5]),2).T,'imag'))
+    rxList.append(NSEM.rx_Point_impedance1D(simpeg.mkvc(np.array([-0.5]),2).T,'real'))
+    rxList.append(NSEM.rx_Point_impedance1D(simpeg.mkvc(np.array([-0.5]),2).T,'imag'))
     # Source list
     srcList =[]
     for freq in freqs:

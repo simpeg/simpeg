@@ -10,7 +10,7 @@ from scipy import interpolate as sciint
 
 import SimPEG as simpeg
 from SimPEG.EM.NSEM.SurveyNSEM import Data , Survey
-from SimPEG.EM.NSEM.RxNSEM import rxPoint_impedance1D
+from SimPEG.EM.NSEM.RxNSEM import rx_Point_impedance1D
 from SimPEG.EM.NSEM.SrcNSEM import polxy_1Dprimary
 
 
@@ -255,8 +255,8 @@ def convert3Dto1Dobject(NSEMdata, rxType3D='yx'):
     for loc in uniLocs:
         # Make the receiver list
         rx1DList = []
-        rx1DList.append(rxPoint_impedance1D(simpeg.mkvc(loc,2).T,'real'))
-        rx1DList.append(rxPoint_impedance1D(simpeg.mkvc(loc,2).T,'imag'))
+        rx1DList.append(rx_Point_impedance1D(simpeg.mkvc(loc,2).T,'real'))
+        rx1DList.append(rx_Point_impedance1D(simpeg.mkvc(loc,2).T,'imag'))
         # Source list
         locrecData = recData[np.sqrt(np.sum( (rec_to_ndarr(recData[['x','y','z']]) - loc )**2,axis=1)) < 1e-5]
         dat1DList = []
