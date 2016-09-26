@@ -14,6 +14,30 @@ class Mapping(properties.Property):
 
     info_text = 'a SimPEG Map'
 
+    @property
+    def prop(self):
+        return getattr(self, '_prop', None)
+
+    @prop.setter
+    def prop(self, value):
+        assert isinstance(value, PhysicalProperty)
+        value._mapping = self  # Skip the setter
+        self._prop = value
+
+    @property
+    def reciprocal(self):
+        if self.prop and self.prop.reciprocal:
+            return self.prop.reciprocal.mapping
+
+    def clear_props(self, instance):
+        if self.prop:
+            instance._set(self.prop.name, None)
+        if not self.reciprocal:
+            return
+        instance._set(self.reciprocal.name, None)
+        if self.reciprocal.prop:
+            instance._set(self.reciprocal.prop.name, None)
+
     def validate(self, instance, value):
         if value is None:
             return None
@@ -21,12 +45,53 @@ class Mapping(properties.Property):
             self.error(instance, value)
         return value
 
+    def get_property(self):
+
+        scope = self
+
+        def fget(self):
+            value = self._get(scope.name)
+            if value is not None:
+                return value
+            if scope.reciprocal is None:
+                return None
+            reciprocal = self._get(scope.reciprocal.name)
+            if reciprocal is None:
+                return None
+            return Maps.ReciprocalMap() * reciprocal
+
+        def fset(self, value):
+            value = scope.validate(self, value)
+            self._set(scope.name, value)
+            scope.clear_props(self)
+
+        return property(fget=fget, fset=fset, doc=scope.help)
+
 
 class PhysicalProperty(properties.Property):
 
     info_text = 'a physical property'
 
-    mapping = None
+    @property
+    def mapping(self):
+        return getattr(self, '_mapping', None)
+
+    @mapping.setter
+    def mapping(self, value):
+        assert isinstance(value, Mapping)
+        value._prop = self  # Skip the setter
+        self._mapping = value
+
+    reciprocal = None
+
+    def clear_mappings(self, instance):
+        if self.mapping:
+            instance._set(self.mapping.name, None)
+        if not self.reciprocal:
+            return
+        instance._set(self.reciprocal.name, None)
+        if self.reciprocal.mapping:
+            instance._set(self.reciprocal.mapping.name, None)
 
     def validate(self, instance, value):
         if value is None:
@@ -44,14 +109,17 @@ class PhysicalProperty(properties.Property):
             default = self._get(scope.name)
             if default is not None:
                 return default
+            if scope.reciprocal:
+                default = self._get(scope.reciprocal.name)
+                if default is not None:
+                    return 1.0 / default
             mapping = getattr(self, scope.mapping.name)
             return mapping * self.model
 
         def fset(self, value):
-            # clear the mapping
-            setattr(self, scope.mapping.name, None)
             value = scope.validate(self, value)
             self._set(scope.name, value)
+            scope.clear_mappings(self)
 
         return property(fget=fget, fset=fset, doc=scope.help)
 
@@ -102,6 +170,11 @@ def Invertible(help):
     )
 
     return physical_property, mapping, property_derivative
+
+
+def Reciprocal(prop1, prop2):
+    prop1.reciprocal = prop2
+    prop2.reciprocal = prop1
 
 
 class BaseSimPEG(properties.HasProperties()):

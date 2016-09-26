@@ -36,6 +36,19 @@ class ShortcutExample(Props.BaseSimPEG):
     )
 
 
+class ReciprocalExample(Props.BaseSimPEG):
+
+    sigma, sigmaMap, sigmaDeriv = Props.Invertible(
+        "Electrical conductivity (S/m)"
+    )
+
+    rho, rhoMap, rhoDeriv = Props.Invertible(
+        "Electrical resistivity (Ohm m)"
+    )
+
+    Props.Reciprocal(sigma, rho)
+
+
 class TestPropMaps(unittest.TestCase):
 
     def setUp(self):
@@ -70,6 +83,33 @@ class TestPropMaps(unittest.TestCase):
             del PM.model
             # sigma is not changed
             assert np.all(PM.sigma == np.r_[1., 2., 3.])
+
+    def test_reciprocal(self):
+        expMap = Maps.ExpMap(Mesh.TensorMesh((3,)))
+
+        PM = ReciprocalExample(sigmaMap=expMap)
+
+        PM.model = np.r_[1., 2., 3.]
+        assert np.all(PM.sigma == np.exp(np.r_[1., 2., 3.]))
+        assert np.all(PM.rho == 1.0 / np.exp(np.r_[1., 2., 3.]))
+
+        PM.rho = np.r_[1., 2., 3.]
+        assert PM.rhoMap is None
+        assert PM.sigmaMap is None
+        assert PM.rhoDeriv == 0
+        assert PM.sigmaDeriv == 0
+        assert np.all(PM.sigma == 1.0 / np.r_[1., 2., 3.])
+
+        PM.sigmaMap = expMap
+        # change your mind?
+        PM.rhoMap = expMap
+        assert PM._get('sigmaMap') is None
+        assert len(PM.rhoMap) == 1
+        assert len(PM.sigmaMap) == 2
+        assert np.all(PM.rho == np.exp(np.r_[1., 2., 3.]))
+        assert np.all(PM.sigma == 1.0 / np.exp(np.r_[1., 2., 3.]))
+        assert isinstance(PM.sigmaDeriv.todense(), np.ndarray)
+
 
 if __name__ == '__main__':
     unittest.main()
