@@ -311,4 +311,9 @@ nitpick_ignore = [
     ('py:class', 'Fields_ky'),
     ('py:class', 'Fields_ky_CC'),
     ('py:class', 'Fields_ky_N'),
+    ('py:class', 'BaseNSEMFields'),
+    ('py:class', 'Fields1D_ePrimSec'),
+    ('py:class', 'Fields1D_eTotal'),
+    ('py:class', 'Fields3D_ePrimSec'),
+    ('py:class', 'BaseNSEMSrc'),
 ]
