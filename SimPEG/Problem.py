@@ -13,18 +13,19 @@ Solver = Utils.SolverUtils.Solver
 
 class BaseProblem(object):
     """
-        Problem is the base class for all geophysical forward problems in SimPEG.
+        Problem is the base class for all geophysical forward problems
+        in SimPEG.
     """
 
-    counter = None   #: A SimPEG.Utils.Counter object
+    counter = None  #: A SimPEG.Utils.Counter object
 
-    surveyPair = Survey.BaseSurvey   #: A SimPEG.Survey Class
-    mapPair    = Maps.IdentityMap    #: A SimPEG.Map Class
+    surveyPair = Survey.BaseSurvey  #: A SimPEG.Survey Class
+    mapPair = Maps.IdentityMap      #: A SimPEG.Map Class
 
     Solver = Solver   #: A SimPEG Solver class.
     solverOpts = {}   #: Sovler options as a kwarg dict
 
-    mesh    = None    #: A SimPEG.Mesh instance.
+    mesh = None       #: A SimPEG.Mesh instance.
 
     PropMap = None    #: A SimPEG PropertyMap class.
 
@@ -32,6 +33,7 @@ class BaseProblem(object):
     def mapping(self):
         "A SimPEG.Map instance or a property map is PropMap is not None"
         return getattr(self, '_mapping', None)
+
     @mapping.setter
     def mapping(self, val):
         if self.PropMap is None:
@@ -42,7 +44,9 @@ class BaseProblem(object):
 
     def __init__(self, mesh, mapping=None, **kwargs):
         Utils.setKwargs(self, **kwargs)
-        assert isinstance(mesh, Mesh.BaseMesh), "mesh must be a SimPEG.Mesh object."
+        assert isinstance(mesh, Mesh.BaseMesh), (
+            "mesh must be a SimPEG.Mesh object."
+        )
         self.mesh = mesh
         self.mapping = mapping or Maps.IdentityMap(mesh)
 
@@ -55,20 +59,28 @@ class BaseProblem(object):
 
     def pair(self, d):
         """Bind a survey to this problem instance using pointers."""
-        assert isinstance(d, self.surveyPair), "Data object must be an instance of a {0!s} class.".format((self.surveyPair.__name__))
+        assert isinstance(d, self.surveyPair), (
+            "Data object must be an instance of a {0!s} class.".format(
+                self.surveyPair.__name__
+            )
+        )
         if d.ispaired:
-            raise Exception("The survey object is already paired to a problem. Use survey.unpair()")
+            raise Exception(
+                "The survey object is already paired to a problem. "
+                "Use survey.unpair()"
+            )
         self._survey = d
         d._prob = self
 
     def unpair(self):
         """Unbind a survey from this problem instance."""
-        if not self.ispaired: return
+        if not self.ispaired:
+            return
         self.survey._prob = None
         self._survey = None
 
-
-    deleteTheseOnModelUpdate = [] # List of strings, e.g. ['_MeSigma', '_MeSigmaI']
+    #: List of strings, e.g. ['_MeSigma', '_MeSigmaI']
+    deleteTheseOnModelUpdate = []
 
     @property
     def curModel(self):
@@ -76,10 +88,11 @@ class BaseProblem(object):
             Sets the current model, and removes dependent mass matrices.
         """
         return getattr(self, '_curModel', None)
+
     @curModel.setter
     def curModel(self, value):
         if value is self.curModel:
-            return # it is the same!
+            return  # it is the same!
         if self.PropMap is not None:
             self._curModel = self.mapping(value)
         else:
@@ -120,7 +133,6 @@ class BaseProblem(object):
             :return: JTv
         """
         raise NotImplementedError('Jt is not yet implemented.')
-
 
     @Utils.timeIt
     def Jvec_approx(self, m, v, f=None):
@@ -198,6 +210,7 @@ class BaseTimeProblem(BaseProblem):
     @property
     def t0(self):
         return getattr(self, '_t0', 0.0)
+
     @t0.setter
     def t0(self, value):
         assert Utils.isScalar(value), 't0 must be a scalar'
@@ -214,10 +227,12 @@ class BaseTimeProblem(BaseProblem):
         if getattr(self, '_timeMesh', None) is None:
             self._timeMesh = Mesh.TensorMesh([self.timeSteps], x0=[self.t0])
         return self._timeMesh
+
     @timeMesh.deleter
     def timeMesh(self):
         if hasattr(self, '_timeMesh'):
             del self._timeMesh
+
 
 class LinearProblem(BaseProblem):
 
@@ -235,4 +250,3 @@ class LinearProblem(BaseProblem):
 
     def Jtvec(self, m, v, f=None):
         return self.G.T.dot(v)
-
