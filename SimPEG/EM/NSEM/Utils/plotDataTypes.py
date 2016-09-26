@@ -1,10 +1,8 @@
 from __future__ import print_function
-from __future__ import absolute_import
 from __future__ import division
 
 from matplotlib import pyplot as plt, colors, numpy as np
-
-from . import rec_to_ndarr
+# from SimPEG.EM.NSEM.Utils.dataUtils import rec_to_ndarr
 
 def plotIsoFreqNSimpedance(ax,freq,array,flag,par='abs',colorbar=True,colorNorm='SymLog',cLevel=True,contour=True):
 
@@ -175,12 +173,12 @@ def plotIsoFreqNStipper(ax,freq,array,flag,par='abs',colorbar=True,colorNorm='Sy
         plt.colorbar(cs,cax=ax.cax,ticks=clevel,format='%1.2e')
     ax.set_title(flag+' '+par,fontsize=8)
 
-def plotIsoStaImpedance(ax ,loc ,array, flag, par='abs',
-        pSym='s', pColor=None, addLabel='', zorder=1):
+def plotIsoStaImpedance(ax, loc, array, flag, par='abs',
+                        pSym='s', pColor=None, addLabel='', zorder=1):
 
     appResFact = 1/(8*np.pi**2*10**(-7))
     treshold = 1.0 # 1 meter
-    indUniSta = np.sqrt(np.sum((rec_to_ndarr(array[['x','y']])-loc)**2,axis=1)) < treshold
+    indUniSta = np.sqrt(np.sum((array[['x','y']].view((float,2))-loc)**2,axis=1)) < treshold
     freq = array['freq'][indUniSta]
 
     if par == 'abs':
@@ -302,7 +300,6 @@ def plotPsudoSectNSimpedance(ax,sectDict,array,flag,par='abs',colorbar=True,colo
         ax.set_title(flag+' '+par,fontsize=8)
         return cs, csB
     return cs,None
-
 
 def plotPsudoSectNSDiff(ax,sectDict,arrayList,flag,par='abs',colorbar=True,colorNorm='SymLog',cLevel=None,contour=True,mask=None,useLog=False):
 
