@@ -176,6 +176,9 @@ class IdentityMap(object):
             self.shape[1]
         )
 
+    def __len__(self):
+        return 1
+
 
 class ComboMap(IdentityMap):
     """Combination of various maps."""
@@ -247,6 +250,9 @@ class ComboMap(IdentityMap):
             self.shape[0],
             self.shape[1]
         )
+
+    def __len__(self):
+        return len(self.maps)
 
 
 class ExpMap(IdentityMap):
