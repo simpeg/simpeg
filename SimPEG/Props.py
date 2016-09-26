@@ -7,6 +7,7 @@ import properties
 import numpy as np
 
 from . import Maps
+from . import Utils
 
 
 class Mapping(properties.Property):
@@ -81,4 +82,8 @@ class Derivative(properties.GettableProperty):
 
             return mapping.deriv(self.model)
 
-        return property(fget=fget, fset=fset, doc=scope.help)
+        return property(fget=fget, doc=scope.help)
+
+
+class BaseSimPEG(properties.HasProperties()):
+    pass
