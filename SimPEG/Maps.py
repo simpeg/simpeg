@@ -20,7 +20,9 @@ class IdentityMap(object):
         Utils.setKwargs(self, **kwargs)
 
         if nP is not None:
-            assert type(nP) in integer_types, ' Number of parameters must be an integer.'
+            assert type(nP) in integer_types, (
+                ' Number of parameters must be an integer.'
+            )
 
         self.mesh = mesh
         self._nP = nP
@@ -134,25 +136,45 @@ class IdentityMap(object):
                                m, num=4, **kwargs)
 
     def _assertMatchesPair(self, pair):
-        assert (isinstance(self, pair) or
+        assert (
+            isinstance(self, pair) or
             isinstance(self, ComboMap) and isinstance(self.maps[0], pair)
-            ), "Mapping object must be an instance of a {0!s} class.".format((pair.__name__))
+        ), "Mapping object must be an instance of a {0!s} class.".format(
+            pair.__name__
+        )
 
     def __mul__(self, val):
         if isinstance(val, IdentityMap):
-            if not (self.shape[1] == '*' or val.shape[0] == '*') and not self.shape[1] == val.shape[0]:
-                raise ValueError('Dimension mismatch in {0!s} and {1!s}.'.format(str(self), str(val)))
+            if (
+                not (self.shape[1] == '*' or val.shape[0] == '*') and
+                not self.shape[1] == val.shape[0]
+            ):
+                raise ValueError(
+                    'Dimension mismatch in {0!s} and {1!s}.'.format(
+                        str(self), str(val)
+                    )
+                )
             return ComboMap([self, val])
 
         elif isinstance(val, np.ndarray):
-            if not self.shape[1] == '*' and not self.shape[1] == val.shape[0]:
-                raise ValueError('Dimension mismatch in {0!s} and np.ndarray{1!s}.'.format(str(self), str(val.shape)))
+            if (
+                not self.shape[1] == '*' and not self.shape[1] == val.shape[0]
+            ):
+                raise ValueError(
+                    'Dimension mismatch in {0!s} and np.ndarray{1!s}.'.format(
+                        str(self), str(val.shape)
+                    )
+                )
             return self._transform(val)
         raise Exception('Unrecognized data type to multiply. '
                         'Try a map or a numpy.ndarray!')
 
     def __str__(self):
-        return "{0!s}({1!s},{2!s})".format(self.__class__.__name__, self.shape[0], self.shape[1])
+        return "{0!s}({1!s},{2!s})".format(
+            self.__class__.__name__,
+            self.shape[0],
+            self.shape[1]
+        )
 
 
 class ComboMap(IdentityMap):
@@ -166,11 +188,23 @@ class ComboMap(IdentityMap):
             assert isinstance(m, IdentityMap), "Unrecognized data type, "
             "inherit from an IdentityMap or ComboMap!"
 
-            if (ii > 0 and not (self.shape[1] == '*' or m.shape[0] == '*') and
-                not self.shape[1] == m.shape[0]):
+            if (
+                ii > 0 and not (self.shape[1] == '*' or m.shape[0] == '*') and
+                not self.shape[1] == m.shape[0]
+               ):
                 prev = self.maps[-1]
-                errArgs = (prev.__class__.__name__, prev.shape[0], prev.shape[1], m.__class__.__name__, m.shape[0], m.shape[1])
-                raise ValueError('Dimension mismatch in map[{0!s}] ({1!s}, {2!s}) and map[{3!s}] ({4!s}, {5!s}).'.format(*errArgs))
+                errArgs = ()
+                raise ValueError(
+                    'Dimension mismatch in map[{0!s}] ({1!s}, {2!s}) '
+                    'and map[{3!s}] ({4!s}, {5!s}).'.format(
+                        prev.__class__.__name__,
+                        prev.shape[0],
+                        prev.shape[1],
+                        m.__class__.__name__,
+                        m.shape[0],
+                        m.shape[1]
+                    )
+                )
 
             if isinstance(m, ComboMap):
                 self.maps += m.maps
@@ -208,7 +242,11 @@ class ComboMap(IdentityMap):
         return deriv
 
     def __str__(self):
-        return 'ComboMap[{0!s}]({1!s},{2!s})'.format(' * '.join([m.__str__() for m in self.maps]), self.shape[0], self.shape[1])
+        return 'ComboMap[{0!s}]({1!s},{2!s})'.format(
+            ' * '.join([m.__str__() for m in self.maps]),
+            self.shape[0],
+            self.shape[1]
+        )
 
 
 class ExpMap(IdentityMap):
@@ -332,7 +370,7 @@ class LogMap(IdentityMap):
     def deriv(self, m, v=None):
         mod = Utils.mkvc(m)
         deriv = np.zeros(mod.shape)
-        tol = 1e-16 # zero
+        tol = 1e-16  # zero
         ind = np.greater_equal(np.abs(mod), tol)
         deriv[ind] = 1.0/mod[ind]
         if v is not None:
@@ -482,17 +520,32 @@ class Surject2Dto3D(IdentityMap):
         """
         m = Utils.mkvc(m)
         if self.normal == 'Z':
-            return Utils.mkvc(m.reshape(self.mesh.vnC[[0,1]], order='F'
-                                        )[:, :, np.newaxis].repeat(self.mesh.nCz,
-                                                                   axis=2))
+            return Utils.mkvc(
+                m.reshape(
+                    self.mesh.vnC[[0, 1]], order='F'
+                )[:, :, np.newaxis].repeat(
+                    self.mesh.nCz,
+                    axis=2
+                )
+            )
         elif self.normal == 'Y':
-            return Utils.mkvc(m.reshape(self.mesh.vnC[[0,2]], order='F'
-                                        )[:, np.newaxis, :].repeat(self.mesh.nCy,
-                                                                   axis=1))
+            return Utils.mkvc(
+                m.reshape(
+                    self.mesh.vnC[[0, 2]], order='F'
+                )[:, np.newaxis, :].repeat(
+                    self.mesh.nCy,
+                    axis=1
+                )
+            )
         elif self.normal == 'X':
-            return Utils.mkvc(m.reshape(self.mesh.vnC[[1,2]], order='F'
-                                        )[np.newaxis, :, :].repeat(self.mesh.nCx,
-                                                                   axis=0))
+            return Utils.mkvc(
+                m.reshape(
+                    self.mesh.vnC[[1, 2]], order='F'
+                )[np.newaxis, :, :].repeat(
+                    self.mesh.nCx,
+                    axis=0
+                )
+            )
 
     def deriv(self, m, v=None):
         """
@@ -535,11 +588,14 @@ class Mesh2Mesh(IdentityMap):
         assert meshes[0].dim == meshes[1].dim, ("The two meshes must be the "
                                                 "same dimension")
 
-        self.mesh  = meshes[0]
+        self.mesh = meshes[0]
         self.mesh2 = meshes[1]
 
-        self.P = self.mesh2.getInterpolationMat(self.mesh.gridCC, 'CC',
-                                                zerosOutside=True)
+        self.P = self.mesh2.getInterpolationMat(
+            self.mesh.gridCC,
+            'CC',
+            zerosOutside=True
+        )
 
     @property
     def shape(self):
@@ -759,23 +815,39 @@ class ParametricCircleMap(IdentityMap):
         X = self.mesh.gridCC[:, 0]
         Y = self.mesh.gridCC[:, 1]
         if self.logSigma:
-            g1 = -(np.arctan(a*(-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi +
-                   0.5)*sig1 + sig1
-            g2 = (np.arctan(a*(-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi +
-                  0.5)*sig2
+            g1 = - (
+                np.arctan(a * (-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi +
+                0.5
+            ) * sig1 + sig1
+            g2 = (
+                np.arctan(a * (-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi +
+                0.5
+            ) * sig2
         else:
-            g1 = -(np.arctan(a*(-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi +
-                   0.5) + 1.0
-            g2 = (np.arctan(a*(-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi +
-                  0.5)
-        g3 = a*(-X + x)*(-sig1 + sig2)/(np.pi*(a**2*(-r + np.sqrt((X - x)**2 +
-                                        (Y - y)**2))**2 + 1)*np.sqrt((X - x)**2
-                                        + (Y - y)**2))
-        g4 = a*(-Y + y)*(-sig1 + sig2)/(np.pi*(a**2*(-r + np.sqrt((X - x)**2 +
-                                        (Y - y)**2))**2 + 1)*np.sqrt((X - x)**2
-                                        + (Y - y)**2))
-        g5 = -a*(-sig1 + sig2)/(np.pi*(a**2*(-r + np.sqrt((X - x)**2 +
-                                (Y - y)**2))**2 + 1))
+            g1 = -(
+                np.arctan(a * (-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi +
+                0.5
+            ) + 1.0
+            g2 = (
+                np.arctan(a * (-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi +
+                0.5
+            )
+
+        g3 = a*(-X + x)*(-sig1 + sig2) / (
+            np.pi*(
+                a**2*(-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1
+            ) * np.sqrt((X - x)**2 + (Y - y)**2)
+        )
+
+        g4 = a*(-Y + y)*(-sig1 + sig2) / (
+            np.pi*(
+                a**2*(-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1
+            ) * np.sqrt((X - x)**2 + (Y - y)**2)
+        )
+
+        g5 = -a*(-sig1 + sig2) / (
+            np.pi*(a**2*(-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1)
+        )
 
         if v is not None:
             return sp.csr_matrix(np.c_[g1, g2, g3, g4, g5]) * v
@@ -1069,7 +1141,7 @@ class ParametricSplineMap(IdentityMap):
             X = self.mesh.gridCC[:, 0]
             Y = self.mesh.gridCC[:, 1]
             Z = self.mesh.gridCC[:, 2]
-            if self.normal =='X':
+            if self.normal == 'X':
                 zb = self.ptsv[0]
                 zt = self.ptsv[1]
                 flines = ((self.spl["splt"](Y)-self.spl["splb"](Y)) *
@@ -1161,7 +1233,8 @@ class SplineMap(ParametricSplineMap):
         warnings.warn(
             "`SplineMap` is deprecated and will be removed in future "
             "versions. Use `ParametricSplineMap` instead",
-            FutureWarning)
-        ParametricSplineMap.__init__(self, mesh, pts, ptsv, order, logSigma,
-                                     normal)
-
+            FutureWarning
+        )
+        ParametricSplineMap.__init__(
+            self, mesh, pts, ptsv, order, logSigma, normal
+        )
