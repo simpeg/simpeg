@@ -135,3 +135,34 @@ class Dipole_ky(BaseRx):
             phi0 = phi1.copy()
         return phi
 
+
+# DC.Rx.Pole(loc)
+class Pole(BaseRx):
+    """
+    Pole receiver
+    """
+
+    def __init__(self, locsM, rxType='phi', **kwargs):
+
+        locs = locsM
+        # We may not need this ...
+        BaseRx.__init__(self, locs, rxType)
+
+    @property
+    def nD(self):
+        """Number of data in the receiver."""
+        return self.locs.shape[0]
+
+
+    def getP(self, mesh, Gloc):
+        if mesh in self._Ps:
+            return self._Ps[mesh]
+
+        P = mesh.getInterpolationMat(self.locs, Gloc)
+        # P1 = mesh.getInterpolationMat(self.locs[1], Gloc)
+        # P = P0 - P1
+
+        if self.storeProjections:
+            self._Ps[mesh] = P
+
+        return P
