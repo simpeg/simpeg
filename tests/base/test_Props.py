@@ -29,6 +29,13 @@ class SimpleExample(Props.BaseSimPEG):
     )
 
 
+class ShortcutExample(Props.BaseSimPEG):
+
+    sigma, sigmaMap, sigmaDeriv = Props.Invertible(
+        "Electrical conductivity (S/m)"
+    )
+
+
 class TestPropMaps(unittest.TestCase):
 
     def setUp(self):
@@ -38,29 +45,31 @@ class TestPropMaps(unittest.TestCase):
         expMap = Maps.ExpMap(Mesh.TensorMesh((3,)))
         assert expMap.nP == 3
 
-        PM = SimpleExample(sigmaMap=expMap)
-        assert PM.sigmaMap is not None
-        assert PM.sigmaMap is expMap
+        for Example in [SimpleExample, ShortcutExample]:
 
-        # There is currently no model, so sigma, which is mapped, should fail
-        self.assertRaises(AttributeError, getattr, PM, 'sigma')
+            PM = Example(sigmaMap=expMap)
+            assert PM.sigmaMap is not None
+            assert PM.sigmaMap is expMap
 
-        PM.model = np.r_[1., 2., 3.]
-        assert np.all(PM.sigma == np.exp(np.r_[1., 2., 3.]))
-        assert np.all(
-            PM.sigmaDeriv.todense() ==
-            Utils.sdiag(np.exp(np.r_[1., 2., 3.])).todense()
-        )
+            # There is currently no model, so sigma, which is mapped, fails
+            self.assertRaises(AttributeError, getattr, PM, 'sigma')
 
-        # If we set sigma, we should delete the mapping
-        PM.sigma = np.r_[1., 2., 3.]
-        assert np.all(PM.sigma == np.r_[1., 2., 3.])
-        assert PM.sigmaMap is None
-        assert PM.sigmaDeriv == 0
+            PM.model = np.r_[1., 2., 3.]
+            assert np.all(PM.sigma == np.exp(np.r_[1., 2., 3.]))
+            assert np.all(
+                PM.sigmaDeriv.todense() ==
+                Utils.sdiag(np.exp(np.r_[1., 2., 3.])).todense()
+            )
 
-        del PM.model
-        # sigma is not changed
-        assert np.all(PM.sigma == np.r_[1., 2., 3.])
+            # If we set sigma, we should delete the mapping
+            PM.sigma = np.r_[1., 2., 3.]
+            assert np.all(PM.sigma == np.r_[1., 2., 3.])
+            assert PM.sigmaMap is None
+            assert PM.sigmaDeriv == 0
+
+            del PM.model
+            # sigma is not changed
+            assert np.all(PM.sigma == np.r_[1., 2., 3.])
 
 if __name__ == '__main__':
     unittest.main()

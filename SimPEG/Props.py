@@ -85,5 +85,24 @@ class Derivative(properties.GettableProperty):
         return property(fget=fget, doc=scope.help)
 
 
+def Invertible(help):
+
+    mapping = Mapping(
+        "Mapping of {} to the inversion model.".format(help)
+    )
+
+    physical_property = PhysicalProperty(
+        help,
+        mapping=mapping
+    )
+
+    property_derivative = Derivative(
+        "Derivative of {} wrt the model.".format(help),
+        physical_property=physical_property
+    )
+
+    return physical_property, mapping, property_derivative
+
+
 class BaseSimPEG(properties.HasProperties()):
     pass
