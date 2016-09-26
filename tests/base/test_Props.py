@@ -129,13 +129,13 @@ class TestPropMaps(unittest.TestCase):
         PM = ReciprocalExample(sigmaMap=expMap)
 
         PM.model = np.r_[1., 2., 3.]
-        # assert np.all(PM.sigma == np.exp(np.r_[1., 2., 3.]))
-        # assert np.all(PM.rho == 1.0 / np.exp(np.r_[1., 2., 3.]))
+        assert np.all(PM.sigma == np.exp(np.r_[1., 2., 3.]))
+        assert np.all(PM.rho == 1.0 / np.exp(np.r_[1., 2., 3.]))
 
-        # PM.rho = np.r_[1., 2., 3.]
-        # assert PM.sigmaMap is None
-        # assert PM.sigmaDeriv == 0
-        # assert np.all(PM.sigma == 1.0 / np.r_[1., 2., 3.])
+        PM.rho = np.r_[1., 2., 3.]
+        assert PM.sigmaMap is None
+        assert PM.sigmaDeriv == 0
+        assert np.all(PM.sigma == 1.0 / np.r_[1., 2., 3.])
 
         PM.sigmaMap = expMap
         assert len(PM.sigmaMap) == 1
