@@ -437,6 +437,47 @@ class PrimSecCasingExample(object):
             self._meshs = meshs
         return self._meshs
 
+    @property
+    def indActive(self):
+        return self.meshs.gridCC[:, 2] <= 0.  # air cells
+
+    @property
+    def injActMap(self):
+        return Maps.InjectActiveCells(
+            self.meshs, self.indActive, np.log(self.sigmaair)
+            )
+
+    @property
+    def expMap(self):
+        return Maps.ExpMap(self.meshs)
+
+    @property
+    def mapping(self):
+        # secondary mapping
+        # here, we construct the parametric mapping to take the parameters
+        # describing the block in a layered space and map it to a conductivity
+        # model on our mesh
+        paramMap = Maps.ParametrizedBlockInLayer(
+            self.meshs, indActive=self.indActive
+            )
+
+        mapping = (self.expMap *  # log sigma --> sigma
+                   self.injActMap *  # inject air cells
+                   paramMap)  # block in a layered space (subsurface)
+
+    @property
+    def primaryMap2meshs(self):
+        # map the primary model to the secondary mesh (layer without the block)
+        paramMapPrimaryMeshs = Maps.ParametrizedLayer(
+            self.meshs, indActive=self.indActive
+            )
+
+        # primary map to the secondary mesh
+        return (self.expMap *  # log sigma --> sigma
+                self.injActMap *  # include air cells
+                paramMapPrimaryMeshs *  # parametrized layer
+                self.projectionMapPrimary)  # grab correct indices
+
     def run(self, plotIt=False, runTests=False, reRun=False, verbose=False,
             savePrimaryFields=False):
 
@@ -463,7 +504,8 @@ class PrimSecCasingExample(object):
         # Primary Problem
         primaryProblem = self.setupPrimaryProblem(
                                              mapping=self.primaryMapping,
-                                             muModel=self.muModel)
+                                             muModel=self.muModel
+                                             )
 
         primaryProblem.pair(primarySurvey)
 
@@ -491,42 +533,20 @@ class PrimSecCasingExample(object):
                   self.meshs.vectorCCz.max())
             print(' nC, vnC', self.meshs.nC, self.meshs.vnC)
 
-        # secondary mapping
-        # here, we construct the parametric mapping to take the parameters
-        # describing the block in a layered space and map it to a conductivity
-        # model on our mesh
-        indActive = self.meshs.gridCC[:, 2] <= 0.  # air cells
-        paramMap = Maps.ParametrizedBlockInLayer(self.meshs, indActive=indActive)
-        injActMap = Maps.InjectActiveCells(self.meshs, indActive, np.log(self.sigmaair))
-        expMap = Maps.ExpMap(self.meshs)
 
-        mapping = (expMap *  # log sigma --> sigma
-                   injActMap *  # inject air cells
-                   paramMap)  # block in a layered space (subsurface)
 
         # make a copy so we can simulate the background (without the conductive
         # block)
         mback = self.mtrue.copy()
         mback[2] = np.log(self.sigmalayer)
 
-        # map the primary model to the secondary mesh (layer without the block)
-        paramMapPrimaryMeshs = Maps.ParametrizedLayer(
-            self.meshs, indActive=indActive
-            )
-
-        # primary map to the secondary mesh
-        primaryMap2meshs = (expMap *  # log sigma --> sigma
-                            injActMap *  # include air cells
-                            paramMapPrimaryMeshs *  #
-                            self.projectionMapPrimary)
-
         # Secondary Problem and Survey
-        sec_problem = self.setupSecondaryProblem(mapping=mapping)
+        sec_problem = self.setupSecondaryProblem(mapping=self.mapping)
 
         sec_survey = self.setupSecondarySurvey(
                                           primaryProblem,
                                           primarySurvey,
-                                          primaryMap2meshs)
+                                          self.primaryMap2meshs)
         sec_problem.pair(sec_survey)
 
         # layered earth only (background)
@@ -536,7 +556,7 @@ class PrimSecCasingExample(object):
         background_survey = self.setupSecondarySurvey(
                                                  primaryProblem,
                                                  primarySurvey,
-                                                 primaryMap2meshs)
+                                                 self.primaryMap2meshs)
         background_problem.pair(background_survey)
 
 
@@ -547,75 +567,75 @@ class PrimSecCasingExample(object):
             # Test Block Model
             fun = lambda x: [sec_survey.dpred(x),
                              lambda x: sec_problem.Jvec(mtrue, x)]
-            Tests.checkDerivative(fun, mtrue, num=2, plotIt=False)
+            Tests.checkDerivative(fun, self.mtrue, num=2, plotIt=False)
 
-        # -------------- Calculate Fields --------------------------------- #
-        # Background
-        t0 = time.time()
-        print('solving background ... ')
-        fieldsback, dpredback = solveSecondary(background_problem,
-                                               background_survey,
-                                               mtrue)
-        t1 = time.time()
-        print('   dpred_back {}'format(t1-t0))
+        # # -------------- Calculate Fields --------------------------------- #
+        # # Background
+        # t0 = time.time()
+        # print('solving background ... ')
+        # fieldsback, dpredback = solveSecondary(background_problem,
+        #                                        background_survey,
+        #                                        mtrue)
+        # t1 = time.time()
+        # print('   dpred_back {}'.format(t1-t0))
 
-        if savePrimaryFields:
-            np.save('dpred_' + NAME + '_back', dpredback)
-            np.save('fields_' + NAME + '_back', fieldsback[:, :])
+        # if savePrimaryFields:
+        #     np.save('dpred_' + NAME + '_back', dpredback)
+        #     np.save('fields_' + NAME + '_back', fieldsback[:, :])
 
-            print('   saved {}'.format(NAME + '_back'))
+        #     print('   saved {}'.format(NAME + '_back'))
 
-        # with Block
-        t0 = time.time()
-        print('solving with block ... ')
-        fields, dpred = solveSecondary(sec_problem, sec_survey, mtrue)
-        print('   dpred {}'.format(t1-t0))
-        if savePrimaryFields:
-            np.save('dpred_' + NAME, dpred)
-            np.save('fields_' + NAME, fields[:, :])
+        # # with Block
+        # t0 = time.time()
+        # print('solving with block ... ')
+        # fields, dpred = solveSecondary(sec_problem, sec_survey, mtrue)
+        # print('   dpred {}'.format(t1-t0))
+        # if savePrimaryFields:
+        #     np.save('dpred_' + NAME, dpred)
+        #     np.save('fields_' + NAME, fields[:, :])
 
-        t1 = time.time()
+        # t1 = time.time()
 
-        print('   saved {}'.format(NAME))
+        # print('   saved {}'.format(NAME))
 
 
-        -------------- Calculate J --------------------------------- #
+        # -------------- Calculate J --------------------------------- #
 
-        # Calculate J for background
-        t0 = time.time()
+        # # Calculate J for background
+        # t0 = time.time()
 
-        print 'starting J back'
-        J = []
-        for i in range(len(mtrue)):
-            ei = np.zeros_like(mtrue)
-            ei[i] = 1.
-            J.append(background_problem.Jvec(mtrue, ei, f=fieldsback))
+        # print 'starting J back'
+        # J = []
+        # for i in range(len(mtrue)):
+        #     ei = np.zeros_like(mtrue)
+        #     ei[i] = 1.
+        #     J.append(background_problem.Jvec(mtrue, ei, f=fieldsback))
 
-        J = np.vstack(J)
+        # J = np.vstack(J)
 
-        t1 = time.time()
-        print '   J ', t1-t0
+        # t1 = time.time()
+        # print '   J ', t1-t0
 
-        np.save('J_'+ NAME  + '_back', J)
-        print '   saved %s' % 'J_' + NAME + '_back'
+        # np.save('J_'+ NAME  + '_back', J)
+        # print '   saved %s' % 'J_' + NAME + '_back'
 
-        # Calculate J with block
-        print 'starting J with block'
-        t0 = time.time()
+        # # Calculate J with block
+        # print 'starting J with block'
+        # t0 = time.time()
 
-        J = []
-        for i in range(len(mtrue)):
-            ei = np.zeros_like(mtrue)
-            ei[i] = 1.
-            J.append(sec_problem.Jvec(mtrue, ei, f=fields))
+        # J = []
+        # for i in range(len(mtrue)):
+        #     ei = np.zeros_like(mtrue)
+        #     ei[i] = 1.
+        #     J.append(sec_problem.Jvec(mtrue, ei, f=fields))
 
-        J = np.vstack(J)
+        # J = np.vstack(J)
 
-        t1 = time.time()
-        print '   J ', t1-t0
+        # t1 = time.time()
+        # print '   J ', t1-t0
 
-        np.save('J_'+ NAME, J)
-        print '   saved %s' % 'J_' + NAME
+        # np.save('J_'+ NAME, J)
+        # print '   saved %s' % 'J_' + NAME
 
 def downloadStoredResults(basePath=None):
     import os
