@@ -78,7 +78,8 @@ linkcheck_ignore = [
     'http://math.lanl.gov/~mac/papers/numerics/HS99B.pdf',
     'http://wiki.python.org/moin/NumericAndScientific',
     'http://wiki.python.org/moin/PythonEditors',
-    'http://docs.scipy.org/doc/numpy/reference/generated/numpy.array.html#numpy.array'
+    'http://docs.scipy.org/doc/numpy/reference/generated/numpy.array.html#numpy.array',
+    'http://dx.doi.org/10.1016/j.cageo.2015.09.015'
                    ]
 
 linkcheck_retries = 3
