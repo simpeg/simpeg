@@ -21,7 +21,7 @@ class IdentityMap(object):
 
         if nP is not None:
             assert type(nP) in integer_types, (
-                ' Number of parameters must be an integer.'
+                'Number of parameters must be an integer.'
             )
 
         self.mesh = mesh
@@ -787,8 +787,10 @@ class ParametricCircleMap(IdentityMap):
     slope = 1e-1
 
     def __init__(self, mesh, logSigma=True):
-        assert mesh.dim == 2, "Working for a 2D mesh only right now. "
-        "But it isn't that hard to change.. :)"
+        assert mesh.dim == 2, (
+            "Working for a 2D mesh only right now. "
+            "But it isn't that hard to change.. :)"
+        )
         IdentityMap.__init__(self, mesh)
         # TODO: this should be done through a composition with and ExpMap
         self.logSigma = logSigma
@@ -1021,7 +1023,8 @@ class PolyMap(ParametricPolyMap):
         warnings.warn(
             "`PolyMap` is deprecated and will be removed in future "
             "versions. Use `ParametricSplineMap` instead",
-            FutureWarning)
+            FutureWarning
+        )
         ParametricPolyMap(self, mesh, order, logSigma, normal, actInd)
 
 
