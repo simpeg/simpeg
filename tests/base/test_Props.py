@@ -62,6 +62,19 @@ class ReciprocalExample(Props.BaseSimPEG):
     Props.Reciprocal(sigma, rho)
 
 
+class ReciprocalPropExample(Props.BaseSimPEG):
+
+    sigma = Props.PhysicalProperty(
+        "Electrical conductivity (S/m)"
+    )
+
+    rho = Props.PhysicalProperty(
+        "Electrical resistivity (Ohm m)"
+    )
+
+    Props.Reciprocal(sigma, rho)
+
+
 class TestPropMaps(unittest.TestCase):
 
     def setUp(self):
@@ -142,6 +155,16 @@ class TestPropMaps(unittest.TestCase):
         assert np.all(PM.rho == 1.0 / np.exp(np.r_[1., 2., 3.]))
         assert np.all(PM.sigma == np.exp(np.r_[1., 2., 3.]))
         assert isinstance(PM.sigmaDeriv.todense(), np.ndarray)
+
+    def test_reciprocal_no_maps(self):
+
+        PM = ReciprocalExample(sigma=np.r_[1., 2., 3.])
+
+        assert np.all(PM.sigma == np.r_[1., 2., 3.])
+        assert np.all(PM.rho == 1.0 / np.r_[1., 2., 3.])
+
+        PM.rho = np.r_[1., 2., 3.]
+        assert np.all(PM.sigma == 1.0 / np.r_[1., 2., 3.])
 
 
 if __name__ == '__main__':
