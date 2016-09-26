@@ -23,10 +23,12 @@ def plot2Ddata(xyz, data, vec=None, nx=100, ny=100, ax=None, mask=None, level=No
         F = LinearNDInterpolator(xyz[:,:2], data)
         DATA = F(xy)
         DATA = DATA.reshape(X.shape)
+        if clim is not None:
+            DATA[DATA<clim[0]] = clim[0]
+            DATA[DATA>clim[1]] = clim[1]
         cont = ax.contourf(X, Y, DATA, ncontour, **contourOpts)
         if level is not None:
             CS = ax.contour(X, Y, DATA, level, colors="k", linewidths=2)
-
     else:
         # Assume size of data is (N,2)
         datax = data[:,0]
@@ -36,6 +38,9 @@ def plot2Ddata(xyz, data, vec=None, nx=100, ny=100, ax=None, mask=None, level=No
         DATAx = Fx(xy)
         DATAy = Fy(xy)
         DATA = np.sqrt(DATAx**2+DATAy**2).reshape(X.shape)
+        if clim is not None:
+            DATA[DATA<clim[0]] = clim[0]
+            DATA[DATA>clim[1]] = clim[1]
         DATAx = DATAx.reshape(X.shape)
         DATAy = DATAy.reshape(X.shape)
         cont = ax.contourf(X, Y, DATA, ncontour, **contourOpts)
