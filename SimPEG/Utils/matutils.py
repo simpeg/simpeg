@@ -467,6 +467,9 @@ def diagEst(matFun, n, k=None, approach='Probing'):
 
 
 class Zero(object):
+
+    __numpy_ufunc__ = True
+
     def __add__(self, v):
         return v
 
@@ -538,6 +541,8 @@ class Zero(object):
 
 
 class Identity(object):
+
+    __numpy_ufunc__ = True
 
     _positive = True
 

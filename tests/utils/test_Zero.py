@@ -41,6 +41,17 @@ class Tests(unittest.TestCase):
         S = sdiag(np.r_[2, 3])
         assert S*z == 0
 
+    def test_numpy_multiply(self):
+        z = Zero()
+        x = np.r_[1, 2, 3]
+        a = x * z
+        assert isinstance(a, Zero)
+
+        z = Zero()
+        x = np.r_[1, 2, 3]
+        a = z * x
+        assert isinstance(a, Zero)
+
     def test_one(self):
         o = Identity()
         assert o == 1
