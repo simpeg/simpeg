@@ -29,14 +29,18 @@ class Mapping(properties.Property):
         if self.prop and self.prop.reciprocal:
             return self.prop.reciprocal.mapping
 
+    @property
+    def reciprocal_prop(self):
+        if self.prop and self.prop.reciprocal:
+            return self.prop.reciprocal
+
     def clear_props(self, instance):
         if self.prop:
             instance._set(self.prop.name, None)
-        if not self.reciprocal:
-            return
-        instance._set(self.reciprocal.name, None)
-        if self.reciprocal.prop:
-            instance._set(self.reciprocal.prop.name, None)
+        if self.reciprocal_prop:
+            instance._set(self.reciprocal_prop.name, None)
+        if self.reciprocal:
+            instance._set(self.reciprocal.name, None)
 
     def validate(self, instance, value):
         if value is None:
@@ -113,6 +117,12 @@ class PhysicalProperty(properties.Property):
                 default = self._get(scope.reciprocal.name)
                 if default is not None:
                     return 1.0 / default
+            if scope.mapping is None and scope.reciprocal is None:
+                return None
+            if scope.mapping is None:
+                return 1.0 / getattr(self, scope.reciprocal.name)
+                return 'fun'
+
             mapping = getattr(self, scope.mapping.name)
             return mapping * self.model
 

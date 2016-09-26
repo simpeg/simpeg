@@ -36,7 +36,7 @@ class ShortcutExample(Props.BaseSimPEG):
     )
 
 
-class ReciprocalExample(Props.BaseSimPEG):
+class ReciprocalMappingExample(Props.BaseSimPEG):
 
     sigma, sigmaMap, sigmaDeriv = Props.Invertible(
         "Electrical conductivity (S/m)"
@@ -49,12 +49,25 @@ class ReciprocalExample(Props.BaseSimPEG):
     Props.Reciprocal(sigma, rho)
 
 
+class ReciprocalExample(Props.BaseSimPEG):
+
+    sigma, sigmaMap, sigmaDeriv = Props.Invertible(
+        "Electrical conductivity (S/m)"
+    )
+
+    rho = Props.PhysicalProperty(
+        "Electrical resistivity (Ohm m)"
+    )
+
+    Props.Reciprocal(sigma, rho)
+
+
 class TestPropMaps(unittest.TestCase):
 
     def setUp(self):
         pass
 
-    def test_setup(self):
+    def test_basic(self):
         expMap = Maps.ExpMap(Mesh.TensorMesh((3,)))
         assert expMap.nP == 3
 
@@ -87,7 +100,7 @@ class TestPropMaps(unittest.TestCase):
     def test_reciprocal(self):
         expMap = Maps.ExpMap(Mesh.TensorMesh((3,)))
 
-        PM = ReciprocalExample(sigmaMap=expMap)
+        PM = ReciprocalMappingExample(sigmaMap=expMap)
 
         PM.model = np.r_[1., 2., 3.]
         assert np.all(PM.sigma == np.exp(np.r_[1., 2., 3.]))
@@ -108,6 +121,26 @@ class TestPropMaps(unittest.TestCase):
         assert len(PM.sigmaMap) == 2
         assert np.all(PM.rho == np.exp(np.r_[1., 2., 3.]))
         assert np.all(PM.sigma == 1.0 / np.exp(np.r_[1., 2., 3.]))
+        assert isinstance(PM.sigmaDeriv.todense(), np.ndarray)
+
+    def test_reciprocal_no_map(self):
+        expMap = Maps.ExpMap(Mesh.TensorMesh((3,)))
+
+        PM = ReciprocalExample(sigmaMap=expMap)
+
+        PM.model = np.r_[1., 2., 3.]
+        # assert np.all(PM.sigma == np.exp(np.r_[1., 2., 3.]))
+        # assert np.all(PM.rho == 1.0 / np.exp(np.r_[1., 2., 3.]))
+
+        # PM.rho = np.r_[1., 2., 3.]
+        # assert PM.sigmaMap is None
+        # assert PM.sigmaDeriv == 0
+        # assert np.all(PM.sigma == 1.0 / np.r_[1., 2., 3.])
+
+        PM.sigmaMap = expMap
+        assert len(PM.sigmaMap) == 1
+        assert np.all(PM.rho == 1.0 / np.exp(np.r_[1., 2., 3.]))
+        assert np.all(PM.sigma == np.exp(np.r_[1., 2., 3.]))
         assert isinstance(PM.sigmaDeriv.todense(), np.ndarray)
 
 
