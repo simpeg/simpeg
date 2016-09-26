@@ -23,7 +23,7 @@ class BaseProblem(object):
     mapPair = Maps.IdentityMap      #: A SimPEG.Map Class
 
     Solver = Solver   #: A SimPEG Solver class.
-    solverOpts = {}   #: Sovler options as a kwarg dict
+    solverOpts = {}   #: Solver options as a kwarg dict
 
     mesh = None       #: A SimPEG.Mesh instance.
 
