@@ -50,7 +50,8 @@ Second (from the root of the simpeg repository)::
 .. attention:: Windows users
 	A common error when installing the setup.py is:
 	``Missing linker, needs MSC v.1500 (Microsoft Visual C++ 2008) Runtime Library``
-	The missing library can be found _here: https://www.microsoft.com/en-ca/download/details.aspx?id=29
+	The missing library can be found here_.
+	.. _here: https://www.microsoft.com/en-ca/download/details.aspx?id=29
 
 Useful Links
 ============

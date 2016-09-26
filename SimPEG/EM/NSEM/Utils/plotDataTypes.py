@@ -2,7 +2,6 @@ from __future__ import print_function
 from __future__ import division
 
 from matplotlib import pyplot as plt, colors, numpy as np
-# from SimPEG.EM.NSEM.Utils.dataUtils import rec_to_ndarr
 
 def plotIsoFreqNSimpedance(ax,freq,array,flag,par='abs',colorbar=True,colorNorm='SymLog',cLevel=True,contour=True):
 
