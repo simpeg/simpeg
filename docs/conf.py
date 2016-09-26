@@ -81,6 +81,9 @@ linkcheck_ignore = [
     'http://docs.scipy.org/doc/numpy/reference/generated/numpy.array.html#numpy.array'
                    ]
 
+linkcheck_retries = 3
+linkcheck_timeout = 500
+
 # The reST default role (used for this markup: `text`) to use for all documents.
 #default_role = None
 
