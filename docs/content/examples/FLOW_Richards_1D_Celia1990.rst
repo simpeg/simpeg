@@ -1,4 +1,5 @@
 .. _examples_FLOW_Richards_1D_Celia1990:
+
 .. --------------------------------- ..
 ..                                   ..
 ..    THIS FILE IS AUTO GENEREATED   ..
@@ -6,6 +7,7 @@
 ..    SimPEG/Examples/__init__.py    ..
 ..                                   ..
 .. --------------------------------- ..
+
 
 FLOW: Richards: 1D: Celia1990
 =============================
@@ -39,9 +41,12 @@ Here we reproduce the results from Celia1990_ demonstrating the head-based formu
 
 .. _Celia1990: http://www.webpages.uidaho.edu/ch/papers/Celia.pdf
 
+
 .. plot::
+
     from SimPEG import Examples
     Examples.FLOW_Richards_1D_Celia1990.run()
+
 .. literalinclude:: ../../../SimPEG/Examples/FLOW_Richards_1D_Celia1990.py
     :language: python
     :linenos:
