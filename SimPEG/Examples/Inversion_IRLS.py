@@ -60,15 +60,15 @@ def run(N=100, plotIt=True):
     reg.cell_weights = wr
 
     reg.mref = np.zeros(mesh.nC)
-    
+
 
     opt = Optimization.ProjectedGNCG(maxIter=100 ,lower=-2.,upper=2., maxIterLS = 20, maxIterCG= 10, tolCG = 1e-3)
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
     update_Jacobi = Directives.Update_lin_PreCond()
-    
+
     # Set the IRLS directive, penalize the lowest 25 percentile of model values
     # Start with an l2-l2, then switch to lp-norms
-    norms   = [0., 0., 2., 2.]    
+    norms   = [0., 0., 2., 2.]
     IRLS = Directives.Update_IRLS( norms=norms, prctile = 25, maxIRLSiter = 15, minGNiter=3)
 
     inv = Inversion.BaseInversion(invProb, directiveList=[IRLS,betaest,update_Jacobi])
