@@ -173,23 +173,23 @@ class Data(SimPEGsurvey.Data):
                     locs = _rec_to_ndarr(dFreq[['x','y','z']][notNaNind].copy())
                     if dFreq[rxType].dtype.name in 'complex128':
                         if 'z' in rxType:
-                            rxList.append(rx_Point_impedance3D(locs,rxType[1:-1],'real'))
+                            rxList.append(rx_Point_impedance3D(locs,rxType[1:3],'real'))
                             dataList.append(dFreq[rxType][notNaNind].real.copy())
-                            rxList.append(rx_Point_impedance3D(locs,rxType[1:-1],'imag'))
+                            rxList.append(rx_Point_impedance3D(locs,rxType[1:3],'imag'))
                             dataList.append(dFreq[rxType][notNaNind].imag.copy())
                         elif 't' in rxType:
-                            rxList.append(rx_Point_tipper3D(locs,rxType[1:-1],'real'))
+                            rxList.append(rx_Point_tipper3D(locs,rxType[1:3],'real'))
                             dataList.append(dFreq[rxType][notNaNind].real.copy())
-                            rxList.append(rx_Point_tipper3D(locs,rxType[1:-1],'imag'))
+                            rxList.append(rx_Point_tipper3D(locs,rxType[1:3],'imag'))
                             dataList.append(dFreq[rxType][notNaNind].imag.copy())
                     else:
                         component = 'real' if 'r' in rxType else 'imag'
                         if 'z' in rxType:
                             rxList.append(
-                                rx_Point_impedance3D(locs, rxType[1:-1], component))
+                                rx_Point_impedance3D(locs, rxType[1:3], component))
                             dataList.append(dFreq[rxType][notNaNind].copy())
                         if 't' in rxType:
-                            rxList.append(rx_Point_tipper3D(locs, rxType[1:-1], component))
+                            rxList.append(rx_Point_tipper3D(locs, rxType[1:3], component))
                             dataList.append(dFreq[rxType][notNaNind].copy())
 
             srcList.append(src(rxList, freq))
