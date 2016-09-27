@@ -63,6 +63,8 @@ class PrimSecCasingExample(object):
                 [(500./np.sqrt(self.sigmaback*_)) for _ in self.freqs])
               )
 
+
+
     @property
     def mtrue(self):
         # -------------- Model --------------------------------- #
@@ -100,24 +102,39 @@ class PrimSecCasingExample(object):
                                ])
 
     # ----------------------------------------------------------------- #
-    # -------------- PRIMARY PROBLEM ---------------------------------- #
+    # -------------- PRIMARY PROBLEM SETUP ---------------------------- #
     # ----------------------------------------------------------------- #
 
     @property
     def meshp(self):
         if getattr(self, '_meshp', None) is None:
+            # # -------------- Mesh Parameters ------------------ #
+            # # x-direction
+            # csx1, csx2 = 2.5e-3, 25. # fine cells near well bore
+            # pfx1, pfx2 = 1.3, 1.4  # padding factors: fine -> uniform, pad to infinity
+            # ncx1 = np.ceil(self.casing_b/csx1+2)  # number of fine cells (past casing wall)
+            # dx2 = 1000.  # uniform mesh out to here
+            # npadx2 = 21  # padding out to infinity
+
+            # # z-direction
+            # csz = 0.05  # finest z-cells
+            # nza = 10  # number of fine cells above air-earth interface
+            # pfz = pfx2 # padding factor in z-direction
+
+
             # -------------- Mesh Parameters ------------------ #
             # x-direction
-            csx1, csx2 = 2.5e-3, 25. # fine cells near well bore
+            csx1, csx2 = 5e-3, 13. # fine cells near well bore
             pfx1, pfx2 = 1.3, 1.4  # padding factors: fine -> uniform, pad to infinity
             ncx1 = np.ceil(self.casing_b/csx1+2)  # number of fine cells (past casing wall)
             dx2 = 1000.  # uniform mesh out to here
-            npadx2 = 21  # padding out to infinity
+            npadx2 = 24  # padding out to infinity
 
             # z-direction
-            csz = 0.05  # finest z-cells
+            csz = 0.10  # finest z-cells
             nza = 10  # number of fine cells above air-earth interface
             pfz = pfx2 # padding factor in z-direction
+
 
             # ------------- Assemble the Cyl Mesh ------------- #
             # pad nicely to second cell size
@@ -136,13 +153,25 @@ class PrimSecCasingExample(object):
 
             # cell size, number of core cells, number of padding cells in the
             # x-direction
-            ncz, npadzu, npadzd = np.int(np.ceil(np.diff(self.casing_z)[0]/csz))+10, 43, 43
+            ncz = np.int(np.ceil(np.diff(self.casing_z)[0]/csz))+10
+            npadzu, npadzd = 43, 43
 
             # vector of cell widths in the z-direction
-            hz = Utils.meshTensor([(csz, npadzd, -pfz), (csz, ncz), (csz, npadzu, pfz)])
+            hz = Utils.meshTensor(
+                    [(csz, npadzd, -pfz), (csz, ncz), (csz, npadzu, pfz)]
+                    )
 
             # primary mesh
-            self._meshp = Mesh.CylMesh([hx, 1., hz], [0., 0., -np.sum(hz[:npadzu+ncz-nza])])
+            self._meshp = Mesh.CylMesh(
+                [hx, 1., hz], [0., 0., -np.sum(hz[:npadzu+ncz-nza])]
+                )
+
+            if self.verbose is True:
+                print('Cyl Mesh Extent xmax: {},: zmin: {}, zmax: {}'.format(
+                        self._meshp.vectorCCx.max(),
+                        self._meshp.vectorCCz.min(),
+                        self._meshp.vectorCCz.max()
+                          ))
 
         return self._meshp
 
@@ -160,25 +189,25 @@ class PrimSecCasingExample(object):
         # we want to simulate on a physical property model that
         # consists of casing in a layered background. Air cells are included.
         # Our "model", that we are considering when computing the sensitivity,
-        # consists of the layered background and block, so the casing and air cells
-        # are inactive parts of the model and need to be appropriately injected
-        # during the construction of the primary model
+        # consists of the layered background and block, so the casing and air
+        # cells are inactive parts of the model and need to be appropriately
+        # injected during the construction of the primary model
 
         if getattr(self, '_primaryMapping', None) is None:
 
             # inject parameters we want to invert for into the full casing model
 
-
-            valInactive = np.r_[np.log(self.sigmacasing),  # log conductivity of the casing
-                                np.log(self.sigmainside),  # log conductivity of fluid inside casing
-                                self.casing_r,  # radius of the casing (to its center)
-                                self.casing_t,  # casing thickness
-                                self.casing_z[0],  # bottom of casing (at depth)
-                                self.casing_z[1]   # top of casing (at surface)
+            valInactive = np.r_[
+                np.log(self.sigmacasing),  # log conductivity of the casing
+                np.log(self.sigmainside),  # log conductivity fluid inside casing
+                self.casing_r,  # radius of the casing (to its center)
+                self.casing_t,  # casing thickness
+                self.casing_z[0],  # bottom of casing (at depth)
+                self.casing_z[1]   # top of casing (at surface)
                                 ]
 
-            # inject casing parameters so they are included in the construction of the
-            # layered background + casing
+            # inject casing parameters so they are included in the construction
+            # of the layered background + casing
             injectCasingParams = Maps.InjectActiveCells(
                 None, indActive=np.r_[0, 1, 4, 5], valInactive=valInactive,
                 nC=10
@@ -344,76 +373,41 @@ class PrimSecCasingExample(object):
 
     def setupPrimaryProblem(self, mapping=None, muModel=mu_0, plotIt=False):
 
-        # define a custom prop map to include variable mu that we are not inverting
-        # for
+        # define a custom prop map to include variable mu that we are not
+        # inverting for - This will change when we improve the propmap!
         class CasingEMPropMap(Maps.PropMap):
 
-            sigma = Maps.Property("Electrical Conductivity", defaultInvProp=True,
-                                  propertyLink=('rho', Maps.ReciprocalMap))
-            mu = Maps.Property("Inverse Magnetic Permeability", defaultVal=muModel,
-                               propertyLink=('mui', Maps.ReciprocalMap))
-
-            rho = Maps.Property("Electrical Resistivity",
-                                propertyLink=('sigma', Maps.ReciprocalMap))
+            sigma = Maps.Property(
+                        "Electrical Conductivity", defaultInvProp=True,
+                        propertyLink=('rho', Maps.ReciprocalMap)
+                        )
+            mu = Maps.Property(
+                    "Inverse Magnetic Permeability", defaultVal=muModel,
+                    propertyLink=('mui', Maps.ReciprocalMap)
+                    )
+            rho = Maps.Property(
+                    "Electrical Resistivity",
+                    propertyLink=('sigma', Maps.ReciprocalMap)
+                    )
             mui = Maps.Property("Inverse Magnetic Permeability",
                                 defaultVal=1./muModel,
-                                propertyLink=('mu', Maps.ReciprocalMap))
+                                propertyLink=('mu', Maps.ReciprocalMap)
+                    )
 
         if mapping is None:
             mapping = Maps.IdentityMap(meshp)
 
-        FDEM.Problem3D_h.PropMap = CasingEMPropMap
+        FDEM.Problem3D_h.PropMap = CasingEMPropMap # set the problem's propmap
+
+        # use H-J formulation for source with vertical current density and
+        # cylindrical symmetry (h faster on cyl --> less edges than faces)
         primaryProblem = FDEM.Problem3D_h(self.meshp, mapping=mapping)
-        # primaryProblem.PropMap = CasingEMPropMap
         primaryProblem.Solver = Solver
         return primaryProblem
 
-    def setupSecondaryProblem(self, mapping=None):
-
-        if mapping is None:
-            mapping = [('sigma', Maps.IdentityMap(self.meshs))]
-        sec_problem = FDEM.Problem3D_e(self.meshs, mapping=mapping)
-        sec_problem.Solver = Solver
-        return sec_problem
-
-    def setupSecondarySurvey(self, primaryProblem, primarySurvey,
-                             map2meshSecondary):
-
-        # -------------- PROBLEM and SURVEY ---------------------------- #
-        rxlocs = Utils.ndgrid([np.linspace(-2050, 2050, 41),
-                               np.linspace(-2050, 2050, 41),
-                               np.r_[-1]])
-
-        rx_x = FDEM.Rx.Point_e(rxlocs, orientation='x', component='real')
-        rx_y = FDEM.Rx.Point_e(rxlocs, orientation='y', component='real')
-
-        RxList = [rx_x, rx_y]
-
-        sec_src = [FDEM.Src.PrimSecMappedSigma(RxList, freq, primaryProblem,
-                                               primarySurvey,
-                                               map2meshSecondary=map2meshSecondary)
-                   for freq in self.freqs]
-
-        return FDEM.Survey(sec_src)
-
-    def solveSecondary(sec_problem, sec_survey, m, plotIt=False):
-
-        if not sec_problem.ispaired:
-            sec_problem.pair(sec_survey)
-
-        # -------------- SOLVE ---------------------------- #
-
-        print 'Solving Secondary'
-        t0 = time.time()
-        fields = sec_problem.fields(m)
-        dpred = sec_survey.dpred(m, f=fields)
-        t1 = time.time()
-        print '   secondary time ', t1-t0
-
-        return fields, dpred
 
     # ----------------------------------------------------------------- #
-    # -------------- SECONDARY PROBLEM -------------------------------- #
+    # -------------- SECONDARY PROBLEM SETUP -------------------------- #
     # ----------------------------------------------------------------- #
 
     # -------------- MESH  -------------------------------------------- #
@@ -422,9 +416,14 @@ class PrimSecCasingExample(object):
     @property
     def meshs(self):
         if getattr(self, '_meshs', None) is None:
-            csx, ncx, npadx = 50, 21, 12
-            csy, ncy, npady = 50, 21, 12
-            csz, ncz, npadz = 25, 40, 14
+            # csx, ncx, npadx = 50, 21, 12
+            # csy, ncy, npady = 50, 21, 12
+            # csz, ncz, npadz = 25, 40, 14
+            # pf = 1.5
+
+            csx, ncx, npadx = 100, 11, 12
+            csy, ncy, npady = 100, 11, 12
+            csz, ncz, npadz = 50, 20, 14
             pf = 1.5
 
             hx = Utils.meshTensor([(csx, npadx, -pf), (csx, ncx), (csx, npadx, pf)])
@@ -432,9 +431,16 @@ class PrimSecCasingExample(object):
             hz = Utils.meshTensor([(csz, npadz, -pf), (csz, ncz), (csz, npadz, pf)])
 
             x0 = np.r_[-hx.sum()/2., -hy.sum()/2., -hz[:npadz+ncz].sum()]
-            meshs = Mesh.TensorMesh([hx, hy, hz], x0=x0)
+            self._meshs = Mesh.TensorMesh([hx, hy, hz], x0=x0)
 
-            self._meshs = meshs
+            if self.verbose is True:
+                print('Secondary Mesh ... ')
+                print(' xmin, xmax, zmin, zmax: ', self._meshs.vectorCCx.min(),
+                      self._meshs.vectorCCx.max(), self._meshs.vectorCCy.min(),
+                      self._meshs.vectorCCy.max(), self._meshs.vectorCCz.min(),
+                      self._meshs.vectorCCz.max())
+                print(' nC, vnC', self._meshs.nC, self._meshs.vnC)
+
         return self._meshs
 
     @property
@@ -478,62 +484,92 @@ class PrimSecCasingExample(object):
                 paramMapPrimaryMeshs *  # parametrized layer
                 self.projectionMapPrimary)  # grab correct indices
 
-    def run(self, plotIt=False, runTests=False, reRun=False, verbose=False,
-            savePrimaryFields=False):
+    def setupSecondaryProblem(self, mapping=None):
 
-        # ---------------- Primary Mesh --------------------------------- #
-        if verbose is True:
-            print('Cyl Mesh Extent xmax: {},: zmin: {}, zmax: {}'.format(
-                    self.meshp.vectorCCx.max(), self.meshp.vectorCCz.min(),
-                    self.meshp.vectorCCz.max()
-                      ))
+        if mapping is None:
+            mapping = [('sigma', Maps.IdentityMap(self.meshs))]
+        sec_problem = FDEM.Problem3D_e(self.meshs, mapping=mapping)
+        sec_problem.Solver = Solver
+        return sec_problem
+
+    def setupSecondarySurvey(self, primaryProblem, primarySurvey,
+                             map2meshSecondary):
+
+        # -------------- PROBLEM and SURVEY ---------------------------- #
+        rxlocs = Utils.ndgrid([np.linspace(-2050, 2050, 41),
+                               np.linspace(-2050, 2050, 41),
+                               np.r_[-1]])
+
+        rx_x = FDEM.Rx.Point_e(rxlocs, orientation='x', component='real')
+        rx_y = FDEM.Rx.Point_e(rxlocs, orientation='y', component='real')
+
+        RxList = [rx_x, rx_y]
+
+        sec_src = [FDEM.Src.PrimSecMappedSigma(
+                        RxList, freq, primaryProblem, primarySurvey,
+                        map2meshSecondary=map2meshSecondary
+                                              )
+                   for freq in self.freqs]
+
+        return FDEM.Survey(sec_src)
+
+    # -------------- SOLVE ---------------------------- #
+    def solveSecondary(self, sec_problem, sec_survey, m, plotIt=False):
+
+        if not sec_problem.ispaired:
+            sec_problem.pair(sec_survey)
+
+        print 'Solving Secondary'
+        t0 = time.time()
+        fields = sec_problem.fields(m)
+        dpred = sec_survey.dpred(m, f=fields)
+        t1 = time.time()
+        print '   secondary time ', t1-t0
+
+        return fields, dpred
+
+    # ---------------------------------------------------------------------- #
+    # ---------------- Run the example ------------------------------------- #
+    # ---------------------------------------------------------------------- #
+
+    def run(self, plotIt=False, runTests=False, verbose=True,
+            saveFields=False, saveFig=False):
+
+        self.verbose = verbose
 
         # -------------- Primary --------------------------------- #
-        srcList = self.setupPrimarySource(plotIt)  # put primary source on mesh
-        primarySurvey = FDEM.Survey(srcList)
+        srcList = self.setupPrimarySource(plotIt)  # create primary source
+        primarySurvey = FDEM.Survey(srcList)  # primary survey
 
-        # Test the derivs on the primary mapping
-        if runTests is True:
+        if runTests is True:  # Test the derivs on the primary mapping
             self.primaryMapping.test()
 
-        # Plot the Primary Model
-        if plotIt is True:
+        if plotIt is True:  # Plot the Primary Model
             # self.plotPrimaryMesh() # plot the mesh
-            self.plotPrimaryProperties() # plot mu, sigma
+            self.plotPrimaryProperties()  # plot mu, sigma
 
         # Primary Problem
         primaryProblem = self.setupPrimaryProblem(
                                              mapping=self.primaryMapping,
                                              muModel=self.muModel
                                              )
+        primaryProblem.pair(primarySurvey)  # forward simulation of primary
 
-        primaryProblem.pair(primarySurvey)
+        print('solving primary ...')
+        t0 = time.time()
+        primfields = primaryProblem.fields(self.mtrue)
+        t1 = time.time()
+        print('Done solving primary fields, time {} '.format(t1-t0))
 
-        if savePrimaryFields is True:
-            print('solving primary')
-            t0 = time.time()
-            primfields = primaryProblem.fields(mtrue)
+        if saveFields is True:
             np.save('primaryfields_' + NAME, primfields[:, :])
-            t1 = time.time()
-            print('   fields ', t1-t0)
             print('   saved %s' % 'primaryfields_' + NAME)
-
 
         # -------------- Secondary --------------------------------- #
         # Construct Secondary Mesh
         # meshs = setupCartMesh(plotIt)
         # if plotIt is True:
         #     self.meshs.plotGrid()
-
-        if verbose is True:
-            print('Secondary Mesh ... ')
-            print(' xmin, xmax, zmin, zmax: ', self.meshs.vectorCCx.min(),
-                  self.meshs.vectorCCx.max(), self.meshs.vectorCCy.min(),
-                  self.meshs.vectorCCy.max(), self.meshs.vectorCCz.min(),
-                  self.meshs.vectorCCz.max())
-            print(' nC, vnC', self.meshs.nC, self.meshs.vnC)
-
-
 
         # make a copy so we can simulate the background (without the conductive
         # block)
@@ -546,12 +582,13 @@ class PrimSecCasingExample(object):
         sec_survey = self.setupSecondarySurvey(
                                           primaryProblem,
                                           primarySurvey,
-                                          self.primaryMap2meshs)
+                                          self.primaryMap2meshs
+                                          )
         sec_problem.pair(sec_survey)
 
         # layered earth only (background)
         background_problem = self.setupSecondaryProblem(
-            mapping=primaryMap2meshs
+            mapping=self.primaryMap2meshs
             )
         background_survey = self.setupSecondarySurvey(
                                                  primaryProblem,
@@ -559,83 +596,72 @@ class PrimSecCasingExample(object):
                                                  self.primaryMap2meshs)
         background_problem.pair(background_survey)
 
-
-        # -------------- Test the sensitivity --------------------------------- #
+        # -------------- Test the sensitivity ----------------------------- #
         if runTests:
-            x0 = mtrue
+            x0 = self.mtrue
 
             # Test Block Model
             fun = lambda x: [sec_survey.dpred(x),
-                             lambda x: sec_problem.Jvec(mtrue, x)]
+                             lambda x: sec_problem.Jvec(self.mtrue, x)]
             Tests.checkDerivative(fun, self.mtrue, num=2, plotIt=False)
 
-        # # -------------- Calculate Fields --------------------------------- #
-        # # Background
-        # t0 = time.time()
-        # print('solving background ... ')
-        # fieldsback, dpredback = solveSecondary(background_problem,
-        #                                        background_survey,
-        #                                        mtrue)
-        # t1 = time.time()
-        # print('   dpred_back {}'.format(t1-t0))
+        # -------------- Calculate Fields --------------------------------- #
+        # Background
+        t0 = time.time()
+        print('solving background ... ')
+        fieldsback, dpredback = self.solveSecondary(background_problem,
+                                                    background_survey,
+                                                    self.mtrue)
+        t1 = time.time()
+        print('   dpred_back {}'.format(t1-t0))
 
-        # if savePrimaryFields:
-        #     np.save('dpred_' + NAME + '_back', dpredback)
-        #     np.save('fields_' + NAME + '_back', fieldsback[:, :])
+        if saveFields:
+            np.save('dpred_' + NAME + '_back', dpredback)
+            np.save('fields_' + NAME + '_back', fieldsback[:, :])
 
-        #     print('   saved {}'.format(NAME + '_back'))
+            print('   saved {}'.format(NAME + '_back'))
 
-        # # with Block
-        # t0 = time.time()
-        # print('solving with block ... ')
-        # fields, dpred = solveSecondary(sec_problem, sec_survey, mtrue)
-        # print('   dpred {}'.format(t1-t0))
-        # if savePrimaryFields:
-        #     np.save('dpred_' + NAME, dpred)
-        #     np.save('fields_' + NAME, fields[:, :])
+        # with Block
+        t0 = time.time()
+        print('solving with block ... ')
+        fields, dpred = solveSecondary(sec_problem, sec_survey, mtrue)
+        print('   dpred {}'.format(t1-t0))
+        if saveFields:
+            np.save('dpred_' + NAME, dpred)
+            np.save('fields_' + NAME, fields[:, :])
 
-        # t1 = time.time()
+        t1 = time.time()
 
-        # print('   saved {}'.format(NAME))
-
+        print('   saved {}'.format(NAME))
 
         # -------------- Calculate J --------------------------------- #
+        # Calculate J with block
+        print 'starting J with block'
+        t0 = time.time()
 
-        # # Calculate J for background
-        # t0 = time.time()
+        J = []
+        for i in range(len(self.mtrue)):
+            ei = np.zeros_like(self.mtrue)
+            ei[i] = 1.
+            J.append(sec_problem.Jvec(self.mtrue, ei, f=fields))
 
-        # print 'starting J back'
-        # J = []
-        # for i in range(len(mtrue)):
-        #     ei = np.zeros_like(mtrue)
-        #     ei[i] = 1.
-        #     J.append(background_problem.Jvec(mtrue, ei, f=fieldsback))
+        J = np.vstack(J)
 
-        # J = np.vstack(J)
+        t1 = time.time()
+        print '   J ', t1-t0
 
-        # t1 = time.time()
-        # print '   J ', t1-t0
+        np.save('J_'+ NAME, J)
+        print '   saved %s' % 'J_' + NAME
 
-        # np.save('J_'+ NAME  + '_back', J)
-        # print '   saved %s' % 'J_' + NAME + '_back'
+        return {
+                    'primfields': primfields,  # primary fields
+                    'fieldsback': fieldsback,  # fields without block
+                    'dpredback': dpredback,  # predicted data without block
+                    'fields': fields,  # fields with block
+                    'dpred': dpred,  # predicted data with block
+                    'J': J  # sensitivity
+                }
 
-        # # Calculate J with block
-        # print 'starting J with block'
-        # t0 = time.time()
-
-        # J = []
-        # for i in range(len(mtrue)):
-        #     ei = np.zeros_like(mtrue)
-        #     ei[i] = 1.
-        #     J.append(sec_problem.Jvec(mtrue, ei, f=fields))
-
-        # J = np.vstack(J)
-
-        # t1 = time.time()
-        # print '   J ', t1-t0
-
-        # np.save('J_'+ NAME, J)
-        # print '   saved %s' % 'J_' + NAME
 
 def downloadStoredResults(basePath=None):
     import os
@@ -663,23 +689,84 @@ def removeStoredResults(basePath):
     shutil.rmtree(basePath)
 
 
-def plotPrimaryFields(dataDict):
+def plotPrimaryFields(primaryFields, saveFig=False):
     primaryFields = primaryProblem.fieldsPair(meshp, primarySurvey)
     primaryFields[primarySurvey.srcList[0], 'hSolution'] = dict(primaryFieldsH.tolist())['hSolution']
 
+    # Interpolate onto a cartesian mesh with uniform cell sizes (better for
+    # streamplots)
+    cs = 5.
+    xmax = 1000.
+    zmax = 1200.
+    csx, ncx = cs, np.ceil(xmax/cs)
+    csz, ncz = cs, np.ceil(zmax/cs)
 
-def run(plotIt=False, runTests=False, reRun=False):
+    meshcart = Mesh.TensorMesh(
+        [[(csx, ncx)], [(csx, 1)], [(csz, ncz)]], [0, -csx/2., -zmax]
+        )  # define the tensor mesh
+
+    projF = meshp.getInterpolationMatCartMesh(meshcart, 'F')
+
+    jcart = projF*primaryFields[:, 'j']
+
+    fig, ax = plt.subplots(1, 1, figsize=(6, 7.75))
+    fs = 12 # fontsize
+    rcParams['font.size'] = fs
+
+    if saveFig == True:
+        # this looks obnoxious inline, but nice in the saved png
+        f = meshcart.plotSlice(
+                jcart.real, normal='Y', vType='F', view='vec',
+                pcolorOpts={'norm': LogNorm(),
+                            'cmap': plt.get_cmap('viridis')},
+                streamOpts={'arrowsize': 8, 'color': 'k'}, ax=ax
+                )
+    elif saveFig == False:
+        f = meshcart.plotSlice(
+                jcart.real, normal='Y', vType='F', view='vec',
+                pcolorOpts={'norm': LogNorm(),
+                            'cmap': plt.get_cmap('viridis')},
+                ax=ax
+                )
+    plt.colorbar(f[0], label='real current density (A/m$^2$)')
+
+    ax.axis('equal', adjustable='box')
+    ax.set_ylim([-1200., 0.])
+    ax.set_xlim([0., 750.])
+    ax.set_title('Primary Current Density')
+    ax.set_xlabel('radius (m)', fontsize=fs)
+    ax.set_ylabel('z (m)', fontsize=fs)
+
+    if saveFig == True:
+        fig.savefig('primaryCurrents', dpi=300, bbox_inches='tight')
+
+def plotSecondarySource(dataDict):
+    pass
+
+def plotData(dataDict):
+    pass
+
+def plotSensitivities(dataDict):
+    pass
+
+
+def run(plotIt=False, runTests=False, reRun=False, saveFig=False):
 
     casingExample = PrimSecCasingExample()
 
+    # reompute results?
     if reRun is True:
         dataDict = casingExample.run(plotIt=plotIt, runTests=runTests)
 
+    # or download stored results
     elif reRun is False:
-    # Start by downloading files from the remote repository
         basePath = downloadStoredResults()
-        # plotResults()
         removeStoredResults(basePath)
 
+    # plot some things
+    if plotIt is True:
+        from matplotlib.colors import LogNorm
+        from matplotlib import rcParams
+
 if __name__ == '__main__':
-    run(plotIt=False, runTests=False, reRun=True)
+    run(plotIt=False, runTests=False, reRun=True, saveFig=False)
