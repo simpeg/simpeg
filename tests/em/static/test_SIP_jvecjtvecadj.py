@@ -1,14 +1,16 @@
+from __future__ import print_function
 import unittest
 from SimPEG import (Mesh, Utils, EM, Maps, np, Survey, DataMisfit,
                     Regularization, Optimization, Inversion, InvProblem, Tests)
 from SimPEG.EM.Static import SIP, DC, IP
 try:
-    from pymatsolver import MumpsSolver
-    Solver = MumpsSolver
+    from pymatsolver import PardisoSolver
+    Solver = PardisoSolver
 except ImportError:
     from SimPEG import SolverLU
     Solver = SolverLU
 
+np.random.seed(38)
 
 class IPProblemTestsCC(unittest.TestCase):
 
@@ -74,7 +76,7 @@ class IPProblemTestsCC(unittest.TestCase):
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-10
-        print 'Adjoint Test', np.abs(wtJv - vtJtw), passed
+        print('Adjoint Test', np.abs(wtJv - vtJtw), passed)
         self.assertTrue(passed)
 
     def test_dataObj(self):
@@ -146,7 +148,7 @@ class IPProblemTestsN(unittest.TestCase):
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
-        print 'Adjoint Test', np.abs(wtJv - vtJtw), passed
+        print('Adjoint Test', np.abs(wtJv - vtJtw), passed)
         self.assertTrue(passed)
 
     def test_dataObj(self):
@@ -224,7 +226,7 @@ class IPProblemTestsN_air(unittest.TestCase):
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
-        print 'Adjoint Test', np.abs(wtJv - vtJtw), passed
+        print('Adjoint Test', np.abs(wtJv - vtJtw), passed)
         self.assertTrue(passed)
 
     def test_dataObj(self):

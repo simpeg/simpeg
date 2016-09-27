@@ -1,7 +1,9 @@
+from __future__ import print_function
 import unittest
 from SimPEG import *
 import SimPEG.PF as PF
 
+np.random.seed(43)
 
 class GravInvLinProblemTest(unittest.TestCase):
 
@@ -115,7 +117,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         mrec = self.inv.run(self.model)
 
         residual = np.linalg.norm(mrec-self.model) / np.linalg.norm(self.model)
-        print residual
+        print(residual)
         self.assertTrue(residual < 0.05)
 
 if __name__ == '__main__':

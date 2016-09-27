@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 import scipy.sparse as sp
 import unittest
@@ -238,7 +239,7 @@ class Test1D_InhomogeneousMixed(Tests.OrderTest):
         return err
 
     def test_order(self):
-        print "==== Testing Mixed boudary conduction for CC-problem ===="
+        print("==== Testing Mixed boudary conduction for CC-problem ====")
         self.name = "1D"
         self.myTest = 'xc'
         self.orderTest()
@@ -337,7 +338,7 @@ class Test2D_InhomogeneousMixed(Tests.OrderTest):
         return err
 
     def test_order(self):
-        print "==== Testing Mixed boudary conduction for CC-problem ===="
+        print("==== Testing Mixed boudary conduction for CC-problem ====")
         self.name = "2D"
         self.myTest = 'xc'
         self.orderTest()
@@ -454,7 +455,7 @@ class Test3D_InhomogeneousMixed(Tests.OrderTest):
         return err
 
     def test_order(self):
-        print "==== Testing Mixed boudary conduction for CC-problem ===="
+        print("==== Testing Mixed boudary conduction for CC-problem ====")
         self.name = "3D"
         self.myTest = 'xc'
         self.orderTest()

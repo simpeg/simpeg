@@ -1,3 +1,4 @@
+# from __future__ import print_function
 # import unittest
 # from SimPEG import *
 # from simpegPF import BaseMag
@@ -52,7 +53,7 @@
 #         self.chi = chi
 
 #     def test_mass(self):
-#         print '\n >>Derivative for MfMuI works.'
+#         print('\n >>Derivative for MfMuI works.')
 #         mu = self.model*self.chi
 
 #         def MfmuI(mu):
@@ -84,7 +85,7 @@
 
 
 #     def test_dCdm_Av(self):
-#         print '\n >>Derivative for Cm_A.'
+#         print('\n >>Derivative for Cm_A.')
 #         Div = self.prob._Div
 #         vol = self.prob.mesh.vol
 #         aveF2CC = self.prob.mesh.aveF2CC
@@ -125,7 +126,7 @@
 
 
 #     def test_dCdmu_RHS(self):
-#         print '\n >>Derivative for Cm_RHS.'
+#         print('\n >>Derivative for Cm_RHS.')
 #         u = self.u
 #         Div = self.prob._Div
 #         mu = self.model*self.chi
@@ -173,7 +174,7 @@
 
 
 #     # def test_dudm(self):
-#     #     print ">> Derivative test for dudm"
+#     #     print(">> Derivative test for dudm")
 #     #     u = self.u
 #     #     Div = self.prob._Div
 #     #     mu = self.model*(self.chi)
@@ -222,7 +223,7 @@
 
 
 #     # def test_dBdm(self):
-#     #     print ">> Derivative test for dBdm"
+#     #     print(">> Derivative test for dBdm")
 #     #     u = self.u
 #     #     Div = self.prob._Div
 #     #     mu = self.model*(self.chi)
@@ -275,7 +276,7 @@
 
 
 #     def test_Jvec(self):
-#         print ">> Derivative test for Jvec"
+#         print(">> Derivative test for Jvec")
 
 #         d_chi = 10.0*self.chi #np.random.rand(mesh.nCz)
 #         d_sph_ind = PF.MagAnalytics.spheremodel(self.prob.mesh, 0., 0., -50., 50)
@@ -287,7 +288,7 @@
 #         self.assertTrue(passed)
 
 #     def test_Jtvec(self):
-#         print ">> Derivative test for Jtvec"
+#         print(">> Derivative test for Jtvec")
 #         dobs = self.survey.dpred(self.chi)
 
 #         def misfit(m):

@@ -1,3 +1,4 @@
+from __future__ import print_function
 from SimPEG import *
 
 def run(plotIt=True, n=60):
@@ -87,7 +88,7 @@ def run(plotIt=True, n=60):
         if elapsed > capture[jj]:
             PHIS += [(elapsed, phi.copy())]
             jj += 1
-        if ii % 10 == 0: print ii, elapsed
+        if ii % 10 == 0: print(ii, elapsed)
         ii += 1
 
     if plotIt:

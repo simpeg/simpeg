@@ -1,11 +1,11 @@
 from SimPEG import Problem, Utils
 from SimPEG.EM.Base import BaseEMProblem
-from SurveyDC import Survey, Survey_ky
-from FieldsDC_2D import Fields_ky, Fields_ky_CC, Fields_ky_N
+from .SurveyDC import Survey, Survey_ky
+from .FieldsDC_2D import Fields_ky, Fields_ky_CC, Fields_ky_N
 from SimPEG.Utils import sdiag
 import numpy as np
 from SimPEG.Utils import Zero
-from BoundaryUtils import getxBCyBC_CC
+from .BoundaryUtils import getxBCyBC_CC
 
 
 class BaseDCProblem_2D(BaseEMProblem):

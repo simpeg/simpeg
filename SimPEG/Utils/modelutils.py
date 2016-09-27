@@ -1,4 +1,4 @@
-from matutils import mkvc, ndgrid
+from .matutils import mkvc, ndgrid
 import numpy as np
 
 def surface2ind_topo(mesh, topo, gridLoc='CC'):

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 from SimPEG.Utils import Zero, Identity, sdiag, mkvc
 import numpy as np
@@ -69,9 +70,9 @@ class Tests(unittest.TestCase):
         assert 3 - -o == 4
         assert 3 - o == 2
 
-        assert o/2 == 0
+        assert o//2 == 0
         assert o/2. == 0.5
-        assert -o/2 == -1
+        assert -o//2 == -1
         assert -o/2. == -0.5
         assert 2/o == 2
         assert 2/-o == -2
