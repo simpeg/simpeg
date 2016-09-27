@@ -1,4 +1,5 @@
 .. _examples_Maps_ComboMaps:
+
 .. --------------------------------- ..
 ..                                   ..
 ..    THIS FILE IS AUTO GENEREATED   ..
@@ -6,6 +7,7 @@
 ..    SimPEG/Examples/__init__.py    ..
 ..                                   ..
 .. --------------------------------- ..
+
 
 
 Maps: ComboMaps
@@ -35,9 +37,12 @@ Just to be sure that the derivative is correct, you should always run the test
 on the mapping that you create.
 
 
+
 .. plot::
+
     from SimPEG import Examples
     Examples.Maps_ComboMaps.run()
+
 .. literalinclude:: ../../../SimPEG/Examples/Maps_ComboMaps.py
     :language: python
     :linenos:

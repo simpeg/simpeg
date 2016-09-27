@@ -13,13 +13,11 @@ class Doc_Test(unittest.TestCase):
         doctrees_path = os.path.sep.join(self.path_to_docs.split(os.path.sep) + ['_build']+['doctrees'])
         html_path = os.path.sep.join(self.path_to_docs.split(os.path.sep) + ['_build']+['html'])
 
-        check = subprocess.Popen(("sphinx-build", "-nW", "-b", "html", "-d",
-            "{0!s}".format(doctrees_path),
-            "{0!s}".format(self.path_to_docs),
-            "{0!s}".format(html_path)),
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = check.communicate()
-        assert check == 0, 'Test failed with stdout:\n{}\n and stderr:\n{}\n'.format(out,err)
+        check = subprocess.call(["sphinx-build", "-nW", "-b", "html", "-d",
+            "{0!s}".format((doctrees_path)) ,
+            "{0!s}".format((self.path_to_docs)),
+            "{0!s}".format((html_path))])
+        assert check == 0
 
     # def test_latex(self):
     #     doctrees_path = os.path.sep.join(self.path_to_docs.split(os.path.sep) + ['_build']+['doctrees'])
@@ -35,14 +33,11 @@ class Doc_Test(unittest.TestCase):
         doctrees_path = os.path.sep.join(self.path_to_docs.split(os.path.sep) + ['_build']+['doctrees'])
         link_path = os.path.sep.join(self.path_to_docs.split(os.path.sep) + ['_build'])
 
-        check = subprocess.Popen(("sphinx-build", "-nW", "-b", "linkcheck", "-d",
-            "{}".format(doctrees_path),
-            "{}".format(self.path_to_docs),
-            "{}".format(link_path)),
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = check.communicate()
-        assert check == 0, 'Test failed with stdout:\n{}\n and stderr:\n{}\n'.format(out,err)
-
+        check = subprocess.call(["sphinx-build", "-nW", "-b", "linkcheck", "-d",
+            "%s"%(doctrees_path),
+            "%s"%(self.path_to_docs),
+            "%s"%(link_path)])
+        assert check == 0
 
 if __name__ == '__main__':
     unittest.main()

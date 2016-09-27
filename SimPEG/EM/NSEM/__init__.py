@@ -8,8 +8,8 @@ SimPEG implementation of the natural source problem
 """
 from __future__ import absolute_import
 
-import SimPEG.EM.NSEM.Utils
-import SimPEG.EM.NSEM.SrcNSEM
+from . import Utils
+from . import SrcNSEM
 from .SurveyNSEM import Survey, Data
 from .RxNSEM import (rx_Point_impedance1D,
 					 rx_Point_impedance3D, rx_Point_tipper3D)

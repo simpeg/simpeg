@@ -12,6 +12,7 @@ import SimPEG as simpeg
 from SimPEG.EM.NSEM.SurveyNSEM import Data , Survey
 from SimPEG.EM.NSEM.RxNSEM import rx_Point_impedance1D
 from SimPEG.EM.NSEM.SrcNSEM import polxy_1Dprimary
+from SimPEG.EM.NSEM.Utils import MT1Danalytic, plotDataTypes as pDt
 
 
 def getAppRes(NSEMdata):
@@ -74,7 +75,7 @@ def makeAnalyticSolution(mesh, model, elev, freqs):
 
     data1D = []
     for freq in freqs:
-        anaEd, anaEu, anaHd, anaHu = Utils.MT1Danalytic.getEHfields(mesh,model,freq,elev)
+        anaEd, anaEu, anaHd, anaHu = MT1Danalytic.getEHfields(mesh,model,freq,elev)
         anaE = anaEd+anaEu
         anaH = anaHd+anaHu
 
@@ -112,7 +113,6 @@ def plotMT1DModelData(problem, models, symList=None):
 
     # if not symList:
     #   symList = ['x']*len(models)
-    pDt = Utils.plotDataTypes
     # Loop through the models.
     modelList = [problem.survey.mtrue]
     modelList.extend(models)
@@ -136,7 +136,7 @@ def plotMT1DModelData(problem, models, symList=None):
         axM.semilogx(modelPts,meshPts,color=col)
 
         ## Data
-        loc = Utils.dataUtils.rec_to_ndarr(np.unique(data1D[['x','y']]))
+        loc = rec_to_ndarr(np.unique(data1D[['x','y']]))
         # Appres
         pDt.plotIsoStaImpedance(axR,loc,data1D,'zyx','res',pColor=col)
         # Appphs
