@@ -1,3 +1,4 @@
+from __future__ import print_function
 from SimPEG import Survey, Problem, Utils, Models, np, sp, mkvc, SolverLU as SimpegSolver
 from SimPEG.EM.Utils import omega
 from scipy.constants import mu_0
@@ -115,7 +116,7 @@ class eForm_ps(BaseMTProblem):
         for freq in self.survey.freqs:
             if self.verbose:
                 startTime = time.time()
-                print 'Starting work for {:.3e}'.format(freq)
+                print('Starting work for {:.3e}'.format(freq))
                 sys.stdout.flush()
             A = self.getA(freq)
             rhs  = self.getRHS(freq)
@@ -131,7 +132,7 @@ class eForm_ps(BaseMTProblem):
             # Note curl e = -iwb so b = -curl/iw
 
             if self.verbose:
-                print 'Ran for {:f} seconds'.format(time.time()-startTime)
+                print('Ran for {:f} seconds'.format(time.time()-startTime))
                 sys.stdout.flush()
             Ainv.clean()
         return F

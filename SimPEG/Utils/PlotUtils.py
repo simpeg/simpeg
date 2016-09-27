@@ -2,7 +2,7 @@ import numpy as np
 from scipy.interpolate import LinearNDInterpolator
 import matplotlib.pyplot as plt
 
-def plot2Ddata(xyz, data, vec=None, nx=100, ny=100,
+def plot2Ddata(xyz, data, vec=False, nx=100, ny=100,
                ax=None, mask=None, level=None, figname=None,
                ncontour=10, dataloc=False, contourOpts={}, clim=None):
     """
@@ -28,7 +28,7 @@ def plot2Ddata(xyz, data, vec=None, nx=100, ny=100,
     y = np.linspace(ymin, ymax, ny)
     X, Y = np.meshgrid(x, y)
     xy = np.c_[X.flatten(), Y.flatten()]
-    if vec is None:
+    if vec is False:
         F = LinearNDInterpolator(xyz[:,:2], data)
         DATA = F(xy)
         DATA = DATA.reshape(X.shape)

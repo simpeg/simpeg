@@ -34,7 +34,7 @@ def MagneticDipoleVectorPotential(srcLoc, obsLoc, component, moment=1.,
                                                             "be a unit vector")
 
     if type(component) in [list, tuple]:
-        out = range(len(component))
+        out = list(range(len(component)))
         for i, comp in enumerate(component):
             out[i] = MagneticDipoleVectorPotential(srcLoc, obsLoc, comp,
                                                    orientation=orientation,
@@ -211,12 +211,12 @@ def MagneticLoopVectorPotential(srcLoc, obsLoc, component, radius, orientation='
 
     if isinstance(orientation, str):
         if orientation.upper() != 'Z':
-            raise NotImplementedError, 'Only Z oriented loops implemented'
+            raise NotImplementedError('Only Z oriented loops implemented')
     elif not np.allclose(orientation, np.r_[0., 0., 1.]):
-        raise NotImplementedError, 'Only Z oriented loops implemented'
+        raise NotImplementedError('Only Z oriented loops implemented')
 
     if type(component) in [list, tuple]:
-        out = range(len(component))
+        out = list(range(len(component)))
         for i, comp in enumerate(component):
             out[i] = MagneticLoopVectorPotential(srcLoc, obsLoc, comp, radius,
                                                  orientation, mu)

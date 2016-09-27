@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Functions to import and export MT EDI files.
 from SimPEG import mkvc
 from scipy.constants import mu_0
@@ -102,7 +103,7 @@ class EDIimporter:
             mArrRec = np.ma.MaskedArray(rec2ndarr(tArrRec),mask=np.isnan(rec2ndarr(tArrRec))).view(dtype=tArrRec.dtype)
             try:
                 outTemp = recFunc.stack_arrays((outTemp,mArrRec))
-            except NameError as e:
+            except NameError:
                 outTemp = mArrRec
 
         # Assign the data
@@ -116,7 +117,7 @@ class EDIimporter:
         try:
             import osr
         except ImportError as e:
-            print 'Could not import osr, missing the gdal package\nCan not project coordinates'
+            print('Could not import osr, missing the gdal package\nCan not project coordinates')
             raise e
         # Coordinates convertor
         if self._2out is None:

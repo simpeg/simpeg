@@ -90,6 +90,7 @@ and live on the edges(!) of the cell.
 .. plot::
     :include-source:
 
+    from __future__ import print_function
     from SimPEG import Mesh
     Mesh.TensorMesh([1,1,1]).plotGrid(faces=True, edges=True, centers=True, showIt=True)
 
@@ -102,7 +103,7 @@ SimPEG makes this pretty easy:
 
 ::
 
-    In [1]: print M
+    In [1]: print(M)
             ---- 2-D TensorMesh ----
              x0: 0.00
              y0: 0.00
@@ -116,11 +117,11 @@ SimPEG makes this pretty easy:
       ....:          'numCells_yDir': M.nCy,
       ....:          'numCells_vector': M.vnC}
 
-    In [3]: print 'This mesh has %(numCells)d cells, which is %(numCells_xDir)d*%(numCells_yDir)d!!' % count
+    In [3]: print('This mesh has %(numCells)d cells, which is %(numCells_xDir)d*%(numCells_yDir)d!!' % count)
 
             This mesh has 32 cells, which is 8*4!!
 
-    In [4]: print count
+    In [4]: print(count)
 
             {
              'numCells_vector': array([8, 4]),

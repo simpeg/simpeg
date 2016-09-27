@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 from SimPEG.EM import FDEM, Analytics, mu_0
 import numpy as np
@@ -152,7 +153,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
 
         if plotIt is True:
 
-            print self.mesh.vnF
+            print(self.mesh.vnF)
 
             fig, ax = plt.subplots(1, 2)
             ax[0].semilogy(np.absolute(bPrimary))
