@@ -9,10 +9,6 @@ SimPEG
     :target: https://pypi.python.org/pypi/SimPEG
     :alt: Latest PyPI version
 
-.. image:: https://img.shields.io/pypi/dm/SimPEG.svg
-    :target: https://pypi.python.org/pypi/SimPEG
-    :alt: Number of PyPI downloads
-
 .. image:: https://img.shields.io/badge/license-MIT-blue.svg
     :target: https://github.com/simpeg/simpeg/blob/master/LICENSE
     :alt: MIT license
