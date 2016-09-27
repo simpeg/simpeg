@@ -1,4 +1,4 @@
-.. _examples_MT_3D_Foward:
+.. _examples_EM_NSEM_1D_ForwardAndInversion:
 
 .. --------------------------------- ..
 ..                                   ..
@@ -9,18 +9,19 @@
 .. --------------------------------- ..
 
 
-MT: 3D: Forward
-===============
+MT: 1D: Inversion
+=================
 
-Forward model 3D MT data.
+Forward model 1D MT data.
+Setup and run a MT 1D inversion.
 
 
 
 .. plot::
 
     from SimPEG import Examples
-    Examples.MT_3D_Foward.run()
+    Examples.EM_NSEM_1D_ForwardAndInversion.run()
 
-.. literalinclude:: ../../../SimPEG/Examples/MT_3D_Foward.py
+.. literalinclude:: ../../../SimPEG/Examples/EM_NSEM_1D_ForwardAndInversion.py
     :language: python
     :linenos:
