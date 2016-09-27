@@ -1,5 +1,4 @@
 if __name__ == '__main__':
-    import os
     import glob
     import unittest
     test_file_strings = glob.glob('test_*.py')
