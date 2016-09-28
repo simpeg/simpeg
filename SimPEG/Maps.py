@@ -166,8 +166,12 @@ class IdentityMap(object):
                     )
                 )
             return self._transform(val)
-        raise Exception('Unrecognized data type to multiply. '
-                        'Try a map or a numpy.ndarray!')
+        raise Exception(
+            'Unrecognized data type to multiply. Try a map or a numpy.ndarray!'
+            'You used a {} of type {}'.format(
+                val, type(val)
+            )
+        )
 
     def __str__(self):
         return "{0!s}({1!s},{2!s})".format(

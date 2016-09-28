@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 
 import unittest
 import numpy as np
+import cPickle
 
 from SimPEG import Mesh
 from SimPEG import Maps
@@ -12,7 +13,11 @@ from SimPEG import Utils
 from SimPEG import Props
 
 
-class SimpleExample(Props.BaseSimPEG):
+class HasModel(Props.BaseSimPEG):
+    model = Props.Model("Inversion model.")
+
+
+class SimpleExample(HasModel):
 
     sigmaMap = Props.Mapping(
         "Mapping to the inversion model."
@@ -29,14 +34,14 @@ class SimpleExample(Props.BaseSimPEG):
     )
 
 
-class ShortcutExample(Props.BaseSimPEG):
+class ShortcutExample(HasModel):
 
     sigma, sigmaMap, sigmaDeriv = Props.Invertible(
         "Electrical conductivity (S/m)"
     )
 
 
-class ReciprocalMappingExample(Props.BaseSimPEG):
+class ReciprocalMappingExample(HasModel):
 
     sigma, sigmaMap, sigmaDeriv = Props.Invertible(
         "Electrical conductivity (S/m)"
@@ -49,7 +54,7 @@ class ReciprocalMappingExample(Props.BaseSimPEG):
     Props.Reciprocal(sigma, rho)
 
 
-class ReciprocalExample(Props.BaseSimPEG):
+class ReciprocalExample(HasModel):
 
     sigma, sigmaMap, sigmaDeriv = Props.Invertible(
         "Electrical conductivity (S/m)"
@@ -62,7 +67,7 @@ class ReciprocalExample(Props.BaseSimPEG):
     Props.Reciprocal(sigma, rho)
 
 
-class ReciprocalPropExample(Props.BaseSimPEG):
+class ReciprocalPropExample(HasModel):
 
     sigma = Props.PhysicalProperty(
         "Electrical conductivity (S/m)"
@@ -95,6 +100,7 @@ class TestPropMaps(unittest.TestCase):
 
             PM.model = np.r_[1., 2., 3.]
             assert np.all(PM.sigma == np.exp(np.r_[1., 2., 3.]))
+            PM = cPickle.loads(cPickle.dumps(PM))
             assert np.all(
                 PM.sigmaDeriv.todense() ==
                 Utils.sdiag(np.exp(np.r_[1., 2., 3.])).todense()
@@ -103,6 +109,7 @@ class TestPropMaps(unittest.TestCase):
             # If we set sigma, we should delete the mapping
             PM.sigma = np.r_[1., 2., 3.]
             assert np.all(PM.sigma == np.r_[1., 2., 3.])
+            PM = cPickle.loads(cPickle.dumps(PM))
             assert PM.sigmaMap is None
             assert PM.sigmaDeriv == 0
 
@@ -113,9 +120,11 @@ class TestPropMaps(unittest.TestCase):
     def test_reciprocal(self):
         expMap = Maps.ExpMap(Mesh.TensorMesh((3,)))
 
-        PM = ReciprocalMappingExample(sigmaMap=expMap)
+        PM = ReciprocalMappingExample()
 
         PM.model = np.r_[1., 2., 3.]
+        self.assertRaises(AttributeError, getattr, PM, 'sigma')
+        PM.sigmaMap = expMap
         assert np.all(PM.sigma == np.exp(np.r_[1., 2., 3.]))
         assert np.all(PM.rho == 1.0 / np.exp(np.r_[1., 2., 3.]))
 
@@ -128,19 +137,25 @@ class TestPropMaps(unittest.TestCase):
 
         PM.sigmaMap = expMap
         # change your mind?
+        PM = cPickle.loads(cPickle.dumps(PM))
         PM.rhoMap = expMap
         assert PM._get('sigmaMap', None) is None
         assert len(PM.rhoMap) == 1
         assert len(PM.sigmaMap) == 2
+        PM = cPickle.loads(cPickle.dumps(PM))
         assert np.all(PM.rho == np.exp(np.r_[1., 2., 3.]))
         assert np.all(PM.sigma == 1.0 / np.exp(np.r_[1., 2., 3.]))
+        PM = cPickle.loads(cPickle.dumps(PM))
         assert isinstance(PM.sigmaDeriv.todense(), np.ndarray)
 
     def test_reciprocal_no_map(self):
         expMap = Maps.ExpMap(Mesh.TensorMesh((3,)))
 
-        PM = ReciprocalExample(sigmaMap=expMap)
+        PM = ReciprocalExample()
+        self.assertRaises(AttributeError, getattr, PM, 'sigma')
 
+        PM.sigmaMap = expMap
+        PM = cPickle.loads(cPickle.dumps(PM))
         PM.model = np.r_[1., 2., 3.]
         assert np.all(PM.sigma == np.exp(np.r_[1., 2., 3.]))
         assert np.all(PM.rho == 1.0 / np.exp(np.r_[1., 2., 3.]))
@@ -152,15 +167,22 @@ class TestPropMaps(unittest.TestCase):
 
         PM.sigmaMap = expMap
         assert len(PM.sigmaMap) == 1
+        PM = cPickle.loads(cPickle.dumps(PM))
         assert np.all(PM.rho == 1.0 / np.exp(np.r_[1., 2., 3.]))
         assert np.all(PM.sigma == np.exp(np.r_[1., 2., 3.]))
         assert isinstance(PM.sigmaDeriv.todense(), np.ndarray)
 
     def test_reciprocal_no_maps(self):
 
-        PM = ReciprocalExample(sigma=np.r_[1., 2., 3.])
+        PM = ReciprocalPropExample()
+        self.assertRaises(AttributeError, getattr, PM, 'sigma')
+
+        PM = cPickle.loads(cPickle.dumps(PM))
+        PM.sigma = np.r_[1., 2., 3.]
+        PM = cPickle.loads(cPickle.dumps(PM))
 
         assert np.all(PM.sigma == np.r_[1., 2., 3.])
+        PM = cPickle.loads(cPickle.dumps(PM))
         assert np.all(PM.rho == 1.0 / np.r_[1., 2., 3.])
 
         PM.rho = np.r_[1., 2., 3.]

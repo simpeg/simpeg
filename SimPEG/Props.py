@@ -10,6 +10,11 @@ from . import Maps
 from . import Utils
 
 
+class Model(properties.Array):
+
+    info_text = 'a numpy array'
+
+
 class Mapping(properties.Property):
 
     info_text = 'a SimPEG Map'
@@ -74,6 +79,9 @@ class Mapping(properties.Property):
 
         return property(fget=fget, fset=fset, doc=scope.help)
 
+    def as_pickle(self, instance):
+        return instance._get(self.name, self.default)
+
 
 class PhysicalProperty(properties.Property):
 
@@ -126,10 +134,34 @@ class PhysicalProperty(properties.Property):
             if scope.mapping is None and scope.reciprocal is None:
                 return None
             if scope.mapping is None:
+                # look to the reciprocal
+                if scope.reciprocal.mapping is None:
+                    # there is no reciprocal mapping
+                    reciprocal_val = self._get(
+                        scope.reciprocal.name,
+                        scope.reciprocal.default
+                    )
+                    if reciprocal_val is None:
+                        raise AttributeError(
+                            'A default for {}/{} has not been set'.format(
+                                scope.name, scope.reciprocal.name
+                            )
+                        )
                 return 1.0 / getattr(self, scope.reciprocal.name)
-                return 'fun'
 
             mapping = getattr(self, scope.mapping.name)
+            if mapping is None:
+                raise AttributeError(
+                    'A default {} has not been set.'.format(
+                        scope.mapping.name
+                    )
+                )
+            if self.model is None:
+                raise AttributeError(
+                    'A `model` is required for physical property {}'.format(
+                        scope.name
+                    )
+                )
             return mapping * self.model
 
         def fset(self, value):
@@ -138,6 +170,9 @@ class PhysicalProperty(properties.Property):
             scope.clear_mappings(self)
 
         return property(fget=fget, fset=fset, doc=scope.help)
+
+    def as_pickle(self, instance):
+        return instance._get(self.name, self.default)
 
 
 class Derivative(properties.GettableProperty):
