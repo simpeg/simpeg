@@ -106,7 +106,7 @@ Since we can measure total fields ( \\(\\vec{B}\\)), and usually have reasonably
 What is our data?
 -----------------
 
-In applied geophysics, which means in practice, it is common to refer to measurements as "the magnetic anomaly" and we can consider this as our observed data. For further descriptions in `GPG <http://www.eos.ubc.ca/courses/eosc350/content/>`_ materials for magnetic survey. Now we have the simple relation ship between "the magnetic anomaly" and the total field as
+In applied geophysics, which means in practice, it is common to refer to measurements as "the magnetic anomaly" and we can consider this as our observed data. For further descriptions in `GPG <http://gpg.geosci.xyz/>`_ materials for magnetic survey. Now we have the simple relation ship between "the magnetic anomaly" and the total field as
 
 .. math::
 
