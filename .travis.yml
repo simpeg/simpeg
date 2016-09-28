@@ -65,6 +65,9 @@ install:
 
   - python setup.py install
   - python setup.py build_ext --inplace
+  - if [ ${TEST_DIR} = "tests/docs" ]; then
+      pip install sphinx_rtd_theme ;
+    fi
 
 # Run test
 script:
