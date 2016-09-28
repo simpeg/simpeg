@@ -34,6 +34,11 @@ handlers:
   static_files: _build/html/\1
   upload: _build/html/(.*\.txt)
 
+  # python source files
+- url: /(.*\.py)
+  static_files: _build/html/\1
+  upload: _build/html/(.*\.py)
+
 # images
 - url: /_images/(.*\.(gif|png|jpg|ico))
   static_files: _build/html/_images/\1
