@@ -43,29 +43,6 @@ def calculateAnalyticSolution(srcList,mesh,model):
             data1D[src,rx] = getattr(anaZ, rx.component)
     return data1D
 
-def dataMis_AnalyticTotalDomain(sigmaHalf):
-
-    # Make the survey
-
-    # Total domain solution
-    surveyTD, sigma, mesh = NSEM.Utils.testUtils.setup1DSurvey(sigmaHalf)
-    problemTD = NSEM.Problem1D_eTotal(mesh) # This not fully implemented
-    problemTD.pair(surveyTD)
-    # Analytic data
-    dataAnaObj = calculateAnalyticSolution(surveyTD.srcList,mesh,sigma)
-    # dataTDObj = NSEM.DataNSEM.DataNSEM(surveyTD, surveyTD.dpred(sigma))
-    dataTD = surveyTD.dpred(sigma)
-    dataAna = simpeg.mkvc(dataAnaObj)
-    return np.all((dataTD - dataAna)/dataAna < 2.)
-    # surveyTD.dtrue = -simpeg.mkvc(dataAna,2)
-    # surveyTD.dobs = -simpeg.mkvc(dataAna,2)
-    # surveyTD.Wd = np.ones(surveyTD.dtrue.shape) #/(np.abs(surveyTD.dtrue)*0.01)
-    # # Setup the data misfit
-    # dmis = simpeg.DataMisfit.l2_DataMisfit(surveyTD)
-    # dmis.Wd = surveyTD.Wd
-    # return dmis.eval(sigma)
-
-
 def dataMis_AnalyticPrimarySecondary(sigmaHalf):
 
     # Make the survey
@@ -87,8 +64,6 @@ class TestNumericVsAnalytics(unittest.TestCase):
 
     def setUp(self):
         pass
-    # Total Fields
-    # def test_appRes2en2(self):self.assertTrue(dataMis_AnalyticTotalDomain(2e-2))
 
     # Primary/secondary
     def test_appRes2en2_ps(self):self.assertTrue(dataMis_AnalyticPrimarySecondary(2e-2))
