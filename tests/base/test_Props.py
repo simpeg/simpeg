@@ -129,7 +129,7 @@ class TestPropMaps(unittest.TestCase):
         PM.sigmaMap = expMap
         # change your mind?
         PM.rhoMap = expMap
-        assert PM._get('sigmaMap') is None
+        assert PM._get('sigmaMap', None) is None
         assert len(PM.rhoMap) == 1
         assert len(PM.sigmaMap) == 2
         assert np.all(PM.rho == np.exp(np.r_[1., 2., 3.]))

@@ -54,12 +54,15 @@ class Mapping(properties.Property):
         scope = self
 
         def fget(self):
-            value = self._get(scope.name)
+            value = self._get(scope.name, scope.default)
             if value is not None:
                 return value
             if scope.reciprocal is None:
                 return None
-            reciprocal = self._get(scope.reciprocal.name)
+            reciprocal = self._get(
+                scope.reciprocal.name,
+                scope.reciprocal.default
+            )
             if reciprocal is None:
                 return None
             return Maps.ReciprocalMap() * reciprocal
@@ -110,11 +113,14 @@ class PhysicalProperty(properties.Property):
         scope = self
 
         def fget(self):
-            default = self._get(scope.name)
+            default = self._get(scope.name, scope.default)
             if default is not None:
                 return default
             if scope.reciprocal:
-                default = self._get(scope.reciprocal.name)
+                default = self._get(
+                    scope.reciprocal.name,
+                    scope.reciprocal.default
+                )
                 if default is not None:
                     return 1.0 / default
             if scope.mapping is None and scope.reciprocal is None:
