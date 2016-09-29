@@ -54,8 +54,7 @@ class Fields1D_ePrimSec(BaseNSEMFields):
         ePrimary = np.zeros_like(eSolution)
         for i, src in enumerate(srcList):
             ep = src.ePrimary(self.survey.prob)
-            if ep is not None:
-                ePrimary[:,i] = ePrimary[:,i] + ep[:,-1]
+            ePrimary[:,i] = ePrimary[:,i] + ep[:,-1]
         return ePrimary
 
     def _eSecondary(self, eSolution, srcList):
@@ -132,8 +131,7 @@ class Fields1D_ePrimSec(BaseNSEMFields):
         bPrimary = np.zeros([self.survey.mesh.nE,eSolution.shape[1]], dtype = complex)
         for i, src in enumerate(srcList):
             bp = src.bPrimary(self.survey.prob)
-            if bp is not None:
-                bPrimary[:,i] += bp[:,-1]
+            bPrimary[:,i] = bPrimary[:,i] + bp[:,-1]
         return bPrimary
 
     def _bSecondary(self, eSolution, srcList):
