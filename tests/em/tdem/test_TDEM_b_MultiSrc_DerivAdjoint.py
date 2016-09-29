@@ -4,6 +4,14 @@ import numpy as np
 from SimPEG import Mesh, Maps, SolverLU, Tests, Survey
 from SimPEG import EM
 
+try:
+    from pymatsolver import PardisoSolver
+    Solver = PardisoSolver
+except ImportError:
+    Solver = SolverLU
+
+
+
 plotIt = False
 testDeriv = True
 testAdjoint = True
@@ -41,11 +49,7 @@ def setUp_TDEM(self, rxcomp='bz'):
         prb.timeSteps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
         # prb.timeSteps = [(1e-05, 100)]
 
-        try:
-            from pymatsolver import MumpsSolver
-            prb.Solver = MumpsSolver
-        except ImportError, e:
-            prb.Solver = SolverLU
+        prb.Solver = Solver
 
         m = (np.log(1e-1)*np.ones(prb.mapping.nP) +
              1e-2*np.random.randn(prb.mapping.nP))

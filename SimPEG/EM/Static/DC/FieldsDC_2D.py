@@ -1,3 +1,4 @@
+from __future__ import print_function
 import SimPEG
 from SimPEG.Utils import Identity, Zero
 import numpy as np
@@ -10,7 +11,7 @@ class Fields_ky(SimPEG.Problem.TimeFields):
     Fancy Field Storage for a 2.5D code.
 
     u[:,'phi', kyInd] = phi
-    print u[src0,'phi']
+    print(u[src0,'phi'])
 
     Only one field type is stored for
     each problem, the rest are computed. The fields obejct acts like an array

@@ -4,7 +4,7 @@ import unittest
 from scipy.constants import mu_0
 
 
-n = 50.
+n = 50
 freq = 1.
 a = 5e-2
 b = a + 1e-2

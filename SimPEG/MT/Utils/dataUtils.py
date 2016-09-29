@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Utils used for the data,
 import numpy as np, matplotlib.pyplot as plt, sys
 import SimPEG as simpeg
@@ -97,7 +98,7 @@ def plotMT1DModelData(problem, models, symList=None):
 
     # if not symList:
     #   symList = ['x']*len(models)
-    import plotDataTypes as pDt
+    from SimPEG.MT.Utils import plotDataTypes as pDt
     # Loop through the models.
     modelList = [problem.survey.mtrue]
     modelList.extend(models)
@@ -157,7 +158,7 @@ def plotMT1DModelData(problem, models, symList=None):
 
 def printTime():
     import time
-    print time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.localtime())
+    print(time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.localtime()))
 
 def convert3Dto1Dobject(MTdata,rxType3D='zyx'):
     from SimPEG import MT
@@ -238,7 +239,7 @@ def resampleMTdataAtFreq(MTdata,freqs):
         # Join together
         try:
             outRecArr = recFunc.stack_arrays((outRecArr,tArrRec))
-        except NameError as e:
+        except NameError:
             outRecArr = tArrRec
 
     # Make the MTdata and return
