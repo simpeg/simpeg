@@ -92,7 +92,7 @@ after_success:
       if [ ${TEST_DIR} = "tests/docs" -a $TRAVIS_PYTHON_VERSION == "2.7" ]; then
         mv credentials/.pypirc ~/.pypirc ;
         python setup.py register -r pypi ;
-        travis_wait 60 python setup.py sdist upload ;
+        travis_wait 20 python setup.py sdist upload -r pypi ;
       fi;
     fi
 
