@@ -28,24 +28,33 @@ class FDEM_analyticTests(unittest.TestCase):
         hx = [(cs, npad, -1.3), (cs, ncx), (cs, npad, 1.3)]
         hy = [(cs, npad, -1.3), (cs, ncy), (cs, npad, 1.3)]
         hz = [(cs, npad, -1.3), (cs, ncz), (cs, npad, 1.3)]
-        mesh = Mesh.TensorMesh([hx,hy,hz], 'CCC')
+        mesh = Mesh.TensorMesh([hx, hy, hz], 'CCC')
 
         mapping = Maps.ExpMap(mesh)
 
         x = np.linspace(-10, 10, 5)
         XYZ = Utils.ndgrid(x, np.r_[0], np.r_[0])
         rxList = EM.FDEM.Rx.Point_e(XYZ, orientation='x', component='imag')
-        SrcList = [EM.FDEM.Src.MagDipole([rxList], loc=np.r_[0., 0., 0.],
-                                         freq=freq),
-                   EM.FDEM.Src.CircularLoop([rxList], loc=np.r_[0., 0., 0.],
-                                            freq=freq, radius=np.sqrt(1./np.pi)),
-                   # EM.FDEM.Src.MagDipole_Bfield([rxList], loc=np.r_[0., 0., 0.],
-                   #                              freq=freq), # less accurate
-                   ]
+        SrcList = [
+            EM.FDEM.Src.MagDipole(
+                [rxList], loc=np.r_[0., 0., 0.],
+                freq=freq
+            ),
+            EM.FDEM.Src.CircularLoop(
+                [rxList], loc=np.r_[0., 0., 0.],
+                freq=freq, radius=np.sqrt(1./np.pi)
+            ),
+            # EM.FDEM.Src.MagDipole_Bfield(
+            #     [rxList], loc=np.r_[0., 0., 0.],
+            #     freq=freq
+            # ), # less accurate
+        ]
 
         survey = EM.FDEM.Survey(SrcList)
 
-        prb = EM.FDEM.Problem3D_b(mesh, mapping=mapping)
+        mu = np.ones(mesh.nC)*mu_0
+
+        prb = EM.FDEM.Problem3D_b(mesh, sigmaMap=mapping, mu=mu)
         prb.pair(survey)
 
         try:

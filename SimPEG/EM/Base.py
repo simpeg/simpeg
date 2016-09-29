@@ -1,17 +1,18 @@
-from SimPEG import Survey, Problem, Utils, Models, Maps, PropMaps, np, sp, Solver as SimpegSolver
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
+from SimPEG import Survey
+from SimPEG import Problem
+from SimPEG import Utils
+from SimPEG import Models
+from SimPEG import Maps
+from SimPEG import Props
+from SimPEG import np
+from SimPEG import sp
+from SimPEG import Solver as SimpegSolver
 from scipy.constants import mu_0
-
-
-class EMPropMap(Maps.PropMap):
-    """
-        Property Map for EM Problems. The electrical conductivity (\\(\\sigma\\)) is the default inversion property, and the default value of the magnetic permeability is that of free space (\\(\\mu = 4\\pi\\times 10^{-7} \\) H/m)
-    """
-
-    sigma = Maps.Property("Electrical Conductivity", defaultInvProp = True, propertyLink=('rho',Maps.ReciprocalMap))
-    mu = Maps.Property("Inverse Magnetic Permeability", defaultVal = mu_0, propertyLink=('mui',Maps.ReciprocalMap))
-
-    rho = Maps.Property("Electrical Resistivity", propertyLink=('sigma', Maps.ReciprocalMap))
-    mui = Maps.Property("Inverse Magnetic Permeability", defaultVal = 1./mu_0, propertyLink=('mu', Maps.ReciprocalMap))
 
 
 class BaseEMProblem(Problem.BaseProblem):
@@ -19,11 +20,34 @@ class BaseEMProblem(Problem.BaseProblem):
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
+    model = Props.Model("Inversion model.")
+
+    sigma, sigmaMap, sigmaDeriv = Props.Invertible(
+        "Electrical conductivity (S/m)"
+    )
+
+    rho, rhoMap, rhoDeriv = Props.Invertible(
+        "Electrical resistivity (Ohm m)"
+    )
+
+    Props.Reciprocal(sigma, rho)
+
+    mu = Props.PhysicalProperty(
+        "Magnetic Permeability",
+        # default=mu_0
+    )
+    mui = Props.PhysicalProperty(
+        "Inverse Magnetic Permeability",
+        # default=1.0/mu_0
+    )
+
+    Props.Reciprocal(mu, mui)
 
     surveyPair = Survey.BaseSurvey #: The survey to pair with.
     dataPair = Survey.Data #: The data to pair with.
 
-    PropMap = EMPropMap #: The property mapping
+    # PropMap = EMPropMap #: The property mapping
+    mapPair = Maps.ExpMap
 
     Solver = SimpegSolver
     solverOpts = {}
@@ -47,9 +71,9 @@ class BaseEMProblem(Problem.BaseProblem):
     @property
     def deleteTheseOnModelUpdate(self):
         toDelete = []
-        if self.mapping.sigmaMap is not None or self.mapping.rhoMap is not None:
+        if self.sigmaMap is not None or self.rhoMap is not None:
             toDelete += ['_MeSigma', '_MeSigmaI','_MfRho','_MfRhoI']
-        if self.mapping.muMap is not None or self.mapping.muiMap is not None:
+        if self.muMap is not None or self.muiMap is not None:
             toDelete += ['_MeMu', '_MeMuI','_MfMui','_MfMuiI']
         return toDelete
 
@@ -102,7 +126,7 @@ class BaseEMProblem(Problem.BaseProblem):
             Face inner product matrix for \\(\\mu^{-1}\\). Used in the E-B formulation
         """
         if getattr(self, '_MfMui', None) is None:
-            self._MfMui = self.mesh.getFaceInnerProduct(self.curModel.mui)
+            self._MfMui = self.mesh.getFaceInnerProduct(self.mui)
         return self._MfMui
 
     @property
@@ -111,7 +135,7 @@ class BaseEMProblem(Problem.BaseProblem):
             Inverse of :code:`MfMui`.
         """
         if getattr(self, '_MfMuiI', None) is None:
-            self._MfMuiI = self.mesh.getFaceInnerProduct(self.curModel.mui, invMat=True)
+            self._MfMuiI = self.mesh.getFaceInnerProduct(self.mui, invMat=True)
         return self._MfMuiI
 
     @property
@@ -120,7 +144,7 @@ class BaseEMProblem(Problem.BaseProblem):
             Edge inner product matrix for \\(\\mu\\). Used in the H-J formulation
         """
         if getattr(self, '_MeMu', None) is None:
-            self._MeMu = self.mesh.getEdgeInnerProduct(self.curModel.mu)
+            self._MeMu = self.mesh.getEdgeInnerProduct(self.mu)
         return self._MeMu
 
     @property
@@ -129,7 +153,7 @@ class BaseEMProblem(Problem.BaseProblem):
             Inverse of :code:`MeMu`
         """
         if getattr(self, '_MeMuI', None) is None:
-            self._MeMuI = self.mesh.getEdgeInnerProduct(self.curModel.mu, invMat=True)
+            self._MeMuI = self.mesh.getEdgeInnerProduct(self.mu, invMat=True)
         return self._MeMuI
 
 
@@ -141,7 +165,7 @@ class BaseEMProblem(Problem.BaseProblem):
             Edge inner product matrix for \\(\\sigma\\). Used in the E-B formulation
         """
         if getattr(self, '_MeSigma', None) is None:
-            self._MeSigma = self.mesh.getEdgeInnerProduct(self.curModel.sigma)
+            self._MeSigma = self.mesh.getEdgeInnerProduct(self.sigma)
         return self._MeSigma
 
     # TODO: This should take a vector
@@ -149,7 +173,7 @@ class BaseEMProblem(Problem.BaseProblem):
         """
             Derivative of MeSigma with respect to the model
         """
-        return self.mesh.getEdgeInnerProductDeriv(self.curModel.sigma)(u) * self.curModel.sigmaDeriv
+        return self.mesh.getEdgeInnerProductDeriv(self.sigma)(u) * self.sigmaDeriv
 
     @property
     def MeSigmaI(self):
@@ -157,7 +181,7 @@ class BaseEMProblem(Problem.BaseProblem):
             Inverse of the edge inner product matrix for \\(\\sigma\\).
         """
         if getattr(self, '_MeSigmaI', None) is None:
-            self._MeSigmaI = self.mesh.getEdgeInnerProduct(self.curModel.sigma, invMat=True)
+            self._MeSigmaI = self.mesh.getEdgeInnerProduct(self.sigma, invMat=True)
         return self._MeSigmaI
 
     # TODO: This should take a vector
@@ -168,8 +192,8 @@ class BaseEMProblem(Problem.BaseProblem):
         # TODO: only works for diagonal tensors. getEdgeInnerProductDeriv, invMat=True should be implemented in SimPEG
 
         dMeSigmaI_dI = -self.MeSigmaI**2
-        dMe_dsig = self.mesh.getEdgeInnerProductDeriv(self.curModel.sigma)(u)
-        return dMeSigmaI_dI * ( dMe_dsig * self.curModel.sigmaDeriv )
+        dMe_dsig = self.mesh.getEdgeInnerProductDeriv(self.sigma)(u)
+        return dMeSigmaI_dI * ( dMe_dsig * self.sigmaDeriv )
 
     @property
     def MfRho(self):
@@ -177,7 +201,7 @@ class BaseEMProblem(Problem.BaseProblem):
             Face inner product matrix for \\(\\rho\\). Used in the H-J formulation
         """
         if getattr(self, '_MfRho', None) is None:
-            self._MfRho = self.mesh.getFaceInnerProduct(self.curModel.rho)
+            self._MfRho = self.mesh.getFaceInnerProduct(self.rho)
         return self._MfRho
 
     # TODO: This should take a vector
@@ -185,7 +209,7 @@ class BaseEMProblem(Problem.BaseProblem):
         """
             Derivative of :code:`MfRho` with respect to the model.
         """
-        return self.mesh.getFaceInnerProductDeriv(self.curModel.rho)(u) * self.curModel.rhoDeriv
+        return self.mesh.getFaceInnerProductDeriv(self.rho)(u) * self.rhoDeriv
 
     @property
     def MfRhoI(self):
@@ -193,7 +217,7 @@ class BaseEMProblem(Problem.BaseProblem):
             Inverse of :code:`MfRho`
         """
         if getattr(self, '_MfRhoI', None) is None:
-            self._MfRhoI = self.mesh.getFaceInnerProduct(self.curModel.rho, invMat=True)
+            self._MfRhoI = self.mesh.getFaceInnerProduct(self.rho, invMat=True)
         return self._MfRhoI
 
     # TODO: This isn't going to work yet
@@ -204,8 +228,8 @@ class BaseEMProblem(Problem.BaseProblem):
         """
 
         dMfRhoI_dI = -self.MfRhoI**2
-        dMf_drho = self.mesh.getFaceInnerProductDeriv(self.curModel.rho)(u)
-        return dMfRhoI_dI * ( dMf_drho * self.curModel.rhoDeriv )
+        dMf_drho = self.mesh.getFaceInnerProductDeriv(self.rho)(u)
+        return dMfRhoI_dI * ( dMf_drho * self.rhoDeriv )
 
 class BaseEMSurvey(Survey.BaseSurvey):
 

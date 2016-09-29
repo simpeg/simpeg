@@ -483,8 +483,8 @@ class Fields3D_b(FieldsFDEM):
         self._Me = self.survey.prob.Me
         self._aveF2CCV = self.survey.prob.mesh.aveF2CCV
         self._aveE2CCV = self.survey.prob.mesh.aveE2CCV
-        self._sigma = self.survey.prob.curModel.sigma
-        self._mui = self.survey.prob.curModel.mui
+        self._sigma = self.survey.prob.sigma
+        self._mui = self.survey.prob.mui
         self._nC = self.survey.prob.mesh.nC
 
 
@@ -745,8 +745,8 @@ class Fields3D_j(FieldsFDEM):
         self._MeMuI = self.survey.prob.MeMuI
         self._MfRho = self.survey.prob.MfRho
         self._MfRhoDeriv = self.survey.prob.MfRhoDeriv
-        self._rho = self.survey.prob.curModel.rho
-        self._mu = self.survey.prob.curModel.mui
+        self._rho = self.survey.prob.rho
+        self._mu = self.survey.prob.mui
         self._aveF2CCV = self.survey.prob.mesh.aveF2CCV
         self._aveE2CCV = self.survey.prob.mesh.aveE2CCV
         self._nC = self.survey.prob.mesh.nC
@@ -1037,8 +1037,8 @@ class Fields3D_h(FieldsFDEM):
         self._MeMuI = self.survey.prob.MeMuI
         self._MfRho = self.survey.prob.MfRho
         self._MfRhoDeriv = self.survey.prob.MfRhoDeriv
-        self._rho = self.survey.prob.curModel.rho
-        self._mu = self.survey.prob.curModel.mui
+        self._rho = self.survey.prob.rho
+        self._mu = self.survey.prob.mui
         self._aveF2CCV = self.survey.prob.mesh.aveF2CCV
         self._aveE2CCV = self.survey.prob.mesh.aveE2CCV
         self._nC = self.survey.prob.mesh.nC

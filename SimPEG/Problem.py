@@ -6,12 +6,13 @@ import numpy as np
 from . import Maps
 from .Fields import Fields, TimeFields
 from . import Mesh
+from . import Props
 
 
 Solver = Utils.SolverUtils.Solver
 
 
-class BaseProblem(object):
+class BaseProblem(Props.BaseSimPEG):
     """
         Problem is the base class for all geophysical forward problems
         in SimPEG.
@@ -42,13 +43,14 @@ class BaseProblem(object):
         else:
             self._mapping = self.PropMap(val)
 
-    def __init__(self, mesh, mapping=None, **kwargs):
-        Utils.setKwargs(self, **kwargs)
+    def __init__(self, mesh, **kwargs):
+        # Utils.setKwargs(self, **kwargs)
+        super(BaseProblem, self).__init__(**kwargs)
         assert isinstance(mesh, Mesh.BaseMesh), (
             "mesh must be a SimPEG.Mesh object."
         )
         self.mesh = mesh
-        self.mapping = mapping or Maps.IdentityMap(mesh)
+        # self.mapping = mapping or Maps.IdentityMap(mesh)
 
     @property
     def survey(self):
@@ -87,10 +89,13 @@ class BaseProblem(object):
         """
             Sets the current model, and removes dependent mass matrices.
         """
+        raise Exception()
         return getattr(self, '_curModel', None)
 
     @curModel.setter
     def curModel(self, value):
+        self.model = value
+        return
         if value is self.curModel:
             return  # it is the same!
         if self.PropMap is not None:
