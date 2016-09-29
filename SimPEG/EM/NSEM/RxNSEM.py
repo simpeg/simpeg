@@ -14,7 +14,7 @@ from SimPEG import mkvc
 # from SimPEG.EM.Utils.EMUtils import mu_0
 
 
-class rx_Point_NSEM(SimPEG.Survey.BaseRx):
+class BaseRxNSEM_Point(SimPEG.Survey.BaseRx):
     """
     Natural source receiver base class.
 
@@ -26,7 +26,7 @@ class rx_Point_NSEM(SimPEG.Survey.BaseRx):
     """
 
     def __init__(self, locs, orientation=None, component=None):
-        assert(orientation in ['xx','xy', 'yx', 'yy']), "Orientation {0!s} not known. Orientation must be in 'x', 'y', 'z'. Arbitrary orientations have not yet been implemented.".format(orientation)
+        assert(orientation in ['xx','xy', 'yx', 'yy', 'zx', 'zy']), "Orientation {0!s} not known. Orientation must be in 'x', 'y', 'z'. Arbitrary orientations have not yet been implemented.".format(orientation)
         assert(component in ['real', 'imag']), "'component' must be 'real' or 'imag', not {0!s}".format(component)
 
         self.orientation = orientation
@@ -418,7 +418,7 @@ class rx_Point_impedance1D(SimPEG.Survey.BaseRx):
         return rx_deriv_component
 
 
-class rx_Point_impedance3D(rx_Point_NSEM):
+class rx_Point_impedance3D(BaseRxNSEM_Point):
     """
     Natural source 3D impedance receiver class
 
@@ -428,13 +428,8 @@ class rx_Point_impedance3D(rx_Point_NSEM):
     """
 
     def __init__(self, locs, orientation=None, component=None):
-        assert(orientation in ['xx','xy', 'yx', 'yy']), "Orientation {0!s} not known. Orientation must be in 'x', 'y', 'z'. Arbitrary orientations have not yet been implemented.".format(orientation)
-        assert(component in ['real', 'imag']), "'component' must be 'real' or 'imag', not {0!s}".format(component)
 
-        self.orientation = orientation
-        self.component = component
-
-        SimPEG.Survey.BaseRx.__init__(self, locs, rxType=None)
+        BaseRxNSEM_Point.__init__(self, locs, orientation=orientation, component=component)
 
 
 
@@ -579,7 +574,7 @@ class rx_Point_impedance3D(rx_Point_NSEM):
         return rx_deriv_component
 
 
-class rx_Point_tipper3D(rx_Point_NSEM):
+class rx_Point_tipper3D(BaseRxNSEM_Point):
     """
     Natural source 3D tipper receiver base class
 
@@ -589,13 +584,8 @@ class rx_Point_tipper3D(rx_Point_NSEM):
     """
 
     def __init__(self, locs, orientation=None, component=None):
-        assert(orientation in ['zx', 'zy']), "Orientation {0!s} not known. Orientation must be in 'zx' or 'zy'. Arbitrary orientations have not yet been implemented.".format(orientation)
-        assert(component in ['real', 'imag']), "'component' must be 'real' or 'imag', not {0!s}".format(component)
 
-        self.orientation = orientation
-        self.component = component
-
-        SimPEG.Survey.BaseRx.__init__(self, locs, rxType=None) #TODO: remove rxType from baseRx
+        BaseRxNSEM_Point.__init__(self, locs, orientation=orientation, component=component)
 
     def eval(self, src, mesh, f, return_complex=False):
         '''

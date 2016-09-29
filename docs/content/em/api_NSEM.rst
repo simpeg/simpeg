@@ -12,6 +12,17 @@ context of geoscience applications.
 Uses SimPEG as the framework for the forward and inverse
 magnetotellurics geophysical problems.
 
+This package within SimPEG currently includes
+
+- Magnetotellurics
+    - Impedance
+    - Tipper
+
+With support to other methods such
+
+- ZTEM
+
+under development
 
 API
 ===
