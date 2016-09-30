@@ -612,7 +612,7 @@ class PrimSecMappedSigma(BaseSrc):
         fields = self.primaryProblem.fields(prob.curModel.sigmaModel)
 
         if fieldType is not None:
-            return fields[:,fieldType]
+            return fields[:, fieldType]
         return fields
 
     def _primaryFieldsDeriv(self, prob, v, adjoint=False, f=None):
