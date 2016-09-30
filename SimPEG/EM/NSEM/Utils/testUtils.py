@@ -6,9 +6,9 @@ import numpy as np
 
 import SimPEG as simpeg
 from SimPEG.Utils import meshTensor
-from SimPEG.EM.NSEM.RxNSEM import rx_Point_impedance1D, rx_Point_impedance3D, rx_Point_tipper3D
+from SimPEG.EM.NSEM.RxNSEM import Point_impedance1D, Point_impedance3D, Point_tipper3D
 from SimPEG.EM.NSEM.SurveyNSEM import Survey
-from SimPEG.EM.NSEM.SrcNSEM import polxy_1Dprimary, polxy_1DhomotD
+from SimPEG.EM.NSEM.SrcNSEM import Planewave_xy_1Dprimary, Planewave_xy_1DhomotD
 from SimPEG.EM.NSEM.ProblemNSEM import Problem3D_ePrimSec
 from .dataUtils import appResPhs
 
@@ -61,16 +61,16 @@ def setup1DSurvey(sigmaHalf, tD=False, structure=False):
 
     rxList = []
     for rxType in ['z1d','z1d']:
-        rxList.append(rx_Point_impedance1D(simpeg.mkvc(np.array([0.0]),2).T,'real'))
-        rxList.append(rx_Point_impedance1D(simpeg.mkvc(np.array([0.0]),2).T,'imag'))
+        rxList.append(Point_impedance1D(simpeg.mkvc(np.array([0.0]),2).T,'real'))
+        rxList.append(Point_impedance1D(simpeg.mkvc(np.array([0.0]),2).T,'imag'))
     # Source list
     srcList =[]
     if tD:
         for freq in freqs:
-            srcList.append(polxy_1DhomotD(rxList,freq))
+            srcList.append(Planewave_xy_1DhomotD(rxList,freq))
     else:
         for freq in freqs:
-            srcList.append(polxy_1Dprimary(rxList,freq))
+            srcList.append(Planewave_xy_1Dprimary(rxList,freq))
 
     survey = Survey(srcList)
     return (survey, sigma, sigmaBack, m1d)
@@ -93,20 +93,20 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp='Imp', singleFreq=False, expMap=Tr
 
     for rx_type in rx_type_list:
         if rx_type in ['xx','xy','yx','yy']:
-            rxList.append(rx_Point_impedance3D(rx_loc, rx_type, 'real'))
-            rxList.append(rx_Point_impedance3D(rx_loc, rx_type, 'imag'))
+            rxList.append(Point_impedance3D(rx_loc, rx_type, 'real'))
+            rxList.append(Point_impedance3D(rx_loc, rx_type, 'imag'))
         if rx_type in ['zx','zy']:
-            rxList.append(rx_Point_tipper3D(rx_loc, rx_type, 'real'))
-            rxList.append(rx_Point_tipper3D(rx_loc, rx_type, 'imag'))
+            rxList.append(Point_tipper3D(rx_loc, rx_type, 'real'))
+            rxList.append(Point_tipper3D(rx_loc, rx_type, 'imag'))
 
     # Source list
     srcList =[]
 
     if singleFreq:
-        srcList.append(polxy_1Dprimary(rxList,singleFreq))
+        srcList.append(Planewave_xy_1Dprimary(rxList,singleFreq))
     else:
         for freq in freqs:
-            srcList.append(polxy_1Dprimary(rxList,freq))
+            srcList.append(Planewave_xy_1Dprimary(rxList,freq))
     # Survey NSEM
     survey = Survey(srcList)
 

@@ -37,15 +37,15 @@ def run(plotIt=True, nFreq=1):
     for loc in rx_loc:
         # NOTE: loc has to be a (1,3) np.ndarray otherwise errors accure
         for rx_orientation in ['xx','xy','yx','yy']:
-            rxList.append(NSEM.rx_Point_impedance3D(simpeg.mkvc(loc,2).T,rx_orientation, 'real'))
-            rxList.append(NSEM.rx_Point_impedance3D(simpeg.mkvc(loc,2).T,rx_orientation, 'imag'))
+            rxList.append(NSEM.Rx.Point_impedance3D(simpeg.mkvc(loc,2).T,rx_orientation, 'real'))
+            rxList.append(NSEM.Rx.Point_impedance3D(simpeg.mkvc(loc,2).T,rx_orientation, 'imag'))
         for rx_orientation in ['zx','zy']:
-            rxList.append(NSEM.rx_Point_tipper3D(simpeg.mkvc(loc,2).T,rx_orientation, 'real'))
-            rxList.append(NSEM.rx_Point_tipper3D(simpeg.mkvc(loc,2).T,rx_orientation, 'imag'))
+            rxList.append(NSEM.Rx.Point_tipper3D(simpeg.mkvc(loc,2).T,rx_orientation, 'real'))
+            rxList.append(NSEM.Rx.Point_tipper3D(simpeg.mkvc(loc,2).T,rx_orientation, 'imag'))
     # Source list
     srcList =[]
     for freq in np.logspace(3,-3,nFreq):
-        srcList.append(NSEM.SrcNSEM.polxy_1Dprimary(rxList,freq))
+        srcList.append(NSEM.Src.Planewave_xy_1Dprimary(rxList,freq))
     # Survey MT
     survey = NSEM.Survey(srcList)
 

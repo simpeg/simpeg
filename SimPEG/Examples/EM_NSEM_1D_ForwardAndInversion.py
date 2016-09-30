@@ -59,12 +59,12 @@ def run(plotIt=True):
     ## Setup the layout of the survey, set the sources and the connected receivers
     # Receivers
     rxList = []
-    rxList.append(NSEM.rx_Point_impedance1D(simpeg.mkvc(np.array([-0.5]),2).T,'real'))
-    rxList.append(NSEM.rx_Point_impedance1D(simpeg.mkvc(np.array([-0.5]),2).T,'imag'))
+    rxList.append(NSEM.Rx.Point_impedance1D(simpeg.mkvc(np.array([-0.5]),2).T,'real'))
+    rxList.append(NSEM.Rx.Point_impedance1D(simpeg.mkvc(np.array([-0.5]),2).T,'imag'))
     # Source list
     srcList =[]
     for freq in freqs:
-            srcList.append(NSEM.SrcNSEM.polxy_1Dprimary(rxList,freq))
+            srcList.append(NSEM.Src.Planewave_xy_1Dprimary(rxList,freq))
     # Make the survey
     survey = NSEM.Survey(srcList)
     survey.mtrue = m_true

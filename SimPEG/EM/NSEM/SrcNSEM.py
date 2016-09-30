@@ -10,7 +10,6 @@ from SimPEG.EM.FDEM.SrcFDEM import BaseSrc as FDEMBaseSrc
 from SimPEG.EM.Utils import omega
 from .Utils.sourceUtils import homo1DModelSource
 
-
 #################
 ###   Sources ###
 #################
@@ -33,7 +32,7 @@ class BaseNSEMSrc(FDEMBaseSrc):
         FDEMBaseSrc.__init__(self, rxList)
 
 # 1D sources
-class polxy_1DhomotD(BaseNSEMSrc):
+class Planewave_xy_1DhomotD(BaseNSEMSrc):
     """
     NSEM source for both polarizations (x and y) for the total Domain.
 
@@ -43,14 +42,14 @@ class polxy_1DhomotD(BaseNSEMSrc):
         BaseNSEMSrc.__init__(self, rxList, freq)
 
 
-    # TODO: need to add the  primary fields calc and source terms into the problem.
-
 # Need to implement such that it works for all dims.
 # Rename to be more descriptive
-class polxy_1Dprimary(BaseNSEMSrc):
+class Planewave_xy_1Dprimary(BaseNSEMSrc):
     """
-    NSEM source for both polarizations (x and y) given a 1D primary models.
-    It assigns fields calculated from the 1D model as fields in the full space of the problem.
+    NSEM planewave source for both polarizations (x and y)
+    estimated from a single 1D primary models.
+
+
     """
     def __init__(self, rxList, freq):
         # assert mkvc(self.mesh.hz.shape,1) == mkvc(sigma1d.shape,1),'The number of values in the 1D background model does not match the number of vertical cells (hz).'
@@ -141,9 +140,10 @@ class polxy_1Dprimary(BaseNSEMSrc):
                 return np.hstack(( mkvc(problem.MeSigmaDeriv(e_p[:,0]) * v,2), mkvc(problem.MeSigmaDeriv(e_p[:,1])*v,2) ))
 
 
-class polxy_3Dprimary(BaseNSEMSrc):
+class Planewave_xy_3Dprimary(BaseNSEMSrc):
     """
-    NSEM source for both polarizations (x and y) given a 3D primary model. It assigns fields calculated from the 1D model
+    NSEM source for both polarizations (x and y) given a 3D primary model.
+    It assigns fields calculated from the 1D model
     as fields in the full space of the problem.
     """
     def __init__(self, rxList, freq):

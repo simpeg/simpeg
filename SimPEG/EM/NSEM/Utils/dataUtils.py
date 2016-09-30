@@ -10,8 +10,8 @@ from scipy import interpolate as sciint
 
 import SimPEG as simpeg
 from SimPEG.EM.NSEM.SurveyNSEM import Data , Survey
-from SimPEG.EM.NSEM.RxNSEM import rx_Point_impedance1D
-from SimPEG.EM.NSEM.SrcNSEM import polxy_1Dprimary
+from SimPEG.EM.NSEM.RxNSEM import Point_impedance1D
+from SimPEG.EM.NSEM.SrcNSEM import Planewave_xy_1Dprimary
 from SimPEG.EM.NSEM.Utils import MT1Danalytic, plotDataTypes as pDt
 
 
@@ -255,14 +255,14 @@ def convert3Dto1Dobject(NSEMdata, rxType3D='yx'):
     for loc in uniLocs:
         # Make the receiver list
         rx1DList = []
-        rx1DList.append(rx_Point_impedance1D(simpeg.mkvc(loc,2).T,'real'))
-        rx1DList.append(rx_Point_impedance1D(simpeg.mkvc(loc,2).T,'imag'))
+        rx1DList.append(Point_impedance1D(simpeg.mkvc(loc,2).T,'real'))
+        rx1DList.append(Point_impedance1D(simpeg.mkvc(loc,2).T,'imag'))
         # Source list
         locrecData = recData[np.sqrt(np.sum( (rec_to_ndarr(recData[['x','y','z']]) - loc )**2,axis=1)) < 1e-5]
         dat1DList = []
         src1DList = []
         for freq in locrecData['freq']:
-            src1DList.append(polxy_1Dprimary(rx1DList,freq))
+            src1DList.append(Planewave_xy_1Dprimary(rx1DList,freq))
             for comp  in ['r','i']:
                 dat1DList.append( corr * locrecData[rxType3D+comp][locrecData['freq']== freq] )
 

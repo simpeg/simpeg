@@ -9,9 +9,8 @@ SimPEG implementation of the natural source problem
 from __future__ import absolute_import
 
 from . import Utils
-from . import SrcNSEM
+from . import SrcNSEM as Src
+from . import RxNSEM as Rx
 from .SurveyNSEM import Survey, Data
-from .RxNSEM import (rx_Point_impedance1D,
-					 rx_Point_impedance3D, rx_Point_tipper3D)
 from .FieldsNSEM import Fields1D_ePrimSec, Fields3D_ePrimSec
 from .ProblemNSEM import Problem1D_ePrimSec, Problem3D_ePrimSec
