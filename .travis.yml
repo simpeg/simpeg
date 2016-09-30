@@ -66,6 +66,9 @@ install:
 
   - python setup.py install
   - python setup.py build_ext --inplace
+  - if [ ${TEST_DIR} = "tests/docs" ]; then
+      pip install sphinx_rtd_theme ;
+    fi
 
 # Run test
 script:
@@ -90,7 +93,7 @@ after_success:
       if [ ${TEST_DIR} = "tests/docs" -a $TRAVIS_PYTHON_VERSION == "2.7" ]; then
         mv credentials/.pypirc ~/.pypirc ;
         python setup.py register -r pypi ;
-        python setup.py sdist upload ;
+        travis_wait 20 python setup.py sdist upload -r pypi ;
       fi;
     fi
 
