@@ -21,7 +21,8 @@ env:
     - TEST_DIR=tests/em/tdem
     - TEST_DIR=tests/em/static
     - TEST_DIR=tests/flow
-    - TEST_DIR=tests/mt
+    - TEST_DIR=tests/em/nsem/forward
+    - TEST_DIR=tests/em/nsem/inversion
     - TEST_DIR=tests/examples
     - TEST_DIR=tests/em/fdem/inverse/adjoint
     - TEST_DIR=tests/em/fdem/forward
@@ -46,10 +47,11 @@ before_install:
   - conda update --yes conda
 
 install:
+
   - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
-      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib=1.5.1 pyqt=4.11.4 cython ipython nose sphinx sympy vtk;
+      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython nose sphinx sympy vtk;
     else
-      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib=1.5.1 pyqt=4.11.4 cython ipython nose sphinx sympy;
+      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython nose sphinx sympy;
     fi
   - pip install nose-cov python-coveralls
 
@@ -65,6 +67,9 @@ install:
 
   - python setup.py install
   - python setup.py build_ext --inplace
+  - if [ ${TEST_DIR} = "tests/docs" ]; then
+      pip install sphinx_rtd_theme ;
+    fi
 
 # Run test
 script:
@@ -76,7 +81,7 @@ after_success:
   - openssl aes-256-cbc -K $encrypted_7e0a8632ac3f_key -iv $encrypted_7e0a8632ac3f_iv -in credentials.tar.gz.enc -out credentials.tar.gz -d
   - tar -xvzf credentials.tar.gz
   - if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then
-      if [ ${TEST_DIR} = "tests/docs" -a $TRAVIS_PYTHON_VERSION == "2.7"]; then
+      if [ ${TEST_DIR} = "tests/docs" -a $TRAVIS_PYTHON_VERSION == "2.7" ]; then
         python scripts/fetch_gae_sdk.py $(dirname "${GAE_PYTHONPATH}");
         if [ ! -d ${HOME}/google-cloud-sdk ]; then curl https://sdk.cloud.google.com | bash; fi ;
         gcloud auth activate-service-account --key-file credentials/client-secret.json ;
@@ -86,10 +91,10 @@ after_success:
       fi;
     fi
   - if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then
-      if [ ${TEST_DIR} = "tests/docs" -a $TRAVIS_PYTHON_VERSION == "2.7"]; then
+      if [ ${TEST_DIR} = "tests/docs" -a $TRAVIS_PYTHON_VERSION == "2.7" ]; then
         mv credentials/.pypirc ~/.pypirc ;
         python setup.py register -r pypi ;
-        python setup.py sdist upload ;
+        travis_wait 20 python setup.py sdist upload -r pypi ;
       fi;
     fi
 

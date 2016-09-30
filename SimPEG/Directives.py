@@ -214,43 +214,37 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         f.write(' {0:3d} {1:1.4e} {2:1.4e} {3:1.4e} {4:1.4e}\n'.format(self.opt.iter, self.invProb.beta, self.invProb.phi_d, self.invProb.phi_m, self.opt.f))
         f.close()
 
+
 class SaveOutputDictEveryIteration(SaveEveryIteration):
-    """SaveOutputDictEveryIteration"""
+    """
+    Saves inversion parameters at every iteraion.
+
+
+    """
 
     def initialize(self):
         print("SimPEG.SaveOutputDictEveryIteration will save your inversion progress as dictionary: '###-{0!s}.npz'".format(self.fileName))
 
     def endIter(self):
-        # Save the data.
-        ms = self.reg.Ws * ( self.reg.mapping * (self.invProb.curModel - self.reg.mref) )
-        phi_ms = 0.5*ms.dot(ms)
-        if self.reg.mrefInSmooth == True:
-            mref = self.reg.mref
-        else:
-            mref = 0
-        mx = self.reg.Wx * ( self.reg.mapping * (self.invProb.curModel - mref) )
-        phi_mx = 0.5 * mx.dot(mx)
-        if self.prob.mesh.dim >= 2:
-            my = self.reg.Wy * ( self.reg.mapping * (self.invProb.curModel - mref) )
-            phi_my = 0.5 * my.dot(my)
-        else:
-            phi_my = 'NaN'
-        if self.prob.mesh.dim==3:
-            mz = self.reg.Wz * ( self.reg.mapping * (self.invProb.curModel - mref) )
-            phi_mz = 0.5 * mz.dot(mz)
-        else:
-            phi_mz = 'NaN'
 
+        # Initialize the output dict
+        outDict = {}
+        # Save the data.
+        outDict['iter'] = self.opt.iter
+        outDict['beta'] = self.invProb.beta
+        outDict['phi_d'] = self.invProb.phi_d
+        outDict['phi_m'] = self.invProb.phi_m
+        outDict['phi_ms'] = self.reg._evalSmall(self.invProb.curModel)
+        outDict['phi_mx'] = self.reg._evalSmoothx(self.invProb.curModel)
+        outDict['phi_my'] = self.reg._evalSmoothy(self.invProb.curModel) if self.prob.mesh.dim >= 2 else 'NaN'
+        outDict['phi_mz'] = self.reg._evalSmoothz(self.invProb.curModel) if self.prob.mesh.dim==3 else 'NaN'
+        outDict['f'] = self.opt.f
+        outDict['m'] = self.invProb.curModel
+        outDict['dpred'] = self.invProb.dpred
 
         # Save the file as a npz
-        np.savez('{:03d}-{:s}'.format(self.opt.iter,self.fileName), iter=self.opt.iter, beta=self.invProb.beta, phi_d=self.invProb.phi_d, phi_m=self.invProb.phi_m, phi_ms=phi_ms, phi_mx=phi_mx, phi_my=phi_my, phi_mz=phi_mz,f=self.opt.f, m=self.invProb.curModel,dpred=self.invProb.dpred)
+        np.savez('{:03d}-{:s}'.format(self.opt.iter,self.fileName), outDict)
 
-#         mref = getattr(self, 'm_prev', None)
-#         if mref is None:
-#             if self.debug: print('UpdateReferenceModel is using mref0')
-#             mref = self.mref0
-#         self.m_prev = self.invProb.m_current
-#         return mref
 
 class Update_IRLS(InversionDirective):
 
