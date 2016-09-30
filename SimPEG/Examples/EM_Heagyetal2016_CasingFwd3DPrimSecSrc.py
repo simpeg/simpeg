@@ -617,7 +617,7 @@ class PrimSecCasingExample(object):
         secondarySurvey = self.setupSecondarySurvey(
             self.primaryProblem, self.primarySurvey, self.primaryMap2meshs)
         src = secondarySurvey.srcList[0]
-        s_e = src.s_e(secondaryProblem)
+        s_e = src.s_e(secondaryProblem, f=primaryFields)
 
         # Mesh to interpolate onto for stream plots
         cs = 5.
@@ -671,7 +671,7 @@ class PrimSecCasingExample(object):
 
         # re-assign zero for amplitude of the real current density
         s_e_abs_cc = s_e_stream_cc.reshape(meshs_plt.nC, 3, order='F')
-        s_e_abs_cc = (s_e_abs_cc**2.).sum(axis=1)
+        s_e_abs_cc = np.sqrt((s_e_abs_cc**2.).sum(axis=1))
         s_e_abs_cc[np.isnan(s_e_abs_cc)] = 0.
         s_e_stream_cc = np.ma.masked_where(np.isnan(s_e_stream_cc), s_e_stream_cc)
 

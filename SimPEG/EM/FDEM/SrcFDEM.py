@@ -680,10 +680,10 @@ class PrimSecMappedSigma(BaseSrc):
         return Utils.mkvc(epDeriv)
 
 
-    def s_e(self, prob):
+    def s_e(self, prob, f=None):
         sigmaPrimary = self.map2meshSecondary * prob.curModel.sigmaModel
 
-        return Utils.mkvc((prob.MeSigma -  prob.mesh.getEdgeInnerProduct(sigmaPrimary)) * self.ePrimary(prob))
+        return Utils.mkvc((prob.MeSigma -  prob.mesh.getEdgeInnerProduct(sigmaPrimary)) * self.ePrimary(prob, f=f))
 
 
     def s_eDeriv(self, prob, v, adjoint=False):
