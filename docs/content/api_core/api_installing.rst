@@ -21,6 +21,12 @@ it is best to use a package manager such as
 `Enthought Canopy <https://www.enthought.com/products/canopy/>`_.
 You can download the package manager and use it to install the dependencies above.
 
+.. note::
+    When using Continuum Anaconda, make sure to run::
+
+        conda update conda
+        conda update anaconda
+
 
 Installing SimPEG
 =================
@@ -41,6 +47,11 @@ Second (from the root of the simpeg repository)::
 
     python setup.py install
 
+.. attention:: Windows users
+	A common error when installing the setup.py is:
+	``Missing linker, needs MSC v.1500 (Microsoft Visual C++ 2008) Runtime Library``
+
+	The missing library can be found `here <https://www.microsoft.com/en-ca/download/details.aspx?id=29>`
 
 Useful Links
 ============
