@@ -1066,7 +1066,7 @@ class PrimSecCasingExample(object):
 
         # -------------- Calculate J --------------------------------- #
         # Calculate J with block
-        print 'starting J with block'
+        print('starting J with block')
         t0 = time.time()
 
         J = []
@@ -1158,18 +1158,18 @@ def run(plotIt=False, runTests=False, reRun=False, saveFig=False):
 
     # plot some things
     if plotIt is True:
-        # casingExample.plotPrimaryFields(
-        #     dataDict['primfields'], saveFig=saveFig)
+        casingExample.plotPrimaryFields(
+            dataDict['primfields'], saveFig=saveFig)
         casingExample.plotSecondarySource(
             dataDict['primfields'], saveFig=saveFig)
-        casingExample.plotData(
-            dataDict['dpred'], dataDict['dpredback'], saveFig=saveFig)
-        casingExample.plotSensitivities(
-            dataDict['J'], saveFig=saveFig)
+        # casingExample.plotData(
+        #     dataDict['dpred'], dataDict['dpredback'], saveFig=saveFig)
+        # casingExample.plotSensitivities(
+        #     dataDict['J'], saveFig=saveFig)
 
     # remove the downloaded results
     if reRun is False:
-        casingExample.removeStoredResults(basePath)
+        casingExample.removeStoredResults()
 
 
 if __name__ == '__main__':
