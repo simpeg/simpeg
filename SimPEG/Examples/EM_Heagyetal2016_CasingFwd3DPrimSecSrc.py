@@ -374,7 +374,7 @@ class PrimSecCasingExample(object):
                 #     ax.set_xlim([0, 1.1e4])
                 #     ax.set_ylim([-1100., 0.5])
 
-                #     plt.show()
+
 
                 return dg_p
 
@@ -421,7 +421,6 @@ class PrimSecCasingExample(object):
         ax[1].set_title('log10 sigma')
 
         plt.tight_layout()
-        plt.show()
         return ax
 
     # ----------------------------------------------------------------- #
@@ -605,7 +604,6 @@ class PrimSecCasingExample(object):
         if saveFig is True:
             fig.savefig('primaryCurrents', dpi=300, bbox_inches='tight')
 
-        plt.show()
         return ax
 
     def plotSecondarySource(self, primaryFields, saveFig=False):
@@ -644,19 +642,19 @@ class PrimSecCasingExample(object):
         # for regions outside of the anomalous block, the source current density
         # is identically zero. For plotting, we do not want to interpolate into
         # this region, so we build up masked arrays.
-        maskme_ex = ((self.meshs.gridEx[:, 0] <= self.block_x[0])|
-             (self.meshs.gridEx[:, 0] >= self.block_x[1])|
-             (self.meshs.gridEx[:, 1] <= self.block_y[0])|
-             (self.meshs.gridEx[:, 1] >= self.block_y[1]))
+        maskme_ex = ((self.meshs.gridEx[:, 0] <= self.block_x[0]) |
+                     (self.meshs.gridEx[:, 0] >= self.block_x[1]) |
+                     (self.meshs.gridEx[:, 1] <= self.block_y[0]) |
+                     (self.meshs.gridEx[:, 1] >= self.block_y[1]))
 
-        maskme_ey = ((self.meshs.gridEy[:, 0] <= self.block_x[0])|
-                     (self.meshs.gridEy[:, 0] >= self.block_x[1])|
-                     (self.meshs.gridEy[:, 1] <= self.block_y[0])|
+        maskme_ey = ((self.meshs.gridEy[:, 0] <= self.block_x[0]) |
+                     (self.meshs.gridEy[:, 0] >= self.block_x[1]) |
+                     (self.meshs.gridEy[:, 1] <= self.block_y[0]) |
                      (self.meshs.gridEy[:, 1] >= self.block_y[1]))
 
-        maskme_ez = ((self.meshs.gridEz[:, 0] <= self.block_x[0])|
-                     (self.meshs.gridEz[:, 0] >= self.block_x[1])|
-                     (self.meshs.gridEz[:, 1] <= self.block_y[0])|
+        maskme_ez = ((self.meshs.gridEz[:, 0] <= self.block_x[0]) |
+                     (self.meshs.gridEz[:, 0] >= self.block_x[1]) |
+                     (self.meshs.gridEz[:, 1] <= self.block_y[0]) |
                      (self.meshs.gridEz[:, 1] >= self.block_y[1]))
 
         maskme_e = np.hstack([maskme_ex, maskme_ey, maskme_ez])
@@ -719,7 +717,6 @@ class PrimSecCasingExample(object):
         if saveFig is True:
             fig.savefig('secondarySource', dpi=300)
 
-        plt.show()
         return ax
 
     def plotData(self, data_block, data_back, saveFig=False):
@@ -894,7 +891,6 @@ class PrimSecCasingExample(object):
             plotBlock=plotBlock, num = ncontours, cblabel=clabelSigs)
 
         plt.tight_layout()
-        plt.show()
 
         if saveFig is True:
             fig.savefig('J_sigmas', dpi=300)
@@ -928,7 +924,6 @@ class PrimSecCasingExample(object):
                         cblabel='Sensitivity (V/m / m)')
 
         plt.tight_layout()
-        plt.show()
 
         if saveFig is True:
             fig.savefig('J_layer', dpi=300)
@@ -978,7 +973,6 @@ class PrimSecCasingExample(object):
                         cblabel='Sensitivity (V/m / m)')
 
         plt.tight_layout()
-        plt.show()
 
         if saveFig is True:
             fig.savefig('J_block', dpi=300)
@@ -1118,10 +1112,10 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
         return os.path.abspath(remoteDownload(self.url, self.cloudfiles,
                                basePath=self.filepath+os.path.sep))
 
-    def removeStoredResults(self, basePath):
+    def removeStoredResults(self):
         import shutil
-        print('Removing {}'.format(basePath))
-        shutil.rmtree(basePath)
+        print('Removing {}'.format(self.filepath))
+        shutil.rmtree(self.filepath)
 
     def run(self, plotIt=False, runTests=False, saveFig=False):
         self.downloadStoredResults()
@@ -1162,10 +1156,11 @@ def run(plotIt=False, runTests=False, reRun=False, saveFig=False):
             dataDict['primfields'], saveFig=saveFig)
         casingExample.plotSecondarySource(
             dataDict['primfields'], saveFig=saveFig)
-        # casingExample.plotData(
-        #     dataDict['dpred'], dataDict['dpredback'], saveFig=saveFig)
-        # casingExample.plotSensitivities(
-        #     dataDict['J'], saveFig=saveFig)
+        casingExample.plotData(
+            dataDict['dpred'], dataDict['dpredback'], saveFig=saveFig)
+        casingExample.plotSensitivities(
+            dataDict['J'], saveFig=saveFig)
+        plt.show()
 
     # remove the downloaded results
     if reRun is False:
