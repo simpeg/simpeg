@@ -59,6 +59,7 @@ class BaseInversion(object):
         """
         self.invProb.startup(m0)
         self.directiveList.call('initialize')
+        print('curModel has any nan: {:b}'.format(np.any(np.isnan(self.invProb.curModel))))
         self.m = self.opt.minimize(self.invProb.evalFunction, self.invProb.curModel)
         self.directiveList.call('finish')
 
