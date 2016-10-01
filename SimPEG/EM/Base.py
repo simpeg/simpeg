@@ -73,8 +73,10 @@ class BaseEMProblem(Problem.BaseProblem):
         toDelete = []
         if self.sigmaMap is not None or self.rhoMap is not None:
             toDelete += ['_MeSigma', '_MeSigmaI','_MfRho','_MfRhoI']
-        if self.muMap is not None or self.muiMap is not None:
-            toDelete += ['_MeMu', '_MeMuI','_MfMui','_MfMuiI']
+
+        if hasattr(self, 'muMap') or hasattr(self, 'muiMap'):
+            if self.muMap is not None or self.muiMap is not None:
+                toDelete += ['_MeMu', '_MeMuI','_MfMui','_MfMuiI']
         return toDelete
 
     @property

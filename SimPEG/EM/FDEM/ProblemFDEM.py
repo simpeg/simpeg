@@ -75,7 +75,7 @@ class BaseFDEMProblem(BaseEMProblem):
         if f is None:
             f = self.fields(m)
 
-        self.curModel = m
+        self.model = m
 
         # Jv = self.dataPair(self.survey)
         Jv = []
@@ -113,7 +113,7 @@ class BaseFDEMProblem(BaseEMProblem):
         if f is None:
             f = self.fields(m)
 
-        self.curModel = m
+        self.model = m
 
         # Ensure v is a data object.
         if not isinstance(v, self.dataPair):
@@ -243,7 +243,7 @@ class Problem3D_e(BaseFDEMProblem):
         :return: derivative of the system matrix times a vector (nP,) or adjoint (nD,)
         """
 
-        dsig_dm = self.curModel.sigmaDeriv
+        dsig_dm = self.sigmaDeriv
         dMe_dsig = self.MeSigmaDeriv(u)
 
         if adjoint:

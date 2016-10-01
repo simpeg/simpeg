@@ -7,6 +7,7 @@ from . import Maps
 from .Fields import Fields, TimeFields
 from . import Mesh
 from . import Props
+import properties
 
 
 Solver = Utils.SolverUtils.Solver
@@ -92,16 +93,16 @@ class BaseProblem(Props.BaseSimPEG):
         raise Exception()
         return getattr(self, '_curModel', None)
 
-    @curModel.setter
-    def curModel(self, value):
-        self.model = value
-        return
-        if value is self.curModel:
-            return  # it is the same!
-        if self.PropMap is not None:
-            self._curModel = self.mapping(value)
-        else:
-            self._curModel = Models.Model(value, self.mapping)
+    @properties.observe('model')
+    def _on_model_update(self, value):
+        # self.model = value
+        # return
+        # if value is self.curModel:
+        #     return  # it is the same!
+        # if self.PropMap is not None:
+        #     self._curModel = self.mapping(value)
+        # else:
+        #     self._curModel = Models.Model(value, self.mapping)
         for prop in self.deleteTheseOnModelUpdate:
             if hasattr(self, prop):
                 delattr(self, prop)
