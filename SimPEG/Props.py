@@ -111,8 +111,8 @@ class PhysicalProperty(properties.Property):
     def validate(self, instance, value):
         if value is None:
             return None
-        assert isinstance(value, np.ndarray), (
-            "Physical properties must be numpy arrays."
+        assert isinstance(value, (np.ndarray, float)), (
+            "Physical properties must be numpy arrays or floats."
         )
         return value
 
