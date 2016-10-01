@@ -1,14 +1,22 @@
+from __future__ import absolute_import
+from __future__ import division
 from __future__ import print_function
-from . import Utils
+from __future__ import unicode_literals
+
+from six import integer_types
+from six import string_types
+from collections import namedtuple
+import warnings
+
 import numpy as np
+from numpy.polynomial import polynomial
 import scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
+from scipy.interpolate import UnivariateSpline
+
+from . import Utils
 from .Tests import checkDerivative
 from .PropMaps import PropMap, Property
-from numpy.polynomial import polynomial
-from scipy.interpolate import UnivariateSpline
-import warnings
-from six import integer_types
 
 
 class IdentityMap(object):
@@ -20,9 +28,10 @@ class IdentityMap(object):
         Utils.setKwargs(self, **kwargs)
 
         if nP is not None:
-            assert type(nP) in integer_types, (
+            assert isinstance(nP, integer_types), (
                 'Number of parameters must be an integer.'
             )
+            nP = int(nP)
 
         self.mesh = mesh
         self._nP = nP
@@ -200,7 +209,6 @@ class ComboMap(IdentityMap):
                 not self.shape[1] == m.shape[0]
                ):
                 prev = self.maps[-1]
-                errArgs = ()
                 raise ValueError(
                     'Dimension mismatch in map[{0!s}] ({1!s}, {2!s}) '
                     'and map[{3!s}] ({4!s}, {5!s}).'.format(
@@ -257,6 +265,79 @@ class ComboMap(IdentityMap):
 
     def __len__(self):
         return len(self.maps)
+
+
+class WireMap(IdentityMap):
+    """
+
+    """
+
+    def __init__(self, nP, index):
+        assert isinstance(index, (np.ndarray, slice))
+        IdentityMap.__init__(self, nP=nP)
+        if isinstance(index, slice):
+            index = list(range(*index.indices(self.nP)))
+        self.index = index
+        self._shape = nI, nP = len(self.index), self.nP
+        self.P = sp.csr_matrix(
+            (np.ones(nI), (range(nI), self.index)), shape=(nI, nP)
+        )
+
+    def _transform(self, m):
+        return m[self.index]
+
+    @property
+    def shape(self):
+        return (len(self.index), self.nP)
+
+    def deriv(self, m, v=None):
+        """
+            :param numpy.array m: model
+            :rtype: scipy.sparse.csr_matrix
+            :return: derivative of transformed model
+        """
+
+        if v is not None:
+            return self.P * v
+        return self.P
+
+
+class Wires(object):
+
+    def __init__(self, *args):
+        for arg in args:
+            assert (
+                isinstance(arg, tuple) and
+                isinstance(arg[0], string_types) and
+                # TODO: this should be extended to a slice.
+                isinstance(arg[1], int)
+            ), (
+                "Each wire needs to be a tuple: (name, length)"
+            )
+
+        self._nP = np.sum([w[1] for w in args])
+
+        start = 0
+        maps = []
+        for arg in args:
+            wire = WireMap(self.nP, slice(start, start + arg[1]))
+            setattr(self, arg[0], wire)
+            maps += [(arg[0], wire)]
+            start = arg[1]
+        self.maps = maps
+
+        self._tuple = namedtuple('Model', [w[0] for w in args])
+
+    def __mul__(self, val):
+        assert isinstance(val, np.ndarray)
+        split = []
+        for n, w in self.maps:
+            split += [w * val]
+        return self._tuple(*split)
+
+    @property
+    def nP(self):
+        return self._nP
 
 
 class ExpMap(IdentityMap):

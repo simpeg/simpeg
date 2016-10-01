@@ -1,7 +1,6 @@
 import numpy as np
 import unittest
 from SimPEG import Mesh, Maps, Models, Utils
-from scipy.sparse.linalg import dsolve
 import inspect
 
 TOL = 1e-14
@@ -10,12 +9,12 @@ MAPS_TO_EXCLUDE_2D = ["ComboMap", "ActiveCells", "InjectActiveCells",
                       "LogMap", "ReciprocalMap",
                       "Surject2Dto3D", "Map2Dto3D", "Mesh2Mesh",
                       "ParametricPolyMap", "PolyMap", "ParametricSplineMap",
-                      "SplineMap"]
+                      "SplineMap", "WireMap"]
 MAPS_TO_EXCLUDE_3D = ["ComboMap", "ActiveCells", "InjectActiveCells",
                       "LogMap", "ReciprocalMap",
                       "CircleMap", "ParametricCircleMap", "Mesh2Mesh",
                       "ParametricPolyMap", "PolyMap", "ParametricSplineMap",
-                      "SplineMap"]
+                      "SplineMap", "WireMap"]
 
 
 class MapTests(unittest.TestCase):
@@ -80,8 +79,6 @@ class MapTests(unittest.TestCase):
             except NotImplementedError:
                 pass
 
-
-
     def test_transforms_logMap_reciprocalMap(self):
 
         # Note that log/reciprocal maps can be kinda finicky, so we are being
@@ -96,7 +93,7 @@ class MapTests(unittest.TestCase):
                    0.84130763, 0.22123854]
         dv3 = np.r_[0.96827838, 0.26072111, 0.45090749, 0.10573893,
                     0.65276365, 0.15646586, 0.51679682, 0.23071984,
-                    0.95106218, 0.14201845, 0.25093564, 0.3732866 ]
+                    0.95106218, 0.14201845, 0.25093564, 0.3732866]
 
         maps = Maps.LogMap(self.mesh2)
         self.assertTrue(maps.test(v2, dx=dv2))
@@ -152,7 +149,6 @@ class MapTests(unittest.TestCase):
 
     def test_activeCells(self):
         M = Mesh.TensorMesh([2, 4], '0C')
-        expMap = Maps.ExpMap(M)
         for actMap in [Maps.InjectActiveCells(M, M.vectorCCy <= 0, 10,
                        nC=M.nCy), Maps.ActiveCells(M, M.vectorCCy <= 0, 10,
                        nC=M.nCy)]:
