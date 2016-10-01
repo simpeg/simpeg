@@ -453,3 +453,63 @@ class Update_Wj(InversionDirective):
             JtJdiag = JtJdiag / max(JtJdiag)
 
             self.reg.wght = JtJdiag
+
+
+class Amplitude_Inv_Iter(InversionDirective):
+    """
+    Directive to take care of re-weighting and pre-conditioning of
+    the non-linear magnetic amplitude problem.
+
+    """
+    def initialize(self):
+
+        JtJdiag = self.getJtJdiag()
+
+        wr = JtJdiag**0.5
+        wr = wr / wr.max()
+
+        self.reg.cell_weights = wr
+
+        self.reg._Wsmall, self.reg._Wx = None, None
+        self.reg._Wy, self.reg._Wz, = None, None
+
+        if getattr(self.opt, 'approxHinv', None) is None:
+            diagA = JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() #* (self.reg.mapping * np.ones(self.reg.curModel.size))**2.
+            PC = Utils.sdiag((self.prob.mapping.deriv(None).T * diagA)**-1.)
+            self.opt.approxHinv = PC
+
+    def endIter(self):
+
+        JtJdiag = self.getJtJdiag()
+
+        wr = JtJdiag**0.5
+        wr = wr / wr.max()
+
+        self.reg.cell_weights = wr
+
+        self.reg._Wsmall, self.reg._Wx = None, None
+        self.reg._Wy, self.reg._Wz, = None, None
+
+        if getattr(self.opt, 'approxHinv', None) is not None:
+
+            # Re-initialize the field derivatives
+            self.prob._dfdm = None
+
+            # Update the pre-conditioner
+            diagA = JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() #* (self.reg.mapping * np.ones(self.reg.curModel.size))**2.
+            PC = Utils.sdiag((self.prob.mapping.deriv(None).T * diagA)**-1.)
+            self.opt.approxHinv = PC
+
+    def getJtJdiag(self):
+        """
+            Compute explicitely the main diagonal of JtJ for linear problem
+        """
+        nC = self.prob.mesh.nC
+
+        JtJdiag = np.zeros(nC)
+
+        for ii in range(nC):
+
+            JtJdiag[ii] = np.sum((self.prob.dfdm*self.prob.G[:, ii])**2.)
+
+        return JtJdiag
