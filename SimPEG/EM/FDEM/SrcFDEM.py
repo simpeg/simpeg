@@ -576,8 +576,8 @@ class PrimSecSigma(BaseSrc):
 class PrimSecMappedSigma(BaseSrc):
 
     """
-    Primary-Secondary Source in which a mapping is provided to put the current model
-    onto the primary mesh. This is solved on every model update.
+    Primary-Secondary Source in which a mapping is provided to put the current
+    model onto the primary mesh. This is solved on every model update.
     There are a lot of layers to the derivatives here!
     **Required**
     :param list rxList: Receiver List
@@ -585,10 +585,12 @@ class PrimSecMappedSigma(BaseSrc):
     :param BaseFDEMProblem primaryProblem: FDEM primary problem
     :param SurveyFDEM primarySurvey: FDEM primary survey
     **Optional**
-    :param Mapping map2meshSecondary: mapping current model to act as primary model on the secondary mesh
+    :param Mapping map2meshSecondary: mapping current model to act as primary
+                                      model on the secondary mesh
     """
 
-    def __init__(self, rxList, freq, primaryProblem, primarySurvey, map2meshSecondary = None ,**kwargs):
+    def __init__(self, rxList, freq, primaryProblem, primarySurvey,
+                 map2meshSecondary=None, **kwargs):
 
         self.primaryProblem = primaryProblem
         self.primarySurvey = primarySurvey
@@ -600,20 +602,50 @@ class PrimSecMappedSigma(BaseSrc):
 
         BaseSrc.__init__(self, rxList, freq=freq, **kwargs)
 
-    def _ProjPrimary(self, prob):
+    def _ProjPrimary(self, prob, locType, locTypeTo):
+        # TODO: if meshes have not changed, store the projection
         # if getattr(self, '__ProjPrimary', None) is None:
-        return self.primaryProblem.mesh.getInterpolationMatCartMesh(prob.mesh, locType='F', locTypeTo='E')
+
+        # TODO: implement for HJ formulation
+        if prob._formulation == 'EB':
+            pass
+        else:
+            raise NotImplementedError(
+                'PrimSecMappedSigma Source has not been implemented for {} '
+                'formulation'.format(prob._formulation)
+                )
+
+        # TODO: only set up for tensot meshes (Tree meshes should be easy/done)
+        # but have not been tried or tested.
+        assert prob.mesh._meshType in ['TENSOR'], (
+            'PrimSecMappedSigma source has not been implemented for {}'.format(
+                prob.mesh._meshType)
+            )
+
+        # if EB formulation, interpolate E, elif HJ interpolate J
+        # if self.primaryProblem._formulation == 'EB':
+        #     locType = 'E'
+        # elif self.primaryProblem._formulation == 'HJ':
+        #     locType = 'F'
+
+        # get interpolation mat from primary mesh to secondary mesh
+        if self.primaryProblem.mesh._meshType == 'CYL':
+            return self.primaryProblem.mesh.getInterpolationMatCartMesh(
+                prob.mesh, locType=locType, locTypeTo=locTypeTo)
+        return self.primaryProblem.mesh.getInterploationMat(prob.mesh,
+                locType=locType, locTypeTo=locTypeTo)
+
         # return self.__ProjPrimary
 
-
-    def _primaryFields(self, prob, fieldType=None):
-
+    def _primaryFields(self, prob, fieldType=None, f=None):
         # TODO: cache and check if prob.curModel has changed
-        fields = self.primaryProblem.fields(prob.curModel.sigmaModel)
+
+        if f is None:
+            f = self.primaryProblem.fields(prob.curModel.sigmaModel)
 
         if fieldType is not None:
-            return fields[:, fieldType]
-        return fields
+            return f[:, fieldType]
+        return f
 
     def _primaryFieldsDeriv(self, prob, v, adjoint=False, f=None):
         if adjoint:
@@ -627,7 +659,7 @@ class PrimSecMappedSigma(BaseSrc):
         # Ainv = self.primaryProblem.Solver(A, **self.primaryProblem.solverOpts) # create the concept of Ainv (actually a solve)
 
         if f is None:
-           f = self._primaryFields(prob.curModel.sigmaModel)
+           f = self._primaryFields(prob.curModel.sigmaModel, f=f)
 
         freq = self.freq
 
@@ -641,7 +673,10 @@ class PrimSecMappedSigma(BaseSrc):
         dRHS_dm_v = self.primaryProblem.getRHSDeriv(freq, src, v)
         du_dm_v = Ainv * ( - dA_dm_v + dRHS_dm_v )
 
-        df_dmFun = getattr(f, '_{0}Deriv'.format('j'), None)
+        if self.primaryProblem._formulation == 'EB':
+            df_dmFun = getattr(f, '_{0}Deriv'.format('e'), None)
+        elif self.primaryProblem._formulation == 'HJ':
+            df_dmFun = getattr(f, '_{0}Deriv'.format('j'), None)
         df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
         # Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
         Ainv.clean()
@@ -654,10 +689,13 @@ class PrimSecMappedSigma(BaseSrc):
         if f is None:
             f = self._primaryFields(prob)
 
-        ep = self._ProjPrimary(prob) * (
-                self.primaryProblem.MfI * (
-                self.primaryProblem.MfRho * f[:,'j'])
-                )
+        if self.primaryProblem._formulation == 'EB':
+            ep = self._ProjPrimary(prob, 'E', 'E') * f[:, 'e']
+        elif self.primaryProblem._formulation == 'HJ':
+            ep = self._ProjPrimary(prob, 'E', 'F') * (
+                    self.primaryProblem.MfI * (
+                        self.primaryProblem.MfRho * f[:, 'j'])
+                    )
 
         return Utils.mkvc(ep)
 
@@ -669,22 +707,41 @@ class PrimSecMappedSigma(BaseSrc):
         if f is None:
             f = self._primaryFields(prob)
 
-        epDeriv = self._ProjPrimary(prob) * (
-                    self.primaryProblem.MfI * (
-                    (self.primaryProblem.MfRhoDeriv(f[:,'j']) * v)
-                    +
-                    (self.primaryProblem.MfRho * self._primaryFieldsDeriv(prob, v, f=f))
-                    )
-                    )
+        if self.primaryProblem._formulation == 'EB':
+            ep = (self._ProjPrimary(prob, 'E', 'E') *
+                  self._primaryFieldsDeriv(prob, v, f=f))
+        elif self.primaryProblem._formulation == 'HJ':
+            epDeriv = self._ProjPrimary(prob, 'E', 'F') * (
+                        self.primaryProblem.MfI * (
+                            (self.primaryProblem.MfRhoDeriv(f[:, 'j']) * v) +
+                            (self.primaryProblem.MfRho *
+                                self._primaryFieldsDeriv(prob, v, f=f))
+                            )
+                        )
 
         return Utils.mkvc(epDeriv)
 
+    def bPrimary(self, prob, f=None):
+        if f is None:
+            f = self._primaryFields(prob)
+
+        if self.primaryProblem._formulation == 'EB':
+            bp = self._ProjPrimary(prob, 'F', 'F') * f[:, 'b']
+        elif self.primaryProblem._formulation == 'HJ':
+            bp = self._ProjPrimary(prob, 'F', 'E') * (
+                    self.primaryProblem.Me * (
+                        self.primaryProblem.MeMuI * f[:, 'h'])
+                    )
+
+        return Utils.mkvc(bp)
 
     def s_e(self, prob, f=None):
         sigmaPrimary = self.map2meshSecondary * prob.curModel.sigmaModel
 
-        return Utils.mkvc((prob.MeSigma -  prob.mesh.getEdgeInnerProduct(sigmaPrimary)) * self.ePrimary(prob, f=f))
-
+        return Utils.mkvc(
+            (prob.MeSigma - prob.mesh.getEdgeInnerProduct(sigmaPrimary)) *
+            self.ePrimary(prob, f=f)
+            )
 
     def s_eDeriv(self, prob, v, adjoint=False):
         if adjoint:
@@ -692,14 +749,17 @@ class PrimSecMappedSigma(BaseSrc):
             return prob.MeSigmaDeriv(self.ePrimary(prob)).T * v
 
         sigmaPrimary = self.map2meshSecondary * prob.curModel.sigmaModel
-        sigmaPrimaryDeriv = self.map2meshSecondary.deriv(prob.curModel.sigmaModel)
+        sigmaPrimaryDeriv = self.map2meshSecondary.deriv(
+                prob.curModel.sigmaModel)
 
         f = self._primaryFields(prob)
-        ePrimary = self.ePrimary(prob,f=f)
+        ePrimary = self.ePrimary(prob, f=f)
 
-        return (prob.MeSigmaDeriv(ePrimary) * v
-                - prob.mesh.getEdgeInnerProductDeriv(sigmaPrimary)(ePrimary) * sigmaPrimaryDeriv * v
-                + (prob.MeSigma -  prob.mesh.getEdgeInnerProduct(sigmaPrimary)) * self.ePrimaryDeriv(prob, v, None, f=f)
+        return (prob.MeSigmaDeriv(ePrimary) * v -
+                prob.mesh.getEdgeInnerProductDeriv(sigmaPrimary)(ePrimary) *
+                sigmaPrimaryDeriv * v + (prob.MeSigma -
+                prob.mesh.getEdgeInnerProduct(sigmaPrimary)) *
+                self.ePrimaryDeriv(prob, v, None, f=f)
                 )
 
 
