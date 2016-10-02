@@ -336,7 +336,7 @@ class Fields3D_e(FieldsFDEM):
         return - 1./(1j*omega(src.freq)) * (C * du_dm_v)
 
 
-    def _bDeriv_m(self, src, v, adjoint = False):
+    def _bDeriv_m(self, src, v, adjoint=False):
         """
         Derivative of the magnetic flux density with respect to the inversion model.
 

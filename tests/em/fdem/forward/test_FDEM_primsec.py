@@ -229,7 +229,7 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
         self.primarySurvey = FDEM.Survey([primarySrc])
 
         # Secondary Problem
-        self.secondaryProblem = FDEM.Problem3D_b(meshs, mapping=mapping)
+        self.secondaryProblem = FDEM.Problem3D_e(meshs, mapping=mapping)
         self.secondaryProblem.Solver = Solver
         self.secondarySrc = FDEM.Src.PrimSecMappedSigma(
                 self.rxlist, freq, self.primaryProblem,
@@ -238,7 +238,7 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
         self.secondaryProblem.pair(self.secondarySurvey)
 
         # Full 3D problem to compare with
-        self.problem3D = FDEM.Problem3D_b(meshs, mapping=mapping)
+        self.problem3D = FDEM.Problem3D_e(meshs, mapping=mapping)
         self.problem3D.Solver = Solver
         s_e3D = np.zeros(meshs.nE)
         inds = (meshp.nEx + meshp.nEy +
