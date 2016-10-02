@@ -709,7 +709,7 @@ class PrimSecMappedSigma(BaseSrc):
         if self.primaryProblem._formulation == 'EB':
             ep = self._ProjPrimary(prob, 'E', 'E') * f[:, 'e']
         elif self.primaryProblem._formulation == 'HJ':
-            ep = self._ProjPrimary(prob, 'E', 'F') * (
+            ep = self._ProjPrimary(prob, 'F', 'E') * (
                     self.primaryProblem.MfI * (
                         self.primaryProblem.MfRho * f[:, 'j'])
                     )
@@ -732,13 +732,13 @@ class PrimSecMappedSigma(BaseSrc):
                            self._primaryFieldsDeriv(prob, v, f=f))
         elif self.primaryProblem._formulation == 'HJ':
             if adjoint is True:
-                PTv = self._ProjPrimary(prob, 'E', 'F').T * v
+                PTv = self._ProjPrimary(prob, 'F', 'E').T * v
                 epDeriv = (self.primaryProblem.MfRhoDeriv(f[:, 'j']) *
                     (self.primaryProblem.MfI.T * PTv) +
                      self._primaryFieldsDeriv(prob, self.primaryProblem.MfRho.T
                         * PTv, adjoint=adjoint, f=f))
             else:
-                epDeriv = self._ProjPrimary(prob, 'E', 'F') * (
+                epDeriv = self._ProjPrimary(prob, 'F', 'E') * (
                             self.primaryProblem.MfI * (
                                 (self.primaryProblem.MfRhoDeriv(f[:, 'j']) * v) +
                                 (self.primaryProblem.MfRho *
@@ -755,9 +755,9 @@ class PrimSecMappedSigma(BaseSrc):
         if self.primaryProblem._formulation == 'EB':
             bp = self._ProjPrimary(prob, 'F', 'F') * f[:, 'b']
         elif self.primaryProblem._formulation == 'HJ':
-            bp = self._ProjPrimary(prob, 'F', 'E') * (
-                    self.primaryProblem.Me * (
-                        self.primaryProblem.MeMuI * f[:, 'h'])
+            bp = self._ProjPrimary(prob, 'E', 'F') * (
+                    self.primaryProblem.MeI * (
+                        self.primaryProblem.MeMu * f[:, 'h'])
                     )
 
         return Utils.mkvc(bp)
