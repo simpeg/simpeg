@@ -396,7 +396,7 @@ class SurjectFull(IdentityMap):
             :rtype: numpy.array
             :return: derivative of transformed model
         """
-        deriv = np.ones([self.mesh.nC, 1])
+        deriv = sp.csr_matrix(np.ones([self.mesh.nC, 1]))
         if v is not None:
             return deriv * v
         return deriv

@@ -621,11 +621,11 @@ class Fields3D_b(FieldsFDEM):
         _,s_e = src.eval(self.prob)
 
         w = -s_e + self._edgeCurl.T * (self._MfMui * bSolution)
-        _, s_eDeriv = src.evalDeriv(self.prob, v, adjoint)
-
 
         if adjoint:
-            return self._MeSigmaIDeriv(w).T * v - self._MeSigmaI.T * s_eDeriv + src.ePrimaryDeriv(self.prob, v, adjoint)
+            _, s_eDeriv = src.evalDeriv(self.prob, self._MeSigmaI.T * v, adjoint)
+            return self._MeSigmaIDeriv(w).T * v -  s_eDeriv + src.ePrimaryDeriv(self.prob, v, adjoint)
+        _, s_eDeriv = src.evalDeriv(self.prob, v, adjoint)
         return  self._MeSigmaIDeriv(w) * v - self._MeSigmaI * s_eDeriv + src.ePrimaryDeriv(self.prob, v, adjoint)
 
     def _j(self, bSolution, srcList):

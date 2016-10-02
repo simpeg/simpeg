@@ -648,9 +648,6 @@ class PrimSecMappedSigma(BaseSrc):
         return f
 
     def _primaryFieldsDeriv(self, prob, v, adjoint=False, f=None):
-        if adjoint:
-            raise NotImplementedError
-
         # TODO: this should not be hard-coded for j
         # jp = self._primaryFields(prob)[:,'j']
 
@@ -664,19 +661,39 @@ class PrimSecMappedSigma(BaseSrc):
         freq = self.freq
 
         A = self.primaryProblem.getA(freq)
-        Ainv = self.primaryProblem.Solver(A, **self.primaryProblem.solverOpts) # create the concept of Ainv (actually a solve)
-
         src = self.primarySurvey.srcList[0]
-        # for src in self.survey.getSrcByFreq(freq):
         u_src = Utils.mkvc(f[src, self.primaryProblem._solutionType])
+
+
+        if adjoint is True:
+            Jtv = np.zeros(prob.mapping.nP, dtype=complex)
+            ATinv = self.primaryProblem.Solver(A.T, **self.primaryProblem.solverOpts)
+            df_duTFun = getattr(f, '_{0}Deriv'.format(
+                'e' if self.primaryProblem._formulation is 'EB' else 'j'), None)
+            df_duT, df_dmT = df_duTFun(src, None, v, adjoint=True)
+
+            ATinvdf_duT = ATinv * df_duT
+
+            dA_dmT = self.primaryProblem.getADeriv(freq, u_src, ATinvdf_duT, adjoint=True)
+            dRHS_dmT = self.primaryProblem.getRHSDeriv(freq, src, ATinvdf_duT, adjoint=True)
+            du_dmT = -dA_dmT + dRHS_dmT
+
+            Jtv += df_dmT + du_dmT
+
+            ATinv.clean()
+
+            return Utils.mkvc(Jtv)
+
+        Ainv = self.primaryProblem.Solver(A, **self.primaryProblem.solverOpts) # create the concept of Ainv (actually a solve)
+        # for src in self.survey.getSrcByFreq(freq):
         dA_dm_v = self.primaryProblem.getADeriv(freq, u_src, v)
         dRHS_dm_v = self.primaryProblem.getRHSDeriv(freq, src, v)
         du_dm_v = Ainv * ( - dA_dm_v + dRHS_dm_v )
 
-        if self.primaryProblem._formulation == 'EB':
-            df_dmFun = getattr(f, '_{0}Deriv'.format('e'), None)
-        elif self.primaryProblem._formulation == 'HJ':
-            df_dmFun = getattr(f, '_{0}Deriv'.format('j'), None)
+        # if self.primaryProblem._formulation == 'EB':
+        df_dmFun = getattr(f, '_{0}Deriv'.format('e' if self.primaryProblem._formulation is 'EB' else 'j'), None)
+        # elif self.primaryProblem._formulation == 'HJ':
+        #     df_dmFun = getattr(f, '_{0}Deriv'.format('j'), None)
         df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
         # Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
         Ainv.clean()
@@ -701,23 +718,33 @@ class PrimSecMappedSigma(BaseSrc):
 
     def ePrimaryDeriv(self, prob, v, adjoint=False, f=None):
 
-        if adjoint is True:
-            raise NotImplementedError
-
         if f is None:
             f = self._primaryFields(prob)
 
+        # if adjoint is True:
+        #     raise NotImplementedError
         if self.primaryProblem._formulation == 'EB':
-            ep = (self._ProjPrimary(prob, 'E', 'E') *
-                  self._primaryFieldsDeriv(prob, v, f=f))
+            if adjoint is True:
+                epDeriv = self._primaryFieldsDeriv(prob,
+                    (self._ProjPrimary(prob, 'E', 'E').T * v), f=f, adjoint=adjoint)
+            else:
+                epDeriv = (self._ProjPrimary(prob, 'E', 'E') *
+                           self._primaryFieldsDeriv(prob, v, f=f))
         elif self.primaryProblem._formulation == 'HJ':
-            epDeriv = self._ProjPrimary(prob, 'E', 'F') * (
-                        self.primaryProblem.MfI * (
-                            (self.primaryProblem.MfRhoDeriv(f[:, 'j']) * v) +
-                            (self.primaryProblem.MfRho *
-                                self._primaryFieldsDeriv(prob, v, f=f))
+            if adjoint is True:
+                PTv = self._ProjPrimary(prob, 'E', 'F').T * v
+                epDeriv = (self.primaryProblem.MfRhoDeriv(f[:, 'j']) *
+                    (self.primaryProblem.MfI.T * PTv) +
+                     self._primaryFieldsDeriv(prob, self.primaryProblem.MfRho.T
+                        * PTv, adjoint=adjoint, f=f))
+            else:
+                epDeriv = self._ProjPrimary(prob, 'E', 'F') * (
+                            self.primaryProblem.MfI * (
+                                (self.primaryProblem.MfRhoDeriv(f[:, 'j']) * v) +
+                                (self.primaryProblem.MfRho *
+                                    self._primaryFieldsDeriv(prob, v, f=f))
+                                )
                             )
-                        )
 
         return Utils.mkvc(epDeriv)
 
@@ -744,9 +771,6 @@ class PrimSecMappedSigma(BaseSrc):
             )
 
     def s_eDeriv(self, prob, v, adjoint=False):
-        if adjoint:
-            raise NotImplementedError
-            return prob.MeSigmaDeriv(self.ePrimary(prob)).T * v
 
         sigmaPrimary = self.map2meshSecondary * prob.curModel.sigmaModel
         sigmaPrimaryDeriv = self.map2meshSecondary.deriv(
@@ -755,11 +779,22 @@ class PrimSecMappedSigma(BaseSrc):
         f = self._primaryFields(prob)
         ePrimary = self.ePrimary(prob, f=f)
 
-        return (prob.MeSigmaDeriv(ePrimary) * v -
-                prob.mesh.getEdgeInnerProductDeriv(sigmaPrimary)(ePrimary) *
-                sigmaPrimaryDeriv * v + (prob.MeSigma -
-                prob.mesh.getEdgeInnerProduct(sigmaPrimary)) *
-                self.ePrimaryDeriv(prob, v, None, f=f)
+        if adjoint is True:
+            return (
+                prob.MeSigmaDeriv(ePrimary).T * v -
+                (sigmaPrimaryDeriv.T * prob.mesh.getEdgeInnerProductDeriv(
+                    sigmaPrimary)(ePrimary).T * v) +
+                self.ePrimaryDeriv(prob, (
+                    prob.MeSigma - prob.mesh.getEdgeInnerProduct(
+                        sigmaPrimary)).T * v, adjoint=adjoint, f=f)
+            )
+
+        return(
+            prob.MeSigmaDeriv(ePrimary) * v -
+            prob.mesh.getEdgeInnerProductDeriv(sigmaPrimary)(ePrimary) *
+            (sigmaPrimaryDeriv * v) + (
+                prob.MeSigma - prob.mesh.getEdgeInnerProduct(sigmaPrimary)) *
+            self.ePrimaryDeriv(prob, v, adjoint=adjoint, f=f)
                 )
 
 
