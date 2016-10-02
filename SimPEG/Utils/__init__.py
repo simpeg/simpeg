@@ -1,9 +1,18 @@
-from matutils import *
-from codeutils import *
-from meshutils import *
+from matutils import (mkvc, sdiag, sdInv, speye, kron3, spzeros, ddx, av,
+                      avExtrap, ndgrid, ind2sub, sub2ind, getSubArray,
+                      inv3X3BlockDiagonal, inv2X2BlockDiagonal, TensorType,
+                      makePropertyTensor, invPropertyTensor, diagEst, Zero,
+                      Identity)
+from codeutils import (SimPEGMetaClass, memProfileWrapper, hook, setKwargs,
+                       printTitles, printLine, checkStoppers, printStoppers,
+                       callHooks, dependentProperty, isScalar, asArray_N_x_Dim,
+                       requires)
+from meshutils import (exampleLrmGrid, meshTensor, closestPoints,
+                       ExtractCoreMesh)
 from curvutils import volTetra, faceInfo, indexCube
 from interputils import interpmat
-from CounterUtils import *
+from CounterUtils import Counter, count, timeIt
 import ModelBuilder
 import SolverUtils
-from coordutils import *
+from coordutils import rotatePointsFromNormals, rotationMatrixFromNormals
+from modelutils import surface2ind_topo

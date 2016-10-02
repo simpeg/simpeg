@@ -12,7 +12,7 @@ except:
 def run(plotIt=True, nFreq=1):
     """
         MT: 3D: Forward
-        =======================
+        ===============
 
         Forward model 3D MT data.
 
@@ -46,16 +46,15 @@ def run(plotIt=True, nFreq=1):
     survey = MT.Survey(srcList)
 
     ## Setup the problem object
-    problem = MT.Problem3D.eForm_ps(M, sigmaPrimary=sigBG)
+    problem = MT.Problem3D.eForm_ps(M, sigmaPrimary=sigBG, Solver=Solver)
     problem.pair(survey)
-    problem.Solver = Solver
 
     # Calculate the data
     fields = problem.fields(sig)
     dataVec = survey.eval(fields)
 
     # Make the data
-    mtData = MT.Data(survey,dataVec)
+    mtData = MT.Data(survey, dataVec)
     # Add plots
     if plotIt:
         pass

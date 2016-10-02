@@ -1,6 +1,8 @@
 import unittest
-from SimPEG import *
+import numpy as np
+from SimPEG import Mesh, Maps
 from scipy.constants import mu_0
+from SimPEG import Tests
 
 
 class MyPropMap(Maps.PropMap):
@@ -186,6 +188,34 @@ class TestPropMaps(unittest.TestCase):
         self.assertRaises(AssertionError, MyReciprocalPropMap, [('sigma', iMap), ('rho', iMap)])
 
         MyReciprocalPropMap([('sigma', iMap), ('mu', iMap)]) # This should be fine
+
+    def test_linked_derivs_sigma(self):
+        mesh = Mesh.TensorMesh([4,5], x0='CC')
+
+        mapping = Maps.ExpMap(mesh)
+        propmap = MyReciprocalPropMap([('rho', mapping)])
+
+        x0 = np.random.rand(mesh.nC)
+        m  = propmap(x0)
+
+        # test Sigma
+        testme = lambda v: [1./(m.rhoMap*v), m.sigmaDeriv]
+        print 'Testing Rho from Sigma'
+        Tests.checkDerivative(testme, x0, dx=0.01*x0, num=5, plotIt=False)
+
+    def test_linked_derivs_rho(self):
+        mesh = Mesh.TensorMesh([4,5], x0='CC')
+
+        mapping = Maps.ExpMap(mesh)
+        propmap = MyReciprocalPropMap([('sigma', mapping)])
+
+        x0 = np.random.rand(mesh.nC)
+        m  = propmap(x0)
+
+        # test Sigma
+        testme = lambda v: [1./(m.sigmaMap*v), m.rhoDeriv]
+        print 'Testing Rho from Sigma'
+        Tests.checkDerivative(testme, x0, dx=0.01*x0, num=5, plotIt=False)
 
 if __name__ == '__main__':
     unittest.main()

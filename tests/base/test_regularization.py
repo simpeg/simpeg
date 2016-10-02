@@ -1,6 +1,6 @@
 import numpy as np
 import unittest
-from SimPEG import *
+from SimPEG import Mesh, Regularization, Utils, Tests
 from scipy.sparse.linalg import dsolve
 import inspect
 
@@ -28,14 +28,14 @@ class RegularizationTests(unittest.TestCase):
 
                 for i, mesh in enumerate(self.meshlist):
 
-                    print 'Testing %iD'%mesh.dim
+                    print 'Testing {0:d}D'.format(mesh.dim)
 
                     mapping = r.mapPair(mesh)
                     reg = r(mesh, mapping=mapping)
                     m = np.random.rand(mapping.nP)
                     reg.mref = np.ones_like(m)*np.mean(m)
 
-                    print 'Check: phi_m (mref) = %f' %reg.eval(reg.mref)
+                    print 'Check: phi_m (mref) = {0:f}'.format(reg.eval(reg.mref))
                     passed = reg.eval(reg.mref) < TOL
                     self.assertTrue(passed)
 
@@ -56,7 +56,7 @@ class RegularizationTests(unittest.TestCase):
 
                 for i, mesh in enumerate(self.meshlist):
 
-                    print 'Testing Active Cells %iD'%(mesh.dim)
+                    print 'Testing Active Cells {0:d}D'.format((mesh.dim))
 
                     if mesh.dim == 1:
                         indActive = Utils.mkvc(mesh.gridCC <= 0.8)
@@ -65,14 +65,12 @@ class RegularizationTests(unittest.TestCase):
                     elif mesh.dim == 3:
                         indActive = Utils.mkvc(mesh.gridCC[:,-1] <= 2*np.sin(2*np.pi*mesh.gridCC[:,0])+0.5 * 2*np.sin(2*np.pi*mesh.gridCC[:,1])+0.5)
 
-                    mapping = Maps.IdentityMap(nP=indActive.nonzero()[0].size)
-
                     for indAct in [indActive, indActive.nonzero()[0]]: # test both bool and integers
-                        reg = r(mesh, mapping=mapping, indActive=indAct)
+                        reg = r(mesh, indActive=indAct)
                         m = np.random.rand(mesh.nC)[indAct]
                         reg.mref = np.ones_like(m)*np.mean(m)
 
-                    print 'Check: phi_m (mref) = %f' %reg.eval(reg.mref)
+                    print 'Check: phi_m (mref) = {0:f}'.format(reg.eval(reg.mref))
                     passed = reg.eval(reg.mref) < TOL
                     self.assertTrue(passed)
 
@@ -89,7 +87,7 @@ class RegularizationTests(unittest.TestCase):
 
             for i, mesh in enumerate(self.meshlist):
 
-                print 'Testing %iD'%mesh.dim
+                print 'Testing {0:d}D'.format(mesh.dim)
 
                 # mapping = r.mapPair(mesh)
                 # reg = r(mesh, mapping=mapping)
