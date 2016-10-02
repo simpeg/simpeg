@@ -9,13 +9,20 @@ def plot2Ddata(xyz, data, vec=False, nx=100, ny=100,
 
         Take unstructured xy points, interpolate, then plot in 2D
 
-        :param numpy.array gridCC: mesh.gridCC is the cell centered grid
-        :param numpy.array modelCC: cell centered model
-        :param numpy.array p0: bottom, southwest corner of block
-        :param numpy.array p1: top, northeast corner of block
-        :blockProp float blockProp: property to assign to the model
-
-        :return numpy.array, modelBlock: model with block
+        :param numpy.array xyz: data locations
+        :param numpy.array data: data values
+        :param bool vec: plot streamplot?
+        :param float nx: number of x grid locations
+        :param float ny: number of y grid locations
+        :param matplotlib.axes ax: axes
+        :param numpy.array mask: mask for the array
+        :param float level: level at which to draw a contour
+        :param string figname: figure name
+        :param float ncontour: number of :meth:`matplotlib.pyplot.contourf`
+                               contours
+        :param bool dataloc: plot the data locations
+        :param dict controuOpts: :meth:`matplotlib.pyplot.contourf` options
+        :param numpy.array clim: colorbar limits
 
     """
     if ax is None:

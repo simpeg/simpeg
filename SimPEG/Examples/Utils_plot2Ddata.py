@@ -1,7 +1,8 @@
 from SimPEG import EM, np, Utils
+import matplotlib.pyplot as plt
 
 
-def run(plotIt = True):
+def run(plotIt=True):
     """
 
         Plotting 2D data
@@ -27,21 +28,21 @@ def run(plotIt = True):
     srcLoc = np.r_[0., 0., 0.]
 
     # Use analytic fuction to compute Ex, Ey, Ez
-    Ex, Ey, Ez = EM.Analytics.E_from_ElectricDipoleWholeSpace(xyz, srcLoc, sig, f)
+    Ex, Ey, Ez = EM.Analytics.E_from_ElectricDipoleWholeSpace(xyz, srcLoc, sig,
+                                                              f)
 
-    if plotIt:
-        import matplotlib.pyplot as plt
-        plt.figure()
+    if plotIt is True:
+        fig = plt.figure()
         ax1 = plt.subplot(121)
         ax2 = plt.subplot(122)
         # Plot Real Ex (scalar)
-        cont1, ax1 = Utils.plot2Ddata(xyz, Ex.real, dataloc=True,
-                                      ax=ax1, contourOpts={"cmap": "viridis"})
+        cont1, ax1 = Utils.plot2Ddata(xyz, Ex.real, dataloc=True, ax=ax1)
+
         # Make it as (ndata,2) matrix
         E = np.c_[Ex, Ey]
+
         # Plot Real E (vector)
-        cont2, ax2 = Utils.plot2Ddata(xyz, E.real, vec=True,
-                                      ax=ax2, contourOpts={"cmap": "viridis"})
+        cont2, ax2 = Utils.plot2Ddata(xyz, E.real, vec=True, ax=ax2)
         cb1 = plt.colorbar(cont1, ax=ax1, orientation="horizontal")
         cb2 = plt.colorbar(cont2, ax=ax2, orientation="horizontal")
         ax1.set_xlabel("x")
@@ -51,8 +52,8 @@ def run(plotIt = True):
 
         ax1.set_aspect('equal', adjustable='box')
         ax2.set_aspect('equal', adjustable='box')
-        plt.show()
 
+        plt.show()
 
 
 if __name__ == '__main__':
