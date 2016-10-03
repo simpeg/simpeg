@@ -149,8 +149,8 @@ class BaseSrc(object):
         return np.array([rx.nD for rx in self.rxList])
 
 
-class Data(object):
-    """Fancy data storage by Src and Rx"""
+class BaseData(object):
+    """Fancy data storage by Survey's Src and Rx"""
 
     def __init__(self, survey, v=None):
         self.uid = str(uuid.uuid4())
@@ -205,6 +205,32 @@ class Data(object):
                 indTop += rx.nD
                 self[src, rx] = v[indBot:indTop]
                 indBot += rx.nD
+
+
+class Data(BaseData):
+    """
+    Storage of data, standard_deviation and floor storage
+    with fancy [Src,Rx] indexing.
+
+
+
+    """
+
+    def __init__(self, survey, v=None, standard_deviation=None, floor=None):
+        # Initiate the base problem
+        BaseData.__init__(self, survey, v)
+
+        # Set the uncertainty parameters
+        self.standard_deviation = BaseData(self.survey, standard_deviation)
+        self.floor = BaseData(self.survey, floor)
+
+    def eval(self):
+        """
+        Return the uncertainty base on
+        standard_devation * np.abs(data) + floor
+
+        """
+        return self.standard_deviation.tovec() * np.abs(self.tovec()) + self.floor.tovec()
 
 
 class BaseSurvey(object):
