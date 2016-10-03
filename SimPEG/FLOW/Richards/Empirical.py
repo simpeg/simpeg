@@ -37,7 +37,6 @@ class NonLinearMap(object):
         """
         raise NotImplementedError('The transformDerivU is not implemented.')
 
-
     def derivM(self, u, m):
         """
             :param numpy.array u: fields

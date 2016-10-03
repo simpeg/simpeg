@@ -1,13 +1,22 @@
 from __future__ import print_function
-from SimPEG import *
-from SimPEG.FLOW.Richards.Empirical import RichardsMap
+
+import numpy as np
+import scipy.sparse as sp
 import time
+import properties
+
+from SimPEG import Survey
+from SimPEG import Utils
+from SimPEG import Problem
+from SimPEG import Optimization
+from SimPEG import Solver
+from SimPEG.FLOW.Richards.Empirical import RichardsMap
 
 
 class RichardsRx(Survey.BaseTimeRx):
     """Richards Receiver Object"""
 
-    knownRxTypes = ['saturation','pressureHead']
+    knownRxTypes = ['saturation', 'pressureHead']
 
     def eval(self, U, m, mapping, mesh, timeMesh):
 
@@ -24,9 +33,9 @@ class RichardsRx(Survey.BaseTimeRx):
         if self.rxType == 'pressureHead':
             return P
         elif self.rxType == 'saturation':
-            #TODO: if m is a parameter in the theta
-            #      distribution, we may need to do
-            #      some more chain rule here.
+            # TODO: if m is a parameter in the theta
+            #       distribution, we may need to do
+            #       some more chain rule here.
             dT = sp.block_diag([mapping.thetaDerivU(ui, m) for ui in U])
             return P*dT
 
@@ -57,17 +66,21 @@ class RichardsSurvey(Survey.BaseSurvey):
 
             Where P is a projection of the fields onto the data space.
         """
-        if f is None: f = self.prob.fields(m)
+        if f is None:
+            f = self.prob.fields(m)
+
         return Utils.mkvc(self.eval(f, m))
 
     @Utils.requires('prob')
     def eval(self, U, m):
         Ds = list(range(len(self.rxList)))
         for ii, rx in enumerate(self.rxList):
-            Ds[ii] = rx.eval(U, m,
-                                self.prob.mapping,
-                                self.prob.mesh,
-                                self.prob.timeMesh)
+            Ds[ii] = rx.eval(
+                U, m,
+                self.prob.mapping,
+                self.prob.mesh,
+                self.prob.timeMesh
+            )
 
         return np.concatenate(Ds)
 
@@ -76,23 +89,28 @@ class RichardsSurvey(Survey.BaseSurvey):
         """The Derivative with respect to the fields."""
         Ds = list(range(len(self.rxList)))
         for ii, rx in enumerate(self.rxList):
-            Ds[ii] = rx.evalDeriv(U, m,
-                                self.prob.mapping,
-                                self.prob.mesh,
-                                self.prob.timeMesh)
+            Ds[ii] = rx.evalDeriv(
+                U, m,
+                self.prob.mapping,
+                self.prob.mesh,
+                self.prob.timeMesh
+            )
 
         return sp.vstack(Ds)
+
 
 class RichardsProblem(Problem.BaseTimeProblem):
     """docstring for RichardsProblem"""
 
-    boundaryConditions = None
-    initialConditions  = None
+    mapping = properties.Property("the mapping")
+
+    boundaryConditions = properties.Array("boundary conditions.")
+    initialConditions  = properties.Array("boundary conditions.")
 
     surveyPair  = RichardsSurvey
     mapPair = RichardsMap
 
-    debug=True
+    debug = properties.Bool("Show all messages")
 
     Solver = Solver
     solverOpts = {}
@@ -108,23 +126,43 @@ class RichardsProblem(Problem.BaseTimeProblem):
 
         return self.boundaryConditions(time, u_ii)
 
-    @property
-    def method(self):
-        """Method must be either 'mixed' or 'head'. See notes in Celia et al., 1990."""
-        return getattr(self, '_method', 'mixed')
-    @method.setter
-    def method(self, value):
-        assert value in ['mixed','head'], "method must be 'mixed' or 'head'."
-        self._method = value
+    # @property
+    # def method(self):
+    #     """Method must be either 'mixed' or 'head'. See notes in Celia et al., 1990."""
+    #     return getattr(self, '_method', 'mixed')
+    # @method.setter
+    # def method(self, value):
+    #     assert value in ['mixed','head'], "method must be 'mixed' or 'head'."
+    #     self._method = value
 
-    # Setting doNewton will clear the rootFinder, which will be reinitialized when called
-    doNewton = Utils.dependentProperty('_doNewton', False, ['_rootFinder'],
-                "Do a Newton iteration. If False, a Picard iteration will be completed.")
+    method = properties.StringChoice(
+        "Formulation used, See notes in Celia et al., 1990.",
+        choices=['mixed', 'head']
+    )
 
-    maxIterRootFinder = Utils.dependentProperty('_maxIterRootFinder', 30, ['_rootFinder'],
-                "Maximum iterations for rootFinder iteration.")
-    tolRootFinder = Utils.dependentProperty('_tolRootFinder', 1e-4, ['_rootFinder'],
-                "Maximum iterations for rootFinder iteration.")
+    doNewton = properties.Bool(
+        "Do a Newton iteration vs. a Picard iteration ",
+        default=False
+    )
+
+    maxIterRootFinder = properties.Integer(
+        "Maximum iterations for rootFinder iteration.",
+        default=30
+    )
+
+    tolRootFinder = properties.Float(
+        "Maximum iterations for rootFinder iteration.",
+        default=1e-4
+    )
+
+    @properties.observe(['doNewton', 'maxIterRootFinder', 'tolRootFinder'])
+    def _on_root_finder_update(self, change):
+        """
+            Setting doNewton will clear the rootFinder,
+            which will be reinitialized when called
+        """
+        if hasattr(self, '_rootFinder'):
+            del self._rootFinder
 
     @property
     def rootFinder(self):
