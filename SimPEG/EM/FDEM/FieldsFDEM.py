@@ -897,7 +897,7 @@ class Fields3D_j(FieldsFDEM):
         C = self._edgeCurl
         MfRho = self._MfRho
         MfRhoDeriv = self._MfRhoDeriv
-        s_mDeriv = src.s_mDeriv(self.prob, adjoint = adjoint)
+        s_mDeriv = lambda v: src.s_mDeriv(self.prob, v, adjoint=adjoint)
 
         if not adjoint:
             hDeriv_m =  -1./(1j*omega(src.freq)) * MeMuI * (C.T * (MfRhoDeriv(jSolution)*v ) )
@@ -1002,7 +1002,7 @@ class Fields3D_j(FieldsFDEM):
         jSolution = self[src, 'jSolution']
         n = int(self._aveE2CCV.shape[0] / self._nC) # number of components
         VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
-        s_mDeriv = src.s_mDeriv(self.prob, adjoint=adjoint)
+        s_mDeriv = lambda v: src.s_mDeriv(self.prob, v, adjoint=adjoint)
 
         if adjoint:
             v = self._aveE2CCV.T * ( VI.T * v)
