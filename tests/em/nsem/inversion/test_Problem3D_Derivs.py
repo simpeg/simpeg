@@ -3,24 +3,17 @@ from __future__ import absolute_import
 from __future__ import division
 
 # Test functions
-from glob import glob
-import numpy as np, sys, os, time, scipy, subprocess
-import SimPEG as simpeg
 import unittest
-from SimPEG import NSEM
-from SimPEG.Utils import meshTensor
+import numpy as np
 from scipy.constants import mu_0
 
+import SimPEG as simpeg
+from SimPEG import NSEM
 
-
-TOLr = 5e-2
 TOL = 1e-4
 FLR = 1e-20 # "zero", so if residual below this --> pass regardless of order
 CONDUCTIVITY = 1e1
 MU = mu_0
-freq = [1e-1, 2e-1]
-addrandoms = True
-
 
 # Test the Jvec derivative
 def DerivJvecTest(inputSetup,comp='All',freq=False,expMap=True):
