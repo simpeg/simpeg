@@ -6,7 +6,7 @@ import inspect
 
 TOL = 1e-14
 
-np.random.seed(42)
+np.random.seed(121)
 
 
 MAPS_TO_EXCLUDE_2D = ["ComboMap", "ActiveCells", "InjectActiveCells",
