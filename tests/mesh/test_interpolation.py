@@ -4,6 +4,8 @@ import unittest
 from SimPEG.Utils import mkvc
 from SimPEG import Mesh, Tests
 
+np.random.seed(182)
+
 MESHTYPES = ['uniformTensorMesh', 'randomTensorMesh']
 TOLERANCES = [0.9, 0.5, 0.5]
 call1 = lambda fun, xyz: fun(xyz)

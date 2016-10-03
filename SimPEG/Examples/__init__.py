@@ -12,6 +12,7 @@ from SimPEG.Examples import EM_Heagyetal2016_CylInversions
 from SimPEG.Examples import Mesh_QuadTree_FaceDiv
 from SimPEG.Examples import Inversion_Linear
 from SimPEG.Examples import EM_TDEM_1D_Inversion
+from SimPEG.Examples import Utils_plot2Ddata
 from SimPEG.Examples import PF_Magnetics_Inversion_Linear
 from SimPEG.Examples import Mesh_QuadTree_Creation
 from SimPEG.Examples import DC_Analytic_Dipole
@@ -29,7 +30,7 @@ from SimPEG.Examples import EM_FDEM_1D_Inversion
 from SimPEG.Examples import Mesh_Operators_CahnHilliard
 from SimPEG.Examples import Maps_ComboMaps
 
-__examples__ = ["Inversion_IRLS", "PF_Gravity_Inversion_Linear", "EM_Heagyetal2016_CasingFwd3DPrimSecSrc", "Mesh_Basic_ForwardDC", "EM_Schenkel_Morrison_Casing", "EM_NSEM_3D_Foward", "EM_Heagyetal2016_CylInversions", "Mesh_QuadTree_FaceDiv", "Inversion_Linear", "EM_TDEM_1D_Inversion", "PF_Magnetics_Inversion_Linear", "Mesh_QuadTree_Creation", "DC_Analytic_Dipole", "Mesh_QuadTree_HangingNodes", "Maps_Mesh2Mesh", "Mesh_Tensor_Creation", "Utils_surface2ind_topo", "FLOW_Richards_1D_Celia1990", "Mesh_Basic_Types", "EM_NSEM_1D_ForwardAndInversion", "Mesh_Basic_PlotImage", "EM_FDEM_Analytic_MagDipoleWholespace", "PF_Magnetics_Analytics", "EM_FDEM_1D_Inversion", "Mesh_Operators_CahnHilliard", "Maps_ComboMaps"]
+__examples__ = ["Inversion_IRLS", "PF_Gravity_Inversion_Linear", "EM_Heagyetal2016_CasingFwd3DPrimSecSrc", "Mesh_Basic_ForwardDC", "EM_Schenkel_Morrison_Casing", "EM_NSEM_3D_Foward", "EM_Heagyetal2016_CylInversions", "Mesh_QuadTree_FaceDiv", "Inversion_Linear", "EM_TDEM_1D_Inversion", "Utils_plot2Ddata", "PF_Magnetics_Inversion_Linear", "Mesh_QuadTree_Creation", "DC_Analytic_Dipole", "Mesh_QuadTree_HangingNodes", "Maps_Mesh2Mesh", "Mesh_Tensor_Creation", "Utils_surface2ind_topo", "FLOW_Richards_1D_Celia1990", "Mesh_Basic_Types", "EM_NSEM_1D_ForwardAndInversion", "Mesh_Basic_PlotImage", "EM_FDEM_Analytic_MagDipoleWholespace", "PF_Magnetics_Analytics", "EM_FDEM_1D_Inversion", "Mesh_Operators_CahnHilliard", "Maps_ComboMaps"]
 
 ##### AUTOIMPORTS #####
 

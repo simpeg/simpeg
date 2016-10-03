@@ -731,6 +731,9 @@ class PrimSecCasingExample(object):
         src = sec_survey.srcList[0]
         rx0 = src.rxList[0]
 
+        nx = np.sqrt(len(rx0.locs))
+        ny = nx
+
         def plotDataFun(ax, plotme, num=50, plotBlock=True, xlim=XLIM,
                         ylim=YLIM, clim=None, clabel='Electric Field (V/m)',
                         xlabel='x (m)', ylabel='y (m)', title=None):
