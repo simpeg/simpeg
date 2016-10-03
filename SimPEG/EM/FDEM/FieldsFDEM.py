@@ -314,9 +314,9 @@ class Fields3D_e(FieldsFDEM):
         C = self._edgeCurl
         b = (C * eSolution)
         for i, src in enumerate(srcList):
-            b[:,i] *= - 1./(1j*omega(src.freq))
-            s_m, _ = src.eval(self.prob)
-            b[:,i] = b[:,i]+ 1./(1j*omega(src.freq)) * s_m
+            b[:, i] *= - 1./(1j*omega(src.freq))
+            s_m = src.s_m(self.prob)
+            b[:, i] = b[:, i] + 1./(1j*omega(src.freq)) * s_m
         return b
 
     def _bDeriv_u(self, src, du_dm_v, adjoint = False):
@@ -347,7 +347,7 @@ class Fields3D_e(FieldsFDEM):
         :return: product of the magnetic flux density derivative with respect to the inversion model with a vector
         """
 
-        s_mDeriv, _ = src.evalDeriv(self.prob, v, adjoint)
+        s_mDeriv = src.s_mDeriv(self.prob, v, adjoint)
         return 1./(1j * omega(src.freq)) * s_mDeriv
 
     def _j(self,  eSolution, srcList):
@@ -511,10 +511,10 @@ class Fields3D_b(FieldsFDEM):
         :return: primary electric field as defined by the sources
         """
 
-        bPrimary = np.zeros([self.prob.mesh.nF,len(srcList)], dtype = complex)
+        bPrimary = np.zeros([self.prob.mesh.nF, len(srcList)], dtype = complex)
         for i, src in enumerate(srcList):
             bp = src.bPrimary(self.prob)
-            bPrimary[:,i] = bPrimary[:,i] + bp
+            bPrimary[:, i] = bPrimary[:, i] + bp
         return bPrimary
 
     def _bSecondary(self, bSolution, srcList):
@@ -567,10 +567,10 @@ class Fields3D_b(FieldsFDEM):
         :return: primary electric field as defined by the sources
         """
 
-        ePrimary = np.zeros([self._edgeCurl.shape[1],bSolution.shape[1]], dtype = complex)
-        for i,src in enumerate(srcList):
+        ePrimary = np.zeros([self._edgeCurl.shape[1], bSolution.shape[1]], dtype = complex)
+        for i, src in enumerate(srcList):
             ep = src.ePrimary(self.prob)
-            ePrimary[:,i] = ePrimary[:,i] + ep
+            ePrimary[:, i] = ePrimary[:, i] + ep
         return ePrimary
 
     def _eSecondary(self, bSolution, srcList):
@@ -584,9 +584,9 @@ class Fields3D_b(FieldsFDEM):
         """
 
         e = ( self._edgeCurl.T * ( self._MfMui * bSolution))
-        for i,src in enumerate(srcList):
-            _,s_e = src.eval(self.prob)
-            e[:,i] = e[:,i] + - s_e
+        for i, src in enumerate(srcList):
+            s_e = src.s_e(self.prob)
+            e[:,i] = e[:, i] + - s_e
 
         return self._MeSigmaI * e
 
@@ -618,14 +618,14 @@ class Fields3D_b(FieldsFDEM):
         """
 
         bSolution = Utils.mkvc(self[src, 'bSolution'])
-        _,s_e = src.eval(self.prob)
+        s_e = src.s_e(self.prob)
 
         w = -s_e + self._edgeCurl.T * (self._MfMui * bSolution)
 
         if adjoint:
-            _, s_eDeriv = src.evalDeriv(self.prob, self._MeSigmaI.T * v, adjoint)
+            s_eDeriv = src.s_eDeriv(self.prob, self._MeSigmaI.T * v, adjoint)
             return self._MeSigmaIDeriv(w).T * v -  s_eDeriv + src.ePrimaryDeriv(self.prob, v, adjoint)
-        _, s_eDeriv = src.evalDeriv(self.prob, v, adjoint)
+        s_eDeriv = src.s_eDeriv(self.prob, v, adjoint)
         return  self._MeSigmaIDeriv(w) * v - self._MeSigmaI * s_eDeriv + src.ePrimaryDeriv(self.prob, v, adjoint)
 
     def _j(self, bSolution, srcList):
@@ -774,7 +774,7 @@ class Fields3D_j(FieldsFDEM):
         jPrimary = np.zeros_like(jSolution, dtype = complex)
         for i, src in enumerate(srcList):
             jp = src.jPrimary(self.prob)
-            jPrimary[:,i] = jPrimary[:,i] + jp
+            jPrimary[:, i] = jPrimary[:, i] + jp
         return jPrimary
 
     def _jSecondary(self, jSolution, srcList):
@@ -840,10 +840,10 @@ class Fields3D_j(FieldsFDEM):
         :return: primary magnetic field as defined by the sources
         """
 
-        hPrimary = np.zeros([self._edgeCurl.shape[1],jSolution.shape[1]],dtype = complex)
+        hPrimary = np.zeros([self._edgeCurl.shape[1], jSolution.shape[1]],dtype = complex)
         for i, src in enumerate(srcList):
             hp = src.hPrimary(self.prob)
-            hPrimary[:,i] = hPrimary[:,i] + hp
+            hPrimary[:, i] = hPrimary[:, i] + hp
         return hPrimary
 
     def _hSecondary(self, jSolution, srcList):
@@ -858,9 +858,9 @@ class Fields3D_j(FieldsFDEM):
 
         h = (self._edgeCurl.T * (self._MfRho * jSolution) )
         for i, src in enumerate(srcList):
-            h[:,i] *= -1./(1j*omega(src.freq))
-            s_m,_ = src.eval(self.prob)
-            h[:,i] = h[:,i] + 1./(1j*omega(src.freq)) * (s_m)
+            h[:, i] *= -1./(1j*omega(src.freq))
+            s_m = src.s_m(self.prob)
+            h[:, i] = h[:, i] + 1./(1j*omega(src.freq)) * (s_m)
         return self._MeMuI * h
 
 
@@ -897,7 +897,7 @@ class Fields3D_j(FieldsFDEM):
         C = self._edgeCurl
         MfRho = self._MfRho
         MfRhoDeriv = self._MfRhoDeriv
-        s_mDeriv,_ = src.evalDeriv(self.prob, adjoint = adjoint)
+        s_mDeriv = src.s_mDeriv(self.prob, adjoint = adjoint)
 
         if not adjoint:
             hDeriv_m =  -1./(1j*omega(src.freq)) * MeMuI * (C.T * (MfRhoDeriv(jSolution)*v ) )
@@ -951,7 +951,7 @@ class Fields3D_j(FieldsFDEM):
         :rtype: numpy.ndarray
         :return: product of the derivative of the electric field with respect to the model with a vector
         """
-        jSolution = Utils.mkvc(self[src,'jSolution'])
+        jSolution = Utils.mkvc(self[src, 'jSolution'])
         n = int(self._aveF2CCV.shape[0] / self._nC) # number of components
         VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
         if adjoint:
@@ -999,10 +999,10 @@ class Fields3D_j(FieldsFDEM):
         :rtype: numpy.ndarray
         :return: product of the derivative of the magnetic flux density with respect to the model with a vector
         """
-        jSolution = self[src,'jSolution']
+        jSolution = self[src, 'jSolution']
         n = int(self._aveE2CCV.shape[0] / self._nC) # number of components
         VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
-        s_mDeriv,_ = src.evalDeriv(self.prob, adjoint = adjoint)
+        s_mDeriv = src.s_mDeriv(self.prob, adjoint=adjoint)
 
         if adjoint:
             v = self._aveE2CCV.T * ( VI.T * v)
@@ -1063,10 +1063,10 @@ class Fields3D_h(FieldsFDEM):
         :return: primary magnetic field as defined by the sources
         """
 
-        hPrimary = np.zeros_like(hSolution,dtype = complex)
+        hPrimary = np.zeros_like(hSolution, dtype=complex)
         for i, src in enumerate(srcList):
             hp = src.hPrimary(self.prob)
-            hPrimary[:,i] = hPrimary[:,i] + hp
+            hPrimary[:, i] = hPrimary[:, i] + hp
         return hPrimary
 
     def _hSecondary(self, hSolution, srcList):
@@ -1123,7 +1123,7 @@ class Fields3D_h(FieldsFDEM):
         jPrimary = np.zeros([self._edgeCurl.shape[0], hSolution.shape[1]], dtype = complex)
         for i, src in enumerate(srcList):
             jp = src.jPrimary(self.prob)
-            jPrimary[:,i] = jPrimary[:,i] + jp
+            jPrimary[:, i] = jPrimary[:, i] + jp
         return jPrimary
 
     def _jSecondary(self, hSolution, srcList):
@@ -1138,8 +1138,8 @@ class Fields3D_h(FieldsFDEM):
 
         j = self._edgeCurl*hSolution
         for i, src in enumerate(srcList):
-            _,s_e = src.eval(self.prob)
-            j[:,i] = j[:,i]+ -s_e
+            s_e = src.s_e(self.prob)
+            j[:, i] = j[:, i] + -s_e
         return j
 
     def _jDeriv_u(self, src, du_dm_v, adjoint=False):
@@ -1170,7 +1170,7 @@ class Fields3D_h(FieldsFDEM):
         :return: product of the current density derivative with respect to the inversion model with a vector
         """
 
-        _,s_eDeriv = src.evalDeriv(self.prob, v, adjoint)
+        s_eDeriv = src.s_eDeriv(self.prob, v, adjoint)
         return -s_eDeriv
 
     def _e(self, hSolution, srcList):
