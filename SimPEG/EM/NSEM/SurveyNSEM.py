@@ -111,7 +111,7 @@ class Data(SimPEGsurvey.Data):
             # Get the type and the value for the DataNSEM object as a list
             typeList = [[rx.orientation,rx.component,self[src,rx]] for rx in src.rxList]
             # Insert the values to the temp array
-            for k,c,val in enumerate(typeList):
+            for k,c,val in typeList:
                 key = 'z' + k + c[0]
                 tArrRec[key] = mkvc(val,2)
             # Masked array
