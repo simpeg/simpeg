@@ -1,8 +1,7 @@
 import unittest
-import SimPEG as simpeg
-from SimPEG.EM import NSEM
-from SimPEG.Utils import meshTensor
 import numpy as np
+
+from SimPEG.EM import NSEM
 # Define the tolerances
 TOLr = 5e-1
 TOLp = 5e-1

@@ -1,14 +1,11 @@
-from SimPEG import Survey
 from SimPEG import Utils
 from SimPEG import Problem
 
 from SimPEG.Utils import Zero
 from SimPEG.Utils import Identity
-from SimPEG.Utils import mkvc
 
 import numpy as np
 import scipy.sparse as sp
-from scipy.constants import mu_0
 from SimPEG.EM.Utils import omega
 
 

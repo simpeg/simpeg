@@ -97,7 +97,6 @@ class Data(SimPEGsurvey.Data):
         dtRI = [('freq',float),('x',float),('y',float),('z',float),('zxxr',float),('zxxi',float),('zxyr',float),('zxyi',float),
         ('zyxr',float),('zyxi',float),('zyyr',float),('zyyi',float),('tzxr',float),('tzxi',float),('tzyr',float),('tzyi',float)]
         dtCP = [('freq',float),('x',float),('y',float),('z',float),('zxx',complex),('zxy',complex),('zyx',complex),('zyy',complex),('tzx',complex),('tzy',complex)]
-        impList = ['zxxr','zxxi','zxyr','zxyi','zyxr','zyxi','zyyr','zyyi']
         for src in self.survey.srcList:
             # Temp array for all the receivers of the source.
             # Note: needs to be written more generally, using diffterent rxTypes and not all the data at the locaitons
@@ -112,7 +111,7 @@ class Data(SimPEGsurvey.Data):
             # Get the type and the value for the DataNSEM object as a list
             typeList = [[rx.orientation,rx.component,self[src,rx]] for rx in src.rxList]
             # Insert the values to the temp array
-            for nr,(k,c,val) in enumerate(typeList):
+            for k,c,val in enumerate(typeList):
                 key = 'z' + k + c[0]
                 tArrRec[key] = mkvc(val,2)
             # Masked array
