@@ -732,11 +732,15 @@ class PrimSecMappedSigma(BaseSrc):
                            self._primaryFieldsDeriv(prob, v, f=f))
         elif self.primaryProblem._formulation == 'HJ':
             if adjoint is True:
-                PTv = self._ProjPrimary(prob, 'F', 'E').T * v
-                epDeriv = (self.primaryProblem.MfRhoDeriv(f[:, 'j']).T *
-                    (self.primaryProblem.MfI.T * PTv) +
-                     self._primaryFieldsDeriv(prob, self.primaryProblem.MfRho.T
+                PTv = self.primaryProblem.MfI.T * (self._ProjPrimary(prob, 'F', 'E').T * v)
+                epDeriv = (
+                    self.primaryProblem.MfRhoDeriv(f[:, 'j']).T * PTv +
+                    self._primaryFieldsDeriv(prob, self.primaryProblem.MfRho.T
                         * PTv, adjoint=adjoint, f=f))
+                # epDeriv =(
+
+                #     (self.primaryProblem.MfI.T * PTv)
+                #     )
             else:
                 epDeriv = self._ProjPrimary(prob, 'F', 'E') * (
                             self.primaryProblem.MfI * (
@@ -780,8 +784,6 @@ class PrimSecMappedSigma(BaseSrc):
         ePrimary = self.ePrimary(prob, f=f)
 
         if adjoint is True:
-            print sigmaPrimaryDeriv.T.shape, prob.mesh.getEdgeInnerProductDeriv(
-                    sigmaPrimary)(ePrimary).shape, v.shape
             return (
                 prob.MeSigmaDeriv(ePrimary).T * v -
                 (sigmaPrimaryDeriv.T * prob.mesh.getEdgeInnerProductDeriv(
