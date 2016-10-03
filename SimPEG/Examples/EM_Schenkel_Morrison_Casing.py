@@ -9,7 +9,6 @@ try:
     solver = PardisoSolver
 except Exception:
     solver = SolverLU
-    pass
 
 
 def run(plotIt=True):

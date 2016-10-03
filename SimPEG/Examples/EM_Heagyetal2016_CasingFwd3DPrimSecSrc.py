@@ -1,13 +1,16 @@
 from SimPEG import *
 from SimPEG.EM import mu_0, FDEM, Analytics
 from SimPEG.EM.Utils import omega
+# try:
+#     from pymatsolver import MumpsSolver as Solver
+#     print('using MumpsSolver')
+# except ImportError:
 try:
-    from pymatsolver import MumpsSolver as Solver
+    from pymatsolver import PardisoSolver as Solver
+    print('using PardisoSolver')
 except ImportError:
-    try:
-        from pymatsolver import PardisoSolver as Solver
-    except ImportError:
-        Solver = SolverLU
+    Solver = SolverLU
+    print('using SolverLU')
 import matplotlib.pyplot as plt
 import time
 import os
@@ -1140,7 +1143,19 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
 
 def run(plotIt=False, runTests=False, reRun=False, saveFig=False):
 
-    # reompute results?
+    """
+        EM Heagyetal2016 CasingFwd3DPrimSecSrc
+        ======================================
+
+        Computation of Sensitivities for the primary-secondary example shown in
+        Heagy et al 2016.
+
+        :param bool plotIt: plot results
+        :param bool runTests: run sensitivity tests? (slow...)
+        :param bool reRun: recompute results? or just download stored results and plot
+        :param bool saveFig: save the figures?
+    """
+    # recompute results?
     if reRun is True:
         casingExample = PrimSecCasingExample()
 
@@ -1165,6 +1180,10 @@ def run(plotIt=False, runTests=False, reRun=False, saveFig=False):
     # remove the downloaded results
     if reRun is False:
         casingExample.removeStoredResults()
+
+    # reset the propmap
+    from SimPEG.EM.Base import EMPropMap
+    FDEM.Problem3D_h.PropMap = EMPropMap
 
 
 if __name__ == '__main__':
