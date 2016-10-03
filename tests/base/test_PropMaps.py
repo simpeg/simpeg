@@ -5,6 +5,7 @@ from SimPEG import Mesh, Maps
 from scipy.constants import mu_0
 from SimPEG import Tests
 
+np.random.seed(634)
 
 class MyPropMap(Maps.PropMap):
     sigma = Maps.Property("Electrical Conductivity", defaultInvProp=True)
