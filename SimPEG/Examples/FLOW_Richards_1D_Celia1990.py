@@ -59,10 +59,11 @@ def run(plotIt=True):
     def getFields(timeStep, method):
         timeSteps = np.ones(360/timeStep)*timeStep
         prob = Richards.RichardsProblem(
-            M, mapping=E, timeSteps=timeSteps,
+            M, mapping=E,
             boundaryConditions=bc, initialConditions=h,
             doNewton=False, method=method
         )
+        prob.timeSteps = timeSteps
         return prob.fields(params['Ks'])
 
     Hs_M010 = getFields(10., 'mixed')
