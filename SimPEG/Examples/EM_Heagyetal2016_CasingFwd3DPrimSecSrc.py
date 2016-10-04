@@ -96,7 +96,7 @@ class PrimSecCasingExample(object):
         #   |                                      |
         #   +--------------------------------------+
 
-        return np.hstack(np.r_[np.log(self.sigmaback),  # value in the background
+        return np.hstack(np.r_[np.log(self.sigmaback),  # value in background
                                np.log(self.sigmalayer),  # value in the layer
                                np.log(self.sigmablock),  # value in the block
                                self.layer_z.mean(),  # layer center
@@ -187,8 +187,8 @@ class PrimSecCasingExample(object):
 
             print('Building primary mapping')
 
-            # inject parameters we want to invert for into the full casing model
-
+            # inject parameters we want to invert for into the full casing
+            # model
             valInactive = np.r_[
                 np.log(self.sigmacasing),  # log conductivity of the casing
                 np.log(self.sigmainside),  # log conductivity fluid inside casing
@@ -338,7 +338,7 @@ class PrimSecCasingExample(object):
                 dgh_indx = meshp.gridFx[:, 0] <= casing_a + meshp.hx.min()*2
 
                 # couple to the casing downhole - bottom part
-                dgh_indz2 = ((meshp.gridFx[:, 2] <= src_a[2])  &
+                dgh_indz2 = ((meshp.gridFx[:, 2] <= src_a[2]) &
                              (meshp.gridFx[:, 2] > src_a[2] - meshp.hz.min()))
                 dgh_ind2 = dgh_indx & dgh_indz2
                 dg_x[dgh_ind2] = 1.
@@ -360,7 +360,8 @@ class PrimSecCasingExample(object):
 
                 # assemble the source (downhole grounded primary)
                 dg = np.hstack([dg_x, dg_y, dg_z])
-                dg_p = [FDEM.Src.RawVec_e([], _, dg/meshp.area) for _ in self.freqs]
+                dg_p = [FDEM.Src.RawVec_e([], _, dg/meshp.area) for _ in
+                        self.freqs]
 
                 # if plotIt:
                 #     # Plot the source to make sure the path is infact connected
@@ -376,8 +377,6 @@ class PrimSecCasingExample(object):
 
                 #     ax.set_xlim([0, 1.1e4])
                 #     ax.set_ylim([-1100., 0.5])
-
-
 
                 return dg_p
 
@@ -407,7 +406,7 @@ class PrimSecCasingExample(object):
         fig, ax = plt.subplots(1, 2, figsize=(10, 4))
         f = self.meshp.plotImage(
                 self.muModel/mu_0, ax=ax[0],
-                pcolorOpts={'cmap':plt.get_cmap('viridis')}, grid=False
+                pcolorOpts={'cmap': plt.get_cmap('viridis')}, grid=False
                 )
         plt.colorbar(f[0], ax=ax[0])
         ax[0].set_xlim([0, 1.])
@@ -440,9 +439,12 @@ class PrimSecCasingExample(object):
             csz, ncz, npadz = 25, 40, 14
             pf = 1.5
 
-            hx = Utils.meshTensor([(csx, npadx, -pf), (csx, ncx), (csx, npadx, pf)])
-            hy = Utils.meshTensor([(csy, npady, -pf), (csy, ncy), (csy, npady, pf)])
-            hz = Utils.meshTensor([(csz, npadz, -pf), (csz, ncz), (csz, npadz, pf)])
+            hx = Utils.meshTensor([(csx, npadx, -pf), (csx, ncx),
+                                   (csx, npadx, pf)])
+            hy = Utils.meshTensor([(csy, npady, -pf), (csy, ncy),
+                                   (csy, npady, pf)])
+            hz = Utils.meshTensor([(csz, npadz, -pf), (csz, ncz),
+                                   (csz, npadz, pf)])
 
             x0 = np.r_[-hx.sum()/2., -hy.sum()/2., -hz[:npadz+ncz].sum()]
             self._meshs = Mesh.TensorMesh([hx, hy, hz], x0=x0)
@@ -493,7 +495,8 @@ class PrimSecCasingExample(object):
     @property
     def primaryMap2meshs(self):
         if getattr(self, '_primaryMap2mesh', None) is None:
-            # map the primary model to the secondary mesh (layer without the block)
+            # map the primary model to the secondary mesh (layer without the
+            # block)
             print('Building primaryMap2meshs')
             paramMapPrimaryMeshs = Maps.ParametrizedLayer(
                 self.meshs, indActive=self.indActive
@@ -523,14 +526,14 @@ class PrimSecCasingExample(object):
                              map2meshSecondary):
 
         print('Setting up Secondary Survey')
-        rxlocs = Utils.ndgrid([np.linspace(-2050, 2050, 41),
-                               np.linspace(-2050, 2050, 41),
-                               np.r_[-1]])
 
-        rx_x = FDEM.Rx.Point_e(rxlocs, orientation='x', component='real')
-        rx_y = FDEM.Rx.Point_e(rxlocs, orientation='y', component='real')
+        self.rx_x, self.rx_y = 2*[np.linspace(-2050, 2050, 41)]
+        self.rxlocs = Utils.ndgrid([self.rx_x, self.rx_y, np.r_[-1]])
 
-        RxList = [rx_x, rx_y]
+        rx_ex = FDEM.Rx.Point_e(self.rxlocs, orientation='x', component='real')
+        rx_ey = FDEM.Rx.Point_e(self.rxlocs, orientation='y', component='real')
+
+        RxList = [rx_ex, rx_ey]
 
         sec_src = [FDEM.Src.PrimSecMappedSigma(
                         RxList, freq, primaryProblem, primarySurvey,
@@ -642,9 +645,9 @@ class PrimSecCasingExample(object):
         Pz = self.meshs.getInterpolationMat(meshs_plt.gridEz, locType='Ez')
         P = sp.vstack([Px, Py, Pz])
 
-        # for regions outside of the anomalous block, the source current density
-        # is identically zero. For plotting, we do not want to interpolate into
-        # this region, so we build up masked arrays.
+        # for regions outside of the anomalous block, the source current
+        # density is identically zero. For plotting, we do not want to
+        # interpolate into this region, so we build up masked arrays.
         maskme_ex = ((self.meshs.gridEx[:, 0] <= self.block_x[0]) |
                      (self.meshs.gridEx[:, 0] >= self.block_x[1]) |
                      (self.meshs.gridEx[:, 1] <= self.block_y[0]) |
@@ -674,7 +677,8 @@ class PrimSecCasingExample(object):
         s_e_abs_cc = s_e_stream_cc.reshape(meshs_plt.nC, 3, order='F')
         s_e_abs_cc = np.sqrt((s_e_abs_cc**2.).sum(axis=1))
         s_e_abs_cc[np.isnan(s_e_abs_cc)] = 0.
-        s_e_stream_cc = np.ma.masked_where(np.isnan(s_e_stream_cc), s_e_stream_cc)
+        s_e_stream_cc = np.ma.masked_where(np.isnan(s_e_stream_cc),
+                                           s_e_stream_cc)
 
         # plot
         fig, ax = plt.subplots(1, 1, figsize=(7.5, 6))
@@ -740,8 +744,8 @@ class PrimSecCasingExample(object):
             if clim is None:
                 clim = np.absolute(plotme).max()*np.r_[-1., 1.]
             f = ax.contourf(
-                rx_x, rx_y, plotme, num,  cmap=plt.get_cmap('viridis'),
-                vmin=clim[0], vmax=clim[1]
+                self.rx_x, self.rx_y, plotme, num,
+                cmap=plt.get_cmap('viridis'), vmin=clim[0], vmax=clim[1]
                            )
             ax.axis('equal', adjustable='box')
             ax.set_xlim(xlim)
@@ -779,14 +783,20 @@ class PrimSecCasingExample(object):
         plotx0 = (data_block[:rx0.nD]).reshape(nx, ny, order='F')
         ploty0 = (data_block[rx0.nD:]).reshape(nx, ny, order='F')
 
-        plotx1 = (data_block[:rx0.nD] - data_back[:rx0.nD]).reshape(nx, ny, order='F')
-        ploty1 = (data_block[rx0.nD:] - data_back[rx0.nD:]).reshape(nx, ny, order='F')
+        plotx1 = (data_block[:rx0.nD] - data_back[:rx0.nD]).reshape(
+                    nx, ny, order='F')
+        ploty1 = (data_block[rx0.nD:] - data_back[rx0.nD:]).reshape(
+                    nx, ny, order='F')
 
         # Plotting
-        ax[0] = plotData(ax[0], plotx0, num=ncontours, title='(a) Total E$_x$')
-        ax[1] = plotData(ax[1], plotx1, num=ncontours, title='(c) Secondary E$_x$')
-        ax[2] = plotData(ax[2], ploty0, num=ncontours, title='(b) Total E$_y$')
-        ax[3] = plotData(ax[3], ploty1, num=ncontours, title='(d) Secondary E$_y$')
+        ax[0] = plotDataFun(ax[0], plotx0, num=ncontours,
+                            title='(a) Total E$_x$')
+        ax[1] = plotDataFun(ax[1], plotx1, num=ncontours,
+                            title='(c) Secondary E$_x$')
+        ax[2] = plotDataFun(ax[2], ploty0, num=ncontours,
+                            title='(b) Total E$_y$')
+        ax[3] = plotDataFun(ax[3], ploty1, num=ncontours,
+                            title='(d) Secondary E$_y$')
         plt.tight_layout()
 
         if saveFig is True:
@@ -798,15 +808,14 @@ class PrimSecCasingExample(object):
                   climCenter=True, plotBlock=False, num=30, norm=None,
                   cblabel='' ):
 
-            rx_x = rxlocs[:, 0].reshape(nx, ny, order='F')
-            rx_y = rxlocs[:, 1].reshape(nx, ny, order='F')
-
             ax.axis('equal')
             vlim = np.absolute(Jv).max() * np.r_[-1., 1.]
 
+            print Jv
+
             if norm is None:
                 f = ax.contourf(
-                    rx_x, rx_y, Jv.reshape(nx, ny, order='F'), num,
+                    self.rx_x, self.rx_y, Jv.reshape(nx, ny, order='F'), num,
                     cmap=plt.get_cmap('viridis'), vmin= vlim[0], vmax=vlim[1]
                                )
                 cb = plt.colorbar(f, ax=ax, label=cblabel)
@@ -815,7 +824,7 @@ class PrimSecCasingExample(object):
             elif norm.lower() == 'lognorm':
                 from matplotlib.colors import LogNorm
                 f = ax.contourf(
-                        rx_x, rx_y, np.absolute(Jv.reshape(nx, ny, order='F')),
+                        self.rx_x, self.rx_y, np.absolute(Jv.reshape(nx, ny, order='F')),
                         num, cmap=plt.get_cmap('viridis'), norm=LogNorm()
                                )
                 cb = plt.colorbar(f, ax=ax)
@@ -851,19 +860,24 @@ class PrimSecCasingExample(object):
         # Plot Conductivity contribution
         plotGrid = False
         plotBlock = True
+        ncontours = 50
 
         xlim = np.r_[-1500, 1500]
         ylim = np.r_[-1500, 1500]
 
-        J_back_ex = J[0, :len(rxlocs)].reshape(nx, ny, order='F'),
-        J_back_ey = J[0, len(rxlocs):].reshape(nx, ny, order='F')
-        J_layer_ex = J[1, :len(rxlocs)].reshape(nx, ny, order='F'),
-        J_layer_ey = J[1, len(rxlocs):].reshape(nx, ny, order='F')
-        J_block_ex = J[2, :len(rxlocs)].reshape(nx, ny, order='F'),
-        J_block_ey = J[2, len(rxlocs):].reshape(nx, ny, order='F')
+        nx, ny = len(self.rx_x), len(self.rx_y)
+        nrx = len(self.rxlocs)
+
+        J_back_ex = J[0, :nrx].reshape(nx, ny, order='F')
+        J_back_ey = J[0, nrx:].reshape(nx, ny, order='F')
+        J_layer_ex = J[1, :nrx].reshape(nx, ny, order='F')
+        J_layer_ey = J[1, nrx:].reshape(nx, ny, order='F')
+        J_block_ex = J[2, :nrx].reshape(nx, ny, order='F')
+        J_block_ey = J[2, nrx:].reshape(nx, ny, order='F')
 
         clabelSigs = 'Sensitivity (V/m / log($\sigma$))'
 
+        fig, ax = plt.subplots(3,2,figsize=(12,15))
         ax[0][0] = plotJ(
             ax[0][0], J_back_ex, '(a) Sensitivity of $E_x$ wrt log($\sigma_{back}$)',
             plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock,
@@ -910,8 +924,8 @@ class PrimSecCasingExample(object):
         xlim = np.r_[-1500., 1500.]
         ylim = np.r_[-1500., 1500.]
 
-        J_z0_ex, J_z0_ey = J[3,:len(rxlocs)].reshape(nx, ny, order='F'), J[3,len(rxlocs):].reshape(nx, ny, order='F')
-        J_hz_ex, J_hz_ey = J[4,:len(rxlocs)].reshape(nx, ny, order='F'), J[4,len(rxlocs):].reshape(nx, ny, order='F')
+        J_z0_ex, J_z0_ey = J[3,:nrx].reshape(nx, ny, order='F'), J[3,nrx:].reshape(nx, ny, order='F')
+        J_hz_ex, J_hz_ey = J[4,:nrx].reshape(nx, ny, order='F'), J[4,nrx:].reshape(nx, ny, order='F')
 
         ax[0][0] = plotJ(ax[0][0], J_z0_ex, '(g) Sensitivity of $E_x$ wrt layer $z_0$',
                       plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock, num=ncontours,
@@ -941,42 +955,54 @@ class PrimSecCasingExample(object):
         xlim = np.r_[-1500., 1500.]
         ylim = np.r_[-1500., 1500.]
 
-        J_x0_ex, J_x0_ey = J[5, :len(rxlocs)].reshape(nx, ny, order='F'), J[5,len(rxlocs):].reshape(nx, ny, order='F')
-        J_y0_ex, J_y0_ey = J[6, :len(rxlocs)].reshape(nx, ny, order='F'), J[6,len(rxlocs):].reshape(nx, ny, order='F')
-        J_dx_ex, J_dx_ey = J[7, :len(rxlocs)].reshape(nx, ny, order='F'), J[7,len(rxlocs):].reshape(nx, ny, order='F')
-        J_dy_ex, J_dy_ey = J[8, :len(rxlocs)].reshape(nx, ny, order='F'), J[8,len(rxlocs):].reshape(nx, ny, order='F')
+        J_x0_ex = J[5, :nrx].reshape(nx, ny, order='F')
+        J_x0_ey = J[5, nrx:].reshape(nx, ny, order='F')
+        J_y0_ex = J[6, :nrx].reshape(nx, ny, order='F')
+        J_y0_ey = J[6, nrx:].reshape(nx, ny, order='F')
+        J_dx_ex = J[7, :nrx].reshape(nx, ny, order='F')
+        J_dx_ey = J[7, nrx:].reshape(nx, ny, order='F')
+        J_dy_ex = J[8, :nrx].reshape(nx, ny, order='F')
+        J_dy_ey = J[8, nrx:].reshape(nx, ny, order='F')
 
-        ax[0][0] = plotJ(ax[0][0], J_x0_ex, '(k) Sensitivity of $E_x$ wrt block $x_0$',
-                      plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock, num=ncontours,
-                        cblabel='Sensitivity (V/m / m)')
+        ax[0][0] = plotJ(
+            ax[0][0], J_x0_ex, '(k) Sensitivity of $E_x$ wrt block $x_0$',
+            plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock,
+            num=ncontours, cblabel='Sensitivity (V/m / m)')
 
-        ax[0][1] = plotJ(ax[0][1], J_x0_ey, '(l) Sensitivity of $E_y$ wrt block $x_0$',
-                      plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock, num=ncontours,
-                        cblabel='Sensitivity (V/m / m)')
+        ax[0][1] = plotJ(
+            ax[0][1], J_x0_ey, '(l) Sensitivity of $E_y$ wrt block $x_0$',
+            plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock,
+            num=ncontours, cblabel='Sensitivity (V/m / m)')
 
-        ax[1][0] = plotJ(ax[1][0], J_y0_ex, '(m) Sensitivity of $E_x$ wrt block $y_0$',
-                      plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock, num=ncontours,
-                        cblabel='Sensitivity (V/m / m)')
+        ax[1][0] = plotJ(
+            ax[1][0], J_y0_ex, '(m) Sensitivity of $E_x$ wrt block $y_0$',
+            plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock,
+            num=ncontours, cblabel='Sensitivity (V/m / m)')
 
-        ax[1][1] = plotJ(ax[1][1], J_y0_ey, '(n) Sensitivity of $E_y$ wrt block $y_0$',
-                      plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock, num=ncontours,
-                        cblabel='Sensitivity (V/m / m)')
+        ax[1][1] = plotJ(
+            ax[1][1], J_y0_ey, '(n) Sensitivity of $E_y$ wrt block $y_0$',
+            plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock,
+            num=ncontours, cblabel='Sensitivity (V/m / m)')
 
-        ax[2][0] = plotJ(ax[2][0], J_dx_ex, '(o) Sensitivity of $E_x$ wrt block $d_x$',
-                      plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock, num=ncontours,
-                        cblabel='Sensitivity (V/m / m)')
+        ax[2][0] = plotJ(
+            ax[2][0], J_dx_ex, '(o) Sensitivity of $E_x$ wrt block $d_x$',
+            plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock,
+            num=ncontours, cblabel='Sensitivity (V/m / m)')
 
-        ax[2][1] = plotJ(ax[2][1], J_dy_ex, '(p) Sensitivity of $E_y$ wrt block $d_x$',
-                      plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock, num=ncontours,
-                        cblabel='Sensitivity (V/m / m)')
+        ax[2][1] = plotJ(
+            ax[2][1], J_dy_ex, '(p) Sensitivity of $E_y$ wrt block $d_x$',
+            plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock,
+            num=ncontours, cblabel='Sensitivity (V/m / m)')
 
-        ax[3][0] = plotJ(ax[3][0], J_dy_ex, '(q) Sensitivity of $E_x$ wrt block $d_y$',
-                      plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock, num=ncontours,
-                        cblabel='Sensitivity (V/m / m)')
+        ax[3][0] = plotJ(
+            ax[3][0], J_dy_ex, '(q) Sensitivity of $E_x$ wrt block $d_y$',
+            plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock,
+            num=ncontours, cblabel='Sensitivity (V/m / m)')
 
-        ax[3][1] = plotJ(ax[3][1], J_dy_ey, '(r) Sensitivity of $E_y$ wrt block $d_y$',
-                      plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock, num=ncontours,
-                        cblabel='Sensitivity (V/m / m)')
+        ax[3][1] = plotJ(
+            ax[3][1], J_dy_ey, '(r) Sensitivity of $E_y$ wrt block $d_y$',
+            plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock,
+            num=ncontours, cblabel='Sensitivity (V/m / m)')
 
         plt.tight_layout()
 
