@@ -1153,7 +1153,9 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
         self.downloadStoredResults()
 
         results = []
-        results = [np.load(self.filepath + os.path.sep + '{}'.format(file)) for file in self.cloudfiles]
+        results = ['{filepath}{slash}{file}'.format(
+            filepath=self.filepath, slash=os.path.sep, file=file)
+            for file in self.cloudfiles]
         results = dict(zip(['primfields', 'dpredback', 'dpred', 'J'], results))
 
         # Put the primary fields into a fields object
