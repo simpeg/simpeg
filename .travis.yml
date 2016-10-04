@@ -21,7 +21,8 @@ env:
     - TEST_DIR=tests/em/tdem
     - TEST_DIR=tests/em/static
     - TEST_DIR=tests/flow
-    - TEST_DIR=tests/mt
+    - TEST_DIR=tests/em/nsem/forward
+    - TEST_DIR=tests/em/nsem/inversion
     - TEST_DIR=tests/examples
     - TEST_DIR=tests/em/fdem/inverse/adjoint
     - TEST_DIR=tests/em/fdem/forward
@@ -46,6 +47,7 @@ before_install:
   - conda update --yes conda
 
 install:
+
   - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
       conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython nose sphinx sympy vtk;
     else
