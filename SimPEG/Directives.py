@@ -300,18 +300,24 @@ class Update_IRLS(InversionDirective):
 
             self.mode = 2
 
+            mmap = self.reg.mapping * self.invProb.curModel
+
             # Either use the supplied epsilon, or fix base on distribution of
             # model values
-            if getattr(self, 'eps', None) is None:
-                self.reg.eps_p = np.percentile(np.abs(self.invProb.curModel),self.prctile)
-            else:
-                self.reg.eps_p = self.eps[0]
+            for imodel in range(self.reg.nModels):
 
-            if getattr(self, 'eps', None) is None:
+                indl, indu = imodel*self.reg.regmesh.nC, (imodel+1)*self.reg.regmesh.nC
 
-                self.reg.eps_q = np.percentile(np.abs(self.reg.regmesh.cellDiffxStencil*(self.reg.mapping * self.invProb.curModel)),self.prctile)
-            else:
-                self.reg.eps_q = self.eps[1]
+                if getattr(self, 'eps', None) is None:
+                    self.reg.eps_p[imodel] = np.percentile(np.abs(mmap[indl:indu]),self.prctile)
+                else:
+                    self.reg.eps_p[imodel] = self.eps[0]
+
+                if getattr(self, 'eps', None) is None:
+
+                    self.reg.eps_q[imodel] = np.percentile(np.abs(self.reg.regmesh.cellDiffxStencil*mmap[indl:indu]),self.prctile)
+                else:
+                    self.reg.eps_q[imodel] = self.eps[1]
 
             self.reg.norms = self.norms
             self.coolingFactor = 1.
@@ -377,8 +383,10 @@ class Update_IRLS(InversionDirective):
             self.reg._Wx = None
             self.reg._Wy = None
             self.reg._Wz = None
+            self.reg._W = None
+            self.reg._Wsmooth = None
 
-             # Update the model used for the IRLS weights
+            # Update the model used for the IRLS weights
             self.reg.curModel = self.invProb.curModel
 
             # Temporarely set gamma to 1. to get raw phi_m
@@ -395,6 +403,8 @@ class Update_IRLS(InversionDirective):
             self.reg._Wx = None
             self.reg._Wy = None
             self.reg._Wz = None
+            self.reg._W = None
+            self.reg._Wsmooth = None
 
             # Check if misfit is within the tolerance, otherwise scale beta
             val = self.invProb.phi_d / (self.survey.nD*0.5)
@@ -412,8 +422,8 @@ class Update_lin_PreCond(InversionDirective):
 
         if getattr(self.opt, 'approxHinv', None) is None:
             # Update the pre-conditioner
-            diagA = np.sum(self.prob.G**2.,axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() #* (self.reg.mapping * np.ones(self.reg.curModel.size))**2.
-            PC     = Utils.sdiag((self.prob.mapping.deriv(None).T *diagA)**-1.)
+            diagA = np.sum(self.prob.G**2., axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+            PC = Utils.sdiag((self.prob.mapping.deriv(None).T * diagA)**-1.)
             self.opt.approxHinv = PC
 
     def endIter(self):
@@ -423,8 +433,8 @@ class Update_lin_PreCond(InversionDirective):
 
         if getattr(self.opt, 'approxHinv', None) is not None:
             # Update the pre-conditioner
-            diagA = np.sum(self.prob.G**2.,axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() #* (self.reg.mapping * np.ones(self.reg.curModel.size))**2.
-            PC     = Utils.sdiag((self.prob.mapping.deriv(None).T *diagA)**-1.)
+            diagA = np.sum(self.prob.G**2., axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+            PC = Utils.sdiag((self.prob.mapping.deriv(None).T * diagA)**-1.)
             self.opt.approxHinv = PC
 
 
@@ -472,6 +482,7 @@ class Amplitude_Inv_Iter(InversionDirective):
 
         self.reg._Wsmall, self.reg._Wx = None, None
         self.reg._Wy, self.reg._Wz, = None, None
+        self.reg._W, self.reg._Wsmooth = None, None
 
         if getattr(self.opt, 'approxHinv', None) is None:
             diagA = JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() #* (self.reg.mapping * np.ones(self.reg.curModel.size))**2.
@@ -489,6 +500,7 @@ class Amplitude_Inv_Iter(InversionDirective):
 
         self.reg._Wsmall, self.reg._Wx = None, None
         self.reg._Wy, self.reg._Wz, = None, None
+        # self.reg._W, self.reg._Wsmooth = None, None
 
         if getattr(self.opt, 'approxHinv', None) is not None:
 

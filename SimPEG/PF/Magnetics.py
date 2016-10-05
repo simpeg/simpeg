@@ -39,17 +39,17 @@ class MagneticIntegral(Problem.BaseProblem):
         self.curModel = m
 
         if self.rtype == 'tmi':
-            total = np.zeros(self.survey.nRx)
+            u = np.zeros(self.survey.nRx)
         else:
-            total = np.zeros(3*self.survey.nRx)
+            u = np.zeros(3*self.survey.nRx)
 
-        induced = self.fwr_ind()
+        u = self.fwr_ind()
         # rem = self.rem
 
-        if induced is not None:
-            total += induced
+        # if induced is not None:
+        #     total += induced
 
-        return total
+        return u
 
     def Jvec(self, m, v, f=None):
         dmudm = self.mapping.deriv(m)
@@ -174,7 +174,11 @@ class MagneticIntegral(Problem.BaseProblem):
                     fwr_out = np.zeros((int(3*ndata), nC))
 
             elif Magnetization == 'xyz':
-                fwr_out = np.zeros((int(3*ndata), int(3*nC)))
+                if survey.srcField.rxList[0].rxType == 'tmi':
+                    fwr_out = np.zeros((int(ndata), int(3*nC)))
+
+                elif survey.srcField.rxList[0].rxType == 'xyz':
+                    fwr_out = np.zeros((int(3*ndata), int(3*nC)))
 
             else:
                 print("""Flag must be either 'ind' | 'xyz', please revised""")
@@ -212,9 +216,14 @@ class MagneticIntegral(Problem.BaseProblem):
                         fwr_out[ii+2*ndata, :] = tz*Mxyz
 
                 elif Magnetization == 'xyz':
-                    fwr_out[ii, :] = tx
-                    fwr_out[ii+ndata, :] = ty
-                    fwr_out[ii+2*ndata, :] = tz
+
+                    if survey.srcField.rxList[0].rxType == 'tmi':
+                        fwr_out[ii, :] = Ptmi.dot(np.vstack((tx, ty, tz)))
+
+                    elif survey.srcField.rxList[0].rxType == 'xyz':
+                        fwr_out[ii, :] = tx
+                        fwr_out[ii+ndata, :] = ty
+                        fwr_out[ii+2*ndata, :] = tz
 
             # Display progress
             count = progress(ii, count, ndata)
@@ -222,6 +231,45 @@ class MagneticIntegral(Problem.BaseProblem):
         print("Done 100% ...forward operator completed!!\n")
 
         return fwr_out
+
+
+class MagneticVector(MagneticIntegral):
+
+    forwardOnly = False  # If false, matric is store to memory (watch your RAM)
+    actInd = None  #: Active cell indices provided
+    M = None  #: Magnetization matrix provided, otherwise all induced
+    rtype = 'tmi'  #: Receiver type either "tmi" | "xyz"
+
+    def __init__(self, mesh, mapping=None, **kwargs):
+        Problem.BaseProblem.__init__(self, mesh, mapping=mapping, **kwargs)
+
+    def fwr_ind(self):
+
+        if self.forwardOnly:
+
+            # Compute the linear operation without forming the full dense G
+            fwr_d = Intrgl_Fwr_Op(Magnetization='xyz')
+
+            return fwr_d
+
+        else:
+
+            # Grab the right model parameters
+            m = self.mapping*self.curModel
+
+            # m = np.hstack([m, mii])
+
+        return self.G.dot(m)
+
+    @property
+    def G(self):
+        if not self.ispaired:
+            raise Exception('Need to pair!')
+
+        if getattr(self, '_G', None) is None:
+            self._G = self.Intrgl_Fwr_Op(Magnetization='xyz')
+
+        return self._G
 
 
 class MagneticAmplitude(MagneticIntegral):
