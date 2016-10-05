@@ -28,7 +28,7 @@ class TestWires(unittest.TestCase):
         named_model = wires * model
 
         named_model.sigma == model[:mesh.nCz]
-        named_model.mu_casing = 2
+        assert named_model.mu_casing == 10
 
 
 if __name__ == '__main__':
