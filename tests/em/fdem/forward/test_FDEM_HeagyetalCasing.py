@@ -16,8 +16,8 @@ class CasingExampleTest(unittest.TestCase):
         # self.basePath = self.storedCasing.downloadStoredResults()
         # print('... Done')
 
-    def tearDown(self):
-        self.storedCasing.removeStoredResults(self.basePath)
+    # def tearDown(self):
+    #     self.storedCasing.removeStoredResults(self.basePath)
 
     def test_compare_results(self):
         print('----- Testing Prim Sec Casing Mapping -------')
