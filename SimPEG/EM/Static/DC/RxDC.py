@@ -11,14 +11,14 @@ class BaseRx(SimPEG.Survey.BaseRx):
     rxType = None
 
     knownRxTypes = {
-                    'phi': ['phi', None],
-                    'ex': ['e', 'x'],
-                    'ey': ['e', 'y'],
-                    'ez': ['e', 'z'],
-                    'jx': ['j', 'x'],
-                    'jy': ['j', 'y'],
-                    'jz': ['j', 'z'],
-                    }
+        'phi': ['phi', None],
+        'ex': ['e', 'x'],
+        'ey': ['e', 'y'],
+        'ez': ['e', 'z'],
+        'jx': ['j', 'x'],
+        'jy': ['j', 'y'],
+        'jz': ['j', 'z'],
+    }
 
     def __init__(self, locs, rxType, **kwargs):
         SimPEG.Survey.BaseRx.__init__(self, locs, rxType, **kwargs)
@@ -134,4 +134,3 @@ class Dipole_ky(BaseRx):
             phi += phi0*dky[iky]/2.*np.cos(kys[iky]*y)
             phi0 = phi1.copy()
         return phi
-

@@ -225,7 +225,7 @@ class Problem2D_CC(BaseDCProblem_2D):
         return Zero()
 
     def setBC(self):
-        if self.mesh.dim==3:
+        if self.mesh.dim == 3:
             fxm, fxp, fym, fyp, fzm, fzp = self.mesh.faceBoundaryInd
             gBFxm = self.mesh.gridFx[fxm, :]
             gBFxp = self.mesh.gridFx[fxp, :]
@@ -236,11 +236,11 @@ class Problem2D_CC(BaseDCProblem_2D):
 
             # Setup Mixed B.C (alpha, beta, gamma)
             temp_xm = np.ones_like(gBFxm[:, 0])
-            temp_xp =  np.ones_like(gBFxp[:, 0])
+            temp_xp = np.ones_like(gBFxp[:, 0])
             temp_ym = np.ones_like(gBFym[:, 1])
-            temp_yp =  np.ones_like(gBFyp[:, 1])
+            temp_yp = np.ones_like(gBFyp[:, 1])
             temp_zm = np.ones_like(gBFzm[:, 2])
-            temp_zp =  np.ones_like(gBFzp[:, 2])
+            temp_zp = np.ones_like(gBFzp[:, 2])
 
             alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
             alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
@@ -270,9 +270,9 @@ class Problem2D_CC(BaseDCProblem_2D):
 
             # Setup Mixed B.C (alpha, beta, gamma)
             temp_xm = np.ones_like(gBFxm[:, 0])
-            temp_xp =  np.ones_like(gBFxp[:, 0])
+            temp_xp = np.ones_like(gBFxp[:, 0])
             temp_ym = np.ones_like(gBFym[:, 1])
-            temp_yp =  np.ones_like(gBFyp[:, 1])
+            temp_yp = np.ones_like(gBFyp[:, 1])
 
             alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
             alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
@@ -284,7 +284,7 @@ class Problem2D_CC(BaseDCProblem_2D):
             gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
 
             alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp]
-            beta =  [beta_xm, beta_xp, beta_ym, beta_yp]
+            beta = [beta_xm, beta_xp, beta_ym, beta_yp]
             gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp]
 
         x_BC, y_BC = getxBCyBC_CC(self.mesh, alpha, beta, gamma)
@@ -302,7 +302,7 @@ class Problem2D_N(BaseDCProblem_2D):
 
     _solutionType = 'phiSolution'
     _formulation = 'EB'  # CC potentials means J is on faces
-    fieldsPair = Fields_ky_N  ##
+    fieldsPair = Fields_ky_N
 
     def __init__(self, mesh, **kwargs):
         BaseDCProblem_2D.__init__(self, mesh, **kwargs)
