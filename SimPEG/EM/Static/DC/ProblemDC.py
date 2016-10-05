@@ -280,7 +280,6 @@ class Problem3D_N(BaseDCProblem):
         model and a vector
 
         """
-        MeSigma = self.MeSigma
         Grad = self.mesh.nodalGrad
         if not adjoint:
             return Grad.T*(self.MeSigmaDeriv(Grad*u)*v)

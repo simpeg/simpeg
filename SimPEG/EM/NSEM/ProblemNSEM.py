@@ -13,6 +13,7 @@ from ..FDEM.ProblemFDEM import BaseFDEMProblem
 from .SurveyNSEM import Survey, Data
 from .FieldsNSEM import BaseNSEMFields, Fields1D_ePrimSec, Fields3D_ePrimSec
 
+
 class BaseNSEMProblem(BaseFDEMProblem):
     """
         Base class for all Natural source problems.
@@ -126,9 +127,9 @@ class BaseNSEMProblem(BaseFDEMProblem):
                     # du_dmT needs to be of size (nP,) number of model parameters
                     real_or_imag = rx.component
                     if real_or_imag == 'real':
-                        Jtv +=  np.array(du_dmT,dtype=complex).real
+                        Jtv +=  np.array(du_dmT, dtype=complex).real
                     elif real_or_imag == 'imag':
-                        Jtv +=  -np.array(du_dmT,dtype=complex).real
+                        Jtv +=  -np.array(du_dmT, dtype=complex).real
                     else:
                         raise Exception('Must be real or imag')
             # Clean the factorization, clear memory.
@@ -136,8 +137,9 @@ class BaseNSEMProblem(BaseFDEMProblem):
         return Jtv
 
 ###################################
-## 1D problems
+# 1D problems
 ###################################
+
 
 class Problem1D_ePrimSec(BaseNSEMProblem):
     """
@@ -306,7 +308,7 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
 
 
 ###################################
-## 3D problems
+# 3D problems
 ###################################
 class Problem3D_ePrimSec(BaseNSEMProblem):
     """
@@ -332,7 +334,7 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
     """
 
     # From FDEMproblem: Used to project the fields. Currently not used for NSEMproblem.
-    _solutionType = [ 'e_pxSolution', 'e_pySolution']  # Forces order on the object
+    _solutionType = ['e_pxSolution', 'e_pySolution']  # Forces order on the object
     _formulation  = 'EB'
     fieldsPair = Fields3D_ePrimSec
 
@@ -349,6 +351,7 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
 
         """
         return self._sigmaPrimary
+
     @sigmaPrimary.setter
     def sigmaPrimary(self, val):
         # Note: TODO add logic for val, make sure it is the correct size.
@@ -390,9 +393,8 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
             dMe_dsigV = sp.hstack(( self.MeSigmaDeriv( u[sol0] ).T, self.MeSigmaDeriv(u[sol1] ).T ))*v
         else:
             # Need a nE,2 matrix to be returned
-            dMe_dsigV = np.hstack(( mkvc(self.MeSigmaDeriv( u[sol0] )*v,2), mkvc( self.MeSigmaDeriv(u[sol1] )*v,2) ))
+            dMe_dsigV = np.hstack(( mkvc(self.MeSigmaDeriv( u[sol0] )*v, 2), mkvc( self.MeSigmaDeriv(u[sol1] )*v, 2) ))
         return 1j * omega(freq) * dMe_dsigV
-
 
     def getRHS(self, freq):
         """
@@ -449,7 +451,7 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
                 print('Starting work for {:.3e}'.format(freq))
                 sys.stdout.flush()
             A = self.getA(freq)
-            rhs  = self.getRHS(freq)
+            rhs = self.getRHS(freq)
             # Solve the system
             Ainv = self.Solver(A, **self.solverOpts)
             e_s = Ainv * rhs
@@ -458,8 +460,8 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
             Src = self.survey.getSrcByFreq(freq)[0]
             # Store the fields
             # Use self._solutionType
-            F[Src, 'e_pxSolution'] = e_s[:,0]
-            F[Src, 'e_pySolution'] = e_s[:,1]
+            F[Src, 'e_pxSolution'] = e_s[:, 0]
+            F[Src, 'e_pySolution'] = e_s[:, 1]
             # Note curl e = -iwb so b = -curl/iw
 
             if self.verbose:

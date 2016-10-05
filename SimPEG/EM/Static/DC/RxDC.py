@@ -1,6 +1,5 @@
 import SimPEG
 import numpy as np
-from SimPEG.Utils import Zero, closestPoints
 
 
 class BaseRx(SimPEG.Survey.BaseRx):
@@ -84,7 +83,7 @@ class Dipole(BaseRx):
 
 class Dipole_ky(BaseRx):
 
-    def __init__(self, locsM, locsN, rxType = 'phi', **kwargs):
+    def __init__(self, locsM, locsN, rxType='phi', **kwargs):
         assert locsM.shape == locsN.shape, ('locsM and locsN need to be the '
                                             'same size')
         locs = [locsM, locsN]
