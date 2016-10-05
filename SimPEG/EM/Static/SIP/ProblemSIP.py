@@ -1,23 +1,12 @@
-from SimPEG import Problem, Utils, Maps, Mesh
-from SimPEG.EM.Base import BaseEMProblem
-from SimPEG.EM.Static.DC.FieldsDC import FieldsDC, Fields_CC, Fields_N
-from SimPEG.Utils import sdiag
 import numpy as np
-from SimPEG.Utils import Zero
-from SimPEG.EM.Static.DC import getxBCyBC_CC
-from .SurveySIP import Survey, Data
+
+from SimPEG import Utils
 from SimPEG import Props
 
-
-# class ColeColePropMap(Maps.PropMap):
-#     """
-#         Property Map for EM Problems. The electrical conductivity (\\(\\sigma\\)) is the default inversion property, and the default value of the magnetic permeability is that of free space (\\(\\mu = 4\\pi\\times 10^{-7} \\) H/m)
-#     """
-
-#     eta = Maps.Property("Electrical Conductivity", defaultInvProp=True)
-#     tau = Maps.Property("Electrical Conductivity", defaultVal=0.1, propertyLink=('taui', Maps.ReciprocalMap))
-#     taui   = Maps.Property("Electrical Conductivity", defaultVal=1., propertyLink=('tau', Maps.ReciprocalMap))
-#     c   = Maps.Property("Electrical Conductivity", defaultVal=1.)
+from SimPEG.EM.Base import BaseEMProblem
+from SimPEG.EM.Static.DC.FieldsDC import FieldsDC, Fields_CC, Fields_N
+from SimPEG.EM.Static.DC import getxBCyBC_CC
+from .SurveySIP import Survey, Data
 
 
 class BaseSIPProblem(BaseEMProblem):
@@ -92,14 +81,14 @@ class BaseSIPProblem(BaseEMProblem):
         # A = self.getA()
         JvAll = []
         for tind in range(len(self.survey.times)):
-            #Pseudo-chareability
+            # Pseudo-chareability
             t = self.survey.times[tind]
             v = self.DebyeTime(t)
             for src in self.survey.srcList:
-                u_src = f[src, self._solutionType] # solution vector
+                u_src = f[src, self._solutionType]  # solution vector
                 dA_dm_v = self.getADeriv(u_src, v)
                 dRHS_dm_v = self.getRHSDeriv(src, v)
-                du_dm_v = self.Ainv * ( - dA_dm_v + dRHS_dm_v )
+                du_dm_v = self.Ainv * (- dA_dm_v + dRHS_dm_v)
                 for rx in src.rxList:
                     timeindex = rx.getTimeP(self.survey.times)
                     if timeindex[tind]:
@@ -123,22 +112,19 @@ class BaseSIPProblem(BaseEMProblem):
         Jv = self.dataPair(self.survey)  # same size as the data
         # A = self.getA()
         JvAll = []
-        # Assume only eta and tau (eta first then tau)
-        # v = [2*Mx1]
-        # v = v.reshape((int(v.size/2), 2), order='F')
 
         for tind in range(len(self.survey.times)):
             t = self.survey.times[tind]
             v0 = self.EtaDeriv(t, v)
             v1 = self.TauiDeriv(t, v)
             for src in self.survey.srcList:
-                u_src = f[src, self._solutionType] # solution vector
+                u_src = f[src, self._solutionType]  # solution vector
                 dA_dm_v0 = self.getADeriv(u_src, v0)
                 dRHS_dm_v0 = self.getRHSDeriv(src, v0)
-                du_dm_v0 = self.Ainv * ( - dA_dm_v0 + dRHS_dm_v0 )
+                du_dm_v0 = self.Ainv * (- dA_dm_v0 + dRHS_dm_v0)
                 dA_dm_v1 = self.getADeriv(u_src, v1)
                 dRHS_dm_v1 = self.getRHSDeriv(src, v1)
-                du_dm_v1 = self.Ainv * ( - dA_dm_v1 + dRHS_dm_v1 )
+                du_dm_v1 = self.Ainv * (- dA_dm_v1 + dRHS_dm_v1)
                 for rx in src.rxList:
                     timeindex = rx.getTimeP(self.survey.times)
                     if timeindex[tind]:
@@ -326,7 +312,7 @@ class Problem3D_CC(BaseSIPProblem):
         # TODO: add qDeriv for RHS depending on m
         # qDeriv = src.evalDeriv(self, adjoint=adjoint)
         # return qDeriv
-        return Zero()
+        return Utils.Zero()
 
     def setBC(self):
         if self.mesh.dim == 3:
@@ -403,11 +389,9 @@ class Problem3D_N(BaseSIPProblem):
 
     def getA(self):
         """
+            Make the A matrix for the cell centered DC resistivity problem
 
-        Make the A matrix for the cell centered DC resistivity problem
-
-        A = G.T MeSigma G
-
+            A = G.T MeSigma G
         """
 
         # TODO: this won't work for full anisotropy
@@ -422,11 +406,9 @@ class Problem3D_N(BaseSIPProblem):
 
     def getADeriv(self, u, v, adjoint=False):
         """
-
-        Product of the derivative of our system matrix with respect to the model and a vector
-
+            Product of the derivative of our system matrix with respect to
+            the model and a vector
         """
-        MeSigma = self.MeSigma
         Grad = self.mesh.nodalGrad
         if not adjoint:
             return Grad.T*(self.MeSigmaDeriv(Grad*u)*v)
@@ -435,9 +417,7 @@ class Problem3D_N(BaseSIPProblem):
 
     def getRHS(self):
         """
-        RHS for the DC problem
-
-        q
+            RHS for the DC problem
         """
 
         RHS = self.getSourceTerm()
@@ -445,9 +425,9 @@ class Problem3D_N(BaseSIPProblem):
 
     def getRHSDeriv(self, src, v, adjoint=False):
         """
-        Derivative of the right hand side with respect to the model
+            Derivative of the right hand side with respect to the model
         """
         # TODO: add qDeriv for RHS depending on m
         # qDeriv = src.evalDeriv(self, adjoint=adjoint)
         # return qDeriv
-        return Zero()
+        return Utils.Zero()
