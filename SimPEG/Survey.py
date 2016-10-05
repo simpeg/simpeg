@@ -221,8 +221,10 @@ class Data(BaseData):
         BaseData.__init__(self, survey, v)
 
         # Set the uncertainty parameters
-        self.standard_deviation = BaseData(self.survey, standard_deviation)
-        self.floor = BaseData(self.survey, floor)
+        # Note: Maybe set these
+        self.standard_deviation = Standard_Devation(self.survey, standard_deviation)
+        self.floor = Floor(self.survey, floor)
+
 
     def eval(self):
         """
@@ -232,6 +234,27 @@ class Data(BaseData):
         """
         return self.standard_deviation.tovec() * np.abs(self.tovec()) + self.floor.tovec()
 
+class Standard_Devation(BaseData):
+    """
+    Storage of standard deviation estimates of data
+    With fancy [Src,Rx] indexing.
+
+    """
+
+    def __init__(self, survey, standard_deviation=None):
+        # Initiate the base problem
+        BaseData.__init__(self, survey, standard_deviation)
+
+class Floor(BaseData):
+    """
+    Storage of floor estimates of data
+    With fancy [Src,Rx] indexing.
+
+    """
+
+    def __init__(self, survey, floor=None):
+        # Initiate the base problem
+        BaseData.__init__(self, survey, floor)
 
 class BaseSurvey(object):
     """Survey holds the observed data, and the standard deviations."""

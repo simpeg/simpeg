@@ -10,9 +10,8 @@ import numpy as np
 from SimPEG.EM.Utils.EMUtils import omega, mu_0
 from SimPEG import SolverLU as SimpegSolver, Utils, mkvc
 from ..FDEM.ProblemFDEM import BaseFDEMProblem
-from .SurveyNSEM import Survey, Data
+from .SurveyNSEM import Survey,  Data
 from .FieldsNSEM import BaseNSEMFields, Fields1D_ePrimSec, Fields3D_ePrimSec
-from .Utils.MT1Danalytic import getEHfields
 
 
 class BaseNSEMProblem(BaseFDEMProblem):

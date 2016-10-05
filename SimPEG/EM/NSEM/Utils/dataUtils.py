@@ -9,7 +9,7 @@ from scipy.constants import mu_0
 from scipy import interpolate as sciint
 
 import SimPEG as simpeg
-from SimPEG.EM.NSEM.SurveyNSEM import Data , Survey
+from SimPEG.EM.NSEM.SurveyNSEM import Survey, Data
 from SimPEG.EM.NSEM.RxNSEM import Point_impedance1D
 from SimPEG.EM.NSEM.SrcNSEM import Planewave_xy_1Dprimary
 from SimPEG.EM.NSEM.Utils import MT1Danalytic, plotDataTypes as pDt

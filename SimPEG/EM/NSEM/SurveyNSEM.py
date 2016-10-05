@@ -1,3 +1,14 @@
+""" SurveyNSEM
+
+Module for Survey information of NSEM.
+This includes
+    Sources
+    Receivers
+    Locations
+
+And relates to Data
+
+"""
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
@@ -7,12 +18,13 @@ import numpy as np
 from numpy.lib import recfunctions as recFunc
 
 from SimPEG import Survey as SimPEGsurvey, mkvc
-from .RxNSEM import Point_impedance3D, Point_tipper3D
 from .SrcNSEM import BaseNSEMSrc, Planewave_xy_1Dprimary, Planewave_xy_1DhomotD
+from .RxNSEM import Point_impedance3D, Point_tipper3D
+from .Utils.plotUtils import DataNSEM_plot_functions
 
-#################
-###  Survey   ###
-#################
+#########
+# Survey
+#########
 
 
 class Survey(SimPEGsurvey.BaseSurvey):
@@ -54,6 +66,13 @@ class Survey(SimPEGsurvey.BaseSurvey):
         return self._freqDict[freq]
 
     def eval(self, f):
+        """
+        Evalute and return Data given calculated fields
+
+        :param SimPEG.EM.NSEM.Fields f: A NSEM fileds object to evaluate data from
+        :retype: SimPEG.EM.NSEM.Data
+        :return: NSEM Data object
+        """
         data = Data(self)
         for src in self.srcList:
             sys.stdout.flush()
@@ -64,20 +83,20 @@ class Survey(SimPEGsurvey.BaseSurvey):
     def evalDeriv(self, f):
         raise Exception('Use Sources to project fields deriv.')
 
-#################
+#########
 # Data
-#################
+#########
 
 
-class Data(SimPEGsurvey.Data):
-    '''
+class Data(SimPEGsurvey.Data, DataNSEM_plot_functions):
+    """
     Data class for NSEMdata. Stores the data vector indexed by the survey.
 
     :param SimPEG.EM.NSEM.SurveyNSEM survey: NSEM survey object
     :param numpy.ndarray v: Vector of the data in order matching of the survey
 
-    '''
-    def __init__(self, survey, v=None):
+    """
+    def __init__(self, survey, v=None, standard_devation=None, ):
         # Pass the variables to the "parent" method
         SimPEGsurvey.Data.__init__(self, survey, v)
 
@@ -195,8 +214,8 @@ class Data(SimPEGsurvey.Data):
             srcList.append(src(rxList, freq))
 
         # Make a survey
-        survey=Survey(srcList)
-        dataVec=np.hstack(dataList)
+        survey = Survey(srcList)
+        dataVec = np.hstack(dataList)
         return cls(survey, dataVec)
 
 
