@@ -588,7 +588,7 @@ class PrimSecMappedSigma(BaseSrc):
 
     **Optional**
     :param Mapping map2meshSecondary: mapping current model to act as primary
-        model on the secondary mesh
+    model on the secondary mesh
     """
 
     def __init__(self, rxList, freq, primaryProblem, primarySurvey,

@@ -1015,13 +1015,11 @@ class PrimSecCasingExample(object):
     # ---------------- Run the example ------------------------------------- #
     # ---------------------------------------------------------------------- #
 
+
     def run(self, plotIt=False, runTests=False, verbose=True,
             saveFields=False, saveFig=False):
 
         self.verbose = verbose
-
-        if runTests is True:  # Test the derivs on the primary mapping
-            self.primaryMapping.test(num=3)
 
         if plotIt is True:  # Plot the Primary Model
             # self.plotPrimaryMesh() # plot the mesh

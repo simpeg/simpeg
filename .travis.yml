@@ -32,7 +32,6 @@ env:
       PATH=$PATH:${HOME}/google-cloud-sdk/bin;
       PYTHONPATH=${PYTHONPATH}:${GAE_PYTHONPATH};
       CLOUDSDK_CORE_DISABLE_PROMPTS=1
-    - TEST_DIR=tests/dev_prs_only; # this only runs on dev, pr's to dev, master (long, large tests)
 
 # Setup anaconda
 before_install:
@@ -74,11 +73,7 @@ install:
 
 # Run test
 script:
-  - if [ "${TEST_DIR}" = "tests/dev_prs_only" ]; then
-      travis_wait 360 nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s;
-    else
-      nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s;
-    fi
+  - nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s;
 
 # Calculate coverage
 after_success:

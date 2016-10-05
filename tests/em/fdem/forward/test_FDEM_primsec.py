@@ -76,14 +76,14 @@ primaryMapping = (Maps.ExpMap(meshp) *
 mapping = (
         Maps.ExpMap(meshs) *
         Maps.ParametrizedBlockInLayer(meshs) *
-        Maps.Projection(np.arange(0, 9), np.hstack([np.r_[0],
-                        np.arange(0, 8)]), (9, 8))
+        Maps.Projection(nP=8, index=np.hstack([np.r_[0],
+                        np.arange(0, 8)]))
         )
 
 primaryMap2Meshs = (
                 Maps.ExpMap(meshs) *
                 Maps.SurjectFull(meshs) *
-                Maps.Projection([0], [0], (1, 8))
+                Maps.Projection(nP=8, index=[0])
             )
 
 
