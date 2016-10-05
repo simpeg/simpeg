@@ -253,7 +253,10 @@ class MapTests(unittest.TestCase):
         self.assertTrue(np.all(Maps.Projection(nP, slice(5, None))*m == m[5:]))
         self.assertTrue(np.all(Maps.Projection(nP, np.r_[1, 5, 3, 2, 9, 9])*m ==
                         np.r_[1, 5, 3, 2, 9, 9]))
-        self.assertRaises(Exception, Maps.Projection(nP, [1, 5, 3, 2, 9, 9]))
+        self.assertTrue(np.all(Maps.Projection(nP, [1, 5, 3, 2, 9, 9])*m ==
+                        np.r_[1, 5, 3, 2, 9, 9]))
+        with self.assertRaises(AssertionError):
+            Maps.Projection(nP, np.r_[10])*m
 
         mapping = Maps.Projection(nP, np.r_[1, 2, 6, 1, 3, 5, 4, 9, 9, 8, 0])
         mapping.test()

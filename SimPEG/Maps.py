@@ -727,6 +727,9 @@ class Projection(IdentityMap):
         self.index = index
         self._shape = nI, nP = len(self.index), self.nP
 
+        assert (max(index) < nP), (
+            'maximum index must be less than {}'.format(nP))
+
         # sparse projection matrix
         self.P = sp.csr_matrix(
             (np.ones(nI), (range(nI), self.index)), shape=(nI, nP)
@@ -740,7 +743,7 @@ class Projection(IdentityMap):
         """
         Shape of the matrix operation (number of indices x nP)
         """
-        return (len(self.index), self.nP)
+        return self._shape
 
     def deriv(self, m, v=None):
         """
