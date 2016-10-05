@@ -527,8 +527,12 @@ class PrimSecCasingExample(object):
 
         print('Setting up Secondary Survey')
 
-        self.rx_x, self.rx_y = 2*[np.linspace(-2050, 2050, 41)]
-        self.rxlocs = Utils.ndgrid([self.rx_x, self.rx_y, np.r_[-1]])
+        nx = 41
+        ny = nx
+        rx_x, rx_y = 2*[np.linspace(-2050, 2050, nx)]
+        self.rxlocs = Utils.ndgrid([rx_x, rx_y, np.r_[-1]])
+        self.rx_x = self.rxlocs[:,0].reshape(nx, ny, order='F')
+        self.rx_y = self.rxlocs[:,1].reshape(nx, ny, order='F')
 
         rx_ex = FDEM.Rx.Point_e(self.rxlocs, orientation='x', component='real')
         rx_ey = FDEM.Rx.Point_e(self.rxlocs, orientation='y', component='real')
@@ -735,7 +739,7 @@ class PrimSecCasingExample(object):
         src = sec_survey.srcList[0]
         rx0 = src.rxList[0]
 
-        nx = np.sqrt(len(rx0.locs))
+        nx = int(np.sqrt(len(rx0.locs)))
         ny = nx
 
         def plotDataFun(ax, plotme, num=50, plotBlock=True, xlim=XLIM,
@@ -813,7 +817,7 @@ class PrimSecCasingExample(object):
 
             if norm is None:
                 f = ax.contourf(
-                    self.rx_x, self.rx_y, Jv.reshape(nx, ny, order='F'), num,
+                    self.rx_x, self.rx_y, Jv, num,
                     cmap=plt.get_cmap('viridis'), vmin= vlim[0], vmax=vlim[1]
                                )
                 cb = plt.colorbar(f, ax=ax, label=cblabel)
@@ -822,7 +826,7 @@ class PrimSecCasingExample(object):
             elif norm.lower() == 'lognorm':
                 from matplotlib.colors import LogNorm
                 f = ax.contourf(
-                        self.rx_x, self.rx_y, np.absolute(Jv.reshape(nx, ny, order='F')),
+                        rx_x, rx_y, np.absolute(Jv),
                         num, cmap=plt.get_cmap('viridis'), norm=LogNorm()
                                )
                 cb = plt.colorbar(f, ax=ax)
@@ -863,7 +867,7 @@ class PrimSecCasingExample(object):
         xlim = np.r_[-1500, 1500]
         ylim = np.r_[-1500, 1500]
 
-        nx, ny = len(self.rx_x), len(self.rx_y)
+        nx, ny = self.rx_x.shape
         nrx = len(self.rxlocs)
 
         J_back_ex = J[0, :nrx].reshape(nx, ny, order='F')
