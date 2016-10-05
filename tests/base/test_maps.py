@@ -9,12 +9,12 @@ MAPS_TO_EXCLUDE_2D = ["ComboMap", "ActiveCells", "InjectActiveCells",
                       "LogMap", "ReciprocalMap",
                       "Surject2Dto3D", "Map2Dto3D", "Mesh2Mesh",
                       "ParametricPolyMap", "PolyMap", "ParametricSplineMap",
-                      "SplineMap", "Projection"]
+                      "SplineMap", "Projection", "WireMap"]
 MAPS_TO_EXCLUDE_3D = ["ComboMap", "ActiveCells", "InjectActiveCells",
                       "LogMap", "ReciprocalMap",
                       "CircleMap", "ParametricCircleMap", "Mesh2Mesh",
                       "ParametricPolyMap", "PolyMap", "ParametricSplineMap",
-                      "SplineMap", "Projection"]
+                      "SplineMap", "Projection", "WireMap"]
 
 
 class MapTests(unittest.TestCase):
@@ -256,6 +256,27 @@ class MapTests(unittest.TestCase):
 
         mapping = Maps.Projection(nP, np.r_[1, 2, 6, 1, 3, 5, 4, 9, 9, 8, 0])
         mapping.test()
+
+
+class TestWires(unittest.TestCase):
+
+    def test_basic(self):
+        mesh = Mesh.TensorMesh([10, 10, 10])
+
+        wires = Maps.Wires(
+            ('sigma', mesh.nCz),
+            ('mu_casing', 1),
+        )
+
+        model = np.arange(mesh.nCz + 1)
+
+        assert isinstance(wires.sigma, Maps.WireMap)
+        assert wires.nP == mesh.nCz + 1
+
+        named_model = wires * model
+
+        named_model.sigma == model[:mesh.nCz]
+        assert named_model.mu_casing == 10
 
 if __name__ == '__main__':
     unittest.main()
