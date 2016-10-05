@@ -9,12 +9,12 @@ MAPS_TO_EXCLUDE_2D = ["ComboMap", "ActiveCells", "InjectActiveCells",
                       "LogMap", "ReciprocalMap",
                       "Surject2Dto3D", "Map2Dto3D", "Mesh2Mesh",
                       "ParametricPolyMap", "PolyMap", "ParametricSplineMap",
-                      "SplineMap", "Projection", "WireMap"]
+                      "SplineMap", "Projection"]
 MAPS_TO_EXCLUDE_3D = ["ComboMap", "ActiveCells", "InjectActiveCells",
                       "LogMap", "ReciprocalMap",
                       "CircleMap", "ParametricCircleMap", "Mesh2Mesh",
                       "ParametricPolyMap", "PolyMap", "ParametricSplineMap",
-                      "SplineMap", "Projection", "WireMap"]
+                      "SplineMap", "Projection"]
 
 
 class MapTests(unittest.TestCase):
@@ -270,7 +270,7 @@ class TestWires(unittest.TestCase):
 
         model = np.arange(mesh.nCz + 1)
 
-        assert isinstance(wires.sigma, Maps.WireMap)
+        assert isinstance(wires.sigma, Maps.Projection)
         assert wires.nP == mesh.nCz + 1
 
         named_model = wires * model
