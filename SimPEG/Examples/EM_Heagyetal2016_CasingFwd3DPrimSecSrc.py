@@ -811,8 +811,6 @@ class PrimSecCasingExample(object):
             ax.axis('equal')
             vlim = np.absolute(Jv).max() * np.r_[-1., 1.]
 
-            print Jv
-
             if norm is None:
                 f = ax.contourf(
                     self.rx_x, self.rx_y, Jv.reshape(nx, ny, order='F'), num,
@@ -1152,10 +1150,10 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
     def run(self, plotIt=False, runTests=False, saveFig=False):
         self.downloadStoredResults()
 
-        results = []
-        results = ['{filepath}{slash}{file}'.format(
+        resultsFiles = ['{filepath}{slash}{file}'.format(
             filepath=self.filepath, slash=os.path.sep, file=file)
             for file in self.cloudfiles]
+        results = [np.load(file) for file in resultsFiles]
         results = dict(zip(['primfields', 'dpredback', 'dpred', 'J'], results))
 
         # Put the primary fields into a fields object
@@ -1163,7 +1161,6 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
         self.primaryProblem.pair(self.primarySurvey)  # forward simulation of primary
         primaryFields = self.primaryProblem.fieldsPair(
             self.meshp, self.primarySurvey)
-
         primaryFields[self.primarySurvey.srcList[0], 'hSolution'] = dict(
             results['primfields'].tolist())['hSolution']
 
