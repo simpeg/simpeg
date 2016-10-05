@@ -71,7 +71,7 @@ meshs = Mesh.TensorMesh(3*[h], x0 = 'CCC')
 # mappings
 primaryMapping = (Maps.ExpMap(meshp) *
                   Maps.SurjectFull(meshp) *
-                  Maps.Projection([0], [0], (1, 8)))
+                  Maps.Projection(nP=8, index=[0]))
 
 mapping = (
         Maps.ExpMap(meshs) *
