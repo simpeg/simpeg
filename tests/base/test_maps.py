@@ -259,5 +259,20 @@ class MapTests(unittest.TestCase):
         self.assertTrue(mParamSpline.test())
         self.assertTrue(mParamSpline.testVec())
 
+    def test_Projection(self):
+        nP = 10
+        m = np.arange(nP)
+        self.assertTrue(np.all(Maps.Projection(nP, slice(5))*m == m[:5]))
+        self.assertTrue(np.all(Maps.Projection(nP, slice(5, None))*m == m[5:]))
+        self.assertTrue(np.all(Maps.Projection(nP, np.r_[1, 5, 3, 2, 9, 9])*m ==
+                        np.r_[1, 5, 3, 2, 9, 9]))
+        self.assertTrue(np.all(Maps.Projection(nP, [1, 5, 3, 2, 9, 9])*m ==
+                        np.r_[1, 5, 3, 2, 9, 9]))
+        with self.assertRaises(AssertionError):
+            Maps.Projection(nP, np.r_[10])*m
+
+        mapping = Maps.Projection(nP, np.r_[1, 2, 6, 1, 3, 5, 4, 9, 9, 8, 0])
+        mapping.test()
+
 if __name__ == '__main__':
     unittest.main()

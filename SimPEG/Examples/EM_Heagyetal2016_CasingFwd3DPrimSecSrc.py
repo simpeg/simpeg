@@ -171,7 +171,7 @@ class PrimSecCasingExample(object):
 
     @property
     def projectionMapPrimary(self):
-        return Maps.Projection(np.r_[0, 1, 2, 3], np.r_[0, 1, 3, 4], (4, 9))
+        return Maps.Projection(nP=9, index=np.r_[0, 1, 3, 4])
 
     @property
     def primaryMapping(self):

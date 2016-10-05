@@ -719,38 +719,6 @@ class Weighting(IdentityMap):
         return self.P
 
 
-class Projection(IdentityMap):
-    """
-        A map to rearrange parameters
-
-    """
-
-    def __init__(self, indTo, indFrom, shape, mesh=None, **kwargs):
-
-        assert len(indTo) == len(indFrom)
-
-        self.P = sp.csr_matrix((np.ones(len(indTo)), (indTo, indFrom)),
-                               shape=shape)
-        self._shape = shape
-
-        super(Projection, self).__init__(mesh, **kwargs)
-
-    @property
-    def shape(self):
-        return self._shape
-
-    @property
-    def nP(self):
-        """Number of parameters in the model."""
-        return self.shape[1]
-
-    def _transform(self, m):
-        return self.P*m
-
-    def deriv(self, m):
-        return self.P
-
-
 class ComplexMap(IdentityMap):
     """ComplexMap
 
@@ -789,6 +757,54 @@ class ComplexMap(IdentityMap):
         return LinearOperator(shp, matvec=fwd, rmatvec=adj)
 
     # inverse = deriv
+
+
+class Projection(IdentityMap):
+    """
+        A map to rearrange / select parameters
+
+        :param int nP: number of model parameters
+        :param numpy.array index: indices to select
+    """
+
+    def __init__(self, nP, index, **kwargs):
+        assert isinstance(index, (np.ndarray, slice, list)), (
+            'index must be a np.ndarray or slice, not {}'.format(type(index)))
+        super(Projection, self).__init__(nP=nP, **kwargs)
+
+        if isinstance(index, slice):
+            index = list(range(*index.indices(self.nP)))
+        self.index = index
+        self._shape = nI, nP = len(self.index), self.nP
+
+        assert (max(index) < nP), (
+            'maximum index must be less than {}'.format(nP))
+
+        # sparse projection matrix
+        self.P = sp.csr_matrix(
+            (np.ones(nI), (range(nI), self.index)), shape=(nI, nP)
+        )
+
+    def _transform(self, m):
+        return m[self.index]
+
+    @property
+    def shape(self):
+        """
+        Shape of the matrix operation (number of indices x nP)
+        """
+        return self._shape
+
+    def deriv(self, m, v=None):
+        """
+            :param numpy.array m: model
+            :rtype: scipy.sparse.csr_matrix
+            :return: derivative of transformed model
+        """
+
+        if v is not None:
+            return self.P * v
+        return self.P
 
 
 class ParametricCircleMap(IdentityMap):
