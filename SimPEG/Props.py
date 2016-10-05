@@ -229,4 +229,5 @@ def Reciprocal(prop1, prop2):
 
 
 class BaseSimPEG(properties.HasProperties()):
-    pass
+
+    exclusive_kwargs = False

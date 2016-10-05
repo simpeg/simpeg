@@ -209,9 +209,12 @@ class RichardsTests2D(unittest.TestCase):
             np.ones(M.nCx)*bc[1]
         ]
         h = np.zeros(M.nC) + bc[0]
+
         prob = Richards.RichardsProblem(
             M,
             mapping=E,
+            timeSteps=[(40, 3), (60, 3)],
+            Solver=Solver,
             boundaryConditions=bc,
             initialConditions=h,
             doNewton=False,
@@ -219,8 +222,6 @@ class RichardsTests2D(unittest.TestCase):
             tolRootFinder=1e-6,
             debug=False
         )
-        prob.timeSteps = [(40, 3), (60, 3)]
-        prob.Solver = Solver
 
         locs = Utils.ndgrid(np.array([5, 7.]), np.array([5, 15, 25.]))
         times = prob.times[3:5]
@@ -329,6 +330,8 @@ class RichardsTests3D(unittest.TestCase):
         prob = Richards.RichardsProblem(
             M,
             mapping=E,
+            timeSteps=[(40, 3), (60, 3)],
+            Solver=Solver,
             boundaryConditions=bc,
             initialConditions=h,
             doNewton=False,
@@ -336,8 +339,6 @@ class RichardsTests3D(unittest.TestCase):
             tolRootFinder=1e-6,
             debug=False
         )
-        prob.timeSteps = [(40, 3), (60, 3)]
-        prob.Solver = Solver
 
         locs = Utils.ndgrid(np.r_[5, 7.], np.r_[5, 15.], np.r_[6, 8.])
         times = prob.times[3:5]
