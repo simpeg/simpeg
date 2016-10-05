@@ -1,9 +1,8 @@
 from __future__ import print_function
 import unittest
-import sys
 import os
 from SimPEG import Examples
-import numpy as np
+
 
 class compareInitFiles(unittest.TestCase):
     def test_compareInitFiles(self):
@@ -23,6 +22,7 @@ class compareInitFiles(unittest.TestCase):
         didpass = (setdiff == set())
 
         self.assertTrue(didpass, "Examples not up to date, run 'python __init__.py' from SimPEG/Examples to update")
+
 
 def get(test):
     def test_func(self):

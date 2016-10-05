@@ -2,6 +2,7 @@ from __future__ import print_function
 from . import Utils
 import numpy as np
 
+
 class InversionDirective(object):
     """InversionDirective"""
 
@@ -13,25 +14,37 @@ class InversionDirective(object):
     @property
     def inversion(self):
         """This is the inversion of the InversionDirective instance."""
-        return getattr(self,'_inversion',None)
+        return getattr(self, '_inversion', None)
+
     @inversion.setter
     def inversion(self, i):
-        if getattr(self,'_inversion',None) is not None:
+        if getattr(self, '_inversion', None) is not None:
             print('Warning: InversionDirective {0!s} has switched to a new inversion.'.format(self.__name__))
         self._inversion = i
 
     @property
-    def invProb(self): return self.inversion.invProb
+    def invProb(self):
+        return self.inversion.invProb
+
     @property
-    def opt(self): return self.invProb.opt
+    def opt(self):
+        return self.invProb.opt
+
     @property
-    def reg(self): return self.invProb.reg
+    def reg(self):
+        return self.invProb.reg
+
     @property
-    def dmisfit(self): return self.invProb.dmisfit
+    def dmisfit(self):
+        return self.invProb.dmisfit
+
     @property
-    def survey(self): return self.dmisfit.survey
+    def survey(self):
+        return self.dmisfit.survey
+
     @property
-    def prob(self): return self.dmisfit.prob
+    def prob(self):
+        return self.dmisfit.prob
 
     def initialize(self):
         pass
@@ -41,6 +54,7 @@ class InversionDirective(object):
 
     def finish(self):
         pass
+
 
 class DirectiveList(object):
 
@@ -56,6 +70,7 @@ class DirectiveList(object):
     @property
     def debug(self):
         return getattr(self, '_debug', False)
+
     @debug.setter
     def debug(self, value):
         for d in self.dList:
@@ -65,11 +80,13 @@ class DirectiveList(object):
     @property
     def inversion(self):
         """This is the inversion of the InversionDirective instance."""
-        return getattr(self,'_inversion',None)
+        return getattr(self, '_inversion', None)
+
     @inversion.setter
     def inversion(self, i):
-        if self.inversion is i: return
-        if getattr(self,'_inversion',None) is not None:
+        if self.inversion is i:
+            return
+        if getattr(self, '_inversion', None) is not None:
             print('Warning: {0!s} has switched to a new inversion.'.format(self.__name__))
         for d in self.dList:
             d.inversion = i
@@ -77,7 +94,7 @@ class DirectiveList(object):
 
     def call(self, ruleType):
         if self.dList is None:
-            if self.debug: 'DirectiveList is None, no directives to call!'
+            if self.debug: print('DirectiveList is None, no directives to call!')
             return
 
         directives = ['initialize', 'endIter', 'finish']
@@ -128,7 +145,7 @@ class BetaEstimate_ByEig(InversionDirective):
         f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
 
         x0 = np.random.rand(*m.shape)
-        t = x0.dot(self.dmisfit.eval2Deriv(m,x0,f=f))
+        t = x0.dot(self.dmisfit.eval2Deriv(m,x0, f=f))
         b = x0.dot(self.reg.eval2Deriv(m, v=x0))
         self.beta0 = self.beta0_ratio*(t/b)
 
@@ -155,10 +172,12 @@ class TargetMisfit(InversionDirective):
     @property
     def target(self):
         if getattr(self, '_target', None) is None:
+            # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
             if self.phi_d_star is None:
                 self.phi_d_star = 0.5 * self.survey.nD
-            self._target = self.chifact * self.phi_d_star # the factor of 0.5 is because we do phid = 0.5*|| dpred - dobs||^2
+            self._target = self.chifact * self.phi_d_star
         return self._target
+
     @target.setter
     def target(self, val):
         self._target = val
@@ -168,13 +187,14 @@ class TargetMisfit(InversionDirective):
             self.opt.stopNextIteration = True
 
 
-
 class SaveEveryIteration(InversionDirective):
+
     @property
     def name(self):
         if getattr(self, '_name', None) is None:
             self._name = 'InversionModel'
         return self._name
+
     @name.setter
     def name(self, value):
         self._name = value
@@ -185,6 +205,7 @@ class SaveEveryIteration(InversionDirective):
             from datetime import datetime
             self._fileName = '{0!s}-{1!s}'.format(self.name, datetime.now().strftime('%Y-%m-%d-%H-%M'))
         return self._fileName
+
     @fileName.setter
     def fileName(self, value):
         self._fileName = value
@@ -217,9 +238,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
 
 class SaveOutputDictEveryIteration(SaveEveryIteration):
     """
-    Saves inversion parameters at every iteraion.
-
-
+        Saves inversion parameters at every iteraion.
     """
 
     def initialize(self):
@@ -237,7 +256,7 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
         outDict['phi_ms'] = self.reg._evalSmall(self.invProb.curModel)
         outDict['phi_mx'] = self.reg._evalSmoothx(self.invProb.curModel)
         outDict['phi_my'] = self.reg._evalSmoothy(self.invProb.curModel) if self.prob.mesh.dim >= 2 else 'NaN'
-        outDict['phi_mz'] = self.reg._evalSmoothz(self.invProb.curModel) if self.prob.mesh.dim==3 else 'NaN'
+        outDict['phi_mz'] = self.reg._evalSmoothz(self.invProb.curModel) if self.prob.mesh.dim == 3 else 'NaN'
         outDict['f'] = self.opt.f
         outDict['m'] = self.invProb.curModel
         outDict['dpred'] = self.invProb.dpred
@@ -250,7 +269,7 @@ class Update_IRLS(InversionDirective):
 
     eps_min = None
     eps = None
-    norms = [2.,2.,2.,2.]
+    norms = [2., 2., 2., 2.]
     factor = None
     gamma = None
     phi_m_last = None
@@ -261,7 +280,7 @@ class Update_IRLS(InversionDirective):
     prctile = 95
 
     # Solving parameter for IRLS (mode:2)
-    IRLSiter   = 0
+    IRLSiter = 0
     minGNiter = 5
     maxIRLSiter = 10
     iterStart = 0
@@ -277,6 +296,7 @@ class Update_IRLS(InversionDirective):
         if getattr(self, '_target', None) is None:
             self._target = self.survey.nD*0.5
         return self._target
+
     @target.setter
     def target(self, val):
         self._target = val
@@ -297,13 +317,12 @@ class Update_IRLS(InversionDirective):
             # Either use the supplied epsilon, or fix base on distribution of
             # model values
             if getattr(self, 'eps', None) is None:
-                self.reg.eps_p = np.percentile(np.abs(self.invProb.curModel),self.prctile)
+                self.reg.eps_p = np.percentile(np.abs(self.invProb.curModel), self.prctile)
             else:
                 self.reg.eps_p = self.eps[0]
 
             if getattr(self, 'eps', None) is None:
-
-                self.reg.eps_q = np.percentile(np.abs(self.reg.regmesh.cellDiffxStencil*(self.reg.mapping * self.invProb.curModel)),self.prctile)
+                self.reg.eps_q = np.percentile(np.abs(self.reg.regmesh.cellDiffxStencil*(self.reg.mapping * self.invProb.curModel)), self.prctile)
             else:
                 self.reg.eps_q = self.eps[1]
 
@@ -328,9 +347,8 @@ class Update_IRLS(InversionDirective):
             if self.debug: print('BetaSchedule is cooling Beta. Iteration: {0:d}'.format(self.opt.iter))
             self.invProb.beta /= self.coolingFactor
 
-
         # Only update after GN iterations
-        if (self.opt.iter-self.iterStart) % self.minGNiter == 0 and self.mode==2:
+        if (self.opt.iter-self.iterStart) % self.minGNiter == 0 and self.mode == 2:
 
             self.IRLSiter += 1
 
@@ -372,7 +390,7 @@ class Update_IRLS(InversionDirective):
             self.reg._Wy = None
             self.reg._Wz = None
 
-             # Update the model used for the IRLS weights
+            # Update the model used for the IRLS weights
             self.reg.curModel = self.invProb.curModel
 
             # Temporarely set gamma to 1. to get raw phi_m
@@ -396,29 +414,30 @@ class Update_IRLS(InversionDirective):
             if np.abs(1.-val) > self.beta_tol:
                 self.invProb.beta = self.invProb.beta * self.survey.nD*0.5 / self.invProb.phi_d
 
+
 class Update_lin_PreCond(InversionDirective):
     """
     Create a Jacobi preconditioner for the linear problem
     """
-    onlyOnStart=False
+    onlyOnStart = False
 
     def initialize(self):
 
         if getattr(self.opt, 'approxHinv', None) is None:
             # Update the pre-conditioner
-            diagA = np.sum(self.prob.G**2.,axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() #* (self.reg.mapping * np.ones(self.reg.curModel.size))**2.
-            PC     = Utils.sdiag((self.prob.mapping.deriv(None).T *diagA)**-1.)
+            diagA = np.sum(self.prob.G**2., axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() # * (self.reg.mapping * np.ones(self.reg.curModel.size))**2.
+            PC     = Utils.sdiag((self.prob.mapping.deriv(None).T * diagA)**-1.)
             self.opt.approxHinv = PC
 
     def endIter(self):
         # Cool the threshold parameter
-        if self.onlyOnStart==True:
+        if self.onlyOnStart is True:
             return
 
         if getattr(self.opt, 'approxHinv', None) is not None:
             # Update the pre-conditioner
-            diagA = np.sum(self.prob.G**2.,axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() #* (self.reg.mapping * np.ones(self.reg.curModel.size))**2.
-            PC     = Utils.sdiag((self.prob.mapping.deriv(None).T *diagA)**-1.)
+            diagA = np.sum(self.prob.G**2., axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() # * (self.reg.mapping * np.ones(self.reg.curModel.size))**2.
+            PC = Utils.sdiag((self.prob.mapping.deriv(None).T * diagA)**-1.)
             self.opt.approxHinv = PC
 
 
@@ -426,8 +445,8 @@ class Update_Wj(InversionDirective):
     """
         Create approx-sensitivity base weighting using the probing method
     """
-    k = None # Number of probing cycles
-    itr = None # Iteration number to update Wj, or always update if None
+    k = None  # Number of probing cycles
+    itr = None  # Iteration number to update Wj, or always update if None
 
     def endIter(self):
 
@@ -441,9 +460,9 @@ class Update_Wj(InversionDirective):
 
                 Jv = self.prob.Jvec(m, v)
 
-                return self.prob.Jtvec(m,Jv)
+                return self.prob.Jtvec(m, Jv)
 
-            JtJdiag = Utils.diagEst(JtJv,len(m),k=self.k)
+            JtJdiag = Utils.diagEst(JtJv, len(m), k=self.k)
             JtJdiag = JtJdiag / max(JtJdiag)
 
             self.reg.wght = JtJdiag
