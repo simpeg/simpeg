@@ -204,7 +204,7 @@ class Derivative(properties.GettableProperty):
         return property(fget=fget, doc=scope.help)
 
 
-def Invertible(help):
+def Invertible(help, default=None):
 
     mapping = Mapping(
         "Mapping of {} to the inversion model.".format(help)
@@ -212,7 +212,8 @@ def Invertible(help):
 
     physical_property = PhysicalProperty(
         help,
-        mapping=mapping
+        mapping=mapping,
+        default=default
     )
 
     property_derivative = Derivative(
