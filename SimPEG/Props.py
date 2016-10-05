@@ -152,7 +152,8 @@ class PhysicalProperty(properties.Property):
             mapping = getattr(self, scope.mapping.name)
             if mapping is None:
                 raise AttributeError(
-                    'A default {} has not been set.'.format(
+                    'A default `{}` or mapping `{}` has not been set.'.format(
+                        scope.name,
                         scope.mapping.name
                     )
                 )
