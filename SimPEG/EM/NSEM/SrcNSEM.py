@@ -2,10 +2,10 @@ from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
 
-from scipy.constants import mu_0
-from numpy.lib import recfunctions as recFunc
+import numpy as np
+import scipy.sparse as sp
 
-from SimPEG import Utils, Problem, Maps, np, sp, mkvc
+from SimPEG import Maps, mkvc
 from SimPEG.EM.FDEM.SrcFDEM import BaseSrc as FDEMBaseSrc
 from SimPEG.EM.Utils import omega
 from .Utils.sourceUtils import homo1DModelSource

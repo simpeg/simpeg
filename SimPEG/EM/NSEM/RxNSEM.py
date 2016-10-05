@@ -271,13 +271,13 @@ class BaseRxNSEM_Point(SimPEG.Survey.BaseRx):
             self._ahx_py_u(self._sDiag(self._ahy_px)*x)
         )
 
-    def eval(self):
+    def eval(self, src, mesh, f, return_complex=False):
         """
         Function to evaluate datum for this receiver
         """
         raise NotImplementedError('SimPEG.EM.NSEM receiver has to have an eval method')
 
-    def evalDeriv(self):
+    def evalDeriv(self, src, mesh, f, v, adjoint=False):
         """
         Function to evaluate datum for this receiver
         """
