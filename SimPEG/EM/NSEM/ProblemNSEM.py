@@ -36,7 +36,7 @@ class BaseNSEMProblem(BaseFDEMProblem):
     # Notes:
     # Use the fields and devs methods from BaseFDEMProblem
 
-    ## NEED to clean up the Jvec and Jtvec to use Zero and Identities for None components.
+    # NEED to clean up the Jvec and Jtvec to use Zero and Identities for None components.
     def Jvec(self, m, v, f=None):
         """
         Function to calculate the data sensitivities dD/dm times a vector.
@@ -53,7 +53,7 @@ class BaseNSEMProblem(BaseFDEMProblem):
         if f is None:
            f = self.fields(m)
         # Set current model
-        self.curModel = m
+        self.model = m
         # Initiate the Jv object
         Jv = self.dataPair(self.survey)
 
@@ -97,7 +97,7 @@ class BaseNSEMProblem(BaseFDEMProblem):
         if f is None:
             f = self.fields(m)
 
-        self.curModel = m
+        self.model = m
 
         # Ensure v is a data object.
         if not isinstance(v, self.dataPair):
@@ -172,10 +172,10 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
     # Initiate properties
     _sigmaPrimary = None
 
-
     def __init__(self, mesh, **kwargs):
         BaseNSEMProblem.__init__(self, mesh, **kwargs)
         # self._sigmaPrimary = sigmaPrimary
+
     @property
     def MeMui(self):
         """
@@ -191,7 +191,7 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
             Edge inner product matrix
         """
         # if getattr(self, '_MfSigma', None) is None:
-        self._MfSigma = self.mesh.getFaceInnerProduct(self.curModel.sigma)
+        self._MfSigma = self.mesh.getFaceInnerProduct(self.sigma)
         return self._MfSigma
 
     def MfSigmaDeriv(self, u):
@@ -199,7 +199,7 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
             Edge inner product matrix
         """
         # if getattr(self, '_MfSigmaDeriv', None) is None:
-        self._MfSigmaDeriv = self.mesh.getFaceInnerProductDeriv(self.curModel.sigma)(u) * self.curModel.sigmaDeriv
+        self._MfSigmaDeriv = self.mesh.getFaceInnerProductDeriv(self.sigma)(u) * self.sigmaDeriv
         return self._MfSigmaDeriv
 
     @property
@@ -272,16 +272,17 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
         S_eDeriv = mkvc(Src.S_eDeriv_m(self, v, adjoint),)
         return -1j * omega(freq) * S_eDeriv
 
-    def fields(self, m):
-        '''
+    def fields(self, m=None):
+        """
         Function to calculate all the fields for the model m.
 
         :param numpy.ndarray m: Conductivity model (nC,)
         :rtype: SimPEG.EM.NSEM.FieldsNSEM.Fields1D_ePrimSec
         :return: NSEM fields object containing the solution
-        '''
+        """
         # Set the current model
-        self.curModel = m
+        if m is not None:
+            self.model = m
         # Make the fields object
         F = self.fieldsPair(self.mesh, self.survey)
         # Loop over the frequencies
@@ -430,17 +431,18 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
 
         return dRHS_dm
 
-    def fields(self, m):
-        '''
+    def fields(self, m=None):
+        """
         Function to calculate all the fields for the model m.
 
         :param numpy.ndarray (nC,) m: Conductivity model
         :rtype: SimPEG.EM.NSEM.FieldsNSEM
         :return: Fields object with of the solution
 
-        '''
+        """
         # Set the current model
-        self.curModel = m
+        if m is not None:
+            self.model = m
 
         F = self.fieldsPair(self.mesh, self.survey)
         for freq in self.survey.freqs:

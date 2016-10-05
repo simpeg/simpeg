@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from __future__ import division
 
 from glob import glob
-import numpy as np, sys, os, time, scipy, subprocess
+import numpy as np
 import SimPEG as simpeg
 import unittest
 from SimPEG.EM import NSEM
@@ -25,7 +25,7 @@ addrandoms = True
 def DerivJvecTest(halfspace_value, freq=False, expMap=True):
 
     survey, sig, sigBG, mesh = NSEM.Utils.testUtils.setup1DSurvey(halfspace_value,False,structure=True)
-    problem = NSEM.Problem1D_ePrimSec(mesh, sigmaPrimary = sigBG)
+    problem = NSEM.Problem1D_ePrimSec(mesh, sigmaPrimary=sigBG, sigmaMap=simpeg.Maps.IdentityMap(mesh))
     problem.pair(survey)
     print('Using {0} solver for the problem'.format(problem.Solver))
     print('Derivative test of Jvec for eForm primary/secondary for 1d comp from {0} to {1} Hz\n'.format(survey.freqs[0],survey.freqs[-1]))
