@@ -1,4 +1,4 @@
-from SimPEG import Utils, Maps
+from SimPEG import Utils
 from SimPEG.EM.Base import BaseEMProblem
 from SimPEG.EM.Static.DC.FieldsDC import FieldsDC, Fields_CC, Fields_N
 import numpy as np
@@ -176,7 +176,7 @@ class BaseIPProblem(BaseEMProblem):
 class Problem3D_CC(BaseIPProblem):
 
     _solutionType = 'phiSolution'
-    _formulation = 'HJ' # CC potentials means J is on faces
+    _formulation = 'HJ'  # CC potentials means J is on faces
     fieldsPair = Fields_CC
 
     def __init__(self, mesh, **kwargs):
@@ -202,7 +202,7 @@ class Problem3D_CC(BaseIPProblem):
         #     return V.T * A
         return A
 
-    def getADeriv(self, u, v, adjoint= False):
+    def getADeriv(self, u, v, adjoint=False):
 
         D = self.Div
         G = self.Grad
@@ -211,12 +211,12 @@ class Problem3D_CC(BaseIPProblem):
         if adjoint:
             # if self._makeASymmetric is True:
             #     v = V * v
-            return(MfRhoIDeriv( G * u ).T) * ( D.T * v)
+            return (MfRhoIDeriv(G * u).T) * (D.T * v)
 
         # I think we should deprecate this for DC problem.
         # if self._makeASymmetric is True:
         #     return V.T * ( D * ( MfRhoIDeriv( D.T * ( V * u ) ) * v ) )
-        return D * (MfRhoIDeriv( G * u ) * v)
+        return D * (MfRhoIDeriv(G * u) * v)
 
     def getRHS(self):
         """
@@ -338,7 +338,6 @@ class Problem3D_N(BaseIPProblem):
             Product of the derivative of our system matrix with
             respect to the model and a vector
         """
-        MeSigma = self.MeSigma
         Grad = self.mesh.nodalGrad
         if not adjoint:
             return Grad.T*(self.MeSigmaDeriv(Grad*u)*v)
