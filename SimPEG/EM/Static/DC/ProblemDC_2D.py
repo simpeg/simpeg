@@ -21,7 +21,8 @@ class BaseDCProblem_2D(BaseEMProblem):
     nT = nky  # Only for using TimeFields
 
     def fields(self, m):
-        self.curModel = m
+        if m is not None:
+            self.model = m
 
         if self.Ainv[0] is not None:
             for i in range(self.nky):
@@ -43,7 +44,7 @@ class BaseDCProblem_2D(BaseEMProblem):
         if f is None:
             f = self.fields(m)
 
-        self.curModel = m
+        self.model = m
 
         Jv = self.dataPair(self.survey)  # same size as the data
         Jv0 = self.dataPair(self.survey)
@@ -83,7 +84,7 @@ class BaseDCProblem_2D(BaseEMProblem):
         if f is None:
             f = self.fields(m)
 
-        self.curModel = m
+        self.model = m
 
         # Ensure v is a data object.
         if not isinstance(v, self.dataPair):
@@ -187,7 +188,7 @@ class Problem2D_CC(BaseDCProblem_2D):
         vol = self.mesh.vol
         MfRhoI = self.MfRhoI
         # Get resistivity rho
-        rho = self.curModel.rho
+        rho = self.rho
         A = D * MfRhoI * G + Utils.sdiag(ky**2*vol/rho)
         return A
 
@@ -197,7 +198,7 @@ class Problem2D_CC(BaseDCProblem_2D):
         G = self.Grad
         vol = self.mesh.vol
         MfRhoIDeriv = self.MfRhoIDeriv
-        rho = self.curModel.rho
+        rho = self.rho
         if adjoint:
             return((MfRhoIDeriv( G * u).T) * (D.T * v) +
                    ky**2 * Utils.sdiag(u.flatten()*vol*(-1./rho**2))*v)
@@ -314,7 +315,7 @@ class Problem2D_N(BaseDCProblem_2D):
             formulation
         """
         # TODO: only works isotropic sigma
-        sigma = self.curModel.sigma
+        sigma = self.sigma
         vol = self.mesh.vol
         MnSigma = Utils.sdiag(self.mesh.aveN2CC.T*(Utils.sdiag(vol)*sigma))
 
@@ -324,11 +325,11 @@ class Problem2D_N(BaseDCProblem_2D):
         """
             Derivative of MnSigma with respect to the model
         """
-        sigma = self.curModel.sigma
-        sigmaderiv = self.curModel.sigmaDeriv
+        sigma = self.sigma
+        sigmaderiv = self.sigmaDeriv
         vol = self.mesh.vol
         return (Utils.sdiag(u)*self.mesh.aveN2CC.T*Utils.sdiag(vol) *
-                self.curModel.sigmaDeriv)
+                self.sigmaDeriv)
 
     def getA(self, ky):
         """
@@ -343,7 +344,7 @@ class Problem2D_N(BaseDCProblem_2D):
         MnSigma = self.MnSigma
         Grad = self.mesh.nodalGrad
         # Get conductivity sigma
-        sigma = self.curModel.sigma
+        sigma = self.sigma
         A = Grad.T * MeSigma * Grad + ky**2*MnSigma
 
         # Handling Null space of A
@@ -354,7 +355,7 @@ class Problem2D_N(BaseDCProblem_2D):
 
         MeSigma = self.MeSigma
         Grad = self.mesh.nodalGrad
-        sigma = self.curModel.sigma
+        sigma = self.sigma
         vol = self.mesh.vol
 
         if adjoint:

@@ -43,8 +43,8 @@ class BaseEMProblem(Problem.BaseProblem):
 
     Props.Reciprocal(mu, mui)
 
-    surveyPair = Survey.BaseSurvey #: The survey to pair with.
-    dataPair = Survey.Data #: The data to pair with.
+    surveyPair = Survey.BaseSurvey  #: The survey to pair with.
+    dataPair = Survey.Data  #: The data to pair with.
 
     # PropMap = EMPropMap #: The property mapping
     mapPair = Maps.ExpMap

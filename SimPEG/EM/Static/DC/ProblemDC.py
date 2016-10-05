@@ -16,8 +16,9 @@ class BaseDCProblem(BaseEMProblem):
     fieldsPair = FieldsDC
     Ainv = None
 
-    def fields(self, m):
-        self.curModel = m
+    def fields(self, m=None):
+        if m is not None:
+            self.model = m
 
         if self.Ainv is not None:
             self.Ainv.clean()
@@ -36,7 +37,7 @@ class BaseDCProblem(BaseEMProblem):
         if f is None:
             f = self.fields(m)
 
-        self.curModel = m
+        self.model = m
 
         Jv = self.dataPair(self.survey)  # same size as the data
 
@@ -58,7 +59,7 @@ class BaseDCProblem(BaseEMProblem):
         if f is None:
             f = self.fields(m)
 
-        self.curModel = m
+        self.model = m
 
         # Ensure v is a data object.
         if not isinstance(v, self.dataPair):
