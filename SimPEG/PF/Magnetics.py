@@ -18,7 +18,7 @@ class MagneticIntegral(Problem.BaseProblem):
 
     def fwr_ind(self):
         # Add forward function
-        m = self.mapping*self.curModel
+        m = self.mapping*self.model
 
         if self.forwardOnly:
 
@@ -117,7 +117,7 @@ class MagneticIntegral(Problem.BaseProblem):
         return self.G.dot(self.mapping(m))
 
     def fields(self, m, **kwargs):
-        self.curModel = m
+        self.model = m
 
         if self.rtype == 'tmi':
             total = np.zeros(self.survey.nRx)
