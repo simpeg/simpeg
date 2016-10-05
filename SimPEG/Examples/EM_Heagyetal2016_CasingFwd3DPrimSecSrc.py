@@ -1021,7 +1021,7 @@ class PrimSecCasingExample(object):
         self.verbose = verbose
 
         if runTests is True:  # Test the derivs on the primary mapping
-            self.primaryMapping.test(num=2)
+            self.primaryMapping.test(num=3)
 
         if plotIt is True:  # Plot the Primary Model
             # self.plotPrimaryMesh() # plot the mesh
