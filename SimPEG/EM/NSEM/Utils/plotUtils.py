@@ -16,7 +16,7 @@ class DataNSEM_plot_functions(object):
 
     """
 
-    def plot_data_locatations(self, ax=None, **plot_kwargs):
+    def plot_data_locations(self, ax=None, **plot_kwargs):
         """
         Function that plots all receiver locations of the data
         (all discreate data locations).
@@ -24,7 +24,13 @@ class DataNSEM_plot_functions(object):
 
         """
         # Default plot dict
-        default_dict = {'marker': '+', 'c': 'k', 's': 50, 'zorder': 4}
+        default_dict = {
+            'marker': '+',
+            'c': 'k',
+            'ms': 10,
+            'ls': 'None',
+            'zorder': 4
+        }
         for key, val in default_dict.iteritems():
             if key not in plot_kwargs:
                 plot_kwargs[key] = val
@@ -38,7 +44,7 @@ class DataNSEM_plot_functions(object):
             fig = ax.get_figure()
 
         # Plot the locations
-        ax.scatter(unique_locations[:, 0], unique_locations[:, 1],
+        ax.plot(unique_locations[:, 0], unique_locations[:, 1],
                    **plot_kwargs)
 
         return (fig, ax)
@@ -190,7 +196,7 @@ def _extract_location_data(data, location,
     for src in data.survey.srcList:
         rx = [rx for rx in src.rxList
               if rx.orientation == orientation and rx.component == component][0]
-        ind_loc = np.sqrt(np.sum((rx.locs - location) ** 2, axis=1)) < 0.1
+        ind_loc = np.sqrt(np.sum((rx.locs[:,:2] - location) ** 2, axis=1)) < 0.1
         if np.any(ind_loc):
             freq_list.append(src.freq)
             data_list.append(data[src, rx][ind_loc])
