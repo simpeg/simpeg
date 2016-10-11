@@ -1,4 +1,4 @@
-from SimPEG.Examples import EM_Heagyetal2016_CasingFwd3DPrimSecSrc as CasingExample
+from SimPEG.Examples import EM_Heagyetal2016_Casing as CasingExample
 import unittest
 import numpy as np
 
