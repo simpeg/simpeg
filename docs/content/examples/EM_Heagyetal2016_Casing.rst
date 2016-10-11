@@ -1,4 +1,4 @@
-.. _examples_EM_Heagyetal2016_CasingFwd3DPrimSecSr:
+.. _examples_EM_Heagyetal2016_Casing:
 
 .. --------------------------------- ..
 ..                                   ..
@@ -24,8 +24,8 @@ Heagy et al 2016.
 .. plot::
 
     from SimPEG import Examples
-    Examples.EM_Heagyetal2016_CasingFwd3DPrimSecSr.run()
+    Examples.EM_Heagyetal2016_Casing.run()
 
-.. literalinclude:: ../../../SimPEG/Examples/EM_Heagyetal2016_CasingFwd3DPrimSecSr.py
+.. literalinclude:: ../../../SimPEG/Examples/EM_Heagyetal2016_Casing.py
     :language: python
     :linenos:
