@@ -7,10 +7,8 @@ from SimPEG.EM.Utils import omega
 # except ImportError:
 try:
     from pymatsolver import PardisoSolver as Solver
-    print('using PardisoSolver')
 except ImportError:
     Solver = SolverLU
-    print('using SolverLU')
 import matplotlib.pyplot as plt
 import time
 import os
@@ -18,6 +16,7 @@ from SimPEG.Utils.io_utils import remoteDownload
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from matplotlib import rcParams
+import h5py
 
 np.random.seed(42)
 fontsize = 12
@@ -1124,12 +1123,21 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
 
     url = 'https://storage.googleapis.com/simpeg/papers/Heagyetal2016/'
 
-    cloudfiles = [
-        'primaryfields_PrimSec_5e6Casing_50Mu_05Hz_LargeCondBody.npy',
-        'dpred_PrimSec_5e6Casing_50Mu_05Hz_LargeCondBody_back.npy',
-        'dpred_PrimSec_5e6Casing_50Mu_05Hz_LargeCondBody.npy',
-        'J_PrimSec_5e6Casing_50Mu_05Hz_LargeCondBody.npy',
-                 ]
+    # cloudfiles = [
+    #     'primaryfields_PrimSec_5e6Casing_50Mu_05Hz_LargeCondBody.npy',
+    #     'dpred_PrimSec_5e6Casing_50Mu_05Hz_LargeCondBody_back.npy',
+    #     'dpred_PrimSec_5e6Casing_50Mu_05Hz_LargeCondBody.npy',
+    #     'J_PrimSec_5e6Casing_50Mu_05Hz_LargeCondBody.npy',
+    #              ]
+
+    cloudfile = 'Heagyetal2016Casing.hdf5'
+
+    entry_names = [
+        'primaryfields_h_PrimSec_5e6Casing_50Mu_05Hz_LargeCondBody',
+        'dpred_PrimSec_5e6Casing_50Mu_05Hz_LargeCondBody_back',
+        'dpred_PrimSec_5e6Casing_50Mu_05Hz_LargeCondBody',
+        'J_PrimSec_5e6Casing_50Mu_05Hz_LargeCondBody',
+    ]
 
     @property
     def filepath(self):
@@ -1141,7 +1149,7 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
     def downloadStoredResults(self):
         # download the results from where they are stored on google app engine
 
-        return os.path.abspath(remoteDownload(self.url, self.cloudfiles,
+        return os.path.abspath(remoteDownload(self.url, [self.cloudfile],
                                basePath=self.filepath+os.path.sep))
 
     def removeStoredResults(self):
@@ -1150,12 +1158,21 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
         shutil.rmtree(self.filepath)
 
     def run(self, plotIt=False, runTests=False, saveFig=False):
+
         self.downloadStoredResults()
 
-        resultsFiles = ['{filepath}{slash}{file}'.format(
-            filepath=self.filepath, slash=os.path.sep, file=file)
-            for file in self.cloudfiles]
-        results = [np.load(file, encoding='bytes') for file in resultsFiles]
+        # resultsFiles = ['{filepath}{slash}{file}'.format(
+        #     filepath=self.filepath, slash=os.path.sep, file=file)
+        #     for file in self.cloudfiles]
+        # results = [np.load(file, encoding='bytes') for file in resultsFiles]
+
+        h5f = h5py.File(
+            '{filepath}{slash}{file}'.format(
+                filepath=self.filepath, slash=os.path.sep, file=self.cloudfile
+                ), 'r'
+            )
+
+        results = [h5f[entry_name][:] for entry_name in self.entry_names]
         results = dict(zip(['primfields', 'dpredback', 'dpred', 'J'], results))
 
         # Put the primary fields into a fields object
@@ -1163,8 +1180,7 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
         self.primaryProblem.pair(self.primarySurvey)  # forward simulation of primary
         primaryFields = self.primaryProblem.fieldsPair(
             self.meshp, self.primarySurvey)
-        primaryFields[self.primarySurvey.srcList[0], 'hSolution'] = dict(
-            results['primfields'].tolist())['hSolution']
+        primaryFields[self.primarySurvey.srcList[0], 'hSolution'] = results['primfields']
 
         results['primfields'] = primaryFields
 
