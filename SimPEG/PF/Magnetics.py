@@ -16,18 +16,16 @@ class MagneticIntegral(Problem.BaseProblem):
     def __init__(self, mesh, mapping=None, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, mapping=mapping, **kwargs)
 
-    def fwr_ind(self):
+    def fwr_ind(self, m):
 
         if self.forwardOnly:
 
             # Compute the linear operation without forming the full dense G
-            fwr_d = Intrgl_Fwr_Op()
+            fwr_d = Intrgl_Fwr_Op(m=m)
 
             return fwr_d
 
         else:
-
-            m = self.mapping*self.curModel
 
             return self.G.dot(m)
 
@@ -43,7 +41,7 @@ class MagneticIntegral(Problem.BaseProblem):
         else:
             u = np.zeros(3*self.survey.nRx)
 
-        u = self.fwr_ind()
+        u = self.fwr_ind(m=m)
         # rem = self.rem
 
         # if induced is not None:
@@ -69,7 +67,7 @@ class MagneticIntegral(Problem.BaseProblem):
 
         return self._G
 
-    def Intrgl_Fwr_Op(self, Magnetization="ind"):
+    def Intrgl_Fwr_Op(self, m = None, Magnetization="ind"):
 
         """
 
@@ -152,8 +150,6 @@ class MagneticIntegral(Problem.BaseProblem):
 
         if self.forwardOnly:
 
-            m = self.mapping*self.curModel
-
             if self.rtype == 'tmi':
 
                 fwr_out = np.zeros(self.survey.nRx)
@@ -218,12 +214,13 @@ class MagneticIntegral(Problem.BaseProblem):
                 elif Magnetization == 'xyz':
 
                     if survey.srcField.rxList[0].rxType == 'tmi':
-                        fwr_out[ii, :] = Ptmi.dot(np.vstack((tx, ty, tz)))
+                        fwr_out[ii, :] = Ptmi.dot(np.vstack((tx, ty, tz)) *
+                                                  survey.srcField.param[0])
 
                     elif survey.srcField.rxList[0].rxType == 'xyz':
-                        fwr_out[ii, :] = tx
-                        fwr_out[ii+ndata, :] = ty
-                        fwr_out[ii+2*ndata, :] = tz
+                        fwr_out[ii, :] = tx * survey.srcField.param[0]
+                        fwr_out[ii+ndata, :] = ty * survey.srcField.param[0]
+                        fwr_out[ii+2*ndata, :] = tz * survey.srcField.param[0]
 
             # Display progress
             count = progress(ii, count, ndata)
@@ -243,23 +240,20 @@ class MagneticVector(MagneticIntegral):
     def __init__(self, mesh, mapping=None, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, mapping=mapping, **kwargs)
 
-    def fwr_ind(self):
+    def fwr_ind(self, m):
 
         if self.forwardOnly:
 
             # Compute the linear operation without forming the full dense G
-            fwr_d = Intrgl_Fwr_Op(Magnetization='xyz')
+            fwr_d = Intrgl_Fwr_Op(m=m, Magnetization='xyz')
 
             return fwr_d
 
         else:
 
-            # Grab the right model parameters
-            m = self.mapping*self.curModel
-
             # m = np.hstack([m, mii])
 
-        return self.G.dot(m)
+            return self.G.dot(m)
 
     @property
     def G(self):
@@ -282,20 +276,20 @@ class MagneticAmplitude(MagneticIntegral):
     def __init__(self, mesh, mapping=None, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, mapping=mapping, **kwargs)
 
-    def fwr_ind(self):
+    def fwr_ind(self, m):
 
         self.survey.srcField.rxList[0].rxType = 'xyz'
 
         if self.forwardOnly:
 
             # Compute the linear operation without forming the full dense G
-            Bxyz = Intrgl_Fwr_Op()
+            Bxyz = Intrgl_Fwr_Op(m=m)
 
             return self.calcAmpData(Bxyz)
 
         else:
-
-            m = self.mapping*self.curModel
+            if m is None:
+                m = self.mapping*self.curModel
 
             Bxyz = self.G.dot(m)
 
@@ -311,15 +305,11 @@ class MagneticAmplitude(MagneticIntegral):
 
         return Bamp
 
-    def fwr_rem(self):
-        # TODO check if we are inverting for M
-        return self.G.dot(self.mapping(m))
-
     def fields(self, m, **kwargs):
 
         self.curModel = m
 
-        ampB = self.fwr_ind()
+        ampB = self.fwr_ind(m)
 
         return ampB
 
