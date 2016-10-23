@@ -1,7 +1,7 @@
 from SimPEG import EM, np, Utils
 
 
-def run(plotIt = True):
+def run(plotIt=True):
     """
 
         Plotting 2D data
@@ -27,7 +27,9 @@ def run(plotIt = True):
     srcLoc = np.r_[0., 0., 0.]
 
     # Use analytic fuction to compute Ex, Ey, Ez
-    Ex, Ey, Ez = EM.Analytics.E_from_ElectricDipoleWholeSpace(xyz, srcLoc, sig, f)
+    Ex, Ey, Ez = EM.Analytics.E_from_ElectricDipoleWholeSpace(
+        xyz, srcLoc, sig, f
+    )
 
     if plotIt:
         import matplotlib.pyplot as plt
@@ -42,8 +44,8 @@ def run(plotIt = True):
         # Plot Real E (vector)
         cont2, ax2 = Utils.plot2Ddata(xyz, E.real, vec=True,
                                       ax=ax2, contourOpts={"cmap": "viridis"})
-        cb1 = plt.colorbar(cont1, ax=ax1, orientation="horizontal")
-        cb2 = plt.colorbar(cont2, ax=ax2, orientation="horizontal")
+        plt.colorbar(cont1, ax=ax1, orientation="horizontal")
+        plt.colorbar(cont2, ax=ax2, orientation="horizontal")
         ax1.set_xlabel("x")
         ax1.set_ylabel("y")
         ax2.set_xlabel("x")
@@ -54,9 +56,5 @@ def run(plotIt = True):
         plt.show()
 
 
-
 if __name__ == '__main__':
     run()
-
-
-
