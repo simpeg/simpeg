@@ -1,4 +1,5 @@
-from SimPEG import Mesh, np, PF
+import numpy as np
+from SimPEG import PF
 
 
 def run(plotIt=True):
@@ -40,7 +41,7 @@ def run(plotIt=True):
     if plotIt:
         import matplotlib.pyplot as plt
         from mpl_toolkits.axes_grid1 import make_axes_locatable
-        fig = plt.figure(figsize=(14, 5))
+        plt.figure(figsize=(14, 5))
 
         ax1 = plt.subplot(121)
         dat1 = plt.imshow(Bzkr, extent=[min(xr), max(xr), min(yr), max(yr)])
