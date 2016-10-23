@@ -89,10 +89,8 @@ class BaseFDEMProblem(BaseEMProblem):
                 du_dm_v = Ainv * ( - dA_dm_v + dRHS_dm_v )
 
                 for rx in src.rxList:
-                    df_dmFun = getattr(f, '_{0}Deriv'.format(rx.projField), None)
-                    df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
-                    # Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
-                    Jv.append(rx.evalDeriv(src, self.mesh, f, df_dm_v))
+                    Jv.append(rx.evalDeriv(src, self.mesh, f,
+                                           du_dm_v=du_dm_v, v=v))
             Ainv.clean()
         # return Utils.mkvc(Jv)
         return np.hstack(Jv)
@@ -127,10 +125,8 @@ class BaseFDEMProblem(BaseEMProblem):
                 u_src = f[src, self._solutionType]
 
                 for rx in src.rxList:
-                    PTv = rx.evalDeriv(src, self.mesh, f, v[src, rx], adjoint=True) # wrt f, need possibility wrt m
-
-                    df_duTFun = getattr(f, '_{0}Deriv'.format(rx.projField), None)
-                    df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
+                    df_duT, df_dmT = rx.evalDeriv(src, self.mesh, f,
+                                                  v=v[src, rx], adjoint=True)
 
                     ATinvdf_duT = ATinv * df_duT
 
@@ -162,11 +158,11 @@ class BaseFDEMProblem(BaseEMProblem):
         """
         Srcs = self.survey.getSrcByFreq(freq)
         if self._formulation is 'EB':
-            s_m = np.zeros((self.mesh.nF,len(Srcs)), dtype=complex)
-            s_e = np.zeros((self.mesh.nE,len(Srcs)), dtype=complex)
+            s_m = np.zeros((self.mesh.nF, len(Srcs)), dtype=complex)
+            s_e = np.zeros((self.mesh.nE, len(Srcs)), dtype=complex)
         elif self._formulation is 'HJ':
-            s_m = np.zeros((self.mesh.nE,len(Srcs)), dtype=complex)
-            s_e = np.zeros((self.mesh.nF,len(Srcs)), dtype=complex)
+            s_m = np.zeros((self.mesh.nE, len(Srcs)), dtype=complex)
+            s_e = np.zeros((self.mesh.nF, len(Srcs)), dtype=complex)
 
         for i, src in enumerate(Srcs):
             smi, sei = src.eval(self)
