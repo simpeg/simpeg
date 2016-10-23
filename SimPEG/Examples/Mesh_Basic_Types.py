@@ -12,7 +12,13 @@ def run(plotIt=True):
     sz = [16, 16]
     tM = Mesh.TensorMesh(sz)
     qM = Mesh.TreeMesh(sz)
-    qM.refine(lambda cell: 4 if np.sqrt(((np.r_[cell.center]-0.5)**2).sum()) < 0.4 else 3)
+
+    def refine(cell):
+        if np.sqrt(((np.r_[cell.center]-0.5)**2).sum()) < 0.4:
+            return 4
+        return 3
+
+    qM.refine(refine)
     rM = Mesh.CurvilinearMesh(Utils.meshutils.exampleLrmGrid(sz, 'rotate'))
 
     if plotIt:
