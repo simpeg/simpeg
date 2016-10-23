@@ -323,7 +323,7 @@ class Wires(object):
                 isinstance(arg, tuple) and
                 isinstance(arg[0], string_types) and
                 # TODO: this should be extended to a slice.
-                isinstance(arg[1], int)
+                isinstance(arg[1], integer_types)
             ), (
                 "Each wire needs to be a tuple: (name, length)"
             )
