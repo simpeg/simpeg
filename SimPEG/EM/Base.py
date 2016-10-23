@@ -18,24 +18,24 @@ from scipy.constants import mu_0
 class BaseEMProblem(Problem.BaseProblem):
 
     _depreciate_maps = False
+    _depreciate_main_map = 'sigmaMap'
 
     def __init__(self, mesh, **kwargs):
-        mapping = kwargs.pop('mapping', None)
-        Problem.BaseProblem.__init__(self, mesh, **kwargs)
-
         if self._depreciate_maps:
-            if mapping is None:
-                return
             import warnings
             warnings.warn(
-                'The `mapping` property has been depreciated, please use `sigmaMap`'
+                'The `mapping` property has been depreciated, '
+                'please use `sigmaMap`'
             )
+            mapping = kwargs.pop('mapping', None)
             if isinstance(mapping, Maps.IdentityMap):
-                self.sigmaMap = mapping
-                return
-            assert isinstance(mapping, list)
-            for name, propmap in mapping:
-                setattr(self, '{}Map'.format(name), propmap)
+                kwargs[self._depreciate_main_map] = mapping
+            elif isinstance(mapping, list):
+                # this is a prop map style
+                for name, propmap in mapping:
+                    kwargs['{}Map'.format(name)] = propmap
+
+        Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
     model = Props.Model("Inversion model.")
 

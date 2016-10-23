@@ -61,7 +61,8 @@ class BaseMesh(object):
             :include-source:
 
             from SimPEG import Mesh, np
-            Mesh.TensorMesh([np.ones(n) for n in [2,3]]).plotGrid(centers=True,showIt=True)
+            M = Mesh.TensorMesh([np.ones(n) for n in [2,3]])
+            M.plotGrid(centers=True,showIt=True)
         """
         return int(self._n.prod())
 
@@ -77,7 +78,8 @@ class BaseMesh(object):
             :include-source:
 
             from SimPEG import Mesh, np
-            Mesh.TensorMesh([np.ones(n) for n in [2,3]]).plotGrid(nodes=True,showIt=True)
+            M = Mesh.TensorMesh([np.ones(n) for n in [2,3]])
+            M.plotGrid(nodes=True,showIt=True)
         """
         return int((self._n+1).prod())
 
@@ -192,7 +194,8 @@ class BaseMesh(object):
             :include-source:
 
             from SimPEG import Mesh, np
-            Mesh.TensorMesh([np.ones(n) for n in [2,3]]).plotGrid(faces=True,showIt=True)
+            M = Mesh.TensorMesh([np.ones(n) for n in [2,3]])
+            M.plotGrid(faces=True,showIt=True)
         """
         return np.array(
             [x for x in [self.nFx, self.nFy, self.nFz] if x is not None],
@@ -219,13 +222,23 @@ class BaseMesh(object):
         :return: normals, (sum(nF), dim)
         """
         if self.dim == 2:
-            nX = np.c_[np.ones(self.nFx), np.zeros(self.nFx)]
-            nY = np.c_[np.zeros(self.nFy), np.ones(self.nFy)]
+            nX = np.c_[
+                np.ones(self.nFx), np.zeros(self.nFx)
+            ]
+            nY = np.c_[
+                np.zeros(self.nFy), np.ones(self.nFy)
+            ]
             return np.r_[nX, nY]
         elif self.dim == 3:
-            nX = np.c_[np.ones(self.nFx), np.zeros(self.nFx), np.zeros(self.nFx)]
-            nY = np.c_[np.zeros(self.nFy), np.ones(self.nFy), np.zeros(self.nFy)]
-            nZ = np.c_[np.zeros(self.nFz), np.zeros(self.nFz), np.ones(self.nFz)]
+            nX = np.c_[
+                np.ones(self.nFx), np.zeros(self.nFx), np.zeros(self.nFx)
+            ]
+            nY = np.c_[
+                np.zeros(self.nFy), np.ones(self.nFy), np.zeros(self.nFy)
+            ]
+            nZ = np.c_[
+                np.zeros(self.nFz), np.zeros(self.nFz), np.ones(self.nFz)
+            ]
             return np.r_[nX, nY, nZ]
 
     @property
@@ -237,18 +250,29 @@ class BaseMesh(object):
         :return: normals, (sum(nE), dim)
         """
         if self.dim == 2:
-            tX = np.c_[np.ones(self.nEx), np.zeros(self.nEx)]
-            tY = np.c_[np.zeros(self.nEy), np.ones(self.nEy)]
+            tX = np.c_[
+                np.ones(self.nEx), np.zeros(self.nEx)
+            ]
+            tY = np.c_[
+                np.zeros(self.nEy), np.ones(self.nEy)
+            ]
             return np.r_[tX, tY]
         elif self.dim == 3:
-            tX = np.c_[np.ones(self.nEx), np.zeros(self.nEx), np.zeros(self.nEx)]
-            tY = np.c_[np.zeros(self.nEy), np.ones(self.nEy), np.zeros(self.nEy)]
-            tZ = np.c_[np.zeros(self.nEz), np.zeros(self.nEz), np.ones(self.nEz)]
+            tX = np.c_[
+                np.ones(self.nEx), np.zeros(self.nEx), np.zeros(self.nEx)
+            ]
+            tY = np.c_[
+                np.zeros(self.nEy), np.ones(self.nEy), np.zeros(self.nEy)
+            ]
+            tZ = np.c_[
+                np.zeros(self.nEz), np.zeros(self.nEz), np.ones(self.nEz)
+            ]
             return np.r_[tX, tY, tZ]
 
     def projectFaceVector(self, fV):
         """
-        Given a vector, fV, in cartesian coordinates, this will project it onto the mesh using the normals
+        Given a vector, fV, in cartesian coordinates, this will project
+        it onto the mesh using the normals
 
         :param numpy.array fV: face vector with shape (nF, dim)
         :rtype: numpy.array
@@ -256,12 +280,17 @@ class BaseMesh(object):
 
         """
         assert isinstance(fV, np.ndarray), 'fV must be an ndarray'
-        assert len(fV.shape) == 2 and fV.shape[0] == self.nF and fV.shape[1] == self.dim, 'fV must be an ndarray of shape (nF x dim)'
+        assert (
+            len(fV.shape) == 2 and
+            fV.shape[0] == self.nF and
+            fV.shape[1] == self.dim
+        ), 'fV must be an ndarray of shape (nF x dim)'
         return np.sum(fV*self.normals, 1)
 
     def projectEdgeVector(self, eV):
         """
-        Given a vector, eV, in cartesian coordinates, this will project it onto the mesh using the tangents
+        Given a vector, eV, in cartesian coordinates, this will project
+        it onto the mesh using the tangents
 
         :param numpy.array eV: edge vector with shape (nE, dim)
         :rtype: numpy.array
@@ -269,7 +298,11 @@ class BaseMesh(object):
 
         """
         assert isinstance(eV, np.ndarray), 'eV must be an ndarray'
-        assert len(eV.shape) == 2 and eV.shape[0] == self.nE and eV.shape[1] == self.dim, 'eV must be an ndarray of shape (nE x dim)'
+        assert (
+            len(eV.shape) == 2 and
+            eV.shape[0] == self.nE and
+            eV.shape[1] == self.dim
+        ), 'eV must be an ndarray of shape (nE x dim)'
         return np.sum(eV*self.tangents, 1)
 
 
@@ -551,26 +584,47 @@ class BaseRectangularMesh(BaseMesh):
 
     def r(self, x, xType='CC', outType='CC', format='V'):
         """
-        Mesh.r is a quick reshape command that will do the best it can at giving you what you want.
+        Mesh.r is a quick reshape command that will do the best it
+        can at giving you what you want.
 
-        For example, you have a face variable, and you want the x component of it reshaped to a 3D matrix.
+        For example, you have a face variable, and you want the x
+        component of it reshaped to a 3D matrix.
 
         Mesh.r can fulfil your dreams::
 
             mesh.r(V, 'F', 'Fx', 'M')
-                   |   |     |    { How: 'M' or ['V'] for a matrix (ndgrid style) or a vector (n x dim) }
-                   |   |     { What you want: ['CC'], 'N', 'F', 'Fx', 'Fy', 'Fz', 'E', 'Ex', 'Ey', or 'Ez' }
-                   |   { What is it: ['CC'], 'N', 'F', 'Fx', 'Fy', 'Fz', 'E', 'Ex', 'Ey', or 'Ez' }
-                   { The input: as a list or ndarray }
+                   |   |     |    |
+                   |   |     |    {
+                   |   |     |      How: 'M' or ['V'] for a matrix
+                   |   |     |      (ndgrid style) or a vector (n x dim)
+                   |   |     |    }
+                   |   |     {
+                   |   |       What you want: ['CC'], 'N',
+                   |   |                       'F', 'Fx', 'Fy', 'Fz',
+                   |   |                       'E', 'Ex', 'Ey', or 'Ez'
+                   |   |     }
+                   |   {
+                   |     What is it: ['CC'], 'N',
+                   |                  'F', 'Fx', 'Fy', 'Fz',
+                   |                  'E', 'Ex', 'Ey', or 'Ez'
+                   |   }
+                   {
+                     The input: as a list or ndarray
+                   }
 
 
-        For example::
+        For example:
 
-            Xex, Yex, Zex = r(mesh.gridEx, 'Ex', 'Ex', 'M')  # Separates each component of the Ex grid into 3 matrices
+        ..code::
 
-            XedgeVector = r(edgeVector, 'E', 'Ex', 'V')  # Given an edge vector, this will return just the part on the x edges as a vector
+            # Separates each component of the Ex grid into 3 matrices
+            Xex, Yex, Zex = r(mesh.gridEx, 'Ex', 'Ex', 'M')
 
-            eX, eY, eZ = r(edgeVector, 'E', 'E', 'V')  # Separates each component of the edgeVector into 3 vectors
+            # Given an edge vector, return just the x edges as a vector
+            XedgeVector = r(edgeVector, 'E', 'Ex', 'V')
+
+            # Separates each component of the edgeVector into 3 vectors
+            eX, eY, eZ = r(edgeVector, 'E', 'E', 'V')
         """
 
         assert (type(x) == list or isinstance(x, np.ndarray)), "x must be either a list or a ndarray"
