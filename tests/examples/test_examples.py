@@ -1,6 +1,10 @@
 from __future__ import print_function
 import unittest
 import os
+import matplotlib
+matplotlib.use('Agg')
+
+import matplotlib.pyplot as plt
 from SimPEG import Examples
 
 

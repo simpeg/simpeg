@@ -3,6 +3,7 @@ from SimPEG import Mesh
 from SimPEG import Utils
 from SimPEG.Utils import surface2ind_topo
 import matplotlib.pyplot as plt
+from scipy.interpolate import interp1d
 
 
 def run(plotIt=True, nx=5, ny=5):
@@ -29,8 +30,6 @@ def run(plotIt=True, nx=5, ny=5):
     indcc = surface2ind_topo(mesh, Topo, 'CC')
 
     if plotIt:
-        from matplotlib.pylab import plt
-        from scipy.interpolate import interp1d
         fig, ax = plt.subplots(1, 1, figsize=(6, 6))
         mesh.plotGrid(ax=ax, nodes=True, centers=True)
         ax.plot(xtopo, topo, 'k', linewidth=1)
