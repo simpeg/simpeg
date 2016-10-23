@@ -1,5 +1,14 @@
-from SimPEG import *
-import SimPEG.PF as PF
+import numpy as np
+from SimPEG import Mesh
+from SimPEG import Utils
+from SimPEG import Maps
+from SimPEG import Regularization
+from SimPEG import DataMisfit
+from SimPEG import Optimization
+from SimPEG import InvProblem
+from SimPEG import Directives
+from SimPEG import Inversion
+from SimPEG import PF
 
 
 def run(plotIt=True):
@@ -33,7 +42,7 @@ def run(plotIt=True):
     zz = -np.exp((xx**2 + yy**2) / 75**2) + mesh.vectorNz[-1]
 
     # We would usually load a topofile
-    topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
+    topo = np.c_[Utils.mkvc(xx), Utils.mkvc(yy), Utils.mkvc(zz)]
 
     # Go from topo to actv cells
     actv = Utils.surface2ind_topo(mesh, topo, 'N')
@@ -62,7 +71,7 @@ def run(plotIt=True):
     # Here a simple block in half-space
     model = np.zeros((mesh.nCx, mesh.nCy, mesh.nCz))
     model[(midx-2):(midx+2), (midy-2):(midy+2), -6:-2] = 0.02
-    model = mkvc(model)
+    model = Utils.mkvc(model)
     model = model[actv]
 
     # Create active map to go from reduce set to full
