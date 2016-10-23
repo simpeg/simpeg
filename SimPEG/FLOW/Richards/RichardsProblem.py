@@ -146,7 +146,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
         default=1e-4
     )
 
-    @properties.observe(['doNewton', 'maxIterRootFinder', 'tolRootFinder'])
+    @properties.observer(['doNewton', 'maxIterRootFinder', 'tolRootFinder'])
     def _on_root_finder_update(self, change):
         """
             Setting doNewton will clear the rootFinder,

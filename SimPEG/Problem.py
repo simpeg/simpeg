@@ -93,7 +93,7 @@ class BaseProblem(Props.BaseSimPEG):
         raise Exception()
         return getattr(self, '_curModel', None)
 
-    @properties.observe('model')
+    @properties.observer('model')
     def _on_model_update(self, value):
         # self.model = value
         # return
