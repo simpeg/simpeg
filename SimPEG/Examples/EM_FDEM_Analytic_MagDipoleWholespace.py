@@ -1,5 +1,5 @@
 import numpy as np
-from SimPEG import Mesh, Maps, Utils
+from SimPEG import Utils
 import SimPEG.EM as EM
 
 
@@ -14,19 +14,21 @@ def run(XYZ=None, loc=np.r_[0., 0., 0.], sig=1.0, freq=1.0, orientation='Z',
         wholespace.
 
     """
-    from SimPEG import Depreciate
-    Depreciate.use_old_mappings()
 
     if XYZ is None:
         # avoid putting measurement points where source is
-        x = np.arange(-100.5, 100.5, step = 1.)
+        x = np.arange(-100.5, 100.5, step=1.)
         y = np.r_[0]
         z = x
         XYZ = Utils.ndgrid(x, y, z)
 
-    Bx, By, Bz = EM.Analytics.FDEM.MagneticDipoleWholeSpace(XYZ, loc, sig,
-                                                            freq,
-                                                            orientation=orientation)
+    Bx, By, Bz = EM.Analytics.FDEM.MagneticDipoleWholeSpace(
+        XYZ,
+        loc,
+        sig,
+        freq,
+        orientation=orientation
+    )
     absB = np.sqrt(Bx*Bx.conj()+By*By.conj()+Bz*Bz.conj()).real
 
     if plotIt:
@@ -41,7 +43,7 @@ def run(XYZ=None, loc=np.r_[0., 0., 0.], sig=1.0, freq=1.0, orientation='Z',
         ax.set_ylim([z.min(), z.max()])
         ax.set_xlabel('x')
         ax.set_ylabel('z')
-        cb = plt.colorbar(pc, ax = ax)
+        cb = plt.colorbar(pc, ax=ax)
         cb.set_label('|B| (T)')
         plt.show()
 
