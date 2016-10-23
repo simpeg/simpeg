@@ -1,9 +1,15 @@
 from __future__ import print_function
+
 import numpy as np
 import scipy.sparse as sp
-from SimPEG import Utils, Problem, Solver
-from . import BaseMag as MAG
 from scipy.constants import mu_0
+
+from SimPEG import Utils
+from SimPEG import Problem
+from SimPEG import Solver
+from SimPEG import Props
+
+from . import BaseMag as MAG
 from .MagAnalytics import spheremodel, CongruousMagBC
 
 
@@ -286,8 +292,21 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
     surveyPair = MAG.BaseMagSurvey
     modelPair = MAG.BaseMagMap
 
-    def __init__(self, model, mapping=None, **kwargs):
-        Problem.BaseProblem.__init__(self, model, mapping=mapping, **kwargs)
+    _depreciate_main_map = 'muMap'
+
+    mu, muMap, muDeriv = Props.Invertible(
+        "Magnetic Permeability (H/m)",
+        default=mu_0
+    )
+
+    mui, muiMap, muiDeriv = Props.Invertible(
+        "Inverse Magnetic Permeability (m/H)"
+    )
+
+    Props.Reciprocal(mu, mui)
+
+    def __init__(self, mesh, **kwargs):
+        Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
         Pbc, Pin, self._Pout = \
             self.mesh.getBCProjWF('neumann', discretization='CC')
@@ -306,7 +325,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
     def MfMu0(self): return self._MfMu0
 
     def makeMassMatrices(self, m):
-        mu = self.mapping*m
+        mu = self.muMap*m
         self._MfMui = self.mesh.getFaceInnerProduct(1./mu)/self.mesh.dim
         # self._MfMui = self.mesh.getFaceInnerProduct(1./mu)
         # TODO: this will break if tensor mu
@@ -334,7 +353,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         Dface = self.mesh.faceDiv
         Mc = Utils.sdiag(self.mesh.vol)
 
-        mu = self.mapping*m
+        mu = self.muMap*m
         chi = mu/mu_0-1
 
         # Temporary fix
@@ -458,8 +477,8 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
             u = self.fields(m)
 
         B, u = u['B'], u['u']
-        mu = self.mapping*(m)
-        dmudm = self.mapping.deriv(m)
+        mu = self.muMap*(m)
+        dmudm = self.muDeriv
         dchidmu = Utils.sdiag(1/mu_0*np.ones(self.mesh.nC))
 
         vol = self.mesh.vol
