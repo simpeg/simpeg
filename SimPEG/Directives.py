@@ -1,6 +1,7 @@
 from __future__ import print_function
 from . import Utils
 import numpy as np
+import warnings
 
 
 class InversionDirective(object):
@@ -19,7 +20,10 @@ class InversionDirective(object):
     @inversion.setter
     def inversion(self, i):
         if getattr(self, '_inversion', None) is not None:
-            print('Warning: InversionDirective {0!s} has switched to a new inversion.'.format(self.__name__))
+            warnings.warn(
+                'InversionDirective {0!s} has switched to a new inversion.'
+                .format(self.__class__.__name__)
+            )
         self._inversion = i
 
     @property
@@ -63,7 +67,10 @@ class DirectiveList(object):
     def __init__(self, *directives, **kwargs):
         self.dList = []
         for d in directives:
-            assert isinstance(d, InversionDirective), 'All directives must be InversionDirectives not {0!s}'.format(d.__name__)
+            assert isinstance(d, InversionDirective), (
+                'All directives must be InversionDirectives not {}'
+                .format(type(d))
+            )
             self.dList.append(d)
         Utils.setKwargs(self, **kwargs)
 
@@ -87,18 +94,25 @@ class DirectiveList(object):
         if self.inversion is i:
             return
         if getattr(self, '_inversion', None) is not None:
-            print('Warning: {0!s} has switched to a new inversion.'.format(self.__name__))
+            warnings.warn(
+                '{0!s} has switched to a new inversion.'
+                .format(self.__class__.__name__)
+            )
         for d in self.dList:
             d.inversion = i
         self._inversion = i
 
     def call(self, ruleType):
         if self.dList is None:
-            if self.debug: print('DirectiveList is None, no directives to call!')
+            if self.debug:
+                print('DirectiveList is None, no directives to call!')
             return
 
         directives = ['initialize', 'endIter', 'finish']
-        assert ruleType in directives, 'Directive type must be in ["{0!s}"]'.format('", "'.join(directives))
+        assert ruleType in directives, (
+            'Directive type must be in ["{0!s}"]'
+            .format('", "'.join(directives))
+        )
         for r in self.dList:
             getattr(r, ruleType)()
 
@@ -121,15 +135,15 @@ class BetaEstimate_ByEig(InversionDirective):
 
                 \mathbf{x_1 = A x_0}
 
-            Given this (very course) approximation of the eigenvector,
-            we can use the *Rayleigh quotient* to approximate the largest eigenvalue.
+            Given this (very course) approximation of the eigenvector, we can
+            use the *Rayleigh quotient* to approximate the largest eigenvalue.
 
             .. math::
 
                 \lambda_0 = \\frac{\mathbf{x^\\top A x}}{\mathbf{x^\\top x}}
 
-            We will approximate the largest eigenvalue for both JtJ and WtW, and
-            use some ratio of the quotient to estimate beta0.
+            We will approximate the largest eigenvalue for both JtJ and WtW,
+            and use some ratio of the quotient to estimate beta0.
 
             .. math::
 
@@ -139,13 +153,14 @@ class BetaEstimate_ByEig(InversionDirective):
             :return: beta0
         """
 
-        if self.debug: print('Calculating the beta0 parameter.')
+        if self.debug:
+            print('Calculating the beta0 parameter.')
 
         m = self.invProb.curModel
         f = self.invProb.getFields(m, store=True, deleteWarmstart=False)
 
         x0 = np.random.rand(*m.shape)
-        t = x0.dot(self.dmisfit.eval2Deriv(m,x0, f=f))
+        t = x0.dot(self.dmisfit.eval2Deriv(m, x0, f=f))
         b = x0.dot(self.reg.eval2Deriv(m, v=x0))
         self.beta0 = self.beta0_ratio*(t/b)
 
@@ -160,7 +175,11 @@ class BetaSchedule(InversionDirective):
 
     def endIter(self):
         if self.opt.iter > 0 and self.opt.iter % self.coolingRate == 0:
-            if self.debug: print('BetaSchedule is cooling Beta. Iteration: {0:d}'.format(self.opt.iter))
+            if self.debug:
+                print(
+                    'BetaSchedule is cooling Beta. Iteration: {0:d}'
+                    .format(self.opt.iter)
+                )
             self.invProb.beta /= self.coolingFactor
 
 
@@ -203,7 +222,9 @@ class SaveEveryIteration(InversionDirective):
     def fileName(self):
         if getattr(self, '_fileName', None) is None:
             from datetime import datetime
-            self._fileName = '{0!s}-{1!s}'.format(self.name, datetime.now().strftime('%Y-%m-%d-%H-%M'))
+            self._fileName = '{0!s}-{1!s}'.format(
+                self.name, datetime.now().strftime('%Y-%m-%d-%H-%M')
+            )
         return self._fileName
 
     @fileName.setter
@@ -218,7 +239,9 @@ class SaveModelEveryIteration(SaveEveryIteration):
         print("SimPEG.SaveModelEveryIteration will save your models as: '###-{0!s}.npy'".format(self.fileName))
 
     def endIter(self):
-        np.save('{0:03d}-{1!s}'.format(self.opt.iter, self.fileName), self.opt.xc)
+        np.save('{0:03d}-{1!s}'.format(
+            self.opt.iter, self.fileName), self.opt.xc
+        )
 
 
 class SaveOutputEveryIteration(SaveEveryIteration):
