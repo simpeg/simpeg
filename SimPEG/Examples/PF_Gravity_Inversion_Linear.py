@@ -47,7 +47,7 @@ def run(plotIt=True):
                       dtype=int) - 1
 
     # Create active map to go from reduce space to full
-    actvMap = Maps.ActiveCells(mesh, actv, -100)
+    actvMap = Maps.InjectActiveCells(mesh, actv, -100)
     nC = len(actv)
 
     # Create and array of observation points
