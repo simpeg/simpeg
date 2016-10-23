@@ -1,4 +1,5 @@
-from SimPEG import *
+from SimPEG import Mesh
+
 
 def run(plotIt=True):
     """
@@ -32,4 +33,3 @@ def run(plotIt=True):
 
 if __name__ == '__main__':
     run()
-
