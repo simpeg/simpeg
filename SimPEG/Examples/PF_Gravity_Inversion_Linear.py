@@ -1,3 +1,6 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
 from SimPEG import Mesh
 from SimPEG import Utils
 from SimPEG import Maps
@@ -8,7 +11,6 @@ from SimPEG import InvProblem
 from SimPEG import Directives
 from SimPEG import Inversion
 from SimPEG import PF
-import numpy as np
 
 
 def run(plotIt=True):
@@ -131,7 +133,6 @@ def run(plotIt=True):
     mrec = inv.run(m0)
 
     if plotIt:
-        import matplotlib.pyplot as plt
         # Here is the recovered susceptibility model
         ypanel = midx
         zpanel = -7
@@ -220,7 +221,7 @@ def run(plotIt=True):
         plt.xlabel('x')
         plt.ylabel('z')
         plt.gca().set_aspect('equal', adjustable='box')
-        plt.show()
 
 if __name__ == '__main__':
     run()
+    plt.show()

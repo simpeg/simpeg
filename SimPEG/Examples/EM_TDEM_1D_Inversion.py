@@ -2,7 +2,7 @@ import numpy as np
 from SimPEG import (Mesh, Maps, SolverLU, DataMisfit, Regularization,
                     Optimization, InvProblem, Inversion, Directives, Utils)
 import SimPEG.EM as EM
-
+import matplotlib.pyplot as plt
 
 def run(plotIt=True):
     """
@@ -68,7 +68,6 @@ def run(plotIt=True):
     mopt = inv.run(m0)
 
     if plotIt:
-        import matplotlib.pyplot as plt
         fig, ax = plt.subplots(1, 2, figsize=(10, 6))
         ax[0].loglog(rx.times, survey.dtrue, 'b.-')
         ax[0].loglog(rx.times, survey.dobs, 'r.-')
@@ -86,8 +85,8 @@ def run(plotIt=True):
         ax[1].set_ylabel('Depth (m)', fontsize=14)
         ax[1].grid(color='k', alpha=0.5, linestyle='dashed', linewidth=0.5)
         plt.legend(['$\sigma_{true}$', '$\sigma_{pred}$'])
-        plt.show()
 
 
 if __name__ == '__main__':
     run()
+    plt.show()

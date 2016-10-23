@@ -9,6 +9,7 @@ from SimPEG import Optimization
 from SimPEG import Regularization
 from SimPEG import InvProblem
 from SimPEG import Inversion
+import matplotlib.pyplot as plt
 
 
 def run(N=100, plotIt=True):
@@ -67,8 +68,6 @@ def run(N=100, plotIt=True):
     mrec = inv.run(m0)
 
     if plotIt:
-        import matplotlib.pyplot as plt
-
         fig, axes = plt.subplots(1, 2, figsize=(12*1.2, 4*1.2))
         for i in range(prob.G.shape[0]):
             axes[0].plot(prob.G[i, :])
@@ -77,9 +76,9 @@ def run(N=100, plotIt=True):
         axes[1].plot(M.vectorCCx, survey.mtrue, 'b-')
         axes[1].plot(M.vectorCCx, mrec, 'r-')
         axes[1].legend(('True Model', 'Recovered Model'))
-        plt.show()
 
     return prob, survey, mesh, mrec
 
 if __name__ == '__main__':
     run()
+    plt.show()

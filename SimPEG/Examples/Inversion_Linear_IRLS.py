@@ -1,5 +1,8 @@
 from __future__ import print_function
+
 import numpy as np
+import matplotlib.pyplot as plt
+
 from SimPEG import Mesh
 from SimPEG import Problem
 from SimPEG import Survey
@@ -96,8 +99,6 @@ def run(N=100, plotIt=True):
     print("Final misfit:" + str(invProb.dmisfit.eval(mrec)))
 
     if plotIt:
-        import matplotlib.pyplot as plt
-
         fig, axes = plt.subplots(1, 2, figsize=(12*1.2, 4*1.2))
         for i in range(prob.G.shape[0]):
             axes[0].plot(prob.G[i, :])
@@ -117,9 +118,9 @@ def run(N=100, plotIt=True):
             ),
             fontsize=12
         )
-        plt.show()
 
     return prob, survey, mesh, mrec
 
 if __name__ == '__main__':
     run()
+    plt.show()

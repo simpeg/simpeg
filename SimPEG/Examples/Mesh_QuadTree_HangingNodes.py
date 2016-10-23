@@ -1,4 +1,5 @@
 from SimPEG import Mesh
+import matplotlib.pyplot as plt
 
 
 def run(plotIt=True):
@@ -26,7 +27,6 @@ def run(plotIt=True):
     M.refine(refine)
     M.number()
     if plotIt:
-        import matplotlib.pyplot as plt
         M.plotGrid(nodes=True, cells=True, facesX=True)
         plt.legend((
             'Grid',
@@ -36,7 +36,7 @@ def run(plotIt=True):
             'X faces',
             'Hanging X faces'
         ))
-        plt.show()
 
 if __name__ == '__main__':
     run()
+    plt.show()

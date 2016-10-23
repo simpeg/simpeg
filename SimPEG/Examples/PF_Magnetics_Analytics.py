@@ -1,5 +1,7 @@
 import numpy as np
 from SimPEG import PF
+import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
 def run(plotIt=True):
@@ -39,8 +41,6 @@ def run(plotIt=True):
     Bzca = np.reshape(bz, (np.size(xr), np.size(yr)), order='F')
 
     if plotIt:
-        import matplotlib.pyplot as plt
-        from mpl_toolkits.axes_grid1 import make_axes_locatable
         plt.figure(figsize=(14, 5))
 
         ax1 = plt.subplot(121)
@@ -60,7 +60,7 @@ def run(plotIt=True):
         ax2.set_ylabel('South-North (m)')
         plt.colorbar(dat2, cax=cax2)
         ax2.set_title('$B_z$ field at Vancouver, Canada')
-        plt.show()
 
 if __name__ == '__main__':
     run()
+    plt.show()

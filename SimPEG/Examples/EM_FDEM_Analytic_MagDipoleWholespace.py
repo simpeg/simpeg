@@ -1,6 +1,8 @@
 import numpy as np
 from SimPEG import Utils
 import SimPEG.EM as EM
+import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 
 
 def run(XYZ=None, loc=np.r_[0., 0., 0.], sig=1.0, freq=1.0, orientation='Z',
@@ -32,8 +34,6 @@ def run(XYZ=None, loc=np.r_[0., 0., 0.], sig=1.0, freq=1.0, orientation='Z',
     absB = np.sqrt(Bx*Bx.conj()+By*By.conj()+Bz*Bz.conj()).real
 
     if plotIt:
-        import matplotlib.pyplot as plt
-        from matplotlib.colors import LogNorm
         fig, ax = plt.subplots(1, 1, figsize=(6, 5))
         bxplt = Bx.reshape(x.size, z.size)
         bzplt = Bz.reshape(x.size, z.size)
@@ -45,9 +45,10 @@ def run(XYZ=None, loc=np.r_[0., 0., 0.], sig=1.0, freq=1.0, orientation='Z',
         ax.set_ylabel('z')
         cb = plt.colorbar(pc, ax=ax)
         cb.set_label('|B| (T)')
-        plt.show()
+
 
         return fig, ax
 
 if __name__ == '__main__':
     run()
+    plt.show()

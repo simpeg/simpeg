@@ -2,6 +2,7 @@ from SimPEG import (np, Mesh, Maps, Utils, DataMisfit, Regularization,
                     Optimization, Inversion, InvProblem, Directives)
 from SimPEG.EM import FDEM, TDEM, mu_0
 import matplotlib.pyplot as plt
+import matplotlib
 try:
     from pymatsolver import PardisoSolver as Solver
 except ImportError:
@@ -123,7 +124,6 @@ def run(plotIt=True):
     moptTD = inv.run(m0)
 
     if plotIt:
-        import matplotlib
         plt.figure(figsize=(10, 8))
         ax0 = plt.subplot2grid((2, 2), (0, 0), rowspan=2)
         ax1 = plt.subplot2grid((2, 2), (0, 1))
@@ -179,7 +179,7 @@ def run(plotIt=True):
         ax2.set_title("(c) TDEM observed vs. predicted", fontsize=fs)
 
         plt.tight_layout(pad=1.5)
-        plt.show()
 
 if __name__ == '__main__':
     run(plotIt=True)
+    plt.show()

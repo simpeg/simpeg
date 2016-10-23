@@ -1,4 +1,5 @@
 from SimPEG import Mesh
+import matplotlib.pyplot as plt
 
 
 def run(plotIt=True, n=60):
@@ -18,7 +19,6 @@ def run(plotIt=True, n=60):
     M.number()
 
     if plotIt:
-        import matplotlib.pyplot as plt
         fig, axes = plt.subplots(2, 1, figsize=(10, 10))
 
         M.plotGrid(cells=True, nodes=False, ax=axes[0])
@@ -47,7 +47,7 @@ def run(plotIt=True, n=60):
         axes[1].set_title('Face Divergence')
         axes[1].set_ylabel('Cell Number')
         axes[1].set_xlabel('Face Number')
-        plt.show()
 
 if __name__ == '__main__':
     run()
+    plt.show()

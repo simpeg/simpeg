@@ -1,6 +1,7 @@
 from __future__ import print_function
 from SimPEG import Mesh, Utils, Solver
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 def run(plotIt=True, n=60):
@@ -99,7 +100,6 @@ def run(plotIt=True, n=60):
         ii += 1
 
     if plotIt:
-        import matplotlib.pyplot as plt
         fig, axes = plt.subplots(2, 4, figsize=(14, 6))
         axes = np.array(axes).flatten().tolist()
         for ii, ax in zip(np.linspace(0, len(PHIS)-1, len(axes)), axes):
@@ -107,7 +107,7 @@ def run(plotIt=True, n=60):
             M.plotImage(PHIS[ii][1], ax=ax)
             ax.axis('off')
             ax.set_title('Elapsed Time: {0:4.1f}'.format(PHIS[ii][0]))
-        plt.show()
 
 if __name__ == '__main__':
     run()
+    plt.show()

@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 
-
 import SimPEG as simpeg
 from SimPEG import np
 from SimPEG.EM import NSEM
@@ -131,7 +130,7 @@ def run(plotIt=True):
         fig = NSEM.Utils.dataUtils.plotMT1DModelData(problem, [mopt])
         fig.suptitle('Target - smooth true')
         fig.axes[0].set_ylim([-10000,500])
-        plt.show()
 
 if __name__ == '__main__':
     run()
+    plt.show()

@@ -1,4 +1,5 @@
 from SimPEG import Mesh, Maps, np
+import matplotlib.pyplot as plt
 
 
 def run(plotIt=True):
@@ -43,7 +44,6 @@ def run(plotIt=True):
     if not plotIt:
         return
 
-    import matplotlib.pyplot as plt
     figs, axs = plt.subplots(1, 2)
     axs[0].plot(m, M.vectorCCy, 'b-o')
     axs[0].set_title('Model')
@@ -58,8 +58,8 @@ def run(plotIt=True):
     axs[1].set_ylabel('Depth, y')
     clbar.set_label('$\sigma = \exp(\mathbf{P}m)$')
     plt.tight_layout()
-    plt.show()
 
 
 if __name__ == '__main__':
     run()
+    plt.show()

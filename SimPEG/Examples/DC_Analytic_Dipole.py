@@ -1,6 +1,7 @@
 from __future__ import print_function
 from SimPEG import Mesh, Utils
 import numpy as np
+import matplotlib.pyplot as plt
 import SimPEG.EM.Static.DC as DC
 try:
     from pymatsolver import PardisoSolver as Solver
@@ -57,7 +58,6 @@ def run(plotIt=True):
     Y = xyz_rxM[:, 1].reshape((21, 21), order='F')
 
     if plotIt:
-        import matplotlib.pyplot as plt
         fig, ax = plt.subplots(1, 2, figsize=(12, 5))
         vmin = np.r_[data, data_ana].min()
         vmax = np.r_[data, data_ana].max()
@@ -67,10 +67,10 @@ def run(plotIt=True):
         plt.colorbar(dat1, orientation='horizontal', ax=ax[1])
         ax[1].set_title('Analytic')
         ax[0].set_title('Computed')
-        plt.show()
 
     return np.linalg.norm(data-data_ana)/np.linalg.norm(data_ana)
 
 
 if __name__ == '__main__':
     print(run())
+    plt.show()

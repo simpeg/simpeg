@@ -26,8 +26,8 @@ class compareInitFiles(unittest.TestCase):
 
 def get(test):
     def test_func(self):
-        print('\nTesting {0!s}.run(plotIt=False)\n'.format(test))
-        getattr(Examples, test).run(plotIt=False)
+        print('\nTesting {0!s}.run(plotIt=True)\n'.format(test))
+        getattr(Examples, test).run(plotIt=True)
         self.assertTrue(True)
     return test_func
 attrs = dict()

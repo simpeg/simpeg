@@ -1,5 +1,6 @@
 from SimPEG import Mesh
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 def run(plotIt=True):
@@ -27,7 +28,8 @@ def run(plotIt=True):
 
     M.refine(refine)
     if plotIt:
-        M.plotGrid(showIt=True)
+        M.plotGrid()
 
 if __name__ == '__main__':
     run()
+    plt.show()

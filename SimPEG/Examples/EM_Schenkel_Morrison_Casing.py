@@ -1,4 +1,5 @@
 from __future__ import print_function
+import matplotlib.pylab as plt
 import numpy as np
 from SimPEG import Mesh, Maps, Utils
 from SimPEG.EM import FDEM
@@ -57,9 +58,6 @@ def run(plotIt=True):
         a citation would be much appreciated!
 
     """
-
-    if plotIt:
-        import matplotlib.pylab as plt
 
     # ------------------ MODEL ------------------
     sigmaair = 1e-8  # air
@@ -289,7 +287,7 @@ def run(plotIt=True):
         ax[1].set_title('Magnitude of Vertical Current in Casing')
         ax[1].set_ylim([1e-2, 1.])
 
-        plt.show()
 
 if __name__ == '__main__':
     run()
+    plt.show()

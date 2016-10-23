@@ -2,6 +2,7 @@ import numpy as np
 from SimPEG import Mesh
 from SimPEG import Utils
 from SimPEG.Utils import surface2ind_topo
+import matplotlib.pyplot as plt
 
 
 def run(plotIt=True, nx=5, ny=5):
@@ -53,8 +54,8 @@ def run(plotIt=True, nx=5, ny=5):
             cmap=plt.cm.gray,
             alpha=0.2
         )
-        plt.show()
 
 
 if __name__ == '__main__':
-    run(plotIt=True)
+    run()
+    plt.show()

@@ -1,4 +1,5 @@
 from SimPEG import Mesh, Utils
+import matplotlib.pyplot as plt
 
 
 def run(plotIt=True):
@@ -35,22 +36,22 @@ def run(plotIt=True):
 
     ov = P * v
 
-    if plotIt:
-        import matplotlib.pyplot as plt
+    if not plotIt:
+        return
 
-        fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
 
-        out = M.plotImage(v, grid=True, ax=axes[0])
-        cb = plt.colorbar(out[0], ax=axes[0])
-        cb.set_label("Random Field")
-        axes[0].set_title('TensorMesh')
+    out = M.plotImage(v, grid=True, ax=axes[0])
+    cb = plt.colorbar(out[0], ax=axes[0])
+    cb.set_label("Random Field")
+    axes[0].set_title('TensorMesh')
 
-        out = O.plotImage(ov, grid=True, ax=axes[1], clim=[0, 1])
-        cb = plt.colorbar(out[0], ax=axes[1])
-        cb.set_label("Random Field")
-        axes[1].set_title('TreeMesh')
+    out = O.plotImage(ov, grid=True, ax=axes[1], clim=[0, 1])
+    cb = plt.colorbar(out[0], ax=axes[1])
+    cb.set_label("Random Field")
+    axes[1].set_title('TreeMesh')
 
-        plt.show()
 
 if __name__ == '__main__':
     run()
+    plt.show()

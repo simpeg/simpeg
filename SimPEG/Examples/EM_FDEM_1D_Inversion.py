@@ -2,6 +2,7 @@ import numpy as np
 from SimPEG import (Mesh, Maps, Utils, DataMisfit, Regularization,
                     Optimization, Inversion, InvProblem, Directives)
 import SimPEG.EM as EM
+import matplotlib.pyplot as plt
 try:
     from pymatsolver import PardisoSolver as Solver
 except ImportError:
@@ -37,7 +38,6 @@ def run(plotIt=True):
     mtrue = np.log(sigma[active])
 
     if plotIt:
-        import matplotlib.pyplot as plt
         fig, ax = plt.subplots(1, 1, figsize=(3, 6))
         plt.semilogx(sigma[active], mesh.vectorCCz[active])
         ax.set_ylim(-500, 0)
@@ -70,7 +70,6 @@ def run(plotIt=True):
     survey.eps = np.linalg.norm(survey.dtrue)*1e-5
 
     if plotIt:
-        import matplotlib.pyplot as plt
         fig, ax = plt.subplots(1, 1, figsize=(6, 6))
         ax.semilogx(freqs, survey.dtrue[:freqs.size], 'b.-')
         ax.semilogx(freqs, survey.dobs[:freqs.size], 'r.-')
@@ -100,7 +99,6 @@ def run(plotIt=True):
     mopt = inv.run(m0)
 
     if plotIt:
-        import matplotlib.pyplot as plt
         fig, ax = plt.subplots(1, 1, figsize=(3, 6))
         plt.semilogx(sigma[active], mesh.vectorCCz[active])
         plt.semilogx(np.exp(mopt), mesh.vectorCCz[active])
@@ -110,8 +108,9 @@ def run(plotIt=True):
         ax.set_ylabel('Depth (m)', fontsize=14)
         ax.grid(color='k', alpha=0.5, linestyle='dashed', linewidth=0.5)
         plt.legend(['$\sigma_{true}$', '$\sigma_{pred}$'], loc='best')
-        plt.show()
+
 
 
 if __name__ == '__main__':
     run()
+    plt.show()

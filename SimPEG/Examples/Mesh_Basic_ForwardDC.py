@@ -1,4 +1,5 @@
 from SimPEG import Mesh, Utils, np, SolverLU
+import matplotlib.pyplot as plt
 
 
 def run(plotIt=True):
@@ -41,8 +42,6 @@ def run(plotIt=True):
     if not plotIt:
         return
 
-    import matplotlib.pyplot as plt
-
     # Step4: Making Figure
     fig, axes = plt.subplots(1, 2, figsize=(12*1.2, 4*1.2))
     vmin, vmax = phitM.min(), phitM.max()
@@ -55,8 +54,8 @@ def run(plotIt=True):
 
     axes[0].set_title('TensorMesh')
     axes[1].set_title('CurvilinearMesh')
-    plt.show()
 
 
 if __name__ == '__main__':
     run()
+    plt.show()

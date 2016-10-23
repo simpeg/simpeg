@@ -1,5 +1,5 @@
 from SimPEG import Mesh, Maps, Utils
-
+import matplotlib.pyplot as plt
 
 def run(plotIt=True):
     """
@@ -25,7 +25,6 @@ def run(plotIt=True):
     if not plotIt:
         return
 
-    import matplotlib.pyplot as plt
     ax = plt.subplot(131)
     M.plotImage(v, ax=ax)
     ax.set_title('Fine Mesh (Original)')
@@ -35,8 +34,8 @@ def run(plotIt=True):
     ax = plt.subplot(133)
     M.plotImage(h, clim=[0, 1], ax=ax)
     ax.set_title('Fine Mesh (Interpolated)')
-    plt.show()
 
 
 if __name__ == '__main__':
     run()
+    plt.show()

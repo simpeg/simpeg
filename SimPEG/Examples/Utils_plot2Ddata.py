@@ -1,4 +1,5 @@
 from SimPEG import EM, np, Utils
+import matplotlib.pyplot as plt
 
 
 def run(plotIt=True):
@@ -32,7 +33,6 @@ def run(plotIt=True):
     )
 
     if plotIt:
-        import matplotlib.pyplot as plt
         plt.figure()
         ax1 = plt.subplot(121)
         ax2 = plt.subplot(122)
@@ -53,8 +53,8 @@ def run(plotIt=True):
 
         ax1.set_aspect('equal', adjustable='box')
         ax2.set_aspect('equal', adjustable='box')
-        plt.show()
 
 
 if __name__ == '__main__':
     run()
+    plt.show()
