@@ -1,5 +1,14 @@
-from SimPEG import *
-import SimPEG.PF as PF
+from SimPEG import Mesh
+from SimPEG import Utils
+from SimPEG import Maps
+from SimPEG import Regularization
+from SimPEG import DataMisfit
+from SimPEG import Optimization
+from SimPEG import InvProblem
+from SimPEG import Directives
+from SimPEG import Inversion
+from SimPEG import PF
+import numpy as np
 
 
 def run(plotIt=True):
@@ -30,7 +39,7 @@ def run(plotIt=True):
     zz = -np.exp((xx**2 + yy**2) / 75**2) + mesh.vectorNz[-1]
 
     # We would usually load a topofile
-    topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
+    topo = np.c_[Utils.mkvc(xx), Utils.mkvc(yy), Utils.mkvc(zz)]
 
     # Go from topo to actv cells
     actv = Utils.surface2ind_topo(mesh, topo, 'N')
@@ -60,13 +69,13 @@ def run(plotIt=True):
     model = np.zeros((mesh.nCx, mesh.nCy, mesh.nCz))
     model[(midx-5):(midx-1), (midy-2):(midy+2), -10:-6] = 0.5
     model[(midx+1):(midx+5), (midy-2):(midy+2), -10:-6] = -0.5
-    model = mkvc(model)
+    model = Utils.mkvc(model)
     model = model[actv]
 
     # Create active map to go from reduce set to full
     actvMap = Maps.InjectActiveCells(mesh, actv, -100)
 
-    # Creat reduced identity map
+    # Create reduced identity map
     idenMap = Maps.IdentityMap(nP=nC)
 
     # Create the forward model operator
