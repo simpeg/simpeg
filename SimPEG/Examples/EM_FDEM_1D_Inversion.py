@@ -1,8 +1,11 @@
 import numpy as np
-from SimPEG import (Mesh, Maps, Utils, SolverLU, DataMisfit, Regularization,
+from SimPEG import (Mesh, Maps, Utils, DataMisfit, Regularization,
                     Optimization, Inversion, InvProblem, Directives)
 import SimPEG.EM as EM
-from SimPEG.EM import mu_0
+try:
+    from pymatsolver import PardisoSolver as Solver
+except ImportError:
+    from SimPEG import SolverLU as Solver
 
 
 def run(plotIt=True):
@@ -13,8 +16,6 @@ def run(plotIt=True):
         Here we will create and run a FDEM 1D inversion.
 
     """
-    from SimPEG import Depreciate
-    Depreciate.use_old_mappings()
 
     cs, ncx, ncz, npad = 5., 25, 15, 15
     hx = [(cs, ncx), (cs, npad, 1.3)]
@@ -46,8 +47,11 @@ def run(plotIt=True):
         ax.grid(color='k', alpha=0.5, linestyle='dashed', linewidth=0.5)
 
     rxOffset = 10.
-    bzi = EM.FDEM.Rx.Point_b(np.array([[rxOffset, 0., 1e-3]]), orientation='z',
-                             component='imag')
+    bzi = EM.FDEM.Rx.Point_b(
+        np.array([[rxOffset, 0., 1e-3]]),
+        orientation='z',
+        component='imag'
+    )
 
     freqs = np.logspace(1, 3, 10)
     srcLoc = np.array([0., 0., 10.])
@@ -56,14 +60,7 @@ def run(plotIt=True):
                for freq in freqs]
 
     survey = EM.FDEM.Survey(srcList)
-    prb = EM.FDEM.Problem3D_b(mesh, mapping=mapping)
-
-    try:
-        from pymatsolver import PardisoSolver
-        prb.Solver = PardisoSolver
-    except ImportError:
-        prb.Solver = SolverLU
-
+    prb = EM.FDEM.Problem3D_b(mesh, sigmaMap=mapping, Solver=Solver)
     prb.pair(survey)
 
     std = 0.05
@@ -74,10 +71,10 @@ def run(plotIt=True):
 
     if plotIt:
         import matplotlib.pyplot as plt
-        fig, ax = plt.subplots(1, 1, figsize = (6, 6))
+        fig, ax = plt.subplots(1, 1, figsize=(6, 6))
         ax.semilogx(freqs, survey.dtrue[:freqs.size], 'b.-')
         ax.semilogx(freqs, survey.dobs[:freqs.size], 'r.-')
-        ax.legend(('Noisefree', '$d^{obs}$'), fontsize = 16)
+        ax.legend(('Noisefree', '$d^{obs}$'), fontsize=16)
         ax.set_xlabel('Time (s)', fontsize=14)
         ax.set_ylabel('$B_z$ (T)', fontsize=16)
         ax.set_xlabel('Time (s)', fontsize=14)
