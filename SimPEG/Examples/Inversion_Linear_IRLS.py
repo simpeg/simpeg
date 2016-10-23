@@ -49,7 +49,7 @@ def run(N=100, plotIt=True):
     mtrue[mesh.vectorCCx > 0.45] = -0.5
     mtrue[mesh.vectorCCx > 0.6] = 0
 
-    prob = Problem.LinearProblem(mesh, G)
+    prob = Problem.LinearProblem(mesh, G=G)
     survey = Survey.LinearSurvey()
     survey.pair(prob)
     survey.dobs = prob.fields(mtrue) + std_noise * np.random.randn(nk)
