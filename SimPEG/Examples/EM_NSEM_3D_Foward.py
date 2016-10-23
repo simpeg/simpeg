@@ -17,6 +17,8 @@ def run(plotIt=True, nFreq=1):
         Forward model 3D MT data.
 
     """
+    from SimPEG import Depreciate
+    Depreciate.use_old_mappings()
 
     # Make a mesh
     M = simpeg.Mesh.TensorMesh([[(100,5,-1.5),(100.,10),(100,5,1.5)],[(100,5,-1.5),(100.,10),(100,5,1.5)],[(100,5,1.6),(100.,10),(100,3,2)]], x0=['C','C',-3529.5360])

@@ -16,25 +16,27 @@ def run(plotIt=True):
         Setup and run a MT 1D inversion.
 
     """
+    from SimPEG import Depreciate
+    Depreciate.use_old_mappings()
 
-    ## Setup the forward modeling
+    # Setup the forward modeling
     # Setting up 1D mesh and conductivity models to forward model data.
     # Frequency
     nFreq = 26
-    freqs = np.logspace(2,-3,nFreq)
+    freqs = np.logspace(2, -3, nFreq)
     # Set mesh parameters
     ct = 10
-    air = simpeg.Utils.meshTensor([(ct,25,1.4)])
-    core = np.concatenate( (  np.kron(simpeg.Utils.meshTensor([(ct,10,-1.3)]),np.ones((5,))) , simpeg.Utils.meshTensor([(ct,5)]) ) )
-    bot = simpeg.Utils.meshTensor([(core[0],25,-1.4)])
-    x0 = -np.array([np.sum(np.concatenate((core,bot)))])
+    air = simpeg.Utils.meshTensor([(ct, 25, 1.4)])
+    core = np.concatenate( (  np.kron(simpeg.Utils.meshTensor([(ct, 10, -1.3)]), np.ones((5, ))) , simpeg.Utils.meshTensor([(ct,5)]) ) )
+    bot = simpeg.Utils.meshTensor([(core[0], 25, -1.4)])
+    x0 = -np.array([np.sum(np.concatenate((core, bot)))])
     # Make the model
-    m1d = simpeg.Mesh.TensorMesh([np.concatenate((bot,core,air))], x0=x0)
+    m1d = simpeg.Mesh.TensorMesh([np.concatenate((bot, core, air))], x0=x0)
 
     # Setup model varibles
-    active = m1d.vectorCCx<0.
-    layer1 = (m1d.vectorCCx<-500.) & (m1d.vectorCCx>=-800.)
-    layer2 = (m1d.vectorCCx<-3500.) & (m1d.vectorCCx>=-5000.)
+    active = m1d.vectorCCx < 0.
+    layer1 = (m1d.vectorCCx < -500.) & (m1d.vectorCCx >= -800.)
+    layer2 = (m1d.vectorCCx < -3500.) & (m1d.vectorCCx >= -5000.)
     # Set the conductivity values
     sig_half = 1e-2
     sig_air = 1e-8
@@ -56,11 +58,11 @@ def run(plotIt=True):
     actMap = simpeg.Maps.InjectActiveCells(m1d, active, np.log(1e-8), nC=m1d.nCx)
     mappingExpAct = simpeg.Maps.ExpMap(m1d) * actMap
 
-    ## Setup the layout of the survey, set the sources and the connected receivers
+    # Setup the layout of the survey, set the sources and the connected receivers
     # Receivers
     rxList = []
-    rxList.append(NSEM.Rx.Point_impedance1D(simpeg.mkvc(np.array([-0.5]),2).T,'real'))
-    rxList.append(NSEM.Rx.Point_impedance1D(simpeg.mkvc(np.array([-0.5]),2).T,'imag'))
+    rxList.append(NSEM.Rx.Point_impedance1D(simpeg.mkvc(np.array([-0.5]), 2).T, 'real'))
+    rxList.append(NSEM.Rx.Point_impedance1D(simpeg.mkvc(np.array([-0.5]), 2).T, 'imag'))
     # Source list
     srcList =[]
     for freq in freqs:
@@ -69,11 +71,11 @@ def run(plotIt=True):
     survey = NSEM.Survey(srcList)
     survey.mtrue = m_true
 
-    ## Set the problem
-    problem = NSEM.Problem1D_ePrimSec(m1d,sigmaPrimary=sigma_0,mapping=mappingExpAct)
+    # Set the problem
+    problem = NSEM.Problem1D_ePrimSec(m1d, sigmaPrimary=sigma_0, mapping=mappingExpAct)
     problem.pair(survey)
 
-    ## Forward model data
+    # Forward model data
     # Project the data
     survey.dtrue = survey.dpred(m_true)
     survey.dobs = survey.dtrue + 0.01*abs(survey.dtrue)*np.random.randn(*survey.dtrue.shape)
@@ -82,14 +84,13 @@ def run(plotIt=True):
         fig = NSEM.Utils.dataUtils.plotMT1DModelData(problem,[])
         fig.suptitle('Target - smooth true')
 
-
     # Assign uncertainties
     std = 0.05 # 5% std
     survey.std = np.abs(survey.dobs*std)
     # Assign the data weight
     Wd = 1./survey.std
 
-    ## Setup the inversion proceedure
+    # Setup the inversion proceedure
     # Define a counter
     C =  simpeg.Utils.Counter()
     # Set the optimization

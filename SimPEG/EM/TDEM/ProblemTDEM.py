@@ -16,7 +16,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
     fieldsPair = FieldsTDEM  #: A SimPEG.EM.TDEM.FieldsTDEM Class
 
     def __init__(self, mesh, **kwargs):
-        Problem.BaseTimeProblem.__init__(self, mesh, **kwargs)
+        BaseEMProblem.__init__(self, mesh, **kwargs)
 
     # def fields_nostore(self, m):
     #     """

@@ -14,6 +14,8 @@ def run(XYZ=None, loc=np.r_[0., 0., 0.], sig=1.0, freq=1.0, orientation='Z',
         wholespace.
 
     """
+    from SimPEG import Depreciate
+    Depreciate.use_old_mappings()
 
     if XYZ is None:
         # avoid putting measurement points where source is

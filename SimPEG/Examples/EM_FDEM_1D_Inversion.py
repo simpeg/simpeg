@@ -13,6 +13,8 @@ def run(plotIt=True):
         Here we will create and run a FDEM 1D inversion.
 
     """
+    from SimPEG import Depreciate
+    Depreciate.use_old_mappings()
 
     cs, ncx, ncz, npad = 5., 25, 15, 15
     hx = [(cs, ncx), (cs, npad, 1.3)]

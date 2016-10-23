@@ -5,6 +5,9 @@ import SimPEG.EM.Static.DC as DC
 
 
 def run(plotIt=True):
+    from SimPEG import Depreciate
+    Depreciate.use_old_mappings()
+
     cs = 25.
     hx = [(cs, 7, -1.3), (cs, 21), (cs, 7, 1.3)]
     hy = [(cs, 7, -1.3), (cs, 21), (cs, 7, 1.3)]

@@ -2,7 +2,6 @@ from SimPEG import (np, Mesh, Maps, Utils, DataMisfit, Regularization,
                     Optimization, Inversion, InvProblem, Directives)
 from SimPEG import SolverLU
 from SimPEG.EM import FDEM, TDEM, mu_0
-import warnings
 import matplotlib.pyplot as plt
 
 
@@ -14,6 +13,8 @@ def run(plotIt=True):
     This example is used in the paper Heagy et al 2016 (in prep)
 
     """
+    from SimPEG import Depreciate
+    Depreciate.use_old_mappings()
 
     # Set up cylindrically symmeric mesh
     cs, ncx, ncz, npad = 10., 15, 25, 13  # padded cyl mesh

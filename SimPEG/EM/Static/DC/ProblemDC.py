@@ -119,6 +119,7 @@ class Problem3D_CC(BaseDCProblem):
     fieldsPair = Fields_CC
 
     def __init__(self, mesh, **kwargs):
+
         BaseDCProblem.__init__(self, mesh, **kwargs)
         self.setBC()
 

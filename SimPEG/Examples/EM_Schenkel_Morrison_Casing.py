@@ -59,6 +59,8 @@ def run(plotIt=True):
         a citation would be much appreciated!
 
     """
+    from SimPEG import Depreciate
+    Depreciate.use_old_mappings()
 
     if plotIt:
         import matplotlib.pylab as plt
@@ -127,7 +129,6 @@ def run(plotIt=True):
         fig, ax = plt.subplots(1, 1, figsize=(6, 4))
         ax.set_title('Simulation Mesh')
         mesh.plotGrid(ax=ax)
-        plt.show()
 
     # Put the model on the mesh
     sigWholespace = sigmaback*np.ones((mesh.nC))
@@ -158,8 +159,6 @@ def run(plotIt=True):
         ax.set_xlim(xlim)
         ax.set_ylim(zlim)
         f.set_clim(clim_sig)
-
-        plt.show()
 
     # -------------- Sources --------------------
     # Define Custom Current Sources
@@ -215,7 +214,7 @@ def run(plotIt=True):
 
     # couple to the casing downhole
     dgh_indx = mesh.gridFx[:, 0] < casing_a + csx1
-    dgh_indz = (mesh.gridFx[:, 2] < dsz + csz)  & (mesh.gridFx[:, 2] >= dsz)
+    dgh_indz = (mesh.gridFx[:, 2] < dsz + csz) & (mesh.gridFx[:, 2] >= dsz)
     dgh_ind = dgh_indx & dgh_indz
     dg_x[dgh_ind] = 1.
 

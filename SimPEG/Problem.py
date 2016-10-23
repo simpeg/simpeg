@@ -51,7 +51,6 @@ class BaseProblem(Props.BaseSimPEG):
             "mesh must be a SimPEG.Mesh object."
         )
         self.mesh = mesh
-        # self.mapping = mapping or Maps.IdentityMap(mesh)
 
     @property
     def survey(self):
@@ -246,6 +245,7 @@ class LinearProblem(BaseProblem):
 
     def __init__(self, mesh, G, **kwargs):
         BaseProblem.__init__(self, mesh, **kwargs)
+        self.mapping = kwargs.pop('mapping', Maps.IdentityMap(mesh))
         self.G = G
 
     def fields(self, m):
