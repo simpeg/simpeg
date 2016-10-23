@@ -29,7 +29,8 @@ class IdentityMap(object):
 
         if nP is not None:
             assert isinstance(nP, integer_types), (
-                'Number of parameters must be an integer.'
+                'Number of parameters must be an integer. Not `{}`.'
+                .format(type(nP))
             )
             nP = int(nP)
 
@@ -123,6 +124,10 @@ class IdentityMap(object):
             m = abs(np.random.rand(self.nP))
         if 'plotIt' not in kwargs:
             kwargs['plotIt'] = False
+        assert isinstance(self.nP, integer_types), (
+            "nP must be an integer for {}"
+            .format(self.__class__.__name__)
+        )
         return checkDerivative(lambda m: [self * m, self.deriv(m)], m, num=4,
                                **kwargs)
 
@@ -321,14 +326,16 @@ class Wires(object):
         for arg in args:
             assert (
                 isinstance(arg, tuple) and
+                len(arg) == 2 and
                 isinstance(arg[0], string_types) and
                 # TODO: this should be extended to a slice.
                 isinstance(arg[1], integer_types)
             ), (
-                "Each wire needs to be a tuple: (name, length)"
+                "Each wire needs to be a tuple: (name, length). "
+                "You provided: {}".format(arg)
             )
 
-        self._nP = np.sum([w[1] for w in args])
+        self._nP = int(np.sum([w[1] for w in args]))
 
         start = 0
         maps = []
@@ -520,17 +527,6 @@ class SurjectFull(IdentityMap):
         return deriv
 
 
-class FullMap(SurjectFull):
-    """FullMap is depreciated. Use SurjectVertical1DMap instead.
-    """
-    def __init__(self, mesh, **kwargs):
-        warnings.warn(
-            "`FullMap` is deprecated and will be removed in future versions."
-            " Use `SurjectFull` instead",
-            FutureWarning)
-        SurjectFull.__init__(self, mesh, **kwargs)
-
-
 class SurjectVertical1D(IdentityMap):
     """SurjectVertical1DMap
 
@@ -548,7 +544,7 @@ class SurjectVertical1D(IdentityMap):
 
            The number of cells in the
            last dimension of the mesh."""
-        return self.mesh.vnC[self.mesh.dim-1]
+        return int(self.mesh.vnC[self.mesh.dim-1])
 
     def _transform(self, m):
         """
@@ -574,18 +570,6 @@ class SurjectVertical1D(IdentityMap):
         if v is not None:
             return deriv * v
         return deriv
-
-
-class Vertical1DMap(SurjectVertical1D):
-    """
-        Vertical1DMap is depreciated. Use SurjectVertical1D instead.
-    """
-    def __init__(self, mesh, **kwargs):
-        warnings.warn(
-            "`Vertical1DMap` is deprecated and will be removed in future"
-            "versions. Use `SurjectVertical1D` instead",
-            FutureWarning)
-        SurjectVertical1D.__init__(self, mesh, **kwargs)
 
 
 class Surject2Dto3D(IdentityMap):
@@ -665,18 +649,6 @@ class Surject2Dto3D(IdentityMap):
         if v is not None:
             return P * v
         return P
-
-
-class Map2Dto3D(Surject2Dto3D):
-    """Map2Dto3D is depreciated. Use Surject2Dto3D instead
-    """
-
-    def __init__(self, mesh, **kwargs):
-        warnings.warn(
-            "`Map2Dto3D` is deprecated and will be removed in future versions."
-            " Use `Surject2Dto3D` instead",
-            FutureWarning)
-        Surject2Dto3D.__init__(self, mesh, **kwargs)
 
 
 class Mesh2Mesh(IdentityMap):
@@ -761,7 +733,7 @@ class InjectActiveCells(IdentityMap):
     @property
     def nP(self):
         """Number of parameters in the model."""
-        return self.indActive.sum()
+        return int(self.indActive.sum())
 
     def _transform(self, m):
         return self.P * m + self.valInactive
@@ -773,18 +745,6 @@ class InjectActiveCells(IdentityMap):
         if v is not None:
             return self.P * v
         return self.P
-
-
-class ActiveCells(InjectActiveCells):
-    """ActiveCells is depreciated. Use InjectActiveCells instead.
-    """
-
-    def __init__(self, mesh, indActive, valInactive, nC=None):
-        warnings.warn(
-            "`ActiveCells` is deprecated and will be removed in future "
-            "versions. Use `InjectActiveCells` instead",
-            FutureWarning)
-        InjectActiveCells.__init__(self, mesh, indActive, valInactive, nC)
 
 
 class Weighting(IdentityMap):
@@ -960,18 +920,6 @@ class ParametricCircleMap(IdentityMap):
         return sp.csr_matrix(np.c_[g1, g2, g3, g4, g5])
 
 
-class CircleMap(ParametricCircleMap):
-    """CircleMap is depreciated. Use ParametricCircleMap instead.
-    """
-
-    def __init__(self, mesh, logSigma=True):
-        warnings.warn(
-            "`CircleMap` is deprecated and will be removed in future "
-            "versions. Use `ParametricCircleMap` instead",
-            FutureWarning)
-        ParametricCircleMap.__init__(self, mesh, logSigma)
-
-
 class ParametricPolyMap(IdentityMap):
 
     """PolyMap
@@ -1115,21 +1063,6 @@ class ParametricPolyMap(IdentityMap):
         if v is not None:
             return sp.csr_matrix(np.c_[g1, g2, g3]) * v
         return sp.csr_matrix(np.c_[g1, g2, g3])
-
-
-class PolyMap(ParametricPolyMap):
-
-    """PolyMap is depreciated. Use ParametricSplineMap instead.
-
-    """
-
-    def __init__(self, mesh, order, logSigma=True, normal='X', actInd=None):
-        warnings.warn(
-            "`PolyMap` is deprecated and will be removed in future "
-            "versions. Use `ParametricSplineMap` instead",
-            FutureWarning
-        )
-        ParametricPolyMap(self, mesh, order, logSigma, normal, actInd)
 
 
 class ParametricSplineMap(IdentityMap):
@@ -1331,9 +1264,80 @@ class ParametricSplineMap(IdentityMap):
         return sp.csr_matrix(np.c_[g1, g2, g3])
 
 
+###############################################################################
+#                                                                             #
+#                              Depreciated Maps                               #
+#                                                                             #
+###############################################################################
+
+
+class FullMap(SurjectFull):
+    """FullMap is depreciated. Use SurjectVertical1DMap instead"""
+    def __init__(self, mesh, **kwargs):
+        warnings.warn(
+            "`FullMap` is deprecated and will be removed in future versions."
+            " Use `SurjectFull` instead",
+            FutureWarning)
+        SurjectFull.__init__(self, mesh, **kwargs)
+
+
+class Vertical1DMap(SurjectVertical1D):
+    """Vertical1DMap is depreciated. Use SurjectVertical1D instead"""
+    def __init__(self, mesh, **kwargs):
+        warnings.warn(
+            "`Vertical1DMap` is deprecated and will be removed in future"
+            "versions. Use `SurjectVertical1D` instead",
+            FutureWarning)
+        SurjectVertical1D.__init__(self, mesh, **kwargs)
+
+
+class Map2Dto3D(Surject2Dto3D):
+    """Map2Dto3D is depreciated. Use Surject2Dto3D instead"""
+
+    def __init__(self, mesh, **kwargs):
+        warnings.warn(
+            "`Map2Dto3D` is deprecated and will be removed in future versions."
+            " Use `Surject2Dto3D` instead",
+            FutureWarning)
+        Surject2Dto3D.__init__(self, mesh, **kwargs)
+
+
+class ActiveCells(InjectActiveCells):
+    """ActiveCells is depreciated. Use InjectActiveCells instead"""
+
+    def __init__(self, mesh, indActive, valInactive, nC=None):
+        warnings.warn(
+            "`ActiveCells` is deprecated and will be removed in future "
+            "versions. Use `InjectActiveCells` instead",
+            FutureWarning)
+        InjectActiveCells.__init__(self, mesh, indActive, valInactive, nC)
+
+
+class CircleMap(ParametricCircleMap):
+    """CircleMap is depreciated. Use ParametricCircleMap instead"""
+
+    def __init__(self, mesh, logSigma=True):
+        warnings.warn(
+            "`CircleMap` is deprecated and will be removed in future "
+            "versions. Use `ParametricCircleMap` instead",
+            FutureWarning)
+        ParametricCircleMap.__init__(self, mesh, logSigma)
+
+
+class PolyMap(ParametricPolyMap):
+    """PolyMap is depreciated. Use ParametricSplineMap instead"""
+
+    def __init__(self, mesh, order, logSigma=True, normal='X', actInd=None):
+        warnings.warn(
+            "`PolyMap` is deprecated and will be removed in future "
+            "versions. Use `ParametricSplineMap` instead",
+            FutureWarning
+        )
+        ParametricPolyMap(self, mesh, order, logSigma, normal, actInd)
+
+
 class SplineMap(ParametricSplineMap):
-    """SplineMap is depreciated. Use ParametricSplineMap instead.
-    """
+    """SplineMap is depreciated. Use ParametricSplineMap instead"""
 
     def __init__(self, mesh, pts, ptsv=None, order=3, logSigma=True,
                  normal='X'):

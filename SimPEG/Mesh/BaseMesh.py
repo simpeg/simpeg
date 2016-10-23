@@ -89,7 +89,7 @@ class BaseMesh(object):
         :rtype: int
         :return: nEx
         """
-        return (self._n + np.r_[0, 1, 1][:self.dim]).prod()
+        return int((self._n + np.r_[0, 1, 1][:self.dim]).prod())
 
     @property
     def nEy(self):
@@ -99,7 +99,9 @@ class BaseMesh(object):
         :rtype: int
         :return: nEy
         """
-        return None if self.dim < 2 else (self._n + np.r_[1, 0, 1][:self.dim]).prod()
+        if self.dim < 2:
+            return None
+        return int((self._n + np.r_[1, 0, 1][:self.dim]).prod())
 
     @property
     def nEz(self):
@@ -109,7 +111,9 @@ class BaseMesh(object):
         :rtype: int
         :return: nEz
         """
-        return None if self.dim < 3 else (self._n + np.r_[1, 1, 0][:self.dim]).prod()
+        if self.dim < 3:
+            return None
+        return int((self._n + np.r_[1, 1, 0][:self.dim]).prod())
 
     @property
     def vnE(self):
@@ -123,9 +127,13 @@ class BaseMesh(object):
             :include-source:
 
             from SimPEG import Mesh, np
-            Mesh.TensorMesh([np.ones(n) for n in [2,3]]).plotGrid(edges=True,showIt=True)
+            M = Mesh.TensorMesh([np.ones(n) for n in [2,3]])
+            M.plotGrid(edges=True,showIt=True)
         """
-        return np.array([x for x in [self.nEx, self.nEy, self.nEz] if not x is None])
+        return np.array(
+            [x for x in [self.nEx, self.nEy, self.nEz] if x is not None],
+            dtype=int
+        )
 
     @property
     def nE(self):
@@ -146,7 +154,7 @@ class BaseMesh(object):
         :rtype: int
         :return: nFx
         """
-        return (self._n + np.r_[1, 0, 0][:self.dim]).prod()
+        return int((self._n + np.r_[1, 0, 0][:self.dim]).prod())
 
     @property
     def nFy(self):
@@ -156,7 +164,9 @@ class BaseMesh(object):
         :rtype: int
         :return: nFy
         """
-        return None if self.dim < 2 else (self._n + np.r_[0, 1, 0][:self.dim]).prod()
+        if self.dim < 2:
+            return None
+        return int((self._n + np.r_[0, 1, 0][:self.dim]).prod())
 
     @property
     def nFz(self):
@@ -166,7 +176,9 @@ class BaseMesh(object):
         :rtype: int
         :return: nFz
         """
-        return None if self.dim < 3 else (self._n + np.r_[0, 0, 1][:self.dim]).prod()
+        if self.dim < 3:
+            return None
+        return int((self._n + np.r_[0, 0, 1][:self.dim]).prod())
 
     @property
     def vnF(self):
@@ -182,7 +194,10 @@ class BaseMesh(object):
             from SimPEG import Mesh, np
             Mesh.TensorMesh([np.ones(n) for n in [2,3]]).plotGrid(faces=True,showIt=True)
         """
-        return np.array([x for x in [self.nFx, self.nFy, self.nFz] if not x is None])
+        return np.array(
+            [x for x in [self.nFx, self.nFy, self.nFz] if x is not None],
+            dtype=int
+        )
 
     @property
     def nF(self):
@@ -281,7 +296,9 @@ class BaseRectangularMesh(BaseMesh):
         :rtype: int
         :return: nCy or None if dim < 2
         """
-        return None if self.dim < 2 else int(self._n[1])
+        if self.dim < 2:
+            return None
+        return int(self._n[1])
 
     @property
     def nCz(self):
@@ -290,7 +307,9 @@ class BaseRectangularMesh(BaseMesh):
         :rtype: int
         :return: nCz or None if dim < 3
         """
-        return None if self.dim < 3 else int(self._n[2])
+        if self.dim < 3:
+            return None
+        return int(self._n[2])
 
     @property
     def vnC(self):
@@ -300,7 +319,10 @@ class BaseRectangularMesh(BaseMesh):
         :rtype: numpy.array
         :return: [nCx, nCy, nCz]
         """
-        return np.array([x for x in [self.nCx, self.nCy, self.nCz] if not x is None])
+        return np.array(
+            [x for x in [self.nCx, self.nCy, self.nCz] if x is not None],
+            dtype=int
+        )
 
     @property
     def nNx(self):
@@ -320,7 +342,9 @@ class BaseRectangularMesh(BaseMesh):
         :rtype: int
         :return: nNy or None if dim < 2
         """
-        return None if self.dim < 2 else self.nCy + 1
+        if self.dim < 2:
+            return None
+        return self.nCy + 1
 
     @property
     def nNz(self):
@@ -330,7 +354,9 @@ class BaseRectangularMesh(BaseMesh):
         :rtype: int
         :return: nNz or None if dim < 3
         """
-        return None if self.dim < 3 else self.nCz + 1
+        if self.dim < 3:
+            return None
+        return self.nCz + 1
 
     @property
     def vnN(self):
@@ -340,7 +366,10 @@ class BaseRectangularMesh(BaseMesh):
         :rtype: numpy.array
         :return: [nNx, nNy, nNz]
         """
-        return np.array([x for x in [self.nNx, self.nNy, self.nNz] if not x is None])
+        return np.array(
+            [x for x in [self.nNx, self.nNy, self.nNz] if x is not None],
+            dtype=int
+        )
 
     @property
     def vnEx(self):
@@ -350,7 +379,10 @@ class BaseRectangularMesh(BaseMesh):
         :rtype: numpy.array
         :return: vnEx
         """
-        return np.array([x for x in [self.nCx, self.nNy, self.nNz] if not x is None])
+        return np.array(
+            [x for x in [self.nCx, self.nNy, self.nNz] if x is not None],
+            dtype=int
+        )
 
     @property
     def vnEy(self):
@@ -360,7 +392,12 @@ class BaseRectangularMesh(BaseMesh):
         :rtype: numpy.array
         :return: vnEy or None if dim < 2
         """
-        return None if self.dim < 2 else np.array([x for x in [self.nNx, self.nCy, self.nNz] if not x is None])
+        if self.dim < 2:
+            return None
+        return np.array(
+            [x for x in [self.nNx, self.nCy, self.nNz] if x is not None],
+            dtype=int
+        )
 
     @property
     def vnEz(self):
@@ -370,7 +407,12 @@ class BaseRectangularMesh(BaseMesh):
         :rtype: numpy.array
         :return: vnEz or None if dim < 3
         """
-        return None if self.dim < 3 else np.array([x for x in [self.nNx, self.nNy, self.nCz] if not x is None])
+        if self.dim < 3:
+            return None
+        return np.array(
+            [x for x in [self.nNx, self.nNy, self.nCz] if x is not None],
+            dtype=int
+        )
 
     @property
     def vnFx(self):
@@ -380,7 +422,10 @@ class BaseRectangularMesh(BaseMesh):
         :rtype: numpy.array
         :return: vnFx
         """
-        return np.array([x for x in [self.nNx, self.nCy, self.nCz] if not x is None])
+        return np.array(
+            [x for x in [self.nNx, self.nCy, self.nCz] if x is not None],
+            dtype=int
+        )
 
     @property
     def vnFy(self):
@@ -390,7 +435,12 @@ class BaseRectangularMesh(BaseMesh):
         :rtype: numpy.array
         :return: vnFy or None if dim < 2
         """
-        return None if self.dim < 2 else np.array([x for x in [self.nCx, self.nNy, self.nCz] if not x is None])
+        if self.dim < 2:
+            return None
+        return np.array(
+            [x for x in [self.nCx, self.nNy, self.nCz] if x is not None],
+            dtype=int
+        )
 
     @property
     def vnFz(self):
@@ -400,7 +450,12 @@ class BaseRectangularMesh(BaseMesh):
         :rtype: numpy.array
         :return: vnFz or None if dim < 3
         """
-        return None if self.dim < 3 else np.array([x for x in [self.nCx, self.nCy, self.nNz] if not x is None])
+        if self.dim < 3:
+            return None
+        return np.array(
+            [x for x in [self.nCx, self.nCy, self.nNz] if x is not None],
+            dtype=int
+        )
 
     ##################################
     # Redo the numbering so they are dependent of the vector numbers
