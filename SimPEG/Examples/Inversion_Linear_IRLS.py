@@ -13,11 +13,10 @@ from SimPEG import Inversion
 
 def run(N=100, plotIt=True):
     """
-        Inversion for compact models (IRLS)
-        ===================================
+        Inversion: Linear: IRLS
+        =======================
 
         Here we go over the basics of creating a linear problem and inversion.
-
     """
 
     np.random.seed(1)
@@ -30,11 +29,15 @@ def run(N=100, plotIt=True):
     mref = np.zeros(mesh.nC)
 
     nk = 10
-    jk = np.linspace(1.,nk,nk)
+    jk = np.linspace(1., nk, nk)
     p = -2.
     q = 1.
 
-    g = lambda k: np.exp(p*jk[k]*mesh.vectorCCx)*np.cos(np.pi*q*jk[k]*mesh.vectorCCx)
+    def g(k):
+        return (
+            np.exp(p*jk[k]*mesh.vectorCCx) *
+            np.cos(np.pi*q*jk[k]*mesh.vectorCCx)
+        )
 
     G = np.empty((nk, mesh.nC))
 
@@ -55,7 +58,7 @@ def run(N=100, plotIt=True):
 
     # Distance weighting
     wr = np.sum(prob.G**2., axis=0)**0.5
-    wr = ( wr/np.max(wr) )
+    wr = wr/np.max(wr)
 
     dmis = DataMisfit.l2_DataMisfit(survey)
     dmis.Wd = 1./wd
@@ -77,7 +80,7 @@ def run(N=100, plotIt=True):
 
     # Set the IRLS directive, penalize the lowest 25 percentile of model values
     # Start with an l2-l2, then switch to lp-norms
-    norms   = [0., 0., 2., 2.]
+    norms = [0., 0., 2., 2.]
     IRLS = Directives.Update_IRLS(
         norms=norms, prctile=25, maxIRLSiter=15, minGNiter=3
     )
@@ -106,8 +109,14 @@ def run(N=100, plotIt=True):
         axes[1].set_ylim(-1.0, 1.25)
 
         axes[1].plot(mesh.vectorCCx, mrec, 'k-', lw=2)
-        axes[1].legend(('True Model', 'Smooth l2-l2',
-        'Sparse lp:' + str(reg.norms[0]) + ', lqx:' + str(reg.norms[1]) ), fontsize=12)
+        axes[1].legend(
+            (
+                'True Model',
+                'Smooth l2-l2',
+                'Sparse lp: {0}, lqx: {1}'.format(*reg.norms)
+            ),
+            fontsize=12
+        )
         plt.show()
 
     return prob, survey, mesh, mrec
