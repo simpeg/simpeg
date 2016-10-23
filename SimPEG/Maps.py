@@ -16,7 +16,6 @@ from scipy.interpolate import UnivariateSpline
 
 from . import Utils
 from .Tests import checkDerivative
-from .PropMaps import PropMap, Property
 
 
 class IdentityMap(object):
