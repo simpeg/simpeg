@@ -63,7 +63,7 @@ class BaseMesh(object):
             from SimPEG import Mesh, np
             Mesh.TensorMesh([np.ones(n) for n in [2,3]]).plotGrid(centers=True,showIt=True)
         """
-        return self._n.prod()
+        return int(self._n.prod())
 
     @property
     def nN(self):
@@ -79,7 +79,7 @@ class BaseMesh(object):
             from SimPEG import Mesh, np
             Mesh.TensorMesh([np.ones(n) for n in [2,3]]).plotGrid(nodes=True,showIt=True)
         """
-        return (self._n+1).prod()
+        return int((self._n+1).prod())
 
     @property
     def nEx(self):
@@ -89,7 +89,7 @@ class BaseMesh(object):
         :rtype: int
         :return: nEx
         """
-        return (self._n + np.r_[0,1,1][:self.dim]).prod()
+        return (self._n + np.r_[0, 1, 1][:self.dim]).prod()
 
     @property
     def nEy(self):
@@ -99,7 +99,7 @@ class BaseMesh(object):
         :rtype: int
         :return: nEy
         """
-        return None if self.dim < 2 else (self._n + np.r_[1,0,1][:self.dim]).prod()
+        return None if self.dim < 2 else (self._n + np.r_[1, 0, 1][:self.dim]).prod()
 
     @property
     def nEz(self):
@@ -109,7 +109,7 @@ class BaseMesh(object):
         :rtype: int
         :return: nEz
         """
-        return None if self.dim < 3 else (self._n + np.r_[1,1,0][:self.dim]).prod()
+        return None if self.dim < 3 else (self._n + np.r_[1, 1, 0][:self.dim]).prod()
 
     @property
     def vnE(self):
@@ -136,7 +136,7 @@ class BaseMesh(object):
         :return: sum([nEx, nEy, nEz])
 
         """
-        return self.vnE.sum()
+        return int(self.vnE.sum())
 
     @property
     def nFx(self):
@@ -146,7 +146,7 @@ class BaseMesh(object):
         :rtype: int
         :return: nFx
         """
-        return (self._n + np.r_[1,0,0][:self.dim]).prod()
+        return (self._n + np.r_[1, 0, 0][:self.dim]).prod()
 
     @property
     def nFy(self):
@@ -156,7 +156,7 @@ class BaseMesh(object):
         :rtype: int
         :return: nFy
         """
-        return None if self.dim < 2 else (self._n + np.r_[0,1,0][:self.dim]).prod()
+        return None if self.dim < 2 else (self._n + np.r_[0, 1, 0][:self.dim]).prod()
 
     @property
     def nFz(self):
@@ -166,7 +166,7 @@ class BaseMesh(object):
         :rtype: int
         :return: nFz
         """
-        return None if self.dim < 3 else (self._n + np.r_[0,0,1][:self.dim]).prod()
+        return None if self.dim < 3 else (self._n + np.r_[0, 0, 1][:self.dim]).prod()
 
     @property
     def vnF(self):
@@ -193,7 +193,7 @@ class BaseMesh(object):
         :return: sum([nFx, nFy, nFz])
 
         """
-        return self.vnF.sum()
+        return int(self.vnF.sum())
 
     @property
     def normals(self):
@@ -271,7 +271,7 @@ class BaseRectangularMesh(BaseMesh):
         :rtype: int
         :return: nCx
         """
-        return self._n[0]
+        return int(self._n[0])
 
     @property
     def nCy(self):
@@ -281,7 +281,7 @@ class BaseRectangularMesh(BaseMesh):
         :rtype: int
         :return: nCy or None if dim < 2
         """
-        return None if self.dim < 2 else self._n[1]
+        return None if self.dim < 2 else int(self._n[1])
 
     @property
     def nCz(self):
@@ -290,7 +290,7 @@ class BaseRectangularMesh(BaseMesh):
         :rtype: int
         :return: nCz or None if dim < 3
         """
-        return None if self.dim < 3 else self._n[2]
+        return None if self.dim < 3 else int(self._n[2])
 
     @property
     def vnC(self):
@@ -414,7 +414,7 @@ class BaseRectangularMesh(BaseMesh):
         :rtype: int
         :return: nC
         """
-        return self.vnC.prod()
+        return int(self.vnC.prod())
 
     @property
     def nN(self):
@@ -424,7 +424,7 @@ class BaseRectangularMesh(BaseMesh):
         :rtype: int
         :return: nN
         """
-        return self.vnN.prod()
+        return int(self.vnN.prod())
 
     @property
     def nEx(self):
@@ -434,7 +434,7 @@ class BaseRectangularMesh(BaseMesh):
         :rtype: int
         :return: nEx
         """
-        return self.vnEx.prod()
+        return int(self.vnEx.prod())
 
     @property
     def nEy(self):
@@ -444,8 +444,9 @@ class BaseRectangularMesh(BaseMesh):
         :rtype: int
         :return: nEy
         """
-        if self.dim < 2: return
-        return self.vnEy.prod()
+        if self.dim < 2:
+            return
+        return int(self.vnEy.prod())
 
     @property
     def nEz(self):
@@ -455,8 +456,9 @@ class BaseRectangularMesh(BaseMesh):
         :rtype: int
         :return: nEz
         """
-        if self.dim < 3: return
-        return self.vnEz.prod()
+        if self.dim < 3:
+            return
+        return int(self.vnEz.prod())
 
     @property
     def nFx(self):
@@ -466,7 +468,7 @@ class BaseRectangularMesh(BaseMesh):
         :rtype: int
         :return: nFx
         """
-        return self.vnFx.prod()
+        return int(self.vnFx.prod())
 
     @property
     def nFy(self):
@@ -476,8 +478,9 @@ class BaseRectangularMesh(BaseMesh):
         :rtype: int
         :return: nFy
         """
-        if self.dim < 2: return
-        return self.vnFy.prod()
+        if self.dim < 2:
+            return
+        return int(self.vnFy.prod())
 
     @property
     def nFz(self):
@@ -487,8 +490,9 @@ class BaseRectangularMesh(BaseMesh):
         :rtype: int
         :return: nFz
         """
-        if self.dim < 3: return
-        return self.vnFz.prod()
+        if self.dim < 3:
+            return
+        return int(self.vnFz.prod())
 
     def r(self, x, xType='CC', outType='CC', format='V'):
         """
