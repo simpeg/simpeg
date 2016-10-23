@@ -7,6 +7,7 @@ from SimPEG.EM import NSEM
 
 np.random.seed(1983)
 
+
 def run(plotIt=True):
     """
         MT: 1D: Inversion
@@ -16,8 +17,6 @@ def run(plotIt=True):
         Setup and run a MT 1D inversion.
 
     """
-    from SimPEG import Depreciate
-    Depreciate.use_old_mappings()
 
     # Setup the forward modeling
     # Setting up 1D mesh and conductivity models to forward model data.
@@ -27,13 +26,13 @@ def run(plotIt=True):
     # Set mesh parameters
     ct = 10
     air = simpeg.Utils.meshTensor([(ct, 25, 1.4)])
-    core = np.concatenate( (  np.kron(simpeg.Utils.meshTensor([(ct, 10, -1.3)]), np.ones((5, ))) , simpeg.Utils.meshTensor([(ct,5)]) ) )
+    core = np.concatenate((np.kron(simpeg.Utils.meshTensor([(ct, 10, -1.3)]), np.ones((5, ))) , simpeg.Utils.meshTensor([(ct,5)]) ) )
     bot = simpeg.Utils.meshTensor([(core[0], 25, -1.4)])
     x0 = -np.array([np.sum(np.concatenate((core, bot)))])
     # Make the model
     m1d = simpeg.Mesh.TensorMesh([np.concatenate((bot, core, air))], x0=x0)
 
-    # Setup model varibles
+    # Setup model variables
     active = m1d.vectorCCx < 0.
     layer1 = (m1d.vectorCCx < -500.) & (m1d.vectorCCx >= -800.)
     layer2 = (m1d.vectorCCx < -3500.) & (m1d.vectorCCx >= -5000.)
@@ -72,7 +71,7 @@ def run(plotIt=True):
     survey.mtrue = m_true
 
     # Set the problem
-    problem = NSEM.Problem1D_ePrimSec(m1d, sigmaPrimary=sigma_0, mapping=mappingExpAct)
+    problem = NSEM.Problem1D_ePrimSec(m1d, sigmaPrimary=sigma_0, sigmaMap=mappingExpAct)
     problem.pair(survey)
 
     # Forward model data
@@ -81,7 +80,7 @@ def run(plotIt=True):
     survey.dobs = survey.dtrue + 0.01*abs(survey.dtrue)*np.random.randn(*survey.dtrue.shape)
 
     if plotIt:
-        fig = NSEM.Utils.dataUtils.plotMT1DModelData(problem,[])
+        fig = NSEM.Utils.dataUtils.plotMT1DModelData(problem, [])
         fig.suptitle('Target - smooth true')
 
     # Assign uncertainties
@@ -92,9 +91,9 @@ def run(plotIt=True):
 
     # Setup the inversion proceedure
     # Define a counter
-    C =  simpeg.Utils.Counter()
+    C = simpeg.Utils.Counter()
     # Set the optimization
-    opt = simpeg.Optimization.ProjectedGNCG(maxIter = 25)
+    opt = simpeg.Optimization.ProjectedGNCG(maxIter=25)
     opt.counter = C
     opt.lower = np.log(1e-4)
     opt.upper = np.log(5)
@@ -104,7 +103,7 @@ def run(plotIt=True):
     dmis = simpeg.DataMisfit.l2_DataMisfit(survey)
     dmis.Wd = Wd
     # Regularization - with a regularization mesh
-    regMesh = simpeg.Mesh.TensorMesh([m1d.hx[active]],m1d.x0)
+    regMesh = simpeg.Mesh.TensorMesh([m1d.hx[active]], m1d.x0)
     reg = simpeg.Regularization.Tikhonov(regMesh)
     reg.mrefInSmooth = True
     reg.alpha_s = 1e-1
@@ -122,13 +121,14 @@ def run(plotIt=True):
     targmis = simpeg.Directives.TargetMisfit()
     targmis.target = survey.nD
     # Create an inversion object
-    inv = simpeg.Inversion.BaseInversion(invProb, directiveList=[beta,betaest,targmis])
+    directives = [beta, betaest, targmis]
+    inv = simpeg.Inversion.BaseInversion(invProb, directiveList=directives)
 
-    ## Run the inversion
+    # Run the inversion
     mopt = inv.run(m_0)
 
     if plotIt:
-        fig = NSEM.Utils.dataUtils.plotMT1DModelData(problem,[mopt])
+        fig = NSEM.Utils.dataUtils.plotMT1DModelData(problem, [mopt])
         fig.suptitle('Target - smooth true')
         fig.axes[0].set_ylim([-10000,500])
         plt.show()
