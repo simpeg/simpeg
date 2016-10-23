@@ -50,11 +50,11 @@ class BaseEMProblem(Problem.BaseProblem):
     Props.Reciprocal(sigma, rho)
 
     mu = Props.PhysicalProperty(
-        "Magnetic Permeability",
+        "Magnetic Permeability (H/m)",
         default=mu_0
     )
     mui = Props.PhysicalProperty(
-        "Inverse Magnetic Permeability"
+        "Inverse Magnetic Permeability (m/H)"
     )
 
     Props.Reciprocal(mu, mui)
@@ -62,8 +62,7 @@ class BaseEMProblem(Problem.BaseProblem):
     surveyPair = Survey.BaseSurvey  #: The survey to pair with.
     dataPair = Survey.Data  #: The data to pair with.
 
-    # PropMap = EMPropMap #: The property mapping
-    mapPair = Maps.ExpMap
+    mapPair = Maps.IdentityMap
 
     Solver = SimpegSolver
     solverOpts = {}
@@ -176,7 +175,6 @@ class BaseEMProblem(Problem.BaseProblem):
         return self._MeMuI
 
     # ----- Electrical Conductivity ----- #
-    # TODO: hardcoded to sigma as the model
     @property
     def MeSigma(self):
         """
