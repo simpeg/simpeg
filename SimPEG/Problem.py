@@ -14,43 +14,73 @@ Solver = Utils.SolverUtils.Solver
 
 
 class BaseProblem(Props.BaseSimPEG):
+    """Problem is the base class for all geophysical forward problems
+    in SimPEG.
     """
-        Problem is the base class for all geophysical forward problems
-        in SimPEG.
-    """
 
-    counter = None  #: A SimPEG.Utils.Counter object
+    _depreciate_maps = False
+    _depreciate_main_map = None
 
-    surveyPair = Survey.BaseSurvey  #: A SimPEG.Survey Class
-    mapPair = Maps.IdentityMap      #: A SimPEG.Map Class
+    #: A SimPEG.Utils.Counter object
+    counter = None
 
-    Solver = Solver   #: A SimPEG Solver class.
-    solverOpts = {}   #: Solver options as a kwarg dict
+    #: A SimPEG.Survey Class
+    surveyPair = Survey.BaseSurvey
 
-    mesh = None       #: A SimPEG.Mesh instance.
+    #: A SimPEG.Map Class
+    mapPair = Maps.IdentityMap
 
-    PropMap = None    #: A SimPEG PropertyMap class.
+    #: A SimPEG Solver class.
+    Solver = Solver
 
-    @property
-    def mapping(self):
-        "A SimPEG.Map instance or a property map is PropMap is not None"
-        return getattr(self, '_mapping', None)
+    #: Solver options as a kwarg dict
+    solverOpts = {}
 
-    @mapping.setter
-    def mapping(self, val):
-        if self.PropMap is None:
-            val._assertMatchesPair(self.mapPair)
-            self._mapping = val
-        else:
-            self._mapping = self.PropMap(val)
+    #: A SimPEG.Mesh instance.
+    mesh = None
+
+    model = Props.Model("Inversion model.")
 
     def __init__(self, mesh, **kwargs):
-        # Utils.setKwargs(self, **kwargs)
+        if 'mapping' in kwargs:
+            import warnings
+            warnings.warn(
+                'The `mapping` property has been depreciated, '
+                'please use:\n\n\n'
+                '\tfrom SimPEG import Depreciate\n'
+                '\tDepreciate.use_old_mappings()\n\n\n'
+                'To bring back old functionality.'
+            )
+
+        if self._depreciate_maps:
+            mapping = kwargs.pop('mapping', None)
+            if isinstance(mapping, Maps.IdentityMap):
+                kwargs[self._depreciate_main_map] = mapping
+            elif isinstance(mapping, list):
+                # this is a prop map style
+                for name, propmap in mapping:
+                    kwargs['{}Map'.format(name)] = propmap
         super(BaseProblem, self).__init__(**kwargs)
         assert isinstance(mesh, Mesh.BaseMesh), (
             "mesh must be a SimPEG.Mesh object."
         )
         self.mesh = mesh
+
+    @property
+    def mapping(self):
+        """setting an unnamed mapping has been depreciated.
+
+        To use the old style Please use the Depreciate module.
+
+        .. code::
+
+            from SimPEG import Depreciate
+            Depreciate.use_old_mappings()
+
+        """
+        raise Exception(
+            'Depreciate: use `SimPEG.Depreciate.use_old_mappings()`'
+        )
 
     @property
     def survey(self):
@@ -84,24 +114,8 @@ class BaseProblem(Props.BaseSimPEG):
     #: List of strings, e.g. ['_MeSigma', '_MeSigmaI']
     deleteTheseOnModelUpdate = []
 
-    @property
-    def curModel(self):
-        """
-            Sets the current model, and removes dependent mass matrices.
-        """
-        raise Exception()
-        return getattr(self, '_curModel', None)
-
     @properties.observer('model')
     def _on_model_update(self, value):
-        # self.model = value
-        # return
-        # if value is self.curModel:
-        #     return  # it is the same!
-        # if self.PropMap is not None:
-        #     self._curModel = self.mapping(value)
-        # else:
-        #     self._curModel = Models.Model(value, self.mapping)
         for prop in self.deleteTheseOnModelUpdate:
             if hasattr(self, prop):
                 delattr(self, prop)
@@ -115,13 +129,13 @@ class BaseProblem(Props.BaseSimPEG):
     def Jvec(self, m, v, f=None):
         """Jvec(m, v, f=None)
 
-            Effect of J(m) on a vector v.
+        Effect of J(m) on a vector v.
 
-            :param numpy.array m: model
-            :param numpy.array v: vector to multiply
-            :param Fields f: fields
-            :rtype: numpy.array
-            :return: Jv
+        :param numpy.array m: model
+        :param numpy.array v: vector to multiply
+        :param Fields f: fields
+        :rtype: numpy.array
+        :return: Jv
         """
         raise NotImplementedError('J is not yet implemented.')
 
@@ -129,13 +143,13 @@ class BaseProblem(Props.BaseSimPEG):
     def Jtvec(self, m, v, f=None):
         """Jtvec(m, v, f=None)
 
-            Effect of transpose of J(m) on a vector v.
+        Effect of transpose of J(m) on a vector v.
 
-            :param numpy.array m: model
-            :param numpy.array v: vector to multiply
-            :param Fields f: fields
-            :rtype: numpy.array
-            :return: JTv
+        :param numpy.array m: model
+        :param numpy.array v: vector to multiply
+        :param Fields f: fields
+        :rtype: numpy.array
+        :return: JTv
         """
         raise NotImplementedError('Jt is not yet implemented.')
 
@@ -143,13 +157,13 @@ class BaseProblem(Props.BaseSimPEG):
     def Jvec_approx(self, m, v, f=None):
         """Jvec_approx(m, v, f=None)
 
-            Approximate effect of J(m) on a vector v
+        Approximate effect of J(m) on a vector v
 
-            :param numpy.array m: model
-            :param numpy.array v: vector to multiply
-            :param Fields f: fields
-            :rtype: numpy.array
-            :return: approxJv
+        :param numpy.array m: model
+        :param numpy.array v: vector to multiply
+        :param Fields f: fields
+        :rtype: numpy.array
+        :return: approxJv
         """
         return self.Jvec(m, v, f)
 
@@ -157,24 +171,22 @@ class BaseProblem(Props.BaseSimPEG):
     def Jtvec_approx(self, m, v, f=None):
         """Jtvec_approx(m, v, f=None)
 
-            Approximate effect of transpose of J(m) on a vector v.
+        Approximate effect of transpose of J(m) on a vector v.
 
-            :param numpy.array m: model
-            :param numpy.array v: vector to multiply
-            :param Fields f: fields
-            :rtype: numpy.array
-            :return: JTv
+        :param numpy.array m: model
+        :param numpy.array v: vector to multiply
+        :param Fields f: fields
+        :rtype: numpy.array
+        :return: JTv
         """
         return self.Jtvec(m, v, f)
 
     def fields(self, m):
-        """
-            The field given the model.
+        """The field given the model.
 
-            :param numpy.array m: model
-            :rtype: numpy.array
-            :return: u, the fields
-
+        :param numpy.array m: model
+        :rtype: numpy.array
+        :return: u, the fields
         """
         raise NotImplementedError('fields is not yet implemented.')
 
@@ -241,12 +253,23 @@ class BaseTimeProblem(BaseProblem):
 
 class LinearProblem(BaseProblem):
 
-    surveyPair = Survey.LinearSurvey
+    # surveyPair = Survey.LinearSurvey
 
-    def __init__(self, mesh, G, **kwargs):
+    G = None
+
+    def __init__(self, mesh, **kwargs):
         BaseProblem.__init__(self, mesh, **kwargs)
         self.mapping = kwargs.pop('mapping', Maps.IdentityMap(mesh))
-        self.G = G
+
+    @property
+    def mapping(self):
+        "A SimPEG.Map instance."
+        return getattr(self, '_mapping', None)
+
+    @mapping.setter
+    def mapping(self, val):
+        val._assertMatchesPair(self.mapPair)
+        self._mapping = val
 
     def fields(self, m):
         return self.G.dot(m)

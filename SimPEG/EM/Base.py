@@ -17,27 +17,7 @@ from scipy.constants import mu_0
 
 class BaseEMProblem(Problem.BaseProblem):
 
-    _depreciate_maps = False
     _depreciate_main_map = 'sigmaMap'
-
-    def __init__(self, mesh, **kwargs):
-        if self._depreciate_maps:
-            import warnings
-            warnings.warn(
-                'The `mapping` property has been depreciated, '
-                'please use `sigmaMap`'
-            )
-            mapping = kwargs.pop('mapping', None)
-            if isinstance(mapping, Maps.IdentityMap):
-                kwargs[self._depreciate_main_map] = mapping
-            elif isinstance(mapping, list):
-                # this is a prop map style
-                for name, propmap in mapping:
-                    kwargs['{}Map'.format(name)] = propmap
-
-        Problem.BaseProblem.__init__(self, mesh, **kwargs)
-
-    model = Props.Model("Inversion model.")
 
     sigma, sigmaMap, sigmaDeriv = Props.Invertible(
         "Electrical conductivity (S/m)"
@@ -86,11 +66,11 @@ class BaseEMProblem(Problem.BaseProblem):
     def deleteTheseOnModelUpdate(self):
         toDelete = []
         if self.sigmaMap is not None or self.rhoMap is not None:
-            toDelete += ['_MeSigma', '_MeSigmaI','_MfRho','_MfRhoI']
+            toDelete += ['_MeSigma', '_MeSigmaI', '_MfRho', '_MfRhoI']
 
         if hasattr(self, 'muMap') or hasattr(self, 'muiMap'):
             if self.muMap is not None or self.muiMap is not None:
-                toDelete += ['_MeMu', '_MeMuI','_MfMui','_MfMuiI']
+                toDelete += ['_MeMu', '_MeMuI', '_MfMui', '_MfMuiI']
         return toDelete
 
     @property
@@ -206,11 +186,12 @@ class BaseEMProblem(Problem.BaseProblem):
         """
         Derivative of :code:`MeSigma` with respect to the model
         """
-        # TODO: only works for diagonal tensors. getEdgeInnerProductDeriv, invMat=True should be implemented in SimPEG
+        # TODO: only works for diagonal tensors. getEdgeInnerProductDeriv,
+        #       invMat=True should be implemented in SimPEG
 
         dMeSigmaI_dI = -self.MeSigmaI**2
         dMe_dsig = self.mesh.getEdgeInnerProductDeriv(self.sigma)(u)
-        return dMeSigmaI_dI * ( dMe_dsig * self.sigmaDeriv )
+        return dMeSigmaI_dI * (dMe_dsig * self.sigmaDeriv)
 
     @property
     def MfRho(self):
@@ -245,7 +226,7 @@ class BaseEMProblem(Problem.BaseProblem):
         """
         dMfRhoI_dI = -self.MfRhoI**2
         dMf_drho = self.mesh.getFaceInnerProductDeriv(self.rho)(u)
-        return dMfRhoI_dI * ( dMf_drho * self.rhoDeriv )
+        return dMfRhoI_dI * (dMf_drho * self.rhoDeriv)
 
 
 class BaseEMSurvey(Survey.BaseSurvey):
