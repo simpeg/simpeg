@@ -4,7 +4,7 @@ from . import BaseGrav as GRAV
 import re
 
 
-class GravityIntegral(Problem.BaseProblem):
+class GravityIntegral(Problem.LinearProblem):
 
     # surveyPair = Survey.LinearSurvey
     forwardOnly = False  # Is TRUE, forward matrix not stored to memory

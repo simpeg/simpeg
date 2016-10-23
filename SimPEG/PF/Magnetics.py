@@ -1,20 +1,18 @@
 from __future__ import print_function
-from SimPEG import *
+import numpy as np
+import scipy.sparse as sp
+from SimPEG import Utils, Problem, Solver
 from . import BaseMag as MAG
 from scipy.constants import mu_0
 from .MagAnalytics import spheremodel, CongruousMagBC
-import re
 
 
-class MagneticIntegral(Problem.BaseProblem):
+class MagneticIntegral(Problem.LinearProblem):
 
-    forwardOnly = False  # If false, matric is store to memory (watch your RAM)
+    forwardOnly = False  # If false, matrix is store to memory (watch your RAM)
     actInd = None  #: Active cell indices provided
     M = None  #: Magnetization matrix provided, otherwise all induced
     rtype = 'tmi'  #: Receiver type either "tmi" | "xyz"
-
-    def __init__(self, mesh, mapping=None, **kwargs):
-        Problem.BaseProblem.__init__(self, mesh, mapping=mapping, **kwargs)
 
     def fwr_ind(self):
         # Add forward function
@@ -41,7 +39,7 @@ class MagneticIntegral(Problem.BaseProblem):
                               shape=(self.mesh.nC, nC))
 
             # Create vectors of nodal location
-            # (lower and upper coners for each cell)
+            # (lower and upper corners for each cell)
             xn = self.mesh.vectorNx
             yn = self.mesh.vectorNy
             zn = self.mesh.vectorNz
@@ -49,9 +47,9 @@ class MagneticIntegral(Problem.BaseProblem):
             yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
             yn1, xn1, zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
 
-            Yn = P.T*np.c_[mkvc(yn1), mkvc(yn2)]
-            Xn = P.T*np.c_[mkvc(xn1), mkvc(xn2)]
-            Zn = P.T*np.c_[mkvc(zn1), mkvc(zn2)]
+            Yn = P.T*np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
+            Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
+            Zn = P.T*np.c_[Utils.mkvc(zn1), Utils.mkvc(zn2)]
 
             survey = self.survey
             rxLoc = survey.srcField.rxList[0].locs
@@ -74,13 +72,16 @@ class MagneticIntegral(Problem.BaseProblem):
 
             if self.rtype == 'tmi':
 
-                # Convert Bdecination from north to cartesian
+                # Convert B declination from north to Cartesian
                 D = (450.-float(survey.srcField.param[2])) % 360.
                 I = survey.srcField.param[1]
                 # Projection matrix
-                Ptmi = mkvc(np.r_[np.cos(np.deg2rad(I))*np.cos(np.deg2rad(D)),
-                            np.cos(np.deg2rad(I))*np.sin(np.deg2rad(D)),
-                            np.sin(np.deg2rad(I))], 2).T
+                Ptmi = Utils.mkvc(
+                    np.r_[
+                        np.cos(np.deg2rad(I))*np.cos(np.deg2rad(D)),
+                        np.cos(np.deg2rad(I))*np.sin(np.deg2rad(D)),
+                        np.sin(np.deg2rad(I))
+                    ], 2).T
 
                 fwr_d = np.zeros(self.survey.nRx)
 
@@ -195,9 +196,9 @@ class MagneticIntegral(Problem.BaseProblem):
         yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
         yn1, xn1, zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
 
-        Yn = P.T*np.c_[mkvc(yn1), mkvc(yn2)]
-        Xn = P.T*np.c_[mkvc(xn1), mkvc(xn2)]
-        Zn = P.T*np.c_[mkvc(zn1), mkvc(zn2)]
+        Yn = P.T*np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
+        Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
+        Zn = P.T*np.c_[Utils.mkvc(zn1), Utils.mkvc(zn2)]
 
         survey = self.survey
         rxLoc = survey.srcField.rxList[0].locs
@@ -228,9 +229,12 @@ class MagneticIntegral(Problem.BaseProblem):
                 D = (450.-float(survey.srcField.param[2])) % 360.
                 I = survey.srcField.param[1]
                 # Projection matrix
-                Ptmi = mkvc(np.r_[np.cos(np.deg2rad(I))*np.cos(np.deg2rad(D)),
-                            np.cos(np.deg2rad(I))*np.sin(np.deg2rad(D)),
-                            np.sin(np.deg2rad(I))], 2).T
+                Ptmi = Utils.mkvc(
+                    np.r_[
+                        np.cos(np.deg2rad(I))*np.cos(np.deg2rad(D)),
+                        np.cos(np.deg2rad(I))*np.sin(np.deg2rad(D)),
+                        np.sin(np.deg2rad(I))
+                    ], 2).T
 
             elif survey.srcField.rxList[0].rxType == 'xyz':
 
@@ -843,16 +847,16 @@ def get_dist_wgt(mesh, rxLoc, actv, R, R0):
     Ym, Xm, Zm = np.meshgrid(mesh.vectorCCy, mesh.vectorCCx, mesh.vectorCCz)
     hY, hX, hZ = np.meshgrid(mesh.hy, mesh.hx, mesh.hz)
 
-    # Rmove air cells
-    Xm = P.T*mkvc(Xm)
-    Ym = P.T*mkvc(Ym)
-    Zm = P.T*mkvc(Zm)
+    # Remove air cells
+    Xm = P.T*Utils.mkvc(Xm)
+    Ym = P.T*Utils.mkvc(Ym)
+    Zm = P.T*Utils.mkvc(Zm)
 
-    hX = P.T*mkvc(hX)
-    hY = P.T*mkvc(hY)
-    hZ = P.T*mkvc(hZ)
+    hX = P.T*Utils.mkvc(hX)
+    hY = P.T*Utils.mkvc(hY)
+    hZ = P.T*Utils.mkvc(hZ)
 
-    V = P.T * mkvc(mesh.vol)
+    V = P.T * Utils.mkvc(mesh.vol)
     wr = np.zeros(nC)
 
     ndata = rxLoc.shape[0]
@@ -888,7 +892,7 @@ def get_dist_wgt(mesh, rxLoc, actv, R, R0):
         count = progress(dd, count, ndata)
 
     wr = np.sqrt(wr)/V
-    wr = mkvc(wr)
+    wr = Utils.mkvc(wr)
     wr = np.sqrt(wr/(np.max(wr)))
 
     print("Done 100% ...distance weighting completed!!\n")
