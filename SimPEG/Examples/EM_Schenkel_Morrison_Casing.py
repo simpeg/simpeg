@@ -1,15 +1,13 @@
 from __future__ import print_function
 import numpy as np
-from SimPEG import Mesh, Maps, Utils, SolverLU
-from SimPEG.EM import FDEM, Analytics
+from SimPEG import Mesh, Maps, Utils
+from SimPEG.EM import FDEM
 import time
 
 try:
-    from pymatsolver import PardisoSolver
-    solver = PardisoSolver
+    from pymatsolver import PardisoSolver as Solver
 except Exception:
-    solver = SolverLU
-    pass
+    from SimPEG import SolverLU as Solver
 
 
 def run(plotIt=True):
@@ -59,8 +57,6 @@ def run(plotIt=True):
         a citation would be much appreciated!
 
     """
-    from SimPEG import Depreciate
-    Depreciate.use_old_mappings()
 
     if plotIt:
         import matplotlib.pylab as plt
@@ -69,7 +65,7 @@ def run(plotIt=True):
     sigmaair = 1e-8  # air
     sigmaback = 1e-2  # background
     sigmacasing = 1e6  # casing
-    sigmainside = sigmaback  # inside the casing
+    # sigmainside = sigmaback  # inside the casing
 
     casing_t = 0.006  # 1cm thickness
     casing_l = 300  # length of the casing
@@ -82,7 +78,7 @@ def run(plotIt=True):
     # ------------------ SURVEY PARAMETERS ------------------
     freqs = np.r_[1e-6]  # [1e-1, 1, 5] # frequencies
     dsz = -300  # down-hole z source location
-    src_loc = np.r_[0., 0., dsz]
+    # src_loc = np.r_[0., 0., dsz]
     inf_loc = np.r_[0., 0., 1e4]
 
     print('Skin Depth: ', [(500./np.sqrt(sigmaback*_)) for _ in freqs])
@@ -122,7 +118,9 @@ def run(plotIt=True):
     # Mesh
     mesh = Mesh.CylMesh([hx, 1., hz], [0., 0., -np.sum(hz[:npadzu+ncz-nza])])
 
-    print('Mesh Extent xmax: {0:f},: zmin: {1:f}, zmax: {2:f}'.format(mesh.vectorCCx.max(), mesh.vectorCCz.min(), mesh.vectorCCz.max()))
+    print('Mesh Extent xmax: {0:f},: zmin: {1:f}, zmax: {2:f}'.format(
+        mesh.vectorCCx.max(), mesh.vectorCCz.min(), mesh.vectorCCz.max()
+    ))
     print('Number of cells', mesh.nC)
 
     if plotIt is True:
@@ -169,7 +167,6 @@ def run(plotIt=True):
     sg_z = np.zeros(mesh.vnF[2], dtype=complex)
 
     nza = 2  # put the wire two cells above the surface
-    ncin = 2
 
     # vertically directed wire
     # hook it up to casing at the surface
@@ -234,8 +231,11 @@ def run(plotIt=True):
 
     # ------------ Problem and Survey ---------------
     survey = FDEM.Survey(sg_p + dg_p)
-    mapping = [('sigma', Maps.IdentityMap(mesh))]
-    problem = FDEM.Problem3D_h(mesh, mapping=mapping, Solver=solver)
+    problem = FDEM.Problem3D_h(
+        mesh,
+        sigmaMap=Maps.IdentityMap(mesh),
+        Solver=Solver
+    )
     problem.pair(survey)
 
     # ------------- Solve ---------------------------
@@ -246,8 +246,8 @@ def run(plotIt=True):
     # Plot current
 
     # current density
-    jn0 = fieldsCasing[dg_p, 'j']
-    jn1 = fieldsCasing[sg_p, 'j']
+    # jn0 = fieldsCasing[dg_p, 'j']
+    # jn1 = fieldsCasing[sg_p, 'j']
 
     # current
     in0 = [mesh.area*fieldsCasing[dg_p, 'j'][:, i] for i in range(len(freqs))]
@@ -259,7 +259,7 @@ def run(plotIt=True):
     # integrate to get z-current inside casing
     inds_inx = ((mesh.gridFz[:, 0] >= casing_a) &
                 (mesh.gridFz[:, 0] <= casing_b))
-    inds_inz = (mesh.gridFz[:, 2] >= dsz ) & (mesh.gridFz[:, 2] <= 0)
+    inds_inz = (mesh.gridFz[:, 2] >= dsz) & (mesh.gridFz[:, 2] <= 0)
     inds_fz = inds_inx & inds_inz
 
     indsx = [False]*mesh.nFx
