@@ -14,6 +14,7 @@ def run(plotIt=True):
         The model is
 
         .. code::
+
             m = [
                 'background physical property value',
                 'layer physical property value',

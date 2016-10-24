@@ -14,6 +14,7 @@ def run(plotIt=True):
         The model is given by
 
         .. code::
+
             m = np.r_[
                'value of the background',
                'value in the layer',
