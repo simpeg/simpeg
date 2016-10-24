@@ -10,12 +10,13 @@ from SimPEG.EM.Utils import omega
 
 
 ##############
-### Fields ###
+#   Fields   #
 ##############
 class BaseNSEMFields(Problem.Fields):
     """Field Storage for a NSEM method."""
     knownFields = {}
     dtype = complex
+
 
 ###########
 # 1D Fields
@@ -26,18 +27,18 @@ class Fields1D_ePrimSec(BaseNSEMFields):
 
     Solving for e fields, using primary/secondary formulation
     """
-    knownFields = {'e_1dSolution':'F'}
+    knownFields = {'e_1dSolution': 'F'}
     aliasFields = {
-                    'e_1d' : ['e_1dSolution','F','_e'],
-                    'e_1dPrimary' : ['e_1dSolution','F','_ePrimary'],
-                    'e_1dSecondary' : ['e_1dSolution','F','_eSecondary'],
-                    'b_1d' : ['e_1dSolution','E','_b'],
-                    'b_1dPrimary' : ['e_1dSolution','E','_bPrimary'],
-                    'b_1dSecondary' : ['e_1dSolution','E','_bSecondary']
-                  }
+        'e_1d': ['e_1dSolution', 'F', '_e'],
+        'e_1dPrimary': ['e_1dSolution', 'F', '_ePrimary'],
+        'e_1dSecondary': ['e_1dSolution', 'F', '_eSecondary'],
+        'b_1d': ['e_1dSolution', 'E', '_b'],
+        'b_1dPrimary': ['e_1dSolution', 'E', '_bPrimary'],
+        'b_1dSecondary': ['e_1dSolution', 'E', '_bSecondary']
+    }
 
-    def __init__(self,mesh,survey,**kwargs):
-        BaseNSEMFields.__init__(self,mesh,survey,**kwargs)
+    def __init__(self, mesh, survey, **kwargs):
+        BaseNSEMFields.__init__(self, mesh, survey, **kwargs)
 
     def _ePrimary(self, eSolution, srcList):
         """
@@ -51,7 +52,7 @@ class Fields1D_ePrimSec(BaseNSEMFields):
         ePrimary = np.zeros_like(eSolution)
         for i, src in enumerate(srcList):
             ep = src.ePrimary(self.survey.prob)
-            ePrimary[:,i] = ePrimary[:,i] + ep[:,-1]
+            ePrimary[:, i] = ePrimary[:, i] + ep[:, -1]
         return ePrimary
 
     def _eSecondary(self, eSolution, srcList):
@@ -75,9 +76,9 @@ class Fields1D_ePrimSec(BaseNSEMFields):
         :rtype: numpy.ndarray
         :return: total electric field
         """
-        return self._ePrimary(eSolution,srcList) + self._eSecondary(eSolution,srcList)
+        return self._ePrimary(eSolution, srcList) + self._eSecondary(eSolution, srcList)
 
-    def _eDeriv(self, src, du_dm_v, v, adjoint = False):
+    def _eDeriv(self, src, du_dm_v, v, adjoint=False):
         """
         Total derivative of e with respect to the inversion model. Returns :math:`d\mathbf{e}/d\mathbf{m}` for forward and (:math:`d\mathbf{e}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for the adjoint
 
@@ -95,7 +96,7 @@ class Fields1D_ePrimSec(BaseNSEMFields):
         #     return self._eDeriv_u(src, v, adjoint), self._eDeriv_m(src, v, adjoint)
         return np.array(self._eDeriv_u(src, du_dm_v, adjoint) + self._eDeriv_m(src, v, adjoint), dtype = complex)
 
-    def _eDeriv_u(self, src, du_dm_v, adjoint = False):
+    def _eDeriv_u(self, src, du_dm_v, adjoint=False):
         """
         Partial derivative of the total electric field with respect to the solution.
 
@@ -109,8 +110,7 @@ class Fields1D_ePrimSec(BaseNSEMFields):
 
         return Identity() * du_dm_v
 
-
-    def _eDeriv_m(self, src, v, adjoint = False):
+    def _eDeriv_m(self, src, v, adjoint=False):
         """
         Partial derivative of the total electric field with respect to the inversion model. Here, we assume that the primary does not depend on the model. Note that this also includes derivative contributions from the sources.
 
@@ -125,10 +125,10 @@ class Fields1D_ePrimSec(BaseNSEMFields):
         return Zero()
 
     def _bPrimary(self, eSolution, srcList):
-        bPrimary = np.zeros([self.survey.mesh.nE,eSolution.shape[1]], dtype = complex)
+        bPrimary = np.zeros([self.survey.mesh.nE, eSolution.shape[1]], dtype=complex)
         for i, src in enumerate(srcList):
             bp = src.bPrimary(self.survey.prob)
-            bPrimary[:,i] = bPrimary[:,i] + bp[:,-1]
+            bPrimary[:, i] = bPrimary[:, i] + bp[:, -1]
         return bPrimary
 
     def _bSecondary(self, eSolution, srcList):
@@ -143,7 +143,7 @@ class Fields1D_ePrimSec(BaseNSEMFields):
         C = self.mesh.nodalGrad
         b = (C * eSolution)
         for i, src in enumerate(srcList):
-            b[:,i] *= - 1./(1j*omega(src.freq))
+            b[:, i] *= - 1./(1j*omega(src.freq))
         return b
 
     def _b(self, eSolution, srcList):
@@ -157,7 +157,7 @@ class Fields1D_ePrimSec(BaseNSEMFields):
         """
         return self._bPrimary(eSolution, srcList) + self._bSecondary(eSolution, srcList)
 
-    def _bDeriv(self, src, du_dm_v, v, adjoint = False):
+    def _bDeriv(self, src, du_dm_v, v, adjoint=False):
         """
         Total derivative of b with respect to the inversion model. Returns :math:`d\mathbf{b}/d\mathbf{m}` for forward and (:math:`d\mathbf{b}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for the adjoint
 
@@ -169,13 +169,13 @@ class Fields1D_ePrimSec(BaseNSEMFields):
         :return: derivative times a vector (or tuple for adjoint)
         """
         if getattr(self, '_bDeriv_u', None) is None or getattr(self, '_bDeriv_m', None) is None:
-            raise NotImplementedError ('Getting bDerivs from %s is not implemented' %self.knownFields.keys()[0])
+            raise NotImplementedError ('Getting bDerivs from %s is not implemented' % self.knownFields.keys()[0])
 
         # if adjoint:
         #     return self._bDeriv_u(src, v, adjoint), self._bDeriv_m(src, v, adjoint)
-        return np.array(self._bDeriv_u(src, du_dm_v, adjoint) + self._bDeriv_m(src, v, adjoint), dtype = complex)
+        return np.array(self._bDeriv_u(src, du_dm_v, adjoint) + self._bDeriv_m(src, v, adjoint), dtype=complex)
 
-    def _bDeriv_u(self, src, du_dm_v, adjoint = False):
+    def _bDeriv_u(self, src, du_dm_v, adjoint=False):
         """
         Derivative of the magnetic flux density with respect to the solution
 
@@ -193,7 +193,7 @@ class Fields1D_ePrimSec(BaseNSEMFields):
             bSecondaryDeriv_u = - 1./(1j*omega(src.freq)) * (C * du_dm_v)
         return bSecondaryDeriv_u
 
-    def _bDeriv_m(self, src, v, adjoint = False):
+    def _bDeriv_m(self, src, v, adjoint=False):
         """
         Derivative of the magnetic flux density with respect to the inversion model.
 
@@ -224,25 +224,25 @@ class Fields3D_ePrimSec(BaseNSEMFields):
     """
     # Define the known the alias fields
     # Assume that the solution of e on the E.
-    ## NOTE: Need to make this more general, to allow for other solutions formats.
-    knownFields = {'e_pxSolution':'E','e_pySolution':'E'}
+    # NOTE: Need to make this more general, to allow for other formats.
+    knownFields = {'e_pxSolution': 'E', 'e_pySolution': 'E'}
     aliasFields = {
-                    'e_px' : ['e_pxSolution','E','_e_px'],
-                    'e_pxPrimary' : ['e_pxSolution','E','_e_pxPrimary'],
-                    'e_pxSecondary' : ['e_pxSolution','E','_e_pxSecondary'],
-                    'e_py' : ['e_pySolution','E','_e_py'],
-                    'e_pyPrimary' : ['e_pySolution','E','_e_pyPrimary'],
-                    'e_pySecondary' : ['e_pySolution','E','_e_pySecondary'],
-                    'b_px' : ['e_pxSolution','F','_b_px'],
-                    'b_pxPrimary' : ['e_pxSolution','F','_b_pxPrimary'],
-                    'b_pxSecondary' : ['e_pxSolution','F','_b_pxSecondary'],
-                    'b_py' : ['e_pySolution','F','_b_py'],
-                    'b_pyPrimary' : ['e_pySolution','F','_b_pyPrimary'],
-                    'b_pySecondary' : ['e_pySolution','F','_b_pySecondary']
-                  }
+        'e_px': ['e_pxSolution', 'E', '_e_px'],
+        'e_pxPrimary': ['e_pxSolution', 'E', '_e_pxPrimary'],
+        'e_pxSecondary': ['e_pxSolution', 'E', '_e_pxSecondary'],
+        'e_py': ['e_pySolution', 'E', '_e_py'],
+        'e_pyPrimary': ['e_pySolution', 'E', '_e_pyPrimary'],
+        'e_pySecondary': ['e_pySolution', 'E', '_e_pySecondary'],
+        'b_px': ['e_pxSolution', 'F', '_b_px'],
+        'b_pxPrimary': ['e_pxSolution', 'F', '_b_pxPrimary'],
+        'b_pxSecondary': ['e_pxSolution', 'F', '_b_pxSecondary'],
+        'b_py': ['e_pySolution', 'F', '_b_py'],
+        'b_pyPrimary': ['e_pySolution', 'F', '_b_pyPrimary'],
+        'b_pySecondary': ['e_pySolution', 'F', '_b_pySecondary']
+    }
 
-    def __init__(self,mesh,survey,**kwargs):
-        BaseNSEMFields.__init__(self,mesh,survey,**kwargs)
+    def __init__(self, mesh, survey, **kwargs):
+        BaseNSEMFields.__init__(self, mesh, survey, **kwargs)
 
     def _e_pxPrimary(self, e_pxSolution, srcList):
         """
@@ -258,7 +258,7 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         for i, src in enumerate(srcList):
             ep = src.ePrimary(self.survey.prob)
             if ep is not None:
-                e_pxPrimary[:,i] = ep[:,0]
+                e_pxPrimary[:, i] = ep[:, 0]
         return e_pxPrimary
 
     def _e_pyPrimary(self, e_pySolution, srcList):
@@ -276,7 +276,7 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         for i, src in enumerate(srcList):
             ep = src.ePrimary(self.survey.prob)
             if ep is not None:
-                e_pyPrimary[:,i] = ep[:,1]
+                e_pyPrimary[:, i] = ep[:, 1]
         return e_pyPrimary
 
     def _e_pxSecondary(self, e_pxSolution, srcList):
@@ -314,7 +314,7 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         :rtype: numpy.ndarray
         :return: electric field as defined by the sources
         """
-        return self._e_pxPrimary(e_pxSolution,srcList) + self._e_pxSecondary(e_pxSolution,srcList)
+        return self._e_pxPrimary(e_pxSolution, srcList) + self._e_pxSecondary(e_pxSolution, srcList)
 
     def _e_py(self, e_pySolution, srcList):
         """
@@ -326,7 +326,7 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         :rtype: numpy.ndarray
         :return: electric field as defined by the sources
         """
-        return self._e_pyPrimary(e_pySolution,srcList) + self._e_pySecondary(e_pySolution,srcList)
+        return self._e_pyPrimary(e_pySolution, srcList) + self._e_pySecondary(e_pySolution, srcList)
 
     def _b_pxPrimary(self, e_pxSolution, srcList):
         """
@@ -338,11 +338,11 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         :rtype: numpy.ndarray
         :return: primary magnetic flux as defined by the sources
         """
-        b_pxPrimary = np.zeros([self.survey.mesh.nF,e_pxSolution.shape[1]], dtype = complex)
+        b_pxPrimary = np.zeros([self.survey.mesh.nF, e_pxSolution.shape[1]], dtype=complex)
         for i, src in enumerate(srcList):
             bp = src.bPrimary(self.survey.prob)
             if bp is not None:
-                b_pxPrimary[:,i] += bp[:,0]
+                b_pxPrimary[:, i] += bp[:, 0]
         return b_pxPrimary
 
     def _b_pyPrimary(self, e_pySolution, srcList):
@@ -355,11 +355,11 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         :rtype: numpy.ndarray
         :return: primary magnetic flux as defined by the sources
         """
-        b_pyPrimary = np.zeros([self.survey.mesh.nF,e_pySolution.shape[1]], dtype = complex)
+        b_pyPrimary = np.zeros([self.survey.mesh.nF,e_pySolution.shape[1]], dtype=complex)
         for i, src in enumerate(srcList):
             bp = src.bPrimary(self.survey.prob)
             if bp is not None:
-                b_pyPrimary[:,i] += bp[:,1]
+                b_pyPrimary[:, i] += bp[:, 1]
         return b_pyPrimary
 
     def _b_pxSecondary(self, e_pxSolution, srcList):
@@ -375,7 +375,7 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         C = self.mesh.edgeCurl
         b = (C * e_pxSolution)
         for i, src in enumerate(srcList):
-            b[:,i] *= - 1./(1j*omega(src.freq))
+            b[:, i] *= - 1./(1j*omega(src.freq))
         return b
 
     def _b_pySecondary(self, e_pySolution, srcList):
@@ -391,7 +391,7 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         C = self.mesh.edgeCurl
         b = (C * e_pySolution)
         for i, src in enumerate(srcList):
-            b[:,i] *= - 1./(1j*omega(src.freq))
+            b[:, i] *= - 1./(1j*omega(src.freq))
         return b
 
     def _b_px(self, eSolution, srcList):
@@ -418,22 +418,21 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         """
         return self._b_pyPrimary(eSolution, srcList) + self._b_pySecondary(eSolution, srcList)
 
-    ## Derivatives
-    #NOTE: For e_p?Deriv_u,
+    # Derivatives
+    # NOTE: For e_p?Deriv_u,
     # v has to be u(2*nE) long for the not adjoint and nE long for adjoint.
     # Returns nE long for not adjoint and 2*nE long for adjoint
-    def _e_pxDeriv(self, src, du_dm_v, v, adjoint = False):
-        ''' Derivative of e_px with respect to the solution (u) and model (m) '''
+    def _e_pxDeriv(self, src, du_dm_v, v, adjoint=False):
+        """ Derivative of e_px with respect to the solution (u) and model (m) """
         # e_px does not depend on the model
-        return np.array(self._e_pxDeriv_u(src, du_dm_v, adjoint) + self._e_pxDeriv_m(src, v, adjoint),complex)
+        return np.array(self._e_pxDeriv_u(src, du_dm_v, adjoint) + self._e_pxDeriv_m(src, v, adjoint), complex)
 
-    def _e_pyDeriv(self, src, du_dm_v, v, adjoint = False):
-        ''' Derivative of e_py with respect to the solution (u) and model (m) '''
-        return np.array(self._e_pyDeriv_u(src, du_dm_v, adjoint) + self._e_pyDeriv_m(src, v, adjoint),complex)
+    def _e_pyDeriv(self, src, du_dm_v, v, adjoint=False):
+        """ Derivative of e_py with respect to the solution (u) and model (m) """
+        return np.array(self._e_pyDeriv_u(src, du_dm_v, adjoint) + self._e_pyDeriv_m(src, v, adjoint), complex)
 
-
-    def _e_pxDeriv_u(self, src, du_dm_v, adjoint = False):
-        '''
+    def _e_pxDeriv_u(self, src, du_dm_v, adjoint=False):
+        """
         Derivative of e_px wrt u
 
         :param SimPEG.NSEM.src src: The source of the problem
@@ -443,7 +442,7 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         :rtype: numpy.array
         :return: The calculated derivative, size (nU,) when adjoint=True
             (nE,) when adjoint=False
-        '''
+        """
         # e_pxPrimary doesn't depend on u, only e_pxSecondary
         if adjoint:
             # adjoint: returns a 2*nE long vector with zero's for py
@@ -451,8 +450,8 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         # Not adjoint: return only the px part of the vector
         return du_dm_v[:int(len(du_dm_v)/2)]
 
-    def _e_pyDeriv_u(self, src, du_dm_v, adjoint = False):
-        '''
+    def _e_pyDeriv_u(self, src, du_dm_v, adjoint=False):
+        """
         Derivative of e_py wrt u
 
         :param SimPEG.NSEM.src src: The source of the problem
@@ -463,7 +462,7 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         :return: The calculated derivative, size (nU,) when adjoint=True
             (nE,) when adjoint=False
 
-        '''
+        """
 
         if adjoint:
             # adjoint: returns a 2*nE long vector with zero's for px
@@ -471,8 +470,8 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         # Not adjoint: return only the px part of the vector
         return du_dm_v[int(len(du_dm_v)/2)::]
 
-    def _e_pxDeriv_m(self, src, v, adjoint = False):
-        '''
+    def _e_pxDeriv_m(self, src, v, adjoint=False):
+        """
         Derivative of e_px wrt m
 
         :param SimPEG.NSEM.src src: The source of the problem
@@ -484,12 +483,12 @@ class Fields3D_ePrimSec(BaseNSEMFields):
             (nE,) when adjoint=False
 
 
-        '''
+        """
         # e_px does not depend on the model
         return Zero()
 
-    def _e_pyDeriv_m(self, src, v, adjoint = False):
-        '''
+    def _e_pyDeriv_m(self, src, v, adjoint=False):
+        """
         Derivative of e_py wrt m
 
         :param SimPEG.NSEM.src src: The source of the problem
@@ -501,25 +500,24 @@ class Fields3D_ePrimSec(BaseNSEMFields):
             (nE,) when adjoint=False
 
 
-        '''
+        """
         # e_py does not depend on the model
         return Zero()
 
-
     # Magnetic flux
     def _b_pxDeriv(self, src, du_dm_v, v, adjoint=False):
-        ''' Derivative of b_px with respect to the solution (u) and model (m) '''
+        """ Derivative of b_px with respect to the solution (u) and model (m) """
         # b_px does not depend on the model
 
-        return np.array(self._b_pxDeriv_u(src, du_dm_v, adjoint) + self._b_pxDeriv_m(src, v, adjoint),complex)
+        return np.array(self._b_pxDeriv_u(src, du_dm_v, adjoint) + self._b_pxDeriv_m(src, v, adjoint), complex)
 
     def _b_pyDeriv(self, src, du_dm_v, adjoint=False):
-        ''' Derivative of b_px with respect to the solution (u) and model (m) '''
+        """ Derivative of b_px with respect to the solution (u) and model (m) """
         # Primary does not depend on u
-        return np.array(self._b_pyDeriv_u(src, du_dm_v, adjoint) + self._b_pyDeriv_m(src, v, adjoint),complex)
+        return np.array(self._b_pyDeriv_u(src, du_dm_v, adjoint) + self._b_pyDeriv_m(src, v, adjoint), complex)
 
-    def _b_pxDeriv_u(self, src, du_dm_v, adjoint = False):
-        '''
+    def _b_pxDeriv_u(self, src, du_dm_v, adjoint=False):
+        """
         Derivative of b_px with wrt u
 
         :param SimPEG.NSEM.src src: The source of the problem
@@ -529,15 +527,15 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         :rtype: numpy.array
         :return: The calculated derivative, size (nU,) when adjoint=True
             (nF,) when adjoint=False
-        '''
+        """
         # Primary does not depend on u
-        C = sp.hstack((self.mesh.edgeCurl,Utils.spzeros(self.mesh.nF,self.mesh.nE))) # This works for adjoint = None
+        C = sp.hstack((self.mesh.edgeCurl,Utils.spzeros(self.mesh.nF, self.mesh.nE))) # This works for adjoint = None
         if adjoint:
             return - 1./(1j*omega(src.freq)) * (C.T * du_dm_v)
         return - 1./(1j*omega(src.freq)) * (C * du_dm_v)
 
-    def _b_pyDeriv_u(self, src, du_dm_v, adjoint = False):
-        ''' Derivative of b_py with wrt u
+    def _b_pyDeriv_u(self, src, du_dm_v, adjoint=False):
+        """ Derivative of b_py with wrt u
 
         :param SimPEG.NSEM.src src: The source of the problem
         :param numpy.ndarray du_dm_v: vector to take product with
@@ -546,19 +544,19 @@ class Fields3D_ePrimSec(BaseNSEMFields):
         :rtype: numpy.array
         :return: The calculated derivative, size (nU,) when adjoint=True
             (nF,) when adjoint=False
-        '''
+        """
         # Primary does not depend on u
-        C = sp.hstack((Utils.spzeros(self.mesh.nF,self.mesh.nE),self.mesh.edgeCurl)) # This works for adjoint = None
+        C = sp.hstack((Utils.spzeros(self.mesh.nF, self.mesh.nE), self.mesh.edgeCurl)) # This works for adjoint = None
         if adjoint:
             return - 1./(1j*omega(src.freq)) * (C.T * du_dm_v)
         return - 1./(1j*omega(src.freq)) * (C * du_dm_v)
 
-    def _b_pxDeriv_m(self, src, v, adjoint = False):
-        ''' Derivative of b_px wrt m '''
+    def _b_pxDeriv_m(self, src, v, adjoint=False):
+        """ Derivative of b_px wrt m """
         # b_px does not depend on the model
         return Zero()
 
-    def _b_pyDeriv_m(self, src, v, adjoint = False):
-        ''' Derivative of b_py wrt m '''
+    def _b_pyDeriv_m(self, src, v, adjoint=False):
+        """ Derivative of b_py wrt m """
         # b_py does not depend on the model
         return Zero()

@@ -914,7 +914,8 @@ class Sparse(Simple):
     # set default values
     eps_p = [1e-1, 1e-1, 1e-1]        # Threshold value for the model norm
     eps_q = [1e-1, 1e-1, 1e-1]        # Threshold value for the model gradient norm
-    curModel = None     # Requires model to compute the weights
+    model = None     # Requires model to compute the weights
+
     l2model = None
     gamma = 1.          # Model norm scaling to smooth out convergence
     norms = [0., 2., 2., 2.] # Values for norm on (m, dmdx, dmdy, dmdz)
@@ -927,12 +928,12 @@ class Sparse(Simple):
         if isinstance(self.cell_weights,float):
             self.cell_weights = np.ones(self.regmesh.nC) * self.cell_weights
 
-        # if getattr(self, 'curModel', None) is None:
-        #             self.curModel = np.ones(self.regmesh.nC)
+        # if getattr(self, 'model', None) is None:
+        #             self.model = np.ones(self.regmesh.nC)
 
-        # if self.regmesh.nC != len(self.curModel):
+        # if self.regmesh.nC != len(self.model):
 
-        #     nmod = len(self.curModel)/self.regmesh.nC
+        #     nmod = len(self.model)/self.regmesh.nC
 
         #     assert np.mod(nmod, 1) > 1e-8, 'Mismatch between model and mesh'
 
@@ -944,11 +945,11 @@ class Sparse(Simple):
         """Regularization matrix Wsmall"""
         if getattr(self, '_Wsmall', None) is None:
 
-            if getattr(self, 'curModel', None) is None:
+            if getattr(self, 'model', None) is None:
                 m = np.ones(self.mapping.shape[0])
 
             else:
-                m = self.mapping * (self.curModel)
+                m = self.mapping * (self.model)
 
             mref = self.mapping * (self.reg.mref)
             mats = []
@@ -973,11 +974,11 @@ class Sparse(Simple):
         """Regularization matrix Wx"""
         if getattr(self, '_Wx', None) is None:
 
-            if getattr(self, 'curModel', None) is None:
+            if getattr(self, 'model', None) is None:
                 m = np.ones(self.mapping.shape[0])
 
             else:
-                m = self.mapping * (self.curModel)
+                m = self.mapping * (self.model)
 
             mats = []
             for imodel in range(self.nModels):
@@ -1001,11 +1002,11 @@ class Sparse(Simple):
         """Regularization matrix Wy"""
         if getattr(self, '_Wy', None) is None:
 
-            if getattr(self, 'curModel', None) is None:
+            if getattr(self, 'model', None) is None:
                 m = np.ones(self.mapping.shape[0])
 
             else:
-                m = self.mapping * (self.curModel)
+                m = self.mapping * (self.model)
 
             mats = []
             for imodel in range(self.nModels):
@@ -1028,11 +1029,11 @@ class Sparse(Simple):
     def Wz(self):
         """Regularization matrix Wz"""
         if getattr(self, '_Wz', None) is None:
-            if getattr(self, 'curModel', None) is None:
+            if getattr(self, 'model', None) is None:
                 m = np.ones(self.mapping.shape[0])
 
             else:
-                m = self.mapping * (self.curModel)
+                m = self.mapping * (self.model)
             mats = []
             for imodel in range(self.nModels):
 
@@ -1058,104 +1059,3 @@ class Sparse(Simple):
         r = eta / (f_m**2.+ eps**2.)**((1.-exponent/2.)/2.)
 
         return r
-
-    # @Utils.timeIt
-    # def _evalSmall2Deriv(self, m, v = None):
-    #     rDeriv = self.Wsmall * ( self.mapping.deriv(m - self.mref) )
-    #     if v is not None:
-    #         return rDeriv.T * (rDeriv * v)
-    #     return rDeriv.T * rDeriv
-
-# class MultiRegularization(Sparse):
-#     """
-#     **MultiRegularization Class**
-
-#     This is used to regularize the model space
-#     having multiple models [m1, m2, m3, ...] ::
-
-#         reg = Regularization(mesh)
-
-#     """
-#     nModels = None # Number of models
-#     ratios = None  # Ratio for different models
-#     crossgrad = False # Use cross gradient or not
-#     betacross = 1.
-#     wx = []
-#     wy = []
-#     wz = []
-
-#     def __init__(self, mesh, mapping=None, indActive=None, **kwargs):
-#         BaseRegularization.__init__(self, mesh, mapping=mapping, indActive=indActive, **kwargs)
-#         if self.nModels == None:
-#             raise Exception("Put nModels as a initial input!")
-#         if self.ratios == None:
-#             self.ratios = [1. for imodel in range(self.nModels)]
-
-#     @property
-#     def Wsmall(self):
-#         """Regularization matrix Wsmall"""
-#         if getattr(self,'_Wsmall', None) is None:
-#             vecs = []
-#             for imodel in range(self.nModels):
-#                 vecs.append((self.regmesh.vol*self.alpha_s*self.wght*self.ratios[imodel])**0.5)
-#             self._Wsmall = Utils.sdiag(np.hstack(vecs))
-#         return self._Wsmall
-
-#     @property
-#     def Wx(self):
-#         """Regularization matrix Wx"""
-#         if getattr(self, '_Wx', None) is None:
-#             mats = []
-#             for imodel in range(self.nModels):
-#                 self.wx.append(Utils.sdiag((self.regmesh.aveCC2Fx * self.regmesh.vol*self.alpha_x*self.ratios[imodel]*(self.regmesh.aveCC2Fx*self.wght))**0.5))
-#                 mats.append(self.wx[imodel]*self.regmesh.cellDiffxStencil)
-#             self._Wx = sp.block_diag(mats)
-#         return self._Wx
-
-#     @property
-#     def Wy(self):
-#         """Regularization matrix Wy"""
-#         if getattr(self, '_Wy', None) is None:
-#             mats = []
-#             for imodel in range(self.nModels):
-#                 self.wy.append(Utils.sdiag((self.regmesh.aveCC2Fy * self.regmesh.vol*self.alpha_y*self.ratios[imodel]*(self.regmesh.aveCC2Fy*self.wght))**0.5))
-#                 mats.append(self.wy[imodel]*self.regmesh.cellDiffyStencil)
-#             self._Wy = sp.block_diag(mats)
-#         return self._Wy
-
-#     @property
-#     def Wz(self):
-#         """Regularization matrix Wz"""
-#         if getattr(self, '_Wz', None) is None:
-#             mats = []
-#             for imodel in range(self.nModels):
-#                 self.wz.append(Utils.sdiag((self.regmesh.aveCC2Fz * self.regmesh.vol*self.alpha_z*self.ratios[imodel]*(self.regmesh.aveCC2Fz*self.wght))**0.5))
-#                 mats.append(self.wz[imodel]*self.regmesh.cellDiffzStencil)
-#             self._Wz = sp.block_diag(mats)
-#         return self._Wz
-
-#     @property
-#     def Wsmooth(self):
-#         """Full smoothness regularization matrix W"""
-#         if getattr(self, '_Wsmooth', None) is None:
-#             wlist = (self.Wx,)
-#             if self.regmesh.dim > 1:
-#                 wlist += (self.Wy,)
-#             if self.regmesh.dim > 2:
-#                 wlist += (self.Wz,)
-#             self._Wsmooth = sp.vstack(wlist)
-#         return self._Wsmooth
-
-#     @property
-#     def W(self):
-#         """Full regularization matrix W"""
-#         if getattr(self, '_W', None) is None:
-#             wlist = (self.Wsmall, self.Wsmooth)
-#             self._W = sp.vstack(wlist)
-#         return self._W
-
-
-#     @Utils.timeIt
-#     def eval(self, m):
-#         return self._evalSmall(m) + self._evalSmooth(m)
-

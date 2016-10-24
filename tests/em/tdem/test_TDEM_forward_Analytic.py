@@ -48,7 +48,7 @@ def halfSpaceProblemAnaDiff(meshType, srctype="MagDipole",
                                        loc=np.array([0., 0., 0.]), radius=0.1)
 
     survey = EM.TDEM.Survey([src])
-    prb = EM.TDEM.Problem3D_b(mesh, mapping=mapping)
+    prb = EM.TDEM.Problem3D_b(mesh, sigmaMap=mapping)
     prb.Solver = Solver
 
     prb.timeSteps = [(1e-06, 40), (5e-06, 40), (1e-05, 40), (5e-05, 40),
@@ -76,7 +76,7 @@ def halfSpaceProblemAnaDiff(meshType, srctype="MagDipole",
     print('Difference: {}'.format(log10diff))
 
     if plotIt is True:
-        plt.loglog(rx.times[bz_calc>0], bz_calc[bz_calc > 0], 'r',
+        plt.loglog(rx.times[bz_calc > 0], bz_calc[bz_calc > 0], 'r',
                    rx.times[bz_calc < 0], -bz_calc[bz_calc < 0], 'r--')
         plt.loglog(rx.times, abs(bz_ana), 'b*')
         plt.title('sig_half = {0:e}'.format(sig_half))
@@ -136,23 +136,22 @@ class TDEM_bTests(unittest.TestCase):
     def test_analytic_p0_CYL_0m_CircularLoop(self):
         self.assertTrue(halfSpaceProblemAnaDiff(
             'CYL', srctype="CircularLoop", rxOffset=.0, sig_half=1e+0) < 0.15
-            )
+        )
 
     def test_analytic_m1_CYL_0m_CircularLoop(self):
         self.assertTrue(halfSpaceProblemAnaDiff(
             'CYL', srctype="CircularLoop", rxOffset=.0, sig_half=1e-1) < 0.15
-            )
+        )
 
     def test_analytic_m2_CYL_0m_CircularLoop(self):
         self.assertTrue(halfSpaceProblemAnaDiff(
             'CYL', srctype="CircularLoop", rxOffset=.0, sig_half=1e-2) < 0.15
-            )
+        )
 
     def test_analytic_m3_CYL_0m_CircularLoop(self):
         self.assertTrue(halfSpaceProblemAnaDiff(
             'CYL', srctype="CircularLoop", rxOffset=.0, sig_half=1e-3) < 0.15
             )
-
 
 
 if __name__ == '__main__':

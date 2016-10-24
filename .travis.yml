@@ -16,6 +16,7 @@ addons:
     - liblapack-dev
 
 env:
+    - TEST_DIR=tests/examples
     - TEST_DIR="tests/mesh tests/base tests/utils"
     - TEST_DIR=tests/em/fdem/inverse/derivs
     - TEST_DIR=tests/em/tdem
@@ -23,7 +24,6 @@ env:
     - TEST_DIR=tests/flow
     - TEST_DIR=tests/em/nsem/forward
     - TEST_DIR=tests/em/nsem/inversion
-    - TEST_DIR=tests/examples
     - TEST_DIR=tests/em/fdem/inverse/adjoint
     - TEST_DIR=tests/em/fdem/forward
     - TEST_DIR=tests/pf

@@ -8,6 +8,6 @@
 - Lars Ruthotto, (`@lruthotto <https://github.com/lruthotto/>`_)
 - Mike Wathen, (`@mrwathen <https://github.com/mrwathen/>`_)
 - Luz Angelica Caudillo-Mata, (`@lacmajedrez <https://github.com/lacmajedrez/>`_)
-- Eldad Haber, (`@ehaber99 <https://github.com/ehaber99/>`_)
+- Eldad Haber, (`@eldadhaber <https://github.com/eldadhaber/>`_)
 - Doug Oldenburg, (`@dougoldenburg <https://github.com/dougoldenburg/>`_)
 - Adam Pidlisecky, (`@aPid1 <https://github.com/aPid1/>`_)

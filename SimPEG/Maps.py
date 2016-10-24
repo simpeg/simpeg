@@ -1,15 +1,23 @@
+from __future__ import absolute_import
+from __future__ import division
 from __future__ import print_function
-from . import Utils
+from __future__ import unicode_literals
+
+from six import integer_types
+from six import string_types
+from collections import namedtuple
+import warnings
+
 import numpy as np
+from numpy.polynomial import polynomial
 import scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
-from .Tests import checkDerivative
-from .PropMaps import PropMap, Property
-from numpy.polynomial import polynomial
 from scipy.interpolate import UnivariateSpline
-import warnings
-from six import integer_types
 from scipy.spatial import cKDTree
+
+from . import Utils
+from .Tests import checkDerivative
+
 
 
 class IdentityMap(object):
@@ -21,7 +29,11 @@ class IdentityMap(object):
         Utils.setKwargs(self, **kwargs)
 
         if nP is not None:
-            assert type(nP) in integer_types, ' Number of parameters must be an integer.'
+            assert isinstance(nP, integer_types), (
+                'Number of parameters must be an integer. Not `{}`.'
+                .format(type(nP))
+            )
+            nP = int(nP)
 
         self.mesh = mesh
         self._nP = nP
@@ -113,6 +125,10 @@ class IdentityMap(object):
             m = abs(np.random.rand(self.nP))
         if 'plotIt' not in kwargs:
             kwargs['plotIt'] = False
+        assert isinstance(self.nP, integer_types), (
+            "nP must be an integer for {}"
+            .format(self.__class__.__name__)
+        )
         return checkDerivative(lambda m: [self * m, self.deriv(m)], m, num=4,
                                **kwargs)
 
@@ -135,25 +151,52 @@ class IdentityMap(object):
                                m, num=4, **kwargs)
 
     def _assertMatchesPair(self, pair):
-        assert (isinstance(self, pair) or
+        assert (
+            isinstance(self, pair) or
             isinstance(self, ComboMap) and isinstance(self.maps[0], pair)
-            ), "Mapping object must be an instance of a {0!s} class.".format((pair.__name__))
+        ), "Mapping object must be an instance of a {0!s} class.".format(
+            pair.__name__
+        )
 
     def __mul__(self, val):
         if isinstance(val, IdentityMap):
-            if not (self.shape[1] == '*' or val.shape[0] == '*') and not self.shape[1] == val.shape[0]:
-                raise ValueError('Dimension mismatch in {0!s} and {1!s}.'.format(str(self), str(val)))
+            if (
+                not (self.shape[1] == '*' or val.shape[0] == '*') and
+                not self.shape[1] == val.shape[0]
+            ):
+                raise ValueError(
+                    'Dimension mismatch in {0!s} and {1!s}.'.format(
+                        str(self), str(val)
+                    )
+                )
             return ComboMap([self, val])
 
         elif isinstance(val, np.ndarray):
-            if not self.shape[1] == '*' and not self.shape[1] == val.shape[0]:
-                raise ValueError('Dimension mismatch in {0!s} and np.ndarray{1!s}.'.format(str(self), str(val.shape)))
+            if (
+                not self.shape[1] == '*' and not self.shape[1] == val.shape[0]
+            ):
+                raise ValueError(
+                    'Dimension mismatch in {0!s} and np.ndarray{1!s}.'.format(
+                        str(self), str(val.shape)
+                    )
+                )
             return self._transform(val)
-        raise Exception('Unrecognized data type to multiply. '
-                        'Try a map or a numpy.ndarray!')
+        raise Exception(
+            'Unrecognized data type to multiply. Try a map or a numpy.ndarray!'
+            'You used a {} of type {}'.format(
+                val, type(val)
+            )
+        )
 
     def __str__(self):
-        return "{0!s}({1!s},{2!s})".format(self.__class__.__name__, self.shape[0], self.shape[1])
+        return "{0!s}({1!s},{2!s})".format(
+            self.__class__.__name__,
+            self.shape[0],
+            self.shape[1]
+        )
+
+    def __len__(self):
+        return 1
 
 
 class ComboMap(IdentityMap):
@@ -167,11 +210,22 @@ class ComboMap(IdentityMap):
             assert isinstance(m, IdentityMap), "Unrecognized data type, "
             "inherit from an IdentityMap or ComboMap!"
 
-            if (ii > 0 and not (self.shape[1] == '*' or m.shape[0] == '*') and
-                not self.shape[1] == m.shape[0]):
+            if (
+                ii > 0 and not (self.shape[1] == '*' or m.shape[0] == '*') and
+                not self.shape[1] == m.shape[0]
+               ):
                 prev = self.maps[-1]
-                errArgs = (prev.__class__.__name__, prev.shape[0], prev.shape[1], m.__class__.__name__, m.shape[0], m.shape[1])
-                raise ValueError('Dimension mismatch in map[{0!s}] ({1!s}, {2!s}) and map[{3!s}] ({4!s}, {5!s}).'.format(*errArgs))
+                raise ValueError(
+                    'Dimension mismatch in map[{0!s}] ({1!s}, {2!s}) '
+                    'and map[{3!s}] ({4!s}, {5!s}).'.format(
+                        prev.__class__.__name__,
+                        prev.shape[0],
+                        prev.shape[1],
+                        m.__class__.__name__,
+                        m.shape[0],
+                        m.shape[1]
+                    )
+                )
 
             if isinstance(m, ComboMap):
                 self.maps += m.maps
@@ -209,7 +263,102 @@ class ComboMap(IdentityMap):
         return deriv
 
     def __str__(self):
-        return 'ComboMap[{0!s}]({1!s},{2!s})'.format(' * '.join([m.__str__() for m in self.maps]), self.shape[0], self.shape[1])
+        return 'ComboMap[{0!s}]({1!s},{2!s})'.format(
+            ' * '.join([m.__str__() for m in self.maps]),
+            self.shape[0],
+            self.shape[1]
+        )
+
+    def __len__(self):
+        return len(self.maps)
+
+
+class Projection(IdentityMap):
+    """
+        A map to rearrange / select parameters
+
+        :param int nP: number of model parameters
+        :param numpy.array index: indices to select
+    """
+
+    def __init__(self, nP, index, **kwargs):
+        assert isinstance(index, (np.ndarray, slice, list)), (
+            'index must be a np.ndarray or slice, not {}'.format(type(index)))
+        super(Projection, self).__init__(nP=nP, **kwargs)
+
+        if isinstance(index, slice):
+            index = list(range(*index.indices(self.nP)))
+        self.index = index
+        self._shape = nI, nP = len(self.index), self.nP
+
+        assert (max(index) < nP), (
+            'maximum index must be less than {}'.format(nP))
+
+        # sparse projection matrix
+        self.P = sp.csr_matrix(
+            (np.ones(nI), (range(nI), self.index)), shape=(nI, nP)
+        )
+
+    def _transform(self, m):
+        return m[self.index]
+
+    @property
+    def shape(self):
+        """
+        Shape of the matrix operation (number of indices x nP)
+        """
+        return self._shape
+
+    def deriv(self, m, v=None):
+        """
+            :param numpy.array m: model
+            :rtype: scipy.sparse.csr_matrix
+            :return: derivative of transformed model
+        """
+
+        if v is not None:
+            return self.P * v
+        return self.P
+
+
+class Wires(object):
+
+    def __init__(self, *args):
+        for arg in args:
+            assert (
+                isinstance(arg, tuple) and
+                len(arg) == 2 and
+                isinstance(arg[0], string_types) and
+                # TODO: this should be extended to a slice.
+                isinstance(arg[1], integer_types)
+            ), (
+                "Each wire needs to be a tuple: (name, length). "
+                "You provided: {}".format(arg)
+            )
+
+        self._nP = int(np.sum([w[1] for w in args]))
+
+        start = 0
+        maps = []
+        for arg in args:
+            wire = Projection(self.nP, slice(start, start + arg[1]))
+            setattr(self, arg[0], wire)
+            maps += [(arg[0], wire)]
+            start = arg[1]
+        self.maps = maps
+
+        self._tuple = namedtuple('Model', [w[0] for w in args])
+
+    def __mul__(self, val):
+        assert isinstance(val, np.ndarray)
+        split = []
+        for n, w in self.maps:
+            split += [w * val]
+        return self._tuple(*split)
+
+    @property
+    def nP(self):
+        return self._nP
 
 
 class ExpMap(IdentityMap):
@@ -333,7 +482,7 @@ class LogMap(IdentityMap):
     def deriv(self, m, v=None):
         mod = Utils.mkvc(m)
         deriv = np.zeros(mod.shape)
-        tol = 1e-16 # zero
+        tol = 1e-16  # zero
         ind = np.greater_equal(np.abs(mod), tol)
         deriv[ind] = 1.0/mod[ind]
         if v is not None:
@@ -379,17 +528,6 @@ class SurjectFull(IdentityMap):
         return deriv
 
 
-class FullMap(SurjectFull):
-    """FullMap is depreciated. Use SurjectVertical1DMap instead.
-    """
-    def __init__(self, mesh, **kwargs):
-        warnings.warn(
-            "`FullMap` is deprecated and will be removed in future versions."
-            " Use `SurjectFull` instead",
-            FutureWarning)
-        SurjectFull.__init__(self, mesh, **kwargs)
-
-
 class SurjectVertical1D(IdentityMap):
     """SurjectVertical1DMap
 
@@ -407,7 +545,7 @@ class SurjectVertical1D(IdentityMap):
 
            The number of cells in the
            last dimension of the mesh."""
-        return self.mesh.vnC[self.mesh.dim-1]
+        return int(self.mesh.vnC[self.mesh.dim-1])
 
     def _transform(self, m):
         """
@@ -433,18 +571,6 @@ class SurjectVertical1D(IdentityMap):
         if v is not None:
             return deriv * v
         return deriv
-
-
-class Vertical1DMap(SurjectVertical1D):
-    """
-        Vertical1DMap is depreciated. Use SurjectVertical1D instead.
-    """
-    def __init__(self, mesh, **kwargs):
-        warnings.warn(
-            "`Vertical1DMap` is deprecated and will be removed in future"
-            "versions. Use `SurjectVertical1D` instead",
-            FutureWarning)
-        SurjectVertical1D.__init__(self, mesh, **kwargs)
 
 
 class Surject2Dto3D(IdentityMap):
@@ -483,17 +609,32 @@ class Surject2Dto3D(IdentityMap):
         """
         m = Utils.mkvc(m)
         if self.normal == 'Z':
-            return Utils.mkvc(m.reshape(self.mesh.vnC[[0,1]], order='F'
-                                        )[:, :, np.newaxis].repeat(self.mesh.nCz,
-                                                                   axis=2))
+            return Utils.mkvc(
+                m.reshape(
+                    self.mesh.vnC[[0, 1]], order='F'
+                )[:, :, np.newaxis].repeat(
+                    self.mesh.nCz,
+                    axis=2
+                )
+            )
         elif self.normal == 'Y':
-            return Utils.mkvc(m.reshape(self.mesh.vnC[[0,2]], order='F'
-                                        )[:, np.newaxis, :].repeat(self.mesh.nCy,
-                                                                   axis=1))
+            return Utils.mkvc(
+                m.reshape(
+                    self.mesh.vnC[[0, 2]], order='F'
+                )[:, np.newaxis, :].repeat(
+                    self.mesh.nCy,
+                    axis=1
+                )
+            )
         elif self.normal == 'X':
-            return Utils.mkvc(m.reshape(self.mesh.vnC[[1,2]], order='F'
-                                        )[np.newaxis, :, :].repeat(self.mesh.nCx,
-                                                                   axis=0))
+            return Utils.mkvc(
+                m.reshape(
+                    self.mesh.vnC[[1, 2]], order='F'
+                )[np.newaxis, :, :].repeat(
+                    self.mesh.nCx,
+                    axis=0
+                )
+            )
 
     def deriv(self, m, v=None):
         """
@@ -511,18 +652,6 @@ class Surject2Dto3D(IdentityMap):
         return P
 
 
-class Map2Dto3D(Surject2Dto3D):
-    """Map2Dto3D is depreciated. Use Surject2Dto3D instead
-    """
-
-    def __init__(self, mesh, **kwargs):
-        warnings.warn(
-            "`Map2Dto3D` is deprecated and will be removed in future versions."
-            " Use `Surject2Dto3D` instead",
-            FutureWarning)
-        Surject2Dto3D.__init__(self, mesh, **kwargs)
-
-
 class Mesh2Mesh(IdentityMap):
     """
         Takes a model on one mesh are translates it to another mesh.
@@ -536,11 +665,14 @@ class Mesh2Mesh(IdentityMap):
         assert meshes[0].dim == meshes[1].dim, ("The two meshes must be the "
                                                 "same dimension")
 
-        self.mesh  = meshes[0]
+        self.mesh = meshes[0]
         self.mesh2 = meshes[1]
 
-        self.P = self.mesh2.getInterpolationMat(self.mesh.gridCC, 'CC',
-                                                zerosOutside=True)
+        self.P = self.mesh2.getInterpolationMat(
+            self.mesh.gridCC,
+            'CC',
+            zerosOutside=True
+        )
 
     @property
     def shape(self):
@@ -685,7 +817,7 @@ class InjectActiveCells(IdentityMap):
     @property
     def nP(self):
         """Number of parameters in the model."""
-        return self.indActive.sum()
+        return int(self.indActive.sum())
 
     def _transform(self, m):
         return self.P * m + self.valInactive
@@ -697,18 +829,6 @@ class InjectActiveCells(IdentityMap):
         if v is not None:
             return self.P * v
         return self.P
-
-
-class ActiveCells(InjectActiveCells):
-    """ActiveCells is depreciated. Use InjectActiveCells instead.
-    """
-
-    def __init__(self, mesh, indActive, valInactive, nC=None):
-        warnings.warn(
-            "`ActiveCells` is deprecated and will be removed in future "
-            "versions. Use `InjectActiveCells` instead",
-            FutureWarning)
-        InjectActiveCells.__init__(self, mesh, indActive, valInactive, nC)
 
 
 class Weighting(IdentityMap):
@@ -793,54 +913,6 @@ class ComplexMap(IdentityMap):
     # inverse = deriv
 
 
-class Projection(IdentityMap):
-    """
-        A map to rearrange / select parameters
-
-        :param int nP: number of model parameters
-        :param numpy.array index: indices to select
-    """
-
-    def __init__(self, nP, index, **kwargs):
-        assert isinstance(index, (np.ndarray, slice, list)), (
-            'index must be a np.ndarray or slice, not {}'.format(type(index)))
-        super(Projection, self).__init__(nP=nP, **kwargs)
-
-        if isinstance(index, slice):
-            index = list(range(*index.indices(self.nP)))
-        self.index = index
-        self._shape = nI, nP = len(self.index), self.nP
-
-        assert (max(index) < nP), (
-            'maximum index must be less than {}'.format(nP))
-
-        # sparse projection matrix
-        self.P = sp.csr_matrix(
-            (np.ones(nI), (range(nI), self.index)), shape=(nI, nP)
-        )
-
-    def _transform(self, m):
-        return m[self.index]
-
-    @property
-    def shape(self):
-        """
-        Shape of the matrix operation (number of indices x nP)
-        """
-        return self._shape
-
-    def deriv(self, m, v=None):
-        """
-            :param numpy.array m: model
-            :rtype: scipy.sparse.csr_matrix
-            :return: derivative of transformed model
-        """
-
-        if v is not None:
-            return self.P * v
-        return self.P
-
-
 class ParametricCircleMap(IdentityMap):
     """ParametricCircleMap
 
@@ -863,8 +935,10 @@ class ParametricCircleMap(IdentityMap):
     slope = 1e-1
 
     def __init__(self, mesh, logSigma=True):
-        assert mesh.dim == 2, "Working for a 2D mesh only right now. "
-        "But it isn't that hard to change.. :)"
+        assert mesh.dim == 2, (
+            "Working for a 2D mesh only right now. "
+            "But it isn't that hard to change.. :)"
+        )
         IdentityMap.__init__(self, mesh)
         # TODO: this should be done through a composition with and ExpMap
         self.logSigma = logSigma
@@ -891,39 +965,43 @@ class ParametricCircleMap(IdentityMap):
         X = self.mesh.gridCC[:, 0]
         Y = self.mesh.gridCC[:, 1]
         if self.logSigma:
-            g1 = -(np.arctan(a*(-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi +
-                   0.5)*sig1 + sig1
-            g2 = (np.arctan(a*(-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi +
-                  0.5)*sig2
+            g1 = - (
+                np.arctan(a * (-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi +
+                0.5
+            ) * sig1 + sig1
+            g2 = (
+                np.arctan(a * (-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi +
+                0.5
+            ) * sig2
         else:
-            g1 = -(np.arctan(a*(-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi +
-                   0.5) + 1.0
-            g2 = (np.arctan(a*(-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi +
-                  0.5)
-        g3 = a*(-X + x)*(-sig1 + sig2)/(np.pi*(a**2*(-r + np.sqrt((X - x)**2 +
-                                        (Y - y)**2))**2 + 1)*np.sqrt((X - x)**2
-                                        + (Y - y)**2))
-        g4 = a*(-Y + y)*(-sig1 + sig2)/(np.pi*(a**2*(-r + np.sqrt((X - x)**2 +
-                                        (Y - y)**2))**2 + 1)*np.sqrt((X - x)**2
-                                        + (Y - y)**2))
-        g5 = -a*(-sig1 + sig2)/(np.pi*(a**2*(-r + np.sqrt((X - x)**2 +
-                                (Y - y)**2))**2 + 1))
+            g1 = -(
+                np.arctan(a * (-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi +
+                0.5
+            ) + 1.0
+            g2 = (
+                np.arctan(a * (-r + np.sqrt((X - x)**2 + (Y - y)**2)))/np.pi +
+                0.5
+            )
+
+        g3 = a*(-X + x)*(-sig1 + sig2) / (
+            np.pi*(
+                a**2*(-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1
+            ) * np.sqrt((X - x)**2 + (Y - y)**2)
+        )
+
+        g4 = a*(-Y + y)*(-sig1 + sig2) / (
+            np.pi*(
+                a**2*(-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1
+            ) * np.sqrt((X - x)**2 + (Y - y)**2)
+        )
+
+        g5 = -a*(-sig1 + sig2) / (
+            np.pi*(a**2*(-r + np.sqrt((X - x)**2 + (Y - y)**2))**2 + 1)
+        )
 
         if v is not None:
             return sp.csr_matrix(np.c_[g1, g2, g3, g4, g5]) * v
         return sp.csr_matrix(np.c_[g1, g2, g3, g4, g5])
-
-
-class CircleMap(ParametricCircleMap):
-    """CircleMap is depreciated. Use ParametricCircleMap instead.
-    """
-
-    def __init__(self, mesh, logSigma=True):
-        warnings.warn(
-            "`CircleMap` is deprecated and will be removed in future "
-            "versions. Use `ParametricCircleMap` instead",
-            FutureWarning)
-        ParametricCircleMap.__init__(self, mesh, logSigma)
 
 
 class ParametricPolyMap(IdentityMap):
@@ -1071,20 +1149,6 @@ class ParametricPolyMap(IdentityMap):
         return sp.csr_matrix(np.c_[g1, g2, g3])
 
 
-class PolyMap(ParametricPolyMap):
-
-    """PolyMap is depreciated. Use ParametricSplineMap instead.
-
-    """
-
-    def __init__(self, mesh, order, logSigma=True, normal='X', actInd=None):
-        warnings.warn(
-            "`PolyMap` is deprecated and will be removed in future "
-            "versions. Use `ParametricSplineMap` instead",
-            FutureWarning)
-        ParametricPolyMap(self, mesh, order, logSigma, normal, actInd)
-
-
 class ParametricSplineMap(IdentityMap):
 
     """SplineMap
@@ -1201,7 +1265,7 @@ class ParametricSplineMap(IdentityMap):
             X = self.mesh.gridCC[:, 0]
             Y = self.mesh.gridCC[:, 1]
             Z = self.mesh.gridCC[:, 2]
-            if self.normal =='X':
+            if self.normal == 'X':
                 zb = self.ptsv[0]
                 zt = self.ptsv[1]
                 flines = ((self.spl["splt"](Y)-self.spl["splb"](Y)) *
@@ -1284,16 +1348,88 @@ class ParametricSplineMap(IdentityMap):
         return sp.csr_matrix(np.c_[g1, g2, g3])
 
 
+###############################################################################
+#                                                                             #
+#                              Depreciated Maps                               #
+#                                                                             #
+###############################################################################
+
+
+class FullMap(SurjectFull):
+    """FullMap is depreciated. Use SurjectVertical1DMap instead"""
+    def __init__(self, mesh, **kwargs):
+        warnings.warn(
+            "`FullMap` is deprecated and will be removed in future versions."
+            " Use `SurjectFull` instead",
+            FutureWarning)
+        SurjectFull.__init__(self, mesh, **kwargs)
+
+
+class Vertical1DMap(SurjectVertical1D):
+    """Vertical1DMap is depreciated. Use SurjectVertical1D instead"""
+    def __init__(self, mesh, **kwargs):
+        warnings.warn(
+            "`Vertical1DMap` is deprecated and will be removed in future"
+            "versions. Use `SurjectVertical1D` instead",
+            FutureWarning)
+        SurjectVertical1D.__init__(self, mesh, **kwargs)
+
+
+class Map2Dto3D(Surject2Dto3D):
+    """Map2Dto3D is depreciated. Use Surject2Dto3D instead"""
+
+    def __init__(self, mesh, **kwargs):
+        warnings.warn(
+            "`Map2Dto3D` is deprecated and will be removed in future versions."
+            " Use `Surject2Dto3D` instead",
+            FutureWarning)
+        Surject2Dto3D.__init__(self, mesh, **kwargs)
+
+
+class ActiveCells(InjectActiveCells):
+    """ActiveCells is depreciated. Use InjectActiveCells instead"""
+
+    def __init__(self, mesh, indActive, valInactive, nC=None):
+        warnings.warn(
+            "`ActiveCells` is deprecated and will be removed in future "
+            "versions. Use `InjectActiveCells` instead",
+            FutureWarning)
+        InjectActiveCells.__init__(self, mesh, indActive, valInactive, nC)
+
+
+class CircleMap(ParametricCircleMap):
+    """CircleMap is depreciated. Use ParametricCircleMap instead"""
+
+    def __init__(self, mesh, logSigma=True):
+        warnings.warn(
+            "`CircleMap` is deprecated and will be removed in future "
+            "versions. Use `ParametricCircleMap` instead",
+            FutureWarning)
+        ParametricCircleMap.__init__(self, mesh, logSigma)
+
+
+class PolyMap(ParametricPolyMap):
+    """PolyMap is depreciated. Use ParametricSplineMap instead"""
+
+    def __init__(self, mesh, order, logSigma=True, normal='X', actInd=None):
+        warnings.warn(
+            "`PolyMap` is deprecated and will be removed in future "
+            "versions. Use `ParametricSplineMap` instead",
+            FutureWarning
+        )
+        ParametricPolyMap(self, mesh, order, logSigma, normal, actInd)
+
+
 class SplineMap(ParametricSplineMap):
-    """SplineMap is depreciated. Use ParametricSplineMap instead.
-    """
+    """SplineMap is depreciated. Use ParametricSplineMap instead"""
 
     def __init__(self, mesh, pts, ptsv=None, order=3, logSigma=True,
                  normal='X'):
         warnings.warn(
             "`SplineMap` is deprecated and will be removed in future "
             "versions. Use `ParametricSplineMap` instead",
-            FutureWarning)
-        ParametricSplineMap.__init__(self, mesh, pts, ptsv, order, logSigma,
-                                     normal)
-
+            FutureWarning
+        )
+        ParametricSplineMap.__init__(
+            self, mesh, pts, ptsv, order, logSigma, normal
+        )

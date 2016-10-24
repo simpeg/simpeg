@@ -1,8 +1,12 @@
 import numpy as np
-from SimPEG import (Mesh, Maps, Utils, SolverLU, DataMisfit, Regularization,
+from SimPEG import (Mesh, Maps, Utils, DataMisfit, Regularization,
                     Optimization, Inversion, InvProblem, Directives)
 import SimPEG.EM as EM
-from SimPEG.EM import mu_0
+import matplotlib.pyplot as plt
+try:
+    from pymatsolver import PardisoSolver as Solver
+except ImportError:
+    from SimPEG import SolverLU as Solver
 
 
 def run(plotIt=True):
@@ -34,7 +38,6 @@ def run(plotIt=True):
     mtrue = np.log(sigma[active])
 
     if plotIt:
-        import matplotlib.pyplot as plt
         fig, ax = plt.subplots(1, 1, figsize=(3, 6))
         plt.semilogx(sigma[active], mesh.vectorCCz[active])
         ax.set_ylim(-500, 0)
@@ -44,8 +47,11 @@ def run(plotIt=True):
         ax.grid(color='k', alpha=0.5, linestyle='dashed', linewidth=0.5)
 
     rxOffset = 10.
-    bzi = EM.FDEM.Rx.Point_b(np.array([[rxOffset, 0., 1e-3]]), orientation='z',
-                             component='imag')
+    bzi = EM.FDEM.Rx.Point_b(
+        np.array([[rxOffset, 0., 1e-3]]),
+        orientation='z',
+        component='imag'
+    )
 
     freqs = np.logspace(1, 3, 10)
     srcLoc = np.array([0., 0., 10.])
@@ -54,14 +60,7 @@ def run(plotIt=True):
                for freq in freqs]
 
     survey = EM.FDEM.Survey(srcList)
-    prb = EM.FDEM.Problem3D_b(mesh, mapping=mapping)
-
-    try:
-        from pymatsolver import PardisoSolver
-        prb.Solver = PardisoSolver
-    except ImportError:
-        prb.Solver = SolverLU
-
+    prb = EM.FDEM.Problem3D_b(mesh, sigmaMap=mapping, Solver=Solver)
     prb.pair(survey)
 
     std = 0.05
@@ -71,11 +70,10 @@ def run(plotIt=True):
     survey.eps = np.linalg.norm(survey.dtrue)*1e-5
 
     if plotIt:
-        import matplotlib.pyplot as plt
-        fig, ax = plt.subplots(1, 1, figsize = (6, 6))
+        fig, ax = plt.subplots(1, 1, figsize=(6, 6))
         ax.semilogx(freqs, survey.dtrue[:freqs.size], 'b.-')
         ax.semilogx(freqs, survey.dobs[:freqs.size], 'r.-')
-        ax.legend(('Noisefree', '$d^{obs}$'), fontsize = 16)
+        ax.legend(('Noisefree', '$d^{obs}$'), fontsize=16)
         ax.set_xlabel('Time (s)', fontsize=14)
         ax.set_ylabel('$B_z$ (T)', fontsize=16)
         ax.set_xlabel('Time (s)', fontsize=14)
@@ -101,7 +99,6 @@ def run(plotIt=True):
     mopt = inv.run(m0)
 
     if plotIt:
-        import matplotlib.pyplot as plt
         fig, ax = plt.subplots(1, 1, figsize=(3, 6))
         plt.semilogx(sigma[active], mesh.vectorCCz[active])
         plt.semilogx(np.exp(mopt), mesh.vectorCCz[active])
@@ -111,8 +108,9 @@ def run(plotIt=True):
         ax.set_ylabel('Depth (m)', fontsize=14)
         ax.grid(color='k', alpha=0.5, linestyle='dashed', linewidth=0.5)
         plt.legend(['$\sigma_{true}$', '$\sigma_{pred}$'], loc='best')
-        plt.show()
+
 
 
 if __name__ == '__main__':
     run()
+    plt.show()

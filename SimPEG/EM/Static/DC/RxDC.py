@@ -1,6 +1,5 @@
 import SimPEG
 import numpy as np
-from SimPEG.Utils import Zero, closestPoints
 
 
 class BaseRx(SimPEG.Survey.BaseRx):
@@ -11,14 +10,14 @@ class BaseRx(SimPEG.Survey.BaseRx):
     rxType = None
 
     knownRxTypes = {
-                    'phi': ['phi', None],
-                    'ex': ['e', 'x'],
-                    'ey': ['e', 'y'],
-                    'ez': ['e', 'z'],
-                    'jx': ['j', 'x'],
-                    'jy': ['j', 'y'],
-                    'jz': ['j', 'z'],
-                    }
+        'phi': ['phi', None],
+        'ex': ['e', 'x'],
+        'ey': ['e', 'y'],
+        'ez': ['e', 'z'],
+        'jx': ['j', 'x'],
+        'jy': ['j', 'y'],
+        'jz': ['j', 'z'],
+    }
 
     def __init__(self, locs, rxType, **kwargs):
         SimPEG.Survey.BaseRx.__init__(self, locs, rxType, **kwargs)
@@ -84,7 +83,7 @@ class Dipole(BaseRx):
 
 class Dipole_ky(BaseRx):
 
-    def __init__(self, locsM, locsN, rxType = 'phi', **kwargs):
+    def __init__(self, locsM, locsN, rxType='phi', **kwargs):
         assert locsM.shape == locsN.shape, ('locsM and locsN need to be the '
                                             'same size')
         locs = [locsM, locsN]
@@ -134,4 +133,3 @@ class Dipole_ky(BaseRx):
             phi += phi0*dky[iky]/2.*np.cos(kys[iky]*y)
             phi0 = phi1.copy()
         return phi
-
