@@ -1,16 +1,17 @@
-from SimPEG import Mesh, Maps,
+from SimPEG import Mesh, Maps, Tests, Utils
 from SimPEG.EM import mu_0, FDEM, Analytics
 from SimPEG.EM.Utils import omega
 try:
     from pymatsolver import PardisoSolver as Solver
 except ImportError:
-    Solver = SolverLU
+    import Solver as SolverLU
+from SimPEG.Utils.io_utils import remoteDownload
+
 import matplotlib.pyplot as plt
 import time
 import os
-from SimPEG.Utils.io_utils import remoteDownload
+import numpy as np
 import unittest
-from SimPEG import Tests
 
 # This could be reduced if we refine the meshes
 TOL_FWD = 5e-1 # relative tolerance for prim-sec comparison
@@ -69,23 +70,25 @@ h = [(csz, npadz-4, -pf), (csz, ncz), (csz, npadz-4, pf)]
 meshs = Mesh.TensorMesh(3*[h], x0 = 'CCC')
 
 # mappings
-primaryMapping = (Maps.ExpMap(meshp) *
-                  Maps.SurjectFull(meshp) *
-                  Maps.Projection(nP=8, index=[0]))
+primaryMapping = (
+    Maps.ExpMap(meshp) *
+    Maps.SurjectFull(meshp) *
+    Maps.Projection(nP=8, index=[0])
+)
 
 mapping = (
-        Maps.ExpMap(meshs) *
-        Maps.ParametrizedBlockInLayer(meshs) *
-        Maps.Projection(
-            nP=8, index=np.hstack([np.r_[0], np.arange(0, 8)])
-        )
+    Maps.ExpMap(meshs) *
+    Maps.ParametrizedBlockInLayer(meshs) *
+    Maps.Projection(
+        nP=8, index=np.hstack([np.r_[0], np.arange(0, 8)])
     )
+)
 
 primaryMap2Meshs = (
-                Maps.ExpMap(meshs) *
-                Maps.SurjectFull(meshs) *
-                Maps.Projection(nP=8, index=[0])
-            )
+    Maps.ExpMap(meshs) *
+    Maps.SurjectFull(meshs) *
+    Maps.Projection(nP=8, index=[0])
+)
 
 
 class PrimSecFDEMTest(object):
@@ -123,10 +126,14 @@ class PrimSecFDEMTest(object):
     def JvecTest(self):
         print('\nTesting Jvec')
         x0 = model
-        fun = lambda x: [self.secondarySurvey.dpred(x),
-                         lambda x: self.secondaryProblem.Jvec(
-                            x0, x, f=self.fields_primsec
-                        )]
+
+        def fun(x):
+            return [
+                self.secondarySurvey.dpred(x),
+                lambda x: self.secondaryProblem.Jvec(
+                    x0, x, f=self.fields_primsec
+                )
+            ]
         return Tests.checkDerivative(fun, x0, num=2, plotIt=False)
 
     def AdjointTest(self):
@@ -135,7 +142,7 @@ class PrimSecFDEMTest(object):
         m = model
         f = self.fields_primsec
         v = np.random.rand(self.secondarySurvey.nD)
-        w = np.random.rand(self.secondaryProblem.mapping.nP)
+        w = np.random.rand(self.secondaryProblem.sigmaMap.nP)
 
         vJw = v.dot(self.secondaryProblem.Jvec(m, w, f))
         wJtv = w.dot(self.secondaryProblem.Jtvec(m, v, f))
@@ -163,13 +170,13 @@ class PrimSecFDEMSrcTest_Cyl2Cart_EB_EB(unittest.TestCase, PrimSecFDEMTest):
                                        orientation=orientation))
 
         # primary
-        self.primaryProblem = FDEM.Problem3D_b(meshp, mapping=primaryMapping)
+        self.primaryProblem = FDEM.Problem3D_b(meshp, sigmaMap=primaryMapping)
         self.primaryProblem.solver = Solver
         primarySrc = FDEM.Src.MagDipole(self.rxlist, freq=freq, loc=src_loc)
         self.primarySurvey = FDEM.Survey([primarySrc])
 
         # Secondary Problem
-        self.secondaryProblem = FDEM.Problem3D_b(meshs, mapping=mapping)
+        self.secondaryProblem = FDEM.Problem3D_b(meshs, sigmaMap=mapping)
         self.secondaryProblem.Solver = Solver
         self.secondarySrc = FDEM.Src.PrimSecMappedSigma(
                 self.rxlist, freq, self.primaryProblem,
@@ -178,7 +185,7 @@ class PrimSecFDEMSrcTest_Cyl2Cart_EB_EB(unittest.TestCase, PrimSecFDEMTest):
         self.secondaryProblem.pair(self.secondarySurvey)
 
         # Full 3D problem to compare with
-        self.problem3D = FDEM.Problem3D_b(meshs, mapping=mapping)
+        self.problem3D = FDEM.Problem3D_b(meshs, sigmaMap=mapping)
         self.problem3D.Solver = Solver
         self.survey3D = FDEM.Survey([primarySrc])
         self.problem3D.pair(self.survey3D)
@@ -206,7 +213,6 @@ class PrimSecFDEMSrcTest_Cyl2Cart_EB_EB(unittest.TestCase, PrimSecFDEMTest):
         self.AdjointTest()
 
 
-
 class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
 
     @classmethod
@@ -223,31 +229,34 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
                                        orientation=orientation))
 
         # primary
-        self.primaryProblem = FDEM.Problem3D_j(meshp, mapping=primaryMapping)
+        self.primaryProblem = FDEM.Problem3D_j(meshp, sigmaMap=primaryMapping)
         self.primaryProblem.solver = Solver
         s_e = np.zeros(meshp.nF)
         inds = meshp.nFx + Utils.closestPoints(meshp, src_loc, gridLoc='Fz')
         s_e[inds] = 1./csz
-        primarySrc = FDEM.Src.RawVec_e(self.rxlist, freq=freq, s_e=s_e/meshp.area)
+        primarySrc = FDEM.Src.RawVec_e(
+            self.rxlist, freq=freq, s_e=s_e/meshp.area
+        )
         self.primarySurvey = FDEM.Survey([primarySrc])
 
         # Secondary Problem
-        self.secondaryProblem = FDEM.Problem3D_e(meshs, mapping=mapping)
+        self.secondaryProblem = FDEM.Problem3D_e(meshs, sigmaMap=mapping)
         self.secondaryProblem.Solver = Solver
         self.secondarySrc = FDEM.Src.PrimSecMappedSigma(
                 self.rxlist, freq, self.primaryProblem,
-                self.primarySurvey, primaryMap2Meshs)
+                self.primarySurvey, primaryMap2Meshs
+        )
         self.secondarySurvey = FDEM.Survey([self.secondarySrc])
         self.secondaryProblem.pair(self.secondarySurvey)
 
         # Full 3D problem to compare with
-        self.problem3D = FDEM.Problem3D_e(meshs, mapping=mapping)
+        self.problem3D = FDEM.Problem3D_e(meshs, sigmaMap=mapping)
         self.problem3D.Solver = Solver
         s_e3D = np.zeros(meshs.nE)
         inds = (meshs.nEx + meshs.nEy +
                 Utils.closestPoints(meshs, src_loc, gridLoc='Ez'))
         s_e3D[inds] = [1./(len(inds))] * len(inds)
-        self.problem3D.curModel = model
+        self.problem3D.model = model
         src3D = FDEM.Src.RawVec_e(self.rxlist, freq=freq, s_e=s_e3D)
         self.survey3D = FDEM.Survey([src3D])
         self.problem3D.pair(self.survey3D)
