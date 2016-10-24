@@ -37,7 +37,7 @@ class BaseFDEMProblem(BaseEMProblem):
     surveyPair = SurveyFDEM
     fieldsPair = FieldsFDEM
 
-    def fields(self, m):
+    def fields(self, m=None):
         """
         Solve the forward problem for the fields.
 
@@ -46,7 +46,9 @@ class BaseFDEMProblem(BaseEMProblem):
         :return f: forward solution
         """
 
-        self.curModel = m
+        if m is not None:
+            self.model = m
+
         f = self.fieldsPair(self.mesh, self.survey)
 
         for freq in self.survey.freqs:
@@ -71,9 +73,9 @@ class BaseFDEMProblem(BaseEMProblem):
         """
 
         if f is None:
-           f = self.fields(m)
+            f = self.fields(m)
 
-        self.curModel = m
+        self.model = m
 
         # Jv = self.dataPair(self.survey)
         Jv = []
@@ -86,12 +88,11 @@ class BaseFDEMProblem(BaseEMProblem):
                 u_src = f[src, self._solutionType]
                 dA_dm_v = self.getADeriv(freq, u_src, v)
                 dRHS_dm_v = self.getRHSDeriv(freq, src, v)
-                du_dm_v = Ainv * ( - dA_dm_v + dRHS_dm_v )
+                du_dm_v = Ainv * (- dA_dm_v + dRHS_dm_v)
 
                 for rx in src.rxList:
-                    df_dmFun = getattr(f, '_{0}Deriv'.format(rx.projField), None)
-                    df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
-                    Jv.append(rx.evalDeriv(src, self.mesh, f, df_dm_v))
+                    Jv.append(rx.evalDeriv(src, self.mesh, f,
+                                           du_dm_v=du_dm_v, v=v))
             Ainv.clean()
         return np.hstack(Jv)
 
@@ -109,7 +110,7 @@ class BaseFDEMProblem(BaseEMProblem):
         if f is None:
             f = self.fields(m)
 
-        self.curModel = m
+        self.model = m
 
         # Ensure v is a data object.
         if not isinstance(v, self.dataPair):
@@ -125,10 +126,8 @@ class BaseFDEMProblem(BaseEMProblem):
                 u_src = f[src, self._solutionType]
 
                 for rx in src.rxList:
-                    PTv = rx.evalDeriv(src, self.mesh, f, v[src, rx], adjoint=True) # wrt f, need possibility wrt m
-
-                    df_duTFun = getattr(f, '_{0}Deriv'.format(rx.projField), None)
-                    df_duT, df_dmT = df_duTFun(src, None, PTv, adjoint=True)
+                    df_duT, df_dmT = rx.evalDeriv(src, self.mesh, f,
+                                                  v=v[src, rx], adjoint=True)
 
                     ATinvdf_duT = ATinv * df_duT
 
@@ -160,23 +159,24 @@ class BaseFDEMProblem(BaseEMProblem):
         """
         Srcs = self.survey.getSrcByFreq(freq)
         if self._formulation is 'EB':
-            s_m = np.zeros((self.mesh.nF,len(Srcs)), dtype=complex)
-            s_e = np.zeros((self.mesh.nE,len(Srcs)), dtype=complex)
+            s_m = np.zeros((self.mesh.nF, len(Srcs)), dtype=complex)
+            s_e = np.zeros((self.mesh.nE, len(Srcs)), dtype=complex)
         elif self._formulation is 'HJ':
-            s_m = np.zeros((self.mesh.nE,len(Srcs)), dtype=complex)
-            s_e = np.zeros((self.mesh.nF,len(Srcs)), dtype=complex)
+            s_m = np.zeros((self.mesh.nE, len(Srcs)), dtype=complex)
+            s_e = np.zeros((self.mesh.nF, len(Srcs)), dtype=complex)
 
         for i, src in enumerate(Srcs):
             smi, sei = src.eval(self)
-            s_m[:,i] = s_m[:,i] + smi
-            s_e[:,i] = s_e[:,i] + sei
+            # Why are you adding?
+            s_m[:, i] = s_m[:, i] + smi
+            s_e[:, i] = s_e[:, i] + sei
 
         return s_m, s_e
 
 
-##########################################################################################
-################################ E-B Formulation #########################################
-##########################################################################################
+###############################################################################
+#                               E-B Formulation                               #
+###############################################################################
 
 class Problem3D_e(BaseFDEMProblem):
     """
@@ -223,7 +223,6 @@ class Problem3D_e(BaseFDEMProblem):
 
         return C.T*MfMui*C + 1j*omega(freq)*MeSigma
 
-
     def getADeriv(self, freq, u, v, adjoint=False):
         """
         Product of the derivative of our system matrix with respect to the model and a vector
@@ -239,7 +238,7 @@ class Problem3D_e(BaseFDEMProblem):
         :return: derivative of the system matrix times a vector (nP,) or adjoint (nD,)
         """
 
-        dsig_dm = self.curModel.sigmaDeriv
+        dsig_dm = self.sigmaDeriv
         dMe_dsig = self.MeSigmaDeriv(u)
 
         if adjoint:
@@ -263,7 +262,7 @@ class Problem3D_e(BaseFDEMProblem):
         C = self.mesh.edgeCurl
         MfMui = self.MfMui
 
-        return C.T * (MfMui * s_m) -1j * omega(freq) * s_e
+        return C.T * (MfMui * s_m) - 1j * omega(freq) * s_e
 
     def getRHSDeriv(self, freq, src, v, adjoint=False):
         """
@@ -284,9 +283,8 @@ class Problem3D_e(BaseFDEMProblem):
         if adjoint:
             dRHS = MfMui * (C * v)
             return s_mDeriv(dRHS) - 1j * omega(freq) * s_eDeriv(v)
-
         else:
-            return C.T * (MfMui * s_mDeriv(v)) -1j * omega(freq) * s_eDeriv(v)
+            return C.T * (MfMui * s_mDeriv(v)) - 1j * omega(freq) * s_eDeriv(v)
 
 
 class Problem3D_b(BaseFDEMProblem):
@@ -310,8 +308,8 @@ class Problem3D_b(BaseFDEMProblem):
     """
 
     _solutionType = 'bSolution'
-    _formulation  = 'EB'
-    fieldsPair    = Fields3D_b
+    _formulation = 'EB'
+    fieldsPair = Fields3D_b
 
     def __init__(self, mesh, **kwargs):
         BaseFDEMProblem.__init__(self, mesh, **kwargs)
@@ -368,9 +366,8 @@ class Problem3D_b(BaseFDEMProblem):
             return MeSigmaIDeriv.T * (C.T * v)
 
         if self._makeASymmetric is True:
-            return MfMui.T * ( C * ( MeSigmaIDeriv * v ) )
-        return C * ( MeSigmaIDeriv * v )
-
+            return MfMui.T * (C * (MeSigmaIDeriv * v))
+        return C * (MeSigmaIDeriv * v)
 
     def getRHS(self, freq):
         """
@@ -388,7 +385,7 @@ class Problem3D_b(BaseFDEMProblem):
         C = self.mesh.edgeCurl
         MeSigmaI = self.MeSigmaI
 
-        RHS = s_m + C * ( MeSigmaI * s_e )
+        RHS = s_m + C * (MeSigmaI * s_e)
 
         if self._makeASymmetric is True:
             MfMui = self.MfMui
@@ -431,10 +428,9 @@ class Problem3D_b(BaseFDEMProblem):
         return RHSderiv + SrcDeriv
 
 
-
-##########################################################################################
-################################ H-J Formulation #########################################
-##########################################################################################
+###############################################################################
+#                               H-J Formulation                               #
+###############################################################################
 
 
 class Problem3D_j(BaseFDEMProblem):
@@ -488,7 +484,6 @@ class Problem3D_j(BaseFDEMProblem):
             return MfRho.T*A
         return A
 
-
     def getADeriv(self, freq, u, v, adjoint=False):
         """
         Product of the derivative of our system matrix with respect to the model and a vector
@@ -520,7 +515,6 @@ class Problem3D_j(BaseFDEMProblem):
         if self._makeASymmetric is True:
             return MfRho.T * (C * ( MeMuI * (C.T * (MfRhoDeriv * v) )))
         return C * (MeMuI * (C.T * (MfRhoDeriv * v)))
-
 
     def getRHS(self, freq):
         """
@@ -575,8 +569,6 @@ class Problem3D_j(BaseFDEMProblem):
                 MfRho = self.MfRho
                 return MfRho.T * RHSDeriv
             return RHSDeriv
-
-
 
 
 class Problem3D_h(BaseFDEMProblem):
@@ -662,9 +654,9 @@ class Problem3D_h(BaseFDEMProblem):
 
         s_m, s_e = self.getSourceTerm(freq)
         C = self.mesh.edgeCurl
-        MfRho  = self.MfRho
+        MfRho = self.MfRho
 
-        return s_m + C.T * ( MfRho * s_e )
+        return s_m + C.T * (MfRho * s_e)
 
     def getRHSDeriv(self, freq, src, v, adjoint=False):
         """
@@ -680,7 +672,7 @@ class Problem3D_h(BaseFDEMProblem):
 
         _, s_e = src.eval(self)
         C = self.mesh.edgeCurl
-        MfRho  = self.MfRho
+        MfRho = self.MfRho
 
         MfRhoDeriv = self.MfRhoDeriv(s_e)
         if not adjoint:
@@ -691,4 +683,3 @@ class Problem3D_h(BaseFDEMProblem):
         s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
 
         return RHSDeriv + s_mDeriv(v) + C.T * (MfRho * s_eDeriv(v))
-

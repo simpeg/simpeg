@@ -40,7 +40,7 @@ class BaseRx(SimPEG.Survey.BaseRx):
 
         return P*f_part
 
-    def evalDeriv(self, src, mesh, f, v, adjoint=False):
+    def evalDeriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
         """
         Derivative of projected fields with respect to the inversion model times a vector.
 
@@ -52,22 +52,35 @@ class BaseRx(SimPEG.Survey.BaseRx):
         :return: fields projected to recievers
         """
 
+        df_dmFun = getattr(f, '_{0}Deriv'.format(self.projField), None)
+
+        assert v is not None, ('v must be provided to compute the deriv or '
+                               'adjoint')
+
         P = self.getP(mesh, self.projGLoc(f))
 
         if not adjoint:
-            Pv_complex = P * v
+            assert du_dm_v is not None, ('du_dm_v must be provided to evaluate'
+                                         ' the receiver deriv')
+            df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
+            Pv_complex = P * df_dm_v
             Pv = getattr(Pv_complex, self.component)
+
+            return Pv
+
         elif adjoint:
-            Pv_real = P.T * v
+            PTv_real = P.T * v
 
             if self.component == 'imag':
-                Pv = 1j*Pv_real
+                PTv = 1j*PTv_real
             elif self.component == 'real':
-                Pv = Pv_real.astype(complex)
+                PTv = PTv_real.astype(complex)
             else:
                 raise NotImplementedError('must be real or imag')
 
-        return Pv
+            df_duT, df_dmT = df_dmFun(src, None, PTv, adjoint=True)
+
+            return df_duT, df_dmT
 
 
 class Point_e(BaseRx):

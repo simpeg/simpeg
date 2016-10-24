@@ -445,17 +445,17 @@ class MagDipole(BaseSrc):
         :return: primary magnetic field
         """
 
-        if all(np.r_[self.mu] == np.r_[prob.curModel.mu]):
+        if all(np.r_[self.mu] == np.r_[prob.mu]):
             return Zero()
         else:
             formulation = prob._formulation
 
             if formulation is 'EB':
-                mui_s = prob.curModel.mui - 1./self.mu
+                mui_s = prob.mui - 1./self.mu
                 MMui_s = prob.mesh.getFaceInnerProduct(mui_s)
                 C = prob.mesh.edgeCurl
             elif formulation is 'HJ':
-                mu_s = prob.curModel.mu - self.mu
+                mu_s = prob.mu - self.mu
                 MMui_s = prob.mesh.getEdgeInnerProduct(mu_s, invMat=True)
                 C = prob.mesh.edgeCurl.T
 

@@ -1,13 +1,22 @@
 from __future__ import print_function
-from SimPEG import *
-from SimPEG.FLOW.Richards.Empirical import RichardsMap
+
+import numpy as np
+import scipy.sparse as sp
 import time
+import properties
+
+from SimPEG import Survey
+from SimPEG import Utils
+from SimPEG import Problem
+from SimPEG import Optimization
+from SimPEG import Solver
+from SimPEG.FLOW.Richards.Empirical import RichardsMap
 
 
 class RichardsRx(Survey.BaseTimeRx):
     """Richards Receiver Object"""
 
-    knownRxTypes = ['saturation','pressureHead']
+    knownRxTypes = ['saturation', 'pressureHead']
 
     def eval(self, U, m, mapping, mesh, timeMesh):
 
@@ -24,9 +33,9 @@ class RichardsRx(Survey.BaseTimeRx):
         if self.rxType == 'pressureHead':
             return P
         elif self.rxType == 'saturation':
-            #TODO: if m is a parameter in the theta
-            #      distribution, we may need to do
-            #      some more chain rule here.
+            # TODO: if m is a parameter in the theta
+            #       distribution, we may need to do
+            #       some more chain rule here.
             dT = sp.block_diag([mapping.thetaDerivU(ui, m) for ui in U])
             return P*dT
 
@@ -57,17 +66,21 @@ class RichardsSurvey(Survey.BaseSurvey):
 
             Where P is a projection of the fields onto the data space.
         """
-        if f is None: f = self.prob.fields(m)
+        if f is None:
+            f = self.prob.fields(m)
+
         return Utils.mkvc(self.eval(f, m))
 
     @Utils.requires('prob')
     def eval(self, U, m):
         Ds = list(range(len(self.rxList)))
         for ii, rx in enumerate(self.rxList):
-            Ds[ii] = rx.eval(U, m,
-                                self.prob.mapping,
-                                self.prob.mesh,
-                                self.prob.timeMesh)
+            Ds[ii] = rx.eval(
+                U, m,
+                self.prob.mapping,
+                self.prob.mesh,
+                self.prob.timeMesh
+            )
 
         return np.concatenate(Ds)
 
@@ -76,23 +89,28 @@ class RichardsSurvey(Survey.BaseSurvey):
         """The Derivative with respect to the fields."""
         Ds = list(range(len(self.rxList)))
         for ii, rx in enumerate(self.rxList):
-            Ds[ii] = rx.evalDeriv(U, m,
-                                self.prob.mapping,
-                                self.prob.mesh,
-                                self.prob.timeMesh)
+            Ds[ii] = rx.evalDeriv(
+                U, m,
+                self.prob.mapping,
+                self.prob.mesh,
+                self.prob.timeMesh
+            )
 
         return sp.vstack(Ds)
+
 
 class RichardsProblem(Problem.BaseTimeProblem):
     """docstring for RichardsProblem"""
 
-    boundaryConditions = None
-    initialConditions  = None
+    mapping = properties.Property("the mapping")
 
-    surveyPair  = RichardsSurvey
+    boundaryConditions = properties.Array("boundary conditions.")
+    initialConditions = properties.Array("boundary conditions.")
+
+    surveyPair = RichardsSurvey
     mapPair = RichardsMap
 
-    debug=True
+    debug = properties.Bool("Show all messages")
 
     Solver = Solver
     solverOpts = {}
@@ -108,29 +126,45 @@ class RichardsProblem(Problem.BaseTimeProblem):
 
         return self.boundaryConditions(time, u_ii)
 
-    @property
-    def method(self):
-        """Method must be either 'mixed' or 'head'. See notes in Celia et al., 1990."""
-        return getattr(self, '_method', 'mixed')
-    @method.setter
-    def method(self, value):
-        assert value in ['mixed','head'], "method must be 'mixed' or 'head'."
-        self._method = value
+    method = properties.StringChoice(
+        "Formulation used, See notes in Celia et al., 1990.",
+        choices=['mixed', 'head']
+    )
 
-    # Setting doNewton will clear the rootFinder, which will be reinitialized when called
-    doNewton = Utils.dependentProperty('_doNewton', False, ['_rootFinder'],
-                "Do a Newton iteration. If False, a Picard iteration will be completed.")
+    doNewton = properties.Bool(
+        "Do a Newton iteration vs. a Picard iteration ",
+        default=False
+    )
 
-    maxIterRootFinder = Utils.dependentProperty('_maxIterRootFinder', 30, ['_rootFinder'],
-                "Maximum iterations for rootFinder iteration.")
-    tolRootFinder = Utils.dependentProperty('_tolRootFinder', 1e-4, ['_rootFinder'],
-                "Maximum iterations for rootFinder iteration.")
+    maxIterRootFinder = properties.Integer(
+        "Maximum iterations for rootFinder iteration.",
+        default=30
+    )
+
+    tolRootFinder = properties.Float(
+        "Maximum iterations for rootFinder iteration.",
+        default=1e-4
+    )
+
+    @properties.observer(['doNewton', 'maxIterRootFinder', 'tolRootFinder'])
+    def _on_root_finder_update(self, change):
+        """
+            Setting doNewton will clear the rootFinder,
+            which will be reinitialized when called
+        """
+        if hasattr(self, '_rootFinder'):
+            del self._rootFinder
 
     @property
     def rootFinder(self):
         """Root-finding Algorithm"""
         if getattr(self, '_rootFinder', None) is None:
-            self._rootFinder = Optimization.NewtonRoot(doLS=self.doNewton, maxIter=self.maxIterRootFinder, tol=self.tolRootFinder, Solver=self.Solver)
+            self._rootFinder = Optimization.NewtonRoot(
+                doLS=self.doNewton,
+                maxIter=self.maxIterRootFinder,
+                tol=self.tolRootFinder,
+                Solver=self.Solver
+            )
         return self._rootFinder
 
     @Utils.timeIt
@@ -140,28 +174,65 @@ class RichardsProblem(Problem.BaseTimeProblem):
         u[0] = self.initialConditions
         for ii, dt in enumerate(self.timeSteps):
             bc = self.getBoundaryConditions(ii, u[ii])
-            u[ii+1] = self.rootFinder.root(lambda hn1m, return_g=True: self.getResidual(m, u[ii], hn1m, dt, bc, return_g=return_g), u[ii])
-            if self.debug: print("Solving Fields ({0:4d}/{1:d} - {2:3.1f}% Done) {3:d} Iterations, {4:4.2f} seconds".format(ii+1, self.nT, 100.0*(ii+1)/self.nT, self.rootFinder.iter, time.time() - tic))
+            u[ii+1] = self.rootFinder.root(
+                lambda hn1m, return_g=True: self.getResidual(
+                    m, u[ii], hn1m, dt, bc, return_g=return_g
+                ),
+                u[ii]
+            )
+            if self.debug:
+                print(
+                    "Solving Fields ({0:4d}/{1:d} - {2:3.1f}% Done) {3:d} "
+                    "Iterations, {4:4.2f} seconds".format(
+                        ii+1,
+                        self.nT,
+                        100.0*(ii+1)/self.nT,
+                        self.rootFinder.iter,
+                        time.time() - tic
+                    )
+                )
         return u
+
+    @property
+    def Dz(self):
+        if self.mesh.dim == 1:
+            Dz = self.mesh.faceDivx
+        elif self.mesh.dim == 2:
+            Dz = sp.hstack(
+                (
+                    Utils.spzeros(
+                        self.mesh.nC, self.mesh.vnF[0]
+                    ),
+                    self.mesh.faceDivy
+                ),
+                format='csr'
+            )
+        elif self.mesh.dim == 3:
+            Dz = sp.hstack(
+                (
+                    Utils.spzeros(
+                        self.mesh.nC,
+                        self.mesh.vnF[0]+self.mesh.vnF[1]
+                    ),
+                    self.mesh.faceDivz
+                ),
+                format='csr'
+            )
+        return Dz
 
     @Utils.timeIt
     def diagsJacobian(self, m, hn, hn1, dt, bc):
 
-        DIV  = self.mesh.faceDiv
+        DIV = self.mesh.faceDiv
         GRAD = self.mesh.cellGrad
-        BC   = self.mesh.cellGradBC
-        AV   = self.mesh.aveF2CC.T
-        if self.mesh.dim == 1:
-            Dz = self.mesh.faceDivx
-        elif self.mesh.dim == 2:
-            Dz = sp.hstack((Utils.spzeros(self.mesh.nC,self.mesh.vnF[0]), self.mesh.faceDivy),format='csr')
-        elif self.mesh.dim == 3:
-            Dz = sp.hstack((Utils.spzeros(self.mesh.nC,self.mesh.vnF[0]+self.mesh.vnF[1]), self.mesh.faceDivz),format='csr')
+        BC = self.mesh.cellGradBC
+        AV = self.mesh.aveF2CC.T
+        Dz = self.Dz
 
-        dT   = self.mapping.thetaDerivU(hn, m)
-        dT1  = self.mapping.thetaDerivU(hn1, m)
-        K1   = self.mapping.k(hn1, m)
-        dK1  = self.mapping.kDerivU(hn1, m)
+        dT = self.mapping.thetaDerivU(hn, m)
+        dT1 = self.mapping.thetaDerivU(hn1, m)
+        K1 = self.mapping.k(hn1, m)
+        dK1 = self.mapping.kDerivU(hn1, m)
         dKm1 = self.mapping.kDerivM(hn1, m)
 
         # Compute part of the derivative of:
@@ -169,7 +240,10 @@ class RichardsProblem(Problem.BaseTimeProblem):
         #       DIV*diag(GRAD*hn1+BC*bc)*(AV*(1.0/K))^-1
 
         DdiagGh1 = DIV*Utils.sdiag(GRAD*hn1+BC*bc)
-        diagAVk2_AVdiagK2 = Utils.sdiag((AV*(1./K1))**(-2)) * AV*Utils.sdiag(K1**(-2))
+        diagAVk2_AVdiagK2 = (
+            Utils.sdiag((AV*(1./K1))**(-2)) *
+            AV*Utils.sdiag(K1**(-2))
+        )
 
         # The matrix that we are computing has the form:
         #
@@ -184,11 +258,11 @@ class RichardsProblem(Problem.BaseTimeProblem):
         Asub = (-1.0/dt)*dT
 
         Adiag = (
-                  (1.0/dt)*dT1
-                 -DdiagGh1*diagAVk2_AVdiagK2*dK1
-                 -DIV*Utils.sdiag(1./(AV*(1./K1)))*GRAD
-                 -Dz*diagAVk2_AVdiagK2*dK1
-                )
+            (1.0/dt)*dT1 -
+            DdiagGh1*diagAVk2_AVdiagK2*dK1 -
+            DIV*Utils.sdiag(1./(AV*(1./K1)))*GRAD -
+            Dz*diagAVk2_AVdiagK2*dK1
+        )
 
         B = DdiagGh1*diagAVk2_AVdiagK2*dKm1 + Dz*diagAVk2_AVdiagK2*dKm1
 
@@ -199,21 +273,16 @@ class RichardsProblem(Problem.BaseTimeProblem):
         """
             Where h is the proposed value for the next time iterate (h_{n+1})
         """
-        DIV  = self.mesh.faceDiv
+        DIV = self.mesh.faceDiv
         GRAD = self.mesh.cellGrad
-        BC   = self.mesh.cellGradBC
-        AV   = self.mesh.aveF2CC.T
-        if self.mesh.dim == 1:
-            Dz = self.mesh.faceDivx
-        elif self.mesh.dim == 2:
-            Dz = sp.hstack((Utils.spzeros(self.mesh.nC,self.mesh.vnF[0]), self.mesh.faceDivy),format='csr')
-        elif self.mesh.dim == 3:
-            Dz = sp.hstack((Utils.spzeros(self.mesh.nC,self.mesh.vnF[0]+self.mesh.vnF[1]), self.mesh.faceDivz),format='csr')
+        BC = self.mesh.cellGradBC
+        AV = self.mesh.aveF2CC.T
+        Dz = self.Dz
 
-        T  = self.mapping.theta(h, m)
+        T = self.mapping.theta(h, m)
         dT = self.mapping.thetaDerivU(h, m)
         Tn = self.mapping.theta(hn, m)
-        K  = self.mapping.k(h, m)
+        K = self.mapping.k(h, m)
         dK = self.mapping.kDerivU(h, m)
 
         aveK = 1./(AV*(1./K))
@@ -224,7 +293,8 @@ class RichardsProblem(Problem.BaseTimeProblem):
         elif self.method == 'head':
             r = dT*(h - hn)/dt - RHS
 
-        if not return_g: return r
+        if not return_g:
+            return r
 
         J = dT/dt - DIV*Utils.sdiag(aveK)*GRAD
         if self.doNewton:
@@ -243,11 +313,17 @@ class RichardsProblem(Problem.BaseTimeProblem):
         for ii in range(nn):
             dt = self.timeSteps[ii]
             bc = self.getBoundaryConditions(ii, f[ii])
-            Asubs[ii], Adiags[ii], Bs[ii] = self.diagsJacobian(m, f[ii], f[ii+1], dt, bc)
+            Asubs[ii], Adiags[ii], Bs[ii] = self.diagsJacobian(
+                m, f[ii], f[ii+1], dt, bc
+            )
         Ad = sp.block_diag(Adiags)
-        zRight = Utils.spzeros((len(Asubs)-1)*Asubs[0].shape[0],Adiags[0].shape[1])
-        zTop = Utils.spzeros(Adiags[0].shape[0], len(Adiags)*Adiags[0].shape[1])
-        As = sp.vstack((zTop,sp.hstack((sp.block_diag(Asubs[1:]),zRight))))
+        zRight = Utils.spzeros(
+            (len(Asubs)-1)*Asubs[0].shape[0], Adiags[0].shape[1]
+        )
+        zTop = Utils.spzeros(
+            Adiags[0].shape[0], len(Adiags)*Adiags[0].shape[1]
+        )
+        As = sp.vstack((zTop, sp.hstack((sp.block_diag(Asubs[1:]), zRight))))
         A = As + Ad
         B = np.array(sp.vstack(Bs).todense())
 
@@ -264,17 +340,21 @@ class RichardsProblem(Problem.BaseTimeProblem):
         if f is None:
             f = self.fields(m)
 
-        JvC = list(range(len(f)-1)) # Cell to hold each row of the long vector.
+        JvC = list(range(len(f)-1))  # Cell to hold each row of the long vector
 
         # This is done via forward substitution.
         bc = self.getBoundaryConditions(0, f[0])
-        temp, Adiag, B = self.diagsJacobian(m, f[0], f[1], self.timeSteps[0], bc)
+        temp, Adiag, B = self.diagsJacobian(
+            m, f[0], f[1], self.timeSteps[0], bc
+        )
         Adiaginv = self.Solver(Adiag, **self.solverOpts)
         JvC[0] = Adiaginv * (B*v)
 
-        for ii in range(1,len(f)-1):
+        for ii in range(1, len(f)-1):
             bc = self.getBoundaryConditions(ii, f[ii])
-            Asub, Adiag, B = self.diagsJacobian(m, f[ii], f[ii+1], self.timeSteps[ii], bc)
+            Asub, Adiag, B = self.diagsJacobian(
+                m, f[ii], f[ii+1], self.timeSteps[ii], bc
+            )
             Adiaginv = self.Solver(Adiag, **self.solverOpts)
             JvC[ii] = Adiaginv * (B*v - Asub*JvC[ii-1])
 
@@ -292,10 +372,12 @@ class RichardsProblem(Problem.BaseTimeProblem):
         # This is done via backward substitution.
         minus = 0
         BJtv = 0
-        for ii in range(len(f)-1,0,-1):
+        for ii in range(len(f)-1, 0, -1):
             bc = self.getBoundaryConditions(ii-1, f[ii-1])
-            Asub, Adiag, B = self.diagsJacobian(m, f[ii-1], f[ii], self.timeSteps[ii-1], bc)
-            #select the correct part of v
+            Asub, Adiag, B = self.diagsJacobian(
+                m, f[ii-1], f[ii], self.timeSteps[ii-1], bc
+            )
+            # select the correct part of v
             vpart = list(range((ii)*Adiag.shape[0], (ii+1)*Adiag.shape[0]))
             AdiaginvT = self.Solver(Adiag.T, **self.solverOpts)
             JTvC = AdiaginvT * (PTv[vpart] - minus)

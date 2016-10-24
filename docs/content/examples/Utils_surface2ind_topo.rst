@@ -13,8 +13,8 @@
 Utils: surface2ind_topo
 =======================
 
-Here we show how to use :code:`Utils.surface2ind_topo` to identify cells below
-a topographic surface.
+Here we show how to use :code:`Utils.surface2ind_topo` to identify
+cells below a topographic surface.
 
 
 
