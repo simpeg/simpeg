@@ -49,9 +49,9 @@ before_install:
 install:
 
   - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then
-      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython nose sphinx sympy vtk;
+      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py nose sphinx sympy vtk;
     else
-      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython nose sphinx sympy;
+      conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py nose sphinx sympy;
     fi
   - pip install nose-cov python-coveralls
 
@@ -73,7 +73,7 @@ install:
 
 # Run test
 script:
-  - nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s
+  - nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s;
 
 # Calculate coverage
 after_success:
@@ -97,8 +97,6 @@ after_success:
         travis_wait 20 python setup.py sdist upload -r pypi ;
       fi;
     fi
-
-
 
 notifications:
   email:

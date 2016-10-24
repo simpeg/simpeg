@@ -4,6 +4,8 @@ from SimPEG import Mesh, Problem, Fields, Survey, Utils
 import numpy as np
 import sys
 
+np.random.seed(32)
+
 if sys.version_info < (3,):
   zero_types = [0, 0.0, np.r_[0], long(0),]
 else:

@@ -63,7 +63,7 @@ def run(plotIt=True):
     sigmaair = 1e-8  # air
     sigmaback = 1e-2  # background
     sigmacasing = 1e6  # casing
-    # sigmainside = sigmaback  # inside the casing
+    sigmainside = sigmaback  # inside the casing
 
     casing_t = 0.006  # 1cm thickness
     casing_l = 300  # length of the casing
@@ -76,7 +76,7 @@ def run(plotIt=True):
     # ------------------ SURVEY PARAMETERS ------------------
     freqs = np.r_[1e-6]  # [1e-1, 1, 5] # frequencies
     dsz = -300  # down-hole z source location
-    # src_loc = np.r_[0., 0., dsz]
+    src_loc = np.r_[0., 0., dsz]
     inf_loc = np.r_[0., 0., 1e4]
 
     print('Skin Depth: ', [(500./np.sqrt(sigmaback*_)) for _ in freqs])
@@ -244,8 +244,8 @@ def run(plotIt=True):
     # Plot current
 
     # current density
-    # jn0 = fieldsCasing[dg_p, 'j']
-    # jn1 = fieldsCasing[sg_p, 'j']
+    jn0 = fieldsCasing[dg_p, 'j']
+    jn1 = fieldsCasing[sg_p, 'j']
 
     # current
     in0 = [mesh.area*fieldsCasing[dg_p, 'j'][:, i] for i in range(len(freqs))]
