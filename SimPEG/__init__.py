@@ -1,9 +1,13 @@
 import numpy as np
 import scipy.sparse as sp
+
 from . import Utils
 from .Utils import mkvc
-from .Utils.SolverUtils import (_checkAccuracy, SolverWrapD, SolverWrapI,
-                               Solver, SolverCG, SolverDiag, SolverLU)
+from .Utils.SolverUtils import (
+    _checkAccuracy, SolverWrapD, SolverWrapI,
+    Solver, SolverCG, SolverDiag, SolverLU
+)
+
 from . import Mesh
 from . import Maps
 from . import Models

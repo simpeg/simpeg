@@ -74,8 +74,8 @@ def setKwargs(obj, ignore=None,  **kwargs):
         else:
             raise Exception('{0!s} attr is not recognized'.format(attr))
 
-    hook(obj, hook, silent=True)
-    hook(obj, setKwargs, silent=True)
+    # hook(obj, hook, silent=True)
+    # hook(obj, setKwargs, silent=True)
 
 
 def printTitles(obj, printers, name='Print Titles', pad=''):

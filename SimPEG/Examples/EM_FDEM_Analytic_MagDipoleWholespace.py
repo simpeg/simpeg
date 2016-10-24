@@ -1,6 +1,8 @@
 import numpy as np
-from SimPEG import Mesh, Maps, Utils
+from SimPEG import Utils
 import SimPEG.EM as EM
+import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 
 
 def run(XYZ=None, loc=np.r_[0., 0., 0.], sig=1.0, freq=1.0, orientation='Z',
@@ -17,19 +19,21 @@ def run(XYZ=None, loc=np.r_[0., 0., 0.], sig=1.0, freq=1.0, orientation='Z',
 
     if XYZ is None:
         # avoid putting measurement points where source is
-        x = np.arange(-100.5, 100.5, step = 1.)
+        x = np.arange(-100.5, 100.5, step=1.)
         y = np.r_[0]
         z = x
         XYZ = Utils.ndgrid(x, y, z)
 
-    Bx, By, Bz = EM.Analytics.FDEM.MagneticDipoleWholeSpace(XYZ, loc, sig,
-                                                            freq,
-                                                            orientation=orientation)
+    Bx, By, Bz = EM.Analytics.FDEM.MagneticDipoleWholeSpace(
+        XYZ,
+        loc,
+        sig,
+        freq,
+        orientation=orientation
+    )
     absB = np.sqrt(Bx*Bx.conj()+By*By.conj()+Bz*Bz.conj()).real
 
     if plotIt:
-        import matplotlib.pyplot as plt
-        from matplotlib.colors import LogNorm
         fig, ax = plt.subplots(1, 1, figsize=(6, 5))
         bxplt = Bx.reshape(x.size, z.size)
         bzplt = Bz.reshape(x.size, z.size)
@@ -39,11 +43,12 @@ def run(XYZ=None, loc=np.r_[0., 0., 0.], sig=1.0, freq=1.0, orientation='Z',
         ax.set_ylim([z.min(), z.max()])
         ax.set_xlabel('x')
         ax.set_ylabel('z')
-        cb = plt.colorbar(pc, ax = ax)
+        cb = plt.colorbar(pc, ax=ax)
         cb.set_label('|B| (T)')
-        plt.show()
+
 
         return fig, ax
 
 if __name__ == '__main__':
     run()
+    plt.show()
