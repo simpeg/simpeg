@@ -87,7 +87,7 @@ class BaseProblem(Props.BaseSimPEG):
         """
         Setting the curModel is depreciated.
 
-        Use `SimPEG.Problem.Model` instead.
+        Use `SimPEG.Problem.model` instead.
         """
         raise Exception(
             'Depreciated. Use `SimPEG.Problem.model` instead'
