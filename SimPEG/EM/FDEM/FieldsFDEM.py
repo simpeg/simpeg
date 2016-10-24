@@ -10,7 +10,8 @@ class FieldsFDEM(SimPEG.Problem.Fields):
     """
 
     Fancy Field Storage for a FDEM survey. Only one field type is stored for
-    each problem, the rest are computed. The fields object acts like an array and is indexed by
+    each problem, the rest are computed. The fields object acts like an array
+    and is indexed by
 
     .. code-block:: python
 
@@ -26,7 +27,8 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         e = f[:,'e']
         b = f[:,'b']
 
-    The array returned will be size (nE or nF, nSrcs :math:`\\times` nFrequencies)
+    The array returned will be size (nE or nF, nSrcs :math:`\\times`
+    nFrequencies)
     """
 
     knownFields = {}
@@ -58,7 +60,10 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         if getattr(self, '_bPrimary', None) is None or getattr(self, '_bSecondary', None) is None:
             raise NotImplementedError ('Getting b from {0!s} is not implemented'.format(self.knownFields.keys()[0]))
 
-        return self._bPrimary(solution, srcList) + self._bSecondary(solution, srcList)
+        return (
+            self._bPrimary(solution, srcList) +
+            self._bSecondary(solution, srcList)
+            )
 
     def _bSecondary(self, solution, srcList):
         """
@@ -70,7 +75,11 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         :return: total magnetic flux density
         """
         if getattr(self, '_bSecondary', None) is None:
-            raise NotImplementedError ('Getting b from %s is not implemented' %self.knownFields.keys()[0])
+            raise NotImplementedError (
+                'Getting b from {} is not implemented'.format(
+                    self.knownFields.keys()[0]
+                    )
+                )
 
         return  self._bSecondary(solution, srcList)
 
@@ -84,9 +93,15 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         :return: total magnetic field
         """
         if getattr(self, '_hPrimary', None) is None or getattr(self, '_hSecondary', None) is None:
-            raise NotImplementedError ('Getting h from {0!s} is not implemented'.format(self.knownFields.keys()[0]))
+            raise NotImplementedError (
+                'Getting h from {0!s} is not implemented'.format(
+                    self.knownFields.keys()[0])
+                )
 
-        return self._hPrimary(solution, srcList) + self._hSecondary(solution, srcList)
+        return (
+            self._hPrimary(solution, srcList) +
+            self._hSecondary(solution, srcList)
+            )
 
     def _j(self, solution, srcList):
         """
@@ -98,16 +113,27 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         :return: total current density
         """
         if getattr(self, '_jPrimary', None) is None or getattr(self, '_jSecondary', None) is None:
-            raise NotImplementedError ('Getting j from {0!s} is not implemented'.format(self.knownFields.keys()[0]))
+            raise NotImplementedError (
+                'Getting j from {0!s} is not implemented'.format(
+                    self.knownFields.keys()[0]
+                    )
+                )
 
-        return self._jPrimary(solution, srcList) + self._jSecondary(solution, srcList)
+        return (
+                self._jPrimary(solution, srcList) +
+                self._jSecondary(solution, srcList)
+            )
 
     def _eDeriv(self, src, du_dm_v, v, adjoint = False):
         """
-        Total derivative of e with respect to the inversion model. Returns :math:`d\mathbf{e}/d\mathbf{m}` for forward and (:math:`d\mathbf{e}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for the adjoint
+        Total derivative of e with respect to the inversion model. Returns
+        :math:`d\mathbf{e}/d\mathbf{m}` for forward and
+        (:math:`d\mathbf{e}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`)
+        for the adjoint
 
         :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: source
-        :param numpy.ndarray du_dm_v: derivative of the solution vector with respect to the model times a vector (is None for adjoint)
+        :param numpy.ndarray du_dm_v: derivative of the solution vector with
+            respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -117,8 +143,16 @@ class FieldsFDEM(SimPEG.Problem.Fields):
             raise NotImplementedError ('Getting eDerivs from {0!s} is not implemented'.format(self.knownFields.keys()[0]))
 
         if adjoint:
-            return self._eDeriv_u(src, v, adjoint), self._eDeriv_m(src, v, adjoint)
-        return np.array(self._eDeriv_u(src, du_dm_v, adjoint) + self._eDeriv_m(src, v, adjoint), dtype = complex)
+            return (
+                self._eDeriv_u(src, v, adjoint),
+                self._eDeriv_m(src, v, adjoint)
+            )
+        return (
+            np.array(
+                self._eDeriv_u(src, du_dm_v, adjoint) +
+                self._eDeriv_m(src, v, adjoint), dtype = complex
+            )
+        )
 
     def _bDeriv(self, src, du_dm_v, v, adjoint = False):
         """
@@ -135,15 +169,27 @@ class FieldsFDEM(SimPEG.Problem.Fields):
             raise NotImplementedError ('Getting bDerivs from {0!s} is not implemented'.format(self.knownFields.keys()[0]))
 
         if adjoint:
-            return self._bDeriv_u(src, v, adjoint), self._bDeriv_m(src, v, adjoint)
-        return np.array(self._bDeriv_u(src, du_dm_v, adjoint) + self._bDeriv_m(src, v, adjoint), dtype = complex)
+            return (
+                self._bDeriv_u(src, v, adjoint),
+                self._bDeriv_m(src, v, adjoint)
+            )
+        return (
+            np.array(
+                self._bDeriv_u(src, du_dm_v, adjoint) +
+                self._bDeriv_m(src, v, adjoint), dtype = complex
+            )
+        )
 
     def _bSecondaryDeriv(self, src, du_dm_v, v, adjoint = False):
         """
-        Total derivative of b with respect to the inversion model. Returns :math:`d\mathbf{b}/d\mathbf{m}` for forward and (:math:`d\mathbf{b}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for the adjoint
+        Total derivative of b with respect to the inversion model. Returns
+        :math:`d\mathbf{b}/d\mathbf{m}` for forward and
+        (:math:`d\mathbf{b}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for
+        the adjoint
 
         :param Src src: sorce
-        :param numpy.ndarray du_dm_v: derivative of the solution vector with respect to the model times a vector (is None for adjoint)
+        :param numpy.ndarray du_dm_v: derivative of the solution vector with
+            respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
@@ -155,21 +201,40 @@ class FieldsFDEM(SimPEG.Problem.Fields):
 
     def _hDeriv(self, src, du_dm_v, v, adjoint = False):
         """
-        Total derivative of h with respect to the inversion model. Returns :math:`d\mathbf{h}/d\mathbf{m}` for forward and (:math:`d\mathbf{h}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`) for the adjoint
+        Total derivative of h with respect to the inversion model. Returns
+        :math:`d\mathbf{h}/d\mathbf{m}` for forward and
+        (:math:`d\mathbf{h}/d\mathbf{u}`, :math:`d\mathb{u}/d\mathbf{m}`)
+        for the adjoint
 
         :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: source
-        :param numpy.ndarray du_dm_v: derivative of the solution vector with respect to the model times a vector (is None for adjoint)
+        :param numpy.ndarray du_dm_v: derivative of the solution vector with
+            respect to the model times a vector (is None for adjoint)
         :param numpy.ndarray v: vector to take sensitivity product with
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
         :return: derivative times a vector (or tuple for adjoint)
         """
-        if getattr(self, '_hDeriv_u', None) is None or getattr(self, '_hDeriv_m', None) is None:
-            raise NotImplementedError ('Getting hDerivs from {0!s} is not implemented'.format(self.knownFields.keys()[0]))
+        if (
+            getattr(self, '_hDeriv_u', None) is None or
+            getattr(self, '_hDeriv_m', None) is None
+        ):
+            raise NotImplementedError (
+                'Getting hDerivs from {0!s} is not implemented'.format(
+                    self.knownFields.keys()[0]
+                )
+            )
 
         if adjoint:
-            return self._hDeriv_u(src, v, adjoint), self._hDeriv_m(src, v, adjoint)
-        return np.array(self._hDeriv_u(src, du_dm_v, adjoint) + self._hDeriv_m(src, v, adjoint), dtype = complex)
+            return (
+                self._hDeriv_u(src, v, adjoint),
+                self._hDeriv_m(src, v, adjoint)
+            )
+        return (
+            np.array(
+                self._hDeriv_u(src, du_dm_v, adjoint) +
+                self._hDeriv_m(src, v, adjoint), dtype = complex
+            )
+        )
 
     def _jDeriv(self, src, du_dm_v, v, adjoint = False):
         """
@@ -182,12 +247,27 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         :rtype: numpy.ndarray
         :return: derivative times a vector (or tuple for adjoint)
         """
-        if getattr(self, '_jDeriv_u', None) is None or getattr(self, '_jDeriv_m', None) is None:
-            raise NotImplementedError ('Getting jDerivs from {0!s} is not implemented'.format(self.knownFields.keys()[0]))
+        if (
+            getattr(self, '_jDeriv_u', None) is None or
+            getattr(self, '_jDeriv_m', None) is None
+        ):
+            raise NotImplementedError (
+                'Getting jDerivs from {0!s} is not implemented'.format(
+                    self.knownFields.keys()[0]
+                )
+            )
 
         if adjoint:
-            return self._jDeriv_u(src, v, adjoint), self._jDeriv_m(src, v, adjoint)
-        return np.array(self._jDeriv_u(src, du_dm_v, adjoint) + self._jDeriv_m(src, v, adjoint), dtype = complex)
+            return (
+                self._jDeriv_u(src, v, adjoint),
+                self._jDeriv_m(src, v, adjoint)
+            )
+        return (
+            np.array(
+                self._jDeriv_u(src, du_dm_v, adjoint) +
+                self._jDeriv_m(src, v, adjoint), dtype = complex
+            )
+        )
 
 class Fields3D_e(FieldsFDEM):
     """
@@ -282,8 +362,7 @@ class Fields3D_e(FieldsFDEM):
         :return: product of the electric field derivative with respect to the inversion model with a vector
         """
 
-        # assuming primary does not depend on the model
-        return src.ePrimaryDeriv(self.prob, v, adjoint) #Zero()
+        return src.ePrimaryDeriv(self.prob, v, adjoint)
 
     def _bPrimary(self, eSolution, srcList):
         """
@@ -335,7 +414,6 @@ class Fields3D_e(FieldsFDEM):
             return - 1./(1j*omega(src.freq)) * (C.T * du_dm_v)
         return - 1./(1j*omega(src.freq)) * (C * du_dm_v)
 
-
     def _bDeriv_m(self, src, v, adjoint=False):
         """
         Derivative of the magnetic flux density with respect to the inversion model.
@@ -348,7 +426,10 @@ class Fields3D_e(FieldsFDEM):
         """
 
         s_mDeriv = src.s_mDeriv(self.prob, v, adjoint)
-        return 1./(1j * omega(src.freq)) * s_mDeriv
+        return (
+            1./(1j * omega(src.freq)) * s_mDeriv +
+            src.bPrimaryDeriv(self.prob, v, adjoint)
+        )
 
     def _j(self,  eSolution, srcList):
         """
@@ -397,10 +478,20 @@ class Fields3D_e(FieldsFDEM):
         VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
 
         if adjoint:
-            return self._MeSigmaDeriv(e).T * (self._aveE2CCV.T * (VI.T * v)) + self._eDeriv_m(src, self._aveE2CCV.T * (VI.T * v), adjoint=adjoint)
-        return VI * (self._aveE2CCV * ( self._eDeriv_m(src, v, adjoint=adjoint) + self._MeSigmaDeriv(e) * v))
-
-
+            return (
+                self._MeSigmaDeriv(e).T * (self._aveE2CCV.T * (VI.T * v)) +
+                self._eDeriv_m(
+                    src, self._aveE2CCV.T * (VI.T * v), adjoint=adjoint
+                    )
+                ) + src.jPrimaryDeriv(self.prob, v, adjoint)
+        return (
+            VI * (
+                self._aveE2CCV *
+                (
+                    self._eDeriv_m(src, v, adjoint=adjoint) +
+                    self._MeSigmaDeriv(e) * v)
+                )
+            ) + src.jPrimaryDeriv(self.prob, v, adjoint)
 
     def _h(self, eSolution, srcList):
         """
@@ -414,7 +505,9 @@ class Fields3D_e(FieldsFDEM):
         n = int(self._aveF2CCV.shape[0] / self._nC) # Number of Components
         VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
 
-        return VI * (self._aveF2CCV * (self._MfMui * self._b(eSolution, srcList)))
+        return (
+            VI * (self._aveF2CCV * (self._MfMui * self._b(eSolution, srcList)))
+            )
 
     def _hDeriv_u(self, src, du_dm_v, adjoint = False):
         """
