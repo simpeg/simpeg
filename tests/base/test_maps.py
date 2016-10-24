@@ -10,12 +10,12 @@ MAPS_TO_EXCLUDE_2D = ["ComboMap", "ActiveCells", "InjectActiveCells",
                       "LogMap", "ReciprocalMap",
                       "Surject2Dto3D", "Map2Dto3D", "Mesh2Mesh",
                       "ParametricPolyMap", "PolyMap", "ParametricSplineMap",
-                      "SplineMap"]
+                      "SplineMap", "Projection"]
 MAPS_TO_EXCLUDE_3D = ["ComboMap", "ActiveCells", "InjectActiveCells",
                       "LogMap", "ReciprocalMap",
                       "CircleMap", "ParametricCircleMap", "Mesh2Mesh",
                       "ParametricPolyMap", "PolyMap", "ParametricSplineMap",
-                      "SplineMap"]
+                      "SplineMap", "Projection"]
 
 
 class MapTests(unittest.TestCase):
@@ -245,6 +245,21 @@ class MapTests(unittest.TestCase):
         mParamSpline = Maps.ParametricSplineMap(M2, x, normal='Y', order=1)
         self.assertTrue(mParamSpline.test())
         self.assertTrue(mParamSpline.testVec())
+
+    def test_Projection(self):
+        nP = 10
+        m = np.arange(nP)
+        self.assertTrue(np.all(Maps.Projection(nP, slice(5))*m == m[:5]))
+        self.assertTrue(np.all(Maps.Projection(nP, slice(5, None))*m == m[5:]))
+        self.assertTrue(np.all(Maps.Projection(nP, np.r_[1, 5, 3, 2, 9, 9])*m ==
+                        np.r_[1, 5, 3, 2, 9, 9]))
+        self.assertTrue(np.all(Maps.Projection(nP, [1, 5, 3, 2, 9, 9])*m ==
+                        np.r_[1, 5, 3, 2, 9, 9]))
+        with self.assertRaises(AssertionError):
+            Maps.Projection(nP, np.r_[10])*m
+
+        mapping = Maps.Projection(nP, np.r_[1, 2, 6, 1, 3, 5, 4, 9, 9, 8, 0])
+        mapping.test()
 
 if __name__ == '__main__':
     unittest.main()

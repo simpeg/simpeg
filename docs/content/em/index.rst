@@ -22,6 +22,7 @@ fields with recievers to give us predicted data.
    api_basic
    api_FDEM
    api_TDEM
+   api_NSEM
    api_Utils
 
 
