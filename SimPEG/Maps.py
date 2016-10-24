@@ -1977,7 +1977,7 @@ class ParametrizedBlockInLayer(ParametrizedLayer):
         return (
             self._atanLayer(mDict) *
             self._atanfct(self.x, self.xleft(mDict), self.slope) *
-            self._atanfct(self.x, self.self.xright(mDict)(mDict), -self.slope)
+            self._atanfct(self.x, self.xright(mDict)(mDict), -self.slope)
         )
 
     def _atanBlock2dDeriv_layer_center(self, mDict):
