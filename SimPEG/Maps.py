@@ -109,7 +109,7 @@ class IdentityMap(object):
             return v
         return sp.identity(self.nP)
 
-    def test(self, m=None, **kwargs):
+    def test(self, m=None, num=4, **kwargs):
         """Test the derivative of the mapping.
 
             :param numpy.array m: model
@@ -130,7 +130,7 @@ class IdentityMap(object):
             .format(self.__class__.__name__)
         )
         return checkDerivative(
-            lambda m: [self * m, self.deriv(m)], m, num=4, **kwargs
+            lambda m: [self * m, self.deriv(m)], m, num=num, **kwargs
         )
 
     def testVec(self, m=None, **kwargs):
@@ -1390,6 +1390,7 @@ class ParametrizedLayer(IdentityMap):
 
             from SimPEG.Examples import Maps_ParametrizedLayer
             Maps_ParametrizedLayer.run()
+            plt.show()
 
         **Required**
 
