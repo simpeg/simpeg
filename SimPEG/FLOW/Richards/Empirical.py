@@ -37,7 +37,6 @@ class NonLinearMap(object):
         """
         raise NotImplementedError('The transformDerivU is not implemented.')
 
-
     def derivM(self, u, m):
         """
             :param numpy.array u: fields
@@ -65,7 +64,7 @@ class NonLinearMap(object):
 class RichardsMap(object):
     """docstring for RichardsMap"""
 
-    mesh       = None  #: SimPEG mesh
+    mesh = None  #: SimPEG mesh
 
     @property
     def thetaModel(self):
@@ -114,8 +113,11 @@ class RichardsMap(object):
         ax.semilogx(self.k(h, m), h)
 
     def _assertMatchesPair(self, pair):
-        assert isinstance(self, pair), "Mapping object must be an instance of a {0!s} class.".format((pair.__name__))
-
+        assert isinstance(self, pair), (
+            "Mapping object must be an instance of a {0!s} class.".format(
+                pair.__name__
+            )
+        )
 
 
 def _ModelProperty(name, models, doc=None, default=None):
@@ -138,7 +140,9 @@ def _ModelProperty(name, models, doc=None, default=None):
 
 class HaverkampParams(object):
     """Holds some default parameterizations for the Haverkamp model."""
-    def __init__(self): pass
+    def __init__(self):
+        pass
+
     @property
     def celia1990(self):
         """
@@ -149,18 +153,23 @@ class HaverkampParams(object):
                 Water Resources Research 26.7 (1990): 1483-1496.
 
         """
-        return {'alpha':1.611e+06, 'beta':3.96,
-                'theta_r':0.075, 'theta_s':0.287,
-                'Ks':9.44e-03, 'A':1.175e+06,
-                'gamma':4.74}
+        return {
+            'alpha': 1.611e+06,
+            'beta': 3.96,
+            'theta_r': 0.075,
+            'theta_s': 0.287,
+            'Ks': 9.44e-03,
+            'A': 1.175e+06,
+            'gamma': 4.74
+        }
 
 
 class _haverkamp_theta(NonLinearMap):
 
     theta_s = 0.430
     theta_r = 0.078
-    alpha   = 0.036
-    beta    = 3.960
+    alpha = 0.036
+    beta = 3.960
 
     def __init__(self, mesh, **kwargs):
         NonLinearMap.__init__(self, mesh)
@@ -171,8 +180,13 @@ class _haverkamp_theta(NonLinearMap):
 
     def transform(self, u, m):
         self.setModel(m)
-        f = (self.alpha*(self.theta_s  -    self.theta_r  )/
-                        (self.alpha    + abs(u)**self.beta) + self.theta_r)
+        f = (
+            self.alpha *
+            (self.theta_s - self.theta_r) /
+            (self.alpha + abs(u)**self.beta) +
+            self.theta_r
+        )
+
         if Utils.isScalar(self.theta_s):
             f[u >= 0] = self.theta_s
         else:
@@ -184,9 +198,13 @@ class _haverkamp_theta(NonLinearMap):
 
     def transformDerivU(self, u, m):
         self.setModel(m)
-        g = (self.alpha*((self.theta_s - self.theta_r)/
-             (self.alpha + abs(u)**self.beta)**2)
-             *(-self.beta*abs(u)**(self.beta-1)*np.sign(u)))
+        g = (
+            self.alpha * (
+                (self.theta_s - self.theta_r) /
+                (self.alpha + abs(u)**self.beta)**2
+            ) *
+            (-self.beta * abs(u)**(self.beta-1) * np.sign(u))
+        )
         g[u >= 0] = 0
         g = Utils.sdiag(g)
         return g
@@ -194,9 +212,9 @@ class _haverkamp_theta(NonLinearMap):
 
 class _haverkamp_k(NonLinearMap):
 
-    A       = 1.175e+06
-    gamma   = 4.74
-    Ks      = np.log(24.96)
+    A = 1.175e+06
+    gamma = 4.74
+    Ks = np.log(24.96)
 
     def __init__(self, mesh, **kwargs):
         NonLinearMap.__init__(self, mesh)
@@ -204,7 +222,7 @@ class _haverkamp_k(NonLinearMap):
 
     def setModel(self, m):
         self._currentModel = m
-        #TODO: Fix me!
+        # TODO: Fix me!
         self.Ks = m
 
     def transform(self, u, m):
@@ -218,9 +236,9 @@ class _haverkamp_k(NonLinearMap):
 
     def transformDerivM(self, u, m):
         self.setModel(m)
-        #A
+        # A
         # dA = np.exp(self.Ks)/(self.A+abs(u)**self.gamma) - np.exp(self.Ks)*self.A/(self.A+abs(u)**self.gamma)**2
-        #gamma
+        # gamma
         # dgamma = -(self.A*np.exp(self.Ks)*np.log(abs(u))*abs(u)**self.gamma)/(self.A + abs(u)**self.gamma)**2
 
         # This assumes that the the model is Ks
@@ -233,33 +251,35 @@ class _haverkamp_k(NonLinearMap):
         g = Utils.sdiag(g)
         return g
 
+
 class Haverkamp(RichardsMap):
     """Haverkamp Model"""
 
-    alpha   = _ModelProperty('alpha',   ['thetaModel'], default=1.6110e+06)
-    beta    = _ModelProperty('beta',    ['thetaModel'], default=3.96)
+    alpha = _ModelProperty('alpha', ['thetaModel'], default=1.6110e+06)
+    beta = _ModelProperty('beta', ['thetaModel'], default=3.96)
     theta_r = _ModelProperty('theta_r', ['thetaModel'], default=0.075)
     theta_s = _ModelProperty('theta_s', ['thetaModel'], default=0.287)
 
-    Ks    = _ModelProperty('Ks',    ['kModel'], default=np.log(24.96))
-    A     = _ModelProperty('A',     ['kModel'], default=1.1750e+06)
+    Ks = _ModelProperty('Ks', ['kModel'], default=np.log(24.96))
+    A = _ModelProperty('A', ['kModel'], default=1.1750e+06)
     gamma = _ModelProperty('gamma', ['kModel'], default=4.74)
 
     def __init__(self, mesh, **kwargs):
-        RichardsMap.__init__(self, mesh,
-                               _haverkamp_theta(mesh),
-                               _haverkamp_k(mesh))
+        RichardsMap.__init__(
+            self,
+            mesh,
+            _haverkamp_theta(mesh),
+            _haverkamp_k(mesh)
+        )
         Utils.setKwargs(self, **kwargs)
-
-
 
 
 class _vangenuchten_theta(NonLinearMap):
 
     theta_s = 0.430
     theta_r = 0.078
-    alpha   = 0.036
-    n       = 1.560
+    alpha = 0.036
+    n = 1.560
 
     def __init__(self, mesh, **kwargs):
         NonLinearMap.__init__(self, mesh)
@@ -270,9 +290,16 @@ class _vangenuchten_theta(NonLinearMap):
 
     def transform(self, u, m):
         self.setModel(m)
-        m = 1 - 1.0/self.n
-        f = ((  self.theta_s  -  self.theta_r  )/
-             ((1+abs(self.alpha*u)**self.n)**m)   +  self.theta_r)
+        m = 1 - 1.0 / self.n
+        f = (
+            (
+                self.theta_s - self.theta_r
+            ) /
+            (
+                (1 + abs(self.alpha * u)**self.n)**m
+            ) +
+            self.theta_r
+        )
         if Utils.isScalar(self.theta_s):
             f[u >= 0] = self.theta_s
         else:
@@ -292,10 +319,10 @@ class _vangenuchten_theta(NonLinearMap):
 
 class _vangenuchten_k(NonLinearMap):
 
-    I       = 0.500
-    alpha   = 0.036
-    n       = 1.560
-    Ks      = np.log(24.96)
+    I = 0.500
+    alpha = 0.036
+    n = 1.560
+    Ks = np.log(24.96)
 
     def __init__(self, mesh, **kwargs):
         NonLinearMap.__init__(self, mesh)
@@ -303,7 +330,7 @@ class _vangenuchten_k(NonLinearMap):
 
     def setModel(self, m):
         self._currentModel = m
-        #TODO: Fix me!
+        # TODO: Fix me!
         self.Ks = m
 
     def transform(self, u, m):
@@ -316,7 +343,9 @@ class _vangenuchten_k(NonLinearMap):
         m = 1.0 - 1.0/n
 
         theta_e = 1.0/((1.0+abs(alpha*u)**n)**m)
-        f = np.exp(Ks)*theta_e**I* ( ( 1.0 - ( 1.0 - theta_e**(1.0/m) )**m )**2 )
+        f = np.exp(Ks)*theta_e**I * (
+            (1.0 - (1.0 - theta_e**(1.0/m))**m)**2
+        )
         if Utils.isScalar(self.Ks):
             f[u >= 0] = np.exp(self.Ks)
         else:
@@ -325,12 +354,12 @@ class _vangenuchten_k(NonLinearMap):
 
     def transformDerivM(self, u, m):
         self.setModel(m)
-#         #alpha
-#         # dA = I*u*n*np.exp(Ks)*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2*(abs(alpha*u)**n + 1)**(1.0/n - 2) - (2*u*n*np.exp(Ks)*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/(((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n));
-#         #n
-#         # dn = 2*np.exp(Ks)*((np.log(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n))/n**2 + ((1.0/n - 1)*(((np.log(abs(alpha*u)**n + 1)*(abs(alpha*u)**n + 1)**(1.0/n - 1))/n**2 - abs(alpha*u)**n*np.log(abs(alpha*u))*(1.0/n - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/((1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)) - np.log((abs(alpha*u)**n + 1)**(1.0/n - 1))/(n**2*(1.0/n - 1)**2*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))))/(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n))*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1) - I*np.exp(Ks)*((np.log(abs(alpha*u)**n + 1)*(abs(alpha*u)**n + 1)**(1.0/n - 1))/n**2 - abs(alpha*u)**n*np.log(abs(alpha*u))*(1.0/n - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2;
-#         #I
-#         # dI = np.exp(Ks)*np.log((abs(alpha*u)**n + 1)**(1.0/n - 1))*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2;
+        #alpha
+        # dA = I*u*n*np.exp(Ks)*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2*(abs(alpha*u)**n + 1)**(1.0/n - 2) - (2*u*n*np.exp(Ks)*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/(((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n));
+        #n
+        # dn = 2*np.exp(Ks)*((np.log(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n))/n**2 + ((1.0/n - 1)*(((np.log(abs(alpha*u)**n + 1)*(abs(alpha*u)**n + 1)**(1.0/n - 1))/n**2 - abs(alpha*u)**n*np.log(abs(alpha*u))*(1.0/n - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/((1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)) - np.log((abs(alpha*u)**n + 1)**(1.0/n - 1))/(n**2*(1.0/n - 1)**2*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))))/(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n))*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1) - I*np.exp(Ks)*((np.log(abs(alpha*u)**n + 1)*(abs(alpha*u)**n + 1)**(1.0/n - 1))/n**2 - abs(alpha*u)**n*np.log(abs(alpha*u))*(1.0/n - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2;
+        #I
+        # dI = np.exp(Ks)*np.log((abs(alpha*u)**n + 1)**(1.0/n - 1))*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2;
         return Utils.sdiag(self.transform(u, m)) # This assumes that the the model is Ks
 
     def transformDerivU(self, u, m):
@@ -346,22 +375,26 @@ class _vangenuchten_k(NonLinearMap):
         g = Utils.sdiag(g)
         return g
 
+
 class VanGenuchten(RichardsMap):
     """vanGenuchten Model"""
 
     theta_r = _ModelProperty('theta_r', ['thetaModel'], default=0.075)
     theta_s = _ModelProperty('theta_s', ['thetaModel'], default=0.287)
 
-    alpha   = _ModelProperty('alpha',   ['thetaModel', 'kModel'], default=0.036)
-    n       = _ModelProperty('n',       ['thetaModel', 'kModel'], default=1.560)
+    alpha = _ModelProperty('alpha',   ['thetaModel', 'kModel'], default=0.036)
+    n = _ModelProperty('n', ['thetaModel', 'kModel'], default=1.560)
 
-    Ks    = _ModelProperty('Ks',    ['kModel'], default=np.log(24.96))
-    I     = _ModelProperty('I',     ['kModel'], default=0.500)
+    Ks = _ModelProperty('Ks', ['kModel'], default=np.log(24.96))
+    I = _ModelProperty('I', ['kModel'], default=0.500)
 
     def __init__(self, mesh, **kwargs):
-        RichardsMap.__init__(self, mesh,
-                               _vangenuchten_theta(mesh),
-                               _vangenuchten_k(mesh))
+        RichardsMap.__init__(
+            self,
+            mesh,
+            _vangenuchten_theta(mesh),
+            _vangenuchten_k(mesh)
+        )
         Utils.setKwargs(self, **kwargs)
 
 

@@ -40,12 +40,15 @@ class Fields_ky(SimPEG.Problem.TimeFields):
     knownFields = {}
     dtype = float
 
-    def _phiDeriv(self,kyInd, src, du_dm_v, v, adjoint=False):
-        if (getattr(self, '_phiDeriv_u', None) is None or
-            getattr(self, '_phiDeriv_m', None) is None):
-            raise NotImplementedError ('Getting phiDerivs from {0!s} is not '
-                                       'implemented'.format(
-                                        self.knownFields.keys()[0]))
+    def _phiDeriv(self, kyInd, src, du_dm_v, v, adjoint=False):
+        if (
+            getattr(self, '_phiDeriv_u', None) is None or
+            getattr(self, '_phiDeriv_m', None) is None
+        ):
+            raise NotImplementedError(
+                'Getting phiDerivs from {0!s} is not '
+                'implemented'.format(self.knownFields.keys()[0])
+            )
 
         if adjoint:
             return (self._phiDeriv_u(kyInd, src, v, adjoint=adjoint),
@@ -55,12 +58,15 @@ class Fields_ky(SimPEG.Problem.TimeFields):
                          self._phiDeriv_m(kyInd, src, v, adjoint),
                          dtype=float))
 
-    def _eDeriv(self,kyInd, src, du_dm_v, v, adjoint=False):
-        if (getattr(self, '_eDeriv_u', None) is None or
-            getattr(self, '_eDeriv_m', None) is None):
-            raise NotImplementedError ('Getting eDerivs from {0!s} is not '
-                                       'implemented'.format(
-                                        self.knownFields.keys()[0]))
+    def _eDeriv(self, kyInd, src, du_dm_v, v, adjoint=False):
+        if (
+            getattr(self, '_eDeriv_u', None) is None or
+            getattr(self, '_eDeriv_m', None) is None
+        ):
+            raise NotImplementedError(
+                'Getting eDerivs from {0!s} is not '
+                'implemented'.format(self.knownFields.keys()[0])
+            )
 
         if adjoint:
             return (self._eDeriv_u(kyInd, src, v, adjoint),
@@ -69,18 +75,20 @@ class Fields_ky(SimPEG.Problem.TimeFields):
                          self._eDeriv_m(kyInd, src, v, adjoint), dtype=float))
 
     def _jDeriv(self, kyInd, src, du_dm_v, v, adjoint=False):
-        if (getattr(self, '_jDeriv_u', None) is None or
-            getattr(self, '_jDeriv_m', None) is None):
-            raise NotImplementedError ('Getting jDerivs from {0!s} is not '
-                                       'implemented'.format(
-                                        self.knownFields.keys()[0]))
+        if (
+            getattr(self, '_jDeriv_u', None) is None or
+            getattr(self, '_jDeriv_m', None) is None
+        ):
+            raise NotImplementedError(
+                'Getting jDerivs from {0!s} is not '
+                'implemented'.format(self.knownFields.keys()[0])
+            )
 
         if adjoint:
             return (self._jDeriv_u(kyInd, src, v, adjoint),
                     self._jDeriv_m(kyInd, src, v, adjoint))
         return (np.array(self._jDeriv_u(kyInd, src, du_dm_v, adjoint) +
                          self._jDeriv_m(kyInd, src, v, adjoint), dtype=float))
-
 
     # def _eDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
     #     if adjoint is True:
@@ -100,12 +108,12 @@ class Fields_ky_CC(Fields_ky):
 
     knownFields = {'phiSolution': 'CC'}
     aliasFields = {
-                    'phi': ['phiSolution', 'CC', '_phi'],
-                    'j' : ['phiSolution', 'F', '_j'],
-                    'e' : ['phiSolution', 'F', '_e'],
-                  }
-                  # primary - secondary
-                  # CC variables
+        'phi': ['phiSolution', 'CC', '_phi'],
+        'j': ['phiSolution', 'F', '_j'],
+        'e': ['phiSolution', 'F', '_e'],
+    }
+    # primary - secondary
+    # CC variables
 
     def __init__(self, mesh, survey, **kwargs):
         Fields_ky.__init__(self, mesh, survey, **kwargs)
@@ -136,18 +144,19 @@ class Fields_ky_CC(Fields_ky):
     def _e(self, phiSolution, srcList):
         raise NotImplementedError
 
+
 class Fields_ky_N(Fields_ky):
     """
     Fancy Field Storage for a 2.5D nodal code.
     """
-    knownFields = {'phiSolution':'N'}
+    knownFields = {'phiSolution': 'N'}
     aliasFields = {
-                    'phi': ['phiSolution','N','_phi'],
-                    'j' : ['phiSolution','E','_j'],
-                    'e' : ['phiSolution','E','_e'],
-                  }
-                  # primary - secondary
-                  # CC variables
+        'phi': ['phiSolution', 'N', '_phi'],
+        'j': ['phiSolution', 'E', '_j'],
+        'e': ['phiSolution', 'E', '_e'],
+    }
+    # primary - secondary
+    # CC variables
 
     def __init__(self, mesh, survey, **kwargs):
         Fields_ky.__init__(self, mesh, survey, **kwargs)

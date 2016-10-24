@@ -64,19 +64,19 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
 
     if fdemType == 'e':
         survey = EM.FDEM.Survey(Src)
-        prb = EM.FDEM.Problem3D_e(mesh, mapping=mapping)
+        prb = EM.FDEM.Problem3D_e(mesh, sigmaMap=mapping)
 
     elif fdemType == 'b':
         survey = EM.FDEM.Survey(Src)
-        prb = EM.FDEM.Problem3D_b(mesh, mapping=mapping)
+        prb = EM.FDEM.Problem3D_b(mesh, sigmaMap=mapping)
 
     elif fdemType == 'j':
         survey = EM.FDEM.Survey(Src)
-        prb = EM.FDEM.Problem3D_j(mesh, mapping=mapping)
+        prb = EM.FDEM.Problem3D_j(mesh, sigmaMap=mapping)
 
     elif fdemType == 'h':
         survey = EM.FDEM.Survey(Src)
-        prb = EM.FDEM.Problem3D_h(mesh, mapping=mapping)
+        prb = EM.FDEM.Problem3D_h(mesh, sigmaMap=mapping)
 
     else:
         raise NotImplementedError()
