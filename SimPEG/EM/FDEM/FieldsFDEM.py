@@ -887,7 +887,8 @@ class Fields3D_b(FieldsFDEM):
         :return: product of the derivative of the current density with respect
             to the model with a vector
         """
-        return Zero()
+
+        return src.jPrimaryDeriv(self.prob, v, adjoint)
 
     def _h(self, bSolution, srcList):
         """
@@ -934,7 +935,7 @@ class Fields3D_b(FieldsFDEM):
         :return: product of the derivative of the magnetic field with respect
             to the model with a vector
         """
-        return Zero()
+        return src.hPrimaryDeriv(self.prob, v, adjoint)
 
 
 class Fields3D_j(FieldsFDEM):
@@ -1053,7 +1054,7 @@ class Fields3D_j(FieldsFDEM):
             inversion model with a vector
         """
         # assuming primary does not depend on the model
-        return Zero()
+        return src.jPrimaryDeriv(self.prob, v, adjoint)
 
     def _hPrimary(self, jSolution, srcList):
         """
@@ -1148,7 +1149,7 @@ class Fields3D_j(FieldsFDEM):
             )
             hDeriv_m = hDeriv_m + 1./(1j*omega(src.freq)) * s_mDeriv(MeMuI.T*v)
 
-        return hDeriv_m
+        return hDeriv_m + src.hPrimaryDeriv(self.prob, v, adjoint)
 
     def _e(self, jSolution, srcList):
         """
@@ -1199,9 +1200,13 @@ class Fields3D_j(FieldsFDEM):
         VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
         if adjoint:
             return (
-                self._MfRhoDeriv(jSolution).T * (self._aveF2CCV.T * (VI.T*v))
+                self._MfRhoDeriv(jSolution).T * (self._aveF2CCV.T * (VI.T*v)) +
+                src.ePrimaryDeriv(self.prob, v, adjoint)
             )
-        return VI * (self._aveF2CCV * (self._MfRhoDeriv(jSolution) * v))
+        return (
+            VI * (self._aveF2CCV * (self._MfRhoDeriv(jSolution) * v)) +
+            src.ePrimaryDeriv(self.prob, v, adjoint)
+        )
 
     def _b(self, jSolution, srcList):
         """
@@ -1274,7 +1279,8 @@ class Fields3D_j(FieldsFDEM):
                 (
                     s_mDeriv(v) - self._MfRhoDeriv(jSolution).T *
                     (self._edgeCurl * v)
-                )
+                ) +
+                src.bPrimaryDeriv(self.prob, v, adjoint)
             )
         return (
             1./(1j * omega(src.freq)) *
@@ -1282,7 +1288,8 @@ class Fields3D_j(FieldsFDEM):
                 self._aveE2CCV * (
                     s_mDeriv(v) - self._edgeCurl.T *
                     (self._MfRhoDeriv(jSolution) * v))
-            )
+            ) +
+            src.bPrimaryDeriv(self.prob, v, adjoint)
         )
 
 
@@ -1387,8 +1394,7 @@ class Fields3D_h(FieldsFDEM):
             inversion model with a vector
         """
 
-        # assuming primary does not depend on the model
-        return Zero()
+        return src.hPrimaryDeriv(self.prob, v, adjoint)
 
     def _jPrimary(self, hSolution, srcList):
         """
@@ -1454,8 +1460,10 @@ class Fields3D_h(FieldsFDEM):
             inversion model with a vector
         """
 
-        s_eDeriv = src.s_eDeriv(self.prob, v, adjoint)
-        return -s_eDeriv
+        return (
+            -src.s_eDeriv(self.prob, v, adjoint) +
+            src.jPrimaryDeriv(self.prob, v, adjoint)
+        )
 
     def _e(self, hSolution, srcList):
         """
@@ -1509,20 +1517,22 @@ class Fields3D_h(FieldsFDEM):
         :return: product of the electric field derivative with respect to the
             inversion model with a vector
         """
-        hSolution = Utils.mkvc(self[src,'hSolution'])
+        hSolution = Utils.mkvc(self[src, 'hSolution'])
         n = int(self._aveF2CCV.shape[0] / self._nC)  # number of components
         VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
         if adjoint:
             return (
                 self._MfRhoDeriv(self._edgeCurl * hSolution).T *
-                (self._aveF2CCV.T * (VI.T * v))
+                (self._aveF2CCV.T * (VI.T * v)) +
+                src.ePrimaryDeriv(self.prob, v, adjoint)
             )
         return (
             VI *
             (
                 self._aveF2CCV *
                 (self._MfRhoDeriv(self._edgeCurl * hSolution) * v)
-            )
+            ) +
+            src.ePrimaryDeriv(self.prob, v, adjoint)
         )
 
     def _b(self, hSolution, srcList):
@@ -1570,6 +1580,6 @@ class Fields3D_h(FieldsFDEM):
         :return: product of the magnetic flux density derivative with respect
             to the inversion model with a vector
         """
-        return Zero()
+        return src.bPrimaryDeriv(self.prob, v, adjoint)
 
 
