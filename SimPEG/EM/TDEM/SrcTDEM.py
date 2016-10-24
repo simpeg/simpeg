@@ -131,10 +131,10 @@ class MagDipole(BaseSrc):
     mu = mu_0
 
     def __init__(self, rxList, **kwargs):
-        assert (self.orientation in ['X', 'Y', 'Z'], (
+        assert(self.orientation in ['X', 'Y', 'Z']), (
             "Orientation (right now) doesn't actually do anything! The methods"
             " in SrcUtils should take care of this..."
-            ))
+            )
         self.integrate = False
         BaseSrc.__init__(self, rxList, **kwargs)
 
@@ -243,10 +243,10 @@ class CircularLoop(MagDipole):
     mu = mu_0
 
     def __init__(self, rxList, **kwargs):
-        assert(self.orientation in ['X', 'Y', 'Z'], (
+        assert(self.orientation in ['X', 'Y', 'Z']), (
             "Orientation (right now) doesn't actually do anything! The methods"
             " in SrcUtils should take care of this..."
-            ))
+            )
         self.integrate = False
         BaseSrc.__init__(self, rxList, **kwargs)
 

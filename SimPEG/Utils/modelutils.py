@@ -1,4 +1,4 @@
-from matutils import mkvc, ndgrid
+from .matutils import mkvc, ndgrid
 import numpy as np
 
 def surface2ind_topo(mesh, topo, gridLoc='CC'):
@@ -37,7 +37,7 @@ def surface2ind_topo(mesh, topo, gridLoc='CC'):
 
     elif mesh.dim == 2:
         from scipy.interpolate import interp1d
-        Ftopo = interp1d(topo[:,0], topo[:,1])
+        Ftopo = interp1d(topo[:,0], topo[:,1], fill_value="extrapolate")
 
         if gridLoc == 'CC':
             gridTopo = Ftopo(mesh.gridCC[:,0])

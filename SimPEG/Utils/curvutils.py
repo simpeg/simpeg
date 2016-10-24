@@ -1,6 +1,6 @@
 import numpy as np
 from scipy import sparse as sp
-from matutils import mkvc, ndgrid, sub2ind, sdiag
+from .matutils import mkvc, ndgrid, sub2ind, sdiag
 
 
 def volTetra(xyz, A, B, C, D):
@@ -12,7 +12,7 @@ def volTetra(xyz, A, B, C, D):
     :rtype: numpy.array
     :return: V, volume of the tetrahedra
 
-    Algorithm http://en.wikipedia.org/wiki/Tetrahedron#Volume
+    Algorithm https://en.wikipedia.org/wiki/Tetrahedron#Volume
 
     .. math::
 

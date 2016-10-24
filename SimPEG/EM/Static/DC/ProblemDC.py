@@ -1,11 +1,10 @@
-from SimPEG import Problem, Utils
+from SimPEG import Utils
 from SimPEG.EM.Base import BaseEMProblem
-from SurveyDC import Survey
-from FieldsDC import FieldsDC, Fields_CC, Fields_N
-from SimPEG.Utils import sdiag
+from .SurveyDC import Survey
+from .FieldsDC import FieldsDC, Fields_CC, Fields_N
 import numpy as np
 from SimPEG.Utils import Zero
-from BoundaryUtils import getxBCyBC_CC
+from .BoundaryUtils import getxBCyBC_CC
 
 
 class BaseDCProblem(BaseEMProblem):
@@ -16,8 +15,9 @@ class BaseDCProblem(BaseEMProblem):
     fieldsPair = FieldsDC
     Ainv = None
 
-    def fields(self, m):
-        self.curModel = m
+    def fields(self, m=None):
+        if m is not None:
+            self.model = m
 
         if self.Ainv is not None:
             self.Ainv.clean()
@@ -36,7 +36,7 @@ class BaseDCProblem(BaseEMProblem):
         if f is None:
             f = self.fields(m)
 
-        self.curModel = m
+        self.model = m
 
         Jv = self.dataPair(self.survey)  # same size as the data
 
@@ -58,7 +58,7 @@ class BaseDCProblem(BaseEMProblem):
         if f is None:
             f = self.fields(m)
 
-        self.curModel = m
+        self.model = m
 
         # Ensure v is a data object.
         if not isinstance(v, self.dataPair):
@@ -119,6 +119,7 @@ class Problem3D_CC(BaseDCProblem):
     fieldsPair = Fields_CC
 
     def __init__(self, mesh, **kwargs):
+
         BaseDCProblem.__init__(self, mesh, **kwargs)
         self.setBC()
 
@@ -173,7 +174,7 @@ class Problem3D_CC(BaseDCProblem):
         return Zero()
 
     def setBC(self):
-        if self.mesh.dim==3:
+        if self.mesh.dim == 3:
             fxm, fxp, fym, fyp, fzm, fzp = self.mesh.faceBoundaryInd
             gBFxm = self.mesh.gridFx[fxm, :]
             gBFxp = self.mesh.gridFx[fxp, :]
@@ -204,11 +205,11 @@ class Problem3D_CC(BaseDCProblem):
 
             alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp, alpha_zm,
                      alpha_zp]
-            beta =  [beta_xm, beta_xp, beta_ym, beta_yp, beta_zm, beta_zp]
+            beta = [beta_xm, beta_xp, beta_ym, beta_yp, beta_zm, beta_zp]
             gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp, gamma_zm,
                      gamma_zp]
 
-        elif self.mesh.dim ==2:
+        elif self.mesh.dim == 2:
 
             fxm, fxp, fym, fyp = self.mesh.faceBoundaryInd
             gBFxm = self.mesh.gridFx[fxm, :]
@@ -280,7 +281,6 @@ class Problem3D_N(BaseDCProblem):
         model and a vector
 
         """
-        MeSigma = self.MeSigma
         Grad = self.mesh.nodalGrad
         if not adjoint:
             return Grad.T*(self.MeSigmaDeriv(Grad*u)*v)
@@ -305,5 +305,3 @@ class Problem3D_N(BaseDCProblem):
         # qDeriv = src.evalDeriv(self, adjoint=adjoint)
         # return qDeriv
         return Zero()
-
-

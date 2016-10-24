@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 import numpy as np
 from SimPEG import EM
@@ -20,13 +21,14 @@ SrcList = ['RawVec', 'MagDipole'] #or 'MAgDipole_Bfield', 'CircularLoop', 'RawVe
 
 def adjointTest(fdemType, comp):
     prb = getFDEMProblem(fdemType, comp, SrcList, freq)
-    print 'Adjoint {0!s} formulation - {1!s}'.format(fdemType, comp)
+    # prb.solverOpts = dict(check_accuracy=True)
+    print('Adjoint {0!s} formulation - {1!s}'.format(fdemType, comp))
 
-    m  = np.log(np.ones(prb.mapping.nP)*CONDUCTIVITY)
+    m  = np.log(np.ones(prb.sigmaMap.nP)*CONDUCTIVITY)
     mu = np.ones(prb.mesh.nC)*MU
 
     if addrandoms is True:
-        m  = m + np.random.randn(prb.mapping.nP)*np.log(CONDUCTIVITY)*1e-1
+        m  = m + np.random.randn(prb.sigmaMap.nP)*np.log(CONDUCTIVITY)*1e-1
         mu = mu + np.random.randn(prb.mesh.nC)*MU*1e-1
 
     survey = prb.survey
@@ -38,7 +40,7 @@ def adjointTest(fdemType, comp):
     vJw = v.dot(prb.Jvec(m, w, u))
     wJtv = w.dot(prb.Jtvec(m, v, u))
     tol = np.max([TOL*(10**int(np.log10(np.abs(vJw)))),FLR])
-    print vJw, wJtv, vJw - wJtv, tol, np.abs(vJw - wJtv) < tol
+    print(vJw, wJtv, vJw - wJtv, tol, np.abs(vJw - wJtv) < tol)
     return np.abs(vJw - wJtv) < tol
 
 class FDEM_AdjointTests(unittest.TestCase):

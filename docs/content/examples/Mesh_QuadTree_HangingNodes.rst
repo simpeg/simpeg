@@ -12,8 +12,8 @@
 Mesh: QuadTree: Hanging Nodes
 =============================
 
-You can give the refine method a function, which is evaluated on every cell
-of the TreeMesh.
+You can give the refine method a function, which is evaluated on every
+cell of the TreeMesh.
 
 Occasionally it is useful to initially refine to a constant level
 (e.g. 3 in this 32x32 mesh). This means the function is first evaluated

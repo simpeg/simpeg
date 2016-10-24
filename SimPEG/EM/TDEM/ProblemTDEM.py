@@ -15,15 +15,15 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
     surveyPair = SurveyTDEM  #: A SimPEG.EM.TDEM.SurveyTDEM Class
     fieldsPair = FieldsTDEM  #: A SimPEG.EM.TDEM.FieldsTDEM Class
 
-    def __init__(self, mesh, mapping=None, **kwargs):
-        Problem.BaseTimeProblem.__init__(self, mesh, mapping=mapping, **kwargs)
+    def __init__(self, mesh, **kwargs):
+        BaseEMProblem.__init__(self, mesh, **kwargs)
 
     # def fields_nostore(self, m):
     #     """
     #     Solve the forward problem without storing fields
 
     #     :param numpy.array m: inversion model (nP,)
-    #     :rtype numpy.array:
+    #     :rtype: numpy.array
     #     :return numpy.array: numpy.array (nD,)
 
     #     """
@@ -38,7 +38,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         """
 
         tic = time.time()
-        self.curModel = m
+        self.model = m
 
         F = self.fieldsPair(self.mesh, self.survey)
 
@@ -107,7 +107,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
             f = self.fields(m)
 
         ftype = self._fieldType + 'Solution'  # the thing we solved for
-        self.curModel = m
+        self.model = m
 
         # mat to store previous time-step's solution deriv times a vector for
         # each source
@@ -208,7 +208,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         if f is None:
             f = self.fields(m)
 
-        self.curModel = m
+        self.model = m
         ftype = self._fieldType + 'Solution'  # the thing we solved for
 
         # Ensure v is a data object.
@@ -448,8 +448,8 @@ class Problem3D_b(BaseTDEMProblem):
     fieldsPair = Fields3D_b  #: A SimPEG.EM.TDEM.Fields3D_b object
     surveyPair = SurveyTDEM
 
-    def __init__(self, mesh, mapping=None, **kwargs):
-        BaseTDEMProblem.__init__(self, mesh, mapping=mapping, **kwargs)
+    def __init__(self, mesh, **kwargs):
+        BaseTDEMProblem.__init__(self, mesh, **kwargs)
 
     def getAdiag(self, tInd):
         """
@@ -573,8 +573,8 @@ class Problem3D_e(BaseTDEMProblem):
     fieldsPair = Fields3D_e  #: A Fields3D_e
     surveyPair = SurveyTDEM
 
-    def __init__(self, mesh, mapping=None, **kwargs):
-        BaseTDEMProblem.__init__(self, mesh, mapping=mapping, **kwargs)
+    def __init__(self, mesh, **kwargs):
+        BaseTDEMProblem.__init__(self, mesh, **kwargs)
 
     def getAdiag(self, tInd):
         """

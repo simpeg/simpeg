@@ -1,27 +1,23 @@
-import SimPEG
+from __future__ import print_function
 from SimPEG import Utils, sp, np
-from Optimization import Remember, IterationPrinters, StoppingCriteria
-import Directives
+from .Optimization import Remember, IterationPrinters, StoppingCriteria
+from . import Directives
 
 
 class BaseInversion(object):
-    """
-
-        Inversion Class.
-
-    """
-
-    __metaclass__ = Utils.SimPEGMetaClass
+    """Inversion Class"""
 
     name = 'BaseInversion'
 
-    debug   = False    #: Print debugging information
+    #: Print debugging information
+    debug = False
 
-    counter = None     #: Set this to a SimPEG.Utils.Counter() if you want to count things
+    #: Set this to a SimPEG.Utils.Counter() if you want to count things
+    counter = None
 
     @property
     def directiveList(self):
-        if getattr(self,'_directiveList', None) is None:
+        if getattr(self, '_directiveList', None) is None:
             self._directiveList = Directives.DirectiveList(inversion=self)
         return self._directiveList
 
@@ -29,7 +25,9 @@ class BaseInversion(object):
     def directiveList(self, value):
         if type(value) is list:
             value = Directives.DirectiveList(*value)
-        assert isinstance(value, Directives.DirectiveList), 'Must be a DirectiveList'
+        assert isinstance(value, Directives.DirectiveList), (
+            'Must be a DirectiveList'
+        )
         self._directiveList = value
         self._directiveList.inversion = self
 
@@ -48,9 +46,9 @@ class BaseInversion(object):
 
         # Check if we have inserted printers into the optimization
         if IterationPrinters.phi_d not in self.opt.printers:
-            self.opt.printers.insert(1,IterationPrinters.beta)
-            self.opt.printers.insert(2,IterationPrinters.phi_d)
-            self.opt.printers.insert(3,IterationPrinters.phi_m)
+            self.opt.printers.insert(1, IterationPrinters.beta)
+            self.opt.printers.insert(2, IterationPrinters.phi_d)
+            self.opt.printers.insert(3, IterationPrinters.phi_m)
 
     @Utils.timeIt
     def run(self, m0):
@@ -61,7 +59,8 @@ class BaseInversion(object):
         """
         self.invProb.startup(m0)
         self.directiveList.call('initialize')
-        self.m = self.opt.minimize(self.invProb.evalFunction, self.invProb.curModel)
+        print('model has any nan: {:b}'.format(np.any(np.isnan(self.invProb.model))))
+        self.m = self.opt.minimize(self.invProb.evalFunction, self.invProb.model)
         self.directiveList.call('finish')
 
         return self.m

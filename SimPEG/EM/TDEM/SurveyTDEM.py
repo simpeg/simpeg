@@ -4,7 +4,7 @@ from SimPEG import np, Utils
 from SimPEG.Utils import Zero, Identity
 from scipy.constants import mu_0
 from SimPEG.EM.Utils import *
-import SrcTDEM as Src
+from . import SrcTDEM as Src
 
 
 ####################################################
