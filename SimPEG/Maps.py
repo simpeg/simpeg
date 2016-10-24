@@ -581,9 +581,9 @@ class SurjectVertical1D(IdentityMap):
         """
         repNum = self.mesh.vnC[:self.mesh.dim-1].prod()
         repVec = sp.csr_matrix(
-                               (np.ones(repNum),
-                                (range(repNum), np.zeros(repNum))
-                                ), shape=(repNum, 1))
+            (np.ones(repNum), (range(repNum), np.zeros(repNum))),
+            shape=(repNum, 1)
+        )
         deriv = sp.kron(sp.identity(self.nP), repVec)
         if v is not None:
             return deriv * v
@@ -602,8 +602,9 @@ class Surject2Dto3D(IdentityMap):
     def __init__(self, mesh, **kwargs):
         assert mesh.dim == 3, 'Surject2Dto3D Only works for a 3D Mesh'
         IdentityMap.__init__(self, mesh, **kwargs)
-        assert self.normal in ['X', 'Y', 'Z'], ('For now, only "Y"'
-                                                ' normal is supported')
+        assert self.normal in ['X', 'Y', 'Z'], (
+            'For now, only "Y" normal is supported'
+        )
 
     @property
     def nP(self):
@@ -674,29 +675,10 @@ class Mesh2Mesh(IdentityMap):
         Takes a model on one mesh are translates it to another mesh.
 
         .. plot::
+            :include-source:
 
-            from SimPEG import *
-            import matplotlib.pyplot as plt
-            M = Mesh.TensorMesh([100,100])
-            h1 = Utils.meshTensor([(6,7,-1.5),(6,10),(6,7,1.5)])
-            h1 = h1/h1.sum()
-            M2 = Mesh.TensorMesh([h1,h1])
-            V = Utils.ModelBuilder.randomModel(M.vnC, seed=79, its=50)
-            v = Utils.mkvc(V)
-            modh = Maps.Mesh2Mesh([M,M2])
-            modH = Maps.Mesh2Mesh([M2,M])
-            H = modH * v
-            h = modh * H
-            ax = plt.subplot(131)
-            M.plotImage(v, ax=ax)
-            ax.set_title('Fine Mesh (Original)')
-            ax = plt.subplot(132)
-            M2.plotImage(H,clim=[0,1],ax=ax)
-            ax.set_title('Course Mesh')
-            ax = plt.subplot(133)
-            M.plotImage(h,clim=[0,1],ax=ax)
-            ax.set_title('Fine Mesh (Interpolated)')
-            plt.show()
+            from SimPEG.Examples import Maps_Mesh2Mesh
+            Maps_Mesh2Mesh.run()
 
     """
 
@@ -1406,16 +1388,8 @@ class ParametrizedLayer(IdentityMap):
         .. plot::
             :include-source:
 
-            from SimPEG import Mesh, Maps, np
-            import matplotlib.pyplot as plt
-
-            fig, ax = plt.subplots(1,1,figsize=(2,3))
-
-            mesh = Mesh.TensorMesh([50,50],x0='CC')
-            mapping = Maps.ParametrizedLayer(mesh)
-            m = np.hstack(np.r_[1., 2., -0.1, 0.2])
-            rho = mapping._transform(m)
-            mesh.plotImage(rho, ax=ax)
+            from SimPEG.Examples import Maps_ParametrizedLayer
+            Maps_ParametrizedLayer.run()
 
         **Required**
 
@@ -1528,8 +1502,9 @@ class ParametrizedLayer(IdentityMap):
 
     def layer_cont(self, mDict):
         return (
-            mDict['val_background'] + (mDict['val_layer'] -
-            mDict['val_background'])*self._atanLayer(mDict)
+            mDict['val_background'] +
+            (mDict['val_layer'] - mDict['val_background']) *
+            self._atanLayer(mDict)
         )
 
     def _transform(self, m):
@@ -1547,8 +1522,10 @@ class ParametrizedLayer(IdentityMap):
                 self._atanLayerDeriv_layer_center(mDict))
 
     def _deriv_layer_thickness(self, mDict):
-        return ((mDict['val_layer']-mDict['val_background']) *
-                self._atanLayerDeriv_layer_thickness(mDict))
+        return (
+            (mDict['val_layer']-mDict['val_background']) *
+            self._atanLayerDeriv_layer_thickness(mDict)
+        )
 
     def deriv(self, m):
 
@@ -1567,15 +1544,25 @@ class ParametrizedCasingAndLayer(ParametrizedLayer):
     """
         Parametrized layered space with casing.
 
-        m = [val_background, val_layer, val_casing, val_insideCasing,
-             layer_center, layer_thickness, casing_radius, casing_thickness,
-             casing_bottom, casing_top]
+        .. code::
+            m = [
+                    val_background,
+                    val_layer,
+                    val_casing,
+                    val_insideCasing,
+                    layer_center,
+                    layer_thickness,
+                    casing_radius,
+                    casing_thickness,
+                    casing_bottom,
+                    casing_top
+            ]
     """
 
     def __init__(self, mesh, **kwargs):
 
-        assert mesh._meshType == 'CYL', ('Parametrized Casing in a layer map '
-                                         'only works for a cyl mesh.')
+        assert mesh._meshType == 'CYL', (
+            'Parametrized Casing in a layer map only works for a cyl mesh.')
 
         super(ParametrizedCasingAndLayer, self).__init__(mesh, **kwargs)
 
@@ -1908,16 +1895,9 @@ class ParametrizedBlockInLayer(ParametrizedLayer):
         .. plot::
             :include-source:
 
-            from SimPEG import Mesh, Maps, np
-            import matplotlib.pyplot as plt
-
-            fig, ax = plt.subplots(1,1,figsize=(2,3))
-
-            mesh = Mesh.TensorMesh([50,50],x0='CC')
-            mapping = Maps.ParametrizedBlockInLayer(mesh)
-            m = np.hstack(np.r_[1., 2., 3., -0.1, 0.2, 0.3, 0.2])
-            rho = mapping._transform(m)
-            mesh.plotImage(rho, ax=ax)
+            from SimPEG.Examples import Maps_ParametrizedBlockInLayer
+            Maps_ParametrizedBlockInLayer.run()
+            plt.show()
 
         **Required**
 

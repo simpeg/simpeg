@@ -1,4 +1,4 @@
-from SimPEG import *
+from SimPEG import Mesh, Maps,
 from SimPEG.EM import mu_0, FDEM, Analytics
 from SimPEG.EM.Utils import omega
 try:
@@ -76,9 +76,10 @@ primaryMapping = (Maps.ExpMap(meshp) *
 mapping = (
         Maps.ExpMap(meshs) *
         Maps.ParametrizedBlockInLayer(meshs) *
-        Maps.Projection(nP=8, index=np.hstack([np.r_[0],
-                        np.arange(0, 8)]))
+        Maps.Projection(
+            nP=8, index=np.hstack([np.r_[0], np.arange(0, 8)])
         )
+    )
 
 primaryMap2Meshs = (
                 Maps.ExpMap(meshs) *
