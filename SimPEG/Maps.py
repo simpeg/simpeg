@@ -9,6 +9,7 @@ from numpy.polynomial import polynomial
 from scipy.interpolate import UnivariateSpline
 import warnings
 from six import integer_types
+from scipy.spatial import cKDTree
 
 
 class IdentityMap(object):
@@ -616,10 +617,11 @@ class Mesh2MeshTopo(IdentityMap):
         # vol = np.zeros((self.actind2.sum(), self.nIterpPts))
         # for i in range(self.nIterpPts):
         #     vol[:,i] = self.mesh.vol[inds[:,i]]
-        w = 1. / d**2
+        w = 1. / np.abs(d+1e-16)
         w = Utils.sdiag(1./np.sum(w, axis=1)) * (w)
         I = Utils.mkvc(np.arange(inds.shape[0]).reshape([-1,1]).repeat(self.nIterpPts, axis=1))
         J = Utils.mkvc(inds)
+        print(inds.shape[0])
         P = sp.coo_matrix( (Utils.mkvc(w),(I, J)), shape=(inds.shape[0], (self.actind).sum()) )
         # self.P = Utils.sdiag(self.mesh2.vol[self.actind2])*P.tocsc()
         self.P = P.tocsr()

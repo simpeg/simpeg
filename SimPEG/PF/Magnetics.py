@@ -21,7 +21,7 @@ class MagneticIntegral(Problem.BaseProblem):
         if self.forwardOnly:
 
             # Compute the linear operation without forming the full dense G
-            fwr_d = Intrgl_Fwr_Op(m=m)
+            fwr_d = self.Intrgl_Fwr_Op(m=m)
 
             return fwr_d
 
@@ -67,7 +67,7 @@ class MagneticIntegral(Problem.BaseProblem):
 
         return self._G
 
-    def Intrgl_Fwr_Op(self, m = None, Magnetization="ind"):
+    def Intrgl_Fwr_Op(self, m=None, Magnetization="ind"):
 
         """
 
