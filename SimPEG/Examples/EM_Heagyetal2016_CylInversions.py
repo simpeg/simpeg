@@ -1,9 +1,12 @@
 from SimPEG import (np, Mesh, Maps, Utils, DataMisfit, Regularization,
                     Optimization, Inversion, InvProblem, Directives)
-from SimPEG import SolverLU
 from SimPEG.EM import FDEM, TDEM, mu_0
-import warnings
 import matplotlib.pyplot as plt
+import matplotlib
+try:
+    from pymatsolver import PardisoSolver as Solver
+except ImportError:
+    from SimPEG import SolverLU as Solver
 
 
 def run(plotIt=True):
@@ -50,12 +53,13 @@ def run(plotIt=True):
     print('max x ', mesh.vectorCCx.max(), 'min z ', mesh.vectorCCz.min(),
           'max z ', mesh.vectorCCz.max())
 
-    srcList = []
-    [srcList.append(FDEM.Src.MagDipole([bzr, bzi], freq, srcLoc,
-                                       orientation='Z')) for freq in freqs]
+    srcList = [
+        FDEM.Src.MagDipole([bzr, bzi], freq, srcLoc, orientation='Z')
+        for freq in freqs
+    ]
 
     surveyFD = FDEM.Survey(srcList)
-    prbFD = FDEM.Problem3D_b(mesh, mapping=mapping)
+    prbFD = FDEM.Problem3D_b(mesh, sigmaMap=mapping, Solver=Solver)
     prbFD.pair(surveyFD)
     std = 0.03
     surveyFD.makeSyntheticData(mtrue, std)
@@ -73,8 +77,9 @@ def run(plotIt=True):
     beta = Directives.BetaSchedule(coolingFactor=4, coolingRate=3)
     betaest = Directives.BetaEstimate_ByEig(beta0_ratio=2.)
     target = Directives.TargetMisfit()
+    directiveList = [beta, betaest, target]
 
-    inv = Inversion.BaseInversion(invProb, directiveList=[beta, betaest, target])
+    inv = Inversion.BaseInversion(invProb, directiveList=directiveList)
     m0 = np.log(np.ones(mtrue.size)*sig_half)
     reg.alpha_s = 5e-1
     reg.alpha_x = 1.
@@ -87,14 +92,16 @@ def run(plotIt=True):
     print('min diffusion distance ', 1.28*np.sqrt(times.min()/(sig_half*mu_0)),
           'max diffusion distance ', 1.28*np.sqrt(times.max()/(sig_half*mu_0)))
     rx = TDEM.Rx(rxlocs, times, 'bz')
-    src = TDEM.Src.MagDipole([rx], waveform=TDEM.Src.StepOffWaveform(),
-                             loc=srcLoc)  # same src location as FDEM problem
+    src = TDEM.Src.MagDipole(
+        [rx],
+        waveform=TDEM.Src.StepOffWaveform(),
+        loc=srcLoc  # same src location as FDEM problem
+    )
 
     surveyTD = TDEM.Survey([src])
-    prbTD = TDEM.Problem3D_b(mesh, mapping=mapping)
+    prbTD = TDEM.Problem3D_b(mesh, sigmaMap=mapping, Solver=Solver)
     prbTD.timeSteps = [(5e-5, 10), (1e-4, 10), (5e-4, 10)]
     prbTD.pair(surveyTD)
-    prbTD.Solver = SolverLU
 
     std = 0.03
     surveyTD.makeSyntheticData(mtrue, std)
@@ -108,12 +115,7 @@ def run(plotIt=True):
     opt = Optimization.InexactGaussNewton(maxIterCG=10)
     invProb = InvProblem.BaseInvProblem(dmisfit, reg, opt)
 
-    # Inversion Directives
-    beta = Directives.BetaSchedule(coolingFactor=4, coolingRate=3)
-    betaest = Directives.BetaEstimate_ByEig(beta0_ratio=2.)
-    target = Directives.TargetMisfit()
-
-    inv = Inversion.BaseInversion(invProb, directiveList=[beta, betaest, target])
+    inv = Inversion.BaseInversion(invProb, directiveList=directiveList)
     m0 = np.log(np.ones(mtrue.size)*sig_half)
     reg.alpha_s = 5e-1
     reg.alpha_x = 1.
@@ -122,8 +124,7 @@ def run(plotIt=True):
     moptTD = inv.run(m0)
 
     if plotIt:
-        import matplotlib
-        fig = plt.figure(figsize = (10, 8))
+        plt.figure(figsize=(10, 8))
         ax0 = plt.subplot2grid((2, 2), (0, 0), rowspan=2)
         ax1 = plt.subplot2grid((2, 2), (0, 1))
         ax2 = plt.subplot2grid((2, 2), (1, 1))
@@ -178,7 +179,7 @@ def run(plotIt=True):
         ax2.set_title("(c) TDEM observed vs. predicted", fontsize=fs)
 
         plt.tight_layout(pad=1.5)
-        plt.show()
 
 if __name__ == '__main__':
     run(plotIt=True)
+    plt.show()

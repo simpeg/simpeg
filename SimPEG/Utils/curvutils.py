@@ -12,7 +12,7 @@ def volTetra(xyz, A, B, C, D):
     :rtype: numpy.array
     :return: V, volume of the tetrahedra
 
-    Algorithm http://en.wikipedia.org/wiki/Tetrahedron#Volume
+    Algorithm https://en.wikipedia.org/wiki/Tetrahedron#Volume
 
     .. math::
 

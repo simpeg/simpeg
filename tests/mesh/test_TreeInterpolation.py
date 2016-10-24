@@ -15,7 +15,7 @@ cartE3 = lambda M, ex, ey, ez: np.vstack((cart_row3(M.gridEx, ex, ey, ez), cart_
 
 
 plotIt = False
-
+np.random.seed(1)
 
 MESHTYPES = ['uniformTree','notatreeTree']
 
@@ -29,7 +29,6 @@ MESHTYPES = ['uniformTree','notatreeTree']
 
 class TestInterpolation2d(Tests.OrderTest):
     name = "Interpolation 2D"
-    np.random.seed(1)
     LOCS = np.random.rand(50,2)*0.6+0.2
     # LOCS = np.c_[np.ones(100)*0.51, np.linspace(0.3,0.7,100)]
     meshTypes = MESHTYPES
