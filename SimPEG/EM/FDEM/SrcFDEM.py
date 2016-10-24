@@ -633,9 +633,11 @@ class PrimSecMappedSigma(BaseSrc):
         # get interpolation mat from primary mesh to secondary mesh
         if self.primaryProblem.mesh._meshType == 'CYL':
             return self.primaryProblem.mesh.getInterpolationMatCartMesh(
-                prob.mesh, locType=locType, locTypeTo=locTypeTo)
-        return self.primaryProblem.mesh.getInterploationMat(prob.mesh,
-                locType=locType, locTypeTo=locTypeTo)
+                prob.mesh, locType=locType, locTypeTo=locTypeTo
+            )
+        return self.primaryProblem.mesh.getInterploationMat(
+            prob.mesh, locType=locType, locTypeTo=locTypeTo
+        )
 
         # return self.__ProjPrimary
 
@@ -643,7 +645,7 @@ class PrimSecMappedSigma(BaseSrc):
         # TODO: cache and check if prob.curModel has changed
 
         if f is None:
-            f = self.primaryProblem.fields(prob.curModel.sigmaModel)
+            f = self.primaryProblem.fields(prob.model)
 
         if fieldType is not None:
             return f[:, fieldType]
@@ -658,7 +660,7 @@ class PrimSecMappedSigma(BaseSrc):
         # Ainv = self.primaryProblem.Solver(A, **self.primaryProblem.solverOpts) # create the concept of Ainv (actually a solve)
 
         if f is None:
-           f = self._primaryFields(prob.curModel.sigmaModel, f=f)
+           f = self._primaryFields(prob.sigma, f=f)
 
         freq = self.freq
 
@@ -769,7 +771,7 @@ class PrimSecMappedSigma(BaseSrc):
         return Utils.mkvc(bp)
 
     def s_e(self, prob, f=None):
-        sigmaPrimary = self.map2meshSecondary * prob.curModel.sigmaModel
+        sigmaPrimary = self.map2meshSecondary * prob.model
 
         return Utils.mkvc(
             (prob.MeSigma - prob.mesh.getEdgeInnerProduct(sigmaPrimary)) *
@@ -778,9 +780,9 @@ class PrimSecMappedSigma(BaseSrc):
 
     def s_eDeriv(self, prob, v, adjoint=False):
 
-        sigmaPrimary = self.map2meshSecondary * prob.curModel.sigmaModel
+        sigmaPrimary = self.map2meshSecondary * prob.model
         sigmaPrimaryDeriv = self.map2meshSecondary.deriv(
-                prob.curModel.sigmaModel)
+                prob.model)
 
         f = self._primaryFields(prob)
         ePrimary = self.ePrimary(prob, f=f)
@@ -788,8 +790,11 @@ class PrimSecMappedSigma(BaseSrc):
         if adjoint is True:
             return (
                 prob.MeSigmaDeriv(ePrimary).T * v -
-                (sigmaPrimaryDeriv.T * prob.mesh.getEdgeInnerProductDeriv(
-                    sigmaPrimary)(ePrimary).T * v) +
+                (
+                    sigmaPrimaryDeriv.T * prob.mesh.getEdgeInnerProductDeriv(
+                        sigmaPrimary
+                    )(ePrimary).T * v
+                ) +
                 self.ePrimaryDeriv(prob, (
                     prob.MeSigma - prob.mesh.getEdgeInnerProduct(
                         sigmaPrimary)).T * v, adjoint=adjoint, f=f)
@@ -798,10 +803,10 @@ class PrimSecMappedSigma(BaseSrc):
         return(
             prob.MeSigmaDeriv(ePrimary) * v -
             prob.mesh.getEdgeInnerProductDeriv(sigmaPrimary)(ePrimary) *
-            (sigmaPrimaryDeriv * v) + (
-                prob.MeSigma - prob.mesh.getEdgeInnerProduct(sigmaPrimary)) *
+            (sigmaPrimaryDeriv * v) +
+            (prob.MeSigma - prob.mesh.getEdgeInnerProduct(sigmaPrimary)) *
             self.ePrimaryDeriv(prob, v, adjoint=adjoint, f=f)
-                )
+        )
 
 
 

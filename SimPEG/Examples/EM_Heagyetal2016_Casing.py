@@ -1,6 +1,7 @@
-from SimPEG import Mesh, Utils
+from SimPEG import Mesh, Utils, Maps, Tests
 from SimPEG.EM import mu_0, FDEM, Analytics
 from SimPEG.EM.Utils import omega
+from SimPEG.Utils.io_utils import remoteDownload
 # try:
 #     from pymatsolver import MumpsSolver as Solver
 #     print('using MumpsSolver')
@@ -8,11 +9,13 @@ from SimPEG.EM.Utils import omega
 try:
     from pymatsolver import PardisoSolver as Solver
 except ImportError:
-    Solver = SolverLU
-import matplotlib.pyplot as plt
+    from SimPEG import SolverLU as Solver
+
+import numpy as np
+import scipy.sparse as sp
 import time
 import os
-from SimPEG.Utils.io_utils import remoteDownload
+
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from matplotlib import rcParams
@@ -66,9 +69,11 @@ class PrimSecCasingExample(object):
         self.casing_z = np.r_[-self.casing_l, 0.]
 
         # Display skin depth so we can ensure our mesh goes further.
-        print('\nSkin Depth: {}'.format(
-                [(500./np.sqrt(self.sigmaback*_)) for _ in self.freqs])
-              )
+        print(
+            '\nSkin Depth: {}'.format(
+                [(500./np.sqrt(self.sigmaback*_)) for _ in self.freqs]
+            )
+        )
 
     # -------------- Model --------------------------------- #
     @property
@@ -118,7 +123,7 @@ class PrimSecCasingExample(object):
         if getattr(self, '_meshp', None) is None:
             # -------------- Mesh Parameters ------------------ #
             # x-direction
-            csx1, csx2 = 2.5e-3, 25. # fine cells near well bore
+            csx1, csx2 = 2.5e-3, 25.  # fine cells near well bore
             pfx1, pfx2 = 1.3, 1.4  # padding factors: fine -> uniform
             ncx1 = np.ceil(self.casing_b/csx1+2)  # number of fine cells
                                                   # (past casing wall)
@@ -280,35 +285,37 @@ class PrimSecCasingExample(object):
             # inverting for - This will change when we improve the propmap!
             print('Getting Primary Problem')
 
-            class CasingEMPropMap(Maps.PropMap):
+            # class CasingEMPropMap(Maps.PropMap):
 
-                sigma = Maps.Property(
-                            "Electrical Conductivity", defaultInvProp=True,
-                            propertyLink=('rho', Maps.ReciprocalMap)
-                            )
-                mu = Maps.Property(
-                        "Inverse Magnetic Permeability",
-                        defaultVal=self.muModel,
-                        propertyLink=('mui', Maps.ReciprocalMap)
-                                  )
-                rho = Maps.Property(
-                        "Electrical Resistivity",
-                        propertyLink=('sigma', Maps.ReciprocalMap)
-                                   )
-                mui = Maps.Property(
-                        "Inverse Magnetic Permeability",
-                        defaultVal=1./self.muModel,
-                        propertyLink=('mu', Maps.ReciprocalMap)
-                                    )
+            #     sigma = Maps.Property(
+            #                 "Electrical Conductivity", defaultInvProp=True,
+            #                 propertyLink=('rho', Maps.ReciprocalMap)
+            #     )
+            #     mu = Maps.Property(
+            #             "Inverse Magnetic Permeability",
+            #             defaultVal=self.muModel,
+            #             propertyLink=('mui', Maps.ReciprocalMap)
+            #     )
+            #     rho = Maps.Property(
+            #             "Electrical Resistivity",
+            #             propertyLink=('sigma', Maps.ReciprocalMap)
+            #     )
+            #     mui = Maps.Property(
+            #             "Inverse Magnetic Permeability",
+            #             defaultVal=1./self.muModel,
+            #             propertyLink=('mu', Maps.ReciprocalMap)
+            #     )
 
-            # set the problem's propmap
-            FDEM.Problem3D_h.PropMap = CasingEMPropMap
+            # # set the problem's propmap
+            # FDEM.Problem3D_h.PropMap = CasingEMPropMap
 
             # use H-J formulation for source with vertical current density and
             # cylindrical symmetry (h faster on cyl --> less edges than faces)
             primaryProblem = FDEM.Problem3D_h(
-                self.meshp, mapping=self.primaryMapping
-                                             )
+                self.meshp, sigmaMap=self.primaryMapping
+            )
+            primaryProblem.mu = self.muModel
+
             primaryProblem.Solver = Solver
             self._primaryProblem = primaryProblem
 
@@ -359,17 +366,22 @@ class PrimSecCasingExample(object):
                 dg_x[sgh_ind] = -1.
 
                 # return electrode
-                sgv_indx = ((meshp.gridFz[:, 0] > src_b[0]*0.9)
-                            & (meshp.gridFz[:, 0] < src_b[0]*1.1))
-                sgv_indz = ((meshp.gridFz[:, 2] >= -meshp.hz.min())
-                            & (meshp.gridFz[:, 2] < 2*meshp.hz.min()))
+                sgv_indx = (
+                    (meshp.gridFz[:, 0] > src_b[0]*0.9) &
+                    (meshp.gridFz[:, 0] < src_b[0]*1.1)
+                )
+                sgv_indz = (
+                    (meshp.gridFz[:, 2] >= -meshp.hz.min()) &
+                    (meshp.gridFz[:, 2] < 2*meshp.hz.min())
+                )
                 sgv_ind = sgv_indx & sgv_indz
                 dg_z[sgv_ind] = 1.
 
                 # assemble the source (downhole grounded primary)
                 dg = np.hstack([dg_x, dg_y, dg_z])
-                dg_p = [FDEM.Src.RawVec_e([], _, dg/meshp.area) for _ in
-                        self.freqs]
+                dg_p = [
+                    FDEM.Src.RawVec_e([], _, dg/meshp.area) for _ in self.freqs
+                ]
 
                 # if plotIt:
                 #     # Plot the source to make sure the path is infact
@@ -531,7 +543,7 @@ class PrimSecCasingExample(object):
         print('Setting up Secondary Problem')
         if mapping is None:
             mapping = [('sigma', Maps.IdentityMap(self.meshs))]
-        sec_problem = FDEM.Problem3D_e(self.meshs, mapping=mapping)
+        sec_problem = FDEM.Problem3D_e(self.meshs, sigmaMap=mapping)
         sec_problem.Solver = Solver
         print('... done setting up secondary problem')
         return sec_problem
@@ -554,11 +566,13 @@ class PrimSecCasingExample(object):
 
         RxList = [rx_ex, rx_ey]
 
-        sec_src = [FDEM.Src.PrimSecMappedSigma(
-                        RxList, freq, primaryProblem, primarySurvey,
-                        map2meshSecondary=map2meshSecondary
-                                              )
-                   for freq in self.freqs]
+        sec_src = [
+            FDEM.Src.PrimSecMappedSigma(
+                RxList, freq, primaryProblem, primarySurvey,
+                map2meshSecondary=map2meshSecondary
+            )
+            for freq in self.freqs
+        ]
         print('... done secondary survey')
 
         return FDEM.Survey(sec_src)
@@ -639,7 +653,7 @@ class PrimSecCasingExample(object):
         secondaryProblem = self.setupSecondaryProblem(mapping=self.mapping)
         secondaryProblem.solver = Solver
         self.primaryProblem.solver = Solver
-        secondaryProblem.curModel = self.mtrue
+        secondaryProblem.model = self.mtrue
         secondarySurvey = self.setupSecondarySurvey(
             self.primaryProblem, self.primarySurvey, self.primaryMap2meshs
         )
@@ -1263,7 +1277,7 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
         results = dict(zip(['primfields', 'dpredback', 'dpred', 'J'], results))
 
         # Put the primary fields into a fields object
-        self.primaryProblem.curModel = self.mtrue  # set the current model
+        self.primaryProblem.model = self.mtrue  # set the current model
         self.primaryProblem.pair(self.primarySurvey)
         primaryFields = self.primaryProblem.fieldsPair(
             self.meshp, self.primarySurvey
@@ -1321,10 +1335,6 @@ def run(plotIt=False, runTests=False, reRun=False, saveFig=False):
     # remove the downloaded results
     if reRun is False:
         casingExample.removeStoredResults()
-
-    # reset the propmap
-    from SimPEG.EM.Base import EMPropMap
-    FDEM.Problem3D_h.PropMap = EMPropMap
 
 
 if __name__ == '__main__':

@@ -17,7 +17,8 @@ Heagy et al 2016.
 
 :param bool plotIt: plot results
 :param bool runTests: run sensitivity tests? (slow...)
-:param bool reRun: recompute results? or just download stored results and plot
+:param bool reRun: recompute results? or just download stored results
+    and plot
 :param bool saveFig: save the figures?
 
 
