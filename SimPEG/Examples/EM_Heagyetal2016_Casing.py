@@ -1,4 +1,4 @@
-from SimPEG import *
+from SimPEG import Mesh, Utils
 from SimPEG.EM import mu_0, FDEM, Analytics
 from SimPEG.EM.Utils import omega
 # try:
@@ -95,16 +95,19 @@ class PrimSecCasingExample(object):
         #   |                                      |
         #   +--------------------------------------+
 
-        return np.hstack(np.r_[np.log(self.sigmaback),  # value in background
-                               np.log(self.sigmalayer),  # value in the layer
-                               np.log(self.sigmablock),  # value in the block
-                               self.layer_z.mean(),  # layer center
-                               self.layer_z[1] - self.layer_z[0],  # layer thickness
-                               self.block_x.mean(),  # block x_0
-                               self.block_y.mean(),  # block y_0
-                               self.block_x[1] - self.block_x[0],  # block dx
-                               self.block_y[1] - self.block_y[0]  # block dy
-                               ])
+        return np.hstack(
+            np.r_[
+                np.log(self.sigmaback),  # value in background
+                np.log(self.sigmalayer),  # value in the layer
+                np.log(self.sigmablock),  # value in the block
+                self.layer_z.mean(),  # layer center
+                self.layer_z[1] - self.layer_z[0],  # layer thickness
+                self.block_x.mean(),  # block x_0
+                self.block_y.mean(),  # block y_0
+                self.block_x[1] - self.block_x[0],  # block dx
+                self.block_y[1] - self.block_y[0]  # block dy
+            ]
+        )
 
     # ----------------------------------------------------------------- #
     # -------------- PRIMARY PROBLEM SETUP ---------------------------- #
@@ -116,8 +119,9 @@ class PrimSecCasingExample(object):
             # -------------- Mesh Parameters ------------------ #
             # x-direction
             csx1, csx2 = 2.5e-3, 25. # fine cells near well bore
-            pfx1, pfx2 = 1.3, 1.4  # padding factors: fine -> uniform, pad to infinity
-            ncx1 = np.ceil(self.casing_b/csx1+2)  # number of fine cells (past casing wall)
+            pfx1, pfx2 = 1.3, 1.4  # padding factors: fine -> uniform
+            ncx1 = np.ceil(self.casing_b/csx1+2)  # number of fine cells
+                                                  # (past casing wall)
             dx2 = 1000.  # uniform mesh out to here
             npadx2 = 21  # padding out to infinity
 
@@ -156,11 +160,13 @@ class PrimSecCasingExample(object):
                 [hx, 1., hz], [0., 0., -np.sum(hz[:npadzu+ncz-nza])]
                 )
 
-            print('Cyl Mesh Extent xmax: {},: zmin: {}, zmax: {}'.format(
+            print(
+                'Cyl Mesh Extent xmax: {},: zmin: {}, zmax: {}'.format(
                     self._meshp.vectorCCx.max(),
                     self._meshp.vectorCCz.min(),
                     self._meshp.vectorCCz.max()
-                      ))
+                )
+            )
 
         return self._meshp
 
@@ -190,12 +196,13 @@ class PrimSecCasingExample(object):
             # model
             valInactive = np.r_[
                 np.log(self.sigmacasing),  # log conductivity of the casing
-                np.log(self.sigmainside),  # log conductivity fluid inside casing
+                np.log(self.sigmainside),  # log conductivity fluid inside
+                                           # casing
                 self.casing_r,  # radius of the casing (to its center)
                 self.casing_t,  # casing thickness
                 self.casing_z[0],  # bottom of casing (at depth)
                 self.casing_z[1]   # top of casing (at surface)
-                                ]
+            ]
 
             # inject casing parameters so they are included in the construction
             # of the layered background + casing
@@ -223,9 +230,11 @@ class PrimSecCasingExample(object):
                 expMapPrimary *  # log(sigma) --> sigma
                 injActMapPrimary *  # log(sigma) below surface --> include air
                 paramMapPrimary *  # parametric --> casing + layered earth
-                injectCasingParams *  # parametric layered earth --> parametric layered earth + casing
-                self.projectionMapPrimary  # grab relevant parameters from full model (eg. ignore block)
-                )
+                injectCasingParams *  # parametric layered earth --> parametric
+                                      # layered earth + casing
+                self.projectionMapPrimary  # grab relevant parameters from full
+                                           # model (eg. ignore block)
+            )
 
             self._paramMapPrimary = paramMapPrimary
             self._primaryMapping = primaryMapping
@@ -248,18 +257,19 @@ class PrimSecCasingExample(object):
                      self._paramMapPrimary)
 
             muModel = muMap * np.hstack(
-                np.r_[mu_0,  # val Background
-                      mu_0,  # val Layer
-                      mu_0*self.mucasing,  # val Casing
-                      mu_0,  # val inside Casing
-                      self.layer_z.mean(),  # layer center
-                      self.layer_z[1] - self.layer_z[0], # layer thickness
-                      self.casing_r,  # casing radius
-                      self.casing_t,  # casing thickness
-                      self.casing_z[0],  # casing bottom
-                      self.casing_z[1]  # casing top
-                      ]
-                )
+                np.r_[
+                    mu_0,  # val Background
+                    mu_0,  # val Layer
+                    mu_0*self.mucasing,  # val Casing
+                    mu_0,  # val inside Casing
+                    self.layer_z.mean(),  # layer center
+                    self.layer_z[1] - self.layer_z[0],  # layer thickness
+                    self.casing_r,  # casing radius
+                    self.casing_t,  # casing thickness
+                    self.casing_z[0],  # casing bottom
+                    self.casing_z[1]  # casing top
+                ]
+            )
             self._muModel = muModel
         return self._muModel
 
@@ -305,7 +315,6 @@ class PrimSecCasingExample(object):
             print('... done building primary problem')
 
         return self._primaryProblem
-
 
     @property
     def primarySurvey(self):
@@ -363,7 +372,8 @@ class PrimSecCasingExample(object):
                         self.freqs]
 
                 # if plotIt:
-                #     # Plot the source to make sure the path is infact connected
+                #     # Plot the source to make sure the path is infact
+                #     # connected
 
                 #     fig, ax = plt.subplots(1, 1, figsize=(6, 4))
                 #     meshp.plotGrid(ax=ax)
@@ -414,8 +424,8 @@ class PrimSecCasingExample(object):
 
         f = self.meshp.plotImage(
             np.log10(self.primaryMapping*self.mtrue), ax=ax[1],
-            pcolorOpts={'cmap':plt.get_cmap('viridis')}, grid=False
-                     )
+            pcolorOpts={'cmap': plt.get_cmap('viridis')}, grid=False
+        )
         plt.colorbar(f[0], ax=ax[1])
         ax[1].set_xlim([0, 1.])
         ax[1].set_ylim([-1.5e3, 500])
@@ -438,21 +448,26 @@ class PrimSecCasingExample(object):
             csz, ncz, npadz = 25, 40, 14
             pf = 1.5
 
-            hx = Utils.meshTensor([(csx, npadx, -pf), (csx, ncx),
-                                   (csx, npadx, pf)])
-            hy = Utils.meshTensor([(csy, npady, -pf), (csy, ncy),
-                                   (csy, npady, pf)])
-            hz = Utils.meshTensor([(csz, npadz, -pf), (csz, ncz),
-                                   (csz, npadz, pf)])
+            hx = Utils.meshTensor(
+                [(csx, npadx, -pf), (csx, ncx), (csx, npadx, pf)]
+            )
+            hy = Utils.meshTensor(
+                [(csy, npady, -pf), (csy, ncy), (csy, npady, pf)]
+            )
+            hz = Utils.meshTensor(
+                [(csz, npadz, -pf), (csz, ncz), (csz, npadz, pf)]
+            )
 
             x0 = np.r_[-hx.sum()/2., -hy.sum()/2., -hz[:npadz+ncz].sum()]
             self._meshs = Mesh.TensorMesh([hx, hy, hz], x0=x0)
 
             print('Secondary Mesh ... ')
-            print(' xmin, xmax, zmin, zmax: ', self._meshs.vectorCCx.min(),
-                  self._meshs.vectorCCx.max(), self._meshs.vectorCCy.min(),
-                  self._meshs.vectorCCy.max(), self._meshs.vectorCCz.min(),
-                  self._meshs.vectorCCz.max())
+            print(
+                ' xmin, xmax, zmin, zmax: ', self._meshs.vectorCCx.min(),
+                self._meshs.vectorCCx.max(), self._meshs.vectorCCy.min(),
+                self._meshs.vectorCCy.max(), self._meshs.vectorCCz.min(),
+                self._meshs.vectorCCz.max()
+            )
             print(' nC, vnC', self._meshs.nC, self._meshs.vnC)
 
         return self._meshs
@@ -521,8 +536,9 @@ class PrimSecCasingExample(object):
         print('... done setting up secondary problem')
         return sec_problem
 
-    def setupSecondarySurvey(self, primaryProblem, primarySurvey,
-                             map2meshSecondary):
+    def setupSecondarySurvey(
+        self, primaryProblem, primarySurvey, map2meshSecondary
+    ):
 
         print('Setting up Secondary Survey')
 
@@ -530,8 +546,8 @@ class PrimSecCasingExample(object):
         ny = nx
         rx_x, rx_y = 2*[np.linspace(-2050, 2050, nx)]
         self.rxlocs = Utils.ndgrid([rx_x, rx_y, np.r_[-1]])
-        self.rx_x = self.rxlocs[:,0].reshape(nx, ny, order='F')
-        self.rx_y = self.rxlocs[:,1].reshape(nx, ny, order='F')
+        self.rx_x = self.rxlocs[:, 0].reshape(nx, ny, order='F')
+        self.rx_y = self.rxlocs[:, 1].reshape(nx, ny, order='F')
 
         rx_ex = FDEM.Rx.Point_e(self.rxlocs, orientation='x', component='real')
         rx_ey = FDEM.Rx.Point_e(self.rxlocs, orientation='y', component='real')
@@ -589,18 +605,21 @@ class PrimSecCasingExample(object):
         if saveFig is True:
             # this looks obnoxious inline, but nice in the saved png
             f = meshcart.plotSlice(
-                    jcart.real, normal='Y', vType='F', view='vec',
-                    pcolorOpts={'norm': LogNorm(),
-                                'cmap': plt.get_cmap('viridis')},
-                    streamOpts={'arrowsize': 8, 'color': 'k'}, ax=ax
-                    )
-        elif saveFig == False:
+                jcart.real, normal='Y', vType='F', view='vec',
+                pcolorOpts={
+                    'norm': LogNorm(), 'cmap': plt.get_cmap('viridis')
+                },
+                streamOpts={'arrowsize': 8, 'color': 'k'},
+                ax=ax
+            )
+        elif saveFig is False:
             f = meshcart.plotSlice(
-                    jcart.real, normal='Y', vType='F', view='vec',
-                    pcolorOpts={'norm': LogNorm(),
-                                'cmap': plt.get_cmap('viridis')},
-                    ax=ax
-                    )
+                jcart.real, normal='Y', vType='F', view='vec',
+                pcolorOpts={
+                    'norm': LogNorm(), 'cmap': plt.get_cmap('viridis')
+                },
+                ax=ax
+            )
         plt.colorbar(f[0], label='real current density (A/m$^2$)')
 
         ax.axis('equal', adjustable='box')
@@ -622,7 +641,8 @@ class PrimSecCasingExample(object):
         self.primaryProblem.solver = Solver
         secondaryProblem.curModel = self.mtrue
         secondarySurvey = self.setupSecondarySurvey(
-            self.primaryProblem, self.primarySurvey, self.primaryMap2meshs)
+            self.primaryProblem, self.primarySurvey, self.primaryMap2meshs
+        )
         src = secondarySurvey.srcList[0]
         s_e = src.s_e(secondaryProblem, f=primaryFields)
 
@@ -640,7 +660,7 @@ class PrimSecCasingExample(object):
         meshs_plt = Mesh.TensorMesh(
             [[(cs, ncx)], [(cs, ncy)], [(cs, ncz)]],
             [xmin+(xmin+xmax)/2., ymin+(ymin+ymax)/2., zmin+(zmin+zmax)/2.]
-            )
+        )
 
         # Construct interpolation matrices
         Px = self.meshs.getInterpolationMat(meshs_plt.gridEx, locType='Ex')
@@ -651,20 +671,26 @@ class PrimSecCasingExample(object):
         # for regions outside of the anomalous block, the source current
         # density is identically zero. For plotting, we do not want to
         # interpolate into this region, so we build up masked arrays.
-        maskme_ex = ((self.meshs.gridEx[:, 0] <= self.block_x[0]) |
-                     (self.meshs.gridEx[:, 0] >= self.block_x[1]) |
-                     (self.meshs.gridEx[:, 1] <= self.block_y[0]) |
-                     (self.meshs.gridEx[:, 1] >= self.block_y[1]))
+        maskme_ex = (
+            (self.meshs.gridEx[:, 0] <= self.block_x[0]) |
+            (self.meshs.gridEx[:, 0] >= self.block_x[1]) |
+            (self.meshs.gridEx[:, 1] <= self.block_y[0]) |
+            (self.meshs.gridEx[:, 1] >= self.block_y[1])
+        )
 
-        maskme_ey = ((self.meshs.gridEy[:, 0] <= self.block_x[0]) |
-                     (self.meshs.gridEy[:, 0] >= self.block_x[1]) |
-                     (self.meshs.gridEy[:, 1] <= self.block_y[0]) |
-                     (self.meshs.gridEy[:, 1] >= self.block_y[1]))
+        maskme_ey = (
+            (self.meshs.gridEy[:, 0] <= self.block_x[0]) |
+            (self.meshs.gridEy[:, 0] >= self.block_x[1]) |
+            (self.meshs.gridEy[:, 1] <= self.block_y[0]) |
+            (self.meshs.gridEy[:, 1] >= self.block_y[1])
+        )
 
-        maskme_ez = ((self.meshs.gridEz[:, 0] <= self.block_x[0]) |
-                     (self.meshs.gridEz[:, 0] >= self.block_x[1]) |
-                     (self.meshs.gridEz[:, 1] <= self.block_y[0]) |
-                     (self.meshs.gridEz[:, 1] >= self.block_y[1]))
+        maskme_ez = (
+            (self.meshs.gridEz[:, 0] <= self.block_x[0]) |
+            (self.meshs.gridEz[:, 0] >= self.block_x[1]) |
+            (self.meshs.gridEz[:, 1] <= self.block_y[0]) |
+            (self.meshs.gridEz[:, 1] >= self.block_y[1])
+        )
 
         maskme_e = np.hstack([maskme_ex, maskme_ey, maskme_ez])
 
@@ -680,21 +706,26 @@ class PrimSecCasingExample(object):
         s_e_abs_cc = s_e_stream_cc.reshape(meshs_plt.nC, 3, order='F')
         s_e_abs_cc = np.sqrt((s_e_abs_cc**2.).sum(axis=1))
         s_e_abs_cc[np.isnan(s_e_abs_cc)] = 0.
-        s_e_stream_cc = np.ma.masked_where(np.isnan(s_e_stream_cc),
-                                           s_e_stream_cc)
+        s_e_stream_cc = np.ma.masked_where(
+            np.isnan(s_e_stream_cc), s_e_stream_cc
+        )
 
         # plot
         fig, ax = plt.subplots(1, 1, figsize=(7.5, 6))
 
-        # f = meshs_plt.plotSlice(np.ma.masked_where(maskme_e, s_e_plt.real),
-        #                         normal='Z', vType='CCv', view='abs',
-        #                         pcolorOpts={'cmap':plt.get_cmap('viridis')}, ax=ax
+        # f = meshs_plt.plotSlice(
+        #     np.ma.masked_where(maskme_e, s_e_plt.real),
+        #     normal='Z',
+        #     vType='CCv',
+        #     view='abs',
+        #     pcolorOpts={'cmap':plt.get_cmap('viridis')}, ax=ax
+        # )
 
         f = ax.pcolormesh(
-            meshs_plt.vectorCCx, meshs_plt.vectorCCy,
-            (s_e_abs_cc).reshape(meshs_plt.vnC[:2], order='F').T,
-            cmap=plt.get_cmap('viridis')
-                      )
+                meshs_plt.vectorCCx, meshs_plt.vectorCCy,
+                (s_e_abs_cc).reshape(meshs_plt.vnC[:2], order='F').T,
+                cmap=plt.get_cmap('viridis')
+        )
 
         if saveFig is True:
             ax.streamplot(
@@ -703,14 +734,16 @@ class PrimSecCasingExample(object):
                 s_e_stream_cc[meshs_plt.nC:meshs_plt.nC*2].reshape(
                     meshs_plt.vnC[:2]),
                 density=1.5, color='k', arrowsize=8
-                         )
+            )
         elif saveFig is False:
             ax.streamplot(
                 meshs_plt.vectorCCx, meshs_plt.vectorCCy,
                 s_e_stream_cc[:meshs_plt.nC].reshape(meshs_plt.vnC[:2]),
                 s_e_stream_cc[meshs_plt.nC:meshs_plt.nC*2].reshape(
-                    meshs_plt.vnC[:2]),
-                color='k', density=1.5)
+                    meshs_plt.vnC[:2]
+                ),
+                color='k', density=1.5
+            )
 
         ax.set_xlabel('x (m)', fontsize=fontsize)
         ax.set_ylabel('y (m)', fontsize=fontsize)
@@ -749,7 +782,7 @@ class PrimSecCasingExample(object):
             f = ax.contourf(
                 self.rx_x, self.rx_y, plotme, num,
                 cmap=plt.get_cmap('viridis'), vmin=clim[0], vmax=clim[1]
-                           )
+            )
             ax.axis('equal', adjustable='box')
             ax.set_xlim(xlim)
             ax.set_ylim(ylim)
@@ -769,13 +802,13 @@ class PrimSecCasingExample(object):
                     np.r_[
                         self.block_x[0], self.block_x[0], self.block_x[1],
                         self.block_x[1], self.block_x[0]
-                         ],
+                    ],
                     np.r_[
                         self.block_y[0], self.block_y[1], self.block_y[1],
                         self.block_y[0], self.block_y[0]
-                         ],
+                    ],
                     color='w', linestyle='-'
-                       )
+                )
             return ax
 
         ncontours = 50
@@ -786,30 +819,37 @@ class PrimSecCasingExample(object):
         plotx0 = (data_block[:rx0.nD]).reshape(nx, ny, order='F')
         ploty0 = (data_block[rx0.nD:]).reshape(nx, ny, order='F')
 
-        plotx1 = (data_block[:rx0.nD] - data_back[:rx0.nD]).reshape(
-                    nx, ny, order='F')
-        ploty1 = (data_block[rx0.nD:] - data_back[rx0.nD:]).reshape(
-                    nx, ny, order='F')
+        plotx1 = (
+            data_block[:rx0.nD] - data_back[:rx0.nD]
+        ).reshape(nx, ny, order='F')
+        ploty1 = (
+            data_block[rx0.nD:] - data_back[rx0.nD:]
+        ).reshape(nx, ny, order='F')
 
         # Plotting
-        ax[0] = plotDataFun(ax[0], plotx0, num=ncontours,
-                            title='(a) Total E$_x$')
-        ax[1] = plotDataFun(ax[1], plotx1, num=ncontours,
-                            title='(c) Secondary E$_x$')
-        ax[2] = plotDataFun(ax[2], ploty0, num=ncontours,
-                            title='(b) Total E$_y$')
-        ax[3] = plotDataFun(ax[3], ploty1, num=ncontours,
-                            title='(d) Secondary E$_y$')
+        ax[0] = plotDataFun(
+            ax[0], plotx0, num=ncontours, title='(a) Total E$_x$'
+        )
+        ax[1] = plotDataFun(
+            ax[1], plotx1, num=ncontours, title='(c) Secondary E$_x$'
+        )
+        ax[2] = plotDataFun(
+            ax[2], ploty0, num=ncontours, title='(b) Total E$_y$'
+        )
+        ax[3] = plotDataFun(
+            ax[3], ploty1, num=ncontours, title='(d) Secondary E$_y$'
+        )
         plt.tight_layout()
 
         if saveFig is True:
             fig.savefig('casingDpred', dpi=300)
 
     def plotSensitivities(self, J, saveFig=False):
-        def plotJ(ax, Jv, title, plotGrid=False, xlabel='x (m)',
-                  ylabel='y (m)', xlim=None, ylim=None, clim=None,
-                  climCenter=True, plotBlock=False, num=30, norm=None,
-                  cblabel='' ):
+        def plotJ(
+            ax, Jv, title, plotGrid=False, xlabel='x (m)', ylabel='y (m)',
+            xlim=None, ylim=None, clim=None, climCenter=True, plotBlock=False,
+            num=30, norm=None, cblabel=''
+        ):
 
             ax.axis('equal')
             vlim = np.absolute(Jv).max() * np.r_[-1., 1.]
@@ -850,11 +890,16 @@ class PrimSecCasingExample(object):
 
             if plotBlock is True:
                 ax.plot(
-                    np.r_[self.block_x[0], self.block_x[0], self.block_x[1],
-                          self.block_x[1], self.block_x[0]],
-                    np.r_[self.block_y[0], self.block_y[1], self.block_y[1],
-                          self.block_y[0], self.block_y[0]],
-                    color='w', linestyle='-')
+                    np.r_[
+                        self.block_x[0], self.block_x[0], self.block_x[1],
+                        self.block_x[1], self.block_x[0]
+                    ],
+                    np.r_[
+                        self.block_y[0], self.block_y[1], self.block_y[1],
+                        self.block_y[0], self.block_y[0]
+                    ],
+                    color='w', linestyle='-'
+                )
 
             return ax
 
@@ -878,38 +923,49 @@ class PrimSecCasingExample(object):
 
         clabelSigs = 'Sensitivity (V/m / log($\sigma$))'
 
-        fig, ax = plt.subplots(3,2,figsize=(12,15))
+        fig, ax = plt.subplots(3, 2, figsize=(12, 15))
         ax[0][0] = plotJ(
-            ax[0][0], J_back_ex, '(a) Sensitivity of $E_x$ wrt log($\sigma_{back}$)',
+            ax[0][0], J_back_ex,
+            '(a) Sensitivity of $E_x$ wrt log($\sigma_{back}$)',
             plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock,
             num=ncontours, cblabel=clabelSigs
-                        )
+        )
 
         ax[0][1] = plotJ(
-            ax[0][1], J_back_ey, '(b) Sensitivity of $E_y$ wrt log($\sigma_{back}$)',
+            ax[0][1], J_back_ey,
+            '(b) Sensitivity of $E_y$ wrt log($\sigma_{back}$)',
             plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock,
-            num=ncontours, cblabel=clabelSigs)
+            num=ncontours, cblabel=clabelSigs
+        )
 
         ax[1][0] = plotJ(
-            ax[1][0], J_layer_ex, '(c) Sensitivity of $E_x$ wrt log($\sigma_{layer}$)',
+            ax[1][0], J_layer_ex,
+            '(c) Sensitivity of $E_x$ wrt log($\sigma_{layer}$)',
             plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock,
-            num=ncontours, cblabel=clabelSigs)
+            num=ncontours, cblabel=clabelSigs
+        )
 
         ax[1][1] = plotJ(
-            ax[1][1], J_layer_ey, '(d) Sensitivity of $E_y$ wrt log($\sigma_{layer}$)',
+            ax[1][1], J_layer_ey,
+            '(d) Sensitivity of $E_y$ wrt log($\sigma_{layer}$)',
             plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock,
-            num=ncontours, cblabel=clabelSigs)
+            num=ncontours, cblabel=clabelSigs
+        )
 
         climsigblock = np.r_[-6e-8, 6e-8]
         ax[2][0] = plotJ(
-            ax[2][0], J_block_ex, '(e) Sensitivity of $E_x$ wrt log($\sigma_{block}$)',
+            ax[2][0], J_block_ex,
+            '(e) Sensitivity of $E_x$ wrt log($\sigma_{block}$)',
             plotGrid=plotGrid, xlim=xlim,  ylim=ylim, clim=climsigblock,
-            plotBlock=plotBlock, num = ncontours, cblabel=clabelSigs)
+            plotBlock=plotBlock, num = ncontours, cblabel=clabelSigs
+        )
 
         ax[2][1] = plotJ(
-            ax[2][1], J_block_ey, '(f) Sensitivity of $E_y$ wrt log($\sigma_{block}$)',
+            ax[2][1], J_block_ey,
+            '(f) Sensitivity of $E_y$ wrt log($\sigma_{block}$)',
             plotGrid=plotGrid, xlim=xlim,  ylim=ylim, clim=climsigblock,
-            plotBlock=plotBlock, num = ncontours, cblabel=clabelSigs)
+            plotBlock=plotBlock, num = ncontours, cblabel=clabelSigs
+        )
 
         plt.tight_layout()
 
@@ -925,24 +981,38 @@ class PrimSecCasingExample(object):
         xlim = np.r_[-1500., 1500.]
         ylim = np.r_[-1500., 1500.]
 
-        J_z0_ex, J_z0_ey = J[3,:nrx].reshape(nx, ny, order='F'), J[3,nrx:].reshape(nx, ny, order='F')
-        J_hz_ex, J_hz_ey = J[4,:nrx].reshape(nx, ny, order='F'), J[4,nrx:].reshape(nx, ny, order='F')
+        J_z0_ex, J_z0_ey = (
+            J[3, :nrx].reshape(nx, ny, order='F'),
+            J[3, nrx:].reshape(nx, ny, order='F')
+        )
+        J_hz_ex, J_hz_ey = (
+            J[4, :nrx].reshape(nx, ny, order='F'),
+            J[4, nrx:].reshape(nx, ny, order='F')
+        )
 
-        ax[0][0] = plotJ(ax[0][0], J_z0_ex, '(g) Sensitivity of $E_x$ wrt layer $z_0$',
-                      plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock, num=ncontours,
-                        cblabel='Sensitivity (V/m / m)')
+        ax[0][0] = plotJ(
+            ax[0][0], J_z0_ex, '(g) Sensitivity of $E_x$ wrt layer $z_0$',
+            plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock,
+            num=ncontours, cblabel='Sensitivity (V/m / m)'
+        )
 
-        ax[0][1] = plotJ(ax[0][1], J_z0_ey, '(h) Sensitivity of $E_y$ wrt layer $z_0$',
-                      plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock, num=ncontours,
-                        cblabel='Sensitivity (V/m / m)')
+        ax[0][1] = plotJ(
+            ax[0][1], J_z0_ey, '(h) Sensitivity of $E_y$ wrt layer $z_0$',
+            plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock,
+            num=ncontours, cblabel='Sensitivity (V/m / m)'
+        )
 
-        ax[1][0] = plotJ(ax[1][0], J_hz_ex, '(i) Sensitivity of $E_x$ wrt layer $h$',
-                      plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock, num=ncontours,
-                        cblabel='Sensitivity (V/m / m)')
+        ax[1][0] = plotJ(
+            ax[1][0], J_hz_ex, '(i) Sensitivity of $E_x$ wrt layer $h$',
+            plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock,
+            num=ncontours, cblabel='Sensitivity (V/m / m)'
+        )
 
-        ax[1][1] = plotJ(ax[1][1], J_hz_ey, '(j) Sensitivity of $E_y$ wrt layer $h$',
-                      plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock, num=ncontours,
-                        cblabel='Sensitivity (V/m / m)')
+        ax[1][1] = plotJ(
+            ax[1][1], J_hz_ey, '(j) Sensitivity of $E_y$ wrt layer $h$',
+            plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock,
+            num=ncontours, cblabel='Sensitivity (V/m / m)'
+        )
 
         plt.tight_layout()
 
@@ -968,42 +1038,50 @@ class PrimSecCasingExample(object):
         ax[0][0] = plotJ(
             ax[0][0], J_x0_ex, '(k) Sensitivity of $E_x$ wrt block $x_0$',
             plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock,
-            num=ncontours, cblabel='Sensitivity (V/m / m)')
+            num=ncontours, cblabel='Sensitivity (V/m / m)'
+        )
 
         ax[0][1] = plotJ(
             ax[0][1], J_x0_ey, '(l) Sensitivity of $E_y$ wrt block $x_0$',
             plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock,
-            num=ncontours, cblabel='Sensitivity (V/m / m)')
+            num=ncontours, cblabel='Sensitivity (V/m / m)'
+        )
 
         ax[1][0] = plotJ(
             ax[1][0], J_y0_ex, '(m) Sensitivity of $E_x$ wrt block $y_0$',
             plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock,
-            num=ncontours, cblabel='Sensitivity (V/m / m)')
+            num=ncontours, cblabel='Sensitivity (V/m / m)'
+        )
 
         ax[1][1] = plotJ(
             ax[1][1], J_y0_ey, '(n) Sensitivity of $E_y$ wrt block $y_0$',
             plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock,
-            num=ncontours, cblabel='Sensitivity (V/m / m)')
+            num=ncontours, cblabel='Sensitivity (V/m / m)'
+        )
 
         ax[2][0] = plotJ(
             ax[2][0], J_dx_ex, '(o) Sensitivity of $E_x$ wrt block $d_x$',
             plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock,
-            num=ncontours, cblabel='Sensitivity (V/m / m)')
+            num=ncontours, cblabel='Sensitivity (V/m / m)'
+        )
 
         ax[2][1] = plotJ(
             ax[2][1], J_dy_ex, '(p) Sensitivity of $E_y$ wrt block $d_x$',
             plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock,
-            num=ncontours, cblabel='Sensitivity (V/m / m)')
+            num=ncontours, cblabel='Sensitivity (V/m / m)'
+        )
 
         ax[3][0] = plotJ(
             ax[3][0], J_dy_ex, '(q) Sensitivity of $E_x$ wrt block $d_y$',
             plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock,
-            num=ncontours, cblabel='Sensitivity (V/m / m)')
+            num=ncontours, cblabel='Sensitivity (V/m / m)'
+        )
 
         ax[3][1] = plotJ(
             ax[3][1], J_dy_ey, '(r) Sensitivity of $E_y$ wrt block $d_y$',
             plotGrid=plotGrid, xlim=xlim,  ylim=ylim, plotBlock=plotBlock,
-            num=ncontours, cblabel='Sensitivity (V/m / m)')
+            num=ncontours, cblabel='Sensitivity (V/m / m)'
+        )
 
         plt.tight_layout()
 
@@ -1014,9 +1092,10 @@ class PrimSecCasingExample(object):
     # ---------------- Run the example ------------------------------------- #
     # ---------------------------------------------------------------------- #
 
-
-    def run(self, plotIt=False, runTests=False, verbose=True,
-            saveFields=False, saveFig=False):
+    def run(
+        self, plotIt=False, runTests=False, verbose=True, saveFields=False,
+        saveFig=False
+    ):
 
         self.verbose = verbose
 
@@ -1025,7 +1104,7 @@ class PrimSecCasingExample(object):
             self.plotPrimaryProperties()  # plot mu, sigma
 
         # Primary Simulation
-        self.primaryProblem.pair(self.primarySurvey)  # forward simulation of primary
+        self.primaryProblem.pair(self.primarySurvey)
         primfields = self.solvePrimary(self.primaryProblem, m=self.mtrue)
 
         if saveFields is True:
@@ -1040,16 +1119,16 @@ class PrimSecCasingExample(object):
 
         sec_survey = self.setupSecondarySurvey(
             self.primaryProblem, self.primarySurvey, self.primaryMap2meshs
-                                              )
+        )
         sec_problem.pair(sec_survey)
 
         # layered earth only (background)
         background_problem = self.setupSecondaryProblem(
             mapping=self.primaryMap2meshs
-            )
+        )
         background_survey = self.setupSecondarySurvey(
             self.primaryProblem, self.primarySurvey, self.primaryMap2meshs
-                                                     )
+        )
         background_problem.pair(background_survey)
 
         # -------------- Test the sensitivity ----------------------------- #
@@ -1057,17 +1136,20 @@ class PrimSecCasingExample(object):
             x0 = self.mtrue
 
             # Test Block Model
-            fun = lambda x: [sec_survey.dpred(x),
-                             lambda x: sec_problem.Jvec(self.mtrue, x)]
+            def fun(x):
+                return [
+                    sec_survey.dpred(x),
+                    lambda x: sec_problem.Jvec(self.mtrue, x)
+                ]
             Tests.checkDerivative(fun, self.mtrue, num=2, plotIt=False)
 
         # -------------- Calculate Fields --------------------------------- #
         # Background
         t0 = time.time()
         print('solving background ... ')
-        fieldsback, dpredback = self.solveSecondary(background_problem,
-                                                    background_survey,
-                                                    self.mtrue)
+        fieldsback, dpredback = self.solveSecondary(
+            background_problem, background_survey, self.mtrue
+        )
         t1 = time.time()
         print('... done.   dpred_back {}'.format(t1-t0))
 
@@ -1080,7 +1162,9 @@ class PrimSecCasingExample(object):
         # with Block
         t0 = time.time()
         print('solving with block ... ')
-        fields, dpred = self.solveSecondary(sec_problem, sec_survey, self.mtrue)
+        fields, dpred = self.solveSecondary(
+            sec_problem, sec_survey, self.mtrue
+        )
         print('... done.   dpred {}'.format(t1-t0))
         if saveFields:
             np.save('dpred_' + self.NAME, dpred)
@@ -1110,13 +1194,13 @@ class PrimSecCasingExample(object):
             print('   saved {}'.format('J_' + self.NAME))
 
         return {
-                    'primfields': primfields,  # primary fields
-                    'fieldsback': fieldsback,  # fields without block
-                    'dpredback': dpredback,  # predicted data without block
-                    'fields': fields,  # fields with block
-                    'dpred': dpred,  # predicted data with block
-                    'J': J  # sensitivity
-                }
+            'primfields': primfields,  # primary fields
+            'fieldsback': fieldsback,  # fields without block
+            'dpredback': dpredback,  # predicted data without block
+            'fields': fields,  # fields with block
+            'dpred': dpred,  # predicted data with block
+            'J': J  # sensitivity
+        }
 
 
 class PrimSecCasingStoredResults(PrimSecCasingExample):
@@ -1142,15 +1226,18 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
     @property
     def filepath(self):
         return os.path.sep.join(
-                os.path.abspath(os.getenv('HOME')).split(os.path.sep) +
-                ['Downloads'] + ['SimPEGtemp']
-                )
+            os.path.abspath(os.getenv('HOME')).split(os.path.sep) +
+            ['Downloads'] + ['SimPEGtemp']
+        )
 
     def downloadStoredResults(self):
         # download the results from where they are stored on google app engine
 
-        return os.path.abspath(remoteDownload(self.url, [self.cloudfile],
-                               basePath=self.filepath+os.path.sep))
+        return os.path.abspath(
+            remoteDownload(
+                self.url, [self.cloudfile], basePath=self.filepath+os.path.sep
+            )
+        )
 
     def removeStoredResults(self):
         import shutil
@@ -1177,10 +1264,13 @@ class PrimSecCasingStoredResults(PrimSecCasingExample):
 
         # Put the primary fields into a fields object
         self.primaryProblem.curModel = self.mtrue  # set the current model
-        self.primaryProblem.pair(self.primarySurvey)  # forward simulation of primary
+        self.primaryProblem.pair(self.primarySurvey)
         primaryFields = self.primaryProblem.fieldsPair(
-            self.meshp, self.primarySurvey)
-        primaryFields[self.primarySurvey.srcList[0], 'hSolution'] = results['primfields']
+            self.meshp, self.primarySurvey
+        )
+        primaryFields[self.primarySurvey.srcList[0], 'hSolution'] = results[
+            'primfields'
+        ]
 
         results['primfields'] = primaryFields
 
@@ -1198,7 +1288,8 @@ def run(plotIt=False, runTests=False, reRun=False, saveFig=False):
 
         :param bool plotIt: plot results
         :param bool runTests: run sensitivity tests? (slow...)
-        :param bool reRun: recompute results? or just download stored results and plot
+        :param bool reRun: recompute results? or just download stored results
+            and plot
         :param bool saveFig: save the figures?
     """
     # recompute results?
@@ -1214,13 +1305,17 @@ def run(plotIt=False, runTests=False, reRun=False, saveFig=False):
     # plot some things
     if plotIt is True:
         casingExample.plotPrimaryFields(
-            dataDict['primfields'], saveFig=saveFig)
+            dataDict['primfields'], saveFig=saveFig
+        )
         casingExample.plotSecondarySource(
-            dataDict['primfields'], saveFig=saveFig)
+            dataDict['primfields'], saveFig=saveFig
+        )
         casingExample.plotData(
-            dataDict['dpred'], dataDict['dpredback'], saveFig=saveFig)
+            dataDict['dpred'], dataDict['dpredback'], saveFig=saveFig
+        )
         casingExample.plotSensitivities(
-            dataDict['J'], saveFig=saveFig)
+            dataDict['J'], saveFig=saveFig
+        )
         plt.show()
 
     # remove the downloaded results
