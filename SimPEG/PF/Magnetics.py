@@ -15,13 +15,20 @@ from .MagAnalytics import spheremodel, CongruousMagBC
 
 class MagneticIntegral(Problem.LinearProblem):
 
+    _depreciate_main_map = 'kappaMap'
+
+    kappa, kappaMap, kappaDeriv = Props.Invertible(
+        "Magnetic Permeability (H/m)",
+        default=mu_0
+    )
+
     forwardOnly = False  # If false, matrix is store to memory (watch your RAM)
     actInd = None  #: Active cell indices provided
     M = None  #: Magnetization matrix provided, otherwise all induced
     rtype = 'tmi'  #: Receiver type either "tmi" | "xyz"
 
-    def __init__(self, mesh, mapping=None, **kwargs):
-        Problem.BaseProblem.__init__(self, mesh, mapping=mapping, **kwargs)
+    def __init__(self, mesh, **kwargs):
+        Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
     def fwr_ind(self, m):
 
@@ -38,7 +45,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
     def fwr_rem(self):
         # TODO check if we are inverting for M
-        return self.G.dot(self.mapping(m))
+        return self.G.dot(self.kappaMap(m))
 
     def fields(self, m, **kwargs):
         self.model = m
@@ -57,11 +64,11 @@ class MagneticIntegral(Problem.LinearProblem):
         return u
 
     def Jvec(self, m, v, f=None):
-        dmudm = self.mapping.deriv(m)
+        dmudm = self.kappaMap.deriv(m)
         return self.G.dot(dmudm*v)
 
     def Jtvec(self, m, v, f=None):
-        dmudm = self.mapping.deriv(m)
+        dmudm = self.kappaMap.deriv(m)
         return dmudm.T * (self.G.T.dot(v))
 
     @property
@@ -152,9 +159,9 @@ class MagneticIntegral(Problem.LinearProblem):
             D = (450.-float(survey.srcField.param[2])) % 360.
             I = survey.srcField.param[1]
             # Projection matrix
-            Ptmi = mkvc(np.r_[np.cos(np.deg2rad(I))*np.cos(np.deg2rad(D)),
-                        np.cos(np.deg2rad(I))*np.sin(np.deg2rad(D)),
-                        np.sin(np.deg2rad(I))], 2).T
+            Ptmi = Utils.mkvc(np.r_[np.cos(np.deg2rad(I))*np.cos(np.deg2rad(D)),
+                              np.cos(np.deg2rad(I))*np.sin(np.deg2rad(D)),
+                              np.sin(np.deg2rad(I))], 2).T
 
         if self.forwardOnly:
 
@@ -245,8 +252,8 @@ class MagneticVector(MagneticIntegral):
     M = None  #: Magnetization matrix provided, otherwise all induced
     rtype = 'tmi'  #: Receiver type either "tmi" | "xyz"
 
-    def __init__(self, mesh, mapping=None, **kwargs):
-        Problem.BaseProblem.__init__(self, mesh, mapping=mapping, **kwargs)
+    def __init__(self, mesh, **kwargs):
+        Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
     def fwr_ind(self, m):
 
@@ -281,8 +288,8 @@ class MagneticAmplitude(MagneticIntegral):
     M = None  #: Magnetization matrix provided, otherwise all induced
     rtype = 'xyz'  #: Receivers must be "xyz"
 
-    def __init__(self, mesh, mapping=None, **kwargs):
-        Problem.BaseProblem.__init__(self, mesh, mapping=mapping, **kwargs)
+    def __init__(self, mesh, **kwargs):
+        Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
     def fwr_ind(self, m):
 
@@ -297,7 +304,7 @@ class MagneticAmplitude(MagneticIntegral):
 
         else:
             if m is None:
-                m = self.mapping*self.curModel
+                m = self.kappaMap*self.model
 
             Bxyz = self.G.dot(m)
 
@@ -315,18 +322,18 @@ class MagneticAmplitude(MagneticIntegral):
 
     def fields(self, m, **kwargs):
 
-        self.curModel = m
+        self.model = m
 
         ampB = self.fwr_ind(m)
 
         return ampB
 
     def Jvec(self, m, v, f=None):
-        dmudm = self.mapping.deriv(m)
+        dmudm = self.kappaMap.deriv(m)
         return self.dfdm*(self.G.dot(dmudm*v))
 
     def Jtvec(self, m, v, f=None):
-        dmudm = self.mapping.deriv(m)
+        dmudm = self.kappaMap.deriv(m)
         return dmudm.T * (self.G.T.dot(self.dfdm.T*v))
 
     @property
@@ -347,7 +354,7 @@ class MagneticAmplitude(MagneticIntegral):
             ndata = self.survey.srcField.rxList[0].locs.shape[0]
 
             # Get field data
-            m = self.mapping*self.curModel
+            m = self.kappaMap*self.model
 
             Bxyz = self.G.dot(m)
 

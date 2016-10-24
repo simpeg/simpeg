@@ -337,7 +337,7 @@ class Update_IRLS(InversionDirective):
 
             self.mode = 2
 
-            mmap = self.reg.mapping * self.invProb.curModel
+            mmap = self.reg.mapping * self.invProb.model
 
             # Either use the supplied epsilon, or fix base on distribution of
             # model values
@@ -461,7 +461,7 @@ class Update_lin_PreCond(InversionDirective):
             # Update the pre-conditioner
             diagA = np.sum(self.prob.G**2., axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
 
-            PC = Utils.sdiag((self.prob.mapping.deriv(None).T * diagA)**-1.)
+            PC = Utils.sdiag((self.prob.kappaMap.deriv(None).T * diagA)**-1.)
             self.opt.approxHinv = PC
 
     def endIter(self):
@@ -473,7 +473,7 @@ class Update_lin_PreCond(InversionDirective):
             # Update the pre-conditioner
             diagA = np.sum(self.prob.G**2., axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
 
-            PC = Utils.sdiag((self.prob.mapping.deriv(None).T * diagA)**-1.)
+            PC = Utils.sdiag((self.prob.kappaMap.deriv(None).T * diagA)**-1.)
             self.opt.approxHinv = PC
 
 
@@ -524,8 +524,8 @@ class Amplitude_Inv_Iter(InversionDirective):
         self.reg._W, self.reg._Wsmooth = None, None
 
         if getattr(self.opt, 'approxHinv', None) is None:
-            diagA = JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() #* (self.reg.mapping * np.ones(self.reg.curModel.size))**2.
-            PC = Utils.sdiag((self.prob.mapping.deriv(None).T * diagA)**-1.)
+            diagA = JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+            PC = Utils.sdiag((self.prob.kappaMap.deriv(None).T * diagA)**-1.)
             self.opt.approxHinv = PC
 
     def endIter(self):
@@ -547,8 +547,8 @@ class Amplitude_Inv_Iter(InversionDirective):
             self.prob._dfdm = None
 
             # Update the pre-conditioner
-            diagA = JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() #* (self.reg.mapping * np.ones(self.reg.curModel.size))**2.
-            PC = Utils.sdiag((self.prob.mapping.deriv(None).T * diagA)**-1.)
+            diagA = JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+            PC = Utils.sdiag((self.prob.kappaMap.deriv(None).T * diagA)**-1.)
             self.opt.approxHinv = PC
 
     def getJtJdiag(self):
