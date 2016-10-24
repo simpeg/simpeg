@@ -89,9 +89,15 @@ class BaseProblem(Props.BaseSimPEG):
 
         Use `SimPEG.Problem.model` instead.
         """
-        raise Exception(
-            'Depreciated. Use `SimPEG.Problem.model` instead'
-        )
+        raise AttributeError(
+            'curModel is depreciated. Use `SimPEG.Problem.model` instead'
+            )
+
+    @curModel.setter
+    def curModel(self, value):
+        raise AttributeError(
+            'curModel is depreciated. Use `SimPEG.Problem.model` instead'
+            )
 
     @property
     def survey(self):
