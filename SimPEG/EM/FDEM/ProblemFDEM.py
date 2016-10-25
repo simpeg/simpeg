@@ -20,22 +20,29 @@ class BaseFDEMProblem(BaseEMProblem):
         .. math ::
 
             \mathbf{C} \mathbf{e} + i \omega \mathbf{b} = \mathbf{s_m} \\\\
-            {\mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b} - \mathbf{M_{\sigma}^e} \mathbf{e} = \mathbf{s_e}}
+            {\mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b} -
+            \mathbf{M_{\sigma}^e} \mathbf{e} = \mathbf{s_e}}
 
         if using the E-B formulation (:code:`Problem3D_e`
-        or :code:`Problem3D_b`). Note that in this case, :math:`\mathbf{s_e}` is an integrated quantity.
+        or :code:`Problem3D_b`). Note that in this case,
+        :math:`\mathbf{s_e}` is an integrated quantity.
 
         If we write Maxwell's equations in terms of
         \\\(\\\mathbf{h}\\\) and current density \\\(\\\mathbf{j}\\\)
 
         .. math ::
 
-            \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{j} + i \omega \mathbf{M_{\mu}^e} \mathbf{h} = \mathbf{s_m} \\\\
+            \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{j} +
+            i \omega \mathbf{M_{\mu}^e} \mathbf{h} = \mathbf{s_m} \\\\
             \mathbf{C} \mathbf{h} - \mathbf{j} = \mathbf{s_e}
 
-        if using the H-J formulation (:code:`Problem3D_j` or :code:`Problem3D_h`). Note that here, :math:`\mathbf{s_m}` is an integrated quantity.
+        if using the H-J formulation (:code:`Problem3D_j` or
+        :code:`Problem3D_h`). Note that here, :math:`\mathbf{s_m}` is an
+        integrated quantity.
 
-        The problem performs the elimination so that we are solving the system for \\\(\\\mathbf{e},\\\mathbf{b},\\\mathbf{j} \\\) or \\\(\\\mathbf{h}\\\)
+        The problem performs the elimination so that we are solving the system
+        for \\\(\\\mathbf{e},\\\mathbf{b},\\\mathbf{j} \\\) or
+        \\\(\\\mathbf{h}\\\)
 
     """
 
@@ -71,7 +78,8 @@ class BaseFDEMProblem(BaseEMProblem):
         Sensitivity times a vector.
 
         :param numpy.array m: inversion model (nP,)
-        :param numpy.array v: vector which we take sensitivity product with (nP,)
+        :param numpy.array v: vector which we take sensitivity product with
+            (nP,)
         :param SimPEG.EM.FDEM.FieldsFDEM.FieldsFDEM u: fields object
         :rtype: numpy.array
         :return: Jv (ndata,)
@@ -87,7 +95,8 @@ class BaseFDEMProblem(BaseEMProblem):
 
         for freq in self.survey.freqs:
             A = self.getA(freq)
-            Ainv = self.Solver(A, **self.solverOpts) # create the concept of Ainv (actually a solve)
+            # create the concept of Ainv (actually a solve)
+            Ainv = self.Solver(A, **self.solverOpts)
 
             for src in self.survey.getSrcByFreq(freq):
                 u_src = f[src, self._solutionType]
@@ -96,8 +105,9 @@ class BaseFDEMProblem(BaseEMProblem):
                 du_dm_v = Ainv * (- dA_dm_v + dRHS_dm_v)
 
                 for rx in src.rxList:
-                    Jv.append(rx.evalDeriv(src, self.mesh, f,
-                                           du_dm_v=du_dm_v, v=v))
+                    Jv.append(
+                        rx.evalDeriv(src, self.mesh, f, du_dm_v=du_dm_v, v=v)
+                    )
             Ainv.clean()
         # return Utils.mkvc(Jv)
         return np.hstack(Jv)
@@ -132,13 +142,18 @@ class BaseFDEMProblem(BaseEMProblem):
                 u_src = f[src, self._solutionType]
 
                 for rx in src.rxList:
-                    df_duT, df_dmT = rx.evalDeriv(src, self.mesh, f,
-                                                  v=v[src, rx], adjoint=True)
+                    df_duT, df_dmT = rx.evalDeriv(
+                        src, self.mesh, f, v=v[src, rx], adjoint=True
+                    )
 
                     ATinvdf_duT = ATinv * df_duT
 
-                    dA_dmT = self.getADeriv(freq, u_src, ATinvdf_duT, adjoint=True)
-                    dRHS_dmT = self.getRHSDeriv(freq, src, ATinvdf_duT, adjoint=True)
+                    dA_dmT = self.getADeriv(
+                        freq, u_src, ATinvdf_duT, adjoint=True
+                    )
+                    dRHS_dmT = self.getRHSDeriv(
+                        freq, src, ATinvdf_duT, adjoint=True
+                    )
                     du_dmT = -dA_dmT + dRHS_dmT
 
                     df_dmT = df_dmT + du_dmT
@@ -157,7 +172,8 @@ class BaseFDEMProblem(BaseEMProblem):
 
     def getSourceTerm(self, freq):
         """
-        Evaluates the sources for a given frequency and puts them in matrix form
+        Evaluates the sources for a given frequency and puts them in matrix
+        form
 
         :param float freq: Frequency
         :rtype: tuple
@@ -190,14 +206,19 @@ class Problem3D_e(BaseFDEMProblem):
 
         .. math ::
 
-            \mathbf{b} = \\frac{1}{i \omega}\\left(-\mathbf{C} \mathbf{e} + \mathbf{s_m}\\right)
+            \mathbf{b} = \\frac{1}{i \omega}\\left(-\mathbf{C} \mathbf{e} +
+            \mathbf{s_m}\\right)
 
 
-    we can write Maxwell's equations as a second order system in \\\(\\\mathbf{e}\\\) only:
+    we can write Maxwell's equations as a second order system in
+    \\\(\\\mathbf{e}\\\) only:
 
     .. math ::
 
-        \\left(\mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{C}+ i \omega \mathbf{M^e_{\sigma}} \\right)\mathbf{e} = \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f}\mathbf{s_m} -i\omega\mathbf{M^e}\mathbf{s_e}
+        \\left(\mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{C} +
+        i \omega \mathbf{M^e_{\sigma}} \\right)\mathbf{e} =
+        \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f}\mathbf{s_m}
+        - i\omega\mathbf{M^e}\mathbf{s_e}
 
     which we solve for :math:`\mathbf{e}`.
 
@@ -227,7 +248,8 @@ class Problem3D_e(BaseFDEMProblem):
         System matrix
 
         .. math ::
-            \mathbf{A} = \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{C} + i \omega \mathbf{M^e_{\sigma}}
+            \mathbf{A} = \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{C}
+            + i \omega \mathbf{M^e_{\sigma}}
 
         :param float freq: Frequency
         :rtype: scipy.sparse.csr_matrix
@@ -242,17 +264,21 @@ class Problem3D_e(BaseFDEMProblem):
 
     def getADeriv_sigma(self, freq, u, v, adjoint=False):
         """
-        Product of the derivative of our system matrix with respect to the model and a vector
+        Product of the derivative of our system matrix with respect to the
+        model and a vector
 
         .. math ::
-            \\frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}} = i \omega \\frac{d \mathbf{M^e_{\sigma}}\mathbf{v} }{d\mathbf{m}}
+            \\frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}} =
+            i \omega \\frac{d \mathbf{M^e_{\sigma}}\mathbf{v} }{d\mathbf{m}}
 
         :param float freq: frequency
         :param numpy.ndarray u: solution vector (nE,)
-        :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for adjoint
+        :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for
+            adjoint
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
-        :return: derivative of the system matrix times a vector (nP,) or adjoint (nD,)
+        :return: derivative of the system matrix times a vector (nP,) or
+            adjoint (nD,)
         """
 
         dMe_dsig = self.MeSigmaDeriv(u)
@@ -275,7 +301,9 @@ class Problem3D_e(BaseFDEMProblem):
         Right hand side for the system
 
         .. math ::
-            \mathbf{RHS} = \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f}\mathbf{s_m} -i\omega\mathbf{M_e}\mathbf{s_e}
+            \mathbf{RHS} = \mathbf{C}^{\\top}
+            \mathbf{M_{\mu^{-1}}^f}\mathbf{s_m} -
+            i\omega\mathbf{M_e}\mathbf{s_e}
 
         :param float freq: Frequency
         :rtype: numpy.ndarray
@@ -317,13 +345,16 @@ class Problem3D_b(BaseFDEMProblem):
 
     .. math ::
 
-         \mathbf{e} = \mathbf{M^e_{\sigma}}^{-1} \\left(\mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b} - \mathbf{s_e}\\right)
+         \mathbf{e} = \mathbf{M^e_{\sigma}}^{-1} \\left(\mathbf{C}^{\\top}
+         \mathbf{M_{\mu^{-1}}^f} \mathbf{b} - \mathbf{s_e}\\right)
 
     and solve for :math:`\mathbf{b}` using:
 
     .. math ::
 
-        \\left(\mathbf{C} \mathbf{M^e_{\sigma}}^{-1} \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f}  + i \omega \\right)\mathbf{b} = \mathbf{s_m} + \mathbf{M^e_{\sigma}}^{-1}\mathbf{M^e}\mathbf{s_e}
+        \\left(\mathbf{C} \mathbf{M^e_{\sigma}}^{-1} \mathbf{C}^{\\top}
+        \mathbf{M_{\mu^{-1}}^f}  + i \omega \\right)\mathbf{b} = \mathbf{s_m} +
+        \mathbf{M^e_{\sigma}}^{-1}\mathbf{M^e}\mathbf{s_e}
 
     .. note ::
         The inverse problem will not work with full anisotropy
@@ -343,7 +374,8 @@ class Problem3D_b(BaseFDEMProblem):
         System matrix
 
         .. math ::
-            \mathbf{A} = \mathbf{C} \mathbf{M^e_{\sigma}}^{-1} \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f}  + i \omega
+            \mathbf{A} = \mathbf{C} \mathbf{M^e_{\sigma}}^{-1}
+            \mathbf{C}^{\\top} \mathbf{M_{\mu^{-1}}^f}  + i \omega
 
         :param float freq: Frequency
         :rtype: scipy.sparse.csr_matrix
@@ -364,17 +396,21 @@ class Problem3D_b(BaseFDEMProblem):
     def getADeriv(self, freq, u, v, adjoint=False):
 
         """
-        Product of the derivative of our system matrix with respect to the model and a vector
+        Product of the derivative of our system matrix with respect to the
+        model and a vector
 
         .. math ::
-            \\frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}} = \mathbf{C} \\frac{\mathbf{M^e_{\sigma}} \mathbf{v}}{d\mathbf{m}}
+            \\frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}} =
+            \mathbf{C} \\frac{\mathbf{M^e_{\sigma}} \mathbf{v}}{d\mathbf{m}}
 
         :param float freq: frequency
         :param numpy.ndarray u: solution vector (nF,)
-        :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for adjoint
+        :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for
+            adjoint
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
-        :return: derivative of the system matrix times a vector (nP,) or adjoint (nD,)
+        :return: derivative of the system matrix times a vector (nP,) or
+            adjoint (nD,)
         """
 
         MfMui = self.MfMui
@@ -398,7 +434,8 @@ class Problem3D_b(BaseFDEMProblem):
         Right hand side for the system
 
         .. math ::
-            \mathbf{RHS} = \mathbf{s_m} + \mathbf{M^e_{\sigma}}^{-1}\mathbf{s_e}
+            \mathbf{RHS} = \mathbf{s_m} +
+            \mathbf{M^e_{\sigma}}^{-1}\mathbf{s_e}
 
         :param float freq: Frequency
         :rtype: numpy.ndarray
@@ -463,14 +500,19 @@ class Problem3D_j(BaseFDEMProblem):
 
     .. math ::
 
-        \mathbf{h} = \\frac{1}{i \omega} \mathbf{M_{\mu}^e}^{-1} \\left(-\mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{j}  + \mathbf{M^e} \mathbf{s_m} \\right)
+        \mathbf{h} = \\frac{1}{i \omega} \mathbf{M_{\mu}^e}^{-1}
+        \\left(-\mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{j} +
+        \mathbf{M^e} \mathbf{s_m} \\right)
 
 
     and solve for \\\(\\\mathbf{j}\\\) using
 
     .. math ::
 
-        \\left(\mathbf{C} \mathbf{M_{\mu}^e}^{-1} \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} + i \omega\\right)\mathbf{j} = \mathbf{C} \mathbf{M_{\mu}^e}^{-1} \mathbf{M^e} \mathbf{s_m} -i\omega\mathbf{s_e}
+        \\left(\mathbf{C} \mathbf{M_{\mu}^e}^{-1} \mathbf{C}^{\\top}
+        \mathbf{M_{\\rho}^f} + i \omega\\right)\mathbf{j} =
+        \mathbf{C} \mathbf{M_{\mu}^e}^{-1} \mathbf{M^e} \mathbf{s_m} -
+        i\omega\mathbf{s_e}
 
     .. note::
         This implementation does not yet work with full anisotropy!!
@@ -490,7 +532,8 @@ class Problem3D_j(BaseFDEMProblem):
         System matrix
 
         .. math ::
-                \\mathbf{A} = \\mathbf{C}  \\mathbf{M^e_{\\mu^{-1}}} \\mathbf{C}^{\\top} \\mathbf{M^f_{\\sigma^{-1}}}  + i\\omega
+                \\mathbf{A} = \\mathbf{C}  \\mathbf{M^e_{\\mu^{-1}}}
+                \\mathbf{C}^{\\top} \\mathbf{M^f_{\\sigma^{-1}}}  + i\\omega
 
         :param float freq: Frequency
         :rtype: scipy.sparse.csr_matrix
@@ -510,20 +553,27 @@ class Problem3D_j(BaseFDEMProblem):
 
     def getADeriv(self, freq, u, v, adjoint=False):
         """
-        Product of the derivative of our system matrix with respect to the model and a vector
+        Product of the derivative of our system matrix with respect to the
+        model and a vector
 
-        In this case, we assume that electrical conductivity, :math:`\sigma` is the physical property of interest (i.e. :math:`\sigma` = model.transform). Then we want
+        In this case, we assume that electrical conductivity, :math:`\sigma`
+        is the physical property of interest (i.e. :math:`\sigma` =
+        model.transform). Then we want
 
         .. math ::
 
-            \\frac{\mathbf{A(\sigma)} \mathbf{v}}{d \mathbf{m}} = \mathbf{C}  \mathbf{M^e_{mu^{-1}}} \mathbf{C^{\\top}} \\frac{d \mathbf{M^f_{\sigma^{-1}}}\mathbf{v} }{d \mathbf{m}}
+            \\frac{\mathbf{A(\sigma)} \mathbf{v}}{d \mathbf{m}} =
+            \mathbf{C} \mathbf{M^e_{mu^{-1}}} \mathbf{C^{\\top}}
+            \\frac{d \mathbf{M^f_{\sigma^{-1}}}\mathbf{v} }{d \mathbf{m}}
 
         :param float freq: frequency
         :param numpy.ndarray u: solution vector (nF,)
-        :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for adjoint
+        :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for
+            adjoint
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
-        :return: derivative of the system matrix times a vector (nP,) or adjoint (nD,)
+        :return: derivative of the system matrix times a vector (nP,) or
+            adjoint (nD,)
         """
 
         MeMuI = self.MeMuI
@@ -546,7 +596,8 @@ class Problem3D_j(BaseFDEMProblem):
 
         .. math ::
 
-            \mathbf{RHS} = \mathbf{C} \mathbf{M_{\mu}^e}^{-1}\mathbf{s_m} -i\omega \mathbf{s_e}
+            \mathbf{RHS} = \mathbf{C} \mathbf{M_{\mu}^e}^{-1}\mathbf{s_m}
+            - i\omega \mathbf{s_e}
 
         :param float freq: Frequency
         :rtype: numpy.ndarray
@@ -584,10 +635,14 @@ class Problem3D_j(BaseFDEMProblem):
             if self._makeASymmetric:
                 MfRho = self.MfRho
                 v = MfRho*v
-            return s_mDeriv(MeMuI.T * (C.T * v)) - 1j * omega(freq) * s_eDeriv(v)
+            return (
+                s_mDeriv(MeMuI.T * (C.T * v)) - 1j * omega(freq) * s_eDeriv(v)
+            )
 
         else:
-            RHSDeriv = C * (MeMuI * s_mDeriv(v)) - 1j * omega(freq) * s_eDeriv(v)
+            RHSDeriv = (
+                C * (MeMuI * s_mDeriv(v)) - 1j * omega(freq) * s_eDeriv(v)
+            )
 
             if self._makeASymmetric:
                 MfRho = self.MfRho
@@ -607,7 +662,9 @@ class Problem3D_h(BaseFDEMProblem):
 
     .. math ::
 
-        \\left(\mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{C} + i \omega \mathbf{M_{\mu}^e}\\right) \mathbf{h} = \mathbf{M^e} \mathbf{s_m} + \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{s_e}
+        \\left(\mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{C} +
+        i \omega \mathbf{M_{\mu}^e}\\right) \mathbf{h} = \mathbf{M^e}
+        \mathbf{s_m} + \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{s_e}
 
     :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: mesh
     """
@@ -624,7 +681,8 @@ class Problem3D_h(BaseFDEMProblem):
         System matrix
 
         .. math::
-            \mathbf{A} = \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{C} + i \omega \mathbf{M_{\mu}^e}
+            \mathbf{A} = \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{C} +
+            i \omega \mathbf{M_{\mu}^e}
 
 
         :param float freq: Frequency
@@ -641,17 +699,22 @@ class Problem3D_h(BaseFDEMProblem):
 
     def getADeriv(self, freq, u, v, adjoint=False):
         """
-        Product of the derivative of our system matrix with respect to the model and a vector
+        Product of the derivative of our system matrix with respect to the
+        model and a vector
 
         .. math::
-            \\frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}} = \mathbf{C}^{\\top}\\frac{d \mathbf{M^f_{\\rho}}\mathbf{v} }{d\mathbf{m}}
+            \\frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}} =
+            \mathbf{C}^{\\top}\\frac{d \mathbf{M^f_{\\rho}}\mathbf{v}}
+            {d\mathbf{m}}
 
         :param float freq: frequency
         :param numpy.ndarray u: solution vector (nE,)
-        :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for adjoint
+        :param numpy.ndarray v: vector to take prodct with (nP,) or (nD,) for
+            adjoint
         :param bool adjoint: adjoint?
         :rtype: numpy.ndarray
-        :return: derivative of the system matrix times a vector (nP,) or adjoint (nD,)
+        :return: derivative of the system matrix times a vector (nP,) or
+            adjoint (nD,)
         """
 
         MeMu = self.MeMu
@@ -668,7 +731,8 @@ class Problem3D_h(BaseFDEMProblem):
 
         .. math ::
 
-            \mathbf{RHS} = \mathbf{M^e} \mathbf{s_m} + \mathbf{C}^{\\top} \mathbf{M_{\\rho}^f} \mathbf{s_e}
+            \mathbf{RHS} = \mathbf{M^e} \mathbf{s_m} + \mathbf{C}^{\\top}
+            \mathbf{M_{\\rho}^f} \mathbf{s_e}
 
         :param float freq: Frequency
         :rtype: numpy.ndarray
