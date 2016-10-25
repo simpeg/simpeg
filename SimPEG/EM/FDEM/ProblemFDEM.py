@@ -1,9 +1,14 @@
-from SimPEG import Problem, Utils, np, sp, Solver as SimpegSolver
-from scipy.constants import mu_0
+from SimPEG import Problem, Utils, Props, Solver as SimpegSolver
 from .SurveyFDEM import Survey as SurveyFDEM
-from .FieldsFDEM import FieldsFDEM, Fields3D_e, Fields3D_b, Fields3D_h, Fields3D_j
+from .FieldsFDEM import (
+    FieldsFDEM, Fields3D_e, Fields3D_b, Fields3D_h, Fields3D_j
+)
 from SimPEG.EM.Base import BaseEMProblem
 from SimPEG.EM.Utils import omega
+
+import numpy as np
+import scipy.sparse as sp
+from scipy.constants import mu_0
 
 
 class BaseFDEMProblem(BaseEMProblem):
@@ -199,6 +204,17 @@ class Problem3D_e(BaseFDEMProblem):
     :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: mesh
     """
 
+    mu, muMap, muDeriv = Props.Invertible(
+        "Magnetic Permeability (H/m)",
+        default=mu_0
+    )
+
+    mui, muiMap, muiDeriv = Props.Invertible(
+        "Inverse Magnetic Permeability (m/H)"
+    )
+
+    Props.Reciprocal(mu, mui)
+
     _solutionType = 'eSolution'
     _formulation  = 'EB'
     fieldsPair    = Fields3D_e
@@ -224,7 +240,7 @@ class Problem3D_e(BaseFDEMProblem):
 
         return C.T*MfMui*C + 1j*omega(freq)*MeSigma
 
-    def getADeriv(self, freq, u, v, adjoint=False):
+    def getADeriv_sigma(self, freq, u, v, adjoint=False):
         """
         Product of the derivative of our system matrix with respect to the model and a vector
 
@@ -239,13 +255,20 @@ class Problem3D_e(BaseFDEMProblem):
         :return: derivative of the system matrix times a vector (nP,) or adjoint (nD,)
         """
 
-        dsig_dm = self.sigmaDeriv
         dMe_dsig = self.MeSigmaDeriv(u)
 
         if adjoint:
             return 1j * omega(freq) * ( dMe_dsig.T * v )
 
         return 1j * omega(freq) * ( dMe_dsig * v )
+
+    def getADeriv_mui(self, freq, u, v, adjoint=False):
+
+        if adjoint:
+            return C.T * (self.MfMuiDeriv(C*u).T * v)
+
+        return C.T * (self.MfMuiDeriv(C*u) * v)
+
 
     def getRHS(self, freq):
         """
