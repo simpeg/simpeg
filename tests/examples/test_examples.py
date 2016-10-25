@@ -1,9 +1,12 @@
 from __future__ import print_function
 import unittest
-import sys
 import os
+import matplotlib
+matplotlib.use('Agg')
+
+import matplotlib.pyplot as plt
 from SimPEG import Examples
-import numpy as np
+
 
 class compareInitFiles(unittest.TestCase):
     def test_compareInitFiles(self):
@@ -24,10 +27,11 @@ class compareInitFiles(unittest.TestCase):
 
         self.assertTrue(didpass, "Examples not up to date, run 'python __init__.py' from SimPEG/Examples to update")
 
+
 def get(test):
     def test_func(self):
-        print('\nTesting {0!s}.run(plotIt=False)\n'.format(test))
-        getattr(Examples, test).run(plotIt=False)
+        print('\nTesting {0!s}.run(plotIt=True)\n'.format(test))
+        getattr(Examples, test).run(plotIt=True)
         self.assertTrue(True)
     return test_func
 attrs = dict()

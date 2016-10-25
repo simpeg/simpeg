@@ -4,7 +4,7 @@ from . import BaseGrav as GRAV
 import re
 
 
-class GravityIntegral(Problem.BaseProblem):
+class GravityIntegral(Problem.LinearProblem):
 
     # surveyPair = Survey.LinearSurvey
     forwardOnly = False  # Is TRUE, forward matrix not stored to memory
@@ -16,8 +16,8 @@ class GravityIntegral(Problem.BaseProblem):
 
     def fwr_op(self):
         # Add forward function
-        # kappa = self.curModel.kappa TODO
-        rho = self.mapping*self.curModel
+        # kappa = self.model.kappa TODO
+        rho = self.mapping*self.model
 
         if self.forwardOnly:
 
@@ -98,7 +98,7 @@ class GravityIntegral(Problem.BaseProblem):
             return self.G.dot(rho)
 
     def fields(self, m):
-        self.curModel = m
+        self.model = m
 
         fields = self.fwr_op()
 

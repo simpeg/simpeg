@@ -299,7 +299,7 @@ class BaseSurvey(object):
 
     @Utils.count
     @Utils.requires('prob')
-    def dpred(self, m, f=None):
+    def dpred(self, m=None, f=None):
         """dpred(m, f=None)
 
             Create the projected data from a model.
@@ -312,7 +312,8 @@ class BaseSurvey(object):
 
             Where P is a projection of the fields onto the data space.
         """
-        if f is None: f = self.prob.fields(m)
+        if f is None:
+            f = self.prob.fields(m)
         return Utils.mkvc(self.eval(f))
 
     @Utils.count
