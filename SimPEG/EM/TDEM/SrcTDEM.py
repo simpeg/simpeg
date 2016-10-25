@@ -295,80 +295,84 @@ class LineCurrent(BaseSrc):
         self.integrate = False
         BaseSrc.__init__(self, rxList, **kwargs)
 
-    def getAdc(self, prob):
-        MeSigma = self.prob.MeSigma
-        Grad = self.prob.mesh.nodalGrad
-        Adc = Grad.T * MeSigma * Grad
-        # Handling Null space of A
-        Adc[0, 0] = Adc[0, 0] + 1.
-        return Adc
-
-    def _Mejs(self, prob):
+    def Mejs(self, prob):
         if getattr(self, '_Mejs', None) is None:
             x0 = prob.mesh.x0
             hx = prob.mesh.hx
             hy = prob.mesh.hy
             hz = prob.mesh.hz
-            px = loc[:, 0]
-            py = loc[:, 1]
-            pz = loc[:, 2]
+            px = self.loc[:, 0]
+            py = self.loc[:, 1]
+            pz = self.loc[:, 2]
             self._Mejs = getSourceTermLineCurrentPolygon(x0, hx, hy, hz,
                                                          px, py, pz)
         return self._Mejs
 
-    def getRHSdc(self, prob):
-        Grad = self.prob.nodalGrad
-        return Grad.T*self.Mejs
+# Deprecate at the moment (Use for non-zero initial condition)
+    # def getAdc(self, prob):
+    #     MeSigma = self.prob.MeSigma
+    #     Grad = self.prob.mesh.nodalGrad
+    #     Adc = Grad.T * MeSigma * Grad
+    #     # Handling Null space of A
+    #     Adc[0, 0] = Adc[0, 0] + 1.
+    #     return Adc
+    # def getRHSdc(self, prob):
+    #     Grad = self.prob.nodalGrad
+    #     return Grad.T*self.Mejs
 
-    def _getInitialFields(self, prob):
-        # TODO: Be careful about what to store, and we delete stuff
-        # Because it is expensive to compute ...
-        # e.g. we only need to update initial field when "m" is changed
 
-        # Solve DCR problem
-        Adc = getAdc(prob)
-        # TODO: Ainvdc may need to be stored in problem class
-        # "We have multiple src"
-        Ainvdc = prob.Solver(Adc, **prob.solverOpts)
-        rhsdc = self.getRHSdc(prob)
-        phidc = Ainvdc*rhsdc
-        Grad = self.prob.nodalGrad
-        edc = -Grad*phidc
-        if prob._fieldType == 'e':
-            return edc
-        # Solve MMR problem
-        elif prob._fieldType == 'b':
-            C = prob.edgeCurl
-            MfMui = prob.MfMui
-            MeSigma = self.prob.MeSigma
-            # Second term on rhs handles null space
-            Ammr = C.T*MfMui*C + 1./mu_0 * prob.Me * Grad * Grad.T
-            rhsmmr = self.MeSigma*edc + self.Mejs
-            # TODO: Ainvmmr may need to be stored in problem class
-            # "We have multiple src"
-            Ainvmmr = prob.Solver(Ammr, **prob.solverOpts)
-            bmmr = Ainvmmr*rhsmmr
-            return bmmr
-        else:
-            raise NotImplementedError("We only have EB formulation!")
+#     def _getInitialFields(self, prob):
+#         # TODO: Be careful about what to store, and we delete stuff
+#         # Because it is expensive to compute ...
+#         # e.g. we only need to update initial field when "m" is changed
+# `
+#         # Solve DCR problem
+#         Adc = getAdc(prob)
+#         # TODO: Ainvdc may need to be stored in problem class
+#         # "We have multiple src"
+#         Ainvdc = prob.Solver(Adc, **prob.solverOpts)
+#         rhsdc = self.getRHSdc(prob)
+#         phidc = Ainvdc*rhsdc
+#         Grad = self.prob.nodalGrad
+#         edc = -Grad*phidc
+#         if prob._fieldType == 'e':
+#             return edc
+#         # Solve MMR problem
+#         elif prob._fieldType == 'b':
+#             C = prob.edgeCurl
+#             MfMui = prob.MfMui
+#             MeSigma = self.prob.MeSigma
+#             # Second term on rhs handles null space
+#             Ammr = C.T*MfMui*C + 1./mu_0 * prob.Me * Grad * Grad.T
+#             rhsmmr = self.MeSigma*edc + self.Mejs
+#             # TODO: Ainvmmr may need to be stored in problem class
+#             # "We have multiple src"
+#             Ainvmmr = prob.Solver(Ammr, **prob.solverOpts)
+#             bmmr = Ainvmmr*rhsmmr
+#             return bmmr
+#         else:
+#             raise NotImplementedError("We only have EB formulation!")
 
     def bInitial(self, prob):
-        if self.waveform.hasInitialFields is False:
-            return Zero()
-        return self._getInitialFields(prob)
+        # if self.waveform.hasInitialFields is False:
+        #     return Zero()
+        # return self._getInitialFields(prob)
+        return Zero()
+
 
     def eInitial(self, prob):
         # when solving for e, it is easier to work with an initial source than
         # initial fields
         # if self.waveform.hasInitialFields is False or prob._fieldType is 'e':
-        if self.waveform.hasInitialFields is False:
-            return Zero()
-        return self._getInitialFields(prob)
+        # if self.waveform.hasInitialFields is False:
+        #     return Zero()
+        # return self._getInitialFields(prob)
+        return Zero()
 
     def eInitialDeriv(self, prob, v=None, adjoint=False):
-        if self.waveform.hasInitialFields is False:
-            return Zero()
-        pass
+        # if self.waveform.hasInitialFields is False:
+        #     return Zero()
+        # pass
         # b = self.bInitial(prob)
         # MeSigmaIDeriv = prob.MeSigmaIDeriv
         # MfMui = prob.MfMui
@@ -381,9 +385,10 @@ class LineCurrent(BaseSrc):
         #     return MeSigmaIDeriv( -s_e + C.T * ( MfMui * b ) ).T * v
 
         # return MeSigmaIDeriv( -s_e + C.T * ( MfMui * b ) ) * v
+        return Zero()
 
     def s_m(self, prob, time):
         return Zero()
 
     def s_e(self, prob, time):
-        return self.Mejs * self.waveform.eval(time)
+        return self.Mejs(prob) * self.waveform.eval(time)

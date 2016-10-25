@@ -69,7 +69,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
             Asubdiag = self.getAsubdiag(tInd)
 
             if self.verbose:
-                print('    Solving...   (tInd = {:i})'.format(tInd+1))
+                print('    Solving...   (tInd = {:d})'.format(tInd+1))
             # taking a step
             sol = Ainv * (rhs - Asubdiag * F[:, (self._fieldType + 'Solution'),
                                              tInd])
