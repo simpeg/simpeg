@@ -2,6 +2,7 @@ from __future__ import print_function
 from . import Utils
 import numpy as np
 import warnings
+from . import Maps
 
 
 class InversionDirective(object):
@@ -454,14 +455,18 @@ class Update_lin_PreCond(InversionDirective):
     Create a Jacobi preconditioner for the linear problem
     """
     onlyOnStart = False
+    mapping = None
 
     def initialize(self):
+
+        if getattr(self, 'mapping', None) is None:
+            self.mapping = Maps.IdentityMap(nP=self.reg.mapping.nP)
 
         if getattr(self.opt, 'approxHinv', None) is None:
             # Update the pre-conditioner
             diagA = np.sum(self.prob.G**2., axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
 
-            PC = Utils.sdiag((self.prob.kappaMap.deriv(None).T * diagA)**-1.)
+            PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)
             self.opt.approxHinv = PC
 
     def endIter(self):
@@ -473,7 +478,7 @@ class Update_lin_PreCond(InversionDirective):
             # Update the pre-conditioner
             diagA = np.sum(self.prob.G**2., axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
 
-            PC = Utils.sdiag((self.prob.kappaMap.deriv(None).T * diagA)**-1.)
+            PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)
             self.opt.approxHinv = PC
 
 

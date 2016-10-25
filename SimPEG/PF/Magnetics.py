@@ -15,11 +15,11 @@ from .MagAnalytics import spheremodel, CongruousMagBC
 
 class MagneticIntegral(Problem.LinearProblem):
 
-    _depreciate_main_map = 'kappaMap'
+    _depreciate_main_map = 'chiMap'
 
-    kappa, kappaMap, kappaDeriv = Props.Invertible(
-        "Magnetic Permeability (H/m)",
-        default=mu_0
+    chi, chiMap, chiDeriv = Props.Invertible(
+        "Magnetic Susceptibility (SI)",
+        default=1.
     )
 
     forwardOnly = False  # If false, matrix is store to memory (watch your RAM)
@@ -45,7 +45,7 @@ class MagneticIntegral(Problem.LinearProblem):
 
     def fwr_rem(self):
         # TODO check if we are inverting for M
-        return self.G.dot(self.kappaMap(m))
+        return self.G.dot(self.chiMap(m))
 
     def fields(self, m, **kwargs):
         self.model = m
@@ -63,13 +63,13 @@ class MagneticIntegral(Problem.LinearProblem):
 
         return u
 
-    def Jvec(self, m, v, f=None):
-        dmudm = self.kappaMap.deriv(m)
-        return self.G.dot(dmudm*v)
+    # def Jvec(self, m, v, f=None):
+    #     dmudm = self.chiMap.deriv(m)
+    #     return self.G.dot(dmudm*v)
 
-    def Jtvec(self, m, v, f=None):
-        dmudm = self.kappaMap.deriv(m)
-        return dmudm.T * (self.G.T.dot(v))
+    # def Jtvec(self, m, v, f=None):
+    #     dmudm = self.chiMap.deriv(m)
+    #     return dmudm.T * (self.G.T.dot(v))
 
     @property
     def G(self):
@@ -304,7 +304,7 @@ class MagneticAmplitude(MagneticIntegral):
 
         else:
             if m is None:
-                m = self.kappaMap*self.model
+                m = self.chiMap*self.model
 
             Bxyz = self.G.dot(m)
 
@@ -329,11 +329,11 @@ class MagneticAmplitude(MagneticIntegral):
         return ampB
 
     def Jvec(self, m, v, f=None):
-        dmudm = self.kappaMap.deriv(m)
+        dmudm = self.chiMap.deriv(m)
         return self.dfdm*(self.G.dot(dmudm*v))
 
     def Jtvec(self, m, v, f=None):
-        dmudm = self.kappaMap.deriv(m)
+        dmudm = self.chiMap.deriv(m)
         return dmudm.T * (self.G.T.dot(self.dfdm.T*v))
 
     @property
@@ -354,7 +354,7 @@ class MagneticAmplitude(MagneticIntegral):
             ndata = self.survey.srcField.rxList[0].locs.shape[0]
 
             # Get field data
-            m = self.kappaMap*self.model
+            m = self.chiMap*self.model
 
             Bxyz = self.G.dot(m)
 
