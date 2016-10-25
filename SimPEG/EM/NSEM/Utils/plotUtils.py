@@ -194,9 +194,17 @@ def _extract_location_data(data, location,
     std_list = []
     floor_list = []
     for src in data.survey.srcList:
-        rx = [rx for rx in src.rxList
-              if rx.orientation == orientation and rx.component == component][0]
-        ind_loc = np.sqrt(np.sum((rx.locs[:,:2] - location) ** 2, axis=1)) < 0.1
+        rx_list = [rx for rx in src.rxList
+              if rx.orientation == orientation and rx.component == component]
+        if len(rx_list) == 0:
+            if return_uncert:
+                return (np.array([]), np.array([]),
+                        np.array([]), np.array([]))
+            return (np.array([]), np.array([]))
+        else:
+            rx = rx_list[0]
+
+        ind_loc = np.sqrt(np.sum((rx.locs[:, :2] - location) ** 2, axis=1)) < 0.1
         if np.any(ind_loc):
             freq_list.append(src.freq)
             data_list.append(data[src, rx][ind_loc])
