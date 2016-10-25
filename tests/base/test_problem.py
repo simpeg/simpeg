@@ -24,6 +24,7 @@ class TestTimeProblem(unittest.TestCase):
     def test_curModelDepreciation(self):
         with self.assertRaises(Exception):
             self.prob.curModel
+        with self.assertRaises(Exception):
             self.prob.curModel = np.random.rand(10)
 
 
