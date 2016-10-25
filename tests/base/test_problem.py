@@ -21,6 +21,12 @@ class TestTimeProblem(unittest.TestCase):
 
         self.assertTrue(np.all(self.prob.times == np.r_[0, trueTS].cumsum()))
 
+    def test_curModelDepreciation(self):
+        with self.assertRaises(Exception):
+            self.prob.curModel
+        with self.assertRaises(Exception):
+            self.prob.curModel = np.random.rand(10)
+
 
 if __name__ == '__main__':
     unittest.main()
