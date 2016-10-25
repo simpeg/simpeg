@@ -361,7 +361,7 @@ class Wires(object):
 
 ###############################################################################
 #                                                                             #
-#                    Mesh Independent Maps                                    #
+#                          Mesh Independent Maps                              #
 #                                                                             #
 ###############################################################################
 
@@ -499,6 +499,7 @@ class LogMap(IdentityMap):
     def inverse(self, m):
         return np.exp(Utils.mkvc(m))
 
+
 class Weighting(IdentityMap):
     """
         Model weight parameters.
@@ -579,7 +580,7 @@ class ComplexMap(IdentityMap):
 
 ###############################################################################
 #                                                                             #
-#            Surjection, Injection and Interpolation Maps                     #
+#                 Surjection, Injection and Interpolation Maps                #
 #                                                                             #
 ###############################################################################
 
@@ -841,7 +842,7 @@ class InjectActiveCells(IdentityMap):
 
 ###############################################################################
 #                                                                             #
-#                         Parametric Maps                                     #
+#                             Parametric Maps                                 #
 #                                                                             #
 ###############################################################################
 
