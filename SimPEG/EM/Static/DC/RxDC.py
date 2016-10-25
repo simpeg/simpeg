@@ -1,6 +1,5 @@
 import SimPEG
 import numpy as np
-from SimPEG.Utils import Zero, closestPoints
 
 
 class BaseRx(SimPEG.Survey.BaseRx):
@@ -11,14 +10,14 @@ class BaseRx(SimPEG.Survey.BaseRx):
     rxType = None
 
     knownRxTypes = {
-                    'phi': ['phi', None],
-                    'ex': ['e', 'x'],
-                    'ey': ['e', 'y'],
-                    'ez': ['e', 'z'],
-                    'jx': ['j', 'x'],
-                    'jy': ['j', 'y'],
-                    'jz': ['j', 'z'],
-                    }
+        'phi': ['phi', None],
+        'ex': ['e', 'x'],
+        'ey': ['e', 'y'],
+        'ez': ['e', 'z'],
+        'jx': ['j', 'x'],
+        'jy': ['j', 'y'],
+        'jz': ['j', 'z'],
+    }
 
     def __init__(self, locs, rxType, **kwargs):
         SimPEG.Survey.BaseRx.__init__(self, locs, rxType, **kwargs)
@@ -84,7 +83,7 @@ class Dipole(BaseRx):
 
 class Dipole_ky(BaseRx):
 
-    def __init__(self, locsM, locsN, rxType = 'phi', **kwargs):
+    def __init__(self, locsM, locsN, rxType='phi', **kwargs):
         assert locsM.shape == locsN.shape, ('locsM and locsN need to be the '
                                             'same size')
         locs = [locsM, locsN]
@@ -134,35 +133,3 @@ class Dipole_ky(BaseRx):
             phi += phi0*dky[iky]/2.*np.cos(kys[iky]*y)
             phi0 = phi1.copy()
         return phi
-
-
-# DC.Rx.Pole(loc)
-class Pole(BaseRx):
-    """
-    Pole receiver
-    """
-
-    def __init__(self, locsM, rxType='phi', **kwargs):
-
-        locs = locsM
-        # We may not need this ...
-        BaseRx.__init__(self, locs, rxType)
-
-    @property
-    def nD(self):
-        """Number of data in the receiver."""
-        return self.locs.shape[0]
-
-
-    def getP(self, mesh, Gloc):
-        if mesh in self._Ps:
-            return self._Ps[mesh]
-
-        P = mesh.getInterpolationMat(self.locs, Gloc)
-        # P1 = mesh.getInterpolationMat(self.locs[1], Gloc)
-        # P = P0 - P1
-
-        if self.storeProjections:
-            self._Ps[mesh] = P
-
-        return P

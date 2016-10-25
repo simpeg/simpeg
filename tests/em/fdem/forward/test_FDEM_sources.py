@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 from SimPEG.EM import FDEM, Analytics, mu_0
 import numpy as np
@@ -25,10 +26,10 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
 
         self.freq = 1.
 
-        self.prob_e = FDEM.Problem3D_e(self.mesh, mapping=mapping)
-        self.prob_b = FDEM.Problem3D_b(self.mesh, mapping=mapping)
-        self.prob_h = FDEM.Problem3D_h(self.mesh, mapping=mapping)
-        self.prob_j = FDEM.Problem3D_j(self.mesh, mapping=mapping)
+        self.prob_e = FDEM.Problem3D_e(self.mesh, sigmaMap=mapping)
+        self.prob_b = FDEM.Problem3D_b(self.mesh, sigmaMap=mapping)
+        self.prob_h = FDEM.Problem3D_h(self.mesh, sigmaMap=mapping)
+        self.prob_j = FDEM.Problem3D_j(self.mesh, sigmaMap=mapping)
 
         loc = np.r_[0., 0., 0.]
         self.loc = Utils.mkvc(self.mesh.gridCC[Utils.closestPoints(self.mesh,
@@ -152,7 +153,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
 
         if plotIt is True:
 
-            print self.mesh.vnF
+            print(self.mesh.vnF)
 
             fig, ax = plt.subplots(1, 2)
             ax[0].semilogy(np.absolute(bPrimary))

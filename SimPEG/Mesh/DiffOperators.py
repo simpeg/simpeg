@@ -1,6 +1,7 @@
+from __future__ import print_function
 import numpy as np
 from scipy import sparse as sp
-from SimPEG.Utils import mkvc, sdiag, speye, kron3, spzeros, ddx, av, avExtrap
+from SimPEG.Utils import sdiag, speye, kron3, spzeros, ddx, av, avExtrap
 
 
 def checkBC(bc):
@@ -245,7 +246,7 @@ class DiffOperators(object):
         Construct laplacian operator (nodes to edges).
         """
         if getattr(self, '_nodalLaplacian', None) is None:
-            print 'Warning: Laplacian has not been tested rigorously.'
+            print('Warning: Laplacian has not been tested rigorously.')
             # The number of cell centers in each direction
             n = self.vnC
             # Compute divergence operator on faces

@@ -1,9 +1,7 @@
 import SimPEG
 from SimPEG.EM.Base import BaseEMSurvey
-from SimPEG import sp, Survey
-from SimPEG.Utils import Zero, Identity
-from RxDC import BaseRx
-from SrcDC import BaseSrc
+from .RxDC import BaseRx
+from .SrcDC import BaseSrc
 
 
 class Survey(BaseEMSurvey):
@@ -42,5 +40,3 @@ class Survey_ky(BaseEMSurvey):
             for rx in src.rxList:
                 data[src, rx] = rx.eval(kys, src, self.mesh, f)
         return data
-
-

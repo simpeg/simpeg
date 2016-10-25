@@ -1,5 +1,6 @@
 import numpy as np, os
 from SimPEG import Utils
+import six
 
 class TensorMeshIO(object):
 
@@ -128,14 +129,13 @@ class TensorMeshIO(object):
 
         # Assign the model('s) to the object
         if models is not None:
-            for item in models.iteritems():
+            for item in six.iteritems(models):
                 # Convert numpy array
                 vtkDoubleArr = numpy_to_vtk(item[1],deep=1)
                 vtkDoubleArr.SetName(item[0])
                 vtkObj.GetCellData().AddArray(vtkDoubleArr)
             # Set the active scalar
             vtkObj.GetCellData().SetActiveScalars(models.keys()[0])
-        # vtkObj.Update()
 
         # Check the extension of the fileName
         ext = os.path.splitext(fileName)[1]
@@ -152,6 +152,50 @@ class TensorMeshIO(object):
         vtrWriteFilter.SetFileName(fileName)
         vtrWriteFilter.Update()
 
+    def _toVTRObj(mesh,models=None):
+        """
+        Makes and saves a VTK rectilinear file (vtr) for a simpeg Tensor mesh and model.
+
+        Input:
+        :param str, path to the output vtk file
+        :param mesh, SimPEG TensorMesh object - mesh to be transfer to VTK
+        :param models, dictionary of numpy.array - Name('s) and array('s). Match number of cells
+
+        """
+        # Import
+        from vtk import vtkRectilinearGrid as rectGrid, VTK_VERSION
+        from vtk.util.numpy_support import numpy_to_vtk
+
+        # Deal with dimensionalities
+        if mesh.dim >= 1:
+            vX = mesh.vectorNx
+            xD = mesh.nNx
+            yD,zD = 1,1
+            vY, vZ = np.array([0,0])
+        if mesh.dim >= 2:
+            vY = mesh.vectorNy
+            yD = mesh.nNy
+        if mesh.dim == 3:
+            vZ = mesh.vectorNz
+            zD = mesh.nNz
+        # Use rectilinear VTK grid.
+        # Assign the spatial information.
+        vtkObj = rectGrid()
+        vtkObj.SetDimensions(xD,yD,zD)
+        vtkObj.SetXCoordinates(numpy_to_vtk(vX,deep=1))
+        vtkObj.SetYCoordinates(numpy_to_vtk(vY,deep=1))
+        vtkObj.SetZCoordinates(numpy_to_vtk(vZ,deep=1))
+
+        # Assign the model('s) to the object
+        if models is not None:
+            for item in models.iteritems():
+                # Convert numpy array
+                vtkDoubleArr = numpy_to_vtk(item[1],deep=1)
+                vtkDoubleArr.SetName(item[0])
+                vtkObj.GetCellData().AddArray(vtkDoubleArr)
+            # Set the active scalar
+            vtkObj.GetCellData().SetActiveScalars(models.keys()[0])
+        return vtkObj
 
     def readModelUBC(mesh, fileName):
         """
@@ -162,7 +206,7 @@ class TensorMeshIO(object):
             :return: model with TensorMesh ordered
         """
         f = open(fileName, 'r')
-        model = np.array(map(float, f.readlines()))
+        model = np.array(list(map(float, f.readlines())))
         f.close()
         model = np.reshape(model, (mesh.nCz, mesh.nCx, mesh.nCy), order = 'F')
         model = model[::-1,:,:]
@@ -254,23 +298,23 @@ class TreeMeshIO(object):
         indArr = np.concatenate((ubcCellPt[ubcReorder,:],cellW[ubcReorder].reshape((-1,1)) ),axis=1)
 
         ## Write the UBC octree mesh file
-        with open(fileName,'w') as mshOut:
-            mshOut.write('{:.0f} {:.0f} {:.0f}\n'.format(nCunderMesh[0],nCunderMesh[1],nCunderMesh[2]))
-            mshOut.write('{:.4f} {:.4f} {:.4f}\n'.format(tswCorn[0],tswCorn[1],tswCorn[2]))
-            mshOut.write('{:.3f} {:.3f} {:.3f}\n'.format(smallCell[0],smallCell[1],smallCell[2]))
-            mshOut.write('{:.0f} \n'.format(nrCells))
-            np.savetxt(mshOut,indArr,fmt='%i')
+        head = ('{:.0f} {:.0f} {:.0f}\n'.format(nCunderMesh[0],nCunderMesh[1],nCunderMesh[2])+
+            '{:.4f} {:.4f} {:.4f}\n'.format(tswCorn[0],tswCorn[1],tswCorn[2])+
+            '{:.3f} {:.3f} {:.3f}\n'.format(smallCell[0],smallCell[1],smallCell[2])+
+            '{:.0f} \n'.format(nrCells))
+        np.savetxt(fileName,indArr,fmt='%i',header=head,comments='')
 
         ## Print the models
         # Assign the model('s) to the object
         if models is not None:
             # indUBCvector = np.argsort(cX0[np.argsort(np.concatenate((cX0[:,0:2],cX0[:,2:3].max() - cX0[:,2:3]),axis=1).view(','.join(3*['float'])),axis=0,order=('f2','f1','f0'))[:,0]].view(','.join(3*['float'])),axis=0,order=('f2','f1','f0'))[:,0]
-            for item in models.iteritems():
+            for item in six.iteritems(models):
                 # Save the data
                 np.savetxt(item[0],item[1][ubcReorder],fmt='%3.5e')
 
     @classmethod
     def readUBC(TreeMesh, meshFile):
+        from io import StringIO
         """
             Read UBC 3D OcTree mesh and/or modelFiles
 
@@ -297,7 +341,7 @@ class TreeMeshIO(object):
         nrCells = np.array(fileLines[3].
             split('!')[0].split(), dtype=float)
         # Read the index array
-        indArr = np.genfromtxt(fileLines[4::],dtype=np.int)
+        indArr = np.genfromtxt((line.encode('utf8') for line in fileLines[4::]),dtype=np.int)
 
         ## Calculate simpeg parameters
         h1,h2,h3 = [np.ones(nr)*sz for nr,sz in zip(nCunderMesh,smallCell)]
@@ -389,7 +433,7 @@ class TreeMeshIO(object):
         vtuObj.GetCellData().AddArray(refineLevelArr)
         # Assign the model('s) to the object
         if models is not None:
-            for item in models.iteritems():
+            for item in six.iteritems(models):
                 # Convert numpy array
                 vtkDoubleArr = numpy_to_vtk(item[1],deep=1)
                 vtkDoubleArr.SetName(item[0])

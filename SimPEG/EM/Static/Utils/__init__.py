@@ -1,2 +1,2 @@
-from StaticUtils import *
-from PlotUtils import *
+from .StaticUtils import *
+from .PlotUtils import *

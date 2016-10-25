@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 import numpy as np
 import scipy.sparse as sp
@@ -8,6 +9,7 @@ from SimPEG.Utils import (sdiag, sub2ind, ndgrid, mkvc, isScalar,
                           timeIt, Counter)
 from SimPEG import Mesh
 from SimPEG.Tests import checkDerivative
+import sys
 
 TOL = 1e-8
 
@@ -226,7 +228,8 @@ class TestSequenceFunctions(unittest.TestCase):
     def test_isScalar(self):
         self.assertTrue(isScalar(1.))
         self.assertTrue(isScalar(1))
-        self.assertTrue(isScalar(long(1)))
+        if sys.version_info < (3,):
+            self.assertTrue(isScalar(long(1)))
         self.assertTrue(isScalar(np.r_[1.]))
         self.assertTrue(isScalar(np.r_[1]))
 

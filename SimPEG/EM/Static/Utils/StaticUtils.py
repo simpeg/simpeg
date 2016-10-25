@@ -1,3 +1,4 @@
+from __future__ import print_function
 from SimPEG import np, mkvc
 from SimPEG.EM.Static import DC, IP
 
@@ -88,9 +89,8 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', unitType="appc
                 leg = data * 2*np.pi / ( 1/MA - 1/MB + 1/NB - 1/NA )
                 LEG.append(1./(2*np.pi) *( 1/MA - 1/MB + 1/NB - 1/NA ))
             else:
-                print """unitType must be 'pole-dipole'(pole-dipole) | 'dipole-dipole' (dipole-dipole) """
+                print("""unitType must be 'pole-dipole'(pole-dipole) | 'dipole-dipole' (dipole-dipole) """)
                 break
-
 
             if unitType == 'appConductivity':
 
@@ -103,9 +103,8 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', unitType="appc
                 rho = np.hstack([rho,leg])
 
             else:
-                print """unitType must be 'appResistivity' | 'appConductivity' | 'volt' """
+                print("""unitType must be 'appResistivity' | 'appConductivity' | 'volt' """)
                 break
-
 
         midx = np.hstack([midx, ( Cmid + Pmid )/2 ])
         if DCsurvey.mesh.dim==3:
@@ -126,7 +125,7 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', unitType="appc
     grid_rho = np.ma.masked_where(np.isnan(grid_rho), grid_rho)
     ph = plt.pcolormesh(grid_x[:,0],grid_z[0,:],grid_rho.T, clim=(vmin, vmax), vmin=vmin, vmax=vmax)
     plt.contour(grid_rho.T,5, extent = (np.min(grid_x),np.max(grid_x),np.min(grid_z),np.max(grid_z))  ,origin='lower',colors='k')
-    
+
     if colorbar:
         cbar = plt.colorbar(format="$10^{%.1f}$",fraction=0.04,orientation="horizontal")
 
@@ -285,8 +284,9 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
         stn_y = min_y + np.array(range(int(nstn)))*dl_y*a
 
         # Define number of cross lines
-        nlin = int(np.floor(box_w / a))
-        lind = range(-nlin, nlin+1)
+
+        nlin = int(np.floor( box_w / a ))
+        lind = list(range(-nlin,nlin+1))
 
         npoles = int(nstn * len(lind))
 
@@ -347,7 +347,6 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, surveyType, iptype=0):
 
     else:
         fid.write('! ' + surveyType + ' FORMAT\n')
-
     count = 0
 
     for ii in range(DCsurvey.nSrc):
@@ -705,23 +704,23 @@ def readUBC_DC2Dpre(fileName):
 def readUBC_DC3Dobs(fileName):
     """
         Read UBC GIF DCIP 3D observation file and generate arrays for tx-rx location
-    
+
         Input:
         :param fileName, path to the UBC GIF 3D obs file
-    
+
         Output:
         :param rx, tx, d, wd
         :return
-        
+
         Created on Mon December 7th, 2015
-    
+
         @author: dominiquef
-    
+
     """
-       
+
     # Load file
     obsfile = np.genfromtxt(fileName, delimiter=' \n',dtype=np.str,comments='!')
-    
+
     # Pre-allocate
     srcLists = []
     Rx = []
@@ -732,13 +731,13 @@ def readUBC_DC3Dobs(fileName):
     # Countdown for number of obs/tx
     count = 0
     for ii in range(obsfile.shape[0]):
-        
+
         if not obsfile[ii]:
             continue
-        
+
         # First line is transmitter with number of receivers
         if count==0:
-    
+
             temp = (np.fromstring(obsfile[ii], dtype=float,sep=' ').T)
             count = int(temp[-1])
 
@@ -750,12 +749,12 @@ def readUBC_DC3Dobs(fileName):
             else:
                 tx = temp[:-1]
 
-            
+
             continue
 
         rx = []
         temp = np.fromstring(obsfile[ii], dtype=float,sep=' ')
-        
+
         if zflag:
 
             rx.append(temp[:-2])
@@ -771,14 +770,14 @@ def readUBC_DC3Dobs(fileName):
                 d.append(temp[-2])
                 wd.append(temp[-1])
 
-        count = count -1        
-        
+        count = count -1
+
         rx = np.asarray(rx)
-        # Reach the end of transmitter block 
+        # Reach the end of transmitter block
         if count == 0:
             Rx = DC.Rx.Dipole(rx[:,:3],rx[:,3:])
             srcLists.append(DC.Src.Dipole( [Rx], tx[:3],tx[3:]) )
-    
+
     survey = DC.SurveyDC.Survey(srcLists)
     survey.dobs = np.asarray(d)
     survey.std = np.asarray(wd)
