@@ -359,6 +359,12 @@ class Wires(object):
         return self._nP
 
 
+###############################################################################
+#                                                                             #
+#                    Mesh Independent Maps                                    #
+#                                                                             #
+###############################################################################
+
 class ExpMap(IdentityMap):
     """
         Changes the model into the physical property.
@@ -374,8 +380,8 @@ class ExpMap(IdentityMap):
             \exp{m} = \exp{\log{\sigma}} = \sigma
     """
 
-    def __init__(self, mesh, **kwargs):
-        IdentityMap.__init__(self, mesh, **kwargs)
+    def __init__(self, mesh=None, nP=None, **kwargs):
+        super(ExpMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
 
     def _transform(self, m):
         return np.exp(Utils.mkvc(m))
@@ -435,6 +441,9 @@ class ReciprocalMap(IdentityMap):
             \\rho = \\frac{1}{\sigma}
 
     """
+    def __init__(self, mesh=None, nP=None, **kwargs):
+        super(ReciprocalMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
+
     def _transform(self, m):
         return 1.0 / Utils.mkvc(m)
 
@@ -471,8 +480,8 @@ class LogMap(IdentityMap):
 
     """
 
-    def __init__(self, mesh, **kwargs):
-        IdentityMap.__init__(self, mesh, **kwargs)
+    def __init__(self, mesh=None, nP=None, **kwargs):
+        super(LogMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
 
     def _transform(self, m):
         return np.log(Utils.mkvc(m))
@@ -490,6 +499,12 @@ class LogMap(IdentityMap):
     def inverse(self, m):
         return np.exp(Utils.mkvc(m))
 
+
+###############################################################################
+#                                                                             #
+#            Surjection, Injection and Interpolation Maps                     #
+#                                                                             #
+###############################################################################
 
 class SurjectFull(IdentityMap):
     """
@@ -751,29 +766,25 @@ class Weighting(IdentityMap):
         Model weight parameters.
     """
 
-    weights = None  #: Active Cells
-    nC = None  #: Number of cells in the full model
+    def __init__(self, mesh=None, nP=None, weights=None, **kwargs):
 
-    def __init__(self, mesh, weights=None, nC=None):
-        self.mesh = mesh
+        if 'nC' in kwargs:
+            raise AttributeError(
+                '`nC` is depreciated. Use `nP` to set the number of model '
+                'parameters'
+            )
 
-        self.nC = nC or mesh.nC
+        super(Weighting, self).__init__(mesh=mesh, nP=nP, **kwargs)
 
         if weights is None:
-            weights = np.ones(self.nC)
+            weights = np.ones(self.nP)
 
         self.weights = np.array(weights, dtype=float)
-
         self.P = Utils.sdiag(self.weights)
 
     @property
     def shape(self):
-        return (self.nC, self.nP)
-
-    @property
-    def nP(self):
-        """Number of parameters in the model."""
-        return self.nC
+        return (self.nP, self.nP)
 
     def _transform(self, m):
         return self.P*m
@@ -794,8 +805,8 @@ class ComplexMap(IdentityMap):
         default nP is nC in the mesh times 2 [real, imag]
 
     """
-    def __init__(self, mesh, nP=None):
-        IdentityMap.__init__(self, mesh)
+    def __init__(self, mesh=None, nP=None):
+        IdentityMap.__init__(self, mesh=mesh, nP=nP)
         if nP is not None:
             assert nP % 2 == 0, 'nP must be even.'
         self._nP = nP or (self.mesh.nC * 2)
@@ -827,6 +838,12 @@ class ComplexMap(IdentityMap):
 
     # inverse = deriv
 
+
+###############################################################################
+#                                                                             #
+#                         Parametric Maps                                     #
+#                                                                             #
+###############################################################################
 
 class ParametricCircleMap(IdentityMap):
     """ParametricCircleMap
