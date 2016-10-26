@@ -519,22 +519,24 @@ class Weighting(IdentityMap):
             weights = np.ones(self.nP)
 
         self.weights = np.array(weights, dtype=float)
-        self.P = Utils.sdiag(self.weights)
 
     @property
     def shape(self):
         return (self.nP, self.nP)
 
+    @property
+    def P(self):
+        return Utils.sdiag(self.weights)
+
     def _transform(self, m):
-        return self.P*m
+        return self.weights*m
 
     def inverse(self, D):
-        Pinv = Utils.sdiag(self.weights**(-1.))
-        return Pinv*D
+        return self.weights**(-1.) * D
 
     def deriv(self, m, v=None):
         if v is not None:
-            return self.P * v
+            return self.weights * v
         return self.P
 
 
@@ -545,7 +547,7 @@ class ComplexMap(IdentityMap):
 
     """
     def __init__(self, mesh=None, nP=None, **kwargs):
-        super(Weighting, self).__init__(mesh=mesh, nP=nP, **kwargs)
+        super(ComplexMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
         if nP is not None:
             assert nP % 2 == 0, 'nP must be even.'
         self._nP = nP or (self.mesh.nC * 2)
