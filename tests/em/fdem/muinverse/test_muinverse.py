@@ -1,10 +1,11 @@
-from SimPEG import Mesh, Utils, Tests
+from SimPEG import Mesh, Maps, Utils, Tests
 from SimPEG.EM import FDEM
 import numpy as np
 from scipy.constants import mu_0
 
 import unittest
 
+MuMax = 50.
 
 class MuBaseTests(unittest.TestCase):
 
@@ -19,19 +20,17 @@ class MuBaseTests(unittest.TestCase):
 
         self.mesh = Mesh.CylMesh([hx, 1., hz], '0CC')
 
-        self.m0 = np.exp(np.random.rand(self.mesh.nC))
+        self.m0 = MuMax*np.random.rand(self.mesh.nC)
 
         src = FDEM.Src.MagDipole(
             rxList=[], loc=np.r_[0., 0., 0.], freq=self.freq
         )
 
         self.prob = FDEM.Problem3D_e(
-            self.mesh, sigma=self.m0
+            self.mesh, sigma=self.m0, muMap=Maps.ChiMap(self.mesh)
         )
 
     def test_Aderiv(self, prbtype='e'):
-
-        tInd = 2
         if prbtype == 'b':
             nu = mesh.nF
         elif prbtype == 'e':
@@ -51,7 +50,7 @@ class MuBaseTests(unittest.TestCase):
 
         print('\n Testing ADeriv {}'.format(prbtype))
         Tests.checkDerivative(
-            AderivFun, mu_0*np.random.rand(self.mesh.nC), plotIt=False,
+            AderivFun, self.m0, plotIt=False,
             num=3, eps=1e-20
             )
 
