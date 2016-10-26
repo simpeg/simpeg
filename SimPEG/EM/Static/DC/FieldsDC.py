@@ -158,7 +158,7 @@ class Fields_N(FieldsDC):
             .. math::
                 \mathbf{j} = - \mathbf{M}^{e}_{\sigma} \mathbf{G} \phi
         """
-        return self.prob.MeSigma * self._e(phiSolution, srcList)
+        return self.prob.MeI * self.prob.MeSigma * self._e(phiSolution, srcList)
 
     def _e(self, phiSolution, srcList):
         """

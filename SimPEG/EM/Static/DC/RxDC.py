@@ -55,7 +55,7 @@ class Dipole(BaseRx):
     def __init__(self, locsM, locsN, rxType='phi', **kwargs):
         assert locsM.shape == locsN.shape, ('locsM and locsN need to be the '
                                             'same size')
-        locs = [locsM, locsN]
+        locs = [np.atleast_2d(locsM), np.atleast_2d(locsN)]
         # We may not need this ...
         BaseRx.__init__(self, locs, rxType)
 
@@ -86,7 +86,7 @@ class Dipole_ky(BaseRx):
     def __init__(self, locsM, locsN, rxType='phi', **kwargs):
         assert locsM.shape == locsN.shape, ('locsM and locsN need to be the '
                                             'same size')
-        locs = [locsM, locsN]
+        locs = [np.atleast_2d(locsM), np.atleast_2d(locsN)]
         # We may not need this ...
         BaseRx.__init__(self, locs, rxType)
 

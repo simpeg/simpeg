@@ -51,8 +51,7 @@ class BaseIPProblem(BaseEMProblem):
 
         self.model = m
 
-        Jv = self.dataPair(self.survey)  # same size as the data
-
+        Jv = []
         A = self.getA()
 
         for src in self.survey.srcList:
@@ -64,13 +63,16 @@ class BaseIPProblem(BaseEMProblem):
             for rx in src.rxList:
                 df_dmFun = getattr(f, '_{0!s}Deriv'.format(rx.projField), None)
                 df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
-                Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
+                # Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
+                Jv.append(rx.evalDeriv(src, self.mesh, f, df_dm_v))
         # Conductivity (d u / d log sigma)
         if self._formulation is 'EB':
-            return -Utils.mkvc(Jv)
+            # return -Utils.mkvc(Jv)
+            return -np.hstack(Jv)
         # Conductivity (d u / d log rho)
         if self._formulation is 'HJ':
-            return Utils.mkvc(Jv)
+            # return Utils.mkvc(Jv)
+            return np.hstack(Jv)
 
     def Jtvec(self, m, v, f=None):
         if f is None:
