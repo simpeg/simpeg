@@ -144,7 +144,8 @@ class Problem3D_CC(BaseDCProblem):
 
         if(self.bc_type == 'Neumann'):
             Vol = self.mesh.vol
-            print('Perturbing first row of A to remove nullspace for Neumann BC.')
+            if self.verbose:
+                print('Perturbing first row of A to remove nullspace for Neumann BC.')
 
             # Handling Null space of A
             I, J, V = sp.sparse.find(A[0,:])
@@ -208,7 +209,8 @@ class Problem3D_CC(BaseDCProblem):
             temp_zp = np.ones_like(gBFzp[:, 2])
 
             if(self.bc_type == 'Neumann'):
-                print('Setting BC to Neumann.')
+                if self.verbose:
+                    print('Setting BC to Neumann.')
                 alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
                 alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
                 alpha_zm, alpha_zp = temp_zm*0., temp_zp*0.
@@ -222,7 +224,8 @@ class Problem3D_CC(BaseDCProblem):
                 gamma_zm, gamma_zp = temp_zm*0., temp_zp*0.
 
             elif(self.bc_type == 'Dirchlet'):
-                print('Setting BC to Dirchlet.')
+                if self.verbose:
+                    print('Setting BC to Dirchlet.')
                 alpha_xm, alpha_xp = temp_xm, temp_xp
                 alpha_ym, alpha_yp = temp_ym, temp_yp
                 alpha_zm, alpha_zp = temp_zm, temp_zp
