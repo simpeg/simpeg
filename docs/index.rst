@@ -54,6 +54,14 @@ Inversion Components
 
    content/api_core/api_InversionComponents
 
+Maps
+****
+
+.. toctree::
+   :maxdepth: 3
+
+   content/api_core/api_Maps
+
 Utility Codes
 *************
 
