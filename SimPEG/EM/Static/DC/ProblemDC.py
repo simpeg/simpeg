@@ -148,7 +148,7 @@ class Problem3D_CC(BaseDCProblem):
                 print('Perturbing first row of A to remove nullspace for Neumann BC.')
 
             # Handling Null space of A
-            I, J, V = sp.sparse.find(A[0,:])
+            I, J, V = sp.sparse.find(A[0, :])
             for jj in J:
                 A[0,jj] = 0.
 
