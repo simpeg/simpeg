@@ -675,7 +675,6 @@ class Mesh2Mesh(IdentityMap):
         Takes a model on one mesh are translates it to another mesh.
 
         .. plot::
-            :include-source:
 
             from SimPEG.Examples import Maps_Mesh2Mesh
             Maps_Mesh2Mesh.run()
@@ -1392,7 +1391,6 @@ class ParametrizedLayer(IdentityMap):
 
 
         .. plot::
-            :include-source:
 
             from SimPEG.Examples import Maps_ParametrizedLayer
             Maps_ParametrizedLayer.run()
@@ -1400,7 +1398,7 @@ class ParametrizedLayer(IdentityMap):
 
         **Required**
 
-        :param Mesh mesh: SimPEG Mesh, 2D or 3D
+        :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: SimPEG Mesh, 2D or 3D
 
         **Optional**
 
@@ -1922,15 +1920,13 @@ class ParametrizedBlockInLayer(ParametrizedLayer):
 
         .. plot::
 
-            :include-source:
-
             from SimPEG.Examples import Maps_ParametrizedBlockInLayer
             Maps_ParametrizedBlockInLayer.run()
             plt.show()
 
         **Required**
 
-        :param Mesh mesh: SimPEG Mesh, 2D or 3D
+        :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: SimPEG Mesh, 2D or 3D
 
         **Optional**
 
