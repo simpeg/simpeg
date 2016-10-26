@@ -314,7 +314,7 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
                                      (endl[1, :]))
         SrcList.append(srcClass)
     else:
-        print """surveyType must be either 'pole-dipole', 'dipole-dipole' or 'gradient'. """
+        print ("surveyType must be either 'pole-dipole', 'dipole-dipole' or 'gradient'. ")
 
     return SrcList
 
