@@ -20,11 +20,13 @@ The most fundamental form, referred to as the
 
 .. math::
 
-    \frac{\partial \theta(\psi)}{\partial t} - \nabla \cdot k(\psi) \nabla \psi - \frac{\partial k(\psi)}{\partial z} = 0
+    \frac{\partial \theta(\psi)}{\partial t} -
+    \nabla \cdot k(\psi) \nabla \psi -
+    \frac{\partial k(\psi)}{\partial z} = 0
     \quad \psi \in \Omega
 
-where \\(\\theta\\) is water content, and \\(\\psi\\) is pressure head.
-This formulation of Richards equation is called the
+where \\(\\theta\\) is water content, and \\(\\psi\\)
+is pressure head. This formulation of Richards equation is called the
 'mixed'-form because the equation is parameterized in \\(\\psi\\)
 but the time-stepping is in terms of \\(\\theta\\).
 
@@ -33,11 +35,17 @@ equation can be written in the continuous form as:
 
 .. math::
 
-    \frac{\partial \theta}{\partial \psi}\frac{\partial \psi}{\partial t} - \nabla \cdot k(\psi) \nabla \psi - \frac{\partial k(\psi)}{\partial z} = 0 \quad \psi \in \Omega
+    \frac{\partial \theta}{\partial \psi}
+    \frac{\partial \psi}{\partial t} -
+    \nabla \cdot k(\psi) \nabla \psi -
+    \frac{\partial k(\psi)}{\partial z} = 0
+    \quad \psi \in \Omega
 
-However, it can be shown that this does not conserve mass in the discrete formulation.
+However, it can be shown that this does not conserve mass in the
+discrete formulation.
 
-Here we reproduce the results from Celia1990_ demonstrating the head-based formulation and the mixed-formulation.
+Here we reproduce the results from Celia1990_ demonstrating the
+head-based formulation and the mixed-formulation.
 
 .. _Celia1990: http://www.webpages.uidaho.edu/ch/papers/Celia.pdf
 

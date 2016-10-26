@@ -1,15 +1,16 @@
 from __future__ import division, print_function
 import unittest
-from SimPEG import *
+from SimPEG import Mesh, Maps
 from SimPEG import EM
+import numpy as np
 from scipy.constants import mu_0
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 
 try:
-    from pymatsolver import MumpsSolver
-except ImportError, e:
-    MumpsSolver = SolverLU
+    from pymatsolver import PardisoSolver as Solver
+except ImportError:
+    from SimPEG import SolverLU as Solver
 
 
 def halfSpaceProblemAnaDiff(meshType, srctype="MagDipole", sig_half=1e-2,
@@ -34,8 +35,8 @@ def halfSpaceProblemAnaDiff(meshType, srctype="MagDipole", sig_half=1e-2,
     actMap = Maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.nCz)
     mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * actMap
 
-    prb = EM.TDEM.Problem3D_b(mesh, mapping=mapping)
-    prb.Solver = MumpsSolver
+    prb = EM.TDEM.Problem3D_b(mesh, sigmaMap=mapping)
+    prb.Solver = Solver
     prb.timeSteps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 10), (1e-4, 10)]
     out = EM.Utils.VTEMFun(prb.times, 0.00595, 0.006, 100)
     wavefun = interp1d(prb.times, out)
@@ -46,8 +47,10 @@ def halfSpaceProblemAnaDiff(meshType, srctype="MagDipole", sig_half=1e-2,
                     'bz')
 
     if srctype == "MagDipole":
-        src = EM.TDEM.Src.MagDipole([rx], waveform=waveform,
-                                    loc=np.array([0, 0., 0.]))
+        src = EM.TDEM.Src.MagDipole(
+            [rx], waveform=waveform,
+            loc=np.array([0, 0., 0.])
+        )
     elif srctype == "CircularLoop":
         src = EM.TDEM.Src.CircularLoop([rx], waveform=waveform,
                                        loc=np.array([0., 0., 0.]), radius=13.)
@@ -79,7 +82,7 @@ def halfSpaceProblemAnaDiff(meshType, srctype="MagDipole", sig_half=1e-2,
 
     if plotIt is True:
         plt.loglog(rx.times[bz_calc > 0]-t0, bz_calc[bz_calc > 0], 'r',
-                   rx.times[bz_calc<0]-t0, -bz_calc[bz_calc < 0], 'r--')
+                   rx.times[bz_calc < 0]-t0, -bz_calc[bz_calc < 0], 'r--')
         plt.loglog(rx.times-t0, abs(bz_ana), 'b*')
         plt.title('sig_half = {:e}'.format(sig_half))
         plt.show()
@@ -130,5 +133,3 @@ class TDEM_bTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-
-

@@ -5,6 +5,12 @@ from SimPEG import Mesh, Maps, SolverLU, Tests
 from SimPEG import EM
 from scipy.interpolate import interp1d
 
+try:
+    from pymatsolver import PardisoSolver
+    Solver = PardisoSolver
+except ImportError:
+    Solver = SolverLU
+
 plotIt = False
 
 testDeriv = True
@@ -30,9 +36,9 @@ def setUp_TDEM(prbtype='b', rxcomp='bz'):
     rxOffset = 10.
 
     if prbtype == 'b':
-        prb = EM.TDEM.Problem3D_b(mesh, mapping=mapping)
+        prb = EM.TDEM.Problem3D_b(mesh, sigmaMap=mapping)
     elif prbtype == 'e':
-        prb = EM.TDEM.Problem3D_e(mesh, mapping=mapping)
+        prb = EM.TDEM.Problem3D_e(mesh, sigmaMap=mapping)
     prb.timeSteps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 10), (1e-4, 10)]
     out = EM.Utils.VTEMFun(prb.times, 0.00595, 0.006, 100)
     wavefun = interp1d(prb.times, out)
@@ -45,14 +51,10 @@ def setUp_TDEM(prbtype='b', rxcomp='bz'):
 
     survey = EM.TDEM.Survey([src])
 
-    try:
-        from pymatsolver import MumpsSolver
-        prb.Solver = MumpsSolver
-    except ImportError, e:
-        prb.Solver = SolverLU
+    prb.Solver = Solver
 
-    m = np.log(1e-1)*np.ones(prb.mapping.nP)
-    # + 1e-2*np.random.randn(prb.mapping.nP)
+    m = np.log(1e-1)*np.ones(prb.sigmaMap.nP)
+    # + 1e-2*np.random.randn(prb.sigmaMap.nP)
 
     prb.pair(survey)
     mesh = mesh
@@ -74,10 +76,10 @@ class TDEM_DerivTests(unittest.TestCase):
         v = np.random.rand(nu)
 
         def AderivFun(m):
-            prb.curModel = m
+            prb.model = m
             A = prb.getAdiag(tInd)
             Av = A*v
-            prb.curModel = m0
+            prb.model = m0
 
             def ADeriv_dm(dm):
                 return prb.getAdiagDeriv(tInd, v, dm)
@@ -92,7 +94,7 @@ class TDEM_DerivTests(unittest.TestCase):
         tInd = 2
 
         print('\n Testing A_adjoint')
-        m = np.random.rand(prb.mapping.nP)
+        m = np.random.rand(prb.sigmaMap.nP)
         if prbtype == 'b':
             nu = prb.mesh.nF
         elif prbtype == 'e':
@@ -100,7 +102,7 @@ class TDEM_DerivTests(unittest.TestCase):
 
         v = np.random.rand(nu)
         u = np.random.rand(nu)
-        prb.curModel = m0
+        prb.model = m0
 
         tInd = 2  # not actually used
         V1 = v.dot(prb.getAdiagDeriv(tInd, u, m))
@@ -135,7 +137,7 @@ class TDEM_DerivTests(unittest.TestCase):
         prb, m0, mesh = setUp_TDEM()
         f = prb.fields(m0)
 
-        m = np.random.rand(prb.mapping.nP)
+        m = np.random.rand(prb.sigmaMap.nP)
         e = np.random.randn(prb.mesh.nE)
         V1 = e.dot(f._eDeriv_m(1, prb.survey.srcList[0], m))
         V2 = m.dot(f._eDeriv_m(1, prb.survey.srcList[0], e, adjoint=True))
@@ -206,7 +208,7 @@ class TDEM_DerivTests(unittest.TestCase):
             print('\nAdjoint Testing Jvec, Jtvec {}'.format(rxcomp))
 
             prb, m0, mesh = setUp_TDEM(prbtype, rxcomp)
-            m = np.random.rand(prb.mapping.nP)
+            m = np.random.rand(prb.sigmaMap.nP)
             d = np.random.randn(prb.survey.nD)
             V1 = d.dot(prb.Jvec(m0, m))
             V2 = m.dot(prb.Jtvec(m0, d))

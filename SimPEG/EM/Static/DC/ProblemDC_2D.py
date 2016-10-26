@@ -1,11 +1,10 @@
-from SimPEG import Problem, Utils
+from SimPEG import Utils
 from SimPEG.EM.Base import BaseEMProblem
-from SurveyDC import Survey, Survey_ky
-from FieldsDC_2D import Fields_ky, Fields_ky_CC, Fields_ky_N
-from SimPEG.Utils import sdiag
+from .SurveyDC import Survey_ky
+from .FieldsDC_2D import Fields_ky, Fields_ky_CC, Fields_ky_N
 import numpy as np
 from SimPEG.Utils import Zero
-from BoundaryUtils import getxBCyBC_CC
+from .BoundaryUtils import getxBCyBC_CC
 
 
 class BaseDCProblem_2D(BaseEMProblem):
@@ -21,7 +20,8 @@ class BaseDCProblem_2D(BaseEMProblem):
     nT = nky  # Only for using TimeFields
 
     def fields(self, m):
-        self.curModel = m
+        if m is not None:
+            self.model = m
 
         if self.Ainv[0] is not None:
             for i in range(self.nky):
@@ -43,8 +43,9 @@ class BaseDCProblem_2D(BaseEMProblem):
         if f is None:
             f = self.fields(m)
 
-        self.curModel = m
+        self.model = m
 
+        # TODO: This is not a good idea !! should change that as a list
         Jv = self.dataPair(self.survey)  # same size as the data
         Jv0 = self.dataPair(self.survey)
 
@@ -83,7 +84,7 @@ class BaseDCProblem_2D(BaseEMProblem):
         if f is None:
             f = self.fields(m)
 
-        self.curModel = m
+        self.model = m
 
         # Ensure v is a data object.
         if not isinstance(v, self.dataPair):
@@ -187,7 +188,7 @@ class Problem2D_CC(BaseDCProblem_2D):
         vol = self.mesh.vol
         MfRhoI = self.MfRhoI
         # Get resistivity rho
-        rho = self.curModel.rho
+        rho = self.rho
         A = D * MfRhoI * G + Utils.sdiag(ky**2*vol/rho)
         return A
 
@@ -197,12 +198,13 @@ class Problem2D_CC(BaseDCProblem_2D):
         G = self.Grad
         vol = self.mesh.vol
         MfRhoIDeriv = self.MfRhoIDeriv
-        rho = self.curModel.rho
+        rho = self.rho
         if adjoint:
             return((MfRhoIDeriv( G * u).T) * (D.T * v) +
-                   ky**2 * Utils.sdiag(u.flatten()*vol*(-1./rho**2))*v)
+                   ky**2 * self.curModel.rhoDeriv.T*Utils.sdiag(u.flatten()*vol*(-1./rho**2))*v)
+
         return (D * ((MfRhoIDeriv(G * u)) * v) + ky**2*
-                Utils.sdiag(u.flatten()*vol*(-1./rho**2))*v)
+                Utils.sdiag(u.flatten()*vol*(-1./rho**2))*(self.curModel.rhoDeriv*v))
 
     def getRHS(self, ky):
         """
@@ -224,7 +226,7 @@ class Problem2D_CC(BaseDCProblem_2D):
         return Zero()
 
     def setBC(self):
-        if self.mesh.dim==3:
+        if self.mesh.dim == 3:
             fxm, fxp, fym, fyp, fzm, fzp = self.mesh.faceBoundaryInd
             gBFxm = self.mesh.gridFx[fxm, :]
             gBFxp = self.mesh.gridFx[fxp, :]
@@ -235,11 +237,11 @@ class Problem2D_CC(BaseDCProblem_2D):
 
             # Setup Mixed B.C (alpha, beta, gamma)
             temp_xm = np.ones_like(gBFxm[:, 0])
-            temp_xp =  np.ones_like(gBFxp[:, 0])
+            temp_xp = np.ones_like(gBFxp[:, 0])
             temp_ym = np.ones_like(gBFym[:, 1])
-            temp_yp =  np.ones_like(gBFyp[:, 1])
+            temp_yp = np.ones_like(gBFyp[:, 1])
             temp_zm = np.ones_like(gBFzm[:, 2])
-            temp_zp =  np.ones_like(gBFzp[:, 2])
+            temp_zp = np.ones_like(gBFzp[:, 2])
 
             alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
             alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
@@ -269,9 +271,9 @@ class Problem2D_CC(BaseDCProblem_2D):
 
             # Setup Mixed B.C (alpha, beta, gamma)
             temp_xm = np.ones_like(gBFxm[:, 0])
-            temp_xp =  np.ones_like(gBFxp[:, 0])
+            temp_xp = np.ones_like(gBFxp[:, 0])
             temp_ym = np.ones_like(gBFym[:, 1])
-            temp_yp =  np.ones_like(gBFyp[:, 1])
+            temp_yp = np.ones_like(gBFyp[:, 1])
 
             alpha_xm, alpha_xp = temp_xm*0., temp_xp*0.
             alpha_ym, alpha_yp = temp_ym*0., temp_yp*0.
@@ -283,7 +285,7 @@ class Problem2D_CC(BaseDCProblem_2D):
             gamma_ym, gamma_yp = temp_ym*0., temp_yp*0.
 
             alpha = [alpha_xm, alpha_xp, alpha_ym, alpha_yp]
-            beta =  [beta_xm, beta_xp, beta_ym, beta_yp]
+            beta = [beta_xm, beta_xp, beta_ym, beta_yp]
             gamma = [gamma_xm, gamma_xp, gamma_ym, gamma_yp]
 
         x_BC, y_BC = getxBCyBC_CC(self.mesh, alpha, beta, gamma)
@@ -301,7 +303,7 @@ class Problem2D_N(BaseDCProblem_2D):
 
     _solutionType = 'phiSolution'
     _formulation = 'EB'  # CC potentials means J is on faces
-    fieldsPair = Fields_ky_N  ##
+    fieldsPair = Fields_ky_N
 
     def __init__(self, mesh, **kwargs):
         BaseDCProblem_2D.__init__(self, mesh, **kwargs)
@@ -314,7 +316,7 @@ class Problem2D_N(BaseDCProblem_2D):
             formulation
         """
         # TODO: only works isotropic sigma
-        sigma = self.curModel.sigma
+        sigma = self.sigma
         vol = self.mesh.vol
         MnSigma = Utils.sdiag(self.mesh.aveN2CC.T*(Utils.sdiag(vol)*sigma))
 
@@ -324,11 +326,11 @@ class Problem2D_N(BaseDCProblem_2D):
         """
             Derivative of MnSigma with respect to the model
         """
-        sigma = self.curModel.sigma
-        sigmaderiv = self.curModel.sigmaDeriv
+        sigma = self.sigma
+        sigmaderiv = self.sigmaDeriv
         vol = self.mesh.vol
         return (Utils.sdiag(u)*self.mesh.aveN2CC.T*Utils.sdiag(vol) *
-                self.curModel.sigmaDeriv)
+                self.sigmaDeriv)
 
     def getA(self, ky):
         """
@@ -343,7 +345,7 @@ class Problem2D_N(BaseDCProblem_2D):
         MnSigma = self.MnSigma
         Grad = self.mesh.nodalGrad
         # Get conductivity sigma
-        sigma = self.curModel.sigma
+        sigma = self.sigma
         A = Grad.T * MeSigma * Grad + ky**2*MnSigma
 
         # Handling Null space of A
@@ -354,7 +356,7 @@ class Problem2D_N(BaseDCProblem_2D):
 
         MeSigma = self.MeSigma
         Grad = self.mesh.nodalGrad
-        sigma = self.curModel.sigma
+        sigma = self.sigma
         vol = self.mesh.vol
 
         if adjoint:

@@ -1,54 +1,59 @@
-import Utils
-import Survey
-import Problem
+from __future__ import print_function
+from . import Utils
+from . import Props
+from . import DataMisfit
+from . import Regularization
+
+import properties
 import numpy as np
 import scipy.sparse as sp
 import gc
-from Utils.SolverUtils import *
-import DataMisfit
-import Regularization
 
 
-class BaseInvProblem(object):
+class BaseInvProblem(Props.BaseSimPEG):
     """BaseInvProblem(dmisfit, reg, opt)"""
 
-    __metaclass__ = Utils.SimPEGMetaClass
+    #: Trade-off parameter
+    beta = 1.0
 
-    beta    = 1.0    #: Trade-off parameter
+    #: Print debugging information
+    debug = False
 
-    debug   = False  #: Print debugging information
-    counter = None   #: Set this to a SimPEG.Utils.Counter() if you want to count things
+    #: Set this to a SimPEG.Utils.Counter() if you want to count things
+    counter = None
 
-    dmisfit = None   #: DataMisfit
-    reg     = None   #: Regularization
-    opt     = None   #: Optimization program
+    #: DataMisfit
+    dmisfit = None
 
-    deleteTheseOnModelUpdate = [] # List of strings, e.g. ['_MeSigma', '_MeSigmaI']
+    #: Regularization
+    reg = None
 
-    @property
-    def curModel(self):
+    #: Optimization program
+    opt = None
+
+    #: List of strings, e.g. ['_MeSigma', '_MeSigmaI']
+    deleteTheseOnModelUpdate = []
+
+    model = Props.Model("Inversion model.")
+
+    @properties.observer('model')
+    def _on_model_update(self, value):
         """
             Sets the current model, and removes dependent properties
         """
-        return getattr(self, '_curModel', None)
-    @curModel.setter
-    def curModel(self, value):
-        if value is self.curModel:
-            return # it is the same!
-        self._curModel = value
         for prop in self.deleteTheseOnModelUpdate:
             if hasattr(self, prop):
                 delattr(self, prop)
 
     def __init__(self, dmisfit, reg, opt, **kwargs):
-        Utils.setKwargs(self, **kwargs)
+        super(BaseInvProblem, self).__init__(**kwargs)
         assert isinstance(dmisfit, DataMisfit.BaseDataMisfit), 'dmisfit must be a DataMisfit class.'
         assert isinstance(reg, Regularization.BaseRegularization), 'reg must be a Regularization class.'
         self.dmisfit = dmisfit
         self.reg = reg
         self.opt = opt
         self.prob, self.survey = dmisfit.prob, dmisfit.survey
-        #TODO: Remove: (and make iteration printers better!)
+        # TODO: Remove: (and make iteration printers better!)
         self.opt.parent = self
         self.reg.parent = self
         self.dmisfit.parent = self
@@ -59,24 +64,26 @@ class BaseInvProblem(object):
 
             Called when inversion is first starting.
         """
-        if self.debug: print 'Calling InvProblem.startup'
+        if self.debug:
+            print('Calling InvProblem.startup')
 
         if self.reg.mref is None:
-            print 'SimPEG.InvProblem will set Regularization.mref to m0.'
+            print('SimPEG.InvProblem will set Regularization.mref to m0.')
             self.reg.mref = m0
 
         self.phi_d = np.nan
         self.phi_m = np.nan
 
-        self.curModel = m0
+        self.model = m0
 
-        print """SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
-                    ***Done using same Solver and solverOpts as the problem***"""
-        self.opt.bfgsH0 = self.prob.Solver(self.reg.eval2Deriv(self.curModel), **self.prob.solverOpts)
+        print("""SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
+                    ***Done using same Solver and solverOpts as the problem***""")
+        self.opt.bfgsH0 = self.prob.Solver(self.reg.eval2Deriv(self.model), **self.prob.solverOpts)
 
     @property
     def warmstart(self):
         return getattr(self, '_warmstart', [])
+
     @warmstart.setter
     def warmstart(self, value):
         assert type(value) is list, 'warmstart must be a list.'
@@ -92,7 +99,8 @@ class BaseInvProblem(object):
         for mtest, u_ofmtest in self.warmstart:
             if m is mtest:
                 f = u_ofmtest
-                if self.debug: print 'InvProb is Warm Starting!'
+                if self.debug:
+                    print('InvProb is Warm Starting!')
                 break
 
         if f is None:
@@ -101,7 +109,7 @@ class BaseInvProblem(object):
         if deleteWarmstart:
             self.warmstart = []
         if store:
-            self.warmstart += [(m,f)]
+            self.warmstart += [(m, f)]
 
         return f
 
@@ -110,19 +118,20 @@ class BaseInvProblem(object):
         """evalFunction(m, return_g=True, return_H=True)
         """
 
-        self.curModel = m
+        self.model = m
         gc.collect()
 
         # Store fields if doing a line-search
-        f = self.getFields(m, store=(return_g==False and return_H==False))
+        f = self.getFields(m, store=(return_g is False and return_H is False))
 
         phi_d = self.dmisfit.eval(m, f=f)
         phi_m = self.reg.eval(m)
 
-        self.dpred = self.survey.dpred(m, f=f)  # This is a cheap matrix vector calculation.
+        # This is a cheap matrix vector calculation.
+        self.dpred = self.survey.dpred(m, f=f)
 
-        self.phi_d, self.phi_d_last  = phi_d, self.phi_d
-        self.phi_m, self.phi_m_last  = phi_m, self.phi_m
+        self.phi_d, self.phi_d_last = phi_d, self.phi_d
+        self.phi_m, self.phi_m_last = phi_m, self.phi_m
 
         phi = phi_d + self.beta * phi_m
 

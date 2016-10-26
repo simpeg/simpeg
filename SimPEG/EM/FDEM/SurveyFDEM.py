@@ -3,8 +3,8 @@ from SimPEG.EM.Utils import omega
 from SimPEG.EM.Base import BaseEMSurvey
 from scipy.constants import mu_0
 from SimPEG.Utils import Zero, Identity
-import SrcFDEM as Src
-import RxFDEM as Rx
+from . import SrcFDEM as Src
+from . import RxFDEM as Rx
 from SimPEG import sp
 
 class Survey(BaseEMSurvey):

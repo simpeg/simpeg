@@ -1,24 +1,28 @@
+from __future__ import print_function
 import unittest
-from SimPEG import Mesh, Utils, EM, Maps, np, SolverLU
+from SimPEG import Mesh, Utils, EM, np, SolverLU
 import SimPEG.EM.Static.DC as DC
+
 
 class DCProblemAnalyticTests(unittest.TestCase):
 
     def setUp(self):
 
         cs = 12.5
-        hx = [(cs,7, -1.3),(cs,61),(cs,7, 1.3)]
-        hy = [(cs,7, -1.3),(cs,20)]
-        mesh = Mesh.TensorMesh([hx, hy],x0="CN")
+        hx = [(cs, 7, -1.3), (cs, 61), (cs, 7, 1.3)]
+        hy = [(cs, 7, -1.3), (cs, 20)]
+        mesh = Mesh.TensorMesh([hx, hy], x0="CN")
         sighalf = 1e-2
         sigma = np.ones(mesh.nC)*sighalf
         x = np.linspace(-135, 250., 20)
         M = Utils.ndgrid(x-12.5, np.r_[0.])
         N = Utils.ndgrid(x+12.5, np.r_[0.])
         A0loc = np.r_[-150, 0.]
-        A1loc = np.r_[-130, 0.]
+        # A1loc = np.r_[-130, 0.]
         rxloc = [np.c_[M, np.zeros(20)], np.c_[N, np.zeros(20)]]
-        data_anal = EM.Analytics.DCAnalyticHalf(np.r_[A0loc, 0.], rxloc, sighalf, earth_type="halfspace")
+        data_anal = EM.Analytics.DCAnalyticHalf(
+            np.r_[A0loc, 0.], rxloc, sighalf, earth_type="halfspace"
+        )
 
         rx = DC.Rx.Dipole_ky(M, N)
         src0 = DC.Src.Pole([rx], A0loc)
@@ -30,40 +34,45 @@ class DCProblemAnalyticTests(unittest.TestCase):
         self.data_anal = data_anal
 
         try:
-            from pymatsolver import MumpsSolver
-            self.Solver = MumpsSolver
-        except ImportError, e:
+            from pymatsolver import PardisoSolver
+            self.Solver = PardisoSolver
+        except ImportError:
             self.Solver = SolverLU
 
     def test_Problem3D_N(self):
 
-        problem = DC.Problem2D_N(self.mesh)
+        problem = DC.Problem2D_N(self.mesh, sigma=self.sigma)
         problem.Solver = self.Solver
         problem.pair(self.survey)
-        data = self.survey.dpred(self.sigma)
-        err= np.linalg.norm((data-self.data_anal)/self.data_anal)**2 / self.data_anal.size
+        data = self.survey.dpred()
+        err = (
+            np.linalg.norm((data-self.data_anal) / self.data_anal)**2 /
+            self.data_anal.size
+        )
         if err < 0.05:
             passed = True
-            print ">> DC analytic test for Problem3D_N is passed"
+            print(">> DC analytic test for Problem3D_N is passed")
         else:
             passed = False
-            print ">> DC analytic test for Problem3D_N is failed"
+            print(">> DC analytic test for Problem3D_N is failed")
         self.assertTrue(passed)
 
     def test_Problem3D_CC(self):
-        problem = DC.Problem2D_CC(self.mesh)
+        problem = DC.Problem2D_CC(self.mesh, sigma=self.sigma)
         problem.Solver = self.Solver
         problem.pair(self.survey)
-        data = self.survey.dpred(self.sigma)
-        err= np.linalg.norm((data-self.data_anal)/self.data_anal)**2 / self.data_anal.size
+        data = self.survey.dpred()
+        err = (
+            np.linalg.norm((data-self.data_anal)/self.data_anal)**2 /
+            self.data_anal.size
+        )
         if err < 0.05:
             passed = True
-            print ">> DC analytic test for Problem3D_CC is passed"
+            print(">> DC analytic test for Problem3D_CC is passed")
         else:
             passed = False
-            print ">> DC analytic test for Problem3D_CC is failed"
+            print(">> DC analytic test for Problem3D_CC is failed")
         self.assertTrue(passed)
 
 if __name__ == '__main__':
     unittest.main()
-

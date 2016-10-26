@@ -1,4 +1,4 @@
-from matutils import mkvc, ndgrid
+from .matutils import mkvc, ndgrid
 import numpy as np
 
 def surface2ind_topo(mesh, topo, gridLoc='CC'):
@@ -14,8 +14,8 @@ def surface2ind_topo(mesh, topo, gridLoc='CC'):
 
         if gridLoc == 'CC':
             XY = ndgrid(mesh.vectorCCx, mesh.vectorCCy)
-            Zcc = mesh.gridCC[:,2].reshape((np.prod(mesh.vnC[:2]), mesh.nCz), order='F')
-
+            Zcc = mesh.gridCC[:, 2].reshape((np.prod(mesh.vnC[:2]), mesh.nCz), order = 'F')
+            print Zcc.shape
             gridTopo = Ftopo(XY)
             actind = [gridTopo[ixy] <= Zcc[ixy,:] for ixy in range(np.prod(mesh.vnC[0]))]
             actind = np.hstack(actind)
@@ -37,7 +37,7 @@ def surface2ind_topo(mesh, topo, gridLoc='CC'):
 
     elif mesh.dim == 2:
         from scipy.interpolate import interp1d
-        Ftopo = interp1d(topo[:,0], topo[:,1])
+        Ftopo = interp1d(topo[:,0], topo[:,1], fill_value="extrapolate")
 
         if gridLoc == 'CC':
             gridTopo = Ftopo(mesh.gridCC[:,0])

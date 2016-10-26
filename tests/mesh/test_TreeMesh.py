@@ -1,3 +1,4 @@
+from __future__ import print_function
 from SimPEG import Mesh, Tests
 from SimPEG.Mesh.TreeMesh import CellLookUpException
 import numpy as np
@@ -19,7 +20,7 @@ class TestSimpleQuadTree(unittest.TestCase):
         M._refineCell([0,0,1])
         M.number()
         # M.plotGrid(showIt=True)
-        print M
+        print(M)
         assert M.nhFx == 2
         assert M.nFx == 9
 
@@ -211,7 +212,7 @@ class TestOcTree(unittest.TestCase):
         # plt.subplot(212).spy(M.getFaceInnerProduct())
         # plt.show()
 
-        # print M.nC, M.nF, M.getFaceInnerProduct().shape, M.permuteF.shape
+        # print(M.nC, M.nF, M.getFaceInnerProduct().shape, M.permuteF.shape)
 
         assert np.allclose(Mr.getFaceInnerProduct().todense(), (M.permuteF * M.getFaceInnerProduct() * M.permuteF.T).todense())
         assert np.allclose(Mr.getEdgeInnerProduct().todense(), (M.permuteE * M.getEdgeInnerProduct() * M.permuteE.T).todense())

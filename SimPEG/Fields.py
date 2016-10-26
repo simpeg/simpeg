@@ -1,4 +1,5 @@
-import Utils
+from __future__ import print_function
+from . import Utils
 import numpy as np
 import scipy.sparse as sp
 
@@ -6,7 +7,7 @@ class Fields(object):
     """Fancy Field Storage
 
         u[:,'phi'] = phi
-        print u[src0,'phi']
+        print(u[src0,'phi'])
 
     """
 
@@ -164,7 +165,7 @@ class TimeFields(Fields):
     """Fancy Field Storage for time domain problems
 
         u[:,'phi', timeInd] = phi
-        print u[src0,'phi']
+        print(u[src0,'phi'])
 
     """
 
@@ -246,7 +247,7 @@ class TimeFields(Fields):
                 out = func(pointerFields, srcII, timeII)
             else: #loop over the time steps
                 nT = pointerShape[2]
-                out = range(nT)
+                out = list(range(nT))
                 for i, TIND_i in enumerate(timeII):
                     fieldI = pointerFields[:,:,i]
                     if fieldI.shape[0] == fieldI.size:

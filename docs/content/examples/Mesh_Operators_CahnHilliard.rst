@@ -13,9 +13,11 @@ Mesh: Operators: Cahn Hilliard
 ==============================
 
 This example is based on the example in the FiPy_ library.
-Please see their documentation for more information about the Cahn-Hilliard equation.
+Please see their documentation for more information about the
+Cahn-Hilliard equation.
 
-The "Cahn-Hilliard" equation separates a field \\( \\phi \\) into 0 and 1 with smooth transitions.
+The "Cahn-Hilliard" equation separates a field \\( \\phi \\)
+into 0 and 1 with smooth transitions.
 
 .. math::
 
@@ -38,10 +40,12 @@ Here we will need the derivatives of \\( f \\):
     \frac{\partial f}{\partial \phi} = (a^2/2)2\phi(1-\phi)(1-2\phi)
     \frac{\partial^2 f}{\partial \phi^2} = (a^2/2)2[1-6\phi(1-\phi)]
 
-The implementation below uses backwards Euler in time with an exponentially increasing time step.
-The initial \\( \\phi \\) is a normally distributed field with a standard deviation of 0.1 and mean of 0.5.
-The grid is 60x60 and takes a few seconds to solve ~130 times. The results are seen below, and you can see the
-field separating as the time increases.
+The implementation below uses backwards Euler in time with an
+exponentially increasing time step. The initial \\( \\phi \\)
+is a normally distributed field with a standard deviation of 0.1 and
+mean of 0.5. The grid is 60x60 and takes a few seconds to solve ~130
+times. The results are seen below, and you can see the field separating
+as the time increases.
 
 .. _FiPy: http://www.ctcms.nist.gov/fipy/examples/cahnHilliard/generated/examples.cahnHilliard.mesh2DCoupled.html
 

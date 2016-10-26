@@ -1,5 +1,16 @@
-from SimPEG import *
-import SimPEG.PF as PF
+import numpy as np
+import matplotlib.pyplot as plt
+
+from SimPEG import Mesh
+from SimPEG import Utils
+from SimPEG import Maps
+from SimPEG import Regularization
+from SimPEG import DataMisfit
+from SimPEG import Optimization
+from SimPEG import InvProblem
+from SimPEG import Directives
+from SimPEG import Inversion
+from SimPEG import PF
 
 
 def run(plotIt=True):
@@ -30,7 +41,7 @@ def run(plotIt=True):
     zz = -np.exp((xx**2 + yy**2) / 75**2) + mesh.vectorNz[-1]
 
     # We would usually load a topofile
-    topo = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
+    topo = np.c_[Utils.mkvc(xx), Utils.mkvc(yy), Utils.mkvc(zz)]
 
     # Go from topo to actv cells
     actv = Utils.surface2ind_topo(mesh, topo, 'N')
@@ -38,7 +49,7 @@ def run(plotIt=True):
                       dtype=int) - 1
 
     # Create active map to go from reduce space to full
-    actvMap = Maps.ActiveCells(mesh, actv, -100)
+    actvMap = Maps.InjectActiveCells(mesh, actv, -100)
     nC = len(actv)
 
     # Create and array of observation points
@@ -60,13 +71,13 @@ def run(plotIt=True):
     model = np.zeros((mesh.nCx, mesh.nCy, mesh.nCz))
     model[(midx-5):(midx-1), (midy-2):(midy+2), -10:-6] = 0.5
     model[(midx+1):(midx+5), (midy-2):(midy+2), -10:-6] = -0.5
-    model = mkvc(model)
+    model = Utils.mkvc(model)
     model = model[actv]
 
     # Create active map to go from reduce set to full
     actvMap = Maps.InjectActiveCells(mesh, actv, -100)
 
-    # Creat reduced identity map
+    # Create reduced identity map
     idenMap = Maps.IdentityMap(nP=nC)
 
     # Create the forward model operator
@@ -122,7 +133,6 @@ def run(plotIt=True):
     mrec = inv.run(m0)
 
     if plotIt:
-        import matplotlib.pyplot as plt
         # Here is the recovered susceptibility model
         ypanel = midx
         zpanel = -7
@@ -145,7 +155,7 @@ def run(plotIt=True):
         mesh.plotSlice(m_l2, ax=ax, normal='Z', ind=zpanel,
                        grid=True, clim=(model.min(), model.max()))
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-                 ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]), Color='w')
+                 ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]), color='w')
         plt.title('Plan l2-model.')
         plt.gca().set_aspect('equal')
         plt.ylabel('y')
@@ -157,7 +167,7 @@ def run(plotIt=True):
         mesh.plotSlice(m_l2, ax=ax, normal='Y', ind=midx,
                        grid=True, clim=(model.min(), model.max()))
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-                 ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), Color='w')
+                 ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), color='w')
         plt.title('E-W l2-model.')
         plt.gca().set_aspect('equal')
         ax.xaxis.set_visible(False)
@@ -169,7 +179,7 @@ def run(plotIt=True):
         mesh.plotSlice(m_lp, ax=ax, normal='Z', ind=zpanel,
                        grid=True, clim=(model.min(), model.max()))
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-                 ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]), Color='w')
+                 ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]), color='w')
         plt.title('Plan lp-model.')
         plt.gca().set_aspect('equal')
         ax.xaxis.set_visible(False)
@@ -181,7 +191,7 @@ def run(plotIt=True):
         mesh.plotSlice(m_lp, ax=ax, normal='Y', ind=midx,
                        grid=True, clim=(model.min(), model.max()))
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-                 ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), Color='w')
+                 ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), color='w')
         plt.title('E-W lp-model.')
         plt.gca().set_aspect('equal')
         ax.xaxis.set_visible(False)
@@ -193,7 +203,7 @@ def run(plotIt=True):
         mesh.plotSlice(m_true, ax=ax, normal='Z', ind=zpanel,
                        grid=True, clim=(model.min(), model.max()))
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-                 ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]), Color='w')
+                 ([mesh.vectorCCy[ypanel], mesh.vectorCCy[ypanel]]), color='w')
         plt.title('Plan true model.')
         plt.gca().set_aspect('equal')
         plt.xlabel('x')
@@ -205,13 +215,13 @@ def run(plotIt=True):
         mesh.plotSlice(m_true, ax=ax, normal='Y', ind=midx,
                        grid=True, clim=(model.min(), model.max()))
         plt.plot(([mesh.vectorCCx[0], mesh.vectorCCx[-1]]),
-                 ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), Color='w')
+                 ([mesh.vectorCCz[zpanel], mesh.vectorCCz[zpanel]]), color='w')
         plt.title('E-W true model.')
         plt.gca().set_aspect('equal')
         plt.xlabel('x')
         plt.ylabel('z')
         plt.gca().set_aspect('equal', adjustable='box')
-        plt.show()
 
 if __name__ == '__main__':
     run()
+    plt.show()

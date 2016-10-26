@@ -1,8 +1,16 @@
 from __future__ import division, print_function
 import unittest
 import numpy as np
-from SimPEG import Mesh, Maps, SolverLU, Tests, Survey
+from SimPEG import Mesh, Maps, SolverLU, Tests
 from SimPEG import EM
+
+try:
+    from pymatsolver import PardisoSolver
+    Solver = PardisoSolver
+except ImportError:
+    Solver = SolverLU
+
+
 
 plotIt = False
 testDeriv = True
@@ -36,19 +44,15 @@ def setUp_TDEM(self, rxcomp='bz'):
 
         survey = EM.TDEM.Survey([src, src2])
 
-        prb = EM.TDEM.Problem3D_b(mesh, mapping=mapping)
+        prb = EM.TDEM.Problem3D_b(mesh, sigmaMap=mapping)
         # prb.timeSteps = [1e-5]
         prb.timeSteps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
         # prb.timeSteps = [(1e-05, 100)]
 
-        try:
-            from pymatsolver import MumpsSolver
-            prb.Solver = MumpsSolver
-        except ImportError, e:
-            prb.Solver = SolverLU
+        prb.Solver = Solver
 
-        m = (np.log(1e-1)*np.ones(prb.mapping.nP) +
-             1e-2*np.random.randn(prb.mapping.nP))
+        m = (np.log(1e-1)*np.ones(prb.sigmaMap.nP) +
+             1e-2*np.random.randn(prb.sigmaMap.nP))
 
         prb.pair(survey)
 
@@ -84,7 +88,7 @@ class TDEM_bDerivTests(unittest.TestCase):
             print(' \n Testing Adjoint {}'.format(rxcomp))
             mesh, prb, m0 = setUp_TDEM(rxcomp)
 
-            m = np.random.rand(prb.mapping.nP)
+            m = np.random.rand(prb.sigmaMap.nP)
             d = np.random.rand(prb.survey.nD)
 
             V1 = d.dot(prb.Jvec(m0, m))

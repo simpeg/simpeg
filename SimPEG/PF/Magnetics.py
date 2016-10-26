@@ -1,23 +1,28 @@
-from SimPEG import *
-import BaseMag as MAG
+from __future__ import print_function
+
+import numpy as np
+import scipy.sparse as sp
 from scipy.constants import mu_0
-from MagAnalytics import spheremodel, CongruousMagBC
-import re
+
+from SimPEG import Utils
+from SimPEG import Problem
+from SimPEG import Solver
+from SimPEG import Props
+
+from . import BaseMag as MAG
+from .MagAnalytics import spheremodel, CongruousMagBC
 
 
-class MagneticIntegral(Problem.BaseProblem):
+class MagneticIntegral(Problem.LinearProblem):
 
-    forwardOnly = False  # If false, matric is store to memory (watch your RAM)
+    forwardOnly = False  # If false, matrix is store to memory (watch your RAM)
     actInd = None  #: Active cell indices provided
     M = None  #: Magnetization matrix provided, otherwise all induced
     rtype = 'tmi'  #: Receiver type either "tmi" | "xyz"
 
-    def __init__(self, mesh, mapping=None, **kwargs):
-        Problem.BaseProblem.__init__(self, mesh, mapping=mapping, **kwargs)
-
     def fwr_ind(self):
         # Add forward function
-        m = self.mapping*self.curModel
+        m = self.mapping*self.model
 
         if self.forwardOnly:
 
@@ -40,7 +45,7 @@ class MagneticIntegral(Problem.BaseProblem):
                               shape=(self.mesh.nC, nC))
 
             # Create vectors of nodal location
-            # (lower and upper coners for each cell)
+            # (lower and upper corners for each cell)
             xn = self.mesh.vectorNx
             yn = self.mesh.vectorNy
             zn = self.mesh.vectorNz
@@ -48,9 +53,9 @@ class MagneticIntegral(Problem.BaseProblem):
             yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
             yn1, xn1, zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
 
-            Yn = P.T*np.c_[mkvc(yn1), mkvc(yn2)]
-            Xn = P.T*np.c_[mkvc(xn1), mkvc(xn2)]
-            Zn = P.T*np.c_[mkvc(zn1), mkvc(zn2)]
+            Yn = P.T*np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
+            Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
+            Zn = P.T*np.c_[Utils.mkvc(zn1), Utils.mkvc(zn2)]
 
             survey = self.survey
             rxLoc = survey.srcField.rxList[0].locs
@@ -58,7 +63,7 @@ class MagneticIntegral(Problem.BaseProblem):
 
             # Loop through all observations and create forward operator
             # (ndata-by-nC)
-            print "Begin calculation forward calculations... G not stored: "
+            print("Begin calculation forward calculations... G not stored: ")
 
             # If assumes uniform magnetization direction
             if getattr(self, 'M', None) is None:
@@ -73,13 +78,16 @@ class MagneticIntegral(Problem.BaseProblem):
 
             if self.rtype == 'tmi':
 
-                # Convert Bdecination from north to cartesian
+                # Convert B declination from north to Cartesian
                 D = (450.-float(survey.srcField.param[2])) % 360.
                 I = survey.srcField.param[1]
                 # Projection matrix
-                Ptmi = mkvc(np.r_[np.cos(np.deg2rad(I))*np.cos(np.deg2rad(D)),
-                            np.cos(np.deg2rad(I))*np.sin(np.deg2rad(D)),
-                            np.sin(np.deg2rad(I))], 2).T
+                Ptmi = Utils.mkvc(
+                    np.r_[
+                        np.cos(np.deg2rad(I))*np.cos(np.deg2rad(D)),
+                        np.cos(np.deg2rad(I))*np.sin(np.deg2rad(D)),
+                        np.sin(np.deg2rad(I))
+                    ], 2).T
 
                 fwr_d = np.zeros(self.survey.nRx)
 
@@ -104,7 +112,7 @@ class MagneticIntegral(Problem.BaseProblem):
             # Display progress
                 count = progress(ii, count, ndata)
 
-            print "Done 100% ...forward operator completed!!\n"
+            print("Done 100% ...forward operator completed!!\n")
 
             return fwr_d
 
@@ -116,7 +124,7 @@ class MagneticIntegral(Problem.BaseProblem):
         return self.G.dot(self.mapping(m))
 
     def fields(self, m, **kwargs):
-        self.curModel = m
+        self.model = m
 
         if self.rtype == 'tmi':
             total = np.zeros(self.survey.nRx)
@@ -194,9 +202,9 @@ class MagneticIntegral(Problem.BaseProblem):
         yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
         yn1, xn1, zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
 
-        Yn = P.T*np.c_[mkvc(yn1), mkvc(yn2)]
-        Xn = P.T*np.c_[mkvc(xn1), mkvc(xn2)]
-        Zn = P.T*np.c_[mkvc(zn1), mkvc(zn2)]
+        Yn = P.T*np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
+        Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
+        Zn = P.T*np.c_[Utils.mkvc(zn1), Utils.mkvc(zn2)]
 
         survey = self.survey
         rxLoc = survey.srcField.rxList[0].locs
@@ -208,7 +216,7 @@ class MagneticIntegral(Problem.BaseProblem):
             # # If assumes uniform magnetization direction
             # if M.shape != (nC,3):
 
-            #     print 'Magnetization vector must be Nc x 3'
+            #     print('Magnetization vector must be Nc x 3')
             #     return
             if getattr(self, 'M', None) is None:
                 M = dipazm_2_xyz(np.ones(nC) * survey.srcField.param[1],
@@ -227,9 +235,12 @@ class MagneticIntegral(Problem.BaseProblem):
                 D = (450.-float(survey.srcField.param[2])) % 360.
                 I = survey.srcField.param[1]
                 # Projection matrix
-                Ptmi = mkvc(np.r_[np.cos(np.deg2rad(I))*np.cos(np.deg2rad(D)),
-                            np.cos(np.deg2rad(I))*np.sin(np.deg2rad(D)),
-                            np.sin(np.deg2rad(I))], 2).T
+                Ptmi = Utils.mkvc(
+                    np.r_[
+                        np.cos(np.deg2rad(I))*np.cos(np.deg2rad(D)),
+                        np.cos(np.deg2rad(I))*np.sin(np.deg2rad(D)),
+                        np.sin(np.deg2rad(I))
+                    ], 2).T
 
             elif survey.srcField.rxList[0].rxType == 'xyz':
 
@@ -239,11 +250,11 @@ class MagneticIntegral(Problem.BaseProblem):
             G = np.zeros((int(3*ndata), int(3*nC)))
 
         else:
-            print """Flag must be either 'ind' | 'full', please revised"""
+            print("""Flag must be either 'ind' | 'full', please revised""")
             return
 
         # Loop through all observations and create forward operator (nD-by-nC)
-        print "Begin calculation of forward operator: " + Magnetization
+        print("Begin calculation of forward operator: " + Magnetization)
 
         # Add counter to dsiplay progress. Good for large problems
         count = -1
@@ -268,7 +279,7 @@ class MagneticIntegral(Problem.BaseProblem):
         # Display progress
         count = progress(ii, count, ndata)
 
-        print "Done 100% ...forward operator completed!!\n"
+        print("Done 100% ...forward operator completed!!\n")
 
         return G
 
@@ -281,8 +292,21 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
     surveyPair = MAG.BaseMagSurvey
     modelPair = MAG.BaseMagMap
 
-    def __init__(self, model, mapping=None, **kwargs):
-        Problem.BaseProblem.__init__(self, model, mapping=mapping, **kwargs)
+    _depreciate_main_map = 'muMap'
+
+    mu, muMap, muDeriv = Props.Invertible(
+        "Magnetic Permeability (H/m)",
+        default=mu_0
+    )
+
+    mui, muiMap, muiDeriv = Props.Invertible(
+        "Inverse Magnetic Permeability (m/H)"
+    )
+
+    Props.Reciprocal(mu, mui)
+
+    def __init__(self, mesh, **kwargs):
+        Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
         Pbc, Pin, self._Pout = \
             self.mesh.getBCProjWF('neumann', discretization='CC')
@@ -301,7 +325,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
     def MfMu0(self): return self._MfMu0
 
     def makeMassMatrices(self, m):
-        mu = self.mapping*m
+        mu = self.muMap*m
         self._MfMui = self.mesh.getFaceInnerProduct(1./mu)/self.mesh.dim
         # self._MfMui = self.mesh.getFaceInnerProduct(1./mu)
         # TODO: this will break if tensor mu
@@ -329,7 +353,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         Dface = self.mesh.faceDiv
         Mc = Utils.sdiag(self.mesh.vol)
 
-        mu = self.mapping*m
+        mu = self.muMap*m
         chi = mu/mu_0-1
 
         # Temporary fix
@@ -453,8 +477,8 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
             u = self.fields(m)
 
         B, u = u['B'], u['u']
-        mu = self.mapping*(m)
-        dmudm = self.mapping.deriv(m)
+        mu = self.muMap*(m)
+        dmudm = self.muDeriv
         dchidmu = Utils.sdiag(1/mu_0*np.ones(self.mesh.nC))
 
         vol = self.mesh.vol
@@ -486,7 +510,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
                                        tol=1e-6, maxiter=1000, M=m1)
 
         if info > 0:
-            print "Iterative solver did not work well (Jvec)"
+            print("Iterative solver did not work well (Jvec)")
             # raise Exception ("Iterative solver did not work well")
 
         # B = self.MfMuI*self.MfMu0*B0-B0-self.MfMuI*self._Div.T*u
@@ -558,7 +582,7 @@ class Problem3D_DiffSecondary(Problem.BaseProblem):
         sol, info = sp.linalg.bicgstab(dCdu.T, s, tol=1e-6, maxiter=1000, M=m1)
 
         if info > 0:
-            print "Iterative solver did not work well (Jtvec)"
+            print("Iterative solver did not work well (Jtvec)")
             # raise Exception ("Iterative solver did not work well")
 
 
@@ -759,7 +783,7 @@ def progress(iter, prog, final):
 
     if arg > prog:
 
-        print "Done " + str(arg*10) + " %"
+        print("Done " + str(arg*10) + " %")
         prog = arg
 
     return prog
@@ -842,21 +866,21 @@ def get_dist_wgt(mesh, rxLoc, actv, R, R0):
     Ym, Xm, Zm = np.meshgrid(mesh.vectorCCy, mesh.vectorCCx, mesh.vectorCCz)
     hY, hX, hZ = np.meshgrid(mesh.hy, mesh.hx, mesh.hz)
 
-    # Rmove air cells
-    Xm = P.T*mkvc(Xm)
-    Ym = P.T*mkvc(Ym)
-    Zm = P.T*mkvc(Zm)
+    # Remove air cells
+    Xm = P.T*Utils.mkvc(Xm)
+    Ym = P.T*Utils.mkvc(Ym)
+    Zm = P.T*Utils.mkvc(Zm)
 
-    hX = P.T*mkvc(hX)
-    hY = P.T*mkvc(hY)
-    hZ = P.T*mkvc(hZ)
+    hX = P.T*Utils.mkvc(hX)
+    hY = P.T*Utils.mkvc(hY)
+    hZ = P.T*Utils.mkvc(hZ)
 
-    V = P.T * mkvc(mesh.vol)
+    V = P.T * Utils.mkvc(mesh.vol)
     wr = np.zeros(nC)
 
     ndata = rxLoc.shape[0]
     count = -1
-    print "Begin calculation of distance weighting for R= " + str(R)
+    print("Begin calculation of distance weighting for R= " + str(R))
 
     for dd in range(ndata):
 
@@ -887,10 +911,10 @@ def get_dist_wgt(mesh, rxLoc, actv, R, R0):
         count = progress(dd, count, ndata)
 
     wr = np.sqrt(wr)/V
-    wr = mkvc(wr)
+    wr = Utils.mkvc(wr)
     wr = np.sqrt(wr/(np.max(wr)))
 
-    print "Done 100% ...distance weighting completed!!\n"
+    print("Done 100% ...distance weighting completed!!\n")
 
     return wr
 
@@ -921,14 +945,12 @@ def writeUBCobs(filename, survey, d):
     wd = survey.std
 
     data = np.c_[rxLoc, d, wd]
+    head = ('%6.2f %6.2f %6.2f\n' % (B[1], B[2], B[0])+
+              '%6.2f %6.2f %6.2f\n' % (B[1], B[2], 1)+
+              '%i\n' % len(d))
+    np.savetxt(filename, data, fmt='%e', delimiter=' ', newline='\n',header=head,comments='')
 
-    with file(filename, 'w') as fid:
-        fid.write('%6.2f %6.2f %6.2f\n' % (B[1], B[2], B[0]))
-        fid.write('%6.2f %6.2f %6.2f\n' % (B[1], B[2], 1))
-        fid.write('%i\n' % len(d))
-        np.savetxt(fid, data, fmt='%e', delimiter=' ', newline='\n')
-
-    print "Observation file saved to: " + filename
+    print("Observation file saved to: " + filename)
 
 
 def plot_obs_2D(rxLoc, d=None, varstr='TMI Obs',
