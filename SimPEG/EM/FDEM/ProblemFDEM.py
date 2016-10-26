@@ -262,6 +262,9 @@ class Problem3D_e(BaseFDEMProblem):
 
         return C.T*MfMui*C + 1j*omega(freq)*MeSigma
 
+    # def getADeriv(self, freq, u, v, adjoint=False):
+    #     return
+
     def getADeriv_sigma(self, freq, u, v, adjoint=False):
         """
         Product of the derivative of our system matrix with respect to the
@@ -292,7 +295,7 @@ class Problem3D_e(BaseFDEMProblem):
 
         C = self.mesh.edgeCurl
         if adjoint:
-            return C.T * (self.MfMuiDeriv(C*u).T * v)
+            return (self.MfMuiDeriv(C*u).T * (C *v))
 
         return C.T * (self.MfMuiDeriv(C*u) * v)
 
@@ -316,7 +319,7 @@ class Problem3D_e(BaseFDEMProblem):
 
         return C.T * (MfMui * s_m) - 1j * omega(freq) * s_e
 
-    def getRHSDeriv(self, freq, src, v, adjoint=False):
+    def getRHSDeriv_sigma(self, freq, src, v, adjoint=False):
         """
         Derivative of the right hand side with respect to the model
 
@@ -337,6 +340,23 @@ class Problem3D_e(BaseFDEMProblem):
             return s_mDeriv(dRHS) - 1j * omega(freq) * s_eDeriv(v)
         else:
             return C.T * (MfMui * s_mDeriv(v)) - 1j * omega(freq) * s_eDeriv(v)
+
+    def getRHSDeriv_mui(self, freq, src, v, adjoint=False):
+
+        s_m, s_e = self.getSourceTerm(freq)
+        s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
+
+        C = self.mesh.edgeCurl
+        MfMui = self.MfMui
+        MfMuiDeriv = self.MfMuiDeriv(s_m)
+
+        if adjoint:
+            raise NotImplementedError
+
+        return (
+            C.T * (MfMui * s_mDeriv(v) + MfMuiDeriv * v) -
+            1j * omega(freq) * s_eDeriv(v)
+        )
 
 
 class Problem3D_b(BaseFDEMProblem):

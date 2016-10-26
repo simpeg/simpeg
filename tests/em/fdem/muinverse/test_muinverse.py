@@ -6,6 +6,7 @@ from scipy.constants import mu_0
 import unittest
 
 MuMax = 50.
+TOL = 1e-10
 
 class MuBaseTests(unittest.TestCase):
 
@@ -53,6 +54,24 @@ class MuBaseTests(unittest.TestCase):
             AderivFun, self.m0, plotIt=False,
             num=3, eps=1e-20
             )
+
+    def test_Aadjoint(self, prbtype='e'):
+
+        print('\n Testing A_adjoint')
+        m = np.random.rand(self.prob.muMap.nP)
+        u = np.random.rand(self.mesh.nE)
+        v = np.random.rand(self.mesh.nE)
+
+        self.prob.model = self.m0
+
+        V1 = v.dot(self.prob.getADeriv_mui(self.freq, u, m))
+        V2 = m.dot(self.prob.getADeriv_mui(self.freq, u, v, adjoint=True))
+        passed = np.abs(V1-V2) < TOL * (np.abs(V1) + np.abs(V2))/2.
+        print('AdjointTest {prbtype} {v1} {v2} {passed}'.format(
+            prbtype=prbtype, v1=V1, v2=V2, passed=passed))
+        self.assertTrue(passed)
+
+
 
 if __name__ == '__main__':
     unittest.main()
