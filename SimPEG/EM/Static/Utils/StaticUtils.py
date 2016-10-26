@@ -1,10 +1,7 @@
 from SimPEG import np, mkvc
-from SimPEG.EM.Static import DC, IP
+from SimPEG.EM.Static import DC
 
-
-def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole',
-                       surveyDim='2D', unitType="appConductivity",
-                       clim=None, scale='log', colorbar=True):
+def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None, scale="linear", sameratio=True):
     """
         Read list of 2D tx-rx location and plot a speudo-section of apparent
         resistivity.
@@ -13,9 +10,8 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole',
 
         Input:
         :param d2D, z0
-        :switch surveyType -> Either 'pdp' (pole-dipole) | 'dipole-dipole' (dipole-dipole)
-        :switch unitType=-> Either 'appResistivity' (app. res) | 'appConductivity' (app. con) | 'volt' (potential)
-        :switch scale -> Either 'log' (default) | 'linear'
+        :switch stype -> Either 'pdp' (pole-dipole) | 'dpdp' (dipole-dipole)
+        :switch dtype=-> Either 'appr' (app. res) | 'appc' (app. con) | 'volt' (potential)
         Output:
         :figure scatter plot overlayed on image
 
@@ -27,7 +23,6 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole',
     from SimPEG import np
     from scipy.interpolate import griddata
     import pylab as plt
-
     # Set depth to 0 for now
     z0 = 0.
 
@@ -48,20 +43,21 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole',
         count += nD
 
         # Get distances between each poles A-B-M-N
-        if surveyType == 'pole-dipole':
-            MA = np.abs(Tx[0][0] - Rx[0][:, 0])
-            NA = np.abs(Tx[0][0] - Rx[1][:, 0])
-            MN = np.abs(Rx[1][:, 0] - Rx[0][:, 0])
+        if stype == 'pdp':
+
+            MA = np.abs(Tx[0] - Rx[0][:,0])
+            NA = np.abs(Tx[0] - Rx[1][:,0])
+            MN = np.abs(Rx[1][:,0] - Rx[0][:,0])
 
             # Create mid-point location
-            Cmid = Tx[0][0]
-            Pmid = (Rx[0][:, 0] + Rx[1][:, 0])/2
-            if surveyDim == '2D':
-                zsrc = Tx[0][1]
-            elif surveyDim == '3D':
-                zsrc = Tx[0][2]
+            Cmid = Tx[0]
+            Pmid = (Rx[0][:,0] + Rx[1][:,0])/2
+            # if DCsurvey.mesh.dim == 2:
+            #     zsrc = Tx[1]
+            # elif DCsurvey.mesh.dim ==3:
+            zsrc = Tx[2]
 
-        elif surveyType == 'dipole-dipole':
+        elif stype == 'dpdp':
             MA = np.abs(Tx[0][0] - Rx[0][:,0])
             MB = np.abs(Tx[1][0] - Rx[0][:,0])
             NA = np.abs(Tx[0][0] - Rx[1][:,0])
@@ -70,14 +66,25 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole',
             # Create mid-point location
             Cmid = (Tx[0][0] + Tx[1][0])/2
             Pmid = (Rx[0][:,0] + Rx[1][:,0])/2
-            if surveyDim == '2D':
-                zsrc = (Tx[0][2] + Tx[1][2])/2
-            elif surveyDim == '3D':
-                zsrc = (Tx[0][2] + Tx[1][2])/2
+            # if DCsurvey.mesh.dim == 2:
+            #     zsrc = (Tx[0][1] + Tx[1][1])/2
+            # elif DCsurvey.mesh.dim ==3:
+            zsrc = (Tx[0][2] + Tx[1][2])/2
 
-        # Change output for unitType
-        if unitType == 'volt':
+        # Change output for dtype
+        if stype == 'pdp':
 
+            leg =  data * 2*np.pi  * MA * ( MA + MN ) / MN
+
+        elif stype == 'dpdp':
+
+            leg = data * 2*np.pi / ( 1/MA - 1/MB + 1/NB - 1/NA )
+            LEG.append(1./(2*np.pi) *( 1/MA - 1/MB + 1/NB - 1/NA ))
+        else:
+            print """dtype must be 'pdp'(pole-dipole) | 'dpdp' (dipole-dipole) """
+            break
+
+        if dtype == 'volt':
             if scale == "linear":
                 rho = np.hstack([rho, data])
             elif scale == "log":
@@ -86,47 +93,33 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole',
         else:
 
             # Compute pant leg of apparent rho
-            if surveyType == 'pole-dipole':
 
-                leg = data * 2*np.pi * MA * (MA + MN) / MN
+            if dtype == 'appc':
 
-            elif surveyType == 'dipole-dipole':
+                leg = abs(1./leg)
 
-                leg = data * 2*np.pi / (1/MA - 1/MB + 1/NB - 1/NA)
-                # LEG.append(1./(2*np.pi) * (1/MA - 1/MB + 1/NB - 1/NA))
-            else:
-                print """unitType must be 'pole-dipole' | 'dipole-dipole'  """
-                break
+            elif dtype == 'appr':
 
-            if unitType == 'appConductivity':
-
-                leg = np.log10(abs(1./leg))
-
-            elif unitType == 'appResistivity':
-
-                leg = np.log10(abs(leg))
+                leg = abs(leg)
 
             else:
-                print """unitType must be 'appResistivity' | 'appConductivity' | 'volt' """
+                print """dtype must be 'appr' | 'appc' | 'volt' """
                 break
 
             if scale == "linear":
-                rho = np.hstack([rho, data])
+                rho = np.hstack([rho, leg])
             elif scale == "log":
-                rho = np.hstack([rho, np.log10(abs(data))])
+                rho = np.hstack([rho, np.log10(leg)])
 
-        midx = np.hstack([midx, (Cmid + Pmid)/2])
-        if surveyDim == '3D':
-            midz = np.hstack([midz, -np.abs(Cmid-Pmid)/2 + zsrc])
-        elif surveyDim == '2D':
-            midz = np.hstack([midz, -np.abs(Cmid-Pmid)/2 + zsrc])
+        midx = np.hstack([midx, ( Cmid + Pmid )/2 ])
+        # if DCsurvey.mesh.dim==3:
+        midz = np.hstack([midz, -np.abs(Cmid-Pmid)/2 + zsrc ])
+        # elif DCsurvey.mesh.dim==2:
+        #     midz = np.hstack([midz, -np.abs(Cmid-Pmid)/2 + zsrc ])
     ax = axs
 
-    print(midx,midz)
     # Grid points
     grid_x, grid_z = np.mgrid[np.min(midx):np.max(midx), np.min(midz):np.max(midz)]
-
-    print(grid_x,grid_z)
     grid_rho = griddata(np.c_[midx,midz], rho.T, (grid_x, grid_z), method='linear')
 
     if clim == None:
@@ -136,30 +129,37 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole',
 
     grid_rho = np.ma.masked_where(np.isnan(grid_rho), grid_rho)
     ph = plt.pcolormesh(grid_x[:,0],grid_z[0,:],grid_rho.T, clim=(vmin, vmax), vmin=vmin, vmax=vmax)
-    plt.contour(grid_rho.T,5, extent = (np.min(grid_x),np.max(grid_x),np.min(grid_z),np.max(grid_z))  ,origin='lower',colors='k')
 
-    if colorbar:
+    if scale == "log":
         cbar = plt.colorbar(format="$10^{%.1f}$",fraction=0.04,orientation="horizontal")
+    elif scale == "linear":
+        cbar = plt.colorbar(format="%.1f",fraction=0.04,orientation="horizontal")
 
-        cmin,cmax = cbar.get_clim()
-        ticks = np.linspace(cmin,cmax,3)
-        cbar.set_ticks(ticks)
-        cbar.ax.tick_params(labelsize=10)
+    if dtype == 'appc':
+        cbar.set_label("App.Cond",size=12)
 
-        if unitType == 'appConductivity':
-            cbar.set_label("App.Cond",size=12)
-        elif unitType == 'appResistivity':
-            cbar.set_label("App.Res.",size=12)
-        elif unitType == 'volt':
-            cbar.set_label("Potential (V)",size=12)
+    elif dtype == 'appr':
+        cbar.set_label("App.Res.",size=12)
+
+    elif dtype == 'volt':
+        cbar.set_label("Potential (V)",size=12)
+
+
+    cmin,cmax = cbar.get_clim()
+    ticks = np.linspace(cmin,cmax,3)
+    cbar.set_ticks(ticks)
+    cbar.ax.tick_params(labelsize=10)
 
     # Plot apparent resistivity
-    ax.scatter(midx,midz,s=10,c=rho.T, vmin =vmin, vmax = vmax, clim=(vmin, vmax))
+    # ax.scatter(midx,midz,s=10,c=rho.T, vmin =vmin, vmax = vmax, clim=(vmin, vmax))
+    ax.plot(midx,midz, 'k.', ms=1)
 
-    plt.gca().set_aspect('equal', adjustable='box')
+    #ax.set_xticklabels([])
+    #ax.set_yticklabels([])
+    if sameratio == True:
+        plt.gca().set_aspect('equal', adjustable='box')
 
-    return ph, LEG, midx, midz
-
+    return ph, ax, cbar, LEG
 
 def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
     """
@@ -326,8 +326,8 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
         SrcList.append(srcClass)
     else:
         print """surveyType must be either 'pole-dipole', 'dipole-dipole' or 'gradient'. """
-
-    return SrcList
+    survey = DC.Survey(SrcList)
+    return survey
 
 
 def writeUBC_DCobs(fileName, DCsurvey, dim, surveyType, iptype=0):
@@ -937,3 +937,60 @@ def getSrc_locs(survey):
     srcMat = np.vstack(srcMat)
 
     return srcMat
+
+
+def gettopoCC(mesh, airind):
+# def gettopoCC(mesh, airind):
+
+    """
+        Get topography from active indices of mesh.
+    """
+
+    if mesh.dim == 3:
+
+        mesh2D = Mesh.TensorMesh([mesh.hx, mesh.hy], mesh.x0[:2])
+        zc = mesh.gridCC[:,2]
+        AIRIND = airind.reshape((mesh.vnC[0]*mesh.vnC[1],mesh.vnC[2]), order='F')
+        ZC = zc.reshape((mesh.vnC[0]*mesh.vnC[1], mesh.vnC[2]), order='F')
+        topo = np.zeros(ZC.shape[0])
+        topoCC = np.zeros(ZC.shape[0])
+        for i in range(ZC.shape[0]):
+            ind  = np.argmax(ZC[i,:][~AIRIND[i,:]])
+            topo[i] = ZC[i,:][~AIRIND[i,:]].max() + mesh.hz[~AIRIND[i,:]][ind]*0.5
+            topoCC[i] = ZC[i,:][~AIRIND[i,:]].max()
+
+        return mesh2D, topoCC
+
+    elif mesh.dim == 2:
+
+        mesh1D = Mesh.TensorMesh([mesh.hx], [mesh.x0[0]])
+        yc = mesh.gridCC[:,1]
+        AIRIND = airind.reshape((mesh.vnC[0],mesh.vnC[1]), order='F')
+        YC = yc.reshape((mesh.vnC[0], mesh.vnC[1]), order='F')
+        topo = np.zeros(YC.shape[0])
+        topoCC = np.zeros(YC.shape[0])
+        for i in range(YC.shape[0]):
+            ind  = np.argmax(YC[i,:][~AIRIND[i,:]])
+            topo[i] = YC[i,:][~AIRIND[i,:]].max() + mesh.hy[~AIRIND[i,:]][ind]*0.5
+            topoCC[i] = YC[i,:][~AIRIND[i,:]].max()
+
+        return mesh1D, topoCC
+
+def drapeTopotoLoc(mesh, topo, pts, airind=None):
+    """
+        Drape
+    """
+    if mesh.dim ==2:
+        if pts.ndim > 1:
+            raise Exception("pts should be 1d array")
+    elif mesh.dim ==3:
+        if pts.shape[1] == 3:
+            raise Exception("shape of pts should be (x,3)")
+    else:
+        raise NotImplementedError()
+    if airind is None:
+        airind = Utils.surface2ind_topo(mesh, topo)
+    meshtemp, topoCC = gettopoCC(mesh, ~airind)
+    inds = Utils.closestPoints(meshtemp, pts)
+
+    return np.c_[pts, topoCC[inds]]
