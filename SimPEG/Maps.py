@@ -952,13 +952,13 @@ class ParametricPolyMap(IdentityMap):
 
         Parameterize the model space using a polynomials in a wholespace.
 
-        ..math::
+        .. math::
 
             y = \mathbf{V} c
 
         Define the model as:
 
-        ..math::
+        .. math::
 
             m = [\sigma_1, \sigma_2, c]
 
@@ -1098,13 +1098,13 @@ class ParametricSplineMap(IdentityMap):
         Parameterize the boundary of two geological units using
         a spline interpolation
 
-        ..math::
+        .. math::
 
             g = f(x)-y
 
         Define the model as:
 
-        ..math::
+        .. math::
 
             m = [\sigma_1, \sigma_2, y]
 
