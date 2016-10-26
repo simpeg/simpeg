@@ -290,11 +290,11 @@ class Problem3D_e(BaseFDEMProblem):
 
     def getADeriv_mui(self, freq, u, v, adjoint=False):
 
+        C = self.mesh.edgeCurl
         if adjoint:
             return C.T * (self.MfMuiDeriv(C*u).T * v)
 
         return C.T * (self.MfMuiDeriv(C*u) * v)
-
 
     def getRHS(self, freq):
         """

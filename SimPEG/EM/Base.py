@@ -126,6 +126,12 @@ class BaseEMProblem(Problem.BaseProblem):
             self._MfMui = self.mesh.getFaceInnerProduct(self.mui)
         return self._MfMui
 
+    def MfMuiDeriv(self, u):
+        """
+        Derivative of :code:`MfMui` with respect to the model.
+        """
+        return self.mesh.getFaceInnerProductDeriv(self.mui)(u) * self.muiDeriv
+
     @property
     def MfMuiI(self):
         """
@@ -134,6 +140,18 @@ class BaseEMProblem(Problem.BaseProblem):
         if getattr(self, '_MfMuiI', None) is None:
             self._MfMuiI = self.mesh.getFaceInnerProduct(self.mui, invMat=True)
         return self._MfMuiI
+
+    # TODO: This should take a vector
+    def MfMuiIDeriv(self, u):
+        """
+        Derivative of :code:`MeSigma` with respect to the model
+        """
+        # TODO: only works for diagonal tensors. getEdgeInnerProductDeriv,
+        #       invMat=True should be implemented in SimPEG
+
+        dMfMuiI_dI = -self.MfMuiI**2
+        dMf_dmui = self.mesh.getEdgeInnerProductDeriv(self.mui)(u)
+        return dMfMuiI_dI * (dMf_dmui * self.muiDeriv)
 
     @property
     def MeMu(self):
@@ -145,6 +163,12 @@ class BaseEMProblem(Problem.BaseProblem):
             self._MeMu = self.mesh.getEdgeInnerProduct(self.mu)
         return self._MeMu
 
+    def MeMuiDeriv(self, u):
+        """
+        Derivative of :code:`MfMui` with respect to the model.
+        """
+        return self.mesh.getEdgeInnerProductDeriv(self.mu)(u) * self.muDeriv
+
     @property
     def MeMuI(self):
         """
@@ -153,6 +177,18 @@ class BaseEMProblem(Problem.BaseProblem):
         if getattr(self, '_MeMuI', None) is None:
             self._MeMuI = self.mesh.getEdgeInnerProduct(self.mu, invMat=True)
         return self._MeMuI
+
+    # TODO: This should take a vector
+    def MeMuIDeriv(self, u):
+        """
+        Derivative of :code:`MeSigma` with respect to the model
+        """
+        # TODO: only works for diagonal tensors. getEdgeInnerProductDeriv,
+        #       invMat=True should be implemented in SimPEG
+
+        dMeMuI_dI = -self.MeMuI**2
+        dMf_dmui = self.mesh.getEdgeInnerProductDeriv(self.mu)(u)
+        return dMfMuI_dI * (dMf_dmu * self.muDeriv)
 
     # ----- Electrical Conductivity ----- #
     @property
