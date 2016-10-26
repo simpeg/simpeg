@@ -99,8 +99,4 @@ after_success:
     fi
 
 notifications:
-  email:
-    - rowanc1@gmail.com
-    - lindseyheagy@gmail.com
-    - gkrosen@gmail.com
-    - sgkang09@gmail.com
+  slack: simpeg:1KZq5giMtlJJ58TijIPgqf7n
