@@ -13,6 +13,7 @@ from numpy.polynomial import polynomial
 import scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
 from scipy.interpolate import UnivariateSpline
+from scipy.constants import mu_0
 
 from . import Utils
 from .Tests import checkDerivative
@@ -489,6 +490,32 @@ class LogMap(IdentityMap):
 
     def inverse(self, m):
         return np.exp(Utils.mkvc(m))
+
+
+class ChiMap(IdentityMap):
+    """Chi Map
+
+    Convert Magnetic Susceptibility to Magnetic Permeability.
+
+    .. math::
+
+        \mu(m) = \mu_0 (1 + \chi(m))
+
+    """
+
+    def __init__(self, mesh=None, nP=None, **kwargs):
+        super(ChiMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
+
+    def _transform(self, m):
+        return mu_0 * (1 + m)
+
+    def deriv(self, m, v=None):
+        if v is not None:
+            return mu_0 * v
+        return mu_0 * sp.eye(self.nP)
+
+    def inverse(self, m):
+        return m / mu_0 - 1
 
 
 class SurjectFull(IdentityMap):
