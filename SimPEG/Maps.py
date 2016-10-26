@@ -1382,7 +1382,13 @@ class ParametrizedLayer(IdentityMap):
     """
         Parametrized Layer Space
 
-        m = [val_background, val_layer, layer_center, layer_thickness]
+        .. code:: python
+
+            m = [val_background,
+                 val_layer,
+                 layer_center,
+                 layer_thickness
+            ]
 
 
         .. plot::
@@ -1545,19 +1551,20 @@ class ParametrizedCasingAndLayer(ParametrizedLayer):
     """
         Parametrized layered space with casing.
 
-        .. code::
-            m = [
-                    val_background,
-                    val_layer,
-                    val_casing,
-                    val_insideCasing,
-                    layer_center,
-                    layer_thickness,
-                    casing_radius,
-                    casing_thickness,
-                    casing_bottom,
-                    casing_top
+        .. code:: python
+
+            m = [val_background,
+                 val_layer,
+                 val_casing,
+                 val_insideCasing,
+                 layer_center,
+                 layer_thickness,
+                 casing_radius,
+                 casing_thickness,
+                 casing_bottom,
+                 casing_top
             ]
+
     """
 
     def __init__(self, mesh, **kwargs):
@@ -1886,14 +1893,35 @@ class ParametrizedBlockInLayer(ParametrizedLayer):
         Parametrized Block in a Layered Space
 
         For 2D:
-        m = [val_background, val_layer, val_block, layer_center,
-             layer_thickness, block_x0, block_dx]
+
+        .. code:: python
+
+            m = [val_background,
+                 val_layer,
+                 val_block,
+                 layer_center,
+                 layer_thickness,
+                 block_x0,
+                 block_dx
+            ]
 
         For 3D:
-        m = [val_background, val_layer, val_block, layer_center,
-             layer_thickness, block_x0, block_y0, block_dx, block_dy]
+
+        .. code:: python
+
+            m = [val_background,
+                 val_layer,
+                 val_block,
+                 layer_center,
+                 layer_thickness,
+                 block_x0,
+                 block_y0,
+                 block_dx,
+                 block_dy
+            ]
 
         .. plot::
+
             :include-source:
 
             from SimPEG.Examples import Maps_ParametrizedBlockInLayer
