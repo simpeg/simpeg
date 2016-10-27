@@ -24,13 +24,36 @@ class MuTests(unittest.TestCase):
 
         self.m0 = MuMax*np.random.rand(self.mesh.nC)
 
+        rxcomp = ['real', 'imag']
+
+        loc = Utils.ndgrid(
+            [self.mesh.vectorCCx, np.r_[0.], self.mesh.vectorCCz]
+        )
+
+        rxList_e = [
+            FDEM.Rx.Point_e(loc, component=comp, orientation=orient)
+            for comp in rxcomp
+            for orient in ['y']
+        ]
+
+        rxList_b = [
+            FDEM.Rx.Point_b(loc, component=comp, orientation=orient)
+            for comp in rxcomp
+            for orient in ['x', 'z']
+        ]
+
+        rxList = rxList_e + rxList_b
+
         src = FDEM.Src.MagDipole(
-            rxList=[], loc=np.r_[0., 0., 0.], freq=self.freq
+            rxList=rxList, loc=np.r_[0., 0., 0.], freq=self.freq
         )
 
         self.prob = FDEM.Problem3D_e(
             self.mesh, sigma=self.m0, muMap=Maps.ChiMap(self.mesh)
         )
+        self.survey = FDEM.Survey([src])
+
+        self.prob.pair(self.survey)
 
     def test_Aderiv(self, prbtype='e'):
         if prbtype == 'b':
@@ -71,6 +94,14 @@ class MuTests(unittest.TestCase):
         print('AdjointTest {prbtype} {v1} {v2} {passed}'.format(
             prbtype=prbtype, v1=V1, v2=V2, passed=passed))
         self.assertTrue(passed)
+
+    def test_Jvec_e(self):
+
+        def fun(x):
+            return (
+                self.prob.survey.dpred(x), lambda x: self.prob.Jvec(self.m0, x)
+            )
+        return Tests.checkDerivative(fun, self.m0, num=2, plotIt=False)
 
 
 class MuSigmaTests(unittest.TestCase):

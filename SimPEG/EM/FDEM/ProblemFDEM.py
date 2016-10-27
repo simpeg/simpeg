@@ -369,8 +369,8 @@ class Problem3D_e(BaseFDEMProblem):
 
     def getRHSDeriv(self, freq, src, v, adjoint=False):
         return (
-            getRHSDeriv_sigma(self, freq, src, v, adjoint) +
-            getRHSDeriv_mui(self, freq, src, v, adjoint)
+            self.getRHSDeriv_sigma(freq, src, v, adjoint) +
+            self.getRHSDeriv_mui(freq, src, v, adjoint)
         )
 
 
