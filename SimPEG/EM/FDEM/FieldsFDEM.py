@@ -344,6 +344,7 @@ class Fields3D_e(FieldsFDEM):
         self._MeSigma = self.survey.prob.MeSigma
         self._MeSigmaDeriv = self.survey.prob.MeSigmaDeriv
         self._MfMui = self.survey.prob.MfMui
+        self._MfMuiDeriv = self.survey.prob.MfMuiDeriv
 
     def _GLoc(self, fieldType):
         if fieldType == 'e':
@@ -610,6 +611,20 @@ class Fields3D_e(FieldsFDEM):
             )
         )
 
+    def _hDeriv_mui(self, src, v, adjoint=False):
+        n = int(self._aveF2CCV.shape[0] / self._nC)  # Number of Components
+        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+
+        if adjoint is True:
+            return (
+                self._MfMuiDeriv(self['b', src]).T * self._aveF2CCV.T *
+                VI.T * v
+            )
+
+        return (
+            VI * (self._aveF2CCV * (self._MfMuiDeriv(self['b', src]) * v))
+        )
+
     def _hDeriv_m(self, src, v, adjoint=False):
         """
         Derivative of the magnetic field with respect to the inversion model.
@@ -631,8 +646,9 @@ class Fields3D_e(FieldsFDEM):
                 self._aveF2CCV * (
                     self._MfMui * self._bDeriv_m(src, v, adjoint=adjoint)
                 )
-            )
+            ) + self._hDeriv_mui(src, v, adjoint)
         )
+
 
 
 class Fields3D_b(FieldsFDEM):

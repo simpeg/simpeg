@@ -38,6 +38,7 @@ class BaseRx(SimPEG.Survey.BaseRx):
         f_part_complex = f[src, self.projField]
         f_part = getattr(f_part_complex, self.component) # get the real or imag component
 
+        print(P.shape, f_part.shape)
         return P*f_part
 
     def evalDeriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
