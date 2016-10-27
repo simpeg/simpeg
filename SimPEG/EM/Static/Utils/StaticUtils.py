@@ -87,7 +87,7 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appC
             leg = data * 2*np.pi / (1/MA - 1/MB + 1/NB - 1/NA)
             LEG.append(1./(2*np.pi) * (1/MA - 1/MB + 1/NB - 1/NA))
         else:
-            print """dataType must be 'pole-dipole'(pole-dipole) | 'dipole-dipole'"""
+            print(""" dataType must be 'pole-dipole' | 'dipole-dipole' """)
             break
 
         if dataType == 'volt':
@@ -109,7 +109,7 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appC
                 leg = abs(leg)
 
             else:
-                print """dataType must be 'appResistivity' | 'appConductivity' | 'volt' """
+                print("""dataType must be 'appResistivity' | 'appConductivity' | 'volt' """)
                 break
 
             if scale == "linear":
@@ -332,7 +332,7 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
                                      (endl[1, :]))
         SrcList.append(srcClass)
     else:
-        print """surveyType must be either 'pole-dipole', 'dipole-dipole' or 'gradient'. """
+        print("""surveyType must be either 'pole-dipole', 'dipole-dipole' or 'gradient'. """)
 
     survey = DC.Survey(SrcList)
 

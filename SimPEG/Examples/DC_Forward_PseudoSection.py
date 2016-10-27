@@ -1,6 +1,6 @@
 from SimPEG import Mesh, Utils, np, sp
 import SimPEG.EM.Static.DC as DC
-from SimPEG.EM.Static.Utils import gen_DCIPsurvey
+from SimPEG.EM.Static.Utils import gen_DCIPsurvey, getSrc_locs, convertObs_DC3D_to_2D, plot_pseudoSection
 import time
 
 def run(loc=None, sig=None, radi=None, param=None, surveyType='dipole-dipole', unitType='appConductivity', plotIt=True):
@@ -35,9 +35,9 @@ def run(loc=None, sig=None, radi=None, param=None, surveyType='dipole-dipole', u
         param = np.r_[30.,30.,5]
 
     if surveyType == "pole-dipole":
-        surveyType = "pdp"
+        surveyType = "pole-dipole"
     elif surveyType == "dipole-dipole":
-        surveyType = "dpdp"
+        surveyType = "dipole-dipole"
     else:
         raise NotImplementedError()
     # First we need to create a mesh and a model.
@@ -122,20 +122,20 @@ def run(loc=None, sig=None, radi=None, param=None, surveyType='dipole-dipole', u
         #print("Transmitter %i / %i\r" % (ii+1,len(Tx)))
 
         # Select dipole locations for receiver
-        rxloc_M = np.asarray(Rx[ii].locs[0][:,0:3])
-        rxloc_N = np.asarray(Rx[ii].locs[0][:,3:])
+        rxloc_M = np.asarray(Rx[ii].locs[0])
+        rxloc_N = np.asarray(Rx[ii].locs[1])
 
 
         # For usual cases 'dipole-dipole' or "gradient"
         if surveyType == 'pole-dipole':
             # Create an "inifinity" pole
-            tx =  np.squeeze(Tx[ii][:,0:1])
+            tx =  np.squeeze(Tx[ii].loc[:,0:1])
             tinf = tx + np.array([dl_x,dl_y,0])*dl_len*2
             inds = Utils.closestPoints(mesh, np.c_[tx,tinf].T)
             RHS = mesh.getInterpolationMat(np.asarray(Tx[ii]).T, 'CC').T*( [-1] / mesh.vol[inds] )
         else:
-            inds = Utils.closestPoints(mesh, np.asarray(Tx[ii]).T )
-            RHS = mesh.getInterpolationMat(np.asarray(Tx[ii]).T, 'CC').T*( [-1,1] / mesh.vol[inds] )
+            inds = Utils.closestPoints(mesh, np.asarray(Tx[ii].loc) )
+            RHS = mesh.getInterpolationMat(np.asarray(Tx[ii].loc), 'CC').T*( [-1,1] / mesh.vol[inds] )
 
         # Iterative Solve
         Ainvb = sp.linalg.bicgstab(P*A,P*RHS, tol=1e-5)
@@ -157,7 +157,7 @@ def run(loc=None, sig=None, radi=None, param=None, surveyType='dipole-dipole', u
     print 'Forward completed'
 
     # Let's just convert the 3D format into 2D (distance along line) and plot
-    survey2D = DC.convertObs_DC3D_to_2D(survey, np.ones(survey.nSrc) , 'Xloc')
+    survey2D = convertObs_DC3D_to_2D(survey, np.ones(survey.nSrc) , 'Xloc')
     survey2D.dobs =np.hstack(data)
 
     if plotIt:
@@ -175,9 +175,9 @@ def run(loc=None, sig=None, radi=None, param=None, surveyType='dipole-dipole', u
 
         ax.set_title('3-D model')
         plt.gca().set_aspect('equal', adjustable='box')
-
-        plt.scatter(Tx[0][0,:],Tx[0][2,:],s=40,c='g', marker='v')
-        plt.scatter(Rx[0][:,0::3],Rx[0][:,2::3],s=40,c='y')
+        print(Rx[0].locs[0])
+        plt.scatter(Tx[0].loc[0][0],Tx[0].loc[0][2],s=40,c='g', marker='v')
+        plt.scatter(Rx[0].locs[0][:,0],Rx[0].locs[0][:,1],s=40,c='y')
         plt.xlim([-xlim,xlim])
         plt.ylim([-zlim,mesh.vectorNz[-1]+dx])
 
@@ -202,7 +202,7 @@ def run(loc=None, sig=None, radi=None, param=None, surveyType='dipole-dipole', u
         ax2.add_artist(circle2)
 
         # Add the speudo section
-        dat = DC.plot_pseudoSection(survey2D, ax2, surveyType=surveyType, unitType=unitType)        # plt.scatter(Tx2d[0][:],Tx[0][2,:],s=40,c='g', marker='v')
+        dat = plot_pseudoSection(survey2D, ax2, surveyType=surveyType, dataType=unitType)        # plt.scatter(Tx2d[0][:],Tx[0][2,:],s=40,c='g', marker='v')
         # plt.scatter(Rx2d[0][:],Rx[0][:,2::3],s=40,c='y')
         # plt.plot(np.r_[Tx2d[0][0],Rx2d[-1][-1,-1]],np.ones(2)*mesh.vectorNz[-1], color='k')
         ax2.set_title('Apparent Conductivity data')
