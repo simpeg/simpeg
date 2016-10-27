@@ -9,6 +9,8 @@ TOLD = 1e-10
 TOLI = 1e-3
 numRHS = 5
 
+np.random.seed(77)
+
 def dotest(MYSOLVER, multi=False, A=None, **solverOpts):
     if A is None:
         h1 = np.ones(10)*100.

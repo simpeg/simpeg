@@ -109,7 +109,6 @@ class BaseFDEMProblem(BaseEMProblem):
                         rx.evalDeriv(src, self.mesh, f, du_dm_v=du_dm_v, v=v)
                     )
             Ainv.clean()
-        # return Utils.mkvc(Jv)
         return np.hstack(Jv)
 
     def Jtvec(self, m, v, f=None):
@@ -517,7 +516,7 @@ class Problem3D_b(BaseFDEMProblem):
             SrcDeriv = s_mDeriv(v) + C * (self.MeSigmaI * s_eDeriv(v))
         elif adjoint:
             RHSderiv = MeSigmaIDeriv.T * (C.T * v)
-            SrcDeriv = s_mDeriv(v) + self.MeSigmaI.T * (C.T * s_eDeriv(v))
+            SrcDeriv = s_mDeriv(v) + s_eDeriv(self.MeSigmaI.T * (C.T * v))
 
         if self._makeASymmetric is True and not adjoint:
             return MfMui.T * (SrcDeriv + RHSderiv)

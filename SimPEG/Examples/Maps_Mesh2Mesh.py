@@ -1,6 +1,7 @@
 from SimPEG import Mesh, Maps, Utils
 import matplotlib.pyplot as plt
 
+
 def run(plotIt=True):
     """
 
