@@ -4,8 +4,8 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from SimPEG import np
-import .BaseDC as DC
-import .BaseDC as IP
+# from SimPEG.EM.Static import BaseDC as DC
+# from SimPEG.EM.Static import BaseIP as IP
 
 def getActiveindfromTopo(mesh, topo):
 # def genActiveindfromTopo(mesh, topo):
