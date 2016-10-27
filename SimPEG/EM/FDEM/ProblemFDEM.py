@@ -368,6 +368,12 @@ class Problem3D_e(BaseFDEMProblem):
             1j * omega(freq) * s_eDeriv(v)
         )
 
+    def getRHSDeriv(self, freq, src, v, adjoint=False):
+        return (
+            getRHSDeriv_sigma(self, freq, src, v, adjoint) +
+            getRHSDeriv_mui(self, freq, src, v, adjoint)
+        )
+
 
 class Problem3D_b(BaseFDEMProblem):
     """
