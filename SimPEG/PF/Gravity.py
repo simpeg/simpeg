@@ -6,18 +6,25 @@ import re
 
 class GravityIntegral(Problem.LinearProblem):
 
+    _depreciate_main_map = 'rhoMap'
+
+    rho, rhoMap, rhoDeriv = Props.Invertible(
+        "Specific density (g/cc)",
+        default=1.
+    )
+
     # surveyPair = Survey.LinearSurvey
     forwardOnly = False  # Is TRUE, forward matrix not stored to memory
     actInd = None  #: Active cell indices provided
     rtype = 'z'
 
-    def __init__(self, mesh, mapping=None, **kwargs):
-        Problem.BaseProblem.__init__(self, mesh, mapping=mapping, **kwargs)
+    def __init__(self, mesh, **kwargs):
+        Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
     def fwr_op(self):
         # Add forward function
         # kappa = self.model.kappa TODO
-        rho = self.mapping*self.model
+        rho = self.rhoMap*self.model
 
         if self.forwardOnly:
 
@@ -105,11 +112,11 @@ class GravityIntegral(Problem.LinearProblem):
         return fields
 
     def Jvec(self, m, v, f=None):
-        dmudm = self.mapping.deriv(m)
+        dmudm = self.rhoMap.deriv(m)
         return self.G.dot(dmudm*v)
 
     def Jtvec(self, m, v, f=None):
-        dmudm = self.mapping.deriv(m)
+        dmudm = self.rhoMap.deriv(m)
         return dmudm.T * (self.G.T.dot(v))
 
     @property

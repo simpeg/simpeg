@@ -3,7 +3,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from SimPEG import np, mkvc
+from SimPEG import np, mkvc, Mesh, Utils
 from SimPEG.EM.Static import DC
 
 def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appConductivity", clim=None, scale="linear", sameratio=True):
