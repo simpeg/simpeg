@@ -16,6 +16,7 @@ cartE3 = lambda M, ex, ey, ez: np.vstack((cart_row3(M.gridEx, ex, ey, ez), cart_
 
 
 plotIt = False
+np.random.seed(90)
 
 class TestFaceDiv2D(Tests.OrderTest):
     name = "Face Divergence 2D"
