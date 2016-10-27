@@ -30,19 +30,25 @@ class MuTests(unittest.TestCase):
             [self.mesh.vectorCCx, np.r_[0.], self.mesh.vectorCCz]
         )
 
-        rxList_e = [
-            FDEM.Rx.Point_e(loc, component=comp, orientation=orient)
+        rxList_edge = [
+            getattr(FDEM.Rx, 'Point_{f}'.format(f=f))(
+                loc, component=comp, orientation=orient
+            )
+            for f in []
             for comp in rxcomp
             for orient in ['y']
         ]
 
-        rxList_b = [
-            FDEM.Rx.Point_b(loc, component=comp, orientation=orient)
+        rxList_face = [
+            getattr(FDEM.Rx, 'Point_{f}'.format(f=f))(
+                loc, component=comp, orientation=orient
+            )
+            for f in ['h']
             for comp in rxcomp
             for orient in ['x', 'z']
         ]
 
-        rxList = rxList_e + rxList_b
+        rxList = rxList_edge + rxList_face
 
         src = FDEM.Src.MagDipole(
             rxList=rxList, loc=np.r_[0., 0., 0.], freq=self.freq
