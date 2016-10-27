@@ -854,7 +854,7 @@ class ParametricCircleMap(IdentityMap):
 
         Parameterize the model space using a circle in a wholespace.
 
-        ..math::
+        .. math::
 
             \sigma(m) = \sigma_1 + (\sigma_2 - \sigma_1)\left(
             \\arctan\left(100*\sqrt{(\\vec{x}-x_0)^2 + (\\vec{y}-y_0)}-r
@@ -862,7 +862,7 @@ class ParametricCircleMap(IdentityMap):
 
         Define the model as:
 
-        ..math::
+        .. math::
 
             m = [\sigma_1, \sigma_2, x_0, y_0, r]
 
@@ -946,13 +946,13 @@ class ParametricPolyMap(IdentityMap):
 
         Parameterize the model space using a polynomials in a wholespace.
 
-        ..math::
+        .. math::
 
             y = \mathbf{V} c
 
         Define the model as:
 
-        ..math::
+        .. math::
 
             m = [\sigma_1, \sigma_2, c]
 
@@ -1092,13 +1092,13 @@ class ParametricSplineMap(IdentityMap):
         Parameterize the boundary of two geological units using
         a spline interpolation
 
-        ..math::
+        .. math::
 
             g = f(x)-y
 
         Define the model as:
 
-        ..math::
+        .. math::
 
             m = [\sigma_1, \sigma_2, y]
 
