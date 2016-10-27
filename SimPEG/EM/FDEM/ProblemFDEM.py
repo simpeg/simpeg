@@ -300,6 +300,12 @@ class Problem3D_e(BaseFDEMProblem):
 
         return C.T * (self.MfMuiDeriv(C*u) * v)
 
+    def getADeriv(self, freq, u, v, adjoint=False):
+        return (
+            self.getADeriv_sigma(freq, u, v, adjoint) +
+            self.getADeriv_mui(freq, u, v, adjoint)
+        )
+
     def getRHS(self, freq):
         """
         Right hand side for the system
