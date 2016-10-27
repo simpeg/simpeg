@@ -1,3 +1,8 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 from SimPEG import Utils
 from SimPEG.EM.Base import BaseEMProblem
 from SimPEG.EM.Static.DC.FieldsDC import FieldsDC, Fields_CC, Fields_N

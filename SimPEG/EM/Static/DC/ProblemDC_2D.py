@@ -1,3 +1,8 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 from SimPEG import Utils
 from SimPEG.EM.Base import BaseEMProblem
 from .SurveyDC import Survey_ky
@@ -201,10 +206,10 @@ class Problem2D_CC(BaseDCProblem_2D):
         rho = self.rho
         if adjoint:
             return((MfRhoIDeriv( G * u).T) * (D.T * v) +
-                   ky**2 * self.curModel.rhoDeriv.T*Utils.sdiag(u.flatten()*vol*(-1./rho**2))*v)
+                   ky**2 * self.rhoDeriv.T*Utils.sdiag(u.flatten()*vol*(-1./rho**2))*v)
 
         return (D * ((MfRhoIDeriv(G * u)) * v) + ky**2*
-                Utils.sdiag(u.flatten()*vol*(-1./rho**2))*(self.curModel.rhoDeriv*v))
+                Utils.sdiag(u.flatten()*vol*(-1./rho**2))*(self.rhoDeriv*v))
 
     def getRHS(self, ky):
         """
