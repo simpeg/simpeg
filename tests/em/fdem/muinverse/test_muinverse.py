@@ -8,6 +8,7 @@ import unittest
 MuMax = 50.
 TOL = 1e-10
 
+
 class MuBaseTests(unittest.TestCase):
 
     def setUp(self):

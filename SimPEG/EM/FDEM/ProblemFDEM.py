@@ -294,8 +294,9 @@ class Problem3D_e(BaseFDEMProblem):
     def getADeriv_mui(self, freq, u, v, adjoint=False):
 
         C = self.mesh.edgeCurl
+
         if adjoint:
-            return (self.MfMuiDeriv(C*u).T * (C *v))
+            return (self.MfMuiDeriv(C*u).T * (C * v))
 
         return C.T * (self.MfMuiDeriv(C*u) * v)
 
@@ -351,7 +352,10 @@ class Problem3D_e(BaseFDEMProblem):
         MfMuiDeriv = self.MfMuiDeriv(s_m)
 
         if adjoint:
-            raise NotImplementedError
+            return (
+                s_mDeriv(MfMui * (C * v)) + MfMuiDeriv.T * (C * v) -
+                1j * omega(freq)*s_eDeriv(v)
+            )
 
         return (
             C.T * (MfMui * s_mDeriv(v) + MfMuiDeriv * v) -
