@@ -20,7 +20,7 @@ class DCProblemAnalyticTests(unittest.TestCase):
         A0loc = np.r_[-150, 0.]
         # A1loc = np.r_[-130, 0.]
         rxloc = [np.c_[M, np.zeros(20)], np.c_[N, np.zeros(20)]]
-        data_anal = EM.Analytics.DCAnalyticHalf(
+        data_anal = EM.Analytics.DCAnalytic_Pole_Dipole(
             np.r_[A0loc, 0.], rxloc, sighalf, earth_type="halfspace"
         )
 

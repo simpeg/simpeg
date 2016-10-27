@@ -1,6 +1,11 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 from SimPEG import np
-import BaseDC as DC
-import BaseDC as IP
+import .BaseDC as DC
+import .BaseDC as IP
 
 def getActiveindfromTopo(mesh, topo):
 # def genActiveindfromTopo(mesh, topo):
@@ -238,7 +243,7 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None, col
                 leg = data * 2*np.pi / ( 1/MA - 1/MB - 1/NB + 1/NA )
 
             else:
-                print """dtype must be 'pdp'(pole-dipole) | 'dpdp' (dipole-dipole) """
+                print("""dtype must be 'pdp'(pole-dipole) | 'dpdp' (dipole-dipole) """)
                 break
 
 
@@ -253,7 +258,7 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None, col
                 rho = np.hstack([rho,leg])
 
             else:
-                print """dtype must be 'appr' | 'appc' | 'volt' """
+                print("""dtype must be 'appr' | 'appc' | 'volt' """)
                 break
 
         midx = np.hstack([midx, ( Cmid + Pmid )/2 ])
@@ -272,15 +277,15 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None, col
 
     grid_rho = np.ma.masked_where(np.isnan(grid_rho), grid_rho)
     ph = plt.pcolormesh(grid_x[:,0],grid_z[0,:],grid_rho.T, clim=(vmin, vmax), vmin =vmin, vmax = vmax)
-    
+
     if colorbar:
         cbar = plt.colorbar(format="$10^{%.1f}$",fraction=0.04,orientation="horizontal")
-    
+
         cmin,cmax = cbar.get_clim()
         ticks = np.linspace(cmin,cmax,3)
         cbar.set_ticks(ticks)
         cbar.ax.tick_params(labelsize=10)
-        
+
         if dtype == 'appc':
             cbar.set_label("App.Cond",size=12)
         elif dtype == 'appr':
@@ -445,7 +450,7 @@ def gen_DCIPsurvey(endl, mesh, stype, a, b, n):
         srcClass = DC.SrcDipole([rxClass], M[0,:], N[-1,:])
         SrcList.append(srcClass)
     else:
-        print """stype must be either 'pdp', 'dpdp' or 'gradient'. """
+        print("""stype must be either 'pdp', 'dpdp' or 'gradient'. """)
 
     survey = DC.SurveyDC(SrcList)
     return survey, Tx, Rx
@@ -669,7 +674,7 @@ def readUBC_DC3Dobs(fileName, rtype = 'DC'):
         obsfile = np.genfromtxt(fileName,delimiter=' \n',dtype=np.str,comments='!')
 
     else:
-        print "rtype must be 'DC'(default) | 'IP'"
+        print("rtype must be 'DC'(default) | 'IP'")
 
     # Pre-allocate
     srcLists = []
@@ -744,7 +749,7 @@ def readUBC_DC3Dobs(fileName, rtype = 'DC'):
     survey.std = np.asarray(wd)
 
     return {'DCsurvey':survey}
-    
+
 def readUBC_IP3Dobs(fileName):
     """
         Read UBC GIF IP 3D observation file and generate survey
