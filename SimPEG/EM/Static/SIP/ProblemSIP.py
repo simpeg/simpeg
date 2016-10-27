@@ -103,11 +103,11 @@ class BaseSIPProblem(BaseEMProblem):
                         # Jv[src, rx, t] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
 
         # Conductivity (d u / d log sigma)
-        if self._formulation is 'EB':
+        if self._formulation == 'EB':
             # return -Utils.mkvc(Jv)
             return -np.hstack(Jv)
         # Resistivity (d u / d log rho)
-        if self._formulation is 'HJ':
+        if self._formulation == 'HJ':
             # return Utils.mkvc(Jv)
             return np.hstack(Jv)
 
@@ -145,11 +145,11 @@ class BaseSIPProblem(BaseEMProblem):
                                   rx.evalDeriv(src, self.mesh, f, df_dm_v1))
 
         # Conductivity (d u / d log sigma)
-        if self._formulation is 'EB':
+        if self._formulation == 'EB':
             # return -Jv.tovec()
             return -np.hstack(Jv)
         # Resistivity (d u / d log rho)
-        if self._formulation is 'HJ':
+        if self._formulation == 'HJ':
             # return Jv.tovec()
             return np.hstack(Jv)
 
@@ -182,10 +182,10 @@ class BaseSIPProblem(BaseEMProblem):
                         Jtv += self.EtaDeriv(self.survey.times[tind], du_dmT, adjoint=True) + self.TauiDeriv(self.survey.times[tind], du_dmT, adjoint=True)
 
         # Conductivity ((d u / d log sigma).T)
-        if self._formulation is 'EB':
+        if self._formulation == 'EB':
             return -Jtv
         # Conductivity ((d u / d log rho).T)
-        if self._formulation is 'HJ':
+        if self._formulation == 'HJ':
             return Jtv
 
     def getSourceTerm(self):
@@ -201,11 +201,11 @@ class BaseSIPProblem(BaseEMProblem):
 
         Srcs = self.survey.srcList
 
-        if self._formulation is 'EB':
+        if self._formulation == 'EB':
             n = self.mesh.nN
             # return NotImplementedError
 
-        elif self._formulation is 'HJ':
+        elif self._formulation == 'HJ':
             n = self.mesh.nC
 
         q = np.zeros((n, len(Srcs)))

@@ -71,11 +71,11 @@ class BaseIPProblem(BaseEMProblem):
                 # Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, df_dm_v)
                 Jv.append(rx.evalDeriv(src, self.mesh, f, df_dm_v))
         # Conductivity (d u / d log sigma)
-        if self._formulation is 'EB':
+        if self._formulation == 'EB':
             # return -Utils.mkvc(Jv)
             return -np.hstack(Jv)
         # Conductivity (d u / d log rho)
-        if self._formulation is 'HJ':
+        if self._formulation == 'HJ':
             # return Utils.mkvc(Jv)
             return np.hstack(Jv)
 
@@ -104,10 +104,10 @@ class BaseIPProblem(BaseEMProblem):
                 du_dmT = -dA_dmT + dRHS_dmT
                 Jtv += (df_dmT + du_dmT).astype(float)
         # Conductivity ((d u / d log sigma).T)
-        if self._formulation is 'EB':
+        if self._formulation == 'EB':
             return -Utils.mkvc(Jtv)
         # Conductivity ((d u / d log rho).T)
-        if self._formulation is 'HJ':
+        if self._formulation == 'HJ':
             return Utils.mkvc(Jtv)
 
     def getSourceTerm(self):
@@ -123,11 +123,11 @@ class BaseIPProblem(BaseEMProblem):
 
         Srcs = self.survey.srcList
 
-        if self._formulation is 'EB':
+        if self._formulation == 'EB':
             n = self.mesh.nN
             # return NotImplementedError
 
-        elif self._formulation is 'HJ':
+        elif self._formulation == 'HJ':
             n = self.mesh.nC
 
         q = np.zeros((n, len(Srcs)))
