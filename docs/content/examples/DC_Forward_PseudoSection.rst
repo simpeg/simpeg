@@ -17,9 +17,9 @@ pseudo-section. Assumes an infinite line source and measures along the
 center of the spheres.
 
 INPUT:
-loc     = Location of spheres [[x1,y1,z1],[x2,y2,z2]]
-radi    = Radius of spheres [r1,r2]
-param   = Conductivity of background and two spheres [m0,m1,m2]
+loc     = Location of spheres [[x1, y1, z1], [x2, y2, z2]]
+radi    = Radius of spheres [r1, r2]
+param   = Conductivity of background and two spheres [m0, m1, m2]
 surveyType = survey type 'pole-dipole' or 'dipole-dipole'
 unitType = Data type "appResistivity" | "appConductivity"  | "volt"
 Created by @fourndo
