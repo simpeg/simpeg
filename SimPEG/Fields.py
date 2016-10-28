@@ -171,7 +171,6 @@ class Fields(object):
                 )
                 func = getattr(self, func)
             self._fields[alias]
-            print(type(alias))
             out = func(self._fields[alias][:, ind], srcII)
         if out.shape[0] == out.size or out.ndim == 1:
             out = Utils.mkvc(out, 2)
