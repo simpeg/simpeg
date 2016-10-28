@@ -192,7 +192,6 @@ def plot_pseudoSection(DCsurvey, axs, stype='dpdp', dtype="appc", clim=None, col
         @author: dominiquef
 
     """
-    from SimPEG import np
     from scipy.interpolate import griddata
     import pylab as plt
 
