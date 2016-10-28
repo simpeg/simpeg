@@ -4,9 +4,9 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import SimPEG
-# from SimPEG.EM.Base import BaseEMSurvey
 from SimPEG.Utils import Zero, closestPoints, mkvc
 import numpy as np
+
 
 class BaseSrc(SimPEG.Survey.BaseSrc):
 
@@ -33,7 +33,6 @@ class BaseSrc(SimPEG.Survey.BaseSrc):
         return np.array([rx.nD*len(rx.times) for rx in self.rxList])
 
 
-
 class Dipole(BaseSrc):
 
     def __init__(self, rxList, locA, locB, **kwargs):
@@ -52,6 +51,7 @@ class Dipole(BaseSrc):
             q = self.current * mkvc(qa+qb)
         return q
 
+
 class Pole(BaseSrc):
 
     def __init__(self, rxList, loc, **kwargs):
@@ -66,4 +66,3 @@ class Pole(BaseSrc):
             q = prob.mesh.getInterpolationMat(self.loc, locType='N').todense()
             q = self.current * mkvc(q)
         return q
-

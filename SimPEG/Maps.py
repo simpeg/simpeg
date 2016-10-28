@@ -361,6 +361,12 @@ class Wires(object):
         return self._nP
 
 
+###############################################################################
+#                                                                             #
+#                          Mesh Independent Maps                              #
+#                                                                             #
+###############################################################################
+
 class ExpMap(IdentityMap):
     """
         Changes the model into the physical property.
@@ -376,8 +382,8 @@ class ExpMap(IdentityMap):
             \exp{m} = \exp{\log{\sigma}} = \sigma
     """
 
-    def __init__(self, mesh, **kwargs):
-        IdentityMap.__init__(self, mesh, **kwargs)
+    def __init__(self, mesh=None, nP=None, **kwargs):
+        super(ExpMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
 
     def _transform(self, m):
         return np.exp(Utils.mkvc(m))
@@ -437,6 +443,9 @@ class ReciprocalMap(IdentityMap):
             \\rho = \\frac{1}{\sigma}
 
     """
+    def __init__(self, mesh=None, nP=None, **kwargs):
+        super(ReciprocalMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
+
     def _transform(self, m):
         return 1.0 / Utils.mkvc(m)
 
@@ -473,8 +482,8 @@ class LogMap(IdentityMap):
 
     """
 
-    def __init__(self, mesh, **kwargs):
-        IdentityMap.__init__(self, mesh, **kwargs)
+    def __init__(self, mesh=None, nP=None, **kwargs):
+        super(LogMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
 
     def _transform(self, m):
         return np.log(Utils.mkvc(m))
@@ -491,6 +500,93 @@ class LogMap(IdentityMap):
 
     def inverse(self, m):
         return np.exp(Utils.mkvc(m))
+
+
+class Weighting(IdentityMap):
+    """
+        Model weight parameters.
+    """
+
+    def __init__(self, mesh=None, nP=None, weights=None, **kwargs):
+
+        if 'nC' in kwargs:
+            raise AttributeError(
+                '`nC` is depreciated. Use `nP` to set the number of model '
+                'parameters'
+            )
+
+        super(Weighting, self).__init__(mesh=mesh, nP=nP, **kwargs)
+
+        if weights is None:
+            weights = np.ones(self.nP)
+
+        self.weights = np.array(weights, dtype=float)
+
+    @property
+    def shape(self):
+        return (self.nP, self.nP)
+
+    @property
+    def P(self):
+        return Utils.sdiag(self.weights)
+
+    def _transform(self, m):
+        return self.weights*m
+
+    def inverse(self, D):
+        return self.weights**(-1.) * D
+
+    def deriv(self, m, v=None):
+        if v is not None:
+            return self.weights * v
+        return self.P
+
+
+class ComplexMap(IdentityMap):
+    """ComplexMap
+
+        default nP is nC in the mesh times 2 [real, imag]
+
+    """
+    def __init__(self, mesh=None, nP=None, **kwargs):
+        super(ComplexMap, self).__init__(mesh=mesh, nP=nP, **kwargs)
+        if nP is not None:
+            assert nP % 2 == 0, 'nP must be even.'
+        self._nP = nP or (self.mesh.nC * 2)
+
+    @property
+    def nP(self):
+        return self._nP
+
+    @property
+    def shape(self):
+        return (self.nP/2, self.nP)
+
+    def _transform(self, m):
+        nC = self.mesh.nC
+        return m[:nC] + m[nC:]*1j
+
+    def deriv(self, m, v=None):
+        nC = self.nP/2
+        shp = (nC, nC*2)
+
+        def fwd(v):
+            return v[:nC] + v[nC:]*1j
+
+        def adj(v):
+            return np.r_[v.real, v.imag]
+        if v is not None:
+            return LinearOperator(shp, matvec=fwd, rmatvec=adj) * v
+        return LinearOperator(shp, matvec=fwd, rmatvec=adj)
+
+    # inverse = deriv
+
+
+###############################################################################
+#                                                                             #
+#                 Surjection, Injection and Interpolation Maps                #
+#                                                                             #
+###############################################################################
 
 
 class SurjectFull(IdentityMap):
@@ -831,86 +927,11 @@ class InjectActiveCells(IdentityMap):
         return self.P
 
 
-class Weighting(IdentityMap):
-    """
-        Model weight parameters.
-    """
-
-    weights = None  #: Active Cells
-    nC = None  #: Number of cells in the full model
-
-    def __init__(self, mesh, weights=None, nC=None):
-        self.mesh = mesh
-
-        self.nC = nC or mesh.nC
-
-        if weights is None:
-            weights = np.ones(self.nC)
-
-        self.weights = np.array(weights, dtype=float)
-
-        self.P = Utils.sdiag(self.weights)
-
-    @property
-    def shape(self):
-        return (self.nC, self.nP)
-
-    @property
-    def nP(self):
-        """Number of parameters in the model."""
-        return self.nC
-
-    def _transform(self, m):
-        return self.P*m
-
-    def inverse(self, D):
-        Pinv = Utils.sdiag(self.weights**(-1.))
-        return Pinv*D
-
-    def deriv(self, m, v=None):
-        if v is not None:
-            return self.P * v
-        return self.P
-
-
-class ComplexMap(IdentityMap):
-    """ComplexMap
-
-        default nP is nC in the mesh times 2 [real, imag]
-
-    """
-    def __init__(self, mesh, nP=None):
-        IdentityMap.__init__(self, mesh)
-        if nP is not None:
-            assert nP % 2 == 0, 'nP must be even.'
-        self._nP = nP or (self.mesh.nC * 2)
-
-    @property
-    def nP(self):
-        return self._nP
-
-    @property
-    def shape(self):
-        return (self.nP/2, self.nP)
-
-    def _transform(self, m):
-        nC = self.mesh.nC
-        return m[:nC] + m[nC:]*1j
-
-    def deriv(self, m, v=None):
-        nC = self.nP/2
-        shp = (nC, nC*2)
-
-        def fwd(v):
-            return v[:nC] + v[nC:]*1j
-
-        def adj(v):
-            return np.r_[v.real, v.imag]
-        if v is not None:
-            return LinearOperator(shp, matvec=fwd, rmatvec=adj) * v
-        return LinearOperator(shp, matvec=fwd, rmatvec=adj)
-
-    # inverse = deriv
+###############################################################################
+#                                                                             #
+#                             Parametric Maps                                 #
+#                                                                             #
+###############################################################################
 
 
 class ParametricCircleMap(IdentityMap):
@@ -918,7 +939,7 @@ class ParametricCircleMap(IdentityMap):
 
         Parameterize the model space using a circle in a wholespace.
 
-        ..math::
+        .. math::
 
             \sigma(m) = \sigma_1 + (\sigma_2 - \sigma_1)\left(
             \\arctan\left(100*\sqrt{(\\vec{x}-x_0)^2 + (\\vec{y}-y_0)}-r
@@ -926,7 +947,7 @@ class ParametricCircleMap(IdentityMap):
 
         Define the model as:
 
-        ..math::
+        .. math::
 
             m = [\sigma_1, \sigma_2, x_0, y_0, r]
 
@@ -1010,13 +1031,13 @@ class ParametricPolyMap(IdentityMap):
 
         Parameterize the model space using a polynomials in a wholespace.
 
-        ..math::
+        .. math::
 
             y = \mathbf{V} c
 
         Define the model as:
 
-        ..math::
+        .. math::
 
             m = [\sigma_1, \sigma_2, c]
 
@@ -1156,13 +1177,13 @@ class ParametricSplineMap(IdentityMap):
         Parameterize the boundary of two geological units using
         a spline interpolation
 
-        ..math::
+        .. math::
 
             g = f(x)-y
 
         Define the model as:
 
-        ..math::
+        .. math::
 
             m = [\sigma_1, \sigma_2, y]
 

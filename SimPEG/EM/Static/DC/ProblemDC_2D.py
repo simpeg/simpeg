@@ -152,11 +152,11 @@ class BaseDCProblem_2D(BaseEMProblem):
 
         Srcs = self.survey.srcList
 
-        if self._formulation is 'EB':
+        if self._formulation == 'EB':
             n = self.mesh.nN
             # return NotImplementedError
 
-        elif self._formulation is 'HJ':
+        elif self._formulation == 'HJ':
             n = self.mesh.nC
 
         q = np.zeros((n, len(Srcs)))

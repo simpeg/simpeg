@@ -3,13 +3,15 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from SimPEG import np
+import numpy as np
 from .. import DC, IP
 
-# Moved from old DCIP branch
-# This code needs to be verified ..
-def writeUBC_DCobs(fileName, DCsurvey, dim, surveyType, iptype = 0):
+
+def writeUBC_DCobs(fileName, DCsurvey, dim, surveyType, iptype=0):
     """
+
+        # Moved from old DCIP branch
+        # This code needs to be verified ..
         Write UBC GIF DCIP 2D or 3D observation file
 
         :param string fileName: including path where the file is written out
@@ -22,10 +24,10 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, surveyType, iptype = 0):
 
     from SimPEG import mkvc
 
-    assert (dim=='2D') | (dim=='3D'), "Data must be either '2D' | '3D'"
-    assert (surveyType=='SURFACE') | (surveyType=='GENERAL') | (surveyType=='SIMPLE'), "Data must be either 'SURFACE' | 'GENERAL' | 'SIMPLE'"
+    assert (dim == '2D') | (dim == '3D'), "Data must be either '2D' | '3D'"
+    assert (surveyType == 'SURFACE') | (surveyType == 'GENERAL') | (surveyType == 'SIMPLE'), "Data must be either 'SURFACE' | 'GENERAL' | 'SIMPLE'"
 
-    fid = open(fileName,'w')
+    fid = open(fileName, 'w')
     fid.write('! ' + surveyType + ' FORMAT\n')
 
     if iptype!=0:
@@ -48,64 +50,64 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, surveyType, iptype = 0):
         N = rx[1]
 
         # Adapt source-receiver location for dim and surveyType
-        if dim=='2D':
+        if dim == '2D':
 
             if surveyType == 'SIMPLE':
 
-                #fid.writelines("%e " % ii for ii in mkvc(tx[0,:]))
-                A = np.repeat(tx[0,0],M.shape[0],axis=0)
-                B = np.repeat(tx[0,1],M.shape[0],axis=0)
-                M = M[:,0]
-                N = N[:,0]
+                # fid.writelines("%e " % ii for ii in mkvc(tx[0, :]))
+                A = np.repeat(tx[0, 0], M.shape[0], axis=0)
+                B = np.repeat(tx[0, 1], M.shape[0], axis=0)
+                M = M[:, 0]
+                N = N[:, 0]
 
-                np.savetxt(fid, np.c_[A, B, M, N , DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e',delimiter=' ',newline='\n')
-
+                np.savetxt(fid, np.c_[A, B, M, N , DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e', delimiter=' ', newline='\n')
 
             else:
 
                 if surveyType == 'SURFACE':
 
-                    fid.writelines("%f " % ii for ii in mkvc(tx[0,:]))
-                    M = M[:,0]
-                    N = N[:,0]
+                    fid.writelines("%f " % ii for ii in mkvc(tx[0, :]))
+                    M = M[:, 0]
+                    N = N[:, 0]
 
                 if surveyType == 'GENERAL':
 
                     # Flip sign for z-elevation to depth
-                    tx[2::2,:] = -tx[2::2,:]
+                    tx[2::2, :] = -tx[2::2, :]
 
-                    fid.writelines("%e " % ii for ii in mkvc(tx[::2,:]))
-                    M = M[:,0::2]
-                    N = N[:,0::2]
+                    fid.writelines("%e " % ii for ii in mkvc(tx[::2, :]))
+                    M = M[:, 0::2]
+                    N = N[:, 0::2]
 
                     # Flip sign for z-elevation to depth
-                    M[:,1::2] = -M[:,1::2]
-                    N[:,1::2] = -N[:,1::2]
+                    M[:, 1::2] = -M[:, 1::2]
+                    N[:, 1::2] = -N[:, 1::2]
 
-                fid.write('%i\n'% nD)
-                np.savetxt(fid, np.c_[ M, N , DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%f',delimiter=' ',newline='\n')
+                fid.write('%i\n' % nD)
+                np.savetxt(fid, np.c_[ M, N , DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%f', delimiter=' ', newline='\n')
 
-        if dim=='3D':
+        if dim == '3D':
 
             if surveyType == 'SURFACE':
 
-                fid.writelines("%e " % ii for ii in mkvc(tx[0:2,:]))
-                M = M[:,0:2]
-                N = N[:,0:2]
+                fid.writelines("%e " % ii for ii in mkvc(tx[0:2, :]))
+                M = M[:, 0:2]
+                N = N[:, 0:2]
 
             if surveyType == 'GENERAL':
 
-                fid.writelines("%e " % ii for ii in mkvc(tx[0:3,:]))
+                fid.writelines("%e " % ii for ii in mkvc(tx[0:3, :]))
 
             fid.write('%i\n'% nD)
-            np.savetxt(fid, np.c_[ M, N , DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e',delimiter=' ',newline='\n')
+            np.savetxt(fid, np.c_[ M, N , DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e', delimiter=' ', newline='\n')
             fid.write('\n')
 
         count += nD
 
     fid.close()
 
-def readUBC_DC3Dobs(fileName, rtype = 'DC'):
+
+def readUBC_DC3Dobs(fileName, rtype='DC'):
     """
         Read UBC GIF IP 3D observation file and generate survey
 
@@ -118,10 +120,10 @@ def readUBC_DC3Dobs(fileName, rtype = 'DC'):
 
     # Load file
     if rtype == 'IP':
-        obsfile = np.genfromtxt(fileName,delimiter=' \n',dtype=np.str,comments='IPTYPE')
+        obsfile = np.genfromtxt(fileName, delimiter=' \n', dtype=np.str, comments='IPTYPE')
 
     elif rtype == 'DC':
-        obsfile = np.genfromtxt(fileName,delimiter=' \n',dtype=np.str,comments='!')
+        obsfile = np.genfromtxt(fileName, delimiter=' \n', dtype=np.str, comments='!')
 
     else:
         print "rtype must be 'DC'(default) | 'IP'"
@@ -131,7 +133,6 @@ def readUBC_DC3Dobs(fileName, rtype = 'DC'):
     Rx = []
     d = []
     wd = []
-
 
     # Countdown for number of obs/tx
     count = 0
@@ -148,8 +149,8 @@ def readUBC_DC3Dobs(fileName, rtype = 'DC'):
             count = int(temp[-1])
 
             # Check if z value is provided, if False -> nan
-            if len(temp)==5:
-                tx = np.r_[temp[0:2],np.nan,temp[2:4],np.nan]
+            if len(temp) == 5:
+                tx = np.r_[temp[0:2], np.nan, temp[2:4], np.nan]
 
                 zflag = False # Pass on the flag to the receiver loc
 
@@ -159,7 +160,7 @@ def readUBC_DC3Dobs(fileName, rtype = 'DC'):
             rx = []
             continue
 
-        temp = np.fromstring(obsfile[ii], dtype=float,sep=' ') # Get the string
+        temp = np.fromstring(obsfile[ii], dtype=float, sep=' ') # Get the string
 
         # Filter out negative IP
 #        if temp[-2] < 0:
@@ -173,12 +174,12 @@ def readUBC_DC3Dobs(fileName, rtype = 'DC'):
 
             rx.append(temp[:-2])
             # Check if there is data with the location
-            if len(temp)==8:
+            if len(temp) == 8:
                 d.append(temp[-2])
                 wd.append(temp[-1])
 
         else:
-            rx.append(np.r_[temp[0:2],np.nan,temp[2:4],np.nan] )
+            rx.append(np.r_[temp[0:2], np.nan, temp[2:4], np.nan] )
             # Check if there is data with the location
             if len(temp)==6:
                 d.append(temp[-2])
@@ -189,8 +190,8 @@ def readUBC_DC3Dobs(fileName, rtype = 'DC'):
         # Reach the end of transmitter block, append the src, rx and continue
         if count == 0:
             rx = np.asarray(rx)
-            Rx = DC.RxDipole(rx[:,:3],rx[:,3:])
-            srcLists.append( DC.SrcDipole( [Rx], tx[:3],tx[3:]) )
+            Rx = DC.RxDipole(rx[:, :3], rx[:, 3:])
+            srcLists.append( DC.SrcDipole( [Rx], tx[:3], tx[3:]) )
 
     # Create survey class
     survey = DC.SurveyDC(srcLists)
@@ -198,7 +199,8 @@ def readUBC_DC3Dobs(fileName, rtype = 'DC'):
     survey.dobs = np.asarray(d)
     survey.std = np.asarray(wd)
 
-    return {'DCsurvey':survey}
+    return {'DCsurvey': survey}
+
 
 def readUBC_DC2Dobs(fileName):
     """
@@ -210,37 +212,35 @@ def readUBC_DC2Dobs(fileName):
         :return: source_locs, rx_locs, ??, ??
     """
 
-    from SimPEG import np
-
     # Load file
-    obsfile = np.genfromtxt(fileName,delimiter=' \n',dtype=np.str,comments='!')
+    obsfile = np.genfromtxt(fileName, delimiter=' \n', dtype=np.str, comments='!')
 
     # Check first line and figure out if 2D or 3D file format
-    line = np.array(obsfile[0].split(),dtype=float)
+    line = np.array(obsfile[0].split(), dtype=float)
 
-    tx_A  = []
-    tx_B  = []
-    rx_M  = []
-    rx_N  = []
-    d   = []
-    wd  = []
+    tx_A = []
+    tx_B = []
+    rx_M = []
+    rx_N = []
+    d = []
+    wd = []
 
     for ii in range(obsfile.shape[0]):
 
-        # If len==3, then simple format where tx-rx is listed on each line
+        # If len == 3, then simple format where tx-rx is listed on each line
         if len(line) == 4:
 
-            temp = np.fromstring(obsfile[ii], dtype=float,sep=' ')
-            tx_A = np.hstack((tx_A,temp[0]))
-            tx_B = np.hstack((tx_B,temp[1]))
-            rx_M = np.hstack((rx_M,temp[2]))
-            rx_N = np.hstack((rx_N,temp[3]))
+            temp = np.fromstring(obsfile[ii], dtype=float, sep=' ')
+            tx_A = np.hstack((tx_A, temp[0]))
+            tx_B = np.hstack((tx_B, temp[1]))
+            rx_M = np.hstack((rx_M, temp[2]))
+            rx_N = np.hstack((rx_N, temp[3]))
 
-
-    rx = np.transpose(np.array((rx_M,rx_N)))
-    tx = np.transpose(np.array((tx_A,tx_B)))
+    rx = np.transpose(np.array((rx_M, rx_N)))
+    tx = np.transpose(np.array((tx_A, tx_B)))
 
     return tx, rx, d, wd
+
 
 def readUBC_DC2Dpre(fileName):
     """
@@ -257,14 +257,13 @@ def readUBC_DC2Dpre(fileName):
 
     """
 
-    # Load file
-    obsfile = np.genfromtxt(fileName,delimiter=' \n',dtype=np.str,comments='!')
+    obsfile = np.genfromtxt(fileName, delimiter=' \n', dtype=np.str, comments='!')
 
     # Pre-allocate
     srcLists = []
     Rx = []
     d = []
-    zflag = True # Flag for z value provided
+    zflag = True  # Flag for z value provided
 
     for ii in range(obsfile.shape[0]):
 
@@ -273,39 +272,35 @@ def readUBC_DC2Dpre(fileName):
 
         # First line is transmitter with number of receivers
 
-
-        temp = (np.fromstring(obsfile[ii], dtype=float,sep=' ').T)
-
+        temp = (np.fromstring(obsfile[ii], dtype=float, sep=' ').T)
 
         # Check if z value is provided, if False -> nan
-        if len(temp)==5:
-            tx = np.r_[temp[0],np.nan,np.nan,temp[1],np.nan,np.nan]
+        if len(temp) == 5:
+            tx = np.r_[temp[0], np.nan, np.nan, temp[1], np.nan, np.nan]
             zflag = False
 
         else:
-            tx = np.r_[temp[0],np.nan,temp[1],temp[2],np.nan,temp[3]]
-
+            tx = np.r_[temp[0], np.nan, temp[1], temp[2], np.nan, temp[3]]
 
         if zflag:
-            rx = np.c_[temp[4],np.nan,temp[5],temp[6],np.nan,temp[7]]
-
+            rx = np.c_[temp[4], np.nan, temp[5], temp[6], np.nan, temp[7]]
 
         else:
-            rx = np.c_[temp[2],np.nan,np.nan,temp[3],np.nan,np.nan]
+            rx = np.c_[temp[2], np.nan, np.nan, temp[3], np.nan, np.nan]
             # Check if there is data with the location
 
         d.append(temp[-1])
 
-
-        Rx = DC.RxDipole(rx[:,:3],rx[:,3:])
-        srcLists.append( DC.SrcDipole( [Rx], tx[:3],tx[3:]) )
+        Rx = DC.RxDipole(rx[:, :3], rx[:, 3:])
+        srcLists.append( DC.SrcDipole( [Rx], tx[:3], tx[3:]) )
 
     # Create survey class
     survey = DC.SurveyDC(srcLists)
 
     survey.dobs = np.asarray(d)
 
-    return {'DCsurvey':survey}
+    return {'DCsurvey': survey}
+
 
 def readUBC_DC2DMesh(fileName):
     """
@@ -321,16 +316,14 @@ def readUBC_DC2DMesh(fileName):
 
     """
 
-    from SimPEG import np
-    # Open file
-    fopen = open(fileName,'r')
+    fopen = open(fileName, 'r')
 
     # Read down the file and unpack dx vector
-    def unpackdx(fid,nrows):
+    def unpackdx(fid, nrows):
         for ii in range(nrows):
 
             line = fid.readline()
-            var = np.array(line.split(),dtype=float)
+            var = np.array(line.split(), dtype=float)
 
             if ii==0:
                 x0= var[0]
@@ -338,39 +331,39 @@ def readUBC_DC2DMesh(fileName):
                 xend = var[1]
 
             else:
-                xvec = np.hstack((xvec,np.ones(int(var[1])) * (var[0] - xend) / int(var[1])))
+                xvec = np.hstack((xvec, np.ones(int(var[1])) * (var[0] - xend) / int(var[1])))
                 xend = var[0]
 
         return x0, xvec
 
-    #%% Start with dx block
+    # Start with dx block
     # First line specifies the number of rows for x-cells
     line = fopen.readline()
-    nl = np.array(line.split(),dtype=float)
+    nl = np.array(line.split(), dtype=float)
 
-    [x0, dx] = unpackdx(fopen,nl)
+    [x0, dx] = unpackdx(fopen, nl)
 
-
-    #%% Move down the file until reaching the z-block
+    # Move down the file until reaching the z-block
     line = fopen.readline()
     if not line:
         line = fopen.readline()
 
-    #%% End with dz block
+    # End with dz block
     # First line specifies the number of rows for z-cells
     line = fopen.readline()
-    nl = np.array(line.split(),dtype=float)
+    nl = np.array(line.split(), dtype=float)
 
-    [z0, dz] = unpackdx(fopen,nl)
+    [z0, dz] = unpackdx(fopen, nl)
 
     # Flip z0 to be the bottom of the mesh for SimPEG
     z0 = z0 - sum(dz)
     dz = dz[::-1]
-    #%% Make the mesh using SimPEG
+    # Make the mesh using SimPEG
 
     from SimPEG import Mesh
-    tensMsh = Mesh.TensorMesh([dx,dz],(x0, z0))
+    tensMsh = Mesh.TensorMesh([dx, dz], (x0, z0))
     return tensMsh
+
 
 def xy_2_lineID(DCsurvey):
     """
@@ -396,7 +389,7 @@ def xy_2_lineID(DCsurvey):
     lineID = np.zeros(nstn)
 
     linenum = 0
-    indx    = 0
+    indx = 0
 
     for ii in range(nstn):
 
@@ -405,13 +398,13 @@ def xy_2_lineID(DCsurvey):
             A = DCsurvey.srcList[ii].loc[0]
             B = DCsurvey.srcList[ii].loc[1]
 
-            xout = np.mean([A[0:2],B[0:2]], axis = 0)
+            xout = np.mean([A[0:2], B[0:2]], axis = 0)
 
             xy0 = A[:2]
             xym = xout
 
             # Deal with replicate pole location
-            if np.all(xy0==xym):
+            if np.all(xy0 == xym):
 
                 xym[0] = xym[0] + 1e-3
 
@@ -420,33 +413,33 @@ def xy_2_lineID(DCsurvey):
         A = DCsurvey.srcList[ii].loc[0]
         B = DCsurvey.srcList[ii].loc[1]
 
-        xin = np.mean([A[0:2],B[0:2]], axis = 0)
+        xin = np.mean([A[0:2], B[0:2]], axis=0)
 
         # Compute vector between neighbours
-        vec1, r1 = r_unit(xout,xin)
+        vec1, r1 = r_unit(xout, xin)
 
         # Compute vector between current stn and mid-point
-        vec2, r2 = r_unit(xym,xin)
+        vec2, r2 = r_unit(xym, xin)
 
         # Compute vector between current stn and start line
-        vec3, r3 = r_unit(xy0,xin)
+        vec3, r3 = r_unit(xy0, xin)
 
         # Compute vector between mid-point and start line
-        vec4, r4 = r_unit(xym,xy0)
+        vec4, r4 = r_unit(xym, xy0)
 
         # Compute dot product
         ang1 = np.abs(vec1.dot(vec2))
         ang2 = np.abs(vec3.dot(vec4))
 
         # If the angles are smaller then 45d, than next point is on a new line
-        if ((ang1 < np.cos(np.pi/4.)) | (ang2 < np.cos(np.pi/4.))) & (np.all(np.r_[r1,r2,r3,r4] > 0)):
+        if ((ang1 < np.cos(np.pi/4.)) | (ang2 < np.cos(np.pi/4.))) & (np.all(np.r_[r1, r2, r3, r4] > 0)):
 
             # Re-initiate start and mid-point location
             xy0 = A[:2]
             xym = xin
 
             # Deal with replicate pole location
-            if np.all(xy0==xym):
+            if np.all(xy0 == xym):
 
                 xym[0] = xym[0] + 1e-3
 
@@ -454,31 +447,31 @@ def xy_2_lineID(DCsurvey):
             indx = ii
 
         else:
-            xym = np.mean([xy0,xin], axis = 0)
+            xym = np.mean([xy0, xin], axis = 0)
 
         lineID[ii] = linenum
         xout = xin
 
     return lineID
 
-def r_unit(p1,p2):
+
+def r_unit(p1, p2):
     """
-    r_unit(x,y) : Function computes the unit vector
-    between two points with coordinates p1(x1,y1) and p2(x2,y2)
+    r_unit(x, y) : Function computes the unit vector
+    between two points with coordinates p1(x1, y1) and p2(x2, y2)
 
     """
 
-    assert len(p1)==len(p2), 'locs must be the same shape.'
+    assert len(p1) == len(p2), 'locs must be the same shape.'
 
     dx = []
     for ii in range(len(p1)):
         dx.append((p2[ii] - p1[ii]))
 
     # Compute length of vector
-    r =  np.linalg.norm(np.asarray(dx))
+    r = np.linalg.norm(np.asarray(dx))
 
-
-    if r!=0:
+    if r != 0:
         vec = dx/r
 
     else:
@@ -486,14 +479,11 @@ def r_unit(p1,p2):
 
     return vec, r
 
+
 def getSrc_locs(DCsurvey):
-    """
 
-
-    """
-
-    srcMat = np.zeros((DCsurvey.nSrc,2,3))
+    srcMat = np.zeros((DCsurvey.nSrc, 2, 3))
     for ii in range(DCsurvey.nSrc):
-        srcMat[ii,:,:] =  np.asarray(DCsurvey.srcList[ii].loc)
+        srcMat[ii, :, :] = np.asarray(DCsurvey.srcList[ii].loc)
 
     return srcMat

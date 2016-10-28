@@ -4,7 +4,6 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import SimPEG
-# from SimPEG.EM.Base import BaseEMSurvey
 from SimPEG.Utils import Zero, closestPoints, mkvc
 import numpy as np
 

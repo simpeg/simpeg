@@ -3,8 +3,11 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from SimPEG import np, mkvc, Mesh, Utils
+import numpy as np
+
+from SimPEG import Utils, Mesh
 from SimPEG.EM.Static import DC
+
 
 def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appConductivity", clim=None, scale="linear", sameratio=True):
     """
@@ -26,7 +29,6 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appC
         @author: dominiquef
 
     """
-    from SimPEG import np
     from scipy.interpolate import griddata
     import pylab as plt
     # Set depth to 0 for now
@@ -37,7 +39,8 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appC
     midz = []
     rho = []
     LEG = []
-    count = 0 # Counter for data
+    count = 0  # Counter for data
+
     for ii in range(DCsurvey.nSrc):
 
         Tx = DCsurvey.srcList[ii].loc
@@ -169,6 +172,7 @@ def plot_pseudoSection(DCsurvey, axs, surveyType='dipole-dipole', dataType="appC
 
     return ph, ax, cbar, LEG
 
+
 def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
     """
         Load in endpoints and survey specifications to generate Tx, Rx location
@@ -191,8 +195,6 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
         @author: dominiquef
         !! Require clean up to deal with DCsurvey
     """
-
-    from SimPEG import np
 
     def xy_2_r(x1, x2, y1, y2):
         r = np.sqrt(np.sum((x2 - x1)**2 + (y2 - y1)**2))
@@ -235,27 +237,27 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
         for ii in range(0, int(nstn)-1):
 
             if surveyType == 'dipole-dipole':
-                tx = np.c_[M[ii,:],N[ii,:]]
+                tx = np.c_[M[ii, :], N[ii, :]]
             elif surveyType == 'pole-dipole':
-                tx = np.c_[M[ii,:],M[ii,:]]
+                tx = np.c_[M[ii, :], M[ii, :]]
             else:
                 raise Exception('The surveyType must be "dipole-dipole" or "pole-dipole"')
 
-            # Rx.append(np.c_[M[ii+1:indx,:],N[ii+1:indx,:]])
+            # Rx.append(np.c_[M[ii+1:indx, :], N[ii+1:indx, :]])
 
             # Current elctrode seperation
-            AB = xy_2_r(tx[0,1],endl[1,0],tx[1,1],endl[1,1])
+            AB = xy_2_r(tx[0, 1], endl[1, 0], tx[1, 1], endl[1, 1])
 
             # Number of receivers to fit
-            nstn = np.min([np.floor( (AB - b) / a ) , n])
+            nstn = np.min([np.floor((AB - b) / a), n])
 
             # Check if there is enough space, else break the loop
             if nstn <= 0:
                 continue
 
             # Compute discrete pole location along line
-            stn_x = N[ii,0] + dl_x*b + np.array(range(int(nstn)))*dl_x*a
-            stn_y = N[ii,1] + dl_y*b + np.array(range(int(nstn)))*dl_y*a
+            stn_x = N[ii, 0] + dl_x*b + np.array(range(int(nstn)))*dl_x*a
+            stn_y = N[ii, 1] + dl_y*b + np.array(range(int(nstn)))*dl_y*a
 
             # Create receiver poles
 
@@ -274,9 +276,9 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
                 rxClass = DC.Rx.Dipole_ky(P1, P2)
 
             if surveyType == 'dipole-dipole':
-                srcClass = DC.Src.Dipole([rxClass], M[ii,:],N[ii,:])
+                srcClass = DC.Src.Dipole([rxClass], M[ii, :], N[ii, :])
             elif surveyType == 'pole-dipole':
-                srcClass = DC.Src.Pole([rxClass], M[ii,:])
+                srcClass = DC.Src.Pole([rxClass], M[ii, :])
             SrcList.append(srcClass)
 
     elif surveyType == 'gradient':
@@ -312,7 +314,7 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
         for ii in range(len(lind)):
 
             # Move station location to current survey line This is a
-            # perpendicular move then line survey orientation, hence the y,x
+            # perpendicular move then line survey orientation, hence the y, x
             # switch
             lxx = stn_x - lind[ii]*a*dl_y
             lyy = stn_y + lind[ii]*a*dl_x
@@ -350,8 +352,6 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0):
         :rtype: file
         :return: UBC2D-Data file
     """
-
-    from SimPEG import mkvc
 
     assert (dim == '2D') | (dim == '3D'), "Data must be either '2D' | '3D'"
 
@@ -391,7 +391,7 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0):
 
             if formatType == 'SIMPLE':
 
-                # fid.writelines("%e " % ii for ii in mkvc(tx[0,:]))
+                # fid.writelines("%e " % ii for ii in Utils.mkvc(tx[0, :]))
                 A = np.repeat(tx[0], M.shape[0], axis=0)
 
                 if surveyType == 'pole-dipole':
@@ -412,40 +412,40 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0):
 
                 if formatType == 'SURFACE':
 
-                    fid.writelines("%f " % ii for ii in mkvc(tx[0,:]))
-                    M = M[:,0]
-                    N = N[:,0]
+                    fid.writelines("%f " % ii for ii in Utils.mkvc(tx[0, :]))
+                    M = M[:, 0]
+                    N = N[:, 0]
 
                 if formatType == 'GENERAL':
 
                     # Flip sign for z-elevation to depth
-                    tx[2::2,:] = -tx[2::2,:]
+                    tx[2::2, :] = -tx[2::2, :]
 
-                    fid.writelines("%e " % ii for ii in mkvc(tx[::2,:]))
-                    M = M[:,0::2]
-                    N = N[:,0::2]
+                    fid.writelines("%e " % ii for ii in Utils.mkvc(tx[::2, :]))
+                    M = M[:, 0::2]
+                    N = N[:, 0::2]
 
                     # Flip sign for z-elevation to depth
-                    M[:,1::2] = -M[:,1::2]
-                    N[:,1::2] = -N[:,1::2]
+                    M[:, 1::2] = -M[:, 1::2]
+                    N[:, 1::2] = -N[:, 1::2]
 
                 fid.write('%i\n'% nD)
-                np.savetxt(fid, np.c_[M, N, DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%f',delimiter=' ',newline='\n')
+                np.savetxt(fid, np.c_[M, N, DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%f', delimiter=' ', newline='\n')
 
         if dim == '3D':
 
             if formatType == 'SURFACE':
 
-                fid.writelines("%e " % ii for ii in mkvc(tx[:,0:2].T))
-                M = M[:,0:2]
-                N = N[:,0:2]
+                fid.writelines("%e " % ii for ii in Utils.mkvc(tx[:, 0:2].T))
+                M = M[:, 0:2]
+                N = N[:, 0:2]
 
             if formatType == 'GENERAL':
 
-                fid.writelines("%e " % ii for ii in mkvc(tx.T))
+                fid.writelines("%e " % ii for ii in Utils.mkvc(tx.T))
 
             fid.write('%i\n'% nD)
-            np.savetxt(fid, np.c_[M, N, DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e',delimiter=' ',newline='\n')
+            np.savetxt(fid, np.c_[M, N, DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e', delimiter=' ', newline='\n')
             fid.write('\n')
 
         count += nD
@@ -473,7 +473,6 @@ def convertObs_DC3D_to_2D(survey, lineID, flag='local'):
         @author: dominiquef
 
     """
-    from SimPEG import np
 
     def stn_id(v0, v1, r):
         """
@@ -486,8 +485,8 @@ def convertObs_DC3D_to_2D(survey, lineID, flag='local'):
 
     def r_unit(p1, p2):
         """
-        r_unit(x,y) : Function computes the unit vector
-        between two points with coordinates p1(x1,y1) and p2(x2,y2)
+        r_unit(x, y) : Function computes the unit vector
+        between two points with coordinates p1(x1, y1) and p2(x2, y2)
 
         """
 
@@ -593,7 +592,6 @@ def convertObs_DC3D_to_2D(survey, lineID, flag='local'):
                                  np.r_[A, 0, Tx[ii][2]],
                                  np.r_[B, 0, Tx[ii][5]]))
 
-
     survey2D = DC.SurveyDC.Survey(srcList2D)
     survey2D.dobs = survey.dobs
     survey2D.std = survey.std
@@ -617,7 +615,6 @@ def readUBC_DC2DModel(fileName):
         @author: dominiquef
 
     """
-    from SimPEG import np, mkvc
 
     # Open fileand skip header... assume that we know the mesh already
     obsfile = np.genfromtxt(fileName, delimiter=' \n',
@@ -650,9 +647,10 @@ def readUBC_DC2DModel(fileName):
         model = model[::-1, :]
         model = np.transpose(model, (1, 0))
 
-    model = mkvc(model)
+    model = Utils.mkvc(model)
 
     return model
+
 
 def readUBC_DC2Dpre(fileName):
     """
@@ -672,13 +670,13 @@ def readUBC_DC2Dpre(fileName):
     """
 
     # Load file
-    obsfile = np.genfromtxt(fileName,delimiter=' \n',dtype=np.str,comments='!')
+    obsfile = np.genfromtxt(fileName, delimiter=' \n', dtype=np.str, comments='!')
 
     # Pre-allocate
     srcLists = []
     Rx = []
     d = []
-    zflag = True # Flag for z value provided
+    zflag = True  # Flag for z value provided
 
     for ii in range(obsfile.shape[0]):
 
@@ -687,32 +685,27 @@ def readUBC_DC2Dpre(fileName):
 
         # First line is transmitter with number of receivers
 
-
-        temp = (np.fromstring(obsfile[ii], dtype=float,sep=' ').T)
-
+        temp = (np.fromstring(obsfile[ii], dtype=float, sep=' ').T)
 
         # Check if z value is provided, if False -> nan
-        if len(temp)==5:
-            tx = np.r_[temp[0],np.nan,np.nan,temp[1],np.nan,np.nan]
+        if len(temp) == 5:
+            tx = np.r_[temp[0], np.nan, np.nan, temp[1], np.nan, np.nan]
             zflag = False
 
         else:
-            tx = np.r_[temp[0],np.nan,temp[1],temp[2],np.nan,temp[3]]
-
+            tx = np.r_[temp[0], np.nan, temp[1], temp[2], np.nan, temp[3]]
 
         if zflag:
-            rx = np.c_[temp[4],np.nan,temp[5],temp[6],np.nan,temp[7]]
-
+            rx = np.c_[temp[4], np.nan, temp[5], temp[6], np.nan, temp[7]]
 
         else:
-            rx = np.c_[temp[2],np.nan,np.nan,temp[3],np.nan,np.nan]
+            rx = np.c_[temp[2], np.nan, np.nan, temp[3], np.nan, np.nan]
             # Check if there is data with the location
 
         d.append(temp[-1])
 
-
-        Rx = DC.Rx.Dipole(rx[:,:3],rx[:,3:])
-        srcLists.append( DC.Src.Dipole( [Rx], tx[:3],tx[3:]) )
+        Rx = DC.Rx.Dipole(rx[:, :3], rx[:, 3:])
+        srcLists.append( DC.Src.Dipole( [Rx], tx[:3], tx[3:]) )
 
     # Create survey class
     survey = DC.SurveyDC.Survey(srcLists)
@@ -740,14 +733,14 @@ def readUBC_DC3Dobs(fileName):
     """
 
     # Load file
-    obsfile = np.genfromtxt(fileName, delimiter=' \n',dtype=np.str,comments='!')
+    obsfile = np.genfromtxt(fileName, delimiter=' \n', dtype=np.str, comments='!')
 
     # Pre-allocate
     srcLists = []
     Rx = []
     d = []
     wd = []
-    zflag = True # Flag for z value provided
+    zflag = True  # Flag for z value provided
 
     # Countdown for number of obs/tx
     count = 0
@@ -757,54 +750,53 @@ def readUBC_DC3Dobs(fileName):
             continue
 
         # First line is transmitter with number of receivers
-        if count==0:
+        if count == 0:
 
-            temp = (np.fromstring(obsfile[ii], dtype=float,sep=' ').T)
+            temp = (np.fromstring(obsfile[ii], dtype=float, sep=' ').T)
             count = int(temp[-1])
 
             # Check if z value is provided, if False -> nan
-            if len(temp)==5:
-                tx = np.r_[temp[0:2],np.nan,temp[0:2],np.nan]
+            if len(temp) == 5:
+                tx = np.r_[temp[0:2], np.nan, temp[0:2], np.nan]
                 zflag = False
 
             else:
                 tx = temp[:-1]
 
-
             continue
 
         rx = []
-        temp = np.fromstring(obsfile[ii], dtype=float,sep=' ')
+        temp = np.fromstring(obsfile[ii], dtype=float, sep=' ')
 
         if zflag:
 
             rx.append(temp[:-2])
             # Check if there is data with the location
-            if len(temp)==8:
+            if len(temp) == 8:
                 d.append(temp[-2])
                 wd.append(temp[-1])
 
         else:
-            rx.append(np.r_[temp[0:2],np.nan,temp[0:2],np.nan] )
+            rx.append(np.r_[temp[0:2], np.nan, temp[0:2], np.nan])
 
             # Check if there is data with the location
-            if len(temp)==6:
+            if len(temp) == 6:
                 d.append(temp[-2])
                 wd.append(temp[-1])
 
-        count = count -1
+        count = count - 1
 
         rx = np.asarray(rx)
         # Reach the end of transmitter block
         if count == 0:
-            Rx = DC.Rx.Dipole(rx[:,:3],rx[:,3:])
-            srcLists.append(DC.Src.Dipole( [Rx], tx[:3],tx[3:]) )
+            Rx = DC.Rx.Dipole(rx[:, :3], rx[:, 3:])
+            srcLists.append(DC.Src.Dipole([Rx], tx[:3], tx[3:]))
 
     survey = DC.SurveyDC.Survey(srcLists)
     survey.dobs = np.asarray(d)
     survey.std = np.asarray(wd)
 
-    return {'DCsurvey':survey}
+    return {'DCsurvey': survey}
 
 
 def xy_2_lineID(DCsurvey):
@@ -834,7 +826,7 @@ def xy_2_lineID(DCsurvey):
     lineID = np.zeros(nstn)
 
     linenum = 0
-    indx    = 0
+    indx = 0
 
     for ii in range(nstn):
 
@@ -843,13 +835,13 @@ def xy_2_lineID(DCsurvey):
             A = DCsurvey.srcList[ii].loc[0]
             B = DCsurvey.srcList[ii].loc[1]
 
-            xout = np.mean([A[0:2],B[0:2]], axis = 0)
+            xout = np.mean([A[0:2], B[0:2]], axis=0)
 
             xy0 = A[:2]
             xym = xout
 
             # Deal with replicate pole location
-            if np.all(xy0==xym):
+            if np.all(xy0 == xym):
 
                 xym[0] = xym[0] + 1e-3
 
@@ -858,33 +850,33 @@ def xy_2_lineID(DCsurvey):
         A = DCsurvey.srcList[ii].loc[0]
         B = DCsurvey.srcList[ii].loc[1]
 
-        xin = np.mean([A[0:2],B[0:2]], axis = 0)
+        xin = np.mean([A[0:2], B[0:2]], axis=0)
 
         # Compute vector between neighbours
-        vec1, r1 = r_unit(xout,xin)
+        vec1, r1 = r_unit(xout, xin)
 
         # Compute vector between current stn and mid-point
-        vec2, r2 = r_unit(xym,xin)
+        vec2, r2 = r_unit(xym, xin)
 
         # Compute vector between current stn and start line
-        vec3, r3 = r_unit(xy0,xin)
+        vec3, r3 = r_unit(xy0, xin)
 
         # Compute vector between mid-point and start line
-        vec4, r4 = r_unit(xym,xy0)
+        vec4, r4 = r_unit(xym, xy0)
 
         # Compute dot product
         ang1 = np.abs(vec1.dot(vec2))
         ang2 = np.abs(vec3.dot(vec4))
 
         # If the angles are smaller then 45d, than next point is on a new line
-        if ((ang1 < np.cos(np.pi/4.)) | (ang2 < np.cos(np.pi/4.))) & (np.all(np.r_[r1,r2,r3,r4] > 0)):
+        if ((ang1 < np.cos(np.pi/4.)) | (ang2 < np.cos(np.pi/4.))) & (np.all(np.r_[r1, r2, r3, r4] > 0)):
 
             # Re-initiate start and mid-point location
             xy0 = A[:2]
             xym = xin
 
             # Deal with replicate pole location
-            if np.all(xy0==xym):
+            if np.all(xy0 == xym):
 
                 xym[0] = xym[0] + 1e-3
 
@@ -892,31 +884,31 @@ def xy_2_lineID(DCsurvey):
             indx = ii
 
         else:
-            xym = np.mean([xy0,xin], axis = 0)
+            xym = np.mean([xy0, xin], axis = 0)
 
         lineID[ii] = linenum
         xout = xin
 
     return lineID
 
-def r_unit(p1,p2):
+
+def r_unit(p1, p2):
     """
-    r_unit(x,y) : Function computes the unit vector
-    between two points with coordinates p1(x1,y1) and p2(x2,y2)
+    r_unit(x, y) : Function computes the unit vector
+    between two points with coordinates p1(x1, y1) and p2(x2, y2)
 
     """
 
-    assert len(p1)==len(p2), 'locs must be the same shape.'
+    assert len(p1) == len(p2), 'locs must be the same shape.'
 
     dx = []
     for ii in range(len(p1)):
         dx.append((p2[ii] - p1[ii]))
 
     # Compute length of vector
-    r =  np.linalg.norm(np.asarray(dx))
+    r = np.linalg.norm(np.asarray(dx))
 
-
-    if r!=0:
+    if r != 0:
         vec = dx/r
 
     else:
@@ -935,8 +927,6 @@ def getSrc_locs(survey):
 
     """
 
-    nD = survey.nD
-
     srcMat = []
 
     for src in survey.srcList:
@@ -949,8 +939,6 @@ def getSrc_locs(survey):
 
 
 def gettopoCC(mesh, airind):
-# def gettopoCC(mesh, airind):
-
     """
         Get topography from active indices of mesh.
     """
@@ -958,43 +946,44 @@ def gettopoCC(mesh, airind):
     if mesh.dim == 3:
 
         mesh2D = Mesh.TensorMesh([mesh.hx, mesh.hy], mesh.x0[:2])
-        zc = mesh.gridCC[:,2]
-        AIRIND = airind.reshape((mesh.vnC[0]*mesh.vnC[1],mesh.vnC[2]), order='F')
+        zc = mesh.gridCC[:, 2]
+        AIRIND = airind.reshape((mesh.vnC[0]*mesh.vnC[1], mesh.vnC[2]), order='F')
         ZC = zc.reshape((mesh.vnC[0]*mesh.vnC[1], mesh.vnC[2]), order='F')
         topo = np.zeros(ZC.shape[0])
         topoCC = np.zeros(ZC.shape[0])
         for i in range(ZC.shape[0]):
-            ind  = np.argmax(ZC[i,:][~AIRIND[i,:]])
-            topo[i] = ZC[i,:][~AIRIND[i,:]].max() + mesh.hz[~AIRIND[i,:]][ind]*0.5
-            topoCC[i] = ZC[i,:][~AIRIND[i,:]].max()
+            ind  = np.argmax(ZC[i, :][~AIRIND[i, :]])
+            topo[i] = ZC[i, :][~AIRIND[i, :]].max() + mesh.hz[~AIRIND[i, :]][ind]*0.5
+            topoCC[i] = ZC[i, :][~AIRIND[i, :]].max()
 
         return mesh2D, topoCC
 
     elif mesh.dim == 2:
 
         mesh1D = Mesh.TensorMesh([mesh.hx], [mesh.x0[0]])
-        yc = mesh.gridCC[:,1]
-        AIRIND = airind.reshape((mesh.vnC[0],mesh.vnC[1]), order='F')
+        yc = mesh.gridCC[:, 1]
+        AIRIND = airind.reshape((mesh.vnC[0], mesh.vnC[1]), order='F')
         YC = yc.reshape((mesh.vnC[0], mesh.vnC[1]), order='F')
         topo = np.zeros(YC.shape[0])
         topoCC = np.zeros(YC.shape[0])
         for i in range(YC.shape[0]):
-            ind  = np.argmax(YC[i,:][~AIRIND[i,:]])
-            topo[i] = YC[i,:][~AIRIND[i,:]].max() + mesh.hy[~AIRIND[i,:]][ind]*0.5
-            topoCC[i] = YC[i,:][~AIRIND[i,:]].max()
+            ind  = np.argmax(YC[i, :][~AIRIND[i, :]])
+            topo[i] = YC[i, :][~AIRIND[i, :]].max() + mesh.hy[~AIRIND[i, :]][ind]*0.5
+            topoCC[i] = YC[i, :][~AIRIND[i, :]].max()
 
         return mesh1D, topoCC
+
 
 def drapeTopotoLoc(mesh, topo, pts, airind=None):
     """
         Drape
     """
-    if mesh.dim ==2:
+    if mesh.dim == 2:
         if pts.ndim > 1:
             raise Exception("pts should be 1d array")
-    elif mesh.dim ==3:
+    elif mesh.dim == 3:
         if pts.shape[1] == 3:
-            raise Exception("shape of pts should be (x,3)")
+            raise Exception("shape of pts should be (x, 3)")
     else:
         raise NotImplementedError()
     if airind is None:
