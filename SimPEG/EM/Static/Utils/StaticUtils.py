@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from __future__ import unicode_literals
+# from __future__ import unicode_literals
 
 import numpy as np
 
@@ -341,7 +341,7 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
     return survey
 
 
-def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0):
+def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0, dataType = 'obs'):
     """
         Write UBC GIF DCIP 2D or 3D observation file
 
@@ -349,6 +349,7 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0):
         :param Survey DCsurvey: DC survey class object
         :param string dim:  either '2D' | '3D'
         :param string surveyType:  either 'SURFACE' | 'GENERAL'
+        :param string dataType: either "obs" | "loc"
         :rtype: file
         :return: UBC2D-Data file
     """
@@ -403,10 +404,14 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0):
                 M = M[:, 0]
                 N = N[:, 0]
 
-                np.savetxt(fid, np.c_[A, B, M, N,
-                                      DCsurvey.dobs[count:count+nD],
-                                      DCsurvey.std[count:count+nD]],
-                           fmt='%e', delimiter=' ', newline='\n')
+                if dataType == 'obs':
+                    np.savetxt(fid, np.c_[A, B, M, N,
+                                          DCsurvey.dobs[count:count+nD],
+                                          DCsurvey.std[count:count+nD]],
+                               fmt='%e', delimiter=' ', newline='\n')
+                elif dataType == 'loc':
+                    np.savetxt(fid, np.c_[A, B, M, N],
+                               fmt='%e', delimiter=' ', newline='\n')
 
             else:
 
@@ -430,7 +435,10 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0):
                     N[:, 1::2] = -N[:, 1::2]
 
                 fid.write('%i\n'% nD)
-                np.savetxt(fid, np.c_[M, N, DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%f', delimiter=' ', newline='\n')
+                if dataType == 'obs':
+                    np.savetxt(fid, np.c_[M, N, DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%f', delimiter=' ', newline='\n')
+                elif dataType == 'loc':
+                    np.savetxt(fid, np.c_[M, N], fmt='%f', delimiter=' ', newline='\n')
 
         if dim == '3D':
 
@@ -445,7 +453,10 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0):
                 fid.writelines("%e " % ii for ii in Utils.mkvc(tx.T))
 
             fid.write('%i\n'% nD)
-            np.savetxt(fid, np.c_[M, N, DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e', delimiter=' ', newline='\n')
+            if dataType == 'obs':
+                np.savetxt(fid, np.c_[M, N, DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e', delimiter=' ', newline='\n')
+            elif dataType == 'loc':
+                np.savetxt(fid, np.c_[M, N], fmt='%e', delimiter=' ', newline='\n')
             fid.write('\n')
 
         count += nD
