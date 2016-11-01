@@ -454,3 +454,88 @@ def readUBCgravObs(obs_file):
     survey.dobs = d
     survey.std = wd
     return survey
+
+
+class Problem3D_Diff(Problem.BaseProblem):
+    """
+        Gravity in differential equations!
+    """
+
+    _depreciate_main_map = 'rhoMap'
+
+    rho, rhoMap, rhoDeriv = Props.Invertible(
+        "Specific density (g/cc)",
+        default=1.
+    )
+
+    def __init__(self, mesh, **kwargs):
+        Problem.BaseProblem.__init__(self, mesh, **kwargs)
+
+        Pbc, Pin, self._Pout = \
+            self.mesh.getBCProjWF('neumann', discretization='CC')
+
+        Dface = self.mesh.faceDiv
+        Mc = Utils.sdiag(self.mesh.vol)
+        self._Div = Mc*Dface*Pin.T*Pin
+
+    @property
+    def MfRhoI(self): return self._MfRhoI
+
+    @property
+    def MfRhoi(self): return self._MfRhoi
+
+    def makeMassMatrices(self, m):
+        rho = self.rhoMap*m
+        self._MfRhoi = self.mesh.getFaceInnerProduct(1./rho)/self.mesh.dim
+        self._MfRhoI = Utils.sdiag(1./self._MfRhoi.diagonal())
+
+    def getRHS(self, m):
+        """
+
+
+        """
+
+        Mc = Utils.sdiag(self.mesh.vol)
+
+        rho = self.rhoMap*m
+
+        # Temporary fix
+        rhoFace = self.mesh.aveCC2F*rho
+
+        return rhoFace
+
+    def getA(self, m):
+        """
+        GetA creates and returns the A matrix for the Gravity nodal problem
+
+        The A matrix has the form:
+
+        .. math ::
+
+            \mathbf{A} =  \Div(\MfMui)^{-1}\Div^{T}
+
+        """
+        return self._Div*self.MfRhoI*self._Div.T
+
+    def fields(self, m):
+        """
+            Return magnetic potential (u) and flux (B)
+            u: defined on the cell nodes [nC x 1]
+            G: defined on the cell edges [nE x 1]
+
+            After we compute u, then we update B.
+
+            .. math ::
+
+                \mathbf{B}_s = (\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0-\mathbf{B}_0 -(\MfMui)^{-1}\Div^T \mathbf{u}
+
+        """
+        self.makeMassMatrices(m)
+        A = self.getA(m)
+        rhs = self.getRHS(m)
+        m1 = sp.linalg.interface.aslinearoperator(Utils.sdiag(1/A.diagonal()))
+        u, info = sp.linalg.bicgstab(A, rhs, tol=1e-6, maxiter=1000, M=m1)
+
+        G = self._Div.T*u
+
+        return {'G': G, 'u': u}

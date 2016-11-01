@@ -46,3 +46,17 @@ class RxObs(Survey.BaseRx):
     def nD(self):
         """Number of data in the receiver."""
         return self.locs[0].shape[0]
+
+class BaseGravMap(Maps.IdentityMap):
+    """BaseGravMap"""
+
+    def __init__(self, mesh, **kwargs):
+        Maps.IdentityMap.__init__(self, mesh)
+
+    def _transform(self, m):
+
+        return m
+
+    def deriv(self, m):
+
+        return sp.identity(self.nP)
