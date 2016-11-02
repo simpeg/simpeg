@@ -4,6 +4,7 @@ from . import BaseGrav as GRAV
 import re
 
 
+
 class GravityIntegral(Problem.LinearProblem):
 
     _depreciate_main_map = 'rhoMap'
@@ -245,8 +246,9 @@ def get_T_mat(Xn, Yn, Zn, rxLoc):
     indexing, once the topography has been figured out.
 
     """
-    from scipy.constants import G
-    NewtG = G*1e+8  # Convertion from mGal (1e-5) and g/cc (1e-3)
+    from scipy.constants import G as NewtG
+
+    NewtG = NewtG*1e+8  # Convertion from mGal (1e-5) and g/cc (1e-3)
     eps = 1e-10  # add a small value to the locations to avoid
 
     nC = Xn.shape[0]
@@ -486,7 +488,7 @@ class Problem3D_Diff(Problem.BaseProblem):
 
     def makeMassMatrices(self, m):
         rho = self.rhoMap*m
-        self._MfRhoi = self.mesh.getFaceInnerProduct(1./rho)/self.mesh.dim
+        self._MfRhoi = self.mesh.getFaceInnerProduct()/self.mesh.dim
         self._MfRhoI = Utils.sdiag(1./self._MfRhoi.diagonal())
 
     def getRHS(self, m):
@@ -499,10 +501,7 @@ class Problem3D_Diff(Problem.BaseProblem):
 
         rho = self.rhoMap*m
 
-        # Temporary fix
-        rhoFace = self.mesh.aveCC2F*rho
-
-        return rhoFace
+        return rho
 
     def getA(self, m):
         """
@@ -521,7 +520,7 @@ class Problem3D_Diff(Problem.BaseProblem):
         """
             Return magnetic potential (u) and flux (B)
             u: defined on the cell nodes [nC x 1]
-            G: defined on the cell edges [nE x 1]
+            gField: defined on the cell faces [nF x 1]
 
             After we compute u, then we update B.
 
@@ -530,12 +529,14 @@ class Problem3D_Diff(Problem.BaseProblem):
                 \mathbf{B}_s = (\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0-\mathbf{B}_0 -(\MfMui)^{-1}\Div^T \mathbf{u}
 
         """
+        from scipy.constants import G as NewtG
+
         self.makeMassMatrices(m)
         A = self.getA(m)
         rhs = self.getRHS(m)
         m1 = sp.linalg.interface.aslinearoperator(Utils.sdiag(1/A.diagonal()))
         u, info = sp.linalg.bicgstab(A, rhs, tol=1e-6, maxiter=1000, M=m1)
 
-        G = self._Div.T*u
+        gField = 4.*np.pi*NewtG*1e+8*self._Div.T*u
 
-        return {'G': G, 'u': u}
+        return {'G': gField, 'u': u}
