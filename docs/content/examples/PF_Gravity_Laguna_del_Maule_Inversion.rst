@@ -1,4 +1,4 @@
-.. _examples_Inversion_IRLS:
+.. _examples_PF_Gravity_Laguna_del_Maule_Inversion:
 
 .. --------------------------------- ..
 ..                                   ..
@@ -8,19 +8,14 @@
 ..                                   ..
 .. --------------------------------- ..
 
-
-Inversion for compact models (IRLS)
-===================================
-
-Here we go over the basics of creating a linear problem and inversion.
-
-
+PF Gravity Laguna del Maule Inversion
+=====================================
 
 .. plot::
 
     from SimPEG import Examples
-    Examples.Inversion_IRLS.run()
+    Examples.PF_Gravity_Laguna_del_Maule_Inversion.run()
 
-.. literalinclude:: ../../../SimPEG/Examples/Inversion_IRLS.py
+.. literalinclude:: ../../../SimPEG/Examples/PF_Gravity_Laguna_del_Maule_Inversion.py
     :language: python
     :linenos:

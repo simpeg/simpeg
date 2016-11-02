@@ -45,7 +45,7 @@ class RegularizationMesh(object):
             if self.indActive is None:
                 self._nC = self.mesh.nC
             else:
-                self._nC = sum(self.indActive)
+                self._nC = int(sum(self.indActive))
         return self._nC
 
     @property
@@ -308,7 +308,7 @@ class BaseRegularization(object):
     mesh    = None    #: A SimPEG.Mesh instance.
     mref    = None    #: Reference model.
 
-    def __init__(self, mesh, mapping=None, indActive=None, **kwargs):
+    def __init__(self, mesh=None, nP=None, mapping=None, indActive=None, **kwargs):
         Utils.setKwargs(self, **kwargs)
         assert isinstance(mesh, Mesh.BaseMesh), "mesh must be a SimPEG.Mesh object."
         if indActive is not None and indActive.dtype != 'bool':
@@ -318,10 +318,19 @@ class BaseRegularization(object):
         if indActive is not None and mapping is None:
             mapping = Maps.IdentityMap(nP=indActive.nonzero()[0].size)
 
-        self.regmesh = RegularizationMesh(mesh,indActive)
-        self.mapping = mapping or self.mapPair(mesh)
-        self.mapping._assertMatchesPair(self.mapPair)
+        if mesh is None and nP is None:
+            raise Exception('either Mesh or number of parameters must be '
+                            'provided to the BaseRegularization')
+
+        self.regmesh = RegularizationMesh(mesh, indActive)
         self.indActive = indActive
+
+        if mesh is not None and nP is None:
+            nP = self.regmesh.nC
+        self.nP = nP
+
+        self.mapping = mapping or self.mapPair(nP=self.nP)
+        self.mapping._assertMatchesPair(self.mapPair)
 
     @property
     def parent(self):
@@ -350,7 +359,7 @@ class BaseRegularization(object):
     @property
     def W(self):
         """Full regularization weighting matrix W."""
-        return sp.identity(self.regmesh.nC)
+        return sp.identity(self.nP)
 
     @Utils.timeIt
     def eval(self, m):
@@ -919,7 +928,7 @@ class Sparse(Simple):
     # set default values
     eps_p = 1e-1        # Threshold value for the model norm
     eps_q = 1e-1        # Threshold value for the model gradient norm
-    curModel = None     # Requires model to compute the weights
+    model = None     # Requires model to compute the weights
     l2model = None
     gamma = 1.          # Model norm scaling to smooth out convergence
     norms = [0., 2., 2., 2.] # Values for norm on (m, dmdx, dmdy, dmdz)
@@ -935,11 +944,11 @@ class Sparse(Simple):
     def Wsmall(self):
         """Regularization matrix Wsmall"""
         if getattr(self,'_Wsmall', None) is None:
-            if getattr(self, 'curModel', None) is None:
+            if getattr(self, 'model', None) is None:
                 self.Rs = Utils.speye(self.regmesh.nC)
 
             else:
-                f_m = self.mapping * (self.curModel - self.reg.mref)
+                f_m = self.mapping * (self.model - self.reg.mref)
                 self.rs = self.R(f_m , self.eps_p, self.norms[0])
                 self.Rs = Utils.sdiag( self.rs )
 
@@ -951,11 +960,11 @@ class Sparse(Simple):
     def Wx(self):
         """Regularization matrix Wx"""
         if getattr(self,'_Wx', None) is None:
-            if getattr(self, 'curModel', None) is None:
+            if getattr(self, 'model', None) is None:
                 self.Rx = Utils.speye(self.regmesh.cellDiffxStencil.shape[0])
 
             else:
-                f_m = self.regmesh.cellDiffxStencil * (self.mapping * self.curModel)
+                f_m = self.regmesh.cellDiffxStencil * (self.mapping * self.model)
                 self.rx = self.R( f_m , self.eps_q, self.norms[1])
                 self.Rx = Utils.sdiag( self.rx )
 
@@ -967,11 +976,11 @@ class Sparse(Simple):
     def Wy(self):
         """Regularization matrix Wy"""
         if getattr(self,'_Wy', None) is None:
-            if getattr(self, 'curModel', None) is None:
+            if getattr(self, 'model', None) is None:
                 self.Ry = Utils.speye(self.regmesh.cellDiffyStencil.shape[0])
 
             else:
-                f_m = self.regmesh.cellDiffyStencil * (self.mapping * self.curModel)
+                f_m = self.regmesh.cellDiffyStencil * (self.mapping * self.model)
                 self.ry = self.R( f_m , self.eps_q, self.norms[2])
                 self.Ry = Utils.sdiag( self.ry )
 
@@ -983,11 +992,11 @@ class Sparse(Simple):
     def Wz(self):
         """Regularization matrix Wz"""
         if getattr(self,'_Wz', None) is None:
-            if getattr(self, 'curModel', None) is None:
+            if getattr(self, 'model', None) is None:
                 self.Rz = Utils.speye(self.regmesh.cellDiffzStencil.shape[0])
 
             else:
-                f_m = self.regmesh.cellDiffzStencil * (self.mapping * self.curModel)
+                f_m = self.regmesh.cellDiffzStencil * (self.mapping * self.model)
                 self.rz = self.R( f_m , self.eps_q, self.norms[3])
                 self.Rz = Utils.sdiag( self.rz )
 

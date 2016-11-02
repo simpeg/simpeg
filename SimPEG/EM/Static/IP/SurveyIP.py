@@ -1,19 +1,18 @@
-import SimPEG
 from SimPEG.EM.Base import BaseEMSurvey
-from SimPEG import sp, Survey
-from SimPEG.Utils import Zero, Identity
 from SimPEG.EM.Static.DC.SrcDC import BaseSrc
 from SimPEG.EM.Static.DC.RxDC import BaseRx
 
+
 class Survey(BaseEMSurvey):
-    rxPair  = BaseRx
+
+    rxPair = BaseRx
     srcPair = BaseSrc
 
     def __init__(self, srcList, **kwargs):
         self.srcList = srcList
         BaseEMSurvey.__init__(self, srcList, **kwargs)
 
-    def dpred(self, m, f=None):
+    def dpred(self, m=None, f=None):
         """
             Predicted data.
 

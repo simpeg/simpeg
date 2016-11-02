@@ -1,7 +1,6 @@
 .. image:: https://raw.github.com/simpeg/simpeg/master/docs/images/simpeg-logo.png
     :alt: SimPEG Logo
 
-======
 SimPEG
 ======
 
@@ -49,11 +48,11 @@ Overview Video
 .. image:: https://img.youtube.com/vi/yUm01YsS9hQ/0.jpg
     :target: https://www.youtube.com/watch?v=yUm01YsS9hQ
     :alt: All of the Geophysics But Backwards
-    
+
 Working towards all the Geophysics, but Backwards - SciPy 2016
 
-Citing SimPEG:
---------------
+Citing SimPEG
+-------------
 
 There is a paper about SimPEG!
 
@@ -72,6 +71,8 @@ There is a paper about SimPEG!
       publisher={Elsevier}
     }
 
+Links
+-----
 
 Website:
 http://simpeg.xyz
@@ -94,4 +95,4 @@ https://github.com/simpeg/simpeg/issues
 
 
 Code Snippets & Tutorials:
-http://simpeg.xyz/Journal
+http://simpeg.xyz/journal

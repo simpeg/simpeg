@@ -1,14 +1,13 @@
 from __future__ import division, print_function
 import unittest
-from SimPEG import *
+from SimPEG import Maps, Mesh
 from SimPEG import EM
-import matplotlib.pyplot as plt
+import numpy as np
 
 try:
-    from pymatsolver import PardisoSolver
-    Solver = PardisoSolver
+    from pymatsolver import PardisoSolver as Solver
 except ImportError:
-    Solver = SolverLU
+    from SimPEG import SolverLU as Solver
 
 TOL = 1e-5
 FLR = 1e-20
@@ -38,9 +37,9 @@ def setUp_TDEM(prbtype='b', rxcomp='bz'):
     survey = EM.TDEM.Survey([src])
 
     if prbtype == 'b':
-        prb = EM.TDEM.Problem3D_b(mesh, mapping=mapping)
+        prb = EM.TDEM.Problem3D_b(mesh, sigmaMap=mapping)
     elif prbtype == 'e':
-        prb = EM.TDEM.Problem3D_e(mesh, mapping=mapping)
+        prb = EM.TDEM.Problem3D_e(mesh, sigmaMap=mapping)
     else:
         raise NotImplementedError()
 
@@ -48,8 +47,8 @@ def setUp_TDEM(prbtype='b', rxcomp='bz'):
 
     prb.Solver = Solver
 
-    m = (np.log(1e-1)*np.ones(prb.mapping.nP) +
-         1e-2*np.random.rand(prb.mapping.nP))
+    m = (np.log(1e-1)*np.ones(prb.sigmaMap.nP) +
+         1e-2*np.random.rand(prb.sigmaMap.nP))
 
     prb.pair(survey)
     mesh = mesh
@@ -60,7 +59,7 @@ def setUp_TDEM(prbtype='b', rxcomp='bz'):
 def CrossCheck(prbtype1='b', prbtype2='e', rxcomp='bz'):
 
     prb1, m1, mesh1 = setUp_TDEM(prbtype1, rxcomp)
-    prb2, _, mesh2  = setUp_TDEM(prbtype2, rxcomp)
+    prb2, _, mesh2 = setUp_TDEM(prbtype2, rxcomp)
 
     d1 = prb1.survey.dpred(m1)
     d2 = prb2.survey.dpred(m1)
@@ -92,4 +91,3 @@ class TDEM_cross_check_EB(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-

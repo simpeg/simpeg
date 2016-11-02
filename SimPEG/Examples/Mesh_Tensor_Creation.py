@@ -1,4 +1,6 @@
-from SimPEG import *
+from SimPEG import Mesh
+import matplotlib.pyplot as plt
+
 
 def run(plotIt=True):
     """
@@ -28,8 +30,8 @@ def run(plotIt=True):
     h1 = [(10, 5, -1.3), (5, 20), (10, 3, 1.3)]
     M = Mesh.TensorMesh([h1, h1], x0='CN')
     if plotIt:
-        M.plotGrid(showIt=True)
+        M.plotGrid()
 
 if __name__ == '__main__':
     run()
-
+    plt.show()
