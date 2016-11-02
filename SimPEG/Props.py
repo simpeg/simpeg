@@ -59,15 +59,12 @@ class Mapping(properties.Property):
         scope = self
 
         def fget(self):
-            value = self._get(scope.name, scope.default)
+            value = self._get(scope.name)
             if value is not None:
                 return value
             if scope.reciprocal is None:
                 return None
-            reciprocal = self._get(
-                scope.reciprocal.name,
-                scope.reciprocal.default
-            )
+            reciprocal = self._get(scope.reciprocal.name)
             if reciprocal is None:
                 return None
             return Maps.ReciprocalMap() * reciprocal
@@ -80,7 +77,7 @@ class Mapping(properties.Property):
         return property(fget=fget, fset=fset, doc=scope.help)
 
     def as_pickle(self, instance):
-        return instance._get(self.name, self.default)
+        return instance._get(self.name)
 
 
 class PhysicalProperty(properties.Property):
@@ -121,14 +118,11 @@ class PhysicalProperty(properties.Property):
         scope = self
 
         def fget(self):
-            default = self._get(scope.name, scope.default)
+            default = self._get(scope.name)
             if default is not None:
                 return default
             if scope.reciprocal:
-                default = self._get(
-                    scope.reciprocal.name,
-                    scope.reciprocal.default
-                )
+                default = self._get(scope.reciprocal.name)
                 if default is not None:
                     return 1.0 / default
             if scope.mapping is None and scope.reciprocal is None:
@@ -137,10 +131,7 @@ class PhysicalProperty(properties.Property):
                 # look to the reciprocal
                 if scope.reciprocal.mapping is None:
                     # there is no reciprocal mapping
-                    reciprocal_val = self._get(
-                        scope.reciprocal.name,
-                        scope.reciprocal.default
-                    )
+                    reciprocal_val = self._get(scope.reciprocal.name)
                     if reciprocal_val is None:
                         raise AttributeError(
                             'A default for {}/{} has not been set'.format(
@@ -173,7 +164,7 @@ class PhysicalProperty(properties.Property):
         return property(fget=fget, fset=fset, doc=scope.help)
 
     def as_pickle(self, instance):
-        return instance._get(self.name, self.default)
+        return instance._get(self.name)
 
 
 class Derivative(properties.GettableProperty):
