@@ -1,17 +1,4 @@
 # coding: utf-8
-'''
-Laguna del Maule Bouguer Gravity
-
-This notebook illustrates the SimPEG code used to invert Bouguer gravity data
-collected at Laguna del Maule volcanic field, Chile.
-Refer to Miller et al 2016 EPSL for full details.
-
-We run the inversion in two steps.  Firstly creating a L2 model and then
-applying an Lp norm to produce a compact model.
-Craig Miller
-'''
-# %%
-# load all the libraries and set up the path for the input files.
 import os
 import SimPEG.PF as PF
 from SimPEG import Maps, Regularization, Optimization, DataMisfit,\
@@ -19,10 +6,22 @@ from SimPEG import Maps, Regularization, Optimization, DataMisfit,\
 from SimPEG.Utils.io_utils import remoteDownload
 import matplotlib.pyplot as plt
 import numpy as np
-# %%
 
 
 def run(plotit=True):
+    """
+        PF: Gravity: Laguna del Maule Bouguer Gravity
+        =============================================
+
+        This notebook illustrates the SimPEG code used to invert Bouguer
+        gravity data collected at Laguna del Maule volcanic field, Chile.
+        Refer to Miller et al 2016 EPSL for full details.
+
+        We run the inversion in two steps.  Firstly creating a L2 model and
+        then applying an Lp norm to produce a compact model.
+        Craig Miller
+    """
+
     # Start by downloading files from the remote repository
     url = "https://storage.googleapis.com/simpeg/Chile_GRAV_4_Miller/"
     cloudfiles = ['LdM_grav_obs.grv', 'LdM_mesh.mesh',
@@ -241,7 +240,7 @@ def run(plotit=True):
         cb = plt.colorbar(dat[0], orientation="vertical",
                           ticks=np.linspace(vmin, vmax, 4))
         cb.set_label('Density (g/cc$^3$)')
-# %%
+
 if __name__ == '__main__':
     run()
     plt.show()

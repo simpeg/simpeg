@@ -8,8 +8,18 @@
 ..                                   ..
 .. --------------------------------- ..
 
-PF Gravity Laguna del Maule Inversion
-=====================================
+
+PF: Gravity: Laguna del Maule Bouguer Gravity
+=============================================
+
+This notebook illustrates the SimPEG code used to invert Bouguer
+gravity data collected at Laguna del Maule volcanic field, Chile.
+Refer to Miller et al 2016 EPSL for full details.
+
+We run the inversion in two steps.  Firstly creating a L2 model and
+then applying an Lp norm to produce a compact model.
+Craig Miller
+
 
 .. plot::
 
