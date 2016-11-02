@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def run(plotit=True):
+def run(plotIt=True):
     """
         PF: Gravity: Laguna del Maule Bouguer Gravity
         =============================================
@@ -129,7 +129,7 @@ def run(plotit=True):
     # Run L2 and Lp inversion
     mrec = inv.run(mstart)
     # %%
-    if plotit:
+    if plotIt:
         # Plot observed data
         PF.Magnetics.plot_obs_2D(rxLoc, d, 'Observed Data')
 
