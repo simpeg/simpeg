@@ -27,12 +27,13 @@ from SimPEG.Examples import Mesh_QuadTree_FaceDiv
 from SimPEG.Examples import Mesh_QuadTree_HangingNodes
 from SimPEG.Examples import Mesh_Tensor_Creation
 from SimPEG.Examples import PF_Gravity_Inversion_Linear
+from SimPEG.Examples import PF_Gravity_Laguna_del_Maule_Inversion
 from SimPEG.Examples import PF_Magnetics_Analytics
 from SimPEG.Examples import PF_Magnetics_Inversion_Linear
 from SimPEG.Examples import Utils_plot2Ddata
 from SimPEG.Examples import Utils_surface2ind_topo
 
-__examples__ = ["DC_Analytic_Dipole", "EM_FDEM_1D_Inversion", "EM_FDEM_Analytic_MagDipoleWholespace", "EM_Heagyetal2016_Casing", "EM_Heagyetal2016_CylInversions", "EM_NSEM_1D_ForwardAndInversion", "EM_NSEM_3D_Foward", "EM_Schenkel_Morrison_Casing", "EM_TDEM_1D_Inversion", "FLOW_Richards_1D_Celia1990", "Inversion_Linear", "Inversion_Linear_IRLS", "Maps_ComboMaps", "Maps_Mesh2Mesh", "Maps_ParametrizedBlockInLayer", "Maps_ParametrizedLayer", "Mesh_Basic_ForwardDC", "Mesh_Basic_PlotImage", "Mesh_Basic_Types", "Mesh_Operators_CahnHilliard", "Mesh_QuadTree_Creation", "Mesh_QuadTree_FaceDiv", "Mesh_QuadTree_HangingNodes", "Mesh_Tensor_Creation", "PF_Gravity_Inversion_Linear", "PF_Magnetics_Analytics", "PF_Magnetics_Inversion_Linear", "Utils_plot2Ddata", "Utils_surface2ind_topo"]
+__examples__ = ["DC_Analytic_Dipole", "EM_FDEM_1D_Inversion", "EM_FDEM_Analytic_MagDipoleWholespace", "EM_Heagyetal2016_Casing", "EM_Heagyetal2016_CylInversions", "EM_NSEM_1D_ForwardAndInversion", "EM_NSEM_3D_Foward", "EM_Schenkel_Morrison_Casing", "EM_TDEM_1D_Inversion", "FLOW_Richards_1D_Celia1990", "Inversion_Linear", "Inversion_Linear_IRLS", "Maps_ComboMaps", "Maps_Mesh2Mesh", "Maps_ParametrizedBlockInLayer", "Maps_ParametrizedLayer", "Mesh_Basic_ForwardDC", "Mesh_Basic_PlotImage", "Mesh_Basic_Types", "Mesh_Operators_CahnHilliard", "Mesh_QuadTree_Creation", "Mesh_QuadTree_FaceDiv", "Mesh_QuadTree_HangingNodes", "Mesh_Tensor_Creation", "PF_Gravity_Inversion_Linear", "PF_Gravity_Laguna_del_Maule_Inversion", "PF_Magnetics_Analytics", "PF_Magnetics_Inversion_Linear", "Utils_plot2Ddata", "Utils_surface2ind_topo"]
 
 ##### AUTOIMPORTS #####
 
