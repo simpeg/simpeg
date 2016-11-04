@@ -21,6 +21,7 @@ class DCProblemAnalyticTests(unittest.TestCase):
 
         x = mesh.vectorCCx[(mesh.vectorCCx > -155.) & (mesh.vectorCCx < 155.)]
         y = mesh.vectorCCx[(mesh.vectorCCy > -155.) & (mesh.vectorCCy < 155.)]
+
         Aloc = np.r_[-200., 0., 0.]
         Bloc = np.r_[200., 0., 0.]
         M = Utils.ndgrid(x-25., y, np.r_[0.])
