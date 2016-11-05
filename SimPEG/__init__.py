@@ -5,7 +5,7 @@ from . import Utils
 from .Utils import mkvc
 from .Utils.SolverUtils import (
     _checkAccuracy, SolverWrapD, SolverWrapI,
-    Solver, SolverCG, SolverDiag, SolverLU
+    Solver, SolverCG, SolverDiag, SolverLU, SolverBiCG,
 )
 
 from . import Mesh

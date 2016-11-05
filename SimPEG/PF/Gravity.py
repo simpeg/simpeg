@@ -470,26 +470,26 @@ class Problem3D_Diff(Problem.BaseProblem):
         default=1.
     )
 
+    solver = None
+
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
-        Pbc, Pin, self._Pout = \
-            self.mesh.getBCProjWF('neumann', discretization='CC')
+        self.mesh.setCellGradBC('dirichlet')
 
-        Dface = self.mesh.faceDiv
-        Mc = Utils.sdiag(self.mesh.vol)
-        self._Div = Mc*Dface*Pin.T*Pin
+        self._Div = self.mesh.cellGrad
+
 
     @property
-    def MfRhoI(self): return self._MfRhoI
+    def MfI(self): return self._MfI
 
     @property
-    def MfRhoi(self): return self._MfRhoi
+    def Mfi(self): return self._Mfi
 
     def makeMassMatrices(self, m):
         rho = self.rhoMap*m
-        self._MfRhoi = self.mesh.getFaceInnerProduct()/self.mesh.dim
-        self._MfRhoI = Utils.sdiag(1./self._MfRhoi.diagonal())
+        self._Mfi = self.mesh.getFaceInnerProduct()
+        self._MfI = Utils.sdiag(1./self._Mfi.diagonal())
 
     def getRHS(self, m):
         """
@@ -501,7 +501,7 @@ class Problem3D_Diff(Problem.BaseProblem):
 
         rho = self.rhoMap*m
 
-        return rho
+        return Mc*rho
 
     def getA(self, m):
         """
@@ -514,7 +514,7 @@ class Problem3D_Diff(Problem.BaseProblem):
             \mathbf{A} =  \Div(\MfMui)^{-1}\Div^{T}
 
         """
-        return self._Div*self.MfRhoI*self._Div.T
+        return -self._Div.T*self.Mfi*self._Div
 
     def fields(self, m):
         """
@@ -533,10 +533,17 @@ class Problem3D_Diff(Problem.BaseProblem):
 
         self.makeMassMatrices(m)
         A = self.getA(m)
-        rhs = self.getRHS(m)
-        m1 = sp.linalg.interface.aslinearoperator(Utils.sdiag(1/A.diagonal()))
-        u, info = sp.linalg.bicgstab(A, rhs, tol=1e-6, maxiter=1000, M=m1)
+        RHS = self.getRHS(m)
 
-        gField = 4.*np.pi*NewtG*1e+8*self._Div.T*u
+        if self.solver is None:
+            m1 = sp.linalg.interface.aslinearoperator(Utils.sdiag(1/A.diagonal()))
+            u, info = sp.linalg.bicgstab(A, RHS, tol=1e-6, maxiter=1000, M=m1)
+
+        else:
+            print("Solving with Paradiso")
+            Ainv = self.solver(A)
+            u = Ainv*RHS
+
+        gField = 4.*np.pi*NewtG*1e+8*self._Div*u
 
         return {'G': gField, 'u': u}
