@@ -5,9 +5,10 @@ from scipy.constants import mu_0
 
 import unittest
 
-MuMax = 50.
+MuMax = 200.
 TOL = 1e-14
 EPS = 1e-20
+
 
 class MuTests(unittest.TestCase):
 
@@ -137,13 +138,42 @@ class MuSigmaTests(unittest.TestCase):
         muMap = Maps.ChiMap(self.mesh) * wires.mu
         sigmaMap = Maps.ExpMap(self.mesh) * wires.sigma
 
+        rxcomp = ['real', 'imag']
+
+        loc = Utils.ndgrid(
+            [self.mesh.vectorCCx, np.r_[0.], self.mesh.vectorCCz]
+        )
+
+        rxList_edge = [
+            getattr(FDEM.Rx, 'Point_{f}'.format(f=f))(
+                loc, component=comp, orientation=orient
+            )
+            for f in ['e', 'j']
+            for comp in rxcomp
+            for orient in ['y']
+        ]
+
+        rxList_face = [
+            getattr(FDEM.Rx, 'Point_{f}'.format(f=f))(
+                loc, component=comp, orientation=orient
+            )
+            for f in ['b', 'h']
+            for comp in rxcomp
+            for orient in ['x', 'z']
+        ]
+
+        rxList = rxList_edge + rxList_face
+
         src = FDEM.Src.MagDipole(
-            rxList=[], loc=np.r_[0., 0., 0.], freq=self.freq
+            rxList=rxList, loc=np.r_[0., 0., 0.], freq=self.freq
         )
 
         self.prob = FDEM.Problem3D_e(
             self.mesh, muMap=muMap, sigmaMap=sigmaMap
         )
+
+        self.survey = FDEM.Survey([src])
+        self.prob.pair(self.survey)
 
     def test_Aderiv_musig(self, prbtype='e'):
         if prbtype == 'b':
@@ -184,6 +214,15 @@ class MuSigmaTests(unittest.TestCase):
         print('AdjointTest {prbtype} {v1} {v2} {passed}'.format(
             prbtype=prbtype, v1=V1, v2=V2, passed=passed))
         self.assertTrue(passed)
+
+    def test_Jvec_e_musig(self):
+        print('Testing Jvec e mu sigma')
+
+        def fun(x):
+            return (
+                self.prob.survey.dpred(x), lambda x: self.prob.Jvec(self.m0, x)
+            )
+        return Tests.checkDerivative(fun, self.m0, num=2, plotIt=False, eps=EPS)
 
 
 if __name__ == '__main__':
