@@ -489,7 +489,7 @@ class MagDipole(BaseSrc):
             return -C.T * (MMui_s * self.bPrimary(prob))
 
     def s_eDeriv(self, prob, v, adjoint = False):
-        if all(np.r_[self.mu] == np.r_[prob.mu]):
+        if getattr(prob, 'muMap') is None or getattr(prob, 'muiMap') is None:
             return Zero()
         else:
             formulation = prob._formulation

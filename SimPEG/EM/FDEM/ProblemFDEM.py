@@ -325,53 +325,25 @@ class Problem3D_e(BaseFDEMProblem):
 
         return C.T * (MfMui * s_m) - 1j * omega(freq) * s_e
 
-    def getRHSDeriv_sigma(self, freq, src, v, adjoint=False):
-        """
-        Derivative of the right hand side with respect to the model
-
-        :param float freq: frequency
-        :param SimPEG.EM.FDEM.SrcFDEM.BaseSrc src: FDEM source
-        :param numpy.ndarray v: vector to take product with
-        :param bool adjoint: adjoint?
-        :rtype: numpy.ndarray
-        :return: product of rhs deriv with a vector
-        """
+    def getRHSDeriv(self, freq, src, v, adjoint=False):
 
         C = self.mesh.edgeCurl
         MfMui = self.MfMui
-        s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
-
-        if adjoint:
-            dRHS = MfMui * (C * v)
-            return s_mDeriv(dRHS) - 1j * omega(freq) * s_eDeriv(v)
-        else:
-            return C.T * (MfMui * s_mDeriv(v)) - 1j * omega(freq) * s_eDeriv(v)
-
-    def getRHSDeriv_mui(self, freq, src, v, adjoint=False):
-
         s_m, s_e = self.getSourceTerm(freq)
         s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
-
-        C = self.mesh.edgeCurl
-        MfMui = self.MfMui
         MfMuiDeriv = self.MfMuiDeriv(s_m)
+
 
         if adjoint:
             return (
                 s_mDeriv(MfMui * (C * v)) + MfMuiDeriv.T * (C * v) -
-                1j * omega(freq)*s_eDeriv(v)
+                1j * omega(freq) * s_eDeriv(v)
             )
-
-        return (
-            C.T * (MfMui * s_mDeriv(v) + MfMuiDeriv * v) -
-            1j * omega(freq) * s_eDeriv(v)
-        )
-
-    def getRHSDeriv(self, freq, src, v, adjoint=False):
-        return (
-            self.getRHSDeriv_sigma(freq, src, v, adjoint) +
-            self.getRHSDeriv_mui(freq, src, v, adjoint)
-        )
+        else:
+            return (
+                C.T * (MfMui * s_mDeriv(v) + MfMuiDeriv * v) -
+                1j * omega(freq) * s_eDeriv(v)
+            )
 
 
 class Problem3D_b(BaseFDEMProblem):
