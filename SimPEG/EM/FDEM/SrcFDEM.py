@@ -488,6 +488,32 @@ class MagDipole(BaseSrc):
 
             return -C.T * (MMui_s * self.bPrimary(prob))
 
+    def s_eDeriv(self, prob, v, adjoint = False):
+        if all(np.r_[self.mu] == np.r_[prob.mu]):
+            return Zero()
+        else:
+            formulation = prob._formulation
+
+            if formulation is 'EB':
+                mui_s = prob.mui - 1./self.mu
+                MMui_sDeriv = prob.mesh.getFaceInnerProductDeriv(mui_s)(
+                    self.bPrimary(prob)
+                ) * prob.muiDeriv
+                C = prob.mesh.edgeCurl
+
+                if adjoint:
+                    return -MMui_sDeriv * (C * v)
+
+                return -C.T * (MMui_sDeriv * v)
+
+            elif formulation is 'HJ':
+                raise NotImplementedError
+                mu_s = prob.mu - self.mu
+                MMui_s = prob.mesh.getEdgeInnerProduct(mu_s, invMat=True)
+                C = prob.mesh.edgeCurl.T
+
+                return -C.T * (MMui_s * self.bPrimary(prob))
+
 
 class MagDipole_Bfield(MagDipole):
 
@@ -588,7 +614,7 @@ class CircularLoop(MagDipole):
         return MagneticLoopVectorPotential(
             self.loc, obsLoc, component, mu=self.mu, radius=self.radius,
             orientation=self.orientation
-    )
+        )
 
 
 class PrimSecSigma(BaseSrc):

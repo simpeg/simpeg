@@ -16,7 +16,7 @@ class BaseTensorMesh(BaseMesh):
 
     def __init__(self, h_in, x0_in=None):
         assert type(h_in) in [list, tuple], 'h_in must be a list'
-        assert len(h_in) in [1,2,3], 'h_in must be of dimension 1, 2, or 3'
+        assert len(h_in) in [1, 2, 3], 'h_in must be of dimension 1, 2, or 3'
         h = list(range(len(h_in)))
         for i, h_i in enumerate(h_in):
             if Utils.isScalar(h_i) and type(h_i) is not np.ndarray:
@@ -24,8 +24,12 @@ class BaseTensorMesh(BaseMesh):
                 h_i = self._unitDimensions[i] * np.ones(int(h_i))/int(h_i)
             elif type(h_i) is list:
                 h_i = Utils.meshTensor(h_i)
-            assert isinstance(h_i, np.ndarray), ("h[{0:d}] is not a numpy array.".format(i))
-            assert len(h_i.shape) == 1, ("h[{0:d}] must be a 1D numpy array.".format(i))
+            assert isinstance(h_i, np.ndarray), (
+                "h[{0:d}] is not a numpy array.".format(i)
+            )
+            assert len(h_i.shape) == 1, (
+                "h[{0:d}] must be a 1D numpy array.".format(i)
+            )
             h[i] = h_i[:] # make a copy.
 
         x0 = np.zeros(len(h))
@@ -42,10 +46,15 @@ class BaseTensorMesh(BaseMesh):
                 elif x_i == 'N':
                     x0[i] = -h_i.sum()
                 else:
-                    raise Exception("x0[{0:d}] must be a scalar or '0' to be zero, 'C' to center, or 'N' to be negative.".format(i))
+                    raise Exception(
+                        "x0[{0:d}] must be a scalar or '0' to be zero, "
+                        "'C' to center, or 'N' to be negative.".format(i)
+                    )
 
         if isinstance(self, BaseRectangularMesh):
-            BaseRectangularMesh.__init__(self, np.array([x.size for x in h]), x0)
+            BaseRectangularMesh.__init__(
+                self, np.array([x.size for x in h]), x0
+            )
         else:
             BaseMesh.__init__(self, np.array([x.size for x in h]), x0)
 
@@ -54,7 +63,10 @@ class BaseTensorMesh(BaseMesh):
 
     @property
     def h(self):
-        """h is a list containing the cell widths of the tensor mesh in each dimension."""
+        """
+        h is a list containing the cell widths of the tensor mesh in each
+        dimension.
+        """
         return self._h
 
     @property
@@ -217,6 +229,70 @@ class BaseTensorMesh(BaseMesh):
             inside = inside & (pts[:,i] >= tensor.min()-TOL) & (pts[:,i] <= tensor.max()+TOL)
         return inside
 
+    def _getInterpolationMat(self, loc, locType='CC', zerosOutside=False):
+        """ Produces interpolation matrix
+
+        :param numpy.ndarray loc: Location of points to interpolate to
+        :param str locType: What to interpolate (see below)
+        :rtype: scipy.sparse.csr_matrix
+        :return: M, the interpolation matrix
+
+        locType can be::
+
+            'Ex'    -> x-component of field defined on edges
+            'Ey'    -> y-component of field defined on edges
+            'Ez'    -> z-component of field defined on edges
+            'Fx'    -> x-component of field defined on faces
+            'Fy'    -> y-component of field defined on faces
+            'Fz'    -> z-component of field defined on faces
+            'N'     -> scalar field defined on nodes
+            'CC'    -> scalar field defined on cell centers
+            'CCVx'  -> x-component of vector field defined on cell centers
+            'CCVy'  -> y-component of vector field defined on cell centers
+            'CCVz'  -> z-component of vector field defined on cell centers
+        """
+
+        loc = Utils.asArray_N_x_Dim(loc, self.dim)
+
+        if zerosOutside is False:
+            assert np.all(self.isInside(loc)), "Points outside of mesh"
+        else:
+            indZeros = np.logical_not(self.isInside(loc))
+            loc[indZeros, :] = np.array([v.mean() for v in self.getTensor('CC')])
+
+        if locType in ['Fx', 'Fy', 'Fz', 'Ex', 'Ey', 'Ez']:
+            ind = {'x': 0, 'y': 1, 'z': 2}[locType[1]]
+            assert self.dim >= ind, 'mesh is not high enough dimension.'
+            nF_nE = self.vnF if 'F' in locType else self.vnE
+            components = [Utils.spzeros(loc.shape[0], n) for n in nF_nE]
+            components[ind] = Utils.interpmat(loc, *self.getTensor(locType))
+            # remove any zero blocks (hstack complains)
+            components = [comp for comp in components if comp.shape[1] > 0]
+            Q = sp.hstack(components)
+
+        elif locType in ['CC', 'N']:
+            Q = Utils.interpmat(loc, *self.getTensor(locType))
+
+        elif locType in ['CCVx', 'CCVy', 'CCVz']:
+            Q = Utils.interpmat(loc, *self.getTensor('CC'))
+            Z = Utils.spzeros(loc.shape[0], self.nC)
+            if locType == 'CCVx':
+                Q = sp.hstack([Q, Z, Z])
+            elif locType == 'CCVy':
+                Q = sp.hstack([Z, Q, Z])
+            elif locType == 'CCVz':
+                Q = sp.hstack([Z, Z, Q])
+
+        else:
+            raise NotImplementedError(
+                'getInterpolationMat: locType=='+locType+' and mesh.dim=='+str(self.dim)
+            )
+
+        if zerosOutside:
+            Q[indZeros, :] = 0
+
+        return Q.tocsr()
+
     def getInterpolationMat(self, loc, locType='CC', zerosOutside=False):
         """ Produces interpolation matrix
 
@@ -239,45 +315,7 @@ class BaseTensorMesh(BaseMesh):
             'CCVy'  -> y-component of vector field defined on cell centers
             'CCVz'  -> z-component of vector field defined on cell centers
         """
-        if self._meshType == 'CYL' and self.isSymmetric and locType in ['Ex','Ez','Fy']:
-            raise Exception('Symmetric CylMesh does not support {0!s} interpolation, as this variable does not exist.'.format(locType))
-
-        loc = Utils.asArray_N_x_Dim(loc, self.dim)
-
-        if zerosOutside is False:
-            assert np.all(self.isInside(loc)), "Points outside of mesh"
-        else:
-            indZeros = np.logical_not(self.isInside(loc))
-            loc[indZeros, :] = np.array([v.mean() for v in self.getTensor('CC')])
-
-        if locType in ['Fx','Fy','Fz','Ex','Ey','Ez']:
-            ind = {'x':0, 'y':1, 'z':2}[locType[1]]
-            assert self.dim >= ind, 'mesh is not high enough dimension.'
-            nF_nE = self.vnF if 'F' in locType else self.vnE
-            components = [Utils.spzeros(loc.shape[0], n) for n in nF_nE]
-            components[ind] = Utils.interpmat(loc, *self.getTensor(locType))
-            # remove any zero blocks (hstack complains)
-            components = [comp for comp in components if comp.shape[1] > 0]
-            Q = sp.hstack(components)
-        elif locType in ['CC', 'N']:
-            Q = Utils.interpmat(loc, *self.getTensor(locType))
-        elif locType in ['CCVx', 'CCVy', 'CCVz']:
-            Q = Utils.interpmat(loc, *self.getTensor('CC'))
-            Z = Utils.spzeros(loc.shape[0],self.nC)
-            if locType == 'CCVx':
-                Q = sp.hstack([Q,Z,Z])
-            elif locType == 'CCVy':
-                Q = sp.hstack([Z,Q,Z])
-            elif locType == 'CCVz':
-                Q = sp.hstack([Z,Z,Q])
-
-        else:
-            raise NotImplementedError('getInterpolationMat: locType=='+locType+' and mesh.dim=='+str(self.dim))
-
-        if zerosOutside:
-            Q[indZeros, :] = 0
-
-        return Q.tocsr()
+        return self._getInterpolationMat(loc, locType, zerosOutside)
 
 
     def _fastInnerProduct(self, projType, prop=None, invProp=False, invMat=False):

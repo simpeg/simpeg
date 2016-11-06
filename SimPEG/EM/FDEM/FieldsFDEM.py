@@ -583,7 +583,7 @@ class Fields3D_e(FieldsFDEM):
 
         return (
             VI * (self._aveF2CCV * (self._MfMui * self._b(eSolution, srcList)))
-            )
+        )
 
     def _hDeriv_u(self, src, du_dm_v, adjoint=False):
         """
@@ -617,12 +617,13 @@ class Fields3D_e(FieldsFDEM):
 
         if adjoint is True:
             return (
-                self._MfMuiDeriv(self['b', src]).T * self._aveF2CCV.T *
-                VI.T * v
+                self._MfMuiDeriv(self[src, 'b']).T * (
+                    self._aveF2CCV.T * (VI.T * v)
+                )
             )
 
         return (
-            VI * (self._aveF2CCV * (self._MfMuiDeriv(self['b', src]) * v))
+            VI * (self._aveF2CCV * (self._MfMuiDeriv(self[src, 'b']) * v))
         )
 
     def _hDeriv_m(self, src, v, adjoint=False):
@@ -639,16 +640,17 @@ class Fields3D_e(FieldsFDEM):
         n = int(self._aveF2CCV.shape[0] / self._nC)  # Number of Components
         VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
         if adjoint:
-            v = self._MfMui.T * (self._aveF2CCV.T * (VI.T * v))
-            return self._bDeriv_m(src, v, adjoint=adjoint)
+            return (
+                self._bDeriv_m(src, self._MfMui.T * (self._aveF2CCV.T * (VI.T * v)), adjoint=adjoint) +
+                self._hDeriv_mui(src, v, adjoint=False)
+            )
         return (
             VI * (
                 self._aveF2CCV * (
                     self._MfMui * self._bDeriv_m(src, v, adjoint=adjoint)
                 )
-            ) + self._hDeriv_mui(src, v, adjoint)
-        )
-
+            )
+        ) + self._hDeriv_mui(src, v, adjoint=adjoint)
 
 
 class Fields3D_b(FieldsFDEM):

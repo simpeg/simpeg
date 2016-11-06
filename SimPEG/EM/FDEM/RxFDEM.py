@@ -1,6 +1,7 @@
 import SimPEG
 from SimPEG import sp
 
+
 class BaseRx(SimPEG.Survey.BaseRx):
     """
     Frequency domain receiver base class
@@ -11,17 +12,27 @@ class BaseRx(SimPEG.Survey.BaseRx):
     """
 
     def __init__(self, locs, orientation=None, component=None):
-        assert(orientation in ['x','y','z']), "Orientation {0!s} not known. Orientation must be in 'x', 'y', 'z'. Arbitrary orientations have not yet been implemented.".format(orientation)
-        assert(component in ['real', 'imag']), "'component' must be 'real' or 'imag', not {0!s}".format(component)
+        assert(
+            orientation in ['x', 'y', 'z']
+        ), "Orientation {0!s} not known. Orientation must be in 'x', 'y', 'z'."
+        " Arbitrary orientations have not yet been implemented.".format(
+            orientation
+        )
+        assert(
+            component in ['real', 'imag']
+            ), "'component' must be 'real' or 'imag', not {0!s}".format(
+                component
+            )
 
         self.projComp = orientation
         self.component = component
 
-        SimPEG.Survey.BaseRx.__init__(self, locs, rxType=None) #TODO: remove rxType from baseRx
+        # TODO: remove rxType from baseRx
+        SimPEG.Survey.BaseRx.__init__(self, locs, rxType=None)
 
-    def projGLoc(self, u):
+    def projGLoc(self, f):
         """Grid Location projection (e.g. Ex Fy ...)"""
-        return u._GLoc(self.projField) + self.projComp
+        return f._GLoc(self.projField) + self.projComp
 
     def eval(self, src, mesh, f):
         """
@@ -36,9 +47,8 @@ class BaseRx(SimPEG.Survey.BaseRx):
 
         P = self.getP(mesh, self.projGLoc(f))
         f_part_complex = f[src, self.projField]
-        f_part = getattr(f_part_complex, self.component) # get the real or imag component
+        f_part = getattr(f_part_complex, self.component) # real or imag component
 
-        print(P.shape, f_part.shape)
         return P*f_part
 
     def evalDeriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
