@@ -23,6 +23,7 @@ class MuTests(unittest.TestCase):
         self.mesh = Mesh.CylMesh([hx, 1., hz], '0CC')
         self.m0 = MuMax*np.random.rand(self.mesh.nC)
 
+    def getProblem(self, prbtype='e'):
         rxcomp = ['real', 'imag']
 
         loc = Utils.ndgrid(
@@ -33,7 +34,7 @@ class MuTests(unittest.TestCase):
             getattr(FDEM.Rx, 'Point_{f}'.format(f=f))(
                 loc, component=comp, orientation=orient
             )
-            for f in ['e', 'j']
+            for f in ['e']
             for comp in rxcomp
             for orient in ['y']
         ]
@@ -42,7 +43,7 @@ class MuTests(unittest.TestCase):
             getattr(FDEM.Rx, 'Point_{f}'.format(f=f))(
                 loc, component=comp, orientation=orient
             )
-            for f in ['b', 'h']
+            for f in ['b']
             for comp in rxcomp
             for orient in ['x', 'z']
         ]
@@ -53,16 +54,17 @@ class MuTests(unittest.TestCase):
             rxList=rxList, loc=np.r_[0., 0., 0.], freq=self.freq
         )
 
-        self.prob = FDEM.Problem3D_e(
+        self.prob = getattr(FDEM, 'Problem3D_{}'.format(prbtype))(
             self.mesh, sigma=self.m0, muMap=Maps.ChiMap(self.mesh)
         )
         self.survey = FDEM.Survey([src])
 
         self.prob.pair(self.survey)
 
-    def test_Aderiv(self, prbtype='e'):
+    def AderivTest(self, prbtype='e'):
+        self.getProblem(prbtype)
         if prbtype == 'b':
-            nu = mesh.nF
+            nu = self.mesh.nF
         elif prbtype == 'e':
             nu = self.mesh.nE
         v = np.random.rand(nu)
@@ -79,17 +81,21 @@ class MuTests(unittest.TestCase):
             return Av, ADeriv_dm
 
         print('\n Testing ADeriv Mu {}'.format(prbtype))
-        Tests.checkDerivative(
-            AderivFun, self.m0, plotIt=False,
-            num=3, eps=EPS
-            )
+        return Tests.checkDerivative(
+            AderivFun, self.m0, plotIt=False, num=3, eps=EPS
+        )
 
-    def test_Aadjoint(self, prbtype='e'):
-
-        print('\n Testing A_adjoint Mu')
+    def AadjointTest(self, prbtype='e'):
+        self.getProblem(prbtype)
+        print('\n Testing A_adjoint {} Mu'.format(prbtype))
         m = np.random.rand(self.prob.muMap.nP)
-        u = np.random.rand(self.mesh.nE)
-        v = np.random.rand(self.mesh.nE)
+
+        if prbtype == 'e':
+            u = np.random.rand(self.mesh.nE)
+            v = np.random.rand(self.mesh.nE)
+        else:
+            u = np.random.rand(self.mesh.nF)
+            v = np.random.rand(self.mesh.nF)
 
         self.prob.model = self.m0
 
@@ -100,23 +106,24 @@ class MuTests(unittest.TestCase):
         passed = diff < tol
         print('AdjointTest {prbtype} {v1} {v2} {diff} {tol} {passed}'.format(
             prbtype=prbtype, v1=V1, v2=V2, diff=diff, tol=tol, passed=passed))
-        self.assertTrue(passed)
+        return self.assertTrue(passed)
 
-    def test_Jvec_e(self):
-
-        print('Testing Jvec e')
+    def JvecTest(self, prbtype='e'):
+        self.getProblem(prbtype)
+        print('Testing Jvec {}'.format(prbtype))
 
         def fun(x):
             return (
                 self.prob.survey.dpred(x), lambda x: self.prob.Jvec(self.m0, x)
             )
-        return Tests.checkDerivative(fun, self.m0, num=2, plotIt=False, eps=EPS)
+        return Tests.checkDerivative(
+            fun, self.m0, num=2, plotIt=False, eps=EPS
+        )
 
-    def test_Jvec_e_adjoint(self):
-        print('Testing Jvec e')
-        prbtype = 'e'
+    def JtvecTest(self, prbtype='e'):
+        self.getProblem(prbtype)
+        print('Testing Jvec {}'.format(prbtype))
 
-        print('\n Testing A_adjoint Mu')
         m = np.random.rand(self.prob.muMap.nP)
         v = np.random.rand(self.survey.nD)
 
@@ -127,9 +134,31 @@ class MuTests(unittest.TestCase):
         diff = np.abs(V1-V2)
         tol = TOL * (np.abs(V1) + np.abs(V2))/2.
         passed = diff < tol
-        print('AdjointTest {prbtype} {v1} {v2} {diff} {tol} {passed}'.format(
-            prbtype=prbtype, v1=V1, v2=V2, diff=diff, tol=tol, passed=passed))
-        self.assertTrue(passed)
+        print(
+            'AdjointTest {prbtype} {v1} {v2} {diff} {tol} {passed}'.format(
+                prbtype=prbtype, v1=V1, v2=V2, diff=diff, tol=tol,
+                passed=passed
+            )
+        )
+        return passed
+
+    def test_Aderiv_e(self):
+        self.assertTrue(self.AderivTest('e'))
+
+    # def test_Aderiv_b(self):
+    #     self.assertTrue(self.AderivTest('b'))
+
+    def test_Jvec_e(self):
+        self.assertTrue(self.JvecTest('e'))
+
+    def test_Jvec_b(self):
+        self.assertTrue(self.JvecTest('b'))
+
+    def test_Jtvec_e(self):
+        self.assertTrue(self.JtvecTest('e'))
+
+    def test_Jtvec_b(self):
+        self.assertTrue(self.JtvecTest('b'))
 
 
 class MuSigmaTests(unittest.TestCase):

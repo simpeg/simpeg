@@ -367,6 +367,17 @@ class Problem3D_b(BaseFDEMProblem):
     :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: mesh
     """
 
+    mu, muMap, muDeriv = Props.Invertible(
+        "Magnetic Permeability (H/m)",
+        default=mu_0
+    )
+
+    mui, muiMap, muiDeriv = Props.Invertible(
+        "Inverse Magnetic Permeability (m/H)"
+    )
+
+    Props.Reciprocal(mu, mui)
+
     _solutionType = 'bSolution'
     _formulation = 'EB'
     fieldsPair = Fields3D_b
@@ -398,7 +409,7 @@ class Problem3D_b(BaseFDEMProblem):
             return MfMui.T*A
         return A
 
-    def getADeriv(self, freq, u, v, adjoint=False):
+    def getADeriv_sigma(self, freq, u, v, adjoint=False):
 
         """
         Product of the derivative of our system matrix with respect to the
@@ -433,6 +444,29 @@ class Problem3D_b(BaseFDEMProblem):
         if self._makeASymmetric is True:
             return MfMui.T * (C * (MeSigmaIDeriv * v))
         return C * (MeSigmaIDeriv * v)
+
+    def getADeriv_mui(self, freq, u, v, adjoint=False):
+
+        MfMui = self.MfMui
+        MfMuiDeriv = self.MfMuiDeriv(u)
+        MeSigmaI = self.MeSigmaI
+        C = self.mesh.edgeCurl
+
+        if adjoint:
+            if self._makeASymmetric is True:
+                v = MfMui * v
+            return MfMuiDeriv.T * (C * (MeSigmaI.T * (C.T * v)))
+
+        ADeriv = C * (MeSigmaI * (C.T * (MfMuiDeriv * v)))
+        if self._makeASymmetric is True:
+            ADeriv = MfMui.T * ADeriv
+        return ADeriv
+
+    def getADeriv(self, freq, u, v, adjoint=False):
+        return (
+            self.getADeriv_sigma(freq, u, v, adjoint) +
+            self.getADeriv_mui(freq, u, v, adjoint)
+        )
 
     def getRHS(self, freq):
         """

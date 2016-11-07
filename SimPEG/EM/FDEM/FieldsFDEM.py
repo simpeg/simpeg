@@ -679,6 +679,7 @@ class Fields3D_b(FieldsFDEM):
         self._MeSigma = self.survey.prob.MeSigma
         self._MeSigmaI = self.survey.prob.MeSigmaI
         self._MfMui = self.survey.prob.MfMui
+        self._MfMuiDeriv = self.survey.prob.MfMuiDeriv
         self._MeSigmaDeriv = self.survey.prob.MeSigmaDeriv
         self._MeSigmaIDeriv = self.survey.prob.MeSigmaIDeriv
         self._Me = self.survey.prob.Me
@@ -827,6 +828,8 @@ class Fields3D_b(FieldsFDEM):
             to the model with a vector
         """
 
+        # (self._edgeCurl.T * (self._MfMui * bSolution))
+
         bSolution = Utils.mkvc(self[src, 'bSolution'])
         s_e = src.s_e(self.prob)
 
@@ -835,12 +838,20 @@ class Fields3D_b(FieldsFDEM):
         if adjoint:
             s_eDeriv = src.s_eDeriv(self.prob, self._MeSigmaI.T * v, adjoint)
             return (
-                self._MeSigmaIDeriv(w).T * v - s_eDeriv +
+                self._MeSigmaIDeriv(w).T * v +
+                self._MfMuiDeriv(bSolution).T * (
+                    self._edgeCurl * (self._MeSigmaI.T * v)
+                    ) -
+                s_eDeriv +
                 src.ePrimaryDeriv(self.prob, v, adjoint)
             )
         s_eDeriv = src.s_eDeriv(self.prob, v, adjoint)
         return (
-            self._MeSigmaIDeriv(w) * v - self._MeSigmaI * s_eDeriv +
+            self._MeSigmaIDeriv(w) * v +
+            self._MeSigmaI * (
+                self._edgeCurl.T * (self._MfMuiDeriv(bSolution) * v)
+            ) -
+            self._MeSigmaI * s_eDeriv +
             src.ePrimaryDeriv(self.prob, v, adjoint)
         )
 
