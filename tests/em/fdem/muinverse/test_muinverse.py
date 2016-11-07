@@ -243,6 +243,24 @@ class MuSigmaTests(unittest.TestCase):
             )
         return Tests.checkDerivative(fun, self.m0, num=2, plotIt=False, eps=EPS)
 
+    def test_Jvec_e_adjoint_musig(self):
+        print('Testing Jvec e mu sigma')
+        prbtype = 'e'
+
+        print('\n Testing A_adjoint Mu')
+        m = np.random.rand(self.prob.muMap.nP)
+        v = np.random.rand(self.survey.nD)
+
+        self.prob.model = self.m0
+
+        V1 = v.dot(self.prob.Jvec(self.m0, m))
+        V2 = m.dot(self.prob.Jtvec(self.m0, v))
+        diff = np.abs(V1-V2)
+        tol = TOL * (np.abs(V1) + np.abs(V2))/2.
+        passed = diff < tol
+        print('AdjointTest {prbtype} {v1} {v2} {diff} {tol} {passed}'.format(
+            prbtype=prbtype, v1=V1, v2=V2, diff=diff, tol=tol, passed=passed))
+        self.assertTrue(passed)
 
 if __name__ == '__main__':
     unittest.main()
