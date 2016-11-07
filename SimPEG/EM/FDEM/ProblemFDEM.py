@@ -333,17 +333,15 @@ class Problem3D_e(BaseFDEMProblem):
         s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
         MfMuiDeriv = self.MfMuiDeriv(s_m)
 
-
         if adjoint:
             return (
                 s_mDeriv(MfMui * (C * v)) + MfMuiDeriv.T * (C * v) -
                 1j * omega(freq) * s_eDeriv(v)
             )
-        else:
-            return (
-                C.T * (MfMui * s_mDeriv(v) + MfMuiDeriv * v) -
-                1j * omega(freq) * s_eDeriv(v)
-            )
+        return (
+            C.T * (MfMui * s_mDeriv(v) + MfMuiDeriv * v) -
+            1j * omega(freq) * s_eDeriv(v)
+        )
 
 
 class Problem3D_b(BaseFDEMProblem):

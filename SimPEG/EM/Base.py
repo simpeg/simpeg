@@ -130,7 +130,14 @@ class BaseEMProblem(Problem.BaseProblem):
         """
         Derivative of :code:`MfMui` with respect to the model.
         """
-        return self.mesh.getFaceInnerProductDeriv(self.mui)(u) * self.muiDeriv
+        if (
+            getattr(self, 'muMap', None) is not None or
+            getattr(self, 'muiMap', None) is not None
+        ):
+            return (
+                self.mesh.getFaceInnerProductDeriv(self.mui)(u) * self.muiDeriv
+            )
+        return Utils.Zero()
 
     @property
     def MfMuiI(self):
@@ -149,9 +156,14 @@ class BaseEMProblem(Problem.BaseProblem):
         # TODO: only works for diagonal tensors. getEdgeInnerProductDeriv,
         #       invMat=True should be implemented in SimPEG
 
-        dMfMuiI_dI = -self.MfMuiI**2
-        dMf_dmui = self.mesh.getEdgeInnerProductDeriv(self.mui)(u)
-        return dMfMuiI_dI * (dMf_dmui * self.muiDeriv)
+        if (
+            getattr(self, 'muMap', None) is not None or
+            getattr(self, 'muiMap', None) is not None
+        ):
+            dMfMuiI_dI = -self.MfMuiI**2
+            dMf_dmui = self.mesh.getEdgeInnerProductDeriv(self.mui)(u)
+            return dMfMuiI_dI * (dMf_dmui * self.muiDeriv)
+        return Utils.Zero()
 
     @property
     def MeMu(self):
@@ -167,7 +179,14 @@ class BaseEMProblem(Problem.BaseProblem):
         """
         Derivative of :code:`MfMui` with respect to the model.
         """
-        return self.mesh.getEdgeInnerProductDeriv(self.mu)(u) * self.muDeriv
+        if (
+            getattr(self, 'muMap', None) is not None or
+            getattr(self, 'muiMap', None) is not None
+        ):
+            return (
+                self.mesh.getEdgeInnerProductDeriv(self.mu)(u) * self.muDeriv
+            )
+        return Utils.Zero()
 
     @property
     def MeMuI(self):
@@ -186,9 +205,14 @@ class BaseEMProblem(Problem.BaseProblem):
         # TODO: only works for diagonal tensors. getEdgeInnerProductDeriv,
         #       invMat=True should be implemented in SimPEG
 
-        dMeMuI_dI = -self.MeMuI**2
-        dMf_dmui = self.mesh.getEdgeInnerProductDeriv(self.mu)(u)
-        return dMfMuI_dI * (dMf_dmu * self.muDeriv)
+        if (
+            getattr(self, 'muMap', None) is not None or
+            getattr(self, 'muiMap', None) is not None
+        ):
+            dMeMuI_dI = -self.MeMuI**2
+            dMf_dmui = self.mesh.getEdgeInnerProductDeriv(self.mu)(u)
+            return dMfMuI_dI * (dMf_dmu * self.muDeriv)
+        return Utils.Zero()
 
     # ----- Electrical Conductivity ----- #
     @property
@@ -206,7 +230,15 @@ class BaseEMProblem(Problem.BaseProblem):
         """
         Derivative of MeSigma with respect to the model
         """
-        return self.mesh.getEdgeInnerProductDeriv(self.sigma)(u) * self.sigmaDeriv
+        if (
+            getattr(self, 'sigmaMap', None) is not None or
+            getattr(self, 'rhoMap', None) is not None
+        ):
+            return (
+                self.mesh.getEdgeInnerProductDeriv(self.sigma)(u) *
+                self.sigmaDeriv
+            )
+        return Utils.Zero()
 
     @property
     def MeSigmaI(self):
@@ -225,9 +257,14 @@ class BaseEMProblem(Problem.BaseProblem):
         # TODO: only works for diagonal tensors. getEdgeInnerProductDeriv,
         #       invMat=True should be implemented in SimPEG
 
-        dMeSigmaI_dI = -self.MeSigmaI**2
-        dMe_dsig = self.mesh.getEdgeInnerProductDeriv(self.sigma)(u)
-        return dMeSigmaI_dI * (dMe_dsig * self.sigmaDeriv)
+        if (
+            getattr(self, 'sigmaMap', None) is not None or
+            getattr(self, 'rhoMap', None) is not None
+        ):
+            dMeSigmaI_dI = -self.MeSigmaI**2
+            dMe_dsig = self.mesh.getEdgeInnerProductDeriv(self.sigma)(u)
+            return dMeSigmaI_dI * (dMe_dsig * self.sigmaDeriv)
+        return Utils.Zero()
 
     @property
     def MfRho(self):
@@ -243,7 +280,14 @@ class BaseEMProblem(Problem.BaseProblem):
         """
         Derivative of :code:`MfRho` with respect to the model.
         """
-        return self.mesh.getFaceInnerProductDeriv(self.rho)(u) * self.rhoDeriv
+        if (
+            getattr(self, 'sigmaMap', None) is not None or
+            getattr(self, 'rhoMap', None) is not None
+        ):
+            return (
+                self.mesh.getFaceInnerProductDeriv(self.rho)(u) * self.rhoDeriv
+            )
+        return Utils.Zero()
 
     @property
     def MfRhoI(self):
@@ -260,9 +304,14 @@ class BaseEMProblem(Problem.BaseProblem):
         """
             Derivative of :code:`MfRhoI` with respect to the model.
         """
-        dMfRhoI_dI = -self.MfRhoI**2
-        dMf_drho = self.mesh.getFaceInnerProductDeriv(self.rho)(u)
-        return dMfRhoI_dI * (dMf_drho * self.rhoDeriv)
+        if (
+            getattr(self, 'sigmaMap', None) is not None or
+            getattr(self, 'rhoMap', None) is not None
+        ):
+            dMfRhoI_dI = -self.MfRhoI**2
+            dMf_drho = self.mesh.getFaceInnerProductDeriv(self.rho)(u)
+            return dMfRhoI_dI * (dMf_drho * self.rhoDeriv)
+        return Utils.Zero()
 
 
 class BaseEMSurvey(Survey.BaseSurvey):

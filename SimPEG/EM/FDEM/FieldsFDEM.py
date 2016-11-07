@@ -642,7 +642,7 @@ class Fields3D_e(FieldsFDEM):
         if adjoint:
             return (
                 self._bDeriv_m(src, self._MfMui.T * (self._aveF2CCV.T * (VI.T * v)), adjoint=adjoint) +
-                self._hDeriv_mui(src, v, adjoint=False)
+                self._hDeriv_mui(src, v, adjoint=adjoint)
             )
         return (
             VI * (

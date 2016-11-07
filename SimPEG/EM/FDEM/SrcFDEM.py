@@ -488,8 +488,8 @@ class MagDipole(BaseSrc):
 
             return -C.T * (MMui_s * self.bPrimary(prob))
 
-    def s_eDeriv(self, prob, v, adjoint = False):
-        if getattr(prob, 'muMap') is None or getattr(prob, 'muiMap') is None:
+    def s_eDeriv(self, prob, v, adjoint=False):
+        if not hasattr(prob, 'muMap') or not hasattr(prob, 'muiMap'):
             return Zero()
         else:
             formulation = prob._formulation
@@ -502,7 +502,7 @@ class MagDipole(BaseSrc):
                 C = prob.mesh.edgeCurl
 
                 if adjoint:
-                    return -MMui_sDeriv * (C * v)
+                    return -MMui_sDeriv.T * (C * v)
 
                 return -C.T * (MMui_sDeriv * v)
 
