@@ -1,6 +1,6 @@
 language: python
 python:
-  - 3.4
+  # - 3.4
   - 2.7
 
 sudo: false
@@ -80,7 +80,8 @@ after_success:
   - bash <(curl -s https://codecov.io/bash)
   - openssl aes-256-cbc -K $encrypted_7e0a8632ac3f_key -iv $encrypted_7e0a8632ac3f_iv -in credentials.tar.gz.enc -out credentials.tar.gz -d
   - tar -xvzf credentials.tar.gz
-  - if [ "$TRAVIS_BRANCH" = "master" -o "$TRAVIS_BRANCH" = "dev-docs"]; then
+
+  - if [ "$TRAVIS_BRANCH" = "master" -o "$TRAVIS_BRANCH" = "dev-docs" ]; then
       if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then
         if [ ${TEST_DIR} = "tests/docs" -a $TRAVIS_PYTHON_VERSION == "2.7" ]; then
           python scripts/fetch_gae_sdk.py $(dirname "${GAE_PYTHONPATH}");
