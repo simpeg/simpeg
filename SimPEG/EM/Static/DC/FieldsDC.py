@@ -76,8 +76,14 @@ class Fields_CC(FieldsDC):
 
     def __init__(self, mesh, survey, **kwargs):
         FieldsDC.__init__(self, mesh, survey, **kwargs)
-        mesh.setCellGradBC("neumann")
-        cellGrad = mesh.cellGrad
+        if self.mesh._meshType == "TREE":
+            if(self.prob.bc_type == 'Neumann'):
+                raise NotImplementedError()
+            elif(self.prob.bc_type == 'Dirchlet'):
+                cellGrad = -mesh.faceDiv.T
+        else:
+            mesh.setCellGradBC("neumann")
+            cellGrad = mesh.cellGrad
 
     def startup(self):
         self.prob = self.survey.prob
@@ -112,7 +118,7 @@ class Fields_CC(FieldsDC):
             .. math::
                 \vec{e} = -\nabla \phi
         """
-        return -self.mesh.cellGrad*phiSolution
+        return -self.cellGrad*phiSolution
 
     def _charge(self, phiSolution, srcList):
         """

@@ -38,6 +38,37 @@ def DCAnalytic_Pole_Dipole(txloc, rxlocs, sigma, current=1.,
 
     return phi
 
+def DCAnalytic_Dipole_Pole(txlocs, rxlocs, sigma, current=1., earth_type="wholespace"):
+    """
+    Analytic solution for electric potential from a dipole source, measured
+    using a pole Rx
+
+    :param array txlocs: xyz location of A (+)  and B (-) electrodes [np.r_[xa, ya, za], np.r_[xb, yb, zb]]
+    :param list rxlocs: a xyz location of M (+) electrode (np.r_[xm, ym, zm])
+
+    :param float or complex sigma: values of conductivity
+    :param float current: input current of Tx in [A]
+    :param string earth_type: values of conductivity ("wholsespace" or "halfspace")
+    """
+
+    A = txlocs[0]
+    B = txlocs[1]
+
+    M = rxlocs
+
+    rAM = np.sqrt((M[:, 0]-A[0])**2 + (M[:, 1]-A[1])**2 + (M[:, 2]-A[2])**2)
+    rBM = np.sqrt((M[:, 0]-B[0])**2 + (M[:, 1]-B[1])**2 + (M[:, 2]-B[2])**2)
+
+    frontFactor = current/(4*np.pi*sigma)
+
+    phiM = frontFactor*(1/rAM - 1/rBM)
+    phi = phiM
+
+    if earth_type == "halfspace":
+        phi *= 2
+
+    return phi
+
 
 def DCAnalytic_Pole_Pole(txloc, rxloc, sigma, current=1.,
                          earth_type="wholespace"):
