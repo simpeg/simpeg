@@ -335,14 +335,13 @@ class Wires(object):
             )
 
         self._nP = int(np.sum([w[1] for w in args]))
-
         start = 0
         maps = []
         for arg in args:
             wire = Projection(self.nP, slice(start, start + arg[1]))
             setattr(self, arg[0], wire)
             maps += [(arg[0], wire)]
-            start = arg[1]
+            start += arg[1]
         self.maps = maps
 
         self._tuple = namedtuple('Model', [w[0] for w in args])
