@@ -90,7 +90,7 @@ after_success:
             gcloud auth activate-service-account --key-file credentials/client-secret.json ;
             gcloud config set project simpegdocs;
           else
-            cloud auth activate-service-account --key-file credentials/client-secret-dev.json ;
+            gcloud auth activate-service-account --key-file credentials/client-secret-dev.json ;
             gcloud config set project simpeg-dev-docs;
           fi;
           gcloud -q components update gae-python;
