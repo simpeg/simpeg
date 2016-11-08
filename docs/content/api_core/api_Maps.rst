@@ -1,8 +1,8 @@
 .. _api_Maps:
 
 
-SimPEG Maps
-***********
+Maps
+****
 
 That's not a map...?!
 =====================
@@ -103,15 +103,6 @@ When these are used in the inverse problem, this is extremely important!!
     expMap.test(m, plotIt=True)
 
 
-The API
-=======
-
-The :code:`IdentityMap` is the base class for all mappings, and it does absolutely nothing.
-
-.. autoclass:: SimPEG.Maps.IdentityMap
-    :members:
-    :undoc-members:
-
 
 Common Maps
 ===========
@@ -172,6 +163,17 @@ Remember, any time that you make your own combination of mappings
 be sure to test that the derivative is correct.
 
 .. autoclass:: SimPEG.Maps.ComboMap
+    :members:
+    :undoc-members:
+
+
+The API
+=======
+
+The :code:`IdentityMap` is the base class for all mappings, and it does absolutely nothing.
+
+.. automodule:: SimPEG.Maps
+    :show-inheritance:
     :members:
     :undoc-members:
 

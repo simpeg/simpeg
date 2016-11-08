@@ -2,6 +2,8 @@ import unittest
 import numpy as np
 from SimPEG import Mesh, Survey, Utils
 
+np.random.seed(100)
+
 class TestData(unittest.TestCase):
 
     def setUp(self):
