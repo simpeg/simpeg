@@ -1,7 +1,8 @@
 language: python
 python:
-- 3.4
-- 2.7
+  - 3.4
+  - 2.7
+
 sudo: false
 addons:
   apt:
@@ -12,62 +13,79 @@ addons:
     - libmumps-seq-dev
     - libblas-dev
     - liblapack-dev
+
 env:
-- TEST_DIR=tests/examples
-- TEST_DIR="tests/mesh tests/base tests/utils"
-- TEST_DIR=tests/em/fdem/inverse/derivs
-- TEST_DIR=tests/em/tdem
-- TEST_DIR=tests/em/static
-- TEST_DIR=tests/flow
-- TEST_DIR=tests/em/nsem/forward
-- TEST_DIR=tests/em/nsem/inversion
-- TEST_DIR=tests/em/fdem/inverse/adjoint
-- TEST_DIR=tests/em/fdem/forward
-- TEST_DIR=tests/pf
-- TEST_DIR=tests/docs; GAE_PYTHONPATH=${HOME}/.cache/google_appengine; PATH=$PATH:${HOME}/google-cloud-sdk/bin;
-  PYTHONPATH=${PYTHONPATH}:${GAE_PYTHONPATH}; CLOUDSDK_CORE_DISABLE_PROMPTS=1
+  - TEST_DIR=tests/examples
+  - TEST_DIR="tests/mesh tests/base tests/utils"
+  - TEST_DIR=tests/em/fdem/inverse/derivs
+  - TEST_DIR=tests/em/tdem
+  - TEST_DIR=tests/em/static
+  - TEST_DIR=tests/flow
+  - TEST_DIR=tests/em/nsem/forward
+  - TEST_DIR=tests/em/nsem/inversion
+  - TEST_DIR=tests/em/fdem/inverse/adjoint
+  - TEST_DIR=tests/em/fdem/forward
+  - TEST_DIR=tests/pf
+  - TEST_DIR=tests/docs; GAE_PYTHONPATH=${HOME}/.cache/google_appengine; PATH=$PATH:${HOME}/google-cloud-sdk/bin;
+    PYTHONPATH=${PYTHONPATH}:${GAE_PYTHONPATH}; CLOUDSDK_CORE_DISABLE_PROMPTS=1
+
 before_install:
-- openssl aes-256-cbc -K $encrypted_7e0a8632ac3f_key -iv $encrypted_7e0a8632ac3f_iv
-  -in credentials.tar.gz.enc -out credentials.tar.gz -d
-- if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then wget http://repo.continuum.io/miniconda/Miniconda-3.8.3-Linux-x86_64.sh
-  -O miniconda.sh; else wget http://repo.continuum.io/miniconda/Miniconda3-3.8.3-Linux-x86_64.sh
-  -O miniconda.sh; fi
-- chmod +x miniconda.sh
-- ./miniconda.sh -b -p $HOME/miniconda
-- export PATH=/home/travis/anaconda/bin:/home/travis/miniconda/bin:$PATH
-- conda update --yes conda
+  - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then wget http://repo.continuum.io/miniconda/Miniconda-3.8.3-Linux-x86_64.sh
+    -O miniconda.sh; else wget http://repo.continuum.io/miniconda/Miniconda3-3.8.3-Linux-x86_64.sh
+    -O miniconda.sh; fi
+  - chmod +x miniconda.sh
+  - ./miniconda.sh -b -p $HOME/miniconda
+  - export PATH=/home/travis/anaconda/bin:/home/travis/miniconda/bin:$PATH
+  - conda update --yes conda
+
 install:
-- if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then conda install --yes pip python=$TRAVIS_PYTHON_VERSION
-  numpy scipy matplotlib cython ipython h5py nose sphinx sympy vtk; else conda install
-  --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py
-  nose sphinx sympy; fi
-- pip install nose-cov python-coveralls
-- git clone https://github.com/jcapriot/pyMKL.git; cd pyMKL; python setup.py install;
-  cd ..; git clone https://github.com/rowanc1/pymatsolver.git; cd pymatsolver; python
-  setup.py install; cd ..;
-- python setup.py install
-- python setup.py build_ext --inplace
-- if [ ${TEST_DIR} = "tests/docs" ]; then pip install sphinx_rtd_theme ; fi
+  - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then conda install --yes pip python=$TRAVIS_PYTHON_VERSION
+    numpy scipy matplotlib cython ipython h5py nose sphinx sympy vtk; else conda install
+    --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py
+    nose sphinx sympy; fi
+  - pip install nose-cov python-coveralls
+  - git clone https://github.com/jcapriot/pyMKL.git; cd pyMKL; python setup.py install;
+    cd ..; git clone https://github.com/rowanc1/pymatsolver.git; cd pymatsolver; python
+    setup.py install; cd ..;
+  - python setup.py install
+  - python setup.py build_ext --inplace
+  - if [ ${TEST_DIR} = "tests/docs" ]; then pip install sphinx_rtd_theme ; fi
+
 script:
-- nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s;
+  - nosetests $TEST_DIR --with-cov --cov SimPEG --cov-config .coveragerc -v -s;
+
 after_success:
-- bash <(curl -s https://codecov.io/bash)
-- openssl aes-256-cbc -K $encrypted_7e0a8632ac3f_key -iv $encrypted_7e0a8632ac3f_iv
-  -in credentials.tar.gz.enc -out credentials.tar.gz -d
-- tar -xvzf credentials.tar.gz
-- if [ "$TRAVIS_BRANCH" = "master" -o "$TRAVIS_BRANCH" = "dev-docs" ]; then if [ "$TRAVIS_PULL_REQUEST"
-  = "false" ]; then if [ ${TEST_DIR} = "tests/docs" -a $TRAVIS_PYTHON_VERSION == "2.7"
-  ]; then python scripts/fetch_gae_sdk.py $(dirname "${GAE_PYTHONPATH}"); if [ ! -d
-  ${HOME}/google-cloud-sdk ]; then curl https://sdk.cloud.google.com | bash; fi ;
-  if ["$TRAVIS_BRANCH" = "master" ]; then gcloud auth activate-service-account --key-file
-  credentials/client-secret.json ; gcloud config set project simpegdocs; fi; if ["$TRAVIS_BRANCH"
-  = "dev-docs" ]; then gcloud auth activate-service-account --key-file credentials/client-secret-dev.json
-  ; gcloud config set project simpeg-dev-docs; fi; gcloud -q components update gae-python;
-  gcloud -q preview app deploy ./docs/app.yaml --version ${TRAVIS_COMMIT} --promote;
-  fi; fi; fi
-- if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then if
-  [ ${TEST_DIR} = "tests/docs" -a $TRAVIS_PYTHON_VERSION == "2.7" ]; then mv credentials/.pypirc
-  ~/.pypirc ; python setup.py register -r pypi ; travis_wait 20 python setup.py sdist
-  upload -r pypi ; fi; fi
+  - bash <(curl -s https://codecov.io/bash)
+  - openssl aes-256-cbc -K $encrypted_7e0a8632ac3f_key -iv $encrypted_7e0a8632ac3f_iv
+    -in credentials.tar.gz.enc -out credentials.tar.gz -d
+  - tar -xvzf credentials.tar.gz
+  - if [ "$TRAVIS_BRANCH" = "master" -o "$TRAVIS_BRANCH" = "dev-docs" ]; then
+      if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then
+        if [ ${TEST_DIR} = "tests/docs" -a $TRAVIS_PYTHON_VERSION == "2.7"]; then
+          python scripts/fetch_gae_sdk.py $(dirname "${GAE_PYTHONPATH}");
+          if [ ! -d ${HOME}/google-cloud-sdk ]; then
+            curl https://sdk.cloud.google.com | bash;
+          fi ;
+          if [ "$TRAVIS_BRANCH" = "master" ]; then
+            gcloud auth activate-service-account --key-file credentials/client-secret.json ;
+            gcloud config set project simpegdocs;
+          fi;
+          if [ "$TRAVIS_BRANCH" = "dev-docs" ]; then
+            gcloud auth activate-service-account --key-file credentials/client-secret-dev.json;
+            gcloud config set project simpeg-dev-docs;
+          fi;
+          gcloud -q components update gae-python;
+          gcloud -q preview app deploy ./docs/app.yaml --version ${TRAVIS_COMMIT} --promote;
+        fi;
+      fi;
+    fi
+  - if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then
+      if [ ${TEST_DIR} = "tests/docs" -a $TRAVIS_PYTHON_VERSION == "2.7" ]; then
+        mv credentials/.pypirc ~/.pypirc ;
+        python setup.py register -r pypi ;
+        travis_wait 20 python setup.py sdist upload -r pypi ;
+      fi;
+    fi
+
 notifications:
   slack: simpeg:1KZq5giMtlJJ58TijIPgqf7n
