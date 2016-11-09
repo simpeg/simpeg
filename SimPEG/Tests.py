@@ -285,6 +285,8 @@ def checkDerivative(fctn, x0, num=7, plotIt=True, dx=None, expectedOrder=2, tole
         # 1st order Taylor
         if inspect.isfunction(J0):
             E1[i] = l2norm( ft - f0 - h[i]*J0(dx) )
+        elif not isinstance(J0, np.ndarray):
+            E1[i] = l2norm( ft - f0 - h[i]*(J0*dx) )
         else:
             # We assume it is a numpy.ndarray
             E1[i] = l2norm( ft - f0 - h[i]*J0.dot(dx) )
