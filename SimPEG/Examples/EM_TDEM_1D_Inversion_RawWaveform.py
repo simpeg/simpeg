@@ -15,7 +15,7 @@ def run(plotIt=True):
         ==========================================
 
         Here we will create and run a TDEM 1D inversion,
-        with VTEM waveform meaning initial condition
+        with VTEM waveform of which initial condition
         is zero, but have some on- and off-time.
     """
 
@@ -36,12 +36,12 @@ def run(plotIt=True):
     sigma[layer] = sig_layer
     mtrue = np.log(sigma[active])
 
-    x = np.r_[30, 50]
+    x = np.r_[30, 50, 70, 90]
     rxloc = np.c_[x, x*0., np.zeros_like(x)]
 
     prb = EM.TDEM.Problem3D_b(mesh, sigmaMap=mapping)
     prb.Solver = Solver
-    prb.timeSteps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 5), (1e-4, 10)]
+    prb.timeSteps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 5), (1e-4, 10), (5e-4, 10)]
 
     # Use VTEM waveform
     out = EM.Utils.VTEMFun(prb.times, 0.00595, 0.006, 100)
@@ -51,7 +51,7 @@ def run(plotIt=True):
     t0 = 0.006
     waveform = EM.TDEM.Src.RawWaveform(offTime=t0, waveFct=wavefun)
 
-    rx = EM.TDEM.Rx(rxloc, np.logspace(-4, -3, 11)+t0,
+    rx = EM.TDEM.Rx(rxloc, np.logspace(-4, -2.5, 11)+t0,
                     'dbzdt')
     src = EM.TDEM.Src.CircularLoop([rx], waveform=waveform,
                                    loc=np.array([0., 0., 0.]), radius=10.)
@@ -83,9 +83,9 @@ def run(plotIt=True):
 
     if plotIt:
         fig, ax = plt.subplots(1, 2, figsize=(10, 6))
-        Dobs = survey.dobs.reshape((11, 2))
-        Dpred = invProb.dpred.reshape((11, 2))
-        for i in range (2):
+        Dobs = survey.dobs.reshape((len(rx.times), len(x)))
+        Dpred = invProb.dpred.reshape((len(rx.times), len(x)))
+        for i in range (len(x)):
             ax[0].loglog(rx.times-t0, -Dobs[:,i].flatten(), 'k')
             ax[0].loglog(rx.times-t0, -Dpred[:,i].flatten(), 'k.')
             if i==0:
