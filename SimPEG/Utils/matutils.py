@@ -575,6 +575,9 @@ class Identity(object):
     def __mul__(self, v):
         return v if self._positive else -v
 
+    def dot(self, v):
+        return v if self._positive else -v
+
     def __rmul__(self, v):
         return v if self._positive else -v
 
