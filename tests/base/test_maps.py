@@ -5,16 +5,23 @@ import inspect
 
 TOL = 1e-14
 
+np.random.seed(121)
+
+
 MAPS_TO_EXCLUDE_2D = ["ComboMap", "ActiveCells", "InjectActiveCells",
                       "LogMap", "ReciprocalMap",
                       "Surject2Dto3D", "Map2Dto3D", "Mesh2Mesh",
                       "ParametricPolyMap", "PolyMap", "ParametricSplineMap",
-                      "SplineMap", "Projection"]
+                      "SplineMap", "ParametrizedCasingAndLayer",
+                      "ParametrizedLayer", "ParametrizedBlockInLayer",
+                      "Projection"]
 MAPS_TO_EXCLUDE_3D = ["ComboMap", "ActiveCells", "InjectActiveCells",
                       "LogMap", "ReciprocalMap",
                       "CircleMap", "ParametricCircleMap", "Mesh2Mesh",
                       "ParametricPolyMap", "PolyMap", "ParametricSplineMap",
-                      "SplineMap", "Projection"]
+                      "SplineMap", "ParametrizedCasingAndLayer",
+                      "ParametrizedLayer", "ParametrizedBlockInLayer",
+                      "Projection"]
 
 
 class MapTests(unittest.TestCase):
@@ -38,6 +45,7 @@ class MapTests(unittest.TestCase):
         self.mesh2 = Mesh.TensorMesh([a, b], x0=np.array([3, 5]))
         self.mesh3 = Mesh.TensorMesh([a, b, [3, 4]], x0=np.array([3, 5, 2]))
         self.mesh22 = Mesh.TensorMesh([b, a], x0=np.array([3, 5]))
+        self.meshCyl = Mesh.CylMesh([10.,1.,10.], x0='00C')
 
     def test_transforms2D(self):
         for M in self.maps2test2D:
@@ -57,6 +65,7 @@ class MapTests(unittest.TestCase):
 
     def test_invtransforms2D(self):
         for M in self.maps2test2D:
+            print('Testing Inverse {0}'.format(str(M.__name__)))
             mapping = M(self.mesh2)
             d = np.random.rand(mapping.shape[0])
             try:
@@ -69,6 +78,7 @@ class MapTests(unittest.TestCase):
 
     def test_invtransforms3D(self):
         for M in self.maps2test3D:
+            print('Testing Inverse {0}'.format(str(M.__name__)))
             mapping = M(self.mesh3)
             d = np.random.rand(mapping.shape[0])
             try:
@@ -78,6 +88,11 @@ class MapTests(unittest.TestCase):
                 print('  ... ok\n')
             except NotImplementedError:
                 pass
+
+    def test_ParametricCasingAndLayer(self):
+        mapping = Maps.ParametrizedCasingAndLayer(self.meshCyl)
+        m = np.r_[-2., 1., 6., 2., -0.1, 0.2, 0.5, 0.2, -0.2, 0.2]
+        self.assertTrue(mapping.test(m))
 
     def test_transforms_logMap_reciprocalMap(self):
 
