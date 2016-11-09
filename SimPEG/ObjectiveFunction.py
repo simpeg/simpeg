@@ -69,15 +69,9 @@ class ObjectiveFunction(object):
     def __add__(self, objfct2):
         if issubclass(ObjectiveFunction, type(objfct2)):
 
-            def fct(x, **kwargs):
-                return self(x, **kwargs) + objfct2(x, **kwargs)
+            if isinstance(self, ComboObjectiveFunction):
 
-            def fct_deriv(x, **kwargs):
-                return self.deriv(x, **kwargs) + objfct2.deriv(x, **kwargs)
-
-            def fct_deriv2(x, **kwargs):
-                return self.deriv2(x, **kwargs) + objfct2.deriv2(x, **kwargs)
-
+                return ComboObjectiveFunction(self+[objfct2], )
             return ObjectiveFunction(
                 _eval=fct, _deriv=fct_deriv, _deriv2=fct_deriv2
             )
@@ -103,4 +97,41 @@ class ObjectiveFunction(object):
         return self*scalar
 
 
+class ComboObjectiveFunction(ObjectiveFunction):
+
+    _multiplier_types = [float, Float, None]
+
+    def __init__(self, objfcts, multipliers=None, **kwargs):
+
+        self.objfcts = []
+        for fct in objfcts:
+            assert isinstance(fct, ObjectiveFunction), (
+                "Unrecognized objective function type {} in objfcts. All "
+                "entries in objfcts must inherit from  ObjectiveFunction"
+            )
+            self.objfcts += fct
+
+        if multipliers is None:
+            self.multipliers = len(self.objfcts)*[1]
+        else:
+            for mult in multipliers:
+                assert(type(mult) in self._multiplier_types), (
+                    "Objective Functions can only be multiplied by a float, or"
+                    " a properties.Float, not a {}".format(type(scalar))
+                )
+            assert len(multipliers) == len(self.objfcts), (
+                "Length of multipliers ({}) must be the same as the length of "
+                "objfcts ({})".format(len(multipliers), len(self.objfcts))
+            )
+
+        super(ComboObjectiveFunction, self).__init__(self, **kwargs)
+
+    def _eval(self, **kwargs):
+        NotImplementedError
+
+    def _deriv(self, **kwargs):
+        NotImplementedError
+
+    def _deriv2(self, **kwargs):
+        NotImplementedError
 

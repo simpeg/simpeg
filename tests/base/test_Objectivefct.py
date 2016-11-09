@@ -28,6 +28,7 @@ class TestBaseObjFct(unittest.TestCase):
 
     def test_derivs(self):
         objfct = L2_ObjFct()
+        print(objfct.__class__)
         self.assertTrue(objfct.test())
 
     def test_scalarmul(self):
