@@ -15,34 +15,29 @@ class ObjectiveFunction(object):
 
         Utils.setKwargs(self, **kwargs)
 
-    def eval(self, x, **kwargs):
-        if getattr(self, '_eval', None) is None:
-            raise NotImplementedError(
-                "The method _eval has not been implemented for {}".format(
-                    self.__class__.__name__
-                )
-            )
+    def __call__(self, x, **kwargs):
         return self._eval(x, **kwargs)
 
-    __call__ = eval
+    def _eval(self, x, **kwargs):
+        raise NotImplementedError(
+            "The method _eval has not been implemented for {}".format(
+                self.__class__.__name__
+            )
+        )
 
     def deriv(self, x, **kwargs):
-        if getattr(self, '_deriv', None) is None:
-            raise NotImplementedError(
-                "The method _deriv has not been implemented for {}".format(
-                    self.__class__.__name__
-                )
+        raise NotImplementedError(
+            "The method deriv has not been implemented for {}".format(
+                self.__class__.__name__
             )
-        return self._deriv(x, **kwargs)
+        )
 
     def deriv2(self, x, **kwargs):
-        if getattr(self, '_deriv2', None) is None:
-            raise NotImplementedError(
-                "The method _deriv2 has not been implemented for {}".format(
-                    self.__class__.__name__
-                )
+        raise NotImplementedError(
+            "The method _deriv2 has not been implemented for {}".format(
+                self.__class__.__name__
             )
-        return self._deriv2(x, **kwargs)
+        )
 
     def _test_deriv(self, x=None, num=4, plotIt=False, **kwargs):
         print('Testing {0!s} Deriv'.format(self.__class__.__name__))
@@ -148,13 +143,13 @@ class ComboObjectiveFunction(ObjectiveFunction):
             f += multpliter * objfct(x, **kwargs)
         return f
 
-    def _deriv(self, x, **kwargs):
+    def deriv(self, x, **kwargs):
         g = Utils.Zero()
         for multpliter, objfct in zip(self.multipliers, self.objfcts):
             g += multpliter * objfct.deriv(x, **kwargs)
         return g
 
-    def _deriv2(self, x, **kwargs):
+    def deriv2(self, x, **kwargs):
         H = Utils.Zero()
         for multpliter, objfct in zip(self.multipliers, self.objfcts):
             H += multpliter * objfct.deriv2(x, **kwargs)

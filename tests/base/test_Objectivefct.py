@@ -65,7 +65,6 @@ class TestBaseObjFct(unittest.TestCase):
             phi.deriv2(x)
 
 
-
 if __name__ == '__main__':
     unittest.main()
 
