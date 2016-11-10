@@ -578,6 +578,10 @@ class Identity(object):
     def dot(self, v):
         return v if self._positive else -v
 
+    @property
+    def T(self):
+        return self
+
     def __rmul__(self, v):
         return v if self._positive else -v
 
