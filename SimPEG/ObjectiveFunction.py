@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 
 from properties import Float
 import numpy as np
+import scipy.sparse as sp
 
 from . import Utils
 from .Tests import checkDerivative
@@ -17,6 +18,12 @@ class ObjectiveFunction(object):
 
     def __call__(self, x, **kwargs):
         return self._eval(x, **kwargs)
+
+    @property
+    def nP(self):
+        if getattr(self, '_nP', None) is not None:
+            return self._nP
+        return '*'
 
     def _eval(self, x, **kwargs):
         raise NotImplementedError(
@@ -42,10 +49,10 @@ class ObjectiveFunction(object):
     def _test_deriv(self, x=None, num=4, plotIt=False, **kwargs):
         print('Testing {0!s} Deriv'.format(self.__class__.__name__))
         if x is None:
-            if getattr(self, 'nP', None) is not None:
-                x = np.random.randn(self.nP)
-            else:
+            if self.nP == '*':
                 x = np.random.randn(np.random.randint(1e2, high=1e3))
+            else:
+                x = np.random.randn(self.nP)
 
         return checkDerivative(
             lambda m: [self(m), self.deriv(m)], x, num=num, plotIt=plotIt
@@ -54,10 +61,10 @@ class ObjectiveFunction(object):
     def _test_deriv2(self, x=None, num=4, plotIt=False, **kwargs):
         print('Testing {0!s} Deriv2'.format(self.__class__.__name__))
         if x is None:
-            if getattr(self, 'nP', None) is not None:
-                x = np.random.randn(self.nP)
-            else:
+            if self.nP == '*':
                 x = np.random.randn(np.random.randint(1e2, high=1e3))
+            else:
+                x = np.random.randn(self.nP)
 
         return checkDerivative(
             lambda m: [self.deriv(m), self.deriv2(m)], x, num=num,
@@ -109,16 +116,24 @@ class ObjectiveFunction(object):
 
 class ComboObjectiveFunction(ObjectiveFunction):
 
-    _multiplier_types = [float, Float, None, int, long] # Directive
+    _multiplier_types = [float, Float, None, int, long]  # Directive
 
     def __init__(self, objfcts, multipliers=None, **kwargs):
 
         self.objfcts = []
+        self._nP = '*'
         for fct in objfcts:
             assert isinstance(fct, ObjectiveFunction), (
                 "Unrecognized objective function type {} in objfcts. All "
                 "entries in objfcts must inherit from  ObjectiveFunction"
             )
+            if fct.nP != '*':
+                if self._nP != '*':
+                    assert self._nP == fct.nP, (
+                        "Objective Functions must all have the same nP"
+                    )
+                else:
+                    self._nP = fct.nP
             self.objfcts.append(fct)
 
         if multipliers is None:
@@ -152,6 +167,32 @@ class ComboObjectiveFunction(ObjectiveFunction):
     def deriv2(self, x, **kwargs):
         H = Utils.Zero()
         for multpliter, objfct in zip(self.multipliers, self.objfcts):
-            H += multpliter * objfct.deriv2(x, **kwargs)
+            objfct_H = objfct.deriv2(x, **kwargs)
+            if isinstance(objfct_H, Utils.Zero):
+                pass
+            elif isinstance(objfct_H, Utils.Identity) and self.nP != '*':
+                H += multpliter * sp.eye(self.nP)  # if we need a shape
+            else:
+                H += multpliter * objfct_H
         return H
 
+
+class l2ObjFct(ObjectiveFunction):
+
+    def __init__(self, W=None, **kwargs):
+        if W is not None:
+            self._nP = W.shape[0]
+            self.W = W
+        elif W is None:
+            self.W = Utils.Identity()
+        super(l2ObjFct, self).__init__(**kwargs)
+
+    def _eval(self, m):
+        r = self.W * m
+        return 0.5 * r.dot(r)
+
+    def deriv(self, m):
+        return self.W.T * (self.W * m)
+
+    def deriv2(self, m):
+        return self.W.T * self.W
