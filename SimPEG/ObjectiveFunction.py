@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 from properties import Float
 import numpy as np
 import scipy.sparse as sp
+from six import integer_types
 
 from . import Utils
 from .Tests import checkDerivative
@@ -116,7 +117,7 @@ class ObjectiveFunction(object):
 
 class ComboObjectiveFunction(ObjectiveFunction):
 
-    _multiplier_types = [float, Float, None, int, long]  # Directive
+    _multiplier_types = (float, Float, None) + integer_types # Directive
 
     def __init__(self, objfcts, multipliers=None, **kwargs):
 
