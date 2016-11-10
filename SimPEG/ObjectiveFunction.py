@@ -11,29 +11,37 @@ from .Tests import checkDerivative
 
 class ObjectiveFunction(object):
 
-    _eval = None
-    _deriv = None
-    _deriv2 = None
-
     def __init__(self, **kwargs):
 
         Utils.setKwargs(self, **kwargs)
 
     def eval(self, x, **kwargs):
         if getattr(self, '_eval', None) is None:
-            raise NotImplementedError
+            raise NotImplementedError(
+                "The method _eval has not been implemented for {}".format(
+                    self.__class__.__name__
+                )
+            )
         return self._eval(x, **kwargs)
 
     __call__ = eval
 
     def deriv(self, x, **kwargs):
         if getattr(self, '_deriv', None) is None:
-            raise NotImplementedError
+            raise NotImplementedError(
+                "The method _deriv has not been implemented for {}".format(
+                    self.__class__.__name__
+                )
+            )
         return self._deriv(x, **kwargs)
 
     def deriv2(self, x, **kwargs):
         if getattr(self, '_deriv2', None) is None:
-            raise NotImplementedError
+            raise NotImplementedError(
+                "The method _deriv2 has not been implemented for {}".format(
+                    self.__class__.__name__
+                )
+            )
         return self._deriv2(x, **kwargs)
 
     def _test_deriv(self, x=None, num=4, plotIt=False, **kwargs):

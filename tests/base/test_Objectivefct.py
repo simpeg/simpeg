@@ -5,11 +5,11 @@ from __future__ import unicode_literals
 import numpy as np
 import unittest
 
-from SimPEG import ObjectiveFunction
+from SimPEG.ObjectiveFunction import ObjectiveFunction
 from SimPEG import Utils
 
 
-class L2_ObjFct(ObjectiveFunction.ObjectiveFunction):
+class L2_ObjFct(ObjectiveFunction):
 
     def __init__(self):
         super(L2_ObjFct, self).__init__()
@@ -17,11 +17,17 @@ class L2_ObjFct(ObjectiveFunction.ObjectiveFunction):
     def _eval(self, m):
         return 0.5 * m.dot(m)
 
-    def _deriv(self, m):
+    def deriv(self, m):
         return m
 
-    def _deriv2(self, m):
+    def deriv2(self, m):
         return Utils.Identity()
+
+
+class Empty_ObjFct(ObjectiveFunction):
+
+    def __init__(self):
+        super(Empty_ObjFct, self).__init__()
 
 
 class TestBaseObjFct(unittest.TestCase):
@@ -37,7 +43,6 @@ class TestBaseObjFct(unittest.TestCase):
         m = np.random.rand(100)
 
         self.assertTrue(scalar * objfct_a(m) == objfct_b(m))
-
         self.assertTrue(objfct_b.test())
 
     def test_sum(self):
@@ -50,6 +55,14 @@ class TestBaseObjFct(unittest.TestCase):
         phi2 = L2_ObjFct() + 200 * phi1
         self.assertTrue(phi2.test())
 
+    def test_emptyObjFct(self):
+        phi = Empty_ObjFct()
+        x = np.random.rand(20)
+
+        with self.assertRaises(NotImplementedError):
+            phi(x)
+            phi.deriv(x)
+            phi.deriv2(x)
 
 
 
