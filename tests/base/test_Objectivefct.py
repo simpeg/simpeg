@@ -28,7 +28,6 @@ class TestBaseObjFct(unittest.TestCase):
 
     def test_derivs(self):
         objfct = L2_ObjFct()
-        print(objfct.__class__)
         self.assertTrue(objfct.test())
 
     def test_scalarmul(self):
@@ -45,6 +44,11 @@ class TestBaseObjFct(unittest.TestCase):
         scalar = 10.
         objfct = L2_ObjFct() + scalar * L2_ObjFct()
         self.assertTrue(objfct.test())
+
+    def test_3sum(self):
+        phi1 = L2_ObjFct() + 100 * L2_ObjFct()
+        phi2 = L2_ObjFct() + 200 * phi1
+        self.assertTrue(phi2.test())
 
 
 
