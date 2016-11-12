@@ -16,7 +16,7 @@ from SimPEG import PF
 def run(plotIt=True):
     """
         PF: Gravity: Inversion Linear
-        ===============================
+        =============================
 
         Create a synthetic block model and invert
         with a compact norm
