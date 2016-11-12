@@ -8,6 +8,7 @@ class BaseMagSurvey(Survey.BaseSurvey):
 
     rxLoc = None   #: receiver locations
     rxType = None   #: receiver type
+    srcField = None
 
     def __init__(self, **kwargs):
         Survey.BaseSurvey.__init__(self, **kwargs)
@@ -37,6 +38,7 @@ class BaseMagSurvey(Survey.BaseSurvey):
         if getattr(self, '_Qfz', None) is None:
             self._Qfz = self.prob.mesh.getInterpolationMat(self.rxLoc, 'Fz')
         return self._Qfz
+
 
     def projectFields(self, u):
         """

@@ -462,32 +462,27 @@ class Simple(BaseRegularization):
             self._Wz = Utils.sdiag((self.alpha_z * (self.regmesh.aveCC2Fz*self.cell_weights))**0.5)*self.regmesh.cellDiffzStencil
         return self._Wz
 
-#    @property
-#    def Wsmooth(self):
-#        """Full smoothness regularization matrix W"""
-#        print('wtf why are we using Wsmooth')
-#        raise NotImplementedError
-#        if getattr(self, '_Wsmooth', None) is None:
-#            wlist = (self.Wx,)
-#            if self.regmesh.dim > 1:
-#                wlist += (self.Wy,)
-#            if self.regmesh.dim > 2:
-#                wlist += (self.Wz,)
-#            self._Wsmooth = sp.vstack(wlist)
-#        return self._Wsmooth
-#
-#    @property
-#    def W(self):
-#        """Full regularization matrix W"""
-#        print('wtf why are we using W')
-#        if getattr(self, '_W', None) is None:
-#            wlist = (self.Wsmall, self.Wx)
-#            if self.regmesh.dim > 1:
-#                wlist += (self.Wy,)
-#            if self.regmesh.dim > 2:
-#                wlist += (self.Wz,)
-#            self._W = sp.vstack(wlist)
-#        return self._W
+    @property
+    def Wsmooth(self):
+        """Full smoothness regularization matrix W"""
+        if getattr(self, '_Wsmooth', None) is None:
+            wlist = (self.Wx,)
+            if self.regmesh.dim > 1:
+                wlist += (self.Wy,)
+            if self.regmesh.dim > 2:
+                wlist += (self.Wz,)
+            self._Wsmooth = sp.vstack(wlist)
+        return self._Wsmooth
+
+
+    @property
+    def W(self):
+        """Full regularization matrix W"""
+        if getattr(self, '_W', None) is None:
+            wlist = (self.Wsmall, self.Wsmooth)
+            self._W = sp.vstack(wlist)
+        return self._W
+
 
 
     @Utils.timeIt
@@ -861,7 +856,7 @@ class Tikhonov(Simple):
 
     @Utils.timeIt
     def eval(self, m):
-        return self._evalSmall(m) + self._evalSmooth(m) + self._evalSmooth2(m)
+        return self._evalSmall(m) + self._evalSmooth(m) #+ self._evalSmooth2(m)
 
     @Utils.timeIt
     def evalDeriv(self, m):
@@ -879,7 +874,7 @@ class Tikhonov(Simple):
             R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
 
         """
-        return self._evalSmallDeriv(m) + self._evalSmoothDeriv(m) + self._evalSmoothDeriv2(m)
+        return self._evalSmallDeriv(m) + self._evalSmoothDeriv(m) #+ self._evalSmoothDeriv2(m)
 
     def eval2Deriv(self, m, v=None):
         """
@@ -926,13 +921,15 @@ class Sparse(Simple):
     """
 
     # set default values
-    eps_p = 1e-1        # Threshold value for the model norm
-    eps_q = 1e-1        # Threshold value for the model gradient norm
+    eps_p = [1e-1, 1e-1, 1e-1]        # Threshold value for the model norm
+    eps_q = [1e-1, 1e-1, 1e-1]        # Threshold value for the model gradient norm
     model = None     # Requires model to compute the weights
+
     l2model = None
     gamma = 1.          # Model norm scaling to smooth out convergence
     norms = [0., 2., 2., 2.] # Values for norm on (m, dmdx, dmdy, dmdz)
     cell_weights = 1.        # Consider overwriting with sensitivity weights
+    nModels = 1 # Number of models
 
     def __init__(self, mesh, mapping=None, indActive=None, **kwargs):
         Simple.__init__(self, mesh, mapping=mapping, indActive=indActive, **kwargs)
@@ -940,69 +937,129 @@ class Sparse(Simple):
         if isinstance(self.cell_weights,float):
             self.cell_weights = np.ones(self.regmesh.nC) * self.cell_weights
 
+        # if getattr(self, 'model', None) is None:
+        #             self.model = np.ones(self.regmesh.nC)
+
+        # if self.regmesh.nC != len(self.model):
+
+        #     nmod = len(self.model)/self.regmesh.nC
+
+        #     assert np.mod(nmod, 1) > 1e-8, 'Mismatch between model and mesh'
+
+        #     self.nModels = int(nmod)
+
+
     @property
     def Wsmall(self):
         """Regularization matrix Wsmall"""
-        if getattr(self,'_Wsmall', None) is None:
+        if getattr(self, '_Wsmall', None) is None:
+
             if getattr(self, 'model', None) is None:
-                self.Rs = Utils.speye(self.regmesh.nC)
+                m = np.ones(self.mapping.shape[0])
 
             else:
-                f_m = self.mapping * (self.model - self.reg.mref)
-                self.rs = self.R(f_m , self.eps_p, self.norms[0])
-                self.Rs = Utils.sdiag( self.rs )
+                m = self.mapping * (self.model)
 
-            self._Wsmall = Utils.sdiag((self.alpha_s*self.gamma*self.cell_weights)**0.5)*self.Rs
+            mref = self.mapping * (self.reg.mref)
+            mats = []
+            for imodel in range(self.nModels):
+
+                indl, indu = imodel*self.regmesh.nC, (imodel+1)*self.regmesh.nC
+
+                # Grab the right model parameters
+                f_m = (m[indl:indu] - mref[indl:indu])
+                self.rs = self.R(f_m, self.eps_p[imodel], self.norms[0])
+
+                Ws = Utils.sdiag((self.alpha_s*self.gamma*self.cell_weights[indl:indu])**0.5*self.rs)
+
+                mats.append(Ws)
+
+            self._Wsmall = sp.block_diag(mats)
 
         return self._Wsmall
 
     @property
     def Wx(self):
         """Regularization matrix Wx"""
-        if getattr(self,'_Wx', None) is None:
+        if getattr(self, '_Wx', None) is None:
+
             if getattr(self, 'model', None) is None:
-                self.Rx = Utils.speye(self.regmesh.cellDiffxStencil.shape[0])
+                m = np.ones(self.mapping.shape[0])
 
             else:
-                f_m = self.regmesh.cellDiffxStencil * (self.mapping * self.model)
-                self.rx = self.R( f_m , self.eps_q, self.norms[1])
-                self.Rx = Utils.sdiag( self.rx )
+                m = self.mapping * (self.model)
 
-            self._Wx = Utils.sdiag(( self.alpha_x*self.gamma*(self.regmesh.aveCC2Fx*self.cell_weights))**0.5)*self.Rx*self.regmesh.cellDiffxStencil
+            mats = []
+            for imodel in range(self.nModels):
+
+                indl, indu = imodel*self.regmesh.nC, (imodel+1)*self.regmesh.nC
+
+                # Grab the right model parameters
+                f_m = self.regmesh.cellDiffxStencil * m[indl:indu]
+                self.rx = self.R( f_m , self.eps_q[imodel], self.norms[1])
+
+                Wx = Utils.sdiag((self.alpha_x*self.gamma*(self.regmesh.aveCC2Fx*self.cell_weights[indl:indu]))**0.5*self.rx)*self.regmesh.cellDiffxStencil
+
+                mats.append(Wx)
+
+            self._Wx = sp.block_diag(mats)
 
         return self._Wx
 
     @property
     def Wy(self):
         """Regularization matrix Wy"""
-        if getattr(self,'_Wy', None) is None:
+        if getattr(self, '_Wy', None) is None:
+
             if getattr(self, 'model', None) is None:
-                self.Ry = Utils.speye(self.regmesh.cellDiffyStencil.shape[0])
+                m = np.ones(self.mapping.shape[0])
 
             else:
-                f_m = self.regmesh.cellDiffyStencil * (self.mapping * self.model)
-                self.ry = self.R( f_m , self.eps_q, self.norms[2])
-                self.Ry = Utils.sdiag( self.ry )
+                m = self.mapping * (self.model)
 
-            self._Wy = Utils.sdiag((self.alpha_y*self.gamma*(self.regmesh.aveCC2Fy*self.cell_weights))**0.5)*self.Ry*self.regmesh.cellDiffyStencil
+            mats = []
+            for imodel in range(self.nModels):
+
+                indl, indu = imodel*self.regmesh.nC, (imodel+1)*self.regmesh.nC
+
+                # Grab the right model parameters
+                f_m = self.regmesh.cellDiffyStencil * m[indl:indu]
+                self.ry = self.R( f_m , self.eps_q[imodel], self.norms[2])
+
+                Wy = Utils.sdiag((self.alpha_y*self.gamma*(self.regmesh.aveCC2Fy*self.cell_weights[indl:indu]))**0.5*self.ry)*self.regmesh.cellDiffyStencil
+
+                mats.append(Wy)
+
+            self._Wy = sp.block_diag(mats)
 
         return self._Wy
 
     @property
     def Wz(self):
         """Regularization matrix Wz"""
-        if getattr(self,'_Wz', None) is None:
+        if getattr(self, '_Wz', None) is None:
             if getattr(self, 'model', None) is None:
-                self.Rz = Utils.speye(self.regmesh.cellDiffzStencil.shape[0])
+                m = np.ones(self.mapping.shape[0])
 
             else:
-                f_m = self.regmesh.cellDiffzStencil * (self.mapping * self.model)
-                self.rz = self.R( f_m , self.eps_q, self.norms[3])
-                self.Rz = Utils.sdiag( self.rz )
+                m = self.mapping * (self.model)
+            mats = []
+            for imodel in range(self.nModels):
 
-            self._Wz = Utils.sdiag((self.alpha_z*self.gamma*(self.regmesh.aveCC2Fz*self.cell_weights))**0.5)*self.Rz*self.regmesh.cellDiffzStencil
+                indl, indu = imodel*self.regmesh.nC, (imodel+1)*self.regmesh.nC
+
+                # Grab the right model parameters
+                f_m = self.regmesh.cellDiffzStencil * m[indl:indu]
+                self.rz = self.R( f_m , self.eps_q[imodel], self.norms[3])
+
+                Wz = Utils.sdiag((self.alpha_z*self.gamma*(self.regmesh.aveCC2Fz*self.cell_weights[indl:indu]))**0.5*self.rz)*self.regmesh.cellDiffzStencil
+
+                mats.append(Wz)
+
+            self._Wz = sp.block_diag(mats)
 
         return self._Wz
+
 
     def R(self, f_m , eps, exponent):
 

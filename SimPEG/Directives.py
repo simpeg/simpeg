@@ -2,6 +2,7 @@ from __future__ import print_function
 from . import Utils
 import numpy as np
 import warnings
+from . import Maps
 
 
 class InversionDirective(object):
@@ -337,17 +338,24 @@ class Update_IRLS(InversionDirective):
 
             self.mode = 2
 
+            mmap = self.reg.mapping * self.invProb.model
+
             # Either use the supplied epsilon, or fix base on distribution of
             # model values
-            if getattr(self, 'eps', None) is None:
-                self.reg.eps_p = np.percentile(np.abs(self.invProb.model), self.prctile)
-            else:
-                self.reg.eps_p = self.eps[0]
+            for imodel in range(self.reg.nModels):
 
-            if getattr(self, 'eps', None) is None:
-                self.reg.eps_q = np.percentile(np.abs(self.reg.regmesh.cellDiffxStencil*(self.reg.mapping * self.invProb.model)), self.prctile)
-            else:
-                self.reg.eps_q = self.eps[1]
+                indl, indu = imodel*self.reg.regmesh.nC, (imodel+1)*self.reg.regmesh.nC
+
+                if getattr(self, 'eps', None) is None:
+                    self.reg.eps_p[imodel] = np.percentile(np.abs(mmap[indl:indu]),self.prctile)
+                else:
+                    self.reg.eps_p[imodel] = self.eps[0]
+
+                if getattr(self, 'eps', None) is None:
+
+                    self.reg.eps_q[imodel] = np.percentile(np.abs(self.reg.regmesh.cellDiffxStencil*mmap[indl:indu]),self.prctile)
+                else:
+                    self.reg.eps_q[imodel] = self.eps[1]
 
             self.reg.norms = self.norms
             self.coolingFactor = 1.
@@ -412,6 +420,8 @@ class Update_IRLS(InversionDirective):
             self.reg._Wx = None
             self.reg._Wy = None
             self.reg._Wz = None
+            self.reg._W = None
+            self.reg._Wsmooth = None
 
             # Update the model used for the IRLS weights
             self.reg.model = self.invProb.model
@@ -430,6 +440,8 @@ class Update_IRLS(InversionDirective):
             self.reg._Wx = None
             self.reg._Wy = None
             self.reg._Wz = None
+            self.reg._W = None
+            self.reg._Wsmooth = None
 
             # Check if misfit is within the tolerance, otherwise scale beta
             val = self.invProb.phi_d / (self.survey.nD*0.5)
@@ -443,13 +455,18 @@ class Update_lin_PreCond(InversionDirective):
     Create a Jacobi preconditioner for the linear problem
     """
     onlyOnStart = False
-    G = None
+    mapping = None
+
     def initialize(self):
+
+        if getattr(self, 'mapping', None) is None:
+            self.mapping = Maps.IdentityMap(nP=self.reg.mapping.nP)
 
         if getattr(self.opt, 'approxHinv', None) is None:
             # Update the pre-conditioner
-            diagA = np.sum(self.prob.G**2., axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() # * (self.reg.mapping * np.ones(self.reg.model.size))**2.
-            PC = Utils.sdiag((diagA)**-1.)
+            diagA = np.sum(self.prob.G**2., axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+
+            PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)
             self.opt.approxHinv = PC
 
     def endIter(self):
@@ -459,8 +476,9 @@ class Update_lin_PreCond(InversionDirective):
 
         if getattr(self.opt, 'approxHinv', None) is not None:
             # Update the pre-conditioner
-            diagA = np.sum(self.prob.G**2., axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal() # * eg.model.size))**2.
-            PC = Utils.sdiag((diagA)**-1.)
+            diagA = np.sum(self.prob.G**2., axis=0) + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+
+            PC = Utils.sdiag((self.mapping.deriv(None).T * diagA)**-1.)
             self.opt.approxHinv = PC
 
 
@@ -489,3 +507,65 @@ class Update_Wj(InversionDirective):
             JtJdiag = JtJdiag / max(JtJdiag)
 
             self.reg.wght = JtJdiag
+
+
+class Amplitude_Inv_Iter(InversionDirective):
+    """
+    Directive to take care of re-weighting and pre-conditioning of
+    the non-linear magnetic amplitude problem.
+
+    """
+    def initialize(self):
+
+        JtJdiag = self.getJtJdiag()
+
+        wr = JtJdiag**0.5
+        wr = wr / wr.max()
+
+        self.reg.cell_weights = wr
+
+        self.reg._Wsmall, self.reg._Wx = None, None
+        self.reg._Wy, self.reg._Wz, = None, None
+        self.reg._W, self.reg._Wsmooth = None, None
+
+        if getattr(self.opt, 'approxHinv', None) is None:
+            diagA = JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+            PC = Utils.sdiag((self.prob.kappaMap.deriv(None).T * diagA)**-1.)
+            self.opt.approxHinv = PC
+
+    def endIter(self):
+
+        JtJdiag = self.getJtJdiag()
+
+        wr = JtJdiag**0.5
+        wr = wr / wr.max()
+
+        self.reg.cell_weights = wr
+
+        self.reg._Wsmall, self.reg._Wx = None, None
+        self.reg._Wy, self.reg._Wz, = None, None
+        # self.reg._W, self.reg._Wsmooth = None, None
+
+        if getattr(self.opt, 'approxHinv', None) is not None:
+
+            # Re-initialize the field derivatives
+            self.prob._dfdm = None
+
+            # Update the pre-conditioner
+            diagA = JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
+            PC = Utils.sdiag((self.prob.kappaMap.deriv(None).T * diagA)**-1.)
+            self.opt.approxHinv = PC
+
+    def getJtJdiag(self):
+        """
+            Compute explicitely the main diagonal of JtJ for linear problem
+        """
+        nC = self.prob.mesh.nC
+
+        JtJdiag = np.zeros(nC)
+
+        for ii in range(nC):
+
+            JtJdiag[ii] = np.sum((self.prob.dfdm*self.prob.G[:, ii])**2.)
+
+        return JtJdiag
