@@ -9,7 +9,7 @@ from SimPEG import ObjectiveFunction
 from SimPEG import Utils
 
 
-class Empty_ObjFct(ObjectiveFunction.ObjectiveFunction):
+class Empty_ObjFct(ObjectiveFunction.BaseObjectiveFunction):
 
     def __init__(self):
         super(Empty_ObjFct, self).__init__()
@@ -18,13 +18,13 @@ class Empty_ObjFct(ObjectiveFunction.ObjectiveFunction):
 class TestBaseObjFct(unittest.TestCase):
 
     def test_derivs(self):
-        objfct = ObjectiveFunction.l2ObjFct()
+        objfct = ObjectiveFunction.L2ObjectiveFunction()
         self.assertTrue(objfct.test())
 
     def test_scalarmul(self):
         scalar = 10.
         nP = 100
-        objfct_a = ObjectiveFunction.l2ObjFct(
+        objfct_a = ObjectiveFunction.L2ObjectiveFunction(
             W=Utils.sdiag(np.random.randn(nP))
         )
         objfct_b = scalar * objfct_a
@@ -36,19 +36,29 @@ class TestBaseObjFct(unittest.TestCase):
     def test_sum(self):
         scalar = 10.
         objfct = (
-            ObjectiveFunction.l2ObjFct() +
-            scalar * ObjectiveFunction.l2ObjFct()
+            ObjectiveFunction.L2ObjectiveFunction() +
+            scalar * ObjectiveFunction.L2ObjectiveFunction()
         )
         self.assertTrue(objfct.test())
 
     def test_3sum(self):
         nP = 80
         phi1 = (
-            ObjectiveFunction.l2ObjFct(W=Utils.sdiag(np.random.rand(nP))) +
-            100 * ObjectiveFunction.l2ObjFct()
+            ObjectiveFunction.L2ObjectiveFunction(W=Utils.sdiag(np.random.rand(nP))) +
+            100 * ObjectiveFunction.L2ObjectiveFunction()
         )
-        phi2 = ObjectiveFunction.l2ObjFct() + 200 * phi1
+        phi2 = ObjectiveFunction.L2ObjectiveFunction() + 200 * phi1
         self.assertTrue(phi2.test())
+
+    def test_2sum(self):
+        nP = 90
+        phi1 = 0.3 * ObjectiveFunction.L2ObjectiveFunction()
+        phi2 = 0.6 * ObjectiveFunction.L2ObjectiveFunction()
+        phi3 = ObjectiveFunction.L2ObjectiveFunction() / 9.
+
+        phi = phi1 + phi2 + phi3
+
+        self.assertTrue(phi.test())
 
     def test_sum_fail(self):
         nP1 = 10
@@ -56,20 +66,20 @@ class TestBaseObjFct(unittest.TestCase):
 
         with self.assertRaises(Exception):
             phi = (
-                ObjectiveFunction.l2ObjFct(
+                ObjectiveFunction.L2ObjectiveFunction(
                     W=Utils.sdiag(np.random.rand(nP1))
                 ) +
-                ObjectiveFunction.l2ObjFct(
+                ObjectiveFunction.L2ObjectiveFunction(
                     W=Utils.sdiag(np.random.rand(nP2))
                 )
             )
 
         with self.assertRaises(Exception):
             phi = (
-                ObjectiveFunction.l2ObjFct(
+                ObjectiveFunction.L2ObjectiveFunction(
                     W=Utils.sdiag(np.random.rand(nP1))
                 ) +
-                100 * ObjectiveFunction.l2ObjFct(
+                100 * ObjectiveFunction.L2ObjectiveFunction(
                     W=Utils.sdiag(np.random.rand(nP2))
                 )
             )
@@ -82,6 +92,16 @@ class TestBaseObjFct(unittest.TestCase):
             phi(x)
             phi.deriv(x)
             phi.deriv2(x)
+
+
+    def test_ZeroObjFct(self):
+        phi = (
+            ObjectiveFunction.L2ObjectiveFunction() +
+            Utils.Zero()*ObjectiveFunction.L2ObjectiveFunction()
+        )
+        x = np.random.rand(20)
+
+        self.assertTrue(phi.test())
 
 
 if __name__ == '__main__':

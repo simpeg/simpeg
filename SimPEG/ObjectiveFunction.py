@@ -9,12 +9,16 @@ from six import integer_types
 
 from . import Utils
 from .Tests import checkDerivative
+from . import Maps
 
 
-class ObjectiveFunction(object):
+class BaseObjectiveFunction(object):
+
+    counter = None
+    debug = False
+    _nP = None
 
     def __init__(self, **kwargs):
-
         Utils.setKwargs(self, **kwargs)
 
     def __call__(self, x, **kwargs):
@@ -78,7 +82,11 @@ class ObjectiveFunction(object):
         return (deriv & deriv2)
 
     def __add__(self, objfct2):
-        if not isinstance(objfct2, ObjectiveFunction):
+
+        if isinstance(objfct2, Utils.Zero):
+            return self
+
+        if not isinstance(objfct2, BaseObjectiveFunction):
             raise Exception(
                 "Cannot add type {} to an objective function. Only "
                 "ObjectiveFunctions can be added together".format(
@@ -88,11 +96,11 @@ class ObjectiveFunction(object):
 
         if isinstance(self, ComboObjectiveFunction):
             if isinstance(objfct2, ComboObjectiveFunction):
-                objfctlist = self.objfcts + objfct2
-                multipliers = self._multipliers + objfct2._multipliers
+                objfctlist = self.objfcts + objfct2.objfcts
+                multipliers = self.multipliers + objfct2.multipliers
             elif isinstance(objfct2, ObjectiveFunction):
                 objfctlist = self.objfcts.append(objfct2)
-                multipliers = self._multipliers.append(1)
+                multipliers = self.multipliers.append(1)
         else:
             if isinstance(objfct2, ComboObjectiveFunction):
                 objfctlist = [self] + objfct2.objfcts
@@ -112,10 +120,14 @@ class ObjectiveFunction(object):
         return ComboObjectiveFunction([self], [multiplier])
 
     def __rmul__(self, multiplier):
-        return self*multiplier
+        return self * multiplier
+
+    def __div__(self, denominator):
+        return self.__mul__(1./denominator)
 
 
-class ComboObjectiveFunction(ObjectiveFunction):
+
+class ComboObjectiveFunction(BaseObjectiveFunction):
 
     _multiplier_types = (float, Float, None) + integer_types # Directive
 
@@ -123,11 +135,13 @@ class ComboObjectiveFunction(ObjectiveFunction):
 
         self.objfcts = []
         self._nP = '*'
+
         for fct in objfcts:
-            assert isinstance(fct, ObjectiveFunction), (
+            assert isinstance(fct, BaseObjectiveFunction), (
                 "Unrecognized objective function type {} in objfcts. All "
                 "entries in objfcts must inherit from  ObjectiveFunction"
             )
+
             if fct.nP != '*':
                 if self._nP != '*':
                     assert self._nP == fct.nP, (
@@ -178,15 +192,16 @@ class ComboObjectiveFunction(ObjectiveFunction):
         return H
 
 
-class l2ObjFct(ObjectiveFunction):
+class L2ObjectiveFunction(BaseObjectiveFunction):
 
-    def __init__(self, W=None, **kwargs):
-        if W is not None:
-            self._nP = W.shape[0]
-            self.W = W
-        elif W is None:
-            self.W = Utils.Identity()
-        super(l2ObjFct, self).__init__(**kwargs)
+    W = Utils.Identity()  #: Weighting
+
+    def __init__(self, **kwargs):
+
+        super(L2ObjectiveFunction, self).__init__(**kwargs)
+
+        if self.W is not None and not isinstance(self.W, Utils.Identity):
+            self._nP = self.W.shape[0]
 
     def _eval(self, m):
         r = self.W * m

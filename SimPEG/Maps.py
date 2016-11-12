@@ -27,12 +27,14 @@ class IdentityMap(object):
     def __init__(self, mesh=None, nP=None, **kwargs):
         Utils.setKwargs(self, **kwargs)
 
-        if nP is not None:
+        if nP is not None and nP != '*':
             assert isinstance(nP, integer_types), (
                 'Number of parameters must be an integer. Not `{}`.'
                 .format(type(nP))
             )
             nP = int(nP)
+        else:
+            nP = '*'
 
         self.mesh = mesh
         self._nP = nP
@@ -107,7 +109,7 @@ class IdentityMap(object):
         """
         if v is not None:
             return v
-        return sp.identity(self.nP)
+        return Utils.Identity()
 
     def test(self, m=None, num=4, **kwargs):
         """Test the derivative of the mapping.
