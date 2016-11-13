@@ -20,7 +20,7 @@ class BaseDataMisfit(object):
         if isinstance(survey, Survey.BaseSurvey):
             self.survey = survey
             self.prob   = survey.prob
-        Utils.setKwargs(self,**kwargs)
+        Utils.setKwargs(self, **kwargs)
 
     @Utils.timeIt
     def eval(self, m, f=None):
