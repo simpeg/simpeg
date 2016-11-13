@@ -821,7 +821,7 @@ class Smooth_zz(BaseRegularization):
         super(Smooth_zz, self).__init__(mesh=mesh, orientation='z', **kwargs)
 
 
-class Tikhonov(BaseRegularization):
+class Tikhonov(BaseRegularization, ObjectiveFunction.ComboObjectiveFunction):
     """
     L2 Tikhonov regularization with both smallness and smoothness (first order
     derivative) contributions.
@@ -858,22 +858,30 @@ class Tikhonov(BaseRegularization):
     alpha_zz = Utils.Zero() #: Weight for the second derivative in the z direction
 
     def __init__(self, mesh, **kwargs):
-        super(Tikhonov, self).__init__(mesh=mesh, **kwargs)
-        self = (
-                self.alpha_s * Smallness(mesh=mesh, **kwargs) +
-                self.alpha_x * Smooth_x(mesh=mesh, **kwargs) +
-                self.alpha_xx * Smooth_xx(mesh=mesh, **kwargs)
-        )
+
+
+        objfcts = [
+            Smallness(mesh=mesh, **kwargs),
+            Smooth_x(mesh=mesh, **kwargs),
+            Smooth_xx(mesh=mesh, **kwargs)
+        ]
+        multipliers = [self.alpha_s, self.alpha_x, self.alpha_xx]
+
         if mesh.dim > 1:
-            self += (
-                self.alpha_y * Smooth_y(mesh=mesh, **kwargs) +
-                self.alpha_yy * Smooth_yy(mesh=mesh, **kwargs)
+            objfcts.append(
+                [Smooth_y(mesh=mesh, **kwargs), Smooth_yy(mesh=mesh, **kwargs)]
             )
+            multipliers.append([self.alpha_y, self.alpha_yy])
+
         if mesh.dim > 2:
-            self += (
-                self.alpha_z * Smooth_z(mesh=mesh, **kwargs) +
-                self.alpha_zz * Smooth_zz(mesh=mesh, **kwargs)
+            objfcts.append(
+                [Smooth_z(mesh=mesh, **kwargs), Smooth_zz(mesh=mesh, **kwargs)]
             )
+            multipliers.append([self.alpha_z, self.alpha_zz])
+
+        super(Tikhonov, self).__init__(
+            objfcts=objfcts, multipliers=multipliers, mesh=mesh, **kwargs
+        )
 
 
 class BaseSparse(BaseRegularization):
@@ -1019,6 +1027,13 @@ class Sparse_z(BaseSparse):
 
     def __init__(self, mesh, **kwargs):
 
+        assert mesh.dim > 2, (
+            "Mesh must have at least 3 dimensions to regularize along the "
+            "z-direction"
+        )
+
+        super(Sparse_z, self).__init__(mesh=mesh, **kwargs)
+
         if getattr(self, 'model', None) is None:
                 R = Utils.speye(self.regmesh.cellDiffzStencil.shape[0])
 
@@ -1035,7 +1050,7 @@ class Sparse_z(BaseSparse):
         )
 
 
-class Sparse(BaseSparse):
+class Sparse(BaseSparse, ObjectiveFunction.ComboObjectiveFunction):
 
     norms = [0., 2., 2., 2.]
     alpha_s = 1.
@@ -1045,22 +1060,45 @@ class Sparse(BaseSparse):
 
     def __init__(self, mesh, **kwargs):
 
-        super(Sparse, self).__init__(mesh=mesh, **kwargs)
+        objfcts = [
+            SparseSmallness(mesh=mesh, norm=self.norms[0], **kwargs),
+            Sparse_x(mesh=mesh, norm=self.norms[1], **kwargs)
+        ]
+        multipliers = [
+            self.alpha_s,
+            self.alpha_x
+        ]
 
-        self = (
-            self.alpha_s * SparseSmallness(
-                mesh=mesh, norm=self.norms[0], **kwargs
-            ) +
-            self.alpha_x * Sparse_x(mesh=mesh, norm=self.norms[1], **kwargs)
-        )
         if mesh.dim > 1:
-            self += (
-                self.alpha_y * Sparse_y(mesh=mesh, norm=self.norms[2], **kwargs)
+            objfcts.append(
+                Sparse_y(mesh=mesh, norm=self.norms[2], **kwargs)
             )
+            multipliers.append(self.alpha_y)
+
         if mesh.dim > 2:
-            self += (
-                self.alpha_z * Sparse_z(mesh=mesh, norm=self.norms[3], **kwargs)
+            objfcts.append(
+                Sparse_z(mesh=mesh, norm=self.norms[3], **kwargs)
             )
+            multipliers.append(self.alpha_z)
+
+        super(Sparse, self).__init__(
+            objfcts=objfcts, multipliers=multipliers, mesh=mesh, **kwargs
+        )
+
+        # self = (
+        #     self.alpha_s * SparseSmallness(
+        #         mesh=mesh, norm=self.norms[0], **kwargs
+        #     ) +
+        #     self.alpha_x * Sparse_x(mesh=mesh, norm=self.norms[1], **kwargs)
+        # )
+        # if mesh.dim > 1:
+        #     self += (
+        #         self.alpha_y * Sparse_y(mesh=mesh, norm=self.norms[2], **kwargs)
+        #     )
+        # if mesh.dim > 2:
+        #     self += (
+        #         self.alpha_z * Sparse_z(mesh=mesh, norm=self.norms[3], **kwargs)
+        #     )
 
 # class Sparse(Simple):
 #     """

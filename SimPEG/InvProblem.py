@@ -78,7 +78,7 @@ class BaseInvProblem(Props.BaseSimPEG):
 
         print("""SimPEG.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
                     ***Done using same Solver and solverOpts as the problem***""")
-        self.opt.bfgsH0 = self.prob.Solver(self.reg.eval2Deriv(self.model), **self.prob.solverOpts)
+        self.opt.bfgsH0 = self.prob.Solver(self.reg.deriv2(self.model), **self.prob.solverOpts)
 
     @property
     def warmstart(self):
@@ -125,7 +125,7 @@ class BaseInvProblem(Props.BaseSimPEG):
         f = self.getFields(m, store=(return_g is False and return_H is False))
 
         phi_d = self.dmisfit.eval(m, f=f)
-        phi_m = self.reg.eval(m)
+        phi_m = self.reg(m)
 
         # This is a cheap matrix vector calculation.
         self.dpred = self.survey.dpred(m, f=f)
@@ -138,7 +138,7 @@ class BaseInvProblem(Props.BaseSimPEG):
         out = (phi,)
         if return_g:
             phi_dDeriv = self.dmisfit.evalDeriv(m, f=f)
-            phi_mDeriv = self.reg.evalDeriv(m)
+            phi_mDeriv = self.reg.deriv(m)
 
             g = phi_dDeriv + self.beta * phi_mDeriv
             out += (g,)
@@ -146,7 +146,7 @@ class BaseInvProblem(Props.BaseSimPEG):
         if return_H:
             def H_fun(v):
                 phi_d2Deriv = self.dmisfit.eval2Deriv(m, v, f=f)
-                phi_m2Deriv = self.reg.eval2Deriv(m, v=v)
+                phi_m2Deriv = self.reg.deriv2(m, v=v)
 
                 return phi_d2Deriv + self.beta * phi_m2Deriv
 

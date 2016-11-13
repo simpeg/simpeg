@@ -161,7 +161,7 @@ class BetaEstimate_ByEig(InversionDirective):
 
         x0 = np.random.rand(*m.shape)
         t = x0.dot(self.dmisfit.eval2Deriv(m, x0, f=f))
-        b = x0.dot(self.reg.eval2Deriv(m, v=x0))
+        b = x0.dot(self.reg.deriv2(m, v=x0))
         self.beta0 = self.beta0_ratio*(t/b)
 
         self.invProb.beta = self.beta0
@@ -329,7 +329,8 @@ class Update_IRLS(InversionDirective):
         if self.mode == 1:
             self.reg.norms = [2., 2., 2., 2.]
 
-    def endIter(self):
+
+    def endIterOld(self):
 
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
         if self.invProb.phi_d < self.target and self.mode == 1:
@@ -363,7 +364,7 @@ class Update_IRLS(InversionDirective):
             print("eps_p: " + str(self.reg.eps_p) + " eps_q: " + str(self.reg.eps_q))
 
             if getattr(self, 'f_old', None) is None:
-                self.f_old = self.reg.eval(self.invProb.model)#self.invProb.evalFunction(self.invProb.model, return_g=False, return_H=False)
+                self.f_old = self.reg(self.invProb.model)#self.invProb.evalFunction(self.invProb.model, return_g=False, return_H=False)
 
         # Beta Schedule
         if self.opt.iter > 0 and self.opt.iter % self.coolingRate == 0:
@@ -375,7 +376,7 @@ class Update_IRLS(InversionDirective):
 
             self.IRLSiter += 1
 
-            phim_new = self.reg.eval(self.invProb.model)
+            phim_new = self.reg(self.invProb.model)
             self.f_change = np.abs(self.f_old - phim_new) / self.f_old
 
             print("Regularization decrease: {0:6.3e}".format((self.f_change)))
@@ -420,7 +421,7 @@ class Update_IRLS(InversionDirective):
             self.reg.gamma = 1.
 
             # Compute new model objective function value
-            phim_new = self.reg.eval(self.invProb.model)
+            phim_new = self.reg(self.invProb.model)
 
             # Update gamma to scale the regularization between IRLS iterations
             self.reg.gamma = self.phi_m_last / phim_new

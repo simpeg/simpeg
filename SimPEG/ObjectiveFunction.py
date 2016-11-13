@@ -126,10 +126,9 @@ class BaseObjectiveFunction(object):
         return self.__mul__(1./denominator)
 
 
-
 class ComboObjectiveFunction(BaseObjectiveFunction):
 
-    _multiplier_types = (float, Float, None) + integer_types # Directive
+    _multiplier_types = (float, Float, None, Utils.Zero) + integer_types # Directive
 
     def __init__(self, objfcts, multipliers=None, **kwargs):
 
@@ -194,11 +193,16 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
 class L2ObjectiveFunction(BaseObjectiveFunction):
 
-    W = Utils.Identity()  #: Weighting
+    W = None  #: Weighting
 
     def __init__(self, **kwargs):
 
         super(L2ObjectiveFunction, self).__init__(**kwargs)
+
+        if self.W is None and self.nP != '*':
+            self.W = sp.eye(self.nP)
+        else:
+            self.W = Utils.Identity()
 
         if self.W is not None and not isinstance(self.W, Utils.Identity):
             self._nP = self.W.shape[0]

@@ -1,15 +1,15 @@
 from __future__ import print_function
 import numpy as np
 import unittest
-from SimPEG import Mesh, Regularization, Utils, Tests
+from SimPEG import Mesh, Regularization, Utils, Tests, ObjectiveFunction
 from scipy.sparse.linalg import dsolve
 import inspect
 
-TOL = 1e-20
+TOL = 1e-10
 testReg = True
 testRegMesh = True
 
-np.random.seed(653)
+np.random.seed(651)
 
 IGNORE_ME = ['BaseSimpleSmooth']
 
@@ -30,7 +30,7 @@ class RegularizationTests(unittest.TestCase):
                 r = getattr(Regularization, R)
                 if not inspect.isclass(r):
                     continue
-                if not issubclass(r, Regularization.BaseRegularization):
+                if not issubclass(r, ObjectiveFunction.BaseObjectiveFunction):
                     continue
                 if r in IGNORE_ME:
                     continue
@@ -70,7 +70,7 @@ class RegularizationTests(unittest.TestCase):
                 r = getattr(Regularization, R)
                 if not inspect.isclass(r):
                     continue
-                if not issubclass(r, Regularization.BaseRegularization):
+                if not issubclass(r, ObjectiveFunction.BaseObjectiveFunction):
                     continue
                 if r in IGNORE_ME:
                     continue
@@ -82,9 +82,16 @@ class RegularizationTests(unittest.TestCase):
                     if mesh.dim == 1:
                         indActive = Utils.mkvc(mesh.gridCC <= 0.8)
                     elif mesh.dim == 2:
-                        indActive = Utils.mkvc(mesh.gridCC[:, -1] <= 2*np.sin(2*np.pi*mesh.gridCC[:,0])+0.5)
+                        indActive = (
+                            Utils.mkvc(mesh.gridCC[:, -1] <=
+                                2*np.sin(2*np.pi*mesh.gridCC[:,0])+0.5)
+                        )
                     elif mesh.dim == 3:
-                        indActive = Utils.mkvc(mesh.gridCC[:, -1] <= 2*np.sin(2*np.pi*mesh.gridCC[:,0])+0.5 * 2*np.sin(2*np.pi*mesh.gridCC[:,1])+0.5)
+                        indActive = (
+                            Utils.mkvc(mesh.gridCC[:, -1] <=
+                                2*np.sin(2*np.pi*mesh.gridCC[:,0])+0.5 *
+                                2*np.sin(2*np.pi*mesh.gridCC[:,1])+0.5)
+                        )
 
                     if mesh.dim < 3 and r.__name__[-1] == 'z':
                         continue
