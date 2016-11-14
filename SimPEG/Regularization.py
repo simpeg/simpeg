@@ -443,7 +443,6 @@ class BaseRegularization(ObjectiveFunction.L2ObjectiveFunction):
 
     @property
     def indActive(self):
-        print('getting indActive')
         return getattr(self, '_indActive', None)
 
     @indActive.setter
@@ -470,6 +469,7 @@ class BaseRegularization(ObjectiveFunction.L2ObjectiveFunction):
                     value.__class__.__name__
                 )
             )
+            self._cell_weights = value
 
     @Utils.timeIt
     def _eval(self, m):
@@ -589,14 +589,14 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
 
     def __init__(
         self, mesh, objfcts=[], multipliers=None,
-        mref=None, mapping=None,
+        mref=None, mapping=None, cell_weights=None,
         mrefInSmooth=False, indActive=None,
         alpha_s=None, alpha_x=None, alpha_y=None, alpha_z=None,
         alpha_xx=None, alpha_yy=None, alpha_zz=None,
     ):
 
         self._mrefInSmooth = mrefInSmooth
-        self.mesh = mesh
+        self.mesh = mesh  # assumes you won't be changing the mesh.
         self._mapping = mapping
 
         self._mref = mref
@@ -724,17 +724,13 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
 
     @mref.setter
     def mref(self, value):
-        print('setting mref')
         for fct in self.objfcts:
             if getattr(fct, 'mrefInSmooth', None) is not None:
                 if fct.mrefInSmooth is False:
-                    print('To Zero')
                     fct._mref = Utils.Zero()
                 else:
-                    print('to value')
                     fct._mref = value
             else:
-                print('To Value')
                 fct._mref = value
 
     @property
@@ -756,6 +752,23 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
         for fct in self.objfcts:
             fct.mapping = val
         self._mapping = val
+
+    @property
+    def cell_weights(self):
+        return getattr(self, '_cell_weights', None)
+
+    @cell_weights.setter
+    def cell_weights(self, value):
+        if value is not None:
+            assert isinstance(value, np.ndarray), (
+                "expecting a numpy array for cell weights, not a {}".format(
+                    value.__class__.__name__
+                )
+            )
+
+            for fct in self.objfcts:
+                fct.cell_weights = value
+            self._cell_weights = value
 
 
 class BaseSimpleSmooth(BaseRegularization):
@@ -1298,7 +1311,6 @@ class BaseSparse(BaseRegularization):
 
     @model.setter
     def model(self, value):
-        print('setting model')
         self._model = value
 
     @property
@@ -1307,7 +1319,6 @@ class BaseSparse(BaseRegularization):
 
     @gamma.setter
     def gamma(self, value):
-        print('set gamma {}'.format(value))
         self._gamma = value
 
     @property
@@ -1316,7 +1327,6 @@ class BaseSparse(BaseRegularization):
 
     @norm.setter
     def norm(self, value):
-        print('set norm {}'.format(value))
         self._norm = value
 
     @property
@@ -1325,7 +1335,6 @@ class BaseSparse(BaseRegularization):
 
     @eps_p.setter
     def eps_p(self, value):
-        print('set eps_p {}'.format(value))
         self._eps_p = value
 
     @property
@@ -1334,7 +1343,6 @@ class BaseSparse(BaseRegularization):
 
     @eps_q.setter
     def eps_q(self, value):
-        print('set eps_q {}'.format(value))
         self._eps_q = value
 
     def R(self, f_m , eps, exponent):
@@ -1505,7 +1513,7 @@ class Sparse_z(BaseSparse):
 class Sparse(BaseComboRegularization):
 
     def __init__(
-        self, mesh, mref=None, mapping=None, indActive=None,
+        self, mesh, mref=None, mapping=None, indActive=None, cell_weights=None,
         norms=[0., 2., 2., 2.], eps_p=None, eps_q=None, model=None,
         alpha_s=1., alpha_x=1., alpha_y=1., alpha_z=1., gamma=1.,
         **kwargs
@@ -1514,13 +1522,13 @@ class Sparse(BaseComboRegularization):
         objfcts = [
             SparseSmallness(
                 mesh=mesh, mref=mref, mapping=mapping, indActive=indActive,
-                norm=norms[0], eps_p=eps_p, gamma=gamma,
-                model=model, **kwargs
+                cell_weights=cell_weights, norm=norms[0], eps_p=eps_p,
+                gamma=gamma, model=model, **kwargs
             ),
             Sparse_x(
                 mesh=mesh, mref=mref, mapping=mapping, indActive=indActive,
-                norm=norms[1], eps_q=eps_q, gamma=gamma,
-                model=model, **kwargs
+                cell_weights=cell_weights, norm=norms[1], eps_q=eps_q,
+                gamma=gamma, model=model, **kwargs
             )
         ]
         multipliers = [
@@ -1532,7 +1540,7 @@ class Sparse(BaseComboRegularization):
             objfcts.append(
                 Sparse_y(
                     mesh=mesh, mref=mref, mapping=mapping, indActive=indActive,
-                    norm=norms[2], eps_q=eps_q,
+                    cell_weights=cell_weights, norm=norms[2], eps_q=eps_q,
                     gamma=gamma, model=model, **kwargs
                 )
             )
@@ -1542,7 +1550,7 @@ class Sparse(BaseComboRegularization):
             objfcts.append(
                 Sparse_z(
                     mesh=mesh, mref=mref, mapping=mapping, indActive=indActive,
-                    norm=norms[3], eps_q=eps_q,
+                    cell_weights=cell_weights, norm=norms[3], eps_q=eps_q,
                     gamma=gamma, model=model, **kwargs
                 )
             )
@@ -1550,6 +1558,7 @@ class Sparse(BaseComboRegularization):
 
         super(Sparse, self).__init__(
             mesh=mesh, mref=mref, mapping=mapping, indActive=indActive,
+            cell_weights=cell_weights,
             alpha_s=alpha_s, alpha_x=alpha_x, alpha_y=alpha_y, alpha_z=alpha_z,
             objfcts=objfcts, multipliers=multipliers
         )
@@ -1567,7 +1576,6 @@ class Sparse(BaseComboRegularization):
 
     @norms.setter
     def norms(self, value):
-        print('called norm setter {}'.format(value))
         for i, objfct in enumerate(self.objfcts):
             objfct.norm = value[i]
         self._norms = value

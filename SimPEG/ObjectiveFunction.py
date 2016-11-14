@@ -156,7 +156,6 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         if multipliers is None:
             multipliers = len(self.objfcts)*[1]
         else:
-            print(multipliers)
             for mult in multipliers:
                 assert(type(mult) in self._multiplier_types), (
                     "Objective Functions can only be multiplied by a float, or"
@@ -167,8 +166,6 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
                 "objfcts ({})".format(len(multipliers), len(self.objfcts))
             )
         self.multipliers = multipliers
-
-        print('In ComboObjectiveFct {}'.format(nP))
 
         super(ComboObjectiveFunction, self).__init__(**kwargs)
         self._nP = nP
