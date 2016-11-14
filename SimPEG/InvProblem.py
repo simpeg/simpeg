@@ -3,6 +3,7 @@ from . import Utils
 from . import Props
 from . import DataMisfit
 from . import Regularization
+from . import ObjectiveFunction
 
 import properties
 import numpy as np
@@ -48,7 +49,11 @@ class BaseInvProblem(Props.BaseSimPEG):
     def __init__(self, dmisfit, reg, opt, **kwargs):
         super(BaseInvProblem, self).__init__(**kwargs)
         assert isinstance(dmisfit, DataMisfit.BaseDataMisfit), 'dmisfit must be a DataMisfit class.'
-        assert isinstance(reg, Regularization.BaseRegularization), 'reg must be a Regularization class.'
+        assert (
+            isinstance(reg, Regularization.BaseRegularization) or
+            isinstance(reg, ObjectiveFunction.BaseObjectiveFunction),
+            'reg must be a Regularization or Objective Function class.'
+        )
         self.dmisfit = dmisfit
         self.reg = reg
         self.opt = opt

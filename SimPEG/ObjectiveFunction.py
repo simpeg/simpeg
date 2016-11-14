@@ -156,10 +156,11 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         if multipliers is None:
             multipliers = len(self.objfcts)*[1]
         else:
+            print(multipliers)
             for mult in multipliers:
                 assert(type(mult) in self._multiplier_types), (
                     "Objective Functions can only be multiplied by a float, or"
-                    " a properties.Float, not a {}".format(type(mult))
+                    " a properties.Float, not a {}, {}".format(type(mult), mult)
                 )
             assert len(multipliers) == len(self.objfcts), (
                 "Length of multipliers ({}) must be the same as the length of "
@@ -199,8 +200,10 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
     @property
     def W(self):
         W = []
-        for mult, curW in zip(self.multipliers, self.objfcts):
-            W.append(mult * curW)
+        for mult, fct in zip(self.multipliers, self.objfcts):
+            curW = mult * fct.W
+            if not isinstance(curW, Utils.Zero):
+                W.append(curW)
         return sp.vstack(W)
 
 

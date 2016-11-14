@@ -539,6 +539,9 @@ class Zero(object):
     @property
     def T(self): return Zero()
 
+    def dot(self, v):
+        return self
+
 
 class Identity(object):
 

@@ -184,6 +184,10 @@ class IdentityMap(object):
                     )
                 )
             return self._transform(val)
+
+        elif isinstance(val, Utils.Zero):
+            return Utils.Zero()
+
         raise Exception(
             'Unrecognized data type to multiply. Try a map or a numpy.ndarray!'
             'You used a {} of type {}'.format(

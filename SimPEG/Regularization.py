@@ -361,7 +361,7 @@ class BaseRegularization(ObjectiveFunction.L2ObjectiveFunction):
     """
 
     counter = None
-    mapPair = Maps.IdentityMap  #: An IdentityMap Class
+    mapPair = Maps.IdentityMap
 
     # mapping = None  #: An IdentityMap instance.
     # mref = Utils.Zero()  #: Reference model, :class:`Utils.Zero` default
@@ -369,7 +369,7 @@ class BaseRegularization(ObjectiveFunction.L2ObjectiveFunction):
     # indActive = None  #: active indices
 
     def __init__(
-        self, mesh=None, mapping=None, mref=Utils.Zero(),
+        self, mesh=None, mapping=None, mref=None,
         indActive=None, cell_weights=None, **kwargs
     ):
 
@@ -433,7 +433,9 @@ class BaseRegularization(ObjectiveFunction.L2ObjectiveFunction):
 
     @property
     def mref(self):
-        return getattr(self, '_mref', None)
+        if getattr(self, '_mref', None) is None:
+            self._mref = Utils.Zero()
+        return self._mref
 
     @mref.setter
     def mref(self, value):
@@ -442,7 +444,6 @@ class BaseRegularization(ObjectiveFunction.L2ObjectiveFunction):
     @property
     def indActive(self):
         print('getting indActive')
-        print(self._indActive)
         return getattr(self, '_indActive', None)
 
     @indActive.setter
@@ -453,7 +454,7 @@ class BaseRegularization(ObjectiveFunction.L2ObjectiveFunction):
                 value = np.zeros(self.mesh.nC, dtype=bool)
                 value[tmp] = True
         if getattr(self, '_regmesh', None) is not None:
-            self._regmesh.indActive = value
+            self._regmesh.indActive = Utils.mkvc(value)
 
         self._indActive = value
 
@@ -479,7 +480,6 @@ class BaseRegularization(ObjectiveFunction.L2ObjectiveFunction):
 
             r(m) = \\frac{1}{2}
         """
-
         r = self.W * (self.mapping * (m - self.mref))
         return 0.5 * r.dot(r)
 
@@ -583,16 +583,32 @@ class Smallness(BaseRegularization):
             )
 
 
-class BaseComboRegularization(BaseRegularization):
+class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
+
+    mapPair = Maps.IdentityMap
 
     def __init__(
-        self, mesh, mrefInSmooth=False,
+        self, mesh, objfcts=[], multipliers=None,
+        mref=None, mapping=None,
+        mrefInSmooth=False, indActive=None,
         alpha_s=None, alpha_x=None, alpha_y=None, alpha_z=None,
         alpha_xx=None, alpha_yy=None, alpha_zz=None,
-        **kwargs
     ):
 
-        self.mrefInSmooth = mrefInSmooth
+        self._mrefInSmooth = mrefInSmooth
+        self.mesh = mesh
+        self._mapping = mapping
+
+        self._mref = mref
+
+        # TODO: This can be cleaned up!
+        if indActive is not None:
+            if indActive.dtype != 'bool':
+                tmp = indActive
+                indActive = np.zeros(self.mesh.nC, dtype=bool)
+                indActive[tmp] = True
+        self._indActive = indActive
+
         self._alpha_s = alpha_s
         self._alpha_x = alpha_x
         self._alpha_y = alpha_y
@@ -602,7 +618,7 @@ class BaseComboRegularization(BaseRegularization):
         self._alpha_zz = alpha_zz
 
         super(BaseComboRegularization, self).__init__(
-            mesh=mesh, **kwargs
+            objfcts=objfcts, multipliers=multipliers
         )
 
     @property
@@ -688,7 +704,6 @@ class BaseComboRegularization(BaseRegularization):
 
     @indActive.setter
     def indActive(self, value):
-
         if value is not None:
             if value.dtype != 'bool':
                 tmp = value
@@ -700,6 +715,47 @@ class BaseComboRegularization(BaseRegularization):
         for fct in self.objfcts:
             fct.indActive = value
         self._indActive = value
+
+    @property
+    def mref(self):
+        if getattr(self, '_mref', None) is None:
+            self._mref = Utils.Zero()
+        return self._mref
+
+    @mref.setter
+    def mref(self, value):
+        print('setting mref')
+        for fct in self.objfcts:
+            if getattr(fct, 'mrefInSmooth', None) is not None:
+                if fct.mrefInSmooth is False:
+                    print('To Zero')
+                    fct._mref = Utils.Zero()
+                else:
+                    print('to value')
+                    fct._mref = value
+            else:
+                print('To Value')
+                fct._mref = value
+
+    @property
+    def regmesh(self):
+        if getattr(self, 'mesh', None) is not None:
+            return RegularizationMesh(mesh=self.mesh, indActive=self.indActive)
+
+    @property
+    def mapping(self):
+        if getattr(self, '_mapping', None) is None:
+            if getattr(self, 'regmesh', None) is not None:
+                self._mapping = self.mapPair(nP=self.regmesh.nC)
+            else:
+                self._mapping = None
+        return self._mapping
+
+    @mapping.setter
+    def mapping(self, val):
+        for fct in self.objfcts:
+            fct.mapping = val
+        self._mapping = val
 
 
 class BaseSimpleSmooth(BaseRegularization):
@@ -720,11 +776,12 @@ class BaseSimpleSmooth(BaseRegularization):
     :param numpy.ndarray cell_weights: vector of cell weights (applied in all terms)
     """
 
+    mrefInSmooth = False
+
     def __init__(
-        self, mesh, orientation='x', mrefInSmooth=False, **kwargs
+        self, mesh, orientation='x', **kwargs
     ):
 
-        self.mrefInSmooth = mrefInSmooth
         self.orientation = orientation
         assert self.orientation in ['x', 'y', 'z'], (
             "Orientation must be 'x', 'y' or 'z'"
@@ -808,9 +865,7 @@ class SimpleSmooth_z(BaseSimpleSmooth):
         )
 
 
-class Simple(
-    BaseComboRegularization, ObjectiveFunction.ComboObjectiveFunction
-):
+class Simple(BaseComboRegularization):
 
     """
     Simple regularization that does not include length scales in the
@@ -851,8 +906,10 @@ class Simple(
 
     """
 
+    mrefInSmooth = False
+
     def __init__(
-        self, mesh, mrefInSmooth=False,
+        self, mesh,
         alpha_s=1.0, alpha_x=1.0, alpha_y=1.0,
         alpha_z=1.0, **kwargs
     ):
@@ -866,7 +923,7 @@ class Simple(
         objfcts = [
             Smallness(mesh=mesh, **kwargs),
             SimpleSmooth_x(
-                mesh=mesh, mrefInSmooth=mrefInSmooth,
+                mesh=mesh, mrefInSmooth=self.mrefInSmooth,
                 **kwargs
             )
         ]
@@ -875,25 +932,25 @@ class Simple(
         if mesh.dim > 1:
             objfcts.append(
                 SimpleSmooth_y(
-                    mesh=mesh, mrefInSmooth=mrefInSmooth,
+                    mesh=mesh, mrefInSmooth=self.mrefInSmooth,
                     **kwargs
                 )
             )
-            multipliers.append([alpha_y])
+            multipliers.append(alpha_y)
 
         if mesh.dim > 2:
             objfcts.append(
                 SimpleSmooth_z(
-                    mesh=mesh, mrefInSmooth=mrefInSmooth,
+                    mesh=mesh, mrefInSmooth=self.mrefInSmooth,
                     **kwargs
                 )
             )
-            multipliers.append([alpha_z])
+            multipliers.append(alpha_z)
 
         super(Simple, self).__init__(
-            mesh=mesh, mrefInSmooth=mrefInSmooth,
+            mesh=mesh,
             alpha_s=alpha_s, alpha_x=alpha_x, alpha_y=alpha_y, alpha_z=alpha_z,
-            objfcts=objfcts, multipliers=multipliers, **kwargs
+            objfcts=objfcts, multipliers=multipliers
         )
 
 
@@ -914,11 +971,12 @@ class BaseSmooth(BaseRegularization):
     :param numpy.ndarray cell_weights: vector of cell weights (applied in all terms)
     """
 
+    mrefInSmooth = False
+
     def __init__(
-        self, mesh, orientation='x', mrefInSmooth=False, **kwargs
+        self, mesh, orientation='x', **kwargs
     ):
 
-        self.mrefInSmooth = mrefInSmooth
         self.orientation = orientation
 
         assert orientation in ['x', 'y', 'z'], (
@@ -1020,17 +1078,19 @@ class BaseSmooth2(BaseRegularization):
     """
 
     def __init__(
-        self, mesh,
-        orientation='x', mrefInSmooth=False,
+        self, mesh, mrefInSmooth=False,
+        orientation='x',
         **kwargs
     ):
-
         self.mrefInSmooth = mrefInSmooth
-        self.orientation = orientation
 
+        self.orientation = orientation
         super(BaseSmooth2, self).__init__(
             mesh=mesh, **kwargs
         )
+
+        if self.mrefInSmooth is False:
+            self.mref = Utils.Zero()
 
     @property
     def W(self):
@@ -1107,9 +1167,7 @@ class Smooth_zz(BaseRegularization):
         )
 
 
-class Tikhonov(
-    BaseComboRegularization, ObjectiveFunction.ComboObjectiveFunction
-):
+class Tikhonov(BaseComboRegularization):
     """
     L2 Tikhonov regularization with both smallness and smoothness (first order
     derivative) contributions.
@@ -1135,8 +1193,11 @@ class Tikhonov(
     :param float alpha_yy: (default 1) smoothness weight for second derivative in the y-direction
     :param float alpha_zz: (default 1) smoothness weight for second derivative in the z-direction
     """
+
+    mrefInSmooth = False
+
     def __init__(
-        self, mesh, mrefInSmooth=False,
+        self, mesh,
         alpha_s=1e-6, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0,
         alpha_xx=Utils.Zero(), alpha_yy=Utils.Zero(), alpha_zz=Utils.Zero(),
         **kwargs
@@ -1144,34 +1205,34 @@ class Tikhonov(
 
         objfcts = [
             Smallness(mesh=mesh, **kwargs),
-            Smooth_x(mesh=mesh, mrefInSmooth=mrefInSmooth, **kwargs),
-            Smooth_xx(mesh=mesh, mrefInSmooth=mrefInSmooth, **kwargs)
+            Smooth_x(mesh=mesh, mrefInSmooth=self.mrefInSmooth, **kwargs),
+            Smooth_xx(mesh=mesh, mrefInSmooth=self.mrefInSmooth, **kwargs)
         ]
         multipliers = [alpha_s, alpha_x, alpha_xx]
 
         if mesh.dim > 1:
             objfcts.append(
                 [
-                    Smooth_y(mesh=mesh, mrefInSmooth=mrefInSmooth, **kwargs),
-                    Smooth_yy(mesh=mesh, mrefInSmooth=mrefInSmooth, **kwargs)
+                    Smooth_y(mesh=mesh, mrefInSmooth=self.mrefInSmooth, **kwargs),
+                    Smooth_yy(mesh=mesh, mrefInSmooth=self.mrefInSmooth, **kwargs)
                 ]
             )
-            multipliers.append([alpha_y, alpha_yy])
+            multipliers += [alpha_y, alpha_yy]
 
         if mesh.dim > 2:
             objfcts.append(
                 [
-                    Smooth_z(mesh=mesh, mrefInSmooth=mrefInSmooth, **kwargs),
-                    Smooth_zz(mesh=mesh, mrefInSmooth=mrefInSmooth, **kwargs)
+                    Smooth_z(mesh=mesh, mrefInSmooth=self.mrefInSmooth, **kwargs),
+                    Smooth_zz(mesh=mesh, mrefInSmooth=self.mrefInSmooth, **kwargs)
                 ]
             )
-            multipliers.append([alpha_z, alpha_zz])
+            multipliers += [alpha_z, alpha_zz]
 
         super(Tikhonov, self).__init__(
-            mesh, mrefInSmooth=mrefInSmooth,
+            mesh,
             alpha_s=alpha_s, alpha_x=alpha_x, alpha_y=alpha_y, alpha_z=alpha_z,
             alpha_xx=alpha_xx, alpha_yy=alpha_yy, alpha_zz=alpha_zz,
-            objfcts=objfcts, multipliers=multipliers, **kwargs
+            objfcts=objfcts, multipliers=multipliers
         )
 
 
@@ -1259,7 +1320,7 @@ class BaseSparse(BaseRegularization):
         self._norm = value
 
     @property
-    def eps_p(self, value):
+    def eps_p(self):
         return getattr(self, '_eps_p', None)
 
     @eps_p.setter
@@ -1268,7 +1329,7 @@ class BaseSparse(BaseRegularization):
         self._eps_p = value
 
     @property
-    def eps_q(self, value):
+    def eps_q(self):
         return getattr(self, '_eps_q', None)
 
     @eps_q.setter
@@ -1298,7 +1359,8 @@ class SparseSmallness(BaseSparse):
     _multiplier_pair = 'alpha_s'
 
     def __init__(
-        self, mesh, norm=0, eps_p=1e-1, gamma=1., model=None,
+        self, mesh,
+        norm=0, eps_p=1e-1, gamma=1., model=None,
         **kwargs
     ):
         super(SparseSmallness, self).__init__(
@@ -1440,12 +1502,10 @@ class Sparse_z(BaseSparse):
         return ((self.gamma)**0.5) * R * self.regmesh.cellDiffzStencil
 
 
-class Sparse(
-    BaseComboRegularization, ObjectiveFunction.ComboObjectiveFunction
-):
+class Sparse(BaseComboRegularization):
 
     def __init__(
-        self, mesh,
+        self, mesh, mref=None, mapping=None, indActive=None,
         norms=[0., 2., 2., 2.], eps_p=None, eps_q=None, model=None,
         alpha_s=1., alpha_x=1., alpha_y=1., alpha_z=1., gamma=1.,
         **kwargs
@@ -1453,12 +1513,12 @@ class Sparse(
 
         objfcts = [
             SparseSmallness(
-                mesh=mesh,
+                mesh=mesh, mref=mref, mapping=mapping, indActive=indActive,
                 norm=norms[0], eps_p=eps_p, gamma=gamma,
                 model=model, **kwargs
             ),
             Sparse_x(
-                mesh=mesh,
+                mesh=mesh, mref=mref, mapping=mapping, indActive=indActive,
                 norm=norms[1], eps_q=eps_q, gamma=gamma,
                 model=model, **kwargs
             )
@@ -1471,7 +1531,7 @@ class Sparse(
         if mesh.dim > 1:
             objfcts.append(
                 Sparse_y(
-                    mesh=mesh,
+                    mesh=mesh, mref=mref, mapping=mapping, indActive=indActive,
                     norm=norms[2], eps_q=eps_q,
                     gamma=gamma, model=model, **kwargs
                 )
@@ -1481,7 +1541,7 @@ class Sparse(
         if mesh.dim > 2:
             objfcts.append(
                 Sparse_z(
-                    mesh=mesh,
+                    mesh=mesh, mref=mref, mapping=mapping, indActive=indActive,
                     norm=norms[3], eps_q=eps_q,
                     gamma=gamma, model=model, **kwargs
                 )
@@ -1489,9 +1549,9 @@ class Sparse(
             multipliers.append(alpha_z)
 
         super(Sparse, self).__init__(
-            mesh=mesh,
+            mesh=mesh, mref=mref, mapping=mapping, indActive=indActive,
             alpha_s=alpha_s, alpha_x=alpha_x, alpha_y=alpha_y, alpha_z=alpha_z,
-            objfcts=objfcts, multipliers=multipliers, **kwargs
+            objfcts=objfcts, multipliers=multipliers
         )
 
         self.norms = norms

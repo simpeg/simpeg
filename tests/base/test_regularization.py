@@ -1,7 +1,7 @@
 from __future__ import print_function
 import numpy as np
 import unittest
-from SimPEG import Mesh, Regularization, Utils, Tests, ObjectiveFunction
+from SimPEG import Mesh, Maps, Regularization, Utils, Tests, ObjectiveFunction
 from scipy.sparse.linalg import dsolve
 import inspect
 
@@ -47,7 +47,7 @@ class RegularizationTests(unittest.TestCase):
 
                     print('Testing {0:d}D'.format(mesh.dim))
 
-                    mapping = r.mapPair(mesh)
+                    mapping = Maps.IdentityMap(mesh)
                     reg = r(mesh=mesh, mapping=mapping)
 
                     print(
@@ -58,10 +58,11 @@ class RegularizationTests(unittest.TestCase):
                         m = np.random.rand(mapping.nP)
                     else:
                         m = np.random.rand(mesh.nC)
-                    reg.mref = np.ones_like(m)*np.mean(m)
+                    mref = np.ones_like(m)*np.mean(m)
+                    reg.mref = mref
 
-                    print('Check: phi_m (mref) = {0:f}'.format(reg(reg.mref)))
-                    passed = reg(reg.mref) < TOL
+                    print('Check: phi_m (mref) = {0:f}'.format(reg(mref)))
+                    passed = reg(mref) < TOL
                     self.assertTrue(passed)
 
                     # test derivs
@@ -104,7 +105,9 @@ class RegularizationTests(unittest.TestCase):
                     for indAct in [indActive, indActive.nonzero()[0]]: # test both bool and integers
                         reg = r(mesh, indActive=indAct)
                         m = np.random.rand(mesh.nC)[indAct]
-                        reg.mref = np.ones_like(m)*np.mean(m)
+                        mref = np.ones_like(m)*np.mean(m)
+
+                        reg.mref = mref
 
                         print(
                                 '--- Checking {} ---\n'.format(
@@ -112,9 +115,9 @@ class RegularizationTests(unittest.TestCase):
                                 )
                             )
                         print(
-                            'Check: phi_m (mref) = {0:f}'.format(reg(reg.mref))
+                            'Check: phi_m (mref) = {0:f}'.format(reg(mref))
                         )
-                        passed = reg(reg.mref) < TOL
+                        passed = reg(mref) < TOL
                         self.assertTrue(passed)
 
                         passed = reg.test(m)
