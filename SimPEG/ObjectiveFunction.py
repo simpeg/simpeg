@@ -139,7 +139,8 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         for fct in objfcts:
             assert isinstance(fct, BaseObjectiveFunction), (
                 "Unrecognized objective function type {} in objfcts. All "
-                "entries in objfcts must inherit from  ObjectiveFunction"
+                "entries in objfcts must inherit from "
+                "ObjectiveFunction".format(fct.__class__.__name__)
             )
 
             # ensure all objective functions have the same nP

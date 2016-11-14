@@ -1090,13 +1090,13 @@ class BaseSmooth2(BaseRegularization):
     :param numpy.ndarray cell_weights: vector of cell weights (applied in all terms)
     """
 
+    mrefInSmooth = False
+
     def __init__(
-        self, mesh, mrefInSmooth=False,
+        self, mesh,
         orientation='x',
         **kwargs
     ):
-        self.mrefInSmooth = mrefInSmooth
-
         self.orientation = orientation
         super(BaseSmooth2, self).__init__(
             mesh=mesh, **kwargs
@@ -1144,7 +1144,7 @@ class Smooth_xx(BaseSmooth2):
         )
 
 
-class Smooth_yy(BaseRegularization):
+class Smooth_yy(BaseSmooth2):
     """
     Second-order smoothness along y. Regularizes on the second spatial
     derivative in the y-direction
@@ -1162,7 +1162,7 @@ class Smooth_yy(BaseRegularization):
         )
 
 
-class Smooth_zz(BaseRegularization):
+class Smooth_zz(BaseSmooth2):
     """
     Second-order smoothness along z. Regularizes on the second spatial
     derivative in the z-direction
@@ -1224,25 +1224,21 @@ class Tikhonov(BaseComboRegularization):
         multipliers = [alpha_s, alpha_x, alpha_xx]
 
         if mesh.dim > 1:
-            objfcts.append(
-                [
+            objfcts += [
                     Smooth_y(mesh=mesh, mrefInSmooth=self.mrefInSmooth, **kwargs),
                     Smooth_yy(mesh=mesh, mrefInSmooth=self.mrefInSmooth, **kwargs)
-                ]
-            )
+            ]
             multipliers += [alpha_y, alpha_yy]
 
         if mesh.dim > 2:
-            objfcts.append(
-                [
+            objfcts += [
                     Smooth_z(mesh=mesh, mrefInSmooth=self.mrefInSmooth, **kwargs),
                     Smooth_zz(mesh=mesh, mrefInSmooth=self.mrefInSmooth, **kwargs)
-                ]
-            )
+            ]
             multipliers += [alpha_z, alpha_zz]
 
         super(Tikhonov, self).__init__(
-            mesh,
+            mesh, mrefInSmooth=self.mrefInSmooth,
             alpha_s=alpha_s, alpha_x=alpha_x, alpha_y=alpha_y, alpha_z=alpha_z,
             alpha_xx=alpha_xx, alpha_yy=alpha_yy, alpha_zz=alpha_zz,
             objfcts=objfcts, multipliers=multipliers
