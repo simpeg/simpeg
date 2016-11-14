@@ -131,8 +131,9 @@ class Data(SimPEGsurvey.Data, DataNSEM_plot_functions):
             # Get the type and the value for the DataNSEM object as a list
             typeList = [[rx.orientation,rx.component,self[src,rx]] for rx in src.rxList]
             # Insert the values to the temp array
-            for nr,(k,c,val) in enumerate(typeList):
-                key = 'z' + k + c[0]
+            for nr, (k, c, ) in enumerate(typeList):
+                zt_type = 't' if 'z' in k else 'z'
+                key = zt_type + k + c[0]
                 tArrRec[key] = mkvc(val,2)
             # Masked array
             # mArrRec = np.ma.MaskedArray(_rec_to_ndarr(tArrRec),mask=np.isnan(_rec_to_ndarr(tArrRec))).view(dtype=tArrRec.dtype)

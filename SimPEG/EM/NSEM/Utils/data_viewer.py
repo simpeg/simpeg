@@ -3,16 +3,29 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class NSEM_data_viewer(object):
-
+    """
+    SimPEG NSEM data viewer class
+    """
     def __init__(self, data, data_dict=None, backend='qt'):
         """
-        An interactive SimPEG NSEM Data viewer
+        An interactive SimPEG NSEM Data viewer.
+        Generates a clickble location map of the data, plotting data curves
+        in a separate window.
 
+        :param SimPEG.EM.NSEM.Data data: Data object, needs to have assigned
+            standard_deviation and floor
+        :param dict data_dict: A dictionary of other NSEM Data objects
+        :param string backend: Flag to control the backend used in matplotlib
 
         """
         # Set data
         self._data = data
         self._data_dict = data_dict
+        # Set the default component
+        if data_dict is not None:
+            self._data_comp = data_dict.keys()[0]
+        else:
+            self._data_comp = None
         # Open the location figure
         self.location_fig, self._location_ax = self._data.plot_data_locations(
             picker=5
@@ -33,6 +46,22 @@ class NSEM_data_viewer(object):
             0.05, 1.05, 'Selected: none',
             transform=self._location_ax.transAxes, va='top'
         )
+
+    @property
+    def dict_comp(self):
+        return self._dict_comp
+    @dict_comp.setter
+    def dict_comp(self, value):
+        if self._data_dict is None:
+            raise Exception('No data dictionary connected to the object.')
+        else:
+            if value is getattr(self,'_dict_comp',None):
+                pass
+            elif value in self._data_dict.iterkeys():
+                self._dict_comp = value
+            else:
+                raise Exception('{} is not a key in the connected dictionary.')
+
 
     def view(self):
         self.location_fig.show()
@@ -99,70 +128,131 @@ class NSEM_data_viewer(object):
         """
         axes = self.station_fig.get_axes()
 
+        # Set keyword arguments
+        st_kwargs = {'marker':'_', 'ls':'None'}
+        eb_kwargs = {'ls':'None'}
         # Apparent resistivity
         self._data.plot_station_component(
             self._selecetd_point, 'xy', 'app_res', ax=axes[0], color='b',
-            marker='s', label='AppRes xy')
+            label='AppRes xy', **st_kwargs)
         self._data.plot_station_errorbars(
-            self._selecetd_point, 'xy', 'app_res', ax=axes[0], color='b')
+            self._selecetd_point, 'xy', 'app_res', ax=axes[0], color='b',
+            **eb_kwargs)
         self._data.plot_station_component(
             self._selecetd_point, 'yx', 'app_res', ax=axes[0], color='r',
-            marker='s', label='AppRes yx')
+            label='AppRes yx', **st_kwargs)
         self._data.plot_station_errorbars(
-            self._selecetd_point, 'yx', 'app_res', ax=axes[0], color='r')
+            self._selecetd_point, 'yx', 'app_res', ax=axes[0], color='r',
+            **eb_kwargs)
         # Apparent phase
         self._data.plot_station_component(
             self._selecetd_point, 'xy', 'phase', ax=axes[1], color='b',
-            marker='s', label='AppRes xy')
+            label='AppRes xy', **st_kwargs)
         self._data.plot_station_errorbars(
-            self._selecetd_point, 'xy', 'phase', ax=axes[1], color='b')
+            self._selecetd_point, 'xy', 'phase', ax=axes[1], color='b',
+            **eb_kwargs)
         self._data.plot_station_component(
             self._selecetd_point, 'yx', 'phase', ax=axes[1], color='r',
-            marker='s', label='AppRes yx')
+            label='AppRes yx', **st_kwargs)
         self._data.plot_station_errorbars(
-            self._selecetd_point, 'yx', 'phase', ax=axes[1], color='r')
+            self._selecetd_point, 'yx', 'phase', ax=axes[1], color='r',
+            **eb_kwargs)
         # Impedamce amplitude
         self._data.plot_station_component(
             self._selecetd_point, 'xx', 'amplitude', ax=axes[2], color='g',
-            marker='s', label='Amplitude xx')
+            label='Amplitude xx', **st_kwargs)
         self._data.plot_station_errorbars(
-            self._selecetd_point, 'xx', 'amplitude', ax=axes[2], color='g')
+            self._selecetd_point, 'xx', 'amplitude', ax=axes[2], color='g',
+            **eb_kwargs)
         self._data.plot_station_component(
             self._selecetd_point, 'xy', 'amplitude', ax=axes[2], color='b',
-            marker='s', label='Amplitude xy')
+            label='Amplitude xy', **st_kwargs)
         self._data.plot_station_errorbars(
-            self._selecetd_point, 'xy', 'amplitude', ax=axes[2], color='b')
+            self._selecetd_point, 'xy', 'amplitude', ax=axes[2], color='b',
+            **eb_kwargs)
         self._data.plot_station_component(
             self._selecetd_point, 'yx', 'amplitude', ax=axes[2], color='r',
-            marker='s', label='Amplitude yx')
+            label='Amplitude yx', **st_kwargs)
         self._data.plot_station_errorbars(
-            self._selecetd_point, 'yx', 'amplitude', ax=axes[2], color='r')
+            self._selecetd_point, 'yx', 'amplitude', ax=axes[2], color='r',
+            **eb_kwargs)
         self._data.plot_station_component(
             self._selecetd_point, 'yy', 'amplitude', ax=axes[2], color='y',
-            marker='s', label='Amplitude yy')
+            label='Amplitude yy', **st_kwargs)
         self._data.plot_station_errorbars(
-            self._selecetd_point, 'yy', 'amplitude', ax=axes[2], color='y')
+            self._selecetd_point, 'yy', 'amplitude', ax=axes[2], color='y',
+            **eb_kwargs)
         # Impedance phase
         self._data.plot_station_component(
             self._selecetd_point, 'xx', 'phase', ax=axes[3], color='g',
-            marker='s', label='Amplitude xx')
+            label='Amplitude xx', **st_kwargs)
         self._data.plot_station_errorbars(
-            self._selecetd_point, 'xx', 'phase', ax=axes[3], color='g')
+            self._selecetd_point, 'xx', 'phase', ax=axes[3], color='g',
+            **eb_kwargs)
         self._data.plot_station_component(
             self._selecetd_point, 'xy', 'phase', ax=axes[3], color='b',
-            marker='s', label='Amplitude xy')
+            label='Amplitude xy', **st_kwargs)
         self._data.plot_station_errorbars(
-            self._selecetd_point, 'xy', 'phase', ax=axes[3], color='b')
+            self._selecetd_point, 'xy', 'phase', ax=axes[3], color='b',
+            **eb_kwargs)
         self._data.plot_station_component(
             self._selecetd_point, 'yx', 'phase', ax=axes[3], color='r',
-            marker='s', label='Amplitude yx')
+            label='Amplitude yx', **st_kwargs)
         self._data.plot_station_errorbars(
-            self._selecetd_point, 'yx', 'phase', ax=axes[3], color='r')
+            self._selecetd_point, 'yx', 'phase', ax=axes[3], color='r',
+            **eb_kwargs)
         self._data.plot_station_component(
             self._selecetd_point, 'yy', 'phase', ax=axes[3], color='y',
-            marker='s', label='Amplitude yy')
+            label='Amplitude yy', **st_kwargs)
         self._data.plot_station_errorbars(
-            self._selecetd_point, 'yy', 'phase', ax=axes[3], color='y')
+            self._selecetd_point, 'yy', 'phase', ax=axes[3], color='y',
+            **eb_kwargs)
+
+        # Plot the additional data
+        if self._data_dict is not None:
+            dd_kwargs = {'marker':'.', 'ls':'--'}
+            dict_data = self._data_dict[self.dict_comp]
+            dict_data.plot_station_component(
+                self._selecetd_point, 'xy', 'app_res', ax=axes[0], color='b',
+                label='AppRes xy', **dd_kwargs)
+            dict_data.plot_station_component(
+                self._selecetd_point, 'yx', 'app_res', ax=axes[0], color='r',
+                label='AppRes yx', **dd_kwargs)
+            # Apparent phase
+            dict_data.plot_station_component(
+                self._selecetd_point, 'xy', 'phase', ax=axes[1], color='b',
+                label='AppRes xy', **dd_kwargs)
+            dict_data.plot_station_component(
+                self._selecetd_point, 'yx', 'phase', ax=axes[1], color='r',
+                label='AppRes yx', **dd_kwargs)
+            # Impedamce amplitude
+            dict_data.plot_station_component(
+                self._selecetd_point, 'xx', 'amplitude', ax=axes[2], color='g',
+                label='Amplitude xx', **dd_kwargs)
+            dict_data.plot_station_component(
+                self._selecetd_point, 'xy', 'amplitude', ax=axes[2], color='b',
+                label='Amplitude xy', **dd_kwargs)
+            dict_data.plot_station_component(
+                self._selecetd_point, 'yx', 'amplitude', ax=axes[2], color='r',
+                label='Amplitude yx', **dd_kwargs)
+            dict_data.plot_station_component(
+                self._selecetd_point, 'yy', 'amplitude', ax=axes[2], color='y',
+                label='Amplitude yy', **dd_kwargs)
+            dict_data.plot_station_errorbars(
+                self._selecetd_point, 'yy', 'amplitude', ax=axes[2], color='y')
+            # Impedance phase
+            dict_data.plot_station_component(
+                self._selecetd_point, 'xx', 'phase', ax=axes[3], color='g',
+                label='Amplitude xx', **dd_kwargs)
+            dict_data.plot_station_component(
+                self._selecetd_point, 'xy', 'phase', ax=axes[3], color='b',
+                label='Amplitude xy', **dd_kwargs)
+            dict_data.plot_station_component(
+                self._selecetd_point, 'yx', 'phase', ax=axes[3], color='r',
+                label='Amplitude yx', **dd_kwargs)
+            dict_data.plot_station_component(
+                self._selecetd_point, 'yy', 'phase', ax=axes[3], color='y',
+                label='Amplitude yy', **dd_kwargs)
 
 
     def _clear_station_fig(self):
@@ -178,4 +268,3 @@ class NSEM_data_viewer(object):
             while len(ax.collections) > 0:
                 for item in ax.collections:
                     item.remove()
-            # del ax.collections[:]
