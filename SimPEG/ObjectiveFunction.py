@@ -6,6 +6,7 @@ from properties import Float
 import numpy as np
 import scipy.sparse as sp
 from six import integer_types
+import warnings
 
 from . import Utils
 from .Tests import checkDerivative
@@ -16,9 +17,9 @@ class BaseObjectiveFunction(object):
 
     counter = None
     debug = False
-    _nP = None
 
-    def __init__(self, **kwargs):
+    def __init__(self, nP=None, **kwargs):
+        self._nP = nP
         Utils.setKwargs(self, **kwargs)
 
     def __call__(self, x, **kwargs):
@@ -26,9 +27,9 @@ class BaseObjectiveFunction(object):
 
     @property
     def nP(self):
-        if getattr(self, '_nP', None) is not None:
-            return self._nP
-        return '*'
+        if getattr(self, '_nP', None) is None:
+            self._nP = '*'
+        return self._nP
 
     def _eval(self, x, **kwargs):
         raise NotImplementedError(
@@ -130,10 +131,10 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
     _multiplier_types = (float, Float, None, Utils.Zero) + integer_types # Directive
 
-    def __init__(self, objfcts, multipliers=None, **kwargs):
+    def __init__(self, objfcts=[], multipliers=None, **kwargs):
 
         self.objfcts = []
-        self._nP = '*'
+        nP = '*'
 
         for fct in objfcts:
             assert isinstance(fct, BaseObjectiveFunction), (
@@ -141,13 +142,15 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
                 "entries in objfcts must inherit from  ObjectiveFunction"
             )
 
+            # ensure all objective functions have the same nP
             if fct.nP != '*':
-                if self._nP != '*':
-                    assert self._nP == fct.nP, (
-                        "Objective Functions must all have the same nP"
+                if nP != '*':
+                    assert nP == fct.nP, (
+                        "Objective Functions must all have the same nP, not "
+                        "{}".format([f.nP for f in objfcts])
                     )
                 else:
-                    self._nP = fct.nP
+                    nP = fct.nP
             self.objfcts.append(fct)
 
         if multipliers is None:
@@ -164,7 +167,10 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             )
         self.multipliers = multipliers
 
+        print('In ComboObjectiveFct {}'.format(nP))
+
         super(ComboObjectiveFunction, self).__init__(**kwargs)
+        self._nP = nP
 
     def _eval(self, x, **kwargs):
         f = Utils.Zero()
@@ -190,22 +196,28 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
                 H += multpliter * objfct_H
         return H
 
+    @property
+    def W(self):
+        W = []
+        for mult, curW in zip(self.multipliers, self.objfcts):
+            W.append(mult * curW)
+        return sp.vstack(W)
+
 
 class L2ObjectiveFunction(BaseObjectiveFunction):
 
-    W = None  #: Weighting
+    def __init__(self, nP=None, **kwargs):
 
-    def __init__(self, **kwargs):
+        super(L2ObjectiveFunction, self).__init__(nP=nP, **kwargs)
 
-        super(L2ObjectiveFunction, self).__init__(**kwargs)
-
-        if self.W is None and self.nP != '*':
-            self.W = sp.eye(self.nP)
-        else:
-            self.W = Utils.Identity()
-
-        if self.W is not None and not isinstance(self.W, Utils.Identity):
-            self._nP = self.W.shape[0]
+    @property
+    def W(self):
+        if getattr(self, '_W', None) is None:
+            if self._nP != '*' and self._nP is not None:
+                self._W = sp.eye(self.nP)
+            else:
+                self._W = Utils.Identity()
+        return self._W
 
     def _eval(self, m):
         r = self.W * m

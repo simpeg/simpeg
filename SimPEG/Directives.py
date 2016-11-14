@@ -1,5 +1,6 @@
 from __future__ import print_function
 from . import Utils
+from . import Regularization
 import numpy as np
 import warnings
 
@@ -329,8 +330,7 @@ class Update_IRLS(InversionDirective):
         if self.mode == 1:
             self.reg.norms = [2., 2., 2., 2.]
 
-
-    def endIterOld(self):
+    def endIter(self):
 
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
         if self.invProb.phi_d < self.target and self.mode == 1:
@@ -346,6 +346,7 @@ class Update_IRLS(InversionDirective):
                 self.reg.eps_p = self.eps[0]
 
             if getattr(self, 'eps', None) is None:
+                print(self.reg.indActive)
                 self.reg.eps_q = np.percentile(np.abs(self.reg.regmesh.cellDiffxStencil*(self.reg.mapping * self.invProb.model)), self.prctile)
             else:
                 self.reg.eps_q = self.eps[1]
@@ -357,7 +358,7 @@ class Update_IRLS(InversionDirective):
             self.phi_d_last = self.invProb.phi_d
             self.phi_m_last = self.invProb.phi_m_last
 
-            self.reg.l2model = self.invProb.model
+            self.l2model = self.invProb.model
             self.reg.model = self.invProb.model
 
             print("L[p qx qy qz]-norm : " + str(self.reg.norms))
@@ -368,7 +369,8 @@ class Update_IRLS(InversionDirective):
 
         # Beta Schedule
         if self.opt.iter > 0 and self.opt.iter % self.coolingRate == 0:
-            if self.debug: print('BetaSchedule is cooling Beta. Iteration: {0:d}'.format(self.opt.iter))
+            if self.debug:
+                print('BetaSchedule is cooling Beta. Iteration: {0:d}'.format(self.opt.iter))
             self.invProb.beta /= self.coolingFactor
 
         # Only update after GN iterations
@@ -409,10 +411,10 @@ class Update_IRLS(InversionDirective):
 
             # Reset the regularization matrices so that it is
             # recalculated for current model
-            self.reg._Wsmall = None
-            self.reg._Wx = None
-            self.reg._Wy = None
-            self.reg._Wz = None
+            # self.reg._Wsmall = None
+            # self.reg._Wx = None
+            # self.reg._Wy = None
+            # self.reg._Wz = None
 
             # Update the model used for the IRLS weights
             self.reg.model = self.invProb.model
@@ -427,10 +429,10 @@ class Update_IRLS(InversionDirective):
             self.reg.gamma = self.phi_m_last / phim_new
 
             # Reset the regularization matrices again for new gamma
-            self.reg._Wsmall = None
-            self.reg._Wx = None
-            self.reg._Wy = None
-            self.reg._Wz = None
+            # self.reg._Wsmall = None
+            # self.reg._Wx = None
+            # self.reg._Wy = None
+            # self.reg._Wz = None
 
             # Check if misfit is within the tolerance, otherwise scale beta
             val = self.invProb.phi_d / (self.survey.nD*0.5)

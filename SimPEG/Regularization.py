@@ -26,7 +26,9 @@ class RegularizationMesh(object):
     def __init__(self, mesh, indActive=None):
         self.mesh = mesh
         assert indActive is None or indActive.dtype == 'bool', (
-            'indActive needs to be None or a bool'
+            'indActive needs to be None or a bool not {}'.format(
+                indActive.dtype
+            )
         )
         self.indActive = indActive
 
@@ -361,53 +363,112 @@ class BaseRegularization(ObjectiveFunction.L2ObjectiveFunction):
     counter = None
     mapPair = Maps.IdentityMap  #: An IdentityMap Class
 
-    mapping = None  #: An IdentityMap instance.
-    mref = Utils.Zero()  #: Reference model, :class:`Utils.Zero` default
+    # mapping = None  #: An IdentityMap instance.
+    # mref = Utils.Zero()  #: Reference model, :class:`Utils.Zero` default
 
-    indActive = None  #: active indices
+    # indActive = None  #: active indices
 
-    def __init__(self, mesh=None, nP=None, **kwargs):
+    def __init__(
+        self, mesh=None, mapping=None, mref=Utils.Zero(),
+        indActive=None, cell_weights=None, **kwargs
+    ):
+
         super(BaseRegularization, self).__init__(**kwargs)
+        self.mesh = mesh
+        self.indActive = indActive
+        self.mref = mref
+        self.mapping = mapping
+        self.cell_weights = cell_weights
 
-        # Make sute the mesh is a SimPEG Mesh
-        assert isinstance(mesh, Mesh.BaseMesh) or mesh is None, (
+    @property
+    def nP(self):
+        if getattr(self, '_nP') is None:
+            if getattr(self.mapping, 'nP') != '*':
+                self._nP = self.mapping.nP
+            elif getattr(self.regmesh, 'nC') != '*':
+                self._nP = self.regmesh.nC
+            else:
+                self._np = '*'
+        return self._nP
+
+    @property
+    def mesh(self):
+        return self._mesh
+
+    @mesh.setter
+    def mesh(self, value):
+        assert isinstance(value, Mesh.BaseMesh) or value is None, (
             "mesh must be a SimPEG.Mesh object."
         )
-        self.mesh = mesh
+        self._mesh = value
 
-        # ensure indActive are bools
-        if self.indActive is not None:
-            if self.indActive.dtype != 'bool':
-                tmp = self.indActive
-                self.indActive = np.zeros(mesh.nC, dtype=bool)  # This should be handled with properties??
-                self.indActive[tmp] = True
+    @property
+    def regmesh(self):
+        if getattr(self, '_regmesh', None) is None:
+            if getattr(self, 'mesh', None) is None:
+                return None
+            self._regmesh = RegularizationMesh(
+                self.mesh, indActive=self.indActive
+            )
+        return self._regmesh
 
-            if self.mapping is None:
-                self.mapping = Maps.IdentityMap(
-                    nP=self.indActive.nonzero()[0].size
+    @regmesh.setter
+    def regmesh(self, value):
+        assert isinstance(value, RegularizationMesh) or value is None, (
+            "regmesh must be an instance of a RegularizationMesh"
+            )
+        self._regmesh = value
+
+    @property
+    def mapping(self):
+        if getattr(self, '_mapping', None) is None:
+            return self.mapPair()
+        return self._mapping
+
+    @mapping.setter
+    def mapping(self, value):
+        if value is not None:
+            value._assertMatchesPair(self.mapPair)
+        self._mapping = value
+
+    @property
+    def mref(self):
+        return getattr(self, '_mref', None)
+
+    @mref.setter
+    def mref(self, value):
+        self._mref = value
+
+    @property
+    def indActive(self):
+        print('getting indActive')
+        print(self._indActive)
+        return getattr(self, '_indActive', None)
+
+    @indActive.setter
+    def indActive(self, value):
+        if value is not None:
+            if value.dtype != 'bool':
+                tmp = value
+                value = np.zeros(self.mesh.nC, dtype=bool)
+                value[tmp] = True
+        if getattr(self, '_regmesh', None) is not None:
+            self._regmesh.indActive = value
+
+        self._indActive = value
+
+    @property
+    def cell_weights(self):
+        return getattr(self, '_cell_weights', None)
+
+    @cell_weights.setter
+    def cell_weights(self, value):
+        if value is not None:
+            assert isinstance(value, np.ndarray), (
+                "expecting a numpy array for cell weights, not a {}".format(
+                    value.__class__.__name__
                 )
-
-        # create regularization mesh if using
-        if self.mesh is not None:
-            self.regmesh = RegularizationMesh(self.mesh, self.indActive)
-        else:
-            self.regmesh = None
-
-        # set nP
-        if self.mapping is not None:
-            if nP is not None:
-                warnings("overwriting nP with mapping.nP")
-            self._nP = self.mapping.nP
-        elif self.mesh is not None:
-            if nP is not None:
-                warnings("overwriting nP with mesh.nC")
-            self._nP = self.regmesh.nC
-        else:
-            self._nP = nP
-
-        # set mappings and make sure it is a SimPEG map
-        self.mapping = self.mapping or self.mapPair(nP=self._nP)
-        self.mapping._assertMatchesPair(self.mapPair)
+            )
 
     @Utils.timeIt
     def _eval(self, m):
@@ -418,6 +479,7 @@ class BaseRegularization(ObjectiveFunction.L2ObjectiveFunction):
 
             r(m) = \\frac{1}{2}
         """
+
         r = self.W * (self.mapping * (m - self.mref))
         return 0.5 * r.dot(r)
 
@@ -439,9 +501,11 @@ class BaseRegularization(ObjectiveFunction.L2ObjectiveFunction):
             R(m) = \mathbf{W^\\top W (m-m_\\text{ref})}
 
         """
+
         mD = self.mapping.deriv(m - self.mref)
-        r = self.W * ( self.mapping * (m - self.mref) )
-        return  mD.T * ( self.W.T * r )
+        r = self.W * (self.mapping * (m - self.mref))
+        return  mD.T * (self.W.T * r)
+
 
     @Utils.timeIt
     def deriv2(self, m, v=None):
@@ -501,18 +565,141 @@ class Smallness(BaseRegularization):
 
     """
 
-    cell_weights = None  #: apply cell weights?
+    _multiplier_pair = 'alpha_s'
 
     def __init__(self, mesh=None, **kwargs):
-        if self.cell_weights is None:
-            W = Utils.Identity()
-        else:
-            assert isinstance(self.cell_weights, np.ndarray), (
-                "expecting numpy array for cell weights"
-            )
-            W = Utils.sdiag(self.cell_weights)
 
-        super(Smallness, self).__init__(mesh=mesh, W=W, **kwargs)
+        super(Smallness, self).__init__(
+            mesh=mesh, **kwargs
+        )
+
+    @property
+    def W(self):
+        if self.cell_weights is not None:
+            return Utils.sdiag(self.cell_weights)
+        else:
+            return (
+                sp.eye(self.nP) if self.nP != '*' else Utils.Identity()
+            )
+
+
+class BaseComboRegularization(BaseRegularization):
+
+    def __init__(
+        self, mesh, mrefInSmooth=False,
+        alpha_s=None, alpha_x=None, alpha_y=None, alpha_z=None,
+        alpha_xx=None, alpha_yy=None, alpha_zz=None,
+        **kwargs
+    ):
+
+        self.mrefInSmooth = mrefInSmooth
+        self._alpha_s = alpha_s
+        self._alpha_x = alpha_x
+        self._alpha_y = alpha_y
+        self._alpha_z = alpha_z
+        self._alpha_xx = alpha_xx
+        self._alpha_yy = alpha_yy
+        self._alpha_zz = alpha_zz
+
+        super(BaseComboRegularization, self).__init__(
+            mesh=mesh, **kwargs
+        )
+
+    @property
+    def alpha_s(self):
+        return self._alpha_s
+
+    @alpha_s.setter
+    def alpha_s(self, value):
+        for ind, fct in enumerate(self.objfcts):
+            if fct._multiplier_pair == 'alpha_s':
+                self.multipliers[ind] = value
+        self._alpha_s = value
+
+    @property
+    def alpha_x(self):
+        return self._alpha_x
+
+    @alpha_x.setter
+    def alpha_x(self, value):
+        for ind, fct in enumerate(self.objfcts):
+            if fct._multiplier_pair == 'alpha_x':
+                self.multipliers[ind] = value
+        self._alpha_x = value
+
+    @property
+    def alpha_y(self):
+        return self._alpha_y
+
+    @alpha_y.setter
+    def alpha_y(self, value):
+        for ind, fct in enumerate(self.objfcts):
+            if fct._multiplier_pair == 'alpha_y':
+                self.multipliers[ind] = value
+        self._alpha_y = value
+
+    @property
+    def alpha_z(self):
+        return self._alpha_z
+
+    @alpha_z.setter
+    def alpha_z(self, value):
+        for ind, fct in enumerate(self.objfcts):
+            if fct._multiplier_pair == 'alpha_z':
+                self.multipliers[ind] = value
+        self._alpha_z = value
+
+    @property
+    def alpha_xx(self):
+        return self._alpha_xx
+
+    @alpha_xx.setter
+    def alpha_xx(self, value):
+        for ind, fct in enumerate(self.objfcts):
+            if fct._multiplier_pair == 'alpha_xx':
+                self.multipliers[ind] = value
+        self._alpha_xx = value
+
+    @property
+    def alpha_yy(self):
+        return self._alpha_yy
+
+    @alpha_yy.setter
+    def alpha_yy(self, value):
+        for ind, fct in enumerate(self.objfcts):
+            if fct._multiplier_pair == 'alpha_yy':
+                self.multipliers[ind] = value
+        self._alpha_yy = value
+
+    @property
+    def alpha_zz(self):
+        return self._alpha_zz
+
+    @alpha_zz.setter
+    def alpha_zz(self, value):
+        for ind, fct in enumerate(self.objfcts):
+            if fct._multiplier_pair == 'alpha_zz':
+                self.multipliers[ind] = value
+        self._alpha_zz = value
+
+    @property
+    def indActive(self):
+        return getattr(self, '_indActive')
+
+    @indActive.setter
+    def indActive(self, value):
+
+        if value is not None:
+            if value.dtype != 'bool':
+                tmp = value
+                value = np.zeros(self.mesh.nC, dtype=bool)
+                value[tmp] = True
+        if getattr(self, '_regmesh', None) is not None:
+            self._regmesh.indActive = value
+
+        for fct in self.objfcts:
+            fct.indActive = value
+        self._indActive = value
 
 
 class BaseSimpleSmooth(BaseRegularization):
@@ -533,23 +720,39 @@ class BaseSimpleSmooth(BaseRegularization):
     :param numpy.ndarray cell_weights: vector of cell weights (applied in all terms)
     """
 
-    mrefInSmooth = False  #: include mref in the smoothness?
-    cell_weights = None  #: apply cell weights?
+    def __init__(
+        self, mesh, orientation='x', mrefInSmooth=False, **kwargs
+    ):
 
-    def __init__(self, mesh, orientation='x', **kwargs):
-        assert orientation in ['x', 'y', 'z'], (
+        self.mrefInSmooth = mrefInSmooth
+        self.orientation = orientation
+        assert self.orientation in ['x', 'y', 'z'], (
             "Orientation must be 'x', 'y' or 'z'"
         )
 
-        super(BaseSimpleSmooth, self).__init__(mesh=mesh, **kwargs)
-
-        self.W = getattr(
-            self.regmesh,
-            "cellDiff{orientation}Stencil".format(orientation=orientation)
+        super(BaseSimpleSmooth, self).__init__(
+            mesh=mesh, **kwargs
         )
 
         if self.mrefInSmooth is False:
             self.mref = Utils.Zero()
+
+
+    @property
+    def W(self):
+        W = getattr(
+            self.regmesh,
+            "cellDiff{orientation}Stencil".format(
+                orientation=self.orientation
+            )
+        )
+        if self.cell_weights is not None:
+            W = (
+                Utils.sdiag(
+                    (self.regmesh.aveCC2Fx*self.cell_weights)**0.5
+                ) * W
+            )
+        return W
 
 
 class SimpleSmooth_x(BaseSimpleSmooth):
@@ -558,8 +761,9 @@ class SimpleSmooth_x(BaseSimpleSmooth):
     x-direction, not considering length scales
     """
 
-    def __init__(self, mesh, **kwargs):
+    _multiplier_pair = 'alpha_x'
 
+    def __init__(self, mesh, **kwargs):
         super(SimpleSmooth_x, self).__init__(
             mesh=mesh, orientation='x', **kwargs
         )
@@ -570,6 +774,8 @@ class SimpleSmooth_y(BaseSimpleSmooth):
     Simple Smoothness along x. Regularizes on the first spatial derivative in the
     y-direction, not considering length scales
     """
+
+    _multiplier_pair = 'alpha_y'
 
     def __init__(self, mesh, **kwargs):
         assert(mesh.dim > 1), (
@@ -587,6 +793,9 @@ class SimpleSmooth_z(BaseSimpleSmooth):
     Simple Smoothness along x. Regularizes on the first spatial derivative in the
     z-direction, not considering length scales
     """
+
+    _multiplier_pair = 'alpha_z'
+
     def __init__(self, mesh, **kwargs):
 
         assert(mesh.dim > 2), (
@@ -599,7 +808,9 @@ class SimpleSmooth_z(BaseSimpleSmooth):
         )
 
 
-class Simple(BaseRegularization):
+class Simple(
+    BaseComboRegularization, ObjectiveFunction.ComboObjectiveFunction
+):
 
     """
     Simple regularization that does not include length scales in the
@@ -640,22 +851,50 @@ class Simple(BaseRegularization):
 
     """
 
-    mrefInSmooth = False  #: include mref in the smoothness?
-    alpha_s = 1.0  #: Smallness weights
-    alpha_x = 1.0  #: Weight for the first derivative in the x direction
-    alpha_y = 1.0  #: Weight for the first derivative in the y direction
-    alpha_z = 1.0  #: Weight for the first derivative in the z direction
+    def __init__(
+        self, mesh, mrefInSmooth=False,
+        alpha_s=1.0, alpha_x=1.0, alpha_y=1.0,
+        alpha_z=1.0, **kwargs
+    ):
 
-    def __init__(self, mesh, **kwargs):
-        super(Simple, self).__init__(mesh=mesh, **kwargs)
-        self = (
-                self.alpha_s * Smallness(mesh=mesh, **kwargs) +
-                self.alpha_x * SimpleSmooth_x(mesh=mesh, **kwargs)
-        )
+        # self.mrefInSmooth = mrefInSmooth
+        # self._alpha_s = alpha_s
+        # self._alpha_x = alpha_x
+        # self._alpha_y = alpha_y
+        # self._alpha_z = alpha_z
+
+        objfcts = [
+            Smallness(mesh=mesh, **kwargs),
+            SimpleSmooth_x(
+                mesh=mesh, mrefInSmooth=mrefInSmooth,
+                **kwargs
+            )
+        ]
+        multipliers = [alpha_s, alpha_x]
+
         if mesh.dim > 1:
-            self += self.alpha_y * SimpleSmooth_y(mesh=mesh, **kwargs)
+            objfcts.append(
+                SimpleSmooth_y(
+                    mesh=mesh, mrefInSmooth=mrefInSmooth,
+                    **kwargs
+                )
+            )
+            multipliers.append([alpha_y])
+
         if mesh.dim > 2:
-            self += self.alpha_z * SimpleSmooth_z(mesh=mesh, **kwargs)
+            objfcts.append(
+                SimpleSmooth_z(
+                    mesh=mesh, mrefInSmooth=mrefInSmooth,
+                    **kwargs
+                )
+            )
+            multipliers.append([alpha_z])
+
+        super(Simple, self).__init__(
+            mesh=mesh, mrefInSmooth=mrefInSmooth,
+            alpha_s=alpha_s, alpha_x=alpha_x, alpha_y=alpha_y, alpha_z=alpha_z,
+            objfcts=objfcts, multipliers=multipliers, **kwargs
+        )
 
 
 class BaseSmooth(BaseRegularization):
@@ -675,35 +914,40 @@ class BaseSmooth(BaseRegularization):
     :param numpy.ndarray cell_weights: vector of cell weights (applied in all terms)
     """
 
-    mrefInSmooth = False  #: include mref in the smoothness?
-    cell_weights = None  #: apply cell weights?
+    def __init__(
+        self, mesh, orientation='x', mrefInSmooth=False, **kwargs
+    ):
 
-    def __init__(self, mesh, orientation='x', **kwargs):
+        self.mrefInSmooth = mrefInSmooth
+        self.orientation = orientation
+
         assert orientation in ['x', 'y', 'z'], (
                 "Orientation must be 'x', 'y' or 'z'"
             )
 
-        super(BaseSmooth, self).__init__(mesh=mesh, **kwargs)
-
-        ave = getattr(
-            self.regmesh,
-            'aveCC2F{orientation}'.format(orientation=orientation)
-        )
-
-        if self.cell_weights is not None:
-            Ave_vol = (ave * self.cell_weights * self.regmesh.vol)
-        else:
-            Ave_vol = ave * self.regmesh.vol
-        self.W = (
-            Utils.sdiag((Ave_vol)**0.5) *
-            getattr(
-                self.regmesh,
-                "cellDiff{orientation}".format(orientation=orientation)
-            )
+        super(BaseSmooth, self).__init__(
+            mesh=mesh, **kwargs
         )
 
         if self.mrefInSmooth is False:
             self.mref = Utils.Zero()
+
+
+    @property
+    def W(self):
+        W = getattr(
+            self.regmesh,
+            "cellDiff{orientation}Stencil".format(
+                orientation=self.orientation
+            )
+        )
+        if self.cell_weights is not None:
+            W = (
+                Utils.sdiag(
+                    (self.regmesh.aveCC2Fx*self.cell_weights)**0.5
+                ) * W
+            )
+        return W
 
 
 class Smooth_x(BaseSmooth):
@@ -712,8 +956,12 @@ class Smooth_x(BaseSmooth):
     x-direction
     """
 
+    _multiplier_pair = 'alpha_x'
+
     def __init__(self, mesh, **kwargs):
-        super(Smooth_x, self).__init__(mesh=mesh, orientation='x', **kwargs)
+        super(Smooth_x, self).__init__(
+            mesh=mesh, orientation='x', **kwargs
+        )
 
 
 class Smooth_y(BaseSmooth):
@@ -722,13 +970,17 @@ class Smooth_y(BaseSmooth):
     y-direction
     """
 
+    _multiplier_pair = 'alpha_y'
+
     def __init__(self, mesh, **kwargs):
         assert(mesh.dim > 1), (
             "Mesh must have at least 2 dimensions to regularize along the "
             "y-direction"
         )
 
-        super(Smooth_y, self).__init__(mesh=mesh, orientation='y', **kwargs)
+        super(Smooth_y, self).__init__(
+            mesh=mesh, orientation='y', **kwargs
+        )
 
 
 class Smooth_z(BaseSmooth):
@@ -736,13 +988,18 @@ class Smooth_z(BaseSmooth):
     Smoothness along z. Regularizes on the first spatial derivative in the
     z-direction
     """
+
+    _multiplier_pair = 'alpha_z'
+
     def __init__(self, mesh, **kwargs):
         assert(mesh.dim > 2), (
             "Mesh must have at least 3 dimensions to regularize along the "
             "z-direction"
         )
 
-        super(Smooth_z, self).__init__(mesh=mesh, orientation='z', **kwargs)
+        super(Smooth_z, self).__init__(
+            mesh=mesh, orientation='z', **kwargs
+        )
 
 
 class BaseSmooth2(BaseRegularization):
@@ -762,27 +1019,42 @@ class BaseSmooth2(BaseRegularization):
     :param numpy.ndarray cell_weights: vector of cell weights (applied in all terms)
     """
 
-    mrefInSmooth = False  #: include mref in the smoothness?
-    cell_weights = None  #: apply cell weights?
+    def __init__(
+        self, mesh,
+        orientation='x', mrefInSmooth=False,
+        **kwargs
+    ):
 
-    def __init__(self, mesh, orientation='x', **kwargs):
-        super(BaseSmooth2, self).__init__(mesh=mesh, **kwargs)
+        self.mrefInSmooth = mrefInSmooth
+        self.orientation = orientation
+
+        super(BaseSmooth2, self).__init__(
+            mesh=mesh, **kwargs
+        )
+
+    @property
+    def W(self):
 
         vol = self.regmesh.vol
         if self.cell_weights is not None:
             vol *= self.cell_weights
 
-        self.W = (
+        W = (
             Utils.sdiag(vol**0.5) *
             getattr(
                 self.regmesh,
-                'faceDiff{orientation}'.format(orientation=orientation)
+                'faceDiff{orientation}'.format(
+                    orientation=self.orientation
+                )
             ) *
             getattr(
                 self.regmesh,
-                'cellDiff{orientation}'.format(orientation=orientation)
+                'cellDiff{orientation}'.format(
+                    orientation=self.orientation
+                )
             )
         )
+        return W
 
 
 class Smooth_xx(BaseSmooth2):
@@ -790,8 +1062,13 @@ class Smooth_xx(BaseSmooth2):
     Second-order smoothness along x. Regularizes on the second spatial
     derivative in the x-direction
     """
+
+    _multiplier_pair = 'alpha_xx'
+
     def __init__(self, mesh, **kwargs):
-        super(Smooth_xx, self).__init__(mesh=mesh, orientation='x', **kwargs)
+        super(Smooth_xx, self).__init__(
+            mesh=mesh, orientation='x', **kwargs
+        )
 
 
 class Smooth_yy(BaseRegularization):
@@ -799,12 +1076,17 @@ class Smooth_yy(BaseRegularization):
     Second-order smoothness along y. Regularizes on the second spatial
     derivative in the y-direction
     """
+
+    _multiplier_pair = 'alpha_yy'
+
     def __init__(self, mesh, **kwargs):
         assert(mesh.dim > 1), (
             "Mesh must have at least 2 dimensions to regularize along the "
             "y-direction"
         )
-        super(Smooth_yy, self).__init__(mesh=mesh, orientation='y', **kwargs)
+        super(Smooth_yy, self).__init__(
+            mesh=mesh, orientation='y', **kwargs
+        )
 
 
 class Smooth_zz(BaseRegularization):
@@ -813,15 +1095,21 @@ class Smooth_zz(BaseRegularization):
     derivative in the z-direction
     """
 
+    _multiplier_pair = 'alpha_zz'
+
     def __init__(self, mesh, **kwargs):
         assert(mesh.dim > 2), (
             "Mesh must have at least 3 dimensions to regularize along the "
             "z-direction"
         )
-        super(Smooth_zz, self).__init__(mesh=mesh, orientation='z', **kwargs)
+        super(Smooth_zz, self).__init__(
+            mesh=mesh, orientation='z', **kwargs
+        )
 
 
-class Tikhonov(BaseRegularization, ObjectiveFunction.ComboObjectiveFunction):
+class Tikhonov(
+    BaseComboRegularization, ObjectiveFunction.ComboObjectiveFunction
+):
     """
     L2 Tikhonov regularization with both smallness and smoothness (first order
     derivative) contributions.
@@ -847,40 +1135,43 @@ class Tikhonov(BaseRegularization, ObjectiveFunction.ComboObjectiveFunction):
     :param float alpha_yy: (default 1) smoothness weight for second derivative in the y-direction
     :param float alpha_zz: (default 1) smoothness weight for second derivative in the z-direction
     """
-
-    mrefInSmooth = False  #: include mref in the smoothness?
-    alpha_s = 1e-6  #: Smallness weights
-    alpha_x = 1.0  #: Weight for the first derivative in the x direction
-    alpha_y = 1.0  #: Weight for the first derivative in the y direction
-    alpha_z = 1.0  #: Weight for the first derivative in the z direction
-    alpha_xx = Utils.Zero() #: Weight for the second derivative in the x direction
-    alpha_yy = Utils.Zero() #: Weight for the second derivative in the y direction
-    alpha_zz = Utils.Zero() #: Weight for the second derivative in the z direction
-
-    def __init__(self, mesh, **kwargs):
-
+    def __init__(
+        self, mesh, mrefInSmooth=False,
+        alpha_s=1e-6, alpha_x=1.0, alpha_y=1.0, alpha_z=1.0,
+        alpha_xx=Utils.Zero(), alpha_yy=Utils.Zero(), alpha_zz=Utils.Zero(),
+        **kwargs
+    ):
 
         objfcts = [
             Smallness(mesh=mesh, **kwargs),
-            Smooth_x(mesh=mesh, **kwargs),
-            Smooth_xx(mesh=mesh, **kwargs)
+            Smooth_x(mesh=mesh, mrefInSmooth=mrefInSmooth, **kwargs),
+            Smooth_xx(mesh=mesh, mrefInSmooth=mrefInSmooth, **kwargs)
         ]
-        multipliers = [self.alpha_s, self.alpha_x, self.alpha_xx]
+        multipliers = [alpha_s, alpha_x, alpha_xx]
 
         if mesh.dim > 1:
             objfcts.append(
-                [Smooth_y(mesh=mesh, **kwargs), Smooth_yy(mesh=mesh, **kwargs)]
+                [
+                    Smooth_y(mesh=mesh, mrefInSmooth=mrefInSmooth, **kwargs),
+                    Smooth_yy(mesh=mesh, mrefInSmooth=mrefInSmooth, **kwargs)
+                ]
             )
-            multipliers.append([self.alpha_y, self.alpha_yy])
+            multipliers.append([alpha_y, alpha_yy])
 
         if mesh.dim > 2:
             objfcts.append(
-                [Smooth_z(mesh=mesh, **kwargs), Smooth_zz(mesh=mesh, **kwargs)]
+                [
+                    Smooth_z(mesh=mesh, mrefInSmooth=mrefInSmooth, **kwargs),
+                    Smooth_zz(mesh=mesh, mrefInSmooth=mrefInSmooth, **kwargs)
+                ]
             )
-            multipliers.append([self.alpha_z, self.alpha_zz])
+            multipliers.append([alpha_z, alpha_zz])
 
         super(Tikhonov, self).__init__(
-            objfcts=objfcts, multipliers=multipliers, mesh=mesh, **kwargs
+            mesh, mrefInSmooth=mrefInSmooth,
+            alpha_s=alpha_s, alpha_x=alpha_x, alpha_y=alpha_y, alpha_z=alpha_z,
+            alpha_xx=alpha_xx, alpha_yy=alpha_yy, alpha_zz=alpha_zz,
+            objfcts=objfcts, multipliers=multipliers, **kwargs
         )
 
 
@@ -890,7 +1181,8 @@ class BaseSparse(BaseRegularization):
 
     .. math::
 
-        R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top R^\\top R W(m-m_\\text{ref})}
+        R(m) = \\frac{1}{2}\mathbf{(m-m_\\text{ref})^\\top W^\\top R^\\top R
+        W(m-m_\\text{ref})}
 
     where the IRLS weight
 
@@ -910,26 +1202,81 @@ class BaseSparse(BaseRegularization):
     """
 
     # set default values
-    eps_p = 1e-1  #: Threshold value for the model norm
-    eps_q = 1e-1  #: Threshold value for the model gradient norm
-    model = None  #: Requires model to compute the weights
-    l2model = None
-    gamma = 1.  #: Model norm scaling to smooth out convergence
-    # norms = [0., 2., 2., 2.]  #: Values for norm on (m, dmdx, dmdy, dmdz)
-    cell_weights = None  #: Consider overwriting with sensitivity weights
+    # eps_p = 1e-1  #: Threshold value for the model norm
+    # eps_q = 1e-1  #: Threshold value for the model gradient norm
+    # model = None  #: Requires model to compute the weights
+    # l2model = None
+    # gamma = 1.  #: Model norm scaling to smooth out convergence
+    # # norms = [0., 2., 2., 2.]  #: Values for norm on (m, dmdx, dmdy, dmdz)
+    # cell_weights = None  #: Consider overwriting with sensitivity weights
 
-    def __init__(self, mesh, **kwargs):
+    def __init__(
+        self, mesh,
+        model=None, gamma=1., eps_p=1e-1, eps_q=1e-1,
+        norm=2., **kwargs
+    ):
+
+        self.model = model
+        self.gamma = gamma
+        self.norm = norm
+        self.eps_p = eps_p
+        self.eps_q = eps_q
+
         super(BaseSparse, self).__init__(mesh=mesh, **kwargs)
 
-        if self.cell_weights is None:
-            self.cell_weights = np.ones(self.regmesh.nC)
-        else:
-            assert isinstance(self.cell_weights, np.ndarray), (
-                "expecting numpy array for cell weights"
-            )
+        # if self.cell_weights is None:
+        #     self.cell_weights = np.ones(self.regmesh.nC)
+        # else:
+        #     assert isinstance(self.cell_weights, np.ndarray), (
+        #         "expecting numpy array for cell weights"
+        #     )
+
+    @property
+    def model(self):
+        return getattr(self, '_model', None)
+
+    @model.setter
+    def model(self, value):
+        print('setting model')
+        self._model = value
+
+    @property
+    def gamma(self):
+        return getattr(self, '_gamma', None)
+
+    @gamma.setter
+    def gamma(self, value):
+        print('set gamma {}'.format(value))
+        self._gamma = value
+
+    @property
+    def norm(self):
+        return getattr(self, '_norm', None)
+
+    @norm.setter
+    def norm(self, value):
+        print('set norm {}'.format(value))
+        self._norm = value
+
+    @property
+    def eps_p(self, value):
+        return getattr(self, '_eps_p', None)
+
+    @eps_p.setter
+    def eps_p(self, value):
+        print('set eps_p {}'.format(value))
+        self._eps_p = value
+
+    @property
+    def eps_q(self, value):
+        return getattr(self, '_eps_q', None)
+
+    @eps_q.setter
+    def eps_q(self, value):
+        print('set eps_q {}'.format(value))
+        self._eps_q = value
 
     def R(self, f_m , eps, exponent):
-
         # Eta scaling is important for mix-norms...do not mess with it
         eta = (eps**(1.-exponent/2.))**0.5
         r = eta / (f_m**2. + eps**2.)**((1.-exponent/2.)/2.)
@@ -946,20 +1293,31 @@ class SparseSmallness(BaseSparse):
     :param int norm: norm on the smallness
     """
 
-    norm = 0  #: norm on m (smallness)
+    # norm = 0  #: norm on m (smallness)
 
-    def __init__(self, mesh, **kwargs):
-        super(SparseSmallness, self).__init__(mesh=mesh, **kwargs)
+    _multiplier_pair = 'alpha_s'
 
+    def __init__(
+        self, mesh, norm=0, eps_p=1e-1, gamma=1., model=None,
+        **kwargs
+    ):
+        super(SparseSmallness, self).__init__(
+            mesh=mesh, norm=norm, gamma=gamma,
+            model=model, eps_p=eps_p, **kwargs
+        )
+
+    @property
+    def W(self):
         if getattr(self, 'model', None) is None:
             R = Utils.speye(self.regmesh.nC)
-
         else:
             f_m = self.mapping * (self.model - self.mref)
-            r = self.R(f_m , self.eps_p, self.norms[0])
-            R = Utils.sdiag( self.r )
+            r = self.R(f_m , self.eps_p, self.norm)
+            R = Utils.sdiag(r)
 
-        self.W = Utils.sdiag((self.gamma*self.cell_weights)**0.5) * R
+        if self.cell_weights is not None:
+            return Utils.sdiag((self.gamma*self.cell_weights)**0.5) * R
+        return (self.gamma)**0.5 * R
 
 
 class Sparse_x(BaseSparse):
@@ -967,11 +1325,20 @@ class Sparse_x(BaseSparse):
     Regularization on the first derivative in the x-direction
     """
 
-    norm = 2  #: norm employed
+    _multiplier_pair = 'alpha_x'
 
-    def __init__(self, mesh, **kwargs):
+    def __init__(
+        self, mesh, norm=2, eps_q=1e-1, gamma=1, model=None,
+        **kwargs
+    ):
 
-        super(Sparse_x, self).__init__(mesh=mesh, **kwargs)
+        super(Sparse_x, self).__init__(
+            mesh=mesh, norm=norm, gamma=gamma,
+            eps_q=eps_q, model=model, **kwargs
+        )
+
+    @property
+    def W(self):
 
         if getattr(self, 'model', None) is None:
             R = Utils.speye(self.regmesh.cellDiffxStencil.shape[0])
@@ -981,12 +1348,14 @@ class Sparse_x(BaseSparse):
             r = self.R(f_m , self.eps_q, self.norm)
             R = Utils.sdiag(r)
 
-        self.W = (
-            Utils.sdiag(
-                (self.gamma*(self.regmesh.aveCC2Fx*self.cell_weights))**0.5
-            ) *
-            R * self.regmesh.cellDiffxStencil
-        )
+        if self.cell_weights is not None:
+            return (
+                Utils.sdiag(
+                    (self.gamma*(self.regmesh.aveCC2Fx*self.cell_weights))**0.5
+                ) *
+                R * self.regmesh.cellDiffxStencil
+            )
+        return ( (self.gamma)**0.5) * R * self.regmesh.cellDiffxStencil
 
 
 class Sparse_y(BaseSparse):
@@ -994,16 +1363,25 @@ class Sparse_y(BaseSparse):
     Regularization on the first derivative in the y-direction
     """
 
-    norm = 2  #: norm employed
+    _multiplier_pair = 'alpha_y'
 
-    def __init__(self, mesh, **kwargs):
+    def __init__(
+        self, mesh, norm=2, eps_q=1e-1, gamma=1, model=None,
+        **kwargs
+    ):
 
         assert mesh.dim > 1, (
             "Mesh must have at least 2 dimensions to regularize along the "
             "y-direction"
         )
 
-        super(Sparse_y, self).__init__(mesh=mesh, **kwargs)
+        super(Sparse_y, self).__init__(
+            mesh=mesh, norm=norm, gamma=gamma,
+            eps_q=eps_q, model=model, **kwargs
+        )
+
+    @property
+    def W(self):
 
         if getattr(self, 'model', None) is None:
             R = Utils.speye(self.regmesh.cellDiffyStencil.shape[0])
@@ -1013,27 +1391,37 @@ class Sparse_y(BaseSparse):
             r = self.R(f_m , self.eps_q, self.norm)
             R = Utils.sdiag(r)
 
-        self.W = (
-            Utils.sdiag(
-                (self.gamma*(self.regmesh.aveCC2Fy*self.cell_weights))**0.5
-            ) *
-            R * self.regmesh.cellDiffyStencil
-        )
+        if self.cell_weights is not None:
+            return (
+                Utils.sdiag(
+                    (self.gamma*(self.regmesh.aveCC2Fy*self.cell_weights))**0.5
+                ) *
+                R * self.regmesh.cellDiffyStencil
+            )
+        return ((self.gamma)**0.5) * R * self.regmesh.cellDiffyStencil
 
 
 class Sparse_z(BaseSparse):
 
-    norm = 2  #: norm employed
+    _multiplier_pair = 'alpha_z'
 
-    def __init__(self, mesh, **kwargs):
+    def __init__(
+        self, mesh, norm=2, eps_q=1e-1, gamma=1,
+        model=None, **kwargs
+    ):
 
         assert mesh.dim > 2, (
             "Mesh must have at least 3 dimensions to regularize along the "
             "z-direction"
         )
 
-        super(Sparse_z, self).__init__(mesh=mesh, **kwargs)
+        super(Sparse_z, self).__init__(
+            mesh=mesh, norm=norm, gamma=gamma,
+            eps_q=eps_q, model=model, **kwargs
+        )
 
+    @property
+    def W(self):
         if getattr(self, 'model', None) is None:
                 R = Utils.speye(self.regmesh.cellDiffzStencil.shape[0])
 
@@ -1042,48 +1430,128 @@ class Sparse_z(BaseSparse):
             r = self.R(f_m , self.eps_q, self.norm)
             R = Utils.sdiag(r)
 
-        self.Wz = (
-            Utils.sdiag(
-                (self.gamma*(self.regmesh.aveCC2Fz*self.cell_weights))**0.5
-            ) *
-            R * self.regmesh.cellDiffzStencil
-        )
+        if self.cell_weights is not None:
+            return (
+                Utils.sdiag(
+                    (self.gamma*(self.regmesh.aveCC2Fz*self.cell_weights))**0.5
+                ) *
+                R * self.regmesh.cellDiffzStencil
+            )
+        return ((self.gamma)**0.5) * R * self.regmesh.cellDiffzStencil
 
 
-class Sparse(BaseSparse, ObjectiveFunction.ComboObjectiveFunction):
+class Sparse(
+    BaseComboRegularization, ObjectiveFunction.ComboObjectiveFunction
+):
 
-    norms = [0., 2., 2., 2.]
-    alpha_s = 1.
-    alpha_x = 1.
-    alpha_y = 1.
-    alpha_z = 1.
-
-    def __init__(self, mesh, **kwargs):
+    def __init__(
+        self, mesh,
+        norms=[0., 2., 2., 2.], eps_p=None, eps_q=None, model=None,
+        alpha_s=1., alpha_x=1., alpha_y=1., alpha_z=1., gamma=1.,
+        **kwargs
+    ):
 
         objfcts = [
-            SparseSmallness(mesh=mesh, norm=self.norms[0], **kwargs),
-            Sparse_x(mesh=mesh, norm=self.norms[1], **kwargs)
+            SparseSmallness(
+                mesh=mesh,
+                norm=norms[0], eps_p=eps_p, gamma=gamma,
+                model=model, **kwargs
+            ),
+            Sparse_x(
+                mesh=mesh,
+                norm=norms[1], eps_q=eps_q, gamma=gamma,
+                model=model, **kwargs
+            )
         ]
         multipliers = [
-            self.alpha_s,
-            self.alpha_x
+            alpha_s,
+            alpha_x
         ]
 
         if mesh.dim > 1:
             objfcts.append(
-                Sparse_y(mesh=mesh, norm=self.norms[2], **kwargs)
+                Sparse_y(
+                    mesh=mesh,
+                    norm=norms[2], eps_q=eps_q,
+                    gamma=gamma, model=model, **kwargs
+                )
             )
-            multipliers.append(self.alpha_y)
+            multipliers.append(alpha_y)
 
         if mesh.dim > 2:
             objfcts.append(
-                Sparse_z(mesh=mesh, norm=self.norms[3], **kwargs)
+                Sparse_z(
+                    mesh=mesh,
+                    norm=norms[3], eps_q=eps_q,
+                    gamma=gamma, model=model, **kwargs
+                )
             )
-            multipliers.append(self.alpha_z)
+            multipliers.append(alpha_z)
 
         super(Sparse, self).__init__(
-            objfcts=objfcts, multipliers=multipliers, mesh=mesh, **kwargs
+            mesh=mesh,
+            alpha_s=alpha_s, alpha_x=alpha_x, alpha_y=alpha_y, alpha_z=alpha_z,
+            objfcts=objfcts, multipliers=multipliers, **kwargs
         )
+
+        self.norms = norms
+        self.eps_p = eps_p
+        self.eps_q = eps_q
+        self.gamma = gamma
+        self.model = model
+
+
+    @property
+    def norms(self):
+        return self._norms
+
+    @norms.setter
+    def norms(self, value):
+        print('called norm setter {}'.format(value))
+        for i, objfct in enumerate(self.objfcts):
+            objfct.norm = value[i]
+        self._norms = value
+
+    @property
+    def model(self):
+        return self._model
+
+    @model.setter
+    def model(self, value):
+        for objfct in self.objfcts:
+            objfct.model = value
+        self._model = value
+
+    @property
+    def gamma(self):
+        return self._gamma
+
+    @gamma.setter
+    def gamma(self, value):
+        for objfct in self.objfcts:
+            objfct.gamma = value
+        self._gamma = value
+
+    @property
+    def eps_p(self):
+        return self._eps_p
+
+    @eps_p.setter
+    def eps_p(self, value):
+        for objfct in self.objfcts:
+            objfct.eps_p = value
+        self._eps_p = value
+
+    @property
+    def eps_q(self):
+        return self._eps_q
+
+    @eps_q.setter
+    def eps_q(self, value):
+        for objfct in self.objfcts:
+            objfct.eps_q = value
+        self._eps_q = value
+
 
         # self = (
         #     self.alpha_s * SparseSmallness(

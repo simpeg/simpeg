@@ -64,25 +64,19 @@ class TestBaseObjFct(unittest.TestCase):
         nP1 = 10
         nP2 = 30
 
-        with self.assertRaises(Exception):
-            phi = (
-                ObjectiveFunction.L2ObjectiveFunction(
+        phi1 = ObjectiveFunction.L2ObjectiveFunction(
                     W=Utils.sdiag(np.random.rand(nP1))
-                ) +
-                ObjectiveFunction.L2ObjectiveFunction(
+        )
+
+        phi2 = ObjectiveFunction.L2ObjectiveFunction(
                     W=Utils.sdiag(np.random.rand(nP2))
                 )
-            )
 
         with self.assertRaises(Exception):
-            phi = (
-                ObjectiveFunction.L2ObjectiveFunction(
-                    W=Utils.sdiag(np.random.rand(nP1))
-                ) +
-                100 * ObjectiveFunction.L2ObjectiveFunction(
-                    W=Utils.sdiag(np.random.rand(nP2))
-                )
-            )
+            phi = phi1 + phi2
+
+        with self.assertRaises(Exception):
+            phi = phi1 + 100 * phi2
 
     def test_emptyObjFct(self):
         phi = Empty_ObjFct()

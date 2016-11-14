@@ -9,9 +9,12 @@ TOL = 1e-10
 testReg = True
 testRegMesh = True
 
-np.random.seed(651)
+np.random.seed(649)
 
-IGNORE_ME = ['BaseSimpleSmooth']
+IGNORE_ME = [
+    'BaseRegularization', 'BaseSparse', 'BaseSimpleSmooth',
+    'BaseComboRegularization', 'BaseSmooth', 'BaseSmooth2'
+]
 
 
 class RegularizationTests(unittest.TestCase):
@@ -32,7 +35,7 @@ class RegularizationTests(unittest.TestCase):
                     continue
                 if not issubclass(r, ObjectiveFunction.BaseObjectiveFunction):
                     continue
-                if r in IGNORE_ME:
+                if r.__name__ in IGNORE_ME:
                     continue
 
                 for i, mesh in enumerate(self.meshlist):
@@ -72,7 +75,7 @@ class RegularizationTests(unittest.TestCase):
                     continue
                 if not issubclass(r, ObjectiveFunction.BaseObjectiveFunction):
                     continue
-                if r in IGNORE_ME:
+                if r.__name__ in IGNORE_ME:
                     continue
 
                 for i, mesh in enumerate(self.meshlist):
@@ -89,8 +92,8 @@ class RegularizationTests(unittest.TestCase):
                     elif mesh.dim == 3:
                         indActive = (
                             Utils.mkvc(mesh.gridCC[:, -1] <=
-                                2*np.sin(2*np.pi*mesh.gridCC[:,0])+0.5 *
-                                2*np.sin(2*np.pi*mesh.gridCC[:,1])+0.5)
+                            2 * np.sin(2*np.pi*mesh.gridCC[:,0])+0.5 *
+                            2 * np.sin(2*np.pi*mesh.gridCC[:,1])+0.5)
                         )
 
                     if mesh.dim < 3 and r.__name__[-1] == 'z':
@@ -102,8 +105,6 @@ class RegularizationTests(unittest.TestCase):
                         reg = r(mesh, indActive=indAct)
                         m = np.random.rand(mesh.nC)[indAct]
                         reg.mref = np.ones_like(m)*np.mean(m)
-
-
 
                         print(
                                 '--- Checking {} ---\n'.format(
