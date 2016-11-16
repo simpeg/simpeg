@@ -6,7 +6,6 @@ SimPEG is a python package for simulation and gradient based
 parameter estimation in the context of geophysical applications.
 """
 
-import os
 import sys
 import subprocess
 
@@ -15,22 +14,20 @@ from distutils.command.build_ext import build_ext
 from setuptools import find_packages
 from distutils.extension import Extension
 
-
-
 CLASSIFIERS = [
-'Development Status :: 4 - Beta',
-'Intended Audience :: Developers',
-'Intended Audience :: Science/Research',
-'License :: OSI Approved :: MIT License',
-'Programming Language :: Python',
-'Topic :: Scientific/Engineering',
-'Topic :: Scientific/Engineering :: Mathematics',
-'Topic :: Scientific/Engineering :: Physics',
-'Operating System :: Microsoft :: Windows',
-'Operating System :: POSIX',
-'Operating System :: Unix',
-'Operating System :: MacOS',
-'Natural Language :: English',
+    'Development Status :: 4 - Beta',
+    'Intended Audience :: Developers',
+    'Intended Audience :: Science/Research',
+    'License :: OSI Approved :: MIT License',
+    'Programming Language :: Python',
+    'Topic :: Scientific/Engineering',
+    'Topic :: Scientific/Engineering :: Mathematics',
+    'Topic :: Scientific/Engineering :: Physics',
+    'Operating System :: Microsoft :: Windows',
+    'Operating System :: POSIX',
+    'Operating System :: Unix',
+    'Operating System :: MacOS',
+    'Natural Language :: English',
 ]
 
 args = sys.argv[1:]
@@ -57,6 +54,7 @@ try:
 except Exception as e:
     USE_CYTHON = False
 
+
 class NumpyBuild(build_ext):
     def finalize_options(self):
         build_ext.finalize_options(self)
@@ -77,32 +75,34 @@ if USE_CYTHON and "cleanall" not in args:
     from Cython.Build import cythonize
     extensions = cythonize(extensions)
 
-import os, os.path
-
 with open("README.rst") as f:
     LONG_DESCRIPTION = ''.join(f.readlines())
 
 setup(
-    name = "SimPEG",
-    version = "0.2.2",
-    packages = find_packages(),
-    install_requires = ['numpy>=1.7',
-                        'scipy>=0.13',
-                        'Cython'
-                       ],
-    author = "Rowan Cockett",
-    author_email = "rowanc1@gmail.com",
-    description = "SimPEG: Simulation and Parameter Estimation in Geophysics",
-    long_description = LONG_DESCRIPTION,
-    license = "MIT",
-    keywords = "geophysics inverse problem",
-    url = "http://simpeg.xyz/",
-    download_url = "http://github.com/simpeg/simpeg",
+    name="SimPEG",
+    version="0.3.1",
+    packages=find_packages(),
+    install_requires=[
+        'numpy>=1.7',
+        'scipy>=0.13',
+        'cython',
+        'ipython',
+        'matplotlib',
+        'properties'
+    ],
+    author="Rowan Cockett",
+    author_email="rowanc1@gmail.com",
+    description="SimPEG: Simulation and Parameter Estimation in Geophysics",
+    long_description=LONG_DESCRIPTION,
+    license="MIT",
+    keywords="geophysics inverse problem",
+    url="http://simpeg.xyz/",
+    download_url="http://github.com/simpeg/simpeg",
     classifiers=CLASSIFIERS,
-    platforms = ["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
-    use_2to3 = False,
-    cmdclass={'build_ext':NumpyBuild},
+    platforms=["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
+    use_2to3=False,
+    cmdclass={'build_ext': NumpyBuild},
     setup_requires=['numpy'],
-    ext_modules = extensions,
+    ext_modules=extensions,
     scripts=scripts,
 )
