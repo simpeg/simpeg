@@ -23,9 +23,9 @@ class NSEM_data_viewer(object):
         self._data_dict = data_dict
         # Set the default component
         if data_dict is not None:
-            self._data_comp = data_dict.keys()[0]
+            self.data_comp = data_dict.keys()[0]
         else:
-            self._data_comp = None
+            self.data_comp = None
         # Open the location figure
         self.location_fig, self._location_ax = self._data.plot_data_locations(
             picker=5
@@ -55,12 +55,11 @@ class NSEM_data_viewer(object):
         if self._data_dict is None:
             raise Exception('No data dictionary connected to the object.')
         else:
-            if value is getattr(self,'_dict_comp',None):
-                pass
-            elif value in self._data_dict.iterkeys():
+            if value in self._data_dict.iterkeys():
                 self._dict_comp = value
             else:
-                raise Exception('{} is not a key in the connected dictionary.')
+                raise Exception(
+                    '{} is not a key in the connected dictionary.'.format(value))
 
 
     def view(self):
@@ -92,12 +91,15 @@ class NSEM_data_viewer(object):
         self.location_fig.canvas.draw()
         self.station_fig.canvas.draw()
         self.station_fig.show()
-        # plt.show()
 
     def _setup_station_fig(self):
         """
         Setup a station data plot figure.
-        Hard coded for app_res/phs and imp amp/phs
+        Hard coded for 4 axes with
+            apparent resistivity
+            phase
+            impedance amplitudes
+            impedance phase
         """
         self.station_fig, axT = plt.subplots(2, 2, sharex=True)
         axes = axT.ravel()
@@ -105,7 +107,7 @@ class NSEM_data_viewer(object):
 
         # Have to deal with axes
         # Set log
-        for ax in axes.ravel():
+        for ax in axes:
             ax.set_xscale('log')
 
         axes[0].invert_xaxis()
