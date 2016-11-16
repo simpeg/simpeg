@@ -107,6 +107,7 @@ from six import integer_types
 
 MAX_BITS = 20
 
+
 class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
 
     _meshType = 'TREE'
@@ -162,7 +163,8 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
             if hasattr(self, p): delattr(self, p)
 
     @property
-    def levels(self): return self._levels
+    def levels(self):
+        return self._levels
 
     @property
     def fill(self):
@@ -179,7 +181,12 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
         return l
 
     def __str__(self):
-        outStr = '  ---- {0!s}TreeMesh ----  '.format(('Oc' if self.dim == 3 else 'Quad'))
+        outStr = (
+            '  ---- {0!s}TreeMesh ----  '.format(
+                ('Oc' if self.dim == 3 else 'Quad')
+            )
+        )
+
         def printH(hx, outStr=''):
             i = -1
             while True:
@@ -199,7 +206,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
                 if n == 1:
                     outStr += ' {0:.2f},'.format(h)
                 else:
-                    outStr += ' {0:d}*{1:.2f},'.format(n,h)
+                    outStr += ' {0:d}*{1:.2f},'.format(n, h)
             return outStr[:-1]
 
         if self.dim == 2:
@@ -219,7 +226,8 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
         return outStr
 
     @property
-    def nC(self): return len(self._cells)
+    def nC(self):
+        return len(self._cells)
 
     @property
     def nN(self):
@@ -242,7 +250,8 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
 
     @property
     def nFz(self):
-        if self.dim == 2: return None
+        if self.dim == 2:
+            return None
         self.number()
         return len(self._facesZ) - len(self._hangingFz)
 
@@ -264,7 +273,8 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
 
     @property
     def nEz(self):
-        if self.dim == 2: return None
+        if self.dim == 2:
+            return None
         self.number()
         return len(self._edgesZ) - len(self._hangingEz)
 
@@ -289,7 +299,8 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
 
     @property
     def nhFz(self):
-        if self.dim == 2: return None
+        if self.dim == 2:
+            return None
         self.number()
         return len(self._hangingFz)
 
@@ -311,7 +322,8 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
 
     @property
     def nhEz(self):
-        if self.dim == 2: return None
+        if self.dim == 2:
+            return None
         self.number()
         return len(self._hangingEz)
 
@@ -340,7 +352,8 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
 
     @property
     def ntFz(self):
-        if self.dim == 2: return None
+        if self.dim == 2:
+            return None
         self.number()
         return len(self._facesZ)
 
@@ -366,7 +379,8 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
 
     @property
     def ntEz(self):
-        if self.dim == 2: return None
+        if self.dim == 2:
+            return None
         self.number()
         return len(self._edgesZ)
 
@@ -562,7 +576,8 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
         return [children[_] for _ in ind[:(self.dim-1)*2]]
 
     def _parentPointer(self, pointer):
-        if pointer[-1] == 0: return None
+        if pointer[-1] == 0:
+            return None
         mod = self._levelWidth(pointer[-1] - 1)
         return [p - (p % mod) for p in pointer[:-1]] + [pointer[-1]-1]
 
@@ -596,17 +611,21 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
             The int is the cell number.
 
         """
-        if direction >= self.dim: return None
+        if direction >= self.dim:
+            return None
         pointer = self._asPointer(ind)
-        if pointer[-1] > self.levels: return None
+        if pointer[-1] > self.levels:
+            return None
 
         step = (1 if positive else -1) * self._levelWidth(pointer[-1])
         nextCell = [p if ii is not direction else p + step for ii, p in enumerate(pointer)]
         # raise Exception(pointer, nextCell)
-        if not self._isInsideMesh(nextCell): return None
+        if not self._isInsideMesh(nextCell):
+            return None
 
         # it might be the same size as me?
-        if nextCell in self: return self._index(nextCell)
+        if nextCell in self:
+            return self._index(nextCell)
 
         if nextCell[-1] + 1 <= self.levels: # if I am not the smallest.
             children  = self._childPointers(pointer, direction=direction, positive=positive)
@@ -614,11 +633,13 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
             if nextCells[0] is not None:
                 return nextCells
 
-        if not _lookUp: return None
+        if not _lookUp:
+            return None
 
         # it might be bigger than me?
-        return self._getNextCell(self._parentPointer(pointer),
-                direction=direction, positive=positive)
+        return self._getNextCell(
+            self._parentPointer(pointer),
+            direction=direction, positive=positive)
 
     def balance(self, recursive=True, cells=None, verbose=False, _inRecursion=False):
 
@@ -693,28 +714,32 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
 
     @property
     def gridFz(self):
-        if self.dim < 3: return None
+        if self.dim < 3:
+            return None
         self.number()
         R = self._deflationMatrix('Fz', withHanging=False)
         return R.T * self._gridFz + np.repeat([self.x0],self.nFz,axis=0)
 
     @property
     def gridEx(self):
-        if self.dim == 2: return self.gridFy
+        if self.dim == 2:
+            return self.gridFy
         self.number()
         R = self._deflationMatrix('Ex', withHanging=False)
         return R.T * self._gridEx + np.repeat([self.x0],self.nEx,axis=0)
 
     @property
     def gridEy(self):
-        if self.dim == 2: return self.gridFx
+        if self.dim == 2:
+            return self.gridFx
         self.number()
         R = self._deflationMatrix('Ey', withHanging=False)
         return R.T * self._gridEy + np.repeat([self.x0],self.nEy,axis=0)
 
     @property
     def gridEz(self):
-        if self.dim < 3: return None
+        if self.dim < 3:
+            return None
         self.number()
         R = self._deflationMatrix('Ez', withHanging=False)
         return R.T * self._gridEz + np.repeat([self.x0],self.nEz,axis=0)
@@ -751,7 +776,8 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
         return self._edge
 
     def _createNumberingSets(self, force=False):
-        if not self.__dirtySets__ and not force: return
+        if not self.__dirtySets__ and not force:
+            return
 
         self._nodes = set()
 
@@ -831,7 +857,8 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
         self.__dirtySets__ = False
 
     def _numberCells(self, force=False):
-        if not self.__dirtyCells__ and not force: return
+        if not self.__dirtyCells__ and not force:
+            return
         self._cc2i = dict()
         self._i2cc = dict()
         for ii, c in enumerate(sorted(self._cells)):
@@ -840,7 +867,8 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
         self.__dirtyCells__ = False
 
     def _numberNodes(self, force=False):
-        if not self.__dirtyNodes__ and not force: return
+        if not self.__dirtyNodes__ and not force:
+            return
         self._createNumberingSets(force=force)
         gridN = []
         self._n2i = dict()
@@ -852,7 +880,8 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
         self.__dirtyNodes__ = False
 
     def _numberFaces(self, force=False):
-        if not self.__dirtyFaces__ and not force: return
+        if not self.__dirtyFaces__ and not force:
+            return
         self._createNumberingSets(force=force)
 
         for ind in self._cells:
@@ -913,7 +942,8 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
         if self.dim == 2:
             self.__dirtyEdges__ = False
             return
-        if not self.__dirtyEdges__ and not force: return
+        if not self.__dirtyEdges__ and not force:
+            return
         self._createNumberingSets(force=force)
 
         gridEx = []
@@ -955,7 +985,8 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
         self.__dirtyEdges__ = False
 
     def _hanging(self, force=False):
-        if not self.__dirtyHanging__ and not force: return
+        if not self.__dirtyHanging__ and not force:
+            return
 
         self._numberCells(force=force)
         self._numberNodes(force=force)
@@ -1253,7 +1284,8 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
         self.__dirtyHanging__ = False
 
     def number(self, balance=True, force=False):
-        if not self.__dirty__ and not force: return
+        if not self.__dirty__ and not force:
+            return
         if balance: self.balance()
         self._hanging(force=force)
 
@@ -1280,7 +1312,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
     def __deflationMatrix(self, theSet, theHang, theIndex, withHanging=True, asOnes=False):
         reducedInd = dict() # final reduced index
         ii = 0
-        I,J,V = [],[],[]
+        I, J, V = [], [], []
         for fx in sorted(theSet):
             if theIndex[fx] not in theHang:
                 reducedInd[theIndex[fx]] = ii
@@ -1297,16 +1329,19 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
                     V += [1.0]*len(hf)
                 else:
                     V += [_[1] for _ in hf]
-        return sp.csr_matrix((V,(I,J)), shape=(len(theSet), len(reducedInd)))
+        return sp.csr_matrix((V, (I, J)), shape=(len(theSet), len(reducedInd)))
 
     @property
-    def faceDiv(self):
-        if getattr(self, '_faceDiv', None) is None:
+    def _faceDivStencilFull(self):
+        """
+        Face divergence stencil, including hanging faces
+        """
+        if getattr(self, '__faceDivStencilFull', None) is None:
             self.number()
 
             # TODO: Preallocate!
             I, J, V = [], [], []
-            PM = [-1,1]*self.dim # plus / minus
+            PM = [-1, 1]*self.dim # plus / minus
 
             # TODO total number of faces?
             offset = [0]*2 + [self.ntFx]*2 + [self.ntFx+self.ntFy]*2
@@ -1338,8 +1373,32 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
                     J += [face + off]
                     V += [pm]
 
-            D = sp.csr_matrix((V,(I,J)), shape=(self.nC, self.ntF))
-            R = self._deflationMatrix('F',asOnes=True)
+            self.__faceDivStencilFull = sp.csr_matrix(
+                (V, (I, J)), shape=(self.nC, self.ntF)
+            )
+
+        return self.__faceDivStencilFull
+
+    @property
+    def _faceDivStencil(self):
+        """
+        Deflated Face Div Stencil
+        This is not used to build any differential operators, but is leveraged
+        by regularization
+
+        .. todo::
+            Consider if it is worth caching this
+
+        """
+        R = self._deflationMatrix('F', asOnes=True)
+        return self._faceDivStencilFull * R
+
+
+    @property
+    def faceDiv(self):
+        if getattr(self, '_faceDiv', None) is None:
+            D = self._faceDivStencilFull
+            R = self._deflationMatrix('F', asOnes=True)
             VOL = self.vol
             if self.dim == 2:
                 S = np.r_[self._areaFxFull, self._areaFyFull]
@@ -1347,6 +1406,7 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
                 S = np.r_[self._areaFxFull, self._areaFyFull, self._areaFzFull]
             self._faceDiv = Utils.sdiag(1.0/VOL)*D*Utils.sdiag(S)*R
         return self._faceDiv
+
 
     @property
     def edgeCurl(self):
@@ -2232,7 +2292,8 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
         if showIt: plt.show()
         return tuple(out)
 
-    def __len__(self): return self.nC
+    def __len__(self):
+        return self.nC
 
     def __getitem__(self, key):
         if isinstance( key, slice ) :
@@ -2293,11 +2354,14 @@ class Cell(object):
             self._center = np.array(self.mesh._cellC(self._pointer))
         return self._center
     @property
-    def h(self): return self.mesh._cellH(self._pointer)
+    def h(self):
+        return self.mesh._cellH(self._pointer)
     @property
-    def x0(self): return self.mesh._cellN(self._pointer)
+    def x0(self):
+        return self.mesh._cellN(self._pointer)
     @property
-    def dim(self): return self.mesh.dim
+    def dim(self):
+        return self.mesh.dim
 
 def SortGrid(grid, offset=0):
     """
