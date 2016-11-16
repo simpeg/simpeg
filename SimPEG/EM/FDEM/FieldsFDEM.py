@@ -1176,7 +1176,7 @@ class Fields3D_j(FieldsFDEM):
             hDeriv_m = 1./(1j*omega(src.freq)) * (
                 -1. *  (
                     MeMuI * (C.T * (MfRhoDeriv(jSolution)*v)) +
-                    MeMuIDeriv(C.T * jSolution) * v
+                    MeMuIDeriv(C.T * (MfRho * jSolution)) *  v
                 ) +
                 MeMuI * s_mDeriv(v) + MeMuIDeriv(s_m) * v
             )

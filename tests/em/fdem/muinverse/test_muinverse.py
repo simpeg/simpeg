@@ -34,7 +34,7 @@ class MuTests(unittest.TestCase):
             getattr(FDEM.Rx, 'Point_{f}'.format(f=f))(
                 loc, component=comp, orientation=orient
             )
-            for f in []
+            for f in ['h']
             for comp in rxcomp
             for orient in ['y']
         ]
@@ -151,26 +151,29 @@ class MuTests(unittest.TestCase):
         )
         return passed
 
-    # def test_Aderiv_e(self):
-    #     self.assertTrue(self.AderivTest('e'))
+    def test_Aderiv_e(self):
+        self.assertTrue(self.AderivTest('e'))
 
-    # def test_Aderiv_b(self):
-    #     self.assertTrue(self.AderivTest('b'))
+    def test_Aderiv_b(self):
+        self.assertTrue(self.AderivTest('b'))
 
-    # def test_Jvec_e(self):
-    #     self.assertTrue(self.JvecTest('e'))
+    def test_Jvec_e(self):
+        self.assertTrue(self.JvecTest('e'))
 
-    # def test_Jvec_b(self):
-    #     self.assertTrue(self.JvecTest('b'))
+    def test_Jvec_b(self):
+        self.assertTrue(self.JvecTest('b'))
 
     def test_Jvec_j(self):
         self.assertTrue(self.JvecTest('j'))
 
-    # def test_Jtvec_e(self):
-    #     self.assertTrue(self.JtvecTest('e'))
+    def test_Jtvec_e(self):
+        self.assertTrue(self.JtvecTest('e'))
 
-    # def test_Jtvec_b(self):
-    #     self.assertTrue(self.JtvecTest('b'))
+    def test_Jtvec_b(self):
+        self.assertTrue(self.JtvecTest('b'))
+
+    def test_Jtvec_j(self):
+        self.assertTrue(self.JvecTest('j'))
 
 
 # class MuSigmaTests(unittest.TestCase):
