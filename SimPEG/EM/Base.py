@@ -210,8 +210,8 @@ class BaseEMProblem(Problem.BaseProblem):
             getattr(self, 'muiMap', None) is not None
         ):
             dMeMuI_dI = -self.MeMuI**2
-            dMf_dmui = self.mesh.getEdgeInnerProductDeriv(self.mu)(u)
-            return dMfMuI_dI * (dMf_dmu * self.muDeriv)
+            dMe_dmu = self.mesh.getEdgeInnerProductDeriv(self.mu)(u)
+            return dMeMuI_dI * (dMe_dmu * self.muDeriv)
         return Utils.Zero()
 
     # ----- Electrical Conductivity ----- #

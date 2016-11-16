@@ -559,6 +559,17 @@ class Problem3D_j(BaseFDEMProblem):
     :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: mesh
     """
 
+    mu, muMap, muDeriv = Props.Invertible(
+        "Magnetic Permeability (H/m)",
+        default=mu_0
+    )
+
+    mui, muiMap, muiDeriv = Props.Invertible(
+        "Inverse Magnetic Permeability (m/H)"
+    )
+
+    Props.Reciprocal(mu, mui)
+
     _solutionType = 'jSolution'
     _formulation  = 'HJ'
     fieldsPair    = Fields3D_j
@@ -590,7 +601,7 @@ class Problem3D_j(BaseFDEMProblem):
             return MfRho.T*A
         return A
 
-    def getADeriv(self, freq, u, v, adjoint=False):
+    def getADeriv_rho(self, freq, u, v, adjoint=False):
         """
         Product of the derivative of our system matrix with respect to the
         model and a vector
@@ -629,6 +640,40 @@ class Problem3D_j(BaseFDEMProblem):
             return MfRho.T * (C * ( MeMuI * (C.T * (MfRhoDeriv * v) )))
         return C * (MeMuI * (C.T * (MfRhoDeriv * v)))
 
+    def getADeriv_mu(self, freq, u, v, adjoint=False):
+
+        # MeMuI = self.MeMuI
+        # MfRho = self.MfRho
+        # C = self.mesh.edgeCurl
+        # iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
+
+        # A = C * MeMuI * C.T * MfRho + iomega
+
+        # if self._makeASymmetric is True:
+        #     return MfRho.T*A
+        # return A
+
+        C = self.mesh.edgeCurl
+        MfRho = self.MfRho
+
+        MeMuIDeriv = self.MeMuIDeriv(C.T * (MfRho * u))
+
+        if adjoint is True:
+            if self._makeASymmetric:
+                v = MfRho * v
+            return MeMuIDeriv.T * (C.T * v)
+
+        Aderiv = C * (MeMuIDeriv * v)
+        if self._makeASymmetric:
+            Aderiv = MfRho.T * Aderiv
+        return Aderiv
+
+    def getADeriv(self, freq, u, v, adjoint=False):
+        return (
+            self.getADeriv_rho(freq, u, v, adjoint) +
+            self.getADeriv_mu(freq, u, v, adjoint)
+        )
+
     def getRHS(self, freq):
         """
         Right hand side for the system
@@ -666,21 +711,31 @@ class Problem3D_j(BaseFDEMProblem):
         :return: product of rhs deriv with a vector
         """
 
+        # RHS = C * (MeMuI * s_m) - 1j * omega(freq) * s_e
+        # if self._makeASymmetric is True:
+        #     MfRho = self.MfRho
+        #     return MfRho.T*RHS
+
         C = self.mesh.edgeCurl
         MeMuI = self.MeMuI
+        MeMuIDeriv = self.MeMuIDeriv
         s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
+        s_m, _ = self.getSourceTerm(freq)
 
         if adjoint:
             if self._makeASymmetric:
                 MfRho = self.MfRho
                 v = MfRho*v
+            CTv = (C.T * v)
             return (
-                s_mDeriv(MeMuI.T * (C.T * v)) - 1j * omega(freq) * s_eDeriv(v)
+                s_mDeriv(MeMuI.T * CTv) + MeMuIDeriv(s_m).T * CTv -
+                1j * omega(freq) * s_eDeriv(v)
             )
 
         else:
             RHSDeriv = (
-                C * (MeMuI * s_mDeriv(v)) - 1j * omega(freq) * s_eDeriv(v)
+                C * (MeMuI * s_mDeriv(v) + MeMuIDeriv(s_m) * v) -
+                1j * omega(freq) * s_eDeriv(v)
             )
 
             if self._makeASymmetric:

@@ -427,7 +427,8 @@ class Fields3D_e(FieldsFDEM):
 
         bPrimary = np.zeros(
                 [self._edgeCurl.shape[0], eSolution.shape[1]], dtype=complex
-            )
+        )
+
         for i, src in enumerate(srcList):
             bp = src.bPrimary(self.prob)
             bPrimary[:, i] = bPrimary[:, i] + bp
@@ -446,7 +447,7 @@ class Fields3D_e(FieldsFDEM):
         C = self._edgeCurl
         b = (C * eSolution)
         for i, src in enumerate(srcList):
-            b[:, i] *= - 1./(1j*omega(src.freq))
+            b[:, i] *= - 1./(1j*omega(src.freq))  # freq depends on the source
             s_m = src.s_m(self.prob)
             b[:, i] = b[:, i] + 1./(1j*omega(src.freq)) * s_m
         return b
@@ -482,6 +483,9 @@ class Fields3D_e(FieldsFDEM):
             to the inversion model with a vector
         """
 
+        return self._bDeriv_src(self, src, v, adjoint=False)
+
+    def _bDeriv_src(self, src, v, adjoint=False):
         s_mDeriv = src.s_mDeriv(self.prob, v, adjoint)
         return (
             1./(1j * omega(src.freq)) * s_mDeriv +
@@ -992,6 +996,7 @@ class Fields3D_j(FieldsFDEM):
         self._edgeCurl = self.survey.prob.mesh.edgeCurl
         self._MeMu = self.survey.prob.MeMu
         self._MeMuI = self.survey.prob.MeMuI
+        self._MeMuIDeriv = self.survey.prob.MeMuIDeriv
         self._MfRho = self.survey.prob.MfRho
         self._MfRhoDeriv = self.survey.prob.MfRhoDeriv
         self._rho = self.survey.prob.rho
@@ -1157,26 +1162,34 @@ class Fields3D_j(FieldsFDEM):
 
         jSolution = Utils.mkvc(self[[src], 'jSolution'])
         MeMuI = self._MeMuI
+        MeMuIDeriv = self._MeMuIDeriv
         C = self._edgeCurl
         MfRho = self._MfRho
         MfRhoDeriv = self._MfRhoDeriv
+
+        s_m = src.s_m(self.prob)
 
         def s_mDeriv(v):
             return src.s_mDeriv(self.prob, v, adjoint=adjoint)
 
         if not adjoint:
-            hDeriv_m = (
-                -1./(1j*omega(src.freq)) *
-                MeMuI * (C.T * (MfRhoDeriv(jSolution)*v))
+            hDeriv_m = 1./(1j*omega(src.freq)) * (
+                -1. *  (
+                    MeMuI * (C.T * (MfRhoDeriv(jSolution)*v)) +
+                    MeMuIDeriv(C.T * jSolution) * v
+                ) +
+                MeMuI * s_mDeriv(v) + MeMuIDeriv(s_m) * v
             )
-            hDeriv_m = hDeriv_m + 1./(1j*omega(src.freq)) * MeMuI * s_mDeriv(v)
 
         elif adjoint:
-            hDeriv_m = (
-                -1./(1j*omega(src.freq)) *
-                MfRhoDeriv(jSolution).T * (C * (MeMuI.T * v))
+            hDeriv_m = 1./(1j*omega(src.freq)) * (
+                (
+                    -1. * (
+                        MfRhoDeriv(jSolution).T * (C * (MeMuI.T * v)) +
+                        MfRho.T * C * MeMuIDeriv(C.T * jSolution).T * v
+                    )
+                ) + s_mDeriv(MeMuI.T*v) + MeMuIDeriv(s_m).T * v
             )
-            hDeriv_m = hDeriv_m + 1./(1j*omega(src.freq)) * s_mDeriv(MeMuI.T*v)
 
         return hDeriv_m + src.hPrimaryDeriv(self.prob, v, adjoint)
 
