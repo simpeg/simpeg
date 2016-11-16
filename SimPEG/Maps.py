@@ -709,6 +709,54 @@ class ComplexMap(IdentityMap):
     # inverse = deriv
 
 
+class Projection(IdentityMap):
+    """
+        A map to rearrange / select parameters
+
+        :param int nP: number of model parameters
+        :param numpy.array index: indices to select
+    """
+
+    def __init__(self, nP, index, **kwargs):
+        assert isinstance(index, (np.ndarray, slice, list)), (
+            'index must be a np.ndarray or slice, not {}'.format(type(index)))
+        super(Projection, self).__init__(nP=nP, **kwargs)
+
+        if isinstance(index, slice):
+            index = list(range(*index.indices(self.nP)))
+        self.index = index
+        self._shape = nI, nP = len(self.index), self.nP
+
+        assert (max(index) < nP), (
+            'maximum index must be less than {}'.format(nP))
+
+        # sparse projection matrix
+        self.P = sp.csr_matrix(
+            (np.ones(nI), (range(nI), self.index)), shape=(nI, nP)
+        )
+
+    def _transform(self, m):
+        return m[self.index]
+
+    @property
+    def shape(self):
+        """
+        Shape of the matrix operation (number of indices x nP)
+        """
+        return self._shape
+
+    def deriv(self, m, v=None):
+        """
+            :param numpy.array m: model
+            :rtype: scipy.sparse.csr_matrix
+            :return: derivative of transformed model
+        """
+
+        if v is not None:
+            return self.P * v
+        return self.P
+
+
 class ParametricCircleMap(IdentityMap):
     """ParametricCircleMap
 

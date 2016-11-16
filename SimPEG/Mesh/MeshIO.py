@@ -136,7 +136,6 @@ class TensorMeshIO(object):
                 vtkObj.GetCellData().AddArray(vtkDoubleArr)
             # Set the active scalar
             vtkObj.GetCellData().SetActiveScalars(models.keys()[0])
-        # vtkObj.Update()
 
         # Check the extension of the fileName
         ext = os.path.splitext(fileName)[1]
@@ -153,6 +152,50 @@ class TensorMeshIO(object):
         vtrWriteFilter.SetFileName(fileName)
         vtrWriteFilter.Update()
 
+    def _toVTRObj(mesh,models=None):
+        """
+        Makes and saves a VTK rectilinear file (vtr) for a simpeg Tensor mesh and model.
+
+        Input:
+        :param str, path to the output vtk file
+        :param mesh, SimPEG TensorMesh object - mesh to be transfer to VTK
+        :param models, dictionary of numpy.array - Name('s) and array('s). Match number of cells
+
+        """
+        # Import
+        from vtk import vtkRectilinearGrid as rectGrid, VTK_VERSION
+        from vtk.util.numpy_support import numpy_to_vtk
+
+        # Deal with dimensionalities
+        if mesh.dim >= 1:
+            vX = mesh.vectorNx
+            xD = mesh.nNx
+            yD,zD = 1,1
+            vY, vZ = np.array([0,0])
+        if mesh.dim >= 2:
+            vY = mesh.vectorNy
+            yD = mesh.nNy
+        if mesh.dim == 3:
+            vZ = mesh.vectorNz
+            zD = mesh.nNz
+        # Use rectilinear VTK grid.
+        # Assign the spatial information.
+        vtkObj = rectGrid()
+        vtkObj.SetDimensions(xD,yD,zD)
+        vtkObj.SetXCoordinates(numpy_to_vtk(vX,deep=1))
+        vtkObj.SetYCoordinates(numpy_to_vtk(vY,deep=1))
+        vtkObj.SetZCoordinates(numpy_to_vtk(vZ,deep=1))
+
+        # Assign the model('s) to the object
+        if models is not None:
+            for item in models.iteritems():
+                # Convert numpy array
+                vtkDoubleArr = numpy_to_vtk(item[1],deep=1)
+                vtkDoubleArr.SetName(item[0])
+                vtkObj.GetCellData().AddArray(vtkDoubleArr)
+            # Set the active scalar
+            vtkObj.GetCellData().SetActiveScalars(models.keys()[0])
+        return vtkObj
 
     def readModelUBC(mesh, fileName):
         """
