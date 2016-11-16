@@ -190,7 +190,8 @@ class GravityDriver_Inv(object):
             self._activeCells = inds
 
             # Reduce m0 to active space
-            self._m0 = self.m0[self._activeCells]
+            if len(self.m0) > len(self._activeCells):
+                self._m0 = self.m0[self._activeCells]
 
         return self._activeCells
 

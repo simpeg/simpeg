@@ -1,4 +1,4 @@
-.. _examples_Inversion_IRLS:
+.. _examples_Inversion_Linear_IRLS:
 
 .. --------------------------------- ..
 ..                                   ..
@@ -9,18 +9,17 @@
 .. --------------------------------- ..
 
 
-Inversion for compact models (IRLS)
-===================================
+Inversion: Linear: IRLS
+=======================
 
 Here we go over the basics of creating a linear problem and inversion.
-
 
 
 .. plot::
 
     from SimPEG import Examples
-    Examples.Inversion_IRLS.run()
+    Examples.Inversion_Linear_IRLS.run()
 
-.. literalinclude:: ../../../SimPEG/Examples/Inversion_IRLS.py
+.. literalinclude:: ../../../SimPEG/Examples/Inversion_Linear_IRLS.py
     :language: python
     :linenos:
