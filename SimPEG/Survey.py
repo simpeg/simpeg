@@ -244,7 +244,6 @@ class BaseSurvey(object):
             if getattr(src,'uid',None) is None:
                 raise KeyError('Source does not have a uid: {0!s}'.format(str(src)))
         inds = list(map(lambda src: self._sourceOrder.get(src.uid, None), sources))
-        print(inds)
         if None in inds:
             raise KeyError('Some of the sources specified are not in this survey. {0!s}'.format(str(inds)))
         return inds
