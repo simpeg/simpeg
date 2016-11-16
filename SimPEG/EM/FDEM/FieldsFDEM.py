@@ -217,7 +217,8 @@ class FieldsFDEM(SimPEG.Problem.Fields):
         return (
             np.array(
                 self._bDeriv_u(src, du_dm_v, adjoint) +
-                self._bDeriv_m(src, v, adjoint), dtype=complex
+                self._bDeriv_m(src, v, adjoint),
+                dtype=complex
             )
         )
 
@@ -483,7 +484,7 @@ class Fields3D_e(FieldsFDEM):
             to the inversion model with a vector
         """
 
-        return self._bDeriv_src(self, src, v, adjoint=False)
+        return self._bDeriv_src(src, v, adjoint=adjoint)
 
     def _bDeriv_src(self, src, v, adjoint=False):
         s_mDeriv = src.s_mDeriv(self.prob, v, adjoint)
@@ -909,6 +910,22 @@ class Fields3D_b(FieldsFDEM):
             )
         )
 
+    def _jDeriv_mui(self, src, v, adjoint=False):
+        n = int(self._aveE2CCV.shape[0] / self._nC)  # number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        MfMuiDeriv = self._MfMuiDeriv(self[src, 'b'])
+
+        if adjoint:
+            return (
+                MfMuiDeriv.T * (
+                    self._edgeCurl * (self._aveE2CCV.T * (VI.T * v))
+                )
+            )
+
+        return (
+            VI * (self._aveE2CCV * (self._edgeCurl.T * (MfMuiDeriv * v)))
+        )
+
     def _jDeriv_m(self, src, v, adjoint=False):
         """
         Derivative of the current density with respect to the inversion model
@@ -921,7 +938,10 @@ class Fields3D_b(FieldsFDEM):
             to the model with a vector
         """
 
-        return src.jPrimaryDeriv(self.prob, v, adjoint)
+        return (
+            src.jPrimaryDeriv(self.prob, v, adjoint) +
+            self._jDeriv_mui(src, v, adjoint)
+        )
 
     def _h(self, bSolution, srcList):
         """
@@ -957,6 +977,17 @@ class Fields3D_b(FieldsFDEM):
             return self._MfMui.T * (self._aveF2CCV.T * (VI.T * du_dm_v))
         return VI * (self._aveF2CCV * (self._MfMui * du_dm_v))
 
+    def _hDeriv_mui(self, src, v, adjoint=False):
+        b = self[src, 'b']
+        n = int(self._aveF2CCV.shape[0] / self._nC)  # number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+
+        if adjoint:
+            return (
+                self._MfMuiDeriv(b).T * (self._aveF2CCV.T * (VI * v))
+            )
+        return VI * (self._aveF2CCV * (self._MfMuiDeriv(b) * v))
+
     def _hDeriv_m(self, src, v, adjoint=False):
         """
         Derivative of the magnetic field with respect to the inversion model
@@ -968,7 +999,10 @@ class Fields3D_b(FieldsFDEM):
         :return: product of the derivative of the magnetic field with respect
             to the model with a vector
         """
-        return src.hPrimaryDeriv(self.prob, v, adjoint)
+        return (
+            src.hPrimaryDeriv(self.prob, v, adjoint) +
+            self._hDeriv_mui(src, v, adjoint)
+        )
 
 
 class Fields3D_j(FieldsFDEM):
@@ -1278,7 +1312,9 @@ class Fields3D_j(FieldsFDEM):
         :return: product of the derivative of the magnetic flux density with
             respect to the field we solved for with a vector
         """
-        n = int(self._aveF2CCV.shape[0] / self._nC)  # number of components
+        # if self.prob.mesh._meshType == 'CYL':
+        #     self.
+        n = int(self._aveE2CCV.shape[0] / self._nC)  # number of components
         VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
 
         if adjoint:
@@ -1290,6 +1326,7 @@ class Fields3D_j(FieldsFDEM):
                     )
                 )
             )
+
         return (
             -1./(1j*omega(src.freq)) * VI *
             (self._aveE2CCV * (self._edgeCurl.T * (self._MfRho * du_dm_v)))
