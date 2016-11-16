@@ -65,14 +65,15 @@ class BaseRx(SimPEG.Survey.BaseRx):
 
         df_dmFun = getattr(f, '_{0}Deriv'.format(self.projField), None)
 
-        assert v is not None, ('v must be provided to compute the deriv or '
-                               'adjoint')
+        assert v is not None, (
+            'v must be provided to compute the deriv or adjoint'
+        )
 
         P = self.getP(mesh, self.projGLoc(f))
 
         if not adjoint:
-            assert du_dm_v is not None, ('du_dm_v must be provided to evaluate'
-                                         ' the receiver deriv')
+            assert du_dm_v is not None, (
+                'du_dm_v must be provided to evaluate the receiver deriv')
             df_dm_v = df_dmFun(src, du_dm_v, v, adjoint=False)
             Pv_complex = P * df_dm_v
             Pv = getattr(Pv_complex, self.component)
@@ -120,6 +121,7 @@ class Point_b(BaseRx):
     def __init__(self, locs, orientation=None, component=None):
         self.projField = 'b'
         super(Point_b, self).__init__(locs, orientation, component)
+
 
 class Point_bSecondary(BaseRx):
     """

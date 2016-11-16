@@ -34,7 +34,7 @@ class MuTests(unittest.TestCase):
             getattr(FDEM.Rx, 'Point_{f}'.format(f=f))(
                 loc, component=comp, orientation=orient
             )
-            for f in ['h']
+            for f in ['e', 'h']
             for comp in rxcomp
             for orient in ['y']
         ]
@@ -43,7 +43,7 @@ class MuTests(unittest.TestCase):
             getattr(FDEM.Rx, 'Point_{f}'.format(f=f))(
                 loc, component=comp, orientation=orient
             )
-            for f in ['j']
+            for f in ['b', 'j']
             for comp in rxcomp
             for orient in ['x', 'z']
         ]
@@ -151,11 +151,11 @@ class MuTests(unittest.TestCase):
         )
         return passed
 
-    def test_Aderiv_e(self):
-        self.assertTrue(self.AderivTest('e'))
+    # def test_Aderiv_e(self):
+    #     self.assertTrue(self.AderivTest('e'))
 
-    def test_Aderiv_b(self):
-        self.assertTrue(self.AderivTest('b'))
+    # def test_Aderiv_b(self):
+    #     self.assertTrue(self.AderivTest('b'))
 
     def test_Jvec_e(self):
         self.assertTrue(self.JvecTest('e'))
