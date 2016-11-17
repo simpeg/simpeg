@@ -175,7 +175,7 @@ class BaseEMProblem(Problem.BaseProblem):
             self._MeMu = self.mesh.getEdgeInnerProduct(self.mu)
         return self._MeMu
 
-    def MeMuiDeriv(self, u):
+    def MeMuDeriv(self, u):
         """
         Derivative of :code:`MfMui` with respect to the model.
         """

@@ -873,10 +873,13 @@ class Fields3D_b(FieldsFDEM):
         n = int(self._aveE2CCV.shape[0] / self._nC)  # number of components
         VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
 
-        return (
-            VI *
-            (self._aveE2CCV * (self._MeSigma * self._e(bSolution, srcList)))
-        )
+
+        j = (self._edgeCurl.T * (self._MfMui * bSolution))
+        for i, src in enumerate(srcList):
+            s_e = src.s_e(self.prob)
+            j[:, i] = j[:, i] - s_e
+
+        return VI * (self._aveE2CCV * j)
 
     def _jDeriv_u(self, src, du_dm_v, adjoint=False):
         """
@@ -909,6 +912,7 @@ class Fields3D_b(FieldsFDEM):
                 )
             )
         )
+        # forgetting the source term here
 
     def _jDeriv_mui(self, src, v, adjoint=False):
         n = int(self._aveE2CCV.shape[0] / self._nC)  # number of components
@@ -926,6 +930,7 @@ class Fields3D_b(FieldsFDEM):
             VI * (self._aveE2CCV * (self._edgeCurl.T * (MfMuiDeriv * v)))
         )
 
+
     def _jDeriv_m(self, src, v, adjoint=False):
         """
         Derivative of the current density with respect to the inversion model
@@ -939,7 +944,6 @@ class Fields3D_b(FieldsFDEM):
         """
 
         return (
-            src.jPrimaryDeriv(self.prob, v, adjoint) +
             self._jDeriv_mui(src, v, adjoint)
         )
 
@@ -1220,7 +1224,7 @@ class Fields3D_j(FieldsFDEM):
                 (
                     -1. * (
                         MfRhoDeriv(jSolution).T * (C * (MeMuI.T * v)) +
-                        MfRho.T * C * MeMuIDeriv(C.T * jSolution).T * v
+                        MeMuIDeriv(C.T * (MfRho * jSolution)).T * v
                     )
                 ) + s_mDeriv(MeMuI.T*v) + MeMuIDeriv(s_m).T * v
             )
@@ -1396,7 +1400,8 @@ class Fields3D_h(FieldsFDEM):
         self.prob = self.survey.prob
         self._edgeCurl = self.survey.prob.mesh.edgeCurl
         self._MeMu = self.survey.prob.MeMu
-        self._MeMuI = self.survey.prob.MeMuI
+        self._MeMuDeriv = self.survey.prob.MeMuDeriv
+        # self._MeMuI = self.survey.prob.MeMuI
         self._MfRho = self.survey.prob.MfRho
         self._MfRhoDeriv = self.survey.prob.MfRhoDeriv
         self._rho = self.survey.prob.rho
@@ -1555,6 +1560,7 @@ class Fields3D_h(FieldsFDEM):
         """
         n = int(self._aveF2CCV.shape[0] / self._nC)  # number of components
         VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+
         return (
             VI *
             (self._aveF2CCV * (self._MfRho * self._j(hSolution, srcList)))
@@ -1599,17 +1605,24 @@ class Fields3D_h(FieldsFDEM):
         hSolution = Utils.mkvc(self[src, 'hSolution'])
         n = int(self._aveF2CCV.shape[0] / self._nC)  # number of components
         VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        s_e = src.s_e(self.prob)
+
         if adjoint:
+            w = self._aveF2CCV.T * (VI.T * v)
             return (
-                self._MfRhoDeriv(self._edgeCurl * hSolution).T *
-                (self._aveF2CCV.T * (VI.T * v)) +
+                self._MfRhoDeriv(self._edgeCurl * hSolution).T * w -
+                self._MfRhoDeriv(s_e).T * w +
                 src.ePrimaryDeriv(self.prob, v, adjoint)
             )
         return (
             VI *
             (
                 self._aveF2CCV *
-                (self._MfRhoDeriv(self._edgeCurl * hSolution) * v)
+                (
+                    self._MfRhoDeriv(self._edgeCurl * hSolution) * v -
+                    self._MfRhoDeriv(s_e) * v
+
+                )
             ) +
             src.ePrimaryDeriv(self.prob, v, adjoint)
         )
@@ -1647,6 +1660,17 @@ class Fields3D_h(FieldsFDEM):
             return self._MeMu.T * (self._aveE2CCV.T * (VI.T * du_dm_v))
         return VI * (self._aveE2CCV * (self._MeMu * du_dm_v))
 
+    def _bDeriv_mu(self, src, v, adjoint=False):
+        h = self[src, 'h']
+        n = int(self._aveE2CCV.shape[0] / self._nC)  # number of components
+        VI = sdiag(np.kron(np.ones(n), 1./self.prob.mesh.vol))
+        MeMuDeriv = self._MeMuDeriv(h)
+
+        if adjoint:
+            return MeMuDeriv.T * (self._aveE2CCV.T * (VI.T * v))
+        return VI * (self._aveE2CCV * (MeMuDeriv * v))
+        # return VI * (self._aveE2CCV * (self._MeMu * h))
+
     def _bDeriv_m(self, src, v, adjoint=False):
         """
         Derivative of the magnetic flux density with respect to the inversion
@@ -1659,6 +1683,9 @@ class Fields3D_h(FieldsFDEM):
         :return: product of the magnetic flux density derivative with respect
             to the inversion model with a vector
         """
-        return src.bPrimaryDeriv(self.prob, v, adjoint)
+        return (
+            src.bPrimaryDeriv(self.prob, v, adjoint) +
+            self._bDeriv_mu(src, v, adjoint)
+        )
 
 

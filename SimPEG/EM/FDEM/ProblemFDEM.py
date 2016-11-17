@@ -49,6 +49,17 @@ class BaseFDEMProblem(BaseEMProblem):
     surveyPair = SurveyFDEM
     fieldsPair = FieldsFDEM
 
+    mu, muMap, muDeriv = Props.Invertible(
+        "Magnetic Permeability (H/m)",
+        default=mu_0
+    )
+
+    mui, muiMap, muiDeriv = Props.Invertible(
+        "Inverse Magnetic Permeability (m/H)"
+    )
+
+    Props.Reciprocal(mu, mui)
+
     def fields(self, m=None):
         """
         Solve the forward problem for the fields.
@@ -188,7 +199,7 @@ class BaseFDEMProblem(BaseEMProblem):
 
         for i, src in enumerate(Srcs):
             smi, sei = src.eval(self)
-            # Why are you adding?
+
             s_m[:, i] = s_m[:, i] + smi
             s_e[:, i] = s_e[:, i] + sei
 
@@ -223,17 +234,6 @@ class Problem3D_e(BaseFDEMProblem):
 
     :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: mesh
     """
-
-    mu, muMap, muDeriv = Props.Invertible(
-        "Magnetic Permeability (H/m)",
-        default=mu_0
-    )
-
-    mui, muiMap, muiDeriv = Props.Invertible(
-        "Inverse Magnetic Permeability (m/H)"
-    )
-
-    Props.Reciprocal(mu, mui)
 
     _solutionType = 'eSolution'
     _formulation  = 'EB'
@@ -367,17 +367,6 @@ class Problem3D_b(BaseFDEMProblem):
     :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: mesh
     """
 
-    mu, muMap, muDeriv = Props.Invertible(
-        "Magnetic Permeability (H/m)",
-        default=mu_0
-    )
-
-    mui, muiMap, muiDeriv = Props.Invertible(
-        "Inverse Magnetic Permeability (m/H)"
-    )
-
-    Props.Reciprocal(mu, mui)
-
     _solutionType = 'bSolution'
     _formulation = 'EB'
     fieldsPair = Fields3D_b
@@ -437,12 +426,7 @@ class Problem3D_b(BaseFDEMProblem):
         MeSigmaIDeriv = MeSigmaIDeriv(vec)
 
         if adjoint:
-            if self._makeASymmetric is True:
-                v = MfMui * v
             return MeSigmaIDeriv.T * (C.T * v)
-
-        if self._makeASymmetric is True:
-            return MfMui.T * (C * (MeSigmaIDeriv * v))
         return C * (MeSigmaIDeriv * v)
 
     def getADeriv_mui(self, freq, u, v, adjoint=False):
@@ -453,20 +437,22 @@ class Problem3D_b(BaseFDEMProblem):
         C = self.mesh.edgeCurl
 
         if adjoint:
-            if self._makeASymmetric is True:
-                v = MfMui * v
             return MfMuiDeriv.T * (C * (MeSigmaI.T * (C.T * v)))
-
-        ADeriv = C * (MeSigmaI * (C.T * (MfMuiDeriv * v)))
-        if self._makeASymmetric is True:
-            ADeriv = MfMui.T * ADeriv
-        return ADeriv
+        return C * (MeSigmaI * (C.T * (MfMuiDeriv * v)))
 
     def getADeriv(self, freq, u, v, adjoint=False):
-        return (
+        if adjoint is True and self._makeASymmetric:
+            v = self.MfMui * v
+
+        ADeriv =  (
             self.getADeriv_sigma(freq, u, v, adjoint) +
             self.getADeriv_mui(freq, u, v, adjoint)
         )
+
+        if adjoint is False and self._makeASymmetric:
+            return self.MfMui.T * ADeriv
+
+        return ADeriv
 
     def getRHS(self, freq):
         """
@@ -559,17 +545,6 @@ class Problem3D_j(BaseFDEMProblem):
     :param SimPEG.Mesh.BaseMesh.BaseMesh mesh: mesh
     """
 
-    mu, muMap, muDeriv = Props.Invertible(
-        "Magnetic Permeability (H/m)",
-        default=mu_0
-    )
-
-    mui, muiMap, muiDeriv = Props.Invertible(
-        "Inverse Magnetic Permeability (m/H)"
-    )
-
-    Props.Reciprocal(mu, mui)
-
     _solutionType = 'jSolution'
     _formulation  = 'HJ'
     fieldsPair    = Fields3D_j
@@ -632,26 +607,11 @@ class Problem3D_j(BaseFDEMProblem):
         MfRhoDeriv = self.MfRhoDeriv(u)
 
         if adjoint:
-            if self._makeASymmetric is True:
-                v = MfRho * v
             return MfRhoDeriv.T * (C * (MeMuI.T * (C.T * v)))
 
-        if self._makeASymmetric is True:
-            return MfRho.T * (C * ( MeMuI * (C.T * (MfRhoDeriv * v) )))
         return C * (MeMuI * (C.T * (MfRhoDeriv * v)))
 
     def getADeriv_mu(self, freq, u, v, adjoint=False):
-
-        # MeMuI = self.MeMuI
-        # MfRho = self.MfRho
-        # C = self.mesh.edgeCurl
-        # iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
-
-        # A = C * MeMuI * C.T * MfRho + iomega
-
-        # if self._makeASymmetric is True:
-        #     return MfRho.T*A
-        # return A
 
         C = self.mesh.edgeCurl
         MfRho = self.MfRho
@@ -659,20 +619,28 @@ class Problem3D_j(BaseFDEMProblem):
         MeMuIDeriv = self.MeMuIDeriv(C.T * (MfRho * u))
 
         if adjoint is True:
-            if self._makeASymmetric:
-                v = MfRho * v
+            # if self._makeASymmetric:
+            #     v = MfRho * v
             return MeMuIDeriv.T * (C.T * v)
 
         Aderiv = C * (MeMuIDeriv * v)
-        if self._makeASymmetric:
-            Aderiv = MfRho.T * Aderiv
+        # if self._makeASymmetric:
+        #     Aderiv = MfRho.T * Aderiv
         return Aderiv
 
     def getADeriv(self, freq, u, v, adjoint=False):
-        return (
+        if adjoint and self._makeASymmetric:
+            v = self.MfRho * v
+
+        ADeriv = (
             self.getADeriv_rho(freq, u, v, adjoint) +
             self.getADeriv_mu(freq, u, v, adjoint)
         )
+
+        if not adjoint and self._makeASymmetric:
+            return self.MfRho.T * ADeriv
+
+        return ADeriv
 
     def getRHS(self, freq):
         """
@@ -791,7 +759,7 @@ class Problem3D_h(BaseFDEMProblem):
 
         return C.T * (MfRho * C) + 1j*omega(freq)*MeMu
 
-    def getADeriv(self, freq, u, v, adjoint=False):
+    def getADeriv_rho(self, freq, u, v, adjoint=False):
         """
         Product of the derivative of our system matrix with respect to the
         model and a vector
@@ -818,6 +786,20 @@ class Problem3D_h(BaseFDEMProblem):
         if adjoint:
             return MfRhoDeriv.T * (C * v)
         return C.T * (MfRhoDeriv * v)
+
+    def getADeriv_mu(self, freq, u, v, adjoint=False):
+        MeMuDeriv = self.MeMuDeriv(u)
+
+        if adjoint is True:
+            return 1j*omega(freq) * (MeMuDeriv.T * v)
+
+        return 1j*omega(freq) * (MeMuDeriv * v)
+
+    def getADeriv(self, freq, u, v, adjoint=False):
+        return (
+            self.getADeriv_rho(freq, u, v, adjoint) +
+            self.getADeriv_mu(freq, u, v, adjoint)
+        )
 
     def getRHS(self, freq):
         """
