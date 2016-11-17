@@ -78,7 +78,7 @@ def run(plotIt=True):
     # %%
     # Now that we have a model and a survey we can build the linear system ...
     # Create the forward model operator
-    prob = PF.Gravity.GravityIntegral(mesh, mapping=staticCells,
+    prob = PF.Gravity.GravityIntegral(mesh, rhoMap=staticCells,
                                       actInd=active)
     prob.solverOpts['accuracyTol'] = 1e-4
 
