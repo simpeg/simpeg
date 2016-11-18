@@ -2,7 +2,6 @@ from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from properties import Float
 import numpy as np
 import scipy.sparse as sp
 from six import integer_types
@@ -11,6 +10,10 @@ import warnings
 from . import Utils
 from .Tests import checkDerivative
 from . import Maps
+
+__all__ = [
+    'BaseObjectiveFunction', 'ComboObjectiveFunction', 'L2ObjectiveFunction'
+]
 
 
 class BaseObjectiveFunction(object):
@@ -96,16 +99,20 @@ class BaseObjectiveFunction(object):
             )
 
         if isinstance(self, ComboObjectiveFunction):
+
             if isinstance(objfct2, ComboObjectiveFunction):
                 objfctlist = self.objfcts + objfct2.objfcts
                 multipliers = self.multipliers + objfct2.multipliers
+
             elif isinstance(objfct2, ObjectiveFunction):
                 objfctlist = self.objfcts.append(objfct2)
                 multipliers = self.multipliers.append(1)
+
         else:
             if isinstance(objfct2, ComboObjectiveFunction):
                 objfctlist = [self] + objfct2.objfcts
                 multipliers = [1] + objfct2.multipliers
+
             else:
                 objfctlist = [self, objfct2]
                 multipliers = None
@@ -129,7 +136,7 @@ class BaseObjectiveFunction(object):
 
 class ComboObjectiveFunction(BaseObjectiveFunction):
 
-    _multiplier_types = (float, Float, None, Utils.Zero) + integer_types # Directive
+    _multiplier_types = (float, None, Utils.Zero) + integer_types # Directive
 
     def __init__(self, objfcts=[], multipliers=None, **kwargs):
 
@@ -195,6 +202,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
                 H += multpliter * objfct_H
         return H
 
+    # This assumes all objective functions have a W. The base class currently does not.
     @property
     def W(self):
         W = []
@@ -207,9 +215,17 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
 class L2ObjectiveFunction(BaseObjectiveFunction):
 
-    def __init__(self, nP=None, **kwargs):
+    def __init__(self, nP=None, W=None, **kwargs):
 
         super(L2ObjectiveFunction, self).__init__(nP=nP, **kwargs)
+        if W is not None:
+            if self.nP == '*':
+                self._nP = W.shape[0]
+            else:
+                assert(W.shape[0]) == self.nP, (
+                    'nP must be the same as W.shape[0], not {}'.format(self.nP)
+            )
+        self._W = W
 
     @property
     def W(self):

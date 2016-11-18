@@ -87,7 +87,6 @@ class TestBaseObjFct(unittest.TestCase):
             phi.deriv(x)
             phi.deriv2(x)
 
-
     def test_ZeroObjFct(self):
         phi = (
             ObjectiveFunction.L2ObjectiveFunction() +
