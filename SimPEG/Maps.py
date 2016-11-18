@@ -546,6 +546,30 @@ class ChiMap(IdentityMap):
         return m / mu_0 - 1
 
 
+class Mu_relative(IdentityMap):
+    """
+    Invert for relative permeability
+
+    .. math::
+
+        \mu(m) = \mu_0 * \mathbf{m}
+    """
+
+    def __init__(self, mesh=None, nP=None, **kwargs):
+        super(Mu_relative, self).__init__(mesh=mesh, nP=nP, **kwargs)
+
+    def _transform(self, m):
+        return mu_0 * m
+
+    def deriv(self, m, v=None):
+        if v is not None:
+            return mu_0 * v
+        return mu_0 * sp.eye(self.nP)
+
+    def inverse(self, m):
+        return 1./mu_0 * m
+
+
 class Weighting(IdentityMap):
     """
         Model weight parameters.
