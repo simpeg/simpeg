@@ -138,7 +138,7 @@ def run(plotIt=True):
         ax[1].set_ylim(-500, 0)
         ax[1].set_xlim(0.5, 2.1)
 
-        ax[1].set_xlabel('Susceptibility', fontsize=fs)
+        ax[1].set_xlabel('Relative Permeability', fontsize=fs)
         ax[1].set_ylabel('Depth (m)', fontsize=fs)
         ax[1].grid(
             which='both', color='k', alpha=0.5, linestyle='-', linewidth=0.2
@@ -164,7 +164,7 @@ def run(plotIt=True):
 
         # ax[2].legend(("Obs", "Pred"), fontsize=fs)
         ax[2].legend(
-            ("x-Obs (real)", "z-Obs (real)", "x-Pred (real)", "z-Pred (real)"),
+            ("z-Obs (real)", "z-Pred (real)"),
             fontsize=fs
         )
         ax[2].set_xlim(freqs.max(), freqs.min())
