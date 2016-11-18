@@ -350,7 +350,7 @@ class Fields3D_e(FieldsFDEM):
     def _GLoc(self, fieldType):
         if fieldType == 'e':
             return 'E'
-        elif fieldType == 'b':
+        elif fieldType in ['b', 'bSecondary']:
             return 'F'
         elif (fieldType == 'h') or (fieldType == 'j'):
             return 'CCV'

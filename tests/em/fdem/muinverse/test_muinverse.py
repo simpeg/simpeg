@@ -5,7 +5,7 @@ from scipy.constants import mu_0
 
 import unittest
 
-MuMax = 200.
+MuMax = 50.
 TOL = 1e-10
 EPS = 1e-20
 
@@ -20,7 +20,7 @@ def setupMeshModel():
     hz = [(cs, npad, -1.3), (cs, nc), (cs, npad, 1.3)]
 
     mesh = Mesh.CylMesh([hx, 1., hz], '0CC')
-    muMod = MuMax*np.random.rand(mesh.nC)
+    muMod = 1+MuMax*np.random.randn(mesh.nC)
     sigmaMod = np.random.randn(mesh.nC)
 
     return mesh, muMod, sigmaMod
@@ -36,12 +36,12 @@ def setupProblem(
     )
 
     if prbtype in ['e', 'b']:
-        rxfields_y = ['j'] #, 'j']
-        rxfields_xz = [] #['b', 'h']
+        rxfields_y = ['e', 'j']
+        rxfields_xz = ['b', 'h']
 
     elif prbtype in ['h', 'j']:
-        rxfields_y = [] # ['b', 'h']
-        rxfields_xz = ['e'] #['e', 'j']
+        rxfields_y = ['b', 'h']
+        rxfields_xz = ['e', 'j']
 
     rxList_edge = [
         getattr(FDEM.Rx, 'Point_{f}'.format(f=f))(
@@ -87,7 +87,7 @@ def setupProblem(
             ('sigma', mesh.nC)
         )
 
-        muMap = Maps.ChiMap(mesh) * wires.mu
+        muMap = Maps.Mu_relative(mesh) * wires.mu
         sigmaMap = Maps.ExpMap(mesh) * wires.sigma
 
         prob = getattr(FDEM, 'Problem3D_{}'.format(prbtype))(

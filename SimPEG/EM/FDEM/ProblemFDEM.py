@@ -267,11 +267,11 @@ class Problem3D_e(BaseFDEMProblem):
     def getADeriv_sigma(self, freq, u, v, adjoint=False):
         """
         Product of the derivative of our system matrix with respect to the
-        model and a vector
+        conductivity model and a vector
 
         .. math ::
-            \\frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}} =
-            i \omega \\frac{d \mathbf{M^e_{\sigma}}\mathbf{v} }{d\mathbf{m}}
+            \\frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}_{\\sigma}} =
+            i \omega \\frac{d \mathbf{M^e_{\sigma}}(\mathbf{u})\mathbf{v} }{d\mathbf{m}}
 
         :param float freq: frequency
         :param numpy.ndarray u: solution vector (nE,)
@@ -291,6 +291,15 @@ class Problem3D_e(BaseFDEMProblem):
         return 1j * omega(freq) * ( dMe_dsig * v )
 
     def getADeriv_mui(self, freq, u, v, adjoint=False):
+        """
+        Product of the derivative of the system matrix with respect to the
+        permeability model and a vector.
+
+        .. math ::
+            \\frac{\mathbf{A}(\mathbf{m}) \mathbf{v}}{d \mathbf{m}_{\\mu^{-1}} =
+            \mathbf{C}^{\top} \\frac{d \mathbf{M^f_{\\mu^{-1}}}\mathbf{v}}{d\mathbf{m}}
+
+        """
 
         C = self.mesh.edgeCurl
 
@@ -300,6 +309,7 @@ class Problem3D_e(BaseFDEMProblem):
         return C.T * (self.MfMuiDeriv(C*u) * v)
 
     def getADeriv(self, freq, u, v, adjoint=False):
+
         return (
             self.getADeriv_sigma(freq, u, v, adjoint) +
             self.getADeriv_mui(freq, u, v, adjoint)
@@ -326,6 +336,11 @@ class Problem3D_e(BaseFDEMProblem):
         return C.T * (MfMui * s_m) - 1j * omega(freq) * s_e
 
     def getRHSDeriv(self, freq, src, v, adjoint=False):
+
+        """
+        Derivative of the Right-hand side with respect to the model. This
+        includes calls to derivatives in the sources
+        """
 
         C = self.mesh.edgeCurl
         MfMui = self.MfMui
