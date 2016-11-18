@@ -3,12 +3,28 @@ from __future__ import print_function
 import numpy as np
 import scipy.sparse as sp
 import warnings
+import properties
 
 from . import Utils
 from . import Maps
 from . import Mesh
 from . import ObjectiveFunction
 
+__all__ = [
+    'Smallness',
+    'Smooth_x', 'Smooth_y', 'Smooth_z',
+    'Smooth_xx', 'Smooth_yy', 'Smooth_zz',
+    'SimpleSmooth_x', 'SimpleSmooth_y', 'SimpleSmooth_z',
+    'Simple', 'Tikhonov',
+    'SparseSmallness', 'Sparse_x', 'Sparse_y', 'Sparse_z', 'Sparse'
+]
+
+
+###############################################################################
+#                                                                             #
+#                             Regularization Mesh                             #
+#                                                                             #
+###############################################################################
 
 class RegularizationMesh(object):
     """
@@ -342,6 +358,19 @@ class RegularizationMesh(object):
         return self._cellDiffzStencil
 
 
+###############################################################################
+#                                                                             #
+#                          Single Regularization                              #
+#                                                                             #
+###############################################################################
+
+
+# class IndActive(properties.Array):
+
+#     info_text = 'Active indices'
+#     dtype = bool
+
+
 class BaseRegularization(ObjectiveFunction.L2ObjectiveFunction):
     """
     Base class for regularization. Inherit this for building your own
@@ -582,6 +611,12 @@ class Smallness(BaseRegularization):
                 sp.eye(self.nP) if self.nP != '*' else Utils.Identity()
             )
 
+
+###############################################################################
+#                                                                             #
+#                           Combo Regularization                              #
+#                                                                             #
+###############################################################################
 
 class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
 

@@ -1,10 +1,11 @@
 from __future__ import print_function
 import numpy as np
-from SimPEG import Utils
-from SimPEG import Survey
+from . import Utils
+from . import Survey
+from . import ObjectiveFunction
 
 
-class BaseDataMisfit(object):
+class BaseDataMisfit(ObjectiveFunction.L2ObjectiveFunction):
     """BaseDataMisfit
 
         .. note::
@@ -20,46 +21,63 @@ class BaseDataMisfit(object):
         if isinstance(survey, Survey.BaseSurvey):
             self.survey = survey
             self.prob   = survey.prob
-        Utils.setKwargs(self, **kwargs)
+        super(BaseDataMisfit, self).__init__(**kwargs)
 
-    @Utils.timeIt
-    def eval(self, m, f=None):
-        """eval(m, f=None)
+# class BaseDataMisfit(object):
+#     """BaseDataMisfit
 
-            :param numpy.array m: geophysical model
-            :param Fields f: fields
-            :rtype: float
-            :return: data misfit
+#         .. note::
 
-        """
-        raise NotImplementedError('This method should be overwritten.')
+#             You should inherit from this class to create your own data misfit term.
+#     """
 
-    @Utils.timeIt
-    def evalDeriv(self, m, f=None):
-        """evalDeriv(m, f=None)
+#     debug   = False  #: Print debugging information
+#     counter = None   #: Set this to a SimPEG.Utils.Counter() if you want to count things
 
-            :param numpy.array m: geophysical model
-            :param Fields f: fields
-            :rtype: numpy.array
-            :return: data misfit derivative
+#     def __init__(self, survey, **kwargs):
+#         assert survey.ispaired, 'The survey must be paired to a problem.'
+#         if isinstance(survey, Survey.BaseSurvey):
+#             self.survey = survey
+#             self.prob   = survey.prob
+#         Utils.setKwargs(self, **kwargs)
 
-        """
-        raise NotImplementedError('This method should be overwritten.')
+    # @Utils.timeIt
+    # def eval(self, m, f=None):
+    #     """eval(m, f=None)
+
+    #         :param numpy.array m: geophysical model
+    #         :param Fields f: fields
+    #         :rtype: float
+    #         :return: data misfit
+
+    #     """
+    #     raise NotImplementedError('This method should be overwritten.')
+
+    # @Utils.timeIt
+    # def evalDeriv(self, m, f=None):
+    #     """evalDeriv(m, f=None)
+
+    #         :param numpy.array m: geophysical model
+    #         :param Fields f: fields
+    #         :rtype: numpy.array
+    #         :return: data misfit derivative
+
+    #     """
+    #     raise NotImplementedError('This method should be overwritten.')
 
 
-    @Utils.timeIt
-    def eval2Deriv(self, m, v, f=None):
-        """eval2Deriv(m, v, f=None)
+    # @Utils.timeIt
+    # def eval2Deriv(self, m, v, f=None):
+    #     """eval2Deriv(m, v, f=None)
 
-            :param numpy.array m: geophysical model
-            :param numpy.array v: vector to multiply
-            :param Fields f: fields
-            :rtype: numpy.array
-            :return: data misfit derivative
+    #         :param numpy.array m: geophysical model
+    #         :param numpy.array v: vector to multiply
+    #         :param Fields f: fields
+    #         :rtype: numpy.array
+    #         :return: data misfit derivative
 
-        """
-        raise NotImplementedError('This method should be overwritten.')
-
+    #     """
+    #     raise NotImplementedError('This method should be overwritten.')
 
 
 class l2_DataMisfit(BaseDataMisfit):
@@ -73,11 +91,23 @@ class l2_DataMisfit(BaseDataMisfit):
 
     """
 
+    std = None
+    eps = None
+
     def __init__(self, survey, **kwargs):
         BaseDataMisfit.__init__(self, survey, **kwargs)
 
+        if self.std is None:
+            if getattr(self.survey, 'std', None) is None:
+                print('SimPEG.DataMisfit.l2_DataMisfit assigning default std of 5%')
+                survey.std = 0.05 # default
+
+            if getattr(self.survey, 'eps', None) is None:
+                print('SimPEG.DataMisfit.l2_DataMisfit assigning default eps of 1e-5 * ||dobs||')
+                survey.eps = np.linalg.norm(Utils.mkvc(survey.dobs), 2)*1e-5  # default
+
     @property
-    def Wd(self):
+    def W(self):
         """getWd(survey)
 
             The data weighting matrix.
@@ -99,30 +129,37 @@ class l2_DataMisfit(BaseDataMisfit):
 
             if getattr(survey, 'eps', None) is None:
                 print('SimPEG.DataMisfit.l2_DataMisfit assigning default eps of 1e-5 * ||dobs||')
-                survey.eps = np.linalg.norm(Utils.mkvc(survey.dobs),2)*1e-5
+                survey.eps = np.linalg.norm(Utils.mkvc(survey.dobs), 2)*1e-5
 
             self._Wd = Utils.sdiag(1/(abs(survey.dobs)*survey.std+survey.eps))
         return self._Wd
 
-    @Wd.setter
-    def Wd(self, value):
-        self._Wd = value
+    @W.setter
+    def W(self, value):
+        self._W = value
 
     @Utils.timeIt
-    def eval(self, m, f=None):
+    def _eval(self, m, f=None):
         "eval(m, f=None)"
-        if f is None: f = self.prob.fields(m)
-        R = self.Wd * self.survey.residual(m, f)
+        if f is None:
+            f = self.prob.fields(m)
+        R = self.W * self.survey.residual(m, f)
         return 0.5*np.vdot(R, R)
 
     @Utils.timeIt
-    def evalDeriv(self, m, f=None):
-        "evalDeriv(m, f=None)"
-        if f is None: f = self.prob.fields(m)
-        return self.prob.Jtvec(m, self.Wd * (self.Wd * self.survey.residual(m, f=f)), f=f)
+    def deriv(self, m, f=None):
+        "deriv(m, f=None)"
+        if f is None:
+            f = self.prob.fields(m)
+        return self.prob.Jtvec(
+            m, self.W * (self.W * self.survey.residual(m, f=f)), f=f
+        )
 
     @Utils.timeIt
-    def eval2Deriv(self, m, v, f=None):
-        "eval2Deriv(m, v, f=None)"
-        if f is None: f = self.prob.fields(m)
-        return self.prob.Jtvec_approx(m, self.Wd * (self.Wd * self.prob.Jvec_approx(m, v, f=f)), f=f)
+    def deriv2(self, m, v, f=None):
+        "deriv2(m, v, f=None)"
+        if f is None:
+            f = self.prob.fields(m)
+        return self.prob.Jtvec_approx(
+            m, self.W * (self.W * self.prob.Jvec_approx(m, v, f=f)), f=f
+        )

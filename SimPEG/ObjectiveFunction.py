@@ -34,6 +34,7 @@ class BaseObjectiveFunction(object):
             self._nP = '*'
         return self._nP
 
+    @Utils.timeIt
     def _eval(self, x, **kwargs):
         raise NotImplementedError(
             "The method _eval has not been implemented for {}".format(
@@ -41,6 +42,7 @@ class BaseObjectiveFunction(object):
             )
         )
 
+    @Utils.timeIt
     def deriv(self, x, **kwargs):
         raise NotImplementedError(
             "The method deriv has not been implemented for {}".format(
@@ -48,6 +50,7 @@ class BaseObjectiveFunction(object):
             )
         )
 
+    @Utils.timeIt
     def deriv2(self, x, **kwargs):
         raise NotImplementedError(
             "The method _deriv2 has not been implemented for {}".format(

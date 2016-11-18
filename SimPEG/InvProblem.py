@@ -129,7 +129,7 @@ class BaseInvProblem(Props.BaseSimPEG):
         # Store fields if doing a line-search
         f = self.getFields(m, store=(return_g is False and return_H is False))
 
-        phi_d = self.dmisfit.eval(m, f=f)
+        phi_d = self.dmisfit(m, f=f)
         phi_m = self.reg(m)
 
         # This is a cheap matrix vector calculation.
@@ -142,7 +142,7 @@ class BaseInvProblem(Props.BaseSimPEG):
 
         out = (phi,)
         if return_g:
-            phi_dDeriv = self.dmisfit.evalDeriv(m, f=f)
+            phi_dDeriv = self.dmisfit.deriv(m, f=f)
             phi_mDeriv = self.reg.deriv(m)
 
             g = phi_dDeriv + self.beta * phi_mDeriv
@@ -150,7 +150,7 @@ class BaseInvProblem(Props.BaseSimPEG):
 
         if return_H:
             def H_fun(v):
-                phi_d2Deriv = self.dmisfit.eval2Deriv(m, v, f=f)
+                phi_d2Deriv = self.dmisfit.deriv2(m, v, f=f)
                 phi_m2Deriv = self.reg.deriv2(m, v=v)
 
                 return phi_d2Deriv + self.beta * phi_m2Deriv
