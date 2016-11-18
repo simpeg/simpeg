@@ -487,7 +487,7 @@ class Problem3D_Diff(Problem.BaseProblem):
     def Mfi(self): return self._Mfi
 
     def makeMassMatrices(self, m):
-        rho = self.rhoMap*m
+        #rho = self.rhoMap*m
         self._Mfi = self.mesh.getFaceInnerProduct()
         self._MfI = Utils.sdiag(1./self._Mfi.diagonal())
 
@@ -499,8 +499,8 @@ class Problem3D_Diff(Problem.BaseProblem):
 
         Mc = Utils.sdiag(self.mesh.vol)
 
-        rho = self.rhoMap*m
-
+#        rho = self.rhoMap*m
+        rho = m
         return Mc*rho
 
     def getA(self, m):
