@@ -246,10 +246,13 @@ man_pages = [
 #man_show_urls = False
 
 # Intersphinx
-intersphinx_mapping = {'python': ('http://docs.python.org/2', None),
-                       'numpy': ('http://docs.scipy.org/doc/numpy/', None),
-                       'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
-                       'matplotlib': ('http://matplotlib.sourceforge.net/', None)}
+intersphinx_mapping = {
+    'python': ('http://docs.python.org/2', None),
+    'numpy': ('http://docs.scipy.org/doc/numpy/', None),
+    'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
+    'matplotlib': ('http://matplotlib.sourceforge.net/', None),
+    'properties': ('http://propertiespy.readthedocs.io/', None)
+}
 
 
 # -- Options for Texinfo output ------------------------------------------------
@@ -274,9 +277,11 @@ texinfo_documents = [
 
 autodoc_member_order = 'bysource'
 
+
 def supress_nonlocal_image_warn():
     import sphinx.environment
     sphinx.environment.BuildEnvironment.warn_node = _supress_nonlocal_image_warn
+
 
 def _supress_nonlocal_image_warn(self, msg, node, **kwargs):
     from docutils.utils import get_source_line

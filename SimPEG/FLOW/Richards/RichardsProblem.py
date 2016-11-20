@@ -112,19 +112,8 @@ class RichardsProblem(Problem.BaseTimeProblem):
 
     debug = properties.Bool("Show all messages")
 
-    Solver = Solver
+    Solver = properties.Property("Numerical Solver", default=lambda: Solver)
     solverOpts = {}
-
-    def __init__(self, mesh, mapping=None, **kwargs):
-        Problem.BaseTimeProblem.__init__(self, mesh, mapping=mapping, **kwargs)
-
-    def getBoundaryConditions(self, ii, u_ii):
-        if type(self.boundaryConditions) is np.ndarray:
-            return self.boundaryConditions
-
-        time = self.timeMesh.vectorCCx[ii]
-
-        return self.boundaryConditions(time, u_ii)
 
     method = properties.StringChoice(
         "Formulation used, See notes in Celia et al., 1990.",
@@ -145,6 +134,14 @@ class RichardsProblem(Problem.BaseTimeProblem):
         "Maximum iterations for rootFinder iteration.",
         default=1e-4
     )
+
+    def getBoundaryConditions(self, ii, u_ii):
+        if type(self.boundaryConditions) is np.ndarray:
+            return self.boundaryConditions
+
+        time = self.timeMesh.vectorCCx[ii]
+
+        return self.boundaryConditions(time, u_ii)
 
     @properties.observer(['doNewton', 'maxIterRootFinder', 'tolRootFinder'])
     def _on_root_finder_update(self, change):
@@ -196,29 +193,19 @@ class RichardsProblem(Problem.BaseTimeProblem):
     @property
     def Dz(self):
         if self.mesh.dim == 1:
-            Dz = self.mesh.faceDivx
-        elif self.mesh.dim == 2:
-            Dz = sp.hstack(
-                (
-                    Utils.spzeros(
-                        self.mesh.nC, self.mesh.vnF[0]
-                    ),
-                    self.mesh.faceDivy
-                ),
-                format='csr'
+            return self.mesh.faceDivx
+
+        if self.mesh.dim == 2:
+            mats = (
+                Utils.spzeros(self.mesh.nC, self.mesh.vnF[0]),
+                self.mesh.faceDivy
             )
         elif self.mesh.dim == 3:
-            Dz = sp.hstack(
-                (
-                    Utils.spzeros(
-                        self.mesh.nC,
-                        self.mesh.vnF[0]+self.mesh.vnF[1]
-                    ),
-                    self.mesh.faceDivz
-                ),
-                format='csr'
+            mats = (
+                Utils.spzeros(self.mesh.nC, self.mesh.vnF[0]+self.mesh.vnF[1]),
+                self.mesh.faceDivz
             )
-        return Dz
+        return sp.hstack(mats, format='csr')
 
     @Utils.timeIt
     def diagsJacobian(self, m, hn, hn1, dt, bc):

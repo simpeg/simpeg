@@ -38,8 +38,17 @@ Here we reproduce the results from Celia et al. (1990):
     from SimPEG import Examples
     Examples.FLOW_Richards_1D_Celia1990.run()
 
-Richards
-========
+Richards Problem
+================
+
+.. automodule:: SimPEG.FLOW.Richards.RichardsProblem
+    :show-inheritance:
+    :members:
+    :undoc-members:
+
+
+Vadose Zone Empirical Relationships
+===================================
 
 .. automodule:: SimPEG.FLOW.Richards.Empirical
     :show-inheritance:
