@@ -87,7 +87,7 @@ def setupProblem(
             ('sigma', mesh.nC)
         )
 
-        muMap = Maps.Mu_relative(mesh) * wires.mu
+        muMap = Maps.MuRelative(mesh) * wires.mu
         sigmaMap = Maps.ExpMap(mesh) * wires.sigma
 
         if invertMui:
@@ -103,7 +103,7 @@ def setupProblem(
         m0 = np.hstack([muMod, sigmaMod])
 
     else:
-        muMap = Maps.Mu_relative(mesh)
+        muMap = Maps.MuRelative(mesh)
 
         if invertMui:
             muiMap = Maps.ReciprocalMap(mesh) * muMap

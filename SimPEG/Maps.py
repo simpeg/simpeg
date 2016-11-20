@@ -546,7 +546,7 @@ class ChiMap(IdentityMap):
         return m / mu_0 - 1
 
 
-class Mu_relative(IdentityMap):
+class MuRelative(IdentityMap):
     """
     Invert for relative permeability
 
@@ -556,7 +556,7 @@ class Mu_relative(IdentityMap):
     """
 
     def __init__(self, mesh=None, nP=None, **kwargs):
-        super(Mu_relative, self).__init__(mesh=mesh, nP=nP, **kwargs)
+        super(MuRelative, self).__init__(mesh=mesh, nP=nP, **kwargs)
 
     def _transform(self, m):
         return mu_0 * m

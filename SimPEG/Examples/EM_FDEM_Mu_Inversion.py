@@ -53,7 +53,7 @@ def run(plotIt=True):
     # Maps
     actMap = Maps.InjectActiveCells(mesh, active, mur_air, nC=mesh.nCz)
     surj1Dmap = Maps.SurjectVertical1D(mesh)
-    murMap = Maps.Mu_relative(mesh)
+    murMap = Maps.MuRelative(mesh)
 
     # Mapping
     muMap =  murMap * surj1Dmap * actMap
