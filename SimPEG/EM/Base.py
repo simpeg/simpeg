@@ -132,7 +132,7 @@ class BaseEMProblem(Problem.BaseProblem):
         """
         Derivative of :code:`MfMui` with respect to the model.
         """
-        if getattr(self, 'muiMap', None) is None:
+        if self.muiMap is None:
             return Utils.Zero()
 
         return (
@@ -154,7 +154,7 @@ class BaseEMProblem(Problem.BaseProblem):
         Derivative of :code:`MfMui` with respect to the model
         """
 
-        if getattr(self, 'muiMap', None) is None:
+        if self.muiMap is None:
             return Utils.Zero()
 
         if len(self.mui.shape) > 1:
@@ -182,7 +182,7 @@ class BaseEMProblem(Problem.BaseProblem):
         """
         Derivative of :code:`MeMu` with respect to the model.
         """
-        if getattr(self, 'muMap', None) is None:
+        if self.muMap is None:
             return Utils.Zero()
 
         return (
@@ -204,7 +204,7 @@ class BaseEMProblem(Problem.BaseProblem):
         Derivative of :code:`MeMuI` with respect to the model
         """
 
-        if getattr(self, 'muMap', None) is None:
+        if self.muMap is None:
             return Utils.Zero()
 
         if len(self.mu.shape) > 1:
@@ -235,7 +235,7 @@ class BaseEMProblem(Problem.BaseProblem):
         """
         Derivative of MeSigma with respect to the model
         """
-        if getattr(self, 'sigmaMap', None) is None:
+        if self.sigmaMap is None:
             return Utils.Zero()
 
         return (
@@ -258,7 +258,7 @@ class BaseEMProblem(Problem.BaseProblem):
         """
         Derivative of :code:`MeSigmaI` with respect to the model
         """
-        if getattr(self, 'sigmaMap', None) is None:
+        if self.sigmaMap is None:
             return Utils.Zero()
 
         if len(self.sigma.shape) > 1:
@@ -285,13 +285,12 @@ class BaseEMProblem(Problem.BaseProblem):
         """
         Derivative of :code:`MfRho` with respect to the model.
         """
-        if getattr(self, 'rhoMap', None) is None:
+        if self.rhoMap is None:
             return Utils.Zero()
 
         return (
             self.mesh.getFaceInnerProductDeriv(self.rho)(u) * self.rhoDeriv
         )
-
 
     @property
     def MfRhoI(self):
@@ -307,7 +306,7 @@ class BaseEMProblem(Problem.BaseProblem):
         """
             Derivative of :code:`MfRhoI` with respect to the model.
         """
-        if getattr(self, 'rhoMap', None) is None:
+        if self.rhoMap is None:
             return Utils.Zero()
 
         if len(self.rho.shape) > 1:
