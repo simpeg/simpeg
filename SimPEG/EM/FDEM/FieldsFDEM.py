@@ -348,9 +348,9 @@ class Fields3D_e(FieldsFDEM):
         self._MfMuiDeriv = self.survey.prob.MfMuiDeriv
 
     def _GLoc(self, fieldType):
-        if fieldType == 'e':
+        if fieldType in ['e', 'eSecondary', 'ePrimary']:
             return 'E'
-        elif fieldType in ['b', 'bSecondary']:
+        elif fieldType in ['b', 'bSecondary', 'bPrimary']:
             return 'F'
         elif (fieldType == 'h') or (fieldType == 'j'):
             return 'CCV'
@@ -695,11 +695,9 @@ class Fields3D_b(FieldsFDEM):
         self._nC = self.survey.prob.mesh.nC
 
     def _GLoc(self, fieldType):
-        if fieldType == 'e':
+        if fieldType in ['e', 'eSecondary', 'ePrimary']:
             return 'E'
-        elif fieldType == 'b':
-            return 'F'
-        elif fieldType == 'bSecondary':
+        elif fieldType in ['b', 'bSecondary', 'bPrimary']:
             return 'F'
         elif (fieldType == 'h') or (fieldType == 'j'):
             return'CCV'
@@ -930,7 +928,6 @@ class Fields3D_b(FieldsFDEM):
             VI * (self._aveE2CCV * (self._edgeCurl.T * (MfMuiDeriv * v)))
         )
 
-
     def _jDeriv_m(self, src, v, adjoint=False):
         """
         Derivative of the current density with respect to the inversion model
@@ -1044,9 +1041,9 @@ class Fields3D_j(FieldsFDEM):
         self._nC = self.survey.prob.mesh.nC
 
     def _GLoc(self, fieldType):
-        if fieldType == 'h':
+        if fieldType in ['h', 'hSecondary', 'hPrimary']:
             return 'E'
-        elif fieldType == 'j':
+        elif fieldType in ['j', 'jSecondary', 'jPrimary']:
             return 'F'
         elif (fieldType == 'e') or (fieldType == 'b'):
             return 'CCV'
@@ -1411,9 +1408,9 @@ class Fields3D_h(FieldsFDEM):
         self._nC = self.survey.prob.mesh.nC
 
     def _GLoc(self, fieldType):
-        if fieldType == 'h':
+        if fieldType in ['h', 'hSecondary', 'hPrimary']:
             return 'E'
-        elif fieldType == 'j':
+        elif fieldType in ['j', 'jSecondary', 'jPrimary']:
             return 'F'
         elif (fieldType == 'e') or (fieldType == 'b'):
             return 'CCV'
