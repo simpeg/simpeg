@@ -154,14 +154,18 @@ class BaseEMProblem(Problem.BaseProblem):
         """
         Derivative of :code:`MfMui` with respect to the model
         """
-        # TODO: only works for diagonal tensors. getEdgeInnerProductDeriv,
-        #       invMat=True should be implemented in SimPEG
 
         if (
             getattr(self, 'muMap', None) is None and
             getattr(self, 'muiMap', None) is None
         ):
             return Utils.Zero()
+
+        if len(self.mui.shape) > 1:
+            if self.mui.shape[1] > self.mesh.dim:
+                raise NotImplementedError(
+                        "Full anisotropy is not implemented for MfMuiIDeriv."
+                )
 
         dMfMuiI_dI = -self.MfMuiI**2
         dMf_dmui = self.mesh.getEdgeInnerProductDeriv(self.mui)(u)
@@ -206,14 +210,18 @@ class BaseEMProblem(Problem.BaseProblem):
         """
         Derivative of :code:`MeSigma` with respect to the model
         """
-        # TODO: only works for diagonal tensors. getEdgeInnerProductDeriv,
-        #       invMat=True should be implemented in SimPEG
 
         if (
             getattr(self, 'muMap', None) is None and
             getattr(self, 'muiMap', None) is None
         ):
             return Utils.Zero()
+
+        if len(self.mu.shape) > 1:
+            if self.mu.shape[1] > self.mesh.dim:
+                raise NotImplementedError(
+                    "Full anisotropy is not implemented for MeMuIDeriv."
+                )
 
         dMeMuI_dI = -self.MeMuI**2
         dMe_dmu = self.mesh.getEdgeInnerProductDeriv(self.mu)(u)
@@ -262,14 +270,17 @@ class BaseEMProblem(Problem.BaseProblem):
         """
         Derivative of :code:`MeSigma` with respect to the model
         """
-        # TODO: only works for diagonal tensors. getEdgeInnerProductDeriv,
-        #       invMat=True should be implemented in SimPEG
-
         if (
             getattr(self, 'sigmaMap', None) is None and
             getattr(self, 'rhoMap', None) is None
         ):
             return Utils.Zero()
+
+        if len(self.sigma.shape) > 1:
+            if self.sigma.shape[1] > self.mesh.dim:
+                raise NotImplementedError(
+                    "Full anisotropy is not implemented for MeSigmaIDeriv."
+                )
 
         dMeSigmaI_dI = -self.MeSigmaI**2
         dMe_dsig = self.mesh.getEdgeInnerProductDeriv(self.sigma)(u)
@@ -319,6 +330,12 @@ class BaseEMProblem(Problem.BaseProblem):
             getattr(self, 'rhoMap', None) is None
         ):
             return Utils.Zero()
+
+        if len(self.rho.shape) > 1:
+            if self.rho.shape[1] > self.mesh.dim:
+                raise NotImplementedError(
+                    "Full anisotropy is not implemented for MfRhoIDeriv."
+                )
 
         dMfRhoI_dI = -self.MfRhoI**2
         dMf_drho = self.mesh.getFaceInnerProductDeriv(self.rho)(u)
