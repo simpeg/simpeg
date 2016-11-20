@@ -9,7 +9,7 @@ MuMax = 50.
 TOL = 1e-10
 EPS = 1e-20
 
-np.random.seed(101)
+np.random.seed(105)
 
 
 def setupMeshModel():
@@ -27,7 +27,8 @@ def setupMeshModel():
 
 
 def setupProblem(
-    mesh, muMod, sigmaMod, prbtype='e', sigmaInInversion=False, freq=1.
+    mesh, muMod, sigmaMod, prbtype='e', invertMui=False,
+    sigmaInInversion=False, freq=1.
 ):
     rxcomp = ['real', 'imag']
 
@@ -80,7 +81,6 @@ def setupProblem(
     survey = FDEM.Survey([src])
 
     if sigmaInInversion:
-        m0 = np.hstack([muMod, sigmaMod])
 
         wires = Maps.Wires(
             ('mu', mesh.nC),
@@ -90,15 +90,32 @@ def setupProblem(
         muMap = Maps.Mu_relative(mesh) * wires.mu
         sigmaMap = Maps.ExpMap(mesh) * wires.sigma
 
-        prob = getattr(FDEM, 'Problem3D_{}'.format(prbtype))(
-            mesh, muMap=muMap, sigmaMap=sigmaMap
-        )
+        if invertMui:
+            muiMap = Maps.ReciprocalMap(mesh)*muMap
+            prob = getattr(FDEM, 'Problem3D_{}'.format(prbtype))(
+                mesh, muiMap=muiMap, sigmaMap=sigmaMap
+            )
+            # m0 = np.hstack([1./muMod, sigmaMod])
+        else:
+            prob = getattr(FDEM, 'Problem3D_{}'.format(prbtype))(
+                mesh, muMap=muMap, sigmaMap=sigmaMap
+            )
+        m0 = np.hstack([muMod, sigmaMod])
 
     else:
+        muMap = Maps.Mu_relative(mesh)
+
+        if invertMui:
+            muiMap = Maps.ReciprocalMap(mesh) * muMap
+            prob = getattr(FDEM, 'Problem3D_{}'.format(prbtype))(
+                    mesh, sigma=sigmaMod, muiMap=muiMap
+                )
+            # m0 = 1./muMod
+        else:
+            prob = getattr(FDEM, 'Problem3D_{}'.format(prbtype))(
+                    mesh, sigma=sigmaMod, muMap=muMap
+                )
         m0 = muMod
-        prob = getattr(FDEM, 'Problem3D_{}'.format(prbtype))(
-                mesh, sigma=sigmaMod, muMap=Maps.ChiMap(mesh)
-            )
 
     prob.pair(survey)
 
@@ -107,15 +124,15 @@ def setupProblem(
 
 class MuTests(unittest.TestCase):
 
-    def setUpProb(self, prbtype='e', sigmaInInversion=False):
+    def setUpProb(self, prbtype='e', sigmaInInversion=False, invertMui=False):
         self.mesh, muMod, sigmaMod = setupMeshModel()
         self.m0, self.prob, self.survey = setupProblem(
             self.mesh, muMod, sigmaMod, prbtype=prbtype,
-            sigmaInInversion=sigmaInInversion
+            sigmaInInversion=sigmaInInversion, invertMui=invertMui
         )
 
-    def JvecTest(self, prbtype='e', sigmaInInversion=False):
-        self.setUpProb(prbtype, sigmaInInversion)
+    def JvecTest(self, prbtype='e', sigmaInInversion=False, invertMui=False):
+        self.setUpProb(prbtype, sigmaInInversion, invertMui)
         print('Testing Jvec {}'.format(prbtype))
 
         def fun(x):
@@ -126,8 +143,8 @@ class MuTests(unittest.TestCase):
             fun, self.m0, num=2, plotIt=False, eps=EPS
         )
 
-    def JtvecTest(self, prbtype='e', sigmaInInversion=False):
-        self.setUpProb(prbtype, sigmaInInversion)
+    def JtvecTest(self, prbtype='e', sigmaInInversion=False, invertMui=False):
+        self.setUpProb(prbtype, sigmaInInversion, invertMui)
         print('Testing Jvec {}'.format(prbtype))
 
         m = np.random.rand(self.prob.muMap.nP)
@@ -147,7 +164,6 @@ class MuTests(unittest.TestCase):
             )
         )
         return passed
-
 
     def test_Jvec_e(self):
         self.assertTrue(self.JvecTest('e', sigmaInInversion=False))
@@ -196,6 +212,86 @@ class MuTests(unittest.TestCase):
 
     def test_Jtvec_musig_h(self):
         self.assertTrue(self.JtvecTest('h', sigmaInInversion=True))
+
+    def test_Jvec_e_mui(self):
+        self.assertTrue(
+            self.JvecTest('e', sigmaInInversion=False, invertMui=True)
+        )
+
+    def test_Jvec_b_mui(self):
+        self.assertTrue(
+            self.JvecTest('b', sigmaInInversion=False, invertMui=True)
+        )
+
+    def test_Jvec_j_mui(self):
+        self.assertTrue(
+            self.JvecTest('j', sigmaInInversion=False, invertMui=True)
+        )
+
+    def test_Jvec_h_mui(self):
+        self.assertTrue(
+            self.JvecTest('h', sigmaInInversion=False, invertMui=True)
+        )
+
+    def test_Jtvec_e_mui(self):
+        self.assertTrue(
+            self.JtvecTest('e', sigmaInInversion=False, invertMui=True)
+        )
+
+    def test_Jtvec_b_mui(self):
+        self.assertTrue(
+            self.JtvecTest('b', sigmaInInversion=False, invertMui=True)
+        )
+
+    def test_Jtvec_j_mui(self):
+        self.assertTrue(
+            self.JtvecTest('j', sigmaInInversion=False, invertMui=True)
+        )
+
+    def test_Jtvec_h_mui(self):
+        self.assertTrue(
+            self.JtvecTest('h', sigmaInInversion=False, invertMui=True)
+        )
+
+    def test_Jvec_musig_e_mui(self):
+        self.assertTrue(
+            self.JvecTest('e', sigmaInInversion=True, invertMui=True)
+        )
+
+    def test_Jvec_musig_b_mui(self):
+        self.assertTrue(
+            self.JvecTest('b', sigmaInInversion=True, invertMui=True)
+        )
+
+    def test_Jvec_musig_j_mui(self):
+        self.assertTrue(
+            self.JvecTest('j', sigmaInInversion=True, invertMui=True)
+        )
+
+    def test_Jvec_musig_h_mui(self):
+        self.assertTrue(
+            self.JvecTest('h', sigmaInInversion=True, invertMui=True)
+        )
+
+    def test_Jtvec_musig_e_mui(self):
+        self.assertTrue(
+            self.JtvecTest('e', sigmaInInversion=True, invertMui=True)
+        )
+
+    def test_Jtvec_musig_b_mui(self):
+        self.assertTrue(
+            self.JtvecTest('b', sigmaInInversion=True, invertMui=True)
+        )
+
+    def test_Jtvec_musig_j_mui(self):
+        self.assertTrue(
+            self.JtvecTest('j', sigmaInInversion=True, invertMui=True)
+        )
+
+    def test_Jtvec_musig_h_mui(self):
+        self.assertTrue(
+            self.JtvecTest('h', sigmaInInversion=True, invertMui=True)
+        )
 
 if __name__ == '__main__':
     unittest.main()
