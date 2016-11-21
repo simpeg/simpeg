@@ -1491,6 +1491,25 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
         return self._faceDivStencilFull * R
 
     @property
+    def _faceDivxStencil(self):
+        # more efficient to form full faceDiv then grab components when working
+        # with multiple components
+        # print(self._faceDivyStencil.shape, self.nFx, self.vnF)
+        return self._faceDivStencil[:, :self.nFx]
+
+    @property
+    def _faceDivyStencil(self):
+        # more efficient to form full faceDiv then grab components when working
+        # with multiple components
+        return self._faceDivStencil[:, self.nFx:self.vnF[:2].sum()]
+
+    @property
+    def _faceDivzStencil(self):
+        # more efficient to form full faceDiv then grab components when working
+        # with multiple components
+        return self._faceDivStencil[:, self.vnF[:2].sum():]
+
+    @property
     def faceDiv(self):
         if getattr(self, '_faceDiv', None) is None:
             D = self._faceDivStencilFull
@@ -1502,6 +1521,24 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
                 S = np.r_[self._areaFxFull, self._areaFyFull, self._areaFzFull]
             self._faceDiv = Utils.sdiag(1.0/VOL)*D*Utils.sdiag(S)*R
         return self._faceDiv
+
+    @property
+    def faceDivx(self):
+        # more efficient to form full faceDiv then grab components when working
+        # with multiple components
+        return self.faceDiv[:, :self.nFx]
+
+    @property
+    def faceDivy(self):
+        # more efficient to form full faceDiv then grab components when working
+        # with multiple components
+        return self.faceDiv[:, self.nFx:self.vnF[:2].sum()]
+
+    @property
+    def faceDivz(self):
+        # more efficient to form full faceDiv then grab components when working
+        # with multiple components
+        return self.faceDiv[:, self.vnF[:2].sum():]
 
     @property
     def edgeCurl(self):
@@ -1780,6 +1817,9 @@ class TreeMesh(BaseTensorMesh, InnerProducts, TreeMeshIO):
         if getattr(self, '_aveFx2CC', None) is None:
             I, J, V = [], [], []
             PM = [1./2.]*self.dim # 0.5, 0.5
+
+            if getattr(self, '_fx2i', None) is None:
+                self._numberFaces(force=True)
 
             for ii, ind in enumerate(self._sortedCells):
                 p = self._pointer(ind)

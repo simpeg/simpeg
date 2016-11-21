@@ -303,6 +303,7 @@ class DiffOperators(object):
         return BC
     _cellGradBC_list = 'neumann'
 
+    @property
     def _cellGradStencil(self):
         BC = self.setCellGradBC(self._cellGradBC_list)
         n = self.vnC
@@ -325,7 +326,7 @@ class DiffOperators(object):
         The cell centered Gradient, takes you to cell faces.
         """
         if getattr(self, '_cellGrad', None) is None:
-            G = self._cellGradStencil()
+            G = self._cellGradStencil
             S = self.area  # Compute areas of cell faces & volumes
             V = self.aveCC2F*self.vol  # Average volume between adjacent cells
             self._cellGrad = sdiag(S/V)*G
@@ -383,6 +384,7 @@ class DiffOperators(object):
     # _cellGradBC = None
     # cellGradBC = property(**cellGradBC())
 
+    @property
     def _cellGradxStencil(self):
         BC = ['neumann', 'neumann']
         n = self.vnC
@@ -401,15 +403,17 @@ class DiffOperators(object):
         conditions.
         """
         if getattr(self, '_cellGradx', None) is None:
-            G1 = self._cellGradxStencil()
+            G1 = self._cellGradxStencil
             # Compute areas of cell faces & volumes
             V = self.aveCC2F*self.vol
             L = self.r(self.area/V, 'F','Fx', 'V')
             self._cellGradx = sdiag(L)*G1
         return self._cellGradx
 
+    @property
     def _cellGradyStencil(self):
-        if self.dim < 2: return None
+        if self.dim < 2:
+            return None
         BC = ['neumann', 'neumann']
         n = self.vnC
         if(self.dim == 2):
@@ -423,15 +427,17 @@ class DiffOperators(object):
         if self.dim < 2:
             return None
         if getattr(self, '_cellGrady', None) is None:
-            G2 = self._cellGradyStencil()
+            G2 = self._cellGradyStencil
             # Compute areas of cell faces & volumes
             V = self.aveCC2F*self.vol
             L = self.r(self.area/V, 'F', 'Fy', 'V')
             self._cellGrady = sdiag(L)*G2
         return self._cellGrady
 
+    @property
     def _cellGradzStencil(self):
-        if self.dim < 3: return None
+        if self.dim < 3:
+            return None
         BC = ['neumann', 'neumann']
         n = self.vnC
         G3 = kron3(ddxCellGrad(n[2], BC), speye(n[1]), speye(n[0]))
@@ -446,7 +452,7 @@ class DiffOperators(object):
         if self.dim < 3:
             return None
         if getattr(self, '_cellGradz', None) is None:
-            G3 = self._cellGradzStencil()
+            G3 = self._cellGradzStencil
             # Compute areas of cell faces & volumes
             V = self.aveCC2F*self.vol
             L = self.r(self.area/V, 'F', 'Fz', 'V')

@@ -20,7 +20,7 @@ class RegularizationMesh(object):
 
     def __init__(self, mesh, indActive=None):
         self.mesh = mesh
-        assert indActive is None or indActive.dtype == 'bool', 'indActive needs to be None or a bool'
+        assert indActive is None or indActive.dtype == 'bool', ('indActive needs to be None or a bool')
         self.indActive = indActive
 
     @property
@@ -193,7 +193,19 @@ class RegularizationMesh(object):
         :return: differencing matrix for active cells in the x-direction
         """
         if getattr(self, '_cellDiffx', None) is None:
-            self._cellDiffx = self._Pafx.T * self.mesh.cellGradx * self._Pac
+            if getattr(self.mesh, 'cellGradx', None) is not None:
+                cellDiffx = self.mesh.cellGradx
+            elif getattr(self.mesh, 'faceDivx', None) is not None:
+                interior = self.mesh.aveFx2CC.T * np.ones(self.mesh.nC)
+                interior[interior < 1.] = 0.
+                interior = Utils.sdiag(interior)
+                cellDiffx = (self.mesh.faceDivx * interior).T
+            else:
+                raise NotImplementedError(
+                    "cellGradx or faceDivx must first be implemented on "
+                    "{}".format(self.mesh.__class__.__name__)
+                )
+            self._cellDiffx = self._Pafx.T * cellDiffx * self._Pac
         return self._cellDiffx
 
     @property
@@ -204,7 +216,19 @@ class RegularizationMesh(object):
         :return: differencing matrix for active cells in the y-direction
         """
         if getattr(self, '_cellDiffy', None) is None:
-            self._cellDiffy = self._Pafy.T * self.mesh.cellGrady * self._Pac
+            if getattr(self.mesh, 'cellGrady', None) is not None:
+                cellDiffy = self.mesh.cellGrady
+            elif getattr(self.mesh, 'faceDivy', None) is not None:
+                interior = self.mesh.aveFy2CC.T * np.ones(self.mesh.nC)
+                interior[interior < 1.] = 0.
+                interior = Utils.sdiag(interior)
+                cellDiffy = (self.mesh.faceDivy * interior).T
+            else:
+                raise NotImplementedError(
+                    "cellGrady or faceDivy must first be implemented on "
+                    "{}".format(self.mesh.__class__.__name__)
+                )
+            self._cellDiffy = self._Pafy.T * cellDiffy * self._Pac
         return self._cellDiffy
 
     @property
@@ -215,7 +239,19 @@ class RegularizationMesh(object):
         :return: differencing matrix for active cells in the z-direction
         """
         if getattr(self, '_cellDiffz', None) is None:
-            self._cellDiffz = self._Pafz.T * self.mesh.cellGradz * self._Pac
+            if getattr(self.mesh, 'cellGradz', None) is not None:
+                cellDiffz = self.mesh.cellGradz
+            elif getattr(self.mesh, 'faceDivz', None) is not None:
+                interior = self.mesh.aveFz2CC.T * np.ones(self.mesh.nC)
+                interior[interior < 1.] = 0.
+                interior = Utils.sdiag(interior)
+                cellDiffz = (self.mesh.faceDivz * interior).T
+            else:
+                raise NotImplementedError(
+                    "cellGradz or faceDivz must first be implemented on "
+                    "{}".format(self.mesh.__class__.__name__)
+                )
+            self._cellDiffz = self._Pafz.T * cellDiffz * self._Pac
         return self._cellDiffz
 
     @property
@@ -259,8 +295,19 @@ class RegularizationMesh(object):
         :return: differencing matrix for active cells in the x-direction
         """
         if getattr(self, '_cellDiffxStencil', None) is None:
-
-            self._cellDiffxStencil = self._Pafx.T * self.mesh._cellGradxStencil() * self._Pac
+            if getattr(self.mesh, '_cellGradxStencil', None) is not None:
+                cellDiffx = self.mesh._cellGradxStencil
+            elif getattr(self.mesh, '_faceDivxStencil', None) is not None:
+                interior = self.mesh.aveFx2CC.T * np.ones(self.mesh.nC)
+                interior[interior < 1.] = 0.
+                interior = Utils.sdiag(interior)
+                cellDiffx = (self.mesh._faceDivxStencil * interior).T
+            else:
+                raise NotImplementedError(
+                    "_cellGradxStencil or _faceDivxStencil must first be "
+                    "implemented on {}".format(self.mesh.__class__.__name__)
+                )
+            self._cellDiffxStencil = self._Pafx.T * cellDiffx * self._Pac
         return self._cellDiffxStencil
 
     @property
@@ -270,10 +317,22 @@ class RegularizationMesh(object):
         :rtype: scipy.sparse.csr_matrix
         :return: differencing matrix for active cells in the y-direction
         """
-        if self.dim < 2: return None
+        if self.dim < 2:
+            return None
         if getattr(self, '_cellDiffyStencil', None) is None:
-
-            self._cellDiffyStencil = self._Pafy.T * self.mesh._cellGradyStencil() * self._Pac
+            if getattr(self.mesh, '_cellGradyStencil', None) is not None:
+                cellDiffy = self.mesh._cellGradyStencil
+            elif getattr(self.mesh, '_faceDivyStencil', None) is not None:
+                interior = self.mesh.aveFy2CC.T * np.ones(self.mesh.nC)
+                interior[interior < 1.] = 0.
+                interior = Utils.sdiag(interior)
+                cellDiffy = (self.mesh._faceDivyStencil*interior).T
+            else:
+                raise NotImplementedError(
+                    "_cellGradyStencil or _faceDivyStencil must first be "
+                    "implemented on {}".format(self.mesh.__class__.__name__)
+                )
+            self._cellDiffyStencil = self._Pafy.T * cellDiffy * self._Pac
         return self._cellDiffyStencil
 
     @property
@@ -283,10 +342,22 @@ class RegularizationMesh(object):
         :rtype: scipy.sparse.csr_matrix
         :return: differencing matrix for active cells in the y-direction
         """
-        if self.dim < 3: return None
+        if self.dim < 3:
+            return None
         if getattr(self, '_cellDiffzStencil', None) is None:
-
-            self._cellDiffzStencil = self._Pafz.T * self.mesh._cellGradzStencil() * self._Pac
+            if getattr(self.mesh, '_cellGradzStencil', None) is not None:
+                cellDiffz = self.mesh._cellGradzStencil
+            elif getattr(self.mesh, '_faceDivzStencil', None) is not None:
+                interior = self.mesh.aveFz2CC.T * np.ones(self.mesh.nC)
+                interior[interior < 1.] = 0.
+                interior = Utils.sdiag(interior)
+                cellDiffz = (self.mesh._faceDivzStencil * interior).T
+            else:
+                raise NotImplementedError(
+                    "_cellGradzStencil or _faceDivzStencil must first be "
+                    "implemented on {}".format(self.mesh.__class__.__name__)
+                )
+            self._cellDiffzStencil = self._Pafz.T * cellDiffz * self._Pac
         return self._cellDiffzStencil
 
 
