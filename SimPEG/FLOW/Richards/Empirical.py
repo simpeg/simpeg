@@ -25,52 +25,10 @@ class NonLinearMap(Props.BaseSimPEG):
         self.mesh = mesh
         super(NonLinearMap, self).__init__(**kwargs)
 
-    def _transform(self, u, m):
-        """
-            :param numpy.array u: fields
-            :param numpy.array m: model
-            :rtype: numpy.array
-            :return: transformed model
-
-            The *transform* changes the model into the physical property.
-
-        """
-        return m
-
-    def derivU(self, u, m):
-        """
-            :param numpy.array u: fields
-            :param numpy.array m: model
-            :rtype: scipy.sparse.csr_matrix
-            :return: derivative of transformed model
-
-            The *transform* changes the model into the physical property.
-            The *transformDerivU* provides the derivative of the *transform* with respect to the fields.
-        """
-        raise NotImplementedError('The transformDerivU is not implemented.')
-
-    def derivM(self, u, m):
-        """
-            :param numpy.array u: fields
-            :param numpy.array m: model
-            :rtype: scipy.sparse.csr_matrix
-            :return: derivative of transformed model
-
-            The *transform* changes the model into the physical property.
-            The *transformDerivU* provides the derivative of the *transform* with respect to the model.
-        """
-        raise NotImplementedError('The transformDerivM is not implemented.')
-
     @property
     def nP(self):
         """Number of parameters in the model."""
         return self.mesh.nC
-
-    def example(self):
-        raise NotImplementedError('The example is not implemented.')
-
-    def test(self, m=None):
-        raise NotImplementedError('The test is not implemented.')
 
 
 class RichardsMap(object):
@@ -97,22 +55,22 @@ class RichardsMap(object):
         self._kModel = kModel
 
     def theta(self, u, m):
-        return self.thetaModel.transform(u, m)
+        return self.thetaModel(u, m)
 
     def thetaDerivM(self, u, m):
-        return self.thetaModel.transformDerivM(u, m)
+        return self.thetaModel.derivM(u, m)
 
     def thetaDerivU(self, u, m):
-        return self.thetaModel.transformDerivU(u, m)
+        return self.thetaModel.derivU(u, m)
 
     def k(self, u, m):
-        return self.kModel.transform(u, m)
+        return self.kModel(u, m)
 
     def kDerivM(self, u, m):
-        return self.kModel.transformDerivM(u, m)
+        return self.kModel.derivM(u, m)
 
     def kDerivU(self, u, m):
-        return self.kModel.transformDerivU(u, m)
+        return self.kModel.derivU(u, m)
 
     def plot(self, m):
         import matplotlib.pyplot as plt
@@ -190,7 +148,7 @@ class _haverkamp_theta(NonLinearMap):
     def setModel(self, m):
         self._currentModel = m
 
-    def transform(self, u, m):
+    def __call__(self, u, m):
         self.setModel(m)
         f = (
             self.alpha *
@@ -205,10 +163,10 @@ class _haverkamp_theta(NonLinearMap):
             f[u >= 0] = self.theta_s[u >= 0]
         return f
 
-    def transformDerivM(self, u, m):
+    def derivM(self, u, m):
         self.setModel(m)
 
-    def transformDerivU(self, u, m):
+    def derivU(self, u, m):
         self.setModel(m)
         g = (
             self.alpha * (
@@ -237,7 +195,7 @@ class _haverkamp_k(NonLinearMap):
         # TODO: Fix me!
         self.Ks = m
 
-    def transform(self, u, m):
+    def __call__(self, u, m):
         self.setModel(m)
         f = np.exp(self.Ks)*self.A/(self.A+abs(u)**self.gamma)
         if Utils.isScalar(self.Ks):
@@ -246,7 +204,7 @@ class _haverkamp_k(NonLinearMap):
             f[u >= 0] = np.exp(self.Ks[u >= 0])
         return f
 
-    def transformDerivM(self, u, m):
+    def derivM(self, u, m):
         self.setModel(m)
         # A
         # dA = np.exp(self.Ks)/(self.A+abs(u)**self.gamma) - np.exp(self.Ks)*self.A/(self.A+abs(u)**self.gamma)**2
@@ -254,9 +212,9 @@ class _haverkamp_k(NonLinearMap):
         # dgamma = -(self.A*np.exp(self.Ks)*np.log(abs(u))*abs(u)**self.gamma)/(self.A + abs(u)**self.gamma)**2
 
         # This assumes that the the model is Ks
-        return Utils.sdiag(self.transform(u, m))
+        return Utils.sdiag(self(u, m))
 
-    def transformDerivU(self, u, m):
+    def derivU(self, u, m):
         self.setModel(m)
         g = -(np.exp(self.Ks)*self.A*self.gamma*abs(u)**(self.gamma-1)*np.sign(u))/((self.A+abs(u)**self.gamma)**2)
         g[u >= 0] = 0
@@ -304,7 +262,7 @@ class _vangenuchten_theta(NonLinearMap):
     def setModel(self, m):
         self._currentModel = m
 
-    def transform(self, u, m):
+    def __call__(self, u, m):
         self.setModel(m)
         m = 1 - 1.0 / self.n
         f = (
@@ -323,10 +281,10 @@ class _vangenuchten_theta(NonLinearMap):
 
         return f
 
-    def transformDerivM(self, u, m):
+    def derivM(self, u, m):
         self.setModel(m)
 
-    def transformDerivU(self, u, m):
+    def derivU(self, u, m):
         g = -self.alpha*self.n*abs(self.alpha*u)**(self.n - 1)*np.sign(self.alpha*u)*(1./self.n - 1)*(self.theta_r - self.theta_s)*(abs(self.alpha*u)**self.n + 1)**(1./self.n - 2)
         g[u >= 0] = 0
         g = Utils.sdiag(g)
@@ -358,7 +316,7 @@ class _vangenuchten_k(NonLinearMap):
         m = 1.0 - 1.0/n
         return Ks, alpha, I, n, m
 
-    def transform(self, u, model):
+    def __call__(self, u, model):
         self.model = model
         Ks, alpha, I, n, m = self._get_params()
 
@@ -370,11 +328,11 @@ class _vangenuchten_k(NonLinearMap):
         )
         return f_p + f_n
 
-    def transformDerivM(self, u, model):
+    def derivM(self, u, model):
         self.model = model
-        return self.transformDerivM_Ks(u)
+        return self.derivM_Ks(u)
 
-    def transformDerivM_Ks(self, u):
+    def derivM_Ks(self, u):
         Ks, alpha, I, n, m = self._get_params()
         P_p, P_n = get_projections(u)  # Compute the positive/negative domains
         theta_e = 1.0/((1.0+abs(alpha*u)**n)**m)
@@ -384,19 +342,19 @@ class _vangenuchten_k(NonLinearMap):
         )
         return dKs_dm_p + dKs_dm_n
 
-    def transformDerivM_alpha(self, u):
+    def derivM_alpha(self, u):
         # dA = I*u*n*Ks*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2*(abs(alpha*u)**n + 1)**(1.0/n - 2) - (2*u*n*Ks*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/(((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n));
         pass
 
-    def transformDerivM_n(self, u):
+    def derivM_n(self, u):
         # dn = 2*Ks*((np.log(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n))/n**2 + ((1.0/n - 1)*(((np.log(abs(alpha*u)**n + 1)*(abs(alpha*u)**n + 1)**(1.0/n - 1))/n**2 - abs(alpha*u)**n*np.log(abs(alpha*u))*(1.0/n - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/((1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)) - np.log((abs(alpha*u)**n + 1)**(1.0/n - 1))/(n**2*(1.0/n - 1)**2*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))))/(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n))*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1) - I*Ks*((np.log(abs(alpha*u)**n + 1)*(abs(alpha*u)**n + 1)**(1.0/n - 1))/n**2 - abs(alpha*u)**n*np.log(abs(alpha*u))*(1.0/n - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2;
         pass
 
-    def transformDerivM_I(self, u):
+    def derivM_I(self, u):
         # dI = Ks*np.log((abs(alpha*u)**n + 1)**(1.0/n - 1))*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2;
         pass
 
-    def transformDerivU(self, u, model):
+    def derivU(self, u, model):
         self.model = model
         Ks, alpha, I, n, m = self._get_params()
 

@@ -24,7 +24,7 @@ class TestModels(unittest.TestCase):
         hav = Richards.Empirical._haverkamp_theta(mesh)
         m = np.random.randn(50)
         passed = checkDerivative(
-            lambda u: (hav.transform(u, m), hav.transformDerivU(u, m)),
+            lambda u: (hav(u, m), hav.derivU(u, m)),
             np.random.randn(50),
             plotIt=False
         )
@@ -35,7 +35,7 @@ class TestModels(unittest.TestCase):
         van = Richards.Empirical._vangenuchten_theta(mesh)
         m = np.random.randn(50)
         passed = checkDerivative(
-            lambda u: (van.transform(u, m), van.transformDerivU(u, m)),
+            lambda u: (van(u, m), van.derivU(u, m)),
             np.random.randn(50),
             plotIt=False
         )
@@ -46,7 +46,7 @@ class TestModels(unittest.TestCase):
         hav = Richards.Empirical._haverkamp_k(mesh)
         m = np.random.randn(50)
         passed = checkDerivative(
-            lambda u: (hav.transform(u, m), hav.transformDerivU(u, m)),
+            lambda u: (hav(u, m), hav.derivU(u, m)),
             np.random.randn(50),
             plotIt=False
         )
@@ -56,7 +56,7 @@ class TestModels(unittest.TestCase):
         u = np.random.randn(50)
 
         passed = checkDerivative(
-            lambda m: (hav.transform(u, m), hav.transformDerivM(u, m)),
+            lambda m: (hav(u, m), hav.derivM(u, m)),
             np.random.randn(50),
             plotIt=False
         )
@@ -71,7 +71,7 @@ class TestModels(unittest.TestCase):
         van.model = m
         print(van.KsDeriv)
         passed = checkDerivative(
-            lambda u: (van.transform(u, m), van.transformDerivU(u, m)),
+            lambda u: (van(u, m), van.derivU(u, m)),
             np.random.randn(5),
             plotIt=False
         )
@@ -81,7 +81,7 @@ class TestModels(unittest.TestCase):
         u = np.random.randn(5)
         print(u)
         passed = checkDerivative(
-            lambda m: (hav.transform(u, m), hav.transformDerivM(u, m)),
+            lambda m: (hav(u, m), hav.derivM(u, m)),
             np.random.randn(5),
             plotIt=False
         )
