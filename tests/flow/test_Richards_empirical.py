@@ -21,7 +21,7 @@ class TestModels(unittest.TestCase):
 
     def test_haverkamp_theta(self):
         mesh = Mesh.TensorMesh([50])
-        hav = Richards.Empirical._haverkamp_theta(mesh)
+        hav = Richards.Empirical.Haverkamp_theta(mesh)
         m = np.random.randn(50)
         passed = checkDerivative(
             lambda u: (hav(u, m), hav.derivU(u, m)),
@@ -32,7 +32,7 @@ class TestModels(unittest.TestCase):
 
     def test_vangenuchten_theta(self):
         mesh = Mesh.TensorMesh([50])
-        van = Richards.Empirical._vangenuchten_theta(mesh)
+        van = Richards.Empirical.Vangenuchten_theta(mesh)
         m = np.random.randn(50)
         passed = checkDerivative(
             lambda u: (van(u, m), van.derivU(u, m)),
@@ -43,7 +43,7 @@ class TestModels(unittest.TestCase):
 
     def test_haverkamp_k(self):
         mesh = Mesh.TensorMesh([50])
-        hav = Richards.Empirical._haverkamp_k(mesh)
+        hav = Richards.Empirical.Haverkamp_k(mesh)
         m = np.random.randn(50)
         passed = checkDerivative(
             lambda u: (hav(u, m), hav.derivU(u, m)),
@@ -52,7 +52,7 @@ class TestModels(unittest.TestCase):
         )
         self.assertTrue(passed, True)
 
-        hav = Richards.Empirical._haverkamp_k(mesh)
+        hav = Richards.Empirical.Haverkamp_k(mesh)
         u = np.random.randn(50)
 
         passed = checkDerivative(
@@ -65,7 +65,7 @@ class TestModels(unittest.TestCase):
     def test_vangenuchten_k(self):
         mesh = Mesh.TensorMesh([5])
         expmap = Maps.ExpMap(nP=5)
-        van = Richards.Empirical._vangenuchten_k(mesh, KsMap=expmap)
+        van = Richards.Empirical.Vangenuchten_k(mesh, KsMap=expmap)
 
         m = np.random.randn(5)
         van.model = m
@@ -77,7 +77,7 @@ class TestModels(unittest.TestCase):
         )
         self.assertTrue(passed, True)
 
-        hav = Richards.Empirical._vangenuchten_k(mesh, KsMap=expmap)
+        hav = Richards.Empirical.Vangenuchten_k(mesh, KsMap=expmap)
         u = np.random.randn(5)
         print(u)
         passed = checkDerivative(

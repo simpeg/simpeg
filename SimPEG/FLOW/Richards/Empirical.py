@@ -137,7 +137,7 @@ class HaverkampParams(object):
         }
 
 
-class _haverkamp_theta(NonLinearMap):
+class Haverkamp_theta(NonLinearMap):
 
     theta_s = 0.430
     theta_r = 0.078
@@ -183,7 +183,7 @@ class _haverkamp_theta(NonLinearMap):
         return g
 
 
-class _haverkamp_k(NonLinearMap):
+class Haverkamp_k(NonLinearMap):
 
     A = 1.175e+06
     gamma = 4.74
@@ -241,13 +241,13 @@ class Haverkamp(RichardsMap):
         RichardsMap.__init__(
             self,
             mesh,
-            _haverkamp_theta(mesh),
-            _haverkamp_k(mesh)
+            Haverkamp_theta(mesh),
+            Haverkamp_k(mesh)
         )
         Utils.setKwargs(self, **kwargs)
 
 
-class _vangenuchten_theta(NonLinearMap):
+class Vangenuchten_theta(NonLinearMap):
 
     theta_s = properties.Union(
         "saturated water content",
@@ -294,7 +294,7 @@ class _vangenuchten_theta(NonLinearMap):
         return g
 
 
-class _vangenuchten_k(NonLinearMap):
+class Vangenuchten_k(NonLinearMap):
 
     I = 0.500
     alpha = 0.036
@@ -308,8 +308,7 @@ class _vangenuchten_k(NonLinearMap):
     )
 
     def __init__(self, mesh, **kwargs):
-        NonLinearMap.__init__(self, mesh)
-        Utils.setKwargs(self, **kwargs)
+        NonLinearMap.__init__(self, mesh, **kwargs)
 
     def _get_params(self):
         alpha = self.alpha
@@ -389,8 +388,8 @@ class VanGenuchten(RichardsMap):
         RichardsMap.__init__(
             self,
             mesh,
-            _vangenuchten_theta(mesh),
-            _vangenuchten_k(mesh)
+            Vangenuchten_theta(mesh),
+            Vangenuchten_k(mesh)
         )
         Utils.setKwargs(self, **kwargs)
 
