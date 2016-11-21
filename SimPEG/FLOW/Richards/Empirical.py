@@ -1,17 +1,29 @@
-from SimPEG import Mesh, Utils, np
+import numpy as np
+import scipy.sparse as sp
+from SimPEG import Mesh, Utils, Props
+import properties
 
 
-class NonLinearMap(object):
-    """
-    SimPEG NonLinearMap
+def get_projections(u):
+    """Get the projections for each domain in the pressure head (u)"""
+    nP = len(u)
+    bools = u >= 0
+    ind_p = np.where(bools)[0]
+    ind_n = np.where(~bools)[0]
+    P_p = sp.csr_matrix((np.ones(len(ind_p)), (ind_p, ind_p)), shape=(nP, nP))
+    P_n = sp.csr_matrix((np.ones(len(ind_n)), (ind_n, ind_n)), shape=(nP, nP))
+    return P_p, P_n
 
-    """
+
+class NonLinearMap(Props.BaseSimPEG):
+    """SimPEG NonLinearMap"""
 
     counter = None   #: A SimPEG.Utils.Counter object
     mesh = None      #: A SimPEG Mesh
 
-    def __init__(self, mesh):
+    def __init__(self, mesh, **kwargs):
         self.mesh = mesh
+        super(NonLinearMap, self).__init__(**kwargs)
 
     def _transform(self, u, m):
         """
@@ -276,14 +288,18 @@ class Haverkamp(RichardsMap):
 
 class _vangenuchten_theta(NonLinearMap):
 
-    theta_s = 0.430
+    theta_s = properties.Union(
+        "saturated water content",
+        props=(
+            properties.Float(''),
+            properties.Array('')
+        ),
+        default=0.430
+    )
+
     theta_r = 0.078
     alpha = 0.036
     n = 1.560
-
-    def __init__(self, mesh, **kwargs):
-        NonLinearMap.__init__(self, mesh)
-        Utils.setKwargs(self, **kwargs)
 
     def setModel(self, m):
         self._currentModel = m
@@ -322,55 +338,69 @@ class _vangenuchten_k(NonLinearMap):
     I = 0.500
     alpha = 0.036
     n = 1.560
-    Ks = np.log(24.96)
+
+    model = Props.Model("model")
+
+    Ks, KsMap, KsDeriv = Props.Invertible(
+        "Saturated hydraulic conductivity",
+        default=24.96
+    )
 
     def __init__(self, mesh, **kwargs):
         NonLinearMap.__init__(self, mesh)
         Utils.setKwargs(self, **kwargs)
 
-    def setModel(self, m):
-        self._currentModel = m
-        # TODO: Fix me!
-        self.Ks = m
-
-    def transform(self, u, m):
-        self.setModel(m)
-
+    def _get_params(self):
         alpha = self.alpha
         I = self.I
         n = self.n
         Ks = self.Ks
         m = 1.0 - 1.0/n
+        return Ks, alpha, I, n, m
 
+    def transform(self, u, model):
+        self.model = model
+        Ks, alpha, I, n, m = self._get_params()
+
+        P_p, P_n = get_projections(u)  # Compute the positive/negative domains
         theta_e = 1.0/((1.0+abs(alpha*u)**n)**m)
-        f = np.exp(Ks)*theta_e**I * (
+        f_p = P_p * sp.eye(len(u)) * Ks  # identity ensures scalar Ks works
+        f_n = P_n * Ks * theta_e ** I * (
             (1.0 - (1.0 - theta_e**(1.0/m))**m)**2
         )
-        if Utils.isScalar(self.Ks):
-            f[u >= 0] = np.exp(self.Ks)
-        else:
-            f[u >= 0] = np.exp(self.Ks[u >= 0])
-        return f
+        return f_p + f_n
 
-    def transformDerivM(self, u, m):
-        self.setModel(m)
-        #alpha
-        # dA = I*u*n*np.exp(Ks)*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2*(abs(alpha*u)**n + 1)**(1.0/n - 2) - (2*u*n*np.exp(Ks)*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/(((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n));
-        #n
-        # dn = 2*np.exp(Ks)*((np.log(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n))/n**2 + ((1.0/n - 1)*(((np.log(abs(alpha*u)**n + 1)*(abs(alpha*u)**n + 1)**(1.0/n - 1))/n**2 - abs(alpha*u)**n*np.log(abs(alpha*u))*(1.0/n - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/((1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)) - np.log((abs(alpha*u)**n + 1)**(1.0/n - 1))/(n**2*(1.0/n - 1)**2*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))))/(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n))*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1) - I*np.exp(Ks)*((np.log(abs(alpha*u)**n + 1)*(abs(alpha*u)**n + 1)**(1.0/n - 1))/n**2 - abs(alpha*u)**n*np.log(abs(alpha*u))*(1.0/n - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2;
-        #I
-        # dI = np.exp(Ks)*np.log((abs(alpha*u)**n + 1)**(1.0/n - 1))*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2;
-        return Utils.sdiag(self.transform(u, m)) # This assumes that the the model is Ks
+    def transformDerivM(self, u, model):
+        self.model = model
+        return self.transformDerivM_Ks(u)
 
-    def transformDerivU(self, u, m):
-        self.setModel(m)
-        alpha = self.alpha
-        I = self.I
-        n = self.n
-        Ks = self.Ks
-        m = 1.0 - 1.0/n
+    def transformDerivM_Ks(self, u):
+        Ks, alpha, I, n, m = self._get_params()
+        P_p, P_n = get_projections(u)  # Compute the positive/negative domains
+        theta_e = 1.0/((1.0+abs(alpha*u)**n)**m)
+        dKs_dm_p = P_p * self.KsDeriv
+        dKs_dm_n = P_n * self.KsDeriv * Utils.sdiag(
+            theta_e ** I * ((1.0 - (1.0 - theta_e**(1.0/m))**m)**2)
+        )
+        return dKs_dm_p + dKs_dm_n
 
-        g = I*alpha*n*np.exp(Ks)*abs(alpha*u)**(n - 1.0)*np.sign(alpha*u)*(1.0/n - 1.0)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2*(abs(alpha*u)**n + 1)**(1.0/n - 2) - (2*alpha*n*np.exp(Ks)*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/(((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n))
+    def transformDerivM_alpha(self, u):
+        # dA = I*u*n*Ks*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2*(abs(alpha*u)**n + 1)**(1.0/n - 2) - (2*u*n*Ks*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/(((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n));
+        pass
+
+    def transformDerivM_n(self, u):
+        # dn = 2*Ks*((np.log(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n))/n**2 + ((1.0/n - 1)*(((np.log(abs(alpha*u)**n + 1)*(abs(alpha*u)**n + 1)**(1.0/n - 1))/n**2 - abs(alpha*u)**n*np.log(abs(alpha*u))*(1.0/n - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/((1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)) - np.log((abs(alpha*u)**n + 1)**(1.0/n - 1))/(n**2*(1.0/n - 1)**2*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))))/(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n))*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1) - I*Ks*((np.log(abs(alpha*u)**n + 1)*(abs(alpha*u)**n + 1)**(1.0/n - 1))/n**2 - abs(alpha*u)**n*np.log(abs(alpha*u))*(1.0/n - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2;
+        pass
+
+    def transformDerivM_I(self, u):
+        # dI = Ks*np.log((abs(alpha*u)**n + 1)**(1.0/n - 1))*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2;
+        pass
+
+    def transformDerivU(self, u, model):
+        self.model = model
+        Ks, alpha, I, n, m = self._get_params()
+
+        g = I*alpha*n*Ks*abs(alpha*u)**(n - 1.0)*np.sign(alpha*u)*(1.0/n - 1.0)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2*(abs(alpha*u)**n + 1)**(1.0/n - 2) - (2*alpha*n*Ks*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/(((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n))
         g[u >= 0] = 0
         g = Utils.sdiag(g)
         return g
@@ -385,7 +415,7 @@ class VanGenuchten(RichardsMap):
     alpha = _ModelProperty('alpha',   ['thetaModel', 'kModel'], default=0.036)
     n = _ModelProperty('n', ['thetaModel', 'kModel'], default=1.560)
 
-    Ks = _ModelProperty('Ks', ['kModel'], default=np.log(24.96))
+    Ks = _ModelProperty('Ks', ['kModel'], default=24.96)
     I = _ModelProperty('I', ['kModel'], default=0.500)
 
     def __init__(self, mesh, **kwargs):
