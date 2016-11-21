@@ -144,10 +144,6 @@ class Haverkamp_theta(NonLinearMap):
     alpha = 0.036
     beta = 3.960
 
-    def __init__(self, mesh, **kwargs):
-        NonLinearMap.__init__(self, mesh)
-        Utils.setKwargs(self, **kwargs)
-
     def setModel(self, m):
         self._currentModel = m
 
@@ -188,10 +184,6 @@ class Haverkamp_k(NonLinearMap):
     A = 1.175e+06
     gamma = 4.74
     Ks = np.log(24.96)
-
-    def __init__(self, mesh, **kwargs):
-        NonLinearMap.__init__(self, mesh)
-        Utils.setKwargs(self, **kwargs)
 
     def setModel(self, m):
         self._currentModel = m
@@ -306,9 +298,6 @@ class Vangenuchten_k(NonLinearMap):
         "Saturated hydraulic conductivity",
         default=24.96
     )
-
-    def __init__(self, mesh, **kwargs):
-        NonLinearMap.__init__(self, mesh, **kwargs)
 
     def _get_params(self):
         alpha = self.alpha
