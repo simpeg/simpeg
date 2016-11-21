@@ -18,7 +18,7 @@ class RichardsRx(Survey.BaseTimeRx):
 
     knownRxTypes = ['saturation', 'pressureHead']
 
-    def eval(self, U, m, mapping, mesh, timeMesh):
+    def __call__(self, U, m, mapping, mesh, timeMesh):
 
         if self.rxType == 'pressureHead':
             u = np.concatenate(U)
@@ -27,7 +27,7 @@ class RichardsRx(Survey.BaseTimeRx):
 
         return self.getP(mesh, timeMesh) * u
 
-    def evalDeriv(self, U, m, mapping, mesh, timeMesh):
+    def deriv(self, U, m, mapping, mesh, timeMesh):
 
         P = self.getP(mesh, timeMesh)
         if self.rxType == 'pressureHead':
@@ -41,7 +41,7 @@ class RichardsRx(Survey.BaseTimeRx):
 
 
 class RichardsSurvey(Survey.BaseSurvey):
-    """docstring for RichardsSurvey"""
+    """RichardsSurvey"""
 
     rxList = None
 
@@ -69,13 +69,13 @@ class RichardsSurvey(Survey.BaseSurvey):
         if f is None:
             f = self.prob.fields(m)
 
-        return Utils.mkvc(self.eval(f, m))
+        return Utils.mkvc(self(f, m))
 
     @Utils.requires('prob')
-    def eval(self, U, m):
+    def __call__(self, U, m):
         Ds = list(range(len(self.rxList)))
         for ii, rx in enumerate(self.rxList):
-            Ds[ii] = rx.eval(
+            Ds[ii] = rx(
                 U, m,
                 self.prob.mapping,
                 self.prob.mesh,
@@ -85,11 +85,11 @@ class RichardsSurvey(Survey.BaseSurvey):
         return np.concatenate(Ds)
 
     @Utils.requires('prob')
-    def evalDeriv(self, U, m):
+    def deriv(self, U, m):
         """The Derivative with respect to the fields."""
         Ds = list(range(len(self.rxList)))
         for ii, rx in enumerate(self.rxList):
-            Ds[ii] = rx.evalDeriv(
+            Ds[ii] = rx.deriv(
                 U, m,
                 self.prob.mapping,
                 self.prob.mesh,
@@ -100,7 +100,7 @@ class RichardsSurvey(Survey.BaseSurvey):
 
 
 class RichardsProblem(Problem.BaseTimeProblem):
-    """docstring for RichardsProblem"""
+    """RichardsProblem"""
 
     mapping = properties.Property("the mapping")
 
@@ -315,7 +315,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
         B = np.array(sp.vstack(Bs).todense())
 
         Ainv = self.Solver(A, **self.solverOpts)
-        P = self.survey.evalDeriv(f, m)
+        P = self.survey.deriv(f, m)
         AinvB = Ainv * B
         z = np.zeros((self.mesh.nC, B.shape[1]))
         zAinvB = np.vstack((z, AinvB))
@@ -345,7 +345,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
             Adiaginv = self.Solver(Adiag, **self.solverOpts)
             JvC[ii] = Adiaginv * (B*v - Asub*JvC[ii-1])
 
-        P = self.survey.evalDeriv(f, m)
+        P = self.survey.deriv(f, m)
         return P * np.concatenate([np.zeros(self.mesh.nC)] + JvC)
 
     @Utils.timeIt
@@ -353,7 +353,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
         if f is None:
             f = self.field(m)
 
-        P = self.survey.evalDeriv(f, m)
+        P = self.survey.deriv(f, m)
         PTv = P.T*v
 
         # This is done via backward substitution.

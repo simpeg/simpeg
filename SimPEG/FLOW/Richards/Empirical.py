@@ -30,6 +30,9 @@ class NonLinearMap(Props.BaseSimPEG):
         """Number of parameters in the model."""
         return self.mesh.nC
 
+# BaseTheta
+# BaseK
+
 
 class RichardsMap(object):
     """docstring for RichardsMap"""
@@ -330,9 +333,12 @@ class _vangenuchten_k(NonLinearMap):
 
     def derivM(self, u, model):
         self.model = model
-        return self.derivM_Ks(u)
+        return self._derivKs(u)
 
-    def derivM_Ks(self, u):
+    def _derivKs(self, u):
+        if self.KsMap is None:
+            return Utils.Zero()
+
         Ks, alpha, I, n, m = self._get_params()
         P_p, P_n = get_projections(u)  # Compute the positive/negative domains
         theta_e = 1.0/((1.0+abs(alpha*u)**n)**m)
@@ -342,17 +348,20 @@ class _vangenuchten_k(NonLinearMap):
         )
         return dKs_dm_p + dKs_dm_n
 
-    def derivM_alpha(self, u):
+    def _derivAlpha(self, u):
+        if self.alphaMap is None:
+            return Utils.Zero()
         # dA = I*u*n*Ks*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2*(abs(alpha*u)**n + 1)**(1.0/n - 2) - (2*u*n*Ks*abs(alpha*u)**(n - 1)*np.sign(alpha*u)*(1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/(((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n));
-        pass
 
-    def derivM_n(self, u):
+    def _derivN(self, u):
+        if self.nMap is None:
+            return Utils.Zero()
         # dn = 2*Ks*((np.log(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))*(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n))/n**2 + ((1.0/n - 1)*(((np.log(abs(alpha*u)**n + 1)*(abs(alpha*u)**n + 1)**(1.0/n - 1))/n**2 - abs(alpha*u)**n*np.log(abs(alpha*u))*(1.0/n - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))/((1.0/n - 1)*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1) + 1)) - np.log((abs(alpha*u)**n + 1)**(1.0/n - 1))/(n**2*(1.0/n - 1)**2*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))))/(1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1.0/n))*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1) - I*Ks*((np.log(abs(alpha*u)**n + 1)*(abs(alpha*u)**n + 1)**(1.0/n - 1))/n**2 - abs(alpha*u)**n*np.log(abs(alpha*u))*(1.0/n - 1)*(abs(alpha*u)**n + 1)**(1.0/n - 2))*((abs(alpha*u)**n + 1)**(1.0/n - 1))**(I - 1)*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2;
-        pass
 
-    def derivM_I(self, u):
+    def _derivI(self, u):
+        if self.iMap is None:
+            return Utils.Zero()
         # dI = Ks*np.log((abs(alpha*u)**n + 1)**(1.0/n - 1))*((abs(alpha*u)**n + 1)**(1.0/n - 1))**I*((1 - 1.0/((abs(alpha*u)**n + 1)**(1.0/n - 1))**(1.0/(1.0/n - 1)))**(1 - 1.0/n) - 1)**2;
-        pass
 
     def derivU(self, u, model):
         self.model = model
@@ -388,8 +397,8 @@ class VanGenuchten(RichardsMap):
 
 class VanGenuchtenParams(object):
     """
-        The RETC code for quantifying the hydraulic functions of unsaturated soils,
-        Van Genuchten, M Th, Leij, F J, Yates, S R
+        The RETC code for quantifying the hydraulic functions of unsaturated
+        soils, Van Genuchten, M Th, Leij, F J, Yates, S R
 
         Table 3: Average values for selected soil water retention and hydraulic
         conductivity parameters for 11 major soil textural groups
