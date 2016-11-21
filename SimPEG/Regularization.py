@@ -197,7 +197,7 @@ class RegularizationMesh(object):
                 cellDiffx = self.mesh.cellGradx
             elif getattr(self.mesh, 'faceDivx', None) is not None:
                 interior = self.mesh.aveFx2CC.T * np.ones(self.mesh.nC)
-                interior[interior < 1.] = 0.
+                interior[interior != 1.] = 0.
                 interior = Utils.sdiag(interior)
                 cellDiffx = (self.mesh.faceDivx * interior).T
             else:
@@ -220,7 +220,7 @@ class RegularizationMesh(object):
                 cellDiffy = self.mesh.cellGrady
             elif getattr(self.mesh, 'faceDivy', None) is not None:
                 interior = self.mesh.aveFy2CC.T * np.ones(self.mesh.nC)
-                interior[interior < 1.] = 0.
+                interior[interior != 1.] = 0.
                 interior = Utils.sdiag(interior)
                 cellDiffy = (self.mesh.faceDivy * interior).T
             else:
@@ -243,7 +243,7 @@ class RegularizationMesh(object):
                 cellDiffz = self.mesh.cellGradz
             elif getattr(self.mesh, 'faceDivz', None) is not None:
                 interior = self.mesh.aveFz2CC.T * np.ones(self.mesh.nC)
-                interior[interior < 1.] = 0.
+                interior[interior != 1.] = 0.
                 interior = Utils.sdiag(interior)
                 cellDiffz = (self.mesh.faceDivz * interior).T
             else:
@@ -299,7 +299,7 @@ class RegularizationMesh(object):
                 cellDiffx = self.mesh._cellGradxStencil
             elif getattr(self.mesh, '_faceDivxStencil', None) is not None:
                 interior = self.mesh.aveFx2CC.T * np.ones(self.mesh.nC)
-                interior[interior < 1.] = 0.
+                interior[interior != 1.] = 0.
                 interior = Utils.sdiag(interior)
                 cellDiffx = (self.mesh._faceDivxStencil * interior).T
             else:
@@ -324,7 +324,7 @@ class RegularizationMesh(object):
                 cellDiffy = self.mesh._cellGradyStencil
             elif getattr(self.mesh, '_faceDivyStencil', None) is not None:
                 interior = self.mesh.aveFy2CC.T * np.ones(self.mesh.nC)
-                interior[interior < 1.] = 0.
+                interior[interior != 1.] = 0.
                 interior = Utils.sdiag(interior)
                 cellDiffy = (self.mesh._faceDivyStencil*interior).T
             else:
@@ -349,7 +349,7 @@ class RegularizationMesh(object):
                 cellDiffz = self.mesh._cellGradzStencil
             elif getattr(self.mesh, '_faceDivzStencil', None) is not None:
                 interior = self.mesh.aveFz2CC.T * np.ones(self.mesh.nC)
-                interior[interior < 1.] = 0.
+                interior[interior != 1.] = 0.
                 interior = Utils.sdiag(interior)
                 cellDiffz = (self.mesh._faceDivzStencil * interior).T
             else:
@@ -968,7 +968,6 @@ class Tikhonov(Simple):
 
         """
         return self._evalSmall2Deriv(m, v) + self._evalSmooth2Deriv(m, v) + self._evalSmooth2Deriv2(m, v)
-
 
 
 class Sparse(Simple):
