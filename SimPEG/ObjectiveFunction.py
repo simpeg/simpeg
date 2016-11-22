@@ -10,13 +10,14 @@ import warnings
 from . import Utils
 from .Tests import checkDerivative
 from . import Maps
+from . import Props
 
 __all__ = [
     'BaseObjectiveFunction', 'ComboObjectiveFunction', 'L2ObjectiveFunction'
 ]
 
 
-class BaseObjectiveFunction(object):
+class BaseObjectiveFunction(Props.BaseSimPEG):
 
     counter = None
     debug = False
