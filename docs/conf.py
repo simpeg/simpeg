@@ -251,7 +251,7 @@ intersphinx_mapping = {
     'numpy': ('http://docs.scipy.org/doc/numpy/', None),
     'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
     'matplotlib': ('http://matplotlib.sourceforge.net/', None),
-    'properties': ('http://propertiespy.readthedocs.io/', None)
+    'properties': ('http://propertiespy.readthedocs.io/en/latest/', None)
 }
 
 
