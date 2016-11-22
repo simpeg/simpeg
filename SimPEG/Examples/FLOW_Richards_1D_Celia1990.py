@@ -1,6 +1,8 @@
-from SimPEG import Mesh, np
-from SimPEG.FLOW import Richards
 import matplotlib.pyplot as plt
+import numpy as np
+
+from SimPEG import Mesh, Maps
+from SimPEG.FLOW import Richards
 
 
 def run(plotIt=True):
@@ -49,8 +51,9 @@ def run(plotIt=True):
     M = Mesh.TensorMesh([np.ones(40)])
     M.setCellGradBC('dirichlet')
     params = Richards.Empirical.HaverkampParams().celia1990
-    params['Ks'] = np.log(params['Ks'])
+    # params['Ks'] = np.log(params['Ks'])
     E = Richards.Empirical.Haverkamp(M, **params)
+    E.kModel.KsMap = Maps.IdentityMap(nP=M.nC)
 
     bc = np.array([-61.5, -20.7])
     h = np.zeros(M.nC) + bc[0]
@@ -65,7 +68,7 @@ def run(plotIt=True):
             doNewton=False, method=method
         )
         prob.timeSteps = timeSteps
-        return prob.fields(params['Ks'])
+        return prob.fields(params['Ks'] * np.ones(M.nC))
 
     Hs_M010 = getFields(10., 'mixed')
     Hs_M030 = getFields(30., 'mixed')

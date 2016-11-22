@@ -2,6 +2,7 @@ from __future__ import print_function
 import unittest
 import numpy as np
 from SimPEG import Mesh
+from SimPEG import Maps
 from SimPEG import Utils
 from SimPEG.Tests import checkDerivative
 from SimPEG.FLOW import Richards
@@ -25,6 +26,7 @@ class RichardsTests1D(unittest.TestCase):
         params = Richards.Empirical.HaverkampParams().celia1990
         params['Ks'] = np.log(params['Ks'])
         E = Richards.Empirical.Haverkamp(M, **params)
+        E.kModel.KsMap = Maps.ExpMap(nP=M.nC)
 
         bc = np.array([-61.5, -20.7])
         h = np.zeros(M.nC) + bc[0]
@@ -47,7 +49,7 @@ class RichardsTests1D(unittest.TestCase):
 
         self.h0 = h
         self.M = M
-        self.Ks = params['Ks']
+        self.Ks = params['Ks'] * np.ones(self.M.nC)
         self.prob = prob
         self.survey = survey
 
@@ -135,6 +137,7 @@ class RichardsTests2D(unittest.TestCase):
         params = Richards.Empirical.HaverkampParams().celia1990
         params['Ks'] = np.log(params['Ks'])
         E = Richards.Empirical.Haverkamp(M, **params)
+        E.kModel.KsMap = Maps.ExpMap(nP=M.nC)
 
         bc = np.array([-61.5, -20.7])
         bc = np.r_[
@@ -167,7 +170,7 @@ class RichardsTests2D(unittest.TestCase):
 
         self.h0 = h
         self.M = M
-        self.Ks = params['Ks']
+        self.Ks = params['Ks'] * np.ones(M.nC)
         self.prob = prob
         self.survey = survey
 
@@ -252,6 +255,7 @@ class RichardsTests3D(unittest.TestCase):
         params = Richards.Empirical.HaverkampParams().celia1990
         params['Ks'] = np.log(params['Ks'])
         E = Richards.Empirical.Haverkamp(M, **params)
+        E.kModel.KsMap = Maps.ExpMap(nP=M.nC)
 
         bc = np.array([-61.5, -20.7])
         bc = np.r_[
@@ -284,7 +288,7 @@ class RichardsTests3D(unittest.TestCase):
 
         self.h0 = h
         self.M = M
-        self.Ks = params['Ks']
+        self.Ks = params['Ks'] * np.ones(M.nC)
         self.prob = prob
         self.survey = survey
 

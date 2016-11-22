@@ -181,40 +181,82 @@ class Haverkamp_theta(NonLinearMap):
 
 class Haverkamp_k(NonLinearMap):
 
-    A = 1.175e+06
-    gamma = 4.74
-    Ks = np.log(24.96)
+    model = Props.Model("model")
 
-    def setModel(self, m):
-        self._currentModel = m
-        # TODO: Fix me!
-        self.Ks = m
+    Ks, KsMap, KsDeriv = Props.Invertible(
+        "Saturated hydraulic conductivity",
+        default=24.96
+    )
 
-    def __call__(self, u, m):
-        self.setModel(m)
-        f = np.exp(self.Ks)*self.A/(self.A+abs(u)**self.gamma)
-        if Utils.isScalar(self.Ks):
-            f[u >= 0] = np.exp(self.Ks)
-        else:
-            f[u >= 0] = np.exp(self.Ks[u >= 0])
-        return f
+    A, AMap, ADeriv = Props.Invertible(
+        "fitting parameter",
+        default=1.175e+06
+    )
 
-    def derivM(self, u, m):
-        self.setModel(m)
-        # A
-        # dA = np.exp(self.Ks)/(self.A+abs(u)**self.gamma) - np.exp(self.Ks)*self.A/(self.A+abs(u)**self.gamma)**2
-        # gamma
-        # dgamma = -(self.A*np.exp(self.Ks)*np.log(abs(u))*abs(u)**self.gamma)/(self.A + abs(u)**self.gamma)**2
+    gamma, gammaMap, gammaDeriv = Props.Invertible(
+        "fitting parameter",
+        default=4.74
+    )
 
-        # This assumes that the the model is Ks
-        return Utils.sdiag(self(u, m))
+    def _get_params(self):
+        A = self.A
+        gamma = self.gamma
+        Ks = self.Ks
+        return Ks, A, gamma
 
-    def derivU(self, u, m):
-        self.setModel(m)
-        g = -(np.exp(self.Ks)*self.A*self.gamma*abs(u)**(self.gamma-1)*np.sign(u))/((self.A+abs(u)**self.gamma)**2)
+    def __call__(self, u, model):
+        self.model = model
+        Ks, A, gamma = self._get_params()
+        P_p, P_n = get_projections(u)  # Compute the positive/negative domains
+        f_p = P_p * sp.eye(len(u)) * Ks  # identity ensures scalar Ks works
+        f_n = P_n * Ks * A / (A + abs(u)**gamma)
+        return f_p + f_n
+
+    def derivU(self, u, model):
+        self.model = model
+        Ks, A, gamma = self._get_params()
+        g = -(Ks*A*gamma*abs(u)**(gamma-1)*np.sign(u))/((A+abs(u)**gamma)**2)
         g[u >= 0] = 0
-        g = Utils.sdiag(g)
-        return g
+        return Utils.sdiag(g)
+
+    def derivM(self, u, model):
+        self.model = model
+        return self._derivKs(u) + self._derivA(u) + self._derivGamma(u)
+
+    def _derivKs(self, u):
+        if self.KsMap is None:
+            return Utils.Zero()
+
+        Ks, A, gamma = self._get_params()
+        P_p, P_n = get_projections(u)  # Compute the positive/negative domains
+
+        dKs_dm_p = P_p * self.KsDeriv
+        dKs_dm_n = P_n * Utils.sdiag(A/(A + abs(u)**gamma)) * self.KsDeriv
+        return dKs_dm_p + dKs_dm_n
+
+    def _derivA(self, u):
+        if self.AMap is None:
+            return Utils.Zero()
+
+        Ks, A, gamma = self._get_params()
+        P_p, P_n = get_projections(u)  # Compute the positive/negative domains
+
+        dA_dm_n = P_n * Utils.sdiag(
+            Ks / (A + abs(u)**gamma) - Ks*A/(A + abs(u)**gamma)**2
+        ) * self.ADeriv
+        return dA_dm_n  # positive term is zero
+
+    def _derivGamma(self, u):
+        if self.gammaMap is None:
+            return Utils.Zero()
+
+        Ks, A, gamma = self._get_params()
+        P_p, P_n = get_projections(u)  # Compute the positive/negative domains
+
+        dGamma_dm_n = P_n * Utils.sdiag(
+            -(A*Ks*np.log(abs(u))*abs(u)**gamma)/(A + abs(u)**gamma)**2
+        ) * self.gammaDeriv
+        return dGamma_dm_n  # positive term is zero
 
 
 class Haverkamp(RichardsMap):
