@@ -57,10 +57,10 @@ Useful Links
 ============
 An enormous amount of information (including tutorials and examples) can be found on the official websites of the packages
 
-* `Python Website <http://www.python.org/>`_
-* `Numpy Website <http://www.numpy.org/>`_
-* `SciPy Website <http://www.scipy.org/>`_
-* `Matplotlib <http://matplotlib.org/>`_
+* `Python Website <https://www.python.org/>`_
+* `Numpy Website <https://www.numpy.org/>`_
+* `SciPy Website <https://www.scipy.org/>`_
+* `Matplotlib <https://matplotlib.org/>`_
 
 Python for scientific computing
 -------------------------------
@@ -77,15 +77,15 @@ Numpy and Matlab
 Lessons in Python
 -----------------
 
-* `Software Carpentry <http://swcarpentry.github.io/python-novice-inflammation/>`_
-* `Introduction to NumPy and Matplotlib <http://www.youtube.com/watch?v=3Fp1zn5ao2M>`_
+* `Software Carpentry <https://swcarpentry.github.io/python-novice-inflammation/>`_
+* `Introduction to NumPy and Matplotlib <https://www.youtube.com/watch?v=3Fp1zn5ao2M>`_
 
 Editing Python
 --------------
 
 There are numerous ways to edit and test Python (see `PythonWiki <http://wiki.python.org/moin/PythonEditors>`_ for an overview) and in our group at least the following options are being used:
 
-* `Sublime <http://www.sublimetext.com/>`_
-* `iPython Notebook <http://ipython.org/notebook.html>`_
-* `iPython <http://ipython.org/>`_
+* `Sublime <https://www.sublimetext.com/>`_
+* `iPython Notebook <https://ipython.org/notebook.html>`_
+* `iPython <https://ipython.org/>`_
 * `Enthought Canopy <https://www.enthought.com/products/canopy/>`_
