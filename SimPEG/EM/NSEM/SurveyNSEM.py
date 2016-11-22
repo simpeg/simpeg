@@ -2,9 +2,9 @@
 
 Module for Survey information of NSEM.
 This includes
-    Sources
-    Receivers
-    Locations
+Sources
+Receivers
+Locations
 
 And relates to Data
 

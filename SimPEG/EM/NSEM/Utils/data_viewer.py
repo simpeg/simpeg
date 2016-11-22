@@ -23,9 +23,9 @@ class NSEM_data_viewer(object):
         self._data_dict = data_dict
         # Set the default component
         if data_dict is not None:
-            self.data_comp = data_dict.keys()[0]
+            self.dict_comp = data_dict.keys()[0]
         else:
-            self.data_comp = None
+            self._dict_comp = None
         # Open the location figure
         self.location_fig, self._location_ax = self._data.plot_data_locations(
             picker=5
