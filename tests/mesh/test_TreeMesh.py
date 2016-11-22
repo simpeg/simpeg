@@ -8,6 +8,7 @@ import unittest
 TOL = 1e-8
 np.random.seed(12)
 
+
 class TestSimpleQuadTree(unittest.TestCase):
 
     def test_counts(self):
