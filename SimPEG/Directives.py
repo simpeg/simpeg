@@ -313,6 +313,9 @@ class Update_IRLS(InversionDirective):
     coolingFactor = 2.
     coolingRate = 1
 
+    # store the l2model
+    l2model = None
+
     mode = 1
 
     @property

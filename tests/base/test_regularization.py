@@ -61,7 +61,6 @@ class RegularizationTests(unittest.TestCase):
                     mref = np.ones_like(m)*np.mean(m)
                     reg.mref = mref
 
-
                     print('Check: phi_m (mref) = {0:f}'.format(reg(mref)))
                     passed = reg(mref) < TOL
                     self.assertTrue(passed)
@@ -103,7 +102,7 @@ class RegularizationTests(unittest.TestCase):
                     if mesh.dim < 2 and r.__name__[-1] == 'y':
                         continue
 
-                    for indAct in [indActive]: #, indActive.nonzero()[0]]: # test both bool and integers
+                    for indAct in [indActive, indActive.nonzero()[0]]: # test both bool and integers
                         reg = r(mesh, indActive=indAct)
                         m = np.random.rand(mesh.nC)[indAct]
                         mref = np.ones_like(m)*np.mean(m)
