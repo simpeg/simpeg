@@ -100,11 +100,16 @@ class l2_DataMisfit(BaseDataMisfit):
         if self.std is None:
             if getattr(self.survey, 'std', None) is None:
                 print('SimPEG.DataMisfit.l2_DataMisfit assigning default std of 5%')
-                survey.std = 0.05 # default
+                self.std = 0.05 # default
+            else:
+                self.std = self.survey.std
 
+        if self.eps is None:
             if getattr(self.survey, 'eps', None) is None:
                 print('SimPEG.DataMisfit.l2_DataMisfit assigning default eps of 1e-5 * ||dobs||')
-                survey.eps = np.linalg.norm(Utils.mkvc(survey.dobs), 2)*1e-5  # default
+                self.eps = np.linalg.norm(Utils.mkvc(survey.dobs), 2)*1e-5  # default
+            else:
+                self.eps = self.survey.eps
 
     @property
     def W(self):
@@ -119,20 +124,12 @@ class l2_DataMisfit(BaseDataMisfit):
 
         """
 
-        if getattr(self, '_Wd', None) is None:
+        if getattr(self, '_W', None) is None:
 
             survey = self.survey
+            self._W = Utils.sdiag(1/(abs(survey.dobs)*self.std+self.eps))
 
-            if getattr(survey,'std', None) is None:
-                print('SimPEG.DataMisfit.l2_DataMisfit assigning default std of 5%')
-                survey.std = 0.05
-
-            if getattr(survey, 'eps', None) is None:
-                print('SimPEG.DataMisfit.l2_DataMisfit assigning default eps of 1e-5 * ||dobs||')
-                survey.eps = np.linalg.norm(Utils.mkvc(survey.dobs), 2)*1e-5
-
-            self._Wd = Utils.sdiag(1/(abs(survey.dobs)*survey.std+survey.eps))
-        return self._Wd
+        return self._W
 
     @W.setter
     def W(self, value):
@@ -140,7 +137,7 @@ class l2_DataMisfit(BaseDataMisfit):
 
     @Utils.timeIt
     def _eval(self, m, f=None):
-        "eval(m, f=None)"
+        "_eval(m, f=None)"
         if f is None:
             f = self.prob.fields(m)
         R = self.W * self.survey.residual(m, f)
