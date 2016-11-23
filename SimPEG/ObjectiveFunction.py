@@ -171,16 +171,22 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             for mult in multipliers:
                 assert(type(mult) in self._multiplier_types), (
                     "Objective Functions can only be multiplied by a float, or"
-                    " a properties.Float, not a {}, {}".format(type(mult), mult)
+                    " a properties.Float, not a {}, {}".format(
+                        type(mult), mult
+                    )
                 )
             assert len(multipliers) == len(self.objfcts), (
                 "Length of multipliers ({}) must be the same as the length of "
                 "objfcts ({})".format(len(multipliers), len(self.objfcts))
             )
-        self.multipliers = multipliers
+        self._multipliers = multipliers
 
         super(ComboObjectiveFunction, self).__init__(**kwargs)
         self._nP = nP
+
+    @property
+    def multipliers(self):
+        return self._multipliers
 
     def _eval(self, x, **kwargs):
         f = Utils.Zero()
@@ -206,7 +212,8 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
                 H += multpliter * objfct_H
         return H
 
-    # This assumes all objective functions have a W. The base class currently does not.
+    # This assumes all objective functions have a W.
+    # The base class currently does not.
     @property
     def W(self):
         W = []
@@ -228,7 +235,7 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
             else:
                 assert(W.shape[0]) == self.nP, (
                     'nP must be the same as W.shape[0], not {}'.format(self.nP)
-            )
+                )
         self._W = W
 
     @property

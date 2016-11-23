@@ -25,7 +25,7 @@ class RegularizationTests(unittest.TestCase):
         mesh1 = Mesh.TensorMesh([hx])
         mesh2 = Mesh.TensorMesh([hx, hy])
         mesh3 = Mesh.TensorMesh([hx, hy, hz])
-        self.meshlist = [mesh1] #, mesh2, mesh3]
+        self.meshlist = [mesh1, mesh2, mesh3]
 
     if testReg:
         def test_regularization(self):
@@ -60,6 +60,7 @@ class RegularizationTests(unittest.TestCase):
                         m = np.random.rand(mesh.nC)
                     mref = np.ones_like(m)*np.mean(m)
                     reg.mref = mref
+
 
                     print('Check: phi_m (mref) = {0:f}'.format(reg(mref)))
                     passed = reg(mref) < TOL
@@ -102,11 +103,10 @@ class RegularizationTests(unittest.TestCase):
                     if mesh.dim < 2 and r.__name__[-1] == 'y':
                         continue
 
-                    for indAct in [indActive, indActive.nonzero()[0]]: # test both bool and integers
+                    for indAct in [indActive]: #, indActive.nonzero()[0]]: # test both bool and integers
                         reg = r(mesh, indActive=indAct)
                         m = np.random.rand(mesh.nC)[indAct]
                         mref = np.ones_like(m)*np.mean(m)
-
                         reg.mref = mref
 
                         print(
@@ -157,6 +157,14 @@ class RegularizationTests(unittest.TestCase):
                 )
 
                 assert (regmesh.vol == mesh.vol[indAct]).all()
+
+    # def test_properties(self):
+    #     for mesh in self.meshlist:
+    #         alphas = np.random.rand(mesh.dim + 1)
+    #         alphas = zip(['alpha_s', 'alpha_x', 'alpha_y', 'alpha_z'], alphas)
+    #         print(alphas)
+    #         if mesh.dim == 1:
+    #             reg = Regularization.Tikhonov(mesh, alphas)
 
 
 if __name__ == '__main__':

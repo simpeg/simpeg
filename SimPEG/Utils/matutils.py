@@ -534,10 +534,12 @@ class Zero(object):
         return 0 > v
 
     @property
-    def transpose(self): return Zero()
+    def transpose(self):
+        return Zero()
 
     @property
-    def T(self): return Zero()
+    def T(self):
+        return Zero()
 
     def dot(self, v):
         return self
