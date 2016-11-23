@@ -40,14 +40,11 @@ class RegularizationMesh(Props.BaseSimPEG):
 
     """
 
-    def __init__(self, mesh, indActive=None):
+    def __init__(self, mesh, **kwargs):
         self.mesh = mesh
-        assert indActive is None or indActive.dtype == 'bool', (
-            'indActive needs to be None or a bool not {}'.format(
-                indActive.dtype
-            )
-        )
-        self.indActive = indActive
+        Utils.setKwargs(self, **kwargs)
+
+    indActive = properties.Array("active indices in mesh", dtype=bool)
 
     @property
     def vol(self):
@@ -397,10 +394,11 @@ class BaseRegularization(ObjectiveFunction.L2ObjectiveFunction):
         cell_weights=None, **kwargs
     ):
 
-        super(BaseRegularization, self).__init__(**kwargs)
+        super(BaseRegularization, self).__init__()
         self.mesh = mesh
         self.mapping = mapping
         self.cell_weights = cell_weights
+        Utils.setKwargs(self, **kwargs)
 
     # Properties
     mref = Props.SimPEGArray("reference model", default=Utils.Zero())
@@ -443,9 +441,12 @@ class BaseRegularization(ObjectiveFunction.L2ObjectiveFunction):
     @property
     def regmesh(self):
         if getattr(self, '_regmesh', None) is None:
-            self._regmesh = RegularizationMesh(
-                self.mesh, indActive=self.indActive
-            )
+            if self.indActive is not None:
+                self._regmesh = RegularizationMesh(
+                    self.mesh, indActive=self.indActive
+                )
+            else:
+                self._regmesh = RegularizationMesh(self.mesh)
         return self._regmesh
 
     @regmesh.setter
@@ -514,8 +515,7 @@ class BaseRegularization(ObjectiveFunction.L2ObjectiveFunction):
 
         mD = self.mapping.deriv(m - self.mref)
         r = self.W * (self.mapping * (m - self.mref))
-        return  mD.T * (self.W.T * r)
-
+        return mD.T * (self.W.T * r)
 
     @Utils.timeIt
     def deriv2(self, m, v=None):
@@ -768,6 +768,10 @@ class BaseSimpleSmooth(BaseRegularization):
 
     @property
     def W(self):
+        """
+        Weighting matrix that takes the first spatial difference (no
+        length scales considered) in the specified orientation
+        """
         W = getattr(
             self.regmesh,
             "cellDiff{orientation}Stencil".format(
@@ -775,9 +779,10 @@ class BaseSimpleSmooth(BaseRegularization):
             )
         )
         if self.cell_weights is not None:
+            Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
             W = (
                 Utils.sdiag(
-                    (self.regmesh.aveCC2Fx*self.cell_weights)**0.5
+                    (Ave*self.cell_weights)**0.5
                 ) * W
             )
         return W
@@ -785,8 +790,8 @@ class BaseSimpleSmooth(BaseRegularization):
 
 class SimpleSmooth_x(BaseSimpleSmooth):
     """
-    Simple Smoothness along x. Regularizes on the first spatial derivative in the
-    x-direction, not considering length scales
+    Simple Smoothness along x. Regularizes on the first spatial derivative in
+    the x-direction, not considering length scales
     """
 
     _multiplier_pair = 'alpha_x'
@@ -799,8 +804,8 @@ class SimpleSmooth_x(BaseSimpleSmooth):
 
 class SimpleSmooth_y(BaseSimpleSmooth):
     """
-    Simple Smoothness along x. Regularizes on the first spatial derivative in the
-    y-direction, not considering length scales
+    Simple Smoothness along x. Regularizes on the first spatial derivative in
+    the y-direction, not considering length scales
     """
 
     _multiplier_pair = 'alpha_y'
@@ -818,8 +823,8 @@ class SimpleSmooth_y(BaseSimpleSmooth):
 
 class SimpleSmooth_z(BaseSimpleSmooth):
     """
-    Simple Smoothness along x. Regularizes on the first spatial derivative in the
-    z-direction, not considering length scales
+    Simple Smoothness along x. Regularizes on the first spatial derivative in
+    the z-direction, not considering length scales
     """
 
     _multiplier_pair = 'alpha_z'
@@ -844,8 +849,8 @@ class Simple(BaseComboRegularization):
 
     .. math::
 
-        r(\mathbf{m}) = \\alpha_s \phi_s + \\alpha_x \phi_x + \\alpha_y \phi_y +
-            \\alpha_z \phi_z
+        r(\mathbf{m}) = \\alpha_s \phi_s + \\alpha_x \phi_x +
+        \\alpha_y \phi_y + \\alpha_z \phi_z
 
     where:
 
@@ -961,16 +966,21 @@ class BaseSmooth(BaseRegularization):
 
     @property
     def W(self):
+        """
+        Weighting matrix that constructs the first spatial derivative stencil
+        in the specified orientation
+        """
         W = getattr(
             self.regmesh,
-            "cellDiff{orientation}Stencil".format(
+            "cellDiff{orientation}".format(
                 orientation=self.orientation
             )
         )
         if self.cell_weights is not None:
+            Ave = getattr(self.regmesh, 'aveCC2F{}'.format(self.orientation))
             W = (
                 Utils.sdiag(
-                    (self.regmesh.aveCC2Fx*self.cell_weights)**0.5
+                    (Ave*self.cell_weights)**0.5
                 ) * W
             )
         return W
@@ -1058,7 +1068,10 @@ class BaseSmooth2(BaseSmooth):
 
     @property
     def W(self):
-
+        """
+        Weighting matrix that takes the second spatial derivative in the
+        specified orientation
+        """
         vol = self.regmesh.vol
         if self.cell_weights is not None:
             vol *= self.cell_weights
@@ -1167,20 +1180,20 @@ class Tikhonov(BaseComboRegularization):
 
         objfcts = [
             Smallness(mesh=mesh, **kwargs),
-            Smooth_x(mesh=mesh, mrefInSmooth=self.mrefInSmooth, **kwargs),
-            Smooth_xx(mesh=mesh, mrefInSmooth=self.mrefInSmooth, **kwargs)
+            Smooth_x(mesh=mesh, **kwargs),
+            Smooth_xx(mesh=mesh, **kwargs)
         ]
 
         if mesh.dim > 1:
             objfcts += [
-                    Smooth_y(mesh=mesh, mrefInSmooth=self.mrefInSmooth, **kwargs),
-                    Smooth_yy(mesh=mesh, mrefInSmooth=self.mrefInSmooth, **kwargs)
+                    Smooth_y(mesh=mesh, **kwargs),
+                    Smooth_yy(mesh=mesh, **kwargs)
             ]
 
         if mesh.dim > 2:
             objfcts += [
-                    Smooth_z(mesh=mesh, mrefInSmooth=self.mrefInSmooth, **kwargs),
-                    Smooth_zz(mesh=mesh, mrefInSmooth=self.mrefInSmooth, **kwargs)
+                    Smooth_z(mesh=mesh, **kwargs),
+                    Smooth_zz(mesh=mesh, **kwargs)
             ]
 
         super(Tikhonov, self).__init__(
@@ -1366,22 +1379,23 @@ class Sparse(BaseComboRegularization):
     ):
 
         objfcts = [
-            SparseSmallness(mesh=mesh),
-            Sparse_x(mesh=mesh)
+            SparseSmallness(mesh=mesh, **kwargs),
+            Sparse_x(mesh=mesh, **kwargs)
         ]
 
         if mesh.dim > 1:
-            objfcts.append(Sparse_y(mesh=mesh))
+            objfcts.append(Sparse_y(mesh=mesh, **kwargs))
 
         if mesh.dim > 2:
-            objfcts.append(Sparse_z(mesh=mesh))
+            objfcts.append(Sparse_z(mesh=mesh, **kwargs))
 
         super(Sparse, self).__init__(
             mesh=mesh, objfcts=objfcts,
-            alpha_s=alpha_s, alpha_x=alpha_x, alpha_y=alpha_y, alpha_z=alpha_z
+            alpha_s=alpha_s, alpha_x=alpha_x, alpha_y=alpha_y, alpha_z=alpha_z,
+            **kwargs
         )
 
-        Utils.setKwargs(self, **kwargs)
+        # Utils.setKwargs(self, **kwargs)
 
     # Properties
     norms = properties.Array(
