@@ -406,7 +406,6 @@ class BaseRegularization(ObjectiveFunction.L2ObjectiveFunction):
     # Observers and Validators
     @properties.validator('indActive')
     def _cast_to_bool(self, change):
-        "print setting indActive"
         value = change['value']
         if value is not None:
             if value.dtype != 'bool':  # cast it to a bool otherwise
@@ -710,8 +709,7 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
     @properties.observer('cell_weights')
     def _mirror_cell_weights_to_objfctlist(self, change):
         for fct in self.objfcts:
-            if getattr(fct, 'cell_weights', None) is not None:
-                fct.cell_weights = change['value']
+            fct.cell_weights = change['value']
 
     # Mirror other properties down
 
@@ -920,15 +918,11 @@ class Simple(BaseComboRegularization):
         alpha_s=1.0, alpha_x=1.0, alpha_y=1.0,
         alpha_z=1.0, **kwargs
     ):
-        super(Simple, self).__init__(
-            mesh=mesh,
-            objfcts=[], **kwargs
-        )
 
         objfcts = [
             Smallness(mesh=mesh, **kwargs),
             SimpleSmooth_x(
-                mesh=mesh, mrefInSmooth=self.mrefInSmooth,
+                mesh=mesh,
                 **kwargs
             )
         ]
@@ -936,7 +930,7 @@ class Simple(BaseComboRegularization):
         if mesh.dim > 1:
             objfcts.append(
                 SimpleSmooth_y(
-                    mesh=mesh, mrefInSmooth=self.mrefInSmooth,
+                    mesh=mesh,
                     **kwargs
                 )
             )
@@ -944,12 +938,17 @@ class Simple(BaseComboRegularization):
         if mesh.dim > 2:
             objfcts.append(
                 SimpleSmooth_z(
-                    mesh=mesh, mrefInSmooth=self.mrefInSmooth,
+                    mesh=mesh,
                     **kwargs
                 )
             )
 
-        self.objfcts = objfcts
+        super(Simple, self).__init__(
+            mesh=mesh,
+            objfcts=objfcts, **kwargs
+        )
+
+        # self.objfcts = objfcts
         self.alpha_s = alpha_s
         self.alpha_x = alpha_x
         self.alpha_y = alpha_y
@@ -1430,8 +1429,8 @@ class Sparse(BaseComboRegularization):
 
     # Properties
     norms = properties.Array(
-        "Norms used to create the sparse regularization", shape=((4,)) ,
-        default=[0., 2., 2., 2.], dtype=float
+        "Norms used to create the sparse regularization",
+        default=[0., 2., 2., 2.]
     )
 
     eps_p = properties.Float(
