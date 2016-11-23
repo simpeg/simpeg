@@ -103,7 +103,7 @@ def run(plotIt=True):
 
     # Define misfit function (obs-calc)
     dmis = DataMisfit.l2_DataMisfit(survey)
-    dmis.Wd = 1./wd
+    dmis.W = 1./wd
 
     # create the default L2 inverse problem from the above objects
     invProb = InvProblem.BaseInvProblem(dmis, reg, opt)
