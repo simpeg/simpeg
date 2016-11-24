@@ -74,7 +74,7 @@ class Mapping(properties.Property):
             self._set(scope.name, value)
             scope.clear_props(self)
 
-        return property(fget=fget, fset=fset, doc=scope.help)
+        return property(fget=fget, fset=fset, doc=scope.doc)
 
     def as_pickle(self, instance):
         return instance._get(self.name)
@@ -161,7 +161,7 @@ class PhysicalProperty(properties.Property):
             self._set(scope.name, value)
             scope.clear_mappings(self)
 
-        return property(fget=fget, fset=fset, doc=scope.help)
+        return property(fget=fget, fset=fset, doc=scope.doc)
 
     def as_pickle(self, instance):
         return instance._get(self.name)
@@ -193,7 +193,7 @@ class Derivative(properties.GettableProperty):
 
             return mapping.deriv(self.model)
 
-        return property(fget=fget, doc=scope.help)
+        return property(fget=fget, doc=scope.doc)
 
 
 def Invertible(help, default=None):
