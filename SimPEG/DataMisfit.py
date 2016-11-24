@@ -14,7 +14,7 @@ class BaseDataMisfit(ObjectiveFunction.L2ObjectiveFunction):
     """
 
     debug   = False  #: Print debugging information
-    counter = None   #: Set this to a SimPEG.Utils.Counter() if you want to count things
+    counter = None  #: Set this to a SimPEG.Utils.Counter() if you want to count things
 
     def __init__(self, survey, **kwargs):
         assert survey.ispaired, 'The survey must be paired to a problem.'
@@ -22,62 +22,6 @@ class BaseDataMisfit(ObjectiveFunction.L2ObjectiveFunction):
             self.survey = survey
             self.prob   = survey.prob
         super(BaseDataMisfit, self).__init__(**kwargs)
-
-# class BaseDataMisfit(object):
-#     """BaseDataMisfit
-
-#         .. note::
-
-#             You should inherit from this class to create your own data misfit term.
-#     """
-
-#     debug   = False  #: Print debugging information
-#     counter = None   #: Set this to a SimPEG.Utils.Counter() if you want to count things
-
-#     def __init__(self, survey, **kwargs):
-#         assert survey.ispaired, 'The survey must be paired to a problem.'
-#         if isinstance(survey, Survey.BaseSurvey):
-#             self.survey = survey
-#             self.prob   = survey.prob
-#         Utils.setKwargs(self, **kwargs)
-
-    # @Utils.timeIt
-    # def eval(self, m, f=None):
-    #     """eval(m, f=None)
-
-    #         :param numpy.array m: geophysical model
-    #         :param Fields f: fields
-    #         :rtype: float
-    #         :return: data misfit
-
-    #     """
-    #     raise NotImplementedError('This method should be overwritten.')
-
-    # @Utils.timeIt
-    # def evalDeriv(self, m, f=None):
-    #     """evalDeriv(m, f=None)
-
-    #         :param numpy.array m: geophysical model
-    #         :param Fields f: fields
-    #         :rtype: numpy.array
-    #         :return: data misfit derivative
-
-    #     """
-    #     raise NotImplementedError('This method should be overwritten.')
-
-
-    # @Utils.timeIt
-    # def eval2Deriv(self, m, v, f=None):
-    #     """eval2Deriv(m, v, f=None)
-
-    #         :param numpy.array m: geophysical model
-    #         :param numpy.array v: vector to multiply
-    #         :param Fields f: fields
-    #         :rtype: numpy.array
-    #         :return: data misfit derivative
-
-    #     """
-    #     raise NotImplementedError('This method should be overwritten.')
 
 
 class l2_DataMisfit(BaseDataMisfit):
@@ -87,40 +31,50 @@ class l2_DataMisfit(BaseDataMisfit):
 
     .. math::
 
-        \mu_\\text{data} = {1\over 2}\left| \mathbf{W}_d (\mathbf{d}_\\text{pred} - \mathbf{d}_\\text{obs}) \\right|_2^2
+        \mu_\\text{data} = {1\over 2}\left|
+        \mathbf{W}_d (\mathbf{d}_\\text{pred} -
+        \mathbf{d}_\\text{obs}) \\right|_2^2
 
     """
 
-    std = None
-    eps = None
+    std = 0.05  #: default standard deviation if not provided by survey
+    eps = None  #: default floor
+    eps_factor = 1e-5  #: factor to multiply by the norm of the data to create floor
 
     def __init__(self, survey, **kwargs):
         BaseDataMisfit.__init__(self, survey, **kwargs)
 
         if self.std is None:
-            if getattr(self.survey, 'std', None) is None:
-                print('SimPEG.DataMisfit.l2_DataMisfit assigning default std of 5%')
-                self.std = 0.05 # default
+            if getattr(self.survey, 'std', None) is not None:
+                print(
+                    'SimPEG.DataMisfit.l2_DataMisfit assigning default std '
+                    'of 5%'
+                )
             else:
                 self.std = self.survey.std
 
         if self.eps is None:
             if getattr(self.survey, 'eps', None) is None:
-                print('SimPEG.DataMisfit.l2_DataMisfit assigning default eps of 1e-5 * ||dobs||')
-                self.eps = np.linalg.norm(Utils.mkvc(survey.dobs), 2)*1e-5  # default
+                print(
+                    'SimPEG.DataMisfit.l2_DataMisfit assigning default eps '
+                    'of 1e-5 * ||dobs||'
+                )
+                self.eps = (
+                    np.linalg.norm(Utils.mkvc(survey.dobs), 2)*self.eps_factor
+                )  # default
             else:
                 self.eps = self.survey.eps
 
     @property
     def W(self):
-        """getWd(survey)
+        """W
 
             The data weighting matrix.
 
             The default is based on the norm of the data plus a noise floor.
 
             :rtype: scipy.sparse.csr_matrix
-            :return: Wd
+            :return: W
 
         """
 
@@ -145,16 +99,38 @@ class l2_DataMisfit(BaseDataMisfit):
 
     @Utils.timeIt
     def deriv(self, m, f=None):
-        "deriv(m, f=None)"
+        """
+        deriv(m, f=None)
+
+        Derivative of the data misfit
+
+        .. math::
+
+            \mathbf{J}^{\top} \mathbf{W}^{\top} \mathbf{W}
+            (\mathbf{d} - \mathbf{d}^{obs})
+
+        :param numpy.ndarray m: model
+        :param SimPEG.Fields f: fields object
+        """
         if f is None:
             f = self.prob.fields(m)
         return self.prob.Jtvec(
-            m, self.W * (self.W * self.survey.residual(m, f=f)), f=f
+            m, self.W.T * (self.W * self.survey.residual(m, f=f)), f=f
         )
 
     @Utils.timeIt
     def deriv2(self, m, v, f=None):
-        "deriv2(m, v, f=None)"
+        """
+        deriv2(m, v, f=None)
+
+        .. math::
+
+            \mathbf{J}^{\top} \mathbf{W}^{\top} \mathbf{W} \mathbf{J}
+
+        :param numpy.ndarray m: model
+        :param numpy.ndarray v: vector
+        :param SimPEG.Fields f: fields object
+        """
         if f is None:
             f = self.prob.fields(m)
         return self.prob.Jtvec_approx(
