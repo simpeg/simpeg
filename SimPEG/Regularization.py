@@ -413,6 +413,8 @@ class BaseRegularization(ObjectiveFunction.L2ObjectiveFunction):
                 value = np.zeros(self.mesh.nC, dtype=bool)
                 value[tmp] = True
                 change['value'] = value
+
+        # update regmesh indActive
         if getattr(self, '_regmesh', None) is not None:
             self._regmesh.indActive = Utils.mkvc(value)
 
@@ -436,14 +438,12 @@ class BaseRegularization(ObjectiveFunction.L2ObjectiveFunction):
         """
         number of model parameters
         """
-        if getattr(self, '_nP') is None:
-            if getattr(self.mapping, 'nP') != '*':
-                self._nP = self.mapping.nP
-            elif getattr(self.regmesh, 'nC') != '*':
-                self._nP = self.regmesh.nC
-            else:
-                self._np = '*'
-        return self._nP
+        if getattr(self.mapping, 'nP') != '*':
+            return self.mapping.nP
+        elif getattr(self.regmesh, 'nC') != '*':
+            return self.regmesh.nC
+        else:
+            return '*'
 
     @property
     def mesh(self):
@@ -659,6 +659,15 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
     cell_weights = properties.Array(
         "regularization weights applied at cell centers", dtype=float
     )
+
+    @property
+    def nP(self):
+        if getattr(self.mapping, 'nP') != '*':
+            return self.mapping.nP
+        elif getattr(self.regmesh, 'nC') != '*':
+            return self.regmesh.nC
+        else:
+            return '*'
 
     @property
     def multipliers(self):

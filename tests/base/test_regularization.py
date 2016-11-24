@@ -157,13 +157,49 @@ class RegularizationTests(unittest.TestCase):
 
                 assert (regmesh.vol == mesh.vol[indAct]).all()
 
-    # def test_properties(self):
-    #     for mesh in self.meshlist:
-    #         alphas = np.random.rand(mesh.dim + 1)
-    #         alphas = zip(['alpha_s', 'alpha_x', 'alpha_y', 'alpha_z'], alphas)
-    #         print(alphas)
-    #         if mesh.dim == 1:
-    #             reg = Regularization.Tikhonov(mesh, alphas)
+    def test_property_mirroring(self):
+        mesh = Mesh.TensorMesh([8, 7, 6])
+
+        for regType in ['Tikhonov', 'Sparse', 'Simple']:
+            reg = getattr(Regularization, regType)(mesh)
+
+            # Test assignment of active indices
+            indActive = mesh.gridCC[:, 2] < 0.6
+            reg.indActive = indActive
+            [
+                self.assertTrue(np.all(fct.indActive == indActive))
+                for fct in reg.objfcts
+            ]
+
+            # test assignment of cell weights
+            cell_weights = np.random.rand(indActive.sum())
+            reg.cell_weights = cell_weights
+            [
+                self.assertTrue(np.all(fct.cell_weights == cell_weights))
+                for fct in reg.objfcts
+            ]
+
+            # test updated mappings
+            mapping = Maps.ExpMap(nP=indActive.sum())
+            reg.mapping = mapping
+            m = np.random.rand(mapping.nP)
+            [
+                self.assertTrue(np.all(fct.mapping * m == mapping * m))
+                for fct in reg.objfcts
+            ]
+
+            # test alphas
+            m = np.random.rand(reg.nP)
+            a = reg(m)
+            [
+                setattr(
+                    reg, '{}'.format(objfct._multiplier_pair),
+                    0.5*getattr(reg, '{}'.format(objfct._multiplier_pair))
+                )
+                for objfct in reg.objfcts
+            ]
+            b = reg(m)
+            self.assertTrue(0.5*a == b)
 
 
 if __name__ == '__main__':

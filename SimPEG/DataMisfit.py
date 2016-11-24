@@ -6,11 +6,13 @@ from . import ObjectiveFunction
 
 
 class BaseDataMisfit(ObjectiveFunction.L2ObjectiveFunction):
-    """BaseDataMisfit
+    """
+    BaseDataMisfit
 
         .. note::
 
-            You should inherit from this class to create your own data misfit term.
+            You should inherit from this class to create your own data misfit
+            term.
     """
 
     debug   = False  #: Print debugging information
