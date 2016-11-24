@@ -27,7 +27,11 @@ class IdentityMap(object):
     def __init__(self, mesh=None, nP=None, **kwargs):
         Utils.setKwargs(self, **kwargs)
 
-        if nP is not None and nP != '*':
+        if nP is not None:
+            if isinstance(nP, str):
+                assert nP == '*', (
+                    "nP must be an integer or '*', not {}".format(nP)
+                )
             assert isinstance(nP, integer_types), (
                 'Number of parameters must be an integer. Not `{}`.'
                 .format(type(nP))

@@ -9,7 +9,7 @@ TOL = 1e-10
 testReg = True
 testRegMesh = True
 
-np.random.seed(649)
+np.random.seed(639)
 
 IGNORE_ME = [
     'BaseRegularization', 'BaseSparse', 'BaseSimpleSmooth',
