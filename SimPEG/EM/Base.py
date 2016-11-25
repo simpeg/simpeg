@@ -251,3 +251,44 @@ class BaseEMSurvey(Survey.BaseSurvey):
 
     def evalDeriv(self, f):
         raise Exception('Use Receivers to project fields deriv.')
+
+
+class BaseEMSrc(Survey.BaseSrc):
+
+    def eval(self, prob):
+        """
+        - :math:`s_m` : magnetic source term
+        - :math:`s_e` : electric source term
+
+        :param BaseFDEMProblem prob: FDEM Problem
+        :rtype: tuple
+        :return: tuple with magnetic source term and electric source term
+        """
+        s_m = self.s_m(prob)
+        s_e = self.s_e(prob)
+        return s_m, s_e
+
+    def evalDeriv(self, prob, v=None, adjoint=False):
+        """
+        Derivatives of the source terms with respect to the inversion model
+        - :code:`s_mDeriv` : derivative of the magnetic source term
+        - :code:`s_eDeriv` : derivative of the electric source term
+
+        :param BaseFDEMProblem prob: FDEM Problem
+        :param numpy.ndarray v: vector to take product with
+        :param bool adjoint: adjoint?
+        :rtype: tuple
+        :return: tuple with magnetic source term and electric source term
+            derivatives times a vector
+
+        """
+        if v is not None:
+            return (
+                self.s_mDeriv(prob, v, adjoint),
+                self.s_eDeriv(prob, v, adjoint)
+            )
+        else:
+            return (
+                lambda v: self.s_mDeriv(prob, v, adjoint),
+                lambda v: self.s_eDeriv(prob, v, adjoint)
+            )

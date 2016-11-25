@@ -96,6 +96,18 @@ class BaseSrc(SimPEG.Survey.BaseSrc):
     def eInitialDeriv(self, prob, v=None, adjoint=False):
         return Zero()
 
+    def hInitial(self, prob):
+        return Zero()
+
+    def hInitialDeriv(self, prob, v=None, adjoint=False):
+        return Zero()
+
+    def jInitial(self, prob):
+        return Zero()
+
+    def jInitialDeriv(self, prob, v=None, adjoint=False):
+        return Zero()
+
     def eval(self, prob, time):
         s_m = self.s_m(prob, time)
         s_e = self.s_e(prob, time)
