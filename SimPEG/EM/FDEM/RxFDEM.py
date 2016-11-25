@@ -11,7 +11,7 @@ class BaseRx(SimPEG.Survey.BaseRx):
     """
 
     def __init__(self, locs, orientation=None, component=None):
-        assert(orientation in ['x','y','z']), "Orientation {0!s} not known. Orientation must be in 'x', 'y', 'z'. Arbitrary orientations have not yet been implemented.".format(orientation)
+        assert(orientation in ['x', 'y', 'z']), "Orientation {0!s} not known. Orientation must be in 'x', 'y', 'z'. Arbitrary orientations have not yet been implemented.".format(orientation)
         assert(component in ['real', 'imag']), "'component' must be 'real' or 'imag', not {0!s}".format(component)
 
         self.projComp = orientation
@@ -19,9 +19,9 @@ class BaseRx(SimPEG.Survey.BaseRx):
 
         SimPEG.Survey.BaseRx.__init__(self, locs, rxType=None) #TODO: remove rxType from baseRx
 
-    def projGLoc(self, u):
+    def projGLoc(self, f):
         """Grid Location projection (e.g. Ex Fy ...)"""
-        return u._GLoc(self.projField) + self.projComp
+        return f._GLoc(self.projField) + self.projComp
 
     def eval(self, src, mesh, f):
         """
