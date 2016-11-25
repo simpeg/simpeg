@@ -2,8 +2,9 @@ from __future__ import division, print_function
 from SimPEG import Problem, Utils, np, sp, Solver as SimpegSolver
 from SimPEG.EM.Base import BaseEMProblem
 from SimPEG.EM.TDEM.SurveyTDEM import Survey as SurveyTDEM
-from SimPEG.EM.TDEM.FieldsTDEM import (FieldsTDEM, Fields3D_b, Fields3D_e,
-                                       Fields_Derivs)
+from SimPEG.EM.TDEM.FieldsTDEM import (
+    FieldsTDEM, Fields3D_b, Fields3D_e, Fields3D_h, Fields_Derivs
+)
 from scipy.constants import mu_0
 import time
 
@@ -148,11 +149,11 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
                 # here, we are lagging by a timestep, so filling in as we go
                 for projField in set([rx.projField for rx in src.rxList]):
-                    # Seogi: df_duFun?
                     df_dmFun = getattr(f, '_%sDeriv' % projField, None)
                     # df_dm_v is dense, but we only need the times at
                     # (rx.P.T * ones > 0)
                     # This should be called rx.footprint
+
                     df_dm_v[src, '{}Deriv'.format(projField), tInd] = df_dmFun(
                         tInd, src, dun_dm_v[:, i], v
                         )
@@ -177,7 +178,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
         Jv = []
         for src in self.survey.srcList:
             for rx in src.rxList:
-                Jv.append(rx.evalDeriv(src, self.mesh, self.timeMesh,
+                Jv.append(rx.evalDeriv(src, self.mesh, self.timeMesh, f,
                           Utils.mkvc(df_dm_v[src, '%sDeriv' % rx.projField, :])
                           ))
         Adiaginv.clean()
@@ -370,7 +371,9 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
 
 ###############################################################################
-################################ E-B Formulation ##############################
+#                                                                             #
+#                                E-B Formulation                              #
+#                                                                             #
 ###############################################################################
 
 # ------------------------------- Problem3D_b ------------------------------- #
@@ -565,7 +568,6 @@ class Problem3D_b(BaseTDEMProblem):
 
 
 # ------------------------------- Problem3D_e ------------------------------- #
-
 class Problem3D_e(BaseTDEMProblem):
 
     _fieldType = 'e'
@@ -631,3 +633,69 @@ class Problem3D_e(BaseTDEMProblem):
 
 
 
+###############################################################################
+#                                                                             #
+#                                H-J Formulation                              #
+#                                                                             #
+###############################################################################
+
+# ------------------------------- Problem3D_h ------------------------------- #
+
+class Problem3D_h(BaseTDEMProblem):
+
+    _fieldType = ''
+    _eqLocs = 'EF'
+    fieldsPair = Fields3D_h  #: Fields object pair
+    surveyPair = SurveyTDEM
+
+    def __init__(self, mesh, **kwargs):
+        BaseTDEMProblem.__init__(self, mesh, **kwargs)
+
+    def getAdiag(self, tInd):
+        """
+        System matrix at a given time index
+
+        """
+        assert tInd >= 0 and tInd < self.nT
+
+        dt = self.timeSteps[tInd]
+        C = self.mesh.edgeCurl
+        MfRho = self.MfRho
+        MeMu = self.MeMu
+
+        return C.T * ( MfRho * C ) + 1./dt * MeMu
+
+    def getAdiagDeriv(self, tInd, u, v, adjoint=False):
+        assert tInd >= 0 and tInd < self.nT
+
+        dt = self.timeSteps[tInd]
+        C = self.mesh.edgeCurl
+        MfRhoDeriv = self.MeRhoDeriv(C * u)
+
+        if adjoint:
+            return MfRhoDeriv.T * C * v
+
+        return C.T * (MfRhoDeriv * v)
+
+    def getAsubdiag(self, tInd):
+        assert tInd >= 0 and tInd < self.nT
+
+        dt = self.timeSteps[tInd]
+
+        return - 1./dt * self.MeMu
+
+    def getAsubdiagDeriv(self, tInd, u, v, adjoint=False):
+        return Utils.Zero()
+
+    def getRHS(self, tInd):
+
+        C = self.mesh.edgeCurl
+        MfRho = self.MfRho
+        s_m, s_e = self.getSourceTerm(tInd)
+
+        return C.T * (MfRho * s_e) + s_m
+
+    def getRHSDeriv(self, tInd, src, v, adjoint=False):
+        C = self.mesh.edgeCurl
+        s_m, s_e = self.getSourceTerm(tInd)
+        MfRhoDeriv = self.MfRhoDeriv(u)

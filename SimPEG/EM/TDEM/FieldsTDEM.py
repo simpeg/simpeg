@@ -35,19 +35,64 @@ class FieldsTDEM(SimPEG.Problem.TimeFields):
     knownFields = {}
     dtype = float
 
+    def _GLoc(self, fieldType):
+        """Grid location of the fieldType"""
+        return self.aliasFields[fieldType][1]
+
     def _eDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
         if adjoint is True:
-            return (self._eDeriv_u(tInd, src, v, adjoint),
-                    self._eDeriv_m(tInd, src, v, adjoint))
-        return (self._eDeriv_u(tInd, src, dun_dm_v) +
-                self._eDeriv_m(tInd, src, v))
+            return (
+                self._eDeriv_u(tInd, src, v, adjoint),
+                self._eDeriv_m(tInd, src, v, adjoint)
+            )
+        return (
+            self._eDeriv_u(tInd, src, dun_dm_v) +
+            self._eDeriv_m(tInd, src, v)
+        )
 
     def _bDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
         if adjoint is True:
-            return (self._bDeriv_u(tInd, src, v, adjoint),
-                    self._bDeriv_m(tInd, src, v, adjoint))
-        return (self._bDeriv_u(tInd, src, dun_dm_v) +
-                self._bDeriv_m(tInd, src, v))
+            return (
+                self._bDeriv_u(tInd, src, v, adjoint),
+                self._bDeriv_m(tInd, src, v, adjoint)
+            )
+        return (
+            self._bDeriv_u(tInd, src, dun_dm_v) +
+            self._bDeriv_m(tInd, src, v)
+        )
+
+    def _dbdtDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
+        if adjoint is True:
+            return (
+                self._dbdtDeriv_u(tInd, src, v, adjoint),
+                self._dbdtDeriv_m(tInd, src, v, adjoint)
+            )
+        return (
+            self._dbdtDeriv_u(tInd, src, dun_dm_v) +
+            self._dbdtDeriv_m(tInd, src, v)
+        )
+
+    def _hDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
+        if adjoint is True:
+            return (
+                self._hDeriv_u(tInd, src, v, adjoint),
+                self._hDeriv_m(tInd, src, v, adjoint)
+            )
+        return (
+            self._hDeriv_u(tInd, src, dun_dm_v) +
+            self._hDeriv_m(tInd, src, v)
+        )
+
+    def _jDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
+        if adjoint is True:
+            return (
+                self._jDeriv_u(tInd, src, v, adjoint),
+                self._jDeriv_m(tInd, src, v, adjoint)
+            )
+        return (
+            self._jDeriv_u(tInd, src, dun_dm_v) +
+            self._jDeriv_m(tInd, src, v)
+        )
 
 
 class Fields_Derivs(FieldsTDEM):
@@ -58,7 +103,8 @@ class Fields_Derivs(FieldsTDEM):
                     'bDeriv': 'F',
                     'eDeriv': 'E',
                     'hDeriv': 'E',
-                    'jDeriv': 'F'
+                    'jDeriv': 'F',
+                    'dbdtDeriv': 'F'
                   }
 
 
@@ -75,6 +121,12 @@ class Fields3D_b(FieldsTDEM):
         self.MeSigmaIDeriv = self.survey.prob.MeSigmaIDeriv
         self.edgeCurl = self.survey.prob.mesh.edgeCurl
         self.MfMui = self.survey.prob.MfMui
+
+    def _TLoc(self, fieldType):
+        if fieldType in ['e', 'b']:
+            return 'N'
+        else:
+            raise NotImplementedError
 
     def _b(self, bSolution, srcList, tInd):
         return bSolution
@@ -130,6 +182,15 @@ class Fields3D_e(FieldsTDEM):
         self.MeSigmaIDeriv = self.survey.prob.MeSigmaIDeriv
         self.edgeCurl = self.survey.prob.mesh.edgeCurl
         self.MfMui = self.survey.prob.MfMui
+        self.times = self.survey.prob.times
+
+    def _TLoc(self, fieldType):
+        if fieldType in ['e', 'b']:
+            return 'N'
+        elif fieldType == 'dbdt':
+            return 'CC'
+        else:
+            raise NotImplementedError
 
     def _e(self, eSolution, srcList, tInd):
         return eSolution
@@ -141,11 +202,12 @@ class Fields3D_e(FieldsTDEM):
         return Zero()
 
     def _dbdt(self, eSolution, srcList, tInd):
-        s_m = np.zeros((self.mesh.nF, 1))
-        for src in srcList:
-            s_m_src, _ = src.eval(self.survey.prob,
-                                  self.survey.prob.times[tInd])
-            s_m = s_m_src + s_m
+        s_m = np.zeros((self.mesh.nF, len(srcList)))
+        for i, src in enumerate(srcList):
+            s_m_src = src.s_m(
+                self.survey.prob, self.times[tInd]
+            )
+            s_m[:, i] += s_m_src
         return s_m - self.edgeCurl * eSolution
 
     def _dbdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
@@ -154,9 +216,10 @@ class Fields3D_e(FieldsTDEM):
         return -self.edgeCurl * dun_dm_v
 
     def _dbdtDeriv_m(self, tInd, src, v, adjoint=False):
-        s_mDeriv, _ = src.evalDeriv(self.survey.prob.times[tInd], self,
-                                    adjoint=adjoint)
-        return s_mDeriv(v)
+        # s_mDeriv = src.s_mDeriv(
+        #     self.times[tInd], self, adjoint=adjoint
+        # )
+        return Utils.Zero()  # assumes source doesn't depend on model
 
     def _b(self, eSolution, srcList, tInd):
         """
@@ -176,3 +239,50 @@ class Fields3D_e(FieldsTDEM):
         raise NotImplementedError
 
 
+class Fields3D_h(FieldsTDEM):
+    """Fancy Field Storage for a TDEM survey."""
+    knownFields = {'hSolution': 'F'}
+    aliasFields = {
+                    'h': ['hSolution', 'F', '_h'],
+                    'j': ['hSolution', 'F', '_j'],
+                  }
+
+    def startup(self):
+        self.edgeCurl = self.survey.prob.mesh.edgeCurl
+        self.times = self.survey.prob.times
+
+    def _TLoc(self, fieldType):
+        if fieldType in ['h', 'j']:
+            return 'N'
+        else:
+            raise NotImplementedError
+
+    def _h(self, hSolution, srcList, tInd):
+        return hSolution
+
+    def _hDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
+        return dun_dm_v
+
+    def _hDeriv_m(self, tInd, src, v, adjoint=False):
+        return Zero()
+
+    def _j(self, hSolution, srcList, tInd):
+        """
+        Integrate _db_dt using rectangles
+        """
+        s_e = np.zeros((self.mesh.nF, len(srcList)))
+        for i, src in enumerate(srcList):
+            s_e_src, _ = src.s_e(
+                self.survey.prob, self.times[tInd]
+            )
+            s_e[:, i] += s_e_src
+
+        return self.edgeCurl * hSolution - s_e
+
+    def _jDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
+        if adjoint:
+            return self.edgeCurl.T * dun_dm_v
+        return self.edgeCurl * dun_dm_v
+
+    def _jDeriv_m(self, tInd, src, v, adjoint=False):
+        return Zero() # assumes the source doesn't depend on the model

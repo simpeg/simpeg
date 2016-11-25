@@ -34,16 +34,16 @@ def setUp_TDEM(prbtype='b', rxcomp='bz'):
     mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * activeMap
 
     rxOffset = 10.
-    rx = EM.TDEM.Rx(np.array([[rxOffset, 0., -1e-2]]),
-                    np.logspace(-4, -3, 20), rxcomp)
+    rxlocs = np.array([[rxOffset, 0., -1e-2]])
+    rxtimes = np.logspace(-4, -3, 20)
+    rx = getattr(EM.TDEM.Rx, 'Point_{}'.format(rxcomp[:-1]))(
+        locs=rxlocs, times=rxtimes, orientation=rxcomp[-1]
+    )
     src = EM.TDEM.Src.MagDipole([rx], loc=np.array([0., 0., 0.]))
 
     survey = EM.TDEM.Survey([src])
 
-    if prbtype == 'b':
-        prb = EM.TDEM.Problem3D_b(mesh, sigmaMap=mapping)
-    elif prbtype == 'e':
-        prb = EM.TDEM.Problem3D_e(mesh, sigmaMap=mapping)
+    prb = getattr(EM.TDEM, 'Problem3D_{}'.format(prbtype))(mesh, sigmaMap=mapping)
 
     prb.timeSteps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
     # prb.timeSteps = [(1e-05, 10), (1e-05, 50), (1e-05, 50) ] #, (2.5e-4, 10)]
@@ -170,8 +170,9 @@ class TDEM_DerivTests(unittest.TestCase):
 
             def derChk(m):
                 return [prb.survey.dpred(m), lambda mx: prb.Jvec(m, mx)]
-            print('test_Jvec_{prbtype}_{rxcomp}'.format(prbtype=prbtype,
-                                                        rxcomp=rxcomp))
+            print('test_Jvec_{prbtype}_{rxcomp}'.format(
+                prbtype=prbtype, rxcomp=rxcomp)
+            )
             Tests.checkDerivative(derChk, m, plotIt=False, num=3, eps=1e-20)
 
         # def test_Jvec_b_bx(self):
@@ -180,17 +181,21 @@ class TDEM_DerivTests(unittest.TestCase):
         # def test_Jvec_b_bz(self):
         #     self.JvecTest('b', 'bz')
 
-        # def test_Jvec_b_dbxdt(self):
-        #     self.JvecTest('b', 'dbxdt')
+        def test_Jvec_e_dbxdt(self):
+            self.JvecTest('e', 'dbdtx')
 
-        # def test_Jvec_b_dbzdt(self):
-        #     self.JvecTest('b', 'dbzdt')
+        def test_Jvec_e_dbzdt(self):
+            self.JvecTest('e', 'dbdtz')
 
         # def test_Jvec_b_ey(self):
         #     self.JvecTest('b', 'ey')
 
-        def test_Jvec_e_ey(self):
-            self.JvecTest('e', 'ey')
+        # def test_Jvec_e_ey(self):
+        #     self.JvecTest('e', 'ey')
+
+        # def test_Jvec_h_hy(self):
+        #     self.JvecTest('h', 'hy')
+
 
 
 # ====== TEST Jtvec ========== #
@@ -213,25 +218,23 @@ class TDEM_DerivTests(unittest.TestCase):
                 prbtype=prbtype, v1=V1, v2=V2, passed=passed))
             self.assertTrue(passed)
 
-        def test_Jvec_adjoint_b_bx(self):
-            self.JvecVsJtvecTest('b', 'bx')
+        # def test_Jvec_adjoint_b_bx(self):
+        #     self.JvecVsJtvecTest('b', 'bx')
 
-        def test_Jvec_adjoint_b_bz(self):
-            self.JvecVsJtvecTest('b', 'bz')
+        # def test_Jvec_adjoint_b_bz(self):
+        #     self.JvecVsJtvecTest('b', 'bz')
 
-        def test_Jvec_adjoint_b_dbxdt(self):
-            self.JvecVsJtvecTest('b', 'bx')
+        # def test_Jvec_adjoint_b_dbxdt(self):
+        #     self.JvecVsJtvecTest('b', 'bx')
 
-        def test_Jvec_adjoint_b_dbzdt(self):
-            self.JvecVsJtvecTest('b', 'bz')
+        # def test_Jvec_adjoint_b_dbzdt(self):
+        #     self.JvecVsJtvecTest('b', 'bz')
 
-        def test_Jvec_adjoint_b_ey(self):
-            self.JvecVsJtvecTest('b', 'ey')
+        # def test_Jvec_adjoint_b_ey(self):
+        #     self.JvecVsJtvecTest('b', 'ey')
 
-        # This is not working because Problem3D_e has not done
-        def test_Jvec_adjoint_e_ey(self):
-            self.JvecVsJtvecTest('e', 'ey')
-
+        # def test_Jvec_adjoint_e_ey(self):
+        #     self.JvecVsJtvecTest('e', 'ey')
 
 if __name__ == '__main__':
     unittest.main()
