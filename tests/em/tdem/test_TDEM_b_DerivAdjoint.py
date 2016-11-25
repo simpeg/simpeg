@@ -175,11 +175,11 @@ class TDEM_DerivTests(unittest.TestCase):
             )
             Tests.checkDerivative(derChk, m, plotIt=False, num=3, eps=1e-20)
 
-        # def test_Jvec_b_bx(self):
-        #     self.JvecTest('b', 'bx')
+        def test_Jvec_b_bx(self):
+            self.JvecTest('b', 'bx')
 
-        # def test_Jvec_b_bz(self):
-        #     self.JvecTest('b', 'bz')
+        def test_Jvec_b_bz(self):
+            self.JvecTest('b', 'bz')
 
         def test_Jvec_e_dbxdt(self):
             self.JvecTest('e', 'dbdtx')
@@ -187,11 +187,11 @@ class TDEM_DerivTests(unittest.TestCase):
         def test_Jvec_e_dbzdt(self):
             self.JvecTest('e', 'dbdtz')
 
-        # def test_Jvec_b_ey(self):
-        #     self.JvecTest('b', 'ey')
+        def test_Jvec_b_ey(self):
+            self.JvecTest('b', 'ey')
 
-        # def test_Jvec_e_ey(self):
-        #     self.JvecTest('e', 'ey')
+        def test_Jvec_e_ey(self):
+            self.JvecTest('e', 'ey')
 
         # def test_Jvec_h_hy(self):
         #     self.JvecTest('h', 'hy')
@@ -218,23 +218,23 @@ class TDEM_DerivTests(unittest.TestCase):
                 prbtype=prbtype, v1=V1, v2=V2, passed=passed))
             self.assertTrue(passed)
 
-        # def test_Jvec_adjoint_b_bx(self):
-        #     self.JvecVsJtvecTest('b', 'bx')
+        def test_Jvec_adjoint_b_bx(self):
+            self.JvecVsJtvecTest('b', 'bx')
 
-        # def test_Jvec_adjoint_b_bz(self):
-        #     self.JvecVsJtvecTest('b', 'bz')
+        def test_Jvec_adjoint_b_bz(self):
+            self.JvecVsJtvecTest('b', 'bz')
 
-        # def test_Jvec_adjoint_b_dbxdt(self):
-        #     self.JvecVsJtvecTest('b', 'bx')
+        def test_Jvec_adjoint_b_dbxdt(self):
+            self.JvecVsJtvecTest('b', 'bx')
 
-        # def test_Jvec_adjoint_b_dbzdt(self):
-        #     self.JvecVsJtvecTest('b', 'bz')
+        def test_Jvec_adjoint_b_dbzdt(self):
+            self.JvecVsJtvecTest('b', 'bz')
 
-        # def test_Jvec_adjoint_b_ey(self):
-        #     self.JvecVsJtvecTest('b', 'ey')
+        def test_Jvec_adjoint_b_ey(self):
+            self.JvecVsJtvecTest('b', 'ey')
 
-        # def test_Jvec_adjoint_e_ey(self):
-        #     self.JvecVsJtvecTest('e', 'ey')
+        def test_Jvec_adjoint_e_ey(self):
+            self.JvecVsJtvecTest('e', 'ey')
 
 if __name__ == '__main__':
     unittest.main()
