@@ -34,6 +34,10 @@ class FieldsFDEM(SimPEG.Problem.Fields):
     knownFields = {}
     dtype = complex
 
+    def _GLoc(self, fieldType):
+        """Grid location of the fieldType"""
+        return self.aliasFields[fieldType][1]
+
     def _e(self, solution, srcList):
         """
         Total electric field is sum of primary and secondary
@@ -344,16 +348,6 @@ class Fields3D_e(FieldsFDEM):
         self._MeSigma = self.survey.prob.MeSigma
         self._MeSigmaDeriv = self.survey.prob.MeSigmaDeriv
         self._MfMui = self.survey.prob.MfMui
-
-    def _GLoc(self, fieldType):
-        if fieldType == 'e':
-            return 'E'
-        elif fieldType == 'b':
-            return 'F'
-        elif (fieldType == 'h') or (fieldType == 'j'):
-            return 'CCV'
-        else:
-            raise Exception('Field type must be e, b, h, j')
 
     def _ePrimary(self, eSolution, srcList):
         """
@@ -670,18 +664,6 @@ class Fields3D_b(FieldsFDEM):
         self._mui = self.survey.prob.mui
         self._nC = self.survey.prob.mesh.nC
 
-    def _GLoc(self, fieldType):
-        if fieldType == 'e':
-            return 'E'
-        elif fieldType == 'b':
-            return 'F'
-        elif fieldType == 'bSecondary':
-            return 'F'
-        elif (fieldType == 'h') or (fieldType == 'j'):
-            return'CCV'
-        else:
-            raise Exception('Field type must be e, b, h, j')
-
     def _bPrimary(self, bSolution, srcList):
         """
         Primary magnetic flux density from source
@@ -970,16 +952,6 @@ class Fields3D_j(FieldsFDEM):
         self._aveF2CCV = self.survey.prob.mesh.aveF2CCV
         self._aveE2CCV = self.survey.prob.mesh.aveE2CCV
         self._nC = self.survey.prob.mesh.nC
-
-    def _GLoc(self, fieldType):
-        if fieldType == 'h':
-            return 'E'
-        elif fieldType == 'j':
-            return 'F'
-        elif (fieldType == 'e') or (fieldType == 'b'):
-            return 'CCV'
-        else:
-            raise Exception('Field type must be e, b, h, j')
 
     def _jPrimary(self, jSolution, srcList):
         """
@@ -1325,16 +1297,6 @@ class Fields3D_h(FieldsFDEM):
         self._aveF2CCV = self.survey.prob.mesh.aveF2CCV
         self._aveE2CCV = self.survey.prob.mesh.aveE2CCV
         self._nC = self.survey.prob.mesh.nC
-
-    def _GLoc(self, fieldType):
-        if fieldType == 'h':
-            return 'E'
-        elif fieldType == 'j':
-            return 'F'
-        elif (fieldType == 'e') or (fieldType == 'b'):
-            return 'CCV'
-        else:
-            raise Exception('Field type must be e, b, h, j')
 
     def _hPrimary(self, hSolution, srcList):
         """
