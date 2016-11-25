@@ -238,7 +238,7 @@ class BaseTDEMProblem(Problem.BaseTimeProblem, BaseEMProblem):
 
             for rx in src.rxList:
                 PT_v[src, '{}Deriv'.format(rx.projField), :] = rx.evalDeriv(
-                    src, self.mesh, self.timeMesh, Utils.mkvc(v[src, rx]),
+                    src, self.mesh, self.timeMesh, f, Utils.mkvc(v[src, rx]),
                     adjoint=True) # this is +=
 
                 # PT_v = np.reshape(curPT_v,(len(curPT_v)/self.timeMesh.nN,
