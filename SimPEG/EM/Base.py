@@ -20,6 +20,12 @@ from SimPEG import Solver as SimpegSolver
 __all__ = ['BaseEMProblem', 'BaseEMSurvey', 'BaseEMSrc']
 
 
+###############################################################################
+#                                                                             #
+#                             Base EM Problem                                 #
+#                                                                             #
+###############################################################################
+
 class BaseEMProblem(Problem.BaseProblem):
 
     _depreciate_main_map = 'sigmaMap'
@@ -47,9 +53,9 @@ class BaseEMProblem(Problem.BaseProblem):
     surveyPair = Survey.BaseSurvey  #: The survey to pair with.
     dataPair = Survey.Data  #: The data to pair with.
 
-    mapPair = Maps.IdentityMap
+    mapPair = Maps.IdentityMap  #: Type of mapping to pair with
 
-    Solver = SimpegSolver
+    Solver = SimpegSolver  #: Type of solver to pair with
     solverOpts = {}
 
     verbose = False
@@ -235,6 +241,12 @@ class BaseEMProblem(Problem.BaseProblem):
         return dMfRhoI_dI * (dMf_drho * self.rhoDeriv)
 
 
+###############################################################################
+#                                                                             #
+#                             Base EM Survey                                  #
+#                                                                             #
+###############################################################################
+
 class BaseEMSurvey(Survey.BaseSurvey):
 
     def __init__(self, srcList, **kwargs):
@@ -258,6 +270,12 @@ class BaseEMSurvey(Survey.BaseSurvey):
     def evalDeriv(self, f):
         raise Exception('Use Receivers to project fields deriv.')
 
+
+###############################################################################
+#                                                                             #
+#                             Base EM Source                                  #
+#                                                                             #
+###############################################################################
 
 class BaseEMSrc(Survey.BaseSrc):
 
