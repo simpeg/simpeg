@@ -201,7 +201,8 @@ class BaseEMProblem(Problem.BaseProblem):
     @property
     def MfRho(self):
         """
-            Face inner product matrix for \\(\\rho\\). Used in the H-J formulation
+            Face inner product matrix for \\(\\rho\\). Used in the H-J
+            formulation
         """
         if getattr(self, '_MfRho', None) is None:
             self._MfRho = self.mesh.getFaceInnerProduct(self.rho)
