@@ -6,7 +6,7 @@ from SimPEG.Utils import Zero
 from SimPEG import Survey, Problem, Utils, np, sp
 from SimPEG.EM.Utils import (
     omega, MagneticDipoleFields, MagneticDipoleVectorPotential,
-    MagneticLoopVectorPotential
+    MagneticLoopVectorPotential, orientationDict
 )
 
 from ..Base import BaseEMSrc
@@ -139,7 +139,7 @@ class RawVec_e(BaseFDEMSrc):
         self._s_e = np.array(s_e, dtype=complex)
         self.freq = freq
 
-        cuper(BaseFDEMSrc, self).__init__(rxList, **kwargs)
+        super(BaseFDEMSrc, self).__init__(rxList, **kwargs)
 
     def s_e(self, prob):
         """
@@ -282,48 +282,28 @@ class MagDipole(BaseFDEMSrc):
     :param float mu: background magnetic permeability
 
     """
-
     moment = properties.Float(
         "dipole moment of the transmitter", default=1., min=0.
     )
     mu = properties.Float(
         "permeability of the background", default=mu_0, min=0.
         )
+    orientation = properties.Vector3(
+        "orientation of the source", default='Z', length=1., required=True
+    )
 
     def __init__(
-        self, rxList, freq, loc, orientation='Z', **kwargs
+        self, rxList, freq, loc, **kwargs
     ):
-        # self.freq = freq
-        # self.loc = loc
-        # self.orientation = orientation
-        # if isinstance(orientation, str):
-        #     assert orientation.upper() in ['X', 'Y', 'Z'], (
-        #         "orientation must be in 'X', 'Y', 'Z' not {}".format(
-        #             orientation
-        #         )
-        #     )
-        #     orientation = orientationDict[orientation.upper()]
-        # elif (np.linalg.norm(orientation - np.r_[1., 0., 0.]) > 1e-6 or
-        #       np.linalg.norm(orientation - np.r_[0., 1., 0.]) > 1e-6 or
-        #       np.linalg.norm(orientation - np.r_[0., 0., 1.]) > 1e-6):
-        #         warnings.warn(
-        #             'Using orientations that are not in aligned with the mesh '
-        #             'axes is not thoroughly tested. PR on a test??')
 
-        # assert np.linalg.norm(orientation) == 1., (
-        #     'Orientation must have unit length, not {}'.format(
-        #         np.linalg.norm(orientation)
-        #     )
-        # )
+        super(MagDipole, self).__init__(
+            rxList, **kwargs
+        )
 
-        # self.orientation = orientation
-        # self.moment = moment
-        # self.mu = mu
-
-        super(MagDipole, self).__init__(rxList, freq=freq, loc=loc, orientation=orientation, **kwargs)
+        self.freq = freq
+        self.loc = loc
 
     def _srcFct(self, obsLoc, component):
-        print self.orientation
         return MagneticDipoleVectorPotential(
             self.loc, obsLoc, component, mu=self.mu, moment=self.moment,
             orientation=self.orientation

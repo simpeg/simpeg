@@ -56,7 +56,7 @@ class BaseEMProblem(Problem.BaseProblem):
     mapPair = Maps.IdentityMap  #: Type of mapping to pair with
 
     Solver = SimpegSolver  #: Type of solver to pair with
-    solverOpts = {}
+    solverOpts = {}  #: Solver options
 
     verbose = False
 
@@ -279,12 +279,8 @@ class BaseEMSurvey(Survey.BaseSurvey):
 
 class BaseEMSrc(Survey.BaseSrc):
 
-    loc = properties.Vector3("location of the source")
-    orientation = properties.Vector3("orientation of the source")
-
     def __init__(self, rxList, **kwargs):
-        super(BaseEMSrc, self).__init__(rxList)
-        Utils.setKwargs(self, **kwargs)
+        super(BaseEMSrc, self).__init__(rxList, **kwargs)
 
     def eval(self, prob):
         """
