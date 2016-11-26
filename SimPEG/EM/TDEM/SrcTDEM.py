@@ -1,14 +1,17 @@
 from __future__ import division, print_function
-import SimPEG
+# import SimPEG
 from SimPEG import np, Utils
 from SimPEG.Utils import Zero, Identity
 from scipy.constants import mu_0
 from SimPEG.EM.Utils import *
+from ..Base import BaseEMSrc
 
 
-####################################################
-# Sources
-####################################################
+###############################################################################
+#                                                                             #
+#                           Source Waveforms                                  #
+#                                                                             #
+###############################################################################
 
 
 class BaseWaveform(object):
@@ -58,14 +61,20 @@ class TriangularWaveform(BaseWaveform):
         raise NotImplementedError('TriangularWaveform has not been implemented, you should write it!')
 
 
-class BaseSrc(SimPEG.Survey.BaseSrc):
+###############################################################################
+#                                                                             #
+#                                    Sources                                  #
+#                                                                             #
+###############################################################################
+
+class BaseTDEMSrc(BaseEMSrc):
 
     # rxPair = Rx
     integrate = True
     waveformPair = BaseWaveform
 
     def __init__(self, rxList, **kwargs):
-        Survey.BaseSrc.__init__(self, rxList, **kwargs)
+        super(BaseTDEMSrc, self).__init__(rxList, **kwargs)
 
     @property
     def waveform(self):
@@ -82,7 +91,7 @@ class BaseSrc(SimPEG.Survey.BaseSrc):
 
     def __init__(self, rxList, waveform = StepOffWaveform(), **kwargs):
         self.waveform = waveform
-        SimPEG.Survey.BaseSrc.__init__(self, rxList, **kwargs)
+        BaseEMSrc.__init__(self, rxList, **kwargs)
 
     def bInitial(self, prob):
         return Zero()
@@ -134,7 +143,7 @@ class BaseSrc(SimPEG.Survey.BaseSrc):
         return Zero()
 
 
-class MagDipole(BaseSrc):
+class MagDipole(BaseTDEMSrc):
 
     waveform = None
     loc = None
@@ -148,7 +157,7 @@ class MagDipole(BaseSrc):
             " in SrcUtils should take care of this..."
             )
         self.integrate = False
-        BaseSrc.__init__(self, rxList, **kwargs)
+        BaseTDEMSrc.__init__(self, rxList, **kwargs)
 
     def _bfromVectorPotential(self, prob):
         if prob._eqLocs is 'FE':
@@ -260,7 +269,7 @@ class CircularLoop(MagDipole):
             " in SrcUtils should take care of this..."
             )
         self.integrate = False
-        BaseSrc.__init__(self, rxList, **kwargs)
+        BaseTDEMSrc.__init__(self, rxList, **kwargs)
 
     def _bfromVectorPotential(self, prob):
         if prob._eqLocs is 'FE':

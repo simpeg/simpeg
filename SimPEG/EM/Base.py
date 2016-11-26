@@ -3,6 +3,9 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import properties
+from scipy.constants import mu_0
+
 from SimPEG import Survey
 from SimPEG import Problem
 from SimPEG import Utils
@@ -12,7 +15,9 @@ from SimPEG import Props
 from SimPEG import np
 from SimPEG import sp
 from SimPEG import Solver as SimpegSolver
-from scipy.constants import mu_0
+
+
+__all__ = ['BaseEMProblem', 'BaseEMSurvey', 'BaseEMSrc']
 
 
 class BaseEMProblem(Problem.BaseProblem):
@@ -255,6 +260,13 @@ class BaseEMSurvey(Survey.BaseSurvey):
 
 class BaseEMSrc(Survey.BaseSrc):
 
+    loc = properties.Vector3("location of the source")
+    orientation = properties.Vector3("orientation of the source")
+
+    def __init__(self, rxList, **kwargs):
+        super(BaseEMSrc, self).__init__(rxList)
+        Utils.setKwargs(self, **kwargs)
+
     def eval(self, prob):
         """
         - :math:`s_m` : magnetic source term
@@ -292,3 +304,48 @@ class BaseEMSrc(Survey.BaseSrc):
                 lambda v: self.s_mDeriv(prob, v, adjoint),
                 lambda v: self.s_eDeriv(prob, v, adjoint)
             )
+
+    def s_m(self, prob):
+        """
+        Magnetic source term
+
+        :param BaseFDEMProblem prob: FDEM Problem
+        :rtype: numpy.ndarray
+        :return: magnetic source term on mesh
+        """
+        return Utils.Zero()
+
+    def s_e(self, prob):
+        """
+        Electric source term
+
+        :param BaseFDEMProblem prob: FDEM Problem
+        :rtype: numpy.ndarray
+        :return: electric source term on mesh
+        """
+        return Utils.Zero()
+
+    def s_mDeriv(self, prob, v, adjoint = False):
+        """
+        Derivative of magnetic source term with respect to the inversion model
+
+        :param BaseFDEMProblem prob: FDEM Problem
+        :param numpy.ndarray v: vector to take product with
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: product of magnetic source term derivative with a vector
+        """
+
+        return Utils.Zero()
+
+    def s_eDeriv(self, prob, v, adjoint = False):
+        """
+        Derivative of electric source term with respect to the inversion model
+
+        :param BaseFDEMProblem prob: FDEM Problem
+        :param numpy.ndarray v: vector to take product with
+        :param bool adjoint: adjoint?
+        :rtype: numpy.ndarray
+        :return: product of electric source term derivative with a vector
+        """
+        return Utils.Zero()

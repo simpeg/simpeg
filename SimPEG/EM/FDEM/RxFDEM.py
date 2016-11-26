@@ -110,6 +110,7 @@ class Point_b(BaseRx):
         self.projField = 'b'
         super(Point_b, self).__init__(locs, orientation, component)
 
+
 class Point_bSecondary(BaseRx):
     """
     Magnetic flux FDEM receiver

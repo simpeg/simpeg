@@ -2,9 +2,9 @@ from SimPEG import Mesh, np, Utils
 from scipy.special import ellipk, ellipe
 from scipy.constants import mu_0
 
-orientationDict = {'X': np.r_[1., 0., 0.],
-                   'Y': np.r_[0., 1., 0.],
-                   'Z': np.r_[0., 0., 1.]}
+# orientationDict = {'X': np.r_[1., 0., 0.],
+#                    'Y': np.r_[0., 1., 0.],
+#                    'Z': np.r_[0., 0., 1.]}
 
 
 def MagneticDipoleVectorPotential(srcLoc, obsLoc, component, moment=1.,
@@ -27,8 +27,8 @@ def MagneticDipoleVectorPotential(srcLoc, obsLoc, component, moment=1.,
     """
     # TODO: break this out!
 
-    if isinstance(orientation, str):
-        orientation = orientationDict[orientation]
+    # if isinstance(orientation, str):
+    #     orientation = orientationDict[orientation]
 
     assert np.linalg.norm(np.array(orientation), 2) == 1., ("orientation must "
                                                             "be a unit vector")

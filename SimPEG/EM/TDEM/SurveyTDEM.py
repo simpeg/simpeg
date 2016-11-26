@@ -17,7 +17,7 @@ class Survey(SimPEG.Survey.BaseSurvey):
     Time domain electromagnetic survey
     """
 
-    srcPair = Src.BaseSrc
+    srcPair = Src.BaseTDEMSrc
     rxPair = Rx
 
     def __init__(self, srcList, **kwargs):
