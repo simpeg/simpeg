@@ -34,8 +34,8 @@ class BaseEMProblem(Problem.BaseProblem):
         default=mu_0
     )
     mui = Props.PhysicalProperty(
-        "Inverse Magnetic Permeability (m/H)",
-        default=1./mu_0
+        "Inverse Magnetic Permeability (m/H)"
+        # default=1./mu_0
     )
 
     Props.Reciprocal(mu, mui)
@@ -197,7 +197,8 @@ class BaseEMProblem(Problem.BaseProblem):
     @property
     def MfRho(self):
         """
-            Face inner product matrix for \\(\\rho\\). Used in the H-J formulation
+            Face inner product matrix for \\(\\rho\\). Used in the H-J
+            formulation
         """
         if getattr(self, '_MfRho', None) is None:
             self._MfRho = self.mesh.getFaceInnerProduct(self.rho)

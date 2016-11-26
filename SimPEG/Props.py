@@ -98,13 +98,13 @@ class PhysicalProperty(properties.Property):
     reciprocal = None
 
     def clear_mappings(self, instance):
-        if self.mapping:
-            instance._set(self.mapping.name, properties.utils.undefined)
+        if not isinstance(self.mapping, None):
+            instance._set(self.mapping.name, None)
         if not self.reciprocal:
             return
-        instance._set(self.reciprocal.name, properties.utils.undefined)
+        instance._set(self.reciprocal.name, None)
         if self.reciprocal.mapping:
-            instance._set(self.reciprocal.mapping.name, properties.utils.undefined)
+            instance._set(self.reciprocal.mapping.name, None)
 
     def validate(self, instance, value):
         if value is None:
@@ -161,7 +161,7 @@ class PhysicalProperty(properties.Property):
             if value is not properties.utils.undefined:
                 value = scope.validate(self, value)
             self._set(scope.name, value)
-            scope.clear_mappings(self)
+            # scope.clear_mappings(self)
 
         return property(fget=fget, fset=fset, doc=scope.doc)
 
