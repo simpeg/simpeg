@@ -35,7 +35,6 @@ class BaseEMProblem(Problem.BaseProblem):
     )
     mui = Props.PhysicalProperty(
         "Inverse Magnetic Permeability (m/H)"
-        # default=1./mu_0
     )
 
     Props.Reciprocal(mu, mui)
