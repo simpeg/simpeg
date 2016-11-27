@@ -12,10 +12,7 @@ from SimPEG import SolverLU as SimpegSolver, Utils, mkvc
 from ..FDEM.ProblemFDEM import BaseFDEMProblem
 from .SurveyNSEM import Survey,  Data
 from .FieldsNSEM import BaseNSEMFields, Fields1D_ePrimSec, Fields3D_ePrimSec
-<<<<<<< Updated upstream
-=======
 
->>>>>>> Stashed changes
 from .Utils.loggingUtils import simpeg_logger
 
 class BaseNSEMProblem(BaseFDEMProblem):
@@ -296,23 +293,17 @@ class Problem1D_ePrimSec(BaseNSEMProblem):
         return -1j * omega(freq) * S_eDeriv
 
     def fields(self, m):
-        '''
+        """
         Function to calculate all the fields for the model m.
 
         :param numpy.ndarray m: Conductivity model (nC,)
         :rtype: SimPEG.EM.NSEM.FieldsNSEM.Fields1D_ePrimSec
         :return: NSEM fields object containing the solution
-<<<<<<< Updated upstream
-        '''
-
-        self.logger.info('Starting to calculate fields')
-=======
 
         """
 
         self.logger.info('Starting to calculate fields')
 
->>>>>>> Stashed changes
         # Set the current model
         self.curModel = m
         # Make the fields object
@@ -464,23 +455,17 @@ class Problem3D_ePrimSec(BaseNSEMProblem):
         return dRHS_dm
 
     def fields(self, m):
-        '''
+        """
         Function to calculate all the fields for the model m.
 
         :param numpy.ndarray (nC,) m: Conductivity model
         :rtype: SimPEG.EM.NSEM.FieldsNSEM
         :return: Fields object with of the solution
 
-<<<<<<< Updated upstream
-        '''
-
-        self.logger.info('Starting to calculate fields')
-=======
         """
 
         self.logger.info('Starting to calculate fields')
 
->>>>>>> Stashed changes
         # Set the current model
         self.curModel = m
 

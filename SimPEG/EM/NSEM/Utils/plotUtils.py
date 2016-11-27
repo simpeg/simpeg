@@ -436,10 +436,7 @@ def _extract_location_data(data, location,
         if np.any(ind_loc):
             freq_list.append(src.freq)
             data_list.append(data[src, rx][ind_loc])
-<<<<<<< Updated upstream
-=======
 
->>>>>>> Stashed changes
             if return_uncert:
                 std_list.append(data.standard_deviation[src, rx][ind_loc])
                 floor_list.append(data.floor[src, rx][ind_loc])

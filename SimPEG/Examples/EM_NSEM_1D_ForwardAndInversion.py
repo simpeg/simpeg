@@ -24,23 +24,17 @@ def run(plotIt=True):
     freqs = np.logspace(2,-3,nFreq)
     # Set mesh parameters
     ct = 10
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
+
     air = simpeg.Utils.meshTensor([(ct, 25, 1.4)])
     core = np.concatenate((np.kron(simpeg.Utils.meshTensor([(ct, 10, -1.3)]), np.ones((5, ))) , simpeg.Utils.meshTensor([(ct,5)]) ) )
     bot = simpeg.Utils.meshTensor([(core[0], 25, -1.4)])
     x0 = -np.array([np.sum(np.concatenate((core, bot)))])
-=======
->>>>>>> Stashed changes
+
     air = simpeg.Utils.meshTensor([(ct,25,1.4)])
     core = np.concatenate( ( np.kron(simpeg.Utils.meshTensor([(ct,10,-1.3)]),np.ones((5,))) , simpeg.Utils.meshTensor([(ct,5)]) ) )
     bot = simpeg.Utils.meshTensor([(core[0],25,-1.4)])
     x0 = -np.array([np.sum(np.concatenate((core,bot)))])
-<<<<<<< Updated upstream
-=======
->>>>>>> nsem/dev-dataClass
->>>>>>> Stashed changes
+
     # Make the model
     m1d = simpeg.Mesh.TensorMesh([np.concatenate((bot,core,air))], x0=x0)
 

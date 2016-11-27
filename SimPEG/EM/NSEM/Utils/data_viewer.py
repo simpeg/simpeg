@@ -21,10 +21,7 @@ class NSEM_data_viewer(object):
         # Set data
         self._data = data
         self._data_dict = data_dict
-<<<<<<< Updated upstream
-=======
 
->>>>>>> Stashed changes
         # Set the default component
         if data_dict is not None:
             self.dict_comp = data_dict.keys()[0]
@@ -95,18 +92,12 @@ class NSEM_data_viewer(object):
         self.location_fig.canvas.draw()
         self.station_fig.canvas.draw()
         self.station_fig.show()
-<<<<<<< Updated upstream
-=======
 
->>>>>>> Stashed changes
 
     def _setup_station_fig(self):
         """
         Setup a station data plot figure.
-<<<<<<< Updated upstream
-=======
 
->>>>>>> Stashed changes
         Hard coded for 4 axes with
             apparent resistivity
             phase
@@ -119,10 +110,7 @@ class NSEM_data_viewer(object):
 
         # Have to deal with axes
         # Set log
-<<<<<<< Updated upstream
-=======
 
->>>>>>> Stashed changes
         for ax in axes:
             ax.set_xscale('log')
 
@@ -150,129 +138,6 @@ class NSEM_data_viewer(object):
         st_kwargs = {'marker':'_', 'ls':'None'}
         eb_kwargs = {'ls':'None'}
         # Apparent resistivity
-<<<<<<< Updated upstream
-        self._data.plot_station_component(
-            self._selecetd_point, 'xy', 'app_res', ax=axes[0], color='b',
-            label='AppRes xy', **st_kwargs)
-        self._data.plot_station_errorbars(
-            self._selecetd_point, 'xy', 'app_res', ax=axes[0], color='b',
-            **eb_kwargs)
-        self._data.plot_station_component(
-            self._selecetd_point, 'yx', 'app_res', ax=axes[0], color='r',
-            label='AppRes yx', **st_kwargs)
-        self._data.plot_station_errorbars(
-            self._selecetd_point, 'yx', 'app_res', ax=axes[0], color='r',
-            **eb_kwargs)
-        # Apparent phase
-        self._data.plot_station_component(
-            self._selecetd_point, 'xy', 'phase', ax=axes[1], color='b',
-            label='AppRes xy', **st_kwargs)
-        self._data.plot_station_errorbars(
-            self._selecetd_point, 'xy', 'phase', ax=axes[1], color='b',
-            **eb_kwargs)
-        self._data.plot_station_component(
-            self._selecetd_point, 'yx', 'phase', ax=axes[1], color='r',
-            label='AppRes yx', **st_kwargs)
-        self._data.plot_station_errorbars(
-            self._selecetd_point, 'yx', 'phase', ax=axes[1], color='r',
-            **eb_kwargs)
-        # Impedamce amplitude
-        self._data.plot_station_component(
-            self._selecetd_point, 'xx', 'amplitude', ax=axes[2], color='g',
-            label='Amplitude xx', **st_kwargs)
-        self._data.plot_station_errorbars(
-            self._selecetd_point, 'xx', 'amplitude', ax=axes[2], color='g',
-            **eb_kwargs)
-        self._data.plot_station_component(
-            self._selecetd_point, 'xy', 'amplitude', ax=axes[2], color='b',
-            label='Amplitude xy', **st_kwargs)
-        self._data.plot_station_errorbars(
-            self._selecetd_point, 'xy', 'amplitude', ax=axes[2], color='b',
-            **eb_kwargs)
-        self._data.plot_station_component(
-            self._selecetd_point, 'yx', 'amplitude', ax=axes[2], color='r',
-            label='Amplitude yx', **st_kwargs)
-        self._data.plot_station_errorbars(
-            self._selecetd_point, 'yx', 'amplitude', ax=axes[2], color='r',
-            **eb_kwargs)
-        self._data.plot_station_component(
-            self._selecetd_point, 'yy', 'amplitude', ax=axes[2], color='y',
-            label='Amplitude yy', **st_kwargs)
-        self._data.plot_station_errorbars(
-            self._selecetd_point, 'yy', 'amplitude', ax=axes[2], color='y',
-            **eb_kwargs)
-        # Impedance phase
-        self._data.plot_station_component(
-            self._selecetd_point, 'xx', 'phase', ax=axes[3], color='g',
-            label='Amplitude xx', **st_kwargs)
-        self._data.plot_station_errorbars(
-            self._selecetd_point, 'xx', 'phase', ax=axes[3], color='g',
-            **eb_kwargs)
-        self._data.plot_station_component(
-            self._selecetd_point, 'xy', 'phase', ax=axes[3], color='b',
-            label='Amplitude xy', **st_kwargs)
-        self._data.plot_station_errorbars(
-            self._selecetd_point, 'xy', 'phase', ax=axes[3], color='b',
-            **eb_kwargs)
-        self._data.plot_station_component(
-            self._selecetd_point, 'yx', 'phase', ax=axes[3], color='r',
-            label='Amplitude yx', **st_kwargs)
-        self._data.plot_station_errorbars(
-            self._selecetd_point, 'yx', 'phase', ax=axes[3], color='r',
-            **eb_kwargs)
-        self._data.plot_station_component(
-            self._selecetd_point, 'yy', 'phase', ax=axes[3], color='y',
-            label='Amplitude yy', **st_kwargs)
-        self._data.plot_station_errorbars(
-            self._selecetd_point, 'yy', 'phase', ax=axes[3], color='y',
-            **eb_kwargs)
-
-        # Plot the additional data
-        if self._data_dict is not None:
-            dd_kwargs = {'marker':'.', 'ls':'--'}
-            dict_data = self._data_dict[self.dict_comp]
-            dict_data.plot_station_component(
-                self._selecetd_point, 'xy', 'app_res', ax=axes[0], color='b',
-                label='AppRes xy', **dd_kwargs)
-            dict_data.plot_station_component(
-                self._selecetd_point, 'yx', 'app_res', ax=axes[0], color='r',
-                label='AppRes yx', **dd_kwargs)
-            # Apparent phase
-            dict_data.plot_station_component(
-                self._selecetd_point, 'xy', 'phase', ax=axes[1], color='b',
-                label='AppRes xy', **dd_kwargs)
-            dict_data.plot_station_component(
-                self._selecetd_point, 'yx', 'phase', ax=axes[1], color='r',
-                label='AppRes yx', **dd_kwargs)
-            # Impedamce amplitude
-            dict_data.plot_station_component(
-                self._selecetd_point, 'xx', 'amplitude', ax=axes[2], color='g',
-                label='Amplitude xx', **dd_kwargs)
-            dict_data.plot_station_component(
-                self._selecetd_point, 'xy', 'amplitude', ax=axes[2], color='b',
-                label='Amplitude xy', **dd_kwargs)
-            dict_data.plot_station_component(
-                self._selecetd_point, 'yx', 'amplitude', ax=axes[2], color='r',
-                label='Amplitude yx', **dd_kwargs)
-            dict_data.plot_station_component(
-                self._selecetd_point, 'yy', 'amplitude', ax=axes[2], color='y',
-                label='Amplitude yy', **dd_kwargs)
-            dict_data.plot_station_errorbars(
-                self._selecetd_point, 'yy', 'amplitude', ax=axes[2], color='y')
-            # Impedance phase
-            dict_data.plot_station_component(
-                self._selecetd_point, 'xx', 'phase', ax=axes[3], color='g',
-                label='Amplitude xx', **dd_kwargs)
-            dict_data.plot_station_component(
-                self._selecetd_point, 'xy', 'phase', ax=axes[3], color='b',
-                label='Amplitude xy', **dd_kwargs)
-            dict_data.plot_station_component(
-                self._selecetd_point, 'yx', 'phase', ax=axes[3], color='r',
-                label='Amplitude yx', **dd_kwargs)
-            dict_data.plot_station_component(
-                self._selecetd_point, 'yy', 'phase', ax=axes[3], color='y',
-                label='Amplitude yy', **dd_kwargs)
-=======
         self._data.plot_app_res(self._selecetd_point, ['xy', 'yx'],
                                 ax=axes[0], errorbars=True)
 
@@ -317,7 +182,7 @@ class NSEM_data_viewer(object):
                                    ['xx', 'xy', 'yx', 'yy'],
                                    ax=axes[3], errorbars=False,
                                    comp_plot_dict=dd_kwargs)
->>>>>>> Stashed changes
+
 
 
     def _clear_station_fig(self):
@@ -333,7 +198,4 @@ class NSEM_data_viewer(object):
             while len(ax.collections) > 0:
                 for item in ax.collections:
                     item.remove()
-<<<<<<< Updated upstream
-=======
 
->>>>>>> Stashed changes
