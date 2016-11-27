@@ -131,6 +131,10 @@ class Data(SimPEGsurvey.Data, DataNSEM_plot_functions):
             # Get the type and the value for the DataNSEM object as a list
             typeList = [[rx.orientation,rx.component,self[src,rx]] for rx in src.rxList]
             # Insert the values to the temp array
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
             for nr,(k, c, val) in enumerate(typeList):
                 zt_type = 't' if 'z' in k else 'z'
                 key = zt_type + k + c[0]
@@ -147,7 +151,7 @@ class Data(SimPEGsurvey.Data, DataNSEM_plot_functions):
                 outArr = outTemp.copy()
             elif 'Complex' in returnType:
                 # Add the real and imaginary to a complex number
-                outArr = np.empty(outTemp.shape,dtype=dtCP)
+                outArr = np.empty(outTemp.shape, dtype=dtCP)
                 for comp in ['freq','x','y','z']:
                     outArr[comp] = outTemp[comp].copy()
                 for comp in ['zxx','zxy','zyx','zyy','tzx','tzy']:

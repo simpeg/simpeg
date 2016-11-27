@@ -21,13 +21,17 @@ class NSEM_data_viewer(object):
         # Set data
         self._data = data
         self._data_dict = data_dict
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
         # Set the default component
         if data_dict is not None:
             self.dict_comp = data_dict.keys()[0]
         else:
             self._dict_comp = None
         # Open the location figure
-        self.location_fig, self._location_ax = self._data.plot_data_locations(
+        self.location_fig, self._location_ax = self._data.map_data_locations(
             picker=5
         )
         # Seth the onClick event function
@@ -91,10 +95,18 @@ class NSEM_data_viewer(object):
         self.location_fig.canvas.draw()
         self.station_fig.canvas.draw()
         self.station_fig.show()
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 
     def _setup_station_fig(self):
         """
         Setup a station data plot figure.
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
         Hard coded for 4 axes with
             apparent resistivity
             phase
@@ -107,6 +119,10 @@ class NSEM_data_viewer(object):
 
         # Have to deal with axes
         # Set log
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
         for ax in axes:
             ax.set_xscale('log')
 
@@ -134,6 +150,7 @@ class NSEM_data_viewer(object):
         st_kwargs = {'marker':'_', 'ls':'None'}
         eb_kwargs = {'ls':'None'}
         # Apparent resistivity
+<<<<<<< Updated upstream
         self._data.plot_station_component(
             self._selecetd_point, 'xy', 'app_res', ax=axes[0], color='b',
             label='AppRes xy', **st_kwargs)
@@ -255,6 +272,52 @@ class NSEM_data_viewer(object):
             dict_data.plot_station_component(
                 self._selecetd_point, 'yy', 'phase', ax=axes[3], color='y',
                 label='Amplitude yy', **dd_kwargs)
+=======
+        self._data.plot_app_res(self._selecetd_point, ['xy', 'yx'],
+                                ax=axes[0], errorbars=True)
+
+        # Apparent phase
+        self._data.plot_app_phs(self._selecetd_point, ['xy', 'yx'],
+                                ax=axes[1], errorbars=True)
+
+        # Impedamce amplitude
+        self._data.plot_imp_amp(self._selecetd_point, ['xx', 'xy', 'yx', 'yy'],
+                                ax=axes[2], errorbars=True)
+
+        # Impedance phase
+        self._data.plot_app_phs(self._selecetd_point, ['xx', 'xy', 'yx', 'yy'],
+                                ax=axes[3], errorbars=True)
+
+
+        # Plot the additional data
+        if self._data_dict is not None:
+            dd_kwargs = {'xx': {'marker': '.', 'ls': '--'},
+                         'xy': {'marker': '.', 'ls': '--'},
+                         'yx': {'marker': '.', 'ls': '--'},
+                         'yy': {'marker': '.', 'ls': '--'}}
+            dict_data = self._data_dict[self.dict_comp]
+            # Apparent resistivity
+            dict_data.plot_app_res(self._selecetd_point, ['xy', 'yx'],
+                                   ax=axes[0], errorbars=False,
+                                   comp_plot_dict=dd_kwargs)
+
+            # Apparent phase
+            dict_data.plot_app_phs(self._selecetd_point, ['xy', 'yx'],
+                                   ax=axes[1], errorbars=False,
+                                   comp_plot_dict=dd_kwargs)
+
+            # Impedamce amplitude
+            dict_data.plot_imp_amp(self._selecetd_point,
+                                   ['xx', 'xy', 'yx', 'yy'],
+                                   ax=axes[2], errorbars=False,
+                                   comp_plot_dict=dd_kwargs)
+
+            # Impedance phase
+            dict_data.plot_app_phs(self._selecetd_point,
+                                   ['xx', 'xy', 'yx', 'yy'],
+                                   ax=axes[3], errorbars=False,
+                                   comp_plot_dict=dd_kwargs)
+>>>>>>> Stashed changes
 
 
     def _clear_station_fig(self):
@@ -270,3 +333,7 @@ class NSEM_data_viewer(object):
             while len(ax.collections) > 0:
                 for item in ax.collections:
                     item.remove()
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
