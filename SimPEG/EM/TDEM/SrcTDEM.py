@@ -1,8 +1,11 @@
 from __future__ import division, print_function
-# import SimPEG
-from SimPEG import np, Utils
-from SimPEG.Utils import Zero, Identity
+
+import numpy as np
 from scipy.constants import mu_0
+import properties
+
+from SimPEG import Utils
+from SimPEG.Utils import Zero, Identity
 from SimPEG.EM.Utils import *
 from ..Base import BaseEMSrc
 
@@ -16,15 +19,22 @@ from ..Base import BaseEMSrc
 
 class BaseWaveform(object):
 
-    def __init__(self, offTime=0., hasInitialFields=False, **kwargs):
+    hasInitialFields = properties.Bool(
+        "Does the waveform have initial fields?", default=False
+    )
+
+    offTime = properties.Float(
+        "off-time of the source", default=0.
+    )
+
+    def __init__(self, **kwargs):
         Utils.setKwargs(self, **kwargs)
-        self.offTime = offTime
-        self.hasInitialFields = hasInitialFields
 
     def _assertMatchesPair(self, pair):
-        assert isinstance(self, pair), ("Waveform object must be an instance "
-                                        "of a %s BaseWaveform class.".format(
-                                            pair.__name__))
+        assert isinstance(self, pair), (
+            "Waveform object must be an instance of a %s "
+            "BaseWaveform class.".format(pair.__name__)
+        )
 
     def eval(self, time):
         raise NotImplementedError
@@ -36,7 +46,7 @@ class BaseWaveform(object):
 class StepOffWaveform(BaseWaveform):
 
     def __init__(self, offTime=0.):
-        BaseWaveform.__init__(self, offTime, hasInitialFields=True)
+        BaseWaveform.__init__(self, offTime=offTime, hasInitialFields=True)
 
     def eval(self, time):
         return 0.
@@ -46,7 +56,7 @@ class RawWaveform(BaseWaveform):
 
     def __init__(self, offTime=0., waveFct=None, **kwargs):
         self.waveFct = waveFct
-        BaseWaveform.__init__(self, offTime, **kwargs)
+        BaseWaveform.__init__(self, offTime=offTime, **kwargs)
 
     def eval(self, time):
         return self.waveFct(time)
@@ -58,7 +68,9 @@ class TriangularWaveform(BaseWaveform):
         BaseWaveform.__init__(self, offTime, hasInitialFields=True)
 
     def eval(self, time):
-        raise NotImplementedError('TriangularWaveform has not been implemented, you should write it!')
+        raise NotImplementedError(
+            'TriangularWaveform has not been implemented, you should write it!'
+        )
 
 
 ###############################################################################
@@ -70,8 +82,9 @@ class TriangularWaveform(BaseWaveform):
 class BaseTDEMSrc(BaseEMSrc):
 
     # rxPair = Rx
-    integrate = True
-    waveformPair = BaseWaveform
+
+    waveformPair = BaseWaveform  #: type of waveform to pair with
+    waveform = None  #: source waveform
 
     def __init__(self, rxList, **kwargs):
         super(BaseTDEMSrc, self).__init__(rxList, **kwargs)
@@ -124,11 +137,15 @@ class BaseTDEMSrc(BaseEMSrc):
 
     def evalDeriv(self, prob, time, v=None, adjoint=False):
         if v is not None:
-            return (self.s_mDeriv(prob, time, v, adjoint),
-                    self.s_eDeriv(prob, time, v, adjoint))
+            return (
+                self.s_mDeriv(prob, time, v, adjoint),
+                self.s_eDeriv(prob, time, v, adjoint)
+            )
         else:
-            return (lambda v: self.s_mDeriv(prob, time, v, adjoint),
-                    lambda v: self.s_eDeriv(prob, time, v, adjoint))
+            return (
+                lambda v: self.s_mDeriv(prob, time, v, adjoint),
+                lambda v: self.s_eDeriv(prob, time, v, adjoint)
+            )
 
     def s_m(self, prob, time):
         return Zero()
@@ -145,21 +162,30 @@ class BaseTDEMSrc(BaseEMSrc):
 
 class MagDipole(BaseTDEMSrc):
 
-    waveform = None
-    loc = None
-    orientation = 'Z'
-    moment = 1.
-    mu = mu_0
+    moment = properties.Float(
+        "dipole moment of the transmitter", default=1., min=0.
+    )
+    mu = properties.Float(
+        "permeability of the background", default=mu_0, min=0.
+        )
+    orientation = properties.Vector3(
+        "orientation of the source", default='Z', length=1., required=True
+    )
 
     def __init__(self, rxList, **kwargs):
-        assert(self.orientation in ['X', 'Y', 'Z']), (
-            "Orientation (right now) doesn't actually do anything! The methods"
-            " in SrcUtils should take care of this..."
-            )
-        self.integrate = False
+        # assert(self.orientation in ['X', 'Y', 'Z']), (
+        #     "Orientation (right now) doesn't actually do anything! The methods"
+        #     " in SrcUtils should take care of this..."
+        #     )
+        # self.integrate = False
         BaseTDEMSrc.__init__(self, rxList, **kwargs)
 
-    def _bfromVectorPotential(self, prob):
+    def _srcFct(self, obsLoc, component):
+        return MagneticDipoleVectorPotential(
+            self.loc, obsLoc, component, mu=self.mu, moment=self.moment
+        )
+
+    def _bSrc(self, prob):
         if prob._eqLocs is 'FE':
             gridX = prob.mesh.gridEx
             gridY = prob.mesh.gridEy
@@ -176,14 +202,12 @@ class MagDipole(BaseTDEMSrc):
             if not prob.mesh.isSymmetric:
                 raise NotImplementedError('Non-symmetric cyl mesh '
                                           'not implemented yet!')
-            a = MagneticDipoleVectorPotential(self.loc, gridY, 'y', mu=self.mu,
-                                              moment=self.moment)
+            a = self._srcFct(gridY, 'y')
 
         else:
-            srcfct = MagneticDipoleVectorPotential
-            ax = srcfct(self.loc, gridX, 'x', mu=self.mu, moment=self.moment)
-            ay = srcfct(self.loc, gridY, 'y', mu=self.mu, moment=self.moment)
-            az = srcfct(self.loc, gridZ, 'z', mu=self.mu, moment=self.moment)
+            ax = self._srcfct(gridX, 'x')
+            ay = self._srcfct(gridY, 'y')
+            az = self._srcfct(gridZ, 'z')
             a = np.concatenate((ax, ay, az))
 
         return C*a
@@ -193,7 +217,7 @@ class MagDipole(BaseTDEMSrc):
         if self.waveform.hasInitialFields is False:
             return Zero()
 
-        return self._bfromVectorPotential(prob)
+        return self._bSrc(prob)
 
     def eInitial(self, prob):
         # when solving for e, it is easier to work with an initial source than
@@ -235,7 +259,7 @@ class MagDipole(BaseTDEMSrc):
         return Zero()
 
     def s_e(self, prob, time):
-        b = self._bfromVectorPotential(prob)
+        b = self._bSrc(prob)
         MfMui = prob.MfMui
         C = prob.mesh.edgeCurl
 
@@ -257,46 +281,25 @@ class MagDipole(BaseTDEMSrc):
 
 class CircularLoop(MagDipole):
 
-    waveform = None
-    loc = None
-    orientation = 'Z'
-    radius = None
-    mu = mu_0
+    radius = properties.Float(
+        "radius of the loop source", default=1., min=0.
+    )
+    # waveform = None
+    # loc = None
+    # orientation = 'Z'
+    # radius = None
+    # mu = mu_0
 
     def __init__(self, rxList, **kwargs):
-        assert(self.orientation in ['X', 'Y', 'Z']), (
-            "Orientation (right now) doesn't actually do anything! The methods"
-            " in SrcUtils should take care of this..."
-            )
-        self.integrate = False
+        # assert(self.orientation in ['X', 'Y', 'Z']), (
+        #     "Orientation (right now) doesn't actually do anything! The methods"
+        #     " in SrcUtils should take care of this..."
+        #     )
+        # self.integrate = False
         BaseTDEMSrc.__init__(self, rxList, **kwargs)
 
-    def _bfromVectorPotential(self, prob):
-        if prob._eqLocs is 'FE':
-            gridX = prob.mesh.gridEx
-            gridY = prob.mesh.gridEy
-            gridZ = prob.mesh.gridEz
-            C = prob.mesh.edgeCurl
-
-        elif prob._eqLocs is 'EF':
-            gridX = prob.mesh.gridFx
-            gridY = prob.mesh.gridFy
-            gridZ = prob.mesh.gridFz
-            C = prob.mesh.edgeCurl.T
-
-        if prob.mesh._meshType is 'CYL':
-            if not prob.mesh.isSymmetric:
-                raise NotImplementedError('Non-symmetric cyl mesh not '
-                                          'implemented yet!')
-            a = MagneticLoopVectorPotential(self.loc, gridY, 'y',
-                                            radius=self.radius, mu=self.mu)
-
-        else:
-            srcfct = MagneticLoopVectorPotential
-            ax = srcfct(self.loc, gridX, 'x', mu=self.mu, radius=self.radius)
-            ay = srcfct(self.loc, gridY, 'y', mu=self.mu, radius=self.radius)
-            az = srcfct(self.loc, gridZ, 'z', mu=self.mu, radius=self.radius)
-            a = np.concatenate((ax, ay, az))
-
-        return C*a
+    def _srcFct(self, obsLoc, component):
+        return MagneticLoopVectorPotential(
+            self.loc, obsLoc, component, mu=self.mu, radius=self.radius
+        )
 

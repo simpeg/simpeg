@@ -125,8 +125,8 @@ class Fields3D_b(FieldsTDEM):
     def _TLoc(self, fieldType):
         if fieldType in ['e', 'b']:
             return 'N'
-        else:
-            raise NotImplementedError
+        elif fieldType == 'dbdt':
+            return 'C'
 
     def _b(self, bSolution, srcList, tInd):
         return bSolution
@@ -146,10 +146,12 @@ class Fields3D_b(FieldsTDEM):
 
     def _eDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
         if adjoint is True:
-            return self.MfMui.T * (self.edgeCurl * (self.MeSigmaI.T *
-                                                    dun_dm_v))
-        return self.MeSigmaI * (self.edgeCurl.T * (self.MfMui *
-                                                   dun_dm_v))
+            return (
+                self.MfMui.T * (self.edgeCurl * (self.MeSigmaI.T * dun_dm_v))
+            )
+        return (
+            self.MeSigmaI * (self.edgeCurl.T * (self.MfMui * dun_dm_v))
+        )
 
     def _eDeriv_m(self, tInd, src, v, adjoint=False):
         _, s_e = src.eval(self.survey.prob, self.survey.prob.times[tInd])

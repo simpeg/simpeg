@@ -18,7 +18,6 @@ class BaseFDEMSrc(BaseEMSrc):
     """
 
     freq = properties.Float("frequency of the source", min=0, required=True)
-    integrate = properties.Bool("integrate the source term?", default=False)
 
     _ePrimary = None
     _bPrimary = None
@@ -419,9 +418,9 @@ class MagDipole_Bfield(MagDipole):
     :param float mu: background magnetic permeability
     """
 
-    def __init__(self, rxList, freq, loc, orientation='Z', moment=1., mu=mu_0):
+    def __init__(self, rxList, freq, loc, **kwargs):
         super(MagDipole_Bfield, self).__init__(
-            rxList, freq, loc, orientation=orientation, moment=moment, mu=mu
+            rxList, freq=freq, loc=loc
         )
 
     def _srcFct(self, obsLoc, component):
@@ -489,17 +488,18 @@ class CircularLoop(MagDipole):
     :param float mu: background magnetic permeability
     """
 
-    def __init__(self, rxList, freq, loc, orientation='Z', radius=1., mu=mu_0):
-        self.radius = radius
-        super(CircularLoop, self).__init__(rxList, freq, loc,
-                                           orientation=orientation,
-                                           mu=mu)
+    radius = properties.Float("radius of the loop", default=1., min=0.)
+
+    def __init__(self, rxList, freq, loc, **kwargs):
+        super(CircularLoop, self).__init__(
+            rxList, freq, loc
+        )
 
     def _srcFct(self, obsLoc, component):
         return MagneticLoopVectorPotential(
             self.loc, obsLoc, component, mu=self.mu, radius=self.radius,
             orientation=self.orientation
-    )
+        )
 
 
 class PrimSecSigma(BaseFDEMSrc):
@@ -507,7 +507,9 @@ class PrimSecSigma(BaseFDEMSrc):
     def __init__(self, rxList, freq, sigBack, ePrimary, **kwargs):
         self.sigBack = sigBack
 
-        BaseFDEMSrc.__init__(self, rxList, freq=freq, _ePrimary=ePrimary, **kwargs)
+        BaseFDEMSrc.__init__(
+            self, rxList, freq=freq, _ePrimary=ePrimary, **kwargs
+        )
 
     def s_e(self, prob):
         return (

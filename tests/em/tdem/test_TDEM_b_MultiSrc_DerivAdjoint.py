@@ -11,7 +11,6 @@ except ImportError:
     Solver = SolverLU
 
 
-
 plotIt = False
 testDeriv = True
 testAdjoint = True
@@ -35,11 +34,16 @@ def setUp_TDEM(self, rxcomp='bz'):
         mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * activeMap
 
         rxOffset = 40.
-        rx = EM.TDEM.Rx(np.array([[rxOffset, 0., 0.]]),
-                        np.logspace(-4, -3, 20), rxcomp)
+        rx = getattr(EM.TDEM.Rx, 'Point_{}'.format(rxcomp[:-1]))(
+            np.array([[rxOffset, 0., 0.]]), np.logspace(-4, -3, 20),
+            rxcomp[-1]
+        )
+
         src = EM.TDEM.Src.MagDipole([rx], loc=np.array([0., 0., 0.]))
-        rx2 = EM.TDEM.Rx(np.array([[rxOffset-10, 0., 0.]]),
-                         np.logspace(-5, -4, 25), rxcomp)
+        rx2 = getattr(EM.TDEM.Rx, 'Point_{}'.format(rxcomp[:-1]))(
+            np.array([[rxOffset-10, 0., 0.]]), np.logspace(-5, -4, 25),
+            rxcomp[-1]
+        )
         src2 = EM.TDEM.Src.MagDipole( [rx2], loc=np.array([0., 0., 0.]))
 
         survey = EM.TDEM.Survey([src, src2])

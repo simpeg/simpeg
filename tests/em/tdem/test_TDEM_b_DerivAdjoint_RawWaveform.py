@@ -17,6 +17,8 @@ testDeriv = True
 testAdjoint = True
 
 TOL = 1e-5
+EPS = 1e-20
+np.random.seed(2)
 
 
 def setUp_TDEM(prbtype='b', rxcomp='bz'):
@@ -45,9 +47,11 @@ def setUp_TDEM(prbtype='b', rxcomp='bz'):
     t0 = 0.006
     waveform = EM.TDEM.Src.RawWaveform(offTime=t0, waveFct=wavefun)
     timerx = np.logspace(-4, -3, 20)
-    rx = EM.TDEM.Rx(np.array([[rxOffset, 0., 0.]]), timerx, rxcomp)
-    src = EM.TDEM.Src.MagDipole([rx], waveform= waveform,
-                                loc=np.array([0., 0., 0.]))
+    rx = getattr(EM.TDEM.Rx, 'Point_{}'.format(rxcomp[:-1]))(
+        np.array([[rxOffset, 0., 0.]]), timerx, rxcomp[-1])
+    src = EM.TDEM.Src.MagDipole(
+        [rx], waveform= waveform, loc=np.array([0., 0., 0.])
+    )
 
     survey = EM.TDEM.Survey([src])
 
@@ -87,7 +91,7 @@ class TDEM_DerivTests(unittest.TestCase):
             return Av, ADeriv_dm
 
         print('\n Testing ADeriv {}'.format(prbtype))
-        Tests.checkDerivative(AderivFun, m0, plotIt=False, num=4, eps=1e-20)
+        Tests.checkDerivative(AderivFun, m0, plotIt=False, num=4, eps=EPS)
 
     def A_adjointTest(self, prbtype):
         prb, m0, mesh = setUp_TDEM(prbtype)
@@ -107,7 +111,10 @@ class TDEM_DerivTests(unittest.TestCase):
         tInd = 2  # not actually used
         V1 = v.dot(prb.getAdiagDeriv(tInd, u, m))
         V2 = m.dot(prb.getAdiagDeriv(tInd, u, v, adjoint=True))
-        passed = np.abs(V1-V2) < TOL * (np.abs(V1) + np.abs(V2))/2.
+        passed = (
+            np.abs(V1-V2) < TOL * (np.abs(V1) + np.abs(V2))/2. or
+            np.abs(V1-V2) < EPS
+        )
         print('AdjointTest {prbtype} {v1} {v2} {passed}'.format(
             prbtype=prbtype, v1=V1, v2=V2, passed=passed))
         self.assertTrue(passed)
@@ -186,17 +193,17 @@ class TDEM_DerivTests(unittest.TestCase):
             self.JvecTest(prbtype='b', rxcomp='bz')
 
         def test_Jvec_b_dbxdt(self):
-            self.JvecTest(prbtype='b', rxcomp='dbxdt')
+            self.JvecTest(prbtype='b', rxcomp='dbdtx')
 
         def test_Jvec_b_dbzdt(self):
-            self.JvecTest(prbtype='b', rxcomp='dbzdt')
+            self.JvecTest(prbtype='b', rxcomp='dbdtx')
 
         def test_Jvec_b_ey(self):
             self.JvecTest(prbtype='b', rxcomp='ey')
 
         # TODOs: problem_e is not working yet
-        # def test_Jvec_e_ey(self):
-        #     self.JvecTest('e','ey')
+        def test_Jvec_e_ey(self):
+            self.JvecTest('e','ey')
 
 
 # ====== TEST Jtvec ========== #
@@ -213,7 +220,7 @@ class TDEM_DerivTests(unittest.TestCase):
             V1 = d.dot(prb.Jvec(m0, m))
             V2 = m.dot(prb.Jtvec(m0, d))
             tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.
-            passed = np.abs(V1-V2) < tol
+            passed = (np.abs(V1-V2) < tol or np.abs(V1-V2) < EPS)
 
             print('     {v1}, {v2}, {diff}, {tol}, {passed}'.format(
                 v1=V1, v2=V2, diff=np.abs(V1-V2), tol=tol, passed=passed))
@@ -235,8 +242,8 @@ class TDEM_DerivTests(unittest.TestCase):
             self.JvecVsJtvecTest(prbtype='b', rxcomp='ey')
 
         # This is not working because Problem3D_e has not done
-        # def test_Jvec_adjoint_e_ey(self):
-        #     self.JvecVsJtvecTest('e', 'ey')
+        def test_Jvec_adjoint_e_ey(self):
+            self.JvecVsJtvecTest('e', 'ey')
 
 if __name__ == '__main__':
     unittest.main()

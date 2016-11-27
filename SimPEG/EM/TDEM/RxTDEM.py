@@ -161,6 +161,36 @@ class Point_dbdt(BaseRx):
         self.projField = 'dbdt'
         super(Point_dbdt, self).__init__(locs, times, orientation)
 
+    def eval(self, src, mesh, timeMesh, f):
+
+        if f.aliasFields.has_key(self.projField):
+            return super(Point_dbdt, self).eval(src, mesh, timeMesh, f)
+
+        P = self.getP(mesh, timeMesh, f)
+        f_part = Utils.mkvc(f[src, 'b', :])
+        return P*f_part
+
+    def projGLoc(self, f):
+        """Grid Location projection (e.g. Ex Fy ...)"""
+        if f.aliasFields.has_key(self.projField):
+            return super(Point_dbdt, self).projGLoc(f)
+        return f._GLoc('b') + self.projComp
+
+    def getTimeP(self, timeMesh, f):
+        """
+            Returns the time projection matrix.
+
+            .. note::
+
+                This is not stored in memory, but is created on demand.
+        """
+        if f.aliasFields.has_key(self.projField):
+            return super(Point_dbdt, self).getTimeP(timeMesh, f)
+
+        return timeMesh.getInterpolationMat(
+            self.times, 'CC'
+        )*timeMesh.faceDiv
+
 
 class Point_h(BaseRx):
     """

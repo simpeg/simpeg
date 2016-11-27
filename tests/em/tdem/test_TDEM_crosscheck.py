@@ -30,8 +30,9 @@ def setUp_TDEM(prbtype='b', rxcomp='bz'):
     mapping = Maps.ExpMap(mesh) * Maps.SurjectVertical1D(mesh) * activeMap
 
     rxOffset = 10.
-    rx = EM.TDEM.Rx(np.array([[rxOffset, 0., -1e-2]]),
-                    np.logspace(-4, -3, 20), rxcomp)
+    rx = getattr(EM.TDEM.Rx, 'Point_{}'.format(rxcomp[:-1]))(
+        np.array([[rxOffset, 0., -1e-2]]), np.logspace(-4, -3, 20), rxcomp[-1]
+    )
     src = EM.TDEM.Src.MagDipole([rx], loc=np.array([0., 0., 0.]))
 
     survey = EM.TDEM.Survey([src])
