@@ -41,15 +41,13 @@ class Mapping(properties.Property):
 
     def clear_props(self, instance):
         if self.prop:
-            instance._set(self.prop.name, properties.utils.undefined)
+            delattr(instance, self.prop.name)
         if self.reciprocal_prop:
-            instance._set(self.reciprocal_prop.name, properties.utils.undefined)
+            delattr(instance, self.reciprocal_prop.name)
         if self.reciprocal:
-            instance._set(self.reciprocal.name, properties.utils.undefined)
+            delattr(instance, self.reciprocal.name)
 
     def validate(self, instance, value):
-        if value is None:
-            return None
         if not isinstance(value, Maps.IdentityMap):
             self.error(instance, value)
         return value
@@ -75,7 +73,10 @@ class Mapping(properties.Property):
             self._set(scope.name, value)
             scope.clear_props(self)
 
-        return property(fget=fget, fset=fset, doc=scope.doc)
+        def fdel(self):
+            self._set(scope.name, properties.utils.undefined)
+
+        return property(fget=fget, fset=fset, fdel=fdel, doc=scope.doc)
 
     def as_pickle(self, instance):
         return instance._get(self.name)
@@ -98,15 +99,13 @@ class PhysicalProperty(properties.Property):
 
     def clear_mappings(self, instance):
         if self.mapping:
-            instance._set(self.mapping.name, properties.utils.undefined)
+            delattr(instance, self.mapping.name)
         if not self.reciprocal:
             return
         if self.reciprocal.mapping:
-            instance._set(self.reciprocal.mapping.name, properties.utils.undefined)
+            delattr(instance, self.reciprocal.mapping.name)
 
     def validate(self, instance, value):
-        if value is None:
-            return None
         assert isinstance(value, (np.ndarray, float)), (
             "Physical properties must be numpy arrays or floats."
         )
@@ -159,13 +158,14 @@ class PhysicalProperty(properties.Property):
             if value is not properties.utils.undefined:
                 value = scope.validate(self, value)
                 if scope.reciprocal:
-                    self._set(
-                        scope.reciprocal.name, properties.utils.undefined
-                    )
+                    delattr(self, scope.reciprocal.name)
             self._set(scope.name, value)
             scope.clear_mappings(self)
 
-        return property(fget=fget, fset=fset, doc=scope.doc)
+        def fdel(self):
+            self._set(scope.name, properties.utils.undefined)
+
+        return property(fget=fget, fset=fset, fdel=fdel, doc=scope.doc)
 
     def as_pickle(self, instance):
         return instance._get(self.name)
@@ -208,9 +208,10 @@ def Invertible(help, default=None):
 
     physical_property = PhysicalProperty(
         help,
-        mapping=mapping,
-        default=default
+        mapping=mapping
     )
+    if default is not None:
+        physical_property.default = default
 
     property_derivative = Derivative(
         "Derivative of {} wrt the model.".format(help),
@@ -226,5 +227,4 @@ def Reciprocal(prop1, prop2):
 
 
 class BaseSimPEG(properties.HasProperties):
-
-    _exclusive_kwargs = False
+    pass
