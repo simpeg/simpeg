@@ -40,12 +40,12 @@ class Mapping(properties.Property):
             return self.prop.reciprocal
 
     def clear_props(self, instance):
-        if self.prop:
-            delattr(instance, self.prop.name)
-        if self.reciprocal_prop:
-            delattr(instance, self.reciprocal_prop.name)
-        if self.reciprocal:
-            delattr(instance, self.reciprocal.name)
+        for prop in (self.prop, self.reciprocal_prop, self.reciprocal):
+            if prop is not None:
+                if prop.name in instance._props:
+                    delattr(instance, prop.name)
+                else:
+                    setattr(instance, prop.name, None)
 
     def validate(self, instance, value):
         if not isinstance(value, Maps.IdentityMap):
@@ -98,12 +98,13 @@ class PhysicalProperty(properties.Property):
         self._mapping = value
 
     def clear_mappings(self, instance):
-        if self.mapping:
-            delattr(instance, self.mapping.name)
-        if not self.reciprocal:
-            return
-        if self.reciprocal.mapping:
-            delattr(instance, self.reciprocal.mapping.name)
+        if self.mapping is not None:
+            if self.mapping.name in instance._props:
+                delattr(instance, self.mapping.name)
+            else:
+                setattr(instance, self.mapping.name, None)
+        if self.reciprocal is not None:
+            self.reciprocal.clear_mappings
 
     def validate(self, instance, value):
         assert isinstance(value, (np.ndarray, float)), (
