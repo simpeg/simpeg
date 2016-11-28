@@ -104,7 +104,11 @@ class PhysicalProperty(properties.Property):
             else:
                 setattr(instance, self.mapping.name, None)
         if self.reciprocal is not None:
-            self.reciprocal.clear_mappings
+            if self.reciprocal.mapping is not None:
+                if self.reciprocal.mapping.name in instance._props:
+                    delattr(instance, self.reciprocal.mapping.name)
+                else:
+                    setattr(instance, self.reciprocal.mapping.name, None)
 
     def validate(self, instance, value):
         assert isinstance(value, (np.ndarray, float)), (
