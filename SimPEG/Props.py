@@ -41,11 +41,11 @@ class Mapping(properties.Property):
 
     def clear_props(self, instance):
         if self.prop:
-            instance._set(self.prop.name, None)
+            instance._set(self.prop.name, properties.utils.undefined)
         if self.reciprocal_prop:
-            instance._set(self.reciprocal_prop.name, None)
+            instance._set(self.reciprocal_prop.name, properties.utils.undefined)
         if self.reciprocal:
-            instance._set(self.reciprocal.name, None)
+            instance._set(self.reciprocal.name, properties.utils.undefined)
 
     def validate(self, instance, value):
         if value is None:
@@ -70,11 +70,12 @@ class Mapping(properties.Property):
             return Maps.ReciprocalMap() * reciprocal
 
         def fset(self, value):
-            value = scope.validate(self, value)
+            if value is not properties.utils.undefined:
+                value = scope.validate(self, value)
             self._set(scope.name, value)
             scope.clear_props(self)
 
-        return property(fget=fget, fset=fset, doc=scope.help)
+        return property(fget=fget, fset=fset, doc=scope.doc)
 
     def as_pickle(self, instance):
         return instance._get(self.name)
@@ -83,6 +84,7 @@ class Mapping(properties.Property):
 class PhysicalProperty(properties.Property):
 
     info_text = 'a physical property'
+    reciprocal = None
 
     @property
     def mapping(self):
@@ -94,16 +96,13 @@ class PhysicalProperty(properties.Property):
         value._prop = self  # Skip the setter
         self._mapping = value
 
-    reciprocal = None
-
     def clear_mappings(self, instance):
         if self.mapping:
-            instance._set(self.mapping.name, None)
+            instance._set(self.mapping.name, properties.utils.undefined)
         if not self.reciprocal:
             return
-        instance._set(self.reciprocal.name, None)
         if self.reciprocal.mapping:
-            instance._set(self.reciprocal.mapping.name, None)
+            instance._set(self.reciprocal.mapping.name, properties.utils.undefined)
 
     def validate(self, instance, value):
         if value is None:
@@ -157,11 +156,16 @@ class PhysicalProperty(properties.Property):
             return mapping * self.model
 
         def fset(self, value):
-            value = scope.validate(self, value)
+            if value is not properties.utils.undefined:
+                value = scope.validate(self, value)
+                if scope.reciprocal:
+                    self._set(
+                        scope.reciprocal.name, properties.utils.undefined
+                    )
             self._set(scope.name, value)
             scope.clear_mappings(self)
 
-        return property(fget=fget, fset=fset, doc=scope.help)
+        return property(fget=fget, fset=fset, doc=scope.doc)
 
     def as_pickle(self, instance):
         return instance._get(self.name)
@@ -193,7 +197,7 @@ class Derivative(properties.GettableProperty):
 
             return mapping.deriv(self.model)
 
-        return property(fget=fget, doc=scope.help)
+        return property(fget=fget, doc=scope.doc)
 
 
 def Invertible(help, default=None):
