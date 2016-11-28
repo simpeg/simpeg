@@ -69,7 +69,7 @@ class Survey(SimPEGsurvey.BaseSurvey):
         """
         Evalute and return Data given calculated fields
 
-        :param SimPEG.EM.NSEM.Fields f: A NSEM fileds object to evaluate data from
+        :param SimPEG.EM.NSEM.FieldsNSEM f: A NSEM fileds object to evaluate data from
         :retype: SimPEG.EM.NSEM.Data
         :return: NSEM Data object
         """
