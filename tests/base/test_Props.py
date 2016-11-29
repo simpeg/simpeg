@@ -80,6 +80,20 @@ class ReciprocalPropExample(HasModel):
     Props.Reciprocal(sigma, rho)
 
 
+class ReciprocalPropExampleDefaults(HasModel):
+
+    sigma = Props.PhysicalProperty(
+        "Electrical conductivity (S/m)",
+        default = np.r_[1., 2., 3.]
+    )
+
+    rho = Props.PhysicalProperty(
+        "Electrical resistivity (Ohm m)"
+    )
+
+    Props.Reciprocal(sigma, rho)
+
+
 class TestPropMaps(unittest.TestCase):
 
     def setUp(self):
@@ -187,6 +201,17 @@ class TestPropMaps(unittest.TestCase):
 
         PM.rho = np.r_[1., 2., 3.]
         assert np.all(PM.sigma == 1.0 / np.r_[1., 2., 3.])
+
+    def test_reciprocal_defaults(self):
+
+        PM = ReciprocalPropExampleDefaults()
+        assert np.all(PM.sigma == np.r_[1., 2., 3.])
+        assert np.all(PM.rho == 1.0/ np.r_[1., 2., 3.])
+
+        rho = np.r_[2., 4., 6.]
+        PM.rho = rho
+        assert np.all(PM.rho == rho)
+        assert np.all(PM.sigma == 1./rho)
 
 
 if __name__ == '__main__':
