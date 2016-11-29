@@ -88,7 +88,7 @@ setup(
         'cython',
         'ipython',
         'matplotlib',
-        'properties'
+        'properties[math]'
     ],
     author="Rowan Cockett",
     author_email="rowanc1@gmail.com",
