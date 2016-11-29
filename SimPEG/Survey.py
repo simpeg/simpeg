@@ -206,7 +206,6 @@ class BaseData(object):
                 self[src, rx] = v[indBot:indTop]
                 indBot += rx.nD
 
-
 class Data(BaseData):
     """
     Storage of data, standard_deviation and floor storage
@@ -222,7 +221,7 @@ class Data(BaseData):
 
         # Set the uncertainty parameters
         # Note: Maybe set these
-        self.standard_deviation = Standard_Devation(self.survey, standard_deviation)
+        self.standard_deviation = StandardDeviation(self.survey, standard_deviation)
         self.floor = Floor(self.survey, floor)
 
 
@@ -234,7 +233,7 @@ class Data(BaseData):
         """
         return self.standard_deviation.tovec() * np.abs(self.tovec()) + self.floor.tovec()
 
-class Standard_Devation(BaseData):
+class StandardDeviation(BaseData):
     """
     Storage of standard deviation estimates of data
     With fancy [Src,Rx] indexing.

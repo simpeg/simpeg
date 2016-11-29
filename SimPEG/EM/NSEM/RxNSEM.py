@@ -423,7 +423,7 @@ class Point_impedance3D(BaseRxNSEM_Point):
     Natural source 3D impedance receiver class
 
     :param numpy.ndarray locs: receiver locations (ie. :code:`np.r_[x,y,z]`)
-    :param string orientation: receiver orientation 'x', 'y' or 'z'
+    :param string orientation: receiver orientation 'xx', 'xy', 'yx' or 'yy'
     :param string component: real or imaginary component 'real' or 'imag'
     """
 

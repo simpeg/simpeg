@@ -94,16 +94,20 @@ class Data(SimPEGsurvey.Data, DataNSEM_plot_functions):
 
     :param SimPEG.EM.NSEM.SurveyNSEM survey: NSEM survey object
     :param numpy.ndarray v: Vector of the data in order matching of the survey
+    :param numpy.ndarray standard_deviation: Vector of the standard_deviation
+        of data in order matching of the survey
+    :param numpy.ndarray floor: Vector of the noise floor of the data in
+        order matching of the survey
 
     """
-    def __init__(self, survey, v=None, standard_devation=None, ):
+    def __init__(self, survey, v=None, standard_deviation=None, floor=None):
         # Pass the variables to the "parent" method
-        SimPEGsurvey.Data.__init__(self, survey, v)
+        SimPEGsurvey.Data.__init__(self, survey, v, standard_deviation, floor)
 
 
-    def toRecArray(self,returnType='RealImag'):
+    def toRecArray(self, returnType='RealImag'):
         '''
-        Function that returns a numpy.recarray for a SimpegNSEM impedance data object.
+        Returns a numpy.recarray for a SimpegNSEM impedance data object.
 
         :param str returnType: Switches between returning a rec array where the impedance
             is split to real and imaginary ('RealImag') or is a complex ('Complex')
@@ -193,15 +197,15 @@ class Data(SimPEGsurvey.Data, DataNSEM_plot_functions):
                 if np.any(notNaNind): # Make sure that there is any data to add.
                     locs = _rec_to_ndarr(dFreq[['x','y','z']][notNaNind].copy())
                     if dFreq[rxType].dtype.name in 'complex128':
-                        if 'z' in rxType:
-                            rxList.append(Point_impedance3D(locs,rxType[1:3],'real'))
-                            dataList.append(dFreq[rxType][notNaNind].real.copy())
-                            rxList.append(Point_impedance3D(locs,rxType[1:3],'imag'))
-                            dataList.append(dFreq[rxType][notNaNind].imag.copy())
-                        elif 't' in rxType:
+                        if 't' in rxType:
                             rxList.append(Point_tipper3D(locs,rxType[1:3],'real'))
                             dataList.append(dFreq[rxType][notNaNind].real.copy())
                             rxList.append(Point_tipper3D(locs,rxType[1:3],'imag'))
+                            dataList.append(dFreq[rxType][notNaNind].imag.copy())
+                        elif 'z' in rxType:
+                            rxList.append(Point_impedance3D(locs,rxType[1:3],'real'))
+                            dataList.append(dFreq[rxType][notNaNind].real.copy())
+                            rxList.append(Point_impedance3D(locs,rxType[1:3],'imag'))
                             dataList.append(dFreq[rxType][notNaNind].imag.copy())
                     else:
                         component = 'real' if 'r' in rxType else 'imag'

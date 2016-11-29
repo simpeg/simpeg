@@ -10,7 +10,7 @@ from scipy import interpolate as sciint
 
 import SimPEG as simpeg
 from SimPEG.EM.NSEM.SurveyNSEM import Survey, Data
-from SimPEG.EM.NSEM.RxNSEM import Point_impedance1D
+from SimPEG.EM.NSEM.RxNSEM import Point_impedance1D, Point_impedance3D, Point_tipper3D
 from SimPEG.EM.NSEM.SrcNSEM import Planewave_xy_1Dprimary
 from SimPEG.EM.NSEM.Utils import MT1Danalytic, plotDataTypes as pDt
 
@@ -54,7 +54,114 @@ def rotateData(NSEMdata, rotAngle):
 
     return Data.fromRecArray(outRec)
 
+# Function to get data and data info
+def extract_data_info(NSEMdata):
+    """
+    Simple function that data, frequency and receiver type lists.
 
+
+    """
+    dL, freqL, rxTL = [], [], []
+
+    for src in NSEMdata.survey.srcList:
+        for rx in src.rxList:
+            dL.append(NSEMdata[src,rx])
+            freqL.append(np.ones(rx.nD)*src.freq)
+            if isinstance(rx, Point_impedance3D):
+                rxTL.extend( (('z' + rx.orientation +' ')*rx.nD).split())
+            if isinstance(rx, Point_tipper3D):
+                rxTL.extend( (('t' + rx.orientation +' ')*rx.nD).split())
+    return np.concatenate(dL), np.concatenate(freqL), np.array(rxTL)
+
+
+def convert3Dto1Dobject(NSEMdata, rxType3D='yx'):
+
+    # Find the unique locations
+    # Need to find the locations
+    recDataTemp = NSEMdata.toRecArray().data.flatten()
+    # Check if survey.std has been assigned.
+    ## NEED TO: write this...
+    # Calculte and add the DET of the tensor to the recArray
+    if 'det' in rxType3D:
+        Zon = (recDataTemp['zxxr']+1j*recDataTemp['zxxi'])*(recDataTemp['zyyr']+1j*recDataTemp['zyyi'])
+        Zoff = (recDataTemp['zxyr']+1j*recDataTemp['zxyi'])*(recDataTemp['zyxr']+1j*recDataTemp['zyxi'])
+        det = np.sqrt(Zon - Zoff)
+        recData = recFunc.append_fields(recDataTemp,['zdetr','zdeti'],[det.real,det.imag] )
+    else:
+        recData = recDataTemp
+
+
+
+    uniLocs = rec_to_ndarr(np.unique(recData[['x','y','z']]))
+    mtData1DList = []
+    if 'xy' in rxType3D:
+        corr = -1 # Shift the data to comply with the quadtrature of the 1d problem
+    else:
+        corr = 1
+    for loc in uniLocs:
+        # Make the receiver list
+        rx1DList = []
+        rx1DList.append(Point_impedance1D(simpeg.mkvc(loc,2).T,'real'))
+        rx1DList.append(Point_impedance1D(simpeg.mkvc(loc,2).T,'imag'))
+        # Source list
+        locrecData = recData[np.sqrt(np.sum( (rec_to_ndarr(recData[['x','y','z']]) - loc )**2,axis=1)) < 1e-5]
+        dat1DList = []
+        src1DList = []
+        for freq in locrecData['freq']:
+            src1DList.append(Planewave_xy_1Dprimary(rx1DList,freq))
+            for comp  in ['r','i']:
+                dat1DList.append( corr * locrecData[rxType3D+comp][locrecData['freq']== freq] )
+
+        # Make the survey
+        sur1D = Survey(src1DList)
+
+        # Make the data
+        dataVec = np.hstack(dat1DList)
+        dat1D = Data(sur1D,dataVec)
+        sur1D.dobs = dataVec
+        # Need to take NSEMdata.survey.std and split it as well.
+        std=0.05
+        sur1D.std =  np.abs(sur1D.dobs*std) #+ 0.01*np.linalg.norm(sur1D.dobs)
+        mtData1DList.append(dat1D)
+
+    # Return the the list of data.
+    return mtData1DList
+
+def resampleNSEMdataAtFreq(NSEMdata, freqs):
+    """
+    Function to resample NSEMdata at set of frequencies
+
+    """
+
+    # Make a rec array
+    NSEMrec = NSEMdata.toRecArray().data
+
+    # Find unique locations
+    uniLoc = np.unique(NSEMrec[['x','y','z']])
+    uniFreq = NSEMdata.survey.freqs
+    # Get the comps
+    dNames = NSEMrec.dtype
+
+    # Loop over all the locations and interpolate
+    for loc in uniLoc:
+        # Find the index of the station
+        ind = np.sqrt(np.sum((rec_to_ndarr(NSEMrec[['x','y','z']]) - rec_to_ndarr(loc))**2,axis=1)) < 1. # Find dist of 1 m accuracy
+        # Make a temporary recArray and interpolate all the components
+        tArrRec = np.concatenate((simpeg.mkvc(freqs,2),np.ones((len(freqs),1))*rec_to_ndarr(loc),np.nan*np.ones((len(freqs),12))),axis=1).view(dNames)
+        for comp in ['zxxr','zxxi','zxyr','zxyi','zyxr','zyxi','zyyr','zyyi','tzxr','tzxi','tzyr','tzyi']:
+            int1d = sciint.interp1d(NSEMrec[ind]['freq'],NSEMrec[ind][comp],bounds_error=False)
+            tArrRec[comp] = simpeg.mkvc(int1d(freqs),2)
+
+        # Join together
+        try:
+            outRecArr = recFunc.stack_arrays((outRecArr,tArrRec))
+        except NameError:
+            outRecArr = tArrRec
+
+    # Make the NSEMdata and return
+    return Data.fromRecArray(outRecArr)
+
+### Other utils, that don't take NSEM as an input
 def appResPhs(freq, z):
     app_res = ((1./(8e-7*np.pi**2))/freq)*np.abs(z)**2
     app_phs = np.arctan2(z.imag,z.real)*(180/np.pi)
@@ -227,90 +334,3 @@ def plotImpAppRes(dataArrays, plotLoc, textStr=[]):
 def printTime():
     import time
     print(time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.localtime()))
-
-def convert3Dto1Dobject(NSEMdata, rxType3D='yx'):
-
-    # Find the unique locations
-    # Need to find the locations
-    recDataTemp = NSEMdata.toRecArray().data.flatten()
-    # Check if survey.std has been assigned.
-    ## NEED TO: write this...
-    # Calculte and add the DET of the tensor to the recArray
-    if 'det' in rxType3D:
-        Zon = (recDataTemp['zxxr']+1j*recDataTemp['zxxi'])*(recDataTemp['zyyr']+1j*recDataTemp['zyyi'])
-        Zoff = (recDataTemp['zxyr']+1j*recDataTemp['zxyi'])*(recDataTemp['zyxr']+1j*recDataTemp['zyxi'])
-        det = np.sqrt(Zon - Zoff)
-        recData = recFunc.append_fields(recDataTemp,['zdetr','zdeti'],[det.real,det.imag] )
-    else:
-        recData = recDataTemp
-
-
-
-    uniLocs = rec_to_ndarr(np.unique(recData[['x','y','z']]))
-    mtData1DList = []
-    if 'xy' in rxType3D:
-        corr = -1 # Shift the data to comply with the quadtrature of the 1d problem
-    else:
-        corr = 1
-    for loc in uniLocs:
-        # Make the receiver list
-        rx1DList = []
-        rx1DList.append(Point_impedance1D(simpeg.mkvc(loc,2).T,'real'))
-        rx1DList.append(Point_impedance1D(simpeg.mkvc(loc,2).T,'imag'))
-        # Source list
-        locrecData = recData[np.sqrt(np.sum( (rec_to_ndarr(recData[['x','y','z']]) - loc )**2,axis=1)) < 1e-5]
-        dat1DList = []
-        src1DList = []
-        for freq in locrecData['freq']:
-            src1DList.append(Planewave_xy_1Dprimary(rx1DList,freq))
-            for comp  in ['r','i']:
-                dat1DList.append( corr * locrecData[rxType3D+comp][locrecData['freq']== freq] )
-
-        # Make the survey
-        sur1D = Survey(src1DList)
-
-        # Make the data
-        dataVec = np.hstack(dat1DList)
-        dat1D = Data(sur1D,dataVec)
-        sur1D.dobs = dataVec
-        # Need to take NSEMdata.survey.std and split it as well.
-        std=0.05
-        sur1D.std =  np.abs(sur1D.dobs*std) #+ 0.01*np.linalg.norm(sur1D.dobs)
-        mtData1DList.append(dat1D)
-
-    # Return the the list of data.
-    return mtData1DList
-
-def resampleNSEMdataAtFreq(NSEMdata, freqs):
-    """
-    Function to resample NSEMdata at set of frequencies
-
-    """
-
-    # Make a rec array
-    NSEMrec = NSEMdata.toRecArray().data
-
-    # Find unique locations
-    uniLoc = np.unique(NSEMrec[['x','y','z']])
-    uniFreq = NSEMdata.survey.freqs
-    # Get the comps
-    dNames = NSEMrec.dtype
-
-    # Loop over all the locations and interpolate
-    for loc in uniLoc:
-        # Find the index of the station
-        ind = np.sqrt(np.sum((rec_to_ndarr(NSEMrec[['x','y','z']]) - rec_to_ndarr(loc))**2,axis=1)) < 1. # Find dist of 1 m accuracy
-        # Make a temporary recArray and interpolate all the components
-        tArrRec = np.concatenate((simpeg.mkvc(freqs,2),np.ones((len(freqs),1))*rec_to_ndarr(loc),np.nan*np.ones((len(freqs),12))),axis=1).view(dNames)
-        for comp in ['zxxr','zxxi','zxyr','zxyi','zyxr','zyxi','zyyr','zyyi','tzxr','tzxi','tzyr','tzyi']:
-            int1d = sciint.interp1d(NSEMrec[ind]['freq'],NSEMrec[ind][comp],bounds_error=False)
-            tArrRec[comp] = simpeg.mkvc(int1d(freqs),2)
-
-        # Join together
-        try:
-            outRecArr = recFunc.stack_arrays((outRecArr,tArrRec))
-        except NameError:
-            outRecArr = tArrRec
-
-    # Make the NSEMdata and return
-    return Data.fromRecArray(outRecArr)
