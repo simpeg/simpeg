@@ -53,7 +53,7 @@ install:
     else
       conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py nose sphinx sympy;
     fi
-  - pip install nose-cov python-coveralls
+  - pip install nose-cov python-coveralls properties vectormath
 
 #  - pip install pyMKL;
   - git clone https://github.com/jcapriot/pyMKL.git;

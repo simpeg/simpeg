@@ -107,7 +107,8 @@ def run(plotIt=True):
     reg.mrefInSmooth = True
     reg.alpha_s = 1e-1
     reg.alpha_x = 1.
-
+    reg.alpha_xx = .1
+    reg.mrefInSmooth = True
     # Inversion problem
     invProb = simpeg.InvProblem.BaseInvProblem(dmis, reg, opt)
     invProb.counter = C
