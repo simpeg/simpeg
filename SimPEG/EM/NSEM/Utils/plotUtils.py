@@ -265,7 +265,6 @@ class app_res_phs_imp_station_plot(Base_DataNSEM_plots):
                                     ax=axes[3], errorbars=False,
                                     comp_plot_dict=dd_kwargs)
 
->>>>>>> nsem/dev-dataClass
 
 class DataNSEM_plot_functions(object):
     """
