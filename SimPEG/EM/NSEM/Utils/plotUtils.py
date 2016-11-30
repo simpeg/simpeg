@@ -129,7 +129,7 @@ class tip_amp_station_plot(Base_DataNSEM_plots):
         axes = self.axes
 
         # Set keyword arguments
-        st_kwargs = {'marker _', 'ls':'None'}
+        st_kwargs = {'marker': '_', 'ls': 'None'}
         eb_kwargs = {'ls': 'None'}
         # Pop the data from the list
         data = data_list[0]
@@ -274,6 +274,9 @@ class DataNSEM_plot_functions(object):
     """
 
     def __init__(self):
+        """
+        Just for reference
+        """
         pass
 
     def plot_app_res(self, location,
