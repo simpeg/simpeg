@@ -273,6 +273,12 @@ class DataNSEM_plot_functions(object):
 
     """
 
+    def __init__(self):
+        """
+        Just for reference
+        """
+        pass
+
     def plot_app_res(self, location,
                      components=['xy', 'yx'], ax=None, errorbars=False,
                      comp_plot_dict=DEFAULT_COMP_DICT
