@@ -265,7 +265,6 @@ class app_res_phs_imp_station_plot(Base_DataNSEM_plots):
                                     ax=axes[3], errorbars=False,
                                     comp_plot_dict=dd_kwargs)
 
->>>>>>> nsem/dev-dataClass
 
 class DataNSEM_plot_functions(object):
     """
@@ -274,10 +273,12 @@ class DataNSEM_plot_functions(object):
 
     """
 
+    def __init__(self):
+        pass
+
     def plot_app_res(self, location,
                      components=['xy', 'yx'], ax=None, errorbars=False,
-                     comp_plot_dict=DEFAULT_COMP_DICT
-                    ):
+                     comp_plot_dict=DEFAULT_COMP_DICT):
         """
         Plot apperent resistivity curves at a given location
 
@@ -325,8 +326,7 @@ class DataNSEM_plot_functions(object):
 
     def plot_app_phs(self, location,
                      components=['xy', 'yx'], ax=None, errorbars=False,
-                     comp_plot_dict=DEFAULT_COMP_DICT
-                    ):
+                     comp_plot_dict=DEFAULT_COMP_DICT):
         """
         Plot apperent resistivity curves at a given location
 
@@ -372,8 +372,7 @@ class DataNSEM_plot_functions(object):
 
     def plot_imp_amp(self, location,
                      components=['xy', 'yx'], ax=None, errorbars=False,
-                     comp_plot_dict=DEFAULT_COMP_DICT
-                    ):
+                     comp_plot_dict=DEFAULT_COMP_DICT):
         """
         Plot impedance amplitude curves at a given location
 
@@ -420,8 +419,7 @@ class DataNSEM_plot_functions(object):
 
     def plot_tip_amp(self, location,
                      components=['zx', 'zy'], ax=None, errorbars=False,
-                     comp_plot_dict=DEFAULT_COMP_DICT
-                    ):
+                     comp_plot_dict=DEFAULT_COMP_DICT):
         """
         Plot tipper amplitude curves at a given location
 
@@ -466,12 +464,74 @@ class DataNSEM_plot_functions(object):
 
         return ax
 
+    def map_iso_frequency(self, freq, ax=None, **plot_kwargs):
+        """
+        Function that maps the data at an certain frequency.
+        :param frequency: The frequency to map the data for
+        :type frequency: :class:`float`
+        :param ax: The ax object for mapping to. Default: None
+        :type ax: :class:`axes <matplotlib.axes>`
+
+        """
+        def plotIsoFreqNSimpedance(ax,freq,array,flag,par='abs',colorbar=True,colorNorm='SymLog',cLevel=True,contour=True):
+
+    indUniFreq = np.where(freq==array['freq'])
+
+
+    x, y = array['x'][indUniFreq],array['y'][indUniFreq]
+    if par == 'abs':
+        zPlot = np.abs(array[flag][indUniFreq])
+        cmap = plt.get_cmap('OrRd_r')#seismic')
+        level = np.logspace(0,-5,31)
+        clevel = np.logspace(0,-4,5)
+        plotNorm = colors.LogNorm()
+    elif par == 'real':
+        zPlot = np.real(array[flag][indUniFreq])
+        cmap = plt.get_cmap('RdYlBu')
+        if cLevel:
+            level = np.concatenate((-np.logspace(0,-10,31),np.logspace(-10,0,31)))
+            clevel = np.concatenate((-np.logspace(0,-8,5),np.logspace(-8,0,5)))
+        else:
+            level = np.linspace(zPlot.min(),zPlot.max(),100)
+            clevel = np.linspace(zPlot.min(),zPlot.max(),10)
+        if colorNorm=='SymLog':
+            plotNorm = colors.SymLogNorm(1e-10,linscale=2)
+        else:
+            plotNorm = colors.Normalize()
+    elif par == 'imag':
+        zPlot = np.imag(array[flag][indUniFreq])
+        cmap = plt.get_cmap('RdYlBu')
+        level = np.concatenate((-np.logspace(0,-10,31),np.logspace(-10,0,31)))
+        clevel = np.concatenate((-np.logspace(0,-8,5),np.logspace(-8,0,5)))
+        plotNorm = colors.SymLogNorm(1e-10,linscale=2)
+        if cLevel:
+            level = np.concatenate((-np.logspace(0,-10,31),np.logspace(-10,0,31)))
+            clevel = np.concatenate((-np.logspace(0,-8,5),np.logspace(-8,0,5)))
+        else:
+            level = np.linspace(zPlot.min(),zPlot.max(),100)
+            clevel = np.linspace(zPlot.min(),zPlot.max(),10)
+        if colorNorm=='SymLog':
+            plotNorm = colors.SymLogNorm(1e-10,linscale=2)
+        elif colorNorm=='Lin':
+            plotNorm = colors.Normalize()
+    if contour:
+        cs = ax.tricontourf(x,y,zPlot,levels=level,cmap=cmap,norm=plotNorm)#,extend='both')
+    else:
+        uniX,uniY = np.unique(x),np.unique(y)
+        X,Y = np.meshgrid(np.append(uniX-25,uniX[-1]+25),np.append(uniY-25,uniY[-1]+25))
+        cs = ax.pcolor(X,Y,np.reshape(zPlot,(len(uniY),len(uniX))),cmap=cmap,norm=plotNorm)
+    if colorbar:
+        plt.colorbar(cs,cax=ax.cax,ticks=clevel,format='%1.2e')
+        ax.set_title(flag+' '+par,fontsize=8)
+    return cs
+
+
     def map_data_locations(self, ax=None, **plot_kwargs):
         """
         Function that plots all receiver locations of the data
             (all discreate data locations).
 
-        :param ax: The ax object to add the,  , Default: None
+        :param ax: The ax object for mapping to. Default: None
         :type ax: :class:`axes <matplotlib.axes>`
 
         """
@@ -636,6 +696,41 @@ def _get_plot_data(data, location, orientation, component):
         freqs, plot_data = _extract_location_data(
             data, location, orientation, component)
     return (freqs, plot_data)
+
+def _extract_frequency_data(data, frequency,
+                           orientation, component, return_uncert=False):
+    """
+    Function to extract data at given frequency
+    """
+    locs_list = []
+    data_list = []
+    std_list = []
+    floor_list = []
+    for src in data.survey.srcList:
+        rx_list = [rx for rx in src.rxList
+              if rx.orientation == orientation and rx.component == component]
+        if len(rx_list) == 0:
+            if return_uncert:
+                return (np.array([]), np.array([]),
+                        np.array([]), np.array([]))
+            return (np.array([]), np.array([]))
+        else:
+            rx = rx_list[0]
+
+        ind_loc = np.sqrt(np.sum((rx.locs[:, :2] - location) ** 2, axis=1)) < 0.1
+        if np.any(ind_loc):
+            freq_list.append(src.freq)
+            data_list.append(data[src, rx][ind_loc])
+
+
+            if return_uncert:
+                std_list.append(data.standard_deviation[src, rx][ind_loc])
+                floor_list.append(data.floor[src, rx][ind_loc])
+    if return_uncert:
+        return (np.array(freq_list), np.concatenate(data_list),
+                np.concatenate(std_list), np.concatenate(floor_list))
+    return (np.array(freq_list), np.concatenate(data_list))
+
 
 def _extract_location_data(data, location,
                            orientation, component, return_uncert=False):
