@@ -106,7 +106,7 @@ class GravityIntegral(Problem.LinearProblem):
             return self.G.dot(rho)
 
     def fields(self, m):
-        self.model = m
+        self.model = self.rhoMap*m
 
         fields = self.fwr_op()
 
@@ -346,8 +346,8 @@ def writeUBCobs(filename, survey, d):
     print("Observation file saved to: " + filename)
 
 
-def plot_obs_2D(rxLoc, d=None, varstr='Gz Obs', vmin=None, vmax=None,
-                levels=None, fig=None):
+def plot_obs_2D(rxLoc, d=None, title='Gz Obs', vmin=None, vmax=None,
+                levels=None, axs=None):
     """ Function plot_obs(rxLoc,d,wd)
     Generate a 2d interpolated plot from scatter points of data
 
@@ -378,10 +378,10 @@ def plot_obs_2D(rxLoc, d=None, varstr='Gz Obs', vmin=None, vmax=None,
     d_grid = griddata(rxLoc[:, 0:2], d, (X, Y), method='linear')
 
     # Plot result
-    if fig is None:
-        fig = plt.figure()
+    if axs is None:
+        fig, axs = plt.figure(), plt.subplot()
 
-    plt.scatter(rxLoc[:, 0], rxLoc[:, 1], c='k', s=10)
+    axs.scatter(rxLoc[:, 0], rxLoc[:, 1], c='k', s=10)
 
     if d is not None:
 
@@ -399,20 +399,20 @@ def plot_obs_2D(rxLoc, d=None, varstr='Gz Obs', vmin=None, vmax=None,
 
         # Interpolate
         d_grid = griddata(rxLoc[:, 0:2], d, (X, Y), method='linear')
-        plt.imshow(d_grid, extent=[x.min(), x.max(), y.min(), y.max()],
+        im = axs.imshow(d_grid, extent=[x.min(), x.max(), y.min(), y.max()],
                    origin='lower', vmin=vmin, vmax=vmax, cmap="plasma")
-        plt.colorbar(fraction=0.02)
+        plt.colorbar(im,fraction=0.02, ax=axs)
 
         if levels is None:
-            plt.contour(X, Y, d_grid, 10, vmin=vmin, vmax=vmax, cmap="plasma")
+            axs.contour(X, Y, d_grid, 10, vmin=vmin, vmax=vmax, cmap="plasma")
         else:
-            plt.contour(X, Y, d_grid, levels=levels, colors='r',
+            axs.contour(X, Y, d_grid, levels=levels, colors='r',
                         vmin=vmin, vmax=vmax, cmap="plasma")
 
-    plt.title(varstr)
+    axs.set_title(title)
     plt.gca().set_aspect('equal', adjustable='box')
 
-    return fig
+    return axs
 
 
 def readUBCgravObs(obs_file):

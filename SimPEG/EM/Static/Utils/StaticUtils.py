@@ -751,7 +751,7 @@ def readUBC_DC3Dobs(fileName):
 
         # First line is transmitter with number of receivers
         if count == 0:
-
+            rx = []
             temp = (np.fromstring(obsfile[ii], dtype=float, sep=' ').T)
             count = int(temp[-1])
 
@@ -765,7 +765,7 @@ def readUBC_DC3Dobs(fileName):
 
             continue
 
-        rx = []
+        
         temp = np.fromstring(obsfile[ii], dtype=float, sep=' ')
 
         if zflag:
@@ -786,9 +786,10 @@ def readUBC_DC3Dobs(fileName):
 
         count = count - 1
 
-        rx = np.asarray(rx)
+        
         # Reach the end of transmitter block
         if count == 0:
+            rx = np.asarray(rx)
             Rx = DC.Rx.Dipole(rx[:, :3], rx[:, 3:])
             srcLists.append(DC.Src.Dipole([Rx], tx[:3], tx[3:]))
 

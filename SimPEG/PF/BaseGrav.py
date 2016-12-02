@@ -18,7 +18,7 @@ class LinearSurvey(Survey.BaseSurvey):
 
     @property
     def nD(self):
-        return self.prob.G.shape[0]
+        return self.srcField.rxList[0].locs.shape[0]
 
     @property
     def rxLoc(self):
