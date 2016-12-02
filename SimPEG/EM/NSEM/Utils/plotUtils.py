@@ -476,57 +476,57 @@ class DataNSEM_plot_functions(object):
         :type ax: :class:`axes <matplotlib.axes>`
 
         """
-        def plotIsoFreqNSimpedance(ax,freq,array,flag,par='abs',colorbar=True,colorNorm='SymLog',cLevel=True,contour=True):
+    #     def plotIsoFreqNSimpedance(ax,freq,array,flag,par='abs',colorbar=True,colorNorm='SymLog',cLevel=True,contour=True):
 
-    indUniFreq = np.where(freq==array['freq'])
+    # indUniFreq = np.where(freq==array['freq'])
 
 
-    x, y = array['x'][indUniFreq],array['y'][indUniFreq]
-    if par == 'abs':
-        zPlot = np.abs(array[flag][indUniFreq])
-        cmap = plt.get_cmap('OrRd_r')#seismic')
-        level = np.logspace(0,-5,31)
-        clevel = np.logspace(0,-4,5)
-        plotNorm = colors.LogNorm()
-    elif par == 'real':
-        zPlot = np.real(array[flag][indUniFreq])
-        cmap = plt.get_cmap('RdYlBu')
-        if cLevel:
-            level = np.concatenate((-np.logspace(0,-10,31),np.logspace(-10,0,31)))
-            clevel = np.concatenate((-np.logspace(0,-8,5),np.logspace(-8,0,5)))
-        else:
-            level = np.linspace(zPlot.min(),zPlot.max(),100)
-            clevel = np.linspace(zPlot.min(),zPlot.max(),10)
-        if colorNorm=='SymLog':
-            plotNorm = colors.SymLogNorm(1e-10,linscale=2)
-        else:
-            plotNorm = colors.Normalize()
-    elif par == 'imag':
-        zPlot = np.imag(array[flag][indUniFreq])
-        cmap = plt.get_cmap('RdYlBu')
-        level = np.concatenate((-np.logspace(0,-10,31),np.logspace(-10,0,31)))
-        clevel = np.concatenate((-np.logspace(0,-8,5),np.logspace(-8,0,5)))
-        plotNorm = colors.SymLogNorm(1e-10,linscale=2)
-        if cLevel:
-            level = np.concatenate((-np.logspace(0,-10,31),np.logspace(-10,0,31)))
-            clevel = np.concatenate((-np.logspace(0,-8,5),np.logspace(-8,0,5)))
-        else:
-            level = np.linspace(zPlot.min(),zPlot.max(),100)
-            clevel = np.linspace(zPlot.min(),zPlot.max(),10)
-        if colorNorm=='SymLog':
-            plotNorm = colors.SymLogNorm(1e-10,linscale=2)
-        elif colorNorm=='Lin':
-            plotNorm = colors.Normalize()
-    if contour:
-        cs = ax.tricontourf(x,y,zPlot,levels=level,cmap=cmap,norm=plotNorm)#,extend='both')
-    else:
-        uniX,uniY = np.unique(x),np.unique(y)
-        X,Y = np.meshgrid(np.append(uniX-25,uniX[-1]+25),np.append(uniY-25,uniY[-1]+25))
-        cs = ax.pcolor(X,Y,np.reshape(zPlot,(len(uniY),len(uniX))),cmap=cmap,norm=plotNorm)
-    if colorbar:
-        plt.colorbar(cs,cax=ax.cax,ticks=clevel,format='%1.2e')
-        ax.set_title(flag+' '+par,fontsize=8)
-    return cs
+    # x, y = array['x'][indUniFreq],array['y'][indUniFreq]
+    # if par == 'abs':
+    #     zPlot = np.abs(array[flag][indUniFreq])
+    #     cmap = plt.get_cmap('OrRd_r')#seismic')
+    #     level = np.logspace(0,-5,31)
+    #     clevel = np.logspace(0,-4,5)
+    #     plotNorm = colors.LogNorm()
+    # elif par == 'real':
+    #     zPlot = np.real(array[flag][indUniFreq])
+    #     cmap = plt.get_cmap('RdYlBu')
+    #     if cLevel:
+    #         level = np.concatenate((-np.logspace(0,-10,31),np.logspace(-10,0,31)))
+    #         clevel = np.concatenate((-np.logspace(0,-8,5),np.logspace(-8,0,5)))
+    #     else:
+    #         level = np.linspace(zPlot.min(),zPlot.max(),100)
+    #         clevel = np.linspace(zPlot.min(),zPlot.max(),10)
+    #     if colorNorm=='SymLog':
+    #         plotNorm = colors.SymLogNorm(1e-10,linscale=2)
+    #     else:
+    #         plotNorm = colors.Normalize()
+    # elif par == 'imag':
+    #     zPlot = np.imag(array[flag][indUniFreq])
+    #     cmap = plt.get_cmap('RdYlBu')
+    #     level = np.concatenate((-np.logspace(0,-10,31),np.logspace(-10,0,31)))
+    #     clevel = np.concatenate((-np.logspace(0,-8,5),np.logspace(-8,0,5)))
+    #     plotNorm = colors.SymLogNorm(1e-10,linscale=2)
+    #     if cLevel:
+    #         level = np.concatenate((-np.logspace(0,-10,31),np.logspace(-10,0,31)))
+    #         clevel = np.concatenate((-np.logspace(0,-8,5),np.logspace(-8,0,5)))
+    #     else:
+    #         level = np.linspace(zPlot.min(),zPlot.max(),100)
+    #         clevel = np.linspace(zPlot.min(),zPlot.max(),10)
+    #     if colorNorm=='SymLog':
+    #         plotNorm = colors.SymLogNorm(1e-10,linscale=2)
+    #     elif colorNorm=='Lin':
+    #         plotNorm = colors.Normalize()
+    # if contour:
+    #     cs = ax.tricontourf(x,y,zPlot,levels=level,cmap=cmap,norm=plotNorm)#,extend='both')
+    # else:
+    #     uniX,uniY = np.unique(x),np.unique(y)
+    #     X,Y = np.meshgrid(np.append(uniX-25,uniX[-1]+25),np.append(uniY-25,uniY[-1]+25))
+    #     cs = ax.pcolor(X,Y,np.reshape(zPlot,(len(uniY),len(uniX))),cmap=cmap,norm=plotNorm)
+    # if colorbar:
+    #     plt.colorbar(cs,cax=ax.cax,ticks=clevel,format='%1.2e')
+    #     ax.set_title(flag+' '+par,fontsize=8)
+    # return cs
 
 
     def map_data_locations(self, ax=None, **plot_kwargs):
@@ -617,61 +617,159 @@ class DataNSEM_plot_functions(object):
             fig = ax.get_figure()
 
         # Plot the data
-        freqs, plot_data, errorbars = _get_data_error(self, location,
-                                           orientation, component)
+        freqs, plot_data, errorbars = _get_station_data(self, location,
+            orientation, component, plot_error=True)
         plot_obj = ax.errorbar(freqs, plot_data, yerr=errorbars,
                                **plot_kwargs)
         return (fig, ax, plot_obj)
 
+    def frequency_map(self, frequency, orientation, component,
+                          ax=None, plot_error=True, **plot_kwargs):
+        """
+        Function to generate a iso-frequency map
+
+        :param numpy.ndarray frequency: Frequency to be mapped
+        :param str orientation: The orientation of the data
+        :param str component: The data component to plot
+        :param matplotlib.axes ax (optional):
+        :param matplotlib.lines.Line2D keyword_arguments plot_kwargs)
+
+        """
+
+        # Sort the axes
+        if ax is None:
+            fig, ax = plt.subplots(1, 1)
+        else:
+            fig = ax.get_figure()
+
+        # Plot the data
+        locs, plot_data, errorbars = _get_station_data(self, frequency,
+            orientation, component,plot_error)
+        plot_obj = plt.tricontourf(locs, plot_data,
+                               **plot_kwargs)
+        return (fig, ax, plot_obj)
 
 # Hidden utils functions
-def _get_data_error(data, location, orientation, component):
+def _get_map_data(data, frequency, orientation, component, plot_error=False):
+    """
+    Function for getting frequency map data
+    """
 
     # Get the components
     if component in ['app_res', 'phase', 'amplitude']:
-        real_tuple = _extract_location_data(data, location, orientation,
-                                            'real', True)
-        freqs, real_data, real_std, real_floor = real_tuple
-        imag_tuple = _extract_location_data(data, location, orientation,
-                                            'imag', True)
-        freqs, imag_data, imag_std, imag_floor = imag_tuple
-        # Add up the uncertainties
-        real_uncert = real_std * np.abs(real_data) + real_floor
-        imag_uncert = imag_std * np.abs(imag_data) + imag_floor
+        real_tuple = _extract_frequency_data(data, frequency, orientation,
+                                            'real', plot_error)
+        imag_tuple = _extract_frequency_data(data, frequency, orientation,
+                                            'imag', plot_error)
+        if plot_error:
+            freqs, real_data, real_std, real_floor = real_tuple
+            freqs, imag_data, imag_std, imag_floor = imag_tuple
+            # Add up the uncertainties
+            real_uncert = real_std * np.abs(real_data) + real_floor
+            imag_uncert = imag_std * np.abs(imag_data) + imag_floor
+        else:
+            freqs, real_data = real_tuple
+            freqs, imag_data = imag_tuple
 
         if 'app_res' in component:
             comp_data = real_data + 1j * imag_data
             plot_data = (1. / (mu_0 * omega(freqs))) * np.abs(comp_data) ** 2
-
-            res_uncert = (
-                (2. / (mu_0 * omega(freqs))) *
-                (real_data * real_uncert + imag_data * imag_uncert)
-            )
-            errorbars = [res_uncert, res_uncert]
+            if plot_error:
+                res_uncert = (
+                    (2. / (mu_0 * omega(freqs))) *
+                    (real_data * real_uncert + imag_data * imag_uncert)
+                )
+                errorbars = [res_uncert, res_uncert]
         elif 'phase' in component:
             plot_data = np.arctan2(imag_data, real_data) * (180. / np.pi)
-            phs_uncert = (
-                (1. / (real_data ** 2 + imag_data ** 2)) *
-                ((real_data * real_uncert - imag_data * imag_uncert))
-            ) * (180. / np.pi)
-            # Scale back the errorbars
-            errorbars = [phs_uncert, phs_uncert]
+            if plot_error:
+                phs_uncert = (
+                    (1. / (real_data ** 2 + imag_data ** 2)) *
+                    ((real_data * real_uncert - imag_data * imag_uncert))
+                ) * (180. / np.pi)
+                # Scale back the errorbars
+                errorbars = [phs_uncert, phs_uncert]
         elif 'amplitude' in component:
             comp_data = real_data + 1j * imag_data
             plot_data = np.abs(comp_data)
-            amp_uncert = ((1. / plot_data) *
-                          ((np.abs(real_data) * real_uncert) +
-                          (np.abs(imag_data) * imag_uncert))
-                          )
-            errorbars = [amp_uncert, amp_uncert] #[low_unsert, up_unsert]
+            if plot_error:
+                amp_uncert = ((1. / plot_data) *
+                              ((np.abs(real_data) * real_uncert) +
+                              (np.abs(imag_data) * imag_uncert))
+                              )
+                errorbars = [amp_uncert, amp_uncert] #[low_unsert, up_unsert]
     else:
-        freqs, plot_data, std_data, floor_data = _extract_location_data(
-            data, location, orientation, component, return_uncert=True)
-        attr_uncert = std_data * np.abs(plot_data) + floor_data
-        errorbars = [attr_uncert, attr_uncert]
+
+        if plot_error:
+            freqs, plot_data, std_data, floor_data = _extract_frequency_data(
+                data, frequency, orientation, component, return_uncert=error)
+            attr_uncert = std_data * np.abs(plot_data) + floor_data
+            errorbars = [attr_uncert, attr_uncert]
+        else:
+            freqs, plot_data = _extract_frequency_data(
+                data, frequency, orientation, component, return_uncert=error)
     return (freqs, plot_data, errorbars)
 
 
+def _get_station_data(data, location, orientation, component, plot_error=False):
+
+    # Get the components
+    if component in ['app_res', 'phase', 'amplitude']:
+        real_tuple = _extract_location_data(data, location, orientation,
+                                            'real', plot_error)
+        imag_tuple = _extract_location_data(data, location, orientation,
+                                            'imag', plot_error)
+
+        if plot_error:
+            freqs, real_data, real_std, real_floor = real_tuple
+            freqs, imag_data, imag_std, imag_floor = imag_tuple
+            # Add up the uncertainties
+            real_uncert = real_std * np.abs(real_data) + real_floor
+            imag_uncert = imag_std * np.abs(imag_data) + imag_floor
+        else:
+            freqs, real_data = real_tuple
+            freqs, imag_data = imag_tuple
+
+        if 'app_res' in component:
+            comp_data = real_data + 1j * imag_data
+            plot_data = (1. / (mu_0 * omega(freqs))) * np.abs(comp_data) ** 2
+            if plot_error:
+                res_uncert = (
+                    (2. / (mu_0 * omega(freqs))) *
+                    (real_data * real_uncert + imag_data * imag_uncert)
+                )
+                errorbars = [res_uncert, res_uncert]
+        elif 'phase' in component:
+            plot_data = np.arctan2(imag_data, real_data) * (180. / np.pi)
+            if plot_error:
+                phs_uncert = (
+                    (1. / (real_data ** 2 + imag_data ** 2)) *
+                    ((real_data * real_uncert - imag_data * imag_uncert))
+                ) * (180. / np.pi)
+                # Scale back the errorbars
+                errorbars = [phs_uncert, phs_uncert]
+        elif 'amplitude' in component:
+            comp_data = real_data + 1j * imag_data
+            plot_data = np.abs(comp_data)
+            if plot_error:
+                amp_uncert = ((1. / plot_data) *
+                              ((np.abs(real_data) * real_uncert) +
+                              (np.abs(imag_data) * imag_uncert))
+                              )
+                errorbars = [amp_uncert, amp_uncert] #[low_unsert, up_unsert]
+    else:
+        if plot_error:
+            freqs, plot_data, std_data, floor_data = _extract_location_data(
+                data, location, orientation, component, return_uncert=plot_error)
+            attr_uncert = std_data * np.abs(plot_data) + floor_data
+            errorbars = [attr_uncert, attr_uncert]
+        else:
+            freqs, plot_data = _extract_location_data(
+                data, location, orientation, component, return_uncert=plot_error)
+    if plot_error:
+        return (freqs, plot_data, errorbars)
+    else:
+        return (freqs, plot_data)
 
 def _get_plot_data(data, location, orientation, component):
 
@@ -701,38 +799,37 @@ def _get_plot_data(data, location, orientation, component):
     return (freqs, plot_data)
 
 def _extract_frequency_data(data, frequency,
-                           orientation, component, return_uncert=False):
+                            orientation, component, return_uncert=False):
     """
     Function to extract data at given frequency
     """
-    locs_list = []
-    data_list = []
-    std_list = []
-    floor_list = []
-    for src in data.survey.srcList:
-        rx_list = [rx for rx in src.rxList
-              if rx.orientation == orientation and rx.component == component]
-        if len(rx_list) == 0:
-            if return_uncert:
-                return (np.array([]), np.array([]),
-                        np.array([]), np.array([]))
-            return (np.array([]), np.array([]))
-        else:
-            rx = rx_list[0]
 
-        ind_loc = np.sqrt(np.sum((rx.locs[:, :2] - location) ** 2, axis=1)) < 0.1
-        if np.any(ind_loc):
-            freq_list.append(src.freq)
-            data_list.append(data[src, rx][ind_loc])
+    src = data.survey.getSrcByFreq(frequency)
+    rx_list = [rx for rx in src.rxList
+               if rx.orientation == orientation and rx.component == component]
+    # Check the number of the rx
+    if len(rx_list) == 1:
+        rx = rx_list[0]
+    elif len(rx_list) == 0:
+        # Should add a warning that the rx doesn't excist
+        if return_uncert:
+            # Returning all empty arrays
+            return (np.array([]), np.array([]),
+                    np.array([]), np.array([]))
+        return (np.array([]), np.array([]))
+    else:
+        # Should be a more specifice Exeption
+        raise Exception(
+            'To many Receivers of the same type, orientation and component')
 
-
-            if return_uncert:
-                std_list.append(data.standard_deviation[src, rx][ind_loc])
-                floor_list.append(data.floor[src, rx][ind_loc])
+    loc_arr = rx.locs
+    data_arr = data[src, rx]
     if return_uncert:
-        return (np.array(freq_list), np.concatenate(data_list),
-                np.concatenate(std_list), np.concatenate(floor_list))
-    return (np.array(freq_list), np.concatenate(data_list))
+        std_arr = data.standard_deviation[src, rx]
+        floor_arr = data.floor[src, rx]
+    if return_uncert:
+        return (loc_arr, data_arr, std_arr, floor_arr)
+    return (loc_arr, data_arr)
 
 
 def _extract_location_data(data, location,

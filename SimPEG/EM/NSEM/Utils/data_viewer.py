@@ -160,5 +160,5 @@ class NSEM_data_viewer(properties.HasProperties):
 
         if len(self.station_figs) > 0:
             for sta_fig in self.station_figs:
-                sta_fig.clean_axes()
+                sta_fig.clear_axes()
 
