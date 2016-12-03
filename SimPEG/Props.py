@@ -187,14 +187,11 @@ class PhysicalProperty(properties.Property):
             self._set(scope.name, value)
             scope.clear_mappings(self)
 
-<<<<<<< HEAD
-        return property(fget=fget, fset=fset, doc=scope.doc)
-=======
         def fdel(self):
             self._set(scope.name, properties.utils.undefined)
 
         return property(fget=fget, fset=fset, fdel=fdel, doc=scope.doc)
->>>>>>> dev
+
 
     def as_pickle(self, instance):
         return instance._get(self.name)
