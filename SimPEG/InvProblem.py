@@ -48,10 +48,13 @@ class BaseInvProblem(Props.BaseSimPEG):
 
     def __init__(self, dmisfit, reg, opt, **kwargs):
         super(BaseInvProblem, self).__init__(**kwargs)
-        assert isinstance(dmisfit, DataMisfit.BaseDataMisfit), 'dmisfit must be a DataMisfit class.'
+        assert (
+            isinstance(dmisfit, DataMisfit.BaseDataMisfit)),
+            ('dmisfit must be a DataMisfit class.'
+        )
         assert (
             isinstance(reg, Regularization.BaseRegularization) or
-            isinstance(reg, ObjectiveFunction.BaseObjectiveFunction),
+            isinstance(reg, ObjectiveFunction.BaseObjectiveFunction)), (
             'reg must be a Regularization or Objective Function class.'
         )
         self.dmisfit = dmisfit
