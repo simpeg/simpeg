@@ -341,15 +341,17 @@ def gen_DCIPsurvey(endl, mesh, surveyType, a, b, n):
     return survey
 
 
-def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0, dataType = 'obs'):
+def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0, dataType = 'obs', uncPerc = 0.05, uncFloor = 1e-3):
     """
         Write UBC GIF DCIP 2D or 3D observation file
 
         :param string fileName: including path where the file is written out
         :param Survey DCsurvey: DC survey class object
         :param string dim:  either '2D' | '3D'
-        :param string surveyType:  either 'SURFACE' | 'GENERAL'
+        :param string formatType:  either 'SURFACE' | 'GENERAL'
         :param string dataType: either "obs" | "loc"
+        :param float uncPerc: percentage uncertainity in data (i.e. 0.05 = 5%)
+        :param float uncFloor: floor value for uncertainty
         :rtype: file
         :return: UBC2D-Data file
     """
@@ -359,6 +361,17 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0, dataType = 'ob
     assert ((formatType == 'SURFACE') |
             (formatType == 'GENERAL') |
             (formatType == 'SIMPLE')), "Data must be either 'SURFACE' | 'GENERAL' | 'SIMPLE'"
+
+    # Get dObs from survey
+    dObs = DCsurvey.dobs
+
+    # Calculate uncertainties if needed
+    setUncert = DCsurvey.std
+    if(np.all(setUncert == setUncert)):
+        uncert  = dObs*(uncPerc*np.ones_like(dObs)) + uncFloor*np.ones_like(dObs)
+    else:
+        uncert = setUncert
+
 
     fid = open(fileName, 'w')
 
@@ -406,8 +419,8 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0, dataType = 'ob
 
                 if dataType == 'obs':
                     np.savetxt(fid, np.c_[A, B, M, N,
-                                          DCsurvey.dobs[count:count+nD],
-                                          DCsurvey.std[count:count+nD]],
+                                          dObs[count:count+nD],
+                                          uncert[count:count+nD]],
                                fmt='%e', delimiter=' ', newline='\n')
                 elif dataType == 'loc':
                     np.savetxt(fid, np.c_[A, B, M, N],
@@ -436,7 +449,7 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0, dataType = 'ob
 
                 fid.write('%i\n'% nD)
                 if dataType == 'obs':
-                    np.savetxt(fid, np.c_[M, N, DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%f', delimiter=' ', newline='\n')
+                    np.savetxt(fid, np.c_[M, N, dObs[count:count+nD], uncert[count:count+nD] ], fmt='%f', delimiter=' ', newline='\n')
                 elif dataType == 'loc':
                     np.savetxt(fid, np.c_[M, N], fmt='%f', delimiter=' ', newline='\n')
 
@@ -454,7 +467,7 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0, dataType = 'ob
 
             fid.write('%i\n'% nD)
             if dataType == 'obs':
-                np.savetxt(fid, np.c_[M, N, DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%e', delimiter=' ', newline='\n')
+                np.savetxt(fid, np.c_[M, N, dObs[count:count+nD], uncert[count:count+nD] ], fmt='%e', delimiter=' ', newline='\n')
             elif dataType == 'loc':
                 np.savetxt(fid, np.c_[M, N], fmt='%e', delimiter=' ', newline='\n')
             fid.write('\n')
