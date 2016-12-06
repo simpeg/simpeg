@@ -1454,10 +1454,11 @@ class ParametrizedLayer(IdentityMap):
 
         .. code:: python
 
-            m = [val_background,
-                 val_layer,
-                 layer_center,
-                 layer_thickness
+            m = [
+                val_background,
+                val_layer,
+                layer_center,
+                layer_thickness
             ]
 
 
@@ -1492,20 +1493,26 @@ class ParametrizedLayer(IdentityMap):
         if self.slope is None:
             self.slope = self.slopeFact / np.hstack(self.mesh.h).min()
 
-        self.x = [self.mesh.gridCC[:, 0] if self.indActive is None else
-                  self.mesh.gridCC[self.indActive, 0]][0]
+        self.x = [
+            self.mesh.gridCC[:, 0] if self.indActive is None else
+            self.mesh.gridCC[self.indActive, 0]
+        ][0]
 
         if self.mesh.dim > 1:
-            self.y = [self.mesh.gridCC[:, 1] if self.indActive is None else
-                      self.mesh.gridCC[self.indActive, 1]][0]
+            self.y = [
+                self.mesh.gridCC[:, 1] if self.indActive is None else
+                self.mesh.gridCC[self.indActive, 1]
+            ][0]
 
         if self.mesh.dim > 2:
-            self.z = [self.mesh.gridCC[:, 2] if self.indActive is None else
-                      self.mesh.gridCC[self.indActive, 2]][0]
+            self.z = [
+                self.mesh.gridCC[:, 2] if self.indActive is None else
+                self.mesh.gridCC[self.indActive, 2]
+            ][0]
 
-    @property
-    def nP(self):
-        return 4
+    # @property
+    # def nP(self):
+    #     return 4
 
     @property
     def shape(self):
