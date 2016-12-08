@@ -8,7 +8,6 @@ class BaseMagSurvey(Survey.BaseSurvey):
 
     rxLoc = None   #: receiver locations
     rxType = None   #: receiver type
-    srcField = None
 
     def __init__(self, **kwargs):
         Survey.BaseSurvey.__init__(self, **kwargs)
