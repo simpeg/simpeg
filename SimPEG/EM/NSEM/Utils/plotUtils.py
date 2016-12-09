@@ -149,12 +149,12 @@ class tip_amp_station_plot(Base_DataNSEM_plots):
                          'zy': {'marker': '.', 'ls': '--'}}
 
             # Apparent resistivity
-            other_data.plot_tip_amp(location, ['xy', 'yx'],
+            other_data.plot_tip_amp(location, ['zx', 'zy'],
                                     ax=axes[0], errorbars=False,
                                     comp_plot_dict=dd_kwargs)
 
             # Apparent phase
-            other_data.plot_app_phs(location, ['xy', 'yx'],
+            other_data.plot_app_phs(location, ['zx', 'zy'],
                                     ax=axes[1], errorbars=False,
                                     comp_plot_dict=dd_kwargs)
 
@@ -617,14 +617,14 @@ class DataNSEM_plot_functions(object):
             fig = ax.get_figure()
 
         # Plot the data
-        freqs, plot_data, errorbars = _get_station_data(self, location,
-            orientation, component, plot_error=True)
+        freqs, plot_data, errorbars = _get_station_data(
+            self, location, orientation, component, plot_error=True)
         plot_obj = ax.errorbar(freqs, plot_data, yerr=errorbars,
                                **plot_kwargs)
         return (fig, ax, plot_obj)
 
     def frequency_map(self, frequency, orientation, component,
-                          ax=None, plot_error=True, **plot_kwargs):
+                      ax=None, plot_error=True, **plot_kwargs):
         """
         Function to generate a iso-frequency map
 
@@ -643,8 +643,8 @@ class DataNSEM_plot_functions(object):
             fig = ax.get_figure()
 
         # Plot the data
-        locs, plot_data, errorbars = _get_station_data(self, frequency,
-            orientation, component,plot_error)
+        locs, plot_data, errorbars = _get_station_data(
+            self, frequency, orientation, component,plot_error)
         plot_obj = plt.tricontourf(locs, plot_data,
                                **plot_kwargs)
         return (fig, ax, plot_obj)
