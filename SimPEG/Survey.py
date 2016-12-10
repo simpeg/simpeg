@@ -225,7 +225,7 @@ class Data(BaseData):
         self.floor = Floor(self.survey, floor)
 
 
-    def eval(self):
+    def calculate_uncertainty(self):
         """
         Return the uncertainty base on
         standard_devation * np.abs(data) + floor
