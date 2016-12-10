@@ -26,6 +26,7 @@ class MagneticIntegral(Problem.LinearProblem):
     actInd = None  #: Active cell indices provided
     M = None  #: Magnetization matrix provided, otherwise all induced
     rtype = 'tmi'  #: Receiver type either "tmi" | "xyz"
+    equiSourceLayer = False
 
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
@@ -125,6 +126,11 @@ class MagneticIntegral(Problem.LinearProblem):
 
         yn2, xn2, zn2 = np.meshgrid(yn[1:], xn[1:], zn[1:])
         yn1, xn1, zn1 = np.meshgrid(yn[0:-1], xn[0:-1], zn[0:-1])
+
+        # If equivalent source, use semi-infite prism
+        if self.equiSourceLayer:
+            zn1 -= 1000.
+            print(zn1.max(),zn2.max())
 
         Yn = P.T*np.c_[Utils.mkvc(yn1), Utils.mkvc(yn2)]
         Xn = P.T*np.c_[Utils.mkvc(xn1), Utils.mkvc(xn2)]
@@ -287,24 +293,36 @@ class MagneticAmplitude(MagneticIntegral):
     actInd = None  #: Active cell indices provided
     M = None  #: Magnetization matrix provided, otherwise all induced
     rtype = 'xyz'  #: Receivers must be "xyz"
+    chi = None
 
     def __init__(self, mesh, **kwargs):
         Problem.BaseProblem.__init__(self, mesh, **kwargs)
 
-    def fwr_ind(self, m):
+    def fwr_ind(self, chi):
 
-        self.survey.srcField.rxList[0].rxType = 'xyz'
 
         if self.forwardOnly:
 
+            self.chi = chi
             # Compute the linear operation without forming the full dense G
+            m = self.chiMap*self.chi
             Bxyz = Intrgl_Fwr_Op(m=m)
 
             return self.calcAmpData(Bxyz)
 
         else:
-            if m is None:
-                m = self.chiMap*self.model
+            if chi is None:
+
+                if self.chi is None:
+                    raise Exception('Problem needs a chi model')
+
+                else:
+                    m = self.chiMap*self.chi
+
+            else:
+
+                self.chi = chi
+                m = self.chiMap*self.chi
 
             Bxyz = self.G.dot(m)
 
@@ -320,20 +338,18 @@ class MagneticAmplitude(MagneticIntegral):
 
         return Bamp
 
-    def fields(self, m, **kwargs):
+    def fields(self, chi, **kwargs):
 
-        self.model = m
-
-        ampB = self.fwr_ind(m)
+        ampB = self.fwr_ind(chi)
 
         return ampB
 
-    def Jvec(self, m, v, f=None):
-        dmudm = self.chiMap.deriv(m)
+    def Jvec(self, chi, v, f=None):
+        dmudm = self.chiMap.deriv(chi)
         return self.dfdm*(self.G.dot(dmudm*v))
 
-    def Jtvec(self, m, v, f=None):
-        dmudm = self.chiMap.deriv(m)
+    def Jtvec(self, chi, v, f=None):
+        dmudm = self.chiMap.deriv(chi)
         return dmudm.T * (self.G.T.dot(self.dfdm.T*v))
 
     @property
@@ -349,12 +365,15 @@ class MagneticAmplitude(MagneticIntegral):
     @property
     def dfdm(self):
 
+        if self.chi is None:
+            raise Exception('Problem needs a chi model')
+
         if getattr(self, '_dfdm', None) is None:
 
             ndata = self.survey.srcField.rxList[0].locs.shape[0]
 
             # Get field data
-            m = self.chiMap*self.model
+            m = self.chiMap*self.chi
 
             Bxyz = self.G.dot(m)
 
@@ -1031,7 +1050,7 @@ def writeUBCobs(filename, survey, d):
     data = np.c_[rxLoc, d, wd]
     head = ('%6.2f %6.2f %6.2f\n' % (B[1], B[2], B[0])+
               '%6.2f %6.2f %6.2f\n' % (B[1], B[2], 1)+
-              '%i\n' % len(d))
+              '%i' % len(d))
     np.savetxt(filename, data, fmt='%e', delimiter=' ', newline='\n',header=head,comments='')
 
     print("Observation file saved to: " + filename)

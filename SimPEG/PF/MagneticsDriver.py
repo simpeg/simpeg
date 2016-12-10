@@ -189,6 +189,8 @@ class MagneticsDriver_Inv(object):
             if getattr(self, 'topofile', None) is not None:
                 topo = np.genfromtxt(self.basePath + self.topofile,
                                      skip_header=1)
+
+
                 # Find the active cells
                 active = Utils.surface2ind_topo(self.mesh, topo, 'N')
 

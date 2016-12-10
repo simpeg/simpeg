@@ -392,13 +392,13 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0):
             if formatType == 'SIMPLE':
 
                 # fid.writelines("%e " % ii for ii in Utils.mkvc(tx[0, :]))
-                A = np.repeat(tx[0], M.shape[0], axis=0)
+                A = np.repeat(tx[0,0], M.shape[0], axis=0)
 
                 if surveyType == 'pole-dipole':
-                    B = np.repeat(tx[0], M.shape[0], axis=0)
+                    B = np.repeat(tx[0,0], M.shape[0], axis=0)
 
                 else:
-                    B = np.repeat(tx[3], M.shape[0], axis=0)
+                    B = np.repeat(tx[1,0], M.shape[0], axis=0)
 
                 M = M[:, 0]
                 N = N[:, 0]
@@ -406,7 +406,7 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0):
                 np.savetxt(fid, np.c_[A, B, M, N,
                                       DCsurvey.dobs[count:count+nD],
                                       DCsurvey.std[count:count+nD]],
-                           fmt='%e', delimiter=' ', newline='\n')
+                                      delimiter=' ', newline='\n')
 
             else:
 
@@ -430,7 +430,7 @@ def writeUBC_DCobs(fileName, DCsurvey, dim, formatType, iptype=0):
                     N[:, 1::2] = -N[:, 1::2]
 
                 fid.write('%i\n'% nD)
-                np.savetxt(fid, np.c_[M, N, DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], fmt='%f', delimiter=' ', newline='\n')
+                np.savetxt(fid, np.c_[M, N, DCsurvey.dobs[count:count+nD], DCsurvey.std[count:count+nD] ], delimiter=' ', newline='\n')
 
         if dim == '3D':
 

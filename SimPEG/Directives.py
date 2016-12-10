@@ -327,6 +327,7 @@ class Update_IRLS(InversionDirective):
 
     def initialize(self):
 
+        self.reg.model = self.reg.mapping * self.invProb.model
         if self.mode == 1:
             self.reg.norms = [2., 2., 2., 2.]
 
@@ -530,7 +531,7 @@ class Amplitude_Inv_Iter(InversionDirective):
 
         if getattr(self.opt, 'approxHinv', None) is None:
             diagA = JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
-            PC = Utils.sdiag((self.prob.kappaMap.deriv(None).T * diagA)**-1.)
+            PC = Utils.sdiag((self.prob.chiMap.deriv(None).T * diagA)**-1.)
             self.opt.approxHinv = PC
 
     def endIter(self):
@@ -553,14 +554,14 @@ class Amplitude_Inv_Iter(InversionDirective):
 
             # Update the pre-conditioner
             diagA = JtJdiag + self.invProb.beta*(self.reg.W.T*self.reg.W).diagonal()
-            PC = Utils.sdiag((self.prob.kappaMap.deriv(None).T * diagA)**-1.)
+            PC = Utils.sdiag((self.prob.chiMap.deriv(None).T * diagA)**-1.)
             self.opt.approxHinv = PC
 
     def getJtJdiag(self):
         """
             Compute explicitely the main diagonal of JtJ for linear problem
         """
-        nC = self.prob.mesh.nC
+        nC = self.prob.chiMap.shape[0]
 
         JtJdiag = np.zeros(nC)
 

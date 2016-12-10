@@ -935,7 +935,14 @@ class Sparse(Simple):
         Simple.__init__(self, mesh, mapping=mapping, indActive=indActive, **kwargs)
 
         if isinstance(self.cell_weights,float):
-            self.cell_weights = np.ones(self.regmesh.nC) * self.cell_weights
+
+            cell_weights = []
+            for ii in range(nModels):
+
+                cell_weights.append(np.ones(self.regmesh.nC) * self.cell_weights)
+
+
+            self.cell_weights = np.asarray(cell_weights)
 
         # if getattr(self, 'model', None) is None:
         #             self.model = np.ones(self.regmesh.nC)
