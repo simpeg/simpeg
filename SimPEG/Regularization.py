@@ -648,7 +648,7 @@ class BaseComboRegularization(ObjectiveFunction.ComboObjectiveFunction):
     alpha_zz = Props.SimPEGFloat("weight for the second z-derivative")
 
     mref = Props.SimPEGArray(
-        "reference model", default=Utils.Zero()
+        "reference model"
     )
     mrefInSmooth = properties.Bool(
         "include mref in the smoothness calculation?", default=False
