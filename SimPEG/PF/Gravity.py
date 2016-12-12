@@ -340,7 +340,7 @@ def writeUBCobs(filename, survey, d):
 
     data = np.c_[rxLoc, d, wd]
 
-    head = '%i\n'%len(d)
+    head = '%i' % len(d)
     np.savetxt(filename, data, fmt='%e', delimiter=' ', newline='\n', header=head,comments='')
 
     print("Observation file saved to: " + filename)
@@ -514,19 +514,19 @@ class Problem3D_Diff(Problem.BaseProblem):
             \mathbf{A} =  \Div(\MfMui)^{-1}\Div^{T}
 
         """
-        return -self._Div.T*self.Mfi*self._Div
+        return self._Div.T*self.Mfi*self._Div
 
     def fields(self, m):
         """
-            Return magnetic potential (u) and flux (B)
+            Return gravity potential (u) and field (G)
             u: defined on the cell nodes [nC x 1]
             gField: defined on the cell faces [nF x 1]
 
-            After we compute u, then we update B.
+            After we compute u, then we update G.
 
             .. math ::
 
-                \mathbf{B}_s = (\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0-\mathbf{B}_0 -(\MfMui)^{-1}\Div^T \mathbf{u}
+                \mathbf{G}_s =
 
         """
         from scipy.constants import G as NewtG
@@ -546,4 +546,16 @@ class Problem3D_Diff(Problem.BaseProblem):
 
         gField = 4.*np.pi*NewtG*1e+8*self._Div*u
 
-        return {'G': gField, 'u': u}
+        nFx = self.mesh.nFx
+        nFy = self.mesh.nFy
+        nFz = self.mesh.nFz
+
+        aveF2CCgx = self.mesh.aveFx2CC * gField[0:nFx]
+        aveF2CCgy = self.mesh.aveFy2CC * gField[nFx:(nFx+nFy)]
+        aveF2CCgz = self.mesh.aveFz2CC * gField[(nFx+nFy):]
+
+        ggx = self.mesh.cellGrad * aveF2CCgx
+        ggy = self.mesh.cellGrad * aveF2CCgy
+        ggz = self.mesh.cellGrad * aveF2CCgz
+
+        return {'G': gField, 'ggx': ggx, 'ggy': ggy, 'ggz': ggz, 'u': u}

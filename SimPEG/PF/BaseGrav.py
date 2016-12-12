@@ -67,10 +67,23 @@ class LinearSurvey(Survey.BaseSurvey):
 
         gfx = self.Qfx*u['G']
         gfy = self.Qfy*u['G']
-        gfz = self.Qfz*u['G']
+        gfz = -self.Qfz*u['G']
 
-        fields = {'gx': gfx, 'gy': gfy, 'gz': gfz}
+        gxx = 1e+4*self.Qfx*u['ggx']
+        gxy = 1e+4*self.Qfy*u['ggx']
+        gxz = 1e+4*self.Qfz*u['ggx']
+
+        gyy = 1e+4*self.Qfy*u['ggy']
+        gyz = 1e+4*self.Qfz*u['ggy']
+
+        gzz = 1e+4*self.Qfz*u['ggz']
+
+        fields = {'gx': gfx, 'gy': gfy, 'gz': gfz,
+                  'gxx': gxx, 'gxy': gxy, 'gxz': gxz,
+                  'gyy': gyy, 'gyz': gyz, 'gzz': gzz}
+
         return fields
+
 
 class SrcField(Survey.BaseSrc):
     """ Define the inducing field """

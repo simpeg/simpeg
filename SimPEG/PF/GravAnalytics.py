@@ -6,7 +6,7 @@ import numpy as np
 
 def GravSphereFreeSpace(x, y, z, R, xc, yc, zc, rho):
     """
-        Computing the induced response of magnetic sphere in free-space.
+        Computing the gravity response of a sphere in free-space.
         >> Input
         x, y, z:   Observation locations
         R:     radius of the sphere
@@ -26,21 +26,29 @@ def GravSphereFreeSpace(x, y, z, R, xc, yc, zc, rho):
     y = mkvc(y)
     z = mkvc(z)
 
-    nobs = len(x)
-
     M = R**3. * 4. / 3. * np.pi * rho
 
-    rx = (x - xc)
-    ry = (y - yc)
-    rz = (zc - z)
+    dx = (x - xc)
+    dy = (y - yc)
+    dz = (z - zc)
 
-    rvec = np.c_[rx, ry, rz]
-    r = np.sqrt((rx)**2+(ry)**2+(rz)**2)
+    r = np.sqrt((dx)**2.+(dy)**2.+(dz)**2.)
 
-    g = -G*(1./r**2)*M * unit_conv
+    g = -G*(1./r**2.)*M * unit_conv
 
-    gx = g * (rx / r)
-    gy = g * (ry / r)
-    gz = g * (rz / r)
+    gx = g * (dx / r)
+    gy = g * (dy / r)
+    gz = -g * (dz / r)
 
-    return gx, gy, gz
+    gxx = g * ((1. / r) - 6.*dx**2./r**2.)
+    gxy = g * ((1. / r) - 6.*dx*dy/r**2.)
+    gxz = g * ((1. / r) - 6.*dx*dz/r**2.)
+
+    gyy = g * ((1. / r) - 6.*dy*dy/r**2.)
+    gyz = g * ((1. / r) - 6.*dy*dz/r**2.)
+
+    gzz = g * ((1. / r) - 6.*dz*dz/r**2.)
+
+    return {'gx': gx, 'gy': gy, 'gz': gz,
+            'gxx': gxx, 'gxy': gxy, 'gxz': gxz,
+            'gyy': gyy, 'gyz': gyz, 'gzz': gzz}
