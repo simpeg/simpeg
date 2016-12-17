@@ -80,10 +80,10 @@ class Fields_CC(FieldsDC):
             if(self.prob.bc_type == 'Neumann'):
                 raise NotImplementedError()
             elif(self.prob.bc_type == 'Dirchlet'):
-                cellGrad = -mesh.faceDiv.T
+                self.cellGrad = -mesh.faceDiv.T
         else:
             mesh.setCellGradBC("neumann")
-            cellGrad = mesh.cellGrad
+            self.cellGrad = mesh.cellGrad
 
     def startup(self):
         self.prob = self.survey.prob
