@@ -14,7 +14,7 @@ MAPS_TO_EXCLUDE_2D = ["ComboMap", "ActiveCells", "InjectActiveCells",
                       "ParametricPolyMap", "PolyMap", "ParametricSplineMap",
                       "SplineMap", "ParametrizedCasingAndLayer",
                       "ParametrizedLayer", "ParametrizedBlockInLayer",
-                      "Projection", "Mesh2MeshTopo"]
+                      "Projection"]
 MAPS_TO_EXCLUDE_3D = ["ComboMap", "ActiveCells", "InjectActiveCells",
                       "LogMap", "ReciprocalMap",
                       "CircleMap", "ParametricCircleMap", "Mesh2Mesh",
