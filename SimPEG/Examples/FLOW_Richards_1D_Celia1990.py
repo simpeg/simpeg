@@ -70,12 +70,12 @@ def run(plotIt=True):
         prob.timeSteps = timeSteps
         return prob.fields(params['Ks'] * np.ones(M.nC))
 
-    Hs_M010 = getFields(10., 'mixed')
-    Hs_M030 = getFields(30., 'mixed')
-    Hs_M120 = getFields(120., 'mixed')
-    Hs_H010 = getFields(10., 'head')
-    Hs_H030 = getFields(30., 'head')
-    Hs_H120 = getFields(120., 'head')
+    Hs_M010 = getFields(10, 'mixed')
+    Hs_M030 = getFields(30, 'mixed')
+    Hs_M120 = getFields(120, 'mixed')
+    Hs_H010 = getFields(10, 'head')
+    Hs_H030 = getFields(30, 'head')
+    Hs_H120 = getFields(120, 'head')
 
     if not plotIt:
         return
