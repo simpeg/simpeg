@@ -20,19 +20,19 @@ np.random.seed(0)
 class RichardsTests1D(unittest.TestCase):
 
     def setUp(self):
-        M = Mesh.TensorMesh([np.ones(20)])
-        M.setCellGradBC('dirichlet')
+        mesh = Mesh.TensorMesh([np.ones(20)])
+        mesh.setCellGradBC('dirichlet')
 
         params = Richards.Empirical.HaverkampParams().celia1990
         params['Ks'] = np.log(params['Ks'])
-        E = Richards.Empirical.Haverkamp(M, **params)
-        E.kModel.KsMap = Maps.ExpMap(nP=M.nC)
+        E = Richards.Empirical.Haverkamp(mesh, **params)
+        E.kModel.KsMap = Maps.ExpMap(nP=mesh.nC)
 
         bc = np.array([-61.5, -20.7])
-        h = np.zeros(M.nC) + bc[0]
+        h = np.zeros(mesh.nC) + bc[0]
 
         prob = Richards.RichardsProblem(
-            M, mapping=E, tolRootFinder=1e-6, debug=False,
+            mesh, mapping=E, tolRootFinder=1e-6, debug=False,
             boundaryConditions=bc, initialConditions=h,
             doNewton=False, method='mixed'
         )
@@ -48,8 +48,8 @@ class RichardsTests1D(unittest.TestCase):
         prob.pair(survey)
 
         self.h0 = h
-        self.M = M
-        self.Ks = params['Ks'] * np.ones(self.M.nC)
+        self.mesh = mesh
+        self.Ks = params['Ks'] * np.ones(self.mesh.nC)
         self.prob = prob
         self.survey = survey
 
@@ -91,7 +91,7 @@ class RichardsTests1D(unittest.TestCase):
 
     def test_Adjoint(self):
         v = np.random.rand(self.survey.nD)
-        z = np.random.rand(self.M.nC)
+        z = np.random.rand(self.mesh.nC)
         Hs = self.prob.fields(self.Ks)
         vJz = v.dot(self.prob.Jvec(self.Ks, z, f=Hs))
         zJv = z.dot(self.prob.Jtvec(self.Ks, v, f=Hs))
@@ -104,7 +104,7 @@ class RichardsTests1D(unittest.TestCase):
         self.assertTrue(passed, True)
 
     def test_Sensitivity(self):
-        mTrue = self.Ks*np.ones(self.M.nC)
+        mTrue = self.Ks*np.ones(self.mesh.nC)
         print('Testing Richards Derivative')
         passed = checkDerivative(
             lambda m: [self.survey.dpred(m), lambda v: self.prob.Jvec(m, v)],
@@ -116,7 +116,7 @@ class RichardsTests1D(unittest.TestCase):
 
     def test_Sensitivity_full(self):
         print('Testing Richards Derivative FULL')
-        mTrue = self.Ks*np.ones(self.M.nC)
+        mTrue = self.Ks*np.ones(self.mesh.nC)
         J = self.prob.Jfull(mTrue)
         passed = checkDerivative(
             lambda m: [self.survey.dpred(m), J],
@@ -130,25 +130,25 @@ class RichardsTests1D(unittest.TestCase):
 class RichardsTests2D(unittest.TestCase):
 
     def setUp(self):
-        M = Mesh.TensorMesh([np.ones(8), np.ones(30)])
+        mesh = Mesh.TensorMesh([np.ones(8), np.ones(30)])
 
-        M.setCellGradBC(['neumann', 'dirichlet'])
+        mesh.setCellGradBC(['neumann', 'dirichlet'])
 
         params = Richards.Empirical.HaverkampParams().celia1990
         params['Ks'] = np.log(params['Ks'])
-        E = Richards.Empirical.Haverkamp(M, **params)
-        E.kModel.KsMap = Maps.ExpMap(nP=M.nC)
+        E = Richards.Empirical.Haverkamp(mesh, **params)
+        E.kModel.KsMap = Maps.ExpMap(nP=mesh.nC)
 
         bc = np.array([-61.5, -20.7])
         bc = np.r_[
-            np.zeros(M.nCy*2),
-            np.ones(M.nCx)*bc[0],
-            np.ones(M.nCx)*bc[1]
+            np.zeros(mesh.nCy*2),
+            np.ones(mesh.nCx)*bc[0],
+            np.ones(mesh.nCx)*bc[1]
         ]
-        h = np.zeros(M.nC) + bc[0]
+        h = np.zeros(mesh.nC) + bc[0]
 
         prob = Richards.RichardsProblem(
-            M,
+            mesh,
             mapping=E,
             timeSteps=[(40, 3), (60, 3)],
             Solver=Solver,
@@ -160,6 +160,24 @@ class RichardsTests2D(unittest.TestCase):
             debug=False
         )
 
+        # kModel = Richards.Empirical.Haverkamp_k(mesh)
+        # thetaModel = Richards.Empirical.Haverkamp_theta(mesh)
+        # kModel.KsMap = Maps.ExpMap(nP=mesh.nC)
+
+        # prob = Richards.RichardsProblem(
+        #     mesh,
+        #     kModel=kModel,
+        #     thetaModel=thetaModel,
+        #     timeSteps=[(40, 3), (60, 3)],
+        #     Solver=Solver,
+        #     boundaryConditions=bc,
+        #     initialConditions=h,
+        #     doNewton=False,
+        #     method='mixed',
+        #     tolRootFinder=1e-6,
+        #     debug=False
+        # )
+
         locs = Utils.ndgrid(np.array([5, 7.]), np.array([5, 15, 25.]))
         times = prob.times[3:5]
         rxSat = Richards.RichardsRx(locs, times, 'saturation')
@@ -169,8 +187,8 @@ class RichardsTests2D(unittest.TestCase):
         prob.pair(survey)
 
         self.h0 = h
-        self.M = M
-        self.Ks = params['Ks'] * np.ones(M.nC)
+        self.mesh = mesh
+        self.Ks = params['Ks'] * np.ones(mesh.nC)
         self.prob = prob
         self.survey = survey
 
@@ -209,7 +227,7 @@ class RichardsTests2D(unittest.TestCase):
 
     def test_Adjoint(self):
         v = np.random.rand(self.survey.nD)
-        z = np.random.rand(self.M.nC)
+        z = np.random.rand(self.mesh.nC)
         Hs = self.prob.fields(self.Ks)
         vJz = v.dot(self.prob.Jvec(self.Ks, z, f=Hs))
         zJv = z.dot(self.prob.Jtvec(self.Ks, v, f=Hs))
@@ -223,7 +241,7 @@ class RichardsTests2D(unittest.TestCase):
 
     def test_Sensitivity(self):
         print('2D: Testing Richards Derivative')
-        mTrue = self.Ks*np.ones(self.M.nC)
+        mTrue = self.Ks*np.ones(self.mesh.nC)
         passed = checkDerivative(
             lambda m: [self.survey.dpred(m), lambda v: self.prob.Jvec(m, v)],
             mTrue,
@@ -233,7 +251,7 @@ class RichardsTests2D(unittest.TestCase):
         self.assertTrue(passed, True)
 
     def test_Sensitivity_full(self):
-        mTrue = self.Ks*np.ones(self.M.nC)
+        mTrue = self.Ks*np.ones(self.mesh.nC)
         J = self.prob.Jfull(mTrue)
         print('2D: Testing Richards Derivative FULL')
         passed = checkDerivative(
@@ -248,25 +266,25 @@ class RichardsTests2D(unittest.TestCase):
 class RichardsTests3D(unittest.TestCase):
 
     def setUp(self):
-        M = Mesh.TensorMesh([np.ones(8), np.ones(20), np.ones(10)])
+        mesh = Mesh.TensorMesh([np.ones(8), np.ones(20), np.ones(10)])
 
-        M.setCellGradBC(['neumann', 'neumann', 'dirichlet'])
+        mesh.setCellGradBC(['neumann', 'neumann', 'dirichlet'])
 
         params = Richards.Empirical.HaverkampParams().celia1990
         params['Ks'] = np.log(params['Ks'])
-        E = Richards.Empirical.Haverkamp(M, **params)
-        E.kModel.KsMap = Maps.ExpMap(nP=M.nC)
+        E = Richards.Empirical.Haverkamp(mesh, **params)
+        E.kModel.KsMap = Maps.ExpMap(nP=mesh.nC)
 
         bc = np.array([-61.5, -20.7])
         bc = np.r_[
-            np.zeros(M.nCy*M.nCz*2),
-            np.zeros(M.nCx*M.nCz*2),
-            np.ones(M.nCx*M.nCy)*bc[0],
-            np.ones(M.nCx*M.nCy)*bc[1]
+            np.zeros(mesh.nCy*mesh.nCz*2),
+            np.zeros(mesh.nCx*mesh.nCz*2),
+            np.ones(mesh.nCx*mesh.nCy)*bc[0],
+            np.ones(mesh.nCx*mesh.nCy)*bc[1]
         ]
-        h = np.zeros(M.nC) + bc[0]
+        h = np.zeros(mesh.nC) + bc[0]
         prob = Richards.RichardsProblem(
-            M,
+            mesh,
             mapping=E,
             timeSteps=[(40, 3), (60, 3)],
             Solver=Solver,
@@ -287,8 +305,8 @@ class RichardsTests3D(unittest.TestCase):
         prob.pair(survey)
 
         self.h0 = h
-        self.M = M
-        self.Ks = params['Ks'] * np.ones(M.nC)
+        self.mesh = mesh
+        self.Ks = params['Ks'] * np.ones(mesh.nC)
         self.prob = prob
         self.survey = survey
 
@@ -327,7 +345,7 @@ class RichardsTests3D(unittest.TestCase):
 
     def test_Adjoint(self):
         v = np.random.rand(self.survey.nD)
-        z = np.random.rand(self.M.nC)
+        z = np.random.rand(self.mesh.nC)
         Hs = self.prob.fields(self.Ks)
         vJz = v.dot(self.prob.Jvec(self.Ks, z, f=Hs))
         zJv = z.dot(self.prob.Jtvec(self.Ks, v, f=Hs))
@@ -340,7 +358,7 @@ class RichardsTests3D(unittest.TestCase):
         self.assertTrue(passed, True)
 
     def test_Sensitivity(self):
-        mTrue = self.Ks*np.ones(self.M.nC)
+        mTrue = self.Ks*np.ones(self.mesh.nC)
         print('3D: Testing Richards Derivative')
         passed = checkDerivative(
             lambda m: [self.survey.dpred(m), lambda v: self.prob.Jvec(m, v)],
@@ -351,7 +369,7 @@ class RichardsTests3D(unittest.TestCase):
         self.assertTrue(passed, True)
 
     # def test_Sensitivity_full(self):
-    #     mTrue = self.Ks*np.ones(self.M.nC)
+    #     mTrue = self.Ks*np.ones(self.mesh.nC)
     #     J = self.prob.Jfull(mTrue)
     #     derChk = lambda m: [self.survey.dpred(m), J]
     #     print('3D: Testing Richards Derivative FULL')
