@@ -84,7 +84,7 @@ class ReciprocalPropExampleDefaults(HasModel):
 
     sigma = Props.PhysicalProperty(
         "Electrical conductivity (S/m)",
-        default = np.r_[1., 2., 3.]
+        default=np.r_[1., 2., 3.]
     )
 
     rho = Props.PhysicalProperty(
@@ -92,6 +92,24 @@ class ReciprocalPropExampleDefaults(HasModel):
     )
 
     Props.Reciprocal(sigma, rho)
+
+
+class ComplicatedInversion(HasModel):
+
+    Ks, KsMap, KsDeriv = Props.Invertible(
+        "Saturated hydraulic conductivity",
+        default=24.96
+    )
+
+    A, AMap, ADeriv = Props.Invertible(
+        "fitting parameter",
+        default=1.175e+06
+    )
+
+    gamma, gammaMap, gammaDeriv = Props.Invertible(
+        "fitting parameter",
+        default=4.74
+    )
 
 
 class TestPropMaps(unittest.TestCase):
@@ -206,12 +224,22 @@ class TestPropMaps(unittest.TestCase):
 
         PM = ReciprocalPropExampleDefaults()
         assert np.all(PM.sigma == np.r_[1., 2., 3.])
-        assert np.all(PM.rho == 1.0/ np.r_[1., 2., 3.])
+        assert np.all(PM.rho == 1.0 / np.r_[1., 2., 3.])
 
         rho = np.r_[2., 4., 6.]
         PM.rho = rho
         assert np.all(PM.rho == rho)
         assert np.all(PM.sigma == 1./rho)
+
+    def test_multi_parameter_inversion(self):
+        """The setup of the defaults should not invalidated the
+        mappings or other defaults.
+        """
+        PM = ComplicatedInversion()
+
+        assert PM.Ks == PM._props['Ks'].default
+        assert PM.gamma == PM._props['gamma'].default
+        assert PM.A == PM._props['A'].default
 
 
 if __name__ == '__main__':

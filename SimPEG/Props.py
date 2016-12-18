@@ -71,7 +71,8 @@ class Mapping(properties.Property):
             if value is not properties.utils.undefined:
                 value = scope.validate(self, value)
             self._set(scope.name, value)
-            scope.clear_props(self)
+            if value is not properties.utils.undefined:
+                scope.clear_props(self)
 
         def fdel(self):
             self._set(scope.name, properties.utils.undefined)
@@ -165,7 +166,8 @@ class PhysicalProperty(properties.Property):
                 if scope.reciprocal:
                     delattr(self, scope.reciprocal.name)
             self._set(scope.name, value)
-            scope.clear_mappings(self)
+            if value is not properties.utils.undefined:
+                scope.clear_mappings(self)
 
         def fdel(self):
             self._set(scope.name, properties.utils.undefined)
