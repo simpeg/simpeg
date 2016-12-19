@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 
 import properties
 import numpy as np
+import warnings
 
 from . import Maps
 from . import Utils
@@ -125,6 +126,7 @@ class PhysicalProperty(properties.Property):
         scope = self
 
         def fget(self):
+
             default = self._get(scope.name)
             if default is not None:
                 return default
@@ -303,6 +305,11 @@ def Reciprocal(prop1, prop2):
 class BaseSimPEG(properties.HasProperties):
     """"""
 
+
+class HasModel(BaseSimPEG):
+
+    model = Model("Inversion model.")
+
     @property
     def _all_map_names(self):
         """Returns all Mapping properties"""
@@ -319,32 +326,6 @@ class BaseSimPEG(properties.HasProperties):
             if getattr(self, k) is not None
         ])
 
-    def summary(self):
-        prop_names = sorted([
-            k for k in self._props
-            if isinstance(self._props[k], PhysicalProperty)
-        ])
-
-        out = ['Physical Properties:']
-
-        # Grab the physical property summaries
-        for prop in prop_names:
-            out += [' ' + self._props[prop].summary(self)]
-
-        # Grab the validation errors
-        try:
-            self.validate()
-            out += ['', 'All checks pass!']
-        except ValueError as e:
-            out += ['', str(e)]
-
-        return '\n'.join(out)
-
-
-class HasModel(BaseSimPEG):
-
-    model = Model("Inversion model.")
-
     @property
     def _needs_model(self):
         """True if a model is necessary"""
@@ -357,12 +338,13 @@ class HasModel(BaseSimPEG):
             return True
 
         if len(self._act_map_names) == 0:
-            raise ValueError(
+            warnings.warn(
                 "Cannot add model as there are no active mappings"
                 ", choose from: ['{}']".format(
                     "', '".join(self._all_map_names)
                 )
             )
+            return
 
         errors = []
 
@@ -383,7 +365,7 @@ class HasModel(BaseSimPEG):
         if len(errors) == 0:
             return True
 
-        raise ValueError(
+        warnings.warn(
             'Model of len({}) incorrect shape for mappings: \n    {}'.format(
                 len(change['value']),
                 '\n    '.join(errors)
@@ -397,6 +379,8 @@ class HasModel(BaseSimPEG):
         # Check if the model is necessary
         if self._needs_model and self.model is None:
             errors += ['model must not be None']
+        if not self._needs_model and self.model is not None:
+            errors += ['there are no active maps, but a model is provided']
 
         # Check each map is the same size
         shapes = []
@@ -431,3 +415,24 @@ class HasModel(BaseSimPEG):
                 '\n - '.join(errors)
             )
         )
+
+    def summary(self):
+        prop_names = sorted([
+            k for k in self._props
+            if isinstance(self._props[k], PhysicalProperty)
+        ])
+
+        out = ['Physical Properties:']
+
+        # Grab the physical property summaries
+        for prop in prop_names:
+            out += [' ' + self._props[prop].summary(self)]
+
+        # Grab the validation errors
+        try:
+            self.validate()
+            out += ['', 'All checks pass!']
+        except ValueError as e:
+            out += ['', str(e)]
+
+        return '\n'.join(out)
