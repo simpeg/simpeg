@@ -13,22 +13,18 @@ environment:
   matrix:
     - PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "64"
-    - PYTHON_VERSION: "3.4"
-      PYTHON_ARCH: "64"
 
 platform:
   - x64
 
 install:
+  - "echo "
   # Add miniconda path.
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   # Check that we have the expected version and architecture for Python
   - "%CMD_IN_ENV% python --version"
   # Install the build and runtime dependencies of the project.
   - "conda update -q --yes conda"
-  # Create a conda environment using the required ObsPy packages.
-  - "conda create -q --yes -n test python=%PYTHON_VERSION%"
-  - "activate test"
   # Install default dependencies
   - "conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py nose sphinx sympy"
   # additional dependencies
