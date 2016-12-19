@@ -1,5 +1,8 @@
 # AppVeyor.com is a Continuous Integration service to build and run tests under Windows
 
+build:
+  verbosity: normal
+
 environment:
   global:
     # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
@@ -13,12 +16,13 @@ environment:
   matrix:
     - PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "64"
+    - PYTHON_VERSION: "3.4"
+      PYTHON_ARCH: "64"
 
 platform:
   - x64
 
 install:
-  - "echo "
   # Add miniconda path.
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   # Check that we have the expected version and architecture for Python
