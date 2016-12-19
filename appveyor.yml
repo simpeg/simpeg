@@ -53,5 +53,4 @@ install:
   - "conda list"
 
 test_script:
-  - "python -m obspy.scripts.runtests -n appveyor-ci -r %CI_URL% %PR_URL%"
   - "nosetests tests"
