@@ -15,7 +15,7 @@ def get_projections(u):
     return P_p, P_n
 
 
-class NonLinearMap(Props.BaseSimPEG):
+class NonLinearMap(Props.HasModel):
     """SimPEG NonLinearMap"""
 
     counter = None   #: A SimPEG.Utils.Counter object
