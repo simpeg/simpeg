@@ -15,11 +15,11 @@ environment:
 
   matrix:
     - TARGET_ARCH: "x64"
-      CONDA_PY: "27"
+      CONDA_PY: "2.7"
       PY_CONDITION: "python >=2.7,<3"
       CONDA_INSTALL_LOCN: "C:\\Miniconda-x64"
     - TARGET_ARCH: "x64"
-      CONDA_PY: "34"
+      CONDA_PY: "3.4"
       PY_CONDITION: "python >=3.4,<3.5"
       CONDA_INSTALL_LOCN: "C:\\Miniconda3-x64"
 
@@ -35,7 +35,7 @@ install:
   # Install the build and runtime dependencies of the project.
   - "conda update -q --yes conda"
   # Install default dependencies
-  - "conda install --yes pip python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython ipython h5py nose sphinx sympy"
+  - "conda install --yes pip python=%CONDA_PY% numpy scipy matplotlib cython ipython h5py nose sphinx sympy"
   # additional dependencies
   - "pip install sphinx_rtd_theme"
   - "git clone https://github.com/jcapriot/pyMKL.git"
