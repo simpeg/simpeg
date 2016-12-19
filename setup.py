@@ -6,6 +6,7 @@ SimPEG is a python package for simulation and gradient based
 parameter estimation in the context of geophysical applications.
 """
 
+import os
 import sys
 import subprocess
 
@@ -65,9 +66,10 @@ class NumpyBuild(build_ext):
 ext = '.pyx' if USE_CYTHON else '.c'
 
 cython_files = [
-                    "SimPEG/Utils/interputils_cython",
-                    "SimPEG/Mesh/TreeUtils"
-               ]
+    "SimPEG{sep}Utils{sep}interputils_cython".format(sep=os.path.sep),
+    "SimPEG{sep}Mesh{sep}TreeUtils".format(sep=os.path.sep)
+]
+
 extensions = [Extension(f, [f+ext]) for f in cython_files]
 scripts = [f+'.pyx' for f in cython_files]
 
