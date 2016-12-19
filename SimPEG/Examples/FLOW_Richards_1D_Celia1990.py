@@ -61,8 +61,8 @@ def run(plotIt=True):
         timeSteps = np.ones(360/timeStep)*timeStep
         prob = Richards.RichardsProblem(
             M, mapping=E,
-            boundaryConditions=bc, initialConditions=h,
-            doNewton=False, method=method
+            boundary_conditions=bc, initial_conditions=h,
+            do_newton=False, method=method
         )
         prob.timeSteps = timeSteps
         return prob.fields(params['Ks'] * np.ones(M.nC))

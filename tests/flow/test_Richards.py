@@ -32,9 +32,9 @@ class RichardsTests1D(unittest.TestCase):
         h = np.zeros(mesh.nC) + bc[0]
 
         prob = Richards.RichardsProblem(
-            mesh, mapping=E, tolRootFinder=1e-6, debug=False,
-            boundaryConditions=bc, initialConditions=h,
-            doNewton=False, method='mixed'
+            mesh, mapping=E, root_finder_tol=1e-6, debug=False,
+            boundary_conditions=bc, initial_conditions=h,
+            do_newton=False, method='mixed'
         )
         prob.timeSteps = [(40, 3), (60, 3)]
         prob.Solver = Solver
@@ -54,7 +54,7 @@ class RichardsTests1D(unittest.TestCase):
         self.survey = survey
 
     def test_Richards_getResidual_Newton(self):
-        self.prob.doNewton = True
+        self.prob.do_newton = True
         m = self.Ks
         passed = checkDerivative(
             lambda hn1: self.prob.getResidual(
@@ -62,7 +62,7 @@ class RichardsTests1D(unittest.TestCase):
                 self.h0,
                 hn1,
                 self.prob.timeSteps[0],
-                self.prob.boundaryConditions
+                self.prob.boundary_conditions
             ),
             self.h0,
             plotIt=False
@@ -70,7 +70,7 @@ class RichardsTests1D(unittest.TestCase):
         self.assertTrue(passed, True)
 
     def test_Richards_getResidual_Picard(self):
-        self.prob.doNewton = False
+        self.prob.do_newton = False
         m = self.Ks
 
         passed = checkDerivative(
@@ -80,7 +80,7 @@ class RichardsTests1D(unittest.TestCase):
                 self.h0,
                 hn1,
                 self.prob.timeSteps[0],
-                self.prob.boundaryConditions
+                self.prob.boundary_conditions
             ),
             self.h0,
             plotIt=False,
@@ -152,11 +152,11 @@ class RichardsTests2D(unittest.TestCase):
             mapping=E,
             timeSteps=[(40, 3), (60, 3)],
             Solver=Solver,
-            boundaryConditions=bc,
-            initialConditions=h,
-            doNewton=False,
+            boundary_conditions=bc,
+            initial_conditions=h,
+            do_newton=False,
             method='mixed',
-            tolRootFinder=1e-6,
+            root_finder_tol=1e-6,
             debug=False
         )
 
@@ -170,11 +170,11 @@ class RichardsTests2D(unittest.TestCase):
         #     thetaModel=thetaModel,
         #     timeSteps=[(40, 3), (60, 3)],
         #     Solver=Solver,
-        #     boundaryConditions=bc,
-        #     initialConditions=h,
-        #     doNewton=False,
+        #     boundary_conditions=bc,
+        #     initial_conditions=h,
+        #     do_newton=False,
         #     method='mixed',
-        #     tolRootFinder=1e-6,
+        #     root_finder_tol=1e-6,
         #     debug=False
         # )
 
@@ -193,7 +193,7 @@ class RichardsTests2D(unittest.TestCase):
         self.survey = survey
 
     def test_Richards_getResidual_Newton(self):
-        self.prob.doNewton = True
+        self.prob.do_newton = True
         m = self.Ks
         passed = checkDerivative(
             lambda hn1: self.prob.getResidual(
@@ -201,7 +201,7 @@ class RichardsTests2D(unittest.TestCase):
                 self.h0,
                 hn1,
                 self.prob.timeSteps[0],
-                self.prob.boundaryConditions
+                self.prob.boundary_conditions
             ),
             self.h0,
             plotIt=False
@@ -209,7 +209,7 @@ class RichardsTests2D(unittest.TestCase):
         self.assertTrue(passed, True)
 
     def test_Richards_getResidual_Picard(self):
-        self.prob.doNewton = False
+        self.prob.do_newton = False
         m = self.Ks
         passed = checkDerivative(
             lambda hn1: self.prob.getResidual(
@@ -217,7 +217,7 @@ class RichardsTests2D(unittest.TestCase):
                 self.h0,
                 hn1,
                 self.prob.timeSteps[0],
-                self.prob.boundaryConditions
+                self.prob.boundary_conditions
             ),
             self.h0,
             plotIt=False,
@@ -288,11 +288,11 @@ class RichardsTests3D(unittest.TestCase):
             mapping=E,
             timeSteps=[(40, 3), (60, 3)],
             Solver=Solver,
-            boundaryConditions=bc,
-            initialConditions=h,
-            doNewton=False,
+            boundary_conditions=bc,
+            initial_conditions=h,
+            do_newton=False,
             method='mixed',
-            tolRootFinder=1e-6,
+            root_finder_tol=1e-6,
             debug=False
         )
 
@@ -311,7 +311,7 @@ class RichardsTests3D(unittest.TestCase):
         self.survey = survey
 
     def test_Richards_getResidual_Newton(self):
-        self.prob.doNewton = True
+        self.prob.do_newton = True
         m = self.Ks
         passed = checkDerivative(
             lambda hn1: self.prob.getResidual(
@@ -319,7 +319,7 @@ class RichardsTests3D(unittest.TestCase):
                 self.h0,
                 hn1,
                 self.prob.timeSteps[0],
-                self.prob.boundaryConditions
+                self.prob.boundary_conditions
             ),
             self.h0,
             plotIt=False
@@ -327,7 +327,7 @@ class RichardsTests3D(unittest.TestCase):
         self.assertTrue(passed, True)
 
     def test_Richards_getResidual_Picard(self):
-        self.prob.doNewton = False
+        self.prob.do_newton = False
         m = self.Ks
         passed = checkDerivative(
             lambda hn1: self.prob.getResidual(
@@ -335,7 +335,7 @@ class RichardsTests3D(unittest.TestCase):
                 self.h0,
                 hn1,
                 self.prob.timeSteps[0],
-                self.prob.boundaryConditions
+                self.prob.boundary_conditions
             ),
             self.h0,
             plotIt=False,

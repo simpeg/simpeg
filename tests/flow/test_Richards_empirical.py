@@ -1,15 +1,11 @@
 from __future__ import print_function
 import unittest
 import numpy as np
+import properties
 from SimPEG import Mesh
-from SimPEG import Utils
 from SimPEG import Maps
 from SimPEG.Tests import checkDerivative
 from SimPEG.FLOW import Richards
-try:
-    from pymatsolver import PardisoSolver as Solver
-except Exception:
-    from SimPEG import Solver
 
 
 TOL = 1E-8
@@ -45,12 +41,14 @@ class TestModels(unittest.TestCase):
 
         mesh = Mesh.TensorMesh([5])
         wires2 = Maps.Wires(('one', mesh.nC), ('two', mesh.nC))
-        wires3 = Maps.Wires(('one', mesh.nC), ('two', mesh.nC), ('three', mesh.nC))
+        wires3 = Maps.Wires(
+            ('one', mesh.nC), ('two', mesh.nC), ('three', mesh.nC)
+        )
         expmap = Maps.IdentityMap(nP=mesh.nC)
 
         hav = Richards.Empirical.Haverkamp_k(mesh)
 
-        m = np.random.randn(mesh.nC)
+        m = properties.utils.undefined
         print('Haverkamp_k test u deriv')
         passed = checkDerivative(
             lambda u: (hav(u, m), hav.derivU(u, m)),
@@ -74,15 +72,15 @@ class TestModels(unittest.TestCase):
                 dict(AMap=expmap*wires2.one, gammaMap=expmap*wires2.two), 2),
             ('Ks-A-gamma', dict(
                 KsMap=expmap*wires3.one,
-                AMap=expmap*wires3.one,
-                gammaMap=expmap*wires3.two), 3),
+                AMap=expmap*wires3.two,
+                gammaMap=expmap*wires3.three), 3),
         ]
 
         for name, opt, nM in opts:
             np.random.seed(2)
             hav = Richards.Empirical.Haverkamp_k(mesh, **opt)
 
-            print('Haverkamp_k', name, 'test m deriv')
+            print('Haverkamp_k test m deriv:  ', name)
             u = np.random.randn(mesh.nC)
             passed = checkDerivative(
                 lambda m: (hav(u, m), hav.derivM(u, m)),

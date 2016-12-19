@@ -56,15 +56,14 @@ class RichardsSurvey(Survey.BaseSurvey):
     @Utils.count
     @Utils.requires('prob')
     def dpred(self, m, f=None):
-        """
-            Create the projected data from a model.
-            The field, f, (if provided) will be used for the predicted data
-            instead of recalculating the fields (which may be expensive!).
+        """Create the projected data from a model.
+        The field, f, (if provided) will be used for the predicted data
+        instead of recalculating the fields (which may be expensive!).
 
-            .. math::
-                d_\\text{pred} = P(f(m), m)
+        .. math::
+            d_\\text{pred} = P(f(m), m)
 
-            Where P is a projection of the fields onto the data space.
+        Where P is a projection of the fields onto the data space.
         """
         if f is None:
             f = self.prob.fields(m)
@@ -104,74 +103,74 @@ class RichardsProblem(Problem.BaseTimeProblem):
 
     mapping = properties.Property("the mapping")
 
-    boundaryConditions = properties.Array("boundary conditions.")
-    initialConditions = properties.Array("boundary conditions.")
+    boundary_conditions = properties.Array("boundary conditions")
+    initial_conditions = properties.Array("initial conditions")
 
     surveyPair = RichardsSurvey
     mapPair = RichardsMap
 
-    debug = properties.Bool("Show all messages")
+    debug = properties.Bool("Show all messages", default=False)
 
     Solver = properties.Property("Numerical Solver", default=lambda: Solver)
     solverOpts = {}
 
     method = properties.StringChoice(
-        "Formulation used, See notes in Celia et al., 1990.",
+        "Formulation used, See notes in Celia et al., 1990",
+        default='mixed',
         choices=['mixed', 'head']
     )
 
-    doNewton = properties.Bool(
-        "Do a Newton iteration vs. a Picard iteration ",
+    do_newton = properties.Bool(
+        "Do a Newton iteration vs. a Picard iteration",
         default=False
     )
 
-    maxIterRootFinder = properties.Integer(
-        "Maximum iterations for rootFinder iteration.",
+    root_finder_max_iter = properties.Integer(
+        "Maximum iterations for root_finder iteration",
         default=30
     )
 
-    tolRootFinder = properties.Float(
-        "Maximum iterations for rootFinder iteration.",
+    root_finder_tol = properties.Float(
+        "tolerance of the root_finder",
         default=1e-4
     )
 
     def getBoundaryConditions(self, ii, u_ii):
-        if type(self.boundaryConditions) is np.ndarray:
-            return self.boundaryConditions
+        if type(self.boundary_conditions) is np.ndarray:
+            return self.boundary_conditions
 
         time = self.timeMesh.vectorCCx[ii]
 
-        return self.boundaryConditions(time, u_ii)
+        return self.boundary_conditions(time, u_ii)
 
-    @properties.observer(['doNewton', 'maxIterRootFinder', 'tolRootFinder'])
+    @properties.observer(['do_newton', 'root_finder_max_iter', 'root_finder_tol'])
     def _on_root_finder_update(self, change):
+        """Setting do_newton will clear the root_finder,
+        which will be reinitialized when called
         """
-            Setting doNewton will clear the rootFinder,
-            which will be reinitialized when called
-        """
-        if hasattr(self, '_rootFinder'):
-            del self._rootFinder
+        if hasattr(self, '_root_finder'):
+            del self._root_finder
 
     @property
-    def rootFinder(self):
+    def root_finder(self):
         """Root-finding Algorithm"""
-        if getattr(self, '_rootFinder', None) is None:
-            self._rootFinder = Optimization.NewtonRoot(
-                doLS=self.doNewton,
-                maxIter=self.maxIterRootFinder,
-                tol=self.tolRootFinder,
+        if getattr(self, '_root_finder', None) is None:
+            self._root_finder = Optimization.NewtonRoot(
+                doLS=self.do_newton,
+                maxIter=self.root_finder_max_iter,
+                tol=self.root_finder_tol,
                 Solver=self.Solver
             )
-        return self._rootFinder
+        return self._root_finder
 
     @Utils.timeIt
     def fields(self, m):
         tic = time.time()
         u = list(range(self.nT+1))
-        u[0] = self.initialConditions
+        u[0] = self.initial_conditions
         for ii, dt in enumerate(self.timeSteps):
             bc = self.getBoundaryConditions(ii, u[ii])
-            u[ii+1] = self.rootFinder.root(
+            u[ii+1] = self.root_finder.root(
                 lambda hn1m, return_g=True: self.getResidual(
                     m, u[ii], hn1m, dt, bc, return_g=return_g
                 ),
@@ -184,7 +183,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
                         ii+1,
                         self.nT,
                         100.0*(ii+1)/self.nT,
-                        self.rootFinder.iter,
+                        self.root_finder.iter,
                         time.time() - tic
                     )
                 )
@@ -209,6 +208,18 @@ class RichardsProblem(Problem.BaseTimeProblem):
 
     @Utils.timeIt
     def diagsJacobian(self, m, hn, hn1, dt, bc):
+        """Diagonals and rhs of the jacobian system
+
+        The matrix that we are computing has the form::
+
+            .-                                      -. .-  -.   .-  -.
+            |  Adiag                                 | | h1 |   | b1 |
+            |   Asub    Adiag                        | | h2 |   | b2 |
+            |            Asub    Adiag               | | h3 | = | b3 |
+            |                 ...     ...            | | .. |   | .. |
+            |                         Asub    Adiag  | | hn |   | bn |
+            '-                                      -' '-  -'   '-  -'
+        """
 
         DIV = self.mesh.faceDiv
         GRAD = self.mesh.cellGrad
@@ -231,16 +242,6 @@ class RichardsProblem(Problem.BaseTimeProblem):
             Utils.sdiag((AV*(1./K1))**(-2)) *
             AV*Utils.sdiag(K1**(-2))
         )
-
-        # The matrix that we are computing has the form:
-        #
-        #   -                                      -   -  -     -  -
-        #  |  Adiag                                 | | h1 |   | b1 |
-        #  |   Asub    Adiag                        | | h2 |   | b2 |
-        #  |            Asub    Adiag               | | h3 | = | b3 |
-        #  |                 ...     ...            | | .. |   | .. |
-        #  |                         Asub    Adiag  | | hn |   | bn |
-        #   -                                      -   -  -     -  -
 
         Asub = (-1.0/dt)*dT
 
@@ -284,7 +285,7 @@ class RichardsProblem(Problem.BaseTimeProblem):
             return r
 
         J = dT/dt - DIV*Utils.sdiag(aveK)*GRAD
-        if self.doNewton:
+        if self.do_newton:
             DDharmAve = Utils.sdiag(aveK**2)*AV*Utils.sdiag(K**(-2)) * dK
             J = J - DIV*Utils.sdiag(GRAD*h + BC*bc)*DDharmAve - Dz*DDharmAve
 
