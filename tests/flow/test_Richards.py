@@ -19,6 +19,41 @@ np.random.seed(0)
 
 class BaseRichardsTest(unittest.TestCase):
 
+    def setUp(self):
+        mesh = self.get_mesh()
+        params = Richards.Empirical.HaverkampParams().celia1990
+        k_fun, theta_fun = Richards.Empirical.haverkamp(mesh, **params)
+
+        self.setup_maps(mesh, k_fun, theta_fun)
+        bc, h = self.get_conditions(mesh)
+
+        prob = Richards.RichardsProblem(
+            mesh,
+            hydraulic_conductivity=k_fun,
+            water_retention=theta_fun,
+            root_finder_tol=1e-6, debug=False,
+            boundary_conditions=bc, initial_conditions=h,
+            do_newton=False, method='mixed'
+        )
+        prob.timeSteps = [(40, 3), (60, 3)]
+        prob.Solver = Solver
+
+        locs = self.get_rx_locs()
+        times = prob.times[3:5]
+        rxSat = Richards.RichardsRx(locs, times, 'saturation')
+        rxPre = Richards.RichardsRx(locs, times, 'pressureHead')
+        survey = Richards.RichardsSurvey([rxSat, rxPre])
+
+        prob.pair(survey)
+
+        self.h0 = h
+        self.mesh = mesh
+        self.Ks = params['Ks'] * np.ones(self.mesh.nC)
+        self.A = params['A'] * np.ones(self.mesh.nC)
+        self.prob = prob
+        self.survey = survey
+        self.setup_model()
+
     def _dotest_getResidual(self, newton):
         print('Testing richards get residual newton={}, dim={}'.format(
             newton,
@@ -83,42 +118,24 @@ class BaseRichardsTest(unittest.TestCase):
 
 class RichardsTests1D(BaseRichardsTest):
 
-    def setUp(self):
+    def get_mesh(self):
         mesh = Mesh.TensorMesh([np.ones(20)])
         mesh.setCellGradBC('dirichlet')
+        return mesh
 
-        params = Richards.Empirical.HaverkampParams().celia1990
-        k_fun, theta_fun = Richards.Empirical.haverkamp(mesh, **params)
-        k_fun.KsMap = Maps.ExpMap(nP=mesh.nC)
+    def get_rx_locs(self):
+        return np.r_[5., 10, 15]
 
+    def get_conditions(self, mesh):
         bc = np.array([-61.5, -20.7])
         h = np.zeros(mesh.nC) + bc[0]
+        return bc, h
 
-        prob = Richards.RichardsProblem(
-            mesh,
-            hydraulic_conductivity=k_fun,
-            water_retention=theta_fun,
-            root_finder_tol=1e-6, debug=False,
-            boundary_conditions=bc, initial_conditions=h,
-            do_newton=False, method='mixed'
-        )
-        prob.timeSteps = [(40, 3), (60, 3)]
-        prob.Solver = Solver
+    def setup_maps(self, mesh, k_fun, theta_fun):
+        k_fun.KsMap = Maps.ExpMap(nP=mesh.nC)
 
-        locs = np.r_[5., 10, 15]
-        times = prob.times[3:5]
-        rxSat = Richards.RichardsRx(locs, times, 'saturation')
-        rxPre = Richards.RichardsRx(locs, times, 'pressureHead')
-        survey = Richards.RichardsSurvey([rxSat, rxPre])
-
-        prob.pair(survey)
-
-        self.h0 = h
-        self.mesh = mesh
-        self.Ks = params['Ks'] * np.ones(self.mesh.nC)
+    def setup_model(self):
         self.mtrue = np.log(self.Ks)
-        self.prob = prob
-        self.survey = survey
 
     def test_Richards_getResidual_Newton(self):
         self._dotest_getResidual(True)
@@ -136,48 +153,15 @@ class RichardsTests1D(BaseRichardsTest):
         self._dotest_sensitivity_full()
 
 
-class RichardsTests1D_Multi(BaseRichardsTest):
+class RichardsTests1D_Multi(RichardsTests1D):
 
-    def setUp(self):
-        mesh = Mesh.TensorMesh([np.ones(20)])
-        mesh.setCellGradBC('dirichlet')
-
-        params = Richards.Empirical.HaverkampParams().celia1990
-        k_fun, theta_fun = Richards.Empirical.haverkamp(mesh, **params)
+    def setup_maps(self, mesh, k_fun, theta_fun):
         wires = Maps.Wires(('Ks', mesh.nC), ('A', mesh.nC))
-
         k_fun.KsMap = Maps.ExpMap(nP=mesh.nC) * wires.Ks
         k_fun.AMap = wires.A
 
-        bc = np.array([-61.5, -20.7])
-        h = np.zeros(mesh.nC) + bc[0]
-
-        prob = Richards.RichardsProblem(
-            mesh,
-            hydraulic_conductivity=k_fun,
-            water_retention=theta_fun,
-            root_finder_tol=1e-6, debug=False,
-            boundary_conditions=bc, initial_conditions=h,
-            do_newton=False, method='mixed'
-        )
-        prob.timeSteps = [(40, 3), (60, 3)]
-        prob.Solver = Solver
-
-        locs = np.r_[5., 10, 15]
-        times = prob.times[3:5]
-        rxSat = Richards.RichardsRx(locs, times, 'saturation')
-        rxPre = Richards.RichardsRx(locs, times, 'pressureHead')
-        survey = Richards.RichardsSurvey([rxSat, rxPre])
-
-        prob.pair(survey)
-
-        self.h0 = h
-        self.mesh = mesh
-        self.Ks = params['Ks'] * np.ones(self.mesh.nC)
-        self.A = params['A'] * np.ones(self.mesh.nC)
+    def setup_model(self):
         self.mtrue = np.r_[np.log(self.Ks), self.A]
-        self.prob = prob
-        self.survey = survey
 
     def test_adjoint(self):
         self._dotest_adjoint()
@@ -191,15 +175,15 @@ class RichardsTests1D_Multi(BaseRichardsTest):
 
 class RichardsTests2D(BaseRichardsTest):
 
-    def setUp(self):
+    def get_mesh(self):
         mesh = Mesh.TensorMesh([np.ones(8), np.ones(30)])
-
         mesh.setCellGradBC(['neumann', 'dirichlet'])
+        return mesh
 
-        params = Richards.Empirical.HaverkampParams().celia1990
-        k_fun, theta_fun = Richards.Empirical.haverkamp(mesh, **params)
-        k_fun.KsMap = Maps.ExpMap(nP=mesh.nC)
+    def get_rx_locs(self):
+        return Utils.ndgrid(np.array([5, 7.]), np.array([5, 15, 25.]))
 
+    def get_conditions(self, mesh):
         bc = np.array([-61.5, -20.7])
         bc = np.r_[
             np.zeros(mesh.nCy*2),
@@ -207,35 +191,13 @@ class RichardsTests2D(BaseRichardsTest):
             np.ones(mesh.nCx)*bc[1]
         ]
         h = np.zeros(mesh.nC) + bc[0]
+        return bc, h
 
-        prob = Richards.RichardsProblem(
-            mesh,
-            hydraulic_conductivity=k_fun,
-            water_retention=theta_fun,
-            timeSteps=[(40, 3), (60, 3)],
-            Solver=Solver,
-            boundary_conditions=bc,
-            initial_conditions=h,
-            do_newton=False,
-            method='mixed',
-            root_finder_tol=1e-6,
-            debug=False
-        )
+    def setup_maps(self, mesh, k_fun, theta_fun):
+        k_fun.KsMap = Maps.ExpMap(nP=mesh.nC)
 
-        locs = Utils.ndgrid(np.array([5, 7.]), np.array([5, 15, 25.]))
-        times = prob.times[3:5]
-        rxSat = Richards.RichardsRx(locs, times, 'saturation')
-        rxPre = Richards.RichardsRx(locs, times, 'pressureHead')
-        survey = Richards.RichardsSurvey([rxSat, rxPre])
-
-        prob.pair(survey)
-
-        self.h0 = h
-        self.mesh = mesh
-        self.Ks = params['Ks'] * np.ones(mesh.nC)
+    def setup_model(self):
         self.mtrue = np.log(self.Ks)
-        self.prob = prob
-        self.survey = survey
 
     def test_Richards_getResidual_Newton(self):
         self._dotest_getResidual(True)
@@ -255,15 +217,15 @@ class RichardsTests2D(BaseRichardsTest):
 
 class RichardsTests3D(BaseRichardsTest):
 
-    def setUp(self):
+    def get_mesh(self):
         mesh = Mesh.TensorMesh([np.ones(8), np.ones(20), np.ones(10)])
-
         mesh.setCellGradBC(['neumann', 'neumann', 'dirichlet'])
+        return mesh
 
-        params = Richards.Empirical.HaverkampParams().celia1990
-        k_fun, theta_fun = Richards.Empirical.haverkamp(mesh, **params)
-        k_fun.KsMap = Maps.ExpMap(nP=mesh.nC)
+    def get_rx_locs(self):
+        return Utils.ndgrid(np.r_[5, 7.], np.r_[5, 15.], np.r_[6, 8.])
 
+    def get_conditions(self, mesh):
         bc = np.array([-61.5, -20.7])
         bc = np.r_[
             np.zeros(mesh.nCy*mesh.nCz*2),
@@ -272,34 +234,13 @@ class RichardsTests3D(BaseRichardsTest):
             np.ones(mesh.nCx*mesh.nCy)*bc[1]
         ]
         h = np.zeros(mesh.nC) + bc[0]
-        prob = Richards.RichardsProblem(
-            mesh,
-            hydraulic_conductivity=k_fun,
-            water_retention=theta_fun,
-            timeSteps=[(40, 3), (60, 3)],
-            Solver=Solver,
-            boundary_conditions=bc,
-            initial_conditions=h,
-            do_newton=False,
-            method='mixed',
-            root_finder_tol=1e-6,
-            debug=False
-        )
+        return bc, h
 
-        locs = Utils.ndgrid(np.r_[5, 7.], np.r_[5, 15.], np.r_[6, 8.])
-        times = prob.times[3:5]
-        rxSat = Richards.RichardsRx(locs, times, 'saturation')
-        rxPre = Richards.RichardsRx(locs, times, 'pressureHead')
-        survey = Richards.RichardsSurvey([rxSat, rxPre])
+    def setup_maps(self, mesh, k_fun, theta_fun):
+        k_fun.KsMap = Maps.ExpMap(nP=mesh.nC)
 
-        prob.pair(survey)
-
-        self.h0 = h
-        self.mesh = mesh
-        self.Ks = params['Ks'] * np.ones(mesh.nC)
+    def setup_model(self):
         self.mtrue = np.log(self.Ks)
-        self.prob = prob
-        self.survey = survey
 
     def test_Richards_getResidual_Newton(self):
         self._dotest_getResidual(True)
