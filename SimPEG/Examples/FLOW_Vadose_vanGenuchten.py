@@ -25,9 +25,9 @@ def run(plotIt=True):
             continue
         leg += [p]
         params = getattr(VGparams, p)
-        model = Richards.Empirical.VanGenuchten(mesh, **params)
-        model.thetaModel.plot(ax=plt.subplot(121))
-        model.kModel.plot(ax=plt.subplot(122))
+        k_fun, theta_fun = Richards.Empirical.van_genuchten(mesh, **params)
+        theta_fun.plot(ax=plt.subplot(121))
+        k_fun.plot(ax=plt.subplot(122))
 
     plt.legend(leg, loc=3)
 

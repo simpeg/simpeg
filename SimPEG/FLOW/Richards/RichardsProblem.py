@@ -10,7 +10,6 @@ from SimPEG import Utils
 from SimPEG import Problem
 from SimPEG import Optimization
 from SimPEG import Solver
-from SimPEG.FLOW.Richards.Empirical import RichardsMap
 
 
 class RichardsRx(Survey.BaseTimeRx):
@@ -18,16 +17,20 @@ class RichardsRx(Survey.BaseTimeRx):
 
     knownRxTypes = ['saturation', 'pressureHead']
 
-    def __call__(self, U, m, mapping, mesh, timeMesh):
+    def __call__(self, U, m, water_retention, mesh, timeMesh):
+
+        water_retention.model = m
 
         if self.rxType == 'pressureHead':
             u = np.concatenate(U)
         elif self.rxType == 'saturation':
-            u = np.concatenate([mapping.theta(ui, m) for ui in U])
+            u = np.concatenate([water_retention(ui) for ui in U])
 
         return self.getP(mesh, timeMesh) * u
 
-    def deriv(self, U, m, mapping, mesh, timeMesh):
+    def deriv(self, U, m, water_retention, mesh, timeMesh):
+
+        water_retention.model = m
 
         P = self.getP(mesh, timeMesh)
         if self.rxType == 'pressureHead':
@@ -36,7 +39,7 @@ class RichardsRx(Survey.BaseTimeRx):
             # TODO: if m is a parameter in the theta
             #       distribution, we may need to do
             #       some more chain rule here.
-            dT = sp.block_diag([mapping.thetaDerivU(ui, m) for ui in U])
+            dT = sp.block_diag([water_retention.derivU(ui) for ui in U])
             return P*dT
 
 
@@ -76,7 +79,7 @@ class RichardsSurvey(Survey.BaseSurvey):
         for ii, rx in enumerate(self.rxList):
             Ds[ii] = rx(
                 U, m,
-                self.prob.mapping,
+                self.prob.water_retention,
                 self.prob.mesh,
                 self.prob.timeMesh
             )
@@ -90,7 +93,7 @@ class RichardsSurvey(Survey.BaseSurvey):
         for ii, rx in enumerate(self.rxList):
             Ds[ii] = rx.deriv(
                 U, m,
-                self.prob.mapping,
+                self.prob.water_retention,
                 self.prob.mesh,
                 self.prob.timeMesh
             )
@@ -101,13 +104,13 @@ class RichardsSurvey(Survey.BaseSurvey):
 class RichardsProblem(Problem.BaseTimeProblem):
     """RichardsProblem"""
 
-    mapping = properties.Property("the mapping")
+    hydraulic_conductivity = properties.Property("the mapping")
+    water_retention = properties.Property("the mapping")
 
     boundary_conditions = properties.Array("boundary conditions")
     initial_conditions = properties.Array("initial conditions")
 
     surveyPair = RichardsSurvey
-    mapPair = RichardsMap
 
     debug = properties.Bool("Show all messages", default=False)
 
@@ -143,9 +146,13 @@ class RichardsProblem(Problem.BaseTimeProblem):
 
         return self.boundary_conditions(time, u_ii)
 
-    @properties.observer(['do_newton', 'root_finder_max_iter', 'root_finder_tol'])
+    @properties.observer([
+                          'do_newton',
+                          'root_finder_max_iter',
+                          'root_finder_tol'
+                        ])
     def _on_root_finder_update(self, change):
-        """Setting do_newton will clear the root_finder,
+        """Setting do_newton etc. will clear the root_finder,
         which will be reinitialized when called
         """
         if hasattr(self, '_root_finder'):
@@ -227,11 +234,15 @@ class RichardsProblem(Problem.BaseTimeProblem):
         AV = self.mesh.aveF2CC.T
         Dz = self.Dz
 
-        dT = self.mapping.thetaDerivU(hn, m)
-        dT1 = self.mapping.thetaDerivU(hn1, m)
-        K1 = self.mapping.k(hn1, m)
-        dK1 = self.mapping.kDerivU(hn1, m)
-        dKm1 = self.mapping.kDerivM(hn1, m)
+        self.water_retention.model = m
+        self.hydraulic_conductivity.model = m
+
+        dT = self.water_retention.derivU(hn)
+        dT1 = self.water_retention.derivU(hn1)
+
+        K1 = self.hydraulic_conductivity(hn1)
+        dK1 = self.hydraulic_conductivity.derivU(hn1)
+        dKm1 = self.hydraulic_conductivity.derivM(hn1)
 
         # Compute part of the derivative of:
         #
@@ -267,11 +278,14 @@ class RichardsProblem(Problem.BaseTimeProblem):
         AV = self.mesh.aveF2CC.T
         Dz = self.Dz
 
-        T = self.mapping.theta(h, m)
-        dT = self.mapping.thetaDerivU(h, m)
-        Tn = self.mapping.theta(hn, m)
-        K = self.mapping.k(h, m)
-        dK = self.mapping.kDerivU(h, m)
+        self.water_retention.model = m
+        self.hydraulic_conductivity.model = m
+
+        T = self.water_retention(h)
+        dT = self.water_retention.derivU(h)
+        Tn = self.water_retention(hn)
+        K = self.hydraulic_conductivity(h)
+        dK = self.hydraulic_conductivity.derivU(h)
 
         aveK = 1./(AV*(1./K))
 

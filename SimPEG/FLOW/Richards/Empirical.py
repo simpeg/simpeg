@@ -4,7 +4,7 @@ from SimPEG import Utils, Props
 import properties
 
 
-def get_projections(u):
+def _get_projections(u):
     """Get the projections for each domain in the pressure head (u)"""
     nP = len(u)
     bools = u >= 0
@@ -67,100 +67,12 @@ class BaseHydraulicConductivity(NonLinearModel):
         ax.set_xlabel('Hydraulic conductivity, $K$')
 
 
-class RichardsMap(object):
-    """docstring for RichardsMap"""
-
-    mesh = None  #: SimPEG mesh
-
-    @property
-    def thetaModel(self):
-        """Model for moisture content"""
-        return self._thetaModel
-
-    @property
-    def kModel(self):
-        """Model for hydraulic conductivity"""
-        return self._kModel
-
-    def __init__(self, mesh, thetaModel, kModel):
-        self.mesh = mesh
-        assert isinstance(thetaModel, BaseWaterRetention)
-        assert isinstance(kModel, BaseHydraulicConductivity)
-
-        self._thetaModel = thetaModel
-        self._kModel = kModel
-
-    def theta(self, u, m):
-        self.thetaModel.model = m
-        return self.thetaModel(u)
-
-    def thetaDerivM(self, u, m):
-        self.thetaModel.model = m
-        return self.thetaModel.derivM(u)
-
-    def thetaDerivU(self, u, m):
-        self.thetaModel.model = m
-        return self.thetaModel.derivU(u)
-
-    def k(self, u, m):
-        self.kModel.model = m
-        return self.kModel(u)
-
-    def kDerivM(self, u, m):
-        self.kModel.model = m
-        return self.kModel.derivM(u)
-
-    def kDerivU(self, u, m):
-        self.kModel.model = m
-        return self.kModel.derivU(u)
-
-
-def _ModelProperty(name, models, doc=None, default=None):
-
-    def fget(self):
-        model = models[0]
-        if getattr(self, model, None) is not None:
-            MOD = getattr(self, model)
-            return getattr(MOD, name, default)
-        return default
-
-    def fset(self, value):
-        for model in models:
-            if getattr(self, model, None) is not None:
-                MOD = getattr(self, model)
-                setattr(MOD, name, value)
-
-    return property(fget, fset=fset, doc=doc)
-
-
-class HaverkampParams(object):
-    """Holds some default parameterizations for the Haverkamp model."""
-
-    @property
-    def celia1990(self):
-        """Parameters used in:
-
-            Celia, Michael A., Efthimios T. Bouloutas, and Rebecca L. Zarba.
-            "A general mass-conservative numerical solution for the unsaturated
-            flow equation." Water Resources Research 26.7 (1990): 1483-1496.
-        """
-        return {
-            'alpha': 1.611e+06,
-            'beta': 3.96,
-            'theta_r': 0.075,
-            'theta_s': 0.287,
-            'Ks': 9.44e-03,
-            'A': 1.175e+06,
-            'gamma': 4.74
-        }
-
-
 class Haverkamp_theta(BaseWaterRetention):
 
-    theta_s = 0.430
-    theta_r = 0.078
-    alpha = 0.036
-    beta = 3.960
+    theta_r = 0.075
+    theta_s = 0.287
+    alpha = 1.611e+06
+    beta = 3.96
 
     def __call__(self, u):
         f = (
@@ -189,11 +101,29 @@ class Haverkamp_theta(BaseWaterRetention):
         return g
 
 
+def _partition_args(mesh, Hcond, Theta, hcond_args, theta_args, **kwargs):
+
+    hcond_params = {k: kwargs[k] for k in kwargs if k in hcond_args}
+    theta_params = {k: kwargs[k] for k in kwargs if k in theta_args}
+
+    other_params = {
+        k: kwargs[k] for k in kwargs if k not in hcond_args + theta_args
+    }
+
+    if len(other_params) > 0:
+        raise Exception('Unknown parameters: {}'.format(other_params))
+
+    hcond = Hcond(mesh, **hcond_params)
+    theta = Theta(mesh, **theta_params)
+
+    return hcond, theta
+
+
 class Haverkamp_k(BaseHydraulicConductivity):
 
     Ks, KsMap, KsDeriv = Props.Invertible(
         "Saturated hydraulic conductivity",
-        default=24.96
+        default=9.44e-03
     )
 
     A, AMap, ADeriv = Props.Invertible(
@@ -211,7 +141,7 @@ class Haverkamp_k(BaseHydraulicConductivity):
 
     def __call__(self, u):
         Ks, A, gamma = self._get_params()
-        P_p, P_n = get_projections(u)  # Compute the positive/negative domains
+        P_p, P_n = _get_projections(u)  # Compute the positive/negative domains
         f_p = P_p * np.ones(len(u)) * Ks  # identity ensures scalar Ks works
         f_n = P_n * Ks * A / (A + abs(u)**gamma)
         return f_p + f_n
@@ -230,7 +160,7 @@ class Haverkamp_k(BaseHydraulicConductivity):
             return Utils.Zero()
 
         Ks, A, gamma = self._get_params()
-        P_p, P_n = get_projections(u)  # Compute the positive/negative domains
+        P_p, P_n = _get_projections(u)  # Compute the positive/negative domains
 
         dKs_dm_p = P_p * self.KsDeriv
         dKs_dm_n = P_n * Utils.sdiag(A/(A + abs(u)**gamma)) * self.KsDeriv
@@ -241,7 +171,7 @@ class Haverkamp_k(BaseHydraulicConductivity):
             return Utils.Zero()
 
         Ks, A, gamma = self._get_params()
-        P_p, P_n = get_projections(u)  # Compute the positive/negative domains
+        P_p, P_n = _get_projections(u)  # Compute the positive/negative domains
 
         dA_dm_n = P_n * Utils.sdiag(
             Ks / (A + abs(u)**gamma) - Ks*A/(A + abs(u)**gamma)**2
@@ -253,7 +183,7 @@ class Haverkamp_k(BaseHydraulicConductivity):
             return Utils.Zero()
 
         Ks, A, gamma = self._get_params()
-        P_p, P_n = get_projections(u)  # Compute the positive/negative domains
+        P_p, P_n = _get_projections(u)  # Compute the positive/negative domains
 
         dGamma_dm_n = P_n * Utils.sdiag(
             -(A*Ks*np.log(abs(u))*abs(u)**gamma)/(A + abs(u)**gamma)**2
@@ -261,26 +191,37 @@ class Haverkamp_k(BaseHydraulicConductivity):
         return dGamma_dm_n  # positive term is zero
 
 
-class Haverkamp(RichardsMap):
-    """Haverkamp Model"""
+def haverkamp(mesh, **kwargs):
+    return _partition_args(
+        mesh,
+        Haverkamp_k,
+        Haverkamp_theta,
+        ['Ks', 'A', 'gamma'],
+        ['alpha', 'beta', 'theta_r', 'theta_s'],
+        **kwargs
+    )
 
-    alpha = _ModelProperty('alpha', ['thetaModel'], default=1.6110e+06)
-    beta = _ModelProperty('beta', ['thetaModel'], default=3.96)
-    theta_r = _ModelProperty('theta_r', ['thetaModel'], default=0.075)
-    theta_s = _ModelProperty('theta_s', ['thetaModel'], default=0.287)
 
-    Ks = _ModelProperty('Ks', ['kModel'], default=np.log(24.96))
-    A = _ModelProperty('A', ['kModel'], default=1.1750e+06)
-    gamma = _ModelProperty('gamma', ['kModel'], default=4.74)
+class HaverkampParams(object):
+    """Holds some default parameterizations for the Haverkamp model."""
 
-    def __init__(self, mesh, **kwargs):
-        RichardsMap.__init__(
-            self,
-            mesh,
-            Haverkamp_theta(mesh),
-            Haverkamp_k(mesh)
-        )
-        Utils.setKwargs(self, **kwargs)
+    @property
+    def celia1990(self):
+        """Parameters used in:
+
+            Celia, Michael A., Efthimios T. Bouloutas, and Rebecca L. Zarba.
+            "A general mass-conservative numerical solution for the unsaturated
+            flow equation." Water Resources Research 26.7 (1990): 1483-1496.
+        """
+        return {
+            'alpha': 1.611e+06,
+            'beta': 3.96,
+            'theta_r': 0.075,
+            'theta_s': 0.287,
+            'Ks': 9.44e-03,
+            'A': 1.175e+06,
+            'gamma': 4.74
+        }
 
 
 class Vangenuchten_theta(BaseWaterRetention):
@@ -344,7 +285,7 @@ class Vangenuchten_k(BaseHydraulicConductivity):
     def __call__(self, u):
         Ks, alpha, I, n, m = self._get_params()
 
-        P_p, P_n = get_projections(u)  # Compute the positive/negative domains
+        P_p, P_n = _get_projections(u)  # Compute the positive/negative domains
         theta_e = 1.0 / ((1.0 + abs(alpha * u) ** n) ** m)
         f_p = P_p * np.ones(len(u)) * Ks  # identity ensures scalar Ks works
         f_n = P_n * Ks * theta_e ** I * (
@@ -360,7 +301,7 @@ class Vangenuchten_k(BaseHydraulicConductivity):
             return Utils.Zero()
 
         Ks, alpha, I, n, m = self._get_params()
-        P_p, P_n = get_projections(u)  # Compute the positive/negative domains
+        P_p, P_n = _get_projections(u)  # Compute the positive/negative domains
         theta_e = 1.0 / ((1.0 + abs(alpha * u) ** n) ** m)
         dKs_dm_p = P_p * self.KsDeriv
         dKs_dm_n = P_n * self.KsDeriv * Utils.sdiag(
@@ -392,26 +333,15 @@ class Vangenuchten_k(BaseHydraulicConductivity):
         return g
 
 
-class VanGenuchten(RichardsMap):
-    """vanGenuchten Model"""
-
-    theta_r = _ModelProperty('theta_r', ['thetaModel'], default=0.075)
-    theta_s = _ModelProperty('theta_s', ['thetaModel'], default=0.287)
-
-    alpha = _ModelProperty('alpha',   ['thetaModel', 'kModel'], default=0.036)
-    n = _ModelProperty('n', ['thetaModel', 'kModel'], default=1.560)
-
-    Ks = _ModelProperty('Ks', ['kModel'], default=24.96)
-    I = _ModelProperty('I', ['kModel'], default=0.500)
-
-    def __init__(self, mesh, **kwargs):
-        RichardsMap.__init__(
-            self,
-            mesh,
-            Vangenuchten_theta(mesh),
-            Vangenuchten_k(mesh)
-        )
-        Utils.setKwargs(self, **kwargs)
+def van_genuchten(mesh, **kwargs):
+    return _partition_args(
+        mesh,
+        Vangenuchten_k,
+        Vangenuchten_theta,
+        ['alpha', 'n', 'Ks', 'I'],
+        ['alpha', 'n', 'theta_r', 'theta_s'],
+        **kwargs
+    )
 
 
 class VanGenuchtenParams(object):

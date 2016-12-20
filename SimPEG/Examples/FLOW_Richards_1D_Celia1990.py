@@ -51,8 +51,8 @@ def run(plotIt=True):
     M = Mesh.TensorMesh([np.ones(40)])
     M.setCellGradBC('dirichlet')
     params = Richards.Empirical.HaverkampParams().celia1990
-    E = Richards.Empirical.Haverkamp(M, **params)
-    E.kModel.KsMap = Maps.IdentityMap(nP=M.nC)
+    k_fun, theta_fun = Richards.Empirical.haverkamp(M, **params)
+    k_fun.KsMap = Maps.IdentityMap(nP=M.nC)
 
     bc = np.array([-61.5, -20.7])
     h = np.zeros(M.nC) + bc[0]
@@ -60,7 +60,9 @@ def run(plotIt=True):
     def getFields(timeStep, method):
         timeSteps = np.ones(360/timeStep)*timeStep
         prob = Richards.RichardsProblem(
-            M, mapping=E,
+            M,
+            hydraulic_conductivity=k_fun,
+            water_retention=theta_fun,
             boundary_conditions=bc, initial_conditions=h,
             do_newton=False, method=method
         )

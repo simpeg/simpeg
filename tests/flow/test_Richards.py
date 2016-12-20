@@ -17,22 +17,88 @@ TOL = 1E-8
 np.random.seed(0)
 
 
-class RichardsTests1D(unittest.TestCase):
+class BaseRichardsTest(unittest.TestCase):
+
+    def _dotest_getResidual(self, newton):
+        print('Testing richards get residual newton={}, dim={}'.format(
+            newton,
+            self.mesh.dim
+        ))
+        self.prob.do_newton = newton
+        passed = checkDerivative(
+            lambda hn1: self.prob.getResidual(
+                self.mtrue,
+                self.h0,
+                hn1,
+                self.prob.timeSteps[0],
+                self.prob.boundary_conditions
+            ),
+            self.h0,
+            expectedOrder=2 if newton else 1,
+            plotIt=False
+        )
+        self.assertTrue(passed, True)
+
+    def _dotest_adjoint(self):
+        v = np.random.rand(self.survey.nD)
+        z = np.random.rand(len(self.mtrue))
+        Hs = self.prob.fields(self.mtrue)
+        vJz = v.dot(self.prob.Jvec(self.mtrue, z, f=Hs))
+        zJv = z.dot(self.prob.Jtvec(self.mtrue, v, f=Hs))
+        tol = TOL*(10**int(np.log10(np.abs(zJv))))
+        passed = np.abs(vJz - zJv) < tol
+        print('Richards Adjoint Test - PressureHead dim={}'.format(
+            self.mesh.dim
+        ))
+        print('{0:4.4e} === {1:4.4e}, diff={2:4.4e} < {3:4e}'.format(
+            vJz, zJv, np.abs(vJz - zJv), tol)
+        )
+        self.assertTrue(passed, True)
+
+    def _dotest_sensitivity(self):
+        print('Testing Richards Derivative dim={}'.format(
+            self.mesh.dim
+        ))
+        passed = checkDerivative(
+            lambda m: [self.survey.dpred(m), lambda v: self.prob.Jvec(m, v)],
+            self.mtrue,
+            num=4,
+            plotIt=False
+        )
+        self.assertTrue(passed, True)
+
+    def _dotest_sensitivity_full(self):
+        print('Testing Richards Derivative FULL dim={}'.format(
+            self.mesh.dim
+        ))
+        J = self.prob.Jfull(self.mtrue)
+        passed = checkDerivative(
+            lambda m: [self.survey.dpred(m), J],
+            self.mtrue,
+            num=4,
+            plotIt=False
+        )
+        self.assertTrue(passed, True)
+
+
+class RichardsTests1D(BaseRichardsTest):
 
     def setUp(self):
         mesh = Mesh.TensorMesh([np.ones(20)])
         mesh.setCellGradBC('dirichlet')
 
         params = Richards.Empirical.HaverkampParams().celia1990
-        params['Ks'] = np.log(params['Ks'])
-        E = Richards.Empirical.Haverkamp(mesh, **params)
-        E.kModel.KsMap = Maps.ExpMap(nP=mesh.nC)
+        k_fun, theta_fun = Richards.Empirical.haverkamp(mesh, **params)
+        k_fun.KsMap = Maps.ExpMap(nP=mesh.nC)
 
         bc = np.array([-61.5, -20.7])
         h = np.zeros(mesh.nC) + bc[0]
 
         prob = Richards.RichardsProblem(
-            mesh, mapping=E, root_finder_tol=1e-6, debug=False,
+            mesh,
+            hydraulic_conductivity=k_fun,
+            water_retention=theta_fun,
+            root_finder_tol=1e-6, debug=False,
             boundary_conditions=bc, initial_conditions=h,
             do_newton=False, method='mixed'
         )
@@ -50,84 +116,80 @@ class RichardsTests1D(unittest.TestCase):
         self.h0 = h
         self.mesh = mesh
         self.Ks = params['Ks'] * np.ones(self.mesh.nC)
+        self.mtrue = np.log(self.Ks)
         self.prob = prob
         self.survey = survey
 
     def test_Richards_getResidual_Newton(self):
-        self.prob.do_newton = True
-        m = self.Ks
-        passed = checkDerivative(
-            lambda hn1: self.prob.getResidual(
-                m,
-                self.h0,
-                hn1,
-                self.prob.timeSteps[0],
-                self.prob.boundary_conditions
-            ),
-            self.h0,
-            plotIt=False
-        )
-        self.assertTrue(passed, True)
+        self._dotest_getResidual(True)
 
     def test_Richards_getResidual_Picard(self):
-        self.prob.do_newton = False
-        m = self.Ks
+        self._dotest_getResidual(False)
 
-        passed = checkDerivative(
-            lambda hn1:
-            self.prob.getResidual(
-                m,
-                self.h0,
-                hn1,
-                self.prob.timeSteps[0],
-                self.prob.boundary_conditions
-            ),
-            self.h0,
-            plotIt=False,
-            expectedOrder=1
+    def test_adjoint(self):
+        self._dotest_adjoint()
+
+    def test_sensitivity(self):
+        self._dotest_sensitivity()
+
+    def test_sensitivity_full(self):
+        self._dotest_sensitivity_full()
+
+
+class RichardsTests1D_Multi(BaseRichardsTest):
+
+    def setUp(self):
+        mesh = Mesh.TensorMesh([np.ones(20)])
+        mesh.setCellGradBC('dirichlet')
+
+        params = Richards.Empirical.HaverkampParams().celia1990
+        k_fun, theta_fun = Richards.Empirical.haverkamp(mesh, **params)
+        wires = Maps.Wires(('Ks', mesh.nC), ('A', mesh.nC))
+
+        k_fun.KsMap = Maps.ExpMap(nP=mesh.nC) * wires.Ks
+        k_fun.AMap = wires.A
+
+        bc = np.array([-61.5, -20.7])
+        h = np.zeros(mesh.nC) + bc[0]
+
+        prob = Richards.RichardsProblem(
+            mesh,
+            hydraulic_conductivity=k_fun,
+            water_retention=theta_fun,
+            root_finder_tol=1e-6, debug=False,
+            boundary_conditions=bc, initial_conditions=h,
+            do_newton=False, method='mixed'
         )
+        prob.timeSteps = [(40, 3), (60, 3)]
+        prob.Solver = Solver
 
-        self.assertTrue(passed, True)
+        locs = np.r_[5., 10, 15]
+        times = prob.times[3:5]
+        rxSat = Richards.RichardsRx(locs, times, 'saturation')
+        rxPre = Richards.RichardsRx(locs, times, 'pressureHead')
+        survey = Richards.RichardsSurvey([rxSat, rxPre])
 
-    def test_Adjoint(self):
-        v = np.random.rand(self.survey.nD)
-        z = np.random.rand(self.mesh.nC)
-        Hs = self.prob.fields(self.Ks)
-        vJz = v.dot(self.prob.Jvec(self.Ks, z, f=Hs))
-        zJv = z.dot(self.prob.Jtvec(self.Ks, v, f=Hs))
-        tol = TOL*(10**int(np.log10(np.abs(zJv))))
-        passed = np.abs(vJz - zJv) < tol
-        print('Richards Adjoint Test - PressureHead')
-        print('{0:4.4e} === {1:4.4e}, diff={2:4.4e} < {3:4e}'.format(
-            vJz, zJv, np.abs(vJz - zJv), tol)
-        )
-        self.assertTrue(passed, True)
+        prob.pair(survey)
 
-    def test_Sensitivity(self):
-        mTrue = self.Ks*np.ones(self.mesh.nC)
-        print('Testing Richards Derivative')
-        passed = checkDerivative(
-            lambda m: [self.survey.dpred(m), lambda v: self.prob.Jvec(m, v)],
-            mTrue,
-            num=4,
-            plotIt=False
-        )
-        self.assertTrue(passed, True)
+        self.h0 = h
+        self.mesh = mesh
+        self.Ks = params['Ks'] * np.ones(self.mesh.nC)
+        self.A = params['A'] * np.ones(self.mesh.nC)
+        self.mtrue = np.r_[np.log(self.Ks), self.A]
+        self.prob = prob
+        self.survey = survey
 
-    def test_Sensitivity_full(self):
-        print('Testing Richards Derivative FULL')
-        mTrue = self.Ks*np.ones(self.mesh.nC)
-        J = self.prob.Jfull(mTrue)
-        passed = checkDerivative(
-            lambda m: [self.survey.dpred(m), J],
-            mTrue,
-            num=4,
-            plotIt=False
-        )
-        self.assertTrue(passed, True)
+    def test_adjoint(self):
+        self._dotest_adjoint()
+
+    def test_sensitivity(self):
+        self._dotest_sensitivity()
+
+    def test_sensitivity_full(self):
+        self._dotest_sensitivity_full()
 
 
-class RichardsTests2D(unittest.TestCase):
+class RichardsTests2D(BaseRichardsTest):
 
     def setUp(self):
         mesh = Mesh.TensorMesh([np.ones(8), np.ones(30)])
@@ -135,9 +197,8 @@ class RichardsTests2D(unittest.TestCase):
         mesh.setCellGradBC(['neumann', 'dirichlet'])
 
         params = Richards.Empirical.HaverkampParams().celia1990
-        params['Ks'] = np.log(params['Ks'])
-        E = Richards.Empirical.Haverkamp(mesh, **params)
-        E.kModel.KsMap = Maps.ExpMap(nP=mesh.nC)
+        k_fun, theta_fun = Richards.Empirical.haverkamp(mesh, **params)
+        k_fun.KsMap = Maps.ExpMap(nP=mesh.nC)
 
         bc = np.array([-61.5, -20.7])
         bc = np.r_[
@@ -149,7 +210,8 @@ class RichardsTests2D(unittest.TestCase):
 
         prob = Richards.RichardsProblem(
             mesh,
-            mapping=E,
+            hydraulic_conductivity=k_fun,
+            water_retention=theta_fun,
             timeSteps=[(40, 3), (60, 3)],
             Solver=Solver,
             boundary_conditions=bc,
@@ -159,24 +221,6 @@ class RichardsTests2D(unittest.TestCase):
             root_finder_tol=1e-6,
             debug=False
         )
-
-        # kModel = Richards.Empirical.Haverkamp_k(mesh)
-        # thetaModel = Richards.Empirical.Haverkamp_theta(mesh)
-        # kModel.KsMap = Maps.ExpMap(nP=mesh.nC)
-
-        # prob = Richards.RichardsProblem(
-        #     mesh,
-        #     kModel=kModel,
-        #     thetaModel=thetaModel,
-        #     timeSteps=[(40, 3), (60, 3)],
-        #     Solver=Solver,
-        #     boundary_conditions=bc,
-        #     initial_conditions=h,
-        #     do_newton=False,
-        #     method='mixed',
-        #     root_finder_tol=1e-6,
-        #     debug=False
-        # )
 
         locs = Utils.ndgrid(np.array([5, 7.]), np.array([5, 15, 25.]))
         times = prob.times[3:5]
@@ -189,81 +233,27 @@ class RichardsTests2D(unittest.TestCase):
         self.h0 = h
         self.mesh = mesh
         self.Ks = params['Ks'] * np.ones(mesh.nC)
+        self.mtrue = np.log(self.Ks)
         self.prob = prob
         self.survey = survey
 
     def test_Richards_getResidual_Newton(self):
-        self.prob.do_newton = True
-        m = self.Ks
-        passed = checkDerivative(
-            lambda hn1: self.prob.getResidual(
-                m,
-                self.h0,
-                hn1,
-                self.prob.timeSteps[0],
-                self.prob.boundary_conditions
-            ),
-            self.h0,
-            plotIt=False
-        )
-        self.assertTrue(passed, True)
+        self._dotest_getResidual(True)
 
     def test_Richards_getResidual_Picard(self):
-        self.prob.do_newton = False
-        m = self.Ks
-        passed = checkDerivative(
-            lambda hn1: self.prob.getResidual(
-                m,
-                self.h0,
-                hn1,
-                self.prob.timeSteps[0],
-                self.prob.boundary_conditions
-            ),
-            self.h0,
-            plotIt=False,
-            expectedOrder=1
-        )
-        self.assertTrue(passed, True)
+        self._dotest_getResidual(False)
 
-    def test_Adjoint(self):
-        v = np.random.rand(self.survey.nD)
-        z = np.random.rand(self.mesh.nC)
-        Hs = self.prob.fields(self.Ks)
-        vJz = v.dot(self.prob.Jvec(self.Ks, z, f=Hs))
-        zJv = z.dot(self.prob.Jtvec(self.Ks, v, f=Hs))
-        tol = TOL*(10**int(np.log10(np.abs(zJv))))
-        passed = np.abs(vJz - zJv) < tol
-        print('2D: Richards Adjoint Test - PressureHead')
-        print('{0:4.4e} === {1:4.4e}, diff={2:4.4e} < {3:4e}'.format(
-            vJz, zJv, np.abs(vJz - zJv), tol)
-        )
-        self.assertTrue(passed, True)
+    def test_adjoint(self):
+        self._dotest_adjoint()
 
-    def test_Sensitivity(self):
-        print('2D: Testing Richards Derivative')
-        mTrue = self.Ks*np.ones(self.mesh.nC)
-        passed = checkDerivative(
-            lambda m: [self.survey.dpred(m), lambda v: self.prob.Jvec(m, v)],
-            mTrue,
-            num=3,
-            plotIt=False
-        )
-        self.assertTrue(passed, True)
+    def test_sensitivity(self):
+        self._dotest_sensitivity()
 
-    def test_Sensitivity_full(self):
-        mTrue = self.Ks*np.ones(self.mesh.nC)
-        J = self.prob.Jfull(mTrue)
-        print('2D: Testing Richards Derivative FULL')
-        passed = checkDerivative(
-            lambda m: [self.survey.dpred(m), J],
-            mTrue,
-            num=4,
-            plotIt=False
-        )
-        self.assertTrue(passed, True)
+    def test_sensitivity_full(self):
+        self._dotest_sensitivity_full()
 
 
-class RichardsTests3D(unittest.TestCase):
+class RichardsTests3D(BaseRichardsTest):
 
     def setUp(self):
         mesh = Mesh.TensorMesh([np.ones(8), np.ones(20), np.ones(10)])
@@ -271,9 +261,8 @@ class RichardsTests3D(unittest.TestCase):
         mesh.setCellGradBC(['neumann', 'neumann', 'dirichlet'])
 
         params = Richards.Empirical.HaverkampParams().celia1990
-        params['Ks'] = np.log(params['Ks'])
-        E = Richards.Empirical.Haverkamp(mesh, **params)
-        E.kModel.KsMap = Maps.ExpMap(nP=mesh.nC)
+        k_fun, theta_fun = Richards.Empirical.haverkamp(mesh, **params)
+        k_fun.KsMap = Maps.ExpMap(nP=mesh.nC)
 
         bc = np.array([-61.5, -20.7])
         bc = np.r_[
@@ -285,7 +274,8 @@ class RichardsTests3D(unittest.TestCase):
         h = np.zeros(mesh.nC) + bc[0]
         prob = Richards.RichardsProblem(
             mesh,
-            mapping=E,
+            hydraulic_conductivity=k_fun,
+            water_retention=theta_fun,
             timeSteps=[(40, 3), (60, 3)],
             Solver=Solver,
             boundary_conditions=bc,
@@ -307,74 +297,24 @@ class RichardsTests3D(unittest.TestCase):
         self.h0 = h
         self.mesh = mesh
         self.Ks = params['Ks'] * np.ones(mesh.nC)
+        self.mtrue = np.log(self.Ks)
         self.prob = prob
         self.survey = survey
 
     def test_Richards_getResidual_Newton(self):
-        self.prob.do_newton = True
-        m = self.Ks
-        passed = checkDerivative(
-            lambda hn1: self.prob.getResidual(
-                m,
-                self.h0,
-                hn1,
-                self.prob.timeSteps[0],
-                self.prob.boundary_conditions
-            ),
-            self.h0,
-            plotIt=False
-        )
-        self.assertTrue(passed, True)
+        self._dotest_getResidual(True)
 
     def test_Richards_getResidual_Picard(self):
-        self.prob.do_newton = False
-        m = self.Ks
-        passed = checkDerivative(
-            lambda hn1: self.prob.getResidual(
-                m,
-                self.h0,
-                hn1,
-                self.prob.timeSteps[0],
-                self.prob.boundary_conditions
-            ),
-            self.h0,
-            plotIt=False,
-            expectedOrder=1
-        )
-        self.assertTrue(passed, True)
+        self._dotest_getResidual(False)
 
-    def test_Adjoint(self):
-        v = np.random.rand(self.survey.nD)
-        z = np.random.rand(self.mesh.nC)
-        Hs = self.prob.fields(self.Ks)
-        vJz = v.dot(self.prob.Jvec(self.Ks, z, f=Hs))
-        zJv = z.dot(self.prob.Jtvec(self.Ks, v, f=Hs))
-        tol = TOL*(10**int(np.log10(np.abs(zJv))))
-        passed = np.abs(vJz - zJv) < tol
-        print('3D: Richards Adjoint Test - PressureHead')
-        print('{0:4.4e} === {1:4.4e}, diff={2:4.4e} < {3:4e}'.format(
-            vJz, zJv, np.abs(vJz - zJv), tol)
-        )
-        self.assertTrue(passed, True)
+    def test_adjoint(self):
+        self._dotest_adjoint()
 
-    def test_Sensitivity(self):
-        mTrue = self.Ks*np.ones(self.mesh.nC)
-        print('3D: Testing Richards Derivative')
-        passed = checkDerivative(
-            lambda m: [self.survey.dpred(m), lambda v: self.prob.Jvec(m, v)],
-            mTrue,
-            num=4,
-            plotIt=False
-        )
-        self.assertTrue(passed, True)
+    def test_sensitivity(self):
+        self._dotest_sensitivity()
 
-    # def test_Sensitivity_full(self):
-    #     mTrue = self.Ks*np.ones(self.mesh.nC)
-    #     J = self.prob.Jfull(mTrue)
-    #     derChk = lambda m: [self.survey.dpred(m), J]
-    #     print('3D: Testing Richards Derivative FULL')
-    #     passed = checkDerivative(derChk, mTrue, num=4, plotIt=False)
-    #     self.assertTrue(passed,True)
+    # def test_sensitivity_full(self):
+    #     self._dotest_sensitivity_full()
 
 
 if __name__ == '__main__':
